@@ -2400,6 +2400,8 @@ HttpChannelChild::GetSecurityInfo(nsISupports** aSecurityInfo) {
 
 NS_IMETHODIMP
 HttpChannelChild::AsyncOpen(nsIStreamListener* aListener) {
+  recordreplay::RecordReplayAssert("HttpChannelChild::AsyncOpen %u", mSpec.Length());
+
   LOG(("HttpChannelChild::AsyncOpen [this=%p uri=%s]\n", this, mSpec.get()));
 
   nsresult rv = AsyncOpenInternal(aListener);

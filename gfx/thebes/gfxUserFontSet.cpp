@@ -506,6 +506,11 @@ void gfxUserFontEntry::DoLoadNextSrc(bool aForceAsync) {
   while (mSrcIndex < numSrc) {
     gfxFontFaceSrc& currSrc = mSrcList[mSrcIndex];
 
+  recordreplay::RecordReplayAssert("gfxUserFontEntry::DoLoadNextSrc %u",
+                                   currSrc.mURI
+                                   ? currSrc.mURI->GetSpecOrDefault().Length()
+                                   : 0);
+
     // src local ==> lookup and load immediately
 
     if (currSrc.mSourceType == gfxFontFaceSrc::eSourceType_Local) {
