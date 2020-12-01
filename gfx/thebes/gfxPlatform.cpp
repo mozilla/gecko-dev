@@ -2715,7 +2715,7 @@ void gfxPlatform::InitCompositorAccelerationPrefs() {
   if (recordreplay::IsRecordingOrReplaying()) {
     feature.ForceDisable(
         FeatureStatus::Blocked, "Acceleration blocked by recording/replaying",
-        NS_LITERAL_CSTRING("FEATURE_FAILURE_COMP_RECORDREPLAY"));
+        "FEATURE_FAILURE_COMP_RECORDREPLAY"_ns);
   }
 }
 

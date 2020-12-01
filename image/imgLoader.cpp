@@ -952,8 +952,8 @@ imgCacheEntry::imgCacheEntry(imgLoader* loader, imgRequest* request,
     : mLoader(loader),
       mRequest(request),
       mDataSize(0),
-      mTouchedTime(SecondsFromPRTime(RecordReplayNow("imgCacheEntry #1"))),
-      mLoadTime(SecondsFromPRTime(RecordReplayNow("imgCacheEntry #2"))),
+      mTouchedTime(SecondsFromPRTime(PR_Now())),
+      mLoadTime(SecondsFromPRTime(PR_Now())),
       mExpiryTime(0),
       mMustValidate(false),
       // We start off as evicted so we don't try to update the cache.
@@ -970,7 +970,7 @@ void imgCacheEntry::Touch(bool updateTime /* = true */) {
   LOG_SCOPE(gImgLog, "imgCacheEntry::Touch");
 
   if (updateTime) {
-    mTouchedTime = SecondsFromPRTime(RecordReplayNow("imgCacheEntry::Touch"));
+    mTouchedTime = SecondsFromPRTime(PR_Now());
   }
 
   UpdateCache();
@@ -985,7 +985,7 @@ void imgCacheEntry::UpdateCache(int32_t diff /* = 0 */) {
 }
 
 void imgCacheEntry::UpdateLoadTime() {
-  mLoadTime = SecondsFromPRTime(RecordReplayNow("imgCacheEntry::UpdateLoadTime"));
+  mLoadTime = SecondsFromPRTime(PR_Now());
 }
 
 void imgCacheEntry::SetHasNoProxies(bool hasNoProxies) {

@@ -723,6 +723,8 @@ AbortReasonOr<WarpScriptSnapshot*> WarpScriptOracle::createScriptSnapshot() {
       case JSOp::SetRval:
       case JSOp::Return:
       case JSOp::RetRval:
+      case JSOp::RecordReplayAssert:
+      case JSOp::ExecutionProgress:
         // Supported by WarpBuilder. Nothing to do.
         break;
 

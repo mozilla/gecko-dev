@@ -1331,7 +1331,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void ReleaseImageOnMainThread(already_AddRefed<image::Image>&& aImage,
-                                const StaticMutexAutoLock& aAutoLock) {
+                                const OrderedStaticMutexAutoLock& aAutoLock) {
     RefPtr<image::Image> image = aImage;
     if (!image) {
       return;
@@ -1351,7 +1351,7 @@ class SurfaceCacheImpl final : public nsIMemoryReporter {
   }
 
   void TakeReleasingImages(nsTArray<RefPtr<image::Image>>& aImage,
-                           const StaticMutexAutoLock& aAutoLock) {
+                           const OrderedStaticMutexAutoLock& aAutoLock) {
     MOZ_ASSERT(NS_IsMainThread());
     aImage.SwapElements(mReleasingImagesOnMainThread);
   }
@@ -1825,7 +1825,7 @@ void SurfaceCache::ReleaseImageOnMainThread(
     return;
   }
 
-  StaticMutexAutoLock lock(sInstanceMutex);
+  OrderedStaticMutexAutoLock lock(sInstanceMutex);
   if (sInstance) {
     sInstance->ReleaseImageOnMainThread(std::move(aImage), lock);
   } else {
@@ -1840,7 +1840,7 @@ void SurfaceCache::ClearReleasingImages() {
 
   nsTArray<RefPtr<image::Image>> images;
   {
-    StaticMutexAutoLock lock(sInstanceMutex);
+    OrderedStaticMutexAutoLock lock(sInstanceMutex);
     if (sInstance) {
       sInstance->TakeReleasingImages(images, lock);
     }

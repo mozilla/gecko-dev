@@ -459,11 +459,6 @@ inline void Scope::initData(
     MutableHandle<UniquePtr<typename ConcreteScope::Data>> data) {
   MOZ_ASSERT(!rawData());
 
-  if (data.get()->locations) {
-    AddCellMemory(this, data.get()->numLocations * sizeof(ScopeNameLocation),
-                  MemoryUse::ScopeData);
-  }
-
   AddCellMemory(this, SizeOfAllocatedData(data.get().get()),
                 MemoryUse::ScopeData);
 
@@ -638,10 +633,6 @@ Scope* Scope::clone(JSContext* cx, HandleScope scope, HandleScope enclosing) {
 void Scope::finalize(JSFreeOp* fop) {
   MOZ_ASSERT(CurrentThreadIsGCFinalizing());
   applyScopeDataTyped([this, fop](auto data) {
-    if (data->locations) {
-      fop->delete_(this, data->locations, data->numLocations * sizeof(ScopeNameLocation),
-                   MemoryUse::ScopeData);
-    }
     fop->delete_(this, data, SizeOfAllocatedData(data), MemoryUse::ScopeData);
   });
   setHeaderPtr(nullptr);

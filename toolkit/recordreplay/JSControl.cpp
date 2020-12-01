@@ -177,7 +177,7 @@ void OnTestCommand(const char* aString) {
   JSString* str = JS_NewStringCopyZ(cx, aString);
   MOZ_RELEASE_ASSERT(str);
 
-  JS::AutoValueArray<1> args(cx);
+  JS::RootedValueArray<1> args(cx);
   args[0].setString(str);
 
   RootedValue rv(cx);
@@ -264,7 +264,7 @@ void SendRecordingFinished() {
     JSString* str = JS_NewStringCopyZ(cx, reason);
     MOZ_RELEASE_ASSERT(str);
 
-    JS::AutoValueArray<1> args(cx);
+    JS::RootedValueArray<1> args(cx);
     args[0].setString(str);
 
     RootedValue rv(cx);
@@ -277,7 +277,7 @@ void SendRecordingFinished() {
   JSString* str = JS_NewStringCopyZ(cx, recordingId);
   MOZ_RELEASE_ASSERT(str);
 
-  JS::AutoValueArray<1> args(cx);
+  JS::RootedValueArray<1> args(cx);
   args[0].setString(str);
 
   RootedValue rv(cx);
@@ -423,7 +423,7 @@ static void ChangeInstrumentCallback(bool aValue) {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  JS::AutoValueArray<1> args(cx);
+  JS::RootedValueArray<1> args(cx);
   args[0].setBoolean(aValue);
 
   RootedValue rv(cx);
@@ -591,7 +591,7 @@ static char* CommandCallback(const char* aMethod, const char* aParams) {
     MOZ_CRASH("CommandCallback");
   }
 
-  JS::AutoValueArray<2> args(cx);
+  JS::RootedValueArray<2> args(cx);
   args[0].setString(method);
   args[1].set(params);
 
@@ -717,7 +717,7 @@ static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   if (gStatusCallback && *gStatusCallback) {
     JSAutoRealm ar(aCx, *gStatusCallback);
 
-    JS::AutoValueArray<3> newArgs(aCx);
+    JS::RootedValueArray<3> newArgs(aCx);
     newArgs[0].set(args.get(0));
     newArgs[1].set(args.get(1));
     newArgs[2].set(args.get(2));

@@ -291,8 +291,6 @@ class WrappedPtrOperations<Scope*, Wrapper> {
   }
 };
 
-struct ScopeNameLocation;
-
 //
 // The base class of all Scopes.
 //
@@ -426,8 +424,6 @@ class Scope : public gc::TenuredCellWithNonGCPointer<BaseScopeData> {
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
-  inline const ScopeNameLocation* getLocations(size_t* aNumLocations) const;
-
   void dump();
 #if defined(DEBUG) || defined(JS_JITSPEW)
   static bool dumpForDisassemble(JSContext* cx, JS::Handle<Scope*> scope,
@@ -439,11 +435,6 @@ template <class Data>
 inline size_t SizeOfScopeData(uint32_t numBindings) {
   return sizeof(Data) + ((numBindings ? numBindings - 1 : 0) *
                          sizeof(AbstractBindingName<typename Data::NameType>));
-}
-
-inline const ScopeNameLocation* Scope::getLocations(size_t* aNumLocations) const {
-  *aNumLocations = data_->numLocations;
-  return data_->locations;
 }
 
 //

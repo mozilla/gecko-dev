@@ -874,7 +874,7 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
            emitInstrumentationForOpcodeSlow(op, atomIndex);
   }
 
-  MOZ_MUST_USE bool maybeEmitRecordReplayAssert(uint32_t atomIndex) {
+  MOZ_MUST_USE bool maybeEmitRecordReplayAssert(GCThingIndex atomIndex) {
     if (ShouldEmitRecordReplayAssert(parser->options().filename(),
                                      bytecodeSection().currentLine(),
                                      bytecodeSection().lastColumn())) {
@@ -883,7 +883,7 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
     return true;
   }
 
-  MOZ_MUST_USE bool maybeEmitRecordReplayAssert(JSAtom* atom) {
+  MOZ_MUST_USE bool maybeEmitRecordReplayAssert(const ParserAtom* atom) {
     if (ShouldEmitRecordReplayAssert(parser->options().filename(),
                                      bytecodeSection().currentLine(),
                                      bytecodeSection().lastColumn())) {
@@ -897,7 +897,10 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
                                      bytecodeSection().currentLine(),
                                      bytecodeSection().lastColumn())) {
       JSAtom* atom = (JSAtom*) JS_AtomizeString(cx, str);
-      return atom && maybeEmitRecordReplayAssert(atom);
+      MOZ_RELEASE_ASSERT(atom);
+      const ParserAtom* patom = compilationInfo.lowerJSAtomToParserAtom(cx, atom);
+      MOZ_RELEASE_ASSERT(patom);
+      return maybeEmitRecordReplayAssert(patom);
     }
     return true;
   }

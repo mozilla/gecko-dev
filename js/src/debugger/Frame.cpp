@@ -1431,7 +1431,7 @@ bool DebuggerFrame::CallData::generatorGetter() {
 }
 
 bool DebuggerFrame::CallData::generatorIdGetter() {
-  if (!frame->hasGenerator()) {
+  if (!frame->hasGeneratorInfo()) {
     args.rval().setUndefined();
     return true;
   }

@@ -2921,6 +2921,29 @@ bool WarpBuilder::build_ThrowSetConst(BytecodeLocation loc) {
   return true;
 }
 
+bool WarpBuilder::build_RecordReplayAssert(BytecodeLocation loc) {
+  if (script_->trackRecordReplayProgress() || gForceEmitRecordReplayAsserts) {
+    PropertyName* name = loc.getAtom(script_)->asPropertyName();
+    auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
+    current->add(ins);
+    return resumeAfter(ins, loc);
+  }
+  current->pop();
+  return true;
+}
+
+bool WarpBuilder::build_ExecutionProgress(BytecodeLocation loc) {
+  if (!script_->trackRecordReplayProgress()) {
+    return true;
+  }
+
+  MExecutionProgress* progress = MExecutionProgress::New(alloc(), script_);
+  current->add(progress);
+
+  // MExecutionProgress is effectful and should not reexecute after bailing out.
+  return resumeAfter(progress, loc);
+}
+
 bool WarpBuilder::buildIC(BytecodeLocation loc, CacheKind kind,
                           std::initializer_list<MDefinition*> inputs) {
   MOZ_ASSERT(loc.opHasIC());

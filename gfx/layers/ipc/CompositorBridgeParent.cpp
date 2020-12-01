@@ -1018,7 +1018,7 @@ void CompositorBridgeParent::CompositeToTarget(VsyncId aId, DrawTarget* aTarget,
   mCompositionManager->ComputeRotation();
 
   SampleTime time = recordreplay::IsRecordingOrReplaying()
-    ? recordreplay::CompositeTime()
+    ? SampleTime::FromTest(recordreplay::CompositeTime())
     : (mTestTime ? SampleTime::FromTest(*mTestTime)
                  : mCompositorScheduler->GetLastComposeTime());
   bool requestNextFrame =

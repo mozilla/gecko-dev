@@ -826,26 +826,6 @@ bool ParserBase::noteUsedNameInternal(const ParserName* name,
                             tokenPosition);
 }
 
-static ScopeNameLocation ToNameLocation(const ErrorReporter& er, JSAtom* name, uint32_t pos) {
-  ScopeNameLocation location;
-  location.name = name;
-  er.lineAndColumnAt(pos, &location.line, &location.column);
-  return location;
-}
-
-static void CopyLocationsToScopeData(LifoAlloc& alloc, BaseScopeData* bindings,
-                                     const Vector<ScopeNameLocation>& locations) {
-  if (locations.length()) {
-    // Why is ScopeNameLocation not a POD type? It is a mystery.
-    ScopeNameLocation* newLocations = (ScopeNameLocation*)
-      alloc.newArray<char>(locations.length() * sizeof(ScopeNameLocation));
-
-    PodCopy(newLocations, locations.begin(), locations.length());
-    bindings->locations = newLocations;
-    bindings->numLocations = locations.length();
-  }
-}
-
 template <class ParseHandler>
 bool PerHandlerParser<ParseHandler>::
     propagateFreeNamesAndMarkClosedOverBindings(ParseContext::Scope& scope) {
@@ -1241,8 +1221,6 @@ Maybe<ParserFunctionScopeData*> NewFunctionScopeData(JSContext* cx,
       return Nothing();
     }
   }
-
-  Vector<ScopeNameLocation> locations(cx);
 
   for (BindingIter bi = scope.bindings(pc); bi; bi++) {
     ParserBindingName binding(bi.name(),
