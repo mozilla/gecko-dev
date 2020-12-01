@@ -648,7 +648,7 @@ static const char* sObserverTopics[] = {
 // ContentParent then takes this process back within GetNewOrUsedBrowserProcess.
 /*static*/ RefPtr<ContentParent::LaunchPromise>
 ContentParent::PreallocateProcess() {
-  RefPtr<ContentParent> process = new ContentParent(PREALLOC_REMOTE_TYPE);
+  RefPtr<ContentParent> process = new ContentParent(PREALLOC_REMOTE_TYPE, nsString());
 
   MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
           ("Preallocating process of type prealloc"));
@@ -1080,7 +1080,7 @@ ContentParent::GetNewOrUsedLaunchingBrowserProcess(
           ("Launching new process immediately for type %s",
            PromiseFlatCString(aRemoteType).get()));
 
-  contentParent = new ContentParent(aRemoteType);
+  contentParent = new ContentParent(aRemoteType, nsString());
   if (!contentParent->BeginSubprocessLaunch(aPriority)) {
     // Launch aborted because of shutdown. Bailout.
     contentParent->LaunchSubprocessReject();
@@ -2572,6 +2572,14 @@ RefPtr<ContentParent::LaunchPromise> ContentParent::LaunchSubprocessAsync(
         return LaunchPromise::CreateAndReject(LaunchError(), __func__);
       });
 }
+
+ContentParent::ContentParent(int32_t aPluginID)
+  : ContentParent(""_ns, aPluginID, nsString()) {}
+
+ContentParent::ContentParent(const nsACString& aRemoteType,
+                             const nsAString& aRecordingDispatchAddress)
+  : ContentParent(aRemoteType, nsFakePluginTag::NOT_JSPLUGIN,
+                  aRecordingDispatchAddress) {}
 
 ContentParent::ContentParent(const nsACString& aRemoteType, int32_t aJSPluginID,
                              const nsAString& aRecordingDispatchAddress)

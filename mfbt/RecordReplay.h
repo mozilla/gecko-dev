@@ -10,7 +10,6 @@
 #define mozilla_RecordReplay_h
 
 #include "mozilla/Attributes.h"
-#include "mozilla/GuardObjects.h"
 #include "mozilla/TemplateLib.h"
 #include "mozilla/Types.h"
 #include "mozilla/Utf8.h"

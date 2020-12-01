@@ -230,7 +230,7 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mHasPresented(false),
       mIsReadyToHandleInputEvents(false),
       mIsMouseEnterIntoWidgetEventSuppressed(false),
-      mIsActiveRecordReplayTab(false) {
+      mIsActiveRecordReplayTab(false),
       mSuspendedProgressEvents(false),
       mSuspendMediaWhenInactive(false) {
   MOZ_ASSERT(aManager);

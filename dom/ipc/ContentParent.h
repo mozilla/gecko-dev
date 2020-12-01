@@ -770,11 +770,9 @@ class ContentParent final
       bool aLoadUri, nsIContentSecurityPolicy* aCsp,
       const OriginAttributes& aOriginAttributes);
 
-  explicit ContentParent(int32_t aPluginID) : ContentParent(""_ns, aPluginID) {}
+  explicit ContentParent(int32_t aPluginID);
   explicit ContentParent(const nsACString& aRemoteType,
-                         const nsAString& aRecordingDispatchAddress)
-      : ContentParent(aRemoteType, nsFakePluginTag::NOT_JSPLUGIN,
-                      aRecordingDispatchAddress) {}
+                         const nsAString& aRecordingDispatchAddress);
 
   ContentParent(const nsACString& aRemoteType, int32_t aPluginID,
                 const nsAString& aRecordingDispatchAddress);
