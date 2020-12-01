@@ -21,4 +21,25 @@ the Record Replay gecko based browser.
 4. run `RECORD_REPLAY_NO_UPDATE=1 ./mach run`
 
 ### Troubleshooting Tips
+
 * If you change your PATH to point to a different version of say Python or Rust you need to rerun `./mach bootstrap` to get the build system to pick up the change.
+
+### Testing
+
+Locally built browsers will try to download updates after opening.
+Set the RECORD_REPLAY_NO_UPDATE environment variable when running to prevent this.
+
+If your browser has updated itself and you want to regenerate the
+install directory without having to rebuild everything, try:
+
+```
+rm -rf rr-opt/dist/Replay.app
+```
+
+### Merging from upstream
+
+1. Checkout the `release` branch, pull from upstream `release` branch.
+2. Create a new branch, merge from the `release` branch.
+3. Fix merge conflicts.
+4. Fix build breaks.
+5. Make sure the output binary is `replay` and not `firefox`. Traditionally this has been controlled by MOZ_APP_NAME during configuration.
