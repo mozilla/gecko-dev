@@ -122,6 +122,8 @@ void AnimationSurfaceProvider::Advance(size_t aFrame) {
     restartDecoder = mFrames->AdvanceTo(aFrame);
   }
 
+  recordreplay::RecordReplayAssert("AnimationSurfaceProvider::Advance %d", restartDecoder);
+
   if (restartDecoder) {
     DecodePool::Singleton()->AsyncRun(this);
   }
