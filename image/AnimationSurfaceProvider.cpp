@@ -25,7 +25,7 @@ AnimationSurfaceProvider::AnimationSurfaceProvider(
       mImage(aImage.get()),
       mDecodingMutex("AnimationSurfaceProvider::mDecoder"),
       mDecoder(aDecoder.get()),
-      mFramesMutex("AnimationSurfaceProvider::mFrames") {
+      mFramesMutex("AnimationSurfaceProvider::mFrames", /* aOrdered */ true) {
   MOZ_ASSERT(!mDecoder->IsMetadataDecode(),
              "Use MetadataDecodingTask for metadata decodes");
   MOZ_ASSERT(!mDecoder->IsFirstFrameDecode(),
