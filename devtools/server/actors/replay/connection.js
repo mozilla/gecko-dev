@@ -14,6 +14,8 @@ const { setTimeout } = Components.utils.import(
   "resource://gre/modules/Timer.jsm"
 );
 
+const { EventEmitter } = ChromeUtils.import("resource://gre/modules/EventEmitter.jsm");
+
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
 });
@@ -164,37 +166,65 @@ async function addRecordingResource(recordingId, url) {
   }
 }
 
-const recordingAsyncOperations = new Map();
-function getOrCreateRecordingAsyncOps(recordingId) {
-  let ops = recordingAsyncOperations.get(recordingId);
-  if (!ops) {
-    if (ops === null) {
-      console.error(
-        "Unexpectedly accessing async operation list after taking it."
-      );
+const SEEN_MANAGERS = new WeakSet();
+class Recording extends EventEmitter {
+  constructor(pmm) {
+    super();
+    if (SEEN_MANAGERS.has(pmm)) {
+      console.error("Duplicate recording for same child process manager");
+    }
+    SEEN_MANAGERS.add(pmm);
+
+    this._pmm = pmm;
+    this._resourceUploads = [];
+
+    this._pmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
+      receiveMessage: msg => this._onNewSourcemap(msg.data),
+    });
+    this._pmm.addMessageListener("RecordingFinished", {
+      receiveMessage: msg => this._onFinished(msg.data),
+    });
+    this._pmm.addMessageListener("RecordingUnusable", {
+      receiveMessage: msg => this._onUnusable(msg.data),
+    });
+  }
+
+  _onNewSourcemap({ recordingId, url, sourceMapURL }) {
+    this._resourceUploads.push(uploadAllSourcemapAssets(recordingId, url, sourceMapURL));
+  }
+
+  async _onFinished(data) {
+    this.emit("finished");
+    // NOTE(dmiller): this can be null in the devtools tests for some reason, but not in production
+    // Not sure why.
+    if (isRunningTest() && !data) {
+      console.log("got RecordingFinished with empty msg data, skipping");
+      return;
     }
 
-    ops = [];
-    recordingAsyncOperations.set(recordingId, ops);
+    await Promise.all([
+      sendCommand("Internal.setRecordingMetadata", {
+        authId: getLoggedInUserAuthId(),
+        recordingData: data,
+      }),
+
+      // Ensure that all sourcemap resources have been sent to the server before
+      // we consider the recording saved, so that we don't risk creating a
+      // recording session without all the maps available.
+      // NOTE: Since we only do this here, recordings that become unusable
+      // will never be cleaned up and will leak. We don't currently have
+      // an easy way to know the ID of unusable recordings, so we accept
+      // the leak as a minor issue.
+      Promise.allSettled(this._resourceUploads),
+    ]);
+
+    this.emit("saved", data);
   }
-  return ops;
-}
-function takeRecordingAsyncOps(recordingId) {
-  let ops = recordingAsyncOperations.get(recordingId);
-  // Set to null instead of deleting so we can show a warning if the
-  // recording's async operation list is accessed after this point.
-  recordingAsyncOperations.set(recordingId, null);
-  return ops || [];
-}
 
-Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
-  receiveMessage(msg) {
-    const { recordingId, url, sourceMapURL } = msg.data;
-
-    getOrCreateRecordingAsyncOps(recordingId)
-      .push(uploadAllSourcemapAssets(recordingId, url, sourceMapURL));
-  },
-});
+  _onUnusable(data) {
+    this.emit("unusable", data);
+  }
+}
 
 async function uploadAllSourcemapAssets(recordingId, url, sourceMapURL) {
   let resolvedSourceMapURL;
@@ -219,34 +249,6 @@ async function uploadAllSourcemapAssets(recordingId, url, sourceMapURL) {
     }));
   }
 }
-
-Services.ppmm.addMessageListener("RecordingFinished", {
-  async receiveMessage(msg) {
-    // NOTE(dmiller): this can be null in the devtools tests for some reason, but not in production
-    // Not sure why.
-    if (isRunningTest() && !msg.data) {
-      console.log("got RecordingFinished with empty msg data, skipping");
-      return;
-    }
-
-    await Promise.all([
-      sendCommand("Internal.setRecordingMetadata", {
-        authId: getLoggedInUserAuthId(),
-        recordingData: msg.data,
-      }),
-
-      // Ensure that all sourcemap resources have been sent to the server before
-      // we consider the recording saved, so that we don't risk creating a
-      // recording session without all the maps available.
-      // NOTE: Since we only do this here, recordings that become unusable
-      // will never be cleaned up and will leak. We don't currently have
-      // an easy way to know the ID of unusable recordings, so we accept
-      // the leak as a minor issue.
-      Promise.allSettled(takeRecordingAsyncOps(msg.data.id)),
-    ]);
-    Services.cpmm.sendAsyncMessage("RecordingSaved", msg.data);
-  },
-});
 
 function getLoggedInUserAuthId() {
   if (isRunningTest()) {
@@ -281,6 +283,12 @@ function onCommandResult(id, result) {
     gResultWaiters.delete(id);
   }
 }
+
+Services.ppmm.addMessageListener("RecordingStarting", {
+  receiveMessage(msg) {
+    Services.obs.notifyObservers(new Recording(msg.target), "recordreplay-recording-started");
+  },
+});
 
 // eslint-disable-next-line no-unused-vars
 var EXPORTED_SYMBOLS = ["Initialize"];

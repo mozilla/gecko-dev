@@ -1776,21 +1776,25 @@ function reloadAndRecordTab(gBrowser) {
 }
 
 let gFinishedRecordingWaiter;
+let gSavedRecordingWaiter;
 
-Services.ppmm.addMessageListener("RecordingFinished", {
-  receiveMessage() {
+function onRecordingStarted(recording) {
+  recording.on("saved", function(name, data) {
+    if (gSavedRecordingWaiter) {
+      gSavedRecordingWaiter(data);
+    }
+  });
+
+  recording.on("finished", function() {
     if (gFinishedRecordingWaiter) {
       gFinishedRecordingWaiter(true);
     }
-  },
-});
-
-Services.ppmm.addMessageListener("RecordingUnusable", {
-  receiveMessage(msg) {
+  });
+  recording.on("unusable", function(name, data) {
     if (gFinishedRecordingWaiter) {
       gFinishedRecordingWaiter(false);
     }
-    const { why } = msg.data;
+    const { why } = data;
     const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
     gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
       recordExecution: undefined,
@@ -1799,22 +1803,17 @@ Services.ppmm.addMessageListener("RecordingUnusable", {
     });
     const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
     gBrowser.loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
-  },
-});
+  });
+}
+
+Services.obs.addObserver(
+  subject => onRecordingStarted(subject.wrappedJSObject),
+  "recordreplay-recording-started"
+);
 
 function waitForFinishedRecording() {
   return new Promise((resolve) => (gFinishedRecordingWaiter = resolve));
 }
-
-let gSavedRecordingWaiter;
-
-Services.ppmm.addMessageListener("RecordingSaved", {
-  receiveMessage(msg) {
-    if (gSavedRecordingWaiter) {
-      gSavedRecordingWaiter(msg.data);
-    }
-  },
-});
 
 function waitForSavedRecording() {
   return new Promise((resolve) => (gSavedRecordingWaiter = resolve));
