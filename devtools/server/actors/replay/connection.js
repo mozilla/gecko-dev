@@ -170,6 +170,10 @@ class Recording extends EventEmitter {
     });
   }
 
+  get osPid() {
+    return this._pmm.osPid;
+  }
+
   _onNewSourcemap({ recordingId, url, sourceMapURL }) {
     this._resourceUploads.push(uploadAllSourcemapAssets(recordingId, url, sourceMapURL));
   }

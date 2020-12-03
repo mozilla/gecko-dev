@@ -1773,34 +1773,105 @@ function reloadAndRecordTab(gBrowser) {
   });
 }
 
-let gFinishedRecordingWaiter;
-let gSavedRecordingWaiter;
+function reloadAndStopRecordingTab(gBrowser) {
+  const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
+  if (!remoteTab || !remoteTab.finishRecording()) {
+    return;
+  }
+
+  recordReplayLog(`WaitForFinishedRecording`);
+}
+
+function getBrowserForPid(pid) {
+  for (const window of Services.wm.getEnumerator("navigator:browser")) {
+    for (const tab of window.gBrowser.tabs) {
+      const { remoteTab } = tab.linkedBrowser.frameLoader;
+      if (remoteTab && remoteTab.osPid === pid) {
+        return tab.linkedBrowser;
+      }
+    }
+  }
+  throw new Error("Unable to find browser for recording");
+}
 
 function onRecordingStarted(recording) {
-  recording.on("saved", function(name, data) {
-    if (gSavedRecordingWaiter) {
-      gSavedRecordingWaiter(data);
-    }
-  });
+  const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+  const browser = getBrowserForPid(recording.osPid);
+  let oldURL;
+  let urlLoadOpts;
 
-  recording.on("finished", function() {
-    if (gFinishedRecordingWaiter) {
-      gFinishedRecordingWaiter(true);
-    }
-  });
-  recording.on("unusable", function(name, data) {
-    if (gFinishedRecordingWaiter) {
-      gFinishedRecordingWaiter(false);
-    }
-    const { why } = data;
-    const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
-    gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
+  function clearRecordingState() {
+    browser.getTabBrowser().updateBrowserRemoteness(browser, {
       recordExecution: undefined,
       newFrameloader: true,
       remoteType: E10SUtils.WEB_REMOTE_TYPE,
     });
-    const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-    gBrowser.loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
+  }
+  recording.on("unusable", function(name, data) {
+    clearRecordingState();
+
+    const { why } = data;
+    browser.loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
+  });
+  recording.on("finished", function() {
+    clearRecordingState();
+
+    oldURL = browser.currentURI.spec
+    urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL }
+
+    // The recording has finished, so we need to navigate somewhere or else
+    // the user will be shown the tab-crash page while we wait for the recording
+    // to finish saving.
+    browser.loadURI(`about:blank`, urlLoadOpts);
+
+    recordReplayLog(`WaitForSavedRecording`);
+  });
+  recording.on("saved", function(name, data) {
+    const recordingId = data.id;
+
+    // When the submitTestRecordings pref is set we don't load the viewer,
+    // but show a simple page that the recording was submitted, to make things
+    // simpler for QA and provide feedback that the pref was set correctly.
+    if (
+      Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
+    ) {
+      fetch(`https://test-inbox.replay.io/${recordingId}:${oldURL}`);
+      const why = `Test recording added: ${recordingId}`;
+      browser.loadURI(`about:replay?submitted=${why}`, urlLoadOpts);
+      return;
+    }
+
+    recordReplayLog(`FinishedRecording ${recordingId}`);
+
+    let viewHost = "https://replay.io";
+
+    // For testing, allow overriding the host for the view page.
+    const hostOverride = env.get("RECORD_REPLAY_VIEW_HOST");
+    if (hostOverride) {
+      viewHost = hostOverride;
+    }
+
+    // Find the dispatcher to connect to.
+    const dispatchAddress = getDispatchServer();
+
+    let extra = "";
+
+    // Specify the dispatch address if it is not the default.
+    if (dispatchAddress != "wss://dispatch.replay.io") {
+      extra += `&dispatch=${dispatchAddress}`;
+    }
+
+    // For testing, allow specifying a test script to load in the tab.
+    const localTest = env.get("RECORD_REPLAY_LOCAL_TEST");
+    if (localTest) {
+      extra += `&test=${localTest}`;
+    } else if (!isAuthenticationEnabled()) {
+      // Adding this urlparam disables checks in the devtools that the user has
+      // permission to view the recording.
+      extra += `&test=1`;
+    }
+
+    browser.loadURI(`${viewHost}/view?id=${recordingId}${extra}`, urlLoadOpts);
   });
 }
 
@@ -1808,91 +1879,6 @@ Services.obs.addObserver(
   subject => onRecordingStarted(subject.wrappedJSObject),
   "recordreplay-recording-started"
 );
-
-function waitForFinishedRecording() {
-  return new Promise((resolve) => (gFinishedRecordingWaiter = resolve));
-}
-
-function waitForSavedRecording() {
-  return new Promise((resolve) => (gSavedRecordingWaiter = resolve));
-}
-
-async function reloadAndStopRecordingTab(gBrowser) {
-  const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
-  if (!remoteTab || !remoteTab.finishRecording()) {
-    return;
-  }
-
-  recordReplayLog(`WaitForFinishedRecording`);
-  const success = await waitForFinishedRecording();
-  if (!success) {
-    // The recording is unusable, so redirecting will be handled there.
-    return;
-  }
-
-  const oldURL = gBrowser.currentURI.spec;
-  const urlLoadOpts = {
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-    oldRecordedURL: oldURL,
-  };
-  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
-    recordExecution: undefined,
-    newFrameloader: true,
-    remoteType: E10SUtils.WEB_REMOTE_TYPE,
-  });
-
-  // The recording has finished, so we need to navigate somewhere or else
-  // the user will be shown the tab-crash page while we wait for the recording
-  // to finish saving.
-  gBrowser.loadURI(`about:blank`, urlLoadOpts);
-
-  recordReplayLog(`WaitForSavedRecording`);
-  const recordingId = (await waitForSavedRecording()).id;
-
-  // When the submitTestRecordings pref is set we don't load the viewer,
-  // but show a simple page that the recording was submitted, to make things
-  // simpler for QA and provide feedback that the pref was set correctly.
-  if (
-    Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
-  ) {
-    fetch(`https://test-inbox.replay.io/${recordingId}:${oldURL}`);
-    const why = `Test recording added: ${recordingId}`;
-    gBrowser.loadURI(`about:replay?submitted=${why}`, urlLoadOpts);
-    return;
-  }
-
-  recordReplayLog(`FinishedRecording ${recordingId}`);
-
-  let viewHost = "https://replay.io";
-
-  // For testing, allow overriding the host for the view page.
-  const hostOverride = env.get("RECORD_REPLAY_VIEW_HOST");
-  if (hostOverride) {
-    viewHost = hostOverride;
-  }
-
-  // Find the dispatcher to connect to.
-  const dispatchAddress = getDispatchServer();
-
-  let extra = "";
-
-  // Specify the dispatch address if it is not the default.
-  if (dispatchAddress != "wss://dispatch.replay.io") {
-    extra += `&dispatch=${dispatchAddress}`;
-  }
-
-  // For testing, allow specifying a test script to load in the tab.
-  const localTest = env.get("RECORD_REPLAY_LOCAL_TEST");
-  if (localTest) {
-    extra += `&test=${localTest}`;
-  } else if (!isAuthenticationEnabled()) {
-    // Adding this urlparam disables checks in the devtools that the user has
-    // permission to view the recording.
-    extra += `&test=1`;
-  }
-
-  gBrowser.loadURI(`${viewHost}/view?id=${recordingId}${extra}`, urlLoadOpts);
-}
 
 // See also aboutRecordings.js
 function getRecordingsPath() {
