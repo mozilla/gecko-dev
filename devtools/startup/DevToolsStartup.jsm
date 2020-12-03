@@ -1880,36 +1880,6 @@ Services.obs.addObserver(
   "recordreplay-recording-started"
 );
 
-// See also aboutRecordings.js
-function getRecordingsPath() {
-  let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  dir.append("Recordings");
-
-  if (!dir.exists()) {
-    OS.File.makeDir(dir.path);
-  }
-
-  dir.append("recordings.json");
-  return dir.path;
-}
-
-async function getRecordings() {
-  const path = getRecordingsPath();
-  if (await OS.File.exists(path)) {
-    const file = await OS.File.read(path);
-    return JSON.parse(new TextDecoder("utf-8").decode(file));
-  }
-
-  return [];
-}
-
-async function addRecordingDescription(description) {
-  const path = getRecordingsPath();
-
-  let recordings = await getRecordings();
-  OS.File.writeAtomic(path, JSON.stringify([description, ...recordings]));
-}
-
 function viewRecordings(evt) {
   const { gBrowser } = evt.target.ownerDocument.defaultView;
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
