@@ -442,9 +442,6 @@ partial namespace ChromeUtils {
   [ChromeOnly, Throws]
   void privateNoteIntentionalCrash();
 
-  DOMString getCloudReplayStatus();
-  void setCloudReplayStatusCallback(any callback);
-
   // This is used to generate fake media control keys event in testing.
   [ChromeOnly]
   void generateMediaControlKeysTestEvent(MediaControlKeysTestEvent aEvent);

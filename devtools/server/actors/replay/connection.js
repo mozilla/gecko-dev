@@ -20,64 +20,45 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
 });
 
-// This interface connects to the cloud service and manages uploading recording data.
+let updateStatusCallback = null;
+let connectionStatus = "cloudConnecting.label";
 
-// Worker which handles the sockets connecting to remote processes.
-let gWorker;
+function setConnectionStatusChangeCallback(callback) {
+  updateStatusCallback = callback;
+}
 
-// Callbacks supplied on startup.
-let gCallbacks;
+function getConnectionStatus() {
+  return connectionStatus;
+}
 
-let gConfig;
-
-// When connecting we open an initial channel for commands not associated with a recording.
-let gMainChannelId;
-
-// eslint-disable-next-line no-unused-vars
-function Initialize(callbacks) {
-  gWorker = new Worker("connection-worker.js");
-  gWorker.addEventListener("message", (evt) => {
-    try {
-      onMessage(evt);
-    } catch (e) {
-      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${e} ${e.stack}`);
-    }
-  });
-  gCallbacks = callbacks;
-
-  let address = Services.prefs.getStringPref(
-    "devtools.recordreplay.cloudServer"
-  );
-
-  const override = getenv("RECORD_REPLAY_SERVER");
-  if (override) {
-    address = override;
+const gWorker = new Worker("connection-worker.js");
+gWorker.addEventListener("message", (evt) => {
+  try {
+    onMessage(evt);
+  } catch (e) {
+    ChromeUtils.recordReplayLog(`RecordReplaySocketError ${e} ${e.stack}`);
   }
+});
 
-  // During automated tests, sometimes we want to use different dispatchers
-  // depending on the recording URL, e.g. to use a dispatcher on the localhost
-  // for the pages being tested but the normal dispatcher for recordings of the
-  // devtools viewer itself.
-  const altAddress = getenv("RECORD_REPLAY_ALTERNATE_SERVER");
-  const altPattern = getenv("RECORD_REPLAY_ALTERNATE_SERVER_PATTERN");
+let address = Services.prefs.getStringPref(
+  "devtools.recordreplay.cloudServer"
+);
 
-  gConfig = { address, altAddress, altPattern };
-
-  gMainChannelId = openChannel(address);
+const override = getenv("RECORD_REPLAY_SERVER");
+if (override) {
+  address = override;
 }
 
-let gNextChannelId = 1;
-
-function openChannel(address) {
-  const id = gNextChannelId++;
-  gWorker.postMessage({ kind: "openChannel", id, address });
-  return id;
-}
+const gMainChannelId = 1;
+gWorker.postMessage({ kind: "openChannel", id: gMainChannelId, address });
 
 function onMessage(evt) {
   switch (evt.data.kind) {
     case "updateStatus":
-      gCallbacks.updateStatus(evt.data.status);
+      connectionStatus = evt.data.status;
+      if (updateStatusCallback) {
+        updateStatusCallback(connectionStatus);
+      }
       break;
     case "commandResult":
       onCommandResult(evt.data.id, evt.data.result);
@@ -291,4 +272,4 @@ Services.ppmm.addMessageListener("RecordingStarting", {
 });
 
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["Initialize"];
+var EXPORTED_SYMBOLS = ["setConnectionStatusChangeCallback", "getConnectionStatus"];

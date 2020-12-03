@@ -35,6 +35,9 @@ const PROFILER_POPUP_ENABLED_PREF = "devtools.performance.popup.enabled";
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { getConnectionStatus, setConnectionStatusChangeCallback } = ChromeUtils.import(
+  "resource://devtools/server/actors/replay/connection.js"
+);
 
 ChromeUtils.defineModuleGetter(
   this,
@@ -1456,7 +1459,7 @@ function createRecordingButton() {
     type: "button",
     tooltiptext: "record-button.tooltiptext2",
     onClick() {
-      if (ChromeUtils.getCloudReplayStatus() || !gHasRecordingDriver) {
+      if (getConnectionStatus() || !gHasRecordingDriver) {
         return;
       }
 
@@ -1497,7 +1500,7 @@ function createRecordingButton() {
           node.classList.add("hidden");
         }
 
-        const status = ChromeUtils.getCloudReplayStatus();
+        const status = getConnectionStatus();
         let tooltip = status;
         if (status) {
           node.disabled = true;
@@ -1561,14 +1564,9 @@ function createRecordingButton() {
   CustomizableUI.createWidget(item);
   CustomizableWidgets.push(item);
 
-  let cloudStatusUpdatedCallback;
-
-  ChromeUtils.setCloudReplayStatusCallback((status, progress, max) => {
+  setConnectionStatusChangeCallback(status => {
     dump(`CloudReplayStatus ${status}\n`);
     refreshAllRecordingButtons();
-    if (cloudStatusUpdatedCallback) {
-      cloudStatusUpdatedCallback(status);
-    }
   });
 }
 
