@@ -1458,12 +1458,12 @@ function createRecordingButton() {
     id: "record-button",
     type: "button",
     tooltiptext: "record-button.tooltiptext2",
-    onClick() {
+    onClick(evt) {
       if (getConnectionStatus() || !gHasRecordingDriver) {
         return;
       }
 
-      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+      const { gBrowser } = evt.target.ownerDocument.defaultView;
       const recording = gBrowser.selectedBrowser.hasAttribute(
         "recordExecution"
       );
@@ -1541,8 +1541,8 @@ function createRecordingButton() {
     id: "replay-signin-button",
     type: "button",
     tooltiptext: "replay-signin-button.tooltiptext2",
-    onClick() {
-      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+    onClick(evt) {
+      const { gBrowser } = evt.target.ownerDocument.defaultView;
       const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
       gBrowser.loadURI("https://replay.io/view", { triggeringPrincipal });
     },
@@ -1910,8 +1910,8 @@ async function addRecordingDescription(description) {
   OS.File.writeAtomic(path, JSON.stringify([description, ...recordings]));
 }
 
-function viewRecordings() {
-  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+function viewRecordings(evt) {
+  const { gBrowser } = evt.target.ownerDocument.defaultView;
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
   gBrowser.loadURI(
     Services.prefs.getStringPref("devtools.recordreplay.recordingsUrl"),
