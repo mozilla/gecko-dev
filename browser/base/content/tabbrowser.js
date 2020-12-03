@@ -3920,6 +3920,14 @@
         );
       }
 
+      // Keep the recordExecution value if set on other browser
+      if (otherBrowser.hasAttribute("recordExecution")) {
+        ourBrowser.setAttribute(
+          "recordExecution",
+          otherBrowser.getAttribute("recordExecution")
+        );
+      }
+
       // That's gBrowser for the other window, not the tab's browser!
       var remoteBrowser = aOtherTab.ownerGlobal.gBrowser;
       var isPending = aOtherTab.hasAttribute("pending");

@@ -1783,12 +1783,21 @@ function getBrowserForPid(pid) {
 
 function onRecordingStarted(recording) {
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-  const browser = getBrowserForPid(recording.osPid);
+  let browser = getBrowserForPid(recording.osPid);
+  function getBrowser() {
+    // If the browser tab is moved to a new window, the cached browser object isn't
+    // valid anymore so we need to find the new one.
+    if (!browser.getTabBrowser()) {
+      browser = getBrowserForPid(recording.osPid)
+    }
+    return browser;
+  }
+
   let oldURL;
   let urlLoadOpts;
 
   function clearRecordingState() {
-    browser.getTabBrowser().updateBrowserRemoteness(browser, {
+    getBrowser().getTabBrowser().updateBrowserRemoteness(getBrowser(), {
       recordExecution: undefined,
       newFrameloader: true,
       remoteType: E10SUtils.WEB_REMOTE_TYPE,
@@ -1798,18 +1807,18 @@ function onRecordingStarted(recording) {
     clearRecordingState();
 
     const { why } = data;
-    browser.loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
+    getBrowser().loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
   });
   recording.on("finished", function() {
     clearRecordingState();
 
-    oldURL = browser.currentURI.spec
+    oldURL = getBrowser().currentURI.spec
     urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL }
 
     // The recording has finished, so we need to navigate somewhere or else
     // the user will be shown the tab-crash page while we wait for the recording
     // to finish saving.
-    browser.loadURI(`about:blank`, urlLoadOpts);
+    getBrowser().loadURI(`about:blank`, urlLoadOpts);
 
     recordReplayLog(`WaitForSavedRecording`);
   });
@@ -1824,7 +1833,7 @@ function onRecordingStarted(recording) {
     ) {
       fetch(`https://test-inbox.replay.io/${recordingId}:${oldURL}`);
       const why = `Test recording added: ${recordingId}`;
-      browser.loadURI(`about:replay?submitted=${why}`, urlLoadOpts);
+      getBrowser().loadURI(`about:replay?submitted=${why}`, urlLoadOpts);
       return;
     }
 
@@ -1858,7 +1867,7 @@ function onRecordingStarted(recording) {
       extra += `&test=1`;
     }
 
-    browser.loadURI(`${viewHost}/view?id=${recordingId}${extra}`, urlLoadOpts);
+    getBrowser().loadURI(`${viewHost}/view?id=${recordingId}${extra}`, urlLoadOpts);
   });
 }
 
