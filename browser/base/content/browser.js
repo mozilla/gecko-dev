@@ -3674,7 +3674,7 @@ function BrowserReloadWithFlags(reloadFlags) {
       // Recording tabs always use new content processes when reloading, to get
       // a fresh recording.
       gBrowser.updateBrowserRemoteness(browser, {
-        recordExecution: "*",
+        recordExecution: browser.getAttribute("recordExecution"),
         newFrameloader: true,
         remoteType: E10SUtils.DEFAULT_REMOTE_TYPE,
       });

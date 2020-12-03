@@ -1783,11 +1783,13 @@ function getBrowserForPid(pid) {
 
 function onRecordingStarted(recording) {
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-  let browser = getBrowserForPid(recording.osPid);
+  // There can occasionally be times when the browser isn't found when the
+  // recording begins, so we lazily look it up the first time it is needed.
+  let browser = null;
   function getBrowser() {
     // If the browser tab is moved to a new window, the cached browser object isn't
     // valid anymore so we need to find the new one.
-    if (!browser.getTabBrowser()) {
+    if (!browser || !browser.getTabBrowser()) {
       browser = getBrowserForPid(recording.osPid)
     }
     return browser;
