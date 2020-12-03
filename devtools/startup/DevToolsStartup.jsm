@@ -1488,17 +1488,8 @@ function createRecordingButton() {
       node.refreshStatus = () => {
         const recording = selectedBrowserHasAttribute("recordExecution");
 
-        if (recording) {
-          node.classList.add("recording");
-        } else {
-          node.classList.remove("recording");
-        }
-
-        if (!isAuthenticationEnabled() || isLoggedIn() || isRunningTest()) {
-          node.classList.remove("hidden");
-        } else {
-          node.classList.add("hidden");
-        }
+        node.classList.toggle("recording", recording);
+        node.classList.toggle("hidden", isAuthenticationEnabled() && !isLoggedIn() && !isRunningTest());
 
         const status = getConnectionStatus();
         let tooltip = status;
@@ -1548,11 +1539,7 @@ function createRecordingButton() {
     },
     onCreated(node) {
       node.refreshStatus = () => {
-        if (!isAuthenticationEnabled() || isLoggedIn() || isRunningTest()) {
-          node.classList.add("hidden");
-        } else {
-          node.classList.remove("hidden");
-        }
+        node.classList.toggle("hidden", !isAuthenticationEnabled() || isLoggedIn() || isRunningTest());
       };
       node.refreshStatus();
 
