@@ -2209,7 +2209,6 @@ STATIC_ATOMS = [
     Atom("forcemessagemanager", "forcemessagemanager"),
     Atom("preloadedState", "preloadedState"),
     Atom("RecordExecution", "recordExecution"),
-    Atom("ReplayExecution", "replayExecution"),
 
     # windows media query names
     Atom("windows_win7", "windows-win7"),
