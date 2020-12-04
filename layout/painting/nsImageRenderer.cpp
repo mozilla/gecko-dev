@@ -93,6 +93,8 @@ static bool ShouldTreatAsCompleteDueToSyncDecode(const StyleImage* aImage,
 }
 
 bool nsImageRenderer::PrepareImage() {
+  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage");
+
   if (mImage->IsNone() ||
       (mImage->IsImageRequestType() && !mImage->GetImageRequest())) {
     // mImage->GetImageRequest() could be null here if the StyleImage refused
@@ -100,6 +102,8 @@ bool nsImageRenderer::PrepareImage() {
     mPrepareResult = ImgDrawResult::BAD_IMAGE;
     return false;
   }
+
+  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1");
 
   if (!mImage->IsComplete()) {
     // Make sure the image is actually decoding.
@@ -123,6 +127,8 @@ bool nsImageRenderer::PrepareImage() {
       return false;
     }
   }
+
+  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #2");
 
   if (mImage->IsImageRequestType()) {
     MOZ_ASSERT(mImage->GetImageRequest(),
@@ -184,6 +190,8 @@ bool nsImageRenderer::PrepareImage() {
   } else {
     MOZ_ASSERT(mImage->IsNone(), "Unknown image type?");
   }
+
+  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #3");
 
   return IsReady();
 }

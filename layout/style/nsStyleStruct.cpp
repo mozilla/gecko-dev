@@ -1563,17 +1563,22 @@ bool StyleImage::IsComplete() const {
       return true;
     case Tag::Url:
     case Tag::Rect: {
+      recordreplay::RecordReplayAssert("StyleImage::IsComplete #1");
       if (!IsResolved()) {
+        recordreplay::RecordReplayAssert("StyleImage::IsComplete #2");
         return false;
       }
       imgRequestProxy* req = GetImageRequest();
       if (!req) {
+        recordreplay::RecordReplayAssert("StyleImage::IsComplete #3");
         return false;
       }
       uint32_t status = imgIRequest::STATUS_ERROR;
-      return NS_SUCCEEDED(req->GetImageStatus(&status)) &&
+      bool rv = NS_SUCCEEDED(req->GetImageStatus(&status)) &&
              (status & imgIRequest::STATUS_SIZE_AVAILABLE) &&
              (status & imgIRequest::STATUS_FRAME_COMPLETE);
+      recordreplay::RecordReplayAssert("StyleImage::IsComplete #4");
+      return rv;
     }
     default:
       MOZ_ASSERT_UNREACHABLE("unexpected image type");
