@@ -1812,10 +1812,10 @@ function onRecordingStarted(recording) {
     getBrowser().loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
   });
   recording.on("finished", function() {
-    clearRecordingState();
+    oldURL = getBrowser().currentURI.spec;
+    urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL };
 
-    oldURL = getBrowser().currentURI.spec
-    urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL }
+    clearRecordingState();
 
     // The recording has finished, so we need to navigate somewhere or else
     // the user will be shown the tab-crash page while we wait for the recording
