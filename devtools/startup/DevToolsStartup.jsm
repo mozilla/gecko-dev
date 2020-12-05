@@ -1604,7 +1604,7 @@ function getRecordReplayPlatform() {
     case "macosx":
       return "macOS";
     case "linux":
-      return "linux":
+      return "linux";
     default:
       throw new Error(`Unrecognized platform ${AppConstants.platform}`);
   }
