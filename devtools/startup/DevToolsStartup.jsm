@@ -1599,18 +1599,34 @@ function getDispatchServer(url) {
   return Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
 }
 
-const DriverName = "macOS-recordreplay.so";
-const DriverJSON = "macOS-recordreplay.json";
+function getRecordReplayPlatform() {
+  switch (AppConstants.platform) {
+    case "macosx":
+      return "macOS";
+    case "linux":
+      return "linux";
+    default:
+      throw new Error(`Unrecognized platform ${AppConstants.platform}`);
+  }
+}
+
+function DriverName() {
+  return `${getRecordReplayPlatform()}-recordreplay.so`;
+}
+
+function DriverJSON() {
+  return `${getRecordReplayPlatform()}-recordreplay.json`;
+}
 
 function driverFile() {
   const file = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  file.append(DriverName);
+  file.append(DriverName());
   return file;
 }
 
 function driverJSONFile() {
   const file = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  file.append(DriverJSON);
+  file.append(DriverJSON());
   return file;
 }
 
@@ -1657,7 +1673,7 @@ async function updateRecordingDriver() {
     // If we have already downloaded the driver, redownload the server JSON
     // (much smaller than the driver itself) to see if anything has changed.
     if (json.exists() && driver.exists()) {
-      const response = await fetchURL(`${downloadURL}/${DriverJSON}`);
+      const response = await fetchURL(`${downloadURL}/${DriverJSON()}`);
       if (!response) {
         dump(`updateRecordingDriver JSONFetchFailed\n`);
         return;
@@ -1674,14 +1690,14 @@ async function updateRecordingDriver() {
       }
     }
 
-    const jsonResponse = await fetchURL(`${downloadURL}/${DriverJSON}`);
+    const jsonResponse = await fetchURL(`${downloadURL}/${DriverJSON()}`);
     if (!jsonResponse) {
       dump(`updateRecordingDriver UpdateNeeded JSONFetchFailed\n`);
       return;
     }
     OS.File.writeAtomic(json.path, await jsonResponse.text());
 
-    const driverResponse = await fetchURL(`${downloadURL}/${DriverName}`);
+    const driverResponse = await fetchURL(`${downloadURL}/${DriverName()}`);
     if (!driverResponse) {
       dump(`updateRecordingDriver UpdateNeeded DriverFetchFailed\n`);
       return;
@@ -1812,10 +1828,10 @@ function onRecordingStarted(recording) {
     getBrowser().loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
   });
   recording.on("finished", function() {
-    clearRecordingState();
+    oldURL = getBrowser().currentURI.spec;
+    urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL };
 
-    oldURL = getBrowser().currentURI.spec
-    urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL }
+    clearRecordingState();
 
     // The recording has finished, so we need to navigate somewhere or else
     // the user will be shown the tab-crash page while we wait for the recording
