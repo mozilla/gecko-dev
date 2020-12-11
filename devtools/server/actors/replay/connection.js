@@ -180,12 +180,6 @@ class Recording extends EventEmitter {
 
   async _onFinished(data) {
     this.emit("finished");
-    // NOTE(dmiller): this can be null in the devtools tests for some reason, but not in production
-    // Not sure why.
-    if (isRunningTest() && !data) {
-      console.log("got RecordingFinished with empty msg data, skipping");
-      return;
-    }
 
     await Promise.all([
       sendCommand("Internal.setRecordingMetadata", {
