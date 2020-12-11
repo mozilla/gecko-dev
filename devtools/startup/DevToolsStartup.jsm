@@ -1836,7 +1836,7 @@ function onRecordingStarted(recording) {
     // The recording has finished, so we need to navigate somewhere or else
     // the user will be shown the tab-crash page while we wait for the recording
     // to finish saving.
-    getBrowser().loadURI(`about:blank`, urlLoadOpts);
+    getBrowser().loadURI(`${getViewURL()}?loading=true`, urlLoadOpts);
 
     recordReplayLog(`WaitForSavedRecording`);
   });
@@ -1856,14 +1856,6 @@ function onRecordingStarted(recording) {
     }
 
     recordReplayLog(`FinishedRecording ${recordingId}`);
-
-    let viewHost = "https://replay.io";
-
-    // For testing, allow overriding the host for the view page.
-    const hostOverride = env.get("RECORD_REPLAY_VIEW_HOST");
-    if (hostOverride) {
-      viewHost = hostOverride;
-    }
 
     // Find the dispatcher to connect to.
     const dispatchAddress = getDispatchServer();
@@ -1885,7 +1877,7 @@ function onRecordingStarted(recording) {
       extra += `&test=1`;
     }
 
-    getBrowser().loadURI(`${viewHost}/view?id=${recordingId}${extra}`, urlLoadOpts);
+    getBrowser().loadURI(`${getViewURL()}?id=${recordingId}${extra}`, urlLoadOpts);
   });
 }
 
@@ -1893,6 +1885,17 @@ Services.obs.addObserver(
   subject => onRecordingStarted(subject.wrappedJSObject),
   "recordreplay-recording-started"
 );
+
+function getViewURL() {
+  let viewHost = "https://replay.io";
+
+  // For testing, allow overriding the host for the view page.
+  const hostOverride = env.get("RECORD_REPLAY_VIEW_HOST");
+  if (hostOverride) {
+    viewHost = hostOverride;
+  }
+  return `${viewHost}/view`;
+}
 
 function viewRecordings(evt) {
   const { gBrowser } = evt.target.ownerDocument.defaultView;
