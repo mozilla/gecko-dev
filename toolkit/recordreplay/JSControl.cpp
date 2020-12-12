@@ -602,8 +602,7 @@ static char* CommandCallback(const char* aMethod, const char* aParams) {
   }
 
   if (!rv.isObject()) {
-    PrintLog("Error: CommandCallback result must be an object %s", aMethod);
-    MOZ_CRASH("CommandCallback");
+    return nullptr;
   }
 
   RootedObject obj(cx, &rv.toObject());
