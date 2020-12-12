@@ -33,6 +33,7 @@ namespace js {
 static void (*gOnNewSource)(const char* aId, const char* aKind, const char* aUrl);
 static char* (*gGetRecordingId)();
 static void (*gSetDefaultCommandCallback)(char* (*aCallback)(const char*, const char*));
+static void (*gSetClearPauseDataCallback)(void (*aCallback)());
 static void (*gSetChangeInstrumentCallback)(void (*aCallback)(bool));
 static void (*gInstrument)(const char* aKind, const char* aFunctionId, int aOffset);
 static void (*gOnExceptionUnwind)();
@@ -48,6 +49,9 @@ static char* (*gGetUnusableRecordingReason)();
 // some state.
 static char* CommandCallback(const char* aMethod, const char* aParams);
 
+// Callback used to clear ObjectId associations.
+static void ClearPauseDataCallback();
+
 // Callback used to change whether execution is being scanned and we should
 // call OnInstrument.
 static void ChangeInstrumentCallback(bool aValue);
@@ -57,6 +61,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayOnNewSource", gOnNewSource);
   LoadSymbol("RecordReplayGetRecordingId", gGetRecordingId);
   LoadSymbol("RecordReplaySetDefaultCommandCallback", gSetDefaultCommandCallback);
+  LoadSymbol("RecordReplaySetClearPauseDataCallback", gSetClearPauseDataCallback);
   LoadSymbol("RecordReplaySetChangeInstrumentCallback", gSetChangeInstrumentCallback);
   LoadSymbol("RecordReplayOnInstrument", gInstrument);
   LoadSymbol("RecordReplayOnExceptionUnwind", gOnExceptionUnwind);
@@ -69,6 +74,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayGetUnusableRecordingReason", gGetUnusableRecordingReason);
 
   gSetDefaultCommandCallback(CommandCallback);
+  gSetClearPauseDataCallback(ClearPauseDataCallback);
   gSetChangeInstrumentCallback(ChangeInstrumentCallback);
 }
 
@@ -614,6 +620,20 @@ static char* CommandCallback(const char* aMethod, const char* aParams) {
   }
 
   return strdup(str.get());
+}
+
+static void ClearPauseDataCallback() {
+  MOZ_RELEASE_ASSERT(js::IsModuleInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JS::AutoValueArray<0> args(cx);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *js::gModuleObject, "ClearPauseData", args, &rv)) {
+    MOZ_CRASH("ClearPauseDataCallback");
+  }
 }
 
 }  // namespace js

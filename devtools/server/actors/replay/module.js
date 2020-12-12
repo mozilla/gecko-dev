@@ -470,6 +470,7 @@ const exports = {
   SendRecordingUnusable,
   OnTestCommand,
   OnProtocolCommand,
+  ClearPauseData,
   SetScanningScripts,
 };
 
@@ -586,8 +587,6 @@ function OnConsoleAPICall(message) {
   };
   RecordReplayControl.onConsoleMessage(0);
   gCurrentConsoleMessage = null;
-
-  clearPauseState();
 }
 
 if (isRecordingOrReplaying) {
@@ -831,9 +830,8 @@ const gPauseObjects = new IdMap();
 // Map raw object => Debugger.Object
 const gCanonicalObjects = new Map();
 
-// Clear out object state and associated strong references after getting object
-// IDs for the protocol and then resuming execution.
-function clearPauseState() {
+// Clear out object state and associated strong references.
+function ClearPauseData() {
   gPauseObjects.clear();
   gCanonicalObjects.clear();
 }
