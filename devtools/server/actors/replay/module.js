@@ -570,11 +570,6 @@ function consoleAPIMessageLevel({ level }) {
 function OnConsoleAPICall(message) {
   message = message.wrappedJSObject;
 
-  let argumentValues;
-  if (message.arguments) {
-    argumentValues = message.arguments.map(createProtocolValueRaw);
-  }
-
   gCurrentConsoleMessage = {
     source: "ConsoleAPI",
     level: consoleAPIMessageLevel(message),
@@ -583,7 +578,7 @@ function OnConsoleAPICall(message) {
     sourceId: geckoSourceIdToProtocolId(message.sourceId),
     line: message.lineNumber,
     column: message.columnNumber,
-    argumentValues,
+    messageArguments: message.arguments,
   };
   RecordReplayControl.onConsoleMessage(0);
   gCurrentConsoleMessage = null;
@@ -602,7 +597,17 @@ if (isRecordingOrReplaying) {
 
 function Target_getCurrentMessageContents() {
   assert(gCurrentConsoleMessage);
-  return gCurrentConsoleMessage;
+
+  let argumentValues;
+  if (gCurrentConsoleMessage.messageArguments) {
+    argumentValues = gCurrentConsoleMessage.messageArguments.map(createProtocolValueRaw);
+  }
+
+  return {
+    ...gCurrentConsoleMessage,
+    argumentValues,
+    messageArguments: undefined,
+  };
 }
 
 ///////////////////////////////////////////////////////////////////////////////
