@@ -425,6 +425,7 @@ const commands = {
   "Pause.getObjectPreview": Pause_getObjectPreview,
   "Pause.getObjectProperty": Pause_getObjectProperty,
   "Pause.getScope": Pause_getScope,
+  "Pause.getTopFrame": Pause_getTopFrame,
   "Debugger.getPossibleBreakpoints": Debugger_getPossibleBreakpoints,
   "Debugger.getSourceContents": Debugger_getSourceContents,
   "CSS.getAppliedRules": CSS_getAppliedRules,
@@ -447,6 +448,7 @@ const commands = {
   "Target.getStepOffsets": Target_getStepOffsets,
   "Target.getSourceMapURL": Target_getSourceMapURL,
   "Target.getSheetSourceMapURL": Target_getSheetSourceMapURL,
+  "Target.topFrameLocation": Target_topFrameLocation,
 };
 
 function OnProtocolCommand(method, params) {
@@ -972,10 +974,7 @@ function getFunctionLocation(obj) {
   }
 }
 
-function createProtocolFrame(frameId, frame) {
-  const type = getFrameType(frame);
-  const sourceId = sourceToProtocolSourceId(frame.script.source);
-
+function getFrameLocation(frame) {
   // Find the line/column for this frame. This is a bit tricky because we want
   // positions that are consistent with those for any breakpoint we are
   // paused at. When pausing at a breakpoint the frame won't actually be at
@@ -995,13 +994,16 @@ function createProtocolFrame(frameId, frame) {
   } catch (e) {}
   const { lineNumber, columnNumber } = frame.script.getOffsetMetadata(offset);
 
-  const location = [
-    {
-      sourceId,
-      line: lineNumber,
-      column: columnNumber,
-    },
-  ];
+  const sourceId = sourceToProtocolSourceId(frame.script.source);
+  return {
+    sourceId,
+    line: lineNumber,
+    column: columnNumber,
+  };
+}
+
+function createProtocolFrame(frameId, frame) {
+  const type = getFrameType(frame);
 
   let functionName;
   let functionLocation;
@@ -1018,7 +1020,7 @@ function createProtocolFrame(frameId, frame) {
     type,
     functionName,
     functionLocation,
-    location,
+    location: [getFrameLocation(frame)],
     scopeChain,
     this: thisv,
   };
@@ -1037,7 +1039,7 @@ function createProtocolFrame(frameId, frame) {
       case "module":
         return "module";
     }
-    ThrowError("Bad frame type");
+    throw new Error(`Bad frame type ${frame.type}`);
   }
 
   function getScopeChain(frame) {
@@ -1584,7 +1586,7 @@ function createProtocolScope(scopeId) {
       case "declarative":
         return env.callee ? "function" : "block";
     }
-    ThrowError("Bad environment type");
+    throw new Error(`Bad environment type ${env.type}`);
   }
 }
 
@@ -1664,6 +1666,17 @@ function Pause_getAllFrames() {
     frames: frameIds.reverse(),
     data: { frames: frameData },
   };
+}
+
+function Pause_getTopFrame() {
+  const numFrames = countScriptFrames();
+  if (numFrames) {
+    const frame = scriptFrameForIndex(numFrames - 1);
+    const id = String(numFrames - 1);
+    const frameData = createProtocolFrame(id, frame);
+    return { frame: id, data: { frames: [frameData] } };
+  }
+  return { data: {} };
 }
 
 function Target_countStackFrames() {
@@ -1786,6 +1799,14 @@ function Target_getSheetSourceMapURL({ sheet }) {
   const sheetObj = getObjectFromId(sheet).unsafeDereference();
   const url = sheetObj.sourceMapURL || undefined;
   return { url };
+}
+
+function Target_topFrameLocation() {
+  const frame = gDebugger.getNewestFrame();
+  if (!frame) {
+    return {};
+  }
+  return { location: getFrameLocation(frame) };
 }
 
 ///////////////////////////////////////////////////////////////////////////////
