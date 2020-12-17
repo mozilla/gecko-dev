@@ -51,6 +51,8 @@ layers::OffsetRange ShmSegmentsWriter::Write(Range<uint8_t> aBytes) {
   const size_t start = mCursor;
   const size_t length = aBytes.length();
 
+  recordreplay::RecordReplayAssert("ShmSegmentsWriter::Write %lu %lu", start, length);
+
   if (length >= mChunkSize * 4) {
     auto range = AllocLargeChunk(length);
     if (range.length()) {

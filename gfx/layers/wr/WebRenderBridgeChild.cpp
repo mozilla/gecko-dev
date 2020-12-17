@@ -34,7 +34,9 @@ WebRenderBridgeChild::WebRenderBridgeChild(const wr::PipelineId& aPipelineId)
       mDestroyed(false),
       mSentDisplayList(false),
       mFontKeysDeleted(),
-      mFontInstanceKeysDeleted() {}
+      mFontInstanceKeysDeleted() {
+  recordreplay::RecordReplayAssert("WebRenderBridgeChild::WebRenderBridgeChild");
+}
 
 WebRenderBridgeChild::~WebRenderBridgeChild() {
   MOZ_ASSERT(NS_IsMainThread());

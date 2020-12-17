@@ -2955,7 +2955,8 @@ void gfxPlatform::InitWebRenderConfig() {
 
   // gfxFeature is not usable in the GPU process, so we use gfxVars to transmit
   // this feature
-  if (gfxConfig::IsEnabled(Feature::WEBRENDER)) {
+  if (gfxConfig::IsEnabled(Feature::WEBRENDER) &&
+      !recordreplay::IsRecordingOrReplaying()) {
     gfxVars::SetUseWebRender(true);
     reporter.SetSuccessful();
 
