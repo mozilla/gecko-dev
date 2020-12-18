@@ -216,6 +216,7 @@ struct MOZ_STACK_CLASS DebuggerScript::CallData {
 
   bool getIsGeneratorFunction();
   bool getIsAsyncFunction();
+  bool getIsDefaultClassConstructor();
   bool getIsFunction();
   bool getIsModule();
   bool getDisplayName();
@@ -284,6 +285,14 @@ bool DebuggerScript::CallData::getIsAsyncFunction() {
     return false;
   }
   args.rval().setBoolean(obj->getReferentScript()->isAsync());
+  return true;
+}
+
+bool DebuggerScript::CallData::getIsDefaultClassConstructor() {
+  if (!ensureScriptMaybeLazy()) {
+    return false;
+  }
+  args.rval().setBoolean(obj->getReferentScript()->isDefaultClassConstructor());
   return true;
 }
 
@@ -2418,6 +2427,7 @@ bool DebuggerScript::construct(JSContext* cx, unsigned argc, Value* vp) {
 const JSPropertySpec DebuggerScript::properties_[] = {
     JS_DEBUG_PSG("isGeneratorFunction", getIsGeneratorFunction),
     JS_DEBUG_PSG("isAsyncFunction", getIsAsyncFunction),
+    JS_DEBUG_PSG("isDefaultClassConstructor", getIsDefaultClassConstructor),
     JS_DEBUG_PSG("isFunction", getIsFunction),
     JS_DEBUG_PSG("isModule", getIsModule),
     JS_DEBUG_PSG("displayName", getDisplayName),
