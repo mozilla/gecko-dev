@@ -529,12 +529,20 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
   }
 
   bool forceSync = mSyncDecodingHint;
+
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding %d %d",
+                                   forceSync, aPrepareNextRequest);
+
   if (!forceSync && aPrepareNextRequest) {
     // Detect JavaScript-based animations created by changing the |src|
     // attribute on a timer.
     TimeStamp now = TimeStamp::Now();
     TimeDuration threshold = TimeDuration::FromMilliseconds(
         StaticPrefs::image_infer_src_animation_threshold_ms());
+
+    recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #1 %d %d",
+                                    (now - mMostRecentRequestChange).ToMilliseconds(),
+                                    threshold.ToMilliseconds());
 
     // If the length of time between request changes is less than the threshold,
     // then force sync decoding to eliminate flicker from the animation.
