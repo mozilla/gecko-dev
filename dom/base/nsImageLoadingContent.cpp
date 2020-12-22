@@ -540,6 +540,9 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
     TimeDuration threshold = TimeDuration::FromMilliseconds(
         StaticPrefs::image_infer_src_animation_threshold_ms());
 
+    recordreplay::RecordReplayBytes("nsImageLoadingContent::MaybeForceSyncDecoding threshold",
+                                    &threshold, sizeof(threshold));
+
     recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #1 %d %d",
                                     (now - mMostRecentRequestChange).ToMilliseconds(),
                                     threshold.ToMilliseconds());
