@@ -952,10 +952,17 @@ void LayerTransactionParent::NotifyNotUsed(PTextureParent* aTexture,
 
 bool LayerTransactionParent::BindLayerToHandle(RefPtr<Layer> aLayer,
                                                const LayerHandle& aHandle) {
+  if (!aHandle) {
+    recordreplay::PrintLog("LayerTransactionParent::BindLayerToHandle NoHandle");
+  }
+  if (!aLayer) {
+    recordreplay::PrintLog("LayerTransactionParent::BindLayerToHandle NoLayer");
+  }
   if (!aHandle || !aLayer) {
     return false;
   }
   if (auto entry = mLayerMap.LookupForAdd(aHandle.Value())) {
+    recordreplay::PrintLog("LayerTransactionParent::BindLayerToHandle LookupForAdd failed");
     return false;
   } else {
     entry.OrInsert([&aLayer]() { return aLayer; });
