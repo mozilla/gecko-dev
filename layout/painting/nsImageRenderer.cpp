@@ -57,7 +57,13 @@ nsImageRenderer::nsImageRenderer(nsIFrame* aForFrame, const StyleImage* aImage,
       mSize(0, 0),
       mFlags(aFlags),
       mExtendMode(ExtendMode::CLAMP),
-      mMaskOp(StyleMaskMode::MatchSource) {}
+      mMaskOp(StyleMaskMode::MatchSource) {
+  recordreplay::RegisterThing(this);
+}
+
+nsImageRenderer::~nsImageRenderer() {
+  recordreplay::UnregisterThing(this);
+}
 
 static bool ShouldTreatAsCompleteDueToSyncDecode(const StyleImage* aImage,
                                                  uint32_t aFlags) {
@@ -92,8 +98,28 @@ static bool ShouldTreatAsCompleteDueToSyncDecode(const StyleImage* aImage,
   return true;
 }
 
+static const char* GetStyleImageType(const StyleImage* aImage) {
+  if (aImage->IsNone()) {
+    return "None";
+  }
+  if (aImage->IsUrl()) {
+    return "Url";
+  }
+  if (aImage->IsGradient()) {
+    return "Gradient";
+  }
+  if (aImage->IsRect()) {
+    return "Rect";
+  }
+  if (aImage->IsElement()) {
+    return "Element";
+  }
+  return "Unknown";
+}
+
 bool nsImageRenderer::PrepareImage() {
-  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage");
+  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage %d %s",
+                                   recordreplay::ThingIndex(this), GetStyleImageType(mImage));
 
   if (mImage->IsNone() ||
       (mImage->IsImageRequestType() && !mImage->GetImageRequest())) {
