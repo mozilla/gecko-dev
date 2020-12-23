@@ -23,7 +23,7 @@ const { Debugger, RecordReplayControl, Services, InspectorUtils } = sandbox;
 
 // This script can be loaded into non-recording/replaying processes during automated tests.
 // In non-recording/replaying processes there are no properties on RecordReplayControl.
-const isRecordingOrReplaying = !!RecordReplayControl.progressCounter;
+const isRecordingOrReplaying = !!RecordReplayControl.onNewSource;
 
 if (isRecordingOrReplaying) {
   Services.cpmm.sendAsyncMessage("RecordingStarting");
@@ -187,10 +187,6 @@ class ArrayMap {
 // Main Logic
 ///////////////////////////////////////////////////////////////////////////////
 
-function CanCreateCheckpoint() {
-  return countScriptFrames() == 0;
-}
-
 const gNewGlobalHooks = [];
 gDebugger.onNewGlobalObject = (global) => {
   try {
@@ -211,13 +207,6 @@ gDebugger.onExceptionUnwind = (frame, value) => {
 gDebugger.onDebuggerStatement = () => {
   RecordReplayControl.onDebuggerStatement();
 };
-
-// The UI process must wait until the content global is created here before
-// URLs can be loaded.
-Services.obs.addObserver(
-  { observe: () => Services.cpmm.sendAsyncMessage("RecordingInitialized") },
-  "content-document-global-created"
-);
 
 // Associate each Debugger.Script with a numeric ID.
 const gScripts = new IdMap();
@@ -366,19 +355,6 @@ getWindow().docShell.chromeEventHandler.addEventListener(
   true
 );
 
-function advanceProgressCounter() {
-  if (!isRecordingOrReplaying) {
-    return;
-  }
-  let progress = RecordReplayControl.progressCounter();
-  RecordReplayControl.setProgressCounter(++progress);
-  return progress;
-}
-
-function OnMouseEvent(time, kind, x, y) {
-  advanceProgressCounter();
-}
-
 const { DebuggerNotificationObserver } = Cu.getGlobalForObject(
   require("resource://devtools/shared/Loader.jsm")
 );
@@ -477,8 +453,6 @@ function OnProtocolCommand(method, params) {
 }
 
 const exports = {
-  CanCreateCheckpoint,
-  OnMouseEvent,
   SendRecordingFinished,
   SendRecordingUnusable,
   OnTestCommand,
