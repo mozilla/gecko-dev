@@ -79,26 +79,32 @@ function considerScript(script) {
     !script.isDefaultClassConstructor;
 }
 
-function countScriptFrames() {
-  let count = 0;
+// Call the callback for each frame, starting at the oldest to the newest.
+function findScriptFrame(callback) {
+  const frames = [];
   for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
     if (considerScript(frame.script)) {
-      count++;
+      frames.push(frame);
     }
   }
-  return count;
+
+  for (let i = frames.length - 1; i >= 0; i--) {
+    const frame = frames[i];
+    if (callback(frame, i)) {
+      return frame;
+    }
+  }
+  return null;
 }
 
-function scriptFrameForIndex(index) {
-  index = countScriptFrames() - 1 - index;
-  for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
-    if (considerScript(frame.script)) {
-      if (index-- == 0) {
-        return frame;
-      }
-    }
-  }
-  throw new Error("Can't find frame");
+function forEachScriptFrame(callback) {
+  findScriptFrame((frame, index) => { callback(frame, index); });
+}
+
+function countScriptFrames() {
+  let count = 0;
+  forEachScriptFrame(() => count++);
+  return count;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1646,7 +1652,11 @@ function convertBindings(bindings) {
 }
 
 function Pause_evaluateInFrame({ frameId, expression, bindings }) {
-  const frame = scriptFrameForIndex(Number(frameId));
+  const frameIndexNum = Number(frameId);
+  const frame = findScriptFrame((_, i) => i === frameIndexNum);
+  if (!frame) {
+    throw new Error("Can't find frame");
+  }
 
   const newBindings = convertBindings(bindings);
   const completion = frame.evalWithBindings(expression, newBindings);
@@ -1666,13 +1676,13 @@ function Pause_evaluateInGlobal({ expression, bindings }) {
 function Pause_getAllFrames() {
   const frameIds = [];
   const frameData = [];
-  const numFrames = countScriptFrames();
-  for (let i = 0; i < numFrames; i++) {
-    const frame = scriptFrameForIndex(i);
+
+  forEachScriptFrame((frame, i) => {
     const id = String(i);
     frameIds.push(id);
     frameData.push(createProtocolFrame(id, frame));
-  }
+  });
+
   return {
     frames: frameIds.reverse(),
     data: { frames: frameData },
