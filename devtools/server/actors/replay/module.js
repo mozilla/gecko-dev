@@ -21,11 +21,13 @@ addDebuggerToGlobal(this);
 );
 const { Debugger, RecordReplayControl, Services, InspectorUtils } = sandbox;
 
-Services.cpmm.sendAsyncMessage("RecordingStarting");
-
 // This script can be loaded into non-recording/replaying processes during automated tests.
 // In non-recording/replaying processes there are no properties on RecordReplayControl.
 const isRecordingOrReplaying = !!RecordReplayControl.progressCounter;
+
+if (isRecordingOrReplaying) {
+  Services.cpmm.sendAsyncMessage("RecordingStarting");
+}
 
 const log = RecordReplayControl.log;
 
