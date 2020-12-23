@@ -125,11 +125,11 @@ function isNonNullObject(obj) {
 }
 
 // Bidirectional map between values and numeric IDs.
-function IdMap() {
-  this.clear();
-}
+class IdMap {
+  constructor() {
+    this.clear();
+  }
 
-IdMap.prototype = {
   add(obj) {
     if (this._objectMap.has(obj)) {
       return this._objectMap.get(obj);
@@ -138,15 +138,15 @@ IdMap.prototype = {
     this._idMap.push(obj);
     this._objectMap.set(obj, id);
     return id;
-  },
+  }
 
   getId(obj) {
     return this._objectMap.get(obj) || 0;
-  },
+  }
 
   getObject(id) {
     return this._idMap[id];
-  },
+  }
 
   map(callback) {
     const rv = [];
@@ -154,34 +154,34 @@ IdMap.prototype = {
       rv.push(callback(i));
     }
     return rv;
-  },
+  }
 
   forEach(callback) {
     for (let i = 1; i < this._idMap.length; i++) {
       callback(i, this._idMap[i]);
     }
-  },
+  }
 
   clear() {
     this._idMap = [undefined];
     this._objectMap = new Map();
-  },
-};
-
-// Map from keys to arrays of values.
-function ArrayMap() {
-  this.map = new Map();
+  }
 }
 
-ArrayMap.prototype = {
+// Map from keys to arrays of values.
+class ArrayMap {
+  constructor() {
+    this.map = new Map();
+  }
+
   add(key, value) {
     if (this.map.has(key)) {
       this.map.get(key).push(value);
     } else {
       this.map.set(key, [value]);
     }
-  },
-};
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Main Logic
