@@ -549,9 +549,8 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
     mMostRecentRequestChange = now;
   }
 
-  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #1 %d %d",
-                                  (now - mMostRecentRequestChange).ToMilliseconds(),
-                                  threshold.ToMilliseconds());
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #1 %d",
+                                   forceSync);
 
   if (imageFrame) {
     imageFrame->SetForceSyncDecoding(forceSync);
