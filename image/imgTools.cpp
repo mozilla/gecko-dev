@@ -283,7 +283,11 @@ class ImageDecoderHelper final : public Runnable,
  private:
   ~ImageDecoderHelper() {
     // Avoid posting runnables at non-deterministic points when recording/replaying.
-    if (!recordreplay::IsRecordingOrReplaying()) {
+    if (recordreplay::IsRecordingOrReplaying()) {
+      // Leak references.
+      (void)mImage.forget().take();
+      (void)mCallback.forget().take();
+    } else {
       NS_ReleaseOnMainThreadSystemGroup("ImageDecoderHelper::mImage",
                                         mImage.forget());
       NS_ReleaseOnMainThreadSystemGroup("ImageDecoderHelper::mCallback",
