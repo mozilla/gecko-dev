@@ -771,12 +771,14 @@ function Target_convertFunctionOffsetToLocation({ functionId, offset }) {
     return { location };
   }
 
-  const breakpoints = script.getPossibleBreakpoints();
-  const bp = breakpoints.find((bp) => bp.offset == offset);
-  if (!bp) {
+  const meta = script.getOffsetMetadata(offset);
+  if (!meta) {
     throw new Error(`convertFunctionOffsetToLocation unknown offset ${offset}`);
   }
-  const location = { sourceId, line: bp.lineNumber, column: bp.columnNumber };
+  if (!meta.isBreakpoint) {
+    throw new Error(`convertFunctionOffsetToLocation non-breakpoint offset ${offset}`);
+  }
+  const location = { sourceId, line: meta.lineNumber, column: meta.columnNumber };
   return { location };
 }
 
