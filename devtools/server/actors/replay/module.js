@@ -603,6 +603,9 @@ if (isRecordingOrReplaying) {
 function Target_getCurrentMessageContents() {
   assert(gCurrentConsoleMessage);
 
+  // We need to create protocol values for the raw arguments within this command,
+  // as the paused objects might have been cleared out after after notifying
+  // the driver.
   let argumentValues;
   if (gCurrentConsoleMessage.messageArguments) {
     argumentValues = gCurrentConsoleMessage.messageArguments.map(createProtocolValueRaw);
