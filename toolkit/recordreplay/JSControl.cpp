@@ -373,28 +373,6 @@ static bool Method_AreThreadEventsDisallowed(JSContext* aCx,
   return true;
 }
 
-static bool Method_ProgressCounter(JSContext* aCx, unsigned aArgc,
-                                         Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-  args.rval().setNumber((double)*ExecutionProgressCounter());
-  return true;
-}
-
-static bool Method_SetProgressCounter(JSContext* aCx, unsigned aArgc,
-                                      Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isNumber()) {
-    JS_ReportErrorASCII(aCx, "Expected numeric argument");
-    return false;
-  }
-
-  *ExecutionProgressCounter() = args.get(0).toNumber();
-
-  args.rval().setUndefined();
-  return true;
-}
-
 static bool Method_ShouldUpdateProgressCounter(JSContext* aCx,
                                                unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
@@ -561,8 +539,6 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("annotate", Method_Annotate, 1, 0),
   JS_FN("onNewSource", Method_OnNewSource, 3, 0),
   JS_FN("areThreadEventsDisallowed", Method_AreThreadEventsDisallowed, 0, 0),
-  JS_FN("progressCounter", Method_ProgressCounter, 0, 0),
-  JS_FN("setProgressCounter", Method_SetProgressCounter, 1, 0),
   JS_FN("shouldUpdateProgressCounter", Method_ShouldUpdateProgressCounter, 1, 0),
   JS_FN("instrumentationCallback", Method_InstrumentationCallback, 3, 0),
   JS_FN("isScanningScripts", Method_IsScanningScripts, 0, 0),

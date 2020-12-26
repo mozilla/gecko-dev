@@ -21,11 +21,13 @@ addDebuggerToGlobal(this);
 );
 const { Debugger, RecordReplayControl, Services, InspectorUtils } = sandbox;
 
-Services.cpmm.sendAsyncMessage("RecordingStarting");
-
 // This script can be loaded into non-recording/replaying processes during automated tests.
 // In non-recording/replaying processes there are no properties on RecordReplayControl.
-const isRecordingOrReplaying = !!RecordReplayControl.progressCounter;
+const isRecordingOrReplaying = !!RecordReplayControl.onNewSource;
+
+if (isRecordingOrReplaying) {
+  Services.cpmm.sendAsyncMessage("RecordingStarting");
+}
 
 const log = RecordReplayControl.log;
 
@@ -79,26 +81,32 @@ function considerScript(script) {
     !script.isDefaultClassConstructor;
 }
 
-function countScriptFrames() {
-  let count = 0;
+// Call the callback for each frame, starting at the oldest to the newest.
+function findScriptFrame(callback) {
+  const frames = [];
   for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
     if (considerScript(frame.script)) {
-      count++;
+      frames.push(frame);
     }
   }
-  return count;
+
+  for (let i = frames.length - 1; i >= 0; i--) {
+    const frame = frames[i];
+    if (callback(frame, i)) {
+      return frame;
+    }
+  }
+  return null;
 }
 
-function scriptFrameForIndex(index) {
-  index = countScriptFrames() - 1 - index;
-  for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
-    if (considerScript(frame.script)) {
-      if (index-- == 0) {
-        return frame;
-      }
-    }
-  }
-  throw new Error("Can't find frame");
+function forEachScriptFrame(callback) {
+  findScriptFrame((frame, index) => { callback(frame, index); });
+}
+
+function countScriptFrames() {
+  let count = 0;
+  forEachScriptFrame(() => count++);
+  return count;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -117,11 +125,11 @@ function isNonNullObject(obj) {
 }
 
 // Bidirectional map between values and numeric IDs.
-function IdMap() {
-  this.clear();
-}
+class IdMap {
+  constructor() {
+    this.clear();
+  }
 
-IdMap.prototype = {
   add(obj) {
     if (this._objectMap.has(obj)) {
       return this._objectMap.get(obj);
@@ -130,15 +138,15 @@ IdMap.prototype = {
     this._idMap.push(obj);
     this._objectMap.set(obj, id);
     return id;
-  },
+  }
 
   getId(obj) {
     return this._objectMap.get(obj) || 0;
-  },
+  }
 
   getObject(id) {
     return this._idMap[id];
-  },
+  }
 
   map(callback) {
     const rv = [];
@@ -146,42 +154,38 @@ IdMap.prototype = {
       rv.push(callback(i));
     }
     return rv;
-  },
+  }
 
   forEach(callback) {
     for (let i = 1; i < this._idMap.length; i++) {
       callback(i, this._idMap[i]);
     }
-  },
+  }
 
   clear() {
     this._idMap = [undefined];
     this._objectMap = new Map();
-  },
-};
-
-// Map from keys to arrays of values.
-function ArrayMap() {
-  this.map = new Map();
+  }
 }
 
-ArrayMap.prototype = {
+// Map from keys to arrays of values.
+class ArrayMap {
+  constructor() {
+    this.map = new Map();
+  }
+
   add(key, value) {
     if (this.map.has(key)) {
       this.map.get(key).push(value);
     } else {
       this.map.set(key, [value]);
     }
-  },
-};
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Main Logic
 ///////////////////////////////////////////////////////////////////////////////
-
-function CanCreateCheckpoint() {
-  return countScriptFrames() == 0;
-}
 
 const gNewGlobalHooks = [];
 gDebugger.onNewGlobalObject = (global) => {
@@ -203,13 +207,6 @@ gDebugger.onExceptionUnwind = (frame, value) => {
 gDebugger.onDebuggerStatement = () => {
   RecordReplayControl.onDebuggerStatement();
 };
-
-// The UI process must wait until the content global is created here before
-// URLs can be loaded.
-Services.obs.addObserver(
-  { observe: () => Services.cpmm.sendAsyncMessage("RecordingInitialized") },
-  "content-document-global-created"
-);
 
 // Associate each Debugger.Script with a numeric ID.
 const gScripts = new IdMap();
@@ -358,19 +355,6 @@ getWindow().docShell.chromeEventHandler.addEventListener(
   true
 );
 
-function advanceProgressCounter() {
-  if (!isRecordingOrReplaying) {
-    return;
-  }
-  let progress = RecordReplayControl.progressCounter();
-  RecordReplayControl.setProgressCounter(++progress);
-  return progress;
-}
-
-function OnMouseEvent(time, kind, x, y) {
-  advanceProgressCounter();
-}
-
 const { DebuggerNotificationObserver } = Cu.getGlobalForObject(
   require("resource://devtools/shared/Loader.jsm")
 );
@@ -469,8 +453,6 @@ function OnProtocolCommand(method, params) {
 }
 
 const exports = {
-  CanCreateCheckpoint,
-  OnMouseEvent,
   SendRecordingFinished,
   SendRecordingUnusable,
   OnTestCommand,
@@ -765,12 +747,14 @@ function Target_convertFunctionOffsetToLocation({ functionId, offset }) {
     return { location };
   }
 
-  const breakpoints = script.getPossibleBreakpoints();
-  const bp = breakpoints.find((bp) => bp.offset == offset);
-  if (!bp) {
+  const meta = script.getOffsetMetadata(offset);
+  if (!meta) {
     throw new Error(`convertFunctionOffsetToLocation unknown offset ${offset}`);
   }
-  const location = { sourceId, line: bp.lineNumber, column: bp.columnNumber };
+  if (!meta.isBreakpoint) {
+    throw new Error(`convertFunctionOffsetToLocation non-breakpoint offset ${offset}`);
+  }
+  const location = { sourceId, line: meta.lineNumber, column: meta.columnNumber };
   return { location };
 }
 
@@ -1646,7 +1630,11 @@ function convertBindings(bindings) {
 }
 
 function Pause_evaluateInFrame({ frameId, expression, bindings }) {
-  const frame = scriptFrameForIndex(Number(frameId));
+  const frameIndexNum = Number(frameId);
+  const frame = findScriptFrame((_, i) => i === frameIndexNum);
+  if (!frame) {
+    throw new Error("Can't find frame");
+  }
 
   const newBindings = convertBindings(bindings);
   const completion = frame.evalWithBindings(expression, newBindings);
@@ -1666,13 +1654,13 @@ function Pause_evaluateInGlobal({ expression, bindings }) {
 function Pause_getAllFrames() {
   const frameIds = [];
   const frameData = [];
-  const numFrames = countScriptFrames();
-  for (let i = 0; i < numFrames; i++) {
-    const frame = scriptFrameForIndex(i);
+
+  forEachScriptFrame((frame, i) => {
     const id = String(i);
     frameIds.push(id);
     frameData.push(createProtocolFrame(id, frame));
-  }
+  });
+
   return {
     frames: frameIds.reverse(),
     data: { frames: frameData },
