@@ -284,17 +284,6 @@ gDebugger.onNewScript = (script) => {
   }
 };
 
-//getWindow().docShell.watchedByDevtools = true;
-Services.obs.addObserver(
-  {
-    observe(subject) {
-      subject.QueryInterface(Ci.nsIDocShell);
-      subject.watchedByDevtools = true;
-    },
-  },
-  "webnavigation-create"
-);
-
 const gHtmlContent = new Map();
 
 function Target_getHTMLSource({ url }) {
