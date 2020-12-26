@@ -604,7 +604,7 @@ static void ClearPauseDataCallback() {
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
 
-  JS::AutoValueArray<0> args(cx);
+  JS::RootedValueArray<0> args(cx);
 
   RootedValue rv(cx);
   if (!JS_CallFunctionName(cx, *js::gModuleObject, "ClearPauseData", args, &rv)) {

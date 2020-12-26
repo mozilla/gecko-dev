@@ -168,32 +168,16 @@ UNIFIED_SOURCES += [
     "Utf8.cpp",
 ]
 
-<<<<<<< HEAD
-if CONFIG['MOZ_BUILD_APP'] not in (
-        'memory',
-        'tools/crashreporter',
-        'tools/update-packaging',
-        'tools/update-programs',
-    ):
-    # RecordReplay.cpp uses files from js/
-    UNIFIED_SOURCES += [
-        'RecordReplay.cpp',
-    ]
-||||||| 0aa061dd71c2
-if CONFIG['MOZ_BUILD_APP'] not in (
-        'memory',
-        'tools/crashreporter',
-        'tools/update-packaging',
-        'tools/update-programs',
-    ):
-=======
 if CONFIG["MOZ_BUILD_APP"] not in (
     "memory",
     "tools/crashreporter",
     "tools/update-packaging",
     "tools/update-programs",
 ):
->>>>>>> release
+    # RecordReplay.cpp uses files from js/
+    UNIFIED_SOURCES += [
+        "RecordReplay.cpp",
+    ]
     # Building MFBT tests adds a large overhead when building.
     TEST_DIRS += ["tests"]
 

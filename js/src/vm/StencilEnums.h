@@ -258,6 +258,8 @@ enum class ImmutableScriptFlagsEnum : uint32_t {
   // All of 'this', 'arguments' and f.apply() are used. This is likely to be a
   // wrapper. This is a heuristic that affects Type Inference.
   IsLikelyConstructorWrapper = 1 << 28,
+
+  IsDefaultClassConstructor = 1 << 29,
 };
 
 enum class MutableScriptFlagsEnum : uint32_t {

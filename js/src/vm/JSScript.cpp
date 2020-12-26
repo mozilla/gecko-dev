@@ -1269,6 +1269,11 @@ void JSScript::setDefaultClassConstructorSpan(uint32_t start, uint32_t end,
   // can clear its self-hosted flag, allowing Debugger to see it.
   clearFlag(ImmutableFlags::SelfHosted);
 
+  // Remember this is a default class constructor cloned from a self hosted
+  // script, as it won't have instrumentation and should be ignored on stack
+  // when recording/replaying.
+  setFlag(ImmutableFlags::IsDefaultClassConstructor);
+
   // Even though the script was cloned from the self-hosted template, we cannot
   // delazify back to a SelfHostedLazyScript. The script is no longer marked as
   // SelfHosted either.

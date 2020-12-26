@@ -88,7 +88,7 @@ bool ElemOpEmitter::emitPrivateGuard() {
 bool ElemOpEmitter::emitGet() {
   MOZ_ASSERT(state_ == State::Key);
 
-  if (!bce_->maybeEmitRecordReplayAssert("GetElem")) {
+  if (!bce_->maybeEmitRecordReplayAssert(bce_->cx->parserNames().element)) {
     return false;
   }
 
@@ -152,7 +152,7 @@ bool ElemOpEmitter::emitGet() {
     }
   }
 
-  if (!bce_->maybeEmitRecordReplayAssert("GetElemValue")) {
+  if (!bce_->maybeEmitRecordReplayAssert(bce_->cx->parserNames().element)) {
     return false;
   }
 

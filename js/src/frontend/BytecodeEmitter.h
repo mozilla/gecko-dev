@@ -891,19 +891,6 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
     return true;
   }
 
-  MOZ_MUST_USE bool maybeEmitRecordReplayAssert(const char* str) {
-    if (ShouldEmitRecordReplayAssert(parser->options().filename(),
-                                     bytecodeSection().currentLine(),
-                                     bytecodeSection().lastColumn())) {
-      JSAtom* atom = (JSAtom*) JS_AtomizeString(cx, str);
-      MOZ_RELEASE_ASSERT(atom);
-      const ParserAtom* patom = compilationInfo.lowerJSAtomToParserAtom(cx, atom);
-      MOZ_RELEASE_ASSERT(patom);
-      return maybeEmitRecordReplayAssert(patom);
-    }
-    return true;
-  }
-
   MOZ_MUST_USE js::UniquePtr<ImmutableScriptData> createImmutableScriptData(
       JSContext* cx);
 

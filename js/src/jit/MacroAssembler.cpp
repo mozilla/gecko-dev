@@ -2293,7 +2293,7 @@ void MacroAssembler::printf(const char* output, Register value) {
 #endif
 }
 
-static void CallExecutionProgressHook(JSScript* aScript) {
+void jit::CallExecutionProgressHook(JSScript* aScript) {
   AutoUnsafeCallWithABI unsafe;
   ExecutionProgressHook(aScript->filename(), aScript->lineno(), aScript->column());
 }
@@ -2309,10 +2309,12 @@ void MacroAssembler::maybeCallExecutionProgressHook(void* script) {
 
   Register temp = regs.takeAnyGeneral();
 
+  using Fn = void (*)(JSScript* script);
   setupUnalignedABICall(temp);
   movePtr(ImmPtr(script), temp);
   passABIArg(temp);
-  callWithABI(JS_FUNC_TO_DATA_PTR(void*, CallExecutionProgressHook));
+  callWithABI<Fn, CallExecutionProgressHook>
+      (MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
 
   PopRegsInMask(save);
 }
@@ -2326,9 +2328,11 @@ void MacroAssembler::maybeCallExecutionProgressHook(Register script) {
 
   Register temp = regs.takeAnyGeneral();
 
+  using Fn = void (*)(JSScript* script);
   setupUnalignedABICall(temp);
   passABIArg(script);
-  callWithABI(JS_FUNC_TO_DATA_PTR(void*, CallExecutionProgressHook));
+  callWithABI<Fn, CallExecutionProgressHook>
+      (MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
 
   PopRegsInMask(save);
 }

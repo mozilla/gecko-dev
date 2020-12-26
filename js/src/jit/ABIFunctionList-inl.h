@@ -54,6 +54,8 @@
 namespace js {
 namespace jit {
 
+void CallExecutionProgressHook(JSScript* aScript);
+
 // List of all ABI functions to be used with callWithABI. Each entry stores
 // the fully qualified name of the C++ function. This list must be sorted.
 #if JS_GC_PROBES
@@ -165,6 +167,7 @@ namespace jit {
   _(js::RegExpPrototypeOptimizableRaw)                                \
   _(js::SetIteratorObject::next)                                      \
   _(js::StringToNumberPure)                                           \
+  _(js::jit::CallExecutionProgressHook)                               \
   _(js::TraceLogStartEventPrivate)                                    \
   _(js::TraceLogStopEventPrivate)
 

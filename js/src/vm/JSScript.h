@@ -1699,6 +1699,7 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   IMMUTABLE_FLAG_GETTER(funHasExtensibleScope, FunHasExtensibleScope)
   IMMUTABLE_FLAG_GETTER(functionHasThisBinding, FunctionHasThisBinding)
   IMMUTABLE_FLAG_GETTER(needsHomeObject, NeedsHomeObject)
+  IMMUTABLE_FLAG_GETTER(isDefaultClassConstructor, IsDefaultClassConstructor)
   IMMUTABLE_FLAG_GETTER(isDerivedClassConstructor, IsDerivedClassConstructor)
   IMMUTABLE_FLAG_GETTER(isFieldInitializer, IsFieldInitializer)
   IMMUTABLE_FLAG_GETTER(hasRest, HasRest)

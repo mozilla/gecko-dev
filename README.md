@@ -38,8 +38,20 @@ rm -rf rr-opt/dist/Replay.app
 
 ### Merging from upstream
 
-1. Checkout the `release` branch, pull from upstream `release` branch.
-2. Create a new branch, merge from the `release` branch.
+1. Checkout the `release` branch, pull from upstream `release` branch:
+
+```
+git checkout release
+git pull https://github.com/mozilla/gecko-dev.git release
+```
+
+2. Switch to a new branch, merge from the `release` branch.
+
+```
+git checkout -b replay-merge
+git merge release
+```
+
 3. Fix merge conflicts.
 4. Fix build breaks.
 5. Make sure the output binary is `replay` and not `firefox`. Traditionally this has been controlled by MOZ_APP_NAME during configuration.
