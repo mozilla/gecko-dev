@@ -266,7 +266,7 @@ class IdleTaskManager : public TaskManager {
 class TaskController {
  public:
   TaskController()
-      : mGraphMutex("TaskController::mGraphMutex"),
+      : mGraphMutex("TaskController::mGraphMutex", /* aOrdered */ true),
         mThreadPoolCV(mGraphMutex, "TaskController::mThreadPoolCV"),
         mMainThreadCV(mGraphMutex, "TaskController::mMainThreadCV") {}
 

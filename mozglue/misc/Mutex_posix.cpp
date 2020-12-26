@@ -67,11 +67,15 @@ mozilla::detail::MutexImpl::MutexImpl() {
                     "mozilla::detail::MutexImpl::MutexImpl: "
                     "pthread_mutexattr_settype failed");
 #  elif defined(POLICY_KIND)
+  // Disabled for now, this invokes some special LLVM function which we
+  // don't want to deal with emulating before we start recording/replaying.
+  /*
   if (__builtin_available(macOS 10.14, *)) {
     TRY_CALL_PTHREADS(pthread_mutexattr_setpolicy_np(&attr, POLICY_KIND),
                       "mozilla::detail::MutexImpl::MutexImpl: "
                       "pthread_mutexattr_setpolicy_np failed");
   }
+  */
 #  endif
   attrp = &attr;
 #endif
