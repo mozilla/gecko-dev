@@ -275,7 +275,7 @@ class nsImageFrame : public nsAtomicContainerFrame, public nsIReflowCallback {
 
   /// Always sync decode our image when painting if @aForce is true.
   void SetForceSyncDecoding(bool aForce) {
-    mozilla::recordreplay::RecordReplayAssert("nsImageFrame::SetForceSyncDecoding");
+    mozilla::recordreplay::RecordReplayAssert("nsImageFrame::SetForceSyncDecoding %d", aForce);
     mForceSyncDecoding = aForce;
   }
 

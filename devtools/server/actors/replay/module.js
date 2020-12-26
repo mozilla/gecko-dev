@@ -23,7 +23,11 @@ const { Debugger, RecordReplayControl, Services, InspectorUtils } = sandbox;
 
 // This script can be loaded into non-recording/replaying processes during automated tests.
 // In non-recording/replaying processes there are no properties on RecordReplayControl.
-const isRecordingOrReplaying = !!RecordReplayControl.progressCounter;
+const isRecordingOrReplaying = !!RecordReplayControl.onNewSource;
+
+if (isRecordingOrReplaying) {
+  Services.cpmm.sendAsyncMessage("RecordingStarting");
+}
 
 const log = RecordReplayControl.log;
 
@@ -69,29 +73,40 @@ const gSandboxGlobal = gDebugger.makeGlobalObjectReference(sandbox);
 const gAllGlobals = [];
 
 function considerScript(script) {
-  return RecordReplayControl.shouldUpdateProgressCounter(script.url);
+  return RecordReplayControl.shouldUpdateProgressCounter(script.url) &&
+    // Ignore default class constructors. These are cloned from self hosted
+    // scripts and then marked as not self hosted so the debugger can see them.
+    // They won't have instrumentation, though, and we need instrumentation
+    // for script enters/exits to be consistent with the stack contents.
+    !script.isDefaultClassConstructor;
+}
+
+// Call the callback for each frame, starting at the oldest to the newest.
+function findScriptFrame(callback) {
+  const frames = [];
+  for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
+    if (considerScript(frame.script)) {
+      frames.push(frame);
+    }
+  }
+
+  for (let i = frames.length - 1; i >= 0; i--) {
+    const frame = frames[i];
+    if (callback(frame, i)) {
+      return frame;
+    }
+  }
+  return null;
+}
+
+function forEachScriptFrame(callback) {
+  findScriptFrame((frame, index) => { callback(frame, index); });
 }
 
 function countScriptFrames() {
   let count = 0;
-  for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
-    if (considerScript(frame.script)) {
-      count++;
-    }
-  }
+  forEachScriptFrame(() => count++);
   return count;
-}
-
-function scriptFrameForIndex(index) {
-  index = countScriptFrames() - 1 - index;
-  for (let frame = gDebugger.getNewestFrame(); frame; frame = frame.older) {
-    if (considerScript(frame.script)) {
-      if (index-- == 0) {
-        return frame;
-      }
-    }
-  }
-  throw new Error("Can't find frame");
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -110,11 +125,11 @@ function isNonNullObject(obj) {
 }
 
 // Bidirectional map between values and numeric IDs.
-function IdMap() {
-  this.clear();
-}
+class IdMap {
+  constructor() {
+    this.clear();
+  }
 
-IdMap.prototype = {
   add(obj) {
     if (this._objectMap.has(obj)) {
       return this._objectMap.get(obj);
@@ -123,15 +138,15 @@ IdMap.prototype = {
     this._idMap.push(obj);
     this._objectMap.set(obj, id);
     return id;
-  },
+  }
 
   getId(obj) {
     return this._objectMap.get(obj) || 0;
-  },
+  }
 
   getObject(id) {
     return this._idMap[id];
-  },
+  }
 
   map(callback) {
     const rv = [];
@@ -139,42 +154,38 @@ IdMap.prototype = {
       rv.push(callback(i));
     }
     return rv;
-  },
+  }
 
   forEach(callback) {
     for (let i = 1; i < this._idMap.length; i++) {
       callback(i, this._idMap[i]);
     }
-  },
+  }
 
   clear() {
     this._idMap = [undefined];
     this._objectMap = new Map();
-  },
-};
-
-// Map from keys to arrays of values.
-function ArrayMap() {
-  this.map = new Map();
+  }
 }
 
-ArrayMap.prototype = {
+// Map from keys to arrays of values.
+class ArrayMap {
+  constructor() {
+    this.map = new Map();
+  }
+
   add(key, value) {
     if (this.map.has(key)) {
       this.map.get(key).push(value);
     } else {
       this.map.set(key, [value]);
     }
-  },
-};
+  }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Main Logic
 ///////////////////////////////////////////////////////////////////////////////
-
-function CanCreateCheckpoint() {
-  return countScriptFrames() == 0;
-}
 
 const gNewGlobalHooks = [];
 gDebugger.onNewGlobalObject = (global) => {
@@ -196,13 +207,6 @@ gDebugger.onExceptionUnwind = (frame, value) => {
 gDebugger.onDebuggerStatement = () => {
   RecordReplayControl.onDebuggerStatement();
 };
-
-// The UI process must wait until the content global is created here before
-// URLs can be loaded.
-Services.obs.addObserver(
-  { observe: () => Services.cpmm.sendAsyncMessage("RecordingInitialized") },
-  "content-document-global-created"
-);
 
 // Associate each Debugger.Script with a numeric ID.
 const gScripts = new IdMap();
@@ -351,19 +355,6 @@ getWindow().docShell.chromeEventHandler.addEventListener(
   true
 );
 
-function advanceProgressCounter() {
-  if (!isRecordingOrReplaying) {
-    return;
-  }
-  let progress = RecordReplayControl.progressCounter();
-  RecordReplayControl.setProgressCounter(++progress);
-  return progress;
-}
-
-function OnMouseEvent(time, kind, x, y) {
-  advanceProgressCounter();
-}
-
 const { DebuggerNotificationObserver } = Cu.getGlobalForObject(
   require("resource://devtools/shared/Loader.jsm")
 );
@@ -423,6 +414,7 @@ const commands = {
   "Pause.getObjectPreview": Pause_getObjectPreview,
   "Pause.getObjectProperty": Pause_getObjectProperty,
   "Pause.getScope": Pause_getScope,
+  "Pause.getTopFrame": Pause_getTopFrame,
   "Debugger.getPossibleBreakpoints": Debugger_getPossibleBreakpoints,
   "Debugger.getSourceContents": Debugger_getSourceContents,
   "CSS.getAppliedRules": CSS_getAppliedRules,
@@ -445,6 +437,7 @@ const commands = {
   "Target.getStepOffsets": Target_getStepOffsets,
   "Target.getSourceMapURL": Target_getSourceMapURL,
   "Target.getSheetSourceMapURL": Target_getSheetSourceMapURL,
+  "Target.topFrameLocation": Target_topFrameLocation,
 };
 
 function OnProtocolCommand(method, params) {
@@ -460,12 +453,11 @@ function OnProtocolCommand(method, params) {
 }
 
 const exports = {
-  CanCreateCheckpoint,
-  OnMouseEvent,
   SendRecordingFinished,
   SendRecordingUnusable,
   OnTestCommand,
   OnProtocolCommand,
+  ClearPauseData,
   SetScanningScripts,
 };
 
@@ -565,11 +557,6 @@ function consoleAPIMessageLevel({ level }) {
 function OnConsoleAPICall(message) {
   message = message.wrappedJSObject;
 
-  let argumentValues;
-  if (message.arguments) {
-    argumentValues = message.arguments.map(createProtocolValueRaw);
-  }
-
   gCurrentConsoleMessage = {
     source: "ConsoleAPI",
     level: consoleAPIMessageLevel(message),
@@ -578,12 +565,10 @@ function OnConsoleAPICall(message) {
     sourceId: geckoSourceIdToProtocolId(message.sourceId),
     line: message.lineNumber,
     column: message.columnNumber,
-    argumentValues,
+    messageArguments: message.arguments,
   };
   RecordReplayControl.onConsoleMessage(0);
   gCurrentConsoleMessage = null;
-
-  clearPauseState();
 }
 
 if (isRecordingOrReplaying) {
@@ -599,7 +584,20 @@ if (isRecordingOrReplaying) {
 
 function Target_getCurrentMessageContents() {
   assert(gCurrentConsoleMessage);
-  return gCurrentConsoleMessage;
+
+  // We need to create protocol values for the raw arguments within this command,
+  // as the paused objects might have been cleared out after after notifying
+  // the driver.
+  let argumentValues;
+  if (gCurrentConsoleMessage.messageArguments) {
+    argumentValues = gCurrentConsoleMessage.messageArguments.map(createProtocolValueRaw);
+  }
+
+  return {
+    ...gCurrentConsoleMessage,
+    argumentValues,
+    messageArguments: undefined,
+  };
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -749,12 +747,14 @@ function Target_convertFunctionOffsetToLocation({ functionId, offset }) {
     return { location };
   }
 
-  const breakpoints = script.getPossibleBreakpoints();
-  const bp = breakpoints.find((bp) => bp.offset == offset);
-  if (!bp) {
+  const meta = script.getOffsetMetadata(offset);
+  if (!meta) {
     throw new Error(`convertFunctionOffsetToLocation unknown offset ${offset}`);
   }
-  const location = { sourceId, line: bp.lineNumber, column: bp.columnNumber };
+  if (!meta.isBreakpoint) {
+    throw new Error(`convertFunctionOffsetToLocation non-breakpoint offset ${offset}`);
+  }
+  const location = { sourceId, line: meta.lineNumber, column: meta.columnNumber };
   return { location };
 }
 
@@ -827,9 +827,8 @@ const gPauseObjects = new IdMap();
 // Map raw object => Debugger.Object
 const gCanonicalObjects = new Map();
 
-// Clear out object state and associated strong references after getting object
-// IDs for the protocol and then resuming execution.
-function clearPauseState() {
+// Clear out object state and associated strong references.
+function ClearPauseData() {
   gPauseObjects.clear();
   gCanonicalObjects.clear();
 }
@@ -970,10 +969,7 @@ function getFunctionLocation(obj) {
   }
 }
 
-function createProtocolFrame(frameId, frame) {
-  const type = getFrameType(frame);
-  const sourceId = sourceToProtocolSourceId(frame.script.source);
-
+function getFrameLocation(frame) {
   // Find the line/column for this frame. This is a bit tricky because we want
   // positions that are consistent with those for any breakpoint we are
   // paused at. When pausing at a breakpoint the frame won't actually be at
@@ -993,13 +989,16 @@ function createProtocolFrame(frameId, frame) {
   } catch (e) {}
   const { lineNumber, columnNumber } = frame.script.getOffsetMetadata(offset);
 
-  const location = [
-    {
-      sourceId,
-      line: lineNumber,
-      column: columnNumber,
-    },
-  ];
+  const sourceId = sourceToProtocolSourceId(frame.script.source);
+  return {
+    sourceId,
+    line: lineNumber,
+    column: columnNumber,
+  };
+}
+
+function createProtocolFrame(frameId, frame) {
+  const type = getFrameType(frame);
 
   let functionName;
   let functionLocation;
@@ -1016,7 +1015,7 @@ function createProtocolFrame(frameId, frame) {
     type,
     functionName,
     functionLocation,
-    location,
+    location: [getFrameLocation(frame)],
     scopeChain,
     this: thisv,
   };
@@ -1035,7 +1034,7 @@ function createProtocolFrame(frameId, frame) {
       case "module":
         return "module";
     }
-    ThrowError("Bad frame type");
+    throw new Error(`Bad frame type ${frame.type}`);
   }
 
   function getScopeChain(frame) {
@@ -1582,7 +1581,7 @@ function createProtocolScope(scopeId) {
       case "declarative":
         return env.callee ? "function" : "block";
     }
-    ThrowError("Bad environment type");
+    throw new Error(`Bad environment type ${env.type}`);
   }
 }
 
@@ -1631,7 +1630,11 @@ function convertBindings(bindings) {
 }
 
 function Pause_evaluateInFrame({ frameId, expression, bindings }) {
-  const frame = scriptFrameForIndex(Number(frameId));
+  const frameIndexNum = Number(frameId);
+  const frame = findScriptFrame((_, i) => i === frameIndexNum);
+  if (!frame) {
+    throw new Error("Can't find frame");
+  }
 
   const newBindings = convertBindings(bindings);
   const completion = frame.evalWithBindings(expression, newBindings);
@@ -1651,17 +1654,28 @@ function Pause_evaluateInGlobal({ expression, bindings }) {
 function Pause_getAllFrames() {
   const frameIds = [];
   const frameData = [];
-  const numFrames = countScriptFrames();
-  for (let i = 0; i < numFrames; i++) {
-    const frame = scriptFrameForIndex(i);
+
+  forEachScriptFrame((frame, i) => {
     const id = String(i);
     frameIds.push(id);
     frameData.push(createProtocolFrame(id, frame));
-  }
+  });
+
   return {
     frames: frameIds.reverse(),
     data: { frames: frameData },
   };
+}
+
+function Pause_getTopFrame() {
+  const numFrames = countScriptFrames();
+  if (numFrames) {
+    const frame = scriptFrameForIndex(numFrames - 1);
+    const id = String(numFrames - 1);
+    const frameData = createProtocolFrame(id, frame);
+    return { frame: id, data: { frames: [frameData] } };
+  }
+  return { data: {} };
 }
 
 function Target_countStackFrames() {
@@ -1784,6 +1798,14 @@ function Target_getSheetSourceMapURL({ sheet }) {
   const sheetObj = getObjectFromId(sheet).unsafeDereference();
   const url = sheetObj.sourceMapURL || undefined;
   return { url };
+}
+
+function Target_topFrameLocation() {
+  const frame = gDebugger.getNewestFrame();
+  if (!frame) {
+    return {};
+  }
+  return { location: getFrameLocation(frame) };
 }
 
 ///////////////////////////////////////////////////////////////////////////////

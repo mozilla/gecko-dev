@@ -268,6 +268,9 @@ void ShadowLayerForwarder::BeginTransaction(
 }
 
 static const LayerHandle& Shadow(ShadowableLayer* aLayer) {
+  if (!aLayer->GetShadow()) {
+    recordreplay::PrintLog("ShadowableLayer missing shadow");
+  }
   return aLayer->GetShadow();
 }
 

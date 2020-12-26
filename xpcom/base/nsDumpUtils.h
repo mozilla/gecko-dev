@@ -155,7 +155,7 @@ class SignalPipeWatcher : public FdWatcher {
  private:
   static mozilla::StaticRefPtr<SignalPipeWatcher> sSingleton;
 
-  SignalPipeWatcher() : mSignalInfoLock("SignalPipeWatcher.mSignalInfoLock") {
+  SignalPipeWatcher() : mSignalInfoLock("SignalPipeWatcher.mSignalInfoLock", /* aOrdered */ true) {
     MOZ_ASSERT(NS_IsMainThread());
   }
 

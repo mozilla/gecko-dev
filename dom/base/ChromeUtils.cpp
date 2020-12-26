@@ -59,11 +59,6 @@
 
 namespace mozilla {
 
-namespace recordreplay {
-  void GetCloudReplayStatus(nsAString& aResult);
-  void SetCloudReplayStatusCallback(JS::HandleValue aCallback);
-}
-
 namespace dom {
 
 /* static */
@@ -1345,17 +1340,6 @@ void ChromeUtils::PrivateNoteIntentionalCrash(const GlobalObject& aGlobal,
     return;
   }
   aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
-}
-
-void ChromeUtils::GetCloudReplayStatus(const GlobalObject& aGlobal,
-                                       nsAString& aResult) {
-  recordreplay::GetCloudReplayStatus(aResult);
-}
-
-/* static */
-void ChromeUtils::SetCloudReplayStatusCallback(const GlobalObject& aGlobal,
-                                               JS::HandleValue aCallback) {
-  recordreplay::SetCloudReplayStatusCallback(aCallback);
 }
 
 /* static */

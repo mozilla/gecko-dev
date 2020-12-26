@@ -192,7 +192,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
         RefPtr<PaintedLayer> layer = mLayerManager->CreatePaintedLayer();
         if (!BindLayer(layer, edit.get_OpCreatePaintedLayer())) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpCreatePaintedLayer BindLayer failed");
         }
 
         UpdateHitTestingTree(layer, "CreatePaintedLayer");
@@ -203,7 +203,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
         RefPtr<ContainerLayer> layer = mLayerManager->CreateContainerLayer();
         if (!BindLayer(layer, edit.get_OpCreateContainerLayer())) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpCreateContainerLayer BindLayer failed");
         }
 
         UpdateHitTestingTree(layer, "CreateContainerLayer");
@@ -214,7 +214,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
         RefPtr<ImageLayer> layer = mLayerManager->CreateImageLayer();
         if (!BindLayer(layer, edit.get_OpCreateImageLayer())) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpCreateImageLayer BindLayer failed");
         }
 
         UpdateHitTestingTree(layer, "CreateImageLayer");
@@ -225,7 +225,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
         RefPtr<ColorLayer> layer = mLayerManager->CreateColorLayer();
         if (!BindLayer(layer, edit.get_OpCreateColorLayer())) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpCreateColorLayer BindLayer failed");
         }
 
         UpdateHitTestingTree(layer, "CreateColorLayer");
@@ -236,7 +236,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
         RefPtr<CanvasLayer> layer = mLayerManager->CreateCanvasLayer();
         if (!BindLayer(layer, edit.get_OpCreateCanvasLayer())) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpCreateCanvasLayer BindLayer failed");
         }
 
         UpdateHitTestingTree(layer, "CreateCanvasLayer");
@@ -247,7 +247,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
         RefPtr<RefLayer> layer = mLayerManager->CreateRefLayer();
         if (!BindLayer(layer, edit.get_OpCreateRefLayer())) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpCreateRefLayer BindLayer failed");
         }
 
         UpdateHitTestingTree(layer, "CreateRefLayer");
@@ -264,11 +264,11 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
 
         Layer* newRoot = AsLayer(edit.get_OpSetRoot().root());
         if (!newRoot) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "NoRoot");
         }
         if (newRoot->GetParent()) {
           // newRoot is not a root!
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "Root has parent");
         }
         mRoot = newRoot;
 
@@ -283,11 +283,11 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
         Layer* layer = AsLayer(oia.container());
         Layer* after = AsLayer(oia.after());
         if (!child || !layer || !after) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpInsertAfter missing layer");
         }
         ContainerLayer* container = layer->AsContainerLayer();
         if (!container || !container->InsertAfter(child, after)) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpInsertAfter insert failed");
         }
 
         UpdateHitTestingTree(layer, "InsertAfter");
@@ -300,11 +300,11 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
         Layer* child = AsLayer(oac.childLayer());
         Layer* layer = AsLayer(oac.container());
         if (!child || !layer) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpPrependChild missing layer");
         }
         ContainerLayer* container = layer->AsContainerLayer();
         if (!container || !container->InsertAfter(child, nullptr)) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpPrependChild insert failed");
         }
 
         UpdateHitTestingTree(layer, "PrependChild");
@@ -317,11 +317,11 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
         Layer* childLayer = AsLayer(orc.childLayer());
         Layer* layer = AsLayer(orc.container());
         if (!childLayer || !layer) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpRemoveChild missing layer");
         }
         ContainerLayer* container = layer->AsContainerLayer();
         if (!container || !container->RemoveChild(childLayer)) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpRemoveChild remove failed");
         }
 
         UpdateHitTestingTree(layer, "RemoveChild");
@@ -335,11 +335,11 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
         Layer* after = AsLayer(orc.after());
         Layer* layer = AsLayer(orc.container());
         if (!child || !layer || !after) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpRepositionChild missing layer");
         }
         ContainerLayer* container = layer->AsContainerLayer();
         if (!container || !container->RepositionChild(child, after)) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpRepositionChild reposition failed");
         }
 
         UpdateHitTestingTree(layer, "RepositionChild");
@@ -351,15 +351,15 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
         const OpRaiseToTopChild& rtc = edit.get_OpRaiseToTopChild();
         Layer* child = AsLayer(rtc.childLayer());
         if (!child) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpRaiseToTopChild no child");
         }
         Layer* layer = AsLayer(rtc.container());
         if (!layer) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpRaiseToTopChild no layer");
         }
         ContainerLayer* container = layer->AsContainerLayer();
         if (!container || !container->RepositionChild(child, nullptr)) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpRaiseToTopChild reposition failed");
         }
 
         UpdateHitTestingTree(layer, "RaiseToTopChild");
@@ -367,7 +367,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
       }
       case Edit::TCompositableOperation: {
         if (!ReceiveCompositableUpdate(edit.get_CompositableOperation())) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "ReceiveCompositableUpdate failed");
         }
         break;
       }
@@ -375,7 +375,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
         const OpAttachCompositable& op = edit.get_OpAttachCompositable();
         RefPtr<CompositableHost> host = FindCompositable(op.compositable());
         if (!Attach(AsLayer(op.layer()), host, false)) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpAttachCompositable attach failed");
         }
         host->SetCompositorBridgeID(mLayerManager->GetCompositorBridgeID());
         break;
@@ -386,7 +386,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
         RefPtr<ImageBridgeParent> imageBridge =
             ImageBridgeParent::GetInstance(OtherPid());
         if (!imageBridge) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "No image bridge");
         }
         RefPtr<CompositableHost> host = imageBridge->FindCompositable(
             op.compositable(), /* aAllowDisablingWebRender */ true);
@@ -401,7 +401,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
           continue;
         }
         if (!Attach(AsLayer(op.layer()), host, true)) {
-          return IPC_FAIL_NO_REASON(this);
+          return IPC_FAIL(this, "TOpAttachAsyncCompositable attach failed");
         }
         host->SetCompositorBridgeID(mLayerManager->GetCompositorBridgeID());
         break;
@@ -416,7 +416,7 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
     MOZ_LAYERS_LOG(("[ParentSide] SetSimpleLayerAttributes"));
     Layer* layer = AsLayer(op.layer());
     if (!layer) {
-      return IPC_FAIL_NO_REASON(this);
+      return IPC_FAIL(this, "SetSimpleLayerAttributes no layer");
     }
     const SimpleLayerAttributes& attrs = op.attrs();
     const SimpleLayerAttributes& orig = layer->GetSimpleAttributes();
@@ -430,14 +430,14 @@ mozilla::ipc::IPCResult LayerTransactionParent::RecvUpdate(
   for (const auto& op : aInfo.setAttrs()) {
     MOZ_LAYERS_LOG(("[ParentSide] SetLayerAttributes"));
     if (!SetLayerAttributes(op)) {
-      return IPC_FAIL_NO_REASON(this);
+      return IPC_FAIL(this, "SetLayerAttributes failed");
     }
   }
 
   // Process paints separately, after all normal edits.
   for (const auto& op : aInfo.paints()) {
     if (!ReceiveCompositableUpdate(op)) {
-      return IPC_FAIL_NO_REASON(this);
+      return IPC_FAIL(this, "ReceiveCompositableUpdate failed");
     }
   }
 
@@ -949,10 +949,17 @@ void LayerTransactionParent::NotifyNotUsed(PTextureParent* aTexture,
 
 bool LayerTransactionParent::BindLayerToHandle(RefPtr<Layer> aLayer,
                                                const LayerHandle& aHandle) {
+  if (!aHandle) {
+    recordreplay::PrintLog("LayerTransactionParent::BindLayerToHandle NoHandle");
+  }
+  if (!aLayer) {
+    recordreplay::PrintLog("LayerTransactionParent::BindLayerToHandle NoLayer");
+  }
   if (!aHandle || !aLayer) {
     return false;
   }
   if (auto entry = mLayerMap.LookupForAdd(aHandle.Value())) {
+    recordreplay::PrintLog("LayerTransactionParent::BindLayerToHandle LookupForAdd failed");
     return false;
   } else {
     entry.OrInsert([&aLayer]() { return aLayer; });

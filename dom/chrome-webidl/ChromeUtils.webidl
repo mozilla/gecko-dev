@@ -479,9 +479,6 @@ partial namespace ChromeUtils {
   [ChromeOnly, Throws]
   void privateNoteIntentionalCrash();
 
-  DOMString getCloudReplayStatus();
-  void setCloudReplayStatusCallback(any callback);
-
   /**
    * nsIDOMProcessChild for the current process.
    */

@@ -1834,7 +1834,6 @@
 
       if (recordExecution) {
         aBrowser.setAttribute("recordExecution", recordExecution);
-        EnsureRecordReplayWatcher();
       } else if (aBrowser.hasAttribute("recordExecution")) {
         aBrowser.removeAttribute("recordExecution");
       }
@@ -2020,7 +2019,6 @@
 
       if (recordExecution) {
         b.setAttribute("recordExecution", recordExecution);
-        EnsureRecordReplayWatcher();
       }
 
       if (!isPreloadBrowser) {
@@ -2471,7 +2469,6 @@
         triggeringPrincipal,
         userContextId,
         recordExecution,
-        replayExecution,
         csp,
         skipLoad,
         batchInsertingTabs,
@@ -2656,8 +2653,7 @@
         if (
           aURI == BROWSER_NEW_TAB_URL &&
           !userContextId &&
-          !recordExecution &&
-          !replayExecution
+          !recordExecution
         ) {
           b = NewTabPagePreloading.getPreloadedBrowser(window);
           if (b) {
@@ -2675,7 +2671,6 @@
             openWindowInfo,
             name,
             recordExecution,
-            replayExecution,
             skipLoad,
           });
         }
@@ -3865,6 +3860,14 @@
         ourBrowser.setAttribute(
           "usercontextid",
           otherBrowser.getAttribute("usercontextid")
+        );
+      }
+
+      // Keep the recordExecution value if set on other browser
+      if (otherBrowser.hasAttribute("recordExecution")) {
+        ourBrowser.setAttribute(
+          "recordExecution",
+          otherBrowser.getAttribute("recordExecution")
         );
       }
 
@@ -6808,54 +6811,3 @@ var TabContextMenu = {
     }
   },
 };
-
-const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
-
-let gWatchingRecordReplaySessions;
-function EnsureRecordReplayWatcher() {
-  if (gWatchingRecordReplaySessions) {
-    return;
-  }
-  gWatchingRecordReplaySessions = true;
-
-  Services.ppmm.addMessageListener("RecordReplayCriticalError", {
-    receiveMessage(msg) {
-      if (gBrowser.selectedBrowser.hasAttribute("recordExecution") ||
-          gBrowser.selectedBrowser.hasAttribute("replayExecution")) {
-        dump(`RecordReplayCriticalError ${msg.data.kind}\n`);
-        ChromeUtils.recordReplayLog(`RecordReplayCriticalError ${msg.data.kind}`);
-        const tab = gBrowser.selectedTab;
-        gBrowser.selectedTab = gBrowser.addTrustedTab(`about:replay?error=${msg.data.kind}`, {
-          index: tab._tPos + 1,
-        });
-        gBrowser.removeTab(tab);
-      }
-    },
-  });
-
-  Services.ppmm.addMessageListener("RecordReplayRememberLogId", {
-    async receiveMessage(msg) {
-      const { logId } = msg.data;
-      const description = { logId, date: Date.now() };
-
-      // See also crashes.js
-      const dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
-      dir.append("Recordings");
-
-      if (!dir.exists()) {
-        OS.File.makeDir(dir.path);
-      }
-
-      dir.append("logs.json");
-      const path = dir.path;
-
-      let logs = [];
-      if (await OS.File.exists(path)) {
-        const file = await OS.File.read(path);
-        logs = JSON.parse(new TextDecoder("utf-8").decode(file));
-      }
-
-      OS.File.writeAtomic(path, JSON.stringify([description, ...logs]));
-    },
-  });
-}

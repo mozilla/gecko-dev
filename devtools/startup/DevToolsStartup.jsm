@@ -35,6 +35,9 @@ const DEVTOOLS_POLICY_DISABLED_PREF = "devtools.policy.disabled";
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { getConnectionStatus, setConnectionStatusChangeCallback } = ChromeUtils.import(
+  "resource://devtools/server/actors/replay/connection.js"
+);
 
 ChromeUtils.defineModuleGetter(
   this,
@@ -1434,12 +1437,12 @@ function createRecordingButton() {
     id: "record-button",
     type: "button",
     tooltiptext: "record-button.tooltiptext2",
-    onClick() {
-      if (ChromeUtils.getCloudReplayStatus() || !gHasRecordingDriver) {
+    onClick(evt) {
+      if (getConnectionStatus() || !gHasRecordingDriver) {
         return;
       }
 
-      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+      const { gBrowser } = evt.target.ownerDocument.defaultView;
       const recording = gBrowser.selectedBrowser.hasAttribute(
         "recordExecution"
       );
@@ -1464,19 +1467,10 @@ function createRecordingButton() {
       node.refreshStatus = () => {
         const recording = selectedBrowserHasAttribute("recordExecution");
 
-        if (recording) {
-          node.classList.add("recording");
-        } else {
-          node.classList.remove("recording");
-        }
+        node.classList.toggle("recording", recording);
+        node.classList.toggle("hidden", isAuthenticationEnabled() && !isLoggedIn() && !isRunningTest());
 
-        if (!isAuthenticationEnabled() || isLoggedIn() || isRunningTest()) {
-          node.classList.remove("hidden");
-        } else {
-          node.classList.add("hidden");
-        }
-
-        const status = ChromeUtils.getCloudReplayStatus();
+        const status = getConnectionStatus();
         let tooltip = status;
         if (status) {
           node.disabled = true;
@@ -1517,18 +1511,14 @@ function createRecordingButton() {
     id: "replay-signin-button",
     type: "button",
     tooltiptext: "replay-signin-button.tooltiptext2",
-    onClick() {
-      const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+    onClick(evt) {
+      const { gBrowser } = evt.target.ownerDocument.defaultView;
       const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
       gBrowser.loadURI("https://replay.io/view", { triggeringPrincipal });
     },
     onCreated(node) {
       node.refreshStatus = () => {
-        if (!isAuthenticationEnabled() || isLoggedIn() || isRunningTest()) {
-          node.classList.add("hidden");
-        } else {
-          node.classList.remove("hidden");
-        }
+        node.classList.toggle("hidden", !isAuthenticationEnabled() || isLoggedIn() || isRunningTest());
       };
       node.refreshStatus();
 
@@ -1540,14 +1530,9 @@ function createRecordingButton() {
   CustomizableUI.createWidget(item);
   CustomizableWidgets.push(item);
 
-  let cloudStatusUpdatedCallback;
-
-  ChromeUtils.setCloudReplayStatusCallback((status, progress, max) => {
+  setConnectionStatusChangeCallback(status => {
     dump(`CloudReplayStatus ${status}\n`);
     refreshAllRecordingButtons();
-    if (cloudStatusUpdatedCallback) {
-      cloudStatusUpdatedCallback(status);
-    }
   });
 }
 
@@ -1593,18 +1578,34 @@ function getDispatchServer(url) {
   return Services.prefs.getStringPref("devtools.recordreplay.cloudServer");
 }
 
-const DriverName = "macOS-recordreplay.so";
-const DriverJSON = "macOS-recordreplay.json";
+function getRecordReplayPlatform() {
+  switch (AppConstants.platform) {
+    case "macosx":
+      return "macOS";
+    case "linux":
+      return "linux";
+    default:
+      throw new Error(`Unrecognized platform ${AppConstants.platform}`);
+  }
+}
+
+function DriverName() {
+  return `${getRecordReplayPlatform()}-recordreplay.so`;
+}
+
+function DriverJSON() {
+  return `${getRecordReplayPlatform()}-recordreplay.json`;
+}
 
 function driverFile() {
   const file = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  file.append(DriverName);
+  file.append(DriverName());
   return file;
 }
 
 function driverJSONFile() {
   const file = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  file.append(DriverJSON);
+  file.append(DriverJSON());
   return file;
 }
 
@@ -1651,7 +1652,7 @@ async function updateRecordingDriver() {
     // If we have already downloaded the driver, redownload the server JSON
     // (much smaller than the driver itself) to see if anything has changed.
     if (json.exists() && driver.exists()) {
-      const response = await fetchURL(`${downloadURL}/${DriverJSON}`);
+      const response = await fetchURL(`${downloadURL}/${DriverJSON()}`);
       if (!response) {
         dump(`updateRecordingDriver JSONFetchFailed\n`);
         return;
@@ -1668,14 +1669,14 @@ async function updateRecordingDriver() {
       }
     }
 
-    const jsonResponse = await fetchURL(`${downloadURL}/${DriverJSON}`);
+    const jsonResponse = await fetchURL(`${downloadURL}/${DriverJSON()}`);
     if (!jsonResponse) {
       dump(`updateRecordingDriver UpdateNeeded JSONFetchFailed\n`);
       return;
     }
     OS.File.writeAtomic(json.path, await jsonResponse.text());
 
-    const driverResponse = await fetchURL(`${downloadURL}/${DriverName}`);
+    const driverResponse = await fetchURL(`${downloadURL}/${DriverName()}`);
     if (!driverResponse) {
       dump(`updateRecordingDriver UpdateNeeded DriverFetchFailed\n`);
       return;
@@ -1754,97 +1755,117 @@ function reloadAndRecordTab(gBrowser) {
   });
 }
 
-let gFinishedRecordingWaiter;
-
-Services.ppmm.addMessageListener("RecordingFinished", {
-  receiveMessage() {
-    if (gFinishedRecordingWaiter) {
-      gFinishedRecordingWaiter(true);
-    }
-  },
-});
-
-Services.ppmm.addMessageListener("RecordingUnusable", {
-  receiveMessage(msg) {
-    if (gFinishedRecordingWaiter) {
-      gFinishedRecordingWaiter(false);
-    }
-    const { why } = msg.data;
-    const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
-    gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
-      recordExecution: undefined,
-      newFrameloader: true,
-      remoteType: E10SUtils.WEB_REMOTE_TYPE,
-    });
-    const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-    gBrowser.loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
-  },
-});
-
-function waitForFinishedRecording() {
-  return new Promise((resolve) => (gFinishedRecordingWaiter = resolve));
-}
-
-let gSavedRecordingWaiter;
-
-Services.ppmm.addMessageListener("RecordingSaved", {
-  receiveMessage(msg) {
-    if (gSavedRecordingWaiter) {
-      gSavedRecordingWaiter(msg.data);
-    }
-  },
-});
-
-function waitForSavedRecording() {
-  return new Promise((resolve) => (gSavedRecordingWaiter = resolve));
-}
-
-async function reloadAndStopRecordingTab(gBrowser) {
+function reloadAndStopRecordingTab(gBrowser) {
   const remoteTab = gBrowser.selectedTab.linkedBrowser.frameLoader.remoteTab;
   if (!remoteTab || !remoteTab.finishRecording()) {
     return;
   }
 
   recordReplayLog(`WaitForFinishedRecording`);
-  const success = await waitForFinishedRecording();
-  if (!success) {
-    // The recording is unusable, so redirecting will be handled there.
-    return;
+}
+
+function getBrowserForPid(pid) {
+  for (const window of Services.wm.getEnumerator("navigator:browser")) {
+    for (const tab of window.gBrowser.tabs) {
+      const { remoteTab } = tab.linkedBrowser.frameLoader;
+      if (remoteTab && remoteTab.osPid === pid) {
+        return tab.linkedBrowser;
+      }
+    }
+  }
+  throw new Error("Unable to find browser for recording");
+}
+
+function onRecordingStarted(recording) {
+  const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
+  // There can occasionally be times when the browser isn't found when the
+  // recording begins, so we lazily look it up the first time it is needed.
+  let browser = null;
+  function getBrowser() {
+    // If the browser tab is moved to a new window, the cached browser object isn't
+    // valid anymore so we need to find the new one.
+    if (!browser || !browser.getTabBrowser()) {
+      browser = getBrowserForPid(recording.osPid)
+    }
+    return browser;
   }
 
-  const oldURL = gBrowser.currentURI.spec;
-  const urlLoadOpts = {
-    triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
-    oldRecordedURL: oldURL,
-  };
-  gBrowser.updateBrowserRemoteness(gBrowser.selectedBrowser, {
-    recordExecution: undefined,
-    newFrameloader: true,
-    remoteType: E10SUtils.WEB_REMOTE_TYPE,
+  let oldURL;
+  let urlLoadOpts;
+
+  function clearRecordingState() {
+    getBrowser().getTabBrowser().updateBrowserRemoteness(getBrowser(), {
+      recordExecution: undefined,
+      newFrameloader: true,
+      remoteType: E10SUtils.WEB_REMOTE_TYPE,
+    });
+  }
+  recording.on("unusable", function(name, data) {
+    clearRecordingState();
+
+    const { why } = data;
+    getBrowser().loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
   });
+  recording.on("finished", function() {
+    oldURL = getBrowser().currentURI.spec;
+    urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL };
 
-  // The recording has finished, so we need to navigate somewhere or else
-  // the user will be shown the tab-crash page while we wait for the recording
-  // to finish saving.
-  gBrowser.loadURI(`about:blank`, urlLoadOpts);
+    clearRecordingState();
 
-  recordReplayLog(`WaitForSavedRecording`);
-  const recordingId = (await waitForSavedRecording()).id;
+    // The recording has finished, so we need to navigate somewhere or else
+    // the user will be shown the tab-crash page while we wait for the recording
+    // to finish saving.
+    getBrowser().loadURI(`${getViewURL()}?loading=true`, urlLoadOpts);
 
-  // When the submitTestRecordings pref is set we don't load the viewer,
-  // but show a simple page that the recording was submitted, to make things
-  // simpler for QA and provide feedback that the pref was set correctly.
-  if (
-    Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
-  ) {
-    fetch(`https://test-inbox.replay.io/${recordingId}:${oldURL}`);
-    const why = `Test recording added: ${recordingId}`;
-    gBrowser.loadURI(`about:replay?submitted=${why}`, urlLoadOpts);
-    return;
-  }
+    recordReplayLog(`WaitForSavedRecording`);
+  });
+  recording.on("saved", function(name, data) {
+    const recordingId = data.id;
 
-  recordReplayLog(`FinishedRecording ${recordingId}`);
+    // When the submitTestRecordings pref is set we don't load the viewer,
+    // but show a simple page that the recording was submitted, to make things
+    // simpler for QA and provide feedback that the pref was set correctly.
+    if (
+      Services.prefs.getBoolPref("devtools.recordreplay.submitTestRecordings")
+    ) {
+      fetch(`https://test-inbox.replay.io/${recordingId}:${oldURL}`);
+      const why = `Test recording added: ${recordingId}`;
+      getBrowser().loadURI(`about:replay?submitted=${why}`, urlLoadOpts);
+      return;
+    }
 
+    recordReplayLog(`FinishedRecording ${recordingId}`);
+
+    // Find the dispatcher to connect to.
+    const dispatchAddress = getDispatchServer();
+
+    let extra = "";
+
+    // Specify the dispatch address if it is not the default.
+    if (dispatchAddress != "wss://dispatch.replay.io") {
+      extra += `&dispatch=${dispatchAddress}`;
+    }
+
+    // For testing, allow specifying a test script to load in the tab.
+    const localTest = env.get("RECORD_REPLAY_LOCAL_TEST");
+    if (localTest) {
+      extra += `&test=${localTest}`;
+    } else if (!isAuthenticationEnabled()) {
+      // Adding this urlparam disables checks in the devtools that the user has
+      // permission to view the recording.
+      extra += `&test=1`;
+    }
+
+    getBrowser().loadURI(`${getViewURL()}?id=${recordingId}${extra}`, urlLoadOpts);
+  });
+}
+
+Services.obs.addObserver(
+  subject => onRecordingStarted(subject.wrappedJSObject),
+  "recordreplay-recording-started"
+);
+
+function getViewURL() {
   let viewHost = "https://replay.io";
 
   // For testing, allow overriding the host for the view page.
@@ -1852,62 +1873,11 @@ async function reloadAndStopRecordingTab(gBrowser) {
   if (hostOverride) {
     viewHost = hostOverride;
   }
-
-  // Find the dispatcher to connect to.
-  const dispatchAddress = getDispatchServer();
-
-  let extra = "";
-
-  // Specify the dispatch address if it is not the default.
-  if (dispatchAddress != "wss://dispatch.replay.io") {
-    extra += `&dispatch=${dispatchAddress}`;
-  }
-
-  // For testing, allow specifying a test script to load in the tab.
-  const localTest = env.get("RECORD_REPLAY_LOCAL_TEST");
-  if (localTest) {
-    extra += `&test=${localTest}`;
-  } else if (!isAuthenticationEnabled()) {
-    // Adding this urlparam disables checks in the devtools that the user has
-    // permission to view the recording.
-    extra += `&test=1`;
-  }
-
-  gBrowser.loadURI(`${viewHost}/view?id=${recordingId}${extra}`, urlLoadOpts);
+  return `${viewHost}/view`;
 }
 
-// See also aboutRecordings.js
-function getRecordingsPath() {
-  let dir = Services.dirsvc.get("UAppData", Ci.nsIFile);
-  dir.append("Recordings");
-
-  if (!dir.exists()) {
-    OS.File.makeDir(dir.path);
-  }
-
-  dir.append("recordings.json");
-  return dir.path;
-}
-
-async function getRecordings() {
-  const path = getRecordingsPath();
-  if (await OS.File.exists(path)) {
-    const file = await OS.File.read(path);
-    return JSON.parse(new TextDecoder("utf-8").decode(file));
-  }
-
-  return [];
-}
-
-async function addRecordingDescription(description) {
-  const path = getRecordingsPath();
-
-  let recordings = await getRecordings();
-  OS.File.writeAtomic(path, JSON.stringify([description, ...recordings]));
-}
-
-function viewRecordings() {
-  const { gBrowser } = Services.wm.getMostRecentWindow("navigator:browser");
+function viewRecordings(evt) {
+  const { gBrowser } = evt.target.ownerDocument.defaultView;
   const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
   gBrowser.loadURI(
     Services.prefs.getStringPref("devtools.recordreplay.recordingsUrl"),

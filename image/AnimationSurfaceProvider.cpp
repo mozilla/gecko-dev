@@ -25,7 +25,7 @@ AnimationSurfaceProvider::AnimationSurfaceProvider(
       mImage(aImage.get()),
       mDecodingMutex("AnimationSurfaceProvider::mDecoder"),
       mDecoder(aDecoder.get()),
-      mFramesMutex("AnimationSurfaceProvider::mFrames") {
+      mFramesMutex("AnimationSurfaceProvider::mFrames", /* aOrdered */ true) {
   MOZ_ASSERT(!mDecoder->IsMetadataDecode(),
              "Use MetadataDecodingTask for metadata decodes");
   MOZ_ASSERT(!mDecoder->IsFirstFrameDecode(),
@@ -120,6 +120,8 @@ void AnimationSurfaceProvider::Advance(size_t aFrame) {
     MutexAutoLock lock(mFramesMutex);
     restartDecoder = mFrames->AdvanceTo(aFrame);
   }
+
+  recordreplay::RecordReplayAssert("AnimationSurfaceProvider::Advance %d", restartDecoder);
 
   if (restartDecoder) {
     DecodePool::Singleton()->AsyncRun(this);

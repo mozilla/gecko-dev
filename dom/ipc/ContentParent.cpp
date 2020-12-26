@@ -344,12 +344,6 @@ using namespace mozilla::widget;
 using mozilla::loader::PScriptCacheParent;
 using mozilla::Telemetry::ProcessID;
 
-namespace mozilla {
-  namespace recordreplay {
-    void EnsureUIStateInitialized();
-  }
-}
-
 // XXX Workaround for bug 986973 to maintain the existing broken semantics
 template <>
 struct nsIConsoleService::COMTypeInfo<nsConsoleService, void> {
@@ -2619,8 +2613,6 @@ ContentParent::ContentParent(const nsACString& aRemoteType, int32_t aJSPluginID,
     sContentParents = MakeUnique<LinkedList<ContentParent>>();
   }
   sContentParents->insertBack(this);
-
-  recordreplay::EnsureUIStateInitialized();
 
   mMessageManager = nsFrameMessageManager::NewProcessMessageManager(true);
 

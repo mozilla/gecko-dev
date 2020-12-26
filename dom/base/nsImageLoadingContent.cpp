@@ -526,6 +526,10 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
   }
 
   bool forceSync = mSyncDecodingHint;
+
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding %d %d",
+                                   forceSync, aPrepareNextRequest);
+
   if (!forceSync && aPrepareNextRequest) {
     // Detect JavaScript-based animations created by changing the |src|
     // attribute on a timer.
@@ -535,9 +539,15 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
 
     // If the length of time between request changes is less than the threshold,
     // then force sync decoding to eliminate flicker from the animation.
-    forceSync = (now - mMostRecentRequestChange < threshold);
+    // We record/replay this value because the threshold sometimes seems to be
+    // uninitialized.
+    forceSync = recordreplay::RecordReplayValue("nsImageLoadingContent::MaybeForceSyncDecoding",
+                                                now - mMostRecentRequestChange < threshold);
     mMostRecentRequestChange = now;
   }
+
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #1 %d",
+                                   forceSync);
 
   if (imageFrame) {
     imageFrame->SetForceSyncDecoding(forceSync);
@@ -1013,6 +1023,9 @@ nsresult nsImageLoadingContent::LoadImage(const nsAString& aNewURI, bool aForce,
                                           bool aNotify,
                                           ImageLoadType aImageLoadType,
                                           nsIPrincipal* aTriggeringPrincipal) {
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::LoadImage (overload) %lu",
+                                   aNewURI.Length());
+
   // First, get a document (needed for security checks and the like)
   Document* doc = GetOurOwnerDoc();
   if (!doc) {
@@ -1053,6 +1066,9 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
                                           nsLoadFlags aLoadFlags,
                                           bool aLoadStart, Document* aDocument,
                                           nsIPrincipal* aTriggeringPrincipal) {
+  recordreplay::RecordReplayAssert("nsImageLoadingContent::LoadImage %lu",
+                                   aNewURI->GetSpecOrDefault().Length());
+
   MOZ_ASSERT(!mIsStartingImageLoad, "some evil code is reentering LoadImage.");
   if (mIsStartingImageLoad) {
     return NS_OK;

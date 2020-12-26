@@ -55,6 +55,8 @@ bool IDecodingTask::IsOnEventTarget() const {
 
 void IDecodingTask::NotifyProgress(NotNull<RasterImage*> aImage,
                                    NotNull<Decoder*> aDecoder) {
+  recordreplay::RecordReplayAssert("IDecodingTask::NotifyProgress");
+
   MOZ_ASSERT(aDecoder->HasProgress() && !aDecoder->IsMetadataDecode());
   EnsureHasEventTarget(aImage);
 
@@ -75,6 +77,7 @@ void IDecodingTask::NotifyProgress(NotNull<RasterImage*> aImage,
   if (IsOnEventTarget() && !(decoderFlags & DecoderFlags::ASYNC_NOTIFY)) {
     aImage->NotifyProgress(progress, invalidRect, frameCount, decoderFlags,
                            surfaceFlags);
+    recordreplay::RecordReplayAssert("IDecodingTask::NotifyProgress #1");
     return;
   }
 
@@ -88,6 +91,8 @@ void IDecodingTask::NotifyProgress(NotNull<RasterImage*> aImage,
                                                      surfaceFlags);
                              })),
                          NS_DISPATCH_NORMAL);
+
+  recordreplay::RecordReplayAssert("IDecodingTask::NotifyProgress #2");
 }
 
 void IDecodingTask::NotifyDecodeComplete(NotNull<RasterImage*> aImage,

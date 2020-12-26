@@ -14,68 +14,51 @@ const { setTimeout } = Components.utils.import(
   "resource://gre/modules/Timer.jsm"
 );
 
+const { EventEmitter } = ChromeUtils.import("resource://gre/modules/EventEmitter.jsm");
+
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
 });
 
-// This interface connects to the cloud service and manages uploading recording data.
+let updateStatusCallback = null;
+let connectionStatus = "cloudConnecting.label";
 
-// Worker which handles the sockets connecting to remote processes.
-let gWorker;
+function setConnectionStatusChangeCallback(callback) {
+  updateStatusCallback = callback;
+}
 
-// Callbacks supplied on startup.
-let gCallbacks;
+function getConnectionStatus() {
+  return connectionStatus;
+}
 
-let gConfig;
-
-// When connecting we open an initial channel for commands not associated with a recording.
-let gMainChannelId;
-
-// eslint-disable-next-line no-unused-vars
-function Initialize(callbacks) {
-  gWorker = new Worker("connection-worker.js");
-  gWorker.addEventListener("message", (evt) => {
-    try {
-      onMessage(evt);
-    } catch (e) {
-      ChromeUtils.recordReplayLog(`RecordReplaySocketError ${e} ${e.stack}`);
-    }
-  });
-  gCallbacks = callbacks;
-
-  let address = Services.prefs.getStringPref(
-    "devtools.recordreplay.cloudServer"
-  );
-
-  const override = getenv("RECORD_REPLAY_SERVER");
-  if (override) {
-    address = override;
+const gWorker = new Worker("connection-worker.js");
+gWorker.addEventListener("message", (evt) => {
+  try {
+    onMessage(evt);
+  } catch (e) {
+    ChromeUtils.recordReplayLog(`RecordReplaySocketError ${e} ${e.stack}`);
   }
+});
 
-  // During automated tests, sometimes we want to use different dispatchers
-  // depending on the recording URL, e.g. to use a dispatcher on the localhost
-  // for the pages being tested but the normal dispatcher for recordings of the
-  // devtools viewer itself.
-  const altAddress = getenv("RECORD_REPLAY_ALTERNATE_SERVER");
-  const altPattern = getenv("RECORD_REPLAY_ALTERNATE_SERVER_PATTERN");
+let address = Services.prefs.getStringPref(
+  "devtools.recordreplay.cloudServer"
+);
 
-  gConfig = { address, altAddress, altPattern };
-
-  gMainChannelId = openChannel(address);
+const override = getenv("RECORD_REPLAY_SERVER");
+if (override) {
+  address = override;
 }
 
-let gNextChannelId = 1;
-
-function openChannel(address) {
-  const id = gNextChannelId++;
-  gWorker.postMessage({ kind: "openChannel", id, address });
-  return id;
-}
+const gMainChannelId = 1;
+gWorker.postMessage({ kind: "openChannel", id: gMainChannelId, address });
 
 function onMessage(evt) {
   switch (evt.data.kind) {
     case "updateStatus":
-      gCallbacks.updateStatus(evt.data.status);
+      connectionStatus = evt.data.status;
+      if (updateStatusCallback) {
+        updateStatusCallback(connectionStatus);
+      }
       break;
     case "commandResult":
       onCommandResult(evt.data.id, evt.data.result);
@@ -164,37 +147,63 @@ async function addRecordingResource(recordingId, url) {
   }
 }
 
-const recordingAsyncOperations = new Map();
-function getOrCreateRecordingAsyncOps(recordingId) {
-  let ops = recordingAsyncOperations.get(recordingId);
-  if (!ops) {
-    if (ops === null) {
-      console.error(
-        "Unexpectedly accessing async operation list after taking it."
-      );
+const SEEN_MANAGERS = new WeakSet();
+class Recording extends EventEmitter {
+  constructor(pmm) {
+    super();
+    if (SEEN_MANAGERS.has(pmm)) {
+      console.error("Duplicate recording for same child process manager");
     }
+    SEEN_MANAGERS.add(pmm);
 
-    ops = [];
-    recordingAsyncOperations.set(recordingId, ops);
+    this._pmm = pmm;
+    this._resourceUploads = [];
+
+    this._pmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
+      receiveMessage: msg => this._onNewSourcemap(msg.data),
+    });
+    this._pmm.addMessageListener("RecordingFinished", {
+      receiveMessage: msg => this._onFinished(msg.data),
+    });
+    this._pmm.addMessageListener("RecordingUnusable", {
+      receiveMessage: msg => this._onUnusable(msg.data),
+    });
   }
-  return ops;
-}
-function takeRecordingAsyncOps(recordingId) {
-  let ops = recordingAsyncOperations.get(recordingId);
-  // Set to null instead of deleting so we can show a warning if the
-  // recording's async operation list is accessed after this point.
-  recordingAsyncOperations.set(recordingId, null);
-  return ops || [];
-}
 
-Services.ppmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
-  receiveMessage(msg) {
-    const { recordingId, url, sourceMapURL } = msg.data;
+  get osPid() {
+    return this._pmm.osPid;
+  }
 
-    getOrCreateRecordingAsyncOps(recordingId)
-      .push(uploadAllSourcemapAssets(recordingId, url, sourceMapURL));
-  },
-});
+  _onNewSourcemap({ recordingId, url, sourceMapURL }) {
+    this._resourceUploads.push(uploadAllSourcemapAssets(recordingId, url, sourceMapURL));
+  }
+
+  async _onFinished(data) {
+    this.emit("finished");
+
+    await Promise.all([
+      sendCommand("Internal.setRecordingMetadata", {
+        authId: getLoggedInUserAuthId(),
+        recordingData: data,
+      }),
+
+      // Ensure that all sourcemap resources have been sent to the server before
+      // we consider the recording saved, so that we don't risk creating a
+      // recording session without all the maps available.
+      // NOTE: Since we only do this here, recordings that become unusable
+      // will never be cleaned up and will leak. We don't currently have
+      // an easy way to know the ID of unusable recordings, so we accept
+      // the leak as a minor issue.
+      Promise.allSettled(this._resourceUploads),
+    ]);
+
+    this.emit("saved", data);
+  }
+
+  _onUnusable(data) {
+    this.emit("unusable", data);
+  }
+}
 
 async function uploadAllSourcemapAssets(recordingId, url, sourceMapURL) {
   let resolvedSourceMapURL;
@@ -219,34 +228,6 @@ async function uploadAllSourcemapAssets(recordingId, url, sourceMapURL) {
     }));
   }
 }
-
-Services.ppmm.addMessageListener("RecordingFinished", {
-  async receiveMessage(msg) {
-    // NOTE(dmiller): this can be null in the devtools tests for some reason, but not in production
-    // Not sure why.
-    if (isRunningTest() && !msg.data) {
-      console.log("got RecordingFinished with empty msg data, skipping");
-      return;
-    }
-
-    await Promise.all([
-      sendCommand("Internal.setRecordingMetadata", {
-        authId: getLoggedInUserAuthId(),
-        recordingData: msg.data,
-      }),
-
-      // Ensure that all sourcemap resources have been sent to the server before
-      // we consider the recording saved, so that we don't risk creating a
-      // recording session without all the maps available.
-      // NOTE: Since we only do this here, recordings that become unusable
-      // will never be cleaned up and will leak. We don't currently have
-      // an easy way to know the ID of unusable recordings, so we accept
-      // the leak as a minor issue.
-      Promise.allSettled(takeRecordingAsyncOps(msg.data.id)),
-    ]);
-    Services.cpmm.sendAsyncMessage("RecordingSaved", msg.data);
-  },
-});
 
 function getLoggedInUserAuthId() {
   if (isRunningTest()) {
@@ -282,5 +263,11 @@ function onCommandResult(id, result) {
   }
 }
 
+Services.ppmm.addMessageListener("RecordingStarting", {
+  receiveMessage(msg) {
+    Services.obs.notifyObservers(new Recording(msg.target), "recordreplay-recording-started");
+  },
+});
+
 // eslint-disable-next-line no-unused-vars
-var EXPORTED_SYMBOLS = ["Initialize"];
+var EXPORTED_SYMBOLS = ["setConnectionStatusChangeCallback", "getConnectionStatus"];

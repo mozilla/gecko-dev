@@ -155,20 +155,21 @@ NS_IMETHODIMP_(MozExternalRefCountType) SharedThreadPool::Release(void) {
     return count;
   }
 
+  // When recording/replaying this destruction code runs non-deterministically.
+  // Rather than forcing this to run deterministically, let the pools leak.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return count;
+  }
+
   // Remove SharedThreadPool from table of pools.
   sPools->Remove(mName);
   MOZ_ASSERT(!sPools->Get(mName));
 
-  // When recording/replaying this destruction code runs non-deterministically.
-  // Currently we aren't able to handle posting events non-deterministically,
-  // so avoid shutting down the pool.
-  if (!recordreplay::IsRecordingOrReplaying()) {
-    // Dispatch an event to the main thread to call Shutdown() on
-    // the nsIThreadPool. The Runnable here will add a refcount to the pool,
-    // and when the Runnable releases the nsIThreadPool it will be deleted.
-    NS_DispatchToMainThread(NewRunnableMethod("nsIThreadPool::Shutdown", mPool,
-                                              &nsIThreadPool::Shutdown));
-  }
+  // Dispatch an event to the main thread to call Shutdown() on
+  // the nsIThreadPool. The Runnable here will add a refcount to the pool,
+  // and when the Runnable releases the nsIThreadPool it will be deleted.
+  NS_DispatchToMainThread(NewRunnableMethod("nsIThreadPool::Shutdown", mPool,
+                                            &nsIThreadPool::Shutdown));
 
   // Stabilize refcount, so that if something in the dtor QIs, it won't explode.
   mRefCnt = 1;

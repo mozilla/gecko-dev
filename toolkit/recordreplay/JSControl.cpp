@@ -33,6 +33,7 @@ namespace js {
 static void (*gOnNewSource)(const char* aId, const char* aKind, const char* aUrl);
 static char* (*gGetRecordingId)();
 static void (*gSetDefaultCommandCallback)(char* (*aCallback)(const char*, const char*));
+static void (*gSetClearPauseDataCallback)(void (*aCallback)());
 static void (*gSetChangeInstrumentCallback)(void (*aCallback)(bool));
 static void (*gInstrument)(const char* aKind, const char* aFunctionId, int aOffset);
 static void (*gOnExceptionUnwind)();
@@ -48,6 +49,9 @@ static char* (*gGetUnusableRecordingReason)();
 // some state.
 static char* CommandCallback(const char* aMethod, const char* aParams);
 
+// Callback used to clear ObjectId associations.
+static void ClearPauseDataCallback();
+
 // Callback used to change whether execution is being scanned and we should
 // call OnInstrument.
 static void ChangeInstrumentCallback(bool aValue);
@@ -57,6 +61,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayOnNewSource", gOnNewSource);
   LoadSymbol("RecordReplayGetRecordingId", gGetRecordingId);
   LoadSymbol("RecordReplaySetDefaultCommandCallback", gSetDefaultCommandCallback);
+  LoadSymbol("RecordReplaySetClearPauseDataCallback", gSetClearPauseDataCallback);
   LoadSymbol("RecordReplaySetChangeInstrumentCallback", gSetChangeInstrumentCallback);
   LoadSymbol("RecordReplayOnInstrument", gInstrument);
   LoadSymbol("RecordReplayOnExceptionUnwind", gOnExceptionUnwind);
@@ -69,6 +74,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayGetUnusableRecordingReason", gGetUnusableRecordingReason);
 
   gSetDefaultCommandCallback(CommandCallback);
+  gSetClearPauseDataCallback(ClearPauseDataCallback);
   gSetChangeInstrumentCallback(ChangeInstrumentCallback);
 }
 
@@ -164,7 +170,7 @@ MOZ_EXPORT ProgressCounter RecordReplayInterface_NewTimeWarpTarget() {
 
 void OnTestCommand(const char* aString) {
   // Ignore commands to finish the current test if we aren't recording/replaying.
-  if (!strcmp(aString, "RecReplaySendAsyncMessage RecordingFinished") &&
+  if (!strcmp(aString, "RecReplaySendAsyncMessage Example__Finished") &&
       !IsRecordingOrReplaying()) {
     return;
   }
@@ -367,28 +373,6 @@ static bool Method_AreThreadEventsDisallowed(JSContext* aCx,
   return true;
 }
 
-static bool Method_ProgressCounter(JSContext* aCx, unsigned aArgc,
-                                         Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-  args.rval().setNumber((double)*ExecutionProgressCounter());
-  return true;
-}
-
-static bool Method_SetProgressCounter(JSContext* aCx, unsigned aArgc,
-                                      Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isNumber()) {
-    JS_ReportErrorASCII(aCx, "Expected numeric argument");
-    return false;
-  }
-
-  *ExecutionProgressCounter() = args.get(0).toNumber();
-
-  args.rval().setUndefined();
-  return true;
-}
-
 static bool Method_ShouldUpdateProgressCounter(JSContext* aCx,
                                                unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
@@ -555,8 +539,6 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("annotate", Method_Annotate, 1, 0),
   JS_FN("onNewSource", Method_OnNewSource, 3, 0),
   JS_FN("areThreadEventsDisallowed", Method_AreThreadEventsDisallowed, 0, 0),
-  JS_FN("progressCounter", Method_ProgressCounter, 0, 0),
-  JS_FN("setProgressCounter", Method_SetProgressCounter, 1, 0),
   JS_FN("shouldUpdateProgressCounter", Method_ShouldUpdateProgressCounter, 1, 0),
   JS_FN("instrumentationCallback", Method_InstrumentationCallback, 3, 0),
   JS_FN("isScanningScripts", Method_IsScanningScripts, 0, 0),
@@ -602,8 +584,7 @@ static char* CommandCallback(const char* aMethod, const char* aParams) {
   }
 
   if (!rv.isObject()) {
-    PrintLog("Error: CommandCallback result must be an object %s", aMethod);
-    MOZ_CRASH("CommandCallback");
+    return nullptr;
   }
 
   RootedObject obj(cx, &rv.toObject());
@@ -615,6 +596,20 @@ static char* CommandCallback(const char* aMethod, const char* aParams) {
   }
 
   return strdup(str.get());
+}
+
+static void ClearPauseDataCallback() {
+  MOZ_RELEASE_ASSERT(js::IsModuleInitialized());
+
+  AutoSafeJSContext cx;
+  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+
+  JS::AutoValueArray<0> args(cx);
+
+  RootedValue rv(cx);
+  if (!JS_CallFunctionName(cx, *js::gModuleObject, "ClearPauseData", args, &rv)) {
+    MOZ_CRASH("ClearPauseDataCallback");
+  }
 }
 
 }  // namespace js
@@ -647,99 +642,6 @@ bool DefineRecordReplayControlObject(JSContext* aCx, JS::HandleObject object) {
   }
 
   return true;
-}
-
-static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
-
-static const JSFunctionSpec gCallbacks[] = {
-  JS_FN("updateStatus", StatusCallback, 1, 0),
-  JS_FS_END
-};
-
-static bool gUIStateInitialized;
-static StaticRefPtr<rrIConnection> gConnection;
-static nsString gCloudReplayStatus;
-
-void EnsureUIStateInitialized() {
-  if (gUIStateInitialized) {
-    return;
-  }
-  gUIStateInitialized = true;
-  MOZ_RELEASE_ASSERT(!gConnection);
-
-  nsCOMPtr<rrIConnection> connection =
-    do_ImportModule("resource://devtools/server/actors/replay/connection.js");
-  gConnection = connection.forget();
-  ClearOnShutdown(&gConnection);
-
-  AutoSafeJSContext cx;
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
-
-  JS::RootedObject callbacks(cx, JS_NewObject(cx, nullptr));
-  MOZ_RELEASE_ASSERT(callbacks);
-
-  if (!JS_DefineFunctions(cx, callbacks, gCallbacks)) {
-    MOZ_CRASH("EnsureUIStateInitialized");
-  }
-
-  JS::RootedValue callbacksValue(cx, JS::ObjectValue(*callbacks));
-  if (NS_FAILED(gConnection->Initialize(callbacksValue))) {
-    MOZ_CRASH("EnsureUIStateInitialized");
-  }
-
-  gCloudReplayStatus.AssignLiteral("cloudConnecting.label");
-}
-
-static JS::PersistentRootedObject* gStatusCallback;
-
-void SetCloudReplayStatusCallback(JS::HandleValue aCallback) {
-  AutoSafeJSContext cx;
-
-  if (!gStatusCallback) {
-    gStatusCallback = new JS::PersistentRootedObject(cx);
-  }
-
-  *gStatusCallback = aCallback.isObject() ? &aCallback.toObject() : nullptr;
-}
-
-static bool StatusCallback(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
-  JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  if (!args.get(0).isString()) {
-    JS_ReportErrorASCII(aCx, "Expected string");
-    return false;
-  }
-
-  nsAutoCString status;
-  js::ConvertJSStringToCString(aCx, args.get(0).toString(), status);
-  gCloudReplayStatus = NS_ConvertUTF8toUTF16(status);
-
-  if (gStatusCallback && *gStatusCallback) {
-    JSAutoRealm ar(aCx, *gStatusCallback);
-
-    JS::RootedValueArray<3> newArgs(aCx);
-    newArgs[0].set(args.get(0));
-    newArgs[1].set(args.get(1));
-    newArgs[2].set(args.get(2));
-
-    JS_WrapValue(aCx, newArgs[0]);
-    JS_WrapValue(aCx, newArgs[1]);
-    JS_WrapValue(aCx, newArgs[2]);
-
-    JS::RootedObject thisv(aCx);
-    JS::RootedValue fval(aCx, JS::ObjectValue(**gStatusCallback));
-    JS::RootedValue rv(aCx);
-    if (!JS_CallFunctionValue(aCx, thisv, fval, newArgs, &rv)) {
-      return false;
-    }
-  }
-
-  args.rval().setUndefined();
-  return true;
-}
-
-void GetCloudReplayStatus(nsAString& aResult) {
-  aResult = gCloudReplayStatus;
 }
 
 }  // namespace recordreplay

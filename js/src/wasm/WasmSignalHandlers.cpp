@@ -698,6 +698,8 @@ static MOZ_MUST_USE bool HandleTrap(CONTEXT* context,
                                     JSContext* assertCx = nullptr) {
   MOZ_ASSERT(sAlreadyHandlingTrap.get());
 
+  mozilla::recordreplay::InvalidateRecording("Wasm signal handler invoked");
+
   uint8_t* pc = ContextToPC(context);
   const CodeSegment* codeSegment = LookupCodeSegment(pc);
   if (!codeSegment || !codeSegment->isModule()) {
@@ -1014,23 +1016,24 @@ void wasm::EnsureEagerProcessSignalHandlers() {
   return;
 #endif
 
-  // Signal handlers are currently disabled when recording or replaying.
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    // If this environment variable is set then wasm will still be permitted
-    // to run, albeit without signal handlers.
-    const char* env = getenv("RECORD_REPLAY_ALLOW_WASM");
-    if (env && env[0]) {
-      eagerInstallState->success = true;
-    }
-    return;
-  }
-
 #if defined(ANDROID) && defined(MOZ_LINKER)
   // Signal handling is broken on some android systems.
   if (IsSignalHandlingBroken()) {
     return;
   }
 #endif
+
+  // When recording/replaying, we use signal handlers when recording but not
+  // when replaying. Signal handlers will not work when replaying, but we
+  // don't need them because the same accesses will be performed when replaying
+  // as when recording, and we invalidate the recording if any signal handlers
+  // trip while recording.
+  if (mozilla::recordreplay::IsReplaying()) {
+    eagerInstallState->success = true;
+    return;
+  }
+
+  mozilla::recordreplay::AutoPassThroughThreadEvents pt;
 
   sAlreadyHandlingTrap.infallibleInit();
 
@@ -1107,10 +1110,13 @@ static bool EnsureLazyProcessSignalHandlers() {
   lazyInstallState->tried = true;
   MOZ_RELEASE_ASSERT(lazyInstallState->success == false);
 
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+  // Don't install signal handlers when replaying,
+  // see EnsureEagerProcessSignalHandlers.
+  if (mozilla::recordreplay::IsReplaying()) {
     lazyInstallState->success = true;
     return true;
   }
+  mozilla::recordreplay::AutoPassThroughThreadEvents pt;
 
 #ifdef XP_DARWIN
   // Create the port that all JSContext threads will redirect their traps to.
