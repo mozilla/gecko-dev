@@ -284,7 +284,7 @@ gDebugger.onNewScript = (script) => {
   }
 };
 
-getWindow().docShell.watchedByDevtools = true;
+//getWindow().docShell.watchedByDevtools = true;
 Services.obs.addObserver(
   {
     observe(subject) {

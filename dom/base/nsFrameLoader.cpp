@@ -462,8 +462,10 @@ already_AddRefed<nsFrameLoader> nsFrameLoader::Recreate(
              doc->IsStaticDocument());
 #endif
 
+  nsString recording = ContentParent::GetRecording(aOwner);
+
   RefPtr<BrowsingContext> context = aContext;
-  if (!context || !aPreserveContext) {
+  if (!context || !aPreserveContext || recording.Length()) {
     context = CreateBrowsingContext(aOwner, /* openWindowInfo */ nullptr,
                                     aSpecificGroup);
     if (aContext) {

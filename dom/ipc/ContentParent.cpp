@@ -1029,14 +1029,11 @@ already_AddRefed<ContentParent> ContentParent::GetUsedBrowserProcess(
 already_AddRefed<ContentParent>
 ContentParent::GetNewOrUsedLaunchingBrowserProcess(
     const nsACString& aRemoteType, BrowsingContextGroup* aGroup,
-    ProcessPriority aPriority, bool aPreferUsed) {
+    ProcessPriority aPriority, bool aPreferUsed,
+    const nsAString& aRecordingDispatchAddress) {
   MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
           ("GetNewOrUsedProcess for type %s",
            PromiseFlatCString(aRemoteType).get()));
-
-  // Figure out if this process will be recording.
-  //nsString recording = ContentParent::GetRecording(aFrameElement);
-  MOZ_CRASH("FIXME");
 
   // If we have an existing host process attached to this BrowsingContextGroup,
   // always return it, as we can never have multiple host processes within a
@@ -1045,6 +1042,7 @@ ContentParent::GetNewOrUsedLaunchingBrowserProcess(
   if (aGroup) {
     contentParent = aGroup->GetHostProcess(aRemoteType);
     if (contentParent) {
+      MOZ_RELEASE_ASSERT(!aRecordingDispatchAddress.Length());
       MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
               ("GetNewOrUsedProcess: Existing host process %p (launching %d)",
                contentParent.get(), contentParent->IsLaunching()));
@@ -1090,7 +1088,7 @@ ContentParent::GetNewOrUsedLaunchingBrowserProcess(
           ("Launching new process immediately for type %s",
            PromiseFlatCString(aRemoteType).get()));
 
-  contentParent = new ContentParent(aRemoteType, nsString());
+  contentParent = new ContentParent(aRemoteType, aRecordingDispatchAddress);
   if (!contentParent->BeginSubprocessLaunch(aPriority)) {
     // Launch aborted because of shutdown. Bailout.
     contentParent->LaunchSubprocessReject();
@@ -1135,9 +1133,10 @@ ContentParent::GetNewOrUsedBrowserProcessAsync(const nsACString& aRemoteType,
 /*static*/
 already_AddRefed<ContentParent> ContentParent::GetNewOrUsedBrowserProcess(
     const nsACString& aRemoteType, BrowsingContextGroup* aGroup,
-    ProcessPriority aPriority, bool aPreferUsed) {
+    ProcessPriority aPriority, bool aPreferUsed,
+    const nsAString& aRecordingDispatchAddress) {
   RefPtr<ContentParent> contentParent = GetNewOrUsedLaunchingBrowserProcess(
-      aRemoteType, aGroup, aPriority, aPreferUsed);
+      aRemoteType, aGroup, aPriority, aPreferUsed, aRecordingDispatchAddress);
   if (!contentParent || !contentParent->WaitForLaunchSync(aPriority)) {
     // In case of launch error, stop here.
     return nullptr;
@@ -1359,6 +1358,8 @@ already_AddRefed<RemoteBrowser> ContentParent::CreateBrowser(
     isPreloadBrowser = isPreloadBrowserStr.EqualsLiteral("preloaded");
   }
 
+  nsString recording = ContentParent::GetRecording(aFrameElement);
+
   RefPtr<ContentParent> constructorSender;
   MOZ_RELEASE_ASSERT(XRE_IsParentProcess(),
                      "Cannot allocate BrowserParent in content process");
@@ -1371,7 +1372,7 @@ already_AddRefed<RemoteBrowser> ContentParent::CreateBrowser(
     } else {
       constructorSender = GetNewOrUsedBrowserProcess(
           remoteType, aBrowsingContext->Group(), PROCESS_PRIORITY_FOREGROUND,
-          isPreloadBrowser);
+          isPreloadBrowser, recording);
     }
     if (!constructorSender) {
       return nullptr;

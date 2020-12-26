@@ -195,7 +195,8 @@ class ContentParent final
       const nsACString& aRemoteType, BrowsingContextGroup* aGroup = nullptr,
       hal::ProcessPriority aPriority =
           hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-      bool aPreferUsed = false);
+      bool aPreferUsed = false,
+      const nsAString& aRecordingDispatchAddress = nsString());
 
   /**
    * Get or create a content process, but without waiting for the process
@@ -211,7 +212,8 @@ class ContentParent final
       const nsACString& aRemoteType, BrowsingContextGroup* aGroup = nullptr,
       hal::ProcessPriority aPriority =
           hal::ProcessPriority::PROCESS_PRIORITY_FOREGROUND,
-      bool aPreferUsed = false);
+      bool aPreferUsed = false,
+      const nsAString& aRecordingDispatchAddress = nsString());
 
   RefPtr<ContentParent::LaunchPromise> WaitForLaunchAsync(
       hal::ProcessPriority aPriority =
@@ -1434,10 +1436,10 @@ class ContentParent final
                                         ErrorResult& aRv) override;
   mozilla::ipc::IProtocol* AsNativeActor() override { return this; }
 
- private:
   // Determine whether this frame should record its execution.
   static nsString GetRecording(Element* aFrameElement);
 
+ private:
   // Return an existing ContentParent if possible. Otherwise, `nullptr`.
   static already_AddRefed<ContentParent> GetUsedBrowserProcess(
       const nsACString& aRemoteType, nsTArray<ContentParent*>& aContentParents,
