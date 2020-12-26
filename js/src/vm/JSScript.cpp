@@ -3741,31 +3741,13 @@ void PrivateScriptData::trace(JSTracer* trc) {
   }
 }
 
-static bool ShouldTrackRecordReplayProgress(JSScript* script) {
-  // Progress is only tracked when recording or replaying, and only for
-  // scripts associated with the main thread's runtime. Whether self hosted
-  // scripts execute may depend on performed Ion optimizations (for example,
-  // self hosted TypedObject logic), so they are ignored.
-  if (gForceEmitExecutionProgress) {
-    return true;
-  }
-  return MOZ_UNLIKELY(mozilla::recordreplay::IsRecordingOrReplaying()) &&
-         !script->runtimeFromAnyThread()->parentRuntime &&
-         !script->selfHosted() &&
-         mozilla::recordreplay::ShouldUpdateProgressCounter(script->filename());
-}
-
 /*static*/
 JSScript* JSScript::Create(JSContext* cx, js::HandleObject functionOrGlobal,
                            js::HandleScriptSourceObject sourceObject,
                            SourceExtent extent,
                            js::ImmutableScriptFlags flags) {
-  JSScript* script = static_cast<JSScript*>(
+  return static_cast<JSScript*>(
       BaseScript::New(cx, functionOrGlobal, sourceObject, extent, flags));
-
-  script->setFlag(MutableFlags::TrackRecordReplayProgress,
-                  ShouldTrackRecordReplayProgress(script));
-  return script;
 }
 
 #ifdef MOZ_VTUNE

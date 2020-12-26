@@ -2263,10 +2263,8 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
     END_CASE(LoopHead)
 
     CASE(ExecutionProgress)
-      if (script->trackRecordReplayProgress()) {
-        MaybeCallExecutionProgressHook(script);
-        AdvanceExecutionProgressCounter();
-      }
+      MaybeCallExecutionProgressHook(script);
+      AdvanceExecutionProgressCounter();
     END_CASE(ExecutionProgress)
 
     CASE(Lineno)
@@ -4600,9 +4598,7 @@ static MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER bool Interpret(JSContext* cx,
       ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
       ReservedRooted<Value> v(&rootValue0);
       POP_COPY_TO(v);
-      if (script->trackRecordReplayProgress()) {
-        RecordReplayAssertValue(cx, name, v);
-      }
+      RecordReplayAssertValue(cx, name, v);
     }
     END_CASE(RecordReplayAssert)
 

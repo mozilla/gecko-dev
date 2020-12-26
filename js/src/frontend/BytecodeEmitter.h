@@ -289,10 +289,8 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
     MOZ_ASSERT(inPrologue());
     mainOffset_.emplace(bytecodeSection().code().length());
 
-    if (emitterMode != BytecodeEmitter::SelfHosting) {
-      if (!emit1(JSOp::ExecutionProgress)) {
-        return false;
-      }
+    if (!emitExecutionProgress()) {
+      return false;
     }
 
     return emitInstrumentation(
@@ -862,15 +860,38 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   template <class ClassMemberType>
   MOZ_MUST_USE bool emitNewPrivateNames(ListNode* classMembers);
 
+  // Controls whether execution progress and the corresponding instrumentation
+  // opcodes will be emitted for tracking execution when recording/replaying.
+  bool shouldEmitInstrumentation() {
+    if (mozilla::recordreplay::IsRecordingOrReplaying() &&
+        instrumentationKinds &&
+        mozilla::recordreplay::ShouldUpdateProgressCounter(parser->options().filename())) {
+      MOZ_RELEASE_ASSERT(emitterMode != BytecodeEmitter::SelfHosting);
+      return true;
+    }
+    return false;
+  }
+
+  MOZ_MUST_USE bool emitExecutionProgress() {
+    if (shouldEmitInstrumentation()) {
+      return emit1(JSOp::ExecutionProgress);
+    }
+    return true;
+  }
+
   MOZ_MUST_USE bool emitInstrumentation(InstrumentationKind kind) {
-    return MOZ_LIKELY(!instrumentationKinds) ||
-           emitInstrumentationSlow(kind, std::function<bool(uint32_t)>());
+    if (shouldEmitInstrumentation()) {
+      return emitInstrumentationSlow(kind, std::function<bool(uint32_t)>());
+    }
+    return true;
   }
 
   MOZ_MUST_USE bool emitInstrumentationForOpcode(JSOp op,
                                                  GCThingIndex atomIndex) {
-    return MOZ_LIKELY(!instrumentationKinds) ||
-           emitInstrumentationForOpcodeSlow(op, atomIndex);
+    if (shouldEmitInstrumentation()) {
+      return emitInstrumentationForOpcodeSlow(op, atomIndex);
+    }
+    return true;
   }
 
   MOZ_MUST_USE bool maybeEmitRecordReplayAssert(GCThingIndex atomIndex) {

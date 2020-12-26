@@ -6335,7 +6335,7 @@ AbortReasonOr<Ok> IonBuilder::jsop_eval(uint32_t argc) {
     if (string->isConcat() &&
         string->getOperand(1)->type() == MIRType::String &&
         string->getOperand(1)->maybeConstantValue() &&
-        !script()->trackRecordReplayProgress()) {
+        !mozilla::recordreplay::IsRecordingOrReplaying()) {
       JSAtom* atom =
           &string->getOperand(1)->maybeConstantValue()->toString()->asAtom();
 
@@ -12563,10 +12563,6 @@ AbortReasonOr<Ok> IonBuilder::jsop_debugger() {
 }
 
 AbortReasonOr<Ok> IonBuilder::jsop_execution_progress() {
-  if (!script()->trackRecordReplayProgress()) {
-    return Ok();
-  }
-
   MExecutionProgress* progress = MExecutionProgress::New(alloc(), script());
   current->add(progress);
 
@@ -12643,15 +12639,10 @@ AbortReasonOr<Ok> IonBuilder::jsop_instrumentation_scriptid() {
 }
 
 AbortReasonOr<Ok> IonBuilder::jsop_record_replay_assert() {
-  if (script()->trackRecordReplayProgress() || gForceEmitRecordReplayAsserts) {
-    PropertyName* name = info().getAtom(pc)->asPropertyName();
-    auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
-    current->add(ins);
-    return resumeAfter(ins);
-  } else {
-    current->pop();
-  }
-  return Ok();
+  PropertyName* name = info().getAtom(pc)->asPropertyName();
+  auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
+  current->add(ins);
+  return resumeAfter(ins);
 }
 
 AbortReasonOr<Ok> IonBuilder::jsop_objwithproto() {

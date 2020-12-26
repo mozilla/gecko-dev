@@ -78,7 +78,7 @@ bool LoopControl::emitLoopHead(BytecodeEmitter* bce,
   }
   SetLoopHeadDepthHint(bce->bytecodeSection().code(off), loopDepth_);
 
-  if (!bce->emit1(JSOp::ExecutionProgress)) {
+  if (!bce->emitExecutionProgress()) {
     return false;
   }
 

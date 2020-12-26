@@ -1714,8 +1714,6 @@ class BaseScript : public gc::TenuredCellWithNonGCPointer<uint8_t> {
 
   MUTABLE_FLAG_GETTER_SETTER(hasRunOnce, HasRunOnce)
   MUTABLE_FLAG_GETTER_SETTER(hasBeenCloned, HasBeenCloned)
-  MUTABLE_FLAG_GETTER_SETTER(trackRecordReplayProgress,
-                             TrackRecordReplayProgress)
   MUTABLE_FLAG_GETTER_SETTER(hasScriptCounts, HasScriptCounts)
   MUTABLE_FLAG_GETTER_SETTER(hasDebugScript, HasDebugScript)
   MUTABLE_FLAG_GETTER_SETTER(needsArgsAnalysis, NeedsArgsAnalysis)

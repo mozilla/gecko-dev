@@ -78,7 +78,6 @@ class CompileInfo {
         hadOverflowBailout_(script->hadOverflowBailout()),
         hadFrequentBailouts_(script->hadFrequentBailouts()),
         mayReadFrameArgsDirectly_(script->mayReadFrameArgsDirectly()),
-        trackRecordReplayProgressScript_(script->trackRecordReplayProgress() ? script : nullptr),
         isDerivedClassConstructor_(script->isDerivedClassConstructor()),
         inlineScriptTree_(inlineScriptTree) {
     MOZ_ASSERT_IF(osrPc, JSOp(*osrPc) == JSOp::LoopHead);
@@ -140,7 +139,6 @@ class CompileInfo {
         hadOverflowBailout_(false),
         hadFrequentBailouts_(false),
         mayReadFrameArgsDirectly_(false),
-        trackRecordReplayProgressScript_(nullptr),
         inlineScriptTree_(nullptr),
         needsBodyEnvironmentObject_(false),
         funNeedsSomeEnvironmentObject_(false) {
@@ -369,7 +367,6 @@ class CompileInfo {
   bool hadOverflowBailout() const { return hadOverflowBailout_; }
   bool hadFrequentBailouts() const { return hadFrequentBailouts_; }
   bool mayReadFrameArgsDirectly() const { return mayReadFrameArgsDirectly_; }
-  void* trackRecordReplayProgressScript() const { return trackRecordReplayProgressScript_; }
 
   bool isDerivedClassConstructor() const { return isDerivedClassConstructor_; }
 
@@ -396,7 +393,6 @@ class CompileInfo {
   bool hadFrequentBailouts_;
 
   bool mayReadFrameArgsDirectly_;
-  void* trackRecordReplayProgressScript_;
 
   bool isDerivedClassConstructor_;
 

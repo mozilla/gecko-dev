@@ -2280,22 +2280,15 @@ bool BaselineCodeGen<Handler>::emit_LoopHead() {
 
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_ExecutionProgress() {
-  if (!mozilla::recordreplay::IsRecordingOrReplaying() && !gForceEmitExecutionProgress) {
-    return true;
-  }
-
-  Register scratch = R0.scratchReg();
-
-  auto incCounter = [this, scratch]() {
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
     if (ExecutionProgressHook) {
+      Register scratch = R0.scratchReg();
       loadScript(scratch);
       masm.maybeCallExecutionProgressHook(scratch);
     }
     masm.inc64(AbsoluteAddress(ExecutionProgressCounter()));
-    return true;
-  };
-  return emitTestScriptFlag(JSScript::MutableFlags::TrackRecordReplayProgress,
-                            true, incCounter, scratch);
+  }
+  return true;
 }
 
 template <typename Handler>

@@ -962,8 +962,5 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
 
 bool js::RecordReplayAssertValueWithScript(JSContext* cx, HandleScript script,
                                            HandlePropertyName name, HandleValue value) {
-  if (script->trackRecordReplayProgress()) {
-    return RecordReplayAssertValue(cx, name, value);
-  }
-  return true;
+  return RecordReplayAssertValue(cx, name, value);
 }

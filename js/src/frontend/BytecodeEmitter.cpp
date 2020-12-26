@@ -2321,7 +2321,7 @@ bool BytecodeEmitter::emitYieldOp(JSOp op) {
 
   SET_RESUMEINDEX(bytecodeSection().code(off), resumeIndex);
 
-  if (!emit1(JSOp::ExecutionProgress)) {
+  if (!emitExecutionProgress()) {
     return false;
   }
 

@@ -396,6 +396,8 @@ XDRResult XDRState<mode>::codeFunction(MutableHandleFunction funp,
 
 template <XDRMode mode>
 XDRResult XDRState<mode>::codeScript(MutableHandleScript scriptp) {
+  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::IsRecordingOrReplaying());
+
   TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx());
   TraceLoggerTextId event =
       mode == XDR_DECODE ? TraceLogger_DecodeScript : TraceLogger_EncodeScript;

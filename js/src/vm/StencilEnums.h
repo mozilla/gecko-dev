@@ -325,8 +325,6 @@ enum class MutableScriptFlagsEnum : uint32_t {
 
   // Lexical check did fail and bail out.
   FailedLexicalCheck = 1 << 24,
-
-  TrackRecordReplayProgress = 1 << 25,
 };
 
 }  // namespace js

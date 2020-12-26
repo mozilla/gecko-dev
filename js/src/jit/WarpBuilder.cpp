@@ -2920,21 +2920,13 @@ bool WarpBuilder::build_ThrowSetConst(BytecodeLocation loc) {
 }
 
 bool WarpBuilder::build_RecordReplayAssert(BytecodeLocation loc) {
-  if (script_->trackRecordReplayProgress() || gForceEmitRecordReplayAsserts) {
-    PropertyName* name = loc.getAtom(script_)->asPropertyName();
-    auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
-    current->add(ins);
-    return resumeAfter(ins, loc);
-  }
-  current->pop();
-  return true;
+  PropertyName* name = loc.getAtom(script_)->asPropertyName();
+  auto* ins = MRecordReplayAssertValue::New(alloc(), current->pop(), name);
+  current->add(ins);
+  return resumeAfter(ins, loc);
 }
 
 bool WarpBuilder::build_ExecutionProgress(BytecodeLocation loc) {
-  if (!script_->trackRecordReplayProgress()) {
-    return true;
-  }
-
   MExecutionProgress* progress = MExecutionProgress::New(alloc(), script_);
   current->add(progress);
 
