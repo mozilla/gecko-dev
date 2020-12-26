@@ -146,11 +146,11 @@ BreakpointActor.prototype = {
   hit: function(frame) {
     // Don't pause if we are currently stepping (in or over) or the frame is
     // black-boxed.
-    const location = this.threadActor.sources.getFrameLocation(frame);
+    const location = this.threadActor.sourcesManager.getFrameLocation(frame);
 
     if (
-      this.threadActor.sources.isFrameBlackBoxed(frame) ||
-      this.threadActor.skipBreakpoints
+      this.threadActor.sourcesManager.isFrameBlackBoxed(frame) ||
+      this.threadActor.skipBreakpointsOption
     ) {
       return undefined;
     }

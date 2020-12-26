@@ -172,11 +172,23 @@ class DateTimeTestHelper {
     this.tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, pageUrl);
     let bc = gBrowser.selectedBrowser;
     if (inFrame) {
+      await SpecialPowers.spawn(bc, [], async function() {
+        const iframe = content.document.querySelector("iframe");
+        // Ensure the iframe's position is correct before doing any
+        // other operations
+        iframe.getBoundingClientRect();
+      });
       bc = bc.browsingContext.children[0];
     }
     await BrowserTestUtils.synthesizeMouseAtCenter("input", {}, bc);
     this.frame = this.panel.querySelector("#dateTimePopupFrame");
     await this.waitForPickerReady();
+  }
+
+  promisePickerClosed() {
+    return new Promise(resolve => {
+      this.panel.addEventListener("popuphidden", resolve, { once: true });
+    });
   }
 
   async waitForPickerReady() {
@@ -236,9 +248,7 @@ class DateTimeTestHelper {
    */
   async tearDown() {
     if (!this.panel.hidden) {
-      let pickerClosePromise = new Promise(resolve => {
-        this.panel.addEventListener("popuphidden", resolve, { once: true });
-      });
+      let pickerClosePromise = this.promisePickerClosed();
       this.panel.hidePopup();
       await pickerClosePromise;
     }
@@ -273,83 +283,56 @@ function once(target, name) {
   return p;
 }
 
-// Runs a content script that creates an autoplay video.
-//  browser: the browser to run the script in.
-//  args: test case definition, required members {
-//    mode: String, "autoplay attribute" or "call play".
-//  }
-function loadAutoplayVideo(browser, args) {
-  return SpecialPowers.spawn(browser, [args], async args => {
-    info("- create a new autoplay video -");
-    let video = content.document.createElement("video");
-    video.id = "v1";
-    video.didPlayPromise = new Promise((resolve, reject) => {
-      video.addEventListener(
-        "playing",
-        e => {
-          video.didPlay = true;
-          resolve();
-        },
-        { once: true }
-      );
-      video.addEventListener(
-        "blocked",
-        e => {
-          video.didPlay = false;
-          resolve();
-        },
-        { once: true }
-      );
-    });
-    if (args.mode == "autoplay attribute") {
-      info("autoplay attribute set to true");
-      video.autoplay = true;
-    } else if (args.mode == "call play") {
-      info("will call play() when reached loadedmetadata");
-      video.addEventListener(
-        "loadedmetadata",
-        e => {
-          video.play().then(
-            () => {
-              info("video play() resolved");
-            },
-            () => {
-              info("video play() rejected");
-            }
-          );
-        },
-        { once: true }
-      );
-    } else {
-      ok(false, "Invalid 'mode' arg");
-    }
-    video.src = "gizmo.mp4";
-    content.document.body.appendChild(video);
-  });
+/**
+ * check if current wakelock is equal to expected state, if not, then wait until
+ * the wakelock changes its state to expected state.
+ * @param needLock
+ *        the wakolock should be locked or not
+ * @param isForegroundLock
+ *        when the lock is on, the wakelock should be in the foreground or not
+ */
+async function waitForExpectedWakeLockState(
+  topic,
+  { needLock, isForegroundLock }
+) {
+  const powerManagerService = Cc["@mozilla.org/power/powermanagerservice;1"];
+  const powerManager = powerManagerService.getService(
+    Ci.nsIPowerManagerService
+  );
+  const wakelockState = powerManager.getWakeLockState(topic);
+  let expectedLockState = "unlocked";
+  if (needLock) {
+    expectedLockState = isForegroundLock
+      ? "locked-foreground"
+      : "locked-background";
+  }
+  if (wakelockState != expectedLockState) {
+    info(`wait until wakelock becomes ${expectedLockState}`);
+    await wakeLockObserved(
+      powerManager,
+      topic,
+      state => state == expectedLockState
+    );
+  }
+  is(
+    powerManager.getWakeLockState(topic),
+    expectedLockState,
+    `the wakelock state for '${topic}' is equal to '${expectedLockState}'`
+  );
 }
 
-// Runs a content script that checks whether the video created by
-// loadAutoplayVideo() started playing.
-// Parameters:
-//  browser: the browser to run the script in.
-//  args: test case definition, required members {
-//    name: String, description of test.
-//    mode: String, "autoplay attribute" or "call play".
-//    shouldPlay: boolean, whether video should play.
-//  }
-function checkVideoDidPlay(browser, args) {
-  return SpecialPowers.spawn(browser, [args], async args => {
-    let video = content.document.getElementById("v1");
-    await video.didPlayPromise;
-    is(
-      video.didPlay,
-      args.shouldPlay,
-      args.name +
-        " should " +
-        (!args.shouldPlay ? "not " : "") +
-        "be able to autoplay"
-    );
-    video.src = "";
-    content.document.body.remove(video);
+function wakeLockObserved(powerManager, observeTopic, checkFn) {
+  return new Promise(resolve => {
+    function wakeLockListener() {}
+    wakeLockListener.prototype = {
+      QueryInterface: ChromeUtils.generateQI(["nsIDOMMozWakeLockListener"]),
+      callback(topic, state) {
+        if (topic == observeTopic && checkFn(state)) {
+          powerManager.removeWakeLockListener(wakeLockListener.prototype);
+          resolve();
+        }
+      },
+    };
+    powerManager.addWakeLockListener(wakeLockListener.prototype);
   });
 }

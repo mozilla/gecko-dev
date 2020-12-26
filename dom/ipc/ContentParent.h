@@ -336,9 +336,6 @@ class ContentParent final
       const uint32_t& aPluginId, nsresult* aRv,
       Endpoint<PPluginModuleParent>* aEndpoint);
 
-  mozilla::ipc::IPCResult RecvLaunchRDDProcess(
-      nsresult* aRv, Endpoint<PRemoteDecoderManagerChild>* aEndpoint);
-
   mozilla::ipc::IPCResult RecvUngrabPointer(const uint32_t& aTime);
 
   mozilla::ipc::IPCResult RecvRemovePermission(const IPC::Principal& aPrincipal,
@@ -398,6 +395,7 @@ class ContentParent final
     return mLifecycleState == LifecycleState::LAUNCHING;
   }
   bool IsAlive() const override;
+  bool IsInitialized() const;
   bool IsDead() const { return mLifecycleState == LifecycleState::DEAD; }
 
   bool IsForBrowser() const { return mIsForBrowser; }
@@ -1100,6 +1098,10 @@ class ContentParent final
       const nsCString& aCategory, const bool& aIsFromPrivateWindow,
       const uint64_t& aInnerWindowId, const bool& aIsFromChromeContext);
 
+  mozilla::ipc::IPCResult RecvReportFrameTimingData(
+      uint64_t innerWindowId, const nsString& entryName,
+      const nsString& initiatorType, UniquePtr<PerformanceTimingData>&& aData);
+
   mozilla::ipc::IPCResult RecvScriptErrorWithStack(
       const nsString& aMessage, const nsString& aSourceName,
       const nsString& aSourceLine, const uint32_t& aLineNumber,
@@ -1201,9 +1203,9 @@ class ContentParent final
       const uint32_t& aGeneration,
       const mozilla::fontlist::Pointer& aFamilyPtr);
 
-  mozilla::ipc::IPCResult RecvGetHyphDict(
-      nsIURI* aURIParams, base::SharedMemoryHandle* aOutHandle,
-      uint32_t* aOutSize);
+  mozilla::ipc::IPCResult RecvGetHyphDict(nsIURI* aURIParams,
+                                          base::SharedMemoryHandle* aOutHandle,
+                                          uint32_t* aOutSize);
 
   mozilla::ipc::IPCResult RecvNotifyBenchmarkResult(const nsString& aCodecName,
                                                     const uint32_t& aDecodeFPS);
@@ -1340,7 +1342,7 @@ class ContentParent final
 
   mozilla::ipc::IPCResult RecvHistoryGo(
       const MaybeDiscarded<BrowsingContext>& aContext, int32_t aOffset,
-      HistoryGoResolver&& aResolveRequestedIndex);
+      uint64_t aHistoryEpoch, HistoryGoResolver&& aResolveRequestedIndex);
 
   mozilla::ipc::IPCResult RecvSessionHistoryUpdate(
       const MaybeDiscarded<BrowsingContext>& aContext, const int32_t& aIndex,
@@ -1371,8 +1373,7 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvSetActiveSessionHistoryEntry(
       const MaybeDiscarded<BrowsingContext>& aContext,
       const Maybe<nsPoint>& aPreviousScrollPos, SessionHistoryInfo&& aInfo,
-      uint32_t aLoadType, int32_t aChildOffset, uint32_t aUpdatedCacheKey,
-      const nsID& aChangeID);
+      uint32_t aLoadType, uint32_t aUpdatedCacheKey, const nsID& aChangeID);
 
   mozilla::ipc::IPCResult RecvReplaceActiveSessionHistoryEntry(
       const MaybeDiscarded<BrowsingContext>& aContext,
@@ -1464,6 +1465,7 @@ class ContentParent final
   bool mIsAPreallocBlocker;  // We called AddBlocker for this ContentParent
 
   nsCString mRemoteType;
+  nsCOMPtr<nsIPrincipal> mRemoteTypeIsolationPrincipal;
 
   ContentParentId mChildID;
   int32_t mGeolocationWatchID;
@@ -1514,6 +1516,7 @@ class ContentParent final
   enum class LifecycleState : uint8_t {
     LAUNCHING,
     ALIVE,
+    INITIALIZED,
     DEAD,
   };
 

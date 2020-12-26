@@ -37,12 +37,28 @@ extern "C" const char* __tsan_default_suppressions() {
          // External uninstrumented libraries
          MOZ_TSAN_DEFAULT_EXTLIB_SUPPRESSIONS
 
+         // TSan internals
+         "race:__tsan::ProcessPendingSignals\n"
+         "race:__tsan::CallUserSignalHandler\n"
+
+
+
+
+
+         // Uninstrumented code causing false positives
+
          // These libraries are uninstrumented and cause mutex false positives.
          // However, they can be unloaded by GTK early which we cannot avoid.
          "mutex:libGL.so\n"
          "mutex:libGLdispatch\n"
          "mutex:libGLX\n"
-
+         // Bug 1637707 - permanent
+         "mutex:libEGL_mesa.so\n"
+         // ~GLContextGLX unlocks a libGL mutex.
+         "mutex:GLContextGLX::~GLContextGLX\n"
+         // Bug 1651446 - permanent (ffmpeg)
+         "race:libavcodec.so*\n"
+         "race:libavutil.so*\n"
          // For some reason, the suppressions on libpulse.so
          // through `called_from_lib` only work partially.
          "race:libpulse.so\n"
@@ -51,31 +67,16 @@ extern "C" const char* __tsan_default_suppressions() {
          "race:pa_format_info_set_prop_string_array\n"
          "race:pa_stream_get_index\n"
          "race:pa_stream_update_timing_info\n"
-
          // This is a callback from libglib-2 that is apparently
          // not fully suppressed through `called_from_lib`.
          "race:g_main_context_dispatch\n"
-
          // This is likely a false positive involving a mutex from GTK.
          // See also bug 1642653 - permanent.
          "mutex:GetMaiAtkType\n"
 
-         // TSan internals
-         "race:__tsan::ProcessPendingSignals\n"
-         "race:__tsan::CallUserSignalHandler\n"
 
-         // Benign read/write races on bitfields
-         //
-         // WARNING: Bitfield races are only benign if one of the concurrent
-         // accesses is a read. Write/write races on different parts of a
-         // bitfield can have severe side-effects.
-         "race:WalkDiskCacheRunnable::Run\n"
-         // Modifying `mResolveAgain` while reading `mGetTtl`
-         "race:RemoveOrRefresh\n"
-         "race:nsHostResolver::ThreadFunc\n"
-         // Another bitfield access, confirmed benign. Bug 1614697 - permanent.
-         "race:nsHttpChannel::OnCacheEntryCheck\n"
-         "race:~AutoCacheWaitFlags\n"
+
+
 
          // Deadlock reports on single-threaded runtime.
          //
@@ -86,6 +87,7 @@ extern "C" const char* __tsan_default_suppressions() {
          // we should suppress these issues.
          //
          // See also https://github.com/google/sanitizers/issues/488
+
          // Bug 1614605 - permanent
          "deadlock:SanctionsTestServer\n"
          "deadlock:OCSPStaplingServer\n"
@@ -94,41 +96,127 @@ extern "C" const char* __tsan_default_suppressions() {
          // Bug 1606804 - permanent
          "deadlock:cert_storage::SecurityState::open_db\n"
          "deadlock:cert_storage::SecurityState::add_certs\n"
+         // Bug 1651770 - permanent
+         "deadlock:mozilla::camera::LockAndDispatch\n"
+         // Bug 1606804 - permanent
+         "deadlock:third_party/rust/rkv/src/env.rs\n"
 
-         // Bug 1153409
+
+
+
+
+         // Benign races in third-party code (should be fixed upstream)
+
+         // No Bug - permanent
+         // No Upstream Bug Filed!
+         //
+         // SIMD Initialization in libjpeg, potentially runs
+         // initialization twice, but otherwise benign. Init
+         // routine itself is in native assembler.
+         "race:init_simd\n"
+         "race:simd_support\n"
+         "race:jsimd_can_ycc_rgb\n"
+         // Bug 1615228 - permanent
+         // No Upstream Bug Filed!
+         //
+         // Likely benign race in ipc/chromium/ where we set
+         // `message_loop_` to `NULL` on two threads when stopping
+         // a thread at the same time it is already finishing.
+         "race:base::Thread::Stop\n"
+         // Bug 1615569 - permanent
+         // No Upstream Bug Filed!
+         //
+         // NSS is using freebl from two different threads but freebl isn't
+         // that threadsafe.
+         "race:mp_exptmod.max_window_bits\n"
+         // Bug 1652499 - permanent
+         // No Upstream Bug Filed!
+         //
+         // Likely benign race in webrtc.org code - race while updating the
+         // minimum log severity.
+         "race:Loggable\n"
+         "race:UpdateMinLogSeverity\n"
+         // Bug 1652174 - permanent
+         // Upstream Bug: https://github.com/libevent/libevent/issues/777
+         //
+         // Likely benign write-write race in libevent to set a sticky boolean
+         // flag to true.
+         "race:event_debug_mode_too_late\n"
+         // Bug 1648606 - permanent
+         // No Upstream Bug Filed!
+         //
+         // Race on some flag being checking in libusrsctp.
+         "race:sctp_close\n"
+         "race:sctp_iterator_work\n"
+         // Bug 1653618 - permanent
+         // Upstream Bug: https://github.com/sctplab/usrsctp/issues/507
+         //
+         // Might lead to scheduled timers in libusrsctp getting dropped?
+         "race:sctp_handle_tick\n"
+         "race:sctp_handle_sack\n"
+         // Bug 1648604 - permanent
+         // Upstream Bug: https://github.com/sctplab/usrsctp/issues/482
+         //
+         // Likely benign race in libusrsctp allocator during a free.
+         "race:system_base_info\n"
+         // Bug 1153409 - permanent
+         // No Upstream Bug Filed!
+         //
+         // Probably benign - sqlite has a few optimizations where it does
+         // racy reads and then does properly synchornized integrity checks
+         // afterwards. Some concern of compiler optimizations messing this
+         // up due to "volatile" being too weak for this.
          "race:third_party/sqlite3/*\n"
          "deadlock:third_party/sqlite3/*\n"
 
-         // Bug 1367344
-         "race:TelemetryImpl::sTelemetry\n"
 
-         // Bug 1506812
-         "race:BeginBackgroundRead\n"
 
-         // Bug 1506910
-         "race:gMozillaPoisonValue\n"
 
-         // Bug 1587510
-         "race:SystemGroupImpl::sSingleton\n"
 
-         // Bug 1587513
+         // Lack of proper instrumentation for the Rust stdlib (fix this!).
+         //
+         // All of these can potentially be removed if we fix Bug 1671691.
+
+         // Bug 1587513 - permanent
          "race:std::sync::mutex::Mutex\n"
-
          // Bug 1590423 - permanent
          "race:sync..Arc\n"
          "race:alloc::sync::Arc\n"
+         // No Bug - permanent
+         "race:third_party/rust/parking_lot_core/*\n"
+         // No Bug - permanent
+         "race:/rustc/*.rs\n"
+         "deadlock:/rustc/*.rs\n"
+         "thread:std::sys::unix::thread::Thread::new\n"
 
-         // Bug 1600594
-         "race:nsThread::SizeOfEventQueues\n"
 
-         // Bug 1601286
-         "race:setFlagBit\n"
-         "race:isFatInline\n"
-         "race:AtomizeAndCopyCharsFromLookup\n"
-         "race:inlinedMarkAtomInternal\n"
-         "race:XDRInnerObject<js::XDR_DECODE>\n"
-         "race:ScriptStencil::finishGCThings\n"
-         "race:XDRScriptGCThing<js::XDR_DECODE>\n"
+
+
+
+         // Benign read/write races on bitfields
+         //
+         // WARNING: Bitfield races are only benign if one of the concurrent
+         // accesses is a read. Write/write races on different parts of a
+         // bitfield can have severe side-effects.
+         //
+         // These should all still be fixed because the compiler is incentivized
+         // to combine/cache these accesses without proper atomic annotations.
+
+         // No Bug
+         "race:WalkDiskCacheRunnable::Run\n"
+         // No Bug - Modifying `mResolveAgain` while reading `mGetTtl`
+         "race:RemoveOrRefresh\n"
+         "race:nsHostResolver::ThreadFunc\n"
+         // Bug 1614697
+         "race:nsHttpChannel::OnCacheEntryCheck\n"
+         "race:~AutoCacheWaitFlags\n"
+
+
+
+
+
+         // The rest of these suppressions are miscellaneous issues in gecko
+         // that should be investigated and ideally fixed.
 
          // Bug 1619162
          "race:currentNameHasEscapes\n"
@@ -152,12 +240,6 @@ extern "C" const char* __tsan_default_suppressions() {
          // Bug 1606800
          "race:CallInitFunc\n"
 
-         // Bug 1606803
-         "race:ipv6_is_present\n"
-
-         // Bug 1606804
-         "deadlock:third_party/rust/rkv/src/env.rs\n"
-
          // Bug 1606864
          "race:nsSocketTransport::Close\n"
          "race:nsSocketTransport::OnSocketDetached\n"
@@ -173,28 +255,6 @@ extern "C" const char* __tsan_default_suppressions() {
          "race:fill_CERTCertificateFields\n"
          "race:CERT_DestroyCertificate\n"
 
-         // Bug 1607588
-         "race:nssSlot_GetToken\n"
-         "race:nssToken_Destroy\n"
-
-         // Bug 1607704
-         "race:nsUrlClassifierDBServiceWorker::OpenDb\n"
-         "race:nsUrlClassifierDBServiceWorker::Shutdown\n"
-
-         // Bug 1607706
-         "race:TemporaryIPCBlobParent::CreateAndShareFile\n"
-
-         // Bug 1607762
-         "race:nsHtml5OwningUTF16Buffer::Release\n"
-
-         // Bug 1608068
-         "race:makeOwnBaseShape\n"
-         "race:numDynamicSlots\n"
-
-         // Bug 1608357
-         "race:nsHtml5ExecutorFlusher::Run\n"
-         "race:geckoservo::glue::traverse_subtree\n"
-
          // Bug 1608462
          "deadlock:ScriptPreloader::OffThreadDecodeCallback\n"
 
@@ -206,12 +266,6 @@ extern "C" const char* __tsan_default_suppressions() {
          "race:_dl_deallocate_tls\n"
          "race:__libc_memalign\n"
 
-         // Bug 1615265
-         "race:ScriptPreloader::OffThreadDecodeCallback\n"
-
-         // Bug 1615569
-         "race:mp_exptmod.max_window_bits\n"
-
          // Bug 1664535
          "race:setNeedsIncrementalBarrier\n"
          "race:needsIncrementalBarrier\n"
@@ -219,84 +273,39 @@ extern "C" const char* __tsan_default_suppressions() {
          // Bug 1664803
          "race:Sampler::sSigHandlerCoordinator\n"
 
-         // Bug 1657739
-         "race:WebRtcAec_CreateAec\n"
-         "race:EchoSubtraction\n"
-
          // Bug 1656068
          "race:WebRtcAec_Create\n"
 
-         // ~GLContextGLX unlocks a libGL mutex that cannot be seen
-         // by TSan because libGL is not instrumented.
-         "mutex:GLContextGLX::~GLContextGLX\n"
-
-         // Bug 1637707 - permanent.
-         // Cannot suppress library because it is unloaded later
-         "mutex:libEGL_mesa.so\n"
-
-         // Probably false positives in Rust code
-         "race:third_party/rust/parking_lot_core/*\n"
-
-         // Rust library is not instrumented
-         "race:/rustc/*.rs\n"
-         "deadlock:/rustc/*.rs\n"
-         "thread:std::sys::unix::thread::Thread::new\n"
-
-         // Logging bug in Mochitests
+         // No Bug - Logging bug in Mochitests
          "race:mochitest/ssltunnel/ssltunnel.cpp\n"
 
-         // Suppress thread leaks for now
+         // No Bug - Suppress thread leaks for now
          "thread:NS_NewNamedThread\n"
          "thread:nsThread::Init\n"
          "thread:libglib-2\n"
 
-         // This thread does not seem to be stopped/joined
+         // No Bug - This thread does not seem to be stopped/joined
          "thread:mozilla::layers::ImageBridgeChild\n"
          "race:mozilla::layers::ImageBridgeChild::ShutDown\n"
 
-         // Benign races in third-party code
-         //
-         // SIMD Initialization in libjpeg, potentially runs
-         // initialization twice, but otherwise benign. Init
-         // routine itself is in native assembler.
-         "race:init_simd\n"
-         "race:simd_support\n"
-         "race:jsimd_can_ycc_rgb\n"
-         // Likely benign race in ipc/chromium/ where we set
-         // `message_loop_` to `NULL` on two threads when stopping
-         // a thread at the same time it is already finishing.
-         // See also bug 1615228 for discussion.
-         "race:base::Thread::Stop\n"
-
-         // Likely benign race in webrtc.org code
-         // May be fixed upstream at some point
-         // See bug 1652499
-         "race:Loggable\n"
-         "race:UpdateMinLogSeverity\n"
-
-         // See bug 1652174
-         "race:event_debug_mode_too_late\n"
-
-         // See bug 1651446
-         "race:libavcodec.so*\n"
-         "race:libavutil.so*\n"
-
-         // See bug 1648604
-         "race:system_base_info\n"
-
-         // See bug 1648606
-         "race:sctp_close\n"
-         "race:sctp_iterator_work\n"
-
-         // See bug 1651770
-         "deadlock:mozilla::camera::LockAndDispatch\n"
-
-         // See bug 1653618
-         "race:sctp_handle_tick\n"
-         "race:sctp_handle_sack\n"
-
-         // See bug 1652530
+         // Bug 1652530
          "mutex:XErrorTrap\n"
+
+         // Bug 1671572
+         "race:IdentifyTextureHost\n"
+         "race:GetCompositorBackendType\n"
+         "race:SupportsTextureDirectMapping\n"
+
+         // Bug 1671574
+         "thread:StartupCache\n"
+
+         // Bug 1671601
+         "race:CamerasParent::ActorDestroy\n"
+         "race:CamerasParent::DispatchToVideoCaptureThread\n"
+
+         // Bug 1672230
+         "race:ScriptPreloader::Trace\n"
+         "race:ScriptPreloader::WriteCache\n"
 
       // End of suppressions.
       ;  // Please keep this semicolon.

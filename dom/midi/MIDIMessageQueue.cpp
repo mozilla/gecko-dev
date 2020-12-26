@@ -5,9 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MIDIMessageQueue.h"
+#include "mozilla/dom/MIDITypes.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 MIDIMessageQueue::MIDIMessageQueue() : mMutex("MIDIMessageQueue::mMutex") {}
 
@@ -70,5 +70,4 @@ void MIDIMessageQueue::ClearAfterNow() {
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

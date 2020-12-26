@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,6 +49,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IInterface;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -436,7 +438,7 @@ public class GeckoSession {
                     case 0: // OPEN_DEFAULTWINDOW
                     case 1: // OPEN_CURRENTWINDOW
                         return NavigationDelegate.TARGET_WINDOW_CURRENT;
-                    default: // OPEN_NEWWINDOW, OPEN_NEWTAB, OPEN_SWITCHTAB
+                    default: // OPEN_NEWWINDOW, OPEN_NEWTAB
                         return NavigationDelegate.TARGET_WINDOW_NEW;
                 }
             }
@@ -1029,7 +1031,7 @@ public class GeckoSession {
                                        Compositor compositor, EventDispatcher dispatcher,
                                        SessionAccessibility.NativeProvider sessionAccessibility,
                                        GeckoBundle initData, String id, String chromeUri,
-                                       int screenId, boolean privateMode, boolean isRemote);
+                                       int screenId, boolean privateMode);
 
         @Override // JNIObject
         public void disposeNative() {
@@ -1299,7 +1301,6 @@ public class GeckoSession {
         final String chromeUri = mSettings.getChromeUri();
         final int screenId = mSettings.getScreenId();
         final boolean isPrivate = mSettings.getUsePrivateMode();
-        final boolean isRemote = runtime.getSettings().getUseMultiprocess();
 
         mWindow = new Window(runtime, this, mNativeQueue);
         mWebExtensionController.setRuntime(runtime);
@@ -1309,7 +1310,7 @@ public class GeckoSession {
         if (GeckoThread.isStateAtLeast(GeckoThread.State.PROFILE_READY)) {
             Window.open(mWindow, mNativeQueue, mCompositor, mEventDispatcher,
                         mAccessibility != null ? mAccessibility.nativeProvider : null,
-                        createInitData(), mId, chromeUri, screenId, isPrivate, isRemote);
+                        createInitData(), mId, chromeUri, screenId, isPrivate);
         } else {
             GeckoThread.queueNativeCallUntil(
                 GeckoThread.State.PROFILE_READY,
@@ -1323,7 +1324,7 @@ public class GeckoSession {
                 GeckoBundle.class, createInitData(),
                 String.class, mId,
                 String.class, chromeUri,
-                screenId, isPrivate, isRemote);
+                screenId, isPrivate);
         }
 
         onWindowChanged(WINDOW_OPEN, /* inProgress */ false);
@@ -1539,6 +1540,44 @@ public class GeckoSession {
         private static @NonNull String createDataUri(@NonNull final String data,
                                                     @Nullable final String mimeType) {
             return String.format("data:%s,%s", mimeType != null ? mimeType : "", data);
+        }
+
+        @Override
+        public int hashCode() {
+            // Move to Objects.hashCode once our MIN_SDK >= 19
+            return Arrays.hashCode(new Object[]{
+                mUri,
+                mReferrerSession,
+                mReferrerUri,
+                mHeaders,
+                mLoadFlags,
+                mIsDataUri,
+                mHeaderFilter
+            });
+        }
+
+        private static boolean equals(final Object a, final Object b) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                return Objects.equals(a, b);
+            }
+
+            return (a == b) || (a != null && a.equals(b));
+        }
+
+        @Override
+        public boolean equals(final @Nullable Object obj) {
+            if (!(obj instanceof Loader)) {
+                return false;
+            }
+
+            final Loader other = (Loader) obj;
+            return equals(mUri, other.mUri)
+                    && equals(mReferrerSession, other.mReferrerSession)
+                    && equals(mReferrerUri, other.mReferrerUri)
+                    && equals(mHeaders, other.mHeaders)
+                    && equals(mLoadFlags, other.mLoadFlags)
+                    && equals(mIsDataUri, other.mIsDataUri)
+                    && equals(mHeaderFilter, other.mHeaderFilter);
         }
 
         /**
@@ -1764,11 +1803,17 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull String uri, final @Nullable Map<String, String> additionalHeaders) {
-        load(new Loader()
+        final Loader loader = new Loader()
                 .uri(uri)
-                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
-                .additionalHeaders(additionalHeaders));
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE);
+
+        if (additionalHeaders != null) {
+            loader.additionalHeaders(additionalHeaders);
+        }
+
+        load(loader);
     }
 
     /**
@@ -1780,6 +1825,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull String uri, final @LoadFlags int flags) {
         load(new Loader()
                 .uri(uri)
@@ -1797,6 +1843,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull String uri, final @Nullable String referrer,
                         final @LoadFlags int flags) {
         load(new Loader()
@@ -1817,14 +1864,20 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull String uri, final @Nullable String referrer,
                         final @LoadFlags int flags, final @Nullable Map<String, String> additionalHeaders) {
-        load(new Loader()
+        final Loader loader = new Loader()
                 .uri(uri)
                 .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
                 .referrer(referrer)
-                .flags(flags)
-                .additionalHeaders(additionalHeaders));
+                .flags(flags);
+
+        if (additionalHeaders != null) {
+            loader.additionalHeaders(additionalHeaders);
+        }
+
+        load(loader);
     }
 
     /**
@@ -1839,6 +1892,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull String uri, final @Nullable GeckoSession referrer,
                         final @LoadFlags int flags) {
         load(new Loader()
@@ -1861,14 +1915,20 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull String uri, final @Nullable GeckoSession referrer,
                         final @LoadFlags int flags, final @Nullable Map<String, String> additionalHeaders) {
-        load(new Loader()
+        final Loader loader = new Loader()
                 .uri(uri)
                 .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
                 .referrer(referrer)
-                .additionalHeaders(additionalHeaders)
-                .flags(flags));
+                .flags(flags);
+
+        if (additionalHeaders != null) {
+            loader.additionalHeaders(additionalHeaders);
+        }
+
+        load(loader);
     }
 
     private GeckoResult<AllowOrDeny> shouldLoadUri(final NavigationDelegate.LoadRequest request) {
@@ -1903,6 +1963,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull Uri uri) {
         load(new Loader()
                 .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
@@ -1917,11 +1978,17 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull Uri uri, final @Nullable Map<String, String> additionalHeaders) {
-        load(new Loader()
+        final Loader loader = new Loader()
                 .uri(uri)
-                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
-                .additionalHeaders(additionalHeaders));
+                .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE);
+
+        if (additionalHeaders != null) {
+            loader.additionalHeaders(additionalHeaders);
+        }
+
+        load(loader);
     }
 
     /**
@@ -1932,6 +1999,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull Uri uri, final @LoadFlags int flags) {
         load(new Loader()
                 .uri(uri)
@@ -1948,6 +2016,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull Uri uri, final @Nullable Uri referrer,
                         final @LoadFlags int flags) {
         load(new Loader()
@@ -1967,14 +2036,20 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadUri(final @NonNull Uri uri, final @Nullable Uri referrer,
                         final @LoadFlags int flags, final @Nullable Map<String, String> additionalHeaders) {
-        load(new Loader()
+        final Loader loader = new Loader()
                 .uri(uri)
                 .headerFilter(HEADER_FILTER_UNRESTRICTED_UNSAFE)
                 .referrer(referrer)
-                .flags(flags)
-                .additionalHeaders(additionalHeaders));
+                .flags(flags);
+
+        if (additionalHeaders != null) {
+            loader.additionalHeaders(additionalHeaders);
+        }
+
+        load(loader);
     }
 
     /**
@@ -1987,6 +2062,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadString(@NonNull final String data, @Nullable final String mimeType) {
         load(new Loader().data(data, mimeType));
     }
@@ -2001,6 +2077,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public void loadData(@NonNull final byte[] bytes, @Nullable final String mimeType) {
         load(new Loader().data(bytes, mimeType));
     }
@@ -2013,6 +2090,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public static @NonNull String createDataUri(@NonNull final byte[] bytes,
                                                 @Nullable final String mimeType) {
         return Loader.createDataUri(bytes, mimeType);
@@ -2026,6 +2104,7 @@ public class GeckoSession {
      */
     @AnyThread
     @Deprecated
+    @DeprecationSchedule(version = 86, id = "load-uri-builder")
     public static @NonNull String createDataUri(@NonNull final String data,
                                                 @Nullable final String mimeType) {
         return Loader.createDataUri(data, mimeType);
@@ -3406,6 +3485,7 @@ public class GeckoSession {
          * instead. This method will be removed in GeckoView 85.
          */
         @Deprecated // Bug 1530022
+        @DeprecationSchedule(version = 85, id = "on-external-response")
         @SuppressWarnings("checkstyle:javadocmethod")
         @UiThread
         default void onExternalResponse(@NonNull GeckoSession session,
@@ -3914,7 +3994,7 @@ public class GeckoSession {
                     case 0: // OPEN_DEFAULTWINDOW
                     case 1: // OPEN_CURRENTWINDOW
                         return TARGET_WINDOW_CURRENT;
-                    default: // OPEN_NEWWINDOW, OPEN_NEWTAB, OPEN_SWITCHTAB
+                    default: // OPEN_NEWWINDOW, OPEN_NEWTAB
                         return TARGET_WINDOW_NEW;
                 }
             }

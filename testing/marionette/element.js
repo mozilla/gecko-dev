@@ -140,7 +140,7 @@ element.Store = class {
     const isDOMElement = element.isDOMElement(el);
     const isDOMWindow = element.isDOMWindow(el);
     const isXULElement = element.isXULElement(el);
-    const context = isXULElement ? "chrome" : "content";
+    const context = element.isInXULDocument(el) ? "chrome" : "content";
 
     if (!(isDOMElement || isDOMWindow || isXULElement)) {
       throw new TypeError(
@@ -201,8 +201,8 @@ element.Store = class {
    *     Web element reference to find the associated {@link Element}
    *     of.
    * @param {WindowProxy} win
-   *     Current browsing context, which may differ from the associated
-   *     browsing context of <var>el</var>.
+   *     Current window global, which may differ from the associated
+   *     window global of <var>el</var>.
    *
    * @returns {(Element|XULElement)}
    *     Element associated with reference.
@@ -235,7 +235,7 @@ element.Store = class {
       delete this.els[webEl.uuid];
     }
 
-    if (element.isStale(el, win)) {
+    if (el === null || element.isStale(el, win)) {
       throw new error.StaleElementReferenceError(
         pprint`The element reference of ${el || webEl.uuid} is stale; ` +
           "either the element is no longer attached to the DOM, " +
@@ -273,9 +273,20 @@ element.ReferenceStore = class {
     this.domRefs = new Map();
   }
 
-  clear() {
-    this.refs.clear();
-    this.domRefs.clear();
+  clear(browsingContext) {
+    if (!browsingContext) {
+      this.refs.clear();
+      this.domRefs.clear();
+      return;
+    }
+    for (const context of browsingContext.getAllBrowsingContextsInSubtree()) {
+      for (const [uuid, elId] of this.refs) {
+        if (elId.browsingContextId == context.id) {
+          this.refs.delete(uuid);
+          this.domRefs.delete(elId.id);
+        }
+      }
+    }
   }
 
   /**
@@ -789,6 +800,11 @@ element.getElementId = function(el) {
  * @param {ElementIdentifier} id
  *     The identifier generated via ContentDOMReference.get for a DOM element.
  *
+ * @param {WindowProxy=} win
+ *     Current window global, which may differ from the associated
+ *     window global of <var>el</var>.  When retrieving XUL
+ *     elements, this is optional.
+ *
  * @return {Element} The DOM element that the identifier was generated for, or
  *     null if the element does not still exist.
  *
@@ -797,16 +813,18 @@ element.getElementId = function(el) {
  *     attached to the DOM, or its node document is no longer the
  *     active document.
  */
-element.resolveElement = function(id) {
-  let webEl;
-  if (id.webElRef) {
-    webEl = WebElement.fromJSON(id.webElRef);
-  }
+element.resolveElement = function(id, win = undefined) {
   const el = ContentDOMReference.resolve(id);
-  if (element.isStale(el, this.content)) {
+  if (el === null) {
+    // the element is unknown in the current browsing context
+    throw new error.NoSuchElementError(
+      `Web element reference not seen before: ${JSON.stringify(id.webElRef)}`
+    );
+  }
+  if (element.isStale(el, win)) {
     throw new error.StaleElementReferenceError(
-      pprint`The element reference of ${el || webEl?.uuid} is stale; ` +
-        "either the element is no longer attached to the DOM, " +
+      pprint`The element reference of ${el || JSON.stringify(id.webElRef)} ` +
+        "is stale; either the element is no longer attached to the DOM, " +
         "it is not in the current frame context, " +
         "or the document has been refreshed"
     );
@@ -848,30 +866,30 @@ element.isCollection = function(seq) {
  * context.
  *
  * The currently selected browsing context, specified through
- * <var>window<var>, is a WebDriver concept defining the target
+ * <var>win<var>, is a WebDriver concept defining the target
  * against which commands will run.  As the current browsing context
  * may differ from <var>el</var>'s associated context, an element is
  * considered stale even if it is connected to a living (not discarded)
  * browsing context such as an <tt>&lt;iframe&gt;</tt>.
  *
  * @param {Element=} el
- *     DOM element to check for staleness.  If null, which may be
- *     the case if the element has been unwrapped from a weak
- *     reference, it is always considered stale.
+ *     DOM element to check for staleness.
  * @param {WindowProxy=} win
- *     Current browsing context, which may differ from the associate
- *     browsing context of <var>el</var>.  When retrieving XUL
+ *     Current window global, which may differ from the associated
+ *     window global of <var>el</var>.  When retrieving XUL
  *     elements, this is optional.
  *
  * @return {boolean}
  *     True if <var>el</var> is stale, false otherwise.
  */
 element.isStale = function(el, win = undefined) {
+  if (!el) {
+    throw new TypeError(`Expected Element got ${el}`);
+  }
   if (typeof win == "undefined") {
     win = el.ownerGlobal;
   }
-
-  if (el === null || !el.ownerGlobal || el.ownerDocument !== win.document) {
+  if (!el.ownerGlobal || el.ownerDocument !== win.document) {
     return true;
   }
 
@@ -1412,7 +1430,7 @@ element.isDOMElement = function(node) {
 };
 
 /**
- * Ascertains whether <var>el</var> is a XUL element.
+ * Ascertains whether <var>node</var> is a XUL element.
  *
  * @param {*} node
  *     Element to check
@@ -1428,6 +1446,25 @@ element.isXULElement = function(node) {
     "nodeType" in node &&
     node.nodeType === node.ELEMENT_NODE &&
     node.namespaceURI === XUL_NS
+  );
+};
+
+/**
+ * Ascertains whether <var>node</var> is in a XUL document.
+ *
+ * @param {*} node
+ *     Element to check
+ *
+ * @return {boolean}
+ *     True if <var>node</var> is in a XUL document,
+ *     false otherwise.
+ */
+element.isInXULDocument = function(node) {
+  return (
+    typeof node == "object" &&
+    node !== null &&
+    "ownerDocument" in node &&
+    node.ownerDocument.documentElement.namespaceURI === XUL_NS
   );
 };
 
@@ -1565,15 +1602,17 @@ class WebElement {
   static from(node) {
     const uuid = WebElement.generateUUID();
 
-    if (element.isDOMElement(node)) {
+    if (element.isElement(node)) {
+      if (element.isInXULDocument(node)) {
+        // If the node is in a XUL document, we are in "chrome" context.
+        return new ChromeWebElement(uuid);
+      }
       return new ContentWebElement(uuid);
     } else if (element.isDOMWindow(node)) {
       if (node.parent === node) {
         return new ContentWebWindow(uuid);
       }
       return new ContentWebFrame(uuid);
-    } else if (element.isXULElement(node)) {
-      return new ChromeWebElement(uuid);
     }
 
     throw new error.InvalidArgumentError(

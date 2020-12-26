@@ -12,29 +12,10 @@
 #include "ServiceWorkerParent.h"
 #include "ServiceWorkerRegistrationChild.h"
 #include "ServiceWorkerRegistrationParent.h"
+#include "mozilla/dom/WorkerRef.h"
 
 namespace mozilla {
 namespace dom {
-
-PServiceWorkerChild* AllocServiceWorkerChild() {
-  MOZ_CRASH("should not be called");
-}
-
-bool DeallocServiceWorkerChild(PServiceWorkerChild* aActor) {
-  auto actor = static_cast<ServiceWorkerChild*>(aActor);
-  delete actor;
-  return true;
-}
-
-PServiceWorkerParent* AllocServiceWorkerParent() {
-  return new ServiceWorkerParent();
-}
-
-bool DeallocServiceWorkerParent(PServiceWorkerParent* aActor) {
-  auto actor = static_cast<ServiceWorkerParent*>(aActor);
-  delete actor;
-  return true;
-}
 
 void InitServiceWorkerParent(PServiceWorkerParent* aActor,
                              const IPCServiceWorkerDescriptor& aDescriptor) {
@@ -42,52 +23,9 @@ void InitServiceWorkerParent(PServiceWorkerParent* aActor,
   actor->Init(aDescriptor);
 }
 
-PServiceWorkerContainerChild* AllocServiceWorkerContainerChild() {
-  MOZ_CRASH("should not be called");
-}
-
-bool DeallocServiceWorkerContainerChild(PServiceWorkerContainerChild* aActor) {
-  auto actor = static_cast<ServiceWorkerContainerChild*>(aActor);
-  delete actor;
-  return true;
-}
-
-PServiceWorkerContainerParent* AllocServiceWorkerContainerParent() {
-  return new ServiceWorkerContainerParent();
-}
-
-bool DeallocServiceWorkerContainerParent(
-    PServiceWorkerContainerParent* aActor) {
-  auto actor = static_cast<ServiceWorkerContainerParent*>(aActor);
-  delete actor;
-  return true;
-}
-
 void InitServiceWorkerContainerParent(PServiceWorkerContainerParent* aActor) {
   auto actor = static_cast<ServiceWorkerContainerParent*>(aActor);
   actor->Init();
-}
-
-PServiceWorkerRegistrationChild* AllocServiceWorkerRegistrationChild() {
-  MOZ_CRASH("should not be called");
-}
-
-bool DeallocServiceWorkerRegistrationChild(
-    PServiceWorkerRegistrationChild* aActor) {
-  auto actor = static_cast<ServiceWorkerRegistrationChild*>(aActor);
-  delete actor;
-  return true;
-}
-
-PServiceWorkerRegistrationParent* AllocServiceWorkerRegistrationParent() {
-  return new ServiceWorkerRegistrationParent();
-}
-
-bool DeallocServiceWorkerRegistrationParent(
-    PServiceWorkerRegistrationParent* aActor) {
-  auto actor = static_cast<ServiceWorkerRegistrationParent*>(aActor);
-  delete actor;
-  return true;
 }
 
 void InitServiceWorkerRegistrationParent(

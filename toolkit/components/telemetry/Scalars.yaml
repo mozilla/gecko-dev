@@ -197,8 +197,31 @@ browser.engagement:
       - 1529232
     description: >
       The count of the total non-unique http(s) URIs visited in a subsession, including
-      page reloads, after the session has been restored. This does not include background
-      page requests and URIs from embedded pages or private browsing.
+      page reloads, after the session has been restored. URIs on minimized or background
+      tabs may also be counted towards this. Private browsing is not included in this
+      count.
+    expires: never
+    kind: uint
+    notification_emails:
+      - rweiss@mozilla.com
+      - loines@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+      - 'fennec'
+    record_in_processes:
+      - 'main'
+    record_into_store:
+      - 'main'
+      - 'account-ecosystem'
+
+  total_uri_count_normal_and_private_mode:
+    bug_numbers:
+      - 1535169
+    description: >
+      The count of the total non-unique http(s) URIs visited in a subsession, including
+      page reloads, after the session has been restored. URIs on minimized or background
+      tabs may also be counted towards this. Private browsing is included in this count.
     expires: never
     kind: uint
     notification_emails:
@@ -315,6 +338,42 @@ browser.engagement:
       - 'main'
     operating_systems:
       - windows
+
+  bookmarks_toolbar_bookmark_added:
+    bug_numbers:
+      - 1665391
+    description: >
+      The count of bookmarks added to the bookmarks toolbar. This counts bookmarks created on the
+      bookmarks toolbar and bookmarks moved to the bookmarks toolbar.
+    expires: never
+    kind: uint
+    notification_emails:
+      - rtestard@mozilla.com
+      - jaws@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
+  bookmarks_toolbar_bookmark_opened:
+    bug_numbers:
+      - 1665391
+    description: >
+      The count of bookmarks opened from the Bookmarks Toolbar. This counts bookmarks opened on the
+      toolbar and bookmarks opened from the 'symlinked' Other Bookmarks folder on the
+      Bookmarks Toolbar. It does not count Bookmarks Toolbar bookmarks opened via the Library,
+      Bookmarks Menu, or other UI since the goal is to measure interactions that pass through the toolbar.
+    expires: never
+    kind: uint
+    notification_emails:
+      - rtestard@mozilla.com
+      - jaws@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
 
 # The following section contains the browser engagement scalars.
 browser.engagement.navigation:
@@ -2139,6 +2198,41 @@ media:
     record_in_processes:
       - main
 
+avif:
+  dav1d_decode_error:
+    bug_numbers:
+      - 1670827
+    description: >
+      Image-decode Error from dav1d decoder
+    kind: uint
+    expires: "never"
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
+    products:
+      - 'firefox'
+      - 'geckoview_streaming'
+    record_in_processes:
+      - 'main'
+      - 'content'
+
+  aom_decode_error:
+    bug_numbers:
+      - 1670827
+    description: >
+      Image-decode Error from aom decoder
+    kind: uint
+    expires: "never"
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
+    products:
+      - 'firefox'
+      - 'geckoview_streaming'
+    record_in_processes:
+      - 'main'
+      - 'content'
+
 # The following section contains content process base counters.
 dom.contentprocess:
   buildID_mismatch:
@@ -2831,6 +2925,23 @@ devtools.accessibility:
     record_in_processes:
       - 'main'
 
+  tabbing_order_activated:
+    bug_numbers:
+      - 1675539
+    description: >
+      Number of times a tabbing order overlay was activated in the accessibility
+      panel.
+    expires: "89"
+    kind: uint
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+      - yzenevich@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
 devtools.application:
   opened_count:
     bug_numbers:
@@ -3166,6 +3277,37 @@ telemetry:
     record_in_processes:
       - 'main'
       - 'content'
+
+  environment_didnt_change:
+    bug_numbers:
+      - 1483477
+    description: >
+      The number of times the Telemetry Environment notified listeners of environment changes
+      despite the old and new environment contents being equal.
+    expires: "89"
+    kind: uint
+    notification_emails:
+      - chutten@mozilla.com
+    products:
+      - 'firefox'
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
+
+  sync_shutdown_ping_sent:
+    bug_numbers:
+      - 1673795
+    description: >
+      Whether a sync shutdown ping has been sent in this session.
+    expires: "90"
+    kind: boolean
+    notification_emails:
+      - sync-team@mozilla.com
+    products:
+      - 'firefox'
+    release_channel_collection: opt-out
+    record_in_processes:
+      - main
 
 telemetry.discarded:
   accumulations:
@@ -3624,12 +3766,13 @@ apz:
   scrollwheel_overshoot:
     bug_numbers:
       - 1670003
+      - 1672576
     description: >
       Count of overshoot events, where the user reverses scrollwheel direction soon after the last scrollwheel input.
-    expires: "85"
+    expires: "89"
     kind: uint
     notification_emails:
-      - kgupta@mozilla.com
+      - botond@mozilla.com
     products:
       - 'firefox'
     record_in_processes:
@@ -4665,22 +4808,6 @@ browser.search:
     release_channel_collection: opt-out
 
 browser.searchinit:
-  engines_cache_corrupted:
-    bug_numbers:
-      - 1578807
-      - 1621610
-    description: >-
-          Whether the list of engines in the search cache was found to be corrupt during initialization.
-    expires: "85"
-    kind: boolean
-    notification_emails:
-      - fx-search@mozilla.com
-      - mbanner@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
   init_result_status_code:
     bug_numbers:
       - 1651194
@@ -5445,6 +5572,279 @@ urlbar:
     record_in_processes:
       - main
 
+urlbar.picked:
+    autofill:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    bookmark:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    dynamic:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    extension:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    formhistory:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    history:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    keyword:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    remotetab:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    searchengine:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    searchsuggestion:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    switchtab:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    tabtosearch:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    tip:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    topsite:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    unknown:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times an unknown result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    visiturl:
+      bug_numbers:
+        - 1671508
+      description: >
+        Counts how many times this result type was picked at a given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search@mozilla.com
+        - tbrooks@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
 urlbar.searchmode:
   bookmarkmenu:
     bug_numbers:
@@ -5925,92 +6325,6 @@ migration:
     operating_systems:
       - windows
 
-fog.eval:
-  user_active:
-    bug_numbers:
-      - 1647876
-    description: >
-      Whether the user is presently actively interacting with Firefox.
-      For use in evaluating baseline engagement for Project FOG.
-    expires: '85'
-    kind: 'boolean'
-    notification_emails:
-      - 'chutten@mozilla.com'
-    release_channel_collection: 'opt-out'
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-
-  window_raised:
-    bug_numbers:
-      - 1647876
-    description: >
-      Whether a Firefox window is presently raised.
-      For use in evaluating baseline engagement for Project FOG.
-    expires: '85'
-    kind: 'boolean'
-    notification_emails:
-      - 'chutten@mozilla.com'
-    release_channel_collection: 'opt-out'
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-
-  user_active_error:
-    bug_numbers:
-      - 1647876
-    description: >
-      How many Telemetry stopwatch errors did we have while trying to measure user activity?
-      These could be attempts to start a started timer or finish an unstarted timer or so forth.
-      See Stopwatch::Start and Stopwatch::Finish for details.
-      For use in evaluating baseline engagement for Project FOG.
-    expires: '85'
-    kind: 'uint'
-    notification_emails:
-      - 'chutten@mozilla.com'
-    release_channel_collection: 'opt-out'
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-
-  user_inactive_error:
-    bug_numbers:
-      - 1660887
-    description: >
-      How many Telemetry stopwatch errors did we have while trying to measure user inactivity?
-      These could be attempts to start a started timer or finish an unstarted timer or so forth.
-      See Stopwatch::Start and Stopwatch::Finish for details.
-      For use in evaluating baseline engagement for Project FOG.
-    expires: '85'
-    kind: 'uint'
-    notification_emails:
-      - 'chutten@mozilla.com'
-    release_channel_collection: 'opt-out'
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
-
-  window_raised_error:
-    bug_numbers:
-      - 1647876
-    description: >
-      How many Telemetry stopwatch errors did we have while trying to measure window raising?
-      These could be attempts to start a started timer or finish an unstarted timer or so forth.
-      See Stopwatch::Start and Stopwatch::Finish for details.
-      For use in evaluating baseline engagement for Project FOG.
-    expires: '85'
-    kind: 'uint'
-    notification_emails:
-      - 'chutten@mozilla.com'
-    release_channel_collection: 'opt-out'
-    products:
-      - 'firefox'
-    record_in_processes:
-      - 'main'
 
 # The following section is for probes testing the Telemetry system. They will not be
 # submitted in pings and are only used for testing.

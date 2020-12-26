@@ -33,7 +33,7 @@ linux64-llvm-dsymutil:
         toolchain-artifact: public/build/llvm-dsymutil.tar.xz
     fetches:
         fetch:
-            - clang-10
+            - clang-11
         toolchain:
             - linux64-gcc-7
 
@@ -248,7 +248,7 @@ linux64-liblowercase:
             - build/liblowercase/
     fetches:
         toolchain:
-            - linux64-rust-1.41
+            - linux64-rust-1.47
 
 linux64-wine:
     description: "Wine build for Windows Cross Compile"
@@ -339,4 +339,41 @@ linux64-makecab:
         fetch:
             - makecab
         toolchain:
-            - linux64-rust-1.41
+            - linux64-rust-1.47
+
+macosx64-sdk-11.0:
+    description: "MacOSX11.0 SDK"
+    attributes:
+        artifact_prefix: project/gecko/mac-sdk
+    treeherder:
+        symbol: TM(sdk11)
+    worker-type: b-osx-1015
+    worker:
+        max-run-time: 3600
+        env:
+            PATH: "/usr/local/bin:/bin:/sbin:/usr/bin:/usr/sbin"
+    run:
+        script: pack.sh
+        arguments:
+            - /Applications/Xcode-12.2.Release.Candidate.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX11.0.sdk
+        toolchain-artifact: project/gecko/mac-sdk/MacOSX11.0.sdk.tar.zst
+    # Expiry similar to that of fetches
+    expires-after: 1000 years
+
+macosx64-aarch64-compiler-rt-11:
+    description: "macOS aarch64 Compiler-rt for Clang 11 toolchain build"
+    treeherder:
+        symbol: TM(aarch64-crt)
+    run:
+        using: toolchain-script
+        script: build-compiler-rt.sh
+        arguments:
+            - aarch64-apple-darwin
+        toolchain-artifact: public/build/compiler-rt.tar.zst
+    fetches:
+        fetch:
+            - clang-11
+        toolchain:
+            - linux64-cctools-port-clang-11
+            - linux64-clang-11-macosx-cross
+            - macosx64-sdk-11.0

@@ -10,14 +10,15 @@
 #endif
 
 #include "ImageContainer.h"
+#include "PDMFactory.h"
 #include "RemoteAudioDecoder.h"
 #include "RemoteVideoDecoder.h"
 #include "VideoUtils.h"  // for MediaThreadType
+#include "mozilla/RDDParent.h"
 #include "mozilla/SyncRunnable.h"
+#include "mozilla/gfx/GPUParent.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/VideoBridgeChild.h"
-#include "mozilla/gfx/GPUParent.h"
-#include "mozilla/RDDParent.h"
 
 namespace mozilla {
 
@@ -73,7 +74,7 @@ bool RemoteDecoderManagerParent::StartupThreads() {
   }
 
   sRemoteDecoderManagerParentThread = new TaskQueue(
-      GetMediaThreadPool(MediaThreadType::CONTROLLER), "RemVidParent");
+      GetMediaThreadPool(MediaThreadType::SUPERVISOR), "RemVidParent");
   if (XRE_IsGPUProcess()) {
     MOZ_ALWAYS_SUCCEEDS(
         sRemoteDecoderManagerParentThread->Dispatch(NS_NewRunnableFunction(
@@ -104,6 +105,14 @@ void RemoteDecoderManagerParent::ShutdownVideoBridge() {
 
 bool RemoteDecoderManagerParent::OnManagerThread() {
   return sRemoteDecoderManagerParentThread->IsOnCurrentThread();
+}
+
+PDMFactory& RemoteDecoderManagerParent::EnsurePDMFactory() {
+  MOZ_ASSERT(OnManagerThread());
+  if (!mPDMFactory) {
+    mPDMFactory = MakeRefPtr<PDMFactory>();
+  }
+  return *mPDMFactory;
 }
 
 bool RemoteDecoderManagerParent::CreateForContent(
@@ -173,8 +182,7 @@ void RemoteDecoderManagerParent::ActorDestroy(
 PRemoteDecoderParent* RemoteDecoderManagerParent::AllocPRemoteDecoderParent(
     const RemoteDecoderInfoIPDL& aRemoteDecoderInfo,
     const CreateDecoderParams::OptionSet& aOptions,
-    const Maybe<layers::TextureFactoryIdentifier>& aIdentifier, bool* aSuccess,
-    nsCString* aErrorDescription) {
+    const Maybe<layers::TextureFactoryIdentifier>& aIdentifier) {
   RefPtr<TaskQueue> decodeTaskQueue =
       new TaskQueue(GetMediaThreadPool(MediaThreadType::PLATFORM_DECODER),
                     "RemoteVideoDecoderParent::mDecodeTaskQueue");
@@ -185,13 +193,13 @@ PRemoteDecoderParent* RemoteDecoderManagerParent::AllocPRemoteDecoderParent(
         aRemoteDecoderInfo.get_VideoDecoderInfoIPDL();
     return new RemoteVideoDecoderParent(
         this, decoderInfo.videoInfo(), decoderInfo.framerate(), aOptions,
-        aIdentifier, sRemoteDecoderManagerParentThread, decodeTaskQueue,
-        aSuccess, aErrorDescription);
-  } else if (aRemoteDecoderInfo.type() == RemoteDecoderInfoIPDL::TAudioInfo) {
+        aIdentifier, sRemoteDecoderManagerParentThread, decodeTaskQueue);
+  }
+
+  if (aRemoteDecoderInfo.type() == RemoteDecoderInfoIPDL::TAudioInfo) {
     return new RemoteAudioDecoderParent(
         this, aRemoteDecoderInfo.get_AudioInfo(), aOptions,
-        sRemoteDecoderManagerParentThread, decodeTaskQueue, aSuccess,
-        aErrorDescription);
+        sRemoteDecoderManagerParentThread, decodeTaskQueue);
   }
 
   MOZ_CRASH("unrecognized type of RemoteDecoderInfoIPDL union");

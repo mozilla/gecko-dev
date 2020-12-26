@@ -195,7 +195,6 @@ class TestFunctionHandler(TestUsingServer):
         assert resp.read() == b""
 
 
-@pytest.mark.xfail((3,) <= sys.version_info < (3, 6), reason="wptserve only works on Py2")
 class TestJSONHandler(TestUsingServer):
     def test_json_0(self):
         @wptserve.handlers.json_handler
@@ -321,16 +320,16 @@ class TestH2Handler(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 203
-        assert resp.headers['test'][0] == 'passed'
-        assert resp.read() == ''
+        assert resp.headers['test'][0] == b'passed'
+        assert resp.read() == b''
 
     def test_only_main(self):
         self.conn.request("GET", '/test_tuple_3.py')
         resp = self.conn.get_response()
 
         assert resp.status == 202
-        assert resp.headers['Content-Type'][0] == 'text/html'
-        assert resp.headers['X-Test'][0] == 'PASS'
+        assert resp.headers['Content-Type'][0] == b'text/html'
+        assert resp.headers['X-Test'][0] == b'PASS'
         assert resp.read() == b'PASS'
 
     def test_handle_data(self):
@@ -345,7 +344,7 @@ class TestH2Handler(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 203
-        assert resp.headers['test'][0] == 'passed'
+        assert resp.headers['test'][0] == b'passed'
         assert resp.read() == b'!dlrow olleh'
 
     def test_no_main_or_handlers(self):
@@ -367,16 +366,16 @@ class TestH2Handler(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 203
-        assert resp.headers['test'][0] == 'passed'
-        assert resp.read() == ''
+        assert resp.headers['test'][0] == b'passed'
+        assert resp.read() == b''
 
         # 2nd .py resource
         self.conn.request("GET", '/test_tuple_3.py')
         resp = self.conn.get_response()
 
         assert resp.status == 202
-        assert resp.headers['Content-Type'][0] == 'text/html'
-        assert resp.headers['X-Test'][0] == 'PASS'
+        assert resp.headers['Content-Type'][0] == b'text/html'
+        assert resp.headers['X-Test'][0] == b'PASS'
         assert resp.read() == b'PASS'
 
         # 3rd .py resource
@@ -384,8 +383,8 @@ class TestH2Handler(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 203
-        assert resp.headers['test'][0] == 'passed'
-        assert resp.read() == ''
+        assert resp.headers['test'][0] == b'passed'
+        assert resp.read() == b''
 
 
 class TestWorkersHandler(TestWrapperHandlerUsingServer):

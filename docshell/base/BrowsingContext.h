@@ -90,6 +90,9 @@ class WindowProxyHolder;
   FIELD(Name, nsString)                                                      \
   FIELD(Closed, bool)                                                        \
   FIELD(IsActive, bool)                                                      \
+  /* Top()-only. If true, new-playing media will be suspended when in an     \
+   * inactive browsing context. */                                           \
+  FIELD(SuspendMediaWhenInactive, bool)                                      \
   /* If true, we're within the nested event loop in window.open, and this    \
    * context may not be used as the target of a load */                      \
   FIELD(PendingInitialization, bool)                                         \
@@ -149,6 +152,7 @@ class WindowProxyHolder;
   FIELD(CurrentOrientationType, mozilla::dom::OrientationType)               \
   FIELD(OrientationLock, mozilla::hal::ScreenOrientation)                    \
   FIELD(UserAgentOverride, nsString)                                         \
+  FIELD(TouchEventsOverrideInternal, mozilla::dom::TouchEventsOverride)      \
   FIELD(EmbedderElementType, Maybe<nsString>)                                \
   FIELD(MessageManagerGroup, nsString)                                       \
   FIELD(MaxTouchPointsOverride, uint8_t)                                     \
@@ -174,7 +178,9 @@ class WindowProxyHolder;
    * browsing contexts created as a descendant of this one.  Valid only for  \
    * top BCs. */                                                             \
   FIELD(AuthorStyleDisabledDefault, bool)                                    \
-  FIELD(DisplayMode, mozilla::dom::DisplayMode)
+  FIELD(DisplayMode, mozilla::dom::DisplayMode)                              \
+  /* True if the top level browsing context owns a main media controller */  \
+  FIELD(HasMainMediaController, bool)
 
 // BrowsingContext, in this context, is the cross process replicated
 // environment in which information about documents is stored. In
@@ -340,6 +346,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // it is neither closed, cached, nor discarded).
   bool IsTargetable();
 
+  // True if this browsing context is inactive and is able to be suspended.
+  bool InactiveForSuspend() const;
+
   const nsString& Name() const { return GetName(); }
   void GetName(nsAString& aName) { aName = GetName(); }
   bool NameEquals(const nsAString& aName) { return GetName().Equals(aName); }
@@ -361,6 +370,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   BrowsingContext* GetParent() const;
   BrowsingContext* Top();
+  int32_t IndexOf(BrowsingContext* aChild);
 
   // NOTE: Unlike `GetEmbedderWindowGlobal`, `GetParentWindowContext` does not
   // cross toplevel content browser boundaries.
@@ -397,8 +407,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   already_AddRefed<BrowsingContext> GetOnePermittedSandboxedNavigator() const {
     return Get(GetOnePermittedSandboxedNavigatorId());
   }
-  MOZ_MUST_USE nsresult
-  SetOnePermittedSandboxedNavigator(BrowsingContext* aNavigator) {
+  [[nodiscard]] nsresult SetOnePermittedSandboxedNavigator(
+      BrowsingContext* aNavigator) {
     if (GetOnePermittedSandboxedNavigatorId()) {
       MOZ_ASSERT(false,
                  "One Permitted Sandboxed Navigator should only be set once.");
@@ -453,10 +463,20 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   bool WatchedByDevTools();
   void SetWatchedByDevTools(bool aWatchedByDevTools, ErrorResult& aRv);
 
+  mozilla::dom::TouchEventsOverride TouchEventsOverride();
+  void SetTouchEventsOverride(
+      const enum TouchEventsOverride aTouchEventsOverride, ErrorResult& aRv);
+  MOZ_MUST_USE nsresult
+  SetTouchEventsOverride(const enum TouchEventsOverride aTouchEventsOverride);
+
   bool FullscreenAllowed() const;
 
   float FullZoom() const { return GetFullZoom(); }
   float TextZoom() const { return GetTextZoom(); }
+
+  bool SuspendMediaWhenInactive() const {
+    return GetSuspendMediaWhenInactive();
+  }
 
   bool AuthorStyleDisabledDefault() const {
     return GetAuthorStyleDisabledDefault();
@@ -483,8 +503,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   }
 
   // ScreenOrientation related APIs
-  MOZ_MUST_USE nsresult SetCurrentOrientation(OrientationType aType,
-                                              float aAngle) {
+  [[nodiscard]] nsresult SetCurrentOrientation(OrientationType aType,
+                                               float aAngle) {
     Transaction txn;
     txn.SetCurrentOrientationType(aType);
     txn.SetCurrentOrientationAngle(aAngle);
@@ -599,7 +619,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   void StartDelayedAutoplayMediaComponents();
 
-  MOZ_MUST_USE nsresult ResetGVAutoplayRequestStatus();
+  [[nodiscard]] nsresult ResetGVAutoplayRequestStatus();
 
   /**
    * Information required to initialize a BrowsingContext in another process.
@@ -662,6 +682,9 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   const OriginAttributes& OriginAttributesRef() { return mOriginAttributes; }
   nsresult SetOriginAttributes(const OriginAttributes& aAttrs);
 
+  void GetHistoryID(JSContext* aCx, JS::MutableHandle<JS::Value> aVal,
+                    ErrorResult& aError);
+
   // This should only be called on the top browsing context.
   void InitSessionHistory();
 
@@ -687,7 +710,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // aUpdatedCacheKey is 0 then it will be ignored.
   void SetActiveSessionHistoryEntry(const Maybe<nsPoint>& aPreviousScrollPos,
                                     SessionHistoryInfo* aInfo,
-                                    uint32_t aLoadType, int32_t aChildOffset,
+                                    uint32_t aLoadType,
                                     uint32_t aUpdatedCacheKey);
 
   // Replace the active entry for this browsing context. This is used for
@@ -709,7 +732,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   Tuple<nsCOMPtr<nsIPrincipal>, nsCOMPtr<nsIPrincipal>>
   GetTriggeringAndInheritPrincipalsForCurrentLoad();
 
-  void HistoryGo(int32_t aOffset, std::function<void(int32_t&&)>&& aResolver);
+  void HistoryGo(int32_t aOffset, uint64_t aHistoryEpoch,
+                 std::function<void(int32_t&&)>&& aResolver);
 
   bool ShouldUpdateSessionHistory(uint32_t aLoadType);
 
@@ -813,6 +837,14 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
     return true;
   }
 
+  bool CanSet(FieldIndex<IDX_SuspendMediaWhenInactive>, bool, ContentParent*) {
+    return IsTop();
+  }
+
+  bool CanSet(FieldIndex<IDX_TouchEventsOverrideInternal>,
+              const enum TouchEventsOverride& aTouchEventsOverride,
+              ContentParent* aSource);
+
   bool CanSet(FieldIndex<IDX_DisplayMode>, const enum DisplayMode& aDisplayMode,
               ContentParent* aSource);
   void DidSet(FieldIndex<IDX_DisplayMode>, enum DisplayMode aOldValue);
@@ -890,6 +922,10 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   bool CanSet(FieldIndex<IDX_PendingInitialization>, bool aNewValue,
               ContentParent* aSource);
+
+  bool CanSet(FieldIndex<IDX_HasMainMediaController>, bool aNewValue,
+              ContentParent* aSource);
+  void DidSet(FieldIndex<IDX_HasMainMediaController>, bool aOldValue);
 
   template <size_t I, typename T>
   bool CanSet(FieldIndex<I>, const T&, ContentParent*) {

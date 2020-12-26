@@ -19,14 +19,38 @@ struct IUnknown;
 
 namespace mozilla {
 namespace mscom {
+namespace detail {
+
+enum class GuidType {
+  CLSID,
+  AppID,
+};
+
+long BuildRegGuidPath(REFGUID aGuid, const GuidType aGuidType, wchar_t* aBuf,
+                      const size_t aBufLen);
+
+}  // namespace detail
 
 bool IsCOMInitializedOnCurrentThread();
 bool IsCurrentThreadMTA();
 bool IsCurrentThreadExplicitMTA();
 bool IsCurrentThreadImplicitMTA();
+#if defined(MOZILLA_INTERNAL_API)
+bool IsCurrentThreadNonMainMTA();
+#endif  // defined(MOZILLA_INTERNAL_API)
 bool IsProxy(IUnknown* aUnknown);
 bool IsValidGUID(REFGUID aCheckGuid);
 uintptr_t GetContainingModuleHandle();
+
+template <size_t N>
+inline long BuildAppidPath(REFGUID aAppId, wchar_t (&aPath)[N]) {
+  return detail::BuildRegGuidPath(aAppId, detail::GuidType::AppID, aPath, N);
+}
+
+template <size_t N>
+inline long BuildClsidPath(REFCLSID aClsid, wchar_t (&aPath)[N]) {
+  return detail::BuildRegGuidPath(aClsid, detail::GuidType::CLSID, aPath, N);
+}
 
 /**
  * Given a buffer, create a new IStream object.
@@ -38,8 +62,8 @@ uintptr_t GetContainingModuleHandle();
  * @param aOutStream Outparam to receive the newly created stream.
  * @return HRESULT error code.
  */
-uint32_t CreateStream(const uint8_t* aBuf, const uint32_t aBufLen,
-                      IStream** aOutStream);
+long CreateStream(const uint8_t* aBuf, const uint32_t aBufLen,
+                  IStream** aOutStream);
 
 /**
  * Creates a deep copy of a proxy contained in a stream.
@@ -48,7 +72,13 @@ uint32_t CreateStream(const uint8_t* aBuf, const uint32_t aBufLen,
  * @param aOutStream Outparam to receive the newly created stream.
  * @return HRESULT error code.
  */
-uint32_t CopySerializedProxy(IStream* aInStream, IStream** aOutStream);
+long CopySerializedProxy(IStream* aInStream, IStream** aOutStream);
+
+/**
+ * Length of a stringified GUID as formatted for the registry, i.e. including
+ * curly-braces and dashes.
+ */
+constexpr size_t kGuidRegFormatCharLenInclNul = 39;
 
 #if defined(MOZILLA_INTERNAL_API)
 /**
@@ -75,6 +105,9 @@ uint32_t CopySerializedProxy(IStream* aInStream, IStream** aOutStream);
 bool IsClassThreadAwareInprocServer(REFCLSID aClsid);
 
 void GUIDToString(REFGUID aGuid, nsAString& aOutString);
+#else
+void GUIDToString(REFGUID aGuid,
+                  wchar_t (&aOutBuf)[kGuidRegFormatCharLenInclNul]);
 #endif  // defined(MOZILLA_INTERNAL_API)
 
 #if defined(ACCESSIBILITY)

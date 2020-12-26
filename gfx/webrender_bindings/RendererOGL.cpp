@@ -71,7 +71,8 @@ wr::WrExternalImage wr_renderer_lock_external_image(
   if (auto* gl = renderer->gl()) {
     return texture->Lock(aChannelIndex, gl, aRendering);
   } else if (auto* swgl = renderer->swgl()) {
-    return texture->LockSWGL(aChannelIndex, swgl, aRendering);
+    return texture->LockSWGL(aChannelIndex, swgl, renderer->GetCompositor(),
+                             aRendering);
   } else {
     gfxCriticalNoteOnce
         << "No GL or SWGL context available to lock ExternalImage for extId:"
@@ -174,6 +175,7 @@ RenderedFrameId RendererOGL::UpdateAndRender(
   }
 
   auto size = mCompositor->GetBufferSize();
+  auto bufferAge = mCompositor->GetBufferAge();
 
   wr_renderer_update(mRenderer);
 
@@ -188,8 +190,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
   }
 
   nsTArray<DeviceIntRect> dirtyRects;
-  if (!wr_renderer_render(mRenderer, size.width, size.height, aOutStats,
-                          &dirtyRects)) {
+  if (!wr_renderer_render(mRenderer, size.width, size.height, bufferAge,
+                          aOutStats, &dirtyRects)) {
     mCompositor->CancelFrame();
     RenderThread::Get()->HandleWebRenderError(WebRenderError::RENDER);
     mCompositor->GetWidget()->PostRender(&widgetContext);
@@ -205,12 +207,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
                            aReadbackSize.ref().height, aReadbackFormat.ref(),
                            &aReadbackBuffer.ref()[0],
                            aReadbackBuffer.ref().length());
-
-      // SWGL and ANGLE both draw the right way up, otherwise we will need a
-      // flip.
       if (aNeedsYFlip) {
-        *aNeedsYFlip =
-            !gfx::gfxVars::UseSoftwareWebRender() && !mCompositor->UseANGLE();
+        *aNeedsYFlip = !mCompositor->SurfaceOriginIsTopLeft();
       }
     }
   }
@@ -434,6 +432,11 @@ void RendererOGL::AccumulateMemoryReport(MemoryReport* aReport) {
                             BytesPerPixel(gfx::SurfaceFormat::B8G8R8A8) *
                             (mCompositor->UseTripleBuffering() ? 3 : 2);
   aReport->swap_chain += swapChainSize;
+}
+
+void RendererOGL::SetProfilerUI(const nsCString& aUI) {
+  wr_renderer_set_profiler_ui(GetRenderer(), (const uint8_t*)aUI.get(),
+                              aUI.Length());
 }
 
 }  // namespace wr

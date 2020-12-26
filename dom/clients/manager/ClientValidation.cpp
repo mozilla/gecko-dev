@@ -6,11 +6,11 @@
 
 #include "ClientValidation.h"
 
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/net/MozURL.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using mozilla::ipc::ContentPrincipalInfo;
 using mozilla::ipc::PrincipalInfo;
@@ -145,5 +145,4 @@ bool ClientIsValidCreationURL(const PrincipalInfo& aPrincipalInfo,
   return false;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

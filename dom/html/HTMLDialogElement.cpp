@@ -10,6 +10,9 @@
 #include "mozilla/dom/HTMLUnknownElement.h"
 #include "mozilla/StaticPrefs_dom.h"
 
+#include "nsFocusManager.h"
+#include "nsIFrame.h"
+
 // Expand NS_IMPL_NS_NEW_HTML_ELEMENT(Dialog) with pref check
 nsGenericHTMLElement* NS_NewHTMLDialogElement(
     already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
@@ -23,8 +26,7 @@ nsGenericHTMLElement* NS_NewHTMLDialogElement(
   return new (nim) mozilla::dom::HTMLUnknownElement(nodeInfo.forget());
 }
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 HTMLDialogElement::~HTMLDialogElement() = default;
 
@@ -215,5 +217,4 @@ JSObject* HTMLDialogElement::WrapNode(JSContext* aCx,
   return HTMLDialogElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

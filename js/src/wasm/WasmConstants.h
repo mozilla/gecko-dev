@@ -681,8 +681,8 @@ enum class SimdOp {
   I32x4TruncUSatF32x4 = 0xf9,
   F32x4ConvertSI32x4 = 0xfa,
   F32x4ConvertUI32x4 = 0xfb,
-  V128Load32ZeroExperimental = 0xfc,
-  V128Load64ZeroExperimental = 0xfd,
+  V128Load32Zero = 0xfc,
+  V128Load64Zero = 0xfd,
   // Unused = 0xfe and up
 
   Limit
@@ -891,8 +891,16 @@ static const unsigned MaxParams = 1000;
 // `env->funcMaxResults()` to get the correct value for a module.
 static const unsigned MaxResults = 1000;
 static const unsigned MaxStructFields = 1000;
-static const unsigned MaxMemoryLimitField = 65536;
-static const unsigned MaxMemoryPages = INT32_MAX / PageSize;
+static const unsigned MaxMemory32LimitField = 65536;
+#ifdef JS_64BIT
+// FIXME (large ArrayBuffer): This should be upped to UINT32_MAX / PageSize
+// initially, then to (size_t(UINT32_MAX) + 1) / PageSize subsequently, see the
+// companion FIXME in WasmMemoryObject::grow() for additional information.
+static const unsigned MaxMemory32Pages = INT32_MAX / PageSize;
+#else
+static const unsigned MaxMemory32Pages = INT32_MAX / PageSize;
+#endif
+static const size_t MaxMemory32Bytes = size_t(MaxMemory32Pages) * PageSize;
 static const unsigned MaxStringBytes = 100000;
 static const unsigned MaxModuleBytes = 1024 * 1024 * 1024;
 static const unsigned MaxFunctionBytes = 7654321;

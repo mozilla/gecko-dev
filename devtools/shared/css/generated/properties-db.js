@@ -268,9 +268,7 @@ exports.CSS_PROPERTIES = {
       "resizer",
       "resizerpanel",
       "revert",
-      "scrollbar",
       "scrollbar-horizontal",
-      "scrollbar-small",
       "scrollbar-vertical",
       "scrollbarbutton-down",
       "scrollbarbutton-left",
@@ -1579,9 +1577,7 @@ exports.CSS_PROPERTIES = {
       "resizer",
       "resizerpanel",
       "revert",
-      "scrollbar",
       "scrollbar-horizontal",
-      "scrollbar-small",
       "scrollbar-vertical",
       "scrollbarbutton-down",
       "scrollbarbutton-left",
@@ -2782,6 +2778,34 @@ exports.CSS_PROPERTIES = {
       "unset"
     ]
   },
+  "align-tracks": {
+    "isInherited": false,
+    "subproperties": [
+      "align-tracks"
+    ],
+    "supports": [],
+    "values": [
+      "baseline",
+      "center",
+      "end",
+      "first baseline",
+      "flex-end",
+      "flex-start",
+      "inherit",
+      "initial",
+      "last baseline",
+      "normal",
+      "revert",
+      "safe",
+      "space-around",
+      "space-between",
+      "space-evenly",
+      "start",
+      "stretch",
+      "unsafe",
+      "unset"
+    ]
+  },
   "all": {
     "isInherited": false,
     "subproperties": [
@@ -3401,9 +3425,7 @@ exports.CSS_PROPERTIES = {
       "resizer",
       "resizerpanel",
       "revert",
-      "scrollbar",
       "scrollbar-horizontal",
-      "scrollbar-small",
       "scrollbar-vertical",
       "scrollbarbutton-down",
       "scrollbarbutton-left",
@@ -3447,6 +3469,20 @@ exports.CSS_PROPERTIES = {
       "treeview",
       "unset",
       "window"
+    ]
+  },
+  "aspect-ratio": {
+    "isInherited": false,
+    "subproperties": [
+      "aspect-ratio"
+    ],
+    "supports": [],
+    "values": [
+      "auto",
+      "inherit",
+      "initial",
+      "revert",
+      "unset"
     ]
   },
   "backface-visibility": {
@@ -7265,6 +7301,33 @@ exports.CSS_PROPERTIES = {
       "unset"
     ]
   },
+  "justify-tracks": {
+    "isInherited": false,
+    "subproperties": [
+      "justify-tracks"
+    ],
+    "supports": [],
+    "values": [
+      "center",
+      "end",
+      "flex-end",
+      "flex-start",
+      "inherit",
+      "initial",
+      "left",
+      "normal",
+      "revert",
+      "right",
+      "safe",
+      "space-around",
+      "space-between",
+      "space-evenly",
+      "start",
+      "stretch",
+      "unsafe",
+      "unset"
+    ]
+  },
   "left": {
     "isInherited": false,
     "subproperties": [
@@ -8017,6 +8080,23 @@ exports.CSS_PROPERTIES = {
       "inherit",
       "initial",
       "luminance",
+      "revert",
+      "unset"
+    ]
+  },
+  "masonry-auto-flow": {
+    "isInherited": false,
+    "subproperties": [
+      "masonry-auto-flow"
+    ],
+    "supports": [],
+    "values": [
+      "definite-first",
+      "inherit",
+      "initial",
+      "next",
+      "ordered",
+      "pack",
       "revert",
       "unset"
     ]

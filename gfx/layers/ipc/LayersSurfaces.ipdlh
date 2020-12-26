@@ -110,6 +110,7 @@ comparable union RemoteDecoderVideoSubDescriptor {
   SurfaceDescriptorD3D10;
   SurfaceDescriptorDXGIYCbCr;
   SurfaceDescriptorDMABuf;
+  SurfaceDescriptorMacIOSurface;
   null_t;
 };
 
@@ -137,6 +138,7 @@ comparable struct RGBDescriptor {
 };
 
 comparable struct YCbCrDescriptor {
+  IntRect display;
   IntSize ySize;
   uint32_t yStride;
   IntSize cbCrSize;

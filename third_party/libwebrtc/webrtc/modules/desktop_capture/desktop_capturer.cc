@@ -13,6 +13,11 @@
 #include "modules/desktop_capture/desktop_capture_options.h"
 #include "modules/desktop_capture/desktop_capturer_differ_wrapper.h"
 
+#if defined(WEBRTC_USE_PIPEWIRE) || defined(USE_X11)
+#include <gtk/gtk.h>
+#include <gtk/gtkx.h>
+#endif
+
 namespace webrtc {
 
 DesktopCapturer::~DesktopCapturer() = default;

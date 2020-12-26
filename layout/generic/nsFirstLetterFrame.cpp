@@ -99,7 +99,8 @@ nsresult nsFirstLetterFrame::GetChildFrameContainingOffset(
 /* virtual */
 void nsFirstLetterFrame::AddInlineMinISize(
     gfxContext* aRenderingContext, nsIFrame::InlineMinISizeData* aData) {
-  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::MIN_ISIZE);
+  DoInlineIntrinsicISize(aRenderingContext, aData,
+                         IntrinsicISizeType::MinISize);
 }
 
 // Needed for non-floating first-letter frames and for the continuations
@@ -107,7 +108,8 @@ void nsFirstLetterFrame::AddInlineMinISize(
 /* virtual */
 void nsFirstLetterFrame::AddInlinePrefISize(
     gfxContext* aRenderingContext, nsIFrame::InlinePrefISizeData* aData) {
-  DoInlineIntrinsicISize(aRenderingContext, aData, nsLayoutUtils::PREF_ISIZE);
+  DoInlineIntrinsicISize(aRenderingContext, aData,
+                         IntrinsicISizeType::PrefISize);
   aData->mLineIsEmpty = false;
 }
 
@@ -157,7 +159,7 @@ void nsFirstLetterFrame::Reflow(nsPresContext* aPresContext,
   // Setup reflow input for our child
   WritingMode wm = aReflowInput.GetWritingMode();
   LogicalSize availSize = aReflowInput.AvailableSize();
-  const LogicalMargin& bp = aReflowInput.ComputedLogicalBorderPadding();
+  const auto bp = aReflowInput.ComputedLogicalBorderPadding(wm);
   NS_ASSERTION(availSize.ISize(wm) != NS_UNCONSTRAINEDSIZE,
                "should no longer use unconstrained inline size");
   availSize.ISize(wm) -= bp.IStartEnd(wm);
@@ -378,7 +380,7 @@ nscoord nsFirstLetterFrame::GetLogicalBaseline(WritingMode aWritingMode) const {
 }
 
 nsIFrame::LogicalSides nsFirstLetterFrame::GetLogicalSkipSides(
-    const ReflowInput* aReflowInput) const {
+    const Maybe<SkipSidesDuringReflow>&) const {
   if (GetPrevContinuation()) {
     // We shouldn't get calls to GetSkipSides for later continuations since
     // they have separate ComputedStyles with initial values for all the

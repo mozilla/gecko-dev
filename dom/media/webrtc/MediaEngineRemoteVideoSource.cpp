@@ -6,9 +6,11 @@
 #include "MediaEngineRemoteVideoSource.h"
 
 #include "CamerasChild.h"
+#include "Layers.h"
 #include "MediaManager.h"
 #include "MediaTrackConstraints.h"
 #include "mozilla/ErrorNames.h"
+#include "mozilla/gfx/Point.h"
 #include "mozilla/RefPtr.h"
 #include "Tracing.h"
 #include "VideoFrameUtils.h"
@@ -261,14 +263,15 @@ nsresult MediaEngineRemoteVideoSource::Deallocate() {
   return NS_OK;
 }
 
-void MediaEngineRemoteVideoSource::SetTrack(
-    const RefPtr<SourceMediaTrack>& aTrack, const PrincipalHandle& aPrincipal) {
+void MediaEngineRemoteVideoSource::SetTrack(const RefPtr<MediaTrack>& aTrack,
+                                            const PrincipalHandle& aPrincipal) {
   LOG("%s", __PRETTY_FUNCTION__);
   AssertIsOnOwningThread();
 
   MOZ_ASSERT(mState == kAllocated);
   MOZ_ASSERT(!mTrack);
   MOZ_ASSERT(aTrack);
+  MOZ_ASSERT(aTrack->AsSourceTrack());
 
   if (!mImageContainer) {
     mImageContainer = layers::LayerManager::CreateImageContainer(
@@ -277,7 +280,7 @@ void MediaEngineRemoteVideoSource::SetTrack(
 
   {
     MutexAutoLock lock(mMutex);
-    mTrack = aTrack;
+    mTrack = aTrack->AsSourceTrack();
     mPrincipal = aPrincipal;
   }
 }
@@ -572,17 +575,17 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
 
   layers::PlanarYCbCrData data;
   data.mYChannel = const_cast<uint8_t*>(buffer->DataY());
-  data.mYSize = IntSize(buffer->width(), buffer->height());
+  data.mYSize = gfx::IntSize(buffer->width(), buffer->height());
   data.mYStride = buffer->StrideY();
   MOZ_ASSERT(buffer->StrideU() == buffer->StrideV());
   data.mCbCrStride = buffer->StrideU();
   data.mCbChannel = const_cast<uint8_t*>(buffer->DataU());
   data.mCrChannel = const_cast<uint8_t*>(buffer->DataV());
   data.mCbCrSize =
-      IntSize((buffer->width() + 1) / 2, (buffer->height() + 1) / 2);
+      gfx::IntSize((buffer->width() + 1) / 2, (buffer->height() + 1) / 2);
   data.mPicX = 0;
   data.mPicY = 0;
-  data.mPicSize = IntSize(buffer->width(), buffer->height());
+  data.mPicSize = gfx::IntSize(buffer->width(), buffer->height());
   data.mYUVColorSpace = gfx::YUVColorSpace::BT601;
 
   RefPtr<layers::PlanarYCbCrImage> image =

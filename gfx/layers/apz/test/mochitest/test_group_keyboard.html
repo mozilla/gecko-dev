@@ -11,13 +11,14 @@
 var subtests = [
   {"file": "helper_key_scroll.html", prefs: [["apz.test.logging_enabled", true],
                                              ["test.events.async.enabled", true]]},
+  {"file": "helper_bug1674935.html", prefs: []},
 ];
 
     if (isKeyApzEnabled()) {
       SimpleTest.waitForExplicitFinish();
       window.onload = function() {
         runSubtestsSeriallyInFreshWindows(subtests)
-        .then(SimpleTest.finish, SimpleTest.finish);
+        .then(SimpleTest.finish, SimpleTest.finishWithFailure);
       };
     } else {
       SimpleTest.ok(true, "Keyboard APZ is disabled");

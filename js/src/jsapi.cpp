@@ -55,7 +55,8 @@
 #include "js/ContextOptions.h"  // JS::ContextOptions{,Ref}
 #include "js/Conversions.h"
 #include "js/Date.h"
-#include "js/friend/StackLimits.h"  // js::CheckSystemRecursionLimit
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "js/friend/StackLimits.h"    // js::CheckSystemRecursionLimit
 #include "js/Initialization.h"
 #include "js/JSON.h"
 #include "js/LocaleSensitive.h"
@@ -3460,6 +3461,7 @@ void JS::TransitiveCompileOptions::copyPODTransitiveOptions(
   nonSyntacticScope = rhs.nonSyntacticScope;
   privateClassFields = rhs.privateClassFields;
   privateClassMethods = rhs.privateClassMethods;
+  useStencilXDR = rhs.useStencilXDR;
   useOffThreadParseGlobal = rhs.useOffThreadParseGlobal;
 };
 
@@ -3554,6 +3556,8 @@ JS::CompileOptions::CompileOptions(JSContext* cx)
       cx->options().throwOnAsmJSValidationFailure();
   privateClassFields = cx->options().privateClassFields();
   privateClassMethods = cx->options().privateClassMethods();
+
+  useStencilXDR = !UseOffThreadParseGlobal();
   useOffThreadParseGlobal = UseOffThreadParseGlobal();
 
   sourcePragmas_ = cx->options().sourcePragmas();
@@ -5313,20 +5317,13 @@ JS_PUBLIC_API void JS_SetGlobalJitCompilerOption(JSContext* cx,
     case JSJITCOMPILER_WASM_JIT_BASELINE:
       JS::ContextOptionsRef(cx).setWasmBaseline(!!value);
       break;
+    case JSJITCOMPILER_WASM_JIT_OPTIMIZING:
 #ifdef ENABLE_WASM_CRANELIFT
-    case JSJITCOMPILER_WASM_JIT_CRANELIFT:
       JS::ContextOptionsRef(cx).setWasmCranelift(!!value);
-      if (!!value) {
-        JS::ContextOptionsRef(cx).setWasmIon(false);
-      }
-      break;
-#endif
-    case JSJITCOMPILER_WASM_JIT_ION:
+      JS::ContextOptionsRef(cx).setWasmIon(!value);
+#else
       JS::ContextOptionsRef(cx).setWasmIon(!!value);
-#ifdef ENABLE_WASM_CRANELIFT
-      if (!!value) {
-        JS::ContextOptionsRef(cx).setWasmCranelift(false);
-      }
+      JS::ContextOptionsRef(cx).setWasmCranelift(!value);
 #endif
       break;
 #ifdef DEBUG
@@ -5391,13 +5388,12 @@ JS_PUBLIC_API bool JS_GetGlobalJitCompilerOption(JSContext* cx,
     case JSJITCOMPILER_WASM_JIT_BASELINE:
       *valueOut = JS::ContextOptionsRef(cx).wasmBaseline() ? 1 : 0;
       break;
+    case JSJITCOMPILER_WASM_JIT_OPTIMIZING:
 #  ifdef ENABLE_WASM_CRANELIFT
-    case JSJITCOMPILER_WASM_JIT_CRANELIFT:
       *valueOut = JS::ContextOptionsRef(cx).wasmCranelift() ? 1 : 0;
-      break;
-#  endif
-    case JSJITCOMPILER_WASM_JIT_ION:
+#  else
       *valueOut = JS::ContextOptionsRef(cx).wasmIon() ? 1 : 0;
+#  endif
       break;
 #  ifdef DEBUG
     case JSJITCOMPILER_FULL_DEBUG_CHECKS:
@@ -5785,8 +5781,7 @@ static JS::TranscodeResult DecodeStencil(
     JSContext* cx, JS::TranscodeBuffer& buffer,
     frontend::CompilationInfoVector& compilationInfos, size_t cursorIndex) {
   XDRStencilDecoder decoder(cx, &compilationInfos.initial.input.options, buffer,
-                            cursorIndex,
-                            compilationInfos.initial.stencil.parserAtoms);
+                            cursorIndex);
 
   if (!compilationInfos.initial.input.initForGlobal(cx)) {
     return JS::TranscodeResult_Throw;
@@ -5804,8 +5799,7 @@ JS_PUBLIC_API JS::TranscodeResult JS::DecodeScriptMaybeStencil(
     JSContext* cx, const ReadOnlyCompileOptions& options,
     TranscodeBuffer& buffer, JS::MutableHandleScript scriptp,
     size_t cursorIndex) {
-  MOZ_ASSERT(options.useOffThreadParseGlobal == js::UseOffThreadParseGlobal());
-  if (js::UseOffThreadParseGlobal()) {
+  if (!options.useStencilXDR) {
     // The buffer contains JSScript.
     return JS::DecodeScript(cx, options, buffer, scriptp, cursorIndex);
   }
@@ -5821,13 +5815,14 @@ JS_PUBLIC_API JS::TranscodeResult JS::DecodeScriptMaybeStencil(
     return res;
   }
 
-  frontend::CompilationGCOutput gcOutput(cx);
-  if (!frontend::InstantiateStencils(cx, compilationInfos.get(), gcOutput)) {
+  Rooted<frontend::CompilationGCOutput> gcOutput(cx);
+  if (!frontend::InstantiateStencils(cx, compilationInfos.get(),
+                                     gcOutput.get())) {
     return JS::TranscodeResult_Throw;
   }
 
-  MOZ_ASSERT(gcOutput.script);
-  scriptp.set(gcOutput.script);
+  MOZ_ASSERT(gcOutput.get().script);
+  scriptp.set(gcOutput.get().script);
 
   return JS::TranscodeResult_Ok;
 }
@@ -5853,8 +5848,7 @@ JS_PUBLIC_API JS::TranscodeResult JS::DecodeScriptAndStartIncrementalEncoding(
     JSContext* cx, const ReadOnlyCompileOptions& options,
     TranscodeBuffer& buffer, JS::MutableHandleScript scriptp,
     size_t cursorIndex) {
-  MOZ_ASSERT(options.useOffThreadParseGlobal == js::UseOffThreadParseGlobal());
-  if (js::UseOffThreadParseGlobal()) {
+  if (!options.useStencilXDR) {
     JS::TranscodeResult res =
         JS::DecodeScript(cx, options, buffer, scriptp, cursorIndex);
     if (res != JS::TranscodeResult_Ok) {
@@ -5883,15 +5877,17 @@ JS_PUBLIC_API JS::TranscodeResult JS::DecodeScriptAndStartIncrementalEncoding(
     return JS::TranscodeResult_Throw;
   }
 
-  frontend::CompilationGCOutput gcOutput(cx);
-  if (!frontend::InstantiateStencils(cx, compilationInfos.get(), gcOutput)) {
+  Rooted<frontend::CompilationGCOutput> gcOutput(cx);
+  if (!frontend::InstantiateStencils(cx, compilationInfos.get(),
+                                     gcOutput.get())) {
     return JS::TranscodeResult_Throw;
   }
 
-  MOZ_ASSERT(gcOutput.script);
-  gcOutput.script->scriptSource()->setIncrementalEncoder(xdrEncoder.release());
+  MOZ_ASSERT(gcOutput.get().script);
+  gcOutput.get().script->scriptSource()->setIncrementalEncoder(
+      xdrEncoder.release());
 
-  scriptp.set(gcOutput.script);
+  scriptp.set(gcOutput.get().script);
 
   return JS::TranscodeResult_Ok;
 }

@@ -15,6 +15,18 @@ loader.lazyRequireGetter(
   "devtools/client/fronts/targets/browsing-context",
   true
 );
+loader.lazyRequireGetter(
+  this,
+  "ContentProcessTargetFront",
+  "devtools/client/fronts/targets/content-process",
+  true
+);
+loader.lazyRequireGetter(
+  this,
+  "WorkerTargetFront",
+  "devtools/client/fronts/targets/worker",
+  true
+);
 
 class WatcherFront extends FrontClassWithSpec(watcherSpec) {
   constructor(client, targetFront, parentFront) {
@@ -34,7 +46,14 @@ class WatcherFront extends FrontClassWithSpec(watcherSpec) {
   }
 
   _onTargetAvailable(form) {
-    const front = new BrowsingContextTargetFront(this.conn, null, this);
+    let front;
+    if (form.actor.includes("/contentProcessTarget")) {
+      front = new ContentProcessTargetFront(this.conn, null, this);
+    } else if (form.actor.includes("/workerTarget")) {
+      front = new WorkerTargetFront(this.conn, null, this);
+    } else {
+      front = new BrowsingContextTargetFront(this.conn, null, this);
+    }
     front.actorID = form.actor;
     front.form(form);
     this.manage(front);

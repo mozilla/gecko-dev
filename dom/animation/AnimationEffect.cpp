@@ -14,8 +14,7 @@
 #include "mozilla/FloatingPoint.h"
 #include "nsDOMMutationObserver.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(AnimationEffect)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AnimationEffect)
@@ -322,7 +321,7 @@ void AnimationEffect::GetComputedTimingAsDict(
 void AnimationEffect::UpdateTiming(const OptionalEffectTiming& aTiming,
                                    ErrorResult& aRv) {
   TimingParams timing =
-      TimingParams::MergeOptionalEffectTiming(mTiming, aTiming, mDocument, aRv);
+      TimingParams::MergeOptionalEffectTiming(mTiming, aTiming, aRv);
   if (aRv.Failed()) {
     return;
   }
@@ -340,5 +339,4 @@ Nullable<TimeDuration> AnimationEffect::GetLocalTime() const {
   return result;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

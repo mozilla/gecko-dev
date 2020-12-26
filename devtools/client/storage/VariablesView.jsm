@@ -18,7 +18,6 @@ const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 const Services = require("Services");
 const { getSourceNames } = require("devtools/client/shared/source-utils");
 const promise = require("promise");
-const defer = require("devtools/shared/defer");
 const { extend } = require("devtools/shared/extend");
 const {
   ViewHelpers,
@@ -2914,14 +2913,14 @@ Variable.prototype = extend(Scope.prototype, {
       if (nodeFront) {
         await this.toolbox.selectTool("inspector");
 
-        const inspectorReady = defer();
-        this.toolbox
-          .getPanel("inspector")
-          .once("inspector-updated", inspectorReady.resolve);
+        const inspectorReady = new Promise(resolve => {
+          this.toolbox.getPanel("inspector").once("inspector-updated", resolve);
+        });
+
         await this.toolbox.selection.setNodeFront(nodeFront, {
           reason: "variables-view",
         });
-        await inspectorReady.promise;
+        await inspectorReady;
       }
     }.bind(this)();
   },
@@ -2937,12 +2936,12 @@ Variable.prototype = extend(Scope.prototype, {
 
     if (!this._nodeFront) {
       const inspectorFront = await this.toolbox.target.getFront("inspector");
-      this.nodeFront = await inspectorFront.getNodeFrontFromNodeGrip(
+      this._nodeFront = await inspectorFront.getNodeFrontFromNodeGrip(
         this._valueGrip
       );
     }
 
-    await this.nodeFront.highlighterFront.highlight(this._nodeFront);
+    await this.toolbox.getHighlighter().highlight(this._nodeFront);
   },
 
   /**
@@ -2954,7 +2953,7 @@ Variable.prototype = extend(Scope.prototype, {
       return;
     }
 
-    this.nodeFront.highlighterFront.unhighlight();
+    this.toolbox.getHighlighter().unhighlight();
   },
 
   /**

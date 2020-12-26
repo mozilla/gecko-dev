@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "FileBlobImpl.h"
+#include "BaseBlobImpl.h"
 #include "mozilla/SlicedInputStream.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
@@ -15,8 +16,7 @@
 #include "nsNetUtil.h"
 #include "nsStreamUtils.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 FileBlobImpl::FileBlobImpl(nsIFile* aFile)
     : mMutex("FileBlobImpl::mMutex"),
@@ -291,5 +291,4 @@ bool FileBlobImpl::IsDirectory() const {
   return isDirectory;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

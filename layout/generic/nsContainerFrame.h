@@ -362,12 +362,17 @@ class nsContainerFrame : public nsSplittableFrame {
    *
    * @param aFlags is passed through to ReflowChild
    * @param aMergeFunc is passed to DrainExcessOverflowContainersList
+   * @param aContainerSize is used only for converting logical coordinate to
+   *        physical coordinate. If a tentative container size is used, caller
+   *        may need to adjust the position of our overflow container children
+   *        once the real size is known if our writing mode is vertical-rl.
    */
   void ReflowOverflowContainerChildren(
       nsPresContext* aPresContext, const ReflowInput& aReflowInput,
       nsOverflowAreas& aOverflowRects, ReflowChildFlags aFlags,
       nsReflowStatus& aStatus,
-      ChildFrameMerger aMergeFunc = DefaultChildFrameMerge);
+      ChildFrameMerger aMergeFunc = DefaultChildFrameMerge,
+      Maybe<nsSize> aContainerSize = Nothing());
 
   /**
    * Move any frames on our overflow list to the end of our principal list.
@@ -1105,9 +1110,10 @@ struct DR_intrinsic_size_cookie {
 };
 
 struct DR_init_constraints_cookie {
-  DR_init_constraints_cookie(nsIFrame* aFrame, mozilla::ReflowInput* aState,
-                             nscoord aCBWidth, nscoord aCBHeight,
-                             const nsMargin* aMargin, const nsMargin* aPadding);
+  DR_init_constraints_cookie(
+      nsIFrame* aFrame, mozilla::ReflowInput* aState, nscoord aCBWidth,
+      nscoord aCBHeight, const mozilla::Maybe<mozilla::LogicalMargin> aBorder,
+      const mozilla::Maybe<mozilla::LogicalMargin> aPadding);
   ~DR_init_constraints_cookie();
 
   nsIFrame* mFrame;
@@ -1120,7 +1126,8 @@ struct DR_init_offsets_cookie {
                          mozilla::SizeComputationInput* aState,
                          nscoord aPercentBasis,
                          mozilla::WritingMode aCBWritingMode,
-                         const nsMargin* aMargin, const nsMargin* aPadding);
+                         const mozilla::Maybe<mozilla::LogicalMargin> aBorder,
+                         const mozilla::Maybe<mozilla::LogicalMargin> aPadding);
   ~DR_init_offsets_cookie();
 
   nsIFrame* mFrame;

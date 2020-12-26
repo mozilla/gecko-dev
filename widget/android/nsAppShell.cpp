@@ -60,6 +60,7 @@
 #include "AndroidAlerts.h"
 #include "AndroidUiThread.h"
 #include "GeckoBatteryManager.h"
+#include "GeckoEditableSupport.h"
 #include "GeckoNetworkManager.h"
 #include "GeckoProcessManager.h"
 #include "GeckoScreenOrientation.h"
@@ -72,6 +73,7 @@
 #include "Telemetry.h"
 #include "WebExecutorSupport.h"
 #include "Base64UtilsSupport.h"
+#include "WebAuthnTokenManager.h"
 
 #ifdef DEBUG_ANDROID_EVENTS
 #  define EVLOG(args...) ALOG(args)

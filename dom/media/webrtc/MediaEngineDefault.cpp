@@ -11,6 +11,7 @@
 #include "MediaTrackListener.h"
 #include "MediaTrackConstraints.h"
 #include "mozilla/dom/File.h"
+#include "mozilla/MediaManager.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
@@ -220,13 +221,14 @@ static void ReleaseFrame(layers::PlanarYCbCrData& aData) {
 }
 
 void MediaEngineDefaultVideoSource::SetTrack(
-    const RefPtr<SourceMediaTrack>& aTrack, const PrincipalHandle& aPrincipal) {
+    const RefPtr<MediaTrack>& aTrack, const PrincipalHandle& aPrincipal) {
   AssertIsOnOwningThread();
 
   MOZ_ASSERT(mState == kAllocated);
   MOZ_ASSERT(!mTrack);
+  MOZ_ASSERT(aTrack->AsSourceTrack());
 
-  mTrack = aTrack;
+  mTrack = aTrack->AsSourceTrack();
   mPrincipalHandle = aPrincipal;
 }
 
@@ -430,13 +432,14 @@ nsresult MediaEngineDefaultAudioSource::Deallocate() {
 }
 
 void MediaEngineDefaultAudioSource::SetTrack(
-    const RefPtr<SourceMediaTrack>& aTrack, const PrincipalHandle& aPrincipal) {
+    const RefPtr<MediaTrack>& aTrack, const PrincipalHandle& aPrincipal) {
   AssertIsOnOwningThread();
 
   MOZ_ASSERT(mState == kAllocated);
   MOZ_ASSERT(!mTrack);
+  MOZ_ASSERT(aTrack->AsSourceTrack());
 
-  mTrack = aTrack;
+  mTrack = aTrack->AsSourceTrack();
   mPrincipalHandle = aPrincipal;
 }
 

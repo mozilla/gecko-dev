@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use neqo_common::{self as common, qlog::NeqoQlog, qwarn, Datagram, Role};
 use neqo_common::event::Provider;
+use neqo_common::{self as common, qlog::NeqoQlog, qwarn, Datagram, Role};
 use neqo_crypto::{init, PRErrorCode};
 use neqo_http3::Error as Http3Error;
 use neqo_http3::{Http3Client, Http3ClientEvent, Http3Parameters, Http3State};
@@ -455,6 +455,7 @@ pub enum Http3Event {
     Reset {
         stream_id: u64,
         error: u64,
+        local: bool,
     },
     /// A PushPromise
     PushPromise {
@@ -473,6 +474,10 @@ pub enum Http3Event {
     /// A push has been canceled.
     PushCanceled {
         push_id: u64,
+    },
+    PushReset {
+        push_id: u64,
+        error: u64,
     },
     RequestsCreatable,
     AuthenticationNeeded,
@@ -534,17 +539,29 @@ pub extern "C" fn neqo_http3conn_event(
                 stream_id,
                 headers,
                 fin,
+                interim,
             } => {
-                if let Some(headers) = headers {
+                if interim {
+                    // This are 1xx responses and they are ignored.
+                    Http3Event::NoEvent
+                } else {
                     let res = convert_h3_to_h1_headers(headers, data);
                     if res != NS_OK {
                         return res;
                     }
+                    Http3Event::HeaderReady { stream_id, fin }
                 }
-                Http3Event::HeaderReady { stream_id, fin }
             }
             Http3ClientEvent::DataReadable { stream_id } => Http3Event::DataReadable { stream_id },
-            Http3ClientEvent::Reset { stream_id, error } => Http3Event::Reset { stream_id, error },
+            Http3ClientEvent::Reset {
+                stream_id,
+                error,
+                local,
+            } => Http3Event::Reset {
+                stream_id,
+                error,
+                local,
+            },
             Http3ClientEvent::PushPromise {
                 push_id,
                 request_stream_id,
@@ -563,19 +580,25 @@ pub extern "C" fn neqo_http3conn_event(
                 push_id,
                 headers,
                 fin,
+                interim,
             } => {
-                if let Some(headers) = headers {
+                if interim {
+                    Http3Event::NoEvent
+                } else {
                     let res = convert_h3_to_h1_headers(headers, data);
                     if res != NS_OK {
                         return res;
                     }
+                    Http3Event::PushHeaderReady { push_id, fin }
                 }
-                Http3Event::PushHeaderReady { push_id, fin }
             }
             Http3ClientEvent::PushDataReadable { push_id } => {
                 Http3Event::PushDataReadable { push_id }
             }
             Http3ClientEvent::PushCanceled { push_id } => Http3Event::PushCanceled { push_id },
+            Http3ClientEvent::PushReset { push_id, error } => {
+                Http3Event::PushReset { push_id, error }
+            }
             Http3ClientEvent::RequestsCreatable => Http3Event::RequestsCreatable,
             Http3ClientEvent::AuthenticationNeeded => Http3Event::AuthenticationNeeded,
             Http3ClientEvent::ZeroRttRejected => Http3Event::ZeroRttRejected,
@@ -636,12 +659,15 @@ pub extern "C" fn neqo_http3conn_read_response_data(
         Ok((amount, fin_recvd)) => {
             *read = u32::try_from(amount).unwrap();
             *fin = fin_recvd;
-            NS_OK
+            if (amount == 0) && !fin_recvd {
+                NS_BASE_STREAM_WOULD_BLOCK
+            } else {
+                NS_OK
+            }
         }
         Err(Http3Error::InvalidStreamId)
         | Err(Http3Error::TransportError(TransportError::NoMoreData)) => NS_ERROR_INVALID_ARG,
-        Err(Http3Error::HttpFrame) => NS_ERROR_ABORT,
-        Err(_) => NS_ERROR_UNEXPECTED,
+        Err(_) => NS_ERROR_NET_HTTP3_PROTOCOL_ERROR,
     }
 }
 

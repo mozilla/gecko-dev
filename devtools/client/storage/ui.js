@@ -315,32 +315,16 @@ class StorageUI {
   }
 
   async _onResourceListAvailable(resources) {
-    const {
-      COOKIE,
-      LOCAL_STORAGE,
-      SESSION_STORAGE,
-      EXTENSION_STORAGE,
-      CACHE_STORAGE,
-      INDEXED_DB,
-    } = this._toolbox.resourceWatcher.TYPES;
-
     const storages = {};
 
     for (const resource of resources) {
-      const { resourceType } = resource;
-      if (resourceType == COOKIE) {
-        storages.cookies = resource;
-      } else if (resourceType == LOCAL_STORAGE) {
-        storages.localStorage = resource;
-      } else if (resourceType == SESSION_STORAGE) {
-        storages.sessionStorage = resource;
-      } else if (resourceType == EXTENSION_STORAGE) {
-        storages.extensionStorage = resource;
-      } else if (resourceType == CACHE_STORAGE) {
-        storages.Cache = resource;
-      } else if (resourceType == INDEXED_DB) {
-        storages.indexedDB = resource;
+      const { resourceKey } = resource;
+      // NOTE: We might be getting more than 1 resource per storage type when
+      //       we have remote frames, so we need an array to store these.
+      if (!storages[resourceKey]) {
+        storages[resourceKey] = [];
       }
+      storages[resourceKey].push(resource);
     }
 
     try {
@@ -374,6 +358,23 @@ class StorageUI {
   }
 
   destroy() {
+    const { resourceWatcher } = this._toolbox;
+    resourceWatcher.unwatchResources(
+      [
+        resourceWatcher.TYPES.COOKIE,
+        resourceWatcher.TYPES.CACHE_STORAGE,
+        resourceWatcher.TYPES.EXTENSION_STORAGE,
+        resourceWatcher.TYPES.INDEXED_DB,
+        resourceWatcher.TYPES.LOCAL_STORAGE,
+        resourceWatcher.TYPES.SESSION_STORAGE,
+      ],
+      {
+        onAvailable: this._onResourceListAvailable,
+        onUpdated: this._onResourceListUpdated,
+        onDestroyed: this._onResourceListDestroyed,
+      }
+    );
+
     this.table.off(TableWidget.EVENTS.ROW_SELECTED, this.updateObjectSidebar);
     this.table.off(TableWidget.EVENTS.SCROLL_END, this.handleScrollEnd);
     this.table.off(TableWidget.EVENTS.CELL_EDIT, this.editItem);
@@ -468,8 +469,13 @@ class StorageUI {
   }
 
   getCurrentFront() {
-    const type = this.table.datatype;
-    return this.storageTypes[type];
+    const { datatype, host } = this.table;
+    return this._getStorage(datatype, host);
+  }
+
+  _getStorage(type, host) {
+    const storageType = this.storageTypes[type];
+    return storageType.find(x => host in x.hosts);
   }
 
   /**
@@ -786,8 +792,7 @@ class StorageUI {
   async fetchStorageObjects(type, host, names, reason) {
     const fetchOpts =
       reason === REASON.NEXT_50_ITEMS ? { offset: this.itemOffset } : {};
-    const storageType = this.storageTypes[type];
-
+    const storage = this._getStorage(type, host);
     this.sidebarToggledOpen = null;
 
     if (
@@ -818,15 +823,10 @@ class StorageUI {
           }
         }
 
-        await this._readSupportsTraits(type);
         await this.resetColumns(type, host, subType);
       }
 
-      const { data } = await storageType.getStoreObjects(
-        host,
-        names,
-        fetchOpts
-      );
+      const { data } = await storage.getStoreObjects(host, names, fetchOpts);
       if (data.length) {
         await this.populateTable(data, reason);
       } else if (reason === REASON.POPULATE) {
@@ -839,39 +839,24 @@ class StorageUI {
     }
   }
 
-  /**
-   * Read the current supports traits for the provided storage type and update
-   * the actorSupports flags on the UI instance.
-   *
-   * Note: setting actorSupportsXYZ properties on the UI instance is incorrect
-   * because the value depends on each storage type. See Bug 1654998.
-   */
-  async _readSupportsTraits(type) {
-    const { traits } = this.storageTypes[type];
-    if (traits.hasSupportsTraits) {
-      this.actorSupportsAddItem = traits.supportsAddItem;
-      this.actorSupportsRemoveItem = traits.supportsRemoveItem;
-      this.actorSupportsRemoveAll = traits.supportsRemoveAll;
-      this.actorSupportsRemoveAllSessionCookies =
-        traits.supportsRemoveAllSessionCookies;
-    } else {
-      // Backward compatibility. This branch can be removed when Firefox 80 is
-      // on the release channel.
-      const target = this.currentTarget;
-      this.actorSupportsAddItem = await target.actorHasMethod(type, "addItem");
-      this.actorSupportsRemoveItem = await target.actorHasMethod(
-        type,
-        "removeItem"
-      );
-      this.actorSupportsRemoveAll = await target.actorHasMethod(
-        type,
-        "removeAll"
-      );
-      this.actorSupportsRemoveAllSessionCookies = await target.actorHasMethod(
-        type,
-        "removeAllSessionCookies"
-      );
-    }
+  supportsAddItem(type, host) {
+    const storage = this._getStorage(type, host);
+    return storage?.traits.supportsAddItem || false;
+  }
+
+  supportsRemoveItem(type, host) {
+    const storage = this._getStorage(type, host);
+    return storage?.traits.supportsRemoveItem || false;
+  }
+
+  supportsRemoveAll(type, host) {
+    const storage = this._getStorage(type, host);
+    return storage?.traits.supportsRemoveAll || false;
+  }
+
+  supportsRemoveAllSessionCookies(type, host) {
+    const storage = this._getStorage(type, host);
+    return storage?.traits.supportsRemoveAllSessionCookies || false;
   }
 
   /**
@@ -879,11 +864,14 @@ class StorageUI {
    */
   updateToolbar() {
     const item = this.tree.selectedItem;
-    const howManyNodesIn = item ? item.length : 0;
+    if (!item) {
+      return;
+    }
 
-    // The first node is just a title e.g. "Cookies" so we need to be at least
-    // 2 nodes in to show the add button.
-    const canAdd = this.actorSupportsAddItem && howManyNodesIn > 1;
+    const [type, host] = item;
+
+    // Add is only supported if the selected item has a host.
+    const canAdd = this.supportsAddItem(type, host) && host;
 
     if (canAdd) {
       this._addButton.hidden = false;
@@ -891,6 +879,9 @@ class StorageUI {
         "title",
         L10N.getFormatStr("storage.popupMenu.addItemLabel")
       );
+    } else {
+      this._addButton.hidden = true;
+      this._addButton.removeAttribute("title");
     }
   }
 
@@ -903,6 +894,27 @@ class StorageUI {
    *        StorageFront.listStores call.
    */
   async populateStorageTree(storageTypes) {
+    const populateTreeFromResource = (type, resource) => {
+      for (const host in resource.hosts) {
+        const label = this.getReadableLabelFromHostname(host);
+        this.tree.add([type, { id: host, label: label, type: "url" }]);
+        for (const name of resource.hosts[host]) {
+          try {
+            const names = JSON.parse(name);
+            this.tree.add([type, host, ...names]);
+            if (!this.tree.selectedItem) {
+              this.tree.selectedItem = [type, host, names[0], names[1]];
+            }
+          } catch (ex) {
+            // Do Nothing
+          }
+        }
+        if (!this.tree.selectedItem) {
+          this.tree.selectedItem = [type, host];
+        }
+      }
+    };
+
     // When can we expect the "store-objects-updated" event?
     //   -> TreeWidget setter `selectedItem` emits a "select" event
     //   -> on tree "select" event, this module calls `onHostSelect`
@@ -930,27 +942,15 @@ class StorageUI {
       }
 
       this.tree.add([{ id: type, label: typeLabel, type: "store" }]);
-      if (!storageTypes[type].hosts) {
-        continue;
-      }
-      this.storageTypes[type] = storageTypes[type];
-      for (const host in storageTypes[type].hosts) {
-        const label = this.getReadableLabelFromHostname(host);
-        this.tree.add([type, { id: host, label: label, type: "url" }]);
-        for (const name of storageTypes[type].hosts[host]) {
-          try {
-            const names = JSON.parse(name);
-            this.tree.add([type, host, ...names]);
-            if (!this.tree.selectedItem) {
-              this.tree.selectedItem = [type, host, names[0], names[1]];
-            }
-          } catch (ex) {
-            // Do Nothing
-          }
+
+      const resourcesWithHosts = storageTypes[type].filter(x => x.hosts);
+      for (const resource of resourcesWithHosts) {
+        if (!this.storageTypes[type]) {
+          this.storageTypes[type] = [];
         }
-        if (!this.tree.selectedItem) {
-          this.tree.selectedItem = [type, host];
-        }
+        this.storageTypes[type].push(resource);
+
+        populateTreeFromResource(type, resource);
       }
     }
 
@@ -1339,13 +1339,12 @@ class StorageUI {
    */
   onTablePopupShowing(event) {
     const selectedItem = this.tree.selectedItem;
-    const type = selectedItem[0];
+    const [type, host] = selectedItem;
 
     // IndexedDB only supports removing items from object stores (level 4 of the tree)
     if (
-      (!this.actorSupportsAddItem &&
-        !this.actorSupportsRemoveItem &&
-        type !== "cookies") ||
+      (!this.supportsAddItem(type, host) &&
+        !this.supportsRemoveItem(type, host)) ||
       (type === "indexedDB" && selectedItem.length !== 4)
     ) {
       event.preventDefault();
@@ -1355,7 +1354,7 @@ class StorageUI {
     const rowId = this.table.contextMenuRowId;
     const data = this.table.items.get(rowId);
 
-    if (this.actorSupportsRemoveItem) {
+    if (this.supportsRemoveItem(type, host)) {
       const name = data[this.table.uniqueId];
       const separatorRegex = new RegExp(SEPARATOR_GUID, "g");
       const label = addEllipsis((name + "").replace(separatorRegex, "-"));
@@ -1369,7 +1368,7 @@ class StorageUI {
       this._tablePopupDelete.hidden = true;
     }
 
-    if (this.actorSupportsAddItem) {
+    if (this.supportsAddItem(type, host)) {
       this._tablePopupAddItem.hidden = false;
       this._tablePopupAddItem.setAttribute(
         "label",
@@ -1380,8 +1379,8 @@ class StorageUI {
     }
 
     let showDeleteAllSessionCookies = false;
-    if (this.actorSupportsRemoveAllSessionCookies) {
-      if (type === "cookies" && selectedItem.length === 2) {
+    if (this.supportsRemoveAllSessionCookies(type, host)) {
+      if (selectedItem.length === 2) {
         showDeleteAllSessionCookies = true;
       }
     }
@@ -1389,12 +1388,12 @@ class StorageUI {
     this._tablePopupDeleteAllSessionCookies.hidden = !showDeleteAllSessionCookies;
 
     if (type === "cookies") {
-      const host = addEllipsis(data.host);
+      const hostString = addEllipsis(data.host);
 
       this._tablePopupDeleteAllFrom.hidden = false;
       this._tablePopupDeleteAllFrom.setAttribute(
         "label",
-        L10N.getFormatStr("storage.popupMenu.deleteAllFromLabel", host)
+        L10N.getFormatStr("storage.popupMenu.deleteAllFromLabel", hostString)
       );
     } else {
       this._tablePopupDeleteAllFrom.hidden = true;
@@ -1406,13 +1405,13 @@ class StorageUI {
     const selectedItem = this.tree.selectedItem;
 
     if (selectedItem) {
-      const type = selectedItem[0];
+      const [type, host] = selectedItem;
 
       // The delete all (aka clear) action is displayed for IndexedDB object stores
       // (level 4 of tree), for Cache objects (level 3) and for the whole host (level 2)
       // for other storage types (cookies, localStorage, ...).
       let showDeleteAll = false;
-      if (this.actorSupportsRemoveAll) {
+      if (this.supportsRemoveAll(type, host)) {
         let level;
         if (type == "indexedDB") {
           level = 4;
@@ -1432,7 +1431,7 @@ class StorageUI {
       // The delete all session cookies action is displayed for cookie object stores
       // (level 2 of tree)
       let showDeleteAllSessionCookies = false;
-      if (this.actorSupportsRemoveAllSessionCookies) {
+      if (this.supportsRemoveAllSessionCookies(type, host)) {
         if (type === "cookies" && selectedItem.length === 2) {
           showDeleteAllSessionCookies = true;
         }

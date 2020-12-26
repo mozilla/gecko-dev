@@ -16,7 +16,10 @@ const { XPCOMUtils } = ChromeUtils.import(
 XPCOMUtils.defineLazyModuleGetters(this, {
   Services: "resource://gre/modules/Services.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
+  UrlbarProviderTabToSearch:
+    "resource:///modules/UrlbarProviderTabToSearch.jsm",
   UrlbarMuxer: "resource:///modules/UrlbarUtils.jsm",
+  UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
 });
 
@@ -291,6 +294,16 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       return false;
     }
 
+    // HeuristicFallback may add non-heuristic results in some cases, but those
+    // should be retained only if the heuristic result comes from it.
+    if (
+      !result.heuristic &&
+      result.providerName == "HeuristicFallback" &&
+      state.context.heuristicResult?.providerName != "HeuristicFallback"
+    ) {
+      return false;
+    }
+
     if (result.providerName == "TabToSearch") {
       // Discard tab-to-search results if we're not autofilling a URL or
       // a tab-to-search result was added already.
@@ -384,9 +397,32 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
             submission.engine,
             resultQuery
           );
-          if (this._serpURLsHaveSameParams(newSerpURL, result.payload.url)) {
+          if (
+            UrlbarSearchUtils.serpsAreEquivalent(result.payload.url, newSerpURL)
+          ) {
             return false;
           }
+        }
+      }
+    }
+
+    // When in an engine search mode, discard URL results whose hostnames don't
+    // include the root domain of the search mode engine.
+    if (state.context.searchMode?.engineName && result.payload.url) {
+      let engine = Services.search.getEngineByName(
+        state.context.searchMode.engineName
+      );
+      if (engine) {
+        let searchModeRootDomain = UrlbarSearchUtils.getRootDomainFromEngine(
+          engine
+        );
+        let resultUrl = new URL(result.payload.url);
+        // Add a trailing "." to increase the stringency of the check. This
+        // check covers most general cases. Some edge cases are not covered,
+        // like `resultUrl` being ebay.mydomain.com, which would escape this
+        // check if `searchModeRootDomain` was "ebay".
+        if (!resultUrl.hostname.includes(`${searchModeRootDomain}.`)) {
+          return false;
         }
       }
     }
@@ -502,41 +538,15 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     // TODO (Bug 1670185): figure out better strategies to manage this case.
     if (result.providerName == "TabToSearch") {
       state.canAddTabToSearch = false;
-    }
-  }
-
-  /**
-   * This is a helper for determining whether two SERP URLs are the same for the
-   * purpose of deduping them.  This method checks only URL params, not domains.
-   *
-   * @param {string} url1
-   *   The first URL.
-   * @param {string} url2
-   *   The second URL.
-   * @returns {boolean}
-   *   True if the two URLs have the same URL params for the purpose of deduping
-   *   them.
-   */
-  _serpURLsHaveSameParams(url1, url2) {
-    let params1 = new URL(url1).searchParams;
-    let params2 = new URL(url2).searchParams;
-    // Currently we are conservative, and the two URLs must have exactly the
-    // same params except for "client" for us to consider them the same.
-    for (let params of [params1, params2]) {
-      params.delete("client");
-    }
-    // Check that each remaining url1 param is in url2, and vice versa.
-    for (let [p1, p2] of [
-      [params1, params2],
-      [params2, params1],
-    ]) {
-      for (let [key, value] of p1) {
-        if (!p2.getAll(key).includes(value)) {
-          return false;
-        }
+      // We want to record in urlbar.tips once per engagement per engine. Since
+      // whether these results are shown is dependent on the Muxer, we must
+      // add to `onboardingEnginesShown` here.
+      if (result.payload.dynamicType) {
+        UrlbarProviderTabToSearch.onboardingEnginesShown.add(
+          result.payload.engine
+        );
       }
     }
-    return true;
   }
 }
 

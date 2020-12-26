@@ -130,17 +130,16 @@ class nsDMABufDevice {
   nsDMABufDevice();
   ~nsDMABufDevice();
 
-  void Init();
-
   gbm_device* GetGbmDevice();
   // Returns -1 if we fails to gbm device file descriptor.
   int GetGbmDeviceFd();
 
-  bool IsDMABufEnabled();
+  // Use dmabuf for WebRender general web content
   bool IsDMABufTexturesEnabled();
-  bool IsDMABufVideoTexturesEnabled();
+  // Use dmabuf for VA-API video playback
+  bool IsDMABufVAAPIEnabled();
+  // Use dmabuf for WebGL content
   bool IsDMABufWebGLEnabled();
-  bool IsDRMVAAPIDisplayEnabled();
 
   GbmFormat* GetGbmFormat(bool aHasAlpha);
   GbmFormat* GetExactGbmFormat(int aFormat);
@@ -149,18 +148,16 @@ class nsDMABufDevice {
                          uint32_t mModifierLo);
 
  private:
+  bool IsDMABufEnabled();
   bool Configure();
 
-  wl_registry* mRegistry;
+  void* mRegistry;
 
   GbmFormat mXRGBFormat;
   GbmFormat mARGBFormat;
 
   gbm_device* mGbmDevice;
   int mGbmFd;
-  bool mGdmConfigured;
-  bool mIsDMABufEnabled;
-  bool mIsDMABufConfigured;
 };
 
 nsDMABufDevice* GetDMABufDevice();

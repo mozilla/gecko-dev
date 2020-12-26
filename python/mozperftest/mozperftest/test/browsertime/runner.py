@@ -12,11 +12,10 @@ from pathlib import Path
 
 from mozperftest.utils import install_package
 from mozperftest.test.noderunner import NodeRunner
+from mozperftest.test.browsertime.visualtools import get_dependencies, xvfb
 
 
 BROWSERTIME_SRC_ROOT = Path(__file__).parent
-PILLOW_VERSION = "7.2.0"
-PYSSIM_VERSION = "0.4"
 
 
 def matches(args, *flags):
@@ -77,6 +76,17 @@ class BrowsertimeRunner(NodeRunner):
             "default": "",
             "help": "Extra options passed to browsertime.js",
         },
+        "xvfb": {
+            "action": "store_true",
+            "default": False,
+            "help": "Use xvfb",
+        },
+        "no-window-recorder": {
+            "action": "store_true",
+            "default": False,
+            "help": "Use the window recorder",
+        },
+        "viewport-size": {"type": str, "default": "1366x695", "help": "Viewport size"},
     }
 
     def __init__(self, env, mach_cmd):
@@ -159,11 +169,17 @@ class BrowsertimeRunner(NodeRunner):
         install_url = self.get_arg("install-url")
 
         # installing Python deps on the fly
-        for dep in ("Pillow==%s" % PILLOW_VERSION, "pyssim==%s" % PYSSIM_VERSION):
-            install_package(self.virtualenv_manager, dep, ignore_failure=True)
+        visualmetrics = self.get_arg("visualmetrics", False)
+
+        if visualmetrics:
+            # installing Python deps on the fly
+            for dep in get_dependencies():
+                install_package(self.virtualenv_manager, dep, ignore_failure=True)
 
         # check if the browsertime package has been deployed correctly
         # for this we just check for the browsertime directory presence
+        # we also make sure the visual metrics module is there *if*
+        # we need it
         if not self._should_install() and not self.get_arg("clobber"):
             return
 
@@ -247,6 +263,8 @@ class BrowsertimeRunner(NodeRunner):
         # Default to not collect HAR.  Override with `--skipHar=false`.
         if not matches(args, "--har", "--skipHar", "--gzipHar"):
             extra_args.append("--skipHar")
+
+        extra_args.extend(["--viewPort", self.get_arg("viewport-size")])
 
         if not matches(args, "--android"):
             binary = self.get_arg("binary")
@@ -337,12 +355,24 @@ class BrowsertimeRunner(NodeRunner):
             self._test_script["filename"],
         ]
 
+        # Set *all* prefs found in browser_prefs because
+        # browsertime will override the ones found in firefox.profileTemplate
+        # with its own defaults at `firefoxPreferences.js`
+        # Using `--firefox.preference` ensures we override them.
+        # see https://github.com/sitespeedio/browsertime/issues/1427
+        browser_prefs = metadata.get_options("browser_prefs")
+        for key, value in browser_prefs.items():
+            args += ["--firefox.preference", f"{key}:{value}"]
+
         if self.get_arg("verbose"):
             args += ["-vvv"]
 
         # if the visualmetrics layer is activated, we want to feed it
-        if self.get_arg("visualmetrics"):
+        visualmetrics = self.get_arg("visualmetrics", False)
+        if visualmetrics:
             args += ["--video", "true"]
+            if not self.get_arg("no-window-recorder"):
+                args += ["--firefox.windowRecorder", "true"]
 
         extra_options = self.get_arg("extra-options")
         if extra_options:
@@ -368,7 +398,13 @@ class BrowsertimeRunner(NodeRunner):
         extra = self.extra_default_args(args=args)
         command = [str(self.browsertime_js)] + extra + args
         self.info("Running browsertime with this command %s" % " ".join(command))
-        exit_code = self.node(command)
+
+        if visualmetrics and self.get_arg("xvfb"):
+            with xvfb():
+                exit_code = self.node(command)
+        else:
+            exit_code = self.node(command)
+
         if exit_code != 0:
             raise NodeException(exit_code)
 

@@ -39,8 +39,8 @@ nsNativeTheme::nsNativeTheme() : mAnimatedContentTimeout(UINT32_MAX) {}
 
 NS_IMPL_ISUPPORTS(nsNativeTheme, nsITimerCallback, nsINamed)
 
-EventStates nsNativeTheme::GetContentState(nsIFrame* aFrame,
-                                           StyleAppearance aAppearance) {
+/* static */ EventStates nsNativeTheme::GetContentState(
+    nsIFrame* aFrame, StyleAppearance aAppearance) {
   if (!aFrame) return EventStates();
 
   bool isXULCheckboxRadio = (aAppearance == StyleAppearance::Checkbox ||
@@ -658,8 +658,6 @@ bool nsNativeTheme::IsDarkBackground(nsIFrame* aFrame) {
 
 bool nsNativeTheme::IsWidgetScrollbarPart(StyleAppearance aAppearance) {
   switch (aAppearance) {
-    case StyleAppearance::Scrollbar:
-    case StyleAppearance::ScrollbarSmall:
     case StyleAppearance::ScrollbarVertical:
     case StyleAppearance::ScrollbarHorizontal:
     case StyleAppearance::ScrollbarbuttonUp:

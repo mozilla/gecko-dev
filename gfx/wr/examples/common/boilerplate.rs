@@ -185,7 +185,7 @@ pub fn main_wrapper<E: Example>(
         None,
     ).unwrap();
     let mut api = sender.create_api();
-    let document_id = api.add_document(device_size, 0);
+    let document_id = api.add_document(device_size);
 
     let external = example.get_image_handler(&*gl);
 
@@ -254,13 +254,9 @@ pub fn main_wrapper<E: Example>(
                 winit::VirtualKeyCode::P => debug_flags.toggle(DebugFlags::PROFILER_DBG),
                 winit::VirtualKeyCode::O => debug_flags.toggle(DebugFlags::RENDER_TARGET_DBG),
                 winit::VirtualKeyCode::I => debug_flags.toggle(DebugFlags::TEXTURE_CACHE_DBG),
-                winit::VirtualKeyCode::S => debug_flags.toggle(DebugFlags::COMPACT_PROFILER),
                 winit::VirtualKeyCode::T => debug_flags.toggle(DebugFlags::PICTURE_CACHING_DBG),
                 winit::VirtualKeyCode::Q => debug_flags.toggle(
                     DebugFlags::GPU_TIME_QUERIES | DebugFlags::GPU_SAMPLE_QUERIES
-                ),
-                winit::VirtualKeyCode::F => debug_flags.toggle(
-                    DebugFlags::NEW_FRAME_INDICATOR | DebugFlags::NEW_SCENE_INDICATOR
                 ),
                 winit::VirtualKeyCode::G => debug_flags.toggle(DebugFlags::GPU_CACHE_DBG),
                 winit::VirtualKeyCode::Key1 => txn.set_document_view(
@@ -321,7 +317,7 @@ pub fn main_wrapper<E: Example>(
         api.send_transaction(document_id, txn);
 
         renderer.update();
-        renderer.render(device_size).unwrap();
+        renderer.render(device_size, 0).unwrap();
         let _ = renderer.flush_pipeline_info();
         example.draw_custom(&*gl);
         windowed_context.swap_buffers().ok();

@@ -6,6 +6,8 @@
 #ifndef BASEPROFILEJSONWRITER_H
 #define BASEPROFILEJSONWRITER_H
 
+#include "mozilla/HashFunctions.h"
+#include "mozilla/HashTable.h"
 #include "mozilla/JSONWriter.h"
 #include "mozilla/UniquePtr.h"
 
@@ -150,6 +152,8 @@ struct OStreamJSONWriteFunc final : public JSONWriteFunc {
   std::ostream& mStream;
 };
 
+class UniqueJSONStrings;
+
 class SpliceableJSONWriter : public JSONWriter {
  public:
   explicit SpliceableJSONWriter(UniquePtr<JSONWriteFunc> aWriter)
@@ -209,6 +213,30 @@ class SpliceableJSONWriter : public JSONWriter {
     aFunc.mChunkLengths.clear();
     mNeedComma[mDepth] = true;
   }
+
+  // Set (or reset) the pointer to a UniqueJSONStrings.
+  void SetUniqueStrings(UniqueJSONStrings& aUniqueStrings) {
+    MOZ_RELEASE_ASSERT(!mUniqueStrings);
+    mUniqueStrings = &aUniqueStrings;
+  }
+
+  // Set (or reset) the pointer to a UniqueJSONStrings.
+  void ResetUniqueStrings() {
+    MOZ_RELEASE_ASSERT(mUniqueStrings);
+    mUniqueStrings = nullptr;
+  }
+
+  // Add `aStr` to the unique-strings list (if not already there), and write its
+  // index as a named object property.
+  inline void UniqueStringProperty(const Span<const char>& aName,
+                                   const Span<const char>& aStr);
+
+  // Add `aStr` to the unique-strings list (if not already there), and write its
+  // index as an array element.
+  inline void UniqueStringElement(const Span<const char>& aStr);
+
+ private:
+  UniqueJSONStrings* mUniqueStrings = nullptr;
 };
 
 class SpliceableChunkedJSONWriter final : public SpliceableJSONWriter {
@@ -274,6 +302,75 @@ class JSONSchemaWriter {
 
   ~JSONSchemaWriter() { mWriter.EndObject(); }
 };
+
+// This class helps create an indexed list of unique strings, and inserts the
+// index as a JSON value. The collected list of unique strings can later be
+// inserted as a JSON array.
+// This can be useful for elements/properties with many repeated strings.
+//
+// With only JSONWriter w,
+// `w.WriteElement("a"); w.WriteElement("b"); w.WriteElement("a");`
+// when done inside a JSON array, will generate:
+// `["a", "b", "c"]`
+//
+// With UniqueStrings u,
+// `u.WriteElement(w, "a"); u.WriteElement(w, "b"); u.WriteElement(w, "a");`
+// when done inside a JSON array, will generate:
+// `[0, 1, 0]`
+// and later, `u.SpliceStringTableElements(w)` (inside a JSON array), will
+// output the corresponding indexed list of unique strings:
+// `["a", "b"]`
+class UniqueJSONStrings {
+ public:
+  // Start an empty list of unique strings.
+  MFBT_API explicit UniqueJSONStrings(
+      JSONWriter::CollectionStyle aStyle = JSONWriter::MultiLineStyle);
+
+  // Start with a copy of the strings from another list.
+  MFBT_API explicit UniqueJSONStrings(
+      const UniqueJSONStrings& aOther,
+      JSONWriter::CollectionStyle aStyle = JSONWriter::MultiLineStyle);
+
+  MFBT_API ~UniqueJSONStrings();
+
+  // Add `aStr` to the list (if not already there), and write its index as a
+  // named object property.
+  void WriteProperty(JSONWriter& aWriter, const Span<const char>& aName,
+                     const Span<const char>& aStr) {
+    aWriter.IntProperty(aName, GetOrAddIndex(aStr));
+  }
+
+  // Add `aStr` to the list (if not already there), and write its index as an
+  // array element.
+  void WriteElement(JSONWriter& aWriter, const Span<const char>& aStr) {
+    aWriter.IntElement(GetOrAddIndex(aStr));
+  }
+
+  // Splice all collected unique strings into an array. This should only be done
+  // once, and then this UniqueStrings shouldn't be used anymore.
+  MFBT_API void SpliceStringTableElements(SpliceableJSONWriter& aWriter);
+
+ private:
+  // If `aStr` is already listed, return its index.
+  // Otherwise add it to the list and return the new index.
+  MFBT_API uint32_t GetOrAddIndex(const Span<const char>& aStr);
+
+  SpliceableChunkedJSONWriter mStringTableWriter;
+  HashMap<HashNumber, uint32_t> mStringHashToIndexMap;
+};
+
+void SpliceableJSONWriter::UniqueStringProperty(const Span<const char>& aName,
+                                                const Span<const char>& aStr) {
+  MOZ_RELEASE_ASSERT(mUniqueStrings);
+  mUniqueStrings->WriteProperty(*this, aName, aStr);
+}
+
+// Add `aStr` to the list (if not already there), and write its index as an
+// array element.
+void SpliceableJSONWriter::UniqueStringElement(const Span<const char>& aStr) {
+  MOZ_RELEASE_ASSERT(mUniqueStrings);
+  mUniqueStrings->WriteElement(*this, aStr);
+}
 
 }  // namespace baseprofiler
 }  // namespace mozilla

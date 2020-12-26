@@ -39,6 +39,7 @@
 #include <cmath>
 #include <thread>
 #include "AudioThreadRegistry.h"
+#include "mozilla/StaticPrefs_media.h"
 
 #define AUDIOIPC_POOL_SIZE_DEFAULT 1
 #define AUDIOIPC_STACK_SIZE_DEFAULT (64 * 4096)
@@ -70,6 +71,9 @@
 namespace mozilla {
 
 namespace {
+
+using Telemetry::LABELS_MEDIA_AUDIO_BACKEND;
+using Telemetry::LABELS_MEDIA_AUDIO_INIT_FAILURE;
 
 LazyLogModule gCubebLog("cubeb");
 
@@ -124,17 +128,22 @@ int sInCommunicationCount = 0;
 
 const char kBrandBundleURL[] = "chrome://branding/locale/brand.properties";
 
-const char* AUDIOSTREAM_BACKEND_ID_STR[] = {
-    "jack",  "pulse",       "alsa",  "audiounit", "audioqueue", "wasapi",
-    "winmm", "directsound", "sndio", "opensl",    "audiotrack", "kai"};
-/* Index for failures to create an audio stream the first time. */
-const int CUBEB_BACKEND_INIT_FAILURE_FIRST =
-    ArrayLength(AUDIOSTREAM_BACKEND_ID_STR);
-/* Index for failures to create an audio stream after the first time */
-const int CUBEB_BACKEND_INIT_FAILURE_OTHER =
-    CUBEB_BACKEND_INIT_FAILURE_FIRST + 1;
-/* Index for an unknown backend. */
-const int CUBEB_BACKEND_UNKNOWN = CUBEB_BACKEND_INIT_FAILURE_FIRST + 2;
+std::unordered_map<std::string, LABELS_MEDIA_AUDIO_BACKEND>
+    kTelemetryBackendLabel = {
+        {"audiounit", LABELS_MEDIA_AUDIO_BACKEND::audiounit},
+        {"audiounit-rust", LABELS_MEDIA_AUDIO_BACKEND::audiounit_rust},
+        {"aaudio", LABELS_MEDIA_AUDIO_BACKEND::aaudio},
+        {"opensl", LABELS_MEDIA_AUDIO_BACKEND::opensl},
+        {"wasapi", LABELS_MEDIA_AUDIO_BACKEND::wasapi},
+        {"winmm", LABELS_MEDIA_AUDIO_BACKEND::winmm},
+        {"alsa", LABELS_MEDIA_AUDIO_BACKEND::alsa},
+        {"jack", LABELS_MEDIA_AUDIO_BACKEND::jack},
+        {"oss", LABELS_MEDIA_AUDIO_BACKEND::oss},
+        {"pulse", LABELS_MEDIA_AUDIO_BACKEND::pulse},
+        {"pulse-rust", LABELS_MEDIA_AUDIO_BACKEND::pulse_rust},
+        {"sndio", LABELS_MEDIA_AUDIO_BACKEND::sndio},
+        {"sun", LABELS_MEDIA_AUDIO_BACKEND::sun},
+};
 
 // Prefered samplerate, in Hz (characteristic of the hardware, mixer, platform,
 // and API used).
@@ -527,18 +536,13 @@ void ReportCubebBackendUsed() {
 
   sAudioStreamInitEverSucceeded = true;
 
-  bool foundBackend = false;
-  for (uint32_t i = 0; i < ArrayLength(AUDIOSTREAM_BACKEND_ID_STR); i++) {
-    if (!strcmp(cubeb_get_backend_id(sCubebContext),
-                AUDIOSTREAM_BACKEND_ID_STR[i])) {
-      Telemetry::Accumulate(Telemetry::AUDIOSTREAM_BACKEND_USED, i);
-      foundBackend = true;
-    }
+  LABELS_MEDIA_AUDIO_BACKEND label = LABELS_MEDIA_AUDIO_BACKEND::unknown;
+  auto backend =
+      kTelemetryBackendLabel.find(cubeb_get_backend_id(sCubebContext));
+  if (backend != kTelemetryBackendLabel.end()) {
+    label = backend->second;
   }
-  if (!foundBackend) {
-    Telemetry::Accumulate(Telemetry::AUDIOSTREAM_BACKEND_USED,
-                          CUBEB_BACKEND_UNKNOWN);
-  }
+  AccumulateCategorical(label);
 }
 
 void ReportCubebStreamInitFailure(bool aIsFirst) {
@@ -549,9 +553,8 @@ void ReportCubebStreamInitFailure(bool aIsFirst) {
     // failures to open multiple streams in a process over time.
     return;
   }
-  Telemetry::Accumulate(Telemetry::AUDIOSTREAM_BACKEND_USED,
-                        aIsFirst ? CUBEB_BACKEND_INIT_FAILURE_FIRST
-                                 : CUBEB_BACKEND_INIT_FAILURE_OTHER);
+  AccumulateCategorical(aIsFirst ? LABELS_MEDIA_AUDIO_INIT_FAILURE::first
+                                 : LABELS_MEDIA_AUDIO_INIT_FAILURE::other);
 }
 
 uint32_t GetCubebPlaybackLatencyInMilliseconds() {
@@ -698,16 +701,20 @@ char* GetForcedOutputDevice() {
   return sCubebOutputDeviceName;
 }
 
-cubeb_stream_prefs GetDefaultStreamPrefs() {
+cubeb_stream_prefs GetDefaultStreamPrefs(cubeb_device_type aType) {
+  cubeb_stream_prefs prefs = CUBEB_STREAM_PREF_NONE;
 #ifdef XP_WIN
   // Investigation for bug 1427011 - if we're in E10S mode, rely on the
   // AudioNotification IPC to detect device changes.
   if (sCubebDisableDeviceSwitching &&
       (XRE_IsE10sParentProcess() || XRE_IsContentProcess())) {
-    return CUBEB_STREAM_PREF_DISABLE_DEVICE_SWITCHING;
+    prefs |= CUBEB_STREAM_PREF_DISABLE_DEVICE_SWITCHING;
+  }
+  if (StaticPrefs::media_cubeb_wasapi_raw() & static_cast<uint32_t>(aType)) {
+    prefs |= CUBEB_STREAM_PREF_RAW;
   }
 #endif
-  return CUBEB_STREAM_PREF_NONE;
+  return prefs;
 }
 
 bool RouteOutputAsVoice() { return sRouteOutputAsVoice; }
@@ -738,7 +745,7 @@ bool EstimatedRoundTripLatencyDefaultDevices(double* aMean, double* aStdDev) {
   output_params.rate = rate;
   output_params.channels = 2;
   output_params.layout = CUBEB_LAYOUT_UNDEFINED;
-  output_params.prefs = GetDefaultStreamPrefs();
+  output_params.prefs = GetDefaultStreamPrefs(CUBEB_DEVICE_TYPE_OUTPUT);
 
   latencyFrames = GetCubebMTGLatencyInFrames(&output_params);
 
@@ -747,7 +754,7 @@ bool EstimatedRoundTripLatencyDefaultDevices(double* aMean, double* aStdDev) {
   input_params.rate = rate;
   input_params.channels = 1;
   input_params.layout = CUBEB_LAYOUT_UNDEFINED;
-  input_params.prefs = GetDefaultStreamPrefs();
+  input_params.prefs = GetDefaultStreamPrefs(CUBEB_DEVICE_TYPE_INPUT);
 
   cubeb_stream* stm;
   rv = cubeb_stream_init(GetCubebContext(), &stm,

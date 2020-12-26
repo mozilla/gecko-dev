@@ -6,11 +6,11 @@
 
 #include "mozilla/dom/FileSystemBase.h"
 
+#include "mozilla/dom/FileSystemUtils.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "OSFileSystem.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 FileSystemBase::FileSystemBase() : mShutdown(false) {}
 
@@ -138,5 +138,4 @@ void FileSystemBase::AssertIsOnOwningThread() const {
   NS_ASSERT_OWNINGTHREAD(FileSystemBase);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

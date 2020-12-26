@@ -83,6 +83,14 @@ open class BaseSessionTest(noErrorCollector: Boolean = false) {
         const val MEDIA_SESSION_DEFAULT1_PATH = "/assets/www/media_session_default1.html"
         const val TOUCH_HTML_PATH = "/assets/www/touch.html"
         const val GETUSERMEDIA_XORIGIN_CONTAINER_HTML_PATH = "/assets/www/getusermedia_xorigin_container.html"
+        const val ROOT_100_PERCENT_HEIGHT_HTML_PATH = "/assets/www/root_100_percent_height.html"
+        const val ROOT_98VH_HTML_PATH = "/assets/www/root_98vh.html"
+        const val ROOT_100VH_HTML_PATH = "/assets/www/root_100vh.html"
+        const val IFRAME_100_PERCENT_HEIGHT_NO_SCROLLABLE_HTML_PATH = "/assets/www/iframe_100_percent_height_no_scrollable.html"
+        const val IFRAME_100_PERCENT_HEIGHT_SCROLLABLE_HTML_PATH = "/assets/www/iframe_100_percent_height_scrollable.html"
+        const val IFRAME_98VH_SCROLLABLE_HTML_PATH = "/assets/www/iframe_98vh_scrollable.html"
+        const val IFRAME_98VH_NO_SCROLLABLE_HTML_PATH = "/assets/www/iframe_98vh_no_scrollable.html"
+        const val TOUCHSTART_HTML_PATH = "/assets/www/touchstart.html"
 
         const val TEST_ENDPOINT = GeckoSessionTestRule.TEST_ENDPOINT
     }
@@ -190,6 +198,10 @@ open class BaseSessionTest(noErrorCollector: Boolean = false) {
     }
 
     fun GeckoSession.flushApzRepaints() = sessionRule.flushApzRepaints(this)
+
+    var GeckoSession.active: Boolean
+            get() = sessionRule.getActive(this)
+            set(value) = setActive(value)
 
     @Suppress("UNCHECKED_CAST")
     fun Any?.asJsonArray(): JSONArray = this as JSONArray

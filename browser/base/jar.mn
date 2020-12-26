@@ -14,7 +14,6 @@ browser.jar:
         content/browser/aboutRobots.js                (content/aboutRobots.js)
         content/browser/aboutRobots.css               (content/aboutRobots.css)
         content/browser/logos/etp-mobile.svg          (content/logos/etp-mobile.svg)
-        content/browser/logos/lockwise-mobile.svg     (content/logos/lockwise-mobile.svg)
         content/browser/logos/lockwise.svg            (content/logos/lockwise.svg)
         content/browser/logos/monitor.svg             (content/logos/monitor.svg)
         content/browser/logos/proxy-light.svg         (content/logos/proxy-light.svg)
@@ -92,9 +91,6 @@ browser.jar:
         content/browser/sanitize.xhtml                (content/sanitize.xhtml)
         content/browser/sanitizeDialog.js             (content/sanitizeDialog.js)
         content/browser/sanitizeDialog.css            (content/sanitizeDialog.css)
-        content/browser/contentSearchUI.js            (content/contentSearchUI.js)
-        content/browser/contentSearchHandoffUI.js     (content/contentSearchHandoffUI.js)
-        content/browser/contentSearchUI.css           (content/contentSearchUI.css)
         content/browser/tabbrowser.css                (content/tabbrowser.css)
         content/browser/tabbrowser.js                 (content/tabbrowser.js)
         content/browser/tabbrowser-tab.js             (content/tabbrowser-tab.js)
@@ -130,5 +126,4 @@ browser.jar:
 # L10n resources and overrides.
 % override chrome://global/locale/appstrings.properties chrome://browser/locale/appstrings.properties
 % override chrome://global/locale/netError.dtd chrome://browser/locale/netError.dtd
-% override chrome://mozapps/locale/downloads/settingsChange.dtd chrome://browser/locale/downloads/settingsChange.dtd
 % override chrome://global/locale/app-extension-fields.properties chrome://browser/locale/app-extension-fields.properties

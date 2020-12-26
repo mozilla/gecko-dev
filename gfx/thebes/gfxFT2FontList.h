@@ -61,8 +61,8 @@ class FT2FontEntry final : public gfxFT2FontEntryBase {
 
   hb_blob_t* GetFontTable(uint32_t aTableTag) override;
 
-  nsresult CopyFontTable(uint32_t aTableTag,
-                         nsTArray<uint8_t>& aBuffer) override;
+  bool HasFontTable(uint32_t aTableTag) override;
+  nsresult CopyFontTable(uint32_t aTableTag, nsTArray<uint8_t>&) override;
 
   bool HasVariations() override;
   void GetVariationAxes(
@@ -214,7 +214,8 @@ class gfxFT2FontList final : public gfxPlatformFontList {
 
   void FindFontsInDir(const nsCString& aDir, FontNameCache* aFNC);
 
-  FontFamily GetDefaultFontForPlatform(const gfxFontStyle* aStyle) override;
+  FontFamily GetDefaultFontForPlatform(const gfxFontStyle* aStyle,
+                                       nsAtom* aLanguage = nullptr) override;
 
   nsTHashtable<nsCStringHashKey> mSkipSpaceLookupCheckFamilies;
 

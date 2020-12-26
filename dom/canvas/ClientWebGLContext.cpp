@@ -20,10 +20,13 @@
 #include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/OOPCanvasRenderer.h"
 #include "mozilla/layers/TextureClientSharedSurface.h"
+#include "mozilla/layers/WebRenderUserData.h"
+#include "mozilla/layers/WebRenderCanvasRenderer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_webgl.h"
 #include "nsContentUtils.h"
+#include "nsDisplayList.h"
 #include "TexUnpackBlob.h"
 #include "WebGLMethodDispatcher.h"
 #include "WebGLChild.h"
@@ -37,7 +40,7 @@ webgl::NotLostData::NotLostData(ClientWebGLContext& _context)
 webgl::NotLostData::~NotLostData() {
   if (outOfProcess) {
     const auto& pwebgl = outOfProcess->mWebGLChild;
-    Unused << WebGLChild::Send__delete__(pwebgl.get());
+    Unused << dom::WebGLChild::Send__delete__(pwebgl.get());
   }
 }
 
@@ -143,11 +146,12 @@ bool ClientWebGLContext::DispatchEvent(const nsAString& eventName) const {
         eventName, kCanBubble, kIsCancelable, &useDefaultHandler);
   } else if (mOffscreenCanvas) {
     // OffscreenCanvas case
-    RefPtr<Event> event = new Event(mOffscreenCanvas, nullptr, nullptr);
+    RefPtr<dom::Event> event =
+        new dom::Event(mOffscreenCanvas, nullptr, nullptr);
     event->InitEvent(eventName, kCanBubble, kIsCancelable);
     event->SetTrusted(true);
     useDefaultHandler = mOffscreenCanvas->DispatchEvent(
-        *event, CallerType::System, IgnoreErrors());
+        *event, dom::CallerType::System, IgnoreErrors());
   }
   return useDefaultHandler;
 }
@@ -269,7 +273,7 @@ void ClientWebGLContext::ThrowEvent_WebGLContextCreationError(
   msg.AppendPrintf("Failed to create WebGL context: %s", text.c_str());
   JsWarning(msg.BeginReading());
 
-  RefPtr<EventTarget> target = mCanvasElement;
+  RefPtr<dom::EventTarget> target = mCanvasElement;
   if (!target && mOffscreenCanvas) {
     target = mOffscreenCanvas;
   } else if (!target) {
@@ -283,8 +287,8 @@ void ClientWebGLContext::ThrowEvent_WebGLContextCreationError(
   // eventInit.mCancelable = true; // The spec says this, but it's silly.
   eventInit.mStatusMessage = NS_ConvertASCIItoUTF16(text.c_str());
 
-  const RefPtr<WebGLContextEvent> event =
-      WebGLContextEvent::Constructor(target, kEventName, eventInit);
+  const RefPtr<dom::WebGLContextEvent> event =
+      dom::WebGLContextEvent::Constructor(target, kEventName, eventInit);
   event->SetTrusted(true);
 
   target->DispatchEvent(*event);
@@ -430,7 +434,7 @@ bool ClientWebGLContext::InitializeCanvasRenderer(
   const FuncScope funcScope(*this, "<InitializeCanvasRenderer>");
   if (IsContextLost()) return false;
 
-  CanvasRendererData data;
+  layers::CanvasRendererData data;
   data.mContext = mSharedPtrPtr;
   data.mOriginPos = gl::OriginPos::BottomLeft;
 
@@ -456,7 +460,7 @@ layers::LayersBackend ClientWebGLContext::GetCompositorBackendType() const {
     return mOffscreenCanvas->GetCompositorBackendType();
   }
 
-  return LayersBackend::LAYERS_NONE;
+  return layers::LayersBackend::LAYERS_NONE;
 }
 
 mozilla::dom::Document* ClientWebGLContext::GetOwnerDoc() const {
@@ -474,7 +478,7 @@ void ClientWebGLContext::Commit() {
 }
 
 void ClientWebGLContext::GetCanvas(
-    Nullable<dom::OwningHTMLCanvasElementOrOffscreenCanvas>& retval) {
+    dom::Nullable<dom::OwningHTMLCanvasElementOrOffscreenCanvas>& retval) {
   if (mCanvasElement) {
     MOZ_RELEASE_ASSERT(!mOffscreenCanvas, "GFX: Canvas is offscreen.");
 
@@ -567,7 +571,7 @@ ClientWebGLContext::SetDimensions(const int32_t signedWidth,
 static bool IsWebglOutOfProcessEnabled() {
   bool useOop = StaticPrefs::webgl_out_of_process();
 
-  if (!gfxVars::AllowWebglOop()) {
+  if (!gfx::gfxVars::AllowWebglOop()) {
     useOop = false;
   }
   if (StaticPrefs::webgl_out_of_process_force()) {
@@ -629,13 +633,13 @@ bool ClientWebGLContext::CreateHostContext(const uvec2& requestedSize) {
 
     webgl::RemotingData outOfProcess;
 
-    auto* const cbc = CompositorBridgeChild::Get();
+    auto* const cbc = layers::CompositorBridgeChild::Get();
     MOZ_ASSERT(cbc);
     if (!cbc) {
       return Err("!CompositorBridgeChild::Get()");
     }
 
-    outOfProcess.mWebGLChild = new WebGLChild(*this);
+    outOfProcess.mWebGLChild = new dom::WebGLChild(*this);
     outOfProcess.mWebGLChild = static_cast<dom::WebGLChild*>(
         cbc->SendPWebGLConstructor(outOfProcess.mWebGLChild));
     if (!outOfProcess.mWebGLChild) {
@@ -744,6 +748,8 @@ bool ClientWebGLContext::CreateHostContext(const uvec2& requestedSize) {
 
 uvec2 ClientWebGLContext::DrawingBufferSize() {
   if (IsContextLost()) return {};
+  const auto notLost =
+      mNotLost;  // Hold a strong-ref to prevent LoseContext=>UAF.
   auto& state = State();
   auto& size = state.mDrawingBufferSize;
 
@@ -780,7 +786,7 @@ ClientWebGLContext::SetContextOptions(JSContext* cx,
                                       ErrorResult& aRvForDictionaryInit) {
   if (mInitialOptions && options.isNullOrUndefined()) return NS_OK;
 
-  WebGLContextAttributes attributes;
+  dom::WebGLContextAttributes attributes;
   if (!attributes.Init(cx, options)) {
     aRvForDictionaryInit.Throw(NS_ERROR_UNEXPECTED);
     return NS_ERROR_UNEXPECTED;
@@ -1046,10 +1052,10 @@ UniquePtr<uint8_t[]> ClientWebGLContext::GetImageBuffer(int32_t* out_format) {
 
   // Use GetSurfaceSnapshot() to make sure that appropriate y-flip gets applied
   gfxAlphaType any;
-  RefPtr<SourceSurface> snapshot = GetSurfaceSnapshot(&any);
+  RefPtr<gfx::SourceSurface> snapshot = GetSurfaceSnapshot(&any);
   if (!snapshot) return nullptr;
 
-  RefPtr<DataSourceSurface> dataSurface = snapshot->GetDataSurface();
+  RefPtr<gfx::DataSourceSurface> dataSurface = snapshot->GetDataSurface();
 
   const auto& premultAlpha = mNotLost->info.options.premultipliedAlpha;
   return gfxUtils::GetImageBuffer(dataSurface, premultAlpha, out_format);
@@ -1061,10 +1067,10 @@ ClientWebGLContext::GetInputStream(const char* mimeType,
                                    nsIInputStream** out_stream) {
   // Use GetSurfaceSnapshot() to make sure that appropriate y-flip gets applied
   gfxAlphaType any;
-  RefPtr<SourceSurface> snapshot = GetSurfaceSnapshot(&any);
+  RefPtr<gfx::SourceSurface> snapshot = GetSurfaceSnapshot(&any);
   if (!snapshot) return NS_ERROR_FAILURE;
 
-  RefPtr<DataSourceSurface> dataSurface = snapshot->GetDataSurface();
+  RefPtr<gfx::DataSourceSurface> dataSurface = snapshot->GetDataSurface();
   const auto& premultAlpha = mNotLost->info.options.premultipliedAlpha;
   return gfxUtils::GetInputStream(dataSurface, premultAlpha, mimeType,
                                   encoderOptions, out_stream);
@@ -1710,7 +1716,7 @@ bool ToJSValueOrNull(JSContext* const cx, const RefPtr<T>& ptr,
     retval.set(JS::NullValue());
     return true;
   }
-  return ToJSValue(cx, ptr, retval);
+  return dom::ToJSValue(cx, ptr, retval);
 }
 
 template <typename T, typename U, typename S>
@@ -2425,12 +2431,12 @@ void ClientWebGLContext::GetUniform(JSContext* const cx,
 
     case LOCAL_GL_FLOAT: {
       const auto ptr = reinterpret_cast<const float*>(res.data);
-      MOZ_ALWAYS_TRUE(ToJSValue(cx, *ptr, retval));
+      MOZ_ALWAYS_TRUE(dom::ToJSValue(cx, *ptr, retval));
       return;
     }
     case LOCAL_GL_INT: {
       const auto ptr = reinterpret_cast<const int32_t*>(res.data);
-      MOZ_ALWAYS_TRUE(ToJSValue(cx, *ptr, retval));
+      MOZ_ALWAYS_TRUE(dom::ToJSValue(cx, *ptr, retval));
       return;
     }
     case LOCAL_GL_UNSIGNED_INT:
@@ -2450,7 +2456,7 @@ void ClientWebGLContext::GetUniform(JSContext* const cx,
     case LOCAL_GL_UNSIGNED_INT_SAMPLER_CUBE:
     case LOCAL_GL_UNSIGNED_INT_SAMPLER_2D_ARRAY: {
       const auto ptr = reinterpret_cast<const uint32_t*>(res.data);
-      MOZ_ALWAYS_TRUE(ToJSValue(cx, *ptr, retval));
+      MOZ_ALWAYS_TRUE(dom::ToJSValue(cx, *ptr, retval));
       return;
     }
 
@@ -2464,7 +2470,7 @@ void ClientWebGLContext::GetUniform(JSContext* const cx,
       for (const auto i : IntegerRange(elemCount)) {
         boolArr[i] = bool(intArr[i]);
       }
-      MOZ_ALWAYS_TRUE(ToJSValue(cx, boolArr, elemCount, retval));
+      MOZ_ALWAYS_TRUE(dom::ToJSValue(cx, boolArr, elemCount, retval));
       return;
     }
 
@@ -3867,6 +3873,32 @@ Maybe<webgl::TexUnpackBlobDesc> FromDomElem(const ClientWebGLContext&,
                                             ErrorResult* const out_error);
 }  // namespace webgl
 
+void webgl::TexUnpackBlobDesc::Shrink(const webgl::PackingInfo& pi) {
+  if (cpuData) {
+    if (!size.x || !size.y || !size.z) return;
+    MOZ_ASSERT(unpacking.mUnpackRowLength);
+    MOZ_ASSERT(unpacking.mUnpackImageHeight);
+
+    uint8_t bpp = 0;
+    if (!GetBytesPerPixel(pi, &bpp)) return;
+
+    const auto bytesPerRowUnaligned =
+        CheckedInt<size_t>(unpacking.mUnpackRowLength) * bpp;
+    const auto bytesPerRowStride =
+        RoundUpToMultipleOf(bytesPerRowUnaligned, unpacking.mUnpackAlignment);
+
+    const auto bytesPerImageStride = bytesPerRowStride * unpacking.mUnpackImageHeight;
+    // SKIP_IMAGES is ignored for 2D targets, but at worst this just makes our shrinking less accurate.
+    const auto images = CheckedInt<size_t>(unpacking.mUnpackSkipImages) + size.z;
+    const auto bytesUpperBound = bytesPerImageStride * images;
+
+    if (bytesUpperBound.isValid()) {
+      cpuData->Shrink(bytesUpperBound.value());
+    }
+    return;
+  }
+}
+
 void ClientWebGLContext::TexImage(uint8_t funcDims, GLenum imageTarget,
                                   GLint level, GLenum respecFormat,
                                   const ivec3& offset, const ivec3& isize,
@@ -4001,6 +4033,7 @@ void ClientWebGLContext::TexImage(uint8_t funcDims, GLenum imageTarget,
 
   // -
 
+  desc->Shrink(pi);
   Run<RPROC(TexImage)>(static_cast<uint32_t>(level), respecFormat,
                        CastUvec3(offset), pi, std::move(*desc));
 }
@@ -4008,7 +4041,7 @@ void ClientWebGLContext::TexImage(uint8_t funcDims, GLenum imageTarget,
 void ClientWebGLContext::CompressedTexImage(bool sub, uint8_t funcDims,
                                             GLenum imageTarget, GLint level,
                                             GLenum format, const ivec3& offset,
-                                            const ivec3& size, GLint border,
+                                            const ivec3& isize, GLint border,
                                             const TexImageSource& src,
                                             GLsizei pboImageSize) const {
   const FuncScope funcScope(*this, "compressedTex(Sub)Image[23]D");
@@ -4039,9 +4072,12 @@ void ClientWebGLContext::CompressedTexImage(bool sub, uint8_t funcDims,
     MOZ_CRASH("impossible");
   }
 
+  // We don't need to shrink `range` because valid calls require `range` to
+  // match requirements exactly.
+
   Run<RPROC(CompressedTexImage)>(
       sub, imageTarget, static_cast<uint32_t>(level), format, CastUvec3(offset),
-      CastUvec3(size), range, static_cast<uint32_t>(pboImageSize), pboOffset);
+      CastUvec3(isize), range, static_cast<uint32_t>(pboImageSize), pboOffset);
 }
 
 void ClientWebGLContext::CopyTexImage(uint8_t funcDims, GLenum imageTarget,
@@ -4569,11 +4605,11 @@ void ClientWebGLContext::DoReadPixels(const webgl::ReadPixelsDesc& desc,
 }
 
 bool ClientWebGLContext::ReadPixels_SharedPrecheck(
-    CallerType aCallerType, ErrorResult& out_error) const {
+    dom::CallerType aCallerType, ErrorResult& out_error) const {
   if (IsContextLost()) return false;
 
   if (mCanvasElement && mCanvasElement->IsWriteOnly() &&
-      aCallerType != CallerType::System) {
+      aCallerType != dom::CallerType::System) {
     JsWarning("readPixels: Not allowed");
     out_error.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return false;

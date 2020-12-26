@@ -29,6 +29,30 @@ enum class ScrollUpdateType {
   PureRelative,
 };
 
+struct ScrollGeneration {
+ private:
+  // Private constructor; use New() to get a new instance.
+  explicit ScrollGeneration(uint64_t aValue);
+
+ public:
+  // Dummy constructor, needed for IPDL purposes. Not intended for manual use.
+  ScrollGeneration();
+
+  // Returns a new ScrollGeneration with a unique value.
+  static ScrollGeneration New();
+
+  bool operator<(const ScrollGeneration& aOther) const;
+  bool operator==(const ScrollGeneration& aOther) const;
+  bool operator!=(const ScrollGeneration& aOther) const;
+
+  friend std::ostream& operator<<(std::ostream& aStream,
+                                  const ScrollGeneration& aGen);
+
+ private:
+  static uint64_t sCounter;
+  uint64_t mValue;
+};
+
 /**
  * This class represents an update to the scroll position that is initiated by
  * something on the main thread. A list of these classes is accumulated by
@@ -44,35 +68,30 @@ class ScrollPositionUpdate {
 
   // Create a ScrollPositionUpdate for a newly created (or reconstructed)
   // scrollframe.
-  static ScrollPositionUpdate NewScrollframe(uint32_t aGeneration,
-                                             nsPoint aInitialPosition);
+  static ScrollPositionUpdate NewScrollframe(nsPoint aInitialPosition);
   // Create a ScrollPositionUpdate for a new absolute/instant scroll, to
   // the given destination.
-  static ScrollPositionUpdate NewScroll(uint32_t aGeneration,
-                                        ScrollOrigin aOrigin,
+  static ScrollPositionUpdate NewScroll(ScrollOrigin aOrigin,
                                         nsPoint aDestination);
   // Create a ScrollPositionUpdate for a new relative/instant scroll, with
   // the given source/destination.
-  static ScrollPositionUpdate NewRelativeScroll(uint32_t aGeneration,
-                                                nsPoint aSource,
+  static ScrollPositionUpdate NewRelativeScroll(nsPoint aSource,
                                                 nsPoint aDestination);
   // Create a ScrollPositionUpdate for a new absolute/smooth scroll, which
   // animates smoothly to the given destination from whatever the current
   // scroll position is in the receiver.
-  static ScrollPositionUpdate NewSmoothScroll(uint32_t aGeneration,
-                                              ScrollOrigin aOrigin,
+  static ScrollPositionUpdate NewSmoothScroll(ScrollOrigin aOrigin,
                                               nsPoint aDestination);
   // Create a ScrollPositionUpdate for a new pure-relative scroll. The
   // aMode parameter controls whether or not this is a smooth animation or
   // instantaneous scroll.
-  static ScrollPositionUpdate NewPureRelativeScroll(uint32_t aGeneration,
-                                                    ScrollOrigin aOrigin,
+  static ScrollPositionUpdate NewPureRelativeScroll(ScrollOrigin aOrigin,
                                                     ScrollMode aMode,
                                                     const nsPoint& aDelta);
 
   bool operator==(const ScrollPositionUpdate& aOther) const;
 
-  uint32_t GetGeneration() const;
+  ScrollGeneration GetGeneration() const;
   ScrollUpdateType GetType() const;
   ScrollMode GetMode() const;
   ScrollOrigin GetOrigin() const;
@@ -88,7 +107,7 @@ class ScrollPositionUpdate {
                                   const ScrollPositionUpdate& aUpdate);
 
  private:
-  uint32_t mScrollGeneration;
+  ScrollGeneration mScrollGeneration;
   // Refer to the ScrollUpdateType documentation for what the types mean.
   // All fields are populated for all types, except as noted below.
   ScrollUpdateType mType;

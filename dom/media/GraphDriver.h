@@ -179,13 +179,14 @@ struct GraphInterface : public nsISupports {
    * This is the mixed audio output of this MediaTrackGraph. */
   virtual void NotifyOutputData(AudioDataValue* aBuffer, size_t aFrames,
                                 TrackRate aRate, uint32_t aChannels) = 0;
-  /* Called on the graph thread before the first Notify*Data after an
-   * AudioCallbackDriver starts. */
-  virtual void NotifyStarted() = 0;
+  /* Called on the graph thread after an AudioCallbackDriver with an input
+   * stream has stopped. */
+  virtual void NotifyInputStopped() = 0;
   /* Called on the graph thread when there is new input data for listeners. This
    * is the raw audio input for this MediaTrackGraph. */
   virtual void NotifyInputData(const AudioDataValue* aBuffer, size_t aFrames,
-                               TrackRate aRate, uint32_t aChannels) = 0;
+                               TrackRate aRate, uint32_t aChannels,
+                               uint32_t aAlreadyBuffered) = 0;
   /* Called every time there are changes to input/output audio devices like
    * plug/unplug etc. This can be called on any thread, and posts a message to
    * the main thread so that it can post a message to the graph thread. */
@@ -750,10 +751,7 @@ class AudioCallbackDriver : public GraphDriver,
     /* There is a running AudioStream. */
     Running,
     /* There is an AudioStream that is draining, and will soon stop. */
-    Stopping,
-    /* There is an AudioStream that has errored, the Fallback driver needs to
-     * continue advancing the graph. */
-    Errored,
+    Stopping
   };
   Atomic<AudioStreamState> mAudioStreamState;
   /* State of the fallback driver, see inline comments. */
@@ -770,9 +768,6 @@ class AudioCallbackDriver : public GraphDriver,
   /* SystemClockDriver used as fallback if this AudioCallbackDriver fails to
    * init or start. */
   DataMutex<RefPtr<FallbackWrapper>> mFallback;
-  /* Set to true in the first iteration after starting. Accessed in data
-   * callback while running, or in Start(). */
-  bool mRanFirstIteration = false;
   /* If using a fallback driver, this is the duration to wait after failing to
    * start it before attempting to start it again. */
   TimeDuration mNextReInitBackoffStep;

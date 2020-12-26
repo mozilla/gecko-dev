@@ -107,7 +107,8 @@ class BackgroundChildImpl : public PBackgroundChild,
       PBackgroundLocalStorageCacheChild* aActor) override;
 
   virtual PBackgroundStorageChild* AllocPBackgroundStorageChild(
-      const nsString& aProfilePath) override;
+      const nsString& aProfilePath,
+      const uint32_t& aPrivateBrowsingId) override;
 
   virtual bool DeallocPBackgroundStorageChild(
       PBackgroundStorageChild* aActor) override;
@@ -243,22 +244,15 @@ class BackgroundChildImpl : public PBackgroundChild,
   virtual PMIDIManagerChild* AllocPMIDIManagerChild() override;
   virtual bool DeallocPMIDIManagerChild(PMIDIManagerChild*) override;
 
-  virtual PServiceWorkerChild* AllocPServiceWorkerChild(
-      const IPCServiceWorkerDescriptor&) override;
+  already_AddRefed<PServiceWorkerChild> AllocPServiceWorkerChild(
+      const IPCServiceWorkerDescriptor&);
 
-  virtual bool DeallocPServiceWorkerChild(PServiceWorkerChild*) override;
+  already_AddRefed<PServiceWorkerContainerChild>
+  AllocPServiceWorkerContainerChild();
 
-  virtual PServiceWorkerContainerChild* AllocPServiceWorkerContainerChild()
-      override;
-
-  virtual bool DeallocPServiceWorkerContainerChild(
-      PServiceWorkerContainerChild*) override;
-
-  virtual PServiceWorkerRegistrationChild* AllocPServiceWorkerRegistrationChild(
-      const IPCServiceWorkerRegistrationDescriptor&) override;
-
-  virtual bool DeallocPServiceWorkerRegistrationChild(
-      PServiceWorkerRegistrationChild*) override;
+  already_AddRefed<PServiceWorkerRegistrationChild>
+  AllocPServiceWorkerRegistrationChild(
+      const IPCServiceWorkerRegistrationDescriptor&);
 
   virtual PEndpointForReportChild* AllocPEndpointForReportChild(
       const nsString& aGroupName, const PrincipalInfo& aPrincipalInfo) override;

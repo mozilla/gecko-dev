@@ -11,8 +11,15 @@ namespace mozilla {
 
 RemoteDecoderChild::RemoteDecoderChild(bool aRecreatedOnCrash)
     : ShmemRecycleAllocator(this),
-      mThread(RemoteDecoderManagerChild::GetManagerThread()),
-      mRecreatedOnCrash(aRecreatedOnCrash) {}
+      mThread(GetCurrentSerialEventTarget()),
+      mRecreatedOnCrash(aRecreatedOnCrash) {
+  MOZ_DIAGNOSTIC_ASSERT(
+      RemoteDecoderManagerChild::GetManagerThread() &&
+          RemoteDecoderManagerChild::GetManagerThread()->IsOnCurrentThread(),
+      "Must be created on the manager thread");
+}
+
+RemoteDecoderChild::~RemoteDecoderChild() = default;
 
 void RemoteDecoderChild::HandleRejectionError(
     const ipc::ResponseRejectReason& aReason,
@@ -78,17 +85,23 @@ RefPtr<MediaDataDecoder::InitPromise> RemoteDecoderChild::Init() {
               return;
             }
             const auto& initResponse = aResponse.get_InitCompletionIPDL();
-            mDescription = initResponse.decoderDescription();
+            mDescription =
+                initResponse.decoderDescription() +
+                (GetManager()->Location() == RemoteDecodeIn::RddProcess
+                     ? " (RDD remote)"_ns
+                     : " (GPU remote)"_ns);
             mIsHardwareAccelerated = initResponse.hardware();
             mHardwareAcceleratedReason = initResponse.hardwareReason();
             mConversion = initResponse.conversion();
+            // Either the promise has not yet been resolved or the handler has
+            // been disconnected and we can't get here.
             mInitPromise.Resolve(initResponse.type(), __func__);
           },
           [self](const mozilla::ipc::ResponseRejectReason& aReason) {
             self->mInitPromiseRequest.Complete();
             self->HandleRejectionError(
                 aReason, [self](const MediaResult& aError) {
-                  self->mInitPromise.Reject(aError, __func__);
+                  self->mInitPromise.RejectIfExists(aError, __func__);
                 });
           })
       ->Track(mInitPromiseRequest);
@@ -124,6 +137,9 @@ RefPtr<MediaDataDecoder::DecodePromise> RemoteDecoderChild::Decode(
               });
           return;
         }
+        MOZ_DIAGNOSTIC_ASSERT(CanSend(),
+                              "The parent unexpectedly died, promise should "
+                              "have been rejected first");
         if (mDecodePromise.IsEmpty()) {
           // We got flushed.
           return;
@@ -154,14 +170,14 @@ RefPtr<MediaDataDecoder::FlushPromise> RemoteDecoderChild::Flush() {
       mThread, __func__,
       [self](const MediaResult& aResult) {
         if (NS_SUCCEEDED(aResult)) {
-          self->mFlushPromise.Resolve(true, __func__);
+          self->mFlushPromise.ResolveIfExists(true, __func__);
         } else {
-          self->mFlushPromise.Reject(aResult, __func__);
+          self->mFlushPromise.RejectIfExists(aResult, __func__);
         }
       },
       [self](const mozilla::ipc::ResponseRejectReason& aReason) {
         self->HandleRejectionError(aReason, [self](const MediaResult& aError) {
-          self->mFlushPromise.Reject(aError, __func__);
+          self->mFlushPromise.RejectIfExists(aError, __func__);
         });
       });
   return mFlushPromise.Ensure(__func__);
@@ -183,6 +199,9 @@ RefPtr<MediaDataDecoder::DecodePromise> RemoteDecoderChild::Drain() {
           mDrainPromise.Reject(aResponse.get_MediaResult(), __func__);
           return;
         }
+        MOZ_DIAGNOSTIC_ASSERT(CanSend(),
+                              "The parent unexpectedly died, promise should "
+                              "have been rejected first");
         if (aResponse.type() == DecodeResultIPDL::TDecodedOutputIPDL) {
           ProcessOutput(std::move(aResponse.get_DecodedOutputIPDL()));
         }
@@ -202,9 +221,9 @@ RefPtr<mozilla::ShutdownPromise> RemoteDecoderChild::Shutdown() {
   // Shutdown() can be called while an InitPromise is pending.
   mInitPromiseRequest.DisconnectIfExists();
   mInitPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
-  MOZ_DIAGNOSTIC_ASSERT(mDecodePromise.IsEmpty() && mDrainPromise.IsEmpty() &&
-                            mFlushPromise.IsEmpty(),
-                        "Promises must have been resolved prior to shutdown");
+  mDecodePromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
+  mDrainPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
+  mFlushPromise.RejectIfExists(NS_ERROR_DOM_MEDIA_CANCELED, __func__);
 
   RefPtr<RemoteDecoderChild> self = this;
   SendShutdown()->Then(

@@ -6,21 +6,25 @@
 
 #include "QuotaCommon.h"
 
-#include "mozilla/Logging.h"  // LazyLogModule
+#include "mozilla/Logging.h"
+#include "mozilla/TextUtils.h"
 #include "nsIConsoleService.h"
 #include "nsIFile.h"
+#include "nsServiceManagerUtils.h"
+#include "nsStringFlags.h"
+#include "nsTStringRepr.h"
+#include "nsUnicharUtils.h"
 #include "nsXPCOM.h"
 #include "nsXULAppAPI.h"
+
 #ifdef XP_WIN
+#  include "mozilla/Atomics.h"
 #  include "mozilla/ipc/BackgroundParent.h"
 #  include "mozilla/StaticPrefs_dom.h"
 #  include "nsILocalFileWin.h"
 #endif
-#include "nsXPCOM.h"
 
-namespace mozilla {
-namespace dom {
-namespace quota {
+namespace mozilla::dom::quota {
 
 namespace {
 
@@ -143,6 +147,16 @@ nsDependentCSubstring GetLeafName(const nsACString& aPath) {
   return nsDependentCSubstring(start.get(), end.get());
 }
 
+Result<nsCOMPtr<nsIFile>, nsresult> CloneFileAndAppend(
+    nsIFile& aDirectory, const nsAString& aPathElement) {
+  QM_TRY_UNWRAP(auto resultFile, MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<nsIFile>,
+                                                            aDirectory, Clone));
+
+  QM_TRY(resultFile->Append(aPathElement));
+
+  return resultFile;
+}
+
 #ifdef QM_ENABLE_SCOPED_LOG_EXTRA_INFO
 MOZ_THREAD_LOCAL(const nsACString*) ScopedLogExtraInfo::sQueryValue;
 
@@ -215,13 +229,13 @@ void LogError(const nsLiteralCString& aModule, const nsACString& aExpr,
 #endif
 
 #ifdef DEBUG
-  NS_DebugBreak(
-      NS_DEBUG_WARNING, nsAutoCString(aModule + " failure"_ns).get(),
-      (extraInfosString.IsEmpty() ? nsPromiseFlatCString(aExpr)
-                                  : static_cast<const nsCString&>(nsAutoCString(
-                                        aExpr + extraInfosString)))
-          .get(),
-      nsPromiseFlatCString(GetLeafName(aSourceFile)).get(), aSourceLine);
+  NS_DebugBreak(NS_DEBUG_WARNING, nsAutoCString(aModule + " failure"_ns).get(),
+                (extraInfosString.IsEmpty()
+                     ? nsPromiseFlatCString(aExpr)
+                     : static_cast<const nsCString&>(
+                           nsAutoCString(aExpr + extraInfosString)))
+                    .get(),
+                nsPromiseFlatCString(aSourceFile).get(), aSourceLine);
 #endif
 
 #if defined(EARLY_BETA_OR_EARLIER) || defined(DEBUG)
@@ -286,6 +300,4 @@ Result<bool, nsresult> WarnIfFileIsUnknown(nsIFile& aFile,
 }
 #endif
 
-}  // namespace quota
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::quota

@@ -67,7 +67,7 @@ class FunctionCompiler;
 
 class CallCompileState {
   // A generator object that is passed each argument as it is compiled.
-  ABIArgGenerator abi_;
+  WasmABIArgGenerator abi_;
 
   // Accumulates the register arguments while compiling arguments.
   MWasmCall::Args regArgs_;
@@ -167,7 +167,7 @@ class FunctionCompiler {
       return false;
     }
 
-    for (ABIArgIter i(args); !i.done(); i++) {
+    for (WasmABIArgIter i(args); !i.done(); i++) {
       MWasmParameter* ins = MWasmParameter::New(alloc(), *i, i.mirType());
       curBlock_->add(ins);
       if (args.isSyntheticStackResultPointerArg(i.index())) {
@@ -846,11 +846,20 @@ class FunctionCompiler {
       return nullptr;
     }
 
-    // Expand load-and-splat as integer load followed by splat.
     MemoryAccessDesc access(viewType, addr.align, addr.offset,
                             bytecodeIfNotAsmJS());
-    ValType resultType =
-        viewType == Scalar::Int64 ? ValType::I64 : ValType::I32;
+
+    // Generate better code (on x86)
+    if (viewType == Scalar::Float64) {
+      access.setSplatSimd128Load();
+      return load(addr.base, &access, ValType::V128);
+    }
+
+    ValType resultType = ValType::I32;
+    if (viewType == Scalar::Float32) {
+      resultType = ValType::F32;
+      splatOp = wasm::SimdOp::F32x4Splat;
+    }
     auto* scalar = load(addr.base, &access, resultType);
     if (!inDeadCode() && !scalar) {
       return nullptr;
@@ -864,14 +873,12 @@ class FunctionCompiler {
       return nullptr;
     }
 
-    MemoryAccessDesc access(Scalar::Int64, addr.align, addr.offset,
+    // Generate better code (on x86) by loading as a double with an
+    // operation that sign extends directly.
+    MemoryAccessDesc access(Scalar::Float64, addr.align, addr.offset,
                             bytecodeIfNotAsmJS());
-    // Expand load-and-extend as integer load followed by widen.
-    auto* scalar = load(addr.base, &access, ValType::I64);
-    if (!inDeadCode() && !scalar) {
-      return nullptr;
-    }
-    return scalarToSimd128(scalar, op);
+    access.setWidenSimd128Load(op);
+    return load(addr.base, &access, ValType::V128);
   }
 
   MDefinition* loadZeroSimd128(Scalar::Type viewType, size_t numBytes,
@@ -902,7 +909,7 @@ class FunctionCompiler {
     return load;
   }
 
-  MWasmLoadTls* maybeLoadBoundsCheckLimit() {
+  MWasmLoadTls* maybeLoadBoundsCheckLimit32() {
     if (moduleEnv_.hugeMemoryEnabled()) {
       return nullptr;
     }
@@ -910,7 +917,7 @@ class FunctionCompiler {
                            ? AliasSet::None()
                            : AliasSet::Load(AliasSet::WasmHeapMeta);
     auto load = MWasmLoadTls::New(alloc(), tlsPointer_,
-                                  offsetof(wasm::TlsData, boundsCheckLimit),
+                                  offsetof(wasm::TlsData, boundsCheckLimit32),
                                   MIRType::Int32, aliases);
     curBlock_->add(load);
     return load;
@@ -990,9 +997,9 @@ class FunctionCompiler {
           alloc(), *base, access->byteSize(), bytecodeOffset()));
     }
 
-    MWasmLoadTls* boundsCheckLimit = maybeLoadBoundsCheckLimit();
-    if (boundsCheckLimit) {
-      auto* ins = MWasmBoundsCheck::New(alloc(), *base, boundsCheckLimit,
+    MWasmLoadTls* boundsCheckLimit32 = maybeLoadBoundsCheckLimit32();
+    if (boundsCheckLimit32) {
+      auto* ins = MWasmBoundsCheck::New(alloc(), *base, boundsCheckLimit32,
                                         bytecodeOffset());
       curBlock_->add(ins);
       if (JitOptions.spectreIndexMasking) {
@@ -1036,8 +1043,8 @@ class FunctionCompiler {
     MInstruction* load = nullptr;
     if (moduleEnv_.isAsmJS()) {
       MOZ_ASSERT(access->offset() == 0);
-      MWasmLoadTls* boundsCheckLimit = maybeLoadBoundsCheckLimit();
-      load = MAsmJSLoadHeap::New(alloc(), memoryBase, base, boundsCheckLimit,
+      MWasmLoadTls* boundsCheckLimit32 = maybeLoadBoundsCheckLimit32();
+      load = MAsmJSLoadHeap::New(alloc(), memoryBase, base, boundsCheckLimit32,
                                  access->type());
     } else {
       checkOffsetAndAlignmentAndBounds(access, &base);
@@ -1060,9 +1067,9 @@ class FunctionCompiler {
     MInstruction* store = nullptr;
     if (moduleEnv_.isAsmJS()) {
       MOZ_ASSERT(access->offset() == 0);
-      MWasmLoadTls* boundsCheckLimit = maybeLoadBoundsCheckLimit();
-      store = MAsmJSStoreHeap::New(alloc(), memoryBase, base, boundsCheckLimit,
-                                   access->type(), v);
+      MWasmLoadTls* boundsCheckLimit32 = maybeLoadBoundsCheckLimit32();
+      store = MAsmJSStoreHeap::New(alloc(), memoryBase, base,
+                                   boundsCheckLimit32, access->type(), v);
     } else {
       checkOffsetAndAlignmentAndBounds(access, &base);
       store = MWasmStore::New(alloc(), memoryBase, base, *access, v);
@@ -5013,9 +5020,9 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
           case uint32_t(SimdOp::V16x8LoadSplat):
             CHECK(EmitLoadSplatSimd128(f, Scalar::Uint16, SimdOp::I16x8Splat));
           case uint32_t(SimdOp::V32x4LoadSplat):
-            CHECK(EmitLoadSplatSimd128(f, Scalar::Uint32, SimdOp::I32x4Splat));
+            CHECK(EmitLoadSplatSimd128(f, Scalar::Float32, SimdOp::I32x4Splat));
           case uint32_t(SimdOp::V64x2LoadSplat):
-            CHECK(EmitLoadSplatSimd128(f, Scalar::Int64, SimdOp::I64x2Splat));
+            CHECK(EmitLoadSplatSimd128(f, Scalar::Float64, SimdOp::I64x2Splat));
           case uint32_t(SimdOp::I16x8LoadS8x8):
           case uint32_t(SimdOp::I16x8LoadU8x8):
           case uint32_t(SimdOp::I32x4LoadS16x4):
@@ -5023,11 +5030,9 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
           case uint32_t(SimdOp::I64x2LoadS32x2):
           case uint32_t(SimdOp::I64x2LoadU32x2):
             CHECK(EmitLoadExtendSimd128(f, SimdOp(op.b1)));
-          case uint32_t(SimdOp::V128Load32ZeroExperimental):
-            CHECK_SIMD_EXPERIMENTAL();
+          case uint32_t(SimdOp::V128Load32Zero):
             CHECK(EmitLoadZeroSimd128(f, Scalar::Float32, 4));
-          case uint32_t(SimdOp::V128Load64ZeroExperimental):
-            CHECK_SIMD_EXPERIMENTAL();
+          case uint32_t(SimdOp::V128Load64Zero):
             CHECK(EmitLoadZeroSimd128(f, Scalar::Float64, 8));
           default:
             return f.iter().unrecognizedOpcode(&op);

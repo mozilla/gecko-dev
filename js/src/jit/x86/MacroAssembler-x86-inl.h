@@ -1014,11 +1014,6 @@ void MacroAssembler::splatX2(Register64 src, FloatRegister dest) {
   replaceLaneInt64x2(1, src, dest);
 }
 
-void MacroAssembler::bitwiseAndSimd128(const SimdConstant& rhs,
-                                       FloatRegister lhsDest) {
-  vpandSimd128(rhs, lhsDest);
-}
-
 // ========================================================================
 // Truncate floating point.
 

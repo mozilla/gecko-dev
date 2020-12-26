@@ -9,12 +9,14 @@
 
 // Prelude of types necessary before including wgpu_ffi_generated.h
 namespace mozilla {
+namespace ipc {
+class ByteBuf;
+}  // namespace ipc
 namespace webgpu {
 namespace ffi {
 
 #define WGPU_INLINE
 #define WGPU_FUNC
-#define WGPU_DESTRUCTOR_SAFE_FUNC
 
 extern "C" {
 #include "wgpu_ffi_generated.h"
@@ -22,9 +24,16 @@ extern "C" {
 
 #undef WGPU_INLINE
 #undef WGPU_FUNC
-#undef WGPU_DESTRUCTOR_SAFE_FUNC
 
 }  // namespace ffi
+
+inline ffi::WGPUByteBuf* ToFFI(ipc::ByteBuf* x) {
+  return reinterpret_cast<ffi::WGPUByteBuf*>(x);
+}
+inline const ffi::WGPUByteBuf* ToFFI(const ipc::ByteBuf* x) {
+  return reinterpret_cast<const ffi::WGPUByteBuf*>(x);
+}
+
 }  // namespace webgpu
 }  // namespace mozilla
 

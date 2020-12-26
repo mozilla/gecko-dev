@@ -6,9 +6,11 @@
 
 #include "PersistenceType.h"
 
-namespace mozilla {
-namespace dom {
-namespace quota {
+#include <utility>
+#include "nsLiteralString.h"
+#include "nsString.h"
+
+namespace mozilla::dom::quota {
 
 namespace {
 
@@ -202,6 +204,4 @@ Maybe<PersistenceType> PersistenceTypeFromInt32(const int32_t aInt32,
   return TypeFrom_impl(aInt32);
 }
 
-}  // namespace quota
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::quota

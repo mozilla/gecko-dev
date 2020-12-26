@@ -121,9 +121,24 @@ class PointConduit extends BaseConduit {
       this.actor = null;
       actor.conduits.delete(this.id);
       if (!silent) {
-        actor.sendAsyncMessage("ConduitClosed", { sender: this.id });
+        // Catch any exceptions that can occur if the conduit is closed while
+        // the actor is being destroyed due to the containing browser being closed.
+        // This should be treated as if the silent flag was passed.
+        try {
+          actor.sendAsyncMessage("ConduitClosed", { sender: this.id });
+        } catch (ex) {}
       }
     }
+    this.closeCallback?.();
+    this.closeCallback = null;
+  }
+
+  /**
+   * Set the callback to be called when the conduit is closed.
+   * @param {function} callback
+   */
+  setCloseCallback(callback) {
+    this.closeCallback = callback;
   }
 }
 
@@ -170,20 +185,12 @@ class ConduitsChild extends JSWindowActorChild {
   }
 
   /**
-   * JSWindowActor method, called before actor is destroyed.
-   * Parent side will get the same call, so just silently close all conduits.
+   * JSWindowActor method, ensure cleanup.
    */
-  willDestroy() {
+  didDestroy() {
     for (let conduit of this.conduits.values()) {
       conduit.close(true);
     }
     this.conduits.clear();
-  }
-
-  /**
-   * JSWindowActor method, ensure cleanup (see bug 1596187).
-   */
-  didDestroy() {
-    this.willDestroy();
   }
 }

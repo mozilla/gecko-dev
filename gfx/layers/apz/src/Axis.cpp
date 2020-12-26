@@ -71,7 +71,7 @@ void Axis::UpdateWithTouchAtDevicePoint(ParentLayerCoord aPos,
     DoSetVelocity(mAxisLocked ? 0 : *newVelocity);
     AXIS_LOG("%p|%s velocity from tracker is %f%s\n", mAsyncPanZoomController,
              Name(), *newVelocity,
-             mAxisLocked ? "" : ", but we are axis locked");
+             mAxisLocked ? ", but we are axis locked" : "");
   }
 }
 
@@ -505,8 +505,19 @@ bool AxisY::CanScrollTo(Side aSide) const {
   }
 }
 
+bool AxisY::CanScrollDownwardsWithDynamicToolbar() const {
+  return GetCompositionLengthWithoutDynamicToolbar() == ParentLayerCoord(0)
+             ? CanScroll()
+             : GetPageLength() - GetCompositionLengthWithoutDynamicToolbar() >
+                   COORDINATE_EPSILON;
+}
+
 OverscrollBehavior AxisY::GetOverscrollBehavior() const {
   return GetScrollMetadata().GetOverscrollBehavior().mBehaviorY;
+}
+
+ParentLayerCoord AxisY::GetCompositionLengthWithoutDynamicToolbar() const {
+  return GetFrameMetrics().GetCompositionSizeWithoutDynamicToolbar().Height();
 }
 
 }  // namespace layers

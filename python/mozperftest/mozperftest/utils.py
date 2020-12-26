@@ -7,20 +7,24 @@ from datetime import datetime, date, timedelta
 import sys
 import os
 from io import StringIO
-from redo import retry
-import requests
 from collections import defaultdict
 from pathlib import Path
 import tempfile
 import shutil
 import importlib
+import subprocess
+import shlex
 
+from redo import retry
+from requests.packages.urllib3.util.retry import Retry
+import requests
 
 RETRY_SLEEP = 10
 API_ROOT = "https://firefox-ci-tc.services.mozilla.com/api/index/v1"
 MULTI_REVISION_ROOT = f"{API_ROOT}/namespaces"
 MULTI_TASK_ROOT = f"{API_ROOT}/tasks"
 ON_TRY = "MOZ_AUTOMATION" in os.environ
+DOWNLOAD_TIMEOUT = 30
 
 
 @contextlib.contextmanager
@@ -238,14 +242,17 @@ def temporary_env(**env):
     old = {}
     for key, value in env.items():
         old[key] = os.environ.get(key)
-        os.environ[key] = value
+        if value is None and key in os.environ:
+            del os.environ[key]
+        elif value is not None:
+            os.environ[key] = value
     try:
         yield
     finally:
         for key, value in old.items():
-            if value is None:
+            if value is None and key in os.environ:
                 del os.environ[key]
-            else:
+            elif value is not None:
                 os.environ[key] = value
 
 
@@ -326,3 +333,102 @@ def load_class(path):
     except AttributeError:
         raise ImportError(f"Can't find '{klass_name}' in '{mod_name}'")
     return klass
+
+
+def run_script(cmd, cmd_args=None, verbose=False, display=False, label=None):
+    """Used to run a command in a subprocess."""
+    if isinstance(cmd, str):
+        cmd = shlex.split(cmd)
+    try:
+        joiner = shlex.join
+    except AttributeError:
+        # Python < 3.8
+        joiner = subprocess.list2cmdline
+
+    if label is None:
+        label = joiner(cmd)
+    sys.stdout.write(f"=> {label} ")
+    if cmd_args is None:
+        args = cmd
+    else:
+        args = cmd + list(cmd_args)
+    sys.stdout.flush()
+    try:
+        if verbose:
+            sys.stdout.write(f"\nRunning {' '.join(args)}\n")
+            sys.stdout.flush()
+        output = subprocess.check_output(args)
+        if display:
+            sys.stdout.write("\n")
+            for line in output.split(b"\n"):
+                sys.stdout.write(line.decode("utf8") + "\n")
+        sys.stdout.write("[OK]\n")
+        sys.stdout.flush()
+        return True, output
+    except subprocess.CalledProcessError as e:
+        for line in e.output.split(b"\n"):
+            sys.stdout.write(line.decode("utf8") + "\n")
+        sys.stdout.write("[FAILED]\n")
+        sys.stdout.flush()
+        return False, e
+
+
+def run_python_script(
+    virtualenv_manager,
+    module,
+    module_args=None,
+    verbose=False,
+    display=False,
+    label=None,
+):
+    """Used to run a Python script in isolation."""
+    if label is None:
+        label = module
+    cmd = [virtualenv_manager.python_path, "-m", module]
+    return run_script(cmd, module_args, verbose=verbose, display=display, label=label)
+
+
+def checkout_script(cmd, cmd_args=None, verbose=False, display=False, label=None):
+    return run_script(cmd, cmd_args, verbose, display, label)[0]
+
+
+def checkout_python_script(
+    virtualenv_manager,
+    module,
+    module_args=None,
+    verbose=False,
+    display=False,
+    label=None,
+):
+    return run_python_script(
+        virtualenv_manager, module, module_args, verbose, display, label
+    )[0]
+
+
+_URL = (
+    "{0}/secrets/v1/secret/project"
+    "{1}releng{1}gecko{1}build{1}level-{2}{1}conditioned-profiles"
+)
+_DEFAULT_SERVER = "https://firefox-ci-tc.services.mozilla.com"
+
+
+def get_tc_secret():
+    """Returns the Taskcluster secret.
+
+    Raises an OSError when not running on try
+    """
+    if not ON_TRY:
+        raise OSError("Not running in Taskcluster")
+    session = requests.Session()
+    retry = Retry(total=5, backoff_factor=0.1, status_forcelist=[500, 502, 503, 504])
+    http_adapter = requests.adapters.HTTPAdapter(max_retries=retry)
+    session.mount("https://", http_adapter)
+    session.mount("http://", http_adapter)
+    secrets_url = _URL.format(
+        os.environ.get("TASKCLUSTER_PROXY_URL", _DEFAULT_SERVER),
+        "%2F",
+        os.environ.get("MOZ_SCM_LEVEL", "1"),
+    )
+    res = session.get(secrets_url, timeout=DOWNLOAD_TIMEOUT)
+    res.raise_for_status()
+    return res.json()["secret"]

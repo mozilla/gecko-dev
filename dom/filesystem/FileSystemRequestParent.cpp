@@ -9,18 +9,19 @@
 
 #include "GetDirectoryListingTask.h"
 #include "GetFileOrDirectoryTask.h"
+#include "GetFilesTask.h"
 
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/FileSystemBase.h"
 #include "mozilla/dom/FileSystemSecurity.h"
 #include "mozilla/ipc/BackgroundParent.h"
+#include "mozilla/dom/OSFileSystem.h"
 #include "mozilla/Unused.h"
 #include "nsProxyRelease.h"
 
 using namespace mozilla::ipc;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 FileSystemRequestParent::FileSystemRequestParent() : mDestroyed(false) {
   AssertIsOnBackgroundThread();
@@ -177,5 +178,4 @@ void FileSystemRequestParent::ActorDestroy(ActorDestroyReason aWhy) {
   mDestroyed = true;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

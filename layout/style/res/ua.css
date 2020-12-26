@@ -53,6 +53,9 @@
   scale: inherit;
   translate: inherit;
   /* When the table wrapper is a Flex/Grid item we need these: */
+  flex-grow: inherit;
+  flex-shrink: inherit;
+  flex-basis: inherit;
   align-self: inherit;
   justify-self: inherit;
   grid-column-start: inherit;
@@ -409,7 +412,6 @@ parsererror|sourcetext {
 
 div:-moz-native-anonymous.moz-accessiblecaret {
   /* Add transition effect to make caret size changing smoother. */
-  transition-duration: 250ms;
   transition-property: width, height, margin-left;
 
   position: absolute;
@@ -453,6 +455,10 @@ div:-moz-native-anonymous.moz-accessiblecaret.right > #image {
 
 div:-moz-native-anonymous.moz-accessiblecaret.none {
   display: none;
+}
+
+div:-moz-native-anonymous.moz-accessiblecaret.hidden {
+  visibility: hidden;
 }
 
 @media (min-resolution: 1.5dppx) {

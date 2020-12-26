@@ -71,32 +71,32 @@ linux64-clang-9:
             - linux64-gcc-7
             - wasi-sysroot-9
 
-linux64-clang-10-mingw-x86:
-    description: "MinGW-Clang 10 x86 toolchain build"
+linux64-clang-11-mingw-x86:
+    description: "MinGW-Clang 11 x86 toolchain build"
     treeherder:
         symbol: TMW(clang-x86)
     run:
         script: build-clang-mingw.sh
         arguments:
             - 'x86'
-            - 'build/build-clang/clang-10-mingw.json'
+            - 'build/build-clang/clang-11-mingw.json'
         resources:
-            - 'build/build-clang/clang-10-mingw.json'
+            - 'build/build-clang/clang-11-mingw.json'
         toolchain-alias: linux64-clang-mingw-x86
         toolchain-artifact: public/build/clangmingw.tar.zst
     fetches:
         fetch:
-            - clang-10
+            - clang-11
             - mingw-w64
             - libunwind
             - llvm-mingw
-            - gcc-9.1.0
+            - gcc-9.3.0
         toolchain:
             - linux64-gcc-7
             - linux64-binutils
 
-linux64-clang-10-mingw-x64:
-    description: "MinGW-Clang 10 x64 toolchain build"
+linux64-clang-11-mingw-x64:
+    description: "MinGW-Clang 11 x64 toolchain build"
     treeherder:
         symbol: TMW(clang-x64)
         tier: 1
@@ -104,18 +104,18 @@ linux64-clang-10-mingw-x64:
         script: build-clang-mingw.sh
         arguments:
             - 'x64'
-            - 'build/build-clang/clang-10-mingw.json'
+            - 'build/build-clang/clang-11-mingw.json'
         resources:
-            - 'build/build-clang/clang-10-mingw.json'
+            - 'build/build-clang/clang-11-mingw.json'
         toolchain-alias: linux64-clang-mingw-x64
         toolchain-artifact: public/build/clangmingw.tar.zst
     fetches:
         fetch:
-            - clang-10
+            - clang-11
             - mingw-w64
             - libunwind
             - llvm-mingw
-            - gcc-9.1.0
+            - gcc-9.3.0
         toolchain:
             - linux64-gcc-7
             - linux64-binutils
@@ -396,6 +396,22 @@ linux64-clang-11-macosx-cross:
             # Put this into a new directory so it doesn't conflict with the linux toolchain
             - artifact: clang.tar.zst
               dest: clang-mac
+
+linux64-clang-11-macosx-aarch64-cross:
+    description: "Clang 11 toolchain repack with MacOS aarch64 Compiler RT libs"
+    treeherder:
+        symbol: TL(clang11-macosx-aarch64)
+    worker-type: b-linux
+    worker:
+        max-run-time: 600
+    run:
+        script: repack-clang-linux-macosx-aarch64-cross.sh
+        toolchain-alias: linux64-clang-macosx-aarch64-cross
+        toolchain-artifact: public/build/clang.tar.zst
+    fetches:
+        toolchain:
+            - linux64-clang-11
+            - macosx64-aarch64-compiler-rt-11
 
 linux64-clang-11-win-cross:
     description: "Clang 11 toolchain repack with Windows Compiler RT libs"

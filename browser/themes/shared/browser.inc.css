@@ -42,6 +42,16 @@
   color: @lwtPopupBrighttextLinkColor@;
 }
 
+#PersonalToolbar:-moz-lwtheme .text-link,
+#nav-bar:-moz-lwtheme .text-link {
+  color: #0060df;
+}
+
+#PersonalToolbar[brighttext]:-moz-lwtheme .text-link,
+#nav-bar[brighttext]:-moz-lwtheme .text-link {
+  color: #45a1ff;
+}
+
 /* Toolbar / content area border */
 
 #navigator-toolbox {
@@ -68,7 +78,7 @@
   padding-inline: 2px;
 }
 
-:root[sessionrestored] #PersonalToolbar {
+:root[sessionrestored] #PersonalToolbar:not(.instant) {
   transition: min-height 170ms ease-out, max-height 170ms ease-out, @themeTransition@;
 }
 
@@ -77,8 +87,12 @@
   max-height: 0;
 }
 
-:root[sessionrestored] #PersonalToolbar[collapsed=true] {
+:root[sessionrestored] #PersonalToolbar:not(.instant)[collapsed=true] {
   transition: min-height 170ms ease-out, max-height 170ms ease-out, visibility 170ms linear;
+}
+
+#PersonalToolbar[collapsed=true].instant {
+  visibility: collapse;
 }
 
 #PersonalToolbar[customizing] {

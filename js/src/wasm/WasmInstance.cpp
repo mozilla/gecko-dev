@@ -32,11 +32,13 @@
 #include "jit/JitRuntime.h"
 #include "jit/JitScript.h"
 #include "js/ForOfIterator.h"
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "util/StringBuffer.h"
 #include "util/Text.h"
 #include "vm/BigIntType.h"
 #include "vm/PlainObject.h"  // js::PlainObject
 #include "wasm/WasmBuiltins.h"
+#include "wasm/WasmJS.h"
 #include "wasm/WasmModule.h"
 #include "wasm/WasmStubs.h"
 
@@ -134,68 +136,96 @@ class DebugCodegenVal {
 };
 
 template <typename Debug = NoDebug>
-static bool ToWebAssemblyValue_i32(JSContext* cx, HandleValue val,
-                                   int32_t* loc) {
+static bool ToWebAssemblyValue_i32(JSContext* cx, HandleValue val, int32_t* loc,
+                                   bool mustWrite64) {
   bool ok = ToInt32(cx, val, loc);
+  if (ok && mustWrite64) {
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
+    loc[1] = loc[0] >> 31;
+#else
+    loc[1] = 0;
+#endif
+  }
   Debug::print(*loc);
   return ok;
 }
 template <typename Debug = NoDebug>
-static bool ToWebAssemblyValue_i64(JSContext* cx, HandleValue val,
-                                   int64_t* loc) {
+static bool ToWebAssemblyValue_i64(JSContext* cx, HandleValue val, int64_t* loc,
+                                   bool mustWrite64) {
+  MOZ_ASSERT(mustWrite64);
   JS_TRY_VAR_OR_RETURN_FALSE(cx, *loc, ToBigInt64(cx, val));
   Debug::print(*loc);
   return true;
 }
 template <typename Debug = NoDebug>
-static bool ToWebAssemblyValue_f32(JSContext* cx, HandleValue val, float* loc) {
+static bool ToWebAssemblyValue_f32(JSContext* cx, HandleValue val, float* loc,
+                                   bool mustWrite64) {
   bool ok = RoundFloat32(cx, val, loc);
+  if (ok && mustWrite64) {
+    loc[1] = 0.0;
+  }
   Debug::print(*loc);
   return ok;
 }
 template <typename Debug = NoDebug>
-static bool ToWebAssemblyValue_f64(JSContext* cx, HandleValue val,
-                                   double* loc) {
+static bool ToWebAssemblyValue_f64(JSContext* cx, HandleValue val, double* loc,
+                                   bool mustWrite64) {
+  MOZ_ASSERT(mustWrite64);
   bool ok = ToNumber(cx, val, loc);
   Debug::print(*loc);
   return ok;
 }
 template <typename Debug = NoDebug>
 static bool ToWebAssemblyValue_externref(JSContext* cx, HandleValue val,
-                                         void** loc) {
+                                         void** loc, bool mustWrite64) {
   RootedAnyRef result(cx, AnyRef::null());
   if (!BoxAnyRef(cx, val, &result)) {
     return false;
   }
   *loc = result.get().forCompiledCode();
+#ifndef JS_64BIT
+  if (mustWrite64) {
+    loc[1] = nullptr;
+  }
+#endif
   Debug::print(*loc);
   return true;
 }
 template <typename Debug = NoDebug>
-static bool ToWebAssemblyValue_eqref(JSContext* cx, HandleValue val,
-                                     void** loc) {
+static bool ToWebAssemblyValue_eqref(JSContext* cx, HandleValue val, void** loc,
+                                     bool mustWrite64) {
   RootedAnyRef result(cx, AnyRef::null());
   if (!CheckEqRefValue(cx, val, &result)) {
     return false;
   }
   *loc = result.get().forCompiledCode();
+#ifndef JS_64BIT
+  if (mustWrite64) {
+    loc[1] = nullptr;
+  }
+#endif
   Debug::print(*loc);
   return true;
 }
 template <typename Debug = NoDebug>
 static bool ToWebAssemblyValue_funcref(JSContext* cx, HandleValue val,
-                                       void** loc) {
+                                       void** loc, bool mustWrite64) {
   RootedFunction fun(cx);
   if (!CheckFuncRefValue(cx, val, &fun)) {
     return false;
   }
   *loc = fun;
+#ifndef JS_64BIT
+  if (mustWrite64) {
+    loc[1] = nullptr;
+  }
+#endif
   Debug::print(*loc);
   return true;
 }
 template <typename Debug = NoDebug>
 static bool ToWebAssemblyValue_typeref(JSContext* cx, HandleValue val,
-                                       void** loc) {
+                                       void** loc, bool mustWrite64) {
   JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                            JSMSG_WASM_TYPEREF_FROM_JS);
   return false;
@@ -203,16 +233,16 @@ static bool ToWebAssemblyValue_typeref(JSContext* cx, HandleValue val,
 
 template <typename Debug = NoDebug>
 static bool ToWebAssemblyValue(JSContext* cx, HandleValue val, ValType type,
-                               void* loc) {
+                               void* loc, bool mustWrite64) {
   switch (type.kind()) {
     case ValType::I32:
-      return ToWebAssemblyValue_i32<Debug>(cx, val, (int32_t*)loc);
+      return ToWebAssemblyValue_i32<Debug>(cx, val, (int32_t*)loc, mustWrite64);
     case ValType::I64:
-      return ToWebAssemblyValue_i64<Debug>(cx, val, (int64_t*)loc);
+      return ToWebAssemblyValue_i64<Debug>(cx, val, (int64_t*)loc, mustWrite64);
     case ValType::F32:
-      return ToWebAssemblyValue_f32<Debug>(cx, val, (float*)loc);
+      return ToWebAssemblyValue_f32<Debug>(cx, val, (float*)loc, mustWrite64);
     case ValType::F64:
-      return ToWebAssemblyValue_f64<Debug>(cx, val, (double*)loc);
+      return ToWebAssemblyValue_f64<Debug>(cx, val, (double*)loc, mustWrite64);
     case ValType::V128:
       MOZ_CRASH("unexpected v128 in ToWebAssemblyValue");
     case ValType::Ref:
@@ -227,13 +257,17 @@ static bool ToWebAssemblyValue(JSContext* cx, HandleValue val, ValType type,
 #endif
       switch (type.refTypeKind()) {
         case RefType::Func:
-          return ToWebAssemblyValue_funcref<Debug>(cx, val, (void**)loc);
+          return ToWebAssemblyValue_funcref<Debug>(cx, val, (void**)loc,
+                                                   mustWrite64);
         case RefType::Extern:
-          return ToWebAssemblyValue_externref<Debug>(cx, val, (void**)loc);
+          return ToWebAssemblyValue_externref<Debug>(cx, val, (void**)loc,
+                                                     mustWrite64);
         case RefType::Eq:
-          return ToWebAssemblyValue_eqref<Debug>(cx, val, (void**)loc);
+          return ToWebAssemblyValue_eqref<Debug>(cx, val, (void**)loc,
+                                                 mustWrite64);
         case RefType::TypeIndex:
-          return ToWebAssemblyValue_typeref<Debug>(cx, val, (void**)loc);
+          return ToWebAssemblyValue_typeref<Debug>(cx, val, (void**)loc,
+                                                   mustWrite64);
       }
   }
   MOZ_CRASH("unreachable");
@@ -389,7 +423,7 @@ static bool UnpackResults(JSContext* cx, const ValTypeVector& resultTypes,
     // Result is either one scalar value to unpack to a wasm value, or
     // an ignored value for a zero-valued function.
     if (resultTypes.length() == 1) {
-      return ToWebAssemblyValue(cx, rval, resultTypes[0], argv);
+      return ToWebAssemblyValue(cx, rval, resultTypes[0], argv, true);
     }
     return true;
   }
@@ -409,6 +443,8 @@ static bool UnpackResults(JSContext* cx, const ValTypeVector& resultTypes,
                              got.get());
     return false;
   }
+
+  DebugOnly<uint64_t> previousOffset = ~(uint64_t)0;
 
   ABIResultIter iter(ResultType::Vector(resultTypes));
   // The values are converted in the order they are pushed on the
@@ -430,14 +466,25 @@ static bool UnpackResults(JSContext* cx, const ValTypeVector& resultTypes,
       // and set `argv[0]` set to the extracted result, to be returned by
       // register in the stub.  The register result follows any stack
       // results, so this preserves conversion order.
-      if (!ToWebAssemblyValue(cx, rval, result.type(), argv)) {
+      if (!ToWebAssemblyValue(cx, rval, result.type(), argv, true)) {
         return false;
       }
       seenRegisterResult = true;
       continue;
     }
+    uint32_t result_size = result.size();
+    MOZ_ASSERT(result_size == 4 || result_size == 8);
+#ifdef DEBUG
+    if (previousOffset == ~(uint64_t)0) {
+      previousOffset = (uint64_t)result.stackOffset();
+    } else {
+      MOZ_ASSERT(previousOffset - (uint64_t)result_size ==
+                 (uint64_t)result.stackOffset());
+      previousOffset -= (uint64_t)result_size;
+    }
+#endif
     char* loc = stackResultsArea.value() + result.stackOffset();
-    if (!ToWebAssemblyValue(cx, rval, result.type(), loc)) {
+    if (!ToWebAssemblyValue(cx, rval, result.type(), loc, result_size == 8)) {
       return false;
     }
   }
@@ -658,7 +705,7 @@ Instance::callImport_general(Instance* instance, int32_t funcImportIndex,
   // write tests for cross-realm calls.
   MOZ_ASSERT(TlsContext.get()->realm() == instance->realm());
 
-  uint32_t byteLength = instance->memory()->volatileMemoryLength();
+  uint32_t byteLength = instance->memory()->volatileMemoryLength32();
   MOZ_ASSERT(byteLength % wasm::PageSize == 0);
   return byteLength / wasm::PageSize;
 }
@@ -680,7 +727,7 @@ static int32_t PerformWait(Instance* instance, uint32_t byteOffset, T value,
     return -1;
   }
 
-  if (byteOffset + sizeof(T) > instance->memory()->volatileMemoryLength()) {
+  if (byteOffset + sizeof(T) > instance->memory()->volatileMemoryLength32()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_WASM_OUT_OF_BOUNDS);
     return -1;
@@ -735,7 +782,7 @@ static int32_t PerformWait(Instance* instance, uint32_t byteOffset, T value,
     return -1;
   }
 
-  if (byteOffset >= instance->memory()->volatileMemoryLength()) {
+  if (byteOffset >= instance->memory()->volatileMemoryLength32()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_WASM_OUT_OF_BOUNDS);
     return -1;
@@ -783,7 +830,7 @@ inline int32_t WasmMemoryCopy(T memBase, uint32_t memLen,
   MOZ_ASSERT(SASigMemCopy.failureMode == FailureMode::FailOnNegI32);
 
   const WasmArrayRawBuffer* rawBuf = WasmArrayRawBuffer::fromDataPtr(memBase);
-  uint32_t memLen = rawBuf->byteLength();
+  uint32_t memLen = ByteLength32(rawBuf);
 
   return WasmMemoryCopy(memBase, memLen, dstByteOffset, srcByteOffset, len,
                         memmove);
@@ -800,7 +847,7 @@ inline int32_t WasmMemoryCopy(T memBase, uint32_t memLen,
 
   const SharedArrayRawBuffer* rawBuf =
       SharedArrayRawBuffer::fromDataPtr(memBase);
-  uint32_t memLen = rawBuf->volatileByteLength();
+  uint32_t memLen = VolatileByteLength32(rawBuf);
 
   return WasmMemoryCopy<SharedMem<uint8_t*>, RacyMemMove>(
       SharedMem<uint8_t*>::shared(memBase), memLen, dstByteOffset,
@@ -850,7 +897,7 @@ inline int32_t WasmMemoryFill(T memBase, uint32_t memLen, uint32_t byteOffset,
   MOZ_ASSERT(SASigMemFill.failureMode == FailureMode::FailOnNegI32);
 
   const WasmArrayRawBuffer* rawBuf = WasmArrayRawBuffer::fromDataPtr(memBase);
-  uint32_t memLen = rawBuf->byteLength();
+  uint32_t memLen = ByteLength32(rawBuf);
 
   return WasmMemoryFill(memBase, memLen, byteOffset, value, len, memset);
 }
@@ -863,7 +910,7 @@ inline int32_t WasmMemoryFill(T memBase, uint32_t memLen, uint32_t byteOffset,
 
   const SharedArrayRawBuffer* rawBuf =
       SharedArrayRawBuffer::fromDataPtr(memBase);
-  uint32_t memLen = rawBuf->volatileByteLength();
+  uint32_t memLen = VolatileByteLength32(rawBuf);
 
   return WasmMemoryFill(SharedMem<uint8_t*>::shared(memBase), memLen,
                         byteOffset, value, len,
@@ -894,7 +941,7 @@ inline int32_t WasmMemoryFill(T memBase, uint32_t memLen, uint32_t byteOffset,
   const uint32_t segLen = seg.bytes.length();
 
   WasmMemoryObject* mem = instance->memory();
-  const uint32_t memLen = mem->volatileMemoryLength();
+  const uint32_t memLen = mem->volatileMemoryLength32();
 
   // We are proposing to copy
   //
@@ -1435,7 +1482,7 @@ bool Instance::init(JSContext* cx, const JSFunctionVector& funcImports,
 
   tlsData()->memoryBase =
       memory_ ? memory_->buffer().dataPointerEither().unwrap() : nullptr;
-  tlsData()->boundsCheckLimit = memory_ ? memory_->boundsCheckLimit() : 0;
+  tlsData()->boundsCheckLimit32 = memory_ ? memory_->boundsCheckLimit32() : 0;
   tlsData()->instance = this;
   tlsData()->realm = realm_;
   tlsData()->cx = cx;
@@ -1644,7 +1691,7 @@ bool Instance::memoryAccessInGuardRegion(uint8_t* addr,
   }
 
   size_t lastByteOffset = addr - base + (numBytes - 1);
-  return lastByteOffset >= memory()->volatileMemoryLength() &&
+  return lastByteOffset >= memory()->volatileMemoryLength32() &&
          lastByteOffset < memoryMappedSize();
 }
 
@@ -1660,7 +1707,7 @@ bool Instance::memoryAccessInBounds(uint8_t* addr, unsigned numBytes) const {
     return false;
   }
 
-  uint32_t length = memory()->volatileMemoryLength();
+  uint32_t length = memory()->volatileMemoryLength32();
   if (addr >= base + length) {
     return false;
   }
@@ -1750,8 +1797,17 @@ uintptr_t Instance::traceFrame(JSTracer* trc, const wasm::WasmFrameIter& wfi,
   // This is so as to ensure there are no areas of stack inadvertently ignored
   // by a stackmap, nor covered by two stackmaps.  Hence any failure of this
   // assertion is serious and should be investigated.
+
+  // This condition isn't kept for Cranelift
+  // (https://github.com/bytecodealliance/wasmtime/issues/2281), but this is ok
+  // to disable this assertion because when CL compiles a function, in the
+  // prologue, it (generates code) copies all of the in-memory arguments into
+  // registers. So, because of that, none of the in-memory argument words are
+  // actually live.
+#ifndef JS_CODEGEN_ARM64
   MOZ_ASSERT_IF(highestByteVisitedInPrevFrame != 0,
                 highestByteVisitedInPrevFrame + 1 == scanStart);
+#endif
 
   uintptr_t* stackWords = (uintptr_t*)scanStart;
 
@@ -2114,7 +2170,7 @@ bool Instance::callExport(JSContext* cx, uint32_t funcIndex, CallArgs args) {
     size_t naturalIdx = argTypes.naturalIndex(i);
     v = naturalIdx < args.length() ? args[naturalIdx] : UndefinedValue();
     ValType type = funcType->arg(naturalIdx);
-    if (!ToWebAssemblyValue<DebugCodegenVal>(cx, v, type, rawArgLoc)) {
+    if (!ToWebAssemblyValue<DebugCodegenVal>(cx, v, type, rawArgLoc, true)) {
       return false;
     }
     if (type.isReference()) {
@@ -2224,7 +2280,7 @@ void Instance::onMovingGrowMemory() {
 
   ArrayBufferObject& buffer = memory_->buffer().as<ArrayBufferObject>();
   tlsData()->memoryBase = buffer.dataPointer();
-  tlsData()->boundsCheckLimit = memory_->boundsCheckLimit();
+  tlsData()->boundsCheckLimit32 = memory_->boundsCheckLimit32();
 }
 
 void Instance::onMovingGrowTable(const Table* theTable) {

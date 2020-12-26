@@ -644,7 +644,9 @@ bool IToplevelProtocol::OpenOnSameThread(MessageChannel* aChannel, Side aSide) {
 }
 
 void IToplevelProtocol::NotifyImpendingShutdown() {
-  GetIPCChannel()->NotifyImpendingShutdown();
+  if (CanRecv()) {
+    GetIPCChannel()->NotifyImpendingShutdown();
+  }
 }
 
 void IToplevelProtocol::Close() { GetIPCChannel()->Close(); }

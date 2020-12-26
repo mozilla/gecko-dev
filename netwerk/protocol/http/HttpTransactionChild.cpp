@@ -215,16 +215,6 @@ mozilla::ipc::IPCResult HttpTransactionChild::RecvInit(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult HttpTransactionChild::RecvUpdateClassOfService(
-    const uint32_t& classOfService) {
-  LOG(("HttpTransactionChild::RecvUpdateClassOfService start [this=%p]\n",
-       this));
-  if (mTransaction) {
-    mTransaction->SetClassOfService(classOfService);
-  }
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult HttpTransactionChild::RecvSetDNSWasRefreshed() {
   LOG(("HttpTransactionChild::SetDNSWasRefreshed [this=%p]\n", this));
   if (mTransaction) {
@@ -500,7 +490,8 @@ HttpTransactionChild::OnStartRequest(nsIRequest* aRequest) {
                                ToTimingStructArgs(mTransaction->Timings()),
                                proxyConnectResponseCode, dataForSniffer,
                                optionalAltSvcUsed, !!mDataBridgeParent,
-                               mTransaction->TakeRestartedState(), stage);
+                               mTransaction->TakeRestartedState(), stage,
+                               mTransaction->GetSupportsHTTP3());
   return NS_OK;
 }
 
@@ -572,12 +563,14 @@ HttpTransactionChild::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
     mDataBridgeParent = nullptr;
   }
 
+  RefPtr<nsHttpConnectionInfo> connInfo = mTransaction->GetConnInfo();
+  HttpConnectionInfoCloneArgs infoArgs;
+  nsHttpConnectionInfo::SerializeHttpConnectionInfo(connInfo, infoArgs);
   Unused << SendOnStopRequest(aStatus, mTransaction->ResponseIsComplete(),
                               mTransaction->GetTransferSize(),
                               ToTimingStructArgs(mTransaction->Timings()),
-                              responseTrailers,
-                              mTransaction->HasStickyConnection(),
-                              mTransactionObserverResult, lastActTabOpt);
+                              responseTrailers, mTransactionObserverResult,
+                              lastActTabOpt, mTransaction->Caps(), infoArgs);
 
   return NS_OK;
 }

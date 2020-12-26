@@ -144,7 +144,7 @@
     "PASS"
   ],
   "Page.click should click on checkbox label and toggle (click.spec.ts)": [
-    "FAIL"
+    "FAIL", "PASS"
   ],
   "Page.click should fail to click a missing button (click.spec.ts)": [
     "PASS"
@@ -339,13 +339,13 @@
     "PASS"
   ],
   "Emulation Page.viewport should support touch emulation (emulation.spec.ts)": [
-    "FAIL"
+    "PASS"
   ],
   "Emulation Page.viewport should be detectable by Modernizr (emulation.spec.ts)": [
-    "FAIL"
+    "PASS"
   ],
   "Emulation Page.viewport should detect touch when applying viewport with touches (emulation.spec.ts)": [
-    "FAIL"
+    "PASS"
   ],
   "Emulation Page.viewport should support landscape emulation (emulation.spec.ts)": [
     "FAIL"
@@ -1542,7 +1542,7 @@
     "FAIL"
   ],
   "Page Page.Events.Close should work with window.close (page.spec.ts)": [
-    "FAIL"
+    "SKIP"
   ],
   "Page Page.Events.Close should work with page.close (page.spec.ts)": [
     "PASS"

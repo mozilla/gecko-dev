@@ -6,13 +6,24 @@
 
 #include "QuotaRequests.h"
 
+// Local includes
 #include "ActorsChild.h"
+
+// Global includes
 #include "mozilla/ErrorNames.h"
+#include "mozilla/MacroForEach.h"
+#include "nsDebug.h"
 #include "nsIQuotaCallbacks.h"
+#include "nsISupportsUtils.h"
+#include "nsIVariant.h"
+#include "nsStringFwd.h"
+#include "nscore.h"
 
 namespace mozilla {
-namespace dom {
-namespace quota {
+class Runnable;
+}
+
+namespace mozilla::dom::quota {
 
 RequestBase::RequestBase() : mResultCode(NS_OK), mHaveResultOrErrorCode(false) {
   AssertIsOnOwningThread();
@@ -274,6 +285,4 @@ void Request::FireCallback() {
   }
 }
 
-}  // namespace quota
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::quota

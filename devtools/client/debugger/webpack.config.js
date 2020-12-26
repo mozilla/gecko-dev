@@ -2,17 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-const toolbox = require("devtools-launchpad/index");
 const sourceMapAssets = require("devtools-source-map/assets");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const webpack = require("webpack");
+const ExtractTextPlugin = require("extract-text-webpack-plugin");
 
-const getConfig = require("./bin/getConfig");
 const mozillaCentralMappings = require("./configs/mozilla-central-mappings");
 const path = require("path");
 const ObjectRestSpreadPlugin = require("@sucrase/webpack-object-rest-spread-plugin");
-
-const isProduction = process.env.NODE_ENV === "production";
 
 /*
  * builds a path that's relative to the project path
@@ -23,7 +20,11 @@ function getEntry(filename) {
   return [path.join(__dirname, filename)];
 }
 
-const webpackConfig = {
+module.exports = {
+  context: path.resolve(__dirname, "src"),
+  devtool: false,
+  node: { fs: "empty" },
+  recordsPath: path.join(__dirname, "bin/module-manifest.json"),
   entry: {
     // We always generate the debugger bundle, but we will only copy the CSS
     // artifact over to mozilla-central.
@@ -32,12 +33,14 @@ const webpackConfig = {
     "search-worker": getEntry("src/workers/search/worker.js"),
     "source-map-worker": getEntry("packages/devtools-source-map/src/worker.js"),
     "source-map-index": getEntry("packages/devtools-source-map/src/index.js"),
+    vendors: getEntry("src/vendors.js"),
   },
 
   output: {
-    path: path.join(__dirname, "assets/build"),
+    path: process.env.OUTPUT_PATH,
     filename: "[name].js",
     publicPath: "/assets/build",
+    libraryTarget: "umd",
   },
 
   plugins: [
@@ -55,46 +58,74 @@ const webpackConfig = {
       raw: true,
       exclude: /\.css$/,
     }),
+    new ObjectRestSpreadPlugin(),
+    new ExtractTextPlugin("[name].css"),
+    new webpack.NormalModuleReplacementPlugin(
+      /.\/src\/network-request/,
+      "./src/privileged-network-request"
+    ),
+    new webpack.DefinePlugin({
+      "process.env": {
+        NODE_ENV: JSON.stringify(process.env.NODE_ENV || "production"),
+      },
+    }),
+  ],
+  module: {
+    rules: [
+      {
+        test: /\.json$/,
+        loader: "json-loader",
+      },
+      {
+        test: /\.js$/,
+        exclude: request => {
+          // Some paths are excluded from Babel
+          const excludedPaths = ["fs", "node_modules"];
+          const excludedRe = new RegExp(`(${excludedPaths.join("|")})`);
+          const excluded = !!request.match(excludedRe);
+          const included = ["devtools-", "react-aria-components"];
+
+          const reincludeRe = new RegExp(
+            `node_modules(\\/|\\\\)${included.join("|")}`
+          );
+          return excluded && !request.match(reincludeRe);
+        },
+        loader: require.resolve("babel-loader"),
+        options: {
+          ignore: ["src/lib"],
+        },
+      },
+      {
+        test: /\.properties$/,
+        loader: "raw-loader",
+      },
+      // Extract CSS into a single file
+      {
+        test: /\.css$/,
+        use: ExtractTextPlugin.extract({
+          filename: "*.css",
+          use: [
+            {
+              loader: "css-loader",
+              options: {
+                importLoaders: 1,
+                url: false,
+              },
+            },
+          ],
+        }),
+      },
+    ],
+  },
+  externals: [
+    function externalsTest(context, mod, callback) {
+      // Any matching paths here won't be included in the bundle.
+      if (mozillaCentralMappings[mod]) {
+        callback(null, mozillaCentralMappings[mod]);
+        return;
+      }
+
+      callback();
+    },
   ],
 };
-
-if (isProduction) {
-  // In the firefox panel, build the vendored dependencies as a bundle instead,
-  // the other debugger modules will be transpiled to a format that is
-  // compatible with the DevTools Loader.
-  webpackConfig.entry.vendors = getEntry("src/vendors.js");
-} else {
-  webpackConfig.entry.debugger = getEntry("src/main.development.js");
-}
-
-const envConfig = getConfig();
-
-const extra = {
-  babelIncludes: ["react-aria-components"],
-};
-
-webpackConfig.plugins.push(new ObjectRestSpreadPlugin());
-
-if (!isProduction) {
-  webpackConfig.module = webpackConfig.module || {};
-  webpackConfig.module.rules = webpackConfig.module.rules || [];
-} else {
-  webpackConfig.output.libraryTarget = "umd";
-  extra.excludeMap = mozillaCentralMappings;
-  extra.recordsPath = "bin/module-manifest.json";
-}
-
-const overallConfig = toolbox.toolboxConfig(webpackConfig, envConfig, extra);
-
-for (const rule of overallConfig.module.rules) {
-  // The launchpad still uses Babel 6. Rewrite it to use the local Babel 7
-  // install instead.
-  if (rule.loader === "babel-loader?ignore=src/lib") {
-    rule.loader = require.resolve("babel-loader");
-    rule.options = {
-      ignore: ["src/lib"],
-    };
-  }
-}
-
-module.exports = overallConfig;

@@ -15,13 +15,13 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsIClipboard.h"
 #include "nsComponentManagerUtils.h"
+#include "nsContentUtils.h"
 #include "nsITransferable.h"
 #include "nsArrayUtils.h"
 
 static mozilla::LazyLogModule gClipboardLog("Clipboard");
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 Clipboard::Clipboard(nsPIDOMWindowInner* aWindow)
     : DOMEventTargetHelper(aWindow) {}
@@ -210,5 +210,4 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 NS_IMPL_ADDREF_INHERITED(Clipboard, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(Clipboard, DOMEventTargetHelper)
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

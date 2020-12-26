@@ -129,12 +129,6 @@ requireHacker.global_hook("default", (path, module) => {
       `module.exports = { addProfilerMarker: () => {}, import: () => ({}) }`,
     // Some modules depend on Chrome APIs which don't work in mocha. When such a module
     // is required, replace it with a mock version.
-    "devtools/shared/l10n": () =>
-      getModule(
-        "devtools/client/webconsole/test/node/fixtures/LocalizationHelper"
-      ),
-    "devtools/shared/plural-form": () =>
-      getModule("devtools/client/webconsole/test/node/fixtures/PluralForm"),
     Services: () => `module.exports = require("devtools-services")`,
     "devtools/server/devtools-server": () =>
       `module.exports = {DevToolsServer: {}}`,
@@ -156,9 +150,7 @@ requireHacker.global_hook("default", (path, module) => {
     "devtools/shared/layout/utils": () => "{getCurrentZoom = () => {}}",
     "resource://gre/modules/AppConstants.jsm": () => "module.exports = {};",
     "devtools/client/framework/devtools": () => `module.exports = {
-      gDevTools: {
-        isFissionContentToolboxEnabled: () => false,
-      }
+      gDevTools: {}
     };`,
     "devtools/shared/async-storage": () =>
       getModule("devtools/client/webconsole/test/node/fixtures/async-storage"),

@@ -9,12 +9,11 @@
 #include "mozilla/dom/WebGLCrossProcessCommandQueue.h"
 #include "mozilla/layers/LayerTransactionParent.h"
 #include "mozilla/layers/TextureClientSharedSurface.h"
+#include "ImageContainer.h"
 #include "HostWebGLContext.h"
 #include "WebGLMethodDispatcher.h"
 
-namespace mozilla {
-
-namespace dom {
+namespace mozilla::dom {
 
 mozilla::ipc::IPCResult WebGLParent::RecvInitialize(
     const webgl::InitContextDesc& desc,
@@ -307,5 +306,4 @@ IPCResult WebGLParent::RecvValidateProgram(ObjectId id, bool* const ret) {
   return IPC_OK();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

@@ -6,11 +6,19 @@
 
 #include "MemoryOutputStream.h"
 
+#include "ErrorList.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/MacroForEach.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/fallible.h"
+#include "nsDebug.h"
+#include "nsError.h"
 #include "nsStreamUtils.h"
+#include "nscore.h"
 
-namespace mozilla {
-namespace dom {
-namespace quota {
+class nsIInputStream;
+
+namespace mozilla::dom::quota {
 
 // static
 already_AddRefed<MemoryOutputStream> MemoryOutputStream::Create(
@@ -85,6 +93,4 @@ MemoryOutputStream::IsNonBlocking(bool* _retval) {
   return NS_OK;
 }
 
-}  // namespace quota
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::quota

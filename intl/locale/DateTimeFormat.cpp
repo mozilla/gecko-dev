@@ -73,9 +73,7 @@ nsresult DateTimeFormat::FormatDateTime(
 
   UErrorCode status = U_ZERO_ERROR;
 
-  nsAutoString skeleton;
-  nsAutoString pattern;
-
+  nsAutoCString skeleton;
   switch (aSkeleton) {
     case Skeleton::yyyyMM:
       skeleton.AssignASCII("yyyyMM");
@@ -87,28 +85,11 @@ nsresult DateTimeFormat::FormatDateTime(
       MOZ_ASSERT_UNREACHABLE("Unhandled skeleton enum");
   }
 
-  UDateTimePatternGenerator* patternGenerator =
-      udatpg_open(mLocale->get(), &status);
-  if (U_SUCCESS(status)) {
-    int32_t patternLength;
-    pattern.SetLength(DATETIME_FORMAT_INITIAL_LEN);
-    patternLength = udatpg_getBestPattern(
-        patternGenerator,
-        reinterpret_cast<const UChar*>(skeleton.BeginReading()),
-        skeleton.Length(), reinterpret_cast<UChar*>(pattern.BeginWriting()),
-        DATETIME_FORMAT_INITIAL_LEN, &status);
-    pattern.SetLength(patternLength);
-
-    if (status == U_BUFFER_OVERFLOW_ERROR) {
-      status = U_ZERO_ERROR;
-      udatpg_getBestPattern(
-          patternGenerator,
-          reinterpret_cast<const UChar*>(skeleton.BeginReading()),
-          skeleton.Length(), reinterpret_cast<UChar*>(pattern.BeginWriting()),
-          patternLength, &status);
-    }
+  nsAutoCString str;
+  if (!OSPreferences::GetPatternForSkeleton(skeleton, *mLocale, str)) {
+    return NS_ERROR_FAILURE;
   }
-  udatpg_close(patternGenerator);
+  nsAutoString pattern = NS_ConvertUTF8toUTF16(str);
 
   nsAutoString timeZoneID;
   BuildTimeZoneString(aExplodedTime->tm_params, timeZoneID);
@@ -273,67 +254,44 @@ nsresult DateTimeFormat::FormatUDateTime(
   if (!dateTimeFormat) {
     // We didn't have a cached formatter for this key, so create one.
 
-    // Get the date style for the formatter.
-    nsAutoString patternDate;
+    int32_t dateFormatStyle;
     switch (aDateFormatSelector) {
       case kDateFormatLong:
-        rv = OSPreferences::GetInstance()->GetDateTimePattern(
-            mozIOSPreferences::dateTimeFormatStyleLong,
-            mozIOSPreferences::dateTimeFormatStyleNone,
-            nsDependentCString(mLocale->get()), patternDate);
-        NS_ENSURE_SUCCESS(rv, rv);
+        dateFormatStyle = mozIOSPreferences::dateTimeFormatStyleLong;
         break;
       case kDateFormatShort:
-        rv = OSPreferences::GetInstance()->GetDateTimePattern(
-            mozIOSPreferences::dateTimeFormatStyleShort,
-            mozIOSPreferences::dateTimeFormatStyleNone,
-            nsDependentCString(mLocale->get()), patternDate);
-        NS_ENSURE_SUCCESS(rv, rv);
+        dateFormatStyle = mozIOSPreferences::dateTimeFormatStyleShort;
         break;
       case kDateFormatNone:
+        dateFormatStyle = mozIOSPreferences::dateTimeFormatStyleNone;
         break;
       default:
         NS_ERROR("Unknown nsDateFormatSelector");
         return NS_ERROR_ILLEGAL_VALUE;
     }
 
-    // Get the time style for the formatter.
-    nsAutoString patternTime;
+    int32_t timeFormatStyle;
     switch (aTimeFormatSelector) {
       case kTimeFormatLong:
-        rv = OSPreferences::GetInstance()->GetDateTimePattern(
-            mozIOSPreferences::dateTimeFormatStyleNone,
-            mozIOSPreferences::dateTimeFormatStyleLong,
-            nsDependentCString(mLocale->get()), patternTime);
-        NS_ENSURE_SUCCESS(rv, rv);
+        timeFormatStyle = mozIOSPreferences::dateTimeFormatStyleLong;
         break;
       case kTimeFormatShort:
-        rv = OSPreferences::GetInstance()->GetDateTimePattern(
-            mozIOSPreferences::dateTimeFormatStyleNone,
-            mozIOSPreferences::dateTimeFormatStyleShort,
-            nsDependentCString(mLocale->get()), patternTime);
-        NS_ENSURE_SUCCESS(rv, rv);
+        timeFormatStyle = mozIOSPreferences::dateTimeFormatStyleShort;
         break;
       case kTimeFormatNone:
+        timeFormatStyle = mozIOSPreferences::dateTimeFormatStyleNone;
         break;
       default:
-        NS_ERROR("Unknown nsTimeFormatSelector");
+        NS_ERROR("Unknown nsDateFormatSelector");
         return NS_ERROR_ILLEGAL_VALUE;
     }
 
-    nsAutoString pattern;
-    if (patternTime.Length() == 0) {
-      pattern.Assign(patternDate);
-    } else if (patternDate.Length() == 0) {
-      pattern.Assign(patternTime);
-    } else {
-      OSPreferences::GetDateTimeConnectorPattern(
-          nsDependentCString(mLocale->get()), pattern);
-      int32_t index = pattern.Find("{1}");
-      if (index != kNotFound) pattern.Replace(index, 3, patternDate);
-      index = pattern.Find("{0}");
-      if (index != kNotFound) pattern.Replace(index, 3, patternTime);
-    }
+    nsAutoCString str;
+    rv = OSPreferences::GetInstance()->GetDateTimePattern(
+        dateFormatStyle, timeFormatStyle, nsDependentCString(mLocale->get()),
+        str);
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsAutoString pattern = NS_ConvertUTF8toUTF16(str);
 
     if (aTimeParameters) {
       nsAutoString timeZoneID;

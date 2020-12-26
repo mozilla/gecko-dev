@@ -57,8 +57,9 @@ def kill(pid, signal):
 
 
 def get_status_code(url, playback):
-    response = requests.get(url=url,
-                            proxies={"http": "http://%s:%s/" % (playback.host, playback.port)})
+    response = requests.get(
+        url=url, proxies={"http": "http://%s:%s/" % (playback.host, playback.port)}
+    )
     return response.status_code
 
 
@@ -68,8 +69,8 @@ def test_mitm_check_proxy(*args):
 
     config = {
         "playback_tool": "mitmproxy",
-        "playback_pageset_manifest": os.path.join(here, "files", pageset_name),
-        "playback_version": '5.1.1',
+        "playback_files": [os.path.join(here, "files", pageset_name)],
+        "playback_version": "5.1.1",
         "platform": mozinfo.os,
         "run_local": "MOZ_AUTOMATION" not in os.environ,
         "binary": "firefox",
@@ -103,8 +104,8 @@ def test_mitm(*args):
 
     config = {
         "playback_tool": "mitmproxy",
-        "playback_pageset_manifest": pageset_name,
-        "playback_version": '5.1.1',
+        "playback_files": [pageset_name],
+        "playback_version": "5.1.1",
         "platform": mozinfo.os,
         "run_local": True,
         "binary": "firefox",
@@ -140,8 +141,8 @@ def test_playback_setup_failed(*args):
 
     config = {
         "playback_tool": "mitmproxy",
-        "playback_pageset_manifest": pageset_name,
-        "playback_version": '4.0.4',
+        "playback_files": [pageset_name],
+        "playback_version": "4.0.4",
         "platform": mozinfo.os,
         "run_local": True,
         "binary": "firefox",
@@ -149,7 +150,7 @@ def test_playback_setup_failed(*args):
         "host": "example.com",
     }
 
-    prefix = "mozproxy.backends.mitm.MitmproxyDesktop."
+    prefix = "mozproxy.backends.mitm.desktop.MitmproxyDesktop."
 
     with tempdir() as obj_path:
         config["obj_path"] = obj_path
@@ -173,8 +174,8 @@ def test_mitm_with_retry(*args):
 
     config = {
         "playback_tool": "mitmproxy",
-        "playback_pageset_manifest": pageset_name,
-        "playback_version": '5.1.1',
+        "playback_files": [pageset_name],
+        "playback_version": "5.1.1",
         "platform": mozinfo.os,
         "run_local": True,
         "binary": "firefox",

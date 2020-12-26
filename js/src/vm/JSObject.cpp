@@ -37,6 +37,7 @@
 #include "jit/BaselineJIT.h"
 #include "js/CharacterEncoding.h"
 #include "js/friend/DumpFunctions.h"  // js::DumpObject
+#include "js/friend/ErrorMessages.h"  // JSErrNum, js::GetErrorMessage, JSMSG_*
 #include "js/friend/WindowProxy.h"    // js::IsWindow, js::ToWindowProxyIfWindow
 #include "js/MemoryMetrics.h"
 #include "js/PropertyDescriptor.h"  // JS::FromPropertyDescriptor
@@ -683,7 +684,7 @@ bool js::TestIntegrityLevel(JSContext* cx, HandleObject obj,
     // Typed array elements are non-configurable, writable properties, so
     // if any elements are present, the typed array cannot be frozen.
     if (nobj->is<TypedArrayObject>() &&
-        nobj->as<TypedArrayObject>().length() > 0 &&
+        nobj->as<TypedArrayObject>().length().get() > 0 &&
         level == IntegrityLevel::Frozen) {
       *result = false;
       return true;
@@ -1506,7 +1507,7 @@ bool NativeObject::fillInAfterSwap(JSContext* cx, HandleNativeObject obj,
     obj->setDictionaryModeSlotSpan(oldDictionarySlotSpan);
   }
 
-  obj->initSlotRange(0, values.begin(), values.length());
+  obj->initSlots(values.begin(), values.length());
 
   return true;
 }
@@ -2368,10 +2369,12 @@ bool js::LookupOwnPropertyPure(JSContext* cx, JSObject* obj, jsid id,
   if (obj->isNative()) {
     // Search for a native dense element, typed array element, or property.
 
-    if (JSID_IS_INT(id) &&
-        obj->as<NativeObject>().containsDenseElement(JSID_TO_INT(id))) {
-      propp->setDenseOrTypedArrayElement();
-      return true;
+    if (JSID_IS_INT(id)) {
+      uint32_t index = JSID_TO_INT(id);
+      if (obj->as<NativeObject>().containsDenseElement(index)) {
+        propp->setDenseElement(index);
+        return true;
+      }
     }
 
     if (obj->is<TypedArrayObject>()) {
@@ -2382,8 +2385,8 @@ bool js::LookupOwnPropertyPure(JSContext* cx, JSObject* obj, jsid id,
       }
 
       if (index.inspect()) {
-        if (index.inspect().value() < obj->as<TypedArrayObject>().length()) {
-          propp->setDenseOrTypedArrayElement();
+        if (index.inspect().value() < obj->as<TypedArrayObject>().length().get()) {
+          propp->setTypedArrayElement(index.inspect().value());
         } else {
           propp->setNotFound();
           if (isTypedArrayOutOfRange) {
@@ -2420,13 +2423,13 @@ bool js::LookupOwnPropertyPure(JSContext* cx, JSObject* obj, jsid id,
 static inline bool NativeGetPureInline(NativeObject* pobj, jsid id,
                                        PropertyResult prop, Value* vp,
                                        JSContext* cx) {
-  if (prop.isDenseOrTypedArrayElement()) {
-    // For simplicity we ignore the TypedArray with string index case.
-    if (!JSID_IS_INT(id)) {
-      return false;
-    }
-
-    return pobj->getDenseOrTypedArrayElement<NoGC>(cx, JSID_TO_INT(id), vp);
+  if (prop.isDenseElement()) {
+    *vp = pobj->getDenseElement(prop.denseElementIndex());
+    return true;
+  }
+  if (prop.isTypedArrayElement()) {
+    size_t idx = prop.typedArrayElementIndex();
+    return pobj->as<TypedArrayObject>().getElement<NoGC>(cx, idx, vp);
   }
 
   // Fail if we have a custom getter.
@@ -2476,7 +2479,9 @@ bool js::GetOwnPropertyPure(JSContext* cx, JSObject* obj, jsid id, Value* vp,
 
 static inline bool NativeGetGetterPureInline(PropertyResult prop,
                                              JSFunction** fp) {
-  if (!prop.isDenseOrTypedArrayElement() && prop.shape()->hasGetterObject()) {
+  MOZ_ASSERT(prop.isNativeProperty());
+
+  if (prop.shape()->hasGetterObject()) {
     Shape* shape = prop.shape();
     if (shape->getterObject()->is<JSFunction>()) {
       *fp = &shape->getterObject()->as<JSFunction>();
@@ -2530,8 +2535,7 @@ bool js::GetOwnNativeGetterPure(JSContext* cx, JSObject* obj, jsid id,
     return false;
   }
 
-  if (!prop || prop.isDenseOrTypedArrayElement() ||
-      !prop.shape()->hasGetterObject()) {
+  if (!prop || !prop.isNativeProperty() || !prop.shape()->hasGetterObject()) {
     return true;
   }
 
@@ -2556,8 +2560,7 @@ bool js::HasOwnDataPropertyPure(JSContext* cx, JSObject* obj, jsid id,
     return false;
   }
 
-  *result = prop && !prop.isDenseOrTypedArrayElement() &&
-            prop.shape()->isDataProperty();
+  *result = prop && prop.isNativeProperty() && prop.shape()->isDataProperty();
   return true;
 }
 
@@ -3836,7 +3839,7 @@ js::gc::AllocKind JSObject::allocKindForTenure(
   if (is<TypedArrayObject>() && !as<TypedArrayObject>().hasBuffer()) {
     gc::AllocKind allocKind;
     if (as<TypedArrayObject>().hasInlineElements()) {
-      size_t nbytes = as<TypedArrayObject>().byteLength();
+      size_t nbytes = as<TypedArrayObject>().byteLength().get();
       allocKind = TypedArrayObject::AllocKindForLazyBuffer(nbytes);
     } else {
       allocKind = GetGCObjectKind(getClass());
@@ -3919,13 +3922,14 @@ void JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
   } else if (is<WeakCollectionObject>()) {
     info->objectsMallocHeapMisc +=
         as<WeakCollectionObject>().sizeOfExcludingThis(mallocSizeOf);
-#ifdef JS_HAS_CTYPES
-  } else {
-    // This must be the last case.
-    info->objectsMallocHeapMisc +=
-        js::SizeOfDataIfCDataObject(mallocSizeOf, const_cast<JSObject*>(this));
-#endif
   }
+#ifdef JS_HAS_CTYPES
+  else {
+    // This must be the last case.
+    info->objectsMallocHeapMisc += ctypes::SizeOfDataIfCDataObject(
+        mallocSizeOf, const_cast<JSObject*>(this));
+  }
+#endif
 }
 
 size_t JSObject::sizeOfIncludingThisInNursery() const {

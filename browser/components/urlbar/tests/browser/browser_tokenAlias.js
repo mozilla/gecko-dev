@@ -16,6 +16,12 @@ const TEST_SPACES = [" ", "\u3000", " \u3000", "\u3000 "];
 
 let testEngine;
 
+// Allow more time for Mac machines so they don't time out in verify mode.  See
+// bug 1673062.
+if (AppConstants.platform == "macosx") {
+  requestLongerTimeout(5);
+}
+
 add_task(async function init() {
   // This test requires update2.  See also browser_tokenAlias_legacy.js.
   await SpecialPowers.pushPrefEnv({
@@ -541,6 +547,53 @@ add_task(async function rightEntersSearchMode() {
   );
 });
 
+// Pressing Tab when an @ alias is autofilled should enter search mode preview.
+add_task(async function rightEntersSearchMode() {
+  for (let value of [ALIAS.substring(0, ALIAS.length - 1), ALIAS]) {
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value,
+      selectionStart: value.length,
+      selectionEnd: value.length,
+    });
+
+    Assert.equal(
+      UrlbarTestUtils.getSelectedRowIndex(window),
+      -1,
+      "There is no selected result."
+    );
+
+    EventUtils.synthesizeKey("KEY_Tab");
+    Assert.equal(
+      UrlbarTestUtils.getSelectedRowIndex(window),
+      0,
+      "The first result is selected."
+    );
+
+    await UrlbarTestUtils.assertSearchMode(window, {
+      engineName: testEngine.name,
+      entry: "keywordoffer",
+      isPreview: true,
+    });
+    Assert.equal(gURLBar.value, "", "value should be empty");
+
+    let searchPromise = UrlbarTestUtils.promiseSearchComplete(window);
+    EventUtils.synthesizeKey("KEY_Enter");
+    await searchPromise;
+
+    await UrlbarTestUtils.assertSearchMode(window, {
+      engineName: testEngine.name,
+      entry: "keywordoffer",
+      isPreview: false,
+    });
+    await UrlbarTestUtils.exitSearchMode(window);
+  }
+
+  await UrlbarTestUtils.promisePopupClose(window, () =>
+    EventUtils.synthesizeKey("KEY_Escape")
+  );
+});
+
 /**
  * This test checks that if an engine is marked as hidden then
  * it should not appear in the popup when using the "@" token alias in the search bar.
@@ -645,6 +698,118 @@ add_task(async function nonPrefixedKeyword() {
   );
 
   await Services.search.removeEngine(engine);
+});
+
+// Tests that we show all engines with a token alias that match the search
+// string.
+add_task(async function multipleMatchingEngines() {
+  let testEngineFoo = await Services.search.addEngineWithDetails("TestFoo", {
+    alias: `${ALIAS}foo`,
+    template: "http://example-2.com/?search={searchTerms}",
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "@te",
+    fireInputEvent: true,
+  });
+
+  Assert.equal(
+    UrlbarTestUtils.getResultCount(window),
+    2,
+    "Two results are shown."
+  );
+  Assert.equal(
+    UrlbarTestUtils.getSelectedRowIndex(window),
+    -1,
+    "Neither result is selected."
+  );
+  let result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+  Assert.ok(result.autofill, "The first result is autofilling.");
+  Assert.equal(
+    result.searchParams.keyword,
+    ALIAS,
+    "The autofilled engine is shown first."
+  );
+
+  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
+  Assert.equal(
+    result.searchParams.keyword,
+    `${ALIAS}foo`,
+    "The other engine is shown second."
+  );
+
+  EventUtils.synthesizeKey("KEY_Tab");
+  Assert.equal(UrlbarTestUtils.getSelectedRowIndex(window), 0);
+  Assert.equal(gURLBar.value, "", "Urlbar should be empty.");
+  EventUtils.synthesizeKey("KEY_Tab");
+  Assert.equal(UrlbarTestUtils.getSelectedRowIndex(window), 1);
+  Assert.equal(gURLBar.value, "", "Urlbar should be empty.");
+  EventUtils.synthesizeKey("KEY_Tab");
+  Assert.equal(
+    UrlbarTestUtils.getSelectedRowIndex(window),
+    -1,
+    "Tabbing all the way through the matching engines should return to the input."
+  );
+  Assert.equal(
+    gURLBar.value,
+    "@te",
+    "Urlbar should contain the search string."
+  );
+
+  await Services.search.removeEngine(testEngineFoo);
+});
+
+// Tests that UrlbarProviderTokenAliasEngines is disabled in search mode.
+add_task(async function doNotShowInSearchMode() {
+  // Do a search for "@" to show all the @ aliases.
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "@",
+  });
+
+  // Find our test engine in the results.  It's probably last, but for
+  // robustness don't assume it is.
+  let testEngineItem;
+  for (let i = 0; !testEngineItem; i++) {
+    let details = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
+    if (details.searchParams && details.searchParams.keyword == ALIAS) {
+      testEngineItem = await UrlbarTestUtils.waitForAutocompleteResultAt(
+        window,
+        i
+      );
+    }
+  }
+
+  Assert.equal(
+    testEngineItem.result.payload.keyword,
+    ALIAS,
+    "Sanity check: we found our engine."
+  );
+
+  // Click it.
+  let searchPromise = UrlbarTestUtils.promiseSearchComplete(window);
+  EventUtils.synthesizeMouseAtCenter(testEngineItem, {});
+  await searchPromise;
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: testEngineItem.result.payload.engine,
+    entry: "keywordoffer",
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "@",
+    fireInputEvent: true,
+  });
+
+  let resultCount = UrlbarTestUtils.getResultCount(window);
+  for (let i = 0; i < resultCount; i++) {
+    let result = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
+    Assert.ok(
+      !result.searchParams.keyword,
+      `Result at index ${i} is not a keywordoffer.`
+    );
+  }
 });
 
 async function assertFirstResultIsAlias(isAlias, expectedAlias) {

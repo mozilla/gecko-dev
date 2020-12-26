@@ -120,6 +120,7 @@ def is_bad_port(port):
         532,   # netnews
         540,   # uucp
         548,   # afp
+        554,   # rtsp
         556,   # remotefs
         563,   # nntp+ssl
         587,   # smtp (outgoing)
@@ -127,9 +128,13 @@ def is_bad_port(port):
         636,   # ldap+ssl
         993,   # ldap+ssl
         995,   # pop3+ssl
+        1720,  # h323hostcall
+        1723,  # pptp
         2049,  # nfs
         3659,  # apple-sasl
         4045,  # lockd
+        5060,  # sip
+        5061,  # sips
         6000,  # x11
         6665,  # irc (alternate)
         6666,  # irc (alternate)
@@ -152,8 +157,9 @@ def get_port(host=''):
     return port
 
 def http2_compatible():
-    # Currently, the HTTP/2.0 server is only working in python 2.7.10+ and OpenSSL 1.0.2+
+    # Currently, the HTTP/2.0 server is only working in python 2.7.10+ or 3.6+ and OpenSSL 1.0.2+
     import ssl
     ssl_v = ssl.OPENSSL_VERSION_INFO
-    return ((sys.version_info[0] == 2 and sys.version_info[1] == 7 and sys.version_info[2] >= 10) and
-            (ssl_v[0] == 1 and (ssl_v[1] == 1 or (ssl_v[1] == 0 and ssl_v[2] >= 2))))
+    py_v = sys.version_info
+    return (((py_v[0] == 2 and py_v[1] == 7 and py_v[2] >= 10) or (py_v[0] == 3 and py_v[1] >= 6)) and
+        (ssl_v[0] == 1 and (ssl_v[1] == 1 or (ssl_v[1] == 0 and ssl_v[2] >= 2))))

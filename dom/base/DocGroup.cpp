@@ -47,7 +47,9 @@ class LabellingEventTarget final : public nsISerialEventTarget,
 
   explicit LabellingEventTarget(mozilla::dom::DocGroup* aDocGroup)
       : mDocGroup(aDocGroup),
-        mMainThread(static_cast<nsThread*>(GetMainThreadSerialEventTarget())) {}
+        mMainThread(
+            static_cast<nsThread*>(mozilla::GetMainThreadSerialEventTarget())) {
+  }
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIEVENTTARGET_FULL
@@ -116,8 +118,7 @@ NS_IMETHODIMP LabellingEventTarget::HaveDirectTasks(bool* aValue) {
 NS_IMPL_ISUPPORTS(LabellingEventTarget, nsIEventTarget, nsISerialEventTarget,
                   nsIDirectTaskDispatcher)
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 AutoTArray<RefPtr<DocGroup>, 2>* DocGroup::sPendingDocGroups = nullptr;
 
@@ -398,5 +399,4 @@ bool DocGroup::IsActive() const {
   return false;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

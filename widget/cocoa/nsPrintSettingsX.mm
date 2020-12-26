@@ -150,10 +150,11 @@ struct KnownMonochromeSetting {
   const NSString* mValue;
 };
 
-#define DECLARE_KNOWN_MONOCHROME_SETTING(key_, value_) {@key_, @value_},
+#define DECLARE_KNOWN_MONOCHROME_SETTING(key_, value_) \
+  { @key_, @value_ }                                   \
+  ,
 static const KnownMonochromeSetting kKnownMonochromeSettings[] = {
-  CUPS_EACH_MONOCHROME_PRINTER_SETTING(DECLARE_KNOWN_MONOCHROME_SETTING)
-};
+    CUPS_EACH_MONOCHROME_PRINTER_SETTING(DECLARE_KNOWN_MONOCHROME_SETTING)};
 #undef DECLARE_KNOWN_MONOCHROME_SETTING
 
 void nsPrintSettingsX::SetPMPageFormat(PMPageFormat aPageFormat) {
@@ -220,13 +221,21 @@ NSPrintInfo* nsPrintSettingsX::CreateOrCopyPrintInfo(bool aWithScaling) {
   // if the caller explicitly asked for it.
   [printInfo setScalingFactor:CGFloat(aWithScaling ? mScaling : 1.0f)];
 
-  BOOL allPages = mPrintRange == nsIPrintSettings::kRangeAllPages ? YES : NO;
+  const bool allPages = mPageRanges.IsEmpty();
 
   NSMutableDictionary* dict = [printInfo dictionary];
   [dict setObject:[NSNumber numberWithInt:mNumCopies] forKey:NSPrintCopies];
   [dict setObject:[NSNumber numberWithBool:allPages] forKey:NSPrintAllPages];
-  [dict setObject:[NSNumber numberWithInt:mStartPageNum] forKey:NSPrintFirstPage];
-  [dict setObject:[NSNumber numberWithInt:mEndPageNum] forKey:NSPrintLastPage];
+
+  int32_t start = 1;
+  int32_t end = 1;
+  for (size_t i = 0; i < mPageRanges.Length(); i += 2) {
+    start = std::min(start, mPageRanges[i]);
+    end = std::max(end, mPageRanges[i + 1]);
+  }
+
+  [dict setObject:[NSNumber numberWithInt:start] forKey:NSPrintFirstPage];
+  [dict setObject:[NSNumber numberWithInt:end] forKey:NSPrintLastPage];
 
   NSURL* jobSavingURL = nullptr;
   if (!mToFileName.IsEmpty()) {
@@ -286,6 +295,11 @@ NSPrintInfo* nsPrintSettingsX::CreateOrCopyPrintInfo(bool aWithScaling) {
     for (const auto& setting : kKnownMonochromeSettings) {
       [printSettings setObject:setting.mValue forKey:setting.mName];
     }
+    auto applySetting = [&](const nsACString& aKey, const nsACString& aValue) {
+      [printSettings setObject:nsCocoaUtils::ToNSString(aValue)
+                        forKey:nsCocoaUtils::ToNSString(aKey)];
+    };
+    nsPrinterCUPS::ForEachExtraMonochromeSetting(applySetting);
   }
 
   return printInfo;
@@ -358,11 +372,11 @@ void nsPrintSettingsX::SetFromPrintInfo(NSPrintInfo* aPrintInfo, bool aAdoptPrin
   nsCocoaUtils::GetStringForNSString([aPrintInfo jobDisposition], mDisposition);
 
   mNumCopies = [[dict objectForKey:NSPrintCopies] intValue];
-  mPrintRange = [[dict objectForKey:NSPrintAllPages] boolValue]
-                    ? nsIPrintSettings::kRangeAllPages
-                    : nsIPrintSettings::kRangeSpecifiedPageRange;
-  mStartPageNum = [[dict objectForKey:NSPrintFirstPage] intValue];
-  mEndPageNum = [[dict objectForKey:NSPrintLastPage] intValue];
+  mPageRanges.Clear();
+  if (![[dict objectForKey:NSPrintAllPages] boolValue]) {
+    mPageRanges.AppendElement([[dict objectForKey:NSPrintFirstPage] intValue]);
+    mPageRanges.AppendElement([[dict objectForKey:NSPrintLastPage] intValue]);
+  }
 
   NSDictionary* printSettings = [aPrintInfo printSettings];
   NSNumber* value = [printSettings objectForKey:@"com_apple_print_PrintSettings_PMDuplexing"];

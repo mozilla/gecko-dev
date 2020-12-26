@@ -9,7 +9,9 @@
 #include "nsIURIMutator.h"
 #include "nsThreadUtils.h"
 #include "WebAuthnCoseIdentifiers.h"
+#include "mozilla/dom/AuthenticatorAssertionResponse.h"
 #include "mozilla/dom/AuthenticatorAttestationResponse.h"
+#include "mozilla/dom/PublicKeyCredential.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PWebAuthnTransaction.h"
 #include "mozilla/dom/WebAuthnManager.h"
@@ -17,6 +19,7 @@
 #include "mozilla/dom/WebAuthnUtil.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
+#include "authenticator/src/u2fhid-capi.h"
 
 #ifdef OS_WIN
 #  include "WinWebAuthnManager.h"
@@ -39,15 +42,17 @@ NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(WebAuthnManager,
                                                WebAuthnManagerBase)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(WebAuthnManager)
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WebAuthnManager,
                                                 WebAuthnManagerBase)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mFollowingSignal)
+  AbortFollower::Unlink(static_cast<AbortFollower*>(tmp));
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTransaction)
   tmp->mTransaction.reset();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(WebAuthnManager,
                                                   WebAuthnManagerBase)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFollowingSignal)
+  AbortFollower::Traverse(static_cast<AbortFollower*>(tmp), cb);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTransaction)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -826,7 +831,9 @@ void WebAuthnManager::RequestAborted(const uint64_t& aTransactionId,
   }
 }
 
-void WebAuthnManager::Abort() { CancelTransaction(NS_ERROR_DOM_ABORT_ERR); }
+void WebAuthnManager::RunAbortAlgorithm() {
+  CancelTransaction(NS_ERROR_DOM_ABORT_ERR);
+}
 
 }  // namespace dom
 }  // namespace mozilla

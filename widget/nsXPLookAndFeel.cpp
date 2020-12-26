@@ -98,6 +98,7 @@ nsLookAndFeelIntPref nsXPLookAndFeel::sIntPrefs[] = {
      6 /* fine and hover-capable pointer, i.e. mouse-type */},
     {"ui.allPointerCapabilities", IntID::AllPointerCapabilities, false,
      6 /* fine and hover-capable pointer, i.e. mouse-type */},
+    {"ui.scrollArrowStyle", IntID::ScrollArrowStyle, false, 0},
 };
 
 nsLookAndFeelFloatPref nsXPLookAndFeel::sFloatPrefs[] = {
@@ -294,7 +295,8 @@ void nsXPLookAndFeel::IntPrefChanged(nsLookAndFeelIntPref* data) {
 #endif
   }
 
-  NotifyChangedAllWindows();
+  // Int prefs can't change our system colors or fonts.
+  NotifyChangedAllWindows(widget::ThemeChangeKind::MediaQueriesOnly);
 }
 
 // static
@@ -320,7 +322,8 @@ void nsXPLookAndFeel::FloatPrefChanged(nsLookAndFeelFloatPref* data) {
 #endif
   }
 
-  NotifyChangedAllWindows();
+  // Float prefs can't change our system colors or fonts.
+  NotifyChangedAllWindows(widget::ThemeChangeKind::MediaQueriesOnly);
 }
 
 // static
@@ -354,7 +357,8 @@ void nsXPLookAndFeel::ColorPrefChanged(unsigned int index,
 #endif
   }
 
-  NotifyChangedAllWindows();
+  // Color prefs affect style, because they by definition change system colors.
+  NotifyChangedAllWindows(widget::ThemeChangeKind::Style);
 }
 
 void nsXPLookAndFeel::InitFromPref(nsLookAndFeelIntPref* aPref) {
@@ -464,7 +468,7 @@ void nsXPLookAndFeel::Init() {
     LookAndFeel::SetCache(cc->BorrowLookAndFeelCache());
     // This is only ever used once during initialization, and can be cleared
     // now.
-    cc->BorrowLookAndFeelCache().Clear();
+    cc->BorrowLookAndFeelCache() = LookAndFeelCache{};
   }
 }
 
@@ -1005,7 +1009,9 @@ void nsXPLookAndFeel::RefreshImpl() {
   }
 }
 
-LookAndFeelCache nsXPLookAndFeel::GetCacheImpl() { return LookAndFeelCache{}; }
+widget::LookAndFeelCache nsXPLookAndFeel::GetCacheImpl() {
+  return LookAndFeelCache{};
+}
 
 static bool sRecordedLookAndFeelTelemetry = false;
 
@@ -1031,9 +1037,10 @@ void nsXPLookAndFeel::RecordTelemetry() {
 namespace mozilla {
 
 // static
-void LookAndFeel::NotifyChangedAllWindows() {
+void LookAndFeel::NotifyChangedAllWindows(widget::ThemeChangeKind aKind) {
   if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
-    obs->NotifyObservers(nullptr, "look-and-feel-changed", nullptr);
+    obs->NotifyObservers(nullptr, "look-and-feel-changed",
+                         reinterpret_cast<char16_t*>(uintptr_t(aKind)));
   }
 }
 
@@ -1092,12 +1099,12 @@ void LookAndFeel::Refresh() { nsLookAndFeel::GetInstance()->RefreshImpl(); }
 void LookAndFeel::NativeInit() { nsLookAndFeel::GetInstance()->NativeInit(); }
 
 // static
-LookAndFeelCache LookAndFeel::GetCache() {
+widget::LookAndFeelCache LookAndFeel::GetCache() {
   return nsLookAndFeel::GetInstance()->GetCacheImpl();
 }
 
 // static
-void LookAndFeel::SetCache(const LookAndFeelCache& aCache) {
+void LookAndFeel::SetCache(const widget::LookAndFeelCache& aCache) {
   nsLookAndFeel::GetInstance()->SetCacheImpl(aCache);
 }
 

@@ -277,9 +277,6 @@ bool AntiTrackingUtils::CheckStoragePermission(nsIPrincipal* aPrincipal,
 
   int32_t cookieBehavior = cookieJarSettings->GetCookieBehavior();
 
-  bool rejectForeignWithExceptions =
-      net::CookieJarSettings::IsRejectThirdPartyWithExceptions(cookieBehavior);
-
   // We only need to check the storage permission if the cookie behavior is
   // BEHAVIOR_REJECT_TRACKER, BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN or
   // BEHAVIOR_REJECT_FOREIGN with exceptions. Because ContentBlocking wouldn't
@@ -295,11 +292,7 @@ bool AntiTrackingUtils::CheckStoragePermission(nsIPrincipal* aPrincipal,
     return false;
   }
 
-  uint64_t targetWindowId =
-      (cookieBehavior == nsICookieService::BEHAVIOR_REJECT_TRACKER ||
-       rejectForeignWithExceptions)
-          ? GetTopLevelStorageAreaWindowId(bc)
-          : GetTopLevelAntiTrackingWindowId(bc);
+  uint64_t targetWindowId = GetTopLevelAntiTrackingWindowId(bc);
   nsCOMPtr<nsIPrincipal> targetPrincipal;
 
   if (targetWindowId) {
@@ -344,7 +337,7 @@ bool AntiTrackingUtils::CheckStoragePermission(nsIPrincipal* aPrincipal,
   }
 
   nsAutoCString targetOrigin;
-  if (NS_WARN_IF(NS_FAILED(targetPrincipal->GetAsciiOrigin(targetOrigin)))) {
+  if (NS_FAILED(targetPrincipal->GetAsciiOrigin(targetOrigin))) {
     return false;
   }
 
@@ -480,23 +473,6 @@ bool AntiTrackingUtils::GetPrincipalAndTrackingOrigin(
 
   return true;
 };
-
-/* static */
-bool AntiTrackingUtils::IsFirstLevelSubContext(
-    BrowsingContext* aBrowsingContext) {
-  MOZ_ASSERT(aBrowsingContext);
-
-  RefPtr<BrowsingContext> parentBC = aBrowsingContext->GetParent();
-
-  if (!parentBC) {
-    // No parent means it is the top.
-    return false;
-  }
-
-  // We can know if it is first-level sub context by checking whether the
-  // parent is the top.
-  return parentBC->IsTopContent();
-}
 
 /* static */
 uint32_t AntiTrackingUtils::GetCookieBehavior(

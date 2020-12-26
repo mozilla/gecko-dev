@@ -87,6 +87,7 @@ class ABIArgGenerator {
   ABIArg next(MIRType argType);
   ABIArg& current() { return current_; }
   uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
+  void increaseStackOffset(uint32_t bytes) { stackOffset_ += bytes; }
 };
 
 // These registers may be volatile or nonvolatile.
@@ -462,12 +463,6 @@ class Assembler : public AssemblerX86Shared {
     MOZ_ASSERT(src.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
     masm.vhaddpd_rr(src.encoding(), dest.encoding());
-  }
-  void vsubpd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
-    MOZ_ASSERT(HasSSE2());
-    MOZ_ASSERT(src0.size() == 16);
-    MOZ_ASSERT(dest.size() == 16);
-    masm.vsubpd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
 
   void fild(const Operand& src) {

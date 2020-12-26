@@ -89,6 +89,7 @@ struct LoadInfoArgs
   bool                        blockAllMixedContent;
   bool                        upgradeInsecureRequests;
   bool                        browserUpgradeInsecureRequests;
+  bool                        browserDidUpgradeInsecureRequests;
   bool                        browserWouldUpgradeInsecureRequests;
   bool                        forceAllowDataURI;
   bool                        allowInsecureRedirectToDataURI;
@@ -137,7 +138,6 @@ struct LoadInfoArgs
   bool                        loadTriggeredFromExternal;
   bool                        serviceWorkerTaintingSynthesized;
   bool                        documentHasUserInteracted;
-  bool                        documentHasLoaded;
   bool allowListFutureDocumentsCreatedFromThisRedirectChain;
   nsString                    cspNonce;
   bool                        skipContentSniffing;
@@ -213,7 +213,6 @@ struct ParentLoadInfoForwarderArgs
   bool serviceWorkerTaintingSynthesized;
 
   bool documentHasUserInteracted;
-  bool documentHasLoaded;
   bool allowListFutureDocumentsCreatedFromThisRedirectChain;
 
   CookieJarSettingsArgs? cookieJarSettings;
@@ -288,6 +287,7 @@ struct HttpChannelOpenArgs
   bool                        chooseApplicationCache;
   nsCString                   appCacheClientID;
   bool                        allowSpdy;
+  bool                        allowHttp3;
   bool                        allowAltSvc;
   bool                        beConservative;
   uint32_t                    tlsFlags;

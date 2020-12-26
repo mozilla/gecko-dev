@@ -7,80 +7,12 @@
 #define WEBGPU_TYPES_H_
 
 #include <cstdint>
-#include "nsTArray.h"
-#include "mozilla/Maybe.h"
-#include "mozilla/webgpu/ffi/wgpu.h"
 
 namespace mozilla {
 namespace webgpu {
 
 typedef uint64_t RawId;
 typedef uint64_t BufferAddress;
-
-struct SerialBindGroupLayoutDescriptor {
-  nsCString mLabel;
-  nsTArray<ffi::WGPUBindGroupLayoutEntry> mEntries;
-};
-
-struct SerialPipelineLayoutDescriptor {
-  nsTArray<RawId> mBindGroupLayouts;
-};
-
-enum class SerialBindGroupEntryType : uint8_t {
-  Buffer,
-  Texture,
-  Sampler,
-  EndGuard_
-};
-
-struct SerialBindGroupEntry {
-  uint32_t mBinding;
-  SerialBindGroupEntryType mType;
-  RawId mValue;
-  BufferAddress mBufferOffset;
-  BufferAddress mBufferSize;
-};
-
-struct SerialBindGroupDescriptor {
-  nsCString mLabel;
-  RawId mLayout;
-  nsTArray<SerialBindGroupEntry> mEntries;
-};
-
-struct SerialProgrammableStageDescriptor {
-  RawId mModule;
-  nsString mEntryPoint;
-};
-
-struct SerialComputePipelineDescriptor {
-  RawId mLayout;
-  SerialProgrammableStageDescriptor mComputeStage;
-};
-
-struct SerialVertexBufferLayoutDescriptor {
-  ffi::WGPUBufferAddress mArrayStride;
-  ffi::WGPUInputStepMode mStepMode;
-  nsTArray<ffi::WGPUVertexAttributeDescriptor> mAttributes;
-};
-
-struct SerialVertexStateDescriptor {
-  ffi::WGPUIndexFormat mIndexFormat;
-  nsTArray<SerialVertexBufferLayoutDescriptor> mVertexBuffers;
-};
-
-struct SerialRenderPipelineDescriptor {
-  RawId mLayout;
-  SerialProgrammableStageDescriptor mVertexStage;
-  SerialProgrammableStageDescriptor mFragmentStage;
-  ffi::WGPUPrimitiveTopology mPrimitiveTopology;
-  Maybe<ffi::WGPURasterizationStateDescriptor> mRasterizationState;
-  nsTArray<ffi::WGPUColorStateDescriptor> mColorStates;
-  Maybe<ffi::WGPUDepthStencilStateDescriptor> mDepthStencilState;
-  SerialVertexStateDescriptor mVertexState;
-  uint32_t mSampleCount;
-  uint32_t mSampleMask;
-  bool mAlphaToCoverageEnabled;
-};
 
 }  // namespace webgpu
 }  // namespace mozilla

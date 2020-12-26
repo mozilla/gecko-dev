@@ -35,6 +35,7 @@
 #include "mozilla/dom/RemoteWorkerChild.h"
 #include "mozilla/dom/RemoteWorkerControllerChild.h"
 #include "mozilla/dom/RemoteWorkerServiceChild.h"
+#include "mozilla/dom/ServiceWorkerChild.h"
 #include "mozilla/dom/SharedWorkerChild.h"
 #include "mozilla/dom/StorageIPC.h"
 #include "mozilla/dom/GamepadEventChannelChild.h"
@@ -42,6 +43,7 @@
 #include "mozilla/dom/LocalStorage.h"
 #include "mozilla/dom/MessagePortChild.h"
 #include "mozilla/dom/ServiceWorkerActors.h"
+#include "mozilla/dom/ServiceWorkerContainerChild.h"
 #include "mozilla/dom/ServiceWorkerManagerChild.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/ipc/IPCStreamAlloc.h"
@@ -282,7 +284,7 @@ bool BackgroundChildImpl::DeallocPBackgroundLSSimpleRequestChild(
 
 BackgroundChildImpl::PBackgroundStorageChild*
 BackgroundChildImpl::AllocPBackgroundStorageChild(
-    const nsString& aProfilePath) {
+    const nsString& aProfilePath, const uint32_t& aPrivateBrowsingId) {
   MOZ_CRASH("PBackgroundStorageChild actors should be manually constructed!");
 }
 
@@ -639,35 +641,23 @@ bool BackgroundChildImpl::DeallocPWebAuthnTransactionChild(
   return true;
 }
 
-PServiceWorkerChild* BackgroundChildImpl::AllocPServiceWorkerChild(
+already_AddRefed<PServiceWorkerChild>
+BackgroundChildImpl::AllocPServiceWorkerChild(
     const IPCServiceWorkerDescriptor&) {
-  return dom::AllocServiceWorkerChild();
+  MOZ_CRASH("Shouldn't be called.");
+  return {};
 }
 
-bool BackgroundChildImpl::DeallocPServiceWorkerChild(
-    PServiceWorkerChild* aActor) {
-  return dom::DeallocServiceWorkerChild(aActor);
-}
-
-PServiceWorkerContainerChild*
+already_AddRefed<PServiceWorkerContainerChild>
 BackgroundChildImpl::AllocPServiceWorkerContainerChild() {
-  return dom::AllocServiceWorkerContainerChild();
+  return mozilla::dom::ServiceWorkerContainerChild::Create();
 }
 
-bool BackgroundChildImpl::DeallocPServiceWorkerContainerChild(
-    PServiceWorkerContainerChild* aActor) {
-  return dom::DeallocServiceWorkerContainerChild(aActor);
-}
-
-PServiceWorkerRegistrationChild*
+already_AddRefed<PServiceWorkerRegistrationChild>
 BackgroundChildImpl::AllocPServiceWorkerRegistrationChild(
     const IPCServiceWorkerRegistrationDescriptor&) {
-  return dom::AllocServiceWorkerRegistrationChild();
-}
-
-bool BackgroundChildImpl::DeallocPServiceWorkerRegistrationChild(
-    PServiceWorkerRegistrationChild* aActor) {
-  return dom::DeallocServiceWorkerRegistrationChild(aActor);
+  MOZ_CRASH("Shouldn't be called.");
+  return {};
 }
 
 dom::PEndpointForReportChild* BackgroundChildImpl::AllocPEndpointForReportChild(

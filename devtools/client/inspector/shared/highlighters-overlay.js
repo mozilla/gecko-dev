@@ -68,10 +68,6 @@ const TYPES = {
  * It makes it difficult to do project-wide searches for exact matches.
  */
 const HIGHLIGHTER_EVENTS = {
-  [TYPES.BOXMODEL]: {
-    shown: "box-model-highlighter-shown",
-    hidden: "box-model-highlighter-hidden",
-  },
   [TYPES.GRID]: {
     shown: "grid-highlighter-shown",
     hidden: "grid-highlighter-hidden",
@@ -452,17 +448,6 @@ class HighlightersOverlay {
       this.emit(HIGHLIGHTER_EVENTS[type].hidden, nodeFront);
     }
     this.emit("highlighter-hidden", { type, ...data });
-  }
-
-  async canGetParentGridNode() {
-    if (this._canGetParentGridNode === undefined) {
-      this._canGetParentGridNode = await this.target.actorHasMethod(
-        "domwalker",
-        "getParentGridNode"
-      );
-    }
-
-    return this._canGetParentGridNode;
   }
 
   /**
@@ -863,7 +848,7 @@ class HighlightersOverlay {
       await this.hideGridHighlighter(node);
     }
 
-    if (node.displayType === "subgrid" && (await this.canGetParentGridNode())) {
+    if (node.displayType === "subgrid") {
       // Show a translucent highlight of the parent grid container if the given node is
       // a subgrid and the parent grid container is not highlighted.
       const parentGridNode = await this.walker.getParentGridNode(node);
@@ -1800,7 +1785,6 @@ class HighlightersOverlay {
 
     this.subgridToParentMap.clear();
 
-    this._canGetParentGridNode = null;
     this._lastHovered = null;
 
     this.inspector = null;

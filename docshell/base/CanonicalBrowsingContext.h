@@ -10,6 +10,7 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MediaControlKeySource.h"
 #include "mozilla/dom/BrowsingContextWebProgress.h"
+#include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/MozPromise.h"
 #include "nsCycleCollectionParticipant.h"
@@ -128,7 +129,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // See BrowsingContext::SetActiveSessionHistoryEntry.
   void SetActiveSessionHistoryEntry(const Maybe<nsPoint>& aPreviousScrollPos,
                                     SessionHistoryInfo* aInfo,
-                                    uint32_t aLoadType, int32_t aChildOffset,
+                                    uint32_t aLoadType,
                                     uint32_t aUpdatedCacheKey,
                                     const nsID& aChangeID);
 
@@ -138,7 +139,9 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   void RemoveFromSessionHistory();
 
-  void HistoryGo(int32_t aIndex, std::function<void(int32_t&&)>&& aResolver);
+  void HistoryGo(int32_t aIndex, uint64_t aHistoryEpoch,
+                 Maybe<ContentParentId> aContentId,
+                 std::function<void(int32_t&&)>&& aResolver);
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;

@@ -22,6 +22,7 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
+#include "mozilla/widget/ThemeChangeKind.h"
 #include "nsColor.h"
 #include "nsCompatibility.h"
 #include "nsCoord.h"
@@ -82,6 +83,7 @@ class PresShell;
 class RestyleManager;
 class StaticPresData;
 struct MediaFeatureChange;
+enum class MediaFeatureChangePropagation : uint8_t;
 namespace layers {
 class ContainerLayer;
 class LayerManager;
@@ -283,23 +285,15 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
 
   void ContentLanguageChanged();
 
-  enum class RecurseIntoInProcessSubDocuments : bool { No, Yes };
+  /** Returns whether any media query changed. */
+  bool FlushPendingMediaFeatureValuesChanged();
 
   /**
-   * Handle changes in the values of media features (used in media queries).
+   * Schedule a media feature change for this document, and potentially for
+   * other subdocuments and images (depending on the arguments).
    */
-  void MediaFeatureValuesChanged(const mozilla::MediaFeatureChange& aChange);
-
-  void FlushPendingMediaFeatureValuesChanged();
-
-  /**
-   * Calls MediaFeatureValuesChanged for this pres context and all descendant
-   * subdocuments that have a pres context. This should be used for media
-   * features that must be updated in all subdocuments e.g. display-mode.
-   */
-  void MediaFeatureValuesChangedAllDocuments(
-      const mozilla::MediaFeatureChange&,
-      RecurseIntoInProcessSubDocuments = RecurseIntoInProcessSubDocuments::Yes);
+  void MediaFeatureValuesChanged(const mozilla::MediaFeatureChange&,
+                                 mozilla::MediaFeatureChangePropagation);
 
   /**
    * Updates the size mode on all remote children and recursively notifies this
@@ -796,7 +790,7 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
    * Classic). Otherwise, the OS is telling us that the native theme for the
    * platform has changed.
    */
-  void ThemeChanged();
+  void ThemeChanged(mozilla::widget::ThemeChangeKind);
 
   /*
    * Notify the pres context that the resolution of the user interface has
@@ -1030,6 +1024,9 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   void NotifyContentfulPaint();
   void NotifyPaintStatusReset();
   void NotifyDOMContentFlushed();
+
+  bool HasEverBuiltInvisibleText() const { return mHasEverBuiltInvisibleText; }
+  void SetBuiltInvisibleText() { mHasEverBuiltInvisibleText = true; }
 
   bool UsesExChUnits() const { return mUsesExChUnits; }
 
@@ -1271,8 +1268,14 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   bool mInflationDisabledForShrinkWrap;
 
  protected:
+  static constexpr size_t kThemeChangeKindBits = 2;
+  static_assert(unsigned(mozilla::widget::ThemeChangeKind::AllBits) <=
+                    (1u << kThemeChangeKindBits) - 1,
+                "theme change kind doesn't fit");
+
   unsigned mInteractionTimeEnabled : 1;
   unsigned mHasPendingInterrupt : 1;
+  unsigned mHasEverBuiltInvisibleText : 1;
   unsigned mPendingInterruptFromTest : 1;
   unsigned mInterruptsEnabled : 1;
   unsigned mSendAfterPaintToContent : 1;
@@ -1286,6 +1289,8 @@ class nsPresContext : public nsISupports, public mozilla::SupportsWeakPtr {
   unsigned mPrefBidiDirection : 1;
   unsigned mPrefScrollbarSide : 2;
   unsigned mPendingThemeChanged : 1;
+  // widget::ThemeChangeKind
+  unsigned mPendingThemeChangeKind : kThemeChangeKindBits;
   unsigned mPendingUIResolutionChanged : 1;
   unsigned mPostedPrefChangedRunnable : 1;
 

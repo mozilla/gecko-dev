@@ -6,12 +6,12 @@
 
 #include "FlexLineValues.h"
 
+#include "Flex.h"
 #include "FlexItemValues.h"
 #include "mozilla/dom/FlexBinding.h"
 #include "nsFlexContainerFrame.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(FlexLineValues, mParent, mItems)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(FlexLineValues)
@@ -70,5 +70,4 @@ void FlexLineValues::GetItems(nsTArray<RefPtr<FlexItemValues>>& aResult) {
   aResult.AppendElements(mItems);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

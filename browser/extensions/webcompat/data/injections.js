@@ -196,20 +196,6 @@ const AVAILABLE_INJECTIONS = [
     },
   },
   {
-    id: "bug1577297",
-    platform: "android",
-    domain: "kitkat.com.au",
-    bug: "1577297",
-    contentScripts: {
-      matches: ["*://*.kitkat.com.au/*"],
-      css: [
-        {
-          file: "injections/css/bug1577297-kitkat.com.au-slider-width-fix.css",
-        },
-      ],
-    },
-  },
-  {
     id: "bug1605611",
     platform: "android",
     domain: "maps.google.com",
@@ -424,6 +410,20 @@ const AVAILABLE_INJECTIONS = [
       css: [
         {
           file: "injections/css/bug1666771-zilow-map-overdraw.css",
+        },
+      ],
+    },
+  },
+  {
+    id: "bug1682238",
+    platform: "desktop",
+    domain: "gamearter.com",
+    bug: "1682238",
+    contentScripts: {
+      matches: ["*://*.gamearter.com/*"],
+      js: [
+        {
+          file: "injections/js/bug1682238-gamearter.com-ua-change.js",
         },
       ],
     },

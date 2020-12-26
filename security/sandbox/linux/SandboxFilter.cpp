@@ -299,7 +299,15 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
 
     if (fd != AT_FDCWD && (flags & AT_EMPTY_PATH) != 0 &&
         strcmp(path, "") == 0) {
-      return ConvertError(fstatsyscall(fd, buf));
+#ifdef __NR_fstat64
+      return DoSyscall(__NR_fstat64, fd, buf);
+#else
+      return DoSyscall(__NR_fstat, fd, buf);
+#endif
+    }
+
+    if (!broker) {
+      return BlockedSyscallTrap(aArgs, nullptr);
     }
 
     if (fd != AT_FDCWD && path[0] != '/') {
@@ -547,7 +555,7 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
     // If a file broker client was provided, route syscalls to it;
     // otherwise, fall through to the main policy, which will deny
     // them.
-    if (mBroker != nullptr) {
+    if (mBroker) {
       switch (sysno) {
 #ifdef __NR_open
         case __NR_open:
@@ -599,6 +607,13 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
           return Trap(UnlinkAtTrap, mBroker);
         case __NR_readlinkat:
           return Trap(ReadlinkAtTrap, mBroker);
+      }
+    } else {
+      // In the absence of a broker we still need to handle the
+      // fstat-equivalent subset of fstatat; see bug 1673770.
+      switch (sysno) {
+      CASES_FOR_fstatat:
+        return Trap(StatAtTrap, nullptr);
       }
     }
 
@@ -691,6 +706,9 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
       CASES_FOR_lseek:
         return Allow();
 
+      CASES_FOR_getdents:
+        return Allow();
+
       CASES_FOR_ftruncate:
       case __NR_fallocate:
         return mMayCreateShmem ? Allow() : InvalidSyscall();
@@ -702,6 +720,10 @@ class SandboxPolicyCommon : public SandboxPolicyBase {
         // Memory mapping
       CASES_FOR_mmap:
       case __NR_munmap:
+        return Allow();
+
+        // Shared memory
+      case __NR_memfd_create:
         return Allow();
 
         // ipc::Shmem; also, glibc when creating threads:
@@ -1222,7 +1244,6 @@ class ContentSandboxPolicy : public SandboxPolicyCommon {
       CASES_FOR_select:
         return Allow();
 
-      CASES_FOR_getdents:
       case __NR_writev:
 #ifdef DESKTOP
       case __NR_pwrite64:
@@ -1394,11 +1415,6 @@ class ContentSandboxPolicy : public SandboxPolicyCommon {
 
       case __NR_eventfd2:
         return Allow();
-
-#  ifdef __NR_memfd_create
-      case __NR_memfd_create:
-        return Allow();
-#  endif
 
 #  ifdef __NR_rt_tgsigqueueinfo
         // Only allow to send signals within the process.

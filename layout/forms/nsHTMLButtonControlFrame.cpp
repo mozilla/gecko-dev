@@ -133,7 +133,7 @@ nscoord nsHTMLButtonControlFrame::GetMinISize(gfxContext* aRenderingContext) {
   } else {
     nsIFrame* kid = mFrames.FirstChild();
     result = nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
-                                                  nsLayoutUtils::MIN_ISIZE);
+                                                  IntrinsicISizeType::MinISize);
   }
   return result;
 }
@@ -145,8 +145,8 @@ nscoord nsHTMLButtonControlFrame::GetPrefISize(gfxContext* aRenderingContext) {
     result = 0;
   } else {
     nsIFrame* kid = mFrames.FirstChild();
-    result = nsLayoutUtils::IntrinsicForContainer(aRenderingContext, kid,
-                                                  nsLayoutUtils::PREF_ISIZE);
+    result = nsLayoutUtils::IntrinsicForContainer(
+        aRenderingContext, kid, IntrinsicISizeType::PrefISize);
   }
   return result;
 }
@@ -208,7 +208,8 @@ void nsHTMLButtonControlFrame::ReflowButtonContents(
   availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
 
   // shorthand for a value we need to use in a bunch of places
-  const LogicalMargin& clbp = aButtonReflowInput.ComputedLogicalBorderPadding();
+  const LogicalMargin& clbp =
+      aButtonReflowInput.ComputedLogicalBorderPadding(wm);
 
   LogicalPoint childPos(wm);
   childPos.I(wm) = clbp.IStart(wm);

@@ -10,9 +10,6 @@ attrs==19.1.0 \
     --hash=sha256:69c0dbf2ed392de1cb5ec704444b08a5ef81680a61cb899dc08127123af36a79 \
     --hash=sha256:f0b870f674851ecbfbbbd364d6b5cbdff9dcedbc7f3f5e18a6891057f21fe399 \
     # via -r requirements-mach-vendor-python.in, jsonschema, mozilla-version, pytest
-biplist==1.0.3 \
-    --hash=sha256:4c0549764c5fe50b28042ec21aa2e14fe1a2224e239a1dae77d9e7f3932aa4c6 \
-    # via -r requirements-mach-vendor-python.in
 blessings==1.7 \
     --hash=sha256:98e5854d805f50a5b58ac2333411b0482516a8210f23f43308baeb58d77c157d \
     --hash=sha256:b1fdd7e7a675295630f9ae71527a8ebc10bfefa236b3d6aa4932ee4462c17ba3 \
@@ -90,9 +87,9 @@ fluent.syntax==0.18.1 \
     --hash=sha256:0e63679fa4f1b3042565220a5127b4bab842424f07d6a13c12299e3b3835486a \
     --hash=sha256:3a55f5e605d1b029a65cc8b6492c86ec4608e15447e73db1495de11fd46c104f \
     # via -r requirements-mach-vendor-python.in, compare-locales, fluent.migrate
-glean_parser==1.28.5 \
-    --hash=sha256:29ac33298898e0fd607163b704d68f598c1d118c5056852246d621ec26f973bb \
-    --hash=sha256:330e045fd8410f661e8e4a67edc8ab4a125996381e5519c40ca98b34b9dc5ec8 \
+glean_parser==1.29.0 \
+    --hash=sha256:7cf1b02ef87fad57bf0f6b9711a98c1fd8f89c9df702245d16c09bf1b042a255 \
+    --hash=sha256:df7436e164148594176ec55f7d7c3c5c944daca67c3cc30428514628625b214b \
     # via -r requirements-mach-vendor-python.in
 jinja2==2.11.2 \
     --hash=sha256:89aab215427ef59c34ad58735269eb58b1a5808103067f7bb9d5836c651b3bb0 \

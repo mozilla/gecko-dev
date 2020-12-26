@@ -7,19 +7,18 @@
 #include "FetchObserver.h"
 #include "mozilla/dom/Event.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(FetchObserver)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(FetchObserver,
                                                   DOMEventTargetHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFollowingSignal)
+  AbortFollower::Traverse(static_cast<AbortFollower*>(tmp), cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(FetchObserver,
                                                 DOMEventTargetHelper)
-  tmp->Unfollow();
+  AbortFollower::Unlink(static_cast<AbortFollower*>(tmp));
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FetchObserver)
@@ -43,7 +42,7 @@ JSObject* FetchObserver::WrapObject(JSContext* aCx,
 
 FetchState FetchObserver::State() const { return mState; }
 
-void FetchObserver::Abort() { SetState(FetchState::Aborted); }
+void FetchObserver::RunAbortAlgorithm() { SetState(FetchState::Aborted); }
 
 void FetchObserver::SetState(FetchState aState) {
   MOZ_ASSERT(mState < aState);
@@ -78,5 +77,4 @@ void FetchObserver::SetState(FetchState aState) {
   DispatchEvent(*event);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

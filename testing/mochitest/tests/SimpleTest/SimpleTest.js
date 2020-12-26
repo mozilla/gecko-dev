@@ -1440,6 +1440,11 @@ SimpleTest.timeout = async function() {
   SimpleTest._timeoutFunctions = [];
 };
 
+SimpleTest.finishWithFailure = function(msg) {
+  SimpleTest.ok(false, msg);
+  SimpleTest.finish();
+};
+
 /**
  * Finishes the tests. This is automatically called, except when
  * SimpleTest.waitForExplicitFinish() has been invoked.
@@ -2136,9 +2141,7 @@ function getAndroidSdk() {
       var versionString = nav.userAgent.includes("Android")
         ? "version"
         : "sdk_version";
-      gAndroidSdk = SpecialPowers.Cc["@mozilla.org/system-info;1"]
-        .getService(SpecialPowers.Ci.nsIPropertyBag2)
-        .getProperty(versionString);
+      gAndroidSdk = SpecialPowers.Services.sysinfo.getProperty(versionString);
     }
     document.documentElement.removeChild(iframe);
   }

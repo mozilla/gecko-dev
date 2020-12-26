@@ -193,6 +193,7 @@ add_task(async function test_determineNonSyncableGuids() {
     { uri: "https://www.mozilla.org/en-US/", transition: TRANSITION_TYPED },
     { uri: "http://getfirefox.com/", transition: TRANSITION_LINK },
     { uri: "http://getthunderbird.com/", transition: TRANSITION_FRAMED_LINK },
+    { uri: "http://downloads.com/", transition: TRANSITION_DOWNLOAD },
   ];
   for (let visit of arrayOfVisits) {
     await PlacesTestUtils.addVisits(visit);
@@ -212,9 +213,10 @@ add_task(async function test_determineNonSyncableGuids() {
     guids
   );
 
+  let filtered = [TRANSITION_FRAMED_LINK, TRANSITION_DOWNLOAD];
   // Check if the filtered visits are of type TRANSITION_FRAMED_LINK.
   for (let visit of arrayOfVisits) {
-    if (visit.transition === TRANSITION_FRAMED_LINK) {
+    if (filtered.includes(visit.transition)) {
       ok(
         filteredGuids.includes(dictURLGuid[visit.uri]),
         "This url should be one of the filtered guids."
@@ -441,6 +443,32 @@ add_task(async function test_getAllURLs() {
       "The urls retrieved should match the ones used in this test."
     );
   }
+
+  // Remove the visits added during this test.
+  await PlacesUtils.history.clear();
+});
+
+add_task(async function test_getAllURLs_skips_downloads() {
+  // Add some visits of the following URLs.
+  let arrayOfURLsToVisit = [
+    "https://www.mozilla.org/en-US/",
+    { uri: "http://downloads.com/", transition: TRANSITION_DOWNLOAD },
+  ];
+  for (let url of arrayOfURLsToVisit) {
+    await PlacesTestUtils.addVisits(url);
+  }
+
+  // Get all URLs.
+  let allURLs = await PlacesSyncUtils.history.getAllURLs({
+    since: new Date(Date.now() - 2592000000),
+    limit: 5000,
+  });
+
+  // Should be only the non-download
+  equal(allURLs.length, 1, "Should only get one URL back.");
+
+  // Check that the correct URLs were retrived.
+  equal(allURLs[0], arrayOfURLsToVisit[0], "Should get back our non-download.");
 
   // Remove the visits added during this test.
   await PlacesUtils.history.clear();
@@ -1071,286 +1099,6 @@ add_task(async function test_insert_tag_query() {
     [],
     "Should remove tag folder once last item is untagged"
   );
-
-  await PlacesUtils.bookmarks.eraseEverything();
-  await PlacesSyncUtils.bookmarks.reset();
-});
-
-add_task(async function test_insert_orphans() {
-  await ignoreChangedRoots();
-
-  let grandParentGuid = makeGuid();
-  let parentGuid = makeGuid();
-  let childGuid = makeGuid();
-  let childId;
-
-  info("Insert an orphaned child");
-  {
-    let child = await PlacesSyncUtils.test.bookmarks.insert({
-      kind: "bookmark",
-      parentRecordId: parentGuid,
-      recordId: childGuid,
-      url: "https://mozilla.org",
-    });
-    equal(
-      child.recordId,
-      childGuid,
-      "Should insert orphan with requested GUID"
-    );
-    equal(child.parentRecordId, "unfiled", "Should reparent orphan to unfiled");
-
-    childId = await PlacesUtils.promiseItemId(childGuid);
-    equal(
-      PlacesUtils.annotations.getItemAnnotation(childId, SYNC_PARENT_ANNO),
-      parentGuid,
-      "Should set anno to missing parent GUID"
-    );
-  }
-
-  info("Insert the grandparent");
-  await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "folder",
-    parentRecordId: "menu",
-    recordId: grandParentGuid,
-  });
-  equal(
-    PlacesUtils.annotations.getItemAnnotation(childId, SYNC_PARENT_ANNO),
-    parentGuid,
-    "Child should still have orphan anno"
-  );
-
-  info("Insert the missing parent");
-  {
-    let parent = await PlacesSyncUtils.test.bookmarks.insert({
-      kind: "folder",
-      parentRecordId: grandParentGuid,
-      recordId: parentGuid,
-    });
-    equal(
-      parent.recordId,
-      parentGuid,
-      "Should insert parent with requested GUID"
-    );
-    equal(
-      parent.parentRecordId,
-      grandParentGuid,
-      "Parent should be child of grandparent"
-    );
-    ok(
-      !PlacesUtils.annotations.itemHasAnnotation(childId, SYNC_PARENT_ANNO),
-      "Orphan anno should be removed after reparenting"
-    );
-
-    let child = await PlacesUtils.bookmarks.fetch({ guid: childGuid });
-    equal(
-      child.parentGuid,
-      parentGuid,
-      "Should reparent child after inserting missing parent"
-    );
-  }
-
-  await PlacesUtils.bookmarks.eraseEverything();
-  await PlacesSyncUtils.bookmarks.reset();
-});
-
-add_task(async function test_move_orphans() {
-  let nonexistentRecordId = makeGuid();
-  let fxBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getfirefox.com",
-  });
-  let tbBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getthunderbird.com",
-  });
-
-  info("Verify synced orphan annos match");
-  {
-    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
-      SYNC_PARENT_ANNO,
-      nonexistentRecordId
-    );
-    deepEqual(
-      orphanGuids.sort(),
-      [fxBmk.recordId, tbBmk.recordId].sort(),
-      "Orphaned bookmarks should match before moving"
-    );
-  }
-
-  info("Move synced orphan using async API");
-  {
-    await PlacesUtils.bookmarks.update({
-      guid: fxBmk.recordId,
-      parentGuid: PlacesUtils.bookmarks.menuGuid,
-      index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-    });
-    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
-      SYNC_PARENT_ANNO,
-      nonexistentRecordId
-    );
-    deepEqual(
-      orphanGuids,
-      [tbBmk.recordId],
-      "Should remove orphan annos from updated bookmark"
-    );
-  }
-
-  await PlacesUtils.bookmarks.eraseEverything();
-  await PlacesSyncUtils.bookmarks.reset();
-});
-
-add_task(async function test_reorder_orphans() {
-  let nonexistentRecordId = makeGuid();
-  let fxBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getfirefox.com",
-  });
-  let tbBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getthunderbird.com",
-  });
-  let mozBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "https://mozilla.org",
-  });
-
-  info("Verify synced orphan annos match");
-  {
-    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
-      SYNC_PARENT_ANNO,
-      nonexistentRecordId
-    );
-    deepEqual(
-      orphanGuids.sort(),
-      [fxBmk.recordId, tbBmk.recordId, mozBmk.recordId].sort(),
-      "Orphaned bookmarks should match before reordering"
-    );
-  }
-
-  info("Reorder synced orphans");
-  {
-    await PlacesUtils.bookmarks.reorder(PlacesUtils.bookmarks.unfiledGuid, [
-      tbBmk.recordId,
-      fxBmk.recordId,
-    ]);
-    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
-      SYNC_PARENT_ANNO,
-      nonexistentRecordId
-    );
-    deepEqual(
-      orphanGuids,
-      [mozBmk.recordId],
-      "Should remove orphan annos from explicitly reordered bookmarks"
-    );
-  }
-
-  await PlacesUtils.bookmarks.eraseEverything();
-  await PlacesSyncUtils.bookmarks.reset();
-});
-
-add_task(async function test_set_orphan_indices() {
-  let nonexistentRecordId = makeGuid();
-  let fxBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getfirefox.com",
-  });
-  let tbBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getthunderbird.com",
-  });
-
-  info("Verify synced orphan annos match");
-  {
-    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
-      SYNC_PARENT_ANNO,
-      nonexistentRecordId
-    );
-    deepEqual(
-      orphanGuids.sort(),
-      [fxBmk.recordId, tbBmk.recordId].sort(),
-      "Orphaned bookmarks should match before changing indices"
-    );
-  }
-
-  await PlacesUtils.bookmarks.eraseEverything();
-  await PlacesSyncUtils.bookmarks.reset();
-});
-
-add_task(async function test_unsynced_orphans() {
-  let nonexistentRecordId = makeGuid();
-  let newBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getfirefox.com",
-  });
-  let unknownBmk = await PlacesSyncUtils.test.bookmarks.insert({
-    kind: "bookmark",
-    recordId: makeGuid(),
-    parentRecordId: nonexistentRecordId,
-    url: "http://getthunderbird.com",
-  });
-  await PlacesTestUtils.setBookmarkSyncFields(
-    {
-      guid: newBmk.recordId,
-      syncStatus: PlacesUtils.bookmarks.SYNC_STATUS.NEW,
-    },
-    {
-      guid: unknownBmk.recordId,
-      syncStatus: PlacesUtils.bookmarks.SYNC_STATUS.UNKNOWN,
-    }
-  );
-
-  info("Move unsynced orphan");
-  {
-    let unknownGuid = await PlacesSyncUtils.bookmarks.recordIdToGuid(
-      unknownBmk.recordId
-    );
-    await PlacesUtils.bookmarks.update({
-      guid: unknownGuid,
-      parentGuid: PlacesUtils.bookmarks.toolbarGuid,
-      index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-    });
-    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
-      SYNC_PARENT_ANNO,
-      nonexistentRecordId
-    );
-    deepEqual(
-      orphanGuids.sort(),
-      [newBmk.recordId].sort(),
-      "Should remove orphan annos from moved unsynced bookmark"
-    );
-  }
-
-  info("Reorder unsynced orphans");
-  {
-    await PlacesUtils.bookmarks.reorder(PlacesUtils.bookmarks.unfiledGuid, [
-      newBmk.recordId,
-    ]);
-    let orphanGuids = await PlacesSyncUtils.bookmarks.fetchGuidsWithAnno(
-      SYNC_PARENT_ANNO,
-      nonexistentRecordId
-    );
-    deepEqual(
-      orphanGuids,
-      [],
-      "Should remove orphan annos from reordered unsynced bookmarks"
-    );
-  }
 
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesSyncUtils.bookmarks.reset();

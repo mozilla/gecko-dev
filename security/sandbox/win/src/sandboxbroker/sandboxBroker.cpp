@@ -336,10 +336,11 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
     nsModuleHandle moduleHandle(
         ::LoadLibraryExW(aPath, nullptr, LOAD_LIBRARY_AS_DATAFILE));
     if (moduleHandle) {
-      nt::PEHeaders exeImage(moduleHandle.get());
-      if (!!exeImage) {
+      nt::CrossExecTransferManager transferMgr(targetInfo.hProcess,
+                                               moduleHandle);
+      if (!!transferMgr) {
         LauncherVoidResult importsRestored =
-            RestoreImportDirectory(aPath, exeImage, targetInfo.hProcess);
+            RestoreImportDirectory(aPath, transferMgr);
         if (importsRestored.isErr()) {
           RefPtr<DllServices> dllSvc(DllServices::Get());
           dllSvc->HandleLauncherError(
@@ -867,7 +868,7 @@ bool SandboxBroker::SetSecurityLevelForRDDProcess() {
       "SetJobLevel should never fail with these arguments, what happened?");
 
   result = mPolicy->SetTokenLevel(sandbox::USER_RESTRICTED_SAME_ACCESS,
-                                  sandbox::USER_LOCKDOWN);
+                                  sandbox::USER_LIMITED);
   SANDBOX_ENSURE_SUCCESS(
       result,
       "SetTokenLevel should never fail with these arguments, what happened?");
@@ -883,8 +884,7 @@ bool SandboxBroker::SetSecurityLevelForRDDProcess() {
                          "SetIntegrityLevel should never fail with these "
                          "arguments, what happened?");
 
-  result =
-      mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_UNTRUSTED);
+  result = mPolicy->SetDelayedIntegrityLevel(sandbox::INTEGRITY_LEVEL_LOW);
   SANDBOX_ENSURE_SUCCESS(result,
                          "SetDelayedIntegrityLevel should never fail with "
                          "these arguments, what happened?");
@@ -901,13 +901,7 @@ bool SandboxBroker::SetSecurityLevelForRDDProcess() {
   result = mPolicy->SetProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result, "Invalid flags for SetProcessMitigations.");
 
-  if (StaticPrefs::security_sandbox_rdd_win32k_disable()) {
-    result = AddWin32kLockdownPolicy(mPolicy, false);
-    SANDBOX_ENSURE_SUCCESS(result, "Failed to add the win32k lockdown policy");
-  }
-
   mitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
-                sandbox::MITIGATION_DYNAMIC_CODE_DISABLE |
                 sandbox::MITIGATION_DLL_SEARCH_ORDER |
                 sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
 

@@ -1041,7 +1041,8 @@ void nsHttpChannel::SpeculativeConnect() {
       mConnectionInfo, callbacks,
       mCaps & (NS_HTTP_DISALLOW_SPDY | NS_HTTP_TRR_MODE_MASK |
                NS_HTTP_DISABLE_IPV4 | NS_HTTP_DISABLE_IPV6 |
-               NS_HTTP_DISALLOW_HTTP3));
+               NS_HTTP_DISALLOW_HTTP3),
+      gHttpHandler->UseHTTPSRRForSpeculativeConnection());
 }
 
 void nsHttpChannel::DoNotifyListenerCleanup() {
@@ -1240,6 +1241,9 @@ nsresult nsHttpChannel::SetupTransaction() {
 
   if (!mAllowSpdy) {
     mCaps |= NS_HTTP_DISALLOW_SPDY;
+  }
+  if (!mAllowHttp3) {
+    mCaps |= NS_HTTP_DISALLOW_HTTP3;
   }
   if (mBeConservative) {
     mCaps |= NS_HTTP_BE_CONSERVATIVE;
@@ -6638,6 +6642,14 @@ nsresult nsHttpChannel::BeginConnect() {
         this, originAttributes);
   }
 
+  // Adjust mCaps according to our request headers:
+  //  - If "Connection: close" is set as a request header, then do not bother
+  //    trying to establish a keep-alive connection.
+  if (mRequestHead.HasHeaderValue(nsHttp::Connection, "close")) {
+    mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE);
+    mAllowHttp3 = false;
+  }
+
   gHttpHandler->MaybeAddAltSvcForTesting(mURI, mUsername, GetTopWindowOrigin(),
                                          mPrivateBrowsing, IsIsolated(),
                                          mCallbacks, originAttributes);
@@ -6646,9 +6658,12 @@ nsresult nsHttpChannel::BeginConnect() {
       host, port, ""_ns, mUsername, GetTopWindowOrigin(), proxyInfo,
       originAttributes, isHttps);
   bool http2Allowed = !gHttpHandler->IsHttp2Excluded(connInfo);
+  if (!mAllowHttp3) {
+    mCaps |= NS_HTTP_DISALLOW_HTTP3;
+  }
   bool http3Allowed = !mUpgradeProtocolCallback && !mProxyInfo &&
                       !(mCaps & NS_HTTP_BE_CONSERVATIVE) && !mBeConservative &&
-                      !gHttpHandler->IsHttp3Excluded(connInfo);
+                      mAllowHttp3;
 
   // No need to lookup HTTPSSVC record if we already have one.
   mUseHTTPSSVC =
@@ -6749,12 +6764,6 @@ nsresult nsHttpChannel::BeginConnect() {
       (mLoadFlags & VALIDATE_ALWAYS ||
        BYPASS_LOCAL_CACHE(mLoadFlags, mPreferCacheLoadOverBypass)))
     mCaps |= NS_HTTP_REFRESH_DNS;
-
-  // Adjust mCaps according to our request headers:
-  //  - If "Connection: close" is set as a request header, then do not bother
-  //    trying to establish a keep-alive connection.
-  if (mRequestHead.HasHeaderValue(nsHttp::Connection, "close"))
-    mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE);
 
   if (gHttpHandler->CriticalRequestPrioritization()) {
     if (mClassOfService & nsIClassOfService::Leader) {
@@ -6883,7 +6892,7 @@ nsresult nsHttpChannel::MaybeStartDNSPrefetch() {
       mDNSBlockingThenable = mDNSBlockingPromise.Ensure(__func__);
     }
 
-    if (mUseHTTPSSVC) {
+    if (mUseHTTPSSVC || gHttpHandler->UseHTTPSRRForSpeculativeConnection()) {
       rv = mDNSPrefetch->FetchHTTPSSVC(mCaps & NS_HTTP_REFRESH_DNS);
       if (NS_FAILED(rv)) {
         LOG(("  FetchHTTPSSVC failed with 0x%08" PRIx32,
@@ -7468,6 +7477,7 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
     // all of the response headers have been acquired, so we can take
     // ownership of them from the transaction.
     mResponseHead = mTransaction->TakeResponseHead();
+    mSupportsHTTP3 = mTransaction->GetSupportsHTTP3();
     // the response head may be null if the transaction was cancelled.  in
     // which case we just need to call OnStartRequest/OnStopRequest.
     if (mResponseHead) return ProcessResponse();
@@ -7699,6 +7709,16 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
     if (mCaps & NS_HTTP_STICKY_CONNECTION ||
         mTransaction->HasStickyConnection()) {
       transactionWithStickyConn = mTransaction;
+      // Make sure we use the updated caps and connection info from transaction.
+      // We read these values when the transaction is already closed, so there
+      // should be no race.
+      if (mTransaction->Http2Disabled()) {
+        mCaps |= NS_HTTP_DISALLOW_SPDY;
+      }
+      if (mTransaction->Http3Disabled()) {
+        mCaps |= NS_HTTP_DISALLOW_HTTP3;
+      }
+      mConnectionInfo = mTransaction->GetConnInfo();
       LOG(("  transaction %p has sticky connection",
            transactionWithStickyConn.get()));
     }
@@ -7944,6 +7964,45 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
   LOG(("  nsHttpChannel::OnStopRequest ChannelDisposition %d\n",
        chanDisposition));
   Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_DISPOSITION, chanDisposition);
+
+  // If we upgraded because of 'security.mixed_content.upgrade_display_content',
+  // we collect telemetry if the upgrade was a success.
+  if (mLoadInfo->GetBrowserDidUpgradeInsecureRequests()) {
+    bool success = NS_SUCCEEDED(aStatus);
+    nsContentPolicyType type;
+    mLoadInfo->GetInternalContentPolicyType(&type);
+
+    switch (type) {
+      case nsIContentPolicy::TYPE_INTERNAL_IMAGE:
+      case nsIContentPolicy::TYPE_INTERNAL_IMAGE_PRELOAD:
+      case nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON:
+        Telemetry::AccumulateCategorical(
+            success
+                ? Telemetry::LABELS_MIXED_CONTENT_UPGRADE_SUCCESS::ImageSuccess
+                : Telemetry::LABELS_MIXED_CONTENT_UPGRADE_SUCCESS::ImageFailed);
+        break;
+
+      case nsIContentPolicy::TYPE_INTERNAL_VIDEO:
+        Telemetry::AccumulateCategorical(
+            success
+                ? Telemetry::LABELS_MIXED_CONTENT_UPGRADE_SUCCESS::VideoSuccess
+                : Telemetry::LABELS_MIXED_CONTENT_UPGRADE_SUCCESS::VideoFailed);
+        break;
+
+      case nsIContentPolicy::TYPE_INTERNAL_AUDIO:
+      case nsIContentPolicy::TYPE_INTERNAL_TRACK:
+        Telemetry::AccumulateCategorical(
+            success
+                ? Telemetry::LABELS_MIXED_CONTENT_UPGRADE_SUCCESS::AudioSuccess
+                : Telemetry::LABELS_MIXED_CONTENT_UPGRADE_SUCCESS::AudioFailed);
+        break;
+
+      default:
+        // upgrade_display_content only upgrades
+        // audio, video and images.
+        MOZ_ASSERT(false, "Unexpected content type.");
+    }
+  }
 
   // if needed, check cache entry has all data we expect
   if (mCacheEntry && mCachePump && mConcurrentCacheAccess && aContentComplete) {

@@ -1170,15 +1170,13 @@ static bool DecodeFunctionBodyExprs(const ModuleEnvironment& env,
             CHECK(iter.readStore(ValType::V128, 16, &addr, &nothing));
           }
 
-          case uint32_t(SimdOp::V128Load32ZeroExperimental): {
+          case uint32_t(SimdOp::V128Load32Zero): {
             LinearMemoryAddress<Nothing> addr;
-            CHECK_SIMD_EXPERIMENTAL();
             CHECK(iter.readLoadSplat(4, &addr));
           }
 
-          case uint32_t(SimdOp::V128Load64ZeroExperimental): {
+          case uint32_t(SimdOp::V128Load64Zero): {
             LinearMemoryAddress<Nothing> addr;
-            CHECK_SIMD_EXPERIMENTAL();
             CHECK(iter.readLoadSplat(8, &addr));
           }
 
@@ -2011,11 +2009,11 @@ static bool DecodeMemoryLimits(Decoder& d, ModuleEnvironment* env) {
     return false;
   }
 
-  if (memory.initial > MaxMemoryLimitField) {
+  if (memory.initial > MaxMemory32LimitField) {
     return d.fail("initial memory size too big");
   }
 
-  if (memory.maximum && *memory.maximum > MaxMemoryLimitField) {
+  if (memory.maximum && *memory.maximum > MaxMemory32LimitField) {
     return d.fail("maximum memory size too big");
   }
 

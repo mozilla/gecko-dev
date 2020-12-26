@@ -10,12 +10,12 @@
 #include "nsContentUtils.h"
 #include "nsString.h"
 #include "nsIPrincipal.h"
+#include "nsIPaymentActionResponse.h"
 #include "PaymentRequestManager.h"
 #include "PaymentRequestUtils.h"
 #include "PaymentResponse.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 namespace {
 
 /*
@@ -749,5 +749,4 @@ nsresult PaymentRequestManager::ChangePaymentMethod(
   return aRequest->UpdatePaymentMethod(aMethodName, methodDetails);
 }
 
-}  // end of namespace dom
-}  // end of namespace mozilla
+}  // namespace mozilla::dom

@@ -6,14 +6,28 @@
 
 #include "ActorsChild.h"
 
-#include "nsVariant.h"
+// Local includes
 #include "QuotaManagerService.h"
 #include "QuotaRequests.h"
 #include "QuotaResults.h"
 
-namespace mozilla {
-namespace dom {
-namespace quota {
+// Global includes
+#include <new>
+#include <utility>
+#include "mozilla/Assertions.h"
+#include "mozilla/dom/quota/PQuotaRequest.h"
+#include "mozilla/dom/quota/PQuotaUsageRequest.h"
+#include "nsError.h"
+#include "nsID.h"
+#include "nsIEventTarget.h"
+#include "nsIQuotaResults.h"
+#include "nsISupports.h"
+#include "nsIVariant.h"
+#include "nsString.h"
+#include "nsThreadUtils.h"
+#include "nsVariant.h"
+
+namespace mozilla::dom::quota {
 
 /*******************************************************************************
  * QuotaChild
@@ -361,6 +375,4 @@ mozilla::ipc::IPCResult QuotaRequestChild::Recv__delete__(
   return IPC_OK();
 }
 
-}  // namespace quota
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::quota

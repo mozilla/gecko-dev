@@ -538,7 +538,7 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   void SetTestSampleTime(const Maybe<TimeStamp>& aTime);
 
  private:
-  Maybe<TimeStamp> mTestSampleTime;
+  mutable DataMutex<Maybe<TimeStamp>> mTestSampleTime;
 
  public:
   // Represents the results of an APZ hit test.
@@ -563,7 +563,7 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
     // Make it move-only.
     HitTestResult(HitTestResult&&) = default;
     HitTestResult& operator=(HitTestResult&&) = default;
-    Maybe<bool> HandledByRoot() const;
+    Maybe<APZHandledResult> HandledByRoot() const;
   };
 
   /* Some helper functions to find an APZC given some identifying input. These

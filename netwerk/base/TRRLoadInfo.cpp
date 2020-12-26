@@ -239,6 +239,17 @@ TRRLoadInfo::GetBrowserUpgradeInsecureRequests(bool* aResult) {
 }
 
 NS_IMETHODIMP
+TRRLoadInfo::GetBrowserDidUpgradeInsecureRequests(bool* aResult) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::SetBrowserDidUpgradeInsecureRequests(
+    bool aBrowserDidUpgradeInsecureRequests) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 TRRLoadInfo::GetBrowserWouldUpgradeInsecureRequests(bool* aResult) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -462,16 +473,6 @@ TRRLoadInfo::GetDocumentHasUserInteracted(bool* aDocumentHasUserInteracted) {
 
 NS_IMETHODIMP
 TRRLoadInfo::SetDocumentHasUserInteracted(bool aDocumentHasUserInteracted) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TRRLoadInfo::GetDocumentHasLoaded(bool* aDocumentHasLoaded) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-TRRLoadInfo::SetDocumentHasLoaded(bool aDocumentHasLoaded) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

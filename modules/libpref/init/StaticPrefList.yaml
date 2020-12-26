@@ -257,11 +257,6 @@
   value: false
   mirror: always
 
-- name: apz.android.chrome_fling_physics.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 - name: apz.android.chrome_fling_physics.friction
   type: AtomicFloat
   value: 0.015f
@@ -382,19 +377,24 @@
   value: 1.0f
   mirror: always
 
-- name: apz.fling_accel_interval_ms
-  type: RelaxedAtomicInt32
-  value: 500
-  mirror: always
-
 - name: apz.fling_accel_supplemental_mult
   type: AtomicFloat
   value: 1.0f
   mirror: always
 
-- name: apz.fling_accel_min_velocity
+- name: apz.fling_accel_min_fling_velocity
   type: AtomicFloat
   value: 1.5f
+  mirror: always
+
+- name: apz.fling_accel_min_pan_velocity
+  type: AtomicFloat
+  value: 0.8f
+  mirror: always
+
+- name: apz.fling_accel_max_pause_interval_ms
+  type: RelaxedAtomicInt32
+  value: 50
   mirror: always
 
 - name: apz.fling_curve_function_x1
@@ -455,7 +455,7 @@
 # new scrollbar code for desktop zooming
 - name: apz.force_disable_desktop_zooming_scrollbars
   type: RelaxedAtomicBool
-  value: @IS_ANDROID@
+  value: false
   mirror: always
 
 #ifdef MOZ_WIDGET_GTK
@@ -609,7 +609,7 @@
 
 - name: apz.velocity_relevance_time_ms
   type: RelaxedAtomicUint32
-  value: 150
+  value: 100
   mirror: always
 
 - name: apz.windows.force_disable_direct_manipulation
@@ -737,11 +737,7 @@
 
 - name: browser.cache.offline.storage.enable
   type: bool
-#ifdef EARLY_BETA_OR_EARLIER
   value: false
-#else
-  value: true
-#endif
   mirror: always
 
 - name: browser.cache.disk.enable
@@ -1666,7 +1662,34 @@
 # Whether wheel listeners are passive by default.
 - name: dom.event.default_to_passive_wheel_listeners
   type: bool
+  value: true
+  mirror: always
+
+# Whether WheelEvent should return pixels instead of lines for
+# WheelEvent.deltaX/Y/Z, when deltaMode hasn't been checked.
+#
+# Other browsers don't use line deltas and websites forget to check for it, see
+# bug 1392460.
+- name: dom.event.wheel-deltaMode-lines.disabled
+  type: bool
   value: @IS_NIGHTLY_BUILD@
+  mirror: always
+
+# Mostly for debugging. Whether we should do the same as
+# dom.event.wheel-deltaMode-lines.disabled, but unconditionally rather than
+# only when deltaMode hasn't been checked.
+- name: dom.event.wheel-deltaMode-lines.always-disabled
+  type: bool
+  value: false
+  mirror: always
+
+# When dom.event.wheel-deltaMode-lines.disabled is true, this is the lines to
+# pixels multiplier that gets used.
+#
+# The value here is taken from PIXELS_PER_LINE_SCALE from pdf.js.
+- name: dom.event.wheel-deltaMode-lines-to-pixel-scale
+  type: uint32_t
+  value: 30
   mirror: always
 
 #if defined(XP_MACOSX)
@@ -1823,7 +1846,7 @@
 # adaptative version of this.
 - name: dom.image-lazy-loading.root-margin.top
   type: float
-  value: 0
+  value: 300
   mirror: always
 
 - name: dom.image-lazy-loading.root-margin.top.percentage
@@ -1833,7 +1856,7 @@
 
 - name: dom.image-lazy-loading.root-margin.bottom
   type: float
-  value: 0
+  value: 300
   mirror: always
 
 - name: dom.image-lazy-loading.root-margin.bottom.percentage
@@ -1843,7 +1866,7 @@
 
 - name: dom.image-lazy-loading.root-margin.left
   type: float
-  value: 0
+  value: 300
   mirror: always
 
 - name: dom.image-lazy-loading.root-margin.left.percentage
@@ -1853,7 +1876,7 @@
 
 - name: dom.image-lazy-loading.root-margin.right
   type: float
-  value: 0
+  value: 300
   mirror: always
 
 - name: dom.image-lazy-loading.root-margin.right.percentage
@@ -1876,6 +1899,19 @@
 - name: dom.input_events.beforeinput.enabled
   type: bool
   value: @IS_EARLY_BETA_OR_EARLIER@
+  mirror: always
+
+# Whether innerWidth / innerHeight return rounded or fractional sizes.
+#
+# NOTE(emilio): Fractional sizes are not web-compatible, see the regressions
+# from bug 1676843, but we want to expose the fractional sizes (probably in
+# another API) one way or another, see [1], so we're keeping the code for the
+# time being.
+#
+# [1]: https://github.com/w3c/csswg-drafts/issues/5260
+- name: dom.innerSize.rounded
+  type: bool
+  value: true
   mirror: always
 
 # Whether we conform to Input Events Level 1 or Input Events Level 2.
@@ -2040,22 +2076,12 @@
   value: false
   mirror: always
 
-# Is support for InputEvent.data enabled?
-- name: dom.inputevent.data.enabled
+# Whether to allow or disallow web apps to cancel `beforeinput` events caused
+# by MozEditableElement#setUserInput() which is used by autocomplete, autofill
+# and password manager.
+- name: dom.input_event.allow_to_cancel_set_user_input
   type: bool
-  value: true
-  mirror: always
-
-# Is support for InputEvent.dataTransfer enabled?
-- name: dom.inputevent.datatransfer.enabled
-  type: bool
-  value: true
-  mirror: always
-
-# Is support for InputEvent.inputType enabled?
-- name: dom.inputevent.inputtype.enabled
-  type: bool
-  value: true
+  value: false
   mirror: always
 
 # How long a content process can take before closing its IPC channel
@@ -2100,6 +2126,16 @@
 - name: dom.keyboardevent.keypress.set_keycode_and_charcode_to_same_value
   type: bool
   value: true
+  mirror: always
+
+# Whether the LinkStyle.sheet and DocumentOrShadowRoot.styleSheets accessor
+# exposes in-progress-loading stylesheets.
+#
+# Historical behavior is `true`, but other browsers (and also a bit of common
+# sense) match `false`.
+- name: dom.expose-incomplete-stylesheets
+  type: bool
+  value: false
   mirror: always
 
 # Whether the Large-Allocation header is enabled.
@@ -4431,10 +4467,10 @@
 # WebRender is not enabled when there is no GPU process on window when
 # WebRender uses ANGLE. It is for avoiding that WebGL and WebRender use ANGLE
 # at once. But there is a case that we want to enable WebRender for testing.
-#if defined(NIGHTLY_BUILD) && defined(XP_WIN)
+#ifdef XP_WIN
 - name: gfx.webrender.enabled-no-gpu-process-with-angle-win
   type: bool
-  value: false
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: once
 #endif
 
@@ -4649,6 +4685,18 @@
   type: RelaxedAtomicInt32
   value: 512
   mirror: always
+
+# Whether to use the WebRender software backend
+- name: gfx.webrender.software
+  type: bool
+  value: false
+  mirror: once
+
+# Whether to use the D3D11 RenderCompositor when using WebRender software backend
+- name: gfx.webrender.software.d3d11
+  type: bool
+  value: true 
+  mirror: once
 
 # Use vsync events generated by hardware
 - name: gfx.work-around-driver-bugs
@@ -5131,6 +5179,26 @@
   type: bool
   value: true
   mirror: once
+
+- name: javascript.options.wasm_optimizingjit
+  type: bool
+#if defined(MOZ_AARCH64) && !defined(ENABLE_WASM_CRANELIFT)
+  value: false
+#else
+  value: true
+#endif
+  mirror: always
+
+#if defined(ENABLE_WASM_SIMD)
+- name: javascript.options.wasm_simd
+  type: bool
+  #if defined(NIGHTLY_BUILD)
+  value: true
+  #else
+  value: false
+  #endif
+#endif
+  mirror: always
 
 #---------------------------------------------------------------------------
 # Prefs starting with "layers."
@@ -5764,6 +5832,11 @@
   value: -18.5f
   mirror: always
 
+- name: layout.accessiblecaret.transition-duration
+  type: float
+  value: 250.0f
+  mirror: always
+
 # Simulate long tap events to select words. Mainly used in manual testing
 # with mouse.
 - name: layout.accessiblecaret.use_long_tap_injector
@@ -5881,7 +5954,7 @@
 # Whether the `aspect-ratio` in css-sizing-4 is enabled.
 - name: layout.css.aspect-ratio.enabled
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
   rust: true
 
@@ -6038,7 +6111,7 @@
 # Is support for CSS masonry layout enabled?
 - name: layout.css.grid-template-masonry-value.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
   rust: true
 
@@ -6367,16 +6440,6 @@
   value: true
   mirror: always
 
-- name: layout.display-list.retain.verify
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
-- name: layout.display-list.retain.verify.order
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Set the maximum number of modified frames allowed before doing a full
 # display list rebuild.
 - name: layout.display-list.rebuild-frame-limit
@@ -6410,6 +6473,11 @@
 - name: layout.display-list.flatten-transform
   type: RelaxedAtomicBool
   value: true
+  mirror: always
+
+- name: layout.display-list.improve-fragmentation
+  type: RelaxedAtomicBool
+  value: false
   mirror: always
 
 # Are dynamic reflow roots enabled?
@@ -6621,7 +6689,7 @@
 # See https://github.com/w3c/csswg-drafts/issues/3264
 - name: layout.css.is-and-where-better-error-recovery.enabled
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
   rust: true
 
@@ -6726,12 +6794,6 @@
   value: true
   mirror: always
 
-# Whether to disable the mfenced element.
-- name: mathml.mfenced_element.disabled
-  type: bool
-  value: true
-  mirror: always
-
 # Whether to disable legacy names "thin", "thick" and "medium" for the
 # linethickness attribute of the mfrac element.
 - name: mathml.mfrac_linethickness_names.disabled
@@ -6819,13 +6881,24 @@
   mirror: always
 #if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
   value: true
-#elif defined(XP_WIN) && defined(_X86_)
-  value: @IS_EARLY_BETA_OR_EARLIER@
 #elif defined(XP_WIN) && !defined(_ARM64_)
   value: true
 #else
   value: false
 #endif
+
+# Whether or not to pass AUDCLNT_STREAMOPTIONS_RAW when initializing audio
+# streams when using WASAPI.
+# 0 - don't use RAW streams
+# 1 - use RAW streams for input streams only
+# 2 - use RAW streams for output streams only
+# 3 - use RAW streams for input and output streams
+#if defined (XP_WIN)
+- name: media.cubeb.wasapi-raw
+  type: RelaxedAtomicUint32
+  mirror: always
+  value: 1
+#endif // XP_WIN
 
 # ClockDrift desired buffering in milliseconds
 - name: media.clockdrift.buffering
@@ -7028,6 +7101,27 @@
     mirror: always
 #endif
 
+#ifdef XP_MACOSX
+  # These prefs control whether or not a universal build running on
+  # an Apple Silicon machine will attempt to use an x64 Widevine or
+  # OpenH264 plugin. This requires launching the GMP child process
+  # executable in x64 mode. We expect to allow this for Widevine until
+  # an arm64 version of Widevine is made available. We don't expect
+  # to need to allow this for OpenH264.
+  #
+  # Allow a Widevine GMP x64 process to be executed on ARM builds.
+- name: media.gmp-widevinecdm.allow-x64-plugin-on-arm64
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+  # Don't allow an OpenH264 GMP x64 process to be executed on ARM builds.
+- name: media.gmp-gmpopenh264.allow-x64-plugin-on-arm64
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+#endif
+
 # Specifies whether the PDMFactory can create a test decoder that just outputs
 # blank frames/audio instead of actually decoding. The blank decoder works on
 # all platforms.
@@ -7067,6 +7161,59 @@
   value: 5000
   mirror: always
 
+#ifdef MOZ_FFMPEG
+- name: media.rdd-ffmpeg.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+#endif
+
+#ifdef MOZ_FFVPX
+- name: media.rdd-ffvpx.enabled
+  type: RelaxedAtomicBool
+#if defined(XP_WIN) && !defined(_ARM64_)
+  value: @IS_NIGHTLY_BUILD@
+#elif defined(XP_MACOSX)
+  value: @IS_NIGHTLY_BUILD@
+#elif defined(XP_LINUX) && !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false
+#endif
+  mirror: always
+#endif
+
+#ifdef MOZ_WMF
+- name: media.rdd-wmf.enabled
+  type: RelaxedAtomicBool
+#if defined(XP_WIN) && !defined(_ARM64_)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false
+#endif
+  mirror: always
+#endif
+
+#ifdef MOZ_APPLEMEDIA
+- name: media.rdd-applemedia.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+#endif
+
+- name: media.rdd-theora.enabled
+  type: RelaxedAtomicBool
+#if defined(XP_LINUX) && !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#elif defined(XP_WIN) && !defined(_ARM64_)
+  value: @IS_NIGHTLY_BUILD@
+#elif defined(XP_MACOSX)
+  value: @IS_NIGHTLY_BUILD@
+#else
+  value: false
+#endif
+  mirror: always
+
 - name: media.rdd-vorbis.enabled
   type: RelaxedAtomicBool
 #if defined(XP_LINUX) && !defined(ANDROID)
@@ -7075,6 +7222,19 @@
   value: true
 #elif defined(XP_WIN) && !defined(_ARM64_)
   value: true
+#else
+  value: false
+#endif
+  mirror: always
+
+- name: media.rdd-vpx.enabled
+  type: RelaxedAtomicBool
+#if defined(XP_LINUX) && !defined(ANDROID)
+  value: @IS_NIGHTLY_BUILD@
+#elif defined(XP_WIN) && !defined(_ARM64_)
+  value: @IS_NIGHTLY_BUILD@
+#elif defined(XP_MACOSX)
+  value: @IS_NIGHTLY_BUILD@
 #else
   value: false
 #endif
@@ -7147,8 +7307,8 @@
     mirror: always
 
 #ifdef MOZ_WAYLAND
-# Use DMABuf for ffmpeg video textures on Linux
-- name: media.ffmpeg.dmabuf-textures.enabled
+# Disable DMABuf for ffmpeg video textures on Linux
+- name: media.ffmpeg.dmabuf-textures.disabled
   type: RelaxedAtomicBool
   value: false
   mirror: always
@@ -7167,17 +7327,30 @@
 #endif # MOZ_WAYLAND
 #endif  # MOZ_FFMPEG
 
-#ifdef MOZ_FFVPX
 -   name: media.ffvpx.enabled
     type: RelaxedAtomicBool
+#ifdef MOZ_FFVPX
     value: true
+#else
+    value: false
+#endif
     mirror: always
 
 -   name: media.ffvpx.mp3.enabled
     type: RelaxedAtomicBool
+#ifdef MOZ_FFVPX
     value: true
-    mirror: always
+#else
+    value: false
 #endif
+    mirror: always
+
+# Set to true in marionette tests to disable the sanity test
+# which would lead to unnecessary start of the RDD process.
+-   name: media.sanity-test.disabled
+    type: RelaxedAtomicBool
+    value: false
+    mirror: always
 
 #ifdef MOZ_WMF
 
@@ -7635,7 +7808,11 @@
   # acceleration for decoding.
 -   name: media.navigator.mediadatadecoder_vpx_enabled
     type: RelaxedAtomicBool
+#if defined(NIGHTLY_BUILD)
     value: true
+#else
+    value: false
+#endif
     mirror: always
 
   # Use MediaDataDecoder API for H264 in WebRTC. This includes hardware
@@ -7947,7 +8124,7 @@
 # See the full list of values in nsICookieService.idl.
 - name: network.cookie.rejectForeignWithExceptions.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: false
   mirror: always
 
 # Stale threshold for cookies in seconds.
@@ -8150,6 +8327,12 @@
   value: true
   mirror: always
 
+# Set true to allow resolving proxy for localhost
+- name: network.proxy.allow_hijacking_localhost
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Allow CookieJarSettings to be unblocked for channels without a document.
 # This is for testing only.
 - name: network.cookieJarSettings.unblocked_for_testing
@@ -8318,7 +8501,7 @@
 # API instead of PR_GetAddrInfoByName
 - name: network.dns.dns_query_single_label
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 # The proxy type. See nsIProtocolProxyService.idl
@@ -8486,7 +8669,15 @@
 # After this many failed TRR requests in a row, consider TRR borked
 - name: network.trr.max-fails
   type: RelaxedAtomicUint32
-  value: 5
+  value: 15
+  mirror: always
+
+# When the TRR confirmation is set to CONFIRM_FAILED due to many failures in
+# a row, we set a timer to retry. This has an exponential backoff up to
+# 64 seconds.
+- name: network.trr.retry-timeout-ms
+  type: RelaxedAtomicUint32
+  value: 125
   mirror: always
 
 # Retry with no TRR when the response contained only 0.0.0.0 or ::
@@ -8598,6 +8789,15 @@
   value: true
   mirror: always
 
+# Manually enter the NAT64 prefix that will be used if IPv4 is unavailable.
+# The value is formatted as IPv6 with the least significant bits to be dropped.
+# For example, 64:ff9b:: is a common prefix. This will not disable
+# the NAT64 check, although the value of this pref will be prioritized.
+- name: network.connectivity-service.nat64-prefix
+  type: String
+  value: ""
+  mirror: never
+
 # Whether to enable echconfig.
 - name: network.dns.echconfig.enabled
   type: RelaxedAtomicBool
@@ -8625,6 +8825,12 @@
 - name: network.dns.httpssvc.http3_fast_fallback_timeout
   type: RelaxedAtomicUint32
   value: 50
+  mirror: always
+
+# Whether to use https rr for speculative connections.
+- name: network.dns.use_https_rr_for_speculative_connection
+  type: RelaxedAtomicBool
+  value: false
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -9060,6 +9266,14 @@
   value: 1800   # 30 minutes (in seconds)
   mirror: always
 
+# Enable Anti-tracking testing. When it enables, it will notify the observers
+# when user-interaction permission or storage access permission is added. This
+# is for testing only.
+- name: privacy.antitracking.testing
+  type: bool
+  value: false
+  mirror: always
+
 # Enable the heuristic to allow storage access for recent visited pages
 - name: privacy.restrict3rdpartystorage.heuristic.recently_visited
   type: bool
@@ -9174,7 +9388,7 @@
 
 - name: security.bad_cert_domain_error.url_fix_enabled
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 - name: security.csp.enable
@@ -9260,7 +9474,7 @@
 # Pref for mixed display content upgrading (images, audio, video).
 - name: security.mixed_content.upgrade_display_content
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # Whether strict file origin policy is in effect. "False" is traditional.
@@ -9291,13 +9505,6 @@
 -   name: security.sandbox.content.win32k-disable
     type: RelaxedAtomicBool
     value: false
-    mirror: always
-
-  # Controls whether we disable win32k for the processes.
-  # true means that win32k system calls are not permitted.
--   name: security.sandbox.rdd.win32k-disable
-    type: RelaxedAtomicBool
-    value: true
     mirror: always
 
   # Note: win32k is currently _not_ disabled for GMP due to intermittent test

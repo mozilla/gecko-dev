@@ -5,15 +5,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/cache/ManagerId.h"
+
+#include "CacheCommon.h"
+
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "nsIPrincipal.h"
 #include "nsProxyRelease.h"
 #include "mozilla/RefPtr.h"
 #include "nsThreadUtils.h"
 
-namespace mozilla {
-namespace dom {
-namespace cache {
+namespace mozilla::dom::cache {
 
 using mozilla::dom::quota::QuotaManager;
 
@@ -22,17 +23,11 @@ Result<SafeRefPtr<ManagerId>, nsresult> ManagerId::Create(
     nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  // The QuotaManager::GetInfoFromPrincipal() has special logic for system
+  // QuotaManager::GetOriginFromPrincipal() has special logic for system
   // and about: principals.  We need to use the same modified origin in
   // order to interpret calls from QM correctly.
-  nsCString quotaOrigin;
-  nsresult rv = QuotaManager::GetInfoFromPrincipal(aPrincipal,
-                                                   nullptr,  // suffix
-                                                   nullptr,  // group
-                                                   &quotaOrigin);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return Err(rv);
-  }
+  CACHE_TRY_INSPECT(const auto& quotaOrigin,
+                    QuotaManager::GetOriginFromPrincipal(aPrincipal));
 
   return MakeSafeRefPtr<ManagerId>(aPrincipal, quotaOrigin, ConstructorGuard{});
 }
@@ -62,6 +57,4 @@ ManagerId::~ManagerId() {
   NS_ReleaseOnMainThread("ManagerId::mPrincipal", mPrincipal.forget());
 }
 
-}  // namespace cache
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::cache

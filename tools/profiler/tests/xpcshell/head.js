@@ -118,3 +118,125 @@ function expectStackToContain(
 
   Assert.ok(true, message);
 }
+
+/**
+ * @param {Thread} thread
+ * @param {string} filename - The filename used to trigger FileIO.
+ * @returns {InflatedMarkers[]}
+ */
+function getInflatedFileIOMarkers(thread, filename) {
+  const markers = getInflatedMarkerData(thread);
+  return markers.filter(
+    marker =>
+      marker.data?.type === "FileIO" && marker.data?.filename.endsWith(filename)
+  );
+}
+
+/**
+ * Checks properties common to all FileIO markers.
+ *
+ * @param {InflatedMarkers[]} markers
+ * @param {string} filename
+ */
+function checkInflatedFileIOMarkers(markers, filename) {
+  greater(markers.length, 0, "Found some markers");
+
+  // See IOInterposeObserver::Observation::ObservedOperationString
+  const validOperations = new Set([
+    "write",
+    "fsync",
+    "close",
+    "stat",
+    "create/open",
+    "read",
+  ]);
+  const validSources = new Set(["PoisonIOInterposer", "NSPRIOInterposer"]);
+
+  for (const marker of markers) {
+    try {
+      ok(
+        marker.name.startsWith("FileIO"),
+        "Has a marker.name that starts with FileIO"
+      );
+      equal(marker.data.type, "FileIO", "Has a marker.data.type");
+      ok(isIntervalMarker(marker), "All FileIO markers are interval markers");
+      ok(
+        validOperations.has(marker.data.operation),
+        `The markers have a known operation - "${marker.data.operation}"`
+      );
+      ok(
+        validSources.has(marker.data.source),
+        `The FileIO marker has a known source "${marker.data.source}"`
+      );
+      ok(marker.data.filename.endsWith(filename));
+      ok(Boolean(marker.data.stack), "A stack was collected");
+    } catch (error) {
+      console.error("Failing inflated FileIO marker:", marker);
+      throw error;
+    }
+  }
+}
+
+/**
+ * Do deep equality checks for schema, but then surface nice errors for a user to know
+ * what to do if the check fails.
+ */
+function checkSchema(actual, expected) {
+  const schemaName = expected.name;
+  info(`Checking marker schema for "${schemaName}"`);
+
+  try {
+    ok(
+      actual,
+      `Schema was found for "${schemaName}". See the test output for more information.`
+    );
+    // Check individual properties to surface easier to debug errors.
+    deepEqual(
+      expected.display,
+      actual.display,
+      `The "display" property for ${schemaName} schema matches. See the test output for more information.`
+    );
+    if (expected.data) {
+      ok(actual.data, `Schema was found for "${schemaName}"`);
+      for (const expectedDatum of expected.data) {
+        const actualDatum = actual.data.find(d => d.key === expectedDatum.key);
+        deepEqual(
+          expectedDatum,
+          actualDatum,
+          `The "${schemaName}" field "${expectedDatum.key}" matches expectations. See the test output for more information.`
+        );
+      }
+      equal(
+        expected.data.length,
+        actual.data.length,
+        "The expected and actual data have the same number of items"
+      );
+    }
+
+    // Finally do a true deep equal.
+    deepEqual(expected, actual, "The entire schema is deepEqual");
+  } catch (error) {
+    // The test results are not very human readable. This is a bit of a hacky
+    // solution to make it more readable.
+    dump("-----------------------------------------------------\n");
+    dump("The expected marker schema:\n");
+    dump("-----------------------------------------------------\n");
+    dump(JSON.stringify(expected, null, 2));
+    dump("\n");
+    dump("-----------------------------------------------------\n");
+    dump("The actual marker schema:\n");
+    dump("-----------------------------------------------------\n");
+    dump(JSON.stringify(actual, null, 2));
+    dump("\n");
+    dump("-----------------------------------------------------\n");
+    dump("A marker schema was not equal to expectations. If you\n");
+    dump("are modifying the schema, then please copy and paste\n");
+    dump("the new schema into this test.\n");
+    dump("-----------------------------------------------------\n");
+    dump("Copy this: " + JSON.stringify(actual));
+    dump("\n");
+    dump("-----------------------------------------------------\n");
+
+    throw error;
+  }
+}

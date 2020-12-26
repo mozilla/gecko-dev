@@ -226,16 +226,13 @@ EvalSharedContext::EvalSharedContext(JSContext* cx,
 
 FunctionBox::FunctionBox(JSContext* cx, SourceExtent extent,
                          CompilationInfo& compilationInfo,
-                         CompilationState& compilationState,
                          Directives directives, GeneratorKind generatorKind,
                          FunctionAsyncKind asyncKind, const ParserAtom* atom,
-                         FunctionFlags flags, FunctionIndex index,
-                         TopLevelFunction isTopLevel)
+                         FunctionFlags flags, FunctionIndex index)
     : SharedContext(cx, Kind::FunctionBox, compilationInfo, directives, extent),
       atom_(atom),
       funcDataIndex_(index),
       flags_(FunctionFlags::clearMutableflags(flags)),
-      isTopLevel_(isTopLevel),
       emitBytecode(false),
       isStandalone_(false),
       wasEmitted_(false),
@@ -432,7 +429,10 @@ void FunctionBox::copyFunctionFields(ScriptStencil& script) {
   MOZ_ASSERT(&script == &functionStencil());
   MOZ_ASSERT(!isFunctionFieldCopiedToStencil);
 
-  script.functionAtom = atom_;
+  if (atom_) {
+    atom_->markUsedByStencil();
+    script.functionAtom = atom_->toIndex();
+  }
   script.functionFlags = flags_;
   script.nargs = nargs_;
   script.lazyFunctionEnclosingScopeIndex_ = enclosingScopeIndex_;
@@ -465,7 +465,10 @@ void FunctionBox::copyUpdatedEnclosingScopeIndex() {
 
 void FunctionBox::copyUpdatedAtomAndFlags() {
   ScriptStencil& script = functionStencil();
-  script.functionAtom = atom_;
+  if (atom_) {
+    atom_->markUsedByStencil();
+    script.functionAtom = atom_->toIndex();
+  }
   script.functionFlags = flags_;
 }
 

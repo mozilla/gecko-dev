@@ -211,6 +211,23 @@
 // AXIdentifier
 - (NSString* _Nullable)moxIdentifier;
 
+// Outline Attributes
+
+// AXDisclosing
+- (NSNumber* _Nullable)moxDisclosing;
+
+// AXDisclosedByRow
+- (id _Nullable)moxDisclosedByRow;
+
+// AXDisclosureLevel
+- (NSNumber* _Nullable)moxDisclosureLevel;
+
+// AXDisclosedRows
+- (NSArray* _Nullable)moxDisclosedRows;
+
+// AXSelectedRows
+- (NSArray* _Nullable)moxSelectedRows;
+
 // Math Attributes
 
 // AXMathRootRadicand
@@ -263,6 +280,9 @@
 
 // AXEditableAncestor
 - (id _Nullable)moxEditableAncestor;
+
+// AXMozDebugDescription
+- (NSString* _Nullable)moxMozDebugDescription;
 
 #pragma mark - AttributeSetters
 
@@ -344,6 +364,9 @@
 
 // AXCellForColumnAndRow
 - (id _Nullable)moxCellForColumnAndRow:(NSArray* _Nonnull)columnAndRow;
+
+// AXIndexForChildUIElement
+- (NSNumber* _Nullable)moxIndexForChildUIElement:(id _Nonnull)child;
 
 @end
 

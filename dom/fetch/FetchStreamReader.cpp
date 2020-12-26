@@ -6,15 +6,21 @@
 
 #include "FetchStreamReader.h"
 #include "InternalResponse.h"
+#include "js/Stream.h"
+#include "mozilla/ConsoleReportCollector.h"
+#include "mozilla/dom/DOMException.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PromiseBinding.h"
+#include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/TaskCategory.h"
 #include "nsContentUtils.h"
+#include "nsIAsyncInputStream.h"
+#include "nsIPipe.h"
 #include "nsIScriptError.h"
 #include "nsPIDOMWindow.h"
 #include "jsapi.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(FetchStreamReader)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(FetchStreamReader)
@@ -373,5 +379,4 @@ void FetchStreamReader::ReportErrorToConsole(JSContext* aCx,
   workerPrivate->DispatchToMainThread(r.forget());
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

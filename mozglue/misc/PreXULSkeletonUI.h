@@ -9,17 +9,55 @@
 
 #include <windows.h>
 #include "mozilla/Types.h"
+#include "mozilla/Vector.h"
 
 namespace mozilla {
 
-MFBT_API void CreateAndStorePreXULSkeletonUI(HINSTANCE hInstance);
+// These unfortunately need to be kept in sync with the window style and
+// extended window style computations in nsWindow. Luckily those styles seem
+// to not vary based off of any user settings for the initial toplevel window,
+// so we're safe here for now.
+static const DWORD kPreXULSkeletonUIWindowStyle =
+    WS_CLIPCHILDREN | WS_DLGFRAME | WS_BORDER | WS_MAXIMIZEBOX |
+    WS_MINIMIZEBOX | WS_SIZEBOX | WS_SYSMENU;
+static const DWORD kPreXULSkeletonUIWindowStyleEx = WS_EX_WINDOWEDGE;
+
+struct CSSPixelSpan {
+  double start;
+  double end;
+};
+
+struct DevPixelSpan {
+  int start;
+  int end;
+};
+
+enum class ThemeMode : uint32_t { Invalid, Default, Dark, Light };
+
+struct ThemeColors {
+  uint32_t backgroundColor;
+  uint32_t toolbarForegroundColor;
+  uint32_t tabBarColor;
+  uint32_t chromeContentDividerColor;
+  uint32_t tabLineColor;
+  uint32_t urlbarColor;
+  uint32_t animationColor;
+};
+
+MFBT_API void CreateAndStorePreXULSkeletonUI(HINSTANCE hInstance, int argc,
+                                             char** argv);
 MFBT_API HWND ConsumePreXULSkeletonUIHandle();
+MFBT_API bool WasPreXULSkeletonUIMaximized();
 MFBT_API void PersistPreXULSkeletonUIValues(int screenX, int screenY, int width,
-                                            int height,
+                                            int height, bool maximized,
+                                            CSSPixelSpan urlbar,
+                                            CSSPixelSpan searchbar,
+                                            const Vector<CSSPixelSpan>& springs,
                                             double cssToDevPixelScaling);
 MFBT_API bool GetPreXULSkeletonUIEnabled();
-MFBT_API void SetPreXULSkeletonUIEnabled(bool value);
+MFBT_API void SetPreXULSkeletonUIEnabledIfAllowed(bool value);
 MFBT_API void PollPreXULSkeletonUIEvents();
+MFBT_API void SetPreXULSkeletonUIThemeId(ThemeMode theme);
 
 }  // namespace mozilla
 

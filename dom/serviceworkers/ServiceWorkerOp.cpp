@@ -44,6 +44,8 @@
 #include "mozilla/dom/InternalRequest.h"
 #include "mozilla/dom/InternalResponse.h"
 #include "mozilla/dom/Notification.h"
+#include "mozilla/dom/NotificationEvent.h"
+#include "mozilla/dom/NotificationEventBinding.h"
 #include "mozilla/dom/PushEventBinding.h"
 #include "mozilla/dom/RemoteWorkerChild.h"
 #include "mozilla/dom/RemoteWorkerService.h"
@@ -52,7 +54,9 @@
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/ServiceWorkerBinding.h"
 #include "mozilla/dom/WorkerCommon.h"
+#include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRef.h"
+#include "mozilla/dom/WorkerScope.h"
 #include "mozilla/ipc/IPCStreamUtils.h"
 #include "mozilla/net/MozURL.h"
 
@@ -127,6 +131,7 @@ class ExtendableEventKeepAliveHandler final
 
     if (mCallback) {
       mCallback->FinishedWithResult(mRejected ? Rejected : Resolved);
+      mCallback = nullptr;
     }
 
     Cleanup();
@@ -162,6 +167,10 @@ class ExtendableEventKeepAliveHandler final
 
   void Cleanup() {
     MOZ_ASSERT(IsCurrentThreadRunningWorker());
+
+    if (mCallback) {
+      mCallback->FinishedWithResult(Rejected);
+    }
 
     mSelfRef = nullptr;
     mWorkerRef = nullptr;
@@ -1055,6 +1064,7 @@ class MOZ_STACK_CLASS FetchEventOp::AutoCancel {
       }
 
       MOZ_ASSERT(!mOwner->mRespondWithPromiseHolder.IsEmpty());
+      mOwner->mHandled->MaybeRejectWithNetworkError("AutoCancel"_ns);
       mOwner->mRespondWithPromiseHolder.Reject(NS_ERROR_INTERCEPTION_FAILED,
                                                __func__);
     }
@@ -1226,9 +1236,10 @@ void FetchEventOp::MaybeFinished() {
   MOZ_ASSERT(!mPromiseHolder.IsEmpty());
 
   if (mResult) {
-    // mRespondWithPromiseHolder should have been settled in
-    // {Resolve,Reject}Callback by now.
-    MOZ_DIAGNOSTIC_ASSERT(mRespondWithPromiseHolder.IsEmpty());
+    // It's possible that mRespondWithPromiseHolder wasn't settled. That happens
+    // if the worker was terminated before the respondWith promise settled.
+
+    mHandled = nullptr;
 
     ServiceWorkerFetchEventOpResult result(
         mResult.value() == Resolved ? NS_OK : NS_ERROR_FAILURE);
@@ -1464,6 +1475,14 @@ void FetchEventOp::ResolvedCallback(JSContext* aCx,
 
   autoCancel.Reset();
 
+  // https://w3c.github.io/ServiceWorker/#on-fetch-request-algorithm Step 26: If
+  // eventHandled is not null, then resolve eventHandled.
+  //
+  // mRespondWithPromiseHolder will resolve a MozPromise that will resolve on
+  // the worker owner's thread, so it's fine to resolve the mHandled promise now
+  // because content will not interfere with respondWith getting the Response to
+  // where it's going.
+  mHandled->MaybeResolveWithUndefined();
   mRespondWithPromiseHolder.Resolve(
       FetchEventRespondWithResult(
           SynthesizeResponseArgs(ir, mRespondWithClosure.ref())),
@@ -1493,6 +1512,11 @@ void FetchEventOp::RejectedCallback(JSContext* aCx,
   AsyncLog(sourceSpec, line, column, "InterceptionRejectedResponseWithURL"_ns,
            {std::move(requestURL), valueString});
 
+  // https://w3c.github.io/ServiceWorker/#on-fetch-request-algorithm Step 25.1:
+  // If eventHandled is not null, then reject eventHandled with a "NetworkError"
+  // DOMException in workerRealm.
+  mHandled->MaybeRejectWithNetworkError(
+      "FetchEvent.respondWith() Promise rejected"_ns);
   mRespondWithPromiseHolder.Resolve(
       FetchEventRespondWithResult(
           CancelInterceptionArgs(NS_ERROR_INTERCEPTION_FAILED)),
@@ -1577,6 +1601,7 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
       FetchEvent::Constructor(globalObject, u"fetch"_ns, fetchEventInit);
   fetchEvent->SetTrusted(true);
   fetchEvent->PostInit(args.workerScriptSpec(), this);
+  mHandled = fetchEvent->Handled();
 
   /**
    * Step 5: Dispatch the FetchEvent to the worker's global object
@@ -1586,6 +1611,7 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
   bool dispatchFailed = NS_FAILED(rv) && rv != NS_ERROR_XPC_JS_THREW_EXCEPTION;
 
   if (NS_WARN_IF(dispatchFailed)) {
+    mHandled = nullptr;
     return rv;
   }
 
@@ -1625,11 +1651,19 @@ nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
                "We don't support system-principal serviceworkers");
 
     if (fetchEvent->DefaultPrevented(CallerType::NonSystem)) {
+      // https://w3c.github.io/ServiceWorker/#on-fetch-request-algorithm
+      // Step 24.1.1: If eventHandled is not null, then reject eventHandled with
+      // a "NetworkError" DOMException in workerRealm.
+      mHandled->MaybeRejectWithNetworkError(
+          "FetchEvent.preventDefault() called"_ns);
       mRespondWithPromiseHolder.Resolve(
           FetchEventRespondWithResult(
               CancelInterceptionArgs(NS_ERROR_INTERCEPTION_FAILED)),
           __func__);
     } else {
+      // https://w3c.github.io/ServiceWorker/#on-fetch-request-algorithm
+      // Step 24.2: If eventHandled is not null, then resolve eventHandled.
+      mHandled->MaybeResolveWithUndefined();
       mRespondWithPromiseHolder.Resolve(
           FetchEventRespondWithResult(ResetInterceptionArgs()), __func__);
     }

@@ -70,7 +70,7 @@ const TRANSLUCENT_SELECT_APPLIES_ON_BASE_COLOR =
 const DISABLED_OPTGROUP_AND_OPTIONS =
   "<html><head>" +
   "<body><select id='one'>" +
-  '  <optgroup label=\'{"color": "rgb(0, 0, 0)", "backgroundColor": "buttonface"}\'>' +
+  '  <optgroup label=\'{"color": "rgb(0, 0, 0)", "backgroundColor": "rgba(0, 0, 0, 0)"}\'>' +
   '    <option disabled="">{"color": "GrayText", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
   '    <option>{"color": "rgb(0, 0, 0)", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
   '    <option disabled="">{"color": "GrayText", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
@@ -79,7 +79,7 @@ const DISABLED_OPTGROUP_AND_OPTIONS =
   '    <option>{"color": "rgb(0, 0, 0)", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
   '    <option>{"color": "rgb(0, 0, 0)", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
   "  </optgroup>" +
-  '  <optgroup label=\'{"color": "GrayText", "backgroundColor": "buttonface"}\' disabled=\'\'>' +
+  '  <optgroup label=\'{"color": "GrayText", "backgroundColor": "rgba(0, 0, 0, 0)"}\' disabled=\'\'>' +
   '    <option>{"color": "GrayText", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
   '    <option>{"color": "GrayText", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
   '    <option>{"color": "GrayText", "backgroundColor": "rgba(0, 0, 0, 0)"}</option>' +
@@ -447,11 +447,6 @@ add_task(async function test_translucent_select_applies_on_base_color() {
 });
 
 add_task(async function test_disabled_optgroup_and_options() {
-  // The colors used by this test are platform-specific.
-  if (AppConstants.platform != "win") {
-    return;
-  }
-
   await testSelectColors(DISABLED_OPTGROUP_AND_OPTIONS, 17, {
     skipSelectColorTest: true,
   });
@@ -675,8 +670,13 @@ add_task(async function test_scrollbar_props() {
   let { tab, selectPopup } = await openSelectPopup(SELECT_SCROLLBAR_PROPS);
 
   let popupStyle = getComputedStyle(selectPopup);
-  is(popupStyle.scrollbarWidth, "thin");
+  is(popupStyle.getPropertyValue("--content-select-scrollbar-width"), "thin");
   is(popupStyle.scrollbarColor, "rgb(255, 0, 0) rgb(0, 0, 255)");
+
+  let scrollBoxStyle = getComputedStyle(selectPopup.scrollBox.scrollbox);
+  is(scrollBoxStyle.overflow, "auto", "Should be the scrollable box");
+  is(scrollBoxStyle.scrollbarWidth, "thin");
+  is(scrollBoxStyle.scrollbarColor, "rgb(255, 0, 0) rgb(0, 0, 255)");
 
   await hideSelectPopup(selectPopup, "escape");
   BrowserTestUtils.removeTab(tab);

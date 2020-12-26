@@ -48,6 +48,7 @@
 #include "js/ArrayBuffer.h"  // JS::{ArrayBufferHasData,DetachArrayBuffer,IsArrayBufferObject,New{,Mapped}ArrayBufferWithContents,ReleaseMappedArrayBufferContents}
 #include "js/Date.h"
 #include "js/experimental/TypedData.h"  // JS_NewDataView, JS_New{{Ui,I}nt{8,16,32},Float{32,64},Uint8Clamped,Big{Ui,I}nt64}ArrayWithBuffer
+#include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
 #include "js/GCHashTable.h"
 #include "js/Object.h"             // JS::GetBuiltinClass
 #include "js/RegExpFlags.h"        // JS::RegExpFlag, JS::RegExpFlags
@@ -1269,7 +1270,8 @@ bool JSStructuredCloneWriter::writeTypedArray(HandleObject obj) {
     return false;
   }
 
-  if (!out.writePair(SCTAG_TYPED_ARRAY_OBJECT, tarr->length())) {
+  if (!out.writePair(SCTAG_TYPED_ARRAY_OBJECT,
+                     tarr->length().deprecatedGetUint32())) {
     return false;
   }
   uint64_t type = tarr->type();
@@ -1278,29 +1280,30 @@ bool JSStructuredCloneWriter::writeTypedArray(HandleObject obj) {
   }
 
   // Write out the ArrayBuffer tag and contents
-  RootedValue val(context(), TypedArrayObject::bufferValue(tarr));
+  RootedValue val(context(), tarr->bufferValue());
   if (!startWrite(val)) {
     return false;
   }
 
-  return out.write(tarr->byteOffset());
+  return out.write(tarr->byteOffset().deprecatedGetUint32());
 }
 
 bool JSStructuredCloneWriter::writeDataView(HandleObject obj) {
   Rooted<DataViewObject*> view(context(), obj->maybeUnwrapAs<DataViewObject>());
   JSAutoRealm ar(context(), view);
 
-  if (!out.writePair(SCTAG_DATA_VIEW_OBJECT, view->byteLength())) {
+  if (!out.writePair(SCTAG_DATA_VIEW_OBJECT,
+                     view->byteLength().deprecatedGetUint32())) {
     return false;
   }
 
   // Write out the ArrayBuffer tag and contents
-  RootedValue val(context(), DataViewObject::bufferValue(view));
+  RootedValue val(context(), view->bufferValue());
   if (!startWrite(val)) {
     return false;
   }
 
-  return out.write(view->byteOffset());
+  return out.write(view->byteOffset().deprecatedGetUint32());
 }
 
 bool JSStructuredCloneWriter::writeArrayBuffer(HandleObject obj) {
@@ -1308,8 +1311,9 @@ bool JSStructuredCloneWriter::writeArrayBuffer(HandleObject obj) {
                                     obj->maybeUnwrapAs<ArrayBufferObject>());
   JSAutoRealm ar(context(), buffer);
 
-  return out.writePair(SCTAG_ARRAY_BUFFER_OBJECT, buffer->byteLength()) &&
-         out.writeBytes(buffer->dataPointer(), buffer->byteLength());
+  size_t byteLength = buffer->byteLength().deprecatedGetUint32();
+  return out.writePair(SCTAG_ARRAY_BUFFER_OBJECT, byteLength) &&
+         out.writeBytes(buffer->dataPointer(), byteLength);
 }
 
 bool JSStructuredCloneWriter::writeSharedArrayBuffer(HandleObject obj) {
@@ -1348,7 +1352,7 @@ bool JSStructuredCloneWriter::writeSharedArrayBuffer(HandleObject obj) {
   // rawbuf - that length can be different, and it can change at any time.
 
   intptr_t p = reinterpret_cast<intptr_t>(rawbuf);
-  uint32_t byteLength = sharedArrayBuffer->byteLength();
+  uint32_t byteLength = sharedArrayBuffer->byteLength().deprecatedGetUint32();
   if (!(out.writePair(SCTAG_SHARED_ARRAY_BUFFER_OBJECT,
                       static_cast<uint32_t>(sizeof(p))) &&
         out.writeBytes(&byteLength, sizeof(byteLength)) &&
@@ -1997,7 +2001,7 @@ bool JSStructuredCloneWriter::transferOwnership() {
           return false;
         }
       } else {
-        size_t nbytes = arrayBuffer->byteLength();
+        size_t nbytes = arrayBuffer->byteLength().deprecatedGetUint32();
 
         using BufferContents = ArrayBufferObject::BufferContents;
 
@@ -2318,13 +2322,14 @@ bool JSStructuredCloneReader::readDataView(uint32_t byteLength,
 
 bool JSStructuredCloneReader::readArrayBuffer(uint32_t nbytes,
                                               MutableHandleValue vp) {
-  JSObject* obj = ArrayBufferObject::createZeroed(context(), nbytes);
+  JSObject* obj =
+      ArrayBufferObject::createZeroed(context(), BufferSize(nbytes));
   if (!obj) {
     return false;
   }
   vp.setObject(*obj);
   ArrayBufferObject& buffer = obj->as<ArrayBufferObject>();
-  MOZ_ASSERT(buffer.byteLength() == nbytes);
+  MOZ_ASSERT(buffer.byteLength().deprecatedGetUint32() == nbytes);
   return in.readArray(buffer.dataPointer(), nbytes);
 }
 
@@ -2373,8 +2378,8 @@ bool JSStructuredCloneReader::readSharedArrayBuffer(MutableHandleValue vp) {
     return false;
   }
 
-  RootedObject obj(context(),
-                   SharedArrayBufferObject::New(context(), rawbuf, byteLength));
+  RootedObject obj(context(), SharedArrayBufferObject::New(
+                                  context(), rawbuf, BufferSize(byteLength)));
   if (!obj) {
     rawbuf->dropReference();
     return false;
@@ -2462,13 +2467,14 @@ bool JSStructuredCloneReader::readV1ArrayBuffer(uint32_t arrayType,
     return false;
   }
 
-  JSObject* obj = ArrayBufferObject::createZeroed(context(), nbytes.value());
+  JSObject* obj =
+      ArrayBufferObject::createZeroed(context(), BufferSize(nbytes.value()));
   if (!obj) {
     return false;
   }
   vp.setObject(*obj);
   ArrayBufferObject& buffer = obj->as<ArrayBufferObject>();
-  MOZ_ASSERT(buffer.byteLength() == nbytes);
+  MOZ_ASSERT(buffer.byteLength().deprecatedGetUint32() == nbytes);
 
   switch (arrayType) {
     case Scalar::Int8:

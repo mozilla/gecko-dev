@@ -8,7 +8,9 @@
 #define MOZILLA_GFX_TEXTURED3D11_H
 
 #include <d3d11.h>
+
 #include <vector>
+
 #include "d3d9.h"
 #include "gfxWindowsPlatform.h"
 #include "mozilla/GfxMessageUtils.h"
@@ -68,7 +70,7 @@ class D3D11TextureData final : public TextureData {
                              LayersBackend aLayersBackend, TextureFlags aFlags,
                              TextureAllocationFlags aAllocFlags) const override;
 
-  void SyncWithObject(SyncObjectClient* aSyncObject) override;
+  void SyncWithObject(RefPtr<SyncObjectClient> aSyncObject) override;
 
   ID3D11Texture2D* GetD3D11Texture() const { return mTexture; }
 
@@ -443,6 +445,7 @@ class DXGIYCbCrTextureHostD3D11 : public TextureHost {
   RefPtr<DataTextureSourceD3D11> mTextureSources[3];
 
   gfx::IntSize mSize;
+  gfx::IntSize mSizeY;
   gfx::IntSize mSizeCbCr;
   WindowsHandle mHandles[3];
   bool mIsLocked;
@@ -502,19 +505,38 @@ class SyncObjectD3D11Client : public SyncObjectClient {
 
   bool IsSyncObjectValid() override;
 
+  void EnsureInitialized() override {}
+
   SyncType GetSyncType() override { return SyncType::D3D11; }
 
   void RegisterTexture(ID3D11Texture2D* aTexture);
 
- private:
-  bool Init(bool aFallible);
-
-  SyncHandle mSyncHandle;
-  RefPtr<ID3D11Device> mDevice;
-  RefPtr<ID3D11Texture2D> mSyncTexture;
-  RefPtr<IDXGIKeyedMutex> mKeyedMutex;
-  std::vector<ID3D11Texture2D*> mSyncedTextures;
+ protected:
+  explicit SyncObjectD3D11Client(SyncHandle aSyncHandle);
+  bool Init(ID3D11Device* aDevice, bool aFallible);
+  bool SynchronizeInternal(ID3D11Device* aDevice, bool aFallible);
   Mutex mSyncLock;
+  RefPtr<ID3D11Texture2D> mSyncTexture;
+  std::vector<ID3D11Texture2D*> mSyncedTextures;
+
+ private:
+  const SyncHandle mSyncHandle;
+  RefPtr<IDXGIKeyedMutex> mKeyedMutex;
+  const RefPtr<ID3D11Device> mDevice;
+};
+
+class SyncObjectD3D11ClientContentDevice : public SyncObjectD3D11Client {
+ public:
+  explicit SyncObjectD3D11ClientContentDevice(SyncHandle aSyncHandle);
+
+  bool Synchronize(bool aFallible) override;
+
+  bool IsSyncObjectValid() override;
+
+  void EnsureInitialized() override;
+
+ private:
+  RefPtr<ID3D11Device> mContentDevice;
 };
 
 inline uint32_t GetMaxTextureSizeForFeatureLevel(

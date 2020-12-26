@@ -153,6 +153,13 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       perfActorVersion: 1,
       // Supports watchpoints in the server for Fx71+
       watchpoints: true,
+      // Added in Fx84 to expose the pref value to the client. Services.prefs is undefined
+      // in xpcshell tests.
+      workerConsoleApiMessagesDispatchedToMainThread: Services.prefs
+        ? Services.prefs.getBoolPref(
+            "dom.worker.console.dispatch_events_to_main_thread"
+          )
+        : true,
     };
   },
 
@@ -583,10 +590,6 @@ exports.RootActor = protocol.ActorClassWithSpec(rootSpec, {
       DevToolsServer.chromeWindowType
     );
     return id == window.docShell.browsingContext.id;
-  },
-
-  protocolDescription: function() {
-    return require("devtools/shared/protocol").dumpProtocolSpec();
   },
 
   /**

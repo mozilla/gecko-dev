@@ -85,6 +85,13 @@ struct ParamTraits<mozilla::dom::DisplayMode>
                                       mozilla::dom::DisplayMode::Browser,
                                       mozilla::dom::DisplayMode::EndGuard_> {};
 
+// Allow serialization and deserialization of TouchEventsOverride over IPC
+template <>
+struct ParamTraits<mozilla::dom::TouchEventsOverride>
+    : public ContiguousEnumSerializer<
+          mozilla::dom::TouchEventsOverride,
+          mozilla::dom::TouchEventsOverride::Disabled,
+          mozilla::dom::TouchEventsOverride::EndGuard_> {};
 }  // namespace IPC
 
 namespace mozilla {
@@ -151,6 +158,17 @@ BrowsingContext* BrowsingContext::Top() {
     bc = bc->GetParent();
   }
   return bc;
+}
+
+int32_t BrowsingContext::IndexOf(BrowsingContext* aChild) {
+  int32_t index = -1;
+  for (BrowsingContext* child : Children()) {
+    ++index;
+    if (child == aChild) {
+      break;
+    }
+  }
+  return index;
 }
 
 WindowContext* BrowsingContext::GetTopWindowContext() {
@@ -332,6 +350,8 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
   fields.mUseGlobalHistory = inherit ? inherit->GetUseGlobalHistory() : false;
 
   fields.mUseErrorPages = true;
+
+  fields.mTouchEventsOverrideInternal = TouchEventsOverride::None;
 
   RefPtr<BrowsingContext> context;
   if (XRE_IsParentProcess()) {
@@ -2152,29 +2172,41 @@ void BrowsingContext::DidSet(FieldIndex<IDX_GVInaudibleAutoplayRequestStatus>) {
 }
 
 void BrowsingContext::DidSet(FieldIndex<IDX_IsActive>, bool aOldValue) {
-  if (!IsTop() || aOldValue == GetIsActive() ||
-      !StaticPrefs::dom_suspend_inactive_enabled()) {
+  if (!IsTop() || aOldValue == GetIsActive()) {
     return;
   }
+  Group()->UpdateToplevelsSuspendedIfNeeded();
+}
 
-  if (!GetIsActive() && !Group()->GetToplevelsSuspended()) {
-    // If all toplevels in our group are inactive, suspend the group.
-    bool allInactive = true;
-    nsTArray<RefPtr<BrowsingContext>>& toplevels = Group()->Toplevels();
-    for (const auto& context : toplevels) {
-      if (context->GetIsActive()) {
-        allInactive = false;
-        break;
-      }
-    }
+bool BrowsingContext::CanSet(FieldIndex<IDX_HasMainMediaController>,
+                             bool aNewValue, ContentParent* aSource) {
+  return IsTop() && CheckOnlyOwningProcessCanSet(aSource);
+}
 
-    if (allInactive) {
-      Group()->SetToplevelsSuspended(true);
-    }
-  } else if (GetIsActive() && Group()->GetToplevelsSuspended()) {
-    // Unsuspend the group since we now have an active toplevel
-    Group()->SetToplevelsSuspended(false);
+void BrowsingContext::DidSet(FieldIndex<IDX_HasMainMediaController>,
+                             bool aOldValue) {
+  if (!IsTop() || aOldValue == GetHasMainMediaController()) {
+    return;
   }
+  Group()->UpdateToplevelsSuspendedIfNeeded();
+}
+
+bool BrowsingContext::InactiveForSuspend() const {
+  if (!StaticPrefs::dom_suspend_inactive_enabled()) {
+    return false;
+  }
+  // We should suspend a page only when it's inactive and doesn't have a main
+  // media controller. Having a main controller in context means it might be
+  // playing media, or waiting media keys to control media (could be not playing
+  // anything currently)
+  return !GetIsActive() && !GetHasMainMediaController();
+}
+
+bool BrowsingContext::CanSet(
+    FieldIndex<IDX_TouchEventsOverrideInternal>,
+    const enum TouchEventsOverride& aTouchEventsOverride,
+    ContentParent* aSource) {
+  return CheckOnlyOwningProcessCanSet(aSource);
 }
 
 bool BrowsingContext::CanSet(FieldIndex<IDX_DisplayMode>,
@@ -2194,18 +2226,21 @@ void BrowsingContext::DidSet(FieldIndex<IDX_DisplayMode>,
   PreOrderWalk([&](BrowsingContext* aContext) {
     if (nsIDocShell* shell = aContext->GetDocShell()) {
       if (nsPresContext* pc = shell->GetPresContext()) {
-        pc->MediaFeatureValuesChangedAllDocuments(
+        pc->MediaFeatureValuesChanged(
             {MediaFeatureChangeReason::DisplayModeChange},
-            // We're already iterating through sub documents
-            // so no need to do it again.
-            nsPresContext::RecurseIntoInProcessSubDocuments::No);
+            // We're already iterating through sub documents, so we don't need
+            // to propagate the change again.
+            //
+            // Images and other resources don't change their display-mode
+            // evaluation, display-mode is a property of the browsing context.
+            MediaFeatureChangePropagation::JustThisDocument);
       }
     }
   });
 }
 
 void BrowsingContext::DidSet(FieldIndex<IDX_Muted>) {
-  MOZ_ASSERT(!GetParent(), "Set muted flag on non top-level context!");
+  MOZ_ASSERT(IsTop(), "Set muted flag on non top-level context!");
   USER_ACTIVATION_LOG("Set audio muted %d for %s browsing context 0x%08" PRIx64,
                       GetMuted(), XRE_IsParentProcess() ? "Parent" : "Child",
                       Id());
@@ -2298,6 +2333,46 @@ bool BrowsingContext::CanSet(FieldIndex<IDX_UseErrorPages>,
                              const bool& aUseErrorPages,
                              ContentParent* aSource) {
   return CheckOnlyEmbedderCanSet(aSource);
+}
+
+mozilla::dom::TouchEventsOverride BrowsingContext::TouchEventsOverride() {
+  BrowsingContext* bc = this;
+  while (bc) {
+    mozilla::dom::TouchEventsOverride tev =
+        bc->GetTouchEventsOverrideInternal();
+    if (tev != mozilla::dom::TouchEventsOverride::None) {
+      return tev;
+    }
+
+    bc = bc->GetParent();
+  }
+
+  return mozilla::dom::TouchEventsOverride::None;
+}
+
+void BrowsingContext::SetTouchEventsOverride(
+    const enum TouchEventsOverride aTouchEventsOverride, ErrorResult& aRv) {
+  // Clear overrides from descendents first.
+  for (BrowsingContext* child : Children()) {
+    child->PreOrderWalk([](BrowsingContext* aContext) {
+      if (aContext->GetTouchEventsOverrideInternal() !=
+          mozilla::dom::TouchEventsOverride::None) {
+        // Ignore failed sets because the override of a discarded
+        // descendent shouldn't matter.
+        Unused << aContext->SetTouchEventsOverrideInternal(
+            mozilla::dom::TouchEventsOverride::None);
+      }
+    });
+  }
+
+  SetTouchEventsOverrideInternal(aTouchEventsOverride, aRv);
+}
+
+nsresult BrowsingContext::SetTouchEventsOverride(
+    const enum TouchEventsOverride aTouchEventsOverride) {
+  ErrorResult rv;
+  SetTouchEventsOverride(aTouchEventsOverride, rv);
+  return rv.StealNSResult();
 }
 
 // We map `watchedByDevTools` WebIDL attribute to `watchedByDevToolsInternal`
@@ -2619,6 +2694,14 @@ void BrowsingContext::AddDeprioritizedLoadRunner(nsIRunnable* aRunner) {
       EventQueuePriority::Idle);
 }
 
+void BrowsingContext::GetHistoryID(JSContext* aCx,
+                                   JS::MutableHandle<JS::Value> aVal,
+                                   ErrorResult& aError) {
+  if (!xpc::ID2JSValue(aCx, GetHistoryID(), aVal)) {
+    aError.Throw(NS_ERROR_OUT_OF_MEMORY);
+  }
+}
+
 void BrowsingContext::InitSessionHistory() {
   MOZ_ASSERT(!IsDiscarded());
   MOZ_ASSERT(IsTop());
@@ -2728,7 +2811,7 @@ bool BrowsingContext::IsPopupAllowed() {
 
 void BrowsingContext::SetActiveSessionHistoryEntry(
     const Maybe<nsPoint>& aPreviousScrollPos, SessionHistoryInfo* aInfo,
-    uint32_t aLoadType, int32_t aChildOffset, uint32_t aUpdatedCacheKey) {
+    uint32_t aLoadType, uint32_t aUpdatedCacheKey) {
   if (XRE_IsContentProcess()) {
     // XXX Why we update cache key only in content process case?
     if (aUpdatedCacheKey != 0) {
@@ -2741,12 +2824,11 @@ void BrowsingContext::SetActiveSessionHistoryEntry(
       changeID = shistory->AddPendingHistoryChange();
     }
     ContentChild::GetSingleton()->SendSetActiveSessionHistoryEntry(
-        this, aPreviousScrollPos, *aInfo, aLoadType, aChildOffset,
-        aUpdatedCacheKey, changeID);
+        this, aPreviousScrollPos, *aInfo, aLoadType, aUpdatedCacheKey,
+        changeID);
   } else {
-    Canonical()->SetActiveSessionHistoryEntry(aPreviousScrollPos, aInfo,
-                                              aLoadType, aChildOffset,
-                                              aUpdatedCacheKey, nsID());
+    Canonical()->SetActiveSessionHistoryEntry(
+        aPreviousScrollPos, aInfo, aLoadType, aUpdatedCacheKey, nsID());
   }
 }
 
@@ -2777,15 +2859,20 @@ void BrowsingContext::RemoveFromSessionHistory() {
   }
 }
 
-void BrowsingContext::HistoryGo(int32_t aOffset,
+void BrowsingContext::HistoryGo(int32_t aOffset, uint64_t aHistoryEpoch,
                                 std::function<void(int32_t&&)>&& aResolver) {
   if (XRE_IsContentProcess()) {
     ContentChild::GetSingleton()->SendHistoryGo(
-        this, aOffset, std::move(aResolver),
+        this, aOffset, aHistoryEpoch, std::move(aResolver),
         [](mozilla::ipc::
                ResponseRejectReason) { /* FIXME Is ignoring this fine? */ });
   } else {
-    Canonical()->HistoryGo(aOffset, std::move(aResolver));
+    Canonical()->HistoryGo(
+        aOffset, aHistoryEpoch,
+        Canonical()->GetContentParent()
+            ? Some(Canonical()->GetContentParent()->ChildID())
+            : Nothing(),
+        std::move(aResolver));
   }
 }
 
@@ -2893,6 +2980,7 @@ void IPDLParamTraits<dom::BrowsingContext::IPCInitializer>::Write(
   WriteIPDLParam(aMessage, aActor, aInit.mWindowless);
   WriteIPDLParam(aMessage, aActor, aInit.mUseRemoteTabs);
   WriteIPDLParam(aMessage, aActor, aInit.mUseRemoteSubframes);
+  WriteIPDLParam(aMessage, aActor, aInit.mCreatedDynamically);
   WriteIPDLParam(aMessage, aActor, aInit.mOriginAttributes);
   WriteIPDLParam(aMessage, aActor, aInit.mRequestContextId);
   WriteIPDLParam(aMessage, aActor, aInit.mSessionHistoryIndex);
@@ -2910,6 +2998,8 @@ bool IPDLParamTraits<dom::BrowsingContext::IPCInitializer>::Read(
       !ReadIPDLParam(aMessage, aIterator, aActor, &aInit->mUseRemoteTabs) ||
       !ReadIPDLParam(aMessage, aIterator, aActor,
                      &aInit->mUseRemoteSubframes) ||
+      !ReadIPDLParam(aMessage, aIterator, aActor,
+                     &aInit->mCreatedDynamically) ||
       !ReadIPDLParam(aMessage, aIterator, aActor, &aInit->mOriginAttributes) ||
       !ReadIPDLParam(aMessage, aIterator, aActor, &aInit->mRequestContextId) ||
       !ReadIPDLParam(aMessage, aIterator, aActor,

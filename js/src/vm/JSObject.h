@@ -11,6 +11,7 @@
 
 #include "gc/Barrier.h"
 #include "js/Conversions.h"
+#include "js/friend/ErrorMessages.h"  // JSErrNum
 #include "js/GCVector.h"
 #include "js/HeapAPI.h"
 #include "js/shadow/Zone.h"  // JS::shadow::Zone
@@ -1110,6 +1111,17 @@ template <typename ObjectSubclass>
 void CallTraceMethod(JSTracer* trc, JSObject* obj) {
   obj->as<ObjectSubclass>().trace(trc);
 }
+
+#ifdef JS_HAS_CTYPES
+
+namespace ctypes {
+
+extern size_t SizeOfDataIfCDataObject(mozilla::MallocSizeOf mallocSizeOf,
+                                      JSObject* obj);
+
+}  // namespace ctypes
+
+#endif
 
 } /* namespace js */
 

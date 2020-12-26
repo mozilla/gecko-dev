@@ -502,6 +502,8 @@ nsresult gfxPlatformFontList::InitFontList() {
       }
     } else {
       // something went wrong, fall back to in-process list
+      gfxCriticalNote << "Failed to initialize shared font list, "
+                         "falling back to in-process list.";
       mSharedFontList.reset(nullptr);
     }
     if (oldSharedList) {
@@ -1136,7 +1138,7 @@ gfxFontFamily* gfxPlatformFontList::CheckFamily(gfxFontFamily* aFamily) {
 bool gfxPlatformFontList::FindAndAddFamilies(
     StyleGenericFontFamily aGeneric, const nsACString& aFamily,
     nsTArray<FamilyAndGeneric>* aOutput, FindFamiliesFlags aFlags,
-    gfxFontStyle* aStyle, gfxFloat aDevToCssSize) {
+    gfxFontStyle* aStyle, nsAtom* aLanguage, gfxFloat aDevToCssSize) {
   nsAutoCString key;
   GenerateFontListKey(aFamily, key);
 
@@ -1281,13 +1283,13 @@ bool gfxPlatformFontList::FindAndAddFamilies(
 
 fontlist::Family* gfxPlatformFontList::FindSharedFamily(
     const nsACString& aFamily, FindFamiliesFlags aFlags, gfxFontStyle* aStyle,
-    gfxFloat aDevToCss) {
+    nsAtom* aLanguage, gfxFloat aDevToCss) {
   if (!SharedFontList()) {
     return nullptr;
   }
   AutoTArray<FamilyAndGeneric, 1> families;
   if (!FindAndAddFamilies(StyleGenericFontFamily::None, aFamily, &families,
-                          aFlags, aStyle, aDevToCss) ||
+                          aFlags, aStyle, aLanguage, aDevToCss) ||
       !families[0].mFamily.mIsShared) {
     return nullptr;
   }
@@ -1593,12 +1595,9 @@ void gfxPlatformFontList::GetFontFamiliesFromGenericFamilies(
     PrefFontList* aGenericFamilies) {
   // lookup and add platform fonts uniquely
   for (const nsCString& genericFamily : aGenericNameFamilies) {
-    gfxFontStyle style;
-    style.language = aLangGroup;
-    style.systemFont = false;
     AutoTArray<FamilyAndGeneric, 10> families;
     FindAndAddFamilies(aGenericType, genericFamily, &families,
-                       FindFamiliesFlags(0), &style);
+                       FindFamiliesFlags(0), nullptr, aLangGroup);
     for (const FamilyAndGeneric& f : families) {
       if (!aGenericFamilies->Contains(f.mFamily)) {
         aGenericFamilies->AppendElement(f.mFamily);
@@ -2076,29 +2075,26 @@ nsAtom* gfxPlatformFontList::GetLangGroup(nsAtom* aLanguage) {
 
 /* static */ const char* gfxPlatformFontList::GetGenericName(
     StyleGenericFontFamily aGenericType) {
-  static const char kGeneric_serif[] = "serif";
-  static const char kGeneric_sans_serif[] = "sans-serif";
-  static const char kGeneric_monospace[] = "monospace";
-  static const char kGeneric_cursive[] = "cursive";
-  static const char kGeneric_fantasy[] = "fantasy";
-
   // type should be standard generic type at this point
   // map generic type to string
   switch (aGenericType) {
     case StyleGenericFontFamily::Serif:
-      return kGeneric_serif;
+      return "serif";
     case StyleGenericFontFamily::SansSerif:
-      return kGeneric_sans_serif;
+      return "sans-serif";
     case StyleGenericFontFamily::Monospace:
-      return kGeneric_monospace;
+      return "monospace";
     case StyleGenericFontFamily::Cursive:
-      return kGeneric_cursive;
+      return "cursive";
     case StyleGenericFontFamily::Fantasy:
-      return kGeneric_fantasy;
-    default:
-      MOZ_ASSERT_UNREACHABLE("Unknown generic");
-      return nullptr;
+      return "fantasy";
+    case StyleGenericFontFamily::MozEmoji:
+      return "-moz-emoji";
+    case StyleGenericFontFamily::None:
+      break;
   }
+  MOZ_ASSERT_UNREACHABLE("Unknown generic");
+  return nullptr;
 }
 
 void gfxPlatformFontList::InitLoader() {
@@ -2334,7 +2330,9 @@ void gfxPlatformFontList::AddSizeOfExcludingThis(MallocSizeOf aMallocSizeOf,
   aSizes->mFontListSize +=
       mFontEntries.ShallowSizeOfExcludingThis(aMallocSizeOf);
   for (auto iter = mFontEntries.ConstIter(); !iter.Done(); iter.Next()) {
-    iter.Data()->AddSizeOfIncludingThis(aMallocSizeOf, aSizes);
+    if (iter.Data()) {
+      iter.Data()->AddSizeOfIncludingThis(aMallocSizeOf, aSizes);
+    }
   }
 
   if (SharedFontList()) {

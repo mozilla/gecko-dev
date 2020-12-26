@@ -11,6 +11,14 @@
 
 namespace mozilla {
 
+class RemoteDecoderChild;
+
+enum class RemoteDecodeIn {
+  Unspecified,
+  RddProcess,
+  GpuProcess,
+};
+
 class RemoteDecoderManagerChild final
     : public PRemoteDecoderManagerChild,
       public mozilla::ipc::IShmemAllocator,
@@ -21,8 +29,18 @@ class RemoteDecoderManagerChild final
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RemoteDecoderManagerChild, override)
 
   // Can only be called from the manager thread
-  static RemoteDecoderManagerChild* GetRDDProcessSingleton();
-  static RemoteDecoderManagerChild* GetGPUProcessSingleton();
+  static RemoteDecoderManagerChild* GetSingleton(RemoteDecodeIn aLocation);
+
+  static void Init();
+
+  // Can be called from any thread.
+  static bool Supports(RemoteDecodeIn aLocation,
+                       const SupportDecoderParams& aParams,
+                       DecoderDoctorDiagnostics* aDiagnostics);
+  static RefPtr<PlatformDecoderModule::CreateDecoderPromise> CreateAudioDecoder(
+      const CreateDecoderParams& aParams);
+  static RefPtr<PlatformDecoderModule::CreateDecoderPromise> CreateVideoDecoder(
+      const CreateDecoderParams& aParams, RemoteDecodeIn aLocation);
 
   // Can be called from any thread.
   static nsISerialEventTarget* GetManagerThread();
@@ -51,9 +69,6 @@ class RemoteDecoderManagerChild final
   bool DeallocShmem(mozilla::ipc::Shmem& aShmem) override;
 
   // Main thread only
-  static void InitializeThread();
-  static void InitForRDDProcess(
-      Endpoint<PRemoteDecoderManagerChild>&& aVideoManager);
   static void InitForGPUProcess(
       Endpoint<PRemoteDecoderManagerChild>&& aVideoManager);
   static void Shutdown();
@@ -64,7 +79,8 @@ class RemoteDecoderManagerChild final
   // called from the manager thread.
   void RunWhenGPUProcessRecreated(already_AddRefed<Runnable> aTask);
 
-  layers::VideoBridgeSource GetSource() const { return mSource; }
+  RemoteDecodeIn Location() const { return mLocation; }
+  layers::VideoBridgeSource GetSource() const;
 
  protected:
   void InitIPDL();
@@ -76,23 +92,24 @@ class RemoteDecoderManagerChild final
   PRemoteDecoderChild* AllocPRemoteDecoderChild(
       const RemoteDecoderInfoIPDL& aRemoteDecoderInfo,
       const CreateDecoderParams::OptionSet& aOptions,
-      const Maybe<layers::TextureFactoryIdentifier>& aIdentifier,
-      bool* aSuccess, nsCString* aErrorDescription);
+      const Maybe<layers::TextureFactoryIdentifier>& aIdentifier);
   bool DeallocPRemoteDecoderChild(PRemoteDecoderChild* actor);
 
  private:
-  explicit RemoteDecoderManagerChild(layers::VideoBridgeSource aSource);
+  explicit RemoteDecoderManagerChild(RemoteDecodeIn aLocation);
   ~RemoteDecoderManagerChild() = default;
+  static RefPtr<PlatformDecoderModule::CreateDecoderPromise> Construct(
+      RefPtr<RemoteDecoderChild>&& aChild);
 
   static void OpenForRDDProcess(
       Endpoint<PRemoteDecoderManagerChild>&& aEndpoint);
   static void OpenForGPUProcess(
       Endpoint<PRemoteDecoderManagerChild>&& aEndpoint);
+  static RefPtr<GenericNonExclusivePromise> LaunchRDDProcessIfNeeded();
 
   RefPtr<RemoteDecoderManagerChild> mIPDLSelfRef;
-
-  // The associated source of this decoder manager
-  layers::VideoBridgeSource mSource;
+  // The location for decoding, Rdd or Gpu process.
+  const RemoteDecodeIn mLocation;
 };
 
 }  // namespace mozilla

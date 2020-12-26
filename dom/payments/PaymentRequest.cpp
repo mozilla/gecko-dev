@@ -7,6 +7,7 @@
 #include "BasicCardPayment.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
+#include "mozilla/dom/PaymentMethodChangeEvent.h"
 #include "mozilla/dom/PaymentRequest.h"
 #include "mozilla/dom/PaymentRequestChild.h"
 #include "mozilla/dom/PaymentRequestManager.h"
@@ -26,8 +27,7 @@
 
 using mozilla::intl::LocaleService;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(PaymentRequest)
 
@@ -1238,5 +1238,4 @@ JSObject* PaymentRequest::WrapObject(JSContext* aCx,
   return PaymentRequest_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

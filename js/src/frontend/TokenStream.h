@@ -208,8 +208,9 @@
 #include "frontend/Token.h"
 #include "frontend/TokenKind.h"
 #include "js/CompileOptions.h"
-#include "js/HashTable.h"    // js::HashMap
-#include "js/RegExpFlags.h"  // JS::RegExpFlags
+#include "js/friend/ErrorMessages.h"  // JSMSG_*
+#include "js/HashTable.h"             // js::HashMap
+#include "js/RegExpFlags.h"           // JS::RegExpFlags
 #include "js/UniquePtr.h"
 #include "js/Vector.h"
 #include "util/Text.h"
@@ -224,6 +225,16 @@ struct KeywordInfo;
 namespace js {
 
 namespace frontend {
+
+// Saturate column number at a limit that can be represented in various parts of
+// the engine. Source locations beyond this point will report at the limit
+// column instead.
+//
+// See:
+//  - TokenStreamAnyChars::checkOptions
+//  - ColSpan::isRepresentable
+//  - WasmFrameIter::computeLine
+static constexpr uint32_t ColumnLimit = std::numeric_limits<int32_t>::max() / 2;
 
 extern TokenKind ReservedWordTokenKind(const ParserName* name);
 
@@ -2554,6 +2565,8 @@ class MOZ_STACK_CLASS TokenStreamSpecific
         return;
     }
   }
+
+  void reportIllegalCharacter(int32_t cp);
 
   MOZ_MUST_USE bool putIdentInCharBuffer(const Unit* identStart);
 

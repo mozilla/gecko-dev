@@ -70,10 +70,12 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     this._isXHR = networkEvent.isXHR;
 
     this._cause = networkEvent.cause;
-    this._cause.stacktraceAvailable = !!(
-      this._stackTrace &&
-      (typeof this._stackTrace == "boolean" || this._stackTrace.length)
-    );
+    // Lets remove the last frame here as
+    // it is passed from the the server by the NETWORK_EVENT_STACKTRACE
+    // resource type. This done here for backward compatibility.
+    if (this._cause.lastFrame) {
+      delete this._cause.lastFrame;
+    }
 
     this._fromCache = networkEvent.fromCache;
     this._fromServiceWorker = networkEvent.fromServiceWorker;
@@ -81,7 +83,7 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       networkEvent.isThirdPartyTrackingResource;
     this._referrerPolicy = networkEvent.referrerPolicy;
     this._channelId = networkEvent.channelId;
-
+    this._serial = networkEvent.serial;
     this._blockedReason = networkEvent.blockedReason;
     this._blockingExtension = networkEvent.blockingExtension;
 
@@ -100,8 +102,6 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
         .browsingContext.id,
       resourceId: this._channelId,
       actor: this.actorID,
-      discardRequestBody: true,
-      discardResponseBody: true,
       startedDateTime: this._startedDateTime,
       timeStamp: Date.parse(this._startedDateTime),
       request: {
@@ -119,7 +119,9 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       referrerPolicy: this._referrerPolicy,
       blockedReason: this._blockedReason,
       blockingExtension: this._blockingExtension,
-      channelId: this._channelId,
+      // For websocket requests the serial is used instead of the channel id.
+      stacktraceResourceId:
+        this._cause.type == "websocket" ? this._serial : this._channelId,
       updates: [],
     };
   },
@@ -260,23 +262,6 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     };
   },
 
-  /**
-   * The "getStackTrace" packet type handler.
-   *
-   * @return object
-   *         The response packet - stack trace.
-   */
-  async getStackTrace() {
-    const stacktrace = this._stackTrace;
-    if (stacktrace && typeof stacktrace == "boolean") {
-      this._stackTrace = [];
-    }
-
-    return {
-      stacktrace,
-    };
-  },
-
   /** ****************************************************************
    * Listeners for new network event data coming from NetworkMonitor.
    ******************************************************************/
@@ -353,7 +338,6 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
 
     this._onEventUpdate("requestPostData", {
       dataSize,
-      discardRequestBody: this._discardRequestBody,
     });
   },
 
@@ -480,7 +464,6 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
       contentSize: content.size,
       encoding: content.encoding,
       transferredSize: content.transferredSize,
-      discardResponseBody,
       blockedReason,
       blockingExtension,
     });
@@ -491,10 +474,8 @@ const NetworkEventActor = protocol.ActorClassWithSpec(networkEventSpec, {
     if (this.isDestroyed()) {
       return;
     }
-
-    this._onEventUpdate("responseCache", {
-      responseCache: content.responseCache,
-    });
+    this._response.responseCache = content.responseCache;
+    this._onEventUpdate("responseCache", {});
   },
 
   /**

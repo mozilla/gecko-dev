@@ -26,7 +26,7 @@ using namespace js;
  */
 /* static */
 void ArrayBufferViewObject::trace(JSTracer* trc, JSObject* objArg) {
-  NativeObject* obj = &objArg->as<NativeObject>();
+  ArrayBufferViewObject* obj = &objArg->as<ArrayBufferViewObject>();
   HeapSlot& bufSlot = obj->getFixedSlotRef(BUFFER_SLOT);
   TraceEdge(trc, &bufSlot, "ArrayBufferViewObject.buffer");
 
@@ -35,16 +35,15 @@ void ArrayBufferViewObject::trace(JSTracer* trc, JSObject* objArg) {
     if (gc::MaybeForwardedObjectIs<ArrayBufferObject>(&bufSlot.toObject())) {
       ArrayBufferObject& buf =
           gc::MaybeForwardedObjectAs<ArrayBufferObject>(&bufSlot.toObject());
-      uint32_t offset = uint32_t(obj->getFixedSlot(BYTEOFFSET_SLOT).toInt32());
-      MOZ_ASSERT(offset <= INT32_MAX);
+      BufferSize offset = obj->byteOffset();
 
-      MOZ_ASSERT_IF(buf.dataPointer() == nullptr, offset == 0);
+      MOZ_ASSERT_IF(buf.dataPointer() == nullptr, offset.get() == 0);
 
       // The data may or may not be inline with the buffer. The buffer
       // can only move during a compacting GC, in which case its
       // objectMoved hook has already updated the buffer's data pointer.
       size_t nfixed = obj->numFixedSlotsMaybeForwarded();
-      obj->setPrivateUnbarriered(nfixed, buf.dataPointer() + offset);
+      obj->setPrivateUnbarriered(nfixed, buf.dataPointer() + offset.get());
     }
   }
 }
@@ -58,8 +57,8 @@ void ArrayBufferViewObject::notifyBufferDetached() {
   MOZ_ASSERT(!isSharedMemory());
   MOZ_ASSERT(hasBuffer());
 
-  setFixedSlot(LENGTH_SLOT, Int32Value(0));
-  setFixedSlot(BYTEOFFSET_SLOT, Int32Value(0));
+  setFixedSlot(LENGTH_SLOT, PrivateValue(size_t(0)));
+  setFixedSlot(BYTEOFFSET_SLOT, PrivateValue(size_t(0)));
 
   setPrivate(nullptr);
 }
@@ -79,16 +78,19 @@ ArrayBufferObjectMaybeShared* ArrayBufferViewObject::bufferObject(
 
 bool ArrayBufferViewObject::init(JSContext* cx,
                                  ArrayBufferObjectMaybeShared* buffer,
-                                 uint32_t byteOffset, uint32_t length,
+                                 BufferSize byteOffset, BufferSize length,
                                  uint32_t bytesPerElement) {
-  MOZ_ASSERT_IF(!buffer, byteOffset == 0);
+  MOZ_ASSERT_IF(!buffer, byteOffset.get() == 0);
   MOZ_ASSERT_IF(buffer, !buffer->isDetached());
 
-  MOZ_ASSERT(byteOffset <= INT32_MAX);
-  MOZ_ASSERT(length <= INT32_MAX);
-  MOZ_ASSERT(byteOffset + length < UINT32_MAX);
+  MOZ_ASSERT(byteOffset.get() <= ArrayBufferObject::maxBufferByteLength());
+  MOZ_ASSERT(length.get() <= ArrayBufferObject::maxBufferByteLength());
+  MOZ_ASSERT(byteOffset.get() + length.get() <=
+             ArrayBufferObject::maxBufferByteLength());
 
-  MOZ_ASSERT_IF(is<TypedArrayObject>(), length < INT32_MAX / bytesPerElement);
+  MOZ_ASSERT_IF(
+      is<TypedArrayObject>(),
+      length.get() < TypedArrayObject::maxByteLength() / bytesPerElement);
 
   // The isSharedMemory property is invariant.  Self-hosting code that
   // sets BUFFER_SLOT or the private slot (if it does) must maintain it by
@@ -97,26 +99,26 @@ bool ArrayBufferViewObject::init(JSContext* cx,
     setIsSharedMemory();
   }
 
-  initFixedSlot(BYTEOFFSET_SLOT, Int32Value(byteOffset));
-  initFixedSlot(LENGTH_SLOT, Int32Value(length));
+  initFixedSlot(BYTEOFFSET_SLOT, PrivateValue(byteOffset.get()));
+  initFixedSlot(LENGTH_SLOT, PrivateValue(length.get()));
   initFixedSlot(BUFFER_SLOT, ObjectOrNullValue(buffer));
 
   if (buffer) {
     SharedMem<uint8_t*> ptr = buffer->dataPointerEither();
-    initDataPointer(ptr + byteOffset);
+    initDataPointer(ptr + byteOffset.get());
 
     // Only ArrayBuffers used for inline typed objects can have
     // nursery-allocated data and we shouldn't see such buffers here.
-    MOZ_ASSERT_IF(buffer->byteLength() > 0, !cx->nursery().isInside(ptr));
+    MOZ_ASSERT_IF(buffer->byteLength().get() > 0, !cx->nursery().isInside(ptr));
   } else {
     MOZ_ASSERT(is<TypedArrayObject>());
-    MOZ_ASSERT(length * bytesPerElement <=
+    MOZ_ASSERT(length.get() * bytesPerElement <=
                TypedArrayObject::INLINE_BUFFER_LIMIT);
     void* data = fixedData(TypedArrayObject::FIXED_DATA_START);
     initPrivate(data);
-    memset(data, 0, length * bytesPerElement);
+    memset(data, 0, length.get() * bytesPerElement);
 #ifdef DEBUG
-    if (length == 0) {
+    if (length.get() == 0) {
       uint8_t* elements = static_cast<uint8_t*>(data);
       elements[0] = ZeroLengthArrayData;
     }
@@ -125,9 +127,9 @@ bool ArrayBufferViewObject::init(JSContext* cx,
 
 #ifdef DEBUG
   if (buffer) {
-    uint32_t viewByteLength = length * bytesPerElement;
-    uint32_t viewByteOffset = byteOffset;
-    uint32_t bufferByteLength = buffer->byteLength();
+    size_t viewByteLength = length.get() * bytesPerElement;
+    size_t viewByteOffset = byteOffset.get();
+    size_t bufferByteLength = buffer->byteLength().get();
     // Unwraps are safe: both are for the pointer value.
     MOZ_ASSERT_IF(IsArrayBuffer(buffer),
                   buffer->dataPointerEither().unwrap(/*safe*/) <=
@@ -210,8 +212,10 @@ JS_FRIEND_API uint32_t JS_GetArrayBufferViewByteLength(JSObject* obj) {
   if (!obj) {
     return 0;
   }
-  return obj->is<DataViewObject>() ? obj->as<DataViewObject>().byteLength()
-                                   : obj->as<TypedArrayObject>().byteLength();
+  BufferSize length = obj->is<DataViewObject>()
+                          ? obj->as<DataViewObject>().byteLength()
+                          : obj->as<TypedArrayObject>().byteLength();
+  return length.deprecatedGetUint32();
 }
 
 JS_FRIEND_API uint32_t JS_GetArrayBufferViewByteOffset(JSObject* obj) {
@@ -219,8 +223,10 @@ JS_FRIEND_API uint32_t JS_GetArrayBufferViewByteOffset(JSObject* obj) {
   if (!obj) {
     return 0;
   }
-  return obj->is<DataViewObject>() ? obj->as<DataViewObject>().byteOffset()
-                                   : obj->as<TypedArrayObject>().byteOffset();
+  BufferSize offset = obj->is<DataViewObject>()
+                          ? obj->as<DataViewObject>().byteOffset()
+                          : obj->as<TypedArrayObject>().byteOffset();
+  return offset.deprecatedGetUint32();
 }
 
 JS_FRIEND_API JSObject* JS_GetObjectAsArrayBufferView(JSObject* obj,
@@ -242,9 +248,10 @@ JS_FRIEND_API void js::GetArrayBufferViewLengthAndData(JSObject* obj,
                                                        uint8_t** data) {
   MOZ_ASSERT(obj->is<ArrayBufferViewObject>());
 
-  *length = obj->is<DataViewObject>()
-                ? obj->as<DataViewObject>().byteLength()
-                : obj->as<TypedArrayObject>().byteLength();
+  BufferSize byteLength = obj->is<DataViewObject>()
+                              ? obj->as<DataViewObject>().byteLength()
+                              : obj->as<TypedArrayObject>().byteLength();
+  *length = byteLength.deprecatedGetUint32();
 
   ArrayBufferViewObject& view = obj->as<ArrayBufferViewObject>();
   *isSharedMemory = view.isSharedMemory();

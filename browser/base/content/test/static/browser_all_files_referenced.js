@@ -8,12 +8,6 @@
 // Slow on asan builds.
 requestLongerTimeout(5);
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "ActorManagerParent",
-  "resource://gre/modules/ActorManagerParent.jsm"
-);
-
 var isDevtools = SimpleTest.harnessParameters.subsuite == "devtools";
 
 // This list should contain only path prefixes. It is meant to stop the test
@@ -52,11 +46,6 @@ var gExceptionPaths = [
   // Exclude all services-automation because they are used through webdriver
   "resource://gre/modules/services-automation/",
   "resource://services-automation/ServicesAutomation.jsm",
-
-  // Bug 1550165 - Exclude localized App/Play store badges. These badges
-  // are displayed in a promo area on the first load of about:logins.
-  "chrome://browser/content/aboutlogins/third-party/app-store/",
-  "chrome://browser/content/aboutlogins/third-party/play-store/",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running
@@ -70,6 +59,9 @@ if (AppConstants.platform == "macosx") {
 // referencing the whitelisted file in a way that the test can't detect, or a
 // bug number to remove or use the file if it is indeed currently unreferenced.
 var whitelist = [
+  // pocket/content/panels/tmpl/loggedoutvariants/variant_a.handlebars
+  { file: "chrome://pocket/content/panels/img/glyph.svg" },
+
   // toolkt/components/pdfjs/content/PdfStreamConverter.jsm
   { file: "chrome://pdf.js/locale/chrome.properties" },
   { file: "chrome://pdf.js/locale/viewer.properties" },
@@ -176,8 +168,6 @@ var whitelist = [
     file: "resource://gre/modules/OSCrypto.jsm",
     platforms: ["linux", "macosx"],
   },
-  // Bug 1356031 (only used by devtools)
-  { file: "chrome://global/skin/icons/error-16.png" },
   // Bug 1344267
   { file: "chrome://marionette/content/test.xhtml" },
   { file: "chrome://marionette/content/test_dialog.properties" },
@@ -236,8 +226,7 @@ if (AppConstants.NIGHTLY_BUILD && AppConstants.platform != "win") {
   whitelist.push({ file: "chrome://fxr/content/fxrui.html" });
 }
 
-if (!AppConstants.NIGHTLY_BUILD || AppConstants.platform == "android") {
-  // Bug 1656680, should be removed after Bug 1651111 lands.
+if (AppConstants.platform == "android") {
   // The l10n build system can't package string files only for some platforms.
   // Referenced by aboutGlean.html
   whitelist.push({
@@ -732,19 +721,6 @@ function findChromeUrlsFromArray(array, prefix) {
   }
 }
 
-function addActorModules() {
-  let groups = [
-    ...ActorManagerParent.parentGroups.values(),
-    ...ActorManagerParent.childGroups.values(),
-    ...ActorManagerParent.singletons.values(),
-  ];
-  for (let group of groups) {
-    for (let { module } of group.actors.values()) {
-      gReferencesFromCode.set(module, null);
-    }
-  }
-}
-
 add_task(async function checkAllTheFiles() {
   let libxulPath = OS.Constants.Path.libxul;
   if (AppConstants.platform != "macosx") {
@@ -822,8 +798,6 @@ add_task(async function checkAllTheFiles() {
     await Promise.all(jsonManifests.map(parseJsonManifest))
   ).filter(uri => !!uri);
   uris.push(...nonWebextManifests);
-
-  addActorModules();
 
   // We build a list of promises that get resolved when their respective
   // files have loaded and produced no errors.

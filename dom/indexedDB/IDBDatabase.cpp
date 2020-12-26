@@ -54,8 +54,7 @@
 // Include this last to avoid path problems on Windows.
 #include "ActorsChild.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using namespace mozilla::dom::indexedDB;
 using namespace mozilla::dom::quota;
@@ -370,11 +369,11 @@ RefPtr<IDBObjectStore> IDBDatabase::CreateObjectStore(
     return nullptr;
   }
 
-  KeyPath keyPath(0);
-  if (NS_FAILED(KeyPath::Parse(aOptionalParameters.mKeyPath, &keyPath))) {
-    aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
-    return nullptr;
-  }
+  // XXX This didn't use to warn before in case of a error. Should we remove the
+  // warning again?
+  IDB_TRY_INSPECT(const auto& keyPath,
+                  KeyPath::Parse(aOptionalParameters.mKeyPath), nullptr,
+                  [&aRv](const auto&) { aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR); });
 
   auto& objectStores = mSpec->objectStores();
   const auto end = objectStores.cend();
@@ -879,17 +878,13 @@ nsresult IDBDatabase::GetQuotaInfo(nsACString& aOrigin,
       MOZ_CRASH("Is this needed?!");
 
     case PrincipalInfo::TSystemPrincipalInfo:
-      QuotaManager::GetInfoForChrome(nullptr, nullptr, &aOrigin);
+      aOrigin = QuotaManager::GetOriginForChrome();
       return NS_OK;
 
     case PrincipalInfo::TContentPrincipalInfo: {
       IDB_TRY_UNWRAP(auto principal, PrincipalInfoToPrincipal(*principalInfo));
 
-      nsresult rv = QuotaManager::GetInfoFromPrincipal(principal, nullptr,
-                                                       nullptr, &aOrigin);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return rv;
-      }
+      IDB_TRY_UNWRAP(aOrigin, QuotaManager::GetOriginFromPrincipal(principal));
 
       return NS_OK;
     }
@@ -1215,5 +1210,4 @@ void IDBDatabase::MaybeDecreaseActiveDatabaseCount() {
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

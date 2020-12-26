@@ -7,15 +7,20 @@
 #ifndef mozilla_dom_quota_client_h__
 #define mozilla_dom_quota_client_h__
 
-#include "mozilla/dom/quota/QuotaCommon.h"
-
+#include <cstdint>
+#include "ErrorList.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/Result.h"
 #include "mozilla/dom/LocalStorageCommon.h"
 #include "mozilla/dom/ipc/IdType.h"
-
-#include "PersistenceType.h"
+#include "mozilla/dom/quota/PersistenceType.h"
+#include "mozilla/dom/quota/QuotaCommon.h"
+#include "mozilla/dom/quota/QuotaInfo.h"
+#include "mozilla/fallible.h"
+#include "nsISupports.h"
+#include "nsStringFwd.h"
 
 class nsIFile;
-class nsIRunnable;
 
 #define IDB_DIRECTORY_NAME "idb"
 #define DOMCACHE_DIRECTORY_NAME "cache"
@@ -24,6 +29,11 @@ class nsIRunnable;
 
 // Deprecated
 #define ASMJSCACHE_DIRECTORY_NAME "asmjs"
+
+namespace mozilla::dom {
+template <typename T>
+struct Nullable;
+}
 
 BEGIN_QUOTA_NAMESPACE
 
@@ -93,17 +103,16 @@ class Client {
   }
 
   virtual Result<UsageInfo, nsresult> InitOrigin(
-      PersistenceType aPersistenceType, const nsACString& aGroup,
-      const nsACString& aOrigin, const AtomicBool& aCanceled) = 0;
+      PersistenceType aPersistenceType, const GroupAndOrigin& aGroupAndOrigin,
+      const AtomicBool& aCanceled) = 0;
 
-  virtual nsresult InitOriginWithoutTracking(PersistenceType aPersistenceType,
-                                             const nsACString& aGroup,
-                                             const nsACString& aOrigin,
-                                             const AtomicBool& aCanceled) = 0;
+  virtual nsresult InitOriginWithoutTracking(
+      PersistenceType aPersistenceType, const GroupAndOrigin& aGroupAndOrigin,
+      const AtomicBool& aCanceled) = 0;
 
   virtual Result<UsageInfo, nsresult> GetUsageForOrigin(
-      PersistenceType aPersistenceType, const nsACString& aGroup,
-      const nsACString& aOrigin, const AtomicBool& aCanceled) = 0;
+      PersistenceType aPersistenceType, const GroupAndOrigin& aGroupAndOrigin,
+      const AtomicBool& aCanceled) = 0;
 
   // This method is called when origins are about to be cleared
   // (except the case when clearing is triggered by the origin eviction).

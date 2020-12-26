@@ -235,7 +235,6 @@ interface nsIHttpChannel : nsIIdentChannel
      */
     [must_use] attribute unsigned long redirectionLimit;
 
-
     /**************************************************************************
      * RESPONSE INFO
      *

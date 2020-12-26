@@ -6,14 +6,16 @@
 
 #include "LSObserver.h"
 
-#include "mozilla/ipc/BackgroundChild.h"
-#include "mozilla/ipc/BackgroundUtils.h"
-#include "mozilla/ipc/PBackgroundChild.h"
-#include "nsContentUtils.h"
-#include "nsIScriptObjectPrincipal.h"
+// Local includes
+#include "ActorsChild.h"
 
-namespace mozilla {
-namespace dom {
+// Global includes
+#include <utility>
+#include "mozilla/StaticPtr.h"
+#include "nsDataHashtable.h"
+#include "nsHashKeys.h"
+
+namespace mozilla::dom {
 
 namespace {
 
@@ -65,5 +67,4 @@ void LSObserver::SetActor(LSObserverChild* aActor) {
   mActor = aActor;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

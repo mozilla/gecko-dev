@@ -21,11 +21,13 @@ const {
   parentProcessTargetPrototype,
 } = require("devtools/server/actors/targets/parent-process");
 const makeDebugger = require("devtools/server/actors/utils/make-debugger");
-const { ActorClassWithSpec } = require("devtools/shared/protocol");
 const {
   webExtensionTargetSpec,
 } = require("devtools/shared/specs/targets/webextension");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
+
+const Targets = require("devtools/server/actors/targets/index");
+const TargetActorMixin = require("devtools/server/actors/targets/target-actor-mixin");
 
 loader.lazyRequireGetter(
   this,
@@ -112,7 +114,7 @@ webExtensionTargetPrototype.initialize = function(
   });
 
   // Bind the _allowSource helper to this, it is used in the
-  // BrowsingContextTargetActor to lazily create the TabSources instance.
+  // BrowsingContextTargetActor to lazily create the SourcesManager instance.
   this._allowSource = this._allowSource.bind(this);
   this._onParentExit = this._onParentExit.bind(this);
 
@@ -421,7 +423,8 @@ webExtensionTargetPrototype._onParentExit = function(msg) {
   this.exit();
 };
 
-exports.WebExtensionTargetActor = ActorClassWithSpec(
+exports.WebExtensionTargetActor = TargetActorMixin(
+  Targets.TYPES.FRAME,
   webExtensionTargetSpec,
   webExtensionTargetPrototype
 );

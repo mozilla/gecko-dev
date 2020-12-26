@@ -1355,11 +1355,11 @@ function handleFallbackToCompleteUpdate(update, postStaging) {
       "handleFallbackToCompleteUpdate - install of partial patch " +
         "failed, downloading complete patch"
     );
-    var status = Cc["@mozilla.org/updates/update-service;1"]
+    var success = Cc["@mozilla.org/updates/update-service;1"]
       .getService(Ci.nsIApplicationUpdateService)
       .downloadUpdate(update, !postStaging);
-    if (status == STATE_NONE) {
-      cleanupReadyUpdate();
+    if (!success) {
+      cleanupDownloadingUpdate();
     }
   } else {
     LOG(
@@ -2346,9 +2346,11 @@ UpdateService.prototype = {
         "UpdateService:_postUpdateProcessing - unable to apply " +
           "updates... returning early"
       );
-      // If the update is present in the update directory somehow,
-      // it would prevent us from notifying the user of further updates.
-      cleanupUpdate();
+      if (!this.isOtherInstanceHandlingUpdates) {
+        // If the update is present in the update directory somehow,
+        // it would prevent us from notifying the user of further updates.
+        cleanupUpdate();
+      }
       return;
     }
 
@@ -2460,8 +2462,8 @@ UpdateService.prototype = {
           "state"
       );
       // Resume download
-      status = this.downloadUpdate(update, true);
-      if (status == STATE_NONE) {
+      let success = this.downloadUpdate(update, true);
+      if (!success) {
         cleanupDownloadingUpdate();
       }
       return;
@@ -2691,12 +2693,12 @@ UpdateService.prototype = {
       );
       // Make sure downloading is the state for selectPatch to work correctly
       writeStatusFile(getUpdatesDir(), STATE_DOWNLOADING);
-      var status = this.downloadUpdate(
+      let success = this.downloadUpdate(
         this._downloader._update,
         this._downloader.background
       );
-      LOG("UpdateService:_attemptResume - downloadUpdate status: " + status);
-      if (status == STATE_NONE) {
+      LOG("UpdateService:_attemptResume - downloadUpdate success: " + success);
+      if (!success) {
         cleanupDownloadingUpdate();
       }
       return;
@@ -3135,8 +3137,8 @@ UpdateService.prototype = {
     }
 
     LOG("UpdateService:_selectAndInstallUpdate - download the update");
-    let status = this.downloadUpdate(update, true);
-    if (status == STATE_NONE) {
+    let success = this.downloadUpdate(update, true);
+    if (!success) {
       cleanupDownloadingUpdate();
     }
     AUSTLMY.pingCheckCode(this._pingSuffix, AUSTLMY.CHK_DOWNLOAD_UPDATE);
@@ -3349,7 +3351,7 @@ UpdateService.prototype = {
           update.buildID
       );
       cleanupDownloadingUpdate();
-      return STATE_NONE;
+      return false;
     }
 
     const env = Cc["@mozilla.org/process/environment;1"].getService(Ci.nsIEnvironment);
@@ -3366,7 +3368,7 @@ UpdateService.prototype = {
             "than one update at a time"
         );
         this._downloader.background = background;
-        return readStatusFile(getUpdatesDir());
+        return true;
       }
       this._downloader.cancel();
     }
@@ -3499,7 +3501,7 @@ function UpdateManager() {
     } else if (status == STATE_DOWNLOADING) {
       // The first update we read out of activeUpdates may not be the ready
       // update, it may be the downloading update.
-      if (this._downloadUpdate) {
+      if (this._downloadingUpdate) {
         // If the first update we read is a downloading update, it's
         // unexpected to have read another active update. That would seem to
         // indicate that we were downloading two updates at once, which we don't
@@ -4735,7 +4737,7 @@ Downloader.prototype = {
     if (!this._patch) {
       LOG("Downloader:downloadUpdate - no patch to download");
       AUSTLMY.pingDownloadCode(undefined, AUSTLMY.DWNLD_ERR_NO_UPDATE_PATCH);
-      return readStatusFile(updateDir);
+      return false;
     }
     // The update and the patch implement nsIWritablePropertyBag. Expose that
     // interface immediately after a patch is assigned so that
@@ -4927,7 +4929,7 @@ Downloader.prototype = {
 
     this._notifyDownloadStatusObservers();
 
-    return STATE_DOWNLOADING;
+    return true;
   },
 
   /**
@@ -5399,8 +5401,8 @@ Downloader.prototype = {
           "Downloader:onStopRequest - BITS download failed. Falling back " +
             "to nsIIncrementalDownload"
         );
-        let updateStatus = this.downloadUpdate(this._update);
-        if (updateStatus == STATE_NONE) {
+        let success = this.downloadUpdate(this._update);
+        if (!success) {
           cleanupDownloadingUpdate();
         } else {
           allFailed = false;
@@ -5418,9 +5420,9 @@ Downloader.prototype = {
             "downloading complete update patch"
         );
         this._update.isCompleteUpdate = true;
-        let updateStatus = this.downloadUpdate(this._update);
+        let success = this.downloadUpdate(this._update);
 
-        if (updateStatus == STATE_NONE) {
+        if (!success) {
           cleanupDownloadingUpdate();
         } else {
           allFailed = false;

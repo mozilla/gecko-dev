@@ -6,13 +6,20 @@
 
 #include "ActorsChild.h"
 
-#include "nsVariant.h"
+// Local includes
 #include "SDBConnection.h"
 #include "SDBRequest.h"
 #include "SDBResults.h"
 
-namespace mozilla {
-namespace dom {
+// Global includes
+#include "mozilla/Assertions.h"
+#include "mozilla/dom/PBackgroundSDBRequest.h"
+#include "nsError.h"
+#include "nsID.h"
+#include "nsISDBResults.h"
+#include "nsVariant.h"
+
+namespace mozilla::dom {
 
 /*******************************************************************************
  * SDBConnectionChild
@@ -212,5 +219,4 @@ mozilla::ipc::IPCResult SDBRequestChild::Recv__delete__(
   return IPC_OK();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

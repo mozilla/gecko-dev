@@ -720,13 +720,6 @@ notification[value="translation"] {
   -moz-image-region: auto;
 }
 
-#menu_unsortedBookmarks,
-#BMB_unsortedBookmarks,
-#panelMenu_unsortedBookmarks {
-  list-style-image: url("chrome://browser/skin/places/unfiledBookmarks.svg");
-  -moz-image-region: auto;
-}
-
 /* Status panel */
 
 #statuspanel-label {
@@ -880,10 +873,6 @@ panel[touchmode] .PanelUI-subView #appMenu-zoom-controls > .subviewbutton-iconic
 #ContentSelectDropdown > menupopup > menuitem[_moz-menuactive="true"][disabled="true"] {
   color: GrayText;
   background-color: unset;
-}
-
-#ContentSelectDropdown > menupopup > menucaption {
-  background-color: buttonface;
 }
 
 #ContentSelectDropdown > menupopup > menucaption[disabled="true"] {

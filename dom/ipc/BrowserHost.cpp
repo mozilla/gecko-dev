@@ -8,12 +8,12 @@
 
 #include "mozilla/Unused.h"
 #include "mozilla/dom/CancelContentJSOptionsBinding.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 
 #include "nsIObserverService.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BrowserHost)
   NS_INTERFACE_MAP_ENTRY(nsIRemoteTab)
@@ -98,28 +98,6 @@ void BrowserHost::UpdateEffects(EffectsInfo aEffects) {
   }
   mEffectsInfo = aEffects;
   Unused << mRoot->SendUpdateEffects(mEffectsInfo);
-}
-
-/* attribute boolean suspendMediaWhenInactive; */
-NS_IMETHODIMP
-BrowserHost::GetSuspendMediaWhenInactive(bool* aSuspendMediaWhenInactive) {
-  if (!mRoot) {
-    *aSuspendMediaWhenInactive = false;
-    return NS_OK;
-  }
-  *aSuspendMediaWhenInactive = mRoot->GetSuspendMediaWhenInactive();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-BrowserHost::SetSuspendMediaWhenInactive(bool aSuspendMediaWhenInactive) {
-  if (!mRoot) {
-    return NS_OK;
-  }
-  VisitAll([&](BrowserParent* aBrowserParent) {
-    aBrowserParent->SetSuspendMediaWhenInactive(aSuspendMediaWhenInactive);
-  });
-  return NS_OK;
 }
 
 /* attribute boolean docShellIsActive; */
@@ -313,5 +291,4 @@ BrowserHost::MaybeCancelContentJSExecutionFromScript(
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

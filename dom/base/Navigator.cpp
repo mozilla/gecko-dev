@@ -112,8 +112,7 @@
 
 #include "mozilla/intl/LocaleService.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 static const nsLiteralCString kVibrationPermissionType = "vibration"_ns;
 
@@ -985,7 +984,6 @@ void Navigator::CheckProtocolHandlerAllowed(const nsAString& aScheme,
 
 void Navigator::RegisterProtocolHandler(const nsAString& aScheme,
                                         const nsAString& aURI,
-                                        const nsAString& aTitle,
                                         ErrorResult& aRv) {
   if (!mWindow || !mWindow->GetOuterWindow() || !mWindow->GetDocShell() ||
       !mWindow->GetDoc()) {
@@ -1014,9 +1012,13 @@ void Navigator::RegisterProtocolHandler(const nsAString& aScheme,
     return;
   }
 
+  // Determine a title from the document URI.
+  nsAutoCString docDisplayHostPort;
+  docURI->GetDisplayHostPort(docDisplayHostPort);
+  NS_ConvertASCIItoUTF16 title(docDisplayHostPort);
+
   if (XRE_IsContentProcess()) {
     nsAutoString scheme(aScheme);
-    nsAutoString title(aTitle);
     RefPtr<BrowserChild> browserChild = BrowserChild::GetFrom(mWindow);
     browserChild->SendRegisterProtocolHandler(scheme, handlerURI, title,
                                               docURI);
@@ -1026,8 +1028,8 @@ void Navigator::RegisterProtocolHandler(const nsAString& aScheme,
   nsCOMPtr<nsIWebProtocolHandlerRegistrar> registrar =
       do_GetService(NS_WEBPROTOCOLHANDLERREGISTRAR_CONTRACTID);
   if (registrar) {
-    aRv = registrar->RegisterProtocolHandler(aScheme, handlerURI, aTitle,
-                                             docURI, mWindow->GetOuterWindow());
+    aRv = registrar->RegisterProtocolHandler(aScheme, handlerURI, title, docURI,
+                                             mWindow->GetOuterWindow());
   }
 }
 
@@ -2159,5 +2161,4 @@ bool Navigator::Webdriver() {
   return Preferences::GetBool("marionette.enabled", false);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

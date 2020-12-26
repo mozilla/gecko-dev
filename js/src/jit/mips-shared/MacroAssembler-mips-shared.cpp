@@ -2108,6 +2108,9 @@ void MacroAssemblerMIPSShared::wasmLoadImpl(
   bool isSigned;
   bool isFloat = false;
 
+  MOZ_ASSERT(!access.isZeroExtendSimd128Load());
+  MOZ_ASSERT(!access.isSplatSimd128Load());
+  MOZ_ASSERT(!access.isWidenSimd128Load());
   switch (access.type()) {
     case Scalar::Int8:
       isSigned = true;
@@ -2128,11 +2131,9 @@ void MacroAssemblerMIPSShared::wasmLoadImpl(
       isSigned = false;
       break;
     case Scalar::Float64:
-      MOZ_ASSERT(!access.isZeroExtendSimd128Load());
       isFloat = true;
       break;
     case Scalar::Float32:
-      MOZ_ASSERT(!access.isZeroExtendSimd128Load());
       isFloat = true;
       break;
     default:
@@ -3337,6 +3338,11 @@ void MacroAssembler::nearbyIntDouble(RoundingMode mode, FloatRegister src,
 
 void MacroAssembler::nearbyIntFloat32(RoundingMode mode, FloatRegister src,
                                       FloatRegister dest) {
+  MOZ_CRASH("not supported on this platform");
+}
+
+void MacroAssembler::copySignDouble(FloatRegister lhs, FloatRegister rhs,
+                                    FloatRegister output) {
   MOZ_CRASH("not supported on this platform");
 }
 

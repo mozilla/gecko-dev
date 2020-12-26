@@ -484,6 +484,19 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   this,
+  "gBookmarksToolbar2h2020",
+  "browser.toolbars.bookmarks.2h2020",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "gBookmarksToolbarVisibility",
+  "browser.toolbars.bookmarks.visibility",
+  "newtab"
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
   "gFxaToolbarEnabled",
   "identity.fxaccounts.toolbar.enabled",
   false,
@@ -1693,6 +1706,7 @@ var gBrowserInit = {
   delayedStartupFinished: false,
   idleTasksFinishedPromise: null,
   idleTaskPromiseResolve: null,
+  domContentLoaded: false,
 
   _tabToAdopt: undefined,
 
@@ -1821,6 +1835,15 @@ var gBrowserInit = {
       let node = document.getElementById(area);
       CustomizableUI.registerToolbarNode(node);
     }
+    let bookmarksToolbarVisibility = gBookmarksToolbar2h2020
+      ? gBookmarksToolbarVisibility
+      : gBookmarksToolbarVisibility == "always";
+    setToolbarVisibility(
+      gNavToolbox.querySelector("#PersonalToolbar"),
+      bookmarksToolbarVisibility,
+      false,
+      false
+    );
     BrowserSearch.initPlaceHolder();
 
     // Hack to ensure that the various initial pages favicon is loaded
@@ -1841,6 +1864,8 @@ var gBrowserInit = {
     this._setInitialFocus();
 
     updateFxaToolbarMenu(gFxaToolbarEnabled, true);
+
+    this.domContentLoaded = true;
   },
 
   onLoad() {
@@ -2016,7 +2041,6 @@ var gBrowserInit = {
 
     BookmarkingUI.init();
     BrowserSearch.delayedStartupInit();
-    AutoShowBookmarksToolbar.init();
     gProtectionsHandler.init();
     HomePage.delayedStartup().catch(Cu.reportError);
 
@@ -2622,7 +2646,6 @@ var gBrowserInit = {
       CanvasPermissionPromptHelper.uninit();
       WebAuthnPromptHelper.uninit();
       PanelUI.uninit();
-      AutoShowBookmarksToolbar.uninit();
     }
 
     // Final window teardown, do this last.
@@ -3665,18 +3688,22 @@ function BrowserReloadWithFlags(reloadFlags) {
   for (let tab of gBrowser.selectedTabs) {
     let browser = tab.linkedBrowser;
     let url = browser.currentURI.spec;
+    // We need to cache the content principal here because the browser will be
+    // reconstructed when the remoteness changes and the content prinicpal will
+    // be cleared after reconstruction.
+    let principal = tab.linkedBrowser.contentPrincipal;
     if (gBrowser.updateBrowserRemotenessByURL(browser, url)) {
       // If the remoteness has changed, the new browser doesn't have any
       // information of what was loaded before, so we need to load the previous
       // URL again.
       if (tab.linkedPanel) {
-        loadBrowserURI(browser, url);
+        loadBrowserURI(browser, url, principal);
       } else {
         // Shift to fully loaded browser and make
         // sure load handler is instantiated.
         tab.addEventListener(
           "SSTabRestoring",
-          () => loadBrowserURI(browser, url),
+          () => loadBrowserURI(browser, url, principal),
           { once: true }
         );
         gBrowser._insertBrowser(tab);
@@ -3724,10 +3751,10 @@ function BrowserReloadWithFlags(reloadFlags) {
     }
   }
 
-  function loadBrowserURI(browser, url) {
+  function loadBrowserURI(browser, url, principal) {
     browser.loadURI(url, {
       flags: reloadFlags,
-      triggeringPrincipal: browser.contentPrincipal,
+      triggeringPrincipal: principal,
     });
   }
 
@@ -5424,6 +5451,8 @@ var XULBrowserWindow = {
     // Do not update urlbar if there was a subframe navigation
 
     if (aWebProgress.isTopLevel) {
+      let isSameDocument =
+        aFlags & Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT;
       if (
         (location == "about:blank" &&
           BrowserUtils.checkEmptyPageOrigin(gBrowser.selectedBrowser)) ||
@@ -5443,6 +5472,16 @@ var XULBrowserWindow = {
       gURLBar.setURI(aLocationURI, aIsSimulated);
 
       BookmarkingUI.onLocationChange();
+      // If we've actually changed document, update the toolbar visibility.
+      if (gBookmarksToolbar2h2020 && !isSameDocument) {
+        let bookmarksToolbar = gNavToolbox.querySelector("#PersonalToolbar");
+        setToolbarVisibility(
+          bookmarksToolbar,
+          gBookmarksToolbarVisibility,
+          false,
+          false
+        );
+      }
 
       gIdentityHandler.onLocationChange();
 
@@ -6464,34 +6503,37 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
     }
   }
 
-  var firstMenuItem = aInsertPoint || popup.firstElementChild;
-
+  MozXULElement.insertFTLIfNeeded("browser/toolbarContextMenu.ftl");
+  let firstMenuItem = aInsertPoint || popup.firstElementChild;
   let toolbarNodes = gNavToolbox.querySelectorAll("toolbar");
-
   for (let toolbar of toolbarNodes) {
     if (!toolbar.hasAttribute("toolbarname")) {
       continue;
     }
 
-    let menuItem = document.createXULElement("menuitem");
-    let hidingAttribute =
-      toolbar.getAttribute("type") == "menubar" ? "autohide" : "collapsed";
-    menuItem.setAttribute("id", "toggle_" + toolbar.id);
-    menuItem.setAttribute("toolbarId", toolbar.id);
-    menuItem.setAttribute("type", "checkbox");
-    menuItem.setAttribute("label", toolbar.getAttribute("toolbarname"));
-    menuItem.setAttribute(
-      "checked",
-      toolbar.getAttribute(hidingAttribute) != "true"
-    );
-    menuItem.setAttribute("accesskey", toolbar.getAttribute("accesskey"));
-    if (popup.id != "toolbar-context-menu") {
-      menuItem.setAttribute("key", toolbar.getAttribute("key"));
+    if (toolbar.id == "PersonalToolbar" && gBookmarksToolbar2h2020) {
+      let menu = BookmarkingUI.buildBookmarksToolbarSubmenu(toolbar);
+      popup.insertBefore(menu, firstMenuItem);
+    } else {
+      let menuItem = document.createXULElement("menuitem");
+      menuItem.setAttribute("id", "toggle_" + toolbar.id);
+      menuItem.setAttribute("toolbarId", toolbar.id);
+      menuItem.setAttribute("type", "checkbox");
+      menuItem.setAttribute("label", toolbar.getAttribute("toolbarname"));
+      let hidingAttribute =
+        toolbar.getAttribute("type") == "menubar" ? "autohide" : "collapsed";
+      menuItem.setAttribute(
+        "checked",
+        toolbar.getAttribute(hidingAttribute) != "true"
+      );
+      menuItem.setAttribute("accesskey", toolbar.getAttribute("accesskey"));
+      if (popup.id != "toolbar-context-menu") {
+        menuItem.setAttribute("key", toolbar.getAttribute("key"));
+      }
+
+      popup.insertBefore(menuItem, firstMenuItem);
+      menuItem.addEventListener("command", onViewToolbarCommand);
     }
-
-    popup.insertBefore(menuItem, firstMenuItem);
-
-    menuItem.addEventListener("command", onViewToolbarCommand);
   }
 
   let moveToPanel = popup.querySelector(".customize-context-moveToPanel");
@@ -6537,7 +6579,6 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
     node.hidden = !showTabStripItems;
   }
 
-  MozXULElement.insertFTLIfNeeded("browser/toolbarContextMenu.ftl");
   document
     .getElementById("toolbar-context-menu")
     .querySelectorAll("[data-lazy-l10n-id]")
@@ -6587,15 +6628,32 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
 
 function onViewToolbarCommand(aEvent) {
   let node = aEvent.originalTarget;
-  let menuId = node.parentNode.id;
-  let toolbarId = node.getAttribute("toolbarId");
-  let isVisible = node.getAttribute("checked") == "true";
+  let menuId;
+  let toolbarId;
+  let isVisible;
+  if (node.dataset.bookmarksToolbarVisibility) {
+    isVisible = node.dataset.visibilityEnum;
+    toolbarId = "PersonalToolbar";
+    menuId = node.parentNode.parentNode.parentNode.id;
+    Services.prefs.setCharPref(
+      "browser.toolbars.bookmarks.visibility",
+      isVisible
+    );
+  } else {
+    menuId = node.parentNode.id;
+    toolbarId = node.getAttribute("toolbarId");
+    isVisible = node.getAttribute("checked") == "true";
+  }
   CustomizableUI.setToolbarVisibility(toolbarId, isVisible);
   BrowserUsageTelemetry.recordToolbarVisibility(toolbarId, isVisible, menuId);
-  updateToggleControlLabel(node);
 }
 
-function setToolbarVisibility(toolbar, isVisible, persist = true) {
+function setToolbarVisibility(
+  toolbar,
+  isVisible,
+  persist = true,
+  animated = true
+) {
   let hidingAttribute;
   if (toolbar.getAttribute("type") == "menubar") {
     hidingAttribute = "autohide";
@@ -6606,8 +6664,62 @@ function setToolbarVisibility(toolbar, isVisible, persist = true) {
     hidingAttribute = "collapsed";
   }
 
+  // For the bookmarks toolbar, we need to persist state before toggling
+  // the visibility in this window, because the state can be different
+  // (newtab vs never or always) even when that won't change visibility
+  // in this window.
+  if (persist && toolbar.id == "PersonalToolbar") {
+    let prefValue;
+    if (typeof isVisible == "string") {
+      prefValue = isVisible;
+    } else {
+      prefValue = isVisible ? "always" : "never";
+    }
+    Services.prefs.setCharPref(
+      "browser.toolbars.bookmarks.visibility",
+      prefValue
+    );
+  }
+
+  if (typeof isVisible == "string") {
+    switch (isVisible) {
+      case "always":
+        isVisible = true;
+        break;
+      case "never":
+        isVisible = false;
+        break;
+      case "newtab":
+        let { currentURI } = gBrowser;
+        if (!gBrowserInit.domContentLoaded) {
+          let uriToLoad = gBrowserInit.uriToLoadPromise;
+          if (uriToLoad) {
+            if (Array.isArray(uriToLoad)) {
+              // We only care about the first tab being loaded
+              uriToLoad = uriToLoad[0];
+            }
+            try {
+              currentURI = Services.io.newURI(uriToLoad);
+            } catch (ex) {}
+          }
+        }
+        isVisible = BookmarkingUI.isOnNewTabPage({ currentURI });
+        break;
+    }
+  }
+
+  if (toolbar.getAttribute(hidingAttribute) == (!isVisible).toString()) {
+    // If this call will not result in a visibility change, return early
+    // since dispatching toolbarvisibilitychange will cause views to get rebuilt.
+    return;
+  }
+
+  toolbar.classList.toggle("instant", !animated);
   toolbar.setAttribute(hidingAttribute, !isVisible);
-  if (persist) {
+  // For the bookmarks toolbar, we will have saved state above. For other
+  // toolbars, we need to do it after setting the attribute, or we might
+  // save the wrong state.
+  if (persist && toolbar.id != "PersonalToolbar") {
     Services.xulStore.persist(toolbar, hidingAttribute);
   }
 
@@ -7050,6 +7162,7 @@ function handleLinkClick(event, href, linkNode) {
       true,
       true,
       referrerInfo,
+      doc.cookieJarSettings,
       doc
     );
     event.preventDefault();
@@ -8147,7 +8260,10 @@ var MailIntegration = {
       "@mozilla.org/uriloader/external-protocol-service;1"
     ].getService(Ci.nsIExternalProtocolService);
     if (extProtocolSvc) {
-      extProtocolSvc.loadURI(aURL);
+      extProtocolSvc.loadURI(
+        aURL,
+        Services.scriptSecurityManager.getSystemPrincipal()
+      );
     }
   },
 };
@@ -9304,16 +9420,19 @@ TabModalPromptBox.prototype = {
       /* Ignore exceptions for host-less URIs */
     }
     if (hostForAllowFocusCheckbox) {
-      let allowFocusRow = document.createXULElement("row");
-      allowFocusCheckbox = document.createXULElement("checkbox");
-      let spacer = document.createXULElement("spacer");
+      let allowFocusRow = document.createElement("div");
+
+      let spacer = document.createElement("div");
       allowFocusRow.appendChild(spacer);
+
+      allowFocusCheckbox = document.createXULElement("checkbox");
       let label = gTabBrowserBundle.formatStringFromName(
         "tabs.allowTabFocusByPromptForSite",
         [hostForAllowFocusCheckbox]
       );
       allowFocusCheckbox.setAttribute("label", label);
       allowFocusRow.appendChild(allowFocusCheckbox);
+
       newPrompt.ui.rows.append(allowFocusRow);
     }
 

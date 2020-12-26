@@ -6,12 +6,17 @@ var { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
+XPCOMUtils.defineLazyModuleGetters(this, {
+  CustomizableUI: "resource:///modules/CustomizableUI.jsm",
+});
+
 var gEditItemOverlay = {
   // Array of PlacesTransactions accumulated by internal changes. It can be used
   // to wait for completion.
   transactionPromises: null,
   _observersAdded: false,
   _staticFoldersListBuilt: false,
+  _didChangeFolder: false,
 
   _paneInfo: null,
   _setPaneInfo(aInitInfo) {
@@ -147,6 +152,10 @@ var gEditItemOverlay = {
     );
   },
 
+  get didChangeFolder() {
+    return this._didChangeFolder;
+  },
+
   // the first field which was edited after this panel was initialized for
   // a certain item
   _firstEditedField: "",
@@ -244,6 +253,7 @@ var gEditItemOverlay = {
       this.uninitPanel(false);
     }
 
+    this._didChangeFolder = false;
     this.transactionPromises = [];
 
     let {
@@ -257,6 +267,14 @@ var gEditItemOverlay = {
       focusedElement,
       onPanelReady,
     } = this._setPaneInfo(aInfo);
+
+    // If we're creating a new item on the toolbar, show it:
+    if (
+      aInfo.isNewBookmark &&
+      parentGuid == PlacesUtils.bookmarks.toolbarGuid
+    ) {
+      this._autoshowBookmarksToolbar();
+    }
 
     let showOrCollapse = (
       rowId,
@@ -545,6 +563,7 @@ var gEditItemOverlay = {
 
     this._setPaneInfo(null);
     this._firstEditedField = "";
+    this._didChangeFolder = false;
     this.transactionPromises = [];
   },
 
@@ -785,6 +804,9 @@ var gEditItemOverlay = {
       this._element("chooseFolderSeparator").hidden = this._element(
         "chooseFolderMenuItem"
       ).hidden = false;
+      // Stop editing if we were (will no-op if not). This avoids permanently
+      // breaking the tree if/when it is reshown.
+      this._folderTree.stopEditing(false);
       // Unlinking the view will break the connection with the result. We don't
       // want to pay for live updates while the view is not visible.
       this._folderTree.view = null;
@@ -877,8 +899,12 @@ var gEditItemOverlay = {
 
       // Auto-show the bookmarks toolbar when adding / moving an item there.
       if (containerGuid == PlacesUtils.bookmarks.toolbarGuid) {
-        Services.obs.notifyObservers(null, "autoshow-bookmarks-toolbar");
+        this._autoshowBookmarksToolbar();
       }
+
+      // Unless the user cancels the panel, we'll use the chosen folder as
+      // the default for new bookmarks.
+      this._didChangeFolder = true;
     }
 
     // Update folder-tree selection
@@ -892,6 +918,22 @@ var gEditItemOverlay = {
         this._folderTree.selectItems([containerGuid]);
       }
     }
+  },
+
+  _autoshowBookmarksToolbar() {
+    let toolbar = document.getElementById("PersonalToolbar");
+    if (!toolbar.collapsed) {
+      return;
+    }
+
+    let placement = CustomizableUI.getPlacementOfWidget("personal-bookmarks");
+    let area = placement && placement.area;
+    if (area != CustomizableUI.AREA_BOOKMARKS) {
+      return;
+    }
+
+    // Show the toolbar but don't persist it permanently open
+    setToolbarVisibility(toolbar, true, false);
   },
 
   onFolderTreeSelect() {

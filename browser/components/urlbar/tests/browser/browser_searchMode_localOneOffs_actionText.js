@@ -156,14 +156,32 @@ add_task(async function localOneOff() {
 
 add_task(async function localOneOff_withVisit() {
   info("Type a url, select a local one-off, check heuristic action");
+  await PlacesUtils.history.clear();
+  for (let i = 0; i < 5; i++) {
+    await PlacesTestUtils.addVisits("https://mozilla.org/");
+    await PlacesTestUtils.addVisits("https://other.mozilla.org/");
+  }
+  const searchString = "mozilla.org";
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: "mozilla.org",
+    value: searchString,
   });
   Assert.ok(UrlbarTestUtils.getResultCount(window) > 1, "Sanity check results");
   let oneOffButtons = UrlbarTestUtils.getOneOffSearchButtons(window);
 
-  info("Alt UP to select the last local one-off.");
+  let [
+    actionHistory,
+    actionTabs,
+    actionBookmarks,
+    actionVisit,
+  ] = await document.l10n.formatValues([
+    { id: "urlbar-result-action-search-history" },
+    { id: "urlbar-result-action-search-tabs" },
+    { id: "urlbar-result-action-search-bookmarks" },
+    { id: "urlbar-result-action-visit" },
+  ]);
+
+  info("Alt UP to select the history one-off.");
   EventUtils.synthesizeKey("KEY_ArrowUp", { altKey: true });
   Assert.equal(
     UrlbarTestUtils.getSelectedRowIndex(window),
@@ -174,16 +192,12 @@ add_task(async function localOneOff_withVisit() {
   Assert.equal(
     oneOffButtons.selectedButton.source,
     UrlbarUtils.RESULT_SOURCE.HISTORY,
-    "A local one-off button should be selected"
+    "The history one-off button should be selected"
   );
   Assert.ok(
     BrowserTestUtils.is_visible(result.element.action),
     "The heuristic action should be visible"
   );
-  let [actionHistory, actionVisit] = await document.l10n.formatValues([
-    { id: "urlbar-result-action-search-history" },
-    { id: "urlbar-result-action-visit" },
-  ]);
   Assert.equal(
     result.displayed.action,
     actionHistory,
@@ -192,6 +206,58 @@ add_task(async function localOneOff_withVisit() {
   Assert.equal(
     result.image,
     "chrome://browser/skin/history.svg",
+    "Check the heuristic icon"
+  );
+  let row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 0);
+  Assert.equal(
+    row.querySelector(".urlbarView-title").textContent,
+    searchString,
+    "Check that the result title has been replaced with the search string."
+  );
+
+  info("Alt UP to select the tabs one-off.");
+  EventUtils.synthesizeKey("KEY_ArrowUp", { altKey: true });
+  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+  Assert.equal(
+    oneOffButtons.selectedButton.source,
+    UrlbarUtils.RESULT_SOURCE.TABS,
+    "The tabs one-off button should be selected"
+  );
+  Assert.ok(
+    BrowserTestUtils.is_visible(result.element.action),
+    "The heuristic action should be visible"
+  );
+  Assert.equal(
+    result.displayed.action,
+    actionTabs,
+    "Check the heuristic action"
+  );
+  Assert.equal(
+    result.image,
+    "chrome://browser/skin/tab.svg",
+    "Check the heuristic icon"
+  );
+
+  info("Alt UP to select the bookmarks one-off.");
+  EventUtils.synthesizeKey("KEY_ArrowUp", { altKey: true });
+  result = await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+  Assert.equal(
+    oneOffButtons.selectedButton.source,
+    UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
+    "The bookmarks one-off button should be selected"
+  );
+  Assert.ok(
+    BrowserTestUtils.is_visible(result.element.action),
+    "The heuristic action should be visible"
+  );
+  Assert.equal(
+    result.displayed.action,
+    actionBookmarks,
+    "Check the heuristic action"
+  );
+  Assert.equal(
+    result.image,
+    "chrome://browser/skin/bookmark.svg",
     "Check the heuristic icon"
   );
 
@@ -232,6 +298,14 @@ add_task(async function localOneOff_withVisit() {
     "chrome://browser/skin/history.svg",
     "Check the heuristic icon"
   );
+  row = await UrlbarTestUtils.waitForAutocompleteResultAt(window, 0);
+  Assert.equal(
+    row.querySelector(".urlbarView-title").textContent,
+    `https://${searchString}`,
+    "Check that the result title has been restored to the fixed-up URI."
+  );
+
+  await PlacesUtils.history.clear();
 });
 
 add_task(async function localOneOff_suggestion() {
@@ -240,8 +314,8 @@ add_task(async function localOneOff_suggestion() {
     window,
     value: "query",
   });
-  Assert.ok(UrlbarTestUtils.getResultCount(window) > 1, "Sanity check results");
-  let count = await UrlbarTestUtils.getResultCount(window);
+  let count = UrlbarTestUtils.getResultCount(window);
+  Assert.ok(count > 1, "Sanity check results");
   let result = null;
   let suggestionIndex = -1;
   for (let i = 1; i < count; ++i) {
@@ -324,7 +398,7 @@ add_task(async function localOneOff_suggestion() {
 });
 
 add_task(async function localOneOff_shortcut() {
-  info("Select a search shortcution, then a local one-off");
+  info("Select a search shortcut, then a local one-off");
 
   await PlacesUtils.history.clear();
   // Enough vists to get this site into Top Sites.
@@ -341,8 +415,8 @@ add_task(async function localOneOff_shortcut() {
     window,
     value: "",
   });
-  Assert.ok(UrlbarTestUtils.getResultCount(window) > 1, "Sanity check results");
-  let count = await UrlbarTestUtils.getResultCount(window);
+  let count = UrlbarTestUtils.getResultCount(window);
+  Assert.ok(count > 1, "Sanity check results");
   let result = null;
   let shortcutIndex = -1;
   for (let i = 0; i < count; ++i) {

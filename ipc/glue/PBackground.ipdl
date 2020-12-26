@@ -49,6 +49,7 @@ include protocol PWebAuthnTransaction;
 include protocol PUDPSocket;
 include protocol PVerifySSLServerCert;
 include protocol PVsync;
+include protocol PRemoteDecoderManager;
 
 include DOMTypes;
 include IPCBlob;
@@ -174,7 +175,7 @@ parent:
 
   async PBackgroundSessionStorageManager(uint64_t aTopContextId);
 
-  async PBackgroundStorage(nsString profilePath);
+  async PBackgroundStorage(nsString profilePath, uint32_t privateBrowsingId);
 
   async PVsync();
 
@@ -261,6 +262,9 @@ parent:
                              DelegatedCredentialInfoArg? aDcInfo,
                              uint32_t aProviderFlags,
                              uint32_t aCertVerifierFlags);
+
+  async EnsureRDDProcessAndCreateBridge()
+      returns (nsresult rv, Endpoint<PRemoteDecoderManagerChild> aEndpoint);
 
 child:
   async PCache();

@@ -230,8 +230,6 @@ nsIFrame* NS_NewImageBoxFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 
 nsIFrame* NS_NewTextBoxFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 
-nsIFrame* NS_NewGroupBoxFrame(PresShell* aPresShell, ComputedStyle* aStyle);
-
 nsIFrame* NS_NewButtonBoxFrame(PresShell* aPresShell, ComputedStyle* aStyle);
 
 nsIFrame* NS_NewSplitterFrame(PresShell* aPresShell, ComputedStyle* aStyle);
@@ -682,11 +680,14 @@ class MOZ_STACK_CLASS nsFrameConstructorState {
   // using this state.
   nsFrameState mAdditionalStateBits;
 
-  // When working with the transform and filter properties, we want to hook
-  // the abs-pos and fixed-pos lists together, since such
-  // elements are fixed-pos containing blocks.  This flag determines
-  // whether or not we want to wire the fixed-pos and abs-pos lists
-  // together.
+  // When working with transform / filter properties, we want to hook the
+  // abs-pos and fixed-pos lists together, since such elements are fixed-pos
+  // containing blocks.
+  //
+  // Similarly when restricting absolute positioning (for e.g. mathml).
+  //
+  // This flag determines whether or not we want to wire the fixed-pos and
+  // abs-pos lists together.
   bool mFixedPosIsAbsPos;
 
   // A boolean to indicate whether we have a "pending" popupgroup.  That is, we
@@ -894,6 +895,8 @@ void nsFrameConstructorState::ProcessFrameInsertionsForAllLists() {
 void nsFrameConstructorState::PushAbsoluteContainingBlock(
     nsContainerFrame* aNewAbsoluteContainingBlock, nsIFrame* aPositionedFrame,
     nsFrameConstructorSaveState& aSaveState) {
+  MOZ_ASSERT(!!aNewAbsoluteContainingBlock == !!aPositionedFrame,
+             "We should have both or none");
   aSaveState.mList = &mAbsoluteList;
   aSaveState.mSavedList = mAbsoluteList;
   aSaveState.mChildListID = nsIFrame::kAbsoluteList;
@@ -910,10 +913,11 @@ void nsFrameConstructorState::PushAbsoluteContainingBlock(
   mAbsoluteList = AbsoluteFrameList(aNewAbsoluteContainingBlock);
 
   /* See if we're wiring the fixed-pos and abs-pos lists together.  This happens
-   * iff we're a transformed element.
+   * if we're a transformed/filtered/etc element, or if we force a null abspos
+   * containing block (for mathml for example).
    */
   mFixedPosIsAbsPos =
-      aPositionedFrame && aPositionedFrame->IsFixedPosContainingBlock();
+      !aPositionedFrame || aPositionedFrame->IsFixedPosContainingBlock();
 
   if (aNewAbsoluteContainingBlock) {
     aNewAbsoluteContainingBlock->MarkAsAbsoluteContainingBlock();
@@ -4019,7 +4023,6 @@ nsCSSFrameConstructor::FindXULTagData(const Element& aElement,
       SIMPLE_TAG_CHAIN(description,
                        nsCSSFrameConstructor::FindXULDescriptionData),
       SIMPLE_XUL_CREATE(menu, NS_NewMenuFrame),
-      SIMPLE_XUL_CREATE(menubutton, NS_NewMenuFrame),
       SIMPLE_XUL_CREATE(menulist, NS_NewMenuFrame),
       SIMPLE_XUL_CREATE(menuitem, NS_NewMenuItemFrame),
 #  ifdef XP_MACOSX
@@ -4716,16 +4719,6 @@ nsCSSFrameConstructor::FindMathMLData(const Element& aElement,
                         FCDATA_IS_LINE_PARTICIPANT | FCDATA_WRAP_KIDS_IN_BLOCKS,
                     NS_NewMathMLmathInlineFrame);
     return &sInlineMathData;
-  }
-
-  if (!StaticPrefs::mathml_mfenced_element_disabled() &&
-      tag == nsGkAtoms::mfenced_) {
-    // These flags are the same as those of SIMPLE_MATHML_CREATE.
-    static const FrameConstructionData sMathFencedData = FCDATA_DECL(
-        FCDATA_DISALLOW_OUT_OF_FLOW | FCDATA_FORCE_NULL_ABSPOS_CONTAINER |
-            FCDATA_WRAP_KIDS_IN_BLOCKS,
-        NS_NewMathMLmfencedFrame);
-    return &sMathFencedData;
   }
 
   static const FrameConstructionDataByTag sMathMLData[] = {
@@ -5636,8 +5629,6 @@ void nsCSSFrameConstructor::ConstructFramesFromItem(
     item.mIsGeneratedContent = false;
   }
 }
-
-inline bool IsRootBoxFrame(nsIFrame* aFrame) { return (aFrame->IsRootFrame()); }
 
 void nsCSSFrameConstructor::ReconstructDocElementHierarchy(
     InsertionKind aInsertionKind) {

@@ -1649,8 +1649,8 @@ void CodeGenerator::visitAsmJSLoadHeap(LAsmJSLoadHeap* ins) {
   }
 
   Label done, outOfRange;
-  masm.wasmBoundsCheck(Assembler::AboveOrEqual, ptrReg,
-                       ToRegister(boundsCheckLimit), &outOfRange);
+  masm.wasmBoundsCheck32(Assembler::AboveOrEqual, ptrReg,
+                         ToRegister(boundsCheckLimit), &outOfRange);
   // Offset is ok, let's load value.
   if (isFloat) {
     if (size == 32) {
@@ -1768,8 +1768,8 @@ void CodeGenerator::visitAsmJSStoreHeap(LAsmJSStoreHeap* ins) {
   }
 
   Label outOfRange;
-  masm.wasmBoundsCheck(Assembler::AboveOrEqual, ptrReg,
-                       ToRegister(boundsCheckLimit), &outOfRange);
+  masm.wasmBoundsCheck32(Assembler::AboveOrEqual, ptrReg,
+                         ToRegister(boundsCheckLimit), &outOfRange);
 
   // Offset is ok, let's store value.
   if (isFloat) {
@@ -1893,7 +1893,11 @@ void CodeGenerator::visitWasmSelect(LWasmSelect* ins) {
     Register out = ToRegister(ins->output());
     MOZ_ASSERT(ToRegister(ins->trueExpr()) == out,
                "true expr input is reused for output");
-    masm.as_movz(out, ToRegister(falseExpr), cond);
+    if (falseExpr->isRegister()) {
+      masm.as_movz(out, ToRegister(falseExpr), cond);
+    } else {
+      masm.cmp32Load32(Assembler::Zero, cond, cond, ToAddress(falseExpr), out);
+    }
     return;
   }
 

@@ -26,16 +26,12 @@
  * template instantiations wherever possible, mean that Parser exhibits much of
  * the same unholy template/inheritance complexity as token streams.
  *
- * == ParserSharedBase → JS::AutoGCRooter ==
+ * == ParserSharedBase ==
  *
- * ParserSharedBase is the base class for both regular JS and BinAST parser.
- * This class contains common fields and methods between both parsers.
- *
- * Of particular note: making ParserSharedBase inherit JS::AutoGCRooter (rather
- * than placing it under one of the more-derived parser classes) means that all
- * parsers can be traced using the same AutoGCRooter mechanism: it's not
- * necessary to have separate tracing functionality for syntax/full parsers or
- * parsers of different character types.
+ * ParserSharedBase is the base class for both regular JS and BinAST parsing.
+ * This class contains common fields and methods between both parsers. There is
+ * currently no BinAST parser here so this can potentially be merged into the
+ * ParserBase type below.
  *
  * == ParserBase → ParserSharedBase, ErrorReportMixin ==
  *
@@ -191,6 +187,7 @@
 #include "frontend/SharedContext.h"
 #include "frontend/SyntaxParseHandler.h"
 #include "frontend/TokenStream.h"
+#include "js/friend/ErrorMessages.h"  // JSErrNum, JSMSG_*
 #include "js/Vector.h"
 #include "vm/ErrorReporting.h"
 #include "vm/GeneratorAndAsyncKind.h"  // js::GeneratorKind, js::FunctionAsyncKind
@@ -243,7 +240,7 @@ class AutoAwaitIsKeyword;
 template <class ParseHandler, typename Unit>
 class AutoInParametersOfAsyncFunction;
 
-class MOZ_STACK_CLASS ParserSharedBase : public JS::CustomAutoRooter {
+class MOZ_STACK_CLASS ParserSharedBase {
  public:
   enum class Kind { Parser };
 
@@ -270,11 +267,10 @@ class MOZ_STACK_CLASS ParserSharedBase : public JS::CustomAutoRooter {
  public:
   CompilationInfo& getCompilationInfo() { return compilationInfo_; }
 
+  LifoAlloc& stencilAlloc() { return compilationInfo_.stencil.alloc; }
+
   JSAtom* liftParserAtomToJSAtom(const ParserAtom* parserAtom) {
     return parserAtom->toJSAtom(cx_, compilationInfo_.input.atomCache);
-  }
-  const ParserAtom* lowerJSAtomToParserAtom(JSAtom* atom) {
-    return compilationInfo_.lowerJSAtomToParserAtom(cx_, atom);
   }
 };
 
@@ -325,8 +321,6 @@ class MOZ_STACK_CLASS ParserBase : public ParserSharedBase,
   ~ParserBase();
 
   bool checkOptions();
-
-  void trace(JSTracer* trc) final {}
 
   const char* getFilename() const { return anyChars.getFilename(); }
   TokenPos pos() const { return anyChars.currentToken().pos; }
@@ -583,8 +577,7 @@ class MOZ_STACK_CLASS PerHandlerParser : public ParserBase {
                               FunctionFlags flags, uint32_t toStringStart,
                               Directives directives,
                               GeneratorKind generatorKind,
-                              FunctionAsyncKind asyncKind,
-                              TopLevelFunction isTopLevel);
+                              FunctionAsyncKind asyncKind);
 
  public:
   // ErrorReportMixin.
@@ -1002,6 +995,7 @@ class MOZ_STACK_CLASS GeneralParser : public PerHandlerParser<ParseHandler> {
                                     uint32_t toStringStart,
                                     FunctionSyntaxKind kind, bool tryAnnexB);
 
+  void setFunctionStartAtPosition(FunctionBox* funbox, TokenPos pos) const;
   void setFunctionStartAtCurrentToken(FunctionBox* funbox) const;
 
  public:
@@ -1276,14 +1270,15 @@ class MOZ_STACK_CLASS GeneralParser : public PerHandlerParser<ParseHandler> {
       const ClassInitializedMembers& classInitializedMembers,
       ListNodeType& classMembers);
 
-  FunctionNodeType privateMethodInitializer(const ParserAtom* propAtom,
+  FunctionNodeType privateMethodInitializer(TokenPos propNamePos,
+                                            const ParserAtom* propAtom,
                                             const ParserAtom* storedMethodAtom);
   FunctionNodeType fieldInitializerOpt(
-      Node name, const ParserAtom* atom,
+      TokenPos propNamePos, Node name, const ParserAtom* atom,
       ClassInitializedMembers& classInitializedMembers, bool isStatic,
       HasHeritage hasHeritage);
   FunctionNodeType synthesizeConstructor(const ParserAtom* className,
-                                         uint32_t classNameOffset,
+                                         TokenPos synthesizedBodyPos,
                                          HasHeritage hasHeritage);
 
   bool checkBindingIdentifier(const ParserName* ident, uint32_t offset,

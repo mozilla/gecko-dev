@@ -526,6 +526,15 @@ class AsyncPanZoomController {
   // in the given direction.
   bool CanScroll(ScrollDirection aDirection) const;
 
+  // Return true if there is room to scroll downwards along with moving the
+  // dynamic toolbar.
+  //
+  // NOTE: This function should be used only for the root content APZC.
+  bool CanScrollDownwardsWithDynamicToolbar() const;
+
+  // Return true if there is room to scroll downwards.
+  bool CanScrollDownwards() const;
+
   /**
    * Convert a point on the scrollbar from this APZC's ParentLayer coordinates
    * to CSS coordinates relative to the beginning of the scroll track.
@@ -809,7 +818,8 @@ class AsyncPanZoomController {
    * position of the start point so that the pan gesture is calculated
    * regardless of if the window/GeckoView moved during the pan.
    */
-  nsEventStatus StartPanning(const ExternalPoint& aStartPoint);
+  nsEventStatus StartPanning(const ExternalPoint& aStartPoint,
+                             const TimeStamp& aEventTime);
 
   /**
    * Wrapper for Axis::UpdateWithTouchAtDevicePoint(). Calls this function for
@@ -1667,6 +1677,14 @@ class AsyncPanZoomController {
   }
 
  private:
+  // The timestamp of the latest touch start event.
+  TimeStamp mTouchStartTime;
+  // The time duration between mTouchStartTime and the touchmove event that
+  // started the pan (the touchmove event that transitioned this APZC from the
+  // TOUCHING state to one of the PANNING* states). Only valid while this APZC
+  // is in a panning state.
+  TimeDuration mTouchStartRestingTimeBeforePan;
+  Maybe<ParentLayerCoord> mMinimumVelocityDuringPan;
   // Extra offset to add to the async scroll position for testing
   CSSPoint mTestAsyncScrollOffset;
   // Extra zoom to include in the aync zoom for testing

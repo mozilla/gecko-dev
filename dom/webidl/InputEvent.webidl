@@ -14,10 +14,9 @@ interface InputEvent : UIEvent
 
   readonly attribute boolean       isComposing;
 
-  [Pref="dom.inputevent.inputtype.enabled"]
   readonly attribute DOMString inputType;
 
-  [NeedsCallerType, Pref="dom.inputevent.data.enabled"]
+  [NeedsCallerType]
   readonly attribute DOMString? data;
 };
 
@@ -37,7 +36,7 @@ dictionary InputEventInit : UIEventInit
 // https://rawgit.com/w3c/input-events/v1/index.html#interface-InputEvent
 partial interface InputEvent
 {
-  [NeedsCallerType, Pref="dom.inputevent.datatransfer.enabled"]
+  [NeedsCallerType]
   readonly attribute DataTransfer? dataTransfer;
   // Enable `getTargetRanges()` only when `beforeinput` event is enabled
   // because this may be used for feature detection of `beforeinput` event
@@ -48,7 +47,6 @@ partial interface InputEvent
 
 partial dictionary InputEventInit
 {
-  [Pref="dom.inputevent.datatransfer.enabled"]
   DataTransfer? dataTransfer = null;
   [Pref="dom.input_events.beforeinput.enabled"]
   sequence<StaticRange> targetRanges = [];

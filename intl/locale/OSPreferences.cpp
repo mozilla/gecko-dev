@@ -23,10 +23,30 @@ NS_IMPL_ISUPPORTS(OSPreferences, mozIOSPreferences)
 
 mozilla::StaticRefPtr<OSPreferences> OSPreferences::sInstance;
 
-OSPreferences* OSPreferences::GetInstance() {
-  if (!sInstance) {
+// Return a new strong reference to the instance, creating it if necessary.
+already_AddRefed<OSPreferences> OSPreferences::GetInstanceAddRefed() {
+  RefPtr<OSPreferences> result = sInstance;
+  if (!result) {
     sInstance = new OSPreferences();
+    result = sInstance;
+
+    DebugOnly<nsresult> rv = Preferences::RegisterPrefixCallback(
+        PreferenceChanged, "intl.date_time.pattern_override");
+    MOZ_ASSERT(NS_SUCCEEDED(rv), "Adding observers failed.");
+
     ClearOnShutdown(&sInstance);
+  }
+  return result.forget();
+}
+
+// Return a raw pointer to the instance: not for off-main-thread use,
+// because ClearOnShutdown means it could go away unexpectedly.
+OSPreferences* OSPreferences::GetInstance() {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!sInstance) {
+    // This will create the static instance; then we just drop the extra
+    // reference.
+    RefPtr<OSPreferences> result = GetInstanceAddRefed();
   }
   return sInstance;
 }
@@ -41,6 +61,20 @@ void OSPreferences::Refresh() {
     if (obs) {
       obs->NotifyObservers(nullptr, "intl:system-locales-changed", nullptr);
     }
+  }
+}
+
+OSPreferences::~OSPreferences() {
+  Preferences::UnregisterPrefixCallback(PreferenceChanged,
+                                        "intl.date_time.pattern_override");
+  RemoveObservers();
+}
+
+/*static*/
+void OSPreferences::PreferenceChanged(const char* aPrefName,
+                                      void* /* aClosure */) {
+  if (sInstance) {
+    sInstance->mPatternCache.Clear();
   }
 }
 
@@ -63,7 +97,7 @@ bool OSPreferences::CanonicalizeLanguageTag(nsCString& aLoc) {
 bool OSPreferences::GetDateTimePatternForStyle(DateTimeFormatStyle aDateStyle,
                                                DateTimeFormatStyle aTimeStyle,
                                                const nsACString& aLocale,
-                                               nsAString& aRetVal) {
+                                               nsACString& aRetVal) {
   UDateFormatStyle timeStyle = UDAT_NONE;
   UDateFormatStyle dateStyle = UDAT_NONE;
 
@@ -133,7 +167,7 @@ bool OSPreferences::GetDateTimePatternForStyle(DateTimeFormatStyle aDateStyle,
   if (U_FAILURE(status)) {
     return false;
   }
-  aRetVal.Assign((const char16_t*)pattern, patsize);
+  aRetVal = NS_ConvertUTF16toUTF8(pattern, patsize);
   return true;
 }
 
@@ -148,24 +182,146 @@ bool OSPreferences::GetDateTimePatternForStyle(DateTimeFormatStyle aDateStyle,
 bool OSPreferences::GetDateTimeSkeletonForStyle(DateTimeFormatStyle aDateStyle,
                                                 DateTimeFormatStyle aTimeStyle,
                                                 const nsACString& aLocale,
-                                                nsAString& aRetVal) {
-  nsAutoString pattern;
+                                                nsACString& aRetVal) {
+  nsAutoCString pattern;
   if (!GetDateTimePatternForStyle(aDateStyle, aTimeStyle, aLocale, pattern)) {
     return false;
   }
+
+  nsAutoString patternAsUtf16 = NS_ConvertUTF8toUTF16(pattern);
 
   const int32_t kSkeletonMax = 160;
   UChar skeleton[kSkeletonMax];
 
   UErrorCode status = U_ZERO_ERROR;
-  int32_t skelsize =
-      udatpg_getSkeleton(nullptr, (const UChar*)pattern.BeginReading(),
-                         pattern.Length(), skeleton, kSkeletonMax, &status);
+  int32_t skelsize = udatpg_getSkeleton(
+      nullptr, (const UChar*)patternAsUtf16.BeginReading(),
+      patternAsUtf16.Length(), skeleton, kSkeletonMax, &status);
   if (U_FAILURE(status)) {
     return false;
   }
 
-  aRetVal.Assign((const char16_t*)skeleton, skelsize);
+  aRetVal = NS_ConvertUTF16toUTF8(skeleton, skelsize);
+  return true;
+}
+
+/**
+ * This method checks for preferences that override the defaults
+ */
+bool OSPreferences::OverrideDateTimePattern(DateTimeFormatStyle aDateStyle,
+                                            DateTimeFormatStyle aTimeStyle,
+                                            const nsACString& aLocale,
+                                            nsACString& aRetVal) {
+  const auto PrefToMaybeString = [](const char* pref) -> Maybe<nsAutoCString> {
+    nsAutoCString value;
+    nsresult nr = Preferences::GetCString(pref, value);
+    if (NS_FAILED(nr) || value.IsEmpty()) {
+      return Nothing();
+    }
+    return Some(std::move(value));
+  };
+
+  Maybe<nsAutoCString> timeSkeleton;
+  switch (aTimeStyle) {
+    case DateTimeFormatStyle::Short:
+      timeSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.time_short");
+      break;
+    case DateTimeFormatStyle::Medium:
+      timeSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.time_medium");
+      break;
+    case DateTimeFormatStyle::Long:
+      timeSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.time_long");
+      break;
+    case DateTimeFormatStyle::Full:
+      timeSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.time_full");
+      break;
+    default:
+      break;
+  }
+
+  Maybe<nsAutoCString> dateSkeleton;
+  switch (aDateStyle) {
+    case DateTimeFormatStyle::Short:
+      dateSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.date_short");
+      break;
+    case DateTimeFormatStyle::Medium:
+      dateSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.date_medium");
+      break;
+    case DateTimeFormatStyle::Long:
+      dateSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.date_long");
+      break;
+    case DateTimeFormatStyle::Full:
+      dateSkeleton =
+          PrefToMaybeString("intl.date_time.pattern_override.date_full");
+      break;
+    default:
+      break;
+  }
+
+  nsAutoCString locale;
+  if (aLocale.IsEmpty()) {
+    AutoTArray<nsCString, 10> regionalPrefsLocales;
+    LocaleService::GetInstance()->GetRegionalPrefsLocales(regionalPrefsLocales);
+    locale.Assign(regionalPrefsLocales[0]);
+  } else {
+    locale.Assign(aLocale);
+  }
+
+  const auto FillConnectorPattern = [&locale](
+                                        const nsAutoCString& datePattern,
+                                        const nsAutoCString& timePattern) {
+    nsAutoCString pattern;
+    GetDateTimeConnectorPattern(nsDependentCString(locale.get()), pattern);
+    int32_t index = pattern.Find("{1}");
+    if (index != kNotFound) {
+      pattern.Replace(index, 3, datePattern);
+    }
+    index = pattern.Find("{0}");
+    if (index != kNotFound) {
+      pattern.Replace(index, 3, timePattern);
+    }
+    return pattern;
+  };
+
+  if (timeSkeleton && dateSkeleton) {
+    aRetVal.Assign(FillConnectorPattern(*dateSkeleton, *timeSkeleton));
+  } else if (timeSkeleton) {
+    if (aDateStyle != DateTimeFormatStyle::None) {
+      nsAutoCString pattern;
+      if (!ReadDateTimePattern(aDateStyle, DateTimeFormatStyle::None, aLocale,
+                               pattern) &&
+          !GetDateTimePatternForStyle(aDateStyle, DateTimeFormatStyle::None,
+                                      aLocale, pattern)) {
+        return false;
+      }
+      aRetVal.Assign(FillConnectorPattern(pattern, *timeSkeleton));
+    } else {
+      aRetVal.Assign(*timeSkeleton);
+    }
+  } else if (dateSkeleton) {
+    if (aTimeStyle != DateTimeFormatStyle::None) {
+      nsAutoCString pattern;
+      if (!ReadDateTimePattern(DateTimeFormatStyle::None, aTimeStyle, aLocale,
+                               pattern) &&
+          !GetDateTimePatternForStyle(DateTimeFormatStyle::None, aTimeStyle,
+                                      aLocale, pattern)) {
+        return false;
+      }
+      aRetVal.Assign(FillConnectorPattern(*dateSkeleton, pattern));
+    } else {
+      aRetVal.Assign(*dateSkeleton);
+    }
+  } else {
+    return false;
+  }
+
   return true;
 }
 
@@ -178,9 +334,11 @@ bool OSPreferences::GetDateTimeSkeletonForStyle(DateTimeFormatStyle aDateStyle,
  * For example:
  * "Hm" skeleton for "en-US" will return "H:m"
  */
-bool OSPreferences::GetPatternForSkeleton(const nsAString& aSkeleton,
+bool OSPreferences::GetPatternForSkeleton(const nsACString& aSkeleton,
                                           const nsACString& aLocale,
-                                          nsAString& aRetVal) {
+                                          nsACString& aRetVal) {
+  aRetVal.Truncate();
+
   UErrorCode status = U_ZERO_ERROR;
   UDateTimePatternGenerator* pg =
       udatpg_open(PromiseFlatCString(aLocale).get(), &status);
@@ -188,18 +346,25 @@ bool OSPreferences::GetPatternForSkeleton(const nsAString& aSkeleton,
     return false;
   }
 
+  nsAutoString skeletonAsUtf16 = NS_ConvertUTF8toUTF16(aSkeleton);
+  nsAutoString result;
+
   int32_t len =
-      udatpg_getBestPattern(pg, (const UChar*)aSkeleton.BeginReading(),
-                            aSkeleton.Length(), nullptr, 0, &status);
+      udatpg_getBestPattern(pg, (const UChar*)skeletonAsUtf16.BeginReading(),
+                            skeletonAsUtf16.Length(), nullptr, 0, &status);
   if (status == U_BUFFER_OVERFLOW_ERROR) {  // expected
-    aRetVal.SetLength(len);
+    result.SetLength(len);
     status = U_ZERO_ERROR;
-    udatpg_getBestPattern(pg, (const UChar*)aSkeleton.BeginReading(),
-                          aSkeleton.Length(), (UChar*)aRetVal.BeginWriting(),
-                          len, &status);
+    udatpg_getBestPattern(pg, (const UChar*)skeletonAsUtf16.BeginReading(),
+                          skeletonAsUtf16.Length(),
+                          (UChar*)result.BeginWriting(), len, &status);
   }
 
   udatpg_close(pg);
+
+  if (U_SUCCESS(status)) {
+    aRetVal = NS_ConvertUTF16toUTF8(result);
+  }
 
   return U_SUCCESS(status);
 }
@@ -214,8 +379,19 @@ bool OSPreferences::GetPatternForSkeleton(const nsAString& aSkeleton,
  * An example output is "{1}, {0}".
  */
 bool OSPreferences::GetDateTimeConnectorPattern(const nsACString& aLocale,
-                                                nsAString& aRetVal) {
+                                                nsACString& aRetVal) {
   bool result = false;
+
+  // Check for a valid override pref and use that if present.
+  nsAutoCString value;
+  nsresult nr = Preferences::GetCString(
+      "intl.date_time.pattern_override.date_time_short", value);
+  if (NS_SUCCEEDED(nr) && value.Find("{0}") != kNotFound &&
+      value.Find("{1}") != kNotFound) {
+    aRetVal = std::move(value);
+    return true;
+  }
+
   UErrorCode status = U_ZERO_ERROR;
   UDateTimePatternGenerator* pg =
       udatpg_open(PromiseFlatCString(aLocale).get(), &status);
@@ -224,7 +400,7 @@ bool OSPreferences::GetDateTimeConnectorPattern(const nsACString& aLocale,
     const UChar* value = udatpg_getDateTimeFormat(pg, &resultSize);
     MOZ_ASSERT(resultSize >= 0);
 
-    aRetVal.Assign((char16_t*)value, resultSize);
+    aRetVal = NS_ConvertUTF16toUTF8(value, resultSize);
     result = true;
   }
   udatpg_close(pg);
@@ -306,7 +482,7 @@ NS_IMETHODIMP
 OSPreferences::GetDateTimePattern(int32_t aDateFormatStyle,
                                   int32_t aTimeFormatStyle,
                                   const nsACString& aLocale,
-                                  nsAString& aRetVal) {
+                                  nsACString& aRetVal) {
   DateTimeFormatStyle dateStyle = ToDateTimeFormatStyle(aDateFormatStyle);
   if (dateStyle == DateTimeFormatStyle::Invalid) {
     return NS_ERROR_INVALID_ARG;
@@ -330,15 +506,17 @@ OSPreferences::GetDateTimePattern(int32_t aDateFormatStyle,
   key.Append(':');
   key.AppendInt(aTimeFormatStyle);
 
-  nsString pattern;
+  nsCString pattern;
   if (mPatternCache.Get(key, &pattern)) {
     aRetVal = pattern;
     return NS_OK;
   }
 
-  if (!ReadDateTimePattern(dateStyle, timeStyle, aLocale, pattern)) {
-    if (!GetDateTimePatternForStyle(dateStyle, timeStyle, aLocale, pattern)) {
-      return NS_ERROR_FAILURE;
+  if (!OverrideDateTimePattern(dateStyle, timeStyle, aLocale, pattern)) {
+    if (!ReadDateTimePattern(dateStyle, timeStyle, aLocale, pattern)) {
+      if (!GetDateTimePatternForStyle(dateStyle, timeStyle, aLocale, pattern)) {
+        return NS_ERROR_FAILURE;
+      }
     }
   }
 

@@ -314,6 +314,7 @@ extern "C" {
         locked_u: *mut LockedTexture,
         locked_v: *mut LockedTexture,
         color_space: YUVColorSpace,
+        color_depth: GLuint,
         src_x: GLint,
         src_y: GLint,
         src_width: GLsizei,
@@ -2165,7 +2166,7 @@ impl Gl for Context {
         //ptr::null()
     }
 
-    fn client_wait_sync(&self, sync: GLsync, flags: GLbitfield, timeout: GLuint64) {
+    fn client_wait_sync(&self, sync: GLsync, flags: GLbitfield, timeout: GLuint64) -> GLenum {
         panic!();
     }
 
@@ -2316,6 +2317,20 @@ impl Gl for Context {
     ) {
         unimplemented!("Not supported by SWGL");
     }
+
+    fn buffer_storage(
+        &self,
+        target: GLenum,
+        size: GLsizeiptr,
+        data: *const GLvoid,
+        flags: GLbitfield,
+    ) {
+        unimplemented!("Not supported by SWGL");
+    }
+
+    fn flush_mapped_buffer_range(&self, target: GLenum, offset: GLintptr, length: GLsizeiptr) {
+        unimplemented!("Not supported by SWGL");
+    }
 }
 
 /// A resource that is intended for sharing between threads.
@@ -2385,6 +2400,7 @@ impl LockedResource {
         locked_u: &LockedResource,
         locked_v: &LockedResource,
         color_space: YUVColorSpace,
+        color_depth: GLuint,
         src_x: GLint,
         src_y: GLint,
         src_width: GLsizei,
@@ -2404,6 +2420,7 @@ impl LockedResource {
                 locked_u.0,
                 locked_v.0,
                 color_space,
+                color_depth,
                 src_x,
                 src_y,
                 src_width,

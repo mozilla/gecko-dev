@@ -23,6 +23,7 @@
 #include "jit/InlinableNatives.h"
 #include "js/Conversions.h"
 #include "js/experimental/TypedData.h"  // JS_NewDataView
+#include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
 #include "js/Wrapper.h"
 #include "util/Windows.h"
@@ -48,7 +49,7 @@ using mozilla::AssertedCast;
 using mozilla::WrapToSigned;
 
 DataViewObject* DataViewObject::create(
-    JSContext* cx, uint32_t byteOffset, uint32_t byteLength,
+    JSContext* cx, BufferSize byteOffset, BufferSize byteLength,
     Handle<ArrayBufferObjectMaybeShared*> arrayBuffer, HandleObject proto) {
   if (arrayBuffer->isDetached()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -70,8 +71,8 @@ DataViewObject* DataViewObject::create(
 bool DataViewObject::getAndCheckConstructorArgs(JSContext* cx,
                                                 HandleObject bufobj,
                                                 const CallArgs& args,
-                                                uint32_t* byteOffsetPtr,
-                                                uint32_t* byteLengthPtr) {
+                                                BufferSize* byteOffsetPtr,
+                                                BufferSize* byteLengthPtr) {
   // Step 3.
   if (!IsArrayBufferMaybeShared(bufobj)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -96,7 +97,7 @@ bool DataViewObject::getAndCheckConstructorArgs(JSContext* cx,
   }
 
   // Step 6.
-  uint32_t bufferByteLength = buffer->byteLength();
+  size_t bufferByteLength = buffer->byteLength().get();
 
   // Step 7.
   if (offset > bufferByteLength) {
@@ -104,7 +105,7 @@ bool DataViewObject::getAndCheckConstructorArgs(JSContext* cx,
                               JSMSG_OFFSET_OUT_OF_BUFFER);
     return false;
   }
-  MOZ_ASSERT(offset <= INT32_MAX);
+  MOZ_ASSERT(offset <= ArrayBufferObject::maxBufferByteLength());
 
   // Step 8.a
   uint64_t viewByteLength = bufferByteLength - offset;
@@ -125,10 +126,10 @@ bool DataViewObject::getAndCheckConstructorArgs(JSContext* cx,
       return false;
     }
   }
-  MOZ_ASSERT(viewByteLength <= INT32_MAX);
+  MOZ_ASSERT(viewByteLength <= ArrayBufferObject::maxBufferByteLength());
 
-  *byteOffsetPtr = AssertedCast<uint32_t>(offset);
-  *byteLengthPtr = AssertedCast<uint32_t>(viewByteLength);
+  *byteOffsetPtr = BufferSize(offset);
+  *byteLengthPtr = BufferSize(viewByteLength);
   return true;
 }
 
@@ -138,7 +139,8 @@ bool DataViewObject::constructSameCompartment(JSContext* cx,
   MOZ_ASSERT(args.isConstructing());
   cx->check(bufobj);
 
-  uint32_t byteOffset, byteLength;
+  BufferSize byteOffset(0);
+  BufferSize byteLength(0);
   if (!getAndCheckConstructorArgs(cx, bufobj, args, &byteOffset, &byteLength)) {
     return false;
   }
@@ -184,7 +186,8 @@ bool DataViewObject::constructWrapped(JSContext* cx, HandleObject bufobj,
   }
 
   // NB: This entails the IsArrayBuffer check
-  uint32_t byteOffset, byteLength;
+  BufferSize byteOffset(0);
+  BufferSize byteLength(0);
   if (!getAndCheckConstructorArgs(cx, unwrapped, args, &byteOffset,
                                   &byteLength)) {
     return false;
@@ -255,9 +258,9 @@ SharedMem<uint8_t*> DataViewObject::getDataPointer(uint64_t offset,
                                                    bool* isSharedMemory) {
   MOZ_ASSERT(offsetIsInBounds<NativeType>(offset));
 
-  MOZ_ASSERT(offset < UINT32_MAX);
+  MOZ_ASSERT(offset < SIZE_MAX);
   *isSharedMemory = this->isSharedMemory();
-  return dataPointerEither().cast<uint8_t*>() + uint32_t(offset);
+  return dataPointerEither().cast<uint8_t*>() + size_t(offset);
 }
 
 template <typename T>
@@ -885,7 +888,7 @@ bool DataViewObject::fun_setFloat64(JSContext* cx, unsigned argc, Value* vp) {
 bool DataViewObject::bufferGetterImpl(JSContext* cx, const CallArgs& args) {
   Rooted<DataViewObject*> thisView(
       cx, &args.thisv().toObject().as<DataViewObject>());
-  args.rval().set(DataViewObject::bufferValue(thisView));
+  args.rval().set(thisView->bufferValue());
   return true;
 }
 
@@ -906,7 +909,7 @@ bool DataViewObject::byteLengthGetterImpl(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 7.
-  args.rval().set(DataViewObject::byteLengthValue(thisView));
+  args.rval().set(thisView->byteLengthValue());
   return true;
 }
 
@@ -927,7 +930,7 @@ bool DataViewObject::byteOffsetGetterImpl(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 7.
-  args.rval().set(DataViewObject::byteOffsetValue(thisView));
+  args.rval().set(thisView->byteOffsetValue());
   return true;
 }
 

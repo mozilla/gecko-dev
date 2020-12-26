@@ -230,7 +230,8 @@ void nsLineLayout::BeginLineReflow(nscoord aICoord, nscoord aBCoord,
       MOZ_ASSERT(mBlockReflowInput->GetWritingMode() == pfd->mWritingMode,
                  "mBlockReflowInput->frame == frame, "
                  "hence they should have identical writing mode");
-      pfd->mOffsets = mBlockReflowInput->ComputedLogicalOffsets();
+      pfd->mOffsets =
+          mBlockReflowInput->ComputedLogicalOffsets(pfd->mWritingMode);
     }
   }
 }
@@ -701,8 +702,8 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
   if ((pos->ISizeDependsOnContainer(aWM) && !pos->ISize(aWM).IsAuto()) ||
       pos->MaxISizeDependsOnContainer(aWM) ||
       pos->MinISizeDependsOnContainer(aWM) ||
-      pos->OffsetHasPercent(aWM.IsVertical() ? eSideBottom : eSideRight) ||
-      pos->OffsetHasPercent(aWM.IsVertical() ? eSideTop : eSideLeft)) {
+      pos->mOffset.GetIStart(aWM).HasPercent() ||
+      pos->mOffset.GetIEnd(aWM).HasPercent()) {
     return true;
   }
 
@@ -824,16 +825,12 @@ void nsLineLayout::ReflowFrame(nsIFrame* aFrame, nsReflowStatus& aReflowStatus,
     if (reflowInput.ComputedISize() == NS_UNCONSTRAINEDSIZE) {
       reflowInput.AvailableISize() = availableSpaceOnLine;
     }
-    WritingMode stateWM = reflowInput.GetWritingMode();
-    pfd->mMargin =
-        reflowInput.ComputedLogicalMargin().ConvertTo(lineWM, stateWM);
-    pfd->mBorderPadding =
-        reflowInput.ComputedLogicalBorderPadding().ConvertTo(lineWM, stateWM);
+    pfd->mMargin = reflowInput.ComputedLogicalMargin(lineWM);
+    pfd->mBorderPadding = reflowInput.ComputedLogicalBorderPadding(lineWM);
     pfd->mRelativePos =
         reflowInput.mStyleDisplay->IsRelativelyPositionedStyle();
     if (pfd->mRelativePos) {
-      pfd->mOffsets =
-          reflowInput.ComputedLogicalOffsets().ConvertTo(frameWM, stateWM);
+      pfd->mOffsets = reflowInput.ComputedLogicalOffsets(frameWM);
     }
 
     // Calculate whether the the frame should have a start margin and

@@ -13,6 +13,7 @@
 #include "imgFrame.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/MediaFeatureChange.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/SVGSVGElement.h"
 #include "mozilla/dom/SVGDocument.h"
@@ -1556,20 +1557,17 @@ void VectorImage::MediaFeatureValuesChangedAllDocuments(
   }
 
   if (Document* doc = mSVGDocumentWrapper->GetDocument()) {
-    if (nsPresContext* presContext = doc->GetPresContext()) {
-      presContext->MediaFeatureValuesChangedAllDocuments(aChange);
+    if (RefPtr<nsPresContext> presContext = doc->GetPresContext()) {
+      presContext->MediaFeatureValuesChanged(
+          aChange, MediaFeatureChangePropagation::All);
       // Media feature value changes don't happen in the middle of layout,
       // so we don't need to call InvalidateObserversOnNextRefreshDriverTick
       // to invalidate asynchronously.
-      //
-      // Ideally we would not invalidate images if the media feature value
-      // change did not cause any updates to the document, but since non-
-      // animated SVG images do not have their refresh driver ticked, it
-      // is the invalidation (and then the painting) which is what causes
-      // the document to be flushed. Theme and system metrics changes are
-      // rare, though, so it's not a big deal to invalidate even if it
-      // doesn't cause any change.
-      SendInvalidationNotifications();
+      if (presContext->FlushPendingMediaFeatureValuesChanged()) {
+        // NOTE(emilio): SendInvalidationNotifications flushes layout via
+        // VectorImage::CreateSurface -> FlushImageTransformInvalidation.
+        SendInvalidationNotifications();
+      }
     }
   }
 }

@@ -686,7 +686,8 @@ class BrowserParent final : public PBrowserParent,
       nsTArray<IPCDataTransfer>&& aTransfers, const uint32_t& aAction,
       Maybe<Shmem>&& aVisualDnDData, const uint32_t& aStride,
       const gfx::SurfaceFormat& aFormat, const LayoutDeviceIntRect& aDragRect,
-      nsIPrincipal* aPrincipal, nsIContentSecurityPolicy* aCsp);
+      nsIPrincipal* aPrincipal, nsIContentSecurityPolicy* aCsp,
+      const CookieJarSettingsArgs& aCookieJarSettingsArgs);
 
   void AddInitialDnDDataTo(DataTransfer* aDataTransfer,
                            nsIPrincipal** aPrincipal);
@@ -708,9 +709,6 @@ class BrowserParent final : public PBrowserParent,
 
   bool GetDocShellIsActive();
   void SetDocShellIsActive(bool aDocShellIsActive);
-
-  bool GetSuspendMediaWhenInactive() const;
-  void SetSuspendMediaWhenInactive(bool aSuspendMediaWhenInactive);
 
   bool GetHasPresented();
   bool GetHasLayers();
@@ -758,8 +756,6 @@ class BrowserParent final : public PBrowserParent,
 
   mozilla::ipc::IPCResult RecvRemotePaintIsReady();
 
-  mozilla::ipc::IPCResult RecvNotifyCompositorTransaction();
-
   mozilla::ipc::IPCResult RecvRemoteIsReadyToHandleInputEvents();
 
   mozilla::ipc::IPCResult RecvPaintWhileInterruptingJSNoOp(
@@ -788,6 +784,10 @@ class BrowserParent final : public PBrowserParent,
   mozilla::ipc::IPCResult RecvRequestPointerLock(
       RequestPointerLockResolver&& aResolve);
   mozilla::ipc::IPCResult RecvReleasePointerLock();
+
+  mozilla::ipc::IPCResult RecvRequestPointerCapture(
+      const uint32_t& aPointerId, RequestPointerCaptureResolver&& aResolve);
+  mozilla::ipc::IPCResult RecvReleasePointerCapture(const uint32_t& aPointerId);
 
  private:
   void SuppressDisplayport(bool aEnabled);
@@ -1026,10 +1026,6 @@ class BrowserParent final : public PBrowserParent,
   // (for something that isn't the initial about:blank) and then start
   // allowing future events.
   bool mSuspendedProgressEvents : 1;
-
-  // True if the media in the remote docshell should be suspended when the
-  // remote docshell is inactive.
-  bool mSuspendMediaWhenInactive : 1;
 };
 
 struct MOZ_STACK_CLASS BrowserParent::AutoUseNewTab final {

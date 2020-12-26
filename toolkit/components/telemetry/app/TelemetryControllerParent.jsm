@@ -269,6 +269,17 @@ var TelemetryController = Object.freeze({
   },
 
   /**
+   * Allows the sync ping to tell the controller that it is initializing, so
+   * should be included in the orderly shutdown process.
+   *
+   * @param {Function} aFnShutdown The function to call as telemetry shuts down.
+
+   */
+  registerSyncPingShutdown(afnShutdown) {
+    Impl.registerSyncPingShutdown(afnShutdown);
+  },
+
+  /**
    * Allows waiting for TelemetryControllers delayed initialization to complete.
    * The returned promise is guaranteed to resolve before TelemetryController is shutting down.
    * @return {Promise} Resolved when delayed TelemetryController initialization completed.
@@ -312,6 +323,9 @@ var Impl = {
   _probeRegistrationPromise: null,
   // The promise of any outstanding task sending the "deletion-request" ping.
   _deletionRequestPingSubmittedPromise: null,
+  // A function to shutdown the sync/fxa ping, or null if that ping has not
+  // self-initialized.
+  _fnSyncPingShutdown: null,
 
   get _log() {
     return TelemetryControllerBase.log;
@@ -377,7 +391,8 @@ var Impl = {
    * @param {String}  [aOptions.schemaNamespace=null] the schema namespace to use if encryption is enabled.
    * @param {String}  [aOptions.schemaVersion=null] the schema version to use if encryption is enabled.
    * @param {Boolean} [aOptions.addPioneerId=false] true if the ping should contain the Pioneer id, false otherwise.
-   *
+   * @param {Boolean} [aOptions.overridePioneerId=undefined] if set, override the
+   *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @returns {Object} An object that contains the assembled ping data.
    */
   assemblePing: function assemblePing(aType, aPayload, aOptions = {}) {
@@ -453,6 +468,8 @@ var Impl = {
    * @param {String}  [aOptions.schemaNamespace=null] the schema namespace to use if encryption is enabled.
    * @param {String}  [aOptions.schemaVersion=null] the schema version to use if encryption is enabled.
    * @param {Boolean} [aOptions.addPioneerId=false] true if the ping should contain the Pioneer id, false otherwise.
+   * @param {Boolean} [aOptions.overridePioneerId=undefined] if set, override the
+   *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
    * @returns {Promise} Test-only - a promise that is resolved with the ping id once the ping is stored or sent.
@@ -505,10 +522,16 @@ var Impl = {
         payload.encryptionKeyId = aOptions.encryptionKeyId;
 
         if (aOptions.addPioneerId === true) {
-          // This will throw if there is no pioneer ID set.
-          payload.pioneerId = Services.prefs.getStringPref(
-            "toolkit.telemetry.pioneerId"
-          );
+          if (aOptions.overridePioneerId) {
+            // The caller provided a substitute id, let's use that
+            // instead of querying the pref.
+            payload.pioneerId = aOptions.overridePioneerId;
+          } else {
+            // This will throw if there is no pioneer ID set.
+            payload.pioneerId = Services.prefs.getStringPref(
+              "toolkit.telemetry.pioneerId"
+            );
+          }
           payload.studyName = aOptions.studyName;
         }
 
@@ -561,6 +584,8 @@ var Impl = {
    * @param {String}  [aOptions.schemaNamespace=null] the schema namespace to use if encryption is enabled.
    * @param {String}  [aOptions.schemaVersion=null] the schema version to use if encryption is enabled.
    * @param {Boolean} [aOptions.addPioneerId=false] true if the ping should contain the Pioneer id, false otherwise.
+   * @param {Boolean} [aOptions.overridePioneerId=undefined] if set, override the
+   *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
    * @returns {Promise} Test-only - a promise that is resolved with the ping id once the ping is stored or sent.
@@ -606,6 +631,12 @@ var Impl = {
       );
       histogram.add(1);
       return Promise.reject(new Error("Invalid payload type submitted."));
+    }
+
+    // We're trying to track down missing sync pings (bug 1663573), so record
+    // a temporary cross-checking counter.
+    if (aType == "sync" && aPayload.why == "shutdown") {
+      Telemetry.scalarSet("telemetry.sync_shutdown_ping_sent", true);
     }
 
     let promise = this._submitPingLogic(aType, aPayload, aOptions);
@@ -925,6 +956,12 @@ var Impl = {
       EcosystemTelemetry.shutdown();
       await TelemetryPrioPing.shutdown();
 
+      // Shutdown the sync ping if it is initialized - this is likely, but not
+      // guaranteed, to submit a "shutdown" sync ping.
+      if (this._fnSyncPingShutdown) {
+        this._fnSyncPingShutdown();
+      }
+
       // Stop the datachoices infobar display.
       TelemetryReportingPolicy.shutdown();
       TelemetryEnvironment.shutdown();
@@ -1012,6 +1049,16 @@ var Impl = {
         }
     }
     return undefined;
+  },
+
+  /**
+   * Register the sync ping's shutdown handler.
+   */
+  registerSyncPingShutdown(fnShutdown) {
+    if (this._fnSyncPingShutdown) {
+      throw new Error("The sync ping shutdown handler is already registered.");
+    }
+    this._fnSyncPingShutdown = fnShutdown;
   },
 
   /**
@@ -1175,6 +1222,7 @@ var Impl = {
 
   async reset() {
     this._clientID = null;
+    this._fnSyncPingShutdown = null;
     this._detachObservers();
 
     let sessionReset = TelemetrySession.testReset();

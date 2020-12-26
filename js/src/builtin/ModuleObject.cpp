@@ -17,6 +17,7 @@
 #include "gc/FreeOp.h"
 #include "gc/Policy.h"
 #include "gc/Tracer.h"
+#include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/Modules.h"  // JS::GetModulePrivate, JS::ModuleDynamicImportHook
 #include "js/PropertySpec.h"
 #include "vm/AsyncFunction.h"
@@ -1238,12 +1239,14 @@ bool ModuleBuilder::buildTables(frontend::StencilModuleMetadata& metadata) {
           return false;
         }
       } else {
-        if (importEntry->importName == cx_->parserNames().star) {
+        if (importEntry->importName ==
+            frontend::TaggedParserAtomIndex::star()) {
           if (!metadata.localExportEntries.append(exp)) {
             js::ReportOutOfMemory(cx_);
             return false;
           }
         } else {
+          // All names should have already been marked as used-by-stencil.
           auto entry = frontend::StencilModuleEntry::exportFromEntry(
               importEntry->specifier, importEntry->importName, exp.exportName,
               exp.lineno, exp.column);
@@ -1253,7 +1256,8 @@ bool ModuleBuilder::buildTables(frontend::StencilModuleMetadata& metadata) {
           }
         }
       }
-    } else if (exp.importName == cx_->parserNames().star && !exp.exportName) {
+    } else if (exp.importName == frontend::TaggedParserAtomIndex::star() &&
+               !exp.exportName) {
       if (!metadata.starExportEntries.append(exp)) {
         js::ReportOutOfMemory(cx_);
         return false;
@@ -1302,31 +1306,23 @@ static ArrayObject* ModuleBuilderInitArray(
     const frontend::StencilModuleEntry& entry = vector[i];
 
     if (entry.specifier) {
-      specifier = entry.specifier->toJSAtom(cx, atomCache);
-      if (!specifier) {
-        return nullptr;
-      }
+      specifier = atomCache.getExistingAtomAt(cx, entry.specifier);
+      MOZ_ASSERT(specifier);
     }
 
     if (entry.localName) {
-      localName = entry.localName->toJSAtom(cx, atomCache);
-      if (!localName) {
-        return nullptr;
-      }
+      localName = atomCache.getExistingAtomAt(cx, entry.localName);
+      MOZ_ASSERT(localName);
     }
 
     if (entry.importName) {
-      importName = entry.importName->toJSAtom(cx, atomCache);
-      if (!importName) {
-        return nullptr;
-      }
+      importName = atomCache.getExistingAtomAt(cx, entry.importName);
+      MOZ_ASSERT(importName);
     }
 
     if (entry.exportName) {
-      exportName = entry.exportName->toJSAtom(cx, atomCache);
-      if (!exportName) {
-        return nullptr;
-      }
+      exportName = atomCache.getExistingAtomAt(cx, entry.exportName);
+      MOZ_ASSERT(exportName);
     }
 
     switch (arrayType) {
@@ -1448,9 +1444,13 @@ bool ModuleBuilder::processImport(frontend::BinaryNode* importNode) {
     eitherParser_.computeLineAndColumn(importNameNode->pn_pos.begin, &line,
                                        &column);
 
+    module->markUsedByStencil();
+    localName->markUsedByStencil();
+    importName->markUsedByStencil();
     auto entry = frontend::StencilModuleEntry::importEntry(
-        module, localName, importName, line, column);
-    if (!importEntries_.put(localName, entry)) {
+        module->toIndex(), localName->toIndex(), importName->toIndex(), line,
+        column);
+    if (!importEntries_.put(localName->toIndex(), entry)) {
       return false;
     }
   }
@@ -1676,7 +1676,7 @@ bool ModuleBuilder::processExportFrom(frontend::BinaryNode* exportNode) {
 }
 
 frontend::StencilModuleEntry* ModuleBuilder::importEntryFor(
-    const frontend::ParserAtom* localName) const {
+    frontend::TaggedParserAtomIndex localName) const {
   MOZ_ASSERT(localName);
   auto ptr = importEntries_.lookup(localName);
   if (!ptr) {
@@ -1700,8 +1700,10 @@ bool ModuleBuilder::appendExportEntry(const frontend::ParserAtom* exportName,
     eitherParser_.computeLineAndColumn(node->pn_pos.begin, &line, &column);
   }
 
+  localName->markUsedByStencil();
+  exportName->markUsedByStencil();
   auto entry = frontend::StencilModuleEntry::exportAsEntry(
-      localName, exportName, line, column);
+      localName->toIndex(), exportName->toIndex(), line, column);
   if (!exportEntries_.append(entry)) {
     return false;
   }
@@ -1723,8 +1725,16 @@ bool ModuleBuilder::appendExportFromEntry(
   uint32_t column;
   eitherParser_.computeLineAndColumn(node->pn_pos.begin, &line, &column);
 
+  moduleRequest->markUsedByStencil();
+  importName->markUsedByStencil();
+  if (exportName) {
+    exportName->markUsedByStencil();
+  }
   auto entry = frontend::StencilModuleEntry::exportFromEntry(
-      moduleRequest, importName, exportName, line, column);
+      moduleRequest->toIndex(), importName->toIndex(),
+      exportName ? exportName->toIndex()
+                 : frontend::TaggedParserAtomIndex::null(),
+      line, column);
   if (!exportEntries_.append(entry)) {
     return false;
   }
@@ -1742,8 +1752,9 @@ bool ModuleBuilder::maybeAppendRequestedModule(
   uint32_t column;
   eitherParser_.computeLineAndColumn(node->pn_pos.begin, &line, &column);
 
-  auto entry =
-      frontend::StencilModuleEntry::moduleRequest(specifier, line, column);
+  specifier->markUsedByStencil();
+  auto entry = frontend::StencilModuleEntry::moduleRequest(specifier->toIndex(),
+                                                           line, column);
   if (!requestedModules_.append(entry)) {
     js::ReportOutOfMemory(cx_);
     return false;

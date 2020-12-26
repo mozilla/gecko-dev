@@ -485,13 +485,12 @@ static bool IsCacheableProtoChain(JSObject* obj, JSObject* holder) {
 }
 
 static bool IsCacheableGetPropReadSlot(JSObject* obj, JSObject* holder,
-                                       PropertyResult prop) {
-  if (!prop || !IsCacheableProtoChain(obj, holder)) {
+                                       Shape* shape) {
+  if (!shape->isDataProperty()) {
     return false;
   }
 
-  Shape* shape = prop.shape();
-  if (!shape->isDataProperty()) {
+  if (!IsCacheableProtoChain(obj, holder)) {
     return false;
   }
 
@@ -508,7 +507,9 @@ enum NativeGetPropCacheability {
 static NativeGetPropCacheability IsCacheableGetPropCall(JSObject* obj,
                                                         JSObject* holder,
                                                         Shape* shape) {
-  if (!shape || !IsCacheableProtoChain(obj, holder)) {
+  MOZ_ASSERT(shape);
+
+  if (!IsCacheableProtoChain(obj, holder)) {
     return CanAttachNone;
   }
 
@@ -606,10 +607,7 @@ static bool IsCacheableNoProperty(JSContext* cx, JSObject* obj,
                                   JSObject* holder, Shape* shape, jsid id,
                                   jsbytecode* pc,
                                   GetPropertyResultFlags resultFlags) {
-  if (shape) {
-    return false;
-  }
-
+  MOZ_ASSERT(!shape);
   MOZ_ASSERT(!holder);
 
   // Idempotent ICs may only attach missing-property stubs if undefined
@@ -645,25 +643,28 @@ static NativeGetPropCacheability CanAttachNativeGetProp(
   }
 
   MOZ_ASSERT(!holder);
-  if (baseHolder) {
-    if (!baseHolder->isNative()) {
-      return CanAttachNone;
-    }
+
+  if (prop.isNativeProperty()) {
+    MOZ_ASSERT(baseHolder);
     holder.set(&baseHolder->as<NativeObject>());
-  }
-  shape.set(prop.maybeShape());
+    shape.set(prop.shape());
 
-  if (IsCacheableGetPropReadSlot(obj, holder, prop)) {
-    return CanAttachReadSlot;
+    if (IsCacheableGetPropReadSlot(obj, holder, shape)) {
+      return CanAttachReadSlot;
+    }
+
+    // Idempotent ICs cannot call getters, see tryAttachIdempotentStub.
+    if (pc && (resultFlags & GetPropertyResultFlags::Monitored)) {
+      return IsCacheableGetPropCall(obj, holder, shape);
+    }
+
+    return CanAttachNone;
   }
 
-  if (IsCacheableNoProperty(cx, obj, holder, shape, id, pc, resultFlags)) {
-    return CanAttachReadSlot;
-  }
-
-  // Idempotent ICs cannot call getters, see tryAttachIdempotentStub.
-  if (pc && (resultFlags & GetPropertyResultFlags::Monitored)) {
-    return IsCacheableGetPropCall(obj, holder, shape);
+  if (!prop.isFound()) {
+    if (IsCacheableNoProperty(cx, obj, holder, shape, id, pc, resultFlags)) {
+      return CanAttachReadSlot;
+    }
   }
 
   return CanAttachNone;
@@ -2470,9 +2471,11 @@ static bool AllowDoubleForUint32Array(TypedArrayObject* tarr, uint32_t index) {
     return false;
   }
 
-  if (index >= tarr->length()) {
+  // TODO: audit callers to check they do the right thing if index > INT32_MAX.
+  if (index >= tarr->length().deprecatedGetUint32()) {
     return false;
   }
+  MOZ_ASSERT(index <= INT32_MAX);
 
   Value res;
   MOZ_ALWAYS_TRUE(tarr->getElementPure(index, &res));
@@ -2489,7 +2492,7 @@ AttachDecision GetPropIRGenerator::tryAttachTypedArrayElement(
   TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
 
   // Ensure the index is in-bounds so the element type gets monitored.
-  if (index >= tarr->length()) {
+  if (index >= tarr->length().get()) {
     return AttachDecision::NoAction;
   }
 
@@ -2749,8 +2752,7 @@ AttachDecision GetNameIRGenerator::tryAttachGlobalNameValue(ObjOperandId objId,
     // prototype. Ignore the global lexical scope as it doesn't figure
     // into the prototype chain. We guard on the global lexical
     // scope's shape independently.
-    if (!IsCacheableGetPropReadSlot(&globalLexical->global(), holder,
-                                    PropertyResult(shape))) {
+    if (!IsCacheableGetPropReadSlot(&globalLexical->global(), holder, shape)) {
       return AttachDecision::NoAction;
     }
 
@@ -2889,7 +2891,7 @@ AttachDecision GetNameIRGenerator::tryAttachEnvironmentName(ObjOperandId objId,
   }
 
   holder = &env->as<NativeObject>();
-  if (!IsCacheableGetPropReadSlot(holder, holder, PropertyResult(shape))) {
+  if (!IsCacheableGetPropReadSlot(holder, holder, shape)) {
     return AttachDecision::NoAction;
   }
   if (holder->getSlot(shape->slot()).isMagic()) {
@@ -3767,7 +3769,9 @@ void SetPropIRGenerator::trackAttached(const char* name) {
 
 static bool IsCacheableSetPropCallNative(JSObject* obj, JSObject* holder,
                                          Shape* shape) {
-  if (!shape || !IsCacheableProtoChain(obj, holder)) {
+  MOZ_ASSERT(shape);
+
+  if (!IsCacheableProtoChain(obj, holder)) {
     return false;
   }
 
@@ -3797,7 +3801,9 @@ static bool IsCacheableSetPropCallNative(JSObject* obj, JSObject* holder,
 
 static bool IsCacheableSetPropCallScripted(JSObject* obj, JSObject* holder,
                                            Shape* shape) {
-  if (!shape || !IsCacheableProtoChain(obj, holder)) {
+  MOZ_ASSERT(shape);
+
+  if (!IsCacheableProtoChain(obj, holder)) {
     return false;
   }
 
@@ -3833,11 +3839,11 @@ static bool CanAttachSetter(JSContext* cx, jsbytecode* pc, HandleObject obj,
     return false;
   }
 
-  if (prop.isNonNativeProperty()) {
+  if (!prop.isNativeProperty()) {
     return false;
   }
 
-  propShape.set(prop.maybeShape());
+  propShape.set(prop.shape());
   if (!IsCacheableSetPropCallScripted(obj, holder, propShape) &&
       !IsCacheableSetPropCallNative(obj, holder, propShape)) {
     return false;
@@ -4193,7 +4199,7 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedArrayElement(
   }
   TypedArrayObject* tarr = &obj->as<TypedArrayObject>();
 
-  bool handleOutOfBounds = (index >= tarr->length());
+  bool handleOutOfBounds = (index >= tarr->length().get());
   Scalar::Type elementType = tarr->type();
 
   // Don't attach if the input type doesn't match the guard added below.
@@ -4760,7 +4766,7 @@ AttachDecision InstanceOfIRGenerator::tryAttachStub() {
   jsid hasInstanceID = SYMBOL_TO_JSID(cx_->wellKnownSymbols().hasInstance);
   if (!LookupPropertyPure(cx_, fun, hasInstanceID, &hasInstanceHolder,
                           &hasInstanceProp) ||
-      !hasInstanceProp.isFound() || hasInstanceProp.isNonNativeProperty()) {
+      !hasInstanceProp.isNativeProperty()) {
     trackAttached(IRGenerator::NotAttached);
     return AttachDecision::NoAction;
   }
@@ -4872,7 +4878,9 @@ AttachDecision TypeOfIRGenerator::tryAttachPrimitive(ValOperandId valId) {
     return AttachDecision::NoAction;
   }
 
-  if (val_.isNumber()) {
+  // Note: we don't use GuardIsNumber for int32 values because it's less
+  // efficient in Warp (unboxing to double instead of int32).
+  if (val_.isDouble()) {
     writer.guardIsNumber(valId);
   } else {
     writer.guardNonDoubleType(valId, val_.type());
@@ -7306,7 +7314,8 @@ static bool AtomicsMeetsPreconditions(TypedArrayObject* typedArray,
   if (!mozilla::NumberEqualsInt32(index, &indexInt32)) {
     return false;
   }
-  if (indexInt32 < 0 || uint32_t(indexInt32) >= typedArray->length()) {
+  if (indexInt32 < 0 ||
+      uint32_t(indexInt32) >= typedArray->length().deprecatedGetUint32()) {
     return false;
   }
 
@@ -8194,10 +8203,7 @@ AttachDecision CallIRGenerator::tryAttachArrayBufferByteLength(
     writer.guardIsNotProxy(objArgId);
   }
 
-  size_t offset =
-      NativeObject::getFixedSlotOffset(ArrayBufferObject::BYTE_LENGTH_SLOT);
-
-  writer.loadFixedSlotTypedResult(objArgId, offset, ValueType::Int32);
+  writer.loadArrayBufferByteLengthInt32Result(objArgId);
 
   // This stub does not need to be monitored because it always returns int32.
   writer.returnFromIC();

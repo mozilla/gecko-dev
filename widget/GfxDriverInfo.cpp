@@ -295,7 +295,13 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_DEVICE(0x0D2B); /* IntelHaswell_GT3e_4 */
       APPEND_DEVICE(0x0D2E); /* IntelHaswell_GT3e_5 */
       break;
-    case DeviceFamily::IntelHD3000:
+    case DeviceFamily::IntelSandyBridge:
+      APPEND_DEVICE(0x0102);
+      APPEND_DEVICE(0x0106);
+      APPEND_DEVICE(0x010a);
+      APPEND_DEVICE(0x0112);
+      APPEND_DEVICE(0x0116);
+      APPEND_DEVICE(0x0122);
       APPEND_DEVICE(0x0126);
       break;
     case DeviceFamily::IntelHD520:
@@ -418,6 +424,45 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_DEVICE(0xa011);
       APPEND_DEVICE(0xa012);
       break;
+    case DeviceFamily::AmdR600:
+      // AMD R600 generation GPUs
+      // R600
+      APPEND_RANGE(0x9400, 0x9403);
+      APPEND_DEVICE(0x9405);
+      APPEND_RANGE(0x940a, 0x940b);
+      APPEND_DEVICE(0x940f);
+      // RV610
+      APPEND_RANGE(0x94c0, 0x94c1);
+      APPEND_RANGE(0x94c3, 0x94c9);
+      APPEND_RANGE(0x94cb, 0x94cd);
+      // RV630
+      APPEND_RANGE(0x9580, 0x9581);
+      APPEND_DEVICE(0x9583);
+      APPEND_RANGE(0x9586, 0x958f);
+      // RV670
+      APPEND_RANGE(0x9500, 0x9501);
+      APPEND_RANGE(0x9504, 0x9509);
+      APPEND_DEVICE(0x950f);
+      APPEND_DEVICE(0x9511);
+      APPEND_DEVICE(0x9515);
+      APPEND_DEVICE(0x9517);
+      APPEND_DEVICE(0x9519);
+      // RV620
+      APPEND_DEVICE(0x95c0);
+      APPEND_DEVICE(0x95c2);
+      APPEND_RANGE(0x95c4, 0x95c7);
+      APPEND_DEVICE(0x95c9);
+      APPEND_RANGE(0x95cc, 0x95cf);
+      // RV635
+      APPEND_RANGE(0x9590, 0x9591);
+      APPEND_DEVICE(0x9593);
+      APPEND_RANGE(0x9595, 0x9599);
+      APPEND_DEVICE(0x959b);
+      // RS780
+      APPEND_RANGE(0x9610, 0x9616);
+      // RS880
+      APPEND_RANGE(0x9710, 0x9715);
+      break;
     case DeviceFamily::NvidiaBlockWebRender:
       /* GT218 */
       APPEND_DEVICE(0x0a60);
@@ -453,10 +498,20 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_DEVICE(0x0a7c);
       break;
     case DeviceFamily::NvidiaRolloutWebRender:
+#ifdef EARLY_BETA_OR_EARLIER
+      APPEND_RANGE(0x0400, 0x04ff);
+      APPEND_RANGE(0x05e0, 0x05ff);
+      APPEND_RANGE(0x0600, INT32_MAX);
+#else
       APPEND_RANGE(0x06c0, INT32_MAX);
+#endif
       break;
     case DeviceFamily::IntelRolloutWebRender:
 #ifdef EARLY_BETA_OR_EARLIER
+      // gen5 (ironlake)
+      APPEND_DEVICE(0x0042);
+      APPEND_DEVICE(0x0046);
+
       // cherryview
       APPEND_DEVICE(0x22b0);
       APPEND_DEVICE(0x22b1);
@@ -708,9 +763,17 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       // Stoney
       APPEND_DEVICE(0x98e4);
 
-#ifdef EARLY_BETA_OR_EARLIER
       // Carrizo
       APPEND_RANGE(0x9870, 0x9877);
+
+#ifdef EARLY_BETA_OR_EARLIER
+      // Kaveri
+      APPEND_RANGE(0x1304, 0x131d);
+
+      // R700
+      APPEND_RANGE(0x9440, 0x949f);
+      APPEND_RANGE(0x94a0, 0x94b9);
+      APPEND_RANGE(0x9540, 0x955f);
 #endif
 
       break;
@@ -830,7 +893,7 @@ const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceFamily id) {
     case DeviceFamily::IntelHDGraphicsToIvyBridge:
     case DeviceFamily::IntelHDGraphicsToSandyBridge:
     case DeviceFamily::IntelHaswell:
-    case DeviceFamily::IntelHD3000:
+    case DeviceFamily::IntelSandyBridge:
     case DeviceFamily::IntelHD520:
     case DeviceFamily::IntelMobileHDGraphics:
     case DeviceFamily::IntelRolloutWebRender:
@@ -854,6 +917,7 @@ const nsAString& GfxDriverInfo::GetDeviceVendor(DeviceFamily id) {
     case DeviceFamily::RadeonCaicos:
     case DeviceFamily::RadeonX1000:
     case DeviceFamily::Bug1447141:
+    case DeviceFamily::AmdR600:
     case DeviceFamily::AtiRolloutWebRender:
       vendor = DeviceVendor::ATI;
       break;

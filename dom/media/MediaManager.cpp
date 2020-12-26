@@ -48,7 +48,6 @@
 #include "nsGlobalWindow.h"
 #include "nsHashPropertyBag.h"
 #include "nsICryptoHMAC.h"
-#include "nsIDocShell.h"
 #include "nsIEventTarget.h"
 #include "nsIKeyModule.h"
 #include "nsIPermissionManager.h"
@@ -67,6 +66,7 @@
 #include "MediaEngineDefault.h"
 #if defined(MOZ_WEBRTC)
 #  include "MediaEngineWebRTC.h"
+#  include "MediaEngineWebRTCAudio.h"
 #  include "browser_logging/WebRtcLog.h"
 #  include "webrtc/modules/audio_processing/include/audio_processing.h"
 #endif
@@ -1124,7 +1124,7 @@ nsresult MediaDevice::Allocate(const MediaTrackConstraints& aConstraints,
   return mSource->Allocate(aConstraints, aPrefs, aWindowID, aOutBadConstraint);
 }
 
-void MediaDevice::SetTrack(const RefPtr<SourceMediaTrack>& aTrack,
+void MediaDevice::SetTrack(const RefPtr<MediaTrack>& aTrack,
                            const PrincipalHandle& aPrincipalHandle) {
   MOZ_ASSERT(MediaManager::IsInMediaThread());
   MOZ_ASSERT(mSource);
@@ -1288,7 +1288,17 @@ class GetUserMediaStreamRunnable : public Runnable {
       } else {
         nsString audioDeviceName;
         mAudioDevice->GetName(audioDeviceName);
-        RefPtr<MediaTrack> track = mtg->CreateSourceTrack(MediaSegment::AUDIO);
+        RefPtr<MediaTrack> track;
+#ifdef MOZ_WEBRTC
+        if (mAudioDevice->mIsFake) {
+          track = mtg->CreateSourceTrack(MediaSegment::AUDIO);
+        } else {
+          track = AudioInputTrack::Create(mtg);
+          track->Suspend();  // Microphone source resumes in SetTrack
+        }
+#else
+        track = mtg->CreateSourceTrack(MediaSegment::AUDIO);
+#endif
         audioTrackSource = new LocalTrackSource(
             principal, audioDeviceName, mSourceListener,
             mAudioDevice->GetMediaSource(), track, mPeerIdentity);
@@ -2037,7 +2047,7 @@ MediaManager* MediaManager::Get() {
     MOZ_RELEASE_ASSERT(timesCreated == 1);
 
     RefPtr<TaskQueue> mediaThread = new TaskQueue(
-        GetMediaThreadPool(MediaThreadType::CONTROLLER), "MediaManager");
+        GetMediaThreadPool(MediaThreadType::SUPERVISOR), "MediaManager");
     LOG("New Media thread for gum");
 
     sSingleton = new MediaManager(mediaThread.forget());
@@ -3455,19 +3465,10 @@ void MediaManager::OnNavigation(uint64_t aWindowID) {
   // be added to from the main-thread
   auto* window = nsGlobalWindowInner::GetInnerWindowWithId(aWindowID);
   if (window) {
-    // We have cleanup to do when we're the current window. OnNavigation is also
-    // called by nsGlobalWindowInner::FreeInnerObjects, which MAY happen later
-    // when window is not current. In that case, cleanup has already happened.
-    if (!window->IsCurrentInnerWindow()) {
-      return;
+    if (RefPtr<GetUserMediaWindowListener> listener =
+            GetWindowListener(aWindowID)) {
+      listener->RemoveAll();
     }
-    IterateWindowListeners(
-        window, [self = RefPtr<MediaManager>(this),
-                 windowID = DebugOnly<decltype(aWindowID)>(aWindowID)](
-                    const RefPtr<GetUserMediaWindowListener>& aListener) {
-          aListener->RemoveAll();
-          MOZ_ASSERT(!self->GetWindowListener(windowID));
-        });
   } else {
     RemoveWindowID(aWindowID);
   }
@@ -3981,7 +3982,7 @@ NS_IMETHODIMP
 MediaManager::MediaCaptureWindowState(
     nsIDOMWindow* aCapturedWindow, uint16_t* aCamera, uint16_t* aMicrophone,
     uint16_t* aScreen, uint16_t* aWindow, uint16_t* aBrowser,
-    nsTArray<RefPtr<nsIMediaDevice>>& aDevices, bool aIncludeDescendants) {
+    nsTArray<RefPtr<nsIMediaDevice>>& aDevices) {
   MOZ_ASSERT(NS_IsMainThread());
 
   CaptureState camera = CaptureState::Off;
@@ -3993,33 +3994,14 @@ MediaManager::MediaCaptureWindowState(
 
   nsCOMPtr<nsPIDOMWindowInner> piWin = do_QueryInterface(aCapturedWindow);
   if (piWin) {
-    auto combineCaptureState =
-        [&camera, &microphone, &screen, &window, &browser,
-         &devices](const RefPtr<GetUserMediaWindowListener>& aListener) {
-          camera = CombineCaptureState(
-              camera, aListener->CapturingSource(MediaSourceEnum::Camera));
-          microphone = CombineCaptureState(
-              microphone,
-              aListener->CapturingSource(MediaSourceEnum::Microphone));
-          screen = CombineCaptureState(
-              screen, aListener->CapturingSource(MediaSourceEnum::Screen));
-          window = CombineCaptureState(
-              window, aListener->CapturingSource(MediaSourceEnum::Window));
-          browser = CombineCaptureState(
-              browser, aListener->CapturingSource(MediaSourceEnum::Browser));
-
-          aListener->GetDevices(devices);
-        };
-
-    if (aIncludeDescendants) {
-      IterateWindowListeners(piWin, combineCaptureState);
-    } else {
-      uint64_t windowID = piWin->WindowID();
-      RefPtr<GetUserMediaWindowListener> listener = GetWindowListener(windowID);
-      // listener might have been destroyed.
-      if (listener) {
-        combineCaptureState(listener);
-      }
+    if (RefPtr<GetUserMediaWindowListener> listener =
+            GetWindowListener(piWin->WindowID())) {
+      camera = listener->CapturingSource(MediaSourceEnum::Camera);
+      microphone = listener->CapturingSource(MediaSourceEnum::Microphone);
+      screen = listener->CapturingSource(MediaSourceEnum::Screen);
+      window = listener->CapturingSource(MediaSourceEnum::Window);
+      browser = listener->CapturingSource(MediaSourceEnum::Browser);
+      listener->GetDevices(devices);
     }
   }
 
@@ -4060,50 +4042,11 @@ MediaManager::SanitizeDeviceIds(int64_t aSinceWhen) {
 }
 
 void MediaManager::StopScreensharing(uint64_t aWindowID) {
-  // We need to stop window/screensharing for all streams in this innerwindow
-  // and all its sub frames.
+  // We need to stop window/screensharing for all streams in this innerwindow.
 
-  auto* window = nsGlobalWindowInner::GetInnerWindowWithId(aWindowID);
-  if (!window || !window->IsCurrentInnerWindow()) {
-    return;
-  }
-  IterateWindowListeners(
-      window, [](const RefPtr<GetUserMediaWindowListener>& aListener) {
-        aListener->StopSharing();
-      });
-}
-
-template <typename FunctionType>
-void MediaManager::IterateWindowListeners(nsPIDOMWindowInner* aWindow,
-                                          const FunctionType& aCallback) {
-  // Iterate the docshell tree to find all the child windows, and for each
-  // invoke the callback
-  MOZ_DIAGNOSTIC_ASSERT(aWindow);
-  MOZ_DIAGNOSTIC_ASSERT(aWindow->IsCurrentInnerWindow());
-  {
-    uint64_t windowID = aWindow->WindowID();
-    RefPtr<GetUserMediaWindowListener> listener = GetWindowListener(windowID);
-    if (listener) {
-      aCallback(listener);
-    }
-    // NB: `listener` might have been destroyed.
-  }
-
-  // iterate any children of *this* window (iframes, etc)
-  nsCOMPtr<nsIDocShell> docShell = aWindow->GetDocShell();
-  if (docShell) {
-    int32_t i, count;
-    docShell->GetInProcessChildCount(&count);
-    for (i = 0; i < count; ++i) {
-      nsCOMPtr<nsIDocShellTreeItem> item;
-      docShell->GetInProcessChildAt(i, getter_AddRefs(item));
-      nsCOMPtr<nsPIDOMWindowOuter> child = item ? item->GetWindow() : nullptr;
-      if (child) {
-        if (auto* innerChild = child->GetCurrentInnerWindow()) {
-          IterateWindowListeners(innerChild, aCallback);
-        }
-      }
-    }
+  if (RefPtr<GetUserMediaWindowListener> listener =
+          GetWindowListener(aWindowID)) {
+    listener->StopSharing();
   }
 }
 
@@ -4234,25 +4177,25 @@ SourceListener::InitializeAsync() {
              [principal = GetPrincipalHandle(),
               audioDevice =
                   mAudioDeviceState ? mAudioDeviceState->mDevice : nullptr,
-              audioStream = mAudioDeviceState
-                                ? mAudioDeviceState->mTrackSource->mTrack
-                                : nullptr,
+              audioTrack = mAudioDeviceState
+                               ? mAudioDeviceState->mTrackSource->mTrack
+                               : nullptr,
               audioDeviceMuted =
                   mAudioDeviceState ? mAudioDeviceState->mDeviceMuted : false,
               videoDevice =
                   mVideoDeviceState ? mVideoDeviceState->mDevice : nullptr,
-              videoStream = mVideoDeviceState
-                                ? mVideoDeviceState->mTrackSource->mTrack
-                                : nullptr,
+              videoTrack = mVideoDeviceState
+                               ? mVideoDeviceState->mTrackSource->mTrack
+                               : nullptr,
               videoDeviceMuted =
                   mVideoDeviceState ? mVideoDeviceState->mDeviceMuted : false](
                  MozPromiseHolder<SourceListenerPromise>& aHolder) {
                if (audioDevice) {
-                 audioDevice->SetTrack(audioStream->AsSourceTrack(), principal);
+                 audioDevice->SetTrack(audioTrack, principal);
                }
 
                if (videoDevice) {
-                 videoDevice->SetTrack(videoStream->AsSourceTrack(), principal);
+                 videoDevice->SetTrack(videoTrack, principal);
                }
 
                if (audioDevice) {

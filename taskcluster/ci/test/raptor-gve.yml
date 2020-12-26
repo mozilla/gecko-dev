@@ -5,6 +5,8 @@
 job-defaults:
     max-run-time: 1800
     suite: raptor
+    webrender-run-on-projects: []
+    variants: ["webrender"]
     run-on-projects:
         by-test-platform:
             android-hw-p2-.*-api-16/(?!opt).*: []
@@ -23,27 +25,6 @@ job-defaults:
             - --no-conditioned-profile
     optimization:
         skip-unless-backstop: null
-
-raptor-speedometer-geckoview:
-    description: "Raptor Speedometer on GeckoView"
-    try-name: raptor-speedometer-geckoview
-    treeherder-symbol: Rap(sp)
-    run-on-projects:
-        by-test-platform:
-            android-hw-.*(?<!-shippable)/opt: []
-            android-hw-p2-.*api-16/pgo: []
-            android-hw-p2-.*aarch64.*/pgo: ['trunk', 'mozilla-beta']
-            android-hw-p2-.*aarch64-shippable/opt: ['trunk', 'mozilla-beta']
-            android-hw-g5.*/pgo: ['trunk', 'mozilla-beta']
-            android-hw-g5.*-shippable/opt: ['trunk', 'mozilla-beta']
-            default: ['mozilla-central', 'mozilla-beta']
-    max-run-time: 900
-    mozharness:
-        extra-options:
-            - --test=raptor-speedometer
-            - --app=geckoview
-            - --binary=org.mozilla.geckoview_example
-            - --activity=org.mozilla.geckoview_example.GeckoViewActivity
 
 raptor-speedometer-geckoview-cpu-memory:
     description: "Raptor Speedometer cpu/memory on GeckoView"
@@ -137,26 +118,3 @@ raptor-scn-cpu-memory-power-idle-bg-geckoview:
             - --memory-test
             - --power-test
             - --activity=org.mozilla.geckoview_example.GeckoViewActivity
-
-raptor-unity-webgl-geckoview:
-    description: "Raptor Unity WebGL on GeckoView"
-    try-name: raptor-unity-webgl-geckoview
-    treeherder-symbol: Rap(ugl)
-    run-on-projects:
-        by-test-platform:
-            android-hw-.*(?<!-shippable)/opt: []
-            android-hw-p2-.*api-16/pgo: []
-            android-hw-p2-.*api-16-shippable/opt: []
-            android-hw-(?!p2-.*api-16)/pgo: ['trunk', 'mozilla-beta']
-            android-hw-(?!p2-.*api-16)-shippable/opt: ['trunk', 'mozilla-beta']
-            default: ['mozilla-central', 'mozilla-beta']
-    max-run-time: 900
-    mozharness:
-        extra-options:
-            - --test=raptor-unity-webgl
-            - --app=geckoview
-            - --binary=org.mozilla.geckoview_example
-            - --activity=org.mozilla.geckoview_example.GeckoViewActivity
-    fetches:
-        fetch:
-            - unity-webgl

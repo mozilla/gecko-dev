@@ -497,13 +497,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   [infallible] attribute boolean isActive;
 
   /**
-   * Set if the media element in this docShell should be suspended when the
-   * docShell is inactive.
-   */
-  [infallible] attribute boolean suspendMediaWhenInactive;
-
-
-  /**
    * The ID of the docshell in the session history.
    */
   readonly attribute nsIDRef historyID;
@@ -793,27 +786,6 @@ interface nsIDocShell : nsIDocShellTreeItem
   [noscript,notxpcom,nostdcall] BrowserChildRef GetBrowserChild();
 
   [noscript,nostdcall,notxpcom] nsCommandManager GetCommandManager();
-
-  cenum TouchEventsOverride: 8 {
-    /**
-     * Override platform/pref default behaviour and force-disable touch events.
-     */
-    TOUCHEVENTS_OVERRIDE_DISABLED = 0,
-    /**
-     * Override platform/pref default behaviour and force-enable touch events.
-     */
-    TOUCHEVENTS_OVERRIDE_ENABLED = 1,
-    /**
-     * Don't override the platform/pref default behaviour for touch events.
-     */
-    TOUCHEVENTS_OVERRIDE_NONE = 2,
-  };
-
-  /**
-   * This allows chrome to override the default choice of whether touch events
-   * are available on a specific docshell. Possible values are listed below.
-   */
-  [infallible] attribute nsIDocShell_TouchEventsOverride touchEventsOverride;
 
   cenum MetaViewportOverride: 8 {
     /**

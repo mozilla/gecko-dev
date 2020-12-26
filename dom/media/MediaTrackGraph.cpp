@@ -697,8 +697,12 @@ void MediaTrackGraphImpl::CloseAudioInputImpl(
       mInputDeviceUsers.GetValue(aID.value());
 
   MOZ_ASSERT(listeners);
-  DebugOnly<bool> wasPresent = listeners->RemoveElement(aListener);
+  bool wasPresent = listeners->RemoveElement(aListener);
   MOZ_ASSERT(wasPresent);
+
+  if (wasPresent) {
+    aListener->NotifyInputStopped(this);
+  }
 
   // Breaks the cycle between the MTG and the listener.
   aListener->Disconnect(this);
@@ -816,7 +820,7 @@ void MediaTrackGraphImpl::NotifyOutputData(AudioDataValue* aBuffer,
   }
 }
 
-void MediaTrackGraphImpl::NotifyStarted() {
+void MediaTrackGraphImpl::NotifyInputStopped() {
 #ifdef ANDROID
   if (!mInputDeviceUsers.GetValue(mInputDeviceID)) {
     return;
@@ -830,13 +834,14 @@ void MediaTrackGraphImpl::NotifyStarted() {
       mInputDeviceUsers.GetValue(mInputDeviceID);
   MOZ_ASSERT(listeners);
   for (auto& listener : *listeners) {
-    listener->NotifyStarted(this);
+    listener->NotifyInputStopped(this);
   }
 }
 
 void MediaTrackGraphImpl::NotifyInputData(const AudioDataValue* aBuffer,
                                           size_t aFrames, TrackRate aRate,
-                                          uint32_t aChannels) {
+                                          uint32_t aChannels,
+                                          uint32_t aAlreadyBuffered) {
 #ifdef ANDROID
   if (!mInputDeviceUsers.GetValue(mInputDeviceID)) {
     return;
@@ -854,7 +859,8 @@ void MediaTrackGraphImpl::NotifyInputData(const AudioDataValue* aBuffer,
       mInputDeviceUsers.GetValue(mInputDeviceID);
   MOZ_ASSERT(listeners);
   for (auto& listener : *listeners) {
-    listener->NotifyInputData(this, aBuffer, aFrames, aRate, aChannels);
+    listener->NotifyInputData(this, aBuffer, aFrames, aRate, aChannels,
+                              aAlreadyBuffered);
   }
 }
 
@@ -2432,33 +2438,6 @@ SourceMediaTrack::SourceMediaTrack(MediaSegment::Type aType,
   mUpdateTrack->mInForcedShutdown = false;
 }
 
-nsresult SourceMediaTrack::OpenAudioInput(CubebUtils::AudioDeviceID aID,
-                                          AudioDataListener* aListener) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(GraphImpl());
-  MOZ_ASSERT(!mInputListener);
-  mInputListener = aListener;
-  return GraphImpl()->OpenAudioInput(aID, aListener);
-}
-
-void SourceMediaTrack::CloseAudioInput(Maybe<CubebUtils::AudioDeviceID>& aID) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(GraphImpl());
-  if (!mInputListener) {
-    return;
-  }
-  GraphImpl()->CloseAudioInput(aID, mInputListener);
-  mInputListener = nullptr;
-}
-
-void SourceMediaTrack::Destroy() {
-  MOZ_ASSERT(NS_IsMainThread());
-  Maybe<CubebUtils::AudioDeviceID> id = Nothing();
-  CloseAudioInput(id);
-
-  MediaTrack::Destroy();
-}
-
 void SourceMediaTrack::DestroyImpl() {
   GraphImpl()->AssertOnGraphThreadOrNotRunning();
   for (int32_t i = mConsumers.Length() - 1; i >= 0; --i) {
@@ -2845,6 +2824,15 @@ void SourceMediaTrack::SetDisabledTrackModeImpl(DisabledTrackMode aMode) {
     }
   }
   MediaTrack::SetDisabledTrackModeImpl(aMode);
+}
+
+uint32_t SourceMediaTrack::NumberOfChannels() const {
+  AudioSegment* audio = GetData<AudioSegment>();
+  MOZ_DIAGNOSTIC_ASSERT(audio);
+  if (!audio) {
+    return 0;
+  }
+  return audio->MaxChannelCount();
 }
 
 void SourceMediaTrack::RemoveAllDirectListenersImpl() {
@@ -3619,16 +3607,7 @@ uint32_t MediaTrackGraphImpl::AudioOutputChannelCount() const {
   // output channel count the machine can do, whichever is smaller.
   uint32_t channelCount = 0;
   for (auto& tkv : mAudioOutputs) {
-    MediaTrack* t = tkv.mTrack;
-    // This is an AudioDestinationNode
-    if (t->AsAudioNodeTrack()) {
-      channelCount = std::max<uint32_t>(
-          channelCount, t->AsAudioNodeTrack()->NumberOfChannels());
-    } else if (t->GetData<AudioSegment>()) {
-      AudioSegment* segment = t->GetData<AudioSegment>();
-      channelCount =
-          std::max<uint32_t>(channelCount, segment->MaxChannelCount());
-    }
+    channelCount = std::max(channelCount, tkv.mTrack->NumberOfChannels());
   }
   channelCount = std::min(channelCount, mMaxOutputChannelCount);
   if (channelCount) {

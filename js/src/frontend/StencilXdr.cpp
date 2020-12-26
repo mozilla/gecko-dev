@@ -6,168 +6,70 @@
 
 #include "frontend/StencilXdr.h"  // StencilXDR
 
+#include <memory>
+#include <type_traits>
+
 #include "vm/JSScript.h"      // js::CheckCompileOptionsMatch
 #include "vm/StencilEnums.h"  // js::ImmutableScriptFlagsEnum
 
 using namespace js;
 using namespace js::frontend;
 
-struct ScriptThingVariantIndexMatcher {
-  template <typename T>
-  uint32_t operator()(TypedIndex<T>& index) {
-    return index;
-  }
-
-  template <typename T>
-  uint32_t operator()(T&) {
-    return UINT32_MAX;
-  }
-};
-
 template <XDRMode mode>
-static XDRResult XDRScriptThingVariant(XDRState<mode>* xdr,
-                                       ScriptThingVariant& thing) {
-  enum class ScriptThingKind {
-    ScriptAtom,            // JSAtom*
-    NullScriptThing,       // nothing.
-    BigIntIndex,           // Index.
-    ObjLiteralIndex,       // Index.
-    RegExpIndex,           // Index.
-    ScopeIndex,            // Index.
-    FunctionIndex,         // Index.
-    EmptyGlobalScopeType,  // Nothing
-  } kind;
-
-  uint32_t index = UINT32_MAX;
-
-  struct KindMatcher {
-    ScriptThingKind operator()(ScriptAtom& atom) {
-      return ScriptThingKind::ScriptAtom;
-    }
-    ScriptThingKind operator()(NullScriptThing&) {
-      return ScriptThingKind::NullScriptThing;
-    }
-    ScriptThingKind operator()(BigIntIndex& index) {
-      return ScriptThingKind::BigIntIndex;
-    }
-    ScriptThingKind operator()(ObjLiteralIndex& index) {
-      return ScriptThingKind::ObjLiteralIndex;
-    }
-    ScriptThingKind operator()(RegExpIndex& index) {
-      return ScriptThingKind::RegExpIndex;
-    }
-    ScriptThingKind operator()(ScopeIndex& index) {
-      return ScriptThingKind::ScopeIndex;
-    }
-    ScriptThingKind operator()(FunctionIndex& index) {
-      return ScriptThingKind::FunctionIndex;
-    }
-    ScriptThingKind operator()(EmptyGlobalScopeType&) {
-      return ScriptThingKind::EmptyGlobalScopeType;
-    }
-  };
-
-  if (mode == XDR_ENCODE) {
-    kind = thing.match(KindMatcher());
-    index = thing.match(ScriptThingVariantIndexMatcher());
-  }
-
-  MOZ_TRY(xdr->codeEnum32(&kind));
-
-  const ParserAtom* atom = nullptr;
-  if (kind == ScriptThingKind::ScriptAtom) {
-    MOZ_ASSERT(index == UINT32_MAX);
-    if (mode == XDR_ENCODE) {
-      atom = thing.as<ScriptAtom>();
-    }
-    MOZ_TRY(XDRParserAtom(xdr, &atom));
-  } else if (kind == ScriptThingKind::BigIntIndex ||
-             kind == ScriptThingKind::ObjLiteralIndex ||
-             kind == ScriptThingKind::RegExpIndex ||
-             kind == ScriptThingKind::ScopeIndex ||
-             kind == ScriptThingKind::FunctionIndex) {
-    MOZ_TRY(xdr->codeUint32(&index));
-  } else {
-    MOZ_ASSERT(kind == ScriptThingKind::NullScriptThing ||
-               kind == ScriptThingKind::EmptyGlobalScopeType);
-  }
-
-  if (mode == XDR_DECODE) {
-    switch (kind) {
-      case ScriptThingKind::ScriptAtom:
-        // `atom` is initialized above if `kind` == ScriptAtom
-        MOZ_ASSERT(atom != nullptr);
-        thing.emplace<ScriptAtom>(atom);
-        break;
-      case ScriptThingKind::NullScriptThing:
-        thing.emplace<NullScriptThing>();
-        break;
-      case ScriptThingKind::EmptyGlobalScopeType:
-        thing.emplace<EmptyGlobalScopeType>();
-        break;
-      case ScriptThingKind::BigIntIndex:
-        thing.emplace<BigIntIndex>(index);
-        break;
-      case ScriptThingKind::ObjLiteralIndex:
-        thing.emplace<ObjLiteralIndex>(index);
-        break;
-      case ScriptThingKind::RegExpIndex:
-        thing.emplace<RegExpIndex>(index);
-        break;
-      case ScriptThingKind::ScopeIndex:
-        thing.emplace<ScopeIndex>(index);
-        break;
-      case ScriptThingKind::FunctionIndex:
-        thing.emplace<FunctionIndex>(index);
-        break;
-    }
-  }
-
-  return Ok();
-}
-
-template <XDRMode mode>
-static XDRResult XDRScriptStencil(XDRState<mode>* xdr, ScriptStencil& stencil) {
+/* static */ XDRResult StencilXDR::Script(XDRState<mode>* xdr,
+                                          ScriptStencil& stencil) {
   enum class XdrFlags : uint8_t {
     HasMemberInitializers = 0,
+    HasSharedData,
+    HasFunctionAtom,
     HasScopeIndex,
     IsStandaloneFunction,
     WasFunctionEmitted,
     IsSingletonFunction,
-    HasSharedData,
     AllowRelazify,
   };
 
+  struct XdrFields {
+    uint32_t immutableFlags;
+    uint32_t numMemberInitializers;
+    uint32_t numGcThings;
+    uint16_t functionFlags;
+    uint16_t nargs;
+    uint32_t scopeIndex;
+  };
+
   uint8_t xdrFlags = 0;
-  uint32_t immutableFlags;
-  uint32_t numMemberInitializers;
-  uint32_t numGcThings;
-  uint16_t functionFlags;
-  uint32_t scopeIndex;
+  XdrFields xdrFields = {};
 
   if (mode == XDR_ENCODE) {
-    immutableFlags = stencil.immutableFlags;
+    xdrFields.immutableFlags = stencil.immutableFlags;
 
     if (stencil.memberInitializers.isSome()) {
       xdrFlags |= 1 << uint8_t(XdrFlags::HasMemberInitializers);
     }
-    numMemberInitializers =
+    xdrFields.numMemberInitializers =
         stencil.memberInitializers
             .map([](auto i) { return i.numMemberInitializers; })
             .valueOr(0);
 
-    numGcThings = stencil.gcThings.length();
+    xdrFields.numGcThings = stencil.gcThings.size();
 
     if (stencil.sharedData) {
       xdrFlags |= 1 << uint8_t(XdrFlags::HasSharedData);
     }
 
-    functionFlags = stencil.functionFlags.toRaw();
+    if (stencil.functionAtom) {
+      xdrFlags |= 1 << uint8_t(XdrFlags::HasFunctionAtom);
+    }
+
+    xdrFields.functionFlags = stencil.functionFlags.toRaw();
+    xdrFields.nargs = stencil.nargs;
 
     if (stencil.lazyFunctionEnclosingScopeIndex_.isSome()) {
       xdrFlags |= 1 << uint8_t(XdrFlags::HasScopeIndex);
     }
-    scopeIndex = stencil.lazyFunctionEnclosingScopeIndex_.valueOr(ScopeIndex());
+    xdrFields.scopeIndex =
+        stencil.lazyFunctionEnclosingScopeIndex_.valueOr(ScopeIndex());
 
     if (stencil.isStandaloneFunction) {
       xdrFlags |= 1 << uint8_t(XdrFlags::IsStandaloneFunction);
@@ -183,44 +85,55 @@ static XDRResult XDRScriptStencil(XDRState<mode>* xdr, ScriptStencil& stencil) {
     }
   }
 
+#ifdef __cpp_lib_has_unique_object_representations
+  // We check endianess before decoding so if structures are fully packed, we
+  // may transcode them directly as raw bytes.
+  static_assert(std::has_unique_object_representations<XdrFields>(),
+                "XdrFields structure must be fully packed");
+  static_assert(std::has_unique_object_representations<SourceExtent>(),
+                "XdrFields structure must be fully packed");
+#endif
+
   MOZ_TRY(xdr->codeUint8(&xdrFlags));
-  MOZ_TRY(xdr->codeUint32(&immutableFlags));
-  MOZ_TRY(xdr->codeUint32(&numMemberInitializers));
-  MOZ_TRY(xdr->codeUint32(&numGcThings));
-  MOZ_TRY(xdr->codeUint16(&functionFlags));
-  MOZ_TRY(xdr->codeUint32(&scopeIndex));
-  MOZ_TRY(xdr->codeUint16(&stencil.nargs));
+  MOZ_TRY(xdr->codeBytes(&xdrFields, sizeof(XdrFields)));
+  MOZ_TRY(xdr->codeBytes(&stencil.extent, sizeof(SourceExtent)));
 
   if (mode == XDR_DECODE) {
     MOZ_ASSERT(xdr->hasOptions());
 
-    if (!(immutableFlags & uint32_t(ImmutableScriptFlagsEnum::IsFunction))) {
+    if (!(xdrFields.immutableFlags &
+          uint32_t(ImmutableScriptFlagsEnum::IsFunction))) {
       MOZ_ASSERT(!xdr->isMultiDecode());
-      if (!js::CheckCompileOptionsMatch(xdr->options(),
-                                        ImmutableScriptFlags(immutableFlags),
-                                        xdr->isMultiDecode())) {
+      if (!js::CheckCompileOptionsMatch(
+              xdr->options(), ImmutableScriptFlags(xdrFields.immutableFlags),
+              xdr->isMultiDecode())) {
         return xdr->fail(JS::TranscodeResult_Failure_WrongCompileOption);
       }
     }
 
-    stencil.immutableFlags = immutableFlags;
+    stencil.immutableFlags = xdrFields.immutableFlags;
 
     if (xdrFlags & (1 << uint8_t(XdrFlags::HasMemberInitializers))) {
-      stencil.memberInitializers.emplace(numMemberInitializers);
+      stencil.memberInitializers.emplace(xdrFields.numMemberInitializers);
     }
 
-    if (!stencil.gcThings.appendN(mozilla::AsVariant(NullScriptThing()),
-                                  numGcThings)) {
-      ReportOutOfMemory(xdr->cx());
-      return xdr->fail(JS::TranscodeResult_Throw);
+    MOZ_ASSERT(stencil.gcThings.empty());
+    if (xdrFields.numGcThings > 0) {
+      // Allocated TaggedScriptThingIndex array and initialize to safe value.
+      mozilla::Span<TaggedScriptThingIndex> stencilThings =
+          NewScriptThingSpanUninitialized(xdr->cx(), xdr->stencilAlloc(),
+                                          xdrFields.numGcThings);
+      if (stencilThings.empty()) {
+        return xdr->fail(JS::TranscodeResult_Throw);
+      }
+      stencil.gcThings = stencilThings;
     }
 
-    stencil.functionFlags = FunctionFlags(functionFlags);
+    stencil.functionFlags = FunctionFlags(xdrFields.functionFlags);
+    stencil.nargs = xdrFields.nargs;
 
-    MOZ_ASSERT_IF((xdrFlags & (1 << uint8_t(XdrFlags::HasScopeIndex))) == 0,
-                  scopeIndex == 0);
     if (xdrFlags & (1 << uint8_t(XdrFlags::HasScopeIndex))) {
-      stencil.lazyFunctionEnclosingScopeIndex_.emplace(scopeIndex);
+      stencil.lazyFunctionEnclosingScopeIndex_.emplace(xdrFields.scopeIndex);
     }
 
     if (xdrFlags & (1 << uint8_t(XdrFlags::IsStandaloneFunction))) {
@@ -237,17 +150,25 @@ static XDRResult XDRScriptStencil(XDRState<mode>* xdr, ScriptStencil& stencil) {
     }
   }
 
-  MOZ_TRY(XDRSourceExtent(xdr, &stencil.extent));
+#ifdef __cpp_lib_has_unique_object_representations
+  // We check endianess before decoding so if structures are fully packed, we
+  // may transcode them directly as raw bytes.
+  static_assert(
+      std::has_unique_object_representations<TaggedScriptThingIndex>(),
+      "TaggedScriptThingIndex structure must be fully packed");
+#endif
+
+  MOZ_TRY(xdr->codeBytes(
+      const_cast<TaggedScriptThingIndex*>(stencil.gcThings.data()),
+      sizeof(TaggedScriptThingIndex) * xdrFields.numGcThings));
 
   if (xdrFlags & (1 << uint8_t(XdrFlags::HasSharedData))) {
     MOZ_TRY(StencilXDR::SharedData<mode>(xdr, stencil.sharedData));
   }
 
-  for (ScriptThingVariant& thing : stencil.gcThings) {
-    MOZ_TRY(XDRScriptThingVariant(xdr, thing));
+  if (xdrFlags & (1 << uint8_t(XdrFlags::HasFunctionAtom))) {
+    MOZ_TRY(XDRTaggedParserAtomIndex(xdr, &stencil.functionAtom));
   }
-
-  MOZ_TRY(XDRParserAtomOrNull(xdr, &stencil.functionAtom));
 
   return Ok();
 };
@@ -291,24 +212,28 @@ static XDRResult XDRParserTrailingNames(XDRState<mode>* xdr, ScopeDataT& data,
 }
 
 template <typename ScopeT, typename InitF>
-static UniquePtr<BaseParserScopeData> NewEmptyScopeData(JSContext* cx,
-                                                        uint32_t length,
-                                                        InitF init) {
-  size_t dataSize = SizeOfScopeData<ParserScopeData<ScopeT>>(length);
-  uint8_t* bytes = cx->pod_malloc<uint8_t>(dataSize);
-  if (!bytes) {
+static ParserScopeData<ScopeT>* NewEmptyScopeData(JSContext* cx,
+                                                  LifoAlloc& alloc,
+                                                  uint32_t length, InitF init) {
+  using Data = ParserScopeData<ScopeT>;
+
+  size_t dataSize = SizeOfScopeData<Data>(length);
+  void* raw = alloc.alloc(dataSize);
+  if (!raw) {
+    js::ReportOutOfMemory(cx);
     return nullptr;
   }
-  auto* data = new (bytes) ParserScopeData<ScopeT>(length);
+
+  Data* data = new (raw) Data(length);
   init(data);
-  return UniquePtr<BaseParserScopeData>(data);
+  return data;
 }
 
 template <XDRMode mode>
-static XDRResult XDRParserFunctionScopeData(
-    XDRState<mode>* xdr, UniquePtr<BaseParserScopeData>& ownedData) {
+/* static */ XDRResult StencilXDR::FunctionScopeData(XDRState<mode>* xdr,
+                                                     ScopeStencil& stencil) {
   ParserFunctionScopeData* data =
-      static_cast<ParserFunctionScopeData*>(ownedData.get());
+      static_cast<ParserFunctionScopeData*>(stencil.data_);
 
   uint32_t nextFrameSlot = 0;
   uint8_t hasParameterExprs = 0;
@@ -332,9 +257,8 @@ static XDRResult XDRParserFunctionScopeData(
 
   // Reconstruct the scope-data object for decode.
   if (mode == XDR_DECODE) {
-    MOZ_ASSERT(!ownedData);
-    ownedData =
-        NewEmptyScopeData<FunctionScope>(xdr->cx(), length, [&](auto data) {
+    stencil.data_ = data = NewEmptyScopeData<FunctionScope>(
+        xdr->cx(), xdr->stencilAlloc(), length, [&](auto data) {
           data->nextFrameSlot = nextFrameSlot;
           MOZ_ASSERT(hasParameterExprs <= 1);
           data->hasParameterExprs = hasParameterExprs;
@@ -342,10 +266,9 @@ static XDRResult XDRParserFunctionScopeData(
           data->varStart = varStart;
           data->length = length;
         });
-    if (!ownedData) {
+    if (!data) {
       return xdr->fail(JS::TranscodeResult_Throw);
     }
-    data = static_cast<ParserFunctionScopeData*>(ownedData.get());
   }
 
   // Decode each name in TrailingNames.
@@ -355,9 +278,9 @@ static XDRResult XDRParserFunctionScopeData(
 }
 
 template <XDRMode mode>
-static XDRResult XDRParserVarScopeData(
-    XDRState<mode>* xdr, UniquePtr<BaseParserScopeData>& ownedData) {
-  ParserVarScopeData* data = static_cast<ParserVarScopeData*>(ownedData.get());
+/* static */ XDRResult StencilXDR::VarScopeData(XDRState<mode>* xdr,
+                                                ScopeStencil& stencil) {
+  ParserVarScopeData* data = static_cast<ParserVarScopeData*>(stencil.data_);
 
   uint32_t nextFrameSlot = 0;
   uint32_t length = 0;
@@ -372,15 +295,14 @@ static XDRResult XDRParserVarScopeData(
 
   // Reconstruct the scope-data object for decode.
   if (mode == XDR_DECODE) {
-    MOZ_ASSERT(!ownedData);
-    ownedData = NewEmptyScopeData<VarScope>(xdr->cx(), length, [&](auto data) {
-      data->nextFrameSlot = nextFrameSlot;
-      data->length = length;
-    });
-    if (!ownedData) {
+    stencil.data_ = data = NewEmptyScopeData<VarScope>(
+        xdr->cx(), xdr->stencilAlloc(), length, [&](auto data) {
+          data->nextFrameSlot = nextFrameSlot;
+          data->length = length;
+        });
+    if (!data) {
       return xdr->fail(JS::TranscodeResult_Throw);
     }
-    data = static_cast<ParserVarScopeData*>(ownedData.get());
   }
 
   // Decode each name in TrailingNames.
@@ -390,10 +312,10 @@ static XDRResult XDRParserVarScopeData(
 }
 
 template <XDRMode mode>
-static XDRResult XDRParserLexicalScopeData(
-    XDRState<mode>* xdr, UniquePtr<BaseParserScopeData>& ownedData) {
+/* static */ XDRResult StencilXDR::LexicalScopeData(XDRState<mode>* xdr,
+                                                    ScopeStencil& stencil) {
   ParserLexicalScopeData* data =
-      static_cast<ParserLexicalScopeData*>(ownedData.get());
+      static_cast<ParserLexicalScopeData*>(stencil.data_);
 
   uint32_t nextFrameSlot = 0;
   uint32_t constStart = 0;
@@ -411,17 +333,15 @@ static XDRResult XDRParserLexicalScopeData(
 
   // Reconstruct the scope-data object for decode.
   if (mode == XDR_DECODE) {
-    MOZ_ASSERT(!ownedData);
-    ownedData =
-        NewEmptyScopeData<LexicalScope>(xdr->cx(), length, [&](auto data) {
+    stencil.data_ = data = NewEmptyScopeData<LexicalScope>(
+        xdr->cx(), xdr->stencilAlloc(), length, [&](auto data) {
           data->nextFrameSlot = nextFrameSlot;
           data->constStart = constStart;
           data->length = length;
         });
-    if (!ownedData) {
+    if (!data) {
       return xdr->fail(JS::TranscodeResult_Throw);
     }
-    data = static_cast<ParserLexicalScopeData*>(ownedData.get());
   }
 
   // Decode each name in TrailingNames.
@@ -431,10 +351,10 @@ static XDRResult XDRParserLexicalScopeData(
 }
 
 template <XDRMode mode>
-static XDRResult XDRParserGlobalScopeData(
-    XDRState<mode>* xdr, UniquePtr<BaseParserScopeData>& ownedData) {
+/* static */ XDRResult StencilXDR::GlobalScopeData(XDRState<mode>* xdr,
+                                                   ScopeStencil& stencil) {
   ParserGlobalScopeData* data =
-      static_cast<ParserGlobalScopeData*>(ownedData.get());
+      static_cast<ParserGlobalScopeData*>(stencil.data_);
 
   uint32_t letStart = 0;
   uint32_t constStart = 0;
@@ -452,17 +372,15 @@ static XDRResult XDRParserGlobalScopeData(
 
   // Reconstruct the scope-data object for decode.
   if (mode == XDR_DECODE) {
-    MOZ_ASSERT(!ownedData);
-    ownedData =
-        NewEmptyScopeData<GlobalScope>(xdr->cx(), length, [&](auto data) {
+    stencil.data_ = data = NewEmptyScopeData<GlobalScope>(
+        xdr->cx(), xdr->stencilAlloc(), length, [&](auto data) {
           data->letStart = letStart;
           data->constStart = constStart;
           data->length = length;
         });
-    if (!ownedData) {
+    if (!data) {
       return xdr->fail(JS::TranscodeResult_Throw);
     }
-    data = static_cast<ParserGlobalScopeData*>(ownedData.get());
   }
 
   // Decode each name in TrailingNames.
@@ -472,10 +390,10 @@ static XDRResult XDRParserGlobalScopeData(
 }
 
 template <XDRMode mode>
-static XDRResult XDRParserModuleScopeData(
-    XDRState<mode>* xdr, UniquePtr<BaseParserScopeData>& ownedData) {
+/* static */ XDRResult StencilXDR::ModuleScopeData(XDRState<mode>* xdr,
+                                                   ScopeStencil& stencil) {
   ParserModuleScopeData* data =
-      static_cast<ParserModuleScopeData*>(ownedData.get());
+      static_cast<ParserModuleScopeData*>(stencil.data_);
 
   uint32_t nextFrameSlot = 0;
   uint32_t varStart = 0;
@@ -499,19 +417,17 @@ static XDRResult XDRParserModuleScopeData(
 
   // Reconstruct the scope-data object for decode.
   if (mode == XDR_DECODE) {
-    MOZ_ASSERT(!ownedData);
-    ownedData =
-        NewEmptyScopeData<ModuleScope>(xdr->cx(), length, [&](auto data) {
+    stencil.data_ = data = NewEmptyScopeData<ModuleScope>(
+        xdr->cx(), xdr->stencilAlloc(), length, [&](auto data) {
           data->nextFrameSlot = nextFrameSlot;
           data->varStart = varStart;
           data->letStart = letStart;
           data->constStart = constStart;
           data->length = length;
         });
-    if (!ownedData) {
+    if (!data) {
       return xdr->fail(JS::TranscodeResult_Throw);
     }
-    data = static_cast<ParserModuleScopeData*>(ownedData.get());
   }
 
   // Decode each name in TrailingNames.
@@ -521,10 +437,9 @@ static XDRResult XDRParserModuleScopeData(
 }
 
 template <XDRMode mode>
-static XDRResult XDRParserEvalScopeData(
-    XDRState<mode>* xdr, UniquePtr<BaseParserScopeData>& ownedData) {
-  ParserEvalScopeData* data =
-      static_cast<ParserEvalScopeData*>(ownedData.get());
+/* static */ XDRResult StencilXDR::EvalScopeData(XDRState<mode>* xdr,
+                                                 ScopeStencil& stencil) {
+  ParserEvalScopeData* data = static_cast<ParserEvalScopeData*>(stencil.data_);
 
   uint32_t nextFrameSlot = 0;
   uint32_t length = 0;
@@ -539,15 +454,14 @@ static XDRResult XDRParserEvalScopeData(
 
   // Reconstruct the scope-data object for decode.
   if (mode == XDR_DECODE) {
-    MOZ_ASSERT(!ownedData);
-    ownedData = NewEmptyScopeData<EvalScope>(xdr->cx(), length, [&](auto data) {
-      data->nextFrameSlot = nextFrameSlot;
-      data->length = length;
-    });
-    if (!ownedData) {
+    stencil.data_ = data = NewEmptyScopeData<EvalScope>(
+        xdr->cx(), xdr->stencilAlloc(), length, [&](auto data) {
+          data->nextFrameSlot = nextFrameSlot;
+          data->length = length;
+        });
+    if (!data) {
       return xdr->fail(JS::TranscodeResult_Throw);
     }
-    data = static_cast<ParserEvalScopeData*>(ownedData.get());
   }
 
   // Decode each name in TrailingNames.
@@ -635,10 +549,10 @@ static XDRResult XDRStencilModuleEntryVector(
     MOZ_TRY(xdr->codeUint32(&entry.lineno));
     MOZ_TRY(xdr->codeUint32(&entry.column));
 
-    MOZ_TRY(XDRParserAtomOrNull(xdr, &entry.specifier));
-    MOZ_TRY(XDRParserAtomOrNull(xdr, &entry.localName));
-    MOZ_TRY(XDRParserAtomOrNull(xdr, &entry.importName));
-    MOZ_TRY(XDRParserAtomOrNull(xdr, &entry.exportName));
+    MOZ_TRY(XDRTaggedParserAtomIndex(xdr, &entry.specifier));
+    MOZ_TRY(XDRTaggedParserAtomIndex(xdr, &entry.localName));
+    MOZ_TRY(XDRTaggedParserAtomIndex(xdr, &entry.importName));
+    MOZ_TRY(XDRTaggedParserAtomIndex(xdr, &entry.exportName));
   }
 
   return Ok();
@@ -747,13 +661,13 @@ template <XDRMode mode>
   switch (stencil.kind_) {
     // FunctionScope
     case ScopeKind::Function: {
-      MOZ_TRY(XDRParserFunctionScopeData(xdr, stencil.data_));
+      MOZ_TRY(StencilXDR::FunctionScopeData(xdr, stencil));
       break;
     }
 
     // VarScope
     case ScopeKind::FunctionBodyVar: {
-      MOZ_TRY(XDRParserVarScopeData(xdr, stencil.data_));
+      MOZ_TRY(StencilXDR::VarScopeData(xdr, stencil));
       break;
     }
 
@@ -765,7 +679,7 @@ template <XDRMode mode>
     case ScopeKind::StrictNamedLambda:
     case ScopeKind::FunctionLexical:
     case ScopeKind::ClassBody: {
-      MOZ_TRY(XDRParserLexicalScopeData(xdr, stencil.data_));
+      MOZ_TRY(StencilXDR::LexicalScopeData(xdr, stencil));
       break;
     }
 
@@ -778,20 +692,20 @@ template <XDRMode mode>
     // EvalScope
     case ScopeKind::Eval:
     case ScopeKind::StrictEval: {
-      MOZ_TRY(XDRParserEvalScopeData(xdr, stencil.data_));
+      MOZ_TRY(StencilXDR::EvalScopeData(xdr, stencil));
       break;
     }
 
     // GlobalScope
     case ScopeKind::Global:
     case ScopeKind::NonSyntactic: {
-      MOZ_TRY(XDRParserGlobalScopeData(xdr, stencil.data_));
+      MOZ_TRY(StencilXDR::GlobalScopeData(xdr, stencil));
       break;
     }
 
     // ModuleScope
     case ScopeKind::Module: {
-      MOZ_TRY(XDRParserModuleScopeData(xdr, stencil.data_));
+      MOZ_TRY(StencilXDR::ModuleScopeData(xdr, stencil));
       break;
     }
 
@@ -810,9 +724,9 @@ template <XDRMode mode>
                                               ObjLiteralStencil& stencil) {
   MOZ_TRY(XDRObjLiteralWriter(xdr, stencil.writer_));
 
-  MOZ_TRY(XDRVector(xdr, stencil.atoms_, nullptr));
-  for (const ParserAtom*& entry : stencil.atoms_) {
-    MOZ_TRY(XDRParserAtom(xdr, &entry));
+  MOZ_TRY(XDRVector(xdr, stencil.atoms_));
+  for (auto& entry : stencil.atoms_) {
+    MOZ_TRY(XDRTaggedParserAtomIndex(xdr, &entry));
   }
 
   return Ok();
@@ -845,29 +759,20 @@ template <XDRMode mode>
 template <XDRMode mode>
 /* static */ XDRResult StencilXDR::RegExp(XDRState<mode>* xdr,
                                           RegExpStencil& stencil) {
-  uint64_t length;
   uint8_t flags;
 
   if (mode == XDR_ENCODE) {
-    length = stencil.length_;
     flags = stencil.flags_.value();
   }
 
-  MOZ_TRY(xdr->codeUint64(&length));
+  MOZ_TRY(XDRTaggedParserAtomIndex(xdr, &stencil.atom_));
   MOZ_TRY(xdr->codeUint8(&flags));
 
-  XDRTranscodeString<char16_t> chars;
-
   if (mode == XDR_DECODE) {
-    stencil.buf_ = xdr->cx()->template make_pod_array<char16_t>(length);
-    if (!stencil.buf_) {
-      return xdr->fail(JS::TranscodeResult_Throw);
-    }
-    stencil.length_ = length;
     stencil.flags_ = JS::RegExpFlags(flags);
   }
 
-  return xdr->codeChars(stencil.buf_.get(), stencil.length_);
+  return Ok();
 }
 
 template <XDRMode mode>
@@ -975,7 +880,7 @@ XDRResult XDRCompilationStencil(XDRState<mode>* xdr,
 
   MOZ_TRY(XDRVector(xdr, stencil.scriptData));
   for (auto& entry : stencil.scriptData) {
-    MOZ_TRY(XDRScriptStencil(xdr, entry));
+    MOZ_TRY(StencilXDR::Script(xdr, entry));
   }
 
   if (stencil.scriptData[CompilationInfo::TopLevelIndex].isModule()) {

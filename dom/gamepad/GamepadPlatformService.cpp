@@ -7,6 +7,7 @@
 #include "mozilla/dom/GamepadPlatformService.h"
 
 #include "mozilla/dom/GamepadEventChannelParent.h"
+#include "mozilla/dom/GamepadMonitoring.h"
 #include "mozilla/dom/GamepadTestChannelParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/Mutex.h"
@@ -17,8 +18,7 @@
 
 using namespace mozilla::ipc;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -318,5 +318,4 @@ void GamepadPlatformService::Cleanup() {
   mChannelParents.Clear();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

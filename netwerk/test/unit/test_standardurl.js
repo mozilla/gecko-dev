@@ -630,26 +630,20 @@ add_test(function test_filterWhitespace() {
   Assert.equal(url.spec, "http://test.com/pa%0D%0A%09th?query#hash");
   url = url
     .mutate()
-    .setQuery("qu\r\n\tery")
+    .setQuery("que\r\n\try")
     .finalize();
-  Assert.equal(url.spec, "http://test.com/pa%0D%0A%09th?qu%0D%0A%09ery#hash");
+  Assert.equal(url.spec, "http://test.com/pa%0D%0A%09th?query#hash");
   url = url
     .mutate()
     .setRef("ha\r\n\tsh")
     .finalize();
-  Assert.equal(
-    url.spec,
-    "http://test.com/pa%0D%0A%09th?qu%0D%0A%09ery#ha%0D%0A%09sh"
-  );
+  Assert.equal(url.spec, "http://test.com/pa%0D%0A%09th?query#hash");
   url = url
     .mutate()
     .QueryInterface(Ci.nsIURLMutator)
     .setFileName("fi\r\n\tle.name")
     .finalize();
-  Assert.equal(
-    url.spec,
-    "http://test.com/fi%0D%0A%09le.name?qu%0D%0A%09ery#ha%0D%0A%09sh"
-  );
+  Assert.equal(url.spec, "http://test.com/fi%0D%0A%09le.name?query#hash");
 
   run_next_test();
 });

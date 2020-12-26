@@ -53,7 +53,6 @@
 const Services = require("Services");
 const protocol = require("devtools/shared/protocol");
 const { LongStringActor } = require("devtools/server/actors/string");
-const defer = require("devtools/shared/defer");
 
 const { inspectorSpec } = require("devtools/shared/specs/inspector");
 
@@ -77,17 +76,12 @@ loader.lazyRequireGetter(
 loader.lazyRequireGetter(
   this,
   "PageStyleActor",
-  "devtools/server/actors/styles",
+  "devtools/server/actors/page-style",
   true
 );
 loader.lazyRequireGetter(
   this,
-  [
-    "HighlighterActor",
-    "CustomHighlighterActor",
-    "isTypeRegistered",
-    "HighlighterEnvironment",
-  ],
+  ["CustomHighlighterActor", "isTypeRegistered", "HighlighterEnvironment"],
   "devtools/server/actors/highlighters",
   true
 );
@@ -120,7 +114,6 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
     this.destroyEyeDropper();
 
     this._compatibility = null;
-    this._highlighterPromise = null;
     this._pageStylePromise = null;
     this._walkerPromise = null;
     this.walker = null;
@@ -136,28 +129,27 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
       return this._walkerPromise;
     }
 
-    const deferred = defer();
-    this._walkerPromise = deferred.promise;
+    this._walkerPromise = new Promise(resolve => {
+      const domReady = () => {
+        const targetActor = this.targetActor;
+        this.walker = WalkerActor(this.conn, targetActor, options);
+        this.manage(this.walker);
+        this.walker.once("destroyed", () => {
+          this._walkerPromise = null;
+          this._pageStylePromise = null;
+        });
+        resolve(this.walker);
+      };
 
-    const domReady = () => {
-      const targetActor = this.targetActor;
-      this.walker = WalkerActor(this.conn, targetActor, options);
-      this.manage(this.walker);
-      this.walker.once("destroyed", () => {
-        this._walkerPromise = null;
-        this._pageStylePromise = null;
-      });
-      deferred.resolve(this.walker);
-    };
-
-    if (this.window.document.readyState === "loading") {
-      this.window.addEventListener("DOMContentLoaded", domReady, {
-        capture: true,
-        once: true,
-      });
-    } else {
-      domReady();
-    }
+      if (this.window.document.readyState === "loading") {
+        this.window.addEventListener("DOMContentLoaded", domReady, {
+          capture: true,
+          once: true,
+        });
+      } else {
+        domReady();
+      }
+    });
 
     return this._walkerPromise;
   },
@@ -183,34 +175,6 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
     this._compatibility = CompatibilityActor(this);
     this.manage(this._compatibility);
     return this._compatibility;
-  },
-
-  /**
-   * The most used highlighter actor is the HighlighterActor which can be
-   * conveniently retrieved by this method.
-   * The same instance will always be returned by this method when called
-   * several times.
-   * The highlighter actor returned here is used to highlighter elements's
-   * box-models from the markup-view, box model, console, debugger, ... as
-   * well as select elements with the pointer (pick).
-   *
-   * @param {Boolean} autohide Optionally autohide the highlighter after an
-   * element has been picked
-   * @return {HighlighterActor}
-   */
-  getHighlighter: function(autohide) {
-    if (this._highlighterPromise) {
-      return this._highlighterPromise;
-    }
-
-    this._highlighterPromise = this.getWalker().then(async walker => {
-      const highlighter = HighlighterActor(this, autohide);
-      await highlighter.initializeInstance();
-      await highlighter.instance.isReady;
-      this.manage(highlighter);
-      return highlighter;
-    });
-    return this._highlighterPromise;
   },
 
   /**
@@ -336,7 +300,7 @@ exports.InspectorActor = protocol.ActorClassWithSpec(inspectorSpec, {
 
   /**
    * Check if the current document supports highlighters using a canvasFrame anonymous
-   * content container (ie all highlighters except the SimpleOutlineHighlighter).
+   * content container.
    * It is impossible to detect the feature programmatically as some document types simply
    * don't render the canvasFrame without throwing any error.
    */

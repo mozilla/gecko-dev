@@ -20,12 +20,11 @@ namespace net {
 Http3Stream::Http3Stream(nsAHttpTransaction* httpTransaction,
                          Http3Session* session)
     : mSendState(PREPARING_HEADERS),
-      mRecvState(READING_HEADERS),
+      mRecvState(BEFORE_HEADERS),
       mStreamId(UINT64_MAX),
       mSession(session),
       mTransaction(httpTransaction),
       mQueued(false),
-      mRequestBlockedOnRead(false),
       mDataReceived(false),
       mResetRecv(false),
       mRequestBodyLenRemaining(0),
@@ -231,17 +230,19 @@ nsresult Http3Stream::OnReadSegment(const char* buf, uint32_t count,
       break;
   }
 
-  if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
-    mRequestBlockedOnRead = true;
-  }
-  return rv;
+  mSocketOutCondition = rv;
+
+  return mSocketOutCondition;
 }
 
 void Http3Stream::SetResponseHeaders(nsTArray<uint8_t>& aResponseHeaders,
                                      bool aFin) {
+  MOZ_ASSERT(mRecvState == BEFORE_HEADERS);
   MOZ_ASSERT(mFlatResponseHeaders.IsEmpty(),
              "Cannot set response headers more than once");
   mFlatResponseHeaders = std::move(aResponseHeaders);
+  mRecvState = READING_HEADERS;
+  mDataReceived = true;
   mFin = aFin;
 }
 
@@ -259,6 +260,10 @@ nsresult Http3Stream::OnWriteSegment(char* buf, uint32_t count,
   LOG(("Http3Stream::OnWriteSegment [this=%p, state=%d", this, mRecvState));
   nsresult rv = NS_OK;
   switch (mRecvState) {
+    case BEFORE_HEADERS: {
+      *countWritten = 0;
+      rv = NS_BASE_STREAM_WOULD_BLOCK;
+    } break;
     case READING_HEADERS: {
       // SetResponseHeaders should have been previously called.
       MOZ_ASSERT(!mFlatResponseHeaders.IsEmpty(), "Headers empty!");
@@ -284,7 +289,7 @@ nsresult Http3Stream::OnWriteSegment(char* buf, uint32_t count,
       rv = mSession->ReadResponseData(mStreamId, buf, count, countWritten,
                                       &mFin);
       if (NS_FAILED(rv)) {
-        return rv;
+        break;
       }
       if (*countWritten == 0) {
         if (mFin) {
@@ -311,14 +316,16 @@ nsresult Http3Stream::OnWriteSegment(char* buf, uint32_t count,
       rv = NS_ERROR_UNEXPECTED;
   }
 
+  // Remember the error received from lower layers. A stream pipe may overwrite
+  // it.
+  // If rv == NS_OK this will reset mSocketInCondition.
+  mSocketInCondition = rv;
+
   return rv;
 }
 
-nsresult Http3Stream::ReadSegments(nsAHttpSegmentReader* reader, uint32_t count,
-                                   uint32_t* countRead) {
+nsresult Http3Stream::ReadSegments(nsAHttpSegmentReader* reader) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
-
-  mRequestBlockedOnRead = false;
 
   if (mRecvState == RECV_DONE) {
     // Don't transmit any request frames if the peer cannot respond or respone
@@ -331,46 +338,69 @@ nsresult Http3Stream::ReadSegments(nsAHttpSegmentReader* reader, uint32_t count,
   }
 
   nsresult rv = NS_OK;
-  switch (mSendState) {
-    case WAITING_TO_ACTIVATE: {
-      *countRead = 0;
-      // A transaction that had already generated its headers before it was
-      // queued at the session level (due to concurrency concerns) may not call
-      // onReadSegment off the ReadSegments() stack above.
-      LOG3(("Http3Stream %p ReadSegments forcing OnReadSegment call\n", this));
-      uint32_t wasted = 0;
-      nsresult rv2 = OnReadSegment("", 0, &wasted);
-      LOG3(("  OnReadSegment returned 0x%08" PRIx32,
-            static_cast<uint32_t>(rv2)));
-      if (mSendState != SENDING_BODY) {
+  uint32_t transactionBytes;
+  bool again = true;
+  do {
+    transactionBytes = 0;
+    rv = mSocketOutCondition = NS_OK;
+    LOG(("Http3Stream::ReadSegments state=%d [this=%p]", mSendState, this));
+    switch (mSendState) {
+      case WAITING_TO_ACTIVATE: {
+        // A transaction that had already generated its headers before it was
+        // queued at the session level (due to concurrency concerns) may not
+        // call onReadSegment off the ReadSegments() stack above.
+        LOG3(
+            ("Http3Stream %p ReadSegments forcing OnReadSegment call\n", this));
+        uint32_t wasted = 0;
+        nsresult rv2 = OnReadSegment("", 0, &wasted);
+        LOG3(("  OnReadSegment returned 0x%08" PRIx32,
+              static_cast<uint32_t>(rv2)));
+        if (mSendState != SENDING_BODY) {
+          break;
+        }
+      }
+        // If we are in state SENDING_BODY we can continue sending data.
+        [[fallthrough]];
+      case PREPARING_HEADERS:
+      case SENDING_BODY: {
+        rv = mTransaction->ReadSegmentsAgain(
+            this, nsIOService::gDefaultSegmentSize, &transactionBytes, &again);
+      } break;
+      default:
+        transactionBytes = 0;
+        rv = NS_OK;
         break;
-      }
     }
-      // If we are in state SENDING_BODY we can continue sending data.
-      [[fallthrough]];
-    case PREPARING_HEADERS:
-    case SENDING_BODY: {
-      rv = mTransaction->ReadSegments(this, count, countRead);
-      LOG(("Http3Stream::ReadSegments rv=0x%" PRIx32 " [this=%p]",
-           static_cast<uint32_t>(rv), this));
 
-      if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
-        mRequestBlockedOnRead = true;
-      }
-      if (NS_SUCCEEDED(rv) && mRequestBlockedOnRead) {
-        // We've got NS_BASE_STREAM_WOULD_BLOCK in Http3Stream::OnReadSegment()
-        // but the error code was lost in nsBufferedInputStream::ReadSegments().
-        // Restore it here.
-        rv = NS_BASE_STREAM_WOULD_BLOCK;
-      }
-    } break;
-    default:
-      *countRead = 0;
+    LOG(("Http3Stream::ReadSegments rv=0x%" PRIx32 " read=%u sock-cond=%" PRIx32
+         " again=%d [this=%p]",
+         static_cast<uint32_t>(rv), transactionBytes,
+         static_cast<uint32_t>(mSocketOutCondition), again, this));
+
+    // XXX some streams return NS_BASE_STREAM_CLOSED to indicate EOF.
+    if (rv == NS_BASE_STREAM_CLOSED && !mTransaction->IsDone()) {
       rv = NS_OK;
-      break;
-  }
-  LOG(("Http3Stream::ReadSegments rv=0x%" PRIx32 " [this=%p]",
-       static_cast<uint32_t>(rv), this));
+      transactionBytes = 0;
+    }
+
+    if (NS_FAILED(rv)) {
+      // if the transaction didn't want to write any more data, then
+      // wait for the transaction to call ResumeSend.
+      if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
+        rv = NS_OK;
+      }
+      again = false;
+    } else if (NS_FAILED(mSocketOutCondition)) {
+      if (mSocketOutCondition != NS_BASE_STREAM_WOULD_BLOCK) {
+        rv = mSocketOutCondition;
+      }
+      again = false;
+    } else if (!transactionBytes) {
+      rv = NS_OK;
+      again = false;
+    }
+    // write more to the socket until error or end-of-request...
+  } while (again && gHttpHandler->Active());
   return rv;
 }
 
@@ -380,12 +410,17 @@ nsresult Http3Stream::WriteSegments(nsAHttpSegmentWriter* writer,
   LOG(("Http3Stream::WriteSegments [this=%p]", this));
   nsresult rv = NS_OK;
   uint32_t countWrittenSingle = 0;
+  bool again = true;
+
   do {
-    rv = mTransaction->WriteSegments(this, count, &countWrittenSingle);
+    mSocketInCondition = NS_OK;
+    rv = mTransaction->WriteSegmentsAgain(this, count, &countWrittenSingle,
+                                          &again);
     *countWritten += countWrittenSingle;
     LOG(("Http3Stream::WriteSegments rv=0x%" PRIx32
-         " countWrittenSingle=%" PRIu32 " [this=%p]",
-         static_cast<uint32_t>(rv), countWrittenSingle, this));
+         " countWrittenSingle=%" PRIu32 " socketin=%" PRIx32 " [this=%p]",
+         static_cast<uint32_t>(rv), countWrittenSingle,
+         static_cast<uint32_t>(mSocketInCondition), this));
     if (mTransaction->IsDone()) {
       // If a transaction has read the amount of data specified in
       // Content-Length it is marked as done.The Http3Stream should be
@@ -394,16 +429,22 @@ nsresult Http3Stream::WriteSegments(nsAHttpSegmentWriter* writer,
       mRecvState = RECV_DONE;
     }
 
-    // Repeat until the neqo stream buffer is empty, consumer is blocked
-    // or stream is done. In such a case countWrittenSingle will be 0.
-    // There is one exception to this: if a transaction only has read headers
-    // countWrittenSingle will be 0 (bug 1646701) a WriteSegments will not be
-    // triggered again and the transaction will not pickup the FIN bit. For this
-    // case (mRecvState == RECV_FIN) repeat the WriteSegments call one more
-    // time.
-  } while (NS_SUCCEEDED(rv) &&
-           ((countWrittenSingle > 0) || (mRecvState == RECEIVED_FIN)) &&
-           !Done());
+    if (NS_FAILED(rv)) {
+      // if the transaction didn't want to take any more data, then
+      // wait for the transaction to call ResumeRecv.
+      if (rv == NS_BASE_STREAM_WOULD_BLOCK) {
+        rv = NS_OK;
+      }
+      again = false;
+    } else if (NS_FAILED(mSocketInCondition)) {
+      if (mSocketInCondition != NS_BASE_STREAM_WOULD_BLOCK) {
+        rv = mSocketInCondition;
+      }
+      again = false;
+    }
+    // read more from the socket until error...
+  } while (again && gHttpHandler->Active());
+
   return rv;
 }
 
@@ -425,10 +466,9 @@ nsresult Http3Stream::Finish0RTT(bool aRestart) {
 
     // Reset Http3Sream states as well.
     mSendState = PREPARING_HEADERS;
-    mRecvState = READING_HEADERS;
+    mRecvState = BEFORE_HEADERS;
     mStreamId = UINT64_MAX;
     mQueued = false;
-    mRequestBlockedOnRead = false;
     mDataReceived = false;
     mResetRecv = false;
     mRequestBodyLenRemaining = 0;

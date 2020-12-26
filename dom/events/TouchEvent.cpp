@@ -16,9 +16,7 @@
 #include "nsIDocShell.h"
 #include "mozilla/WidgetUtils.h"
 
-namespace mozilla {
-
-namespace dom {
+namespace mozilla::dom {
 
 /******************************************************************************
  * TouchList
@@ -225,16 +223,18 @@ bool TouchEvent::PlatformSupportsTouch() {
 bool TouchEvent::PrefEnabled(nsIDocShell* aDocShell) {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
 
-  auto touchEventsOverride = nsIDocShell::TOUCHEVENTS_OVERRIDE_NONE;
+  auto touchEventsOverride = mozilla::dom::TouchEventsOverride::None;
   if (aDocShell) {
-    touchEventsOverride = aDocShell->GetTouchEventsOverride();
+    if (BrowsingContext* bc = aDocShell->GetBrowsingContext()) {
+      touchEventsOverride = bc->TouchEventsOverride();
+    }
   }
 
   bool enabled = false;
-  if (touchEventsOverride == nsIDocShell::TOUCHEVENTS_OVERRIDE_ENABLED) {
+  if (touchEventsOverride == mozilla::dom::TouchEventsOverride::Enabled) {
     enabled = true;
   } else if (touchEventsOverride ==
-             nsIDocShell::TOUCHEVENTS_OVERRIDE_DISABLED) {
+             mozilla::dom::TouchEventsOverride::Disabled) {
     enabled = false;
   } else {
     const int32_t prefValue = StaticPrefs::dom_w3c_touch_events_enabled();
@@ -291,8 +291,9 @@ bool TouchEvent::LegacyAPIEnabled(nsIDocShell* aDocShell,
                                   bool aCallerIsSystem) {
   return (aCallerIsSystem ||
           StaticPrefs::dom_w3c_touch_events_legacy_apis_enabled() ||
-          (aDocShell && aDocShell->GetTouchEventsOverride() ==
-                            nsIDocShell::TOUCHEVENTS_OVERRIDE_ENABLED)) &&
+          (aDocShell && aDocShell->GetBrowsingContext() &&
+           aDocShell->GetBrowsingContext()->TouchEventsOverride() ==
+               mozilla::dom::TouchEventsOverride::Enabled)) &&
          PrefEnabled(aDocShell);
 }
 
@@ -333,8 +334,7 @@ bool TouchEvent::CtrlKey() { return mEvent->AsTouchEvent()->IsControl(); }
 
 bool TouchEvent::ShiftKey() { return mEvent->AsTouchEvent()->IsShift(); }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 using namespace mozilla;
 using namespace mozilla::dom;

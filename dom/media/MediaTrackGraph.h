@@ -86,13 +86,17 @@ enum class AudioContextState : uint8_t;
  * reprocess it. This is triggered automatically by the MediaTrackGraph.
  */
 
+class AudioInputTrack;
 class AudioNodeEngine;
 class AudioNodeExternalInputTrack;
 class AudioNodeTrack;
+class DirectMediaTrackListener;
+class ForwardedInputTrack;
 class MediaInputPort;
 class MediaTrack;
 class MediaTrackGraph;
 class MediaTrackGraphImpl;
+class MediaTrackListener;
 class ProcessedMediaTrack;
 class SourceMediaTrack;
 
@@ -112,17 +116,19 @@ class AudioDataListenerInterface {
                                 AudioDataValue* aBuffer, size_t aFrames,
                                 TrackRate aRate, uint32_t aChannels) = 0;
   /**
-   * An AudioCallbackDriver signaling that it has started and may notify of data
-   * soon.
+   * An AudioCallbackDriver with an input stream signaling that it has stopped
+   * for any reason and the AudioDataListener will not be notified of input data
+   * until the driver is restarted or another driver has started.
    */
-  virtual void NotifyStarted(MediaTrackGraphImpl* aGraph) = 0;
+  virtual void NotifyInputStopped(MediaTrackGraphImpl* aGraph) = 0;
   /**
    * Input data from a microphone (or other audio source.  This is not
    * guaranteed to be in any particular size chunks.
    */
   virtual void NotifyInputData(MediaTrackGraphImpl* aGraph,
                                const AudioDataValue* aBuffer, size_t aFrames,
-                               TrackRate aRate, uint32_t aChannels) = 0;
+                               TrackRate aRate, uint32_t aChannels,
+                               uint32_t aAlreadyBuffered) = 0;
 
   /**
    * Number of audio input channels.
@@ -190,16 +196,6 @@ struct AudioNodeSizes {
  *                last frame.
  */
 enum class DisabledTrackMode { ENABLED, SILENCE_BLACK, SILENCE_FREEZE };
-
-class AudioNodeEngine;
-class AudioNodeExternalInputTrack;
-class AudioNodeTrack;
-class DirectMediaTrackListener;
-class MediaTrackGraphImpl;
-class MediaTrackListener;
-class ProcessedMediaTrack;
-class SourceMediaTrack;
-class ForwardedInputTrack;
 
 /**
  * A track of audio or video data. The media type must be known at construction
@@ -379,6 +375,7 @@ class MediaTrack : public mozilla::LinkedListElement<MediaTrack> {
   friend class MediaInputPort;
   friend class AudioNodeExternalInputTrack;
 
+  virtual AudioInputTrack* AsAudioInputTrack() { return nullptr; }
   virtual SourceMediaTrack* AsSourceTrack() { return nullptr; }
   virtual ProcessedMediaTrack* AsProcessedTrack() { return nullptr; }
   virtual AudioNodeTrack* AsAudioNodeTrack() { return nullptr; }
@@ -418,6 +415,11 @@ class MediaTrack : public mozilla::LinkedListElement<MediaTrack> {
   }
   GraphTime StartTime() const { return mStartTime; }
   bool Ended() const { return mEnded; }
+
+  // Returns the current number of channels this track contains if it's an audio
+  // track. Calling this on a video track will trip assertions. Graph thread
+  // only.
+  virtual uint32_t NumberOfChannels() const = 0;
 
   // The DisabledTrackMode after combining the explicit mode and that of the
   // input, if any.
@@ -621,16 +623,6 @@ class SourceMediaTrack : public MediaTrack {
    */
   void SetPullingEnabled(bool aEnabled);
 
-  // Users of audio inputs go through the track so it can track when the
-  // last track referencing an input goes away, so it can close the cubeb
-  // input. Main thread only.
-  nsresult OpenAudioInput(CubebUtils::AudioDeviceID aID,
-                          AudioDataListener* aListener);
-  // Main thread only.
-  void CloseAudioInput(Maybe<CubebUtils::AudioDeviceID>& aID);
-
-  // Main thread only.
-  void Destroy() override;
   // MediaTrackGraph thread only
   void DestroyImpl() override;
 
@@ -689,6 +681,8 @@ class SourceMediaTrack : public MediaTrack {
     mMutex.AssertCurrentThreadOwns();
     MediaTrack::ApplyTrackDisabling(aSegment, aRawSegment);
   }
+
+  uint32_t NumberOfChannels() const override;
 
   void RemoveAllDirectListenersImpl() override;
 
@@ -755,12 +749,6 @@ class SourceMediaTrack : public MediaTrack {
 
   virtual void AdvanceTimeVaryingValuesToCurrentTime(
       GraphTime aCurrentTime, GraphTime aBlockedTime) override;
-
-  // Only accessed on the MTG thread.  Used so to ask the MTGImpl to usecount
-  // users of a specific input.
-  // XXX Should really be a CubebUtils::AudioDeviceID, but they aren't
-  // copyable (opaque pointers)
-  RefPtr<AudioDataListener> mInputListener;
 
   // This must be acquired *before* MediaTrackGraphImpl's lock, if they are
   // held together.

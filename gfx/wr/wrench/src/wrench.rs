@@ -294,7 +294,7 @@ impl Wrench {
         ).unwrap();
 
         let api = sender.create_api();
-        let document_id = api.add_document(size, 0);
+        let document_id = api.add_document(size);
 
         let graphics_api = renderer.get_graphics_api_info();
         let zoom_factor = ZoomFactor::new(zoom_factor);
@@ -620,7 +620,7 @@ impl Wrench {
         self.renderer.update();
         let _ = self.renderer.flush_pipeline_info();
         self.renderer
-            .render(self.window_size)
+            .render(self.window_size, 0)
             .expect("errors encountered during render!")
     }
 

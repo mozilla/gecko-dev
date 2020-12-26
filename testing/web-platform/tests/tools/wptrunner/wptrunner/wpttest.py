@@ -158,7 +158,8 @@ class Test(object):
     long_timeout = 60  # seconds
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata,
-                 timeout=None, path=None, protocol="http", quic=False):
+                 timeout=None, path=None, protocol="http", subdomain=False,
+                 quic=False):
         self.url_base = url_base
         self.tests_root = tests_root
         self.url = url
@@ -166,6 +167,8 @@ class Test(object):
         self._test_metadata = test_metadata
         self.timeout = timeout if timeout is not None else self.default_timeout
         self.path = path
+
+        self.subdomain = subdomain
         self.environment = {"url_base": url_base,
                             "protocol": protocol,
                             "prefs": self.prefs,
@@ -195,7 +198,8 @@ class Test(object):
                    test_metadata,
                    timeout=timeout,
                    path=os.path.join(manifest_file.tests_root, manifest_item.path),
-                   protocol=server_protocol(manifest_item))
+                   protocol=server_protocol(manifest_item),
+                   subdomain=manifest_item.subdomain)
 
     @property
     def id(self):
@@ -400,9 +404,9 @@ class TestharnessTest(Test):
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata,
                  timeout=None, path=None, protocol="http", testdriver=False,
-                 jsshell=False, scripts=None, quic=False):
+                 jsshell=False, scripts=None, subdomain=False, quic=False):
         Test.__init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, timeout,
-                      path, protocol, quic)
+                      path, protocol, subdomain, quic)
 
         self.testdriver = testdriver
         self.jsshell = jsshell
@@ -428,6 +432,7 @@ class TestharnessTest(Test):
                    testdriver=testdriver,
                    jsshell=jsshell,
                    scripts=scripts,
+                   subdomain=manifest_item.subdomain,
                    quic=quic)
 
     @property
@@ -459,10 +464,10 @@ class ReftestTest(Test):
     test_type = "reftest"
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, references,
-                 timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None, protocol="http",
-                 quic=False):
+                 timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None,
+                 protocol="http", subdomain=False, quic=False):
         Test.__init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, timeout,
-                      path, protocol, quic)
+                      path, protocol, subdomain, quic)
 
         for _, ref_type in references:
             if ref_type not in ("==", "!="):
@@ -500,6 +505,7 @@ class ReftestTest(Test):
                    [],
                    timeout=timeout,
                    path=manifest_test.path,
+                   subdomain=manifest_test.subdomain,
                    quic=quic,
                    **cls.cls_kwargs(manifest_test))
 
@@ -618,10 +624,10 @@ class PrintReftestTest(ReftestTest):
 
     def __init__(self, url_base, tests_root, url, inherit_metadata, test_metadata, references,
                  timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None,
-                 page_ranges=None, protocol="http", quic=False):
+                 page_ranges=None, protocol="http", subdomain=False, quic=False):
         super(PrintReftestTest, self).__init__(url_base, tests_root, url, inherit_metadata, test_metadata,
                                                references, timeout, path, viewport_size, dpi,
-                                               fuzzy, protocol, quic=quic)
+                                               fuzzy, protocol, subdomain=subdomain, quic=quic)
         self._page_ranges = page_ranges
 
     @classmethod

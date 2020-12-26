@@ -743,14 +743,11 @@ static bool RecomputePosition(nsIFrame* aFrame) {
       for (nsIFrame* cont = aFrame; cont;
            cont = nsLayoutUtils::GetNextContinuationOrIBSplitSibling(cont)) {
         nsIFrame* cb = cont->GetContainingBlock();
-        nsMargin newOffsets;
         WritingMode wm = cb->GetWritingMode();
-        const LogicalSize size = cb->ContentSize();
-
-        ReflowInput::ComputeRelativeOffsets(wm, cont, size, newOffsets);
-        NS_ASSERTION(newOffsets.left == -newOffsets.right &&
-                         newOffsets.top == -newOffsets.bottom,
-                     "ComputeRelativeOffsets should return valid results");
+        const LogicalSize cbSize = cb->ContentSize();
+        const LogicalMargin newLogicalOffsets =
+            ReflowInput::ComputeRelativeOffsets(wm, cont, cbSize);
+        const nsMargin newOffsets = newLogicalOffsets.GetPhysicalMargin(wm);
 
         // ReflowInput::ApplyRelativePositioning would work here, but
         // since we've already checked mPosition and aren't changing the frame's
@@ -802,12 +799,15 @@ static bool RecomputePosition(nsIFrame* aFrame) {
   nsIFrame* cbFrame = parentFrame->GetContainingBlock();
   if (cbFrame && (aFrame->GetContainingBlock() != parentFrame ||
                   parentFrame->IsTableFrame())) {
+    const auto cbWM = cbFrame->GetWritingMode();
     LogicalSize cbSize = cbFrame->GetLogicalSize();
     cbReflowInput.emplace(cbFrame->PresContext(), cbFrame, rc, cbSize);
-    cbReflowInput->ComputedPhysicalMargin() = cbFrame->GetUsedMargin();
-    cbReflowInput->ComputedPhysicalPadding() = cbFrame->GetUsedPadding();
-    cbReflowInput->ComputedPhysicalBorderPadding() =
-        cbFrame->GetUsedBorderAndPadding();
+    cbReflowInput->SetComputedLogicalMargin(
+        cbWM, cbFrame->GetLogicalUsedMargin(cbWM));
+    cbReflowInput->SetComputedLogicalPadding(
+        cbWM, cbFrame->GetLogicalUsedPadding(cbWM));
+    cbReflowInput->SetComputedLogicalBorderPadding(
+        cbWM, cbFrame->GetLogicalUsedBorderAndPadding(cbWM));
     parentReflowInput.mCBReflowInput = cbReflowInput.ptr();
   }
 
@@ -816,11 +816,12 @@ static bool RecomputePosition(nsIFrame* aFrame) {
                        "parentSize should be valid");
   parentReflowInput.SetComputedISize(std::max(parentSize.ISize(parentWM), 0));
   parentReflowInput.SetComputedBSize(std::max(parentSize.BSize(parentWM), 0));
-  parentReflowInput.ComputedPhysicalMargin().SizeTo(0, 0, 0, 0);
+  parentReflowInput.SetComputedLogicalMargin(parentWM, LogicalMargin(parentWM));
 
-  parentReflowInput.ComputedPhysicalPadding() = parentFrame->GetUsedPadding();
-  parentReflowInput.ComputedPhysicalBorderPadding() =
-      parentFrame->GetUsedBorderAndPadding();
+  parentReflowInput.SetComputedLogicalPadding(
+      parentWM, parentFrame->GetLogicalUsedPadding(parentWM));
+  parentReflowInput.SetComputedLogicalBorderPadding(
+      parentWM, parentFrame->GetLogicalUsedBorderAndPadding(parentWM));
   LogicalSize availSize = parentSize.ConvertTo(frameWM, parentWM);
   availSize.BSize(frameWM) = NS_UNCONSTRAINEDSIZE;
 
@@ -838,11 +839,10 @@ static bool RecomputePosition(nsIFrame* aFrame) {
                           availSize, Some(lcbSize));
   nscoord computedISize = reflowInput.ComputedISize();
   nscoord computedBSize = reflowInput.ComputedBSize();
-  computedISize +=
-      reflowInput.ComputedLogicalBorderPadding().IStartEnd(frameWM);
+  const auto frameBP = reflowInput.ComputedLogicalBorderPadding(frameWM);
+  computedISize += frameBP.IStartEnd(frameWM);
   if (computedBSize != NS_UNCONSTRAINEDSIZE) {
-    computedBSize +=
-        reflowInput.ComputedLogicalBorderPadding().BStartEnd(frameWM);
+    computedBSize += frameBP.BStartEnd(frameWM);
   }
   LogicalSize logicalSize = aFrame->GetLogicalSize(frameWM);
   nsSize size = aFrame->GetSize();
@@ -859,26 +859,26 @@ static bool RecomputePosition(nsIFrame* aFrame) {
     // match the reflow code path.
     //
     // TODO(emilio): It'd be nice if this did logical math instead, but it seems
-    // to me the math should work out on vertical writing modes as well.
-    if (NS_AUTOOFFSET == reflowInput.ComputedPhysicalOffsets().left) {
-      reflowInput.ComputedPhysicalOffsets().left =
-          cbSize.width - reflowInput.ComputedPhysicalOffsets().right -
-          reflowInput.ComputedPhysicalMargin().right - size.width -
-          reflowInput.ComputedPhysicalMargin().left;
+    // to me the math should work out on vertical writing modes as well. See Bug
+    // 1675861 for some hints.
+    const nsMargin offset = reflowInput.ComputedPhysicalOffsets();
+    const nsMargin margin = reflowInput.ComputedPhysicalMargin();
+
+    nscoord left = offset.left;
+    if (left == NS_AUTOOFFSET) {
+      left =
+          cbSize.width - offset.right - margin.right - size.width - margin.left;
     }
 
-    if (NS_AUTOOFFSET == reflowInput.ComputedPhysicalOffsets().top) {
-      reflowInput.ComputedPhysicalOffsets().top =
-          cbSize.height - reflowInput.ComputedPhysicalOffsets().bottom -
-          reflowInput.ComputedPhysicalMargin().bottom - size.height -
-          reflowInput.ComputedPhysicalMargin().top;
+    nscoord top = offset.top;
+    if (top == NS_AUTOOFFSET) {
+      top = cbSize.height - offset.bottom - margin.bottom - size.height -
+            margin.top;
     }
 
     // Move the frame
-    nsPoint pos(parentBorder.left + reflowInput.ComputedPhysicalOffsets().left +
-                    reflowInput.ComputedPhysicalMargin().left,
-                parentBorder.top + reflowInput.ComputedPhysicalOffsets().top +
-                    reflowInput.ComputedPhysicalMargin().top);
+    nsPoint pos(parentBorder.left + left + margin.left,
+                parentBorder.top + top + margin.top);
     aFrame->SetPosition(pos);
 
     if (aFrame->IsInScrollAnchorChain()) {
@@ -1247,6 +1247,14 @@ static nsIContent* NextSiblingWhichMayHaveFrame(nsIContent* aContent) {
   return nullptr;
 }
 
+// If |aFrame| is dirty or has dirty children, or has never been reflowed,
+// then we can skip updating overflows since that will happen when it's
+// reflowed.
+static inline bool CanSkipOverflowUpdates(const nsIFrame* aFrame) {
+  return aFrame->HasAnyStateBits(
+      NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN | NS_FRAME_FIRST_REFLOW);
+}
+
 void RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList) {
   NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
                "Someone forgot a script blocker");
@@ -1484,7 +1492,7 @@ void RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList) {
     } else {
       NS_ASSERTION(frame, "This shouldn't happen");
 
-      if (!frame->FrameMaintainsOverflow()) {
+      if (!frame->FrameMaintainsOverflow() || CanSkipOverflowUpdates(frame)) {
         // frame does not maintain overflow rects, so avoid calling
         // FinishAndStoreOverflow on it:
         hint &=
@@ -1637,10 +1645,7 @@ void RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList) {
             // the outer svg's anonymous child frame (instead of to the
             // anonymous child's children).
 
-            // If |hintFrame| is dirty or has dirty children, we don't bother
-            // updating overflows since that will happen when it's reflowed.
-            if (!hintFrame->HasAnyStateBits(NS_FRAME_IS_DIRTY |
-                                            NS_FRAME_HAS_DIRTY_CHILDREN)) {
+            if (!CanSkipOverflowUpdates(hintFrame)) {
               mOverflowChangedTracker.AddFrame(
                   hintFrame, OverflowChangedTracker::CHILDREN_CHANGED);
             }
@@ -1651,10 +1656,7 @@ void RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList) {
             for (; childFrame; childFrame = childFrame->GetNextSibling()) {
               MOZ_ASSERT(childFrame->IsFrameOfType(nsIFrame::eSVG),
                          "Not expecting non-SVG children");
-              // If |childFrame| is dirty or has dirty children, we don't bother
-              // updating overflows since that will happen when it's reflowed.
-              if (!childFrame->HasAnyStateBits(NS_FRAME_IS_DIRTY |
-                                               NS_FRAME_HAS_DIRTY_CHILDREN)) {
+              if (!CanSkipOverflowUpdates(childFrame)) {
                 mOverflowChangedTracker.AddFrame(
                     childFrame, OverflowChangedTracker::CHILDREN_CHANGED);
               }
@@ -1668,10 +1670,7 @@ void RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList) {
             }
           }
         }
-        // If |frame| is dirty or has dirty children, we don't bother updating
-        // overflows since that will happen when it's reflowed.
-        if (!frame->HasAnyStateBits(NS_FRAME_IS_DIRTY |
-                                    NS_FRAME_HAS_DIRTY_CHILDREN)) {
+        if (!CanSkipOverflowUpdates(frame)) {
           if (hint & (nsChangeHint_UpdateOverflow |
                       nsChangeHint_UpdatePostTransformOverflow)) {
             OverflowChangedTracker::ChangeKind changeKind;

@@ -10,6 +10,7 @@
 #include "clang/AST/ExprCXX.h"
 #include "clang/AST/Mangle.h"
 #include "clang/AST/RecursiveASTVisitor.h"
+#include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/Version.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -65,6 +66,35 @@ std::string Objdir;
 // Absolute path where analysis JSON output will be stored.
 std::string Outdir;
 
+enum class FileType {
+  // The file was either in the source tree nor objdir. It might be a system
+  // include, for example.
+  Unknown,
+  // A file from the source tree.
+  Source,
+  // A file from the objdir.
+  Generated,
+};
+
+// Takes an absolute path to a file, and returns the type of file it is. If
+// it's a Source or Generated file, the provided inout path argument is modified
+// in-place so that it is relative to the source dir or objdir, respectively.
+FileType relativizePath(std::string& path) {
+  if (path.compare(0, Objdir.length(), Objdir) == 0) {
+    path.replace(0, Objdir.length(), GENERATED);
+    return FileType::Generated;
+  }
+  // Empty filenames can get turned into Srcdir when they are resolved as
+  // absolute paths, so we should exclude files that are exactly equal to
+  // Srcdir or anything outside Srcdir.
+  if (path.length() > Srcdir.length() && path.compare(0, Srcdir.length(), Srcdir) == 0) {
+    // Remove the trailing `/' as well.
+    path.erase(0, Srcdir.length() + 1);
+    return FileType::Source;
+  }
+  return FileType::Unknown;
+}
+
 #if !defined(_WIN32) && !defined(_WIN64)
 #include <sys/time.h>
 
@@ -109,25 +139,19 @@ class IndexConsumer;
 // here.
 struct FileInfo {
   FileInfo(std::string &Rname) : Realname(Rname) {
-    if (Rname.compare(0, Objdir.length(), Objdir) == 0) {
-      // We're in the objdir, so we are probably a generated header
-      // We use the escape character to indicate the objdir nature.
-      // Note that output also has the `/' already placed
-      Interesting = true;
-      Generated = true;
-      Realname.replace(0, Objdir.length(), GENERATED);
-      return;
-    }
-
-    // Empty filenames can get turned into Srcdir when they are resolved as
-    // absolute paths, so we should exclude files that are exactly equal to
-    // Srcdir or anything outside Srcdir.
-    Interesting = (Rname.length() > Srcdir.length()) &&
-                  (Rname.compare(0, Srcdir.length(), Srcdir) == 0);
-    Generated = false;
-    if (Interesting) {
-      // Remove the trailing `/' as well.
-      Realname.erase(0, Srcdir.length() + 1);
+    switch (relativizePath(Realname)) {
+      case FileType::Generated:
+        Interesting = true;
+        Generated = true;
+        break;
+      case FileType::Source:
+        Interesting = true;
+        Generated = false;
+        break;
+      case FileType::Unknown:
+        Interesting = false;
+        Generated = false;
+        break;
     }
   }
   std::string Realname;
@@ -143,6 +167,21 @@ class PreprocessorHook : public PPCallbacks {
 
 public:
   PreprocessorHook(IndexConsumer *C) : Indexer(C) {}
+
+  virtual void FileChanged(SourceLocation Loc, FileChangeReason Reason,
+                           SrcMgr::CharacteristicKind FileType,
+                           FileID PrevFID) override;
+
+  virtual void InclusionDirective(SourceLocation HashLoc,
+                                  const Token &IncludeTok,
+                                  StringRef FileName,
+                                  bool IsAngled,
+                                  CharSourceRange FileNameRange,
+                                  const FileEntry *File,
+                                  StringRef SearchPath,
+                                  StringRef RelativePath,
+                                  const Module *Imported,
+                                  SrcMgr::CharacteristicKind FileType) override;
 
   virtual void MacroDefined(const Token &Tok,
                             const MacroDirective *Md) override;
@@ -378,6 +417,48 @@ private:
       Filename = std::string(Platform ? Platform : "") + std::string("@") + Filename;
     }
     return hash(Filename + std::string("@") + locationToString(Loc));
+  }
+
+  bool isAcceptableSymbolChar(char c) {
+    return isalpha(c) || isdigit(c) || c == '_' || c == '/';
+  }
+
+  std::string mangleFile(std::string Filename, FileType Type) {
+    // "Mangle" the file path, such that:
+    // 1. The majority of paths will still be mostly human-readable.
+    // 2. The sanitization algorithm doesn't produce collisions where two
+    //    different unsanitized paths can result in the same sanitized paths.
+    // 3. The produced symbol doesn't cause problems with downstream consumers.
+    // In order to accomplish this, we keep alphanumeric chars, underscores,
+    // and slashes, and replace everything else with an "@xx" hex encoding.
+    // The majority of path characters are letters and slashes which don't get
+    // encoded, so that satisifies (1). Since "@" characters in the unsanitized
+    // path get encoded, there should be no "@" characters in the sanitized path
+    // that got preserved from the unsanitized input, so that should satisfy (2).
+    // And (3) was done by trial-and-error. Note in particular the dot (.)
+    // character needs to be encoded, or the symbol-search feature of mozsearch
+    // doesn't work correctly, as all dot characters in the symbol query get
+    // replaced by #.
+    for (size_t i = 0; i < Filename.length(); i++) {
+      char c = Filename[i];
+      if (isAcceptableSymbolChar(c)) {
+        continue;
+      }
+      char hex[4];
+      sprintf(hex, "@%02X", ((int)c) & 0xFF);
+      Filename.replace(i, 1, hex);
+      i += 2;
+    }
+
+    if (Type == FileType::Generated) {
+      // Since generated files may be different on different platforms,
+      // we need to include a platform-specific thing in the hash. Otherwise
+      // we can end up with hash collisions where different symbols from
+      // different platforms map to the same thing.
+      char* Platform = getenv("MOZSEARCH_PLATFORM");
+      Filename = std::string(Platform ? Platform : "") + std::string("@") + Filename;
+    }
+    return Filename;
   }
 
   std::string mangleQualifiedName(std::string Name) {
@@ -969,32 +1050,43 @@ public:
   }
 
   enum {
+    // Flag to omit the identifier from being cross-referenced across files.
+    // This is usually desired for local variables.
     NoCrossref = 1 << 0,
-    OperatorToken = 1 << 1,
+    // Flag to indicate the token with analysis data is not an identifier. Indicates
+    // we want to skip the check that tries to ensure a sane identifier token.
+    NotIdentifierToken = 1 << 1,
+    // This indicates that the end of the provided SourceRange is valid and
+    // should be respected. If this flag is not set, the visitIdentifier
+    // function should use only the start of the SourceRange and auto-detect
+    // the end based on whatever token is found at the start.
+    LocRangeEndValid = 1 << 2
   };
 
   // This is the only function that emits analysis JSON data. It should be
   // called for each identifier that corresponds to a symbol.
   void visitIdentifier(const char *Kind, const char *SyntaxKind,
-                       llvm::StringRef QualName, SourceLocation Loc,
+                       llvm::StringRef QualName, SourceRange LocRange,
                        const std::vector<std::string> &Symbols,
                        Context TokenContext = Context(), int Flags = 0,
                        SourceRange PeekRange = SourceRange(),
                        SourceRange NestingRange = SourceRange()) {
+    SourceLocation Loc = LocRange.getBegin();
     if (!shouldVisit(Loc)) {
       return;
     }
 
     // Find the file positions corresponding to the token.
     unsigned StartOffset = SM.getFileOffset(Loc);
-    unsigned EndOffset =
-        StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
+    unsigned EndOffset = (Flags & LocRangeEndValid)
+        ? SM.getFileOffset(LocRange.getEnd())
+        : StartOffset + Lexer::MeasureTokenLength(Loc, SM, CI.getLangOpts());
 
     std::string LocStr = locationToString(Loc, EndOffset - StartOffset);
     std::string RangeStr = locationToString(Loc, EndOffset - StartOffset);
     std::string PeekRangeStr;
 
-    if (!(Flags & OperatorToken)) {
+    if (!(Flags & NotIdentifierToken)) {
       // Get the token's characters so we can make sure it's a valid token.
       const char *StartChars = SM.getCharacterData(Loc);
       std::string Text(StartChars, EndOffset - StartOffset);
@@ -1102,7 +1194,7 @@ public:
                        SourceRange PeekRange = SourceRange(),
                        SourceRange NestingRange = SourceRange()) {
     std::vector<std::string> V = {Symbol};
-    visitIdentifier(Kind, SyntaxKind, QualName, Loc, V, TokenContext, Flags,
+    visitIdentifier(Kind, SyntaxKind, QualName, SourceRange(Loc), V, TokenContext, Flags,
                     PeekRange, NestingRange);
   }
 
@@ -1380,7 +1472,7 @@ public:
       }
     }
 
-    visitIdentifier(Kind, PrettyKind, getQualifiedName(D), Loc, Symbols,
+    visitIdentifier(Kind, PrettyKind, getQualifiedName(D), SourceRange(Loc), Symbols,
                     getContext(D), Flags, PeekRange, NestingRange);
 
     return true;
@@ -1431,7 +1523,7 @@ public:
       // Just take the first token.
       CXXOperatorCallExpr *Op = dyn_cast<CXXOperatorCallExpr>(E);
       Loc = Op->getOperatorLoc();
-      Flags |= OperatorToken;
+      Flags |= NotIdentifierToken;
     } else if (MemberExpr::classof(CalleeExpr)) {
       MemberExpr *Member = dyn_cast<MemberExpr>(CalleeExpr);
       Loc = Member->getMemberLoc();
@@ -1614,6 +1706,36 @@ public:
     return true;
   }
 
+  void enterSourceFile(SourceLocation Loc) {
+    normalizeLocation(&Loc);
+    FileInfo* newFile = getFileInfo(Loc);
+    if (!newFile->Interesting) {
+      return;
+    }
+    FileType type = newFile->Generated ? FileType::Generated : FileType::Source;
+    std::vector<std::string> symbols = {
+        std::string("FILE_") + mangleFile(newFile->Realname, type)
+    };
+    // We use an explicit zero-length source range at the start of the file. If we
+    // don't set the LocRangeEndValid flag, the visitIdentifier code will use the
+    // entire first token, which could be e.g. a long multiline-comment.
+    visitIdentifier("def", "file", newFile->Realname, SourceRange(Loc),
+                    symbols, Context(), NotIdentifierToken | LocRangeEndValid);
+  }
+
+  void inclusionDirective(SourceRange FileNameRange, const FileEntry* File) {
+    std::string includedFile(File->tryGetRealPathName());
+    FileType type = relativizePath(includedFile);
+    if (type == FileType::Unknown) {
+      return;
+    }
+    std::vector<std::string> symbols = {
+        std::string("FILE_") + mangleFile(includedFile, type)
+    };
+    visitIdentifier("use", "file", includedFile, FileNameRange, symbols,
+                    Context(), NotIdentifierToken | LocRangeEndValid);
+  }
+
   void macroDefined(const Token &Tok, const MacroDirective *Macro) {
     if (Macro->getMacroInfo()->isBuiltinMacro()) {
       return;
@@ -1654,6 +1776,36 @@ public:
     }
   }
 };
+
+void PreprocessorHook::FileChanged(SourceLocation Loc, FileChangeReason Reason,
+                                   SrcMgr::CharacteristicKind FileType,
+                                   FileID PrevFID = FileID()) {
+  switch (Reason) {
+    case PPCallbacks::RenameFile:
+    case PPCallbacks::SystemHeaderPragma:
+      // Don't care about these, since we want the actual on-disk filenames
+      break;
+    case PPCallbacks::EnterFile:
+      Indexer->enterSourceFile(Loc);
+      break;
+    case PPCallbacks::ExitFile:
+      // Don't care about exiting files
+      break;
+  }
+}
+
+void PreprocessorHook::InclusionDirective(SourceLocation HashLoc,
+                                          const Token &IncludeTok,
+                                          StringRef FileName,
+                                          bool IsAngled,
+                                          CharSourceRange FileNameRange,
+                                          const FileEntry *File,
+                                          StringRef SearchPath,
+                                          StringRef RelativePath,
+                                          const Module *Imported,
+                                          SrcMgr::CharacteristicKind FileType) {
+  Indexer->inclusionDirective(FileNameRange.getAsRange(), File);
+}
 
 void PreprocessorHook::MacroDefined(const Token &Tok,
                                     const MacroDirective *Md) {

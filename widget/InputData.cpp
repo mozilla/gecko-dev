@@ -146,8 +146,11 @@ void MultiTouchInput::Translate(const ScreenPoint& aTranslation) {
   const int32_t xTranslation = (int32_t)(aTranslation.x + 0.5f);
   const int32_t yTranslation = (int32_t)(aTranslation.y + 0.5f);
 
-  for (auto iter = mTouches.begin(); iter != mTouches.end(); iter++) {
-    iter->mScreenPoint.MoveBy(xTranslation, yTranslation);
+  for (auto& touchData : mTouches) {
+    for (auto& historicalData : touchData.mHistoricalData) {
+      historicalData.mScreenPoint.MoveBy(xTranslation, yTranslation);
+    }
+    touchData.mScreenPoint.MoveBy(xTranslation, yTranslation);
   }
 }
 
@@ -205,13 +208,21 @@ int32_t MultiTouchInput::IndexOfTouch(int32_t aTouchIdentifier) {
 
 bool MultiTouchInput::TransformToLocal(
     const ScreenToParentLayerMatrix4x4& aTransform) {
-  for (size_t i = 0; i < mTouches.Length(); i++) {
+  for (auto& touchData : mTouches) {
+    for (auto& historicalData : touchData.mHistoricalData) {
+      Maybe<ParentLayerIntPoint> historicalPoint =
+          UntransformBy(aTransform, historicalData.mScreenPoint);
+      if (!historicalPoint) {
+        return false;
+      }
+      historicalData.mLocalScreenPoint = *historicalPoint;
+    }
     Maybe<ParentLayerIntPoint> point =
-        UntransformBy(aTransform, mTouches[i].mScreenPoint);
+        UntransformBy(aTransform, touchData.mScreenPoint);
     if (!point) {
       return false;
     }
-    mTouches[i].mLocalScreenPoint = *point;
+    touchData.mLocalScreenPoint = *point;
   }
   return true;
 }
@@ -376,6 +387,7 @@ WidgetMouseEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
   event.mModifiers = modifiers;
   event.mTime = mTime;
   event.mTimeStamp = mTimeStamp;
+  event.mLayersId = mLayersId;
   event.mFlags.mHandledByAPZ = mHandledByAPZ;
   event.mRefPoint = RoundedToInt(ViewAs<LayoutDevicePixel>(
       mOrigin,
@@ -436,6 +448,7 @@ WidgetWheelEvent PanGestureInput::ToWidgetEvent(nsIWidget* aWidget) const {
   wheelEvent.mModifiers = this->modifiers;
   wheelEvent.mTime = mTime;
   wheelEvent.mTimeStamp = mTimeStamp;
+  wheelEvent.mLayersId = mLayersId;
   wheelEvent.mRefPoint = RoundedToInt(ViewAs<LayoutDevicePixel>(
       mPanStartPoint,
       PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent));
@@ -551,6 +564,7 @@ WidgetWheelEvent PinchGestureInput::ToWidgetEvent(nsIWidget* aWidget) const {
   wheelEvent.mModifiers = this->modifiers | MODIFIER_CONTROL;
   wheelEvent.mTime = mTime;
   wheelEvent.mTimeStamp = mTimeStamp;
+  wheelEvent.mLayersId = mLayersId;
   wheelEvent.mRefPoint = RoundedToInt(ViewAs<LayoutDevicePixel>(
       mFocusPoint,
       PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent));
@@ -771,6 +785,7 @@ WidgetWheelEvent ScrollWheelInput::ToWidgetEvent(nsIWidget* aWidget) const {
   wheelEvent.mModifiers = this->modifiers;
   wheelEvent.mTime = mTime;
   wheelEvent.mTimeStamp = mTimeStamp;
+  wheelEvent.mLayersId = mLayersId;
   wheelEvent.mRefPoint = RoundedToInt(ViewAs<LayoutDevicePixel>(
       mOrigin,
       PixelCastJustification::LayoutDeviceIsScreenForUntransformedEvent));

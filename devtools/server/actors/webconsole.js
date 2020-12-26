@@ -512,11 +512,6 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
         incrementGripDepth: () => this._gripDepth++,
         decrementGripDepth: () => this._gripDepth--,
         createValueGrip: v => this.createValueGrip(v),
-        sources: () =>
-          DevToolsUtils.reportException(
-            "WebConsoleActor",
-            Error("sources not yet implemented")
-          ),
         createEnvironmentActor: env => this.createEnvironmentActor(env),
       },
       this.conn
@@ -1436,9 +1431,19 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
    * The "clearMessagesCache" request handler.
    */
   clearMessagesCache: function() {
+    if (isWorker) {
+      // At the moment there is no mechanism available to clear the Console API cache for
+      // a given worker target (See https://bugzilla.mozilla.org/show_bug.cgi?id=1674336).
+      // Worker messages from the console service (e.g. error) are emitted from the main
+      // thread, so this cache will be cleared when the associated document target cache
+      // is cleared.
+      return;
+    }
+
     const windowId = !this.parentActor.isRootActor
       ? WebConsoleUtils.getInnerWindowId(this.global)
       : null;
+
     const ConsoleAPIStorage = Cc[
       "@mozilla.org/consoleAPI-storage;1"
     ].getService(Ci.nsIConsoleAPIStorage);
@@ -1602,7 +1607,9 @@ const WebConsoleActor = ActorClassWithSpec(webconsoleSpec, {
   },
 
   getActorIdForInternalSourceId(id) {
-    const actor = this.parentActor.sources.getSourceActorByInternalSourceId(id);
+    const actor = this.parentActor.sourcesManager.getSourceActorByInternalSourceId(
+      id
+    );
     return actor ? actor.actorID : null;
   },
 

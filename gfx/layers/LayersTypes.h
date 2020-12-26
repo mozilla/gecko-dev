@@ -16,6 +16,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"  // for TimeStamp
 #include "nsRegion.h"
+#include "mozilla/EnumSet.h"
 
 #ifndef MOZ_LAYERS_HAVE_LOG
 #  define MOZ_LAYERS_HAVE_LOG
@@ -64,6 +65,8 @@ struct LayersId {
   bool operator==(const LayersId& aOther) const { return mId == aOther.mId; }
 
   bool operator!=(const LayersId& aOther) const { return !(*this == aOther); }
+
+  friend std::ostream& operator<<(std::ostream& aStream, const LayersId& aId);
 
   // Helper struct that allow this class to be used as a key in
   // std::unordered_map like so:
@@ -170,6 +173,17 @@ enum class LayersBackend : int8_t {
   LAYERS_CLIENT,
   LAYERS_WR,
   LAYERS_LAST
+};
+
+enum class WebRenderBackend : int8_t { HARDWARE = 0, SOFTWARE, LAST };
+
+enum class WebRenderCompositor : int8_t {
+  DRAW = 0,
+  DIRECT_COMPOSITION,
+  CORE_ANIMATION,
+  SOFTWARE,
+  D3D11,
+  LAST
 };
 
 const char* GetLayersBackendName(LayersBackend aBackend);
@@ -371,6 +385,13 @@ MOZ_DEFINE_ENUM_CLASS_WITH_BASE(ScrollDirection, uint32_t, (
   eVertical,
   eHorizontal
 ));
+
+typedef EnumSet<ScrollDirection> ScrollDirections;
+
+constexpr ScrollDirections EitherScrollDirection(ScrollDirection::eVertical,ScrollDirection::eHorizontal);
+constexpr ScrollDirections HorizontalScrollDirection(ScrollDirection::eHorizontal);
+constexpr ScrollDirections VerticalScollDirection(ScrollDirection::eVertical);
+
 
 MOZ_DEFINE_ENUM_CLASS_WITH_BASE(CompositionPayloadType, uint8_t, (
   /**

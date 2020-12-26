@@ -618,3 +618,184 @@ add_task(async function testRevalidateSwitchToNone() {
     );
   });
 });
+
+add_task(async function testInvalidMarginResetAfterDestinationChange() {
+  const mockPrinterName = "Fake Printer";
+  await PrintHelper.withTestPage(async helper => {
+    helper.addMockPrinter(mockPrinterName);
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["print.printer_Fake_Printer.print_paper_id", "na_letter"],
+        ["print.printer_Fake_Printer.print_paper_size_unit", 0],
+        ["print.printer_Fake_Printer.print_paper_width", "8.5"],
+        ["print.printer_Fake_Printer.print_paper_height", "11"],
+      ],
+    });
+    await helper.startPrint();
+
+    let destinationPicker = helper.get("printer-picker");
+
+    await helper.openMoreSettings();
+    changeDefaultToCustom(helper);
+    await helper.awaitAnimationFrame();
+
+    let marginError = helper.get("error-invalid-margin");
+
+    await helper.assertSettingsNotChanged(
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      async () => {
+        ok(marginError.hidden, "Margin error is hidden");
+
+        await helper.text(helper.get("custom-margin-top"), "20");
+        await BrowserTestUtils.waitForAttributeRemoval("hidden", marginError);
+
+        ok(!marginError.hidden, "Margin error is showing");
+        assertNoPendingMarginsUpdate(helper);
+      }
+    );
+
+    is(destinationPicker.disabled, false, "Destination picker is enabled");
+
+    await helper.dispatchSettingsChange({ printerName: mockPrinterName });
+    await BrowserTestUtils.waitForCondition(
+      () => marginError.hidden,
+      "Wait for margin error to be hidden"
+    );
+
+    helper.assertSettingsMatch({
+      marginTop: 0.5,
+      marginRight: 0.5,
+      marginBottom: 0.5,
+      marginLeft: 0.5,
+    });
+
+    await helper.closeDialog();
+  });
+});
+
+add_task(async function testRevalidateCustomMarginsAfterPaperChanges() {
+  await PrintHelper.withTestPage(async helper => {
+    await helper.startPrint();
+    helper.dispatchSettingsChange({ paperId: "iso_a3" });
+    await helper.openMoreSettings();
+    this.changeDefaultToCustom(helper);
+    await helper.awaitAnimationFrame();
+    let marginError = helper.get("error-invalid-margin");
+
+    await helper.assertSettingsChanged(
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      { marginTop: 5, marginRight: 5, marginBottom: 5, marginLeft: 5 },
+      async () => {
+        await helper.text(helper.get("custom-margin-top"), "5");
+        await helper.text(helper.get("custom-margin-bottom"), "5");
+        await helper.text(helper.get("custom-margin-right"), "5");
+        await helper.text(helper.get("custom-margin-left"), "5");
+        assertPendingMarginsUpdate(helper);
+
+        // Wait for the preview to update, the margin options delay updates by
+        // INPUT_DELAY_MS, which is 500ms.
+        await helper.waitForSettingsEvent();
+        ok(marginError.hidden, "Margin error is hidden");
+      }
+    );
+
+    await helper.assertSettingsChanged(
+      { marginTop: 5, marginRight: 5, marginBottom: 5, marginLeft: 5 },
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      async () => {
+        helper.dispatchSettingsChange({ paperId: "iso_a5" });
+
+        // Wait for the preview to update, the margin options delay updates by
+        // INPUT_DELAY_MS, which is 500ms.
+        await helper.waitForSettingsEvent();
+        ok(marginError.hidden, "Margin error is hidden");
+      }
+    );
+  });
+});
+
+add_task(async function testRevalidateCustomMarginsAfterOrientationChanges() {
+  await PrintHelper.withTestPage(async helper => {
+    await setupLetterPaper();
+    await helper.startPrint();
+    await helper.openMoreSettings();
+    this.changeDefaultToCustom(helper);
+    await helper.awaitAnimationFrame();
+    let marginError = helper.get("error-invalid-margin");
+
+    await helper.assertSettingsChanged(
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      { marginTop: 5, marginRight: 0.5, marginBottom: 5, marginLeft: 0.5 },
+      async () => {
+        await helper.text(helper.get("custom-margin-top"), "5");
+        await helper.text(helper.get("custom-margin-bottom"), "5");
+        assertPendingMarginsUpdate(helper);
+
+        // Wait for the preview to update, the margin options delay updates by
+        // INPUT_DELAY_MS, which is 500ms.
+        await helper.waitForSettingsEvent();
+        ok(marginError.hidden, "Margin error is hidden");
+      }
+    );
+
+    await helper.assertSettingsChanged(
+      { marginTop: 5, marginRight: 0.5, marginBottom: 5, marginLeft: 0.5 },
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      async () => {
+        await helper.dispatchSettingsChange({ orientation: 1 });
+        await helper.waitForSettingsEvent();
+        ok(marginError.hidden, "Margin error is hidden");
+      }
+    );
+  });
+});
+
+add_task(async function testResetMarginPersists() {
+  await PrintHelper.withTestPage(async helper => {
+    await setupLetterPaper();
+    await helper.startPrint();
+
+    await helper.openMoreSettings();
+    this.changeDefaultToCustom(helper);
+    await helper.awaitAnimationFrame();
+    let marginError = helper.get("error-invalid-margin");
+
+    await helper.assertSettingsChanged(
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      { marginTop: 0.5, marginRight: 4, marginBottom: 0.5, marginLeft: 4.5 },
+      async () => {
+        await helper.text(helper.get("custom-margin-right"), "4");
+        await helper.text(helper.get("custom-margin-left"), "4.5");
+
+        // Wait for the preview to update, the margin options delay updates by
+        // INPUT_DELAY_MS, which is 500ms.
+        await helper.waitForSettingsEvent();
+        ok(marginError.hidden, "Margin error is hidden");
+      }
+    );
+
+    await helper.assertSettingsChanged(
+      { marginTop: 0.5, marginRight: 4, marginBottom: 0.5, marginLeft: 4.5 },
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      async () => {
+        helper.dispatchSettingsChange({ paperId: "iso_a4" });
+
+        // Wait for the preview to update, the margin options delay updates by
+        // INPUT_DELAY_MS, which is 500ms.
+        await helper.waitForSettingsEvent();
+        ok(marginError.hidden, "Margin error is hidden");
+      }
+    );
+
+    await helper.assertSettingsNotChanged(
+      { marginTop: 0.5, marginRight: 0.5, marginBottom: 0.5, marginLeft: 0.5 },
+      async () => {
+        helper.dispatchSettingsChange({ paperId: "iso_a5" });
+        await helper.waitForSettingsEvent();
+        ok(marginError.hidden, "Margin error is hidden");
+      }
+    );
+
+    await helper.closeDialog();
+  });
+});

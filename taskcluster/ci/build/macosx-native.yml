@@ -1,0 +1,14 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+job-defaults:
+    index:
+        product: firefox
+    worker-type: b-osx-1015
+    worker:
+        max-run-time: 7200
+    run:
+        using: mozharness
+        actions: [get-secrets, build]
+        script: "mozharness/scripts/fx_desktop_build.py"

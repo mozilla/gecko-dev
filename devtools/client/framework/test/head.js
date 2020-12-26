@@ -99,14 +99,11 @@ function createScript(url) {
   info(`Creating script: ${url}`);
   // This is not ideal if called multiple times, as it loads the frame script
   // separately each time.  See bug 1443680.
-  loadFrameScriptUtils();
-  const command = `
-    let script = document.createElement("script");
-    script.setAttribute("src", "${url}");
-    document.body.appendChild(script);
-    null;
-  `;
-  return evalInDebuggee(command);
+  return SpecialPowers.spawn(gBrowser.selectedBrowser, [url], urlChild => {
+    const script = content.document.createElement("script");
+    script.setAttribute("src", urlChild);
+    content.document.body.appendChild(script);
+  });
 }
 
 /**
@@ -419,4 +416,43 @@ function loadFTL(toolbox, path) {
   if (win.MozXULElement) {
     win.MozXULElement.insertFTLIfNeeded(path);
   }
+}
+
+/**
+ * Emit a reload key shortcut from a given toolbox, and wait for the reload to
+ * be completed.
+ *
+ * @param {String} shortcut
+ *        The key shortcut to send, as expected by the devtools shortcuts
+ *        helpers (eg. "CmdOrCtrl+F5").
+ * @param {Toolbox} toolbox
+ *        The toolbox through which the event should be emitted.
+ */
+async function sendToolboxReloadShortcut(shortcut, toolbox) {
+  const promises = [];
+
+  // If we have a jsdebugger panel, wait for it to complete its reload.
+  const jsdebugger = toolbox.getPanel("jsdebugger");
+  if (jsdebugger) {
+    promises.push(jsdebugger.once("reloaded"));
+  }
+
+  // If we have an inspector panel, wait for it to complete its reload.
+  const inspector = toolbox.getPanel("inspector");
+  if (inspector) {
+    promises.push(
+      inspector.once("reloaded"),
+      inspector.once("inspector-updated")
+    );
+  }
+
+  const loadPromise = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  promises.push(loadPromise);
+
+  info("Focus the toolbox window and emit the reload shortcut: " + shortcut);
+  toolbox.win.focus();
+  synthesizeKeyShortcut(shortcut, toolbox.win);
+
+  info("Wait for page and toolbox reload promises");
+  await Promise.all(promises);
 }

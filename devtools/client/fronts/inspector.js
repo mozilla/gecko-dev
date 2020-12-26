@@ -5,14 +5,12 @@
 "use strict";
 
 const Services = require("Services");
-const { gDevTools } = require("devtools/client/framework/devtools");
 const Telemetry = require("devtools/client/shared/telemetry");
 const {
   FrontClassWithSpec,
   registerFront,
 } = require("devtools/shared/protocol.js");
 const { inspectorSpec } = require("devtools/shared/specs/inspector");
-loader.lazyRequireGetter(this, "flags", "devtools/shared/flags");
 
 const TELEMETRY_EYEDROPPER_OPENED = "DEVTOOLS_EYEDROPPER_OPENED_COUNT";
 const TELEMETRY_EYEDROPPER_OPENED_MENU =
@@ -48,7 +46,6 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
 
     this.initialized = await Promise.all([
       this._getWalker(),
-      this._getHighlighter(),
       this._getPageStyle(),
     ]);
 
@@ -74,11 +71,6 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
     await this.walker.reparentRemoteFrame();
   }
 
-  async _getHighlighter() {
-    const autohide = !flags.testing;
-    this.highlighter = await this.getHighlighter(autohide);
-  }
-
   hasHighlighter(type) {
     return this._highlighters.has(type);
   }
@@ -97,7 +89,7 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
 
   destroy() {
     this._compatibility = null;
-    // Highlighter fronts are managed by InspectorFront and so will be
+    // CustomHighlighter fronts are managed by InspectorFront and so will be
     // automatically destroyed. But we have to clear the `_highlighters`
     // Map as well as explicitly call `finalize` request on all of them.
     this.destroyHighlighters();
@@ -154,6 +146,7 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
       pendingGetHighlighter = (async () => {
         const highlighter = await this.getHighlighterByType(type);
         this._highlighters.set(type, highlighter);
+        this._pendingGetHighlighterMap.delete(type);
         return highlighter;
       })();
 
@@ -162,7 +155,6 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
 
     if (pendingGetHighlighter) {
       front = await pendingGetHighlighter;
-      this._pendingGetHighlighterMap.delete(type);
     }
 
     return front;
@@ -187,10 +179,7 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
   async getNodeFrontFromNodeGrip(grip) {
     const gripHasContentDomReference = "contentDomReference" in grip;
 
-    if (
-      !gDevTools.isFissionContentToolboxEnabled() ||
-      !gripHasContentDomReference
-    ) {
+    if (!gripHasContentDomReference) {
       // Backward compatibility ( < Firefox 71):
       // If the grip does not have a contentDomReference, we can't know in which browsing
       // context id the node lives. We fall back on gripToNodeFront that might retrieve
@@ -205,10 +194,7 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
     const { browsingContextId } = contentDomReference;
     // If the contentDomReference lives in the same browsing context id than the
     // current one, we can directly use the current walker.
-    if (
-      this.targetFront.browsingContextID === browsingContextId ||
-      !gDevTools.isFissionContentToolboxEnabled()
-    ) {
+    if (this.targetFront.browsingContextID === browsingContextId) {
       return this.walker.getNodeActorFromContentDomReference(
         contentDomReference
       );

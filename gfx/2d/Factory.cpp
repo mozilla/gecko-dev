@@ -428,11 +428,6 @@ already_AddRefed<PathBuilder> Factory::CreateSimplePathBuilder() {
   return pathBuilder.forget();
 }
 
-already_AddRefed<DrawTarget> Factory::CreateWrapAndRecordDrawTarget(
-    DrawEventRecorder* aRecorder, DrawTarget* aDT) {
-  return MakeAndAddRef<DrawTargetWrapAndRecord>(aRecorder, aDT);
-}
-
 already_AddRefed<DrawTarget> Factory::CreateRecordingDrawTarget(
     DrawEventRecorder* aRecorder, DrawTarget* aDT, IntRect aRect) {
   return MakeAndAddRef<DrawTargetRecording>(aRecorder, aDT, aRect);
@@ -934,6 +929,13 @@ RefPtr<IDWriteFontCollection> Factory::GetDWriteSystemFonts(bool aUpdate) {
   }
 
   if (!mDWriteFactory) {
+    if ((rand() & 0x3f) == 0) {
+      gfxCriticalError(int(gfx::LogOptions::AssertOnCall))
+          << "Failed to create DWrite factory";
+    } else {
+      gfxWarning() << "Failed to create DWrite factory";
+    }
+
     return nullptr;
   }
 

@@ -15,6 +15,7 @@
 #include "nsEscape.h"
 #include "nsHttpTransaction.h"
 #include "nsICancelable.h"
+#include "nsICachingChannel.h"
 #include "nsIHttpPushListener.h"
 #include "nsIProtocolProxyService2.h"
 #include "nsIOService.h"
@@ -395,8 +396,7 @@ nsresult TRRServiceChannel::BeginConnect() {
   mAllowAltSvc = XRE_IsParentProcess() && mAllowAltSvc;
   bool http2Allowed = !gHttpHandler->IsHttp2Excluded(connInfo);
   bool http3Allowed = !mUpgradeProtocolCallback && !mProxyInfo &&
-                      !(mCaps & NS_HTTP_BE_CONSERVATIVE) && !mBeConservative &&
-                      !gHttpHandler->IsHttp3Excluded(connInfo);
+                      !(mCaps & NS_HTTP_BE_CONSERVATIVE) && !mBeConservative;
 
   RefPtr<AltSvcMapping> mapping;
   if (!mConnectionInfo && mAllowAltSvc &&  // per channel
@@ -560,6 +560,9 @@ nsresult TRRServiceChannel::SetupTransaction() {
 
   if (!mAllowSpdy) {
     mCaps |= NS_HTTP_DISALLOW_SPDY;
+  }
+  if (!mAllowHttp3) {
+    mCaps |= NS_HTTP_DISALLOW_HTTP3;
   }
   if (mBeConservative) {
     mCaps |= NS_HTTP_BE_CONSERVATIVE;

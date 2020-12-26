@@ -5,8 +5,10 @@
 #include "ContentPlaybackController.h"
 
 #include "MediaControlUtils.h"
+#include "mozilla/dom/ContentMediaController.h"
 #include "mozilla/dom/MediaSession.h"
 #include "mozilla/dom/Navigator.h"
+#include "mozilla/dom/WindowContext.h"
 #include "mozilla/Telemetry.h"
 #include "nsFocusManager.h"
 
@@ -16,8 +18,7 @@
   MOZ_LOG(gMediaControlLog, LogLevel::Debug, \
           ("ContentPlaybackController=%p, " msg, this, ##__VA_ARGS__))
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 ContentPlaybackController::ContentPlaybackController(
     BrowsingContext* aContext) {
@@ -214,5 +215,4 @@ void ContentMediaControlKeyHandler::HandleMediaControlAction(
   };
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

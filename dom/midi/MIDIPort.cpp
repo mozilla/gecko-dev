@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/MIDIPort.h"
+#include "mozilla/dom/MIDIConnectionEvent.h"
 #include "mozilla/dom/MIDIPortChild.h"
 #include "mozilla/dom/MIDIAccess.h"
 #include "mozilla/dom/MIDITypes.h"
@@ -17,8 +18,7 @@
 
 using namespace mozilla::ipc;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(MIDIPort, DOMEventTargetHelper,
                                    mOpeningPromise, mClosingPromise)
@@ -194,5 +194,4 @@ void MIDIPort::Receive(const nsTArray<MIDIMessage>& aMsg) {
   MOZ_CRASH("We should never get here!");
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/java/HardwareCodecCapabilityUtilsWrappers.h"
+#include <jni.h>
+
 #include "MediaInfo.h"
 #include "OpusDecoder.h"
 #include "RemoteDataDecoder.h"
+#include "TheoraDecoder.h"
 #include "VPXDecoder.h"
 #include "VorbisDecoder.h"
-
+#include "mozilla/StaticPrefs_media.h"
+#include "mozilla/java/HardwareCodecCapabilityUtilsWrappers.h"
 #include "nsIGfxInfo.h"
 #include "nsPromiseFlatString.h"
-
 #include "prlog.h"
-
-#include <jni.h>
 
 #undef LOG
 #define LOG(arg, ...)                                     \
@@ -157,6 +157,12 @@ already_AddRefed<MediaDataDecoder> AndroidDecoderModule::CreateAudioDecoder(
   RefPtr<MediaDataDecoder> decoder =
       RemoteDataDecoder::CreateAudioDecoder(aParams, drmStubId, mProxy);
   return decoder.forget();
+}
+
+/* static */
+already_AddRefed<PlatformDecoderModule> AndroidDecoderModule::Create(
+    CDMProxy* aProxy) {
+  return MakeAndAddRef<AndroidDecoderModule>(aProxy);
 }
 
 }  // namespace mozilla

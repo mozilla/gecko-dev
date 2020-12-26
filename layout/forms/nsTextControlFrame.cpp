@@ -613,7 +613,7 @@ void nsTextControlFrame::ComputeBaseline(const ReflowInput& aReflowInput,
       nsLayoutUtils::GetFontMetricsForFrame(this, inflation);
   mFirstBaseline = nsLayoutUtils::GetCenteredFontBaseline(fontMet, lineHeight,
                                                           wm.IsLineInverted()) +
-                   aReflowInput.ComputedLogicalBorderPadding().BStart(wm);
+                   aReflowInput.ComputedLogicalBorderPadding(wm).BStart(wm);
   aDesiredSize.SetBlockStartAscent(mFirstBaseline);
 }
 
@@ -633,13 +633,7 @@ void nsTextControlFrame::Reflow(nsPresContext* aPresContext,
 
   // set values of reflow's out parameters
   WritingMode wm = aReflowInput.GetWritingMode();
-  LogicalSize finalSize(
-      wm,
-      aReflowInput.ComputedISize() +
-          aReflowInput.ComputedLogicalBorderPadding().IStartEnd(wm),
-      aReflowInput.ComputedBSize() +
-          aReflowInput.ComputedLogicalBorderPadding().BStartEnd(wm));
-  aDesiredSize.SetSize(wm, finalSize);
+  aDesiredSize.SetSize(wm, aReflowInput.ComputedSizeWithBorderPadding(wm));
 
   ComputeBaseline(aReflowInput, aDesiredSize);
 
@@ -673,8 +667,8 @@ void nsTextControlFrame::ReflowTextControlChild(
                              Nothing(), ReflowInput::InitFlag::CallerWillInit);
   // Override padding with our computed padding in case we got it from theming
   // or percentage.
-  kidReflowInput.Init(aPresContext, Nothing(), nullptr,
-                      &aReflowInput.ComputedPhysicalPadding());
+  kidReflowInput.Init(aPresContext, Nothing(), Nothing(),
+                      Some(aReflowInput.ComputedLogicalPadding(wm)));
 
   // Set computed width and computed height for the child
   kidReflowInput.SetComputedWidth(aReflowInput.ComputedWidth());

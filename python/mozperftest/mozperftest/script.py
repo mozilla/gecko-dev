@@ -220,9 +220,7 @@ class ScriptInfo(defaultdict):
                 for plat in "default", "linux", "mac", "win":
                     if plat not in value:
                         continue
-                    options += (
-                        f"{plat.capitalize()} options:\n\n{_render(value[plat])}\n\n"
-                    )
+                    options += f":{plat.capitalize()} options:\n\n::\n\n{_render(value[plat])}\n"
             else:
                 d[field] = _render(value)
 
@@ -230,10 +228,11 @@ class ScriptInfo(defaultdict):
         info = _INFO % d
         if "tags" in self:
             info += f":tags: {','.join(self['tags'])}\n"
+        info += options
         info += f"\n**{self['description']}**\n"
         if "longDescription" in self:
             info += f"\n{self['longDescription']}\n"
-        info += options
+
         return info
 
     def __missing__(self, key):
@@ -254,16 +253,17 @@ class ScriptInfo(defaultdict):
         result.update(options.get(simple_platform(), {}))
         result.update(args)
 
-        # Ensure special-typed options are correct here
+        # XXX this is going away, see https://bugzilla.mozilla.org/show_bug.cgi?id=1675102
         for opt, val in result.items():
-            if "metrics" in opt:
-                if not isinstance(val, list):
-                    raise BadOptionTypeError("Metrics should be defined within a list")
-                for metric in val:
-                    if not isinstance(metric, dict):
-                        raise BadOptionTypeError(
-                            "Each individual metrics must be defined within a JSON-like object"
-                        )
+            if opt.startswith("visualmetrics") or "metrics" not in opt:
+                continue
+            if not isinstance(val, list):
+                raise BadOptionTypeError("Metrics should be defined within a list")
+            for metric in val:
+                if not isinstance(metric, dict):
+                    raise BadOptionTypeError(
+                        "Each individual metrics must be defined within a JSON-like object"
+                    )
 
         if self.script_type == ScriptType.xpcshell:
             result["flavor"] = "xpcshell"

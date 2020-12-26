@@ -28,7 +28,6 @@ add_task(async function setup() {
   registerCleanupFunction(async () => {
     bookmarkPanel = null;
     win.StarUI._autoCloseTimeout = oldTimeout;
-    // BrowserTestUtils.removeTab(tab);
     await BrowserTestUtils.closeWindow(win);
     win = null;
     await PlacesUtils.bookmarks.eraseEverything();
@@ -42,14 +41,21 @@ add_task(async function test_selectChoose() {
   let menuList = win.document.getElementById("editBMPanel_folderMenuList");
   let folderTreeRow = win.document.getElementById("editBMPanel_folderTreeRow");
 
+  let expectedFolder = gBookmarksToolbar2h2020
+    ? "BookmarksToolbarFolderTitle"
+    : "OtherBookmarksFolderTitle";
+  let expectedGuid = gBookmarksToolbar2h2020
+    ? PlacesUtils.bookmarks.toolbarGuid
+    : PlacesUtils.bookmarks.unfiledGuid;
+
   Assert.equal(
     menuList.label,
-    PlacesUtils.getString("OtherBookmarksFolderTitle"),
+    PlacesUtils.getString(expectedFolder),
     "Should have the other bookmarks folder selected by default"
   );
   Assert.equal(
     menuList.getAttribute("selectedGuid"),
-    PlacesUtils.bookmarks.unfiledGuid,
+    expectedGuid,
     "Should have the correct default guid selected"
   );
   Assert.equal(
@@ -81,14 +87,50 @@ add_task(async function test_selectChoose() {
 
   Assert.equal(
     menuList.getAttribute("selectedGuid"),
-    PlacesUtils.bookmarks.unfiledGuid,
+    expectedGuid,
     "Should still have the correct selected guid"
   );
   Assert.equal(
     menuList.label,
-    PlacesUtils.getString("OtherBookmarksFolderTitle"),
+    PlacesUtils.getString(expectedFolder),
     "Should have kept the same menu label"
   );
+
+  let input = folderTree.shadowRoot.querySelector("input");
+
+  let newFolderButton = win.document.getElementById(
+    "editBMPanel_newFolderButton"
+  );
+  newFolderButton.click(); // This will start editing.
+
+  // Wait for editing:
+  await TestUtils.waitForCondition(() => !input.hidden);
+
+  // Click the arrow to collapse the list.
+  EventUtils.synthesizeMouseAtCenter(
+    win.document.getElementById("editBMPanel_foldersExpander"),
+    {},
+    win
+  );
+
+  await TestUtils.waitForCondition(
+    () => folderTreeRow.collapsed,
+    "Should hide the folder tree"
+  );
+  ok(input.hidden, "Folder tree should not be broken.");
+
+  // Click the arrow to re-show the list.
+  EventUtils.synthesizeMouseAtCenter(
+    win.document.getElementById("editBMPanel_foldersExpander"),
+    {},
+    win
+  );
+
+  await TestUtils.waitForCondition(
+    () => !folderTreeRow.collapsed,
+    "Should re-show the folder tree"
+  );
+  ok(input.hidden, "Folder tree should still not be broken.");
 
   await hideBookmarksPanel(win);
   Assert.ok(!folderTree.view, "The view should have been disconnected");

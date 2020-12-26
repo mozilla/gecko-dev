@@ -202,10 +202,9 @@ impl DocumentHandle {
         api: RenderApi,
         hit_tester: Option<Arc<dyn ApiHitTester>>,
         size: DeviceIntSize,
-        layer: i8,
         id: u32,
     ) -> DocumentHandle {
-        let doc = api.add_document_with_id(size, layer, id);
+        let doc = api.add_document_with_id(size, id);
         let hit_tester_request = if hit_tester.is_none() {
             // Request the hit tester early to reduce the likelihood of blocking on the
             // first hit testing query.
@@ -608,10 +607,11 @@ pub extern "C" fn wr_renderer_render(
     renderer: &mut Renderer,
     width: i32,
     height: i32,
+    buffer_age: usize,
     out_stats: &mut RendererStats,
     out_dirty_rects: &mut ThinVec<DeviceIntRect>,
 ) -> bool {
-    match renderer.render(DeviceIntSize::new(width, height)) {
+    match renderer.render(DeviceIntSize::new(width, height), buffer_age) {
         Ok(results) => {
             *out_stats = results.stats;
             out_dirty_rects.extend(results.dirty_rects);
@@ -741,6 +741,14 @@ pub unsafe extern "C" fn wr_renderer_readback(
 
     let mut slice = make_slice_mut(dst_buffer, buffer_size);
     renderer.read_pixels_into(FramebufferIntSize::new(width, height).into(), format, &mut slice);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wr_renderer_set_profiler_ui(renderer: &mut Renderer, ui_str: *const u8, ui_str_len: usize) {
+    let slice = std::slice::from_raw_parts(ui_str, ui_str_len);
+    if let Ok(ui_str) = std::str::from_utf8(slice) {
+        renderer.set_profiler_ui(ui_str);
+    }
 }
 
 #[no_mangle]
@@ -1078,7 +1086,8 @@ pub extern "C" fn wr_thread_pool_new(low_priority: bool) -> *mut WrThreadPool {
             wr_register_thread_local_arena();
             let name = format!("WRWorker{}#{}", priority_tag, idx);
             register_thread_with_profiler(name.clone());
-            gecko_profiler_register_thread(CString::new(name).unwrap().as_ptr());
+            let name = CString::new(name).unwrap();
+            gecko_profiler_register_thread(name.as_ptr());
         })
         .exit_handler(|_idx| unsafe {
             gecko_profiler_unregister_thread();
@@ -1241,7 +1250,6 @@ extern "C" {
     );
     fn wr_compositor_unmap_tile(compositor: *mut c_void);
 
-    fn wr_partial_present_compositor_get_buffer_age(compositor: *const c_void) -> usize;
     fn wr_partial_present_compositor_set_buffer_damage_region(
         compositor: *mut c_void,
         rects: *const DeviceIntRect,
@@ -1364,10 +1372,6 @@ impl Compositor for WrCompositor {
 pub struct WrPartialPresentCompositor(*mut c_void);
 
 impl PartialPresentCompositor for WrPartialPresentCompositor {
-    fn get_buffer_age(&self) -> usize {
-        unsafe { wr_partial_present_compositor_get_buffer_age(self.0) }
-    }
-
     fn set_buffer_damage_region(&mut self, rects: &[DeviceIntRect]) {
         unsafe {
             wr_partial_present_compositor_set_buffer_damage_region(self.0, rects.as_ptr(), rects.len());
@@ -1597,7 +1601,7 @@ pub extern "C" fn wr_window_new(
         // `clear_caches_with_quads`, but scissored clears work well.
         clear_caches_with_quads: !software && !allow_scissored_cache_clears,
         start_debug_server,
-        surface_origin_is_top_left: !software && surface_origin_is_top_left,
+        surface_origin_is_top_left: surface_origin_is_top_left,
         compositor_config,
         enable_gpu_markers,
         panic_on_gl_error,
@@ -1626,12 +1630,10 @@ pub extern "C" fn wr_window_new(
     unsafe {
         *out_max_texture_size = renderer.get_max_texture_size();
     }
-    let layer = 0;
     *out_handle = Box::into_raw(Box::new(DocumentHandle::new(
         sender.create_api_by_client(next_namespace_id()),
         None,
         window_size,
-        layer,
         document_id,
     )));
     *out_renderer = Box::into_raw(Box::new(renderer));
@@ -3765,11 +3767,9 @@ pub extern "C" fn wr_dump_display_list(
 
     #[cfg(target_os = "android")]
     unsafe {
-        __android_log_write(
-            4, /* info */
-            CString::new("Gecko").unwrap().as_ptr(),
-            CString::new(sink.into_inner()).unwrap().as_ptr(),
-        );
+        let gecko = CString::new("Gecko").unwrap();
+        let sink = CString::new(sink.into_inner()).unwrap();
+        __android_log_write(4 /* info */, gecko.as_ptr(), sink.as_ptr());
     }
 
     #[cfg(not(target_os = "android"))]

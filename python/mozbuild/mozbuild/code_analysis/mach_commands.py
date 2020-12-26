@@ -324,7 +324,7 @@ class StaticAnalysis(MachCommandBase):
         if outgoing:
             repo = get_repository_object(self.topsrcdir)
             files = repo.get_outgoing_files()
-            source = [os.path.abspath(f) for f in files]
+            source = self.get_abspath_files(files)
 
         # Split in several chunks to avoid hitting Python's limit of 100 groups in re
         compile_db = json.loads(open(self._compile_db, "r").read())
@@ -485,7 +485,7 @@ class StaticAnalysis(MachCommandBase):
         if outgoing:
             repo = get_repository_object(self.topsrcdir)
             files = repo.get_outgoing_files()
-            source = [os.path.abspath(f) for f in files]
+            source = self.get_abspath_files(files)
 
         # Verify that we have source files or we are dealing with a full-build
         if len(source) == 0 and not full_build:
@@ -646,6 +646,9 @@ class StaticAnalysis(MachCommandBase):
 
         if output is not None:
             self.dump_cov_artifact(cov_result, source, output)
+
+    def get_abspath_files(self, files):
+        return [mozpath.join(self.topsrcdir, f) for f in files]
 
     def run_cov_command(self, cmd, path=None):
         if path is None:
@@ -2057,7 +2060,7 @@ class StaticAnalysis(MachCommandBase):
         args = [binary, prettier, "--stdin-filepath", assume_filename]
 
         process = subprocess.Popen(args, stdin=subprocess.PIPE)
-        with open(path, "r") as fin:
+        with open(path, "rb") as fin:
             process.stdin.write(fin.read())
             process.stdin.close()
             process.wait()
@@ -2774,12 +2777,12 @@ class StaticAnalysis(MachCommandBase):
             return e.returncode
 
     def _is_ignored_path(self, ignored_dir_re, f):
-        # Remove upto topsrcdir in pathname and match
-        if f.startswith(self.topsrcdir + "/"):
-            match_f = f[len(self.topsrcdir + "/") :]
-        else:
-            match_f = f
-        return re.match(ignored_dir_re, match_f)
+        # path needs to be relative to the src root
+        root_dir = self.topsrcdir + os.sep
+        if f.startswith(root_dir):
+            f = f[len(root_dir) :]
+        # the ignored_dir_re regex uses / on all platforms
+        return re.match(ignored_dir_re, f.replace(os.sep, "/"))
 
     def _generate_path_list(self, paths, verbose=True):
         path_to_third_party = os.path.join(self.topsrcdir, self._format_ignore_file)

@@ -10,7 +10,7 @@ elif [ "$1" == "x86" ]; then
   machine="i686"
   compiler_rt_machine="i386"
   crt_flags="--enable-lib32 --disable-lib64"
-  WRAPPER_FLAGS="-fsjlj-exceptions"
+  WRAPPER_FLAGS=""
 elif [ "$1" == "x64" ]; then
   machine="x86_64"
   compiler_rt_machine="x86_64"
@@ -37,11 +37,13 @@ default_win32_winnt=0x601
 
 cd $GECKO_PATH
 
-patch_file="$(pwd)/taskcluster/scripts/misc/mingw-winrt.patch"
+patch_file1="$(pwd)/taskcluster/scripts/misc/mingw-winrt.patch"
+patch_file2="$(pwd)/taskcluster/scripts/misc/mingw-dwrite_3.patch"
 
 prepare() {
   pushd $MOZ_FETCHES_DIR/mingw-w64
-  patch -p1 <$patch_file
+  patch -p1 <$patch_file1
+  patch -p1 <$patch_file2
   popd
 }
 

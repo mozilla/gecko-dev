@@ -1899,9 +1899,14 @@ panelview:not([mainview]) #PanelUI-whatsNew-title {
   min-height: 41px;
 }
 
-#PanelUI-whatsNew .panelMenu-toggleWhatsNew-checkbox:hover,
+#PanelUI-whatsNew .panelMenu-toggleWhatsNew-checkbox:hover {
+  background-color: var(--arrowpanel-dimmed-further);
+}
+
 #PanelUI-whatsNew .panelMenu-toggleWhatsNew-checkbox:focus {
   background-color: var(--arrowpanel-dimmed-further);
+  outline: 2px solid rgba(0, 96, 223, 0.5);
+  outline-offset: -2px;
 }
 
 #PanelUI-whatsNew .panelMenu-toggleWhatsNew-checkbox:active {
@@ -1984,7 +1989,7 @@ panelview:not([mainview]) #PanelUI-whatsNew-title {
 
 #PanelUI-whatsNew .whatsNew-message-body {
   padding: 5px 0 10px;
-  margin: 0 16px;
+  margin: 10px 16px;
   text-align: inherit;
   text-decoration: none;
   color: inherit;

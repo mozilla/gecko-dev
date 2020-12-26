@@ -14,7 +14,7 @@ const { Provider } = require("devtools/client/shared/vendor/react-redux");
 const extensionsSidebarReducer = require("devtools/client/inspector/extensions/reducers/sidebar");
 const {
   default: objectInspectorReducer,
-} = require("devtools/client/shared/components/reps/object-inspector/reducer");
+} = require("devtools/client/shared/components/object-inspector/reducer");
 
 const ExtensionSidebarComponent = createFactory(
   require("devtools/client/inspector/extensions/components/ExtensionSidebar")
@@ -82,13 +82,16 @@ class ExtensionSidebar {
               const nodeFront = await this.inspector.inspectorFront.getNodeFrontFromNodeGrip(
                 grip
               );
-              return nodeFront.highlighterFront.highlight(nodeFront, options);
-            },
-            unHighlightDomElement: async grip => {
-              const nodeFront = await this.inspector.inspectorFront.getNodeFrontFromNodeGrip(
-                grip
+              return this.inspector.highlighters.showHighlighterTypeForNode(
+                this.inspector.highlighters.TYPES.BOXMODEL,
+                nodeFront,
+                options
               );
-              return nodeFront.highlighterFront.unhighlight();
+            },
+            unHighlightDomElement: async () => {
+              return this.inspector.highlighters.hideHighlighterType(
+                this.inspector.highlighters.TYPES.BOXMODEL
+              );
             },
             openNodeInInspector: async grip => {
               const nodeFront = await this.inspector.inspectorFront.getNodeFrontFromNodeGrip(

@@ -13,9 +13,8 @@ const {
   getAdjustedQuads,
   getWindowDimensions,
 } = require("devtools/shared/layout/utils");
-const defer = require("devtools/shared/defer");
 const {
-  isAuthorStylesheet,
+  isAgentStylesheet,
   getCSSStyleRules,
 } = require("devtools/shared/inspector/css-logic");
 const InspectorUtils = require("InspectorUtils");
@@ -291,6 +290,18 @@ var testSpec = protocol.generateActorSpec({
       response: {
         value: RetVal("json"),
       },
+    },
+    isPausedDebuggerOverlayVisible: {
+      request: {},
+      response: {
+        value: RetVal("boolean"),
+      },
+    },
+    clickPausedDebuggerOverlayButton: {
+      request: {
+        id: Arg(0, "string"),
+      },
+      response: {},
     },
   },
 });
@@ -680,18 +691,17 @@ var TestActor = protocol.ActorClassWithSpec(testSpec, {
    * @param {String} selector The node selector
    */
   reloadFrame: function(selector) {
-    const node = this._querySelector(selector);
+    return new Promise(resolve => {
+      const node = this._querySelector(selector);
 
-    const deferred = defer();
+      const onLoad = function() {
+        node.removeEventListener("load", onLoad);
+        resolve();
+      };
+      node.addEventListener("load", onLoad);
 
-    const onLoad = function() {
-      node.removeEventListener("load", onLoad);
-      deferred.resolve();
-    };
-    node.addEventListener("load", onLoad);
-
-    node.contentWindow.location.reload();
-    return deferred.promise;
+      node.contentWindow.location.reload();
+    });
   },
 
   /**
@@ -729,30 +739,28 @@ var TestActor = protocol.ActorClassWithSpec(testSpec, {
       return {};
     }
 
-    const deferred = defer();
-    this.content.addEventListener(
-      "scroll",
-      function(event) {
-        const data = { x: this.content.scrollX, y: this.content.scrollY };
-        deferred.resolve(data);
-      },
-      { once: true }
-    );
+    return new Promise(resolve => {
+      this.content.addEventListener(
+        "scroll",
+        function(event) {
+          const data = { x: this.content.scrollX, y: this.content.scrollY };
+          resolve(data);
+        },
+        { once: true }
+      );
 
-    this.content[relative ? "scrollBy" : "scrollTo"](x, y);
-
-    return deferred.promise;
+      this.content[relative ? "scrollBy" : "scrollTo"](x, y);
+    });
   },
 
   /**
    * Forces the reflow and waits for the next repaint.
    */
   reflow: function() {
-    const deferred = defer();
-    this.content.document.documentElement.offsetWidth;
-    this.content.requestAnimationFrame(deferred.resolve);
-
-    return deferred.promise;
+    return new Promise(resolve => {
+      this.content.document.documentElement.offsetWidth;
+      this.content.requestAnimationFrame(resolve);
+    });
   },
 
   async getNodeRect(selector) {
@@ -822,7 +830,7 @@ var TestActor = protocol.ActorClassWithSpec(testSpec, {
       const sheet = domRules[i].parentStyleSheet;
       sheets.push({
         href: sheet.href,
-        isContentSheet: isAuthorStylesheet(sheet),
+        isContentSheet: !isAgentStylesheet(sheet),
       });
     }
 
@@ -838,6 +846,44 @@ var TestActor = protocol.ActorClassWithSpec(testSpec, {
   getWindowDimensions: function() {
     return getWindowDimensions(this.content);
   },
+
+  /**
+   * @returns {PausedDebuggerOverlay} The paused overlay instance
+   */
+  _getPausedDebuggerOverlay() {
+    // We use `_pauseOverlay` since it's the cached value; `pauseOverlay` is a getter that
+    // will create the overlay when called (if it does not exist yet).
+    return this.targetActor?.threadActor?._pauseOverlay;
+  },
+
+  isPausedDebuggerOverlayVisible() {
+    const pauseOverlay = this._getPausedDebuggerOverlay();
+    if (!pauseOverlay) {
+      return false;
+    }
+
+    const root = pauseOverlay.getElement("root");
+    return root.getAttribute("hidden") !== "true";
+  },
+
+  /**
+   * Simulates a click on a button of the debugger pause overlay.
+   *
+   * @param {String} id: The id of the element (e.g. "paused-dbg-resume-button").
+   */
+  async clickPausedDebuggerOverlayButton(id) {
+    const pauseOverlay = this._getPausedDebuggerOverlay();
+    if (!pauseOverlay) {
+      return;
+    }
+
+    // Because the highlighter markup elements live inside an anonymous content frame which
+    // does not expose an API to dispatch events to them, we can't directly dispatch
+    // events to the nodes themselves.
+    // We're directly calling `handleEvent` on the pause overlay, which is the mouse events
+    // listener callback on the overlay.
+    pauseOverlay.handleEvent({ type: "mousedown", target: { id } });
+  },
 });
 exports.TestActor = TestActor;
 
@@ -845,13 +891,9 @@ class TestFront extends protocol.FrontClassWithSpec(testSpec) {
   constructor(client, targetFront, parentFront) {
     super(client, targetFront, parentFront);
     this.formAttributeName = "testActor";
-  }
-
-  async initialize() {
-    // TODO: Remove reference to highlighter from top-level target after
-    // updating all non-Inspector consumers for the highlighter. Bug 1623667
-    const inspectorFront = await this.targetFront.getFront("inspector");
-    this._highlighter = inspectorFront.highlighter;
+    // The currently active highlighter is obtained by calling a custom getter
+    // provided manually after requesting TestFront. See `getTestActor(toolbox)`
+    this._highlighter = null;
   }
 
   /**
@@ -861,12 +903,7 @@ class TestFront extends protocol.FrontClassWithSpec(testSpec) {
    * @param {Function|Highlighter} _customHighlighterGetter
    */
   set highlighter(_customHighlighterGetter) {
-    if (typeof _customHighlighterGetter === "function") {
-      this._customHighlighterGetter = _customHighlighterGetter;
-    } else {
-      this._customHighlighterGetter = null;
-      this._highlighter = _customHighlighterGetter;
-    }
+    this._highlighter = _customHighlighterGetter;
   }
 
   /**
@@ -876,10 +913,9 @@ class TestFront extends protocol.FrontClassWithSpec(testSpec) {
    * @return {Highlighter|null}
    */
   get highlighter() {
-    if (this._customHighlighterGetter) {
-      return this._customHighlighterGetter();
-    }
-    return this._highlighter;
+    return typeof this._highlighter === "function"
+      ? this._highlighter()
+      : this._highlighter;
   }
 
   /**

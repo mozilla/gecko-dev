@@ -40,6 +40,12 @@ if CONFIG['MOZ_JACK']:
     ]
     DEFINES['USE_JACK'] = True
 
+if CONFIG['OS_ARCH'] in ('DragonFly', 'FreeBSD', 'SunOS'):
+    SOURCES += [
+        'cubeb_oss.c',
+    ]
+    DEFINES['USE_OSS'] = True
+
 if CONFIG['OS_ARCH'] == 'OpenBSD':
     SOURCES += [
         'cubeb_sndio.c',
@@ -75,10 +81,12 @@ if CONFIG['OS_TARGET'] == 'WINNT':
         CXXFLAGS += ['-Wno-macro-redefined'] # '_USE_MATH_DEFINES' : macro redefinition
 
 if CONFIG['OS_TARGET'] == 'Android':
+    SOURCES += ['cubeb_aaudio.cpp']
     SOURCES += ['cubeb_opensl.c']
     SOURCES += ['cubeb_resampler.cpp']
     SOURCES += ['cubeb-jni.cpp']
     DEFINES['USE_OPENSL'] = True
+    DEFINES['USE_AAUDIO'] = True
 
 FINAL_LIBRARY = 'gkmedias'
 

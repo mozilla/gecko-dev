@@ -38,12 +38,6 @@ public class Environment {
         return !getEnvVar("MOZ_CRASHREPORTER_SHUTDOWN").isEmpty();
     }
 
-    public boolean isMultiprocess() {
-        return Boolean.valueOf(InstrumentationRegistry.getArguments()
-                .getString("use_multiprocess",
-                        "true"));
-    }
-
     public boolean isDebugging() {
         return Debug.isDebuggerConnected();
     }
@@ -65,6 +59,10 @@ public class Environment {
         }
 
         return abi.startsWith("x86");
+    }
+
+    public boolean isFission() {
+        return getEnvVar("MOZ_FORCE_ENABLE_FISSION").equals("1");
     }
 
     public boolean isWebrender() {

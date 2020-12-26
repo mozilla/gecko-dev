@@ -7,7 +7,7 @@
 #ifndef GFX_FRAMEMETRICS_H
 #define GFX_FRAMEMETRICS_H
 
-#include <stdint.h>                 // for uint8_t, uint32_t, uint64_t
+#include <stdint.h>  // for uint8_t, uint32_t, uint64_t
 #include <iosfwd>
 
 #include "Units.h"                  // for CSSRect, CSSPixel, etc
@@ -91,7 +91,6 @@ struct FrameMetrics {
         mDevPixelsPerCSSPixel(1),
         mScrollOffset(0, 0),
         mZoom(),
-        mScrollGeneration(0),
         mRootCompositionSize(0, 0),
         mPresShellId(-1),
         mLayoutViewport(0, 0, 0, 0),
@@ -99,6 +98,7 @@ struct FrameMetrics {
         mPaintRequestTime(),
         mVisualDestination(0, 0),
         mVisualScrollUpdateType(eNone),
+        mCompositionSizeWithoutDynamicToolbar(),
         mIsRootContent(false),
         mIsScrollInfoLayer(false) {}
 
@@ -126,7 +126,9 @@ struct FrameMetrics {
            mVisualScrollUpdateType == aOther.mVisualScrollUpdateType &&
            mIsRootContent == aOther.mIsRootContent &&
            mIsScrollInfoLayer == aOther.mIsScrollInfoLayer &&
-           mFixedLayerMargins == aOther.mFixedLayerMargins;
+           mFixedLayerMargins == aOther.mFixedLayerMargins &&
+           mCompositionSizeWithoutDynamicToolbar ==
+               aOther.mCompositionSizeWithoutDynamicToolbar;
   }
 
   bool operator!=(const FrameMetrics& aOther) const {
@@ -345,11 +347,11 @@ struct FrameMetrics {
 
   const CSSToParentLayerScale2D& GetZoom() const { return mZoom; }
 
-  void SetScrollGeneration(uint32_t aScrollGeneration) {
+  void SetScrollGeneration(const ScrollGeneration& aScrollGeneration) {
     mScrollGeneration = aScrollGeneration;
   }
 
-  uint32_t GetScrollGeneration() const { return mScrollGeneration; }
+  ScrollGeneration GetScrollGeneration() const { return mScrollGeneration; }
 
   ViewID GetScrollId() const { return mScrollId; }
 
@@ -433,6 +435,15 @@ struct FrameMetrics {
   }
   const ScreenMargin& GetFixedLayerMargins() const {
     return mFixedLayerMargins;
+  }
+
+  void SetCompositionSizeWithoutDynamicToolbar(const ParentLayerSize& aSize) {
+    MOZ_ASSERT(mIsRootContent);
+    mCompositionSizeWithoutDynamicToolbar = aSize;
+  }
+  const ParentLayerSize& GetCompositionSizeWithoutDynamicToolbar() const {
+    MOZ_ASSERT(mIsRootContent);
+    return mCompositionSizeWithoutDynamicToolbar;
   }
 
   // Helper function for RecalculateViewportOffset(). Exposed so that
@@ -546,7 +557,7 @@ struct FrameMetrics {
   CSSToParentLayerScale2D mZoom;
 
   // The scroll generation counter used to acknowledge the scroll offset update.
-  uint32_t mScrollGeneration;
+  ScrollGeneration mScrollGeneration;
 
   // The size of the root scrollable's composition bounds, but in local CSS
   // pixels.
@@ -593,6 +604,12 @@ struct FrameMetrics {
   // 'fixed layer margins' on the main-thread. This is only used for the
   // root-content scroll frame.
   ScreenMargin mFixedLayerMargins;
+
+  // Similar to mCompositionBounds.Size() but not including the dynamic toolbar
+  // height.
+  // If we are not using a dynamic toolbar, this has the same value as
+  // mCompositionBounds.Size().
+  ParentLayerSize mCompositionSizeWithoutDynamicToolbar;
 
   // Whether or not this is the root scroll frame for the root content document.
   bool mIsRootContent : 1;

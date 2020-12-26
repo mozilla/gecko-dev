@@ -1537,7 +1537,7 @@
       </vbox>
       <checkbox id="panelMenu-toggleWhatsNew"
                 class="panelMenu-toggleWhatsNew-checkbox"
-                oncommand="ToolbarPanelHub.toggleWhatsNewPref(event)"
+                onclick="ToolbarPanelHub.toggleWhatsNewPref(event)"
                 data-l10n-id="whatsnew-panel-footer-checkbox"/>
     </panelview>
   </html:template>
@@ -2042,9 +2042,17 @@
              context="toolbar-context-menu"
              toolbarname="&personalbarCmd.label;" accesskey="&personalbarCmd.accesskey;"
              aria-label="&personalbar.accessibleLabel;"
-             collapsed="true"
              customizable="true">
       <toolbartabstop skipintoolbarset="true"/>
+
+      <hbox id="personal-toolbar-empty" skipintoolbarset="true" removable="false" hidden="true">
+        <description id="personal-toolbar-empty-description"
+                     data-l10n-id="bookmarks-toolbar-empty-message"
+                     onclick="BookmarkingUI.openLibraryIfLinkClicked(event);"
+                     onkeydown="BookmarkingUI.openLibraryIfLinkClicked(event);">
+          <html:a data-l10n-name="manage-bookmarks" class="text-link" tabindex="0"/>
+        </description>
+      </hbox>
 
       <toolbaritem id="personal-bookmarks"
                    title="&bookmarksToolbarItem.label;"
@@ -2087,12 +2095,29 @@
                          tooltip="bhTooltip" popupsinherittooltip="true"
                          context="placesContext"/>
             </toolbarbutton>
+            <toolbarbutton type="menu"
+                           id="OtherBookmarks"
+                           class="bookmark-item"
+                           hidden="true"
+                           label="&bookmarksMenuButton.other.label;"
+                           container="true"
+                           onpopupshowing="document.getElementById('PlacesToolbar')
+                                                   ._placesView._onOtherBookmarksPopupShowing(event);">
+              <menupopup id="OtherBookmarksPopup"
+                         is="places-popup"
+                         placespopup="true"
+                         context="placesContext" />
+            </toolbarbutton>
           </hbox>
         </hbox>
       </toolbaritem>
     </toolbar>
 
     <html:template id="BrowserToolbarPalette">
+      <toolbarbutton id="import-button"
+                     class="toolbarbutton-1 chromeclass-toolbar-additional"
+                     oncommand="MigrationUtils.showMigrationWizard(window, [MigrationUtils.MIGRATION_ENTRYPOINT_BOOKMARKS_TOOLBAR]);"
+                     data-l10n-id="browser-import-button2"/>
 
       <toolbarbutton id="print-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
 #ifdef XP_MACOSX

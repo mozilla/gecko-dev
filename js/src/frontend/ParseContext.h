@@ -15,6 +15,7 @@
 #include "frontend/NameCollections.h"
 #include "frontend/SharedContext.h"
 #include "frontend/UsedNameTracker.h"
+#include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "vm/GeneratorAndAsyncKind.h"  // js::GeneratorKind, js::FunctionAsyncKind
 #include "vm/GeneratorObject.h"  // js::AbstractGeneratorObject::FixedSlotLimit
 
@@ -350,7 +351,7 @@ class ParseContext : public Nestable<ParseContext> {
   // All inner functions in this context. Only used when syntax parsing.
   // The Functions (or FunctionCreateionDatas) are traced as part of the
   // CompilationInfo function vector.
-  Vector<FunctionIndex> innerFunctionIndexesForLazy;
+  Vector<FunctionIndex, 4> innerFunctionIndexesForLazy;
 
   // In a function context, points to a Directive struct that can be updated
   // to reflect new directives encountered in the Directive Prologue that

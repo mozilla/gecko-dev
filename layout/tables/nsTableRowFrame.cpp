@@ -53,7 +53,7 @@ void TableCellReflowInput::FixUp(const LogicalSize& aAvailSpace) {
   if (NS_UNCONSTRAINEDSIZE != ComputedISize()) {
     nscoord computedISize =
         aAvailSpace.ISize(mWritingMode) -
-        ComputedLogicalBorderPadding().IStartEnd(mWritingMode);
+        ComputedLogicalBorderPadding(mWritingMode).IStartEnd(mWritingMode);
     computedISize = std::max(0, computedISize);
     SetComputedISize(computedISize);
   }
@@ -61,7 +61,7 @@ void TableCellReflowInput::FixUp(const LogicalSize& aAvailSpace) {
       NS_UNCONSTRAINEDSIZE != aAvailSpace.BSize(mWritingMode)) {
     nscoord computedBSize =
         aAvailSpace.BSize(mWritingMode) -
-        ComputedLogicalBorderPadding().BStartEnd(mWritingMode);
+        ComputedLogicalBorderPadding(mWritingMode).BStartEnd(mWritingMode);
     computedBSize = std::max(0, computedBSize);
     SetComputedBSize(computedBSize);
   }
@@ -71,18 +71,16 @@ void nsTableRowFrame::InitChildReflowInput(nsPresContext& aPresContext,
                                            const LogicalSize& aAvailSize,
                                            bool aBorderCollapse,
                                            TableCellReflowInput& aReflowInput) {
-  nsMargin collapseBorder;
-  nsMargin* pCollapseBorder = nullptr;
+  Maybe<LogicalMargin> collapseBorder;
   if (aBorderCollapse) {
     // we only reflow cells, so don't need to check frame type
     nsBCTableCellFrame* bcCellFrame = (nsBCTableCellFrame*)aReflowInput.mFrame;
     if (bcCellFrame) {
-      WritingMode wm = GetWritingMode();
-      collapseBorder = bcCellFrame->GetBorderWidth(wm).GetPhysicalMargin(wm);
-      pCollapseBorder = &collapseBorder;
+      collapseBorder.emplace(
+          bcCellFrame->GetBorderWidth(aReflowInput.GetWritingMode()));
     }
   }
-  aReflowInput.Init(&aPresContext, Nothing(), pCollapseBorder);
+  aReflowInput.Init(&aPresContext, Nothing(), collapseBorder);
   aReflowInput.FixUp(aAvailSize);
 }
 
@@ -552,17 +550,17 @@ void nsTableRowFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 }
 
 nsIFrame::LogicalSides nsTableRowFrame::GetLogicalSkipSides(
-    const ReflowInput* aReflowInput) const {
+    const Maybe<SkipSidesDuringReflow>&) const {
   LogicalSides skip(mWritingMode);
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                    StyleBoxDecorationBreak::Clone)) {
     return skip;
   }
 
-  if (nullptr != GetPrevInFlow()) {
+  if (GetPrevInFlow()) {
     skip |= eLogicalSideBitsBStart;
   }
-  if (nullptr != GetNextInFlow()) {
+  if (GetNextInFlow()) {
     skip |= eLogicalSideBitsBEnd;
   }
   return skip;

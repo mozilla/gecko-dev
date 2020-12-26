@@ -25,6 +25,7 @@
 #include "SafeRefPtr.h"
 #include "js/RootingAPI.h"
 #include "js/StructuredClone.h"
+#include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
 #include "mozIStorageValueArray.h"
 #include "mozilla/Assertions.h"
@@ -34,7 +35,6 @@
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ResultExtensions.h"
-#include "mozilla/SnappyUncompressInputStream.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TelemetryScalarEnums.h"
@@ -409,42 +409,29 @@ GetStructuredCloneReadInfoFromExternalBlob(uint64_t aIntData,
   const StructuredCloneFileParent& file = files[index];
   MOZ_ASSERT(file.Type() == StructuredCloneFileBase::eStructuredClone);
 
-  const nsCOMPtr<nsIFile> nativeFile = file.FileInfo().GetFileForFileInfo();
-  IDB_TRY(OkIf(nativeFile), Err(NS_ERROR_FAILURE));
-
-  // XXX NS_NewLocalFileInputStream does not follow the convention to place its
-  // output parameter last (it has optional parameters which makes that
-  // problematic), so we can't use ToResultInvoke, nor
-  // IDB_TRY_UNWRAP/IDB_TRY_INSPECT.
-  nsCOMPtr<nsIInputStream> fileInputStream;
-  IDB_TRY(
-      NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream), nativeFile));
-
-  if (aMaybeKey) {
-    fileInputStream =
-        MakeRefPtr<quota::DecryptingInputStream<IndexedDBCipherStrategy>>(
-            WrapNotNull(std::move(fileInputStream)), kEncryptedStreamBlockSize,
-            *aMaybeKey);
-  }
-
-  const auto snappyInputStream =
-      MakeRefPtr<SnappyUncompressInputStream>(fileInputStream);
-
   auto data = JSStructuredCloneData{JS::StructuredCloneScope::DifferentProcess};
-  do {
-    char buffer[kFileCopyBufferSize];
 
-    IDB_TRY_INSPECT(
-        const uint32_t& numRead,
-        MOZ_TO_RESULT_INVOKE(snappyInputStream, Read, buffer, sizeof(buffer)));
+  {
+    const nsCOMPtr<nsIFile> nativeFile = file.FileInfo().GetFileForFileInfo();
+    IDB_TRY(OkIf(nativeFile), Err(NS_ERROR_FAILURE));
 
-    if (!numRead) {
-      break;
+    // XXX NS_NewLocalFileInputStream does not follow the convention to place
+    // its output parameter last (it has optional parameters which makes that
+    // problematic), so we can't use ToResultInvoke, nor
+    // IDB_TRY_UNWRAP/IDB_TRY_INSPECT.
+    nsCOMPtr<nsIInputStream> fileInputStream;
+    IDB_TRY(NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream),
+                                       nativeFile));
+
+    if (aMaybeKey) {
+      fileInputStream =
+          MakeRefPtr<quota::DecryptingInputStream<IndexedDBCipherStrategy>>(
+              WrapNotNull(std::move(fileInputStream)),
+              kEncryptedStreamBlockSize, *aMaybeKey);
     }
 
-    IDB_TRY(OkIf(data.AppendBytes(buffer, numRead)),
-            Err(NS_ERROR_OUT_OF_MEMORY));
-  } while (true);
+    IDB_TRY(SnappyUncompressStructuredCloneData(*fileInputStream, data));
+  }
 
   return StructuredCloneReadInfoParent{std::move(data), std::move(files),
                                        false};
@@ -632,12 +619,20 @@ nsresult ReadCompressedIndexDataValues(
                                                  &aOutIndexValues);
 }
 
+template <typename T>
 Result<IndexDataValuesAutoArray, nsresult> ReadCompressedIndexDataValues(
-    mozIStorageValueArray& aValues, uint32_t aColumnIndex) {
+    T& aValues, uint32_t aColumnIndex) {
   return ToResultInvoke<IndexDataValuesAutoArray>(
-      &ReadCompressedIndexDataValuesFromSource<mozIStorageValueArray>, aValues,
-      aColumnIndex);
+      &ReadCompressedIndexDataValuesFromSource<T>, aValues, aColumnIndex);
 }
+
+template Result<IndexDataValuesAutoArray, nsresult>
+ReadCompressedIndexDataValues<mozIStorageValueArray>(mozIStorageValueArray&,
+                                                     uint32_t);
+
+template Result<IndexDataValuesAutoArray, nsresult>
+ReadCompressedIndexDataValues<mozIStorageStatement>(mozIStorageStatement&,
+                                                    uint32_t);
 
 Result<std::tuple<IndexOrObjectStoreId, bool, Span<const uint8_t>>, nsresult>
 ReadCompressedIndexId(const Span<const uint8_t> aData) {
@@ -715,6 +710,18 @@ DeserializeStructuredCloneFiles(const FileManager& aFileManager,
   }
 
   return result;
+}
+
+nsresult ExecuteSimpleSQLSequence(mozIStorageConnection& aConnection,
+                                  Span<const nsLiteralCString> aSQLCommands) {
+  for (const auto& aSQLCommand : aSQLCommands) {
+    const auto extraInfo = quota::ScopedLogExtraInfo{
+        quota::ScopedLogExtraInfo::kTagQuery, aSQLCommand};
+
+    IDB_TRY(aConnection.ExecuteSimpleSQL(aSQLCommand));
+  }
+
+  return NS_OK;
 }
 
 }  // namespace mozilla::dom::indexedDB

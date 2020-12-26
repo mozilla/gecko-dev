@@ -17,16 +17,19 @@ class RenderTextureHostSWGL : public RenderTextureHost {
   RenderTextureHostSWGL() {}
 
   wr::WrExternalImage LockSWGL(uint8_t aChannelIndex, void* aContext,
+                               RenderCompositor* aCompositor,
                                wr::ImageRendering aRendering) override;
 
   void UnlockSWGL() override;
 
   RenderTextureHostSWGL* AsRenderTextureHostSWGL() override { return this; }
 
-  virtual size_t GetPlaneCount() = 0;
+  virtual size_t GetPlaneCount() const = 0;
 
-  gfx::SurfaceFormat GetFormat() const {
-    return !mPlanes.empty() ? mPlanes[0].mFormat : gfx::SurfaceFormat::UNKNOWN;
+  virtual gfx::SurfaceFormat GetFormat() const = 0;
+
+  virtual gfx::ColorDepth GetColorDepth() const {
+    return gfx::ColorDepth::UNKNOWN;
   }
 
   virtual gfx::YUVColorSpace GetYUVColorSpace() const {
@@ -40,10 +43,10 @@ class RenderTextureHostSWGL : public RenderTextureHost {
     void* mData = nullptr;
     int32_t mStride = 0;
     gfx::IntSize mSize;
-    gfx::SurfaceFormat mFormat = gfx::SurfaceFormat::UNKNOWN;
   };
 
-  virtual bool MapPlane(uint8_t aChannelIndex, PlaneInfo& aPlaneInfo) = 0;
+  virtual bool MapPlane(RenderCompositor* aCompositor, uint8_t aChannelIndex,
+                        PlaneInfo& aPlaneInfo) = 0;
 
   virtual void UnmapPlanes() = 0;
 
@@ -61,7 +64,8 @@ class RenderTextureHostSWGL : public RenderTextureHost {
 
   bool SetContext(void* aContext);
 
-  bool UpdatePlanes(wr::ImageRendering aRendering);
+  bool UpdatePlanes(RenderCompositor* aCompositor,
+                    wr::ImageRendering aRendering);
 
   void CleanupPlanes();
 

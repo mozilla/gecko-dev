@@ -119,7 +119,7 @@ var UrlbarUtils = {
     visiturl: 8,
     remotetab: 9,
     extension: 10,
-    "preloaded-top-site": 11,
+    "preloaded-top-site": 11, // This is currently unused.
     tip: 12,
     topsite: 13,
     formhistory: 14,
@@ -821,7 +821,8 @@ var UrlbarUtils = {
     if (!searchString) {
       throw new Error("Must pass a non-null search string");
     }
-    let context = new UrlbarQueryContext({
+
+    let options = {
       allowAutofill: false,
       isPrivate: PrivateBrowsingUtils.isWindowPrivate(window),
       maxResults: 1,
@@ -831,7 +832,15 @@ var UrlbarUtils = {
       ),
       allowSearchSuggestions: false,
       providers: ["UnifiedComplete", "HeuristicFallback"],
-    });
+    };
+    if (window.gURLBar.searchMode) {
+      let searchMode = window.gURLBar.searchMode;
+      options.searchMode = searchMode;
+      if (searchMode.source) {
+        options.sources = [searchMode.source];
+      }
+    }
+    let context = new UrlbarQueryContext(options);
     await UrlbarProvidersManager.startQuery(context);
     if (!context.heuristicResult) {
       throw new Error("There should always be an heuristic result");
@@ -911,6 +920,62 @@ var UrlbarUtils = {
         }
       );
     });
+  },
+
+  /**
+   * Extracts a telemetry type from a result, used by scalars and event
+   * telemetry.
+   *
+   * @param {UrlbarResult} result The result to analyze.
+   * @returns {string} A string type for telemetry.
+   * @note New types should be added to Scalars.yaml under the urlbar.picked
+   *       category and documented in the in-tree documentation. A data-review
+   *       is always necessary.
+   */
+  telemetryTypeFromResult(result) {
+    if (!result) {
+      return "unknown";
+    }
+    switch (result.type) {
+      case UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
+        return "switchtab";
+      case UrlbarUtils.RESULT_TYPE.SEARCH:
+        if (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY) {
+          return "formhistory";
+        }
+        if (result.providerName == "TabToSearch") {
+          return "tabtosearch";
+        }
+        return result.payload.suggestion ? "searchsuggestion" : "searchengine";
+      case UrlbarUtils.RESULT_TYPE.URL:
+        if (result.autofill) {
+          return "autofill";
+        }
+        if (
+          result.source == UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL &&
+          result.heuristic
+        ) {
+          return "visiturl";
+        }
+        return result.source == UrlbarUtils.RESULT_SOURCE.BOOKMARKS
+          ? "bookmark"
+          : "history";
+      case UrlbarUtils.RESULT_TYPE.KEYWORD:
+        return "keyword";
+      case UrlbarUtils.RESULT_TYPE.OMNIBOX:
+        return "extension";
+      case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
+        return "remotetab";
+      case UrlbarUtils.RESULT_TYPE.TIP:
+        return "tip";
+      case UrlbarUtils.RESULT_TYPE.DYNAMIC:
+        if (result.providerName == "TabToSearch") {
+          // This is the onboarding result.
+          return "tabtosearch";
+        }
+        return "dynamic";
+    }
+    return "unknown";
   },
 };
 
@@ -1470,6 +1535,21 @@ class UrlbarProvider {
    *        engagement, abandonment, discard.
    */
   onEngagement(isPrivate, state) {}
+
+  /**
+   * Called when a result from the provider is selected. "Selected" refers to
+   * the user highlighing the result with the arrow keys/Tab, before it is
+   * picked. onSelection is also called when a user clicks a result. In the
+   * event of a click, onSelection is called just before pickResult. Note that
+   * this is called when heuristic results are pre-selected.
+   *
+   * @param {UrlbarResult} result
+   *   The result that was selected.
+   * @param {Element} element
+   *   The element in the result's view that was selected.
+   * @abstract
+   */
+  onSelection(result, element) {}
 
   /**
    * This is called only for dynamic result types, when the urlbar view updates

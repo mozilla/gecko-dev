@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "nsASCIIMask.h"
+#include "nsPrintfCString.h"
 #include "nsString.h"
 #include "nsStringBuffer.h"
 #include "nsReadableUtils.h"
@@ -1967,6 +1968,109 @@ TEST_F(Strings, ConvertToSpan) {
     static_assert(std::is_same_v<decltype(span), Span<char>>);
   }
 }
+
+// Macros for reducing verbosity of printf tests.
+#define create_printf_strings(format, ...)                 \
+  nsCString appendPrintfString;                            \
+  appendPrintfString.AppendPrintf(format, __VA_ARGS__);    \
+  const nsCString appendVprintfString(                     \
+      getAppendVprintfString(format, __VA_ARGS__));        \
+  const nsPrintfCString printfString(format, __VA_ARGS__); \
+  const nsVprintfCString vprintfString{getVprintfCString(format, __VA_ARGS__)};
+
+// We don't check every possible combination as we assume equality is
+// transitive.
+#define verify_printf_strings(expected)                                     \
+  EXPECT_TRUE(appendPrintfString.EqualsASCII(expected))                     \
+      << "appendPrintfString != expected:" << appendPrintfString.get()      \
+      << " != " << (expected);                                              \
+  EXPECT_TRUE(appendPrintfString.Equals(appendVprintfString))               \
+      << "appendPrintfString != appendVprintfString:"                       \
+      << appendPrintfString.get() << " != " << appendVprintfString;         \
+  EXPECT_TRUE(appendPrintfString.Equals(printfString))                      \
+      << "appendPrintfString != printfString:" << appendPrintfString.get()  \
+      << " != " << printfString;                                            \
+  EXPECT_TRUE(appendPrintfString.Equals(vprintfString))                     \
+      << "appendPrintfString != vprintfString:" << appendPrintfString.get() \
+      << " != " << vprintfString;
+
+TEST_F(Strings, printf) {
+  auto getAppendVprintfString = [](const char* aFormat, ...) {
+    // Helper to get a string with contents set via AppendVprint.
+    nsCString cString;
+    va_list ap;
+    va_start(ap, aFormat);
+    cString.AppendVprintf(aFormat, ap);
+    va_end(ap);
+    return cString;
+  };
+
+  auto getVprintfCString = [](const char* aFormat, ...) {
+    // Helper to get a nsVprintfCString.
+    va_list ap;
+    va_start(ap, aFormat);
+    const nsVprintfCString vprintfString(aFormat, ap);
+    va_end(ap);
+    return vprintfString;
+  };
+
+  {
+    const char* format = "Characters %c %%";
+    const char* expectedOutput = "Characters B %";
+    create_printf_strings(format, 'B');
+    verify_printf_strings(expectedOutput);
+  }
+  {
+    const char* format = "Strings %s %s";
+    const char* expectedOutput = "Strings foo bar";
+    create_printf_strings(format, "foo", "bar");
+    verify_printf_strings(expectedOutput);
+  }
+  {
+    const int signedThree = 3;
+    const unsigned int unsignedTen = 10;
+    const char* format = "Integers %i %.3d %.2u %o %x %X";
+    const char* expectedOutput = "Integers 3 003 10 12 a A";
+    create_printf_strings(format, signedThree, signedThree, unsignedTen,
+                          unsignedTen, unsignedTen, unsignedTen);
+    verify_printf_strings(expectedOutput);
+  }
+  {
+    const char* format = "Floats %f %.0f %e %.2E";
+    const char* expectedOutput = "Floats 1.500000 2 1.500000e+00 1.50E+00";
+    create_printf_strings(format, 1.5, 1.5, 1.5, 1.5);
+    verify_printf_strings(expectedOutput);
+  }
+  {
+    const char* expectedOutput = "Just a string";
+    const char* format = "%s";
+    create_printf_strings(format, "Just a string");
+    verify_printf_strings(expectedOutput);
+  }
+  {
+    const char* anotherString = "another string";
+    const char* format = "Just a string and %s";
+    const char* expectedOutput = "Just a string and another string";
+    create_printf_strings(format, anotherString);
+    verify_printf_strings(expectedOutput);
+  }
+  {
+    // This case tickles an unexpected overload resolution in MSVC where a
+    // va_list overload will be selected if available. See bug 1673670 and
+    // 1673917 for more detail.
+    char anotherString[] = "another string";
+    const char* format = "Just a string and %s";
+    const char* expectedOutput = "Just a string and another string";
+    // Calling with a non-const pointer triggers selection of va_list overload
+    // in MSVC at time of writing
+    create_printf_strings(format, (char*)anotherString);
+    verify_printf_strings(expectedOutput);
+  }
+}
+
+// We don't need these macros following the printf test.
+#undef verify_printf_strings
+#undef create_printf_strings
 
 // Note the five calls in the loop, so divide by 100k
 MOZ_GTEST_BENCH_F(Strings, PerfStripWhitespace, [this] {

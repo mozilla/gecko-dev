@@ -124,7 +124,7 @@ class APZScrollHandoffTester : public APZCTreeManagerTester {
                               CSSRect(0, 0, 100, parentHeight));
     SetScrollableFrameMetrics(layers[1],
                               ScrollableLayerGuid::START_SCROLL_ID + 1,
-                              CSSRect(0, 0, 100, 200));
+                              CSSRect(0, 0, 100, 800));
     SetScrollHandoff(layers[1], root);
     registration = MakeUnique<ScopedLayerTreeRegistration>(manager, LayersId{0},
                                                            root, mcc);
@@ -138,7 +138,8 @@ class APZScrollHandoffTester : public APZCTreeManagerTester {
     // whether acceleration occured.
     const float kAcceleration = 100.0f;
     SCOPED_GFX_PREF_FLOAT("apz.fling_accel_base_mult", kAcceleration);
-    SCOPED_GFX_PREF_FLOAT("apz.fling_accel_min_velocity", 0.0);
+    SCOPED_GFX_PREF_FLOAT("apz.fling_accel_min_fling_velocity", 0.0);
+    SCOPED_GFX_PREF_FLOAT("apz.fling_accel_min_pan_velocity", 0.0);
 
     RefPtr<TestAsyncPanZoomController> childApzc = ApzcOf(layers[1]);
 
@@ -463,7 +464,6 @@ TEST_F(APZScrollHandoffTester, OpposingConstrainedAxes_Bug1201098) {
 }
 #endif
 
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 // Test that flinging in a direction where one component of the fling goes into
 // overscroll but the other doesn't, results in just the one component being
 // handed off to the parent, while the original APZC continues flinging in the
@@ -491,9 +491,7 @@ TEST_F(APZScrollHandoffTester, PartialFlingHandoff) {
   child->AssertStateIsFling();
   parent->AssertStateIsFling();
 }
-#endif
 
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 // Here we test that if two flings are happening simultaneously, overscroll
 // is handed off correctly for each.
 TEST_F(APZScrollHandoffTester, SimultaneousFlings) {
@@ -528,7 +526,6 @@ TEST_F(APZScrollHandoffTester, SimultaneousFlings) {
   child2->AssertStateIsReset();
   parent2->AssertStateIsFling();
 }
-#endif
 
 #ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 TEST_F(APZScrollHandoffTester, Scrollgrab) {
@@ -549,7 +546,6 @@ TEST_F(APZScrollHandoffTester, Scrollgrab) {
 }
 #endif
 
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 TEST_F(APZScrollHandoffTester, ScrollgrabFling) {
   SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", true);
   SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
@@ -566,19 +562,21 @@ TEST_F(APZScrollHandoffTester, ScrollgrabFling) {
   rootApzc->AssertStateIsFling();
   childApzc->AssertStateIsReset();
 }
-#endif
 
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 TEST_F(APZScrollHandoffTester, ScrollgrabFlingAcceleration1) {
   SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", true);
   SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
   SCOPED_GFX_VAR(UseWebRender, bool, false);
   CreateScrollgrabLayerTree(true /* make parent scrollable */);
+
+  // Note: Usually, fling acceleration does not work across handoff, because our
+  // fling acceleration code does not propagate the "fling cancel velocity"
+  // across handoff. However, this test sets apz.fling_min_velocity_threshold to
+  // zero, so the "fling cancel velocity" is allowed to be zero, and fling
+  // acceleration succeeds, almost by accident.
   TestFlingAcceleration();
 }
-#endif
 
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 TEST_F(APZScrollHandoffTester, ScrollgrabFlingAcceleration2) {
   SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", true);
   SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
@@ -586,7 +584,6 @@ TEST_F(APZScrollHandoffTester, ScrollgrabFlingAcceleration2) {
   CreateScrollgrabLayerTree(false /* do not make parent scrollable */);
   TestFlingAcceleration();
 }
-#endif
 
 TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Pan) {
   SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", false);
@@ -613,7 +610,6 @@ TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Pan) {
   EXPECT_EQ(10, parentApzc->GetFrameMetrics().GetVisualScrollOffset().y);
 }
 
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Fling) {
   SCOPED_GFX_PREF_BOOL("apz.allow_immediate_handoff", false);
   SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
@@ -650,7 +646,6 @@ TEST_F(APZScrollHandoffTester, ImmediateHandoffDisallowed_Fling) {
   // Verify that the parent scrolled from the fling.
   EXPECT_GT(parentApzc->GetFrameMetrics().GetVisualScrollOffset().y, 10);
 }
-#endif
 
 TEST_F(APZScrollHandoffTester, CrossApzcAxisLock_NoTouchAction) {
   SCOPED_GFX_PREF_BOOL("layout.css.touch_action.enabled", false);

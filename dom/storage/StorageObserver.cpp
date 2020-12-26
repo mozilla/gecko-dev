@@ -8,6 +8,7 @@
 
 #include "LocalStorageCache.h"
 #include "StorageDBThread.h"
+#include "StorageIPC.h"
 #include "StorageUtils.h"
 
 #include "mozilla/BasePrincipal.h"
@@ -21,6 +22,7 @@
 #include "nsXULAppAPI.h"
 #include "nsEscape.h"
 #include "nsNetCID.h"
+#include "mozilla/dom/LocalStorageCommon.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "nsServiceManagerUtils.h"
@@ -34,6 +36,8 @@ static const char kStartupTopic[] = "sessionstore-windows-restored";
 static const uint32_t kStartupDelay = 0;
 
 const char kTestingPref[] = "dom.storage.testing";
+
+constexpr auto kPrivateBrowsingPattern = u"{ \"privateBrowsingId\": 1 }"_ns;
 
 NS_IMPL_ISUPPORTS(StorageObserver, nsIObserver, nsISupportsWeakReference)
 
@@ -127,8 +131,11 @@ void StorageObserver::Notify(const char* aTopic,
   }
 }
 
-void StorageObserver::NoteBackgroundThread(nsIEventTarget* aBackgroundThread) {
-  mBackgroundThread = aBackgroundThread;
+void StorageObserver::NoteBackgroundThread(const uint32_t aPrivateBrowsingId,
+                                           nsIEventTarget* aBackgroundThread) {
+  MOZ_ASSERT(aPrivateBrowsingId <= 1);
+
+  mBackgroundThread[aPrivateBrowsingId] = aBackgroundThread;
 }
 
 nsresult StorageObserver::GetOriginScope(const char16_t* aData,
@@ -196,12 +203,14 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
     if (timer == mDBThreadStartDelayTimer) {
       mDBThreadStartDelayTimer = nullptr;
 
-      StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-      if (NS_WARN_IF(!storageChild)) {
-        return NS_ERROR_FAILURE;
-      }
+      for (const uint32_t id : {0, 1}) {
+        StorageDBChild* storageChild = StorageDBChild::GetOrCreate(id);
+        if (NS_WARN_IF(!storageChild)) {
+          return NS_ERROR_FAILURE;
+        }
 
-      storageChild->SendStartup();
+        storageChild->SendStartup();
+      }
     }
 
     return NS_OK;
@@ -214,15 +223,17 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     if (!NextGenLocalStorageEnabled()) {
-      StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-      if (NS_WARN_IF(!storageChild)) {
-        return NS_ERROR_FAILURE;
-      }
+      for (const uint32_t id : {0, 1}) {
+        StorageDBChild* storageChild = StorageDBChild::GetOrCreate(id);
+        if (NS_WARN_IF(!storageChild)) {
+          return NS_ERROR_FAILURE;
+        }
 
-      storageChild->AsyncClearAll();
+        storageChild->AsyncClearAll();
 
-      if (XRE_IsParentProcess()) {
-        storageChild->SendClearAll();
+        if (XRE_IsParentProcess()) {
+          storageChild->SendClearAll();
+        }
       }
     }
 
@@ -295,25 +306,29 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
       }
 
       if (XRE_IsParentProcess()) {
-        StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-        if (NS_WARN_IF(!storageChild)) {
-          return NS_ERROR_FAILURE;
-        }
+        for (const uint32_t id : {0, 1}) {
+          StorageDBChild* storageChild = StorageDBChild::GetOrCreate(id);
+          if (NS_WARN_IF(!storageChild)) {
+            return NS_ERROR_FAILURE;
+          }
 
-        storageChild->SendClearMatchingOrigin(originScope);
+          storageChild->SendClearMatchingOrigin(originScope);
+        }
       }
 
       Notify(topic, u""_ns, originScope);
     } else {
-      StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-      if (NS_WARN_IF(!storageChild)) {
-        return NS_ERROR_FAILURE;
-      }
+      for (const uint32_t id : {0, 1}) {
+        StorageDBChild* storageChild = StorageDBChild::GetOrCreate(id);
+        if (NS_WARN_IF(!storageChild)) {
+          return NS_ERROR_FAILURE;
+        }
 
-      storageChild->AsyncClearAll();
+        storageChild->AsyncClearAll();
 
-      if (XRE_IsParentProcess()) {
-        storageChild->SendClearAll();
+        if (XRE_IsParentProcess()) {
+          storageChild->SendClearAll();
+        }
       }
 
       Notify(topic);
@@ -344,7 +359,33 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    Notify("private-browsing-data-cleared");
+    // We get the notification in both processes (parent and content), but the
+    // clearing of the in-memory database should be triggered from the parent
+    // process only to avoid creation of redundant clearing operations.
+    // Also, if we create a new StorageDBChild instance late during content
+    // process shutdown, then it might be leaked in debug builds because it
+    // could happen that there is no chance to properly destroy it.
+    if (XRE_IsParentProcess()) {
+      // This doesn't use a loop with privateBrowsingId 0 and 1, since we only
+      // need to clear the in-memory database which is represented by
+      // privateBrowsingId 1.
+      static const uint32_t id = 1;
+
+      StorageDBChild* storageChild = StorageDBChild::GetOrCreate(id);
+      if (NS_WARN_IF(!storageChild)) {
+        return NS_ERROR_FAILURE;
+      }
+
+      OriginAttributesPattern pattern;
+      if (!pattern.Init(kPrivateBrowsingPattern)) {
+        NS_ERROR("Cannot parse origin attributes pattern");
+        return NS_ERROR_FAILURE;
+      }
+
+      storageChild->SendClearMatchingOriginAttributes(pattern);
+    }
+
+    Notify("private-browsing-data-cleared", kPrivateBrowsingPattern);
 
     return NS_OK;
   }
@@ -363,12 +404,14 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_ERROR_FAILURE;
     }
 
-    StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-    if (NS_WARN_IF(!storageChild)) {
-      return NS_ERROR_FAILURE;
-    }
+    for (const uint32_t id : {0, 1}) {
+      StorageDBChild* storageChild = StorageDBChild::GetOrCreate(id);
+      if (NS_WARN_IF(!storageChild)) {
+        return NS_ERROR_FAILURE;
+      }
 
-    storageChild->SendClearMatchingOriginAttributes(pattern);
+      storageChild->SendClearMatchingOriginAttributes(pattern);
+    }
 
     Notify("origin-attr-pattern-cleared", nsDependentString(aData));
 
@@ -388,17 +431,19 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    if (mBackgroundThread) {
-      bool done = false;
+    for (const uint32_t id : {0, 1}) {
+      if (mBackgroundThread[id]) {
+        bool done = false;
 
-      RefPtr<StorageDBThread::ShutdownRunnable> shutdownRunnable =
-          new StorageDBThread::ShutdownRunnable(done);
-      MOZ_ALWAYS_SUCCEEDS(
-          mBackgroundThread->Dispatch(shutdownRunnable, NS_DISPATCH_NORMAL));
+        RefPtr<StorageDBThread::ShutdownRunnable> shutdownRunnable =
+            new StorageDBThread::ShutdownRunnable(id, done);
+        MOZ_ALWAYS_SUCCEEDS(mBackgroundThread[id]->Dispatch(
+            shutdownRunnable, NS_DISPATCH_NORMAL));
 
-      MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return done; }));
+        MOZ_ALWAYS_TRUE(SpinEventLoopUntil([&]() { return done; }));
 
-      mBackgroundThread = nullptr;
+        mBackgroundThread[id] = nullptr;
+      }
     }
 
     return NS_OK;
@@ -410,12 +455,14 @@ StorageObserver::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    StorageDBChild* storageChild = StorageDBChild::GetOrCreate();
-    if (NS_WARN_IF(!storageChild)) {
-      return NS_ERROR_FAILURE;
-    }
+    for (const uint32_t id : {0, 1}) {
+      StorageDBChild* storageChild = StorageDBChild::GetOrCreate(id);
+      if (NS_WARN_IF(!storageChild)) {
+        return NS_ERROR_FAILURE;
+      }
 
-    storageChild->SendAsyncFlush();
+      storageChild->SendAsyncFlush();
+    }
 
     return NS_OK;
   }

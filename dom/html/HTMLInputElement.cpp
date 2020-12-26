@@ -121,8 +121,7 @@ NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Input)
 
 // XXX align=left, hspace, vspace, border? other nav4 attrs
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // First bits are needed for the control type.
 #define NS_OUTER_ACTIVATE_EVENT (1 << 9)
@@ -2151,8 +2150,7 @@ void HTMLInputElement::SetFocusState(bool aIsFocused) {
     return;
   }
 
-  EventStates focusStates = NS_EVENT_STATE_FOCUS | NS_EVENT_STATE_FOCUSRING |
-                            NS_EVENT_STATE_FOCUS_VISIBLE;
+  EventStates focusStates = NS_EVENT_STATE_FOCUS | NS_EVENT_STATE_FOCUSRING;
   if (aIsFocused) {
     AddStates(focusStates);
   } else {
@@ -2186,6 +2184,8 @@ bool HTMLInputElement::MozIsTextField(bool aExcludePassword) {
 
 void HTMLInputElement::SetUserInput(const nsAString& aValue,
                                     nsIPrincipal& aSubjectPrincipal) {
+  AutoHandlingUserInputStatePusher inputStatePusher(true);
+
   if (mType == NS_FORM_INPUT_FILE && !aSubjectPrincipal.IsSystemPrincipal()) {
     return;
   }
@@ -3107,7 +3107,8 @@ void HTMLInputElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   // we've already toggled the state from onclick since the user could
   // explicitly dispatch DOMActivate on the element.
   //
-  // This is a compatibility hack.
+  // These are compatibility hacks and are defined as legacy-pre-activation
+  // and legacy-canceled-activation behavior in HTML.
   //
 
   // Track whether we're in the outermost Dispatch invocation that will
@@ -3639,7 +3640,7 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
         // tell the form that we are about to exit a click handler
         // so the form knows not to defer subsequent submissions
         // the pending ones that were created during the handler
-        // will be flushed or forgoten.
+        // will be flushed or forgotten.
         mForm->OnSubmitClickEnd();
         break;
       default:
@@ -3647,12 +3648,23 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
     }
   }
 
-  // now check to see if the event was "cancelled"
+  bool preventDefault =
+      aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault;
+  if (IsDisabled() && oldType != NS_FORM_INPUT_CHECKBOX &&
+      oldType != NS_FORM_INPUT_RADIO) {
+    // Behave as if defaultPrevented when the element becomes disabled by event
+    // listeners. Checkboxes and radio buttons should still process clicks for
+    // web compat. See:
+    // https://html.spec.whatwg.org/multipage/input.html#the-input-element:activation-behaviour
+    preventDefault = true;
+  }
+
+  // now check to see if the event was canceled
   if (mCheckedIsToggled && outerActivateEvent) {
-    if (aVisitor.mEventStatus == nsEventStatus_eConsumeNoDefault) {
-      // if it was cancelled and a radio button, then set the old
+    if (preventDefault) {
+      // if it was canceled and a radio button, then set the old
       // selected btn to TRUE. if it is a checkbox then set it to its
-      // original value
+      // original value (legacy-canceled-activation)
       if (oldType == NS_FORM_INPUT_RADIO) {
         nsCOMPtr<nsIContent> content = do_QueryInterface(aVisitor.mItemData);
         HTMLInputElement* selectedRadioButton =
@@ -3704,7 +3716,7 @@ nsresult HTMLInputElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
       StepNumberControlForUserEvent(keyEvent->mKeyCode == NS_VK_UP ? 1 : -1);
       FireChangeEventIfNeeded();
       aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
-    } else if (nsEventStatus_eIgnore == aVisitor.mEventStatus) {
+    } else if (!preventDefault) {
       switch (aVisitor.mEvent->mMessage) {
         case eFocus: {
           // see if we should select the contents of the textbox. This happens
@@ -7022,7 +7034,6 @@ already_AddRefed<nsINodeList> HTMLInputElement::GetLabels() {
   return nsGenericHTMLElement::Labels();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom
 
 #undef NS_ORIGINAL_CHECKED_VALUE

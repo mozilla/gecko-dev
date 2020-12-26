@@ -376,7 +376,6 @@ nsDocShell::nsDocShell(BrowsingContext* aBrowsingContext,
       mLoadType(0),
       mFailedLoadType(0),
       mJSRunToCompletionDepth(0),
-      mTouchEventsOverride(nsIDocShell::TOUCHEVENTS_OVERRIDE_NONE),
       mMetaViewportOverride(nsIDocShell::META_VIEWPORT_OVERRIDE_NONE),
       mCreatingDocument(false),
 #ifdef DEBUG
@@ -1407,11 +1406,11 @@ bool nsDocShell::SetCurrentURI(nsIURI* aURI, nsIRequest* aRequest,
   if (mozilla::SessionHistoryInParent()) {
     if (mLoadingEntry) {
       isSubFrame = mLoadingEntry->mInfo.IsSubFrame();
-      MOZ_LOG(gSHLog, LogLevel::Debug,
-              ("nsDocShell %p SetCurrentURI, isSubFrame=%d", this, isSubFrame));
+    } else {
+      isSubFrame = !mBrowsingContext->IsTop() && mActiveEntry;
     }
     MOZ_LOG(gSHLog, LogLevel::Debug,
-            ("nsDocShell %p SetCurrentURI, no mLoadingEntry", this));
+            ("nsDocShell %p SetCurrentURI, isSubFrame=%d", this, isSubFrame));
   } else {
     if (mLSHE) {
       isSubFrame = mLSHE->GetIsSubFrame();
@@ -2341,34 +2340,6 @@ nsDocShell::ClearCachedUserAgent() {
 }
 
 NS_IMETHODIMP
-nsDocShell::GetTouchEventsOverride(TouchEventsOverride* aTouchEventsOverride) {
-  *aTouchEventsOverride = mTouchEventsOverride;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::SetTouchEventsOverride(TouchEventsOverride aTouchEventsOverride) {
-  // We don't have a way to verify this coming from Javascript, so this check is
-  // still needed.
-  if (!(aTouchEventsOverride == TOUCHEVENTS_OVERRIDE_NONE ||
-        aTouchEventsOverride == TOUCHEVENTS_OVERRIDE_ENABLED ||
-        aTouchEventsOverride == TOUCHEVENTS_OVERRIDE_DISABLED)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  mTouchEventsOverride = aTouchEventsOverride;
-
-  uint32_t childCount = mChildList.Length();
-  for (uint32_t i = 0; i < childCount; ++i) {
-    nsCOMPtr<nsIDocShell> childShell = do_QueryInterface(ChildAt(i));
-    if (childShell) {
-      childShell->SetTouchEventsOverride(aTouchEventsOverride);
-    }
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsDocShell::GetMetaViewportOverride(
     MetaViewportOverride* aMetaViewportOverride) {
   NS_ENSURE_ARG_POINTER(aMetaViewportOverride);
@@ -2626,8 +2597,6 @@ nsresult nsDocShell::SetDocLoaderParent(nsDocLoader* aParent) {
     SetAllowDNSPrefetch(mAllowDNSPrefetch && value);
     SetAffectPrivateSessionLifetime(
         parentAsDocShell->GetAffectPrivateSessionLifetime());
-
-    SetTouchEventsOverride(parentAsDocShell->GetTouchEventsOverride());
 
     // We don't need to inherit metaViewportOverride, because the viewport
     // is only relevant for the outermost nsDocShell, not for any iframes
@@ -3227,7 +3196,8 @@ nsDocShell::SetDeviceSizeIsPageSize(bool aValue) {
     RefPtr<nsPresContext> presContext = GetPresContext();
     if (presContext) {
       presContext->MediaFeatureValuesChanged(
-          {MediaFeatureChangeReason::DeviceSizeIsPageSizeChange});
+          {MediaFeatureChangeReason::DeviceSizeIsPageSizeChange},
+          MediaFeatureChangePropagation::JustThisDocument);
     }
   }
   return NS_OK;
@@ -4804,18 +4774,6 @@ nsDocShell::SetIsOffScreenBrowser(bool aIsOffScreen) {
 NS_IMETHODIMP
 nsDocShell::GetIsOffScreenBrowser(bool* aIsOffScreen) {
   *aIsOffScreen = mIsOffScreenBrowser;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::SetSuspendMediaWhenInactive(bool aSuspendMediaWhenInactive) {
-  mSuspendMediaWhenInactive = aSuspendMediaWhenInactive;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetSuspendMediaWhenInactive(bool* aSuspendMediaWhenInactive) {
-  *aSuspendMediaWhenInactive = mSuspendMediaWhenInactive;
   return NS_OK;
 }
 
@@ -7195,7 +7153,7 @@ nsresult nsDocShell::RestorePresentation(nsISHEntry* aSHEntry,
   // to the event loop.  This mimics the way it is called by nsIChannel
   // implementations.
 
-  // Revoke any pending restore (just in case)
+  // Revoke any pending restore (just in case).
   NS_ASSERTION(!mRestorePresentationEvent.IsPending(),
                "should only have one RestorePresentationEvent");
   mRestorePresentationEvent.Revoke();
@@ -8961,8 +8919,7 @@ nsresult nsDocShell::HandleSameDocumentNavigation(
         // FIXME We should probably just compute mChildOffset in the parent
         //       instead of passing it over IPC here.
         mBrowsingContext->SetActiveSessionHistoryEntry(
-            Some(scrollPos), mActiveEntry.get(), mLoadType, mChildOffset,
-            cacheKey);
+            Some(scrollPos), mActiveEntry.get(), mLoadType, cacheKey);
         // FIXME Do we need to update mPreviousEntryIndex and mLoadedEntryIndex?
       }
     }
@@ -9338,7 +9295,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
       nsID historyID = {};
       aLoadState->SHEntry()->GetDocshellID(historyID);
 
-      MOZ_ALWAYS_SUCCEEDS(mBrowsingContext->SetHistoryID(historyID));
+      Unused << mBrowsingContext->SetHistoryID(historyID);
     }
   }
 
@@ -11089,7 +11046,17 @@ nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
     // Step 2.
 
     // Step 2.2, "Remove any tasks queued by the history traversal task
-    // source..."
+    // source that are associated with any Document objects in the
+    // top-level browsing context's document family."  This is very hard in
+    // SessionHistoryInParent since we can't synchronously access the
+    // pending navigations that are already sent to the parent. We can
+    // abort any AsyncGo navigations that are waiting to be sent.  If we
+    // send a message to the parent, it would be processed after any
+    // navigations previously sent.  So long as we consider the "history
+    // traversal task source" to be the list in this process we match the
+    // spec.  If we move the entire list to the parent, we can handle the
+    // aborting of loads there, but we don't have a way to synchronously
+    // remove entries as we do here for non-SHIP.
     RefPtr<ChildSHistory> shistory = GetRootSessionHistory();
     if (shistory) {
       shistory->RemovePendingHistoryNavigations();
@@ -11118,7 +11085,7 @@ nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
                         /* aPreviousScrollPos = */ Some(scrollPos), aNewURI,
                         /* aOriginalURI = */ nullptr,
                         /* aTriggeringPrincipal = */ aDocument->NodePrincipal(),
-                        csp, title, Some(scrollRestorationIsManual), aData,
+                        csp, title, scrollRestorationIsManual, aData,
                         uriWasModified);
     } else {
       // Since we're not changing which page we have loaded, pass
@@ -11165,7 +11132,8 @@ nsresult nsDocShell::UpdateURLAndHistory(Document* aDocument, nsIURI* aNewURI,
     UpdateActiveEntry(
         true, /* aPreviousScrollPos = */ Nothing(), aNewURI, aNewURI,
         aDocument->NodePrincipal(), aDocument->GetCsp(), title,
-        /* aScrollRestorationIsManual = */ Nothing(), aData, uriWasModified);
+        mActiveEntry && mActiveEntry->GetScrollRestorationIsManual(), aData,
+        uriWasModified);
   } else {
     // Step 3.
     newSHEntry = mOSHE;
@@ -11584,8 +11552,8 @@ void nsDocShell::UpdateActiveEntry(
     bool aReplace, const Maybe<nsPoint>& aPreviousScrollPos, nsIURI* aURI,
     nsIURI* aOriginalURI, nsIPrincipal* aTriggeringPrincipal,
     nsIContentSecurityPolicy* aCsp, const nsAString& aTitle,
-    const Maybe<bool>& aScrollRestorationIsManual,
-    nsIStructuredCloneContainer* aData, bool aURIWasModified) {
+    bool aScrollRestorationIsManual, nsIStructuredCloneContainer* aData,
+    bool aURIWasModified) {
   MOZ_ASSERT(mozilla::SessionHistoryInParent());
   MOZ_ASSERT(aURI, "uri is null");
   MOZ_ASSERT(mLoadType == LOAD_PUSHSTATE,
@@ -11615,10 +11583,7 @@ void nsDocShell::UpdateActiveEntry(
   mActiveEntry->SetTitle(aTitle);
   mActiveEntry->SetStateData(static_cast<nsStructuredCloneContainer*>(aData));
   mActiveEntry->SetURIWasModified(aURIWasModified);
-  if (aScrollRestorationIsManual.isSome()) {
-    mActiveEntry->SetScrollRestorationIsManual(
-        aScrollRestorationIsManual.value());
-  }
+  mActiveEntry->SetScrollRestorationIsManual(aScrollRestorationIsManual);
 
   if (replace) {
     mBrowsingContext->ReplaceActiveSessionHistoryEntry(mActiveEntry.get());
@@ -11626,7 +11591,7 @@ void nsDocShell::UpdateActiveEntry(
     // FIXME We should probably just compute mChildOffset in the parent
     //       instead of passing it over IPC here.
     mBrowsingContext->SetActiveSessionHistoryEntry(
-        aPreviousScrollPos, mActiveEntry.get(), mLoadType, mChildOffset,
+        aPreviousScrollPos, mActiveEntry.get(), mLoadType,
         /* aCacheKey = */ 0);
     // FIXME Do we need to update mPreviousEntryIndex and mLoadedEntryIndex?
   }
@@ -13248,6 +13213,7 @@ void nsDocShell::MoveLoadingToActiveEntry() {
   MOZ_LOG(gSHLog, LogLevel::Debug,
           ("nsDocShell %p MoveLoadingToActiveEntry", this));
 
+  bool hadActiveEntry = !!mActiveEntry;
   mActiveEntry = nullptr;
   mozilla::UniquePtr<mozilla::dom::LoadingSessionHistoryInfo> loadingEntry;
   mActiveEntryIsLoadingFromSessionHistory =
@@ -13273,10 +13239,17 @@ void nsDocShell::MoveLoadingToActiveEntry() {
       RefPtr<ChildSHistory> rootSH = GetRootSessionHistory();
       if (rootSH) {
         if (!loadingEntry->mLoadIsFromSessionHistory) {
+          // We try to mimic as closely as possible what will happen in
+          // CanonicalBrowsingContext::SessionHistoryCommit. We'll be
+          // incrementing the session history length if we're not replacing,
+          // this is a top-level load or it's not the initial load in an iframe,
+          // and ShouldUpdateSessionHistory(loadType) returns true.
           // It is possible that this leads to wrong length temporarily, but
           // so would not having the check for replace.
           if (!LOAD_TYPE_HAS_FLAGS(
-                  mLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY)) {
+                  mLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY) &&
+              (mBrowsingContext->IsTop() || hadActiveEntry) &&
+              mBrowsingContext->ShouldUpdateSessionHistory(loadType)) {
             changeID = rootSH->AddPendingHistoryChange();
           }
         } else {

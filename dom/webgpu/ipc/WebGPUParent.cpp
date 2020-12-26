@@ -111,25 +111,22 @@ static void FreeSurface(RawId id, void* param) {
 }
 
 static ffi::WGPUIdentityRecyclerFactory MakeFactory(void* param) {
-  // Note: careful about the order here!
-  const ffi::WGPUIdentityRecyclerFactory factory = {
-      param,
-      FreeAdapter,
-      FreeDevice,
-      FreeSwapChain,
-      FreePipelineLayout,
-      FreeShaderModule,
-      FreeBindGroupLayout,
-      FreeBindGroup,
-      FreeCommandBuffer,
-      FreeRenderPipeline,
-      FreeComputePipeline,
-      FreeBuffer,
-      FreeTexture,
-      FreeTextureView,
-      FreeSampler,
-      FreeSurface,
-  };
+  ffi::WGPUIdentityRecyclerFactory factory = {param};
+  factory.free_adapter = FreeAdapter;
+  factory.free_device = FreeDevice;
+  factory.free_swap_chain = FreeSwapChain;
+  factory.free_pipeline_layout = FreePipelineLayout;
+  factory.free_shader_module = FreeShaderModule;
+  factory.free_bind_group_layout = FreeBindGroupLayout;
+  factory.free_bind_group = FreeBindGroup;
+  factory.free_command_buffer = FreeCommandBuffer;
+  factory.free_render_pipeline = FreeRenderPipeline;
+  factory.free_compute_pipeline = FreeComputePipeline;
+  factory.free_buffer = FreeBuffer;
+  factory.free_texture = FreeTexture;
+  factory.free_texture_view = FreeTextureView;
+  factory.free_sampler = FreeSampler;
+  factory.free_surface = FreeSurface;
   return factory;
 }
 
@@ -176,186 +173,140 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
 ipc::IPCResult WebGPUParent::RecvAdapterRequestDevice(
     RawId aSelfId, const dom::GPUDeviceDescriptor& aDesc, RawId aNewId) {
   ffi::WGPUDeviceDescriptor desc = {};
-  desc.limits.max_bind_groups = aDesc.mLimits.WasPassed()
-                                    ? aDesc.mLimits.Value().mMaxBindGroups
-                                    : WGPUDEFAULT_BIND_GROUPS;
-  // TODO: fill up the descriptor
+  desc.shader_validation = true;  // required for implicit pipeline layouts
+
+  if (aDesc.mLimits.WasPassed()) {
+    const auto& lim = aDesc.mLimits.Value();
+    desc.limits.max_bind_groups = lim.mMaxBindGroups;
+    desc.limits.max_dynamic_uniform_buffers_per_pipeline_layout =
+        lim.mMaxDynamicUniformBuffersPerPipelineLayout;
+    desc.limits.max_dynamic_storage_buffers_per_pipeline_layout =
+        lim.mMaxDynamicStorageBuffersPerPipelineLayout;
+    desc.limits.max_sampled_textures_per_shader_stage =
+        lim.mMaxSampledTexturesPerShaderStage;
+    desc.limits.max_samplers_per_shader_stage = lim.mMaxSamplersPerShaderStage;
+    desc.limits.max_storage_buffers_per_shader_stage =
+        lim.mMaxStorageBuffersPerShaderStage;
+    desc.limits.max_storage_textures_per_shader_stage =
+        lim.mMaxStorageTexturesPerShaderStage;
+    desc.limits.max_uniform_buffers_per_shader_stage =
+        lim.mMaxUniformBuffersPerShaderStage;
+    desc.limits.max_uniform_buffer_binding_size =
+        lim.mMaxUniformBufferBindingSize;
+  } else {
+    ffi::wgpu_server_fill_default_limits(&desc.limits);
+  }
+
   ffi::wgpu_server_adapter_request_device(mContext, aSelfId, &desc, aNewId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvAdapterDestroy(RawId aSelfId) {
-  ffi::wgpu_server_adapter_destroy(mContext, aSelfId);
+  ffi::wgpu_server_adapter_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvDeviceDestroy(RawId aSelfId) {
-  ffi::wgpu_server_device_destroy(mContext, aSelfId);
+  ffi::wgpu_server_device_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvDeviceCreateBuffer(
-    RawId aSelfId, const ffi::WGPUBufferDescriptor& aDesc,
-    const nsCString& aLabel, RawId aNewId) {
-  ffi::WGPUBufferDescriptor desc = aDesc;
-  if (!aLabel.IsEmpty()) {
-    desc.label = aLabel.Data();
-  }
-  ffi::wgpu_server_device_create_buffer(mContext, aSelfId, &desc, aNewId);
+ipc::IPCResult WebGPUParent::RecvBufferReturnShmem(RawId aSelfId,
+                                                   Shmem&& aShmem) {
+  mSharedMemoryMap[aSelfId] = aShmem;
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvDeviceUnmapBuffer(RawId aSelfId,
-                                                   RawId aBufferId,
-                                                   Shmem&& aShmem,
-                                                   bool aFlush) {
-  if (aFlush) {
-    ffi::wgpu_server_device_set_buffer_sub_data(mContext, aSelfId, aBufferId, 0,
-                                                aShmem.get<uint8_t>(),
-                                                aShmem.Size<uint8_t>());
-  } else {
-    ffi::wgpu_server_buffer_unmap(mContext, aBufferId);
-  }
-  DeallocShmem(aShmem);
-  return IPC_OK();
-}
-
-struct MapReadRequest {
+struct MapRequest {
+  const ffi::WGPUGlobal* const mContext;
+  ffi::WGPUBufferId mBufferId;
+  ffi::WGPUHostMap mHostMap;
+  uint64_t mOffset;
   ipc::Shmem mShmem;
-  WebGPUParent::BufferMapReadResolver mResolver;
-  MapReadRequest(ipc::Shmem&& shmem,
-                 WebGPUParent::BufferMapReadResolver&& resolver)
-      : mShmem(shmem), mResolver(resolver) {}
+  WebGPUParent::BufferMapResolver mResolver;
+  MapRequest(const ffi::WGPUGlobal* context, ffi::WGPUBufferId bufferId,
+             ffi::WGPUHostMap hostMap, uint64_t offset, ipc::Shmem&& shmem,
+             WebGPUParent::BufferMapResolver&& resolver)
+      : mContext(context),
+        mBufferId(bufferId),
+        mHostMap(hostMap),
+        mOffset(offset),
+        mShmem(shmem),
+        mResolver(resolver) {}
 };
 
-static void MapReadCallback(ffi::WGPUBufferMapAsyncStatus status,
-                            const uint8_t* ptr, uint8_t* userdata) {
-  auto req = reinterpret_cast<MapReadRequest*>(userdata);
+static void MapCallback(ffi::WGPUBufferMapAsyncStatus status,
+                        uint8_t* userdata) {
+  auto* req = reinterpret_cast<MapRequest*>(userdata);
   // TODO: better handle errors
   MOZ_ASSERT(status == ffi::WGPUBufferMapAsyncStatus_Success);
-  memcpy(req->mShmem.get<uint8_t>(), ptr, req->mShmem.Size<uint8_t>());
+  if (req->mHostMap == ffi::WGPUHostMap_Read) {
+    const uint8_t* ptr = ffi::wgpu_server_buffer_get_mapped_range(
+        req->mContext, req->mBufferId, req->mOffset,
+        req->mShmem.Size<uint8_t>());
+    memcpy(req->mShmem.get<uint8_t>(), ptr, req->mShmem.Size<uint8_t>());
+  }
   req->mResolver(std::move(req->mShmem));
   delete req;
 }
 
-ipc::IPCResult WebGPUParent::RecvBufferMapRead(
-    RawId aSelfId, Shmem&& aShmem, BufferMapReadResolver&& aResolver) {
-  auto size = aShmem.Size<uint8_t>();
-  auto request = new MapReadRequest(std::move(aShmem), std::move(aResolver));
-  ffi::wgpu_server_buffer_map_read(mContext, aSelfId, 0, size, &MapReadCallback,
-                                   reinterpret_cast<uint8_t*>(request));
+ipc::IPCResult WebGPUParent::RecvBufferMap(RawId aSelfId,
+                                           ffi::WGPUHostMap aHostMap,
+                                           uint64_t aOffset, uint64_t aSize,
+                                           BufferMapResolver&& aResolver) {
+  auto* request = new MapRequest(mContext, aSelfId, aHostMap, aOffset,
+                                 std::move(mSharedMemoryMap[aSelfId]),
+                                 std::move(aResolver));
+  ffi::WGPUBufferMapOperation mapOperation = {
+      aHostMap, &MapCallback, reinterpret_cast<uint8_t*>(request)};
+  ffi::wgpu_server_buffer_map(mContext, aSelfId, aOffset, aSize, mapOperation);
+  return IPC_OK();
+}
+
+ipc::IPCResult WebGPUParent::RecvBufferUnmap(RawId aSelfId, Shmem&& aShmem,
+                                             bool aFlush) {
+  if (aFlush) {
+    // TODO: flush exact modified sub-range
+    uint8_t* ptr = ffi::wgpu_server_buffer_get_mapped_range(
+        mContext, aSelfId, 0, aShmem.Size<uint8_t>());
+    MOZ_ASSERT(ptr != nullptr);
+    memcpy(ptr, aShmem.get<uint8_t>(), aShmem.Size<uint8_t>());
+  }
+
+  ffi::wgpu_server_buffer_unmap(mContext, aSelfId);
+
+  const auto iter = mSharedMemoryMap.find(aSelfId);
+  if (iter == mSharedMemoryMap.end()) {
+    DeallocShmem(aShmem);
+  } else {
+    iter->second = aShmem;
+  }
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvBufferDestroy(RawId aSelfId) {
-  ffi::wgpu_server_buffer_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
+  ffi::wgpu_server_buffer_drop(mContext, aSelfId);
 
-ipc::IPCResult WebGPUParent::RecvDeviceCreateTexture(
-    RawId aSelfId, const ffi::WGPUTextureDescriptor& aDesc,
-    const nsCString& aLabel, RawId aNewId) {
-  ffi::WGPUTextureDescriptor desc = aDesc;
-  if (!aLabel.IsEmpty()) {
-    desc.label = aLabel.Data();
+  const auto iter = mSharedMemoryMap.find(aSelfId);
+  if (iter != mSharedMemoryMap.end()) {
+    DeallocShmem(iter->second);
+    mSharedMemoryMap.erase(iter);
   }
-  ffi::wgpu_server_device_create_texture(mContext, aSelfId, &desc, aNewId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvTextureCreateView(
-    RawId aSelfId, const ffi::WGPUTextureViewDescriptor& aDesc,
-    const nsCString& aLabel, RawId aNewId) {
-  ffi::WGPUTextureViewDescriptor desc = aDesc;
-  if (!aLabel.IsEmpty()) {
-    desc.label = aLabel.Data();
-  }
-  ffi::wgpu_server_texture_create_view(mContext, aSelfId, &desc, aNewId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvTextureDestroy(RawId aSelfId) {
-  ffi::wgpu_server_texture_destroy(mContext, aSelfId);
+  ffi::wgpu_server_texture_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvTextureViewDestroy(RawId aSelfId) {
-  ffi::wgpu_server_texture_view_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreateSampler(
-    RawId aSelfId, const ffi::WGPUSamplerDescriptor& aDesc,
-    const nsCString& aLabel, RawId aNewId) {
-  ffi::WGPUSamplerDescriptor desc = aDesc;
-  if (!aLabel.IsEmpty()) {
-    desc.label = aLabel.Data();
-  }
-  ffi::wgpu_server_device_create_sampler(mContext, aSelfId, &desc, aNewId);
+  ffi::wgpu_server_texture_view_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvSamplerDestroy(RawId aSelfId) {
-  ffi::wgpu_server_sampler_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreateCommandEncoder(
-    RawId aSelfId, const dom::GPUCommandEncoderDescriptor& aDesc,
-    RawId aNewId) {
-  ffi::WGPUCommandEncoderDescriptor desc = {};
-  if (aDesc.mLabel.WasPassed()) {
-    // TODO: desc.label = aDesc.mLabel.Value();
-  }
-  ffi::wgpu_server_device_create_encoder(mContext, aSelfId, &desc, aNewId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvCommandEncoderCopyBufferToBuffer(
-    RawId aSelfId, RawId aSourceId, BufferAddress aSourceOffset,
-    RawId aDestinationId, BufferAddress aDestinationOffset,
-    BufferAddress aSize) {
-  ffi::wgpu_server_encoder_copy_buffer_to_buffer(mContext, aSelfId, aSourceId,
-                                                 aSourceOffset, aDestinationId,
-                                                 aDestinationOffset, aSize);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvCommandEncoderCopyBufferToTexture(
-    RawId aSelfId, WGPUBufferCopyView aSource, WGPUTextureCopyView aDestination,
-    WGPUExtent3d aCopySize) {
-  ffi::wgpu_server_encoder_copy_buffer_to_texture(mContext, aSelfId, &aSource,
-                                                  &aDestination, &aCopySize);
-  return IPC_OK();
-}
-ipc::IPCResult WebGPUParent::RecvCommandEncoderCopyTextureToBuffer(
-    RawId aSelfId, WGPUTextureCopyView aSource, WGPUBufferCopyView aDestination,
-    WGPUExtent3d aCopySize) {
-  ffi::wgpu_server_encoder_copy_texture_to_buffer(mContext, aSelfId, &aSource,
-                                                  &aDestination, &aCopySize);
-  return IPC_OK();
-}
-ipc::IPCResult WebGPUParent::RecvCommandEncoderCopyTextureToTexture(
-    RawId aSelfId, WGPUTextureCopyView aSource,
-    WGPUTextureCopyView aDestination, WGPUExtent3d aCopySize) {
-  ffi::wgpu_server_encoder_copy_texture_to_texture(mContext, aSelfId, &aSource,
-                                                   &aDestination, &aCopySize);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvCommandEncoderRunComputePass(RawId aSelfId,
-                                                              Shmem&& aShmem) {
-  ffi::wgpu_server_encode_compute_pass(mContext, aSelfId, aShmem.get<uint8_t>(),
-                                       aShmem.Size<uint8_t>());
-  DeallocShmem(aShmem);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvCommandEncoderRunRenderPass(RawId aSelfId,
-                                                             Shmem&& aShmem) {
-  ffi::wgpu_server_encode_render_pass(mContext, aSelfId, aShmem.get<uint8_t>(),
-                                      aShmem.Size<uint8_t>());
-  DeallocShmem(aShmem);
+  ffi::wgpu_server_sampler_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
@@ -368,12 +319,12 @@ ipc::IPCResult WebGPUParent::RecvCommandEncoderFinish(
 }
 
 ipc::IPCResult WebGPUParent::RecvCommandEncoderDestroy(RawId aSelfId) {
-  ffi::wgpu_server_encoder_destroy(mContext, aSelfId);
+  ffi::wgpu_server_encoder_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvCommandBufferDestroy(RawId aSelfId) {
-  ffi::wgpu_server_command_buffer_destroy(mContext, aSelfId);
+  ffi::wgpu_server_command_buffer_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
@@ -406,156 +357,33 @@ ipc::IPCResult WebGPUParent::RecvQueueWriteTexture(
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvDeviceCreateBindGroupLayout(
-    RawId aSelfId, const SerialBindGroupLayoutDescriptor& aDesc, RawId aNewId) {
-  ffi::WGPUBindGroupLayoutDescriptor desc = {};
-  desc.entries = aDesc.mEntries.Elements();
-  desc.entries_length = aDesc.mEntries.Length();
-  ffi::wgpu_server_device_create_bind_group_layout(mContext, aSelfId, &desc,
-                                                   aNewId);
-  return IPC_OK();
-}
-
 ipc::IPCResult WebGPUParent::RecvBindGroupLayoutDestroy(RawId aSelfId) {
-  ffi::wgpu_server_bind_group_layout_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreatePipelineLayout(
-    RawId aSelfId, const SerialPipelineLayoutDescriptor& aDesc, RawId aNewId) {
-  ffi::WGPUPipelineLayoutDescriptor desc = {};
-  desc.bind_group_layouts = aDesc.mBindGroupLayouts.Elements();
-  desc.bind_group_layouts_length = aDesc.mBindGroupLayouts.Length();
-  ffi::wgpu_server_device_create_pipeline_layout(mContext, aSelfId, &desc,
-                                                 aNewId);
+  ffi::wgpu_server_bind_group_layout_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvPipelineLayoutDestroy(RawId aSelfId) {
-  ffi::wgpu_server_pipeline_layout_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreateBindGroup(
-    RawId aSelfId, const SerialBindGroupDescriptor& aDesc, RawId aNewId) {
-  nsTArray<ffi::WGPUBindGroupEntry> ffiEntries(aDesc.mEntries.Length());
-  for (const auto& entry : aDesc.mEntries) {
-    ffi::WGPUBindGroupEntry bgb = {};
-    bgb.binding = entry.mBinding;
-    switch (entry.mType) {
-      case SerialBindGroupEntryType::Buffer:
-        bgb.resource.tag = ffi::WGPUBindingResource_Buffer;
-        bgb.resource.buffer._0.buffer = entry.mValue;
-        bgb.resource.buffer._0.offset = entry.mBufferOffset;
-        bgb.resource.buffer._0.size = ffi::make_buffer_size(entry.mBufferSize);
-        break;
-      case SerialBindGroupEntryType::Texture:
-        bgb.resource.tag = ffi::WGPUBindingResource_TextureView;
-        bgb.resource.texture_view._0 = entry.mValue;
-        break;
-      case SerialBindGroupEntryType::Sampler:
-        bgb.resource.tag = ffi::WGPUBindingResource_Sampler;
-        bgb.resource.sampler._0 = entry.mValue;
-        break;
-      default:
-        MOZ_CRASH("unreachable");
-    }
-    ffiEntries.AppendElement(bgb);
-  }
-  ffi::WGPUBindGroupDescriptor desc = {};
-  desc.layout = aDesc.mLayout;
-  desc.entries = ffiEntries.Elements();
-  desc.entries_length = ffiEntries.Length();
-  ffi::wgpu_server_device_create_bind_group(mContext, aSelfId, &desc, aNewId);
+  ffi::wgpu_server_pipeline_layout_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvBindGroupDestroy(RawId aSelfId) {
-  ffi::wgpu_server_bind_group_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreateShaderModule(
-    RawId aSelfId, const nsTArray<uint32_t>& aData, RawId aNewId) {
-  ffi::WGPUShaderModuleDescriptor desc = {};
-  desc.code.bytes = aData.Elements();
-  desc.code.length = aData.Length();
-  ffi::wgpu_server_device_create_shader_module(mContext, aSelfId, &desc,
-                                               aNewId);
+  ffi::wgpu_server_bind_group_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvShaderModuleDestroy(RawId aSelfId) {
-  ffi::wgpu_server_shader_module_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreateComputePipeline(
-    RawId aSelfId, const SerialComputePipelineDescriptor& aDesc, RawId aNewId) {
-  const NS_LossyConvertUTF16toASCII entryPoint(aDesc.mComputeStage.mEntryPoint);
-  ffi::WGPUComputePipelineDescriptor desc = {};
-  desc.layout = aDesc.mLayout;
-  desc.compute_stage.module = aDesc.mComputeStage.mModule;
-  desc.compute_stage.entry_point = entryPoint.get();
-  ffi::wgpu_server_device_create_compute_pipeline(mContext, aSelfId, &desc,
-                                                  aNewId);
+  ffi::wgpu_server_shader_module_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvComputePipelineDestroy(RawId aSelfId) {
-  ffi::wgpu_server_compute_pipeline_destroy(mContext, aSelfId);
-  return IPC_OK();
-}
-
-ipc::IPCResult WebGPUParent::RecvDeviceCreateRenderPipeline(
-    RawId aSelfId, const SerialRenderPipelineDescriptor& aDesc, RawId aNewId) {
-  const NS_LossyConvertUTF16toASCII vsEntryPoint(
-      aDesc.mVertexStage.mEntryPoint);
-  const NS_LossyConvertUTF16toASCII fsEntryPoint(
-      aDesc.mFragmentStage.mEntryPoint);
-  nsTArray<ffi::WGPUVertexBufferLayoutDescriptor> vertexBuffers(
-      aDesc.mVertexState.mVertexBuffers.Length());
-
-  ffi::WGPURenderPipelineDescriptor desc = {};
-  ffi::WGPUProgrammableStageDescriptor fragmentDesc = {};
-  desc.layout = aDesc.mLayout;
-  desc.vertex_stage.module = aDesc.mVertexStage.mModule;
-  desc.vertex_stage.entry_point = vsEntryPoint.get();
-  if (aDesc.mFragmentStage.mModule != 0) {
-    fragmentDesc.module = aDesc.mFragmentStage.mModule;
-    fragmentDesc.entry_point = fsEntryPoint.get();
-    desc.fragment_stage = &fragmentDesc;
-  }
-  desc.primitive_topology = aDesc.mPrimitiveTopology;
-  if (aDesc.mRasterizationState.isSome()) {
-    desc.rasterization_state = aDesc.mRasterizationState.ptr();
-  }
-  desc.color_states = aDesc.mColorStates.Elements();
-  desc.color_states_length = aDesc.mColorStates.Length();
-  if (aDesc.mDepthStencilState.isSome()) {
-    desc.depth_stencil_state = aDesc.mDepthStencilState.ptr();
-  }
-  for (const auto& vertexBuffer : aDesc.mVertexState.mVertexBuffers) {
-    ffi::WGPUVertexBufferLayoutDescriptor vb = {};
-    vb.array_stride = vertexBuffer.mArrayStride;
-    vb.step_mode = vertexBuffer.mStepMode;
-    vb.attributes = vertexBuffer.mAttributes.Elements();
-    vb.attributes_length = vertexBuffer.mAttributes.Length();
-    vertexBuffers.AppendElement(vb);
-  }
-  desc.vertex_state.index_format = aDesc.mVertexState.mIndexFormat;
-  desc.vertex_state.vertex_buffers = vertexBuffers.Elements();
-  desc.vertex_state.vertex_buffers_length = vertexBuffers.Length();
-  desc.sample_count = aDesc.mSampleCount;
-  desc.sample_mask = aDesc.mSampleMask;
-  desc.alpha_to_coverage_enabled = aDesc.mAlphaToCoverageEnabled;
-  ffi::wgpu_server_device_create_render_pipeline(mContext, aSelfId, &desc,
-                                                 aNewId);
+  ffi::wgpu_server_compute_pipeline_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
 ipc::IPCResult WebGPUParent::RecvRenderPipelineDestroy(RawId aSelfId) {
-  ffi::wgpu_server_render_pipeline_destroy(mContext, aSelfId);
+  ffi::wgpu_server_render_pipeline_drop(mContext, aSelfId);
   return IPC_OK();
 }
 
@@ -578,12 +406,12 @@ ipc::IPCResult WebGPUParent::RecvDeviceCreateSwapChain(
     NS_ERROR("Invalid total buffer size!");
     return IPC_OK();
   }
-  auto textureHostData = new (fallible) uint8_t[wholeBufferSize.value()];
+  auto* textureHostData = new (fallible) uint8_t[wholeBufferSize.value()];
   if (!textureHostData) {
     NS_ERROR("Unable to allocate host data!");
     return IPC_OK();
   }
-  auto textureHost = new layers::MemoryTextureHost(
+  RefPtr<layers::MemoryTextureHost> textureHost = new layers::MemoryTextureHost(
       textureHostData, aDesc, layers::TextureFlags::NO_FLAGS);
   textureHost->CreateRenderTexture(aExternalId);
   nsTArray<RawId> bufferIds(aBufferIds.Clone());
@@ -603,28 +431,39 @@ ipc::IPCResult WebGPUParent::RecvDeviceCreateSwapChain(
   return IPC_OK();
 }
 
+struct PresentRequest {
+  const ffi::WGPUGlobal* mContext;
+  RefPtr<PresentationData> mData;
+};
+
 static void PresentCallback(ffi::WGPUBufferMapAsyncStatus status,
-                            const uint8_t* ptr, uint8_t* userdata) {
-  auto data = reinterpret_cast<PresentationData*>(userdata);
+                            uint8_t* userdata) {
+  auto* req = reinterpret_cast<PresentRequest*>(userdata);
+  PresentationData* data = req->mData.get();
+  // get the buffer ID
+  data->mBuffersLock.Lock();
+  RawId bufferId = data->mQueuedBufferIds.back();
+  data->mQueuedBufferIds.pop_back();
+  data->mAvailableBufferIds.push_back(bufferId);
+  data->mBuffersLock.Unlock();
+  // copy the data
   if (status == ffi::WGPUBufferMapAsyncStatus_Success) {
+    const auto bufferSize = data->mRowCount * data->mSourcePitch;
+    const uint8_t* ptr = ffi::wgpu_server_buffer_get_mapped_range(
+        req->mContext, bufferId, 0, bufferSize);
     uint8_t* dst = data->mTextureHost->GetBuffer();
     for (uint32_t row = 0; row < data->mRowCount; ++row) {
       memcpy(dst, ptr, data->mTargetPitch);
       dst += data->mTargetPitch;
       ptr += data->mSourcePitch;
     }
+    wgpu_server_buffer_unmap(req->mContext, bufferId);
   } else {
     // TODO: better handle errors
     NS_WARNING("WebGPU frame mapping failed!");
   }
-  data->mBuffersLock.Lock();
-  RawId bufferId = data->mQueuedBufferIds.back();
-  data->mQueuedBufferIds.pop_back();
-  data->mAvailableBufferIds.push_back(bufferId);
-  data->mBuffersLock.Unlock();
-  // We artificially did `AddRef` before calling `wgpu_server_buffer_map_read`.
-  // Now we can let it go again.
-  data->Release();
+  // free yourself
+  delete req;
 }
 
 ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
@@ -645,7 +484,6 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
   data->mBuffersLock.Lock();
   if (!data->mAvailableBufferIds.empty()) {
     bufferId = data->mAvailableBufferIds.back();
-    wgpu_server_buffer_unmap(mContext, bufferId);
     data->mAvailableBufferIds.pop_back();
   } else if (!data->mUnassignedBufferIds.empty()) {
     bufferId = data->mUnassignedBufferIds.back();
@@ -703,13 +541,15 @@ ipc::IPCResult WebGPUParent::RecvSwapChainPresent(
   // texture,
   // we can just give it the contents of the last mapped buffer instead of the
   // copy.
-  // This `AddRef` is needed for passing `data` as a raw pointer to
-  // `wgpu_server_buffer_map_read` to serve as `userdata`. It's released at
-  // the end of `PresentCallback` body.
-  const auto userData = do_AddRef(data).take();
-  ffi::wgpu_server_buffer_map_read(mContext, bufferId, 0, bufferSize,
-                                   &PresentCallback,
-                                   reinterpret_cast<uint8_t*>(userData));
+  auto* const presentRequest = new PresentRequest{
+      mContext,
+      data,
+  };
+
+  ffi::WGPUBufferMapOperation mapOperation = {
+      ffi::WGPUHostMap_Read, &PresentCallback,
+      reinterpret_cast<uint8_t*>(presentRequest)};
+  ffi::wgpu_server_buffer_map(mContext, bufferId, 0, bufferSize, mapOperation);
 
   return IPC_OK();
 }
@@ -730,10 +570,10 @@ ipc::IPCResult WebGPUParent::RecvSwapChainDestroy(
     }
   }
   for (const auto bid : data->mAvailableBufferIds) {
-    ffi::wgpu_server_buffer_destroy(mContext, bid);
+    ffi::wgpu_server_buffer_drop(mContext, bid);
   }
   for (const auto bid : data->mQueuedBufferIds) {
-    ffi::wgpu_server_buffer_destroy(mContext, bid);
+    ffi::wgpu_server_buffer_drop(mContext, bid);
   }
   data->mBuffersLock.Unlock();
   return IPC_OK();
@@ -748,6 +588,45 @@ ipc::IPCResult WebGPUParent::RecvShutdown() {
   mCanvasMap.clear();
   ffi::wgpu_server_poll_all_devices(mContext, true);
   ffi::wgpu_server_delete(const_cast<ffi::WGPUGlobal*>(mContext));
+  return IPC_OK();
+}
+
+ipc::IPCResult WebGPUParent::RecvDeviceAction(RawId aSelf,
+                                              const ipc::ByteBuf& aByteBuf) {
+  ipc::ByteBuf byteBuf;
+  ffi::wgpu_server_device_action(mContext, aSelf, ToFFI(&aByteBuf),
+                                 ToFFI(&byteBuf));
+
+  if (byteBuf.mData) {
+    if (!SendDropAction(std::move(byteBuf))) {
+      NS_WARNING("Unable to set a drop action!");
+    }
+  }
+  return IPC_OK();
+}
+
+ipc::IPCResult WebGPUParent::RecvTextureAction(RawId aSelf,
+                                               const ipc::ByteBuf& aByteBuf) {
+  ffi::wgpu_server_texture_action(mContext, aSelf, ToFFI(&aByteBuf));
+  return IPC_OK();
+}
+
+ipc::IPCResult WebGPUParent::RecvCommandEncoderAction(
+    RawId aSelf, const ipc::ByteBuf& aByteBuf) {
+  ffi::wgpu_server_command_encoder_action(mContext, aSelf, ToFFI(&aByteBuf));
+  return IPC_OK();
+}
+
+ipc::IPCResult WebGPUParent::RecvBumpImplicitBindGroupLayout(RawId pipelineId,
+                                                             bool isCompute,
+                                                             uint32_t index) {
+  if (isCompute) {
+    ffi::wgpu_server_compute_pipeline_get_bind_group_layout(mContext,
+                                                            pipelineId, index);
+  } else {
+    ffi::wgpu_server_render_pipeline_get_bind_group_layout(mContext, pipelineId,
+                                                           index);
+  }
   return IPC_OK();
 }
 

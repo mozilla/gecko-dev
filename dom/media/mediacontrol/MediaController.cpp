@@ -10,6 +10,7 @@
 #include "MediaControlUtils.h"
 #include "MediaControlKeySource.h"
 #include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/MediaSession.h"
@@ -22,8 +23,7 @@
           ("MediaController=%p, Id=%" PRId64 ", " msg, this, this->Id(), \
            ##__VA_ARGS__))
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(MediaController, DOMEventTargetHelper)
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(MediaController,
@@ -537,5 +537,16 @@ CopyableTArray<MediaControlKey> MediaController::GetSupportedMediaKeys() const {
   return mSupportedKeys;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+void MediaController::Select() const {
+  if (RefPtr<BrowsingContext> bc = BrowsingContext::Get(Id())) {
+    Unused << bc->SetHasMainMediaController(true);
+  }
+}
+
+void MediaController::Unselect() const {
+  if (RefPtr<BrowsingContext> bc = BrowsingContext::Get(Id())) {
+    Unused << bc->SetHasMainMediaController(false);
+  }
+}
+
+}  // namespace mozilla::dom

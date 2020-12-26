@@ -398,6 +398,7 @@ function openLinkIn(url, where, params) {
         true,
         aReferrerInfo,
         null,
+        null,
         params.isContentWindowPrivate,
         aPrincipal
       );
@@ -409,7 +410,7 @@ function openLinkIn(url, where, params) {
         );
         return;
       }
-      saveURL(url, null, null, true, true, aReferrerInfo, aInitiatingDoc);
+      saveURL(url, null, null, true, true, aReferrerInfo, null, aInitiatingDoc);
     }
     return;
   }
@@ -711,7 +712,11 @@ function openLinkIn(url, where, params) {
       break;
   }
 
-  if (!focusUrlBar && targetBrowser == w.gBrowser.selectedBrowser) {
+  if (
+    !params.avoidBrowserFocus &&
+    !focusUrlBar &&
+    targetBrowser == w.gBrowser.selectedBrowser
+  ) {
     // Focus the content, but only if the browser used for the load is selected.
     targetBrowser.focus();
   }

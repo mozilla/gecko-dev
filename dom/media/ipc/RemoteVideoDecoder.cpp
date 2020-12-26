@@ -19,7 +19,6 @@
 #include "MediaDataDecoderProxy.h"
 #include "MediaInfo.h"
 #include "PDMFactory.h"
-#include "RemoteDecoderManagerChild.h"
 #include "RemoteDecoderManagerParent.h"
 #include "RemoteImageHolder.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -34,45 +33,31 @@ using namespace layers;  // for PlanarYCbCrData and BufferRecycleBin
 using namespace ipc;
 using namespace gfx;
 
-class KnowsCompositorVideo : public layers::KnowsCompositor {
- public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(KnowsCompositorVideo, override)
+layers::TextureForwarder* KnowsCompositorVideo::GetTextureForwarder() {
+  auto* vbc = VideoBridgeChild::GetSingleton();
+  return (vbc && vbc->CanSend()) ? vbc : nullptr;
+}
+layers::LayersIPCActor* KnowsCompositorVideo::GetLayersIPCActor() {
+  return GetTextureForwarder();
+}
 
-  layers::TextureForwarder* GetTextureForwarder() override {
-    auto* vbc = VideoBridgeChild::GetSingleton();
-    return (vbc && vbc->CanSend()) ? vbc : nullptr;
-  }
-  layers::LayersIPCActor* GetLayersIPCActor() override {
-    return GetTextureForwarder();
-  }
-
-  static already_AddRefed<KnowsCompositorVideo> TryCreateForIdentifier(
-      const layers::TextureFactoryIdentifier& aIdentifier) {
-    VideoBridgeChild* child = VideoBridgeChild::GetSingleton();
-    if (!child) {
-      return nullptr;
-    }
-
-    // The RDD process will never use hardware decoding since it's
-    // sandboxed, so don't bother trying to create a sync object.
-    TextureFactoryIdentifier ident = aIdentifier;
-    if (XRE_IsRDDProcess()) {
-      ident.mSyncHandle = 0;
-    }
-
-    RefPtr<KnowsCompositorVideo> knowsCompositor = new KnowsCompositorVideo();
-    knowsCompositor->IdentifyTextureHost(ident);
-    return knowsCompositor.forget();
+/* static */ already_AddRefed<KnowsCompositorVideo>
+KnowsCompositorVideo::TryCreateForIdentifier(
+    const layers::TextureFactoryIdentifier& aIdentifier) {
+  VideoBridgeChild* child = VideoBridgeChild::GetSingleton();
+  if (!child) {
+    return nullptr;
   }
 
- private:
-  KnowsCompositorVideo() = default;
-  virtual ~KnowsCompositorVideo() = default;
-};
+  RefPtr<KnowsCompositorVideo> knowsCompositor = new KnowsCompositorVideo();
+  knowsCompositor->IdentifyTextureHost(aIdentifier);
+  return knowsCompositor.forget();
+}
 
-RemoteVideoDecoderChild::RemoteVideoDecoderChild(bool aRecreatedOnCrash)
-    : RemoteDecoderChild(aRecreatedOnCrash),
-      mBufferRecycleBin(new BufferRecycleBin) {}
+RemoteVideoDecoderChild::RemoteVideoDecoderChild(RemoteDecodeIn aLocation)
+    : RemoteDecoderChild(aLocation == RemoteDecodeIn::GpuProcess),
+      mBufferRecycleBin(new BufferRecycleBin),
+      mLocation(aLocation) {}
 
 MediaResult RemoteVideoDecoderChild::ProcessOutput(
     DecodedOutputIPDL&& aDecodedData) {
@@ -83,7 +68,14 @@ MediaResult RemoteVideoDecoderChild::ProcessOutput(
       aDecodedData.get_ArrayOfRemoteVideoData()->Array();
 
   for (auto&& data : arrayData) {
+    if (data.image().IsEmpty()) {
+      // This is a NullData object.
+      mDecodedData.AppendElement(MakeRefPtr<NullData>(
+          data.base().offset(), data.base().time(), data.base().duration()));
+      continue;
+    }
     RefPtr<Image> image = data.image().TransferToImage(mBufferRecycleBin);
+
     RefPtr<VideoData> video = VideoData::CreateFromImage(
         data.display(), data.base().offset(), data.base().time(),
         data.base().duration(), image, data.base().keyframe(),
@@ -101,9 +93,11 @@ MediaResult RemoteVideoDecoderChild::ProcessOutput(
 MediaResult RemoteVideoDecoderChild::InitIPDL(
     const VideoInfo& aVideoInfo, float aFramerate,
     const CreateDecoderParams::OptionSet& aOptions,
-    const layers::TextureFactoryIdentifier* aIdentifier) {
+    Maybe<layers::TextureFactoryIdentifier> aIdentifier) {
+  MOZ_ASSERT_IF(mLocation == RemoteDecodeIn::GpuProcess, aIdentifier);
+
   RefPtr<RemoteDecoderManagerChild> manager =
-      RemoteDecoderManagerChild::GetRDDProcessSingleton();
+      RemoteDecoderManagerChild::GetSingleton(mLocation);
 
   // The manager isn't available because RemoteDecoderManagerChild has been
   // initialized with null end points and we don't want to decode video on RDD
@@ -114,70 +108,36 @@ MediaResult RemoteVideoDecoderChild::InitIPDL(
   }
 
   if (!manager->CanSend()) {
+    if (mLocation == RemoteDecodeIn::GpuProcess) {
+      // The manager doesn't support sending messages because we've just crashed
+      // and are working on reinitialization. Don't initialize mIPDLSelfRef and
+      // leave us in an error state. We'll then immediately reject the promise
+      // when Init() is called and the caller can try again. Hopefully by then
+      // the new manager is ready, or we've notified the caller of it being no
+      // longer available. If not, then the cycle repeats until we're ready.
+      return NS_OK;
+    }
+
     return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
                        RESULT_DETAIL("RemoteDecoderManager unable to send."));
   }
 
   mIPDLSelfRef = this;
-  bool success = false;
-  nsCString errorDescription;
   VideoDecoderInfoIPDL decoderInfo(aVideoInfo, aFramerate);
   Unused << manager->SendPRemoteDecoderConstructor(this, decoderInfo, aOptions,
-                                                   ToMaybe(aIdentifier),
-                                                   &success, &errorDescription);
+                                                   aIdentifier);
 
-  return success ? MediaResult(NS_OK)
-                 : MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, errorDescription);
-}
-
-GpuRemoteVideoDecoderChild::GpuRemoteVideoDecoderChild()
-    : RemoteVideoDecoderChild(true) {}
-
-MediaResult GpuRemoteVideoDecoderChild::InitIPDL(
-    const VideoInfo& aVideoInfo, float aFramerate,
-    const CreateDecoderParams::OptionSet& aOptions,
-    const layers::TextureFactoryIdentifier& aIdentifier) {
-  RefPtr<RemoteDecoderManagerChild> manager =
-      RemoteDecoderManagerChild::GetGPUProcessSingleton();
-
-  // The manager isn't available because RemoteDecoderManagerChild has been
-  // initialized with null end points and we don't want to decode video on GPU
-  // process anymore. Return false here so that we can fallback to other PDMs.
-  if (!manager) {
-    return MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                       RESULT_DETAIL("RemoteDecoderManager is not available."));
-  }
-
-  // The manager doesn't support sending messages because we've just crashed
-  // and are working on reinitialization. Don't initialize mIPDLSelfRef and
-  // leave us in an error state. We'll then immediately reject the promise when
-  // Init() is called and the caller can try again. Hopefully by then the new
-  // manager is ready, or we've notified the caller of it being no longer
-  // available. If not, then the cycle repeats until we're ready.
-  if (!manager->CanSend()) {
-    return NS_OK;
-  }
-
-  mIPDLSelfRef = this;
-  bool success = false;
-  nsCString errorDescription;
-  VideoDecoderInfoIPDL decoderInfo(aVideoInfo, aFramerate);
-  Unused << manager->SendPRemoteDecoderConstructor(this, decoderInfo, aOptions,
-                                                   Some(aIdentifier), &success,
-                                                   &errorDescription);
-
-  return success ? MediaResult(NS_OK)
-                 : MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, errorDescription);
+  return NS_OK;
 }
 
 RemoteVideoDecoderParent::RemoteVideoDecoderParent(
     RemoteDecoderManagerParent* aParent, const VideoInfo& aVideoInfo,
     float aFramerate, const CreateDecoderParams::OptionSet& aOptions,
     const Maybe<layers::TextureFactoryIdentifier>& aIdentifier,
-    nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue,
-    bool* aSuccess, nsCString* aErrorDescription)
-    : RemoteDecoderParent(aParent, aManagerThread, aDecodeTaskQueue),
-      mVideoInfo(aVideoInfo) {
+    nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue)
+    : RemoteDecoderParent(aParent, aOptions, aManagerThread, aDecodeTaskQueue),
+      mVideoInfo(aVideoInfo),
+      mFramerate(aFramerate) {
   if (aIdentifier) {
     // Check to see if we have a direct PVideoBridge connection to the
     // destination process specified in aIdentifier, and create a
@@ -186,59 +146,37 @@ RemoteVideoDecoderParent::RemoteVideoDecoderParent(
     mKnowsCompositor =
         KnowsCompositorVideo::TryCreateForIdentifier(*aIdentifier);
   }
+}
 
-  RefPtr<layers::ImageContainer> container = new layers::ImageContainer();
+IPCResult RemoteVideoDecoderParent::RecvConstruct(
+    ConstructResolver&& aResolver) {
+  auto imageContainer = MakeRefPtr<layers::ImageContainer>();
   if (mKnowsCompositor && XRE_IsRDDProcess()) {
     // Ensure to allocate recycle allocator
-    container->EnsureRecycleAllocatorForRDD(mKnowsCompositor);
+    imageContainer->EnsureRecycleAllocatorForRDD(mKnowsCompositor);
   }
+  auto params = CreateDecoderParams{
+      mVideoInfo,     mKnowsCompositor,
+      imageContainer, CreateDecoderParams::VideoFrameRate(mFramerate),
+      mOptions,       CreateDecoderParams::NoWrapper(true),
+  };
 
-  CreateDecoderParams params(mVideoInfo);
-  params.mKnowsCompositor = mKnowsCompositor;
-  params.mImageContainer = container;
-  params.mRate = CreateDecoderParams::VideoFrameRate(aFramerate);
-  params.mOptions = aOptions;
-  MediaResult error(NS_OK);
-  params.mError = &error;
-
-  RefPtr<MediaDataDecoder> decoder;
-  if (XRE_IsGPUProcess()) {
-#ifdef XP_WIN
-    // Ensure everything is properly initialized on the right thread.
-    PDMFactory::EnsureInit();
-
-    // TODO: Ideally we wouldn't hardcode the WMF PDM, and we'd use the normal
-    // PDM factory logic for picking a decoder.
-    RefPtr<WMFDecoderModule> pdm(new WMFDecoderModule());
-    pdm->Startup();
-    decoder = pdm->CreateVideoDecoder(params);
-#else
-    MOZ_ASSERT(false,
-               "Can't use RemoteVideoDecoder in the GPU process on non-Windows "
-               "platforms yet");
-#endif
-  }
-
-#ifdef MOZ_AV1
-  if (AOMDecoder::IsAV1(params.mConfig.mMimeType)) {
-    if (StaticPrefs::media_av1_use_dav1d()) {
-      decoder = new DAV1DDecoder(params);
-    } else {
-      decoder = new AOMDecoder(params);
-    }
-  }
-#endif
-
-  if (NS_FAILED(error)) {
-    MOZ_ASSERT(aErrorDescription);
-    *aErrorDescription = error.Description();
-  }
-
-  if (decoder) {
-    mDecoder = new MediaDataDecoderProxy(decoder.forget(),
-                                         do_AddRef(mDecodeTaskQueue.get()));
-  }
-  *aSuccess = !!mDecoder;
+  mParent->EnsurePDMFactory().CreateDecoder(params)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [resolver = std::move(aResolver), self = RefPtr{this}](
+          PlatformDecoderModule::CreateDecoderPromise::ResolveOrRejectValue&&
+              aValue) {
+        if (aValue.IsReject()) {
+          resolver(aValue.RejectValue());
+          return;
+        }
+        MOZ_ASSERT(aValue.ResolveValue());
+        self->mDecoder =
+            new MediaDataDecoderProxy(aValue.ResolveValue().forget(),
+                                      do_AddRef(self->mDecodeTaskQueue.get()));
+        resolver(NS_OK);
+      });
+  return IPC_OK();
 }
 
 MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
@@ -254,8 +192,18 @@ MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
   nsTArray<RemoteVideoData> array;
 
   for (const auto& data : aData) {
-    MOZ_ASSERT(data->mType == MediaData::Type::VIDEO_DATA,
+    MOZ_ASSERT(data->mType == MediaData::Type::VIDEO_DATA ||
+                   data->mType == MediaData::Type::NULL_DATA,
                "Can only decode videos using RemoteDecoderParent!");
+    if (data->mType == MediaData::Type::NULL_DATA) {
+      RemoteVideoData output(
+          MediaDataIPDL(data->mOffset, data->mTime, data->mTimecode,
+                        data->mDuration, data->mKeyframe),
+          IntSize(), RemoteImageHolder(), -1);
+
+      array.AppendElement(std::move(output));
+      continue;
+    }
     VideoData* video = static_cast<VideoData*>(data.get());
 
     MOZ_ASSERT(video->mImage,

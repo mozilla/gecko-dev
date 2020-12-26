@@ -27,8 +27,6 @@ loader.lazyGetter(
   () => Cu.getGlobalForObject(ExtensionProcessScript).WebExtensionPolicy
 );
 
-const CHROME_ENABLED_PREF = "devtools.chrome.enabled";
-const REMOTE_ENABLED_PREF = "devtools.debugger.remote-enabled";
 const EXTENSION_STORAGE_ENABLED_PREF =
   "devtools.storage.extensionStorage.enabled";
 
@@ -101,6 +99,7 @@ var ILLEGAL_CHAR_REGEX = new RegExp(illegalFileNameCharacters, "g");
 
 // Holder for all the registered storage actors.
 var storageTypePool = new Map();
+exports.storageTypePool = storageTypePool;
 
 /**
  * An async method equivalent to setTimeout but using Promises
@@ -109,13 +108,11 @@ var storageTypePool = new Map();
  *        The wait time in milliseconds.
  */
 function sleep(time) {
-  const deferred = defer();
-
-  setTimeout(() => {
-    deferred.resolve(null);
-  }, time);
-
-  return deferred.promise;
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(null);
+    }, time);
+  });
 }
 
 // Helper methods to create a storage actor.
@@ -235,6 +232,10 @@ StorageActors.defaults = function(typeName, observationTopics) {
     },
 
     destroy() {
+      if (!this.storageActor) {
+        return;
+      }
+
       if (observationTopics) {
         observationTopics.forEach(observationTopic => {
           Services.obs.removeObserver(this, observationTopic);
@@ -324,10 +325,6 @@ StorageActors.defaults = function(typeName, observationTopics) {
     // Share getTraits for child classes overriding form()
     _getTraits() {
       return {
-        // The hasSupportsTraits can be removed when Firefox 80 hits the release
-        // channel. Allows the client to know if the various supportsXXX traits
-        // are defined or if actorHasMethod should be used instead.
-        hasSupportsTraits: true,
         // The supportsXXX traits are not related to backward compatibility
         // Different storage actor types implement different APIs, the traits
         // help the client to know what is supported or not.
@@ -1198,7 +1195,10 @@ exports.setupParentProcessForCookies = function({ mm, prefix }) {
   );
 
   // listen for director-script requests from the child process
-  setMessageManager(mm);
+  mm.addMessageListener(
+    "debug:storage-cookie-request-parent",
+    cookieHelpers.handleChildRequest
+  );
 
   function callChildProcess(methodName, ...args) {
     if (methodName === "onCookieChanged") {
@@ -1216,31 +1216,17 @@ exports.setupParentProcessForCookies = function({ mm, prefix }) {
     }
   }
 
-  function setMessageManager(newMM) {
-    if (mm) {
-      mm.removeMessageListener(
-        "debug:storage-cookie-request-parent",
-        cookieHelpers.handleChildRequest
-      );
-    }
-    mm = newMM;
-    if (mm) {
-      mm.addMessageListener(
-        "debug:storage-cookie-request-parent",
-        cookieHelpers.handleChildRequest
-      );
-    }
-  }
-
   return {
-    onBrowserSwap: setMessageManager,
     onDisconnected: () => {
       // Although "disconnected-from-child" implies that the child is already
       // disconnected this is not the case. The disconnection takes place after
       // this method has finished. This gives us chance to clean up items within
       // the parent process e.g. observers.
       cookieHelpers.removeCookieObservers();
-      setMessageManager(null);
+      mm.removeMessageListener(
+        "debug:storage-cookie-request-parent",
+        cookieHelpers.handleChildRequest
+      );
     },
   };
 };
@@ -1689,32 +1675,21 @@ const extensionStorageHelpers = {
  */
 exports.setupParentProcessForExtensionStorage = function({ mm, prefix }) {
   // listen for director-script requests from the child process
-  setMessageManager(mm);
-
-  function setMessageManager(newMM) {
-    if (mm) {
-      mm.removeMessageListener(
-        "debug:storage-extensionStorage-request-parent",
-        extensionStorageHelpers.handleChildRequest
-      );
-    }
-    mm = newMM;
-    if (mm) {
-      mm.addMessageListener(
-        "debug:storage-extensionStorage-request-parent",
-        extensionStorageHelpers.handleChildRequest
-      );
-    }
-  }
+  mm.addMessageListener(
+    "debug:storage-extensionStorage-request-parent",
+    extensionStorageHelpers.handleChildRequest
+  );
 
   return {
-    onBrowserSwap: setMessageManager,
     onDisconnected: () => {
       // Although "disconnected-from-child" implies that the child is already
       // disconnected this is not the case. The disconnection takes place after
       // this method has finished. This gives us chance to clean up items within
       // the parent process e.g. observers.
-      setMessageManager(null);
+      mm.removeMessageListener(
+        "debug:storage-extensionStorage-request-parent",
+        extensionStorageHelpers.handleChildRequest
+      );
       extensionStorageHelpers.onDisconnected();
     },
   };
@@ -1779,7 +1754,6 @@ if (Services.prefs.getBoolPref(EXTENSION_STORAGE_ENABLED_PREF, false)) {
         this.storageActor.off("window-destroyed", this.onWindowDestroyed);
 
         this.hostVsStores.clear();
-
         protocol.Actor.prototype.destroy.call(this);
 
         this.storageActor = null;
@@ -2443,7 +2417,12 @@ StorageActors.createActor(
       // the this.hosts getter. Because this.hosts is a property on the default
       // storage actor and inherited by all storage actors we have to do it this
       // way.
-      this._internalHosts = await this.getInternalHosts();
+      // Only look up internal hosts if we are in the browser toolbox
+      const isBrowserToolbox = this.storageActor.parentActor.isRootActor;
+
+      this._internalHosts = isBrowserToolbox
+        ? await this.getInternalHosts()
+        : [];
 
       return this.hosts;
     },
@@ -2804,23 +2783,22 @@ var indexedDBHelpers = {
    */
   async getDBMetaData(host, principal, name, storage) {
     const request = this.openWithPrincipal(principal, name, storage);
-    const success = defer();
+    return new Promise(resolve => {
+      request.onsuccess = event => {
+        const db = event.target.result;
+        const dbData = new DatabaseMetadata(host, db, storage);
+        db.close();
 
-    request.onsuccess = event => {
-      const db = event.target.result;
-      const dbData = new DatabaseMetadata(host, db, storage);
-      db.close();
-
-      success.resolve(this.backToChild("getDBMetaData", dbData));
-    };
-    request.onerror = ({ target }) => {
-      console.error(
-        `Error opening indexeddb database ${name} for host ${host}`,
-        target.error
-      );
-      success.resolve(this.backToChild("getDBMetaData", null));
-    };
-    return success.promise;
+        resolve(this.backToChild("getDBMetaData", dbData));
+      };
+      request.onerror = ({ target }) => {
+        console.error(
+          `Error opening indexeddb database ${name} for host ${host}`,
+          target.error
+        );
+        resolve(this.backToChild("getDBMetaData", null));
+      };
+    });
   },
 
   splitNameAndStorage: function(name) {
@@ -2840,14 +2818,6 @@ var indexedDBHelpers = {
    * the browser.
    */
   async getInternalHosts() {
-    // Return an empty array if the browser toolbox is not enabled.
-    if (
-      !Services.prefs.getBoolPref(CHROME_ENABLED_PREF) ||
-      !Services.prefs.getBoolPref(REMOTE_ENABLED_PREF)
-    ) {
-      return this.backToChild("getInternalHosts", []);
-    }
-
     const profileDir = OS.Constants.Path.profileDir;
     const storagePath = OS.Path.join(profileDir, "storage", "permanent");
     const iterator = new OS.File.DirectoryIterator(storagePath);
@@ -3218,70 +3188,72 @@ var indexedDBHelpers = {
   getObjectStoreData(host, principal, dbName, storage, requestOptions) {
     const { name } = this.splitNameAndStorage(dbName);
     const request = this.openWithPrincipal(principal, name, storage);
-    const success = defer();
-    let { objectStore, id, index, offset, size } = requestOptions;
-    const data = [];
-    let db;
 
-    if (!size || size > MAX_STORE_OBJECT_COUNT) {
-      size = MAX_STORE_OBJECT_COUNT;
-    }
+    return new Promise((resolve, reject) => {
+      let { objectStore, id, index, offset, size } = requestOptions;
+      const data = [];
+      let db;
 
-    request.onsuccess = event => {
-      db = event.target.result;
-
-      const transaction = db.transaction(objectStore, "readonly");
-      let source = transaction.objectStore(objectStore);
-      if (index && index != "name") {
-        source = source.index(index);
+      if (!size || size > MAX_STORE_OBJECT_COUNT) {
+        size = MAX_STORE_OBJECT_COUNT;
       }
 
-      source.count().onsuccess = event2 => {
-        const objectsSize = [];
-        const count = event2.target.result;
-        objectsSize.push({
-          key: host + dbName + objectStore + index,
-          count: count,
-        });
+      request.onsuccess = event => {
+        db = event.target.result;
 
-        if (!offset) {
-          offset = 0;
-        } else if (offset > count) {
-          db.close();
-          success.resolve([]);
-          return;
+        const transaction = db.transaction(objectStore, "readonly");
+        let source = transaction.objectStore(objectStore);
+        if (index && index != "name") {
+          source = source.index(index);
         }
 
-        if (id) {
-          source.get(id).onsuccess = event3 => {
+        source.count().onsuccess = event2 => {
+          const objectsSize = [];
+          const count = event2.target.result;
+          objectsSize.push({
+            key: host + dbName + objectStore + index,
+            count: count,
+          });
+
+          if (!offset) {
+            offset = 0;
+          } else if (offset > count) {
             db.close();
-            success.resolve([{ name: id, value: event3.target.result }]);
-          };
-        } else {
-          source.openCursor().onsuccess = event4 => {
-            const cursor = event4.target.result;
+            resolve([]);
+            return;
+          }
 
-            if (!cursor || data.length >= size) {
+          if (id) {
+            source.get(id).onsuccess = event3 => {
               db.close();
-              success.resolve({
-                data: data,
-                objectsSize: objectsSize,
-              });
-              return;
-            }
-            if (offset-- <= 0) {
-              data.push({ name: cursor.key, value: cursor.value });
-            }
-            cursor.continue();
-          };
-        }
+              resolve([{ name: id, value: event3.target.result }]);
+            };
+          } else {
+            source.openCursor().onsuccess = event4 => {
+              const cursor = event4.target.result;
+
+              if (!cursor || data.length >= size) {
+                db.close();
+                resolve({
+                  data: data,
+                  objectsSize: objectsSize,
+                });
+                return;
+              }
+              if (offset-- <= 0) {
+                data.push({ name: cursor.key, value: cursor.value });
+              }
+              cursor.continue();
+            };
+          }
+        };
       };
-    };
-    request.onerror = () => {
-      db.close();
-      success.resolve([]);
-    };
-    return success.promise;
+
+      request.onerror = () => {
+        db.close();
+        resolve([]);
+      };
+    });
   },
 
   /**
@@ -3369,28 +3341,18 @@ var indexedDBHelpers = {
  */
 
 exports.setupParentProcessForIndexedDB = function({ mm, prefix }) {
-  // listen for director-script requests from the child process
-  setMessageManager(mm);
+  mm.addMessageListener(
+    "debug:storage-indexedDB-request-parent",
+    indexedDBHelpers.handleChildRequest
+  );
 
-  function setMessageManager(newMM) {
-    if (mm) {
+  return {
+    onDisconnected: () => {
       mm.removeMessageListener(
         "debug:storage-indexedDB-request-parent",
         indexedDBHelpers.handleChildRequest
       );
-    }
-    mm = newMM;
-    if (mm) {
-      mm.addMessageListener(
-        "debug:storage-indexedDB-request-parent",
-        indexedDBHelpers.handleChildRequest
-      );
-    }
-  }
-
-  return {
-    onBrowserSwap: setMessageManager,
-    onDisconnected: () => setMessageManager(null),
+    },
   };
 };
 

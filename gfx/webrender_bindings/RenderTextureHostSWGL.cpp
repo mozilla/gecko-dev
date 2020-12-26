@@ -10,7 +10,8 @@
 namespace mozilla {
 namespace wr {
 
-bool RenderTextureHostSWGL::UpdatePlanes(wr::ImageRendering aRendering) {
+bool RenderTextureHostSWGL::UpdatePlanes(RenderCompositor* aCompositor,
+                                         wr::ImageRendering aRendering) {
   wr_swgl_make_current(mContext);
   size_t planeCount = GetPlaneCount();
   bool filterUpdate = IsFilterUpdateNecessary(aRendering);
@@ -21,34 +22,51 @@ bool RenderTextureHostSWGL::UpdatePlanes(wr::ImageRendering aRendering) {
     }
     filterUpdate = true;
   }
+  gfx::SurfaceFormat format = GetFormat();
+  gfx::ColorDepth colorDepth = GetColorDepth();
   for (size_t i = 0; i < planeCount; i++) {
     PlaneInfo& plane = mPlanes[i];
-    if (!MapPlane(i, plane)) {
+    if (!MapPlane(aCompositor, i, plane)) {
       if (i > 0) {
         UnmapPlanes();
       }
       return false;
     }
-    GLenum format = 0;
-    switch (plane.mFormat) {
+    GLenum internalFormat = 0;
+    switch (format) {
       case gfx::SurfaceFormat::B8G8R8A8:
       case gfx::SurfaceFormat::B8G8R8X8:
-        format = LOCAL_GL_RGBA8;
+        MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_8);
+        internalFormat = LOCAL_GL_RGBA8;
         break;
       case gfx::SurfaceFormat::YUV:
-        format = LOCAL_GL_R8;
+        switch (colorDepth) {
+          case gfx::ColorDepth::COLOR_8:
+            internalFormat = LOCAL_GL_R8;
+            break;
+          case gfx::ColorDepth::COLOR_10:
+          case gfx::ColorDepth::COLOR_12:
+          case gfx::ColorDepth::COLOR_16:
+            internalFormat = LOCAL_GL_R16;
+            break;
+          default:
+            MOZ_RELEASE_ASSERT(false, "Unhandled YUV color depth");
+            break;
+        }
         break;
       case gfx::SurfaceFormat::NV12:
-        format = planeCount == 2 && i > 0 ? LOCAL_GL_RG8 : LOCAL_GL_R8;
+        MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_8);
+        internalFormat = i > 0 ? LOCAL_GL_RG8 : LOCAL_GL_R8;
         break;
       case gfx::SurfaceFormat::YUV422:
-        format = LOCAL_GL_RGB_RAW_422_APPLE;
+        MOZ_ASSERT(colorDepth == gfx::ColorDepth::COLOR_8);
+        internalFormat = LOCAL_GL_RGB_RAW_422_APPLE;
         break;
       default:
         MOZ_RELEASE_ASSERT(false, "Unhandled external image format");
         break;
     }
-    wr_swgl_set_texture_buffer(mContext, plane.mTexture, format,
+    wr_swgl_set_texture_buffer(mContext, plane.mTexture, internalFormat,
                                plane.mSize.width, plane.mSize.height,
                                plane.mStride, plane.mData, 0, 0);
   }
@@ -77,12 +95,13 @@ bool RenderTextureHostSWGL::SetContext(void* aContext) {
 }
 
 wr::WrExternalImage RenderTextureHostSWGL::LockSWGL(
-    uint8_t aChannelIndex, void* aContext, wr::ImageRendering aRendering) {
+    uint8_t aChannelIndex, void* aContext, RenderCompositor* aCompositor,
+    wr::ImageRendering aRendering) {
   if (!SetContext(aContext)) {
     return InvalidToWrExternalImage();
   }
   if (!mLocked) {
-    if (!UpdatePlanes(aRendering)) {
+    if (!UpdatePlanes(aCompositor, aRendering)) {
       return InvalidToWrExternalImage();
     }
     mLocked = true;
@@ -125,7 +144,7 @@ bool RenderTextureHostSWGL::LockSWGLCompositeSurface(
     return false;
   }
   if (!mLocked) {
-    if (!UpdatePlanes(mCachedRendering)) {
+    if (!UpdatePlanes(nullptr, mCachedRendering)) {
       return false;
     }
     mLocked = true;
@@ -134,7 +153,7 @@ bool RenderTextureHostSWGL::LockSWGLCompositeSurface(
   for (size_t i = 0; i < mPlanes.size(); i++) {
     aInfo->textures[i] = mPlanes[i].mTexture;
   }
-  switch (mPlanes[0].mFormat) {
+  switch (GetFormat()) {
     case gfx::SurfaceFormat::YUV:
     case gfx::SurfaceFormat::NV12:
     case gfx::SurfaceFormat::YUV422: {
@@ -142,6 +161,9 @@ bool RenderTextureHostSWGL::LockSWGLCompositeSurface(
       auto colorSpace = GetYUVColorSpace();
       MOZ_ASSERT(colorSpace != gfx::YUVColorSpace::UNKNOWN);
       aInfo->color_space = ToWrYuvColorSpace(colorSpace);
+      auto colorDepth = GetColorDepth();
+      MOZ_ASSERT(colorDepth != gfx::ColorDepth::UNKNOWN);
+      aInfo->color_depth = ToWrColorDepth(colorDepth);
       break;
     }
     case gfx::SurfaceFormat::B8G8R8A8:

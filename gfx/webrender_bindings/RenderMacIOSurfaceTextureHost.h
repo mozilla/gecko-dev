@@ -37,10 +37,13 @@ class RenderMacIOSurfaceTextureHost final : public RenderTextureHostSWGL {
   MacIOSurface* GetSurface() { return mSurface; }
 
   // RenderTextureHostSWGL
-  size_t GetPlaneCount() override;
-  bool MapPlane(uint8_t aChannelIndex, PlaneInfo& aPlaneInfo) override;
-  void UnmapPlanes() override;
+  size_t GetPlaneCount() const override;
+  gfx::SurfaceFormat GetFormat() const override;
+  gfx::ColorDepth GetColorDepth() const override;
   gfx::YUVColorSpace GetYUVColorSpace() const override;
+  bool MapPlane(RenderCompositor* aCompositor, uint8_t aChannelIndex,
+                PlaneInfo& aPlaneInfo) override;
+  void UnmapPlanes() override;
 
  private:
   virtual ~RenderMacIOSurfaceTextureHost();

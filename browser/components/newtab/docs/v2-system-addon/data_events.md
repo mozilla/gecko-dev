@@ -723,6 +723,27 @@ This reports the user's interaction with those Pocket tiles.
 }
 ```
 
+## Save to Pocket button pings
+
+Right now the save to Pocket button, while technically outside of newtab, has some similarities with the newtab telemetry.
+
+These pings record user interaction with the save to Pocket button.
+
+### Click/impression ping
+
+```js
+{
+  "locale": "en-US",
+  "version": "83.0a1",
+  "release_channel": "default",
+  "model": "",
+  "events": [{"action":"click|impression|unpin","position":0,"source":"save_button|on_save_recs|learn_more|sign_up_1|sign_up_2|log_in"}],
+  "pocket_logged_in_state": true|false,
+  "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
+  "profile_creation_date": 18550
+}
+```
+
 ## Performance pings
 
 These pings are captured to record performance related events i.e. how long certain operations take to execute.

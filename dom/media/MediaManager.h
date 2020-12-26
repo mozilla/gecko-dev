@@ -87,7 +87,7 @@ class MediaDevice : public nsIMediaDevice {
   nsresult Allocate(const dom::MediaTrackConstraints& aConstraints,
                     const MediaEnginePrefs& aPrefs, uint64_t aWindowId,
                     const char** aOutBadConstraint);
-  void SetTrack(const RefPtr<SourceMediaTrack>& aTrack,
+  void SetTrack(const RefPtr<MediaTrack>& aTrack,
                 const PrincipalHandle& aPrincipal);
   nsresult Start();
   nsresult Reconfigure(const dom::MediaTrackConstraints& aConstraints,
@@ -327,14 +327,6 @@ class MediaManager final : public nsIMediaManagerService, public nsIObserver {
   void Shutdown();
 
   void StopScreensharing(uint64_t aWindowID);
-
-  /**
-   * Calls aCallback with a GetUserMediaWindowListener argument once for
-   * each window listener associated with aWindow and its child windows.
-   */
-  template <typename FunctionType>
-  void IterateWindowListeners(nsPIDOMWindowInner* aWindow,
-                              const FunctionType& aCallback);
 
   void RemoveMediaDevicesCallback(uint64_t aWindowID);
   void DeviceListChanged();

@@ -1365,6 +1365,7 @@ const JsonView = {
             null /* filepicker title key */,
             null /* file chosen */,
             null /* referrer */,
+            doc.cookieJarSettings,
             null /* initiating document */,
             false /* don't skip prompt for a location */,
             null /* cache key */,

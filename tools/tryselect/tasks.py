@@ -13,7 +13,7 @@ from collections import defaultdict
 from mozboot.util import get_state_dir
 from mozbuild.base import MozbuildObject
 from mozpack.files import FileFinder
-from moztest.resolve import TestResolver, get_suite_definition
+from moztest.resolve import TestResolver, TestManifestLoader, get_suite_definition
 
 import taskgraph
 from taskgraph.generator import TaskGraphGenerator
@@ -50,7 +50,7 @@ def invalidate(cache):
             return
         raise
 
-    tc_dir = os.path.join(build.topsrcdir, 'taskcluster')
+    tc_dir = os.path.join(build.topsrcdir, "taskcluster")
     tmod = max(os.path.getmtime(os.path.join(tc_dir, p)) for p, _ in FileFinder(tc_dir))
 
     if tmod > cmod:
@@ -58,31 +58,37 @@ def invalidate(cache):
 
 
 def generate_tasks(params=None, full=False, disable_target_task_filter=False):
-    cache_dir = os.path.join(get_state_dir(srcdir=True), 'cache', 'taskgraph')
-    attr = 'full_task_set' if full else 'target_task_set'
+    cache_dir = os.path.join(get_state_dir(srcdir=True), "cache", "taskgraph")
+    attr = "full_task_set" if full else "target_task_set"
     cache = os.path.join(cache_dir, attr)
 
     invalidate(cache)
     if os.path.isfile(cache):
-        with open(cache, 'r') as fh:
+        with open(cache, "r") as fh:
             return TaskGraph.from_json(json.load(fh))[1]
 
     if not os.path.isdir(cache_dir):
         os.makedirs(cache_dir)
 
-    print("Task configuration changed, generating {}".format(attr.replace('_', ' ')))
+    print("Task configuration changed, generating {}".format(attr.replace("_", " ")))
 
     taskgraph.fast = True
     cwd = os.getcwd()
     os.chdir(build.topsrcdir)
 
-    root = os.path.join(build.topsrcdir, 'taskcluster', 'ci')
-    target_tasks_method = ('try_select_tasks' if not disable_target_task_filter
-                           else 'try_select_tasks_uncommon')
+    root = os.path.join(build.topsrcdir, "taskcluster", "ci")
+    target_tasks_method = (
+        "try_select_tasks"
+        if not disable_target_task_filter
+        else "try_select_tasks_uncommon"
+    )
     params = parameters_loader(
         params,
         strict=False,
-        overrides={'try_mode': 'try_select', 'target_tasks_method': target_tasks_method}
+        overrides={
+            "try_mode": "try_select",
+            "target_tasks_method": target_tasks_method,
+        },
     )
 
     # Cache both full_task_set and target_task_set regardless of whether or not
@@ -98,16 +104,16 @@ def generate_tasks(params=None, full=False, disable_target_task_filter=False):
             sys.exit(1)
 
         # write cache
-        with open(os.path.join(cache_dir, attr), 'w') as fh:
+        with open(os.path.join(cache_dir, attr), "w") as fh:
             json.dump(tg.to_json(), fh)
         return tg
 
-    tg_full = generate('full_task_set')
-    tg_target = generate('target_task_set')
+    tg_full = generate("full_task_set")
+    tg_target = generate("target_task_set")
     # discard results from these, we only need cache.
     if full:
-        generate('full_task_graph')
-    generate('target_task_graph')
+        generate("full_task_graph")
+    generate("target_task_graph")
 
     os.chdir(cwd)
     if full:
@@ -116,19 +122,22 @@ def generate_tasks(params=None, full=False, disable_target_task_filter=False):
 
 
 def filter_tasks_by_paths(tasks, paths):
-    resolver = TestResolver.from_environment(cwd=here)
+    resolver = TestResolver.from_environment(cwd=here, loader_cls=TestManifestLoader)
     run_suites, run_tests = resolver.resolve_metadata(paths)
-    flavors = set([(t['flavor'], t.get('subsuite')) for t in run_tests])
+    flavors = set([(t["flavor"], t.get("subsuite")) for t in run_tests])
 
     task_regexes = set()
     for flavor, subsuite in flavors:
         _, suite = get_suite_definition(flavor, subsuite, strict=True)
-        if 'task_regex' not in suite:
-            print("warning: no tasks could be resolved from flavor '{}'{}".format(
-                    flavor, " and subsuite '{}'".format(subsuite) if subsuite else ""))
+        if "task_regex" not in suite:
+            print(
+                "warning: no tasks could be resolved from flavor '{}'{}".format(
+                    flavor, " and subsuite '{}'".format(subsuite) if subsuite else ""
+                )
+            )
             continue
 
-        task_regexes.update(suite['task_regex'])
+        task_regexes.update(suite["task_regex"])
 
     def match_task(task):
         return any(re.search(pattern, task) for pattern in task_regexes)
@@ -137,7 +146,7 @@ def filter_tasks_by_paths(tasks, paths):
 
 
 def resolve_tests_by_suite(paths):
-    resolver = TestResolver.from_environment(cwd=here)
+    resolver = TestResolver.from_environment(cwd=here, loader_cls=TestManifestLoader)
     _, run_tests = resolver.resolve_metadata(paths)
 
     suite_to_tests = defaultdict(list)
@@ -147,14 +156,14 @@ def resolve_tests_by_suite(paths):
     remaining_paths_by_suite = defaultdict(lambda: set(paths))
 
     for test in run_tests:
-        key, _ = get_suite_definition(test['flavor'], test.get('subsuite'), strict=True)
+        key, _ = get_suite_definition(test["flavor"], test.get("subsuite"), strict=True)
 
-        test_path = test.get('srcdir_relpath')
+        test_path = test.get("srcdir_relpath")
         if test_path is None:
             continue
         found_path = None
         for path in remaining_paths_by_suite[key]:
-            if test_path.startswith(path):
+            if test_path.startswith(path) or test.get("manifest_relpath") == path:
                 found_path = path
                 break
         if found_path:

@@ -747,6 +747,19 @@ class LTypeOfV : public LInstructionHelper<1, BOX_PIECES, 1> {
   MTypeOf* mir() const { return mir_->toTypeOf(); }
 };
 
+class LTypeOfO : public LInstructionHelper<1, 1, 0> {
+ public:
+  LIR_HEADER(TypeOfO)
+
+  explicit LTypeOfO(const LAllocation& obj) : LInstructionHelper(classOpcode) {
+    setOperand(0, obj);
+  }
+
+  const LAllocation* object() { return getOperand(0); }
+
+  MTypeOf* mir() const { return mir_->toTypeOf(); }
+};
+
 class LToAsyncIter : public LCallInstructionHelper<1, 1 + BOX_PIECES, 0> {
  public:
   LIR_HEADER(ToAsyncIter)
@@ -2854,6 +2867,22 @@ class LModD : public LBinaryMath<1> {
   MMod* mir() const { return mir_->toMod(); }
 };
 
+class LModPowTwoD : public LInstructionHelper<1, 1, 0> {
+  const uint32_t divisor_;
+
+ public:
+  LIR_HEADER(ModPowTwoD)
+
+  LModPowTwoD(const LAllocation& lhs, uint32_t divisor)
+      : LInstructionHelper(classOpcode), divisor_(divisor) {
+    setOperand(0, lhs);
+  }
+
+  uint32_t divisor() const { return divisor_; }
+  const LAllocation* lhs() { return getOperand(0); }
+  MMod* mir() const { return mir_->toMod(); }
+};
+
 class LWasmBuiltinModD : public LInstructionHelper<1, 3, 0> {
   static const size_t LhsIndex = 0;
   static const size_t RhsIndex = 1;
@@ -4058,6 +4087,18 @@ class LGetNextEntryForIterator : public LInstructionHelper<1, 2, 3> {
   const LDefinition* temp0() { return getTemp(0); }
   const LDefinition* temp1() { return getTemp(1); }
   const LDefinition* temp2() { return getTemp(2); }
+};
+
+class LArrayBufferByteLengthInt32 : public LInstructionHelper<1, 1, 0> {
+ public:
+  LIR_HEADER(ArrayBufferByteLengthInt32)
+
+  explicit LArrayBufferByteLengthInt32(const LAllocation& obj)
+      : LInstructionHelper(classOpcode) {
+    setOperand(0, obj);
+  }
+
+  const LAllocation* object() { return getOperand(0); }
 };
 
 // Read the length of an array buffer view.

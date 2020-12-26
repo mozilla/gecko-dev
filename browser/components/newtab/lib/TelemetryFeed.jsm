@@ -8,6 +8,9 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { MESSAGE_TYPE_HASH: msg } = ChromeUtils.import(
+  "resource://activity-stream/common/ActorConstants.jsm"
+);
 
 const { actionTypes: at, actionUtils: au } = ChromeUtils.import(
   "resource://activity-stream/common/Actions.jsm"
@@ -115,15 +118,18 @@ XPCOMUtils.defineLazyGetter(
 );
 
 this.TelemetryFeed = class TelemetryFeed {
-  constructor(options) {
+  constructor({ isParentProcess = true } = {}) {
     this.sessions = new Map();
     this._prefs = new Prefs();
-    this._impressionId = this.getOrCreateImpressionId();
     this._aboutHomeSeen = false;
     this._classifySite = classifySite;
     this._addWindowListeners = this._addWindowListeners.bind(this);
     this._browserOpenNewtabStart = null;
     this.handleEvent = this.handleEvent.bind(this);
+    if (isParentProcess && !this._prefs.get(PREF_IMPRESSION_ID)) {
+      const id = String(gUUIDGenerator.generateUUID());
+      this._prefs.set(PREF_IMPRESSION_ID, id);
+    }
   }
 
   get telemetryEnabled() {
@@ -225,13 +231,8 @@ this.TelemetryFeed = class TelemetryFeed {
     return pinnedTabs;
   }
 
-  getOrCreateImpressionId() {
-    let impressionId = this._prefs.get(PREF_IMPRESSION_ID);
-    if (!impressionId) {
-      impressionId = String(gUUIDGenerator.generateUUID());
-      this._prefs.set(PREF_IMPRESSION_ID, impressionId);
-    }
-    return impressionId;
+  get _impressionId() {
+    return this._prefs.get(PREF_IMPRESSION_ID);
   }
 
   browserOpenNewtabStart() {
@@ -318,18 +319,19 @@ this.TelemetryFeed = class TelemetryFeed {
   /**
    *  Check if it is in the CFR experiment cohort by querying against the
    *  experiment manager of Messaging System
+   *
+   *  @return {bool}
    */
   get isInCFRCohort() {
     try {
-      const experimentData = ExperimentAPI.getExperiment({
-        group: "cfr",
+      const experimentData = ExperimentAPI.getExperimentMetaData({
+        featureId: "cfr",
       });
       if (experimentData && experimentData.slug) {
         return true;
       }
-    } catch (e) {
-      return false;
-    }
+    } catch (e) {}
+
     return false;
   }
 
@@ -693,8 +695,10 @@ this.TelemetryFeed = class TelemetryFeed {
    * Per Bug 1485069, all the metrics for Snippets in AS router use client_id in
    * all the release channels
    */
-  async applySnippetsPolicy(ping) {
-    ping.client_id = await this.telemetryClientId;
+  applySnippetsPolicy(ping) {
+    // XXX Bug 1677723
+    // ping.client_id = await this.telemetryClientId;
+    ping.client_id = this._impressionId;
     delete ping.action;
     return { ping, pingType: "snippets" };
   }
@@ -952,6 +956,16 @@ this.TelemetryFeed = class TelemetryFeed {
       case at.TELEMETRY_USER_EVENT:
         this.handleUserEvent(action);
         break;
+      // The next few action types come from ASRouter, which doesn't use
+      // Actions from Actions.jsm, but uses these other custom strings.
+      case msg.TOOLBAR_BADGE_TELEMETRY:
+      // Intentional fall-through
+      case msg.TOOLBAR_PANEL_TELEMETRY:
+      // Intentional fall-through
+      case msg.MOMENTS_PAGE_TELEMETRY:
+      // Intentional fall-through
+      case msg.DOORHANGER_TELEMETRY:
+      // Intentional fall-through
       case at.AS_ROUTER_TELEMETRY_USER_EVENT:
         this.handleASRouterUserEvent(action);
         break;

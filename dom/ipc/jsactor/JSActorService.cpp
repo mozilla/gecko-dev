@@ -29,11 +29,12 @@
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/ArrayAlgorithm.h"
+#include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Logging.h"
+#include "nsIObserverService.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 namespace {
 StaticRefPtr<JSActorService> gJSActorService;
 }
@@ -200,6 +201,9 @@ void JSActorService::RegisterChromeEventTarget(EventTarget* aTarget) {
   for (auto iter = mWindowActorDescriptors.Iter(); !iter.Done(); iter.Next()) {
     iter.Data()->RegisterListenersFor(aTarget);
   }
+
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
+  obs->NotifyObservers(aTarget, "chrome-event-target-created", nullptr);
 }
 
 /* static */
@@ -299,5 +303,4 @@ JSActorService::GetJSWindowActorProtocol(const nsACString& aName) {
   return mWindowActorDescriptors.Get(aName);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

@@ -63,6 +63,7 @@ include HangTypes;
 include PrefsTypes;
 include NeckoChannelParams;
 include PSMIPCTypes;
+include LookAndFeelTypes;
 
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
 include protocol PSandboxTesting;
@@ -84,7 +85,7 @@ using mozilla::gfx::IntSize from "mozilla/gfx/2D.h";
 using mozilla::dom::TabId from "mozilla/dom/ipc/IdType.h";
 using mozilla::dom::ContentParentId from "mozilla/dom/ipc/IdType.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
-using struct LookAndFeelCache from "mozilla/widget/WidgetMessageUtils.h";
+using mozilla::widget::ThemeChangeKind from "mozilla/widget/WidgetMessageUtils.h";
 using class mozilla::dom::MessagePort from "mozilla/dom/MessagePort.h";
 using class mozilla::dom::ipc::StructuredCloneData from "mozilla/dom/ipc/StructuredCloneData.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
@@ -131,6 +132,8 @@ using refcounted class nsILayoutHistoryState from "nsILayoutHistoryState.h";
 using class mozilla::dom::SessionHistoryInfo from "mozilla/dom/SessionHistoryEntry.h";
 using nsPoint from "mozilla/GfxMessageUtils.h";
 using struct mozilla::dom::LoadingSessionHistoryInfo from "mozilla/dom/SessionHistoryEntry.h";
+using mozilla::PDMFactory::MediaCodecsSupported from "PDMFactory.h";
+using mozilla::dom::PerformanceTimingData from "mozilla/dom/PerformanceTiming.h";
 
 union ChromeRegistryItem
 {
@@ -311,6 +314,7 @@ struct XPCOMInitData
     nsCString[] requestedLocales;
     DynamicScalarDefinition[] dynamicScalarDefs;
     SystemParameterKVPair[] systemParameters;
+    MediaCodecsSupported codecsSupported;
 };
 
 struct VisitedQueryResult
@@ -560,10 +564,10 @@ child:
     async NotifyVisited(VisitedQueryResult[] uri);
 
     /**
-     * Tell the child that the system theme has changed, and that a repaint
-     * is necessary.
+     * Tell the child that the system theme has changed, and that a repaint is
+     * necessary.
      */
-    async ThemeChanged(LookAndFeelCache lookAndFeelCache);
+    async ThemeChanged(LookAndFeelCache aCache, ThemeChangeKind aKind);
 
     async UpdateSystemParameters(SystemParameterKVPair[] aUpdates);
 
@@ -982,10 +986,6 @@ parent:
      */
     sync ConnectPluginBridge(uint32_t aPluginId)
         returns (nsresult rv, Endpoint<PPluginModuleParent> aEndpoint);
-
-    // See Bug 1518344 - Investigate using async for PContent::LaunchRDDProcess
-    sync LaunchRDDProcess()
-        returns (nsresult rv, Endpoint<PRemoteDecoderManagerChild> aEndpoint);
 
     async PRemoteSpellcheckEngine();
 
@@ -1686,7 +1686,7 @@ parent:
                         uint64_t aLoadID, nsID aChangeID, uint32_t aLoadType);
 
     async HistoryGo(MaybeDiscardedBrowsingContext aContext,
-                    int32_t aOffset) returns(int32_t requestedIndex);
+                    int32_t aOffset, uint64_t aHistoryEpoch) returns(int32_t requestedIndex);
 
     async BlobURLDataRequest(nsCString aBlobURL,
                              nsIPrincipal aTriggeringPrincipal,
@@ -1698,7 +1698,6 @@ parent:
     async SetActiveSessionHistoryEntry(MaybeDiscardedBrowsingContext context,
                                        nsPoint? previousScrollPosition,
                                        SessionHistoryInfo info, uint32_t loadType,
-                                       int32_t childOffset,
                                        uint32_t updatedCacheKey, nsID changeID);
     async ReplaceActiveSessionHistoryEntry(
         MaybeDiscardedBrowsingContext context, SessionHistoryInfo info);
@@ -1714,6 +1713,16 @@ both:
                       uint32_t lineNumber, uint32_t colNumber, uint32_t flags,
                       nsCString category, bool privateWindow, uint64_t innerWindowId,
                       bool fromChromeContext);
+
+    /**
+     * Used in fission to report timing data when the parent window is in
+     * another process. Child frame will send data to its ContentParent which
+     * will then identify the ContentParent for the innerWindowId and pass
+     * the data to the correct process.
+     */
+    async ReportFrameTimingData(uint64_t innerWindowId, nsString entryName,
+                                nsString initiatorType,
+                                UniquePtr<PerformanceTimingData> aData);
 
     async CommitBrowsingContextTransaction(MaybeDiscardedBrowsingContext aContext,
                                            BrowsingContextTransaction aTransaction,

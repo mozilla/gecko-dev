@@ -9,8 +9,9 @@
 #include "jsapi.h"
 
 #include "js/CharacterEncoding.h"
-#include "js/PropertyDescriptor.h"  // JS::FromPropertyDescriptor
-#include "vm/EqualityOperations.h"  // js::SameValue
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "js/PropertyDescriptor.h"    // JS::FromPropertyDescriptor
+#include "vm/EqualityOperations.h"    // js::SameValue
 #include "vm/JSFunction.h"
 #include "vm/JSObject.h"
 #include "vm/PlainObject.h"  // js::PlainObject
@@ -906,7 +907,7 @@ bool ScriptedProxyHandler::ownPropertyKeys(JSContext* cx, HandleObject proxy,
 
   // Step 17.
   if (extensibleTarget && targetNonconfigurableKeys.empty()) {
-    return props.appendAll(trapResult);
+    return props.appendAll(std::move(trapResult));
   }
 
   // Step 19.
@@ -926,7 +927,7 @@ bool ScriptedProxyHandler::ownPropertyKeys(JSContext* cx, HandleObject proxy,
 
   // Step 20.
   if (extensibleTarget) {
-    return props.appendAll(trapResult);
+    return props.appendAll(std::move(trapResult));
   }
 
   // Step 21.
@@ -952,7 +953,7 @@ bool ScriptedProxyHandler::ownPropertyKeys(JSContext* cx, HandleObject proxy,
   }
 
   // Step 23.
-  return props.appendAll(trapResult);
+  return props.appendAll(std::move(trapResult));
 }
 
 // ES8 rev 0c1bd3004329336774cbc90de727cd0cf5f11e93

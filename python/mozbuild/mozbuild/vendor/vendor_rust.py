@@ -73,7 +73,13 @@ class VendorRust(MozbuildObject):
 
             cargo = which("cargo")
             if not cargo:
-                raise OSError(errno.ENOENT, "Could not find 'cargo' on your $PATH.")
+                raise OSError(
+                    errno.ENOENT,
+                    (
+                        "Could not find 'cargo' on your $PATH. "
+                        "Hint: have you run `mach build` or `mach configure`?"
+                    ),
+                )
             return cargo
 
     def check_cargo_version(self, cargo):
@@ -94,9 +100,11 @@ class VendorRust(MozbuildObject):
         if platform.system() == "Windows":
             if version >= "1.47" and "nightly" in out:
                 # parsing the date from "cargo 1.47.0-nightly (aa6872140 2020-07-23)"
-                date_format = '%Y-%m-%d'
+                date_format = "%Y-%m-%d"
                 req_nightly = datetime.strptime("2020-07-23", date_format)
-                nightly = datetime.strptime(out.rstrip(")").rsplit(" ", 1)[1], date_format)
+                nightly = datetime.strptime(
+                    out.rstrip(")").rsplit(" ", 1)[1], date_format
+                )
                 if nightly < req_nightly:
                     self.log(
                         logging.ERROR,
@@ -232,21 +240,21 @@ Please commit or stash these changes before vendoring, or re-run with `--ignore-
             "fuchsia-zircon-sys",
             "fuchsia-cprng",
             "glsl",
+            "instant",
         ]
     }
 
     # This whitelist should only be used for packages that use an acceptable
     # license, but that also need to explicitly mentioned in about:license.
     RUNTIME_LICENSE_PACKAGE_WHITELIST = {
-        'BSD-2-Clause': [
-            'arrayref',
-            'cloudabi',
-            'Inflector',
-            'mach',
-            'qlog',
+        "BSD-2-Clause": [
+            "arrayref",
+            "cloudabi",
+            "Inflector",
+            "mach",
+            "qlog",
         ],
-        'BSD-3-Clause': [
-        ]
+        "BSD-3-Clause": [],
     }
 
     # This whitelist should only be used for packages that use a

@@ -53,38 +53,38 @@ namespace mozilla {
 template <typename Iterator>
 class CSSOrderAwareFrameIteratorT {
  public:
-  enum OrderState { eUnknownOrder, eKnownOrdered, eKnownUnordered };
-  enum ChildFilter { eSkipPlaceholders, eIncludeAll };
-  enum OrderingProperty {
-    eUseOrder,           // Default behavior: use "order".
-    eUseBoxOrdinalGroup  // Legacy behavior: use prefixed "box-ordinal-group".
+  enum class OrderState { Unknown, Ordered, Unordered };
+  enum class ChildFilter { SkipPlaceholders, IncludeAll };
+  enum class OrderingProperty {
+    Order,           // Default behavior: use "order".
+    BoxOrdinalGroup  // Legacy behavior: use prefixed "box-ordinal-group".
   };
-  CSSOrderAwareFrameIteratorT(nsIFrame* aContainer,
-                              nsIFrame::ChildListID aListID,
-                              ChildFilter aFilter = eSkipPlaceholders,
-                              OrderState aState = eUnknownOrder,
-                              OrderingProperty aOrderProp = eUseOrder)
+  CSSOrderAwareFrameIteratorT(
+      nsIFrame* aContainer, nsIFrame::ChildListID aListID,
+      ChildFilter aFilter = ChildFilter::SkipPlaceholders,
+      OrderState aState = OrderState::Unknown,
+      OrderingProperty aOrderProp = OrderingProperty::Order)
       : mChildren(aContainer->GetChildList(aListID)),
         mArrayIndex(0),
         mItemIndex(0),
-        mSkipPlaceholders(aFilter == eSkipPlaceholders)
+        mSkipPlaceholders(aFilter == ChildFilter::SkipPlaceholders)
 #ifdef DEBUG
         ,
         mContainer(aContainer),
         mListID(aListID)
 #endif
   {
-    MOZ_ASSERT(aContainer->IsFlexOrGridContainer(),
+    MOZ_ASSERT(CanUse(aContainer),
                "Only use this iterator in a container that honors 'order'");
 
     size_t count = 0;
-    bool isOrdered = aState != eKnownUnordered;
-    if (aState == eUnknownOrder) {
+    bool isOrdered = aState != OrderState::Unordered;
+    if (aState == OrderState::Unknown) {
       auto maxOrder = std::numeric_limits<int32_t>::min();
       for (auto* child : mChildren) {
         ++count;
 
-        int32_t order = aOrderProp == eUseBoxOrdinalGroup
+        int32_t order = aOrderProp == OrderingProperty::BoxOrdinalGroup
                             ? child->StyleXUL()->mBoxOrdinal
                             : child->StylePosition()->mOrder;
 
@@ -104,7 +104,7 @@ class CSSOrderAwareFrameIteratorT {
       for (Iterator i(begin(mChildren)), iEnd(end(mChildren)); i != iEnd; ++i) {
         mArray->AppendElement(*i);
       }
-      auto comparator = (aOrderProp == eUseBoxOrdinalGroup)
+      auto comparator = aOrderProp == OrderingProperty::BoxOrdinalGroup
                             ? CSSBoxOrdinalGroupComparator
                             : CSSOrderComparator;
       mArray->StableSort(comparator);
@@ -114,19 +114,24 @@ class CSSOrderAwareFrameIteratorT {
       SkipPlaceholders();
     }
   }
+
+  CSSOrderAwareFrameIteratorT(CSSOrderAwareFrameIteratorT&&) = default;
+
   ~CSSOrderAwareFrameIteratorT() {
     MOZ_ASSERT(IsForward() == mItemCount.isNothing());
   }
 
   bool IsForward() const;
 
-  nsIFrame* operator*() const {
+  nsIFrame* get() const {
     MOZ_ASSERT(!AtEnd());
     if (mIter.isSome()) {
       return **mIter;
     }
     return (*mArray)[mArrayIndex];
   }
+
+  nsIFrame* operator*() const { return get(); }
 
   /**
    * Return the child index of the current item, placeholders not counted.
@@ -197,7 +202,7 @@ class CSSOrderAwareFrameIteratorT {
     }
   }
 
-  void Reset(ChildFilter aFilter = eSkipPlaceholders) {
+  void Reset(ChildFilter aFilter = ChildFilter::SkipPlaceholders) {
     if (mIter.isSome()) {
       mIter.reset();
       mIter.emplace(begin(mChildren));
@@ -207,7 +212,7 @@ class CSSOrderAwareFrameIteratorT {
       mArrayIndex = 0;
     }
     mItemIndex = IsForward() ? 0 : *mItemCount - 1;
-    mSkipPlaceholders = aFilter == eSkipPlaceholders;
+    mSkipPlaceholders = aFilter == ChildFilter::SkipPlaceholders;
     if (mSkipPlaceholders) {
       SkipPlaceholders();
     }
@@ -224,6 +229,8 @@ class CSSOrderAwareFrameIteratorT {
   bool ItemsAreAlreadyInOrder() const { return mIter.isSome(); }
 
  private:
+  static bool CanUse(const nsIFrame*);
+
   Iterator begin(const nsFrameList& aList);
   Iterator end(const nsFrameList& aList);
 

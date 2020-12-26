@@ -14,10 +14,8 @@ import org.mozilla.gecko.util.GeckoBundle;
 
 import androidx.annotation.AnyThread;
 import androidx.annotation.IntDef;
-import androidx.annotation.Nullable;
 import androidx.annotation.NonNull;
 import androidx.annotation.UiThread;
-import android.util.Log;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -75,88 +73,6 @@ public class ContentBlockingController {
          */
         public static @NonNull ContentBlockingException fromJson(final @NonNull JSONObject savedException) throws JSONException {
             return new ContentBlockingException(savedException.getString("principal"), savedException.getString("uri"));
-        }
-    }
-
-    /**
-     * ExceptionList represents a content blocking exception list exported
-     * from Gecko. It can be used to persist the list or to inspect the URIs
-     * present in the list.
-     */
-    @Deprecated
-    @AnyThread
-    public class ExceptionList {
-        private final @NonNull GeckoBundle mBundle;
-
-        /* package */ ExceptionList(final @NonNull GeckoBundle bundle) {
-            mBundle = new GeckoBundle(bundle);
-        }
-
-        /**
-         * Returns the URIs currently on the content blocking exception list.
-         *
-         * @return A string array containing the URIs.
-         */
-        public @NonNull String[] getUris() {
-            return mBundle.getStringArray("uris");
-        }
-
-        /**
-         * Returns a string representation of the content blocking exception list.
-         * May be null if the JSON to string conversion fails for any reason.
-         *
-         * @return A string representing the exception list.
-         */
-        @Override
-        public @Nullable String toString() {
-            String res;
-            try {
-                res = mBundle.toJSONObject().toString();
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "Could not convert session state to string.");
-                res = null;
-            }
-
-            return res;
-        }
-
-        /**
-         * Returns a JSONObject representation of the content blocking exception list.
-         *
-         * @return A JSONObject representing the exception list.
-         *
-         * @throws JSONException if conversion to JSONObject fails.
-         */
-        public @NonNull JSONObject toJson() throws JSONException {
-            return mBundle.toJSONObject();
-        }
-
-        /**
-         * Creates a new exception list from a string. The string should be valid
-         * output from {@link #toString}.
-         *
-         * @param savedList A string representation of a saved exception list.
-         *
-         * @throws JSONException if the string representation no longer represents valid JSON.
-         */
-        public ExceptionList(final @NonNull String savedList) throws JSONException {
-            mBundle = GeckoBundle.fromJSONObject(new JSONObject(savedList));
-        }
-
-        /**
-         * Creates a new exception list from a JSONObject. The JSONObject should be valid
-         * output from {@link #toJson}.
-         *
-         * @param savedList A JSONObject representation of a saved exception list.
-         *
-         * @throws JSONException if the JSONObject cannot be converted for any reason.
-         */
-        public ExceptionList(final @NonNull JSONObject savedList) throws JSONException {
-            mBundle = GeckoBundle.fromJSONObject(savedList);
-        }
-
-        /* package */ GeckoBundle getBundle() {
-            return mBundle;
         }
     }
 
@@ -258,17 +174,6 @@ public class ContentBlockingController {
         };
         EventDispatcher.getInstance().dispatch("ContentBlocking:SaveList", null, result);
         return result;
-    }
-
-    /**
-     * Restore the supplied {@link ExceptionList}, overwriting the existing exception list.
-     *
-     * @param list An {@link ExceptionList} originally created by {@link #saveExceptionList}.
-     */
-    @Deprecated
-    @UiThread
-    public void restoreExceptionList(final @NonNull ExceptionList list) {
-        EventDispatcher.getInstance().dispatch("ContentBlocking:RestoreList", list.getBundle());
     }
 
     /**
@@ -416,6 +321,7 @@ public class ContentBlockingController {
          * @deprecated use {@link #REPLACED_TRACKING_CONTENT} instead.
          */
         @Deprecated
+        @DeprecationSchedule(version = 86, id = "unsafe-content")
         public static final int REPLACED_UNSAFE_CONTENT        = 0x00000010;
 
         /**
@@ -446,7 +352,7 @@ public class ContentBlockingController {
                       Event.COOKIES_BLOCKED_TRACKER, Event.COOKIES_BLOCKED_SOCIALTRACKER,
                       Event.COOKIES_BLOCKED_ALL, Event.COOKIES_PARTITIONED_FOREIGN,
                       Event.COOKIES_BLOCKED_FOREIGN, Event.BLOCKED_SOCIALTRACKING_CONTENT,
-                      Event.LOADED_SOCIALTRACKING_CONTENT })
+                      Event.LOADED_SOCIALTRACKING_CONTENT, Event.REPLACED_UNSAFE_CONTENT })
             /* package */ @interface LogEvent {}
 
             /**

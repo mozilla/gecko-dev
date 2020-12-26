@@ -14,8 +14,7 @@
 
 #include <utility>  // std::move
 
-#include "jsfriendapi.h"  // js::GetErrorMessage
-#include "jstypes.h"      // JS_PUBLIC_API
+#include "jstypes.h"  // JS_PUBLIC_API
 
 #include "frontend/BytecodeCompilation.h"  // frontend::CompileGlobalScript
 #include "frontend/CompilationInfo.h"  // for frontened::CompilationInfo, frontened::CompilationGCOutput
@@ -23,8 +22,9 @@
 #include "frontend/ParseContext.h"      // frontend::UsedNameTracker
 #include "frontend/Parser.h"            // frontend::Parser, frontend::ParseGoal
 #include "js/CharacterEncoding.h"  // JS::UTF8Chars, JS::UTF8CharsToNewTwoByteCharsZ
-#include "js/RootingAPI.h"         // JS::Rooted
-#include "js/SourceText.h"         // JS::SourceText
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "js/RootingAPI.h"            // JS::Rooted
+#include "js/SourceText.h"            // JS::SourceText
 #include "js/TypeDecls.h"          // JS::HandleObject, JS::MutableHandleScript
 #include "js/Utility.h"            // js::MallocArena, JS::UniqueTwoByteChars
 #include "js/Value.h"              // JS::Value
@@ -101,32 +101,27 @@ static JSScript* CompileSourceBufferAndStartIncrementalEncoding(
     return nullptr;
   }
 
-  UniquePtr<XDRIncrementalEncoderBase> xdrEncoder;
-  MOZ_ASSERT(options.useOffThreadParseGlobal == js::UseOffThreadParseGlobal());
-  if (!js::UseOffThreadParseGlobal()) {
-    if (!compilationInfo.get().input.source()->xdrEncodeInitialStencil(
-            cx, compilationInfo.get(), xdrEncoder)) {
-      return nullptr;
-    }
-  }
-
-  frontend::CompilationGCOutput gcOutput(cx);
-  if (!frontend::InstantiateStencils(cx, compilationInfo.get(), gcOutput)) {
+  Rooted<frontend::CompilationGCOutput> gcOutput(cx);
+  if (!frontend::InstantiateStencils(cx, compilationInfo.get(),
+                                     gcOutput.get())) {
     return nullptr;
   }
 
-  MOZ_ASSERT(gcOutput.script);
-  if (!js::UseOffThreadParseGlobal()) {
-    gcOutput.script->scriptSource()->setIncrementalEncoder(
-        xdrEncoder.release());
-  }
-
-  Rooted<JSScript*> script(cx, gcOutput.script);
+  RootedScript script(cx, gcOutput.get().script);
   if (!script) {
     return nullptr;
   }
 
-  if (js::UseOffThreadParseGlobal()) {
+  if (options.useStencilXDR) {
+    UniquePtr<XDRIncrementalEncoderBase> xdrEncoder;
+
+    if (!compilationInfo.get().input.source()->xdrEncodeInitialStencil(
+            cx, compilationInfo.get(), xdrEncoder)) {
+      return nullptr;
+    }
+
+    script->scriptSource()->setIncrementalEncoder(xdrEncoder.release());
+  } else {
     if (!script->scriptSource()->xdrEncodeTopLevel(cx, script)) {
       return nullptr;
     }
@@ -211,7 +206,8 @@ JS_PUBLIC_API bool JS_Utf8BufferIsCompilableUnit(JSContext* cx,
   }
 
   LifoAllocScope allocScope(&cx->tempLifoAlloc());
-  frontend::CompilationState compilationState(cx, allocScope, options);
+  frontend::CompilationState compilationState(cx, allocScope, options,
+                                              compilationInfo.get().stencil);
 
   JS::AutoSuppressWarningReporter suppressWarnings(cx);
   Parser<FullParseHandler, char16_t> parser(cx, options, chars.get(), length,

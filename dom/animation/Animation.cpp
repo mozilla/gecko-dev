@@ -28,8 +28,7 @@
 #include "nsTransitionManager.h"      // For CSSTransition
 #include "PendingAnimationTracker.h"  // For PendingAnimationTracker
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // Static members
 uint64_t Animation::sNextAnimationIndex = 0;
@@ -102,6 +101,14 @@ already_AddRefed<Animation> Animation::ClonePausedAnimation(
   // Setup the effect's link to this.
   animation->mEffect = &aEffect;
   animation->mEffect->SetAnimation(animation);
+
+  animation->mPendingState = PendingState::PausePending;
+
+  Document* doc = animation->GetRenderedDocument();
+  MOZ_ASSERT(doc,
+             "Cloning animation should already have the rendered document");
+  PendingAnimationTracker* tracker = doc->GetOrCreatePendingAnimationTracker();
+  tracker->AddPausePending(*animation);
 
   // We expect our relevance to be the same as the orginal.
   animation->mIsRelevant = aOther.mIsRelevant;
@@ -1849,5 +1856,4 @@ bool Animation::IsRunningOnCompositor() const {
          mEffect->AsKeyframeEffect()->IsRunningOnCompositor();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

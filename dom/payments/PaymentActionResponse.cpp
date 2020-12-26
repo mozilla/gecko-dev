@@ -5,10 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PaymentActionResponse.h"
+#include "BasicCardPayment.h"
 #include "PaymentRequestUtils.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 /* PaymentResponseData */
 
@@ -417,5 +417,4 @@ BasicCardMethodChangeDetails::InitData(nsIPaymentAddress* aBillingAddress) {
   return NS_OK;
 }
 
-}  // end of namespace dom
-}  // end of namespace mozilla
+}  // namespace mozilla::dom

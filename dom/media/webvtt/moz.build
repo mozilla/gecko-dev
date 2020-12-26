@@ -4,23 +4,49 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-XPIDL_SOURCES += [
-  'nsIWebVTTListener.idl',
-  'nsIWebVTTParserWrapper.idl',
+EXPORTS.mozilla.dom += [
+    "TextTrack.h",
+    "TextTrackCue.h",
+    "TextTrackCueList.h",
+    "TextTrackList.h",
+    "TextTrackRegion.h",
+    "WebVTTListener.h",
 ]
 
-XPIDL_MODULE = 'webvtt'
+UNIFIED_SOURCES += [
+    "TextTrack.cpp",
+    "TextTrackCue.cpp",
+    "TextTrackCueList.cpp",
+    "TextTrackList.cpp",
+    "TextTrackRegion.cpp",
+    "WebVTTListener.cpp",
+]
+
+XPIDL_SOURCES += [
+    "nsIWebVTTListener.idl",
+    "nsIWebVTTParserWrapper.idl",
+]
+
+XPIDL_MODULE = "webvtt"
 
 EXTRA_JS_MODULES += [
-  'WebVTTParserWrapper.jsm',
+    "WebVTTParserWrapper.jsm",
 ]
 
 XPCOM_MANIFESTS += [
-  'components.conf',
+    "components.conf",
 ]
 
 EXTRA_JS_MODULES += [
-  'vtt.jsm',
+    "vtt.jsm",
 ]
 
-XPCSHELL_TESTS_MANIFESTS += ['tests/xpcshell.ini']
+XPCSHELL_TESTS_MANIFESTS += ["test/xpcshell/xpcshell.ini"]
+
+MOCHITEST_MANIFESTS += ["test/mochitest/mochitest.ini"]
+
+REFTEST_MANIFESTS += ["test/reftest/reftest.list"]
+
+CRASHTEST_MANIFESTS += ["test/crashtests/crashtests.list"]
+
+FINAL_LIBRARY = "xul"

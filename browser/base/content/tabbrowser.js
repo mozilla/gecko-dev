@@ -1989,6 +1989,11 @@
       if (!Services.appinfo.sessionHistoryInParent) {
         b.prepareToChangeRemoteness = () =>
           SessionStore.prepareToChangeRemoteness(b);
+        b.afterChangeRemoteness = switchId => {
+          let tab = this.getTabForBrowser(b);
+          SessionStore.finishTabRemotenessChange(tab, switchId);
+          return true;
+        };
       }
 
       const defaultBrowserAttributes = {
@@ -2482,6 +2487,10 @@
         );
       }
 
+      if (!UserInteraction.running("browser.tabs.opening", window)) {
+        UserInteraction.start("browser.tabs.opening", "initting", window);
+      }
+
       // Don't use document.l10n.setAttributes because the FTL file is loaded
       // lazily and we won't be able to resolve the string.
       document
@@ -2579,6 +2588,7 @@
       this.tabContainer._unlockTabSizing();
 
       if (!animate) {
+        UserInteraction.update("browser.tabs.opening", "not-animated", window);
         t.setAttribute("fadein", "true");
 
         // Call _handleNewTab asynchronously as it needs to know if the
@@ -2590,6 +2600,8 @@
           0,
           this.tabContainer
         );
+      } else {
+        UserInteraction.update("browser.tabs.opening", "animated", window);
       }
 
       let usingPreloadedContent = false;
@@ -3308,6 +3320,10 @@
         prewarmed,
       } = {}
     ) {
+      if (UserInteraction.running("browser.tabs.opening", window)) {
+        UserInteraction.finish("browser.tabs.opening", window);
+      }
+
       // Telemetry stopwatches may already be running if removeTab gets
       // called again for an already closing tab.
       if (
@@ -5790,11 +5806,6 @@
           this.setSuccessor(predecessor, aOtherTab);
         }
       }
-    },
-
-    finishBrowserRemotenessChange(aBrowser, aSwitchId) {
-      let tab = this.getTabForBrowser(aBrowser);
-      SessionStore.finishTabRemotenessChange(tab, aSwitchId);
     },
   };
 

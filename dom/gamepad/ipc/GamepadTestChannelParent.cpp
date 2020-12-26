@@ -7,10 +7,10 @@
 #include "GamepadTestChannelParent.h"
 
 #include "mozilla/dom/GamepadPlatformService.h"
+#include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/Unused.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 already_AddRefed<GamepadTestChannelParent> GamepadTestChannelParent::Create() {
   return RefPtr<GamepadTestChannelParent>(new GamepadTestChannelParent())
@@ -18,7 +18,7 @@ already_AddRefed<GamepadTestChannelParent> GamepadTestChannelParent::Create() {
 }
 
 GamepadTestChannelParent::GamepadTestChannelParent() {
-  AssertIsOnBackgroundThread();
+  ::mozilla::ipc::AssertIsOnBackgroundThread();
   RefPtr<GamepadPlatformService> service =
       GamepadPlatformService::GetParentService();
   MOZ_ASSERT(service);
@@ -27,7 +27,7 @@ GamepadTestChannelParent::GamepadTestChannelParent() {
 }
 
 GamepadTestChannelParent::~GamepadTestChannelParent() {
-  AssertIsOnBackgroundThread();
+  ::mozilla::ipc::AssertIsOnBackgroundThread();
   RefPtr<GamepadPlatformService> service =
       GamepadPlatformService::GetParentService();
   MOZ_ASSERT(service);
@@ -125,5 +125,4 @@ mozilla::ipc::IPCResult GamepadTestChannelParent::RecvGamepadTestEvent(
   return IPC_FAIL_NO_REASON(this);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

@@ -538,12 +538,8 @@ nsresult HTMLEditor::HTMLWithContextInserter::Run(
 
   // Are there any table elements in the list?
   // check for table cell selection mode
-  bool cellSelectionMode = false;
-  RefPtr<Element> cellElement =
-      mHTMLEditor.GetFirstSelectedTableCellElement(ignoredError);
-  if (cellElement) {
-    cellSelectionMode = true;
-  }
+  bool cellSelectionMode =
+      HTMLEditUtils::IsInTableCellSelectionMode(*mHTMLEditor.SelectionRefPtr());
 
   if (cellSelectionMode) {
     // do we have table content to paste?  If so, we want to delete
@@ -2288,8 +2284,13 @@ nsresult HTMLEditor::PasteAsQuotationAsAction(int32_t aClipboardType,
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  if (aDispatchPasteEvent && !FireClipboardEvent(ePaste, aClipboardType)) {
-    return EditorBase::ToGenericNSResult(NS_ERROR_EDITOR_ACTION_CANCELED);
+  if (aDispatchPasteEvent) {
+    if (!FireClipboardEvent(ePaste, aClipboardType)) {
+      return EditorBase::ToGenericNSResult(NS_ERROR_EDITOR_ACTION_CANCELED);
+    }
+  } else {
+    // The caller must already have dispatched a "paste" event.
+    editActionData.NotifyOfDispatchingClipboardEvent();
   }
 
   nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();

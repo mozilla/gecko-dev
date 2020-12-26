@@ -644,8 +644,8 @@ class nsDocShell final : public nsDocLoader,
       bool aReplace, const mozilla::Maybe<nsPoint>& aPreviousScrollPos,
       nsIURI* aURI, nsIURI* aOriginalURI, nsIPrincipal* aTriggeringPrincipal,
       nsIContentSecurityPolicy* aCsp, const nsAString& aTitle,
-      const mozilla::Maybe<bool>& aScrollRestorationIsManual,
-      nsIStructuredCloneContainer* aData, bool aURIWasModified);
+      bool aScrollRestorationIsManual, nsIStructuredCloneContainer* aData,
+      bool aURIWasModified);
 
   nsresult AddChildSHEntry(nsISHEntry* aCloneRef, nsISHEntry* aNewEntry,
                            int32_t aChildOffset, uint32_t aLoadType,
@@ -1238,10 +1238,6 @@ class nsDocShell final : public nsDocLoader,
   // A depth count of how many times NotifyRunToCompletionStart
   // has been called without a matching NotifyRunToCompletionStop.
   uint32_t mJSRunToCompletionDepth;
-
-  // Whether or not touch events are overridden. Possible values are defined
-  // as constants in the nsIDocShell.idl file.
-  TouchEventsOverride mTouchEventsOverride;
 
   // Whether or not handling of the <meta name="viewport"> tag is overridden.
   // Possible values are defined as constants in nsIDocShell.idl.

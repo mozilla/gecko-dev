@@ -5,6 +5,7 @@
 PKT_SIGNUP_OVERLAY is the view itself and contains all of the methods to manipute the overlay and messaging.
 It does not contain any logic for saving or communication with the extension or server.
 */
+
 var PKT_SIGNUP_OVERLAY = function(options) {
   var myself = this;
   this.inited = false;
@@ -23,15 +24,48 @@ var PKT_SIGNUP_OVERLAY = function(options) {
   this.controlvariant;
   this.pockethost = "getpocket.com";
   this.fxasignedin = false;
+  this.loggedOutVariant = "control";
   this.dictJSON = {};
   this.initCloseTabEvents = function() {
-    $(".btn,.pkt_ext_learnmore,.alreadyhave > a").click(function(e) {
+    function clickHelper(e, linkData) {
       e.preventDefault();
       thePKT_SIGNUP.sendMessage("openTabWithUrl", {
-        url: $(this).attr("href"),
+        url: linkData.url,
         activate: true,
+        source: linkData.source || "",
       });
       myself.closePopup();
+    }
+    $(".pkt_ext_learnmore").click(function(e) {
+      clickHelper(e, {
+        source: "learn_more",
+        url: $(this).attr("href"),
+      });
+    });
+    $(".signup-btn-firefox").click(function(e) {
+      clickHelper(e, {
+        source: "sign_up_1",
+        url: $(this).attr("href"),
+      });
+    });
+    $(".signup-btn-email").click(function(e) {
+      clickHelper(e, {
+        source: "sign_up_2",
+        url: $(this).attr("href"),
+      });
+    });
+    $(".pkt_ext_login").click(function(e) {
+      clickHelper(e, {
+        source: "log_in",
+        url: $(this).attr("href"),
+      });
+    });
+    // A generic click we don't do anything special for.
+    // Was used for an experiment, possibly not needed anymore.
+    $(".signup-btn-tryitnow").click(function(e) {
+      clickHelper(e, {
+        url: $(this).attr("href"),
+      });
     });
   };
   this.closePopup = function() {
@@ -68,6 +102,12 @@ PKT_SIGNUP_OVERLAY.prototype = {
     var variant = window.location.href.match(/variant=([\w|\.]*)&?/);
     if (variant && variant.length > 1) {
       this.variant = variant[1];
+    }
+    var loggedOutVariant = window.location.href.match(
+      /loggedOutVariant=([\w|\.]*)&?/
+    );
+    if (loggedOutVariant && loggedOutVariant.length > 1) {
+      this.loggedOutVariant = loggedOutVariant[1];
     }
     var fxasignedin = window.location.href.match(/fxasignedin=([\w|\d|\.]*)&?/);
     if (fxasignedin && fxasignedin.length > 1) {
@@ -116,8 +156,24 @@ PKT_SIGNUP_OVERLAY.prototype = {
     if (this.variant == "overflow") {
       $("body").append(Handlebars.templates.signup_shell(this.dictJSON));
     } else {
+      // Logged Out Display Variants for MV Testing
+      let variants = {
+        control: "signupstoryboard_shell",
+        variant_a: "variant_a",
+        variant_b: "variant_b",
+        variant_c: "variant_c",
+      };
+
+      if (this.loggedOutVariant !== `control`) {
+        $("body").addClass(`
+          los_variant los_${variants[this.loggedOutVariant]}
+        `);
+      }
+
       $("body").append(
-        Handlebars.templates.signupstoryboard_shell(this.dictJSON)
+        Handlebars.templates[
+          variants[this.loggedOutVariant] || variants.control
+        ](this.dictJSON)
       );
     }
 

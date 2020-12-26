@@ -127,26 +127,58 @@ struct ScopeNote {
 //   function * foo(a, b) { return a + b; }
 //   ^             ^                       ^
 //   |             |                       |
-//   |             sourceStart             sourceEnd
+//   |             sourceStart     sourceEnd
 //   |                                     |
-//   toStringStart                         toStringEnd
+//   toStringStart               toStringEnd
 //
 // For the special case of class constructors, the spec requires us to use an
 // alternate definition of toStringStart / toStringEnd.
 //
 //   class C { constructor() { this.field = 42; } }
 //   ^                    ^                      ^ ^
-//   |                    |                      | `---------`
-//   |                    sourceStart            sourceEnd   |
-//   |                                                       |
-//   toStringStart                                           toStringEnd
+//   |                    |                      | |
+//   |                    sourceStart    sourceEnd |
+//   |                                             |
+//   toStringStart                       toStringEnd
+//
+// Implicit class constructors use the following definitions.
+//
+//   class C { someMethod() { } }
+//   ^                           ^
+//   |                           |
+//   sourceStart         sourceEnd
+//   |                           |
+//   toStringStart     toStringEnd
+//
+// Field initializer lambdas are internal details of the engine, but we still
+// provide a sensible definition of these values.
+//
+//   class C { static field = 1 }
+//   class C {        field = 1 }
+//   class C {        somefield }
+//                    ^        ^
+//                    |        |
+//          sourceStart        sourceEnd
+//
+// The non-static private class methods (including getters and setters) ALSO
+// create a hidden initializer lambda in addition to the method itself. These
+// lambdas are not exposed directly to script.
+//
+//   class C { #field() {       } }
+//   class C { get #field() {   } }
+//   class C { async #field() { } }
+//   class C { * #field() {     } }
+//             ^                 ^
+//             |                 |
+//             sourceStart       sourceEnd
 //
 // NOTE: These are counted in Code Units from the start of the script source.
 //
 // Also included in the SourceExtent is the line and column numbers of the
-// sourceStart position. In most cases this is derived from the source text,
-// however in the case of dynamic functions it may be overriden by the
-// compilation options.
+// sourceStart position. Compilation options may specify the initial line and
+// column number.
+//
+// NOTE: Column number may saturate and must not be used as unique identifier.
 struct SourceExtent {
   SourceExtent() = default;
 
@@ -539,6 +571,7 @@ class SharedImmutableScriptData {
                               RefPtr<SharedImmutableScriptData>& sisd);
 
   size_t immutableDataLength() const { return isd_->immutableData().Length(); }
+  uint32_t nfixed() const { return isd_->nfixed; }
 };
 
 // Matches SharedImmutableScriptData objects that have the same atoms as well as

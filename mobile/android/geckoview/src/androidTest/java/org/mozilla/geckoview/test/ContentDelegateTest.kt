@@ -111,9 +111,6 @@ class ContentDelegateTest : BaseSessionTest() {
 
     @IgnoreCrash
     @Test fun crashContent() {
-        // This test doesn't make sense without multiprocess
-        assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-
         mainSession.loadUri(CONTENT_CRASH_URL)
         mainSession.waitUntilCalled(object : Callbacks.ContentDelegate {
             @AssertCalled(count = 1)
@@ -137,9 +134,6 @@ class ContentDelegateTest : BaseSessionTest() {
     @IgnoreCrash
     @WithDisplay(width = 10, height = 10)
     @Test fun crashContent_tapAfterCrash() {
-        // This test doesn't make sense without multiprocess
-        assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-
         mainSession.delegateUntilTestEnd(object : Callbacks.ContentDelegate {
             override fun onCrash(session: GeckoSession) {
                 mainSession.open()
@@ -170,8 +164,6 @@ class ContentDelegateTest : BaseSessionTest() {
 
     @IgnoreCrash
     @Test fun killContent() {
-        assumeThat(sessionRule.env.isMultiprocess, equalTo(true))
-
         killAllContentProcesses()
         mainSession.waitUntilCalled(object : Callbacks.ContentDelegate {
             @AssertCalled(count = 1)
@@ -256,22 +248,6 @@ class ContentDelegateTest : BaseSessionTest() {
         sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
             @AssertCalled(count = 1)
             override fun onFirstContentfulPaint(session: GeckoSession) {
-            }
-        })
-    }
-
-    @WithDisplay(width = 10, height = 10)
-    @Test fun paintStatusReset() {
-        mainSession.loadTestPath(HELLO_HTML_PATH)
-        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
-            @AssertCalled(count = 1)
-            override fun onFirstContentfulPaint(session: GeckoSession) {
-            }
-        })
-        mainSession.setActive(false)
-        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate {
-            @AssertCalled(count = 1)
-            override fun onPaintStatusReset(session: GeckoSession) {
             }
         })
     }

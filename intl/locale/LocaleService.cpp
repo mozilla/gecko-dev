@@ -147,20 +147,24 @@ LocaleService* LocaleService::GetInstance() {
           mozilla::services::GetObserverService();
       if (obs) {
         obs->AddObserver(sInstance, INTL_SYSTEM_LOCALES_CHANGED, true);
+        obs->AddObserver(sInstance, NS_XPCOM_SHUTDOWN_OBSERVER_ID, true);
       }
     }
-    ClearOnShutdown(&sInstance, ShutdownPhase::Shutdown);
+    // DOM might use ICUUtils and LocaleService during UnbindFromTree by
+    // final cycle collection.
+    ClearOnShutdown(&sInstance, ShutdownPhase::ShutdownPostLastCycleCollection);
   }
   return sInstance;
 }
 
-LocaleService::~LocaleService() {
+void LocaleService::RemoveObservers() {
   if (mIsServer) {
     Preferences::RemoveObservers(this, kObservedPrefs);
 
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
       obs->RemoveObserver(this, INTL_SYSTEM_LOCALES_CHANGED);
+      obs->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID);
     }
   }
 }
@@ -235,6 +239,10 @@ void LocaleService::LocalesChanged() {
 }
 
 bool LocaleService::IsLocaleRTL(const nsACString& aLocale) {
+  return unic_langid_is_rtl(&aLocale);
+}
+
+bool LocaleService::IsAppLocaleRTL() {
   // First, let's check if there's a manual override
   // preference for directionality set.
   int pref = Preferences::GetInt("intl.uidirection", -1);
@@ -242,11 +250,7 @@ bool LocaleService::IsLocaleRTL(const nsACString& aLocale) {
     return (pref > 0);
   }
 
-  return unic_langid_is_rtl(&aLocale);
-}
-
-bool LocaleService::IsAppLocaleRTL() {
-  // First, check if there is a pseudo locale `bidi` set.
+  // Next, check if there is a pseudo locale `bidi` set.
   nsAutoCString pseudoLocale;
   if (NS_SUCCEEDED(Preferences::GetCString("intl.l10n.pseudo", pseudoLocale))) {
     if (pseudoLocale.EqualsLiteral("bidi")) {
@@ -270,6 +274,8 @@ LocaleService::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp(aTopic, INTL_SYSTEM_LOCALES_CHANGED)) {
     RequestedLocalesChanged();
     WebExposedLocalesChanged();
+  } else if (!strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
+    RemoveObservers();
   } else {
     NS_ConvertUTF16toUTF8 pref(aData);
     // At the moment the only thing we're observing are settings indicating

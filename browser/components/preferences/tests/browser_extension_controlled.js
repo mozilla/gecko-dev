@@ -639,139 +639,6 @@ add_task(async function testExtensionControlledWebNotificationsPermission() {
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
-add_task(async function testExtensionControlledDefaultSearch() {
-  await openPreferencesViaOpenPreferencesAPI("paneSearch", { leaveOpen: true });
-  let doc = gBrowser.contentDocument;
-  let extensionId = "@set_default_search";
-  let manifest = {
-    manifest_version: 2,
-    name: "set_default_search",
-    applications: { gecko: { id: extensionId } },
-    description: "set_default_search description",
-    permissions: [],
-    chrome_settings_overrides: {
-      search_provider: {
-        name: "DuckDuckGo",
-        search_url: "https://duckduckgo.com/?q={searchTerms}",
-        is_default: true,
-      },
-    },
-  };
-
-  // This test is comparing nsISearchEngines by reference, so we need to initialize
-  // the SearchService here.
-  await Services.search.init();
-
-  function setEngine(engine) {
-    doc
-      .querySelector(`#defaultEngine menuitem[label="${engine.name}"]`)
-      .doCommand();
-  }
-
-  is(
-    gBrowser.currentURI.spec,
-    "about:preferences#search",
-    "#search should be in the URI for about:preferences"
-  );
-
-  let controlledContent = doc.getElementById(
-    "browserDefaultSearchExtensionContent"
-  );
-  let initialEngine = Services.search.defaultEngine;
-
-  // Ensure the controlled content is hidden when not controlled.
-  is(controlledContent.hidden, true, "The extension controlled row is hidden");
-
-  // Install an extension that will set the default search engine.
-  let originalExtension = ExtensionTestUtils.loadExtension({
-    useAddonManager: "permanent",
-    manifest: Object.assign({}, manifest, { version: "1.0" }),
-  });
-
-  let messageShown = waitForMessageShown(
-    "browserDefaultSearchExtensionContent"
-  );
-  await originalExtension.startup();
-  await AddonTestUtils.waitForSearchProviderStartup(originalExtension);
-  await messageShown;
-
-  let addon = await AddonManager.getAddonByID(extensionId);
-  is(addon.version, "1.0", "The addon has the expected version.");
-
-  // The default search engine has been set by the extension and the user is notified.
-  let controlledLabel = controlledContent.querySelector("description");
-  let extensionEngine = Services.search.defaultEngine;
-  ok(initialEngine != extensionEngine, "The default engine has changed.");
-  Assert.deepEqual(
-    doc.l10n.getAttributes(controlledLabel),
-    {
-      id: "extension-controlled-default-search",
-      args: {
-        name: "set_default_search",
-      },
-    },
-    "The user is notified that an extension is controlling the default search engine"
-  );
-  is(controlledContent.hidden, false, "The extension controlled row is shown");
-
-  // Set the engine back to the initial one, ensure the message is hidden.
-  setEngine(initialEngine);
-  await waitForMessageHidden(controlledContent.id);
-
-  is(
-    initialEngine,
-    Services.search.defaultEngine,
-    "default search engine is set back to default"
-  );
-  is(controlledContent.hidden, true, "The extension controlled row is hidden");
-
-  // Setting the engine back to the extension's engine does not show the message.
-  setEngine(extensionEngine);
-  // Wait a tick for the Search Service's promises to resolve.
-  await new Promise(resolve => executeSoon(resolve));
-
-  is(
-    extensionEngine,
-    Services.search.defaultEngine,
-    "default search engine is set back to extension"
-  );
-  is(
-    controlledContent.hidden,
-    true,
-    "The extension controlled row is still hidden"
-  );
-
-  // Set the engine to the initial one and verify an upgrade doesn't change it.
-  setEngine(initialEngine);
-  await waitForMessageHidden(controlledContent.id);
-
-  // Update the extension and wait for "ready".
-  let updatedExtension = ExtensionTestUtils.loadExtension({
-    useAddonManager: "permanent",
-    manifest: Object.assign({}, manifest, { version: "2.0" }),
-  });
-  await updatedExtension.startup();
-  await AddonTestUtils.waitForSearchProviderStartup(updatedExtension);
-  addon = await AddonManager.getAddonByID(extensionId);
-
-  // Verify the extension is updated and search engine didn't change.
-  is(addon.version, "2.0", "The updated addon has the expected version");
-  is(
-    controlledContent.hidden,
-    true,
-    "The extension controlled row is hidden after update"
-  );
-  is(
-    initialEngine,
-    Services.search.defaultEngine,
-    "default search engine is still the initial engine after update"
-  );
-
-  await originalExtension.unload();
-  await updatedExtension.unload();
-  BrowserTestUtils.removeTab(gBrowser.selectedTab);
-});
-
 add_task(async function testExtensionControlledHomepageUninstalledAddon() {
   async function checkHomepageEnabled() {
     await openPreferencesViaOpenPreferencesAPI("paneHome", { leaveOpen: true });
@@ -828,8 +695,9 @@ add_task(async function testExtensionControlledHomepageUninstalledAddon() {
     },
   };
   let jsonFileName = "extension-settings.json";
-  let storePath = OS.Path.join(OS.Constants.Path.profileDir, jsonFileName);
-  await OS.File.writeAtomic(storePath, JSON.stringify(storeData));
+  let storePath = PathUtils.join(await PathUtils.getProfileDir(), jsonFileName);
+
+  await IOUtils.writeAtomicUTF8(storePath, JSON.stringify(storeData));
 
   // Reload the ExtensionSettingsStore so it will read the file on disk. Don't
   // finalize the current store since it will overwrite our file.
@@ -845,7 +713,7 @@ add_task(async function testExtensionControlledHomepageUninstalledAddon() {
   await checkHomepageEnabled();
 
   // Remove the bad store file that we used.
-  await OS.File.remove(storePath);
+  await IOUtils.remove(storePath);
 
   // Reload the ExtensionSettingsStore again so it clears the data we added.
   // Don't finalize the current store since it will write out the bad data.

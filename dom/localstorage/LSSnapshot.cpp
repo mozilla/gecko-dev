@@ -4,17 +4,49 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "LSSnapshot.h"
+#include "mozilla/dom/LSSnapshot.h"
 
+// Local includes
 #include "ActorsChild.h"
-#include "LocalStorageCommon.h"
 #include "LSDatabase.h"
+#include "LSWriteOptimizer.h"
 #include "LSWriteOptimizerImpl.h"
-#include "mozilla/dom/PBackgroundLSSnapshot.h"
-#include "nsContentUtils.h"
+#include "LocalStorageCommon.h"
 
-namespace mozilla {
-namespace dom {
+// Global includes
+#include <cstdint>
+#include <cstdlib>
+#include <new>
+#include <type_traits>
+#include <utility>
+#include "ErrorList.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/MacroForEach.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/ScopeExit.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/LSValue.h"
+#include "mozilla/dom/PBackgroundLSDatabase.h"
+#include "mozilla/dom/PBackgroundLSSharedTypes.h"
+#include "mozilla/dom/PBackgroundLSSnapshot.h"
+#include "nsBaseHashtable.h"
+#include "nsCOMPtr.h"
+#include "nsContentUtils.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsITimer.h"
+#include "nsString.h"
+#include "nsStringFlags.h"
+#include "nsStringFwd.h"
+#include "nsTArray.h"
+#include "nsTHashtable.h"
+#include "nsTStringRepr.h"
+#include "nscore.h"
+
+namespace mozilla::dom {
 
 namespace {
 
@@ -987,5 +1019,4 @@ LSSnapshot::Run() {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

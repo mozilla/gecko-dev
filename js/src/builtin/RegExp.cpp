@@ -13,6 +13,7 @@
 #include "frontend/TokenStream.h"
 #include "irregexp/RegExpAPI.h"
 #include "jit/InlinableNatives.h"
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_NEWREGEXP_FLAGGED
 #include "js/PropertySpec.h"
 #include "js/RegExpFlags.h"  // JS::RegExpFlag, JS::RegExpFlags
 #include "util/StringBuffer.h"
@@ -329,7 +330,7 @@ static bool RegExpInitializeIgnoringLastIndex(JSContext* cx,
   /* Steps 9-12. */
   obj->initIgnoringLastIndex(pattern, flags);
 
-  obj->setShared(*shared);
+  obj->setShared(shared);
 
   return true;
 }
@@ -579,7 +580,7 @@ bool js::regexp_construct(JSContext* cx, unsigned argc, Value* vp) {
     regexp->initAndZeroLastIndex(sourceAtom, flags, cx);
 
     if (shared) {
-      regexp->setShared(*shared);
+      regexp->setShared(shared);
     }
 
     args.rval().setObject(*regexp);

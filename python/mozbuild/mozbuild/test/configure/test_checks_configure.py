@@ -4,6 +4,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from mock import patch
 from six import StringIO
 import os
 import sys
@@ -37,41 +38,51 @@ class TestChecksConfigure(unittest.TestCase):
             def test(val, msg):
                 out = StringIO()
                 sandbox = ConfigureSandbox({}, stdout=out, stderr=out)
-                base_dir = os.path.join(topsrcdir, 'build', 'moz.configure')
-                sandbox.include_file(os.path.join(base_dir, 'checks.configure'))
+                base_dir = os.path.join(topsrcdir, "build", "moz.configure")
+                sandbox.include_file(os.path.join(base_dir, "checks.configure"))
                 exec_(to_exec, sandbox)
-                sandbox['foo'](val)
+                sandbox["foo"](val)
                 self.assertEqual(out.getvalue(), msg)
 
             return test
 
-        test = make_test(textwrap.dedent('''
+        test = make_test(
+            textwrap.dedent(
+                """
             @checking('for a thing')
             def foo(value):
                 return value
-        '''))
-        test(True, 'checking for a thing... yes\n')
-        test(False, 'checking for a thing... no\n')
-        test(42, 'checking for a thing... 42\n')
-        test('foo', 'checking for a thing... foo\n')
-        data = ['foo', 'bar']
-        test(data, 'checking for a thing... %r\n' % data)
+        """
+            )
+        )
+        test(True, "checking for a thing... yes\n")
+        test(False, "checking for a thing... no\n")
+        test(42, "checking for a thing... 42\n")
+        test("foo", "checking for a thing... foo\n")
+        data = ["foo", "bar"]
+        test(data, "checking for a thing... %r\n" % data)
 
         # When the function given to checking does nothing interesting, the
         # behavior is not altered
-        test = make_test(textwrap.dedent('''
+        test = make_test(
+            textwrap.dedent(
+                """
             @checking('for a thing', lambda x: x)
             def foo(value):
                 return value
-        '''))
-        test(True, 'checking for a thing... yes\n')
-        test(False, 'checking for a thing... no\n')
-        test(42, 'checking for a thing... 42\n')
-        test('foo', 'checking for a thing... foo\n')
-        data = ['foo', 'bar']
-        test(data, 'checking for a thing... %r\n' % data)
+        """
+            )
+        )
+        test(True, "checking for a thing... yes\n")
+        test(False, "checking for a thing... no\n")
+        test(42, "checking for a thing... 42\n")
+        test("foo", "checking for a thing... foo\n")
+        data = ["foo", "bar"]
+        test(data, "checking for a thing... %r\n" % data)
 
-        test = make_test(textwrap.dedent('''
+        test = make_test(
+            textwrap.dedent(
+                """
             def munge(x):
                 if not x:
                     return 'not found'
@@ -82,22 +93,30 @@ class TestChecksConfigure(unittest.TestCase):
             @checking('for a thing', munge)
             def foo(value):
                 return value
-        '''))
-        test(True, 'checking for a thing... yes\n')
-        test(False, 'checking for a thing... not found\n')
-        test(42, 'checking for a thing... 42\n')
-        test('foo', 'checking for a thing... foo\n')
-        data = ['foo', 'bar']
-        test(data, 'checking for a thing... foo bar\n')
+        """
+            )
+        )
+        test(True, "checking for a thing... yes\n")
+        test(False, "checking for a thing... not found\n")
+        test(42, "checking for a thing... 42\n")
+        test("foo", "checking for a thing... foo\n")
+        data = ["foo", "bar"]
+        test(data, "checking for a thing... foo bar\n")
 
-    KNOWN_A = ensure_exe_extension(mozpath.abspath('/usr/bin/known-a'))
-    KNOWN_B = ensure_exe_extension(mozpath.abspath('/usr/local/bin/known-b'))
-    KNOWN_C = ensure_exe_extension(mozpath.abspath('/home/user/bin/known c'))
-    OTHER_A = ensure_exe_extension(mozpath.abspath('/lib/other/known-a'))
+    KNOWN_A = ensure_exe_extension(mozpath.abspath("/usr/bin/known-a"))
+    KNOWN_B = ensure_exe_extension(mozpath.abspath("/usr/local/bin/known-b"))
+    KNOWN_C = ensure_exe_extension(mozpath.abspath("/home/user/bin/known c"))
+    OTHER_A = ensure_exe_extension(mozpath.abspath("/lib/other/known-a"))
 
-    def get_result(self, command='', args=[], environ={},
-                   prog='/bin/configure', extra_paths=None,
-                   includes=('util.configure', 'checks.configure')):
+    def get_result(
+        self,
+        command="",
+        args=[],
+        environ={},
+        prog="/bin/configure",
+        extra_paths=None,
+        includes=("util.configure", "checks.configure"),
+    ):
         config = {}
         out = StringIO()
         paths = {
@@ -108,12 +127,11 @@ class TestChecksConfigure(unittest.TestCase):
         if extra_paths:
             paths.update(extra_paths)
         environ = dict(environ)
-        if 'PATH' not in environ:
-            environ['PATH'] = os.pathsep.join(os.path.dirname(p) for p in paths)
+        if "PATH" not in environ:
+            environ["PATH"] = os.pathsep.join(os.path.dirname(p) for p in paths)
         paths[self.OTHER_A] = None
-        sandbox = ConfigureTestSandbox(paths, config, environ, [prog] + args,
-                                       out, out)
-        base_dir = os.path.join(topsrcdir, 'build', 'moz.configure')
+        sandbox = ConfigureTestSandbox(paths, config, environ, [prog] + args, out, out)
+        base_dir = os.path.join(topsrcdir, "build", "moz.configure")
         for f in includes:
             sandbox.include_file(os.path.join(base_dir, f))
 
@@ -127,182 +145,225 @@ class TestChecksConfigure(unittest.TestCase):
         return config, out.getvalue(), status
 
     def test_check_prog(self):
-        config, out, status = self.get_result(
-            'check_prog("FOO", ("known-a",))')
+        config, out, status = self.get_result('check_prog("FOO", ("known-a",))')
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': self.KNOWN_A})
-        self.assertEqual(out, 'checking for foo... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"FOO": self.KNOWN_A})
+        self.assertEqual(out, "checking for foo... %s\n" % self.KNOWN_A)
 
         config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown", "known-b", "known c"))')
+            'check_prog("FOO", ("unknown", "known-b", "known c"))'
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': self.KNOWN_B})
-        self.assertEqual(out, 'checking for foo... %s\n' % self.KNOWN_B)
+        self.assertEqual(config, {"FOO": self.KNOWN_B})
+        self.assertEqual(out, "checking for foo... %s\n" % self.KNOWN_B)
 
         config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown", "unknown-2", "known c"))')
+            'check_prog("FOO", ("unknown", "unknown-2", "known c"))'
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': fake_short_path(self.KNOWN_C)})
-        self.assertEqual(out, "checking for foo... %s\n"
-                              % shell_quote(fake_short_path(self.KNOWN_C)))
+        self.assertEqual(config, {"FOO": fake_short_path(self.KNOWN_C)})
+        self.assertEqual(
+            out, "checking for foo... %s\n" % shell_quote(fake_short_path(self.KNOWN_C))
+        )
 
-        config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown",))')
+        config, out, status = self.get_result('check_prog("FOO", ("unknown",))')
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for foo... not found
             DEBUG: foo: Trying unknown
             ERROR: Cannot find foo
-        '''))
+        """
+            ),
+        )
 
         config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown", "unknown-2", "unknown 3"))')
+            'check_prog("FOO", ("unknown", "unknown-2", "unknown 3"))'
+        )
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for foo... not found
             DEBUG: foo: Trying unknown
             DEBUG: foo: Trying unknown-2
             DEBUG: foo: Trying 'unknown 3'
             ERROR: Cannot find foo
-        '''))
+        """
+            ),
+        )
 
         config, out, status = self.get_result(
             'check_prog("FOO", ("unknown", "unknown-2", "unknown 3"), '
-            'allow_missing=True)')
+            "allow_missing=True)"
+        )
         self.assertEqual(status, 0)
         self.assertEqual(config, {})
-        self.assertEqual(out, 'checking for foo... not found\n')
+        self.assertEqual(out, "checking for foo... not found\n")
 
-    @unittest.skipIf(not sys.platform.startswith('win'), 'Windows-only test')
+    @unittest.skipIf(not sys.platform.startswith("win"), "Windows-only test")
     def test_check_prog_exe(self):
         config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown", "known-b", "known c"))',
-            ['FOO=known-a.exe'])
+            'check_prog("FOO", ("unknown", "known-b", "known c"))', ["FOO=known-a.exe"]
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': self.KNOWN_A})
-        self.assertEqual(out, 'checking for foo... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"FOO": self.KNOWN_A})
+        self.assertEqual(out, "checking for foo... %s\n" % self.KNOWN_A)
 
         config, out, status = self.get_result(
             'check_prog("FOO", ("unknown", "known-b", "known c"))',
-            ['FOO=%s' % os.path.splitext(self.KNOWN_A)[0]])
+            ["FOO=%s" % os.path.splitext(self.KNOWN_A)[0]],
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': self.KNOWN_A})
-        self.assertEqual(out, 'checking for foo... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"FOO": self.KNOWN_A})
+        self.assertEqual(out, "checking for foo... %s\n" % self.KNOWN_A)
 
     def test_check_prog_with_args(self):
         config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown", "known-b", "known c"))',
-            ['FOO=known-a'])
+            'check_prog("FOO", ("unknown", "known-b", "known c"))', ["FOO=known-a"]
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': self.KNOWN_A})
-        self.assertEqual(out, 'checking for foo... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"FOO": self.KNOWN_A})
+        self.assertEqual(out, "checking for foo... %s\n" % self.KNOWN_A)
 
         config, out, status = self.get_result(
             'check_prog("FOO", ("unknown", "known-b", "known c"))',
-            ['FOO=%s' % self.KNOWN_A])
+            ["FOO=%s" % self.KNOWN_A],
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': self.KNOWN_A})
-        self.assertEqual(out, 'checking for foo... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"FOO": self.KNOWN_A})
+        self.assertEqual(out, "checking for foo... %s\n" % self.KNOWN_A)
 
-        path = self.KNOWN_B.replace('known-b', 'known-a')
+        path = self.KNOWN_B.replace("known-b", "known-a")
         config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown", "known-b", "known c"))',
-            ['FOO=%s' % path])
+            'check_prog("FOO", ("unknown", "known-b", "known c"))', ["FOO=%s" % path]
+        )
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for foo... not found
             DEBUG: foo: Trying %s
             ERROR: Cannot find foo
-        ''') % path)
+        """
+            )
+            % path,
+        )
 
         config, out, status = self.get_result(
-            'check_prog("FOO", ("unknown",))',
-            ['FOO=known c'])
+            'check_prog("FOO", ("unknown",))', ["FOO=known c"]
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': fake_short_path(self.KNOWN_C)})
-        self.assertEqual(out, "checking for foo... %s\n"
-                              % shell_quote(fake_short_path(self.KNOWN_C)))
+        self.assertEqual(config, {"FOO": fake_short_path(self.KNOWN_C)})
+        self.assertEqual(
+            out, "checking for foo... %s\n" % shell_quote(fake_short_path(self.KNOWN_C))
+        )
 
         config, out, status = self.get_result(
             'check_prog("FOO", ("unknown", "unknown-2", "unknown 3"), '
-            'allow_missing=True)', ['FOO=unknown'])
+            "allow_missing=True)",
+            ["FOO=unknown"],
+        )
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for foo... not found
             DEBUG: foo: Trying unknown
             ERROR: Cannot find foo
-        '''))
+        """
+            ),
+        )
 
     def test_check_prog_what(self):
         config, out, status = self.get_result(
-            'check_prog("CC", ("known-a",), what="the target C compiler")')
+            'check_prog("CC", ("known-a",), what="the target C compiler")'
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'CC': self.KNOWN_A})
+        self.assertEqual(config, {"CC": self.KNOWN_A})
         self.assertEqual(
-            out, 'checking for the target C compiler... %s\n' % self.KNOWN_A)
+            out, "checking for the target C compiler... %s\n" % self.KNOWN_A
+        )
 
         config, out, status = self.get_result(
             'check_prog("CC", ("unknown", "unknown-2", "unknown 3"),'
-            '           what="the target C compiler")')
+            '           what="the target C compiler")'
+        )
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for the target C compiler... not found
             DEBUG: cc: Trying unknown
             DEBUG: cc: Trying unknown-2
             DEBUG: cc: Trying 'unknown 3'
             ERROR: Cannot find the target C compiler
-        '''))
+        """
+            ),
+        )
 
     def test_check_prog_input(self):
-        config, out, status = self.get_result(textwrap.dedent('''
+        config, out, status = self.get_result(
+            textwrap.dedent(
+                """
             option("--with-ccache", nargs=1, help="ccache")
             check_prog("CCACHE", ("known-a",), input="--with-ccache")
-        '''), ['--with-ccache=known-b'])
+        """
+            ),
+            ["--with-ccache=known-b"],
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'CCACHE': self.KNOWN_B})
-        self.assertEqual(out, 'checking for ccache... %s\n' % self.KNOWN_B)
+        self.assertEqual(config, {"CCACHE": self.KNOWN_B})
+        self.assertEqual(out, "checking for ccache... %s\n" % self.KNOWN_B)
 
-        script = textwrap.dedent('''
+        script = textwrap.dedent(
+            """
             option(env="CC", nargs=1, help="compiler")
             @depends("CC")
             def compiler(value):
                 return value[0].split()[0] if value else None
             check_prog("CC", ("known-a",), input=compiler)
-        ''')
+        """
+        )
         config, out, status = self.get_result(script)
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'CC': self.KNOWN_A})
-        self.assertEqual(out, 'checking for cc... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"CC": self.KNOWN_A})
+        self.assertEqual(out, "checking for cc... %s\n" % self.KNOWN_A)
 
-        config, out, status = self.get_result(script, ['CC=known-b'])
+        config, out, status = self.get_result(script, ["CC=known-b"])
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'CC': self.KNOWN_B})
-        self.assertEqual(out, 'checking for cc... %s\n' % self.KNOWN_B)
+        self.assertEqual(config, {"CC": self.KNOWN_B})
+        self.assertEqual(out, "checking for cc... %s\n" % self.KNOWN_B)
 
-        config, out, status = self.get_result(script, ['CC=known-b -m32'])
+        config, out, status = self.get_result(script, ["CC=known-b -m32"])
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'CC': self.KNOWN_B})
-        self.assertEqual(out, 'checking for cc... %s\n' % self.KNOWN_B)
+        self.assertEqual(config, {"CC": self.KNOWN_B})
+        self.assertEqual(out, "checking for cc... %s\n" % self.KNOWN_B)
 
     def test_check_prog_progs(self):
-        config, out, status = self.get_result(
-            'check_prog("FOO", ())')
+        config, out, status = self.get_result('check_prog("FOO", ())')
         self.assertEqual(status, 0)
         self.assertEqual(config, {})
-        self.assertEqual(out, '')
+        self.assertEqual(out, "")
 
-        config, out, status = self.get_result(
-            'check_prog("FOO", ())', ['FOO=known-a'])
+        config, out, status = self.get_result('check_prog("FOO", ())', ["FOO=known-a"])
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'FOO': self.KNOWN_A})
-        self.assertEqual(out, 'checking for foo... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"FOO": self.KNOWN_A})
+        self.assertEqual(out, "checking for foo... %s\n" % self.KNOWN_A)
 
-        script = textwrap.dedent('''
+        script = textwrap.dedent(
+            """
             option(env="TARGET", nargs=1, default="linux", help="target")
             @depends("TARGET")
             def compiler(value):
@@ -312,60 +373,73 @@ class TestChecksConfigure(unittest.TestCase):
                     if value[0] == "winnt":
                         return ("cl", "clang-cl")
             check_prog("CC", compiler)
-        ''')
+        """
+        )
         config, out, status = self.get_result(script)
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for cc... not found
             DEBUG: cc: Trying gcc
             DEBUG: cc: Trying clang
             ERROR: Cannot find cc
-        '''))
+        """
+            ),
+        )
 
-        config, out, status = self.get_result(script, ['TARGET=linux'])
+        config, out, status = self.get_result(script, ["TARGET=linux"])
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for cc... not found
             DEBUG: cc: Trying gcc
             DEBUG: cc: Trying clang
             ERROR: Cannot find cc
-        '''))
+        """
+            ),
+        )
 
-        config, out, status = self.get_result(script, ['TARGET=winnt'])
+        config, out, status = self.get_result(script, ["TARGET=winnt"])
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for cc... not found
             DEBUG: cc: Trying cl
             DEBUG: cc: Trying clang-cl
             ERROR: Cannot find cc
-        '''))
+        """
+            ),
+        )
 
-        config, out, status = self.get_result(script, ['TARGET=none'])
+        config, out, status = self.get_result(script, ["TARGET=none"])
         self.assertEqual(status, 0)
         self.assertEqual(config, {})
-        self.assertEqual(out, '')
+        self.assertEqual(out, "")
 
-        config, out, status = self.get_result(script, ['TARGET=winnt',
-                                                       'CC=known-a'])
+        config, out, status = self.get_result(script, ["TARGET=winnt", "CC=known-a"])
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'CC': self.KNOWN_A})
-        self.assertEqual(out, 'checking for cc... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"CC": self.KNOWN_A})
+        self.assertEqual(out, "checking for cc... %s\n" % self.KNOWN_A)
 
-        config, out, status = self.get_result(script, ['TARGET=none',
-                                                       'CC=known-a'])
+        config, out, status = self.get_result(script, ["TARGET=none", "CC=known-a"])
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'CC': self.KNOWN_A})
-        self.assertEqual(out, 'checking for cc... %s\n' % self.KNOWN_A)
+        self.assertEqual(config, {"CC": self.KNOWN_A})
+        self.assertEqual(out, "checking for cc... %s\n" % self.KNOWN_A)
 
     def test_check_prog_configure_error(self):
         with self.assertRaises(ConfigureError) as e:
             self.get_result('check_prog("FOO", "foo")')
 
-        self.assertEqual(str(e.exception),
-                         'progs must resolve to a list or tuple!')
+        self.assertEqual(str(e.exception), "progs must resolve to a list or tuple!")
 
         with self.assertRaises(ConfigureError) as e:
             self.get_result(
@@ -373,9 +447,11 @@ class TestChecksConfigure(unittest.TestCase):
                 'check_prog("FOO", ("known-a",), input=foo)'
             )
 
-        self.assertEqual(str(e.exception),
-                         'input must resolve to a tuple or a list with a '
-                         'single element, or a string')
+        self.assertEqual(
+            str(e.exception),
+            "input must resolve to a tuple or a list with a "
+            "single element, or a string",
+        )
 
         with self.assertRaises(ConfigureError) as e:
             self.get_result(
@@ -383,244 +459,350 @@ class TestChecksConfigure(unittest.TestCase):
                 'check_prog("FOO", ("known-a",), input=foo)'
             )
 
-        self.assertEqual(str(e.exception),
-                         'input must resolve to a tuple or a list with a '
-                         'single element, or a string')
+        self.assertEqual(
+            str(e.exception),
+            "input must resolve to a tuple or a list with a "
+            "single element, or a string",
+        )
 
     def test_check_prog_with_path(self):
         config, out, status = self.get_result(
-            'check_prog("A", ("known-a",), paths=["/some/path"])')
+            'check_prog("A", ("known-a",), paths=["/some/path"])'
+        )
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for a... not found
             DEBUG: a: Trying known-a
             ERROR: Cannot find a
-        '''))
+        """
+            ),
+        )
 
-        config, out, status = self.get_result('check_prog("A", ("known-a",), paths=["%s"])' %
-                                              os.path.dirname(self.OTHER_A))
+        config, out, status = self.get_result(
+            'check_prog("A", ("known-a",), paths=["%s"])'
+            % os.path.dirname(self.OTHER_A)
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'A': self.OTHER_A})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(config, {"A": self.OTHER_A})
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for a... %s
-        ''' % self.OTHER_A))
+        """
+                % self.OTHER_A
+            ),
+        )
 
         dirs = map(mozpath.dirname, (self.OTHER_A, self.KNOWN_A))
-        config, out, status = self.get_result(textwrap.dedent('''\
+        config, out, status = self.get_result(
+            textwrap.dedent(
+                """\
             check_prog("A", ("known-a",), paths=["%s"])
-        ''' % os.pathsep.join(dirs)))
+        """
+                % os.pathsep.join(dirs)
+            )
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'A': self.OTHER_A})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(config, {"A": self.OTHER_A})
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for a... %s
-        ''' % self.OTHER_A))
+        """
+                % self.OTHER_A
+            ),
+        )
 
         dirs = map(mozpath.dirname, (self.KNOWN_A, self.KNOWN_B))
-        config, out, status = self.get_result(textwrap.dedent('''\
+        config, out, status = self.get_result(
+            textwrap.dedent(
+                """\
             check_prog("A", ("known-a",), paths=["%s", "%s"])
-        ''' % (os.pathsep.join(dirs), self.OTHER_A)))
+        """
+                % (os.pathsep.join(dirs), self.OTHER_A)
+            )
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {'A': self.KNOWN_A})
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(config, {"A": self.KNOWN_A})
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
             checking for a... %s
-        ''' % self.KNOWN_A))
+        """
+                % self.KNOWN_A
+            ),
+        )
 
-        config, out, status = self.get_result('check_prog("A", ("known-a",), paths="%s")' %
-                                              os.path.dirname(self.OTHER_A))
+        config, out, status = self.get_result(
+            'check_prog("A", ("known-a",), paths="%s")' % os.path.dirname(self.OTHER_A)
+        )
 
         self.assertEqual(status, 1)
         self.assertEqual(config, {})
-        self.assertEqual(out, textwrap.dedent('''\
-            checking for a... '''  # noqa  # trailing whitespace...
-                '''
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
+            checking for a... """  # noqa  # trailing whitespace...
+                """
             DEBUG: a: Trying known-a
             ERROR: Paths provided to find_program must be a list of strings, not %r
-        ''' % mozpath.dirname(self.OTHER_A)))
+        """
+                % mozpath.dirname(self.OTHER_A)
+            ),
+        )
 
-    def test_java_tool_checks(self):
-        # A valid set of tools in a standard location.
-        java = mozpath.abspath('/usr/bin/java')
-        jarsigner = mozpath.abspath('/usr/bin/jarsigner')
-        keytool = mozpath.abspath('/usr/bin/keytool')
+    @unittest.skipIf(
+        not sys.platform.startswith("linux"),
+        "Linux-only test, assumes Java is located from a $PATH",
+    )
+    def test_java_tool_checks_linux(self):
+        def run_configure_java(
+            mock_fs_paths, mock_java_home=None, mock_path=None, args=[]
+        ):
+            script = textwrap.dedent(
+                """\
+                    @depends('--help')
+                    def host(_):
+                        return namespace(os='unknown')
+                    include('%(topsrcdir)s/build/moz.configure/java.configure')
+                """
+                % {"topsrcdir": topsrcdir}
+            )
 
-        paths = {
-            java: None,
-            jarsigner: None,
-            keytool: None,
-        }
+            def mock_which(exe, path=None):
+                for mock_fs_path in mock_fs_paths.keys():
+                    (base, filename) = os.path.split(mock_fs_path)
+                    if filename == exe:
+                        if path and os.path.normpath(base) != os.path.normpath(path):
+                            continue
+                        return mock_fs_path
 
-        script = textwrap.dedent('''\
-                @depends('--help')
-                def host(_):
-                    return namespace(os='unknown')
-                include('%(topsrcdir)s/build/moz.configure/java.configure')
-            ''' % {'topsrcdir': topsrcdir})
+            # Don't let system JAVA_HOME influence the test
+            original_java_home = os.environ.pop("JAVA_HOME", None)
+            configure_environ = {}
 
-        config, out, status = self.get_result(command=script, extra_paths=paths)
+            if mock_java_home:
+                os.environ["JAVA_HOME"] = mock_java_home
+                configure_environ["JAVA_HOME"] = mock_java_home
+
+            if mock_path:
+                configure_environ["PATH"] = mock_path
+
+            # * Don't attempt to invoke Java, just resolve each mock Java's version as "1.8"
+            # * Even if the real file sysphabtem has a symlink at the mocked path, don't let
+            #   realpath follow it, as it may influence the test.
+            # * When finding a binary, check the mock paths rather than the real filesystem.
+            # Note: Python doesn't allow the different "with" bits to be put in parenthesis,
+            # because then it thinks it's an un-with-able tuple. Additionally, if this is cleanly
+            # lined up with "\", black removes them and autoformats them to the block that is
+            # below.
+            with patch("mozboot.util._resolve_java_version", return_value="1.8"), patch(
+                "os.path.realpath", side_effect=lambda path: path
+            ), patch("mozboot.util.which", side_effect=mock_which):
+                result = self.get_result(
+                    args=args,
+                    command=script,
+                    extra_paths=paths,
+                    environ=configure_environ,
+                )
+
+            if original_java_home:
+                os.environ["JAVA_HOME"] = original_java_home
+            return result
+
+        java = mozpath.abspath("/usr/bin/java")
+        javac = mozpath.abspath("/usr/bin/javac")
+        paths = {java: None, javac: None}
+
+        config, out, status = run_configure_java(paths)
         self.assertEqual(status, 0)
-        self.assertEqual(config, {
-            'JAVA': java,
-            'JARSIGNER': jarsigner,
-            'KEYTOOL': keytool,
-            'MOZ_JAVA_CODE_COVERAGE': False,
-        })
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            config,
+            {
+                "JAVA": java,
+                "MOZ_JAVA_CODE_COVERAGE": False,
+            },
+        )
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
              checking for java... %s
-             checking for jarsigner... %s
-             checking for keytool... %s
-        ''' % (java, jarsigner, keytool)))
+        """
+                % java
+            ),
+        )
 
         # An alternative valid set of tools referred to by JAVA_HOME.
-        alt_java = mozpath.abspath('/usr/local/bin/java')
-        alt_jarsigner = mozpath.abspath('/usr/local/bin/jarsigner')
-        alt_keytool = mozpath.abspath('/usr/local/bin/keytool')
+        alt_java = mozpath.abspath("/usr/local/bin/java")
+        alt_javac = mozpath.abspath("/usr/local/bin/javac")
         alt_java_home = mozpath.dirname(mozpath.dirname(alt_java))
+        paths = {alt_java: None, alt_javac: None, java: None, javac: None}
 
-        paths.update({
-            alt_java: None,
-            alt_jarsigner: None,
-            alt_keytool: None,
-        })
-
-        config, out, status = self.get_result(command=script,
-                                              extra_paths=paths,
-                                              environ={
-                                                  'JAVA_HOME': alt_java_home,
-                                                  'PATH': mozpath.dirname(java)
-                                              })
+        alt_path = mozpath.dirname(java)
+        config, out, status = run_configure_java(paths, alt_java_home, alt_path)
         self.assertEqual(status, 0)
-        self.assertEqual(config, {
-            'JAVA': alt_java,
-            'JARSIGNER': alt_jarsigner,
-            'KEYTOOL': alt_keytool,
-            'MOZ_JAVA_CODE_COVERAGE': False,
-        })
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            config,
+            {
+                "JAVA": alt_java,
+                "MOZ_JAVA_CODE_COVERAGE": False,
+            },
+        )
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
              checking for java... %s
-             checking for jarsigner... %s
-             checking for keytool... %s
-        ''' % (alt_java, alt_jarsigner, alt_keytool)))
+        """
+                % alt_java
+            ),
+        )
 
         # We can use --with-java-bin-path instead of JAVA_HOME to similar
         # effect.
-        config, out, status = self.get_result(
-            command=script,
-            args=['--with-java-bin-path=%s' % mozpath.dirname(alt_java)],
-            extra_paths=paths,
-            environ={
-                'PATH': mozpath.dirname(java)
-            })
+        config, out, status = run_configure_java(
+            paths,
+            mock_path=mozpath.dirname(java),
+            args=["--with-java-bin-path=%s" % mozpath.dirname(alt_java)],
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {
-            'JAVA': alt_java,
-            'JARSIGNER': alt_jarsigner,
-            'KEYTOOL': alt_keytool,
-            'MOZ_JAVA_CODE_COVERAGE': False,
-        })
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            config,
+            {
+                "JAVA": alt_java,
+                "MOZ_JAVA_CODE_COVERAGE": False,
+            },
+        )
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
              checking for java... %s
-             checking for jarsigner... %s
-             checking for keytool... %s
-        ''' % (alt_java, alt_jarsigner, alt_keytool)))
+        """
+                % alt_java
+            ),
+        )
 
         # If --with-java-bin-path and JAVA_HOME are both set,
         # --with-java-bin-path takes precedence.
-        config, out, status = self.get_result(
-            command=script,
-            args=['--with-java-bin-path=%s' % mozpath.dirname(alt_java)],
-            extra_paths=paths,
-            environ={
-                'PATH': mozpath.dirname(java),
-                'JAVA_HOME': mozpath.dirname(mozpath.dirname(java)),
-            })
+        config, out, status = run_configure_java(
+            paths,
+            mock_java_home=mozpath.dirname(mozpath.dirname(java)),
+            mock_path=mozpath.dirname(java),
+            args=["--with-java-bin-path=%s" % mozpath.dirname(alt_java)],
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {
-            'JAVA': alt_java,
-            'JARSIGNER': alt_jarsigner,
-            'KEYTOOL': alt_keytool,
-            'MOZ_JAVA_CODE_COVERAGE': False,
-        })
-        self.assertEqual(out, textwrap.dedent('''\
+        self.assertEqual(
+            config,
+            {
+                "JAVA": alt_java,
+                "MOZ_JAVA_CODE_COVERAGE": False,
+            },
+        )
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
              checking for java... %s
-             checking for jarsigner... %s
-             checking for keytool... %s
-        ''' % (alt_java, alt_jarsigner, alt_keytool)))
+        """
+                % alt_java
+            ),
+        )
 
         # --enable-java-coverage should set MOZ_JAVA_CODE_COVERAGE.
-        config, out, status = self.get_result(
-            command=script,
-            args=['--enable-java-coverage'],
-            extra_paths=paths,
-            environ={
-                'PATH': mozpath.dirname(java),
-                'JAVA_HOME': mozpath.dirname(mozpath.dirname(java)),
-            })
+        alt_java_home = mozpath.dirname(mozpath.dirname(java))
+        config, out, status = run_configure_java(
+            paths,
+            mock_java_home=alt_java_home,
+            mock_path=mozpath.dirname(java),
+            args=["--enable-java-coverage"],
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(config, {
-            'JAVA': java,
-            'JARSIGNER': jarsigner,
-            'KEYTOOL': keytool,
-            'MOZ_JAVA_CODE_COVERAGE': True,
-        })
+        self.assertEqual(
+            config,
+            {
+                "JAVA": java,
+                "MOZ_JAVA_CODE_COVERAGE": True,
+            },
+        )
 
         # Any missing tool is fatal when these checks run.
-        del paths[jarsigner]
-        config, out, status = self.get_result(command=script,
-                                              extra_paths=paths,
-                                              environ={
-                                                  'PATH': mozpath.dirname(java)
-                                              })
+        paths = {}
+        config, out, status = run_configure_java(
+            mock_fs_paths={},
+            mock_path=mozpath.dirname(java),
+            args=["--enable-java-coverage"],
+        )
         self.assertEqual(status, 1)
-        self.assertEqual(config, {
-            'JAVA': java,
-        })
-        self.assertEqual(out, textwrap.dedent('''\
-             checking for java... %s
-             checking for jarsigner... not found
-             ERROR: The program jarsigner was not found.  Set $JAVA_HOME to your \
-Java SDK directory or use '--with-java-bin-path={java-bin-dir}'
-        ''' % (java)
+        self.assertEqual(config, {})
+        self.assertEqual(
+            out,
+            textwrap.dedent(
+                """\
+            ERROR: Could not find "java" on the $PATH. Please install the Java 1.8 JDK \
+and/or set $JAVA_HOME.
+            """
             ),
         )
 
     def test_pkg_check_modules(self):
-        mock_pkg_config_version = '0.10.0'
-        mock_pkg_config_path = mozpath.abspath('/usr/bin/pkg-config')
+        mock_pkg_config_version = "0.10.0"
+        mock_pkg_config_path = mozpath.abspath("/usr/bin/pkg-config")
 
         def mock_pkg_config(_, args):
-            if args[0:2] == ('--errors-to-stdout', '--print-errors'):
+            if args[0:2] == ("--errors-to-stdout", "--print-errors"):
                 assert len(args) == 3
                 package = args[2]
-                if package == 'unknown':
-                    return (1, "Package unknown was not found in the pkg-config search path.\n"
-                            "Perhaps you should add the directory containing `unknown.pc'\n"
-                            "to the PKG_CONFIG_PATH environment variable\n"
-                            "No package 'unknown' found", '')
-                if package == 'valid':
-                    return 0, '', ''
-                if package == 'new > 1.1':
-                    return 1, "Requested 'new > 1.1' but version of new is 1.1", ''
-            if args[0] == '--cflags':
+                if package == "unknown":
+                    return (
+                        1,
+                        "Package unknown was not found in the pkg-config search path.\n"
+                        "Perhaps you should add the directory containing `unknown.pc'\n"
+                        "to the PKG_CONFIG_PATH environment variable\n"
+                        "No package 'unknown' found",
+                        "",
+                    )
+                if package == "valid":
+                    return 0, "", ""
+                if package == "new > 1.1":
+                    return 1, "Requested 'new > 1.1' but version of new is 1.1", ""
+            if args[0] == "--cflags":
                 assert len(args) == 2
-                return 0, '-I/usr/include/%s' % args[1], ''
-            if args[0] == '--libs':
+                return 0, "-I/usr/include/%s" % args[1], ""
+            if args[0] == "--libs":
                 assert len(args) == 2
-                return 0, '-l%s' % args[1], ''
-            if args[0] == '--version':
-                return 0, mock_pkg_config_version, ''
+                return 0, "-l%s" % args[1], ""
+            if args[0] == "--version":
+                return 0, mock_pkg_config_version, ""
             self.fail("Unexpected arguments to mock_pkg_config: %s" % (args,))
 
         def get_result(cmd, args=[], extra_paths=None):
-            return self.get_result(textwrap.dedent('''\
+            return self.get_result(
+                textwrap.dedent(
+                    """\
                 option('--disable-compile-environment', help='compile env')
                 compile_environment = depends(when='--enable-compile-environment')(lambda: True)
                 toolchain_prefix = depends(when=True)(lambda: None)
                 include('%(topsrcdir)s/build/moz.configure/util.configure')
                 include('%(topsrcdir)s/build/moz.configure/checks.configure')
                 include('%(topsrcdir)s/build/moz.configure/pkg.configure')
-            ''' % {'topsrcdir': topsrcdir}) + cmd, args=args, extra_paths=extra_paths,
-                                                   includes=())
+            """
+                    % {"topsrcdir": topsrcdir}
+                )
+                + cmd,
+                args=args,
+                extra_paths=extra_paths,
+                includes=(),
+            )
 
         extra_paths = {
             mock_pkg_config_path: mock_pkg_config,
@@ -628,33 +810,52 @@ Java SDK directory or use '--with-java-bin-path={java-bin-dir}'
 
         config, output, status = get_result("pkg_check_modules('MOZ_VALID', 'valid')")
         self.assertEqual(status, 1)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for pkg_config... not found
             ERROR: *** The pkg-config script could not be found. Make sure it is
             *** in your path, or set the PKG_CONFIG environment variable
             *** to the full path to pkg-config.
-        '''))
+        """
+            ),
+        )
 
-        config, output, status = get_result("pkg_check_modules('MOZ_VALID', 'valid')",
-                                            extra_paths=extra_paths)
+        config, output, status = get_result(
+            "pkg_check_modules('MOZ_VALID', 'valid')", extra_paths=extra_paths
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for pkg_config... %s
             checking for pkg-config version... %s
             checking for valid... yes
             checking MOZ_VALID_CFLAGS... -I/usr/include/valid
             checking MOZ_VALID_LIBS... -lvalid
-        ''' % (mock_pkg_config_path, mock_pkg_config_version)))
-        self.assertEqual(config, {
-            'PKG_CONFIG': mock_pkg_config_path,
-            'MOZ_VALID_CFLAGS': ('-I/usr/include/valid',),
-            'MOZ_VALID_LIBS': ('-lvalid',),
-        })
+        """
+                % (mock_pkg_config_path, mock_pkg_config_version)
+            ),
+        )
+        self.assertEqual(
+            config,
+            {
+                "PKG_CONFIG": mock_pkg_config_path,
+                "MOZ_VALID_CFLAGS": ("-I/usr/include/valid",),
+                "MOZ_VALID_LIBS": ("-lvalid",),
+            },
+        )
 
-        config, output, status = get_result("pkg_check_modules('MOZ_UKNOWN', 'unknown')",
-                                            extra_paths=extra_paths)
+        config, output, status = get_result(
+            "pkg_check_modules('MOZ_UKNOWN', 'unknown')", extra_paths=extra_paths
+        )
         self.assertEqual(status, 1)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for pkg_config... %s
             checking for pkg-config version... %s
             checking for unknown... no
@@ -662,236 +863,370 @@ Java SDK directory or use '--with-java-bin-path={java-bin-dir}'
             ERROR: Perhaps you should add the directory containing `unknown.pc'
             ERROR: to the PKG_CONFIG_PATH environment variable
             ERROR: No package 'unknown' found
-        ''' % (mock_pkg_config_path, mock_pkg_config_version)))
-        self.assertEqual(config, {
-            'PKG_CONFIG': mock_pkg_config_path,
-        })
+        """
+                % (mock_pkg_config_path, mock_pkg_config_version)
+            ),
+        )
+        self.assertEqual(
+            config,
+            {
+                "PKG_CONFIG": mock_pkg_config_path,
+            },
+        )
 
-        config, output, status = get_result("pkg_check_modules('MOZ_NEW', 'new > 1.1')",
-                                            extra_paths=extra_paths)
+        config, output, status = get_result(
+            "pkg_check_modules('MOZ_NEW', 'new > 1.1')", extra_paths=extra_paths
+        )
         self.assertEqual(status, 1)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for pkg_config... %s
             checking for pkg-config version... %s
             checking for new > 1.1... no
             ERROR: Requested 'new > 1.1' but version of new is 1.1
-        ''' % (mock_pkg_config_path, mock_pkg_config_version)))
-        self.assertEqual(config, {
-            'PKG_CONFIG': mock_pkg_config_path,
-        })
+        """
+                % (mock_pkg_config_path, mock_pkg_config_version)
+            ),
+        )
+        self.assertEqual(
+            config,
+            {
+                "PKG_CONFIG": mock_pkg_config_path,
+            },
+        )
 
         # allow_missing makes missing packages non-fatal.
-        cmd = textwrap.dedent('''\
+        cmd = textwrap.dedent(
+            """\
         have_new_module = pkg_check_modules('MOZ_NEW', 'new > 1.1', allow_missing=True)
         @depends(have_new_module)
         def log_new_module_error(mod):
             if mod is not True:
                 log.info('Module not found.')
-        ''')
+        """
+        )
 
         config, output, status = get_result(cmd, extra_paths=extra_paths)
         self.assertEqual(status, 0)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for pkg_config... %s
             checking for pkg-config version... %s
             checking for new > 1.1... no
             WARNING: Requested 'new > 1.1' but version of new is 1.1
             Module not found.
-        ''' % (mock_pkg_config_path, mock_pkg_config_version)))
-        self.assertEqual(config, {
-            'PKG_CONFIG': mock_pkg_config_path,
-        })
+        """
+                % (mock_pkg_config_path, mock_pkg_config_version)
+            ),
+        )
+        self.assertEqual(
+            config,
+            {
+                "PKG_CONFIG": mock_pkg_config_path,
+            },
+        )
 
-        config, output, status = get_result(cmd,
-                                            args=['--disable-compile-environment'],
-                                            extra_paths=extra_paths)
+        config, output, status = get_result(
+            cmd, args=["--disable-compile-environment"], extra_paths=extra_paths
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(output, 'Module not found.\n')
+        self.assertEqual(output, "Module not found.\n")
         self.assertEqual(config, {})
 
         def mock_old_pkg_config(_, args):
-            if args[0] == '--version':
-                return 0, '0.8.10', ''
+            if args[0] == "--version":
+                return 0, "0.8.10", ""
             self.fail("Unexpected arguments to mock_old_pkg_config: %s" % args)
 
         extra_paths = {
             mock_pkg_config_path: mock_old_pkg_config,
         }
 
-        config, output, status = get_result("pkg_check_modules('MOZ_VALID', 'valid')",
-                                            extra_paths=extra_paths)
+        config, output, status = get_result(
+            "pkg_check_modules('MOZ_VALID', 'valid')", extra_paths=extra_paths
+        )
         self.assertEqual(status, 1)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for pkg_config... %s
             checking for pkg-config version... 0.8.10
             ERROR: *** Your version of pkg-config is too old. You need version 0.9.0 or newer.
-        ''' % mock_pkg_config_path))
+        """
+                % mock_pkg_config_path
+            ),
+        )
 
     def test_simple_keyfile(self):
-        includes = ('util.configure', 'checks.configure', 'keyfiles.configure')
+        includes = ("util.configure", "checks.configure", "keyfiles.configure")
 
         config, output, status = self.get_result(
-            "simple_keyfile('Mozilla API')", includes=includes)
+            "simple_keyfile('Mozilla API')", includes=includes
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for the Mozilla API key... no
-        '''))
-        self.assertEqual(config, {
-            'MOZ_MOZILLA_API_KEY': 'no-mozilla-api-key',
-        })
+        """
+            ),
+        )
+        self.assertEqual(
+            config,
+            {
+                "MOZ_MOZILLA_API_KEY": "no-mozilla-api-key",
+            },
+        )
 
         config, output, status = self.get_result(
             "simple_keyfile('Mozilla API')",
-            args=['--with-mozilla-api-keyfile=/foo/bar/does/not/exist'],
-            includes=includes)
+            args=["--with-mozilla-api-keyfile=/foo/bar/does/not/exist"],
+            includes=includes,
+        )
         self.assertEqual(status, 1)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for the Mozilla API key... no
             ERROR: '/foo/bar/does/not/exist': No such file or directory.
-        '''))
+        """
+            ),
+        )
         self.assertEqual(config, {})
 
-        with MockedOpen({'key': ''}):
+        with MockedOpen({"key": ""}):
             config, output, status = self.get_result(
                 "simple_keyfile('Mozilla API')",
-                args=['--with-mozilla-api-keyfile=key'],
-                includes=includes)
+                args=["--with-mozilla-api-keyfile=key"],
+                includes=includes,
+            )
             self.assertEqual(status, 1)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Mozilla API key... no
                 ERROR: 'key' is empty.
-            '''))
+            """
+                ),
+            )
             self.assertEqual(config, {})
 
-        with MockedOpen({'key': 'fake-key\n'}):
+        with MockedOpen({"key": "fake-key\n"}):
             config, output, status = self.get_result(
                 "simple_keyfile('Mozilla API')",
-                args=['--with-mozilla-api-keyfile=key'],
-                includes=includes)
+                args=["--with-mozilla-api-keyfile=key"],
+                includes=includes,
+            )
             self.assertEqual(status, 0)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Mozilla API key... yes
-            '''))
-            self.assertEqual(config, {
-                'MOZ_MOZILLA_API_KEY': 'fake-key',
-            })
+            """
+                ),
+            )
+            self.assertEqual(
+                config,
+                {
+                    "MOZ_MOZILLA_API_KEY": "fake-key",
+                },
+            )
 
-        with MockedOpen({'default': 'default-key\n'}):
+        with MockedOpen({"default": "default-key\n"}):
             config, output, status = self.get_result(
-                "simple_keyfile('Mozilla API', default='default')",
-                includes=includes)
+                "simple_keyfile('Mozilla API', default='default')", includes=includes
+            )
             self.assertEqual(status, 0)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Mozilla API key... yes
-            '''))
-            self.assertEqual(config, {
-                'MOZ_MOZILLA_API_KEY': 'default-key',
-            })
+            """
+                ),
+            )
+            self.assertEqual(
+                config,
+                {
+                    "MOZ_MOZILLA_API_KEY": "default-key",
+                },
+            )
 
-        with MockedOpen({'default': 'default-key\n',
-                         'key': 'fake-key\n'}):
+        with MockedOpen({"default": "default-key\n", "key": "fake-key\n"}):
             config, output, status = self.get_result(
-                "simple_keyfile('Mozilla API', default='key')",
-                includes=includes)
+                "simple_keyfile('Mozilla API', default='key')", includes=includes
+            )
             self.assertEqual(status, 0)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Mozilla API key... yes
-            '''))
-            self.assertEqual(config, {
-                'MOZ_MOZILLA_API_KEY': 'fake-key',
-            })
+            """
+                ),
+            )
+            self.assertEqual(
+                config,
+                {
+                    "MOZ_MOZILLA_API_KEY": "fake-key",
+                },
+            )
 
     def test_id_and_secret_keyfile(self):
-        includes = ('util.configure', 'checks.configure', 'keyfiles.configure')
+        includes = ("util.configure", "checks.configure", "keyfiles.configure")
 
         config, output, status = self.get_result(
-            "id_and_secret_keyfile('Bing API')", includes=includes)
+            "id_and_secret_keyfile('Bing API')", includes=includes
+        )
         self.assertEqual(status, 0)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for the Bing API key... no
-        '''))
-        self.assertEqual(config, {
-            'MOZ_BING_API_CLIENTID': 'no-bing-api-clientid',
-            'MOZ_BING_API_KEY': 'no-bing-api-key',
-        })
+        """
+            ),
+        )
+        self.assertEqual(
+            config,
+            {
+                "MOZ_BING_API_CLIENTID": "no-bing-api-clientid",
+                "MOZ_BING_API_KEY": "no-bing-api-key",
+            },
+        )
 
         config, output, status = self.get_result(
             "id_and_secret_keyfile('Bing API')",
-            args=['--with-bing-api-keyfile=/foo/bar/does/not/exist'],
-            includes=includes)
+            args=["--with-bing-api-keyfile=/foo/bar/does/not/exist"],
+            includes=includes,
+        )
         self.assertEqual(status, 1)
-        self.assertEqual(output, textwrap.dedent('''\
+        self.assertEqual(
+            output,
+            textwrap.dedent(
+                """\
             checking for the Bing API key... no
             ERROR: '/foo/bar/does/not/exist': No such file or directory.
-        '''))
+        """
+            ),
+        )
         self.assertEqual(config, {})
 
-        with MockedOpen({'key': ''}):
+        with MockedOpen({"key": ""}):
             config, output, status = self.get_result(
                 "id_and_secret_keyfile('Bing API')",
-                args=['--with-bing-api-keyfile=key'],
-                includes=includes)
+                args=["--with-bing-api-keyfile=key"],
+                includes=includes,
+            )
             self.assertEqual(status, 1)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Bing API key... no
                 ERROR: 'key' is empty.
-            '''))
+            """
+                ),
+            )
             self.assertEqual(config, {})
 
-        with MockedOpen({'key': 'fake-id fake-key\n'}):
+        with MockedOpen({"key": "fake-id fake-key\n"}):
             config, output, status = self.get_result(
                 "id_and_secret_keyfile('Bing API')",
-                args=['--with-bing-api-keyfile=key'],
-                includes=includes)
+                args=["--with-bing-api-keyfile=key"],
+                includes=includes,
+            )
             self.assertEqual(status, 0)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Bing API key... yes
-            '''))
-            self.assertEqual(config, {
-                'MOZ_BING_API_CLIENTID': 'fake-id',
-                'MOZ_BING_API_KEY': 'fake-key',
-            })
+            """
+                ),
+            )
+            self.assertEqual(
+                config,
+                {
+                    "MOZ_BING_API_CLIENTID": "fake-id",
+                    "MOZ_BING_API_KEY": "fake-key",
+                },
+            )
 
-        with MockedOpen({'key': 'fake-key\n'}):
+        with MockedOpen({"key": "fake-key\n"}):
             config, output, status = self.get_result(
                 "id_and_secret_keyfile('Bing API')",
-                args=['--with-bing-api-keyfile=key'],
-                includes=includes)
+                args=["--with-bing-api-keyfile=key"],
+                includes=includes,
+            )
             self.assertEqual(status, 1)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Bing API key... no
                 ERROR: Bing API key file has an invalid format.
-            '''))
+            """
+                ),
+            )
             self.assertEqual(config, {})
 
-        with MockedOpen({'default-key': 'default-id default-key\n'}):
+        with MockedOpen({"default-key": "default-id default-key\n"}):
             config, output, status = self.get_result(
                 "id_and_secret_keyfile('Bing API', default='default-key')",
-                includes=includes)
+                includes=includes,
+            )
             self.assertEqual(status, 0)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Bing API key... yes
-            '''))
-            self.assertEqual(config, {
-                'MOZ_BING_API_CLIENTID': 'default-id',
-                'MOZ_BING_API_KEY': 'default-key',
-            })
+            """
+                ),
+            )
+            self.assertEqual(
+                config,
+                {
+                    "MOZ_BING_API_CLIENTID": "default-id",
+                    "MOZ_BING_API_KEY": "default-key",
+                },
+            )
 
-        with MockedOpen({'default-key': 'default-id default-key\n',
-                         'key': 'fake-id fake-key\n'}):
+        with MockedOpen(
+            {"default-key": "default-id default-key\n", "key": "fake-id fake-key\n"}
+        ):
             config, output, status = self.get_result(
                 "id_and_secret_keyfile('Bing API', default='default-key')",
-                args=['--with-bing-api-keyfile=key'],
-                includes=includes)
+                args=["--with-bing-api-keyfile=key"],
+                includes=includes,
+            )
             self.assertEqual(status, 0)
-            self.assertEqual(output, textwrap.dedent('''\
+            self.assertEqual(
+                output,
+                textwrap.dedent(
+                    """\
                 checking for the Bing API key... yes
-            '''))
-            self.assertEqual(config, {
-                'MOZ_BING_API_CLIENTID': 'fake-id',
-                'MOZ_BING_API_KEY': 'fake-key',
-            })
+            """
+                ),
+            )
+            self.assertEqual(
+                config,
+                {
+                    "MOZ_BING_API_CLIENTID": "fake-id",
+                    "MOZ_BING_API_KEY": "fake-key",
+                },
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

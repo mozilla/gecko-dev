@@ -149,7 +149,7 @@ function Inspector(toolbox) {
   this.panelWin = window;
   this.panelWin.inspector = this;
   this.telemetry = toolbox.telemetry;
-  this.store = createStore();
+  this.store = createStore(this);
   this.isReady = false;
 
   // Map [panel id => panel instance]
@@ -176,9 +176,6 @@ function Inspector(toolbox) {
   this.onPickerCanceled = this.onPickerCanceled.bind(this);
   this.onPickerHovered = this.onPickerHovered.bind(this);
   this.onPickerPicked = this.onPickerPicked.bind(this);
-  this.onShowBoxModelHighlighterForNode = this.onShowBoxModelHighlighterForNode.bind(
-    this
-  );
   this.onSidebarHidden = this.onSidebarHidden.bind(this);
   this.onSidebarResized = this.onSidebarResized.bind(this);
   this.onSidebarSelect = this.onSidebarSelect.bind(this);
@@ -204,6 +201,21 @@ Inspector.prototype = {
     // called through watchTargets and _onTargetAvailable, when a root node is
     // available for the top-level target.
     this._onFirstMarkupLoaded = this.once("markuploaded");
+
+    // If the server-side stylesheet watcher is enabled, we should start to watch
+    // stylesheet resources before instanciating the inspector front since pageStyle
+    // actor should refer the watcher.
+    if (
+      this.toolbox.resourceWatcher.hasWatcherSupport(
+        this.toolbox.resourceWatcher.TYPES.STYLESHEET
+      )
+    ) {
+      this._isServerSideStyleSheetWatcherEnabled = true;
+      await this.toolbox.resourceWatcher.watchResources(
+        [this.toolbox.resourceWatcher.TYPES.STYLESHEET],
+        { onAvailable: this.onResourceAvailable }
+      );
+    }
 
     await this.toolbox.targetList.watchTargets(
       [this.toolbox.targetList.TYPES.FRAME],
@@ -257,10 +269,12 @@ Inspector.prototype = {
 
   async initInspectorFront(targetFront) {
     this.inspectorFront = await targetFront.getFront("inspector");
-    // TODO: Remove highlighter for top-level target once all tests and code paths are
-    // migrated away from inspector.highlighter. Bug 1646028
-    this.highlighter = this.inspectorFront.highlighter;
     this.walker = this.inspectorFront.walker;
+
+    // PageStyle front need the resource watcher when the server-side stylesheet watcher is enabled.
+    if (this._isServerSideStyleSheetWatcherEnabled) {
+      this.inspectorFront.pageStyle.resourceWatcher = this.toolbox.resourceWatcher;
+    }
   },
 
   get toolbox() {
@@ -1907,36 +1921,12 @@ Inspector.prototype = {
   },
 
   /**
-   * Returns an object containing the shared handler functions used in the box
-   * model and grid React components.
+   * Returns an object containing the shared handler functions used in React components.
    */
   getCommonComponentProps() {
     return {
       setSelectedNode: this.selection.setNodeFront,
-      onShowBoxModelHighlighterForNode: this.onShowBoxModelHighlighterForNode,
     };
-  },
-
-  /**
-   * Shows the box-model highlighter on the element corresponding to the provided
-   * NodeFront.
-   *
-   * @param  {NodeFront} nodeFront
-   *         The node to highlight.
-   * @param  {Object} options
-   *         Options passed to the highlighter actor.
-   */
-  onShowBoxModelHighlighterForNode(nodeFront, options) {
-    // As React components aren't destroyed when the panel closes,
-    // this function may still be called and throw because of destroyed fronts.
-    if (this._destroyed) {
-      return;
-    }
-    this.highlighters.showHighlighterTypeForNode(
-      this.highlighters.TYPES.BOXMODEL,
-      nodeFront,
-      options
-    );
   },
 
   onPickerCanceled() {
@@ -1958,7 +1948,7 @@ Inspector.prototype = {
     );
   },
 
-  async inspectNodeActor(nodeActor, inspectFromAnnotation) {
+  async inspectNodeActor(nodeActor, reason) {
     const nodeFront = await this.inspectorFront.getNodeFrontFromNodeGrip({
       actor: nodeActor,
     });
@@ -1976,9 +1966,7 @@ Inspector.prototype = {
       return false;
     }
 
-    await this.selection.setNodeFront(nodeFront, {
-      reason: inspectFromAnnotation,
-    });
+    await this.selection.setNodeFront(nodeFront, { reason });
     return true;
   },
 };

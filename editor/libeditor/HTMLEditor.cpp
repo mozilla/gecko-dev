@@ -81,10 +81,18 @@ static bool IsNamedAnchorTag(const nsAtom& aTagName) {
   return &aTagName == nsGkAtoms::anchor;
 }
 
+// Helper struct for DoJoinNodes() and DoSplitNode().
+struct MOZ_STACK_CLASS SavedRange final {
+  RefPtr<Selection> mSelection;
+  nsCOMPtr<nsINode> mStartContainer;
+  nsCOMPtr<nsINode> mEndContainer;
+  int32_t mStartOffset = 0;
+  int32_t mEndOffset = 0;
+};
+
 HTMLEditor::HTMLEditor()
     : mCRInParagraphCreatesParagraph(false),
       mCSSAware(false),
-      mSelectedCellIndex(0),
       mIsObjectResizingEnabled(
           StaticPrefs::editor_resizing_enabled_by_default()),
       mIsResizing(false),
@@ -560,6 +568,16 @@ void HTMLEditor::InitializeSelectionAncestorLimit(
         "HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(true) failed, "
         "but ignored");
   }
+
+  // If the target is a text control element, we won't handle user input
+  // for the `TextEditor` in it.  However, we need to be open for `execCommand`.
+  // Therefore, we shouldn't set ancestor limit in this case.
+  // Note that we should do this once setting ancestor limiter for backward
+  // compatiblity of select events, etc.  (Selection should be collapsed into
+  // the text control element.)
+  if (aAncestorLimit.HasIndependentSelection()) {
+    SelectionRefPtr()->SetAncestorLimiter(nullptr);
+  }
 }
 
 nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
@@ -592,6 +610,10 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
     WSScanResult forwardScanFromPointToPutCaretResult =
         WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(*this,
                                                          pointToPutCaret);
+    if (forwardScanFromPointToPutCaretResult.Failed()) {
+      NS_WARNING("WSRunScanner::ScanNextVisibleNodeOrBlockBoundary failed");
+      return NS_ERROR_FAILURE;
+    }
     // If we meet a non-editable node first, we should move caret to start of
     // the editing host (perhaps, user may want to insert something before
     // the first non-editable node? Chromium behaves so).
@@ -3032,34 +3054,42 @@ nsresult HTMLEditor::SetHTMLBackgroundColorWithTransaction(
     // odd, though.
     if (isCellSelected || rootElementOfBackgroundColor->IsAnyOfHTMLElements(
                               nsGkAtoms::table, nsGkAtoms::tr)) {
-      IgnoredErrorResult ignoredError;
-      RefPtr<Element> cellElement =
-          GetFirstSelectedTableCellElement(ignoredError);
-      if (cellElement) {
+      SelectedTableCellScanner scanner(*SelectionRefPtr());
+      if (scanner.IsInTableCellSelectionMode()) {
         if (setColor) {
-          while (cellElement) {
+          for (const OwningNonNull<Element>& cellElement :
+               scanner.ElementsRef()) {
+            // `MOZ_KnownLive(cellElement)` is safe because of `scanner`
+            // is stack only class and keeps grabbing it until it's destroyed.
             nsresult rv = SetAttributeWithTransaction(
-                *cellElement, *nsGkAtoms::bgcolor, aColor);
+                MOZ_KnownLive(cellElement), *nsGkAtoms::bgcolor, aColor);
+            if (NS_WARN_IF(Destroyed())) {
+              return NS_ERROR_EDITOR_DESTROYED;
+            }
             if (NS_FAILED(rv)) {
               NS_WARNING(
                   "EditorBase::::SetAttributeWithTransaction(nsGkAtoms::"
                   "bgcolor) failed");
               return rv;
             }
-            cellElement = GetNextSelectedTableCellElement(ignoredError);
           }
           return NS_OK;
         }
-        while (cellElement) {
-          nsresult rv =
-              RemoveAttributeWithTransaction(*cellElement, *nsGkAtoms::bgcolor);
+        for (const OwningNonNull<Element>& cellElement :
+             scanner.ElementsRef()) {
+          // `MOZ_KnownLive(cellElement)` is safe because of `scanner`
+          // is stack only class and keeps grabbing it until it's destroyed.
+          nsresult rv = RemoveAttributeWithTransaction(
+              MOZ_KnownLive(cellElement), *nsGkAtoms::bgcolor);
+          if (NS_WARN_IF(Destroyed())) {
+            return NS_ERROR_EDITOR_DESTROYED;
+          }
           if (NS_FAILED(rv)) {
             NS_WARNING(
                 "EditorBase::RemoveAttributeWithTransaction(nsGkAtoms::bgcolor)"
                 " failed");
             return rv;
           }
-          cellElement = GetNextSelectedTableCellElement(ignoredError);
         }
         return NS_OK;
       }
@@ -3136,7 +3166,7 @@ nsresult HTMLEditor::DeleteNodeWithTransaction(nsIContent& aContent) {
   // Do nothing if the node is read-only.
   // XXX This is not a override method of EditorBase's method.  This might
   //     cause not called accidentally.  We need to investigate this issue.
-  if (NS_WARN_IF(!HTMLEditUtils::IsSimplyEditableNode(aContent) &&
+  if (NS_WARN_IF(!HTMLEditUtils::IsRemovableNode(aContent) &&
                  !EditorUtils::IsPaddingBRElementForEmptyEditor(aContent))) {
     return NS_ERROR_FAILURE;
   }

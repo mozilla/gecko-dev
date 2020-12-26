@@ -26,9 +26,14 @@ class RenderSharedSurfaceTextureHostSWGL final : public RenderTextureHostSWGL {
   explicit RenderSharedSurfaceTextureHostSWGL(
       gfx::SourceSurfaceSharedDataWrapper* aSurface);
 
-  size_t GetPlaneCount() override;
+  size_t GetPlaneCount() const override;
 
-  bool MapPlane(uint8_t aChannelIndex, PlaneInfo& aPlaneInfo) override;
+  gfx::SurfaceFormat GetFormat() const override;
+
+  gfx::ColorDepth GetColorDepth() const override;
+
+  bool MapPlane(RenderCompositor* aCompositor, uint8_t aChannelIndex,
+                PlaneInfo& aPlaneInfo) override;
 
   void UnmapPlanes() override;
 

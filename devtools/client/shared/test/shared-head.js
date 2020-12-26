@@ -184,7 +184,18 @@ registerCleanupFunction(() => {
 
 // Spawn an instance of the test actor for the given toolbox
 async function getTestActor(toolbox) {
-  return toolbox.target.getFront("test");
+  // Loading the Inspector panel in order to overwrite the TestActor getter for the
+  // highlighter instance with a method that points to the currently visible
+  // Box Model Highlighter managed by the Inspector panel.
+  const inspector = await toolbox.loadTool("inspector");
+  const testActor = await toolbox.target.getFront("test");
+  // Override the highligher getter with a method to return the active box model
+  // highlighter. Adaptation for multi-process scenarios where there can be multiple
+  // highlighters, one per process.
+  testActor.highlighter = () => {
+    return inspector.highlighters.getActiveHighlighter("BoxModelHighlighter");
+  };
+  return testActor;
 }
 
 // Sometimes, we need the test actor before opening or without a toolbox then just
@@ -247,18 +258,6 @@ Services.obs.addObserver(ConsoleObserver, "console-api-log-event");
 registerCleanupFunction(() => {
   Services.obs.removeObserver(ConsoleObserver, "console-api-log-event");
 });
-
-function loadFrameScriptUtils(browser = gBrowser.selectedBrowser) {
-  let mm = browser.messageManager;
-  const frameURL =
-    "chrome://mochitests/content/browser/devtools/client/shared/test/frame-script-utils.js";
-  info("Loading the helper frame script " + frameURL);
-  mm.loadFrameScript(frameURL, false);
-  SimpleTest.registerCleanupFunction(() => {
-    mm = null;
-  });
-  return mm;
-}
 
 Services.prefs.setBoolPref("devtools.inspector.three-pane-enabled", true);
 
@@ -324,9 +323,6 @@ registerCleanupFunction(async function cleanup() {
       conn.close();
     }
   }
-
-  // Clear the cached value for the fission content toolbox preference.
-  gDevTools.clearIsFissionContentToolboxEnabledReferenceForTest();
 });
 
 async function safeCloseBrowserConsole({ clearOutput = false } = {}) {
@@ -922,30 +918,6 @@ async function asyncWaitUntil(predicate, interval = 10) {
     // Test the predicate again.
     success = await predicate();
   }
-}
-
-/**
- * Takes a string `script` and evaluates it directly in the content
- * in potentially a different process.
- */
-let MM_INC_ID = 0;
-function evalInDebuggee(script, browser = gBrowser.selectedBrowser) {
-  return new Promise(resolve => {
-    const id = MM_INC_ID++;
-    const mm = browser.messageManager;
-    mm.sendAsyncMessage("devtools:test:eval", { script, id });
-    mm.addMessageListener("devtools:test:eval:response", handler);
-
-    function handler({ data }) {
-      if (id !== data.id) {
-        return;
-      }
-
-      info(`Successfully evaled in debuggee: ${script}`);
-      mm.removeMessageListener("devtools:test:eval:response", handler);
-      resolve(data.value);
-    }
-  });
 }
 
 /**

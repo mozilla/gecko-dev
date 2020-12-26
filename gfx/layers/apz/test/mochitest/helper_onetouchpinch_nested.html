@@ -43,7 +43,7 @@ function* test_onetouchpinch(testDriver) {
   ];
 
   var touchIds = [0];
-  yield* synthesizeNativeTouchSequences(scroller, zoom_in, null, touchIds);
+  synthesizeNativeTouchSequences(scroller, zoom_in, null, touchIds);
 
   // Wait for the APZ:TransformEnd to be fired after touch events are processed.
   yield true;
@@ -78,7 +78,7 @@ function* test(testDriver) {
 
 waitUntilApzStable()
 .then(runContinuation(test))
-.then(subtestDone);
+.then(subtestDone, subtestFailed);
 
   </script>
   <style>

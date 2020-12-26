@@ -941,9 +941,14 @@ nsresult nsChildView::SynthesizeNativeMouseScrollEvent(
   CGScrollEventUnit units = (aAdditionalFlags & nsIDOMWindowUtils::MOUSESCROLL_SCROLL_LINES)
                                 ? kCGScrollEventUnitLine
                                 : kCGScrollEventUnitPixel;
-  CGEventRef cgEvent = CGEventCreateScrollWheelEvent(NULL, units, 3, aDeltaY, aDeltaX, aDeltaZ);
+  CGEventRef cgEvent = CGEventCreateScrollWheelEvent(NULL, units, 3, (int32_t)aDeltaY,
+                                                     (int32_t)aDeltaX, (int32_t)aDeltaZ);
   if (!cgEvent) {
     return NS_ERROR_FAILURE;
+  }
+
+  if (aNativeMessage) {
+    CGEventSetIntegerValueField(cgEvent, kCGScrollWheelEventScrollPhase, aNativeMessage);
   }
 
   // On macOS 10.14 and up CGEventPost won't work because of changes in macOS
@@ -1844,10 +1849,6 @@ static void MakeRegionsNonOverlapping(Region& aFirst, Regions&... aRest) {
 }
 
 void nsChildView::UpdateVibrancy(const nsTArray<ThemeGeometry>& aThemeGeometries) {
-  if (!VibrancyManager::SystemSupportsVibrancy()) {
-    return;
-  }
-
   LayoutDeviceIntRegion sheetRegion = GatherVibrantRegion(aThemeGeometries, VibrancyType::SHEET);
   LayoutDeviceIntRegion vibrantLightRegion =
       GatherVibrantRegion(aThemeGeometries, VibrancyType::LIGHT);
@@ -2378,8 +2379,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
            selector:@selector(systemMetricsChanged)
                name:NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification
              object:nil];
-  } else if (nsCocoaFeatures::OnYosemiteOrLater() &&
-             NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification) {
+  } else if (NSWorkspaceAccessibilityDisplayOptionsDidChangeNotification) {
     [[NSNotificationCenter defaultCenter]
         addObserver:self
            selector:@selector(systemMetricsChanged)
@@ -2502,7 +2502,10 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
 }
 
 - (void)systemMetricsChanged {
-  if (mGeckoChild) mGeckoChild->NotifyThemeChanged();
+  // TODO(emilio): We could make this more fine-grained by only passing true
+  // here when system colors / fonts change, but right now we tunnel all the
+  // relevant notifications through here.
+  if (mGeckoChild) mGeckoChild->NotifyThemeChanged(widget::ThemeChangeKind::StyleAndLayout);
 }
 
 - (void)scrollbarSystemMetricChanged {
@@ -2904,7 +2907,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
   usingElCapitanOrLaterSDK = false;
 #endif
 
-  if (nsCocoaFeatures::OnElCapitanOrLater() && usingElCapitanOrLaterSDK) {
+  if (usingElCapitanOrLaterSDK) {
     if (aEvent.phase == NSEventPhaseBegan) {
       [self beginGestureWithEvent:aEvent];
       return true;
@@ -3371,7 +3374,7 @@ static int32_t RoundUp(double aDouble) {
 }
 
 static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
-  if (nsCocoaFeatures::OnSierraOrLater() && [aEvent hasPreciseScrollingDeltas]) {
+  if ([aEvent hasPreciseScrollingDeltas]) {
     // Pixel scroll events (events with hasPreciseScrollingDeltas == YES)
     // carry pixel deltas in the scrollingDeltaX/Y fields and line scroll
     // information in the deltaX/Y fields.

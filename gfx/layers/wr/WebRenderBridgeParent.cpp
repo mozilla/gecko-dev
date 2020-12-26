@@ -362,9 +362,9 @@ WebRenderBridgeParent::WebRenderBridgeParent(
     MOZ_ASSERT(!mCompositorScheduler);
     mCompositorScheduler = new CompositorVsyncScheduler(this, mWidget);
   }
-
   UpdateDebugFlags();
   UpdateQualitySettings();
+  UpdateProfilerUI();
 }
 
 WebRenderBridgeParent::WebRenderBridgeParent(const wr::PipelineId& aPipelineId,
@@ -639,8 +639,12 @@ bool WebRenderBridgeParent::UpdateResources(
   }
 
   if (scheduleRelease) {
-    aUpdates.Notify(wr::Checkpoint::FrameTexturesUpdated,
-                    std::move(scheduleRelease));
+    // When software WR is enabled, shared surfaces are read during rendering
+    // rather than copied to the texture cache.
+    wr::Checkpoint when = mApi->GetBackendType() == WebRenderBackend::SOFTWARE
+                              ? wr::Checkpoint::FrameRendered
+                              : wr::Checkpoint::FrameTexturesUpdated;
+    aUpdates.Notify(when, std::move(scheduleRelease));
   }
   return true;
 }
@@ -704,7 +708,7 @@ bool WebRenderBridgeParent::AddSharedExternalImage(
   mSharedSurfaceIds.insert(std::make_pair(key, aExtId));
 
   auto imageType =
-      gfx::gfxVars::UseSoftwareWebRender()
+      mApi->GetBackendType() == WebRenderBackend::SOFTWARE
           ? wr::ExternalImageType::TextureHandle(wr::TextureTarget::Default)
           : wr::ExternalImageType::Buffer();
   wr::ImageDescriptor descriptor(dSurf->GetSize(), dSurf->Stride(),
@@ -810,19 +814,15 @@ bool WebRenderBridgeParent::UpdateSharedExternalImage(
     // We already have a mapping for this image key, so ensure we release the
     // previous external image ID. This can happen when an image is animated,
     // and it is changing the external image that the animation points to.
-    if (gfx::gfxVars::UseSoftwareWebRender()) {
-      mAsyncImageManager->HoldExternalImage(mPipelineId, mWrEpoch, it->second);
-    } else {
-      if (!aScheduleRelease) {
-        aScheduleRelease = MakeUnique<ScheduleSharedSurfaceRelease>(this);
-      }
-      aScheduleRelease->Add(aKey, it->second);
+    if (!aScheduleRelease) {
+      aScheduleRelease = MakeUnique<ScheduleSharedSurfaceRelease>(this);
     }
+    aScheduleRelease->Add(aKey, it->second);
     it->second = aExtId;
   }
 
   auto imageType =
-      gfx::gfxVars::UseSoftwareWebRender()
+      mApi->GetBackendType() == WebRenderBackend::SOFTWARE
           ? wr::ExternalImageType::TextureHandle(wr::TextureTarget::Default)
           : wr::ExternalImageType::Buffer();
   wr::ImageDescriptor descriptor(dSurf->GetSize(), dSurf->Stride(),
@@ -856,10 +856,28 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvUpdateResources(
   wr::TransactionBuilder txn;
   txn.SetLowPriority(!IsRootWebRenderBridgeParent());
 
+  Unused << GetNextWrEpoch();
+
   bool success =
       UpdateResources(aResourceUpdates, aSmallShmems, aLargeShmems, txn);
   wr::IpcResourceUpdateQueue::ReleaseShmems(this, aSmallShmems);
   wr::IpcResourceUpdateQueue::ReleaseShmems(this, aLargeShmems);
+
+  // Even when txn.IsResourceUpdatesEmpty() is true, there could be resource
+  // updates. It is handled by WebRenderTextureHostWrapper. In this case
+  // txn.IsRenderedFrameInvalidated() becomes true.
+  if (!txn.IsResourceUpdatesEmpty() || txn.IsRenderedFrameInvalidated()) {
+    // There are resource updates, then we update Epoch of transaction.
+    txn.UpdateEpoch(mPipelineId, mWrEpoch);
+    mAsyncImageManager->SetWillGenerateFrame();
+    ScheduleGenerateFrame();
+  } else {
+    // If TransactionBuilder does not have resource updates nor display list,
+    // ScheduleGenerateFrame is not triggered via SceneBuilder and there is no
+    // need to update WrEpoch.
+    // Then we want to rollback WrEpoch. See Bug 1490117.
+    RollbackWrEpoch();
+  }
 
   if (!success) {
     return IPC_FAIL(this, "Invalid WebRender resource data shmem or address.");
@@ -1498,6 +1516,11 @@ void WebRenderBridgeParent::UpdateQualitySettings() {
 
 void WebRenderBridgeParent::UpdateDebugFlags() {
   mApi->UpdateDebugFlags(gfxVars::WebRenderDebugFlags());
+}
+
+void WebRenderBridgeParent::UpdateProfilerUI() {
+  nsCString uiString = gfxVars::GetWebRenderProfilerUIOrDefault();
+  mApi->SetProfilerUI(uiString);
 }
 
 void WebRenderBridgeParent::UpdateMultithreading() {
@@ -2455,12 +2478,11 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvReleaseCompositable(
 TextureFactoryIdentifier WebRenderBridgeParent::GetTextureFactoryIdentifier() {
   MOZ_ASSERT(mApi);
 
-  TextureFactoryIdentifier ident(LayersBackend::LAYERS_WR, XRE_GetProcessType(),
-                                 mApi->GetMaxTextureSize(), false,
-                                 mApi->GetUseANGLE(), mApi->GetUseDComp(),
-                                 mAsyncImageManager->UseCompositorWnd(), false,
-                                 false, false, mApi->GetSyncHandle());
-  ident.mUsingSoftwareWebRender = gfx::gfxVars::UseSoftwareWebRender();
+  TextureFactoryIdentifier ident(
+      mApi->GetBackendType(), mApi->GetCompositorType(), XRE_GetProcessType(),
+      mApi->GetMaxTextureSize(), false, mApi->GetUseANGLE(),
+      mApi->GetUseDComp(), mAsyncImageManager->UseCompositorWnd(), false, false,
+      false, mApi->GetSyncHandle());
   return ident;
 }
 

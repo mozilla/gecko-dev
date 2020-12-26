@@ -112,7 +112,7 @@ SearchService.prototype = {
   _initRV: Cr.NS_OK,
 
   // The boolean indicates that the initialization has started or not.
-  _initStarted: null,
+  _initStarted: false,
 
   // The boolean that indicates if initialization has been completed (successful
   // or not).
@@ -170,19 +170,18 @@ SearchService.prototype = {
   _searchPrivateDefault: null,
 
   /**
-   * The suggested order of engines from the configuration.
-   * This is an array of objects containing the WebExtension ID and Locale.
-   * This is only needed whilst we investigate issues with settings corruption
-   * (bug 1589710).
-   */
-  _searchOrder: [],
-
-  /**
    * A Set of installed search extensions reported by AddonManager
    * startup before SearchSevice has started. Will be installed
    * during init().
    */
   _startupExtensions: new Set(),
+
+  /**
+   * A Set of removed search extensions reported by AddonManager
+   * startup before SearchSevice has started. Will be removed
+   * during init().
+   */
+  _startupRemovedExtensions: new Set(),
 
   // A reference to the handler for the default override allow list.
   _defaultOverrideAllowlist: null,
@@ -285,6 +284,7 @@ SearchService.prototype = {
       this._initRV = ex.result !== undefined ? ex.result : Cr.NS_ERROR_FAILURE;
       logConsole.error("_init: failure initializing search:", ex.result);
     }
+
     this._initialized = true;
     if (Components.isSuccessCode(this._initRV)) {
       this._initObservers.resolve(this._initRV);
@@ -572,46 +572,6 @@ SearchService.prototype = {
     logConsole.debug("_loadEngines: start");
     let { engines, privateDefault } = await this._fetchEngineSelectorEngines();
     this._setDefaultAndOrdersFromSelector(engines, privateDefault);
-
-    let enginesCorrupted = false;
-
-    // If this is an update of Firefox, then the expected engines might have
-    // changed so we can't do the corrupt settings check.
-    let majorChange =
-      !settings.engines ||
-      settings.version != SearchUtils.SETTINGS_VERSION ||
-      settings.locale != Services.locale.requestedLocale ||
-      settings.buildID != Services.appinfo.platformBuildID;
-
-    if (!majorChange) {
-      const engineInSettingsList = engine => {
-        return settings.builtInEngineList.find(details => {
-          return (
-            engine.webExtension.id == details.id &&
-            engine.webExtension.locale == details.locale
-          );
-        });
-      };
-
-      if (
-        // If the settings builtInEngineList matches what we expect from the
-        // selector engines...
-        settings.builtInEngineList &&
-        settings.builtInEngineList.length == engines.length &&
-        engines.every(engineInSettingsList) &&
-        // ...and the saved settings do not match our expectation...
-        settings.engines.filter(e => e._isAppProvided).length !=
-          settings.builtInEngineList.length
-      ) {
-        // ...then the settings are corrupted in some manner.
-        enginesCorrupted = true;
-      }
-    }
-
-    Services.telemetry.scalarSet(
-      "browser.searchinit.engines_cache_corrupted",
-      enginesCorrupted
-    );
 
     let newEngines = await this._loadEnginesFromConfig(engines, isReload);
     for (let engine of newEngines) {
@@ -948,7 +908,7 @@ SearchService.prototype = {
   reset() {
     this._initialized = false;
     this._initObservers = PromiseUtils.defer();
-    this._initStarted = null;
+    this._initStarted = false;
     this._startupExtensions = new Set();
     this._engines.clear();
     this.__sortedEngines = null;
@@ -956,7 +916,6 @@ SearchService.prototype = {
     this._currentPrivateEngine = null;
     this._searchDefault = null;
     this._searchPrivateDefault = null;
-    this._searchOrder = [];
     this._maybeReloadDebounce = false;
   },
 
@@ -1135,12 +1094,6 @@ SearchService.prototype = {
       id: defaultEngine.webExtension.id,
       locale: defaultEngine.webExtension.locale,
     };
-    this._searchOrder = engines.map(e => {
-      return {
-        id: e.webExtension.id,
-        locale: e.webExtension.locale,
-      };
-    });
     if (privateDefault) {
       this._searchPrivateDefault = {
         id: privateDefault.webExtension.id,
@@ -1340,6 +1293,26 @@ SearchService.prototype = {
         "SearchService initialization failed",
         this._initRV
       );
+    } else if (this._startupRemovedExtensions.size) {
+      Services.tm.dispatchToMainThread(async () => {
+        // Now that init() has successfully finished, we remove any engines
+        // that have had their add-ons removed by the add-on manager.
+        // We do this after init() has complete, as that allows us to use
+        // removeEngine to look after any default engine changes as well.
+        // This could cause a slight flicker on startup, but it should be
+        // a rare action.
+        logConsole.debug("Removing delayed extension engines");
+        for (let id of this._startupRemovedExtensions) {
+          for (let engine of this._getEnginesByExtensionID(id)) {
+            // Only do this for non-application provided engines. We shouldn't
+            // ever get application provided engines removed here, but just in case.
+            if (!engine.isAppProvided) {
+              await this.removeEngine(engine);
+            }
+          }
+        }
+        this._startupRemovedExtensions.clear();
+      });
     }
     return this._initRV;
   },
@@ -1431,6 +1404,10 @@ SearchService.prototype = {
 
   async getEnginesByExtensionID(extensionID) {
     await this.init();
+    return this._getEnginesByExtensionID(extensionID);
+  },
+
+  _getEnginesByExtensionID(extensionID) {
     logConsole.debug("getEngines: getting all engines for", extensionID);
     var engines = this._getSortedEngines(true).filter(function(engine) {
       return engine._extensionID == extensionID;
@@ -1666,12 +1643,19 @@ SearchService.prototype = {
     }
 
     if (extension.isAppProvided) {
-      let inConfig = this._searchOrder.filter(el => el.id == extension.id);
-      if (this._initialized && inConfig.length) {
-        return this._installExtensionEngine(
-          extension,
-          inConfig.map(el => el.locale)
-        );
+      // If we are in the middle of initialization or reloading engines,
+      // don't add the engine here. This has been called as the result
+      // of makeEngineFromConfig installing the extension, and that is already
+      // handling the addition of the engine.
+      if (this._initialized && !this._reloadingEngines) {
+        let { engines } = await this._fetchEngineSelectorEngines();
+        let inConfig = engines.filter(el => el.webExtension.id == extension.id);
+        if (inConfig.length) {
+          return this._installExtensionEngine(
+            extension,
+            inConfig.map(el => el.webExtension.locale)
+          );
+        }
       }
       logConsole.debug("addEnginesFromExtension: Ignoring builtIn engine.");
       return [];
@@ -1859,8 +1843,14 @@ SearchService.prototype = {
   },
 
   async removeWebExtensionEngine(id) {
+    if (!this.isInitialized) {
+      logConsole.debug("Delaying removing extension engine on startup:", id);
+      this._startupRemovedExtensions.add(id);
+      return;
+    }
+
     logConsole.debug("removeWebExtensionEngine:", id);
-    for (let engine of await this.getEnginesByExtensionID(id)) {
+    for (let engine of this._getEnginesByExtensionID(id)) {
       await this.removeEngine(engine);
     }
   },

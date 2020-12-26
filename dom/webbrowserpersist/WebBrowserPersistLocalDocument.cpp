@@ -80,6 +80,12 @@ WebBrowserPersistLocalDocument::GetPersistFlags(uint32_t* aFlags) {
 }
 
 NS_IMETHODIMP
+WebBrowserPersistLocalDocument::GetIsClosed(bool* aIsClosed) {
+  *aIsClosed = false;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 WebBrowserPersistLocalDocument::GetIsPrivate(bool* aIsPrivate) {
   nsCOMPtr<nsILoadContext> privacyContext = mDocument->GetLoadContext();
   *aIsPrivate = privacyContext && privacyContext->UsePrivateBrowsing();
@@ -131,6 +137,14 @@ WebBrowserPersistLocalDocument::GetReferrerInfo(
     nsIReferrerInfo** aReferrerInfo) {
   *aReferrerInfo = mDocument->GetReferrerInfo();
   NS_IF_ADDREF(*aReferrerInfo);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+WebBrowserPersistLocalDocument::GetCookieJarSettings(
+    nsICookieJarSettings** aCookieJarSettings) {
+  *aCookieJarSettings = mDocument->CookieJarSettings();
+  NS_ADDREF(*aCookieJarSettings);
   return NS_OK;
 }
 

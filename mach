@@ -12,40 +12,23 @@
 ''':'
 # Commands that are to be run with Python 2.
 py2commands="
-    android
     awsy-test
-    check-spidermonkey
-    cramtest
-    crashtest
-    devtools-css-db
     firefox-ui-functional
     geckodriver
     geckodriver-test
-    jsapi-tests
     jsshell-bench
     marionette-test
-    jstestbrowser
     jstests
     mozharness
-    prettier-format
     raptor
     raptor-test
-    reftest
-    talos-test
-    taskcluster-load-image
     telemetry-tests-client
     test
-    tps-build
-    visualmetrics
     web-platform-tests
     web-platform-tests-update
     wpt
-    wpt-manifest-update
     wpt-metadata-merge
-    wpt-metadata-summary
     wpt-serve
-    wpt-test-paths
-    wpt-unittest
     wpt-update
 "
 

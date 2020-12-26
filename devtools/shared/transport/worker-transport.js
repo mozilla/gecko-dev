@@ -28,10 +28,11 @@ class MainThreadWorkerDebuggerTransport {
   }
 
   close() {
-    this._dbg.removeListener(this._dbgListener);
-    if (this.hooks) {
-      this.hooks.onClosed();
+    if (this._dbgListener) {
+      this._dbg.removeListener(this._dbgListener);
     }
+    this._dbgListener = null;
+    this.hooks?.onClosed();
   }
 
   send(packet) {
@@ -79,9 +80,7 @@ WorkerThreadWorkerDebuggerTransport.prototype = {
 
   close: function() {
     this._scope.removeEventListener("message", this._onMessage);
-    if (this.hooks) {
-      this.hooks.onClosed();
-    }
+    this.hooks?.onClosed();
   },
 
   send: function(packet) {

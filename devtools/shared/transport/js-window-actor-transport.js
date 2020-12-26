@@ -37,7 +37,9 @@ class JsWindowActorTransport {
 
   close() {
     this._removeListener();
-    this.hooks.onClosed();
+    if (this.hooks.onClosed) {
+      this.hooks.onClosed();
+    }
   }
 
   _onPacketReceived(eventName, { data }) {
@@ -53,10 +55,6 @@ class JsWindowActorTransport {
 
   startBulkSend() {
     throw new Error("startBulkSend not implemented for JsWindowActorTransport");
-  }
-
-  swapBrowser(jsWindowActor) {
-    throw new Error("swapBrowser not implemented for JsWindowActorTransport");
   }
 }
 

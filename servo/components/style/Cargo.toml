@@ -33,7 +33,7 @@ arrayvec = "0.5"
 atomic_refcell = "0.1"
 bitflags = "1.0"
 byteorder = "1.0"
-cssparser = "0.27"
+cssparser = "0.28"
 derive_more = "0.99"
 new_debug_unreachable = "1.0"
 encoding_rs = {version = "0.8", optional = true}
@@ -43,7 +43,7 @@ fxhash = "0.2"
 hashbrown = "0.9"
 hashglobe = { path = "../hashglobe" }
 html5ever = {version = "0.24", optional = true}
-indexmap = "1.0"
+indexmap = {version = "1.0", features = ["std"]}
 itertools = "0.8"
 itoa = "0.4"
 lazy_static = "1"
@@ -57,7 +57,7 @@ num-integer = "0.1"
 num-traits = "0.2"
 num-derive = "0.3"
 owning_ref = "0.4"
-parking_lot = "0.10"
+parking_lot = "0.11"
 precomputed-hash = "0.1.1"
 rayon = "1"
 selectors = { path = "../selectors" }

@@ -306,7 +306,7 @@ OCSPRequest::Run() {
   if (NS_FAILED(rv)) {
     return NotifyDone(rv, lock);
   }
-  // Do not use SPDY for internal security operations. It could result
+  // Do not use SPDY or HTTP3 for internal security operations. It could result
   // in the silent upgrade to ssl, which in turn could require an SSL
   // operation to fulfill something like an OCSP fetch, which is an
   // endless loop.
@@ -315,6 +315,10 @@ OCSPRequest::Run() {
     return NotifyDone(rv, lock);
   }
   rv = internalChannel->SetAllowSpdy(false);
+  if (NS_FAILED(rv)) {
+    return NotifyDone(rv, lock);
+  }
+  rv = internalChannel->SetAllowHttp3(false);
   if (NS_FAILED(rv)) {
     return NotifyDone(rv, lock);
   }
@@ -1212,48 +1216,6 @@ nsresult IsCertificateDistrustImminent(
   return NS_OK;
 }
 
-static void RebuildCertificateInfoFromSSLTokenCache(
-    nsNSSSocketInfo* aInfoObject) {
-  MOZ_ASSERT(aInfoObject);
-
-  if (!aInfoObject) {
-    return;
-  }
-
-  nsAutoCString key;
-  aInfoObject->GetPeerId(key);
-  mozilla::net::SessionCacheInfo info;
-  if (!mozilla::net::SSLTokensCache::GetSessionCacheInfo(key, info)) {
-    MOZ_LOG(
-        gPIPNSSLog, LogLevel::Debug,
-        ("RebuildCertificateInfoFromSSLTokenCache cannot find cached info."));
-    return;
-  }
-
-  RefPtr<nsNSSCertificate> nssc = nsNSSCertificate::ConstructFromDER(
-      BitwiseCast<char*, uint8_t*>(info.mServerCertBytes.Elements()),
-      info.mServerCertBytes.Length());
-  if (!nssc) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("RebuildCertificateInfoFromSSLTokenCache failed to construct "
-             "server cert"));
-    return;
-  }
-
-  aInfoObject->SetServerCert(nssc, info.mEVStatus);
-  aInfoObject->SetCertificateTransparencyStatus(
-      info.mCertificateTransparencyStatus);
-  if (info.mSucceededCertChainBytes) {
-    aInfoObject->SetSucceededCertChain(
-        std::move(*info.mSucceededCertChainBytes));
-  }
-
-  if (info.mIsBuiltCertChainRootBuiltInRoot) {
-    aInfoObject->SetIsBuiltCertChainRootBuiltInRoot(
-        *info.mIsBuiltCertChainRootBuiltInRoot);
-  }
-}
-
 void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   SECStatus rv;
 
@@ -1392,7 +1354,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
             ("HandshakeCallback KEEPING existing cert\n"));
   } else {
     if (StaticPrefs::network_ssl_tokens_cache_enabled()) {
-      RebuildCertificateInfoFromSSLTokenCache(infoObject);
+      infoObject->RebuildCertificateInfoFromSSLTokenCache();
     } else {
       RebuildVerifiedCertificateInformation(fd, infoObject);
     }

@@ -17,7 +17,9 @@ typedef Status __StatusTmp;
 typedef __StatusTmp Status;
 #endif
 
+class nsIDNSHTTPSSVCRecord;
 class nsIInterfaceRequestor;
+class nsISVCBRecord;
 class nsITransport;
 class nsIRequestContext;
 
@@ -176,6 +178,7 @@ class nsAHttpTransaction : public nsSupportsWeakReference {
   }
 
   virtual void DisableSpdy() {}
+  virtual void DisableHttp3() {}
   virtual void MakeNonSticky() {}
   virtual void ReuseConnectionOnRestartOK(bool) {}
 
@@ -220,6 +223,12 @@ class nsAHttpTransaction : public nsSupportsWeakReference {
   virtual void SetFastOpenStatus(uint8_t aStatus) {}
 
   virtual void OnProxyConnectComplete(int32_t aResponseCode) {}
+
+  virtual nsresult FetchHTTPSRR() { return NS_ERROR_NOT_IMPLEMENTED; }
+  virtual nsresult OnHTTPSRRAvailable(nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
+                                      nsISVCBRecord* aHighestPriorityRecord) {
+    return NS_ERROR_NOT_IMPLEMENTED;
+  }
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAHttpTransaction, NS_AHTTPTRANSACTION_IID)

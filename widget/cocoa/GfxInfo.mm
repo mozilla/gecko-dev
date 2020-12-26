@@ -32,31 +32,45 @@ NS_IMPL_ISUPPORTS_INHERITED(GfxInfo, GfxInfoBase, nsIGfxInfoDebug)
 GfxInfo::GfxInfo() : mNumGPUsDetected(0), mOSXVersion{0} { mAdapterRAM[0] = mAdapterRAM[1] = 0; }
 
 static OperatingSystem OSXVersionToOperatingSystem(uint32_t aOSXVersion) {
-  if (nsCocoaFeatures::ExtractMajorVersion(aOSXVersion) == 10) {
-    switch (nsCocoaFeatures::ExtractMinorVersion(aOSXVersion)) {
-      case 6:
-        return OperatingSystem::OSX10_6;
-      case 7:
-        return OperatingSystem::OSX10_7;
-      case 8:
-        return OperatingSystem::OSX10_8;
-      case 9:
-        return OperatingSystem::OSX10_9;
-      case 10:
-        return OperatingSystem::OSX10_10;
-      case 11:
-        return OperatingSystem::OSX10_11;
-      case 12:
-        return OperatingSystem::OSX10_12;
-      case 13:
-        return OperatingSystem::OSX10_13;
-      case 14:
-        return OperatingSystem::OSX10_14;
-      case 15:
-        return OperatingSystem::OSX10_15;
-      case 16:
-        return OperatingSystem::OSX10_16;
-    }
+  switch (nsCocoaFeatures::ExtractMajorVersion(aOSXVersion)) {
+    case 10:
+      switch (nsCocoaFeatures::ExtractMinorVersion(aOSXVersion)) {
+        case 6:
+          return OperatingSystem::OSX10_6;
+        case 7:
+          return OperatingSystem::OSX10_7;
+        case 8:
+          return OperatingSystem::OSX10_8;
+        case 9:
+          return OperatingSystem::OSX10_9;
+        case 10:
+          return OperatingSystem::OSX10_10;
+        case 11:
+          return OperatingSystem::OSX10_11;
+        case 12:
+          return OperatingSystem::OSX10_12;
+        case 13:
+          return OperatingSystem::OSX10_13;
+        case 14:
+          return OperatingSystem::OSX10_14;
+        case 15:
+          return OperatingSystem::OSX10_15;
+        case 16:
+          // Depending on the SDK version, we either get 10.16 or 11.0.
+          // Normalize this to 11.0.
+          return OperatingSystem::OSX11_0;
+        default:
+          break;
+      }
+      break;
+    case 11:
+      switch (nsCocoaFeatures::ExtractMinorVersion(aOSXVersion)) {
+        case 0:
+          return OperatingSystem::OSX11_0;
+        default:
+          break;
+      }
+      break;
   }
 
   return OperatingSystem::Unknown;
@@ -122,10 +136,32 @@ void GfxInfo::GetDeviceInfo() {
   }
   IOObjectRelease(io_iter);
 
-#if defined(__x86_64__)
-  // Until we support GPU detection for ARM hardware, skip this assert.
-  MOZ_DIAGNOSTIC_ASSERT(mNumGPUsDetected > 0, "Failed to detect any GPUs");
+#if defined(__aarch64__)
+  // If we found IOPCI VGA devices, don't look for AGXAccelerator devices
+  if (mNumGPUsDetected > 0) {
+    return;
+  }
+
+  CFMutableDictionaryRef agx_dev_dict = IOServiceMatching("AGXAccelerator");
+  if (IOServiceGetMatchingServices(kIOMasterPortDefault, agx_dev_dict, &io_iter) ==
+      kIOReturnSuccess) {
+    io_registry_entry_t entry = IO_OBJECT_NULL;
+    while ((entry = IOIteratorNext(io_iter)) != IO_OBJECT_NULL) {
+      CFTypeRef vendor_id_ref = SearchPortForProperty(entry, CFSTR("vendor-id"));
+      if (vendor_id_ref) {
+        mAdapterVendorID[mNumGPUsDetected].AppendPrintf("0x%04x",
+                                                        IntValueOfCFData((CFDataRef)vendor_id_ref));
+        CFRelease(vendor_id_ref);
+        ++mNumGPUsDetected;
+      }
+      IOObjectRelease(entry);
+    }
+
+    IOObjectRelease(io_iter);
+  }
 #endif
+
+  MOZ_DIAGNOSTIC_ASSERT(mNumGPUsDetected > 0, "Failed to detect any GPUs");
 }
 
 nsresult GfxInfo::Init() {
@@ -398,7 +434,7 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
                                    "FEATURE_ROLLOUT_INTEL_MAC");
     // Intel HD3000 disabled due to bug 1661505
     IMPLEMENT_MAC_DRIVER_BLOCKLIST(
-        OperatingSystem::OSX, DeviceFamily::IntelHD3000, nsIGfxInfo::FEATURE_WEBRENDER,
+        OperatingSystem::OSX, DeviceFamily::IntelSandyBridge, nsIGfxInfo::FEATURE_WEBRENDER,
         nsIGfxInfo::FEATURE_BLOCKED_DEVICE, "FEATURE_FAILURE_INTEL_MAC_HD3000_NO_WEBRENDER");
     IMPLEMENT_MAC_DRIVER_BLOCKLIST(OperatingSystem::OSX, DeviceFamily::AtiRolloutWebRender,
                                    nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
@@ -447,13 +483,6 @@ nsresult GfxInfo::GetFeatureStatusImpl(int32_t aFeature, int32_t* aStatus,
       aFailureId = "FEATURE_UNQUALIFIED_WEBRENDER_MAC_ROSETTA";
       return NS_OK;
     }
-#ifndef EARLY_BETA_OR_EARLIER
-    else if (aFeature == nsIGfxInfo::FEATURE_WEBRENDER && os == OperatingSystem::OSX10_16) {
-      *aStatus = nsIGfxInfo::FEATURE_BLOCKED_OS_VERSION;
-      aFailureId = "FEATURE_UNQUALIFIED_WEBRENDER_MAC";
-      return NS_OK;
-    }
-#endif
   }
 
   return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo,

@@ -114,8 +114,10 @@ nsAutoString AccessibleCaret::AppearanceString(Appearance aAppearance) {
   nsAutoString string;
   switch (aAppearance) {
     case Appearance::None:
-    case Appearance::NormalNotShown:
       string = u"none"_ns;
+      break;
+    case Appearance::NormalNotShown:
+      string = u"hidden"_ns;
       break;
     case Appearance::Normal:
       string = u"normal"_ns;
@@ -302,7 +304,10 @@ void AccessibleCaret::SetCaretElementStyle(const nsRect& aRect,
   styleStr.AppendLiteral("px; margin-left: ");
   styleStr.AppendFloat(StaticPrefs::layout_accessiblecaret_margin_left() /
                        aZoomLevel);
-  styleStr.AppendLiteral("px");
+  styleStr.AppendLiteral("px; transition-duration: ");
+  styleStr.AppendFloat(
+      StaticPrefs::layout_accessiblecaret_transition_duration());
+  styleStr.AppendLiteral("ms");
 
   CaretElement().SetAttr(kNameSpaceID_None, nsGkAtoms::style, styleStr, true);
   AC_LOG("%s: %s", __FUNCTION__, NS_ConvertUTF16toUTF8(styleStr).get());

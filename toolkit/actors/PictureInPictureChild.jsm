@@ -54,17 +54,14 @@ const TOGGLE_ENABLED_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.enabled";
 const TOGGLE_TESTING_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.testing";
-const TOGGLE_EXPERIMENTAL_MODE_PREF =
-  "media.videocontrols.picture-in-picture.video-toggle.mode";
 const MOUSEMOVE_PROCESSING_DELAY_MS = 50;
 const TOGGLE_HIDING_TIMEOUT_MS = 2000;
 
-// A weak reference to the most recent <video> in this content
-// process that is being viewed in Picture-in-Picture.
-var gWeakVideo = null;
-// A weak reference to the content window of the most recent
-// Picture-in-Picture window for this content process.
-var gWeakPlayerContent = null;
+// The ToggleChild does not want to capture events from the PiP
+// windows themselves. This set contains all currently open PiP
+// players' content windows
+var gPlayerContents = new WeakSet();
+
 // To make it easier to write tests, we have a process-global
 // WeakSet of all <video> elements that are being tracked for
 // mouseover
@@ -77,38 +74,6 @@ var gWeakIntersectingVideosForTesting = new WeakSet();
 XPCOMUtils.defineLazyGetter(this, "gSiteOverrides", () => {
   return PictureInPictureToggleChild.getSiteOverrides();
 });
-
-/**
- * Returns a reference to the <video> element being displayed in Picture-in-Picture
- * mode.
- *
- * @return {Element} The <video> being displayed in Picture-in-Picture mode, or null
- * if that <video> no longer exists.
- */
-function getWeakVideo() {
-  if (gWeakVideo) {
-    // Bug 800957 - Accessing weakrefs at the wrong time can cause us to
-    // throw NS_ERROR_XPC_BAD_CONVERT_NATIVE
-    try {
-      return gWeakVideo.get();
-    } catch (e) {
-      return null;
-    }
-  }
-  return null;
-}
-
-/**
- * Returns true if the passed video happens to be the one that this
- * content process is running in a Picture-in-Picture window.
- *
- * @param {Element} video The <video> element to check.
- *
- * @return {Boolean}
- */
-function inPictureInPicture(video) {
-  return getWeakVideo() === video;
-}
 
 class PictureInPictureLauncherChild extends JSWindowActorChild {
   handleEvent(event) {
@@ -145,7 +110,7 @@ class PictureInPictureLauncherChild extends JSWindowActorChild {
    * has been requested.
    */
   async togglePictureInPicture(video) {
-    if (inPictureInPicture(video)) {
+    if (video.isCloningElementVisually) {
       // The only way we could have entered here for the same video is if
       // we are toggling via the context menu, since we hide the inline
       // Picture-in-Picture toggle when a video is being displayed in
@@ -215,8 +180,6 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
     this.weakDocStates = new WeakMap();
     this.toggleEnabled = Services.prefs.getBoolPref(TOGGLE_ENABLED_PREF);
     this.toggleTesting = Services.prefs.getBoolPref(TOGGLE_TESTING_PREF, false);
-    this.experimentalToggle =
-      Services.prefs.getIntPref(TOGGLE_EXPERIMENTAL_MODE_PREF, -1) != -1;
 
     // Bug 1570744 - JSWindowActorChild's cannot be used as nsIObserver's
     // directly, so we create a new function here instead to act as our
@@ -225,20 +188,12 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
       this.observe(subject, topic, data);
     };
     Services.prefs.addObserver(TOGGLE_ENABLED_PREF, this.observerFunction);
-    Services.prefs.addObserver(
-      TOGGLE_EXPERIMENTAL_MODE_PREF,
-      this.observerFunction
-    );
     Services.cpmm.sharedData.addEventListener("change", this);
   }
 
-  willDestroy() {
+  didDestroy() {
     this.stopTrackingMouseOverVideos();
     Services.prefs.removeObserver(TOGGLE_ENABLED_PREF, this.observerFunction);
-    Services.prefs.removeObserver(
-      TOGGLE_EXPERIMENTAL_MODE_PREF,
-      this.observerFunction
-    );
     Services.cpmm.sharedData.removeEventListener("change", this);
   }
 
@@ -247,27 +202,17 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
       return;
     }
 
-    switch (data) {
-      case TOGGLE_ENABLED_PREF: {
-        this.toggleEnabled = Services.prefs.getBoolPref(TOGGLE_ENABLED_PREF);
+    this.toggleEnabled = Services.prefs.getBoolPref(TOGGLE_ENABLED_PREF);
 
-        if (this.toggleEnabled) {
-          // We have enabled the Picture-in-Picture toggle, so we need to make
-          // sure we register all of the videos that might already be on the page.
-          this.contentWindow.requestIdleCallback(() => {
-            let videos = this.document.querySelectorAll("video");
-            for (let video of videos) {
-              this.registerVideo(video);
-            }
-          });
+    if (this.toggleEnabled) {
+      // We have enabled the Picture-in-Picture toggle, so we need to make
+      // sure we register all of the videos that might already be on the page.
+      this.contentWindow.requestIdleCallback(() => {
+        let videos = this.document.querySelectorAll("video");
+        for (let video of videos) {
+          this.registerVideo(video);
         }
-        break;
-      }
-      case TOGGLE_EXPERIMENTAL_MODE_PREF: {
-        this.experimentalToggle =
-          Services.prefs.getIntPref(TOGGLE_EXPERIMENTAL_MODE_PREF, -1) != -1;
-        break;
-      }
+      });
     }
   }
 
@@ -349,15 +294,9 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
       return;
     }
 
-    if (gWeakPlayerContent) {
-      try {
-        if (this.contentWindow == gWeakPlayerContent.get()) {
-          // We also don't want events from the player window video itself!
-          return;
-        }
-      } catch (e) {
-        return;
-      }
+    // Don't capture events from Picture-in-Picture content windows
+    if (gPlayerContents.has(this.contentWindow)) {
+      return;
     }
 
     switch (event.type) {
@@ -547,6 +486,12 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
   }
 
   removeMouseButtonListeners() {
+    // This can be null when closing the tab, but the event
+    // listeners should be removed in that case already.
+    if (!this.contentWindow.windowRoot) {
+      return;
+    }
+
     this.contentWindow.windowRoot.removeEventListener("pointerdown", this, {
       capture: true,
     });
@@ -874,6 +819,14 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
     let oldOverVideo = this.getWeakOverVideo();
     let shadowRoot = video.openOrClosedShadowRoot;
 
+    if (video != oldOverVideo) {
+      if (video.getTransformToViewport().a == -1) {
+        shadowRoot.firstChild.setAttribute("flipped", true);
+      } else {
+        shadowRoot.firstChild.removeAttribute("flipped");
+      }
+    }
+
     // It seems from automated testing that if it's still very early on in the
     // lifecycle of a <video> element, it might not yet have a shadowRoot,
     // in which case, we can bail out here early.
@@ -1018,22 +971,20 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
       toggle
     );
 
-    if (this.experimentalToggle) {
-      // The way the experimental toggles are currently implemented with
-      // absolute positioning, the root toggle element bounds don't actually
-      // contain all of the toggle child element bounds. Until we find a way to
-      // sort that out, we workaround the issue by having each clickable child
-      // elements of the toggle have a clicklable class, and then compute the
-      // smallest rect that contains all of their bounding rects and use that
-      // as the hitbox.
-      toggleRect = Rect.fromRect(toggleRect);
-      let clickableChildren = toggle.querySelectorAll(".clickable");
-      for (let child of clickableChildren) {
-        let childRect = Rect.fromRect(
-          child.ownerGlobal.windowUtils.getBoundsWithoutFlushing(child)
-        );
-        toggleRect.expandToContain(childRect);
-      }
+    // The way the toggle is currently implemented with
+    // absolute positioning, the root toggle element bounds don't actually
+    // contain all of the toggle child element bounds. Until we find a way to
+    // sort that out, we workaround the issue by having each clickable child
+    // elements of the toggle have a clicklable class, and then compute the
+    // smallest rect that contains all of their bounding rects and use that
+    // as the hitbox.
+    toggleRect = Rect.fromRect(toggleRect);
+    let clickableChildren = toggle.querySelectorAll(".clickable");
+    for (let child of clickableChildren) {
+      let childRect = Rect.fromRect(
+        child.ownerGlobal.windowUtils.getBoundsWithoutFlushing(child)
+      );
+      toggleRect.expandToContain(childRect);
     }
 
     // If the toggle has no dimensions, we're definitely not over it.
@@ -1090,10 +1041,7 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
    * @returns {Element} The toggle element.
    */
   getToggleElement(shadowRoot) {
-    if (!this.experimentalToggle) {
-      return shadowRoot.getElementById("pictureInPictureToggleButton");
-    }
-    return shadowRoot.getElementById("pictureInPictureToggleExperiment");
+    return shadowRoot.getElementById("pictureInPictureToggle");
   }
 
   /**
@@ -1129,6 +1077,64 @@ class PictureInPictureToggleChild extends JSWindowActorChild {
 }
 
 class PictureInPictureChild extends JSWindowActorChild {
+  // A weak reference to this PiP window's video element
+  weakVideo = null;
+
+  // A weak reference to this PiP window's content window
+  weakPlayerContent = null;
+
+  /**
+   * Returns a reference to the PiP's <video> element being displayed in Picture-in-Picture
+   * mode.
+   *
+   * @return {Element} The <video> being displayed in Picture-in-Picture mode, or null
+   * if that <video> no longer exists.
+   */
+  getWeakVideo() {
+    if (this.weakVideo) {
+      // Bug 800957 - Accessing weakrefs at the wrong time can cause us to
+      // throw NS_ERROR_XPC_BAD_CONVERT_NATIVE
+      try {
+        return this.weakVideo.get();
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns a reference to the inner window of the about:blank document that is
+   * cloning the originating <video> in the always-on-top player <xul:browser>.
+   *
+   * @return {Window} The inner window of the about:blank player <xul:browser>, or
+   * null if that window has been closed.
+   */
+  getWeakPlayerContent() {
+    if (this.weakPlayerContent) {
+      // Bug 800957 - Accessing weakrefs at the wrong time can cause us to
+      // throw NS_ERROR_XPC_BAD_CONVERT_NATIVE
+      try {
+        return this.weakPlayerContent.get();
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns true if the passed video happens to be the one that this
+   * content process is running in a Picture-in-Picture window.
+   *
+   * @param {Element} video The <video> element to check.
+   *
+   * @return {Boolean}
+   */
+  inPictureInPicture(video) {
+    return this.getWeakVideo() === video;
+  }
+
   static videoIsPlaying(video) {
     return !!(!video.paused && !video.ended && video.readyState > 2);
   }
@@ -1140,7 +1146,7 @@ class PictureInPictureChild extends JSWindowActorChild {
   handleEvent(event) {
     switch (event.type) {
       case "MozStopPictureInPicture": {
-        if (event.isTrusted && event.target === getWeakVideo()) {
+        if (event.isTrusted && event.target === this.getWeakVideo()) {
           const reason = event.detail?.reason || "video-el-remove";
           this.closePictureInPicture({ reason });
         }
@@ -1165,7 +1171,7 @@ class PictureInPictureChild extends JSWindowActorChild {
         break;
       }
       case "volumechange": {
-        let video = getWeakVideo();
+        let video = this.getWeakVideo();
 
         // Just double-checking that we received the event for the right
         // video element.
@@ -1186,7 +1192,7 @@ class PictureInPictureChild extends JSWindowActorChild {
       }
       case "resize": {
         let video = event.target;
-        if (inPictureInPicture(video)) {
+        if (this.inPictureInPicture(video)) {
           this.sendAsyncMessage("PictureInPicture:Resize", {
             videoHeight: video.videoHeight,
             videoWidth: video.videoWidth,
@@ -1195,26 +1201,6 @@ class PictureInPictureChild extends JSWindowActorChild {
         break;
       }
     }
-  }
-
-  /**
-   * Returns a reference to the inner window of the about:blank document that is
-   * cloning the originating <video> in the always-on-top player <xul:browser>.
-   *
-   * @return {Window} The inner window of the about:blank player <xul:browser>, or
-   * null if that window has been closed.
-   */
-  getWeakPlayerContent() {
-    if (gWeakPlayerContent) {
-      // Bug 800957 - Accessing weakrefs at the wrong time can cause us to
-      // throw NS_ERROR_XPC_BAD_CONVERT_NATIVE
-      try {
-        return gWeakPlayerContent.get();
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
   }
 
   /**
@@ -1227,7 +1213,7 @@ class PictureInPictureChild extends JSWindowActorChild {
    * window has unloaded.
    */
   async closePictureInPicture({ reason }) {
-    let video = getWeakVideo();
+    let video = this.getWeakVideo();
     if (video) {
       this.untrackOriginatingVideo(video);
     }
@@ -1248,7 +1234,7 @@ class PictureInPictureChild extends JSWindowActorChild {
       // player window content at this point, but just in case, we'll
       // clear the weak reference directly so nothing else can get a hold
       // of it from this angle.
-      gWeakPlayerContent = null;
+      this.weakPlayerContent = null;
     }
   }
 
@@ -1264,6 +1250,17 @@ class PictureInPictureChild extends JSWindowActorChild {
         break;
       }
       case "PictureInPicture:Pause": {
+        if (message.data && message.data.reason == "pip-closed") {
+          let video = this.getWeakVideo();
+
+          // Currently in Firefox srcObjects are MediaStreams. However, by spec a srcObject
+          // can be either a MediaStream, MediaSource or Blob. In case of future changes
+          // we do not want to pause MediaStream srcObjects and we want to maintain current
+          // behavior for non-MediaStream srcObjects.
+          if (video && video.srcObject instanceof MediaStream) {
+            break;
+          }
+        }
         this.pause();
         break;
       }
@@ -1302,6 +1299,11 @@ class PictureInPictureChild extends JSWindowActorChild {
         this,
         true
       );
+      chromeEventHandler.addEventListener(
+        "MozStopPictureInPicture",
+        this,
+        true
+      );
     }
   }
 
@@ -1326,6 +1328,11 @@ class PictureInPictureChild extends JSWindowActorChild {
         this,
         true
       );
+      chromeEventHandler.removeEventListener(
+        "MozStopPictureInPicture",
+        this,
+        true
+      );
     }
   }
 
@@ -1346,9 +1353,9 @@ class PictureInPictureChild extends JSWindowActorChild {
    */
   async setupPlayer(videoRef) {
     const video = await ContentDOMReference.resolve(videoRef);
-    gWeakVideo = Cu.getWeakReference(video);
 
-    let originatingVideo = getWeakVideo();
+    this.weakVideo = Cu.getWeakReference(video);
+    let originatingVideo = this.getWeakVideo();
     if (!originatingVideo) {
       // If the video element has gone away before we've had a chance to set up
       // Picture-in-Picture for it, tell the parent to close the Picture-in-Picture
@@ -1370,7 +1377,8 @@ class PictureInPictureChild extends JSWindowActorChild {
     // We're committed to adding the video to this window now. Ensure we track
     // the content window before we do so, so that the toggle actor can
     // distinguish this new video we're creating from web-controlled ones.
-    gWeakPlayerContent = Cu.getWeakReference(this.contentWindow);
+    this.weakPlayerContent = Cu.getWeakReference(this.contentWindow);
+    gPlayerContents.add(this.contentWindow);
 
     let doc = this.document;
     let playerVideo = doc.createElement("video");
@@ -1388,45 +1396,51 @@ class PictureInPictureChild extends JSWindowActorChild {
 
     originatingVideo.cloneElementVisually(playerVideo);
 
+    let shadowRoot = originatingVideo.openOrClosedShadowRoot;
+    if (originatingVideo.getTransformToViewport().a == -1) {
+      shadowRoot.firstChild.setAttribute("flipped", true);
+      playerVideo.style.transform = "scaleX(-1)";
+    }
+
     this.trackOriginatingVideo(originatingVideo);
 
     this.contentWindow.addEventListener(
       "unload",
       () => {
-        let video = getWeakVideo();
+        let video = this.getWeakVideo();
         if (video) {
           this.untrackOriginatingVideo(video);
           video.stopCloningElementVisually();
         }
-        gWeakVideo = null;
+        this.weakVideo = null;
       },
       { once: true }
     );
   }
 
   play() {
-    let video = getWeakVideo();
+    let video = this.getWeakVideo();
     if (video) {
       video.play();
     }
   }
 
   pause() {
-    let video = getWeakVideo();
+    let video = this.getWeakVideo();
     if (video) {
       video.pause();
     }
   }
 
   mute() {
-    let video = getWeakVideo();
+    let video = this.getWeakVideo();
     if (video) {
       video.muted = true;
     }
   }
 
   unmute() {
-    let video = getWeakVideo();
+    let video = this.getWeakVideo();
     if (video) {
       video.muted = false;
     }
@@ -1437,7 +1451,7 @@ class PictureInPictureChild extends JSWindowActorChild {
    * currently being viewed.
    */
   isKeyEnabled(key) {
-    const video = getWeakVideo();
+    const video = this.getWeakVideo();
     if (!video) {
       return false;
     }
@@ -1463,7 +1477,7 @@ class PictureInPictureChild extends JSWindowActorChild {
    */
   /* eslint-disable complexity */
   keyDown({ altKey, shiftKey, metaKey, ctrlKey, keyCode }) {
-    let video = getWeakVideo();
+    let video = this.getWeakVideo();
     if (!video) {
       return;
     }

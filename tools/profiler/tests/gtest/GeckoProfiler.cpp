@@ -11,6 +11,7 @@
 
 #include "GeckoProfiler.h"
 #include "mozilla/ProfilerMarkerTypes.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "platform.h"
 #include "ProfileBuffer.h"
 #include "ProfilerMarkerPayload.h"
@@ -755,23 +756,10 @@ TEST(GeckoProfiler, Markers)
 
   // Keep this one first! (It's used to record `ts1` and `ts2`, to compare
   // to serialized numbers in other markers.)
-  PROFILER_ADD_MARKER_WITH_PAYLOAD(
-      "FileIOMarkerPayload marker", OTHER, FileIOMarkerPayload,
-      ("operation", "source", "filename", ts1, ts2, nullptr));
-
-  MOZ_RELEASE_ASSERT(profiler_add_marker(
-      "FileIOMarkerPayload marker 2.0", geckoprofiler::category::OTHER,
-      MarkerTiming::Interval(ts1, ts2), geckoprofiler::markers::FileIO{},
-      "operation", "source", "filename", MarkerThreadId{}));
-
-  PROFILER_ADD_MARKER_WITH_PAYLOAD(
-      "FileIOMarkerPayload marker off-MT", OTHER, FileIOMarkerPayload,
-      ("operation2", "source2", "filename2", ts1, ts2, nullptr, Some(123)));
-
-  MOZ_RELEASE_ASSERT(profiler_add_marker(
-      "FileIOMarkerPayload marker 2.0 off-MT", geckoprofiler::category::OTHER,
-      MarkerTiming::Interval(ts1, ts2), geckoprofiler::markers::FileIO{},
-      "operation2", "source2", "filename2", MarkerThreadId{123}));
+  MOZ_RELEASE_ASSERT(
+      profiler_add_marker("FirstMarker", geckoprofiler::category::OTHER,
+                          MarkerTiming::Interval(ts1, ts2),
+                          geckoprofiler::markers::Text{}, "FirstMarker"));
 
   // Other markers in alphabetical order of payload class names.
 
@@ -877,6 +865,45 @@ TEST(GeckoProfiler, Markers)
        mozilla::ipc::MessageDirection::eSending,
        mozilla::ipc::MessagePhase::Endpoint, false, ts1));
 
+  MOZ_RELEASE_ASSERT(profiler_add_marker(
+      "Text in main thread with stack", geckoprofiler::category::OTHER,
+      MarkerStack::Capture(), geckoprofiler::markers::Text{}, ""));
+  MOZ_RELEASE_ASSERT(profiler_add_marker(
+      "Text from main thread with stack", geckoprofiler::category::OTHER,
+      MarkerOptions(MarkerThreadId::MainThread(), MarkerStack::Capture()),
+      geckoprofiler::markers::Text{}, ""));
+
+  std::thread registeredThread([]() {
+    AUTO_PROFILER_REGISTER_THREAD("Marker test sub-thread");
+    // Marker in non-profiled thread won't be stored.
+    MOZ_RELEASE_ASSERT(profiler_add_marker(
+        "Text in registered thread with stack", geckoprofiler::category::OTHER,
+        MarkerStack::Capture(), geckoprofiler::markers::Text{}, ""));
+    // Marker will be stored in main thread, with stack from registered thread.
+    MOZ_RELEASE_ASSERT(profiler_add_marker(
+        "Text from registered thread with stack",
+        geckoprofiler::category::OTHER,
+        MarkerOptions(MarkerThreadId::MainThread(), MarkerStack::Capture()),
+        geckoprofiler::markers::Text{}, ""));
+  });
+  registeredThread.join();
+
+  std::thread unregisteredThread([]() {
+    // Marker in unregistered thread won't be stored.
+    MOZ_RELEASE_ASSERT(profiler_add_marker(
+        "Text in unregistered thread with stack",
+        geckoprofiler::category::OTHER, MarkerStack::Capture(),
+        geckoprofiler::markers::Text{}, ""));
+    // Marker will be stored in main thread, but stack cannot be captured in an
+    // unregistered thread.
+    MOZ_RELEASE_ASSERT(profiler_add_marker(
+        "Text from unregistered thread with stack",
+        geckoprofiler::category::OTHER,
+        MarkerOptions(MarkerThreadId::MainThread(), MarkerStack::Capture()),
+        geckoprofiler::markers::Text{}, ""));
+  });
+  unregisteredThread.join();
+
   MOZ_RELEASE_ASSERT(
       profiler_add_marker("Tracing", geckoprofiler::category::OTHER, {},
                           geckoprofiler::markers::Tracing{}, "category"));
@@ -956,10 +983,7 @@ TEST(GeckoProfiler, Markers)
     S_Markers2DefaultWithOptions,
     S_Markers2ExplicitDefaultEmptyOptions,
     S_Markers2ExplicitDefaultWithOptions,
-    S_FileIOMarkerPayload,
-    S_FileIOMarker2,
-    S_FileIOMarkerPayloadOffMT,
-    S_FileIOMarker2OffMT,
+    S_FirstMarker,
     S_GCMajorMarkerPayload,
     S_GCMinorMarkerPayload,
     S_GCSliceMarkerPayload,
@@ -978,11 +1002,15 @@ TEST(GeckoProfiler, Markers)
     S_UserTimingMarkerPayload_measure,
     S_VsyncMarkerPayload,
     S_IPCMarkerPayload,
+    S_TextWithStack,
+    S_TextToMTWithStack,
+    S_RegThread_TextToMTWithStack,
+    S_UnregThread_TextToMTWithStack,
 
     S_LAST,
   } state = State(0);
 
-  // These will be set when first read from S_FileIOMarkerPayload, then
+  // These will be set when first read from S_FirstMarker, then
   // compared in following markers.
   // TODO: Compute these values from the timestamps.
   double ts1Double = 0.0;
@@ -1305,61 +1333,13 @@ TEST(GeckoProfiler, Markers)
                 EXPECT_EQ(typeString, "NoPayloadUserData");
                 EXPECT_FALSE(payload["stack"].isNull());
 
-              } else if (nameString == "FileIOMarkerPayload marker") {
-                EXPECT_EQ(state, S_FileIOMarkerPayload);
-                state = State(S_FileIOMarkerPayload + 1);
-                EXPECT_EQ(typeString, "FileIO");
-
+              } else if (nameString == "FirstMarker") {
                 // Record start and end times, to compare with timestamps in
                 // following markers.
-                EXPECT_EQ(ts1Double, 0.0);
+                EXPECT_EQ(state, S_FirstMarker);
                 ts1Double = marker[START_TIME].asDouble();
-                EXPECT_NE(ts1Double, 0.0);
-                EXPECT_EQ(ts2Double, 0.0);
                 ts2Double = marker[END_TIME].asDouble();
-                EXPECT_NE(ts2Double, 0.0);
-                EXPECT_EQ_JSON(marker[PHASE], UInt, PHASE_INTERVAL);
-
-                EXPECT_TRUE(payload["stack"].isNull());
-                EXPECT_EQ_JSON(payload["operation"], String, "operation");
-                EXPECT_EQ_JSON(payload["source"], String, "source");
-                EXPECT_EQ_JSON(payload["filename"], String, "filename");
-                EXPECT_FALSE(payload.isMember("threadId"));
-
-              } else if (nameString == "FileIOMarkerPayload marker 2.0") {
-                EXPECT_EQ(state, S_FileIOMarker2);
-                state = State(S_FileIOMarker2 + 1);
-                EXPECT_EQ(typeString, "FileIO");
-                EXPECT_TIMING_INTERVAL_AT(ts1Double, ts2Double);
-                EXPECT_TRUE(payload["stack"].isNull());
-                EXPECT_EQ_JSON(payload["operation"], String, "operation");
-                EXPECT_EQ_JSON(payload["source"], String, "source");
-                EXPECT_EQ_JSON(payload["filename"], String, "filename");
-                EXPECT_FALSE(payload.isMember("threadId"));
-
-              } else if (nameString == "FileIOMarkerPayload marker off-MT") {
-                EXPECT_EQ(state, S_FileIOMarkerPayloadOffMT);
-                state = State(S_FileIOMarkerPayloadOffMT + 1);
-                EXPECT_EQ(typeString, "FileIO");
-                EXPECT_TIMING_INTERVAL_AT(ts1Double, ts2Double);
-                EXPECT_TRUE(payload["stack"].isNull());
-                EXPECT_EQ_JSON(payload["operation"], String, "operation2");
-                EXPECT_EQ_JSON(payload["source"], String, "source2");
-                EXPECT_EQ_JSON(payload["filename"], String, "filename2");
-                EXPECT_EQ_JSON(payload["threadId"], Int, 123);
-
-              } else if (nameString ==
-                         "FileIOMarkerPayload marker 2.0 off-MT") {
-                EXPECT_EQ(state, S_FileIOMarker2OffMT);
-                state = State(S_FileIOMarker2OffMT + 1);
-                EXPECT_EQ(typeString, "FileIO");
-                EXPECT_TIMING_INTERVAL_AT(ts1Double, ts2Double);
-                EXPECT_TRUE(payload["stack"].isNull());
-                EXPECT_EQ_JSON(payload["operation"], String, "operation2");
-                EXPECT_EQ_JSON(payload["source"], String, "source2");
-                EXPECT_EQ_JSON(payload["filename"], String, "filename2");
-                EXPECT_EQ_JSON(payload["threadId"], Int, 123);
-
+                state = State(S_FirstMarker + 1);
               } else if (nameString == "GCMajorMarkerPayload marker") {
                 EXPECT_EQ(state, S_GCMajorMarkerPayload);
                 state = State(S_GCMajorMarkerPayload + 1);
@@ -1546,6 +1526,45 @@ TEST(GeckoProfiler, Markers)
                 EXPECT_EQ_JSON(payload["direction"], String, "sending");
                 EXPECT_EQ_JSON(payload["phase"], String, "endpoint");
                 EXPECT_EQ_JSON(payload["sync"], Bool, false);
+
+              } else if (nameString == "Text in main thread with stack") {
+                EXPECT_EQ(state, S_TextWithStack);
+                state = State(S_TextWithStack + 1);
+                EXPECT_EQ(typeString, "Text");
+                EXPECT_FALSE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "");
+
+              } else if (nameString == "Text from main thread with stack") {
+                EXPECT_EQ(state, S_TextToMTWithStack);
+                state = State(S_TextToMTWithStack + 1);
+                EXPECT_EQ(typeString, "Text");
+                EXPECT_FALSE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "");
+
+              } else if (nameString == "Text in registered thread with stack") {
+                ADD_FAILURE()
+                    << "Unexpected 'Text in registered thread with stack'";
+
+              } else if (nameString ==
+                         "Text from registered thread with stack") {
+                EXPECT_EQ(state, S_RegThread_TextToMTWithStack);
+                state = State(S_RegThread_TextToMTWithStack + 1);
+                EXPECT_EQ(typeString, "Text");
+                EXPECT_FALSE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "");
+
+              } else if (nameString ==
+                         "Text in unregistered thread with stack") {
+                ADD_FAILURE()
+                    << "Unexpected 'Text in unregistered thread with stack'";
+
+              } else if (nameString ==
+                         "Text from unregistered thread with stack") {
+                EXPECT_EQ(state, S_UnregThread_TextToMTWithStack);
+                state = State(S_UnregThread_TextToMTWithStack + 1);
+                EXPECT_EQ(typeString, "Text");
+                EXPECT_TRUE(payload["stack"].isNull());
+                EXPECT_EQ_JSON(payload["name"], String, "");
               }
             }  // marker with payload
           }    // for (marker:data)
@@ -1610,30 +1629,7 @@ TEST(GeckoProfiler, Markers)
           ASSERT_EQ(data.size(), 0u);
 
         } else if (nameString == "FileIO") {
-          EXPECT_EQ(display.size(), 3u);
-          EXPECT_EQ(display[0u].asString(), "marker-chart");
-          EXPECT_EQ(display[1u].asString(), "marker-table");
-          EXPECT_EQ(display[2u].asString(), "timeline-fileio");
-
-          ASSERT_EQ(data.size(), 3u);
-
-          ASSERT_TRUE(data[0u].isObject());
-          EXPECT_EQ_JSON(data[0u]["key"], String, "operation");
-          EXPECT_EQ_JSON(data[0u]["label"], String, "Operation");
-          EXPECT_EQ_JSON(data[0u]["format"], String, "string");
-          EXPECT_EQ_JSON(data[0u]["searchable"], Bool, true);
-
-          ASSERT_TRUE(data[1u].isObject());
-          EXPECT_EQ_JSON(data[1u]["key"], String, "source");
-          EXPECT_EQ_JSON(data[1u]["label"], String, "Source");
-          EXPECT_EQ_JSON(data[1u]["format"], String, "string");
-          EXPECT_EQ_JSON(data[1u]["searchable"], Bool, true);
-
-          ASSERT_TRUE(data[2u].isObject());
-          EXPECT_EQ_JSON(data[2u]["key"], String, "filename");
-          EXPECT_EQ_JSON(data[2u]["label"], String, "Filename");
-          EXPECT_EQ_JSON(data[2u]["format"], String, "file-path");
-          EXPECT_EQ_JSON(data[2u]["searchable"], Bool, true);
+          // These are defined in ProfilerIOInterposeObserver.cpp
 
         } else if (nameString == "tracing") {
           EXPECT_EQ(display.size(), 3u);
@@ -1780,7 +1776,6 @@ TEST(GeckoProfiler, Markers)
 
       // Check that we've got all expected schema.
       EXPECT_TRUE(testedSchemaNames.find("Text") != testedSchemaNames.end());
-      EXPECT_TRUE(testedSchemaNames.find("FileIO") != testedSchemaNames.end());
       EXPECT_TRUE(testedSchemaNames.find("tracing") != testedSchemaNames.end());
       EXPECT_TRUE(testedSchemaNames.find("UserTimingMark") !=
                   testedSchemaNames.end());

@@ -6,8 +6,10 @@
 
 #include "EmptyBody.h"
 
-namespace mozilla {
-namespace dom {
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "nsStringStream.h"
+
+namespace mozilla::dom {
 
 NS_IMPL_ADDREF_INHERITED(EmptyBody, FetchBody<EmptyBody>)
 NS_IMPL_RELEASE_INHERITED(EmptyBody, FetchBody<EmptyBody>)
@@ -15,6 +17,7 @@ NS_IMPL_RELEASE_INHERITED(EmptyBody, FetchBody<EmptyBody>)
 NS_IMPL_CYCLE_COLLECTION_CLASS(EmptyBody)
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(EmptyBody, FetchBody<EmptyBody>)
+  AbortFollower::Unlink(static_cast<AbortFollower*>(tmp));
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mOwner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mAbortSignalImpl)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFetchStreamReader)
@@ -22,6 +25,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(EmptyBody,
                                                   FetchBody<EmptyBody>)
+  AbortFollower::Traverse(static_cast<AbortFollower*>(tmp), cb);
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mAbortSignalImpl)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFetchStreamReader)
@@ -75,5 +79,4 @@ void EmptyBody::GetBody(nsIInputStream** aStream, int64_t* aBodyLength) {
   bodyStream.forget(aStream);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

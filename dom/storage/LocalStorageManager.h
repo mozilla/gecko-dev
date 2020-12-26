@@ -45,7 +45,7 @@ class LocalStorageManager final : public nsIDOMStorageManager,
 
   // Returns object keeping usage cache for the scope.
   already_AddRefed<StorageUsage> GetOriginUsage(
-      const nsACString& aOriginNoSuffix);
+      const nsACString& aOriginNoSuffix, uint32_t aPrivateBrowsingId);
 
   static nsAutoCString CreateOrigin(const nsACString& aOriginSuffix,
                                     const nsACString& aOriginNoSuffix);
@@ -87,7 +87,7 @@ class LocalStorageManager final : public nsIDOMStorageManager,
   // initalized, this also starts preload of persistent data.
   already_AddRefed<LocalStorageCache> PutCache(
       const nsACString& aOriginSuffix, const nsACString& aOriginNoSuffix,
-      nsIPrincipal* aPrincipal);
+      const nsACString& aQuotaKey, nsIPrincipal* aPrincipal);
 
   enum class CreateMode {
     // GetStorage: do not create if it's not already in memory.

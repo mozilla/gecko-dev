@@ -12,7 +12,6 @@
 #include "ActiveLayerTracker.h"
 #include "ClientLayerManager.h"
 #include "DisplayItemClip.h"
-#include "DisplayListChecker.h"
 #include "FrameLayerBuilder.h"
 #include "GeckoProfiler.h"
 #include "gfx2DGlue.h"
@@ -910,6 +909,7 @@ nsIFrame* nsLayoutUtils::GetPageFrame(nsIFrame* aFrame) {
 
 /* static */
 nsIFrame* nsLayoutUtils::GetStyleFrame(nsIFrame* aPrimaryFrame) {
+  MOZ_ASSERT(aPrimaryFrame);
   if (aPrimaryFrame->IsTableWrapperFrame()) {
     nsIFrame* inner = aPrimaryFrame->PrincipalChildList().FirstChild();
     // inner may be null, if aPrimaryFrame is mid-destruction
@@ -1390,7 +1390,7 @@ ScrollableLayerGuid::ViewID nsLayoutUtils::ScrollIdForRootScrollFrame(
 
 // static
 nsIScrollableFrame* nsLayoutUtils::GetNearestScrollableFrameForDirection(
-    nsIFrame* aFrame, ScrollableDirection aDirection) {
+    nsIFrame* aFrame, ScrollDirections aDirections) {
   NS_ASSERTION(
       aFrame, "GetNearestScrollableFrameForDirection expects a non-null frame");
   for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
@@ -1398,14 +1398,12 @@ nsIScrollableFrame* nsLayoutUtils::GetNearestScrollableFrameForDirection(
     if (scrollableFrame) {
       uint32_t directions =
           scrollableFrame->GetAvailableScrollingDirectionsForUserInputEvents();
-      if (aDirection == ScrollableDirection::Vertical ||
-          aDirection == ScrollableDirection::Either) {
+      if (aDirections.contains(ScrollDirection::eVertical)) {
         if (directions & nsIScrollableFrame::VERTICAL) {
           return scrollableFrame;
         }
       }
-      if (aDirection == ScrollableDirection::Horizontal ||
-          aDirection == ScrollableDirection::Either) {
+      if (aDirections.contains(ScrollDirection::eHorizontal)) {
         if (directions & nsIScrollableFrame::HORIZONTAL) {
           return scrollableFrame;
         }
@@ -3306,10 +3304,6 @@ nsresult nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext,
           gfxPlatform::AsyncPanZoomEnabled() &&
           nsLayoutUtils::HasDocumentLevelListenersForApzAwareEvents(presShell));
 
-      DisplayListChecker beforeMergeChecker;
-      DisplayListChecker toBeMergedChecker;
-      DisplayListChecker afterMergeChecker;
-
       // If a pref is toggled that adds or removes display list items,
       // we need to rebuild the display list. The pref may be toggled
       // manually by the user, or during test setup.
@@ -3322,18 +3316,7 @@ nsresult nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext,
       // This calls BuildDisplayListForStacking context on a subset of the
       // viewport.
       if (shouldAttemptPartialUpdate) {
-        if (StaticPrefs::layout_display_list_retain_verify()) {
-          beforeMergeChecker.Set(list, "BM");
-        }
-
-        updateState = retainedBuilder->AttemptPartialUpdate(
-            aBackstop, beforeMergeChecker ? &toBeMergedChecker : nullptr);
-
-        if ((updateState != PartialUpdateResult::Failed) &&
-            beforeMergeChecker) {
-          afterMergeChecker.Set(list, "AM");
-        }
-
+        updateState = retainedBuilder->AttemptPartialUpdate(aBackstop);
         metrics->EndPartialBuild(updateState);
       } else {
         // Partial updates are disabled.
@@ -3341,10 +3324,8 @@ nsresult nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext,
         metrics->mPartialUpdateFailReason = PartialUpdateFailReason::Disabled;
       }
 
-      // Rebuild the full display list if the partial display list build failed,
-      // or if the merge checker is used.
-      bool doFullRebuild =
-          updateState == PartialUpdateResult::Failed || afterMergeChecker;
+      // Rebuild the full display list if the partial display list build failed.
+      bool doFullRebuild = updateState == PartialUpdateResult::Failed;
 
       if (StaticPrefs::layout_display_list_build_twice()) {
         // Build display list twice to compare partial and full display list
@@ -3370,28 +3351,6 @@ nsresult nsLayoutUtils::PaintFrame(gfxContext* aRenderingContext,
         metrics->EndFullBuild();
 
         updateState = PartialUpdateResult::Updated;
-
-        if (afterMergeChecker) {
-          DisplayListChecker nonRetainedChecker(list, "NR");
-          std::stringstream ss;
-          ss << "**** Differences between retained-after-merged (AM) and "
-             << "non-retained (NR) display lists:";
-          if (!nonRetainedChecker.CompareList(afterMergeChecker, ss)) {
-            ss << "\n\n*** non-retained display items:";
-            nonRetainedChecker.Dump(ss);
-            ss << "\n\n*** before-merge retained display items:";
-            beforeMergeChecker.Dump(ss);
-            ss << "\n\n*** to-be-merged retained display items:";
-            toBeMergedChecker.Dump(ss);
-            ss << "\n\n*** after-merge retained display items:";
-            afterMergeChecker.Dump(ss);
-            fprintf(stderr, "%s\n\n", ss.str().c_str());
-#ifdef DEBUG_FRAME_DUMP
-            fprintf(stderr, "*** Frame tree:\n");
-            aFrame->DumpFrameTree();
-#endif
-          }
-        }
       }
     }
 
@@ -4675,7 +4634,7 @@ static nscoord AddIntrinsicSizeOffset(
   result = NSCoordSaturatingAdd(result, coordOutsideSize);
 
   nscoord size;
-  if (aType == nsLayoutUtils::MIN_ISIZE &&
+  if (aType == IntrinsicISizeType::MinISize &&
       ::IsReplacedBoxResolvedAgainstZero(aFrame, aStyleSize, aStyleMaxSize)) {
     // XXX bug 1463700: this doesn't handle calc() according to spec
     result = 0;  // let |min| handle padding/border/margin
@@ -4742,7 +4701,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   MOZ_ASSERT(aFrame, "null frame");
   MOZ_ASSERT(aFrame->GetParent(),
              "IntrinsicForAxis called on frame not in tree");
-  MOZ_ASSERT(aType == MIN_ISIZE || aType == PREF_ISIZE, "bad type");
   MOZ_ASSERT(aFrame->GetParent()->Type() != LayoutFrameType::GridContainer ||
                  aPercentageBasis.isSome(),
              "grid layout should always pass a percentage basis");
@@ -4752,7 +4710,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   nsIFrame::IndentBy(stderr, gNoiseIndent);
   aFrame->ListTag(stderr);
   printf_stderr(" %s %s intrinsic size for container:\n",
-                aType == MIN_ISIZE ? "min" : "pref",
+                aType == IntrinsicISizeType::MinISize ? "min" : "pref",
                 horizontalAxis ? "horizontal" : "vertical");
 #endif
 
@@ -4873,15 +4831,16 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         result = aFrame->BSize();
       }
     } else {
-      result = aType == MIN_ISIZE ? aFrame->GetMinISize(aRenderingContext)
-                                  : aFrame->GetPrefISize(aRenderingContext);
+      result = aType == IntrinsicISizeType::MinISize
+                   ? aFrame->GetMinISize(aRenderingContext)
+                   : aFrame->GetPrefISize(aRenderingContext);
     }
 #ifdef DEBUG_INTRINSIC_WIDTH
     --gNoiseIndent;
     nsIFrame::IndentBy(stderr, gNoiseIndent);
     aFrame->ListTag(stderr);
     printf_stderr(" %s %s intrinsic size from frame is %d.\n",
-                  aType == MIN_ISIZE ? "min" : "pref",
+                  aType == IntrinsicISizeType::MinISize ? "min" : "pref",
                   horizontalAxis ? "horizontal" : "vertical", result);
 #endif
 
@@ -5009,7 +4968,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   nsIFrame::IndentBy(stderr, gNoiseIndent);
   aFrame->ListTag(stderr);
   printf_stderr(" %s %s intrinsic size for container is %d twips.\n",
-                aType == MIN_ISIZE ? "min" : "pref",
+                aType == IntrinsicISizeType::MinISize ? "min" : "pref",
                 horizontalAxis ? "horizontal" : "vertical", result);
 #endif
 
@@ -5042,8 +5001,8 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   nsIFrame::IndentBy(stderr, gNoiseIndent);
   aFrame->ListTag(stderr);
   printf_stderr(" %s min-isize for %s WM:\n",
-                aType == MIN_ISIZE ? "min" : "pref",
-                aWM.IsVertical() ? "vertical" : "horizontal");
+                aType == IntrinsicISizeType::MinISize ? "min" : "pref",
+                aAxis == eAxisVertical ? "vertical" : "horizontal");
 #endif
 
   // Note: this method is only meant for grid/flex items.
@@ -5108,7 +5067,7 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
     nsIFrame::IndentBy(stderr, gNoiseIndent);
     aFrame->ListTag(stderr);
     printf_stderr(" %s min-isize is indefinite.\n",
-                  aType == MIN_ISIZE ? "min" : "pref");
+                  aType == IntrinsicISizeType::MinISize ? "min" : "pref");
 #endif
     return NS_UNCONSTRAINEDSIZE;
   }
@@ -5136,7 +5095,7 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
   nsIFrame::IndentBy(stderr, gNoiseIndent);
   aFrame->ListTag(stderr);
   printf_stderr(" %s min-isize is %d twips.\n",
-                aType == MIN_ISIZE ? "min" : "pref", result);
+                aType == IntrinsicISizeType::MinISize ? "min" : "pref", result);
 #endif
 
   return result;
@@ -8352,8 +8311,8 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
   nsIDocShell* docShell = presContext->GetDocShell();
   BrowsingContext* bc = docShell ? docShell->GetBrowsingContext() : nullptr;
   bool isTouchEventsEnabled =
-      docShell && docShell->GetTouchEventsOverride() ==
-                      nsIDocShell::TOUCHEVENTS_OVERRIDE_ENABLED;
+      bc &&
+      bc->TouchEventsOverride() == mozilla::dom::TouchEventsOverride::Enabled;
 
   if (bc && bc->InRDMPane() && isTouchEventsEnabled) {
     metadata.SetIsRDMTouchSimulationActive(true);
@@ -8619,6 +8578,11 @@ ScrollMetadata nsLayoutUtils::ComputeScrollMetadata(
       isRootScrollFrame && presContext->IsRootContentDocumentCrossProcess();
   if (isRootContentDocRootScrollFrame) {
     UpdateCompositionBoundsForRCDRSF(frameBounds, presContext);
+    if (RefPtr<MobileViewportManager> MVM =
+            presContext->PresShell()->GetMobileViewportManager()) {
+      metrics.SetCompositionSizeWithoutDynamicToolbar(
+          MVM->GetCompositionSizeWithoutDynamicToolbar());
+    }
   }
 
   nsMargin sizes = ScrollbarAreaToExcludeFromCompositionBoundsFor(aScrollFrame);

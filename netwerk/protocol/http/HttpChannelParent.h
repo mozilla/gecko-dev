@@ -148,7 +148,7 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
       const uint32_t& thirdPartyFlags, const bool& doResumeAt,
       const uint64_t& startPos, const nsCString& entityID,
       const bool& chooseApplicationCache, const nsCString& appCacheClientID,
-      const bool& allowSpdy, const bool& allowAltSvc,
+      const bool& allowSpdy, const bool& allowHttp3, const bool& allowAltSvc,
       const bool& beConservative, const uint32_t& tlsFlags,
       const Maybe<LoadInfoArgs>& aLoadInfoArgs, const uint32_t& aCacheKey,
       const uint64_t& aRequestContextID,
@@ -195,7 +195,8 @@ class HttpChannelParent final : public nsIInterfaceRequestor,
   virtual mozilla::ipc::IPCResult RecvMarkOfflineCacheEntryAsForeign() override;
   virtual mozilla::ipc::IPCResult RecvRemoveCorsPreflightCacheEntry(
       const URIParams& uri,
-      const mozilla::ipc::PrincipalInfo& requestingPrincipal) override;
+      const mozilla::ipc::PrincipalInfo& requestingPrincipal,
+      const OriginAttributes& originAttributes) override;
   virtual mozilla::ipc::IPCResult RecvBytesRead(const int32_t& aCount) override;
   virtual mozilla::ipc::IPCResult RecvOpenOriginalCacheInputStream() override;
   virtual mozilla::ipc::IPCResult RecvOpenAltDataCacheInputStream(

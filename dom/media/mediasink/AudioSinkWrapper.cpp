@@ -7,6 +7,7 @@
 #include "AudioSinkWrapper.h"
 #include "AudioSink.h"
 #include "VideoUtils.h"
+#include "mozilla/Result.h"
 #include "nsPrintfCString.h"
 
 namespace mozilla {
@@ -154,20 +155,30 @@ nsresult AudioSinkWrapper::Start(const TimeUnit& aStartTime,
   mPlayStartTime = TimeStamp::Now();
   mAudioEnded = IsAudioSourceEnded(aInfo);
 
-  nsresult rv = NS_OK;
-  if (!mAudioEnded) {
-    mAudioSink.reset(mCreator->Create());
-    rv = mAudioSink->Init(mParams, mEndedPromise);
-    mEndedPromise
-        ->Then(mOwnerThread.get(), __func__, this,
-               &AudioSinkWrapper::OnAudioEnded, &AudioSinkWrapper::OnAudioEnded)
-        ->Track(mAudioSinkEndedPromise);
-  } else {
-    if (aInfo.HasAudio()) {
-      mEndedPromise = MediaSink::EndedPromise::CreateAndResolve(true, __func__);
-    }
+  if (mAudioEnded) {
+    // Resolve promise if we start playback at the end position of the audio.
+    mEndedPromise =
+        aInfo.HasAudio()
+            ? MediaSink::EndedPromise::CreateAndResolve(true, __func__)
+            : nullptr;
+    return NS_OK;
   }
-  return rv;
+
+  mAudioSink.reset(mCreator->Create());
+  Result<already_AddRefed<MediaSink::EndedPromise>, nsresult> rv =
+      mAudioSink->Start(mParams);
+  if (rv.isErr()) {
+    mEndedPromise =
+        MediaSink::EndedPromise::CreateAndReject(rv.unwrapErr(), __func__);
+  } else {
+    mEndedPromise = rv.unwrap();
+  }
+
+  mEndedPromise
+      ->Then(mOwnerThread.get(), __func__, this,
+             &AudioSinkWrapper::OnAudioEnded, &AudioSinkWrapper::OnAudioEnded)
+      ->Track(mAudioSinkEndedPromise);
+  return rv.isErr() ? rv.unwrapErr() : NS_OK;
 }
 
 bool AudioSinkWrapper::IsAudioSourceEnded(const MediaInfo& aInfo) const {

@@ -17,9 +17,12 @@
 #include "mozilla/dom/JSWindowActorProtocol.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/net/CookieJarSettings.h"
+#include "mozilla/dom/WindowGlobalChild.h"
+#include "mozilla/dom/WindowGlobalParent.h"
 
-namespace mozilla {
-namespace dom {
+#include "nsGlobalWindowInner.h"
+
+namespace mozilla::dom {
 
 // CORPP 3.1.3 https://mikewest.github.io/corpp/#integration-html
 static nsILoadInfo::CrossOriginEmbedderPolicy InheritedPolicy(
@@ -161,5 +164,4 @@ already_AddRefed<JSActorProtocol> WindowGlobalActor::MatchingJSActorProtocol(
   return proto.forget();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

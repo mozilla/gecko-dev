@@ -162,7 +162,6 @@ TEST_F(APZCBasicTester, ComplexTransform) {
   childApzc->Destroy();
 }
 
-#ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 TEST_F(APZCBasicTester, Fling) {
   SCOPED_GFX_PREF_FLOAT("apz.fling_min_velocity_threshold", 0.0f);
   int touchStart = 50;
@@ -180,7 +179,6 @@ TEST_F(APZCBasicTester, Fling) {
     lastPoint = pointOut;
   }
 }
-#endif
 
 #ifndef MOZ_WIDGET_ANDROID  // Currently fails on Android
 TEST_F(APZCBasicTester, FlingIntoOverscroll) {
@@ -453,11 +451,12 @@ TEST_F(APZCBasicTester, ResumeInterruptedTouchDrag_Bug1592435) {
   mainThreadOffset.y -= 5;
   ScrollMetadata metadata = apzc->GetScrollMetadata();
   metadata.GetMetrics().SetLayoutScrollOffset(mainThreadOffset);
-  metadata.GetMetrics().SetScrollGeneration(1);
   nsTArray<ScrollPositionUpdate> scrollUpdates;
   scrollUpdates.AppendElement(ScrollPositionUpdate::NewScroll(
-      1, ScrollOrigin::Other, CSSPoint::ToAppUnits(mainThreadOffset)));
+      ScrollOrigin::Other, CSSPoint::ToAppUnits(mainThreadOffset)));
   metadata.SetScrollUpdates(scrollUpdates);
+  metadata.GetMetrics().SetScrollGeneration(
+      scrollUpdates.LastElement().GetGeneration());
   apzc->NotifyLayersUpdated(metadata, false, true);
 
   // Continue and finish the touch-drag gesture.
@@ -479,7 +478,7 @@ TEST_F(APZCBasicTester, ResumeInterruptedTouchDrag_Bug1592435) {
   mainThreadOffset.y -= 5;
   metadata = apzc->GetScrollMetadata();
   metadata.GetMetrics().SetVisualDestination(mainThreadOffset);
-  metadata.GetMetrics().SetScrollGeneration(2);
+  metadata.GetMetrics().SetScrollGeneration(ScrollGeneration::New());
   metadata.GetMetrics().SetVisualScrollUpdateType(FrameMetrics::eMainThread);
   scrollUpdates.Clear();
   metadata.SetScrollUpdates(scrollUpdates);
@@ -515,13 +514,12 @@ TEST_F(APZCBasicTester, RelativeScrollOffset) {
   ScrollMetadata mainThreadMetadata = metadata;
   FrameMetrics& mainThreadMetrics = mainThreadMetadata.GetMetrics();
   mainThreadMetrics.SetLayoutScrollOffset(CSSPoint(200, 200));
-  uint32_t newGeneration = mainThreadMetrics.GetScrollGeneration() + 1;
-  mainThreadMetrics.SetScrollGeneration(newGeneration);
   nsTArray<ScrollPositionUpdate> scrollUpdates;
   scrollUpdates.AppendElement(ScrollPositionUpdate::NewScroll(
-      newGeneration, ScrollOrigin::Other,
-      CSSPoint::ToAppUnits(CSSPoint(200, 200))));
+      ScrollOrigin::Other, CSSPoint::ToAppUnits(CSSPoint(200, 200))));
   mainThreadMetadata.SetScrollUpdates(scrollUpdates);
+  mainThreadMetrics.SetScrollGeneration(
+      scrollUpdates.LastElement().GetGeneration());
   apzc->NotifyLayersUpdated(mainThreadMetadata, /*isFirstPaint=*/false,
                             /*thisLayerTreeUpdated=*/true);
 

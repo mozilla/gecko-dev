@@ -7,13 +7,13 @@
 #include "mozilla/gfx/gfxConfigManager.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layers.h"
 #include "gfxConfig.h"
 #include "gfxPlatform.h"
 #include "nsIGfxInfo.h"
 #include "nsXULAppAPI.h"
-#include "WebRenderRollout.h"
 
 #ifdef XP_WIN
 #  include "mozilla/WindowsVersion.h"
@@ -27,10 +27,6 @@ namespace gfx {
 void gfxConfigManager::Init() {
   MOZ_ASSERT(XRE_IsParentProcess());
 
-  WebRenderRollout::Init();
-  mWrQualifiedOverride = WebRenderRollout::CalculateQualifiedOverride();
-  mWrQualified = WebRenderRollout::CalculateQualified();
-
   EmplaceUserPref("gfx.webrender.compositor", mWrCompositorEnabled);
   mWrForceEnabled = gfxPlatform::WebRenderPrefEnabled();
   mWrForceDisabled = StaticPrefs::gfx_webrender_force_disabled_AtStartup();
@@ -42,10 +38,8 @@ void gfxConfigManager::Init() {
       StaticPrefs::gfx_webrender_max_partial_present_rects_AtStartup() > 0;
 #ifdef XP_WIN
   mWrForceAngle = StaticPrefs::gfx_webrender_force_angle_AtStartup();
-#  ifdef NIGHTLY_BUILD
   mWrForceAngleNoGPUProcess = StaticPrefs::
       gfx_webrender_enabled_no_gpu_process_with_angle_win_AtStartup();
-#  endif
   mWrDCompWinEnabled =
       Preferences::GetBool("gfx.webrender.dcomp-win.enabled", false);
 #endif
@@ -54,13 +48,12 @@ void gfxConfigManager::Init() {
   mWrEnvForceDisabled = gfxPlatform::WebRenderEnvvarDisabled();
 
 #ifdef XP_WIN
-  mHwStretchingSupport =
-      DeviceManagerDx::Get()->CheckHardwareStretchingSupport();
+  DeviceManagerDx::Get()->CheckHardwareStretchingSupport(mHwStretchingSupport);
   mScaledResolution = HasScaledResolution();
   mIsWin10OrLater = IsWin10OrLater();
   mWrCompositorDCompRequired = true;
 #else
-  mHwStretchingSupport = true;
+  ++mHwStretchingSupport.mBoth;
 #endif
 
 #ifdef MOZ_WIDGET_GTK
@@ -81,6 +74,7 @@ void gfxConfigManager::Init() {
   mFeatureWrAngle = &gfxConfig::GetFeature(Feature::WEBRENDER_ANGLE);
   mFeatureWrDComp = &gfxConfig::GetFeature(Feature::WEBRENDER_DCOMP_PRESENT);
   mFeatureWrPartial = &gfxConfig::GetFeature(Feature::WEBRENDER_PARTIAL);
+  mFeatureWrSoftware = &gfxConfig::GetFeature(Feature::WEBRENDER_SOFTWARE);
 
   mFeatureHwCompositing = &gfxConfig::GetFeature(Feature::HW_COMPOSITING);
 #ifdef XP_WIN
@@ -114,21 +108,50 @@ void gfxConfigManager::ConfigureFromBlocklist(long aFeature,
   }
 }
 
-bool gfxConfigManager::ConfigureWebRenderQualified() {
+void gfxConfigManager::ConfigureWebRenderSoftware() {
+  MOZ_ASSERT(mFeatureWrSoftware);
+
+  mFeatureWrSoftware->EnableByDefault();
+
+  if (StaticPrefs::gfx_webrender_software_AtStartup()) {
+    mFeatureWrSoftware->UserForceEnable("Force enabled by pref");
+  }
+
+  nsCString failureId;
+  int32_t status;
+  if (NS_FAILED(mGfxInfo->GetFeatureStatus(
+          nsIGfxInfo::FEATURE_WEBRENDER_SOFTWARE, failureId, &status))) {
+    mFeatureWrSoftware->Disable(FeatureStatus::BlockedNoGfxInfo,
+                                "gfxInfo is broken",
+                                "FEATURE_FAILURE_WR_NO_GFX_INFO"_ns);
+    return;
+  }
+
+  switch (status) {
+    case nsIGfxInfo::FEATURE_ALLOW_ALWAYS:
+    case nsIGfxInfo::FEATURE_ALLOW_QUALIFIED:
+      break;
+    case nsIGfxInfo::FEATURE_DENIED:
+      mFeatureWrSoftware->Disable(FeatureStatus::Denied, "Not on allowlist",
+                                  failureId);
+      break;
+    default:
+      mFeatureWrSoftware->Disable(FeatureStatus::Blocklisted,
+                                  "No qualified hardware", failureId);
+      break;
+    case nsIGfxInfo::FEATURE_STATUS_OK:
+      MOZ_ASSERT_UNREACHABLE("We should still be rolling out WebRender!");
+      mFeatureWrSoftware->Disable(FeatureStatus::Blocked,
+                                  "Not controlled by rollout", failureId);
+      break;
+  }
+}
+
+void gfxConfigManager::ConfigureWebRenderQualified() {
   MOZ_ASSERT(mFeatureWrQualified);
   MOZ_ASSERT(mFeatureWrCompositor);
 
-  bool guarded = true;
   mFeatureWrQualified->EnableByDefault();
-
-  if (mWrQualifiedOverride) {
-    if (!*mWrQualifiedOverride) {
-      mFeatureWrQualified->Disable(
-          FeatureStatus::BlockedOverride, "HW qualification pref override",
-          "FEATURE_FAILURE_WR_QUALIFICATION_OVERRIDE"_ns);
-    }
-    return guarded;
-  }
 
   nsCString failureId;
   int32_t status;
@@ -137,16 +160,11 @@ bool gfxConfigManager::ConfigureWebRenderQualified() {
     mFeatureWrQualified->Disable(FeatureStatus::BlockedNoGfxInfo,
                                  "gfxInfo is broken",
                                  "FEATURE_FAILURE_WR_NO_GFX_INFO"_ns);
-    return guarded;
+    return;
   }
 
   switch (status) {
     case nsIGfxInfo::FEATURE_ALLOW_ALWAYS:
-      // We want to honour ALLOW_ALWAYS on beta and release, but on nightly,
-      // we still want to perform experiments. A larger population is the most
-      // useful, demote nightly to merely qualified.
-      guarded = mIsNightly;
-      break;
     case nsIGfxInfo::FEATURE_ALLOW_QUALIFIED:
       break;
     case nsIGfxInfo::FEATURE_DENIED:
@@ -169,14 +187,6 @@ bool gfxConfigManager::ConfigureWebRenderQualified() {
     nsAutoString adapterVendorID;
     mGfxInfo->GetAdapterVendorID(adapterVendorID);
     if (adapterVendorID == u"0x8086") {
-      bool hasBattery = false;
-      mGfxInfo->GetHasBattery(&hasBattery);
-      if (hasBattery && !mFeatureWrCompositor->IsEnabled()) {
-        mFeatureWrQualified->Disable(FeatureStatus::Blocked,
-                                     "Battery Intel requires os compositor",
-                                     "INTEL_BATTERY_REQUIRES_DCOMP"_ns);
-      }
-
       bool mixed;
       int32_t maxRefreshRate = mGfxInfo->GetMaxRefreshRate(&mixed);
       if (maxRefreshRate > 60) {
@@ -193,10 +203,7 @@ bool gfxConfigManager::ConfigureWebRenderQualified() {
                                      "NVIDIA_REFRESH_RATE_MIXED"_ns);
       }
     }
-
   }
-
-  return guarded;
 }
 
 void gfxConfigManager::ConfigureWebRender() {
@@ -207,6 +214,7 @@ void gfxConfigManager::ConfigureWebRender() {
   MOZ_ASSERT(mFeatureWrAngle);
   MOZ_ASSERT(mFeatureWrDComp);
   MOZ_ASSERT(mFeatureWrPartial);
+  MOZ_ASSERT(mFeatureWrSoftware);
   MOZ_ASSERT(mFeatureHwCompositing);
   MOZ_ASSERT(mFeatureGPUProcess);
 
@@ -224,13 +232,18 @@ void gfxConfigManager::ConfigureWebRender() {
   // Disable native compositor when hardware stretching is not supported. It is
   // for avoiding a problem like Bug 1618370.
   // XXX Is there a better check for Bug 1618370?
-  if (!mHwStretchingSupport && mScaledResolution) {
+  if (!mHwStretchingSupport.IsFullySupported() && mScaledResolution) {
+    nsPrintfCString failureId(
+        "FEATURE_FAILURE_NO_HARDWARE_STRETCHING_B%uW%uF%uN%uE%u",
+        mHwStretchingSupport.mBoth, mHwStretchingSupport.mWindowOnly,
+        mHwStretchingSupport.mFullScreenOnly, mHwStretchingSupport.mNone,
+        mHwStretchingSupport.mError);
     mFeatureWrCompositor->Disable(FeatureStatus::Unavailable,
-                                  "No hardware stretching support",
-                                  "FEATURE_FAILURE_NO_HARDWARE_STRETCHING"_ns);
+                                  "No hardware stretching support", failureId);
   }
 
-  bool guardedByQualifiedPref = ConfigureWebRenderQualified();
+  ConfigureWebRenderSoftware();
+  ConfigureWebRenderQualified();
 
   mFeatureWr->EnableByDefault();
 
@@ -242,8 +255,7 @@ void gfxConfigManager::ConfigureWebRender() {
     mFeatureWr->UserForceEnable("Force enabled by envvar");
   } else if (mWrForceEnabled) {
     mFeatureWr->UserForceEnable("Force enabled by pref");
-  } else if (mWrForceDisabled ||
-             (mWrEnvForceDisabled && mWrQualifiedOverride.isNothing())) {
+  } else if (mWrForceDisabled || mWrEnvForceDisabled) {
     // If the user set the pref to force-disable, let's do that. This
     // will override all the other enabling prefs
     // (gfx.webrender.enabled, gfx.webrender.all, and
@@ -253,19 +265,23 @@ void gfxConfigManager::ConfigureWebRender() {
   }
 
   if (!mFeatureWrQualified->IsEnabled()) {
-    mFeatureWr->Disable(FeatureStatus::Disabled, "Not qualified",
-                        "FEATURE_FAILURE_NOT_QUALIFIED"_ns);
-  } else if (guardedByQualifiedPref && !mWrQualified) {
-    // If the HW is qualified, we enable if either the HW has been qualified
-    // on the release channel (i.e. it's no longer guarded by the qualified
-    // pref), or if the qualified pref is enabled.
-    mFeatureWr->Disable(FeatureStatus::Disabled, "Control group for experiment",
-                        "FEATURE_FAILURE_IN_EXPERIMENT"_ns);
+    // No qualified hardware. If we haven't allowed software fallback,
+    // then we need to disable WR.
+    if (!mFeatureWrSoftware->IsEnabled()) {
+      mFeatureWr->Disable(FeatureStatus::Disabled, "Not qualified",
+                          "FEATURE_FAILURE_NOT_QUALIFIED"_ns);
+    }
+  } else {
+    // Otherwise we have qualified hardware, so we can disable the software
+    // feature. Note that this doesn't override the force-enabled state set by
+    // the pref, so the pref will still enable software.
+    mFeatureWrSoftware->Disable(FeatureStatus::Disabled,
+                                "Overriden by qualified hardware",
+                                "FEATURE_FAILURE_OVERRIDEN"_ns);
   }
 
   // HW_COMPOSITING being disabled implies interfacing with the GPU might break
-  if (!mFeatureHwCompositing->IsEnabled() &&
-      !Preferences::GetBool("gfx.webrender.software", false)) {
+  if (!mFeatureHwCompositing->IsEnabled() && !mFeatureWrSoftware->IsEnabled()) {
     mFeatureWr->ForceDisable(FeatureStatus::UnavailableNoHwCompositing,
                              "Hardware compositing is disabled",
                              "FEATURE_FAILURE_WEBRENDER_NEED_HWCOMP"_ns);
@@ -370,6 +386,16 @@ void gfxConfigManager::ConfigureWebRender() {
   if (mWrPartialPresent) {
     if (mFeatureWr->IsEnabled()) {
       mFeatureWrPartial->EnableByDefault();
+
+      nsString adapter;
+      mGfxInfo->GetAdapterDeviceID(adapter);
+      // Block partial present on Mali-Gxx GPUs due to rendering issues.
+      // See bug 1676474.
+      if (adapter.Find("Mali-G", /*ignoreCase*/ true) >= 0) {
+        mFeatureWrPartial->Disable(FeatureStatus::Blocked,
+                                   "Partial present blocked on Mali-Gxx",
+                                   "FEATURE_FAILURE_PARTIAL_PRESENT_MALI"_ns);
+      }
     }
   }
 }

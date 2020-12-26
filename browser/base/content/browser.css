@@ -355,6 +355,10 @@ toolbar[customizing] #whats-new-menu-button {
   position: relative;
 }
 
+#personal-toolbar-empty-description {
+  -moz-window-dragging: no-drag;
+}
+
 #personal-bookmarks {
   -moz-window-dragging: inherit;
 }
@@ -1031,6 +1035,10 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
   direction: ltr;
 }
 
+#ContentSelectDropdown > menupopup::part(arrowscrollbox-scrollbox) {
+  scrollbar-width: var(--content-select-scrollbar-width, auto);
+}
+
 /* Indent options in optgroups */
 .contentSelectDropdown-ingroup .menu-iconic-text {
   padding-inline-start: 2em;
@@ -1057,12 +1065,19 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
      for repaints.
      These properties are not implemented on other platforms. */
   #BMB_bookmarksPopup:not([animate="false"]) {
-    -moz-window-opacity: 0;
-    -moz-window-transform: translateY(-70px);
     transition-property: -moz-window-transform, -moz-window-opacity;
     transition-duration: 0.18s, 0.18s;
     transition-timing-function:
       var(--animation-easing-function), ease-out;
+  }
+
+  /* Only do the fade-in animation on pre-Big Sur to avoid missing shadows on
+   * Big Sur, see bug 1672091. */
+  @media (-moz-mac-big-sur-theme: 0) {
+    #BMB_bookmarksPopup:not([animate="false"]) {
+      -moz-window-opacity: 0;
+      -moz-window-transform: translateY(-70px);
+    }
   }
 
   #BMB_bookmarksPopup[side="bottom"]:not([animate="false"]) {
@@ -1080,6 +1095,7 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
   }
 
   #BMB_bookmarksPopup[animate][animate="cancel"] {
+    -moz-window-opacity: 0;
     -moz-window-transform: none;
   }
 %else
@@ -1448,6 +1464,12 @@ toolbar[keyNav=true]:not([collapsed=true]):not([customizing=true]) toolbartabsto
   /* Should outrank the z-index values of other UI elements, particularly the devtools
      splitter element. */
   z-index: 2;
+}
+
+.dialogStack.temporarilyHidden {
+  /* For some printing use cases we need to visually hide the dialog before
+   * actually closing it / make it disappear from the frame tree. */
+  visibility: hidden;
 }
 
 .dialogOverlay {

@@ -42,8 +42,9 @@
 #include "jit/PcScriptCache.h"
 #include "jit/Simulator.h"
 #include "js/CharacterEncoding.h"
-#include "js/ContextOptions.h"      // JS::ContextOptions
-#include "js/friend/StackLimits.h"  // js::ReportOverRecursed
+#include "js/ContextOptions.h"        // JS::ContextOptions
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "js/friend/StackLimits.h"    // js::ReportOverRecursed
 #include "js/Printf.h"
 #include "util/DiagnosticAssertions.h"
 #include "util/DoubleToString.h"
@@ -866,11 +867,6 @@ mozilla::GenericErrorResult<OOM> JSContext::alreadyReportedOOM() {
 }
 
 mozilla::GenericErrorResult<JS::Error> JSContext::alreadyReportedError() {
-#ifdef DEBUG
-  if (!isHelperThreadContext()) {
-    MOZ_ASSERT(isExceptionPending());
-  }
-#endif
   return mozilla::Err(JS::Error());
 }
 

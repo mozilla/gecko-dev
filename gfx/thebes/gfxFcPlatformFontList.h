@@ -100,6 +100,8 @@ class gfxFontconfigFontEntry final : public gfxFT2FontEntryBase {
   void GetVariationInstances(
       nsTArray<gfxFontVariationInstance>& aInstances) override;
 
+  bool HasFontTable(uint32_t aTableTag) override;
+  nsresult CopyFontTable(uint32_t aTableTag, nsTArray<uint8_t>&) override;
   hb_blob_t* GetFontTable(uint32_t aTableTag) override;
 
   double GetAspect();
@@ -108,10 +110,6 @@ class gfxFontconfigFontEntry final : public gfxFT2FontEntryBase {
   virtual ~gfxFontconfigFontEntry();
 
   gfxFont* CreateFontInstance(const gfxFontStyle* aFontStyle) override;
-
-  // override to pull data from FTFace
-  virtual nsresult CopyFontTable(uint32_t aTableTag,
-                                 nsTArray<uint8_t>& aBuffer) override;
 
   // pattern for a single face of a family
   RefPtr<FcPattern> mFontPattern;
@@ -268,6 +266,7 @@ class gfxFcPlatformFontList final : public gfxPlatformFontList {
                           nsTArray<FamilyAndGeneric>* aOutput,
                           FindFamiliesFlags aFlags,
                           gfxFontStyle* aStyle = nullptr,
+                          nsAtom* aLanguage = nullptr,
                           gfxFloat aDevToCssSize = 1.0) override;
 
   bool GetStandardFamilyName(const nsCString& aFontName,
@@ -322,7 +321,8 @@ class gfxFcPlatformFontList final : public gfxPlatformFontList {
 
   static void CheckFontUpdates(nsITimer* aTimer, void* aThis);
 
-  FontFamily GetDefaultFontForPlatform(const gfxFontStyle* aStyle) override;
+  FontFamily GetDefaultFontForPlatform(const gfxFontStyle* aStyle,
+                                       nsAtom* aLanguage = nullptr) override;
 
   enum class DistroID : int8_t {
     Unknown = 0,

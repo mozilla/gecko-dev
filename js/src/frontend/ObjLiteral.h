@@ -144,6 +144,7 @@ class JSONPrinter;
 
 namespace frontend {
 struct CompilationAtomCache;
+struct CompilationStencil;
 class StencilXDR;
 }  // namespace frontend
 
@@ -562,8 +563,8 @@ struct ObjLiteralReader : private ObjLiteralReaderBase {
   }
 };
 
-typedef Vector<const frontend::ParserAtom*, 4, js::SystemAllocPolicy>
-    ObjLiteralAtomVector;
+using ObjLiteralAtomVector =
+    Vector<frontend::TaggedParserAtomIndex, 4, js::SystemAllocPolicy>;
 
 JSObject* InterpretObjLiteral(JSContext* cx,
                               frontend::CompilationAtomCache& atomCache,
@@ -593,7 +594,8 @@ class ObjLiteralStencil {
   bool addAtom(JSContext* cx, const frontend::ParserAtom* atom,
                uint32_t* index) {
     *index = atoms_.length();
-    if (!atoms_.append(atom)) {
+    atom->markUsedByStencil();
+    if (!atoms_.append(atom->toIndex())) {
       js::ReportOutOfMemory(cx);
       return false;
     }
@@ -605,8 +607,11 @@ class ObjLiteralStencil {
 
 #if defined(DEBUG) || defined(JS_JITSPEW)
   void dump();
-  void dump(JSONPrinter& json);
-  void dumpFields(JSONPrinter& json);
+  void dump(JSONPrinter& json,
+            frontend::CompilationStencil* compilationStencil);
+  void dumpFields(JSONPrinter& json,
+                  frontend::CompilationStencil* compilationStencil);
+
 #endif
 };
 

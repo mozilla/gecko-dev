@@ -22,8 +22,7 @@
 #include "xpcprivate.h"
 #include "nsICrashReporter.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(JSActor)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -60,10 +59,7 @@ JSActor::JSActor(nsISupports* aGlobal) {
   }
 }
 
-void JSActor::StartDestroy() {
-  InvokeCallback(CallbackFunction::WillDestroy);
-  mCanSend = false;
-}
+void JSActor::StartDestroy() { mCanSend = false; }
 
 void JSActor::AfterDestroy() {
   mCanSend = false;
@@ -95,11 +91,7 @@ void JSActor::InvokeCallback(CallbackFunction callback) {
   }
 
   // Destroy callback is optional.
-  if (callback == CallbackFunction::WillDestroy) {
-    if (callbacksHolder.mWillDestroy.WasPassed()) {
-      callbacksHolder.mWillDestroy.Value()->Call(this);
-    }
-  } else if (callback == CallbackFunction::DidDestroy) {
+  if (callback == CallbackFunction::DidDestroy) {
     if (callbacksHolder.mDidDestroy.WasPassed()) {
       callbacksHolder.mDidDestroy.Value()->Call(this);
     }
@@ -469,5 +461,4 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(JSActor::QueryHandler)
 
 NS_IMPL_CYCLE_COLLECTION(JSActor::QueryHandler, mActor, mPromise)
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

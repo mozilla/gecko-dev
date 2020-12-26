@@ -144,26 +144,19 @@ raptor-fetch-firefox:
     - raptor-unity-webgl-firefox
     - raptor-wasm-misc-firefox
     - raptor-wasm-misc-baseline-firefox
-    - raptor-wasm-misc-ion-firefox
-    - raptor-wasm-misc-cranelift-firefox
+    - raptor-wasm-misc-optimizing-firefox
     - raptor-wasm-godot-baseline-firefox
-    - raptor-wasm-godot-ion-firefox
-    - raptor-wasm-godot-cranelift-firefox
+    - raptor-wasm-godot-optimizing-firefox
     - raptor-assorted-dom-firefox
 
 raptor-fetch-profiling:
     - raptor-unity-webgl-firefox-profiling
     - raptor-wasm-misc-firefox-profiling
     - raptor-wasm-misc-baseline-firefox-profiling
-    - raptor-wasm-misc-ion-firefox-profiling
+    - raptor-wasm-misc-optimizing-firefox-profiling
     - raptor-wasm-godot-baseline-firefox-profiling
-    - raptor-wasm-godot-ion-firefox-profiling
-    - raptor-wasm-godot-cranelift-firefox-profiling
+    - raptor-wasm-godot-optimizing-firefox-profiling
     - raptor-assorted-dom-firefox-profiling
-
-raptor-fetch-geckoview:
-    - raptor-unity-webgl-geckoview
-    - raptor-unity-webgl-refbrow
 
 raptor-fetch-chromium:
     - raptor-unity-webgl-chromium
@@ -194,14 +187,14 @@ ccov-code-coverage-tests:
     - test-coverage
     - test-coverage-wpt
 
-marionette-gpu-tests:
-    - marionette-gpu
-
 mochitest-headless:
     - mochitest-plain-headless
 
 mochitest-valgrind:
     - mochitest-valgrind
+
+marionette-framescript:
+    - marionette-framescript
 
 marionette-headless:
     - marionette-headless
@@ -223,7 +216,7 @@ linux1804-tests:
     - firefox-ui-functional-local
     - firefox-ui-functional-remote
     - gtest
-    - jittest
+    # - jittest  # See comment in linux1804-ccov-tests set.
     - jsreftest
     - marionette
     - mochitest-a11y
@@ -251,7 +244,7 @@ linux1804-qr-tests:
     - cppunit
     - crashtest
     - gtest
-    - jittest
+    # - jittest  # See comment in linux1804-ccov-tests set.
     - jsreftest
     - mochitest-a11y
     - mochitest-chrome
@@ -266,6 +259,13 @@ linux1804-qr-tests:
     - mochitest-webgl2-ext
     - reftest
     - xpcshell
+
+linux1804-ccov-tests:
+    # jittest run on regular linux builds is redundant with SM(p), so we omit it
+    # from the linux1804-tests and linux1804-qr-tests sets. But, we still want
+    # to run it on ccov builds, so we have this set that has it and which runs
+    # on ccov builds.
+    - jittest
 
 linux-qr-smoketests:
     - crashtest
@@ -296,7 +296,7 @@ windows-tests:
     - firefox-ui-functional-local
     - firefox-ui-functional-remote
     - gtest
-    - jittest
+    # - jittest  # See comment in windows-ccov-tests set.
     - jsreftest
     - marionette
     - mochitest-a11y
@@ -314,6 +314,12 @@ windows-tests:
     - test-verify-gpu
     - test-verify-wpt
     - xpcshell
+
+windows-ccov-tests:
+    # jittest run on regular windows builds is redundant with SM(p), so we omit
+    # it from the windows-tests set. But, we still want to run it on ccov builds,
+    # so we have this set that has it and which runs on ccov builds.
+    - jittest
 
 windows10-tests:
     - mochitest-webgl1-core
@@ -388,6 +394,11 @@ windows-talos:
 # macOS
 
 macosx1014-64-tests:
+    - crashtest
+    - reftest
+    - web-platform-tests-reftest
+
+macosx1014-64-qr-tests:
     - cppunit
     - crashtest
     - firefox-ui-functional-local
@@ -416,11 +427,6 @@ macosx1014-64-tests:
     - test-verify-gpu
     - test-verify-wpt
     - xpcshell
-
-macosx1014-64-qr-tests:
-    - crashtest
-    - reftest
-    - web-platform-tests-reftest
 
 macosx64-talos:
     - talos-bcv
@@ -468,14 +474,13 @@ android-x86_64-qr-tests:
     - mochitest-media
     - mochitest-plain
     - mochitest-plain-gpu
+    - web-platform-tests
+    - web-platform-tests-crashtest
+    - web-platform-tests-reftest
     - reftest
 
 android-hw-aarch64-opt-unittests:
     - jittest
-    - mochitest-media
-    - mochitest-webgl1-core
-    - mochitest-webgl1-ext
-    - mochitest-webgl2-core
 
 android-hw-arm7-pgo-unittests:
     - jittest
@@ -483,10 +488,6 @@ android-hw-arm7-pgo-unittests:
 
 android-hw-aarch64-pgo-unittests:
     - jittest
-    - mochitest-media
-    - mochitest-webgl1-core
-    - mochitest-webgl1-ext
-    - mochitest-webgl2-core
 
 android-hw-arm7-debug-unittests:
     - jittest
@@ -494,26 +495,14 @@ android-hw-arm7-debug-unittests:
 
 android-hw-aarch64-debug-unittests:
     - jittest
-    - mochitest-media
-    - mochitest-webgl1-core
-    - mochitest-webgl1-ext
-    - mochitest-webgl2-core
 
 android-hw-aarch64-qr:
     - crashtest-qr
     - reftest-qr
-
-android-hw-arm7-raptor:
-    - raptor-speedometer-geckoview
-    - raptor-speedometer-refbrow
-    - raptor-speedometer-fenix
-    - raptor-speedometer-fennec68
-
-android-hw-aarch64-raptor:
-    - raptor-speedometer-geckoview
-    - raptor-speedometer-refbrow
-    - raptor-speedometer-fenix
-    - raptor-speedometer-fennec68
+    - mochitest-media
+    - mochitest-webgl1-core
+    - mochitest-webgl1-ext
+    - mochitest-webgl2-core
 
 android-hw-arm7-raptor-cpu-memory:
     - raptor-speedometer-geckoview-cpu-memory
@@ -562,5 +551,6 @@ android-hw-arm7-browsertime:
     - browsertime-unity-webgl-mobile
 
 linux-tsan-tests:
+    - mochitest-media
     - mochitest-plain
     - xpcshell

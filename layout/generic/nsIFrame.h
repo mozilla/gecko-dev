@@ -468,7 +468,10 @@ struct IntrinsicSize {
   IntrinsicSize(nscoord aWidth, nscoord aHeight)
       : width(Some(aWidth)), height(Some(aHeight)) {}
 
-  mozilla::Maybe<nsSize> ToSize() const {
+  explicit IntrinsicSize(const nsSize& aSize)
+      : IntrinsicSize(aSize.Width(), aSize.Height()) {}
+
+  Maybe<nsSize> ToSize() const {
     return width && height ? Some(nsSize(*width, *height)) : Nothing();
   }
 
@@ -2292,7 +2295,7 @@ class nsIFrame : public nsQueryFrame {
   /**
    * Get the cursor for a given frame.
    */
-  virtual mozilla::Maybe<Cursor> GetCursor(const nsPoint&);
+  virtual Maybe<Cursor> GetCursor(const nsPoint&);
 
   /**
    * Get a point (in the frame's coordinate space) given an offset into
@@ -3657,13 +3660,22 @@ class nsIFrame : public nsQueryFrame {
    *       if this frame has a previous or next continuation to determine
    *       if a side should be skipped.
    *       Unfortunately, this only works after reflow has been completed. In
-   *       lieu of this, during reflow, an ReflowInput parameter can be
-   *       passed in, indicating that it should be used to determine if sides
+   *       lieu of this, during reflow, a SkipSidesDuringReflow parameter can
+   *       be passed in, indicating that it should be used to determine if sides
    *       should be skipped during reflow.
+   *
+   * FIXME(emilio, bug 1677917): That's wrong, fix BlockReflowInput and remove
+   * SkipSidesDuringReflow and related code.
    */
-  Sides GetSkipSides(const ReflowInput* aReflowInput = nullptr) const;
+  Sides GetSkipSides() const;
+
+  struct SkipSidesDuringReflow {
+    const ReflowInput& mReflowInput;
+    const nscoord mConsumedBSize = NS_UNCONSTRAINEDSIZE;
+  };
+
   virtual LogicalSides GetLogicalSkipSides(
-      const ReflowInput* aReflowInput = nullptr) const {
+      const Maybe<SkipSidesDuringReflow>& = Nothing()) const {
     return LogicalSides(mWritingMode);
   }
 
@@ -3773,6 +3785,9 @@ class nsIFrame : public nsQueryFrame {
     bool mJumpedHardBreak = false;
     /** whether we jumped over a non-selectable frame during the search */
     bool mMovedOverNonSelectableText = false;
+    /** whether we met selectable text frame that isn't editable during the
+     *  search */
+    bool mHasSelectableFrame = false;
 
     FrameSearchResult PeekOffsetNoAmount(bool aForward) {
       return mFrame->PeekOffsetNoAmount(aForward, &mOffset);
@@ -4260,7 +4275,6 @@ class nsIFrame : public nsQueryFrame {
   }
 
   nsresult XULRedraw(nsBoxLayoutState& aState);
-  virtual nsresult XULRelayoutChildAtOrdinal(nsIFrame* aChild);
 
   static bool AddXULPrefSize(nsIFrame* aBox, nsSize& aSize, bool& aWidth,
                              bool& aHeightSet);
@@ -4554,23 +4568,6 @@ class nsIFrame : public nsQueryFrame {
    * the frame is a popup itself.
    */
   static void RemoveInPopupStateBitFromDescendants(nsIFrame* aFrame);
-
-  /**
-   * Sorts the given nsFrameList, so that for every two adjacent frames in the
-   * list, the former is less than or equal to the latter, according to the
-   * templated IsLessThanOrEqual method.
-   *
-   * Note: this method uses a stable merge-sort algorithm.
-   */
-  template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-  static void SortFrameList(nsFrameList& aFrameList);
-
-  /**
-   * Returns true if the given frame list is already sorted, according to the
-   * templated IsLessThanOrEqual function.
-   */
-  template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-  static bool IsFrameListSorted(nsFrameList& aFrameList);
 
   /**
    * Return true if aFrame is in an {ib} split and is NOT one of the
@@ -5285,13 +5282,6 @@ class nsIFrame : public nsQueryFrame {
    */
   bool SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
 
-  // Helper-functions for SortFrameList():
-  template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-  static nsIFrame* SortedMerge(nsIFrame* aLeft, nsIFrame* aRight);
-
-  template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-  static nsIFrame* MergeSort(nsIFrame* aSource);
-
   bool HasOpacityInternal(float aThreshold, const nsStyleDisplay* aStyleDisplay,
                           const nsStyleEffects* aStyleEffects,
                           mozilla::EffectSet* aEffectSet = nullptr) const;
@@ -5651,119 +5641,6 @@ inline nsFrameList::Iterator& nsFrameList::Iterator::operator--() {
     mCurrent = mCurrent->GetPrevSibling();
   }
   return *this;
-}
-
-// Helper-functions for nsIFrame::SortFrameList()
-// ---------------------------------------------------
-
-template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-/* static */ nsIFrame* nsIFrame::SortedMerge(nsIFrame* aLeft,
-                                             nsIFrame* aRight) {
-  MOZ_ASSERT(aLeft && aRight, "SortedMerge must have non-empty lists");
-
-  nsIFrame* result;
-  // Unroll first iteration to avoid null-check 'result' inside the loop.
-  if (IsLessThanOrEqual(aLeft, aRight)) {
-    result = aLeft;
-    aLeft = aLeft->GetNextSibling();
-    if (!aLeft) {
-      result->SetNextSibling(aRight);
-      return result;
-    }
-  } else {
-    result = aRight;
-    aRight = aRight->GetNextSibling();
-    if (!aRight) {
-      result->SetNextSibling(aLeft);
-      return result;
-    }
-  }
-
-  nsIFrame* last = result;
-  for (;;) {
-    if (IsLessThanOrEqual(aLeft, aRight)) {
-      last->SetNextSibling(aLeft);
-      last = aLeft;
-      aLeft = aLeft->GetNextSibling();
-      if (!aLeft) {
-        last->SetNextSibling(aRight);
-        return result;
-      }
-    } else {
-      last->SetNextSibling(aRight);
-      last = aRight;
-      aRight = aRight->GetNextSibling();
-      if (!aRight) {
-        last->SetNextSibling(aLeft);
-        return result;
-      }
-    }
-  }
-}
-
-template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-/* static */ nsIFrame* nsIFrame::MergeSort(nsIFrame* aSource) {
-  MOZ_ASSERT(aSource, "MergeSort null arg");
-
-  nsIFrame* sorted[32] = {nullptr};
-  nsIFrame** fill = &sorted[0];
-  nsIFrame** left;
-  nsIFrame* rest = aSource;
-
-  do {
-    nsIFrame* current = rest;
-    rest = rest->GetNextSibling();
-    current->SetNextSibling(nullptr);
-
-    // Merge it with sorted[0] if present; then merge the result with sorted[1]
-    // etc. sorted[0] is a list of length 1 (or nullptr). sorted[1] is a list of
-    // length 2 (or nullptr). sorted[2] is a list of length 4 (or nullptr). etc.
-    for (left = &sorted[0]; left != fill && *left; ++left) {
-      current = SortedMerge<IsLessThanOrEqual>(*left, current);
-      *left = nullptr;
-    }
-
-    // Fill the empty slot that we couldn't merge with the last result.
-    *left = current;
-
-    if (left == fill) ++fill;
-  } while (rest);
-
-  // Collect and merge the results.
-  nsIFrame* result = nullptr;
-  for (left = &sorted[0]; left != fill; ++left) {
-    if (*left) {
-      result = result ? SortedMerge<IsLessThanOrEqual>(*left, result) : *left;
-    }
-  }
-  return result;
-}
-
-template <bool IsLessThanOrEqual(nsIFrame*, nsIFrame*)>
-/* static */ bool nsIFrame::IsFrameListSorted(nsFrameList& aFrameList) {
-  if (aFrameList.IsEmpty()) {
-    // empty lists are trivially sorted.
-    return true;
-  }
-
-  // We'll walk through the list with two iterators, one trailing behind the
-  // other. The list is sorted IFF trailingIter <= iter, across the whole list.
-  nsFrameList::Enumerator trailingIter(aFrameList);
-  nsFrameList::Enumerator iter(aFrameList);
-  iter.Next();  // Skip |iter| past first frame. (List is nonempty, so we can.)
-
-  // Now, advance the iterators in parallel, comparing each adjacent pair.
-  while (!iter.AtEnd()) {
-    MOZ_ASSERT(!trailingIter.AtEnd(), "trailing iter shouldn't finish first");
-    if (!IsLessThanOrEqual(trailingIter.get(), iter.get())) {
-      return false;
-    }
-    trailingIter.Next();
-    iter.Next();
-  }
-
-  // We made it to the end without returning early, so the list is sorted.
-  return true;
 }
 
 #endif /* nsIFrame_h___ */

@@ -293,11 +293,11 @@ static PointerCapabilities GetPointerCapabilities(const Document* aDocument,
              aID == LookAndFeel::IntID::AllPointerCapabilities);
   MOZ_ASSERT(aDocument);
 
-  if (nsIDocShell* docShell = aDocument->GetDocShell()) {
+  if (BrowsingContext* bc = aDocument->GetBrowsingContext()) {
     // The touch-events-override happens only for the Responsive Design Mode so
     // that we don't need to care about ResistFingerprinting.
-    if (docShell->GetTouchEventsOverride() ==
-        nsIDocShell::TOUCHEVENTS_OVERRIDE_ENABLED) {
+    if (bc->TouchEventsOverride() ==
+        mozilla::dom::TouchEventsOverride::Enabled) {
       return PointerCapabilities::Coarse;
     }
   }
@@ -397,10 +397,10 @@ void nsMediaFeatures::InitSystemMetrics() {
         (nsStaticAtom*)nsGkAtoms::_moz_mac_graphite_theme);
   }
 
-  rv = LookAndFeel::GetInt(LookAndFeel::IntID::MacYosemiteTheme, &metricResult);
+  rv = LookAndFeel::GetInt(LookAndFeel::IntID::MacBigSurTheme, &metricResult);
   if (NS_SUCCEEDED(rv) && metricResult) {
     sSystemMetrics->AppendElement(
-        (nsStaticAtom*)nsGkAtoms::_moz_mac_yosemite_theme);
+        (nsStaticAtom*)nsGkAtoms::_moz_mac_big_sur_theme);
   }
 
   rv = LookAndFeel::GetInt(LookAndFeel::IntID::WindowsAccentColorInTitlebar,

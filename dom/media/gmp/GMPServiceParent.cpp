@@ -16,6 +16,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/SchedulerGroup.h"
 #include "mozilla/dom/ContentParent.h"
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxInfo.h"
@@ -40,14 +41,12 @@
 
 using mozilla::ipc::Transport;
 
-namespace mozilla {
+namespace mozilla::gmp {
 
 #ifdef __CLASS__
 #  undef __CLASS__
 #endif
 #define __CLASS__ "GMPServiceParent"
-
-namespace gmp {
 
 static const uint32_t NodeIdSaltLength = 32;
 
@@ -1739,7 +1738,6 @@ bool GMPServiceParent::Create(Endpoint<PGMPServiceParent>&& aGMPService) {
   return true;
 }
 
-}  // namespace gmp
-}  // namespace mozilla
+}  // namespace mozilla::gmp
 
 #undef __CLASS__

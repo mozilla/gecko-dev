@@ -26,11 +26,15 @@ job-defaults:
                             warm:
                                 by-test-platform:
                                     (linux|windows|macos)(?!.*shippable).*: []
+                                    linux.*shippable.*: []
+                                    macos.*shippable.*: []
                                     default: ["mozilla-central"]
                             cold:
                                 by-test-platform:
                                     macosx.*64(?:-qr)?/opt: ["mozilla-central"]
                                     (linux|windows|macos)(?!.*shippable).*: []
+                                    linux.*shippable.*: []
+                                    macos.*shippable.*: []
                                     default: ["trunk", "mozilla-beta"]
                     default:
                         by-test-platform:
@@ -69,14 +73,14 @@ job-defaults:
             firefox:
                 by-test-platform:
                     windows10-64-ref-hw-2017/opt: 2
-                    windows10-64-ccov/.*: 3
-                    linux64-ccov/.*: 3
+                    windows10-64-ccov.*/.*: 3
+                    linux64-ccov.*/.*: 3
                     default: 2
             default: 2
     fission-tier: 2
     virtualization:
         by-test-platform:
-            windows10-64-ccov/.*: virtual
+            windows10-64-ccov.*/.*: virtual
             default: hardware
     mozharness:
         script: raptor_script.py
@@ -86,9 +90,9 @@ job-defaults:
                     - raptor/mac_config.py
                 windows.*:
                     - raptor/windows_config.py
-                windows10-64-ccov/.*:
+                windows10-64-ccov.*/.*:
                     - raptor/windows_vm_config.py
-                linux64-ccov/.*:
+                linux64-ccov.*/.*:
                     - raptor/linux64_config_taskcluster.py
                 default:
                     - raptor/linux_config.py
@@ -143,9 +147,16 @@ raptor-tp6:
     limit-platforms:
         by-app:
             chrome:
+                # Run on non-QR shippable, but test-platforms.yml doesn't have
+                # any more non-QR macosx shippable things. So for macosx we want
+                # to run it on shippable-qr, otherwise there's nothing running
+                # this on macosx at all.
                 - .*shippable[^-qr].*
+                - macosx1014-64-shippable-qr/opt
             chromium:
+                # Ditto as for chrome
                 - .*shippable[^-qr].*
+                - macosx1014-64-shippable-qr/opt
             default: []
     treeherder-symbol: Rap(tp6)
     max-run-time: 4000
@@ -345,7 +356,7 @@ raptor-unity-webgl-firefox:
     run-on-projects:
         by-test-platform:
             (linux|windows|macos)(?!.*shippable).*: []
-            default: ["mozilla-central"]
+            default: ["autoland"]
     tier: 3
     mozharness:
         extra-options:
@@ -365,23 +376,6 @@ raptor-unity-webgl-firefox-profiling:
     fetches:
         fetch:
             - unity-webgl
-
-raptor-wasm-misc-cranelift-firefox:
-    description: "Raptor WASM Misc on Firefox with Cranelift"
-    variants: ["fission"]
-    try-name: raptor-wasm-misc-cranelift-firefox
-    treeherder-symbol: Rap(wm-c)
-    run-on-projects:
-        by-test-platform:
-            (linux|windows|macos)(?!.*shippable).*: []
-            default: ["mozilla-central"]
-    max-run-time: 1800
-    mozharness:
-        extra-options:
-            - --test=raptor-wasm-misc-cranelift
-    fetches:
-        fetch:
-            - wasm-misc
 
 raptor-wasm-misc-firefox:
     description: "Raptor WASM Misc on Firefox"
@@ -433,26 +427,26 @@ raptor-wasm-misc-baseline-firefox-profiling:
         fetch:
             - wasm-misc
 
-raptor-wasm-misc-ion-firefox:
-    description: "Raptor WASM Misc on Firefox with ION Monkey"
+raptor-wasm-misc-optimizing-firefox:
+    description: "Raptor WASM Misc on Firefox with optimizing JIT"
     variants: ["fission"]
-    try-name: raptor-wasm-misc-ion-firefox
+    try-name: raptor-wasm-misc-optimizing-firefox
     treeherder-symbol: Rap(wm-i)
     mozharness:
         extra-options:
-            - --test=raptor-wasm-misc-ion
+            - --test=raptor-wasm-misc-optimizing
     fetches:
         fetch:
             - wasm-misc
 
-raptor-wasm-misc-ion-firefox-profiling:
-    description: "Raptor WASM Misc on Firefox with ION Monkey and Gecko Profiling"
-    try-name: raptor-wasm-misc-ion-firefox-profiling
+raptor-wasm-misc-optimizing-firefox-profiling:
+    description: "Raptor WASM Misc on Firefox with optimizing JIT and Gecko Profiling"
+    try-name: raptor-wasm-misc-optimizing-firefox-profiling
     treeherder-symbol: Rap-Prof(wm-i)
     max-run-time: 900
     mozharness:
         extra-options:
-            - --test=raptor-wasm-misc-ion
+            - --test=raptor-wasm-misc-optimizing
             - --gecko-profile
     fetches:
         fetch:
@@ -536,38 +530,10 @@ raptor-wasm-godot-baseline-firefox-profiling:
             - --test=raptor-wasm-godot-baseline
             - --gecko-profile
 
-raptor-wasm-godot-cranelift-firefox:
-    description: "Raptor WASM Godot on Firefox with Cranelift"
+raptor-wasm-godot-optimizing-firefox:
+    description: "Raptor WASM godot on Firefox with optimizing JIT"
     variants: ["fission"]
-    try-name: raptor-wasm-godot-cranelift-firefox
-    treeherder-symbol: Rap(godot-c)
-    run-on-projects:
-        by-test-platform:
-            (linux|windows|macos)(?!.*shippable).*: []
-            default: ['mozilla-central']
-    max-run-time:
-        by-test-platform:
-            .*-qr/.*: 2100
-            .*-ref-hw-2017/.*: 2100
-            default: 1500
-    mozharness:
-        extra-options:
-            - --test=raptor-wasm-godot-cranelift
-
-raptor-wasm-godot-cranelift-firefox-profiling:
-    description: "Raptor WASM Godot on Firefox with Cranelift Profiling"
-    try-name: raptor-wasm-godot-cranelift-firefox-profiling
-    treeherder-symbol: Rap-Prof(godot-c)
-    max-run-time: 900
-    mozharness:
-        extra-options:
-            - --test=raptor-wasm-godot-cranelift
-            - --gecko-profile
-
-raptor-wasm-godot-ion-firefox:
-    description: "Raptor WASM godot on Firefox with ION Monkey"
-    variants: ["fission"]
-    try-name: raptor-wasm-godot-ion-firefox
+    try-name: raptor-wasm-godot-optimizing-firefox
     treeherder-symbol: Rap(godot-i)
     max-run-time:
         by-test-platform:
@@ -576,16 +542,16 @@ raptor-wasm-godot-ion-firefox:
             default: 1500
     mozharness:
         extra-options:
-            - --test=raptor-wasm-godot-ion
+            - --test=raptor-wasm-godot-optimizing
 
-raptor-wasm-godot-ion-firefox-profiling:
-    description: "Raptor WASM godot on Firefox with ION Monkey and Gecko Profiling"
-    try-name: raptor-wasm-godot-ion-firefox-profiling
+raptor-wasm-godot-optimizing-firefox-profiling:
+    description: "Raptor WASM godot on Firefox with optimizing JIT and Gecko Profiling"
+    try-name: raptor-wasm-godot-optimizing-firefox-profiling
     treeherder-symbol: Rap-Prof(godot-i)
     max-run-time: 900
     mozharness:
         extra-options:
-            - --test=raptor-wasm-godot-ion
+            - --test=raptor-wasm-godot-optimizing
             - --gecko-profile
 
 raptor-youtube-playback-v9-power-firefox:
@@ -630,7 +596,7 @@ raptor-youtube-playback-av1-sfr-firefox:
             default: ['mozilla-central']
     limit-platforms:
         - windows10-64-ref-hw-2017/opt
-        - macosx1014-64-shippable/opt
+        - macosx1014-64-shippable-qr/opt
     max-run-time:
         by-test-platform:
             windows10-aarch64/opt: 3600

@@ -21,7 +21,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   ClientID: "resource://gre/modules/ClientID.jsm",
   BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
   CustomizableUI: "resource:///modules/CustomizableUI.jsm",
-  OS: "resource://gre/modules/osfile.jsm",
   PageActions: "resource:///modules/PageActions.jsm",
   PartnerLinkAttribution: "resource:///modules/PartnerLinkAttribution.jsm",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
@@ -65,6 +64,8 @@ const UNIQUE_DOMAINS_COUNT_SCALAR_NAME =
 const TOTAL_URI_COUNT_SCALAR_NAME = "browser.engagement.total_uri_count";
 const UNFILTERED_URI_COUNT_SCALAR_NAME =
   "browser.engagement.unfiltered_uri_count";
+const TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE_SCALAR_NAME =
+  "browser.engagement.total_uri_count_normal_and_private_mode";
 
 // A list of known search origins.
 const KNOWN_SEARCH_SOURCES = [
@@ -340,6 +341,12 @@ let URICountListener = {
       SearchTelemetry.updateTrackingStatus(browser, uriSpec);
     }
 
+    // Update total URI count, including when in private mode.
+    Services.telemetry.scalarAdd(
+      TOTAL_URI_COUNT_NORMAL_AND_PRIVATE_MODE_SCALAR_NAME,
+      1
+    );
+
     if (!shouldCountURI) {
       return;
     }
@@ -418,10 +425,9 @@ let BrowserUsageTelemetry = {
   Policy: {
     getTelemetryClientId: async () => ClientID.getClientID(),
     getUpdateDirectory: () => Services.dirsvc.get("UpdRootD", Ci.nsIFile),
-    readProfileCountFile: async path =>
-      OS.File.read(path, { encoding: "UTF-8" }),
+    readProfileCountFile: async path => IOUtils.readUTF8(path),
     writeProfileCountFile: async (path, data) =>
-      OS.File.writeAtomic(path, data),
+      IOUtils.writeAtomicUTF8(path, data),
   },
 
   _inited: false,
@@ -867,11 +873,23 @@ let BrowserUsageTelemetry = {
     let widgetMap = new Map();
 
     const toolbarState = nodeId => {
-      let value = Services.xulStore.getValue(
+      let value;
+      if (nodeId == "PersonalToolbar") {
+        value = Services.prefs.getCharPref(
+          "browser.toolbars.bookmarks.visibility",
+          "newtab"
+        );
+        if (value != "newtab") {
+          return value == "never" ? "off" : "on";
+        }
+        return value;
+      }
+      value = Services.xulStore.getValue(
         AppConstants.BROWSER_CHROME_URL,
         nodeId,
         "collapsed"
       );
+
       if (value) {
         return value == "true" ? "off" : "on";
       }
@@ -1153,9 +1171,12 @@ let BrowserUsageTelemetry = {
   },
 
   recordToolbarVisibility(toolbarId, newState, reason) {
+    if (typeof newState != "string") {
+      newState = newState ? "on" : "off";
+    }
     this._recordWidgetChange(
       BROWSER_UI_CONTAINER_IDS[toolbarId],
-      newState ? "on" : "off",
+      newState,
       reason
     );
   },
@@ -1414,7 +1435,7 @@ let BrowserUsageTelemetry = {
       // always the template that we use when writing to the file for the first
       // time.
       fileData = { version: "1", profileTelemetryIds: [] };
-      if (!(ex instanceof OS.File.Error && ex.becauseNoSuchFile)) {
+      if (!(ex.name == "NotFoundError")) {
         Cu.reportError(ex);
         // Don't just return here on a read error. We need to send the error
         // value to telemetry and we want to attempt to fix the file.

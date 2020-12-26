@@ -1177,7 +1177,7 @@ nsDisplayTableBackgroundSet::nsDisplayTableBackgroundSet(
   mPrevTableBackgroundSet = mBuilder->SetTableBackgroundSet(this);
   mozilla::DebugOnly<const nsIFrame*> reference =
       mBuilder->FindReferenceFrameFor(aTable, &mToReferenceFrame);
-  MOZ_ASSERT(nsLayoutUtils::IsAncestorFrameCrossDoc(reference, aTable));
+  MOZ_ASSERT(nsLayoutUtils::FindNearestCommonAncestorFrame(reference, aTable));
   mDirtyRect = mBuilder->GetDirtyRect();
 }
 
@@ -1360,7 +1360,7 @@ nsMargin nsTableFrame::GetDeflationForBackground(
 }
 
 nsIFrame::LogicalSides nsTableFrame::GetLogicalSkipSides(
-    const ReflowInput* aReflowInput) const {
+    const Maybe<SkipSidesDuringReflow>&) const {
   LogicalSides skip(mWritingMode);
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                    StyleBoxDecorationBreak::Clone)) {
@@ -1369,10 +1369,10 @@ nsIFrame::LogicalSides nsTableFrame::GetLogicalSkipSides(
 
   // frame attribute was accounted for in nsHTMLTableElement::MapTableBorderInto
   // account for pagination
-  if (nullptr != GetPrevInFlow()) {
+  if (GetPrevInFlow()) {
     skip |= eLogicalSideBitsBStart;
   }
-  if (nullptr != GetNextInFlow()) {
+  if (GetNextInFlow()) {
     skip |= eLogicalSideBitsBEnd;
   }
   return skip;
@@ -1893,7 +1893,7 @@ void nsTableFrame::Reflow(nsPresContext* aPresContext,
 
   aDesiredSize.ISize(wm) =
       aReflowInput.ComputedISize() +
-      aReflowInput.ComputedLogicalBorderPadding().IStartEnd(wm);
+      aReflowInput.ComputedLogicalBorderPadding(wm).IStartEnd(wm);
   if (!haveDesiredBSize) {
     CalcDesiredBSize(aReflowInput, aDesiredSize);
   }
@@ -2046,7 +2046,7 @@ void nsTableFrame::ReflowTable(ReflowOutput& aDesiredSize,
   WritingMode wm = aReflowInput.GetWritingMode();
   aDesiredSize.ISize(wm) =
       aReflowInput.ComputedISize() +
-      aReflowInput.ComputedLogicalBorderPadding().IStartEnd(wm);
+      aReflowInput.ComputedLogicalBorderPadding(wm).IStartEnd(wm);
   TableReflowInput reflowInput(
       aReflowInput, LogicalSize(wm, aDesiredSize.ISize(wm), aAvailBSize));
   ReflowChildren(reflowInput, aStatus, aLastChildReflowed,
@@ -2652,7 +2652,7 @@ static LogicalMargin GetSeparateModelBorderPadding(
   const nsStyleBorder* border = aComputedStyle->StyleBorder();
   LogicalMargin borderPadding(aWM, border->GetComputedBorder());
   if (aReflowInput) {
-    borderPadding += aReflowInput->ComputedLogicalPadding();
+    borderPadding += aReflowInput->ComputedLogicalPadding(aWM);
   }
   return borderPadding;
 }
@@ -2665,15 +2665,15 @@ LogicalMargin nsTableFrame::GetChildAreaOffset(
 }
 
 void nsTableFrame::InitChildReflowInput(ReflowInput& aReflowInput) {
-  nsMargin border;
+  const auto childWM = aReflowInput.GetWritingMode();
+  LogicalMargin border(childWM);
   if (IsBorderCollapse()) {
     nsTableRowGroupFrame* rgFrame =
         static_cast<nsTableRowGroupFrame*>(aReflowInput.mFrame);
-    WritingMode wm = GetWritingMode();
-    border = rgFrame->GetBCBorderWidth(wm).GetPhysicalMargin(wm);
+    border = rgFrame->GetBCBorderWidth(childWM);
   }
-  const nsMargin padding;
-  aReflowInput.Init(PresContext(), Nothing(), &border, &padding);
+  const LogicalMargin zeroPadding(childWM);
+  aReflowInput.Init(PresContext(), Nothing(), Some(border), Some(zeroPadding));
 
   NS_ASSERTION(!mBits.mResizedColumns ||
                    !aReflowInput.mParentReflowInput->mFlags.mSpecialBSizeReflow,

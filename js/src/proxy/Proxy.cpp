@@ -12,6 +12,7 @@
 
 #include "jsapi.h"
 
+#include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/friend/StackLimits.h"  // js::CheckRecursionLimit, js::GetNativeStackLimit
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy, js::ToWindowProxyIfWindow
 #include "js/PropertySpec.h"
@@ -277,7 +278,7 @@ JS_FRIEND_API bool js::AppendUnique(JSContext* cx, MutableHandleIdVector base,
       }
     }
   }
-  return base.appendAll(uniqueOthers);
+  return base.appendAll(std::move(uniqueOthers));
 }
 
 /* static */

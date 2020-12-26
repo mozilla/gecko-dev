@@ -112,7 +112,12 @@ int32_t nsStandardURL::nsSegmentEncoder::EncodeSegmentCount(
   // only do this if the segment is non-ASCII.  Further, if mEncoding is
   // null, then the origin charset is UTF-8 and there is nothing to do.
   if (mEncoding) {
-    size_t upTo = Encoding::ASCIIValidUpTo(AsBytes(span));
+    size_t upTo;
+    if (MOZ_UNLIKELY(mEncoding == ISO_2022_JP_ENCODING)) {
+      upTo = Encoding::ISO2022JPASCIIValidUpTo(AsBytes(span));
+    } else {
+      upTo = Encoding::ASCIIValidUpTo(AsBytes(span));
+    }
     if (upTo != span.Length()) {
       // we have to encode this segment
       char bufferArr[512];
@@ -2875,7 +2880,13 @@ nsresult nsStandardURL::SetQueryWithEncoding(const nsACString& input,
     return NS_OK;
   }
 
-  int32_t queryLen = flat.Length();
+  // filter out unexpected chars "\r\n\t" if necessary
+  nsAutoCString filteredURI(flat);
+  const ASCIIMaskArray& mask = ASCIIMask::MaskCRLFTab();
+  filteredURI.StripTaggedASCII(mask);
+
+  query = filteredURI.get();
+  int32_t queryLen = filteredURI.Length();
   if (query[0] == '?') {
     query++;
     queryLen--;
@@ -2945,7 +2956,13 @@ nsresult nsStandardURL::SetRef(const nsACString& input) {
     return NS_OK;
   }
 
-  int32_t refLen = flat.Length();
+  // filter out unexpected chars "\r\n\t" if necessary
+  nsAutoCString filteredURI(flat);
+  const ASCIIMaskArray& mask = ASCIIMask::MaskCRLFTab();
+  filteredURI.StripTaggedASCII(mask);
+
+  ref = filteredURI.get();
+  int32_t refLen = filteredURI.Length();
   if (ref[0] == '#') {
     ref++;
     refLen--;

@@ -76,8 +76,8 @@ static CSSOrderAwareFrameIterator::OrderState OrderStateForIter(
     const nsFlexContainerFrame* aFlexContainer) {
   return aFlexContainer->HasAnyStateBits(
              NS_STATE_FLEX_NORMAL_FLOW_CHILDREN_IN_CSS_ORDER)
-             ? CSSOrderAwareFrameIterator::OrderState::eKnownOrdered
-             : CSSOrderAwareFrameIterator::OrderState::eKnownUnordered;
+             ? CSSOrderAwareFrameIterator::OrderState::Ordered
+             : CSSOrderAwareFrameIterator::OrderState::Unordered;
 }
 
 // Returns the OrderingProperty enum that we should pass to
@@ -85,8 +85,8 @@ static CSSOrderAwareFrameIterator::OrderState OrderStateForIter(
 static CSSOrderAwareFrameIterator::OrderingProperty OrderingPropertyForIter(
     const nsFlexContainerFrame* aFlexContainer) {
   return IsLegacyBox(aFlexContainer)
-             ? CSSOrderAwareFrameIterator::OrderingProperty::eUseBoxOrdinalGroup
-             : CSSOrderAwareFrameIterator::OrderingProperty::eUseOrder;
+             ? CSSOrderAwareFrameIterator::OrderingProperty::BoxOrdinalGroup
+             : CSSOrderAwareFrameIterator::OrderingProperty::Order;
 }
 
 // Returns the "align-items" value that's equivalent to the legacy "box-align"
@@ -1303,7 +1303,8 @@ FlexItem* nsFlexContainerFrame::GenerateFlexItemForChild(
     flexShrink = stylePos->mFlexShrink;
   }
 
-  WritingMode childWM = childRI.GetWritingMode();
+  const auto childWM = childRI.GetWritingMode();
+  const auto flexWM = aAxisTracker.GetWritingMode();
 
   // MAIN SIZES (flex base size, min/max size)
   // -----------------------------------------
@@ -1352,9 +1353,8 @@ FlexItem* nsFlexContainerFrame::GenerateFlexItemForChild(
 
     // GetMinimumWidgetSize() returns border-box. We need content-box, so
     // subtract borderPadding.
-    const LogicalMargin bpInChildWM = childRI.ComputedLogicalBorderPadding();
     const LogicalMargin bpInFlexWM =
-        bpInChildWM.ConvertTo(aAxisTracker.GetWritingMode(), childWM);
+        childRI.ComputedLogicalBorderPadding(flexWM);
     widgetMainMinSize -= aAxisTracker.MarginSizeInMainAxis(bpInFlexWM);
     widgetCrossMinSize -= aAxisTracker.MarginSizeInCrossAxis(bpInFlexWM);
     // ... (but don't let that push these min sizes below 0).
@@ -1402,8 +1402,8 @@ FlexItem* nsFlexContainerFrame::GenerateFlexItemForChild(
     // XXXdholbert Maybe this should share logic with ComputeCrossSize()...
     // Alternately, maybe tentative container cross size should be passed down.
     nscoord containerCrossSize = GET_CROSS_COMPONENT_LOGICAL(
-        aAxisTracker, aAxisTracker.GetWritingMode(),
-        aParentReflowInput.ComputedISize(), aParentReflowInput.ComputedBSize());
+        aAxisTracker, flexWM, aParentReflowInput.ComputedISize(),
+        aParentReflowInput.ComputedBSize());
     // Is container's cross size "definite"?
     // - If it's column-oriented, then "yes", because its cross size is its
     // inline-size which is always definite from its descendants' perspective.
@@ -1625,8 +1625,8 @@ void nsFlexContainerFrame::ResolveAutoFlexBasisAndMinSize(
         const auto sizeInItemWM = aFlexItem.Frame()->ComputeSize(
             aItemReflowInput.mRenderingContext, itemWM,
             aItemReflowInput.mContainingBlockSize, availISize,
-            aItemReflowInput.ComputedLogicalMargin().Size(itemWM),
-            aItemReflowInput.ComputedLogicalBorderPadding().Size(itemWM),
+            aItemReflowInput.ComputedLogicalMargin(itemWM).Size(itemWM),
+            aItemReflowInput.ComputedLogicalBorderPadding(itemWM).Size(itemWM),
             {ComputeSizeFlag::UseAutoISize, ComputeSizeFlag::ShrinkWrap});
 
         contentSizeSuggestion = aAxisTracker.MainComponent(
@@ -1766,8 +1766,9 @@ class nsFlexContainerFrame::CachedBAxisMeasurement {
     // (and floor at 0 in case the border/padding are too large):
     WritingMode itemWM = aReflowInput.GetWritingMode();
     nscoord borderBoxBSize = aReflowOutput.BSize(itemWM);
-    mBSize = borderBoxBSize -
-             aReflowInput.ComputedLogicalBorderPadding().BStartEnd(itemWM);
+    mBSize =
+        borderBoxBSize -
+        aReflowInput.ComputedLogicalBorderPadding(itemWM).BStartEnd(itemWM);
     mBSize = std::max(0, mBSize);
   }
 
@@ -1828,7 +1829,7 @@ class nsFlexContainerFrame::CachedFlexItemData {
     mFinalReflowSize.reset();
     mFinalReflowSize.emplace(
         aReflowOutput.Size(wm) -
-        aReflowInput.ComputedLogicalBorderPadding().Size(wm));
+        aReflowInput.ComputedLogicalBorderPadding(wm).Size(wm));
     // Save whether this reflow's BSize was considered definite vs. indefinite.
     // (For a flex item "final reflow", this is 100% determined by the
     // "mTreatBSizeAsIndefinite" ReflowInput flag -- when we get to this
@@ -2005,11 +2006,8 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
       mWM(aFlexItemReflowInput.GetWritingMode()),
       mCBWM(aAxisTracker.GetWritingMode()),
       mMainAxis(aAxisTracker.MainAxis()),
-      mBorderPadding(
-          aFlexItemReflowInput.ComputedLogicalBorderPadding().ConvertTo(mCBWM,
-                                                                        mWM)),
-      mMargin(
-          aFlexItemReflowInput.ComputedLogicalMargin().ConvertTo(mCBWM, mWM)),
+      mBorderPadding(aFlexItemReflowInput.ComputedLogicalBorderPadding(mCBWM)),
+      mMargin(aFlexItemReflowInput.ComputedLogicalMargin(mCBWM)),
       mMainMinSize(aMainMinSize),
       mMainMaxSize(aMainMaxSize),
       mCrossMinSize(aCrossMinSize),
@@ -2760,7 +2758,7 @@ void nsFlexContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   nsDisplayListSet childLists(tempLists, tempLists.BlockBorderBackgrounds());
 
   CSSOrderAwareFrameIterator iter(
-      this, kPrincipalList, CSSOrderAwareFrameIterator::eIncludeAll,
+      this, kPrincipalList, CSSOrderAwareFrameIterator::ChildFilter::IncludeAll,
       OrderStateForIter(this), OrderingPropertyForIter(this));
 
   for (; !iter.AtEnd(); iter.Next()) {
@@ -3966,8 +3964,9 @@ void nsFlexContainerFrame::GenerateFlexLines(
   uint32_t itemIdxInContainer = 0;
 
   CSSOrderAwareFrameIterator iter(
-      this, kPrincipalList, CSSOrderAwareFrameIterator::eIncludeAll,
-      CSSOrderAwareFrameIterator::eUnknownOrder, OrderingPropertyForIter(this));
+      this, kPrincipalList, CSSOrderAwareFrameIterator::ChildFilter::IncludeAll,
+      CSSOrderAwareFrameIterator::OrderState::Unknown,
+      OrderingPropertyForIter(this));
 
   AddOrRemoveStateBits(NS_STATE_FLEX_NORMAL_FLOW_CHILDREN_IN_CSS_ORDER,
                        iter.ItemsAreAlreadyInOrder());
@@ -4074,7 +4073,8 @@ void nsFlexContainerFrame::GenerateFlexLines(const SharedFlexData& aData,
   // Construct flex items for this flex container fragment from existing flex
   // items in SharedFlexData.
   CSSOrderAwareFrameIterator iter(
-      this, kPrincipalList, CSSOrderAwareFrameIterator::eSkipPlaceholders,
+      this, kPrincipalList,
+      CSSOrderAwareFrameIterator::ChildFilter::SkipPlaceholders,
       OrderStateForIter(this), OrderingPropertyForIter(this));
 
   FlexItemIterator itemIter(aData.mLines);
@@ -4100,7 +4100,8 @@ void nsFlexContainerFrame::GenerateFlexLines(const SharedFlexData& aData,
 // reflow input (specifically, the main-size of *this continuation* of the
 // flex container).
 nscoord nsFlexContainerFrame::GetMainSizeFromReflowInput(
-    const ReflowInput& aReflowInput, const FlexboxAxisTracker& aAxisTracker) {
+    const ReflowInput& aReflowInput, const FlexboxAxisTracker& aAxisTracker,
+    nscoord aConsumedBSize) {
   if (aAxisTracker.IsRowOriented()) {
     // Row-oriented --> our main axis is the inline axis, so our main size
     // is our inline size (which should already be resolved).
@@ -4112,7 +4113,7 @@ nscoord nsFlexContainerFrame::GetMainSizeFromReflowInput(
   }
 
   // Note: This may be unconstrained, if our block size is "auto":
-  return GetEffectiveComputedBSize(aReflowInput);
+  return GetEffectiveComputedBSize(aReflowInput, aConsumedBSize);
 }
 
 // Returns the largest outer hypothetical main-size of any line in |aLines|.
@@ -4159,7 +4160,8 @@ nscoord nsFlexContainerFrame::ComputeMainSize(
 
 nscoord nsFlexContainerFrame::ComputeCrossSize(
     const ReflowInput& aReflowInput, const FlexboxAxisTracker& aAxisTracker,
-    nscoord aSumLineCrossSizes, bool* aIsDefinite) const {
+    nscoord aSumLineCrossSizes, nscoord aConsumedBSize,
+    bool* aIsDefinite) const {
   MOZ_ASSERT(aIsDefinite, "outparam pointer must be non-null");
 
   if (aAxisTracker.IsColumnOriented()) {
@@ -4180,7 +4182,8 @@ nscoord nsFlexContainerFrame::ComputeCrossSize(
     return aReflowInput.ComputedISize();
   }
 
-  nscoord effectiveComputedBSize = GetEffectiveComputedBSize(aReflowInput);
+  nscoord effectiveComputedBSize =
+      GetEffectiveComputedBSize(aReflowInput, aConsumedBSize);
   if (effectiveComputedBSize != NS_UNCONSTRAINEDSIZE) {
     // Row-oriented case (cross axis is block-axis), with fixed BSize:
     *aIsDefinite = true;
@@ -4395,14 +4398,16 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
   // PreReflowBlockLevelLogicalSkipSides(). We will skip block-end
   // border/padding when we know our content-box size after DoFlexLayout.
   LogicalMargin borderPadding =
-      aReflowInput.ComputedLogicalBorderPadding().ApplySkipSides(
+      aReflowInput.ComputedLogicalBorderPadding(wm).ApplySkipSides(
           PreReflowBlockLevelLogicalSkipSides());
 
   const LogicalSize availableSizeForItems =
       ComputeAvailableSizeForItems(aReflowInput, borderPadding);
 
+  const nscoord consumedBSize =
+      CalcAndCacheConsumedBSize(aReflowInput.GetWritingMode());
   nscoord contentBoxMainSize =
-      GetMainSizeFromReflowInput(aReflowInput, axisTracker);
+      GetMainSizeFromReflowInput(aReflowInput, axisTracker, consumedBSize);
   nscoord contentBoxCrossSize;
   nscoord flexContainerAscent;
 
@@ -4413,7 +4418,8 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     mainGapSize = nsLayoutUtils::ResolveGapToLength(stylePos->mColumnGap,
                                                     contentBoxMainSize);
     crossGapSize = nsLayoutUtils::ResolveGapToLength(
-        stylePos->mRowGap, GetEffectiveComputedBSize(aReflowInput));
+        stylePos->mRowGap,
+        GetEffectiveComputedBSize(aReflowInput, consumedBSize));
   } else {
     mainGapSize = nsLayoutUtils::ResolveGapToLength(stylePos->mRowGap,
                                                     contentBoxMainSize);
@@ -4440,7 +4446,7 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
     // layout result closer to the one as if there's no fragmentation.
     DoFlexLayout(aReflowInput, contentBoxMainSize, contentBoxCrossSize,
                  flexContainerAscent, lines, struts, placeholders, axisTracker,
-                 mainGapSize, crossGapSize, hasLineClampEllipsis,
+                 mainGapSize, crossGapSize, consumedBSize, hasLineClampEllipsis,
                  containerInfo);
 
     if (!struts.IsEmpty()) {
@@ -4449,8 +4455,8 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
       placeholders.Clear();
       DoFlexLayout(aReflowInput, contentBoxMainSize, contentBoxCrossSize,
                    flexContainerAscent, lines, struts, placeholders,
-                   axisTracker, mainGapSize, crossGapSize, hasLineClampEllipsis,
-                   containerInfo);
+                   axisTracker, mainGapSize, crossGapSize, consumedBSize,
+                   hasLineClampEllipsis, containerInfo);
     }
   } else {
     auto* data = FirstInFlow()->GetProperty(SharedFlexData::Prop());
@@ -4464,7 +4470,6 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
   const LogicalSize contentBoxSize =
       axisTracker.LogicalSizeFromFlexRelativeSizes(contentBoxMainSize,
                                                    contentBoxCrossSize);
-  const nscoord consumedBSize = ConsumedBSize(wm);
   const nscoord effectiveContentBSize =
       contentBoxSize.BSize(wm) - consumedBSize;
 
@@ -4875,7 +4880,8 @@ void nsFlexContainerFrame::DoFlexLayout(
     nscoord& aContentBoxCrossSize, nscoord& aFlexContainerAscent,
     nsTArray<FlexLine>& aLines, nsTArray<StrutInfo>& aStruts,
     nsTArray<nsIFrame*>& aPlaceholders, const FlexboxAxisTracker& aAxisTracker,
-    nscoord aMainGapSize, nscoord aCrossGapSize, bool aHasLineClampEllipsis,
+    nscoord aMainGapSize, nscoord aCrossGapSize, nscoord aConsumedBSize,
+    bool aHasLineClampEllipsis,
     ComputedFlexContainerInfo* const aContainerInfo) {
   MOZ_ASSERT(aLines.IsEmpty(), "Caller should pass an empty array for lines!");
   MOZ_ASSERT(aPlaceholders.IsEmpty(),
@@ -4978,8 +4984,9 @@ void nsFlexContainerFrame::DoFlexLayout(
   }
 
   bool isCrossSizeDefinite;
-  aContentBoxCrossSize = ComputeCrossSize(
-      aReflowInput, aAxisTracker, sumLineCrossSizes, &isCrossSizeDefinite);
+  aContentBoxCrossSize =
+      ComputeCrossSize(aReflowInput, aAxisTracker, sumLineCrossSizes,
+                       aConsumedBSize, &isCrossSizeDefinite);
 
   // Set up state for cross-axis alignment, at a high level (outside the
   // scope of a particular flex line)
@@ -5267,7 +5274,7 @@ void nsFlexContainerFrame::PopulateReflowOutput(
         if (aReflowInput.mStyleBorder->mBoxDecorationBreak ==
             StyleBoxDecorationBreak::Slice) {
           blockEndContainerBP =
-              aReflowInput.ComputedLogicalBorderPadding().BEnd(flexWM);
+              aReflowInput.ComputedLogicalBorderPadding(flexWM).BEnd(flexWM);
         }
       }
     }
@@ -5576,14 +5583,13 @@ nscoord nsFlexContainerFrame::IntrinsicISize(gfxContext* aRenderingContext,
       // pref isize is former (sum), and its min isize is the latter (max).
       bool isSingleLine = (StyleFlexWrap::Nowrap == stylePos->mFlexWrap);
       if (axisTracker.IsRowOriented() &&
-          (isSingleLine || aType == nsLayoutUtils::PREF_ISIZE)) {
+          (isSingleLine || aType == IntrinsicISizeType::PrefISize)) {
         containerISize += childISize;
         if (!onFirstChild) {
           containerISize += mainGapSize;
         }
         onFirstChild = false;
-      } else {  // (col-oriented, or MIN_ISIZE for multi-line row flex
-                // container)
+      } else {  // (col-oriented, or MinISize for multi-line row flex container)
         containerISize = std::max(containerISize, childISize);
       }
     }
@@ -5599,7 +5605,7 @@ nscoord nsFlexContainerFrame::GetMinISize(gfxContext* aRenderingContext) {
     mCachedMinISize =
         StyleDisplay()->IsContainSize()
             ? 0
-            : IntrinsicISize(aRenderingContext, nsLayoutUtils::MIN_ISIZE);
+            : IntrinsicISize(aRenderingContext, IntrinsicISizeType::MinISize);
   }
 
   return mCachedMinISize;
@@ -5612,7 +5618,7 @@ nscoord nsFlexContainerFrame::GetPrefISize(gfxContext* aRenderingContext) {
     mCachedPrefISize =
         StyleDisplay()->IsContainSize()
             ? 0
-            : IntrinsicISize(aRenderingContext, nsLayoutUtils::PREF_ISIZE);
+            : IntrinsicISize(aRenderingContext, IntrinsicISizeType::PrefISize);
   }
 
   return mCachedPrefISize;

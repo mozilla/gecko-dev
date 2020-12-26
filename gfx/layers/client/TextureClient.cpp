@@ -301,7 +301,7 @@ static TextureType GetTextureType(gfx::SurfaceFormat aFormat,
   if ((layersBackend == LayersBackend::LAYERS_OPENGL ||
        (layersBackend == LayersBackend::LAYERS_WR &&
         !aKnowsCompositor->UsingSoftwareWebRender())) &&
-      gfxPlatformGtk::GetPlatform()->UseDMABufTextures() &&
+      widget::GetDMABufDevice()->IsDMABufTexturesEnabled() &&
       aFormat != SurfaceFormat::A8) {
     return TextureType::DMABUF;
   }
@@ -1391,8 +1391,9 @@ already_AddRefed<TextureClient> TextureClient::CreateForRawBufferAccess(
 
 // static
 already_AddRefed<TextureClient> TextureClient::CreateForYCbCr(
-    KnowsCompositor* aAllocator, gfx::IntSize aYSize, uint32_t aYStride,
-    gfx::IntSize aCbCrSize, uint32_t aCbCrStride, StereoMode aStereoMode,
+    KnowsCompositor* aAllocator, const gfx::IntRect& aDisplay,
+    const gfx::IntSize& aYSize, uint32_t aYStride,
+    const gfx::IntSize& aCbCrSize, uint32_t aCbCrStride, StereoMode aStereoMode,
     gfx::ColorDepth aColorDepth, gfx::YUVColorSpace aYUVColorSpace,
     gfx::ColorRange aColorRange, TextureFlags aTextureFlags) {
   if (!aAllocator || !aAllocator->GetLayersIPCActor()->IPCOpen()) {
@@ -1404,8 +1405,8 @@ already_AddRefed<TextureClient> TextureClient::CreateForYCbCr(
   }
 
   TextureData* data = BufferTextureData::CreateForYCbCr(
-      aAllocator, aYSize, aYStride, aCbCrSize, aCbCrStride, aStereoMode,
-      aColorDepth, aYUVColorSpace, aColorRange, aTextureFlags);
+      aAllocator, aDisplay, aYSize, aYStride, aCbCrSize, aCbCrStride,
+      aStereoMode, aColorDepth, aYUVColorSpace, aColorRange, aTextureFlags);
   if (!data) {
     return nullptr;
   }

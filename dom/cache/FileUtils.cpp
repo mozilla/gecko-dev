@@ -10,6 +10,7 @@
 #include "mozilla/dom/InternalResponse.h"
 #include "mozilla/dom/quota/FileStreams.h"
 #include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/dom/quota/QuotaObject.h"
 #include "mozilla/SnappyCompressOutputStream.h"
 #include "mozilla/Unused.h"
 #include "nsIObjectInputStream.h"
@@ -22,9 +23,7 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 
-namespace mozilla {
-namespace dom {
-namespace cache {
+namespace mozilla::dom::cache {
 
 using mozilla::dom::quota::Client;
 using mozilla::dom::quota::FileInputStream;
@@ -203,9 +202,8 @@ nsresult BodyStartWriteStream(const QuotaInfo& aQuotaInfo, nsIFile* aBaseDir,
     return NS_ERROR_FILE_ALREADY_EXISTS;
   }
 
-  nsCOMPtr<nsIOutputStream> fileStream =
-      CreateFileOutputStream(PERSISTENCE_TYPE_DEFAULT, aQuotaInfo.mGroup,
-                             aQuotaInfo.mOrigin, Client::DOMCACHE, tmpFile);
+  nsCOMPtr<nsIOutputStream> fileStream = CreateFileOutputStream(
+      PERSISTENCE_TYPE_DEFAULT, aQuotaInfo, Client::DOMCACHE, tmpFile);
   if (NS_WARN_IF(!fileStream)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -295,9 +293,8 @@ nsresult BodyOpen(const QuotaInfo& aQuotaInfo, nsIFile* aBaseDir,
     return NS_ERROR_FILE_NOT_FOUND;
   }
 
-  nsCOMPtr<nsIInputStream> fileStream =
-      CreateFileInputStream(PERSISTENCE_TYPE_DEFAULT, aQuotaInfo.mGroup,
-                            aQuotaInfo.mOrigin, Client::DOMCACHE, finalFile);
+  nsCOMPtr<nsIInputStream> fileStream = CreateFileInputStream(
+      PERSISTENCE_TYPE_DEFAULT, aQuotaInfo, Client::DOMCACHE, finalFile);
   if (NS_WARN_IF(!fileStream)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -328,9 +325,9 @@ nsresult BodyMaybeUpdatePaddingSize(const QuotaInfo& aQuotaInfo,
   MOZ_DIAGNOSTIC_ASSERT(quotaManager);
 
   int64_t fileSize = 0;
-  RefPtr<QuotaObject> quotaObject = quotaManager->GetQuotaObject(
-      PERSISTENCE_TYPE_DEFAULT, aQuotaInfo.mGroup, aQuotaInfo.mOrigin,
-      Client::DOMCACHE, bodyFile, -1, &fileSize);
+  RefPtr<QuotaObject> quotaObject =
+      quotaManager->GetQuotaObject(PERSISTENCE_TYPE_DEFAULT, aQuotaInfo,
+                                   Client::DOMCACHE, bodyFile, -1, &fileSize);
   MOZ_DIAGNOSTIC_ASSERT(quotaObject);
   MOZ_DIAGNOSTIC_ASSERT(fileSize >= 0);
   // XXXtt: bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1422815
@@ -747,8 +744,7 @@ void DecreaseUsageForQuotaInfo(const QuotaInfo& aQuotaInfo,
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_DIAGNOSTIC_ASSERT(quotaManager);
 
-  quotaManager->DecreaseUsageForOrigin(PERSISTENCE_TYPE_DEFAULT,
-                                       aQuotaInfo.mGroup, aQuotaInfo.mOrigin,
+  quotaManager->DecreaseUsageForOrigin(PERSISTENCE_TYPE_DEFAULT, aQuotaInfo,
                                        Client::DOMCACHE, aUpdatingSize);
 }
 
@@ -1031,6 +1027,4 @@ nsresult LockedDirectoryPaddingDeleteFile(nsIFile* aBaseDir,
 
   return rv;
 }
-}  // namespace cache
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::cache

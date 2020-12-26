@@ -43,6 +43,18 @@ class nsMacUtilsImpl final : public nsIMacUtils {
   static void EnableTCSMIfAvailable();
   static bool IsTCSMAvailable();
   static uint32_t GetPhysicalCPUCount();
+  static nsresult GetArchitecturesForBundle(uint32_t* aArchMask);
+  static nsresult GetArchitecturesForBinary(const char* aPath,
+                                            uint32_t* aArchMask);
+
+#if defined(__aarch64__)
+  // Pre-translate binaries to avoid translation delays when launching
+  // x64 child process instances for the first time. i.e. on first launch
+  // after installation or after an update. Translations are cached so
+  // repeated launches of the binaries do not encounter delays.
+  static int PreTranslateXUL();
+  static int PreTranslateBinary(nsCString aBinaryPath);
+#endif
 
  private:
   ~nsMacUtilsImpl() {}
@@ -60,6 +72,15 @@ class nsMacUtilsImpl final : public nsIMacUtils {
   static StaticMutex sCachedAppPathMutex;
   // Utility method to call ClearOnShutdown() on the main thread
   static nsresult ClearCachedAppPathOnShutdown();
+#endif
+
+  // The cached machine architectures of the .app bundle which can
+  // be multiple architectures for universal binaries.
+  static std::atomic<uint32_t> sBundleArchMaskAtomic;
+
+#if defined(__aarch64__)
+  // Limit XUL translation to one attempt
+  static std::atomic<bool> sIsXULTranslated;
 #endif
 
   enum TCSMStatus { TCSM_Unknown = 0, TCSM_Available, TCSM_Unavailable };

@@ -47,7 +47,7 @@ MOZILLA_SYMBOL_SERVER = (
 )
 MISSING_SYMBOLS_URL = "https://symbols.mozilla.org/missingsymbols.csv?microsoft=only"
 HEADERS = {"User-Agent": USER_AGENT}
-SYM_SRV = "SRV*{}*https://msdl.microsoft.com/download/symbols"
+SYM_SRV = "SRV*{0}*https://msdl.microsoft.com/download/symbols;SRV*{0}*https://software.intel.com/sites/downloads/symbols;SRV*{0}*https://download.amd.com/dir/bin;SRV*{0}*https://driver-symbols.nvidia.com"
 TIMEOUT = 7200
 RETRIES = 5
 
@@ -337,7 +337,7 @@ async def collect(modules):
     tasks = []
 
     # In case of errors (Too many open files), just change limit_per_host
-    connector = TCPConnector(limit=100, limit_per_host=0)
+    connector = TCPConnector(limit=100, limit_per_host=4)
 
     async with ClientSession(
         loop=loop, timeout=ClientTimeout(total=TIMEOUT), connector=connector

@@ -160,7 +160,9 @@ void AltSvcMapping::ProcessHeader(
     SpdyInformation* spdyInfo = gHttpHandler->SpdyInfo();
     if (!(NS_SUCCEEDED(spdyInfo->GetNPNIndex(npnToken, &spdyIndex)) &&
           spdyInfo->ProtocolEnabled(spdyIndex)) &&
-        !(isHttp3 && gHttpHandler->IsHttp3Enabled())) {
+        !(isHttp3 && gHttpHandler->IsHttp3Enabled() &&
+          !gHttpHandler->IsHttp3Excluded(hostname.IsEmpty() ? originHost
+                                                            : hostname))) {
       LOG(("Alt Svc unknown protocol %s, ignoring", npnToken.get()));
       continue;
     }
@@ -516,7 +518,7 @@ template <class Validator>
 AltSvcTransaction<Validator>::AltSvcTransaction(
     nsHttpConnectionInfo* ci, nsIInterfaceRequestor* callbacks, uint32_t caps,
     Validator* aValidator, bool aIsHttp3)
-    : NullHttpTransaction(ci, callbacks, caps & ~NS_HTTP_ALLOW_KEEPALIVE),
+    : SpeculativeTransaction(ci, callbacks, caps & ~NS_HTTP_ALLOW_KEEPALIVE),
       mValidator(aValidator),
       mIsHttp3(aIsHttp3),
       mRunning(true),
@@ -942,7 +944,8 @@ already_AddRefed<AltSvcMapping> AltSvcCache::LookupMapping(
 
   if (rv->IsHttp3() &&
       (!gHttpHandler->IsHttp3Enabled() ||
-       !gHttpHandler->IsHttp3VersionSupported(rv->NPNToken()))) {
+       !gHttpHandler->IsHttp3VersionSupported(rv->NPNToken()) ||
+       gHttpHandler->IsHttp3Excluded(rv->AlternateHost()))) {
     // If Http3 is disabled or the version not supported anymore, remove the
     // mapping.
     mStorage->Remove(
@@ -1071,21 +1074,21 @@ void AltSvcCache::UpdateAltServiceMapping(
     // for https resources we only establish a connection
     nsCOMPtr<nsIInterfaceRequestor> callbacks = new AltSvcOverride(aCallbacks);
     RefPtr<AltSvcMappingValidator> validator = new AltSvcMappingValidator(map);
-    RefPtr<NullHttpTransaction> nullTransaction;
+    RefPtr<SpeculativeTransaction> transaction;
     if (nsIOService::UseSocketProcess()) {
       RefPtr<AltSvcTransactionParent> parent =
           new AltSvcTransactionParent(ci, aCallbacks, caps, validator);
       if (!parent->Init()) {
         return;
       }
-      nullTransaction = parent;
+      transaction = parent;
     } else {
-      nullTransaction = new AltSvcTransaction<AltSvcMappingValidator>(
+      transaction = new AltSvcTransaction<AltSvcMappingValidator>(
           ci, aCallbacks, caps, validator, map->IsHttp3());
     }
 
     nsresult rv =
-        gHttpHandler->SpeculativeConnect(ci, callbacks, caps, nullTransaction);
+        gHttpHandler->SpeculativeConnect(ci, callbacks, caps, transaction);
     if (NS_FAILED(rv)) {
       LOG(
           ("AltSvcCache::UpdateAltServiceMapping %p "

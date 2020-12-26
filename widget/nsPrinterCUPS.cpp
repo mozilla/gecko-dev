@@ -90,7 +90,140 @@ nsPrinterCUPS::~nsPrinterCUPS() {
   }
 }
 
-PrintSettingsInitializer nsPrinterCUPS::DefaultSettings() const {
+NS_IMETHODIMP
+nsPrinterCUPS::GetName(nsAString& aName) {
+  GetPrinterName(aName);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPrinterCUPS::GetSystemName(nsAString& aName) {
+  CopyUTF8toUTF16(MakeStringSpan(mPrinter->name), aName);
+  return NS_OK;
+}
+
+void nsPrinterCUPS::GetPrinterName(nsAString& aName) const {
+  if (mDisplayName.IsEmpty()) {
+    aName.Truncate();
+    CopyUTF8toUTF16(MakeStringSpan(mPrinter->name), aName);
+  } else {
+    aName = mDisplayName;
+  }
+}
+
+const char* nsPrinterCUPS::LocalizeMediaName(http_t& aConnection,
+                                             cups_size_t& aMedia) const {
+  // The returned string is owned by mPrinterInfo.
+  // https://www.cups.org/doc/cupspm.html#cupsLocalizeDestMedia
+  auto printerInfoLock = mPrinterInfoMutex.Lock();
+  TryEnsurePrinterInfo(*printerInfoLock);
+  cups_dinfo_t* const printerInfo = printerInfoLock->mPrinterInfo;
+  return mShim.cupsLocalizeDestMedia(&aConnection, mPrinter, printerInfo,
+                                     CUPS_MEDIA_FLAGS_DEFAULT, &aMedia);
+}
+
+bool nsPrinterCUPS::SupportsDuplex() const {
+  return Supports(CUPS_SIDES, CUPS_SIDES_TWO_SIDED_PORTRAIT);
+}
+
+bool nsPrinterCUPS::SupportsMonochrome() const {
+  if (!SupportsColor()) {
+    return true;
+  }
+  return StaticPrefs::print_cups_monochrome_enabled();
+}
+
+bool nsPrinterCUPS::SupportsColor() const {
+  // CUPS 2.1 (particularly as used in Ubuntu 16) is known to have inaccurate
+  // results for CUPS_PRINT_COLOR_MODE.
+  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1660658#c15
+  if (!IsCUPSVersionAtLeast(2, 2, 0)) {
+    return true;  // See comment for PrintSettingsInitializer.mPrintInColor
+  }
+  return Supports(CUPS_PRINT_COLOR_MODE, CUPS_PRINT_COLOR_MODE_AUTO) ||
+         Supports(CUPS_PRINT_COLOR_MODE, CUPS_PRINT_COLOR_MODE_COLOR) ||
+         !Supports(CUPS_PRINT_COLOR_MODE, CUPS_PRINT_COLOR_MODE_MONOCHROME);
+}
+
+bool nsPrinterCUPS::SupportsCollation() const {
+  // We can't depend on cupsGetIntegerOption existing.
+  const char* const value = mShim.cupsGetOption(
+      "printer-type", mPrinter->num_options, mPrinter->options);
+  if (!value) {
+    return false;
+  }
+  // If the value is non-numeric, then atoi will return 0, which will still
+  // cause this function to return false.
+  const int type = atoi(value);
+  return type & CUPS_PRINTER_COLLATE;
+}
+
+nsPrinterBase::PrinterInfo nsPrinterCUPS::CreatePrinterInfo() const {
+  Connection connection{mShim};
+  return PrinterInfo{PaperList(connection), DefaultSettings(connection)};
+}
+
+bool nsPrinterCUPS::Supports(const char* aOption, const char* aValue) const {
+  auto printerInfoLock = mPrinterInfoMutex.Lock();
+  TryEnsurePrinterInfo(*printerInfoLock);
+  cups_dinfo_t* const printerInfo = printerInfoLock->mPrinterInfo;
+  return mShim.cupsCheckDestSupported(CUPS_HTTP_DEFAULT, mPrinter, printerInfo,
+                                      aOption, aValue);
+}
+
+bool nsPrinterCUPS::IsCUPSVersionAtLeast(uint64_t aCUPSMajor,
+                                         uint64_t aCUPSMinor,
+                                         uint64_t aCUPSPatch) const {
+  auto printerInfoLock = mPrinterInfoMutex.Lock();
+  TryEnsurePrinterInfo(*printerInfoLock);
+  // Compare major version.
+  if (printerInfoLock->mCUPSMajor > aCUPSMajor) {
+    return true;
+  }
+  if (printerInfoLock->mCUPSMajor < aCUPSMajor) {
+    return false;
+  }
+
+  // Compare minor version.
+  if (printerInfoLock->mCUPSMinor > aCUPSMinor) {
+    return true;
+  }
+  if (printerInfoLock->mCUPSMinor < aCUPSMinor) {
+    return false;
+  }
+
+  // Compare patch.
+  return aCUPSPatch <= printerInfoLock->mCUPSPatch;
+}
+
+http_t* nsPrinterCUPS::Connection::GetConnection(cups_dest_t* aDest) {
+  if (mWasInited) {
+    return mConnection;
+  }
+  mWasInited = true;
+
+  // blocking call
+  http_t* const connection = mShim.cupsConnectDest(aDest, CUPS_DEST_FLAGS_NONE,
+                                                   /* timeout(ms) */ 5000,
+                                                   /* cancel */ nullptr,
+                                                   /* resource */ nullptr,
+                                                   /* resourcesize */ 0,
+                                                   /* callback */ nullptr,
+                                                   /* user_data */ nullptr);
+  if (connection) {
+    mConnection = connection;
+  }
+  return mConnection;
+}
+
+nsPrinterCUPS::Connection::~Connection() {
+  if (mWasInited && mConnection) {
+    mShim.httpClose(mConnection);
+  }
+}
+
+PrintSettingsInitializer nsPrinterCUPS::DefaultSettings(
+    Connection& aConnection) const {
   nsString printerName;
   GetPrinterName(printerName);
   auto printerInfoLock = mPrinterInfoMutex.Lock();
@@ -138,22 +271,10 @@ PrintSettingsInitializer nsPrinterCUPS::DefaultSettings() const {
     };
   }
 
-  // blocking call
-  http_t* connection = mShim.cupsConnectDest(mPrinter, CUPS_DEST_FLAGS_NONE,
-                                             /* timeout(ms) */ 5000,
-                                             /* cancel */ nullptr,
-                                             /* resource */ nullptr,
-                                             /* resourcesize */ 0,
-                                             /* callback */ nullptr,
-                                             /* user_data */ nullptr);
-
+  http_t* const connection = aConnection.GetConnection(mPrinter);
   // XXX Do we actually have the guarantee that this is utf-8?
   NS_ConvertUTF8toUTF16 localizedName{
       connection ? LocalizeMediaName(*connection, media) : ""};
-
-  if (connection) {
-    mShim.httpClose(connection);
-  }
 
   return PrintSettingsInitializer{
       std::move(printerName),
@@ -162,129 +283,14 @@ PrintSettingsInitializer nsPrinterCUPS::DefaultSettings() const {
   };
 }
 
-NS_IMETHODIMP
-nsPrinterCUPS::GetName(nsAString& aName) {
-  GetPrinterName(aName);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrinterCUPS::GetSystemName(nsAString& aName) {
-  CopyUTF8toUTF16(MakeStringSpan(mPrinter->name), aName);
-  return NS_OK;
-}
-
-void nsPrinterCUPS::GetPrinterName(nsAString& aName) const {
-  if (mDisplayName.IsEmpty()) {
-    aName.Truncate();
-    CopyUTF8toUTF16(MakeStringSpan(mPrinter->name), aName);
-  } else {
-    aName = mDisplayName;
-  }
-}
-
-const char* nsPrinterCUPS::LocalizeMediaName(http_t& aConnection,
-                                             cups_size_t& aMedia) const {
-  // The returned string is owned by mPrinterInfo.
-  // https://www.cups.org/doc/cupspm.html#cupsLocalizeDestMedia
-  auto printerInfoLock = mPrinterInfoMutex.Lock();
-  TryEnsurePrinterInfo(*printerInfoLock);
-  cups_dinfo_t* const printerInfo = printerInfoLock->mPrinterInfo;
-  return mShim.cupsLocalizeDestMedia(&aConnection, mPrinter, printerInfo,
-                                     CUPS_MEDIA_FLAGS_DEFAULT, &aMedia);
-}
-
-bool nsPrinterCUPS::SupportsDuplex() const {
-  return Supports(CUPS_SIDES, CUPS_SIDES_TWO_SIDED_PORTRAIT);
-}
-
-bool nsPrinterCUPS::SupportsMonochrome() const {
-  if (!SupportsColor()) {
-    return true;
-  }
-  return StaticPrefs::print_cups_monochrome_enabled();
-}
-
-bool nsPrinterCUPS::SupportsColor() const {
-  // CUPS 2.1 (particularly as used in Ubuntu 16) is known to have innaccurate
-  // results for CUPS_PRINT_COLOR_MODE.
-  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1660658#c15
-  if (!IsCUPSVersionAtLeast(2, 2, 0)) {
-    return true;  // See comment for PrintSettingsInitializer.mPrintInColor
-  }
-  return Supports(CUPS_PRINT_COLOR_MODE, CUPS_PRINT_COLOR_MODE_AUTO) ||
-         Supports(CUPS_PRINT_COLOR_MODE, CUPS_PRINT_COLOR_MODE_COLOR) ||
-         !Supports(CUPS_PRINT_COLOR_MODE, CUPS_PRINT_COLOR_MODE_MONOCHROME);
-}
-
-bool nsPrinterCUPS::SupportsCollation() const {
-  // We can't depend on cupsGetIntegerOption existing.
-  const char* const value = mShim.cupsGetOption(
-      "printer-type", mPrinter->num_options, mPrinter->options);
-  if (!value) {
-    return false;
-  }
-  // If the value is non-numeric, then atoi will return 0, which will still
-  // cause this function to return false.
-  const int type = atoi(value);
-  return type & CUPS_PRINTER_COLLATE;
-}
-
-bool nsPrinterCUPS::Supports(const char* aOption, const char* aValue) const {
-  auto printerInfoLock = mPrinterInfoMutex.Lock();
-  TryEnsurePrinterInfo(*printerInfoLock);
-  cups_dinfo_t* const printerInfo = printerInfoLock->mPrinterInfo;
-  return mShim.cupsCheckDestSupported(CUPS_HTTP_DEFAULT, mPrinter, printerInfo,
-                                      aOption, aValue);
-}
-
-bool nsPrinterCUPS::IsCUPSVersionAtLeast(uint64_t aCUPSMajor,
-                                         uint64_t aCUPSMinor,
-                                         uint64_t aCUPSPatch) const {
-  auto printerInfoLock = mPrinterInfoMutex.Lock();
-  TryEnsurePrinterInfo(*printerInfoLock);
-  // Compare major version.
-  if (printerInfoLock->mCUPSMajor > aCUPSMajor) {
-    return true;
-  }
-  if (printerInfoLock->mCUPSMajor < aCUPSMajor) {
-    return false;
-  }
-
-  // Compare minor version.
-  if (printerInfoLock->mCUPSMinor > aCUPSMinor) {
-    return true;
-  }
-  if (printerInfoLock->mCUPSMinor < aCUPSMinor) {
-    return false;
-  }
-
-  // Compare patch.
-  return aCUPSPatch <= printerInfoLock->mCUPSPatch;
-}
-
-nsTArray<PaperInfo> nsPrinterCUPS::PaperList() const {
-  // blocking call
-  http_t* connection = mShim.cupsConnectDest(mPrinter, CUPS_DEST_FLAGS_NONE,
-                                             /* timeout(ms) */ 5000,
-                                             /* cancel */ nullptr,
-                                             /* resource */ nullptr,
-                                             /* resourcesize */ 0,
-                                             /* callback */ nullptr,
-                                             /* user_data */ nullptr);
-
-  if (!connection) {
-    connection = CUPS_HTTP_DEFAULT;
-  }
-
+nsTArray<mozilla::PaperInfo> nsPrinterCUPS::PaperList(
+    Connection& aConnection) const {
+  http_t* const connection = aConnection.GetConnection(mPrinter);
   auto printerInfoLock = mPrinterInfoMutex.Lock();
   TryEnsurePrinterInfo(*printerInfoLock, connection);
   cups_dinfo_t* const printerInfo = printerInfoLock->mPrinterInfo;
 
   if (!printerInfo) {
-    if (connection) {
-      mShim.httpClose(connection);
-    }
     return {};
   }
 
@@ -315,10 +321,6 @@ nsTArray<PaperInfo> nsPrinterCUPS::PaperList() const {
       paperList.AppendElement(
           MakePaperInfo(NS_ConvertUTF8toUTF16(mediaName), media));
     }
-  }
-
-  if (connection) {
-    mShim.httpClose(connection);
   }
 
   return paperList;
@@ -353,4 +355,30 @@ void nsPrinterCUPS::TryEnsurePrinterInfo(CUPSPrinterInfo& aInOutPrinterInfo,
   FetchCUPSVersionForPrinter(mShim, mPrinter, aInOutPrinterInfo.mCUPSMajor,
                              aInOutPrinterInfo.mCUPSMinor,
                              aInOutPrinterInfo.mCUPSPatch);
+}
+
+void nsPrinterCUPS::ForEachExtraMonochromeSetting(
+    FunctionRef<void(const nsACString&, const nsACString&)> aCallback) {
+  nsAutoCString pref;
+  Preferences::GetCString("print.cups.monochrome.extra_settings", pref);
+  if (pref.IsEmpty()) {
+    return;
+  }
+
+  for (const auto& pair : pref.Split(',')) {
+    auto splitter = pair.Split(':');
+    auto end = splitter.end();
+
+    auto key = splitter.begin();
+    if (key == end) {
+      continue;
+    }
+
+    auto value = ++splitter.begin();
+    if (value == end) {
+      continue;
+    }
+
+    aCallback(*key, *value);
+  }
 }

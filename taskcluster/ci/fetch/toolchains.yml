@@ -72,13 +72,13 @@ gcc-8.3.0:
         strip-components: 1
         add-prefix: gcc-source/
 
-gcc-9.1.0:
-    description: GCC 9.1.0 source code
+gcc-9.3.0:
+    description: GCC 9.3.0 source code
     fetch:
         type: static-url
-        url: ftp://ftp.gnu.org/gnu/gcc/gcc-9.1.0/gcc-9.1.0.tar.xz
-        sha256: 79a66834e96a6050d8fe78db2c3b32fb285b230b855d0a66288235bc04b327a0
-        size: 70546856
+        url: ftp://ftp.gnu.org/gnu/gcc/gcc-9.3.0/gcc-9.3.0.tar.xz
+        sha256: 71e197867611f6054aa1119b13a0c0abac12834765fe2d81f35ac57f84f742d1
+        size: 70533868
         gpg-signature:
             sig-url: "{url}.sig"
             key-path: build/unix/build-gcc/33C235A34C46AA3FFB293709A328C3A2C3C45C06.key
@@ -366,7 +366,7 @@ mingw-w64:
     fetch:
         type: git
         repo: https://git.code.sf.net/p/mingw-w64/mingw-w64
-        revision: 1b373beec6d07478ffba33726bb3bb21f32e4411
+        revision: bd8ca6c303658659496d0c440cf9f2baa8f7a5f0
 
 libunwind:
     description: libunwind source code
@@ -471,8 +471,7 @@ dump-syms:
     fetch:
         type: git
         repo: https://github.com/mozilla/dump_syms/
-        # 0.0.6
-        revision: 24aee9c56bf3c21ce905e1b90c01c345836e9de1
+        revision: 1e64e56720131bcf0ab01f201ed89a337c73069d
 
 fix-stacks:
     description: fix-stacks source code

@@ -37,6 +37,7 @@ class PinchGestureBlockState;
 class KeyboardBlockState;
 class AsyncDragMetrics;
 class QueuedInput;
+enum class APZHandledResult : uint8_t;
 
 /**
  * This class stores incoming input events, associated with "input blocks",
@@ -58,6 +59,7 @@ class InputQueue {
       const RefPtr<AsyncPanZoomController>& aTarget,
       TargetConfirmationFlags aFlags, const InputData& aEvent,
       uint64_t* aOutInputBlockId,
+      Maybe<APZHandledResult>* aOutputHandledResult = nullptr,
       const Maybe<nsTArray<TouchBehaviorFlags>>& aTouchBehaviors = Nothing());
   /**
    * This function should be invoked to notify the InputQueue when web content
@@ -146,8 +148,8 @@ class InputQueue {
 
   InputBlockState* GetBlockForId(uint64_t aInputBlockId);
 
-  using InputBlockCallback =
-      std::function<void(uint64_t aInputBlockId, bool aHandledByRootApzc)>;
+  using InputBlockCallback = std::function<void(
+      uint64_t aInputBlockId, APZHandledResult aHandledResult)>;
   void AddInputBlockCallback(uint64_t aInputBlockId,
                              InputBlockCallback&& aCallback);
 
@@ -187,7 +189,7 @@ class InputQueue {
   nsEventStatus ReceiveTouchInput(
       const RefPtr<AsyncPanZoomController>& aTarget,
       TargetConfirmationFlags aFlags, const MultiTouchInput& aEvent,
-      uint64_t* aOutInputBlockId,
+      uint64_t* aOutInputBlockId, Maybe<APZHandledResult>* aOutputHandledResult,
       const Maybe<nsTArray<TouchBehaviorFlags>>& aTouchBehaviors);
   nsEventStatus ReceiveMouseInput(const RefPtr<AsyncPanZoomController>& aTarget,
                                   TargetConfirmationFlags aFlags,

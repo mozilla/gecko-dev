@@ -12,6 +12,7 @@ const kDragDataTypePrefix = "text/toolbarwrapper-id/";
 const kSkipSourceNodePref = "browser.uiCustomization.skipSourceNodeCheck";
 const kDrawInTitlebarPref = "browser.tabs.drawInTitlebar";
 const kExtraDragSpacePref = "browser.tabs.extraDragSpace";
+const kBookmarksToolbarPref = "browser.toolbars.bookmarks.visibility";
 const kKeepBroadcastAttributes = "keepbroadcastattributeswhencustomizing";
 
 const kPanelItemContextMenu = "customizationPanelItemContextMenu";
@@ -147,6 +148,9 @@ function CustomizeMode(aWindow) {
   this.browser = aWindow.gBrowser;
   this.areas = new Set();
 
+  this._translationObserver = new aWindow.MutationObserver(mutations =>
+    this._onTranslations(mutations)
+  );
   this._ensureCustomizationPanels();
 
   let content = this.$("customization-content-container");
@@ -174,6 +178,12 @@ function CustomizeMode(aWindow) {
     this.$("customization-titlebar-visibility-checkbox").hidden = true;
     this.$("customization-extra-drag-space-checkbox").hidden = true;
   }
+
+  // Observe pref changes to the bookmarks toolbar visibility,
+  // since we won't get a toolbarvisibilitychange event if the
+  // toolbar is changing from 'newtab' to 'always' in Customize mode
+  // since the toolbar is shown with the 'newtab' setting.
+  Services.prefs.addObserver(kBookmarksToolbarPref, this);
 
   this.window.addEventListener("unload", this);
 }
@@ -226,6 +236,7 @@ CustomizeMode.prototype = {
       Services.prefs.removeObserver(kDrawInTitlebarPref, this);
       Services.prefs.removeObserver(kExtraDragSpacePref, this);
     }
+    Services.prefs.removeObserver(kBookmarksToolbarPref, this);
   },
 
   $(id) {
@@ -494,6 +505,8 @@ CustomizeMode.prototype = {
     }
 
     this._handler.isExitingCustomizeMode = true;
+
+    this._translationObserver.disconnect();
 
     this._teardownDownloadAutoHideToggle();
 
@@ -966,6 +979,40 @@ CustomizeMode.prototype = {
     return wrapper;
   },
 
+  /**
+   * Helper to set the label, either directly or to set up the translation
+   * observer so we can set the label once it's available.
+   */
+  _updateWrapperLabel(aNode, aIsUpdate, aWrapper = aNode.parentElement) {
+    if (aNode.hasAttribute("label")) {
+      aWrapper.setAttribute("title", aNode.getAttribute("label"));
+      aWrapper.setAttribute("tooltiptext", aNode.getAttribute("label"));
+    } else if (aNode.hasAttribute("title")) {
+      aWrapper.setAttribute("title", aNode.getAttribute("title"));
+      aWrapper.setAttribute("tooltiptext", aNode.getAttribute("title"));
+    } else if (aNode.hasAttribute("data-l10n-id") && !aIsUpdate) {
+      this._translationObserver.observe(aNode, {
+        attributes: true,
+        attributeFilter: ["label", "title"],
+      });
+    }
+  },
+
+  /**
+   * Called when a node without a label or title is updated.
+   */
+  _onTranslations(aMutations) {
+    for (let mut of aMutations) {
+      let { target } = mut;
+      if (
+        target.parentElement?.localName == "toolbarpaletteitem" &&
+        (target.hasAttribute("label") || mut.target.hasAttribute("title"))
+      ) {
+        this._updateWrapperLabel(target, true);
+      }
+    }
+  },
+
   createOrUpdateWrapper(aNode, aPlace, aIsUpdate) {
     let wrapper;
     if (
@@ -1010,13 +1057,7 @@ CustomizeMode.prototype = {
       wrapper.setAttribute("id", "wrapper-" + aNode.getAttribute("id"));
     }
 
-    if (aNode.hasAttribute("label")) {
-      wrapper.setAttribute("title", aNode.getAttribute("label"));
-      wrapper.setAttribute("tooltiptext", aNode.getAttribute("label"));
-    } else if (aNode.hasAttribute("title")) {
-      wrapper.setAttribute("title", aNode.getAttribute("title"));
-      wrapper.setAttribute("tooltiptext", aNode.getAttribute("title"));
-    }
+    this._updateWrapperLabel(aNode, aIsUpdate, wrapper);
 
     if (aNode.hasAttribute("flex")) {
       wrapper.setAttribute("flex", aNode.getAttribute("flex"));

@@ -186,10 +186,6 @@ class MOZ_STACK_CLASS ProfilerStringView {
     return Span<const char>(Data(), Length());
   }
 
-  [[nodiscard]] std::basic_string<CHAR> String() const {
-    return std::basic_string<CHAR>(mStringView);
-  }
-
  private:
   enum class Ownership { Literal, Reference, OwnedThroughStringView };
 
@@ -475,6 +471,11 @@ class MarkerStack {
   static MarkerStack Capture() {
     // Actual capture will be handled inside profiler_add_marker.
     return MarkerStack(true);
+  }
+
+  // Optionally capture a stack, useful for avoiding long-winded ternaries.
+  static MarkerStack MaybeCapture(bool aDoCapture) {
+    return MarkerStack(aDoCapture);
   }
 
   // Use an existing backtrace stored elsewhere, which the user must guarantee

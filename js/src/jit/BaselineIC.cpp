@@ -37,6 +37,7 @@
 #include "jit/SharedICHelpers.h"
 #include "jit/VMFunctions.h"
 #include "js/Conversions.h"
+#include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/GCVector.h"
 #include "vm/BytecodeIterator.h"
 #include "vm/BytecodeLocation.h"
@@ -625,6 +626,11 @@ uint32_t ICStub::getEnteredCount() const {
   }
 }
 
+void ICFallbackStub::trackNotAttached(JSContext* cx, JSScript* script) {
+  maybeInvalidateWarp(cx, script);
+  state().trackNotAttached();
+}
+
 void ICFallbackStub::maybeInvalidateWarp(JSContext* cx, JSScript* script) {
   if (!state_.usedByTranspiler()) {
     return;
@@ -635,6 +641,8 @@ void ICFallbackStub::maybeInvalidateWarp(JSContext* cx, JSScript* script) {
 
   if (script->hasIonScript()) {
     Invalidate(cx, script);
+  } else {
+    CancelOffThreadIonCompile(script);
   }
 }
 
@@ -773,7 +781,7 @@ static void TryAttachStub(const char* name, JSContext* cx, BaselineFrame* frame,
         break;
     }
     if (!attached) {
-      stub->state().trackNotAttached();
+      stub->trackNotAttached(cx, frame->invalidationScript());
     }
   }
 }
@@ -1824,7 +1832,12 @@ static bool TryAttachGetPropStub(const char* name, JSContext* cx,
         MOZ_ASSERT_UNREACHABLE("No deferred GetProp stubs");
         break;
     }
+
+    if (!attached) {
+      stub->trackNotAttached(cx, frame->invalidationScript());
+    }
   }
+
   return attached;
 }
 
@@ -2208,7 +2221,7 @@ bool DoSetElemFallback(JSContext* cx, BaselineFrame* frame,
     }
   }
   if (!attached && canAttachStub) {
-    stub->state().trackNotAttached();
+    stub->trackNotAttached(cx, frame->invalidationScript());
   }
   return true;
 }
@@ -2848,7 +2861,7 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
     }
   }
   if (!attached && canAttachStub) {
-    stub->state().trackNotAttached();
+    stub->trackNotAttached(cx, frame->invalidationScript());
   }
 
   return true;
@@ -3040,7 +3053,7 @@ bool DoCallFallback(JSContext* cx, BaselineFrame* frame, ICCall_Fallback* stub,
   }
 
   if (!handled && canAttachStub) {
-    stub->state().trackNotAttached();
+    stub->trackNotAttached(cx, frame->invalidationScript());
   }
   return true;
 }
@@ -3107,6 +3120,9 @@ bool DoSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
       case AttachDecision::Deferred:
         MOZ_ASSERT_UNREACHABLE("No deferred optimizations for spread calls");
         break;
+    }
+    if (!handled) {
+      stub->trackNotAttached(cx, frame->invalidationScript());
     }
   }
 
@@ -3412,7 +3428,7 @@ bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
     // ensure we've recorded at least one failure, so we can detect there was a
     // non-optimizable case
     if (!stub->state().hasFailures()) {
-      stub->state().trackNotAttached();
+      stub->trackNotAttached(cx, frame->invalidationScript());
     }
     return true;
   }

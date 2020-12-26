@@ -62,6 +62,7 @@ let RemotePageAccessManager = {
         "services.settings.last_update_seconds",
       ],
       RPMGetAppBuildID: ["*"],
+      RPMGetInnerMostURI: ["*"],
       RPMIsWindowPrivate: ["*"],
       RPMAddToHistogram: ["*"],
     },
@@ -103,6 +104,7 @@ let RemotePageAccessManager = {
       ],
       RPMPrefIsLocked: ["security.tls.version.min"],
       RPMAddToHistogram: ["*"],
+      RPMGetInnerMostURI: ["*"],
       RPMGetHttpResponseHeader: ["*"],
     },
     "about:newinstall": {
@@ -149,7 +151,6 @@ let RemotePageAccessManager = {
       RPMAddMessageListener: ["*"],
       RPMRemoveMessageListener: ["*"],
       RPMSetBoolPref: [
-        "browser.contentblocking.report.hide_lockwise_app",
         "browser.contentblocking.report.show_mobile_app",
         "browser.contentblocking.report.hide_vpn_banner",
       ],
@@ -162,7 +163,6 @@ let RemotePageAccessManager = {
         "privacy.trackingprotection.fingerprinting.enabled",
         "privacy.trackingprotection.enabled",
         "privacy.trackingprotection.socialtracking.enabled",
-        "browser.contentblocking.report.hide_lockwise_app",
         "browser.contentblocking.report.show_mobile_app",
         "browser.contentblocking.report.hide_vpn_banner",
         "browser.contentblocking.report.vpn.enabled",

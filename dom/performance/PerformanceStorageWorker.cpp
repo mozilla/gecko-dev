@@ -5,12 +5,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PerformanceStorageWorker.h"
+#include "Performance.h"
+#include "PerformanceResourceTiming.h"
+#include "PerformanceTiming.h"
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/dom/WorkerPrivate.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class PerformanceProxyData {
  public:
@@ -162,5 +164,4 @@ void PerformanceStorageWorker::AddEntryOnWorker(
   performance->InsertResourceEntry(performanceEntry);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

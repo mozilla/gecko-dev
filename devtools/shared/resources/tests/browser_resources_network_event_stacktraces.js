@@ -14,7 +14,7 @@ const TEST_URI = `${URL_ROOT_SSL}network_document.html`;
 const REQUEST_STUB = {
   code: `await fetch("/request_post_0.html", { method: "POST" });`,
   expected: {
-    stacktrace: true,
+    stacktraceAvailable: true,
     lastFrame: {
       filename:
         "https://example.com/browser/devtools/shared/resources/tests/network_document.html",
@@ -39,11 +39,9 @@ add_task(async function() {
 
 async function testNetworkEventStackTraceResources(requestStub) {
   const tab = await addTab(TEST_URI);
-  const {
-    client,
-    resourceWatcher,
-    targetList,
-  } = await initResourceWatcherAndTarget(tab);
+  const { client, resourceWatcher, targetList } = await initResourceWatcher(
+    tab
+  );
 
   const networkEvents = new Map();
   const stackTraces = new Map();
@@ -54,13 +52,13 @@ async function testNetworkEventStackTraceResources(requestStub) {
         resource.resourceType === ResourceWatcher.TYPES.NETWORK_EVENT_STACKTRACE
       ) {
         ok(
-          !networkEvents.has(resource.channelId),
+          !networkEvents.has(resource.resourceId),
           "The network event does not exist"
         );
 
         is(
-          resource.stacktrace,
-          requestStub.expected.stacktrace,
+          resource.stacktraceAvailable,
+          requestStub.expected.stacktraceAvailable,
           "The stacktrace is available"
         );
         is(
@@ -69,12 +67,15 @@ async function testNetworkEventStackTraceResources(requestStub) {
           "The last frame of the stacktrace is available"
         );
 
-        stackTraces.set(resource.channelId, true);
+        stackTraces.set(resource.resourceId, true);
         return;
       }
 
       if (resource.resourceType === ResourceWatcher.TYPES.NETWORK_EVENT) {
-        ok(stackTraces.has(resource.resourceId), "The stack trace exists");
+        ok(
+          stackTraces.has(resource.stacktraceResourceId),
+          "The stack trace does exists"
+        );
 
         networkEvents.set(resource.resourceId, true);
       }

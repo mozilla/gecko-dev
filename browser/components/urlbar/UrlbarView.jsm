@@ -223,6 +223,13 @@ class UrlbarView {
   }
 
   /**
+   * Clears selection, regardless of view status.
+   */
+  clearSelection() {
+    this._selectElement(null, { updateInput: false });
+  }
+
+  /**
    * @returns {number}
    *   The number of visible results in the view.  Note that this may be larger
    *   than the number of results in the current query context since the view
@@ -276,6 +283,25 @@ class UrlbarView {
   }
 
   /**
+   * @param {number} index
+   *   The index from which to fetch the result.
+   * @returns {UrlbarResult}
+   *   The result at `index`. Null if the view is closed or if there are no
+   *   results.
+   */
+  getResultAtIndex(index) {
+    if (
+      !this.isOpen ||
+      !this._rows.children.length ||
+      index >= this._rows.children.length
+    ) {
+      return null;
+    }
+
+    return this._rows.children[index].result;
+  }
+
+  /**
    * Returns the element closest to the given element that can be
    * selected/picked.  If the element itself can be selected, it's returned.  If
    * there is no such element, null is returned.
@@ -302,6 +328,18 @@ class UrlbarView {
   }
 
   /**
+   * @param {UrlbarResult} result A result.
+   * @returns {boolean} True if the given result is selected.
+   */
+  resultIsSelected(result) {
+    if (this.selectedRowIndex < 0) {
+      return false;
+    }
+
+    return result.rowIndex == this.selectedRowIndex;
+  }
+
+  /**
    * Moves the view selection forward or backward.
    *
    * @param {number} amount
@@ -325,13 +363,19 @@ class UrlbarView {
     // result was announced to the user as they typed. We don't set
     // aria-activedescendant so the user doesn't think they have to press
     // Enter to enter search mode. See bug 1647929.
-    function isSkippableTabToSearchAnnounce(selectedElt) {
-      return (
+    const isSkippableTabToSearchAnnounce = selectedElt => {
+      let skipAnnouncement =
         selectedElt?.result?.providerName == "TabToSearch" &&
+        !this._announceTabToSearchOnSelection &&
         userPressedTab &&
-        UrlbarPrefs.get("accessibility.tabToSearch.announceResults")
-      );
-    }
+        UrlbarPrefs.get("accessibility.tabToSearch.announceResults");
+      if (skipAnnouncement) {
+        // Once we skip setting aria-activedescendant once, we should not skip
+        // it again if the user returns to that result.
+        this._announceTabToSearchOnSelection = true;
+      }
+      return skipAnnouncement;
+    };
 
     // Freeze results as the user is interacting with them, unless we are
     // deferring events while waiting for critical results.
@@ -398,7 +442,7 @@ class UrlbarView {
   clear() {
     this._rows.textContent = "";
     this.panel.setAttribute("noresults", "true");
-    this._selectElement(null, { updateInput: false });
+    this.clearSelection();
   }
 
   /**
@@ -602,18 +646,26 @@ class UrlbarView {
       );
     }
 
-    if (
-      firstResult.heuristic &&
-      !this.selectedElement &&
-      !this.oneOffSearchButtons.selectedButton
-    ) {
-      // Select the heuristic result.  The heuristic may not be the first result
-      // added, which is why we do this check here when each result is added and
-      // not above.
-      this._selectElement(this._getFirstSelectableElement(), {
-        updateInput: false,
-        setAccessibleFocus: this.controller._userSelectionBehavior == "arrow",
-      });
+    if (!this.selectedElement && !this.oneOffSearchButtons.selectedButton) {
+      if (firstResult.heuristic) {
+        // Select the heuristic result.  The heuristic may not be the first result
+        // added, which is why we do this check here when each result is added and
+        // not above.
+        this._selectElement(this._getFirstSelectableElement(), {
+          updateInput: false,
+          setAccessibleFocus: this.controller._userSelectionBehavior == "arrow",
+        });
+      } else if (
+        UrlbarPrefs.get("update2") &&
+        firstResult.payload.keywordOffer == UrlbarUtils.KEYWORD_OFFER.SHOW &&
+        queryContext.trimmedSearchString != "@"
+      ) {
+        // Filtered keyword offer results can be in the first position but not
+        // be heuristic results. We do this so the user can press Tab to select
+        // them, resembling tab-to-search. In that case, the input value is
+        // still associated with the first result.
+        this.input.setResultForCurrentValue(firstResult);
+      }
     }
 
     // Announce tab-to-search results to screen readers as the user types.
@@ -633,6 +685,9 @@ class UrlbarView {
         args: { engine },
       });
       this._previousTabToSearchEngine = engine;
+      // Do not set aria-activedescendant when the user tabs to the result
+      // because we already announced it.
+      this._announceTabToSearchOnSelection = false;
     }
 
     // If we update the selected element, a new unique ID is generated for it.
@@ -1141,7 +1196,7 @@ class UrlbarView {
       result.type == UrlbarUtils.RESULT_TYPE.SEARCH ||
       result.type == UrlbarUtils.RESULT_TYPE.KEYWORD
     ) {
-      favicon.src = this._iconForSearchResult(result);
+      favicon.src = this._iconForResult(result);
     } else {
       favicon.src = result.payload.icon || UrlbarUtils.ICON.DEFAULT;
     }
@@ -1356,13 +1411,18 @@ class UrlbarView {
     );
   }
 
-  _iconForSearchResult(result, iconUrlOverride = null) {
+  _iconForResult(result, iconUrlOverride = null) {
     return (
       (result.source == UrlbarUtils.RESULT_SOURCE.HISTORY &&
+        (result.type == UrlbarUtils.RESULT_TYPE.SEARCH ||
+          result.type == UrlbarUtils.RESULT_TYPE.KEYWORD) &&
         UrlbarUtils.ICON.HISTORY) ||
       iconUrlOverride ||
       result.payload.icon ||
-      UrlbarUtils.ICON.SEARCH_GLASS
+      ((result.type == UrlbarUtils.RESULT_TYPE.SEARCH ||
+        result.type == UrlbarUtils.RESULT_TYPE.KEYWORD) &&
+        UrlbarUtils.ICON.SEARCH_GLASS) ||
+      UrlbarUtils.ICON.DEFAULT
     );
   }
 
@@ -1539,6 +1599,11 @@ class UrlbarView {
       this.input.setValueFromResult(result);
     } else {
       this.input.setResultForCurrentValue(result);
+    }
+
+    let provider = UrlbarProvidersManager.getProvider(result?.providerName);
+    if (provider) {
+      provider.tryMethod("onSelection", result, item);
     }
   }
 
@@ -1852,8 +1917,6 @@ class UrlbarView {
       return;
     }
 
-    // Update all search suggestion results to use the newly selected engine, or
-    // if no engine is selected, revert to their original engines.
     let engine = this.oneOffSearchButtons.selectedButton?.engine;
     let source = this.oneOffSearchButtons.selectedButton?.source;
     switch (source) {
@@ -1904,8 +1967,24 @@ class UrlbarView {
         continue;
       }
 
+      // If there is no selected button and we are in full search mode, it is
+      // because the user just confirmed a one-off button, thus starting a new
+      // query. Don't change the heuristic result because it would be
+      // immediately replaced with the search mode heuristic, causing flicker.
+      if (
+        this.oneOffsRefresh &&
+        result.heuristic &&
+        !engine &&
+        !source &&
+        this.input.searchMode &&
+        !this.input.searchMode.isPreview
+      ) {
+        continue;
+      }
+
       let action = item.querySelector(".urlbarView-action");
       let favicon = item.querySelector(".urlbarView-favicon");
+      let title = item.querySelector(".urlbarView-title");
 
       // If a one-off button is the only selection, force the heuristic result
       // to show its action text, so the engine name is visible.
@@ -1915,23 +1994,60 @@ class UrlbarView {
         item.removeAttribute("show-action-text");
       }
 
-      if (source) {
-        // Update the result action text.
-        this.document.l10n.setAttributes(action, source.l10nId);
-        item._actionOverride = true;
-        // Update the result favicon.
-        if (result.heuristic) {
-          item.setAttribute("source", source.attribute);
-          favicon.src = this._iconForSearchResult(result, source?.icon);
+      // If an engine is selected, update search results to use that engine.
+      // Otherwise, restore their original engines.
+      if (result.type == UrlbarUtils.RESULT_TYPE.SEARCH) {
+        if (engine) {
+          if (!result.payload.originalEngine) {
+            result.payload.originalEngine = result.payload.engine;
+          }
+          result.payload.engine = engine.name;
+        } else if (result.payload.originalEngine) {
+          result.payload.engine = result.payload.originalEngine;
+          delete result.payload.originalEngine;
         }
-        // When a local one-off is selected we're done.
+      }
+
+      // When update2 is disabled, we only update search results when a search
+      // engine one-off is selected.
+      if (
+        !this.oneOffsRefresh &&
+        result.type != UrlbarUtils.RESULT_TYPE.SEARCH
+      ) {
         continue;
       }
 
-      // If we replaced the action while a local one-off button was selected,
-      // now it should be restored. This happens for example if a local one-off
-      // is selected, and then the user presses DOWN to go to the next result.
-      if (item._actionOverride) {
+      // Update heuristic URL result titles to reflect the search string. This
+      // means we restyle a URL result to look like a search result. We override
+      // result-picking behaviour in UrlbarInput.pickResult.
+      if (
+        this.oneOffsRefresh &&
+        result.heuristic &&
+        result.type == UrlbarUtils.RESULT_TYPE.URL
+      ) {
+        title.textContent =
+          source || engine
+            ? this._queryContext.searchString
+            : result.payload.title;
+      }
+
+      // Update result action text.
+      if (source) {
+        // Update the result action text for a local one-off.
+        this.document.l10n.setAttributes(action, source.l10nId);
+        if (result.heuristic) {
+          item.setAttribute("source", source.attribute);
+        }
+      } else if (engine && !result.payload.inPrivateWindow) {
+        // Update the result action text for an engine one-off.
+        this.document.l10n.setAttributes(
+          action,
+          "urlbar-result-action-search-w-engine",
+          { engine: engine.name }
+        );
+      } else {
+        // No one-off is selected. If we replaced the action while a one-off
+        // button was selected, it should be restored.
         if (item._originalActionSetter) {
           item._originalActionSetter();
           if (result.heuristic) {
@@ -1940,36 +2056,20 @@ class UrlbarView {
         } else {
           Cu.reportError("An item is missing the action setter");
         }
-        item._actionOverride = false;
         item.removeAttribute("source");
       }
 
-      // For one-off buttons having an engine, we update the action only for
-      // search results. All the other cases were already skipped earlier.
-      if (result.type != UrlbarUtils.RESULT_TYPE.SEARCH) {
-        continue;
-      }
-
-      if (engine) {
-        if (!result.payload.originalEngine) {
-          result.payload.originalEngine = result.payload.engine;
-        }
-        result.payload.engine = engine.name;
-      } else if (result.payload.originalEngine) {
-        result.payload.engine = result.payload.originalEngine;
-        delete result.payload.originalEngine;
-      }
-
-      // Update the result action text.
-      if (!result.payload.inPrivateWindow) {
-        this.document.l10n.setAttributes(
-          action,
-          "urlbar-result-action-search-w-engine",
-          { engine: (engine && engine.name) || result.payload.engine }
-        );
-      }
-
       // Update result favicons.
+      let iconOverride = source?.icon || engine?.iconURI?.spec;
+      if (
+        !iconOverride &&
+        (source || engine) &&
+        result.type == UrlbarUtils.RESULT_TYPE.URL
+      ) {
+        // For one-offs without an icon, do not allow restyled URL results to
+        // use their own icons.
+        iconOverride = UrlbarUtils.ICON.SEARCH_GLASS;
+      }
       if (
         // Don't update the favicon on non-heuristic results when update2 is
         // enabled.
@@ -1981,7 +2081,7 @@ class UrlbarView {
         // icon, then make sure the result now uses the new engine's icon or
         // failing that the default icon.  If we changed it back to the original
         // engine, go back to the original or default icon.
-        favicon.src = this._iconForSearchResult(result, engine?.iconURI?.spec);
+        favicon.src = this._iconForResult(result, iconOverride);
       }
     }
   }

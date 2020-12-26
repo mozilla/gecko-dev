@@ -18,8 +18,9 @@
 
 #include "builtin/Array.h"
 #include "builtin/BigInt.h"
-#include "js/friend/StackLimits.h"  // js::CheckRecursionLimit
-#include "js/Object.h"              // JS::GetBuiltinClass
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "js/friend/StackLimits.h"    // js::CheckRecursionLimit
+#include "js/Object.h"                // JS::GetBuiltinClass
 #include "js/PropertySpec.h"
 #include "js/StableStringChars.h"
 #include "util/StringBuffer.h"

@@ -446,6 +446,16 @@ ClassifierDummyChannel::SetAllowSpdy(bool aAllowSpdy) {
 }
 
 NS_IMETHODIMP
+ClassifierDummyChannel::GetAllowHttp3(bool* aAllowHttp3) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+ClassifierDummyChannel::SetAllowHttp3(bool aAllowHttp3) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 ClassifierDummyChannel::GetResponseTimeoutEnabled(
     bool* aResponseTimeoutEnabled) {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -752,6 +762,12 @@ NS_IMETHODIMP ClassifierDummyChannel::GetResponseEmbedderPolicy(
 }
 
 NS_IMETHODIMP ClassifierDummyChannel::SetWaitForHTTPSSVCRecord() {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+ClassifierDummyChannel::GetSupportsHTTP3(bool* aSupportsHTTP3) {
+  *aSupportsHTTP3 = false;
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

@@ -22,9 +22,7 @@
 #include "nsPrintfCString.h"
 #include "xpcpublic.h"
 
-namespace mozilla {
-namespace dom {
-namespace indexedDB {
+namespace mozilla::dom::indexedDB {
 
 namespace {
 
@@ -263,56 +261,49 @@ nsresult GetJSValFromKeyPathString(
 }  // namespace
 
 // static
-nsresult KeyPath::Parse(const nsAString& aString, KeyPath* aKeyPath) {
+Result<KeyPath, nsresult> KeyPath::Parse(const nsAString& aString) {
   KeyPath keyPath(0);
   keyPath.SetType(STRING);
 
   if (!keyPath.AppendStringWithValidation(aString)) {
-    return NS_ERROR_FAILURE;
+    return Err(NS_ERROR_FAILURE);
   }
 
-  *aKeyPath = keyPath;
-  return NS_OK;
+  return keyPath;
 }
 
 // static
-nsresult KeyPath::Parse(const Sequence<nsString>& aStrings, KeyPath* aKeyPath) {
+Result<KeyPath, nsresult> KeyPath::Parse(const Sequence<nsString>& aStrings) {
   KeyPath keyPath(0);
   keyPath.SetType(ARRAY);
 
   for (uint32_t i = 0; i < aStrings.Length(); ++i) {
     if (!keyPath.AppendStringWithValidation(aStrings[i])) {
-      return NS_ERROR_FAILURE;
+      return Err(NS_ERROR_FAILURE);
     }
   }
 
-  *aKeyPath = keyPath;
-  return NS_OK;
+  return keyPath;
 }
 
 // static
-nsresult KeyPath::Parse(const Nullable<OwningStringOrStringSequence>& aValue,
-                        KeyPath* aKeyPath) {
-  KeyPath keyPath(0);
-
-  aKeyPath->SetType(NONEXISTENT);
-
+Result<KeyPath, nsresult> KeyPath::Parse(
+    const Nullable<OwningStringOrStringSequence>& aValue) {
   if (aValue.IsNull()) {
-    *aKeyPath = keyPath;
-    return NS_OK;
+    return KeyPath{0};
   }
 
   if (aValue.Value().IsString()) {
-    return Parse(aValue.Value().GetAsString(), aKeyPath);
+    return Parse(aValue.Value().GetAsString());
   }
 
   MOZ_ASSERT(aValue.Value().IsStringSequence());
 
   const Sequence<nsString>& seq = aValue.Value().GetAsStringSequence();
   if (seq.Length() == 0) {
-    return NS_ERROR_FAILURE;
+    return Err(NS_ERROR_FAILURE);
   }
-  return Parse(seq, aKeyPath);
+  return Parse(seq);
 }
 
 void KeyPath::SetType(KeyPathType aType) {
@@ -435,29 +426,31 @@ nsresult KeyPath::ExtractOrCreateKey(JSContext* aCx, const JS::Value& aValue,
   return NS_OK;
 }
 
-void KeyPath::SerializeToString(nsAString& aString) const {
+nsAutoString KeyPath::SerializeToString() const {
   NS_ASSERTION(IsValid(), "Check to see if I'm valid first!");
 
   if (IsString()) {
-    aString = mStrings[0];
-    return;
+    return nsAutoString{mStrings[0]};
   }
 
   if (IsArray()) {
+    nsAutoString res;
+
     // We use a comma in the beginning to indicate that it's an array of
     // key paths. This is to be able to tell a string-keypath from an
     // array-keypath which contains only one item.
     // It also makes serializing easier :-)
-    uint32_t len = mStrings.Length();
+    const uint32_t len = mStrings.Length();
     for (uint32_t i = 0; i < len; ++i) {
-      aString.Append(',');
-      aString.Append(mStrings[i]);
+      res.Append(',');
+      res.Append(mStrings[i]);
     }
 
-    return;
+    return res;
   }
 
   MOZ_ASSERT_UNREACHABLE("What?");
+  return {};
 }
 
 // static
@@ -563,6 +556,4 @@ bool KeyPath::IsAllowedForObjectStore(bool aAutoIncrement) const {
   return true;
 }
 
-}  // namespace indexedDB
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::indexedDB

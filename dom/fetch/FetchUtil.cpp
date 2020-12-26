@@ -6,15 +6,20 @@
 
 #include "FetchUtil.h"
 
+#include "js/friend/ErrorMessages.h"  // JSMSG_*
+#include "nsCRT.h"
 #include "nsError.h"
+#include "nsIAsyncInputStream.h"
+#include "nsStreamUtils.h"
 #include "nsString.h"
 #include "mozilla/dom/Document.h"
 
+#include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/InternalRequest.h"
+#include "mozilla/dom/Response.h"
 #include "mozilla/dom/WorkerRef.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // static
 nsresult FetchUtil::GetValidRequestMethod(const nsACString& aMethod,
@@ -553,5 +558,4 @@ void FetchUtil::ReportJSStreamError(JSContext* aCx, size_t aErrorCode) {
   JS_SetPendingException(aCx, value);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

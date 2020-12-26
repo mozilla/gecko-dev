@@ -52,7 +52,7 @@
 #include "js/MemoryFunctions.h"
 #include "js/MemoryMetrics.h"
 #include "js/Object.h"  // JS::GetClass
-#include "js/Stream.h"  // JS::AbortSignalIsAborted, JS::InitAbortSignalHandling
+#include "js/Stream.h"  // JS::AbortSignalIsAborted, JS::InitPipeToHandling
 #include "js/UbiNode.h"
 #include "js/UbiNodeUtils.h"
 #include "js/friend/UsageStatistics.h"  // JS_TELEMETRY_*, JS_SetAccumulateTelemetryCallback
@@ -2661,7 +2661,8 @@ static void AccumulateTelemetryCallback(int id, uint32_t sample,
                            sample);
       break;
     default:
-      MOZ_ASSERT_UNREACHABLE("Unexpected JS_TELEMETRY id");
+      // Some telemetry only exists in the JS Shell, and are not reported here.
+      break;
   }
 }
 
@@ -3009,8 +3010,8 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
       return domObj->Aborted();
     };
 
-    JS::InitAbortSignalHandling(dom::AbortSignal_Binding::GetJSClass(),
-                                isAborted, cx);
+    JS::InitPipeToHandling(dom::AbortSignal_Binding::GetJSClass(), isAborted,
+                           cx);
   }
 
   JS::SetXrayJitInfo(&gXrayJitInfo);

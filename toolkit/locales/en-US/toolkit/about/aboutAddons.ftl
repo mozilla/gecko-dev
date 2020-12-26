@@ -463,12 +463,12 @@ addon-detail-private-browsing-disallow = Don’t Allow
 addon-badge-recommended2 =
   .title = { -brand-product-name } only recommends extensions that meet our standards for security and performance
   .aria-label = { addon-badge-recommended2.title }
-addon-badge-line =
-  .title = This extension was created by the makers of { -brand-product-name }
-  .aria-label = { addon-badge-line.title }
-addon-badge-verified =
-  .title = This extension has been code-reviewed for safety
-  .aria-label = { addon-badge-verified.title }
+addon-badge-line2 =
+  .title = This is an official extension built by the creators of { -brand-product-name }
+  .aria-label = { addon-badge-line2.title }
+addon-badge-verified2 =
+  .title = This extension has been reviewed to meet our standards for security and performance
+  .aria-label = { addon-badge-verified2.title }
 
 ##
 
@@ -479,6 +479,9 @@ release-notes-loading = Loading…
 release-notes-error = Sorry, but there was an error loading the release notes.
 
 addon-permissions-empty = This extension doesn’t require any permissions
+addon-permissions-required = Required permissions for core functionality:
+addon-permissions-optional = Optional permissions for added functionality:
+addon-permissions-learnmore = Learn more about permissions
 
 recommended-extensions-heading = Recommended Extensions
 recommended-themes-heading = Recommended Themes

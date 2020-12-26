@@ -157,7 +157,7 @@ CompositorBridgeChild* WebRenderLayerManager::GetCompositorBridgeChild() {
 }
 
 void WebRenderLayerManager::GetBackendName(nsAString& name) {
-  if (WrBridge()->GetTextureFactoryIdentifier().mUsingSoftwareWebRender) {
+  if (WrBridge()->UsingSoftwareWebRender()) {
     name.AssignLiteral("WebRender (Software)");
   } else {
     name.AssignLiteral("WebRender");
@@ -377,7 +377,9 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
     }
     mScrollData.SetPaintSequenceNumber(mPaintSequenceNumber);
     if (dumpEnabled) {
-      mScrollData.Dump();
+      std::stringstream str;
+      str << mScrollData;
+      print_stderr(str);
     }
   }
 

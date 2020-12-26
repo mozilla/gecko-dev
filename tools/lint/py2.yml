@@ -15,6 +15,7 @@ py2:
         - netwerk
         - nsprpub
         - other-licenses
+        - python/mozbuild/mozbuild/fork_interpose.py
         - security
         - servo
         - taskcluster/docker/funsize-update-generator
@@ -34,15 +35,20 @@ py2:
         - config/create_rc.py
         - config/create_res.py
         - config/printconfigsetting.py
+        - python/mozbuild/mozbuild/action/unify_symbols.py
+        - python/mozbuild/mozbuild/action/unify_tests.py
         - python/mozbuild/mozbuild/html_build_viewer.py
+        - python/mozbuild/mozpack/unify.py
+        - python/mozbuild/mozpack/test/test_unify.py
         - python/mozlint
         - python/mozperftest
         - python/mozrelease/mozrelease/partner_repack.py
+        - taskcluster/test
+        - testing/performance
         - tools/crashreporter/system-symbols/win/symsrv-fetch.py
         - tools/github-sync
         - tools/lint
         - tools/tryselect
-        - testing/performance
     extensions: ['py']
     support-files:
         - 'tools/lint/python/*compat*'

@@ -6,19 +6,53 @@
 
 #include "LSObject.h"
 
+// Local includes
 #include "ActorsChild.h"
-#include "LocalStorageCommon.h"
+#include "LSDatabase.h"
+#include "LSObserver.h"
+
+// Global includes
+#include <utility>
+#include "MainThreadUtils.h"
 #include "mozilla/BasePrincipal.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/MacroForEach.h"
+#include "mozilla/OriginAttributes.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/RemoteLazyInputStreamThread.h"
+#include "mozilla/ScopeExit.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/ThreadEventQueue.h"
+#include "mozilla/StorageAccess.h"
+#include "mozilla/Unused.h"
+#include "mozilla/dom/ClientInfo.h"
+#include "mozilla/dom/Document.h"
+#include "mozilla/dom/LocalStorageCommon.h"
+#include "mozilla/dom/PBackgroundLSRequest.h"
+#include "mozilla/dom/PBackgroundLSSharedTypes.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "nsCOMPtr.h"
 #include "nsContentUtils.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsIEventTarget.h"
+#include "nsIPrincipal.h"
+#include "nsIRunnable.h"
 #include "nsIScriptObjectPrincipal.h"
+#include "nsISerialEventTarget.h"
+#include "nsITimer.h"
+#include "nsPIDOMWindow.h"
+#include "nsString.h"
+#include "nsTArray.h"
+#include "nsTStringRepr.h"
 #include "nsThread.h"
-#include "RemoteLazyInputStreamThread.h"
+#include "nsThreadUtils.h"
+#include "nsXULAppAPI.h"
+#include "nscore.h"
 
 /**
  * Automatically cancel and abort synchronous LocalStorage requests (for example
@@ -32,8 +66,7 @@
  */
 #define FAILSAFE_CANCEL_SYNC_OP_MS 50000
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -228,8 +261,8 @@ void LSObject::Initialize() {
       NS_NewRunnableFunction("LSObject::Initialize", []() {
         AssertIsOnDOMFileThread();
 
-        PBackgroundChild* backgroundActor =
-            BackgroundChild::GetOrCreateForCurrentThread();
+        mozilla::ipc::PBackgroundChild* backgroundActor =
+            mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
 
         if (NS_WARN_IF(!backgroundActor)) {
           return;
@@ -297,19 +330,24 @@ nsresult LSObject::CreateForWindow(nsPIDOMWindowInner* aWindow,
   MOZ_ASSERT(storagePrincipalInfo->type() ==
              PrincipalInfo::TContentPrincipalInfo);
 
-  if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(*storagePrincipalInfo))) {
+  if (NS_WARN_IF(
+          !quota::QuotaManager::IsPrincipalInfoValid(*storagePrincipalInfo))) {
     return NS_ERROR_FAILURE;
   }
 
-  nsCString suffix;
-  nsCString origin;
-  rv = QuotaManager::GetInfoFromPrincipal(storagePrincipal.get(), &suffix,
-                                          nullptr, &origin);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+#ifdef DEBUG
+  LS_TRY_INSPECT(
+      const auto& quotaInfo,
+      quota::QuotaManager::GetInfoFromPrincipal(storagePrincipal.get()));
 
-  MOZ_ASSERT(originAttrSuffix == suffix);
+  MOZ_ASSERT(originAttrSuffix == quotaInfo.mSuffix);
+
+  const auto& origin = quotaInfo.mOrigin;
+#else
+  LS_TRY_INSPECT(
+      const auto& origin,
+      quota::QuotaManager::GetOriginFromPrincipal(storagePrincipal.get()));
+#endif
 
   uint32_t privateBrowsingId;
   rv = storagePrincipal->GetPrivateBrowsingId(&privateBrowsingId);
@@ -383,24 +421,39 @@ nsresult LSObject::CreateForPrincipal(nsPIDOMWindowInner* aWindow,
       storagePrincipalInfo->type() == PrincipalInfo::TContentPrincipalInfo ||
       storagePrincipalInfo->type() == PrincipalInfo::TSystemPrincipalInfo);
 
-  if (NS_WARN_IF(!QuotaManager::IsPrincipalInfoValid(*storagePrincipalInfo))) {
+  if (NS_WARN_IF(
+          !quota::QuotaManager::IsPrincipalInfoValid(*storagePrincipalInfo))) {
     return NS_ERROR_FAILURE;
   }
 
-  nsCString suffix;
-  nsCString origin;
+#ifdef DEBUG
+  LS_TRY_INSPECT(
+      const auto& quotaInfo,
+      ([&storagePrincipalInfo,
+        &aPrincipal]() -> Result<quota::QuotaInfo, nsresult> {
+        if (storagePrincipalInfo->type() ==
+            PrincipalInfo::TSystemPrincipalInfo) {
+          return quota::QuotaManager::GetInfoForChrome();
+        }
 
-  if (storagePrincipalInfo->type() == PrincipalInfo::TSystemPrincipalInfo) {
-    QuotaManager::GetInfoForChrome(&suffix, nullptr, &origin);
-  } else {
-    rv = QuotaManager::GetInfoFromPrincipal(aPrincipal, &suffix, nullptr,
-                                            &origin);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-  }
+        LS_TRY_RETURN(quota::QuotaManager::GetInfoFromPrincipal(aPrincipal));
+      }()));
 
-  MOZ_ASSERT(originAttrSuffix == suffix);
+  MOZ_ASSERT(originAttrSuffix == quotaInfo.mSuffix);
+
+  const auto& origin = quotaInfo.mOrigin;
+#else
+  LS_TRY_INSPECT(
+      const auto& origin, ([&storagePrincipalInfo,
+                            &aPrincipal]() -> Result<nsAutoCString, nsresult> {
+        if (storagePrincipalInfo->type() ==
+            PrincipalInfo::TSystemPrincipalInfo) {
+          return nsAutoCString{quota::QuotaManager::GetOriginForChrome()};
+        }
+
+        LS_TRY_RETURN(quota::QuotaManager::GetOriginFromPrincipal(aPrincipal));
+      }()));
+#endif
 
   Maybe<nsID> clientId;
   if (aWindow) {
@@ -426,7 +479,7 @@ nsresult LSObject::CreateForPrincipal(nsPIDOMWindowInner* aWindow,
 
   object.forget(aObject);
   return NS_OK;
-}
+}  // namespace dom
 
 // static
 already_AddRefed<nsISerialEventTarget> LSObject::GetSyncLoopEventTarget() {
@@ -472,10 +525,11 @@ LSRequestChild* LSObject::StartRequest(nsIEventTarget* aMainEventTarget,
                                        LSRequestChildCallback* aCallback) {
   AssertIsOnDOMFileThread();
 
-  PBackgroundChild* backgroundActor =
+  mozilla::ipc::PBackgroundChild* backgroundActor =
       XRE_IsParentProcess()
-          ? BackgroundChild::GetOrCreateForCurrentThread(aMainEventTarget)
-          : BackgroundChild::GetForCurrentThread();
+          ? mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread(
+                aMainEventTarget)
+          : mozilla::ipc::BackgroundChild::GetForCurrentThread();
   if (NS_WARN_IF(!backgroundActor)) {
     return nullptr;
   }
@@ -821,8 +875,8 @@ nsresult LSObject::DoRequestSynchronously(const LSRequestParams& aParams,
   // too late to initialize PBackground child on the owning thread, because
   // it can fail and parent would keep an extra strong ref to the datastore or
   // observer.
-  PBackgroundChild* backgroundActor =
-      BackgroundChild::GetOrCreateForCurrentThread();
+  mozilla::ipc::PBackgroundChild* backgroundActor =
+      mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
   if (NS_WARN_IF(!backgroundActor)) {
     return NS_ERROR_FAILURE;
   }
@@ -867,8 +921,8 @@ nsresult LSObject::EnsureDatabase() {
   // We don't need this yet, but once the request successfully finishes, it's
   // too late to initialize PBackground child on the owning thread, because
   // it can fail and parent would keep an extra strong ref to the datastore.
-  PBackgroundChild* backgroundActor =
-      BackgroundChild::GetOrCreateForCurrentThread();
+  mozilla::ipc::PBackgroundChild* backgroundActor =
+      mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
   if (NS_WARN_IF(!backgroundActor)) {
     return NS_ERROR_FAILURE;
   }
@@ -969,7 +1023,8 @@ nsresult LSObject::EnsureObserver() {
   // Note that we now can't error out, otherwise parent will keep an extra
   // strong reference to the observer.
 
-  PBackgroundChild* backgroundActor = BackgroundChild::GetForCurrentThread();
+  mozilla::ipc::PBackgroundChild* backgroundActor =
+      mozilla::ipc::BackgroundChild::GetForCurrentThread();
   MOZ_ASSERT(backgroundActor);
 
   RefPtr<LSObserver> observer = new LSObserver(mOrigin);
@@ -1325,5 +1380,4 @@ void RequestHelper::OnResponse(const LSRequestResponse& aResponse) {
       mNestedEventTargetWrapper->Dispatch(this, NS_DISPATCH_NORMAL));
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

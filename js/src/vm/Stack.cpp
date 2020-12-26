@@ -19,8 +19,9 @@
 #include "gc/Tracer.h"  // js::TraceRoot
 #include "jit/JitcodeMap.h"
 #include "jit/JitRuntime.h"
-#include "js/Value.h"      // JS::Value
-#include "vm/FrameIter.h"  // js::FrameIter
+#include "js/friend/ErrorMessages.h"  // JSMSG_*
+#include "js/Value.h"                 // JS::Value
+#include "vm/FrameIter.h"             // js::FrameIter
 #include "vm/JSContext.h"
 #include "vm/Opcodes.h"
 #include "wasm/WasmInstance.h"

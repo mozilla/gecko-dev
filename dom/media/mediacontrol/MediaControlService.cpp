@@ -10,6 +10,7 @@
 #include "mozilla/intl/Localization.h"
 #include "mozilla/Logging.h"
 #include "mozilla/Services.h"
+#include "mozilla/StaticPrefs_media.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
 #include "nsIObserverService.h"
@@ -30,8 +31,7 @@ using mozilla::intl::Localization;
 #define LOG_MAINCONTROLLER_INFO(msg, ...) \
   MOZ_LOG(gMediaControlLog, LogLevel::Info, (msg, ##__VA_ARGS__))
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 StaticRefPtr<MediaControlService> gMediaControlService;
 static bool sIsXPCOMShutdown = false;
@@ -440,6 +440,12 @@ void MediaControlService::ControllerManager::MainControllerMetadataChanged(
 void MediaControlService::ControllerManager::UpdateMainControllerInternal(
     MediaController* aController) {
   MOZ_ASSERT(NS_IsMainThread());
+  if (aController) {
+    aController->Select();
+  }
+  if (mMainController) {
+    mMainController->Unselect();
+  }
   mMainController = aController;
 
   if (!mMainController) {
@@ -524,5 +530,4 @@ bool MediaControlService::ControllerManager::Contains(
   return mControllers.contains(aController);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

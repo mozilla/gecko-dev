@@ -32,14 +32,40 @@ MacIOSurface::~MacIOSurface() {
   DecrementUseCount();
 }
 
+void AddDictionaryInt(const CFTypeRefPtr<CFMutableDictionaryRef>& aDict,
+                      const void* aType, uint32_t aValue) {
+  auto cfValue = CFTypeRefPtr<CFNumberRef>::WrapUnderCreateRule(
+      ::CFNumberCreate(nullptr, kCFNumberSInt32Type, &aValue));
+  ::CFDictionaryAddValue(aDict.get(), aType, cfValue.get());
+}
+
+void SetSizeProperties(const CFTypeRefPtr<CFMutableDictionaryRef>& aDict,
+                       int aWidth, int aHeight, int aBytesPerPixel) {
+  AddDictionaryInt(aDict, kIOSurfaceWidth, aWidth);
+  AddDictionaryInt(aDict, kIOSurfaceHeight, aHeight);
+  ::CFDictionaryAddValue(aDict.get(), kIOSurfaceIsGlobal, kCFBooleanTrue);
+  AddDictionaryInt(aDict, kIOSurfaceBytesPerElement, aBytesPerPixel);
+
+  size_t bytesPerRow =
+      IOSurfaceAlignProperty(kIOSurfaceBytesPerRow, aWidth * aBytesPerPixel);
+  AddDictionaryInt(aDict, kIOSurfaceBytesPerRow, bytesPerRow);
+
+  // Add a SIMD register worth of extra bytes to the end of the allocation for
+  // SWGL.
+  size_t totalBytes =
+      IOSurfaceAlignProperty(kIOSurfaceAllocSize, aHeight * bytesPerRow + 16);
+  AddDictionaryInt(aDict, kIOSurfaceAllocSize, totalBytes);
+}
+
 /* static */
 already_AddRefed<MacIOSurface> MacIOSurface::CreateIOSurface(
     int aWidth, int aHeight, double aContentsScaleFactor, bool aHasAlpha) {
   if (aContentsScaleFactor <= 0) return nullptr;
 
-  CFMutableDictionaryRef props = ::CFDictionaryCreateMutable(
-      kCFAllocatorDefault, 4, &kCFTypeDictionaryKeyCallBacks,
-      &kCFTypeDictionaryValueCallBacks);
+  auto props = CFTypeRefPtr<CFMutableDictionaryRef>::WrapUnderCreateRule(
+      ::CFDictionaryCreateMutable(kCFAllocatorDefault, 4,
+                                  &kCFTypeDictionaryKeyCallBacks,
+                                  &kCFTypeDictionaryValueCallBacks));
   if (!props) return nullptr;
 
   MOZ_ASSERT((size_t)aWidth <= GetMaxWidth());
@@ -49,22 +75,14 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateIOSurface(
   size_t intScaleFactor = ceil(aContentsScaleFactor);
   aWidth *= intScaleFactor;
   aHeight *= intScaleFactor;
-  CFNumberRef cfWidth = ::CFNumberCreate(nullptr, kCFNumberSInt32Type, &aWidth);
-  CFNumberRef cfHeight =
-      ::CFNumberCreate(nullptr, kCFNumberSInt32Type, &aHeight);
-  CFNumberRef cfBytesPerElem =
-      ::CFNumberCreate(nullptr, kCFNumberSInt32Type, &bytesPerElem);
-  ::CFDictionaryAddValue(props, kIOSurfaceWidth, cfWidth);
-  ::CFRelease(cfWidth);
-  ::CFDictionaryAddValue(props, kIOSurfaceHeight, cfHeight);
-  ::CFRelease(cfHeight);
-  ::CFDictionaryAddValue(props, kIOSurfaceBytesPerElement, cfBytesPerElem);
-  ::CFRelease(cfBytesPerElem);
-  ::CFDictionaryAddValue(props, kIOSurfaceIsGlobal, kCFBooleanTrue);
+  SetSizeProperties(props, aWidth, aHeight, bytesPerElem);
+
+  AddDictionaryInt(props, kIOSurfacePixelFormat,
+                   (uint32_t)kCVPixelFormatType_32BGRA);
 
   CFTypeRefPtr<IOSurfaceRef> surfaceRef =
-      CFTypeRefPtr<IOSurfaceRef>::WrapUnderCreateRule(::IOSurfaceCreate(props));
-  ::CFRelease(props);
+      CFTypeRefPtr<IOSurfaceRef>::WrapUnderCreateRule(
+          ::IOSurfaceCreate(props.get()));
 
   if (!surfaceRef) {
     return nullptr;
@@ -76,20 +94,15 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateIOSurface(
   return ioSurface.forget();
 }
 
-void AddDictionaryInt(const CFTypeRefPtr<CFMutableDictionaryRef>& aDict,
-                      const void* aType, uint32_t aValue) {
-  auto cfValue = CFTypeRefPtr<CFNumberRef>::WrapUnderCreateRule(
-      ::CFNumberCreate(nullptr, kCFNumberSInt32Type, &aValue));
-  ::CFDictionaryAddValue(aDict.get(), aType, cfValue.get());
-}
-
 size_t CreatePlaneDictionary(CFTypeRefPtr<CFMutableDictionaryRef>& aDict,
                              const gfx::IntSize& aSize, size_t aOffset,
                              size_t aBytesPerPixel) {
   size_t bytesPerRow = IOSurfaceAlignProperty(kIOSurfaceBytesPerRow,
                                               aSize.width * aBytesPerPixel);
-  size_t totalBytes =
-      IOSurfaceAlignProperty(kIOSurfaceAllocSize, aSize.height * bytesPerRow);
+  // Add a SIMD register worth of extra bytes to the end of the allocation for
+  // SWGL.
+  size_t totalBytes = IOSurfaceAlignProperty(kIOSurfaceAllocSize,
+                                             aSize.height * bytesPerRow + 16);
 
   aDict = CFTypeRefPtr<CFMutableDictionaryRef>::WrapUnderCreateRule(
       ::CFDictionaryCreateMutable(kCFAllocatorDefault, 4,
@@ -200,10 +213,7 @@ already_AddRefed<MacIOSurface> MacIOSurface::CreateYUV422Surface(
   MOZ_ASSERT((size_t)aSize.width <= GetMaxWidth());
   MOZ_ASSERT((size_t)aSize.height <= GetMaxHeight());
 
-  AddDictionaryInt(props, kIOSurfaceWidth, aSize.width);
-  AddDictionaryInt(props, kIOSurfaceHeight, aSize.height);
-  ::CFDictionaryAddValue(props.get(), kIOSurfaceIsGlobal, kCFBooleanTrue);
-  AddDictionaryInt(props, kIOSurfaceBytesPerElement, 2);
+  SetSizeProperties(props, aSize.width, aSize.height, 2);
 
   if (aColorRange == ColorRange::LIMITED) {
     AddDictionaryInt(props, kIOSurfacePixelFormat,
@@ -401,7 +411,8 @@ SurfaceFormat MacIOSurface::GetFormat() const {
     case kCVPixelFormatType_32BGRA:
       return HasAlpha() ? SurfaceFormat::B8G8R8A8 : SurfaceFormat::B8G8R8X8;
     default:
-      return HasAlpha() ? SurfaceFormat::R8G8B8A8 : SurfaceFormat::R8G8B8X8;
+      MOZ_ASSERT_UNREACHABLE("Unknown format");
+      return SurfaceFormat::B8G8R8A8;
   }
 }
 

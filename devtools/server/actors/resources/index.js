@@ -12,9 +12,12 @@ const TYPES = {
   CSS_MESSAGE: "css-message",
   DOCUMENT_EVENT: "document-event",
   ERROR_MESSAGE: "error-message",
+  LOCAL_STORAGE: "local-storage",
   PLATFORM_MESSAGE: "platform-message",
   NETWORK_EVENT: "network-event",
+  SESSION_STORAGE: "session-storage",
   STYLESHEET: "stylesheet",
+  NETWORK_EVENT_STACKTRACE: "network-event-stacktrace",
 };
 exports.TYPES = TYPES;
 
@@ -43,13 +46,47 @@ const FrameTargetResources = augmentResourceDictionary({
   [TYPES.ERROR_MESSAGE]: {
     path: "devtools/server/actors/resources/error-messages",
   },
+  [TYPES.LOCAL_STORAGE]: {
+    path: "devtools/server/actors/resources/storage-local-storage",
+  },
   [TYPES.PLATFORM_MESSAGE]: {
     path: "devtools/server/actors/resources/platform-messages",
+  },
+  [TYPES.SESSION_STORAGE]: {
+    path: "devtools/server/actors/resources/storage-session-storage",
   },
   [TYPES.STYLESHEET]: {
     path: "devtools/server/actors/resources/stylesheets",
   },
+  [TYPES.NETWORK_EVENT_STACKTRACE]: {
+    path: "devtools/server/actors/resources/network-events-stacktraces",
+  },
 });
+const ProcessTargetResources = augmentResourceDictionary({
+  [TYPES.CONSOLE_MESSAGE]: {
+    path: "devtools/server/actors/resources/console-messages",
+  },
+  [TYPES.CSS_MESSAGE]: {
+    path: "devtools/server/actors/resources/css-messages",
+  },
+  [TYPES.ERROR_MESSAGE]: {
+    path: "devtools/server/actors/resources/error-messages",
+  },
+  [TYPES.PLATFORM_MESSAGE]: {
+    path: "devtools/server/actors/resources/platform-messages",
+  },
+});
+
+// We'll only support a few resource types in Workers (console-message, source,
+// breakpoints, …) as error and platform messages are not supported since we need access
+// to Ci, which isn't available in worker context.
+// Errors are emitted from the content process main thread so the user would still get them.
+const WorkerTargetResources = augmentResourceDictionary({
+  [TYPES.CONSOLE_MESSAGE]: {
+    path: "devtools/server/actors/resources/console-messages",
+  },
+});
+
 const ParentProcessResources = augmentResourceDictionary({
   [TYPES.NETWORK_EVENT]: {
     path: "devtools/server/actors/resources/network-events",
@@ -91,6 +128,10 @@ function getResourceTypeDictionaryForTargetType(targetType) {
   switch (targetType) {
     case Targets.TYPES.FRAME:
       return FrameTargetResources;
+    case Targets.TYPES.PROCESS:
+      return ProcessTargetResources;
+    case Targets.TYPES.WORKER:
+      return WorkerTargetResources;
     default:
       throw new Error(`Unsupported target actor typeName '${targetType}'`);
   }

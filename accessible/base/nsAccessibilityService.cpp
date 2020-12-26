@@ -483,8 +483,8 @@ already_AddRefed<Accessible> nsAccessibilityService::CreatePluginAccessible(
 #  elif MOZ_ACCESSIBILITY_ATK
     if (!AtkSocketAccessible::gCanEmbed) return nullptr;
 
-    // Note this calls into the plugin, so crazy things may happen and aFrame
-    // may go away.
+    // Note this calls into the plugin, so unexpected things may happen and
+    // aFrame may go away.
     nsCString plugId;
     nsresult rv = pluginInstance->GetValueFromPlugin(
         NPPVpluginNativeAccessibleAtkPlugId, &plugId);
@@ -1467,13 +1467,20 @@ nsAccessibilityService::CreateAccessibleByFrameType(nsIFrame* aFrame,
     case eHTMLTextFieldType:
       newAcc = new HTMLTextFieldAccessible(aContent, document);
       break;
-    case eHyperTextType:
+    case eHyperTextType: {
+      if (aContext->IsTable() || aContext->IsTableRow()) {
+        // This is some generic hyperText, for example a block frame element
+        // inserted between a table and table row. Treat it as presentational.
+        return nullptr;
+      }
+
       if (!aContent->IsAnyOfHTMLElements(nsGkAtoms::dt, nsGkAtoms::dd,
-                                         nsGkAtoms::div)) {
+                                         nsGkAtoms::div, nsGkAtoms::thead,
+                                         nsGkAtoms::tfoot, nsGkAtoms::tbody)) {
         newAcc = new HyperTextAccessibleWrap(aContent, document);
       }
       break;
-
+    }
     case eImageType:
       newAcc = new ImageAccessibleWrap(aContent, document);
       break;

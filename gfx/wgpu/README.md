@@ -4,7 +4,7 @@ This is an active GitHub mirror of the WebGPU implementation in Rust, which now 
 
 # WebGPU
 
-[![Matrix](https://img.shields.io/badge/Matrix-%23wgpu%3Amatrix.org-blueviolet.svg)](https://matrix.to/#/#wgpu:matrix.org)
+[![Matrix](https://img.shields.io/badge/Dev_Matrix-%23wgpu%3Amatrix.org-blueviolet.svg)](https://matrix.to/#/#wgpu:matrix.org) [![Matrix](https://img.shields.io/badge/User_Matrix-%23wgpu--users%3Amatrix.org-blueviolet.svg)](https://matrix.to/#/#wgpu-users:matrix.org)
 [![Build Status](https://github.com/gfx-rs/wgpu/workflows/CI/badge.svg)](https://github.com/gfx-rs/wgpu/actions)
 
 This is the core logic of an experimental [WebGPU](https://www.w3.org/community/gpu/) implementation. It's written in Rust and is based on [gfx-hal](https://github.com/gfx-rs/gfx) with help of [gfx-extras](https://github.com/gfx-rs/gfx-extras). See the upstream [WebGPU specification](https://gpuweb.github.io/gpuweb/) (work in progress).
@@ -27,6 +27,6 @@ If you are looking for the native implementation or bindings to the API in other
   DX12   | :heavy_check_mark: |                    |                    |
   Vulkan | :heavy_check_mark: | :heavy_check_mark: |                    |
   Metal  |                    |                    | :heavy_check_mark: |
-  OpenGL | :construction:     | :construction:     | :construction:     |
+  OpenGL |                    | :construction:     | :construction:     |
 
 :heavy_check_mark: = Primary support — :white_check_mark: = Secondary support — :construction: = Unsupported, but support in progress

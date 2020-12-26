@@ -31,6 +31,9 @@ void ProfiledThreadData::StreamJSON(const ProfileBuffer& aBuffer,
                                     double aSinceTime) {
   UniqueStacks uniqueStacks;
 
+  MOZ_ASSERT(uniqueStacks.mUniqueStrings);
+  aWriter.SetUniqueStrings(*uniqueStacks.mUniqueStrings);
+
   aWriter.Start();
   {
     StreamSamplesAndMarkers(mThreadInfo->Name(), mThreadInfo->ThreadId(),
@@ -74,19 +77,25 @@ void ProfiledThreadData::StreamJSON(const ProfileBuffer& aBuffer,
     aWriter.EndObject();
 
     aWriter.StartArrayProperty("stringTable");
-    { uniqueStacks.mUniqueStrings->SpliceStringTableElements(aWriter); }
+    {
+      std::move(*uniqueStacks.mUniqueStrings)
+          .SpliceStringTableElements(aWriter);
+    }
     aWriter.EndArray();
   }
-
   aWriter.End();
+
+  aWriter.ResetUniqueStrings();
 }
 
-void StreamSamplesAndMarkers(
+int StreamSamplesAndMarkers(
     const char* aName, int aThreadId, const ProfileBuffer& aBuffer,
     SpliceableJSONWriter& aWriter, const std::string& aProcessName,
     const std::string& aETLDplus1, const TimeStamp& aProcessStartTime,
     const TimeStamp& aRegisterTime, const TimeStamp& aUnregisterTime,
     double aSinceTime, UniqueStacks& aUniqueStacks) {
+  int processedThreadId = 0;
+
   aWriter.StringProperty(
       "processType",
       "(unknown)" /* XRE_GeckoProcessTypeToString(XRE_GetProcessType()) */);
@@ -110,10 +119,6 @@ void StreamSamplesAndMarkers(
   if (!aETLDplus1.empty()) {
     aWriter.StringProperty("eTLD+1", aETLDplus1);
   }
-
-  aWriter.IntProperty("tid", static_cast<int64_t>(aThreadId));
-  aWriter.IntProperty("pid",
-                      static_cast<int64_t>(profiler_current_process_id()));
 
   if (aRegisterTime) {
     aWriter.DoubleProperty(
@@ -141,8 +146,8 @@ void StreamSamplesAndMarkers(
 
     aWriter.StartArrayProperty("data");
     {
-      aBuffer.StreamSamplesToJSON(aWriter, aThreadId, aSinceTime,
-                                  aUniqueStacks);
+      processedThreadId = aBuffer.StreamSamplesToJSON(
+          aWriter, aThreadId, aSinceTime, aUniqueStacks);
     }
     aWriter.EndArray();
   }
@@ -168,6 +173,14 @@ void StreamSamplesAndMarkers(
     aWriter.EndArray();
   }
   aWriter.EndObject();
+
+  aWriter.IntProperty("pid",
+                      static_cast<int64_t>(profiler_current_process_id()));
+  aWriter.IntProperty(
+      "tid",
+      static_cast<int64_t>(aThreadId != 0 ? aThreadId : processedThreadId));
+
+  return processedThreadId;
 }
 
 }  // namespace baseprofiler

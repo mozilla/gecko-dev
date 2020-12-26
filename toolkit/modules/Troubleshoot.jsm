@@ -104,6 +104,9 @@ const PREFS_WHITELIST = [
   "ui.osk.require_tablet_mode",
   "ui.osk.debug.keyboardDisplayReason",
   "webgl.",
+  "widget.dmabuf",
+  "widget.use-xdg-desktop-portal",
+  "widget.wayland",
 ];
 
 // The blacklist, unlike the whitelist, is a list of regular expressions.
@@ -227,6 +230,11 @@ var dataProviders = {
       );
     } catch (e) {}
 
+    // MacOSX: Check for rosetta status, if it exists
+    try {
+      data.rosetta = Services.sysinfo.getProperty("rosettaStatus");
+    } catch (e) {}
+
     data.numTotalWindows = 0;
     data.numFissionWindows = 0;
     data.numRemoteWindows = 0;
@@ -319,10 +327,6 @@ var dataProviders = {
   securitySoftware: function securitySoftware(done) {
     let data = {};
 
-    let sysInfo = Cc["@mozilla.org/system-info;1"].getService(
-      Ci.nsIPropertyBag2
-    );
-
     const keys = [
       "registeredAntiVirus",
       "registeredAntiSpyware",
@@ -331,7 +335,7 @@ var dataProviders = {
     for (let key of keys) {
       let prop = "";
       try {
-        prop = sysInfo.getProperty(key);
+        prop = Services.sysinfo.getProperty(key);
       } catch (e) {}
 
       data[key] = prop;

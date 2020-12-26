@@ -4,8 +4,6 @@
 
 "use strict";
 
-// eslint-disable-next-line mozilla/reject-some-requires
-const { gDevTools } = require("devtools/client/framework/devtools");
 const { throttle } = require("devtools/shared/throttle");
 
 class ResourceWatcher {
@@ -55,6 +53,19 @@ class ResourceWatcher {
    */
   getAllResources(resourceType) {
     return this._cache.filter(r => r.resourceType === resourceType);
+  }
+
+  /**
+   * Return the specified resource cached in this watcher.
+   *
+   * @param {String} resourceType
+   * @param {String} resourceId
+   * @return {Object} resource cached in this watcher
+   */
+  getResourceById(resourceType, resourceId) {
+    return this._cache.find(
+      r => r.resourceType === resourceType && r.resourceId === resourceId
+    );
   }
 
   /**
@@ -280,7 +291,7 @@ class ResourceWatcher {
         // ...request existing resource and new one to come from this one target
         // *but* only do that for backward compat, where we don't have the watcher API
         // (See bug 1626647)
-        if (this._hasWatcherSupport(resourceType)) {
+        if (this.hasWatcherSupport(resourceType)) {
           continue;
         }
         await this._watchResourcesForTarget(targetFront, resourceType);
@@ -359,7 +370,7 @@ class ResourceWatcher {
           resource,
           targetList: this.targetList,
           targetFront,
-          isFissionEnabledOnContentToolbox: gDevTools.isFissionContentToolboxEnabled(),
+          watcher: this.watcher,
         });
       }
 
@@ -601,7 +612,7 @@ class ResourceWatcher {
     );
   }
 
-  _hasWatcherSupport(resourceType) {
+  hasWatcherSupport(resourceType) {
     return this.watcher?.traits?.resources?.[resourceType];
   }
 
@@ -632,7 +643,7 @@ class ResourceWatcher {
 
     // If the server supports the Watcher API and the Watcher supports
     // this resource type, use this API
-    if (this._hasWatcherSupport(resourceType)) {
+    if (this.hasWatcherSupport(resourceType)) {
       await this.watcher.watchResources([resourceType]);
       return;
     }
@@ -677,7 +688,6 @@ class ResourceWatcher {
     return LegacyListeners[resourceType]({
       targetList: this.targetList,
       targetFront,
-      isFissionEnabledOnContentToolbox: gDevTools.isFissionContentToolboxEnabled(),
       onAvailable,
       onDestroyed,
       onUpdated,
@@ -712,7 +722,7 @@ class ResourceWatcher {
 
     // If the server supports the Watcher API and the Watcher supports
     // this resource type, use this API
-    if (this._hasWatcherSupport(resourceType)) {
+    if (this.hasWatcherSupport(resourceType)) {
       this.watcher.unwatchResources([resourceType]);
       return;
     }
@@ -763,7 +773,7 @@ ResourceWatcher.TYPES = ResourceWatcher.prototype.TYPES = {
   NETWORK_EVENT_STACKTRACE: "network-event-stacktrace",
   SOURCE: "source",
 };
-module.exports = { ResourceWatcher };
+module.exports = { ResourceWatcher, TYPES: ResourceWatcher.TYPES };
 
 // Backward compat code for each type of resource.
 // Each section added here should eventually be removed once the equivalent server
@@ -832,7 +842,11 @@ const ResourceTransformers = {
   [ResourceWatcher.TYPES
     .ERROR_MESSAGE]: require("devtools/shared/resources/transformers/error-messages"),
   [ResourceWatcher.TYPES
-    .INDEXED_DB]: require("devtools/shared/resources/transformers/storage-indexed-db.js"),
+    .LOCAL_STORAGE]: require("devtools/shared/resources/transformers/storage-local-storage.js"),
   [ResourceWatcher.TYPES
     .ROOT_NODE]: require("devtools/shared/resources/transformers/root-node"),
+  [ResourceWatcher.TYPES
+    .SESSION_STORAGE]: require("devtools/shared/resources/transformers/storage-session-storage.js"),
+  [ResourceWatcher.TYPES
+    .NETWORK_EVENT]: require("devtools/shared/resources/transformers/network-events"),
 };

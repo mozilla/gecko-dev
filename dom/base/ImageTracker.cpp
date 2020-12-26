@@ -14,8 +14,7 @@
 #include "mozilla/Preferences.h"
 #include "nsXULAppAPI.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 ImageTracker::ImageTracker() : mLocking(false), mAnimating(true) {}
 
@@ -168,5 +167,4 @@ void ImageTracker::MediaFeatureValuesChangedAllDocuments(
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

@@ -7,9 +7,6 @@
 const Services = require("Services");
 const EventEmitter = require("devtools/shared/event-emitter");
 
-// eslint-disable-next-line mozilla/reject-some-requires
-const { gDevTools } = require("devtools/client/framework/devtools");
-
 const BROWSERTOOLBOX_FISSION_ENABLED = "devtools.browsertoolbox.fission";
 
 const {
@@ -130,7 +127,9 @@ class TargetList extends EventEmitter {
     // Public flag to allow listening for workers even if the fission pref is off
     // This allows listening for workers in the content toolbox outside of fission contexts
     // For now, this is only toggled by tests.
-    this.listenForWorkers = false;
+    this.listenForWorkers =
+      this.rootFront.traits.workerConsoleApiMessagesDispatchedToMainThread ===
+      false;
     this.listenForServiceWorkers = false;
     this.destroyServiceWorkersOnNavigation = false;
   }
@@ -255,9 +254,7 @@ class TargetList extends EventEmitter {
         types = TargetList.ALL_TYPES;
       }
     } else if (this.targetFront.isLocalTab) {
-      if (gDevTools.isFissionContentToolboxEnabled()) {
-        types = [TargetList.TYPES.FRAME];
-      }
+      types = [TargetList.TYPES.FRAME];
     }
     if (this.listenForWorkers && !types.includes(TargetList.TYPES.WORKER)) {
       types.push(TargetList.TYPES.WORKER);
@@ -363,7 +360,7 @@ class TargetList extends EventEmitter {
       return TargetList.TYPES.PROCESS;
     }
 
-    if (typeName == "workerDescriptor") {
+    if (typeName == "workerDescriptor" || typeName == "workerTarget") {
       if (target.isSharedWorker) {
         return TargetList.TYPES.SHARED_WORKER;
       }

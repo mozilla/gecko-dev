@@ -45,7 +45,7 @@ jobs:
             files-changed:
                 - 'gfx/wr/**'
 
-    linux-release:
+    linux64-release:
         description: Runs release-mode WebRender CI tests on a Linux worker
         worker-type: b-linux
         worker:
@@ -69,7 +69,7 @@ jobs:
             files-changed:
                 - 'gfx/wr/**'
 
-    linux-debug:
+    linux64-debug:
         description: Runs debug-mode WebRender CI tests on a Linux worker
         worker-type: b-linux
         worker:
@@ -208,7 +208,7 @@ jobs:
             command: >-
                 mv cargo-test-binaries target &&
                 cd target &&
-                for i in debug/*; do $i; done
+                for i in debug/deps/*; do $i; done
         treeherder:
             platform: macosx1014-64-qr/debug
             symbol: WR(cargotest)
@@ -429,7 +429,8 @@ jobs:
                 - 'reftests.tar.gz'
                 - 'mozdevice.tar.gz'
             android-build:
-                - 'mozharness.zip'
+                - artifact: 'mozharness.zip'
+                  dest: 'mozharness'
         run:
             using: run-task
             checkout: false
@@ -472,7 +473,8 @@ jobs:
                 - 'reftests.tar.gz'
                 - 'mozdevice.tar.gz'
             android-build:
-                - 'mozharness.zip'
+                - artifact: 'mozharness.zip'
+                  dest: 'mozharness'
         run:
             using: run-task
             checkout: false

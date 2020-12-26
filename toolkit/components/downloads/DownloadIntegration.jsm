@@ -837,6 +837,20 @@ var DownloadIntegration = {
     // through Firefox when possible.
     aDownload.launchWhenSucceeded = false;
 
+    // When a file has no extension, and there's an executable file with the
+    // same name in the same folder, Windows shell can get confused.
+    // For this reason we show the file in the containing folder instead of
+    // trying to open it.
+    // We also don't trust mimeinfo, it could be a type we can forward to a
+    // system handler, but it could also be an executable type, and we
+    // don't have an exhaustive list with all of them.
+    if (!fileExtension && AppConstants.platform == "win") {
+      // We can't check for the existance of a same-name file with every
+      // possible executable extension, so this is a catch-all.
+      this.showContainingDirectory(aDownload.target.path);
+      return;
+    }
+
     // No custom application chosen, let's launch the file with the default
     // handler. First, let's try to launch it through the MIME service.
     if (mimeInfo) {
@@ -856,7 +870,10 @@ var DownloadIntegration = {
 
     // If our previous attempts failed, try sending it through
     // the system's external "file:" URL handler.
-    gExternalProtocolService.loadURI(NetUtil.newURI(file));
+    gExternalProtocolService.loadURI(
+      NetUtil.newURI(file),
+      Services.scriptSecurityManager.getSystemPrincipal()
+    );
   },
 
   /**
@@ -873,6 +890,8 @@ var DownloadIntegration = {
 
   /**
    * Launches the specified file, unless overridden by regression tests.
+   * @note Always use launchDownload() from the outside of this module, it is
+   *       both more powerful and safer.
    */
   launchFile(file, mimeInfo) {
     if (mimeInfo) {
@@ -922,7 +941,10 @@ var DownloadIntegration = {
 
     // If launch also fails (probably because it's not implemented), let
     // the OS handler try to open the parent.
-    gExternalProtocolService.loadURI(NetUtil.newURI(parent));
+    gExternalProtocolService.loadURI(
+      NetUtil.newURI(parent),
+      Services.scriptSecurityManager.getSystemPrincipal()
+    );
   },
 
   /**

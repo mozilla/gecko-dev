@@ -763,9 +763,12 @@ class MozIntl {
   RelativeTimeFormat = MozRelativeTimeFormat;
 
   constructor() {
-    // XXX: We should add an observer on
-    //      intl:app-locales-changed to invalidate
-    //      the cache.
+    this._cache = {};
+    Services.obs.addObserver(this, "intl:app-locales-changed", true);
+  }
+
+  observe() {
+    // Clear cache when things change.
     this._cache = {};
   }
 
@@ -952,6 +955,10 @@ class MozIntl {
 MozIntl.prototype.classID = Components.ID(
   "{35ec195a-e8d0-4300-83af-c8a2cc84b4a3}"
 );
-MozIntl.prototype.QueryInterface = ChromeUtils.generateQI(["mozIMozIntl"]);
+MozIntl.prototype.QueryInterface = ChromeUtils.generateQI([
+  "mozIMozIntl",
+  "nsIObserver",
+  "nsISupportsWeakReference",
+]);
 
 var EXPORTED_SYMBOLS = ["MozIntl"];

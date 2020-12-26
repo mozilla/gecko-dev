@@ -44,8 +44,7 @@
 
 using namespace mozilla::ipc;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -482,10 +481,11 @@ bool StructuredCloneHolder::ReadString(JSStructuredCloneReader* aReader,
 
 /* static */
 bool StructuredCloneHolder::WriteString(JSStructuredCloneWriter* aWriter,
-                                        const nsString& aString) {
+                                        const nsAString& aString) {
   size_t charSize = sizeof(nsString::char_type);
   return JS_WriteUint32Pair(aWriter, aString.Length(), 0) &&
-         JS_WriteBytes(aWriter, aString.get(), aString.Length() * charSize);
+         JS_WriteBytes(aWriter, aString.BeginReading(),
+                       aString.Length() * charSize);
 }
 
 namespace {
@@ -1337,5 +1337,4 @@ void StructuredCloneHolder::SameProcessScopeRequired(
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

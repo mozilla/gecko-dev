@@ -47,7 +47,8 @@ parent:
                        nsCString?                 altSvcUsed,
                        bool                       dataToChildProcess,
                        bool                       restarted,
-                       uint32_t?                  HTTPSSVCReceivedStage);
+                       uint32_t?                  HTTPSSVCReceivedStage,
+                       bool                       supportsHttp3);
   async OnTransportStatus(nsresult status,
                           int64_t progress,
                           int64_t progressMax,
@@ -60,9 +61,10 @@ parent:
                       int64_t transferSize,
                       TimingStructArgs timings,
                       nsHttpHeaderArray? responseTrailers,
-                      bool hasStickyConn,
                       TransactionObserverResult? transactionObserverResult,
-                      TimeStamp lastActiveTabOptimization);
+                      TimeStamp lastActiveTabOptimization,
+                      uint32_t caps,
+                      HttpConnectionInfoCloneArgs connInfoArgs);
   async OnInitFailed(nsresult status);
   async OnH2PushStream(uint32_t pushedStreamId,
                        nsCString resourceUrl,
@@ -90,7 +92,6 @@ child:
              TimeStamp aRedirectStart,
              TimeStamp aRedirectEnd);
 
-  async UpdateClassOfService(uint32_t classOfService);
   async CancelPump(nsresult status);
   async SuspendPump();
   async ResumePump();

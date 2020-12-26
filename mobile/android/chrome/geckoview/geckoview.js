@@ -80,6 +80,11 @@ var ModuleManager = {
     // as docShell should be active by default, but this is not currently the
     // case so we force it here.
     aBrowser.docShellIsActive = true;
+    // By default all layers are discarded when a browser is set to inactive.
+    // GeckoView by default sets browsers to inactive every time they're not
+    // visible. To avoid flickering when changing tabs, we preserve layers for
+    // all loaded tabs.
+    aBrowser.preserveLayers(true);
 
     WindowEventDispatcher.registerListener(this, [
       "GeckoView:UpdateModuleState",
@@ -146,61 +151,35 @@ var ModuleManager = {
   remoteTypeFor(aURI, currentType) {
     return E10SUtils.getRemoteTypeForURI(
       aURI,
-      GeckoViewSettings.useMultiprocess,
+      /* multiProcess */ true,
       /* useRemoteSubframes */ false,
       currentType,
       this.browser.currentURI
     );
   },
 
-  shouldLoadInThisProcess(aURI) {
-    const currentType = this.browser.remoteType || E10SUtils.NOT_REMOTE;
-    return currentType === this.remoteTypeFor(aURI, currentType);
-  },
-
-  async updateRemoteAndNavigate(aURI, aLoadOptions, aHistoryIndex = -1) {
-    const currentType = this.browser.remoteType || E10SUtils.NOT_REMOTE;
-    const remoteType = this.remoteTypeFor(aURI, currentType);
-
-    debug`updateRemoteAndNavigate: uri=${aURI} currentType=${currentType}
-                             remoteType=${remoteType}`;
-
-    if (
-      remoteType !== E10SUtils.NOT_REMOTE &&
-      !GeckoViewSettings.useMultiprocess
-    ) {
-      warn`Tried to create a remote browser in non-multiprocess mode`;
-      return false;
-    }
-
+  // Ensures that session history has been flushed before changing remoteness
+  async prepareToChangeRemoteness() {
     // Session state like history is maintained at the process level so we need
     // to collect it and restore it in the other process when switching.
     // TODO: This should go away when we migrate the history to the main
     // process Bug 1507287.
     const { history } = await this.getActor("GeckoViewContent").collectState();
+
     // Ignore scroll and form data since we're navigating away from this page
     // anyway
-    const sessionState = { history };
+    this.sessionState = { history };
+  },
 
-    // If the navigation is from history we don't need to load the page again
-    // so we ignore loadOptions
-    if (aHistoryIndex >= 0) {
-      // Make sure the historyIndex is valid
-      history.index = aHistoryIndex + 1;
-      history.index = Math.max(
-        1,
-        Math.min(history.index, history.entries.length)
-      );
-    } else {
-      sessionState.loadOptions = aLoadOptions;
-    }
+  willChangeBrowserRemoteness() {
+    debug`WillChangeBrowserRemoteness`;
 
-    // Now we're switching the remoteness (value of "remote" attr).
-    const disabledModules = [];
+    // Now we're switching the remoteness.
+    this.disabledModules = [];
     this.forEach(module => {
-      if (module.enabled) {
+      if (module.enabled && module.disableOnProcessSwitch) {
         module.enabled = false;
-        disabledModules.push(module);
+        this.disabledModules.push(module);
       }
     });
 
@@ -208,24 +187,22 @@ var ModuleManager = {
       module.onDestroyBrowser();
     });
 
-    const parent = this.browser.parentNode;
-    this.browser.remove();
-    if (remoteType) {
-      this.browser.setAttribute("remote", "true");
-      this.browser.setAttribute("remoteType", remoteType);
-    } else {
-      this.browser.setAttribute("remote", "false");
-      this.browser.removeAttribute("remoteType");
-    }
+    // TODO: Bug 1673683: `docShellIsActive` is sometimes not preserved when
+    // switching process.
+    this.docShellIsActiveWhileSwitchingProcess = this.browser.docShellIsActive;
+  },
+
+  didChangeBrowserRemoteness() {
+    debug`DidChangeBrowserRemoteness`;
+
+    this.browser.docShellIsActive = this.docShellIsActiveWhileSwitchingProcess;
+    this.docShellIsActiveWhileSwitchingProcess = undefined;
 
     this.forEach(module => {
       if (module.impl) {
         module.impl.onInitBrowser();
       }
     });
-
-    parent.appendChild(this.browser);
-    this.browser.restoreProgressListeners();
 
     this.messageManager.addMessageListener(
       "GeckoView:ContentModuleLoaded",
@@ -237,12 +214,22 @@ var ModuleManager = {
       module.loadInitFrameScript();
     });
 
-    disabledModules.forEach(module => {
+    this.disabledModules.forEach(module => {
       module.enabled = true;
     });
+    this.disabledModules = null;
+  },
+
+  afterBrowserRemotenessChange(aSwitchId) {
+    const { sessionState } = this;
+    this.sessionState = null;
+
+    sessionState.switchId = aSwitchId;
 
     this.getActor("GeckoViewContent").restoreState(sessionState);
     this.browser.focus();
+
+    // Load was handled
     return true;
   },
 
@@ -404,9 +391,6 @@ class ModuleInfo {
    * Called before the browser is removed
    */
   onDestroyBrowser() {
-    if (this._impl) {
-      this._impl.onDestroyBrowser();
-    }
     this._contentModuleLoaded = false;
   }
 
@@ -452,6 +436,13 @@ class ModuleInfo {
 
   get manager() {
     return this._manager;
+  }
+
+  get disableOnProcessSwitch() {
+    // Only disable while process switching if it has a frameScript
+    return (
+      !!this._onInitPhase?.frameScript || !!this._onEnablePhase?.frameScript
+    );
   }
 
   get name() {
@@ -526,18 +517,17 @@ function createBrowser() {
   browser.setAttribute("type", "content");
   browser.setAttribute("primary", "true");
   browser.setAttribute("flex", "1");
+  browser.setAttribute("maychangeremoteness", "true");
 
-  if (GeckoViewSettings.useMultiprocess) {
-    const pointerEventsEnabled = Services.prefs.getBoolPref(
-      "dom.w3c_pointer_events.multiprocess.android.enabled",
-      false
-    );
-    if (pointerEventsEnabled) {
-      Services.prefs.setBoolPref("dom.w3c_pointer_events.enabled", true);
-    }
-    browser.setAttribute("remote", "true");
-    browser.setAttribute("remoteType", E10SUtils.DEFAULT_REMOTE_TYPE);
+  const pointerEventsEnabled = Services.prefs.getBoolPref(
+    "dom.w3c_pointer_events.multiprocess.android.enabled",
+    false
+  );
+  if (pointerEventsEnabled) {
+    Services.prefs.setBoolPref("dom.w3c_pointer_events.enabled", true);
   }
+  browser.setAttribute("remote", "true");
+  browser.setAttribute("remoteType", E10SUtils.DEFAULT_REMOTE_TYPE);
 
   return browser;
 }
@@ -660,8 +650,19 @@ function startup() {
     {
       name: "GeckoViewSelectionAction",
       onEnable: {
-        frameScript:
-          "chrome://geckoview/content/GeckoViewSelectionActionChild.js",
+        actors: {
+          SelectionActionDelegate: {
+            child: {
+              moduleURI: "resource:///actors/SelectionActionDelegateChild.jsm",
+              events: {
+                mozcaretstatechanged: { mozSystemGroup: true },
+                pagehide: { capture: true, mozSystemGroup: true },
+                deactivate: { mozSystemGroup: true },
+              },
+            },
+            allFrames: true,
+          },
+        },
       },
     },
     {
@@ -709,6 +710,21 @@ function startup() {
       },
     },
   ]);
+
+  if (!Services.appinfo.sessionHistoryInParent) {
+    browser.prepareToChangeRemoteness = () =>
+      ModuleManager.prepareToChangeRemoteness();
+    browser.afterChangeRemoteness = switchId =>
+      ModuleManager.afterBrowserRemotenessChange(switchId);
+  }
+
+  browser.addEventListener("WillChangeBrowserRemoteness", event =>
+    ModuleManager.willChangeBrowserRemoteness()
+  );
+
+  browser.addEventListener("DidChangeBrowserRemoteness", event =>
+    ModuleManager.didChangeBrowserRemoteness()
+  );
 
   // Allows actors to access ModuleManager.
   window.moduleManager = ModuleManager;

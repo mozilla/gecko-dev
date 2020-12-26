@@ -9,8 +9,7 @@
 #include "mozilla/dom/AbortControllerBinding.h"
 #include "mozilla/dom/WorkerPrivate.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(AbortController, mGlobal, mSignal)
 
@@ -61,9 +60,8 @@ void AbortController::Abort() {
   mAborted = true;
 
   if (mSignal) {
-    mSignal->Abort();
+    mSignal->SignalAbort();
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

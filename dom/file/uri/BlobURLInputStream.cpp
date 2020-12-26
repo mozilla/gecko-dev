@@ -5,13 +5,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "BlobURLInputStream.h"
+#include "BlobURL.h"
+#include "BlobURLChannel.h"
+#include "BlobURLProtocolHandler.h"
 
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/IPCBlobUtils.h"
 #include "nsStreamUtils.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_ADDREF(BlobURLInputStream);
 NS_IMPL_RELEASE(BlobURLInputStream);
@@ -547,6 +549,4 @@ void BlobURLInputStream::ReleaseUnderlyingStream(
   mBlobSize = -1;
 }
 
-}  // namespace dom
-
-}  // namespace mozilla
+}  // namespace mozilla::dom

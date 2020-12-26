@@ -10,9 +10,6 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-const { AppConstants } = ChromeUtils.import(
-  "resource://gre/modules/AppConstants.jsm"
-);
 
 ChromeUtils.defineModuleGetter(
   this,
@@ -452,11 +449,12 @@ var E10SUtils = {
             flags & Ci.nsIAboutModule.URI_CAN_LOAD_IN_PRIVILEGEDABOUT_PROCESS &&
             (useSeparatePrivilegedAboutContentProcess ||
               aURI.filePath == "logins" ||
-              // Force about:welcome into the privileged content process to
+              // Force about:welcome and about:home into the privileged content process to
               // workaround code coverage test failures which result from the
               // workaround in bug 161269. Once that bug is fixed for real,
-              // the about:welcome case below can be removed.
-              aURI.filePath == "welcome")
+              // the about:welcome and about:home case below can be removed.
+              aURI.filePath == "welcome" ||
+              aURI.filePath == "home")
           ) {
             return PRIVILEGEDABOUT_REMOTE_TYPE;
           }
@@ -817,6 +815,50 @@ var E10SUtils = {
   },
 
   /**
+   * Serialize cookieJarSettings.
+   *
+   * @param {nsICookieJarSettings} cookieJarSettings The cookieJarSettings to
+   *   serialize.
+   * @return {String} The base64 encoded cookieJarSettings data.
+   */
+  serializeCookieJarSettings(cookieJarSettings) {
+    let serialized = null;
+    if (cookieJarSettings) {
+      try {
+        serialized = serializationHelper.serializeToString(cookieJarSettings);
+      } catch (e) {
+        this.log().error(
+          `Failed to serialize cookieJarSettings '${cookieJarSettings}' ${e}`
+        );
+      }
+    }
+    return serialized;
+  },
+
+  /**
+   * Deserialize a base64 encoded cookieJarSettings
+   *
+   * @param {String} cookieJarSettings_b64 A base64 encoded serialized cookieJarSettings.
+   * @return {nsICookieJarSettings} A deserialized cookieJarSettings.
+   */
+  deserializeCookieJarSettings(cookieJarSettings_b64) {
+    let deserialized = null;
+    if (cookieJarSettings_b64) {
+      try {
+        deserialized = serializationHelper.deserializeObject(
+          cookieJarSettings_b64
+        );
+        deserialized.QueryInterface(Ci.nsICookieJarSettings);
+      } catch (e) {
+        this.log().error(
+          `Failed to deserialize cookieJarSettings_b64 '${cookieJarSettings_b64}' ${e}`
+        );
+      }
+    }
+    return deserialized;
+  },
+
+  /**
    * Returns whether or not a URI is supposed to load in a particular
    * browser given its current remote type.
    *
@@ -973,12 +1015,7 @@ var E10SUtils = {
     // If we are using DocumentChannel or remote subframes (fission), we
     // can start the load in the current process, and then perform the
     // switch later-on using the DocumentLoadListener mechanism.
-    // This mechanism isn't available on Android/GeckoView at present (see bug
-    // 1640019).
-    if (
-      AppConstants.MOZ_WIDGET_TOOLKIT != "android" &&
-      documentChannelPermittedForURI(aURI)
-    ) {
+    if (documentChannelPermittedForURI(aURI)) {
       return true;
     }
 

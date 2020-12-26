@@ -13,13 +13,14 @@
 namespace mozilla {
 namespace dom {
 
+class ClientState;
 class ServiceWorkerCloneData;
 class ServiceWorkerInfo;
 class ServiceWorkerParent;
 
 class ServiceWorkerProxy final {
   // Background thread only
-  ServiceWorkerParent* mActor;
+  RefPtr<ServiceWorkerParent> mActor;
 
   // Written on background thread and read on main thread
   nsCOMPtr<nsISerialEventTarget> mEventTarget;

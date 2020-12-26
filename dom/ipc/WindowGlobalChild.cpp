@@ -41,8 +41,7 @@
 using namespace mozilla::ipc;
 using namespace mozilla::dom::ipc;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 typedef nsRefPtrHashtable<nsUint64HashKey, WindowGlobalChild> WGCByIdMap;
 static StaticAutoPtr<WGCByIdMap> gWindowGlobalChildById;
@@ -328,22 +327,15 @@ void WindowGlobalChild::BeforeUnloadRemoved() {
 }
 
 void WindowGlobalChild::Destroy() {
-  // Destroying a WindowGlobalChild requires running script, so hold off on
-  // doing it until we can safely run JS callbacks.
-  nsContentUtils::AddScriptRunner(NS_NewRunnableFunction(
-      "WindowGlobalChild::Destroy", [self = RefPtr<WindowGlobalChild>(this)]() {
-        // Make a copy so that we can avoid potential iterator invalidation when
-        // calling the user-provided Destroy() methods.
-        self->JSActorWillDestroy();
+  JSActorWillDestroy();
 
-        // Perform async IPC shutdown unless we're not in-process, and our
-        // BrowserChild is in the process of being destroyed, which will destroy
-        // us as well.
-        RefPtr<BrowserChild> browserChild = self->GetBrowserChild();
-        if (!browserChild || !browserChild->IsDestroyed()) {
-          self->SendDestroy();
-        }
-      }));
+  // Perform async IPC shutdown unless we're not in-process, and our
+  // BrowserChild is in the process of being destroyed, which will destroy
+  // us as well.
+  RefPtr<BrowserChild> browserChild = GetBrowserChild();
+  if (!browserChild || !browserChild->IsDestroyed()) {
+    SendDestroy();
+  }
 }
 
 mozilla::ipc::IPCResult WindowGlobalChild::RecvMakeFrameLocal(
@@ -649,14 +641,21 @@ void WindowGlobalChild::ActorDestroy(ActorDestroyReason aWhy) {
   JSActorDidDestroy();
 }
 
-bool WindowGlobalChild::SameOriginWithTop() {
-  nsGlobalWindowInner* topWindow =
-      WindowContext()->TopWindowContext()->GetInnerWindow();
-  if (!topWindow) {
-    return false;
+bool WindowGlobalChild::IsSameOriginWith(
+    const dom::WindowContext* aOther) const {
+  if (aOther == WindowContext()) {
+    return true;
   }
-  return mWindowGlobal == topWindow ||
-         mDocumentPrincipal->Equals(topWindow->GetPrincipal());
+
+  MOZ_DIAGNOSTIC_ASSERT(WindowContext()->Group() == aOther->Group());
+  if (nsGlobalWindowInner* otherWin = aOther->GetInnerWindow()) {
+    return mDocumentPrincipal->Equals(otherWin->GetPrincipal());
+  }
+  return false;
+}
+
+bool WindowGlobalChild::SameOriginWithTop() {
+  return IsSameOriginWith(WindowContext()->TopWindowContext());
 }
 
 WindowGlobalChild::~WindowGlobalChild() {
@@ -690,5 +689,4 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(WindowGlobalChild)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(WindowGlobalChild)
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

@@ -75,13 +75,14 @@ class Mutex {
 
 #ifdef DEBUG
  public:
-  bool isHeld() const;
+  // This is not threadsafe if the check fails, and should only be used to
+  // assert that the current thread holds the mutex.
   bool ownedByCurrentThread() const;
 
  private:
   const MutexId id_;
   Mutex* prev_ = nullptr;
-  mozilla::Maybe<ThreadId> owningThread_;
+  ThreadId owningThread_;
 
   static MOZ_THREAD_LOCAL(Mutex*) HeldMutexStack;
 #endif

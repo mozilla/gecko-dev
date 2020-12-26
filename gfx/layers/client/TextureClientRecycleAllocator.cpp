@@ -101,8 +101,8 @@ bool YCbCrTextureClientAllocationHelper::IsCompatible(
 already_AddRefed<TextureClient> YCbCrTextureClientAllocationHelper::Allocate(
     KnowsCompositor* aKnowsCompositor) {
   return TextureClient::CreateForYCbCr(
-      aKnowsCompositor, mData.mYSize, mData.mYStride, mData.mCbCrSize,
-      mData.mCbCrStride, mData.mStereoMode, mData.mColorDepth,
+      aKnowsCompositor, mData.GetPictureRect(), mData.mYSize, mData.mYStride,
+      mData.mCbCrSize, mData.mCbCrStride, mData.mStereoMode, mData.mColorDepth,
       mData.mYUVColorSpace, mData.mColorRange, mTextureFlags);
 }
 
@@ -142,7 +142,7 @@ already_AddRefed<TextureClient> TextureClientRecycleAllocator::CreateOrRecycle(
 
   {
     MutexAutoLock lock(mLock);
-    if (mIsDestroyed) {
+    if (mIsDestroyed || !mKnowsCompositor->GetTextureForwarder()) {
       return nullptr;
     }
     if (!mPooledClients.empty()) {

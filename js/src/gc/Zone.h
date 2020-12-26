@@ -202,6 +202,8 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   js::ZoneData<uint32_t> tenuredStrings;
   js::ZoneData<uint32_t> tenuredBigInts;
 
+  js::ZoneOrIonCompileData<uint64_t> nurseryAllocatedStrings;
+
   js::ZoneData<bool> allocNurseryStrings;
   js::ZoneData<bool> allocNurseryBigInts;
 
@@ -435,12 +437,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // Whether this zone can currently be collected.
   bool canCollect();
 
-  void changeGCState(GCState prev, GCState next) {
-    MOZ_ASSERT(RuntimeHeapIsBusy());
-    MOZ_ASSERT(gcState() == prev);
-    MOZ_ASSERT(canCollect());
-    gcState_ = next;
-  }
+  void changeGCState(GCState prev, GCState next);
 
   bool isCollecting() const {
     MOZ_ASSERT(js::CurrentThreadCanAccessRuntime(runtimeFromMainThread()));

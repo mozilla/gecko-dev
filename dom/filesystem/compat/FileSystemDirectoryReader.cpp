@@ -9,14 +9,15 @@
 #include "FileSystemFileEntry.h"
 #include "js/Array.h"  // JS::NewArrayObject
 #include "mozilla/dom/FileBinding.h"
+#include "mozilla/dom/FileSystem.h"
+#include "mozilla/dom/FileSystemDirectoryReaderBinding.h"
 #include "mozilla/dom/FileSystemUtils.h"
 #include "mozilla/dom/Directory.h"
 #include "mozilla/dom/DirectoryBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -176,5 +177,4 @@ void FileSystemDirectoryReader::ReadEntries(
   promise->AppendNativeHandler(handler);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

@@ -25,6 +25,7 @@
 #include "mozilla/dom/RTCRtpSenderBinding.h"
 #include "mozilla/dom/RTCRtpTransceiverBinding.h"
 #include "mozilla/dom/TransceiverImplBinding.h"
+#include "RTCDtlsTransport.h"
 #include "RTCRtpReceiver.h"
 #include "RTCDTMFSender.h"
 #include "libwebrtcglue/WebrtcGmpVideoCodec.h"
@@ -712,8 +713,13 @@ static nsresult JsepCodecDescToVideoCodecConfig(
   (*aConfig)->mFECFbSet = desc.mFECEnabled;
   (*aConfig)->mTransportCCFbSet = desc.RtcpFbTransportCCIsSet();
   if (desc.mFECEnabled) {
-    (*aConfig)->mREDPayloadType = desc.mREDPayloadType;
-    (*aConfig)->mULPFECPayloadType = desc.mULPFECPayloadType;
+    uint16_t pt;
+    if (SdpHelper::GetPtAsInt(desc.mREDPayloadType, &pt)) {
+      (*aConfig)->mREDPayloadType = pt;
+    }
+    if (SdpHelper::GetPtAsInt(desc.mULPFECPayloadType, &pt)) {
+      (*aConfig)->mULPFECPayloadType = pt;
+    }
   }
   if (desc.mRtxEnabled) {
     uint16_t pt;

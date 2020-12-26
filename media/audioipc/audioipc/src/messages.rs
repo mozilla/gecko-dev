@@ -138,6 +138,12 @@ impl<'a> From<&'a cubeb::StreamParamsRef> for StreamParams {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct StreamCreateParams {
+    pub input_stream_params: Option<StreamParams>,
+    pub output_stream_params: Option<StreamParams>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct StreamInitParams {
     pub stream_name: Option<Vec<u8>>,
     pub input_device: usize,
@@ -198,7 +204,8 @@ pub enum ServerMessage {
     ContextSetupDeviceCollectionCallback,
     ContextRegisterDeviceCollectionChanged(ffi::cubeb_device_type, bool),
 
-    StreamInit(StreamInitParams),
+    StreamCreate(StreamCreateParams),
+    StreamInit(usize, StreamInitParams),
     StreamDestroy(usize),
 
     StreamStart(usize),
@@ -208,6 +215,7 @@ pub enum ServerMessage {
     StreamGetLatency(usize),
     StreamGetInputLatency(usize),
     StreamSetVolume(usize, f32),
+    StreamSetName(usize, CString),
     StreamGetCurrentDevice(usize),
     StreamRegisterDeviceChangeCallback(usize, bool),
 
@@ -231,6 +239,7 @@ pub enum ClientMessage {
     ContextRegisteredDeviceCollectionChanged,
 
     StreamCreated(StreamCreate),
+    StreamInitialized,
     StreamDestroyed,
 
     StreamStarted,
@@ -240,6 +249,7 @@ pub enum ClientMessage {
     StreamLatency(u32),
     StreamInputLatency(u32),
     StreamVolumeSet,
+    StreamNameSet,
     StreamCurrentDevice(Device),
     StreamRegisterDeviceChangeCallback,
 

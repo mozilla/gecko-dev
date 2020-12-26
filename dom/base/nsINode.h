@@ -365,7 +365,6 @@ class nsINode : public mozilla::dom::EventTarget {
   // always safe to call no matter which object it was invoked on.
   void AddSizeOfIncludingThis(nsWindowSizes& aSizes, size_t* aNodeSize) const;
 
-  friend class mozilla::dom::MutationObservers;
   friend class nsNodeWeakReference;
   friend class nsNodeSupportsWeakRefTearoff;
   friend class AttrArray;
@@ -1109,6 +1108,10 @@ class nsINode : public mozilla::dom::EventTarget {
     }
   }
 
+  nsAutoTObserverArray<nsIMutationObserver*, 1>* GetMutationObservers() {
+    return HasSlots() ? &GetExistingSlots()->mMutationObservers : nullptr;
+  }
+
   /**
    * Helper methods to access ancestor node(s) of type T.
    * The implementations of the methods are in mozilla/dom/AncestorIterator.h.
@@ -1363,6 +1366,7 @@ class nsINode : public mozilla::dom::EventTarget {
   bool HasBeenInUAWidget() const { return HasFlag(NODE_HAS_BEEN_IN_UA_WIDGET); }
 
   // True for native anonymous content and for content in UA widgets.
+  // Only nsIContent can fulfill this condition.
   bool ChromeOnlyAccess() const {
     return HasFlag(NODE_IS_IN_NATIVE_ANONYMOUS_SUBTREE |
                    NODE_HAS_BEEN_IN_UA_WIDGET);
@@ -2120,10 +2124,6 @@ class nsINode : public mozilla::dom::EventTarget {
       MOZ_ASSERT(mSlots);
     }
     return GetExistingSlots();
-  }
-
-  nsAutoTObserverArray<nsIMutationObserver*, 1>* GetMutationObservers() {
-    return HasSlots() ? &GetExistingSlots()->mMutationObservers : nullptr;
   }
 
   /**

@@ -16,6 +16,7 @@
 #include "jsfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength
 #include "js/CompilationAndEvaluation.h"
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/MemoryFunctions.h"
 #include "js/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
 #include "js/OffThreadScriptCompilation.h"
@@ -92,33 +93,6 @@ using mozilla::Telemetry::LABELS_DOM_SCRIPT_PRELOAD_RESULT;
 
 namespace mozilla {
 namespace dom {
-
-JSObject* GetElementCallback(JSContext* aCx, JS::HandleValue aValue) {
-  JS::RootedValue privateValue(aCx, aValue);
-  MOZ_ASSERT(!privateValue.isObjectOrNull() && !privateValue.isUndefined());
-  LoadedScript* script = static_cast<LoadedScript*>(privateValue.toPrivate());
-
-  if (!script->GetFetchOptions()) {
-    return nullptr;
-  }
-
-  nsCOMPtr<Element> domElement = script->GetFetchOptions()->mElement;
-  if (!domElement) {
-    return nullptr;
-  }
-
-  JSObject* globalObject =
-      domElement->OwnerDoc()->GetScopeObject()->GetGlobalJSObject();
-  JSAutoRealm ar(aCx, globalObject);
-
-  JS::Rooted<JS::Value> elementValue(aCx);
-  nsresult rv = nsContentUtils::WrapNative(aCx, domElement, &elementValue,
-                                           /* aAllowWrapping = */ true);
-  if (NS_FAILED(rv)) {
-    return nullptr;
-  }
-  return elementValue.toObjectOrNull();
-}
 
 LazyLogModule ScriptLoader::gCspPRLog("CSP");
 LazyLogModule ScriptLoader::gScriptLoaderLog("ScriptLoader");
@@ -3171,6 +3145,11 @@ void ScriptLoader::EncodeRequestBytecode(JSContext* aCx,
 
   JS::RootedScript script(aCx, aRequest->mScript);
   if (!JS::FinishIncrementalEncoding(aCx, script, aRequest->mScriptBytecode)) {
+    // Encoding can be aborted for non-supported syntax (e.g. asm.js), or
+    // any other internal error.
+    // We don't care the error and just give up encoding.
+    JS_ClearPendingException(aCx);
+
     LOG(("ScriptLoadRequest (%p): Cannot serialize bytecode", aRequest));
     return;
   }
@@ -3250,8 +3229,10 @@ void ScriptLoader::GiveUpBytecodeEncoding() {
 
     if (aes.isSome()) {
       JS::RootedScript script(aes->cx(), request->mScript);
-      Unused << JS::FinishIncrementalEncoding(aes->cx(), script,
-                                              request->mScriptBytecode);
+      if (!JS::FinishIncrementalEncoding(aes->cx(), script,
+                                         request->mScriptBytecode)) {
+        JS_ClearPendingException(aes->cx());
+      }
     }
 
     request->mScriptBytecode.clearAndFree();

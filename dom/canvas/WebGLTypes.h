@@ -14,6 +14,7 @@
 #include "GLDefs.h"
 #include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/MathAlgorithms.h"
 #include "mozilla/Range.h"
 #include "mozilla/RefCounted.h"
 #include "mozilla/gfx/BuildConstants.h"
@@ -378,8 +379,10 @@ struct WebGLContextOptions {
 
 // -
 
-template <typename T>
+template <typename _T>
 struct avec2 {
+  using T = _T;
+
   T x = T();
   T y = T();
 
@@ -405,10 +408,55 @@ struct avec2 {
 
   bool operator==(const avec2& rhs) const { return x == rhs.x && y == rhs.y; }
   bool operator!=(const avec2& rhs) const { return !(*this == rhs); }
+
+#define _(OP)                                 \
+  avec2 operator OP(const avec2& rhs) const { \
+    return {x OP rhs.x, y OP rhs.y};          \
+  }                                           \
+  avec2 operator OP(const T rhs) const { return {x OP rhs, y OP rhs}; }
+
+  _(+)
+  _(-)
+  _(*)
+  _(/)
+
+#undef _
+
+  avec2 Clamp(const avec2& min, const avec2& max) const {
+    return {mozilla::Clamp(x, min.x, max.x), mozilla::Clamp(y, min.y, max.y)};
+  }
+
+  // mozilla::Clamp doesn't work on floats, so be clear that this is a min+max
+  // helper.
+  avec2 ClampMinMax(const avec2& min, const avec2& max) const {
+    const auto ClampScalar = [](const T v, const T min, const T max) {
+      return std::max(min, std::min(v, max));
+    };
+    return {ClampScalar(x, min.x, max.x), ClampScalar(y, min.y, max.y)};
+  }
+
+  template <typename U>
+  U StaticCast() const {
+    return {static_cast<typename U::T>(x), static_cast<typename U::T>(y)};
+  }
 };
 
-template <typename T>
+template<typename T>
+avec2<T> MinExtents(const avec2<T>& a, const avec2<T>& b) {
+  return {std::min(a.x, b.x), std::min(a.y, b.y)};
+}
+
+template<typename T>
+avec2<T> MaxExtents(const avec2<T>& a, const avec2<T>& b) {
+  return {std::max(a.x, b.x), std::max(a.y, b.y)};
+}
+
+// -
+
+template <typename _T>
 struct avec3 {
+  using T = _T;
+
   T x = T();
   T y = T();
   T z = T();
@@ -440,6 +488,8 @@ typedef avec2<int32_t> ivec2;
 typedef avec3<int32_t> ivec3;
 typedef avec2<uint32_t> uvec2;
 typedef avec3<uint32_t> uvec3;
+
+inline ivec2 AsVec(const gfx::IntSize& s) { return {s.width, s.height}; }
 
 // -
 
@@ -739,6 +789,11 @@ class RawBuffer final {
   const auto& begin() const { return mBegin; }
   const auto& size() const { return mLen; }
 
+  void Shrink(const size_t newLen) {
+    if (mLen <= newLen) return;
+    mLen = newLen;
+  }
+
   RawBuffer() = default;
 
   RawBuffer(const RawBuffer&) = delete;
@@ -930,9 +985,37 @@ struct WebGLPixelStore final {
     }
     if (!ret.mUnpackImageHeight) {
       ret.mUnpackImageHeight = uploadSize.y;
+
+      if (!IsTexTarget3D(target)) {
+        // 2D targets don't enforce skipRows+height<=imageHeight.
+        ret.mUnpackImageHeight += ret.mUnpackSkipRows;
+      }
     }
 
     return ret;
+  }
+
+  CheckedInt<size_t> UsedPixelsPerRow(const uvec3& size) const {
+    if (!size.x || !size.y || !size.z) return 0;
+    return CheckedInt<size_t>(mUnpackSkipPixels) + size.x;
+  }
+
+  CheckedInt<size_t> FullRowsNeeded(const uvec3& size) const {
+    if (!size.x || !size.y || !size.z) return 0;
+
+    // The spec guarantees:
+    // * SKIP_PIXELS + width <= ROW_LENGTH.
+    // * SKIP_ROWS + height <= IMAGE_HEIGHT.
+    MOZ_ASSERT(mUnpackImageHeight);
+    auto skipFullRows =
+        CheckedInt<size_t>(mUnpackSkipImages) * mUnpackImageHeight;
+    skipFullRows += mUnpackSkipRows;
+
+    // Full rows in the final image, excluding the tail.
+    auto usedFullRows = CheckedInt<size_t>(size.z - 1) * mUnpackImageHeight;
+    usedFullRows += size.y - 1;
+
+    return skipFullRows + usedFullRows;
   }
 };
 
@@ -960,6 +1043,8 @@ struct TexUnpackBlobDesc final {
   RefPtr<gfx::DataSourceSurface> surf;
 
   WebGLPixelStore unpacking;
+
+  void Shrink(const webgl::PackingInfo&);
 };
 
 }  // namespace webgl

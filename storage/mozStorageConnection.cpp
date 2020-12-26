@@ -42,6 +42,8 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Printf.h"
 #include "nsProxyRelease.h"
+#include "nsURLHelper.h"
+
 #include <algorithm>
 
 #define MIN_AVAILABLE_BYTES_PER_CHUNKED_GROWTH 524288000  // 500 MiB
@@ -76,7 +78,8 @@ using mozilla::Telemetry::AccumulateCategoricalKeyed;
 using mozilla::Telemetry::LABELS_SQLITE_STORE_OPEN;
 using mozilla::Telemetry::LABELS_SQLITE_STORE_QUERY;
 
-const char* GetVFSName(bool);
+const char* GetTelemetryVFSName(bool);
+const char* GetObfuscatingVFSName();
 
 namespace {
 
@@ -656,16 +659,27 @@ void Connection::RecordQueryStatus(int srv) {
   }
 }
 
-nsresult Connection::initialize() {
+nsresult Connection::initialize(const nsACString& aStorageKey,
+                                const nsACString& aName) {
+  MOZ_ASSERT(aStorageKey.Equals(kMozStorageMemoryStorageKey));
   NS_ASSERTION(!connectionReady(),
                "Initialize called on already opened database!");
   MOZ_ASSERT(!mIgnoreLockingMode, "Can't ignore locking on an in-memory db.");
   AUTO_PROFILER_LABEL("Connection::initialize", OTHER);
 
-  mTelemetryFilename.AssignLiteral(":memory:");
+  mStorageKey = aStorageKey;
+  mName = aName;
 
   // in memory database requested, sqlite uses a magic file name
-  int srv = ::sqlite3_open_v2(":memory:", &mDBConn, mFlags, GetVFSName(true));
+
+  const nsAutoCString path =
+      mName.IsEmpty() ? nsAutoCString(":memory:"_ns)
+                      : "file:"_ns + mName + "?mode=memory&cache=shared"_ns;
+
+  mTelemetryFilename.AssignLiteral(":memory:");
+
+  int srv = ::sqlite3_open_v2(path.get(), &mDBConn, mFlags,
+                              GetTelemetryVFSName(true));
   if (srv != SQLITE_OK) {
     mDBConn = nullptr;
     nsresult rv = convertResultCode(srv);
@@ -719,12 +733,12 @@ nsresult Connection::initialize(nsIFile* aDatabaseFile) {
                             sIgnoreLockingVFS);
   } else {
     srv = ::sqlite3_open_v2(NS_ConvertUTF16toUTF8(path).get(), &mDBConn, mFlags,
-                            GetVFSName(exclusive));
+                            GetTelemetryVFSName(exclusive));
     if (exclusive && (srv == SQLITE_LOCKED || srv == SQLITE_BUSY)) {
       // Retry without trying to get an exclusive lock.
       exclusive = false;
       srv = ::sqlite3_open_v2(NS_ConvertUTF16toUTF8(path).get(), &mDBConn,
-                              mFlags, GetVFSName(false));
+                              mFlags, GetTelemetryVFSName(false));
     }
   }
   if (srv != SQLITE_OK) {
@@ -742,7 +756,7 @@ nsresult Connection::initialize(nsIFile* aDatabaseFile) {
     // first query execution. When initializeInternal fails it closes the
     // connection, so we can try to restart it in non-exclusive mode.
     srv = ::sqlite3_open_v2(NS_ConvertUTF16toUTF8(path).get(), &mDBConn, mFlags,
-                            GetVFSName(false));
+                            GetTelemetryVFSName(false));
     if (srv == SQLITE_OK) {
       rv = initializeInternal();
     }
@@ -780,8 +794,19 @@ nsresult Connection::initialize(nsIFileURL* aFileURL,
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool exclusive = StaticPrefs::storage_sqlite_exclusiveLock_enabled();
-  int srv =
-      ::sqlite3_open_v2(spec.get(), &mDBConn, mFlags, GetVFSName(exclusive));
+
+  // If there is a key specified, we need to use the obfuscating VFS.
+  nsAutoCString query;
+  rv = aFileURL->GetQuery(query);
+  NS_ENSURE_SUCCESS(rv, rv);
+  const char* const vfs =
+      URLParams::Parse(query,
+                       [](const nsAString& aName, const nsAString& aValue) {
+                         return aName.EqualsLiteral("key");
+                       })
+          ? GetObfuscatingVFSName()
+          : GetTelemetryVFSName(exclusive);
+  int srv = ::sqlite3_open_v2(spec.get(), &mDBConn, mFlags, vfs);
   if (srv != SQLITE_OK) {
     mDBConn = nullptr;
     rv = convertResultCode(srv);
@@ -879,7 +904,9 @@ nsresult Connection::initializeInternal() {
 
 nsresult Connection::initializeOnAsyncThread(nsIFile* aStorageFile) {
   MOZ_ASSERT(threadOpenedOn != NS_GetCurrentThread());
-  nsresult rv = aStorageFile ? initialize(aStorageFile) : initialize();
+  nsresult rv = aStorageFile
+                    ? initialize(aStorageFile)
+                    : initialize(kMozStorageMemoryStorageKey, VoidCString());
   if (NS_FAILED(rv)) {
     // Shutdown the async thread, since initialization failed.
     MutexAutoLock lockedScope(sharedAsyncExecutionMutex);
@@ -1544,8 +1571,14 @@ Connection::AsyncClone(bool aReadOnly,
 }
 
 nsresult Connection::initializeClone(Connection* aClone, bool aReadOnly) {
-  nsresult rv = mFileURL ? aClone->initialize(mFileURL, mTelemetryFilename)
-                         : aClone->initialize(mDatabaseFile);
+  nsresult rv;
+  if (!mStorageKey.IsEmpty()) {
+    rv = aClone->initialize(mStorageKey, mName);
+  } else if (mFileURL) {
+    rv = aClone->initialize(mFileURL, mTelemetryFilename);
+  } else {
+    rv = aClone->initialize(mDatabaseFile);
+  }
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1679,7 +1712,6 @@ Connection::Clone(bool aReadOnly, mozIStorageConnection** _connection) {
   if (NS_FAILED(rv)) {
     return rv;
   }
-  if (!mDatabaseFile) return NS_ERROR_UNEXPECTED;
 
   int flags = mFlags;
   if (aReadOnly) {

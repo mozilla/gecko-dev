@@ -42,6 +42,8 @@ var subtests = [
   // Drag-select some text after reconstructing the RSF of a non-RCD to ensure
   // the pending visual offset update doesn't get stuck
   {"file": "helper_visualscroll_nonrcd_rsf.html"},
+  // Scrollbar-dragging on scrollframes inside nested transforms with scale
+  {"file": "helper_bug1662800.html"},
 ];
 
 if (isApzEnabled()) {
@@ -49,7 +51,7 @@ if (isApzEnabled()) {
   SimpleTest.expectAssertions(0, 2); // from helper_bug1550510.html, bug 1232856
   window.onload = function() {
     runSubtestsSeriallyInFreshWindows(subtests)
-    .then(SimpleTest.finish, SimpleTest.finish);
+    .then(SimpleTest.finish, SimpleTest.finishWithFailure);
   };
 }
 

@@ -563,7 +563,7 @@ BufferTextureHost::BufferTextureHost(const BufferDescriptor& aDesc,
   switch (mDescriptor.type()) {
     case BufferDescriptor::TYCbCrDescriptor: {
       const YCbCrDescriptor& ycbcr = mDescriptor.get_YCbCrDescriptor();
-      mSize = ycbcr.ySize();
+      mSize = ycbcr.display().Size();
       mFormat = gfx::SurfaceFormat::YUV;
       mHasIntermediateBuffer = ycbcr.hasIntermediateBuffer();
       break;
@@ -677,12 +677,12 @@ void BufferTextureHost::CreateRenderTexture(
     const wr::ExternalImageId& aExternalImageId) {
   RefPtr<wr::RenderTextureHost> texture;
 
-  if (UseExternalTextures()) {
-    texture =
-        new wr::RenderExternalTextureHost(GetBuffer(), GetBufferDescriptor());
-  } else if (gfx::gfxVars::UseSoftwareWebRender()) {
+  if (gfx::gfxVars::UseSoftwareWebRender()) {
     texture =
         new wr::RenderBufferTextureHostSWGL(GetBuffer(), GetBufferDescriptor());
+  } else if (UseExternalTextures()) {
+    texture =
+        new wr::RenderExternalTextureHost(GetBuffer(), GetBufferDescriptor());
   } else {
     texture =
         new wr::RenderBufferTextureHost(GetBuffer(), GetBufferDescriptor());

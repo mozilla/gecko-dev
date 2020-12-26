@@ -8,6 +8,7 @@
 
 #include "mozilla/webgpu/PWebGPUChild.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/WeakPtr.h"
 
 namespace mozilla {
 namespace dom {
@@ -22,10 +23,11 @@ struct WGPUClient;
 struct WGPUTextureViewDescriptor;
 }  // namespace ffi
 
-struct TextureInfo;
 typedef MozPromise<RawId, Maybe<ipc::ResponseRejectReason>, true> RawIdPromise;
 
-class WebGPUChild final : public PWebGPUChild {
+ffi::WGPUByteBuf* ToFFI(ipc::ByteBuf* x);
+
+class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
  public:
   friend class layers::CompositorBridgeChild;
 
@@ -43,13 +45,10 @@ class WebGPUChild final : public PWebGPUChild {
                                     const dom::GPUDeviceDescriptor& aDesc);
   RawId DeviceCreateBuffer(RawId aSelfId,
                            const dom::GPUBufferDescriptor& aDesc);
-  static UniquePtr<ffi::WGPUTextureViewDescriptor> GetDefaultViewDescriptor(
-      const dom::GPUTextureDescriptor& aDesc);
   RawId DeviceCreateTexture(RawId aSelfId,
                             const dom::GPUTextureDescriptor& aDesc);
-  RawId TextureCreateView(
-      RawId aSelfId, const dom::GPUTextureViewDescriptor& aDesc,
-      const ffi::WGPUTextureViewDescriptor& aDefaultViewDesc);
+  RawId TextureCreateView(RawId aSelfId,
+                          const dom::GPUTextureViewDescriptor& aDesc);
   RawId DeviceCreateSampler(RawId aSelfId,
                             const dom::GPUSamplerDescriptor& aDesc);
   RawId DeviceCreateCommandEncoder(
@@ -65,9 +64,11 @@ class WebGPUChild final : public PWebGPUChild {
   RawId DeviceCreateShaderModule(RawId aSelfId,
                                  const dom::GPUShaderModuleDescriptor& aDesc);
   RawId DeviceCreateComputePipeline(
-      RawId aSelfId, const dom::GPUComputePipelineDescriptor& aDesc);
+      RawId aSelfId, const dom::GPUComputePipelineDescriptor& aDesc,
+      nsTArray<RawId>* const aImplicitBindGroupLayoutIds);
   RawId DeviceCreateRenderPipeline(
-      RawId aSelfId, const dom::GPURenderPipelineDescriptor& aDesc);
+      RawId aSelfId, const dom::GPURenderPipelineDescriptor& aDesc,
+      nsTArray<RawId>* const aImplicitBindGroupLayoutIds);
 
   void DeviceCreateSwapChain(RawId aSelfId, const RGBDescriptor& aRgbDesc,
                              size_t maxBufferCount,
@@ -97,6 +98,7 @@ class WebGPUChild final : public PWebGPUChild {
   bool mIPCOpen;
 
  public:
+  ipc::IPCResult RecvDropAction(const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvFreeAdapter(RawId id);
   ipc::IPCResult RecvFreeDevice(RawId id);
   ipc::IPCResult RecvFreePipelineLayout(RawId id);

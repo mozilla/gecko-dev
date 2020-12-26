@@ -13,50 +13,21 @@ namespace dom {
 // PServiceWorker
 
 class IPCServiceWorkerDescriptor;
-class PServiceWorkerChild;
 class PServiceWorkerParent;
-
-PServiceWorkerChild* AllocServiceWorkerChild();
-
-bool DeallocServiceWorkerChild(PServiceWorkerChild* aActor);
-
-PServiceWorkerParent* AllocServiceWorkerParent();
-
-bool DeallocServiceWorkerParent(PServiceWorkerParent* aActor);
 
 void InitServiceWorkerParent(PServiceWorkerParent* aActor,
                              const IPCServiceWorkerDescriptor& aDescriptor);
 
 // PServiceWorkerContainer
 
-class PServiceWorkerContainerChild;
 class PServiceWorkerContainerParent;
-
-PServiceWorkerContainerChild* AllocServiceWorkerContainerChild();
-
-bool DeallocServiceWorkerContainerChild(PServiceWorkerContainerChild* aActor);
-
-PServiceWorkerContainerParent* AllocServiceWorkerContainerParent();
-
-bool DeallocServiceWorkerContainerParent(PServiceWorkerContainerParent* aActor);
 
 void InitServiceWorkerContainerParent(PServiceWorkerContainerParent* aActor);
 
 // PServiceWorkerRegistration
 
 class IPCServiceWorkerRegistrationDescriptor;
-class PServiceWorkerRegistrationChild;
 class PServiceWorkerRegistrationParent;
-
-PServiceWorkerRegistrationChild* AllocServiceWorkerRegistrationChild();
-
-bool DeallocServiceWorkerRegistrationChild(
-    PServiceWorkerRegistrationChild* aActor);
-
-PServiceWorkerRegistrationParent* AllocServiceWorkerRegistrationParent();
-
-bool DeallocServiceWorkerRegistrationParent(
-    PServiceWorkerRegistrationParent* aActor);
 
 void InitServiceWorkerRegistrationParent(
     PServiceWorkerRegistrationParent* aActor,

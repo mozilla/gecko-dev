@@ -34,6 +34,174 @@ already_AddRefed<nsPrinterWin> nsPrinterWin::Create(
   return do_AddRef(new nsPrinterWin(aArray, aName));
 }
 
+template <class T>
+static nsTArray<T> GetDeviceCapabilityArray(const LPWSTR aPrinterName,
+                                            WORD aCapabilityID,
+                                            const DEVMODEW* aDevmodeW,
+                                            int& aCount) {
+  MOZ_ASSERT(aCount >= 0, "Possibly passed aCount from previous error case.");
+
+  nsTArray<T> caps;
+
+  // We only want to access printer drivers in the parent process.
+  if (!XRE_IsParentProcess()) {
+    return caps;
+  }
+
+  // Both the call to get the size and the call to actually populate the array
+  // are relatively expensive, so as sometimes the lengths of the arrays that we
+  // retrieve depend on each other we allow a count to be passed in to save the
+  // first call. As we allocate double the count anyway this should allay any
+  // safety worries.
+  if (!aCount) {
+    // Passing nullptr as the port here seems to work. Given that we would have
+    // to OpenPrinter with just the name anyway to get the port that makes
+    // sense. Also, the printer set-up seems to stop you from having two
+    // printers with the same name. Note: this (and the call below) are blocking
+    // calls, which could be slow.
+    aCount = ::DeviceCapabilitiesW(aPrinterName, nullptr, aCapabilityID,
+                                   nullptr, aDevmodeW);
+    if (aCount <= 0) {
+      return caps;
+    }
+  }
+
+  // As DeviceCapabilitiesW doesn't take a size, there is a greater risk of the
+  // buffer being overflowed, so we over-allocate for safety.
+  caps.SetLength(aCount * 2);
+  int count = ::DeviceCapabilitiesW(aPrinterName, nullptr, aCapabilityID,
+                                    reinterpret_cast<LPWSTR>(caps.Elements()),
+                                    aDevmodeW);
+  if (count <= 0) {
+    caps.Clear();
+    return caps;
+  }
+
+  // We know from bug 1673708 that sometimes the final array returned is smaller
+  // than the required array count. Assert here to see if this is reproduced on
+  // test servers.
+  MOZ_ASSERT(count == aCount, "Different array count returned than expected.");
+
+  // Note that TruncateLength will crash if count > caps.Length().
+  caps.TruncateLength(count);
+  return caps;
+}
+
+NS_IMETHODIMP
+nsPrinterWin::GetName(nsAString& aName) {
+  aName.Assign(mName);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsPrinterWin::GetSystemName(nsAString& aName) {
+  aName.Assign(mName);
+  return NS_OK;
+}
+
+bool nsPrinterWin::SupportsDuplex() const {
+  // Some printer drivers have threading issues around using their default
+  // DEVMODE, so we use a copy of our cached one.
+  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
+  if (devmodeWStorage.IsEmpty()) {
+    return false;
+  }
+  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
+
+  return ::DeviceCapabilitiesW(mName.get(), nullptr, DC_DUPLEX, nullptr,
+                               devmode) == 1;
+}
+
+bool nsPrinterWin::SupportsColor() const {
+  // Some printer drivers have threading issues around using their default
+  // DEVMODE, so we use a copy of our cached one.
+  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
+  if (devmodeWStorage.IsEmpty()) {
+    return false;
+  }
+  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
+
+  return ::DeviceCapabilitiesW(mName.get(), nullptr, DC_COLORDEVICE, nullptr,
+                               devmode) == 1;
+}
+
+bool nsPrinterWin::SupportsMonochrome() const {
+  if (!SupportsColor()) {
+    return true;
+  }
+
+  nsHPRINTER hPrinter = nullptr;
+  if (NS_WARN_IF(!::OpenPrinterW(mName.get(), &hPrinter, nullptr))) {
+    return false;
+  }
+  nsAutoPrinter autoPrinter(hPrinter);
+
+  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
+  if (devmodeWStorage.IsEmpty()) {
+    return false;
+  }
+
+  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
+
+  devmode->dmFields |= DM_COLOR;
+  devmode->dmColor = DMCOLOR_MONOCHROME;
+  // Try to modify the devmode settings and see if the setting sticks.
+  //
+  // This has been the only reliable way to detect it that we've found.
+  LONG ret =
+      ::DocumentPropertiesW(nullptr, autoPrinter.get(), mName.get(), devmode,
+                            devmode, DM_IN_BUFFER | DM_OUT_BUFFER);
+  if (ret != IDOK) {
+    return false;
+  }
+  return !(devmode->dmFields & DM_COLOR) ||
+         devmode->dmColor == DMCOLOR_MONOCHROME;
+}
+
+bool nsPrinterWin::SupportsCollation() const {
+  // Some printer drivers have threading issues around using their default
+  // DEVMODE, so we use a copy of our cached one.
+  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
+  if (devmodeWStorage.IsEmpty()) {
+    return false;
+  }
+  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
+
+  return ::DeviceCapabilitiesW(mName.get(), nullptr, DC_COLLATE, nullptr,
+                               devmode) == 1;
+}
+
+nsPrinterBase::PrinterInfo nsPrinterWin::CreatePrinterInfo() const {
+  return PrinterInfo{PaperList(), DefaultSettings()};
+}
+
+mozilla::gfx::MarginDouble nsPrinterWin::GetMarginsForPaper(
+    nsString aPaperId) const {
+  gfx::MarginDouble margin;
+
+  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
+  if (devmodeWStorage.IsEmpty()) {
+    return margin;
+  }
+
+  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
+
+  devmode->dmFields = DM_PAPERSIZE;
+  devmode->dmPaperSize = _wtoi((const wchar_t*)aPaperId.BeginReading());
+  nsAutoHDC printerDc(::CreateICW(nullptr, mName.get(), nullptr, devmode));
+  MOZ_ASSERT(printerDc, "CreateICW failed");
+  if (!printerDc) {
+    return margin;
+  }
+  margin = WinUtils::GetUnwriteableMarginsForDeviceInInches(printerDc);
+  margin.top *= kPointsPerInch;
+  margin.right *= kPointsPerInch;
+  margin.bottom *= kPointsPerInch;
+  margin.left *= kPointsPerInch;
+
+  return margin;
+}
+
 nsTArray<uint8_t> nsPrinterWin::CopyDefaultDevmodeW() const {
   nsTArray<uint8_t> devmodeStorageW;
 
@@ -73,6 +241,70 @@ nsTArray<uint8_t> nsPrinterWin::CopyDefaultDevmodeW() const {
 
   devmodeStorageW.Assign(devmodeStorageWLock.ref());
   return devmodeStorageW;
+}
+
+nsTArray<mozilla::PaperInfo> nsPrinterWin::PaperList() const {
+  // Some printer drivers have threading issues around using their default
+  // DEVMODE, so we use a copy of our cached one.
+  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
+  if (devmodeWStorage.IsEmpty()) {
+    return {};
+  }
+  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
+
+  // Paper IDs are returned as WORDs.
+  int requiredArrayCount = 0;
+  auto paperIds = GetDeviceCapabilityArray<WORD>(mName.get(), DC_PAPERS,
+                                                 devmode, requiredArrayCount);
+  if (!paperIds.Length()) {
+    return {};
+  }
+
+  // Paper names are returned in 64 long character buffers.
+  auto paperNames = GetDeviceCapabilityArray<Array<wchar_t, 64>>(
+      mName.get(), DC_PAPERNAMES, devmode, requiredArrayCount);
+  // Check that we have the same number of names as IDs.
+  if (paperNames.Length() != paperIds.Length()) {
+    return {};
+  }
+
+  // Paper sizes are returned as POINT structs with a tenth of a millimeter as
+  // the unit.
+  auto paperSizes = GetDeviceCapabilityArray<POINT>(
+      mName.get(), DC_PAPERSIZE, devmode, requiredArrayCount);
+  // Check that we have the same number of sizes as IDs.
+  if (paperSizes.Length() != paperIds.Length()) {
+    return {};
+  }
+
+  nsTArray<mozilla::PaperInfo> paperList;
+  paperList.SetCapacity(paperNames.Length());
+  for (size_t i = 0; i < paperNames.Length(); ++i) {
+    // Paper names are null terminated unless they are 64 characters long.
+    auto firstNull =
+        std::find(paperNames[i].cbegin(), paperNames[i].cend(), L'\0');
+    auto nameLength = firstNull - paperNames[i].cbegin();
+    double width = paperSizes[i].x * kPointsPerTenthMM;
+    double height = paperSizes[i].y * kPointsPerTenthMM;
+
+    // Skip if no name or invalid size.
+    if (!nameLength || width <= 0 || height <= 0) {
+      continue;
+    }
+
+    // Windows paper IDs are 16-bit integers; we stringify them to store in the
+    // PaperInfo.mId field.
+    nsString paperIdString;
+    paperIdString.AppendInt(paperIds[i]);
+
+    // We don't resolve the margins eagerly because they're really expensive (on
+    // the order of seconds for some drivers).
+    nsDependentSubstring name(paperNames[i].cbegin(), nameLength);
+    paperList.AppendElement(mozilla::PaperInfo(paperIdString, nsString(name),
+                                               {width, height}, Nothing()));
+  }
+
+  return paperList;
 }
 
 PrintSettingsInitializer nsPrinterWin::DefaultSettings() const {
@@ -136,188 +368,4 @@ PrintSettingsInitializer nsPrinterWin::DefaultSettings() const {
   return PrintSettingsInitializer{
       mName, PaperInfo(paperIdString, paperName, paperSize, Some(margin)),
       color, resolution, std::move(devmodeWStorage)};
-}
-
-template <class T>
-static nsTArray<T> GetDeviceCapabilityArray(const LPWSTR aPrinterName,
-                                            WORD aCapabilityID,
-                                            size_t aCount = 0) {
-  nsTArray<T> caps;
-
-  // We only want to access printer drivers in the parent process.
-  if (!XRE_IsParentProcess()) {
-    return caps;
-  }
-
-  // Both the call to get the size and the call to actually populate the array
-  // are relatively expensive, so as sometimes the lengths of the arrays that we
-  // retrieve depend on each other we allow a count to be passed in to save the
-  // first call. As we allocate double the count anyway this should allay any
-  // safety worries.
-  int count;
-  if (aCount) {
-    count = aCount;
-  } else {
-    // Passing nullptr as the port here seems to work. Given that we would have
-    // to OpenPrinter with just the name anyway to get the port that makes
-    // sense. Also, the printer set-up seems to stop you from having two
-    // printers with the same name. Note: this (and the call below) are blocking
-    // calls, which could be slow.
-    count = ::DeviceCapabilitiesW(aPrinterName, nullptr, aCapabilityID, nullptr,
-                                  nullptr);
-    if (count <= 0) {
-      return caps;
-    }
-  }
-
-  // As DeviceCapabilitiesW doesn't take a size, there is a greater risk of the
-  // buffer being overflowed, so we over-allocate for safety.
-  caps.SetLength(count * 2);
-  count =
-      ::DeviceCapabilitiesW(aPrinterName, nullptr, aCapabilityID,
-                            reinterpret_cast<LPWSTR>(caps.Elements()), nullptr);
-  if (count <= 0) {
-    caps.Clear();
-    return caps;
-  }
-
-  // Note that TruncateLength will crash if count > caps.Length().
-  caps.TruncateLength(count);
-  return caps;
-}
-
-NS_IMETHODIMP
-nsPrinterWin::GetName(nsAString& aName) {
-  aName.Assign(mName);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPrinterWin::GetSystemName(nsAString& aName) {
-  aName.Assign(mName);
-  return NS_OK;
-}
-
-bool nsPrinterWin::SupportsDuplex() const {
-  return ::DeviceCapabilitiesW(mName.get(), nullptr, DC_DUPLEX, nullptr,
-                               nullptr) == 1;
-}
-
-bool nsPrinterWin::SupportsColor() const {
-  return ::DeviceCapabilitiesW(mName.get(), nullptr, DC_COLORDEVICE, nullptr,
-                               nullptr) == 1;
-}
-
-bool nsPrinterWin::SupportsMonochrome() const {
-  if (!SupportsColor()) {
-    return true;
-  }
-
-  nsHPRINTER hPrinter = nullptr;
-  if (NS_WARN_IF(!::OpenPrinterW(mName.get(), &hPrinter, nullptr))) {
-    return false;
-  }
-  nsAutoPrinter autoPrinter(hPrinter);
-
-  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
-  if (devmodeWStorage.IsEmpty()) {
-    return false;
-  }
-
-  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
-
-  devmode->dmFields |= DM_COLOR;
-  devmode->dmColor = DMCOLOR_MONOCHROME;
-  // Try to modify the devmode settings and see if the setting sticks.
-  //
-  // This has been the only reliable way to detect it that we've found.
-  LONG ret =
-      ::DocumentPropertiesW(nullptr, autoPrinter.get(), mName.get(), devmode,
-                            devmode, DM_IN_BUFFER | DM_OUT_BUFFER);
-  if (ret != IDOK) {
-    return false;
-  }
-  return !(devmode->dmFields & DM_COLOR) ||
-         devmode->dmColor == DMCOLOR_MONOCHROME;
-}
-
-bool nsPrinterWin::SupportsCollation() const {
-  return ::DeviceCapabilitiesW(mName.get(), nullptr, DC_COLLATE, nullptr,
-                               nullptr) == 1;
-}
-
-nsTArray<mozilla::PaperInfo> nsPrinterWin::PaperList() const {
-  // Paper IDs are returned as WORDs.
-  auto paperIds = GetDeviceCapabilityArray<WORD>(mName.get(), DC_PAPERS);
-
-  // Paper names are returned in 64 long character buffers.
-  auto paperNames = GetDeviceCapabilityArray<Array<wchar_t, 64>>(
-      mName.get(), DC_PAPERNAMES, paperIds.Length());
-
-  // Paper sizes are returned as POINT structs with a tenth of a millimeter as
-  // the unit.
-  auto paperSizes = GetDeviceCapabilityArray<POINT>(mName.get(), DC_PAPERSIZE,
-                                                    paperIds.Length());
-
-  // Check that we have papers and that the array lengths match.
-  if (!paperNames.Length() || paperNames.Length() != paperIds.Length() ||
-      paperNames.Length() != paperSizes.Length()) {
-    return {};
-  }
-
-  nsTArray<mozilla::PaperInfo> paperList;
-  paperList.SetCapacity(paperNames.Length());
-  for (size_t i = 0; i < paperNames.Length(); ++i) {
-    // Paper names are null terminated unless they are 64 characters long.
-    auto firstNull =
-        std::find(paperNames[i].cbegin(), paperNames[i].cend(), L'\0');
-    auto nameLength = firstNull - paperNames[i].cbegin();
-    double width = paperSizes[i].x * kPointsPerTenthMM;
-    double height = paperSizes[i].y * kPointsPerTenthMM;
-
-    // Skip if no name or invalid size.
-    if (!nameLength || width <= 0 || height <= 0) {
-      continue;
-    }
-
-    // Windows paper IDs are 16-bit integers; we stringify them to store in the
-    // PaperInfo.mId field.
-    nsString paperIdString;
-    paperIdString.AppendInt(paperIds[i]);
-
-    // We don't resolve the margins eagerly because they're really expensive (on
-    // the order of seconds for some drivers).
-    nsDependentSubstring name(paperNames[i].cbegin(), nameLength);
-    paperList.AppendElement(mozilla::PaperInfo(paperIdString, nsString(name),
-                                               {width, height}, Nothing()));
-  }
-
-  return paperList;
-}
-
-mozilla::gfx::MarginDouble nsPrinterWin::GetMarginsForPaper(
-    nsString aPaperId) const {
-  gfx::MarginDouble margin;
-
-  nsTArray<uint8_t> devmodeWStorage = CopyDefaultDevmodeW();
-  if (devmodeWStorage.IsEmpty()) {
-    return margin;
-  }
-
-  auto* devmode = reinterpret_cast<DEVMODEW*>(devmodeWStorage.Elements());
-
-  devmode->dmFields = DM_PAPERSIZE;
-  devmode->dmPaperSize = _wtoi((const wchar_t*)aPaperId.BeginReading());
-  nsAutoHDC printerDc(::CreateICW(nullptr, mName.get(), nullptr, devmode));
-  MOZ_ASSERT(printerDc, "CreateICW failed");
-  if (!printerDc) {
-    return margin;
-  }
-  margin = WinUtils::GetUnwriteableMarginsForDeviceInInches(printerDc);
-  margin.top *= kPointsPerInch;
-  margin.right *= kPointsPerInch;
-  margin.bottom *= kPointsPerInch;
-  margin.left *= kPointsPerInch;
-
-  return margin;
 }

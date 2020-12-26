@@ -6,11 +6,13 @@
 
 #include "mozilla/dom/JSActorManager.h"
 #include "mozilla/dom/JSActorService.h"
+#include "mozilla/dom/PWindowGlobal.h"
+#include "mozilla/ipc/ProtocolUtils.h"
 #include "mozJSComponentLoader.h"
 #include "jsapi.h"
+#include "nsContentUtils.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 already_AddRefed<JSActor> JSActorManager::GetActor(JSContext* aCx,
                                                    const nsACString& aName,
@@ -189,20 +191,8 @@ void JSActorManager::ReceiveRawMessage(
 }
 
 void JSActorManager::JSActorWillDestroy() {
-  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
-  CrashReporter::AutoAnnotateCrashReport autoMessageName(
-      CrashReporter::Annotation::JSActorMessage, "<WillDestroy>"_ns);
-
-  // Make a copy so that we can avoid potential iterator invalidation when
-  // calling the user-provided Destroy() methods.
-  nsTArray<RefPtr<JSActor>> actors(mJSActors.Count());
   for (auto& entry : mJSActors) {
-    actors.AppendElement(entry.GetData());
-  }
-  for (auto& actor : actors) {
-    CrashReporter::AutoAnnotateCrashReport autoActorName(
-        CrashReporter::Annotation::JSActorName, actor->Name());
-    actor->StartDestroy();
+    entry.GetData()->StartDestroy();
   }
 }
 
@@ -231,5 +221,4 @@ void JSActorManager::JSActorUnregister(const nsACString& aName) {
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

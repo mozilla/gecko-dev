@@ -173,8 +173,10 @@ async function triggerAutofillAndCheckProfile(profile) {
             );
             is(
               event.cancelable,
-              true,
-              `"beforeinput" event should be cancelable on ${element.tagName}`
+              SpecialPowers.getBoolPref(
+                "dom.input_event.allow_to_cancel_set_user_input"
+              ),
+              `"beforeinput" event should be cancelable on ${element.tagName} unless it's suppressed by the pref`
             );
             is(
               event.bubbles,
@@ -436,26 +438,6 @@ function formAutoFillCommonSetup() {
         .getPropertyValue("color");
     },
     { once: true }
-  );
-}
-
-function checkUsagePrefs(hasEntry, lastUsed) {
-  lastUsed = Math.floor(lastUsed);
-  is(
-    SpecialPowers.getBoolPref(
-      "extensions.formautofill.addresses.usage.hasEntry",
-      false
-    ),
-    hasEntry,
-    "hasEntry usage pref is " + hasEntry
-  );
-  const lastUsedPref = SpecialPowers.getIntPref(
-    "extensions.formautofill.addresses.usage.lastUsed",
-    0
-  );
-  ok(
-    lastUsed - lastUsedPref < 10,
-    `lastUsed usage pref (${lastUsedPref}) is within 10 seconds of ${lastUsed}`
   );
 }
 

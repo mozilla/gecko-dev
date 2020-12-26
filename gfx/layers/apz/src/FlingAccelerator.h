@@ -13,6 +13,8 @@
 namespace mozilla {
 namespace layers {
 
+struct FlingHandoffState;
+
 /**
  * This class is used to track state that is used when determining whether a
  * fling should be accelerated.
@@ -25,22 +27,30 @@ class FlingAccelerator final {
   void Reset();
 
   // Returns false after a reset or before the first fling.
-  bool IsTracking() const { return !mPreviousFlingStartTime.IsNull(); }
+  bool IsTracking() const { return mIsTracking; }
 
   // Starts a new fling, and returns the (potentially accelerated) velocity that
   // should be used for that fling.
-  ParentLayerPoint GetFlingStartingVelocity(const SampleTime& aNow,
-                                            const ParentLayerPoint& aVelocity);
+  ParentLayerPoint GetFlingStartingVelocity(
+      const SampleTime& aNow, const ParentLayerPoint& aVelocity,
+      const FlingHandoffState& aHandoffState);
+
+  void ObserveFlingCanceled(const ParentLayerPoint& aVelocity) {
+    mPreviousFlingCancelVelocity = aVelocity;
+  }
 
  protected:
   bool ShouldAccelerate(const SampleTime& aNow,
-                        const ParentLayerPoint& aVelocity) const;
+                        const ParentLayerPoint& aVelocity,
+                        const FlingHandoffState& aHandoffState) const;
 
   // The initial velocity of the most recent fling.
   ParentLayerPoint mPreviousFlingStartingVelocity;
-  // The time at which the most recent fling started. This is the time when the
-  // finger is lifted at the end of the gesture, as the fling animation starts.
-  SampleTime mPreviousFlingStartTime;
+  // The velocity that the previous fling animation had at the point it was
+  // interrupted.
+  ParentLayerPoint mPreviousFlingCancelVelocity;
+  // Whether the upcoming fling is eligible for acceleration.
+  bool mIsTracking = false;
 };
 
 }  // namespace layers

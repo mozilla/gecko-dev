@@ -85,7 +85,6 @@ HttpTransactionParent::HttpTransactionParent(bool aIsDocumentLoad)
       mSuspendCount(0),
       mResponseHeadTaken(false),
       mResponseTrailersTaken(false),
-      mHasStickyConnection(false),
       mOnStartRequestCalled(false),
       mOnStopRequestCalled(false),
       mResolvedByTRR(false),
@@ -93,7 +92,8 @@ HttpTransactionParent::HttpTransactionParent(bool aIsDocumentLoad)
       mChannelId(0),
       mDataSentToChildProcess(false),
       mIsDocumentLoad(aIsDocumentLoad),
-      mRestarted(false) {
+      mRestarted(false),
+      mCaps(0) {
   LOG(("Creating HttpTransactionParent @%p\n", this));
 
   this->mSelfAddr.inet = {};
@@ -140,6 +140,8 @@ nsresult HttpTransactionParent::Init(
   mChannelId = channelId;
   mTransactionObserver = std::move(transactionObserver);
   mOnPushCallback = std::move(aOnPushCallback);
+  mCaps = caps;
+  mConnInfo = cinfo->Clone();
 
   HttpConnectionInfoCloneArgs infoArgs;
   nsHttpConnectionInfo::SerializeHttpConnectionInfo(cinfo, infoArgs);
@@ -208,10 +210,6 @@ nsresult HttpTransactionParent::AsyncRead(nsIStreamListener* listener,
   *pump = do_AddRef(this).take();
   mChannel = listener;
   return NS_OK;
-}
-
-void HttpTransactionParent::SetClassOfService(uint32_t classOfService) {
-  Unused << SendUpdateClassOfService(classOfService);
 }
 
 UniquePtr<nsHttpResponseHead> HttpTransactionParent::TakeResponseHead() {
@@ -314,7 +312,7 @@ void HttpTransactionParent::GetNetworkAddresses(NetAddr& self, NetAddr& peer,
 }
 
 bool HttpTransactionParent::HasStickyConnection() const {
-  return mHasStickyConnection;
+  return mCaps & NS_HTTP_STICKY_CONNECTION;
 }
 
 mozilla::TimeStamp HttpTransactionParent::GetDomainLookupStart() {
@@ -418,6 +416,20 @@ int32_t HttpTransactionParent::GetProxyConnectResponseCode() {
   return mProxyConnectResponseCode;
 }
 
+bool HttpTransactionParent::Http2Disabled() const {
+  return mCaps & NS_HTTP_DISALLOW_SPDY;
+}
+
+bool HttpTransactionParent::Http3Disabled() const {
+  return mCaps & NS_HTTP_DISALLOW_HTTP3;
+}
+
+already_AddRefed<nsHttpConnectionInfo> HttpTransactionParent::GetConnInfo()
+    const {
+  RefPtr<nsHttpConnectionInfo> connInfo = mConnInfo->Clone();
+  return connInfo.forget();
+}
+
 already_AddRefed<nsIEventTarget> HttpTransactionParent::GetNeckoTarget() {
   nsCOMPtr<nsIEventTarget> target = GetMainThreadEventTarget();
   return target.forget();
@@ -430,20 +442,20 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnStartRequest(
     const int32_t& aProxyConnectResponseCode,
     nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
     const bool& aDataToChildProcess, const bool& aRestarted,
-    Maybe<uint32_t>&& aHTTPSSVCReceivedStage) {
+    Maybe<uint32_t>&& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3) {
   mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
-      this,
-      [self = UnsafePtr<HttpTransactionParent>(this), aStatus, aResponseHead,
-       aSecurityInfoSerialization, aProxyConnectFailed, aTimings,
-       aProxyConnectResponseCode,
-       aDataForSniffer = CopyableTArray{std::move(aDataForSniffer)},
-       aAltSvcUsed, aDataToChildProcess, aRestarted,
-       aHTTPSSVCReceivedStage{std::move(aHTTPSSVCReceivedStage)}]() mutable {
+      this, [self = UnsafePtr<HttpTransactionParent>(this), aStatus,
+             aResponseHead, aSecurityInfoSerialization, aProxyConnectFailed,
+             aTimings, aProxyConnectResponseCode,
+             aDataForSniffer = CopyableTArray{std::move(aDataForSniffer)},
+             aAltSvcUsed, aDataToChildProcess, aRestarted,
+             aHTTPSSVCReceivedStage{std::move(aHTTPSSVCReceivedStage)},
+             aSupportsHttp3]() mutable {
         self->DoOnStartRequest(
             aStatus, aResponseHead, aSecurityInfoSerialization,
             aProxyConnectFailed, aTimings, aProxyConnectResponseCode,
             std::move(aDataForSniffer), aAltSvcUsed, aDataToChildProcess,
-            aRestarted, std::move(aHTTPSSVCReceivedStage));
+            aRestarted, std::move(aHTTPSSVCReceivedStage), aSupportsHttp3);
       }));
   return IPC_OK();
 }
@@ -473,7 +485,7 @@ void HttpTransactionParent::DoOnStartRequest(
     const int32_t& aProxyConnectResponseCode,
     nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
     const bool& aDataToChildProcess, const bool& aRestarted,
-    Maybe<uint32_t>&& aHTTPSSVCReceivedStage) {
+    Maybe<uint32_t>&& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3) {
   LOG(("HttpTransactionParent::DoOnStartRequest [this=%p aStatus=%" PRIx32
        "]\n",
        this, static_cast<uint32_t>(aStatus)));
@@ -487,6 +499,7 @@ void HttpTransactionParent::DoOnStartRequest(
   mStatus = aStatus;
   mDataSentToChildProcess = aDataToChildProcess;
   mHTTPSSVCReceivedStage = std::move(aHTTPSSVCReceivedStage);
+  mSupportsHTTP3 = aSupportsHttp3;
 
   if (!aSecurityInfoSerialization.IsEmpty()) {
     NS_DeserializeObject(aSecurityInfoSerialization,
@@ -607,9 +620,9 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnStopRequest(
     const nsresult& aStatus, const bool& aResponseIsComplete,
     const int64_t& aTransferSize, const TimingStructArgs& aTimings,
     const Maybe<nsHttpHeaderArray>& aResponseTrailers,
-    const bool& aHasStickyConn,
     Maybe<TransactionObserverResult>&& aTransactionObserverResult,
-    const TimeStamp& aLastActiveTabOptHit) {
+    const TimeStamp& aLastActiveTabOptHit, const uint32_t& aCaps,
+    const HttpConnectionInfoCloneArgs& aArgs) {
   LOG(("HttpTransactionParent::RecvOnStopRequest [this=%p status=%" PRIx32
        "]\n",
        this, static_cast<uint32_t>(aStatus)));
@@ -619,15 +632,17 @@ mozilla::ipc::IPCResult HttpTransactionParent::RecvOnStopRequest(
   if (mCanceled) {
     return IPC_OK();
   }
+  RefPtr<nsHttpConnectionInfo> cinfo =
+      nsHttpConnectionInfo::DeserializeHttpConnectionInfoCloneArgs(aArgs);
   mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
       this, [self = UnsafePtr<HttpTransactionParent>(this), aStatus,
              aResponseIsComplete, aTransferSize, aTimings, aResponseTrailers,
-             aHasStickyConn,
-             aTransactionObserverResult{
-                 std::move(aTransactionObserverResult)}]() mutable {
+             aTransactionObserverResult{std::move(aTransactionObserverResult)},
+             aCaps, cinfo{std::move(cinfo)}]() mutable {
         self->DoOnStopRequest(aStatus, aResponseIsComplete, aTransferSize,
-                              aTimings, aResponseTrailers, aHasStickyConn,
-                              std::move(aTransactionObserverResult));
+                              aTimings, aResponseTrailers,
+                              std::move(aTransactionObserverResult), aCaps,
+                              cinfo);
       }));
   return IPC_OK();
 }
@@ -636,8 +651,8 @@ void HttpTransactionParent::DoOnStopRequest(
     const nsresult& aStatus, const bool& aResponseIsComplete,
     const int64_t& aTransferSize, const TimingStructArgs& aTimings,
     const Maybe<nsHttpHeaderArray>& aResponseTrailers,
-    const bool& aHasStickyConn,
-    Maybe<TransactionObserverResult>&& aTransactionObserverResult) {
+    Maybe<TransactionObserverResult>&& aTransactionObserverResult,
+    const uint32_t& aCaps, nsHttpConnectionInfo* aConnInfo) {
   LOG(("HttpTransactionParent::DoOnStopRequest [this=%p]\n", this));
   if (mCanceled) {
     return;
@@ -657,7 +672,8 @@ void HttpTransactionParent::DoOnStopRequest(
   if (aResponseTrailers.isSome()) {
     mResponseTrailers = MakeUnique<nsHttpHeaderArray>(aResponseTrailers.ref());
   }
-  mHasStickyConnection = aHasStickyConn;
+  mCaps = aCaps;
+  mConnInfo = aConnInfo;
   if (aTransactionObserverResult.isSome()) {
     TransactionObserverFunc obs = nullptr;
     std::swap(obs, mTransactionObserver);
@@ -880,6 +896,8 @@ void HttpTransactionParent::HandleAsyncAbort() {
 
   DoNotifyListener();
 }
+
+bool HttpTransactionParent::GetSupportsHTTP3() { return mSupportsHTTP3; }
 
 }  // namespace net
 }  // namespace mozilla

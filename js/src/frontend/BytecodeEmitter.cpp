@@ -58,8 +58,9 @@
 #include "frontend/TryEmitter.h"     // TryEmitter
 #include "frontend/WhileEmitter.h"   // WhileEmitter
 #include "js/CompileOptions.h"       // TransitiveCompileOptions, CompileOptions
-#include "js/friend/StackLimits.h"   // CheckRecursionLimit
-#include "util/StringBuffer.h"       // StringBuffer
+#include "js/friend/ErrorMessages.h"      // JSMSG_*
+#include "js/friend/StackLimits.h"        // CheckRecursionLimit
+#include "util/StringBuffer.h"            // StringBuffer
 #include "vm/AsyncFunctionResolveKind.h"  // AsyncFunctionResolveKind
 #include "vm/BytecodeUtil.h"  // JOF_*, IsArgOp, IsLocalOp, SET_UINT24, SET_ICINDEX, BytecodeFallsThrough, BytecodeIsJumpTarget
 #include "vm/FunctionPrefixKind.h"  // FunctionPrefixKind
@@ -123,7 +124,7 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent, SharedContext* sc,
     : sc(sc),
       cx(sc->cx_),
       parent(parent),
-      bytecodeSection_(cx, sc->extent().lineno),
+      bytecodeSection_(cx, sc->extent().lineno, sc->extent().column),
       perScriptData_(cx, compilationInfo),
       compilationInfo(compilationInfo),
       compilationState(compilationState),
@@ -556,6 +557,11 @@ bool BytecodeEmitter::updateLineNumberNotes(uint32_t offset) {
     unsigned line = er->lineAt(offset);
     unsigned delta = line - bytecodeSection().currentLine();
 
+    // If we use a `SetLine` note below, we want it to be relative to the
+    // scripts initial line number for better chance of sharing.
+    unsigned initialLine = sc->extent().lineno;
+    MOZ_ASSERT(line >= initialLine);
+
     /*
      * Encode any change in the current source line number by using
      * either several SrcNoteType::NewLine notes or just one
@@ -568,9 +574,9 @@ bool BytecodeEmitter::updateLineNumberNotes(uint32_t offset) {
      * SrcNoteType::SetLine.
      */
     bytecodeSection().setCurrentLine(line, offset);
-    if (delta >= SrcNote::SetLine::lengthFor(line)) {
+    if (delta >= SrcNote::SetLine::lengthFor(line, initialLine)) {
       if (!newSrcNote2(SrcNoteType::SetLine,
-                       SrcNote::SetLine::toOperand(line))) {
+                       SrcNote::SetLine::toOperand(line, initialLine))) {
         return false;
       }
     } else {
@@ -597,17 +603,16 @@ bool BytecodeEmitter::updateSourceCoordNotes(uint32_t offset) {
   }
 
   uint32_t columnIndex = parser->errorReporter().columnAt(offset);
+  MOZ_ASSERT(columnIndex <= ColumnLimit);
+
+  // Assert colspan is always representable.
+  static_assert((0 - ptrdiff_t(ColumnLimit)) >= SrcNote::ColSpan::MinColSpan);
+  static_assert((ptrdiff_t(ColumnLimit) - 0) <= SrcNote::ColSpan::MaxColSpan);
+
   ptrdiff_t colspan =
       ptrdiff_t(columnIndex) - ptrdiff_t(bytecodeSection().lastColumn());
+
   if (colspan != 0) {
-    // If the column span is so large that we can't store it, then just
-    // discard this information. This can happen with minimized or otherwise
-    // machine-generated code. Even gigantic column numbers are still
-    // valuable if you have a source map to relate them to something real;
-    // but it's better to fail soft here.
-    if (!SrcNote::ColSpan::isRepresentable(colspan)) {
-      return true;
-    }
     if (!newSrcNote2(SrcNoteType::ColSpan,
                      SrcNote::ColSpan::toOperand(colspan))) {
       return false;
@@ -1674,6 +1679,10 @@ bool BytecodeEmitter::iteratorResultShape(GCThingIndex* shape) {
   ObjLiteralFlags flags{ObjLiteralFlag::NoValues};
 
   ObjLiteralIndex objIndex(compilationInfo.stencil.objLiteralData.length());
+  if (uint32_t(objIndex) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!compilationInfo.stencil.objLiteralData.emplaceBack()) {
     js::ReportOutOfMemory(cx);
     return false;
@@ -2502,7 +2511,7 @@ bool BytecodeEmitter::emitScript(ParseNode* body) {
     return false;
   }
 
-  if (!NameFunctions(cx, compilationInfo.stencil.parserAtoms, body)) {
+  if (!NameFunctions(cx, compilationState.parserAtoms, body)) {
     return false;
   }
 
@@ -2541,8 +2550,7 @@ bool BytecodeEmitter::getNslots(uint32_t* nslots) {
   return true;
 }
 
-bool BytecodeEmitter::emitFunctionScript(FunctionNode* funNode,
-                                         TopLevelFunction isTopLevel) {
+bool BytecodeEmitter::emitFunctionScript(FunctionNode* funNode) {
   MOZ_ASSERT(inPrologue());
   ListNode* paramsBody = &funNode->body()->as<ListNode>();
   MOZ_ASSERT(paramsBody->isKind(ParseNodeKind::ParamsBody));
@@ -2581,8 +2589,8 @@ bool BytecodeEmitter::emitFunctionScript(FunctionNode* funNode,
     return false;
   }
 
-  if (isTopLevel == TopLevelFunction::Yes) {
-    if (!NameFunctions(cx, compilationInfo.stencil.parserAtoms, funNode)) {
+  if (funbox->index() == CompilationInfo::TopLevelIndex) {
+    if (!NameFunctions(cx, compilationState.parserAtoms, funNode)) {
       return false;
     }
   }
@@ -4644,6 +4652,10 @@ bool BytecodeEmitter::emitCallSiteObjectArray(ListNode* cookedOrRaw,
   }
 
   ObjLiteralIndex objIndex(compilationInfo.stencil.objLiteralData.length());
+  if (uint32_t(objIndex) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!compilationInfo.stencil.objLiteralData.emplaceBack()) {
     js::ReportOutOfMemory(cx);
     return false;
@@ -5747,6 +5759,7 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitFunction(
                                   FieldPlacement::Instance);
       if (!memberInitializers) {
         ReportAllocationOverflow(cx);
+        return false;
       }
       funbox->setMemberInitializers(*memberInitializers);
     }
@@ -5795,7 +5808,7 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitFunction(
     }
 
     /* We measured the max scope depth when we parsed the function. */
-    if (!bce2.emitFunctionScript(funNode, TopLevelFunction::No)) {
+    if (!bce2.emitFunctionScript(funNode)) {
       return false;
     }
 
@@ -8675,7 +8688,7 @@ bool BytecodeEmitter::emitPropertyList(ListNode* obj, PropertyEmitter& pe,
           MOZ_ASSERT(accessorType == AccessorType::None);
 
           const ParserAtom* keyAtom = key->as<NumericLiteral>().toAtom(
-              cx, compilationInfo.stencil.parserAtoms);
+              cx, compilationState.parserAtoms);
           if (!keyAtom) {
             return false;
           }
@@ -8857,6 +8870,10 @@ bool BytecodeEmitter::emitPropertyList(ListNode* obj, PropertyEmitter& pe,
 bool BytecodeEmitter::emitPropertyListObjLiteral(ListNode* obj,
                                                  ObjLiteralFlags flags) {
   ObjLiteralIndex objIndex(compilationInfo.stencil.objLiteralData.length());
+  if (uint32_t(objIndex) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!compilationInfo.stencil.objLiteralData.emplaceBack()) {
     js::ReportOutOfMemory(cx);
     return false;
@@ -8929,6 +8946,10 @@ bool BytecodeEmitter::emitDestructuringRestExclusionSetObjLiteral(
   ObjLiteralFlags flags{ObjLiteralFlag::NoValues};
 
   ObjLiteralIndex objIndex(compilationInfo.stencil.objLiteralData.length());
+  if (uint32_t(objIndex) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!compilationInfo.stencil.objLiteralData.emplaceBack()) {
     js::ReportOutOfMemory(cx);
     return false;
@@ -8982,6 +9003,10 @@ bool BytecodeEmitter::emitDestructuringRestExclusionSetObjLiteral(
 
 bool BytecodeEmitter::emitObjLiteralArray(ParseNode* arrayHead, bool isCow) {
   ObjLiteralIndex objIndex(compilationInfo.stencil.objLiteralData.length());
+  if (uint32_t(objIndex) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!compilationInfo.stencil.objLiteralData.emplaceBack()) {
     js::ReportOutOfMemory(cx);
     return false;
@@ -9285,7 +9310,7 @@ bool BytecodeEmitter::emitPrivateMethodInitializers(ClassEmitter& ce,
         MOZ_CRASH("Invalid private method accessor type");
     }
     const ParserAtom* storedMethodAtom =
-        storedMethodName.finishParserAtom(compilationInfo.stencil.parserAtoms);
+        storedMethodName.finishParserAtom(compilationState.parserAtoms);
 
     // Emit the private method body and store it as a lexical var.
     if (!emitFunction(&propdef->as<ClassMethod>().method())) {
@@ -10504,7 +10529,7 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitInstrumentationSlow(
   //            [stack] CALLBACK UNDEFINED
 
   const ParserAtom* atom = RealmInstrumentation::getInstrumentationKindName(
-      cx, compilationInfo.stencil.parserAtoms, kind);
+      cx, compilationState.parserAtoms, kind);
   if (!atom) {
     return false;
   }
@@ -11272,7 +11297,18 @@ bool BytecodeEmitter::intoScriptStencil(ScriptStencil* script) {
   MOZ_ASSERT(outermostScope().hasOnChain(ScopeKind::NonSyntactic) ==
              sc->hasNonSyntacticScope());
 
-  script->gcThings = perScriptData().gcThingList().stealGCThings();
+  auto& things = perScriptData().gcThingList().objects();
+  size_t ngcthings = things.length();
+
+  // Copy the TaggedScriptThingIndex data from the emitter to the stencil.
+  mozilla::Span<TaggedScriptThingIndex> stencilThings =
+      NewScriptThingSpanUninitialized(cx, compilationInfo.stencil.alloc,
+                                      ngcthings);
+  if (stencilThings.empty()) {
+    return false;
+  }
+  std::uninitialized_copy(things.begin(), things.end(), stencilThings.begin());
+  script->gcThings = stencilThings;
 
   // Hand over the ImmutableScriptData instance generated by BCE.
   script->sharedData =

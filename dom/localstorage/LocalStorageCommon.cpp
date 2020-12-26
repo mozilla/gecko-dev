@@ -6,12 +6,28 @@
 
 #include "LocalStorageCommon.h"
 
-#include "mozilla/dom/ContentChild.h"
-#include "mozilla/net/MozURL.h"
+#include <cstdint>
+#include "MainThreadUtils.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/Logging.h"
+#include "mozilla/OriginAttributes.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/dom/StorageUtils.h"
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "mozilla/net/MozURL.h"
+#include "mozilla/net/WebSocketFrame.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsPrintfCString.h"
+#include "nsString.h"
+#include "nsStringFlags.h"
+#include "nsXULAppAPI.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using namespace mozilla::net;
 
@@ -56,15 +72,15 @@ bool CachedNextGenLocalStorageEnabled() {
   return !!gNextGenLocalStorageEnabled;
 }
 
-nsresult GenerateOriginKey2(const PrincipalInfo& aPrincipalInfo,
+nsresult GenerateOriginKey2(const mozilla::ipc::PrincipalInfo& aPrincipalInfo,
                             nsACString& aOriginAttrSuffix,
                             nsACString& aOriginKey) {
   OriginAttributes attrs;
   nsCString spec;
 
   switch (aPrincipalInfo.type()) {
-    case PrincipalInfo::TNullPrincipalInfo: {
-      const NullPrincipalInfo& info = aPrincipalInfo.get_NullPrincipalInfo();
+    case mozilla::ipc::PrincipalInfo::TNullPrincipalInfo: {
+      const auto& info = aPrincipalInfo.get_NullPrincipalInfo();
 
       attrs = info.attrs();
       spec = info.spec();
@@ -72,9 +88,8 @@ nsresult GenerateOriginKey2(const PrincipalInfo& aPrincipalInfo,
       break;
     }
 
-    case PrincipalInfo::TContentPrincipalInfo: {
-      const ContentPrincipalInfo& info =
-          aPrincipalInfo.get_ContentPrincipalInfo();
+    case mozilla::ipc::PrincipalInfo::TContentPrincipalInfo: {
+      const auto& info = aPrincipalInfo.get_ContentPrincipalInfo();
 
       attrs = info.attrs();
       spec = info.spec();
@@ -118,7 +133,7 @@ nsresult GenerateOriginKey2(const PrincipalInfo& aPrincipalInfo,
 
   // Append reversed domain
   nsAutoCString reverseDomain;
-  rv = CreateReversedDomain(domainOrigin, reverseDomain);
+  rv = StorageUtils::CreateReversedDomain(domainOrigin, reverseDomain);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -140,6 +155,4 @@ nsresult GenerateOriginKey2(const PrincipalInfo& aPrincipalInfo,
 
 LogModule* GetLocalStorageLogger() { return gLogger; }
 
-}  // namespace dom
-
-}  // namespace mozilla
+}  // namespace mozilla::dom

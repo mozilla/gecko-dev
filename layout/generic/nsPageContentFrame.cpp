@@ -6,7 +6,9 @@
 #include "nsPageContentFrame.h"
 
 #include "mozilla/PresShell.h"
+#include "mozilla/StaticPrefs_layout.h"
 
+#include "nsContentUtils.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsPresContext.h"
 #include "nsGkAtoms.h"
@@ -89,6 +91,20 @@ void nsPageContentFrame::Reflow(nsPresContext* aPresContext,
                      "invalid shrink-to-fit ratio");
         mPD->mShrinkToFitRatio = std::min(mPD->mShrinkToFitRatio, ratio);
       }
+      // In the case of pdf.js documents, we also want to consider the height,
+      // so that we don't clip the page in either axis if the aspect ratio of
+      // the PDF doesn't match the destination.
+      if (nsContentUtils::IsPDFJS(PresContext()->Document()->GetPrincipal())) {
+        nscoord ymost = aReflowOutput.ScrollableOverflow().YMost();
+        if (ymost > aReflowOutput.Height()) {
+          nscoord heightToFit =
+              ymost + padding.bottom +
+              kidReflowInput.mStyleBorder->GetComputedBorderWidth(eSideBottom);
+          float ratio = float(maxSize.height) / heightToFit;
+          MOZ_ASSERT(ratio >= 0.0 && ratio < 1.0);
+          mPD->mShrinkToFitRatio = std::min(mPD->mShrinkToFitRatio, ratio);
+        }
+      }
     }
 
     // Place and size the child
@@ -113,6 +129,29 @@ void nsPageContentFrame::Reflow(nsPresContext* aPresContext,
     aReflowOutput.BSize(wm) = aReflowInput.ComputedBSize();
   }
   FinishAndStoreOverflow(&aReflowOutput);
+
+  if (StaticPrefs::layout_display_list_improve_fragmentation() &&
+      mFrames.NotEmpty()) {
+    auto* previous = static_cast<nsPageContentFrame*>(GetPrevContinuation());
+    const nscoord previousPageOverflow =
+        previous ? previous->mRemainingOverflow : 0;
+
+    const nscoord overflowHeight = InkOverflowRect().YMost();
+    const nscoord pageHeight = GetRect().Height();
+    const nscoord currentPageOverflow = overflowHeight - pageHeight;
+
+    nscoord remainingOverflow =
+        std::max(currentPageOverflow, previousPageOverflow - pageHeight);
+    if (aStatus.IsFullyComplete() && remainingOverflow > 0) {
+      // If we have InkOverflow off the end of our page, then we report
+      // ourselves as overflow-incomplete in order to produce an additional
+      // content-less page, which we expect to draw our InkOverflow on our
+      // behalf.
+      aStatus.SetOverflowIncomplete();
+    }
+
+    mRemainingOverflow = std::max(remainingOverflow, 0);
+  }
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowInput, aReflowOutput);
 }

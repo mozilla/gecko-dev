@@ -8,9 +8,9 @@ import os
 import pathlib
 import re
 
-from perfdocs.utils import read_yaml
 from manifestparser import TestManifest
 from mozperftest.script import ScriptInfo
+from perfdocs.utils import read_yaml
 
 """
 This file is for framework specific gatherers since manifests
@@ -208,7 +208,7 @@ class MozperftestGatherer(FrameworkGatherer):
 
     def get_test_list(self):
         """
-        Returns a dictionary containing the tests that start with perftest_*.
+        Returns a dictionary containing the tests that are in perftest.ini manifest.
 
         :return dict: A dictionary with the following structure: {
                 "suite_name": {
@@ -217,40 +217,30 @@ class MozperftestGatherer(FrameworkGatherer):
                 },
             }
         """
-        exclude_dir = [".hg", "mozperftest/tests/data"]
-        for path in pathlib.Path(self.workspace_dir).rglob("perftest_*"):
-            if any(re.search(d, str(path)) for d in exclude_dir):
-                continue
-
+        for path in pathlib.Path(self.workspace_dir).rglob("perftest.ini"):
             suite_name = re.sub(self.workspace_dir, "", os.path.dirname(path))
-            si = ScriptInfo(path)
-            self.script_infos[si["name"]] = si
-            self._test_list.setdefault(suite_name, {}).update({si["name"]: ""})
+
+            # Get the tests from perftest.ini
+            test_manifest = TestManifest([str(path)], strict=False)
+            test_list = test_manifest.active_tests(exists=False, disabled=False)
+            for test in test_list:
+                si = ScriptInfo(test["path"])
+                self.script_infos[si["name"]] = si
+                self._test_list.setdefault(suite_name, {}).update({si["name"]: ""})
 
         return self._test_list
 
     def build_test_description(self, title, test_description="", suite_name=""):
-        result, tab_flag = "", False
-        desc = str(self.script_infos[title])
-        category = ("Owner: ", "Test Name: ", "Usage:", "Description:")
-
-        for s in desc.split("\n"):
-            if s.startswith(category):
-                result += "| " + s + "\n"
-                if s in category[2:]:
-                    result += "\n"
-                    tab_flag = False
-            else:
-                if tab_flag and s:
-                    result += "  " + s + "\n"
-                else:
-                    result += s + "\n"
-
-            if s == category[2]:
-                result += "::\n\n"
-                tab_flag = True
-
-        return [result]
+        return [str(self.script_infos[title])]
 
     def build_suite_section(self, title, content):
         return self._build_section_with_header(title, content, header_type="H4")
+
+
+class TalosGatherer(FrameworkGatherer):
+    """
+    Gatherer for the Talos framework.
+    TODO - Bug 1674220
+    """
+
+    pass

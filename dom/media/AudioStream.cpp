@@ -10,6 +10,7 @@
 #include "prdtoa.h"
 #include "AudioStream.h"
 #include "VideoUtils.h"
+#include "mozilla/dom/AudioDeviceInfo.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Sprintf.h"
@@ -281,12 +282,15 @@ nsresult AudioStream::Init(uint32_t aNumChannels,
 
   mSinkInfo = aSinkInfo;
 
+  // Hasn't started playing audio yet.
+  mPlaybackComplete = false;
+
   cubeb_stream_params params;
   params.rate = aRate;
   params.channels = mOutChannels;
   params.layout = static_cast<uint32_t>(aChannelMap);
   params.format = ToCubebFormat<AUDIO_OUTPUT_FORMAT>::value;
-  params.prefs = CubebUtils::GetDefaultStreamPrefs();
+  params.prefs = CubebUtils::GetDefaultStreamPrefs(CUBEB_DEVICE_TYPE_OUTPUT);
 
   // This is noop if MOZ_DUMP_AUDIO is not set.
   mDumpFile.Open("AudioStream", mOutChannels, aRate);
@@ -358,22 +362,30 @@ void AudioStream::SetVolume(double aVolume) {
   }
 }
 
-nsresult AudioStream::Start() {
+Result<already_AddRefed<MediaSink::EndedPromise>, nsresult>
+AudioStream::Start() {
   TRACE();
   MonitorAutoLock mon(mMonitor);
   MOZ_ASSERT(mState == INITIALIZED);
   mState = STARTED;
-  auto r = InvokeCubeb(cubeb_stream_start);
-  if (r != CUBEB_OK) {
+
+  // As cubeb might call audio stream's state callback very soon after we start
+  // cubeb, we have to create the promise beforehand in order to handle the
+  // case where we immediately get `drained`.
+  RefPtr<MediaSink::EndedPromise> promise = mEndedPromise.Ensure(__func__);
+  mPlaybackComplete = false;
+
+  if (InvokeCubeb(cubeb_stream_start) != CUBEB_OK) {
     mState = ERRORED;
   }
+
   LOG("started, state %s", mState == STARTED
                                ? "STARTED"
                                : mState == DRAINED ? "DRAINED" : "ERRORED");
   if (mState == STARTED || mState == DRAINED) {
-    return NS_OK;
+    return promise.forget();
   }
-  return NS_ERROR_FAILURE;
+  return Err(NS_ERROR_FAILURE);
 }
 
 void AudioStream::Pause() {
@@ -433,6 +445,7 @@ void AudioStream::Shutdown() {
   }
 
   mState = SHUTDOWN;
+  mEndedPromise.ResolveIfExists(true, __func__);
 }
 
 #if defined(XP_WIN)
@@ -660,14 +673,19 @@ void AudioStream::StateCallback(cubeb_state aState) {
   MOZ_ASSERT(mState != SHUTDOWN, "No state callback after shutdown");
   LOG("StateCallback, mState=%d cubeb_state=%d", mState, aState);
   if (aState == CUBEB_STATE_DRAINED) {
+    LOG("Drained");
     mState = DRAINED;
-    mDataSource.Drained();
+    mPlaybackComplete = true;
+    mEndedPromise.ResolveIfExists(true, __func__);
   } else if (aState == CUBEB_STATE_ERROR) {
     LOGE("StateCallback() state %d cubeb error", mState);
     mState = ERRORED;
-    mDataSource.Errored();
+    mPlaybackComplete = true;
+    mEndedPromise.RejectIfExists(NS_ERROR_FAILURE, __func__);
   }
 }
+
+bool AudioStream::IsPlaybackCompleted() const { return mPlaybackComplete; }
 
 AudioClock::AudioClock()
     : mOutRate(0),

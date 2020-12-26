@@ -14,6 +14,8 @@
 #include "aom/aom_decoder.h"
 #include "dav1d/dav1d.h"
 
+#include "mozilla/Telemetry.h"
+
 namespace mozilla {
 namespace image {
 class RasterImage;
@@ -39,10 +41,31 @@ class nsAVIFDecoder final : public Decoder {
 
   static void FreeDav1dData(const uint8_t* buf, void* cookie);
 
-  bool DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
-                       layers::PlanarYCbCrData& aDecodedData);
-  bool DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
-                     layers::PlanarYCbCrData& aDecodedData);
+  typedef int Dav1dResult;
+  Dav1dResult DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
+                              layers::PlanarYCbCrData& aDecodedData);
+
+  enum class NonAOMCodecError { NoFrame, SizeOverflow };
+  typedef Variant<aom_codec_err_t, NonAOMCodecError> AOMResult;
+  AOMResult DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
+                          layers::PlanarYCbCrData& aDecodedData);
+
+  enum class NonDecoderResult {
+    NeedMoreData,
+    MetadataOk,
+    ParseError,
+    NoPrimaryItem,
+    SizeOverflow,
+    OutOfMemory,
+    PipeInitError,
+    WriteBufferError
+  };
+  using DecodeResult = Variant<NonDecoderResult, Dav1dResult, AOMResult>;
+  DecodeResult Decode(SourceBufferIterator& aIterator, IResumable* aOnResume);
+
+  bool IsDecodeSuccess(const DecodeResult& aResult);
+
+  void RecordDecodeResultTelemetry(const DecodeResult& aResult);
 
   Mp4parseAvifParser* mParser;
   Maybe<Variant<aom_codec_ctx_t, Dav1dContext*>> mCodecContext;

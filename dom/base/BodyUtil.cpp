@@ -17,6 +17,7 @@
 #include "nsReadableUtils.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
+#include "nsURLHelper.h"
 
 #include "js/ArrayBuffer.h"  // JS::NewArrayBufferWithContents
 #include "js/JSON.h"
@@ -27,10 +28,8 @@
 #include "mozilla/dom/FormData.h"
 #include "mozilla/dom/Headers.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/URLSearchParams.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -44,25 +43,6 @@ static bool PushOverLine(nsACString::const_iterator& aStart,
 
   return false;
 }
-
-class MOZ_STACK_CLASS FillFormIterator final
-    : public URLParams::ForEachIterator {
- public:
-  explicit FillFormIterator(FormData* aFormData) : mFormData(aFormData) {
-    MOZ_ASSERT(aFormData);
-  }
-
-  bool URLParamsIterator(const nsAString& aName,
-                         const nsAString& aValue) override {
-    ErrorResult rv;
-    mFormData->Append(aName, aValue, rv);
-    MOZ_ASSERT(!rv.Failed());
-    return true;
-  }
-
- private:
-  FormData* mFormData;
-};
 
 /**
  * A simple multipart/form-data parser as defined in RFC 2388 and RFC 2046.
@@ -453,8 +433,13 @@ already_AddRefed<FormData> BodyUtil::ConsumeFormData(nsIGlobalObject* aParent,
 
   if (isValidUrlEncodedMimeType) {
     RefPtr<FormData> fd = new FormData(aParent);
-    FillFormIterator iterator(fd);
-    DebugOnly<bool> status = URLParams::Parse(aStr, iterator);
+    DebugOnly<bool> status = URLParams::Parse(
+        aStr, [&fd](const nsAString& aName, const nsAString& aValue) {
+          ErrorResult rv;
+          fd->Append(aName, aValue, rv);
+          MOZ_ASSERT(!rv.Failed());
+          return true;
+        });
     MOZ_ASSERT(status);
 
     return fd.forget();
@@ -499,5 +484,4 @@ void BodyUtil::ConsumeJson(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
   aValue.set(json);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

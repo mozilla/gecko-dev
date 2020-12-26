@@ -278,6 +278,36 @@ impl ClipChainBuilder {
         )
     }
 
+    /// Return true if any of the clips in the hierarchy from clip_id to the
+    /// root clip are complex.
+    // TODO(gw): This method should only be required until the shared_clip
+    //           optimization patches are complete, and can then be removed.
+    fn has_complex_clips(
+        &self,
+        clip_id: ClipId,
+        templates: &FastHashMap<ClipId, ClipTemplate>,
+    ) -> bool {
+        let template = &templates[&clip_id];
+
+        // Check if any of the clips in this template are complex
+        for clip in &template.clips {
+            if let ClipNodeKind::Complex = clip.key.kind.node_kind() {
+                return true;
+            }
+        }
+
+        // The ClipId parenting is terminated when we reach the root ClipId
+        if clip_id == template.parent {
+            return false;
+        }
+
+        // Recurse into parent clip template to also check those
+        self.has_complex_clips(
+            template.parent,
+            templates,
+        )
+    }
+
     /// This is the main method used to get a clip chain for a primitive. Given a
     /// clip id, it builds a clip-chain for that primitive, parented to the current
     /// root clip chain hosted in this builder.
@@ -987,6 +1017,23 @@ impl ClipStore {
             )
     }
 
+    /// Return true if any of the clips in the hierarchy from clip_id to the
+    /// root clip are complex.
+    // TODO(gw): This method should only be required until the shared_clip
+    //           optimization patches are complete, and can then be removed.
+    pub fn has_complex_clips(
+        &self,
+        clip_id: ClipId,
+    ) -> bool {
+        self.chain_builder_stack
+            .last()
+            .unwrap()
+            .has_complex_clips(
+                clip_id,
+                &self.templates,
+            )
+    }
+
     /// Push a new clip root. This is used at boundaries of clips (such as iframes
     /// and stacking contexts). This means that any clips on the existing clip
     /// chain builder will not be added to clip-chains defined within this level,
@@ -1400,6 +1447,7 @@ impl intern::Internable for ClipIntern {
     type Key = ClipItemKey;
     type StoreData = ClipNode;
     type InternData = ClipInternData;
+    const PROFILE_COUNTER: usize = crate::profiler::INTERNED_CLIPS;
 }
 
 #[derive(Debug, MallocSizeOf)]

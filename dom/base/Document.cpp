@@ -1480,10 +1480,17 @@ already_AddRefed<mozilla::dom::Promise> Document::AddCertException(
     promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
     return promise.forget();
   }
+
+  nsCOMPtr<nsIURI> innerURI = NS_GetInnermostURI(failedChannelURI);
+  if (!innerURI) {
+    promise->MaybeReject(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return promise.forget();
+  }
+
   nsAutoCString host;
-  failedChannelURI->GetAsciiHost(host);
+  innerURI->GetAsciiHost(host);
   int32_t port;
-  failedChannelURI->GetPort(&port);
+  innerURI->GetPort(&port);
 
   tsi = do_QueryInterface(info);
   if (NS_WARN_IF(!tsi)) {
@@ -6330,7 +6337,9 @@ already_AddRefed<PresShell> Document::CreatePresShell(
 
   // Gaining a shell causes changes in how media queries are evaluated, so
   // invalidate that.
-  aContext->MediaFeatureValuesChanged({MediaFeatureChange::kAllChanges});
+  aContext->MediaFeatureValuesChanged(
+      {MediaFeatureChange::kAllChanges},
+      MediaFeatureChangePropagation::JustThisDocument);
 
   // Make sure to never paint if we belong to an invisible DocShell.
   nsCOMPtr<nsIDocShell> docShell(mDocumentContainer);
@@ -9468,8 +9477,7 @@ void nsDOMAttributeMap::BlastSubtreeToPieces(nsINode* aNode) {
   }
 }
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
   nsINode* adoptedNode = &aAdoptedNode;
@@ -9897,11 +9905,8 @@ nsViewportInfo Document::GetViewportInfo(const ScreenIntSize& aDisplaySize) {
       // value after setting it, above.
       if (maxWidth == nsViewportInfo::Auto && !mValidScaleFloat) {
         BrowsingContext* bc = GetBrowsingContext();
-        nsIDocShell* docShell = GetDocShell();
-        if (docShell &&
-            docShell->GetTouchEventsOverride() ==
-                nsIDocShell::TOUCHEVENTS_OVERRIDE_ENABLED &&
-            bc && bc->InRDMPane()) {
+        if (bc && bc->TouchEventsOverride() == TouchEventsOverride::Enabled &&
+            bc->InRDMPane()) {
           // If RDM and touch simulation are active, then use the simulated
           // screen width to accomodate for cases where the screen width is
           // larger than the desktop viewport default.
@@ -12329,6 +12334,12 @@ static nsINode* GetCorrespondingNodeInDocument(const nsINode* aOrigNode,
     return nullptr;
   }
 
+  // If the node is disconnected, this is a bug in the selection code, but it
+  // can happen with shadow DOM so handle it.
+  if (NS_WARN_IF(!aOrigNode->IsInComposedDoc())) {
+    return nullptr;
+  }
+
   nsTArray<int32_t> indexArray;
   const nsINode* current = aOrigNode;
   while (const nsINode* parent = current->GetParentNode()) {
@@ -12884,21 +12895,18 @@ bool Document::IsPotentiallyScrollable(HTMLBodyElement* aBody) {
     return false;
   }
 
-  // The element's parent element's computed value of the overflow-x or
-  // overflow-y properties is neither visible nor clip.
+  // The element's parent element's computed value of the overflow-x and
+  // overflow-y properties are visible.
   MOZ_ASSERT(aBody->GetParent() == aBody->OwnerDoc()->GetRootElement());
   nsIFrame* parentFrame = nsLayoutUtils::GetStyleFrame(aBody->GetParent());
-  if (parentFrame && !parentFrame->StyleDisplay()->IsScrollableOverflow()) {
+  if (parentFrame &&
+      parentFrame->StyleDisplay()->OverflowIsVisibleInBothAxis()) {
     return false;
   }
 
   // The element's computed value of the overflow-x or overflow-y properties is
-  // neither visible nor clip.
-  if (!bodyFrame->StyleDisplay()->IsScrollableOverflow()) {
-    return false;
-  }
-
-  return true;
+  // not visible.
+  return !bodyFrame->StyleDisplay()->OverflowIsVisibleInBothAxis();
 }
 
 Element* Document::GetScrollingElement() {
@@ -17106,5 +17114,4 @@ void Document::DisableChildElementInPictureInPictureMode() {
   MOZ_ASSERT(mPictureInPictureChildElementCount >= 0);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

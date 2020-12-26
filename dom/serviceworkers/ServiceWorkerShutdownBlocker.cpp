@@ -14,6 +14,7 @@
 #include "nsError.h"
 #include "nsIWritablePropertyBag2.h"
 #include "nsThreadUtils.h"
+#include "ServiceWorkerManager.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"
@@ -33,8 +34,12 @@ NS_IMETHODIMP
 ServiceWorkerShutdownBlocker::BlockShutdown(nsIAsyncShutdownClient* aClient) {
   AssertIsOnMainThread();
   MOZ_ASSERT(!mShutdownClient);
+  MOZ_ASSERT(mServiceWorkerManager);
 
   mShutdownClient = aClient;
+
+  (*mServiceWorkerManager)->MaybeStartShutdown();
+  mServiceWorkerManager.destroy();
 
   MaybeUnblockShutdown();
   MaybeInitUnblockShutdownTimer();
@@ -87,14 +92,14 @@ NS_IMETHODIMP ServiceWorkerShutdownBlocker::GetState(nsIPropertyBag** aBagOut) {
 
 /* static */ already_AddRefed<ServiceWorkerShutdownBlocker>
 ServiceWorkerShutdownBlocker::CreateAndRegisterOn(
-    nsIAsyncShutdownClient* aShutdownBarrier) {
+    nsIAsyncShutdownClient& aShutdownBarrier,
+    ServiceWorkerManager& aServiceWorkerManager) {
   AssertIsOnMainThread();
-  MOZ_ASSERT(aShutdownBarrier);
 
   RefPtr<ServiceWorkerShutdownBlocker> blocker =
-      new ServiceWorkerShutdownBlocker();
+      new ServiceWorkerShutdownBlocker(aServiceWorkerManager);
 
-  nsresult rv = aShutdownBarrier->AddBlocker(
+  nsresult rv = aShutdownBarrier.AddBlocker(
       blocker.get(), NS_LITERAL_STRING_FROM_CSTRING(__FILE__), __LINE__,
       u"Service Workers shutdown"_ns);
 
@@ -170,8 +175,10 @@ void ServiceWorkerShutdownBlocker::ReportShutdownProgress(
   }
 }
 
-ServiceWorkerShutdownBlocker::ServiceWorkerShutdownBlocker()
-    : mState(VariantType<AcceptingPromises>()) {
+ServiceWorkerShutdownBlocker::ServiceWorkerShutdownBlocker(
+    ServiceWorkerManager& aServiceWorkerManager)
+    : mState(VariantType<AcceptingPromises>()),
+      mServiceWorkerManager(WrapNotNull(&aServiceWorkerManager)) {
   AssertIsOnMainThread();
 }
 
@@ -179,6 +186,7 @@ ServiceWorkerShutdownBlocker::~ServiceWorkerShutdownBlocker() {
   MOZ_ASSERT(!IsAcceptingPromises());
   MOZ_ASSERT(!GetPendingPromises());
   MOZ_ASSERT(!mShutdownClient);
+  MOZ_ASSERT(!mServiceWorkerManager);
 }
 
 void ServiceWorkerShutdownBlocker::MaybeUnblockShutdown() {
@@ -244,12 +252,18 @@ NS_IMETHODIMP ServiceWorkerShutdownBlocker::Notify(nsITimer*) {
   return NS_OK;
 }
 
-void ServiceWorkerShutdownBlocker::MaybeInitUnblockShutdownTimer() {
 #ifdef RELEASE_OR_BETA
-  AssertIsOnMainThread();
-  MOZ_ASSERT(!mTimer);
+#  define SW_UNBLOCK_SHUTDOWN_TIMER_DURATION 10s
+#else
+// In Nightly, we do want a shutdown hang to be reported so we pick a value
+// notably longer than the 60s of the RunWatchDog timeout.
+#  define SW_UNBLOCK_SHUTDOWN_TIMER_DURATION 200s
+#endif
 
-  if (!mShutdownClient || IsAcceptingPromises()) {
+void ServiceWorkerShutdownBlocker::MaybeInitUnblockShutdownTimer() {
+  AssertIsOnMainThread();
+
+  if (mTimer || !mShutdownClient || IsAcceptingPromises()) {
     return;
   }
 
@@ -259,12 +273,12 @@ void ServiceWorkerShutdownBlocker::MaybeInitUnblockShutdownTimer() {
   using namespace std::chrono_literals;
 
   static constexpr auto delay =
-      std::chrono::duration_cast<std::chrono::milliseconds>(10s);
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          SW_UNBLOCK_SHUTDOWN_TIMER_DURATION);
 
   mTimer = NS_NewTimer();
 
   mTimer->InitWithCallback(this, delay.count(), nsITimer::TYPE_ONE_SHOT);
-#endif
 }
 
 }  // namespace dom

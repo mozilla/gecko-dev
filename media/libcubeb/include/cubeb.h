@@ -230,12 +230,22 @@ typedef enum {
   CUBEB_STREAM_PREF_DISABLE_DEVICE_SWITCHING = 0x02, /**< Disable switching
                                                           default device on OS
                                                           changes. */
-  CUBEB_STREAM_PREF_VOICE = 0x04  /**< This stream is going to transport voice data.
+  CUBEB_STREAM_PREF_VOICE = 0x04, /**< This stream is going to transport voice data.
                                        Depending on the backend and platform, this can
                                        change the audio input or output devices
                                        selected, as well as the quality of the stream,
                                        for example to accomodate bluetooth SCO modes on
                                        bluetooth devices. */
+  CUBEB_STREAM_PREF_RAW = 0x08, /**< Windows only. Bypass all signal processing
+                                     except for always on APO, driver and hardware. */
+  CUBEB_STREAM_PREF_PERSIST = 0x10, /**< Request that the volume and mute settings
+                                         should persist across restarts of the stream
+                                         and/or application. May not be honored for
+                                         all backends and platforms. */
+
+  CUBEB_STREAM_PREF_JACK_NO_AUTO_CONNECT = 0x20  /**< Don't automatically try to connect
+                                                      ports.  Only affects the jack
+                                                      backend. */
 } cubeb_stream_prefs;
 
 /** Stream format initialization parameters. */
@@ -499,7 +509,9 @@ CUBEB_EXPORT void cubeb_destroy(cubeb * context);
                          cubeb_devid allows the stream to follow that device type's
                          OS default.
     @param output_stream_params Parameters for the output side of the stream, or
-                                NULL if this stream is input only.
+                                NULL if this stream is input only. When input
+                                and output stream parameters are supplied, their
+                                rate has to be the same.
     @param latency_frames Stream latency in frames.  Valid range
                           is [1, 96000].
     @param data_callback Will be called to preroll data before playback is
@@ -583,6 +595,14 @@ CUBEB_EXPORT int cubeb_stream_get_input_latency(cubeb_stream * stream, uint32_t 
             stream is an invalid pointer
     @retval CUBEB_ERROR_NOT_SUPPORTED */
 CUBEB_EXPORT int cubeb_stream_set_volume(cubeb_stream * stream, float volume);
+
+/** Change a stream's name.
+    @param stream the stream for which to set the name.
+    @param stream_name the new name for the stream
+    @retval CUBEB_OK
+    @retval CUBEB_ERROR_INVALID_PARAMETER if any pointer is invalid
+    @retval CUBEB_ERROR_NOT_SUPPORTED */
+CUBEB_EXPORT int cubeb_stream_set_name(cubeb_stream * stream, char const * stream_name);
 
 /** Get the current output device for this stream.
     @param stm the stream for which to query the current output device

@@ -102,6 +102,7 @@
 #include "gc/Allocator.h"
 #include "js/BigInt.h"
 #include "js/Conversions.h"
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/Initialization.h"
 #include "js/StableStringChars.h"
 #include "js/Utility.h"
@@ -2261,6 +2262,8 @@ BigInt* BigInt::rshByAbsolute(JSContext* cx, HandleBigInt x, HandleBigInt y) {
     return nullptr;
   }
   if (!bitsShift) {
+    // If roundingCanOverflow, manually initialize the overflow digit.
+    result->setDigit(resultLength - 1, 0);
     for (int i = digitShift; i < length; i++) {
       result->setDigit(i - digitShift, x->digit(i));
     }

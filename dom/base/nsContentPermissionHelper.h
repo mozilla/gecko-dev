@@ -21,7 +21,6 @@
 
 class nsPIDOMWindowInner;
 class nsContentPermissionRequestProxy;
-class VisibilityChangeListener;
 
 // Forward declare IPC::Principal here which is defined in
 // PermissionMessageUtils.h. Include this file will transitively includes
@@ -90,21 +89,6 @@ class nsContentPermissionUtils {
       PContentPermissionRequestChild* aChild);
 };
 
-class nsContentPermissionRequester final
-    : public nsIContentPermissionRequester {
- public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSICONTENTPERMISSIONREQUESTER
-
-  explicit nsContentPermissionRequester(nsPIDOMWindowInner* aWindow);
-
- private:
-  virtual ~nsContentPermissionRequester();
-
-  nsWeakPtr mWindow;
-  RefPtr<VisibilityChangeListener> mListener;
-};
-
 nsresult TranslateChoices(
     JS::HandleValue aChoices,
     const nsTArray<PermissionRequest>& aPermissionRequests,
@@ -125,7 +109,6 @@ class ContentPermissionRequestBase : public nsIContentPermissionRequest {
   NS_IMETHOD GetIsHandlingUserInput(bool* aIsHandlingUserInput) override;
   NS_IMETHOD GetMaybeUnsafePermissionDelegate(
       bool* aMaybeUnsafePermissionDelegate) override;
-  NS_IMETHOD GetRequester(nsIContentPermissionRequester** aRequester) override;
   // Overrides for Allow() and Cancel() aren't provided by this class.
   // That is the responsibility of the subclasses.
 
@@ -158,7 +141,6 @@ class ContentPermissionRequestBase : public nsIContentPermissionRequest {
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMPtr<nsIPrincipal> mTopLevelPrincipal;
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
-  nsCOMPtr<nsIContentPermissionRequester> mRequester;
   RefPtr<PermissionDelegateHandler> mPermissionHandler;
   nsCString mPrefName;
   nsCString mType;
@@ -183,48 +165,22 @@ class nsContentPermissionRequestProxy : public nsIContentPermissionRequest {
 
   void OnParentDestroyed();
 
-  void NotifyVisibility(const bool& aIsVisible);
-
  private:
-  class nsContentPermissionRequesterProxy final
-      : public nsIContentPermissionRequester {
-   public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSICONTENTPERMISSIONREQUESTER
-
-    explicit nsContentPermissionRequesterProxy(
-        ContentPermissionRequestParent* aParent)
-        : mParent(aParent), mWaitGettingResult(false) {}
-
-    void NotifyVisibilityResult(const bool& aIsVisible);
-
-   private:
-    virtual ~nsContentPermissionRequesterProxy() = default;
-
-    ContentPermissionRequestParent* mParent;
-    bool mWaitGettingResult;
-    nsCOMPtr<nsIContentPermissionRequestCallback> mGetCallback;
-    nsCOMPtr<nsIContentPermissionRequestCallback> mOnChangeCallback;
-  };
-
   virtual ~nsContentPermissionRequestProxy();
 
   // Non-owning pointer to the ContentPermissionRequestParent object which owns
   // this proxy.
   ContentPermissionRequestParent* mParent;
   nsTArray<mozilla::dom::PermissionRequest> mPermissionRequests;
-  RefPtr<nsContentPermissionRequesterProxy> mRequester;
 };
 
 /**
  * RemotePermissionRequest will send a prompt ipdl request to b2g process.
  */
 class RemotePermissionRequest final
-    : public nsIContentPermissionRequestCallback,
-      public mozilla::dom::PContentPermissionRequestChild {
+    : public mozilla::dom::PContentPermissionRequestChild {
  public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSICONTENTPERMISSIONREQUESTCALLBACK
+  NS_INLINE_DECL_REFCOUNTING(RemotePermissionRequest)
 
   RemotePermissionRequest(nsIContentPermissionRequest* aRequest,
                           nsPIDOMWindowInner* aWindow);
@@ -234,8 +190,6 @@ class RemotePermissionRequest final
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvNotifyResult(
       const bool& aAllow, nsTArray<PermissionChoice>&& aChoices);
-
-  mozilla::ipc::IPCResult RecvGetVisibility();
 
   void IPDLAddRef() {
     mIPCOpen = true;
@@ -263,7 +217,6 @@ class RemotePermissionRequest final
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   bool mIPCOpen;
   bool mDestroyed;
-  RefPtr<VisibilityChangeListener> mListener;
 };
 
 #endif  // nsContentPermissionHelper_h

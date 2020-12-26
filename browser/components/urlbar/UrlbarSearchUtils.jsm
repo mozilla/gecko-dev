@@ -70,34 +70,47 @@ class SearchUtils {
   async enginesForDomainPrefix(prefix, { matchAllDomainLevels = false } = {}) {
     await this.init();
     prefix = prefix.toLowerCase();
-    let engines = [];
+
+    // Array of partially matched engines, added through matchPrefix().
     let partialMatchEngines = [];
+    function matchPrefix(engine, engineHost) {
+      let parts = engineHost.split(".");
+      for (let i = 1; i < parts.length - 1; ++i) {
+        if (
+          parts
+            .slice(i)
+            .join(".")
+            .startsWith(prefix)
+        ) {
+          partialMatchEngines.push(engine);
+        }
+      }
+    }
+
+    // Array of fully matched engines.
+    let engines = [];
     for (let engine of await Services.search.getVisibleEngines()) {
       let domain = engine.getResultDomain();
       if (domain.startsWith(prefix) || domain.startsWith("www." + prefix)) {
         engines.push(engine);
       }
+
       if (matchAllDomainLevels) {
-        // Strip the public suffix, we don't want to match on it.
-        domain = domain.substr(
-          0,
-          domain.length - engine.searchUrlPublicSuffix.length
-        );
-        let parts = domain.split(".");
-        for (let i = 1; i < parts.length - 1; ++i) {
-          if (
-            parts
-              .slice(i)
-              .join(".")
-              .startsWith(prefix)
-          ) {
-            partialMatchEngines.push(engine);
-          }
+        // The prefix may or may not contain part of the public suffix. If
+        // it contains a dot, we must match with and without the public suffix,
+        // otherwise it's sufficient to just match without it.
+        if (prefix.includes(".")) {
+          matchPrefix(engine, domain);
         }
+        matchPrefix(
+          engine,
+          domain.substr(0, domain.length - engine.searchUrlPublicSuffix.length)
+        );
       }
     }
+
     // Partial matches come after perfect matches.
-    return engines.concat(partialMatchEngines);
+    return [...engines, ...partialMatchEngines];
   }
 
   /**
@@ -133,6 +146,32 @@ class SearchUtils {
     return tokenAliasEngines;
   }
 
+  /**
+   * @param {nsISearchEngine} engine
+   * @returns {string}
+   *   The root domain of a search engine. e.g. If `engine` has the domain
+   *   www.subdomain.rootdomain.com, `rootdomain` is returned. Returns the
+   *   engine's domain if the engine's URL does not have a valid TLD.
+   */
+  getRootDomainFromEngine(engine) {
+    let domain = engine.getResultDomain();
+    let suffix = engine.searchUrlPublicSuffix;
+    if (!suffix) {
+      if (domain.endsWith(".test")) {
+        suffix = "test";
+      } else {
+        return domain;
+      }
+    }
+    domain = domain.substr(
+      0,
+      // -1 to remove the trailing dot.
+      domain.length - suffix.length - 1
+    );
+    let domainParts = domain.split(".");
+    return domainParts.pop();
+  }
+
   getDefaultEngine(isPrivate = false) {
     return this.separatePrivateDefaultUIEnabled &&
       this.separatePrivateDefault &&
@@ -159,6 +198,43 @@ class SearchUtils {
         }
       }
     }
+  }
+
+  /**
+   * Compares the query parameters of two SERPs to see if one is equivalent to
+   * the other. URL `x` is equivalent to URL `y` if
+   *   (a) `y` contains at least all the query parameters contained in `x`, and
+   *   (b) The values of the query parameters contained in both `x` and `y `are
+   *       the same.
+   *
+   * @param {string} historySerp
+   *   The SERP from history whose params should be contained in
+   *   `generatedSerp`.
+   * @param {string} generatedSerp
+   *   The search URL we would generate for a search result with the same search
+   *   string used in `historySerp`.
+   * @param {array} [ignoreParams]
+   *   A list of params to ignore in the matching, i.e. params that can be
+   *   contained in `historySerp` but not be in `generatedSerp`.
+   * @returns {boolean} True if `historySerp` can be deduped by `generatedSerp`.
+   *
+   * @note This function does not compare the SERPs' origins or pathnames.
+   *   `historySerp` can have a different origin and/or pathname than
+   *   `generatedSerp` and still be considered equivalent.
+   */
+  serpsAreEquivalent(historySerp, generatedSerp, ignoreParams = []) {
+    let historyParams = new URL(historySerp).searchParams;
+    let generatedParams = new URL(generatedSerp).searchParams;
+    if (
+      !Array.from(historyParams.entries()).every(
+        ([key, value]) =>
+          ignoreParams.includes(key) || value === generatedParams.get(key)
+      )
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   /**

@@ -5,16 +5,144 @@
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::fs;
+use std::num::NonZeroU64;
+use std::path::Path;
 use std::str;
 use std::sync::RwLock;
 
-use rkv::{Rkv, SingleStore, StoreOptions};
+use rkv::StoreOptions;
+
+// Select the LMDB-powered storage backend when the feature is not activated.
+#[cfg(not(feature = "rkv-safe-mode"))]
+mod backend {
+    use std::path::Path;
+
+    /// cbindgen:ignore
+    pub type Rkv = rkv::Rkv<rkv::backend::LmdbEnvironment>;
+    /// cbindgen:ignore
+    pub type SingleStore = rkv::SingleStore<rkv::backend::LmdbDatabase>;
+    /// cbindgen:ignore
+    pub type Writer<'t> = rkv::Writer<rkv::backend::LmdbRwTransaction<'t>>;
+
+    pub fn rkv_new(path: &Path) -> Result<Rkv, rkv::StoreError> {
+        Rkv::new::<rkv::backend::Lmdb>(path)
+    }
+
+    /// No migration necessary when staying with LMDB.
+    pub fn migrate(_path: &Path, _dst_env: &Rkv) {
+        // Intentionally left empty.
+    }
+}
+
+// Select the "safe mode" storage backend when the feature is activated.
+#[cfg(feature = "rkv-safe-mode")]
+mod backend {
+    use rkv::migrator::Migrator;
+    use std::{fs, path::Path};
+
+    /// cbindgen:ignore
+    pub type Rkv = rkv::Rkv<rkv::backend::SafeModeEnvironment>;
+    /// cbindgen:ignore
+    pub type SingleStore = rkv::SingleStore<rkv::backend::SafeModeDatabase>;
+    /// cbindgen:ignore
+    pub type Writer<'t> = rkv::Writer<rkv::backend::SafeModeRwTransaction<'t>>;
+
+    pub fn rkv_new(path: &Path) -> Result<Rkv, rkv::StoreError> {
+        Rkv::new::<rkv::backend::SafeMode>(path)
+    }
+
+    fn delete_and_log(path: &Path, msg: &str) {
+        if let Err(err) = fs::remove_file(path) {
+            match err.kind() {
+                std::io::ErrorKind::NotFound => {
+                    // Silently drop this error, the file was already non-existing.
+                }
+                _ => log::warn!("{}", msg),
+            }
+        }
+    }
+
+    fn delete_lmdb_database(path: &Path) {
+        let datamdb = path.join("data.mdb");
+        delete_and_log(&datamdb, "Failed to delete old data.");
+
+        let lockmdb = path.join("lock.mdb");
+        delete_and_log(&lockmdb, "Failed to delete old lock.");
+    }
+
+    /// Migrate from LMDB storage to safe-mode storage.
+    ///
+    /// This migrates the data once, then deletes the LMDB storage.
+    /// The safe-mode storage must be empty for it to work.
+    /// Existing data will not be overwritten.
+    /// If the destination database is not empty the LMDB database is deleted
+    /// without migrating data.
+    /// This is a no-op if no LMDB database file exists.
+    pub fn migrate(path: &Path, dst_env: &Rkv) {
+        use rkv::{MigrateError, StoreError};
+
+        log::debug!("Migrating files in {}", path.display());
+
+        // Shortcut if no data to migrate is around.
+        let datamdb = path.join("data.mdb");
+        if !datamdb.exists() {
+            log::debug!("No data to migrate.");
+            return;
+        }
+
+        // We're handling the same error cases as `easy_migrate_lmdb_to_safe_mode`,
+        // but annotate each why they don't cause problems for Glean.
+        // Additionally for known cases we delete the LMDB database regardless.
+        let should_delete =
+            match Migrator::open_and_migrate_lmdb_to_safe_mode(path, |builder| builder, dst_env) {
+                // Source environment is corrupted.
+                // We start fresh with the new database.
+                Err(MigrateError::StoreError(StoreError::FileInvalid)) => true,
+                // Path not accessible.
+                // Somehow our directory vanished between us creating it and reading from it.
+                // Nothing we can do really.
+                Err(MigrateError::StoreError(StoreError::IoError(_))) => true,
+                // Path accessible but incompatible for configuration.
+                // This should not happen, we never used storages that safe-mode doesn't understand.
+                // If it does happen, let's start fresh and use the safe-mode from now on.
+                Err(MigrateError::StoreError(StoreError::UnsuitableEnvironmentPath(_))) => true,
+                // Nothing to migrate.
+                // Source database was empty. We just start fresh anyway.
+                Err(MigrateError::SourceEmpty) => true,
+                // Migrating would overwrite.
+                // Either a previous migration failed and we still started writing data,
+                // or someone placed back an old data file.
+                // In any case we better stay on the new data and delete the old one.
+                Err(MigrateError::DestinationNotEmpty) => {
+                    log::warn!("Failed to migrate old data. Destination was not empty");
+                    true
+                }
+                // An internal lock was poisoned.
+                // This would only happen if multiple things run concurrently and one crashes.
+                Err(MigrateError::ManagerPoisonError) => false,
+                // Other store errors are never returned from the migrator.
+                // We need to handle them to please rustc.
+                Err(MigrateError::StoreError(_)) => false,
+                // Other errors can't happen, so this leaves us with the Ok case.
+                // This already deleted the LMDB files.
+                Ok(()) => false,
+            };
+
+        if should_delete {
+            log::debug!("Need to delete remaining LMDB files.");
+            delete_lmdb_database(&path);
+        }
+
+        log::debug!("Migration ended. Safe-mode database in {}", path.display());
+    }
+}
 
 use crate::metrics::Metric;
 use crate::CommonMetricData;
 use crate::Glean;
 use crate::Lifetime;
 use crate::Result;
+use backend::*;
 
 pub struct Database {
     /// Handle to the database environment.
@@ -32,6 +160,9 @@ pub struct Database {
     /// we will save metrics with 'ping' lifetime data in a map temporarily
     /// so as to persist them to disk using rkv in bulk on demand.
     ping_lifetime_data: Option<RwLock<BTreeMap<String, Metric>>>,
+
+    // Initial file size when opening the database.
+    file_size: Option<NonZeroU64>,
 }
 
 impl std::fmt::Debug for Database {
@@ -46,8 +177,40 @@ impl std::fmt::Debug for Database {
     }
 }
 
+/// Calculate the  database size from all the files in the directory.
+///
+///  # Arguments
+///
+///  *`path` - The path to the directory
+///
+///  # Returns
+///
+/// Returns the non-zero combined size of all files in a directory,
+/// or `None` on error or if the size is `0`.
+fn database_size(dir: &Path) -> Option<NonZeroU64> {
+    let mut total_size = 0;
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                if let Ok(file_type) = entry.file_type() {
+                    if file_type.is_file() {
+                        let path = entry.path();
+                        if let Ok(metadata) = fs::metadata(path) {
+                            total_size += metadata.len();
+                        } else {
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    NonZeroU64::new(total_size)
+}
+
 impl Database {
-    /// Initialize the data store.
+    /// Initializes the data store.
     ///
     /// This opens the underlying rkv store and creates
     /// the underlying directory structure.
@@ -55,7 +218,11 @@ impl Database {
     /// It also loads any Lifetime::Ping data that might be
     /// persisted, in case `delay_ping_lifetime_io` is set.
     pub fn new(data_path: &str, delay_ping_lifetime_io: bool) -> Result<Self> {
-        let rkv = Self::open_rkv(data_path)?;
+        let path = Path::new(data_path).join("db");
+        log::debug!("Database path: {:?}", path.display());
+        let file_size = database_size(&path);
+
+        let rkv = Self::open_rkv(&path)?;
         let user_store = rkv.open_single(Lifetime::User.as_str(), StoreOptions::create())?;
         let ping_store = rkv.open_single(Lifetime::Ping.as_str(), StoreOptions::create())?;
         let application_store =
@@ -72,11 +239,17 @@ impl Database {
             ping_store,
             application_store,
             ping_lifetime_data,
+            file_size,
         };
 
         db.load_ping_lifetime_data();
 
         Ok(db)
+    }
+
+    /// Get the initial database file size.
+    pub fn file_size(&self) -> Option<NonZeroU64> {
+        self.file_size
     }
 
     fn get_store(&self, lifetime: Lifetime) -> &SingleStore {
@@ -88,12 +261,12 @@ impl Database {
     }
 
     /// Creates the storage directories and inits rkv.
-    fn open_rkv(path: &str) -> Result<Rkv> {
-        let path = std::path::Path::new(path).join("db");
-        log::debug!("Database path: {:?}", path.display());
+    fn open_rkv(path: &Path) -> Result<Rkv> {
         fs::create_dir_all(&path)?;
 
-        let rkv = Rkv::new(&path)?;
+        let rkv = rkv_new(&path)?;
+        migrate(path, &rkv);
+
         log::info!("Database initialized");
         Ok(rkv)
     }
@@ -102,15 +275,14 @@ impl Database {
     /// Such location is built using the storage name and the metric
     /// key/name (if available).
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `storage_name` - the name of the storage to store/fetch data from.
     /// * `metric_key` - the optional metric key/name.
     ///
-    /// ## Return value
+    /// # Returns
     ///
-    /// Returns a String representing the location, in the database, data must
-    /// be written or read from.
+    /// A string representing the location in the database.
     fn get_storage_key(storage_name: &str, metric_key: Option<&str>) -> String {
         match metric_key {
             Some(k) => format!("{}#{}", storage_name, k),
@@ -137,7 +309,7 @@ impl Database {
                     Ok(metric_id) => metric_id.to_string(),
                     _ => continue,
                 };
-                let metric: Metric = match value.expect("Value missing in iteration") {
+                let metric: Metric = match value {
                     rkv::Value::Blob(blob) => unwrap_or!(bincode::deserialize(blob), continue),
                     _ => continue,
                 };
@@ -147,26 +319,26 @@ impl Database {
         }
     }
 
-    /// Iterates with the provided transaction function over the requested data
-    /// from the given storage.
+    /// Iterates with the provided transaction function
+    /// over the requested data from the given storage.
     ///
     /// * If the storage is unavailable, the transaction function is never invoked.
     /// * If the read data cannot be deserialized it will be silently skipped.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
-    /// * `lifetime`: The metric lifetime to iterate over.
-    /// * `storage_name`: The storage name to iterate over.
-    /// * `metric_key`: The metric key to iterate over. All metrics iterated over
+    /// * `lifetime` - The metric lifetime to iterate over.
+    /// * `storage_name` - The storage name to iterate over.
+    /// * `metric_key` - The metric key to iterate over. All metrics iterated over
     ///   will have this prefix. For example, if `metric_key` is of the form `{category}.`,
     ///   it will iterate over all metrics in the given category. If the `metric_key` is of the
     ///   form `{category}.{name}/`, the iterator will iterate over all specific metrics for
     ///   a given labeled metric. If not provided, the entire storage for the given lifetime
     ///   will be iterated over.
-    /// * `transaction_fn`: Called for each entry being iterated over. It is
+    /// * `transaction_fn` - Called for each entry being iterated over. It is
     ///   passed two arguments: `(metric_id: &[u8], metric: &Metric)`.
     ///
-    /// ## Panics
+    /// # Panics
     ///
     /// This function will **not** panic on database errors.
     pub fn iter_store_from<F>(
@@ -210,7 +382,7 @@ impl Database {
             }
 
             let metric_id = &metric_id[len..];
-            let metric: Metric = match value.expect("Value missing in iteration") {
+            let metric: Metric = match value {
                 rkv::Value::Blob(blob) => unwrap_or!(bincode::deserialize(blob), continue),
                 _ => continue,
             };
@@ -218,17 +390,17 @@ impl Database {
         }
     }
 
-    /// Determine if the storage has the given metric.
+    /// Determines if the storage has the given metric.
     ///
     /// If data cannot be read it is assumed that the storage does not have the metric.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
-    /// * `lifetime`: The lifetime of the metric.
-    /// * `storage_name`: The storage name to look in.
-    /// * `metric_identifier`: The metric identifier.
+    /// * `lifetime` - The lifetime of the metric.
+    /// * `storage_name` - The storage name to look in.
+    /// * `metric_identifier` - The metric identifier.
     ///
-    /// ## Panics
+    /// # Panics
     ///
     /// This function will **not** panic on database errors.
     pub fn has_metric(
@@ -257,16 +429,16 @@ impl Database {
             .is_some()
     }
 
-    /// Write to the specified storage with the provided transaction function.
+    /// Writes to the specified storage with the provided transaction function.
     ///
     /// If the storage is unavailable, it will return an error.
     ///
-    /// ## Panics
+    /// # Panics
     ///
     /// * This function will **not** panic on database errors.
-    pub fn write_with_store<F>(&self, store_name: Lifetime, mut transaction_fn: F) -> Result<()>
+    fn write_with_store<F>(&self, store_name: Lifetime, mut transaction_fn: F) -> Result<()>
     where
-        F: FnMut(rkv::Writer, &SingleStore) -> Result<()>,
+        F: FnMut(Writer, &SingleStore) -> Result<()>,
     {
         let writer = self.rkv.write().unwrap();
         let store = self.get_store(store_name);
@@ -275,6 +447,11 @@ impl Database {
 
     /// Records a metric in the underlying storage system.
     pub fn record(&self, glean: &Glean, data: &CommonMetricData, value: &Metric) {
+        // If upload is disabled we don't want to record.
+        if !glean.is_upload_enabled() {
+            return;
+        }
+
         let name = data.identifier(glean);
 
         for ping_name in data.storage_names() {
@@ -286,15 +463,15 @@ impl Database {
 
     /// Records a metric in the underlying storage system, for a single lifetime.
     ///
-    /// ## Return value
+    /// # Returns
     ///
     /// If the storage is unavailable or the write fails, no data will be stored and an error will be returned.
     ///
     /// Otherwise `Ok(())` is returned.
     ///
-    /// ## Panics
+    /// # Panics
     ///
-    /// * This function will **not** panic on database errors.
+    /// This function will **not** panic on database errors.
     fn record_per_lifetime(
         &self,
         lifetime: Lifetime,
@@ -326,12 +503,17 @@ impl Database {
         Ok(())
     }
 
-    /// Records the provided value, with the given lifetime, after
-    /// applying a transformation function.
+    /// Records the provided value, with the given lifetime,
+    /// after applying a transformation function.
     pub fn record_with<F>(&self, glean: &Glean, data: &CommonMetricData, mut transform: F)
     where
         F: FnMut(Option<Metric>) -> Metric,
     {
+        // If upload is disabled we don't want to record.
+        if !glean.is_upload_enabled() {
+            return;
+        }
+
         let name = data.identifier(glean);
         for ping_name in data.storage_names() {
             if let Err(e) =
@@ -342,19 +524,19 @@ impl Database {
         }
     }
 
-    /// Records a metric in the underlying storage system, after applying the
-    /// given transformation function, for a single lifetime.
+    /// Records a metric in the underlying storage system,
+    /// after applying the given transformation function, for a single lifetime.
     ///
-    /// ## Return value
+    /// # Returns
     ///
     /// If the storage is unavailable or the write fails, no data will be stored and an error will be returned.
     ///
     /// Otherwise `Ok(())` is returned.
     ///
-    /// ## Panics
+    /// # Panics
     ///
-    /// * This function will **not** panic on database errors.
-    pub fn record_per_lifetime_with<F>(
+    /// This function will **not** panic on database errors.
+    fn record_per_lifetime_with<F>(
         &self,
         lifetime: Lifetime,
         storage_name: &str,
@@ -411,7 +593,7 @@ impl Database {
 
     /// Clears a storage (only Ping Lifetime).
     ///
-    /// ## Return value
+    /// # Returns
     ///
     /// * If the storage is unavailable an error is returned.
     /// * If any individual delete fails, an error is returned, but other deletions might have
@@ -419,9 +601,9 @@ impl Database {
     ///
     /// Otherwise `Ok(())` is returned.
     ///
-    /// ## Panics
+    /// # Panics
     ///
-    /// * This function will **not** panic on database errors.
+    /// This function will **not** panic on database errors.
     pub fn clear_ping_lifetime_storage(&self, storage_name: &str) -> Result<()> {
         // Lifetime::Ping data will be saved to `ping_lifetime_data`
         // in case `delay_ping_lifetime_io` is set to true
@@ -461,22 +643,22 @@ impl Database {
 
     /// Removes a single metric from the storage.
     ///
-    /// ## Arguments
+    /// # Arguments
     ///
     /// * `lifetime` - the lifetime of the storage in which to look for the metric.
     /// * `storage_name` - the name of the storage to store/fetch data from.
     /// * `metric_id` - the metric category + name.
     ///
-    /// ## Return value
+    /// # Returns
     ///
     /// * If the storage is unavailable an error is returned.
     /// * If the metric could not be deleted, an error is returned.
     ///
     /// Otherwise `Ok(())` is returned.
     ///
-    /// ## Panics
+    /// # Panics
     ///
-    /// * This function will **not** panic on database errors.
+    /// This function will **not** panic on database errors.
     pub fn remove_single_metric(
         &self,
         lifetime: Lifetime,
@@ -514,7 +696,7 @@ impl Database {
     ///
     /// Errors are logged.
     ///
-    /// ## Panics
+    /// # Panics
     ///
     /// * This function will **not** panic on database errors.
     pub fn clear_lifetime(&self, lifetime: Lifetime) {
@@ -532,7 +714,7 @@ impl Database {
     ///
     /// Errors are logged.
     ///
-    /// ## Panics
+    /// # Panics
     ///
     /// * This function will **not** panic on database errors.
     pub fn clear_all(&self) {
@@ -548,11 +730,11 @@ impl Database {
         }
     }
 
-    /// Persist ping_lifetime_data to disk.
+    /// Persists ping_lifetime_data to disk.
     ///
     /// Does nothing in case there is nothing to persist.
     ///
-    /// ## Panics
+    /// # Panics
     ///
     /// * This function will **not** panic on database errors.
     pub fn persist_ping_lifetime_data(&self) -> Result<()> {
@@ -581,6 +763,8 @@ impl Database {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::tests::new_glean;
+    use crate::CommonMetricData;
     use std::collections::HashMap;
     use tempfile::tempdir;
 
@@ -1025,6 +1209,364 @@ mod test {
                 .get(&reader, format!("{}#{}", test_storage, test_metric_id))
                 .unwrap_or(None)
                 .is_some());
+        }
+    }
+
+    #[test]
+    fn doesnt_record_when_upload_is_disabled() {
+        let (mut glean, dir) = new_glean(None);
+
+        // Init the database in a temporary directory.
+        let str_dir = dir.path().display().to_string();
+
+        let test_storage = "test-storage";
+        let test_data = CommonMetricData::new("category", "name", test_storage);
+        let test_metric_id = test_data.identifier(&glean);
+
+        // Attempt to record metric with the record and record_with functions,
+        // this should work since upload is enabled.
+        let db = Database::new(&str_dir, true).unwrap();
+        db.record(&glean, &test_data, &Metric::String("record".to_owned()));
+        db.iter_store_from(
+            Lifetime::Ping,
+            test_storage,
+            None,
+            &mut |metric_id: &[u8], metric: &Metric| {
+                assert_eq!(
+                    String::from_utf8_lossy(metric_id).into_owned(),
+                    test_metric_id
+                );
+                match metric {
+                    Metric::String(v) => assert_eq!("record", *v),
+                    _ => panic!("Unexpected data found"),
+                }
+            },
+        );
+
+        db.record_with(&glean, &test_data, |_| {
+            Metric::String("record_with".to_owned())
+        });
+        db.iter_store_from(
+            Lifetime::Ping,
+            test_storage,
+            None,
+            &mut |metric_id: &[u8], metric: &Metric| {
+                assert_eq!(
+                    String::from_utf8_lossy(metric_id).into_owned(),
+                    test_metric_id
+                );
+                match metric {
+                    Metric::String(v) => assert_eq!("record_with", *v),
+                    _ => panic!("Unexpected data found"),
+                }
+            },
+        );
+
+        // Disable upload
+        glean.set_upload_enabled(false);
+
+        // Attempt to record metric with the record and record_with functions,
+        // this should work since upload is now **disabled**.
+        db.record(&glean, &test_data, &Metric::String("record_nop".to_owned()));
+        db.iter_store_from(
+            Lifetime::Ping,
+            test_storage,
+            None,
+            &mut |metric_id: &[u8], metric: &Metric| {
+                assert_eq!(
+                    String::from_utf8_lossy(metric_id).into_owned(),
+                    test_metric_id
+                );
+                match metric {
+                    Metric::String(v) => assert_eq!("record_with", *v),
+                    _ => panic!("Unexpected data found"),
+                }
+            },
+        );
+        db.record_with(&glean, &test_data, |_| {
+            Metric::String("record_with_nop".to_owned())
+        });
+        db.iter_store_from(
+            Lifetime::Ping,
+            test_storage,
+            None,
+            &mut |metric_id: &[u8], metric: &Metric| {
+                assert_eq!(
+                    String::from_utf8_lossy(metric_id).into_owned(),
+                    test_metric_id
+                );
+                match metric {
+                    Metric::String(v) => assert_eq!("record_with", *v),
+                    _ => panic!("Unexpected data found"),
+                }
+            },
+        );
+    }
+
+    #[cfg(feature = "rkv-safe-mode")]
+    mod safe_mode_migration {
+        use super::*;
+        use rkv::Value;
+
+        #[test]
+        fn migration_works_on_startup() {
+            let dir = tempdir().unwrap();
+            let str_dir = dir.path().display().to_string();
+
+            let database_dir = dir.path().join("db");
+            let datamdb = database_dir.join("data.mdb");
+            let lockmdb = database_dir.join("lock.mdb");
+            let safebin = database_dir.join("data.safe.bin");
+
+            assert!(!safebin.exists());
+            assert!(!datamdb.exists());
+            assert!(!lockmdb.exists());
+
+            let store_name = "store1";
+            let metric_name = "bool";
+            let key = Database::get_storage_key(store_name, Some(metric_name));
+
+            // Ensure some old data in the LMDB format exists.
+            {
+                fs::create_dir_all(&database_dir).expect("create dir");
+                let rkv_db = rkv::Rkv::new::<rkv::backend::Lmdb>(&database_dir).expect("rkv env");
+
+                let store = rkv_db
+                    .open_single("ping", StoreOptions::create())
+                    .expect("opened");
+                let mut writer = rkv_db.write().expect("writer");
+                let metric = Metric::Boolean(true);
+                let value = bincode::serialize(&metric).expect("serialized");
+                store
+                    .put(&mut writer, &key, &Value::Blob(&value))
+                    .expect("wrote");
+                writer.commit().expect("committed");
+
+                assert!(datamdb.exists());
+                assert!(lockmdb.exists());
+                assert!(!safebin.exists());
+            }
+
+            // First open should migrate the data.
+            {
+                let db = Database::new(&str_dir, false).unwrap();
+                let safebin = database_dir.join("data.safe.bin");
+                assert!(safebin.exists(), "safe-mode file should exist");
+                assert!(!datamdb.exists(), "LMDB data should be deleted");
+                assert!(!lockmdb.exists(), "LMDB lock should be deleted");
+
+                let mut stored_metrics = vec![];
+                let mut snapshotter = |name: &[u8], metric: &Metric| {
+                    let name = str::from_utf8(name).unwrap().to_string();
+                    stored_metrics.push((name, metric.clone()))
+                };
+                db.iter_store_from(Lifetime::Ping, "store1", None, &mut snapshotter);
+
+                assert_eq!(1, stored_metrics.len());
+                assert_eq!(metric_name, stored_metrics[0].0);
+                assert_eq!(&Metric::Boolean(true), &stored_metrics[0].1);
+            }
+
+            // Next open should not re-create the LMDB files.
+            {
+                let db = Database::new(&str_dir, false).unwrap();
+                let safebin = database_dir.join("data.safe.bin");
+                assert!(safebin.exists(), "safe-mode file exists");
+                assert!(!datamdb.exists(), "LMDB data should not be recreated");
+                assert!(!lockmdb.exists(), "LMDB lock should not be recreated");
+
+                let mut stored_metrics = vec![];
+                let mut snapshotter = |name: &[u8], metric: &Metric| {
+                    let name = str::from_utf8(name).unwrap().to_string();
+                    stored_metrics.push((name, metric.clone()))
+                };
+                db.iter_store_from(Lifetime::Ping, "store1", None, &mut snapshotter);
+
+                assert_eq!(1, stored_metrics.len());
+                assert_eq!(metric_name, stored_metrics[0].0);
+                assert_eq!(&Metric::Boolean(true), &stored_metrics[0].1);
+            }
+        }
+
+        #[test]
+        fn migration_doesnt_overwrite() {
+            let dir = tempdir().unwrap();
+            let str_dir = dir.path().display().to_string();
+
+            let database_dir = dir.path().join("db");
+            let datamdb = database_dir.join("data.mdb");
+            let lockmdb = database_dir.join("lock.mdb");
+            let safebin = database_dir.join("data.safe.bin");
+
+            assert!(!safebin.exists());
+            assert!(!datamdb.exists());
+            assert!(!lockmdb.exists());
+
+            let store_name = "store1";
+            let metric_name = "counter";
+            let key = Database::get_storage_key(store_name, Some(metric_name));
+
+            // Ensure some old data in the LMDB format exists.
+            {
+                fs::create_dir_all(&database_dir).expect("create dir");
+                let rkv_db = rkv::Rkv::new::<rkv::backend::Lmdb>(&database_dir).expect("rkv env");
+
+                let store = rkv_db
+                    .open_single("ping", StoreOptions::create())
+                    .expect("opened");
+                let mut writer = rkv_db.write().expect("writer");
+                let metric = Metric::Counter(734); // this value will be ignored
+                let value = bincode::serialize(&metric).expect("serialized");
+                store
+                    .put(&mut writer, &key, &Value::Blob(&value))
+                    .expect("wrote");
+                writer.commit().expect("committed");
+
+                assert!(datamdb.exists());
+                assert!(lockmdb.exists());
+            }
+
+            // Ensure some data exists in the new database.
+            {
+                fs::create_dir_all(&database_dir).expect("create dir");
+                let rkv_db =
+                    rkv::Rkv::new::<rkv::backend::SafeMode>(&database_dir).expect("rkv env");
+
+                let store = rkv_db
+                    .open_single("ping", StoreOptions::create())
+                    .expect("opened");
+                let mut writer = rkv_db.write().expect("writer");
+                let metric = Metric::Counter(2);
+                let value = bincode::serialize(&metric).expect("serialized");
+                store
+                    .put(&mut writer, &key, &Value::Blob(&value))
+                    .expect("wrote");
+                writer.commit().expect("committed");
+
+                assert!(safebin.exists());
+            }
+
+            // First open should try migration and ignore it, because destination is not empty.
+            // It also deletes the leftover LMDB database.
+            {
+                let db = Database::new(&str_dir, false).unwrap();
+                let safebin = database_dir.join("data.safe.bin");
+                assert!(safebin.exists(), "safe-mode file should exist");
+                assert!(!datamdb.exists(), "LMDB data should be deleted");
+                assert!(!lockmdb.exists(), "LMDB lock should be deleted");
+
+                let mut stored_metrics = vec![];
+                let mut snapshotter = |name: &[u8], metric: &Metric| {
+                    let name = str::from_utf8(name).unwrap().to_string();
+                    stored_metrics.push((name, metric.clone()))
+                };
+                db.iter_store_from(Lifetime::Ping, "store1", None, &mut snapshotter);
+
+                assert_eq!(1, stored_metrics.len());
+                assert_eq!(metric_name, stored_metrics[0].0);
+                assert_eq!(&Metric::Counter(2), &stored_metrics[0].1);
+            }
+        }
+
+        #[test]
+        fn migration_ignores_broken_database() {
+            let dir = tempdir().unwrap();
+            let str_dir = dir.path().display().to_string();
+
+            let database_dir = dir.path().join("db");
+            let datamdb = database_dir.join("data.mdb");
+            let lockmdb = database_dir.join("lock.mdb");
+            let safebin = database_dir.join("data.safe.bin");
+
+            assert!(!safebin.exists());
+            assert!(!datamdb.exists());
+            assert!(!lockmdb.exists());
+
+            let store_name = "store1";
+            let metric_name = "counter";
+            let key = Database::get_storage_key(store_name, Some(metric_name));
+
+            // Ensure some old data in the LMDB format exists.
+            {
+                fs::create_dir_all(&database_dir).expect("create dir");
+                fs::write(&datamdb, "bogus").expect("dbfile created");
+
+                assert!(datamdb.exists());
+            }
+
+            // Ensure some data exists in the new database.
+            {
+                fs::create_dir_all(&database_dir).expect("create dir");
+                let rkv_db =
+                    rkv::Rkv::new::<rkv::backend::SafeMode>(&database_dir).expect("rkv env");
+
+                let store = rkv_db
+                    .open_single("ping", StoreOptions::create())
+                    .expect("opened");
+                let mut writer = rkv_db.write().expect("writer");
+                let metric = Metric::Counter(2);
+                let value = bincode::serialize(&metric).expect("serialized");
+                store
+                    .put(&mut writer, &key, &Value::Blob(&value))
+                    .expect("wrote");
+                writer.commit().expect("committed");
+            }
+
+            // First open should try migration and ignore it, because destination is not empty.
+            // It also deletes the leftover LMDB database.
+            {
+                let db = Database::new(&str_dir, false).unwrap();
+                let safebin = database_dir.join("data.safe.bin");
+                assert!(safebin.exists(), "safe-mode file should exist");
+                assert!(!datamdb.exists(), "LMDB data should be deleted");
+                assert!(!lockmdb.exists(), "LMDB lock should be deleted");
+
+                let mut stored_metrics = vec![];
+                let mut snapshotter = |name: &[u8], metric: &Metric| {
+                    let name = str::from_utf8(name).unwrap().to_string();
+                    stored_metrics.push((name, metric.clone()))
+                };
+                db.iter_store_from(Lifetime::Ping, "store1", None, &mut snapshotter);
+
+                assert_eq!(1, stored_metrics.len());
+                assert_eq!(metric_name, stored_metrics[0].0);
+                assert_eq!(&Metric::Counter(2), &stored_metrics[0].1);
+            }
+        }
+
+        #[test]
+        fn migration_ignores_empty_database() {
+            let dir = tempdir().unwrap();
+            let str_dir = dir.path().display().to_string();
+
+            let database_dir = dir.path().join("db");
+            let datamdb = database_dir.join("data.mdb");
+            let lockmdb = database_dir.join("lock.mdb");
+            let safebin = database_dir.join("data.safe.bin");
+
+            assert!(!safebin.exists());
+            assert!(!datamdb.exists());
+            assert!(!lockmdb.exists());
+
+            // Ensure old LMDB database exists, but is empty.
+            {
+                fs::create_dir_all(&database_dir).expect("create dir");
+                let rkv_db = rkv::Rkv::new::<rkv::backend::Lmdb>(&database_dir).expect("rkv env");
+                drop(rkv_db);
+                assert!(datamdb.exists());
+                assert!(lockmdb.exists());
+            }
+
+            // First open should try migration, but find no data.
+            // safe-mode does not write an empty database to disk.
+            // It also deletes the leftover LMDB database.
+            {
+                let _db = Database::new(&str_dir, false).unwrap();
+                let safebin = database_dir.join("data.safe.bin");
+                assert!(!safebin.exists(), "safe-mode file should exist");
+                assert!(!datamdb.exists(), "LMDB data should be deleted");
+                assert!(!lockmdb.exists(), "LMDB lock should be deleted");
+            }
         }
     }
 }

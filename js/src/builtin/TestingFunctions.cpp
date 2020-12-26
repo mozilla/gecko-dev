@@ -63,6 +63,7 @@
 #include "js/experimental/CodeCoverage.h"  // js::GetCodeCoverageSummary
 #include "js/experimental/TypedData.h"     // JS_GetObjectAsUint8Array
 #include "js/friend/DumpFunctions.h"  // js::Dump{Backtrace,Heap,Object}, JS::FormatStackDump, js::IgnoreNurseryObjects
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/WindowProxy.h"    // js::ToWindowProxyIfWindow
 #include "js/HashTable.h"
 #include "js/LocaleSensitive.h"
@@ -884,18 +885,21 @@ static bool WasmCompilersPresent(JSContext* cx, unsigned argc, Value* vp) {
   if (wasm::BaselinePlatformSupport()) {
     strcat(buf, "baseline");
   }
-  if (wasm::IonPlatformSupport()) {
-    if (*buf) {
-      strcat(buf, ",");
-    }
-    strcat(buf, "ion");
-  }
+#ifdef ENABLE_WASM_CRANELIFT
   if (wasm::CraneliftPlatformSupport()) {
     if (*buf) {
       strcat(buf, ",");
     }
     strcat(buf, "cranelift");
   }
+#else
+  if (wasm::IonPlatformSupport()) {
+    if (*buf) {
+      strcat(buf, ",");
+    }
+    strcat(buf, "ion");
+  }
+#endif
 
   JSString* result = JS_NewStringCopyZ(cx, buf);
   if (!result) {
@@ -1091,6 +1095,12 @@ struct DisasmBuffer {
   bool oom;
   explicit DisasmBuffer(JSContext* cx) : builder(cx), oom(false) {}
 };
+
+static bool HasDisassembler(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  args.rval().setBoolean(jit::HasDisassembler());
+  return true;
+}
 
 MOZ_THREAD_LOCAL(DisasmBuffer*) disasmBuf;
 
@@ -1370,6 +1380,58 @@ static bool IsRelazifiableFunction(JSContext* cx, unsigned argc, Value* vp) {
   JSFunction* fun = &args[0].toObject().as<JSFunction>();
   args.rval().setBoolean(fun->hasBytecode() &&
                          fun->nonLazyScript()->allowRelazify());
+  return true;
+}
+
+static bool HasSameBytecodeData(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  if (args.length() != 2) {
+    JS_ReportErrorASCII(cx, "The function takes exactly two argument.");
+    return false;
+  }
+
+  auto GetSharedData = [](JSContext* cx,
+                          HandleValue v) -> SharedImmutableScriptData* {
+    if (!v.isObject()) {
+      JS_ReportErrorASCII(cx, "The arguments must be interpreted functions.");
+      return nullptr;
+    }
+
+    RootedObject obj(cx, CheckedUnwrapDynamic(&v.toObject(), cx));
+    if (!obj) {
+      return nullptr;
+    }
+
+    if (!obj->is<JSFunction>() || !obj->as<JSFunction>().isInterpreted()) {
+      JS_ReportErrorASCII(cx, "The arguments must be interpreted functions.");
+      return nullptr;
+    }
+
+    AutoRealm ar(cx, obj);
+    RootedFunction fun(cx, &obj->as<JSFunction>());
+    RootedScript script(cx, JSFunction::getOrCreateScript(cx, fun));
+    if (!script) {
+      return nullptr;
+    }
+
+    MOZ_ASSERT(script->sharedData());
+    return script->sharedData();
+  };
+
+  // NOTE: We use RefPtr below to keep the data alive across possible GC since
+  //       the functions may be in different Zones.
+
+  RefPtr<SharedImmutableScriptData> sharedData1 = GetSharedData(cx, args[0]);
+  if (!sharedData1) {
+    return false;
+  }
+
+  RefPtr<SharedImmutableScriptData> sharedData2 = GetSharedData(cx, args[1]);
+  if (!sharedData2) {
+    return false;
+  }
+
+  args.rval().setBoolean(sharedData1 == sharedData2);
   return true;
 }
 
@@ -4980,7 +5042,7 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   /* Deserialize the stencil from XDR. */
-  JS::TranscodeRange xdrRange(src->dataPointer(), src->byteLength());
+  JS::TranscodeRange xdrRange(src->dataPointer(), src->byteLength().get());
   bool succeeded = false;
   if (!compilationInfos.get().deserializeStencils(cx, xdrRange, &succeeded)) {
     return false;
@@ -4991,13 +5053,13 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   /* Instantiate the stencil. */
-  frontend::CompilationGCOutput output(cx);
-  if (!compilationInfos.get().instantiateStencils(cx, output)) {
+  Rooted<frontend::CompilationGCOutput> output(cx);
+  if (!compilationInfos.get().instantiateStencils(cx, output.get())) {
     return false;
   }
 
   /* Obtain the JSScript and evaluate it. */
-  RootedScript script(cx, output.script);
+  RootedScript script(cx, output.get().script);
   RootedValue retVal(cx, UndefinedValue());
   if (!JS_ExecuteScript(cx, script, &retVal)) {
     return false;
@@ -6393,6 +6455,10 @@ static const JSFunctionSpecWithHelp TestingFunctions[] = {
 "gcparam(name [, value])",
 "  Wrapper for JS_[GS]etGCParameter. The name is one of:" GC_PARAMETER_ARGS_LIST),
 
+    JS_FN_HELP("hasDisassembler", HasDisassembler, 0, 0,
+"hasDisassembler()",
+"  Return true if a disassembler is present (for disnative and wasmDis)."),
+
     JS_FN_HELP("disnative", DisassembleNative, 2, 0,
 "disnative(fun,[path])",
 "  Disassemble a function into its native code. Optionally write the native code bytes to a file on disk.\n"),
@@ -6877,6 +6943,11 @@ gc::ZealModeHelpText),
     JS_FN_HELP("isRelazifiableFunction", IsRelazifiableFunction, 1, 0,
 "isRelazifiableFunction(fun)",
 "  True if fun is a JSFunction with a relazifiable JSScript."),
+
+    JS_FN_HELP("hasSameBytecodeData", HasSameBytecodeData, 2, 0,
+"hasSameBytecodeData(fun1, fun2)",
+"  True if fun1 and fun2 share the same copy of bytecode data. This will\n"
+"  delazify the function if necessary."),
 
     JS_FN_HELP("enableShellAllocationMetadataBuilder", EnableShellAllocationMetadataBuilder, 0, 0,
 "enableShellAllocationMetadataBuilder()",

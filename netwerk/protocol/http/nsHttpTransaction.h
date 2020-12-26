@@ -12,9 +12,10 @@
 #include "nsAHttpConnection.h"
 #include "EventTokenBucket.h"
 #include "nsCOMPtr.h"
+#include "nsIAsyncOutputStream.h"
 #include "nsThreadUtils.h"
-#include "nsIDNSListener.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsIAsyncOutputStream.h"
 #include "nsITimer.h"
 #include "TimingStruct.h"
 #include "Http2Push.h"
@@ -35,6 +36,7 @@ class nsISVCBRecord;
 namespace mozilla {
 namespace net {
 
+class HTTPSRecordResolver;
 class nsHttpChunkedDecoder;
 class nsHttpHeaderArray;
 class nsHttpRequestHead;
@@ -53,7 +55,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
                                 public nsIInputStreamCallback,
                                 public nsIOutputStreamCallback,
                                 public ARefBase,
-                                public nsIDNSListener,
                                 public nsITimerCallback {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
@@ -61,7 +62,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   NS_DECL_HTTPTRANSACTIONSHELL
   NS_DECL_NSIINPUTSTREAMCALLBACK
   NS_DECL_NSIOUTPUTSTREAMCALLBACK
-  NS_DECL_NSIDNSLISTENER
   NS_DECL_NSITIMERCALLBACK
 
   nsHttpTransaction();
@@ -93,6 +93,12 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   // Sets mPendingTime to the current time stamp or to a null time stamp (if now
   // is false)
   void SetPendingTime(bool now = true) {
+    if (!now && !mPendingTime.IsNull()) {
+      // Remember how long it took. We will use this vaule to record
+      // TRANSACTION_WAIT_TIME_HTTP2_SUP_HTTP3 telemetry, but we need to wait
+      // for the response headers.
+      mPendingDurationTime = TimeStamp::Now() - mPendingTime;
+    }
     mPendingTime = now ? TimeStamp::Now() : TimeStamp();
   }
   const TimeStamp GetPendingTime() { return mPendingTime; }
@@ -103,7 +109,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void RemoveDispatchedAsBlocking();
 
   void DisableSpdy() override;
-  void DisableHttp3();
+  void DisableHttp3() override;
 
   nsHttpTransaction* QueryHttpTransaction() override { return this; }
 
@@ -156,6 +162,12 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void OnPush(Http2PushedStreamWrapper* aStream);
 
   void UpdateConnectionInfo(nsHttpConnectionInfo* aConnInfo);
+
+  void SetClassOfService(uint32_t cos);
+
+  virtual nsresult OnHTTPSRRAvailable(
+      nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
+      nsISVCBRecord* aHighestPriorityRecord) override;
 
  private:
   friend class DeleteHttpTransaction;
@@ -342,6 +354,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   // conservative side, e.g. by going ahead with a 2nd DNS refresh.
   Atomic<uint32_t> mCapsToClear;
   Atomic<bool, ReleaseAcquire> mResponseIsComplete;
+  Atomic<bool, ReleaseAcquire> mClosed;
 
   // True iff WriteSegments was called while this transaction should be
   // throttled (stop reading) Used to resume read on unblock of reading.  Conn
@@ -350,7 +363,6 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   // state flags, all logically boolean, but not packed together into a
   // bitfield so as to avoid bitfield-induced races.  See bug 560579.
-  bool mClosed;
   bool mConnected;
   bool mActivated;
   bool mHaveStatusLine;
@@ -395,6 +407,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   // The time when the transaction was submitted to the Connection Manager
   TimeStamp mPendingTime;
+  TimeDuration mPendingDurationTime;
 
   uint64_t mTopLevelOuterContentWindowId;
 
@@ -436,7 +449,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   uint32_t ClassOfService() { return mClassOfService; }
 
  private:
-  uint32_t mClassOfService;
+  Atomic<uint32_t, Relaxed> mClassOfService;
 
  public:
   // setting TunnelProvider to non-null means the transaction should only
@@ -488,6 +501,22 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   bool mFastFallbackTriggered = false;
   nsCOMPtr<nsITimer> mFastFallbackTimer;
   nsCOMPtr<nsISVCBRecord> mFastFallbackRecord;
+  RefPtr<HTTPSRecordResolver> mResolver;
+
+  // IMPORTANT: when adding new values, always add them to the end, otherwise
+  // it will mess up telemetry.
+  enum TRANSACTION_RESTART_REASON : uint32_t {
+    TRANSACTION_RESTART_NONE = 0,    // The transacion was not restarted.
+    TRANSACTION_RESTART_FORCED = 1,  // The transaction was forced to restart.
+    TRANSACTION_RESTART_HTTPSSVC_INVOLVED = 2,
+    TRANSACTION_RESTART_NO_DATA_SENT = 3,
+    TRANSACTION_RESTART_DOWNGRADE_WITH_EARLY_DATA = 4,
+    TRANSACTION_RESTART_OTHERS = 5,
+  };
+
+  nsDataHashtable<nsUint32HashKey, uint32_t> mEchRetryCounterMap;
+
+  bool mSupportsHTTP3 = false;
 };
 
 }  // namespace net

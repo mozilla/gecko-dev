@@ -8,9 +8,9 @@
 
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/AbortSignalBinding.h"
+#include "mozilla/RefPtr.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // AbortSignalImpl
 // ----------------------------------------------------------------------------
@@ -19,29 +19,37 @@ AbortSignalImpl::AbortSignalImpl(bool aAborted) : mAborted(aAborted) {}
 
 bool AbortSignalImpl::Aborted() const { return mAborted; }
 
-void AbortSignalImpl::Abort() {
+// https://dom.spec.whatwg.org/#abortsignal-signal-abort steps 1-4
+void AbortSignalImpl::SignalAbort() {
+  // Step 1.
   if (mAborted) {
     return;
   }
 
+  // Step 2.
   mAborted = true;
 
-  // Let's inform the followers.
+  // Step 3.
+  // When there are multiple followers, the follower removal algorithm
+  // https://dom.spec.whatwg.org/#abortsignal-remove could be invoked in an
+  // earlier algorithm to remove a later algorithm, so |mFollowers| must be a
+  // |nsTObserverArray| to defend against mutation.
   for (RefPtr<AbortFollower> follower : mFollowers.ForwardRange()) {
-    follower->Abort();
+    MOZ_ASSERT(follower->mFollowingSignal == this);
+    follower->RunAbortAlgorithm();
   }
+
+  // Step 4.
+  // Clear follower->signal links, then clear signal->follower links.
+  for (AbortFollower* follower : mFollowers.ForwardRange()) {
+    follower->mFollowingSignal = nullptr;
+  }
+  mFollowers.Clear();
 }
 
-void AbortSignalImpl::AddFollower(AbortFollower* aFollower) {
-  MOZ_DIAGNOSTIC_ASSERT(aFollower);
-  if (!mFollowers.Contains(aFollower)) {
-    mFollowers.AppendElement(aFollower);
-  }
-}
-
-void AbortSignalImpl::RemoveFollower(AbortFollower* aFollower) {
-  MOZ_DIAGNOSTIC_ASSERT(aFollower);
-  mFollowers.RemoveElement(aFollower);
+/* static */ void AbortSignalImpl::Traverse(
+    AbortSignalImpl* aSignal, nsCycleCollectionTraversalCallback& cb) {
+  // To be filled in shortly.
 }
 
 // AbortSignal
@@ -51,12 +59,14 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(AbortSignal)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(AbortSignal,
                                                   DOMEventTargetHelper)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFollowingSignal)
+  AbortSignalImpl::Traverse(static_cast<AbortSignalImpl*>(tmp), cb);
+  AbortFollower::Traverse(static_cast<AbortFollower*>(tmp), cb);
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(AbortSignal,
                                                 DOMEventTargetHelper)
-  tmp->Unfollow();
+  AbortSignalImpl::Unlink(static_cast<AbortSignalImpl*>(tmp));
+  AbortFollower::Unlink(static_cast<AbortFollower*>(tmp));
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AbortSignal)
@@ -73,9 +83,12 @@ JSObject* AbortSignal::WrapObject(JSContext* aCx,
   return AbortSignal_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void AbortSignal::Abort() {
-  AbortSignalImpl::Abort();
+// https://dom.spec.whatwg.org/#abortsignal-signal-abort
+void AbortSignal::SignalAbort() {
+  // Steps 1-4.
+  AbortSignalImpl::SignalAbort();
 
+  // Step 5.
   EventInit init;
   init.mBubbles = false;
   init.mCancelable = false;
@@ -91,23 +104,40 @@ void AbortSignal::Abort() {
 
 AbortFollower::~AbortFollower() { Unfollow(); }
 
+// https://dom.spec.whatwg.org/#abortsignal-add
 void AbortFollower::Follow(AbortSignalImpl* aSignal) {
+  // Step 1.
+  if (aSignal->mAborted) {
+    return;
+  }
+
   MOZ_DIAGNOSTIC_ASSERT(aSignal);
 
   Unfollow();
 
+  // Step 2.
   mFollowingSignal = aSignal;
-  aSignal->AddFollower(this);
+  MOZ_ASSERT(!aSignal->mFollowers.Contains(this));
+  aSignal->mFollowers.AppendElement(this);
 }
 
+// https://dom.spec.whatwg.org/#abortsignal-remove
 void AbortFollower::Unfollow() {
   if (mFollowingSignal) {
-    mFollowingSignal->RemoveFollower(this);
+    // |Unfollow| is called by cycle-collection unlink code that runs in no
+    // guaranteed order.  So we can't, symmetric with |Follow| above, assert
+    // that |this| will be found in |mFollowingSignal->mFollowers|.
+    mFollowingSignal->mFollowers.RemoveElement(this);
     mFollowingSignal = nullptr;
   }
 }
 
 bool AbortFollower::IsFollowing() const { return !!mFollowingSignal; }
 
-}  // namespace dom
-}  // namespace mozilla
+/* static */ void AbortFollower::Traverse(
+    AbortFollower* aFollower, nsCycleCollectionTraversalCallback& cb) {
+  ImplCycleCollectionTraverse(cb, aFollower->mFollowingSignal,
+                              "mFollowingSignal", 0);
+}
+
+}  // namespace mozilla::dom

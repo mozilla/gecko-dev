@@ -192,6 +192,7 @@ class BaseStackFrame;
 
 enum class UseABI { Wasm, Builtin, System };
 enum class InterModule { False = false, True = true };
+enum class RhsDestOp { True = true };
 
 #if defined(JS_CODEGEN_NONE)
 #  define RABALDR_SCRATCH_I32
@@ -654,15 +655,16 @@ class BaseRegAlloc {
 
   template <MIRType t>
   bool hasFPU() {
-    return availFPU.hasAny<RegTypeOf<t>::value>();
-  }
-
 #ifdef RABALDR_SIDEALLOC_V128
-  template <>
-  bool hasFPU<MIRType::Simd128>() {
-    MOZ_CRASH("Should not happen");
-  }
+    // Workaround for GCC problem, bug 1677690
+    if constexpr (t == MIRType::Simd128) {
+      MOZ_CRASH("Should not happen");
+    } else
 #endif
+    {
+      return availFPU.hasAny<RegTypeOf<t>::value>();
+    }
+  }
 
   bool isAvailableGPR(Register r) { return availGPR.has(r); }
 
@@ -745,15 +747,16 @@ class BaseRegAlloc {
 
   template <MIRType t>
   FloatRegister allocFPU() {
-    return availFPU.takeAny<RegTypeOf<t>::value>();
-  }
-
 #ifdef RABALDR_SIDEALLOC_V128
-  template <>
-  FloatRegister allocFPU<MIRType::Simd128>() {
-    MOZ_CRASH("Should not happen");
-  }
+    // Workaround for GCC problem, bug 1677690
+    if constexpr (t == MIRType::Simd128) {
+      MOZ_CRASH("Should not happen");
+    } else
 #endif
+    {
+      return availFPU.takeAny<RegTypeOf<t>::value>();
+    }
+  }
 
   void freeGPR(Register r) { availGPR.add(r); }
 
@@ -5234,9 +5237,7 @@ class BaseCompiler final : public BaseCompilerInterface {
   // Labels
 
   void insertBreakablePoint(CallSiteDesc::Kind kind) {
-    // The debug trap exit requires WasmTlsReg be loaded. However, since we
-    // are emitting millions of these breakable points inline, we push this
-    // loading of TLS into the FarJumpIsland created by linkCallSites.
+    fr.loadTlsPtr(WasmTlsReg);
     masm.nopPatchableToCall(CallSiteDesc(iter_.lastOpcodeOffset(), kind));
   }
 
@@ -5267,7 +5268,7 @@ class BaseCompiler final : public BaseCompilerInterface {
     }
 
     // Identify GC-managed pointers passed on the stack.
-    for (ABIArgIter i(args); !i.done(); i++) {
+    for (WasmABIArgIter i(args); !i.done(); i++) {
       ABIArg argLoc = *i;
       if (argLoc.kind() == ABIArg::Stack &&
           args[i.index()] == MIRType::RefOrNull) {
@@ -5353,7 +5354,7 @@ class BaseCompiler final : public BaseCompilerInterface {
     }
 
     // Copy arguments from registers to stack.
-    for (ABIArgIter i(args); !i.done(); i++) {
+    for (WasmABIArgIter i(args); !i.done(); i++) {
       if (args.isSyntheticStackResultPointerArg(i.index())) {
         // If there are stack results and the pointer to stack results
         // was passed in a register, store it to the stack.
@@ -5575,6 +5576,9 @@ class BaseCompiler final : public BaseCompilerInterface {
       restoreRegisterReturnValues(resultType);
     }
 
+    // To satisy Tls extent invariant we need to reload WasmTlsReg because
+    // baseline can clobber it.
+    fr.loadTlsPtr(WasmTlsReg);
     GenerateFunctionEpilogue(masm, fr.fixedAllocSize(), &offsets_);
 
 #if defined(JS_ION_PERF)
@@ -5618,7 +5622,7 @@ class BaseCompiler final : public BaseCompilerInterface {
     }
 
     uint32_t lineOrBytecode;
-    ABIArgGenerator abi;
+    WasmABIArgGenerator abi;
     bool isInterModule;
     bool usesSystemAbi;
 #ifdef JS_CODEGEN_ARM
@@ -6488,27 +6492,15 @@ class BaseCompiler final : public BaseCompilerInterface {
   }
 
   MOZ_MUST_USE bool supportsRoundInstruction(RoundingMode mode) {
-#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
     return Assembler::HasRoundInstruction(mode);
-#else
-    return false;
-#endif
   }
 
   void roundF32(RoundingMode roundingMode, RegF32 f0) {
-#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
     masm.nearbyIntFloat32(roundingMode, f0, f0);
-#else
-    MOZ_CRASH("NYI");
-#endif
   }
 
   void roundF64(RoundingMode roundingMode, RegF64 f0) {
-#if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
     masm.nearbyIntDouble(roundingMode, f0, f0);
-#else
-    MOZ_CRASH("NYI");
-#endif
   }
 
   //////////////////////////////////////////////////////////////////////
@@ -6602,9 +6594,9 @@ class BaseCompiler final : public BaseCompilerInterface {
 
     if (!moduleEnv_.hugeMemoryEnabled() && !check->omitBoundsCheck) {
       Label ok;
-      masm.wasmBoundsCheck(Assembler::Below, ptr,
-                           Address(tls, offsetof(TlsData, boundsCheckLimit)),
-                           &ok);
+      masm.wasmBoundsCheck32(
+          Assembler::Below, ptr,
+          Address(tls, offsetof(TlsData, boundsCheckLimit32)), &ok);
       masm.wasmTrap(Trap::OutOfBounds, bytecodeOffset());
       masm.bind(&ok);
     }
@@ -8238,6 +8230,10 @@ class BaseCompiler final : public BaseCompilerInterface {
   template <typename RhsType, typename LhsDestType>
   void emitVectorBinop(void (*op)(MacroAssembler& masm, RhsType src,
                                   LhsDestType srcDest));
+
+  template <typename RhsDestType, typename LhsType>
+  void emitVectorBinop(void (*op)(MacroAssembler& masm, RhsDestType src,
+                                  LhsType srcDest, RhsDestOp));
 
   template <typename RhsType, typename LhsDestType, typename TempType>
   void emitVectorBinop(void (*)(MacroAssembler& masm, RhsType rs,
@@ -12973,6 +12969,25 @@ static void MaxF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd,
   masm.maxFloat64x2(rs, rsd, temp1, temp2);
 }
 
+static void PMinF32x4(MacroAssembler& masm, RegV128 rsd, RegV128 rs,
+                      RhsDestOp) {
+  masm.pseudoMinFloat32x4(rsd, rs);
+}
+
+static void PMinF64x2(MacroAssembler& masm, RegV128 rsd, RegV128 rs,
+                      RhsDestOp) {
+  masm.pseudoMinFloat64x2(rsd, rs);
+}
+
+static void PMaxF32x4(MacroAssembler& masm, RegV128 rsd, RegV128 rs,
+                      RhsDestOp) {
+  masm.pseudoMaxFloat32x4(rsd, rs);
+}
+
+static void PMaxF64x2(MacroAssembler& masm, RegV128 rsd, RegV128 rs,
+                      RhsDestOp) {
+  masm.pseudoMaxFloat64x2(rsd, rs);
+}
 #  elif defined(JS_CODEGEN_ARM64)
 static void MinF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
   masm.minFloat32x4(rs, rsd);
@@ -12989,7 +13004,6 @@ static void MaxF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
 static void MaxF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
   masm.maxFloat64x2(rs, rsd);
 }
-#  endif
 
 static void PMinF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
   masm.pseudoMinFloat32x4(rs, rsd);
@@ -13006,6 +13020,7 @@ static void PMaxF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
 static void PMaxF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
   masm.pseudoMaxFloat64x2(rs, rsd);
 }
+#  endif
 
 static void DotI16x8(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
   masm.widenDotInt16x8(rs, rsd);
@@ -13573,6 +13588,17 @@ void BaseCompiler::emitVectorBinop(void (*op)(MacroAssembler& masm, RhsType src,
   push(rsd);
 }
 
+template <typename RhsDestType, typename LhsType>
+void BaseCompiler::emitVectorBinop(void (*op)(MacroAssembler& masm,
+                                              RhsDestType src, LhsType srcDest,
+                                              RhsDestOp)) {
+  RhsDestType rsd = pop<RhsDestType>();
+  LhsType rs = pop<LhsType>();
+  op(masm, rsd, rs, RhsDestOp::True);
+  free(rs);
+  push(rsd);
+}
+
 template <typename RhsType, typename LhsDestType, typename TempType>
 void BaseCompiler::emitVectorBinop(void (*op)(MacroAssembler& masm, RhsType rs,
                                               LhsDestType rsd, TempType temp)) {
@@ -13803,15 +13829,7 @@ bool BaseCompiler::emitVectorShuffle() {
 
   RegV128 rd, rs;
   pop2xV128(&rd, &rs);
-#  if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
-  RegV128 temp = needV128();
-  masm.shuffleInt8x16(shuffleMask.bytes, rs, rd, temp);
-  freeV128(temp);
-#  elif defined(JS_CODEGEN_ARM64)
   masm.shuffleInt8x16(shuffleMask.bytes, rs, rd);
-#  else
-  MOZ_CRASH("NYI");
-#  endif
   freeV128(rs);
   pushV128(rd);
 
@@ -15101,11 +15119,9 @@ bool BaseCompiler::emitBody() {
             CHECK_NEXT(emitLoadExtend(Scalar::Int32));
           case uint32_t(SimdOp::I64x2LoadU32x2):
             CHECK_NEXT(emitLoadExtend(Scalar::Uint32));
-          case uint32_t(SimdOp::V128Load32ZeroExperimental):
-            CHECK_SIMD_EXPERIMENTAL();
+          case uint32_t(SimdOp::V128Load32Zero):
             CHECK_NEXT(emitLoadZero(Scalar::Float32));
-          case uint32_t(SimdOp::V128Load64ZeroExperimental):
-            CHECK_SIMD_EXPERIMENTAL();
+          case uint32_t(SimdOp::V128Load64Zero):
             CHECK_NEXT(emitLoadZero(Scalar::Float64));
           case uint32_t(SimdOp::V128Store):
             CHECK_NEXT(emitStore(ValType::V128, Scalar::Simd128));

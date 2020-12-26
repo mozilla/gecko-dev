@@ -22,7 +22,24 @@ namespace frontend {
 class StencilXDR {
  public:
   template <XDRMode mode>
+  static XDRResult Script(XDRState<mode>* xdr, ScriptStencil& stencil);
+
+  template <XDRMode mode>
   static XDRResult Scope(XDRState<mode>* xdr, ScopeStencil& stencil);
+
+  template <XDRMode mode>
+  static XDRResult FunctionScopeData(XDRState<mode>* xdr,
+                                     ScopeStencil& stencil);
+  template <XDRMode mode>
+  static XDRResult VarScopeData(XDRState<mode>* xdr, ScopeStencil& stencil);
+  template <XDRMode mode>
+  static XDRResult LexicalScopeData(XDRState<mode>* xdr, ScopeStencil& stencil);
+  template <XDRMode mode>
+  static XDRResult EvalScopeData(XDRState<mode>* xdr, ScopeStencil& stencil);
+  template <XDRMode mode>
+  static XDRResult GlobalScopeData(XDRState<mode>* xdr, ScopeStencil& stencil);
+  template <XDRMode mode>
+  static XDRResult ModuleScopeData(XDRState<mode>* xdr, ScopeStencil& stencil);
 
   template <XDRMode mode>
   static XDRResult ObjLiteral(XDRState<mode>* xdr, ObjLiteralStencil& stencil);

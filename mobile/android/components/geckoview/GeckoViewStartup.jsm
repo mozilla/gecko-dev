@@ -23,11 +23,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 const { debug, warn } = GeckoViewUtils.initLogging("Startup");
 
 const JSWINDOWACTORS = {
-  BrowserTab: {
-    parent: {
-      moduleURI: "resource:///actors/BrowserTabParent.jsm",
-    },
-  },
   LoadURIDelegate: {
     child: {
       moduleURI: "resource:///actors/LoadURIDelegateChild.jsm",
@@ -163,7 +158,6 @@ class GeckoViewStartup {
           Services.appinfo.processType == Services.appinfo.PROCESS_TYPE_DEFAULT
         ) {
           ActorManagerParent.addJSWindowActors(JSWINDOWACTORS);
-          ActorManagerParent.flush();
 
           Services.mm.loadFrameScript(
             "chrome://geckoview/content/GeckoViewPromptChild.js",

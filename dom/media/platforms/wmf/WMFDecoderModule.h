@@ -13,6 +13,8 @@ namespace mozilla {
 
 class WMFDecoderModule : public PlatformDecoderModule {
  public:
+  static already_AddRefed<PlatformDecoderModule> Create();
+
   // Initializes the module, loads required dynamic libraries, etc.
   nsresult Startup() override;
 
@@ -24,7 +26,7 @@ class WMFDecoderModule : public PlatformDecoderModule {
 
   bool SupportsMimeType(const nsACString& aMimeType,
                         DecoderDoctorDiagnostics* aDiagnostics) const override;
-  bool Supports(const TrackInfo& aTrackInfo,
+  bool Supports(const SupportDecoderParams& aParams,
                 DecoderDoctorDiagnostics* aDiagnostics) const override;
 
   // Called on main thread.
@@ -38,8 +40,11 @@ class WMFDecoderModule : public PlatformDecoderModule {
   // H.264/AAC decoders if the "Platform Update Supplement for Windows Vista"
   // is not installed, and Window N and KN variants also require a "Media
   // Feature Pack" to be installed. Windows XP doesn't have WMF.
-  static bool HasAAC();
   static bool HasH264();
+  static bool HasVP8();
+  static bool HasVP9();
+  static bool HasAAC();
+  static bool HasMP3();
 
  private:
   virtual ~WMFDecoderModule();

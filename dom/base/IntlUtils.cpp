@@ -7,11 +7,11 @@
 #include "IntlUtils.h"
 
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/intl/LocaleService.h"
 #include "mozIMozIntl.h"
 #include "nsContentUtils.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(IntlUtils, mWindow)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(IntlUtils)
@@ -130,5 +130,10 @@ void IntlUtils::GetLocaleInfo(const Sequence<nsString>& aLocales,
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+bool IntlUtils::IsAppLocaleRTL() {
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome() ||
+             nsContentUtils::IsCallerUAWidget());
+  return intl::LocaleService::GetInstance()->IsAppLocaleRTL();
+}
+
+}  // namespace mozilla::dom

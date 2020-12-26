@@ -25,14 +25,14 @@ class WindowSurfaceWayland;
 // Allocates and owns shared memory for Wayland drawing surface
 class WaylandShmPool {
  public:
-  WaylandShmPool(RefPtr<nsWaylandDisplay> aDisplay, int aSize);
-  ~WaylandShmPool();
-
-  bool Resize(int aSize);
+  bool Create(RefPtr<nsWaylandDisplay> aWaylandDisplay, int aSize);
+  void Release();
   wl_shm_pool* GetShmPool() { return mShmPool; };
   void* GetImageData() { return mImageData; };
   void SetImageDataFromPool(class WaylandShmPool* aSourcePool,
                             int aImageDataSize);
+  WaylandShmPool();
+  ~WaylandShmPool();
 
  private:
   wl_shm_pool* mShmPool;
@@ -44,62 +44,20 @@ class WaylandShmPool {
 // Holds actual graphics data for wl_surface
 class WindowBackBuffer {
  public:
-  virtual already_AddRefed<gfx::DrawTarget> Lock() = 0;
-  virtual void Unlock() = 0;
-  virtual bool IsLocked() = 0;
-
-  void Attach(wl_surface* aSurface);
-  virtual void Detach(wl_buffer* aBuffer) = 0;
-  virtual bool IsAttached() = 0;
-
-  virtual void Clear() = 0;
-  virtual bool Resize(int aWidth, int aHeight) = 0;
-
-  virtual int GetWidth() = 0;
-  virtual int GetHeight() = 0;
-  virtual wl_buffer* GetWlBuffer() = 0;
-  virtual void SetAttached() = 0;
-
-  virtual bool SetImageDataFromBuffer(
-      class WindowBackBuffer* aSourceBuffer) = 0;
-
-  bool IsMatchingSize(int aWidth, int aHeight) {
-    return aWidth == GetWidth() && aHeight == GetHeight();
-  }
-  bool IsMatchingSize(class WindowBackBuffer* aBuffer) {
-    return aBuffer->IsMatchingSize(GetWidth(), GetHeight());
-  }
-
-  static gfx::SurfaceFormat GetSurfaceFormat() { return mFormat; }
-
-  RefPtr<nsWaylandDisplay> GetWaylandDisplay();
-
-  WindowBackBuffer(WindowSurfaceWayland* aWindowSurfaceWayland)
-      : mWindowSurfaceWayland(aWindowSurfaceWayland){};
-  virtual ~WindowBackBuffer() = default;
-
- protected:
-  WindowSurfaceWayland* mWindowSurfaceWayland;
-
- private:
-  static gfx::SurfaceFormat mFormat;
-};
-
-class WindowBackBufferShm : public WindowBackBuffer {
- public:
-  WindowBackBufferShm(WindowSurfaceWayland* aWindowSurfaceWayland, int aWidth,
-                      int aHeight);
-  ~WindowBackBufferShm();
+  explicit WindowBackBuffer(WindowSurfaceWayland* aWindowSurfaceWayland);
+  ~WindowBackBuffer();
 
   already_AddRefed<gfx::DrawTarget> Lock();
   bool IsLocked() { return mIsLocked; };
   void Unlock() { mIsLocked = false; };
 
+  void Attach(wl_surface* aSurface);
   void Detach(wl_buffer* aBuffer);
   bool IsAttached() { return mAttached; }
   void SetAttached() { mAttached = true; };
 
   void Clear();
+  bool Create(int aWidth, int aHeight);
   bool Resize(int aWidth, int aHeight);
   bool SetImageDataFromBuffer(class WindowBackBuffer* aSourceBuffer);
 
@@ -108,9 +66,21 @@ class WindowBackBufferShm : public WindowBackBuffer {
 
   wl_buffer* GetWlBuffer() { return mWLBuffer; };
 
+  bool IsMatchingSize(int aWidth, int aHeight) {
+    return aWidth == GetWidth() && aHeight == GetHeight();
+  }
+  bool IsMatchingSize(class WindowBackBuffer* aBuffer) {
+    return aBuffer->IsMatchingSize(GetWidth(), GetHeight());
+  }
+  static gfx::SurfaceFormat GetSurfaceFormat() { return mFormat; }
+
+  RefPtr<nsWaylandDisplay> GetWaylandDisplay();
+
  private:
-  void Create(int aWidth, int aHeight);
   void ReleaseShmSurface();
+
+  static gfx::SurfaceFormat mFormat;
+  WindowSurfaceWayland* mWindowSurfaceWayland;
 
   // WaylandShmPool provides actual shared memory we draw into
   WaylandShmPool mShmPool;

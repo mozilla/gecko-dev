@@ -52,8 +52,7 @@
 // Include this last to avoid path problems on Windows.
 #include "ActorsChild.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 using namespace mozilla::dom::indexedDB;
 using namespace mozilla::dom::quota;
@@ -1379,22 +1378,33 @@ RefPtr<IDBIndex> IDBObjectStore::CreateIndex(
     return nullptr;
   }
 
-  KeyPath keyPath(0);
-  if (aKeyPath.IsString()) {
-    if (NS_FAILED(KeyPath::Parse(aKeyPath.GetAsString(), &keyPath)) ||
-        !keyPath.IsValid()) {
-      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
-      return nullptr;
+  // XXX This didn't use to warn before in case of a error. Should we remove the
+  // warning again?
+  const auto checkValid = [](const auto& keyPath) -> Result<KeyPath, nsresult> {
+    if (!keyPath.IsValid()) {
+      return Err(NS_ERROR_DOM_SYNTAX_ERR);
     }
-  } else {
-    MOZ_ASSERT(aKeyPath.IsStringSequence());
-    if (aKeyPath.GetAsStringSequence().IsEmpty() ||
-        NS_FAILED(KeyPath::Parse(aKeyPath.GetAsStringSequence(), &keyPath)) ||
-        !keyPath.IsValid()) {
-      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
-      return nullptr;
-    }
-  }
+
+    return keyPath;
+  };
+
+  IDB_TRY_INSPECT(
+      const auto& keyPath,
+      ([&aKeyPath, checkValid]() -> Result<KeyPath, nsresult> {
+        if (aKeyPath.IsString()) {
+          IDB_TRY_RETURN(
+              KeyPath::Parse(aKeyPath.GetAsString()).andThen(checkValid));
+        }
+
+        MOZ_ASSERT(aKeyPath.IsStringSequence());
+        if (aKeyPath.GetAsStringSequence().IsEmpty()) {
+          return Err(NS_ERROR_DOM_SYNTAX_ERR);
+        }
+
+        IDB_TRY_RETURN(
+            KeyPath::Parse(aKeyPath.GetAsStringSequence()).andThen(checkValid));
+      })(),
+      nullptr, [&aRv](const auto&) { aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR); });
 
   if (aOptionalParameters.mMultiEntry && keyPath.IsArray()) {
     aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
@@ -1817,5 +1827,4 @@ bool IDBObjectStore::ValueWrapper::Clone(JSContext* aCx) {
   return true;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

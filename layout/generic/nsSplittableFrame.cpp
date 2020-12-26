@@ -184,13 +184,27 @@ void nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame) {
   aFrame->SetNextInFlow(nullptr);
 }
 
-nscoord nsSplittableFrame::ConsumedBSize(WritingMode aWM) const {
-  nscoord bSize = 0;
+NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(ConsumedBSizeProperty, nscoord);
 
-  for (nsIFrame* prev = GetPrevContinuation(); prev;
-       prev = prev->GetPrevContinuation()) {
-    bSize += prev->ContentSize(aWM).BSize(aWM);
+nscoord nsSplittableFrame::CalcAndCacheConsumedBSize(WritingMode aWM) {
+  nsIFrame* prev = GetPrevContinuation();
+  if (!prev) {
+    return 0;
   }
+  nscoord bSize = 0;
+  for (; prev; prev = prev->GetPrevContinuation()) {
+    bSize += prev->ContentSize(aWM).BSize(aWM);
+    bool found = false;
+    nscoord consumed = prev->GetProperty(ConsumedBSizeProperty(), &found);
+    if (found) {
+      bSize += consumed;
+      break;
+    }
+    MOZ_ASSERT(!prev->GetPrevContinuation(),
+               "Property should always be set on prev continuation if not "
+               "the first continuation");
+  }
+  SetProperty(ConsumedBSizeProperty(), bSize);
   return bSize;
 }
 
@@ -199,10 +213,6 @@ nscoord nsSplittableFrame::GetEffectiveComputedBSize(
   nscoord bSize = aReflowInput.ComputedBSize();
   if (bSize == NS_UNCONSTRAINEDSIZE) {
     return NS_UNCONSTRAINEDSIZE;
-  }
-
-  if (aConsumedBSize == NS_UNCONSTRAINEDSIZE) {
-    aConsumedBSize = ConsumedBSize(aReflowInput.GetWritingMode());
   }
 
   bSize -= aConsumedBSize;
@@ -224,7 +234,7 @@ nscoord nsSplittableFrame::GetEffectiveComputedBSize(
 }
 
 nsIFrame::LogicalSides nsSplittableFrame::GetLogicalSkipSides(
-    const ReflowInput* aReflowInput) const {
+    const Maybe<SkipSidesDuringReflow>& aDuringReflow) const {
   LogicalSides skip(mWritingMode);
   if (IsTrueOverflowContainer()) {
     skip |= eLogicalSideBitsBBoth;
@@ -240,15 +250,17 @@ nsIFrame::LogicalSides nsSplittableFrame::GetLogicalSkipSides(
     skip |= eLogicalSideBitsBStart;
   }
 
-  if (aReflowInput) {
+  if (aDuringReflow) {
+    nscoord availBSize = aDuringReflow->mReflowInput.AvailableBSize();
     // We're in the midst of reflow right now, so it's possible that we haven't
     // created a next-in-flow yet. If our content block-size is going to exceed
     // our available block-size, though, then we're going to need a
     // next-in-flow, it just hasn't been created yet.
-    if (NS_UNCONSTRAINEDSIZE != aReflowInput->AvailableBSize()) {
-      nscoord effectiveBSize = GetEffectiveComputedBSize(*aReflowInput);
+    if (NS_UNCONSTRAINEDSIZE != availBSize) {
+      nscoord effectiveBSize = GetEffectiveComputedBSize(
+          aDuringReflow->mReflowInput, aDuringReflow->mConsumedBSize);
       if (effectiveBSize != NS_UNCONSTRAINEDSIZE &&
-          effectiveBSize > aReflowInput->AvailableBSize()) {
+          effectiveBSize > availBSize) {
         // Our computed block-size is going to exceed our available block-size,
         // so we're going to need a next-in-flow.
         skip |= eLogicalSideBitsBEnd;

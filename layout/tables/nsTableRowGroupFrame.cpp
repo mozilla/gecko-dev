@@ -258,17 +258,17 @@ void nsTableRowGroupFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 }
 
 nsIFrame::LogicalSides nsTableRowGroupFrame::GetLogicalSkipSides(
-    const ReflowInput* aReflowInput) const {
+    const Maybe<SkipSidesDuringReflow>&) const {
   LogicalSides skip(mWritingMode);
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                    StyleBoxDecorationBreak::Clone)) {
     return skip;
   }
 
-  if (nullptr != GetPrevInFlow()) {
+  if (GetPrevInFlow()) {
     skip |= eLogicalSideBitsBStart;
   }
-  if (nullptr != GetNextInFlow()) {
+  if (GetNextInFlow()) {
     skip |= eLogicalSideBitsBEnd;
   }
   return skip;
@@ -306,15 +306,15 @@ void nsTableRowGroupFrame::PlaceChild(
 void nsTableRowGroupFrame::InitChildReflowInput(nsPresContext& aPresContext,
                                                 bool aBorderCollapse,
                                                 ReflowInput& aReflowInput) {
-  nsMargin border;
+  const auto childWM = aReflowInput.GetWritingMode();
+  LogicalMargin border(childWM);
   if (nsTableRowFrame* rowFrame = do_QueryFrame(aReflowInput.mFrame)) {
     if (aBorderCollapse) {
-      WritingMode wm = GetWritingMode();
-      border = rowFrame->GetBCBorderWidth(wm).GetPhysicalMargin(wm);
+      border = rowFrame->GetBCBorderWidth(childWM);
     }
   }
-  const nsMargin padding;
-  aReflowInput.Init(&aPresContext, Nothing(), &border, &padding);
+  const LogicalMargin zeroPadding(childWM);
+  aReflowInput.Init(&aPresContext, Nothing(), Some(border), Some(zeroPadding));
 }
 
 static void CacheRowBSizesForPrinting(nsPresContext* aPresContext,
@@ -1656,21 +1656,19 @@ nsresult nsTableRowGroupFrame::GetFrameName(nsAString& aResult) const {
 
 LogicalMargin nsTableRowGroupFrame::GetBCBorderWidth(WritingMode aWM) {
   LogicalMargin border(aWM);
-  nsTableRowFrame* firstRowFrame = nullptr;
-  nsTableRowFrame* lastRowFrame = nullptr;
-  for (nsTableRowFrame* rowFrame = GetFirstRow(); rowFrame;
+  nsTableRowFrame* firstRowFrame = GetFirstRow();
+  if (!firstRowFrame) {
+    return border;
+  }
+  nsTableRowFrame* lastRowFrame = firstRowFrame;
+  for (nsTableRowFrame* rowFrame = firstRowFrame->GetNextRow(); rowFrame;
        rowFrame = rowFrame->GetNextRow()) {
-    if (!firstRowFrame) {
-      firstRowFrame = rowFrame;
-    }
     lastRowFrame = rowFrame;
   }
-  if (firstRowFrame) {
-    border.BStart(aWM) = PresContext()->DevPixelsToAppUnits(
-        firstRowFrame->GetBStartBCBorderWidth());
-    border.BEnd(aWM) = PresContext()->DevPixelsToAppUnits(
-        lastRowFrame->GetBEndBCBorderWidth());
-  }
+  border.BStart(aWM) = PresContext()->DevPixelsToAppUnits(
+      firstRowFrame->GetBStartBCBorderWidth());
+  border.BEnd(aWM) =
+      PresContext()->DevPixelsToAppUnits(lastRowFrame->GetBEndBCBorderWidth());
   return border;
 }
 

@@ -18,7 +18,7 @@ job-defaults:
     fission-tier: 3
     virtualization:
         by-test-platform:
-            windows10-64-ccov/.*: virtual
+            windows10-64-ccov.*/.*: virtual
             default: hardware
     mozharness:
         script: raptor_script.py
@@ -28,14 +28,15 @@ job-defaults:
                     - raptor/mac_config.py
                 windows.*:
                     - raptor/windows_config.py
-                windows10-64-ccov/.*:
+                windows10-64-ccov.*/.*:
                     - raptor/windows_vm_config.py
-                linux64-ccov/.*:
+                linux64-ccov.*/.*:
                     - raptor/linux64_config_taskcluster.py
                 default:
                     - raptor/linux_config.py
         extra-options:
             - --browsertime
+            - --no-conditioned-profile
     fission-run-on-projects: []
 
 browsertime-tp6:
@@ -73,28 +74,48 @@ browsertime-tp6:
         - yahoo-news
         - yandex
         - youtube
-    tier: 3
+    tier:
+        by-app:
+            firefox:
+                by-subtest:
+                    amazon: 1
+                    google-mail: 1
+                    google-slides: 1
+                    imgur: 1
+                    tumblr: 1
+                    twitch: 1
+                    twitter: 1
+                    default: 2
+            default: 3
     apps: ['firefox', 'chrome', 'chromium']
     variants:
         by-app:
             firefox: ['fission']
             default: []
     pageload: cold
+    fission-tier: 2
     fission-run-on-projects: ["mozilla-central"]
     run-on-projects:
         by-app:
             firefox:
                 by-test-platform:
                     (linux|windows|macos)(?!.*shippable).*: []
-                    linux.*shippable[^-qr].*: ["mozilla-central"]
+                    linux.*shippable.*: ["trunk", "mozilla-beta"]
+                    macos.*shippable.*: ["trunk", "mozilla-beta"]
                     default: []
             default: []
     limit-platforms:
         by-app:
             chrome:
-                - .*shippable[^-qr].*
+                - linux.*shippable[^-qr].*
+                - macosx1014-64-shippable-qr/opt
             chromium:
+                # Run on non-QR shippable, but test-platforms.yml doesn't have
+                # any more non-QR macosx shippable things. So for macosx we want
+                # to run it on shippable-qr, otherwise there's nothing running
+                # this on macosx at all.
                 - .*shippable[^-qr].*
+                - macosx1014-64-shippable-qr/opt
             default: []
     treeherder-symbol: Btime(tp6)
     max-run-time: 4000

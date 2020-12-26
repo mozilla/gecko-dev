@@ -887,10 +887,6 @@ void nsContainerFrame::DoInlineIntrinsicISize(gfxContext* aRenderingContext,
                                               IntrinsicISizeType aType) {
   if (GetPrevInFlow()) return;  // Already added.
 
-  MOZ_ASSERT(
-      aType == nsLayoutUtils::MIN_ISIZE || aType == nsLayoutUtils::PREF_ISIZE,
-      "bad type");
-
   WritingMode wm = GetWritingMode();
   mozilla::Side startSide = wm.PhysicalSideForInlineAxis(eLogicalEdgeStart);
   mozilla::Side endSide = wm.PhysicalSideForInlineAxis(eLogicalEdgeEnd);
@@ -944,12 +940,13 @@ void nsContainerFrame::DoInlineIntrinsicISize(gfxContext* aRenderingContext,
       aData->mCurrentLine = clonePBM;
     }
     for (nsIFrame* kid : nif->mFrames) {
-      if (aType == nsLayoutUtils::MIN_ISIZE)
+      if (aType == IntrinsicISizeType::MinISize) {
         kid->AddInlineMinISize(aRenderingContext,
                                static_cast<InlineMinISizeData*>(aData));
-      else
+      } else {
         kid->AddInlinePrefISize(aRenderingContext,
                                 static_cast<InlinePrefISizeData*>(aData));
+      }
     }
 
     // After we advance to our next-in-flow, the stored line and line container
@@ -1203,9 +1200,7 @@ void nsContainerFrame::FinishReflowChild(
     // the updated frame width to set the normal position correctly.
     aKidFrame->SetSize(aWM, convertedSize);
 
-    const LogicalMargin offsets =
-        aReflowInput->ComputedLogicalOffsets().ConvertTo(
-            aWM, aReflowInput->GetWritingMode());
+    const LogicalMargin offsets = aReflowInput->ComputedLogicalOffsets(aWM);
     ReflowInput::ApplyRelativePositioning(aKidFrame, aWM, offsets, &pos,
                                           aContainerSize);
   }
@@ -1286,7 +1281,8 @@ void nsContainerFrame::FinishReflowChild(nsIFrame* aKidFrame,
 void nsContainerFrame::ReflowOverflowContainerChildren(
     nsPresContext* aPresContext, const ReflowInput& aReflowInput,
     nsOverflowAreas& aOverflowRects, ReflowChildFlags aFlags,
-    nsReflowStatus& aStatus, ChildFrameMerger aMergeFunc) {
+    nsReflowStatus& aStatus, ChildFrameMerger aMergeFunc,
+    Maybe<nsSize> aContainerSize) {
   MOZ_ASSERT(aPresContext, "null pointer");
 
   nsFrameList* overflowContainers =
@@ -1339,7 +1335,8 @@ void nsContainerFrame::ReflowOverflowContainerChildren(
           frame->HasAnyStateBits(NS_FRAME_IS_OVERFLOW_CONTAINER),
           "overflow container frame must have overflow container bit set");
       WritingMode wm = frame->GetWritingMode();
-      nsSize containerSize = aReflowInput.AvailableSize(wm).GetPhysicalSize(wm);
+      nsSize containerSize = aContainerSize.valueOr(
+          aReflowInput.AvailableSize(wm).GetPhysicalSize(wm));
       LogicalRect prevRect = prevInFlow->GetLogicalRect(wm, containerSize);
 
       // Initialize reflow params
@@ -2467,12 +2464,15 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
         // effectively trying to produce the 'auto' sizing behavior).
         static const StyleSize autoSize(StyleSize::Auto());
         mainAxisCoord = &autoSize;
-      } else if (!flexBasis->IsAuto()) {
+      } else if (flexBasis->IsSize() && !flexBasis->IsAuto()) {
         // For all other non-'auto' flex-basis values, we just swap in the
         // flex-basis itself for the main-size property.
         mainAxisCoord = &flexBasis->AsSize();
-      }  // else: flex-basis is 'auto', which is deferring to some explicit
-         // value in mainAxisCoord. So we proceed w/o touching mainAxisCoord.
+      } else {
+        MOZ_ASSERT(flexBasis->IsAuto());
+        // else: flex-basis is 'auto', which is deferring to some explicit
+        // value in mainAxisCoord. So we proceed w/o touching mainAxisCoord.
+      }
     }
   }
 
@@ -2516,6 +2516,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
 
   const bool isOrthogonal = aWM.IsOrthogonalTo(parentFrame->GetWritingMode());
   const bool isVertical = aWM.IsVertical();
+  const LogicalSize fallbackIntrinsicSize(aWM, kFallbackIntrinsicSize);
   const auto& isizeCoord =
       isVertical ? aIntrinsicSize.height : aIntrinsicSize.width;
   const bool hasIntrinsicISize = isizeCoord.isSome();
@@ -2663,7 +2664,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
           tentISize = 0;
         }
       } else {
-        tentISize = nsPresContext::CSSPixelsToAppUnits(300);
+        tentISize = fallbackIntrinsicSize.ISize(aWM);
       }
 
       // If we need to clamp the inline size to fit the CB, we use the 'stretch'
@@ -2679,7 +2680,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
       } else if (logicalRatio) {
         tentBSize = logicalRatio.Inverted().ApplyTo(tentISize);
       } else {
-        tentBSize = nsPresContext::CSSPixelsToAppUnits(150);
+        tentBSize = fallbackIntrinsicSize.BSize(aWM);
       }
 
       // (ditto the comment about clamping the inline size above)
@@ -2745,7 +2746,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
             iSize = intrinsicISize;
           }  // else - leave iSize as is to fill the CB
         } else {
-          iSize = nsPresContext::CSSPixelsToAppUnits(300);
+          iSize = fallbackIntrinsicSize.ISize(aWM);
         }
       }  // else - leave iSize as is to fill the CB
       iSize = NS_CSS_MINMAX(iSize, minISize, maxISize);
@@ -2763,7 +2764,7 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
             bSize = intrinsicBSize;
           }  // else - leave bSize as is to fill the CB
         } else {
-          bSize = nsPresContext::CSSPixelsToAppUnits(150);
+          bSize = fallbackIntrinsicSize.BSize(aWM);
         }
       }  // else - leave bSize as is to fill the CB
       bSize = NS_CSS_MINMAX(bSize, minBSize, maxBSize);

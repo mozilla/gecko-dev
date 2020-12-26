@@ -27,8 +27,6 @@ XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
 /** @namespace */
 this.browser = {};
 
-const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-
 /**
  * Variations of Marionette contexts.
  *
@@ -261,10 +259,7 @@ browser.Context = class {
 
     // The modal is a direct sibling of the browser element.
     // See tabbrowser.xml's getTabModalPromptBox.
-    let modalElements = br.parentNode.getElementsByTagNameNS(
-      XUL_NS,
-      "tabmodalprompt"
-    );
+    let modalElements = br.parentNode.getElementsByTagName("tabmodalprompt");
 
     return br.tabModalPromptBox.getPrompt(modalElements[0]);
   }
@@ -390,31 +385,11 @@ browser.Context = class {
 
     switch (this.driver.appName) {
       case "firefox":
-        const loaded = [waitForEvent(this.window, "TabOpen")];
-
+        const opened = waitForEvent(this.window, "TabOpen");
         this.window.BrowserOpenTab();
+        await opened;
+
         tab = this.tabBrowser.selectedTab;
-
-        // wait until the framescript has been registered
-        loaded.push(
-          new Promise(resolve => {
-            let cb = msg => {
-              if (msg.json.frameId === tab.linkedBrowser.browsingContext.id) {
-                this.driver.mm.removeMessageListener(
-                  "Marionette:ListenersAttached",
-                  cb
-                );
-                resolve();
-              }
-            };
-            this.driver.mm.addMessageListener(
-              "Marionette:ListenersAttached",
-              cb
-            );
-          })
-        );
-
-        await Promise.all(loaded);
 
         // The new tab is always selected by default. If focus is not wanted,
         // the previously tab needs to be selected again.

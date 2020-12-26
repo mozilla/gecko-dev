@@ -17,9 +17,9 @@
 #include "CanvasUtils.h"
 #include "GLContext.h"
 #include "GLScreenBuffer.h"
+#include "ImageBitmap.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 OffscreenCanvasCloneData::OffscreenCanvasCloneData(
     layers::CanvasRenderer* aRenderer, uint32_t aWidth, uint32_t aHeight,
@@ -131,7 +131,7 @@ already_AddRefed<nsISupports> OffscreenCanvas::GetContext(
   return result.forget();
 }
 
-ImageContainer* OffscreenCanvas::GetImageContainer() {
+layers::ImageContainer* OffscreenCanvas::GetImageContainer() {
   if (!mCanvasRenderer) {
     return nullptr;
   }
@@ -320,5 +320,4 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(OffscreenCanvas)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

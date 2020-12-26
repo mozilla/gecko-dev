@@ -20,22 +20,14 @@ const {
 const rawPackets = new Map();
 rawPackets.set(`GET request`, {
   "resourceType": "network-event",
-  "_type": "NetworkEvent",
   "timeStamp": 1572867483805,
-  "node": null,
   "actor": "server0.conn0.netEvent4",
-  "discardRequestBody": true,
-  "discardResponseBody": false,
   "startedDateTime": "2019-11-04T11:06:34.542Z",
-  "request": {
-    "url": "http://example.com/inexistent.html",
-    "method": "GET",
-    "headersSize": 385
-  },
+  "method": "GET",
+  "url": "http://example.com/inexistent.html",
   "isXHR": false,
   "cause": {
     "type": "img",
-    "loadingDocumentUri": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -45,57 +37,35 @@ rawPackets.set(`GET request`, {
       "asyncCause": null
     }
   },
-  "response": {
-    "httpVersion": "HTTP/1.1",
-    "status": "404",
-    "statusText": "Not Found",
-    "headersSize": 160,
-    "remoteAddress": "127.0.0.1",
-    "remotePort": 8888,
-    "content": {
-      "mimeType": "text/html; charset=utf-8"
-    },
-    "waitingTime": 1,
-    "bodySize": 418,
-    "transferredSize": 578
-  },
+  "httpVersion": "HTTP/1.1",
+  "status": "404",
+  "statusText": "Not Found",
+  "remoteAddress": "127.0.0.1",
+  "remotePort": 8888,
+  "mimeType": "text/html; charset=utf-8",
+  "waitingTime": 1,
+  "contentSize": 418,
+  "transferredSize": 578,
   "timings": {},
   "private": false,
   "isThirdPartyTrackingResource": false,
   "referrerPolicy": "no-referrer-when-downgrade",
-  "channelId": 265845590720515,
-  "updates": [
-    "eventTimings",
-    "requestCookies",
-    "requestHeaders",
-    "responseContent",
-    "responseCookies",
-    "responseHeaders",
-    "responseStart",
-    "securityInfo"
-  ],
+  "blockedReason": 0,
   "totalTime": 2,
-  "securityState": "insecure"
+  "securityState": "insecure",
+  "isRacing": false
 });
 
 rawPackets.set(`GET request update`, {
   "resourceType": "network-event",
-  "_type": "NetworkEvent",
   "timeStamp": 1572867483805,
-  "node": null,
   "actor": "server0.conn0.netEvent5",
-  "discardRequestBody": true,
-  "discardResponseBody": false,
   "startedDateTime": "2020-07-07T14:41:14.572Z",
-  "request": {
-    "url": "http://example.com/inexistent.html",
-    "method": "GET",
-    "headersSize": 385
-  },
+  "method": "GET",
+  "url": "http://example.com/inexistent.html",
   "isXHR": false,
   "cause": {
     "type": "img",
-    "loadingDocumentUri": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -105,57 +75,35 @@ rawPackets.set(`GET request update`, {
       "asyncCause": null
     }
   },
-  "response": {
-    "httpVersion": "HTTP/1.1",
-    "status": "404",
-    "statusText": "Not Found",
-    "headersSize": 160,
-    "remoteAddress": "127.0.0.1",
-    "remotePort": 8888,
-    "content": {
-      "mimeType": "text/html; charset=utf-8"
-    },
-    "waitingTime": 1,
-    "bodySize": 418,
-    "transferredSize": 578
-  },
+  "httpVersion": "HTTP/1.1",
+  "status": "404",
+  "statusText": "Not Found",
+  "remoteAddress": "127.0.0.1",
+  "remotePort": 8888,
+  "mimeType": "text/html; charset=utf-8",
+  "waitingTime": 1,
+  "contentSize": 418,
+  "transferredSize": 578,
   "timings": {},
   "private": false,
   "isThirdPartyTrackingResource": false,
   "referrerPolicy": "no-referrer-when-downgrade",
-  "channelId": 202499118071811,
-  "updates": [
-    "eventTimings",
-    "requestCookies",
-    "requestHeaders",
-    "responseContent",
-    "responseCookies",
-    "responseHeaders",
-    "responseStart",
-    "securityInfo"
-  ],
+  "blockedReason": 0,
   "totalTime": 3,
-  "securityState": "insecure"
+  "securityState": "insecure",
+  "isRacing": false
 });
 
 rawPackets.set(`XHR GET request`, {
   "resourceType": "network-event",
-  "_type": "NetworkEvent",
   "timeStamp": 1572867483805,
-  "node": null,
   "actor": "server0.conn0.netEvent21",
-  "discardRequestBody": true,
-  "discardResponseBody": false,
   "startedDateTime": "2020-07-07T14:41:14.612Z",
-  "request": {
-    "url": "http://example.com/inexistent.html",
-    "method": "GET",
-    "headersSize": 385
-  },
+  "method": "GET",
+  "url": "http://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
     "type": "xhr",
-    "loadingDocumentUri": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -165,56 +113,34 @@ rawPackets.set(`XHR GET request`, {
       "asyncCause": null
     }
   },
-  "response": {
-    "httpVersion": "HTTP/1.1",
-    "status": "404",
-    "statusText": "Not Found",
-    "headersSize": 160,
-    "remoteAddress": "127.0.0.1",
-    "remotePort": 8888,
-    "content": {
-      "mimeType": "text/html; charset=utf-8"
-    },
-    "waitingTime": 2,
-    "bodySize": 418,
-    "transferredSize": 578
-  },
+  "httpVersion": "HTTP/1.1",
+  "status": "404",
+  "statusText": "Not Found",
+  "remoteAddress": "127.0.0.1",
+  "remotePort": 8888,
+  "mimeType": "text/html; charset=utf-8",
+  "waitingTime": 1,
+  "contentSize": 418,
+  "transferredSize": 578,
   "timings": {},
   "private": false,
   "isThirdPartyTrackingResource": false,
   "referrerPolicy": "no-referrer-when-downgrade",
-  "channelId": 202499118071812,
-  "updates": [
-    "eventTimings",
-    "requestCookies",
-    "requestHeaders",
-    "responseContent",
-    "responseCookies",
-    "responseHeaders",
-    "responseStart",
-    "securityInfo"
-  ],
+  "blockedReason": 0,
   "totalTime": 1,
-  "securityState": "insecure"
+  "securityState": "insecure",
+  "isRacing": false
 });
 
 rawPackets.set(`XHR GET request update`, {
   "resourceType": "network-event",
-  "_type": "NetworkEvent",
   "timeStamp": 1572867483805,
-  "node": null,
   "actor": "server0.conn0.netEvent20",
-  "discardRequestBody": true,
-  "discardResponseBody": false,
-  "request": {
-    "url": "http://example.com/inexistent.html",
-    "method": "GET",
-    "headersSize": 385
-  },
+  "method": "GET",
+  "url": "http://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
     "type": "xhr",
-    "loadingDocumentUri": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -224,56 +150,35 @@ rawPackets.set(`XHR GET request update`, {
       "asyncCause": null
     }
   },
-  "response": {
-    "httpVersion": "HTTP/1.1",
-    "status": "404",
-    "statusText": "Not Found",
-    "headersSize": 160,
-    "remoteAddress": "127.0.0.1",
-    "remotePort": 8888,
-    "content": {
-      "mimeType": "text/html; charset=utf-8"
-    },
-    "waitingTime": 2,
-    "bodySize": 418,
-    "transferredSize": 578
-  },
+  "httpVersion": "HTTP/1.1",
+  "status": "404",
+  "statusText": "Not Found",
+  "remoteAddress": "127.0.0.1",
+  "remotePort": 8888,
+  "mimeType": "text/html; charset=utf-8",
+  "waitingTime": 1,
+  "contentSize": 418,
+  "transferredSize": 578,
   "timings": {},
   "private": false,
   "isThirdPartyTrackingResource": false,
   "referrerPolicy": "no-referrer-when-downgrade",
-  "updates": [
-    "eventTimings",
-    "requestCookies",
-    "requestHeaders",
-    "responseContent",
-    "responseCookies",
-    "responseHeaders",
-    "responseStart",
-    "securityInfo"
-  ],
+  "blockedReason": 0,
   "totalTime": 1,
-  "securityState": "insecure"
+  "securityState": "insecure",
+  "isRacing": false
 });
 
 rawPackets.set(`XHR POST request`, {
   "resourceType": "network-event",
-  "_type": "NetworkEvent",
   "timeStamp": 1572867483805,
-  "node": null,
   "actor": "server0.conn0.netEvent36",
-  "discardRequestBody": true,
-  "discardResponseBody": false,
   "startedDateTime": "2019-11-04T11:06:35.007Z",
-  "request": {
-    "url": "http://example.com/inexistent.html",
-    "method": "POST",
-    "headersSize": 385
-  },
+  "method": "POST",
+  "url": "http://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
     "type": "xhr",
-    "loadingDocumentUri": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -283,56 +188,34 @@ rawPackets.set(`XHR POST request`, {
       "asyncCause": null
     }
   },
-  "response": {
-    "httpVersion": "HTTP/1.1",
-    "status": "404",
-    "statusText": "Not Found",
-    "headersSize": 160,
-    "remoteAddress": "127.0.0.1",
-    "remotePort": 8888,
-    "content": {
-      "mimeType": "text/html; charset=utf-8"
-    },
-    "waitingTime": 2,
-    "bodySize": 418,
-    "transferredSize": 578
-  },
+  "httpVersion": "HTTP/1.1",
+  "status": "404",
+  "statusText": "Not Found",
+  "remoteAddress": "127.0.0.1",
+  "remotePort": 8888,
+  "mimeType": "text/html; charset=utf-8",
+  "waitingTime": 1,
+  "contentSize": 418,
+  "transferredSize": 578,
   "timings": {},
   "private": false,
   "isThirdPartyTrackingResource": false,
   "referrerPolicy": "no-referrer-when-downgrade",
-  "channelId": 265845590720517,
-  "updates": [
-    "eventTimings",
-    "requestCookies",
-    "requestHeaders",
-    "responseContent",
-    "responseCookies",
-    "responseHeaders",
-    "responseStart",
-    "securityInfo"
-  ],
+  "blockedReason": 0,
   "totalTime": 1,
-  "securityState": "insecure"
+  "securityState": "insecure",
+  "isRacing": false
 });
 
 rawPackets.set(`XHR POST request update`, {
   "resourceType": "network-event",
-  "_type": "NetworkEvent",
   "timeStamp": 1572867483805,
-  "node": null,
   "actor": "server0.conn0.netEvent36",
-  "discardRequestBody": true,
-  "discardResponseBody": false,
-  "request": {
-    "url": "http://example.com/inexistent.html",
-    "method": "POST",
-    "headersSize": 385
-  },
+  "method": "POST",
+  "url": "http://example.com/inexistent.html",
   "isXHR": true,
   "cause": {
     "type": "xhr",
-    "loadingDocumentUri": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
     "stacktraceAvailable": true,
     "lastFrame": {
       "filename": "http://example.com/browser/devtools/client/webconsole/test/browser/stub-generators/test-network-event.html",
@@ -342,36 +225,23 @@ rawPackets.set(`XHR POST request update`, {
       "asyncCause": null
     }
   },
-  "response": {
-    "httpVersion": "HTTP/1.1",
-    "status": "404",
-    "statusText": "Not Found",
-    "headersSize": 160,
-    "remoteAddress": "127.0.0.1",
-    "remotePort": 8888,
-    "content": {
-      "mimeType": "text/html; charset=utf-8"
-    },
-    "waitingTime": 2,
-    "bodySize": 418,
-    "transferredSize": 578
-  },
+  "httpVersion": "HTTP/1.1",
+  "status": "404",
+  "statusText": "Not Found",
+  "remoteAddress": "127.0.0.1",
+  "remotePort": 8888,
+  "mimeType": "text/html; charset=utf-8",
+  "waitingTime": 1,
+  "contentSize": 418,
+  "transferredSize": 578,
   "timings": {},
   "private": false,
   "isThirdPartyTrackingResource": false,
   "referrerPolicy": "no-referrer-when-downgrade",
-  "updates": [
-    "eventTimings",
-    "requestCookies",
-    "requestHeaders",
-    "responseContent",
-    "responseCookies",
-    "responseHeaders",
-    "responseStart",
-    "securityInfo"
-  ],
+  "blockedReason": 0,
   "totalTime": 2,
-  "securityState": "insecure"
+  "securityState": "insecure",
+  "isRacing": false
 });
 
 

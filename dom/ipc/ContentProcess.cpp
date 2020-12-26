@@ -22,10 +22,12 @@
 #  include "nsDirectoryServiceDefs.h"
 #endif
 
+#include "nsAppRunner.h"
+#include "ProcessUtils.h"
+
 using mozilla::ipc::IOThreadChild;
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 static void SetTmpEnvironmentVariable(nsIFile* aValue) {
@@ -169,7 +171,7 @@ bool ContentProcess::Init(int aArgc, char* aArgv[]) {
     return false;
   }
 
-  SharedPreferenceDeserializer deserializer;
+  ::mozilla::ipc::SharedPreferenceDeserializer deserializer;
   if (!deserializer.DeserializeFromSharedMemory(prefsHandle, prefMapHandle,
                                                 prefsLen, prefMapSize)) {
     return false;
@@ -199,5 +201,4 @@ bool ContentProcess::Init(int aArgc, char* aArgv[]) {
 // in ContentChild::ActorDestroy().
 void ContentProcess::CleanUp() { mXREEmbed.Stop(); }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

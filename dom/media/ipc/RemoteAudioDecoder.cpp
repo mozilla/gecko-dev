@@ -6,10 +6,9 @@
 #include "RemoteAudioDecoder.h"
 
 #include "MediaDataDecoderProxy.h"
-#include "OpusDecoder.h"
+#include "PDMFactory.h"
 #include "RemoteDecoderManagerChild.h"
-#include "VorbisDecoder.h"
-#include "WAVDecoder.h"
+#include "RemoteDecoderManagerParent.h"
 #include "mozilla/PodOperations.h"
 
 namespace mozilla {
@@ -39,7 +38,7 @@ MediaResult RemoteAudioDecoderChild::InitIPDL(
     const AudioInfo& aAudioInfo,
     const CreateDecoderParams::OptionSet& aOptions) {
   RefPtr<RemoteDecoderManagerChild> manager =
-      RemoteDecoderManagerChild::GetRDDProcessSingleton();
+      RemoteDecoderManagerChild::GetSingleton(RemoteDecodeIn::RddProcess);
 
   // The manager isn't available because RemoteDecoderManagerChild has been
   // initialized with null end points and we don't want to decode video on RDD
@@ -55,46 +54,40 @@ MediaResult RemoteAudioDecoderChild::InitIPDL(
   }
 
   mIPDLSelfRef = this;
-  bool success = false;
-  nsCString errorDescription;
-  Unused << manager->SendPRemoteDecoderConstructor(
-      this, aAudioInfo, aOptions, Nothing(), &success, &errorDescription);
-  return success ? MediaResult(NS_OK)
-                 : MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR, errorDescription);
+  Unused << manager->SendPRemoteDecoderConstructor(this, aAudioInfo, aOptions,
+                                                   Nothing());
+  return NS_OK;
 }
 
 RemoteAudioDecoderParent::RemoteAudioDecoderParent(
     RemoteDecoderManagerParent* aParent, const AudioInfo& aAudioInfo,
     const CreateDecoderParams::OptionSet& aOptions,
-    nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue,
-    bool* aSuccess, nsCString* aErrorDescription)
-    : RemoteDecoderParent(aParent, aManagerThread, aDecodeTaskQueue),
-      mAudioInfo(aAudioInfo) {
-  CreateDecoderParams params(mAudioInfo);
-  params.mOptions = aOptions;
-  MediaResult error(NS_OK);
-  params.mError = &error;
+    nsISerialEventTarget* aManagerThread, TaskQueue* aDecodeTaskQueue)
+    : RemoteDecoderParent(aParent, aOptions, aManagerThread, aDecodeTaskQueue),
+      mAudioInfo(aAudioInfo) {}
 
-  RefPtr<MediaDataDecoder> decoder;
-  if (VorbisDataDecoder::IsVorbis(params.mConfig.mMimeType)) {
-    decoder = new VorbisDataDecoder(params);
-  } else if (OpusDataDecoder::IsOpus(params.mConfig.mMimeType)) {
-    decoder = new OpusDataDecoder(params);
-  } else if (WaveDataDecoder::IsWave(params.mConfig.mMimeType)) {
-    decoder = new WaveDataDecoder(params);
-  }
+IPCResult RemoteAudioDecoderParent::RecvConstruct(
+    ConstructResolver&& aResolver) {
+  auto params = CreateDecoderParams{mAudioInfo, mOptions,
+                                    CreateDecoderParams::NoWrapper(true)};
 
-  if (NS_FAILED(error)) {
-    MOZ_ASSERT(aErrorDescription);
-    *aErrorDescription = error.Description();
-  }
+  mParent->EnsurePDMFactory().CreateDecoder(params)->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [resolver = std::move(aResolver), self = RefPtr{this}](
+          PlatformDecoderModule::CreateDecoderPromise::ResolveOrRejectValue&&
+              aValue) {
+        if (aValue.IsReject()) {
+          resolver(aValue.RejectValue());
+          return;
+        }
+        MOZ_ASSERT(aValue.ResolveValue());
+        self->mDecoder =
+            new MediaDataDecoderProxy(aValue.ResolveValue().forget(),
+                                      do_AddRef(self->mDecodeTaskQueue.get()));
+        resolver(NS_OK);
+      });
 
-  if (decoder) {
-    mDecoder = new MediaDataDecoderProxy(decoder.forget(),
-                                         do_AddRef(mDecodeTaskQueue.get()));
-  }
-
-  *aSuccess = !!mDecoder;
+  return IPC_OK();
 }
 
 MediaResult RemoteAudioDecoderParent::ProcessDecodedData(

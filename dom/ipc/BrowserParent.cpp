@@ -25,6 +25,7 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/indexedDB/ActorsParent.h"
 #include "mozilla/dom/PaymentRequestParent.h"
+#include "mozilla/dom/PointerEventHandler.h"
 #include "mozilla/dom/BrowserBridgeParent.h"
 #include "mozilla/dom/RemoteDragStartData.h"
 #include "mozilla/dom/RemoteWebProgress.h"
@@ -46,6 +47,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/net/NeckoChild.h"
+#include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProcessHangMonitor.h"
@@ -65,6 +67,7 @@
 #include "nsIBrowser.h"
 #include "nsIBrowserController.h"
 #include "nsIContent.h"
+#include "nsICookieJarSettings.h"
 #include "nsIDocShell.h"
 #include "nsIDocShellTreeOwner.h"
 #include "nsImportModule.h"
@@ -78,6 +81,7 @@
 #include "nsIXPConnect.h"
 #include "nsIXULBrowserWindow.h"
 #include "nsIAppWindow.h"
+#include "nsLayoutUtils.h"
 #include "nsQueryActor.h"
 #include "nsSHistory.h"
 #include "nsViewManager.h"
@@ -169,8 +173,7 @@ BrowserParent* BrowserParent::sPointerLockedRemoteTarget = nullptr;
 // from the ones registered by webProgressListeners.
 #define NOTIFY_FLAG_SHIFT 16
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 BrowserParent::LayerToBrowserParentTable*
     BrowserParent::sLayerToBrowserParentTable = nullptr;
@@ -231,8 +234,7 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mIsReadyToHandleInputEvents(false),
       mIsMouseEnterIntoWidgetEventSuppressed(false),
       mIsActiveRecordReplayTab(false),
-      mSuspendedProgressEvents(false),
-      mSuspendMediaWhenInactive(false) {
+      mSuspendedProgressEvents(false) {
   MOZ_ASSERT(aManager);
   // When the input event queue is disabled, we don't need to handle the case
   // that some input events are dispatched before PBrowserConstructor.
@@ -602,6 +604,7 @@ void BrowserParent::DestroyInternal() {
   UnsetTopLevelWebFocus(this);
   UnsetLastMouseRemoteTarget(this);
   UnsetPointerLockedRemoteTarget(this);
+  PointerEventHandler::ReleasePointerCaptureRemoteTarget(this);
 
   RemoveWindowListeners();
 
@@ -686,6 +689,7 @@ void BrowserParent::ActorDestroy(ActorDestroyReason why) {
   BrowserParent::UnsetTopLevelWebFocus(this);
   BrowserParent::UnsetLastMouseRemoteTarget(this);
   BrowserParent::UnsetPointerLockedRemoteTarget(this);
+  PointerEventHandler::ReleasePointerCaptureRemoteTarget(this);
 
   if (why == AbnormalShutdown) {
     // dom_reporting_header must also be enabled for the report to be sent.
@@ -3385,16 +3389,6 @@ void BrowserParent::SetDocShellIsActive(bool isActive) {
   }
 }
 
-bool BrowserParent::GetSuspendMediaWhenInactive() const {
-  return mSuspendMediaWhenInactive;
-}
-
-void BrowserParent::SetSuspendMediaWhenInactive(
-    bool aSuspendMediaWhenInactive) {
-  mSuspendMediaWhenInactive = aSuspendMediaWhenInactive;
-  Unused << SendSetSuspendMediaWhenInactive(aSuspendMediaWhenInactive);
-}
-
 bool BrowserParent::GetHasPresented() { return mHasPresented; }
 
 bool BrowserParent::GetHasLayers() { return mHasLayers; }
@@ -3705,28 +3699,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvRemotePaintIsReady() {
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserParent::RecvNotifyCompositorTransaction() {
-  RefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
-
-  if (!frameLoader) {
-    return IPC_OK();
-  }
-
-  nsIFrame* docFrame = frameLoader->GetPrimaryFrameOfOwningContent();
-
-  if (!docFrame) {
-    // Bad, but nothing we can do about it (XXX/cjones: or is there?
-    // maybe bug 589337?).  When the new frame is created, we'll
-    // probably still be the current render frame and will get to draw
-    // our content then.  Or, we're shutting down and this update goes
-    // to /dev/null.
-    return IPC_OK();
-  }
-
-  docFrame->InvalidateLayer(DisplayItemType::TYPE_REMOTE);
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult BrowserParent::RecvRemoteIsReadyToHandleInputEvents() {
   // When enabling input event prioritization, input events may preempt other
   // normal priority IPC messages. To prevent the input events preempt
@@ -3916,7 +3888,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvInvokeDragSession(
     nsTArray<IPCDataTransfer>&& aTransfers, const uint32_t& aAction,
     Maybe<Shmem>&& aVisualDnDData, const uint32_t& aStride,
     const gfx::SurfaceFormat& aFormat, const LayoutDeviceIntRect& aDragRect,
-    nsIPrincipal* aPrincipal, nsIContentSecurityPolicy* aCsp) {
+    nsIPrincipal* aPrincipal, nsIContentSecurityPolicy* aCsp,
+    const CookieJarSettingsArgs& aCookieJarSettingsArgs) {
   PresShell* presShell = mFrameElement->OwnerDoc()->GetPresShell();
   if (!presShell) {
     Unused << Manager()->SendEndDragSession(true, true, LayoutDeviceIntPoint(),
@@ -3927,8 +3900,13 @@ mozilla::ipc::IPCResult BrowserParent::RecvInvokeDragSession(
     return IPC_OK();
   }
 
-  RefPtr<RemoteDragStartData> dragStartData = new RemoteDragStartData(
-      this, std::move(aTransfers), aDragRect, aPrincipal, aCsp);
+  nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
+  net::CookieJarSettings::Deserialize(aCookieJarSettingsArgs,
+                                      getter_AddRefs(cookieJarSettings));
+
+  RefPtr<RemoteDragStartData> dragStartData =
+      new RemoteDragStartData(this, std::move(aTransfers), aDragRect,
+                              aPrincipal, aCsp, cookieJarSettings);
 
   if (!aVisualDnDData.isNothing() && aVisualDnDData.ref().IsReadable() &&
       aVisualDnDData.ref().Size<char>() >= aDragRect.height * aStride) {
@@ -4190,6 +4168,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvRequestPointerLock(
   nsCString error;
   if (!SetPointerLock()) {
     error = "PointerLockDeniedInUse";
+  } else {
+    PointerEventHandler::ReleaseAllPointerCaptureRemoteTarget();
   }
   aResolve(error);
   return IPC_OK();
@@ -4201,5 +4181,17 @@ mozilla::ipc::IPCResult BrowserParent::RecvReleasePointerLock() {
   return IPC_OK();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+mozilla::ipc::IPCResult BrowserParent::RecvRequestPointerCapture(
+    const uint32_t& aPointerId, RequestPointerCaptureResolver&& aResolve) {
+  aResolve(
+      PointerEventHandler::SetPointerCaptureRemoteTarget(aPointerId, this));
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult BrowserParent::RecvReleasePointerCapture(
+    const uint32_t& aPointerId) {
+  PointerEventHandler::ReleasePointerCaptureRemoteTarget(aPointerId);
+  return IPC_OK();
+}
+
+}  // namespace mozilla::dom

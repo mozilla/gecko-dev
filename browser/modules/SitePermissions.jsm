@@ -230,7 +230,7 @@ const GloballyBlockedPermissions = {
       for (let id of Object.keys(timeStamps)) {
         permissions.push({
           id,
-          state: gPermissionObject[id].getDefault(),
+          state: gPermissions.get(id).getDefault(),
           scope: SitePermissions.SCOPE_GLOBAL,
         });
       }
@@ -272,6 +272,10 @@ var SitePermissions = {
   SCOPE_POLICY: "{SitePermissions.SCOPE_POLICY}",
   SCOPE_GLOBAL: "{SitePermissions.SCOPE_GLOBAL}",
 
+  // The delimiter used for double keyed permissions.
+  // For example: open-protocol-handler^irc
+  PERM_KEY_DELIMITER: "^",
+
   _permissionsArray: null,
   _defaultPrefBranch: Services.prefs.getBranch("permissions.default."),
 
@@ -286,51 +290,53 @@ var SitePermissions = {
    *            (e.g. SitePermissions.ALLOW)
    */
   getAllByPrincipal(principal) {
-    let result = [];
     if (!principal) {
       throw new Error("principal argument cannot be null.");
     }
     if (!this.isSupportedPrincipal(principal)) {
-      return result;
+      return [];
     }
 
-    let permissions = Services.perms.getAllForPrincipal(principal);
-    for (let permission of permissions) {
-      // filter out unknown permissions
-      if (gPermissionObject[permission.type]) {
-        // Hide canvas permission when privacy.resistFingerprinting is false.
-        if (permission.type == "canvas" && !this.resistFingerprinting) {
-          continue;
+    // Get all permissions from the permission manager by principal, excluding
+    // the ones set to be disabled.
+    let permissions = Services.perms
+      .getAllForPrincipal(principal)
+      .filter(permission => {
+        let entry = gPermissions.get(permission.type);
+        if (!entry || entry.disabled) {
+          return false;
         }
+        let type = entry.id;
 
         /* Hide persistent storage permission when extension principal
          * have WebExtensions-unlimitedStorage permission. */
         if (
-          permission.type == "persistent-storage" &&
+          type == "persistent-storage" &&
           SitePermissions.getForPrincipal(
             principal,
             "WebExtensions-unlimitedStorage"
           ).state == SitePermissions.ALLOW
         ) {
-          continue;
+          return false;
         }
 
-        let scope = this.SCOPE_PERSISTENT;
-        if (permission.expireType == Services.perms.EXPIRE_SESSION) {
-          scope = this.SCOPE_SESSION;
-        } else if (permission.expireType == Services.perms.EXPIRE_POLICY) {
-          scope = this.SCOPE_POLICY;
-        }
+        return true;
+      });
 
-        result.push({
-          id: permission.type,
-          scope,
-          state: permission.capability,
-        });
+    return permissions.map(permission => {
+      let scope = this.SCOPE_PERSISTENT;
+      if (permission.expireType == Services.perms.EXPIRE_SESSION) {
+        scope = this.SCOPE_SESSION;
+      } else if (permission.expireType == Services.perms.EXPIRE_POLICY) {
+        scope = this.SCOPE_POLICY;
       }
-    }
 
-    return result;
+      return {
+        id: permission.type,
+        scope,
+        state: permission.capability,
+      };
+    });
   },
 
   /**
@@ -422,16 +428,18 @@ var SitePermissions = {
    */
   listPermissions() {
     if (this._permissionsArray === null) {
-      let permissions = Object.keys(gPermissionObject);
-
-      // Hide canvas permission when privacy.resistFingerprinting is false.
-      if (!this.resistFingerprinting) {
-        permissions = permissions.filter(permission => permission !== "canvas");
-      }
-      this._permissionsArray = permissions;
+      this._permissionsArray = gPermissions.getEnabledPermissions();
     }
-
     return this._permissionsArray;
+  },
+
+  /**
+   * Test whether a permission is managed by SitePermissions.
+   * @param {string} type - Permission type.
+   * @returns {boolean}
+   */
+  isSitePermission(type) {
+    return gPermissions.has(type);
   },
 
   /**
@@ -461,10 +469,10 @@ var SitePermissions = {
    */
   getAvailableStates(permissionID) {
     if (
-      permissionID in gPermissionObject &&
-      gPermissionObject[permissionID].states
+      gPermissions.has(permissionID) &&
+      gPermissions.get(permissionID).states
     ) {
-      return gPermissionObject[permissionID].states;
+      return gPermissions.get(permissionID).states;
     }
 
     /* Since the permissions we are dealing with have adopted the convention
@@ -497,10 +505,10 @@ var SitePermissions = {
     // If the permission has custom logic for getting its default value,
     // try that first.
     if (
-      permissionID in gPermissionObject &&
-      gPermissionObject[permissionID].getDefault
+      gPermissions.has(permissionID) &&
+      gPermissions.get(permissionID).getDefault
     ) {
-      return gPermissionObject[permissionID].getDefault();
+      return gPermissions.get(permissionID).getDefault();
     }
 
     // Otherwise try to get the default preference for that permission.
@@ -518,10 +526,10 @@ var SitePermissions = {
    */
   setDefault(permissionID, state) {
     if (
-      permissionID in gPermissionObject &&
-      gPermissionObject[permissionID].setDefault
+      gPermissions.has(permissionID) &&
+      gPermissions.get(permissionID).setDefault
     ) {
-      return gPermissionObject[permissionID].setDefault(state);
+      return gPermissions.get(permissionID).setDefault(state);
     }
     let key = "permissions.default." + permissionID;
     return Services.prefs.setIntPref(key, state);
@@ -557,8 +565,8 @@ var SitePermissions = {
     if (this.isSupportedPrincipal(principal)) {
       let permission = null;
       if (
-        permissionID in gPermissionObject &&
-        gPermissionObject[permissionID].exactHostMatch
+        gPermissions.has(permissionID) &&
+        gPermissions.get(permissionID).exactHostMatch
       ) {
         permission = Services.perms.getPermissionObject(
           principal,
@@ -755,26 +763,35 @@ var SitePermissions = {
   /**
    * Returns the localized label for the permission with the given ID, to be
    * used in a UI for managing permissions.
+   * If a permission is double keyed (has an additional key in the ID), the
+   * second key is split off and supplied to the string formatter as a variable.
    *
    * @param {string} permissionID
-   *        The permission to get the label for.
+   *        The permission to get the label for. May include second key.
    *
    * @return {String} the localized label or null if none is available.
    */
   getPermissionLabel(permissionID) {
-    if (!(permissionID in gPermissionObject)) {
+    let [id, key] = permissionID.split(this.PERM_KEY_DELIMITER);
+    if (!gPermissions.has(id)) {
       // Permission can't be found.
       return null;
     }
     if (
-      "labelID" in gPermissionObject[permissionID] &&
-      gPermissionObject[permissionID].labelID === null
+      "labelID" in gPermissions.get(id) &&
+      gPermissions.get(id).labelID === null
     ) {
       // Permission doesn't support having a label.
       return null;
     }
-    let labelID = gPermissionObject[permissionID].labelID || permissionID;
-    return gStringBundle.GetStringFromName("permission." + labelID + ".label");
+    if (id == "3rdPartyStorage") {
+      // The key is the 3rd party origin, which we use for the label.
+      return key;
+    }
+    let labelID = gPermissions.get(id).labelID || id;
+    return gStringBundle.formatStringFromName(`permission.${labelID}.label`, [
+      key,
+    ]);
   },
 
   /**
@@ -794,10 +811,10 @@ var SitePermissions = {
     // If the permission has custom logic for getting its default value,
     // try that first.
     if (
-      permissionID in gPermissionObject &&
-      gPermissionObject[permissionID].getMultichoiceStateLabel
+      gPermissions.has(permissionID) &&
+      gPermissions.get(permissionID).getMultichoiceStateLabel
     ) {
-      return gPermissionObject[permissionID].getMultichoiceStateLabel(state);
+      return gPermissions.get(permissionID).getMultichoiceStateLabel(state);
     }
 
     switch (state) {
@@ -867,7 +884,32 @@ var SitePermissions = {
   },
 };
 
-var gPermissionObject = {
+let gPermissions = {
+  _getId(type) {
+    // Split off second key (if it exists).
+    let [id] = type.split(SitePermissions.PERM_KEY_DELIMITER);
+    return id;
+  },
+
+  has(type) {
+    return this._getId(type) in this._permissions;
+  },
+
+  get(type) {
+    let id = this._getId(type);
+    let perm = this._permissions[id];
+    if (perm) {
+      perm.id = id;
+    }
+    return perm;
+  },
+
+  getEnabledPermissions() {
+    return Object.keys(this._permissions).filter(
+      id => !this._permissions[id].disabled
+    );
+  },
+
   /* Holds permission ID => options pairs.
    *
    * Supported options:
@@ -892,160 +934,182 @@ var gPermissionObject = {
    *  - getMultichoiceStateLabel
    *    Optional method to overwrite SitePermissions#getMultichoiceStateLabel with custom label logic.
    */
-
-  "autoplay-media": {
-    exactHostMatch: true,
-    getDefault() {
-      let pref = Services.prefs.getIntPref(
-        "media.autoplay.default",
-        Ci.nsIAutoplay.BLOCKED
-      );
-      if (pref == Ci.nsIAutoplay.ALLOWED) {
-        return SitePermissions.ALLOW;
-      }
-      if (pref == Ci.nsIAutoplay.BLOCKED_ALL) {
-        return SitePermissions.AUTOPLAY_BLOCKED_ALL;
-      }
-      return SitePermissions.BLOCK;
-    },
-    setDefault(value) {
-      let prefValue = Ci.nsIAutoplay.BLOCKED;
-      if (value == SitePermissions.ALLOW) {
-        prefValue = Ci.nsIAutoplay.ALLOWED;
-      } else if (value == SitePermissions.AUTOPLAY_BLOCKED_ALL) {
-        prefValue = Ci.nsIAutoplay.BLOCKED_ALL;
-      }
-      Services.prefs.setIntPref("media.autoplay.default", prefValue);
-    },
-    labelID: "autoplay",
-    states: [
-      SitePermissions.ALLOW,
-      SitePermissions.BLOCK,
-      SitePermissions.AUTOPLAY_BLOCKED_ALL,
-    ],
-    getMultichoiceStateLabel(state) {
-      switch (state) {
-        case SitePermissions.AUTOPLAY_BLOCKED_ALL:
-          return gStringBundle.GetStringFromName(
-            "state.multichoice.autoplayblockall"
-          );
-        case SitePermissions.BLOCK:
-          return gStringBundle.GetStringFromName(
-            "state.multichoice.autoplayblock"
-          );
-        case SitePermissions.ALLOW:
-          return gStringBundle.GetStringFromName(
-            "state.multichoice.autoplayallow"
-          );
-      }
-      throw new Error(`Unknown state: ${state}`);
-    },
-  },
-
-  cookie: {
-    states: [
-      SitePermissions.ALLOW,
-      SitePermissions.ALLOW_COOKIES_FOR_SESSION,
-      SitePermissions.BLOCK,
-    ],
-    getDefault() {
-      if (
-        Services.cookies.cookieBehavior == Ci.nsICookieService.BEHAVIOR_REJECT
-      ) {
+  _permissions: {
+    "autoplay-media": {
+      exactHostMatch: true,
+      getDefault() {
+        let pref = Services.prefs.getIntPref(
+          "media.autoplay.default",
+          Ci.nsIAutoplay.BLOCKED
+        );
+        if (pref == Ci.nsIAutoplay.ALLOWED) {
+          return SitePermissions.ALLOW;
+        }
+        if (pref == Ci.nsIAutoplay.BLOCKED_ALL) {
+          return SitePermissions.AUTOPLAY_BLOCKED_ALL;
+        }
         return SitePermissions.BLOCK;
-      }
-
-      if (
-        Services.prefs.getIntPref("network.cookie.lifetimePolicy") ==
-        Ci.nsICookieService.ACCEPT_SESSION
-      ) {
-        return SitePermissions.ALLOW_COOKIES_FOR_SESSION;
-      }
-
-      return SitePermissions.ALLOW;
+      },
+      setDefault(value) {
+        let prefValue = Ci.nsIAutoplay.BLOCKED;
+        if (value == SitePermissions.ALLOW) {
+          prefValue = Ci.nsIAutoplay.ALLOWED;
+        } else if (value == SitePermissions.AUTOPLAY_BLOCKED_ALL) {
+          prefValue = Ci.nsIAutoplay.BLOCKED_ALL;
+        }
+        Services.prefs.setIntPref("media.autoplay.default", prefValue);
+      },
+      labelID: "autoplay",
+      states: [
+        SitePermissions.ALLOW,
+        SitePermissions.BLOCK,
+        SitePermissions.AUTOPLAY_BLOCKED_ALL,
+      ],
+      getMultichoiceStateLabel(state) {
+        switch (state) {
+          case SitePermissions.AUTOPLAY_BLOCKED_ALL:
+            return gStringBundle.GetStringFromName(
+              "state.multichoice.autoplayblockall"
+            );
+          case SitePermissions.BLOCK:
+            return gStringBundle.GetStringFromName(
+              "state.multichoice.autoplayblock"
+            );
+          case SitePermissions.ALLOW:
+            return gStringBundle.GetStringFromName(
+              "state.multichoice.autoplayallow"
+            );
+        }
+        throw new Error(`Unknown state: ${state}`);
+      },
     },
-  },
 
-  "desktop-notification": {
-    exactHostMatch: true,
-    labelID: "desktop-notification3",
-  },
+    cookie: {
+      states: [
+        SitePermissions.ALLOW,
+        SitePermissions.ALLOW_COOKIES_FOR_SESSION,
+        SitePermissions.BLOCK,
+      ],
+      getDefault() {
+        if (
+          Services.cookies.cookieBehavior == Ci.nsICookieService.BEHAVIOR_REJECT
+        ) {
+          return SitePermissions.BLOCK;
+        }
 
-  camera: {
-    exactHostMatch: true,
-  },
+        if (
+          Services.prefs.getIntPref("network.cookie.lifetimePolicy") ==
+          Ci.nsICookieService.ACCEPT_SESSION
+        ) {
+          return SitePermissions.ALLOW_COOKIES_FOR_SESSION;
+        }
 
-  microphone: {
-    exactHostMatch: true,
-  },
-
-  screen: {
-    exactHostMatch: true,
-    states: [SitePermissions.UNKNOWN, SitePermissions.BLOCK],
-  },
-
-  popup: {
-    getDefault() {
-      return Services.prefs.getBoolPref("dom.disable_open_during_load")
-        ? SitePermissions.BLOCK
-        : SitePermissions.ALLOW;
+        return SitePermissions.ALLOW;
+      },
     },
-    states: [SitePermissions.ALLOW, SitePermissions.BLOCK],
-  },
 
-  install: {
-    getDefault() {
-      return Services.prefs.getBoolPref("xpinstall.whitelist.required")
-        ? SitePermissions.UNKNOWN
-        : SitePermissions.ALLOW;
+    "desktop-notification": {
+      exactHostMatch: true,
+      labelID: "desktop-notification3",
     },
-  },
 
-  geo: {
-    exactHostMatch: true,
-  },
+    camera: {
+      exactHostMatch: true,
+    },
 
-  xr: {
-    exactHostMatch: true,
-  },
+    microphone: {
+      exactHostMatch: true,
+    },
 
-  "focus-tab-by-prompt": {
-    exactHostMatch: true,
-    states: [SitePermissions.UNKNOWN, SitePermissions.ALLOW],
-  },
-  "persistent-storage": {
-    exactHostMatch: true,
-  },
+    screen: {
+      exactHostMatch: true,
+      states: [SitePermissions.UNKNOWN, SitePermissions.BLOCK],
+    },
 
-  shortcuts: {
-    states: [SitePermissions.ALLOW, SitePermissions.BLOCK],
-  },
+    popup: {
+      getDefault() {
+        return Services.prefs.getBoolPref("dom.disable_open_during_load")
+          ? SitePermissions.BLOCK
+          : SitePermissions.ALLOW;
+      },
+      states: [SitePermissions.ALLOW, SitePermissions.BLOCK],
+    },
 
-  canvas: {},
+    install: {
+      getDefault() {
+        return Services.prefs.getBoolPref("xpinstall.whitelist.required")
+          ? SitePermissions.UNKNOWN
+          : SitePermissions.ALLOW;
+      },
+    },
 
-  midi: {
-    exactHostMatch: true,
-  },
+    geo: {
+      exactHostMatch: true,
+    },
 
-  "midi-sysex": {
-    exactHostMatch: true,
-  },
+    "open-protocol-handler": {
+      labelID: "open-protocol-handler",
+      exactHostMatch: true,
+      states: [SitePermissions.UNKNOWN, SitePermissions.ALLOW],
+      get disabled() {
+        return !SitePermissions.openProtoPermissionEnabled;
+      },
+    },
 
-  "storage-access": {
-    labelID: null,
-    getDefault() {
-      return SitePermissions.UNKNOWN;
+    xr: {
+      exactHostMatch: true,
+    },
+
+    "focus-tab-by-prompt": {
+      exactHostMatch: true,
+      states: [SitePermissions.UNKNOWN, SitePermissions.ALLOW],
+    },
+    "persistent-storage": {
+      exactHostMatch: true,
+    },
+
+    shortcuts: {
+      states: [SitePermissions.ALLOW, SitePermissions.BLOCK],
+    },
+
+    canvas: {
+      get disabled() {
+        return !SitePermissions.resistFingerprinting;
+      },
+    },
+
+    midi: {
+      exactHostMatch: true,
+      get disabled() {
+        return !SitePermissions.midiPermissionEnabled;
+      },
+    },
+
+    "midi-sysex": {
+      exactHostMatch: true,
+      get disabled() {
+        return !SitePermissions.midiPermissionEnabled;
+      },
+    },
+
+    "storage-access": {
+      labelID: null,
+      getDefault() {
+        return SitePermissions.UNKNOWN;
+      },
+    },
+
+    "3rdPartyStorage": {
+      get disabled() {
+        return !SitePermissions.statePartitioningPermissionsEnabled;
+      },
     },
   },
 };
 
-if (!Services.prefs.getBoolPref("dom.webmidi.enabled")) {
-  // ESLint gets angry about array versus dot notation here, but some permission
-  // names use hyphens. Disabling rule for line to keep things consistent.
-  // eslint-disable-next-line dot-notation
-  delete gPermissionObject["midi"];
-  delete gPermissionObject["midi-sysex"];
-}
+SitePermissions.midiPermissionEnabled = Services.prefs.getBoolPref(
+  "dom.webmidi.enabled"
+);
 
 XPCOMUtils.defineLazyPreferenceGetter(
   SitePermissions,
@@ -1057,6 +1121,20 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SitePermissions,
   "resistFingerprinting",
   "privacy.resistFingerprinting",
+  false,
+  SitePermissions.invalidatePermissionList.bind(SitePermissions)
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  SitePermissions,
+  "openProtoPermissionEnabled",
+  "security.external_protocol_requires_permission",
+  true,
+  SitePermissions.invalidatePermissionList.bind(SitePermissions)
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  SitePermissions,
+  "statePartitioningPermissionsEnabled",
+  "browser.contentblocking.state-partitioning.mvp.ui.enabled",
   false,
   SitePermissions.invalidatePermissionList.bind(SitePermissions)
 );

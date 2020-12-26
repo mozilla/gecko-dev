@@ -16,7 +16,16 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
-
+ChromeUtils.defineModuleGetter(
+  this,
+  "ASRouterDefaultConfig",
+  "resource://activity-stream/lib/ASRouterDefaultConfig.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "ASRouterNewTabHook",
+  "resource://activity-stream/lib/ASRouterNewTabHook.jsm"
+);
 ChromeUtils.defineModuleGetter(
   this,
   "ActorManagerParent",
@@ -139,13 +148,10 @@ let JSWINDOWACTORS = {
         AboutLoginsCreateLogin: { wantUntrusted: true },
         AboutLoginsDeleteLogin: { wantUntrusted: true },
         AboutLoginsDismissBreachAlert: { wantUntrusted: true },
-        AboutLoginsHideFooter: { wantUntrusted: true },
         AboutLoginsImportFromBrowser: { wantUntrusted: true },
         AboutLoginsImportFromFile: { wantUntrusted: true },
         AboutLoginsInit: { wantUntrusted: true },
         AboutLoginsGetHelp: { wantUntrusted: true },
-        AboutLoginsOpenMobileAndroid: { wantUntrusted: true },
-        AboutLoginsOpenMobileIos: { wantUntrusted: true },
         AboutLoginsOpenPreferences: { wantUntrusted: true },
         AboutLoginsOpenSite: { wantUntrusted: true },
         AboutLoginsRecordTelemetryEvent: { wantUntrusted: true },
@@ -617,6 +623,22 @@ let JSWINDOWACTORS = {
     matches: ["about:studies"],
   },
 
+  ASRouter: {
+    parent: {
+      moduleURI: "resource:///actors/ASRouterParent.jsm",
+    },
+    child: {
+      moduleURI: "resource:///actors/ASRouterChild.jsm",
+      events: {
+        // This is added so the actor instantiates immediately and makes
+        // methods available to the page js on load.
+        DOMWindowCreated: {},
+      },
+    },
+    matches: ["about:home*", "about:newtab*", "about:welcome*"],
+    remoteTypes: ["privilegedabout"],
+  },
+
   SwitchDocumentDirection: {
     child: {
       moduleURI: "resource:///actors/SwitchDocumentDirectionChild.jsm",
@@ -675,6 +697,7 @@ let JSWINDOWACTORS = {
 };
 
 (function earlyBlankFirstPaint() {
+  let startTime = Cu.now();
   if (
     AppConstants.platform == "macosx" ||
     !Services.prefs.getBoolPref("browser.startup.blankWindow", false)
@@ -756,6 +779,9 @@ let JSWINDOWACTORS = {
   // The window becomes visible after OnStopRequest, so make this happen now.
   win.stop();
 
+  ChromeUtils.addProfilerMarker("earlyBlankFirstPaint", startTime);
+  win.openTime = Cu.now();
+
   let { TelemetryTimestamps } = ChromeUtils.import(
     "resource://gre/modules/TelemetryTimestamps.jsm"
   );
@@ -793,7 +819,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   HomePage: "resource:///modules/HomePage.jsm",
   Integration: "resource://gre/modules/Integration.jsm",
   LoginBreaches: "resource:///modules/LoginBreaches.jsm",
-  LiveBookmarkMigrator: "resource:///modules/LiveBookmarkMigrator.jsm",
   NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
   Normandy: "resource://normandy/Normandy.jsm",
   ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
@@ -1248,7 +1273,6 @@ BrowserGlue.prototype = {
 
     ActorManagerParent.addJSProcessActors(JSPROCESSACTORS);
     ActorManagerParent.addJSWindowActors(JSWINDOWACTORS);
-    ActorManagerParent.flush();
 
     this._flashHangCount = 0;
     this._firstWindowReady = new Promise(
@@ -1257,6 +1281,9 @@ BrowserGlue.prototype = {
     if (AppConstants.platform == "win") {
       JawsScreenReaderVersionCheck.init();
     }
+
+    // This value is to limit collecting Places telemetry once per session.
+    this._placesTelemetryGathered = false;
   },
 
   // cleanup (called on application shutdown)
@@ -1382,7 +1409,7 @@ BrowserGlue.prototype = {
     );
     AddonManager.maybeInstallBuiltinAddon(
       "firefox-alpenglow@mozilla.org",
-      "1.1",
+      "1.2",
       "resource://builtin-themes/alpenglow/"
     );
 
@@ -1884,6 +1911,13 @@ BrowserGlue.prototype = {
 
     this._collectFirstPartyIsolationTelemetry();
 
+    if (!this._placesTelemetryGathered) {
+      Cc["@mozilla.org/places/categoriesStarter;1"]
+        .getService(Ci.nsIObserver)
+        .observe(null, "gather-places-telemetry", null);
+      this._placesTelemetryGathered = true;
+    }
+
     // Set the default favicon size for UI views that use the page-icon protocol.
     PlacesUtils.favicons.setDefaultIconURIPreferredSize(
       16 * aWindow.devicePixelRatio
@@ -2142,6 +2176,7 @@ BrowserGlue.prototype = {
 
     Normandy.uninit();
     RFPHelper.uninit();
+    ASRouterNewTabHook.destroy();
   },
 
   // Set up a listener to enable/disable the screenshots extension
@@ -2572,17 +2607,6 @@ BrowserGlue.prototype = {
       },
 
       {
-        condition:
-          Services.prefs.getIntPref(
-            "browser.livebookmarks.migrationAttemptsLeft",
-            0
-          ) > 0,
-        task: () => {
-          LiveBookmarkMigrator.migrate().catch(Cu.reportError);
-        },
-      },
-
-      {
         task: () => {
           TabUnloader.init();
         },
@@ -2629,10 +2653,48 @@ BrowserGlue.prototype = {
       // pre-init buffer.
       {
         task: () => {
-          let FOG = Cc["@mozilla.org/toolkit/glean;1"].createInstance(
-            Ci.nsIFOG
-          );
-          FOG.initializeFOG();
+          if (AppConstants.MOZ_GLEAN) {
+            let FOG = Cc["@mozilla.org/toolkit/glean;1"].createInstance(
+              Ci.nsIFOG
+            );
+            FOG.initializeFOG();
+          }
+        },
+      },
+
+      // Add the import button if this is the first startup.
+      {
+        task: async () => {
+          // First check if we've already added the import button, in which
+          // case we should check for events indicating we can remove it.
+          if (
+            Services.prefs.getBoolPref(
+              "browser.bookmarks.addedImportButton",
+              false
+            )
+          ) {
+            PlacesUIUtils.removeImportButtonWhenImportSucceeds();
+            return;
+          }
+
+          // Otherwise, check if this is a new profile where we need to add it.
+          // `maybeAddImportButton` will call
+          // `removeImportButtonWhenImportSucceeds`itself if/when it adds the
+          // button. Doing things in this order avoids listening for removal
+          // more than once.
+          if (
+            this._isNewProfile &&
+            // Not in automation: the button changes CUI state, breaking tests
+            !Cu.isInAutomation
+          ) {
+            await PlacesUIUtils.maybeAddImportButton();
+          }
+        },
+      },
+
+      {
+        task: () => {
+          ASRouterNewTabHook.createInstance(ASRouterDefaultConfig());
         },
       },
 
@@ -3268,7 +3330,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 102;
+    const UI_VERSION = 104;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -3536,16 +3598,6 @@ BrowserGlue.prototype = {
         );
         OS.File.remove(path, { ignoreAbsent: true });
       }
-    }
-
-    if (currentUIVersion < 75) {
-      // Ensure we try to migrate any live bookmarks the user might have, trying up to
-      // 5 times. We set this early, and here, to avoid running the migration on
-      // new profile (or, indeed, ever creating the pref there).
-      Services.prefs.setIntPref(
-        "browser.livebookmarks.migrationAttemptsLeft",
-        5
-      );
     }
 
     if (currentUIVersion < 76) {
@@ -3904,15 +3956,53 @@ BrowserGlue.prototype = {
       Services.prefs.clearUserPref("security.tls.version.enable-deprecated");
     }
 
-    // For beta we have to move to 102 because 100 and 101 are used on nightly.
     if (currentUIVersion < 102) {
       // In Firefox 83, we moved to a dynamic button, so it needs to be removed
-      // from uiCustomization. This is done early enough that it doesn't
+      // from default placement. This is done early enough that it doesn't
       // impact adding new managed bookmarks.
       const { CustomizableUI } = ChromeUtils.import(
         "resource:///modules/CustomizableUI.jsm"
       );
       CustomizableUI.removeWidgetFromArea("managed-bookmarks");
+    }
+
+    // We have to rerun these because we had to use 102 on beta.
+    // They were 101 and 102 before.
+    if (currentUIVersion < 103) {
+      // Set a pref if the bookmarks toolbar was already visible,
+      // so we can keep it visible when navigating away from newtab
+      let bookmarksToolbarWasVisible =
+        Services.xulStore.getValue(
+          BROWSER_DOCURL,
+          "PersonalToolbar",
+          "collapsed"
+        ) == "false";
+      if (bookmarksToolbarWasVisible) {
+        // Migrate the user to the "always visible" value. See firefox.js for
+        // the other possible states.
+        Services.prefs.setCharPref(
+          "browser.toolbars.bookmarks.visibility",
+          "always"
+        );
+      }
+      Services.xulStore.removeValue(
+        BROWSER_DOCURL,
+        "PersonalToolbar",
+        "collapsed"
+      );
+
+      Services.prefs.clearUserPref(
+        "browser.livebookmarks.migrationAttemptsLeft"
+      );
+    }
+
+    // For existing profiles, continue putting bookmarks in the
+    // "other bookmarks" folder.
+    if (currentUIVersion < 104) {
+      Services.prefs.setCharPref(
+        "browser.bookmarks.defaultLocation",
+        "unfiled"
+      );
     }
 
     // Update the migration version.
@@ -5260,7 +5350,15 @@ var AboutHomeStartupCache = {
     }
 
     this._cacheProgress = "Writing to cache";
-    await this.populateCache(pageInputStream, scriptInputStream);
+
+    try {
+      await this.populateCache(pageInputStream, scriptInputStream);
+    } catch (e) {
+      this._cacheProgress = "Failed to populate cache";
+      this.log.error("Populating the cache failed: ", e);
+      return;
+    }
+
     this._cacheProgress = "Done";
     this.log.trace("Done writing to cache.");
     this._hasWrittenThisSession = true;
@@ -5297,7 +5395,7 @@ var AboutHomeStartupCache = {
     let state = AboutNewTab.activityStream.store.getState();
     return new Promise(resolve => {
       this._cacheDeferred = resolve;
-      this.log.trace("Parent received cache streams.");
+      this.log.trace("Parent is requesting cache streams.");
       this._procManager.sendAsyncMessage(this.CACHE_REQUEST_MESSAGE, { state });
     });
   },
@@ -5632,7 +5730,7 @@ var AboutHomeStartupCache = {
 
   /**
    * Called when a content process is destroyed. Either it shut down normally,
-   * or it crshed. If this is the "privileged about content process", then some
+   * or it crashed. If this is the "privileged about content process", then some
    * internal state is cleared.
    *
    * @param childID (Number)
@@ -5641,6 +5739,17 @@ var AboutHomeStartupCache = {
    */
   onContentProcessShutdown(childID) {
     if (this._procManagerID == childID) {
+      if (this._cacheDeferred) {
+        this.log.error(
+          "A privileged about content process shut down while cache streams " +
+            "were still en route."
+        );
+        // The crash occurred while we were waiting on cache input streams to
+        // be returned to us. Resolve with null streams instead.
+        this._cacheDeferred({ pageInputStream: null, scriptInputStream: null });
+        this._cacheDeferred = null;
+      }
+
       this._procManager.removeMessageListener(
         this.CACHE_RESPONSE_MESSAGE,
         this

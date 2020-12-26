@@ -2071,26 +2071,24 @@ nsMenuFrame* nsMenuPopupFrame::FindMenuWithShortcut(KeyboardEvent* aKeyEvent,
       if (!isMenu && !mIncrementalString.IsEmpty()) {
         mIncrementalString.SetLength(mIncrementalString.Length() - 1);
         return nullptr;
-      } else {
-#ifdef XP_WIN
-        nsCOMPtr<nsISound> soundInterface =
-            do_CreateInstance("@mozilla.org/sound;1");
-        if (soundInterface) soundInterface->Beep();
-#endif  // #ifdef XP_WIN
       }
+#ifdef XP_WIN
+      nsCOMPtr<nsISound> soundInterface =
+          do_CreateInstance("@mozilla.org/sound;1");
+      if (soundInterface) soundInterface->Beep();
+#endif  // #ifdef XP_WIN
     }
     return nullptr;
+  }
+  char16_t uniChar = ToLowerCase(static_cast<char16_t>(charCode));
+  if (isMenu) {
+    // Menu supports only first-letter navigation
+    mIncrementalString = uniChar;
+  } else if (IsWithinIncrementalTime(keyTime)) {
+    mIncrementalString.Append(uniChar);
   } else {
-    char16_t uniChar = ToLowerCase(static_cast<char16_t>(charCode));
-    if (isMenu) {
-      // Menu supports only first-letter navigation
-      mIncrementalString = uniChar;
-    } else if (IsWithinIncrementalTime(keyTime)) {
-      mIncrementalString.Append(uniChar);
-    } else {
-      // Interval too long, treat as new typing
-      mIncrementalString = uniChar;
-    }
+    // Interval too long, treat as new typing
+    mIncrementalString = uniChar;
   }
 
   // See bug 188199 & 192346, if all letters in incremental string are same,
@@ -2241,8 +2239,9 @@ nsresult nsMenuPopupFrame::AttributeChanged(int32_t aNameSpaceID,
   nsresult rv =
       nsBoxFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 
-  if (aAttribute == nsGkAtoms::left || aAttribute == nsGkAtoms::top)
+  if (aAttribute == nsGkAtoms::left || aAttribute == nsGkAtoms::top) {
     MoveToAttributePosition();
+  }
 
   if (aAttribute == nsGkAtoms::remote) {
     // When the remote attribute changes, we need to create a new widget to
@@ -2297,6 +2296,9 @@ void nsMenuPopupFrame::MoveToAttributePosition() {
   mozilla::CSSIntPoint pos(left.ToInteger(&err1), top.ToInteger(&err2));
 
   if (NS_SUCCEEDED(err1) && NS_SUCCEEDED(err2)) MoveTo(pos, false);
+
+  PresShell()->FrameNeedsReflow(this, IntrinsicDirty::StyleChange,
+                                NS_FRAME_IS_DIRTY);
 }
 
 void nsMenuPopupFrame::DestroyFrom(nsIFrame* aDestructRoot,

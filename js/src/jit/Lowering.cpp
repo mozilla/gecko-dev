@@ -8,6 +8,7 @@
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EndianUtils.h"
+#include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
 
 #include <type_traits>
@@ -1193,6 +1194,13 @@ void LIRGenerator::lowerBitOp(JSOp op, MBinaryBitwiseInstruction* ins) {
 
 void LIRGenerator::visitTypeOf(MTypeOf* ins) {
   MDefinition* opd = ins->input();
+
+  if (opd->type() == MIRType::Object) {
+    auto* lir = new (alloc()) LTypeOfO(useRegister(opd));
+    define(lir, ins);
+    return;
+  }
+
   MOZ_ASSERT(opd->type() == MIRType::Value);
 
   LTypeOfV* lir = new (alloc()) LTypeOfV(useBox(opd), tempToUnbox());
@@ -1916,11 +1924,23 @@ void LIRGenerator::visitMod(MMod* ins) {
   }
 
   if (ins->type() == MIRType::Double) {
-    MOZ_ASSERT(ins->type() == MIRType::Double);
     MOZ_ASSERT(ins->lhs()->type() == MIRType::Double);
     MOZ_ASSERT(ins->rhs()->type() == MIRType::Double);
 
     MOZ_ASSERT(!gen->compilingWasm());
+
+    if (Assembler::HasRoundInstruction(RoundingMode::TowardsZero)) {
+      if (ins->rhs()->isConstant()) {
+        double d = ins->rhs()->toConstant()->toDouble();
+        int32_t div;
+        if (mozilla::NumberIsInt32(d, &div) && div > 0 &&
+            mozilla::IsPowerOfTwo(uint32_t(div))) {
+          auto* lir = new (alloc()) LModPowTwoD(useRegister(ins->lhs()), div);
+          define(lir, ins);
+          return;
+        }
+      }
+    }
 
     // Ion does an unaligned ABI call and thus needs a temp register.
     // Note: useRegisterAtStart is safe here, the temp is not a FP register.
@@ -3119,6 +3139,14 @@ void LIRGenerator::visitGetNextEntryForIterator(MGetNextEntryForIterator* ins) {
                                                     temp(), temp(), temp());
   define(lir, ins);
   assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitArrayBufferByteLengthInt32(
+    MArrayBufferByteLengthInt32* ins) {
+  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
+  auto* lir = new (alloc())
+      LArrayBufferByteLengthInt32(useRegisterAtStart(ins->object()));
+  define(lir, ins);
 }
 
 void LIRGenerator::visitArrayBufferViewLength(MArrayBufferViewLength* ins) {

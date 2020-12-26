@@ -175,12 +175,16 @@ mozilla::LogModule* GetMacAccessibilityLog() {
 
   if (MOZ_LOG_TEST(GetMacAccessibilityLog(), LogLevel::Debug)) {
     if (MOZ_LOG_TEST(GetMacAccessibilityLog(), LogLevel::Verbose)) {
-      LOG(LogLevel::Verbose, @"[%@] attributeValue %@ => %@", self, attribute,
+      LOG(LogLevel::Verbose, @"%@ attributeValue %@ => %@", self, attribute,
           value);
     } else if (![attribute isEqualToString:@"AXParent"] &&
                ![attribute isEqualToString:@"AXRole"] &&
+               ![attribute isEqualToString:@"AXSubrole"] &&
+               ![attribute isEqualToString:@"AXSize"] &&
+               ![attribute isEqualToString:@"AXPosition"] &&
+               ![attribute isEqualToString:@"AXRole"] &&
                ![attribute isEqualToString:@"AXChildren"]) {
-      LOG(LogLevel::Debug, @"[%@] attributeValue %@", self, attribute);
+      LOG(LogLevel::Debug, @"%@ attributeValue %@", self, attribute);
     }
   }
 
@@ -222,6 +226,9 @@ mozilla::LogModule* GetMacAccessibilityLog() {
   if ([self isExpired]) {
     return;
   }
+
+  LOG(LogLevel::Debug, @"%@ setValueForattribute %@ = %@", self, attribute,
+      value);
 
   NSDictionary* setters = mac::AttributeSetters();
   if (setters[attribute]) {
@@ -273,6 +280,8 @@ mozilla::LogModule* GetMacAccessibilityLog() {
   if ([self isExpired]) {
     return;
   }
+
+  LOG(LogLevel::Debug, @"%@ performAction %@ ", self, action);
 
   NSDictionary* actions = mac::Actions();
   if (actions[action]) {
@@ -352,10 +361,10 @@ mozilla::LogModule* GetMacAccessibilityLog() {
   }
 
   if (MOZ_LOG_TEST(GetMacAccessibilityLog(), LogLevel::Verbose)) {
-    LOG(LogLevel::Verbose, @"[%@] attributeValueForParam %@(%@) => %@", self,
+    LOG(LogLevel::Verbose, @"%@ attributeValueForParam %@(%@) => %@", self,
         attribute, parameter, value);
   } else {
-    LOG(LogLevel::Debug, @"[%@] attributeValueForParam %@", self, attribute);
+    LOG(LogLevel::Debug, @"%@ attributeValueForParam %@", self, attribute);
   }
 
   return value;
@@ -398,6 +407,14 @@ mozilla::LogModule* GetMacAccessibilityLog() {
 
 #pragma mark - MOXAccessible protocol
 
+- (NSNumber*)moxIndexForChildUIElement:(id)child {
+  return @([[self moxUnignoredChildren] indexOfObject:child]);
+}
+
+- (id)moxTopLevelUIElement {
+  return [self moxWindow];
+}
+
 - (id)moxHitTest:(NSPoint)point {
   return GetObjectOrRepresentedView(self);
 }
@@ -413,9 +430,9 @@ mozilla::LogModule* GetMacAccessibilityLog() {
 - (void)moxPostNotification:(NSString*)notification
                withUserInfo:(NSDictionary*)userInfo {
   if (MOZ_LOG_TEST(GetMacAccessibilityLog(), LogLevel::Verbose)) {
-    LOG(LogLevel::Verbose, @"[%@] notify %@ %@", self, notification, userInfo);
+    LOG(LogLevel::Verbose, @"%@ notify %@ %@", self, notification, userInfo);
   } else {
-    LOG(LogLevel::Debug, @"[%@] notify %@", self, notification);
+    LOG(LogLevel::Debug, @"%@ notify %@", self, notification);
   }
 
   // This sends events via nsIObserverService to be consumed by our mochitests.
@@ -495,6 +512,20 @@ mozilla::LogModule* GetMacAccessibilityLog() {
 }
 
 #pragma mark -
+
+// objc-style description (from NSObject); not to be confused with the
+// accessible description above.
+- (NSString*)description {
+  if (MOZ_LOG_TEST(GetMacAccessibilityLog(), LogLevel::Debug)) {
+    if ([self isSelectorSupported:@selector(moxMozDebugDescription)]) {
+      return [self moxMozDebugDescription];
+    }
+  }
+
+  return [NSString stringWithFormat:@"<%@: %p %@>",
+                                    NSStringFromClass([self class]), self,
+                                    [self moxRole]];
+}
 
 - (BOOL)isExpired {
   return mIsExpired;

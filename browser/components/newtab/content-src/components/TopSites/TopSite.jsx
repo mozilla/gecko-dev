@@ -30,10 +30,14 @@ export class TopSiteLink extends React.PureComponent {
 
   /*
    * Helper to determine whether the drop zone should allow a drop. We only allow
-   * dropping top sites for now.
+   * dropping top sites for now. We don't allow dropping on sponsored top sites
+   * as their position is fixed.
    */
   _allowDrop(e) {
-    return e.dataTransfer.types.includes("text/topsite-index");
+    return (
+      (this.dragged || !this.props.link.sponsored_position) &&
+      e.dataTransfer.types.includes("text/topsite-index")
+    );
   }
 
   onDragEvent(event) {
@@ -563,37 +567,13 @@ export class TopSiteList extends React.PureComponent {
         if (index === this.state.draggedIndex) {
           this.setState({ topSitesPreview: null });
         } else {
-          let topSites = this._getTopSites();
-          let adjustedIndex = index;
-          // Disallow dropping on sponsored sites since their position is
-          // fixed.
-          while (
-            topSites[adjustedIndex] &&
-            topSites[adjustedIndex].sponsored_position
-          ) {
-            adjustedIndex++;
-          }
           this.setState({
-            topSitesPreview: this._makeTopSitesPreview(adjustedIndex),
+            topSitesPreview: this._makeTopSitesPreview(index),
           });
         }
         break;
       case "drop":
         if (index !== this.state.draggedIndex) {
-          // Adjust insertion index for sponsored sites since their position is
-          // fixed.
-          let topSites = this._getTopSites();
-          let adjustedIndex = index;
-          for (let i = 0; i < index; i++) {
-            if (
-              topSites[i] &&
-              topSites[i].sponsored_position &&
-              i !== this.state.draggedIndex
-            ) {
-              adjustedIndex--;
-            }
-          }
-
           this.dropped = true;
           this.props.dispatch(
             ac.AlsoToMain({
@@ -609,12 +589,12 @@ export class TopSiteList extends React.PureComponent {
                     searchTopSite: true,
                   }),
                 },
-                index: adjustedIndex,
+                index,
                 draggedFromIndex: this.state.draggedIndex,
               },
             })
           );
-          this.userEvent("DROP", adjustedIndex);
+          this.userEvent("DROP", index);
         }
         break;
     }

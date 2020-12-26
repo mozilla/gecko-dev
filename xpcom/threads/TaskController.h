@@ -35,7 +35,7 @@ class TaskController;
 class PerformanceCounter;
 class PerformanceCounterState;
 
-const uint32_t kDefaultPriorityValue = uint32_t(EventQueuePriority::Normal);
+const EventQueuePriority kDefaultPriorityValue = EventQueuePriority::Normal;
 
 // This file contains the core classes to access the Gecko scheduler. The
 // scheduler forms a graph of prioritize tasks, and is responsible for ensuring
@@ -171,10 +171,17 @@ class Task {
   virtual PerformanceCounter* GetPerformanceCounter() const { return nullptr; }
 
  protected:
-  Task(bool aMainThreadOnly, uint32_t aPriority = kDefaultPriorityValue)
+  Task(bool aMainThreadOnly,
+       uint32_t aPriority = static_cast<uint32_t>(kDefaultPriorityValue))
       : mMainThreadOnly(aMainThreadOnly),
         mSeqNo(sCurrentTaskSeqNo++),
         mPriority(aPriority) {}
+
+  Task(bool aMainThreadOnly,
+       EventQueuePriority aPriority = kDefaultPriorityValue)
+      : mMainThreadOnly(aMainThreadOnly),
+        mSeqNo(sCurrentTaskSeqNo++),
+        mPriority(static_cast<uint32_t>(aPriority)) {}
 
   virtual ~Task() {}
 
@@ -225,6 +232,14 @@ class Task {
 #endif
 };
 
+struct PoolThread {
+  std::unique_ptr<std::thread> mThread;
+  RefPtr<Task> mCurrentTask;
+  // This may be higher than mCurrentTask's priority due to priority
+  // propagation. This is -only- valid when mCurrentTask != nullptr.
+  uint32_t mEffectiveTaskPriority;
+};
+
 // A task manager implementation for priority levels that should only
 // run during idle periods.
 class IdleTaskManager : public TaskManager {
@@ -252,6 +267,7 @@ class TaskController {
  public:
   TaskController()
       : mGraphMutex("TaskController::mGraphMutex"),
+        mThreadPoolCV(mGraphMutex, "TaskController::mThreadPoolCV"),
         mMainThreadCV(mGraphMutex, "TaskController::mMainThreadCV") {}
 
   static TaskController* Get();
@@ -271,7 +287,6 @@ class TaskController {
   IdleTaskManager* GetIdleTaskManager() { return mIdleTaskManager.get(); }
 
   // Initialization and shutdown code.
-  bool InitializeInternal();
   void SetPerformanceCounterState(
       PerformanceCounterState* aPerformanceCounterState);
 
@@ -307,6 +322,12 @@ class TaskController {
   bool MTTaskRunnableProcessedTask() { return mMTTaskRunnableProcessedTask; }
 
  private:
+  friend void ThreadFuncPoolThread(TaskController* aController, size_t aIndex);
+
+  bool InitializeInternal();
+
+  void InitializeThreadPool();
+
   // This gets the next (highest priority) task that is only allowed to execute
   // on the main thread, if any, and executes it.
   // Returns true if it succeeded.
@@ -325,7 +346,10 @@ class TaskController {
 
   void ProcessUpdatedPriorityModifier(TaskManager* aManager);
 
+  void ShutdownThreadPoolInternal();
   void ShutdownInternal();
+
+  void RunPoolThread();
 
   static std::unique_ptr<TaskController> sSingleton;
   static StaticMutex sSingletonMutex;
@@ -333,13 +357,22 @@ class TaskController {
   // This protects access to the task graph.
   Mutex mGraphMutex;
 
+  // This protects thread pool initialization. We cannot do this from within
+  // the GraphMutex, since thread creation on Windows can generate events on
+  // the main thread that need to be handled.
+  Mutex mPoolInitializationMutex =
+      Mutex("TaskController::mPoolInitializationMutex");
+
+  CondVar mThreadPoolCV;
   CondVar mMainThreadCV;
 
   // Variables below are protected by mGraphMutex.
 
+  std::vector<PoolThread> mPoolThreads;
   std::stack<RefPtr<Task>> mCurrentTasksMT;
 
   // A list of all tasks ordered by priority.
+  std::set<RefPtr<Task>, Task::PriorityCompare> mThreadableTasks;
   std::set<RefPtr<Task>, Task::PriorityCompare> mMainThreadTasks;
 
   // TaskManagers currently active.
@@ -348,9 +381,15 @@ class TaskController {
 
   // This ensures we keep running the main thread if we processed a task there.
   bool mMayHaveMainThreadTask = true;
+  bool mShuttingDown = false;
 
   // This stores whether the last main thread task runnable did work.
   bool mMTTaskRunnableProcessedTask = false;
+
+  // Whether our thread pool is initialized. We use this currently to avoid
+  // starting the threads in processes where it's never used. This is protected
+  // by mPoolInitializationMutex.
+  bool mThreadPoolInitialized = false;
 
   // Whether we have scheduled a runnable on the main thread event loop.
   // This is used for nsIRunnable compatibility.

@@ -254,7 +254,12 @@ pref("browser.defaultbrowser.notificationbar.checklimit", 10000);
 // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
 pref("browser.startup.page",                1);
 pref("browser.startup.homepage",            "http://replay.io/view");
+#ifdef NIGHTLY_BUILD
+pref("browser.startup.homepage.abouthome_cache.enabled", true);
+#else
 pref("browser.startup.homepage.abouthome_cache.enabled", false);
+#endif
+pref("browser.startup.homepage.abouthome_cache.loglevel", "Warn");
 
 // Whether we should skip the homepage when opening the first-run page
 pref("browser.startup.firstrunSkipsHomepage", false);
@@ -266,6 +271,12 @@ pref("browser.startup.firstrunSkipsHomepage", false);
   pref("browser.startup.blankWindow", true);
 #else
   pref("browser.startup.blankWindow", false);
+#endif
+
+// Show a skeleton UI window prior to loading libxul. Only visible for windows
+// users as it is not implemented anywhere else.
+#if defined(XP_WIN)
+pref("browser.startup.preXulSkeletonUI", false);
 #endif
 
 // Don't create the hidden window during startup on
@@ -550,12 +561,7 @@ pref("browser.tabs.delayHidingAudioPlayingIconMS", 3000);
 // for about: pages. This pref name did not age well: we will have multiple
 // types of privileged content processes, each with different privileges.
 // types of privleged content processes, each with different privleges.
-#if defined(MOZ_CODE_COVERAGE) && defined(XP_LINUX)
-  // Disabled on Linux ccov builds due to bug 1621269.
-  pref("browser.tabs.remote.separatePrivilegedContentProcess", false);
-#else
-  pref("browser.tabs.remote.separatePrivilegedContentProcess", true);
-#endif
+pref("browser.tabs.remote.separatePrivilegedContentProcess", true);
 
 #if defined(NIGHTLY_BUILD) && !defined(MOZ_ASAN)
   // This pref will cause assertions when a remoteType triggers a process switch
@@ -595,6 +601,18 @@ pref("browser.bookmarks.max_backups",             15);
 
 // Whether menu should close after Ctrl-click, middle-click, etc.
 pref("browser.bookmarks.openInTabClosesMenu", true);
+
+// Where new bookmarks go by default.
+// Use PlacesUIUtils.defaultParentGuid to read this; do NOT read the pref
+// directly.
+// The pref is ignored if the browser.toolbars.bookmarks.2h2020 pref is false,
+// in which case bookmarks always go in the "Other bookmarks" folder.
+// The value is one of:
+// - a bookmarks guid
+// - "toolbar", "menu" or "unfiled" for those folders.
+// If we use the pref but the value isn't any of these, we'll fall back to
+// the bookmarks toolbar as a default.
+pref("browser.bookmarks.defaultLocation", "toolbar");
 
 // Scripts & Windows prefs
 pref("dom.disable_open_during_load",              true);
@@ -1335,8 +1353,6 @@ pref("browser.topsites.useRemoteSetting", false);
 
 pref("browser.partnerlink.attributionURL", "https://topsites.services.mozilla.com/cid/amzn_2020_a1");
 
-pref("browser.partnerlink.useAttributionURL", false);
-
 // Whether to show tab level system prompts opened via nsIPrompt(Service) as
 // SubDialogs in the TabDialogBox (true) or as TabModalPrompt in the
 // TabModalPromptBox (false).
@@ -1380,7 +1396,11 @@ pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint", "");
 // List of regions that do not get stories, regardless of locale-list-config.
 pref("browser.newtabpage.activity-stream.discoverystream.region-stories-block", "FR");
 // List of locales that get stories, regardless of region-stories-config.
-pref("browser.newtabpage.activity-stream.discoverystream.locale-list-config", "");
+#ifdef NIGHTLY_BUILD
+  pref("browser.newtabpage.activity-stream.discoverystream.locale-list-config", "en-US,en-CA,en-GB");
+#else
+  pref("browser.newtabpage.activity-stream.discoverystream.locale-list-config", "");
+#endif
 // List of regions that get stories by default.
 pref("browser.newtabpage.activity-stream.discoverystream.region-stories-config", "US,DE,CA,GB,IE,CH,AT,BE,IN");
 
@@ -1408,6 +1428,8 @@ pref("browser.newtabpage.activity-stream.feeds.section.topstories", true);
 #else
   pref("browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar", false);
 #endif
+
+pref("browser.newtabpage.activity-stream.logowordmark.alwaysVisible", false);
 
 // Used to display triplet cards on newtab
 pref("trailhead.firstrun.newtab.triplets", "");
@@ -1652,6 +1674,8 @@ pref("browser.contentblocking.fingerprinting.preferences.ui.enabled", true);
   // Enable cookieBehavior = BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN as an option in the custom category ui
   pref("browser.contentblocking.reject-and-isolate-cookies.preferences.ui.enabled", true);
 #endif
+// State Partitioning MVP UI. Disabled by default for now.
+pref("browser.contentblocking.state-partitioning.mvp.ui.enabled", false);
 
 // Possible values for browser.contentblocking.features.strict pref:
 //   Tracking Protection:
@@ -1721,8 +1745,6 @@ pref("browser.contentblocking.report.monitor.home_page_url", "https://monitor.fi
 pref("browser.contentblocking.report.manage_devices.url", "https://accounts.firefox.com/settings/clients");
 pref("browser.contentblocking.report.endpoint_url", "https://monitor.firefox.com/user/breach-stats?includeResolved=true");
 pref("browser.contentblocking.report.proxy_extension.url", "https://fpn.firefox.com/browser?utm_source=firefox-desktop&utm_medium=referral&utm_campaign=about-protections&utm_content=about-protections");
-pref("browser.contentblocking.report.lockwise.mobile-ios.url", "https://apps.apple.com/app/id1314000270");
-pref("browser.contentblocking.report.lockwise.mobile-android.url", "https://play.google.com/store/apps/details?id=mozilla.lockbox&referrer=utm_source%3Dprotection_report%26utm_content%3Dmobile_promotion");
 pref("browser.contentblocking.report.mobile-ios.url", "https://apps.apple.com/app/firefox-private-safe-browser/id989804926");
 pref("browser.contentblocking.report.mobile-android.url", "https://play.google.com/store/apps/details?id=org.mozilla.firefox&referrer=utm_source%3Dprotection_report%26utm_content%3Dmobile_promotion");
 pref("browser.contentblocking.report.vpn.url", "https://vpn.mozilla.org/?utm_source=firefox-browser&utm_medium=firefox-browser&utm_campaign=about-protections-card");
@@ -1855,12 +1877,7 @@ pref("dom.ipc.processPrelaunch.enabled", true);
 // See comments in bug 1340115 on how we got to these numbers.
 pref("browser.migrate.chrome.history.limit", 2000);
 pref("browser.migrate.chrome.history.maxAgeInDays", 180);
-
-#ifdef EARLY_BETA_OR_EARLIER
 pref("browser.migrate.showBookmarksToolbarAfterMigration", true);
-#else
-pref("browser.migrate.showBookmarksToolbarAfterMigration", false);
-#endif
 
 pref("extensions.pocket.api", "api.getpocket.com");
 pref("extensions.pocket.enabled", false);
@@ -1868,6 +1885,10 @@ pref("extensions.pocket.oAuthConsumerKey", "40249-e88c401e1b1f2242d9e441c4");
 pref("extensions.pocket.site", "getpocket.com");
 pref("extensions.pocket.onSaveRecs", true);
 pref("extensions.pocket.onSaveRecs.locales", "en-US,en-GB,en-CA");
+
+// Control what version of the logged out doorhanger is displayed
+// Possibilities are: `control`, `control-one-button`, `variant_a`, `variant_b`, `variant_c`
+pref("extensions.pocket.loggedOutVariant", "control");
 
 #ifdef NIGHTLY_BUILD
 pref("signon.management.page.fileImport.enabled", true);
@@ -1882,11 +1903,8 @@ pref("signon.management.page.sort", "name");
 // The utm_creative value is appended within the code (specific to the location on
 // where it is clicked). Be sure that if these two prefs are updated, that
 // the utm_creative param be last.
-pref("signon.management.page.mobileAndroidURL", "https://app.adjust.com/6tteyjo?redirect=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dmozilla.lockbox&utm_campaign=Desktop&utm_adgroup=InProduct&utm_creative=");
-pref("signon.management.page.mobileAppleURL", "https://app.adjust.com/6tteyjo?redirect=https%3A%2F%2Fitunes.apple.com%2Fapp%2Fid1314000270%3Fmt%3D8&utm_campaign=Desktop&utm_adgroup=InProduct&utm_creative=");
 pref("signon.management.page.breachAlertUrl",
      "https://monitor.firefox.com/breach-details/");
-pref("signon.management.page.hideMobileFooter", false);
 pref("signon.management.page.showPasswordSyncNotification", true);
 pref("signon.passwordEditCapture.enabled", true);
 pref("signon.showAutoCompleteFooter", true);
@@ -1974,11 +1992,7 @@ pref("doh-rollout.provider-steering.enabled", false);
 pref("doh-rollout.provider-steering.provider-list", "[{ \"name\": \"comcast\", \"canonicalName\": \"doh-discovery.xfinity.com\", \"uri\": \"https://doh.xfinity.com/dns-query\" }]");
 
 // DoH Rollout: whether to clear the mode value at shutdown.
-#ifdef NIGHTLY_BUILD
-  pref("doh-rollout.clearModeOnShutdown", false);
-#else
-  pref("doh-rollout.clearModeOnShutdown", true);
-#endif
+pref("doh-rollout.clearModeOnShutdown", false);
 
 // URL for Learn More link for browser error logging in preferences
 pref("browser.chrome.errorReporter.infoURL",
@@ -2038,10 +2052,15 @@ pref("browser.aboutConfig.showWarning", true);
 
 pref("browser.toolbars.keyboard_navigation", true);
 
+// The visibility of the bookmarks toolbar.
+// "newtab": Show on the New Tab Page
+// "always": Always show
+// "never": Never show
+pref("browser.toolbars.bookmarks.visibility", "newtab");
 // When true, this pref will always show the bookmarks bar on
 // the New Tab Page, allowing showing/hiding via keyboard shortcut,
 // and other functionality to improve the usage of the Bookmarks Toolbar.
-#ifdef NIGHTLY_BUILD
+#ifdef EARLY_BETA_OR_EARLIER
 pref("browser.toolbars.bookmarks.2h2020", true);
 #else
 pref("browser.toolbars.bookmarks.2h2020", false);
@@ -2080,13 +2099,6 @@ pref("devtools.browsertoolbox.fission", true);
 #else
 pref("devtools.browsertoolbox.fission", false);
 #endif
-
-// The fission pref for enabling Fission frame debugging directly from the
-// regular web/content toolbox.
-// When set to true, the toolbox will start showing content from remote frames
-// if (and only if) fission.autostart is also set to true.
-// When set to false, the toolbox should not show content from remote frames.
-pref("devtools.contenttoolbox.fission", true);
 
 // This pref is also related to fission, but not only. It allows the toolbox
 // to stay open even if the debugged tab switches to another process.

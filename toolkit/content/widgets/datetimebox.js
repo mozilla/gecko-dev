@@ -92,7 +92,7 @@ this.DateTimeInputBaseImplWidget = class {
     this.mIsRTL = false;
     let intlUtils = this.window.intlUtils;
     if (intlUtils) {
-      this.mIsRTL = intlUtils.getLocaleInfo(this.mLocales).direction === "rtl";
+      this.mIsRTL = intlUtils.isAppLocaleRTL();
     }
 
     if (this.mIsRTL) {
@@ -612,27 +612,41 @@ this.DateTimeInputBaseImplWidget = class {
       "onBlur originalTarget: " +
         aEvent.originalTarget +
         " target: " +
-        aEvent.target
+        aEvent.target +
+        " rt: " +
+        aEvent.relatedTarget
     );
 
     let target = aEvent.originalTarget;
     target.setAttribute("typeBuffer", "");
     this.setInputValueFromFields();
-    this.mInputElement.setFocusState(false);
+    // No need to set and unset the focus state if the focus is staying within
+    // our input. Same about closing the picker.
+    if (aEvent.relatedTarget != this.mInputElement) {
+      this.mInputElement.setFocusState(false);
+      if (this.mIsPickerOpen) {
+        this.mInputElement.closeDateTimePicker();
+      }
+    }
   }
 
   onKeyPress(aEvent) {
     this.log("onKeyPress key: " + aEvent.key);
 
     switch (aEvent.key) {
-      // Close picker on Enter, Escape or Space key.
+      // Toggle the picker on space/enter, close on Escape.
       case "Enter":
       case "Escape":
       case " ": {
         if (this.mIsPickerOpen) {
           this.mInputElement.closeDateTimePicker();
-          aEvent.preventDefault();
+        } else if (aEvent.key != "Escape") {
+          this.mInputElement.openDateTimePicker(this.getCurrentValue());
+        } else {
+          // Don't preventDefault();
+          break;
         }
+        aEvent.preventDefault();
         break;
       }
       case "Backspace": {

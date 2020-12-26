@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #if defined(MOZILLA_INTERNAL_API)
+#  include "MainThreadUtils.h"
 #  include "mozilla/dom/ContentChild.h"
 #endif
 
@@ -15,6 +16,8 @@
 #  endif
 #endif
 
+#include "mozilla/ArrayUtils.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/mscom/Objref.h"
 #include "mozilla/mscom/Utils.h"
 #include "mozilla/RefPtr.h"
@@ -74,6 +77,16 @@ bool IsCurrentThreadImplicitMTA() {
          aptTypeQualifier == APTTYPEQUALIFIER_IMPLICIT_MTA;
 }
 
+#if defined(MOZILLA_INTERNAL_API)
+bool IsCurrentThreadNonMainMTA() {
+  if (NS_IsMainThread()) {
+    return false;
+  }
+
+  return IsCurrentThreadMTA();
+}
+#endif  // defined(MOZILLA_INTERNAL_API)
+
 bool IsProxy(IUnknown* aUnknown) {
   if (!aUnknown) {
     return false;
@@ -128,8 +141,52 @@ uintptr_t GetContainingModuleHandle() {
   return reinterpret_cast<uintptr_t>(thisModule);
 }
 
-uint32_t CreateStream(const uint8_t* aInitBuf, const uint32_t aInitBufSize,
-                      IStream** aOutStream) {
+namespace detail {
+
+long BuildRegGuidPath(REFGUID aGuid, const GuidType aGuidType, wchar_t* aBuf,
+                      const size_t aBufLen) {
+  constexpr wchar_t kClsid[] = L"CLSID\\";
+  constexpr wchar_t kAppid[] = L"AppID\\";
+  constexpr wchar_t kSubkeyBase[] = L"SOFTWARE\\Classes\\";
+
+  // We exclude null terminators in these length calculations because we include
+  // the stringified GUID's null terminator at the end. Since kClsid and kAppid
+  // have identical lengths, we just choose one to compute this length.
+  constexpr size_t kSubkeyBaseLen = mozilla::ArrayLength(kSubkeyBase) - 1;
+  constexpr size_t kSubkeyLen =
+      kSubkeyBaseLen + mozilla::ArrayLength(kClsid) - 1;
+  // Guid length as formatted for the registry (including curlies and dashes),
+  // but excluding null terminator.
+  constexpr size_t kGuidLen = kGuidRegFormatCharLenInclNul - 1;
+  constexpr size_t kExpectedPathLenInclNul = kSubkeyLen + kGuidLen + 1;
+
+  if (aBufLen < kExpectedPathLenInclNul) {
+    // Buffer is too short
+    return E_INVALIDARG;
+  }
+
+  if (wcscpy_s(aBuf, aBufLen, kSubkeyBase)) {
+    return E_INVALIDARG;
+  }
+
+  const wchar_t* strGuidType = aGuidType == GuidType::CLSID ? kClsid : kAppid;
+  if (wcscat_s(aBuf, aBufLen, strGuidType)) {
+    return E_INVALIDARG;
+  }
+
+  int guidConversionResult =
+      ::StringFromGUID2(aGuid, &aBuf[kSubkeyLen], aBufLen - kSubkeyLen);
+  if (!guidConversionResult) {
+    return E_INVALIDARG;
+  }
+
+  return S_OK;
+}
+
+}  // namespace detail
+
+long CreateStream(const uint8_t* aInitBuf, const uint32_t aInitBufSize,
+                  IStream** aOutStream) {
   if (!aInitBufSize || !aOutStream) {
     return E_INVALIDARG;
   }
@@ -208,7 +265,7 @@ uint32_t CreateStream(const uint8_t* aInitBuf, const uint32_t aInitBufSize,
   return S_OK;
 }
 
-uint32_t CopySerializedProxy(IStream* aInStream, IStream** aOutStream) {
+long CopySerializedProxy(IStream* aInStream, IStream** aOutStream) {
   if (!aInStream || !aOutStream) {
     return E_INVALIDARG;
   }
@@ -258,6 +315,15 @@ void GUIDToString(REFGUID aGuid, nsAString& aOutString) {
     // Truncate the terminator
     aOutString.SetLength(result - 1);
   }
+}
+
+#else
+
+void GUIDToString(REFGUID aGuid,
+                  wchar_t (&aOutBuf)[kGuidRegFormatCharLenInclNul]) {
+  DebugOnly<int> result =
+      ::StringFromGUID2(aGuid, aOutBuf, ArrayLength(aOutBuf));
+  MOZ_ASSERT(result);
 }
 
 #endif  // defined(MOZILLA_INTERNAL_API)

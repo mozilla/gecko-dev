@@ -10,11 +10,12 @@
 #include "mozilla/dom/PaymentRequestUpdateEvent.h"
 #include "BasicCardPayment.h"
 #include "PaymentAddress.h"
+#include "PaymentRequest.h"
+#include "PaymentRequestManager.h"
 #include "PaymentRequestUtils.h"
 #include "mozilla/EventStateManager.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(PaymentResponse)
 
@@ -450,5 +451,4 @@ nsresult PaymentResponse::DispatchUpdateEvent(const nsAString& aType) {
   return rv.StealNSResult();
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

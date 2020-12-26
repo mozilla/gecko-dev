@@ -556,8 +556,13 @@ bool BrowserTabsRemoteAutostart() {
   // Uber override pref for emergency blocking
   if (gBrowserTabsRemoteAutostart) {
     const char* forceDisable = PR_GetEnv("MOZ_FORCE_DISABLE_E10S");
+#if defined(MOZ_WIDGET_ANDROID)
+    // We need this for xpcshell on Android
+    if (forceDisable && *forceDisable) {
+#else
     // The environment variable must match the application version to apply.
     if (forceDisable && gAppData && !strcmp(forceDisable, gAppData->version)) {
+#endif
       gBrowserTabsRemoteAutostart = false;
       status = kE10sForceDisabled;
     }
@@ -1953,11 +1958,21 @@ static void ReflectSkeletonUIPrefToRegistry(const char* aPref, void* aData) {
   if (shouldBeEnabled && Preferences::HasUserValue(kPrefThemeId)) {
     nsCString themeId;
     Preferences::GetCString(kPrefThemeId, themeId);
-    shouldBeEnabled = themeId.EqualsLiteral("default-theme@mozilla.org");
+    if (themeId.EqualsLiteral("default-theme@mozilla.org")) {
+      SetPreXULSkeletonUIThemeId(ThemeMode::Default);
+    } else if (themeId.EqualsLiteral("firefox-compact-dark@mozilla.org")) {
+      SetPreXULSkeletonUIThemeId(ThemeMode::Dark);
+    } else if (themeId.EqualsLiteral("firefox-compact-light@mozilla.org")) {
+      SetPreXULSkeletonUIThemeId(ThemeMode::Light);
+    } else {
+      shouldBeEnabled = false;
+    }
+  } else if (shouldBeEnabled) {
+    SetPreXULSkeletonUIThemeId(ThemeMode::Default);
   }
 
   if (GetPreXULSkeletonUIEnabled() != shouldBeEnabled) {
-    SetPreXULSkeletonUIEnabled(shouldBeEnabled);
+    SetPreXULSkeletonUIEnabledIfAllowed(shouldBeEnabled);
   }
 }
 
@@ -4896,7 +4911,10 @@ nsresult XREMain::XRE_mainRun() {
   nsCOMPtr<nsIFile> workingDir;
   rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR,
                               getter_AddRefs(workingDir));
-  NS_ENSURE_SUCCESS(rv, NS_ERROR_FAILURE);
+  if (NS_FAILED(rv)) {
+    // No working dir? This can happen if it gets deleted before we start.
+    workingDir = nullptr;
+  }
 
   if (!mShuttingDown) {
     cmdLine = new nsCommandLine();

@@ -167,7 +167,7 @@ static const uint64_t kCacheInitialized = ((uint64_t)0x1) << 63;
   // They may be named explicitly, but they still provide a label not a title.
   return mRole == roles::GROUPING || mRole == roles::RADIO_GROUP ||
          mRole == roles::FIGURE || mRole == roles::GRAPHIC ||
-         mRole == roles::DOCUMENT;
+         mRole == roles::DOCUMENT || mRole == roles::OUTLINE;
 }
 
 - (mozilla::a11y::AccessibleOrProxy)geckoAccessible {
@@ -538,9 +538,6 @@ struct RoleDescrComparator {
 };
 
 - (NSString*)moxRoleDescription {
-  if (mRole == roles::DOCUMENT)
-    return utils::LocalizedString(u"htmlContent"_ns);
-
   if (mRole == roles::FIGURE) return utils::LocalizedString(u"figure"_ns);
 
   if (mRole == roles::HEADING) return utils::LocalizedString(u"heading"_ns);
@@ -798,6 +795,33 @@ struct RoleDescrComparator {
   return nil;
 }
 
+#ifndef RELEASE_OR_BETA
+- (NSString*)moxMozDebugDescription {
+  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NIL;
+
+  NSMutableString* domInfo = [NSMutableString string];
+  if (NSString* tagName = utils::GetAccAttr(self, "tag")) {
+    [domInfo appendFormat:@" %@", tagName];
+    NSString* domID = [self moxDOMIdentifier];
+    if ([domID length]) {
+      [domInfo appendFormat:@"#%@", domID];
+    }
+    if (NSString* className = utils::GetAccAttr(self, "class")) {
+      [domInfo
+          appendFormat:@".%@",
+                       [className stringByReplacingOccurrencesOfString:@" "
+                                                            withString:@"."]];
+    }
+  }
+
+  return [NSString stringWithFormat:@"<%@: %p %@%@>",
+                                    NSStringFromClass([self class]), self,
+                                    [self moxRole], domInfo];
+
+  NS_OBJC_END_TRY_ABORT_BLOCK_NIL;
+}
+#endif
+
 - (NSArray*)moxUIElementsForSearchPredicate:(NSDictionary*)searchPredicate {
   // Create our search object and set it up with the searchPredicate
   // params. The init function does additional parsing. We pass a
@@ -883,16 +907,6 @@ struct RoleDescrComparator {
 
 #pragma mark -
 
-// objc-style description (from NSObject); not to be confused with the
-// accessible description above.
-- (NSString*)description {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NIL;
-
-  return [NSString stringWithFormat:@"(%p) %@", self, [self moxRole]];
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NIL;
-}
-
 - (BOOL)disableChild:(mozAccessible*)child {
   return NO;
 }
@@ -924,6 +938,9 @@ struct RoleDescrComparator {
                 NSAccessibilitySelectedChildrenChangedNotification];
       break;
     case nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED: {
+      if (![self stateWithMask:states::SELECTABLE_TEXT]) {
+        break;
+      }
       // We consider any caret move event to be a selected text change event.
       // So dispatching an event for EVENT_TEXT_SELECTION_CHANGED would be
       // reduntant.

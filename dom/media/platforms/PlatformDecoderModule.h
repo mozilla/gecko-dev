@@ -34,55 +34,112 @@ namespace layers {
 class ImageContainer;
 }  // namespace layers
 
-class GpuDecoderModule;
 class MediaDataDecoder;
 class RemoteDecoderModule;
 class CDMProxy;
 
 static LazyLogModule sPDMLog("PlatformDecoderModule");
 
+namespace media {
+
+enum class Option {
+  Default,
+  LowLatency,
+  HardwareDecoderNotAllowed,
+  FullH264Parsing,
+  ErrorIfNoInitializationData,  // By default frames delivered before
+                                // initialization data are dropped. Pass this
+                                // option to raise an error if frames are
+                                // delivered before initialization data.
+  DefaultPlaybackDeviceMono,    // Currently only used by Opus on RDD to avoid
+                                // initialization of audio backends on RDD
+
+  SENTINEL  // one past the last valid value
+};
+using OptionSet = EnumSet<Option>;
+
+struct UseNullDecoder {
+  UseNullDecoder() = default;
+  explicit UseNullDecoder(bool aUseNullDecoder) : mUse(aUseNullDecoder) {}
+  bool mUse = false;
+};
+
+// Do not wrap H264 decoder in a H264Converter.
+struct NoWrapper {
+  NoWrapper() = default;
+  explicit NoWrapper(bool aDontUseWrapper) : mDontUseWrapper(aDontUseWrapper) {}
+  bool mDontUseWrapper = false;
+};
+
+struct VideoFrameRate {
+  VideoFrameRate() = default;
+  explicit VideoFrameRate(float aFramerate) : mValue(aFramerate) {}
+  float mValue = 0.0f;
+};
+
+}  // namespace media
+
+struct CreateDecoderParams;
+struct CreateDecoderParamsForAsync {
+  using Option = media::Option;
+  using OptionSet = media::OptionSet;
+  explicit CreateDecoderParamsForAsync(const CreateDecoderParams& aParams);
+  CreateDecoderParamsForAsync(CreateDecoderParamsForAsync&& aParams);
+
+  const VideoInfo& VideoConfig() const {
+    MOZ_ASSERT(mConfig->IsVideo());
+    return *mConfig->GetAsVideoInfo();
+  }
+
+  const AudioInfo& AudioConfig() const {
+    MOZ_ASSERT(mConfig->IsAudio());
+    return *mConfig->GetAsAudioInfo();
+  }
+
+  UniquePtr<TrackInfo> mConfig;
+  const RefPtr<layers::ImageContainer> mImageContainer;
+  const RefPtr<layers::KnowsCompositor> mKnowsCompositor;
+  const RefPtr<GMPCrashHelper> mCrashHelper;
+  const media::UseNullDecoder mUseNullDecoder;
+  const media::NoWrapper mNoWrapper;
+  const TrackInfo::TrackType mType = TrackInfo::kUndefinedTrack;
+  std::function<MediaEventProducer<TrackInfo::TrackType>*()>
+      mOnWaitingForKeyEvent;
+  const OptionSet mOptions = OptionSet(Option::Default);
+  const media::VideoFrameRate mRate;
+};
+
 struct MOZ_STACK_CLASS CreateDecoderParams final {
+  using Option = media::Option;
+  using OptionSet = media::OptionSet;
+  using UseNullDecoder = media::UseNullDecoder;
+  using NoWrapper = media::NoWrapper;
+  using VideoFrameRate = media::VideoFrameRate;
+
   explicit CreateDecoderParams(const TrackInfo& aConfig) : mConfig(aConfig) {}
+  CreateDecoderParams(const CreateDecoderParams& aParams) = default;
 
-  enum class Option {
-    Default,
-    LowLatency,
-    HardwareDecoderNotAllowed,
-    FullH264Parsing,
-    ErrorIfNoInitializationData,  // By default frames delivered before
-                                  // initialization data are dropped. Pass this
-                                  // option to raise an error if frames are
-                                  // delivered before initialization data.
-    DefaultPlaybackDeviceMono,    // Currently only used by Opus on RDD to avoid
-                                  // initialization of audio backends on RDD
-
-    SENTINEL  // one past the last valid value
-  };
-  using OptionSet = EnumSet<Option>;
-
-  struct UseNullDecoder {
-    UseNullDecoder() = default;
-    explicit UseNullDecoder(bool aUseNullDecoder) : mUse(aUseNullDecoder) {}
-    bool mUse = false;
-  };
-
-  // Do not wrap decoder in a MediaChangeMonitor.
-  struct NoWrapper {
-    NoWrapper() = default;
-    explicit NoWrapper(bool aDontUseWrapper)
-        : mDontUseWrapper(aDontUseWrapper) {}
-    bool mDontUseWrapper = false;
-  };
-
-  struct VideoFrameRate {
-    VideoFrameRate() = default;
-    explicit VideoFrameRate(float aFramerate) : mValue(aFramerate) {}
-    float mValue = 0.0f;
-  };
+  MOZ_IMPLICIT CreateDecoderParams(const CreateDecoderParamsForAsync& aParams)
+      : mConfig(*aParams.mConfig.get()),
+        mImageContainer(aParams.mImageContainer),
+        mKnowsCompositor(aParams.mKnowsCompositor),
+        mCrashHelper(aParams.mCrashHelper),
+        mUseNullDecoder(aParams.mUseNullDecoder),
+        mNoWrapper(aParams.mNoWrapper),
+        mType(aParams.mType),
+        mOnWaitingForKeyEvent(aParams.mOnWaitingForKeyEvent),
+        mOptions(aParams.mOptions),
+        mRate(aParams.mRate) {}
 
   template <typename T1, typename... Ts>
   CreateDecoderParams(const TrackInfo& aConfig, T1&& a1, Ts&&... args)
       : mConfig(aConfig) {
+    Set(std::forward<T1>(a1), std::forward<Ts>(args)...);
+  }
+
+  template <typename T1, typename... Ts>
+  CreateDecoderParams(const CreateDecoderParams& aParams, T1&& a1, Ts&&... args)
+      : CreateDecoderParams(aParams) {
     Set(std::forward<T1>(a1), std::forward<Ts>(args)...);
   }
 
@@ -103,23 +160,23 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
     return layers::LayersBackend::LAYERS_NONE;
   }
 
+  // CreateDecoderParams is a MOZ_STACK_CLASS, it is only used to
+  // simplify the passing of arguments to Create*Decoder.
+  // It is safe to use references and raw pointers.
   const TrackInfo& mConfig;
-  DecoderDoctorDiagnostics* mDiagnostics = nullptr;
   layers::ImageContainer* mImageContainer = nullptr;
   MediaResult* mError = nullptr;
-  RefPtr<layers::KnowsCompositor> mKnowsCompositor;
-  RefPtr<GMPCrashHelper> mCrashHelper;
-  UseNullDecoder mUseNullDecoder;
-  NoWrapper mNoWrapper;
+  layers::KnowsCompositor* mKnowsCompositor = nullptr;
+  GMPCrashHelper* mCrashHelper = nullptr;
+  media::UseNullDecoder mUseNullDecoder;
+  media::NoWrapper mNoWrapper;
   TrackInfo::TrackType mType = TrackInfo::kUndefinedTrack;
-  MediaEventProducer<TrackInfo::TrackType>* mOnWaitingForKeyEvent = nullptr;
+  std::function<MediaEventProducer<TrackInfo::TrackType>*()>
+      mOnWaitingForKeyEvent;
   OptionSet mOptions = OptionSet(Option::Default);
-  VideoFrameRate mRate;
+  media::VideoFrameRate mRate;
 
  private:
-  void Set(DecoderDoctorDiagnostics* aDiagnostics) {
-    mDiagnostics = aDiagnostics;
-  }
   void Set(layers::ImageContainer* aImageContainer) {
     mImageContainer = aImageContainer;
   }
@@ -138,9 +195,87 @@ struct MOZ_STACK_CLASS CreateDecoderParams final {
     }
   }
   void Set(TrackInfo::TrackType aType) { mType = aType; }
-  void Set(MediaEventProducer<TrackInfo::TrackType>* aOnWaitingForKey) {
+  void Set(std::function<MediaEventProducer<TrackInfo::TrackType>*()>&&
+               aOnWaitingForKey) {
+    mOnWaitingForKeyEvent = std::move(aOnWaitingForKey);
+  }
+  void Set(const std::function<MediaEventProducer<TrackInfo::TrackType>*()>&
+               aOnWaitingForKey) {
     mOnWaitingForKeyEvent = aOnWaitingForKey;
   }
+  void Set(const CreateDecoderParams& aParams) {
+    // Set all but mTrackInfo;
+    mImageContainer = aParams.mImageContainer;
+    mError = aParams.mError;
+    mKnowsCompositor = aParams.mKnowsCompositor;
+    mCrashHelper = aParams.mCrashHelper;
+    mUseNullDecoder = aParams.mUseNullDecoder;
+    mNoWrapper = aParams.mNoWrapper;
+    mType = aParams.mType;
+    mOnWaitingForKeyEvent = aParams.mOnWaitingForKeyEvent;
+    mOptions = aParams.mOptions;
+    mRate = aParams.mRate;
+  }
+  template <typename T1, typename T2, typename... Ts>
+  void Set(T1&& a1, T2&& a2, Ts&&... args) {
+    Set(std::forward<T1>(a1));
+    Set(std::forward<T2>(a2), std::forward<Ts>(args)...);
+  }
+};
+
+struct MOZ_STACK_CLASS SupportDecoderParams final {
+  using Option = media::Option;
+  using OptionSet = media::OptionSet;
+  using UseNullDecoder = media::UseNullDecoder;
+  using NoWrapper = media::NoWrapper;
+  using VideoFrameRate = media::VideoFrameRate;
+
+  explicit SupportDecoderParams(const TrackInfo& aConfig) : mConfig(aConfig) {}
+
+  explicit SupportDecoderParams(const CreateDecoderParams& aParams)
+      : mConfig(aParams.mConfig),
+        mError(aParams.mError),
+        mKnowsCompositor(aParams.mKnowsCompositor),
+        mUseNullDecoder(aParams.mUseNullDecoder),
+        mNoWrapper(aParams.mNoWrapper),
+        mOptions(aParams.mOptions),
+        mRate(aParams.mRate) {}
+
+  template <typename T1, typename... Ts>
+  SupportDecoderParams(const TrackInfo& aConfig, T1&& a1, Ts&&... args)
+      : mConfig(aConfig) {
+    Set(std::forward<T1>(a1), std::forward<Ts>(args)...);
+  }
+
+  const nsCString& MimeType() const { return mConfig.mMimeType; }
+
+  const TrackInfo& mConfig;
+  DecoderDoctorDiagnostics* mDiagnostics = nullptr;
+  MediaResult* mError = nullptr;
+  RefPtr<layers::KnowsCompositor> mKnowsCompositor;
+  UseNullDecoder mUseNullDecoder;
+  NoWrapper mNoWrapper;
+  OptionSet mOptions = OptionSet(Option::Default);
+  VideoFrameRate mRate;
+
+ private:
+  void Set(DecoderDoctorDiagnostics* aDiagnostics) {
+    mDiagnostics = aDiagnostics;
+  }
+  void Set(MediaResult* aError) { mError = aError; }
+  void Set(media::UseNullDecoder aUseNullDecoder) {
+    mUseNullDecoder = aUseNullDecoder;
+  }
+  void Set(media::NoWrapper aNoWrapper) { mNoWrapper = aNoWrapper; }
+  void Set(media::OptionSet aOptions) { mOptions = aOptions; }
+  void Set(media::VideoFrameRate aRate) { mRate = aRate; }
+  void Set(layers::KnowsCompositor* aKnowsCompositor) {
+    if (aKnowsCompositor) {
+      mKnowsCompositor = aKnowsCompositor;
+      MOZ_ASSERT(aKnowsCompositor->IsThreadSafe());
+    }
+  }
+
   template <typename T1, typename T2, typename... Ts>
   void Set(T1&& a1, T2&& a2, Ts&&... args) {
     Set(std::forward<T1>(a1));
@@ -183,15 +318,20 @@ class PlatformDecoderModule {
       const nsACString& aMimeType,
       DecoderDoctorDiagnostics* aDiagnostics) const = 0;
 
-  virtual bool Supports(const TrackInfo& aTrackInfo,
+  virtual bool Supports(const SupportDecoderParams& aParams,
                         DecoderDoctorDiagnostics* aDiagnostics) const {
-    if (!SupportsMimeType(aTrackInfo.mMimeType, aDiagnostics)) {
+    const TrackInfo& trackInfo = aParams.mConfig;
+    if (!SupportsMimeType(trackInfo.mMimeType, aDiagnostics)) {
       return false;
     }
-    const auto videoInfo = aTrackInfo.GetAsVideoInfo();
+    const auto* videoInfo = trackInfo.GetAsVideoInfo();
     return !videoInfo ||
            SupportsColorDepth(videoInfo->mColorDepth, aDiagnostics);
   }
+
+  typedef MozPromise<RefPtr<MediaDataDecoder>, MediaResult,
+                     /* IsExclusive = */ true>
+      CreateDecoderPromise;
 
  protected:
   PlatformDecoderModule() = default;
@@ -199,7 +339,6 @@ class PlatformDecoderModule {
 
   friend class MediaChangeMonitor;
   friend class PDMFactory;
-  friend class GpuDecoderModule;
   friend class EMEDecoderModule;
   friend class RemoteDecoderModule;
 
@@ -213,28 +352,32 @@ class PlatformDecoderModule {
 
   // Creates a Video decoder. The layers backend is passed in so that
   // decoders can determine whether hardware accelerated decoding can be used.
-  // Asynchronous decoding of video should be done in runnables dispatched
-  // to aVideoTaskQueue. If the task queue isn't needed, the decoder should
-  // not hold a reference to it.
   // On Windows the task queue's threads in have MSCOM initialized with
   // COINIT_MULTITHREADED.
   // Returns nullptr if the decoder can't be created.
-  // It is safe to store a reference to aConfig.
-  // This is called on the decode task queue.
+  // It is not safe to store a reference to aParams or aParams.mConfig as the
+  // object isn't guaranteed to live after the call.
+  // CreateVideoDecoder may need to make additional checks if the
+  // CreateDecoderParams argument is actually supported and return nullptr if
+  // not to allow for fallback PDMs to be tried.
   virtual already_AddRefed<MediaDataDecoder> CreateVideoDecoder(
       const CreateDecoderParams& aParams) = 0;
 
   // Creates an Audio decoder with the specified properties.
-  // Asynchronous decoding of audio should be done in runnables dispatched to
-  // aAudioTaskQueue. If the task queue isn't needed, the decoder should
-  // not hold a reference to it.
   // Returns nullptr if the decoder can't be created.
   // On Windows the task queue's threads in have MSCOM initialized with
   // COINIT_MULTITHREADED.
-  // It is safe to store a reference to aConfig.
-  // This is called on the decode task queue.
+  // It is not safe to store a reference to aParams or aParams.mConfig as the
+  // object isn't guaranteed to live after the call.
+  // CreateAudioDecoder may need to make additional checks if the
+  // CreateDecoderParams argument is actually supported and return nullptr if
+  // not to allow for fallback PDMs to be tried.
   virtual already_AddRefed<MediaDataDecoder> CreateAudioDecoder(
       const CreateDecoderParams& aParams) = 0;
+
+  // Asychronously create a decoder.
+  virtual RefPtr<CreateDecoderPromise> AsyncCreateDecoder(
+      const CreateDecoderParams& aParams);
 };
 
 DDLoggedTypeDeclName(MediaDataDecoder);
@@ -252,10 +395,7 @@ DDLoggedTypeDeclName(MediaDataDecoder);
 // Don't block inside these functions, unless it's explicitly noted that you
 // should (like in Flush()).
 //
-// Decoding is done asynchronously. Any async work can be done on the
-// TaskQueue passed into the PlatformDecoderModules's Create*Decoder()
-// function. This may not be necessary for platforms with async APIs
-// for decoding.
+// Decoding is done asynchronously.
 class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
  protected:
   virtual ~MediaDataDecoder() = default;
@@ -272,7 +412,7 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDataDecoder)
 
   // Initialize the decoder. The decoder should be ready to decode once
-  // promise resolves. The decoder should do any initialization here, rather
+  // the promise resolves. The decoder should do any initialization here, rather
   // than in its constructor or PlatformDecoderModule::Create*Decoder(),
   // so that if the MediaFormatReader needs to shutdown during initialization,
   // it can call Shutdown() to cancel this operation. Any initialization
@@ -330,6 +470,9 @@ class MediaDataDecoder : public DecoderDoctorLifeLogger<MediaDataDecoder> {
   // completed shutdown. The reader calls Flush() before calling Shutdown(). The
   // reader will delete the decoder once the promise is resolved.
   // The ShutdownPromise must only ever be resolved.
+  // Shutdown() may not be called if init hasn't been called first. It is
+  // possible under some circumstances for the decoder to be deleted without
+  // Init having been called first.
   virtual RefPtr<ShutdownPromise> Shutdown() = 0;
 
   // Called from the state machine task queue or main thread. Decoder needs to

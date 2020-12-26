@@ -317,7 +317,6 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
       mLayersId{0},
       mEffectsInfo{EffectsInfo::FullyHidden()},
       mDidFakeShow(false),
-      mNotified(false),
       mTriedBrowserInit(false),
       mOrientation(hal::eScreenOrientation_PortraitPrimary),
       mIgnoreKeyPressEvent(false),
@@ -343,7 +342,6 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
       mShouldSendWebProgressEventsToParent(false),
       mRenderLayers(true),
       mPendingDocShellIsActive(false),
-      mPendingSuspendMediaWhenInactive(false),
       mPendingDocShellReceivedMessage(false),
       mPendingRenderLayers(false),
       mPendingRenderLayersReceivedMessage(false),
@@ -993,6 +991,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvLoadURL(
   MOZ_ASSERT(docShell);
   if (!docShell) {
     NS_WARNING("WebNavigation does not have a docshell");
+    return IPC_OK();
   }
   docShell->LoadURI(aLoadState, true);
 
@@ -2482,10 +2481,6 @@ void BrowserChild::RemovePendingDocShellBlocker() {
     mPendingDocShellReceivedMessage = false;
     InternalSetDocShellIsActive(mPendingDocShellIsActive);
   }
-  if (!mPendingDocShellBlockers && mPendingSuspendMediaWhenInactive) {
-    mPendingSuspendMediaWhenInactive = false;
-    InternalSetSuspendMediaWhenInactive(mPendingSuspendMediaWhenInactive);
-  }
   if (!mPendingDocShellBlockers && mPendingRenderLayersReceivedMessage) {
     mPendingRenderLayersReceivedMessage = false;
     RecvRenderLayers(mPendingRenderLayers, mPendingLayersObserverEpoch);
@@ -2510,25 +2505,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvSetDocShellIsActive(
   }
 
   InternalSetDocShellIsActive(aIsActive);
-  return IPC_OK();
-}
-
-void BrowserChild::InternalSetSuspendMediaWhenInactive(
-    bool aSuspendMediaWhenInactive) {
-  if (nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation())) {
-    docShell->SetSuspendMediaWhenInactive(aSuspendMediaWhenInactive);
-  }
-}
-
-mozilla::ipc::IPCResult BrowserChild::RecvSetSuspendMediaWhenInactive(
-    const bool& aSuspendMediaWhenInactive) {
-  if (mPendingDocShellBlockers > 0) {
-    mPendingDocShellReceivedMessage = true;
-    mPendingSuspendMediaWhenInactive = aSuspendMediaWhenInactive;
-    return IPC_OK();
-  }
-
-  InternalSetSuspendMediaWhenInactive(aSuspendMediaWhenInactive);
   return IPC_OK();
 }
 
@@ -2739,7 +2715,12 @@ void BrowserChild::InitRenderingState(
     mLayersId = aLayersId;
   }
 
-  MOZ_ASSERT(!mPuppetWidget->HasLayerManager());
+  // Depending on timing, we might paint too early and fall back to basic
+  // layers. CreateRemoteLayerManager will destroy us if we manage to get a
+  // remote layer manager though, so that's fine.
+  MOZ_ASSERT(!mPuppetWidget->HasLayerManager() ||
+             mPuppetWidget->GetLayerManager()->GetBackendType() ==
+                 layers::LayersBackend::LAYERS_BASIC);
   bool success = false;
   if (mLayersConnected == Some(true)) {
     success = CreateRemoteLayerManager(compositorChild);
@@ -2841,16 +2822,6 @@ void BrowserChild::InitAPZState() {
       new ContentProcessController(this);
   APZChild* apzChild = new APZChild(contentController);
   cbc->SendPAPZConstructor(apzChild, mLayersId);
-}
-
-void BrowserChild::NotifyPainted() {
-  if (!mNotified) {
-    // Recording/replaying processes have a compositor but not a remote frame.
-    if (!recordreplay::IsRecordingOrReplaying()) {
-      SendNotifyCompositorTransaction();
-    }
-    mNotified = true;
-  }
 }
 
 IPCResult BrowserChild::RecvUpdateEffects(const EffectsInfo& aEffects) {
@@ -3003,6 +2974,22 @@ BrowserChild::SetWebBrowserChrome(nsIWebBrowserChrome3* aWebBrowserChrome) {
 }
 
 void BrowserChild::SendRequestFocus(bool aCanFocus, CallerType aCallerType) {
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm) {
+    return;
+  }
+
+  nsCOMPtr<nsPIDOMWindowOuter> window = do_GetInterface(WebNavigation());
+  if (!window) {
+    return;
+  }
+
+  BrowsingContext* focusedBC = fm->GetFocusedBrowsingContext();
+  if (focusedBC == window->GetBrowsingContext()) {
+    // BrowsingContext has the focus already, do not request again.
+    return;
+  }
+
   PBrowserChild::SendRequestFocus(aCanFocus, aCallerType);
 }
 
@@ -3337,6 +3324,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvAllowScriptsToClose() {
 mozilla::ipc::IPCResult BrowserChild::RecvSetWidgetNativeData(
     const WindowsHandle& aWidgetNativeData) {
   mWidgetNativeData = aWidgetNativeData;
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult BrowserChild::RecvReleaseAllPointerCapture() {
+  PointerEventHandler::ReleaseAllPointerCapture();
   return IPC_OK();
 }
 

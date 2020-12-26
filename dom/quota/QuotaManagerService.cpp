@@ -6,28 +6,53 @@
 
 #include "QuotaManagerService.h"
 
+// Local includes
 #include "ActorsChild.h"
-#include "mozilla/BasePrincipal.h"
-#include "mozilla/ClearOnShutdown.h"
-#include "mozilla/Hal.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/Unused.h"
-#include "mozilla/ipc/BackgroundChild.h"
-#include "mozilla/ipc/BackgroundParent.h"
-#include "mozilla/ipc/BackgroundUtils.h"
-#include "mozilla/ipc/PBackgroundChild.h"
-#include "nsIUserIdleService.h"
-#include "nsIObserverService.h"
-#include "nsXULAppAPI.h"
+#include "Client.h"
 #include "QuotaManager.h"
 #include "QuotaRequests.h"
 
+// Global includes
+#include <cstdint>
+#include <cstring>
+#include <utility>
+#include "MainThreadUtils.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Hal.h"
+#include "mozilla/MacroForEach.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/OriginAttributes.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/Services.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPtr.h"
+#include "mozilla/Unused.h"
+#include "mozilla/Variant.h"
+#include "mozilla/dom/quota/PQuota.h"
+#include "mozilla/dom/quota/PersistenceType.h"
+#include "mozilla/fallible.h"
+#include "mozilla/hal_sandbox/PHal.h"
+#include "mozilla/ipc/BackgroundChild.h"
+#include "mozilla/ipc/BackgroundUtils.h"
+#include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/ipc/PBackgroundSharedTypes.h"
+#include "nsCOMPtr.h"
+#include "nsContentUtils.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsIObserverService.h"
+#include "nsIPrincipal.h"
+#include "nsIUserIdleService.h"
+#include "nsServiceManagerUtils.h"
+#include "nsStringFwd.h"
+#include "nsXULAppAPI.h"
+#include "nscore.h"
+
 #define PROFILE_BEFORE_CHANGE_QM_OBSERVER_ID "profile-before-change-qm"
 
-namespace mozilla {
-namespace dom {
-namespace quota {
+namespace mozilla::dom::quota {
 
 using namespace mozilla::ipc;
 
@@ -961,6 +986,4 @@ nsresult QuotaManagerService::IdleMaintenanceInfo::InitiateRequest(
   return NS_OK;
 }
 
-}  // namespace quota
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom::quota

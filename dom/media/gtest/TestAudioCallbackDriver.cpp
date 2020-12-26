@@ -25,16 +25,23 @@ class MockGraphInterface : public GraphInterface {
   NS_DECL_THREADSAFE_ISUPPORTS
   MOCK_METHOD4(NotifyOutputData,
                void(AudioDataValue*, size_t, TrackRate, uint32_t));
-  MOCK_METHOD0(NotifyStarted, void());
-  MOCK_METHOD4(NotifyInputData,
-               void(const AudioDataValue*, size_t, TrackRate, uint32_t));
+  MOCK_METHOD0(NotifyInputStopped, void());
+  MOCK_METHOD5(NotifyInputData, void(const AudioDataValue*, size_t, TrackRate,
+                                     uint32_t, uint32_t));
   MOCK_METHOD0(DeviceChanged, void());
   /* OneIteration cannot be mocked because IterationResult is non-memmovable and
    * cannot be passed as a parameter, which GMock does internally. */
   IterationResult OneIteration(GraphTime, GraphTime, AudioMixer*) {
-    return mKeepProcessing ? IterationResult::CreateStillProcessing()
-                           : IterationResult::CreateStop(
-                                 NS_NewRunnableFunction(__func__, [] {}));
+    if (!mKeepProcessing) {
+      return IterationResult::CreateStop(
+          NS_NewRunnableFunction(__func__, [] {}));
+    }
+    GraphDriver* next = mNextDriver.exchange(nullptr);
+    if (next) {
+      return IterationResult::CreateSwitchDriver(
+          next, NS_NewRunnableFunction(__func__, [] {}));
+    }
+    return IterationResult::CreateStillProcessing();
   }
 #ifdef DEBUG
   bool InDriverIteration(GraphDriver* aDriver) override {
@@ -44,8 +51,11 @@ class MockGraphInterface : public GraphInterface {
 
   void StopIterating() { mKeepProcessing = false; }
 
+  void SwitchTo(GraphDriver* aDriver) { mNextDriver = aDriver; }
+
  protected:
   Atomic<bool> mKeepProcessing{true};
+  Atomic<GraphDriver*> mNextDriver{nullptr};
   virtual ~MockGraphInterface() = default;
 };
 
@@ -58,7 +68,7 @@ MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION {
 
   RefPtr<AudioCallbackDriver> driver;
   auto graph = MakeRefPtr<NiceMock<MockGraphInterface>>();
-  EXPECT_CALL(*graph, NotifyStarted).Times(1);
+  EXPECT_CALL(*graph, NotifyInputStopped).Times(0);
   ON_CALL(*graph, NotifyOutputData)
       .WillByDefault([&](AudioDataValue*, size_t, TrackRate, uint32_t) {});
 

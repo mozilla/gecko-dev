@@ -249,6 +249,19 @@ PlacesViewBase.prototype = {
   buildContextMenu: function PVB_buildContextMenu(aPopup) {
     this._contextMenuShown = aPopup;
     window.updateCommands("places");
+
+    // Add the View menu for the Bookmarks Toolbar if the click originated
+    // from the Bookmarks Toolbar.
+    if (gBookmarksToolbar2h2020) {
+      let existingSubmenu = aPopup.querySelector("#toggle_PersonalToolbar");
+      existingSubmenu?.remove();
+      let bookmarksToolbar = document.getElementById("PersonalToolbar");
+      if (bookmarksToolbar?.contains(aPopup.triggerNode)) {
+        let menu = BookmarkingUI.buildBookmarksToolbarSubmenu(bookmarksToolbar);
+        aPopup.appendChild(menu);
+      }
+    }
+
     return this.controller.buildContextMenu(aPopup);
   },
 
@@ -863,6 +876,8 @@ function PlacesToolbar(aPlace) {
     ["_dropIndicator", "PlacesToolbarDropIndicator"],
     ["_chevron", "PlacesChevron"],
     ["_chevronPopup", "PlacesChevronPopup"],
+    ["_otherBookmarks", "OtherBookmarks"],
+    ["_otherBookmarksPopup", "OtherBookmarksPopup"],
   ].forEach(function(elementGlobal) {
     let [name, id] = elementGlobal;
     thisView.__defineGetter__(name, function() {
@@ -944,6 +959,10 @@ PlacesToolbar.prototype = {
 
     if (this._chevron._placesView) {
       this._chevron._placesView.uninit();
+    }
+
+    if (this._otherBookmarks._placesView) {
+      this._otherBookmarks._placesView.uninit();
     }
 
     PlacesViewBase.prototype.uninit.apply(this, arguments);
@@ -1030,6 +1049,8 @@ PlacesToolbar.prototype = {
       // Otherwise, it will be initialized when the toolbar overflows.
       this._chevronPopup.place = this.place;
     }
+
+    BookmarkingUI.maybeShowOtherBookmarksFolder();
   },
 
   _insertNewItem: function PT__insertNewItem(
@@ -1077,6 +1098,10 @@ PlacesToolbar.prototype = {
     }
 
     button._placesNode = aChild;
+    let { icon } = button._placesNode;
+    if (icon) {
+      button.setAttribute("image", icon);
+    }
     if (!this._domNodes.has(aChild)) {
       this._domNodes.set(aChild, button);
     }
@@ -1113,6 +1138,21 @@ PlacesToolbar.prototype = {
     }
 
     this._updateChevronPopupNodesVisibility();
+  },
+
+  _onOtherBookmarksPopupShowing: function PT__onOtherBookmarksPopupShowing(
+    aEvent
+  ) {
+    if (aEvent.target != this._otherBookmarksPopup) {
+      return;
+    }
+
+    if (!this._otherBookmarks._placesView) {
+      this._otherBookmarks._placesView = new PlacesMenu(
+        aEvent,
+        "place:parent=" + PlacesUtils.bookmarks.unfiledGuid
+      );
+    }
   },
 
   handleEvent: function PT_handleEvent(aEvent) {

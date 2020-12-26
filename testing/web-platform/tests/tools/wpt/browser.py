@@ -561,7 +561,7 @@ class Chrome(Browser):
         return self.find_nightly_binary(dest)
 
     def install_mojojs(self, dest, channel, browser_binary):
-        if channel == "nightly":
+        if channel == "nightly" or channel == "canary":
             url = self._latest_chromium_snapshot_url() + "mojojs.zip"
         else:
             chrome_version = self.version(binary=browser_binary)
@@ -646,10 +646,10 @@ class Chrome(Browser):
             # No Canary on Linux.
             return find_executable(name)
         if uname[0] == "Darwin":
-            if channel == "canary":
-                return "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
-            # All other channels share the same path on macOS.
-            return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            suffix = ""
+            if channel in ("beta", "dev", "canary"):
+                suffix = " " + channel.capitalize()
+            return "/Applications/Google Chrome%s.app/Contents/MacOS/Google Chrome%s" % (suffix, suffix)
         if uname[0] == "Windows":
             path = os.path.expandvars(r"$SYSTEMDRIVE\Program Files (x86)\Google\Chrome\Application\chrome.exe")
             if not os.path.exists(path):
@@ -661,7 +661,7 @@ class Chrome(Browser):
     def find_webdriver(self, venv_path=None, channel=None, browser_binary=None):
         return find_executable("chromedriver")
 
-    def webdriver_supports_browser(self, webdriver_binary, browser_binary):
+    def webdriver_supports_browser(self, webdriver_binary, browser_binary, browser_channel):
         chromedriver_version = self.webdriver_version(webdriver_binary)
         if not chromedriver_version:
             self.logger.warning(
@@ -676,9 +676,17 @@ class Chrome(Browser):
             return True
 
         # Check that the ChromeDriver version matches the Chrome version.
-        chromedriver_major = chromedriver_version.split('.')[0]
-        browser_major = browser_version.split('.')[0]
+        chromedriver_major = int(chromedriver_version.split('.')[0])
+        browser_major = int(browser_version.split('.')[0])
         if chromedriver_major != browser_major:
+            # There is no official ChromeDriver release for the dev channel -
+            # it switches between beta and tip-of-tree, so we accept version+1
+            # too for dev.
+            if browser_channel == "dev" and chromedriver_major == (browser_major + 1):
+                self.logger.debug(
+                    "Accepting ChromeDriver %s for Chrome/Chromium Dev %s" %
+                    (chromedriver_version, browser_version))
+                return True
             self.logger.warning(
                 "ChromeDriver %s does not match Chrome/Chromium %s" %
                 (chromedriver_version, browser_version))
@@ -777,8 +785,8 @@ class Chrome(Browser):
 
         try:
             version_string = call(binary, "--version").strip()
-        except subprocess.CalledProcessError:
-            self.logger.warning("Failed to call %s" % binary)
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning("Failed to call %s: %s" % (binary, e))
             return None
         m = re.match(r"(?:Google Chrome|Chromium) (.*)", version_string)
         if not m:
@@ -792,8 +800,8 @@ class Chrome(Browser):
 
         try:
             version_string = call(webdriver_binary, "--version").strip()
-        except subprocess.CalledProcessError:
-            self.logger.warning("Failed to call %s" % webdriver_binary)
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning("Failed to call %s: %s" % (webdriver_binary, e))
             return None
         m = re.match(r"ChromeDriver ([0-9][0-9.]*)", version_string)
         if not m:

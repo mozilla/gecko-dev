@@ -4,7 +4,7 @@
 
 //! IPC Implementation, Rust part
 
-use crate::private::CommonMetricData;
+use crate::private::{Instant, MetricId};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,27 +17,19 @@ use {
     xpcom::interfaces::nsIXULRuntime,
 };
 
+use super::metrics::__glean_metric_maps;
+
+type EventRecord = (Instant, Option<HashMap<i32, String>>);
+
 /// Contains all the information necessary to update the metrics on the main
 /// process.
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct IPCPayload {
     pub counters: HashMap<MetricId, i32>,
-}
-
-/// Uniquely identifies a single metric within its metric type.
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Deserialize, Serialize)]
-pub struct MetricId {
-    category: String,
-    name: String,
-}
-
-impl MetricId {
-    pub fn new(meta: CommonMetricData) -> Self {
-        Self {
-            category: meta.category,
-            name: meta.name,
-        }
-    }
+    pub events: HashMap<MetricId, Vec<EventRecord>>,
+    pub memory_samples: HashMap<MetricId, Vec<u64>>,
+    pub string_lists: HashMap<MetricId, Vec<String>>,
+    pub timing_samples: HashMap<MetricId, Vec<u128>>,
 }
 
 /// Global singleton: pending IPC payload.
@@ -125,8 +117,11 @@ pub fn take_buf() -> Option<Vec<u8>> {
 
 pub fn replay_from_buf(buf: &[u8]) -> Result<(), ()> {
     let ipc_payload: IPCPayload = bincode::deserialize(buf).map_err(|_| ())?;
-    for (id, value) in ipc_payload.counters.iter() {
+    for (id, value) in ipc_payload.counters.into_iter() {
         log::info!("Asked to replay {:?}, {:?}", id, value);
+        if let Some(metric) = __glean_metric_maps::COUNTER_MAP.get(&id) {
+            metric.add(value);
+        }
     }
     Ok(())
 }

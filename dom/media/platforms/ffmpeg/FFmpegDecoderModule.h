@@ -11,6 +11,7 @@
 #include "FFmpegLibWrapper.h"
 #include "FFmpegVideoDecoder.h"
 #include "PlatformDecoderModule.h"
+#include "VideoUtils.h"
 #include "VPXDecoder.h"
 #include "mozilla/StaticPrefs_media.h"
 
@@ -31,11 +32,7 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
 
   already_AddRefed<MediaDataDecoder> CreateVideoDecoder(
       const CreateDecoderParams& aParams) override {
-    // Temporary - forces use of VPXDecoder when alpha is present.
-    // Bug 1263836 will handle alpha scenario once implemented. It will shift
-    // the check for alpha to PDMFactory but not itself remove the need for a
-    // check.
-    if (aParams.VideoConfig().HasAlpha()) {
+    if (!Supports(SupportDecoderParams(aParams), nullptr)) {
       return nullptr;
     }
     RefPtr<MediaDataDecoder> decoder = new FFmpegVideoDecoder<V>(
@@ -49,6 +46,9 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
 
   already_AddRefed<MediaDataDecoder> CreateAudioDecoder(
       const CreateDecoderParams& aParams) override {
+    if (!Supports(SupportDecoderParams(aParams), nullptr)) {
+      return nullptr;
+    }
     RefPtr<MediaDataDecoder> decoder =
         new FFmpegAudioDecoder<V>(mLib, aParams.AudioConfig());
     return decoder.forget();
@@ -56,8 +56,28 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
 
   bool SupportsMimeType(const nsACString& aMimeType,
                         DecoderDoctorDiagnostics* aDiagnostics) const override {
-    AVCodecID videoCodec = FFmpegVideoDecoder<V>::GetCodecId(aMimeType);
-    AVCodecID audioCodec = FFmpegAudioDecoder<V>::GetCodecId(aMimeType);
+    UniquePtr<TrackInfo> trackInfo = CreateTrackInfoWithMIMEType(aMimeType);
+    if (!trackInfo) {
+      return false;
+    }
+    return Supports(SupportDecoderParams(*trackInfo), aDiagnostics);
+  }
+
+  bool Supports(const SupportDecoderParams& aParams,
+                DecoderDoctorDiagnostics* aDiagnostics) const override {
+    const auto& trackInfo = aParams.mConfig;
+    const nsACString& mimeType = trackInfo.mMimeType;
+
+    // Temporary - forces use of VPXDecoder when alpha is present.
+    // Bug 1263836 will handle alpha scenario once implemented. It will shift
+    // the check for alpha to PDMFactory but not itself remove the need for a
+    // check.
+    if (VPXDecoder::IsVPX(mimeType) && trackInfo.GetAsVideoInfo()->HasAlpha()) {
+      return false;
+    }
+
+    AVCodecID videoCodec = FFmpegVideoDecoder<V>::GetCodecId(mimeType);
+    AVCodecID audioCodec = FFmpegAudioDecoder<V>::GetCodecId(mimeType);
     if (audioCodec == AV_CODEC_ID_NONE && videoCodec == AV_CODEC_ID_NONE) {
       return false;
     }

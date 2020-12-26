@@ -25,8 +25,7 @@
 #include "nsTHashtable.h"
 #include "WrapperFactory.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 static JSObject* FindNamedConstructorForXray(
     JSContext* aCx, JS::Handle<jsid> aId, const WebIDLNameTableEntry* aEntry) {
@@ -190,7 +189,7 @@ bool WebIDLGlobalNameHash::GetNames(JSContext* aCx, JS::Handle<JSObject*> aObj,
         (!entry.mEnabled || entry.mEnabled(aCx, aObj))) {
       JSString* str =
           JS_AtomizeStringN(aCx, sNames + entry.mNameOffset, entry.mNameLength);
-      if (!str || !aNames.append(PropertyKey::fromNonIntAtom(str))) {
+      if (!str || !aNames.append(JS::PropertyKey::fromNonIntAtom(str))) {
         return false;
       }
     }
@@ -261,7 +260,7 @@ bool WebIDLGlobalNameHash::NewEnumerateSystemGlobal(
     if (!entry.mEnabled || entry.mEnabled(aCx, aObj)) {
       JSString* str =
           JS_AtomizeStringN(aCx, sNames + entry.mNameOffset, entry.mNameLength);
-      if (!str || !aProperties.append(PropertyKey::fromNonIntAtom(str))) {
+      if (!str || !aProperties.append(JS::PropertyKey::fromNonIntAtom(str))) {
         return false;
       }
     }
@@ -269,5 +268,4 @@ bool WebIDLGlobalNameHash::NewEnumerateSystemGlobal(
   return true;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

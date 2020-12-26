@@ -37,6 +37,11 @@ extern LazyLogModule sPEMLog;
   } while (0)
 
 RefPtr<MediaDataEncoder::InitPromise> AndroidDataEncoder::Init() {
+  // Sanity-check the input size for Android software encoder fails to do it.
+  if (mConfig.mSize.width == 0 || mConfig.mSize.height == 0) {
+    return InitPromise::CreateAndReject(NS_ERROR_ILLEGAL_VALUE, __func__);
+  }
+
   return InvokeAsync(mTaskQueue, this, __func__,
                      &AndroidDataEncoder::ProcessInit);
 }
@@ -439,7 +444,7 @@ void AndroidDataEncoder::Error(const MediaResult& aError) {
   }
   AssertOnTaskQueue();
 
-  mError.emplace(aError);
+  mError = Some(aError);
 }
 
 void AndroidDataEncoder::CallbacksSupport::HandleInput(int64_t aTimestamp,

@@ -6,7 +6,9 @@
 
 const { l10n } = require("devtools/shared/inspector/css-logic");
 const { PSEUDO_CLASSES } = require("devtools/shared/css/constants");
-const { ELEMENT_STYLE } = require("devtools/shared/specs/styles");
+const {
+  style: { ELEMENT_STYLE },
+} = require("devtools/shared/constants");
 const Rule = require("devtools/client/inspector/rules/models/rule");
 const {
   InplaceEditor,
@@ -348,7 +350,7 @@ RuleEditor.prototype = {
         this._unsubscribeSourceMap();
       }
       this._unsubscribeSourceMap = this.sourceMapURLService.subscribeByID(
-        this.rule.sheet.actorID,
+        this.rule.sheet.resourceId || this.rule.sheet.actorID,
         this.rule.ruleLine,
         this.rule.ruleColumn,
         this._updateLocation

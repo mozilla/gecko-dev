@@ -660,7 +660,7 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput* aState,
 
   // these could be NS_UNCONSTRAINEDSIZE ... std::min arithmetic should
   // be OK
-  LogicalMargin padding = aState->mReflowInput.ComputedLogicalPadding();
+  LogicalMargin padding = aState->mReflowInput.ComputedLogicalPadding(wm);
   nscoord availISize =
       aState->mReflowInput.ComputedISize() + padding.IStartEnd(wm);
 
@@ -721,19 +721,19 @@ void nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowInput* aState,
 
   nsPresContext* presContext = PresContext();
 
-  // Pass false for aInit so we can pass in the correct padding.
+  // Pass InitFlags::CallerWillInit so we can pass in the correct padding.
   ReflowInput kidReflowInput(presContext, aState->mReflowInput,
                              mHelper.mScrolledFrame,
                              LogicalSize(wm, availISize, NS_UNCONSTRAINEDSIZE),
                              Nothing(), ReflowInput::InitFlag::CallerWillInit);
-  const nsMargin physicalPadding = padding.GetPhysicalMargin(wm);
-  kidReflowInput.Init(presContext, Nothing(), nullptr, &physicalPadding);
+  const WritingMode kidWM = kidReflowInput.GetWritingMode();
+  kidReflowInput.Init(presContext, Nothing(), Nothing(),
+                      Some(padding.ConvertTo(kidWM, wm)));
   kidReflowInput.mFlags.mAssumingHScrollbar = aAssumeHScroll;
   kidReflowInput.mFlags.mAssumingVScrollbar = aAssumeVScroll;
   kidReflowInput.SetComputedBSize(computedBSize);
   kidReflowInput.ComputedMinBSize() = computedMinBSize;
   kidReflowInput.ComputedMaxBSize() = computedMaxBSize;
-  const WritingMode kidWM = kidReflowInput.GetWritingMode();
   if (aState->mReflowInput.IsBResizeForWM(kidWM)) {
     kidReflowInput.SetBResize(true);
   }
@@ -2167,14 +2167,6 @@ class ScrollFrameActivityTracker final
 
 static ScrollFrameActivityTracker* gScrollFrameActivityTracker = nullptr;
 
-// There are situations when a scroll frame is destroyed and then re-created
-// for the same content element. In this case we want to increment the scroll
-// generation between the old and new scrollframes. If the new one knew about
-// the old one then it could steal the old generation counter and increment it
-// but it doesn't have that reference so instead we use a static global to
-// ensure the new one gets a fresh value.
-static uint32_t sScrollGenerationCounter = 0;
-
 ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter, bool aIsRoot)
     : mHScrollbarBox(nullptr),
       mVScrollbarBox(nullptr),
@@ -2186,7 +2178,6 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter, bool aIsRoot)
       mAsyncScroll(nullptr),
       mAsyncSmoothMSDScroll(nullptr),
       mLastScrollOrigin(ScrollOrigin::None),
-      mScrollGeneration(++sScrollGenerationCounter),
       mDestination(0, 0),
       mRestorePos(-1, -1),
       mLastPos(-1, -1),
@@ -2236,8 +2227,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter, bool aIsRoot)
       mApzAnimationRequested(false),
       mReclampVVOffsetInReflowFinished(false),
       mVelocityQueue(aOuter->PresContext()) {
-  AppendScrollUpdate(
-      ScrollPositionUpdate::NewScrollframe(mScrollGeneration, nsPoint()));
+  AppendScrollUpdate(ScrollPositionUpdate::NewScrollframe(nsPoint()));
 
   if (LookAndFeel::GetInt(LookAndFeel::IntID::UseOverlayScrollbars) != 0) {
     mScrollbarActivity = new ScrollbarActivity(do_QueryFrame(aOuter));
@@ -2248,9 +2238,9 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter, bool aIsRoot)
     // If we have tiling but no APZ, then set a 0-margin display port on
     // active scroll containers so that we paint by whole tile increments
     // when scrolling.
-    DisplayPortUtils::SetDisplayPortMargins(mOuter->GetContent(),
-                                            mOuter->PresShell(),
-                                            DisplayPortMargins::Empty(), 0);
+    DisplayPortUtils::SetDisplayPortMargins(
+        mOuter->GetContent(), mOuter->PresShell(),
+        DisplayPortMargins::Empty(mOuter->GetContent()), 0);
     DisplayPortUtils::SetZeroMarginDisplayPortOnAsyncScrollableAncestors(
         mOuter);
   }
@@ -2923,18 +2913,16 @@ void ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange,
     // mApzSmoothScrollDestination clause from this if statement, as that
     // may simplify this a bit and should be fine from the APZ side.
     if (mApzSmoothScrollDestination && aOrigin != ScrollOrigin::Clamp) {
-      mScrollGeneration = ++sScrollGenerationCounter;
       if (aOrigin == ScrollOrigin::Relative) {
-        AppendScrollUpdate(ScrollPositionUpdate::NewRelativeScroll(
-            mScrollGeneration, mApzScrollPos, pt));
+        AppendScrollUpdate(
+            ScrollPositionUpdate::NewRelativeScroll(mApzScrollPos, pt));
         mApzScrollPos = pt;
       } else if (aOrigin != ScrollOrigin::Apz) {
         ScrollOrigin origin =
             (mAllowScrollOriginDowngrade || !isScrollOriginDowngrade)
                 ? aOrigin
                 : mLastScrollOrigin;
-        AppendScrollUpdate(
-            ScrollPositionUpdate::NewScroll(mScrollGeneration, origin, pt));
+        AppendScrollUpdate(ScrollPositionUpdate::NewScroll(origin, pt));
       }
     }
     return;
@@ -3009,17 +2997,15 @@ void ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange,
     mLastScrollOrigin = aOrigin;
     mAllowScrollOriginDowngrade = false;
   }
-  mScrollGeneration = ++sScrollGenerationCounter;
 
   if (aOrigin == ScrollOrigin::Relative) {
     MOZ_ASSERT(!isScrollOriginDowngrade);
     MOZ_ASSERT(mLastScrollOrigin == ScrollOrigin::Relative);
-    AppendScrollUpdate(ScrollPositionUpdate::NewRelativeScroll(
-        mScrollGeneration, mApzScrollPos, pt));
+    AppendScrollUpdate(
+        ScrollPositionUpdate::NewRelativeScroll(mApzScrollPos, pt));
     mApzScrollPos = pt;
   } else if (aOrigin != ScrollOrigin::Apz) {
-    AppendScrollUpdate(ScrollPositionUpdate::NewScroll(mScrollGeneration,
-                                                       mLastScrollOrigin, pt));
+    AppendScrollUpdate(ScrollPositionUpdate::NewScroll(mLastScrollOrigin, pt));
   }
 
   if (mLastScrollOrigin == ScrollOrigin::Apz) {
@@ -3685,8 +3671,9 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     if (mWillBuildScrollableLayer) {
       couldBuildLayer = true;
     } else {
-      couldBuildLayer =
-          nsLayoutUtils::AsyncPanZoomEnabled(mOuter) && WantAsyncScroll();
+      couldBuildLayer = mOuter->StyleVisibility()->IsVisible() &&
+                        nsLayoutUtils::AsyncPanZoomEnabled(mOuter) &&
+                        WantAsyncScroll();
     }
   }
 
@@ -3947,7 +3934,7 @@ void ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder* aBuilder,
         // to be disabled on the next paint.
         DisplayPortUtils::SetDisplayPortMargins(
             mOuter->GetContent(), mOuter->PresShell(),
-            DisplayPortMargins::Empty(), 0,
+            DisplayPortMargins::Empty(mOuter->GetContent()), 0,
             DisplayPortUtils::RepaintMode::DoNotRepaint);
         // Call DecideScrollableLayer to recompute mWillBuildScrollableLayer
         // and recompute the current animated geometry root if needed. It's
@@ -4673,10 +4660,8 @@ void ScrollFrameHelper::ScrollBy(nsIntPoint aDelta, ScrollUnit aUnit,
         NSCoordSaturatingNonnegativeMultiply(aDelta.x, deltaMultiplier.width),
         NSCoordSaturatingNonnegativeMultiply(aDelta.y, deltaMultiplier.height));
 
-    mScrollGeneration = ++sScrollGenerationCounter;
-
-    AppendScrollUpdate(ScrollPositionUpdate::NewPureRelativeScroll(
-        mScrollGeneration, aOrigin, aMode, delta));
+    AppendScrollUpdate(
+        ScrollPositionUpdate::NewPureRelativeScroll(aOrigin, aMode, delta));
 
     if (!DisplayPortUtils::HasDisplayPort(mOuter->GetContent())) {
       if (MOZ_LOG_TEST(sDisplayportLog, LogLevel::Debug)) {
@@ -6375,11 +6360,8 @@ bool ScrollFrameHelper::ReflowFinished() {
       SCROLLRESTORE_LOG("%p: updating initial SPU to pos %s\n", this,
                         ToString(currentScrollPos).c_str());
       mScrollUpdates.Clear();
-      // Scroll generation bump not strictly necessary, but good for
-      // consistency.
-      mScrollGeneration = ++sScrollGenerationCounter;
-      AppendScrollUpdate(ScrollPositionUpdate::NewScrollframe(
-          mScrollGeneration, currentScrollPos));
+      AppendScrollUpdate(
+          ScrollPositionUpdate::NewScrollframe(currentScrollPos));
     }
 
     mFirstReflow = false;
@@ -7158,8 +7140,8 @@ bool ScrollFrameHelper::IsScrollAnimating(
   return mApzAnimationRequested || mAsyncScroll || mAsyncSmoothMSDScroll;
 }
 
-void ScrollFrameHelper::ResetScrollInfoIfNeeded(uint32_t aGeneration,
-                                                bool aApzAnimationInProgress) {
+void ScrollFrameHelper::ResetScrollInfoIfNeeded(
+    const ScrollGeneration& aGeneration, bool aApzAnimationInProgress) {
   if (aGeneration == mScrollGeneration) {
     mLastScrollOrigin = ScrollOrigin::None;
     mApzAnimationRequested = false;
@@ -7753,10 +7735,9 @@ void ScrollFrameHelper::AsyncScrollbarDragRejected() {
 
 void ScrollFrameHelper::ApzSmoothScrollTo(const nsPoint& aDestination,
                                           ScrollOrigin aOrigin) {
-  if (mApzSmoothScrollDestination == Some(aDestination) &&
-      mScrollGeneration == sScrollGenerationCounter) {
+  if (mApzSmoothScrollDestination == Some(aDestination)) {
     // If we already sent APZ a smooth-scroll request to this
-    // destination with this generation (i.e. it was the last request
+    // destination (i.e. it was the last request
     // we sent), then don't send another one because it is redundant.
     // This is to avoid a scenario where pages do repeated scrollBy
     // calls, incrementing the generation counter, and blocking APZ from
@@ -7766,10 +7747,6 @@ void ScrollFrameHelper::ApzSmoothScrollTo(const nsPoint& aDestination,
     // mApzSmoothScrollDestination will get reset to Nothing() and so
     // we shouldn't have the problem where this check discards a
     // legitimate smooth-scroll.
-    // Note: if there are two separate scrollframes both getting smooth
-    // scrolled at the same time, sScrollGenerationCounter can get
-    // incremented and this early-exit won't get taken. Bug 1231177 is
-    // on file for this.
     return;
   }
 
@@ -7778,10 +7755,8 @@ void ScrollFrameHelper::ApzSmoothScrollTo(const nsPoint& aDestination,
   // animation for this scroll.
   MOZ_ASSERT(aOrigin != ScrollOrigin::None);
   mApzSmoothScrollDestination = Some(aDestination);
-  mScrollGeneration = ++sScrollGenerationCounter;
-
-  AppendScrollUpdate(ScrollPositionUpdate::NewSmoothScroll(
-      mScrollGeneration, aOrigin, aDestination));
+  AppendScrollUpdate(
+      ScrollPositionUpdate::NewSmoothScroll(aOrigin, aDestination));
 
   if (!DisplayPortUtils::HasDisplayPort(mOuter->GetContent())) {
     // If this frame doesn't have a displayport then there won't be an
@@ -7859,5 +7834,6 @@ nsTArray<ScrollPositionUpdate> ScrollFrameHelper::GetScrollUpdates() const {
 
 void ScrollFrameHelper::AppendScrollUpdate(
     const ScrollPositionUpdate& aUpdate) {
+  mScrollGeneration = aUpdate.GetGeneration();
   mScrollUpdates.AppendElement(aUpdate);
 }

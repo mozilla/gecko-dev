@@ -165,10 +165,7 @@ Shape* js::CreateEnvironmentShape(
   for (; bi; bi++) {
     BindingLocation loc = bi.location();
     if (loc.kind() == BindingLocation::Kind::Environment) {
-      name = bi.name()->toJSAtom(cx, atomCache);
-      if (!name) {
-        return nullptr;
-      }
+      name = bi.name()->toExistingJSAtom(cx, atomCache);
       MOZ_ASSERT(name);
       cx->markAtom(name);
       shape = NextEnvironmentShape(cx, name, bi.kind(), loc.slot(), stackBase,
@@ -187,10 +184,20 @@ inline size_t SizeOfAllocatedData(Data* data) {
   return SizeOfScopeData<Data>(data->length);
 }
 
-template <typename ConcreteScope, typename AtomT>
-static UniquePtr<AbstractScopeData<ConcreteScope, AtomT>> CopyScopeDataImpl(
-    JSContext* cx, AbstractScopeData<ConcreteScope, AtomT>* data) {
-  using Data = AbstractScopeData<ConcreteScope, AtomT>;
+template <typename ConcreteScope>
+static UniquePtr<typename ConcreteScope::Data> CopyScopeData(
+    JSContext* cx, typename ConcreteScope::Data* data) {
+  using Data = typename ConcreteScope::Data;
+
+  // Make sure the binding names are marked in the context's zone, if we are
+  // copying data from another zone.
+  BindingName* names = data->trailingNames.start();
+  uint32_t length = data->length;
+  for (size_t i = 0; i < length; i++) {
+    if (JSAtom* name = names[i].name()) {
+      cx->markAtom(name);
+    }
+  }
 
   size_t size = SizeOfAllocatedData(data);
   void* bytes = cx->pod_malloc<char>(size);
@@ -207,24 +214,14 @@ static UniquePtr<AbstractScopeData<ConcreteScope, AtomT>> CopyScopeDataImpl(
 }
 
 template <typename ConcreteScope>
-static UniquePtr<typename ConcreteScope::Data> CopyScopeData(
-    JSContext* cx, typename ConcreteScope::Data* data) {
-  // Make sure the binding names are marked in the context's zone, if we are
-  // copying data from another zone.
-  BindingName* names = data->trailingNames.start();
+static void MarkParserScopeData(ParserScopeData<ConcreteScope>* data) {
+  auto* names = data->trailingNames.start();
   uint32_t length = data->length;
   for (size_t i = 0; i < length; i++) {
-    if (JSAtom* name = names[i].name()) {
-      cx->markAtom(name);
+    if (const ParserAtom* name = names[i].name()) {
+      name->markUsedByStencil();
     }
   }
-  return CopyScopeDataImpl<ConcreteScope>(cx, data);
-}
-
-template <typename ConcreteScope>
-static UniquePtr<ParserScopeData<ConcreteScope>> CopyScopeData(
-    JSContext* cx, ParserScopeData<ConcreteScope>* data) {
-  return CopyScopeDataImpl<ConcreteScope>(cx, data);
 }
 
 static bool SetEnvironmentShape(JSContext* cx, BindingIter& freshBi,
@@ -280,6 +277,21 @@ static bool PrepareScopeData(
   return true;
 }
 
+template <typename ConcreteScope>
+static ParserScopeData<ConcreteScope>* NewEmptyParserScopeData(
+    JSContext* cx, LifoAlloc& alloc, uint32_t length = 0) {
+  using Data = ParserScopeData<ConcreteScope>;
+
+  size_t dataSize = SizeOfScopeData<Data>(length);
+  void* raw = alloc.alloc(dataSize);
+  if (!raw) {
+    js::ReportOutOfMemory(cx);
+    return nullptr;
+  }
+
+  return new (raw) Data(length);
+}
+
 template <typename ConcreteScope, typename AtomT>
 static UniquePtr<AbstractScopeData<ConcreteScope, AtomT>> NewEmptyScopeData(
     JSContext* cx, uint32_t length = 0) {
@@ -311,10 +323,8 @@ static UniquePtr<typename ConcreteScope::Data> LiftParserScopeData(
   for (size_t i = 0; i < length; i++) {
     JSAtom* jsatom = nullptr;
     if (names[i].name()) {
-      jsatom = names[i].name()->toJSAtom(cx, atomCache);
-      if (jsatom == nullptr) {
-        return nullptr;
-      }
+      jsatom = names[i].name()->toExistingJSAtom(cx, atomCache);
+      MOZ_ASSERT(jsatom);
     }
     jsatoms.infallibleAppend(jsatom);
   }
@@ -1906,15 +1916,13 @@ bool ScopeStencil::createForFunctionScope(
     ParserFunctionScopeData* data, bool hasParameterExprs,
     bool needsEnvironment, FunctionIndex functionIndex, bool isArrow,
     mozilla::Maybe<ScopeIndex> enclosing, ScopeIndex* index) {
-  // If incoming data is null, initialize an empty scope data.
-  UniquePtr<ParserFunctionScopeData> ownedData;
-  if (!data) {
-    ownedData =
-        NewEmptyScopeData<FunctionScope, const frontend::ParserAtom>(cx);
-    if (!ownedData) {
+  if (data) {
+    MarkParserScopeData<FunctionScope>(data);
+  } else {
+    data = NewEmptyParserScopeData<FunctionScope>(cx, stencil.alloc);
+    if (!data) {
       return false;
     }
-    data = ownedData.get();
   }
 
   // We do not initialize the canonical function while the data is owned by the
@@ -1928,17 +1936,14 @@ bool ScopeStencil::createForFunctionScope(
     return false;
   }
 
-  if (!ownedData) {
-    ownedData = CopyScopeData<FunctionScope>(cx, data);
-    if (!ownedData) {
-      return false;
-    }
-  }
-
   *index = stencil.scopeData.length();
-  if (!stencil.scopeData.emplaceBack(
-          ScopeKind::Function, enclosing, firstFrameSlot, envShape,
-          ownedData.release(), mozilla::Some(functionIndex), isArrow)) {
+  if (uint32_t(*index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
+  if (!stencil.scopeData.emplaceBack(ScopeKind::Function, enclosing,
+                                     firstFrameSlot, envShape, data,
+                                     mozilla::Some(functionIndex), isArrow)) {
     js::ReportOutOfMemory(cx);
     return false;
   }
@@ -1950,14 +1955,13 @@ bool ScopeStencil::createForLexicalScope(
     JSContext* cx, frontend::CompilationStencil& stencil, ScopeKind kind,
     ParserLexicalScopeData* data, uint32_t firstFrameSlot,
     mozilla::Maybe<ScopeIndex> enclosing, ScopeIndex* index) {
-  // If incoming data is null, initialize an empty scope data.
-  UniquePtr<ParserLexicalScopeData> ownedData;
-  if (!data) {
-    ownedData = NewEmptyScopeData<LexicalScope, const frontend::ParserAtom>(cx);
-    if (!ownedData) {
+  if (data) {
+    MarkParserScopeData<LexicalScope>(data);
+  } else {
+    data = NewEmptyParserScopeData<LexicalScope>(cx, stencil.alloc);
+    if (!data) {
       return false;
     }
-    data = ownedData.get();
   }
 
   mozilla::Maybe<uint32_t> envShape;
@@ -1966,16 +1970,13 @@ bool ScopeStencil::createForLexicalScope(
     return false;
   }
 
-  if (!ownedData) {
-    ownedData = CopyScopeData<LexicalScope>(cx, data);
-    if (!ownedData) {
-      return false;
-    }
-  }
-
   *index = stencil.scopeData.length();
+  if (uint32_t(*index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!stencil.scopeData.emplaceBack(kind, enclosing, firstFrameSlot, envShape,
-                                     ownedData.release())) {
+                                     data)) {
     js::ReportOutOfMemory(cx);
     return false;
   }
@@ -1986,14 +1987,13 @@ bool ScopeStencil::createForVarScope(
     JSContext* cx, frontend::CompilationStencil& stencil, ScopeKind kind,
     ParserVarScopeData* data, uint32_t firstFrameSlot, bool needsEnvironment,
     mozilla::Maybe<ScopeIndex> enclosing, ScopeIndex* index) {
-  // If incoming data is null, initialize an empty scope data.
-  UniquePtr<ParserVarScopeData> ownedData;
-  if (!data) {
-    ownedData = NewEmptyScopeData<VarScope, const frontend::ParserAtom>(cx);
-    if (!ownedData) {
+  if (data) {
+    MarkParserScopeData<VarScope>(data);
+  } else {
+    data = NewEmptyParserScopeData<VarScope>(cx, stencil.alloc);
+    if (!data) {
       return false;
     }
-    data = ownedData.get();
   }
 
   mozilla::Maybe<uint32_t> envShape;
@@ -2002,16 +2002,13 @@ bool ScopeStencil::createForVarScope(
     return false;
   }
 
-  if (!ownedData) {
-    ownedData = CopyScopeData<VarScope>(cx, data);
-    if (!ownedData) {
-      return false;
-    }
-  }
-
   *index = stencil.scopeData.length();
+  if (uint32_t(*index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!stencil.scopeData.emplaceBack(kind, enclosing, firstFrameSlot, envShape,
-                                     ownedData.release())) {
+                                     data)) {
     js::ReportOutOfMemory(cx);
     return false;
   }
@@ -2024,14 +2021,13 @@ bool ScopeStencil::createForGlobalScope(JSContext* cx,
                                         ScopeKind kind,
                                         ParserGlobalScopeData* data,
                                         ScopeIndex* index) {
-  // If incoming data is null, initialize an empty scope data.
-  UniquePtr<ParserGlobalScopeData> ownedData;
-  if (!data) {
-    ownedData = NewEmptyScopeData<GlobalScope, const frontend::ParserAtom>(cx);
-    if (!ownedData) {
+  if (data) {
+    MarkParserScopeData<GlobalScope>(data);
+  } else {
+    data = NewEmptyParserScopeData<GlobalScope>(cx, stencil.alloc);
+    if (!data) {
       return false;
     }
-    data = ownedData.get();
   }
 
   // The global scope has no environment shape. Its environment is the
@@ -2043,16 +2039,13 @@ bool ScopeStencil::createForGlobalScope(JSContext* cx,
 
   mozilla::Maybe<ScopeIndex> enclosing;
 
-  if (!ownedData) {
-    ownedData = CopyScopeData<GlobalScope>(cx, data);
-    if (!ownedData) {
-      return false;
-    }
-  }
-
   *index = stencil.scopeData.length();
+  if (uint32_t(*index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!stencil.scopeData.emplaceBack(kind, enclosing, firstFrameSlot, envShape,
-                                     ownedData.release())) {
+                                     data)) {
     js::ReportOutOfMemory(cx);
     return false;
   }
@@ -2065,14 +2058,13 @@ bool ScopeStencil::createForEvalScope(JSContext* cx,
                                       ScopeKind kind, ParserEvalScopeData* data,
                                       mozilla::Maybe<ScopeIndex> enclosing,
                                       ScopeIndex* index) {
-  // If incoming data is null, initialize an empty scope data.
-  UniquePtr<ParserEvalScopeData> ownedData;
-  if (!data) {
-    ownedData = NewEmptyScopeData<EvalScope, const frontend::ParserAtom>(cx);
-    if (!ownedData) {
+  if (data) {
+    MarkParserScopeData<EvalScope>(data);
+  } else {
+    data = NewEmptyParserScopeData<EvalScope>(cx, stencil.alloc);
+    if (!data) {
       return false;
     }
-    data = ownedData.get();
   }
 
   uint32_t firstFrameSlot = 0;
@@ -2082,16 +2074,13 @@ bool ScopeStencil::createForEvalScope(JSContext* cx,
     return false;
   }
 
-  if (!ownedData) {
-    ownedData = CopyScopeData<EvalScope>(cx, data);
-    if (!ownedData) {
-      return false;
-    }
-  }
-
   *index = stencil.scopeData.length();
+  if (uint32_t(*index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!stencil.scopeData.emplaceBack(kind, enclosing, firstFrameSlot, envShape,
-                                     ownedData.release())) {
+                                     data)) {
     js::ReportOutOfMemory(cx);
     return false;
   }
@@ -2104,14 +2093,13 @@ bool ScopeStencil::createForModuleScope(JSContext* cx,
                                         ParserModuleScopeData* data,
                                         mozilla::Maybe<ScopeIndex> enclosing,
                                         ScopeIndex* index) {
-  // If incoming data is null, initialize an empty scope data.
-  UniquePtr<ParserModuleScopeData> ownedData;
-  if (!data) {
-    ownedData = NewEmptyScopeData<ModuleScope, const frontend::ParserAtom>(cx);
-    if (!ownedData) {
+  if (data) {
+    MarkParserScopeData<ModuleScope>(data);
+  } else {
+    data = NewEmptyParserScopeData<ModuleScope>(cx, stencil.alloc);
+    if (!data) {
       return false;
     }
-    data = ownedData.get();
   }
 
   MOZ_ASSERT(enclosing.isNothing());
@@ -2129,17 +2117,13 @@ bool ScopeStencil::createForModuleScope(JSContext* cx,
     return false;
   }
 
-  if (!ownedData) {
-    ownedData = CopyScopeData<ModuleScope>(cx, data);
-    if (!ownedData) {
-      return false;
-    }
-  }
-
   *index = stencil.scopeData.length();
+  if (uint32_t(*index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!stencil.scopeData.emplaceBack(ScopeKind::Module, enclosing,
-                                     firstFrameSlot, envShape,
-                                     ownedData.release())) {
+                                     firstFrameSlot, envShape, data)) {
     js::ReportOutOfMemory(cx);
     return false;
   }
@@ -2177,6 +2161,10 @@ bool ScopeStencil::createForWithScope(JSContext* cx,
   mozilla::Maybe<uint32_t> envShape;
 
   *index = stencil.scopeData.length();
+  if (uint32_t(*index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx);
+    return false;
+  }
   if (!stencil.scopeData.emplaceBack(ScopeKind::With, enclosing, firstFrameSlot,
                                      envShape)) {
     js::ReportOutOfMemory(cx);

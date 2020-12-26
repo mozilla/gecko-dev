@@ -13,7 +13,6 @@ import sys
 
 from mozlint import result
 from mozlint.pathutils import expand_exclusions
-from mozlint.util import pip
 from mozprocess import ProcessHandler
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -27,12 +26,14 @@ Try to install it manually with:
     BLACK_REQUIREMENTS_PATH
 )
 
-# We use sys.prefix to find executables as that gets modified with
-# virtualenv's activate_this.py, whereas sys.executable doesn't.
-if platform.system() == "Windows":
-    bindir = os.path.join(sys.prefix, "Scripts")
-else:
-    bindir = os.path.join(sys.prefix, "bin")
+
+def default_bindir():
+    # We use sys.prefix to find executables as that gets modified with
+    # virtualenv's activate_this.py, whereas sys.executable doesn't.
+    if platform.system() == "Windows":
+        return os.path.join(sys.prefix, "Scripts")
+    else:
+        return os.path.join(sys.prefix, "bin")
 
 
 def get_black_version(binary):
@@ -107,13 +108,16 @@ def run_process(config, cmd):
 
 
 def setup(root, **lintargs):
-    if not pip.reinstall_program(BLACK_REQUIREMENTS_PATH):
+    virtualenv_manager = lintargs["virtualenv_manager"]
+    try:
+        virtualenv_manager.install_pip_requirements(BLACK_REQUIREMENTS_PATH, quiet=True)
+    except subprocess.CalledProcessError:
         print(BLACK_INSTALL_ERROR)
         return 1
 
 
-def run_black(config, paths, fix=None, *, log):
-    binary = os.path.join(bindir, "black")
+def run_black(config, paths, fix=None, *, log, virtualenv_bin_path):
+    binary = os.path.join(virtualenv_bin_path or default_bindir(), "black")
 
     log.debug("Black version {}".format(get_black_version(binary)))
 
@@ -128,4 +132,10 @@ def run_black(config, paths, fix=None, *, log):
 def lint(paths, config, fix=None, **lintargs):
     files = list(expand_exclusions(paths, config, lintargs["root"]))
 
-    return run_black(config, files, fix=fix, log=lintargs["log"])
+    return run_black(
+        config,
+        files,
+        fix=fix,
+        log=lintargs["log"],
+        virtualenv_bin_path=lintargs.get("virtualenv_bin_path"),
+    )

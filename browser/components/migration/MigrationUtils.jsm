@@ -240,7 +240,7 @@ var MigratorPrototype = {
   getMigrateData: async function MP_getMigrateData(aProfile) {
     let resources = await this._getMaybeCachedResources(aProfile);
     if (!resources) {
-      return [];
+      return 0;
     }
     let types = resources.map(r => r.type);
     return types.reduce((a, b) => {
@@ -1108,6 +1108,15 @@ var MigrationUtils = Object.seal({
     history: 0,
   },
 
+  getImportedCount(type) {
+    if (!this._importQuantities.hasOwnProperty(type)) {
+      throw new Error(
+        `Unknown import data type "${type}" passed to getImportedCount`
+      );
+    }
+    return this._importQuantities[type];
+  },
+
   insertBookmarkWrapper(bookmark) {
     this._importQuantities.bookmarks++;
     let insertionPromise = PlacesUtils.bookmarks.insert(bookmark);
@@ -1287,6 +1296,7 @@ var MigrationUtils = Object.seal({
   MIGRATION_ENTRYPOINT_NEWTAB: 5,
   MIGRATION_ENTRYPOINT_FILE_MENU: 6,
   MIGRATION_ENTRYPOINT_HELP_MENU: 7,
+  MIGRATION_ENTRYPOINT_BOOKMARKS_TOOLBAR: 8,
 
   _sourceNameToIdMapping: {
     nothing: 1,

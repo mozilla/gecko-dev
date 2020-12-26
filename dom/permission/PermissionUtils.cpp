@@ -5,9 +5,9 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PermissionUtils.h"
+#include "nsIPermissionManager.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 static const nsLiteralCString kPermissionTypes[] = {
     // clang-format off
@@ -53,5 +53,4 @@ PermissionState ActionToPermissionState(uint32_t aAction) {
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

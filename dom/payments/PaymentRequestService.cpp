@@ -8,11 +8,14 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/BasicCardPaymentBinding.h"
 #include "mozilla/dom/PaymentRequestParent.h"
+#include "nsArrayUtils.h"
+#include "nsComponentManagerUtils.h"
+#include "nsCOMPtr.h"
+#include "nsIMutableArray.h"
 #include "nsSimpleEnumerator.h"
 #include "PaymentRequestService.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 StaticRefPtr<PaymentRequestService> gPaymentService;
 
@@ -599,5 +602,4 @@ bool PaymentRequestService::IsBasicCardPayment(const nsAString& aRequestId) {
   return false;
 }
 
-}  // end of namespace dom
-}  // end of namespace mozilla
+}  // namespace mozilla::dom

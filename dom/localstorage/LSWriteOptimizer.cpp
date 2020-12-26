@@ -6,8 +6,11 @@
 
 #include "LSWriteOptimizer.h"
 
-namespace mozilla {
-namespace dom {
+#include <new>
+#include "nsBaseHashtable.h"
+#include "nsTArray.h"
+
+namespace mozilla::dom {
 
 class LSWriteOptimizerBase::WriteInfoComparator {
  public:
@@ -63,5 +66,4 @@ void LSWriteOptimizerBase::GetSortedWriteInfos(
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

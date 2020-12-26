@@ -3,6 +3,7 @@
 
 /* import-globals-from ../../../shared/test/shared-head.js */
 /* import-globals-from ../../../inspector/test/shared-head.js */
+/* import-globals-from ../../../shared/test/telemetry-test-helpers.js */
 
 /* global waitUntilState, gBrowser */
 /* exported addTestTab, checkTreeState, checkSidebarState, checkAuditState, selectRow,
@@ -93,7 +94,6 @@ async function shutdownAccessibility(browser) {
 registerCleanupFunction(async () => {
   info("Cleaning up...");
   Services.prefs.clearUserPref("devtools.accessibility.enabled");
-  Services.prefs.clearUserPref("devtools.contenttoolbox.fission");
 });
 
 const EXPANDABLE_PROPS = ["actions", "states", "attributes"];
@@ -807,9 +807,6 @@ async function closeTabToolboxAccessibility(tab = gBrowser.selectedTab) {
 function addA11YPanelTask(msg, uri, task, options = {}) {
   add_task(async function a11YPanelTask() {
     info(msg);
-    if (options.remoteIframe) {
-      await pushPref("devtools.contenttoolbox.fission", true);
-    }
 
     const env = await addTestTab(buildURL(uri, options));
     await task(env);

@@ -106,7 +106,10 @@ async function testPopupSize(
     });
 
     let win = dims.window;
-    is(win.innerHeight, innerHeight, "Window height should not change");
+    ok(
+      Math.abs(win.innerHeight - innerHeight) <= 1,
+      `Window height should not change (${win.innerHeight} ~= ${innerHeight})`
+    );
     ok(
       win.innerWidth > innerWidth,
       `Window width should increase (${win.innerWidth} > ${innerWidth})`
@@ -117,10 +120,13 @@ async function testPopupSize(
     });
 
     win = dims.window;
-    is(win.innerHeight, innerHeight, "Window height should not change");
 
     // The getContentSize calculation is not always reliable to single-pixel
     // precision.
+    ok(
+      Math.abs(win.innerHeight - innerHeight) <= 1,
+      `Window height should return to approximately its original value (${win.innerHeight} ~= ${innerHeight})`
+    );
     ok(
       Math.abs(win.innerWidth - innerWidth) <= 1,
       `Window width should return to approximately its original value (${win.innerWidth} ~= ${innerWidth})`

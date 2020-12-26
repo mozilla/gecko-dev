@@ -16,8 +16,6 @@ const TEST_PAGE_2 = TEST_ROOT_2 + "test-page.html";
 const TEST_PAGE_WITH_IFRAME = TEST_ROOT_2 + "test-page-with-iframe.html";
 const TEST_PAGE_WITH_SOUND = TEST_ROOT + "test-page-with-sound.html";
 const WINDOW_TYPE = "Toolkit:PictureInPicture";
-const TOGGLE_MODE_PREF =
-  "media.videocontrols.picture-in-picture.video-toggle.mode";
 const TOGGLE_POSITION_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.position";
 const HAS_USED_PREF =
@@ -60,20 +58,20 @@ const HAS_USED_PREF =
  * toggle.
  */
 const DEFAULT_TOGGLE_STYLES = {
-  rootID: "pictureInPictureToggleExperiment",
+  rootID: "pictureInPictureToggle",
   stages: {
     hoverVideo: {
       opacities: {
         ".pip-wrapper": 0.8,
       },
-      hidden: ["#pictureInPictureToggleButton", ".pip-expanded"],
+      hidden: [".pip-expanded"],
     },
 
     hoverToggle: {
       opacities: {
         ".pip-wrapper": 1.0,
       },
-      hidden: ["#pictureInPictureToggleButton", ".pip-expanded"],
+      hidden: [".pip-expanded"],
     },
   },
 };
@@ -145,6 +143,27 @@ async function assertShowingMessage(browser, videoID, expected) {
 }
 
 /**
+ * Tests if a video is currently being cloned for a given content browser. Provides a
+ * good indicator for answering if this video is currently open in PiP.
+ *
+ * @param {Browser} browser
+ *   The content browser that the video lives in
+ * @param {string} videoId
+ *   The id associated with the video
+ *
+ * @returns {bool}
+ *   Whether the video is currently being cloned (And is most likely open in PiP)
+ */
+function assertVideoIsBeingCloned(browser, videoId) {
+  return SpecialPowers.spawn(browser, [videoId], async videoID => {
+    let video = content.document.getElementById(videoID);
+    await ContentTaskUtils.waitForCondition(() => {
+      return video.isCloningElementVisually;
+    }, "Video is being cloned visually.");
+  });
+}
+
+/**
  * Ensures that each of the videos loaded inside of a document in a
  * <browser> have reached the HAVE_ENOUGH_DATA readyState.
  *
@@ -190,7 +209,6 @@ async function toggleOpacityReachesThreshold(
   stage,
   toggleStyles = DEFAULT_TOGGLE_STYLES
 ) {
-  let toggleMode = String(Services.prefs.getIntPref(TOGGLE_MODE_PREF, -1));
   let togglePosition = Services.prefs.getStringPref(
     TOGGLE_POSITION_PREF,
     "right"
@@ -198,7 +216,7 @@ async function toggleOpacityReachesThreshold(
   let hasUsed = Services.prefs.getBoolPref(HAS_USED_PREF, false);
   let toggleStylesForStage = toggleStyles.stages[stage];
   info(
-    `Testing toggle mode ${toggleMode} for stage ${stage} ` +
+    `Testing toggle for stage ${stage} ` +
       `in position ${togglePosition}, has used: ${hasUsed}`
   );
 
@@ -663,12 +681,7 @@ async function testToggleHelper(
     let win = await domWindowOpened;
     ok(win, "A Picture-in-Picture window opened.");
 
-    await SpecialPowers.spawn(browser, [videoID], async videoID => {
-      let video = content.document.getElementById(videoID);
-      await ContentTaskUtils.waitForCondition(() => {
-        return video.isCloningElementVisually;
-      }, "Video is being cloned visually.");
-    });
+    await assertVideoIsBeingCloned(browser, videoID);
 
     await BrowserTestUtils.closeWindow(win);
 
@@ -801,4 +814,17 @@ async function ensureMessageAndClosePiP(browser, videoID, pipWin, isIframe) {
     await BrowserTestUtils.closeWindow(pipWin);
     await uaWidgetUpdate;
   }
+}
+
+/**
+ * Helper function that returns True if the specified video is paused
+ * and False if the specified video is not paused.
+ *
+ * @param {Element} browser The <xul:browser> that has the <video> loaded in it.
+ * @param {String} videoID The ID of the video to check.
+ */
+async function isVideoPaused(browser, videoID) {
+  return SpecialPowers.spawn(browser, [videoID], async videoID => {
+    return content.document.getElementById(videoID).paused;
+  });
 }

@@ -16,6 +16,7 @@
 #include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "mozilla/dom/MediaStreamError.h"
 #include "mozilla/dom/RootedDictionary.h"
+#include "mozilla/dom/SpeechGrammar.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -44,8 +45,7 @@
 #  undef GetMessage
 #endif
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 #define PREFERENCE_DEFAULT_RECOGNITION_SERVICE "media.webspeech.service.default"
 #define DEFAULT_RECOGNITION_SERVICE "online"
@@ -1148,5 +1148,4 @@ SpeechEvent::Run() {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

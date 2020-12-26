@@ -8,8 +8,7 @@
 
 #include "mozilla/TextEvents.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 namespace {
 
@@ -56,7 +55,6 @@ bool UserActivation::IsUserInteractionEvent(const WidgetEvent* aEvent) {
       // unexpected time.
       return aEvent->AsKeyboardEvent()->CanTreatAsUserInput();
     // eBasicEventClass
-    case eFormChange:
     // eMouseEventClass
     case eMouseClick:
     case eMouseDown:
@@ -126,5 +124,4 @@ AutoHandlingUserInputStatePusher::~AutoHandlingUserInputStatePusher() {
   UserActivation::StopHandlingUserInput(mMessage);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

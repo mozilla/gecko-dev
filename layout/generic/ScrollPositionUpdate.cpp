@@ -10,31 +10,56 @@
 
 namespace mozilla {
 
+uint64_t ScrollGeneration::sCounter = 0;
+
+ScrollGeneration ScrollGeneration::New() {
+  uint64_t value = ++sCounter;
+  return ScrollGeneration(value);
+}
+
+ScrollGeneration::ScrollGeneration() : mValue(0) {}
+
+ScrollGeneration::ScrollGeneration(uint64_t aValue) : mValue(aValue) {}
+
+bool ScrollGeneration::operator<(const ScrollGeneration& aOther) const {
+  return mValue < aOther.mValue;
+}
+
+bool ScrollGeneration::operator==(const ScrollGeneration& aOther) const {
+  return mValue == aOther.mValue;
+}
+
+bool ScrollGeneration::operator!=(const ScrollGeneration& aOther) const {
+  return !(*this == aOther);
+}
+
+std::ostream& operator<<(std::ostream& aStream, const ScrollGeneration& aGen) {
+  return aStream << aGen.mValue;
+}
+
 ScrollPositionUpdate::ScrollPositionUpdate()
-    : mScrollGeneration(0),
-      mType(ScrollUpdateType::Absolute),
+    : mType(ScrollUpdateType::Absolute),
       mScrollMode(ScrollMode::Normal),
       mScrollOrigin(ScrollOrigin::None) {}
 
 /*static*/
 ScrollPositionUpdate ScrollPositionUpdate::NewScrollframe(
-    uint32_t aGeneration, nsPoint aInitialPosition) {
+    nsPoint aInitialPosition) {
   ScrollPositionUpdate ret;
-  ret.mScrollGeneration = aGeneration;
+  ret.mScrollGeneration = ScrollGeneration::New();
   ret.mScrollMode = ScrollMode::Instant;
   ret.mDestination = CSSPoint::FromAppUnits(aInitialPosition);
   return ret;
 }
 
 /*static*/
-ScrollPositionUpdate ScrollPositionUpdate::NewScroll(uint32_t aGeneration,
-                                                     ScrollOrigin aOrigin,
+ScrollPositionUpdate ScrollPositionUpdate::NewScroll(ScrollOrigin aOrigin,
                                                      nsPoint aDestination) {
   MOZ_ASSERT(aOrigin != ScrollOrigin::NotSpecified);
   MOZ_ASSERT(aOrigin != ScrollOrigin::None);
 
   ScrollPositionUpdate ret;
-  ret.mScrollGeneration = aGeneration;
+  ret.mScrollGeneration = ScrollGeneration::New();
   ret.mType = ScrollUpdateType::Absolute;
   ret.mScrollMode = ScrollMode::Instant;
   ret.mScrollOrigin = aOrigin;
@@ -44,9 +69,9 @@ ScrollPositionUpdate ScrollPositionUpdate::NewScroll(uint32_t aGeneration,
 
 /*static*/
 ScrollPositionUpdate ScrollPositionUpdate::NewRelativeScroll(
-    uint32_t aGeneration, nsPoint aSource, nsPoint aDestination) {
+    nsPoint aSource, nsPoint aDestination) {
   ScrollPositionUpdate ret;
-  ret.mScrollGeneration = aGeneration;
+  ret.mScrollGeneration = ScrollGeneration::New();
   ret.mType = ScrollUpdateType::Relative;
   ret.mScrollMode = ScrollMode::Instant;
   ret.mScrollOrigin = ScrollOrigin::Relative;
@@ -57,12 +82,12 @@ ScrollPositionUpdate ScrollPositionUpdate::NewRelativeScroll(
 
 /*static*/
 ScrollPositionUpdate ScrollPositionUpdate::NewSmoothScroll(
-    uint32_t aGeneration, ScrollOrigin aOrigin, nsPoint aDestination) {
+    ScrollOrigin aOrigin, nsPoint aDestination) {
   MOZ_ASSERT(aOrigin != ScrollOrigin::NotSpecified);
   MOZ_ASSERT(aOrigin != ScrollOrigin::None);
 
   ScrollPositionUpdate ret;
-  ret.mScrollGeneration = aGeneration;
+  ret.mScrollGeneration = ScrollGeneration::New();
   ret.mType = ScrollUpdateType::Absolute;
   ret.mScrollMode = ScrollMode::SmoothMsd;
   ret.mScrollOrigin = aOrigin;
@@ -72,13 +97,12 @@ ScrollPositionUpdate ScrollPositionUpdate::NewSmoothScroll(
 
 /*static*/
 ScrollPositionUpdate ScrollPositionUpdate::NewPureRelativeScroll(
-    uint32_t aGeneration, ScrollOrigin aOrigin, ScrollMode aMode,
-    const nsPoint& aDelta) {
+    ScrollOrigin aOrigin, ScrollMode aMode, const nsPoint& aDelta) {
   MOZ_ASSERT(aOrigin != ScrollOrigin::NotSpecified);
   MOZ_ASSERT(aOrigin != ScrollOrigin::None);
 
   ScrollPositionUpdate ret;
-  ret.mScrollGeneration = aGeneration;
+  ret.mScrollGeneration = ScrollGeneration::New();
   ret.mType = ScrollUpdateType::PureRelative;
   ret.mScrollMode = aMode;
   ret.mScrollOrigin = aOrigin;
@@ -93,7 +117,7 @@ bool ScrollPositionUpdate::operator==(
   return mScrollGeneration == aOther.mScrollGeneration;
 }
 
-uint32_t ScrollPositionUpdate::GetGeneration() const {
+ScrollGeneration ScrollPositionUpdate::GetGeneration() const {
   return mScrollGeneration;
 }
 

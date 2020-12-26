@@ -217,9 +217,7 @@ HWND RenderCompositorANGLE::GetCompositorHwnd() {
 
   if (XRE_IsGPUProcess()) {
     hwnd = mWidget->AsWindows()->GetCompositorHwnd();
-  }
-#ifdef NIGHTLY_BUILD
-  else if (
+  } else if (
       StaticPrefs::
           gfx_webrender_enabled_no_gpu_process_with_angle_win_AtStartup()) {
     MOZ_ASSERT(XRE_IsParentProcess());
@@ -227,7 +225,6 @@ HWND RenderCompositorANGLE::GetCompositorHwnd() {
     // When GPU process does not exist, we do not need to use compositor window.
     hwnd = mWidget->AsWindows()->GetHwnd();
   }
-#endif
 
   return hwnd;
 }
@@ -521,7 +518,7 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
     // See Bug 1595027
     MOZ_ASSERT_IF(mUsePartialPresent && mUseAlpha, mFullRender);
 
-    if (mUsePartialPresent && !mUseAlpha) {
+    if (mUsePartialPresent && !mUseAlpha && mSwapChain1) {
       // Clear full render flag.
       mFullRender = false;
       // If there is no diry rect, we skip SwapChain present.

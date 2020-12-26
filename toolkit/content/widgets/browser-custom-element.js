@@ -87,10 +87,6 @@
       this.mIconURL = null;
       this.lastURI = null;
 
-      // Track progress listeners added to this <browser>. These need to persist
-      // between calls to destroy().
-      this.progressListeners = [];
-
       XPCOMUtils.defineLazyGetter(this, "popupBlocker", () => {
         return new LazyModules.PopupBlocker(this);
       });
@@ -246,8 +242,6 @@
 
       this._audioMuted = false;
 
-      this._audioPlaying = false;
-
       this._hasAnyPlayingMediaBeenBlocked = false;
 
       this._unselectedTabHoverMessageListenerCount = 0;
@@ -393,25 +387,11 @@
     }
 
     set suspendMediaWhenInactive(val) {
-      if (this.isRemoteBrowser) {
-        let { frameLoader } = this;
-        if (frameLoader && frameLoader.remoteTab) {
-          frameLoader.remoteTab.suspendMediaWhenInactive = val;
-        }
-      } else if (this.docShell) {
-        this.docShell.suspendMediaWhenInactive = val;
-      }
+      this.browsingContext.suspendMediaWhenInactive = val;
     }
 
     get suspendMediaWhenInactive() {
-      if (this.isRemoteBrowser) {
-        let { frameLoader } = this;
-        if (frameLoader && frameLoader.remoteTab) {
-          return frameLoader.remoteTab.suspendMediaWhenInactive;
-        }
-        return false;
-      }
-      return this.docShell && this.docShell.suspendMediaWhenInactive;
+      return !!this.browsingContext?.suspendMediaWhenInactive;
     }
 
     set docShellIsActive(val) {
@@ -650,6 +630,12 @@
         .contentBlockingAllowListPrincipal;
     }
 
+    get cookieJarSettings() {
+      return this.isRemoteBrowser
+        ? this.browsingContext?.currentWindowGlobal?.cookieJarSettings
+        : this.contentDocument.cookieJarSettings;
+    }
+
     get csp() {
       return this.isRemoteBrowser ? this._csp : this.contentDocument.csp;
     }
@@ -744,10 +730,6 @@
 
     get audioMuted() {
       return this._audioMuted;
-    }
-
-    get audioPlaying() {
-      return this._audioPlaying;
     }
 
     get shouldHandleUnselectedTabHover() {
@@ -901,41 +883,11 @@
         aNotifyMask = Ci.nsIWebProgress.NOTIFY_ALL;
       }
 
-      this.progressListeners.push({
-        weakListener: Cu.getWeakReference(aListener),
-        mask: aNotifyMask,
-      });
-
       this.webProgress.addProgressListener(aListener, aNotifyMask);
     }
 
     removeProgressListener(aListener) {
       this.webProgress.removeProgressListener(aListener);
-
-      // Remove aListener from our progress listener list, and clear out dead
-      // weak references while we're at it.
-      this.progressListeners = this.progressListeners.filter(
-        ({ weakListener }) =>
-          weakListener.get() && weakListener.get() !== aListener
-      );
-    }
-
-    /**
-     * Move the previously-tracked web progress listeners to this <browser>'s
-     * current WebProgress.
-     *
-     * Invoked when manually switching remoteness, e.g. by GeckoView
-     */
-    restoreProgressListeners() {
-      let listeners = this.progressListeners;
-      this.progressListeners = [];
-
-      for (let { weakListener, mask } of listeners) {
-        let listener = weakListener.get();
-        if (listener) {
-          this.addProgressListener(listener, mask);
-        }
-      }
     }
 
     onPageHide(aEvent) {
@@ -956,14 +908,12 @@
       if (this._audioMuted) {
         return;
       }
-      this._audioPlaying = true;
       let event = document.createEvent("Events");
       event.initEvent("DOMAudioPlaybackStarted", true, false);
       this.dispatchEvent(event);
     }
 
     audioPlaybackStopped() {
-      this._audioPlaying = false;
       let event = document.createEvent("Events");
       event.initEvent("DOMAudioPlaybackStopped", true, false);
       this.dispatchEvent(event);
@@ -1928,6 +1878,17 @@
       /* no-op unless replaced */
     }
 
+    // This method is replaced by frontend code in order to handle restoring
+    // remote session history
+    //
+    // Called immediately after changing remoteness.  If this method returns
+    // `true`, Gecko will assume frontend handled resuming the load, and will
+    // not attempt to resume the load itself.
+    afterChangeRemoteness(browser, redirectLoadSwitchId) {
+      /* no-op unless replaced */
+      return false;
+    }
+
     // Called by Gecko before the remoteness change happens, allowing for
     // listeners, etc. to be stashed before the process switch.
     beforeChangeRemoteness() {
@@ -1952,18 +1913,9 @@
       event.initEvent("DidChangeBrowserRemoteness", true, false);
       this.dispatchEvent(event);
 
-      // If we have a tabbrowser, we need to let it handle restoring session
-      // history, and performing the `resumeRedirectedLoad`, in order to get
-      // sesssion state set up correctly.
-      // FIXME: This probably needs to be hookable by GeckoView.
-      if (!Services.appinfo.sessionHistoryInParent) {
-        let tabbrowser = this.getTabBrowser();
-        if (tabbrowser) {
-          tabbrowser.finishBrowserRemotenessChange(this, redirectLoadSwitchId);
-          return true;
-        }
-      }
-      return false;
+      // Call into frontend code which may want to handle the load (e.g. to
+      // while restoring session state).
+      return this.afterChangeRemoteness(redirectLoadSwitchId);
     }
   }
 

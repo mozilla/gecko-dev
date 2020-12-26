@@ -693,12 +693,6 @@ void CodeGenerator::visitUDivConstantI(LUDivConstantI* ins) {
   }
 }
 
-void CodeGeneratorARM64::modICommon(MMod* mir, Register lhs, Register rhs,
-                                    Register output, LSnapshot* snapshot,
-                                    Label& done) {
-  MOZ_CRASH("CodeGeneratorARM64::modICommon");
-}
-
 void CodeGenerator::visitModI(LModI* ins) {
   if (gen->compilingWasm()) {
     MOZ_CRASH("visitModI while compilingWasm");
@@ -1162,6 +1156,22 @@ void CodeGenerator::visitTruncateDToInt32(LTruncateDToInt32* ins) {
                      ins->mir());
 }
 
+void CodeGenerator::visitNearbyInt(LNearbyInt* lir) {
+  FloatRegister input = ToFloatRegister(lir->input());
+  FloatRegister output = ToFloatRegister(lir->output());
+
+  RoundingMode roundingMode = lir->mir()->roundingMode();
+  masm.nearbyIntDouble(roundingMode, input, output);
+}
+
+void CodeGenerator::visitNearbyIntF(LNearbyIntF* lir) {
+  FloatRegister input = ToFloatRegister(lir->input());
+  FloatRegister output = ToFloatRegister(lir->output());
+
+  RoundingMode roundingMode = lir->mir()->roundingMode();
+  masm.nearbyIntFloat32(roundingMode, input, output);
+}
+
 void CodeGenerator::visitWasmBuiltinTruncateDToInt32(
     LWasmBuiltinTruncateDToInt32* lir) {
   MOZ_CRASH("NYI");
@@ -1249,9 +1259,11 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
   // Assert the types match.
   JSValueTag tag = MIRTypeToTag(mir->type());
   Label ok;
-  ScratchTagScope scratch(masm, input);
-  masm.splitTagForTest(input, scratch);
-  masm.cmpTag(scratch, ImmTag(tag));
+  {
+    ScratchTagScope scratch(masm, input);
+    masm.splitTagForTest(input, scratch);
+    masm.cmpTag(scratch, ImmTag(tag));
+  }
   masm.B(&ok, Assembler::Condition::Equal);
   masm.assumeUnreachable("Infallible unbox type mismatch");
   masm.bind(&ok);
@@ -1502,14 +1514,6 @@ void CodeGenerator::visitNotF(LNotF* ins) {
   masm.Csinc(output, output, ZeroRegister32, Assembler::NoOverflow);
 }
 
-void CodeGeneratorARM64::storeElementTyped(const LAllocation* value,
-                                           MIRType valueType,
-                                           MIRType elementType,
-                                           Register elements,
-                                           const LAllocation* index) {
-  MOZ_CRASH("CodeGeneratorARM64::storeElementTyped");
-}
-
 void CodeGeneratorARM64::generateInvalidateEpilogue() {
   // Ensure that there is enough space in the buffer for the OsiPoint patching
   // to occur. Otherwise, we could overwrite the invalidation epilogue.
@@ -1747,8 +1751,6 @@ void CodeGenerator::visitCopySignD(LCopySignD*) { MOZ_CRASH("NYI"); }
 
 void CodeGenerator::visitCopySignF(LCopySignF*) { MOZ_CRASH("NYI"); }
 
-void CodeGenerator::visitNearbyInt(LNearbyInt*) { MOZ_CRASH("NYI"); }
-
 void CodeGenerator::visitPopcntI64(LPopcntI64*) { MOZ_CRASH("NYI"); }
 
 void CodeGenerator::visitRotateI64(LRotateI64*) { MOZ_CRASH("NYI"); }
@@ -1756,8 +1758,6 @@ void CodeGenerator::visitRotateI64(LRotateI64*) { MOZ_CRASH("NYI"); }
 void CodeGenerator::visitWasmStore(LWasmStore*) { MOZ_CRASH("NYI"); }
 
 void CodeGenerator::visitCompareI64(LCompareI64*) { MOZ_CRASH("NYI"); }
-
-void CodeGenerator::visitNearbyIntF(LNearbyIntF*) { MOZ_CRASH("NYI"); }
 
 void CodeGenerator::visitWasmSelect(LWasmSelect*) { MOZ_CRASH("NYI"); }
 

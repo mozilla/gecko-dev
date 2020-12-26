@@ -96,8 +96,6 @@ class HttpTransactionShell : public nsISupports {
   virtual nsresult AsyncRead(nsIStreamListener* listener,
                              nsIRequest** pump) = 0;
 
-  virtual void SetClassOfService(uint32_t classOfService) = 0;
-
   // Called to take ownership of the response headers; the transaction
   // will drop any reference to the response headers after this call.
   virtual UniquePtr<nsHttpResponseHead> TakeResponseHead() = 0;
@@ -154,6 +152,12 @@ class HttpTransactionShell : public nsISupports {
 
   virtual bool TakeRestartedState() = 0;
   virtual Maybe<uint32_t> HTTPSSVCReceivedStage() = 0;
+
+  virtual bool Http2Disabled() const = 0;
+  virtual bool Http3Disabled() const = 0;
+  virtual already_AddRefed<nsHttpConnectionInfo> GetConnInfo() const = 0;
+
+  virtual bool GetSupportsHTTP3() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(HttpTransactionShell, HTTPTRANSACTIONSHELL_IID)
@@ -174,7 +178,6 @@ NS_DEFINE_STATIC_IID_ACCESSOR(HttpTransactionShell, HTTPTRANSACTIONSHELL_IID)
       override;                                                                \
   virtual nsresult AsyncRead(nsIStreamListener* listener, nsIRequest** pump)   \
       override;                                                                \
-  virtual void SetClassOfService(uint32_t classOfService) override;            \
   virtual UniquePtr<nsHttpResponseHead> TakeResponseHead() override;           \
   virtual UniquePtr<nsHttpHeaderArray> TakeResponseTrailers() override;        \
   virtual nsISupports* SecurityInfo() override;                                \
@@ -209,7 +212,11 @@ NS_DEFINE_STATIC_IID_ACCESSOR(HttpTransactionShell, HTTPTRANSACTIONSHELL_IID)
   virtual nsHttpTransaction* AsHttpTransaction() override;                     \
   virtual HttpTransactionParent* AsHttpTransactionParent() override;           \
   virtual bool TakeRestartedState() override;                                  \
-  virtual Maybe<uint32_t> HTTPSSVCReceivedStage() override;
+  virtual Maybe<uint32_t> HTTPSSVCReceivedStage() override;                    \
+  virtual bool Http2Disabled() const override;                                 \
+  virtual bool Http3Disabled() const override;                                 \
+  virtual already_AddRefed<nsHttpConnectionInfo> GetConnInfo() const override; \
+  virtual bool GetSupportsHTTP3() override;
 }  // namespace net
 }  // namespace mozilla
 

@@ -6,13 +6,13 @@
 
 #include "SpeechGrammarList.h"
 
+#include "mozilla/dom/SpeechGrammar.h"
 #include "mozilla/dom/SpeechGrammarListBinding.h"
 #include "mozilla/ErrorResult.h"
 #include "nsCOMPtr.h"
 #include "SpeechRecognition.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(SpeechGrammarList, mParent, mItems)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(SpeechGrammarList)
@@ -73,5 +73,4 @@ already_AddRefed<SpeechGrammar> SpeechGrammarList::IndexedGetter(
   return Item(aIndex, rv);
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

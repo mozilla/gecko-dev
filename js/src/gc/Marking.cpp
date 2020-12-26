@@ -1086,34 +1086,44 @@ void GCMarker::traverse(AccessorShape* thing) {
 }  // namespace js
 
 template <typename S, typename T>
-static void CheckTraversedEdge(S source, T* target) {
+static inline void CheckTraversedEdge(S source, T* target) {
+#ifdef DEBUG
   // Atoms and Symbols do not have or mark their internal pointers,
   // respectively.
   MOZ_ASSERT(!source->isPermanentAndMayBeShared());
 
-  // The Zones must match, unless the target is an atom.
-  MOZ_ASSERT_IF(
-      !target->isPermanentAndMayBeShared(),
-      target->zone()->isAtomsZone() || target->zone() == source->zone());
+  if (target->isPermanentAndMayBeShared()) {
+    MOZ_ASSERT(!target->maybeCompartment());
 
-  // If we are marking an atom, that atom must be marked in the source zone's
-  // atom bitmap.
-  MOZ_ASSERT_IF(!target->isPermanentAndMayBeShared() &&
-                    target->zone()->isAtomsZone() &&
-                    !source->zone()->isAtomsZone(),
-                target->runtimeFromAnyThread()->gc.atomMarking.atomIsMarked(
-                    source->zone(), reinterpret_cast<TenuredCell*>(target)));
+    // No further checks for parmanent/shared things.
+    return;
+  }
+
+  Zone* sourceZone = source->zone();
+  Zone* targetZone = target->zone();
 
   // Atoms and Symbols do not have access to a compartment pointer, or we'd need
   // to adjust the subsequent check to catch that case.
-  MOZ_ASSERT_IF(target->isPermanentAndMayBeShared(),
-                !target->maybeCompartment());
-  MOZ_ASSERT_IF(target->zoneFromAnyThread()->isAtomsZone(),
-                !target->maybeCompartment());
+  MOZ_ASSERT_IF(targetZone->isAtomsZone(), !target->maybeCompartment());
+
+  // The Zones must match, unless the target is an atom.
+  MOZ_ASSERT(targetZone == sourceZone || targetZone->isAtomsZone());
+
+  // If we are marking an atom, that atom must be marked in the source zone's
+  // atom bitmap.
+  if (!sourceZone->isAtomsZone() && targetZone->isAtomsZone()) {
+    // We can't currently check this if the helper thread lock is held.
+    if (!gHelperThreadLock.ownedByCurrentThread()) {
+      MOZ_ASSERT(target->runtimeFromAnyThread()->gc.atomMarking.atomIsMarked(
+          sourceZone, reinterpret_cast<TenuredCell*>(target)));
+    }
+  }
+
   // If we have access to a compartment pointer for both things, they must
   // match.
   MOZ_ASSERT_IF(source->maybeCompartment() && target->maybeCompartment(),
                 source->maybeCompartment() == target->maybeCompartment());
+#endif
 }
 
 template <typename S, typename T>
@@ -1928,6 +1938,20 @@ static inline void CheckForCompartmentMismatch(JSObject* obj, JSObject* obj2) {
 #endif
 }
 
+static inline size_t NumUsedFixedSlots(NativeObject* obj) {
+  return std::min(obj->numFixedSlots(), obj->slotSpan());
+}
+
+static inline size_t NumUsedDynamicSlots(NativeObject* obj) {
+  size_t nfixed = obj->numFixedSlots();
+  size_t nslots = obj->slotSpan();
+  if (nslots < nfixed) {
+    return 0;
+  }
+
+  return nslots - nfixed;
+}
+
 inline void GCMarker::processMarkStackTop(SliceBudget& budget) {
   /*
    * This function uses explicit goto and scans objects directly. This allows us
@@ -1939,47 +1963,46 @@ inline void GCMarker::processMarkStackTop(SliceBudget& budget) {
    * stack.
    */
 
-  JSObject* obj;   // The object being scanned.
-  RangeKind kind;  // The kind of slot range being scanned, if any.
-  HeapSlot* base;  // Slot range base pointer.
-  size_t index;    // Index of the next slot to mark.
-  size_t end;      // End of slot range to mark.
+  JSObject* obj;             // The object being scanned.
+  SlotsOrElementsKind kind;  // The kind of slot range being scanned, if any.
+  HeapSlot* base;            // Slot range base pointer.
+  size_t index;              // Index of the next slot to mark.
+  size_t end;                // End of slot range to mark.
 
   gc::MarkStack& stack = currentStack();
 
   switch (stack.peekTag()) {
-    case MarkStack::SlotsRangeTag: {
+    case MarkStack::SlotsOrElementsRangeTag: {
       auto range = stack.popSlotsOrElementsRange();
-      obj = range.ptr.asSlotsRangeObject();
+      obj = range.ptr().asRangeObject();
       NativeObject* nobj = &obj->as<NativeObject>();
-      size_t nfixed = nobj->numFixedSlots();
-      size_t nslots = nobj->slotSpan();
-      if (range.start < nfixed) {
-        kind = RangeKind::FixedSlots;
-        base = nobj->fixedSlots();
-        index = range.start;
-        end = std::min(nfixed, nslots);
-      } else {
-        kind = RangeKind::DynamicSlots;
-        base = nobj->slots_;
-        index = range.start - nfixed;
-        end = std::max(nslots, nfixed) - nfixed;
+      kind = range.kind();
+      index = range.start();
+
+      switch (kind) {
+        case SlotsOrElementsKind::FixedSlots: {
+          base = nobj->fixedSlots();
+          end = NumUsedFixedSlots(nobj);
+          break;
+        }
+
+        case SlotsOrElementsKind::DynamicSlots: {
+          base = nobj->slots_;
+          end = NumUsedDynamicSlots(nobj);
+          break;
+        }
+
+        case SlotsOrElementsKind::Elements: {
+          base = nobj->getDenseElementsAllowCopyOnWrite();
+
+          // Account for shifted elements.
+          size_t numShifted = nobj->getElementsHeader()->numShiftedElements();
+          size_t initlen = nobj->getDenseInitializedLength();
+          index = std::max(index, numShifted) - numShifted;
+          end = initlen;
+          break;
+        }
       }
-      goto scan_value_range;
-    }
-
-    case MarkStack::ElementsRangeTag: {
-      auto range = stack.popSlotsOrElementsRange();
-      obj = range.ptr.asElementsRangeObject();
-      NativeObject* nobj = &obj->as<NativeObject>();
-      kind = RangeKind::Elements;
-      base = nobj->getDenseElementsAllowCopyOnWrite();
-
-      // Account for shifted elements.
-      size_t numShifted = nobj->getElementsHeader()->numShiftedElements();
-      size_t initlen = nobj->getDenseInitializedLength();
-      index = std::max(range.start, numShifted) - numShifted;
-      end = initlen;
 
       goto scan_value_range;
     }
@@ -2098,7 +2121,7 @@ scan_obj : {
     }
 
     base = nobj->getDenseElementsAllowCopyOnWrite();
-    kind = RangeKind::Elements;
+    kind = SlotsOrElementsKind::Elements;
     index = 0;
     end = nobj->getDenseInitializedLength();
 
@@ -2111,12 +2134,12 @@ scan_obj : {
   unsigned nfixed = nobj->numFixedSlots();
 
   base = nobj->fixedSlots();
-  kind = RangeKind::FixedSlots;
+  kind = SlotsOrElementsKind::FixedSlots;
   index = 0;
 
   if (nslots > nfixed) {
     pushValueRange(nobj, kind, index, nfixed);
-    kind = RangeKind::DynamicSlots;
+    kind = SlotsOrElementsKind::DynamicSlots;
     base = nobj->slots_;
     end = nslots - nfixed;
     goto scan_value_range;
@@ -2160,7 +2183,7 @@ struct MapTypeToMarkStackTag<BaseScript*> {
 };
 
 static inline bool TagIsRangeTag(MarkStack::Tag tag) {
-  return tag == MarkStack::SlotsRangeTag || tag == MarkStack::ElementsRangeTag;
+  return tag == MarkStack::SlotsOrElementsRangeTag;
 }
 
 inline MarkStack::TaggedPtr::TaggedPtr(Tag tag, Cell* ptr)
@@ -2191,14 +2214,8 @@ inline T* MarkStack::TaggedPtr::as() const {
   return static_cast<T*>(ptr());
 }
 
-inline JSObject* MarkStack::TaggedPtr::asSlotsRangeObject() const {
-  MOZ_ASSERT(tag() == SlotsRangeTag);
-  MOZ_ASSERT(ptr()->isTenured());
-  return ptr()->as<JSObject>();
-}
-
-inline JSObject* MarkStack::TaggedPtr::asElementsRangeObject() const {
-  MOZ_ASSERT(tag() == ElementsRangeTag);
+inline JSObject* MarkStack::TaggedPtr::asRangeObject() const {
+  MOZ_ASSERT(TagIsRangeTag(tag()));
   MOZ_ASSERT(ptr()->isTenured());
   return ptr()->as<JSObject>();
 }
@@ -2208,16 +2225,30 @@ inline JSRope* MarkStack::TaggedPtr::asTempRope() const {
   return &ptr()->as<JSString>()->asRope();
 }
 
-inline MarkStack::SlotsOrElementsRange::SlotsOrElementsRange(Tag tag,
-                                                             JSObject* obj,
-                                                             size_t startArg)
-    : start(startArg), ptr(tag, obj) {
+inline MarkStack::SlotsOrElementsRange::SlotsOrElementsRange(
+    SlotsOrElementsKind kindArg, JSObject* obj, size_t startArg)
+    : startAndKind_((startArg << StartShift) | size_t(kindArg)),
+      ptr_(SlotsOrElementsRangeTag, obj) {
   assertValid();
+  MOZ_ASSERT(kind() == kindArg);
+  MOZ_ASSERT(start() == startArg);
 }
 
 inline void MarkStack::SlotsOrElementsRange::assertValid() const {
-  ptr.assertValid();
-  MOZ_ASSERT(TagIsRangeTag(ptr.tag()));
+  ptr_.assertValid();
+  MOZ_ASSERT(TagIsRangeTag(ptr_.tag()));
+}
+
+inline SlotsOrElementsKind MarkStack::SlotsOrElementsRange::kind() const {
+  return SlotsOrElementsKind(startAndKind_ & KindMask);
+}
+
+inline size_t MarkStack::SlotsOrElementsRange::start() const {
+  return startAndKind_ >> StartShift;
+}
+
+inline MarkStack::TaggedPtr MarkStack::SlotsOrElementsRange::ptr() const {
+  return ptr_;
 }
 
 MarkStack::MarkStack(size_t maxCapacity)
@@ -2306,12 +2337,9 @@ inline bool MarkStack::pushTempRope(JSRope* rope) {
   return pushTaggedPtr(TempRopeTag, rope);
 }
 
-inline bool MarkStack::push(JSObject* obj, HeapSlot::Kind kind, size_t start) {
-  if (kind == HeapSlot::Slot) {
-    return push(SlotsOrElementsRange(SlotsRangeTag, obj, start));
-  }
-
-  return push(SlotsOrElementsRange(ElementsRangeTag, obj, start));
+inline bool MarkStack::push(JSObject* obj, SlotsOrElementsKind kind,
+                            size_t start) {
+  return push(SlotsOrElementsRange(kind, obj, start));
 }
 
 inline bool MarkStack::push(const SlotsOrElementsRange& array) {
@@ -2570,8 +2598,8 @@ void GCMarker::pushTaggedPtr(T* ptr) {
   }
 }
 
-void GCMarker::pushValueRange(JSObject* obj, RangeKind kind, size_t start,
-                              size_t end) {
+void GCMarker::pushValueRange(JSObject* obj, SlotsOrElementsKind kind,
+                              size_t start, size_t end) {
   checkZone(obj);
   MOZ_ASSERT(obj->is<NativeObject>());
   MOZ_ASSERT(start <= end);
@@ -2580,15 +2608,7 @@ void GCMarker::pushValueRange(JSObject* obj, RangeKind kind, size_t start,
     return;
   }
 
-  if (kind == RangeKind::DynamicSlots) {
-    uint32_t nfixed = obj->as<NativeObject>().numFixedSlots();
-    start += nfixed;
-  }
-
-  HeapSlot::Kind slotsOrElements =
-      kind == RangeKind::Elements ? HeapSlot::Element : HeapSlot::Slot;
-
-  if (!currentStack().push(obj, slotsOrElements, start)) {
+  if (!currentStack().push(obj, kind, start)) {
     delayMarkingChildren(obj);
   }
 }
@@ -2980,7 +3000,7 @@ void js::gc::StoreBuffer::SlotsEdge::trace(TenuringTracer& mover) const {
     uint32_t start = std::min(start_, obj->slotSpan());
     uint32_t end = std::min(start_ + count_, obj->slotSpan());
     MOZ_ASSERT(start <= end);
-    mover.traceObjectSlots(obj, start, end - start);
+    mover.traceObjectSlots(obj, start, end);
   }
 }
 
@@ -3194,12 +3214,12 @@ void js::TenuringTracer::traceObject(JSObject* obj) {
 }
 
 void js::TenuringTracer::traceObjectSlots(NativeObject* nobj, uint32_t start,
-                                          uint32_t length) {
+                                          uint32_t end) {
   HeapSlot* fixedStart;
   HeapSlot* fixedEnd;
   HeapSlot* dynStart;
   HeapSlot* dynEnd;
-  nobj->getSlotRange(start, length, &fixedStart, &fixedEnd, &dynStart, &dynEnd);
+  nobj->getSlotRange(start, end, &fixedStart, &fixedEnd, &dynStart, &dynEnd);
   if (fixedStart) {
     traceSlots(fixedStart->unbarrieredAddress(),
                fixedEnd->unbarrieredAddress());
@@ -3290,7 +3310,7 @@ JSObject* js::TenuringTracer::moveToTenuredSlow(JSObject* src) {
     if (tarray->hasInlineElements()) {
       AllocKind srcKind = GetGCObjectKind(TypedArrayObject::FIXED_DATA_START);
       size_t headerSize = Arena::thingSize(srcKind);
-      srcSize = headerSize + tarray->byteLength();
+      srcSize = headerSize + tarray->byteLength().get();
     }
   }
 

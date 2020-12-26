@@ -302,32 +302,55 @@ static XDRResult AtomTable(XDRState<mode>* xdr) {
 }
 
 template <XDRMode mode>
-static XDRResult ParserAtomTable(XDRState<mode>* xdr) {
+static XDRResult ParserAtomTable(XDRState<mode>* xdr,
+                                 frontend::CompilationStencil& stencil) {
   if (mode == XDR_ENCODE) {
+    uint32_t atomVectorLength = stencil.parserAtomData.length();
+    MOZ_TRY(XDRAtomCount(xdr, &atomVectorLength));
+
+    uint32_t atomCount = 0;
+    for (const auto& entry : stencil.parserAtomData) {
+      if (!entry) {
+        continue;
+      }
+      if (entry->isUsedByStencil()) {
+        atomCount++;
+      }
+    }
+    MOZ_TRY(XDRAtomCount(xdr, &atomCount));
+
+    for (const auto& entry : stencil.parserAtomData) {
+      if (!entry) {
+        continue;
+      }
+      if (entry->isUsedByStencil()) {
+        const frontend::ParserAtom* atom = entry->asAtom();
+        uint32_t index = atom->toParserAtomIndex();
+        MOZ_TRY(xdr->codeUint32(&index));
+        MOZ_TRY(
+            XDRParserAtomDataAt(xdr, &atom, frontend::ParserAtomIndex(index)));
+      }
+    }
+
     return Ok();
   }
 
-  // If we are incrementally encoding, the atom table will be built up over the
-  // course of the encoding. In XDRIncrementalStencilEncoder::finishChunk, we
-  // will write the number of atoms into the finished chunk, then append the
-  // completed atom table.
-  // If we are decoding, then we read the length and decode the atom table now.
+  uint32_t atomVectorLength;
+  MOZ_TRY(XDRAtomCount(xdr, &atomVectorLength));
+
+  if (!xdr->frontendAtoms().resize(xdr->cx(), atomVectorLength)) {
+    return xdr->fail(JS::TranscodeResult_Throw);
+  }
+
   uint32_t atomCount;
   MOZ_TRY(XDRAtomCount(xdr, &atomCount));
   MOZ_ASSERT(!xdr->hasAtomTable());
 
-  if (!xdr->parserAtomTable().reserve(atomCount)) {
-    ReportOutOfMemory(xdr->cx());
-    return xdr->fail(JS::TranscodeResult_Throw);
-  }
-
   for (uint32_t i = 0; i < atomCount; i++) {
     const frontend::ParserAtom* atom = nullptr;
-    MOZ_TRY(XDRParserAtomData(xdr, &atom));
-    if (!xdr->parserAtomTable().append(atom)) {
-      ReportOutOfMemory(xdr->cx());
-      return xdr->fail(JS::TranscodeResult_Throw);
-    }
+    uint32_t index;
+    MOZ_TRY(xdr->codeUint32(&index));
+    MOZ_TRY(XDRParserAtomDataAt(xdr, &atom, frontend::ParserAtomIndex(index)));
   }
   xdr->finishAtomTable();
 
@@ -435,16 +458,12 @@ XDRResult XDRState<mode>::codeStencil(
   }
 
   if (mode == XDR_ENCODE) {
-    switchToAtomBuf();
-  }
-  MOZ_TRY(ParserAtomTable(this));
-
-  if (mode == XDR_ENCODE) {
     switchToMainBuf();
   }
+  MOZ_TRY(ParserAtomTable(this, compilationInfo.stencil));
+
   MOZ_ASSERT(isMainBuf());
   MOZ_TRY(XDRCompilationStencil(this, compilationInfo.stencil));
-  MOZ_TRY(finishChunk());
 
   return Ok();
 }
@@ -462,16 +481,9 @@ XDRResult XDRState<mode>::codeFunctionStencil(
     return Ok();
   }
 
-  if (mode == XDR_ENCODE) {
-    switchToAtomBuf();
-  }
-  MOZ_TRY(ParserAtomTable(this));
+  MOZ_TRY(ParserAtomTable(this, stencil));
 
-  if (mode == XDR_ENCODE) {
-    switchToMainBuf();
-  }
   MOZ_TRY(XDRCompilationStencil(this, stencil));
-  MOZ_TRY(finishChunk());
 
   return Ok();
 }
@@ -702,27 +714,6 @@ XDRResult XDRIncrementalEncoder::linearize(JS::TranscodeBuffer& buffer) {
   return Ok();
 }
 
-XDRResult XDRIncrementalStencilEncoder::finishChunk() {
-  switchToFinishedChunkBuf();
-
-  MOZ_TRY(XDRAtomCount(this, &natoms_));
-  MOZ_TRY(codeBytes(atoms_.begin(), atoms_.length()));
-  MOZ_TRY(codeBytes(slices_.begin(), slices_.length()));
-
-  switchToMainBuf();
-
-  natoms_ = 0;
-
-  atoms_.clear();
-  atomBuf_.cursor_ = 0;
-  slices_.clear();
-  mainBuf.cursor_ = 0;
-
-  parserAtomMap_.clear();
-
-  return Ok();
-}
-
 XDRResult XDRIncrementalStencilEncoder::linearize(JS::TranscodeBuffer& buffer) {
   switchToHeaderBuf();
 
@@ -731,15 +722,14 @@ XDRResult XDRIncrementalStencilEncoder::linearize(JS::TranscodeBuffer& buffer) {
 
   switchToMainBuf();
 
-  size_t totalLength =
-      buffer.length() + header_.length() + finishedChunk_.length();
+  size_t totalLength = buffer.length() + header_.length() + slices_.length();
   if (!buffer.reserve(totalLength)) {
     ReportOutOfMemory(cx());
     return fail(JS::TranscodeResult_Throw);
   }
 
   buffer.infallibleAppend(header_.begin(), header_.length());
-  buffer.infallibleAppend(finishedChunk_.begin(), finishedChunk_.length());
+  buffer.infallibleAppend(slices_.begin(), slices_.length());
 
   return Ok();
 }
@@ -751,6 +741,12 @@ void XDRIncrementalEncoder::trace(JSTracer* trc) { atomMap_.trace(trc); }
 XDRResult XDRStencilDecoder::codeStencils(
     frontend::CompilationInfoVector& compilationInfos) {
   MOZ_ASSERT(compilationInfos.delazifications.length() == 0);
+
+  frontend::ParserAtomVectorBuilder parserAtomBuilder(
+      cx()->runtime(), compilationInfos.initial.stencil.alloc,
+      compilationInfos.initial.stencil.parserAtomData);
+  parserAtomBuilder_ = &parserAtomBuilder;
+  stencilAlloc_ = &compilationInfos.initial.stencil.alloc;
 
   MOZ_TRY(codeStencil(compilationInfos.initial));
 
@@ -764,9 +760,12 @@ XDRResult XDRStencilDecoder::codeStencils(
         cx(), compilationInfos.initial.input.options);
     auto& funInfo = compilationInfos.delazifications[i - 1];
 
-    parserAtomTable_.clear();
-    parserAtoms_ = &funInfo.stencil.parserAtoms;
     hasFinishedAtomTable_ = false;
+
+    frontend::ParserAtomVectorBuilder parserAtomBuilder(
+        cx()->runtime(), funInfo.stencil.alloc, funInfo.stencil.parserAtomData);
+    parserAtomBuilder_ = &parserAtomBuilder;
+    stencilAlloc_ = &funInfo.stencil.alloc;
 
     MOZ_TRY(codeFunctionStencil(funInfo.stencil));
   }

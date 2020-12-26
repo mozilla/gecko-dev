@@ -115,9 +115,17 @@ inline id<mozAccessible> GetObjectOrRepresentedView(id<mozAccessible> aObject) {
 - (id<mozAccessible>)moxParent;
 
 // override
+- (NSNumber*)moxIndexForChildUIElement:(id)child;
+
+// override
+- (id)moxTopLevelUIElement;
+
+// override
 - (id<MOXTextMarkerSupport>)moxTextMarkerDelegate;
 
 #pragma mark -
+
+- (NSString*)description;
 
 - (BOOL)isExpired;
 

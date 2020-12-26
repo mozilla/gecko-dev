@@ -8,7 +8,9 @@ const promise = require("promise");
 const flags = require("devtools/shared/flags");
 const ToolDefinitions = require("devtools/client/definitions").Tools;
 const CssLogic = require("devtools/shared/inspector/css-logic");
-const { ELEMENT_STYLE } = require("devtools/shared/specs/styles");
+const {
+  style: { ELEMENT_STYLE },
+} = require("devtools/shared/constants");
 const OutputParser = require("devtools/client/shared/output-parser");
 const { PrefObserver } = require("devtools/client/shared/prefs");
 const { createChild } = require("devtools/client/inspector/shared/utils");
@@ -1391,7 +1393,8 @@ function SelectorView(tree, selectorInfo) {
     };
     this.sourceMapURLService = this.tree.inspector.toolbox.sourceMapURLService;
     this._unsubscribeCallback = this.sourceMapURLService.subscribeByID(
-      this.generatedLocation.sheet.actorID,
+      this.generatedLocation.sheet.resourceId ||
+        this.generatedLocation.sheet.actorID,
       this.generatedLocation.line,
       this.generatedLocation.column,
       this._updateLocation

@@ -337,6 +337,10 @@ void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
   uint32_t offset = access.offset();
   MOZ_ASSERT(offset < wasm::MaxOffsetGuardLimit);
 
+  // Not yet supported: not used by baseline compiler
+  MOZ_ASSERT(!access.isSplatSimd128Load());
+  MOZ_ASSERT(!access.isWidenSimd128Load());
+
   MOZ_ASSERT(ptr_ == ptrScratch_);
 
   ARMRegister memoryBase(memoryBase_, 64);
@@ -383,11 +387,11 @@ void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
         Ldr(SelectGPReg(outany, out64), srcAddr);
         break;
       case Scalar::Float32:
-        // LDR does the right thing also for access.isZeroExtendSimdLoad()
+        // LDR does the right thing also for access.isZeroExtendSimd128Load()
         Ldr(SelectFPReg(outany, out64, 32), srcAddr);
         break;
       case Scalar::Float64:
-        // LDR does the right thing also for access.isZeroExtendSimdLoad()
+        // LDR does the right thing also for access.isZeroExtendSimd128Load()
         Ldr(SelectFPReg(outany, out64, 64), srcAddr);
         break;
       case Scalar::Simd128:
@@ -975,8 +979,11 @@ void MacroAssembler::call(ImmWord imm) { call(ImmPtr((void*)imm.value)); }
 
 void MacroAssembler::call(ImmPtr imm) {
   syncStackPtr();
-  movePtr(imm, ip0);
-  Blr(vixl::ip0);
+  vixl::UseScratchRegisterScope temps(this);
+  MOZ_ASSERT(temps.IsAvailable(ScratchReg64));  // ip0
+  temps.Exclude(ScratchReg64);
+  movePtr(imm, ScratchReg64.asUnsized());
+  Blr(ScratchReg64);
 }
 
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress imm) {
@@ -1095,7 +1102,7 @@ void MacroAssembler::popReturnAddress() {
 // ABI function calls.
 
 void MacroAssembler::setupUnalignedABICall(Register scratch) {
-  setupABICall();
+  setupNativeABICall();
   dynamicAlignment_ = true;
 
   int64_t alignment = ~(int64_t(ABIStackAlignment) - 1);
@@ -1394,18 +1401,19 @@ CodeOffset MacroAssembler::wasmTrapInstruction() {
   return offs;
 }
 
-void MacroAssembler::wasmBoundsCheck(Condition cond, Register index,
-                                     Register boundsCheckLimit, Label* label) {
+void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
+                                       Register boundsCheckLimit,
+                                       Label* label) {
   branch32(cond, index, boundsCheckLimit, label);
   if (JitOptions.spectreIndexMasking) {
     csel(ARMRegister(index, 32), vixl::wzr, ARMRegister(index, 32), cond);
   }
 }
 
-void MacroAssembler::wasmBoundsCheck(Condition cond, Register index,
-                                     Address boundsCheckLimit, Label* label) {
+void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
+                                       Address boundsCheckLimit, Label* label) {
   MOZ_ASSERT(boundsCheckLimit.offset ==
-             offsetof(wasm::TlsData, boundsCheckLimit));
+             offsetof(wasm::TlsData, boundsCheckLimit32));
 
   branch32(cond, index, boundsCheckLimit, label);
   if (JitOptions.spectreIndexMasking) {
@@ -2617,12 +2625,55 @@ void MacroAssembler::roundDoubleToInt32(FloatRegister src, Register dest,
 
 void MacroAssembler::nearbyIntDouble(RoundingMode mode, FloatRegister src,
                                      FloatRegister dest) {
-  MOZ_CRASH("not supported on this platform");
+  switch (mode) {
+    case RoundingMode::Up:
+      frintp(ARMFPRegister(dest, 64), ARMFPRegister(src, 64));
+      return;
+    case RoundingMode::Down:
+      frintm(ARMFPRegister(dest, 64), ARMFPRegister(src, 64));
+      return;
+    case RoundingMode::NearestTiesToEven:
+      frintn(ARMFPRegister(dest, 64), ARMFPRegister(src, 64));
+      return;
+    case RoundingMode::TowardsZero:
+      frintz(ARMFPRegister(dest, 64), ARMFPRegister(src, 64));
+      return;
+  }
+  MOZ_CRASH("unexpected mode");
 }
 
 void MacroAssembler::nearbyIntFloat32(RoundingMode mode, FloatRegister src,
                                       FloatRegister dest) {
-  MOZ_CRASH("not supported on this platform");
+  switch (mode) {
+    case RoundingMode::Up:
+      frintp(ARMFPRegister(dest, 32), ARMFPRegister(src, 32));
+      return;
+    case RoundingMode::Down:
+      frintm(ARMFPRegister(dest, 32), ARMFPRegister(src, 32));
+      return;
+    case RoundingMode::NearestTiesToEven:
+      frintn(ARMFPRegister(dest, 32), ARMFPRegister(src, 32));
+      return;
+    case RoundingMode::TowardsZero:
+      frintz(ARMFPRegister(dest, 32), ARMFPRegister(src, 32));
+      return;
+  }
+  MOZ_CRASH("unexpected mode");
+}
+
+void MacroAssembler::copySignDouble(FloatRegister lhs, FloatRegister rhs,
+                                    FloatRegister output) {
+  ScratchDoubleScope scratch(*this);
+
+  // Double with only the sign bit set (= negative zero).
+  loadConstantDouble(0, scratch);
+  negateDouble(scratch);
+
+  moveDouble(lhs, output);
+
+  bit(ARMFPRegister(output.encoding(), vixl::VectorFormat::kFormat8B),
+      ARMFPRegister(rhs.encoding(), vixl::VectorFormat::kFormat8B),
+      ARMFPRegister(scratch.encoding(), vixl::VectorFormat::kFormat8B));
 }
 
 //}}} check_macroassembler_style

@@ -36,7 +36,8 @@
 #include "jit/Ion.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/CompileOptions.h"
-#include "js/friend/StackLimits.h"  // js::CheckRecursionLimit
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "js/friend/StackLimits.h"    // js::CheckRecursionLimit
 #include "js/PropertySpec.h"
 #include "js/Proxy.h"
 #include "js/SourceText.h"
@@ -1599,14 +1600,6 @@ bool DelazifyCanonicalScriptedFunctionImpl(JSContext* cx, HandleFunction fun,
       return false;
     }
 
-    if (!js::UseOffThreadParseGlobal()) {
-      if (ss->hasEncoder()) {
-        if (!ss->xdrEncodeFunctionStencil(cx, compilationInfo.get().stencil)) {
-          return false;
-        }
-      }
-    }
-
     if (!frontend::InstantiateStencilsForDelazify(cx, compilationInfo.get())) {
       // The frontend shouldn't fail after linking the function and the
       // non-lazy script together.
@@ -1614,15 +1607,22 @@ bool DelazifyCanonicalScriptedFunctionImpl(JSContext* cx, HandleFunction fun,
       MOZ_ASSERT(lazy->isReadyForDelazification());
       return false;
     }
-  }
 
-  if (js::UseOffThreadParseGlobal()) {
-    // XDR the newly delazified function.
     if (ss->hasEncoder()) {
-      RootedScriptSourceObject sourceObject(
-          cx, fun->nonLazyScript()->sourceObject());
-      if (!ss->xdrEncodeFunction(cx, fun, sourceObject)) {
-        return false;
+      // NOTE: Currently we rely on the UseOffThreadParseGlobal to decide which
+      //       format to use for incremental encoding.
+      bool useStencilXDR = !js::UseOffThreadParseGlobal();
+      if (useStencilXDR) {
+        if (!ss->xdrEncodeFunctionStencil(cx, compilationInfo.get().stencil)) {
+          return false;
+        }
+      } else {
+        // XDR the newly delazified function.
+        RootedScriptSourceObject sourceObject(
+            cx, fun->nonLazyScript()->sourceObject());
+        if (!ss->xdrEncodeFunction(cx, fun, sourceObject)) {
+          return false;
+        }
       }
     }
   }

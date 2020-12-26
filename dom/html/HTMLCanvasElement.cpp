@@ -55,8 +55,7 @@ using namespace mozilla::gfx;
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Canvas)
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 class RequestedFrameRefreshObserver : public nsARefreshObserver {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RequestedFrameRefreshObserver, override)
@@ -649,6 +648,14 @@ class CanvasCaptureTrackSource : public MediaStreamTrackSource {
 
   MediaSourceEnum GetMediaSource() const override {
     return MediaSourceEnum::Other;
+  }
+
+  bool HasAlpha() const override {
+    if (!mCaptureStream || !mCaptureStream->Canvas()) {
+      // In cycle-collection
+      return false;
+    }
+    return !mCaptureStream->Canvas()->GetIsOpaque();
   }
 
   void Stop() override {
@@ -1323,5 +1330,4 @@ webgpu::CanvasContext* HTMLCanvasElement::GetWebGPUContext() {
   return static_cast<webgpu::CanvasContext*>(GetCurrentContext());
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

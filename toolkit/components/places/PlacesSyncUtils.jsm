@@ -58,6 +58,25 @@ XPCOMUtils.defineLazyGetter(this, "ROOTS", () =>
   Object.keys(ROOT_RECORD_ID_TO_GUID)
 );
 
+// Gets the history transition values we ignore and do not sync, as a
+// string, which is a comma-separated set of values - ie, something which can
+// be used with sqlite's IN operator. Does *not* includes the parens.
+XPCOMUtils.defineLazyGetter(this, "IGNORED_TRANSITIONS_AS_SQL_LIST", () =>
+  // * We don't sync `TRANSITION_FRAMED_LINK` visits - these are excluded when
+  //   rendering the history menu, so we use the same constraints for Sync.
+  // * We don't sync `TRANSITION_DOWNLOAD` because it makes no sense to see
+  //   these on other devices - the downloaded file can not exist.
+  // * We don't want to sync TRANSITION_EMBED visits, but these aren't
+  //   stored in the DB, so no need to specify them.
+  // * 0 is invalid, and hopefully don't exist, but let's exclude it anyway.
+  // Array.toString() semantics are well defined and exactly what we need, so..
+  [
+    0,
+    PlacesUtils.history.TRANSITION_FRAMED_LINK,
+    PlacesUtils.history.TRANSITION_DOWNLOAD,
+  ].toString()
+);
+
 const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
   SYNC_ID_META_KEY: "sync/history/syncId",
   LAST_SYNC_META_KEY: "sync/history/lastSync",
@@ -231,10 +250,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * @returns {Array} new Array with the guids that aren't syncable
    */
   async determineNonSyncableGuids(guids) {
-    // Filter out hidden pages and `TRANSITION_FRAMED_LINK` visits. These are
-    // excluded when rendering the history menu, so we use the same constraints
-    // for Sync. We also don't want to sync `TRANSITION_EMBED` visits, but those
-    // aren't stored in the database.
+    // Filter out hidden pages and transitions that we don't sync.
     let db = await PlacesUtils.promiseDBConnection();
     let nonSyncableGuids = [];
     for (let chunk of PlacesUtils.chunkArray(guids, db.variableLimit)) {
@@ -243,8 +259,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
         SELECT DISTINCT p.guid FROM moz_places p
         JOIN moz_historyvisits v ON p.id = v.place_id
         WHERE p.guid IN (${new Array(chunk.length).fill("?").join(",")}) AND
-            (p.hidden = 1 OR v.visit_type IN (0,
-              ${PlacesUtils.history.TRANSITION_FRAMED_LINK}))
+            (p.hidden = 1 OR v.visit_type IN (${IGNORED_TRANSITIONS_AS_SQL_LIST}))
       `,
         chunk
       );
@@ -356,6 +371,9 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
    * @param options
    *        Options object with two members, since and limit. Both of them must be provided
    * @returns {Array} - Up to limit number of URLs starting from the date provided by since
+   *
+   * Note that some visit types are explicitly excluded - downloads and framed
+   * links.
    */
   async getAllURLs(options) {
     // Check that the limit property is finite number.
@@ -380,8 +398,7 @@ const HistorySyncUtils = (PlacesSyncUtils.history = Object.freeze({
       JOIN moz_historyvisits v ON p.id = v.place_id
       WHERE p.last_visit_date > :cutoff_date AND
             p.hidden = 0 AND
-            v.visit_type NOT IN (0,
-              ${PlacesUtils.history.TRANSITION_FRAMED_LINK})
+            v.visit_type NOT IN (${IGNORED_TRANSITIONS_AS_SQL_LIST})
       ORDER BY frecency DESC
       LIMIT :max_results`,
       { cutoff_date: sinceInMicroseconds, max_results: options.limit }
@@ -1322,24 +1339,6 @@ PlacesSyncUtils.test.bookmarks = Object.freeze({
     return PlacesUtils.withConnectionWrapper(
       "BookmarkTestUtils: insert",
       async db => {
-        let requestedParentRecordId = insertInfo.parentRecordId;
-        let requestedParentGuid = BookmarkSyncUtils.recordIdToGuid(
-          insertInfo.parentRecordId
-        );
-        let isOrphan = await GUIDMissing(requestedParentGuid);
-
-        // Default to "unfiled" for new bookmarks if the parent doesn't exist.
-        if (!isOrphan) {
-          BookmarkSyncLog.debug(
-            `insertSyncBookmark: Item ${insertInfo.recordId} is not an orphan`
-          );
-        } else {
-          BookmarkSyncLog.debug(
-            `insertSyncBookmark: Item ${insertInfo.recordId} is an orphan: parent ${insertInfo.parentRecordId} doesn't exist; reparenting to unfiled`
-          );
-          insertInfo.parentRecordId = "unfiled";
-        }
-
         // If we're inserting a tag query, make sure the tag exists and fix the
         // folder ID to refer to the local tag folder.
         insertInfo = await updateTagQueryFolder(db, insertInfo);
@@ -1351,14 +1350,6 @@ PlacesSyncUtils.test.bookmarks = Object.freeze({
           bookmarkItem,
           insertInfo
         );
-
-        // If the item is an orphan, annotate it with its real parent record ID.
-        if (isOrphan) {
-          await annotateOrphan(newItem, requestedParentRecordId);
-        }
-
-        // Reparent all orphans that expect this folder as the parent.
-        await reparentOrphans(db, newItem);
 
         return newItem;
       }
@@ -1457,56 +1448,6 @@ function updateTagQueryFolder(db, info) {
   info.url = new URL(info.url.protocol + params);
   return info;
 }
-
-async function annotateOrphan(item, requestedParentRecordId) {
-  let guid = BookmarkSyncUtils.recordIdToGuid(item.recordId);
-  let itemId = await PlacesUtils.promiseItemId(guid);
-  PlacesUtils.annotations.setItemAnnotation(
-    itemId,
-    BookmarkSyncUtils.SYNC_PARENT_ANNO,
-    requestedParentRecordId,
-    0,
-    PlacesUtils.annotations.EXPIRE_NEVER,
-    SOURCE_SYNC
-  );
-}
-
-var reparentOrphans = async function(db, item) {
-  if (!item.kind || item.kind != BookmarkSyncUtils.KINDS.FOLDER) {
-    return;
-  }
-  let orphanGuids = await fetchGuidsWithAnno(
-    db,
-    BookmarkSyncUtils.SYNC_PARENT_ANNO,
-    item.recordId
-  );
-  let folderGuid = BookmarkSyncUtils.recordIdToGuid(item.recordId);
-  BookmarkSyncLog.debug(
-    `reparentOrphans: Reparenting ${JSON.stringify(orphanGuids)} to ${
-      item.recordId
-    }`
-  );
-  for (let i = 0; i < orphanGuids.length; ++i) {
-    try {
-      // Reparenting can fail if we have a corrupted or incomplete tree
-      // where an item's parent is one of its descendants.
-      BookmarkSyncLog.trace(
-        `reparentOrphans: Attempting to move item ${orphanGuids[i]} to new parent ${item.recordId}`
-      );
-      await PlacesUtils.bookmarks.update({
-        guid: orphanGuids[i],
-        parentGuid: folderGuid,
-        index: PlacesUtils.bookmarks.DEFAULT_INDEX,
-        source: SOURCE_SYNC,
-      });
-    } catch (ex) {
-      BookmarkSyncLog.error(
-        `reparentOrphans: Failed to reparent item ${orphanGuids[i]} to ${item.recordId}`,
-        ex
-      );
-    }
-  }
-};
 
 // Keywords are a 1 to 1 mapping between strings and pairs of (URL, postData).
 // (the postData is not synced, so we ignore it). Sync associates keywords with

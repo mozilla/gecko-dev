@@ -11,6 +11,7 @@
 #include "VideoConduit.h"
 #include "VideoStreamFactory.h"
 #include "common/YuvStamper.h"
+#include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "mozilla/TemplateLib.h"
 #include "mozilla/media/MediaUtils.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -813,7 +814,7 @@ ConfigureVideoEncoderSettings(const VideoCodecConfig* aConfig,
     }
     // VP9 denoising is disabled by default.
     vp9_settings.denoisingOn = codec_default_denoising ? false : denoising;
-    vp9_settings.frameDroppingOn = frame_dropping;
+    vp9_settings.frameDroppingOn = true;  // This must be true for VP9
     return new rtc::RefCountedObject<
         webrtc::VideoEncoderConfig::Vp9EncoderSpecificSettings>(vp9_settings);
   }

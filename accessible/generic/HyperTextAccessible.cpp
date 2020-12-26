@@ -192,7 +192,12 @@ uint64_t HyperTextAccessible::NativeState() const {
     states |= states::READONLY;
   }
 
-  if (HasChildren()) states |= states::SELECTABLE_TEXT;
+  nsIFrame* frame = GetFrame();
+  if ((states & states::EDITABLE) || (frame && frame->IsSelectable(nullptr))) {
+    // If the accessible is editable the layout selectable state only disables
+    // mouse selection, but keyboard (shift+arrow) selection is still possible.
+    states |= states::SELECTABLE_TEXT;
+  }
 
   return states;
 }
@@ -733,11 +738,30 @@ uint32_t HyperTextAccessible::FindLineBoundary(
       return FindOffset(tmpOffset, eDirNext, eSelectEndLine);
     }
 
-    case eThisLineBegin:
+    case eThisLineBegin: {
       if (IsEmptyLastLineOffset(aOffset)) return aOffset;
 
       // Move to begin of the current line (as home key was pressed).
-      return FindOffset(aOffset, eDirPrevious, eSelectBeginLine);
+      uint32_t thisLineBeginOffset =
+          FindOffset(aOffset, eDirPrevious, eSelectBeginLine);
+      if (IsCharAt(thisLineBeginOffset, kEmbeddedObjectChar)) {
+        // We landed on an embedded character, don't mess with possible embedded
+        // line breaks, and assume the offset is correct.
+        return thisLineBeginOffset;
+      }
+
+      // Sometimes, there is the possibility layout returned an
+      // offset smaller than it should. Sanity-check by moving to the end of the
+      // previous line and see if that has a greater offset.
+      uint32_t tmpOffset = FindOffset(aOffset, eDirPrevious, eSelectLine);
+      tmpOffset = FindOffset(tmpOffset, eDirNext, eSelectEndLine);
+      if (tmpOffset > thisLineBeginOffset && tmpOffset < aOffset) {
+        // We found a previous line offset. Return the next character after it
+        // as our start offset if it points to a line end char.
+        return IsLineEndCharAt(tmpOffset) ? tmpOffset + 1 : tmpOffset;
+      }
+      return thisLineBeginOffset;
+    }
 
     case eThisLineEnd:
       if (IsEmptyLastLineOffset(aOffset)) return aOffset;
@@ -751,9 +775,67 @@ uint32_t HyperTextAccessible::FindLineBoundary(
       // Move to begin of the next line if any (arrow down and home keys),
       // otherwise end of the current line (arrow down only).
       uint32_t tmpOffset = FindOffset(aOffset, eDirNext, eSelectLine);
-      if (tmpOffset == CharacterCount()) return tmpOffset;
+      uint32_t characterCount = CharacterCount();
+      if (tmpOffset == characterCount) {
+        return tmpOffset;
+      }
 
-      return FindOffset(tmpOffset, eDirPrevious, eSelectBeginLine);
+      // Now, simulate the Home key on the next line to get its real offset.
+      uint32_t nextLineBeginOffset =
+          FindOffset(tmpOffset, eDirPrevious, eSelectBeginLine);
+      // Sometimes, there are line breaks inside embedded characters. If this
+      // is the case, the cursor is after the line break, but the offset will
+      // be that of the embedded character, which points to before the line
+      // break. We definitely want the line break included.
+      if (IsCharAt(nextLineBeginOffset, kEmbeddedObjectChar)) {
+        // We can determine if there is a line break by pressing End from
+        // the queried offset. If there is a line break, the offset will be 1
+        // greater, since this line ends with the embed. If there is not, the
+        // value will be different even if a line break follows right after the
+        // embed.
+        uint32_t thisLineEndOffset =
+            FindOffset(aOffset, eDirNext, eSelectEndLine);
+        if (thisLineEndOffset == nextLineBeginOffset + 1) {
+          // If we're querying the offset of the embedded character, we want
+          // the end offset of the parent line instead. Press End
+          // once more from the current position, which is after the embed.
+          if (nextLineBeginOffset == aOffset) {
+            uint32_t thisLineEndOffset2 =
+                FindOffset(thisLineEndOffset, eDirNext, eSelectEndLine);
+            // The above returns an offset exclusive the final line break, so we
+            // need to add 1 to it to return an inclusive end offset. Make sure
+            // we don't overshoot if we've started from another embedded
+            // character that has a line break, or landed on another embedded
+            // character, or if the result is the very end.
+            return (thisLineEndOffset2 == characterCount ||
+                    (IsCharAt(thisLineEndOffset, kEmbeddedObjectChar) &&
+                     thisLineEndOffset2 == thisLineEndOffset + 1) ||
+                    IsCharAt(thisLineEndOffset2, kEmbeddedObjectChar))
+                       ? thisLineEndOffset2
+                       : thisLineEndOffset2 + 1;
+          }
+
+          return thisLineEndOffset;
+        }
+        return nextLineBeginOffset;
+      }
+
+      // If the resulting offset is not greater than the offset we started from,
+      // layout could not find the offset for us. This can happen with certain
+      // inline-block elements.
+      if (nextLineBeginOffset <= aOffset) {
+        // Walk forward from the offset we started from up to tmpOffset,
+        // stopping after a line end character.
+        nextLineBeginOffset = aOffset;
+        while (nextLineBeginOffset < tmpOffset) {
+          if (IsLineEndCharAt(nextLineBeginOffset)) {
+            return nextLineBeginOffset + 1;
+          }
+          nextLineBeginOffset++;
+        }
+      }
+
+      return nextLineBeginOffset;
     }
 
     case eNextLineEnd: {

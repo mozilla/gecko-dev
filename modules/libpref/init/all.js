@@ -183,7 +183,11 @@ pref("security.pki.distrust_ca_policy", 2);
 // 0: Disable CRLite entirely
 // 1: Enable and check revocations via CRLite, but only collect telemetry
 // 2: Enable and enforce revocations via CRLite
+#if defined(NIGHTLY_BUILD)
+pref("security.pki.crlite_mode", 2);
+#else
 pref("security.pki.crlite_mode", 1);
+#endif
 
 // Represents the expected certificate transparency log merge delay (including
 // the time to generate a CRLite filter). Currently 28 hours in seconds.
@@ -219,7 +223,7 @@ pref("security.intermediate_preloading_healer.timer_interval_ms", 300000);
 pref("security.remote_settings.intermediates.bucket", "security-state");
 pref("security.remote_settings.intermediates.collection", "intermediates");
 pref("security.remote_settings.intermediates.checked", 0);
-pref("security.remote_settings.intermediates.downloads_per_poll", 100);
+pref("security.remote_settings.intermediates.downloads_per_poll", 5000);
 pref("security.remote_settings.intermediates.parallel_downloads", 8);
 pref("security.remote_settings.intermediates.signer", "onecrl.content-signature.mozilla.org");
 
@@ -413,10 +417,10 @@ pref("media.decoder-doctor.verbose", false);
 pref("media.decoder-doctor.new-issue-endpoint", "https://webcompat.com/issues/new");
 
 pref("media.videocontrols.picture-in-picture.enabled", false);
+pref("media.videocontrols.picture-in-picture.allow-multiple", false);
 pref("media.videocontrols.picture-in-picture.video-toggle.enabled", false);
 pref("media.videocontrols.picture-in-picture.video-toggle.always-show", false);
 pref("media.videocontrols.picture-in-picture.video-toggle.min-video-secs", 45);
-pref("media.videocontrols.picture-in-picture.video-toggle.mode", 2);
 pref("media.videocontrols.picture-in-picture.video-toggle.position", "right");
 pref("media.videocontrols.picture-in-picture.video-toggle.has-used", false);
 
@@ -463,7 +467,7 @@ pref("media.videocontrols.picture-in-picture.video-toggle.has-used", false);
     pref("media.getusermedia.microphone.off_while_disabled.enabled", false);
   #else
     pref("media.getusermedia.camera.off_while_disabled.enabled", true);
-    pref("media.getusermedia.microphone.off_while_disabled.enabled", true);
+    pref("media.getusermedia.microphone.off_while_disabled.enabled", false);
   #endif
   pref("media.getusermedia.camera.off_while_disabled.delay_ms", 3000);
   pref("media.getusermedia.microphone.off_while_disabled.delay_ms", 3000);
@@ -583,6 +587,8 @@ pref("apz.overscroll.stretch_factor", "0.35");
 
 pref("apz.zoom-to-focused-input.enabled", true);
 
+pref("formhelper.autozoom.force-disable.test-only", false);
+
 #ifdef XP_MACOSX
   // Whether to run in native HiDPI mode on machines with "Retina"/HiDPI
   // display.
@@ -661,11 +667,7 @@ pref("gfx.webrender.debug.gpu-time-queries", false);
 pref("gfx.webrender.debug.gpu-sample-queries", false);
 pref("gfx.webrender.debug.disable-batching", false);
 pref("gfx.webrender.debug.epochs", false);
-pref("gfx.webrender.debug.compact-profiler", false);
-pref("gfx.webrender.debug.smart-profiler", false);
 pref("gfx.webrender.debug.echo-driver-messages", false);
-pref("gfx.webrender.debug.new-frame-indicator", false);
-pref("gfx.webrender.debug.new-scene-indicator", false);
 pref("gfx.webrender.debug.show-overdraw", false);
 pref("gfx.webrender.debug.slow-frame-indicator", false);
 pref("gfx.webrender.debug.picture-caching", false);
@@ -675,6 +677,7 @@ pref("gfx.webrender.debug.small-screen", false);
 pref("gfx.webrender.debug.obscure-images", false);
 pref("gfx.webrender.debug.glyph-flashing", false);
 pref("gfx.webrender.debug.capture-profiler", false);
+pref("gfx.webrender.debug.profiler-ui", "Default");
 
 
 pref("accessibility.warn_on_browsewithcaret", true);
@@ -849,6 +852,9 @@ pref("devtools.recordreplay.submitTestRecordings", false);
 // use. This is useful so that a developer can change it while working on
 // profiler.firefox.com, or in tests. This isn't exposed directly to the user.
 pref("devtools.performance.recording.ui-base-url", "https://profiler.firefox.com");
+// When gathering profiles from child processes, this is the longest time (in
+// seconds) allowed between two responses. 0 = Use internal default.
+pref("devtools.performance.recording.child.timeout_s", 0);
 // The popup is only enabled by default on Nightly, Dev Edition, and debug buildsd since
 // it's a developer focused item. It can still be enabled by going to profiler.firefox.com,
 // but by default it is off on Release and Beta. Note that this only adds it to the
@@ -950,6 +956,14 @@ pref("print.print_headerright", "&U");
 pref("print.print_footerleft", "&PT");
 pref("print.print_footercenter", "");
 pref("print.print_footerright", "&D");
+
+// A list of comma separated key:value pairs, so:
+//
+//   key1:value1,key2:value2
+//
+// Which allows testing extra CUPS-related printer settings for monochrome
+// printing.
+pref("print.cups.monochrome.extra_settings", "");
 
 // xxxbsmedberg: more toolkit prefs
 
@@ -1111,39 +1125,12 @@ pref("javascript.options.wasm_trustedprincipals", true);
 pref("javascript.options.wasm_verbose",           false);
 pref("javascript.options.wasm_baselinejit",       true);
 
-// On Nightly on aarch64, Cranelift is the optimizing tier used by default for
-// wasm compilation, and Ion is not available.
-//
-// On non-Nightly aarch64, Cranelift is disabled (and only baseline is
-// available).
-//
-// On every other tier-1 platform, Ion is the default, and Cranelift is
-// disabled.
-#ifdef MOZ_AARCH64
-  #ifdef ENABLE_WASM_CRANELIFT
-    pref("javascript.options.wasm_cranelift",     true);
-  #endif
-  pref("javascript.options.wasm_ionjit",          false);
-#else
-  #ifdef ENABLE_WASM_CRANELIFT
-    pref("javascript.options.wasm_cranelift",     false);
-  #endif
-  pref("javascript.options.wasm_ionjit",          true);
-#endif
-
 #ifdef ENABLE_WASM_REFTYPES
   pref("javascript.options.wasm_reftypes",        true);
   pref("javascript.options.wasm_gc",              false);
 #endif
 #ifdef ENABLE_WASM_MULTI_VALUE
   pref("javascript.options.wasm_multi_value",     true);
-#endif
-#ifdef ENABLE_WASM_SIMD
-  #ifdef NIGHTLY_BUILD
-    pref("javascript.options.wasm_simd",            true);
-  #else
-    pref("javascript.options.wasm_simd",            false);
-  #endif
 #endif
 pref("javascript.options.native_regexp",    true);
 pref("javascript.options.parallel_parsing", true);
@@ -1962,8 +1949,6 @@ pref("network.proxy.socks_port",            0);
 pref("network.proxy.socks_version",         5);
 pref("network.proxy.proxy_over_tls",        true);
 pref("network.proxy.no_proxies_on",         "");
-// Set true to allow resolving proxy for localhost
-pref("network.proxy.allow_hijacking_localhost", false);
 pref("network.proxy.failover_timeout",      1800); // 30 minutes
 pref("network.online",                      true); //online/offline
 
@@ -2600,7 +2585,7 @@ pref("browser.tabs.remote.autostart", false);
 // any session can contain a mix of Fission and non-Fission windows. Instead,
 // callers should check whether the relevant nsILoadContext has the
 // `useRemoteSubframes` flag set.
-#if defined(RELEASE_OR_BETA) || defined(MOZ_WIDGET_ANDROID)
+#if defined(RELEASE_OR_BETA)
   pref("fission.autostart", false, locked);
 #else
   pref("fission.autostart", false);
@@ -3000,77 +2985,75 @@ pref("font.size.monospace.x-math", 13);
   //   - Microsoft Old Hangul
   pref("intl.ime.hack.set_input_scope_of_url_bar_to_default", true);
 
-  #ifdef NS_ENABLE_TSF
-    // Enable/Disable TSF support.
-    pref("intl.tsf.enable", true);
+  // Enable/Disable TSF support.
+  pref("intl.tsf.enable", true);
 
-    // Support IMEs implemented with IMM in TSF mode.
-    pref("intl.tsf.support_imm", true);
+  // Support IMEs implemented with IMM in TSF mode.
+  pref("intl.tsf.support_imm", true);
 
-    // This is referred only when both "intl.tsf.enable" and
-    // "intl.tsf.support_imm" are true.  When this is true, default IMC is
-    // associated with focused window only when active keyboard layout is a
-    // legacy IMM-IME.
-    pref("intl.tsf.associate_imc_only_when_imm_ime_is_active", false);
+  // This is referred only when both "intl.tsf.enable" and
+  // "intl.tsf.support_imm" are true.  When this is true, default IMC is
+  // associated with focused window only when active keyboard layout is a
+  // legacy IMM-IME.
+  pref("intl.tsf.associate_imc_only_when_imm_ime_is_active", false);
 
-    // Enables/Disables hack for specific TIP.
+  // Enables/Disables hack for specific TIP.
 
-    // On Windows 10 Build 17643 (an Insider Preview build of RS5), Microsoft
-    // have fixed the caller of ITextACPStore::GetTextExt() to return
-    // TS_E_NOLAYOUT to TIP as-is, rather than converting to E_FAIL.
-    // Therefore, if TIP supports asynchronous layout computation perfectly, we
-    // can return TS_E_NOLAYOUT and TIP waits next OnLayoutChange()
-    // notification.  However, some TIPs still have some bugs of asynchronous
-    // layout support.  We keep hacking the result of GetTextExt() like running
-    // on Windows 10, however, there could be unknown TIP bugs if we stop
-    // hacking the result.  So, user can stop checking build ID to make Gecko
-    // hack the result forcibly.
-    #ifdef EARLY_BETA_OR_EARLIER
-      pref("intl.tsf.hack.allow_to_stop_hacking_on_build_17643_or_later", true);
-    #else
-      pref("intl.tsf.hack.allow_to_stop_hacking_on_build_17643_or_later", false);
-    #endif
+  // On Windows 10 Build 17643 (an Insider Preview build of RS5), Microsoft
+  // have fixed the caller of ITextACPStore::GetTextExt() to return
+  // TS_E_NOLAYOUT to TIP as-is, rather than converting to E_FAIL.
+  // Therefore, if TIP supports asynchronous layout computation perfectly, we
+  // can return TS_E_NOLAYOUT and TIP waits next OnLayoutChange()
+  // notification.  However, some TIPs still have some bugs of asynchronous
+  // layout support.  We keep hacking the result of GetTextExt() like running
+  // on Windows 10, however, there could be unknown TIP bugs if we stop
+  // hacking the result.  So, user can stop checking build ID to make Gecko
+  // hack the result forcibly.
+  #ifdef EARLY_BETA_OR_EARLIER
+    pref("intl.tsf.hack.allow_to_stop_hacking_on_build_17643_or_later", true);
+  #else
+    pref("intl.tsf.hack.allow_to_stop_hacking_on_build_17643_or_later", false);
+  #endif
 
-    // Whether creates native caret for ATOK or not.
-    pref("intl.tsf.hack.atok.create_native_caret", true);
-    // Whether use available composition string rect for result of
-    // ITextStoreACP::GetTextExt() even if the specified range is same as the
-    // range of composition string but some character rects of them are not
-    // available.  Note that this is ignored if active ATOK is or older than
-    // 2016 and create_native_caret is true.
-    pref("intl.tsf.hack.atok.do_not_return_no_layout_error_of_composition_string", true);
-    // Whether use available composition string rect for result of
-    // ITextStoreACP::GetTextExt() even if the specified range is same as or is
-    // in the range of composition string but some character rects of them are
-    // not available.
-    pref("intl.tsf.hack.japanist10.do_not_return_no_layout_error_of_composition_string", true);
-    // Whether use composition start position for the result of
-    // ITfContextView::GetTextExt() if the specified range is larger than
-    // composition start offset.
-    // For Free ChangJie 2010
-    pref("intl.tsf.hack.free_chang_jie.do_not_return_no_layout_error", true);
-    // For Microsoft Pinyin and Microsoft Wubi
-    pref("intl.tsf.hack.ms_simplified_chinese.do_not_return_no_layout_error", true);
-    // For Microsoft ChangJie and Microsoft Quick
-    pref("intl.tsf.hack.ms_traditional_chinese.do_not_return_no_layout_error", true);
-    // Whether use previous character rect for the result of
-    // ITfContextView::GetTextExt() if the specified range is the first
-    // character of selected clause of composition string.
-    pref("intl.tsf.hack.ms_japanese_ime.do_not_return_no_layout_error_at_first_char", true);
-    // Whether use previous character rect for the result of
-    // ITfContextView::GetTextExt() if the specified range is the caret of
-    // composition string.
-    pref("intl.tsf.hack.ms_japanese_ime.do_not_return_no_layout_error_at_caret", true);
-    // Whether hack ITextStoreACP::QueryInsert() or not.  The method should
-    // return new selection after specified length text is inserted at
-    // specified range. However, Microsoft's some Chinese TIPs expect that the
-    // result is same as specified range.  If following prefs are true,
-    // ITextStoreACP::QueryInsert() returns specified range only when one of
-    // the TIPs is active. For Microsoft Pinyin and Microsoft Wubi.
-    pref("intl.tsf.hack.ms_simplified_chinese.query_insert_result", true);
-    // For Microsoft ChangJie and Microsoft Quick
-    pref("intl.tsf.hack.ms_traditional_chinese.query_insert_result", true);
-  #endif // NS_ENABLE_TSF
+  // Whether creates native caret for ATOK or not.
+  pref("intl.tsf.hack.atok.create_native_caret", true);
+  // Whether use available composition string rect for result of
+  // ITextStoreACP::GetTextExt() even if the specified range is same as the
+  // range of composition string but some character rects of them are not
+  // available.  Note that this is ignored if active ATOK is or older than
+  // 2016 and create_native_caret is true.
+  pref("intl.tsf.hack.atok.do_not_return_no_layout_error_of_composition_string", true);
+  // Whether use available composition string rect for result of
+  // ITextStoreACP::GetTextExt() even if the specified range is same as or is
+  // in the range of composition string but some character rects of them are
+  // not available.
+  pref("intl.tsf.hack.japanist10.do_not_return_no_layout_error_of_composition_string", true);
+  // Whether use composition start position for the result of
+  // ITfContextView::GetTextExt() if the specified range is larger than
+  // composition start offset.
+  // For Free ChangJie 2010
+  pref("intl.tsf.hack.free_chang_jie.do_not_return_no_layout_error", true);
+  // For Microsoft Pinyin and Microsoft Wubi
+  pref("intl.tsf.hack.ms_simplified_chinese.do_not_return_no_layout_error", true);
+  // For Microsoft ChangJie and Microsoft Quick
+  pref("intl.tsf.hack.ms_traditional_chinese.do_not_return_no_layout_error", true);
+  // Whether use previous character rect for the result of
+  // ITfContextView::GetTextExt() if the specified range is the first
+  // character of selected clause of composition string.
+  pref("intl.tsf.hack.ms_japanese_ime.do_not_return_no_layout_error_at_first_char", true);
+  // Whether use previous character rect for the result of
+  // ITfContextView::GetTextExt() if the specified range is the caret of
+  // composition string.
+  pref("intl.tsf.hack.ms_japanese_ime.do_not_return_no_layout_error_at_caret", true);
+  // Whether hack ITextStoreACP::QueryInsert() or not.  The method should
+  // return new selection after specified length text is inserted at
+  // specified range. However, Microsoft's some Chinese TIPs expect that the
+  // result is same as specified range.  If following prefs are true,
+  // ITextStoreACP::QueryInsert() returns specified range only when one of
+  // the TIPs is active. For Microsoft Pinyin and Microsoft Wubi.
+  pref("intl.tsf.hack.ms_simplified_chinese.query_insert_result", true);
+  // For Microsoft ChangJie and Microsoft Quick
+  pref("intl.tsf.hack.ms_traditional_chinese.query_insert_result", true);
 
   // If composition_font is set, Gecko sets the font to IME.  IME may use
   // the fonts on their window like candidate window.  If they are empty,
@@ -3635,12 +3618,12 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.monospace.he", "Droid Sans Mono");
 
   pref("font.name-list.serif.ja", "Charis SIL Compact, Noto Serif CJK JP, Noto Serif, Droid Serif");
-  pref("font.name-list.sans-serif.ja", "Roboto, Google Sans, Droid Sans, MotoyaLMaru, MotoyaLCedar, Noto Sans JP, Noto Sans CJK JP, Droid Sans Japanese");
-  pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar, Noto Sans Mono CJK JP, Droid Sans Mono");
+  pref("font.name-list.sans-serif.ja", "Roboto, Google Sans, Droid Sans, MotoyaLMaru, MotoyaLCedar, Noto Sans JP, Noto Sans CJK JP, SEC CJK JP, Droid Sans Japanese");
+  pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar, Noto Sans Mono CJK JP, SEC Mono CJK JP, Droid Sans Mono");
 
   pref("font.name-list.serif.ko", "Charis SIL Compact, Noto Serif CJK KR, Noto Serif, Droid Serif, HYSerif");
-  pref("font.name-list.sans-serif.ko", "Roboto, Google Sans, SmartGothic, NanumGothic, Noto Sans KR, Noto Sans CJK KR, DroidSansFallback, Droid Sans Fallback");
-  pref("font.name-list.monospace.ko", "Droid Sans Mono, Noto Sans Mono CJK KR");
+  pref("font.name-list.sans-serif.ko", "Roboto, Google Sans, SmartGothic, NanumGothic, Noto Sans KR, Noto Sans CJK KR, SEC CJK KR, DroidSansFallback, Droid Sans Fallback");
+  pref("font.name-list.monospace.ko", "Droid Sans Mono, Noto Sans Mono CJK KR, SEC Mono CJK KR");
 
   pref("font.name-list.serif.th", "Charis SIL Compact, Noto Serif, Noto Serif Thai, Droid Serif");
   pref("font.name-list.sans-serif.th", "Roboto, Google Sans, Noto Sans Thai, Droid Sans Thai, Droid Sans");
@@ -3703,16 +3686,16 @@ pref("font.size.monospace.x-math", 13);
   pref("font.name-list.monospace.x-western", "Droid Sans Mono");
 
   pref("font.name-list.serif.zh-CN", "Charis SIL Compact, Noto Serif CJK SC, Noto Serif, Droid Serif, Droid Sans Fallback");
-  pref("font.name-list.sans-serif.zh-CN", "Roboto, Google Sans, Droid Sans, Noto Sans SC, Noto Sans CJK SC, Droid Sans Fallback");
-  pref("font.name-list.monospace.zh-CN", "Droid Sans Mono, Noto Sans Mono CJK SC, Droid Sans Fallback");
+  pref("font.name-list.sans-serif.zh-CN", "Roboto, Google Sans, Droid Sans, Noto Sans SC, Noto Sans CJK SC, SEC CJK SC, Droid Sans Fallback");
+  pref("font.name-list.monospace.zh-CN", "Droid Sans Mono, Noto Sans Mono CJK SC, SEC Mono CJK SC, Droid Sans Fallback");
 
   pref("font.name-list.serif.zh-HK", "Charis SIL Compact, Noto Serif CJK TC, Noto Serif, Droid Serif, Droid Sans Fallback");
-  pref("font.name-list.sans-serif.zh-HK", "Roboto, Google Sans, Droid Sans, Noto Sans TC, Noto Sans SC, Noto Sans CJK TC, Droid Sans Fallback");
-  pref("font.name-list.monospace.zh-HK", "Droid Sans Mono, Noto Sans Mono CJK TC, Droid Sans Fallback");
+  pref("font.name-list.sans-serif.zh-HK", "Roboto, Google Sans, Droid Sans, Noto Sans TC, Noto Sans SC, Noto Sans CJK TC, SEC CJK TC, Droid Sans Fallback");
+  pref("font.name-list.monospace.zh-HK", "Droid Sans Mono, Noto Sans Mono CJK TC, SEC Mono CJK TC, Droid Sans Fallback");
 
   pref("font.name-list.serif.zh-TW", "Charis SIL Compact, Noto Serif CJK TC, Noto Serif, Droid Serif, Droid Sans Fallback");
-  pref("font.name-list.sans-serif.zh-TW", "Roboto, Google Sans, Droid Sans, Noto Sans TC, Noto Sans SC, Noto Sans CJK TC, Droid Sans Fallback");
-  pref("font.name-list.monospace.zh-TW", "Droid Sans Mono, Noto Sans Mono CJK TC, Droid Sans Fallback");
+  pref("font.name-list.sans-serif.zh-TW", "Roboto, Google Sans, Droid Sans, Noto Sans TC, Noto Sans SC, Noto Sans CJK TC, SEC CJK TC, Droid Sans Fallback");
+  pref("font.name-list.monospace.zh-TW", "Droid Sans Mono, Noto Sans Mono CJK TC, SEC Mono CJK TC, Droid Sans Fallback");
 
   pref("font.name-list.serif.x-math", "Latin Modern Math, STIX Two Math, XITS Math, Cambria Math, Libertinus Math, DejaVu Math TeX Gyre, TeX Gyre Bonum Math, TeX Gyre Pagella Math, TeX Gyre Schola, TeX Gyre Termes Math, STIX Math, Asana Math, STIXGeneral, DejaVu Serif, DejaVu Sans, Charis SIL Compact");
   pref("font.name-list.sans-serif.x-math", "Roboto, Google Sans");
@@ -4753,3 +4736,8 @@ pref("dom.postMessage.sharedArrayBuffer.bypassCOOP_COEP.insecure.enabled", false
 
 // Whether to start the private browsing mode at application startup
 pref("browser.privatebrowsing.autostart", false);
+
+// Whether sites require the open-protocol-handler permission to open a
+//preferred external application for a protocol. If a site doesn't have
+// permission we will show a prompt.
+pref("security.external_protocol_requires_permission", true);

@@ -50,8 +50,7 @@ bool nsBlockReflowContext::ComputeCollapsedBStartMargin(
   WritingMode parentWM = mMetrics.GetWritingMode();
 
   // Include block-start element of frame's margin
-  aMargin->Include(
-      aRI.ComputedLogicalMargin().ConvertTo(parentWM, wm).BStart(parentWM));
+  aMargin->Include(aRI.ComputedLogicalMargin(parentWM).BStart(parentWM));
 
   // The inclusion of the block-end margin when empty is done by the caller
   // since it doesn't need to be done by the top-level (non-recursive)
@@ -59,7 +58,7 @@ bool nsBlockReflowContext::ComputeCollapsedBStartMargin(
 
 #ifdef NOISY_BLOCK_DIR_MARGINS
   aRI.mFrame->ListTag(stdout);
-  printf(": %d => %d\n", aRI.ComputedLogicalMargin().BStart(wm),
+  printf(": %d => %d\n", aRI.ComputedLogicalMargin(wm).BStart(wm),
          aMargin->get());
 #endif
 
@@ -74,7 +73,7 @@ bool nsBlockReflowContext::ComputeCollapsedBStartMargin(
   nsIFrame* frame = DescendIntoBlockLevelFrame(aRI.mFrame);
   nsPresContext* prescontext = frame->PresContext();
   nsBlockFrame* block = nullptr;
-  if (0 == aRI.ComputedLogicalBorderPadding().BStart(wm)) {
+  if (0 == aRI.ComputedLogicalBorderPadding(wm).BStart(wm)) {
     block = do_QueryFrame(frame);
     if (block) {
       bool bStartMarginRoot, unused;
@@ -170,10 +169,8 @@ bool nsBlockReflowContext::ComputeCollapsedBStartMargin(
               dirtiedLine = true;
             }
             if (isEmpty) {
-              WritingMode innerWM = innerReflowInput.GetWritingMode();
               LogicalMargin innerMargin =
-                  innerReflowInput.ComputedLogicalMargin().ConvertTo(parentWM,
-                                                                     innerWM);
+                  innerReflowInput.ComputedLogicalMargin(parentWM);
               aMargin->Include(innerMargin.BEnd(parentWM));
             }
           }
@@ -265,10 +262,7 @@ void nsBlockReflowContext::ReflowBlock(
     // Compute inline/block coordinate where reflow will begin. Use the
     // rules from 10.3.3 to determine what to apply. At this point in the
     // reflow auto inline-start/end margins will have a zero value.
-
-    WritingMode frameWM = aFrameRI.GetWritingMode();
-    LogicalMargin usedMargin =
-        aFrameRI.ComputedLogicalMargin().ConvertTo(mWritingMode, frameWM);
+    LogicalMargin usedMargin = aFrameRI.ComputedLogicalMargin(mWritingMode);
     mICoord = mSpace.IStart(mWritingMode) + usedMargin.IStart(mWritingMode);
     mBCoord = mSpace.BStart(mWritingMode) + mBStartMargin.get() + aClearance;
 
@@ -348,16 +342,14 @@ bool nsBlockReflowContext::PlaceBlock(const ReflowInput& aReflowInput,
                                       nsOverflowAreas& aOverflowAreas,
                                       const nsReflowStatus& aReflowStatus) {
   // Compute collapsed block-end margin value.
-  WritingMode wm = aReflowInput.GetWritingMode();
   WritingMode parentWM = mMetrics.GetWritingMode();
 
   // Don't apply the block-end margin if the block has a *later* sibling across
   // column-span split.
   if (aReflowStatus.IsComplete() && !mFrame->HasColumnSpanSiblings()) {
     aBEndMarginResult = mMetrics.mCarriedOutBEndMargin;
-    aBEndMarginResult.Include(aReflowInput.ComputedLogicalMargin()
-                                  .ConvertTo(parentWM, wm)
-                                  .BEnd(parentWM));
+    aBEndMarginResult.Include(
+        aReflowInput.ComputedLogicalMargin(parentWM).BEnd(parentWM));
   } else {
     // The used block-end-margin is set to zero before a break.
     aBEndMarginResult.Zero();

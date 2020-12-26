@@ -122,8 +122,9 @@ nsresult ExtractByteStreamFromBody(const fetch::ResponseBodyInit& aBodyInit,
 template <class Derived>
 class FetchBody : public BodyStreamHolder, public AbortFollower {
  public:
-  using BodyStreamHolder::AddRef;
-  using BodyStreamHolder::Release;
+  using BodyStreamHolder::QueryInterface;
+
+  NS_INLINE_DECL_REFCOUNTING_INHERITED(FetchBody, BodyStreamHolder)
 
   bool GetBodyUsed(ErrorResult& aRv) const;
 
@@ -210,7 +211,7 @@ class FetchBody : public BodyStreamHolder, public AbortFollower {
   virtual AbortSignalImpl* GetSignalImpl() const = 0;
 
   // AbortFollower
-  void Abort() override;
+  void RunAbortAlgorithm() override;
 
   already_AddRefed<Promise> ConsumeBody(JSContext* aCx,
                                         BodyConsumer::ConsumeType aType,

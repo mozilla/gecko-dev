@@ -98,6 +98,13 @@ class OverscrollHandoffChain {
       const InputData& aInput,
       ScrollDirections* aOutAllowedScrollDirections) const;
 
+  // Return true if all non-root APZCs in this handoff chain starting from
+  // |aApzc| are not able to scroll downwards (i.e. there is no room to scroll
+  // downwards in each APZC respectively) and there is any contents covered by
+  // the dynamic toolbar.
+  bool ScrollingDownWillMoveDynamicToolbar(
+      const AsyncPanZoomController* aApzc) const;
+
  private:
   std::vector<RefPtr<AsyncPanZoomController>> mChain;
 
@@ -148,6 +155,16 @@ struct FlingHandoffState {
   // Unlike in OverscrollHandoffState, this is stored by RefPtr because
   // otherwise it may not stay alive for the entire handoff.
   RefPtr<const OverscrollHandoffChain> mChain;
+
+  // The time duration between the touch start and the touch move that started
+  // the pan gesture which triggered this fling. In other words, the time it
+  // took for the finger to move enough to cross the touch slop threshold.
+  // Nothing if this fling was not immediately caused by a touch pan.
+  Maybe<TimeDuration> mTouchStartRestingTime;
+
+  // The slowest panning velocity encountered during the pan that triggered this
+  // fling.
+  ParentLayerCoord mMinPanVelocity;
 
   // Whether handoff has happened by this point, or we're still process
   // the original fling.

@@ -85,6 +85,8 @@ geckoview:
       The time taken to load a page. This includes all static contents, no
       dynamic content.
       Loading of about: pages is not counted.
+      Back back navigation (sometimes via BFCache) is included which is a
+      source of bimodality due to the <50ms load times.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1499418
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109
@@ -239,7 +241,7 @@ gfx.checkerboard:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109#c1
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - kgupta@mozilla.com
+      - botond@mozilla.com
     expires: never
 
   peak_pixel_count:
@@ -261,7 +263,7 @@ gfx.checkerboard:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109#c1
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - kgupta@mozilla.com
+      - botond@mozilla.com
     expires: never
 
   potential_duration:
@@ -286,7 +288,7 @@ gfx.checkerboard:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109#c1
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - kgupta@mozilla.com
+      - botond@mozilla.com
     expires: never
 
   severity:
@@ -310,7 +312,7 @@ gfx.checkerboard:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109#c1
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - kgupta@mozilla.com
+      - botond@mozilla.com
     expires: never
 
 gfx.content:
@@ -506,7 +508,7 @@ gfx.webrender:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109#c1
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - kgupta@mozilla.com
+      - jmuizelaar@mozilla.com
     expires: never
 
 gfx.display:
@@ -772,7 +774,7 @@ gfx.status:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109#c1
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - kgupta@mozilla.com
+      - jmuizelaar@mozilla.com
     expires: never
 
   framebuild_time:
@@ -791,7 +793,118 @@ gfx.status:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1584109#c1
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - kgupta@mozilla.com
+      - jmuizelaar@mozilla.com
+    expires: never
+
+avif:
+  decode_result:
+    type: labeled_counter
+    labels:
+      - success
+      - parse_error
+      - no_primary_item
+      - decode_error
+      - size_overflow
+      - out_of_memory
+      - pipe_init_error
+      - write_buffer_error
+    gecko_datapoint: AVIF_DECODE_RESULT
+    description: >
+      Decode result of AVIF image.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827#c9
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
+    expires: never
+
+  decoder:
+    type: labeled_counter
+    labels:
+      - dav1d
+      - aom
+    gecko_datapoint: AVIF_DECODER
+    description: >
+      Decoder of AVIF image.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827#c9
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
+    expires: never
+
+  aom_decode_error:
+    type: quantity
+    unit: error code
+    gecko_datapoint: avif.aom_decode_error
+    description: >
+      Image-decode Error from AOM decoder
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827#c9
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
+    expires: never
+
+  dav1d_decode_error:
+    type: quantity
+    unit: error code
+    gecko_datapoint: avif.dav1d_decode_error
+    description: >
+      Image-decode Error from dav1d decoder
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827#c9
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
+    expires: never
+
+  yuv_color_space:
+    type: labeled_counter
+    labels:
+      - bt601
+      - bt709
+      - bt2020
+      - identity
+      - unknown
+    gecko_datapoint: AVIF_YUV_COLOR_SPACE
+    description: >
+      YUV color space of AVIF image.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827#c9
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
+    expires: never
+
+  bit_depth:
+    type: labeled_counter
+    labels:
+      - color_8
+      - color_10
+      - color_12
+      - color_16
+      - unknown
+    gecko_datapoint: AVIF_BIT_DEPTH
+    description: >
+      Bits per pixel of AVIF image.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1670827#c9
+    notification_emails:
+      - cchang@mozilla.com
+      - jbauman@mozilla.com
     expires: never
 
 network:
@@ -1534,4 +1647,53 @@ javascript.gc:
     notification_emails:
       - dev-telemetry-gc-alerts@mozilla.org
       - jcoppeard@mozilla.com
+    expires: never
+
+media.audio:
+  init_failure:
+    type: labeled_counter
+    labels:
+      - first
+      - other
+    gecko_datapoint: MEDIA_AUDIO_INIT_FAILURE
+    description: >
+      Failure occurs when initializing the audio stream.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671714
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671714#c10
+    notification_emails:
+      - padenot@mozilla.com
+      - kinetik@flim.org
+      - cchang@mozilla.com
+    expires: never
+
+  backend:
+    type: labeled_counter
+    labels:
+      - unknown
+      - audiounit
+      - audiounit_rust
+      - aaudio
+      - opensl
+      - wasapi
+      - winmm
+      - alsa
+      - jack
+      - oss
+      - pulse
+      - pulse_rust
+      - sndio
+      - sun
+    gecko_datapoint: MEDIA_AUDIO_BACKEND
+    description: >
+      The operating system audio backend
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671714
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1671714#c10
+    notification_emails:
+      - padenot@mozilla.com
+      - kinetik@flim.org
+      - cchang@mozilla.com
     expires: never

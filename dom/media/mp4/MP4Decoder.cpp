@@ -112,7 +112,7 @@ nsTArray<UniquePtr<TrackInfo>> MP4Decoder::GetTracksInfo(
       continue;
     }
 #ifdef MOZ_AV1
-    if (IsAV1CodecString(codec)) {
+    if (StaticPrefs::media_av1_enabled() && IsAV1CodecString(codec)) {
       tracks.AppendElement(
           CreateTrackInfoWithMIMETypeAndContainerTypeExtraParameters(
               "video/av1"_ns, aType));
@@ -171,7 +171,8 @@ bool MP4Decoder::IsSupportedType(const MediaContainerType& aType,
   // Verify that we have a PDM that supports the whitelisted types.
   RefPtr<PDMFactory> platform = new PDMFactory();
   for (const auto& track : tracks) {
-    if (!track || !platform->Supports(*track, aDiagnostics)) {
+    if (!track ||
+        !platform->Supports(SupportDecoderParams(*track), aDiagnostics)) {
       return false;
     }
   }

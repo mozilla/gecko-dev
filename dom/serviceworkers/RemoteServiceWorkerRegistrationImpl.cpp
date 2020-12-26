@@ -7,6 +7,8 @@
 #include "RemoteServiceWorkerRegistrationImpl.h"
 
 #include "ServiceWorkerRegistrationChild.h"
+#include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/ipc/BackgroundChild.h"
 
 namespace mozilla {
 namespace dom {
@@ -108,16 +110,15 @@ void RemoteServiceWorkerRegistrationImpl::Unregister(
 
 RemoteServiceWorkerRegistrationImpl::RemoteServiceWorkerRegistrationImpl(
     const ServiceWorkerRegistrationDescriptor& aDescriptor)
-    : mActor(nullptr), mOuter(nullptr), mShutdown(false) {
-  PBackgroundChild* parentActor =
-      BackgroundChild::GetOrCreateForCurrentThread();
+    : mOuter(nullptr), mShutdown(false) {
+  ::mozilla::ipc::PBackgroundChild* parentActor =
+      ::mozilla::ipc::BackgroundChild::GetOrCreateForCurrentThread();
   if (NS_WARN_IF(!parentActor)) {
     Shutdown();
     return;
   }
 
-  ServiceWorkerRegistrationChild* actor =
-      ServiceWorkerRegistrationChild::Create();
+  auto actor = ServiceWorkerRegistrationChild::Create();
   if (NS_WARN_IF(!actor)) {
     Shutdown();
     return;
@@ -132,7 +133,7 @@ RemoteServiceWorkerRegistrationImpl::RemoteServiceWorkerRegistrationImpl(
   }
   MOZ_DIAGNOSTIC_ASSERT(sentActor == actor);
 
-  mActor = actor;
+  mActor = std::move(actor);
   mActor->SetOwner(this);
 }
 

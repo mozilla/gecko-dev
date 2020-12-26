@@ -7,12 +7,31 @@
 #ifndef mozilla_dom_quota_quotacommon_h__
 #define mozilla_dom_quota_quotacommon_h__
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <type_traits>
+#include <utility>
+#include "ErrorList.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
+#include "mozilla/Likely.h"
+#include "mozilla/MacroArgs.h"
+#include "mozilla/Result.h"
+#include "mozilla/ResultExtensions.h"
+#include "mozilla/ThreadLocal.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
+#include "nsError.h"
+#include "nsIEventTarget.h"
+#include "nsLiteralString.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
-#include "nsTArray.h"
+#include "nsStringFwd.h"
+#include "nsTLiteralString.h"
+#include "nsXULAppAPI.h"
 
 // Proper use of unique variable names can be tricky (especially if nesting of
 // the final macro is required).
@@ -396,13 +415,25 @@
 
 #define QM_PROPAGATE Err(tryTempError)
 
-#define QM_ASSERT_UNREACHABLE \
-  [&tryTempError] {           \
-    MOZ_ASSERT(false);        \
-    return Err(tryTempError); \
-  }()
+#ifdef DEBUG
+#  define QM_ASSERT_UNREACHABLE                       \
+    []() -> ::mozilla::GenericErrorResult<nsresult> { \
+      MOZ_CRASH("Should never be reached.");          \
+    }()
 
-#define QM_ASSERT_UNREACHABLE_VOID [] { MOZ_ASSERT(false); }()
+#  define QM_ASSERT_UNREACHABLE_VOID \
+    [] { MOZ_CRASH("Should never be reached."); }()
+#endif
+
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+#  define QM_DIAGNOSTIC_ASSERT_UNREACHABLE            \
+    []() -> ::mozilla::GenericErrorResult<nsresult> { \
+      MOZ_CRASH("Should never be reached.");          \
+    }()
+
+#  define QM_DIAGNOSTIC_ASSERT_UNREACHABLE_VOID \
+    [] { MOZ_CRASH("Should never be reached."); }()
+#endif
 
 // QM_MISSING_ARGS and QM_HANDLE_ERROR macros are implementation details of
 // QM_TRY/QM_TRY_UNWRAP/QM_TRY_INSPECT/QM_FAIL and shouldn't be used directly.
@@ -707,7 +738,6 @@
 #  define RETURN_STATUS_OR_RESULT(_status, _rv) return _rv
 #endif
 
-class nsIEventTarget;
 class nsIFile;
 
 namespace mozilla {
@@ -919,6 +949,9 @@ void CacheUseDOSDevicePathSyntaxPrefValue();
 Result<nsCOMPtr<nsIFile>, nsresult> QM_NewLocalFile(const nsAString& aPath);
 
 nsDependentCSubstring GetLeafName(const nsACString& aPath);
+
+Result<nsCOMPtr<nsIFile>, nsresult> CloneFileAndAppend(
+    nsIFile& aDirectory, const nsAString& aPathElement);
 
 void LogError(const nsLiteralCString& aModule, const nsACString& aExpr,
               const nsACString& aSourceFile, int32_t aSourceLine);

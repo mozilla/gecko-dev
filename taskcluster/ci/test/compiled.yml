@@ -50,7 +50,6 @@ gtest:
     run-on-projects:
         by-test-platform:
             windows.*-shippable/.*: []  # permafails on shippable
-            windows.*-pgo/.*: []  # permafails on pgo too
             windows.*-nightly/.*: []  # permafails on nightly too
             .*-devedition/.*: []  # don't run on devedition
             default: built-projects
@@ -61,11 +60,9 @@ gtest:
     tier:
         by-test-platform:
             windows7-32-shippable.*: 3
-            windows7-32-pgo.*: 3
             windows10-64-shippable.*: 3
-            windows10-64-pgo.*: 3
             windows10-64-asan.*: 3
-            linux.*64-ccov/opt: 3
+            linux.*64-ccov.*/opt: 3
             default: default
 
 jittest:
@@ -74,38 +71,21 @@ jittest:
     treeherder-symbol: Jit
     run-on-projects:
         by-test-platform:
-            # Turn off for all linux and windows platforms, since it is
-            # redundant with SM(...) jobs -- except for code coverage builds,
-            # which are still needed since ccov doesn't yet work with
-            # spidermonkey jobs.
-            #
-            # The regex is essentially /linux.*/ but with a negative match for
-            # the last 5 characters being "-ccov". The terminal ..... is needed
-            # because otherwise the .* could match the full string and the
-            # empty string would fail to match /(?!-ccov)/ so the whole thing
-            # would succeed. The beginning /?=linux/ is needed because the
-            # platform "linux64" doesn't have enough characters for both the
-            # beginning /linux/ and the final /...../.
-            #
-            # Additionally, platforms contain suffixes like "/opt" or "/debug".
-            (?=linux).*(?!-ccov)...../.*: []  # redundant with SM(...)
-            (?=windows).*(?!-ccov)...../.*: []  # redundant with SM(p)
             android-hw-.*-aarch64/debug: ['mozilla-central', 'release']
             android-hw-.*-api-16(?:-shippable)?/.*: ['mozilla-central', 'release']
             default: built-projects
     chunks:
         by-test-platform:
             windows.*: 1
-            windows10-64-ccov/debug: 8
-            windows10-64-ccov/opt: 8
+            windows10-64-ccov-qr/opt: 8
             macosx.*/opt: 1
             macosx.*/debug: 3
             android.*: 10
             default: 6
     max-run-time:
         by-test-platform:
-            windows10-64-ccov/.*: 7200
-            macosx.*-ccov/.*: 7200
+            windows10-64-ccov.*/.*: 7200
+            macosx.*-ccov.*/.*: 7200
             android-hw.*: 5400
             default: 3600
     mozharness:

@@ -23,6 +23,7 @@
 #include "nsIContent.h"
 #include "nsPluginInstanceOwner.h"
 #include "nsWrapperCacheInlines.h"
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/GCHashTable.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate, JS::SetPrivate
 #include "js/Symbol.h"
@@ -390,9 +391,7 @@ static void OnWrapperDestroyed() {
   }
 }
 
-namespace mozilla {
-namespace plugins {
-namespace parent {
+namespace mozilla::plugins::parent {
 
 static nsIGlobalObject* GetGlobalObject(NPP npp) {
   NS_ENSURE_TRUE(npp, nullptr);
@@ -410,9 +409,7 @@ static nsIGlobalObject* GetGlobalObject(NPP npp) {
   return doc->GetScopeObject();
 }
 
-}  // namespace parent
-}  // namespace plugins
-}  // namespace mozilla
+}  // namespace mozilla::plugins::parent
 
 static NPP LookupNPP(NPObject* npobj);
 

@@ -12,20 +12,24 @@ use winapi::{
     um::{d3d12::*, d3dcommon::*},
 };
 
+use auxil::ShaderStage;
 use hal::{
     buffer,
     format::{Format, ImageFeature, SurfaceType, Swizzle},
-    image,
-    pso,
+    image, pso,
 };
 
 use native::ShaderVisibility;
+
+fn is_little_endinan() -> bool {
+    unsafe { 1 == *(&1u32 as *const _ as *const u8) }
+}
 
 pub fn map_format(format: Format) -> Option<DXGI_FORMAT> {
     use hal::format::Format::*;
 
     // Handling packed formats according to the platform endianness.
-    let reverse = unsafe { 1 == *(&1u32 as *const _ as *const u8) };
+    let reverse = is_little_endinan();
     let format = match format {
         Bgra4Unorm if !reverse => DXGI_FORMAT_B4G4R4A4_UNORM,
         R5g6b5Unorm if reverse => DXGI_FORMAT_B5G6R5_UNORM,
@@ -88,8 +92,8 @@ pub fn map_format(format: Format) -> Option<DXGI_FORMAT> {
         X8D24Unorm if reverse => DXGI_FORMAT_D24_UNORM_S8_UINT,
         D32Sfloat => DXGI_FORMAT_D32_FLOAT,
         D32SfloatS8Uint => DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
-        Bc1RgbUnorm => DXGI_FORMAT_BC1_UNORM,
-        Bc1RgbSrgb => DXGI_FORMAT_BC1_UNORM_SRGB,
+        Bc1RgbUnorm | Bc1RgbaUnorm => DXGI_FORMAT_BC1_UNORM,
+        Bc1RgbSrgb | Bc1RgbaSrgb => DXGI_FORMAT_BC1_UNORM_SRGB,
         Bc2Unorm => DXGI_FORMAT_BC2_UNORM,
         Bc2Srgb => DXGI_FORMAT_BC2_UNORM_SRGB,
         Bc3Unorm => DXGI_FORMAT_BC3_UNORM,
@@ -107,6 +111,34 @@ pub fn map_format(format: Format) -> Option<DXGI_FORMAT> {
     };
 
     Some(format)
+}
+
+pub fn map_format_shader_depth(surface: SurfaceType) -> Option<DXGI_FORMAT> {
+    match surface {
+        SurfaceType::D16 => Some(DXGI_FORMAT_R16_UNORM),
+        SurfaceType::X8D24 | SurfaceType::D24_S8 => Some(DXGI_FORMAT_R24_UNORM_X8_TYPELESS),
+        SurfaceType::D32 => Some(DXGI_FORMAT_R32_FLOAT),
+        SurfaceType::D32_S8 => Some(DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS),
+        _ => return None,
+    }
+}
+
+pub fn map_format_shader_stencil(surface: SurfaceType) -> Option<DXGI_FORMAT> {
+    match surface {
+        SurfaceType::D24_S8 => Some(DXGI_FORMAT_X24_TYPELESS_G8_UINT),
+        SurfaceType::D32_S8 => Some(DXGI_FORMAT_X32_TYPELESS_G8X24_UINT),
+        _ => None,
+    }
+}
+
+pub fn map_format_dsv(surface: SurfaceType) -> Option<DXGI_FORMAT> {
+    match surface {
+        SurfaceType::D16 => Some(DXGI_FORMAT_D16_UNORM),
+        SurfaceType::X8D24 | SurfaceType::D24_S8 => Some(DXGI_FORMAT_D24_UNORM_S8_UINT),
+        SurfaceType::D32 => Some(DXGI_FORMAT_D32_FLOAT),
+        SurfaceType::D32_S8 => Some(DXGI_FORMAT_D32_FLOAT_S8X24_UINT),
+        _ => None,
+    }
 }
 
 pub fn map_format_nosrgb(format: Format) -> Option<DXGI_FORMAT> {
@@ -141,6 +173,23 @@ pub fn map_swizzle(swizzle: Swizzle) -> UINT {
         )
 }
 
+pub fn swizzle_rg(swizzle: Swizzle) -> Swizzle {
+    use hal::format::Component as C;
+    fn map_component(c: C) -> C {
+        match c {
+            C::R => C::G,
+            C::G => C::R,
+            x => x,
+        }
+    }
+    Swizzle(
+        map_component(swizzle.0),
+        map_component(swizzle.1),
+        map_component(swizzle.2),
+        map_component(swizzle.3),
+    )
+}
+
 pub fn map_surface_type(st: SurfaceType) -> Option<DXGI_FORMAT> {
     use hal::format::SurfaceType::*;
 
@@ -164,20 +213,10 @@ pub fn map_surface_type(st: SurfaceType) -> Option<DXGI_FORMAT> {
         B10_G11_R11 => DXGI_FORMAT_R11G11B10_FLOAT,
         E5_B9_G9_R9 => DXGI_FORMAT_R9G9B9E5_SHAREDEXP,
         D16 => DXGI_FORMAT_R16_TYPELESS,
-        X8D24 => DXGI_FORMAT_D24_UNORM_S8_UINT,
+        X8D24 => DXGI_FORMAT_R24G8_TYPELESS,
         D32 => DXGI_FORMAT_R32_TYPELESS,
-        D24_S8 => DXGI_FORMAT_D24_UNORM_S8_UINT,
-        D32_S8 => DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
-        _ => return None,
-    })
-}
-
-pub fn map_format_dsv(surface: SurfaceType) -> Option<DXGI_FORMAT> {
-    Some(match surface {
-        SurfaceType::D16 => DXGI_FORMAT_D16_UNORM,
-        SurfaceType::X8D24 | SurfaceType::D24_S8 => DXGI_FORMAT_D24_UNORM_S8_UINT,
-        SurfaceType::D32 => DXGI_FORMAT_D32_FLOAT,
-        SurfaceType::D32_S8 => DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
+        D24_S8 => DXGI_FORMAT_R24G8_TYPELESS,
+        D32_S8 => DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS,
         _ => return None,
     })
 }
@@ -213,7 +252,7 @@ pub fn map_topology(ia: &pso::InputAssemblerDesc) -> D3D12_PRIMITIVE_TOPOLOGY {
     }
 }
 
-pub fn map_rasterizer(rasterizer: &pso::Rasterizer) -> D3D12_RASTERIZER_DESC {
+pub fn map_rasterizer(rasterizer: &pso::Rasterizer, multisample: bool) -> D3D12_RASTERIZER_DESC {
     use hal::pso::FrontFace::*;
     use hal::pso::PolygonMode::*;
 
@@ -250,7 +289,7 @@ pub fn map_rasterizer(rasterizer: &pso::Rasterizer) -> D3D12_RASTERIZER_DESC {
         DepthBiasClamp: bias.clamp,
         SlopeScaledDepthBias: bias.slope_factor,
         DepthClipEnable: !rasterizer.depth_clamping as _,
-        MultisampleEnable: FALSE,     // TODO: currently not supported
+        MultisampleEnable: if multisample { TRUE } else { FALSE },
         ForcedSampleCount: 0,         // TODO: currently not supported
         AntialiasedLineEnable: FALSE, // TODO: currently not supported
         ConservativeRaster: if rasterizer.conservative {
@@ -262,14 +301,18 @@ pub fn map_rasterizer(rasterizer: &pso::Rasterizer) -> D3D12_RASTERIZER_DESC {
     }
 }
 
-fn map_factor(factor: pso::Factor) -> D3D12_BLEND {
+fn map_factor(factor: pso::Factor, is_alpha: bool) -> D3D12_BLEND {
     use hal::pso::Factor::*;
     match factor {
         Zero => D3D12_BLEND_ZERO,
         One => D3D12_BLEND_ONE,
+        SrcColor if is_alpha => D3D12_BLEND_SRC_ALPHA,
         SrcColor => D3D12_BLEND_SRC_COLOR,
+        OneMinusSrcColor if is_alpha => D3D12_BLEND_INV_SRC_ALPHA,
         OneMinusSrcColor => D3D12_BLEND_INV_SRC_COLOR,
+        DstColor if is_alpha => D3D12_BLEND_DEST_ALPHA,
         DstColor => D3D12_BLEND_DEST_COLOR,
+        OneMinusDstColor if is_alpha => D3D12_BLEND_INV_DEST_ALPHA,
         OneMinusDstColor => D3D12_BLEND_INV_DEST_COLOR,
         SrcAlpha => D3D12_BLEND_SRC_ALPHA,
         OneMinusSrcAlpha => D3D12_BLEND_INV_SRC_ALPHA,
@@ -278,22 +321,35 @@ fn map_factor(factor: pso::Factor) -> D3D12_BLEND {
         ConstColor | ConstAlpha => D3D12_BLEND_BLEND_FACTOR,
         OneMinusConstColor | OneMinusConstAlpha => D3D12_BLEND_INV_BLEND_FACTOR,
         SrcAlphaSaturate => D3D12_BLEND_SRC_ALPHA_SAT,
+        Src1Color if is_alpha => D3D12_BLEND_SRC1_ALPHA,
         Src1Color => D3D12_BLEND_SRC1_COLOR,
+        OneMinusSrc1Color if is_alpha => D3D12_BLEND_INV_SRC1_ALPHA,
         OneMinusSrc1Color => D3D12_BLEND_INV_SRC1_COLOR,
         Src1Alpha => D3D12_BLEND_SRC1_ALPHA,
         OneMinusSrc1Alpha => D3D12_BLEND_INV_SRC1_ALPHA,
     }
 }
 
-fn map_blend_op(operation: pso::BlendOp) -> (D3D12_BLEND_OP, D3D12_BLEND, D3D12_BLEND) {
+fn map_blend_op(
+    operation: pso::BlendOp,
+    is_alpha: bool,
+) -> (D3D12_BLEND_OP, D3D12_BLEND, D3D12_BLEND) {
     use hal::pso::BlendOp::*;
     match operation {
-        Add { src, dst } => (D3D12_BLEND_OP_ADD, map_factor(src), map_factor(dst)),
-        Sub { src, dst } => (D3D12_BLEND_OP_SUBTRACT, map_factor(src), map_factor(dst)),
+        Add { src, dst } => (
+            D3D12_BLEND_OP_ADD,
+            map_factor(src, is_alpha),
+            map_factor(dst, is_alpha),
+        ),
+        Sub { src, dst } => (
+            D3D12_BLEND_OP_SUBTRACT,
+            map_factor(src, is_alpha),
+            map_factor(dst, is_alpha),
+        ),
         RevSub { src, dst } => (
             D3D12_BLEND_OP_REV_SUBTRACT,
-            map_factor(src),
-            map_factor(dst),
+            map_factor(src, is_alpha),
+            map_factor(dst, is_alpha),
         ),
         Min => (D3D12_BLEND_OP_MIN, D3D12_BLEND_ZERO, D3D12_BLEND_ZERO),
         Max => (D3D12_BLEND_OP_MAX, D3D12_BLEND_ZERO, D3D12_BLEND_ZERO),
@@ -302,7 +358,7 @@ fn map_blend_op(operation: pso::BlendOp) -> (D3D12_BLEND_OP, D3D12_BLEND, D3D12_
 
 pub fn map_render_targets(
     color_targets: &[pso::ColorBlendDesc],
-) -> [D3D12_RENDER_TARGET_BLEND_DESC; 8] {
+) -> [D3D12_RENDER_TARGET_BLEND_DESC; D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT as usize] {
     let dummy_target = D3D12_RENDER_TARGET_BLEND_DESC {
         BlendEnable: FALSE,
         LogicOpEnable: FALSE,
@@ -315,13 +371,13 @@ pub fn map_render_targets(
         LogicOp: D3D12_LOGIC_OP_CLEAR,
         RenderTargetWriteMask: 0,
     };
-    let mut targets = [dummy_target; 8];
+    let mut targets = [dummy_target; D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT as usize];
 
     for (target, color_desc) in targets.iter_mut().zip(color_targets.iter()) {
         target.RenderTargetWriteMask = color_desc.mask.bits() as UINT8;
         if let Some(ref blend) = color_desc.blend {
-            let (color_op, color_src, color_dst) = map_blend_op(blend.color);
-            let (alpha_op, alpha_src, alpha_dst) = map_blend_op(blend.alpha);
+            let (color_op, color_src, color_dst) = map_blend_op(blend.color, false);
+            let (alpha_op, alpha_src, alpha_dst) = map_blend_op(blend.alpha, true);
             target.BlendEnable = TRUE;
             target.BlendOp = color_op;
             target.SrcBlend = color_src;
@@ -621,25 +677,28 @@ pub fn map_image_flags(usage: image::Usage, features: ImageFeature) -> D3D12_RES
     flags
 }
 
-pub fn map_execution_model(model: spirv::ExecutionModel) -> pso::Stage {
+pub fn map_execution_model(model: spirv::ExecutionModel) -> ShaderStage {
     match model {
-        spirv::ExecutionModel::Vertex => pso::Stage::Vertex,
-        spirv::ExecutionModel::Fragment => pso::Stage::Fragment,
-        spirv::ExecutionModel::Geometry => pso::Stage::Geometry,
-        spirv::ExecutionModel::GlCompute => pso::Stage::Compute,
-        spirv::ExecutionModel::TessellationControl => pso::Stage::Hull,
-        spirv::ExecutionModel::TessellationEvaluation => pso::Stage::Domain,
-        spirv::ExecutionModel::Kernel => panic!("Kernel is not a valid execution model."),
+        spirv::ExecutionModel::Vertex => ShaderStage::Vertex,
+        spirv::ExecutionModel::Fragment => ShaderStage::Fragment,
+        spirv::ExecutionModel::Geometry => ShaderStage::Geometry,
+        spirv::ExecutionModel::GlCompute => ShaderStage::Compute,
+        spirv::ExecutionModel::TessellationControl => ShaderStage::Hull,
+        spirv::ExecutionModel::TessellationEvaluation => ShaderStage::Domain,
+        spirv::ExecutionModel::Kernel => panic!("Kernel is not a valid execution model"),
     }
 }
 
-pub fn map_stage(stage: pso::Stage) -> spirv::ExecutionModel {
+pub fn map_stage(stage: ShaderStage) -> spirv::ExecutionModel {
     match stage {
-        pso::Stage::Vertex => spirv::ExecutionModel::Vertex,
-        pso::Stage::Fragment => spirv::ExecutionModel::Fragment,
-        pso::Stage::Geometry => spirv::ExecutionModel::Geometry,
-        pso::Stage::Compute => spirv::ExecutionModel::GlCompute,
-        pso::Stage::Hull => spirv::ExecutionModel::TessellationControl,
-        pso::Stage::Domain => spirv::ExecutionModel::TessellationEvaluation,
+        ShaderStage::Vertex => spirv::ExecutionModel::Vertex,
+        ShaderStage::Fragment => spirv::ExecutionModel::Fragment,
+        ShaderStage::Geometry => spirv::ExecutionModel::Geometry,
+        ShaderStage::Compute => spirv::ExecutionModel::GlCompute,
+        ShaderStage::Hull => spirv::ExecutionModel::TessellationControl,
+        ShaderStage::Domain => spirv::ExecutionModel::TessellationEvaluation,
+        ShaderStage::Task | ShaderStage::Mesh => {
+            panic!("{:?} shader is not yet implemented in SPIRV-Cross", stage)
+        }
     }
 }

@@ -23,6 +23,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   UrlbarController: "resource:///modules/UrlbarController.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   UrlbarProvider: "resource:///modules/UrlbarUtils.jsm",
+  UrlbarSearchUtils: "resource:///modules/UrlbarSearchUtils.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
 });
 
@@ -509,11 +510,12 @@ var UrlbarTestUtils = {
           let engine = Services.search.getEngineByName(
             expectedSearchMode.engineName
           );
-          let engineHost = engine.getResultDomain();
+          let engineRootDomain = UrlbarSearchUtils.getRootDomainFromEngine(
+            engine
+          );
           let resultUrl = new URL(result.url);
-          // Use `includes` to allow results from engine subdomains.
           this.Assert.ok(
-            resultUrl.host.includes(engineHost),
+            resultUrl.hostname.includes(engineRootDomain),
             "Search mode result matches engine host."
           );
         }
@@ -841,6 +843,7 @@ class TestProvider extends UrlbarProvider {
     priority = 0,
     addTimeout = 0,
     onCancel = null,
+    onSelection = null,
   } = {}) {
     super();
     this._results = results;
@@ -849,6 +852,7 @@ class TestProvider extends UrlbarProvider {
     this._priority = priority;
     this._addTimeout = addTimeout;
     this._onCancel = onCancel;
+    this._onSelection = onSelection;
   }
   get name() {
     return "TestProvider" + this._name;
@@ -879,6 +883,12 @@ class TestProvider extends UrlbarProvider {
   cancelQuery(context) {
     if (this._onCancel) {
       this._onCancel();
+    }
+  }
+
+  onSelection(result, element) {
+    if (this._onSelection) {
+      this._onSelection(result, element);
     }
   }
 }

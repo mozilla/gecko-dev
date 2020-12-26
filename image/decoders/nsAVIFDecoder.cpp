@@ -15,12 +15,31 @@
 
 #include "SurfacePipeFactory.h"
 
+#include "mozilla/Telemetry.h"
+
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace image {
 
+using Telemetry::LABELS_AVIF_BIT_DEPTH;
+using Telemetry::LABELS_AVIF_DECODE_RESULT;
+using Telemetry::LABELS_AVIF_DECODER;
+using Telemetry::LABELS_AVIF_YUV_COLOR_SPACE;
+using Telemetry::ScalarID;
+
 static LazyLogModule sAVIFLog("AVIFDecoder");
+
+static const LABELS_AVIF_BIT_DEPTH gColorDepthLabel[] = {
+    LABELS_AVIF_BIT_DEPTH::color_8, LABELS_AVIF_BIT_DEPTH::color_10,
+    LABELS_AVIF_BIT_DEPTH::color_12, LABELS_AVIF_BIT_DEPTH::color_16,
+    LABELS_AVIF_BIT_DEPTH::unknown};
+
+static const LABELS_AVIF_YUV_COLOR_SPACE gColorSpaceLabel[static_cast<size_t>(
+    gfx::YUVColorSpace::_NUM_COLORSPACE)] = {
+    LABELS_AVIF_YUV_COLOR_SPACE::BT601, LABELS_AVIF_YUV_COLOR_SPACE::BT709,
+    LABELS_AVIF_YUV_COLOR_SPACE::BT2020, LABELS_AVIF_YUV_COLOR_SPACE::identity,
+    LABELS_AVIF_YUV_COLOR_SPACE::unknown};
 
 // Wrapper to allow rust to call our read adaptor.
 intptr_t nsAVIFDecoder::ReadSource(uint8_t* aDestBuf, uintptr_t aDestBufSize,
@@ -99,8 +118,9 @@ void nsAVIFDecoder::FreeDav1dData(const uint8_t* buf, void* cookie) {
   }
 }
 
-bool nsAVIFDecoder::DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
-                                    layers::PlanarYCbCrData& aDecodedData) {
+nsAVIFDecoder::Dav1dResult nsAVIFDecoder::DecodeWithDav1d(
+    const Mp4parseByteData& aPrimaryItem,
+    layers::PlanarYCbCrData& aDecodedData) {
   MOZ_LOG(sAVIFLog, LogLevel::Verbose,
           ("[this=%p] Beginning DecodeWithDav1d", this));
 
@@ -115,7 +135,7 @@ bool nsAVIFDecoder::DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
   if (res == 0) {
     mCodecContext = Some(AsVariant(ctx));
   } else {
-    return false;
+    return res;
   }
 
   Dav1dData dav1dData;
@@ -127,7 +147,7 @@ bool nsAVIFDecoder::DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
            dav1dData.sz, res));
 
   if (res != 0) {
-    return false;
+    return res;
   }
 
   res = dav1d_send_data(ctx, &dav1dData);
@@ -136,7 +156,7 @@ bool nsAVIFDecoder::DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
           ("[this=%p] dav1d_send_data -> %d", this, res));
 
   if (res != 0) {
-    return false;
+    return res;
   }
 
   MOZ_ASSERT(!mDav1dPicture.isSome());
@@ -146,8 +166,16 @@ bool nsAVIFDecoder::DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
   MOZ_LOG(sAVIFLog, res == 0 ? LogLevel::Debug : LogLevel::Error,
           ("[this=%p] dav1d_get_picture -> %d", this, res));
 
+  // Discard the value outside of the range of uint32
+  if (!IsMetadataDecode() && std::numeric_limits<int>::digits <= 31) {
+    // De-negate POSIX error code returned from DAV1D. This must be sync with
+    // DAV1D_ERR macro.
+    uint32_t value = res < 0 ? -res : res;
+    ScalarSet(ScalarID::AVIF_DAV1D_DECODE_ERROR, value);
+  }
+
   if (res != 0) {
-    return false;
+    return res;
   }
 
   static_assert(std::is_same<int, decltype(mDav1dPicture->p.w)>::value);
@@ -241,11 +269,12 @@ bool nsAVIFDecoder::DecodeWithDav1d(const Mp4parseByteData& aPrimaryItem,
   MOZ_LOG(sAVIFLog, LogLevel::Verbose,
           ("[this=%p] Returning successfully from DecodeWithDav1d", this));
 
-  return true;
+  return res;
 }
 
-bool nsAVIFDecoder::DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
-                                  layers::PlanarYCbCrData& aDecodedData) {
+nsAVIFDecoder::AOMResult nsAVIFDecoder::DecodeWithAOM(
+    const Mp4parseByteData& aPrimaryItem,
+    layers::PlanarYCbCrData& aDecodedData) {
   MOZ_LOG(sAVIFLog, LogLevel::Verbose,
           ("[this=%p] Beginning DecodeWithAOM", this));
 
@@ -261,7 +290,7 @@ bool nsAVIFDecoder::DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
   if (res == AOM_CODEC_OK) {
     mCodecContext = Some(AsVariant(ctx));
   } else {
-    return false;
+    return AsVariant(res);
   }
 
   res = aom_codec_decode(&mCodecContext->as<aom_codec_ctx_t>(),
@@ -270,8 +299,13 @@ bool nsAVIFDecoder::DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
   MOZ_LOG(sAVIFLog, res == AOM_CODEC_OK ? LogLevel::Verbose : LogLevel::Error,
           ("[this=%p] aom_codec_decode -> %d", this, res));
 
+  if (!IsMetadataDecode()) {
+    uint32_t value = static_cast<uint32_t>(res);
+    ScalarSet(ScalarID::AVIF_AOM_DECODE_ERROR, value);
+  }
+
   if (res != AOM_CODEC_OK) {
-    return false;
+    return AsVariant(res);
   }
 
   aom_codec_iter_t iter = nullptr;
@@ -282,7 +316,7 @@ bool nsAVIFDecoder::DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
           ("[this=%p] aom_codec_get_frame -> %p", this, img));
 
   if (img == nullptr) {
-    return false;
+    return AsVariant(NonAOMCodecError::NoFrame);
   }
 
   const CheckedInt<int> decoded_width = img->d_w;
@@ -293,7 +327,7 @@ bool nsAVIFDecoder::DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
         sAVIFLog, LogLevel::Debug,
         ("[this=%p] image dimensions can't be stored in int: d_w: %u, d_h: %u",
          this, img->d_w, img->d_h));
-    return false;
+    return AsVariant(NonAOMCodecError::SizeOverflow);
   }
 
   PostSize(decoded_width.value(), decoded_height.value());
@@ -390,11 +424,32 @@ bool nsAVIFDecoder::DecodeWithAOM(const Mp4parseByteData& aPrimaryItem,
   MOZ_LOG(sAVIFLog, LogLevel::Verbose,
           ("[this=%p] Returning successfully from DecodeWithAOM", this));
 
-  return true;
+  return AsVariant(res);
 }
 
 LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
                                     IResumable* aOnResume) {
+  DecodeResult result = Decode(aIterator, aOnResume);
+
+  RecordDecodeResultTelemetry(result);
+
+  if (result.is<NonDecoderResult>()) {
+    NonDecoderResult r = result.as<NonDecoderResult>();
+    if (r == NonDecoderResult::NeedMoreData) {
+      return LexerResult(Yield::NEED_MORE_DATA);
+    }
+    return r == NonDecoderResult::MetadataOk
+               ? LexerResult(TerminalState::SUCCESS)
+               : LexerResult(TerminalState::FAILURE);
+  }
+
+  MOZ_ASSERT(result.is<Dav1dResult>() || result.is<AOMResult>());
+  return LexerResult(IsDecodeSuccess(result) ? TerminalState::SUCCESS
+                                             : TerminalState::FAILURE);
+}
+
+nsAVIFDecoder::DecodeResult nsAVIFDecoder::Decode(
+    SourceBufferIterator& aIterator, IResumable* aOnResume) {
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] nsAVIFDecoder::DoDecode", this));
 
@@ -412,7 +467,7 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
 
     switch (state) {
       case SourceBufferIterator::WAITING:
-        return LexerResult(Yield::NEED_MORE_DATA);
+        return AsVariant(NonDecoderResult::NeedMoreData);
 
       case SourceBufferIterator::COMPLETE:
         mReadCursor = mBufferedData.begin();
@@ -449,7 +504,7 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
   }
 
   if (!mParser) {
-    return LexerResult(TerminalState::FAILURE);
+    return AsVariant(NonDecoderResult::ParseError);
   }
 
   Mp4parseByteData primaryItem = {};
@@ -460,20 +515,23 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
            status, primaryItem.length));
 
   if (status != MP4PARSE_STATUS_OK) {
-    return LexerResult(TerminalState::FAILURE);
+    return AsVariant(NonDecoderResult::NoPrimaryItem);
   }
 
   layers::PlanarYCbCrData decodedData;
-  bool decodeOK = StaticPrefs::image_avif_use_dav1d()
-                      ? DecodeWithDav1d(primaryItem, decodedData)
-                      : DecodeWithAOM(primaryItem, decodedData);
-
+  DecodeResult decodeResult = AsVariant(NonDecoderResult::MetadataOk);
+  if (StaticPrefs::image_avif_use_dav1d()) {
+    decodeResult = AsVariant(DecodeWithDav1d(primaryItem, decodedData));
+  } else {
+    decodeResult = AsVariant(DecodeWithAOM(primaryItem, decodedData));
+  }
+  bool decodeOK = IsDecodeSuccess(decodeResult);
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
           ("[this=%p] DecodeWith%s() -> %s", this,
            StaticPrefs::image_avif_use_dav1d() ? "Dav1d" : "AOM",
            decodeOK ? "OK" : "Fail"));
   if (!decodeOK) {
-    return LexerResult(TerminalState::FAILURE);
+    return decodeResult;
   }
 
   PostSize(decodedData.mPicSize.width, decodedData.mPicSize.height);
@@ -485,8 +543,15 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
   }
 
   if (IsMetadataDecode()) {
-    return LexerResult(TerminalState::SUCCESS);
+    return AsVariant(NonDecoderResult::MetadataOk);
   }
+
+  // These data must be recorded after metadata has been decoded
+  // (IsMetadataDecode()=false) or else they would be double-counted.
+  AccumulateCategorical(
+      gColorSpaceLabel[static_cast<size_t>(decodedData.mYUVColorSpace)]);
+  AccumulateCategorical(
+      gColorDepthLabel[static_cast<size_t>(decodedData.mColorDepth)]);
 
   gfx::SurfaceFormat format =
       hasAlpha ? SurfaceFormat::OS_RGBA : SurfaceFormat::OS_RGBX;
@@ -505,7 +570,7 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
              "rgbSize.height: %d, "
              "bytesPerPixel: %u",
              this, rgbSize.width, rgbSize.height, bytesPerPixel));
-    return LexerResult(TerminalState::FAILURE);
+    return AsVariant(NonDecoderResult::SizeOverflow);
   }
 
   UniquePtr<uint8_t[]> rgbBuf = MakeUnique<uint8_t[]>(rgbBufLength.value());
@@ -515,7 +580,7 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
     MOZ_LOG(sAVIFLog, LogLevel::Debug,
             ("[this=%p] allocation of %u-byte rgbBuf failed", this,
              rgbBufLength.value()));
-    return LexerResult(TerminalState::FAILURE);
+    return AsVariant(NonDecoderResult::OutOfMemory);
   }
 
   MOZ_LOG(sAVIFLog, LogLevel::Debug,
@@ -532,7 +597,7 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
   if (!pipe) {
     MOZ_LOG(sAVIFLog, LogLevel::Debug,
             ("[this=%p] could not initialize surface pipe", this));
-    return LexerResult(TerminalState::FAILURE);
+    return AsVariant(NonDecoderResult::PipeInitError);
   }
 
   MOZ_LOG(sAVIFLog, LogLevel::Debug, ("[this=%p] writing to surface", this));
@@ -563,10 +628,58 @@ LexerResult nsAVIFDecoder::DoDecode(SourceBufferIterator& aIterator,
     PostFrameStop(hasAlpha ? Opacity::SOME_TRANSPARENCY
                            : Opacity::FULLY_OPAQUE);
     PostDecodeDone();
-    return LexerResult(TerminalState::SUCCESS);
+    return decodeResult;
   }
 
-  return LexerResult(TerminalState::FAILURE);
+  return AsVariant(NonDecoderResult::WriteBufferError);
+}
+
+bool nsAVIFDecoder::IsDecodeSuccess(const DecodeResult& aResult) {
+  if (aResult.is<Dav1dResult>() || aResult.is<AOMResult>()) {
+    return aResult == DecodeResult(Dav1dResult(0)) ||
+           aResult == DecodeResult(AOMResult(AOM_CODEC_OK));
+  }
+  return false;
+}
+
+void nsAVIFDecoder::RecordDecodeResultTelemetry(
+    const nsAVIFDecoder::DecodeResult& aResult) {
+  if (aResult.is<NonDecoderResult>()) {
+    switch (aResult.as<NonDecoderResult>()) {
+      case NonDecoderResult::NeedMoreData:
+        break;
+      case NonDecoderResult::MetadataOk:
+        break;
+      case NonDecoderResult::ParseError:
+        AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::parse_error);
+        break;
+      case NonDecoderResult::NoPrimaryItem:
+        AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::no_primary_item);
+        break;
+      case NonDecoderResult::SizeOverflow:
+        AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::size_overflow);
+        break;
+      case NonDecoderResult::OutOfMemory:
+        AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::out_of_memory);
+        break;
+      case NonDecoderResult::PipeInitError:
+        AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::pipe_init_error);
+        break;
+      case NonDecoderResult::WriteBufferError:
+        AccumulateCategorical(LABELS_AVIF_DECODE_RESULT::write_buffer_error);
+        break;
+      default:
+        MOZ_ASSERT_UNREACHABLE("unknown result");
+        break;
+    }
+  } else {
+    MOZ_ASSERT(aResult.is<Dav1dResult>() || aResult.is<AOMResult>());
+    AccumulateCategorical(aResult.is<Dav1dResult>() ? LABELS_AVIF_DECODER::dav1d
+                                                    : LABELS_AVIF_DECODER::aom);
+    AccumulateCategorical(IsDecodeSuccess(aResult)
+                              ? LABELS_AVIF_DECODE_RESULT::success
+                              : LABELS_AVIF_DECODE_RESULT::decode_error);
+  }
 }
 
 }  // namespace image

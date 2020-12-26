@@ -1,0 +1,246 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# This file defines the metrics that are recorded by the Glean SDK. They are
+# automatically converted to platform-specific code at build time using the
+# `glean_parser` PyPI package.
+
+# This file is for Internal FOG Test Use Only.
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/1-0-0
+
+test_only:
+  bad_code:
+    type: counter
+    description: |
+      Number of times we encountered bad code.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+
+  can_we_time_it:
+    type: timespan
+    time_unit: nanosecond
+    description: |
+      Test metric for a timespan.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+
+  cheesy_string:
+    type: string
+    description: |
+      Only the cheesiest of strings.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1673662
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1673662#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+
+  what_id_it:  # Using a different metrics yaml style for fun.
+    type: uuid
+    description: |
+      Just a UUID.
+      This is a test-only metric.
+    bugs: ["https://bugzilla.mozilla.org/show_bug.cgi?id=1673664"]
+    data_reviews: ["https://bugzilla.mozilla.org/show_bug.cgi?id=1673664#c1"]
+    data_sensitivity: ["technical"]
+    notification_emails: ["glean-team@mozilla.com"]
+    expires: never
+    send_in_pings: ["test-ping"]
+
+test_only.ipc:
+  a_counter:
+    type: counter
+    description: |
+      This is a test-only metric.
+      Just counting things.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  a_bool:
+    type: boolean
+    description: |
+      This is a test-only metric.
+      Just flagging things.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  a_date:
+    type: datetime
+    time_unit: second
+    description: |
+      This is a test-only metric.
+      Just putting things on the calendar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  a_string:
+    type: string
+    description: |
+      This is a test-only metric.
+      Just setting some strings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  a_memory_dist:
+    type: memory_distribution
+    memory_unit: kilobyte
+    description: |
+      This is a test-only metric.
+      Just measuring memory.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  a_timing_dist:
+    type: timing_distribution
+    description: |
+      This is a test-only metric.
+      Just measuring time.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  a_string_list:
+    type: string_list
+    description: |
+      This is a test-only metric.
+      Just appending some strings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  an_event:
+    type: event
+    extra_keys:
+      extra1:
+        description: "Some extra data"
+    description: |
+      This is a test-only metric.
+      Just recording some events.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX
+  a_uuid:
+    type: uuid
+    description: |
+      This is a test-only metric.
+      Just recording some unique identifiers.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
+    no_lint:
+      - COMMON_PREFIX

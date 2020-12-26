@@ -693,39 +693,38 @@ class NativeObject : public JSObject {
   friend class TenuringTracer;
 
   /*
-   * Get internal pointers to the range of values starting at start and
-   * running for length.
+   * Get internal pointers to the range of values from |start| to |end|
+   * exclusive.
    */
-  void getSlotRangeUnchecked(uint32_t start, uint32_t length,
+  void getSlotRangeUnchecked(uint32_t start, uint32_t end,
                              HeapSlot** fixedStart, HeapSlot** fixedEnd,
                              HeapSlot** slotsStart, HeapSlot** slotsEnd) {
-    MOZ_ASSERT(start + length >= start);
+    MOZ_ASSERT(end >= start);
 
     uint32_t fixed = numFixedSlots();
     if (start < fixed) {
-      if (start + length < fixed) {
+      if (end <= fixed) {
         *fixedStart = &fixedSlots()[start];
-        *fixedEnd = &fixedSlots()[start + length];
+        *fixedEnd = &fixedSlots()[end];
         *slotsStart = *slotsEnd = nullptr;
       } else {
-        uint32_t localCopy = fixed - start;
         *fixedStart = &fixedSlots()[start];
-        *fixedEnd = &fixedSlots()[start + localCopy];
+        *fixedEnd = &fixedSlots()[fixed];
         *slotsStart = &slots_[0];
-        *slotsEnd = &slots_[length - localCopy];
+        *slotsEnd = &slots_[end - fixed];
       }
     } else {
       *fixedStart = *fixedEnd = nullptr;
       *slotsStart = &slots_[start - fixed];
-      *slotsEnd = &slots_[start - fixed + length];
+      *slotsEnd = &slots_[end - fixed];
     }
   }
 
-  void getSlotRange(uint32_t start, uint32_t length, HeapSlot** fixedStart,
+  void getSlotRange(uint32_t start, uint32_t end, HeapSlot** fixedStart,
                     HeapSlot** fixedEnd, HeapSlot** slotsStart,
                     HeapSlot** slotsEnd) {
-    MOZ_ASSERT(slotInRange(start + length, SENTINEL_ALLOWED));
-    getSlotRangeUnchecked(start, length, fixedStart, fixedEnd, slotsStart,
+    MOZ_ASSERT(slotInRange(end, SENTINEL_ALLOWED));
+    getSlotRangeUnchecked(start, end, fixedStart, fixedEnd, slotsStart,
                           slotsEnd);
   }
 
@@ -734,25 +733,25 @@ class NativeObject : public JSObject {
   friend class Shape;
   friend class NewObjectCache;
 
-  void invalidateSlotRange(uint32_t start, uint32_t length) {
+  void invalidateSlotRange(uint32_t start, uint32_t end) {
 #ifdef DEBUG
     HeapSlot* fixedStart;
     HeapSlot* fixedEnd;
     HeapSlot* slotsStart;
     HeapSlot* slotsEnd;
-    getSlotRange(start, length, &fixedStart, &fixedEnd, &slotsStart, &slotsEnd);
+    getSlotRange(start, end, &fixedStart, &fixedEnd, &slotsStart, &slotsEnd);
     Debug_SetSlotRangeToCrashOnTouch(fixedStart, fixedEnd);
     Debug_SetSlotRangeToCrashOnTouch(slotsStart, slotsEnd);
 #endif /* DEBUG */
   }
 
-  void initializeSlotRange(uint32_t start, uint32_t count);
+  void initializeSlotRange(uint32_t start, uint32_t end);
 
   /*
-   * Initialize a flat array of slots to this object at a start slot.  The
-   * caller must ensure that are enough slots.
+   * Initialize the object's slots from a flat array. The caller must ensure
+   * that there are enough slots. This is used during brain transplants.
    */
-  void initSlotRange(uint32_t start, const Value* vector, uint32_t length);
+  void initSlots(const Value* vector, uint32_t length);
 
 #ifdef DEBUG
   enum SentinelAllowed{SENTINEL_NOT_ALLOWED, SENTINEL_ALLOWED};
@@ -1401,11 +1400,6 @@ class NativeObject : public JSObject {
   inline void setDenseElementHole(JSContext* cx, uint32_t index);
   inline void removeDenseElementForSparseIndex(JSContext* cx, uint32_t index);
 
-  template <AllowGC allowGC>
-  inline bool getDenseOrTypedArrayElement(
-      JSContext* cx, uint32_t idx,
-      typename MaybeRooted<Value, allowGC>::MutableHandleType val);
-
   inline void copyDenseElements(uint32_t dstStart, const Value* src,
                                 uint32_t count);
 
@@ -1555,39 +1549,40 @@ class NativeObject : public JSObject {
    */
   inline uint8_t* fixedData(size_t nslots) const;
 
-  inline void privatePreWriteBarrier(void** oldval);
-
-  void privatePostWriteBarrier(void** pprivate) {
-    gc::Cell** cellp = reinterpret_cast<gc::Cell**>(pprivate);
-    MOZ_ASSERT(cellp);
-    MOZ_ASSERT(*cellp);
-    gc::StoreBuffer* storeBuffer = (*cellp)->storeBuffer();
-    if (storeBuffer) {
-      storeBuffer->putCell(reinterpret_cast<JSObject**>(cellp));
-    }
-  }
+  inline void privatePreWriteBarrier(HeapSlot* pprivate);
 
   /* Private data accessors. */
 
-  inline void*& privateRef(
-      uint32_t nfixed) const { /* XXX should be private, not protected! */
+ private:
+  HeapSlot& privateRef(uint32_t nfixed) const {
     /*
-     * The private pointer of an object can hold any word sized value.
-     * Private pointers are stored immediately after the last fixed slot of
-     * the object.
+     * The private field of an object is used to hold a pointer by storing it as
+     * a PrivateValue(). Private fields are stored immediately after the last
+     * fixed slot of the object.
      */
     MOZ_ASSERT(isNumFixedSlots(nfixed));
     MOZ_ASSERT(hasPrivate());
-    HeapSlot* end = &fixedSlots()[nfixed];
-    return *reinterpret_cast<void**>(end);
+    return fixedSlots()[nfixed];
   }
 
+ public:
   bool hasPrivate() const { return getClass()->hasPrivate(); }
-  void* getPrivate() const { return privateRef(numFixedSlots()); }
-  void setPrivate(void* data) {
-    void** pprivate = &privateRef(numFixedSlots());
+
+  void* getPrivate() const { return getPrivate(numFixedSlots()); }
+  void* getPrivate(uint32_t nfixed) const {
+    return privateRef(nfixed).toPrivate();
+  }
+
+  void initPrivate(void* data) {
+    uint32_t nfixed = numFixedSlots();
+    privateRef(nfixed).unbarrieredSet(PrivateValue(data));
+  }
+
+  void setPrivate(void* data) { setPrivate(numFixedSlots(), data); }
+  void setPrivate(uint32_t nfixed, void* data) {
+    HeapSlot* pprivate = &privateRef(nfixed);
     privatePreWriteBarrier(pprivate);
-    *pprivate = data;
+    setPrivateUnbarriered(nfixed, data);
   }
 
   void setPrivateGCThing(gc::Cell* cell) {
@@ -1596,23 +1591,19 @@ class NativeObject : public JSObject {
       JS::AssertCellIsNotGray(cell);
     }
 #endif
-    void** pprivate = &privateRef(numFixedSlots());
+    uint32_t nfixed = numFixedSlots();
+    HeapSlot* pprivate = &privateRef(nfixed);
+    Cell* prev = static_cast<gc::Cell*>(pprivate->toPrivate());
     privatePreWriteBarrier(pprivate);
-    *pprivate = reinterpret_cast<void*>(cell);
-    privatePostWriteBarrier(pprivate);
+    setPrivateUnbarriered(nfixed, cell);
+    gc::PostWriteBarrierCell(this, prev, cell);
   }
 
   void setPrivateUnbarriered(void* data) {
-    void** pprivate = &privateRef(numFixedSlots());
-    *pprivate = data;
+    setPrivateUnbarriered(numFixedSlots(), data);
   }
-  void initPrivate(void* data) { privateRef(numFixedSlots()) = data; }
-
-  /* Access private data for an object with a known number of fixed slots. */
-  inline void* getPrivate(uint32_t nfixed) const { return privateRef(nfixed); }
   void setPrivateUnbarriered(uint32_t nfixed, void* data) {
-    void** pprivate = &privateRef(nfixed);
-    *pprivate = data;
+    privateRef(nfixed).unbarrieredSet(PrivateValue(data));
   }
 
   /* Return the allocKind we would use if we were to tenure this object. */
@@ -1653,9 +1644,9 @@ class NativeObject : public JSObject {
   static size_t offsetOfSlots() { return offsetof(NativeObject, slots_); }
 };
 
-inline void NativeObject::privatePreWriteBarrier(void** oldval) {
+inline void NativeObject::privatePreWriteBarrier(HeapSlot* pprivate) {
   JS::shadow::Zone* shadowZone = this->shadowZoneFromAnyThread();
-  if (shadowZone->needsIncrementalBarrier() && *oldval &&
+  if (shadowZone->needsIncrementalBarrier() && pprivate->get().toPrivate() &&
       getClass()->hasTrace()) {
     getClass()->doTrace(shadowZone->barrierTracer(), this);
   }

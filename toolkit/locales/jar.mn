@@ -6,9 +6,6 @@
 [localization] @AB_CD@.jar:
   crashreporter                                    (%crashreporter/**/*.ftl)
   toolkit                                          (%toolkit/**/*.ftl)
-#if defined(NIGHTLY_BUILD)
-  preview/aboutProcesses.ftl                       (../components/aboutprocesses/content/aboutProcesses.ftl)
-#endif
 
 @AB_CD@.jar:
 % locale global @AB_CD@ %locale/@AB_CD@/global/
@@ -66,14 +63,11 @@
 % locale mozapps @AB_CD@ %locale/@AB_CD@/mozapps/
   locale/@AB_CD@/mozapps/downloads/unknownContentType.properties  (%chrome/mozapps/downloads/unknownContentType.properties)
   locale/@AB_CD@/mozapps/downloads/unknownContentType.dtd         (%chrome/mozapps/downloads/unknownContentType.dtd)
-  locale/@AB_CD@/mozapps/downloads/settingsChange.dtd             (%chrome/mozapps/downloads/settingsChange.dtd)
   locale/@AB_CD@/mozapps/downloads/downloads.properties           (%chrome/mozapps/downloads/downloads.properties)
   locale/@AB_CD@/mozapps/extensions/extensions.dtd                (%chrome/mozapps/extensions/extensions.dtd)
 #ifndef MOZ_FENNEC
   locale/@AB_CD@/mozapps/extensions/extensions.properties         (%chrome/mozapps/extensions/extensions.properties)
 #endif
-  locale/@AB_CD@/mozapps/handling/handling.dtd                    (%chrome/mozapps/handling/handling.dtd)
-  locale/@AB_CD@/mozapps/handling/handling.properties             (%chrome/mozapps/handling/handling.properties)
   locale/@AB_CD@/mozapps/profile/profileSelection.properties      (%chrome/mozapps/profile/profileSelection.properties)
 #ifndef MOZ_FENNEC
   locale/@AB_CD@/mozapps/update/updates.properties                (%chrome/mozapps/update/updates.properties)

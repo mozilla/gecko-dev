@@ -7,12 +7,29 @@
 #ifndef mozilla_dom_quota_filestreams_h__
 #define mozilla_dom_quota_filestreams_h__
 
-#include "QuotaCommon.h"
+// Local includes
+#include "Client.h"
 
+// Global includes
+#include <cstdint>
+#include "ErrorList.h"
+#include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/ResultExtensions.h"
+#include "mozilla/dom/quota/PersistenceType.h"
+#include "mozilla/dom/quota/QuotaCommon.h"
+#include "mozilla/dom/quota/QuotaInfo.h"
+#include "mozilla/dom/quota/QuotaObject.h"
 #include "nsFileStreams.h"
+#include "nsISupports.h"
+#include "nsStringFwd.h"
+#include "nscore.h"
 
-#include "PersistenceType.h"
-#include "QuotaObject.h"
+class nsIFile;
+
+namespace mozilla {
+class Runnable;
+}
 
 BEGIN_QUOTA_NAMESPACE
 
@@ -27,19 +44,18 @@ class FileQuotaStream : public FileStreamBase {
   Close() override;
 
  protected:
-  FileQuotaStream(PersistenceType aPersistenceType, const nsACString& aGroup,
-                  const nsACString& aOrigin, Client::Type aClientType)
+  FileQuotaStream(PersistenceType aPersistenceType,
+                  const GroupAndOrigin& aGroupAndOrigin,
+                  Client::Type aClientType)
       : mPersistenceType(aPersistenceType),
-        mGroup(aGroup),
-        mOrigin(aOrigin),
+        mGroupAndOrigin(aGroupAndOrigin),
         mClientType(aClientType) {}
 
   // nsFileStreamBase override
   virtual nsresult DoOpen() override;
 
   PersistenceType mPersistenceType;
-  nsCString mGroup;
-  nsCString mOrigin;
+  GroupAndOrigin mGroupAndOrigin;
   Client::Type mClientType;
   RefPtr<QuotaObject> mQuotaObject;
 };
@@ -53,9 +69,9 @@ class FileQuotaStreamWithWrite : public FileQuotaStream<FileStreamBase> {
 
  protected:
   FileQuotaStreamWithWrite(PersistenceType aPersistenceType,
-                           const nsACString& aGroup, const nsACString& aOrigin,
+                           const GroupAndOrigin& aGroupAndOrigin,
                            Client::Type aClientType)
-      : FileQuotaStream<FileStreamBase>(aPersistenceType, aGroup, aOrigin,
+      : FileQuotaStream<FileStreamBase>(aPersistenceType, aGroupAndOrigin,
                                         aClientType) {}
 };
 
@@ -64,9 +80,10 @@ class FileInputStream : public FileQuotaStream<nsFileInputStream> {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(FileInputStream,
                                        FileQuotaStream<nsFileInputStream>)
 
-  FileInputStream(PersistenceType aPersistenceType, const nsACString& aGroup,
-                  const nsACString& aOrigin, Client::Type aClientType)
-      : FileQuotaStream<nsFileInputStream>(aPersistenceType, aGroup, aOrigin,
+  FileInputStream(PersistenceType aPersistenceType,
+                  const GroupAndOrigin& aGroupAndOrigin,
+                  Client::Type aClientType)
+      : FileQuotaStream<nsFileInputStream>(aPersistenceType, aGroupAndOrigin,
                                            aClientType) {}
 
  private:
@@ -78,10 +95,11 @@ class FileOutputStream : public FileQuotaStreamWithWrite<nsFileOutputStream> {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(
       FileOutputStream, FileQuotaStreamWithWrite<nsFileOutputStream>);
 
-  FileOutputStream(PersistenceType aPersistenceType, const nsACString& aGroup,
-                   const nsACString& aOrigin, Client::Type aClientType)
-      : FileQuotaStreamWithWrite<nsFileOutputStream>(aPersistenceType, aGroup,
-                                                     aOrigin, aClientType) {}
+  FileOutputStream(PersistenceType aPersistenceType,
+                   const GroupAndOrigin& aGroupAndOrigin,
+                   Client::Type aClientType)
+      : FileQuotaStreamWithWrite<nsFileOutputStream>(
+            aPersistenceType, aGroupAndOrigin, aClientType) {}
 
  private:
   virtual ~FileOutputStream() { Close(); }
@@ -92,29 +110,29 @@ class FileStream : public FileQuotaStreamWithWrite<nsFileStream> {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(FileStream,
                                        FileQuotaStreamWithWrite<nsFileStream>)
 
-  FileStream(PersistenceType aPersistenceType, const nsACString& aGroup,
-             const nsACString& aOrigin, Client::Type aClientType)
-      : FileQuotaStreamWithWrite<nsFileStream>(aPersistenceType, aGroup,
-                                               aOrigin, aClientType) {}
+  FileStream(PersistenceType aPersistenceType,
+             const GroupAndOrigin& aGroupAndOrigin, Client::Type aClientType)
+      : FileQuotaStreamWithWrite<nsFileStream>(aPersistenceType,
+                                               aGroupAndOrigin, aClientType) {}
 
  private:
   virtual ~FileStream() { Close(); }
 };
 
 already_AddRefed<FileInputStream> CreateFileInputStream(
-    PersistenceType aPersistenceType, const nsACString& aGroup,
-    const nsACString& aOrigin, Client::Type aClientType, nsIFile* aFile,
-    int32_t aIOFlags = -1, int32_t aPerm = -1, int32_t aBehaviorFlags = 0);
+    PersistenceType aPersistenceType, const GroupAndOrigin& aGroupAndOrigin,
+    Client::Type aClientType, nsIFile* aFile, int32_t aIOFlags = -1,
+    int32_t aPerm = -1, int32_t aBehaviorFlags = 0);
 
 already_AddRefed<FileOutputStream> CreateFileOutputStream(
-    PersistenceType aPersistenceType, const nsACString& aGroup,
-    const nsACString& aOrigin, Client::Type aClientType, nsIFile* aFile,
-    int32_t aIOFlags = -1, int32_t aPerm = -1, int32_t aBehaviorFlags = 0);
+    PersistenceType aPersistenceType, const GroupAndOrigin& aGroupAndOrigin,
+    Client::Type aClientType, nsIFile* aFile, int32_t aIOFlags = -1,
+    int32_t aPerm = -1, int32_t aBehaviorFlags = 0);
 
 already_AddRefed<FileStream> CreateFileStream(
-    PersistenceType aPersistenceType, const nsACString& aGroup,
-    const nsACString& aOrigin, Client::Type aClientType, nsIFile* aFile,
-    int32_t aIOFlags = -1, int32_t aPerm = -1, int32_t aBehaviorFlags = 0);
+    PersistenceType aPersistenceType, const GroupAndOrigin& aGroupAndOrigin,
+    Client::Type aClientType, nsIFile* aFile, int32_t aIOFlags = -1,
+    int32_t aPerm = -1, int32_t aBehaviorFlags = 0);
 
 END_QUOTA_NAMESPACE
 

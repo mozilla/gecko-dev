@@ -9,7 +9,7 @@
 //! how these two pieces interact.
 
 use api::{DebugFlags, BlobImageHandler};
-use api::{DocumentId, DocumentLayer, ExternalScrollId, HitTestResult};
+use api::{DocumentId, ExternalScrollId, HitTestResult};
 use api::{IdNamespace, PipelineId, RenderNotifier, ScrollClamping};
 use api::{NotificationRequest, Checkpoint, QualitySettings};
 use api::{PrimitiveKeyKind};
@@ -38,7 +38,7 @@ use crate::picture::{TileCacheLogger, PictureScratchBuffer, SliceId, TileCacheIn
 use crate::prim_store::{PrimitiveScratchBuffer, PrimitiveInstance};
 use crate::prim_store::{PrimitiveInstanceKind, PrimTemplateCommonData, PrimitiveStore};
 use crate::prim_store::interned::*;
-use crate::profiler::{BackendProfileCounters, ResourceProfileCounters};
+use crate::profiler::{self, TransactionProfile};
 use crate::render_task_graph::RenderTaskGraphCounters;
 use crate::renderer::{AsyncPropertySampler, PipelineInfo};
 use crate::resource_cache::ResourceCache;
@@ -81,7 +81,6 @@ pub struct DocumentView {
 #[derive(Copy, Clone)]
 pub struct SceneView {
     pub device_rect: DeviceIntRect,
-    pub layer: DocumentLayer,
     pub device_pixel_ratio: f32,
     pub page_zoom_factor: f32,
     pub quality_settings: QualitySettings,
@@ -274,12 +273,12 @@ macro_rules! declare_data_stores {
             fn apply_updates(
                 &mut self,
                 updates: InternerUpdates,
-                profile_counters: &mut BackendProfileCounters,
+                profile: &mut TransactionProfile,
             ) {
                 $(
                     self.$name.apply_updates(
                         updates.$name,
-                        &mut profile_counters.intern.$name,
+                        profile,
                     );
                 )+
             }
@@ -470,13 +469,14 @@ struct Document {
     /// Tracks if we need to invalidate dirty rects for this document, due to the picture
     /// cache slice configuration having changed when a new scene is swapped in.
     dirty_rects_are_valid: bool,
+
+    profile: TransactionProfile,
 }
 
 impl Document {
     pub fn new(
         id: DocumentId,
         size: DeviceIntSize,
-        layer: DocumentLayer,
         default_device_pixel_ratio: f32,
     ) -> Self {
         Document {
@@ -485,7 +485,6 @@ impl Document {
             view: DocumentView {
                 scene: SceneView {
                     device_rect: size.into(),
-                    layer,
                     page_zoom_factor: 1.0,
                     device_pixel_ratio: default_device_pixel_ratio,
                     quality_settings: QualitySettings::default(),
@@ -512,6 +511,7 @@ impl Document {
             loaded_scene: Scene::new(),
             prev_composite_descriptor: CompositeDescriptor::empty(),
             dirty_rects_are_valid: true,
+            profile: TransactionProfile::new(),
         }
     }
 
@@ -603,11 +603,12 @@ impl Document {
         &mut self,
         resource_cache: &mut ResourceCache,
         gpu_cache: &mut GpuCache,
-        resource_profile: &mut ResourceProfileCounters,
         debug_flags: DebugFlags,
         tile_cache_logger: &mut TileCacheLogger,
         tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
     ) -> RenderedDocument {
+        self.profile.start_time(profiler::FRAME_BUILDING_TIME);
+
         let accumulated_scale_factor = self.view.accumulated_scale_factor();
         let pan = self.view.frame.pan.to_f32() / accumulated_scale_factor;
 
@@ -624,10 +625,8 @@ impl Document {
                 gpu_cache,
                 self.stamp,
                 accumulated_scale_factor,
-                self.view.scene.layer,
                 self.view.scene.device_rect.origin,
                 pan,
-                resource_profile,
                 &self.dynamic_properties,
                 &mut self.data_stores,
                 &mut self.scratch,
@@ -636,6 +635,7 @@ impl Document {
                 tile_cache_logger,
                 tile_caches,
                 self.dirty_rects_are_valid,
+                &mut self.profile,
             );
 
             frame
@@ -647,9 +647,12 @@ impl Document {
         let is_new_scene = self.has_built_scene;
         self.has_built_scene = false;
 
+        self.profile.end_time(profiler::FRAME_BUILDING_TIME);
+
         RenderedDocument {
             frame,
             is_new_scene,
+            profile: self.profile.take_and_reset(),
         }
     }
 
@@ -875,7 +878,7 @@ impl RenderBackend {
         IdNamespace(NEXT_NAMESPACE_ID.fetch_add(1, Ordering::Relaxed) as u32)
     }
 
-    pub fn run(&mut self, mut profile_counters: BackendProfileCounters) {
+    pub fn run(&mut self) {
         let mut frame_counter: u32 = 0;
         let mut status = RenderBackendStatus::Continue;
 
@@ -886,7 +889,7 @@ impl RenderBackend {
         while let RenderBackendStatus::Continue = status {
             status = match self.api_rx.recv() {
                 Ok(msg) => {
-                    self.process_api_msg(msg, &mut profile_counters, &mut frame_counter)
+                    self.process_api_msg(msg, &mut frame_counter)
                 }
                 Err(..) => { RenderBackendStatus::ShutDown(None) }
             };
@@ -926,36 +929,21 @@ impl RenderBackend {
         mut txns: Vec<Box<BuiltTransaction>>,
         result_tx: Option<Sender<SceneSwapResult>>,
         frame_counter: &mut u32,
-        profile_counters: &mut BackendProfileCounters,
     ) -> bool {
         self.prepare_for_frames();
         self.maybe_force_nop_documents(
             frame_counter,
-            profile_counters,
             |document_id| txns.iter().any(|txn| txn.document_id == document_id));
 
         let mut built_frame = false;
         for mut txn in txns.drain(..) {
            let has_built_scene = txn.built_scene.is_some();
 
-           if let Some(timings) = txn.timings {
-               if has_built_scene {
-                   profile_counters.scene_changed = true;
-               }
-
-               profile_counters.txn.set(
-                   timings.builder_start_time_ns,
-                   timings.builder_end_time_ns,
-                   timings.send_time_ns,
-                   timings.scene_build_start_time_ns,
-                   timings.scene_build_end_time_ns,
-                   timings.display_list_len,
-               );
-            }
-
             if let Some(doc) = self.documents.get_mut(&txn.document_id) {
+
                 doc.removed_pipelines.append(&mut txn.removed_pipelines);
                 doc.view.scene = txn.view;
+                doc.profile.merge(&mut txn.profile);
 
                 if let Some(built_scene) = txn.built_scene.take() {
                     doc.new_async_scene_ready(
@@ -976,7 +964,7 @@ impl RenderBackend {
                             self.tile_cache_logger.serialize_updates(&updates);
                         }
                     }
-                    doc.data_stores.apply_updates(updates, profile_counters);
+                    doc.data_stores.apply_updates(updates, &mut doc.profile);
                 }
 
                 // Build the hit tester while the APZ lock is held so that its content
@@ -1000,6 +988,12 @@ impl RenderBackend {
                         .spatial_tree
                         .discard_frame_state_for_pipeline(*pipeline_id);
                 }
+
+                self.resource_cache.add_rasterized_blob_images(
+                    txn.rasterized_blobs.take(),
+                    &mut doc.profile,
+                );
+
             } else {
                 // The document was removed while we were building it, skip it.
                 // TODO: we might want to just ensure that removed documents are
@@ -1010,11 +1004,6 @@ impl RenderBackend {
                 continue;
             }
 
-            self.resource_cache.add_rasterized_blob_images(
-                txn.rasterized_blobs.take(),
-                &mut profile_counters.resources.texture_cache,
-            );
-
             built_frame |= self.update_document(
                 txn.document_id,
                 txn.resource_updates.take(),
@@ -1023,7 +1012,6 @@ impl RenderBackend {
                 txn.render_frame,
                 txn.invalidate_rendered_frame,
                 frame_counter,
-                profile_counters,
                 has_built_scene,
             );
         }
@@ -1034,7 +1022,6 @@ impl RenderBackend {
     fn process_api_msg(
         &mut self,
         msg: ApiMsg,
-        profile_counters: &mut BackendProfileCounters,
         frame_counter: &mut u32,
     ) -> RenderBackendStatus {
         match msg {
@@ -1047,11 +1034,10 @@ impl RenderBackend {
                 assert!(self.namespace_alloc_by_client);
                 debug_assert!(!self.documents.iter().any(|(did, _doc)| did.namespace_id == namespace_id));
             }
-            ApiMsg::AddDocument(document_id, initial_size, layer) => {
+            ApiMsg::AddDocument(document_id, initial_size) => {
                 let document = Document::new(
                     document_id,
                     initial_size,
-                    layer,
                     self.default_device_pixel_ratio,
                 );
                 let old = self.documents.insert(document_id, document);
@@ -1115,7 +1101,7 @@ impl RenderBackend {
                     }
                     #[cfg(feature = "capture")]
                     DebugCommand::SaveCapture(root, bits) => {
-                        let output = self.save_capture(root, bits, profile_counters);
+                        let output = self.save_capture(root, bits);
                         ResultMsg::DebugOutput(output)
                     },
                     #[cfg(feature = "capture")]
@@ -1139,7 +1125,7 @@ impl RenderBackend {
                             config.frame_id = frame_id;
                         }
 
-                        self.load_capture(config, profile_counters);
+                        self.load_capture(config);
 
                         for (id, doc) in &self.documents {
                             let captured = CapturedDocument {
@@ -1230,11 +1216,10 @@ impl RenderBackend {
                 self.prepare_transactions(
                     transaction_msgs,
                     frame_counter,
-                    profile_counters,
                 );
             }
             ApiMsg::SceneBuilderResult(msg) => {
-                return self.process_scene_builder_result(msg, profile_counters, frame_counter);
+                return self.process_scene_builder_result(msg, frame_counter);
             }
         }
 
@@ -1244,7 +1229,6 @@ impl RenderBackend {
     fn process_scene_builder_result(
         &mut self,
         msg: SceneBuilderResult,
-        profile_counters: &mut BackendProfileCounters,
         frame_counter: &mut u32,
     ) -> RenderBackendStatus {
         profile_scope!("sb_msg");
@@ -1255,7 +1239,6 @@ impl RenderBackend {
                     txns,
                     result_tx,
                     frame_counter,
-                    profile_counters,
                 );
                 self.bookkeep_after_frames();
             },
@@ -1275,7 +1258,6 @@ impl RenderBackend {
                     txns,
                     result_tx,
                     frame_counter,
-                    profile_counters,
                 );
 
                 if built_frame {
@@ -1357,16 +1339,20 @@ impl RenderBackend {
         &mut self,
         txns: Vec<Box<TransactionMsg>>,
         frame_counter: &mut u32,
-        profile_counters: &mut BackendProfileCounters,
     ) {
         self.prepare_for_frames();
         self.maybe_force_nop_documents(
             frame_counter,
-            profile_counters,
             |document_id| txns.iter().any(|txn| txn.document_id == document_id));
 
         let mut built_frame = false;
         for mut txn in txns {
+            if txn.generate_frame {
+                txn.profile.end_time(profiler::API_SEND_TIME);
+            }
+
+            self.documents.get_mut(&txn.document_id).unwrap().profile.merge(&mut txn.profile);
+
             built_frame |= self.update_document(
                 txn.document_id,
                 txn.resource_updates.take(),
@@ -1375,7 +1361,6 @@ impl RenderBackend {
                 txn.generate_frame,
                 txn.invalidate_rendered_frame,
                 frame_counter,
-                profile_counters,
                 false
             );
         }
@@ -1394,7 +1379,6 @@ impl RenderBackend {
     /// to force a frame build.
     fn maybe_force_nop_documents<F>(&mut self,
                                     frame_counter: &mut u32,
-                                    profile_counters: &mut BackendProfileCounters,
                                     document_already_present: F) where
         F: Fn(DocumentId) -> bool {
         if self.requires_frame_build() {
@@ -1413,7 +1397,6 @@ impl RenderBackend {
                     false,
                     false,
                     frame_counter,
-                    profile_counters,
                     false);
             }
             #[cfg(feature = "capture")]
@@ -1433,13 +1416,13 @@ impl RenderBackend {
         mut render_frame: bool,
         invalidate_rendered_frame: bool,
         frame_counter: &mut u32,
-        profile_counters: &mut BackendProfileCounters,
         has_built_scene: bool,
     ) -> bool {
         let requested_frame = render_frame;
 
         let requires_frame_build = self.requires_frame_build();
         let doc = self.documents.get_mut(&document_id).unwrap();
+
         // If we have a sampler, get more frame ops from it and add them
         // to the transaction. This is a hook to allow the WR user code to
         // fiddle with things after a potentially long scene build, but just
@@ -1458,7 +1441,6 @@ impl RenderBackend {
         // for something wrench specific and we should remove it.
         let mut scroll = false;
         for frame_msg in frame_ops {
-            let _timer = profile_counters.total_time.timer();
             let op = doc.process_frame_msg(frame_msg);
             scroll |= op.scroll;
         }
@@ -1471,7 +1453,7 @@ impl RenderBackend {
 
         self.resource_cache.post_scene_building_update(
             resource_updates,
-            &mut profile_counters.resources,
+            &mut doc.profile,
         );
 
         if doc.dynamic_properties.flush_pending_updates() {
@@ -1517,13 +1499,11 @@ impl RenderBackend {
 
             // borrow ck hack for profile_counters
             let (pending_update, rendered_document) = {
-                let _timer = profile_counters.total_time.timer();
                 let frame_build_start_time = precise_time_ns();
 
                 let rendered_document = doc.build_frame(
                     &mut self.resource_cache,
                     &mut self.gpu_cache,
-                    &mut profile_counters.resources,
                     self.debug_flags,
                     &mut self.tile_cache_logger,
                     &mut self.tile_caches,
@@ -1586,10 +1566,8 @@ impl RenderBackend {
                 document_id,
                 rendered_document,
                 pending_update,
-                profile_counters.clone()
             );
             self.result_tx.send(msg).unwrap();
-            profile_counters.reset();
         } else if requested_frame {
             // WR-internal optimization to avoid doing a bunch of render work if
             // there's no pixels. We still want to pretend to render and request
@@ -1712,7 +1690,6 @@ impl RenderBackend {
         &mut self,
         root: PathBuf,
         bits: CaptureBits,
-        profile_counters: &mut BackendProfileCounters,
     ) -> DebugOutput {
         use std::fs;
         use crate::render_task_graph::dump_render_tasks_as_svg;
@@ -1735,7 +1712,6 @@ impl RenderBackend {
                 let rendered_document = doc.build_frame(
                     &mut self.resource_cache,
                     &mut self.gpu_cache,
-                    &mut profile_counters.resources,
                     self.debug_flags,
                     &mut self.tile_cache_logger,
                     &mut self.tile_caches,
@@ -1759,13 +1735,21 @@ impl RenderBackend {
                 let file_name = format!("scratch-{}-{}", id.namespace_id.0, id.id);
                 config.serialize_for_frame(&doc.scratch.primitive, file_name);
                 let file_name = format!("render-tasks-{}-{}.svg", id.namespace_id.0, id.id);
-                let mut svg_file = fs::File::create(&config.file_path_for_frame(file_name, "svg"))
+                let mut render_tasks_file = fs::File::create(&config.file_path_for_frame(file_name, "svg"))
                     .expect("Failed to open the SVG file.");
                 dump_render_tasks_as_svg(
                     &rendered_document.frame.render_tasks,
                     &rendered_document.frame.passes,
-                    &mut svg_file
+                    &mut render_tasks_file
                 ).unwrap();
+                let file_name = format!("texture-cache-color-linear-{}-{}.svg", id.namespace_id.0, id.id);
+                let mut texture_file = fs::File::create(&config.file_path_for_frame(file_name, "svg"))
+                    .expect("Failed to open the SVG file.");
+                self.resource_cache.texture_cache.dump_color8_linear_as_svg(&mut texture_file).unwrap();
+                let file_name = format!("texture-cache-glyphs-{}-{}.svg", id.namespace_id.0, id.id);
+                let mut texture_file = fs::File::create(&config.file_path_for_frame(file_name, "svg"))
+                    .expect("Failed to open the SVG file.");
+                self.resource_cache.texture_cache.dump_glyphs_as_svg(&mut texture_file).unwrap();
             }
 
             let data_stores_name = format!("data-stores-{}-{}", id.namespace_id.0, id.id);
@@ -1851,7 +1835,6 @@ impl RenderBackend {
     fn load_capture(
         &mut self,
         mut config: CaptureConfig,
-        profile_counters: &mut BackendProfileCounters,
     ) {
         debug!("capture: loading {:?}", config.frame_root());
         let backend = config.deserialize_for_frame::<PlainRenderBackend, _>("backend")
@@ -1962,6 +1945,7 @@ impl RenderBackend {
                         loaded_scene: scene.clone(),
                         prev_composite_descriptor: CompositeDescriptor::empty(),
                         dirty_rects_are_valid: false,
+                        profile: TransactionProfile::new(),
                     };
                     entry.insert(doc);
                 }
@@ -1978,12 +1962,10 @@ impl RenderBackend {
 
                     let msg_publish = ResultMsg::PublishDocument(
                         id,
-                        RenderedDocument { frame, is_new_scene: true },
+                        RenderedDocument { frame, is_new_scene: true, profile: TransactionProfile::new() },
                         self.resource_cache.pending_updates(),
-                        profile_counters.clone(),
                     );
                     self.result_tx.send(msg_publish).unwrap();
-                    profile_counters.reset();
 
                     self.notifier.new_frame_ready(id, false, true, None);
 

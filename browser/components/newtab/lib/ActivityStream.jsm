@@ -100,11 +100,6 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "ASRouterFeed",
-  "resource://activity-stream/lib/ASRouterFeed.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
   "DiscoveryStreamFeed",
   "resource://activity-stream/lib/DiscoveryStreamFeed.jsm"
 );
@@ -671,12 +666,6 @@ const FEEDS_DATA = [
     name: "system.topsites",
     factory: () => new TopSitesFeed(),
     title: "Queries places and gets metadata for Top Sites section",
-    value: true,
-  },
-  {
-    name: "asrouterfeed",
-    factory: () => new ASRouterFeed(),
-    title: "Handles AS Router messages, such as snippets and onboaridng",
     value: true,
   },
   {

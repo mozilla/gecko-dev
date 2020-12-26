@@ -45,6 +45,8 @@
 namespace mozilla {
 namespace dom {
 
+class Credential;
+
 class WebAuthnTransaction {
  public:
   explicit WebAuthnTransaction(const RefPtr<Promise>& aPromise)
@@ -104,7 +106,7 @@ class WebAuthnManager final : public WebAuthnManagerBase, public AbortFollower {
 
   // AbortFollower
 
-  void Abort() override;
+  void RunAbortAlgorithm() override;
 
  protected:
   // Cancels the current transaction (by sending a Cancel message to the

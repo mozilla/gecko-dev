@@ -5,6 +5,10 @@
 
 #include "nsNativeBasicTheme.h"
 
+#include "gfxBlur.h"
+#include "mozilla/gfx/Rect.h"
+#include "mozilla/gfx/Types.h"
+#include "mozilla/gfx/Filters.h"
 #include "nsCSSColorUtils.h"
 #include "nsCSSRendering.h"
 #include "nsLayoutUtils.h"
@@ -287,6 +291,47 @@ void nsNativeBasicTheme::PaintStrokedEllipse(DrawTarget* aDrawTarget,
   aDrawTarget->Fill(ellipse, ColorPattern(ToDeviceColor(aBackgroundColor)));
   aDrawTarget->Stroke(ellipse, ColorPattern(ToDeviceColor(aBorderColor)),
                       StrokeOptions(borderWidth));
+}
+
+/* static */
+void nsNativeBasicTheme::PaintEllipseShadow(
+    DrawTarget* aDrawTarget, const Rect& aRect, float aShadowAlpha,
+    const Point& aShadowOffset, float aShadowBlurStdDev, uint32_t aDpiRatio) {
+  Float stdDev = aShadowBlurStdDev * aDpiRatio;
+  Point offset = aShadowOffset * aDpiRatio;
+
+  RefPtr<FilterNode> blurFilter =
+      aDrawTarget->CreateFilter(FilterType::GAUSSIAN_BLUR);
+  if (!blurFilter) {
+    return;
+  }
+
+  blurFilter->SetAttribute(ATT_GAUSSIAN_BLUR_STD_DEVIATION, stdDev);
+
+  IntSize inflation =
+      gfxAlphaBoxBlur::CalculateBlurRadius(gfxPoint(stdDev, stdDev));
+  Rect inflatedRect(aRect);
+  inflatedRect.Inflate(inflation.width, inflation.height);
+  Rect sourceRectInFilterSpace = inflatedRect - aRect.TopLeft();
+  Point destinationPointOfSourceRect = inflatedRect.TopLeft() + offset;
+
+  IntSize dtSize = RoundedToInt(aRect.Size().ToUnknownSize());
+  RefPtr<DrawTarget> ellipseDT = aDrawTarget->CreateSimilarDrawTargetForFilter(
+      dtSize, SurfaceFormat::A8, blurFilter, blurFilter,
+      sourceRectInFilterSpace, destinationPointOfSourceRect);
+  if (!ellipseDT) {
+    return;
+  }
+
+  RefPtr<Path> ellipse = MakePathForEllipse(
+      *ellipseDT, (aRect - aRect.TopLeft()).Center(), aRect.Size());
+  ellipseDT->Fill(ellipse,
+                  ColorPattern(DeviceColor(0.0f, 0.0f, 0.0f, aShadowAlpha)));
+  RefPtr<SourceSurface> ellipseSurface = ellipseDT->Snapshot();
+
+  blurFilter->SetInput(IN_GAUSSIAN_BLUR_IN, ellipseSurface);
+  aDrawTarget->DrawFilter(blurFilter, sourceRectInFilterSpace,
+                          destinationPointOfSourceRect);
 }
 
 /* static */
@@ -645,81 +690,102 @@ void nsNativeBasicTheme::PaintSpinnerButton(nsIFrame* aFrame,
 }
 
 /* static */
-void nsNativeBasicTheme::PaintRangeTrackBackground(
-    nsIFrame* aFrame, DrawTarget* aDrawTarget, const Rect& aRect,
-    const EventStates& aState, uint32_t aDpiRatio, bool aHorizontal) {
+void nsNativeBasicTheme::PaintRange(nsIFrame* aFrame, DrawTarget* aDrawTarget,
+                                    const Rect& aRect,
+                                    const EventStates& aState,
+                                    uint32_t aDpiRatio, bool aHorizontal) {
   nsRangeFrame* rangeFrame = do_QueryFrame(aFrame);
   if (!rangeFrame) {
     return;
   }
 
+  double progress = rangeFrame->GetValueAsFractionOfRange();
   Rect rect(aRect);
+  Rect thumbRect(0, 0, kMinimumRangeThumbSize.value * aDpiRatio,
+                 kMinimumRangeThumbSize.value * aDpiRatio);
+  Rect overflowRect(aRect);
+  overflowRect.Inflate(6 * aDpiRatio);  // See GetWidgetOverflow
+  Rect progressClipRect(overflowRect);
+  Rect trackClipRect(overflowRect);
   const CSSCoord verticalSize = kRangeHeight * aDpiRatio;
   if (aHorizontal) {
-    rect.y += (rect.height - verticalSize) / 2;
     rect.height = verticalSize;
-  } else {
-    rect.x += (rect.width - verticalSize) / 2;
-    rect.width = verticalSize;
-  }
+    rect.y = aRect.y + (aRect.height - rect.height) / 2;
+    thumbRect.y = aRect.y + (aRect.height - thumbRect.height) / 2;
 
-  double progress = rangeFrame->GetValueAsFractionOfRange();
-  Rect progressRect(rect);
-  Rect trackRect(rect);
-  if (aHorizontal) {
-    progressRect.width = rect.width * progress;
     if (IsFrameRTL(aFrame)) {
-      progressRect.x += rect.width - progressRect.width;
+      thumbRect.x =
+          aRect.x + (aRect.width - thumbRect.width) * (1.0 - progress);
+      float midPoint = thumbRect.Center().X();
+      trackClipRect.SetBoxX(overflowRect.X(), midPoint);
+      progressClipRect.SetBoxX(midPoint, overflowRect.XMost());
     } else {
-      trackRect.x += progressRect.width;
+      thumbRect.x = aRect.x + (aRect.width - thumbRect.width) * progress;
+      float midPoint = thumbRect.Center().X();
+      progressClipRect.SetBoxX(overflowRect.X(), midPoint);
+      trackClipRect.SetBoxX(midPoint, overflowRect.XMost());
     }
-    trackRect.width -= progressRect.width;
   } else {
-    progressRect.height = rect.height * progress;
-    progressRect.y += rect.height - progressRect.height;
-    trackRect.height -= progressRect.height;
+    rect.width = verticalSize;
+    rect.x = aRect.x + (aRect.width - rect.width) / 2;
+    thumbRect.x = aRect.x + (aRect.width - thumbRect.width) / 2;
+
+    thumbRect.y = aRect.y + (aRect.height - thumbRect.height) * progress;
+    float midPoint = thumbRect.Center().Y();
+    trackClipRect.SetBoxY(overflowRect.Y(), midPoint);
+    progressClipRect.SetBoxY(midPoint, overflowRect.YMost());
   }
 
   const CSSCoord borderWidth = 1.0f;
   const CSSCoord radius = 2.0f;
 
-  // Avoid artifacts between thumb and track when progress is approaching
-  // 0.0f or 1.0f.
-  if ((aHorizontal && ((progressRect.width > (radius * 2.0f)))) ||
-      (!aHorizontal && ((progressRect.height > radius * 2.0f)))) {
-    sRGBColor progressColor, progressBorderColor;
-    std::tie(progressColor, progressBorderColor) =
-        ComputeRangeProgressColors(aState);
-    PaintRoundedRectWithRadius(aDrawTarget, progressRect, progressColor,
+  sRGBColor progressColor, progressBorderColor;
+  std::tie(progressColor, progressBorderColor) =
+      ComputeRangeProgressColors(aState);
+  sRGBColor trackColor, trackBorderColor;
+  std::tie(trackColor, trackBorderColor) = ComputeRangeTrackColors(aState);
+
+  // Make a path that clips out the range thumb.
+  RefPtr<PathBuilder> builder =
+      aDrawTarget->CreatePathBuilder(FillRule::FILL_EVEN_ODD);
+  AppendRectToPath(builder, overflowRect);
+  AppendEllipseToPath(builder, thumbRect.Center(), thumbRect.Size());
+  RefPtr<Path> path = builder->Finish();
+
+  // Draw the progress and track pieces with the thumb clipped out, so that
+  // they're not visible behind the thumb even if the thumb is partially
+  // transparent (which is the case in the disabled state).
+  aDrawTarget->PushClip(path);
+  {
+    aDrawTarget->PushClipRect(progressClipRect);
+    PaintRoundedRectWithRadius(aDrawTarget, rect, progressColor,
                                progressBorderColor, borderWidth, radius,
                                aDpiRatio);
+    aDrawTarget->PopClip();
+
+    aDrawTarget->PushClipRect(trackClipRect);
+    PaintRoundedRectWithRadius(aDrawTarget, rect, trackColor, trackBorderColor,
+                               borderWidth, radius, aDpiRatio);
+    aDrawTarget->PopClip();
+
+    if (!aState.HasState(NS_EVENT_STATE_DISABLED)) {
+      // Thumb shadow
+      PaintEllipseShadow(aDrawTarget, thumbRect, 0.3f, Point(0.0f, 2.0f), 2.0f,
+                         aDpiRatio);
+    }
   }
-  if ((aHorizontal && ((trackRect.width > (radius * 2.0f)))) ||
-      (!aHorizontal && (trackRect.height > (radius * 2.0f)))) {
-    sRGBColor trackColor, trackBorderColor;
-    std::tie(trackColor, trackBorderColor) = ComputeRangeTrackColors(aState);
-    PaintRoundedRectWithRadius(aDrawTarget, trackRect, trackColor,
-                               trackBorderColor, borderWidth, radius,
-                               aDpiRatio);
-  }
+  aDrawTarget->PopClip();
+
+  // Draw the thumb on top.
+  const CSSCoord thumbBorderWidth = 2.0f;
+  auto [thumbColor, thumbBorderColor] = ComputeRangeThumbColors(aState);
+
+  PaintStrokedEllipse(aDrawTarget, thumbRect, thumbColor, thumbBorderColor,
+                      thumbBorderWidth, aDpiRatio);
 
   if (aState.HasState(NS_EVENT_STATE_FOCUS)) {
     PaintRoundedFocusRect(aDrawTarget, aRect, aDpiRatio, radius, 3.0f);
   }
-}
-
-/* static */
-void nsNativeBasicTheme::PaintRangeThumb(DrawTarget* aDrawTarget,
-                                         const Rect& aRect,
-                                         const EventStates& aState,
-                                         uint32_t aDpiRatio) {
-  const CSSCoord borderWidth = 2.0f;
-  auto [backgroundColor, borderColor] = ComputeRangeThumbColors(aState);
-
-  PaintStrokedEllipse(aDrawTarget, aRect, backgroundColor, borderColor,
-                      borderWidth, aDpiRatio);
-
-  // TODO: Paint thumb shadow.
 }
 
 /* static */
@@ -920,25 +986,33 @@ sRGBColor nsNativeBasicTheme::ComputeScrollbarColor(
   return gfx::sRGBColor::FromABGR(color);
 }
 
-void nsNativeBasicTheme::PaintScrollbarthumbHorizontal(
-    DrawTarget* aDrawTarget, const Rect& aRect, const ComputedStyle& aStyle,
-    const EventStates& aElementState, const EventStates& aDocumentState) {
+void nsNativeBasicTheme::PaintScrollbarThumb(DrawTarget* aDrawTarget,
+                                             const Rect& aRect,
+                                             bool aHorizontal, nsIFrame* aFrame,
+                                             const ComputedStyle& aStyle,
+                                             const EventStates& aElementState,
+                                             const EventStates& aDocumentState,
+                                             uint32_t aDpiRatio) {
   sRGBColor thumbColor =
       ComputeScrollbarthumbColor(aStyle, aElementState, aDocumentState);
   aDrawTarget->FillRect(aRect, ColorPattern(ToDeviceColor(thumbColor)));
 }
 
-void nsNativeBasicTheme::PaintScrollbarthumbVertical(
-    DrawTarget* aDrawTarget, const Rect& aRect, const ComputedStyle& aStyle,
-    const EventStates& aElementState, const EventStates& aDocumentState) {
-  sRGBColor thumbColor =
-      ComputeScrollbarthumbColor(aStyle, aElementState, aDocumentState);
-  aDrawTarget->FillRect(aRect, ColorPattern(ToDeviceColor(thumbColor)));
+void nsNativeBasicTheme::PaintScrollbarTrack(DrawTarget* aDrawTarget,
+                                             const Rect& aRect,
+                                             bool aHorizontal, nsIFrame* aFrame,
+                                             const ComputedStyle& aStyle,
+                                             const EventStates& aDocumentState,
+                                             uint32_t aDpiRatio, bool aIsRoot) {
+  // Draw nothing by default. Subclasses can override this.
 }
 
-void nsNativeBasicTheme::PaintScrollbarHorizontal(
-    DrawTarget* aDrawTarget, const Rect& aRect, const ComputedStyle& aStyle,
-    const EventStates& aDocumentState, bool aIsRoot) {
+void nsNativeBasicTheme::PaintScrollbar(DrawTarget* aDrawTarget,
+                                        const Rect& aRect, bool aHorizontal,
+                                        nsIFrame* aFrame,
+                                        const ComputedStyle& aStyle,
+                                        const EventStates& aDocumentState,
+                                        uint32_t aDpiRatio, bool aIsRoot) {
   sRGBColor scrollbarColor =
       ComputeScrollbarColor(aStyle, aDocumentState, aIsRoot);
   aDrawTarget->FillRect(aRect, ColorPattern(ToDeviceColor(scrollbarColor)));
@@ -947,32 +1021,26 @@ void nsNativeBasicTheme::PaintScrollbarHorizontal(
   // to avoid ugliness.
   if (aStyle.StyleUI()->mScrollbarColor.IsAuto()) {
     RefPtr<PathBuilder> builder = aDrawTarget->CreatePathBuilder();
-    builder->MoveTo(Point(aRect.x, aRect.y));
-    builder->LineTo(Point(aRect.x + aRect.width, aRect.y));
-    RefPtr<Path> path = builder->Finish();
-    aDrawTarget->Stroke(path,
-                        ColorPattern(ToDeviceColor(sScrollbarBorderColor)));
-  }
-}
-
-void nsNativeBasicTheme::PaintScrollbarVerticalAndCorner(
-    DrawTarget* aDrawTarget, const Rect& aRect, const ComputedStyle& aStyle,
-    const EventStates& aDocumentState, uint32_t aDpiRatio, bool aIsRoot) {
-  sRGBColor scrollbarColor =
-      ComputeScrollbarColor(aStyle, aDocumentState, aIsRoot);
-  aDrawTarget->FillRect(aRect, ColorPattern(ToDeviceColor(scrollbarColor)));
-  // FIXME(heycam): We should probably derive the border color when custom
-  // scrollbar colors are in use too.  But for now, just skip painting it,
-  // to avoid ugliness.
-  if (aStyle.StyleUI()->mScrollbarColor.IsAuto()) {
-    RefPtr<PathBuilder> builder = aDrawTarget->CreatePathBuilder();
-    builder->MoveTo(Point(aRect.x, aRect.y));
-    builder->LineTo(Point(aRect.x, aRect.y + aRect.height));
+    Rect strokeRect(aRect);
+    strokeRect.Deflate(0.5f * aDpiRatio);
+    builder->MoveTo(Point(strokeRect.TopLeft()));
+    builder->LineTo(
+        Point(aHorizontal ? strokeRect.TopRight() : strokeRect.BottomLeft()));
     RefPtr<Path> path = builder->Finish();
     aDrawTarget->Stroke(path,
                         ColorPattern(ToDeviceColor(sScrollbarBorderColor)),
                         StrokeOptions(1.0f * aDpiRatio));
   }
+}
+
+void nsNativeBasicTheme::PaintScrollCorner(DrawTarget* aDrawTarget,
+                                           const Rect& aRect, nsIFrame* aFrame,
+                                           const ComputedStyle& aStyle,
+                                           const EventStates& aDocumentState,
+                                           uint32_t aDpiRatio, bool aIsRoot) {
+  sRGBColor scrollbarColor =
+      ComputeScrollbarColor(aStyle, aDocumentState, aIsRoot);
+  aDrawTarget->FillRect(aRect, ColorPattern(ToDeviceColor(scrollbarColor)));
 }
 
 void nsNativeBasicTheme::PaintScrollbarbutton(
@@ -1040,7 +1108,8 @@ void nsNativeBasicTheme::PaintScrollbarbutton(
       arrowColor = sRGBColor(c, c, c);
     } else {
       uint8_t c = darken ? 0 : 255;
-      arrowColor = sRGBColor::FromABGR(NS_ComposeColors(bg, NS_RGBA(c, c, c, 160)));
+      arrowColor =
+          sRGBColor::FromABGR(NS_ComposeColors(bg, NS_RGBA(c, c, c, 160)));
     }
   } else if (isActive) {
     arrowColor = sScrollbarArrowColorActive;
@@ -1050,8 +1119,7 @@ void nsNativeBasicTheme::PaintScrollbarbutton(
     arrowColor = sScrollbarArrowColor;
   }
   PaintArrow(aDrawTarget, aRect, arrowPolygonX, arrowPolygonY, arrowNumPoints,
-             arrowSize, arrowColor,
-             aDpiRatio);
+             arrowSize, arrowColor, aDpiRatio);
 
   // FIXME(heycam): We should probably derive the border color when custom
   // scrollbar colors are in use too.  But for now, just skip painting it,
@@ -1067,7 +1135,8 @@ void nsNativeBasicTheme::PaintScrollbarbutton(
     }
 
     RefPtr<Path> path = builder->Finish();
-    aDrawTarget->Stroke(path, ColorPattern(ToDeviceColor(sScrollbarBorderColor)),
+    aDrawTarget->Stroke(path,
+                        ColorPattern(ToDeviceColor(sScrollbarBorderColor)),
                         StrokeOptions(1.0f * aDpiRatio));
   }
 }
@@ -1146,11 +1215,11 @@ nsNativeBasicTheme::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
                          dpiRatio);
       break;
     case StyleAppearance::Range:
-      PaintRangeTrackBackground(aFrame, dt, devPxRect, eventState, dpiRatio,
-                                IsRangeHorizontal(aFrame));
+      PaintRange(aFrame, dt, devPxRect, eventState, dpiRatio,
+                 IsRangeHorizontal(aFrame));
       break;
     case StyleAppearance::RangeThumb:
-      PaintRangeThumb(dt, devPxRect, eventState, dpiRatio);
+      // Painted as part of StyleAppearance::Range.
       break;
     case StyleAppearance::ProgressBar:
       PaintProgressBar(dt, devPxRect, eventState, dpiRatio);
@@ -1165,25 +1234,35 @@ nsNativeBasicTheme::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
       PaintMeterchunk(aFrame, dt, devPxRect, eventState, dpiRatio);
       break;
     case StyleAppearance::ScrollbarthumbHorizontal:
-      PaintScrollbarthumbHorizontal(dt, devPxRect,
-                                    *nsLayoutUtils::StyleForScrollbar(aFrame),
-                                    eventState, docState);
+    case StyleAppearance::ScrollbarthumbVertical: {
+      bool isHorizontal =
+          aAppearance == StyleAppearance::ScrollbarthumbHorizontal;
+      PaintScrollbarThumb(dt, devPxRect, isHorizontal, aFrame,
+                          *nsLayoutUtils::StyleForScrollbar(aFrame), eventState,
+                          docState, dpiRatio);
       break;
-    case StyleAppearance::ScrollbarthumbVertical:
-      PaintScrollbarthumbVertical(dt, devPxRect,
-                                  *nsLayoutUtils::StyleForScrollbar(aFrame),
-                                  eventState, docState);
+    }
+    case StyleAppearance::ScrollbartrackHorizontal:
+    case StyleAppearance::ScrollbartrackVertical: {
+      bool isHorizontal =
+          aAppearance == StyleAppearance::ScrollbartrackHorizontal;
+      PaintScrollbarTrack(dt, devPxRect, isHorizontal, aFrame,
+                          *nsLayoutUtils::StyleForScrollbar(aFrame), docState,
+                          dpiRatio, IsRootScrollbar(aFrame));
       break;
+    }
     case StyleAppearance::ScrollbarHorizontal:
-      PaintScrollbarHorizontal(dt, devPxRect,
-                               *nsLayoutUtils::StyleForScrollbar(aFrame),
-                               docState, IsRootScrollbar(aFrame));
+    case StyleAppearance::ScrollbarVertical: {
+      bool isHorizontal = aAppearance == StyleAppearance::ScrollbarHorizontal;
+      PaintScrollbar(dt, devPxRect, isHorizontal, aFrame,
+                     *nsLayoutUtils::StyleForScrollbar(aFrame), docState,
+                     dpiRatio, IsRootScrollbar(aFrame));
       break;
-    case StyleAppearance::ScrollbarVertical:
+    }
     case StyleAppearance::Scrollcorner:
-      PaintScrollbarVerticalAndCorner(
-          dt, devPxRect, *nsLayoutUtils::StyleForScrollbar(aFrame), docState,
-          dpiRatio, IsRootScrollbar(aFrame));
+      PaintScrollCorner(dt, devPxRect, aFrame,
+                        *nsLayoutUtils::StyleForScrollbar(aFrame), docState,
+                        dpiRatio, IsRootScrollbar(aFrame));
       break;
     case StyleAppearance::ScrollbarbuttonUp:
     case StyleAppearance::ScrollbarbuttonDown:
@@ -1329,6 +1408,10 @@ bool nsNativeBasicTheme::GetWidgetOverflow(nsDeviceContext* aContext,
       return false;
   }
 
+  // TODO: This should convert from device pixels to app units, not from CSS
+  // pixels. And it should take the dpi ratio into account.
+  // Using CSS pixels can cause the overflow to be too small if the page is
+  // zoomed out.
   aOverflowRect->Inflate(nsMargin(CSSPixel::ToAppUnits(overflow.top),
                                   CSSPixel::ToAppUnits(overflow.right),
                                   CSSPixel::ToAppUnits(overflow.bottom),
@@ -1368,8 +1451,6 @@ nsNativeBasicTheme::GetMinimumWidgetSize(nsPresContext* aPresContext,
       aResult->width =
           static_cast<uint32_t>(kMinimumSpinnerButtonWidth) * dpiRatio;
       break;
-    case StyleAppearance::Scrollbar:
-    case StyleAppearance::ScrollbarSmall:
     case StyleAppearance::ScrollbarVertical:
     case StyleAppearance::ScrollbarHorizontal:
     case StyleAppearance::ScrollbarbuttonUp:
@@ -1467,6 +1548,8 @@ bool nsNativeBasicTheme::ThemeSupportsWidget(nsPresContext* aPresContext,
     case StyleAppearance::ScrollbarbuttonRight:
     case StyleAppearance::ScrollbarthumbHorizontal:
     case StyleAppearance::ScrollbarthumbVertical:
+    case StyleAppearance::ScrollbartrackHorizontal:
+    case StyleAppearance::ScrollbartrackVertical:
     case StyleAppearance::ScrollbarHorizontal:
     case StyleAppearance::ScrollbarVertical:
     case StyleAppearance::Scrollcorner:

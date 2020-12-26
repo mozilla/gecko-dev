@@ -925,7 +925,7 @@ WMFVideoMFTManager::CreateBasicVideoFrame(IMFSample* aSample,
       !mKnowsCompositor->SupportsD3D11() || !mIMFUsable) {
     RefPtr<VideoData> v = VideoData::CreateAndCopyData(
         mVideoInfo, mImageContainer, aStreamOffset, pts, duration, b, false,
-        TimeUnit::FromMicroseconds(-1), pictureRegion);
+        TimeUnit::FromMicroseconds(-1), pictureRegion, mKnowsCompositor);
     if (twoDBuffer) {
       twoDBuffer->Unlock2D();
     } else {
@@ -1088,7 +1088,7 @@ WMFVideoMFTManager::Output(int64_t aStreamOffset, RefPtr<MediaData>& aOutData) {
       }
       break;
     }
-    // Else unexpected error, assert, and bail.
+    // Else unexpected error so bail.
     NS_WARNING("WMFVideoMFTManager::Output() unexpected error");
     return hr;
   }
@@ -1133,8 +1133,8 @@ bool WMFVideoMFTManager::IsHardwareAccelerated(
 nsCString WMFVideoMFTManager::GetDescriptionName() const {
   nsCString failureReason;
   bool hw = IsHardwareAccelerated(failureReason);
-  return nsPrintfCString("wmf %s video decoder - %s",
-                         hw ? "hardware" : "software",
+  return nsPrintfCString("wmf %s codec %s video decoder - %s",
+                         StreamTypeString(), hw ? "hardware" : "software",
                          hw ? StaticPrefs::media_wmf_use_nv12_format() &&
                                       gfx::DeviceManagerDx::Get()->CanUseNV12()
                                   ? "nv12"

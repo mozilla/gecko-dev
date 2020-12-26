@@ -10,6 +10,7 @@
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/FileBinding.h"
+#include "mozilla/dom/FileSystem.h"
 #include "mozilla/dom/FileSystemDirectoryReaderBinding.h"
 #include "mozilla/dom/FileSystemFileEntry.h"
 #include "mozilla/dom/FileSystemUtils.h"
@@ -21,8 +22,7 @@
 
 #include "../GetFileOrDirectoryTask.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 EntryCallbackRunnable::EntryCallbackRunnable(FileSystemEntryCallback* aCallback,
                                              FileSystemEntry* aEntry)
@@ -275,5 +275,4 @@ void ErrorCallbackHelper::Call(
   }
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

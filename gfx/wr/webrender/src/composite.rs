@@ -14,6 +14,7 @@ use crate::prim_store::DeferredResolve;
 use crate::renderer::ImageBufferKind;
 use crate::resource_cache::{ImageRequest, ResourceCache};
 use crate::util::Preallocator;
+use crate::tile_cache::PictureCacheDebugInfo;
 use std::{ops, u64};
 
 /*
@@ -93,6 +94,7 @@ pub struct CompositeTile {
     pub clip_rect: DeviceRect,
     pub dirty_rect: DeviceRect,
     pub valid_rect: DeviceRect,
+    pub transform: Option<CompositorSurfaceTransform>,
     pub z_id: ZBufferId,
 }
 
@@ -460,6 +462,8 @@ pub struct CompositeState {
     pub occluders: Occluders,
     /// Description of the surfaces and properties that are being composited.
     pub descriptor: CompositeDescriptor,
+    /// Debugging information about the state of the pictures cached for regression testing.
+    pub picture_cache_debug: PictureCacheDebugInfo,
 }
 
 impl CompositeState {
@@ -482,6 +486,7 @@ impl CompositeState {
             occluders: Occluders::new(),
             descriptor: CompositeDescriptor::empty(),
             external_surfaces: Vec::new(),
+            picture_cache_debug: PictureCacheDebugInfo::new(),
         }
     }
 
@@ -565,6 +570,7 @@ impl CompositeState {
                 valid_rect: tile.device_valid_rect.translate(-device_rect.origin.to_vector()),
                 dirty_rect: tile.device_dirty_rect.translate(-device_rect.origin.to_vector()),
                 clip_rect: device_clip_rect,
+                transform: None,
                 z_id: tile.z_id,
             };
 
@@ -734,6 +740,7 @@ impl CompositeState {
                 valid_rect: external_surface.device_rect.translate(-external_surface.device_rect.origin.to_vector()),
                 dirty_rect: external_surface.device_rect.translate(-external_surface.device_rect.origin.to_vector()),
                 clip_rect,
+                transform: Some(external_surface.transform),
                 z_id: external_surface.z_id,
             };
 
@@ -982,8 +989,12 @@ pub trait Compositor {
 
     /// Notify the compositor that all tiles have been invalidated and all
     /// native surfaces have been added, thus it is safe to start compositing
-    /// valid surfaces.
-    fn start_compositing(&mut self) {}
+    /// valid surfaces. The dirty rects array allows native compositors that
+    /// support partial present to skip copying unchanged areas.
+    fn start_compositing(
+        &mut self,
+        _dirty_rects: &[DeviceIntRect],
+    ) {}
 
     /// Commit any changes in the compositor tree for this frame. WR calls
     /// this once when all surface and visual updates are complete, to signal
@@ -1007,10 +1018,6 @@ pub trait Compositor {
 /// TODO: Use the Compositor trait for native and non-native compositors, and integrate
 /// this functionality there.
 pub trait PartialPresentCompositor {
-    /// Returns the age of the current backbuffer. This should be used, if
-    /// draw_previous_partial_present_regions is true, to determine the
-    /// region which must be rendered in addition to the current frame's dirty rect.
-    fn get_buffer_age(&self) -> usize;
     /// Allows webrender to specify the total region that will be rendered to this frame,
     /// ie the frame's dirty region and some previous frames' dirty regions, if applicable
     /// (calculated using the buffer age). Must be called before anything has been rendered

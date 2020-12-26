@@ -54,6 +54,7 @@
 #include "nsICookieService.h"
 #include "nsIDOMWindowUtils.h"
 #include "nsIDocShell.h"
+#include "nsIDNSService.h"
 #include "nsIEncodedChannel.h"
 #include "nsIHttpHeaderVisitor.h"
 #include "nsILoadGroupChild.h"
@@ -87,6 +88,7 @@
 #include "mozilla/RemoteLazyInputStreamChild.h"
 #include "mozilla/RemoteLazyInputStreamUtils.h"
 #include "mozilla/net/SFVService.h"
+#include "mozilla/dom/ContentChild.h"
 
 namespace mozilla {
 namespace net {
@@ -171,6 +173,7 @@ HttpBaseChannel::HttpBaseChannel()
       mTransferSize(0),
       mRequestSize(0),
       mDecodedBodySize(0),
+      mSupportsHTTP3(false),
       mEncodedBodySize(0),
       mRequestContextID(0),
       mContentWindowId(0),
@@ -204,6 +207,7 @@ HttpBaseChannel::HttpBaseChannel()
       mTimingEnabled(false),
       mReportTiming(true),
       mAllowSpdy(true),
+      mAllowHttp3(true),
       mAllowAltSvc(true),
       mBeConservative(false),
       mIsTRRServiceChannel(false),
@@ -1571,6 +1575,12 @@ HttpBaseChannel::GetEncodedBodySize(uint64_t* aEncodedBodySize) {
 }
 
 NS_IMETHODIMP
+HttpBaseChannel::GetSupportsHTTP3(bool* aSupportsHTTP3) {
+  *aSupportsHTTP3 = mSupportsHTTP3;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpBaseChannel::GetRequestMethod(nsACString& aMethod) {
   mRequestHead.Method(aMethod);
   return NS_OK;
@@ -1847,6 +1857,19 @@ HttpBaseChannel::GetAllowSTS(bool* value) {
 NS_IMETHODIMP
 HttpBaseChannel::SetAllowSTS(bool value) {
   ENSURE_CALLED_BEFORE_CONNECT();
+
+  if (!value) {
+    // The only channels that are allowSTS == false are OCSPRequest
+    // If this is an OCSP channel, and the global TRR mode is TRR_ONLY (3)
+    // then we set the mode for this channel as TRR_FIRST.
+    // We do this to prevent a TRR service channel's OCSP validation from
+    // blocking DNS resolution completely.
+    nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
+    uint32_t trrMode = 0;
+    if (dns && NS_SUCCEEDED(dns->GetCurrentTrrMode(&trrMode)) && trrMode == 3) {
+      SetTRRMode(nsIRequest::TRR_FIRST_MODE);
+    }
+  }
 
   mAllowSTS = value;
   return NS_OK;
@@ -3008,6 +3031,20 @@ HttpBaseChannel::GetAllowSpdy(bool* aAllowSpdy) {
 NS_IMETHODIMP
 HttpBaseChannel::SetAllowSpdy(bool aAllowSpdy) {
   mAllowSpdy = aAllowSpdy;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::GetAllowHttp3(bool* aAllowHttp3) {
+  NS_ENSURE_ARG_POINTER(aAllowHttp3);
+
+  *aAllowHttp3 = mAllowHttp3;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::SetAllowHttp3(bool aAllowHttp3) {
+  mAllowHttp3 = aAllowHttp3;
   return NS_OK;
 }
 
@@ -4240,6 +4277,8 @@ nsresult HttpBaseChannel::SetupReplacementChannel(nsIURI* newURI,
     MOZ_ASSERT(NS_SUCCEEDED(rv));
     rv = httpInternal->SetAllowSpdy(mAllowSpdy);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
+    rv = httpInternal->SetAllowHttp3(mAllowHttp3);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
     rv = httpInternal->SetAllowAltSvc(mAllowAltSvc);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
     rv = httpInternal->SetBeConservative(mBeConservative);
@@ -4793,10 +4832,37 @@ mozilla::dom::PerformanceStorage* HttpBaseChannel::GetPerformanceStorage() {
 }
 
 void HttpBaseChannel::MaybeReportTimingData() {
+  if (XRE_IsE10sParentProcess()) {
+    return;
+  }
+
   mozilla::dom::PerformanceStorage* documentPerformance =
       GetPerformanceStorage();
   if (documentPerformance) {
     documentPerformance->AddEntry(this, this);
+    return;
+  }
+
+  if (!nsGlobalWindowInner::GetInnerWindowWithId(
+          mLoadInfo->GetInnerWindowID())) {
+    // The inner window is in a different process.
+    dom::ContentChild* child = dom::ContentChild::GetSingleton();
+
+    if (!child) {
+      return;
+    }
+    nsAutoString initiatorType;
+    nsAutoString entryName;
+
+    UniquePtr<dom::PerformanceTimingData> performanceTimingData(
+        dom::PerformanceTimingData::Create(this, this, 0, initiatorType,
+                                           entryName));
+    if (!performanceTimingData) {
+      return;
+    }
+    child->SendReportFrameTimingData(mLoadInfo->GetInnerWindowID(), entryName,
+                                     initiatorType,
+                                     std::move(performanceTimingData));
   }
 }
 

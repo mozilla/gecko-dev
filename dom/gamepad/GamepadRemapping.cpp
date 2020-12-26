@@ -12,9 +12,9 @@
 // found in the LICENSE file.
 
 #include "mozilla/dom/GamepadRemapping.h"
+#include "mozilla/dom/GamepadPlatformService.h"
 
-namespace mozilla {
-namespace dom {
+namespace mozilla::dom {
 
 // Follow the canonical ordering recommendation for the "Standard Gamepad"
 // from https://www.w3.org/TR/gamepad/#remapping.
@@ -2117,5 +2117,4 @@ already_AddRefed<GamepadRemapper> GetGamepadRemapper(const uint16_t aVendorId,
   return do_AddRef(defaultRemapper.get());
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

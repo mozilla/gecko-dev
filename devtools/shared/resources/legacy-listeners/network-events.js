@@ -11,17 +11,15 @@ const {
 module.exports = async function({
   targetList,
   targetFront,
-  isFissionEnabledOnContentToolbox,
   onAvailable,
   onUpdated,
 }) {
   // Allow the top level target unconditionnally.
-  // Also allow frame, but only in content toolbox, when the fission/content toolbox pref is
-  // set. i.e. still ignore them in the content of the browser toolbox as we inspect
-  // messages via the process targets
+  // Also allow frame, but only in content toolbox, i.e. still ignore them in
+  // the context of the browser toolbox as we inspect messages via the process
+  // targets
   // Also ignore workers as they are not supported yet. (see bug 1592584)
-  const isContentToolbox = targetList.targetFront.isLocalTab;
-  const listenForFrames = isContentToolbox && isFissionEnabledOnContentToolbox;
+  const listenForFrames = targetList.targetFront.isLocalTab;
   const isAllowed =
     targetFront.isTopLevel ||
     targetFront.targetType === targetList.TYPES.PROCESS ||
@@ -32,137 +30,123 @@ module.exports = async function({
   }
 
   const webConsoleFront = await targetFront.getFront("console");
-  const _resources = new Map();
+  const resources = new Map();
 
   function onNetworkEvent(packet) {
     const actor = packet.eventActor;
-    const resource = {
+
+    resources.set(actor.actor, {
       resourceId: actor.channelId,
       resourceType: ResourceWatcher.TYPES.NETWORK_EVENT,
-      _type: "NetworkEvent",
-      timeStamp: actor.timeStamp,
-      node: null,
-      actor: actor.actor,
-      discardRequestBody: true,
-      discardResponseBody: true,
-      startedDateTime: actor.startedDateTime,
-      request: {
+      isBlocked: !!actor.blockedReason,
+      types: [],
+      resourceUpdates: {},
+    });
+
+    onAvailable([
+      {
+        resourceId: actor.channelId,
+        resourceType: ResourceWatcher.TYPES.NETWORK_EVENT,
+        timeStamp: actor.timeStamp,
+        actor: actor.actor,
+        startedDateTime: actor.startedDateTime,
         url: actor.url,
         method: actor.method,
+        isXHR: actor.isXHR,
+        cause: { type: actor.cause.type },
+        timings: {},
+        private: actor.private,
+        fromCache: actor.fromCache,
+        fromServiceWorker: actor.fromServiceWorker,
+        isThirdPartyTrackingResource: actor.isThirdPartyTrackingResource,
+        referrerPolicy: actor.referrerPolicy,
+        blockedReason: actor.blockedReason,
+        blockingExtension: actor.blockingExtension,
+        stacktraceResourceId:
+          actor.cause.type == "websocket"
+            ? actor.url.replace(/^http/, "ws")
+            : actor.channelId,
       },
-      isXHR: actor.isXHR,
-      cause: actor.cause,
-      response: {},
-      timings: {},
-      private: actor.private,
-      fromCache: actor.fromCache,
-      fromServiceWorker: actor.fromServiceWorker,
-      isThirdPartyTrackingResource: actor.isThirdPartyTrackingResource,
-      referrerPolicy: actor.referrerPolicy,
-      blockedReason: actor.blockedReason,
-      blockingExtension: actor.blockingExtension,
-      channelId: actor.channelId,
-      updates: [],
-    };
-
-    // Lets remove the stacktrace info here as
-    // it is passed from the the server by the NETWORK_EVENT_STACKTRACE
-    // resource type.
-    delete resource.cause.stacktraceAvailable;
-    delete resource.cause.lastFrame;
-
-    _resources.set(actor.actor, resource);
-    onAvailable([resource]);
+    ]);
   }
 
   function onNetworkEventUpdate(packet) {
-    const resource = _resources.get(packet.from);
+    const resource = resources.get(packet.from);
 
     if (!resource) {
       return;
     }
 
-    const updateType = packet.updateType;
-    const resourceUpdates = {};
-    resourceUpdates.updates = [...resource.updates, updateType];
+    const {
+      types,
+      resourceUpdates,
+      resourceId,
+      resourceType,
+      isBlocked,
+    } = resource;
 
-    switch (updateType) {
-      case "requestHeaders":
-        resourceUpdates.request = Object.assign({}, resource.request, {
-          headersSize: packet.headersSize,
-        });
-        break;
+    switch (packet.updateType) {
       case "requestPostData":
-        resourceUpdates.discardRequestBody = packet.discardRequestBody;
-        resourceUpdates.request = Object.assign({}, resource.request, {
-          bodySize: packet.dataSize,
-        });
+        resourceUpdates.contentSize = packet.dataSize;
         break;
       case "responseStart":
-        resourceUpdates.response = Object.assign({}, resource.response, {
-          httpVersion: packet.response.httpVersion,
-          status: packet.response.status,
-          statusText: packet.response.statusText,
-          headersSize: packet.response.headersSize,
-          remoteAddress: packet.response.remoteAddress,
-          remotePort: packet.response.remotePort,
-          content: {
-            mimeType: packet.response.mimeType,
-          },
-          waitingTime: packet.response.waitingTime,
-        });
-        resourceUpdates.discardResponseBody =
-          packet.response.discardResponseBody;
+        resourceUpdates.httpVersion = packet.response.httpVersion;
+        resourceUpdates.status = packet.response.status;
+        resourceUpdates.statusText = packet.response.statusText;
+        resourceUpdates.remoteAddress = packet.response.remoteAddress;
+        resourceUpdates.remotePort = packet.response.remotePort;
+        resourceUpdates.mimeType = packet.response.mimeType;
+        resourceUpdates.waitingTime = packet.response.waitingTime;
         break;
       case "responseContent":
-        resourceUpdates.discardResponseBody = packet.discardResponseBody;
-        resourceUpdates.response = Object.assign({}, resource.response, {
-          bodySize: packet.contentSize,
-          transferredSize: packet.transferredSize,
-          content: { mimeType: packet.mimeType },
-        });
+        resourceUpdates.contentSize = packet.contentSize;
+        resourceUpdates.transferredSize = packet.transferredSize;
+        resourceUpdates.mimeType = packet.mimeType;
+        resourceUpdates.blockingExtension = packet.blockingExtension;
+        resourceUpdates.blockedReason = packet.blockedReason;
         break;
       case "eventTimings":
         resourceUpdates.totalTime = packet.totalTime;
         break;
       case "securityInfo":
         resourceUpdates.securityState = packet.state;
+        resourceUpdates.isRacing = packet.isRacing;
         break;
       case "responseCache":
-        resourceUpdates.response = Object.assign({}, resource.response, {
-          responseCache: packet.responseCache,
-        });
+        resourceUpdates.responseCache = packet.responseCache;
         break;
     }
 
-    // Update local resource.
-    Object.assign(resource, resourceUpdates);
+    resourceUpdates[`${packet.updateType}Available`] = true;
+    types.push(packet.updateType);
+
+    if (isBlocked) {
+      // Blocked requests
+      if (
+        !types.includes("requestHeaders") ||
+        !types.includes("requestCookies")
+      ) {
+        return;
+      }
+    } else if (
+      // Un-blocked requests
+      !types.includes("requestHeaders") ||
+      !types.includes("requestCookies") ||
+      !types.includes("eventTimings") ||
+      !types.includes("responseContent")
+    ) {
+      return;
+    }
 
     onUpdated([
       {
-        resourceType: resource.resourceType,
-        resourceId: resource.resourceId,
+        resourceType,
+        resourceId,
         resourceUpdates,
-        updateType,
       },
     ]);
 
-    if (resource.blockedReason) {
-      // Blocked requests
-      if (
-        resource.updates.includes("requestHeaders") &&
-        resource.updates.includes("requestCookies")
-      ) {
-        _resources.delete(resource.actor);
-      }
-    } else if (
-      resource.updates.includes("requestHeaders") &&
-      resource.updates.includes("requestCookies") &&
-      resource.updates.includes("eventTimings") &&
-      resource.updates.includes("responseContent")
-    ) {
-      _resources.delete(resource.actor);
-    }
+    resources.delete(resource.actor);
   }
 
   webConsoleFront.on("serverNetworkEvent", onNetworkEvent);

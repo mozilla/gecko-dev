@@ -66,6 +66,9 @@ class OSPreferences : public mozIOSPreferences {
    * instance, but does not need to hold a reference, as in
    *    nsAutoCString str;
    *    OSPreferences::GetInstance()->GetSystemLocale(str);
+   *
+   * NOTE that this is not safe for off-main-thread use, because it is possible
+   * that XPCOM shutdown on the main thread could invalidate it at any moment!
    */
   static OSPreferences* GetInstance();
 
@@ -73,12 +76,14 @@ class OSPreferences : public mozIOSPreferences {
    * Return an addRef'd pointer to the singleton instance. This is used by the
    * XPCOM constructor that exists to support usage from JS.
    */
-  static already_AddRefed<OSPreferences> GetInstanceAddRefed() {
-    return RefPtr<OSPreferences>(GetInstance()).forget();
-  }
+  static already_AddRefed<OSPreferences> GetInstanceAddRefed();
+
+  static bool GetPatternForSkeleton(const nsACString& aSkeleton,
+                                    const nsACString& aLocale,
+                                    nsACString& aRetVal);
 
   static bool GetDateTimeConnectorPattern(const nsACString& aLocale,
-                                          nsAString& aRetVal);
+                                          nsACString& aRetVal);
 
   /**
    * Triggers a refresh of retrieving data from host environment.
@@ -98,7 +103,7 @@ class OSPreferences : public mozIOSPreferences {
   nsTArray<nsCString> mRegionalPrefsLocales;
 
   const size_t kMaxCachedPatterns = 15;
-  nsDataHashtable<nsCStringHashKey, nsString> mPatternCache;
+  nsDataHashtable<nsCStringHashKey, nsCString> mPatternCache;
 
  private:
   virtual ~OSPreferences();
@@ -114,15 +119,16 @@ class OSPreferences : public mozIOSPreferences {
   bool GetDateTimePatternForStyle(DateTimeFormatStyle aDateStyle,
                                   DateTimeFormatStyle aTimeStyle,
                                   const nsACString& aLocale,
-                                  nsAString& aRetVal);
+                                  nsACString& aRetVal);
 
   bool GetDateTimeSkeletonForStyle(DateTimeFormatStyle aDateStyle,
                                    DateTimeFormatStyle aTimeStyle,
                                    const nsACString& aLocale,
-                                   nsAString& aRetVal);
+                                   nsACString& aRetVal);
 
-  bool GetPatternForSkeleton(const nsAString& aSkeleton,
-                             const nsACString& aLocale, nsAString& aRetVal);
+  bool OverrideDateTimePattern(DateTimeFormatStyle aDateStyle,
+                               DateTimeFormatStyle aTimeStyle,
+                               const nsACString& aLocale, nsACString& aRetVal);
 
   /**
    * This is a host environment specific method that will be implemented
@@ -152,7 +158,19 @@ class OSPreferences : public mozIOSPreferences {
    */
   bool ReadDateTimePattern(DateTimeFormatStyle aDateFormatStyle,
                            DateTimeFormatStyle aTimeFormatStyle,
-                           const nsACString& aLocale, nsAString& aRetVal);
+                           const nsACString& aLocale, nsACString& aRetVal);
+
+  /**
+   * This is called by the destructor to clean up any OS specific observers
+   * that are registered.
+   */
+  void RemoveObservers();
+
+  /**
+   * This is called by the destructor to clean up any OS specific observers
+   * that are registered.
+   */
+  static void PreferenceChanged(const char* aPrefName, void* /* aClosure */);
 };
 
 }  // namespace intl

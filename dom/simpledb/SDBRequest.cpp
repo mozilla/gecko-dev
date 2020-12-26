@@ -6,12 +6,20 @@
 
 #include "SDBRequest.h"
 
-#include "nsISDBCallbacks.h"
-#include "nsThreadUtils.h"
+// Local includes
 #include "SDBConnection.h"
 
-namespace mozilla {
-namespace dom {
+// Global includes
+#include <utility>
+#include "mozilla/MacroForEach.h"
+#include "nsError.h"
+#include "nsISDBCallbacks.h"
+#include "nsISupportsUtils.h"
+#include "nsIVariant.h"
+#include "nsThreadUtils.h"
+#include "nscore.h"
+
+namespace mozilla::dom {
 
 SDBRequest::SDBRequest(SDBConnection* aConnection)
     : mConnection(aConnection),
@@ -114,5 +122,4 @@ SDBRequest::SetCallback(nsISDBCallback* aCallback) {
   return NS_OK;
 }
 
-}  // namespace dom
-}  // namespace mozilla
+}  // namespace mozilla::dom

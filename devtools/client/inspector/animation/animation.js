@@ -87,14 +87,6 @@ class AnimationInspector {
 
   initComponents() {
     const {
-      onShowBoxModelHighlighterForNode,
-    } = this.inspector.getCommonComponentProps();
-
-    const { onHideBoxModelHighlighter } = this.inspector
-      .getPanel("boxmodel")
-      .getComponentProps();
-
-    const {
       addAnimationsCurrentTimeListener,
       emitForTests: emitEventForTest,
       getAnimatedPropertyMap,
@@ -137,8 +129,6 @@ class AnimationInspector {
         getComputedStyle,
         getNodeFromActor,
         isAnimationsRunning,
-        onHideBoxModelHighlighter,
-        onShowBoxModelHighlighterForNode,
         removeAnimationsCurrentTimeListener,
         rewindAnimationsCurrentTime,
         selectAnimation,
@@ -531,13 +521,6 @@ class AnimationInspector {
   }
 
   async setAnimationsPlayState(doPlay) {
-    if (typeof this.hasPausePlaySome === "undefined") {
-      this.hasPausePlaySome = await this.inspector.currentTarget.actorHasMethod(
-        "animations",
-        "pauseSome"
-      );
-    }
-
     let { animations, timeScale } = this.state;
 
     try {
@@ -551,19 +534,10 @@ class AnimationInspector {
         await this.doSetCurrentTimes(timeScale.zeroPositionTime);
       }
 
-      // If the server does not support pauseSome/playSome function, (which happens
-      // when connected to server older than FF62), use pauseAll/playAll instead.
-      // See bug 1456857.
-      if (this.hasPausePlaySome) {
-        if (doPlay) {
-          await this.animationsFront.playSome(animations);
-        } else {
-          await this.animationsFront.pauseSome(animations);
-        }
-      } else if (doPlay) {
-        await this.animationsFront.playAll();
+      if (doPlay) {
+        await this.animationsFront.playSome(animations);
       } else {
-        await this.animationsFront.pauseAll();
+        await this.animationsFront.pauseSome(animations);
       }
 
       animations = await this.refreshAnimationsState(animations);

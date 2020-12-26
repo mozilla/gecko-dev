@@ -20,6 +20,7 @@ mod png;
 mod premultiply;
 mod rawtest;
 mod reftest;
+mod test_invalidation;
 mod wrench;
 mod yaml_frame_reader;
 mod yaml_helper;
@@ -637,7 +638,7 @@ fn main() {
     let dp_ratio = dp_ratio.unwrap_or(window.hidpi_factor());
     let dim = window.get_inner_size();
 
-    let needs_frame_notifier = ["perf", "reftest", "png", "rawtest"]
+    let needs_frame_notifier = ["perf", "reftest", "png", "rawtest", "test_invalidation"]
         .iter()
         .any(|s| args.subcommand_matches(s).is_some());
     let (notifier, rx) = if needs_frame_notifier {
@@ -666,6 +667,11 @@ fn main() {
         dump_shader_source,
         notifier,
     );
+
+    if let Some(ui_str) = args.value_of("profiler_ui") {
+        wrench.renderer.set_profiler_ui(&ui_str);
+    }
+
     window.update(&mut wrench);
 
     if let Some(window_title) = wrench.take_title() {
@@ -735,6 +741,14 @@ fn main() {
         }
         harness.run(base_manifest, &filename, as_csv);
         return;
+    } else if let Some(_) = args.subcommand_matches("test_invalidation") {
+        let harness = test_invalidation::TestHarness::new(
+            &mut wrench,
+            &mut window,
+            rx.unwrap(),
+        );
+
+        harness.run();
     } else if let Some(subargs) = args.subcommand_matches("compare_perf") {
         let first_filename = subargs.value_of("first_filename").unwrap();
         let second_filename = subargs.value_of("second_filename").unwrap();
@@ -802,7 +816,7 @@ fn render<'a>(
 
     // Default the profile overlay on for android.
     if cfg!(target_os = "android") {
-        debug_flags.toggle(DebugFlags::PROFILER_DBG | DebugFlags::COMPACT_PROFILER);
+        debug_flags.toggle(DebugFlags::PROFILER_DBG);
         wrench.api.send_debug_cmd(DebugCommand::SetFlags(debug_flags));
     }
 
@@ -861,11 +875,6 @@ fn render<'a>(
                         }
                         VirtualKeyCode::I => {
                             debug_flags.toggle(DebugFlags::TEXTURE_CACHE_DBG);
-                            wrench.api.send_debug_cmd(DebugCommand::SetFlags(debug_flags));
-                            do_render = true;
-                        }
-                        VirtualKeyCode::S => {
-                            debug_flags.toggle(DebugFlags::COMPACT_PROFILER);
                             wrench.api.send_debug_cmd(DebugCommand::SetFlags(debug_flags));
                             do_render = true;
                         }

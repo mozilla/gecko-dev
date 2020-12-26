@@ -155,6 +155,8 @@ var origin;
 var xaltsvc;
 var retryCounter = 0;
 var loadWithoutClearingMappings = false;
+var disallowH3 = false;
+var disallowH2 = false;
 var nextTest;
 var expectPass = true;
 var waitFor = 0;
@@ -237,6 +239,16 @@ function doTest() {
     chan.loadFlags =
       Ci.nsIRequest.LOAD_FRESH_CONNECTION |
       Ci.nsIChannel.LOAD_INITIAL_DOCUMENT_URI;
+  }
+  if (disallowH3) {
+    let internalChannel = chan.QueryInterface(Ci.nsIHttpChannelInternal);
+    internalChannel.allowHttp3 = false;
+    disallowH3 = false;
+  }
+  if (disallowH2) {
+    let internalChannel = chan.QueryInterface(Ci.nsIHttpChannelInternal);
+    internalChannel.allowSpdy = false;
+    disallowH2 = false;
   }
   loadWithoutClearingMappings = false;
   chan.loadInfo.originAttributes = originAttributes;
@@ -442,9 +454,43 @@ function doTest15() {
   xaltsvc = h2FooRoute;
 }
 
-// Check we don't connect to blocked ports
+// Make sure we do not use H2 if it is disabled on a channel.
 function doTest16() {
   dump("doTest16()\n");
+  origin = httpFooOrigin;
+  xaltsvc = "NA";
+  disallowH2 = true;
+  originAttributes = {
+    userContextId: 1,
+    firstPartyDomain: "a.com",
+  };
+  loadWithoutClearingMappings = true;
+  nextTest = doTest17;
+  do_test_pending();
+  doTest();
+}
+
+// Make sure we use H2 if only Http3 is disabled on a channel.
+function doTest17() {
+  dump("doTest17()\n");
+  origin = httpFooOrigin;
+  xaltsvc = h2Route;
+  disallowH3 = true;
+  originAttributes = {
+    userContextId: 1,
+    firstPartyDomain: "a.com",
+  };
+  loadWithoutClearingMappings = true;
+  nextTest = doTest18;
+  do_test_pending();
+  doTest();
+  // This should ensures a cache hit.
+  xaltsvc = h2FooRoute;
+}
+
+// Check we don't connect to blocked ports
+function doTest18() {
+  dump("doTest18()\n");
   origin = httpFooOrigin;
   nextTest = testsDone;
   otherServer = Cc["@mozilla.org/network/server-socket;1"].createInstance(
