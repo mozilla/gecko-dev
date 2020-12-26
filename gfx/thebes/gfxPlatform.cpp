@@ -2690,6 +2690,9 @@ bool gfxPlatform::WebRenderEnvvarDisabled() {
 }
 
 void gfxPlatform::InitWebRenderConfig() {
+  gfxVars::SetUseWebRender(false);
+  return;
+#if 0
   bool prefEnabled = WebRenderPrefEnabled();
   bool envvarEnabled = WebRenderEnvvarEnabled();
 
@@ -2828,6 +2831,7 @@ void gfxPlatform::InitWebRenderConfig() {
   // The RemoveShaderCacheFromDiskIfNecessary() needs to be called after
   // WebRenderConfig initialization.
   gfxUtils::RemoveShaderCacheFromDiskIfNecessary();
+#endif
 }
 
 void gfxPlatform::InitWebGLConfig() {
