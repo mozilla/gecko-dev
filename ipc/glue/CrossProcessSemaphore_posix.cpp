@@ -117,26 +117,33 @@ CrossProcessSemaphore::~CrossProcessSemaphore() {
 }
 
 bool CrossProcessSemaphore::Wait(const Maybe<TimeDuration>& aWaitTime) {
-  MOZ_ASSERT(*mRefCount > 0,
-             "Attempting to wait on a semaphore with zero ref count");
-  int ret;
-  if (aWaitTime.isSome()) {
-    struct timespec ts;
-    if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
-      return false;
-    }
+  // sem_timedwait and sem_wait calls won't replay consistently.
+  // This could be fixed if we identified cross process semaphores
+  // and handled them in the recording driver.
+  int ret = 0;
+  if (!recordreplay::IsReplaying()) {
+    recordreplay::AutoPassThroughThreadEvents pt;
+    MOZ_ASSERT(*mRefCount > 0,
+               "Attempting to wait on a semaphore with zero ref count");
+    int ret;
+    if (aWaitTime.isSome()) {
+      struct timespec ts;
+      if (clock_gettime(CLOCK_REALTIME, &ts) == -1) {
+        return false;
+      }
 
-    ts.tv_nsec += (kNsPerMs * aWaitTime->ToMilliseconds());
-    ts.tv_sec += ts.tv_nsec / kNsPerSec;
-    ts.tv_nsec %= kNsPerSec;
+      ts.tv_nsec += (kNsPerMs * aWaitTime->ToMilliseconds());
+      ts.tv_sec += ts.tv_nsec / kNsPerSec;
+      ts.tv_nsec %= kNsPerSec;
 
-    while ((ret = sem_timedwait(mSemaphore, &ts)) == -1 && errno == EINTR) {
-    }
-  } else {
-    while ((ret = sem_wait(mSemaphore)) == -1 && errno == EINTR) {
+      while ((ret = sem_timedwait(mSemaphore, &ts)) == -1 && errno == EINTR) {
+      }
+    } else {
+      while ((ret = sem_wait(mSemaphore)) == -1 && errno == EINTR) {
+      }
     }
   }
-  return ret == 0;
+  return recordreplay::RecordReplayValue("CrossProcessSemaphore::Wait", ret == 0);
 }
 
 void CrossProcessSemaphore::Signal() {
