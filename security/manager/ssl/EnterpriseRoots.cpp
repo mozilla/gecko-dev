@@ -282,10 +282,12 @@ OSStatus GatherEnterpriseCertsMacOS(Vector<EnterpriseCert>& certs) {
       // This is an awkward way to express what we want, but the compiler
       // complains if we try to put __builtin_available in a compound logical
       // statement.
+      /*
       if (__builtin_available(macOS 10.14, *)) {
         isTrusted = SecTrustEvaluateWithError(trustHandle.get(), nullptr);
         fallBackToDeprecatedAPI = false;
       }
+      */
     }
 #  endif  // MAC_OS_X_VERSION_10_14
     if (fallBackToDeprecatedAPI) {

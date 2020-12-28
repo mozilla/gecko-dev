@@ -396,7 +396,12 @@ XDRResult XDRState<mode>::codeFunction(MutableHandleFunction funp,
 
 template <XDRMode mode>
 XDRResult XDRState<mode>::codeScript(MutableHandleScript scriptp) {
-  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::IsRecordingOrReplaying());
+  // XDR is not supported when recording/replaying, as script contents differ
+  // when recording/replaying due to execution progress and instrumentation
+  // opcodes.
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    return fail(JS::TranscodeResult_Failure);
+  }
 
   TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx());
   TraceLoggerTextId event =

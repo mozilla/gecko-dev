@@ -130,6 +130,10 @@ bool AppleDecoderModule::IsVideoSupported(
 
 /* static */
 bool AppleDecoderModule::CanCreateVP9Decoder() {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return false;
+  }
+
   // We must wrap the code within __builtin_available to avoid compilation
   // warning as VTIsHardwareDecodeSupported is only available from macOS 10.13.
   if (__builtin_available(macOS 10.13, *)) {
@@ -158,6 +162,9 @@ bool AppleDecoderModule::CanCreateVP9Decoder() {
 
 /* static */
 bool AppleDecoderModule::RegisterSupplementalVP9Decoder() {
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return false;
+  }
   static bool sRegisterIfAvailable = []() {
     if (__builtin_available(macos 10.16, *)) {
       if (VTRegisterSupplementalVideoDecoderIfAvailable) {

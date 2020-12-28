@@ -128,6 +128,8 @@ bool ThreadEventQueue::PutEventInternal(already_AddRefed<nsIRunnable>&& aEvent,
 
 already_AddRefed<nsIRunnable> ThreadEventQueue::GetEvent(
     bool aMayWait, mozilla::TimeDuration* aLastEventDelay) {
+  recordreplay::RecordReplayAssert("ThreadEventQueue::GetEvent Start");
+
   nsCOMPtr<nsIRunnable> event;
   {
     // Scope for lock.  When we are about to return, we will exit this
@@ -160,6 +162,8 @@ already_AddRefed<nsIRunnable> ThreadEventQueue::GetEvent(
       mEventsAvailable.Wait();
     }
   }
+
+  recordreplay::RecordReplayAssert("ThreadEventQueue::GetEvent Done");
 
   return event.forget();
 }
