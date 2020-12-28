@@ -104,9 +104,16 @@ bool TaskController::Initialize() {
   return sSingleton->InitializeInternal();
 }
 
-void ThreadFuncPoolThread(TaskController* aController, size_t aIndex) {
-  mThreadPoolIndex = aIndex;
-  aController->RunPoolThread();
+struct ThreadFuncPoolThreadArguments {
+  TaskController* mController;
+  size_t mIndex;
+};
+
+void* ThreadFuncPoolThread(void* arg) {
+  ThreadFuncPoolThreadArguments* nargs = (ThreadFuncPoolThreadArguments*)arg;
+  mThreadPoolIndex = nargs->mIndex;
+  nargs->mController->RunPoolThread();
+  return nullptr;
 }
 
 #ifdef XP_WIN
@@ -138,10 +145,13 @@ void TaskController::InitializeThreadPool() {
 
   int32_t poolSize = GetPoolThreadCount();
   for (int32_t i = 0; i < poolSize; i++) {
-    mPoolThreads.push_back(
-        {std::make_unique<std::thread>(ThreadFuncPoolThread, this, i),
-         nullptr});
+    pthread_t thread;
+    void* args = new ThreadFuncPoolThreadArguments({ this, (size_t)i });
+    pthread_create(&thread, nullptr, ThreadFuncPoolThread, args);
+    mPoolThreads.push_back({ thread, nullptr });
   }
+
+  recordreplay::RecordReplayAssert("TaskController::InitializeThreadPool DONE");
 }
 
 void TaskController::SetPerformanceCounterState(
@@ -168,7 +178,7 @@ void TaskController::ShutdownThreadPoolInternal() {
     mThreadPoolCV.NotifyAll();
   }
   for (PoolThread& thread : mPoolThreads) {
-    thread.mThread->join();
+    pthread_join(thread.mThread, nullptr);
   }
 }
 

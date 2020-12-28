@@ -233,7 +233,9 @@ class Task {
 };
 
 struct PoolThread {
-  std::unique_ptr<std::thread> mThread;
+  // FIXME using std::thread here causes problems when recording where
+  // we don't pick up the inner pthread_create call for some reason.
+  pthread_t mThread;
   RefPtr<Task> mCurrentTask;
   // This may be higher than mCurrentTask's priority due to priority
   // propagation. This is -only- valid when mCurrentTask != nullptr.
@@ -322,7 +324,7 @@ class TaskController {
   bool MTTaskRunnableProcessedTask() { return mMTTaskRunnableProcessedTask; }
 
  private:
-  friend void ThreadFuncPoolThread(TaskController* aController, size_t aIndex);
+  friend void* ThreadFuncPoolThread(void* arg);
 
   bool InitializeInternal();
 

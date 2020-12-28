@@ -177,8 +177,13 @@ void HttpChannelChild::ReleaseMainThreadOnlyReferences() {
     return;
   }
 
-  NS_ReleaseOnMainThread("HttpChannelChild::mRedirectChannelChild",
-                         mRedirectChannelChild.forget());
+  if (recordreplay::IsRecordingOrReplaying()) {
+    // Leak reference to avoid non-deterministic dtor call.
+    (void)mRedirectChannelChild.forget().take();
+  } else {
+    NS_ReleaseOnMainThread("HttpChannelChild::mRedirectChannelChild",
+                           mRedirectChannelChild.forget());
+  }
 }
 //-----------------------------------------------------------------------------
 // HttpChannelChild::nsISupports
