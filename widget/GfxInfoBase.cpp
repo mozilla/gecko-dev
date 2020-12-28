@@ -48,11 +48,15 @@ StaticAutoPtr<nsTArray<gfx::GfxInfoFeatureStatus>> GfxInfoBase::sFeatureStatus;
 bool GfxInfoBase::sDriverInfoObserverInitialized;
 bool GfxInfoBase::sShutdownOccurred;
 
+static void CallClearOnShutdown() {
+  ClearOnShutdown(&GfxInfoBase::sFeatureStatus);
+}
+
 // Call this when setting sFeatureStatus to a non-null pointer to
 // ensure destruction even if the GfxInfo component is never instantiated.
 static void InitFeatureStatus(nsTArray<gfx::GfxInfoFeatureStatus>* aPtr) {
-  static std::once_flag sOnce;
-  std::call_once(sOnce, [] { ClearOnShutdown(&GfxInfoBase::sFeatureStatus); });
+  static pthread_once_t sOnce;
+  pthread_once(&sOnce, CallClearOnShutdown);
   GfxInfoBase::sFeatureStatus = aPtr;
 }
 

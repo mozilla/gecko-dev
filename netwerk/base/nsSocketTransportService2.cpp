@@ -705,6 +705,8 @@ int32_t nsSocketTransportService::Poll(TimeDuration* pollDuration,
               PR_IntervalToMilliseconds(pollTimeout)));
 
   int32_t rv = [&]() {
+    recordreplay::RecordReplayAssert("nsSocketTransportService::Poll callback %d",
+                                     (int)pollTimeout);
     if (pollTimeout != PR_INTERVAL_NO_WAIT) {
       // There will be an actual non-zero wait, let the profiler record
       // idle time and mark thread as sleeping around the polling call.

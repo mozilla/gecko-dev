@@ -21,6 +21,13 @@ void UnderrunHandler(int signum) { gRealtimeLimitReached = true; }
 bool SoftRealTimeLimitReached() { return gRealtimeLimitReached; }
 
 void InstallSoftRealTimeLimitHandler() {
+  // For now this is disabled when recording/replaying, as the
+  // tests of the sigaction() result will behave differently
+  // when replaying.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
+
   struct sigaction action, previous;
 
   action.sa_handler = UnderrunHandler;
