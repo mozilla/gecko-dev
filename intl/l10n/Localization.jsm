@@ -211,9 +211,6 @@ function maybeReportErrorToGecko(error) {
  */
 const Localization = {
   cached(iterable, isSync) {
-    // Trying to localize resources asynchronously is broken in the Record Replay
-    // browser for an unknown reason.
-    isSync = false;
     if (isSync) {
       return CachedSyncIterable.from(iterable);
     } else {
@@ -258,7 +255,7 @@ const Localization = {
     }
 
     if (!hasAtLeastOneBundle) {
-      //maybeReportErrorToGecko(`[fluent] Request for keys failed because no resource bundles got generated.\n keys: ${JSON.stringify(keys)}.\n resourceIds: ${JSON.stringify(resourceIds)}.`);
+      maybeReportErrorToGecko(`[fluent] Request for keys failed because no resource bundles got generated.\n keys: ${JSON.stringify(keys)}.\n resourceIds: ${JSON.stringify(resourceIds)}.`);
     }
 
     return translations;
@@ -301,7 +298,7 @@ const Localization = {
     }
 
     if (!hasAtLeastOneBundle) {
-      //maybeReportErrorToGecko(`[fluent] Request for keys failed because no resource bundles got generated.\n keys: ${JSON.stringify(keys)}.\n resourceIds: ${JSON.stringify(resourceIds)}.`);
+      maybeReportErrorToGecko(`[fluent] Request for keys failed because no resource bundles got generated.\n keys: ${JSON.stringify(keys)}.\n resourceIds: ${JSON.stringify(resourceIds)}.`);
     }
 
     return translations;
