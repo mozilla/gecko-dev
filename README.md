@@ -54,4 +54,15 @@ git merge release
 
 3. Fix merge conflicts.
 4. Fix build breaks.
-5. Make sure the output binary is `replay` and not `firefox`. Traditionally this has been controlled by MOZ_APP_NAME during configuration.
+5. Make sure the output binary is `replay` and not `firefox`.
+6. Get e2e tests etc. to pass.
+7. At this point it is reasonably safe to merge into the `webreplay-release` branch.
+
+```
+git checkout webreplay-release
+git merge replay-merge
+git push
+```
+
+8. Make sure automatic updates work with the new browser.
+9. Run live test harness and make sure crash rate is acceptable.
