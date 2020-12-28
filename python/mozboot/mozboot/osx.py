@@ -326,7 +326,7 @@ class OSXBootstrapper(BaseBootstrapper):
         cmd = [self.brew] + extra_brew_args
 
         installed = set(
-            subprocess.check_output(cmd + ["list"], universal_newlines=True).split()
+            subprocess.check_output(cmd + ["list", "--formula"], universal_newlines=True).split()
         )
         to_install = set(package for package in packages if package not in installed)
 
@@ -595,6 +595,8 @@ class OSXBootstrapper(BaseBootstrapper):
         self.install_toolchain_artifact(state_dir, checkout_root, node.OSX)
 
     def ensure_minidump_stackwalk_packages(self, state_dir, checkout_root):
+        return
+
         from mozboot import minidump_stackwalk
 
         self.install_toolchain_artifact(
