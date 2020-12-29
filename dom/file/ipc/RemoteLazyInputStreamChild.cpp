@@ -128,7 +128,7 @@ class LengthReadyRunnable final : public CancelableRunnable {
 
 RemoteLazyInputStreamChild::RemoteLazyInputStreamChild(const nsID& aID,
                                                        uint64_t aSize)
-    : mMutex("RemoteLazyInputStreamChild::mMutex"),
+    : mMutex("RemoteLazyInputStreamChild::mMutex", /* aOrdered */ true),
       mID(aID),
       mSize(aSize),
       mState(eActive),
