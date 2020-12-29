@@ -86,7 +86,7 @@ namespace net {
 HttpChannelChild::HttpChannelChild()
     : HttpAsyncAborter<HttpChannelChild>(this),
       NeckoTargetHolder(nullptr),
-      mBgChildMutex("HttpChannelChild::BgChildMutex"),
+      mBgChildMutex("HttpChannelChild::BgChildMutex", /* aOrdered */ true),
       mEventTargetMutex("HttpChannelChild::EventTargetMutex"),
       mCacheEntryId(0),
       mCacheKey(0),
