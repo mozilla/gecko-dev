@@ -1409,14 +1409,20 @@ void HttpChannelChild::Redirect1Begin(
 
 mozilla::ipc::IPCResult HttpChannelChild::RecvRedirect3Complete() {
   LOG(("HttpChannelChild::RecvRedirect3Complete [this=%p]\n", this));
+
+  recordreplay::RecordReplayAssert("HttpChannelChild::RecvRedirect3Complete Start");
+
   nsCOMPtr<nsIChannel> redirectChannel =
       do_QueryInterface(mRedirectChannelChild);
   MOZ_ASSERT(redirectChannel);
   mEventQ->RunOrEnqueue(new NeckoTargetChannelFunctionEvent(
       this, [self = UnsafePtr<HttpChannelChild>(this), redirectChannel]() {
+        recordreplay::RecordReplayAssert("HttpChannelChild::RecvRedirect3Complete Callback Start");
+
         nsresult rv = NS_OK;
         Unused << self->GetStatus(&rv);
         if (NS_FAILED(rv)) {
+          recordreplay::RecordReplayAssert("HttpChannelChild::RecvRedirect3Complete Callback #1");
           // Pre-redirect channel was canceled. Call |HandleAsyncAbort|, so
           // mListener's OnStart/StopRequest can be called. Nothing else will
           // trigger these notification after this point.
@@ -1443,8 +1449,12 @@ mozilla::ipc::IPCResult HttpChannelChild::RecvRedirect3Complete() {
           return;
         }
 
+        recordreplay::RecordReplayAssert("HttpChannelChild::RecvRedirect3Complete Callback #2");
         self->Redirect3Complete();
       }));
+
+  recordreplay::RecordReplayAssert("HttpChannelChild::RecvRedirect3Complete Done");
+
   return IPC_OK();
 }
 
@@ -1537,6 +1547,8 @@ void HttpChannelChild::Redirect3Complete() {
 }
 
 void HttpChannelChild::CleanupRedirectingChannel(nsresult rv) {
+  recordreplay::RecordReplayAssert("HttpChannelChild::CleanupRedirectingChannel Start");
+
   // Redirecting to new channel: shut this down and init new channel
   if (mLoadGroup) mLoadGroup->RemoveRequest(this, nullptr, NS_BINDING_ABORTED);
 
@@ -1561,6 +1573,8 @@ void HttpChannelChild::CleanupRedirectingChannel(nsresult rv) {
 
   NotifyOrReleaseListeners(rv);
   CleanupBackgroundChannel();
+
+  recordreplay::RecordReplayAssert("HttpChannelChild::CleanupRedirectingChannel Done");
 }
 
 //-----------------------------------------------------------------------------
