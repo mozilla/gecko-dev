@@ -135,6 +135,8 @@ class MinidumpStackwalkInstall(object):
         pass
 
     def ensure_minidump_stackwalk_packages(self, state_dir, checkout_root):
+        return
+
         from mozboot import minidump_stackwalk
 
         self.install_toolchain_artifact(

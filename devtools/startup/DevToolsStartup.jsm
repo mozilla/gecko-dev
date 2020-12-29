@@ -1562,6 +1562,12 @@ async function runTestScript() {
     return;
   }
 
+  // Make sure we have a window.
+  while (!Services.wm.getMostRecentWindow("navigator:browser")) {
+    dump(`No window for test script, waiting...\n`);
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
   const contents = await OS.File.read(script);
   const text = new TextDecoder("utf-8").decode(contents);
   eval(text);
