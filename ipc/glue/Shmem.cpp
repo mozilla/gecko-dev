@@ -32,15 +32,12 @@ class ShmemCreated : public IPC::Message {
 
   static bool ReadInfo(const Message* msg, PickleIterator* iter, id_t* aIPDLId,
                        size_t* aSize, SharedMemory::SharedMemoryType* aType) {
-    recordreplay::RecordReplayAssert("ShmemCreated::ReadInfo #1");
     uint32_t size = 0;
     if (!IPC::ReadParam(msg, iter, aIPDLId) ||
         !IPC::ReadParam(msg, iter, &size) ||
         !IPC::ReadParam(msg, iter, reinterpret_cast<int32_t*>(aType))) {
-      recordreplay::RecordReplayAssert("ShmemCreated::ReadInfo #2");
       return false;
     }
-    recordreplay::RecordReplayAssert("ShmemCreated::ReadInfo #3");
     *aSize = size;
     return true;
   }
@@ -405,7 +402,7 @@ already_AddRefed<Shmem::SharedMemory> Shmem::OpenExisting(
   }
 
   // this is the only validity check done in non-DEBUG builds
-  if (size != static_cast<size_t>(*PtrToSize(segment))) {
+  if (size != recordreplay::RecordReplayValue("Shmem::OpenExisting", *PtrToSize(segment))) {
     return nullptr;
   }
 

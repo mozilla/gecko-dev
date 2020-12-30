@@ -169,6 +169,12 @@ already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetContext(
   if (!CanvasUtils::GetCanvasContextType(aContextId, &contextType))
     return nullptr;
 
+  if (contextType == CanvasContextType::WebGL1 &&
+      recordreplay::IsRecordingOrReplaying()) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
   if (!mCurrentContext) {
     // This canvas doesn't have a context yet.
     RefPtr<nsICanvasRenderingContextInternal> context;
