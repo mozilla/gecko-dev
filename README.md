@@ -52,5 +52,13 @@ git merge replay-merge
 git push
 ```
 
-8. Make sure automatic updates work with the new browser.
-9. Run live test harness and make sure crash rate is acceptable.
+8. Update geckoVersion in the backend.
+9. Make sure automatic updates work with the new browser. Deploy a browser but do not release it, then open it, open "About Replay" and see if it updates.
+
+Tips for debugging:
+
+* Look at the update server logs to make sure requests are being processed correctly.
+* Set the `app.update.log` browser config when running, and then check console output.
+* If there is a line like `*** AUS:SVC readStatusFile - status: failed: 23, path: /path/to/update.status`, this is produced by the C++ updater which can be found in `UpdateThreadFunc` in `updater.cpp`. Building a local browser with instrumentation is likely needed to investigate.
+
+10. Run live test harness and make sure crash rate is acceptable.

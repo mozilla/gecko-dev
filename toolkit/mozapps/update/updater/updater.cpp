@@ -2483,7 +2483,11 @@ static void UpdateThreadFunc(void* param) {
       rv = gArchiveReader.Open(dataFile);
     }
 
-#ifdef MOZ_VERIFY_MAR_SIGNATURE
+// MAR file verification is disabled. Replay updates aren't signed (they are
+// delivered over https from a replay-controlled server) and version numbers
+// in the MAR files might not match.
+#if 0
+//#ifdef MOZ_VERIFY_MAR_SIGNATURE
     if (rv == OK) {
       rv = gArchiveReader.VerifySignature();
     }
