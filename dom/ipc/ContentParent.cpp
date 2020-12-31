@@ -2606,6 +2606,17 @@ ContentParent::ContentParent(const nsACString& aRemoteType, int32_t aJSPluginID,
   MOZ_DIAGNOSTIC_ASSERT(!IsForJSPlugin(),
                         "XXX(nika): How are we creating a JSPlugin?");
 
+  // When this env var is set, all content processes are recorded in case they
+  // load any matching content.
+  if (getenv("RECORD_REPLAY_MATCHING_URL")) {
+    char* server = getenv("RECORD_REPLAY_SERVER");
+    if (server) {
+      mRecordingDispatchAddress = NS_ConvertUTF8toUTF16(nsCString(server));
+    } else {
+      fprintf(stderr, "Warning: RECORD_REPLAY_SERVER not set, ignoring RECORD_REPLAY_MATCHING_URL.\n");
+    }
+  }
+
   mRemoteTypeIsolationPrincipal =
       CreateRemoteTypeIsolationPrincipal(aRemoteType);
 

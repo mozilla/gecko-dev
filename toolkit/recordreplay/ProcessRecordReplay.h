@@ -34,6 +34,10 @@ void InitializeGraphics();
 bool HasCheckpoint();
 void FinishRecording();
 
+// If specified, the recording will be added to a file specified by an env
+// var if it loads any sources matching this filter.
+extern const char* gURLFilter;
+
 }  // namespace mozilla::recordreplay
 
 #endif  // mozilla_recordreplay_ProcessRecordReplay_h

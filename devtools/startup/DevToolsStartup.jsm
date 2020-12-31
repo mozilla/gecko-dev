@@ -1438,7 +1438,7 @@ function createRecordingButton() {
     type: "button",
     tooltiptext: "record-button.tooltiptext2",
     onClick(evt) {
-      if (getConnectionStatus() || !gHasRecordingDriver) {
+      if (getConnectionStatus() || !gHasRecordingDriver || isRecordingAllTabs()) {
         return;
       }
 
@@ -1465,10 +1465,10 @@ function createRecordingButton() {
       }
 
       node.refreshStatus = () => {
-        const recording = selectedBrowserHasAttribute("recordExecution");
+        const recording = selectedBrowserHasAttribute("recordExecution") || isRecordingAllTabs();
 
         node.classList.toggle("recording", recording);
-        node.classList.toggle("hidden", isAuthenticationEnabled() && !isLoggedIn() && !isRunningTest());
+        node.classList.toggle("hidden", isAuthenticationEnabled() && !isLoggedIn() && !isRunningTest() && !isRecordingAllTabs());
 
         const status = getConnectionStatus();
         let tooltip = status;
@@ -1478,7 +1478,7 @@ function createRecordingButton() {
           node.disabled = true;
           tooltip = "missingDriver.label";
         } else if (recording) {
-          node.disabled = false;
+          node.disabled = isRecordingAllTabs();
           tooltip = "stopRecording.label";
         } else {
           node.disabled = false;
@@ -1518,7 +1518,7 @@ function createRecordingButton() {
     },
     onCreated(node) {
       node.refreshStatus = () => {
-        node.classList.toggle("hidden", !isAuthenticationEnabled() || isLoggedIn() || isRunningTest());
+        node.classList.toggle("hidden", !isAuthenticationEnabled() || isLoggedIn() || isRunningTest() || isRecordingAllTabs());
       };
       node.refreshStatus();
 
@@ -1574,9 +1574,6 @@ async function runTestScript() {
 }
 
 function getDispatchServer(url) {
-  const env = Cc["@mozilla.org/process/environment;1"].getService(
-    Ci.nsIEnvironment
-  );
   const address = env.get("RECORD_REPLAY_SERVER");
   if (address) {
     return address;
@@ -1634,6 +1631,15 @@ async function updateRecordingDriver() {
     setTimeout(updateRecordingDriver, 100);
     return;
   }
+
+  // Don't update the driver if one was specified in the environment.
+  if (env.get("RECORD_REPLAY_DRIVER")) {
+    gHasRecordingDriver = true;
+    return;
+  }
+
+  // Set the driver path for use in the recording process.
+  env.set("RECORD_REPLAY_DRIVER", driverFile().path);
 
   let downloadURL;
   try {
@@ -1718,11 +1724,6 @@ setInterval(updateRecordingDriver, 1000 * 60 * 20);
 function reloadAndRecordTab(gBrowser) {
   let url = gBrowser.currentURI.spec;
 
-  // Set the driver path for use in the recording process, if it isn't already set.
-  if (!env.get("RECORD_REPLAY_DRIVER")) {
-    env.set("RECORD_REPLAY_DRIVER", driverFile().path);
-  }
-
   // Don't preprocess recordings if we will be submitting them for testing.
   try {
     if (
@@ -1759,6 +1760,14 @@ function reloadAndRecordTab(gBrowser) {
   gBrowser.loadURI(url, {
     triggeringPrincipal: gBrowser.selectedBrowser.contentPrincipal,
   });
+}
+
+// Return whether all tabs are automatically being recorded.
+function isRecordingAllTabs() {
+  // Even though this env var indicates we are only interested in recordings
+  // for a specific URL, all tabs will be recorded in case they load any
+  // matching content.
+  return env.get("RECORD_REPLAY_MATCHING_URL");
 }
 
 function reloadAndStopRecordingTab(gBrowser) {

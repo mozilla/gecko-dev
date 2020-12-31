@@ -3567,9 +3567,9 @@ void nsGlobalWindowInner::Dump(const nsAString& aStr) {
 
   char* cstr = ToNewUTF8String(aStr);
 
-  // dump() is used for SpecialPowers-like functionality in Record Replay local tests.
+  // dump() is used for SpecialPowers-like functionality in Record Replay automated tests.
   if (!strncmp(cstr, "RecReplay", 9)) {
-    char* env = getenv("RECORD_REPLAY_LOCAL_TEST");
+    char* env = getenv("RECORD_REPLAY_TEST_SCRIPT");
     if (env) {
       recordreplay::js::OnTestCommand(cstr);
       return;

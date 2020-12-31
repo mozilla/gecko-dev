@@ -47,8 +47,6 @@ MOZ_NEVER_INLINE void BusyWait() {
 // Basic interface
 ///////////////////////////////////////////////////////////////////////////////
 
-static bool gAutomatedTesting;
-
 struct JSFilter {
   std::string mFilename;
   unsigned mStartLine = 0;
@@ -136,6 +134,8 @@ static const char* GetPlatformKind() {
 #endif
 }
 
+const char* gURLFilter;
+
 extern "C" {
 
 MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
@@ -222,7 +222,6 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   gIsRecording = !gRecordReplayIsReplaying();
   gIsReplaying = gRecordReplayIsReplaying();
 
-  gAutomatedTesting = TestEnv("RECORD_REPLAY_TEST_SCRIPT");
   ParseJSFilters("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS", gExecutionAsserts);
   ParseJSFilters("RECORD_REPLAY_RECORD_JS_ASSERTS", gJSAsserts);
 
@@ -232,8 +231,13 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
 
   // Unless disabled via the environment, pre-process all created recordings so
   // that they will load faster after saving the recording.
-  if (!TestEnv("RECORD_REPLAY_DONT_PROCESS_RECORDINGS")) {
+  if (!TestEnv("RECORD_REPLAY_DONT_PROCESS_RECORDINGS") &&
+      !TestEnv("RECORD_REPLAY_MATCHING_URL")) {
     gProcessRecording();
+  }
+
+  if (TestEnv("RECORD_REPLAY_MATCHING_URL")) {
+    gURLFilter = getenv("RECORD_REPLAY_MATCHING_URL");
   }
 
   ConfigureGecko();
@@ -287,10 +291,6 @@ MOZ_EXPORT void RecordReplayInterface_InternalHoldJSObject(void* aJSObj) {
     JS::PersistentRootedObject* root = new JS::PersistentRootedObject(cx);
     *root = static_cast<JSObject*>(aJSObj);
   }
-}
-
-MOZ_EXPORT bool RecordReplayInterface_InternalInAutomatedTest() {
-  return gAutomatedTesting;
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalAssertScriptedCaller(const char* aWhy) {

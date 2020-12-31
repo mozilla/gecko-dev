@@ -346,6 +346,8 @@ static bool Method_Annotate(JSContext* aCx, unsigned aArgc, Value* aVp) {
   return true;
 }
 
+static bool gHasMatchingURL;
+
 static bool Method_OnNewSource(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
@@ -361,6 +363,24 @@ static bool Method_OnNewSource(JSContext* aCx, unsigned aArgc, Value* aVp) {
   ConvertJSStringToCString(aCx, args.get(1).toString(), kind);
   ConvertJSStringToCString(aCx, args.get(2).toString(), url);
   gOnNewSource(id.get(), kind.get(), url.get());
+
+  // Check to see if the source matches any URL filter we have.
+  if (gURLFilter && !gHasMatchingURL && strstr(url.get(), gURLFilter)) {
+    gHasMatchingURL = true;
+
+    // We found a match, add the recording to the file at this env var.
+    char* env = getenv("RECORD_REPLAY_RECORDING_ID_FILE");
+    if (env) {
+      FILE* file = fopen(env, "a");
+      if (file) {
+        const char* recordingId = GetRecordingId();
+        fprintf(file, "%s\n", recordingId);
+        fclose(file);
+      } else {
+        fprintf(stderr, "Error: Could not open %s for adding recording ID", env);
+      }
+    }
+  }
 
   args.rval().setUndefined();
   return true;
