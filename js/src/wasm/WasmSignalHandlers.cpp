@@ -698,8 +698,6 @@ static MOZ_MUST_USE bool HandleTrap(CONTEXT* context,
                                     JSContext* assertCx = nullptr) {
   MOZ_ASSERT(sAlreadyHandlingTrap.get());
 
-  mozilla::recordreplay::InvalidateRecording("Wasm signal handler invoked");
-
   uint8_t* pc = ContextToPC(context);
   const CodeSegment* codeSegment = LookupCodeSegment(pc);
   if (!codeSegment || !codeSegment->isModule()) {
@@ -1023,18 +1021,6 @@ void wasm::EnsureEagerProcessSignalHandlers() {
   }
 #endif
 
-  // When recording/replaying, we use signal handlers when recording but not
-  // when replaying. Signal handlers will not work when replaying, but we
-  // don't need them because the same accesses will be performed when replaying
-  // as when recording, and we invalidate the recording if any signal handlers
-  // trip while recording.
-  if (mozilla::recordreplay::IsReplaying()) {
-    eagerInstallState->success = true;
-    return;
-  }
-
-  mozilla::recordreplay::AutoPassThroughThreadEvents pt;
-
   sAlreadyHandlingTrap.infallibleInit();
 
   // Install whatever exception/signal handler is appropriate for the OS.
@@ -1110,14 +1096,6 @@ static bool EnsureLazyProcessSignalHandlers() {
   lazyInstallState->tried = true;
   MOZ_RELEASE_ASSERT(lazyInstallState->success == false);
 
-  // Don't install signal handlers when replaying,
-  // see EnsureEagerProcessSignalHandlers.
-  if (mozilla::recordreplay::IsReplaying()) {
-    lazyInstallState->success = true;
-    return true;
-  }
-  mozilla::recordreplay::AutoPassThroughThreadEvents pt;
-
 #ifdef XP_DARWIN
   // Create the port that all JSContext threads will redirect their traps to.
   kern_return_t kret;
@@ -1164,11 +1142,6 @@ bool wasm::EnsureFullSignalHandlers(JSContext* cx) {
 
   if (!EnsureLazyProcessSignalHandlers()) {
     return false;
-  }
-
-  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
-    cx->wasmHaveSignalHandlers = true;
-    return true;
   }
 
 #ifdef XP_DARWIN

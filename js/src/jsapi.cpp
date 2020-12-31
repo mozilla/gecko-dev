@@ -397,7 +397,15 @@ JS_PUBLIC_API JSContext* JS_NewContext(uint32_t maxbytes,
     parentRuntime = parentRuntime->parentRuntime;
   }
 
-  return NewContext(maxbytes, parentRuntime);
+  JSContext* cx = NewContext(maxbytes, parentRuntime);
+
+  // When recording/replaying, force instantiation of lazy wasm signal ahndler
+  // state at a consistent point.
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    wasm::HasPlatformSupport(cx);
+  }
+
+  return cx;
 }
 
 JS_PUBLIC_API void JS_DestroyContext(JSContext* cx) { DestroyContext(cx); }
