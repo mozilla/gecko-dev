@@ -367,16 +367,22 @@ function eventListener(info) {
 }
 
 function SendRecordingFinished(recordingId) {
-  const document = getWindow().document;
-  const data = {
-    id: recordingId,
-    url: document.URL,
-    title: document.title,
-    duration: new Date() - startTime,
-    lastScreenData: getWindowAsImageData(getWindow()),
-    lastScreenMimeType: "image/jpeg",
-  };
-  Services.cpmm.sendAsyncMessage("RecordingFinished", data);
+  try {
+    const document = getWindow().document;
+    const data = {
+      id: recordingId,
+      url: document.URL,
+      title: document.title,
+      duration: new Date() - startTime,
+      lastScreenData: getWindowAsImageData(getWindow()),
+      lastScreenMimeType: "image/jpeg",
+    };
+    Services.cpmm.sendAsyncMessage("RecordingFinished", data);
+  } catch (e) {
+    // If we finish the recording while shutting down then we'll get
+    // exceptions while sending messages to the UI process. Ignore these
+    // exceptions.
+  }
 }
 
 function SendRecordingUnusable(why) {

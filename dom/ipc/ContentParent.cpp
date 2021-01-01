@@ -1609,10 +1609,27 @@ void ContentParent::MaybeAsyncSendShutDownMessage() {
       &ContentParent::ShutDownProcess, SEND_SHUTDOWN_MESSAGE));
 }
 
+static bool RecordAllContentProcesses() {
+  // When this env var is set, all content processes are recorded in case they
+  // load any matching content.
+  const char* env = getenv("RECORD_REPLAY_MATCHING_URL");
+  return env && env[0];
+}
+
 void ContentParent::ShutDownProcess(ShutDownMethod aMethod) {
   // NB: must MarkAsDead() here so that this isn't accidentally
   // returned from Get*() while in the midst of shutdown.
   MarkAsDead();
+
+  // When recording all content processes, mark recordings as finished when
+  // shutting down so that we don't force-kill them and allow recordings to
+  // finish uploading. We don't do this when users have to manually stop
+  // recording, as there isn't an expectation that unfinished recordings will
+  // finish uploading in that case.
+  if (IsRecording() && RecordAllContentProcesses()) {
+    bool retval;
+    FinishRecording(&retval);
+  }
 
   // Shutting down by sending a shutdown message works differently than the
   // other methods. We first call Shutdown() in the child. After the child is
@@ -2606,14 +2623,12 @@ ContentParent::ContentParent(const nsACString& aRemoteType, int32_t aJSPluginID,
   MOZ_DIAGNOSTIC_ASSERT(!IsForJSPlugin(),
                         "XXX(nika): How are we creating a JSPlugin?");
 
-  // When this env var is set, all content processes are recorded in case they
-  // load any matching content.
-  if (getenv("RECORD_REPLAY_MATCHING_URL")) {
+  if (RecordAllContentProcesses()) {
     char* server = getenv("RECORD_REPLAY_SERVER");
     if (server) {
       mRecordingDispatchAddress = NS_ConvertUTF8toUTF16(nsCString(server));
     } else {
-      fprintf(stderr, "Warning: RECORD_REPLAY_SERVER not set, ignoring RECORD_REPLAY_MATCHING_URL.\n");
+      fprintf(stderr, "Warning: RECORD_REPLAY_SERVER not set, can't record.\n");
     }
   }
 

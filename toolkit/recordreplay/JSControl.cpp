@@ -257,7 +257,9 @@ static const char* GetRecordingId() {
 
 // Report the recording as either finished or unusable.
 void SendRecordingFinished() {
-  MOZ_RELEASE_ASSERT(IsModuleInitialized());
+  if (!IsModuleInitialized()) {
+    return;
+  }
 
   AutoSafeJSContext cx;
   JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
