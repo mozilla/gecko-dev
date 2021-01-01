@@ -1542,7 +1542,6 @@ function _loadURI(browser, uri, params = {}) {
   // This doesn't handle all aspects of session history, and when navigating to
   // a third URL we drop this information.
   if (params.oldRecordedURL) {
-    dump(`SET_RECORDING_INFO\n`);
     browser.recordingInfo = { recordedURL: params.oldRecordedURL, viewURL: uri };
   } else if (browser.recordingInfo) {
     const { recordedURL, viewURL } = browser.recordingInfo;
