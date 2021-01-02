@@ -230,9 +230,15 @@ IPCResult HttpBackgroundChannelChild::RecvOnTransportAndData(
              self.get(), aDataFromSocketProcess, self->mFirstODASource));
         MOZ_ASSERT(OnSocketThread());
 
+        recordreplay::RecordReplayAssert("HttpBackgroundChannelChild::RecvOnTransportAndData Callback #0.1 %d",
+                                         !!self->mChannelChild);
+
         if (NS_WARN_IF(!self->mChannelChild)) {
           return;
         }
+
+        recordreplay::RecordReplayAssert("HttpBackgroundChannelChild::RecvOnTransportAndData Callback #0.2 %d %d",
+                                         self->mFirstODASource, aDataFromSocketProcess);
 
         if (((self->mFirstODASource == ODA_FROM_SOCKET) &&
              !aDataFromSocketProcess) ||
@@ -247,6 +253,7 @@ IPCResult HttpBackgroundChannelChild::RecvOnTransportAndData(
         nsresult channelStatus;
         self->mChannelChild->GetStatus(&channelStatus);
         if (NS_FAILED(channelStatus)) {
+          recordreplay::RecordReplayAssert("HttpBackgroundChannelChild::RecvOnTransportAndData Callback #0.3");
           return;
         }
 
