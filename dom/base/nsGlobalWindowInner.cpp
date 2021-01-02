@@ -754,6 +754,8 @@ uint32_t nsGlobalWindowInner::RequestIdleCallback(
     const IdleRequestOptions& aOptions, ErrorResult& aError) {
   AssertIsOnMainThread();
 
+  recordreplay::AssertScriptedCaller("nsGlobalWindowInner::RequestIdleCallback");
+
   if (IsDying()) {
     return 0;
   }

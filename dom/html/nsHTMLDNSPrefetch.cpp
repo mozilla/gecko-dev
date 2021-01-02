@@ -361,6 +361,8 @@ nsresult nsHTMLDNSPrefetch::nsDeferrals::Add(uint32_t flags, Link* aElement) {
 }
 
 void nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue() {
+  recordreplay::RecordReplayAssert("nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue");
+
   NS_ASSERTION(NS_IsMainThread(),
                "nsDeferrals::SubmitQueue must be on main thread");
   nsCString hostName;

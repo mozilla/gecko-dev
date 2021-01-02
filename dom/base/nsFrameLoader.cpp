@@ -3722,6 +3722,8 @@ void nsFrameLoader::MaybeNotifyCrashed(BrowsingContext* aBrowsingContext,
 bool nsFrameLoader::EnsureBrowsingContextAttached() {
   nsresult rv;
 
+  recordreplay::RecordReplayAssert("nsFrameLoader::EnsureBrowsingContextAttached");
+
   Document* parentDoc = mOwnerContent->OwnerDoc();
   MOZ_ASSERT(parentDoc);
   BrowsingContext* parentContext = parentDoc->GetBrowsingContext();

@@ -346,6 +346,8 @@ class RefreshDriverTimer {
       return;
     }
 
+    recordreplay::RecordReplayAssert("TickRefreshDrivers Start");
+
     for (nsRefreshDriver* driver : aDrivers.Clone()) {
       // don't poke this driver if it's in test mode
       if (driver->IsTestControllingRefreshesEnabled()) {
@@ -354,6 +356,8 @@ class RefreshDriverTimer {
 
       TickDriver(driver, aId, aNow);
     }
+
+    recordreplay::RecordReplayAssert("TickRefreshDrivers Done");
   }
 
   /*
@@ -2213,6 +2217,8 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
 
           LogPresShellObserver::Run run(rawPresShell, this);
 
+          recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #1");
+
           RefPtr<PresShell> presShell = rawPresShell;
           presShell->mObservingStyleFlushes = false;
           presShell->FlushPendingNotifications(
@@ -2241,6 +2247,8 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime) {
         }
 
         LogPresShellObserver::Run run(rawPresShell, this);
+
+        recordreplay::RecordReplayAssert("nsRefreshDriver::Tick #2");
 
         RefPtr<PresShell> presShell = rawPresShell;
         presShell->mObservingLayoutFlushes = false;

@@ -3591,6 +3591,8 @@ NS_IMETHODIMP BrowserChild::OnStateChange(nsIWebProgress* aWebProgress,
                                           nsIRequest* aRequest,
                                           uint32_t aStateFlags,
                                           nsresult aStatus) {
+  recordreplay::RecordReplayAssert("BrowserChild::OnStateChange");
+
   if (!IPCOpen() || !mShouldSendWebProgressEventsToParent) {
     return NS_OK;
   }
