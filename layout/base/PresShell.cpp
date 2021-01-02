@@ -4048,9 +4048,9 @@ static inline void AssertFrameTreeIsSane(const PresShell& aPresShell) {
 }
 
 void PresShell::DoFlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
-  // For now we don't flush layout after diverging from the recording, to avoid
-  // calls that didn't happen while recording.
-  if (recordreplay::HasDivergedFromRecording()) {
+  // Flushing layout can interact with the system in new ways, and doesn't
+  // happen when unhandled divergence isn't allowed.
+  if (!mozilla::recordreplay::IsUnhandledDivergenceAllowed()) {
     return;
   }
 

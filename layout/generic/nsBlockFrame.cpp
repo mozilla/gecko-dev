@@ -1223,7 +1223,7 @@ static bool IsLineClampItem(const ReflowInput& aReflowInput) {
 void nsBlockFrame::Reflow(nsPresContext* aPresContext, ReflowOutput& aMetrics,
                           const ReflowInput& aReflowInput,
                           nsReflowStatus& aStatus) {
-  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::HasDivergedFromRecording());
+  MOZ_RELEASE_ASSERT(mozilla::recordreplay::IsUnhandledDivergenceAllowed());
 
   MarkInReflow();
   DO_GLOBAL_REFLOW_COUNT("nsBlockFrame");

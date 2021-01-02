@@ -876,7 +876,7 @@ bool nsHTMLScrollFrame::InInitialReflow() const {
 
 void nsHTMLScrollFrame::ReflowContents(ScrollReflowInput* aState,
                                        const ReflowOutput& aDesiredSize) {
-  MOZ_RELEASE_ASSERT(!mozilla::recordreplay::HasDivergedFromRecording());
+  MOZ_RELEASE_ASSERT(mozilla::recordreplay::IsUnhandledDivergenceAllowed());
 
   ReflowOutput kidDesiredSize(aDesiredSize.GetWritingMode());
   ReflowScrolledFrame(aState, GuessHScrollbarNeeded(*aState),

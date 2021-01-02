@@ -31,6 +31,7 @@ namespace recordreplay {
   Macro(InternalUnwrapPLDHashTableCallbacks, const PLDHashTableOps*,           \
         (const PLDHashTableOps* aOps), (aOps))                                 \
   Macro(InternalHasDivergedFromRecording, bool, (), ())                        \
+  Macro(InternalIsUnhandledDivergenceAllowed, bool, (), ())                    \
   Macro(InternalThingIndex, size_t, (void* aThing), (aThing))                  \
   Macro(InternalCreateOrderedLock, int, (const char* aName), (aName))          \
   Macro(ExecutionProgressCounter, ProgressCounter*, (), ())                    \

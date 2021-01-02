@@ -10187,9 +10187,8 @@ class nsDocumentOnStack {
 };
 
 void Document::FlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
-  // For now we don't reflow after diverging from the recording, as it may
-  // perform calls into the system that did not occur when recording.
-  if (recordreplay::HasDivergedFromRecording()) {
+  // See PresShell::DoFlushPendingNotifications(.
+  if (!mozilla::recordreplay::IsUnhandledDivergenceAllowed()) {
     return;
   }
 
