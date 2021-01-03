@@ -895,7 +895,8 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   }
 
   MOZ_MUST_USE bool maybeEmitRecordReplayAssert(GCThingIndex atomIndex) {
-    if (ShouldEmitRecordReplayAssert(parser->options().filename(),
+    if (shouldEmitInstrumentation() &&
+        ShouldEmitRecordReplayAssert(parser->options().filename(),
                                      bytecodeSection().currentLine(),
                                      bytecodeSection().lastColumn())) {
       return emitDupAt(0) && emitAtomOp(JSOp::RecordReplayAssert, atomIndex);
@@ -904,7 +905,8 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   }
 
   MOZ_MUST_USE bool maybeEmitRecordReplayAssert(const ParserAtom* atom) {
-    if (ShouldEmitRecordReplayAssert(parser->options().filename(),
+    if (shouldEmitInstrumentation() &&
+        ShouldEmitRecordReplayAssert(parser->options().filename(),
                                      bytecodeSection().currentLine(),
                                      bytecodeSection().lastColumn())) {
       return emitDupAt(0) && emitAtomOp(JSOp::RecordReplayAssert, atom);

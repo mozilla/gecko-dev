@@ -2320,6 +2320,8 @@ void MacroAssembler::maybeCallExecutionProgressHook(void* script) {
 }
 
 void MacroAssembler::maybeCallExecutionProgressHook(Register script) {
+  MOZ_RELEASE_ASSERT(ExecutionProgressHook);
+
   AllocatableRegisterSet regs(RegisterSet::Volatile());
   LiveRegisterSet save(regs.asLiveSet());
   PushRegsInMask(save);

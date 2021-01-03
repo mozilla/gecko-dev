@@ -943,18 +943,18 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
 
   if (value.isObject()) {
     JSObject* obj = &value.toObject();
-    mozilla::recordreplay::RecordReplayAssert("Value %s Object %s", buf, obj->getClass()->name);
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s Object %s", buf, obj->getClass()->name);
   } else if (value.isString()) {
-    mozilla::recordreplay::RecordReplayAssert("Value %s String", buf);
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s String", buf);
   } else if (value.isSymbol()) {
-    mozilla::recordreplay::RecordReplayAssert("Value %s Symbol", buf);
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s Symbol", buf);
   } else if (value.isBigInt()) {
-    mozilla::recordreplay::RecordReplayAssert("Value %s BigInt", buf);
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s BigInt", buf);
   } else {
     // int32 vs. double representations might not be consistent between
     // recording and replaying, due to different JIT behaviors.
     Value v = value.isInt32() ? DoubleValue(value.toInt32()) : value;
-    mozilla::recordreplay::RecordReplayAssert("Value %s Primitive %llu", buf, v.asRawBits());
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s Primitive %llu", buf, v.asRawBits());
   }
 
   return true;
