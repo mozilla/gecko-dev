@@ -85,6 +85,24 @@ enum CacheDisposition : uint8_t {
   kCacheUnknown = 5
 };
 
+// Atomic wrapper that asserts writes happen consistently.
+template <typename T, MemoryOrdering Order>
+struct RecordedAtomic {
+  Atomic<T, Order> mInner;
+
+  explicit constexpr RecordedAtomic(T aInit) : mInner(aInit) {}
+
+  T operator=(T aVal) {
+    recordreplay::RecordReplayAssert("AtomicWrite %d", (int)aVal);
+    mInner = aVal;
+    return aVal;
+  }
+
+  operator T() const {
+    return mInner;
+  }
+};
+
 /*
  * This class is a partial implementation of nsIHttpChannel.  It contains code
  * shared by nsHttpChannel and HttpChannelChild.
@@ -747,7 +765,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   uint64_t mChannelId;
   uint64_t mReqContentLength;
 
-  Atomic<nsresult, ReleaseAcquire> mStatus;
+  RecordedAtomic<nsresult, ReleaseAcquire> mStatus;
 
   // Use Release-Acquire ordering to ensure the OMT ODA is ignored while channel
   // is canceled on main thread.
