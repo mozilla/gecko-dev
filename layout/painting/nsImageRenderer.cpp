@@ -134,8 +134,13 @@ bool nsImageRenderer::PrepareImage() {
   recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1");
 
   if (!mImage->IsComplete()) {
+    recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.1");
+
     // Make sure the image is actually decoding.
     bool frameComplete = mImage->StartDecoding();
+
+    recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.2 %d %d %d",
+                                     frameComplete, mFlags, mImage->IsImageRequestType());
 
     // Boost the loading priority since we know we want to draw the image.
     if ((mFlags & nsImageRenderer::FLAG_PAINTING_TO_WINDOW) &&
@@ -144,6 +149,8 @@ bool nsImageRenderer::PrepareImage() {
                  "must have image data, since we checked above");
       mImage->GetImageRequest()->BoostPriority(imgIRequest::CATEGORY_DISPLAY);
     }
+
+    recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.3");
 
     // Check again to see if we finished.
     // We cannot prepare the image for rendering if it is not fully loaded.
@@ -154,6 +161,8 @@ bool nsImageRenderer::PrepareImage() {
       mPrepareResult = ImgDrawResult::NOT_READY;
       return false;
     }
+
+    recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.4");
   }
 
   recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #2");
