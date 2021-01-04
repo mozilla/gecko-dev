@@ -945,7 +945,8 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
     JSObject* obj = &value.toObject();
     mozilla::recordreplay::RecordReplayAssert("JSValue %s Object %s", buf, obj->getClass()->name);
   } else if (value.isString()) {
-    mozilla::recordreplay::RecordReplayAssert("JSValue %s String", buf);
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s String %d", buf,
+                                              (int) value.toString()->length());
   } else if (value.isSymbol()) {
     mozilla::recordreplay::RecordReplayAssert("JSValue %s Symbol", buf);
   } else if (value.isBigInt()) {

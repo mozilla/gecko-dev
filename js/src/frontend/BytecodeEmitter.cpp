@@ -958,7 +958,7 @@ bool BytecodeEmitter::emitAtomOp(JSOp op, GCThingIndex atomIndex,
     case JSOp::GetProp:
     case JSOp::CallProp:
     case JSOp::Length:
-      if (!maybeEmitRecordReplayAssert(cx->parserNames().length)) {
+      if (!maybeEmitRecordReplayAssert(atomIndex)) {
         return false;
       }
       break;
