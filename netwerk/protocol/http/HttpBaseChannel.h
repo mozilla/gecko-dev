@@ -85,21 +85,30 @@ enum CacheDisposition : uint8_t {
   kCacheUnknown = 5
 };
 
-// Atomic wrapper that asserts writes happen consistently.
+// Atomic wrapper that ensures accesses happen in the same order when
+// recording vs. replaying.
 template <typename T, MemoryOrdering Order>
-struct RecordedAtomic {
+struct OrderedAtomic {
   Atomic<T, Order> mInner;
+  int mOrderedLockId;
 
-  explicit constexpr RecordedAtomic(T aInit) : mInner(aInit) {}
+  explicit constexpr OrderedAtomic(T aInit)
+    : mInner(aInit),
+      mOrderedLockId(recordreplay::CreateOrderedLock("OrderedAtomic"))
+  {}
 
   T operator=(T aVal) {
-    recordreplay::RecordReplayAssert("AtomicWrite %d", (int)aVal);
+    recordreplay::OrderedLock(mOrderedLockId);
     mInner = aVal;
+    recordreplay::OrderedUnlock(mOrderedLockId);
     return aVal;
   }
 
   operator T() const {
-    return mInner;
+    recordreplay::OrderedLock(mOrderedLockId);
+    T rv = mInner;
+    recordreplay::OrderedUnlock(mOrderedLockId);
+    return rv;
   }
 };
 
@@ -765,7 +774,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   uint64_t mChannelId;
   uint64_t mReqContentLength;
 
-  RecordedAtomic<nsresult, ReleaseAcquire> mStatus;
+  OrderedAtomic<nsresult, ReleaseAcquire> mStatus;
 
   // Use Release-Acquire ordering to ensure the OMT ODA is ignored while channel
   // is canceled on main thread.
