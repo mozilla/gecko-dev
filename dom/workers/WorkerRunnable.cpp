@@ -37,7 +37,6 @@ const nsIID kWorkerRunnableIID = {
 
 }  // namespace
 
-#ifdef DEBUG
 WorkerRunnable::WorkerRunnable(WorkerPrivate* aWorkerPrivate,
                                TargetAndBusyBehavior aBehavior)
     : mWorkerPrivate(aWorkerPrivate),
@@ -45,8 +44,14 @@ WorkerRunnable::WorkerRunnable(WorkerPrivate* aWorkerPrivate,
       mCanceled(0),
       mCallingCancelWithinRun(false) {
   MOZ_ASSERT(aWorkerPrivate);
+
+  // An assortment of worker runnables have destructors that can perform
+  // recorded events at non-deterministic points. Leak these runnables to
+  // avoid these.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    AddRef();
+  }
 }
-#endif
 
 bool WorkerRunnable::IsDebuggerRunnable() const { return false; }
 

@@ -96,16 +96,7 @@ class WorkerRunnable : public nsIRunnable, public nsICancelableRunnable {
 
  protected:
   WorkerRunnable(WorkerPrivate* aWorkerPrivate,
-                 TargetAndBusyBehavior aBehavior = WorkerThreadModifyBusyCount)
-#ifdef DEBUG
-      ;
-#else
-      : mWorkerPrivate(aWorkerPrivate),
-        mBehavior(aBehavior),
-        mCanceled(0),
-        mCallingCancelWithinRun(false) {
-  }
-#endif
+                 TargetAndBusyBehavior aBehavior = WorkerThreadModifyBusyCount);
 
   // This class is reference counted.
   virtual ~WorkerRunnable() = default;
