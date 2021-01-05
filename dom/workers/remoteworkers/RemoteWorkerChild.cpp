@@ -250,7 +250,7 @@ class RemoteWorkerChild::InitializeWorkerRunnable final
 };
 
 RemoteWorkerChild::RemoteWorkerChild(const RemoteWorkerData& aData)
-    : mState(VariantType<Pending>(), "RemoteWorkerChild::mState"),
+    : mState(VariantType<Pending>(), "RemoteWorkerChild::mState", /* aOrdered */ true),
       mIsServiceWorker(aData.serviceWorkerData().type() ==
                        OptionalServiceWorkerData::TServiceWorkerData),
       mOwningEventTarget(GetCurrentSerialEventTarget()) {

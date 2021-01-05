@@ -90,6 +90,9 @@ class DataMutexBase {
   DataMutexBase(T&& aValue, const char* aName)
       : mMutex(aName), mValue(std::move(aValue)) {}
 
+  DataMutexBase(T&& aValue, const char* aName, bool aOrdered)
+      : mMutex(aName, aOrdered), mValue(std::move(aValue)) {}
+
   AutoLock Lock() { return AutoLock(this); }
 
  private:
