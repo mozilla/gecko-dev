@@ -17,6 +17,25 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
+#include <dlfcn.h>
+
+static void (*gRecordReplayAssertFn)(const char*, va_list);
+
+static void RecordReplayAssertFromC(const char* aFormat, ...) {
+  if (!gRecordReplayAssertFn) {
+    void* fnptr = dlsym(RTLD_DEFAULT, "RecordReplayAssert");
+    if (!fnptr) {
+      return;
+    }
+    gRecordReplayAssertFn = fnptr;
+  }
+
+  va_list ap;
+  va_start(ap, aFormat);
+  gRecordReplayAssertFn(aFormat, ap);
+  va_end(ap);
+}
+
 #ifdef _PR_POLL_AVAILABLE
 #include <poll.h>
 #endif
@@ -3633,6 +3652,8 @@ int poll(struct pollfd *filedes, unsigned long nfds, int timeout)
     fd_set rd, wr, ex;
     struct timeval tv, *tvp;
 
+    RecordReplayAssertFromC("poll Start %u %d", nfds, timeout);
+
     if (timeout < 0 && timeout != -1) {
         errno = EINVAL;
         return -1;
@@ -3655,6 +3676,8 @@ int poll(struct pollfd *filedes, unsigned long nfds, int timeout)
         int osfd = filedes[i].fd;
         int events = filedes[i].events;
         PRBool fdHasEvent = PR_FALSE;
+
+        RecordReplayAssertFromC("poll #1 %d %d %d", i, osfd, events);
 
         if (osfd < 0) {
             continue;  /* Skip this osfd. */
@@ -3688,6 +3711,8 @@ int poll(struct pollfd *filedes, unsigned long nfds, int timeout)
             maxfd = osfd;
         }
     }
+
+    RecordReplayAssertFromC("poll CallSelect %d", maxfd);
 
     rv = select(maxfd + 1, &rd, &wr, &ex, tvp);
 
