@@ -1737,6 +1737,8 @@ static bool date_getYear(JSContext* cx, unsigned argc, Value* vp) {
 static bool date_getFullYear(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  mozilla::recordreplay::AssertScriptedCaller("date_getFullYear");
+
   auto* unwrapped = UnwrapAndTypeCheckThis<DateObject>(cx, args, "getFullYear");
   if (!unwrapped) {
     return false;
@@ -2012,6 +2014,8 @@ static bool date_getUTCMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
 
 static bool date_getTimezoneOffset(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
+
+  mozilla::recordreplay::AssertScriptedCaller("date_getTimezoneOffset");
 
   auto* unwrapped =
       UnwrapAndTypeCheckThis<DateObject>(cx, args, "getTimezoneOffset");
