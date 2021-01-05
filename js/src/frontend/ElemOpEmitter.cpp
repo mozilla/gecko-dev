@@ -88,6 +88,7 @@ bool ElemOpEmitter::emitPrivateGuard() {
 bool ElemOpEmitter::emitGet() {
   MOZ_ASSERT(state_ == State::Key);
 
+  // Assert the key in the get.
   if (!bce_->maybeEmitRecordReplayAssert(bce_->cx->parserNames().element)) {
     return false;
   }
@@ -152,6 +153,7 @@ bool ElemOpEmitter::emitGet() {
     }
   }
 
+  // Assert the value read by the get.
   if (!bce_->maybeEmitRecordReplayAssert(bce_->cx->parserNames().element)) {
     return false;
   }
@@ -166,6 +168,11 @@ bool ElemOpEmitter::prepareForRhs() {
   MOZ_ASSERT(isSimpleAssignment() || isPropInit() || isCompoundAssignment());
   MOZ_ASSERT_IF(isSimpleAssignment() || isPropInit(), state_ == State::Key);
   MOZ_ASSERT_IF(isCompoundAssignment(), state_ == State::Get);
+
+  // Assert the element written by the set.
+  if (!bce_->maybeEmitRecordReplayAssert(bce_->cx->parserNames().element)) {
+    return false;
+  }
 
   if (isSimpleAssignment() || isPropInit()) {
     if (!emitPrivateGuard()) {
@@ -243,6 +250,11 @@ bool ElemOpEmitter::emitAssignment() {
   MOZ_ASSERT(state_ == State::Rhs);
 
   MOZ_ASSERT_IF(isPropInit(), !isSuper());
+
+  // Assert the value written by the set.
+  if (!bce_->maybeEmitRecordReplayAssert(bce_->cx->parserNames().element)) {
+    return false;
+  }
 
   JSOp setOp = isPropInit()
                    ? JSOp::InitElem

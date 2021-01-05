@@ -184,6 +184,11 @@ bool PropOpEmitter::emitAssignment(const ParserAtom* prop) {
     }
   }
 
+  // Assert the value written by the set.
+  if (!bce_->maybeEmitRecordReplayAssert(propAtomIndex_)) {
+    return false;
+  }
+
   MOZ_ASSERT_IF(isPropInit(), !isSuper());
   JSOp setOp = isPropInit()
                    ? JSOp::InitProp
