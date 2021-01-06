@@ -65,23 +65,25 @@ static void EnsureInitialized() {
 // debugging.
 static bool gPaintWhileRecording;
 
-void SendUpdate(const TransactionInfo& aInfo) {
-  EnsureInitialized();
-
+static bool ShouldUpdateCompositor() {
   // We never need to update the compositor state in the recording process,
   // because we send updates to the UI process which will composite in the
   // regular way.
-  if (IsRecording() && !gPaintWhileRecording) {
-    return;
+  return IsReplaying() || gPaintWhileRecording;
+}
+
+void SendUpdate(const TransactionInfo& aInfo) {
+  EnsureInitialized();
+
+  if (ShouldUpdateCompositor()) {
+    // Make sure the compositor does not interact with the recording.
+    recordreplay::AutoDisallowThreadEvents disallow;
+
+    // Even if we won't be painting, we need to continue updating the layer state
+    // in case we end up wanting to paint later.
+    ipc::IPCResult rv = gLayerTransactionParent->RecvUpdate(aInfo);
+    MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
   }
-
-  // Make sure the compositor does not interact with the recording.
-  recordreplay::AutoDisallowThreadEvents disallow;
-
-  // Even if we won't be painting, we need to continue updating the layer state
-  // in case we end up wanting to paint later.
-  ipc::IPCResult rv = gLayerTransactionParent->RecvUpdate(aInfo);
-  MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
 }
 
 static TimeStamp gCompositeTime;
@@ -109,8 +111,31 @@ void SendNewCompositable(const layers::CompositableHandle& aHandle,
                          const layers::TextureInfo& aInfo) {
   EnsureInitialized();
 
-  ipc::IPCResult rv = gLayerTransactionParent->RecvNewCompositable(aHandle, aInfo);
-  MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
+  if (ShouldUpdateCompositor()) {
+    recordreplay::AutoDisallowThreadEvents disallow;
+    ipc::IPCResult rv = gLayerTransactionParent->RecvNewCompositable(aHandle, aInfo);
+    MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
+  }
+}
+
+void SendReleaseCompositable(const layers::CompositableHandle& aHandle) {
+  EnsureInitialized();
+
+  if (ShouldUpdateCompositor()) {
+    recordreplay::AutoDisallowThreadEvents disallow;
+    ipc::IPCResult rv = gLayerTransactionParent->RecvReleaseCompositable(aHandle);
+    MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
+  }
+}
+
+void SendReleaseLayer(const layers::LayerHandle& aHandle) {
+  EnsureInitialized();
+
+  if (ShouldUpdateCompositor()) {
+    recordreplay::AutoDisallowThreadEvents disallow;
+    ipc::IPCResult rv = gLayerTransactionParent->RecvReleaseLayer(aHandle);
+    MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
+  }
 }
 
 // Format to use for graphics data.

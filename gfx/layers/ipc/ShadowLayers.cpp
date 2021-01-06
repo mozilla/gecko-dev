@@ -52,6 +52,8 @@ namespace recordreplay {
   void SendUpdate(const layers::TransactionInfo& aInfo);
   void SendNewCompositable(const layers::CompositableHandle& aHandle,
                            const layers::TextureInfo& aInfo);
+  void SendReleaseCompositable(const layers::CompositableHandle& aHandle);
+  void SendReleaseLayer(const layers::LayerHandle& aHandle);
 }
 
 namespace layers {
@@ -805,6 +807,9 @@ void ShadowLayerForwarder::ReleaseLayer(const LayerHandle& aHandle) {
   if (!IPCOpen()) {
     return;
   }
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::SendReleaseLayer(aHandle);
+  }
   Unused << mShadowManager->SendReleaseLayer(aHandle);
 }
 
@@ -1068,6 +1073,9 @@ void ShadowLayerForwarder::ReleaseCompositable(
   if (!DestroyInTransaction(aHandle)) {
     if (!IPCOpen()) {
       return;
+    }
+    if (recordreplay::IsRecordingOrReplaying()) {
+      recordreplay::SendReleaseCompositable(aHandle);
     }
     mShadowManager->SendReleaseCompositable(aHandle);
   }
