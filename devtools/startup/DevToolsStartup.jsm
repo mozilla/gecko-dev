@@ -417,7 +417,7 @@ DevToolsStartup.prototype = {
       }
 
       if (isRunningTest()) {
-        new ContentProcessListener(this);
+        new ContentProcessListener(this.onConsoleAPICall);
       }
     }
 
