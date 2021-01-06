@@ -9,6 +9,7 @@
 #ifndef mozilla_RecordReplay_h
 #define mozilla_RecordReplay_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/TemplateLib.h"
 #include "mozilla/Types.h"
@@ -191,6 +192,40 @@ struct MOZ_RAII AutoOrderedLock {
 // same order when replaying as when recording.
 static inline void AddOrderedPthreadMutex(const char* aName,
                                           pthread_mutex_t* aMutex);
+
+// Atomic wrapper that ensures accesses happen in the same order when
+// recording vs. replaying.
+template <typename T, MemoryOrdering Order = SequentiallyConsistent>
+struct OrderedAtomic {
+  Atomic<T, Order> mInner;
+  int mOrderedLockId;
+
+  explicit constexpr OrderedAtomic(T aInit)
+    : mInner(aInit),
+      mOrderedLockId(recordreplay::CreateOrderedLock("OrderedAtomic"))
+  {}
+
+  T operator=(T aVal) {
+    OrderedLock(mOrderedLockId);
+    mInner = aVal;
+    OrderedUnlock(mOrderedLockId);
+    return aVal;
+  }
+
+  operator T() const {
+    OrderedLock(mOrderedLockId);
+    T rv = mInner;
+    OrderedUnlock(mOrderedLockId);
+    return rv;
+  }
+
+  T exchange(T aVal) {
+    OrderedLock(mOrderedLockId);
+    T rv = mInner.exchange(aVal);
+    OrderedUnlock(mOrderedLockId);
+    return rv;
+  }
+};
 
 // Determine whether this is a recording/replaying process, and
 // initialize record/replay state if so.

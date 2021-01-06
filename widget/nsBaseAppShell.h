@@ -92,7 +92,7 @@ class nsBaseAppShell : public nsIAppShell,
    */
   bool* mBlockedWait;
   int32_t mFavorPerf;
-  mozilla::Atomic<bool> mNativeEventPending;
+  mozilla::recordreplay::OrderedAtomic<bool> mNativeEventPending;
   PRIntervalTime mStarvationDelay;
   PRIntervalTime mSwitchTime;
   PRIntervalTime mLastNativeEventTime;
