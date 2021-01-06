@@ -169,6 +169,8 @@ void js::DateTimeInfo::internalResetTimeZone(ResetTimeZoneMode mode) {
 }
 
 void js::DateTimeInfo::updateTimeZone() {
+  mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::updateTimeZone");
+
   MOZ_ASSERT(timeZoneStatus_ != TimeZoneStatus::Valid);
 
   bool updateIfChanged = timeZoneStatus_ == TimeZoneStatus::UpdateIfChanged;

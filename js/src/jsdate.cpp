@@ -2090,6 +2090,8 @@ static bool GetMinsOrDefault(JSContext* cx, const CallArgs& args, unsigned i,
 static bool date_setMilliseconds(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
+  mozilla::recordreplay::AssertScriptedCaller("date_setMilliseconds");
+
   // Step 1.
   Rooted<DateObject*> unwrapped(
       cx, UnwrapAndTypeCheckThis<DateObject>(cx, args, "setMilliseconds"));
