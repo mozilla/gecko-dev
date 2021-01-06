@@ -5986,6 +5986,8 @@ int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
     JSContext* aCx, Function& aFunction, int32_t aTimeout,
     const Sequence<JS::Value>& aArguments, bool aIsInterval,
     ErrorResult& aError) {
+  recordreplay::AssertScriptedCaller("nsGlobalWindowInner::SetTimeoutOrInterval");
+
   nsGlobalWindowInner* inner = InnerForSetTimeoutOrInterval(aError);
   if (!inner) {
     return -1;
