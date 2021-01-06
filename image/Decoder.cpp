@@ -66,9 +66,13 @@ Decoder::Decoder(RasterImage* aImage)
       mDecodeDone(false),
       mError(false),
       mShouldReportError(false),
-      mFinalizeFrames(true) {}
+      mFinalizeFrames(true) {
+  recordreplay::RegisterThing(this);
+}
 
 Decoder::~Decoder() {
+  recordreplay::UnregisterThing(this);
+
   MOZ_ASSERT(mProgress == NoProgress || !mImage,
              "Destroying Decoder without taking all its progress changes");
   MOZ_ASSERT(mInvalidRect.IsEmpty() || !mImage,
@@ -159,6 +163,9 @@ nsresult Decoder::Init() {
 LexerResult Decoder::Decode(IResumable* aOnResume /* = nullptr */) {
   MOZ_ASSERT(mInitialized, "Should be initialized here");
   MOZ_ASSERT(mIterator, "Should have a SourceBufferIterator");
+
+  recordreplay::RecordReplayAssert("Decoder::Decode %u",
+                                   recordreplay::ThingIndex(this));
 
   // If we're already done, don't attempt to keep decoding.
   if (GetDecodeDone()) {
