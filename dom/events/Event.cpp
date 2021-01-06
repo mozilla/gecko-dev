@@ -51,17 +51,6 @@ Event::Event(nsPIDOMWindowInner* aParent) {
   ConstructorInit(nsGlobalWindowInner::Cast(aParent), nullptr, nullptr);
 }
 
-// Diagnostic for a mismatch found when replaying.
-static PRTime RecordReplayNow(const char* why) {
-  PRTime rv;
-  {
-    recordreplay::AutoPassThroughThreadEvents pt;
-    rv = PR_Now();
-  }
-  recordreplay::RecordReplayBytes(why, &rv, sizeof(rv));
-  return rv;
-}
-
 void Event::ConstructorInit(EventTarget* aOwner, nsPresContext* aPresContext,
                             WidgetEvent* aEvent) {
   recordreplay::RecordReplayAssert("Event::ConstructorInit %d", !!aEvent);
@@ -102,7 +91,7 @@ void Event::ConstructorInit(EventTarget* aOwner, nsPresContext* aPresContext,
         }
      */
     mEvent = new WidgetEvent(false, eVoidEvent);
-    mEvent->mTime = RecordReplayNow("ConstructorInit");
+    mEvent->mTime = PR_Now();
   }
 
   InitPresContextData(aPresContext);
