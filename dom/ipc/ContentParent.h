@@ -1417,6 +1417,9 @@ class ContentParent final
     return mRecordingDispatchAddress.Length() != 0;
   }
 
+  // Whether all ContentParents are recording.
+  static bool RecordAllContentProcesses();
+
   void AddBrowsingContextGroup(BrowsingContextGroup* aGroup);
   void RemoveBrowsingContextGroup(BrowsingContextGroup* aGroup);
 

@@ -1609,7 +1609,7 @@ void ContentParent::MaybeAsyncSendShutDownMessage() {
       &ContentParent::ShutDownProcess, SEND_SHUTDOWN_MESSAGE));
 }
 
-static bool RecordAllContentProcesses() {
+/* static */ bool ContentParent::RecordAllContentProcesses() {
   // When this env var is set, all content processes are recorded in case they
   // load any matching content.
   const char* env = getenv("RECORD_REPLAY_MATCHING_URL");

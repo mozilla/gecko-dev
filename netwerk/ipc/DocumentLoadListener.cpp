@@ -1440,6 +1440,16 @@ static bool ContextCanProcessSwitch(CanonicalBrowsingContext* aBrowsingContext,
     return false;
   }
 
+  // Disallow switching from a recorded content process to a non-recorded
+  // process. This will prevent the associated tab from recording, and will
+  // confuse the UI because the browser's recordExecution attribute will be
+  // incorrect.
+  if (aBrowsingContext->GetContentParent() &&
+      aBrowsingContext->GetContentParent()->IsRecording() &&
+      !ContentParent::RecordAllContentProcesses()) {
+    return false;
+  }
+
   return true;
 }
 
