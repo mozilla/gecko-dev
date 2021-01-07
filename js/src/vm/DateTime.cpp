@@ -157,6 +157,11 @@ void js::DateTimeInfo::internalResetTimeZone(ResetTimeZoneMode mode) {
     return;
   }
 
+  // Don't reset time zone status when recording/replaying, see DateTimeInfo().
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
+
   // Mark the state as needing an update, but defer the actual update until it's
   // actually needed to delay any system calls to the last possible moment. This
   // is beneficial when this method is called during start-up, because it avoids
@@ -222,6 +227,13 @@ js::DateTimeInfo::DateTimeInfo() {
   // nor ICU's time zone classes, because that may cause I/O operations slowing
   // down the JS engine initialization, which we're currently in the middle of.
   timeZoneStatus_ = TimeZoneStatus::NeedsUpdate;
+
+  // When recording/replaying the timezone is intialized on startup and never
+  // changes afterwards, to avoid problems when updating the time zone
+  // non-deterministically from different threads.
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    updateTimeZone();
+  }
 }
 
 js::DateTimeInfo::~DateTimeInfo() = default;
