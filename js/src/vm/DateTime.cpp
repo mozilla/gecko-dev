@@ -466,16 +466,9 @@ bool js::DateTimeInfo::internalTimeZoneDisplayName(char16_t* buf, size_t buflen,
 
   JS::UniqueTwoByteChars& cachedName =
       daylightSavings ? daylightSavingsName_ : standardName_;
-
-  mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalTimeZoneDisplayName %d",
-                                            !!cachedName);
-
   if (!cachedName) {
     // Retrieve the display name for the given locale.
     icu::UnicodeString displayName;
-
-    mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalTimeZoneDisplayName callGetDisplayName %d %s",
-                                              daylightSavings, locale);
     timeZone()->getDisplayName(daylightSavings, icu::TimeZone::LONG,
                                icu::Locale(locale), displayName);
 
@@ -740,27 +733,9 @@ void js::ResyncICUDefaultTimeZone() {
   js::DateTimeInfo::resyncICUDefaultTimeZone();
 }
 
-static std::string UnicodeStringToCString(const icu::UnicodeString& s) {
-  std::string rv;
-  rv.resize(s.length());
-  for (size_t i = 0; i < s.length(); i++) {
-    char16_t c = s[i];
-    if (c && c < 256) {
-      rv[i] = c;
-    } else {
-      rv[i] = '*';
-    }
-  }
-  return rv;
-}
-
 void js::DateTimeInfo::internalResyncICUDefaultTimeZone() {
-  mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone");
-
 #if JS_HAS_INTL_API && !MOZ_SYSTEM_ICU
   if (const char* tz = std::getenv("TZ")) {
-    mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #0.1 %s", tz);
-
     icu::UnicodeString tzid;
 
 #  if defined(XP_WIN)
@@ -780,10 +755,7 @@ void js::DateTimeInfo::internalResyncICUDefaultTimeZone() {
     // ourselves, including handling that they might be symlinks.
     // <https://unicode-org.atlassian.net/browse/ICU-13694>
     if (const char* tzlink = TZContainsAbsolutePath(tz)) {
-      mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #0.2 %s", tzlink);
       tzid.setTo(ReadTimeZoneLink(tzlink));
-      mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #0.3 %s",
-                                                UnicodeStringToCString(tzid).c_str());
     }
 
 #    ifdef ANDROID
@@ -796,27 +768,19 @@ void js::DateTimeInfo::internalResyncICUDefaultTimeZone() {
 #  endif /* defined(XP_WIN) */
 
     if (!tzid.isEmpty()) {
-      mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #0.4");
       mozilla::UniquePtr<icu::TimeZone> newTimeZone(
           icu::TimeZone::createTimeZone(tzid));
       MOZ_ASSERT(newTimeZone);
-      mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #0.5");
       if (*newTimeZone != icu::TimeZone::getUnknown()) {
         // adoptDefault() takes ownership of the time zone.
-        mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #0.6");
         icu::TimeZone::adoptDefault(newTimeZone.release());
-        mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #0.7");
         return;
       }
     }
   }
 
-  mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #1");
-
   if (icu::TimeZone* defaultZone = icu::TimeZone::detectHostTimeZone()) {
     icu::TimeZone::adoptDefault(defaultZone);
   }
-
-  mozilla::recordreplay::RecordReplayAssert("DateTimeInfo::internalResyncICUDefaultTimeZone #2");
 #endif
 }
