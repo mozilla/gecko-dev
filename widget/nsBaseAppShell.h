@@ -7,6 +7,7 @@
 #define nsBaseAppShell_h__
 
 #include "mozilla/Atomics.h"
+#include "mozilla/RecordReplay.h"
 #include "nsIAppShell.h"
 #include "nsIThreadInternal.h"
 #include "nsIObserver.h"
