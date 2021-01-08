@@ -187,6 +187,9 @@ nsresult DecoderFactory::CreateDecoder(
       return NS_ERROR_FAILURE;
   }
 
+  recordreplay::RecordReplayAssert("DecoderFactory::CreateDecoder %d",
+                                   recordreplay::ThingIndex(decoder));
+
   // Return the surface provider in its IDecodingTask guise.
   RefPtr<IDecodingTask> task = provider.get();
   task.forget(aOutTask);
