@@ -17,7 +17,7 @@
 namespace mozilla {
 
 MediaTimer::MediaTimer(bool aFuzzy)
-    : mMonitor("MediaTimer Monitor"),
+    : mMonitor("MediaTimer Monitor", /* aOrdered */ true),
       mCreationTimeStamp(TimeStamp::Now()),
       mUpdateScheduled(false),
       mFuzzy(aFuzzy) {
