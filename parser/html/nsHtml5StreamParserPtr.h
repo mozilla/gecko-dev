@@ -54,7 +54,11 @@ class nsHtml5StreamParserPtr {
 
  public:
   ~nsHtml5StreamParserPtr() {
-    if (mRawPtr) release(mRawPtr);
+    // Leak the reference when recording/replaying to avoid dispatching
+    // runnables at non-deterministic points.
+    if (mRawPtr && !mozilla::recordreplay::IsRecordingOrReplaying()) {
+      release(mRawPtr);
+    }
   }
   // Constructors
   nsHtml5StreamParserPtr()
