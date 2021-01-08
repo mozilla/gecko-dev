@@ -291,6 +291,9 @@ already_AddRefed<IDecodingTask> DecoderFactory::CreateMetadataDecoder(
       GetDecoder(aType, aImage, /* aIsRedecode = */ false);
   MOZ_ASSERT(decoder, "Should have a decoder now");
 
+  recordreplay::RecordReplayAssert("CreateMetadataDecoder %d %d",
+                                   aType, recordreplay::ThingIndex(decoder));
+
   // Initialize the decoder.
   decoder->SetMetadataDecode(true);
   decoder->SetIterator(aSourceBuffer->Iterator());
