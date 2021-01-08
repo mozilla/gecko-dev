@@ -527,9 +527,6 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
 
   bool forceSync = mSyncDecodingHint;
 
-  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding %d %d",
-                                   forceSync, aPrepareNextRequest);
-
   if (!forceSync && aPrepareNextRequest) {
     // Detect JavaScript-based animations created by changing the |src|
     // attribute on a timer.
@@ -545,9 +542,6 @@ void nsImageLoadingContent::MaybeForceSyncDecoding(
                                                 now - mMostRecentRequestChange < threshold);
     mMostRecentRequestChange = now;
   }
-
-  recordreplay::RecordReplayAssert("nsImageLoadingContent::MaybeForceSyncDecoding #1 %d",
-                                   forceSync);
 
   if (imageFrame) {
     imageFrame->SetForceSyncDecoding(forceSync);
