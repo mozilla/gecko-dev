@@ -1611,9 +1611,12 @@ HttpChannelChild::ConnectParent(uint32_t registrarId) {
   SetEventTarget();
 
   HttpChannelConnectArgs connectArgs(registrarId);
-  if (!gNeckoChild->SendPHttpChannelConstructor(
-          this, browserChild, IPC::SerializedLoadContext(this), connectArgs)) {
-    return NS_ERROR_FAILURE;
+  {
+    AutoRecordReplayAssertMessageContents assert;
+    if (!gNeckoChild->SendPHttpChannelConstructor(
+            this, browserChild, IPC::SerializedLoadContext(this), connectArgs)) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   {
@@ -2265,9 +2268,12 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
   // target.
   SetEventTarget();
 
-  if (!gNeckoChild->SendPHttpChannelConstructor(
-          this, browserChild, IPC::SerializedLoadContext(this), openArgs)) {
-    return NS_ERROR_FAILURE;
+  {
+    AutoRecordReplayAssertMessageContents assert;
+    if (!gNeckoChild->SendPHttpChannelConstructor(
+            this, browserChild, IPC::SerializedLoadContext(this), openArgs)) {
+      return NS_ERROR_FAILURE;
+    }
   }
 
   {
