@@ -1612,6 +1612,15 @@ function driverJSONFile() {
   return file;
 }
 
+function crashLogFile() {
+  const file = Services.dirsvc.get("UAppData", Ci.nsIFile);
+  file.append("crashes.log");
+  return file;
+}
+
+// Set the crash log file which the driver will use.
+env.set("RECORD_REPLAY_CRASH_LOG", crashLogFile().path);
+
 async function fetchURL(url) {
   const response = await fetch(url);
   if (response.status < 200 || response.status >= 300) {

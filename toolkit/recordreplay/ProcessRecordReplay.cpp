@@ -224,6 +224,13 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   gIsRecording = !gRecordReplayIsReplaying();
   gIsReplaying = gRecordReplayIsReplaying();
 
+  const char* logFile = getenv("RECORD_REPLAY_CRASH_LOG");
+  if (logFile) {
+    void (*SetCrashLogFile)(const char*);
+    LoadSymbol("RecordReplaySetCrashLogFile", SetCrashLogFile);
+    SetCrashLogFile(logFile);
+  }
+
   ParseJSFilters("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS", gExecutionAsserts);
   ParseJSFilters("RECORD_REPLAY_RECORD_JS_ASSERTS", gJSAsserts);
 
