@@ -428,6 +428,8 @@ void nsStringInputStream::SerializeInternal(InputStreamParams& aParams,
                                             uint32_t* aSizeUsed, M* aManager) {
   ReentrantMonitorAutoEnter lock(mMon);
 
+  recordreplay::RecordReplayAssert("nsStringInputStream::SerializeInternal %d", Length());
+
   MOZ_ASSERT(aSizeUsed);
   *aSizeUsed = 0;
 
