@@ -278,8 +278,11 @@ MOZ_EXPORT void RecordReplayInterface_InternalRecordReplayAssertBytes(
   gAssertBytes("Bytes", aData, aSize);
 }
 
-MOZ_EXPORT void RecordReplayAssertFromC(const char* aText) {
-  RecordReplayAssert(aText);
+MOZ_EXPORT void RecordReplayAssertFromC(const char* aFormat, ...) {
+  va_list args;
+  va_start(args, aFormat);
+  gAssert(aFormat, args);
+  va_end(args);
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalRegisterThing(void* aThing) {

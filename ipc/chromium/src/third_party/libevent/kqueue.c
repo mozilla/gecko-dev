@@ -250,6 +250,8 @@ kq_grow_events(struct kqop *kqop, size_t new_size)
 	}
 }
 
+extern void RecordReplayAssertFromC(const char* aFormat, ...);
+
 static int
 kq_dispatch(struct event_base *base, struct timeval *tv)
 {
@@ -298,6 +300,8 @@ kq_dispatch(struct event_base *base, struct timeval *tv)
 	}
 
 	EVBASE_RELEASE_LOCK(base, th_base_lock);
+
+	RecordReplayAssertFromC("kq_dispatch kevent %d", kqop->kq);
 
 	res = kevent(kqop->kq, changes, n_changes,
 	    events, kqop->events_size, ts_p);
