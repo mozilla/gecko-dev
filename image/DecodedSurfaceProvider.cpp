@@ -28,6 +28,8 @@ DecodedSurfaceProvider::DecodedSurfaceProvider(NotNull<RasterImage*> aImage,
   MOZ_ASSERT(mDecoder->IsFirstFrameDecode(),
              "Use AnimationSurfaceProvider for animation decodes");
 
+  recordreplay::RegisterThing(static_cast<IDecodingTask*>(this));
+
   // Leak when recording/replaying to avoid non-deterministic behavior
   // in destructor.
   if (recordreplay::IsRecordingOrReplaying()) {
@@ -35,7 +37,11 @@ DecodedSurfaceProvider::DecodedSurfaceProvider(NotNull<RasterImage*> aImage,
   }
 }
 
-DecodedSurfaceProvider::~DecodedSurfaceProvider() { DropImageReference(); }
+DecodedSurfaceProvider::~DecodedSurfaceProvider() {
+  recordreplay::UnregisterThing(static_cast<IDecodingTask*>(this));
+
+  DropImageReference();
+}
 
 void DecodedSurfaceProvider::DropImageReference() {
   if (!mImage) {

@@ -149,6 +149,8 @@ class DecodingTask final : public Task {
 void DecodePool::AsyncRun(IDecodingTask* aTask) {
   MOZ_ASSERT(aTask);
 
+  recordreplay::RecordReplayAssert("DecodePool::AsyncRun %d", recordreplay::ThingIndex(aTask));
+
   TaskController::Get()->AddTask(
       MakeAndAddRef<DecodingTask>((RefPtr<IDecodingTask>(aTask))));
 }
@@ -161,7 +163,12 @@ bool DecodePool::SyncRunIfPreferred(IDecodingTask* aTask,
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("DecodePool::SyncRunIfPreferred",
                                         GRAPHICS, aURI);
 
+  recordreplay::RecordReplayAssert("DecodePool::SyncRunIfPreferred Start %d",
+                                    recordreplay::ThingIndex(aTask));
+
   if (aTask->ShouldPreferSyncRun()) {
+    recordreplay::RecordReplayAssert("DecodePool::SyncRunIfPreferred #1 %d",
+                                     recordreplay::ThingIndex(aTask));
     aTask->Run();
     return true;
   }
@@ -178,11 +185,7 @@ void DecodePool::SyncRunIfPossible(IDecodingTask* aTask,
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("DecodePool::SyncRunIfPossible",
                                         GRAPHICS, aURI);
 
-  recordreplay::RecordReplayAssert("DecodePool::SyncRunIfPossible Start");
-
   aTask->Run();
-
-  recordreplay::RecordReplayAssert("DecodePool::SyncRunIfPossible Done");
 }
 
 already_AddRefed<nsIEventTarget> DecodePool::GetIOEventTarget() {
