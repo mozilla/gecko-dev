@@ -1081,12 +1081,16 @@ RasterImage::StartDecoding(uint32_t aFlags, uint32_t aWhichFrame) {
 
 bool RasterImage::StartDecodingWithResult(uint32_t aFlags,
                                           uint32_t aWhichFrame) {
+  recordreplay::RecordReplayAssert("RasterImage::StartDecodingWithResult Start");
+
   if (mError) {
+    recordreplay::RecordReplayAssert("RasterImage::StartDecodingWithResult #1");
     return false;
   }
 
   if (!GetHasSize()) {
     SetWantFullDecode(true);
+    recordreplay::RecordReplayAssert("RasterImage::StartDecodingWithResult #2");
     return false;
   }
 
@@ -1095,7 +1099,9 @@ bool RasterImage::StartDecodingWithResult(uint32_t aFlags,
   LookupResult result =
       RequestDecodeForSizeInternal(ToUnoriented(mSize), flags, aWhichFrame);
   DrawableSurface surface = std::move(result.Surface());
-  return surface && surface->IsFinished();
+  bool rv = surface && surface->IsFinished();
+  recordreplay::RecordReplayAssert("RasterImage::StartDecodingWithResult #3 %d", rv);
+  return rv;
 }
 
 imgIContainer::DecodeResult RasterImage::RequestDecodeWithResult(
