@@ -192,7 +192,7 @@ static bool ClearSurface(DataSourceSurface* aSurface, const IntSize& aSize,
 }
 
 imgFrame::imgFrame()
-    : mMonitor("imgFrame"),
+    : mMonitor("imgFrame", /* aOrdered */ true),
       mDecoded(0, 0, 0, 0),
       mLockCount(0),
       mAborted(false),
