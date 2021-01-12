@@ -305,6 +305,11 @@ bool PropertyEmitter::emitInit(JSOp op, const ParserAtom* key) {
 
   //                [stack] CTOR? OBJ CTOR? VAL
 
+  // Assert the value being written to the object.
+  if (!bce_->maybeEmitRecordReplayAssert(key)) {
+    return false;
+  }
+
   if (!bce_->emitAtomOp(op, key)) {
     //              [stack] CTOR? OBJ CTOR?
     return false;
@@ -331,6 +336,11 @@ bool PropertyEmitter::emitInitIndexOrComputed(JSOp op) {
              op == JSOp::InitElemSetter || op == JSOp::InitHiddenElemSetter);
 
   //                [stack] CTOR? OBJ CTOR? KEY VAL
+
+  // Assert the value being written to the object.
+  if (!bce_->maybeEmitRecordReplayAssert(bce_->cx->parserNames().element)) {
+    return false;
+  }
 
   if (!bce_->emit1(op)) {
     //              [stack] CTOR? OBJ CTOR?

@@ -460,7 +460,8 @@ bool BytecodeEmitter::emitCall(JSOp op, uint16_t argc,
       return false;
     }
   }
-  return emit3(op, ARGC_LO(argc), ARGC_HI(argc));
+  return emit3(op, ARGC_LO(argc), ARGC_HI(argc)) &&
+         maybeEmitRecordReplayAssert(cx->parserNames().callFunction);
 }
 
 bool BytecodeEmitter::emitCall(JSOp op, uint16_t argc, ParseNode* pn) {
