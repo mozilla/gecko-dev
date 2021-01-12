@@ -639,6 +639,12 @@ void BackgroundHangMonitor::Startup() {
     return;
   }
 
+  // Disable when recording/replaying, as with other kinds of telemetry.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    BackgroundHangManager::sDisabled = true;
+    return;
+  }
+
   nsCOMPtr<nsIObserverService> observerService =
       mozilla::services::GetObserverService();
   MOZ_ASSERT(observerService);
