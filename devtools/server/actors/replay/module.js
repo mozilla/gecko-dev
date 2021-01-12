@@ -262,11 +262,7 @@ gDebugger.onNewScript = (script) => {
   }
 
   let kind = "scriptSource";
-
-  // This test is pretty lame but the "scriptElement" introduction type doesn't
-  // distinguish between script elements with inline content and with a "src"
-  // attribute.
-  if (script.source.url.endsWith("html")) {
+  if (script.source.introductionType === "inlineScript") {
     kind = "inlineScript";
   }
 
