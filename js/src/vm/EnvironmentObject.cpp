@@ -2716,6 +2716,12 @@ void DebugEnvironments::takeFrameSnapshot(
    * nullptr.
    */
 
+  // Disable frame snapshots when recording/replaying. These aren't used and
+  // this function has caused crashes that seem unrelated to recording/replaying.
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
+
   JSScript* script = frame.script();
 
   // Act like no snapshot was taken if we run OOM while taking the snapshot.
