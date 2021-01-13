@@ -34,6 +34,7 @@ const log = RecordReplayControl.log;
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 
 const { getCurrentZoom } = require("devtools/shared/layout/utils");
+const { getDebuggerSourceURL } = require("devtools/server/actors/utils/source-url");
 
 let gWindow;
 function getWindow() {
@@ -266,7 +267,7 @@ gDebugger.onNewScript = (script) => {
     kind = "inlineScript";
   }
 
-  RecordReplayControl.onNewSource(id, kind, script.source.url);
+  RecordReplayControl.onNewSource(id, kind, getDebuggerSourceURL(script.source));
 
   function addScript(script) {
     const id = gScripts.add(script);
