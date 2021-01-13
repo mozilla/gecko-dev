@@ -355,19 +355,24 @@ static bool Method_OnNewSource(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
   if (!args.get(0).isString() ||
       !args.get(1).isString() ||
-      !args.get(2).isString()) {
+      !(args.get(2).isString() || args.get(2).isNull())) {
     JS_ReportErrorASCII(aCx, "Bad arguments");
     return false;
   }
 
-  nsAutoCString id, kind, url;
+  nsAutoCString id, kind;
   ConvertJSStringToCString(aCx, args.get(0).toString(), id);
   ConvertJSStringToCString(aCx, args.get(1).toString(), kind);
-  ConvertJSStringToCString(aCx, args.get(2).toString(), url);
-  gOnNewSource(id.get(), kind.get(), url.get());
+
+  Maybe<nsAutoCString> url;
+  if (args.get(2).isString()) {
+    url.emplace();
+    ConvertJSStringToCString(aCx, args.get(2).toString(), *url);
+  }
+  gOnNewSource(id.get(), kind.get(), url ? url->get() : nullptr);
 
   // Check to see if the source matches any URL filter we have.
-  if (gURLFilter && !gHasMatchingURL && strstr(url.get(), gURLFilter)) {
+  if (gURLFilter && !gHasMatchingURL && url && strstr(url->get(), gURLFilter)) {
     gHasMatchingURL = true;
 
     // We found a match, add the recording to the file at this env var.
