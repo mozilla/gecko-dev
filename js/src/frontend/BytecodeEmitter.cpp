@@ -454,14 +454,21 @@ bool BytecodeEmitter::emitJumpTargetAndPatch(JumpList jump) {
 }
 
 bool BytecodeEmitter::emitCall(JSOp op, uint16_t argc,
-                               const Maybe<uint32_t>& sourceCoordOffset) {
+                               const Maybe<uint32_t>& sourceCoordOffset,
+                               bool allowRecordReplayAssert) {
   if (sourceCoordOffset.isSome()) {
     if (!updateSourceCoordNotes(*sourceCoordOffset)) {
       return false;
     }
   }
-  return emit3(op, ARGC_LO(argc), ARGC_HI(argc)) &&
-         maybeEmitRecordReplayAssert(cx->parserNames().callFunction);
+  if (!emit3(op, ARGC_LO(argc), ARGC_HI(argc))) {
+    return false;
+  }
+  if (allowRecordReplayAssert &&
+      !maybeEmitRecordReplayAssert(cx->parserNames().callFunction)) {
+    return false;
+  }
+  return true;
 }
 
 bool BytecodeEmitter::emitCall(JSOp op, uint16_t argc, ParseNode* pn) {
@@ -10560,7 +10567,8 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitInstrumentationSlow(
   //            [stack] CALLBACK UNDEFINED KIND SCRIPT OFFSET ...EXTRA_ARGS
 
   unsigned argc = bytecodeSection().stackDepth() - initialDepth - 2;
-  if (!emitCall(JSOp::CallIgnoresRv, argc)) {
+  if (!emitCall(JSOp::CallIgnoresRv, argc, Nothing(),
+                /* allowRecordReplayAssert */ false)) {
     return false;
   }
   //            [stack] RV

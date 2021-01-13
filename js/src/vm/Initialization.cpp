@@ -116,7 +116,7 @@ static void SetupCanonicalNaN() {
 
 extern "C" void install_rust_panic_hook();
 
-void (*js::ExecutionProgressHook)(const char*, unsigned, unsigned);
+void (*js::ExecutionProgressHook)(unsigned, const char*, unsigned, unsigned);
 bool js::gRecordDataBuffers;
 
 static bool (*ShouldEmitRecordReplayAssertCallback)(const char*, unsigned, unsigned);
@@ -234,7 +234,7 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
   if (mozilla::recordreplay::IsRecordingOrReplaying()) {
     if (getenv("RECORD_REPLAY_RECORD_EXECUTION_ASSERTS")) {
       void* hook = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ExecutionProgressHook");
-      ExecutionProgressHook = mozilla::BitwiseCast<void(*)(const char*, unsigned, unsigned)>(hook);
+      ExecutionProgressHook = mozilla::BitwiseCast<void(*)(unsigned, const char*, unsigned, unsigned)>(hook);
     }
     void* shouldEmit = dlsym(RTLD_DEFAULT, "RecordReplayInterface_ShouldEmitRecordReplayAssert");
     ShouldEmitRecordReplayAssertCallback = mozilla::BitwiseCast<bool(*)(const char*, unsigned, unsigned)>(shouldEmit);

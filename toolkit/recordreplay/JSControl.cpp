@@ -323,7 +323,7 @@ static bool Method_Log(JSContext* aCx, unsigned aArgc, Value* aVp) {
     return false;
   }
 
-  PrintLog(cstr.get());
+  PrintLog("%s", cstr.get());
 
   args.rval().setUndefined();
   return true;

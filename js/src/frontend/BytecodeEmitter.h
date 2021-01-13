@@ -451,7 +451,8 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   MOZ_MUST_USE bool emitJumpTargetAndPatch(JumpList jump);
 
   MOZ_MUST_USE bool emitCall(JSOp op, uint16_t argc,
-                             const mozilla::Maybe<uint32_t>& sourceCoordOffset);
+                             const mozilla::Maybe<uint32_t>& sourceCoordOffset,
+                             bool allowRecordReplayAssert = true);
   MOZ_MUST_USE bool emitCall(JSOp op, uint16_t argc, ParseNode* pn = nullptr);
   MOZ_MUST_USE bool emitCallIncDec(UnaryNode* incDec);
 

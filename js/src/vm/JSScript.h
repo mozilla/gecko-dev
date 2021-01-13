@@ -2591,11 +2591,11 @@ JSScript* CloneGlobalScript(JSContext* cx, ScopeKind scopeKind,
                             HandleScript src);
 
 // Record/replay hook optionally called when execution progress changes.
-extern void (*ExecutionProgressHook)(const char*, unsigned, unsigned);
+extern void (*ExecutionProgressHook)(unsigned, const char*, unsigned, unsigned);
 
 static inline void MaybeCallExecutionProgressHook(JSScript* aScript) {
   if (ExecutionProgressHook) {
-    ExecutionProgressHook(aScript->filename(), aScript->lineno(), aScript->column());
+    ExecutionProgressHook(aScript->scriptSource()->id(), aScript->filename(), aScript->lineno(), aScript->column());
   }
 }
 

@@ -322,10 +322,10 @@ MOZ_EXPORT void RecordReplayInterface_InternalAssertScriptedCaller(const char* a
   }
 }
 
-MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(const char* aFilename, unsigned aLineno,
+MOZ_EXPORT void RecordReplayInterface_ExecutionProgressHook(unsigned aSourceId, const char* aFilename, unsigned aLineno,
                                                             unsigned aColumn) {
   if (FilterMatches(gExecutionAsserts, aFilename, aLineno)) {
-    RecordReplayAssert("ExecutionProgress %s:%u:%u", aFilename, aLineno, aColumn);
+    RecordReplayAssert("ExecutionProgress %u:%s:%u:%u", aSourceId, aFilename, aLineno, aColumn);
   }
 }
 

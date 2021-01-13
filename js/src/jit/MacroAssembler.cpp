@@ -2295,7 +2295,7 @@ void MacroAssembler::printf(const char* output, Register value) {
 
 void jit::CallExecutionProgressHook(JSScript* aScript) {
   AutoUnsafeCallWithABI unsafe;
-  ExecutionProgressHook(aScript->filename(), aScript->lineno(), aScript->column());
+  MaybeCallExecutionProgressHook(aScript);
 }
 
 void MacroAssembler::maybeCallExecutionProgressHook(void* script) {

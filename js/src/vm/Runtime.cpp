@@ -935,11 +935,23 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
 
   JS::AutoSuppressGCAnalysis nogc;
 
-  char buf[256];
+  char nameBuf[256];
+  MOZ_RELEASE_ASSERT(name->length() < sizeof(nameBuf));
+  memcpy(nameBuf, name->latin1Chars(nogc), name->length());
+  nameBuf[name->length()] = 0;
 
-  MOZ_RELEASE_ASSERT(name->length() < sizeof(buf));
-  memcpy(buf, name->latin1Chars(nogc), name->length());
-  buf[name->length()] = 0;
+  char buf[1024];
+  NonBuiltinFrameIter i(cx, cx->realm()->principals());
+  if (i.done() || i.isWasm()) {
+    snprintf(buf, sizeof(buf), "%s <no location>", nameBuf);
+  } else {
+    unsigned line, column;
+    line = i.computeLine(&column);
+    snprintf(buf, sizeof(buf), "%s %u:%s:%u:%u",
+             nameBuf, i.scriptSource()->id(), i.scriptSource()->filename(),
+             line, column);
+  }
+  buf[sizeof(buf) - 1] = 0;
 
   if (value.isObject()) {
     JSObject* obj = &value.toObject();
