@@ -49,11 +49,15 @@ class Shmem;
 }  // namespace ipc
 
 namespace recordreplay {
-  void SendUpdate(const layers::TransactionInfo& aInfo);
-  void SendNewCompositable(const layers::CompositableHandle& aHandle,
+  void SendUpdate(LayerTransactionChild* aChild,
+                  const layers::TransactionInfo& aInfo);
+  void SendNewCompositable(LayerTransactionChild* aChild,
+                           const layers::CompositableHandle& aHandle,
                            const layers::TextureInfo& aInfo);
-  void SendReleaseCompositable(const layers::CompositableHandle& aHandle);
-  void SendReleaseLayer(const layers::LayerHandle& aHandle);
+  void SendReleaseCompositable(LayerTransactionChild* aChild,
+                               const layers::CompositableHandle& aHandle);
+  void SendReleaseLayer(LayerTransactionChild* aChild,
+                        const layers::LayerHandle& aHandle);
 }
 
 namespace layers {
@@ -736,7 +740,7 @@ bool ShadowLayerForwarder::EndTransaction(
   GetCompositorBridgeChild()->PostponeMessagesIfAsyncPainting();
 
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::SendUpdate(info);
+    recordreplay::SendUpdate(mShadowManager, info);
   }
 
   MOZ_LAYERS_LOG(("[LayersForwarder] sending transaction..."));
@@ -808,7 +812,7 @@ void ShadowLayerForwarder::ReleaseLayer(const LayerHandle& aHandle) {
     return;
   }
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::SendReleaseLayer(aHandle);
+    recordreplay::SendReleaseLayer(mShadowManager, aHandle);
   }
   Unused << mShadowManager->SendReleaseLayer(aHandle);
 }
@@ -854,7 +858,8 @@ void ShadowLayerForwarder::Connect(CompositableClient* aCompositable,
   mShadowManager->SendNewCompositable(handle, aCompositable->GetTextureInfo());
 
   if (recordreplay::IsRecordingOrReplaying()) {
-    recordreplay::SendNewCompositable(handle, aCompositable->GetTextureInfo());
+    recordreplay::SendNewCompositable(mShadowManager, handle,
+                                      aCompositable->GetTextureInfo());
   }
 }
 
@@ -1075,7 +1080,7 @@ void ShadowLayerForwarder::ReleaseCompositable(
       return;
     }
     if (recordreplay::IsRecordingOrReplaying()) {
-      recordreplay::SendReleaseCompositable(aHandle);
+      recordreplay::SendReleaseCompositable(mShadowManager, aHandle);
     }
     mShadowManager->SendReleaseCompositable(aHandle);
   }

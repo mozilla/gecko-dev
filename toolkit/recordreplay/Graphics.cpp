@@ -14,6 +14,7 @@
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/LayerManagerComposite.h"
+#include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/LayerTransactionParent.h"
 #include "mozilla/layers/LayersMessages.h"
 #include "imgIEncoder.h"
@@ -34,16 +35,24 @@ void InitializeGraphics() {
   gSetPaintCallback(PaintCallback);
 }
 
+// When replaying we perform all compositor updates on a LayerTransactionParent
+// we create in process. Only updates from the first LayerTransactionChild are
+// performed, so that we don't get confused if there are multiple layer trees
+// in use within the process.
+static LayerTransactionChild* gLayerTransactionChild;
+
 static LayerManagerComposite* gLayerManager;
 static CompositorBridgeParent* gCompositorBridge;
 static LayerTransactionParent* gLayerTransactionParent;
 
-static void EnsureInitialized() {
+static void EnsureInitialized(LayerTransactionChild* aChild) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
   if (gLayerTransactionParent) {
     return;
   }
+
+  gLayerTransactionChild = aChild;
 
   Compositor* compositor = new BasicCompositor(nullptr, nullptr);
   gLayerManager = new LayerManagerComposite(compositor);
@@ -65,17 +74,16 @@ static void EnsureInitialized() {
 // debugging.
 static bool gPaintWhileRecording;
 
-static bool ShouldUpdateCompositor() {
+static bool ShouldUpdateCompositor(LayerTransactionChild* aChild) {
   // We never need to update the compositor state in the recording process,
   // because we send updates to the UI process which will composite in the
   // regular way.
-  return IsReplaying() || gPaintWhileRecording;
+  EnsureInitialized(aChild);
+  return (IsReplaying() || gPaintWhileRecording) && gLayerTransactionChild == aChild;
 }
 
-void SendUpdate(const TransactionInfo& aInfo) {
-  EnsureInitialized();
-
-  if (ShouldUpdateCompositor()) {
+void SendUpdate(LayerTransactionChild* aChild, const TransactionInfo& aInfo) {
+  if (ShouldUpdateCompositor(aChild)) {
     // Make sure the compositor does not interact with the recording.
     recordreplay::AutoDisallowThreadEvents disallow;
 
@@ -107,31 +115,28 @@ void OnPaint() {
   gOnPaint();
 }
 
-void SendNewCompositable(const layers::CompositableHandle& aHandle,
+void SendNewCompositable(LayerTransactionChild* aChild,
+                         const layers::CompositableHandle& aHandle,
                          const layers::TextureInfo& aInfo) {
-  EnsureInitialized();
-
-  if (ShouldUpdateCompositor()) {
+  if (ShouldUpdateCompositor(aChild)) {
     recordreplay::AutoDisallowThreadEvents disallow;
     ipc::IPCResult rv = gLayerTransactionParent->RecvNewCompositable(aHandle, aInfo);
     MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
   }
 }
 
-void SendReleaseCompositable(const layers::CompositableHandle& aHandle) {
-  EnsureInitialized();
-
-  if (ShouldUpdateCompositor()) {
+void SendReleaseCompositable(LayerTransactionChild* aChild,
+                             const layers::CompositableHandle& aHandle) {
+  if (ShouldUpdateCompositor(aChild)) {
     recordreplay::AutoDisallowThreadEvents disallow;
     ipc::IPCResult rv = gLayerTransactionParent->RecvReleaseCompositable(aHandle);
     MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
   }
 }
 
-void SendReleaseLayer(const layers::LayerHandle& aHandle) {
-  EnsureInitialized();
-
-  if (ShouldUpdateCompositor()) {
+void SendReleaseLayer(LayerTransactionChild* aChild,
+                      const layers::LayerHandle& aHandle) {
+  if (ShouldUpdateCompositor(aChild)) {
     recordreplay::AutoDisallowThreadEvents disallow;
     ipc::IPCResult rv = gLayerTransactionParent->RecvReleaseLayer(aHandle);
     MOZ_RELEASE_ASSERT(rv == ipc::IPCResult::Ok());
