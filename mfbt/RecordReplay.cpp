@@ -160,14 +160,14 @@ struct AutoSuppressGCAnalysis {
 #define DEFINE_WRAPPER(aName, aReturnType, aFormals, aActuals) \
   aReturnType aName aFormals {                                 \
     AutoSuppressGCAnalysis suppress;                           \
-    MOZ_ASSERT(IsRecordingOrReplaying() || IsMiddleman());     \
+    MOZ_ASSERT(IsRecordingOrReplaying());                      \
     return gPtr##aName aActuals;                               \
   }
 
 #define DEFINE_WRAPPER_VOID(aName, aFormals, aActuals)     \
   void aName aFormals {                                    \
     AutoSuppressGCAnalysis suppress;                       \
-    MOZ_ASSERT(IsRecordingOrReplaying() || IsMiddleman()); \
+    MOZ_ASSERT(IsRecordingOrReplaying());                  \
     gPtr##aName aActuals;                                  \
   }
 
