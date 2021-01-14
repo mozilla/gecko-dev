@@ -1621,7 +1621,7 @@ void BuildTextRunsScanner::FlushFrames(bool aFlushLineBreaks,
                                        bool aSuppressTrailingBreak) {
   // For now we avoid flushing layout state after diverging from the recording,
   // so we don't encounter new calls into the system.
-  if (recordreplay::HasDivergedFromRecording()) {
+  if (!recordreplay::IsUnhandledDivergenceAllowed()) {
     return;
   }
 
