@@ -154,6 +154,10 @@ MetadataDecodingTask::MetadataDecodingTask(NotNull<Decoder*> aDecoder)
                                    recordreplay::ThingIndex(aDecoder));
 }
 
+MetadataDecodingTask::~MetadataDecodingTask() {
+  recordreplay::UnregisterThing(this);
+}
+
 void MetadataDecodingTask::Run() {
   MutexAutoLock lock(mMutex);
 

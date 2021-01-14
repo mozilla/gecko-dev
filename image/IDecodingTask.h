@@ -83,7 +83,7 @@ class MetadataDecodingTask final : public IDecodingTask {
   TaskPriority Priority() const override { return TaskPriority::eHigh; }
 
  private:
-  virtual ~MetadataDecodingTask() {}
+  virtual ~MetadataDecodingTask();
 
   /// Mutex protecting access to mDecoder.
   Mutex mMutex;
