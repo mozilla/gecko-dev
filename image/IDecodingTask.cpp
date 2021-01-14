@@ -147,10 +147,19 @@ MetadataDecodingTask::MetadataDecodingTask(NotNull<Decoder*> aDecoder)
     : mMutex("mozilla::image::MetadataDecodingTask"), mDecoder(aDecoder) {
   MOZ_ASSERT(mDecoder->IsMetadataDecode(),
              "Use DecodingTask for non-metadata decodes");
+
+  recordreplay::RegisterThing(this);
+  recordreplay::RecordReplayAssert("MetadataDecodingTask %d %d",
+                                   recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(aDecoder));
 }
 
 void MetadataDecodingTask::Run() {
   MutexAutoLock lock(mMutex);
+
+  recordreplay::RecordReplayAssert("MetadataDecodingTask::Run %d %d",
+                                   recordreplay::ThingIndex(this),
+                                   recordreplay::ThingIndex(mDecoder.get()));
 
   LexerResult result = mDecoder->Decode(WrapNotNull(this));
 
