@@ -174,13 +174,13 @@ class Task {
   Task(bool aMainThreadOnly,
        uint32_t aPriority = static_cast<uint32_t>(kDefaultPriorityValue))
       : mMainThreadOnly(aMainThreadOnly),
-        mSeqNo(sCurrentTaskSeqNo++),
+        mSeqNo(GetNextSeqno()),
         mPriority(aPriority) {}
 
   Task(bool aMainThreadOnly,
        EventQueuePriority aPriority = kDefaultPriorityValue)
       : mMainThreadOnly(aMainThreadOnly),
-        mSeqNo(sCurrentTaskSeqNo++),
+        mSeqNo(GetNextSeqno()),
         mPriority(static_cast<uint32_t>(aPriority)) {}
 
   virtual ~Task() {}
@@ -219,6 +219,14 @@ class Task {
 #ifdef DEBUG
   bool mIsInGraph = false;
 #endif
+
+  // When recording/replaying, tasks need consistent seqnos because per
+  // PriorityCompare this will affect the order in which tasks will run.
+  // We could order these increments, but it's simpler to just record/replay
+  // the values of the seqnos on each task instead.
+  static uint64_t GetNextSeqno() {
+    return recordreplay::RecordReplayValue("Task::GetNextSeqno", sCurrentTaskSeqNo++);
+  }
 
   static std::atomic<uint64_t> sCurrentTaskSeqNo;
   int64_t mSeqNo;
