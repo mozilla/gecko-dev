@@ -972,6 +972,12 @@ nsresult PeerConnectionImpl::AddRtpTransceiverToJsepSession(
 already_AddRefed<TransceiverImpl> PeerConnectionImpl::CreateTransceiverImpl(
     JsepTransceiver* aJsepTransceiver, dom::MediaStreamTrack* aSendTrack,
     ErrorResult& aRv) {
+  // WebRTC is disabled when recording/replaying.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return already_AddRefed<TransceiverImpl>();
+  }
+
   // TODO: Maybe this should be done in PeerConnectionMedia?
   if (aSendTrack) {
     aSendTrack->AddPrincipalChangeObserver(this);
