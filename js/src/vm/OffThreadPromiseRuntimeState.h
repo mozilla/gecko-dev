@@ -135,7 +135,7 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   // However, if shutdown interrupts, resolve() may not be called, though the
   // OffThreadPromiseTask will be destroyed on a JSContext thread.
   void dispatchResolveAndDestroy();
-  void dispatchResolveAndDestroy(const AutoLockHelperThreadState& lock);
+  void dispatchResolveAndDestroy(AutoLockHelperThreadState& lock);
 };
 
 using OffThreadPromiseTaskSet =

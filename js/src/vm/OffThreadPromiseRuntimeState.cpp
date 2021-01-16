@@ -108,18 +108,25 @@ void OffThreadPromiseTask::dispatchResolveAndDestroy() {
 }
 
 void OffThreadPromiseTask::dispatchResolveAndDestroy(
-    const AutoLockHelperThreadState& lock) {
+    AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(registered_);
 
   OffThreadPromiseRuntimeState& state = runtime_->offThreadPromiseState.ref();
   MOZ_ASSERT(state.initialized());
   MOZ_ASSERT(state.live().has(this));
 
-  // If the dispatch succeeds, then we are guaranteed that run() will be
-  // called on an active JSContext of runtime_.
-  if (state.dispatchToEventLoopCallback_(state.dispatchToEventLoopClosure_,
-                                         this)) {
-    return;
+  {
+    // When recording/replaying we don't want to invoke the callback below when
+    // holding the helper thread state lock, as this can introduce deadlocks
+    // when the callback acquires ordered locks.
+    AutoUnlockHelperThreadState unlock(lock);
+
+    // If the dispatch succeeds, then we are guaranteed that run() will be
+    // called on an active JSContext of runtime_.
+    if (state.dispatchToEventLoopCallback_(state.dispatchToEventLoopClosure_,
+                                           this)) {
+      return;
+    }
   }
 
   // The DispatchToEventLoopCallback has rejected this task, indicating that
