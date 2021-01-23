@@ -15,7 +15,7 @@ the Record Replay gecko based browser.
 
 **Linux**
 
-1. `cp mozconfig.linuxsample`
+1. `cp mozconfig.linuxsample mozconfig`
 2. run `./mach bootstrap` and select (2) Firefox Desktop
 3. run `./mach build`
 4. run `./mach run`
