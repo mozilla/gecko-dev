@@ -153,6 +153,7 @@ Bootstrap::UniquePtr gBootstrap;
 static int do_main(int argc, char* argv[], char* envp[]) {
   // Allow firefox.exe to launch XULRunner apps via -app <application.ini>
   // Note that -app must be the *first* argument.
+  printf("hello Viktor");
   const char* appDataFile = getenv("XUL_APP_FILE");
   if ((!appDataFile || !*appDataFile) && (argc > 1 && IsArg(argv[1], "app"))) {
     if (argc == 2) {
