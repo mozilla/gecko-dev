@@ -1514,7 +1514,7 @@ function createRecordingButton() {
     onClick(evt) {
       const { gBrowser } = evt.target.ownerDocument.defaultView;
       const triggeringPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
-      gBrowser.loadURI("https://replay.io/view", { triggeringPrincipal });
+      gBrowser.loadURI("https://replay.io/view?forceOpenAuth=true", { triggeringPrincipal });
     },
     onCreated(node) {
       node.refreshStatus = () => {
