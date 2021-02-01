@@ -2428,6 +2428,16 @@ arena_run_t* arena_t::AllocRun(size_t aSize, bool aLarge, bool aZero) {
   } else {
     // No usable runs.  Create a new chunk from which to allocate
     // the run.
+
+    // On linux we need to avoid taking multiple malloc locks at a time without
+    // passing through thread events on the latter ones, to avoid deadlocks
+    // when handling the mutex lock calls. This issue doesn't occur on macOS
+    // because Mutex uses OSSpinLock instead of pthread_mutex_t there.
+    // See https://github.com/RecordReplay/backend/issues/1104
+#ifdef XP_LINUX
+    mozilla::recordreplay::AutoPassThroughThreadEvents pt;
+#endif
+
     bool zeroed;
     arena_chunk_t* chunk =
         (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, &zeroed);
