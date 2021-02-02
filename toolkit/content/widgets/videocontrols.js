@@ -2505,7 +2505,7 @@ this.VideoControlsImplWidget = class {
         }
 
         // XXX: Calling getComputedStyle() here by itself doesn't cause any reflow,
-        // but there is no guard proventing accessing any properties and methods
+        // but there is no guard preventing accessing any properties and methods
         // of this saved CSSStyleDeclaration instance that could trigger reflow.
         this.controlBarComputedStyles = this.window.getComputedStyle(
           this.controlBar
