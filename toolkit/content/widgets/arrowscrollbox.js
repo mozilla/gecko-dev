@@ -211,10 +211,10 @@
     }
 
     get lineScrollAmount() {
-      // line scroll amout should be the width (at horizontal scrollbox) or
+      // line scroll amount should be the width (at horizontal scrollbox) or
       // the height (at vertical scrollbox) of the scrolled elements.
       // However, the elements may have different width or height.  So,
-      // for consistent speed, let's use avalage with of the elements.
+      // for consistent speed, let's use average with of the elements.
       var elements = this._getScrollableElements();
       return elements.length && this.scrollSize / elements.length;
     }
