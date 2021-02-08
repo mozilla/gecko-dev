@@ -128,6 +128,13 @@ async function addRecordingResource(recordingId, url) {
       return null;
     }
     const text = await response.text();
+
+    // If the sourcemap is a data: url, there is no reason for us to upload it as
+    // an explicit resource because the URL will be parsed for the content.
+    if (url.startsWith("data:")) {
+      return text;
+    }
+
     const resource = getResourceInfo(url, text);
 
     const { known } = await sendCommand("Internal.hasResource", { resource });
