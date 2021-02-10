@@ -135,7 +135,7 @@ static const char* GetPlatformKind() {
 #endif
 }
 
-const char* gURLFilter;
+bool gRecordAllContent;
 
 extern "C" {
 
@@ -245,8 +245,8 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
     gProcessRecording();
   }
 
-  if (TestEnv("RECORD_REPLAY_MATCHING_URL")) {
-    gURLFilter = getenv("RECORD_REPLAY_MATCHING_URL");
+  if (TestEnv("RECORD_ALL_CONTENT")) {
+    gRecordAllContent = true;
   }
 
   ConfigureGecko();

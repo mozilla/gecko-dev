@@ -1773,10 +1773,7 @@ function reloadAndRecordTab(gBrowser) {
 
 // Return whether all tabs are automatically being recorded.
 function isRecordingAllTabs() {
-  // Even though this env var indicates we are only interested in recordings
-  // for a specific URL, all tabs will be recorded in case they load any
-  // matching content.
-  return env.get("RECORD_REPLAY_MATCHING_URL");
+  return env.get("RECORD_ALL_CONTENT");
 }
 
 function reloadAndStopRecordingTab(gBrowser) {

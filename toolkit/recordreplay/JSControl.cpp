@@ -255,8 +255,17 @@ static const char* GetRecordingId() {
   return gRecordingId;
 }
 
+// If we are recording all content processes, whether any interesting content was found.
+static bool gHasInterestingContent;
+
 // Report the recording as either finished or unusable.
 void SendRecordingFinished() {
+  // If we aren't interested in the recording, mark it as unusable
+  // so the driver doesn't bother with uploading it.
+  if (gRecordAllContent && !gHasInterestingContent) {
+    InvalidateRecording("No interesting content");
+  }
+
   if (!IsModuleInitialized()) {
     return;
   }
@@ -348,7 +357,28 @@ static bool Method_Annotate(JSContext* aCx, unsigned aArgc, Value* aVp) {
   return true;
 }
 
-static bool gHasMatchingURL;
+// Return whether aURL is an interesting source and the recording should be
+// remembered if all content processes are being recorded.
+static bool IsInterestingSource(const char* aURL) {
+  if (!aURL) {
+    return false;
+  }
+
+  // Prefixes for URLs which are part of the browser and not web content.
+  static const char* uninterestingPrefixes[] = {
+    "moz-extension://",
+    "resource://",
+    "chrome://",
+  };
+
+  for (const char* prefix : uninterestingPrefixes) {
+    if (!strncmp(aURL, prefix, strlen(prefix))) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 static bool Method_OnNewSource(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
@@ -369,13 +399,15 @@ static bool Method_OnNewSource(JSContext* aCx, unsigned aArgc, Value* aVp) {
     url.emplace();
     ConvertJSStringToCString(aCx, args.get(2).toString(), *url);
   }
-  gOnNewSource(id.get(), kind.get(), url ? url->get() : nullptr);
+
+  const char* urlRaw = url ? url->get() : nullptr;
+  gOnNewSource(id.get(), kind.get(), urlRaw);
 
   // Check to see if the source matches any URL filter we have.
-  if (gURLFilter && !gHasMatchingURL && url && strstr(url->get(), gURLFilter)) {
-    gHasMatchingURL = true;
+  if (gRecordAllContent && !gHasInterestingContent && IsInterestingSource(urlRaw)) {
+    gHasInterestingContent = true;
 
-    // We found a match, add the recording to the file at this env var.
+    // We found some interesting content, add the recording to the file at this env var.
     char* env = getenv("RECORD_REPLAY_RECORDING_ID_FILE");
     if (env) {
       FILE* file = fopen(env, "a");
