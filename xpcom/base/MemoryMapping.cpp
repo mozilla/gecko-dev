@@ -105,6 +105,12 @@ using Perm = MemoryMapping::Perm;
 using PermSet = MemoryMapping::PermSet;
 
 nsresult GetMemoryMappings(nsTArray<MemoryMapping>& aMappings, pid_t aPid) {
+  // Disable when recording/replaying, it has caused hangs which haven't
+  // been investigated.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return NS_ERROR_FAILURE;
+  }
+
   std::ifstream stream;
   if (aPid == 0) {
     stream.open("/proc/self/smaps");
