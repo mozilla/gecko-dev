@@ -213,12 +213,12 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   LoadSymbol("RecordReplayInvalidateRecording", gInvalidateRecording);
   LoadSymbol("RecordReplaySetCrashNote", gSetCrashNote, /* aOptional */ true);
 
-  js::InitializeJS();
-  InitializeGraphics();
-
   char buildId[128];
   snprintf(buildId, sizeof(buildId), "%s-gecko-%s", GetPlatformKind(), PlatformBuildID());
   gAttach(*dispatchAddress, buildId);
+
+  js::InitializeJS();
+  InitializeGraphics();
 
   gIsRecordingOrReplaying = true;
   gIsRecording = !gRecordReplayIsReplaying();
