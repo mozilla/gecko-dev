@@ -685,11 +685,15 @@ void GlobalStyleSheetCache::BuildPreferenceSheet(
   MOZ_ASSERT(!gStyleCache, "Too late, GlobalStyleSheetCache already created!");
   MOZ_ASSERT(!sSharedMemory, "Shouldn't call this more than once");
 
-  recordreplay::RecordReplayAssert("GlobalStyleSheetCache::SetSharedMemory");
+  // The shared memory cache is disabled when recording/replaying. We can't
+  // reliably ensure that fixed addresses in an area not already reserved
+  // will be consistently mapped when replaying.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    return;
+  }
 
   auto shm = MakeUnique<base::SharedMemory>();
   if (!shm->SetHandle(aHandle, /* read_only */ true)) {
-    recordreplay::RecordReplayAssert("GlobalStyleSheetCache::SetSharedMemory #1");
     return;
   }
 
@@ -697,8 +701,6 @@ void GlobalStyleSheetCache::BuildPreferenceSheet(
       shm->Map(kSharedMemorySize, reinterpret_cast<void*>(aAddress));
   Telemetry::Accumulate(Telemetry::SHARED_MEMORY_UA_SHEETS_MAPPED_CHILD,
                         contentMapped);
-
-  recordreplay::RecordReplayAssert("GlobalStyleSheetCache::SetSharedMemory #2 %d", contentMapped);
 
   if (contentMapped) {
     sSharedMemory = shm.release();
