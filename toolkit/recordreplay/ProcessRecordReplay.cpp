@@ -241,7 +241,7 @@ MOZ_EXPORT void RecordReplayInterface_Initialize(int* aArgc, char*** aArgv) {
   // Unless disabled via the environment, pre-process all created recordings so
   // that they will load faster after saving the recording.
   if (!TestEnv("RECORD_REPLAY_DONT_PROCESS_RECORDINGS") &&
-      !TestEnv("RECORD_REPLAY_MATCHING_URL")) {
+      !TestEnv("RECORD_ALL_CONTENT")) {
     gProcessRecording();
   }
 
