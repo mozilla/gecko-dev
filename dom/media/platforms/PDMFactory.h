@@ -13,6 +13,7 @@
 #  include "mozilla/EnumSet.h"
 #  include "mozilla/MozPromise.h"
 #  include "mozilla/RefPtr.h"
+#  include "mozilla/StaticMutex.h"
 #  include "nsISupports.h"
 #  include "nsStringFwd.h"
 #  include "nsTArray.h"
@@ -24,7 +25,6 @@ class MediaDataDecoder;
 class MediaResult;
 class PDMFactoryImpl;
 class PlatformDecoderModule;
-class StaticMutex;
 template <typename T>
 struct MaxEnumValue;
 template <class T>

@@ -49,14 +49,14 @@ class Shmem;
 }  // namespace ipc
 
 namespace recordreplay {
-  void SendUpdate(LayerTransactionChild* aChild,
+  void SendUpdate(layers::LayerTransactionChild* aChild,
                   const layers::TransactionInfo& aInfo);
-  void SendNewCompositable(LayerTransactionChild* aChild,
+  void SendNewCompositable(layers::LayerTransactionChild* aChild,
                            const layers::CompositableHandle& aHandle,
                            const layers::TextureInfo& aInfo);
-  void SendReleaseCompositable(LayerTransactionChild* aChild,
+  void SendReleaseCompositable(layers::LayerTransactionChild* aChild,
                                const layers::CompositableHandle& aHandle);
-  void SendReleaseLayer(LayerTransactionChild* aChild,
+  void SendReleaseLayer(layers::LayerTransactionChild* aChild,
                         const layers::LayerHandle& aHandle);
 }
 

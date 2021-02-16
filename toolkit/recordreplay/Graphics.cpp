@@ -18,6 +18,8 @@
 #include "mozilla/layers/LayerTransactionParent.h"
 #include "mozilla/layers/LayersMessages.h"
 #include "imgIEncoder.h"
+#include "nsComponentManagerUtils.h"
+#include "nsPrintfCString.h"
 
 using namespace mozilla::layers;
 

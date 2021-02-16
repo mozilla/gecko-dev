@@ -953,16 +953,10 @@ bool BytecodeEmitter::emitAtomOp(JSOp op, GCThingIndex atomIndex,
     return false;
   }
 
-  switch (op) {
-    case JSOp::GetProp:
-    case JSOp::CallProp:
-    case JSOp::Length:
-      if (!maybeEmitRecordReplayAssert(atomIndex)) {
-        return false;
-      }
-      break;
-    default:
-      break;
+  if (op == JSOp::GetProp) {
+    if (!maybeEmitRecordReplayAssert(atomIndex)) {
+      return false;
+    }
   }
 
   return true;
