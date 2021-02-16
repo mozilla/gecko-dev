@@ -243,6 +243,9 @@ enum class ImmutableScriptFlagsEnum : uint32_t {
   // is set independently of whether we actually use an `arguments` binding. The
   // conditions are specified in the ECMAScript spec.
   HasMappedArgsObj = 1 << 27,
+
+  // This is a default class constructor cloned from a self hosted script.
+  IsDefaultClassConstructor = 1 << 28,
 };
 
 enum class MutableScriptFlagsEnum : uint32_t {

@@ -291,8 +291,7 @@ bool DebuggerScript::CallData::getIsDefaultClassConstructor() {
   if (!ensureScriptMaybeLazy()) {
     return false;
   }
-  // FIXME is this accessor needed anymore?
-  args.rval().setBoolean(false);
+  args.rval().setBoolean(obj->getReferentScript()->isDefaultClassConstructor());
   return true;
 }
 

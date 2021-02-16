@@ -4569,6 +4569,11 @@ static JSScript* CopyScriptImpl(JSContext* cx, HandleScript src,
   // are not modified after the JSScript is created.
   if (maybeClassExtent) {
     flags.clearFlag(JSScript::ImmutableFlags::SelfHosted);
+
+    // Remember this is a default class constructor cloned from a self hosted
+    // script, as it won't have instrumentation and should be ignored on stack
+    // when recording/replaying.
+    flags.setFlag(JSScript::ImmutableFlags::IsDefaultClassConstructor);
   }
 
   // FunctionFlags and ImmutableScriptFlags should agree on self-hosting status.
