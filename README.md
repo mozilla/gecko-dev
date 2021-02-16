@@ -36,6 +36,7 @@ git pull https://github.com/mozilla/gecko-dev.git release
 2. Switch to a new branch, merge from the `release` branch.
 
 ```
+git checkout webreplay-release
 git checkout -b replay-merge
 git merge release
 ```
