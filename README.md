@@ -6,9 +6,9 @@ the Record Replay gecko based browser.
 **macOS**
 
 1. Make sure that you are using Python v2.7
-2. Make sure that are using Rust 1.46 (can be configured via `rustup default 1.46.0-x86_64-apple-darwin`)
-3. `cp mozconfig.macsample mozconfig`
-4. untar `MacOSX10.11.sdk.tar.xz`
+2. `cp mozconfig.macsample mozconfig`
+3. Download `MacOSX10.12.sdk.tar.xz` from https://github.com/phracker/MacOSX-SDKs/releases
+4. untar `MacOSX10.12.sdk.tar.xz` in the repo root to create a `MacOSX10.12.sdk` directory
 5. run `./mach bootstrap` and select (2) Firefox Desktop
 6. run `./mach build`
 7. run `./mach run`
