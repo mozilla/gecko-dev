@@ -478,6 +478,8 @@ var TelemetryReportingPolicyImpl = {
    * Try to open the privacy policy in a background tab instead of showing the infobar.
    */
   _openFirstRunPage() {
+    return false;
+
     if (!this._shouldNotify()) {
       return false;
     }
