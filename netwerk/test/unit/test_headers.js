@@ -14,7 +14,6 @@
 //
 //  For tests that need duplicate copies of headers to be sent, see
 //  test_duplicate_headers.js
-/* global globalThis */
 
 "use strict";
 
@@ -90,7 +89,6 @@ function handler1(metadata, response) {
   response.setStatusLine(metadata.httpVersion, 200, "OK");
   response.setHeader("Content-Disposition", "attachment; filename=foo");
   response.setHeader("Content-Type", "text/plain", false);
-  var body = "foo";
 }
 
 function completeTest1(request, data, ctx) {
@@ -120,8 +118,7 @@ function completeTest2(request, data, ctx) {
     var chan = request.QueryInterface(Ci.nsIChannel);
     Assert.equal(chan.contentDisposition, chan.DISPOSITION_ATTACHMENT);
     Assert.equal(chan.contentDispositionHeader, "attachment");
-
-    let filename = chan.contentDispositionFilename; // should barf
+    chan.contentDispositionFilename; // should barf
     do_throw("Should have failed getting Content-Disposition filename");
   } catch (ex) {
     info("correctly ate exception");
@@ -144,8 +141,8 @@ function completeTest3(request, data, ctx) {
     var chan = request.QueryInterface(Ci.nsIChannel);
     Assert.equal(chan.contentDisposition, chan.DISPOSITION_ATTACHMENT);
     Assert.equal(chan.contentDispositionHeader, "attachment; filename=");
+    chan.contentDispositionFilename; // should barf
 
-    let filename = chan.contentDispositionFilename; // should barf
     do_throw("Should have failed getting Content-Disposition filename");
   } catch (ex) {
     info("correctly ate exception");
@@ -169,7 +166,7 @@ function completeTest4(request, data, ctx) {
     Assert.equal(chan.contentDisposition, chan.DISPOSITION_INLINE);
     Assert.equal(chan.contentDispositionHeader, "inline");
 
-    let filename = chan.contentDispositionFilename; // should barf
+    chan.contentDispositionFilename; // should barf
     do_throw("Should have failed getting Content-Disposition filename");
   } catch (ex) {
     info("correctly ate exception");

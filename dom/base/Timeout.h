@@ -11,15 +11,13 @@
 #include "mozilla/dom/TimeoutHandler.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/TimeStamp.h"
-#include "nsCOMPtr.h"
 #include "nsGlobalWindowInner.h"
 #include "nsCycleCollectionParticipant.h"
-#include "GeckoProfiler.h"
 #include "nsDataHashtable.h"
 
-class nsIEventTarget;
-class nsIPrincipal;
-class nsIEventTarget;
+#ifdef MOZ_GECKO_PROFILER
+#  include "mozilla/ProfileChunkedBuffer.h"
+#endif
 
 namespace mozilla {
 namespace dom {

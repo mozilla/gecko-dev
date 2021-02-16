@@ -53,7 +53,6 @@ InputContextAction::Cause IMEHandler::sLastContextActionCause =
     InputContextAction::CAUSE_UNKNOWN;
 bool IMEHandler::sMaybeEditable = false;
 bool IMEHandler::sForceDisableCurrentIMM_IME = false;
-bool IMEHandler::sPluginHasFocus = false;
 bool IMEHandler::sNativeCaretIsCreated = false;
 bool IMEHandler::sHasNativeCaretBeenRequested = false;
 
@@ -357,12 +356,6 @@ nsresult IMEHandler::NotifyIME(nsWindow* aWindow,
 
 // static
 IMENotificationRequests IMEHandler::GetIMENotificationRequests() {
-  // While a plugin has focus, neither TSFTextStore nor IMMHandler needs
-  // notifications.
-  if (sPluginHasFocus) {
-    return IMENotificationRequests();
-  }
-
   if (IsTSFAvailable()) {
     if (!sIsIMMEnabled) {
       return TSFTextStore::GetIMENotificationRequests();
@@ -432,15 +425,6 @@ void IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext,
   // FYI: If there is no composition, this call will do nothing.
   NotifyIME(aWindow, IMENotification(REQUEST_TO_COMMIT_COMPOSITION));
 
-  const InputContext& oldInputContext = aWindow->GetInputContext();
-
-  // Assume that SetInputContext() is called only when aWindow has focus.
-  sPluginHasFocus = (aInputContext.mIMEState.mEnabled == IMEState::PLUGIN);
-  if (sPluginHasFocus) {
-    // Update some cached system settings in the plugin.
-    aWindow->DispatchPluginSettingEvents();
-  }
-
   if (aInputContext.mHTMLInputInputmode.EqualsLiteral("none")) {
     IMEHandler::MaybeDismissOnScreenKeyboard(aWindow, Sync::Yes);
   } else if (aAction.UserMightRequestOpenVKB()) {
@@ -460,10 +444,6 @@ void IMEHandler::SetInputContext(nsWindow* aWindow, InputContext& aInputContext,
       if (sIsIMMEnabled) {
         // Associate IMC with aWindow only when it's necessary.
         AssociateIMEContext(aWindow, enable && NeedsToAssociateIMC());
-      } else if (oldInputContext.mIMEState.mEnabled == IMEState::PLUGIN) {
-        // Disassociate the IME context from the window when plugin loses focus
-        // in pure TSF mode.
-        AssociateIMEContext(aWindow, false);
       }
       if (adjustOpenState) {
         TSFTextStore::SetIMEOpenState(open);
@@ -519,7 +499,7 @@ void IMEHandler::InitInputContext(nsWindow* aWindow,
   }
 
   // For a11y, the default enabled state should be 'enabled'.
-  aInputContext.mIMEState.mEnabled = IMEState::ENABLED;
+  aInputContext.mIMEState.mEnabled = IMEEnabled::Enabled;
 
   if (sIsInTSFMode) {
     TSFTextStore::SetInputContext(
@@ -749,9 +729,8 @@ void IMEHandler::MaybeShowOnScreenKeyboard(nsWindow* aWindow,
     return;
   }
 #endif  // NIGHTLY_BUILD
-  if (sPluginHasFocus || !IsWin8OrLater() ||
-      !Preferences::GetBool(kOskEnabled, true) || GetOnScreenKeyboardWindow() ||
-      !IMEHandler::NeedOnScreenKeyboard()) {
+  if (!IsWin8OrLater() || !Preferences::GetBool(kOskEnabled, true) ||
+      GetOnScreenKeyboardWindow() || !IMEHandler::NeedOnScreenKeyboard()) {
     return;
   }
 
@@ -778,7 +757,7 @@ void IMEHandler::MaybeDismissOnScreenKeyboard(nsWindow* aWindow, Sync aSync) {
                        mozilla::gfx::VRFxEventState::BLUR);
   }
 #endif  // NIGHTLY_BUILD
-  if (sPluginHasFocus || !IsWin8OrLater()) {
+  if (!IsWin8OrLater()) {
     return;
   }
 
@@ -1117,24 +1096,6 @@ HWND IMEHandler::GetOnScreenKeyboardWindow() {
   return nullptr;
 }
 
-// static
-void IMEHandler::SetCandidateWindow(nsWindow* aWindow, CANDIDATEFORM* aForm) {
-  if (!sPluginHasFocus) {
-    return;
-  }
-
-  IMMHandler::SetCandidateWindow(aWindow, aForm);
-}
-
-// static
-void IMEHandler::DefaultProcOfPluginEvent(nsWindow* aWindow,
-                                          const NPEvent* aPluginEvent) {
-  if (!sPluginHasFocus) {
-    return;
-  }
-  IMMHandler::DefaultProcOfPluginEvent(aWindow, aPluginEvent);
-}
-
 bool IMEHandler::MaybeCreateNativeCaret(nsWindow* aWindow) {
   MOZ_ASSERT(aWindow);
 
@@ -1164,19 +1125,19 @@ bool IMEHandler::MaybeCreateNativeCaret(nsWindow* aWindow) {
     return false;
   }
 
-  WidgetQueryContentEvent queryCaretRect(true, eQueryCaretRect, aWindow);
-  aWindow->InitEvent(queryCaretRect);
+  WidgetQueryContentEvent queryCaretRectEvent(true, eQueryCaretRect, aWindow);
+  aWindow->InitEvent(queryCaretRectEvent);
 
   WidgetQueryContentEvent::Options options;
   options.mRelativeToInsertionPoint = true;
-  queryCaretRect.InitForQueryCaretRect(0, options);
+  queryCaretRectEvent.InitForQueryCaretRect(0, options);
 
-  aWindow->DispatchWindowEvent(&queryCaretRect);
-  if (NS_WARN_IF(!queryCaretRect.mSucceeded)) {
+  aWindow->DispatchWindowEvent(&queryCaretRectEvent);
+  if (NS_WARN_IF(queryCaretRectEvent.Failed())) {
     return false;
   }
 
-  return CreateNativeCaret(aWindow, queryCaretRect.mReply.mRect);
+  return CreateNativeCaret(aWindow, queryCaretRectEvent.mReply->mRect);
 }
 
 bool IMEHandler::CreateNativeCaret(nsWindow* aWindow,

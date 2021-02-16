@@ -253,15 +253,15 @@ MediaSourceTrackDemuxer::MediaSourceTrackDemuxer(MediaSourceDemuxer* aParent,
                   VorbisDataDecoder::IsVorbis(
                       mParent->GetTrackInfo(mType)->mMimeType)
               ? 80000
-              : mParent->GetTrackInfo(mType)->mMimeType.EqualsLiteral(
-                    "audio/mp4a-latm")
-                    // AAC encoder delay is by default 2112 audio frames.
-                    // See
-                    // https://developer.apple.com/library/content/documentation/QuickTime/QTFF/QTFFAppenG/QTFFAppenG.html
-                    // So we always seek 2112 frames
-                    ? (2112 * 1000000ULL /
-                       mParent->GetTrackInfo(mType)->GetAsAudioInfo()->mRate)
-                    : 0)) {}
+          : mParent->GetTrackInfo(mType)->mMimeType.EqualsLiteral(
+                "audio/mp4a-latm")
+              // AAC encoder delay is by default 2112 audio frames.
+              // See
+              // https://developer.apple.com/library/content/documentation/QuickTime/QTFF/QTFFAppenG/QTFFAppenG.html
+              // So we always seek 2112 frames
+              ? (2112 * 1000000ULL /
+                 mParent->GetTrackInfo(mType)->GetAsAudioInfo()->mRate)
+              : 0)) {}
 
 UniquePtr<TrackInfo> MediaSourceTrackDemuxer::GetInfo() const {
   return mParent->GetTrackInfo(mType)->Clone();
@@ -343,7 +343,7 @@ RefPtr<MediaSourceTrackDemuxer::SeekPromise> MediaSourceTrackDemuxer::DoSeek(
     const TimeUnit& aTime) {
   if (!mManager) {
     return SeekPromise::CreateAndReject(
-        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+        MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
                     RESULT_DETAIL("manager is detached.")),
         __func__);
   }
@@ -395,7 +395,7 @@ RefPtr<MediaSourceTrackDemuxer::SamplesPromise>
 MediaSourceTrackDemuxer::DoGetSamples(int32_t aNumSamples) {
   if (!mManager) {
     return SamplesPromise::CreateAndReject(
-        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+        MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
                     RESULT_DETAIL("manager is detached.")),
         __func__);
   }
@@ -451,7 +451,7 @@ MediaSourceTrackDemuxer::DoSkipToNextRandomAccessPoint(
     const TimeUnit& aTimeThreadshold) {
   if (!mManager) {
     return SkipAccessPointPromise::CreateAndReject(
-        SkipFailureHolder(MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+        SkipFailureHolder(MediaResult(NS_ERROR_DOM_MEDIA_CANCELED,
                                       RESULT_DETAIL("manager is detached.")),
                           0),
         __func__);

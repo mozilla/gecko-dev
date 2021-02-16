@@ -32,9 +32,12 @@
 #include "mozilla/Encoding.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventListenerManager.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/LoadContext.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/PreloaderBase.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StaticPrefs_privacy.h"
@@ -53,6 +56,7 @@
 #include "nsIAuthPrompt.h"
 #include "nsIAuthPrompt2.h"
 #include "nsIClassOfService.h"
+#include "nsIHttpChannel.h"
 #include "nsISupportsPriority.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsStreamUtils.h"
@@ -64,6 +68,7 @@
 #include "nsVariant.h"
 #include "nsIScriptError.h"
 #include "nsICachingChannel.h"
+#include "nsICookieJarSettings.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsError.h"
@@ -1081,10 +1086,9 @@ bool XMLHttpRequestMainThread::IsSafeHeader(
   // list of method names.
   Unused << aHttpChannel->GetResponseHeader("Access-Control-Expose-Headers"_ns,
                                             headerVal);
-  nsCCharSeparatedTokenizer exposeTokens(headerVal, ',');
   bool isSafe = false;
-  while (exposeTokens.hasMoreTokens()) {
-    const nsDependentCSubstring& token = exposeTokens.nextToken();
+  for (const nsACString& token :
+       nsCCharSeparatedTokenizer(headerVal, ',').ToRange()) {
     if (token.IsEmpty()) {
       continue;
     }
@@ -1396,7 +1400,8 @@ nsresult XMLHttpRequestMainThread::Open(const nsACString& aMethod,
   // Gecko-specific
   if (!aAsync && !DontWarnAboutSyncXHR() && GetOwner() &&
       GetOwner()->GetExtantDoc()) {
-    GetOwner()->GetExtantDoc()->WarnOnceAbout(Document::eSyncXMLHttpRequest);
+    GetOwner()->GetExtantDoc()->WarnOnceAbout(
+        DeprecatedOperations::eSyncXMLHttpRequest);
   }
 
   Telemetry::Accumulate(Telemetry::XMLHTTPREQUEST_ASYNC_OR_SYNC,
@@ -2457,7 +2462,7 @@ nsresult XMLHttpRequestMainThread::CreateChannel() {
     rv = httpChannel->SetRequestMethod(mRequestMethod);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    httpChannel->SetSource(profiler_get_backtrace());
+    httpChannel->SetSource(profiler_capture_backtrace());
 
     // Set the initiator type
     nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(httpChannel));
@@ -3027,7 +3032,8 @@ nsresult XMLHttpRequestMainThread::SendInternal(const BodyExtractorBase* aBody,
     }
 
     if (NS_SUCCEEDED(rv)) {
-      nsAutoSyncOperation sync(mSuspendedDoc);
+      nsAutoSyncOperation sync(mSuspendedDoc,
+                               SyncOperationBehavior::eSuspendInput);
       if (!SpinEventLoopUntil([&]() { return !mFlagSyncLooping; })) {
         rv = NS_ERROR_UNEXPECTED;
       }
@@ -3239,7 +3245,8 @@ void XMLHttpRequestMainThread::SetOriginStack(
   mOriginStack = std::move(aOriginStack);
 }
 
-void XMLHttpRequestMainThread::SetSource(UniqueProfilerBacktrace aSource) {
+void XMLHttpRequestMainThread::SetSource(
+    UniquePtr<ProfileChunkedBuffer> aSource) {
   if (!mChannel) {
     return;
   }
@@ -3673,6 +3680,13 @@ NS_IMETHODIMP XMLHttpRequestMainThread::nsHeaderVisitor::VisitHeader(
   }
   return NS_OK;
 }
+
+XMLHttpRequestMainThread::nsHeaderVisitor::nsHeaderVisitor(
+    const XMLHttpRequestMainThread& aXMLHttpRequest,
+    NotNull<nsIHttpChannel*> aHttpChannel)
+    : mXHR(aXMLHttpRequest), mHttpChannel(aHttpChannel) {}
+
+XMLHttpRequestMainThread::nsHeaderVisitor::~nsHeaderVisitor() = default;
 
 void XMLHttpRequestMainThread::MaybeCreateBlobStorage() {
   MOZ_ASSERT(mResponseType == XMLHttpRequestResponseType::Blob);

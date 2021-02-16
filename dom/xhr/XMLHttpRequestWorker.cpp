@@ -12,15 +12,18 @@
 #include "jsfriendapi.h"
 #include "js/ArrayBuffer.h"  // JS::Is{,Detached}ArrayBufferObject
 #include "js/GCPolicyAPI.h"
+#include "js/JSON.h"
 #include "js/RootingAPI.h"  // JS::{Handle,Heap},PersistentRooted
 #include "js/TracingAPI.h"
 #include "js/Value.h"  // JS::{Undefined,}Value
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/FormData.h"
 #include "mozilla/dom/ProgressEvent.h"
+#include "mozilla/dom/SerializedStackHolder.h"
 #include "mozilla/dom/StreamBlobImpl.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/dom/UnionConversions.h"
@@ -36,6 +39,7 @@
 #include "nsJSUtils.h"
 #include "nsThreadUtils.h"
 
+#include "XMLHttpRequestMainThread.h"
 #include "XMLHttpRequestUpload.h"
 
 #include "mozilla/UniquePtr.h"
@@ -650,7 +654,7 @@ class OpenRunnable final : public WorkerThreadProxySyncRunnable {
 
   // Remember the worker thread's stack when the XHR was opened for profiling
   // purposes.
-  UniqueProfilerBacktrace mSource;
+  UniquePtr<ProfileChunkedBuffer> mSource;
 
  public:
   OpenRunnable(WorkerPrivate* aWorkerPrivate, Proxy* aProxy,
@@ -661,7 +665,7 @@ class OpenRunnable final : public WorkerThreadProxySyncRunnable {
                XMLHttpRequestResponseType aResponseType,
                const nsString& aMimeTypeOverride,
                UniquePtr<SerializedStackHolder> aOriginStack,
-               UniqueProfilerBacktrace aSource = nullptr)
+               UniquePtr<ProfileChunkedBuffer> aSource = nullptr)
       : WorkerThreadProxySyncRunnable(aWorkerPrivate, aProxy),
         mMethod(aMethod),
         mURL(aURL),
@@ -814,9 +818,7 @@ void Proxy::Teardown(bool aSendUnpin) {
       if (aSendUnpin) {
         RefPtr<XHRUnpinRunnable> runnable =
             new XHRUnpinRunnable(mWorkerPrivate, mXMLHttpRequestPrivate);
-        if (!runnable->Dispatch()) {
-          MOZ_CRASH("We're going to hang at shutdown anyways.");
-        }
+        MOZ_ALWAYS_TRUE(runnable->Dispatch());
       }
 
       if (mSyncLoopTarget) {
@@ -824,9 +826,7 @@ void Proxy::Teardown(bool aSendUnpin) {
         RefPtr<MainThreadStopSyncLoopRunnable> runnable =
             new MainThreadStopSyncLoopRunnable(
                 mWorkerPrivate, std::move(mSyncLoopTarget), false);
-        if (!runnable->Dispatch()) {
-          MOZ_CRASH("We're going to hang at shutdown anyways.");
-        }
+        MOZ_ALWAYS_TRUE(runnable->Dispatch());
       }
 
       mOutstandingSendCount = 0;
@@ -839,6 +839,10 @@ void Proxy::Teardown(bool aSendUnpin) {
 
   MOZ_ASSERT(!mWorkerPrivate);
   MOZ_ASSERT(!mSyncLoopTarget);
+  // If there are rare edge cases left that violate our invariants
+  // just ensure that they won't harm us too much.
+  mWorkerPrivate = nullptr;
+  mSyncLoopTarget = nullptr;
 }
 
 bool Proxy::AddRemoveEventListeners(bool aUpload, bool aAdd) {
@@ -1041,8 +1045,8 @@ bool EventRunnable::PreDispatch(WorkerPrivate* /* unused */) {
       }
 
       default:
-        MOZ_CRASH("Invalid response type");
-        break;
+        MOZ_ASSERT_UNREACHABLE("Invalid response type");
+        return false;
     }
   }
 
@@ -1326,6 +1330,10 @@ void SendRunnable::RunOnMainThread(ErrorResult& aRv) {
         MOZ_ASSERT(false, "This should never fail!");
       }
     }
+  } else {
+    // In case of failure we just break the sync loop
+    mProxy->mSyncLoopTarget = nullptr;
+    mSyncLoopTarget = nullptr;
   }
 }
 
@@ -1738,7 +1746,7 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
       mWorkerPrivate, mProxy, aMethod, aUrl, aUser, aPassword,
       mBackgroundRequest, mWithCredentials, mTimeout, mResponseType,
       alsoOverrideMimeType ? mMimeTypeOverride : VoidString(), std::move(stack),
-      profiler_get_backtrace());
+      profiler_capture_backtrace());
 
   ++mProxy->mOpenCount;
   runnable->Dispatch(Canceling, aRv);
@@ -1889,7 +1897,9 @@ void XMLHttpRequestWorker::Send(
   }
 
   if (aData.Value().IsDocument()) {
-    MOZ_CRASH("Documents are not exposed to workers.");
+    MOZ_ASSERT_UNREACHABLE("Documents are not exposed to workers.");
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
   }
 
   if (aData.Value().IsBlob()) {
@@ -2175,7 +2185,7 @@ void XMLHttpRequestWorker::GetResponse(JSContext* aCx,
     }
 
     default:
-      MOZ_CRASH("Invalid type");
+      MOZ_ASSERT_UNREACHABLE("Invalid type");
       aResponse.setNull();
       return;
   }

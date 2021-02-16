@@ -350,6 +350,9 @@ struct JSRuntime {
    */
   js::MainThreadData<bool> allowRelazificationForTesting;
 
+  /* Zone destroy callback. */
+  js::MainThreadData<JSDestroyZoneCallback> destroyZoneCallback;
+
   /* Compartment destroy callback. */
   js::MainThreadData<JSDestroyCompartmentCallback> destroyCompartmentCallback;
 
@@ -394,7 +397,7 @@ struct JSRuntime {
   // Heap GC roots for PersistentRooted pointers.
   js::MainThreadData<mozilla::EnumeratedArray<
       JS::RootKind, JS::RootKind::Limit,
-      mozilla::LinkedList<JS::PersistentRooted<void*>>>>
+      mozilla::LinkedList<JS::PersistentRooted<JS::detail::RootListEntry*>>>>
       heapRoots;
 
   void tracePersistentRoots(JSTracer* trc);
@@ -549,13 +552,14 @@ struct JSRuntime {
   void decParseTaskRef() { numParseTasks--; }
 
 #ifdef DEBUG
-  bool currentThreadHasScriptDataAccess() const {
+  void assertCurrentThreadHasScriptDataAccess() const {
     if (!hasParseTasks()) {
-      return js::CurrentThreadCanAccessRuntime(this) &&
-             activeThreadHasScriptDataAccess;
+      MOZ_ASSERT(js::CurrentThreadCanAccessRuntime(this) &&
+                 activeThreadHasScriptDataAccess);
+      return;
     }
 
-    return scriptDataLock.ownedByCurrentThread();
+    scriptDataLock.assertOwnedByCurrentThread();
   }
 
   bool currentThreadHasAtomsTableAccess() const {
@@ -626,7 +630,22 @@ struct JSRuntime {
    */
   js::WriteOnceData<js::NativeObject*> selfHostingGlobal_;
 
+  // Optional reference to an array which contains the XDR content to be used
+  // instead of parsing the self-hosted source text. It is cleared once the
+  // self-hosted global is initialized.
+  JS::TranscodeRange selfHostedXDR = {};
+
+  // Callback to copy the XDR content of the self-hosted code.
+  using TranscodeBufferWriter = bool (*)(JSContext* cx,
+                                         const JS::TranscodeBuffer&);
+  TranscodeBufferWriter selfHostedXDRWriter = nullptr;
+
   static js::GlobalObject* createSelfHostingGlobal(JSContext* cx);
+
+  // Used internally to initialize the self-hosted global using XDR content.
+  bool initSelfHostingFromXDR(JSContext* cx, const JS::CompileOptions& options,
+                              js::frontend::CompilationStencilSet& stencilSet,
+                              js::MutableHandle<JSScript*> scriptOut);
 
  public:
   void getUnclonedSelfHostedValue(js::PropertyName* name, JS::Value* vp);
@@ -654,6 +673,24 @@ struct JSRuntime {
   //-------------------------------------------------------------------------
   // Self-hosting support
   //-------------------------------------------------------------------------
+
+  // Optional XDR compiled data for self-hosting. If set this, will be used to
+  // parse the self-hosting code instead of from source code.
+  //
+  // This field is cleared internally after self-hosting is initialized.
+  void setSelfHostedXDR(JS::TranscodeRange enctext) {
+    MOZ_RELEASE_ASSERT(!hasInitializedSelfHosting());
+    MOZ_RELEASE_ASSERT(enctext.length() > 0);
+    new (&selfHostedXDR) mozilla::Range(enctext);
+  }
+
+  // Register a callback which would be used to return a buffer if the
+  // self-hosted code should be serialized and stored in the returned buffer.
+  void setSelfHostedXDRWriterCallback(TranscodeBufferWriter writer) {
+    MOZ_RELEASE_ASSERT(!hasInitializedSelfHosting());
+    MOZ_RELEASE_ASSERT(!selfHostedXDRWriter);
+    selfHostedXDRWriter = writer;
+  }
 
   bool hasInitializedSelfHosting() const { return selfHostingGlobal_; }
 

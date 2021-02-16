@@ -1,4 +1,7 @@
 #![allow(non_snake_case)]
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #![forbid(unsafe_code)]
 
 extern crate base64;
@@ -11,9 +14,11 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate time;
+#[cfg(feature = "server")]
 extern crate tokio;
 extern crate unicode_segmentation;
 extern crate url;
+#[cfg(feature = "server")]
 extern crate warp;
 
 #[macro_use]
@@ -25,6 +30,7 @@ pub mod common;
 pub mod error;
 pub mod httpapi;
 pub mod response;
+#[cfg(feature = "server")]
 pub mod server;
 
 #[cfg(test)]

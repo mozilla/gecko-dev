@@ -434,7 +434,7 @@ nsresult CSSEditUtils::SetCSSPropertyPixelsWithoutTransaction(
   s.AppendLiteral("px");
 
   ErrorResult error;
-  cssDecl->SetProperty(propertyNameString, s, EmptyString(), error);
+  cssDecl->SetProperty(propertyNameString, s, EmptyCString(), error);
   if (error.Failed()) {
     NS_WARNING("nsICSSDeclaration::SetProperty() failed");
     return error.StealNSResult();
@@ -515,9 +515,13 @@ nsresult CSSEditUtils::GetComputedCSSInlinePropertyBase(nsIContent& aContent,
   //
   // FIXME(bug 1606994): nsAtomCString copies, we should just keep around the
   // property id.
+  //
+  // FIXME: Maybe we can avoid copying aValue too, though it's no worse than
+  // what we used to do.
+  nsAutoCString value;
   MOZ_ALWAYS_SUCCEEDS(
-      computedDOMStyle->GetPropertyValue(nsAtomCString(&aCSSProperty), aValue));
-
+      computedDOMStyle->GetPropertyValue(nsAtomCString(&aCSSProperty), value));
+  CopyUTF8toUTF16(value, aValue);
   return NS_OK;
 }
 
@@ -537,12 +541,14 @@ nsresult CSSEditUtils::GetSpecifiedCSSInlinePropertyBase(nsIContent& aContent,
     return NS_OK;
   }
 
+  // FIXME: Same comments as above.
   nsCSSPropertyID prop =
       nsCSSProps::LookupProperty(nsAtomCString(&aCSSProperty));
   MOZ_ASSERT(prop != eCSSProperty_UNKNOWN);
 
-  decl->GetPropertyValueByID(prop, aValue);
-
+  nsAutoCString value;
+  decl->GetPropertyValueByID(prop, value);
+  CopyUTF8toUTF16(value, aValue);
   return NS_OK;
 }
 
@@ -1041,13 +1047,11 @@ bool CSSEditUtils::IsCSSEquivalentToHTMLInlineStyleSetInternal(
         isSet = true;
       }
     } else if (nsGkAtoms::u == aHTMLProperty) {
-      nsAutoString val;
-      val.AssignLiteral("underline");
-      isSet = ChangeStyleTransaction::ValueIncludes(aValue, val);
+      isSet = ChangeStyleTransaction::ValueIncludes(
+          NS_ConvertUTF16toUTF8(aValue), "underline"_ns);
     } else if (nsGkAtoms::strike == aHTMLProperty) {
-      nsAutoString val;
-      val.AssignLiteral("line-through");
-      isSet = ChangeStyleTransaction::ValueIncludes(aValue, val);
+      isSet = ChangeStyleTransaction::ValueIncludes(
+          NS_ConvertUTF16toUTF8(aValue), "line-through"_ns);
     } else if ((nsGkAtoms::font == aHTMLProperty &&
                 aAttribute == nsGkAtoms::color) ||
                aAttribute == nsGkAtoms::bgcolor) {
@@ -1248,9 +1252,9 @@ bool CSSEditUtils::DoStyledElementsHaveSameStyle(
     return true;
   }
 
-  nsAutoCString propertyNameString;
-  nsAutoString firstValue, otherValue;
   for (uint32_t i = 0; i < firstLength; i++) {
+    nsAutoCString firstValue, otherValue;
+    nsAutoCString propertyNameString;
     firstCSSDecl->Item(i, propertyNameString);
     DebugOnly<nsresult> rvIgnored =
         firstCSSDecl->GetPropertyValue(propertyNameString, firstValue);
@@ -1266,6 +1270,8 @@ bool CSSEditUtils::DoStyledElementsHaveSameStyle(
     }
   }
   for (uint32_t i = 0; i < otherLength; i++) {
+    nsAutoCString firstValue, otherValue;
+    nsAutoCString propertyNameString;
     otherCSSDecl->Item(i, propertyNameString);
     DebugOnly<nsresult> rvIgnored =
         otherCSSDecl->GetPropertyValue(propertyNameString, otherValue);

@@ -57,6 +57,9 @@
 // Return text delegate if it exists.
 - (id<MOXTextMarkerSupport> _Nullable)moxTextMarkerDelegate;
 
+// Return true if this accessible is a live region
+- (BOOL)moxIsLiveRegion;
+
 @optional
 
 #pragma mark - AttributeGetters
@@ -120,6 +123,15 @@
 
 // AXRequired
 - (NSNumber* _Nullable)moxRequired;
+
+// AXElementBusy
+- (NSNumber* _Nullable)moxElementBusy;
+
+// AXLinkedUIElements
+- (NSArray* _Nullable)moxLinkedUIElements;
+
+// AXARIAControls
+- (NSArray* _Nullable)moxARIAControls;
 
 // AXDOMIdentifier
 - (NSString* _Nullable)moxDOMIdentifier;
@@ -211,6 +223,9 @@
 // AXIdentifier
 - (NSString* _Nullable)moxIdentifier;
 
+// AXVisibleChildren
+- (NSArray* _Nullable)moxVisibleChildren;
+
 // Outline Attributes
 
 // AXDisclosing
@@ -281,10 +296,28 @@
 // AXEditableAncestor
 - (id _Nullable)moxEditableAncestor;
 
+// AXHighestEditableAncestor
+- (id _Nullable)moxHighestEditableAncestor;
+
+// AXFocusableAncestor
+- (id _Nullable)moxFocusableAncestor;
+
+// AXARIAAtomic
+- (NSNumber* _Nullable)moxARIAAtomic;
+
+// AXARIALive
+- (NSString* _Nullable)moxARIALive;
+
+// AXARIARelevant
+- (NSString* _Nullable)moxARIARelevant;
+
 // AXMozDebugDescription
 - (NSString* _Nullable)moxMozDebugDescription;
 
 #pragma mark - AttributeSetters
+
+// AXDisclosing
+- (void)moxSetDisclosing:(NSNumber* _Nullable)disclosing;
 
 // AXValue
 - (void)moxSetValue:(id _Nullable)value;

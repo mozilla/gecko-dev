@@ -12,10 +12,9 @@ bitflags! {
 
         const ADVANCED_BLEND_EQUATION = 1 << 8;
         const DUAL_SOURCE_BLENDING = 1 << 9;
-        const PIXEL_LOCAL_STORAGE = 1 << 10;
-        const DITHERING = 1 << 11;
-        const TEXTURE_EXTERNAL = 1 << 12;
-        const DEBUG = 1 << 13;
+        const DITHERING = 1 << 10;
+        const TEXTURE_EXTERNAL = 1 << 11;
+        const DEBUG = 1 << 12;
     }
 }
 
@@ -35,7 +34,7 @@ impl<'a> FeatureList<'a> {
     }
 
     fn add(&mut self, feature: &'a str) {
-        assert!(!feature.contains(","));
+        assert!(!feature.contains(','));
         self.list.push(feature);
     }
 
@@ -54,7 +53,7 @@ impl<'a> FeatureList<'a> {
     }
 
     fn finish(&mut self) -> String {
-        self.list.sort();
+        self.list.sort_unstable();
         self.list.join(",")
     }
 }
@@ -65,9 +64,8 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
 
     // Clip shaders
     shaders.insert("cs_clip_rectangle", vec![String::new(), "FAST_PATH".to_string()]);
-    for name in &["cs_clip_image", "cs_clip_box_shadow"] {
-        shaders.insert(name, vec![String::new()]);
-    }
+    shaders.insert("cs_clip_image", vec!["TEXTURE_2D".to_string()]);
+    shaders.insert("cs_clip_box_shadow", vec!["TEXTURE_2D".to_string()]);
 
     // Cache shaders
     shaders.insert("cs_blur", vec!["ALPHA_TARGET".to_string(), "COLOR_TARGET".to_string()]);
@@ -77,16 +75,6 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
     }
 
     let mut base_prim_features = FeatureList::new();
-
-    // Pixel local storage shaders
-    if flags.contains(ShaderFeatureFlags::PIXEL_LOCAL_STORAGE) {
-        let feature = "PIXEL_LOCAL_STORAGE";
-        for name in &["pls_init", "pls_resolve"] {
-            shaders.insert(name, vec![feature.to_string()]);
-        }
-
-        base_prim_features.add(feature);
-    }
 
     // Brush shaders
     let mut brush_alpha_features = base_prim_features.with("ALPHA_PASS");
@@ -121,7 +109,7 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
     }
 
     // Image brush shaders
-    let mut texture_types = vec!["", "TEXTURE_2D"];
+    let mut texture_types = vec!["TEXTURE_2D_ARRAY", "TEXTURE_2D"];
     if flags.contains(ShaderFeatureFlags::GL) {
         texture_types.push("TEXTURE_RECT");
     }
@@ -186,7 +174,7 @@ pub fn get_shader_features(flags: ShaderFeatureFlags) -> ShaderFeatures {
     }
     let mut text_features: Vec<String> = Vec::new();
     for text_type in &text_types {
-        let mut list = base_prim_features.clone();
+        let mut list = base_prim_features.with("TEXTURE_2D");
         if !text_type.is_empty() {
             list.add(text_type);
         }

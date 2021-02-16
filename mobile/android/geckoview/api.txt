@@ -41,7 +41,6 @@ import java.io.InputStream;
 import java.lang.Boolean;
 import java.lang.CharSequence;
 import java.lang.Class;
-import java.lang.Deprecated;
 import java.lang.Double;
 import java.lang.Exception;
 import java.lang.Float;
@@ -71,7 +70,6 @@ import org.mozilla.geckoview.Autofill;
 import org.mozilla.geckoview.CompositorController;
 import org.mozilla.geckoview.ContentBlocking;
 import org.mozilla.geckoview.ContentBlockingController;
-import org.mozilla.geckoview.DeprecationSchedule;
 import org.mozilla.geckoview.GeckoDisplay;
 import org.mozilla.geckoview.GeckoResult;
 import org.mozilla.geckoview.GeckoRuntime;
@@ -463,7 +461,6 @@ package org.mozilla.geckoview {
     field public static final int LOADED_LEVEL_2_TRACKING_CONTENT = 1048576;
     field public static final int LOADED_SOCIALTRACKING_CONTENT = 131072;
     field public static final int REPLACED_TRACKING_CONTENT = 16;
-    field @Deprecated @DeprecationSchedule(version=86,id="unsafe-content") public static final int REPLACED_UNSAFE_CONTENT = 16;
   }
 
   @AnyThread public static class ContentBlockingController.LogEntry {
@@ -531,6 +528,8 @@ package org.mozilla.geckoview {
     method @NonNull public static <T> GeckoResult<T> fromException(@NonNull Throwable);
     method @NonNull public static <U> GeckoResult<U> fromValue(@Nullable U);
     method @Nullable public Looper getLooper();
+    method @NonNull public <U> GeckoResult<U> map(@Nullable GeckoResult.OnValueMapper<T,U>);
+    method @NonNull public <U> GeckoResult<U> map(@Nullable GeckoResult.OnValueMapper<T,U>, @Nullable GeckoResult.OnExceptionMapper);
     method @Nullable public synchronized T poll();
     method @Nullable public synchronized T poll(long);
     method public void setCancellationDelegate(@Nullable GeckoResult.CancellationDelegate);
@@ -553,8 +552,16 @@ package org.mozilla.geckoview {
     method @AnyThread @Nullable public GeckoResult<V> onException(@NonNull Throwable);
   }
 
+  public static interface GeckoResult.OnExceptionMapper {
+    method @AnyThread @Nullable public Throwable onException(@NonNull Throwable);
+  }
+
   public static interface GeckoResult.OnValueListener<T,U> {
     method @AnyThread @Nullable public GeckoResult<U> onValue(@Nullable T);
+  }
+
+  public static interface GeckoResult.OnValueMapper<T,U> {
+    method @AnyThread @Nullable public U onValue(@Nullable T);
   }
 
   public static final class GeckoResult.UncaughtException extends RuntimeException {
@@ -697,8 +704,6 @@ package org.mozilla.geckoview {
     method @NonNull @UiThread public GeckoDisplay acquireDisplay();
     method @UiThread public void autofill(@NonNull SparseArray<CharSequence>);
     method @UiThread public void close();
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") @NonNull public static String createDataUri(@NonNull byte[], @Nullable String);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") @NonNull public static String createDataUri(@NonNull String, @Nullable String);
     method @AnyThread public void exitFullScreen();
     method @NonNull @UiThread public SessionAccessibility getAccessibility();
     method @Nullable @UiThread public Autofill.Delegate getAutofillDelegate();
@@ -734,20 +739,7 @@ package org.mozilla.geckoview {
     method @AnyThread public void gotoHistoryIndex(int);
     method @AnyThread public boolean isOpen();
     method @AnyThread public void load(@NonNull GeckoSession.Loader);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadData(@NonNull byte[], @Nullable String);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadString(@NonNull String, @Nullable String);
     method @AnyThread public void loadUri(@NonNull String);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull String, @Nullable Map<String,String>);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull String, int);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull String, @Nullable String, int);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull String, @Nullable String, int, @Nullable Map<String,String>);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull String, @Nullable GeckoSession, int);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull String, @Nullable GeckoSession, int, @Nullable Map<String,String>);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull Uri);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull Uri, @Nullable Map<String,String>);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull Uri, int);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull Uri, @Nullable Uri, int);
-    method @AnyThread @Deprecated @DeprecationSchedule(version=86,id="load-uri-builder") public void loadUri(@NonNull Uri, @Nullable Uri, int, @Nullable Map<String,String>);
     method @UiThread public void open(@NonNull GeckoRuntime);
     method @AnyThread public void purgeHistory();
     method @UiThread public void releaseDisplay(@NonNull GeckoDisplay);
@@ -794,7 +786,6 @@ package org.mozilla.geckoview {
     method @UiThread default public void onCloseRequest(@NonNull GeckoSession);
     method @UiThread default public void onContextMenu(@NonNull GeckoSession, int, int, @NonNull GeckoSession.ContentDelegate.ContextElement);
     method @UiThread default public void onCrash(@NonNull GeckoSession);
-    method @Deprecated @DeprecationSchedule(version=85,id="on-external-response") @UiThread default public void onExternalResponse(@NonNull GeckoSession, @NonNull GeckoSession.WebResponseInfo);
     method @UiThread default public void onExternalResponse(@NonNull GeckoSession, @NonNull WebResponse);
     method @UiThread default public void onFirstComposite(@NonNull GeckoSession);
     method @UiThread default public void onFirstContentfulPaint(@NonNull GeckoSession);
@@ -1512,6 +1503,7 @@ package org.mozilla.geckoview {
     method public void setScrollFactor(float);
     field public static final int INPUT_RESULT_HANDLED = 1;
     field public static final int INPUT_RESULT_HANDLED_CONTENT = 2;
+    field public static final int INPUT_RESULT_IGNORED = 3;
     field public static final int INPUT_RESULT_UNHANDLED = 0;
     field public static final int SCROLL_BEHAVIOR_AUTO = 1;
     field public static final int SCROLL_BEHAVIOR_SMOOTH = 0;
@@ -1636,8 +1628,12 @@ package org.mozilla.geckoview {
   }
 
   public class WebExtension {
+    method @Nullable @UiThread public WebExtension.BrowsingDataDelegate getBrowsingDataDelegate();
+    method @Nullable @UiThread public WebExtension.DownloadDelegate getDownloadDelegate();
     method @Nullable @UiThread public WebExtension.TabDelegate getTabDelegate();
     method @AnyThread public void setActionDelegate(@Nullable WebExtension.ActionDelegate);
+    method @UiThread public void setBrowsingDataDelegate(@Nullable WebExtension.BrowsingDataDelegate);
+    method @UiThread public void setDownloadDelegate(@Nullable WebExtension.DownloadDelegate);
     method @UiThread public void setMessageDelegate(@Nullable WebExtension.MessageDelegate, @NonNull String);
     method @UiThread public void setTabDelegate(@Nullable WebExtension.TabDelegate);
     field public final long flags;
@@ -1676,6 +1672,32 @@ package org.mozilla.geckoview {
     field public static final int VULNERABLE_UPDATE_AVAILABLE = 4;
   }
 
+  @UiThread public static interface WebExtension.BrowsingDataDelegate {
+    method @Nullable default public GeckoResult<Void> onClearDownloads(long);
+    method @Nullable default public GeckoResult<Void> onClearFormData(long);
+    method @Nullable default public GeckoResult<Void> onClearHistory(long);
+    method @Nullable default public GeckoResult<Void> onClearPasswords(long);
+    method @Nullable default public GeckoResult<WebExtension.BrowsingDataDelegate.Settings> onGetSettings();
+  }
+
+  @UiThread public static class WebExtension.BrowsingDataDelegate.Settings {
+    ctor @UiThread public Settings(int, long, long);
+    field public final long selectedTypes;
+    field public final int sinceUnixTimestamp;
+    field public final long toggleableTypes;
+  }
+
+  public static class WebExtension.BrowsingDataDelegate.Type {
+    ctor protected Type();
+    field public static final long CACHE = 1L;
+    field public static final long COOKIES = 2L;
+    field public static final long DOWNLOADS = 4L;
+    field public static final long FORM_DATA = 8L;
+    field public static final long HISTORY = 16L;
+    field public static final long LOCAL_STORAGE = 32L;
+    field public static final long PASSWORDS = 64L;
+  }
+
   public static class WebExtension.CreateTabDetails {
     ctor protected CreateTabDetails();
     field @Nullable public final Boolean active;
@@ -1692,6 +1714,28 @@ package org.mozilla.geckoview {
     field public static final int APP = 8;
     field public static final int BLOCKLIST = 4;
     field public static final int USER = 2;
+  }
+
+  public static class WebExtension.Download {
+    ctor protected Download(int);
+    field @NonNull public final int id;
+  }
+
+  public static interface WebExtension.DownloadDelegate {
+    method @AnyThread @Nullable default public GeckoResult<WebExtension.Download> onDownload(@NonNull WebExtension, @NonNull WebExtension.DownloadRequest);
+  }
+
+  public static class WebExtension.DownloadRequest {
+    ctor protected DownloadRequest(WebExtension.DownloadRequest.Builder);
+    field public static final int CONFLICT_ACTION_OVERWRITE = 1;
+    field public static final int CONFLICT_ACTION_PROMPT = 2;
+    field public static final int CONFLICT_ACTION_UNIQUIFY = 0;
+    field public final boolean allowHttpErrors;
+    field public final int conflictActionFlag;
+    field public final int downloadFlags;
+    field @Nullable public final String filename;
+    field @NonNull public final WebRequest request;
+    field public final boolean saveAs;
   }
 
   public static class WebExtension.Flags {
@@ -1811,6 +1855,7 @@ package org.mozilla.geckoview {
   }
 
   public class WebExtensionController {
+    method @Nullable @UiThread public WebExtension.Download createDownload(int);
     method @AnyThread @NonNull public GeckoResult<WebExtension> disable(@NonNull WebExtension, int);
     method @AnyThread @NonNull public GeckoResult<WebExtension> enable(@NonNull WebExtension, int);
     method @AnyThread @NonNull public GeckoResult<WebExtension> ensureBuiltIn(@NonNull String, @Nullable String);
@@ -1911,6 +1956,7 @@ package org.mozilla.geckoview {
   @AnyThread public static class WebRequest.Builder extends WebMessage.Builder {
     ctor public Builder(@NonNull String);
     method @NonNull public WebRequest.Builder body(@Nullable ByteBuffer);
+    method @NonNull public WebRequest.Builder body(@Nullable String);
     method @NonNull public WebRequest build();
     method @NonNull public WebRequest.Builder cacheMode(int);
     method @NonNull public WebRequest.Builder method(@NonNull String);

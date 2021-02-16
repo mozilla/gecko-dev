@@ -23,10 +23,7 @@ nsWebBrowserContentPolicy::ShouldLoad(nsIURI* aContentLocation,
                                       int16_t* aShouldLoad) {
   MOZ_ASSERT(aShouldLoad, "Null out param");
 
-  uint32_t contentType = aLoadInfo->GetExternalContentPolicyType();
-  MOZ_ASSERT(contentType == nsContentUtils::InternalContentPolicyTypeToExternal(
-                                contentType),
-             "We should only see external content policy types here.");
+  ExtContentPolicyType contentType = aLoadInfo->GetExternalContentPolicyType();
 
   *aShouldLoad = nsIContentPolicy::ACCEPT;
 
@@ -41,17 +38,11 @@ nsWebBrowserContentPolicy::ShouldLoad(nsIURI* aContentLocation,
   bool allowed = true;
 
   switch (contentType) {
-    case nsIContentPolicy::TYPE_SUBDOCUMENT:
+    case ExtContentPolicy::TYPE_SUBDOCUMENT:
       rv = shell->GetAllowSubframes(&allowed);
       break;
-#if 0
-    /* XXXtw: commented out in old code; add during conpol phase 2 */
-    case nsIContentPolicy::TYPE_REFRESH:
-      rv = shell->GetAllowMetaRedirects(&allowed); /* meta _refresh_ */
-      break;
-#endif
-    case nsIContentPolicy::TYPE_IMAGE:
-    case nsIContentPolicy::TYPE_IMAGESET:
+    case ExtContentPolicy::TYPE_IMAGE:
+    case ExtContentPolicy::TYPE_IMAGESET:
       rv = shell->GetAllowImages(&allowed);
       break;
     default:
@@ -73,17 +64,14 @@ nsWebBrowserContentPolicy::ShouldProcess(nsIURI* aContentLocation,
                                          int16_t* aShouldProcess) {
   MOZ_ASSERT(aShouldProcess, "Null out param");
 
-  uint32_t contentType = aLoadInfo->GetExternalContentPolicyType();
-  MOZ_ASSERT(contentType == nsContentUtils::InternalContentPolicyTypeToExternal(
-                                contentType),
-             "We should only see external content policy types here.");
+  ExtContentPolicyType contentType = aLoadInfo->GetExternalContentPolicyType();
 
   *aShouldProcess = nsIContentPolicy::ACCEPT;
 
   // Object tags will always open channels with TYPE_OBJECT, but may end up
   // loading with TYPE_IMAGE or TYPE_DOCUMENT as their final type, so we block
   // actual-plugins at the process stage
-  if (contentType != nsIContentPolicy::TYPE_OBJECT) {
+  if (contentType != ExtContentPolicy::TYPE_OBJECT) {
     return NS_OK;
   }
 

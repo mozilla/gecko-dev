@@ -40,11 +40,13 @@
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/Hal.h"
 #include "mozilla/IMEStateManager.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/AsyncDragMetrics.h"
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/layout/RemoteLayerTreeOwner.h"
 #include "mozilla/plugins/PPluginWidgetParent.h"
 #include "mozilla/LookAndFeel.h"
+#include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/CookieJarSettings.h"
@@ -122,11 +124,13 @@
 #include "IHistory.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
+#include "GeckoProfiler.h"
 #include "MMPrinter.h"
 #include "SessionStoreFunctions.h"
 #include "mozilla/dom/CrashReport.h"
 #include "nsISecureBrowserUI.h"
 #include "nsIXULRuntime.h"
+#include "VsyncSource.h"
 
 #ifdef XP_WIN
 #  include "mozilla/plugins/PluginWidgetParent.h"
@@ -222,7 +226,7 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mCustomCursorHotspotX(0),
       mCustomCursorHotspotY(0),
       mVerifyDropLinks{},
-      mDocShellIsActive(false),
+      mVsyncParent(nullptr),
       mMarkedDestroying(false),
       mIsDestroyed(false),
       mRemoteTargetSetsCursor(false),
@@ -562,6 +566,8 @@ void BrowserParent::SetOwnerElement(Element* aElement) {
     mBrowsingContext->SetEmbedderElement(mFrameElement);
   }
 
+  UpdateVsyncParentVsyncSource();
+
   VisitChildren([aElement](BrowserBridgeParent* aBrowser) {
     if (auto* browserParent = aBrowser->GetBrowserParent()) {
       browserParent->SetOwnerElement(aElement);
@@ -605,6 +611,7 @@ void BrowserParent::DestroyInternal() {
   UnsetLastMouseRemoteTarget(this);
   UnsetPointerLockedRemoteTarget(this);
   PointerEventHandler::ReleasePointerCaptureRemoteTarget(this);
+  PresShell::ReleaseCapturingRemoteTarget(this);
 
   RemoveWindowListeners();
 
@@ -690,6 +697,7 @@ void BrowserParent::ActorDestroy(ActorDestroyReason why) {
   BrowserParent::UnsetLastMouseRemoteTarget(this);
   BrowserParent::UnsetPointerLockedRemoteTarget(this);
   PointerEventHandler::ReleasePointerCaptureRemoteTarget(this);
+  PresShell::ReleaseCapturingRemoteTarget(this);
 
   if (why == AbnormalShutdown) {
     // dom_reporting_header must also be enabled for the report to be sent.
@@ -737,7 +745,8 @@ void BrowserParent::ActorDestroy(ActorDestroyReason why) {
 
     // If this was a crash, tell our nsFrameLoader to fire crash events.
     if (why == AbnormalShutdown) {
-      frameLoader->MaybeNotifyCrashed(mBrowsingContext, GetIPCChannel());
+      frameLoader->MaybeNotifyCrashed(mBrowsingContext, Manager()->ChildID(),
+                                      GetIPCChannel());
 
       auto* bridge = GetBrowserBridgeParent();
       if (bridge && bridge->CanSend() && !mBrowsingContext->IsDiscarded()) {
@@ -1079,7 +1088,9 @@ void BrowserParent::UpdateDimensions(const nsIntRect& rect,
   hal::GetCurrentScreenConfiguration(&config);
   hal::ScreenOrientation orientation = config.orientation();
   LayoutDeviceIntPoint clientOffset = GetClientOffset();
-  LayoutDeviceIntPoint chromeOffset = -GetChildProcessOffset();
+  LayoutDeviceIntPoint chromeOffset = !GetBrowserBridgeParent()
+                                          ? -GetChildProcessOffset()
+                                          : LayoutDeviceIntPoint();
 
   if (!mUpdatedDimensions || mOrientation != orientation ||
       mDimensions != size || !mRect.IsEqualEdges(rect) ||
@@ -1144,21 +1155,21 @@ void BrowserParent::HandleAccessKey(const WidgetKeyboardEvent& aEvent,
   }
 }
 
-void BrowserParent::Activate() {
+void BrowserParent::Activate(uint64_t aActionId) {
   LOGBROWSERFOCUS(("Activate %p", this));
   if (!mIsDestroyed) {
     SetTopLevelWebFocus(this);  // Intentionally inside "if"
-    Unused << SendActivate();
+    Unused << SendActivate(aActionId);
   }
 }
 
-void BrowserParent::Deactivate(bool aWindowLowering) {
+void BrowserParent::Deactivate(bool aWindowLowering, uint64_t aActionId) {
   LOGBROWSERFOCUS(("Deactivate %p", this));
   if (!aWindowLowering) {
     UnsetTopLevelWebFocus(this);  // Intentionally outside the next "if"
   }
   if (!mIsDestroyed) {
-    Unused << SendDeactivate();
+    Unused << SendDeactivate(aActionId);
   }
 }
 
@@ -1347,6 +1358,29 @@ IPCResult BrowserParent::RecvNewWindowGlobal(
   return IPC_OK();
 }
 
+PVsyncParent* BrowserParent::AllocPVsyncParent() {
+  MOZ_ASSERT(!mVsyncParent);
+  mVsyncParent = new VsyncParent();
+  UpdateVsyncParentVsyncSource();
+  return mVsyncParent.get();
+}
+
+bool BrowserParent::DeallocPVsyncParent(PVsyncParent* aActor) {
+  MOZ_ASSERT(aActor);
+  mVsyncParent = nullptr;
+  return true;
+}
+
+void BrowserParent::UpdateVsyncParentVsyncSource() {
+  if (!mVsyncParent) {
+    return;
+  }
+
+  if (nsCOMPtr<nsIWidget> widget = GetWidget()) {
+    mVsyncParent->UpdateVsyncSource(widget->GetVsyncSource());
+  }
+}
+
 void BrowserParent::SendMouseEvent(const nsAString& aType, float aX, float aY,
                                    int32_t aButton, int32_t aClickCount,
                                    int32_t aModifiers) {
@@ -1453,11 +1487,23 @@ void BrowserParent::SendRealMouseEvent(WidgetMouseEvent& aEvent) {
       MOZ_ASSERT(!ret || aEvent.HasBeenPostedToRemoteProcess());
       return;
     }
+
+    if (!aEvent.mFlags.mIsSynthesizedForTests) {
+      DebugOnly<bool> ret =
+          isInputPriorityEventEnabled
+              ? SendRealMouseMoveEvent(aEvent, guid, blockId)
+              : SendNormalPriorityRealMouseMoveEvent(aEvent, guid, blockId);
+      NS_WARNING_ASSERTION(ret, "SendRealMouseMoveEvent() failed");
+      MOZ_ASSERT(!ret || aEvent.HasBeenPostedToRemoteProcess());
+      return;
+    }
+
     DebugOnly<bool> ret =
         isInputPriorityEventEnabled
-            ? SendRealMouseMoveEvent(aEvent, guid, blockId)
-            : SendNormalPriorityRealMouseMoveEvent(aEvent, guid, blockId);
-    NS_WARNING_ASSERTION(ret, "SendRealMouseMoveEvent() failed");
+            ? SendRealMouseMoveEventForTests(aEvent, guid, blockId)
+            : SendNormalPriorityRealMouseMoveEventForTests(aEvent, guid,
+                                                           blockId);
+    NS_WARNING_ASSERTION(ret, "SendRealMouseMoveEventForTests() failed");
     MOZ_ASSERT(!ret || aEvent.HasBeenPostedToRemoteProcess());
     return;
   }
@@ -1975,12 +2021,6 @@ void BrowserParent::SendRealTouchMoveEvent(
   MOZ_ASSERT(!ret || aEvent.HasBeenPostedToRemoteProcess());
 }
 
-void BrowserParent::SendPluginEvent(WidgetPluginEvent& aEvent) {
-  DebugOnly<bool> ret = PBrowserParent::SendPluginEvent(aEvent);
-  NS_WARNING_ASSERTION(ret, "PBrowserParent::SendPluginEvent() failed");
-  MOZ_ASSERT(!ret || aEvent.HasBeenPostedToRemoteProcess());
-}
-
 bool BrowserParent::SendHandleTap(TapType aType,
                                   const LayoutDevicePoint& aPoint,
                                   Modifiers aModifiers,
@@ -1990,12 +2030,9 @@ bool BrowserParent::SendHandleTap(TapType aType,
     return false;
   }
   if ((aType == TapType::eSingleTap || aType == TapType::eSecondTap)) {
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm) {
-      RefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
-      if (frameLoader) {
-        RefPtr<Element> element = frameLoader->GetOwnerContent();
-        if (element) {
+    if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
+      if (RefPtr<nsFrameLoader> frameLoader = GetFrameLoader()) {
+        if (RefPtr<Element> element = frameLoader->GetOwnerContent()) {
           fm->SetFocus(element, nsIFocusManager::FLAG_BYMOUSE |
                                     nsIFocusManager::FLAG_BYTOUCH |
                                     nsIFocusManager::FLAG_NOSCROLL);
@@ -2570,21 +2607,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnStateChange(
     const nsresult aStatus,
     const Maybe<WebProgressStateChangeData>& aStateChangeData) {
   if (mSuspendedProgressEvents) {
-    nsCOMPtr<nsIURI> uri = aRequestData.requestURI();
-    const uint32_t startDocumentFlags =
-        nsIWebProgressListener::STATE_START |
-        nsIWebProgressListener::STATE_IS_DOCUMENT |
-        nsIWebProgressListener::STATE_IS_REQUEST |
-        nsIWebProgressListener::STATE_IS_WINDOW |
-        nsIWebProgressListener::STATE_IS_NETWORK;
-    // Once we get a load start from something that isn't the initial
-    // about:blank, we should stop blocking future state changes.
-    if ((aStateFlags & startDocumentFlags) == startDocumentFlags &&
-        (aWebProgressData && aWebProgressData->isTopLevel()) &&
-        (!uri || !NS_IsAboutBlank(uri))) {
-      mSuspendedProgressEvents = false;
-    }
-
     return IPC_OK();
   }
 
@@ -2671,7 +2693,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
 
   if (aWebProgressData && aWebProgressData->isTopLevel() &&
       aLocationChangeData.isSome()) {
-    nsCOMPtr<nsIPrincipal> contentBlockingAllowListPrincipal;
     Unused << browser->SetIsNavigating(aLocationChangeData->isNavigating());
     Unused << browser->UpdateForLocationChange(
         aLocation, aLocationChangeData->charset(),
@@ -2919,7 +2940,7 @@ bool BrowserParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent) {
   }
   if (NS_WARN_IF(!mContentCache.HandleQueryContentEvent(
           aEvent, textInputHandlingWidget)) ||
-      NS_WARN_IF(!aEvent.mSucceeded)) {
+      NS_WARN_IF(aEvent.Failed())) {
     return true;
   }
   switch (aEvent.mMessage) {
@@ -2928,10 +2949,10 @@ bool BrowserParent::HandleQueryContentEvent(WidgetQueryContentEvent& aEvent) {
     case eQueryEditorRect: {
       nsCOMPtr<nsIWidget> browserWidget = GetWidget();
       if (browserWidget != textInputHandlingWidget) {
-        aEvent.mReply.mRect += nsLayoutUtils::WidgetToWidgetOffset(
+        aEvent.mReply->mRect += nsLayoutUtils::WidgetToWidgetOffset(
             browserWidget, textInputHandlingWidget);
       }
-      aEvent.mReply.mRect = TransformChildToParent(aEvent.mReply.mRect);
+      aEvent.mReply->mRect = TransformChildToParent(aEvent.mReply->mRect);
       break;
     }
     default:
@@ -2979,10 +3000,10 @@ bool BrowserParent::SendSelectionEvent(WidgetSelectionEvent& aEvent) {
   return true;
 }
 
-bool BrowserParent::SendPasteTransferable(const IPCDataTransfer& aDataTransfer,
-                                          const bool& aIsPrivateData,
-                                          nsIPrincipal* aRequestingPrincipal,
-                                          const uint32_t& aContentPolicyType) {
+bool BrowserParent::SendPasteTransferable(
+    const IPCDataTransfer& aDataTransfer, const bool& aIsPrivateData,
+    nsIPrincipal* aRequestingPrincipal,
+    const nsContentPolicyType& aContentPolicyType) {
   return PBrowserParent::SendPasteTransferable(
       aDataTransfer, aIsPrivateData, aRequestingPrincipal, aContentPolicyType);
 }
@@ -3108,65 +3129,11 @@ mozilla::ipc::IPCResult BrowserParent::RecvRequestIMEToCommitComposition(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserParent::RecvStartPluginIME(
-    const WidgetKeyboardEvent& aKeyboardEvent, const int32_t& aPanelX,
-    const int32_t& aPanelY, nsString* aCommitted) {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget) {
-    return IPC_OK();
-  }
-  Unused << widget->StartPluginIME(aKeyboardEvent, (int32_t&)aPanelX,
-                                   (int32_t&)aPanelY, *aCommitted);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult BrowserParent::RecvSetPluginFocused(
-    const bool& aFocused) {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget) {
-    return IPC_OK();
-  }
-  widget->SetPluginFocused((bool&)aFocused);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult BrowserParent::RecvSetCandidateWindowForPlugin(
-    const CandidateWindowPosition& aPosition) {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget) {
-    return IPC_OK();
-  }
-
-  widget->SetCandidateWindowForPlugin(aPosition);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult BrowserParent::RecvEnableIMEForPlugin(
-    const bool& aEnable) {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget) {
-    return IPC_OK();
-  }
-  widget->EnableIMEForPlugin(aEnable);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult BrowserParent::RecvDefaultProcOfPluginEvent(
-    const WidgetPluginEvent& aEvent) {
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget) {
-    return IPC_OK();
-  }
-
-  widget->DefaultProcOfPluginEvent(aEvent);
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult BrowserParent::RecvGetInputContext(
     widget::IMEState* aState) {
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
-    *aState = widget::IMEState(IMEState::DISABLED,
+    *aState = widget::IMEState(IMEEnabled::Disabled,
                                IMEState::OPEN_STATE_NOT_SUPPORTED);
     return IPC_OK();
   }
@@ -3359,34 +3326,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvRespondStartSwipeEvent(
   return IPC_OK();
 }
 
-bool BrowserParent::GetDocShellIsActive() { return mDocShellIsActive; }
-
-void BrowserParent::SetDocShellIsActive(bool isActive) {
-  mDocShellIsActive = isActive;
-  SetRenderLayers(isActive);
-  Unused << SendSetDocShellIsActive(isActive);
-
-  // update active accessible documents on windows
-#if defined(XP_WIN) && defined(ACCESSIBILITY)
-  if (a11y::Compatibility::IsDolphin()) {
-    if (a11y::DocAccessibleParent* tabDoc = GetTopLevelDocAccessible()) {
-      HWND window = tabDoc->GetEmulatedWindowHandle();
-      MOZ_ASSERT(window);
-      if (window) {
-        if (isActive) {
-          a11y::nsWinUtils::ShowNativeWindow(window);
-        } else {
-          a11y::nsWinUtils::HideNativeWindow(window);
-        }
-      }
-    }
-  }
-#endif
-
-  // Keep track of how many active recording/replaying tabs there are.
-  if (Manager()->IsRecording()) {
-    SetIsActiveRecordReplayTab(isActive);
-  }
+bool BrowserParent::GetDocShellIsActive() {
+  return mBrowsingContext && mBrowsingContext->IsActive();
 }
 
 bool BrowserParent::GetHasPresented() { return mHasPresented; }

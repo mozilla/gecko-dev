@@ -19,12 +19,17 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupports.h"
 #include "nsIDocShell.h"
+#include "nsPIDOMWindow.h"
 #include "nsWrapperCache.h"
 
 class nsILoadInfo;
 class nsPIDOMWindowOuter;
 
 namespace mozilla {
+namespace dom {
+class WindowGlobalChild;
+}
+
 namespace extensions {
 
 using dom::Nullable;

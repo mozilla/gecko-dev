@@ -528,10 +528,8 @@ QuotaManagerService::InitTemporaryStorage(nsIQuotaRequest** _retval) {
 }
 
 NS_IMETHODIMP
-QuotaManagerService::InitStorageAndOrigin(nsIPrincipal* aPrincipal,
-                                          const nsACString& aPersistenceType,
-                                          const nsAString& aClientType,
-                                          nsIQuotaRequest** _retval) {
+QuotaManagerService::InitializePersistentOrigin(nsIPrincipal* aPrincipal,
+                                                nsIQuotaRequest** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(nsContentUtils::IsCallerChrome());
 
@@ -541,7 +539,7 @@ QuotaManagerService::InitStorageAndOrigin(nsIPrincipal* aPrincipal,
 
   RefPtr<Request> request = new Request();
 
-  InitStorageAndOriginParams params;
+  InitializePersistentOriginParams params;
 
   nsresult rv =
       CheckedPrincipalToPrincipalInfo(aPrincipal, params.principalInfo());
@@ -549,25 +547,48 @@ QuotaManagerService::InitStorageAndOrigin(nsIPrincipal* aPrincipal,
     return rv;
   }
 
+  RequestInfo info(request, params);
+
+  rv = InitiateRequest(info);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  request.forget(_retval);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+QuotaManagerService::InitializeTemporaryOrigin(
+    const nsACString& aPersistenceType, nsIPrincipal* aPrincipal,
+    nsIQuotaRequest** _retval) {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(nsContentUtils::IsCallerChrome());
+
+  if (NS_WARN_IF(!StaticPrefs::dom_quotaManager_testing())) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  RefPtr<Request> request = new Request();
+
+  InitializeTemporaryOriginParams params;
+
   const auto maybePersistenceType =
       PersistenceTypeFromString(aPersistenceType, fallible);
   if (NS_WARN_IF(maybePersistenceType.isNothing())) {
     return NS_ERROR_INVALID_ARG;
   }
 
+  if (NS_WARN_IF(!IsBestEffortPersistenceType(maybePersistenceType.value()))) {
+    return NS_ERROR_FAILURE;
+  }
+
   params.persistenceType() = maybePersistenceType.value();
 
-  if (aClientType.IsVoid()) {
-    params.clientTypeIsExplicit() = false;
-  } else {
-    Client::Type clientType;
-    bool ok = Client::TypeFromText(aClientType, clientType, fallible);
-    if (NS_WARN_IF(!ok)) {
-      return NS_ERROR_INVALID_ARG;
-    }
-
-    params.clientType() = clientType;
-    params.clientTypeIsExplicit() = true;
+  nsresult rv =
+      CheckedPrincipalToPrincipalInfo(aPrincipal, params.principalInfo());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
   }
 
   RequestInfo info(request, params);

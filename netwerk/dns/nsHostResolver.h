@@ -19,6 +19,7 @@
 #include "GetAddrInfo.h"
 #include "mozilla/net/DNS.h"
 #include "mozilla/net/DashboardTypes.h"
+#include "mozilla/AtomicBitfields.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/TimeStamp.h"
@@ -107,8 +108,8 @@ class nsHostRecord : public mozilla::LinkedListElement<RefPtr<nsHostRecord>>,
     TRR_DISABLED_FLAG = 10,           // the DISABLE_TRR flag was set
     TRR_TIMEOUT = 11,                 // the TRR channel timed out
     TRR_CHANNEL_DNS_FAIL = 12,        // DoH server name failed to resolve
-    TRR_IS_OFFLINE = 13,     // The browser is offline or lacks connectivity
-    TRR_NOT_CONFIRMED = 14,  // TRR confirmation is not done yet
+    TRR_IS_OFFLINE = 13,              // The browser is offline/no interfaces up
+    TRR_NOT_CONFIRMED = 14,           // TRR confirmation is not done yet
     TRR_DID_NOT_MAKE_QUERY = 15,  // TrrLookup exited without doing a TRR query
     TRR_UNKNOWN_CHANNEL_FAILURE = 16,  // unknown channel failure reason
     TRR_HOST_BLOCKED_TEMPORARY = 17,   // host blocklisted
@@ -123,6 +124,7 @@ class nsHostRecord : public mozilla::LinkedListElement<RefPtr<nsHostRecord>>,
     TRR_EXCLUDED = 26,             // ExcludedFromTRR
     TRR_SERVER_RESPONSE_ERR = 27,  // Server responded with non-200 code
     TRR_RCODE_FAIL = 28,           // DNS response contains a non-NOERROR rcode
+    TRR_NO_CONNECTIVITY = 29,      // Not confirmed because of no connectivity
   };
 
   // Records the first reason that caused TRR to be skipped or to fail.
@@ -256,6 +258,8 @@ class AddrHostRecord final : public nsHostRecord {
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const override;
 
+  nsIRequest::TRRMode EffectiveTRRMode() const { return mEffectiveTRRMode; }
+
  private:
   friend class nsHostResolver;
   friend class mozilla::net::TRR;
@@ -279,6 +283,9 @@ class AddrHostRecord final : public nsHostRecord {
   };
   static DnsPriority GetPriority(uint16_t aFlags);
 
+  // true if pending and on the queue (not yet given to getaddrinfo())
+  bool onQueue() { return LoadNative() && isInList(); }
+
   // When the lookups of this record started and their durations
   mozilla::TimeStamp mTrrStart;
   mozilla::TimeStamp mNativeStart;
@@ -289,19 +296,18 @@ class AddrHostRecord final : public nsHostRecord {
   uint8_t mTRRSuccess;             // number of successful TRR responses
   uint8_t mNativeSuccess;          // number of native lookup responses
 
-  uint16_t mNative : 1;  // true if this record is being resolved "natively",
-                         // which means that it is either on the pending queue
-                         // or owned by one of the worker threads. */
-  uint16_t mNativeUsed : 1;
-  uint16_t onQueue : 1;         // true if pending and on the queue (not yet
-                                // given to getaddrinfo())
-  uint16_t usingAnyThread : 1;  // true if off queue and contributing to
-                                // mActiveAnyThreadCount
-  uint16_t mGetTtl : 1;
-
-  // when the results from this resolve is returned, it is not to be
-  // trusted, but instead a new resolve must be made!
-  uint16_t mResolveAgain : 1;
+  // clang-format off
+  MOZ_ATOMIC_BITFIELDS(mAtomicBitfields, 8, (
+    // true if this record is being resolved "natively", which means that
+    // it is either on the pending queue or owned by one of the worker threads.
+    (uint16_t, Native, 1),
+    (uint16_t, NativeUsed, 1),
+    // true if off queue and contributing to mActiveAnyThreadCount
+    (uint16_t, UsingAnyThread, 1),
+    (uint16_t, GetTtl, 1),
+    (uint16_t, ResolveAgain, 1)
+  ))
+  // clang-format on
 
   // The number of times ReportUnusable() has been called in the record's
   // lifetime.

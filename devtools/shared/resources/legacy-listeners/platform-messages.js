@@ -35,10 +35,6 @@ module.exports = async function({ targetList, targetFront, onAvailable }) {
   const { messages } = await webConsoleFront.getCachedMessages(["LogMessage"]);
 
   for (const message of messages) {
-    // Handling cached messages for servers older than Firefox 78.
-    if (message._type) {
-      delete message._type;
-    }
     message.resourceType = ResourceWatcher.TYPES.PLATFORM_MESSAGE;
   }
   onAvailable(messages);

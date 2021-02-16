@@ -18,6 +18,8 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "nsContentUtils.h"
+#include "nsIChannel.h"
+#include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIPrompt.h"
 #include "nsIProtocolProxyService.h"
@@ -720,11 +722,7 @@ static void PreliminaryHandshakeDone(PRFileDesc* fd) {
       infoObject->SetKEAKeyBits(channelInfo.keaKeyBits);
       infoObject->SetMACAlgorithmUsed(cipherInfo.macAlgorithm);
       infoObject->mIsDelegatedCredential = channelInfo.peerDelegCred;
-
-      if (infoObject->mIsDelegatedCredential) {
-        Telemetry::ScalarAdd(
-            Telemetry::ScalarID::SECURITY_TLS_DELEGATED_CREDENTIALS_TXN, 1);
-      }
+      infoObject->mIsAcceptedEch = channelInfo.echAccepted;
     }
   }
 
@@ -839,48 +837,27 @@ SECStatus CanFalseStartCallback(PRFileDesc* fd, void* client_data,
 
 static void AccumulateNonECCKeySize(Telemetry::HistogramID probe,
                                     uint32_t bits) {
-  unsigned int value =
-      bits < 512
-          ? 1
-          : bits == 512
-                ? 2
-                : bits < 768
-                      ? 3
-                      : bits == 768
-                            ? 4
-                            : bits < 1024
-                                  ? 5
-                                  : bits == 1024
-                                        ? 6
-                                        : bits < 1280
-                                              ? 7
-                                              : bits == 1280
-                                                    ? 8
-                                                    : bits < 1536
-                                                          ? 9
-                                                          : bits == 1536
-                                                                ? 10
-                                                                : bits < 2048
-                                                                      ? 11
-                                                                      : bits == 2048
-                                                                            ? 12
-                                                                            : bits < 3072
-                                                                                  ? 13
-                                                                                  : bits == 3072
-                                                                                        ? 14
-                                                                                        : bits < 4096
-                                                                                              ? 15
-                                                                                              : bits == 4096
-                                                                                                    ? 16
-                                                                                                    : bits < 8192
-                                                                                                          ? 17
-                                                                                                          : bits == 8192
-                                                                                                                ? 18
-                                                                                                                : bits < 16384
-                                                                                                                      ? 19
-                                                                                                                      : bits == 16384
-                                                                                                                            ? 20
-                                                                                                                            : 0;
+  unsigned int value = bits < 512      ? 1
+                       : bits == 512   ? 2
+                       : bits < 768    ? 3
+                       : bits == 768   ? 4
+                       : bits < 1024   ? 5
+                       : bits == 1024  ? 6
+                       : bits < 1280   ? 7
+                       : bits == 1280  ? 8
+                       : bits < 1536   ? 9
+                       : bits == 1536  ? 10
+                       : bits < 2048   ? 11
+                       : bits == 2048  ? 12
+                       : bits < 3072   ? 13
+                       : bits == 3072  ? 14
+                       : bits < 4096   ? 15
+                       : bits == 4096  ? 16
+                       : bits < 8192   ? 17
+                       : bits == 8192  ? 18
+                       : bits < 16384  ? 19
+                       : bits == 16384 ? 20
+                                       : 0;
   Telemetry::Accumulate(probe, value);
 }
 
@@ -891,12 +868,11 @@ static void AccumulateNonECCKeySize(Telemetry::HistogramID probe,
 // named curves for a given size (e.g. secp256k1 vs. secp256r1). We punt on
 // that for now. See also NSS bug 323674.
 static void AccumulateECCCurve(Telemetry::HistogramID probe, uint32_t bits) {
-  unsigned int value =
-      bits == 255 ? 29                                            // Curve25519
-                  : bits == 256 ? 23                              // P-256
-                                : bits == 384 ? 24                // P-384
-                                              : bits == 521 ? 25  // P-521
-                                                            : 0;  // Unknown
+  unsigned int value = bits == 255   ? 29  // Curve25519
+                       : bits == 256 ? 23  // P-256
+                       : bits == 384 ? 24  // P-384
+                       : bits == 521 ? 25  // P-521
+                                     : 0;  // Unknown
   Telemetry::Accumulate(probe, value);
 }
 
@@ -1205,10 +1181,8 @@ nsresult IsCertificateDistrustImminent(
   // to be removed in Firefox 63, when the validity period check will also be
   // removed from the code in NSSCertDBTrustDomain.
   if (CertDNIsInList(nssRootCert.get(), RootSymantecDNs)) {
-    static const PRTime NULL_TIME = 0;
-
-    rv = CheckForSymantecDistrust(intCerts, eeCert, NULL_TIME,
-                                  RootAppleAndGoogleSPKIs, isDistrusted);
+    rv = CheckForSymantecDistrust(intCerts, RootAppleAndGoogleSPKIs,
+                                  isDistrusted);
     if (NS_FAILED(rv)) {
       return rv;
     }

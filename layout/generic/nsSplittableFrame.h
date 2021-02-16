@@ -93,36 +93,39 @@ class nsSplittableFrame : public nsIFrame {
    *
    * This guarantees that the internal cache works, by refreshing it. Calling it
    * multiple times in the same reflow is wasteful, but not an error.
-   *
-   * @param aWM a writing-mode to determine the block-axis
    */
-  nscoord CalcAndCacheConsumedBSize(mozilla::WritingMode aWM);
+  nscoord CalcAndCacheConsumedBSize();
 
   /**
    * Retrieve the effective computed block size of this frame, which is the
    * computed block size, minus the block size consumed by any previous
    * continuations.
    */
-  nscoord GetEffectiveComputedBSize(
-      const ReflowInput& aReflowInput, nscoord aConsumed) const;
+  nscoord GetEffectiveComputedBSize(const ReflowInput& aReflowInput,
+                                    nscoord aConsumed) const;
 
   /**
    * @see nsIFrame::GetLogicalSkipSides()
    */
-  LogicalSides GetLogicalSkipSides(
-      const Maybe<SkipSidesDuringReflow>& = Nothing()) const override;
+  LogicalSides GetLogicalSkipSides() const override {
+    return GetBlockLevelLogicalSkipSides(true);
+  }
+
+  LogicalSides GetBlockLevelLogicalSkipSides(bool aAfterReflow) const;
 
   /**
-   * A faster version of GetLogicalSkipSides() that is intended to be used
-   * inside Reflow before it's known if |this| frame will be COMPLETE or not.
+   * A version of GetLogicalSkipSides() that is intended to be used inside
+   * Reflow before it's known if |this| frame will be COMPLETE or not.
    * It returns a result that assumes this fragment is the last and thus
    * should apply the block-end border/padding etc (except for "true" overflow
    * containers which always skip block sides).  You're then expected to
    * recalculate the block-end side (as needed) when you know |this| frame's
    * reflow status is INCOMPLETE.
-   * This method is intended for frames that breaks in the block axis.
+   * This method is intended for frames that break in the block axis.
    */
-  LogicalSides PreReflowBlockLevelLogicalSkipSides() const;
+  LogicalSides PreReflowBlockLevelLogicalSkipSides() const {
+    return GetBlockLevelLogicalSkipSides(false);
+  };
 
   nsIFrame* mPrevContinuation;
   nsIFrame* mNextContinuation;

@@ -18,7 +18,6 @@
 
 #include "wasm/AsmJS.h"
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Compression.h"
 #include "mozilla/MathAlgorithms.h"
@@ -47,6 +46,7 @@
 #include "js/SourceText.h"
 #include "js/StableStringChars.h"
 #include "js/Wrapper.h"
+#include "util/DifferentialTesting.h"
 #include "util/StringBuffer.h"
 #include "util/Text.h"
 #include "vm/ErrorReporting.h"
@@ -79,7 +79,6 @@ using JS::GenericNaN;
 using JS::SourceOwnership;
 using JS::SourceText;
 using mozilla::Abs;
-using mozilla::ArrayEqual;
 using mozilla::AsVariant;
 using mozilla::CeilingLog2;
 using mozilla::HashGeneric;
@@ -1269,10 +1268,10 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
  protected:
   class HashableSig {
     uint32_t sigIndex_;
-    const TypeDefVector& types_;
+    const TypeContext& types_;
 
    public:
-    HashableSig(uint32_t sigIndex, const TypeDefVector& types)
+    HashableSig(uint32_t sigIndex, const TypeContext& types)
         : sigIndex_(sigIndex), types_(types) {}
     uint32_t sigIndex() const { return sigIndex_; }
     const FuncType& funcType() const { return types_[sigIndex_].funcType(); }
@@ -1290,7 +1289,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
 
    public:
     NamedSig(const ParserName* name, uint32_t sigIndex,
-             const TypeDefVector& types)
+             const TypeContext& types)
         : HashableSig(sigIndex, types), name_(name) {}
     const ParserName* name() const { return name_; }
 
@@ -1367,7 +1366,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
   }
 
  protected:
-  MOZ_MUST_USE bool addStandardLibraryMathInfo() {
+  [[nodiscard]] bool addStandardLibraryMathInfo() {
     static constexpr struct {
       const char* name;
       AsmJSMathBuiltinFunction func;
@@ -1386,13 +1385,13 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
 
     auto AddMathFunction = [this](const char* name,
                                   AsmJSMathBuiltinFunction func) {
-      auto mbAtom = parserAtoms_.internAscii(cx_, name, strlen(name));
-      if (mbAtom.isErr()) {
+      const ParserAtom* atom =
+          parserAtoms_.internAscii(cx_, name, strlen(name));
+      if (!atom) {
         return false;
       }
       MathBuiltin builtin(func);
-      return this->standardLibraryMathNames_.putNew(mbAtom.unwrap()->asName(),
-                                                    builtin);
+      return this->standardLibraryMathNames_.putNew(atom->asName(), builtin);
     };
 
     for (const auto& info : functions) {
@@ -1416,13 +1415,13 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
     };
 
     auto AddMathConstant = [this](const char* name, double cst) {
-      auto mbAtom = parserAtoms_.internAscii(cx_, name, strlen(name));
-      if (mbAtom.isErr()) {
+      const ParserAtom* atom =
+          parserAtoms_.internAscii(cx_, name, strlen(name));
+      if (!atom) {
         return false;
       }
       MathBuiltin builtin(cst);
-      return this->standardLibraryMathNames_.putNew(mbAtom.unwrap()->asName(),
-                                                    builtin);
+      return this->standardLibraryMathNames_.putNew(atom->asName(), builtin);
     };
 
     for (const auto& info : constants) {
@@ -1448,7 +1447,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
     MOZ_ASSERT(!moduleFunctionName_);
     moduleFunctionName_ = name;
   }
-  MOZ_MUST_USE bool initGlobalArgumentName(const ParserName* n) {
+  [[nodiscard]] bool initGlobalArgumentName(const ParserName* n) {
     globalArgumentName_ = n;
     if (n) {
       asmJSMetadata_->globalArgumentName = ParserAtomToNewUTF8CharsZ(cx_, n);
@@ -1458,7 +1457,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
     }
     return true;
   }
-  MOZ_MUST_USE bool initImportArgumentName(const ParserName* n) {
+  [[nodiscard]] bool initImportArgumentName(const ParserName* n) {
     importArgumentName_ = n;
     if (n) {
       asmJSMetadata_->importArgumentName = ParserAtomToNewUTF8CharsZ(cx_, n);
@@ -1468,7 +1467,7 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
     }
     return true;
   }
-  MOZ_MUST_USE bool initBufferArgumentName(const ParserName* n) {
+  [[nodiscard]] bool initBufferArgumentName(const ParserName* n) {
     bufferArgumentName_ = n;
     if (n) {
       asmJSMetadata_->bufferArgumentName = ParserAtomToNewUTF8CharsZ(cx_, n);
@@ -1877,13 +1876,14 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
     }
 
     *sigIndex = moduleEnv_.types.length();
-    return moduleEnv_.types.append(std::move(sig));
+    return moduleEnv_.types.append(std::move(sig)) &&
+           moduleEnv_.typeIds.append(TypeIdDesc());
   }
   bool declareSig(FuncType&& sig, uint32_t* sigIndex) {
     SigSet::AddPtr p = sigSet_.lookupForAdd(sig);
     if (p) {
       *sigIndex = p->sigIndex();
-      MOZ_ASSERT(moduleEnv_.types[*sigIndex].funcType() == sig);
+      MOZ_ASSERT(moduleEnv_.types.funcType(*sigIndex) == sig);
       return true;
     }
 
@@ -2046,23 +2046,26 @@ class MOZ_STACK_CLASS ModuleValidator : public ModuleValidatorShared {
   }
 
   SharedModule finish() {
-    MOZ_ASSERT(moduleEnv_.funcTypes.empty());
-    if (!moduleEnv_.funcTypes.resize(funcImportMap_.count() +
-                                     funcDefs_.length())) {
+    MOZ_ASSERT(moduleEnv_.funcs.empty());
+    if (!moduleEnv_.funcs.resize(funcImportMap_.count() + funcDefs_.length())) {
       return nullptr;
     }
     for (FuncImportMap::Range r = funcImportMap_.all(); !r.empty();
          r.popFront()) {
       uint32_t funcIndex = r.front().value();
-      MOZ_ASSERT(!moduleEnv_.funcTypes[funcIndex]);
-      moduleEnv_.funcTypes[funcIndex] =
-          &moduleEnv_.types[r.front().key().sigIndex()].funcType();
+      uint32_t funcTypeIndex = r.front().key().sigIndex();
+      MOZ_ASSERT(!moduleEnv_.funcs[funcIndex].type);
+      moduleEnv_.funcs[funcIndex] =
+          FuncDesc(&moduleEnv_.types.funcType(funcTypeIndex),
+                   &moduleEnv_.typeIds[funcTypeIndex], funcTypeIndex);
     }
     for (const Func& func : funcDefs_) {
       uint32_t funcIndex = funcImportMap_.count() + func.funcDefIndex();
-      MOZ_ASSERT(!moduleEnv_.funcTypes[funcIndex]);
-      moduleEnv_.funcTypes[funcIndex] =
-          &moduleEnv_.types[func.sigIndex()].funcType();
+      uint32_t funcTypeIndex = func.sigIndex();
+      MOZ_ASSERT(!moduleEnv_.funcs[funcIndex].type);
+      moduleEnv_.funcs[funcIndex] =
+          FuncDesc(&moduleEnv_.types.funcType(funcTypeIndex),
+                   &moduleEnv_.typeIds[funcTypeIndex], funcTypeIndex);
     }
 
     if (!moduleEnv_.funcImportGlobalDataOffsets.resize(
@@ -2561,10 +2564,10 @@ class MOZ_STACK_CLASS FunctionValidatorShared {
 
   Encoder& encoder() { return encoder_; }
 
-  MOZ_MUST_USE bool writeInt32Lit(int32_t i32) {
+  [[nodiscard]] bool writeInt32Lit(int32_t i32) {
     return encoder().writeOp(Op::I32Const) && encoder().writeVarS32(i32);
   }
-  MOZ_MUST_USE bool writeConstExpr(const NumLit& lit) {
+  [[nodiscard]] bool writeConstExpr(const NumLit& lit) {
     switch (lit.which()) {
       case NumLit::Fixnum:
       case NumLit::NegativeInt:
@@ -2597,26 +2600,26 @@ class MOZ_STACK_CLASS FunctionValidator : public FunctionValidatorShared {
     return static_cast<ModuleValidator<Unit>&>(FunctionValidatorShared::m());
   }
 
-  MOZ_MUST_USE bool writeCall(ParseNode* pn, Op op) {
+  [[nodiscard]] bool writeCall(ParseNode* pn, Op op) {
     if (!encoder().writeOp(op)) {
       return false;
     }
 
     return appendCallSiteLineNumber(pn);
   }
-  MOZ_MUST_USE bool writeCall(ParseNode* pn, MozOp op) {
+  [[nodiscard]] bool writeCall(ParseNode* pn, MozOp op) {
     if (!encoder().writeOp(op)) {
       return false;
     }
 
     return appendCallSiteLineNumber(pn);
   }
-  MOZ_MUST_USE bool prepareCall(ParseNode* pn) {
+  [[nodiscard]] bool prepareCall(ParseNode* pn) {
     return appendCallSiteLineNumber(pn);
   }
 
  private:
-  MOZ_MUST_USE bool appendCallSiteLineNumber(ParseNode* node) {
+  [[nodiscard]] bool appendCallSiteLineNumber(ParseNode* node) {
     const TokenStreamAnyChars& anyChars = m().tokenStream().anyCharsAccess();
     auto lineToken = anyChars.lineToken(node->pn_pos.begin);
     uint32_t lineNumber = anyChars.lineNumber(lineToken);
@@ -3948,8 +3951,7 @@ static bool CheckFunctionSignature(ModuleValidator<Unit>& m, ParseNode* usepn,
     return m.addFuncDef(name, usepn->pn_pos.begin, std::move(sig), func);
   }
 
-  const FuncTypeWithId& existingSig =
-      m.env().types[existing->sigIndex()].funcType();
+  const FuncType& existingSig = m.env().types.funcType(existing->sigIndex());
 
   if (!CheckSignatureAgainstExisting(m, usepn, sig, existingSig)) {
     return false;
@@ -4023,7 +4025,7 @@ static bool CheckFuncPtrTableAgainstExisting(ModuleValidator<Unit>& m,
     }
 
     if (!CheckSignatureAgainstExisting(
-            m, usepn, sig, m.env().types[table.sigIndex()].funcType())) {
+            m, usepn, sig, m.env().types.funcType(table.sigIndex()))) {
       return false;
     }
 
@@ -6193,7 +6195,7 @@ static bool CheckFuncPtrTable(ModuleValidator<Unit>& m, ParseNode* decl) {
           elem, "function-pointer table's elements must be names of functions");
     }
 
-    const FuncType& funcSig = m.env().types[func->sigIndex()].funcType();
+    const FuncType& funcSig = m.env().types.funcType(func->sigIndex());
     if (sig) {
       if (*sig != funcSig) {
         return m.fail(elem, "all functions in table must have same signature");
@@ -6983,13 +6985,9 @@ static bool NoExceptionPending(JSContext* cx) {
 
 static bool SuccessfulValidation(frontend::ParserBase& parser,
                                  unsigned compilationTime) {
-  constexpr unsigned errNum =
-#ifdef JS_MORE_DETERMINISTIC
-      JSMSG_USE_ASM_TYPE_OK_NO_TIME
-#else
-      JSMSG_USE_ASM_TYPE_OK
-#endif
-      ;
+  unsigned errNum = js::SupportDifferentialTesting()
+                        ? JSMSG_USE_ASM_TYPE_OK_NO_TIME
+                        : JSMSG_USE_ASM_TYPE_OK;
 
   char timeChars[20];
   SprintfLiteral(timeChars, "%u", compilationTime);

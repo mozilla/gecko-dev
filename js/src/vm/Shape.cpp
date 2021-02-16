@@ -898,53 +898,6 @@ Shape* NativeObject::addEnumerableDataProperty(JSContext* cx,
   return shape;
 }
 
-Shape* js::ReshapeForAllocKind(JSContext* cx, Shape* shape, TaggedProto proto,
-                               gc::AllocKind allocKind) {
-  // Compute the number of fixed slots with the new allocation kind.
-  size_t nfixed = gc::GetGCKindSlots(allocKind, shape->getObjectClass());
-
-  // Get all the ids in the shape, in order.
-  js::RootedIdVector ids(cx);
-  {
-    for (unsigned i = 0; i < shape->slotSpan(); i++) {
-      if (!ids.append(JSID_VOID)) {
-        return nullptr;
-      }
-    }
-    Shape* nshape = shape;
-    while (!nshape->isEmptyShape()) {
-      ids[nshape->slot()].set(nshape->propid());
-      nshape = nshape->previous();
-    }
-  }
-
-  // Construct the new shape, without updating type information.
-  RootedId id(cx);
-  RootedShape newShape(
-      cx, EmptyShape::getInitialShape(cx, shape->getObjectClass(), proto,
-                                      nfixed, shape->getObjectFlags()));
-  if (!newShape) {
-    return nullptr;
-  }
-
-  for (unsigned i = 0; i < ids.length(); i++) {
-    id = ids[i];
-
-    UnownedBaseShape* nbase = GetBaseShapeForNewShape(cx, newShape, id);
-    if (!nbase) {
-      return nullptr;
-    }
-
-    Rooted<StackShape> child(cx, StackShape(nbase, id, i, JSPROP_ENUMERATE));
-    newShape = cx->zone()->propertyTree().getChild(cx, newShape, child);
-    if (!newShape) {
-      return nullptr;
-    }
-  }
-
-  return newShape;
-}
-
 /*
  * Assert some invariants that should hold when changing properties. It's the
  * responsibility of the callers to ensure these hold.
@@ -1247,8 +1200,6 @@ Shape* NativeObject::changeProperty(JSContext* cx, HandleNativeObject obj,
   MOZ_ASSERT_IF(shape->isDataProperty() != needSlot, needSlot);
 #endif
 
-  MarkTypePropertyNonData(cx, obj, shape->propid());
-
   AssertCanChangeAttrs(shape, attrs);
 
   if (shape->attrs == attrs && shape->getter() == getter &&
@@ -1388,52 +1339,6 @@ bool NativeObject::removeProperty(JSContext* cx, HandleNativeObject obj,
   }
 
   obj->checkShapeConsistency();
-  return true;
-}
-
-/* static */
-void NativeObject::clear(JSContext* cx, HandleNativeObject obj) {
-  Shape* shape = obj->lastProperty();
-  MOZ_ASSERT(obj->inDictionaryMode() == shape->inDictionary());
-
-  while (shape->parent) {
-    shape = shape->parent;
-    MOZ_ASSERT(obj->inDictionaryMode() == shape->inDictionary());
-  }
-  MOZ_ASSERT(shape->isEmptyShape());
-
-  if (obj->inDictionaryMode()) {
-    shape->setDictionaryObject(obj);
-  }
-
-  MOZ_ALWAYS_TRUE(obj->setLastProperty(cx, shape));
-
-  obj->checkShapeConsistency();
-}
-
-/* static */
-bool NativeObject::rollbackProperties(JSContext* cx, HandleNativeObject obj,
-                                      uint32_t slotSpan) {
-  /*
-   * Remove properties from this object until it has a matching slot span.
-   * The object cannot have escaped in a way which would prevent safe
-   * removal of the last properties.
-   */
-  MOZ_ASSERT(!obj->inDictionaryMode() && slotSpan <= obj->slotSpan());
-  while (true) {
-    if (obj->lastProperty()->isEmptyShape()) {
-      MOZ_ASSERT(slotSpan == 0);
-      break;
-    }
-    uint32_t slot = obj->lastProperty()->slot();
-    if (slot < slotSpan) {
-      break;
-    }
-    if (!NativeObject::removeProperty(cx, obj, obj->lastProperty()->propid())) {
-      return false;
-    }
-  }
-
   return true;
 }
 

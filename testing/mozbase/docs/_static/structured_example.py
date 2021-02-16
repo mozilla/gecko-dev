@@ -1,5 +1,10 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from __future__ import absolute_import
 
+import six
 import argparse
 import sys
 import traceback
@@ -51,7 +56,7 @@ class TestRunner(object):
         self.logger = get_default_logger(component="TestRunner")
 
     def gather_tests(self):
-        for item in globals().itervalues():
+        for item in six.itervalues(globals()):
             if isinstance(item, types.FunctionType) and item.__name__.startswith(
                 "test_"
             ):
@@ -75,7 +80,7 @@ class TestRunner(object):
             func()
         except TestAssertion as e:
             status = "FAIL"
-            message = e.message
+            message = str(e)
         except Exception:
             status = "ERROR"
             message = traceback.format_exc()

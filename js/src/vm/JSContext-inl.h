@@ -191,10 +191,6 @@ class ContextChecks {
     check(desc.value(), argIndex);
   }
 
-  void check(TypeSet::Type type, int argIndex) {
-    check(type.maybeCompartment(), argIndex);
-  }
-
   void check(JS::Handle<mozilla::Maybe<JS::Value>> maybe, int argIndex) {
     if (maybe.get().isSome()) {
       check(maybe.get().ref(), argIndex);
@@ -316,10 +312,6 @@ MOZ_ALWAYS_INLINE bool CheckForInterrupt(JSContext* cx) {
 }
 
 } /* namespace js */
-
-inline js::LifoAlloc& JSContext::typeLifoAlloc() {
-  return zone()->types.typeLifoAlloc();
-}
 
 inline js::Nursery& JSContext::nursery() { return runtime()->gc.nursery(); }
 

@@ -695,8 +695,8 @@ class BaseShape : public gc::TenuredCellWithNonGCPointer<const JSClass> {
     HAS_INTERESTING_SYMBOL = 0x40,
     HAD_ELEMENTS_ACCESS = 0x80,
     FROZEN_ELEMENTS = 0x100,  // See ObjectElements::FROZEN comment.
-    ITERATED_SINGLETON = 0x200,
-    NEW_GROUP_UNKNOWN = 0x400,
+    // 0x200 is unused.
+    // 0x400 is unused.
     UNCACHEABLE_PROTO = 0x800,
     IMMUTABLE_PROTOTYPE = 0x1000,
 
@@ -979,13 +979,9 @@ class Shape : public gc::CellWithTenuredGCPointer<gc::TenuredCell, BaseShape> {
     LINEAR_SEARCHES_MAX = 0x5,
     LINEAR_SEARCHES_MASK = 0x7,
 
-    // Slotful property was stored to more than once. This is used as a
-    // hint for type inference.
-    OVERWRITTEN = 0x08,
-
     // Flags used to speed up isBigEnoughForAShapeTable().
-    HAS_CACHED_BIG_ENOUGH_FOR_SHAPE_TABLE = 0x10,
-    CACHED_BIG_ENOUGH_FOR_SHAPE_TABLE = 0x20,
+    HAS_CACHED_BIG_ENOUGH_FOR_SHAPE_TABLE = 0x08,
+    CACHED_BIG_ENOUGH_FOR_SHAPE_TABLE = 0x10,
   };
 
   uint32_t immutableFlags; /* immutable flags, see above */
@@ -1249,9 +1245,6 @@ class Shape : public gc::CellWithTenuredGCPointer<gc::TenuredCell, BaseShape> {
   Value setterOrUndefined() const {
     return hasSetterValue() ? setterValue() : UndefinedValue();
   }
-
-  void setOverwritten() { mutableFlags |= OVERWRITTEN; }
-  bool hadOverwrite() const { return mutableFlags & OVERWRITTEN; }
 
   bool matches(const Shape* other) const {
     return propid_.get() == other->propid_.get() &&
@@ -1815,9 +1808,6 @@ MOZ_ALWAYS_INLINE bool ShapeIC::search(jsid id, Shape** foundShape) {
 
   return false;
 }
-
-Shape* ReshapeForAllocKind(JSContext* cx, Shape* shape, TaggedProto proto,
-                           gc::AllocKind allocKind);
 
 }  // namespace js
 

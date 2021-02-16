@@ -85,8 +85,12 @@ pub mod platform {
     pub const IS_SUPPORTED: bool = true;
     pub const USES_HEAP_REG: bool = true;
 
-    pub(crate) fn make_isa_builder(_env: &StaticEnvironment) -> DashResult<isa::Builder> {
-        let ib = isa::lookup_by_name("aarch64-unknown-unknown").map_err(BasicError::from)?;
+    pub(crate) fn make_isa_builder(env: &StaticEnvironment) -> DashResult<isa::Builder> {
+        let mut ib = isa::lookup_by_name("aarch64-unknown-unknown").map_err(BasicError::from)?;
+        if env.v128_enabled {
+            ib.enable("enable_simd").map_err(BasicError::from)?;
+        }
+
         Ok(ib)
     }
 }
@@ -137,8 +141,8 @@ impl<'env> EnvVariableFlags<'env> {
             jump_tables: None,
         };
 
-        for entry in input.split(",") {
-            if let Some(equals_index) = entry.find("=") {
+        for entry in input.split(',') {
+            if let Some(equals_index) = entry.find('=') {
                 let (key, value) = entry.split_at(equals_index);
 
                 // value starts with the =, remove it.

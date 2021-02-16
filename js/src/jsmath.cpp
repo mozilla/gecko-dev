@@ -799,7 +799,8 @@ bool js::math_hypot_handle(JSContext* cx, HandleValueArray args,
   }
 
   double result = isInfinite ? PositiveInfinity<double>()
-                             : isNaN ? GenericNaN() : scale * sqrt(sumsq);
+                  : isNaN    ? GenericNaN()
+                             : scale * sqrt(sumsq);
   res.setDouble(result);
   return true;
 }
@@ -1041,7 +1042,7 @@ static JSObject* CreateMathObject(JSContext* cx, JSProtoKey key) {
   if (!proto) {
     return nullptr;
   }
-  return NewSingletonObjectWithGivenProto(cx, &MathClass, proto);
+  return NewTenuredObjectWithGivenProto(cx, &MathClass, proto);
 }
 
 static const ClassSpec MathClassSpec = {CreateMathObject,

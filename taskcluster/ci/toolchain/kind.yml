@@ -27,7 +27,6 @@ jobs-from:
     - cbindgen.yml
     - cctools-port.yml
     - clang-tidy.yml
-    - clang-tidy-external.yml
     - clang.yml
     - dump-syms.yml
     - fix-stacks.yml
@@ -35,6 +34,7 @@ jobs-from:
     - geckodriver.yml
     - gn.yml
     - grcov.yml
+    - llvm-symbolizer.yml
     - mingw.yml
     - minidump_stackwalk.yml
     - misc.yml

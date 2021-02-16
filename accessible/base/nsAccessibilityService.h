@@ -13,9 +13,11 @@
 #include "mozilla/a11y/SelectionManager.h"
 #include "mozilla/Preferences.h"
 
+#include "nsIContent.h"
 #include "nsIObserver.h"
 #include "nsIAccessibleEvent.h"
 #include "nsIEventListenerService.h"
+#include "nsXULAppAPI.h"
 #include "xpcAccessibilityService.h"
 
 class nsImageFrame;
@@ -498,6 +500,8 @@ static const char kEventTypeNames[][40] = {
     "text value change",                // EVENT_TEXT_VALUE_CHANGE
     "scrolling",                        // EVENT_SCROLLING
     "announcement",                     // EVENT_ANNOUNCEMENT
+    "live region added",                // EVENT_LIVE_REGION_ADDED
+    "live region removed",              // EVENT_LIVE_REGION_REMOVED
 };
 
 #endif

@@ -12,12 +12,6 @@ const {
 const { walkerSpec } = require("devtools/shared/specs/walker");
 const { safeAsyncMethod } = require("devtools/shared/async-utils");
 
-loader.lazyRequireGetter(
-  this,
-  "nodeConstants",
-  "devtools/shared/dom-node-constants"
-);
-
 /**
  * Client side of the DOM walker.
  */
@@ -65,8 +59,7 @@ class WalkerFront extends FrontClassWithSpec(walkerSpec) {
     // calling watchRootNode, so we keep this assignment as a fallback.
     this.rootNode = types.getType("domnode").read(json.root, this);
 
-    // FF42+ the actor starts exposing traits
-    this.traits = json.traits || {};
+    this.traits = json.traits;
   }
 
   /**
@@ -151,17 +144,6 @@ class WalkerFront extends FrontClassWithSpec(walkerSpec) {
   async querySelector(queryNode, selector) {
     const response = await super.querySelector(queryNode, selector);
     return response.node;
-  }
-
-  async gripToNodeFront(grip) {
-    const response = await this.getNodeActorFromObjectActor(grip.actor);
-    const nodeFront = response ? response.node : null;
-    if (!nodeFront) {
-      throw new Error(
-        "The ValueGrip passed could not be translated to a NodeFront"
-      );
-    }
-    return nodeFront;
   }
 
   async getNodeActorFromWindowID(windowID) {
@@ -329,35 +311,6 @@ class WalkerFront extends FrontClassWithSpec(walkerSpec) {
         if ("numChildren" in change) {
           targetFront._form.numChildren = change.numChildren;
         }
-      } else if (change.type === "frameLoad") {
-        // Backward compatibility for FF80 or older.
-        // The frameLoad mutation was removed in FF81 in favor of the root-node
-        // resource.
-
-        // Nothing we need to do here, except verify that we don't have any
-        // document children, because we should have gotten a documentUnload
-        // first.
-        for (const child of targetFront.treeChildren()) {
-          if (child.nodeType === nodeConstants.DOCUMENT_NODE) {
-            console.warn(
-              "Got an unexpected frameLoad in the inspector, " +
-                "please file a bug on bugzilla.mozilla.org!"
-            );
-            console.trace();
-          }
-        }
-      } else if (change.type === "documentUnload") {
-        // Backward compatibility for FF80 or older.
-        // The documentUnload mutation was removed in FF81 in favor of the
-        // root-node resource.
-
-        // We try to give fronts instead of actorIDs, but these fronts need
-        // to be destroyed now.
-        emittedMutation.target = targetFront.actorID;
-        emittedMutation.targetParent = targetFront.parentNode();
-
-        // Release the document node and all of its children, even retained.
-        this._releaseFront(targetFront, true);
       } else if (change.type === "shadowRootAttached") {
         targetFront._form.isShadowHost = true;
       } else if (change.type === "customElementDefined") {
@@ -552,29 +505,19 @@ class WalkerFront extends FrontClassWithSpec(walkerSpec) {
   }
 
   _onRootNodeAvailable(rootNode) {
-    if (this._isTopLevelRootNode(rootNode)) {
+    if (rootNode.isTopLevelDocument) {
       this.rootNode = rootNode;
       this._rootNodePromiseResolve(this.rootNode);
     }
   }
 
   _onRootNodeDestroyed(rootNode) {
-    if (this._isTopLevelRootNode(rootNode)) {
+    if (rootNode.isTopLevelDocument) {
       this._rootNodePromise = new Promise(
         r => (this._rootNodePromiseResolve = r)
       );
       this.rootNode = null;
     }
-  }
-
-  _isTopLevelRootNode(rootNode) {
-    if (!rootNode.traits.supportsIsTopLevelDocument) {
-      // When `supportsIsTopLevelDocument` is false, a root-node resource is
-      // necessarily top level, so we can fallback to true.
-      return true;
-    }
-
-    return rootNode.isTopLevelDocument;
   }
 
   /**
@@ -586,16 +529,8 @@ class WalkerFront extends FrontClassWithSpec(walkerSpec) {
     if (this._isPicking) {
       return Promise.resolve();
     }
+
     this._isPicking = true;
-
-    // Firefox 80 - backwards compatibility for servers without walker.pick()
-    if (!this.traits.supportsNodePicker) {
-      // parent is InspectorFront
-      return doFocus
-        ? this.parentFront.highlighter.pickAndFocus()
-        : this.parentFront.highlighter.pick();
-    }
-
     return super.pick(doFocus);
   }
 
@@ -606,14 +541,8 @@ class WalkerFront extends FrontClassWithSpec(walkerSpec) {
     if (!this._isPicking) {
       return Promise.resolve();
     }
+
     this._isPicking = false;
-
-    // Firefox 80 - backwards compatibility for servers without walker.cancelPick()
-    if (!this.traits.supportsNodePicker) {
-      // parent is InspectorFront
-      return this.parentFront.highlighter.cancelPick();
-    }
-
     return super.cancelPick();
   }
 }

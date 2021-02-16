@@ -714,8 +714,7 @@ void Accessible::TakeFocus() const {
     }
   }
 
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
-  if (fm) {
+  if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
     dom::AutoHandlingUserInputStatePusher inputStatePusher(true);
     // XXXbz: Can we actually have a non-element content here?
     RefPtr<dom::Element> element = dom::Element::FromNodeOrNull(focusContent);
@@ -1289,12 +1288,11 @@ void Accessible::ApplyARIAState(uint64_t* aState) const {
       aria::MapToState(roleMapEntry->attributeMap3, element, aState))
     aria::MapToState(roleMapEntry->attributeMap4, element, aState);
 
-  // ARIA gridcell inherits editable/readonly states from the grid until it's
-  // overridden.
+  // ARIA gridcell inherits readonly state from the grid until it's overridden.
   if ((roleMapEntry->Is(nsGkAtoms::gridcell) ||
        roleMapEntry->Is(nsGkAtoms::columnheader) ||
        roleMapEntry->Is(nsGkAtoms::rowheader)) &&
-      !(*aState & (states::READONLY | states::EDITABLE))) {
+      !nsAccUtils::HasDefinedARIAToken(mContent, nsGkAtoms::aria_readonly)) {
     const TableCellAccessible* cell = AsTableCell();
     if (cell) {
       TableAccessible* table = cell->Table();
@@ -1302,7 +1300,7 @@ void Accessible::ApplyARIAState(uint64_t* aState) const {
         Accessible* grid = table->AsAccessible();
         uint64_t gridState = 0;
         grid->ApplyARIAState(&gridState);
-        *aState |= (gridState & (states::READONLY | states::EDITABLE));
+        *aState |= gridState & states::READONLY;
       }
     }
   }
@@ -2134,6 +2132,10 @@ nsIFrame* Accessible::GetFrame() const {
 }
 
 nsINode* Accessible::GetNode() const { return mContent; }
+
+dom::Element* Accessible::Elm() const {
+  return dom::Element::FromNodeOrNull(mContent);
+}
 
 void Accessible::Language(nsAString& aLanguage) {
   aLanguage.Truncate();

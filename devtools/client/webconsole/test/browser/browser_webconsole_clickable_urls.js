@@ -44,7 +44,7 @@ add_task(async function() {
   onTabLoaded = BrowserTestUtils.waitForNewTab(gBrowser, secondURL, true);
 
   const isMacOS = Services.appinfo.OS === "Darwin";
-  EventUtils.sendMouseEvent(
+  await EventUtils.sendMouseEvent(
     {
       type: "click",
       [isMacOS ? "metaKey" : "ctrlKey"]: true,
@@ -75,7 +75,12 @@ add_task(async function() {
 
   onTabLoaded = BrowserTestUtils.waitForNewTab(gBrowser, firstURL, true);
 
-  EventUtils.sendMouseEvent(
+  AccessibilityUtils.setEnv({
+    // Focusable element is put back in focus order when its container row is in
+    // focused/active state.
+    nonNegativeTabIndexRule: false,
+  });
+  await EventUtils.sendMouseEvent(
     {
       type: "click",
       [isMacOS ? "metaKey" : "ctrlKey"]: true,
@@ -83,6 +88,7 @@ add_task(async function() {
     urlEl3,
     hud.ui.window
   );
+  AccessibilityUtils.resetEnv();
   await onTabLoaded;
 
   info("Log a message and wait for it to appear so we know the UI was updated");

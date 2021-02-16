@@ -28,6 +28,7 @@
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Unused.h"
 
+#include "GeckoProfiler.h"
 #include "prprf.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsWidgetsCID.h"
@@ -275,7 +276,7 @@ nsAppStartup::Run(void) {
   // regardless of whether the event loop has spun or not. Note that this call
   // is a no-op if Quit has already been called previously.
   bool userAllowedQuit = true;
-  Quit(eForceQuit, &userAllowedQuit);
+  Quit(eForceQuit, 0, &userAllowedQuit);
 
   nsresult retval = NS_OK;
   if (mozilla::AppShutdown::IsRestarting()) {
@@ -286,7 +287,7 @@ nsAppStartup::Run(void) {
 }
 
 NS_IMETHODIMP
-nsAppStartup::Quit(uint32_t aMode, bool* aUserAllowedQuit) {
+nsAppStartup::Quit(uint32_t aMode, int aExitCode, bool* aUserAllowedQuit) {
   uint32_t ferocity = (aMode & 0xF);
 
   // If the shutdown was cancelled due to a hidden window or
@@ -371,7 +372,7 @@ nsAppStartup::Quit(uint32_t aMode, bool* aUserAllowedQuit) {
     auto shutdownMode = ((aMode & eRestart) != 0)
                             ? mozilla::AppShutdownMode::Restart
                             : mozilla::AppShutdownMode::Normal;
-    mozilla::AppShutdown::Init(shutdownMode);
+    mozilla::AppShutdown::Init(shutdownMode, aExitCode);
 
     if (mozilla::AppShutdown::IsRestarting()) {
       // Mark the next startup as a restart.
@@ -506,7 +507,12 @@ nsAppStartup::ExitLastWindowClosingSurvivalArea(void) {
 
   if (mRunning) {
     bool userAllowedQuit = false;
-    Quit(eConsiderQuit, &userAllowedQuit);
+
+    // A previous call to Quit may have told all windows to close and then
+    // bailed out waiting for that to happen. This is how we get back into Quit
+    // after each window closes so the exit process can continue when ready.
+    // Make sure to pass along the exit code that was initially passed to Quit.
+    Quit(eConsiderQuit, mozilla::AppShutdown::GetExitCode(), &userAllowedQuit);
   }
 
   return NS_OK;
@@ -881,8 +887,16 @@ static nsresult RemoveIncompleteStartupFile() {
   MOZ_TRY(NS_GetSpecialDirectory(NS_APP_USER_PROFILE_LOCAL_50_DIR,
                                  getter_AddRefs(file)));
 
-  MOZ_TRY_VAR(file, mozilla::startup::GetIncompleteStartupFile(file));
-  return file->Remove(false);
+  return NS_DispatchBackgroundTask(NS_NewRunnableFunction(
+      "RemoveIncompleteStartupFile", [file = std::move(file)] {
+        auto incompleteStartup =
+            mozilla::startup::GetIncompleteStartupFile(file);
+        if (NS_WARN_IF(incompleteStartup.isErr())) {
+          return;
+        }
+        Unused << NS_WARN_IF(
+            NS_FAILED(incompleteStartup.unwrap()->Remove(false)));
+      }));
 }
 
 NS_IMETHODIMP
@@ -952,7 +966,7 @@ NS_IMETHODIMP
 nsAppStartup::RestartInSafeMode(uint32_t aQuitMode) {
   PR_SetEnv("MOZ_SAFE_MODE_RESTART=1");
   bool userAllowedQuit = false;
-  this->Quit(aQuitMode | nsIAppStartup::eRestart, &userAllowedQuit);
+  this->Quit(aQuitMode | nsIAppStartup::eRestart, 0, &userAllowedQuit);
 
   return NS_OK;
 }

@@ -1,4 +1,16 @@
-import ConfigParser
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import
+import six
+
+# pylint --py3k: W1648
+if six.PY2:
+    from ConfigParser import ConfigParser
+else:
+    from configparser import ConfigParser
+
 import json
 import os
 
@@ -132,7 +144,7 @@ class MercurialRepoManipulationMixin(object):
         force=None,
         halt_on_failure=True,
     ):
-        if isinstance(tags, basestring):
+        if isinstance(tags, six.string_types):
             tags = [tags]
         cmd = self.query_exe("hg", return_type="list") + ["tag"]
         if not message:
@@ -203,7 +215,7 @@ the script (--clean-repos --pull --migrate).  The second run will be faster."""
             hg_rc.write(f)
 
     def read_repo_hg_rc(self, cwd):
-        hg_rc = ConfigParser.ConfigParser()
+        hg_rc = ConfigParser()
         hg_rc.read(self._get_hg_rc_path(cwd))
         return hg_rc
 

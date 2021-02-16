@@ -96,7 +96,7 @@ class BaselineFrame {
   // This is the old frame pointer saved in the prologue.
   static const uint32_t FramePointerOffset = sizeof(void*);
 
-  MOZ_MUST_USE bool initForOsr(InterpreterFrame* fp, uint32_t numStackValues);
+  [[nodiscard]] bool initForOsr(InterpreterFrame* fp, uint32_t numStackValues);
 
 #ifdef DEBUG
   uint32_t debugFrameSize() const { return debugFrameSize_; }
@@ -195,8 +195,8 @@ class BaselineFrame {
                     BaselineFrame::Size() + offsetOfArg(0));
   }
 
-  MOZ_MUST_USE bool saveGeneratorSlots(JSContext* cx, unsigned nslots,
-                                       ArrayObject* dest) const;
+  [[nodiscard]] bool saveGeneratorSlots(JSContext* cx, unsigned nslots,
+                                        ArrayObject* dest) const;
 
  private:
   Value* evalNewTargetAddress() const {
@@ -299,13 +299,11 @@ class BaselineFrame {
   // argument type check ICs).
   void setInterpreterFieldsForPrologue(JSScript* script);
 
-  ICScript* icScript() const;
-  void setICScript(ICScript* icScript) {
-    MOZ_ASSERT(JitOptions.warpBuilder);
-    icScript_ = icScript;
-  }
+  ICScript* icScript() const { return icScript_; }
+  void setICScript(ICScript* icScript) { icScript_ = icScript; }
 
-  JSScript* invalidationScript() const;
+  // The script that owns the current ICScript.
+  JSScript* outerScript() const;
 
   bool hasReturnValue() const { return flags_ & HAS_RVAL; }
   MutableHandleValue returnValue() {
@@ -329,13 +327,13 @@ class BaselineFrame {
   void setFlags(uint32_t flags) { flags_ = flags; }
   uint32_t* addressOfFlags() { return &flags_; }
 
-  inline MOZ_MUST_USE bool pushLexicalEnvironment(JSContext* cx,
-                                                  Handle<LexicalScope*> scope);
-  inline MOZ_MUST_USE bool freshenLexicalEnvironment(JSContext* cx);
-  inline MOZ_MUST_USE bool recreateLexicalEnvironment(JSContext* cx);
+  [[nodiscard]] inline bool pushLexicalEnvironment(JSContext* cx,
+                                                   Handle<LexicalScope*> scope);
+  [[nodiscard]] inline bool freshenLexicalEnvironment(JSContext* cx);
+  [[nodiscard]] inline bool recreateLexicalEnvironment(JSContext* cx);
 
-  MOZ_MUST_USE bool initFunctionEnvironmentObjects(JSContext* cx);
-  MOZ_MUST_USE bool pushVarEnvironment(JSContext* cx, HandleScope scope);
+  [[nodiscard]] bool initFunctionEnvironmentObjects(JSContext* cx);
+  [[nodiscard]] bool pushVarEnvironment(JSContext* cx, HandleScope scope);
 
   void initArgsObjUnchecked(ArgumentsObject& argsobj) {
     flags_ |= HAS_ARGS_OBJ;
@@ -365,7 +363,9 @@ class BaselineFrame {
   bool isGlobalFrame() const { return script()->isGlobalCode(); }
   bool isModuleFrame() const { return script()->isModule(); }
   bool isEvalFrame() const { return script()->isForEval(); }
-  bool isFunctionFrame() const { return CalleeTokenIsFunction(calleeToken()); }
+  bool isFunctionFrame() const {
+    return CalleeTokenIsFunction(calleeToken()) && !isModuleFrame();
+  }
   bool isDebuggerEvalFrame() const { return false; }
 
   JitFrameLayout* framePrefix() const {

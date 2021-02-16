@@ -6,6 +6,7 @@
 
 # This is a template config file for web-platform-tests test.
 
+from __future__ import absolute_import
 import os
 import platform
 import sys
@@ -74,7 +75,7 @@ config = {
             "cmd": [
                 "powershell",
                 "-command",
-                "\"&{$p='HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance';if(!(Test-Path -Path $p)){&New-Item -Path $p -Force}&Set-ItemProperty -Path $p -Name Enabled -Value 0}\"",  # noqa
+                r"\"&{$p='HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.SecurityAndMaintenance';if(!(Test-Path -Path $p)){&New-Item -Path $p -Force}&Set-ItemProperty -Path $p -Name Enabled -Value 0}\"",  # noqa
             ],
             "architectures": ["32bit", "64bit"],
             "halt_on_failure": True,

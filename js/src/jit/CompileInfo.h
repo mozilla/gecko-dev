@@ -7,18 +7,35 @@
 #ifndef jit_CompileInfo_h
 #define jit_CompileInfo_h
 
-#include "mozilla/Maybe.h"
+#include "mozilla/Assertions.h"  // MOZ_ASSERT
+#include "mozilla/Maybe.h"       // mozilla::Maybe, mozilla::Some
 
-#include <algorithm>
+#include <algorithm>  // std::max
+#include <stdint.h>   // uint32_t
 
-#include "jit/CompileWrappers.h"
-#include "jit/JitAllocPolicy.h"
-#include "jit/JitFrames.h"
-#include "jit/Registers.h"
-#include "vm/JSAtomState.h"
-#include "vm/JSFunction.h"
+#include "jit/CompileWrappers.h"  // CompileRuntime
+#include "jit/JitFrames.h"        // MinJITStackSize
+#include "js/TypeDecls.h"         // jsbytecode
+#include "vm/BindingKind.h"       // BindingLocation
+#include "vm/BytecodeUtil.h"      // JSOp
+#include "vm/JSAtomState.h"       // JSAtomState
+#include "vm/JSFunction.h"        // JSFunction
+#include "vm/JSScript.h"          // JSScript, PCToLineNumber
+#include "vm/Scope.h"             // BindingIter
+
+class JSAtom;
+class JSObject;
+
+namespace JS {
+class BigInt;
+}  // namespace JS
 
 namespace js {
+
+class ModuleObject;
+class PropertyName;
+class RegExpObject;
+
 namespace jit {
 
 class InlineScriptTree;
@@ -52,12 +69,6 @@ enum AnalysisMode {
   Analysis_None,
 
   /*
-   * MIR analysis performed when invoking 'new' on a script, to determine
-   * definite properties. Used by the optimizing JIT.
-   */
-  Analysis_DefiniteProperties,
-
-  /*
    * MIR analysis performed when executing a script which uses its arguments,
    * when it is not known whether a lazy arguments value can be used.
    */
@@ -75,8 +86,11 @@ class CompileInfo {
         osrPc_(osrPc),
         analysisMode_(analysisMode),
         scriptNeedsArgsObj_(scriptNeedsArgsObj),
-        hadOverflowBailout_(script->hadOverflowBailout()),
-        hadFrequentBailouts_(script->hadFrequentBailouts()),
+        hadEagerTruncationBailout_(script->hadEagerTruncationBailout()),
+        hadSpeculativePhiBailout_(script->hadSpeculativePhiBailout()),
+        hadLICMInvalidation_(script->hadLICMInvalidation()),
+        hadBoundsCheckBailout_(script->failedBoundsCheck()),
+        hadUnboxFoldingBailout_(script->hadUnboxFoldingBailout()),
         mayReadFrameArgsDirectly_(script->mayReadFrameArgsDirectly()),
         isDerivedClassConstructor_(script->isDerivedClassConstructor()),
         inlineScriptTree_(inlineScriptTree) {
@@ -136,8 +150,11 @@ class CompileInfo {
         osrPc_(nullptr),
         analysisMode_(Analysis_None),
         scriptNeedsArgsObj_(false),
-        hadOverflowBailout_(false),
-        hadFrequentBailouts_(false),
+        hadEagerTruncationBailout_(false),
+        hadSpeculativePhiBailout_(false),
+        hadLICMInvalidation_(false),
+        hadBoundsCheckBailout_(false),
+        hadUnboxFoldingBailout_(false),
         mayReadFrameArgsDirectly_(false),
         inlineScriptTree_(nullptr),
         needsBodyEnvironmentObject_(false),
@@ -364,8 +381,11 @@ class CompileInfo {
 
   // Check previous bailout states to prevent doing the same bailout in the
   // next compilation.
-  bool hadOverflowBailout() const { return hadOverflowBailout_; }
-  bool hadFrequentBailouts() const { return hadFrequentBailouts_; }
+  bool hadEagerTruncationBailout() const { return hadEagerTruncationBailout_; }
+  bool hadSpeculativePhiBailout() const { return hadSpeculativePhiBailout_; }
+  bool hadLICMInvalidation() const { return hadLICMInvalidation_; }
+  bool hadBoundsCheckBailout() const { return hadBoundsCheckBailout_; }
+  bool hadUnboxFoldingBailout() const { return hadUnboxFoldingBailout_; }
   bool mayReadFrameArgsDirectly() const { return mayReadFrameArgsDirectly_; }
 
   bool isDerivedClassConstructor() const { return isDerivedClassConstructor_; }
@@ -389,8 +409,11 @@ class CompileInfo {
 
   // Record the state of previous bailouts in order to prevent compiling the
   // same function identically the next time.
-  bool hadOverflowBailout_;
-  bool hadFrequentBailouts_;
+  bool hadEagerTruncationBailout_;
+  bool hadSpeculativePhiBailout_;
+  bool hadLICMInvalidation_;
+  bool hadBoundsCheckBailout_;
+  bool hadUnboxFoldingBailout_;
 
   bool mayReadFrameArgsDirectly_;
 

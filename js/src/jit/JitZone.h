@@ -10,6 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 
 #include <stddef.h>
@@ -19,6 +20,7 @@
 #include "gc/Barrier.h"
 #include "jit/ExecutableAllocator.h"
 #include "jit/ICStubSpace.h"
+#include "jit/Invalidation.h"
 #include "js/AllocPolicy.h"
 #include "js/GCHashTable.h"
 #include "js/HashTable.h"
@@ -98,7 +100,18 @@ class JitZone {
   // Executable allocator for all code except wasm code.
   MainThreadData<ExecutableAllocator> execAlloc_;
 
+  // HashMap that maps scripts to compilations inlining those scripts.
+  using InlinedScriptMap =
+      GCHashMap<WeakHeapPtr<BaseScript*>, RecompileInfoVector,
+                MovableCellHasher<WeakHeapPtr<BaseScript*>>, SystemAllocPolicy>;
+  InlinedScriptMap inlinedCompilations_;
+
+  mozilla::Maybe<IonCompilationId> currentCompilationId_;
+  bool keepJitScripts_ = false;
+
  public:
+  ~JitZone() { MOZ_ASSERT(!keepJitScripts_); }
+
   void traceWeak(JSTracer* trc);
 
   void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
@@ -117,7 +130,7 @@ class JitZone {
     *stubInfo = nullptr;
     return nullptr;
   }
-  MOZ_MUST_USE bool putBaselineCacheIRStubCode(
+  [[nodiscard]] bool putBaselineCacheIRStubCode(
       const CacheIRStubKey::Lookup& lookup, CacheIRStubKey& key,
       JitCode* stubCode) {
     auto p = baselineCacheIRStubCodes_.lookupForAdd(lookup);
@@ -129,8 +142,8 @@ class JitZone {
     IonCacheIRStubInfoSet::Ptr p = ionCacheIRStubInfoSet_.lookup(key);
     return p ? p->stubInfo.get() : nullptr;
   }
-  MOZ_MUST_USE bool putIonCacheIRStubInfo(const CacheIRStubKey::Lookup& lookup,
-                                          CacheIRStubKey& key) {
+  [[nodiscard]] bool putIonCacheIRStubInfo(const CacheIRStubKey::Lookup& lookup,
+                                           CacheIRStubKey& key) {
     IonCacheIRStubInfoSet::AddPtr p =
         ionCacheIRStubInfoSet_.lookupForAdd(lookup);
     MOZ_ASSERT(!p);
@@ -140,11 +153,29 @@ class JitZone {
 
   ExecutableAllocator& execAlloc() { return execAlloc_.ref(); }
   const ExecutableAllocator& execAlloc() const { return execAlloc_.ref(); }
-};
 
-// Called from Zone::discardJitCode().
-void InvalidateAll(JSFreeOp* fop, JS::Zone* zone);
-void FinishInvalidation(JSFreeOp* fop, JSScript* script);
+  [[nodiscard]] bool addInlinedCompilation(const RecompileInfo& info,
+                                           JSScript* inlined);
+
+  RecompileInfoVector* maybeInlinedCompilations(JSScript* inlined) {
+    auto p = inlinedCompilations_.lookup(inlined);
+    return p ? &p->value() : nullptr;
+  }
+
+  void removeInlinedCompilations(JSScript* inlined) {
+    inlinedCompilations_.remove(inlined);
+  }
+
+  bool keepJitScripts() const { return keepJitScripts_; }
+  void setKeepJitScripts(bool keep) { keepJitScripts_ = keep; }
+
+  mozilla::Maybe<IonCompilationId> currentCompilationId() const {
+    return currentCompilationId_;
+  }
+  mozilla::Maybe<IonCompilationId>& currentCompilationIdRef() {
+    return currentCompilationId_;
+  }
+};
 
 }  // namespace jit
 }  // namespace js

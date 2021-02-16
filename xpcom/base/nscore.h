@@ -12,7 +12,7 @@
  * c++ definitions needed by nscore.h
  */
 #ifndef _XPCOM_CONFIG_H_
-#  include "xpcom-config.h"
+#  include "xpcom-config.h"  // IWYU pragma: export
 #endif
 
 /* Definitions of functions and operators that allocate memory. */
@@ -23,10 +23,10 @@
 /**
  * Incorporate the integer data types which XPCOM uses.
  */
-#include <stddef.h>
-#include <stdint.h>
+#include <stddef.h>  // IWYU pragma: export
+#include <stdint.h>  // IWYU pragma: export
 
-#include "mozilla/HelperMacros.h"
+#include "mozilla/HelperMacros.h"  // IWYU pragma: export
 #include "mozilla/RefCountType.h"
 
 /* Core XPCOM declarations. */
@@ -174,8 +174,8 @@
  *
  */
 #ifndef NS_FREE_PERMANENT_DATA
-#  if defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_VALGRIND) || \
-      defined(MOZ_ASAN) || defined(MOZ_CODE_COVERAGE) ||           \
+#  if defined(NS_BUILD_REFCNT_LOGGING) || defined(MOZ_VALGRIND) ||            \
+      defined(MOZ_ASAN) || defined(MOZ_TSAN) || defined(MOZ_CODE_COVERAGE) || \
       defined(MOZ_PROFILE_GENERATE)
 #    define NS_FREE_PERMANENT_DATA
 #  endif
@@ -200,7 +200,7 @@
 /**
  * Generic XPCOM result data type
  */
-#include "nsError.h"
+#include "nsError.h"  // IWYU pragma: export
 
 typedef MozRefCountType nsrefcnt;
 

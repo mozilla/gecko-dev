@@ -61,24 +61,11 @@ void IonCompileTask::trace(JSTracer* trc) {
     return;
   }
 
-  if (JitOptions.warpBuilder) {
-    MOZ_ASSERT(snapshot_);
-    MOZ_ASSERT(!rootList_);
-    snapshot_->trace(trc);
-  } else {
-    MOZ_ASSERT(!snapshot_);
-    MOZ_ASSERT(rootList_);
-    rootList_->trace(trc);
-  }
+  snapshot_->trace(trc);
 }
 
-IonCompileTask::IonCompileTask(MIRGenerator& mirGen, bool scriptHasIonScript,
-                               CompilerConstraintList* constraints,
-                               WarpSnapshot* snapshot)
-    : mirGen_(mirGen),
-      constraints_(constraints),
-      snapshot_(snapshot),
-      scriptHasIonScript_(scriptHasIonScript) {}
+IonCompileTask::IonCompileTask(MIRGenerator& mirGen, WarpSnapshot* snapshot)
+    : mirGen_(mirGen), snapshot_(snapshot) {}
 
 size_t IonCompileTask::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
   // See js::jit::FreeIonCompileTask.
@@ -200,12 +187,6 @@ void jit::FinishOffThreadTask(JSRuntime* runtime, IonCompileTask* task,
     runtime->jitRuntime()->ionLazyLinkListRemove(runtime, task);
   }
 
-  // Clear the recompiling flag of the old ionScript, since we continue to
-  // use the old ionScript if recompiling fails.
-  if (script->hasIonScript()) {
-    script->ionScript()->clearRecompiling();
-  }
-
   // Clean up if compilation did not succeed.
   if (script->isIonCompilingOffThread()) {
     script->jitScript()->clearIsIonCompilingOffThread(script);
@@ -220,39 +201,4 @@ void jit::FinishOffThreadTask(JSRuntime* runtime, IonCompileTask* task,
   if (!StartOffThreadIonFree(task, locked)) {
     FreeIonCompileTask(task);
   }
-}
-
-MOZ_MUST_USE bool jit::CreateMIRRootList(IonCompileTask& task) {
-  MOZ_ASSERT(!task.mirGen().outerInfo().isAnalysis());
-
-  TempAllocator& alloc = task.alloc();
-  MIRGraph& graph = task.mirGen().graph();
-
-  MRootList* roots = new (alloc.fallible()) MRootList(alloc);
-  if (!roots) {
-    return false;
-  }
-
-  JSScript* prevScript = nullptr;
-
-  for (ReversePostorderIterator block(graph.rpoBegin());
-       block != graph.rpoEnd(); block++) {
-    JSScript* script = block->info().script();
-    if (script != prevScript) {
-      if (!roots->append(script)) {
-        return false;
-      }
-      prevScript = script;
-    }
-
-    for (MInstructionIterator iter(block->begin()), end(block->end());
-         iter != end; iter++) {
-      if (!iter->appendRoots(*roots)) {
-        return false;
-      }
-    }
-  }
-
-  task.setRootList(*roots);
-  return true;
 }

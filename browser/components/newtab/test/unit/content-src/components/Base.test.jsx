@@ -1,9 +1,14 @@
-import { _Base as Base, BaseContent } from "content-src/components/Base/Base";
+import {
+  _Base as Base,
+  BaseContent,
+  PrefsButton,
+} from "content-src/components/Base/Base";
 import { ASRouterAdmin } from "content-src/components/ASRouterAdmin/ASRouterAdmin";
 import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { shallow } from "enzyme";
+import { actionCreators as ac } from "common/Actions.jsm";
 
 describe("<Base>", () => {
   let DEFAULT_PROPS = {
@@ -91,6 +96,32 @@ describe("<BaseContent>", () => {
     );
   });
 
+  it("should render the PrefsButton component with featureConfig values", () => {
+    const wrapper = shallow(
+      <BaseContent
+        {...DEFAULT_PROPS}
+        Prefs={{ values: { featureConfig: { prefsButtonIcon: "icon-foo" } } }}
+      />
+    );
+    assert.lengthOf(wrapper.find(PrefsButton), 1);
+    assert.equal(wrapper.find(PrefsButton).prop("icon"), "icon-foo");
+  });
+
+  it("should dispatch a user event when the customize menu is opened or closed", () => {
+    const dispatch = sinon.stub();
+    const wrapper = shallow(
+      <BaseContent
+        {...DEFAULT_PROPS}
+        Prefs={{ values: { "newNewtabExperience.enabled": "true" } }}
+        dispatch={dispatch}
+      />
+    );
+    wrapper.instance().openCustomizationMenu();
+    assert.calledWith(dispatch, ac.UserEvent({ event: "SHOW_PERSONALIZE" }));
+    wrapper.instance().closeCustomizationMenu();
+    assert.calledWith(dispatch, ac.UserEvent({ event: "HIDE_PERSONALIZE" }));
+  });
+
   it("should render only search if no Sections are enabled", () => {
     const onlySearchProps = Object.assign({}, DEFAULT_PROPS, {
       Sections: [{ id: "highlights", enabled: false }],
@@ -99,5 +130,18 @@ describe("<BaseContent>", () => {
 
     const wrapper = shallow(<BaseContent {...onlySearchProps} />);
     assert.lengthOf(wrapper.find(".only-search"), 1);
+  });
+});
+
+describe("<PrefsButton>", () => {
+  it("should render icon-settings if props.icon is empty", () => {
+    const wrapper = shallow(<PrefsButton icon="" />);
+
+    assert.isTrue(wrapper.find("button").hasClass("icon-settings"));
+  });
+  it("should render props.icon as a className", () => {
+    const wrapper = shallow(<PrefsButton icon="icon-happy" />);
+
+    assert.isTrue(wrapper.find("button").hasClass("icon-happy"));
   });
 });

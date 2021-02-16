@@ -14,9 +14,9 @@ fuzzy(1,1) == shadow-huge.yaml shadow-huge-ref.yaml
 != shadow-clipped-text.yaml blank.yaml
 != non-opaque.yaml non-opaque-notref.yaml
 == decorations.yaml decorations-ref.yaml
-skip_on(android,device) fuzzy(1,3001) fuzzy-if(platform(swgl),3,13867) == decorations-suite.yaml decorations-suite.png  # Fails on Pixel2
+skip_on(android,device) fuzzy(1,3010) fuzzy-if(platform(swgl),3,14624) == decorations-suite.yaml decorations-suite.png  # Fails on Pixel2
 == 1658.yaml 1658-ref.yaml
-fuzzy(1,6) fuzzy-if(platform(swgl),1,391) == split-batch.yaml split-batch-ref.yaml
+fuzzy(2,405) == split-batch.yaml split-batch-ref.yaml
 # Next 3 tests affected by bug 1548099 on Android
 skip_on(android) == shadow-red.yaml shadow-red-ref.yaml
 skip_on(android) fuzzy(1,999) fuzzy-if(platform(swgl),2,1081) == shadow-grey.yaml shadow-grey-ref.yaml
@@ -61,8 +61,8 @@ fuzzy(1,1) platform(linux) == two-shadows.yaml two-shadows.png
 == shadow-clip.yaml shadow-clip-ref.yaml
 == shadow-fast-clip.yaml shadow-fast-clip-ref.yaml
 skip_on(android,device) == shadow-partial-glyph.yaml shadow-partial-glyph-ref.yaml  # Fails on Pixel2
-fuzzy(1,120) platform(linux) == shadow-transforms.yaml shadow-transforms.png
-fuzzy(1,200) platform(linux) == raster-space.yaml raster-space.png
+fuzzy(2,212) platform(linux) == shadow-transforms.yaml shadow-transforms.png
+fuzzy(2,370) platform(linux) == raster-space.yaml raster-space.png
 skip_on(android) skip_on(mac,>=10.14) != allow-subpixel.yaml allow-subpixel-ref.yaml  # Android: we don't enable sub-px aa on this platform.
 skip_on(android,device) == bg-color.yaml bg-color-ref.yaml  # Fails on Pixel2
 != large-glyphs.yaml blank.yaml
@@ -72,7 +72,7 @@ fuzzy(5,4435) == shadow-border.yaml shadow-solid-ref.yaml
 fuzzy(5,4435) == shadow-image.yaml shadow-solid-ref.yaml
 options(disable-aa) == snap-clip.yaml snap-clip-ref.yaml
 platform(linux) == perspective-clip.yaml perspective-clip.png
-fuzzy(1,63) options(disable-subpixel) == raster-space-snap.yaml raster-space-snap-ref.yaml
+fuzzy(1,150) options(disable-subpixel) == raster-space-snap.yaml raster-space-snap-ref.yaml
 # == intermediate-transform.yaml intermediate-transform-ref.yaml # fails because of AA inavailable with an intermediate surface
 fuzzy(1,15) platform(linux) force_subpixel_aa_where_possible(true) == text-fixed-slice.yaml text-fixed-slice-slow.png
 fuzzy(1,15) platform(linux) force_subpixel_aa_where_possible(false) == text-fixed-slice.yaml text-fixed-slice-fast.png
@@ -81,4 +81,4 @@ fuzzy(1,15) platform(linux) force_subpixel_aa_where_possible(false) == text-fixe
 # most pixels are off by a small amount, but a few pixels on the edge vary by a lot, pushing up the fuzzy max-diff;
 # the main goal of the test is that everything is in the same place, at the same scale, clipped the same way,
 # despite 4x on-the-fly scale change.
-skip_on(android) fuzzy-range(<=3,*21700,<=20,*2740,<=115,*543) fuzzy-if(platform(swgl),103,24907) == raster_root_C_8192.yaml raster_root_C_ref.yaml
+skip_on(android) fuzzy-range(<=3,*21700,<=20,*3500,<=115,*543) fuzzy-if(platform(swgl),103,24907) == raster_root_C_8192.yaml raster_root_C_ref.yaml

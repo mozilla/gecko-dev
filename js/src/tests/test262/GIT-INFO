@@ -1,7 +1,12 @@
-commit 00014894735c3bee62bed234594abf387ea0c57b
-Author: Rick Waldron <waldron.rick@gmail.com>
-Date:   Wed Oct 21 20:14:28 2020 -0400
+commit df1961f16a7cdae0bcd9d6a0004b9fda1895a9ef
+Author: Yusuke Suzuki <ysuzuki@apple.com>
+Date:   Wed Jan 6 20:36:24 2021 -0800
 
-    Update test/built-ins/TypedArray/prototype/forEach/callbackfn-detachbuffer.js
+    Fix formatRangeToParts/date-same-returns-single-date.js and add tests using practically-equal two dates
     
-    Co-authored-by: Ross Kirsling <rkirsling@gmail.com>
+    intl402/DateTimeFormat/prototype/formatRangeToParts/date-same-returns-single-date.js is using `formatRange` and `format`.
+    Fix this test to use `formatRangeToParts` and `formatToParts` since it is the intention of this test.
+    
+    This patch adds additional tests to intl402/DateTimeFormat/prototype/formatRangeToParts/date-same-returns-single-date.js and
+    intl402/DateTimeFormat/prototype/formatRange/date-same-returns-single-date.js. The new test uses two dates that are practially-equal,
+    and ensures the implementation uses `format` or `formatToParts` by detecting they are practically-equal.

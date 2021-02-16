@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "VsyncBridgeParent.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorThread.h"
 
@@ -20,7 +21,7 @@ RefPtr<VsyncBridgeParent> VsyncBridgeParent::Start(
   RefPtr<Runnable> task = NewRunnableMethod<Endpoint<PVsyncBridgeParent>&&>(
       "gfx::VsyncBridgeParent::Open", parent, &VsyncBridgeParent::Open,
       std::move(aEndpoint));
-  CompositorThread()->Dispatch(task.forget());
+  layers::CompositorThread()->Dispatch(task.forget());
 
   return parent;
 }
@@ -49,7 +50,7 @@ mozilla::ipc::IPCResult VsyncBridgeParent::RecvNotifyVsync(
 
 void VsyncBridgeParent::Shutdown() {
   if (!CompositorThreadHolder::IsInCompositorThread()) {
-    CompositorThread()->Dispatch(
+    layers::CompositorThread()->Dispatch(
         NewRunnableMethod("gfx::VsyncBridgeParent::ShutdownImpl", this,
                           &VsyncBridgeParent::ShutdownImpl));
     return;

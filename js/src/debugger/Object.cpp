@@ -2288,8 +2288,7 @@ Result<Completion> DebuggerObject::setProperty(JSContext* cx,
   ObjectOpResult opResult;
   bool ok = SetProperty(cx, referent, id, value, receiver, opResult);
 
-  return Completion::fromJSResult(cx, ok,
-                                  BooleanValue(ok && opResult.reallyOk()));
+  return Completion::fromJSResult(cx, ok, BooleanValue(ok && opResult.ok()));
 }
 
 /* static */
@@ -2377,6 +2376,11 @@ bool DebuggerObject::forceLexicalInitializationByName(
   MOZ_ASSERT(object->isGlobal());
 
   Rooted<GlobalObject*> referent(cx, &object->referent()->as<GlobalObject>());
+
+  // Shape::search can end up allocating a new BaseShape in Shape::cachify so
+  // we need to be in the right compartment here.
+  Maybe<AutoRealm> ar;
+  EnterDebuggeeObjectRealm(cx, ar, referent);
 
   RootedObject globalLexical(cx, &referent->lexicalEnvironment());
   RootedObject pobj(cx);

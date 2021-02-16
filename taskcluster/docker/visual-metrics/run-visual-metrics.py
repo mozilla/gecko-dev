@@ -73,6 +73,15 @@ BROWSERTIME_SCHEMA = Schema(
     [{Required("files"): {Required("video"): [str]}}], extra=ALLOW_EXTRA
 )
 
+SHOULD_ALERT = {
+    "ContentfulSpeedIndex": True,
+    "FirstVisualChange": True,
+    "LastVisualChange": True,
+    "PerceptualSpeedIndex": True,
+    "SpeedIndex": True,
+    "videoRecordingStart": False,
+}
+
 with Path("/", "builds", "worker", "performance-artifact-schema.json").open() as f:
     PERFHERDER_SCHEMA = json.loads(f.read())
 
@@ -106,7 +115,7 @@ def run_command(log, cmd, job_count):
 
     if time.time() - start > MAX_TIME:
         log.error(
-            "[TEST-UNEXPECTED FAIL] Timed out waiting for response from command",
+            "TEST-UNEXPECTED-FAIL | Timed out waiting for response from command",
             cmd=cmd,
         )
         return 1, "Timed out"
@@ -127,7 +136,7 @@ def run_command(log, cmd, job_count):
         if level.strip() in ("[ERROR]", "[CRITICAL]"):
             if rc == 0:
                 rc = 1
-            log.error("[TEST-UNEXPECTED FAIL]" + newline)
+            log.error("TEST-UNEXPECTED-FAIL | " + newline)
         elif level == "[WARNING]":
             log.warning(newline)
         else:
@@ -171,6 +180,7 @@ def append_result(log, suites, test_name, name, result, extra_options):
             "replicates": [result],
             "lowerIsBetter": True,
             "unit": "ms",
+            "shouldAlert": SHOULD_ALERT[name],
         }
     else:
         subtests[name]["replicates"].append(result)
@@ -337,8 +347,6 @@ def main(log, args):
                 )
                 failed_runs += 1
             else:
-                # Python 3.5 requires a str object (not 3.6+)
-                res = json.loads(res.decode("utf8"))
                 for name, value in res.items():
                     append_result(
                         log, suites, job.test_name, name, value, job.extra_options
@@ -401,7 +409,32 @@ def run_visual_metrics(job, visualmetrics_path, options):
         str(job.video_path),
     ]
     cmd.extend(options)
-    return run_command(log, cmd, job.count)
+    rc, res = run_command(log, cmd, job.count)
+
+    if rc == 0:
+        # Python 3.5 requires a str object (not 3.6+)
+        res = json.loads(res.decode("utf8"))
+
+        # Ensure that none of these values are at 0 which
+        # is indicative of a failling test
+        monitored_tests = [
+            "contentfulspeedindex",
+            "lastvisualchange",
+            "perceptualspeedindex",
+            "speedindex",
+        ]
+        failed_tests = []
+        for metric, val in res.items():
+            if metric.lower() in monitored_tests and val == 0:
+                failed_tests.append(metric)
+        if failed_tests:
+            log.error(
+                "TEST-UNEXPECTED-FAIL | Some visual metrics have an erroneous value of 0."
+            )
+            log.info("Tests which failed: %s" % str(failed_tests))
+            rc += 1
+
+    return rc, res
 
 
 if __name__ == "__main__":

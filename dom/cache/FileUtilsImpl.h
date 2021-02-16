@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_cache_FileUtilsImpl_h
 #define mozilla_dom_cache_FileUtilsImpl_h
 
+#include "mozilla/dom/FlippedOnce.h"
 #include "mozilla/dom/cache/FileUtils.h"
 
 namespace mozilla {
@@ -14,87 +15,72 @@ namespace dom {
 namespace cache {
 
 template <typename Func>
-nsresult BodyTraverseFiles(const QuotaInfo& aQuotaInfo, nsIFile* aBodyDir,
+nsresult BodyTraverseFiles(const QuotaInfo& aQuotaInfo, nsIFile& aBodyDir,
                            const Func& aHandleFileFunc,
                            const bool aCanRemoveFiles, const bool aTrackQuota) {
-  MOZ_DIAGNOSTIC_ASSERT(aBodyDir);
-
-  nsresult rv;
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  nsCOMPtr<nsIFile> parentFile;
-  rv = aBodyDir->GetParent(getter_AddRefs(parentFile));
-  MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
-  MOZ_DIAGNOSTIC_ASSERT(parentFile);
+  {
+    nsCOMPtr<nsIFile> parentFile;
+    nsresult rv = aBodyDir.GetParent(getter_AddRefs(parentFile));
+    MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
+    MOZ_DIAGNOSTIC_ASSERT(parentFile);
 
-  nsAutoCString nativeLeafName;
-  rv = parentFile->GetNativeLeafName(nativeLeafName);
-  MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
+    nsAutoCString nativeLeafName;
+    rv = parentFile->GetNativeLeafName(nativeLeafName);
+    MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
 
-  MOZ_DIAGNOSTIC_ASSERT(StringEndsWith(nativeLeafName, "morgue"_ns));
+    MOZ_DIAGNOSTIC_ASSERT(StringEndsWith(nativeLeafName, "morgue"_ns));
+  }
 #endif
 
-  nsCOMPtr<nsIDirectoryEnumerator> entries;
-  rv = aBodyDir->GetDirectoryEntries(getter_AddRefs(entries));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+  FlippedOnce<true> isEmpty;
+  CACHE_TRY(quota::CollectEachFile(
+      aBodyDir,
+      [&isEmpty, &aQuotaInfo, aTrackQuota, &aHandleFileFunc,
+       aCanRemoveFiles](const nsCOMPtr<nsIFile>& file) -> Result<Ok, nsresult> {
+        CACHE_TRY_INSPECT(const bool& isDir,
+                          MOZ_TO_RESULT_INVOKE(file, IsDirectory));
 
-  bool isEmpty = true;
-  nsCOMPtr<nsIFile> file;
-  while (NS_SUCCEEDED(rv = entries->GetNextFile(getter_AddRefs(file))) &&
-         file) {
-    bool isDir = false;
-    rv = file->IsDirectory(&isDir);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+        // If it's a directory somehow, try to remove it and move on
+        CACHE_TRY(OkIf(!isDir), Ok{}, ([&aQuotaInfo, &file](const auto&) {
+                    DebugOnly<nsresult> result = RemoveNsIFileRecursively(
+                        aQuotaInfo, *file, /* aTrackQuota */ false);
+                    MOZ_ASSERT(NS_SUCCEEDED(result));
+                  }));
 
-    // If it's a directory somehow, try to remove it and move on
-    if (NS_WARN_IF(isDir)) {
-      DebugOnly<nsresult> result =
-          RemoveNsIFileRecursively(aQuotaInfo, file, /* aTrackQuota */ false);
-      MOZ_ASSERT(NS_SUCCEEDED(result));
-      continue;
-    }
+        nsAutoCString leafName;
+        CACHE_TRY(file->GetNativeLeafName(leafName));
 
-    nsAutoCString leafName;
-    rv = file->GetNativeLeafName(leafName);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
+        // Delete all tmp files regardless of known bodies. These are all
+        // considered orphans.
+        if (StringEndsWith(leafName, ".tmp"_ns)) {
+          if (aCanRemoveFiles) {
+            DebugOnly<nsresult> result =
+                RemoveNsIFile(aQuotaInfo, *file, aTrackQuota);
+            MOZ_ASSERT(NS_SUCCEEDED(result));
+            return Ok{};
+          }
+        } else {
+          CACHE_TRY(OkIf(StringEndsWith(leafName, ".final"_ns)), Ok{},
+                    ([&aQuotaInfo, &file](const auto&) {
+                      // Otherwise, it must be a .final file.  If its not, then
+                      // try to remove it and move on
+                      DebugOnly<nsresult> result = RemoveNsIFile(
+                          aQuotaInfo, *file, /* aTrackQuota */ false);
+                      MOZ_ASSERT(NS_SUCCEEDED(result));
+                    }));
+        }
 
-    // Delete all tmp files regardless of known bodies. These are all
-    // considered orphans.
-    if (StringEndsWith(leafName, ".tmp"_ns)) {
-      if (aCanRemoveFiles) {
-        DebugOnly<nsresult> result =
-            RemoveNsIFile(aQuotaInfo, file, aTrackQuota);
-        MOZ_ASSERT(NS_SUCCEEDED(result));
-        continue;
-      }
-    } else if (NS_WARN_IF(!StringEndsWith(leafName, ".final"_ns))) {
-      // Otherwise, it must be a .final file.  If its not, then try to remove it
-      // and move on
-      DebugOnly<nsresult> result =
-          RemoveNsIFile(aQuotaInfo, file, /* aTrackQuota */ false);
-      MOZ_ASSERT(NS_SUCCEEDED(result));
-      continue;
-    }
+        CACHE_TRY_INSPECT(const bool& fileDeleted,
+                          aHandleFileFunc(*file, leafName));
+        if (fileDeleted) {
+          return Ok{};
+        }
 
-    bool fileDeleted;
-    rv = aHandleFileFunc(file, leafName, fileDeleted);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return rv;
-    }
-    if (fileDeleted) {
-      continue;
-    }
+        isEmpty.EnsureFlipped();
 
-    isEmpty = false;
-  }
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return rv;
-  }
+        return Ok{};
+      }));
 
   if (isEmpty && aCanRemoveFiles) {
     DebugOnly<nsresult> result =
@@ -102,7 +88,7 @@ nsresult BodyTraverseFiles(const QuotaInfo& aQuotaInfo, nsIFile* aBodyDir,
     MOZ_ASSERT(NS_SUCCEEDED(result));
   }
 
-  return rv;
+  return NS_OK;
 }
 
 }  // namespace cache

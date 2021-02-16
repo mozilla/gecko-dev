@@ -5,8 +5,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXTRA_JS_MODULES += [
+    "BrowserSearchTelemetry.jsm",
     "SearchOneOffs.jsm",
-    "SearchTelemetry.jsm",
+    "SearchSERPTelemetry.jsm",
     "SearchUIUtils.jsm",
 ]
 
@@ -20,6 +21,8 @@ MARIONETTE_LAYOUT_MANIFESTS += ["test/marionette/manifest.ini"]
 XPCSHELL_TESTS_MANIFESTS += ["test/unit/xpcshell.ini"]
 
 JAR_MANIFESTS += ["jar.mn"]
+
+SPHINX_TREES["/browser/search"] = "docs"
 
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Search")

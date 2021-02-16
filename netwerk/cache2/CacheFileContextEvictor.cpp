@@ -15,7 +15,8 @@
 #include "nsIDirectoryEnumerator.h"
 #include "mozilla/Base64.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/net/MozURL.h"
+#include "nsContentUtils.h"
+#include "nsNetUtil.h"
 
 namespace mozilla {
 namespace net {
@@ -398,8 +399,10 @@ nsresult CacheFileContextEvictor::LoadEvictInfoFromDisk() {
       auto split = decoded.Split('\t');
       MOZ_ASSERT(decoded.CountChar('\t') == 1);
 
-      origin = split.Get(0);
-      decoded = split.Get(1);
+      auto splitIt = split.begin();
+      origin = *splitIt;
+      ++splitIt;
+      decoded = *splitIt;
     }
 
     nsCOMPtr<nsILoadContextInfo> info;
@@ -672,19 +675,25 @@ void CacheFileContextEvictor::EvictEntries() {
         continue;
       }
 
-      RefPtr<MozURL> url;
-      rv = MozURL::Init(getter_AddRefs(url), uriSpec);
+      nsCOMPtr<nsIURI> uri;
+      rv = NS_NewURI(getter_AddRefs(uri), uriSpec);
       if (NS_FAILED(rv)) {
         LOG(
             ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
-             "MozURL "
-             "fails in the parsing of the uriSpec"));
+             "NS_NewURI failed to parse the uriSpec"));
         continue;
       }
 
-      nsAutoCString urlOrigin;
-      url->Origin(urlOrigin);
-      if (!urlOrigin.Equals(NS_ConvertUTF16toUTF8(mEntries[0]->mOrigin))) {
+      nsAutoString urlOrigin;
+      rv = nsContentUtils::GetUTFOrigin(uri, urlOrigin);
+      if (NS_FAILED(rv)) {
+        LOG(
+            ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
+             "We failed to extract an origin"));
+        continue;
+      }
+
+      if (!urlOrigin.Equals(mEntries[0]->mOrigin)) {
         LOG(
             ("CacheFileContextEvictor::EvictEntries() - Skipping entry since "
              "origin "

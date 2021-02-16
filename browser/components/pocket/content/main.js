@@ -140,17 +140,18 @@ var pktUI = (function() {
 
     // Control: Show panel as normal
     getFirefoxAccountSignedInUser(function(userdata) {
-      var fxasignedin =
-        typeof userdata == "object" && userdata !== null ? "1" : "0";
       var startheight = 490;
       var inOverflowMenu = isInOverflowMenu();
       var controlvariant = pktApi.getSignupPanelTabTestVariant() == "control";
+      var loggedOutVariant = Services.prefs.getCharPref(
+        "extensions.pocket.loggedOutVariant"
+      );
 
       if (inOverflowMenu) {
         startheight = overflowMenuHeight;
       } else {
         startheight = 460;
-        if (fxasignedin == "1") {
+        if (loggedOutVariant === "button_variant") {
           startheight = 406;
         }
       }
@@ -168,9 +169,7 @@ var pktUI = (function() {
         "about:pocket-signup?pockethost=" +
           Services.prefs.getCharPref("extensions.pocket.site") +
           "&loggedOutVariant=" +
-          Services.prefs.getCharPref("extensions.pocket.loggedOutVariant") +
-          "&fxasignedin=" +
-          fxasignedin +
+          loggedOutVariant +
           "&variant=" +
           variant +
           "&controlvariant=" +

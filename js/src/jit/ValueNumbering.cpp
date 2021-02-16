@@ -797,6 +797,10 @@ bool ValueNumberer::visitDefinition(MDefinition* def) {
       sim->setGuardRangeBailoutsUnchecked();
     }
 
+    if (sim->bailoutKind() == BailoutKind::Unknown) {
+      sim->setBailoutKind(def->bailoutKind());
+    }
+
     if (DeadIfUnused(def)) {
       if (!discardDefsRecursively(def)) {
         return false;
@@ -1032,13 +1036,11 @@ bool ValueNumberer::visitDominatorTree(MBasicBlock* dominatorRoot) {
           "  Visiting dominator tree (with %" PRIu64
           " blocks) rooted at block%u%s",
           uint64_t(dominatorRoot->numDominated()), dominatorRoot->id(),
-          dominatorRoot == graph_.entryBlock()
-              ? " (normal entry block)"
-              : dominatorRoot == graph_.osrBlock()
-                    ? " (OSR entry block)"
-                    : dominatorRoot->numPredecessors() == 0
-                          ? " (odd unreachable block)"
-                          : " (merge point from normal entry and OSR entry)");
+          dominatorRoot == graph_.entryBlock() ? " (normal entry block)"
+          : dominatorRoot == graph_.osrBlock() ? " (OSR entry block)"
+          : dominatorRoot->numPredecessors() == 0
+              ? " (odd unreachable block)"
+              : " (merge point from normal entry and OSR entry)");
   MOZ_ASSERT(dominatorRoot->immediateDominator() == dominatorRoot,
              "root is not a dominator tree root");
 

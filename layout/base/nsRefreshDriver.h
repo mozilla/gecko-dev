@@ -28,6 +28,11 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/VisualViewport.h"
 #include "mozilla/layers/TransactionIdAllocator.h"
+#include "LayersTypes.h"
+
+#ifdef MOZ_GECKO_PROFILER
+#  include "mozilla/ProfileChunkedBuffer.h"
+#endif
 
 class nsPresContext;
 
@@ -40,10 +45,6 @@ class PendingFullscreenEvent;
 class PresShell;
 class RefreshDriverTimer;
 class Runnable;
-
-namespace layout {
-class VsyncChild;
-}  // namespace layout
 
 }  // namespace mozilla
 
@@ -126,7 +127,11 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
    * refresh driver ticks.
    */
   void AddPostRefreshObserver(nsAPostRefreshObserver* aObserver);
+  void AddPostRefreshObserver(mozilla::OneShotPostRefreshObserver* aObserver) =
+      delete;
   void RemovePostRefreshObserver(nsAPostRefreshObserver* aObserver);
+  void RemovePostRefreshObserver(
+      mozilla::OneShotPostRefreshObserver* aObserver) = delete;
 
   /**
    * Add/Remove imgIRequest versions of observers.
@@ -296,14 +301,6 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
    */
   nsPresContext* GetPresContext() const;
 
-  /**
-   * PBackgroundChild actor is created asynchronously in content process.
-   * We can't create vsync-based timers during PBackground startup. This
-   * function will be called when PBackgroundChild actor is created. Then we can
-   * do the pending vsync-based timer creation.
-   */
-  static void PVsyncActorCreated(mozilla::layout::VsyncChild* aVsyncChild);
-
   void CreateVsyncRefreshTimer();
 
 #ifdef DEBUG
@@ -393,6 +390,8 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     EnsureTimerStarted();
   }
 
+  bool HasPendingTick() const { return mActiveTimer; }
+
   void EnsureIntersectionObservationsUpdateHappens() {
     // This is enough to make sure that UpdateIntersectionObservations runs at
     // least once. This is presumably the intent of step 5 in [1]:
@@ -407,6 +406,13 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     EnsureTimerStarted();
     mNeedToUpdateIntersectionObservations = true;
   }
+
+  // Register a composition payload that will be forwarded to the layer manager
+  // if the current or upcoming refresh tick does a paint.
+  // If no paint happens, the payload is discarded.
+  // Should only be called on root refresh drivers.
+  void RegisterCompositionPayload(
+      const mozilla::layers::CompositionPayload& aPayload);
 
   enum class TickReasons : uint32_t {
     eNone = 0,
@@ -436,7 +442,9 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
     const char* mDescription;
     mozilla::TimeStamp mRegisterTime;
     mozilla::Maybe<uint64_t> mInnerWindowId;
+#ifdef MOZ_GECKO_PROFILER
     mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> mCause;
+#endif
     mozilla::FlushType mFlushType;
 
     bool operator==(nsARefreshObserver* aObserver) const {
@@ -489,7 +497,9 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   mozilla::RefreshDriverTimer* ChooseTimer();
   mozilla::RefreshDriverTimer* mActiveTimer;
   RefPtr<mozilla::RefreshDriverTimer> mOwnTimer;
+#ifdef MOZ_GECKO_PROFILER
   mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> mRefreshTimerStartedCause;
+#endif
 
   // nsPresContext passed in constructor and unset in Disconnect.
   mozilla::WeakPtr<nsPresContext> mPresContext;
@@ -518,7 +528,9 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   // flush since the last time we did it.
   const mozilla::TimeDuration mMinRecomputeVisibilityInterval;
 
+#ifdef MOZ_GECKO_PROFILER
   mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> mViewManagerFlushCause;
+#endif
 
   bool mThrottled : 1;
   bool mNeedToRecomputeVisibility : 1;
@@ -575,6 +587,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   // to be called when the timer is re-started and should not influence its
   // starting or stopping.
   nsTObserverArray<nsATimerAdjustmentObserver*> mTimerAdjustmentObservers;
+  nsTArray<mozilla::layers::CompositionPayload> mCompositionPayloads;
   RequestTable mRequests;
   ImageStartTable mStartTable;
   AutoTArray<nsCOMPtr<nsIRunnable>, 16> mEarlyRunners;

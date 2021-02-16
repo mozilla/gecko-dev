@@ -308,45 +308,48 @@ static void RemovePrefForDriverVersion() {
 }
 
 static OperatingSystem BlocklistOSToOperatingSystem(const nsAString& os) {
-  if (os.EqualsLiteral("WINNT 6.1"))
+  if (os.EqualsLiteral("WINNT 6.1")) {
     return OperatingSystem::Windows7;
-  else if (os.EqualsLiteral("WINNT 6.2"))
+  } else if (os.EqualsLiteral("WINNT 6.2")) {
     return OperatingSystem::Windows8;
-  else if (os.EqualsLiteral("WINNT 6.3"))
+  } else if (os.EqualsLiteral("WINNT 6.3")) {
     return OperatingSystem::Windows8_1;
-  else if (os.EqualsLiteral("WINNT 10.0"))
+  } else if (os.EqualsLiteral("WINNT 10.0")) {
     return OperatingSystem::Windows10;
-  else if (os.EqualsLiteral("Linux"))
+  } else if (os.EqualsLiteral("Linux")) {
     return OperatingSystem::Linux;
-  else if (os.EqualsLiteral("Darwin 9"))
+  } else if (os.EqualsLiteral("Darwin 9")) {
     return OperatingSystem::OSX10_5;
-  else if (os.EqualsLiteral("Darwin 10"))
+  } else if (os.EqualsLiteral("Darwin 10")) {
     return OperatingSystem::OSX10_6;
-  else if (os.EqualsLiteral("Darwin 11"))
+  } else if (os.EqualsLiteral("Darwin 11")) {
     return OperatingSystem::OSX10_7;
-  else if (os.EqualsLiteral("Darwin 12"))
+  } else if (os.EqualsLiteral("Darwin 12")) {
     return OperatingSystem::OSX10_8;
-  else if (os.EqualsLiteral("Darwin 13"))
+  } else if (os.EqualsLiteral("Darwin 13")) {
     return OperatingSystem::OSX10_9;
-  else if (os.EqualsLiteral("Darwin 14"))
+  } else if (os.EqualsLiteral("Darwin 14")) {
     return OperatingSystem::OSX10_10;
-  else if (os.EqualsLiteral("Darwin 15"))
+  } else if (os.EqualsLiteral("Darwin 15")) {
     return OperatingSystem::OSX10_11;
-  else if (os.EqualsLiteral("Darwin 16"))
+  } else if (os.EqualsLiteral("Darwin 16")) {
     return OperatingSystem::OSX10_12;
-  else if (os.EqualsLiteral("Darwin 17"))
+  } else if (os.EqualsLiteral("Darwin 17")) {
     return OperatingSystem::OSX10_13;
-  else if (os.EqualsLiteral("Darwin 18"))
+  } else if (os.EqualsLiteral("Darwin 18")) {
     return OperatingSystem::OSX10_14;
-  else if (os.EqualsLiteral("Darwin 19"))
+  } else if (os.EqualsLiteral("Darwin 19")) {
     return OperatingSystem::OSX10_15;
-  else if (os.EqualsLiteral("Darwin 20"))
+  } else if (os.EqualsLiteral("Darwin 20")) {
     return OperatingSystem::OSX11_0;
-  else if (os.EqualsLiteral("Android"))
+  } else if (os.EqualsLiteral("Android")) {
     return OperatingSystem::Android;
-  // For historical reasons, "All" in blocklist means "All Windows"
-  else if (os.EqualsLiteral("All"))
+    // For historical reasons, "All" in blocklist means "All Windows"
+  } else if (os.EqualsLiteral("All")) {
     return OperatingSystem::Windows;
+  } else if (os.EqualsLiteral("Darwin")) {
+    return OperatingSystem::OSX;
+  }
 
   return OperatingSystem::Unknown;
 }
@@ -619,32 +622,26 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
   return true;
 }
 
-static void BlocklistEntriesToDriverInfo(
-    const nsTSubstringSplitter<char>& aBlocklistEntries,
-    nsTArray<GfxDriverInfo>& aDriverInfo) {
-  aDriverInfo.Clear();
-  const uint32_t n =
-      std::distance(aBlocklistEntries.begin(), aBlocklistEntries.end());
-  aDriverInfo.SetLength(n);
-
-  for (uint32_t i = 0; i < n; ++i) {
-    const nsDependentCSubstring& blocklistEntry = aBlocklistEntries.Get(i);
-    GfxDriverInfo di;
-    if (BlocklistEntryToDriverInfo(blocklistEntry, di)) {
-      aDriverInfo[i] = di;
-      // Prevent di falling out of scope from destroying the devices.
-      di.mDeleteDevices = false;
-    }
-  }
-}
-
 NS_IMETHODIMP
 GfxInfoBase::Observe(nsISupports* aSubject, const char* aTopic,
                      const char16_t* aData) {
   if (strcmp(aTopic, "blocklist-data-gfxItems") == 0) {
     nsTArray<GfxDriverInfo> driverInfo;
     NS_ConvertUTF16toUTF8 utf8Data(aData);
-    BlocklistEntriesToDriverInfo(utf8Data.Split('\n'), driverInfo);
+
+    for (const auto& blocklistEntry : utf8Data.Split('\n')) {
+      GfxDriverInfo di;
+      if (BlocklistEntryToDriverInfo(blocklistEntry, di)) {
+        // XXX Changing this to driverInfo.AppendElement(di) causes leaks.
+        // Probably some non-standard semantics of the copy/move operations?
+        *driverInfo.AppendElement() = di;
+        // Prevent di falling out of scope from destroying the devices.
+        di.mDeleteDevices = false;
+      } else {
+        driverInfo.AppendElement();
+      }
+    }
+
     EvaluateDownloadedBlocklist(driverInfo);
   }
 
@@ -1058,7 +1055,8 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
 #endif
 
     if (match || info[i].mDriverVersion == GfxDriverInfo::allDriverVersions) {
-      if (info[i].mFeature == GfxDriverInfo::allFeatures ||
+      if ((info[i].mFeature == GfxDriverInfo::allFeatures &&
+           aFeature != nsIGfxInfo::FEATURE_WEBRENDER_SOFTWARE) ||
           info[i].mFeature == aFeature) {
         status = info[i].mFeatureStatus;
         if (!info[i].mRuleId.IsEmpty()) {
@@ -1661,6 +1659,9 @@ void GfxInfoBase::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
       gfxConfig::GetFeature(gfx::Feature::OPENGL_COMPOSITING);
   InitFeatureObject(aCx, aObj, "openglCompositing", openglCompositing, &obj);
 
+  gfx::FeatureState& omtp = gfxConfig::GetFeature(gfx::Feature::OMTP);
+  InitFeatureObject(aCx, aObj, "omtp", omtp, &obj);
+
   // Only include AL if the platform attempted to use it.
   gfx::FeatureState& advancedLayers =
       gfxConfig::GetFeature(gfx::Feature::ADVANCED_LAYERS);
@@ -1684,21 +1685,7 @@ bool GfxInfoBase::InitFeatureObject(JSContext* aCx,
     return false;
   }
 
-  nsCString status;
-  auto value = aFeatureState.GetValue();
-  switch (value) {
-    case FeatureStatus::Blocklisted:
-    case FeatureStatus::Disabled:
-    case FeatureStatus::Unavailable:
-    case FeatureStatus::UnavailableNoAngle:
-    case FeatureStatus::Blocked:
-      status.AppendPrintf("%s:%s", FeatureStatusToString(value),
-                          aFeatureState.GetFailureId().get());
-      break;
-    default:
-      status.Append(FeatureStatusToString(value));
-      break;
-  }
+  nsCString status = aFeatureState.GetStatusAndFailureIdString();
 
   JS::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, status.get()));
   JS::Rooted<JS::Value> val(aCx, JS::StringValue(str));

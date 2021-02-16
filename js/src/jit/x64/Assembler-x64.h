@@ -7,7 +7,7 @@
 #ifndef jit_x64_Assembler_x64_h
 #define jit_x64_Assembler_x64_h
 
-#include "mozilla/ArrayUtils.h"
+#include <iterator>
 
 #include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
@@ -128,8 +128,7 @@ static constexpr uint32_t NumIntArgRegs = 4;
 static constexpr Register IntArgRegs[NumIntArgRegs] = {rcx, rdx, r8, r9};
 
 static constexpr Register CallTempNonArgRegs[] = {rax, rdi, rbx, rsi};
-static constexpr uint32_t NumCallTempNonArgRegs =
-    mozilla::ArrayLength(CallTempNonArgRegs);
+static constexpr uint32_t NumCallTempNonArgRegs = std::size(CallTempNonArgRegs);
 
 static constexpr FloatRegister FloatArgReg0 = xmm0;
 static constexpr FloatRegister FloatArgReg1 = xmm1;
@@ -150,8 +149,7 @@ static constexpr Register IntArgRegs[NumIntArgRegs] = {rdi, rsi, rdx,
                                                        rcx, r8,  r9};
 
 static constexpr Register CallTempNonArgRegs[] = {rax, rbx};
-static constexpr uint32_t NumCallTempNonArgRegs =
-    mozilla::ArrayLength(CallTempNonArgRegs);
+static constexpr uint32_t NumCallTempNonArgRegs = std::size(CallTempNonArgRegs);
 
 static constexpr FloatRegister FloatArgReg0 = xmm0;
 static constexpr FloatRegister FloatArgReg1 = xmm1;
@@ -512,6 +510,11 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  void cmovCCq(Condition cond, Register src, Register dest) {
+    X86Encoding::Condition cc = static_cast<X86Encoding::Condition>(cond);
+    masm.cmovCCq_rr(cc, src.encoding(), dest.encoding());
+  }
+
   void cmovzq(const Operand& src, Register dest) {
     cmovCCq(Condition::Zero, src, dest);
   }
@@ -810,6 +813,18 @@ class Assembler : public AssemblerX86Shared {
   void shlq_cl(Register dest) { masm.shlq_CLr(dest.encoding()); }
   void shrq_cl(Register dest) { masm.shrq_CLr(dest.encoding()); }
   void sarq_cl(Register dest) { masm.sarq_CLr(dest.encoding()); }
+  void sarxq(Register src, Register shift, Register dest) {
+    MOZ_ASSERT(HasBMI2());
+    masm.sarxq_rrr(src.encoding(), shift.encoding(), dest.encoding());
+  }
+  void shlxq(Register src, Register shift, Register dest) {
+    MOZ_ASSERT(HasBMI2());
+    masm.shlxq_rrr(src.encoding(), shift.encoding(), dest.encoding());
+  }
+  void shrxq(Register src, Register shift, Register dest) {
+    MOZ_ASSERT(HasBMI2());
+    masm.shrxq_rrr(src.encoding(), shift.encoding(), dest.encoding());
+  }
   void rolq(Imm32 imm, Register dest) {
     masm.rolq_ir(imm.value, dest.encoding());
   }
@@ -904,6 +919,12 @@ class Assembler : public AssemblerX86Shared {
     masm.bsfq_rr(src.encoding(), dest.encoding());
   }
   void bswapq(const Register& reg) { masm.bswapq_r(reg.encoding()); }
+  void lzcntq(const Register& src, const Register& dest) {
+    masm.lzcntq_rr(src.encoding(), dest.encoding());
+  }
+  void tzcntq(const Register& src, const Register& dest) {
+    masm.tzcntq_rr(src.encoding(), dest.encoding());
+  }
   void popcntq(const Register& src, const Register& dest) {
     masm.popcntq_rr(src.encoding(), dest.encoding());
   }
@@ -947,6 +968,8 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void negq(Register reg) { masm.negq_r(reg.encoding()); }
+
+  void notq(Register reg) { masm.notq_r(reg.encoding()); }
 
   void mov(ImmWord word, Register dest) {
     // Use xor for setting registers to zero, as it is specially optimized

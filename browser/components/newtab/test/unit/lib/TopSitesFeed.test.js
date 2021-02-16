@@ -1485,7 +1485,7 @@ describe("Top Sites Feed", () => {
         { aliases: ["@google"] },
         { aliases: ["@amazon"] },
       ];
-      global.Services.search.getDefaultEngines = async () => searchEngines;
+      global.Services.search.getAppProvidedEngines = async () => searchEngines;
       fakeNewTabUtils.pinnedLinks.pin = sinon
         .stub()
         .callsFake((site, index) => {
@@ -1737,7 +1737,7 @@ describe("Top Sites Feed", () => {
 
       it("should not pin a shortcut if the corresponding search engine is not available", async () => {
         // Make Amazon search engine unavailable
-        global.Services.search.getDefaultEngines = async () => [
+        global.Services.search.getAppProvidedEngines = async () => [
           { aliases: ["@google"] },
         ];
         fakeNewTabUtils.pinnedLinks.links.fill(null);
@@ -1963,12 +1963,12 @@ describe("Top Sites Feed", () => {
     });
 
     it("should choose the -ru icons for Yandex search shortcut", async () => {
-      sandbox.stub(global.Services.search, "getEngineByAlias").returns({
+      sandbox.stub(global.Services.search, "getEngineByAlias").resolves({
         wrappedJSObject: { _searchForm: "https://www.yandex.ru/" },
       });
 
       const link = { url: "https://yandex.com" };
-      feed._attachTippyTopIconForSearchShortcut(link, "@yandex");
+      await feed._attachTippyTopIconForSearchShortcut(link, "@yandex");
 
       assert.equal(link.tippyTopIcon, "yandex-ru.png");
       assert.equal(link.smallFavicon, "yandex-ru.ico");
@@ -1976,12 +1976,12 @@ describe("Top Sites Feed", () => {
     });
 
     it("should choose -com icons for Yandex search shortcut", async () => {
-      sandbox.stub(global.Services.search, "getEngineByAlias").returns({
+      sandbox.stub(global.Services.search, "getEngineByAlias").resolves({
         wrappedJSObject: { _searchForm: "https://www.yandex.com/" },
       });
 
       const link = { url: "https://yandex.com" };
-      feed._attachTippyTopIconForSearchShortcut(link, "@yandex");
+      await feed._attachTippyTopIconForSearchShortcut(link, "@yandex");
 
       assert.equal(link.tippyTopIcon, "yandex.png");
       assert.equal(link.smallFavicon, "yandex.ico");
@@ -1989,10 +1989,10 @@ describe("Top Sites Feed", () => {
     });
 
     it("should use the -com icons if can't fetch the search form URL", async () => {
-      sandbox.stub(global.Services.search, "getEngineByAlias").returns(null);
+      sandbox.stub(global.Services.search, "getEngineByAlias").resolves(null);
 
       const link = { url: "https://yandex.com" };
-      feed._attachTippyTopIconForSearchShortcut(link, "@yandex");
+      await feed._attachTippyTopIconForSearchShortcut(link, "@yandex");
 
       assert.equal(link.tippyTopIcon, "yandex.png");
       assert.equal(link.smallFavicon, "yandex.ico");
@@ -2000,12 +2000,12 @@ describe("Top Sites Feed", () => {
     });
 
     it("should choose the correct icon for other non-yandex search shortcut", async () => {
-      sandbox.stub(global.Services.search, "getEngineByAlias").returns({
+      sandbox.stub(global.Services.search, "getEngineByAlias").resolves({
         wrappedJSObject: { _searchForm: "https://www.google.com/" },
       });
 
       const link = { url: "https://google.com" };
-      feed._attachTippyTopIconForSearchShortcut(link, "@google");
+      await feed._attachTippyTopIconForSearchShortcut(link, "@google");
 
       assert.equal(link.tippyTopIcon, "google.png");
       assert.equal(link.smallFavicon, "google.ico");

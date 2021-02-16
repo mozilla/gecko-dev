@@ -7,31 +7,33 @@ use crate::{
     ffi::ProfileChangeObserver,
     make_key, SEPARATOR,
 };
-use lmdb::Error as LmdbError;
 use moz_task::is_main_thread;
 use nsstring::nsString;
 use once_cell::sync::Lazy;
-use rkv::{migrate::Migrator, Rkv, SingleStore, StoreError, StoreOptions, Value};
+use rkv::backend::{SafeMode, SafeModeDatabase, SafeModeEnvironment};
+use rkv::{Migrator, StoreOptions, Value};
 use std::{
     collections::BTreeMap,
-    fs::{copy, create_dir_all, remove_file, File},
+    fs::{create_dir_all, remove_file, File},
     path::PathBuf,
     str,
-    sync::Mutex,
+    sync::{Arc, Mutex, RwLock},
 };
-use tempfile::tempdir;
 use xpcom::{interfaces::nsIFile, XpCom};
 
+type Manager = rkv::Manager<SafeModeEnvironment>;
+type Rkv = rkv::Rkv<SafeModeEnvironment>;
+type SingleStore = rkv::SingleStore<SafeModeDatabase>;
 type XULStoreCache = BTreeMap<String, BTreeMap<String, BTreeMap<String, String>>>;
 
 pub struct Database {
-    pub env: Rkv,
+    pub rkv: Arc<RwLock<Rkv>>,
     pub store: SingleStore,
 }
 
 impl Database {
-    fn new(env: Rkv, store: SingleStore) -> Database {
-        Database { env, store }
+    fn new(rkv: Arc<RwLock<Rkv>>, store: SingleStore) -> Database {
+        Database { rkv, store }
     }
 }
 
@@ -44,31 +46,13 @@ pub(crate) static DATA_CACHE: Lazy<Mutex<Option<XULStoreCache>>> =
     Lazy::new(|| Mutex::new(cache_data().ok()));
 
 pub(crate) fn get_database() -> XULStoreResult<Database> {
+    let mut manager = Manager::singleton().write()?;
     let xulstore_dir = get_xulstore_dir()?;
     let xulstore_path = xulstore_dir.as_path();
-
-    let env = match Rkv::new(xulstore_path) {
-        Ok(env) => Ok(env),
-        Err(StoreError::LmdbError(LmdbError::Invalid)) => {
-            let temp_env = tempdir()?;
-            let mut migrator = Migrator::new(&xulstore_path)?;
-            migrator.migrate(temp_env.path())?;
-            copy(
-                temp_env.path().join("data.mdb"),
-                xulstore_path.join("data.mdb"),
-            )?;
-            copy(
-                temp_env.path().join("lock.mdb"),
-                xulstore_path.join("lock.mdb"),
-            )?;
-            Rkv::new(xulstore_path)
-        }
-        Err(err) => Err(err),
-    }?;
-
-    let store = env.open_single("db", StoreOptions::create())?;
-
-    Ok(Database::new(env, store))
+    let rkv = manager.get_or_create(xulstore_path, Rkv::new::<SafeMode>)?;
+    Migrator::easy_migrate_lmdb_to_safe_mode(xulstore_path, rkv.read()?)?;
+    let store = rkv.read()?.open_single("db", StoreOptions::create())?;
+    Ok(Database::new(rkv, store))
 }
 
 pub(crate) fn update_profile_dir() {
@@ -174,26 +158,24 @@ fn in_safe_mode() -> XULStoreResult<bool> {
 
 fn cache_data() -> XULStoreResult<XULStoreCache> {
     let db = get_database()?;
-    maybe_migrate_data(&db.env, db.store);
+    maybe_migrate_data(&db, db.store);
 
     let mut all = XULStoreCache::default();
     if in_safe_mode()? {
         return Ok(all);
     }
 
-    let reader = db.env.read()?;
+    let env = db.rkv.read()?;
+    let reader = env.read()?;
     let iterator = db.store.iter_start(&reader)?;
 
     for result in iterator {
         let (key, value): (&str, String) = match result {
-            Ok((key, value)) => {
-                assert!(value.is_some(), "iterated key has value");
-                match (str::from_utf8(&key), unwrap_value(&value)) {
-                    (Ok(key), Ok(value)) => (key, value),
-                    (Err(err), _) => return Err(err.into()),
-                    (_, Err(err)) => return Err(err),
-                }
-            }
+            Ok((key, value)) => match (str::from_utf8(&key), unwrap_value(&value)) {
+                (Ok(key), Ok(value)) => (key, value),
+                (Err(err), _) => return Err(err.into()),
+                (_, Err(err)) => return Err(err),
+            },
             Err(err) => return Err(err.into()),
         };
 
@@ -218,7 +200,7 @@ fn cache_data() -> XULStoreResult<XULStoreCache> {
     Ok(all)
 }
 
-fn maybe_migrate_data(env: &Rkv, store: SingleStore) {
+fn maybe_migrate_data(db: &Database, store: SingleStore) {
     // Failure to migrate data isn't fatal, so we don't return a result.
     // But we use a closure returning a result to enable use of the ? operator.
     (|| -> XULStoreResult<()> {
@@ -235,6 +217,7 @@ fn maybe_migrate_data(env: &Rkv, store: SingleStore) {
         let file = File::open(old_datastore.clone())?;
         let json: XULStoreCache = serde_json::from_reader(file)?;
 
+        let env = db.rkv.read()?;
         let mut writer = env.write()?;
 
         for (doc, ids) in json {
@@ -255,17 +238,13 @@ fn maybe_migrate_data(env: &Rkv, store: SingleStore) {
     .unwrap_or_else(|err| error!("error migrating data: {}", err));
 }
 
-fn unwrap_value(value: &Option<Value>) -> XULStoreResult<String> {
+fn unwrap_value(value: &Value) -> XULStoreResult<String> {
     match value {
-        Some(Value::Str(val)) => Ok(val.to_string()),
-
-        // Per the XULStore API, return an empty string if the value
-        // isn't found.
-        None => Ok(String::new()),
+        Value::Str(val) => Ok(val.to_string()),
 
         // This should never happen, but it could happen in theory
         // if someone writes a different kind of value into the store
         // using a more general API (kvstore, rkv, LMDB).
-        Some(_) => Err(XULStoreError::UnexpectedValue),
+        _ => Err(XULStoreError::UnexpectedValue),
     }
 }

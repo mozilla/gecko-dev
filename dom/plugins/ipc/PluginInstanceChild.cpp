@@ -15,6 +15,7 @@
 #include "gfx2DGlue.h"
 #include "nsNPAPIPluginInstance.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Logging.h"
 #ifdef MOZ_X11
 #  include "gfxXlibSurface.h"
 #endif
@@ -1989,27 +1990,7 @@ LONG PluginInstanceChild::ImmGetCompositionStringProc(HIMC aIMC, DWORD aIndex,
 // staitc
 BOOL PluginInstanceChild::ImmSetCandidateWindowProc(HIMC aIMC,
                                                     LPCANDIDATEFORM aForm) {
-  if (aIMC != sHookIMC) {
-    return sImm32ImmSetCandidateWindowStub(aIMC, aForm);
-  }
-
-  if (!sCurrentPluginInstance || aForm->dwIndex != 0) {
-    return FALSE;
-  }
-
-  CandidateWindowPosition position;
-  position.mPoint.x = aForm->ptCurrentPos.x;
-  position.mPoint.y = aForm->ptCurrentPos.y;
-  position.mExcludeRect = !!(aForm->dwStyle & CFS_EXCLUDE);
-  if (position.mExcludeRect) {
-    position.mRect.x = aForm->rcArea.left;
-    position.mRect.y = aForm->rcArea.top;
-    position.mRect.width = aForm->rcArea.right - aForm->rcArea.left;
-    position.mRect.height = aForm->rcArea.bottom - aForm->rcArea.top;
-  }
-
-  sCurrentPluginInstance->SendSetCandidateWindow(position);
-  return TRUE;
+  return FALSE;
 }
 
 // static
@@ -2046,7 +2027,6 @@ BOOL PluginInstanceChild::ImmAssociateContextExProc(HWND hWND, HIMC hImc,
     // Store the last IME state since Flash may call ImmAssociateContextEx
     // before taking focus.
     self->mLastEnableIMEState = !!(dwFlags & IACE_DEFAULT);
-    self->SendEnableIME(self->mLastEnableIMEState);
   }
   return sImm32ImmAssociateContextExStub(hWND, hImc, dwFlags);
 }
@@ -2056,7 +2036,7 @@ void PluginInstanceChild::InitImm32Hook() {
     return;
   }
 
-  // When using windowless plugin, IMM API won't work due ot OOP.
+  // When using windowless plugin, IMM API won't work due to OOP.
   //
   // ImmReleaseContext on Windows 7+ just returns TRUE only, so we don't
   // need to hook this.
@@ -2131,11 +2111,7 @@ int16_t PluginInstanceChild::WinlessHandleEvent(NPEvent& event) {
   // activated and set input context with PLUGIN.  So after activating
   // content process, we have to set current IME state again.
 
-  if (event.event == WM_SETFOCUS) {
-    // When focus is changed from chrome process to plugin process,
-    // Flash may call ImmAssociateContextEx before receiving WM_SETFOCUS.
-    SendEnableIME(mLastEnableIMEState);
-  } else if (event.event == WM_KILLFOCUS) {
+  if (event.event == WM_KILLFOCUS) {
     // Flash always calls ImmAssociateContextEx by taking focus.
     // Although this flag doesn't have to be reset, I add it for safety.
     mLastEnableIMEState = true;

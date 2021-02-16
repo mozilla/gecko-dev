@@ -5,7 +5,12 @@
 "use strict";
 
 /* exported getNativeInterface, waitForMacEventWithInfo, waitForMacEvent,
-   NSRange, NSDictionary, stringForRange */
+   NSRange, NSDictionary, stringForRange, AXTextStateChangeTypeEdit,
+   AXTextEditTypeDelete, AXTextEditTypeTyping, AXTextStateChangeTypeSelectionMove,
+   AXTextStateChangeTypeSelectionExtend, AXTextSelectionDirectionUnknown,
+   AXTextSelectionDirectionPrevious, AXTextSelectionDirectionNext,
+   AXTextSelectionDirectionDiscontiguous, AXTextSelectionGranularityUnknown,
+   AXTextSelectionGranularityCharacter, AXTextSelectionGranularityWord */
 
 // Load the shared-head file first.
 /* import-globals-from ../shared-head.js */
@@ -21,6 +26,26 @@ loadScripts(
   { name: "promisified-events.js", dir: MOCHITESTS_DIR }
 );
 
+// AXTextStateChangeType enum values
+const AXTextStateChangeTypeEdit = 1;
+const AXTextStateChangeTypeSelectionMove = 2;
+const AXTextStateChangeTypeSelectionExtend = 3;
+
+// AXTextEditType enum values
+const AXTextEditTypeDelete = 1;
+const AXTextEditTypeTyping = 3;
+
+// AXTextSelectionDirection enum values
+const AXTextSelectionDirectionUnknown = 0;
+const AXTextSelectionDirectionPrevious = 3;
+const AXTextSelectionDirectionNext = 4;
+const AXTextSelectionDirectionDiscontiguous = 5;
+
+// AXTextSelectionGranularity enum values
+const AXTextSelectionGranularityUnknown = 0;
+const AXTextSelectionGranularityCharacter = 1;
+const AXTextSelectionGranularityWord = 2;
+
 function getNativeInterface(accDoc, id) {
   return findAccessibleChildByID(accDoc, id).nativeInterface.QueryInterface(
     Ci.nsIAccessibleMacInterface
@@ -28,13 +53,25 @@ function getNativeInterface(accDoc, id) {
 }
 
 function waitForMacEventWithInfo(notificationType, filter) {
+  let filterFunc = (macIface, data) => {
+    if (!filter) {
+      return true;
+    }
+
+    if (typeof filter == "function") {
+      return filter(macIface, data);
+    }
+
+    return macIface.getAttributeValue("AXDOMIdentifier") == filter;
+  };
+
   return new Promise(resolve => {
     let eventObserver = {
       observe(subject, topic, data) {
         let macEvent = subject.QueryInterface(Ci.nsIAccessibleMacEvent);
         if (
           data === notificationType &&
-          (!filter || filter(macEvent.macIface, macEvent.data))
+          filterFunc(macEvent.macIface, macEvent.data)
         ) {
           Services.obs.removeObserver(this, "accessible-mac-event");
           resolve(macEvent);

@@ -10,6 +10,9 @@ const { MockRegistrar } = ChromeUtils.import(
 const mainThread = Services.tm.currentThread;
 
 const gDefaultPref = Services.prefs.getDefaultBranch("");
+const gOverride = Cc["@mozilla.org/network/native-dns-override;1"].getService(
+  Ci.nsINativeDNSResolverOverride
+);
 
 const defaultOriginAttributes = {};
 let h2Port = null;
@@ -1417,7 +1420,7 @@ add_task(async function test_async_resolve_with_trr_server_5() {
 
   // When dns is resolved in socket process, we can't set |expectEarlyFail| to true.
   let inSocketProcess = mozinfo.socketprocess_networking;
-  let [_] = await new DNSListener(
+  await new DNSListener(
     "bar_with_trr3.example.com",
     undefined,
     false,
@@ -1693,7 +1696,7 @@ add_task(async function test_resolve_not_confirmed() {
       // because of the increased delay between the emulator and host.
       await new Promise(resolve => do_timeout(100 * (100 / count), resolve));
     }
-    let [inRequest, inRecord, inStatus] = await new DNSListener(
+    let [, inRecord] = await new DNSListener(
       `ip${count}.example.org`,
       undefined,
       false
@@ -2044,7 +2047,7 @@ add_task(async function test_ipv6_trr_fallback() {
   const override = Cc["@mozilla.org/network/native-dns-override;1"].getService(
     Ci.nsINativeDNSResolverOverride
   );
-  override.addIPOverride("ipv6.host.com", "1:1::2");
+  gOverride.addIPOverride("ipv6.host.com", "1:1::2");
 
   await new DNSListener(
     "ipv6.host.com",
@@ -2077,7 +2080,6 @@ add_task(async function test_no_retry_without_doh() {
     // Requests to 0.0.0.0 are usually directed to localhost, so let's use a port
     // we know isn't being used - 666 (Doom)
     let chan = makeChan(url, Ci.nsIRequest.TRR_DEFAULT_MODE);
-    let resolutions = 0;
     let statusCounter = {
       statusCount: {},
       QueryInterface: ChromeUtils.generateQI([
@@ -2093,7 +2095,7 @@ add_task(async function test_no_retry_without_doh() {
       },
     };
     chan.notificationCallbacks = statusCounter;
-    let req = await new Promise(resolve =>
+    await new Promise(resolve =>
       chan.asyncOpen(new ChannelListener(resolve, null, CL_EXPECT_FAILURE))
     );
     equal(
@@ -2110,4 +2112,25 @@ add_task(async function test_no_retry_without_doh() {
 
   await test(`http://unknown.ipv4.stuff:666/path`, "0.0.0.0");
   await test(`http://unknown.ipv6.stuff:666/path`, "::");
+});
+
+// This test checks that normally when the TRR mode goes from ON -> OFF
+// we purge the DNS cache (including TRR), so the entries aren't used on
+// networks where they shouldn't. For example - turning on a VPN.
+add_task(async function test_purge_trr_cache_on_mode_change() {
+  Services.prefs.setBoolPref("network.trr.clear-cache-on-pref-change", true);
+
+  Services.prefs.setIntPref("network.trr.mode", 0);
+  Services.prefs.setIntPref("doh-rollout.mode", 2);
+  Services.prefs.setCharPref(
+    "network.trr.uri",
+    `https://foo.example.com:${h2Port}/doh?responseIP=3.3.3.3`
+  );
+
+  await new DNSListener("cached.example.com", "3.3.3.3");
+  Services.prefs.clearUserPref("doh-rollout.mode");
+
+  await new DNSListener("cached.example.com", "127.0.0.1");
+
+  Services.prefs.setBoolPref("network.trr.clear-cache-on-pref-change", false);
 });

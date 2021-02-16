@@ -72,10 +72,6 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 #  include "mozilla/widget/WinMessages.h"
 #endif  // #ifdef XP_WIN
 
-#ifdef XP_MACOSX
-#  include "ComplexTextInputPanel.h"
-#endif
-
 #ifdef MOZ_WIDGET_GTK
 #  include <gdk/gdk.h>
 #  include <gtk/gtk.h>
@@ -829,24 +825,6 @@ bool nsPluginInstanceOwner::GetCompositionString(uint32_t aType,
   return false;
 }
 
-bool nsPluginInstanceOwner::SetCandidateWindow(
-    const widget::CandidateWindowPosition& aPosition) {
-  if (NS_WARN_IF(!mPluginFrame)) {
-    return false;
-  }
-
-  nsCOMPtr<nsIWidget> widget = GetContainingWidgetIfOffset();
-  if (!widget) {
-    widget = GetRootWidgetForPluginFrame(mPluginFrame);
-    if (NS_WARN_IF(!widget)) {
-      return false;
-    }
-  }
-
-  widget->SetCandidateWindowForPlugin(aPosition);
-  return true;
-}
-
 bool nsPluginInstanceOwner::RequestCommitOrCancel(bool aCommitted) {
   nsCOMPtr<nsIWidget> widget = GetContainingWidgetIfOffset();
   if (!widget) {
@@ -886,23 +864,6 @@ bool nsPluginInstanceOwner::RequestCommitOrCancel(bool aCommitted) {
                              widget, composition->GetBrowserParent());
   // FYI: This instance may have been destroyed.  Be careful if you need to
   //      access members of this class.
-  return true;
-}
-
-bool nsPluginInstanceOwner::EnableIME(bool aEnable) {
-  if (NS_WARN_IF(!mPluginFrame)) {
-    return false;
-  }
-
-  nsCOMPtr<nsIWidget> widget = GetContainingWidgetIfOffset();
-  if (!widget) {
-    widget = GetRootWidgetForPluginFrame(mPluginFrame);
-    if (NS_WARN_IF(!widget)) {
-      return false;
-    }
-  }
-
-  widget->EnableIMEForPlugin(aEnable);
   return true;
 }
 
@@ -1474,8 +1435,7 @@ nsresult nsPluginInstanceOwner::ProcessMouseDown(Event* aMouseEvent) {
   // otherwise, we might not get key events
   if (mPluginFrame && mPluginWindow &&
       mPluginWindow->type == NPWindowTypeDrawable) {
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm) {
+    if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
       nsCOMPtr<Element> elem = do_QueryReferent(mContent);
       fm->SetFocus(elem, 0);
     }
@@ -1523,25 +1483,6 @@ nsresult nsPluginInstanceOwner::DispatchMouseToPlugin(Event* aMouseEvent,
 }
 
 #ifdef XP_WIN
-void nsPluginInstanceOwner::CallDefaultProc(const WidgetGUIEvent* aEvent) {
-  nsCOMPtr<nsIWidget> widget = GetContainingWidgetIfOffset();
-  if (!widget) {
-    widget = GetRootWidgetForPluginFrame(mPluginFrame);
-    if (NS_WARN_IF(!widget)) {
-      return;
-    }
-  }
-
-  const NPEvent* npEvent = static_cast<const NPEvent*>(aEvent->mPluginEvent);
-  if (NS_WARN_IF(!npEvent)) {
-    return;
-  }
-
-  WidgetPluginEvent pluginEvent(true, ePluginInputEvent, widget);
-  pluginEvent.mPluginEvent.Copy(*npEvent);
-  widget->DefaultProcOfPluginEvent(pluginEvent);
-}
-
 already_AddRefed<TextComposition> nsPluginInstanceOwner::GetTextComposition() {
   if (NS_WARN_IF(!mPluginFrame)) {
     return nullptr;
@@ -1574,32 +1515,12 @@ void nsPluginInstanceOwner::HandleNoConsumedCompositionMessage(
     }
   }
 
-  NPEvent npevent;
   if (aPluginEvent->lParam & GCS_RESULTSTR) {
-    // GCS_RESULTSTR's default proc will generate WM_CHAR. So emulate it.
-    for (size_t i = 0; i < aCompositionEvent->mData.Length(); i++) {
-      WidgetPluginEvent charEvent(true, ePluginInputEvent, widget);
-      npevent.event = WM_CHAR;
-      npevent.wParam = aCompositionEvent->mData[i];
-      npevent.lParam = 0;
-      charEvent.mPluginEvent.Copy(npevent);
-      ProcessEvent(charEvent);
-    }
     return;
   }
   if (!mSentStartComposition) {
-    // We post WM_IME_COMPOSITION to default proc, but
-    // WM_IME_STARTCOMPOSITION isn't post yet.  We should post it at first.
-    WidgetPluginEvent startEvent(true, ePluginInputEvent, widget);
-    npevent.event = WM_IME_STARTCOMPOSITION;
-    npevent.wParam = 0;
-    npevent.lParam = 0;
-    startEvent.mPluginEvent.Copy(npevent);
-    CallDefaultProc(&startEvent);
     mSentStartComposition = true;
   }
-
-  CallDefaultProc(aCompositionEvent);
 }
 #endif
 
@@ -1660,11 +1581,7 @@ nsresult nsPluginInstanceOwner::DispatchCompositionToPlugin(Event* aEvent) {
   }
 
   if (pPluginEvent->event == WM_IME_STARTCOMPOSITION) {
-    // Flash's protected mode lies that composition event is handled, but it
-    // cannot do it well.  So even if handled, we should post this message when
-    // no IMM API calls during WM_IME_COMPOSITION.
     if (nsEventStatus_eConsumeNoDefault != status) {
-      CallDefaultProc(compositionEvent);
       mSentStartComposition = true;
     } else {
       mSentStartComposition = false;
@@ -1674,10 +1591,6 @@ nsresult nsPluginInstanceOwner::DispatchCompositionToPlugin(Event* aEvent) {
   }
 
   if (pPluginEvent->event == WM_IME_ENDCOMPOSITION) {
-    // Always post WM_END_COMPOSITION to default proc. Because Flash may lie
-    // that it doesn't handle composition well, but event is handled.
-    // Even if posting this message, default proc do nothing if unnecessary.
-    CallDefaultProc(compositionEvent);
     return NS_OK;
   }
 
@@ -1906,38 +1819,8 @@ static NPCocoaEvent TranslateToNPCocoaEvent(WidgetGUIEvent* anEvent,
       break;
     }
     case eKeyDown:
-    case eKeyUp: {
-      WidgetKeyboardEvent* keyEvent = anEvent->AsKeyboardEvent();
-
-      // That keyEvent->mPluginTextEventString is non-empty is a signal that we
-      // should create a text event for the plugin, instead of a key event.
-      if (anEvent->mMessage == eKeyDown &&
-          !keyEvent->mPluginTextEventString.IsEmpty()) {
-        cocoaEvent.type = NPCocoaEventTextInput;
-        const char16_t* pluginTextEventString =
-            keyEvent->mPluginTextEventString.get();
-        cocoaEvent.data.text.text = (NPNSString*)::CFStringCreateWithCharacters(
-            NULL, reinterpret_cast<const UniChar*>(pluginTextEventString),
-            keyEvent->mPluginTextEventString.Length());
-      } else {
-        cocoaEvent.data.key.keyCode = keyEvent->mNativeKeyCode;
-        cocoaEvent.data.key.isARepeat = keyEvent->mIsRepeat;
-        cocoaEvent.data.key.modifierFlags = keyEvent->mNativeModifierFlags;
-        const char16_t* nativeChars = keyEvent->mNativeCharacters.get();
-        cocoaEvent.data.key.characters =
-            (NPNSString*)::CFStringCreateWithCharacters(
-                NULL, reinterpret_cast<const UniChar*>(nativeChars),
-                keyEvent->mNativeCharacters.Length());
-        const char16_t* nativeCharsIgnoringModifiers =
-            keyEvent->mNativeCharactersIgnoringModifiers.get();
-        cocoaEvent.data.key.charactersIgnoringModifiers =
-            (NPNSString*)::CFStringCreateWithCharacters(
-                NULL,
-                reinterpret_cast<const UniChar*>(nativeCharsIgnoringModifiers),
-                keyEvent->mNativeCharactersIgnoringModifiers.Length());
-      }
+    case eKeyUp:
       break;
-    }
     case eFocus:
     case eBlur:
       cocoaEvent.data.focus.hasFocus = (anEvent->mMessage == eFocus);
@@ -2014,30 +1897,6 @@ nsEventStatus nsPluginInstanceOwner::ProcessEvent(
   int16_t response = kNPEventNotHandled;
   mInstance->HandleEvent(&cocoaEvent, &response,
                          NS_PLUGIN_CALL_SAFE_TO_REENTER_GECKO);
-  if ((response == kNPEventStartIME) &&
-      (cocoaEvent.type == NPCocoaEventKeyDown)) {
-    nsIWidget* widget = mPluginFrame->GetNearestWidget();
-    if (widget) {
-      const WidgetKeyboardEvent* keyEvent = anEvent.AsKeyboardEvent();
-      double screenX, screenY;
-      ConvertPoint(0.0, mPluginFrame->GetScreenRect().height,
-                   NPCoordinateSpacePlugin, &screenX, &screenY,
-                   NPCoordinateSpaceScreen);
-      nsAutoString outText;
-      if (NS_SUCCEEDED(
-              widget->StartPluginIME(*keyEvent, screenX, screenY, outText)) &&
-          !outText.IsEmpty()) {
-        CFStringRef cfString = ::CFStringCreateWithCharacters(
-            kCFAllocatorDefault,
-            reinterpret_cast<const UniChar*>(outText.get()), outText.Length());
-        NPCocoaEvent textEvent;
-        InitializeNPCocoaEvent(&textEvent);
-        textEvent.type = NPCocoaEventTextInput;
-        textEvent.data.text.text = (NPNSString*)cfString;
-        mInstance->HandleEvent(&textEvent, nullptr);
-      }
-    }
-  }
 
   bool handled = (response == kNPEventHandled || response == kNPEventStartIME);
   bool leftMouseButtonDown =
@@ -2852,7 +2711,6 @@ NS_IMETHODIMP nsPluginInstanceOwner::CreateWidget(void) {
       mWidget = nsIWidget::CreateChildWindow();
       nsWidgetInitData initData;
       initData.mWindowType = eWindowType_plugin;
-      initData.mUnicode = false;
       initData.clipChildren = true;
       initData.clipSiblings = true;
       rv = mWidget->Create(parentWidget.get(), nullptr,

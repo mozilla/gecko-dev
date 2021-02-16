@@ -7,12 +7,17 @@
 #include "PerformanceMainThread.h"
 #include "PerformanceNavigation.h"
 #include "PerformancePaintTiming.h"
+#include "js/GCAPI.h"
+#include "jsapi.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/PerformanceNavigationTiming.h"
 #include "mozilla/dom/PerformanceResourceTiming.h"
 #include "mozilla/dom/PerformanceTiming.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_privacy.h"
+#include "nsIChannel.h"
+#include "nsIHttpChannel.h"
 
 namespace mozilla::dom {
 
@@ -438,16 +443,16 @@ void PerformanceMainThread::GetEntriesByName(
 
   Performance::GetEntriesByName(aName, aEntryType, aRetval);
 
-  if (mFCPTiming && mFCPTiming->GetName().Equals(aName) &&
+  if (mFCPTiming && mFCPTiming->GetName()->Equals(aName) &&
       (!aEntryType.WasPassed() ||
-       mFCPTiming->GetEntryType().Equals(aEntryType.Value()))) {
+       mFCPTiming->GetEntryType()->Equals(aEntryType.Value()))) {
     aRetval.AppendElement(mFCPTiming);
     return;
   }
 
   // The navigation entry is the first one. If it exists and the name matches,
   // let put it in front.
-  if (mDocEntry && mDocEntry->GetName().Equals(aName)) {
+  if (mDocEntry && mDocEntry->GetName()->Equals(aName)) {
     aRetval.InsertElementAt(0, mDocEntry);
     return;
   }

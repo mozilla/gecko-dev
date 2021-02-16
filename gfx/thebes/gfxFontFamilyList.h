@@ -9,14 +9,14 @@
 #include "nsAtom.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
+#include "nsReadableUtils.h"
 #include "nsString.h"
-#include "nsStyleConsts.h"
 #include "nsUnicharUtils.h"
 #include "nsTArray.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/NotNull.h"
+#include "mozilla/ServoStyleConsts.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/TimeStamp.h"
 
 namespace mozilla {
 
@@ -277,16 +277,11 @@ class FontFamilyList {
 
   void ToString(nsACString& aFamilyList, bool aQuotes = true,
                 bool aIncludeDefault = false) const {
-    const nsTArray<FontFamilyName>& names = mFontlist->mNames;
-    aFamilyList.Truncate();
-    uint32_t len = names.Length();
-    for (uint32_t i = 0; i < len; i++) {
-      if (i != 0) {
-        aFamilyList.Append(',');
-      }
-      const FontFamilyName& name = names[i];
-      name.AppendToString(aFamilyList, aQuotes);
-    }
+    aFamilyList =
+        StringJoin(","_ns, mFontlist->mNames,
+                   [aQuotes](nsACString& dst, const FontFamilyName& name) {
+                     name.AppendToString(dst, aQuotes);
+                   });
     if (aIncludeDefault && mDefaultFontType != StyleGenericFontFamily::None) {
       if (!aFamilyList.IsEmpty()) {
         aFamilyList.Append(',');

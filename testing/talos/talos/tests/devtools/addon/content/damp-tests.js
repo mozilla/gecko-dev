@@ -4,8 +4,6 @@
 
 "use strict";
 
-/* globals module */
-
 /**
  * This is the registry for all DAMP tests. Tests will be run in the order specified by
  * the DAMP_TESTS array.
@@ -100,13 +98,12 @@ module.exports = [
     description:
       "Measure open/close toolbox on webconsole panel against complicated document",
   },
-  // Bug 1503499 - disable for frequent failures on fission
-  // {
-  //  name: "complicated.inspector",
-  //  path: "inspector/complicated.js",
-  //  description:
-  //    "Measure open/close toolbox on inspector panel against complicated document",
-  // },
+  {
+    name: "complicated.inspector",
+    path: "inspector/complicated.js",
+    description:
+      "Measure open/close toolbox on inspector panel against complicated document",
+  },
   {
     name: "complicated.debugger",
     path: "debugger/complicated.js",
@@ -188,6 +185,11 @@ module.exports = [
     name: "panelsInBackground.reload",
     path: "toolbox/panels-in-background.js",
     description: "Measure page reload time when all panels are in background",
+  },
+  {
+    name: "toolbox.screenshot",
+    path: "toolbox/screenshot.js",
+    description: "Measure the time to take a fullpage screenshot",
   },
   {
     name: "server.protocoljs",

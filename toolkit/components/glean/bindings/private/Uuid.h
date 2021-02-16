@@ -7,54 +7,30 @@
 #ifndef mozilla_glean_GleanUuid_h
 #define mozilla_glean_GleanUuid_h
 
+#include "mozilla/Maybe.h"
 #include "nsIGleanMetrics.h"
 #include "nsString.h"
+#include "mozilla/glean/fog_ffi_generated.h"
 
-namespace mozilla {
-namespace glean {
+namespace mozilla::glean {
 
 namespace impl {
-extern "C" {
-void fog_uuid_set(uint32_t id, const nsACString& uuid);
-void fog_uuid_generate_and_set(uint32_t id);
-uint32_t fog_uuid_test_has_value(uint32_t id, const char* storageName);
-void fog_uuid_test_get_value(uint32_t id, const char* storageName,
-                             nsACString& value);
-}
 
 class UuidMetric {
  public:
-  constexpr explicit UuidMetric(uint32_t id) : mId(id) {}
+  constexpr explicit UuidMetric(uint32_t aId) : mId(aId) {}
 
   /*
    * Sets to the specified value.
    *
-   * @param value The UUID to set the metric to.
+   * @param aValue The UUID to set the metric to.
    */
-  void Set(const nsACString& value) const { fog_uuid_set(mId, value); }
+  void Set(const nsACString& aValue) const { fog_uuid_set(mId, &aValue); }
 
   /*
    * Generate a new random UUID and set the metric to it.
    */
   void GenerateAndSet() const { fog_uuid_generate_and_set(mId); }
-
-  /**
-   * **Test-only API**
-   *
-   * Tests whether a value is stored for the metric.
-   *
-   * This function will attempt to await the last parent-process task (if any)
-   * writing to the the metric's storage engine before returning a value.
-   * This function will not wait for data from child processes.
-   *
-   * Parent process only. Panics in child processes.
-   *
-   * @param aStorageName the name of the ping to retrieve the metric for.
-   * @return true if metric value exists, otherwise false
-   */
-  bool TestHasValue(const char* aStorageName) const {
-    return fog_uuid_test_has_value(mId, aStorageName) != 0;
-  }
 
   /**
    * **Test-only API**
@@ -67,14 +43,20 @@ class UuidMetric {
    *
    * This doesn't clear the stored value.
    * Parent process only. Panics in child processes.
-   * Panics if there is no value to get.
    *
-   * @return value of the stored metric.
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or Nothing() if there is no value.
    */
-  nsCString TestGetValue(const char* aStorageName) const {
+  Maybe<nsCString> TestGetValue(
+      const nsACString& aPingName = nsCString()) const {
+    if (!fog_uuid_test_has_value(mId, &aPingName)) {
+      return Nothing();
+    }
     nsCString ret;
-    fog_uuid_test_get_value(mId, aStorageName, ret);
-    return ret;
+    fog_uuid_test_get_value(mId, &aPingName, &ret);
+    return Some(ret);
   }
 
  private:
@@ -87,7 +69,7 @@ class GleanUuid final : public nsIGleanUuid {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIGLEANUUID
 
-  explicit GleanUuid(uint32_t id) : mUuid(id){};
+  explicit GleanUuid(uint32_t aId) : mUuid(aId){};
 
  private:
   virtual ~GleanUuid() = default;
@@ -95,7 +77,6 @@ class GleanUuid final : public nsIGleanUuid {
   const impl::UuidMetric mUuid;
 };
 
-}  // namespace glean
-}  // namespace mozilla
+}  // namespace mozilla::glean
 
-#endif /* mozilla_glean_GleanUuid.h */
+#endif /* mozilla_glean_GleanUuid_h */

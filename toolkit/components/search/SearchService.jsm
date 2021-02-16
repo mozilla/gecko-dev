@@ -565,15 +565,13 @@ SearchService.prototype = {
    *
    * @param {object} settings
    *   An object representing the search engine settings.
-   * @param {boolean} isReload
-   *   Set to true if this load is happening during a reload.
    */
-  async _loadEngines(settings, isReload) {
+  async _loadEngines(settings) {
     logConsole.debug("_loadEngines: start");
     let { engines, privateDefault } = await this._fetchEngineSelectorEngines();
     this._setDefaultAndOrdersFromSelector(engines, privateDefault);
 
-    let newEngines = await this._loadEnginesFromConfig(engines, isReload);
+    let newEngines = await this._loadEnginesFromConfig(engines);
     for (let engine of newEngines) {
       this._addEngineToStore(engine);
     }
@@ -605,18 +603,16 @@ SearchService.prototype = {
    *
    * @param {array} engineConfigs
    *   An array of engines configurations based on the schema.
-   * @param {boolean} [isReload]
-   *   Set to true to indicate a reload is happening.
    * @returns {array.<nsISearchEngine>}
    *   Returns an array of the loaded search engines. This may be
    *   smaller than the original list if not all engines can be loaded.
    */
-  async _loadEnginesFromConfig(engineConfigs, isReload = false) {
+  async _loadEnginesFromConfig(engineConfigs) {
     logConsole.debug("_loadEnginesFromConfig");
     let engines = [];
     for (let config of engineConfigs) {
       try {
-        let engine = await this.makeEngineFromConfig(config, isReload);
+        let engine = await this.makeEngineFromConfig(config);
         engines.push(engine);
       } catch (ex) {
         console.error(
@@ -627,41 +623,6 @@ SearchService.prototype = {
       }
     }
     return engines;
-  },
-
-  /**
-   * Ensures a built in search WebExtension is installed, installing
-   * it if necessary.
-   *
-   * @param {string} id
-   *   The WebExtension ID.
-   * @param {Array<string>} locales
-   *   An array of locales to use for the WebExtension. If more than
-   *   one is specified, different versions of the same engine may
-   *   be installed.
-   * @param {boolean} [isReload]
-   *   is being called from maybeReloadEngines.
-   */
-  async ensureBuiltinExtension(
-    id,
-    locales = [SearchUtils.DEFAULT_TAG],
-    isReload = false
-  ) {
-    logConsole.debug("ensureBuiltinExtension: ", id);
-    try {
-      let policy = await this._getExtensionPolicy(id);
-      await this._installExtensionEngine(
-        policy.extension,
-        locales,
-        false,
-        isReload
-      );
-      logConsole.debug("ensureBuiltinExtension: ", id, " installed.");
-    } catch (err) {
-      Cu.reportError(
-        "Failed to install engine: " + err.message + "\n" + err.stack
-      );
-    }
   },
 
   /**
@@ -690,11 +651,16 @@ SearchService.prototype = {
       return;
     }
 
+    // Before entering `_reloadingEngines` get the settings which we'll need.
+    // This also ensures that any pending settings have finished being written,
+    // which could otherwise cause data loss.
+    let settings = await this._settings.get();
+
     logConsole.debug("Running maybeReloadEngines");
     this._reloadingEngines = true;
 
     try {
-      await this._reloadEngines();
+      await this._reloadEngines(settings);
     } catch (ex) {
       logConsole.error("maybeReloadEngines failed", ex);
     }
@@ -702,7 +668,7 @@ SearchService.prototype = {
     logConsole.debug("maybeReloadEngines complete");
   },
 
-  async _reloadEngines() {
+  async _reloadEngines(settings) {
     // Capture the current engine state, in case we need to notify below.
     const prevCurrentEngine = this._currentEngine;
     const prevPrivateEngine = this._currentPrivateEngine;
@@ -803,7 +769,7 @@ SearchService.prototype = {
     // Any remaining configuration engines are ones that we need to add.
     for (let engine of configEngines) {
       try {
-        let newEngine = await this.makeEngineFromConfig(engine, false);
+        let newEngine = await this.makeEngineFromConfig(engine);
         this._addEngineToStore(newEngine, true);
       } catch (ex) {
         logConsole.warn(
@@ -813,6 +779,7 @@ SearchService.prototype = {
         );
       }
     }
+    this._loadEnginesMetadataFromSettings(settings.engines);
 
     // Now set the sort out the default engines and notify as appropriate.
     this._currentEngine = null;
@@ -1029,6 +996,27 @@ SearchService.prototype = {
       // keep checking isBuiltin for older settings.
       if (engineJSON._isAppProvided || engineJSON._isBuiltin) {
         ++skippedEngines;
+        continue;
+      }
+
+      // Some OpenSearch type engines are now obsolete and no longer supported.
+      // These were application provided engines that used to use the OpenSearch
+      // format before gecko transitioned to WebExtensions.
+      // These will sometimes have been missed in migration due to various
+      // reasons, and due to how the settings saves everything. We therefore
+      // explicitly ignore them here to drop them, and let the rest of the code
+      // fallback to the application/distribution default if necessary.
+      let loadPath = engineJSON._loadPath?.toLowerCase();
+      if (
+        loadPath &&
+        // Replaced by application provided in Firefox 79.
+        (loadPath.startsWith("[distribution]") ||
+          // Langpack engines moved in-app in Firefox 62.
+          // Note: these may be prefixed by jar:,
+          loadPath.includes("[app]/extensions/langpack") ||
+          loadPath.includes("[other]/langpack") ||
+          loadPath.includes("[profile]/extensions/langpack"))
+      ) {
         continue;
       }
 
@@ -1361,20 +1349,35 @@ SearchService.prototype = {
         );
       } else {
         let policy = await this._getExtensionPolicy(engine._extensionID);
-        let manifest = policy.extension.manifest;
+        let providerSettings =
+          policy.extension.manifest?.chrome_settings_overrides?.search_provider;
 
-        if (
-          !engine.checkSearchUrlMatchesManifest(
-            manifest?.chrome_settings_overrides?.search_provider
-          )
-        ) {
+        if (!providerSettings) {
+          logConsole.debug(
+            `Add-on ${engine._extensionID} for search engine ${engine.name} no longer has an engine defined`
+          );
+          Services.telemetry.keyedScalarSet(
+            "browser.searchinit.engine_invalid_webextension",
+            engine._extensionID,
+            4
+          );
+        } else if (engine.name != providerSettings.name) {
+          logConsole.debug(
+            `Add-on ${engine._extensionID} for search engine ${engine.name} has a different name!`
+          );
+          Services.telemetry.keyedScalarSet(
+            "browser.searchinit.engine_invalid_webextension",
+            engine._extensionID,
+            5
+          );
+        } else if (!engine.checkSearchUrlMatchesManifest(providerSettings)) {
           logConsole.debug(
             `Add-on ${engine._extensionID} for search engine ${engine.name} has out-of-date manifest!`
           );
           Services.telemetry.keyedScalarSet(
             "browser.searchinit.engine_invalid_webextension",
             engine._extensionID,
-            3
+            6
           );
         }
       }
@@ -1394,7 +1397,7 @@ SearchService.prototype = {
     return this._getSortedEngines(false);
   },
 
-  async getDefaultEngines() {
+  async getAppProvidedEngines() {
     await this.init();
 
     return this._sortEnginesByDefaults(
@@ -1428,8 +1431,8 @@ SearchService.prototype = {
     return this._engines.get(engineName) || null;
   },
 
-  getEngineByAlias(alias) {
-    this._ensureInitialized();
+  async getEngineByAlias(alias) {
+    await this.init();
     for (var engine of this._engines.values()) {
       if (engine && engine.aliases.includes(alias)) {
         return engine;
@@ -1517,7 +1520,7 @@ SearchService.prototype = {
       chrome_settings_overrides: {
         search_provider: {
           name,
-          encoding: `windows-1252`,
+          encoding: details.encoding || SearchUtils.DEFAULT_QUERY_CHARSET,
           search_url: encodeURI(details.template),
           keyword: details.alias,
           search_url_get_params: details.searchGetParams,
@@ -1552,8 +1555,6 @@ SearchService.prototype = {
    *   default locale.
    * @param {initEngine} [options.initEngine]
    *   Set to true if this engine is being loaded during initialisation.
-   * @param {boolean} [options.isReload]
-   *   Set to true if we're in a reload cycle.
    */
   async _createAndAddEngine({
     extensionID,
@@ -1562,7 +1563,6 @@ SearchService.prototype = {
     manifest,
     locale = SearchUtils.DEFAULT_TAG,
     initEngine = false,
-    isReload = false,
   }) {
     if (!extensionID) {
       throw Components.Exception(
@@ -1582,7 +1582,7 @@ SearchService.prototype = {
       await this.init();
     }
     let existingEngine = this._engines.get(name);
-    if (!isReload && existingEngine) {
+    if (existingEngine) {
       if (
         extensionID &&
         existingEngine._loadPath.startsWith(
@@ -1611,9 +1611,6 @@ SearchService.prototype = {
       manifest,
       locale
     );
-    if (isReload && this._engines.has(newEngine.name)) {
-      newEngine._engineToUpdate = this._engines.get(newEngine.name);
-    }
 
     this._addEngineToStore(newEngine);
     if (isCurrent) {
@@ -1709,12 +1706,10 @@ SearchService.prototype = {
    * @param {object} config
    *   The configuration object that defines the details of the engine
    *   webExtensionId etc.
-   * @param {boolean} isReload (optional)
-   *   Is being called as part of maybeReloadEngines.
    * @returns {nsISearchEngine}
    *   Returns the search engine object.
    */
-  async makeEngineFromConfig(config, isReload = false) {
+  async makeEngineFromConfig(config) {
     logConsole.debug("makeEngineFromConfig:", config);
     let policy = await this._getExtensionPolicy(config.webExtension.id);
     let locale =
@@ -1739,18 +1734,10 @@ SearchService.prototype = {
       locale,
       config
     );
-    if (isReload && this._engines.has(engine.name)) {
-      engine._engineToUpdate = this._engines.get(engine.name);
-    }
     return engine;
   },
 
-  async _installExtensionEngine(
-    extension,
-    locales,
-    initEngine = false,
-    isReload = false
-  ) {
+  async _installExtensionEngine(extension, locales, initEngine = false) {
     logConsole.debug("installExtensionEngine:", extension.id);
 
     let installLocale = async locale => {
@@ -1762,8 +1749,7 @@ SearchService.prototype = {
         extension,
         manifest,
         locale,
-        initEngine,
-        isReload
+        initEngine
       );
     };
 
@@ -1784,8 +1770,7 @@ SearchService.prototype = {
     extension,
     manifest,
     locale = SearchUtils.DEFAULT_TAG,
-    initEngine = false,
-    isReload
+    initEngine = false
   ) {
     // If we're in the startup cycle, and we've already loaded this engine,
     // then we use the existing one rather than trying to start from scratch.
@@ -1811,7 +1796,6 @@ SearchService.prototype = {
       manifest,
       locale,
       initEngine,
-      isReload,
     });
   },
 

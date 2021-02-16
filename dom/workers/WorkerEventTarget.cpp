@@ -5,6 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WorkerEventTarget.h"
+#include "WorkerPrivate.h"
+#include "WorkerRunnable.h"
+
+#include "WorkerPrivate.h"
+#include "WorkerRunnable.h"
+#include "mozilla/dom/ReferrerInfo.h"
 
 namespace mozilla {
 namespace dom {

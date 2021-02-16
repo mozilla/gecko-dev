@@ -93,9 +93,26 @@ external:
             ./mach --log-no-times static-analysis check --checks="-*,mozilla-civet-*" --outgoing --output $HOME/clang-tidy.json --format json
     fetches:
         toolchain:
-            - linux-clang-tidy-external
+            - linux64-clang-tidy-external
     worker:
         artifacts:
             - type: file
               name: public/code-review/clang-tidy.json
               path: /builds/worker/clang-tidy.json
+
+non-unified:
+    description: Run syntax test for non-unified build on C/C++ files.
+    treeherder:
+        symbol: cpp(non-unified)
+        tier: 1
+    attributes:
+        code-review: false
+    run-on-projects: ['integration']
+    run:
+        cwd: '{checkout}'
+        command: >-
+            source taskcluster/scripts/misc/source-test-clang-setup.sh &&
+            taskcluster/scripts/misc/source-test-clang-non-unified.sh
+    fetches:
+        toolchain:
+            - linux64-clang-tidy

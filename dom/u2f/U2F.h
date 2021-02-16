@@ -13,14 +13,19 @@
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/U2FBinding.h"
 #include "mozilla/dom/WebAuthnManagerBase.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MozPromise.h"
 #include "nsProxyRelease.h"
 #include "nsWrapperCache.h"
 #include "U2FAuthenticator.h"
 
+// XXX(Bug 1674080) Remove this and let Codegen.py generate it in U2FBinding.cpp
+// instead.
+#include "mozilla/dom/Document.h"
+
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
 class WebAuthnMakeCredentialResult;

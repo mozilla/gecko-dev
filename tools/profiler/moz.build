@@ -15,7 +15,6 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
         "public/GeckoProfilerReporter.h",
         "public/ProfilerChild.h",
         "public/ProfilerCodeAddressService.h",
-        "public/ProfilerMarkerPayload.h",
         "public/ProfilerParent.h",
         "public/shared-libraries.h",
     ]
@@ -27,7 +26,7 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
         "core/ProfiledThreadData.cpp",
         "core/ProfilerBacktrace.cpp",
         "core/ProfilerCodeAddressService.cpp",
-        "core/ProfilerMarkerPayload.cpp",
+        "core/ProfilerMarkers.cpp",
         "core/RegisteredThread.cpp",
         "gecko/ChildProfilerController.cpp",
         "gecko/nsProfilerStartParams.cpp",
@@ -173,6 +172,7 @@ BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.ini"]
 if CONFIG["CC_TYPE"] in ("clang", "gcc"):
     CXXFLAGS += [
         "-Wno-error=shadow",
+        "-Wno-error=stack-protector",
         "-Wno-ignored-qualifiers",  # due to use of breakpad headers
     ]
 

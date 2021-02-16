@@ -18,7 +18,6 @@
 #include "nsIEventTarget.h"
 
 #include <atomic>
-#include <thread>
 #include <memory>
 #include <vector>
 #include <set>
@@ -170,6 +169,9 @@ class Task {
 
   virtual PerformanceCounter* GetPerformanceCounter() const { return nullptr; }
 
+  // Get a name for this task. This returns false if the task has no name.
+  virtual bool GetName(nsACString& aName) { return false; }
+
  protected:
   Task(bool aMainThreadOnly,
        uint32_t aPriority = static_cast<uint32_t>(kDefaultPriorityValue))
@@ -241,9 +243,7 @@ class Task {
 };
 
 struct PoolThread {
-  // FIXME using std::thread here causes problems when recording where
-  // we don't pick up the inner pthread_create call for some reason.
-  pthread_t mThread;
+  PRThread* mThread;
   RefPtr<Task> mCurrentTask;
   // This may be higher than mCurrentTask's priority due to priority
   // propagation. This is -only- valid when mCurrentTask != nullptr.
@@ -332,7 +332,7 @@ class TaskController {
   bool MTTaskRunnableProcessedTask() { return mMTTaskRunnableProcessedTask; }
 
  private:
-  friend void* ThreadFuncPoolThread(void* arg);
+  friend void ThreadFuncPoolThread(void* aIndex);
 
   bool InitializeInternal();
 

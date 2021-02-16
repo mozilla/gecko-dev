@@ -95,8 +95,8 @@ arg_writer_info = {
     "JSWhyMagicImm": ("JSWhyMagic", "writeJSWhyMagicImm"),
     "CallFlagsImm": ("CallFlags", "writeCallFlagsImm"),
     "ScalarTypeImm": ("Scalar::Type", "writeScalarTypeImm"),
-    "MetaTwoByteKindImm": ("MetaTwoByteKind", "writeMetaTwoByteKindImm"),
     "UnaryMathFunctionImm": ("UnaryMathFunction", "writeUnaryMathFunctionImm"),
+    "WasmValTypeImm": ("wasm::ValType::Kind", "writeWasmValTypeImm"),
     "Int32Imm": ("int32_t", "writeInt32Imm"),
     "UInt32Imm": ("uint32_t", "writeUInt32Imm"),
     "JSNativeImm": ("JSNative", "writeJSNativeImm"),
@@ -189,8 +189,8 @@ arg_reader_info = {
     "JSWhyMagicImm": ("JSWhyMagic", "", "reader.whyMagic()"),
     "CallFlagsImm": ("CallFlags", "", "reader.callFlags()"),
     "ScalarTypeImm": ("Scalar::Type", "", "reader.scalarType()"),
-    "MetaTwoByteKindImm": ("MetaTwoByteKind", "", "reader.metaKind<MetaTwoByteKind>()"),
     "UnaryMathFunctionImm": ("UnaryMathFunction", "", "reader.unaryMathFunction()"),
+    "WasmValTypeImm": ("wasm::ValType::Kind", "", "reader.wasmValType()"),
     "Int32Imm": ("int32_t", "", "reader.int32Immediate()"),
     "UInt32Imm": ("uint32_t", "", "reader.uint32Immediate()"),
     "JSNativeImm": ("JSNative", "", "reinterpret_cast<JSNative>(reader.pointer())"),
@@ -207,8 +207,8 @@ def gen_compiler_method(name, args):
     # We generate the signature of the method that needs to be implemented and a
     # separate function forwarding to it. For example:
     #
-    #   MOZ_MUST_USE bool emitGuardShape(ObjOperandId objId, uint32_t shapeOffset);
-    #   MOZ_MUST_USE bool emitGuardShape(CacheIRReader& reader) {
+    #   [[nodiscard]] bool emitGuardShape(ObjOperandId objId, uint32_t shapeOffset);
+    #   [[nodiscard]] bool emitGuardShape(CacheIRReader& reader) {
     #     ObjOperandId objId = reader.objOperandId();
     #     uint32_t shapeOffset = reader.stubOffset();
     #     return emitGuardShape(objId, shapeOffset);
@@ -225,10 +225,10 @@ def gen_compiler_method(name, args):
             args_code += "  {} {} = {};\\\n".format(cpp_type, cpp_name, readexpr)
 
     # Generate signature.
-    code = "MOZ_MUST_USE bool {}({});\\\n".format(method_name, ", ".join(method_args))
+    code = "[[nodiscard]] bool {}({});\\\n".format(method_name, ", ".join(method_args))
 
     # Generate the method forwarding to it.
-    code += "MOZ_MUST_USE bool {}(CacheIRReader& reader) {{\\\n".format(method_name)
+    code += "[[nodiscard]] bool {}(CacheIRReader& reader) {{\\\n".format(method_name)
     code += args_code
     code += "  return {}({});\\\n".format(method_name, ", ".join(cpp_args))
     code += "}\\\n"
@@ -269,8 +269,8 @@ arg_spewer_method = {
     "JSWhyMagicImm": "spewJSWhyMagicImm",
     "CallFlagsImm": "spewCallFlagsImm",
     "ScalarTypeImm": "spewScalarTypeImm",
-    "MetaTwoByteKindImm": "spewMetaTwoByteKindImm",
     "UnaryMathFunctionImm": "spewUnaryMathFunctionImm",
+    "WasmValTypeImm": "spewWasmValTypeImm",
     "Int32Imm": "spewInt32Imm",
     "UInt32Imm": "spewUInt32Imm",
     "JSNativeImm": "spewJSNativeImm",
@@ -396,12 +396,12 @@ arg_length = {
     "BoolImm": 1,
     "CallFlagsImm": 1,
     "ScalarTypeImm": 1,
-    "MetaTwoByteKindImm": 1,
     "UnaryMathFunctionImm": 1,
     "JSOpImm": 1,
     "ValueTypeImm": 1,
     "GuardClassKindImm": 1,
     "JSWhyMagicImm": 1,
+    "WasmValTypeImm": 1,
     "Int32Imm": 4,
     "UInt32Imm": 4,
     "JSNativeImm": "sizeof(uintptr_t)",

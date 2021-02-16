@@ -8,12 +8,12 @@
 
 #include "builtin/intl/DisplayNames.h"
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Span.h"
 #include "mozilla/TextUtils.h"
 
 #include <algorithm>
+#include <iterator>
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -30,7 +30,7 @@
 #include "gc/Rooting.h"
 #include "js/CallArgs.h"
 #include "js/Class.h"
-#include "js/experimental/Intl.h"  // JS::AddMozDateTimeFormatConstructor, JS::AddDisplayNamesConstructor
+#include "js/experimental/Intl.h"     // JS::AddMozDisplayNamesConstructor
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/GCVector.h"
 #include "js/PropertyDescriptor.h"
@@ -225,17 +225,6 @@ void js::DisplayNamesObject::finalize(JSFreeOp* fop, JSObject* obj) {
   }
 }
 
-bool JS::AddDisplayNamesConstructor(JSContext* cx, HandleObject intl) {
-  JSObject* ctor =
-      GlobalObject::getOrCreateConstructor(cx, JSProto_DisplayNames);
-  if (!ctor) {
-    return false;
-  }
-
-  RootedValue ctorValue(cx, ObjectValue(*ctor));
-  return DefineDataProperty(cx, intl, cx->names().DisplayNames, ctorValue, 0);
-}
-
 bool JS::AddMozDisplayNamesConstructor(JSContext* cx, HandleObject intl) {
   RootedObject ctor(cx, GlobalObject::createConstructor(
                             cx, MozDisplayNames, cx->names().DisplayNames, 2));
@@ -294,8 +283,8 @@ static ULocaleDisplayNames* NewULocaleDisplayNames(
       UDISPCTX_NO_SUBSTITUTE,
   };
 
-  ULocaleDisplayNames* ldn = uldn_openForContext(
-      IcuLocale(locale), contexts, mozilla::ArrayLength(contexts), &status);
+  ULocaleDisplayNames* ldn = uldn_openForContext(IcuLocale(locale), contexts,
+                                                 std::size(contexts), &status);
   if (U_FAILURE(status)) {
     intl::ReportInternalError(cx);
     return nullptr;
@@ -453,9 +442,10 @@ static JSString* GetScriptDisplayName(JSContext* cx,
       return nullptr;
     }
 
-    // Return the canonicalized input when no localized script name was found.
+    // Return the case-canonicalized input when no localized name was found.
     if (str->empty() && fallback == DisplayNamesFallback::Code) {
-      return NewStringCopy(cx, tag.script().span());
+      script.toTitleCase();
+      return NewStringCopy(cx, script.span());
     }
 
     return str;
@@ -490,9 +480,10 @@ static JSString* GetScriptDisplayName(JSContext* cx,
     return nullptr;
   }
 
-  // Return the canonicalized input when no localized script name was found.
+  // Return the case-canonicalized input when no localized name was found.
   if (str->empty() && fallback == DisplayNamesFallback::Code) {
-    return NewStringCopy(cx, tag.script().span());
+    script.toTitleCase();
+    return NewStringCopy(cx, script.span());
   }
 
   return str;
@@ -551,9 +542,10 @@ static JSString* GetRegionDisplayName(JSContext* cx,
     return nullptr;
   }
 
-  // Return the canonicalized input when no localized region name was found.
+  // Return the case-canonicalized input when no localized name was found.
   if (str->empty() && fallback == DisplayNamesFallback::Code) {
-    return NewStringCopy(cx, tag.region().span());
+    region.toUpperCase();
+    return NewStringCopy(cx, region.span());
   }
 
   return str;
@@ -778,7 +770,7 @@ static JSString* GetWeekdayDisplayName(JSContext* cx,
   if (!names) {
     return nullptr;
   }
-  MOZ_ASSERT(names->length() == mozilla::ArrayLength(indices));
+  MOZ_ASSERT(names->length() == std::size(indices));
 
   return names->get(weekday - 1).toString();
 }
@@ -829,7 +821,7 @@ static JSString* GetMonthDisplayName(
   if (!names) {
     return nullptr;
   }
-  MOZ_ASSERT(names->length() == mozilla::ArrayLength(indices));
+  MOZ_ASSERT(names->length() == std::size(indices));
 
   JSString* str = names->get(month - 1).toString();
   if (str->empty() && fallback == DisplayNamesFallback::Code) {
@@ -881,7 +873,7 @@ static JSString* GetQuarterDisplayName(JSContext* cx,
   if (!names) {
     return nullptr;
   }
-  MOZ_ASSERT(names->length() == mozilla::ArrayLength(indices));
+  MOZ_ASSERT(names->length() == std::size(indices));
 
   return names->get(quarter - 1).toString();
 }
@@ -909,7 +901,7 @@ static JSString* GetDayPeriodDisplayName(
   if (!names) {
     return nullptr;
   }
-  MOZ_ASSERT(names->length() == mozilla::ArrayLength(indices));
+  MOZ_ASSERT(names->length() == std::size(indices));
 
   return names->get(index).toString();
 }

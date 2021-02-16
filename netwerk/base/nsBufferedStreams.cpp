@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "ipc/IPCMessageUtils.h"
-
 #include "nsBufferedStreams.h"
 #include "nsStreamUtils.h"
 #include "nsNetCID.h"
 #include "nsIClassInfoImpl.h"
+#include "nsIEventTarget.h"
+#include "nsThreadUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/ipc/InputStreamUtils.h"
 #include <algorithm>

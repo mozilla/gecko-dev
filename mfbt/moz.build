@@ -74,6 +74,7 @@ EXPORTS.mozilla = [
     "NotNull.h",
     "Opaque.h",
     "OperatorNewExtensions.h",
+    "PairHash.h",
     "Path.h",
     "PodOperations.h",
     "Poison.h",
@@ -88,6 +89,7 @@ EXPORTS.mozilla = [
     "RefPtr.h",
     "Result.h",
     "ResultExtensions.h",
+    "ResultVariant.h",
     "ReverseIterator.h",
     "RollingMean.h",
     "Saturate.h",
@@ -148,6 +150,7 @@ if CONFIG["MOZ_TSAN"]:
 UNIFIED_SOURCES += [
     "Assertions.cpp",
     "ChaosMode.cpp",
+    "Compression.cpp",
     "double-conversion/double-conversion/bignum-dtoa.cc",
     "double-conversion/double-conversion/bignum.cc",
     "double-conversion/double-conversion/cached-powers.cc",
@@ -170,8 +173,6 @@ UNIFIED_SOURCES += [
 
 if CONFIG["MOZ_BUILD_APP"] not in (
     "memory",
-    "tools/crashreporter",
-    "tools/update-packaging",
     "tools/update-programs",
 ):
     # RecordReplay.cpp uses files from js/
@@ -184,12 +185,13 @@ if CONFIG["MOZ_BUILD_APP"] not in (
 DEFINES["IMPL_MFBT"] = True
 
 SOURCES += [
-    "Compression.cpp",
     "lz4/lz4.c",
     "lz4/lz4frame.c",
     "lz4/lz4hc.c",
     "lz4/xxhash.c",
 ]
+
+SOURCES["lz4/xxhash.c"].flags += ["-Wno-unused-function"]
 
 DisableStlWrapping()
 

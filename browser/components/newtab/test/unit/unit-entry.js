@@ -360,7 +360,7 @@ const TEST_GLOBAL = {
         searchForm: "https://www.bing.com",
         aliases: ["@bing"],
       },
-      getEngineByAlias: () => null,
+      getEngineByAlias: async () => null,
     },
     scriptSecurityManager: {
       createNullPrincipal() {},
@@ -430,6 +430,11 @@ const TEST_GLOBAL = {
     },
   },
   FX_MONITOR_OAUTH_CLIENT_ID: "fake_client_id",
+  ExperimentAPI: {
+    getExperiment() {},
+    on: () => {},
+    off: () => {},
+  },
   TelemetryEnvironment: {
     setExperimentActive() {},
     currentEnvironment: {

@@ -65,7 +65,8 @@ class NewRenderer : public RendererEvent {
               bool* aUseTripleBuffering, bool* aSupportsExternalBufferTextures,
               RefPtr<widget::CompositorWidget>&& aWidget,
               layers::SynchronousTask* aTask, LayoutDeviceIntSize aSize,
-              layers::SyncHandle* aHandle, nsACString* aError)
+              layers::WindowKind aWindowKind, layers::SyncHandle* aHandle,
+              nsACString* aError)
       : mDocHandle(aDocHandle),
         mBackend(aBackend),
         mCompositor(aCompositor),
@@ -78,6 +79,7 @@ class NewRenderer : public RendererEvent {
         mCompositorWidget(std::move(aWidget)),
         mTask(aTask),
         mSize(aSize),
+        mWindowKind(aWindowKind),
         mSyncHandle(aHandle),
         mError(aError) {
     MOZ_COUNT_CTOR(NewRenderer);
@@ -123,32 +125,31 @@ class NewRenderer : public RendererEvent {
     char* errorMessage = nullptr;
     int picTileWidth = StaticPrefs::gfx_webrender_picture_tile_width();
     int picTileHeight = StaticPrefs::gfx_webrender_picture_tile_height();
+    auto* swgl = compositor->swgl();
+    auto* gl = (compositor->gl() && !swgl) ? compositor->gl() : nullptr;
+    auto* progCache = (aRenderThread.GetProgramCache() && !swgl)
+                          ? aRenderThread.GetProgramCache()->Raw()
+                          : nullptr;
+    auto* shaders = (aRenderThread.GetShaders() && !swgl)
+                        ? aRenderThread.GetShaders()->RawShaders()
+                        : nullptr;
 
     if (!wr_window_new(
             aWindowId, mSize.width, mSize.height,
-            supportLowPriorityTransactions, supportLowPriorityThreadpool,
-            gfx::gfxVars::UseGLSwizzle(),
+            mWindowKind == WindowKind::MAIN, supportLowPriorityTransactions,
+            supportLowPriorityThreadpool, gfx::gfxVars::UseGLSwizzle(),
             gfx::gfxVars::UseWebRenderScissoredCacheClears(),
 #ifdef NIGHTLY_BUILD
             StaticPrefs::gfx_webrender_start_debug_server(),
 #else
             false,
 #endif
-            compositor->swgl(), compositor->gl(),
-            compositor->SurfaceOriginIsTopLeft(),
-            aRenderThread.GetProgramCache()
-                ? aRenderThread.GetProgramCache()->Raw()
-                : nullptr,
-            aRenderThread.GetShaders()
-                ? aRenderThread.GetShaders()->RawShaders()
-                : nullptr,
+            swgl, gl, compositor->SurfaceOriginIsTopLeft(), progCache, shaders,
             aRenderThread.ThreadPool().Raw(),
             aRenderThread.ThreadPoolLP().Raw(), &WebRenderMallocSizeOf,
-            &WebRenderMallocEnclosingSizeOf, 0,
-            compositor->ShouldUseNativeCompositor() ? compositor.get()
-                                                    : nullptr,
-            compositor->GetMaxUpdateRects(),
-            compositor->UsePartialPresent() ? compositor.get() : nullptr,
+            &WebRenderMallocEnclosingSizeOf, 0, compositor.get(),
+            compositor->ShouldUseNativeCompositor(),
+            compositor->GetMaxUpdateRects(), compositor->UsePartialPresent(),
             compositor->GetMaxPartialPresentRects(),
             compositor->ShouldDrawPreviousPartialPresentRegions(), mDocHandle,
             &wrRenderer, mMaxTextureSize, &errorMessage,
@@ -194,6 +195,7 @@ class NewRenderer : public RendererEvent {
   RefPtr<widget::CompositorWidget> mCompositorWidget;
   layers::SynchronousTask* mTask;
   LayoutDeviceIntSize mSize;
+  layers::WindowKind mWindowKind;
   layers::SyncHandle* mSyncHandle;
   nsACString* mError;
 };
@@ -252,8 +254,8 @@ void TransactionBuilder::ClearDisplayList(Epoch aEpoch,
   wr_transaction_clear_display_list(mTxn, aEpoch, aPipelineId);
 }
 
-void TransactionBuilder::GenerateFrame() {
-  wr_transaction_generate_frame(mTxn);
+void TransactionBuilder::GenerateFrame(const VsyncId& aVsyncId) {
+  wr_transaction_generate_frame(mTxn, aVsyncId.mId);
 }
 
 void TransactionBuilder::InvalidateRenderedFrame() {
@@ -344,7 +346,8 @@ void TransactionWrapper::UpdateIsTransformAsyncZooming(uint64_t aAnimationId,
 already_AddRefed<WebRenderAPI> WebRenderAPI::Create(
     layers::CompositorBridgeParent* aBridge,
     RefPtr<widget::CompositorWidget>&& aWidget, const wr::WrWindowId& aWindowId,
-    LayoutDeviceIntSize aSize, nsACString& aError) {
+    LayoutDeviceIntSize aSize, layers::WindowKind aWindowKind,
+    nsACString& aError) {
   MOZ_ASSERT(aBridge);
   MOZ_ASSERT(aWidget);
   static_assert(
@@ -368,7 +371,7 @@ already_AddRefed<WebRenderAPI> WebRenderAPI::Create(
   auto event = MakeUnique<NewRenderer>(
       &docHandle, aBridge, &backend, &compositor, &maxTextureSize, &useANGLE,
       &useDComp, &useTripleBuffering, &supportsExternalBufferTextures,
-      std::move(aWidget), &task, aSize, &syncHandle, &aError);
+      std::move(aWidget), &task, aSize, aWindowKind, &syncHandle, &aError);
   RenderThread::Get()->RunEvent(aWindowId, std::move(event));
 
   task.Wait();
@@ -1164,9 +1167,12 @@ void DisplayListBuilder::PushRoundedRect(const wr::LayoutRect& aBounds,
   // - clips are not cached; borders are
   // - a simple border like this will be drawn as an image
   // - Processing lots of clips is not WebRender's strong point.
+  //
+  // Made the borders thicker than one half the width/height, to avoid
+  // little white dots at the center at some magnifications.
   wr::BorderSide side = {aColor, wr::BorderStyle::Solid};
-  float h = aBounds.size.width / 2;
-  float v = aBounds.size.height / 2;
+  float h = aBounds.size.width * 0.6f;
+  float v = aBounds.size.height * 0.6f;
   wr::LayoutSideOffsets widths = {v, h, v, h};
   wr::BorderRadius radii = {{h, v}, {h, v}, {h, v}, {h, v}};
 

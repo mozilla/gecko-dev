@@ -49,20 +49,20 @@ NS_IMPL_ADDREF(nsQueryContentEventResult)
 NS_IMPL_RELEASE(nsQueryContentEventResult)
 
 nsQueryContentEventResult::nsQueryContentEventResult(
-    mozilla::WidgetQueryContentEvent& aEvent)
+    mozilla::WidgetQueryContentEvent&& aEvent)
     : mEventMessage(aEvent.mMessage),
-      mOffset(aEvent.mReply.mOffset),
-      mTentativeCaretOffset(aEvent.mReply.mTentativeCaretOffset),
-      mString(aEvent.mReply.mString),
-      mRect(aEvent.mReply.mRect),
-      mRectArray(std::move(aEvent.mReply.mRectArray)),
-      mSucceeded(aEvent.mSucceeded),
-      mReversed(aEvent.mReply.mReversed) {
+      mSucceeded(aEvent.Succeeded()),
+      mReversed(false) {
+  if (mSucceeded) {
+    mOffsetAndData = std::move(aEvent.mReply->mOffsetAndData);
+    mTentativeCaretOffset = std::move(aEvent.mReply->mTentativeCaretOffset);
+    mRect = std::move(aEvent.mReply->mRect);
+    mRectArray = std::move(aEvent.mReply->mRectArray);
+    mReversed = aEvent.mReply->mReversed;
+  }
   // Mark as result that is longer used.
-  aEvent.mSucceeded = false;
+  aEvent.mReply.reset();
 }
-
-nsQueryContentEventResult::~nsQueryContentEventResult() = default;
 
 NS_IMETHODIMP
 nsQueryContentEventResult::GetOffset(uint32_t* aOffset) {
@@ -91,7 +91,7 @@ nsQueryContentEventResult::GetOffset(uint32_t* aOffset) {
     }
   }
 
-  *aOffset = mOffset;
+  *aOffset = mOffsetAndData->StartOffset();
   return NS_OK;
 }
 
@@ -105,7 +105,7 @@ nsQueryContentEventResult::GetTentativeCaretOffset(uint32_t* aOffset) {
   if (NS_WARN_IF(notFound)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  *aOffset = mTentativeCaretOffset;
+  *aOffset = mTentativeCaretOffset.value();
   return NS_OK;
 }
 
@@ -160,7 +160,8 @@ nsQueryContentEventResult::GetText(nsAString& aText) {
                      mEventMessage == eQueryTextContent ||
                      mEventMessage == eQueryTextRect,
                  NS_ERROR_NOT_AVAILABLE);
-  aText = mString;
+  NS_ENSURE_TRUE(mOffsetAndData.isSome(), NS_ERROR_NOT_AVAILABLE);
+  aText = mOffsetAndData->DataRef();
   return NS_OK;
 }
 
@@ -177,7 +178,7 @@ nsQueryContentEventResult::GetNotFound(bool* aNotFound) {
       NS_WARN_IF(!IsNotFoundPropertyAvailable(mEventMessage))) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  *aNotFound = (mOffset == WidgetQueryContentEvent::NOT_FOUND);
+  *aNotFound = mOffsetAndData.isNothing();
   return NS_OK;
 }
 
@@ -189,7 +190,7 @@ nsQueryContentEventResult::GetTentativeCaretOffsetNotFound(bool* aNotFound) {
   if (NS_WARN_IF(mEventMessage != eQueryCharacterAtPoint)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  *aNotFound = (mTentativeCaretOffset == WidgetQueryContentEvent::NOT_FOUND);
+  *aNotFound = mTentativeCaretOffset.isNothing();
   return NS_OK;
 }
 
@@ -200,7 +201,7 @@ nsQueryContentEventResult::GetCharacterRect(int32_t aOffset, int32_t* aLeft,
   NS_ENSURE_TRUE(mSucceeded, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(mEventMessage == eQueryTextRectArray, NS_ERROR_NOT_AVAILABLE);
 
-  if (NS_WARN_IF(mRectArray.Length() <= static_cast<uint32_t>(aOffset))) {
+  if (NS_WARN_IF(mRectArray.Length() <= static_cast<size_t>(aOffset))) {
     return NS_ERROR_FAILURE;
   }
 

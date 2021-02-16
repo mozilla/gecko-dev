@@ -57,6 +57,14 @@ class RotorControlRule final : public RotorRule {
   virtual uint16_t Match(const AccessibleOrProxy& aAccOrProxy) override;
 };
 
+class RotorTextEntryRule final : public RotorRule {
+ public:
+  explicit RotorTextEntryRule(AccessibleOrProxy& aDirectDescendantsFrom);
+  explicit RotorTextEntryRule();
+
+  virtual uint16_t Match(const AccessibleOrProxy& aAccOrProxy) override;
+};
+
 class RotorLinkRule : public RotorRule {
  public:
   explicit RotorLinkRule();
@@ -111,6 +119,15 @@ class RotorHeadingLevelRule : public RotorRoleRule {
 
  private:
   int32_t mLevel;
+};
+
+class RotorLiveRegionRule : public RotorRule {
+ public:
+  explicit RotorLiveRegionRule(AccessibleOrProxy& aDirectDescendantsFrom)
+      : RotorRule(aDirectDescendantsFrom) {}
+  explicit RotorLiveRegionRule() : RotorRule() {}
+
+  uint16_t Match(const AccessibleOrProxy& aAccOrProxy) override;
 };
 
 /**

@@ -28,7 +28,7 @@ add_task(async function() {
   for (const requestItem of requestItems) {
     requestItem.scrollIntoView();
     const requestsListStatus = requestItem.querySelector(".status-code");
-    EventUtils.sendMouseEvent({ type: "mouseover" }, requestsListStatus);
+    await EventUtils.sendMouseEvent({ type: "mouseover" }, requestsListStatus);
     await waitUntil(() => requestsListStatus.title);
     await waitForDOMIfNeeded(requestItem, ".requests-list-timings-total");
   }
@@ -73,10 +73,7 @@ add_task(async function() {
   );
 
   store.dispatch(Actions.toggleNetworkDetails());
-  EventUtils.sendMouseEvent(
-    { type: "click" },
-    document.querySelector("#response-tab")
-  );
+  await clickOnSidebarTab(document, "response");
   await Promise.all([wait, waitForPropsView]);
 
   testJsonSectionInResponseTab(`"Hello JSONP!"`);
@@ -93,7 +90,7 @@ add_task(async function() {
   info("Testing second request");
 
   wait = waitForDOM(document, "#response-panel .accordion-item", 2);
-  EventUtils.sendMouseEvent(
+  await EventUtils.sendMouseEvent(
     { type: "mousedown" },
     document.querySelectorAll(".request-list-item")[1]
   );

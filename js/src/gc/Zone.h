@@ -17,11 +17,11 @@
 #include "gc/FindSCCs.h"
 #include "gc/GCMarker.h"
 #include "gc/NurseryAwareHashMap.h"
+#include "gc/Statistics.h"
 #include "gc/ZoneAllocator.h"
 #include "js/GCHashTable.h"
 #include "vm/AtomsTable.h"
 #include "vm/JSFunction.h"
-#include "vm/TypeInference.h"
 
 namespace js {
 
@@ -179,10 +179,6 @@ namespace JS {
 // to delete the last compartment in a live zone.
 class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
  private:
-  js::WriteOnceData<bool> isAtomsZone_;
-  js::WriteOnceData<bool> isSelfHostingZone_;
-  js::WriteOnceData<bool> isSystemZone_;
-
   enum class HelperThreadUse : uint32_t { None, Pending, Active };
   mozilla::Atomic<HelperThreadUse, mozilla::SequentiallyConsistent>
       helperThreadUse_;
@@ -194,15 +190,16 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
  public:
   js::gc::ArenaLists arenas;
 
-  js::TypeZone types;
-
   // Per-zone data for use by an embedder.
   js::ZoneData<void*> data;
 
-  js::ZoneData<uint32_t> tenuredStrings;
   js::ZoneData<uint32_t> tenuredBigInts;
 
   js::ZoneOrIonCompileData<uint64_t> nurseryAllocatedStrings;
+
+  // Number of marked/finalzied JSString/JSFatInlineString during major GC.
+  js::ZoneOrGCTaskData<size_t> markedStrings;
+  js::ZoneOrGCTaskData<size_t> finalizedStrings;
 
   js::ZoneData<bool> allocNurseryStrings;
   js::ZoneData<bool> allocNurseryBigInts;
@@ -226,6 +223,12 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
 #ifdef MOZ_VTUNE
   js::UniquePtr<js::ScriptVTuneIdMap> scriptVTuneIdMap;
 #endif
+#ifdef JS_CACHEIR_SPEW
+  js::UniquePtr<js::ScriptFinalWarmUpCountMap> scriptFinalWarmUpCountMap;
+#endif
+
+  js::ZoneData<js::StringStats> previousGCStringStats;
+  js::ZoneData<js::StringStats> stringStats;
 
 #ifdef DEBUG
   js::MainThreadData<unsigned> gcSweepGroupIndex;
@@ -349,7 +352,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     return static_cast<Zone*>(zoneAlloc);
   }
 
-  explicit Zone(JSRuntime* rt);
+  explicit Zone(JSRuntime* rt, Kind kind = NormalZone);
   ~Zone();
 
   MOZ_MUST_USE bool init();
@@ -399,7 +402,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
       ShouldDiscardJitScripts discardJitScripts = KeepJitScripts);
 
   void addSizeOfIncludingThis(
-      mozilla::MallocSizeOf mallocSizeOf, JS::CodeSizes* code, size_t* typePool,
+      mozilla::MallocSizeOf mallocSizeOf, JS::CodeSizes* code,
       size_t* regexpZone, size_t* jitZone, size_t* baselineStubsOptimized,
       size_t* uniqueIdMap, size_t* shapeCaches, size_t* atomsMarkBitmaps,
       size_t* compartmentObjects, size_t* crossCompartmentWrappersTables,
@@ -419,8 +422,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     return js::gc::ZoneAllCellIter<T>(const_cast<Zone*>(this),
                                       std::forward<Args>(args)...);
   }
-
-  void beginSweepTypes();
 
   bool hasMarkedRealms();
 
@@ -453,6 +454,8 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   }
 
   bool shouldMarkInZone() const {
+    // We only need to check needsIncrementalBarrier() for the pre-barrier
+    // verifier. During marking isGCMarking() will always be true.
     return needsIncrementalBarrier() || isGCMarking();
   }
 
@@ -477,14 +480,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     return jitZone_ ? jitZone_ : createJitZone(cx);
   }
   js::jit::JitZone* jitZone() { return jitZone_; }
-
-  bool isAtomsZone() const { return isAtomsZone_; }
-  bool isSelfHostingZone() const { return isSelfHostingZone_; }
-  bool isSystemZone() const { return isSystemZone_; }
-
-  void setIsAtomsZone();
-  void setIsSelfHostingZone();
-  void setIsSystemZone();
 
   void prepareForCompacting();
 

@@ -6,8 +6,10 @@
 
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/CanvasRenderingContext2D.h"
 #include "mozilla/dom/CanvasUtils.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/HTMLMediaElementBinding.h"
@@ -21,6 +23,7 @@
 #include "mozilla/dom/WorkerRef.h"
 #include "mozilla/dom/WorkerRunnable.h"
 #include "mozilla/gfx/2D.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/Swizzle.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/ScopeExit.h"
@@ -353,13 +356,7 @@ static already_AddRefed<layers::Image> CreateImageFromRawData(
               bgraDataSurface->GetSize());
 
   // Create an Image from the BGRA SourceSurface.
-  RefPtr<layers::Image> image = CreateImageFromSurface(bgraDataSurface);
-
-  if (NS_WARN_IF(!image)) {
-    return nullptr;
-  }
-
-  return image.forget();
+  return CreateImageFromSurface(bgraDataSurface);
 }
 
 /*
@@ -595,6 +592,7 @@ already_AddRefed<SourceSurface> ImageBitmap::PrepareForDrawTarget(
       srcSurface->Unmap();
     }
 
+    mAlphaType = gfxAlphaType::Premult;
     mSurface = dstSurface;
   }
 
@@ -710,12 +708,6 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
 
   // Create ImageBitmap.
   RefPtr<layers::Image> data = CreateImageFromSurface(surface);
-
-  if (NS_WARN_IF(!data)) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   // Set the picture rectangle.
@@ -743,12 +735,6 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
 
   // Create ImageBitmap.
   RefPtr<layers::Image> data = CreateImageFromSurface(surface);
-
-  if (NS_WARN_IF(!data)) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   // Set the picture rectangle.
@@ -852,12 +838,6 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
 
   // Create an Image from the SourceSurface.
   RefPtr<layers::Image> data = CreateImageFromSurface(croppedSurface);
-
-  if (NS_WARN_IF(!data)) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return nullptr;
-  }
-
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   if (needToReportMemoryAllocation) {
@@ -877,7 +857,7 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
     nsIGlobalObject* aGlobal, ImageData& aImageData,
     const Maybe<IntRect>& aCropRect, ErrorResult& aRv) {
   // Copy data into SourceSurface.
-  dom::Uint8ClampedArray array;
+  RootedSpiderMonkeyInterface<Uint8ClampedArray> array(RootingCx());
   DebugOnly<bool> inited = array.Init(aImageData.GetDataObject());
   MOZ_ASSERT(inited);
 
@@ -901,13 +881,26 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
 
   // Create and Crop the raw data into a layers::Image
   RefPtr<layers::Image> data;
+
+  // If the data could move during a GC, copy it out into a local buffer that
+  // lives until a CreateImageFromRawData lower in the stack copies it.
+  // Reassure the static analysis that we know what we're doing.
+  size_t maxInline = JS_MaxMovableTypedArraySize();
+  uint8_t inlineDataBuffer[maxInline];
+  uint8_t* fixedData = array.FixedData(inlineDataBuffer, maxInline);
+
+  // Lie to the hazard analysis and say that we're done with everything that
+  // `array` was using (safe because the data buffer is fixed, and the holding
+  // JSObject is being kept alive elsewhere.)
+  array.Reset();
+
   if (NS_IsMainThread()) {
-    data = CreateImageFromRawData(imageSize, imageStride, FORMAT, array.Data(),
+    data = CreateImageFromRawData(imageSize, imageStride, FORMAT, fixedData,
                                   dataLength, aCropRect);
   } else {
     RefPtr<CreateImageFromRawDataInMainThreadSyncTask> task =
         new CreateImageFromRawDataInMainThreadSyncTask(
-            array.Data(), dataLength, imageStride, FORMAT, imageSize, aCropRect,
+            fixedData, dataLength, imageStride, FORMAT, imageSize, aCropRect,
             getter_AddRefs(data));
     task->Dispatch(Canceling, aRv);
   }
@@ -917,7 +910,7 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
     return nullptr;
   }
 
-  // Create an ImageBimtap.
+  // Create an ImageBitmap.
   RefPtr<ImageBitmap> ret =
       new ImageBitmap(aGlobal, data, false /* write-only */, alphaType);
 
@@ -941,7 +934,7 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
   }
 
   window->GetExtantDoc()->WarnOnceAbout(
-      Document::eCreateImageBitmapCanvasRenderingContext2D);
+      DeprecatedOperations::eCreateImageBitmapCanvasRenderingContext2D);
 
   // Check write-only mode.
   bool writeOnly =
@@ -961,12 +954,6 @@ already_AddRefed<ImageBitmap> ImageBitmap::CreateInternal(
   }
 
   RefPtr<layers::Image> data = CreateImageFromSurface(surface);
-
-  if (NS_WARN_IF(!data)) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return nullptr;
-  }
-
   RefPtr<ImageBitmap> ret = new ImageBitmap(aGlobal, data, writeOnly);
 
   ret->mAllocatedImageData = true;
@@ -1057,7 +1044,7 @@ static void AsyncFulfillImageBitmapPromise(Promise* aPromise,
 
 class CreateImageBitmapFromBlobRunnable;
 
-class CreateImageBitmapFromBlob final : public CancelableRunnable,
+class CreateImageBitmapFromBlob final : public DiscardableRunnable,
                                         public imgIContainerCallback,
                                         public nsIInputStreamCallback {
   friend class CreateImageBitmapFromBlobRunnable;
@@ -1090,7 +1077,7 @@ class CreateImageBitmapFromBlob final : public CancelableRunnable,
                             already_AddRefed<nsIInputStream> aInputStream,
                             const Maybe<IntRect>& aCropRect,
                             nsIEventTarget* aMainThreadEventTarget)
-      : CancelableRunnable("dom::CreateImageBitmapFromBlob"),
+      : DiscardableRunnable("dom::CreateImageBitmapFromBlob"),
         mMutex("dom::CreateImageBitmapFromBlob::mMutex"),
         mPromise(aPromise),
         mGlobalObject(aGlobal),
@@ -1150,7 +1137,7 @@ class CreateImageBitmapFromBlob final : public CancelableRunnable,
   void* mThread;
 };
 
-NS_IMPL_ISUPPORTS_INHERITED(CreateImageBitmapFromBlob, CancelableRunnable,
+NS_IMPL_ISUPPORTS_INHERITED(CreateImageBitmapFromBlob, DiscardableRunnable,
                             imgIContainerCallback, nsIInputStreamCallback)
 
 class CreateImageBitmapFromBlobRunnable : public WorkerRunnable {

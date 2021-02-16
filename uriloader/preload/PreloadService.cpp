@@ -6,16 +6,20 @@
 #include "PreloadService.h"
 
 #include "FetchPreloader.h"
+#include "PreloaderBase.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/HTMLLinkElement.h"
 #include "mozilla/dom/ScriptLoader.h"
+#include "mozilla/Encoding.h"
 #include "mozilla/FontPreloader.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "nsIReferrerInfo.h"
 #include "nsNetUtil.h"
 
 namespace mozilla {
+
+PreloadService::PreloadService(dom::Document* aDoc) : mDocument(aDoc) {}
+PreloadService::~PreloadService() = default;
 
 bool PreloadService::RegisterPreload(const PreloadHashKey& aKey,
                                      PreloaderBase* aPreload) {
@@ -58,20 +62,12 @@ already_AddRefed<nsIURI> PreloadService::GetPreloadURI(const nsAString& aURL) {
 }
 
 already_AddRefed<PreloaderBase> PreloadService::PreloadLinkElement(
-    dom::HTMLLinkElement* aLinkElement, nsContentPolicyType aPolicyType,
-    nsIReferrerInfo* aReferrerInfo) {
+    dom::HTMLLinkElement* aLinkElement, nsContentPolicyType aPolicyType) {
   // Even if the pref is disabled, we still want to collect telemetry about
   // attempted preloads.
   const bool preloadEnabled = StaticPrefs::network_preload();
-
-  if (!CheckReferrerURIScheme(aReferrerInfo)) {
-    return nullptr;
-  }
-
   if (aPolicyType == nsIContentPolicy::TYPE_INVALID) {
-    if (preloadEnabled) {
-      NotifyNodeEvent(aLinkElement, false);
-    }
+    MOZ_ASSERT_UNREACHABLE("Caller should check");
     return nullptr;
   }
 
@@ -114,16 +110,13 @@ void PreloadService::PreloadLinkHeader(
     nsIURI* aURI, const nsAString& aURL, nsContentPolicyType aPolicyType,
     const nsAString& aAs, const nsAString& aType, const nsAString& aIntegrity,
     const nsAString& aSrcset, const nsAString& aSizes, const nsAString& aCORS,
-    const nsAString& aReferrerPolicy, nsIReferrerInfo* aReferrerInfo) {
+    const nsAString& aReferrerPolicy) {
   // Even if the pref is disabled, we still want to collect telemetry about
   // attempted preloads.
   const bool preloadEnabled = StaticPrefs::network_preload();
 
-  if (!CheckReferrerURIScheme(aReferrerInfo)) {
-    return;
-  }
-
   if (aPolicyType == nsIContentPolicy::TYPE_INVALID) {
+    MOZ_ASSERT_UNREACHABLE("Caller should check");
     return;
   }
 
@@ -284,22 +277,6 @@ dom::ReferrerPolicy PreloadService::PreloadReferrerPolicy(
   }
 
   return referrerPolicy;
-}
-
-bool PreloadService::CheckReferrerURIScheme(nsIReferrerInfo* aReferrerInfo) {
-  if (!aReferrerInfo) {
-    return false;
-  }
-
-  nsCOMPtr<nsIURI> referrer = aReferrerInfo->GetOriginalReferrer();
-  if (!referrer) {
-    return false;
-  }
-  if (!referrer->SchemeIs("http") && !referrer->SchemeIs("https")) {
-    return false;
-  }
-
-  return true;
 }
 
 nsIURI* PreloadService::BaseURIForPreload() {

@@ -44,8 +44,12 @@
  * allocated using C memory allocation functions.
  */
 
-#include "mozilla/mozalloc.h"
 #include "mozHunspellAllocator.h"
+
+// Ensure that malloc is imported before we set our malloc-counting hooks below.
+// Otherwise, if malloc is imported afterwards, its source will be trampled
+// over by the "#define"s.
+#include "mozmemory.h"
 
 #define malloc(size) HunspellAllocator::CountingMalloc(size)
 #define calloc(count, size) HunspellAllocator::CountingCalloc(count, size)

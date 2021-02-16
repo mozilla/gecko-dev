@@ -49,15 +49,18 @@
 #include "js/ProtoKey.h"
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
+#include "vm/BooleanObject.h"
 #include "vm/DateObject.h"
 #include "vm/EnvironmentObject.h"
 #include "vm/ErrorObject.h"
 #include "vm/GeneratorObject.h"
 #include "vm/HelperThreads.h"
 #include "vm/JSContext.h"
+#include "vm/NumberObject.h"
 #include "vm/PIC.h"
 #include "vm/RegExpStatics.h"
 #include "vm/RegExpStaticsObject.h"
+#include "vm/StringObject.h"
 
 #include "gc/FreeOp-inl.h"
 #include "vm/JSObject-inl.h"
@@ -87,16 +90,6 @@ static const JSClass* const protoTable[JSProto_LIMIT] = {
 JS_FRIEND_API const JSClass* js::ProtoKeyToClass(JSProtoKey key) {
   MOZ_ASSERT(key < JSProto_LIMIT);
   return protoTable[key];
-}
-
-// This method is not in the header file to avoid having to include
-// WasmJS.h from GlobalObject.h. It is not generally perf
-// sensitive.
-WasmNamespaceObject& js::GlobalObject::getWebAssemblyNamespace() const {
-  Value v = getConstructor(JSProto_WebAssembly);
-  // only gets called from contexts where WebAssembly must be initialized
-  MOZ_ASSERT(v.isObject());
-  return v.toObject().as<WasmNamespaceObject>();
 }
 
 /* static */
@@ -163,6 +156,7 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_WasmMemory:
     case JSProto_WasmTable:
     case JSProto_WasmGlobal:
+    case JSProto_WasmException:
       return false;
 
 #ifdef JS_HAS_INTL_API
@@ -522,15 +516,6 @@ bool GlobalObject::resolveOffThreadConstructor(JSContext* cx,
     return false;
   }
 
-  if (key == JSProto_Object || key == JSProto_Function ||
-      key == JSProto_Array) {
-    ObjectGroupRealm& realm = ObjectGroupRealm::getForNewObject(cx);
-    if (!JSObject::setNewGroupUnknown(cx, realm, placeholder->getClass(),
-                                      placeholder)) {
-      return false;
-    }
-  }
-
   global->setPrototype(key, ObjectValue(*placeholder));
   global->setConstructor(key, MagicValue(JS_OFF_THREAD_CONSTRUCTOR));
   return true;
@@ -646,7 +631,7 @@ GlobalObject* GlobalObject::createInternal(JSContext* cx,
   MOZ_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
   MOZ_ASSERT(clasp->isTrace(JS_GlobalObjectTraceHook));
 
-  JSObject* obj = NewSingletonObjectWithGivenProto(cx, clasp, nullptr);
+  JSObject* obj = NewTenuredObjectWithGivenProto(cx, clasp, nullptr);
   if (!obj) {
     return nullptr;
   }
@@ -902,8 +887,7 @@ static NativeObject* CreateBlankProto(JSContext* cx, const JSClass* clasp,
                                       HandleObject proto) {
   MOZ_ASSERT(clasp != &JSFunction::class_);
 
-  RootedObject blankProto(cx,
-                          NewSingletonObjectWithGivenProto(cx, clasp, proto));
+  RootedObject blankProto(cx, NewTenuredObjectWithGivenProto(cx, clasp, proto));
   if (!blankProto || !JSObject::setDelegate(cx, blankProto)) {
     return nullptr;
   }
@@ -1074,7 +1058,7 @@ bool GlobalObject::getSelfHostedFunction(JSContext* cx,
 
   RootedFunction fun(cx);
   if (!cx->runtime()->createLazySelfHostedFunctionClone(
-          cx, selfHostedName, name, nargs, SingletonObject, &fun)) {
+          cx, selfHostedName, name, nargs, TenuredObject, &fun)) {
     return false;
   }
   funVal.setObject(*fun);

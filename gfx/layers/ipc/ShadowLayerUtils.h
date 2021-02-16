@@ -7,25 +7,15 @@
 #ifndef IPC_ShadowLayerUtils_h
 #define IPC_ShadowLayerUtils_h
 
+#include "ipc/EnumSerializer.h"
 #include "ipc/IPCMessageUtils.h"
 #include "GLContextTypes.h"
+#include "SurfaceDescriptor.h"
 #include "SurfaceTypes.h"
 #include "mozilla/WidgetUtils.h"
 
-#if defined(XP_MACOSX)
-#  define MOZ_HAVE_PLATFORM_SPECIFIC_LAYER_BUFFERS
-#endif
-
 #if defined(MOZ_X11)
 #  include "mozilla/layers/ShadowLayerUtilsX11.h"
-#else
-namespace mozilla {
-namespace layers {
-struct SurfaceDescriptorX11 {
-  bool operator==(const SurfaceDescriptorX11&) const { return false; }
-};
-}  // namespace layers
-}  // namespace mozilla
 #endif
 
 namespace IPC {

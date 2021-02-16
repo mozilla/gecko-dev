@@ -13,9 +13,6 @@ let testEngine;
 add_task(async function init() {
   // Disable search suggestions for a less verbose test.
   Services.prefs.setBoolPref("browser.search.suggest.enabled", false);
-  // Enable tab-to-search.
-  Services.prefs.setBoolPref("browser.urlbar.update2", true);
-  Services.prefs.setBoolPref("browser.urlbar.update2.tabToComplete", true);
   // Disable tab-to-search onboarding results. Those are covered in
   // browser/components/urlbar/tests/browser/browser_tabToSearch.js.
   Services.prefs.setIntPref(
@@ -31,8 +28,6 @@ add_task(async function init() {
     Services.prefs.clearUserPref(
       "browser.urlbar.tabToSearch.onboard.interactionsLeft"
     );
-    Services.prefs.clearUserPref("browser.urlbar.update2.tabToComplete");
-    Services.prefs.clearUserPref("browser.urlbar.update2");
     Services.prefs.clearUserPref("browser.search.suggest.enabled");
   });
 });
@@ -59,12 +54,30 @@ add_task(async function basic() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           testEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
     ],
   });
+
+  info("Repeat the search but with tab-to-search disabled through pref.");
+  Services.prefs.setBoolPref("browser.urlbar.suggest.engines", false);
+  await check_results({
+    context,
+    autofilled: "example.com/",
+    completed: "https://example.com/",
+    matches: [
+      makeVisitResult(context, {
+        uri: "https://example.com/",
+        title: "https://example.com",
+        heuristic: true,
+        providerName: "Autofill",
+      }),
+    ],
+  });
+  Services.prefs.clearUserPref("browser.urlbar.suggest.engines");
+
   await cleanupPlaces();
 });
 
@@ -131,7 +144,7 @@ add_task(async function ignoreWww() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           testEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
@@ -162,7 +175,7 @@ add_task(async function ignoreWww() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           wwwTestEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
@@ -190,7 +203,7 @@ add_task(async function ignoreWww() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           wwwTestEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
@@ -240,7 +253,7 @@ add_task(async function conflictingEngines() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           fooTestEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
@@ -272,7 +285,7 @@ add_task(async function conflictingEngines() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           fooBarTestEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
@@ -310,7 +323,7 @@ add_task(async function multipleEnginesForHostname() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           testEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
@@ -341,7 +354,7 @@ add_task(async function test_casing() {
         uri: UrlbarUtils.stripPublicSuffixFromHost(
           testEngine.getResultDomain()
         ),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
       }),
@@ -351,33 +364,34 @@ add_task(async function test_casing() {
 });
 
 add_task(async function test_publicSuffix() {
-  info(
-    "Tab-to-search results appear also in case of different subdomain and suffix."
-  );
+  info("Tab-to-search results appear also in case of partial host match.");
   let engine = await Services.search.addEngineWithDetails("MyTest", {
     template: "https://test.mytest.it/?search={searchTerms}",
   });
-  // The top level domain will be autofilled, not the full domain.
-  await PlacesTestUtils.addVisits(["https://mytest.com/"]);
+  await PlacesTestUtils.addVisits(["https://test.mytest.it/"]);
   let context = createContext("my", { isPrivate: false });
   await check_results({
     context,
-    autofilled: "mytest.com/",
-    completed: "https://mytest.com/",
     matches: [
-      makeVisitResult(context, {
-        uri: "https://mytest.com/",
-        title: "https://mytest.com",
+      makeSearchResult(context, {
+        engineName: Services.search.defaultEngine.name,
+        engineIconUri: Services.search.defaultEngine.iconURI?.spec,
         heuristic: true,
-        providerName: "Autofill",
+        providerName: "HeuristicFallback",
       }),
       makeSearchResult(context, {
         engineName: engine.name,
         engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS_INVERTED,
         uri: UrlbarUtils.stripPublicSuffixFromHost(engine.getResultDomain()),
-        keywordOffer: UrlbarUtils.KEYWORD_OFFER.SHOW,
+        providesSearchMode: true,
         query: "",
         providerName: "TabToSearch",
+        satisfiesAutofillThreshold: true,
+      }),
+      makeVisitResult(context, {
+        uri: "https://test.mytest.it/",
+        title: "test visit for https://test.mytest.it/",
+        providerName: "UnifiedComplete",
       }),
     ],
   });
@@ -408,4 +422,56 @@ add_task(async function test_publicSuffixIsHost() {
   });
   await cleanupPlaces();
   await Services.search.removeEngine(suffixEngine);
+});
+
+add_task(async function test_disabledEngine() {
+  info("Tab-to-search results does not appear for a Pref-disabled engine.");
+  let engine = await Services.search.addEngineWithDetails("Disabled", {
+    template: "https://disabled.com/?search={searchTerms}",
+  });
+  await PlacesTestUtils.addVisits(["https://disabled.com/"]);
+  let context = createContext("dis", { isPrivate: false });
+
+  info("Sanity check that the engine would appear.");
+  await check_results({
+    context,
+    autofilled: "disabled.com/",
+    completed: "https://disabled.com/",
+    matches: [
+      makeVisitResult(context, {
+        uri: "https://disabled.com/",
+        title: "https://disabled.com",
+        heuristic: true,
+        providerName: "Autofill",
+      }),
+      makeSearchResult(context, {
+        engineName: engine.name,
+        engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS_INVERTED,
+        uri: UrlbarUtils.stripPublicSuffixFromHost(engine.getResultDomain()),
+        providesSearchMode: true,
+        query: "",
+        providerName: "TabToSearch",
+      }),
+    ],
+  });
+
+  info("Now disable the engine.");
+  Services.prefs.setCharPref("browser.search.hiddenOneOffs", engine.name);
+  await check_results({
+    context,
+    autofilled: "disabled.com/",
+    completed: "https://disabled.com/",
+    matches: [
+      makeVisitResult(context, {
+        uri: "https://disabled.com/",
+        title: "https://disabled.com",
+        heuristic: true,
+        providerName: "Autofill",
+      }),
+    ],
+  });
+  Services.prefs.clearUserPref("browser.search.hiddenOneOffs");
+
+  await cleanupPlaces();
+  await Services.search.removeEngine(engine);
 });

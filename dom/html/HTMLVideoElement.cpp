@@ -12,9 +12,11 @@
 #include "nsGkAtoms.h"
 #include "nsSize.h"
 #include "nsError.h"
+#include "nsIHttpChannel.h"
 #include "nsNodeInfoManager.h"
 #include "plbase64.h"
 #include "prlock.h"
+#include "nsRFPService.h"
 #include "nsThreadUtils.h"
 #include "ImageContainer.h"
 #include "VideoFrameContainer.h"
@@ -293,10 +295,6 @@ JSObject* HTMLVideoElement::WrapNode(JSContext* aCx,
   return HTMLVideoElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-FrameStatistics* HTMLVideoElement::GetFrameStatistics() {
-  return mDecoder ? &(mDecoder->GetFrameStatistics()) : nullptr;
-}
-
 already_AddRefed<VideoPlaybackQuality>
 HTMLVideoElement::GetVideoPlaybackQuality() {
   DOMHighResTimeStamp creationTime = 0;
@@ -525,6 +523,7 @@ void HTMLVideoElement::MaybeBeginCloningVisually() {
   if (mDecoder) {
     mDecoder->SetSecondaryVideoContainer(
         mVisualCloneTarget->GetVideoFrameContainer());
+    NotifyDecoderActivityChanges();
     UpdateMediaControlAfterPictureInPictureModeChanged();
     OwnerDoc()->EnableChildElementInPictureInPictureMode();
   } else if (mSrcStream) {
@@ -548,6 +547,7 @@ void HTMLVideoElement::EndCloningVisually() {
 
   if (mDecoder) {
     mDecoder->SetSecondaryVideoContainer(nullptr);
+    NotifyDecoderActivityChanges();
     OwnerDoc()->DisableChildElementInPictureInPictureMode();
   } else if (mSrcStream) {
     if (mSecondaryVideoOutput) {

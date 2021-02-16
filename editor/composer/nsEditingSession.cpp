@@ -19,30 +19,31 @@
 #include "nsContentUtils.h"
 #include "nsDebug.h"  // for NS_ENSURE_SUCCESS, etc
 #include "nsEditingSession.h"
-#include "nsError.h"                     // for NS_ERROR_FAILURE, NS_OK, etc
-#include "nsIChannel.h"                  // for nsIChannel
-#include "nsIContentViewer.h"            // for nsIContentViewer
-#include "nsIControllers.h"              // for nsIControllers
-#include "nsID.h"                        // for NS_GET_IID, etc
-#include "nsHTMLDocument.h"              // for nsHTMLDocument
-#include "nsIDocShell.h"                 // for nsIDocShell
-#include "mozilla/dom/Document.h"        // for Document
-#include "nsIEditor.h"                   // for nsIEditor
-#include "nsIInterfaceRequestorUtils.h"  // for do_GetInterface
-#include "nsIRefreshURI.h"               // for nsIRefreshURI
-#include "nsIRequest.h"                  // for nsIRequest
-#include "nsITimer.h"                    // for nsITimer, etc
-#include "nsIWeakReference.h"            // for nsISupportsWeakReference, etc
-#include "nsIWebNavigation.h"            // for nsIWebNavigation
-#include "nsIWebProgress.h"              // for nsIWebProgress, etc
-#include "nsLiteralString.h"             // for NS_LITERAL_STRING
-#include "nsPIDOMWindow.h"               // for nsPIDOMWindow
-#include "nsPresContext.h"               // for nsPresContext
-#include "nsReadableUtils.h"             // for AppendUTF16toUTF8
-#include "nsStringFwd.h"                 // for nsString
-#include "mozilla/dom/Selection.h"       // for AutoHideSelectionChanges, etc
-#include "nsFrameSelection.h"            // for nsFrameSelection
-#include "nsBaseCommandController.h"     // for nsBaseCommandController
+#include "nsError.h"                      // for NS_ERROR_FAILURE, NS_OK, etc
+#include "nsIChannel.h"                   // for nsIChannel
+#include "nsIContentViewer.h"             // for nsIContentViewer
+#include "nsIControllers.h"               // for nsIControllers
+#include "nsID.h"                         // for NS_GET_IID, etc
+#include "nsHTMLDocument.h"               // for nsHTMLDocument
+#include "nsIDocShell.h"                  // for nsIDocShell
+#include "mozilla/dom/Document.h"         // for Document
+#include "nsIEditor.h"                    // for nsIEditor
+#include "nsIInterfaceRequestorUtils.h"   // for do_GetInterface
+#include "nsIRefreshURI.h"                // for nsIRefreshURI
+#include "nsIRequest.h"                   // for nsIRequest
+#include "nsITimer.h"                     // for nsITimer, etc
+#include "nsIWeakReference.h"             // for nsISupportsWeakReference, etc
+#include "nsIWebNavigation.h"             // for nsIWebNavigation
+#include "nsIWebProgress.h"               // for nsIWebProgress, etc
+#include "nsLiteralString.h"              // for NS_LITERAL_STRING
+#include "nsPIDOMWindow.h"                // for nsPIDOMWindow
+#include "nsPresContext.h"                // for nsPresContext
+#include "nsReadableUtils.h"              // for AppendUTF16toUTF8
+#include "nsStringFwd.h"                  // for nsString
+#include "mozilla/dom/BrowsingContext.h"  // for BrowsingContext
+#include "mozilla/dom/Selection.h"        // for AutoHideSelectionChanges, etc
+#include "nsFrameSelection.h"             // for nsFrameSelection
+#include "nsBaseCommandController.h"      // for nsBaseCommandController
 #include "mozilla/dom/LoadURIOptionsBinding.h"
 
 class nsISupports;
@@ -1209,7 +1210,7 @@ nsresult nsEditingSession::ReattachToWindow(nsPIDOMWindowOuter* aWindow) {
                "mComposerCommandsUpdater should exist.");
 
   // Imitate nsEditorDocShell::MakeEditable() to reattach the
-  // old editor ot the window.
+  // old editor to the window.
   nsresult rv;
 
   nsIDocShell* docShell = aWindow->GetDocShell();

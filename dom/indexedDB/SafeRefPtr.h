@@ -58,26 +58,18 @@ class SafeRefCounted : public SafeRefCountedBase {
     // Note: this method must be thread safe for AtomicRefCounted.
     MOZ_ASSERT(int32_t(mRefCnt) >= 0);
     const MozRefCountType cnt = ++mRefCnt;
-#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
-    const char* const type = static_cast<const T*>(this)->typeName();
-    const uint32_t size = static_cast<const T*>(this)->typeSize();
-    const void* const ptr = static_cast<const T*>(this);
-    detail::RefCountLogger::logAddRef(ptr, cnt, type, size);
-#endif
+    detail::RefCountLogger::logAddRef(static_cast<const T*>(this), cnt);
     return cnt;
   }
 
   MozRefCountType Release() const {
     // Note: this method must be thread safe for AtomicRefCounted.
     MOZ_ASSERT(int32_t(mRefCnt) > 0);
+    detail::RefCountLogger::ReleaseLogger logger(static_cast<const T*>(this));
     const MozRefCountType cnt = --mRefCnt;
-#ifdef MOZ_REFCOUNTED_LEAK_CHECKING
-    const char* const type = static_cast<const T*>(this)->typeName();
-    const void* const ptr = static_cast<const T*>(this);
     // Note: it's not safe to touch |this| after decrementing the refcount,
     // except for below.
-    detail::RefCountLogger::logRelease(ptr, cnt, type);
-#endif
+    logger.logRelease(cnt);
     if (0 == cnt) {
       // Because we have atomically decremented the refcount above, only
       // one thread can get a 0 count here, so as long as we can assume that
@@ -262,9 +254,7 @@ class MOZ_IS_REFPTR MOZ_TRIVIAL_ABI SafeRefPtr {
     return mRawPtr;
   }
 
-  Maybe<T&> maybeDeref() const {
-    return mRawPtr ? SomeRef(*mRawPtr) : Nothing();
-  }
+  Maybe<T&> maybeDeref() const { return ToMaybeRef(mRawPtr); }
 
   T* unsafeGetRawPtr() const { return mRawPtr; }
 
@@ -299,10 +289,17 @@ class MOZ_IS_REFPTR MOZ_TRIVIAL_ABI SafeRefPtr {
 };
 
 template <typename T>
-SafeRefPtr(RefPtr<T> &&) -> SafeRefPtr<T>;
+SafeRefPtr(RefPtr<T>&&) -> SafeRefPtr<T>;
 
 template <typename T>
-SafeRefPtr(already_AddRefed<T> &&) -> SafeRefPtr<T>;
+SafeRefPtr(already_AddRefed<T>&&) -> SafeRefPtr<T>;
+
+template <typename T>
+class CheckedUnsafePtr;
+
+template <typename T>
+SafeRefPtr(const CheckedUnsafePtr<T>&, const AcquireStrongRefFromRawPtr&)
+    -> SafeRefPtr<T>;
 
 template <typename T>
 SafeRefPtr<T>::SafeRefPtr(T* aRawPtr, detail::InitialConstructionTag)

@@ -294,7 +294,7 @@ static void IncrementScaleRestyleCountIfNeeded(nsIFrame* aFrame,
     return;
   }
 
-  Size scale = transform2D.ScaleFactors(true);
+  Size scale = transform2D.ScaleFactors();
   if (aActivity->mPreviousTransformScale == Some(scale)) {
     return;  // Nothing changed.
   }
@@ -337,9 +337,9 @@ void ActiveLayerTracker::NotifyAnimated(nsIFrame* aFrame,
   LayerActivity* layerActivity = GetLayerActivityForUpdate(aFrame);
   uint8_t& mutationCount = layerActivity->RestyleCountForProperty(aProperty);
   if (mutationCount != 0xFF) {
-    nsAutoString oldValue;
+    nsAutoCString oldValue;
     aDOMCSSDecl->GetPropertyValue(aProperty, oldValue);
-    if (NS_ConvertUTF16toUTF8(oldValue) != aNewValue) {
+    if (oldValue != aNewValue) {
       // We know this is animated, so just hack the mutation count.
       mutationCount = 0xFF;
     }

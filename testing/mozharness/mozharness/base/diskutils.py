@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 """Disk utility module, no mixins here!
 
     examples:
@@ -24,6 +28,7 @@
         pass
 
 """
+from __future__ import absolute_import, division
 import ctypes
 import logging
 import os
@@ -63,6 +68,7 @@ def convert_to(size, from_unit, to_unit):
     try:
         df = sizes[to_unit]
         sf = sizes[from_unit]
+        # pylint --py3k W1619
         return size * sf / df
     except KeyError:
         raise DiskutilsError("conversion error: Invalid source or destination format")

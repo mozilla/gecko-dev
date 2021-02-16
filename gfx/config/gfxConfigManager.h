@@ -8,6 +8,7 @@
 
 #include "gfxFeature.h"
 #include "gfxTypes.h"
+#include "nsCOMPtr.h"
 
 class nsIGfxInfo;
 
@@ -29,6 +30,7 @@ class gfxConfigManager {
         mFeatureGPUProcess(nullptr),
         mWrForceEnabled(false),
         mWrForceDisabled(false),
+        mWrSoftwareForceEnabled(false),
         mWrCompositorForceEnabled(false),
         mWrForceAngle(false),
         mWrForceAngleNoGPUProcess(false),
@@ -75,6 +77,7 @@ class gfxConfigManager {
   Maybe<bool> mWrCompositorEnabled;
   bool mWrForceEnabled;
   bool mWrForceDisabled;
+  bool mWrSoftwareForceEnabled;
   bool mWrCompositorForceEnabled;
   bool mWrForceAngle;
   bool mWrForceAngleNoGPUProcess;

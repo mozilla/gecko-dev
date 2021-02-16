@@ -34,8 +34,10 @@
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/TouchEvent.h"
+#include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "nsIControllers.h"
 #include "nsIDocumentEncoder.h"
 #include "nsFocusManager.h"
 #include "nsIScriptGlobalObject.h"
@@ -197,7 +199,7 @@ nsIContent::IMEState nsIContent::GetDesiredIMEState() {
     // have the editable flag set, but are readwrite (such as text controls).
     if (!IsElement() ||
         !AsElement()->State().HasState(NS_EVENT_STATE_READWRITE)) {
-      return IMEState(IMEState::DISABLED);
+      return IMEState(IMEEnabled::Disabled);
     }
   }
   // NOTE: The content for independent editors (e.g., input[type=text],
@@ -211,15 +213,15 @@ nsIContent::IMEState nsIContent::GetDesiredIMEState() {
   }
   Document* doc = GetComposedDoc();
   if (!doc) {
-    return IMEState(IMEState::DISABLED);
+    return IMEState(IMEEnabled::Disabled);
   }
   nsPresContext* pc = doc->GetPresContext();
   if (!pc) {
-    return IMEState(IMEState::DISABLED);
+    return IMEState(IMEEnabled::Disabled);
   }
   HTMLEditor* htmlEditor = nsContentUtils::GetHTMLEditor(pc);
   if (!htmlEditor) {
-    return IMEState(IMEState::DISABLED);
+    return IMEState(IMEEnabled::Disabled);
   }
   IMEState state;
   htmlEditor->GetPreferredIMEState(&state);

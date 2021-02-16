@@ -18,13 +18,10 @@
 namespace js {
 namespace gc {
 
-// Mark colors. Order is important here: the greater value the 'more marked' a
-// cell is.
-enum class MarkColor : uint8_t { Gray = 1, Black = 2 };
-
 // The phases of an incremental GC.
 #define GCSTATES(D) \
   D(NotActive)      \
+  D(Prepare)        \
   D(MarkRoots)      \
   D(Mark)           \
   D(Sweep)          \
@@ -42,6 +39,7 @@ enum class State {
   D(RootsChange, 1)                    \
   D(Alloc, 2)                          \
   D(VerifierPre, 4)                    \
+  D(YieldBeforeRootMarking, 6)         \
   D(GenerationalGC, 7)                 \
   D(YieldBeforeMarking, 8)             \
   D(YieldBeforeSweeping, 9)            \
@@ -55,7 +53,6 @@ enum class State {
   D(YieldBeforeSweepingAtoms, 17)      \
   D(CheckGrayMarking, 18)              \
   D(YieldBeforeSweepingCaches, 19)     \
-  D(YieldBeforeSweepingTypes, 20)      \
   D(YieldBeforeSweepingObjects, 21)    \
   D(YieldBeforeSweepingNonObjects, 22) \
   D(YieldBeforeSweepingShapeTrees, 23) \
@@ -116,7 +113,6 @@ enum class GCAbortReason {
   _(TypeDescrTraceList)                    \
   _(NativeIterator)                        \
   _(JitScript)                             \
-  _(ObjectGroupAddendum)                   \
   _(ScriptDebugScript)                     \
   _(BreakpointSite)                        \
   _(Breakpoint)                            \
@@ -131,6 +127,8 @@ enum class GCAbortReason {
   _(WasmResolveResponseClosure)            \
   _(WasmModule)                            \
   _(WasmTableTable)                        \
+  _(WasmExceptionTag)                      \
+  _(WasmExceptionType)                     \
   _(FileObjectFile)                        \
   _(Debugger)                              \
   _(DebuggerFrameGeneratorInfo)            \

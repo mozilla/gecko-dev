@@ -14,7 +14,9 @@
 #include "mozilla/layers/SampleTime.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/webrender/WebRenderTypes.h"
 #include "Units.h"
+#include "VsyncSource.h"
 
 namespace mozilla {
 
@@ -56,13 +58,13 @@ class APZSampler {
    * which thread it is.
    */
   static void SetSamplerThread(const wr::WrWindowId& aWindowId);
-  static void SampleForWebRender(
-      const wr::WrWindowId& aWindowId, wr::Transaction* aTxn,
-      const wr::WrPipelineIdEpochs* aEpochsBeingRendered);
+  static void SampleForWebRender(const wr::WrWindowId& aWindowId,
+                                 const uint64_t* aGeneratedFrameId,
+                                 wr::Transaction* aTransaction);
 
   void SetSampleTime(const SampleTime& aSampleTime);
-  void SampleForWebRender(wr::TransactionWrapper& aTxn,
-                          const wr::WrPipelineIdEpochs* aEpochsBeingRendered);
+  void SampleForWebRender(const Maybe<VsyncId>& aGeneratedFrameId,
+                          wr::TransactionWrapper& aTxn);
 
   bool AdvanceAnimations(const SampleTime& aSampleTime);
 

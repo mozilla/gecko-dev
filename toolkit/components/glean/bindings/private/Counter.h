@@ -7,46 +7,24 @@
 #ifndef mozilla_glean_GleanCounter_h
 #define mozilla_glean_GleanCounter_h
 
+#include "mozilla/Maybe.h"
 #include "nsIGleanMetrics.h"
+#include "mozilla/glean/fog_ffi_generated.h"
 
-namespace mozilla {
-namespace glean {
+namespace mozilla::glean {
 
 namespace impl {
-extern "C" {
-void fog_counter_add(uint32_t id, int32_t amount);
-uint32_t fog_counter_test_has_value(uint32_t id, const char* storageName);
-int32_t fog_counter_test_get_value(uint32_t id, const char* storageName);
-}
 
 class CounterMetric {
  public:
-  constexpr explicit CounterMetric(uint32_t id) : mId(id) {}
+  constexpr explicit CounterMetric(uint32_t aId) : mId(aId) {}
 
   /*
    * Increases the counter by `amount`.
    *
-   * @param amount The amount to increase by. Should be positive.
+   * @param aAmount The amount to increase by. Should be positive.
    */
-  void Add(int32_t amount = 1) const { fog_counter_add(mId, amount); }
-
-  /**
-   * **Test-only API**
-   *
-   * Tests whether a value is stored for the metric.
-   *
-   * This function will attempt to await the last parent-process task (if any)
-   * writing to the the metric's storage engine before returning a value.
-   * This function will not wait for data from child processes.
-   *
-   * Parent process only. Panics in child processes.
-   *
-   * @param aStorageName the name of the ping to retrieve the metric for.
-   * @return true if metric value exists, otherwise false
-   */
-  bool TestHasValue(const char* aStorageName) const {
-    return fog_counter_test_has_value(mId, aStorageName) != 0;
-  }
+  void Add(int32_t aAmount = 1) const { fog_counter_add(mId, aAmount); }
 
   /**
    * **Test-only API**
@@ -60,10 +38,16 @@ class CounterMetric {
    * This doesn't clear the stored value.
    * Parent process only. Panics in child processes.
    *
-   * @return value of the stored metric.
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or Nothing() if there is no value.
    */
-  int32_t TestGetValue(const char* aStorageName) const {
-    return fog_counter_test_get_value(mId, aStorageName);
+  Maybe<int32_t> TestGetValue(const nsACString& aPingName = nsCString()) const {
+    if (!fog_counter_test_has_value(mId, &aPingName)) {
+      return Nothing();
+    }
+    return Some(fog_counter_test_get_value(mId, &aPingName));
   }
 
  private:
@@ -84,7 +68,6 @@ class GleanCounter final : public nsIGleanCounter {
   const impl::CounterMetric mCounter;
 };
 
-}  // namespace glean
-}  // namespace mozilla
+}  // namespace mozilla::glean
 
-#endif /* mozilla_glean_GleanCounter.h */
+#endif /* mozilla_glean_GleanCounter_h */

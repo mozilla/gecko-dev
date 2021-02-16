@@ -82,7 +82,7 @@ class nsPluginInstanceOwner final : public nsIPluginInstanceOwner,
                               NPRect* changed) override;
 
   /**
-   * Get the type of the HTML tag that was used ot instantiate this
+   * Get the type of the HTML tag that was used to instantiate this
    * plugin.  Currently supported tags are EMBED or OBJECT.
    */
   NS_IMETHOD GetTagType(nsPluginTagType* aResult);
@@ -102,7 +102,8 @@ class nsPluginInstanceOwner final : public nsIPluginInstanceOwner,
   // nsIDOMEventListener interfaces
   NS_DECL_NSIDOMEVENTLISTENER
 
-  nsresult ProcessMouseDown(mozilla::dom::Event* aMouseEvent);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult
+  ProcessMouseDown(mozilla::dom::Event* aMouseEvent);
   nsresult ProcessKeyPress(mozilla::dom::Event* aKeyEvent);
   nsresult Destroy();
 
@@ -255,10 +256,7 @@ class nsPluginInstanceOwner final : public nsIPluginInstanceOwner,
 
   bool GetCompositionString(uint32_t aIndex, nsTArray<uint8_t>* aString,
                             int32_t* aLength);
-  bool SetCandidateWindow(
-      const mozilla::widget::CandidateWindowPosition& aPosition);
   bool RequestCommitOrCancel(bool aCommitted);
-  bool EnableIME(bool aEnable);
 
   // See nsIKeyEventInPluginCallback
   virtual void HandledWindowedPluginKeyEvent(

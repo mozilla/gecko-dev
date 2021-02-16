@@ -28,41 +28,42 @@ add_task(async function() {
 
   info("Check that the flexbox highlighter can be displayed.");
   const { inspector, view } = await openRuleView();
-  const { highlighters } = view;
+  const HIGHLIGHTER_TYPE = inspector.highlighters.TYPES.FLEXBOX;
+  const {
+    getActiveHighlighter,
+    waitForHighlighterTypeShown,
+    waitForHighlighterTypeRestored,
+    waitForHighlighterTypeDiscarded,
+  } = getHighlighterTestHelpers(inspector);
 
   await selectNode("#flex", inspector);
   const container = getRuleViewProperty(view, "#flex", "display").valueSpan;
-  const flexboxToggle = container.querySelector(".ruleview-flex");
+  const flexboxToggle = container.querySelector(
+    ".js-toggle-flexbox-highlighter"
+  );
 
   info("Toggling ON the flexbox highlighter from the rule-view.");
-  const onHighlighterShown = highlighters.once("flexbox-highlighter-shown");
+  const onHighlighterShown = waitForHighlighterTypeShown(HIGHLIGHTER_TYPE);
   flexboxToggle.click();
   await onHighlighterShown;
-
-  ok(highlighters.flexboxHighlighterShown, "Flexbox highlighter is shown.");
+  ok(getActiveHighlighter(HIGHLIGHTER_TYPE), "Flexbox highlighter is shown.");
 
   info("Reload the page, expect the highlighter to be displayed once again");
-  let onStateRestored = highlighters.once("flexbox-state-restored");
-
+  const onRestored = waitForHighlighterTypeRestored(HIGHLIGHTER_TYPE);
   const onReloaded = inspector.once("reloaded");
   await refreshTab();
   info("Wait for inspector to be reloaded after page reload");
   await onReloaded;
-
-  let { restored } = await onStateRestored;
-  ok(restored, "The highlighter state was restored");
-
-  info(
-    "Check that the flexbox highlighter can be displayed after reloading the page"
-  );
-  ok(highlighters.flexboxHighlighterShown, "Flexbox highlighter is shown.");
+  info("Wait for the highlighter to be restored");
+  await onRestored;
+  ok(getActiveHighlighter(HIGHLIGHTER_TYPE), "Flexbox highlighter restored.");
 
   info("Navigate to another URL, and check that the highlighter is hidden");
   const otherUri =
     "data:text/html;charset=utf-8," + encodeURIComponent(OTHER_URI);
-  onStateRestored = highlighters.once("flexbox-state-restored");
+  const onDiscarded = waitForHighlighterTypeDiscarded(HIGHLIGHTER_TYPE);
   await navigateTo(otherUri);
-  ({ restored } = await onStateRestored);
-  ok(!restored, "The highlighter state was not restored");
-  ok(!highlighters.flexboxHighlighterShown, "Flexbox highlighter is hidden.");
+  info("Expect the highlighter not to be restored");
+  await onDiscarded;
+  ok(!getActiveHighlighter(HIGHLIGHTER_TYPE), "Flexbox highlighter not shown.");
 });

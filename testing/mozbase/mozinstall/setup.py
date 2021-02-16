@@ -13,13 +13,13 @@ try:
 except IOError:
     description = None
 
-PACKAGE_VERSION = "2.0.0"
+PACKAGE_VERSION = "2.0.1"
 
 deps = [
     "mozinfo >= 0.7",
     "mozfile >= 1.0",
     "requests",
-    "six >= 1.10.0",
+    "six >= 1.13.0",
 ]
 
 setup(

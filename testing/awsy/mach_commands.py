@@ -9,6 +9,8 @@ import logging
 import os
 import sys
 
+import six
+
 from mozbuild.base import (
     MachCommandBase,
     MachCommandConditions as conditions,
@@ -112,7 +114,7 @@ class MachCommands(MachCommandBase):
         else:
             kwargs["testvars"] = [runtime_testvars_path]
 
-        runtime_testvars_file = open(runtime_testvars_path, "wb")
+        runtime_testvars_file = open(runtime_testvars_path, "wb" if six.PY2 else "w")
         runtime_testvars_file.write(json.dumps(runtime_testvars, indent=2))
         runtime_testvars_file.close()
 
@@ -186,7 +188,7 @@ class MachCommands(MachCommandBase):
             if bin_dir not in sys.path:
                 sys.path.append(bin_dir)
 
-        for k, v in kwargs.iteritems():
+        for k, v in six.iteritems(kwargs):
             setattr(args, k, v)
 
         parser.verify_usage(args)

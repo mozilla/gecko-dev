@@ -365,15 +365,15 @@ void LexicalScopeNode::dumpImpl(GenericPrinter& out, int indent) {
   out.printf("(%s [", name);
   int nameIndent = indent + strlen(name) + 3;
   if (!isEmptyScope()) {
-    ParserScopeData<LexicalScope>* bindings = scopeBindings();
-    for (uint32_t i = 0; i < bindings->length; i++) {
-      const ParserAtom* name = bindings->trailingNames[i].name();
-      if (name->hasLatin1Chars()) {
-        DumpName(out, name->latin1Chars(), name->length());
-      } else {
-        DumpName(out, name->twoByteChars(), name->length());
-      }
-      if (i < bindings->length - 1) {
+    LexicalScope::ParserData* bindings = scopeBindings();
+    for (uint32_t i = 0; i < bindings->slotInfo.length; i++) {
+      auto index = bindings->trailingNames[i].name();
+      JSONPrinter json(out);
+      json.setIndentLevel((nameIndent + 1) / 2);
+      json.beginObject();
+      DumpTaggedParserAtomIndex(json, index, nullptr);
+      json.endObject();
+      if (i < bindings->slotInfo.length - 1) {
         IndentNewLine(out, nameIndent);
       }
     }
@@ -400,24 +400,24 @@ const ParserAtom* NumericLiteral::toAtom(JSContext* cx,
 RegExpObject* RegExpStencil::createRegExp(
     JSContext* cx, CompilationAtomCache& atomCache) const {
   RootedAtom atom(cx, atomCache.getExistingAtomAt(cx, atom_));
-  return RegExpObject::createSyntaxChecked(cx, atom, flags_, TenuredObject);
+  return RegExpObject::createSyntaxChecked(cx, atom, flags(), TenuredObject);
 }
 
 RegExpObject* RegExpStencil::createRegExpAndEnsureAtom(
     JSContext* cx, CompilationAtomCache& atomCache,
-    CompilationStencil& stencil) const {
+    BaseCompilationStencil& stencil) const {
   const ParserAtom* parserAtom = stencil.getParserAtomAt(cx, atom_);
   MOZ_ASSERT(parserAtom);
   RootedAtom atom(cx, parserAtom->toJSAtom(cx, atomCache));
   if (!atom) {
     return nullptr;
   }
-  return RegExpObject::createSyntaxChecked(cx, atom, flags_, TenuredObject);
+  return RegExpObject::createSyntaxChecked(cx, atom, flags(), TenuredObject);
 }
 
 RegExpObject* RegExpLiteral::create(JSContext* cx,
                                     CompilationAtomCache& atomCache,
-                                    CompilationStencil& stencil) const {
+                                    BaseCompilationStencil& stencil) const {
   return stencil.regExpData[index_].createRegExpAndEnsureAtom(cx, atomCache,
                                                               stencil);
 }

@@ -39,7 +39,6 @@ struct DefaultJitOptions {
 #endif
   bool checkRangeAnalysis;
   bool runExtraChecks;
-  bool disableInlineBacktracking;
   bool disableAma;
   bool disableEaa;
   bool disableEdgeCaseAnalysis;
@@ -53,11 +52,12 @@ struct DefaultJitOptions {
   bool disableScalarReplacement;
   bool disableCacheIR;
   bool disableSink;
-  bool disableOptimizationLevels;
+  bool disableBailoutLoopCheck;
   bool baselineInterpreter;
   bool baselineJit;
   bool ion;
-  bool warpBuilder;
+  bool warpAsync;
+  bool warpGenerator;
   bool jitForTrustedPrincipals;
   bool nativeRegExp;
   bool forceInlineCaches;
@@ -85,7 +85,6 @@ struct DefaultJitOptions {
   uint32_t trialInliningWarmUpThreshold;
   uint32_t trialInliningInitialWarmUpCount;
   uint32_t normalIonWarmUpThreshold;
-  uint32_t fullIonWarmUpThreshold;
   uint32_t regexpWarmUpThreshold;
   uint32_t exceptionBailoutThreshold;
   uint32_t frequentBailoutThreshold;
@@ -126,12 +125,9 @@ struct DefaultJitOptions {
   void setEagerBaselineCompilation();
   void setEagerIonCompilation();
   void setNormalIonWarmUpThreshold(uint32_t warmUpThreshold);
-  void setFullIonWarmUpThreshold(uint32_t warmUpThreshold);
   void resetNormalIonWarmUpThreshold();
-  void resetFullIonWarmUpThreshold();
   void enableGvn(bool val);
   void setFastWarmUp();
-  void setWarpEnabled(bool enable);
 
   bool eagerIonCompilation() const { return normalIonWarmUpThreshold == 0; }
 };
@@ -147,9 +143,6 @@ inline bool IsBaselineInterpreterEnabled() {
 }
 
 }  // namespace jit
-
-inline bool IsTypeInferenceEnabled() { return !jit::JitOptions.warpBuilder; }
-
 }  // namespace js
 
 #endif /* jit_JitOptions_h */

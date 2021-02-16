@@ -60,15 +60,7 @@ const TabDescriptorActor = ActorClassWithSpec(tabDescriptorSpec, {
       selected: this.selected,
       title: this._getTitle(),
       traits: {
-        // Backward compatibility for FF75 or older.
-        // Remove when FF76 is on the release channel.
-        getFavicon: true,
-        // Backward compatibility for FF76 or older.
-        // Remove when FF77 is on the release channel.
-        // This trait indicates that meta data such as title, url and
-        // outerWindowID are directly available on the TabDescriptor.
-        hasTabInfo: true,
-        // FF77+ supports the Watcher actor
+        // Supports the Watcher actor. Can be removed as part of Bug 1680280.
         watcher: true,
       },
       url: this._getUrl(),

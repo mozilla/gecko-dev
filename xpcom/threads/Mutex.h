@@ -10,6 +10,7 @@
 #include "mozilla/BlockingResourceBase.h"
 #include "mozilla/PlatformMutex.h"
 #include "mozilla/RecordReplay.h"
+#include "nsISupports.h"
 
 //
 // Provides:

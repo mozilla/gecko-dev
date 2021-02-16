@@ -63,9 +63,6 @@
 #include "nsIXULRuntime.h"
 #include "nsJSPrincipals.h"
 #include "ExpandedPrincipal.h"
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
-#endif
 
 #if defined(XP_LINUX) && !defined(ANDROID)
 // For getrlimit and min/max.
@@ -603,9 +600,7 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
     if (const char* file = scriptFilename.get()) {
       filename.Assign(file, strlen(file));
     }
-    PROFILER_ADD_MARKER_WITH_PAYLOAD("JS::InterruptCallback", JS,
-                                     TextMarkerPayload,
-                                     (filename, TimeStamp::Now()));
+    PROFILER_MARKER_TEXT("JS::InterruptCallback", JS, {}, filename);
   }
 #endif
 
@@ -854,7 +849,6 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
   bool useBaselineInterp = Preferences::GetBool(JS_OPTIONS_DOT_STR "blinterp");
   bool useBaselineJit = Preferences::GetBool(JS_OPTIONS_DOT_STR "baselinejit");
   bool useIon = Preferences::GetBool(JS_OPTIONS_DOT_STR "ion");
-  bool useWarp = Preferences::GetBool(JS_OPTIONS_DOT_STR "warp");
   bool useJitForTrustedPrincipals =
       Preferences::GetBool(JS_OPTIONS_DOT_STR "jit_trustedprincipals");
   bool useNativeRegExp =
@@ -877,8 +871,6 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
       Preferences::GetInt(JS_OPTIONS_DOT_STR "baselinejit.threshold", -1);
   int32_t normalIonThreshold =
       Preferences::GetInt(JS_OPTIONS_DOT_STR "ion.threshold", -1);
-  int32_t fullIonThreshold =
-      Preferences::GetInt(JS_OPTIONS_DOT_STR "ion.full.threshold", -1);
   int32_t ionFrequentBailoutThreshold = Preferences::GetInt(
       JS_OPTIONS_DOT_STR "ion.frequent_bailout_threshold", -1);
 
@@ -918,7 +910,6 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_BASELINE_ENABLE,
                                 useBaselineJit);
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_ION_ENABLE, useIon);
-  JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_WARP_ENABLE, useWarp);
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_JIT_TRUSTEDPRINCIPALS_ENABLE,
                                 useJitForTrustedPrincipals);
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_NATIVE_REGEXP_ENABLE,
@@ -933,8 +924,6 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
                                 useBaselineEager ? 0 : baselineThreshold);
   JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_ION_NORMAL_WARMUP_TRIGGER,
                                 useIonEager ? 0 : normalIonThreshold);
-  JS_SetGlobalJitCompilerOption(cx, JSJITCOMPILER_ION_FULL_WARMUP_TRIGGER,
-                                useIonEager ? 0 : fullIonThreshold);
   JS_SetGlobalJitCompilerOption(cx,
                                 JSJITCOMPILER_ION_FREQUENT_BAILOUT_THRESHOLD,
                                 ionFrequentBailoutThreshold);
@@ -996,6 +985,10 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
 #ifdef ENABLE_WASM_SIMD
   bool useWasmSimd = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_simd");
 #endif
+#ifdef ENABLE_WASM_SIMD_WORMHOLE
+  bool useWasmSimdWormhole =
+      Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_simd_wormhole");
+#endif
   bool useWasmVerbose = Preferences::GetBool(JS_OPTIONS_DOT_STR "wasm_verbose");
   bool throwOnAsmJSValidationFailure = Preferences::GetBool(
       JS_OPTIONS_DOT_STR "throw_on_asmjs_validation_failure");
@@ -1039,6 +1032,13 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
       Preferences::GetBool(JS_OPTIONS_DOT_STR "experimental.private_methods");
 #endif
 
+  // Require top level await disabled outside of nightly.
+  bool topLevelAwaitEnabled = false;
+#ifdef NIGHTLY_BUILD
+  topLevelAwaitEnabled =
+      Preferences::GetBool(JS_OPTIONS_DOT_STR "experimental.top_level_await");
+#endif
+
 #ifdef JS_GC_ZEAL
   int32_t zeal = Preferences::GetInt(JS_OPTIONS_DOT_STR "gczeal", -1);
   int32_t zeal_frequency = Preferences::GetInt(
@@ -1078,6 +1078,9 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
 #ifdef ENABLE_WASM_SIMD
       .setWasmSimd(useWasmSimd)
 #endif
+#ifdef ENABLE_WASM_SIMD_WORMHOLE
+      .setWasmSimdWormhole(useWasmSimdWormhole)
+#endif
       .setWasmVerbose(useWasmVerbose)
       .setThrowOnAsmJSValidationFailure(throwOnAsmJSValidationFailure)
       .setSourcePragmas(useSourcePragmas)
@@ -1086,7 +1089,8 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
       .setThrowOnDebuggeeWouldRun(throwOnDebuggeeWouldRun)
       .setDumpStackOnDebuggeeWouldRun(dumpStackOnDebuggeeWouldRun)
       .setPrivateClassFields(privateFieldsEnabled)
-      .setPrivateClassMethods(privateMethodsEnabled);
+      .setPrivateClassMethods(privateMethodsEnabled)
+      .setTopLevelAwait(topLevelAwaitEnabled);
 
   nsCOMPtr<nsIXULRuntime> xr = do_GetService("@mozilla.org/xre/runtime;1");
   if (xr) {
@@ -1463,9 +1467,12 @@ void XPCJSContext::AfterProcessTask(uint32_t aNewRecursionDepth) {
       }
 
       auto uriType = mExecutedChromeScript ? "browser"_ns : "content"_ns;
+      // Use AppendFloat to avoid printf-type APIs using locale-specific
+      // decimal separators, when we definitely want a `.`.
+      nsCString durationStr;
+      durationStr.AppendFloat(hangDuration);
       auto extra = Some<nsTArray<Telemetry::EventExtraEntry>>(
-          {Telemetry::EventExtraEntry{"hang_duration"_ns,
-                                      nsPrintfCString("%.2f", hangDuration)},
+          {Telemetry::EventExtraEntry{"hang_duration"_ns, durationStr},
            Telemetry::EventExtraEntry{"uri_type"_ns, uriType}});
       Telemetry::RecordEvent(
           Telemetry::EventID::Slow_script_warning_Shown_Browser, Nothing(),

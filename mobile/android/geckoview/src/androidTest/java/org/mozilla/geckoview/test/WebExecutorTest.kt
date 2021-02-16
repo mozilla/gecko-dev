@@ -32,7 +32,6 @@ import java.lang.IllegalStateException
 import java.math.BigInteger
 import java.net.UnknownHostException
 import java.nio.ByteBuffer
-import java.nio.CharBuffer
 import java.nio.charset.Charset
 import java.security.MessageDigest
 import java.util.*
@@ -77,14 +76,6 @@ class WebExecutorTest {
         return executor.fetch(request, flags).pollDefault()!!
     }
 
-    fun String.toDirectByteBuffer(): ByteBuffer {
-        val chars = CharBuffer.wrap(this)
-        val buffer = ByteBuffer.allocateDirect(this.length)
-        Charset.forName("UTF-8").newEncoder().encode(chars, buffer, true)
-
-        return buffer
-    }
-
     fun WebResponse.getBodyBytes(): ByteBuffer {
         body!!.use {
             return ByteBuffer.wrap(it.readBytes())
@@ -123,7 +114,7 @@ class WebExecutorTest {
                 .addHeader("Header2", "Value2")
                 .referrer(referrer)
                 .header("Content-Type", "text/plain")
-                .body(bodyString.toDirectByteBuffer())
+                .body(bodyString)
                 .build()
 
         val response = fetch(request)
@@ -427,5 +418,32 @@ class WebExecutorTest {
         assertThat("Stream should still have 0 bytes available", stream.available(), equalTo(0));
 
         stream.close()
+    }
+
+    @Test
+    fun unsupportedUriScheme() {
+        val illegal = mapOf(
+            "" to "",
+            "a" to "a",
+            "ab" to "ab",
+            "abc" to "abc",
+            "htt" to "htt",
+            "123456789" to "123456789",
+            "1234567890" to "1234567890",
+            "12345678901" to "1234567890",
+            "file://test" to "file://tes",
+            "moz-extension://what" to "moz-extens"
+        )
+
+        for ((uri, truncated) in illegal) {
+            try {
+                fetch(WebRequest(uri))
+                throw IllegalStateException("fetch() should have thrown")
+            } catch (e: IllegalArgumentException) {
+                assertThat("Message should match",
+                        e.message,
+                        equalTo("Unsupported URI scheme: $truncated"))
+            }
+        }
     }
 }

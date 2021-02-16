@@ -51,12 +51,23 @@ Span<AudioDataValue> AudioData::Data() const {
   return Span{GetAdjustedData(), mFrames * mChannels};
 }
 
+void AudioData::SetOriginalStartTime(const media::TimeUnit& aStartTime) {
+  MOZ_ASSERT(mTime == mOriginalTime,
+             "Do not call this if data has been trimmed!");
+  mTime = aStartTime;
+  mOriginalTime = aStartTime;
+}
+
 bool AudioData::AdjustForStartTime(const media::TimeUnit& aStartTime) {
   mOriginalTime -= aStartTime;
+  mTime -= aStartTime;
   if (mTrimWindow) {
     *mTrimWindow -= aStartTime;
   }
-  return MediaData::AdjustForStartTime(aStartTime) && mOriginalTime.IsValid();
+  if (mTime.IsNegative()) {
+    NS_WARNING("Negative audio start time after time-adjustment!");
+  }
+  return mTime.IsValid() && mOriginalTime.IsValid();
 }
 
 bool AudioData::SetTrimWindow(const media::TimeInterval& aTrim) {
@@ -231,6 +242,14 @@ void VideoData::UpdateTimestamp(const TimeUnit& aTimestamp) {
 
   mTime = aTimestamp;
   mDuration = updatedDuration;
+}
+
+bool VideoData::AdjustForStartTime(const media::TimeUnit& aStartTime) {
+  mTime -= aStartTime;
+  if (mTime.IsNegative()) {
+    NS_WARNING("Negative video start time after time-adjustment!");
+  }
+  return mTime.IsValid();
 }
 
 PlanarYCbCrData ConstructPlanarYCbCrData(const VideoInfo& aInfo,
@@ -416,11 +435,11 @@ already_AddRefed<VideoData> VideoData::CreateAndCopyData(
 
   // The naming convention for libyuv and associated utils is word-order.
   // The naming convention in the gfx stack is byte-order.
-  ConvertYCbCrAToARGB(aBuffer.mPlanes[0].mData, aBuffer.mPlanes[1].mData,
-                      aBuffer.mPlanes[2].mData, aAlphaPlane.mData,
-                      aBuffer.mPlanes[0].mStride, aBuffer.mPlanes[1].mStride,
-                      buffer.data, buffer.stride, buffer.size.width,
-                      buffer.size.height);
+  ConvertI420AlphaToARGB(aBuffer.mPlanes[0].mData, aBuffer.mPlanes[1].mData,
+                         aBuffer.mPlanes[2].mData, aAlphaPlane.mData,
+                         aBuffer.mPlanes[0].mStride, aBuffer.mPlanes[1].mStride,
+                         buffer.data, buffer.stride, buffer.size.width,
+                         buffer.size.height);
 
   return v.forget();
 }

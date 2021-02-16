@@ -20,7 +20,13 @@ addAccessibleTask(`<p id="p">Hello World</p>`, async (browser, accDoc) => {
   );
   is(stringForRange(macDoc, range), "Hello World");
 
-  let evt = waitForMacEvent("AXSelectedTextChanged");
+  let evt = waitForMacEventWithInfo("AXSelectedTextChanged", (elem, info) => {
+    return (
+      !info.AXTextStateSync &&
+      info.AXTextStateChangeType == AXTextStateChangeTypeSelectionExtend &&
+      elem.getAttributeValue("AXRole") == "AXWebArea"
+    );
+  });
   await SpecialPowers.spawn(browser, [], () => {
     let p = content.document.getElementById("p");
     let r = new content.Range();
@@ -41,11 +47,31 @@ addAccessibleTask(`<p id="p">Hello World</p>`, async (browser, accDoc) => {
   );
   is(stringForRange(macDoc, firstWordRange), "Hello");
 
-  evt = waitForMacEvent("AXSelectedTextChanged");
+  evt = waitForMacEventWithInfo("AXSelectedTextChanged", (elem, info) => {
+    return (
+      !info.AXTextStateSync &&
+      info.AXTextStateChangeType == AXTextStateChangeTypeSelectionExtend &&
+      elem.getAttributeValue("AXRole") == "AXWebArea"
+    );
+  });
   macDoc.setAttributeValue("AXSelectedTextMarkerRange", firstWordRange);
   await evt;
   range = macDoc.getAttributeValue("AXSelectedTextMarkerRange");
   is(stringForRange(macDoc, range), "Hello");
+
+  // Collapse selection
+  evt = waitForMacEventWithInfo("AXSelectedTextChanged", (elem, info) => {
+    return (
+      info.AXTextStateSync &&
+      info.AXTextStateChangeType == AXTextStateChangeTypeSelectionMove &&
+      elem.getAttributeValue("AXRole") == "AXWebArea"
+    );
+  });
+  await SpecialPowers.spawn(browser, [], () => {
+    let s = content.getSelection();
+    s.collapseToEnd();
+  });
+  await evt;
 });
 
 /**
@@ -104,6 +130,58 @@ addAccessibleTask(
       selTextChangedTarget.getAttributeValue("AXDOMIdentifier"),
       "link",
       "Correct event target"
+    );
+  }
+);
+
+/**
+ * Test text selection with focus change
+ */
+addAccessibleTask(
+  `<p id="p">Hello <input id="input"></p>`,
+  async (browser, accDoc) => {
+    let macDoc = accDoc.nativeInterface.QueryInterface(
+      Ci.nsIAccessibleMacInterface
+    );
+
+    let evt = waitForMacEventWithInfo("AXSelectedTextChanged", (elem, info) => {
+      return (
+        !info.AXTextStateSync &&
+        info.AXTextStateChangeType == AXTextStateChangeTypeSelectionExtend &&
+        elem.getAttributeValue("AXRole") == "AXWebArea"
+      );
+    });
+    await SpecialPowers.spawn(browser, [], () => {
+      let p = content.document.getElementById("p");
+      let r = new content.Range();
+      r.setStart(p.firstChild, 1);
+      r.setEnd(p.firstChild, 3);
+
+      let s = content.getSelection();
+      s.addRange(r);
+    });
+    await evt;
+
+    let range = macDoc.getAttributeValue("AXSelectedTextMarkerRange");
+    is(stringForRange(macDoc, range), "el");
+
+    let events = Promise.all([
+      waitForMacEvent("AXFocusedUIElementChanged"),
+      waitForMacEventWithInfo("AXSelectedTextChanged"),
+    ]);
+    await SpecialPowers.spawn(browser, [], () => {
+      content.document.getElementById("input").focus();
+    });
+    let [, { data }] = await events;
+    ok(
+      data.AXTextSelectionChangedFocus,
+      "have AXTextSelectionChangedFocus in event info"
+    );
+    ok(!data.AXTextStateSync, "no AXTextStateSync in editables");
+    is(
+      data.AXTextSelectionDirection,
+      AXTextSelectionDirectionDiscontiguous,
+      "discontigous direction"
     );
   }
 );

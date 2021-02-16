@@ -703,11 +703,6 @@ void nsPluginFrame::SetInstanceOwner(nsPluginInstanceOwner* aOwner) {
   }
 }
 
-bool nsPluginFrame::IsFocusable(int32_t* aTabIndex, bool aWithMouse) {
-  if (aTabIndex) *aTabIndex = -1;
-  return nsIFrame::IsFocusable(aTabIndex, aWithMouse);
-}
-
 bool nsPluginFrame::IsHidden(bool aCheckVisibilityStyle) const {
   if (aCheckVisibilityStyle) {
     if (!StyleVisibility()->IsVisibleOrCollapsed()) return true;
@@ -1476,25 +1471,15 @@ nsresult nsPluginFrame::HandleEvent(nsPresContext* aPresContext,
   mInstanceOwner->ConsiderNewEventloopNestingLevel();
 
   if (anEvent->mMessage == ePluginActivate) {
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm) {
+    if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
       RefPtr<dom::Element> elem = GetContent()->AsElement();
       return fm->SetFocus(elem, 0);
     }
   } else if (anEvent->mMessage == ePluginFocus) {
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
-    if (fm) {
+    if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
       RefPtr<dom::Element> elem = GetContent()->AsElement();
       return fm->FocusPlugin(elem);
     }
-  }
-
-  if (mInstanceOwner->SendNativeEvents() &&
-      anEvent->IsNativeEventDelivererForPlugin()) {
-    *anEventStatus = mInstanceOwner->ProcessEvent(*anEvent);
-    // Due to plugin code reentering Gecko, this frame may be dead at this
-    // point.
-    return rv;
   }
 
 #ifdef XP_WIN

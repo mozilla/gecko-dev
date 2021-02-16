@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Localized } from "./MSLocalized";
 import { Zap } from "./Zap";
 import { AboutWelcomeUtils } from "../../lib/aboutwelcome-utils";
@@ -53,12 +53,13 @@ export const MultiStageAboutWelcome = props => {
 
   // Transition to next screen, opening about:home on last screen button CTA
   const handleTransition =
-    index < props.screens.length
-      ? useCallback(() => setScreenIndex(prevState => prevState + 1), [])
-      : AboutWelcomeUtils.handleUserAction({
-          type: "OPEN_ABOUT_PAGE",
-          data: { args: "home", where: "current" },
-        });
+    index < props.screens.length - 1
+      ? () => setScreenIndex(prevState => prevState + 1)
+      : () =>
+          AboutWelcomeUtils.handleUserAction({
+            type: "OPEN_ABOUT_PAGE",
+            data: { args: "home", where: "current" },
+          });
 
   // Update top sites with default sites by region when region is available
   const [region, setRegion] = useState(null);
@@ -82,19 +83,19 @@ export const MultiStageAboutWelcome = props => {
 
   const useImportable = props.message_id.includes("IMPORTABLE");
   // Track whether we have already sent the importable sites impression telemetry
-  const [importTelemetrySent, setImportTelemetrySent] = useState(null);
+  const importTelemetrySent = useRef(false);
   const [topSites, setTopSites] = useState([]);
   useEffect(() => {
     (async () => {
       let DEFAULT_SITES = await window.AWGetDefaultSites();
       const importable = JSON.parse(await window.AWGetImportableSites());
       const showImportable = useImportable && importable.length >= 5;
-      if (!importTelemetrySent) {
+      if (!importTelemetrySent.current) {
         AboutWelcomeUtils.sendImpressionTelemetry(`${props.message_id}_SITES`, {
           display: showImportable ? "importable" : "static",
           importable: importable.length,
         });
-        setImportTelemetrySent(true);
+        importTelemetrySent.current = true;
       }
       setTopSites(
         showImportable
@@ -240,7 +241,7 @@ export class WelcomeScreen extends React.PureComponent {
               className="tiles-topsites-section"
               name="topsites-section"
               id="topsites-section"
-              aria-labelledby="topsites-disclaimer"
+              aria-labelledby="helptext"
               role="region"
             >
               {this.props.topSites.data
@@ -341,6 +342,21 @@ export class WelcomeScreen extends React.PureComponent {
             />
           </div>
         ) : null;
+      case "image":
+        return this.props.content.tiles.source ? (
+          <div className={`${this.props.content.tiles.media_type}`}>
+            <img
+              src={
+                AboutWelcomeUtils.hasDarkMode() &&
+                this.props.content.tiles.source.dark
+                  ? this.props.content.tiles.source.dark
+                  : this.props.content.tiles.source.default
+              }
+              role="presentation"
+              alt=""
+            />
+          </div>
+        ) : null;
     }
     return null;
   }
@@ -354,26 +370,27 @@ export class WelcomeScreen extends React.PureComponent {
     return steps;
   }
 
-  renderDisclaimer() {
-    if (
-      this.props.content.tiles &&
-      this.props.content.tiles.type === "topsites" &&
-      this.props.topSites &&
-      this.props.topSites.showImportable
-    ) {
-      return (
-        <Localized text={this.props.content.disclaimer}>
-          <p id="topsites-disclaimer" className="tiles-topsites-disclaimer" />
-        </Localized>
-      );
-    }
-    return null;
+  renderHelpText() {
+    return (
+      <Localized text={this.props.content.help_text.text}>
+        <p
+          id="helptext"
+          className={`helptext ${this.props.content.help_text.position}`}
+        />
+      </Localized>
+    );
   }
 
   render() {
     const { content, topSites } = this.props;
     const hasSecondaryTopCTA =
       content.secondary_button && content.secondary_button.position === "top";
+    const showImportableSitesDisclaimer =
+      content.tiles &&
+      content.tiles.type === "topsites" &&
+      topSites &&
+      topSites.showImportable;
+
     return (
       <main className={`screen ${this.props.id}`}>
         {hasSecondaryTopCTA ? this.renderSecondaryCTA("top") : null}
@@ -399,13 +416,14 @@ export class WelcomeScreen extends React.PureComponent {
         {content.secondary_button && content.secondary_button.position !== "top"
           ? this.renderSecondaryCTA()
           : null}
+        {content.help_text && content.help_text.position === "default"
+          ? this.renderHelpText()
+          : null}
         <nav
           className={
-            content.tiles &&
-            content.tiles.type === "topsites" &&
-            topSites &&
-            topSites.showImportable
-              ? "steps has-disclaimer"
+            (content.help_text && content.help_text.position === "footer") ||
+            showImportableSitesDisclaimer
+              ? "steps has-helptext"
               : "steps"
           }
           data-l10n-id={"onboarding-welcome-steps-indicator"}
@@ -417,7 +435,10 @@ export class WelcomeScreen extends React.PureComponent {
           <p />
           {this.renderStepsIndicator()}
         </nav>
-        {this.renderDisclaimer()}
+        {(content.help_text && content.help_text.position === "footer") ||
+        showImportableSitesDisclaimer
+          ? this.renderHelpText()
+          : null}
       </main>
     );
   }

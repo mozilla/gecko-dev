@@ -11,6 +11,8 @@
  * JS function definitions.
  */
 
+#include <iterator>
+
 #include "jstypes.h"
 
 #include "js/shadow/Function.h"        // JS::shadow::Function
@@ -107,9 +109,6 @@ class JSFunction : public js::NativeObject {
   //   d. HAS_GUESSED_ATOM and HAS_INFERRED_NAME cannot both be set.
   //   e. `atom_` can be null if neither an explicit, nor inferred, nor a
   //      guessed name was set.
-  //   f. HAS_INFERRED_NAME can be set for cloned singleton function, even
-  //      though the clone shouldn't receive an inferred name. See the
-  //      comments in NewFunctionClone() and SetFunctionName() for details.
   //
   // 2. If the function is a bound function:
   //   a. To store the initial value of the "name" property.
@@ -137,21 +136,7 @@ class JSFunction : public js::NativeObject {
       js::HandleShape shape, js::HandleObjectGroup group);
 
   /* Call objects must be created for each invocation of this function. */
-  bool needsCallObject() const {
-    if (isNative()) {
-      return false;
-    }
-
-    MOZ_ASSERT(hasBytecode());
-
-    // Note: this should be kept in sync with
-    // FunctionBox::needsCallObjectRegardlessOfBindings().
-    MOZ_ASSERT_IF(
-        baseScript()->funHasExtensibleScope() || isGenerator() || isAsync(),
-        nonLazyScript()->bodyScope()->hasEnvironment());
-
-    return nonLazyScript()->bodyScope()->hasEnvironment();
-  }
+  bool needsCallObject() const;
 
   bool needsExtraBodyVarEnvironment() const;
   bool needsNamedLambdaEnvironment() const;
@@ -294,10 +279,6 @@ class JSFunction : public js::NativeObject {
   void setResolvedLength() { flags_.setResolvedLength(); }
   void setResolvedName() { flags_.setResolvedName(); }
 
-  // Mark a function as having its 'new' script information cleared.
-  bool wasNewScriptCleared() const { return flags_.wasNewScriptCleared(); }
-  void setNewScriptCleared() { flags_.setNewScriptCleared(); }
-
   static bool getUnresolvedLength(JSContext* cx, js::HandleFunction fun,
                                   js::MutableHandleValue v);
 
@@ -336,12 +317,6 @@ class JSFunction : public js::NativeObject {
     setAtom(atom);
     flags_.setInferredName();
   }
-  void clearInferredName() {
-    MOZ_ASSERT(hasInferredName());
-    MOZ_ASSERT(atom_);
-    setAtom(nullptr);
-    flags_.clearInferredName();
-  }
   JSAtom* inferredName() const {
     MOZ_ASSERT(hasInferredName());
     MOZ_ASSERT(atom_);
@@ -375,11 +350,6 @@ class JSFunction : public js::NativeObject {
   JSObject* environment() const {
     MOZ_ASSERT(isInterpreted());
     return u.scripted.env_;
-  }
-
-  void setEnvironment(JSObject* obj) {
-    MOZ_ASSERT(isInterpreted());
-    *reinterpret_cast<js::GCPtrObject*>(&u.scripted.env_) = obj;
   }
 
   void initEnvironment(JSObject* obj) {
@@ -460,7 +430,7 @@ class JSFunction : public js::NativeObject {
   bool isIncomplete() const { return isInterpreted() && !u.scripted.s.script_; }
 
   JSScript* nonLazyScript() const {
-    MOZ_ASSERT(hasBaseScript());
+    MOZ_ASSERT(hasBytecode());
     MOZ_ASSERT(u.scripted.s.script_);
     return static_cast<JSScript*>(u.scripted.s.script_);
   }
@@ -688,10 +658,6 @@ class JSFunction : public js::NativeObject {
   inline const js::FunctionExtended* toExtendedOffMainThread() const;
   inline const js::Value& getExtendedSlotOffMainThread(size_t which) const;
 
-  /* Constructs a new type for the function if necessary. */
-  static bool setTypeForScriptedFunction(JSContext* cx, js::HandleFunction fun,
-                                         bool singleton = false);
-
   /* GC support. */
   js::gc::AllocKind getAllocKind() const {
     static_assert(
@@ -735,11 +701,11 @@ extern JSFunction* NewFunctionWithProto(
     NewObjectKind newKind = GenericObject);
 
 // Allocate a new function backed by a JSNative.  Note that by default this
-// creates a singleton object.
+// creates a tenured object.
 inline JSFunction* NewNativeFunction(
     JSContext* cx, JSNative native, unsigned nargs, HandleAtom atom,
     gc::AllocKind allocKind = gc::AllocKind::FUNCTION,
-    NewObjectKind newKind = SingletonObject,
+    NewObjectKind newKind = TenuredObject,
     FunctionFlags flags = FunctionFlags::NATIVE_FUN) {
   MOZ_ASSERT(native);
   return NewFunctionWithProto(cx, native, nargs, flags, nullptr, atom, nullptr,
@@ -747,11 +713,11 @@ inline JSFunction* NewNativeFunction(
 }
 
 // Allocate a new constructor backed by a JSNative.  Note that by default this
-// creates a singleton object.
+// creates a tenured object.
 inline JSFunction* NewNativeConstructor(
     JSContext* cx, JSNative native, unsigned nargs, HandleAtom atom,
     gc::AllocKind allocKind = gc::AllocKind::FUNCTION,
-    NewObjectKind newKind = SingletonObject,
+    NewObjectKind newKind = TenuredObject,
     FunctionFlags flags = FunctionFlags::NATIVE_CTOR) {
   MOZ_ASSERT(native);
   MOZ_ASSERT(flags.isNativeConstructor());
@@ -794,14 +760,6 @@ extern JSFunction* DefineFunction(
 
 extern bool fun_toString(JSContext* cx, unsigned argc, Value* vp);
 
-struct WellKnownSymbols;
-
-// Assumes that fun.__proto__ === Function.__proto__, i.e., does not check for
-// the case where a function with a non-default __proto__ has an overridden
-// @@hasInstance handler. Will assert if not.
-extern bool FunctionHasDefaultHasInstance(JSFunction* fun,
-                                          const WellKnownSymbols& symbols);
-
 extern void ThrowTypeErrorBehavior(JSContext* cx);
 
 /*
@@ -834,6 +792,9 @@ class FunctionExtended : public JSFunction {
   // asm.js module functions store their WasmModuleObject in the first slot.
   static const unsigned ASMJS_MODULE_SLOT = 0;
 
+  // Async module callback handlers store their ModuleObject in the first slot.
+  static const unsigned MODULE_SLOT = 0;
+
   static inline size_t offsetOfExtendedSlot(unsigned which) {
     MOZ_ASSERT(which < NUM_EXTENDED_SLOTS);
     return offsetof(FunctionExtended, extendedSlots) +
@@ -864,7 +825,6 @@ extern JSFunction* CloneFunctionReuseScript(JSContext* cx, HandleFunction fun,
                                             gc::AllocKind kind,
                                             HandleObject proto);
 
-// Functions whose scripts are cloned are always given singleton types.
 extern JSFunction* CloneFunctionAndScript(
     JSContext* cx, HandleFunction fun, HandleObject enclosingEnv,
     HandleScope newScope, Handle<ScriptSourceObject*> sourceObject,
@@ -873,9 +833,6 @@ extern JSFunction* CloneFunctionAndScript(
 extern JSFunction* CloneAsmJSModuleFunction(JSContext* cx, HandleFunction fun);
 
 extern JSFunction* CloneSelfHostingIntrinsic(JSContext* cx, HandleFunction fun);
-
-extern bool SetPrototypeForClonedFunction(JSContext* cx, HandleFunction fun,
-                                          HandleObject proto);
 
 }  // namespace js
 
@@ -900,32 +857,31 @@ inline const js::FunctionExtended* JSFunction::toExtendedOffMainThread() const {
 inline void JSFunction::initializeExtended() {
   MOZ_ASSERT(isExtended());
 
-  MOZ_ASSERT(mozilla::ArrayLength(toExtended()->extendedSlots) == 2);
+  MOZ_ASSERT(std::size(toExtended()->extendedSlots) == 2);
   toExtended()->extendedSlots[0].init(js::UndefinedValue());
   toExtended()->extendedSlots[1].init(js::UndefinedValue());
 }
 
 inline void JSFunction::initExtendedSlot(size_t which, const js::Value& val) {
-  MOZ_ASSERT(which < mozilla::ArrayLength(toExtended()->extendedSlots));
+  MOZ_ASSERT(which < std::size(toExtended()->extendedSlots));
   MOZ_ASSERT(js::IsObjectValueInCompartment(val, compartment()));
   toExtended()->extendedSlots[which].init(val);
 }
 
 inline void JSFunction::setExtendedSlot(size_t which, const js::Value& val) {
-  MOZ_ASSERT(which < mozilla::ArrayLength(toExtended()->extendedSlots));
+  MOZ_ASSERT(which < std::size(toExtended()->extendedSlots));
   MOZ_ASSERT(js::IsObjectValueInCompartment(val, compartment()));
   toExtended()->extendedSlots[which] = val;
 }
 
 inline const js::Value& JSFunction::getExtendedSlot(size_t which) const {
-  MOZ_ASSERT(which < mozilla::ArrayLength(toExtended()->extendedSlots));
+  MOZ_ASSERT(which < std::size(toExtended()->extendedSlots));
   return toExtended()->extendedSlots[which];
 }
 
 inline const js::Value& JSFunction::getExtendedSlotOffMainThread(
     size_t which) const {
-  MOZ_ASSERT(which <
-             mozilla::ArrayLength(toExtendedOffMainThread()->extendedSlots));
+  MOZ_ASSERT(which < std::size(toExtendedOffMainThread()->extendedSlots));
   return toExtendedOffMainThread()->extendedSlots[which];
 }
 

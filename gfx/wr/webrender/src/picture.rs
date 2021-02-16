@@ -96,7 +96,7 @@
 
 use api::{MixBlendMode, PremultipliedColorF, FilterPrimitiveKind};
 use api::{PropertyBinding, PropertyBindingId, FilterPrimitive};
-use api::{DebugFlags, RasterSpace, ImageKey, ColorF, ColorU, PrimitiveFlags};
+use api::{DebugFlags, ImageKey, ColorF, ColorU, PrimitiveFlags};
 use api::{ImageRendering, ColorDepth, YuvColorSpace, YuvFormat};
 use api::units::*;
 use crate::box_shadow::BLUR_SAMPLE_SCALE;
@@ -122,7 +122,8 @@ use crate::print_tree::{PrintTree, PrintTreePrinter};
 use crate::render_backend::{DataStores, FrameId};
 use crate::render_task_graph::RenderTaskId;
 use crate::render_target::RenderTargetKind;
-use crate::render_task::{RenderTask, RenderTaskLocation, BlurTaskCache, ClearMode};
+use crate::render_task::{BlurTask, RenderTask, RenderTaskLocation, BlurTaskCache};
+use crate::render_task::{StaticRenderTaskSurface, RenderTaskKind};
 use crate::resource_cache::{ResourceCache, ImageGeneration};
 use crate::space::{SpaceMapper, SpaceSnapper};
 use crate::scene::SceneProperties;
@@ -545,7 +546,7 @@ struct TilePostUpdateContext<'a> {
 
     /// If true, the scale factor of the root transform for this picture
     /// cache changed, so we need to invalidate the tile and re-render.
-    root_scale_changed: bool,
+    invalidate_all: bool,
 }
 
 // Mutable state passed to picture cache tiles during post_update
@@ -636,7 +637,7 @@ pub enum SurfaceTextureDescriptor {
 /// This is the same as a `SurfaceTextureDescriptor` but has been resolved
 /// into a texture cache handle (if appropriate) that can be used by the
 /// batching and compositing code in the renderer.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub enum ResolvedSurfaceTexture {
@@ -1018,7 +1019,7 @@ impl Tile {
                 invalidation_reason.expect("bug: no invalidation_reason"),
             );
         }
-        if ctx.root_scale_changed {
+        if ctx.invalidate_all {
             self.invalidate(None, InvalidationReason::ScaleChanged);
         }
         // TODO(gw): We can avoid invalidating the whole tile in some cases here,
@@ -2282,7 +2283,7 @@ pub struct TileCacheInstance {
     /// Local rect (unclipped) of the picture this cache covers.
     pub local_rect: PictureRect,
     /// The local clip rect, from the shared clips of this picture.
-    local_clip_rect: PictureRect,
+    pub local_clip_rect: PictureRect,
     /// The surface index that this tile cache will be drawn into.
     surface_index: SurfaceIndex,
     /// The background color from the renderer. If this is set opaque, we know it's
@@ -2534,6 +2535,7 @@ impl TileCacheInstance {
             frame_state.clip_store.set_active_clips(
                 LayoutRect::max_rect(),
                 self.spatial_node_index,
+                self.map_local_to_surface.ref_spatial_node_index,
                 &shared_clips,
                 frame_context.spatial_tree,
                 &mut frame_state.data_stores.clip,
@@ -3811,7 +3813,7 @@ impl TileCacheInstance {
             !root_transform.scale.x.approx_eq_eps(&self.root_transform.scale.x, &EPSILON) ||
             !root_transform.scale.y.approx_eq_eps(&self.root_transform.scale.y, &EPSILON);
 
-        if root_translation_changed || root_scale_changed {
+        if root_translation_changed || root_scale_changed || frame_context.config.force_invalidation {
             self.root_transform = root_transform;
             frame_state.composite_state.dirty_rects_are_valid = false;
         }
@@ -3838,7 +3840,7 @@ impl TileCacheInstance {
             external_surfaces: &self.external_surfaces,
             z_id_opaque: self.z_id_opaque,
             z_id_alpha,
-            root_scale_changed,
+            invalidate_all: root_scale_changed || frame_context.config.force_invalidation,
         };
 
         let mut state = TilePostUpdateState {
@@ -4022,15 +4024,19 @@ pub struct SurfaceIndex(pub usize);
 
 pub const ROOT_SURFACE_INDEX: SurfaceIndex = SurfaceIndex(0);
 
-#[derive(Debug, Copy, Clone)]
-pub struct SurfaceRenderTasks {
-    /// The root of the render task chain for this surface. This
-    /// is attached to parent tasks, and also the surface that
-    /// gets added during batching.
-    pub root: RenderTaskId,
-    /// The port of the render task change for this surface. This
-    /// is where child tasks for this surface get attached to.
-    pub port: RenderTaskId,
+/// Describes the render task configuration for a picture surface.
+#[derive(Debug)]
+pub enum SurfaceRenderTasks {
+    /// The common type of surface is a single render task
+    Simple(RenderTaskId),
+    /// Some surfaces draw their content, and then have further tasks applied
+    /// to that input (such as blur passes for shadows). These tasks have a root
+    /// (the output of the surface), and a port (for attaching child task dependencies
+    /// to the content).
+    Chained { root_task_id: RenderTaskId, port_task_id: RenderTaskId },
+    /// Picture caches are a single surface consisting of multiple render
+    /// tasks, one per tile with dirty content.
+    Tiled(Vec<RenderTaskId>),
 }
 
 /// Information about an offscreen surface. For now,
@@ -4498,9 +4504,6 @@ pub struct PicturePrimitive {
     /// How this picture should be composited.
     /// If None, don't composite - just draw directly on parent surface.
     pub requested_composite_mode: Option<PictureCompositeMode>,
-    /// Requested rasterization space for this picture. It is
-    /// a performance hint only.
-    pub requested_raster_space: RasterSpace,
 
     pub raster_config: Option<RasterConfig>,
     pub context_3d: Picture3DContext<OrderedPictureChild>,
@@ -4544,10 +4547,6 @@ pub struct PicturePrimitive {
 
     /// Set to true if we know for sure the picture is fully opaque.
     pub is_opaque: bool,
-
-    /// Keep track of the number of render tasks dependencies to pre-allocate
-    /// the dependency array next frame.
-    num_render_tasks: usize,
 }
 
 impl PicturePrimitive {
@@ -4635,7 +4634,6 @@ impl PicturePrimitive {
         context_3d: Picture3DContext<OrderedPictureChild>,
         apply_local_clip_rect: bool,
         flags: PrimitiveFlags,
-        requested_raster_space: RasterSpace,
         prim_list: PrimitiveList,
         spatial_node_index: SpatialNodeIndex,
         options: PictureOptions,
@@ -4650,7 +4648,6 @@ impl PicturePrimitive {
             extra_gpu_data_handles: SmallVec::new(),
             apply_local_clip_rect,
             is_backface_visible: flags.contains(PrimitiveFlags::IS_BACKFACE_VISIBLE),
-            requested_raster_space,
             spatial_node_index,
             estimated_local_rect: LayoutRect::zero(),
             precise_local_rect: LayoutRect::zero(),
@@ -4658,33 +4655,6 @@ impl PicturePrimitive {
             options,
             segments_are_valid: false,
             is_opaque: false,
-            num_render_tasks: 0,
-        }
-    }
-
-    /// Gets the raster space to use when rendering a primitive in this picture.
-    /// Usually this would be the picture's requested raster space. However, if
-    /// the primitive's spatial node or one of its ancestors is being pinch zoomed
-    /// then we round it. This prevents us rasterizing glyphs for every minor
-    /// change in zoom level, as that would be too expensive.
-    pub fn get_raster_space_for_prim(
-        &self,
-        prim_spatial_node_index: SpatialNodeIndex,
-        spatial_tree: &SpatialTree,
-    ) -> RasterSpace {
-        let prim_spatial_node = &spatial_tree.spatial_nodes[prim_spatial_node_index.0 as usize];
-        if prim_spatial_node.is_ancestor_or_self_zooming {
-            let scale_factors = spatial_tree
-                .get_relative_transform(prim_spatial_node_index, ROOT_SPATIAL_NODE_INDEX)
-                .scale_factors();
-
-            // Round the scale up to the nearest power of 2, but don't exceed 8.
-            let scale = scale_factors.0.max(scale_factors.1).min(8.0);
-            let rounded_up = 2.0f32.powf(scale.log2().ceil());
-
-            RasterSpace::Local(rounded_up)
-        } else {
-            self.requested_raster_space
         }
     }
 
@@ -4706,11 +4676,6 @@ impl PicturePrimitive {
         }
 
         profile_scope!("take_context");
-        // In rare circumstances (if the entire picture cache slice is drawn by background color
-        // tiles without surfaces) the render_tasks field below will be None.
-        if let Some(task_id) = frame_state.surfaces[parent_surface_index.0].render_tasks.map(|s| s.port) {
-            frame_state.render_tasks[task_id].children.reserve(self.num_render_tasks);
-        }
 
         // Extract the raster and surface spatial nodes from the raster
         // config, if this picture establishes a surface. Otherwise just
@@ -4771,6 +4736,333 @@ impl PicturePrimitive {
         };
 
         match self.raster_config {
+            Some(RasterConfig { surface_index, composite_mode: PictureCompositeMode::TileCache { slice_id }, .. }) => {
+                let tile_cache = tile_caches.get_mut(&slice_id).unwrap();
+                let mut debug_info = SliceDebugInfo::new();
+                let mut surface_tasks = Vec::with_capacity(tile_cache.tiles.len());
+                let device_pixel_scale = frame_state
+                    .surfaces[surface_index.0]
+                    .device_pixel_scale;
+
+                // Get the overall world space rect of the picture cache. Used to clip
+                // the tile rects below for occlusion testing to the relevant area.
+                let world_clip_rect = map_pic_to_world
+                    .map(&tile_cache.local_clip_rect)
+                    .expect("bug: unable to map clip rect");
+                let device_clip_rect = (world_clip_rect * frame_context.global_device_pixel_scale).round();
+
+                for tile in tile_cache.tiles.values_mut() {
+
+                    if tile.is_visible {
+                        // Get the world space rect that this tile will actually occupy on screem
+                        let device_draw_rect = device_clip_rect.intersection(&tile.device_valid_rect);
+
+                        // If that draw rect is occluded by some set of tiles in front of it,
+                        // then mark it as not visible and skip drawing. When it's not occluded
+                        // it will fail this test, and get rasterized by the render task setup
+                        // code below.
+                        match device_draw_rect {
+                            Some(device_draw_rect) => {
+                                // Only check for occlusion on visible tiles that are fixed position.
+                                if tile_cache.spatial_node_index == ROOT_SPATIAL_NODE_INDEX &&
+                                   frame_state.composite_state.occluders.is_tile_occluded(tile.z_id, device_draw_rect) {
+                                    // If this tile has an allocated native surface, free it, since it's completely
+                                    // occluded. We will need to re-allocate this surface if it becomes visible,
+                                    // but that's likely to be rare (e.g. when there is no content display list
+                                    // for a frame or two during a tab switch).
+                                    let surface = tile.surface.as_mut().expect("no tile surface set!");
+
+                                    if let TileSurface::Texture { descriptor: SurfaceTextureDescriptor::Native { id, .. }, .. } = surface {
+                                        if let Some(id) = id.take() {
+                                            frame_state.resource_cache.destroy_compositor_tile(id);
+                                        }
+                                    }
+
+                                    tile.is_visible = false;
+
+                                    if frame_context.fb_config.testing {
+                                        debug_info.tiles.insert(
+                                            tile.tile_offset,
+                                            TileDebugInfo::Occluded,
+                                        );
+                                    }
+
+                                    continue;
+                                }
+                            }
+                            None => {
+                                tile.is_visible = false;
+                            }
+                        }
+                    }
+
+                    // If we get here, we want to ensure that the surface remains valid in the texture
+                    // cache, _even if_ it's not visible due to clipping or being scrolled off-screen.
+                    // This ensures that we retain valid tiles that are off-screen, but still in the
+                    // display port of this tile cache instance.
+                    if let Some(TileSurface::Texture { descriptor, .. }) = tile.surface.as_ref() {
+                        if let SurfaceTextureDescriptor::TextureCache { ref handle, .. } = descriptor {
+                            frame_state.resource_cache.texture_cache.request(
+                                handle,
+                                frame_state.gpu_cache,
+                            );
+                        }
+                    }
+
+                    // If the tile has been found to be off-screen / clipped, skip any further processing.
+                    if !tile.is_visible {
+                        if frame_context.fb_config.testing {
+                            debug_info.tiles.insert(
+                                tile.tile_offset,
+                                TileDebugInfo::Culled,
+                            );
+                        }
+
+                        continue;
+                    }
+
+                    if frame_context.debug_flags.contains(DebugFlags::PICTURE_CACHING_DBG) {
+                        tile.root.draw_debug_rects(
+                            &map_pic_to_world,
+                            tile.is_opaque,
+                            tile.current_descriptor.local_valid_rect,
+                            scratch,
+                            frame_context.global_device_pixel_scale,
+                        );
+
+                        let label_offset = DeviceVector2D::new(20.0, 30.0);
+                        let tile_device_rect = tile.world_tile_rect * frame_context.global_device_pixel_scale;
+                        if tile_device_rect.size.height >= label_offset.y {
+                            let surface = tile.surface.as_ref().expect("no tile surface set!");
+
+                            scratch.push_debug_string(
+                                tile_device_rect.origin + label_offset,
+                                debug_colors::RED,
+                                format!("{:?}: s={} is_opaque={} surface={}",
+                                        tile.id,
+                                        tile_cache.slice,
+                                        tile.is_opaque,
+                                        surface.kind(),
+                                ),
+                            );
+                        }
+                    }
+
+                    if let TileSurface::Texture { descriptor, .. } = tile.surface.as_mut().unwrap() {
+                        match descriptor {
+                            SurfaceTextureDescriptor::TextureCache { ref handle, .. } => {
+                                // Invalidate if the backing texture was evicted.
+                                if frame_state.resource_cache.texture_cache.is_allocated(handle) {
+                                    // Request the backing texture so it won't get evicted this frame.
+                                    // We specifically want to mark the tile texture as used, even
+                                    // if it's detected not visible below and skipped. This is because
+                                    // we maintain the set of tiles we care about based on visibility
+                                    // during pre_update. If a tile still exists after that, we are
+                                    // assuming that it's either visible or we want to retain it for
+                                    // a while in case it gets scrolled back onto screen soon.
+                                    // TODO(gw): Consider switching to manual eviction policy?
+                                    frame_state.resource_cache.texture_cache.request(handle, frame_state.gpu_cache);
+                                } else {
+                                    // If the texture was evicted on a previous frame, we need to assume
+                                    // that the entire tile rect is dirty.
+                                    tile.invalidate(None, InvalidationReason::NoTexture);
+                                }
+                            }
+                            SurfaceTextureDescriptor::Native { id, .. } => {
+                                if id.is_none() {
+                                    // There is no current surface allocation, so ensure the entire tile is invalidated
+                                    tile.invalidate(None, InvalidationReason::NoSurface);
+                                }
+                            }
+                        }
+                    }
+
+                    // Ensure that the dirty rect doesn't extend outside the local valid rect.
+                    tile.local_dirty_rect = tile.local_dirty_rect
+                        .intersection(&tile.current_descriptor.local_valid_rect)
+                        .unwrap_or_else(PictureRect::zero);
+
+                    // Update the world/device dirty rect
+                    let world_dirty_rect = map_pic_to_world.map(&tile.local_dirty_rect).expect("bug");
+
+                    let device_rect = (tile.world_tile_rect * frame_context.global_device_pixel_scale).round();
+                    tile.device_dirty_rect = (world_dirty_rect * frame_context.global_device_pixel_scale)
+                        .round_out()
+                        .intersection(&device_rect)
+                        .unwrap_or_else(DeviceRect::zero);
+
+                    if tile.is_valid {
+                        if frame_context.fb_config.testing {
+                            debug_info.tiles.insert(
+                                tile.tile_offset,
+                                TileDebugInfo::Valid,
+                            );
+                        }
+
+                        continue;
+                    }
+
+                    // Get the visibility mask bit(s) for this tile from the dirty region tracker. This must be done
+                    // outside the if statement below, so that we include in the dirty region tiles that are handled
+                    // by a background color only (no surface allocation).
+                    let tile_vis_mask = tile_cache.dirty_region.add_dirty_region(
+                        tile.local_dirty_rect,
+                        frame_context.spatial_tree,
+                    );
+
+                    // Ensure that this texture is allocated.
+                    if let TileSurface::Texture { ref mut descriptor, ref mut visibility_mask } = tile.surface.as_mut().unwrap() {
+                        *visibility_mask = tile_vis_mask;
+
+                        match descriptor {
+                            SurfaceTextureDescriptor::TextureCache { ref mut handle } => {
+                                if !frame_state.resource_cache.texture_cache.is_allocated(handle) {
+                                    frame_state.resource_cache.texture_cache.update_picture_cache(
+                                        tile_cache.current_tile_size,
+                                        handle,
+                                        frame_state.gpu_cache,
+                                    );
+                                }
+                            }
+                            SurfaceTextureDescriptor::Native { id } => {
+                                if id.is_none() {
+                                    // Allocate a native surface id if we're in native compositing mode,
+                                    // and we don't have a surface yet (due to first frame, or destruction
+                                    // due to tile size changing etc).
+                                    if tile_cache.native_surface.is_none() {
+                                        let opaque = frame_state
+                                            .resource_cache
+                                            .create_compositor_surface(
+                                                tile_cache.virtual_offset,
+                                                tile_cache.current_tile_size,
+                                                true,
+                                            );
+
+                                        let alpha = frame_state
+                                            .resource_cache
+                                            .create_compositor_surface(
+                                                tile_cache.virtual_offset,
+                                                tile_cache.current_tile_size,
+                                                false,
+                                            );
+
+                                        tile_cache.native_surface = Some(NativeSurface {
+                                            opaque,
+                                            alpha,
+                                        });
+                                    }
+
+                                    // Create the tile identifier and allocate it.
+                                    let surface_id = if tile.is_opaque {
+                                        tile_cache.native_surface.as_ref().unwrap().opaque
+                                    } else {
+                                        tile_cache.native_surface.as_ref().unwrap().alpha
+                                    };
+
+                                    let tile_id = NativeTileId {
+                                        surface_id,
+                                        x: tile.tile_offset.x,
+                                        y: tile.tile_offset.y,
+                                    };
+
+                                    frame_state.resource_cache.create_compositor_tile(tile_id);
+
+                                    *id = Some(tile_id);
+                                }
+                            }
+                        }
+
+                        let content_origin_f = tile.world_tile_rect.origin * device_pixel_scale;
+                        let content_origin = content_origin_f.round();
+                        debug_assert!((content_origin_f.x - content_origin.x).abs() < 0.01);
+                        debug_assert!((content_origin_f.y - content_origin.y).abs() < 0.01);
+
+                        let surface = descriptor.resolve(
+                            frame_state.resource_cache,
+                            tile_cache.current_tile_size,
+                        );
+
+                        let scissor_rect = tile.device_dirty_rect
+                            .translate(-device_rect.origin.to_vector())
+                            .round()
+                            .to_i32();
+
+                        let valid_rect = tile.device_valid_rect
+                            .translate(-device_rect.origin.to_vector())
+                            .round()
+                            .to_i32();
+
+                        let task_size = tile_cache.current_tile_size;
+
+                        let render_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new(
+                                RenderTaskLocation::Static {
+                                    surface: StaticRenderTaskSurface::PictureCache {
+                                        surface,
+                                    },
+                                    rect: task_size.into(),
+                                },
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    tile_cache.current_tile_size.to_f32(),
+                                    pic_index,
+                                    content_origin,
+                                    UvRectKind::Rect,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    *visibility_mask,
+                                    Some(scissor_rect),
+                                    Some(valid_rect),
+                                )
+                            ),
+                        );
+
+                        surface_tasks.push(render_task_id);
+                    }
+
+                    if frame_context.fb_config.testing {
+                        debug_info.tiles.insert(
+                            tile.tile_offset,
+                            TileDebugInfo::Dirty(DirtyTileDebugInfo {
+                                local_valid_rect: tile.current_descriptor.local_valid_rect,
+                                local_dirty_rect: tile.local_dirty_rect,
+                            }),
+                        );
+                    }
+
+                    // If the entire tile valid region is dirty, we can update the fract offset
+                    // at which the tile was rendered.
+                    if tile.device_dirty_rect.contains_rect(&tile.device_valid_rect) {
+                        tile.device_fract_offset = tile_cache.device_fract_offset;
+                    }
+
+                    // Now that the tile is valid, reset the dirty rect.
+                    tile.local_dirty_rect = PictureRect::zero();
+                    tile.is_valid = true;
+                }
+
+                // If invalidation debugging is enabled, dump the picture cache state to a tree printer.
+                if frame_context.debug_flags.contains(DebugFlags::INVALIDATION_DBG) {
+                    tile_cache.print();
+                }
+
+                // If testing mode is enabled, write some information about the current state
+                // of this picture cache (made available in RenderResults).
+                if frame_context.fb_config.testing {
+                    frame_state.composite_state
+                        .picture_cache_debug
+                        .slices
+                        .insert(
+                            tile_cache.slice,
+                            debug_info,
+                        );
+                }
+
+                frame_state.init_surface_tiled(
+                    surface_index,
+                    surface_tasks,
+                );
+            }
             Some(ref mut raster_config) => {
                 let pic_rect = self.precise_local_rect.cast_unit();
 
@@ -4883,7 +5175,10 @@ impl PicturePrimitive {
                     }
                 }
 
-                let dep_info = match raster_config.composite_mode {
+                match raster_config.composite_mode {
+                    PictureCompositeMode::TileCache { .. } => {
+                        unreachable!("handled above");
+                    }
                     PictureCompositeMode::Filter(Filter::Blur(width, height)) => {
                         let width_std_deviation = clamp_blur_radius(width, scale_factors) * device_pixel_scale.0;
                         let height_std_deviation = clamp_blur_radius(height, scale_factors) * device_pixel_scale.0;
@@ -4916,7 +5211,7 @@ impl PicturePrimitive {
                         // Adjust the size to avoid introducing sampling errors during the down-scaling passes.
                         // what would be even better is to rasterize the picture at the down-scaled size
                         // directly.
-                        device_rect.size = RenderTask::adjusted_blur_source_size(
+                        device_rect.size = BlurTask::adjusted_blur_source_size(
                             device_rect.size,
                             blur_std_deviation,
                         );
@@ -4939,32 +5234,41 @@ impl PicturePrimitive {
                             device_pixel_scale,
                         );
 
-                        let picture_task_id = frame_state.render_tasks.add().init(
-                            RenderTask::new_picture(
-                                RenderTaskLocation::Dynamic(None, device_rect.size.to_i32()),
-                                unclipped.size,
-                                pic_index,
-                                device_rect.origin,
-                                uv_rect_kind,
-                                surface_spatial_node_index,
-                                device_pixel_scale,
-                                PrimitiveVisibilityMask::all(),
-                                None,
-                                None,
+                        let task_size = device_rect.size.to_i32();
+
+                        let picture_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                task_size,
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    unclipped.size,
+                                    pic_index,
+                                    device_rect.origin,
+                                    uv_rect_kind,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    PrimitiveVisibilityMask::all(),
+                                    None,
+                                    None,
+                                )
                             )
                         );
 
                         let blur_render_task_id = RenderTask::new_blur(
                             blur_std_deviation,
                             picture_task_id,
-                            frame_state.render_tasks,
+                            frame_state.rg_builder,
                             RenderTargetKind::Color,
-                            ClearMode::Transparent,
                             None,
                             original_size.to_i32(),
                         );
 
-                        Some((blur_render_task_id, picture_task_id))
+                        frame_state.init_surface_chain(
+                            raster_config.surface_index,
+                            blur_render_task_id,
+                            picture_task_id,
+                            parent_surface_index,
+                        );
                     }
                     PictureCompositeMode::Filter(Filter::DropShadows(ref shadows)) => {
                         let mut max_std_deviation = 0.0;
@@ -4981,7 +5285,7 @@ impl PicturePrimitive {
                                 .intersection(&unclipped)
                                 .unwrap();
 
-                        device_rect.size = RenderTask::adjusted_blur_source_size(
+                        device_rect.size = BlurTask::adjusted_blur_source_size(
                             device_rect.size,
                             DeviceSize::new(
                                 max_std_deviation * scale_factors.0,
@@ -5006,23 +5310,32 @@ impl PicturePrimitive {
                             device_pixel_scale,
                         );
 
-                        let picture_task_id = frame_state.render_tasks.add().init({
-                            let mut picture_task = RenderTask::new_picture(
-                                RenderTaskLocation::Dynamic(None, device_rect.size.to_i32()),
-                                unclipped.size,
-                                pic_index,
-                                device_rect.origin,
-                                uv_rect_kind,
-                                surface_spatial_node_index,
-                                device_pixel_scale,
-                                PrimitiveVisibilityMask::all(),
-                                None,
-                                None,
-                            );
-                            picture_task.mark_for_saving();
+                        let task_size = device_rect.size.to_i32();
 
-                            picture_task
-                        });
+                        let picture_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                task_size,
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    unclipped.size,
+                                    pic_index,
+                                    device_rect.origin,
+                                    uv_rect_kind,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    PrimitiveVisibilityMask::all(),
+                                    None,
+                                    None,
+                                ),
+                            )
+                        );
+
+                        // Add this content picture as a dependency of the parent surface, to
+                        // ensure it isn't free'd after the shadow uses it as an input.
+                        frame_state.add_child_render_task(
+                            parent_surface_index,
+                            picture_task_id,
+                        );
 
                         self.secondary_render_task_id = Some(picture_task_id);
 
@@ -5039,16 +5352,20 @@ impl PicturePrimitive {
                                     blur_radius * scale_factors.1,
                                 ),
                                 picture_task_id,
-                                frame_state.render_tasks,
+                                frame_state.rg_builder,
                                 RenderTargetKind::Color,
-                                ClearMode::Transparent,
                                 Some(&mut blur_tasks),
                                 device_rect.size.to_i32(),
                             );
                         }
 
                         // TODO(nical) the second one should to be the blur's task id but we have several blurs now
-                        Some((blur_render_task_id, picture_task_id))
+                        frame_state.init_surface_chain(
+                            raster_config.surface_index,
+                            blur_render_task_id,
+                            picture_task_id,
+                            parent_surface_index,
+                        );
                     }
                     PictureCompositeMode::MixBlend(..) if !frame_context.fb_config.gpu_supports_advanced_blend => {
                         if let Some(scale) = adjust_scale_for_max_surface_size(
@@ -5067,33 +5384,45 @@ impl PicturePrimitive {
                             device_pixel_scale,
                         );
 
-                        let readback_task_id = frame_state.render_tasks.add().init(
-                            RenderTask::new_readback(clipped.size.to_i32())
+                        let readback_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                clipped.size.to_i32(),
+                                RenderTaskKind::new_readback(),
+                            )
                         );
 
-                        frame_state.render_tasks.add_dependency(
-                            frame_state.surfaces[parent_surface_index.0].render_tasks.unwrap().port,
+                        frame_state.add_child_render_task(
+                            parent_surface_index,
                             readback_task_id,
                         );
 
                         self.secondary_render_task_id = Some(readback_task_id);
 
-                        let render_task_id = frame_state.render_tasks.add().init(
-                            RenderTask::new_picture(
-                                RenderTaskLocation::Dynamic(None, clipped.size.to_i32()),
-                                unclipped.size,
-                                pic_index,
-                                clipped.origin,
-                                uv_rect_kind,
-                                surface_spatial_node_index,
-                                device_pixel_scale,
-                                PrimitiveVisibilityMask::all(),
-                                None,
-                                None,
+                        let task_size = clipped.size.to_i32();
+
+                        let render_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                task_size,
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    unclipped.size,
+                                    pic_index,
+                                    clipped.origin,
+                                    uv_rect_kind,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    PrimitiveVisibilityMask::all(),
+                                    None,
+                                    None,
+                                )
                             )
                         );
 
-                        Some((render_task_id, render_task_id))
+                        frame_state.init_surface(
+                            raster_config.surface_index,
+                            render_task_id,
+                            parent_surface_index,
+                        );
                     }
                     PictureCompositeMode::Filter(..) => {
 
@@ -5113,22 +5442,31 @@ impl PicturePrimitive {
                             device_pixel_scale,
                         );
 
-                        let render_task_id = frame_state.render_tasks.add().init(
-                            RenderTask::new_picture(
-                                RenderTaskLocation::Dynamic(None, clipped.size.to_i32()),
-                                unclipped.size,
-                                pic_index,
-                                clipped.origin,
-                                uv_rect_kind,
-                                surface_spatial_node_index,
-                                device_pixel_scale,
-                                PrimitiveVisibilityMask::all(),
-                                None,
-                                None,
+                        let task_size = clipped.size.to_i32();
+
+                        let render_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                task_size,
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    unclipped.size,
+                                    pic_index,
+                                    clipped.origin,
+                                    uv_rect_kind,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    PrimitiveVisibilityMask::all(),
+                                    None,
+                                    None,
+                                )
                             )
                         );
 
-                        Some((render_task_id, render_task_id))
+                        frame_state.init_surface(
+                            raster_config.surface_index,
+                            render_task_id,
+                            parent_surface_index,
+                        );
                     }
                     PictureCompositeMode::ComponentTransferFilter(..) => {
                         if let Some(scale) = adjust_scale_for_max_surface_size(
@@ -5147,351 +5485,31 @@ impl PicturePrimitive {
                             device_pixel_scale,
                         );
 
-                        let render_task_id = frame_state.render_tasks.add().init(
-                            RenderTask::new_picture(
-                                RenderTaskLocation::Dynamic(None, clipped.size.to_i32()),
-                                unclipped.size,
-                                pic_index,
-                                clipped.origin,
-                                uv_rect_kind,
-                                surface_spatial_node_index,
-                                device_pixel_scale,
-                                PrimitiveVisibilityMask::all(),
-                                None,
-                                None,
+                        let task_size = clipped.size.to_i32();
+
+                        let render_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                task_size,
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    unclipped.size,
+                                    pic_index,
+                                    clipped.origin,
+                                    uv_rect_kind,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    PrimitiveVisibilityMask::all(),
+                                    None,
+                                    None,
+                                )
                             )
                         );
 
-                        Some((render_task_id, render_task_id))
-                    }
-                    PictureCompositeMode::TileCache { slice_id } => {
-                        let tile_cache = tile_caches.get_mut(&slice_id).unwrap();
-                        let mut first = true;
-                        let mut debug_info = SliceDebugInfo::new();
-
-                        // Get the overall world space rect of the picture cache. Used to clip
-                        // the tile rects below for occlusion testing to the relevant area.
-                        let world_clip_rect = map_pic_to_world
-                            .map(&tile_cache.local_clip_rect)
-                            .expect("bug: unable to map clip rect");
-                        let device_clip_rect = (world_clip_rect * frame_context.global_device_pixel_scale).round();
-
-                        for tile in tile_cache.tiles.values_mut() {
-
-                            if tile.is_visible {
-                                // Get the world space rect that this tile will actually occupy on screem
-                                let device_draw_rect = device_clip_rect.intersection(&tile.device_valid_rect);
-
-                                // If that draw rect is occluded by some set of tiles in front of it,
-                                // then mark it as not visible and skip drawing. When it's not occluded
-                                // it will fail this test, and get rasterized by the render task setup
-                                // code below.
-                                match device_draw_rect {
-                                    Some(device_draw_rect) => {
-                                        // Only check for occlusion on visible tiles that are fixed position.
-                                        if tile_cache.spatial_node_index == ROOT_SPATIAL_NODE_INDEX &&
-                                           frame_state.composite_state.occluders.is_tile_occluded(tile.z_id, device_draw_rect) {
-                                            // If this tile has an allocated native surface, free it, since it's completely
-                                            // occluded. We will need to re-allocate this surface if it becomes visible,
-                                            // but that's likely to be rare (e.g. when there is no content display list
-                                            // for a frame or two during a tab switch).
-                                            let surface = tile.surface.as_mut().expect("no tile surface set!");
-
-                                            if let TileSurface::Texture { descriptor: SurfaceTextureDescriptor::Native { id, .. }, .. } = surface {
-                                                if let Some(id) = id.take() {
-                                                    frame_state.resource_cache.destroy_compositor_tile(id);
-                                                }
-                                            }
-
-                                            tile.is_visible = false;
-
-                                            if frame_context.fb_config.testing {
-                                                debug_info.tiles.insert(
-                                                    tile.tile_offset,
-                                                    TileDebugInfo::Occluded,
-                                                );
-                                            }
-
-                                            continue;
-                                        }
-                                    }
-                                    None => {
-                                        tile.is_visible = false;
-                                    }
-                                }
-                            }
-
-                            // If we get here, we want to ensure that the surface remains valid in the texture
-                            // cache, _even if_ it's not visible due to clipping or being scrolled off-screen.
-                            // This ensures that we retain valid tiles that are off-screen, but still in the
-                            // display port of this tile cache instance.
-                            if let Some(TileSurface::Texture { descriptor, .. }) = tile.surface.as_ref() {
-                                if let SurfaceTextureDescriptor::TextureCache { ref handle, .. } = descriptor {
-                                    frame_state.resource_cache.texture_cache.request(
-                                        handle,
-                                        frame_state.gpu_cache,
-                                    );
-                                }
-                            }
-
-                            // If the tile has been found to be off-screen / clipped, skip any further processing.
-                            if !tile.is_visible {
-                                if frame_context.fb_config.testing {
-                                    debug_info.tiles.insert(
-                                        tile.tile_offset,
-                                        TileDebugInfo::Culled,
-                                    );
-                                }
-
-                                continue;
-                            }
-
-                            if frame_context.debug_flags.contains(DebugFlags::PICTURE_CACHING_DBG) {
-                                tile.root.draw_debug_rects(
-                                    &map_pic_to_world,
-                                    tile.is_opaque,
-                                    tile.current_descriptor.local_valid_rect,
-                                    scratch,
-                                    frame_context.global_device_pixel_scale,
-                                );
-
-                                let label_offset = DeviceVector2D::new(20.0, 30.0);
-                                let tile_device_rect = tile.world_tile_rect * frame_context.global_device_pixel_scale;
-                                if tile_device_rect.size.height >= label_offset.y {
-                                    let surface = tile.surface.as_ref().expect("no tile surface set!");
-
-                                    scratch.push_debug_string(
-                                        tile_device_rect.origin + label_offset,
-                                        debug_colors::RED,
-                                        format!("{:?}: s={} is_opaque={} surface={}",
-                                                tile.id,
-                                                tile_cache.slice,
-                                                tile.is_opaque,
-                                                surface.kind(),
-                                        ),
-                                    );
-                                }
-                            }
-
-                            if let TileSurface::Texture { descriptor, .. } = tile.surface.as_mut().unwrap() {
-                                match descriptor {
-                                    SurfaceTextureDescriptor::TextureCache { ref handle, .. } => {
-                                        // Invalidate if the backing texture was evicted.
-                                        if frame_state.resource_cache.texture_cache.is_allocated(handle) {
-                                            // Request the backing texture so it won't get evicted this frame.
-                                            // We specifically want to mark the tile texture as used, even
-                                            // if it's detected not visible below and skipped. This is because
-                                            // we maintain the set of tiles we care about based on visibility
-                                            // during pre_update. If a tile still exists after that, we are
-                                            // assuming that it's either visible or we want to retain it for
-                                            // a while in case it gets scrolled back onto screen soon.
-                                            // TODO(gw): Consider switching to manual eviction policy?
-                                            frame_state.resource_cache.texture_cache.request(handle, frame_state.gpu_cache);
-                                        } else {
-                                            // If the texture was evicted on a previous frame, we need to assume
-                                            // that the entire tile rect is dirty.
-                                            tile.invalidate(None, InvalidationReason::NoTexture);
-                                        }
-                                    }
-                                    SurfaceTextureDescriptor::Native { id, .. } => {
-                                        if id.is_none() {
-                                            // There is no current surface allocation, so ensure the entire tile is invalidated
-                                            tile.invalidate(None, InvalidationReason::NoSurface);
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Ensure that the dirty rect doesn't extend outside the local valid rect.
-                            tile.local_dirty_rect = tile.local_dirty_rect
-                                .intersection(&tile.current_descriptor.local_valid_rect)
-                                .unwrap_or_else(PictureRect::zero);
-
-                            // Update the world/device dirty rect
-                            let world_dirty_rect = map_pic_to_world.map(&tile.local_dirty_rect).expect("bug");
-
-                            let device_rect = (tile.world_tile_rect * frame_context.global_device_pixel_scale).round();
-                            tile.device_dirty_rect = (world_dirty_rect * frame_context.global_device_pixel_scale)
-                                .round_out()
-                                .intersection(&device_rect)
-                                .unwrap_or_else(DeviceRect::zero);
-
-                            if tile.is_valid {
-                                if frame_context.fb_config.testing {
-                                    debug_info.tiles.insert(
-                                        tile.tile_offset,
-                                        TileDebugInfo::Valid,
-                                    );
-                                }
-
-                                continue;
-                            }
-
-                            // Get the visibility mask bit(s) for this tile from the dirty region tracker. This must be done
-                            // outside the if statement below, so that we include in the dirty region tiles that are handled
-                            // by a background color only (no surface allocation).
-                            let tile_vis_mask = tile_cache.dirty_region.add_dirty_region(
-                                tile.local_dirty_rect,
-                                frame_context.spatial_tree,
-                            );
-
-                            // Ensure that this texture is allocated.
-                            if let TileSurface::Texture { ref mut descriptor, ref mut visibility_mask } = tile.surface.as_mut().unwrap() {
-                                *visibility_mask = tile_vis_mask;
-
-                                match descriptor {
-                                    SurfaceTextureDescriptor::TextureCache { ref mut handle } => {
-                                        if !frame_state.resource_cache.texture_cache.is_allocated(handle) {
-                                            frame_state.resource_cache.texture_cache.update_picture_cache(
-                                                tile_cache.current_tile_size,
-                                                handle,
-                                                frame_state.gpu_cache,
-                                            );
-                                        }
-                                    }
-                                    SurfaceTextureDescriptor::Native { id } => {
-                                        if id.is_none() {
-                                            // Allocate a native surface id if we're in native compositing mode,
-                                            // and we don't have a surface yet (due to first frame, or destruction
-                                            // due to tile size changing etc).
-                                            if tile_cache.native_surface.is_none() {
-                                                let opaque = frame_state
-                                                    .resource_cache
-                                                    .create_compositor_surface(
-                                                        tile_cache.virtual_offset,
-                                                        tile_cache.current_tile_size,
-                                                        true,
-                                                    );
-
-                                                let alpha = frame_state
-                                                    .resource_cache
-                                                    .create_compositor_surface(
-                                                        tile_cache.virtual_offset,
-                                                        tile_cache.current_tile_size,
-                                                        false,
-                                                    );
-
-                                                tile_cache.native_surface = Some(NativeSurface {
-                                                    opaque,
-                                                    alpha,
-                                                });
-                                            }
-
-                                            // Create the tile identifier and allocate it.
-                                            let surface_id = if tile.is_opaque {
-                                                tile_cache.native_surface.as_ref().unwrap().opaque
-                                            } else {
-                                                tile_cache.native_surface.as_ref().unwrap().alpha
-                                            };
-
-                                            let tile_id = NativeTileId {
-                                                surface_id,
-                                                x: tile.tile_offset.x,
-                                                y: tile.tile_offset.y,
-                                            };
-
-                                            frame_state.resource_cache.create_compositor_tile(tile_id);
-
-                                            *id = Some(tile_id);
-                                        }
-                                    }
-                                }
-
-                                let content_origin_f = tile.world_tile_rect.origin * device_pixel_scale;
-                                let content_origin = content_origin_f.round();
-                                debug_assert!((content_origin_f.x - content_origin.x).abs() < 0.01);
-                                debug_assert!((content_origin_f.y - content_origin.y).abs() < 0.01);
-
-                                let surface = descriptor.resolve(
-                                    frame_state.resource_cache,
-                                    tile_cache.current_tile_size,
-                                );
-
-                                let scissor_rect = tile.device_dirty_rect
-                                    .translate(-device_rect.origin.to_vector())
-                                    .round()
-                                    .to_i32();
-
-                                let valid_rect = tile.device_valid_rect
-                                    .translate(-device_rect.origin.to_vector())
-                                    .round()
-                                    .to_i32();
-
-                                let render_task_id = frame_state.render_tasks.add().init(
-                                    RenderTask::new_picture(
-                                        RenderTaskLocation::PictureCache {
-                                            size: tile_cache.current_tile_size,
-                                            surface,
-                                        },
-                                        tile_cache.current_tile_size.to_f32(),
-                                        pic_index,
-                                        content_origin,
-                                        UvRectKind::Rect,
-                                        surface_spatial_node_index,
-                                        device_pixel_scale,
-                                        *visibility_mask,
-                                        Some(scissor_rect),
-                                        Some(valid_rect),
-                                    )
-                                );
-
-                                frame_state.render_tasks.add_dependency(
-                                    frame_state.surfaces[parent_surface_index.0].render_tasks.unwrap().port,
-                                    render_task_id,
-                                );
-
-                                if first {
-                                    // TODO(gw): Maybe we can restructure this code to avoid the
-                                    //           first hack here. Or at least explain it with a follow up
-                                    //           bug.
-                                    frame_state.surfaces[raster_config.surface_index.0].render_tasks = Some(SurfaceRenderTasks {
-                                        root: render_task_id,
-                                        port: render_task_id,
-                                    });
-
-                                    first = false;
-                                }
-                            }
-
-                            if frame_context.fb_config.testing {
-                                debug_info.tiles.insert(
-                                    tile.tile_offset,
-                                    TileDebugInfo::Dirty(DirtyTileDebugInfo {
-                                        local_valid_rect: tile.current_descriptor.local_valid_rect,
-                                        local_dirty_rect: tile.local_dirty_rect,
-                                    }),
-                                );
-                            }
-
-                            // If the entire tile valid region is dirty, we can update the fract offset
-                            // at which the tile was rendered.
-                            if tile.device_dirty_rect.contains_rect(&tile.device_valid_rect) {
-                                tile.device_fract_offset = tile_cache.device_fract_offset;
-                            }
-
-                            // Now that the tile is valid, reset the dirty rect.
-                            tile.local_dirty_rect = PictureRect::zero();
-                            tile.is_valid = true;
-                        }
-
-                        // If invalidation debugging is enabled, dump the picture cache state to a tree printer.
-                        if frame_context.debug_flags.contains(DebugFlags::INVALIDATION_DBG) {
-                            tile_cache.print();
-                        }
-
-                        // If testing mode is enabled, write some information about the current state
-                        // of this picture cache (made available in RenderResults).
-                        if frame_context.fb_config.testing {
-                            frame_state.composite_state
-                                .picture_cache_debug
-                                .slices
-                                .insert(
-                                    tile_cache.slice,
-                                    debug_info,
-                                );
-                        }
-
-                        None
+                        frame_state.init_surface(
+                            raster_config.surface_index,
+                            render_task_id,
+                            parent_surface_index,
+                        );
                     }
                     PictureCompositeMode::MixBlend(..) |
                     PictureCompositeMode::Blit(_) => {
@@ -5511,22 +5529,31 @@ impl PicturePrimitive {
                             device_pixel_scale,
                         );
 
-                        let render_task_id = frame_state.render_tasks.add().init(
-                            RenderTask::new_picture(
-                                RenderTaskLocation::Dynamic(None, clipped.size.to_i32()),
-                                unclipped.size,
-                                pic_index,
-                                clipped.origin,
-                                uv_rect_kind,
-                                surface_spatial_node_index,
-                                device_pixel_scale,
-                                PrimitiveVisibilityMask::all(),
-                                None,
-                                None,
+                        let task_size = clipped.size.to_i32();
+
+                        let render_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                task_size,
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    unclipped.size,
+                                    pic_index,
+                                    clipped.origin,
+                                    uv_rect_kind,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    PrimitiveVisibilityMask::all(),
+                                    None,
+                                    None,
+                                )
                             )
                         );
 
-                        Some((render_task_id, render_task_id))
+                        frame_state.init_surface(
+                            raster_config.surface_index,
+                            render_task_id,
+                            parent_surface_index,
+                        );
                     }
                     PictureCompositeMode::SvgFilter(ref primitives, ref filter_datas) => {
 
@@ -5546,45 +5573,43 @@ impl PicturePrimitive {
                             device_pixel_scale,
                         );
 
-                        let picture_task_id = frame_state.render_tasks.add().init(
-                            RenderTask::new_picture(
-                                RenderTaskLocation::Dynamic(None, clipped.size.to_i32()),
-                                unclipped.size,
-                                pic_index,
-                                clipped.origin,
-                                uv_rect_kind,
-                                surface_spatial_node_index,
-                                device_pixel_scale,
-                                PrimitiveVisibilityMask::all(),
-                                None,
-                                None,
+                        let task_size = clipped.size.to_i32();
+
+                        let picture_task_id = frame_state.rg_builder.add().init(
+                            RenderTask::new_dynamic(
+                                task_size,
+                                RenderTaskKind::new_picture(
+                                    task_size,
+                                    unclipped.size,
+                                    pic_index,
+                                    clipped.origin,
+                                    uv_rect_kind,
+                                    surface_spatial_node_index,
+                                    device_pixel_scale,
+                                    PrimitiveVisibilityMask::all(),
+                                    None,
+                                    None,
+                                )
                             )
                         );
 
                         let filter_task_id = RenderTask::new_svg_filter(
                             primitives,
                             filter_datas,
-                            &mut frame_state.render_tasks,
+                            frame_state.rg_builder,
                             clipped.size.to_i32(),
                             uv_rect_kind,
                             picture_task_id,
                             device_pixel_scale,
                         );
 
-                        Some((filter_task_id, picture_task_id))
+                        frame_state.init_surface_chain(
+                            raster_config.surface_index,
+                            filter_task_id,
+                            picture_task_id,
+                            parent_surface_index,
+                        );
                     }
-                };
-
-                if let Some((root, port)) = dep_info {
-                    frame_state.surfaces[raster_config.surface_index.0].render_tasks = Some(SurfaceRenderTasks {
-                        root,
-                        port,
-                    });
-
-                    frame_state.render_tasks.add_dependency(
-                        frame_state.surfaces[parent_surface_index.0].render_tasks.unwrap().port,
-                        root,
-                    );
                 }
             }
             None => {}
@@ -5727,7 +5752,6 @@ impl PicturePrimitive {
 
     pub fn restore_context(
         &mut self,
-        parent_surface_index: SurfaceIndex,
         prim_list: PrimitiveList,
         context: PictureContext,
         state: PictureState,
@@ -5736,12 +5760,6 @@ impl PicturePrimitive {
         // Pop any dirty regions this picture set
         for _ in 0 .. context.dirty_region_count {
             frame_state.pop_dirty_region();
-        }
-
-        // In rare circumstances (if the entire picture cache slice is drawn by background color
-        // tiles without surfaces) the render_tasks field below will be None.
-        if let Some(task_id) = frame_state.surfaces[parent_surface_index.0].render_tasks.map(|s| s.port) {
-            self.num_render_tasks = frame_state.render_tasks[task_id].children.len();
         }
 
         self.prim_list = prim_list;

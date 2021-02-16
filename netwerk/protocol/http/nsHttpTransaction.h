@@ -223,6 +223,13 @@ class nsHttpTransaction final : public nsAHttpTransaction,
                                   bool& aAllRecordsHaveEchConfig);
   // This function setups a new connection info for restarting this transaction.
   void PrepareConnInfoForRetry(nsresult aReason);
+  // This function is used to select the next non http3 record and is only
+  // executed when the fast fallback timer is triggered.
+  already_AddRefed<nsHttpConnectionInfo> PrepareFastFallbackConnInfo(
+      bool aEchConfigUsed);
+
+  void MaybeReportFailedSVCDomain(nsresult aReason,
+                                  nsHttpConnectionInfo* aFailedConnInfo);
 
   already_AddRefed<Http2PushedStreamWrapper> TakePushedStreamById(
       uint32_t aStreamId);
@@ -241,6 +248,12 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   };
   HTTPSSVC_CONNECTION_FAILED_REASON ErrorCodeToFailedReason(
       nsresult aErrorCode);
+
+  void OnHttp3BackupTimer();
+  void OnBackupConnectionReady();
+  void OnFastFallbackTimer();
+  void HandleFallback(nsHttpConnectionInfo* aFallbackConnInfo);
+  void MaybeCancelFallbackTimer();
 
  private:
   class UpdateSecurityCallbacks : public Runnable {
@@ -386,6 +399,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   bool mDeferredSendProgress;
   bool mWaitingOnPipeOut;
 
+  bool mIsHttp3Used = false;
   bool mDoNotRemoveAltSvc;
 
   // mClosed           := transaction has been explicitly closed
@@ -462,6 +476,8 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   void SetTunnelProvider(ASpdySession* provider) { mTunnelProvider = provider; }
   ASpdySession* TunnelProvider() { return mTunnelProvider; }
   nsIInterfaceRequestor* SecurityCallbacks() { return mCallbacks; }
+  // Called when this transaction is inserted in the pending queue.
+  void OnPendingQueueInserted();
 
  private:
   RefPtr<ASpdySession> mTunnelProvider;
@@ -469,6 +485,7 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   NetAddr mSelfAddr;
   NetAddr mPeerAddr;
   bool mResolvedByTRR;
+  bool mEchConfigUsed = false;
 
   bool m0RTTInProgress;
   bool mDoNotTryEarlyData;
@@ -486,21 +503,24 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   HttpTrafficCategory mTrafficCategory;
   bool mThroughCaptivePortal;
-  int32_t mProxyConnectResponseCode;
+  Atomic<int32_t> mProxyConnectResponseCode;
 
   OnPushCallback mOnPushCallback;
   nsDataHashtable<nsUint32HashKey, RefPtr<Http2PushedStreamWrapper>>
       mIDToStreamMap;
 
   nsCOMPtr<nsICancelable> mDNSRequest;
-  Maybe<uint32_t> mHTTPSSVCReceivedStage;
+  Atomic<uint32_t, Relaxed> mHTTPSSVCReceivedStage;
   bool m421Received = false;
   nsCOMPtr<nsIDNSHTTPSSVCRecord> mHTTPSSVCRecord;
   nsTArray<RefPtr<nsISVCBRecord>> mRecordsForRetry;
   bool mDontRetryWithDirectRoute = false;
   bool mFastFallbackTriggered = false;
+  bool mAllRecordsInH3ExcludedListBefore = false;
+  bool mHttp3BackupTimerCreated = false;
   nsCOMPtr<nsITimer> mFastFallbackTimer;
-  nsCOMPtr<nsISVCBRecord> mFastFallbackRecord;
+  nsCOMPtr<nsITimer> mHttp3BackupTimer;
+  RefPtr<nsHttpConnectionInfo> mBackupConnInfo;
   RefPtr<HTTPSRecordResolver> mResolver;
 
   // IMPORTANT: when adding new values, always add them to the end, otherwise

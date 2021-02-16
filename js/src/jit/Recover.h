@@ -72,6 +72,21 @@ namespace jit {
   _(Div)                       \
   _(Mod)                       \
   _(Not)                       \
+  _(BigIntAdd)                 \
+  _(BigIntSub)                 \
+  _(BigIntMul)                 \
+  _(BigIntDiv)                 \
+  _(BigIntMod)                 \
+  _(BigIntPow)                 \
+  _(BigIntBitAnd)              \
+  _(BigIntBitOr)               \
+  _(BigIntBitXor)              \
+  _(BigIntLsh)                 \
+  _(BigIntRsh)                 \
+  _(BigIntIncrement)           \
+  _(BigIntDecrement)           \
+  _(BigIntNegate)              \
+  _(BigIntBitNot)              \
   _(Concat)                    \
   _(StringLength)              \
   _(ArgumentsLength)           \
@@ -105,7 +120,6 @@ namespace jit {
   _(NewObject)                 \
   _(NewTypedArray)             \
   _(NewArray)                  \
-  _(NewArrayCopyOnWrite)       \
   _(NewIterator)               \
   _(NewCallObject)             \
   _(CreateThisWithTemplate)    \
@@ -116,6 +130,8 @@ namespace jit {
   _(ArrayState)                \
   _(SetArrayLength)            \
   _(AtomicIsLockFree)          \
+  _(BigIntAsIntN)              \
+  _(BigIntAsUintN)             \
   _(AssertRecoveredOnBailout)
 
 class RResumePoint;
@@ -148,8 +164,8 @@ class MOZ_NON_PARAM RInstruction {
   // Function used to recover the value computed by this instruction. This
   // function reads its arguments from the allocations listed on the snapshot
   // iterator and stores its returned value on the snapshot iterator too.
-  virtual MOZ_MUST_USE bool recover(JSContext* cx,
-                                    SnapshotIterator& iter) const = 0;
+  [[nodiscard]] virtual bool recover(JSContext* cx,
+                                     SnapshotIterator& iter) const = 0;
 
   // Decode an RInstruction on top of the reserved storage space, based on the
   // tag written by the writeRecoverData function of the corresponding MIR
@@ -196,64 +212,64 @@ class RResumePoint final : public RInstruction {
 
   uint32_t pcOffset() const { return pcOffset_; }
   uint32_t numOperands() const override { return numOperands_; }
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RBitNot final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(BitNot, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RBitAnd final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(BitAnd, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RBitOr final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(BitOr, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RBitXor final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(BitXor, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RLsh final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Lsh, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RRsh final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Rsh, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RUrsh final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Ursh, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RSignExtendInt32 final : public RInstruction {
@@ -263,8 +279,8 @@ class RSignExtendInt32 final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(SignExtendInt32, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RAdd final : public RInstruction {
@@ -274,8 +290,8 @@ class RAdd final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Add, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RSub final : public RInstruction {
@@ -285,8 +301,8 @@ class RSub final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Sub, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RMul final : public RInstruction {
@@ -297,8 +313,8 @@ class RMul final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Mul, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RDiv final : public RInstruction {
@@ -308,112 +324,232 @@ class RDiv final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Div, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RMod final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Mod, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNot final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Not, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntAdd final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntAdd, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntSub final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntSub, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntMul final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntMul, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntDiv final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntDiv, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntMod final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntMod, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPow final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPow, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntBitAnd final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntBitAnd, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntBitOr final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntBitOr, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntBitXor final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntBitXor, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntLsh final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntLsh, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntRsh final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntRsh, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntIncrement final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntIncrement, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntDecrement final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntDecrement, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntNegate final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntNegate, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntBitNot final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntBitNot, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RConcat final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Concat, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RStringLength final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(StringLength, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RArgumentsLength final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(ArgumentsLength, 0)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RFloor final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Floor, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RCeil final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Ceil, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RRound final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Round, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RTrunc final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Trunc, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RCharCodeAt final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(CharCodeAt, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RFromCharCode final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(FromCharCode, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RPow final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Pow, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RPowHalf final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(PowHalf, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RMinMax final : public RInstruction {
@@ -423,16 +559,16 @@ class RMinMax final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(MinMax, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RAbs final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Abs, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RSqrt final : public RInstruction {
@@ -442,16 +578,16 @@ class RSqrt final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Sqrt, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RAtan2 final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Atan2, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RHypot final : public RInstruction {
@@ -463,8 +599,8 @@ class RHypot final : public RInstruction {
 
   uint32_t numOperands() const override { return numOperands_; }
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNearbyInt final : public RInstruction {
@@ -474,16 +610,16 @@ class RNearbyInt final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(NearbyInt, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RSign final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Sign, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RMathFunction final : public RInstruction {
@@ -493,23 +629,23 @@ class RMathFunction final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(MathFunction, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RRandom final : public RInstruction {
   RINSTRUCTION_HEADER_NUM_OP_(Random, 0)
  public:
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RStringSplit final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(StringSplit, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNaNToZero final : public RInstruction {
@@ -523,24 +659,24 @@ class RRegExpMatcher final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(RegExpMatcher, 3)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RRegExpSearcher final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(RegExpSearcher, 3)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RRegExpTester final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(RegExpTester, 3)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RStringReplace final : public RInstruction {
@@ -550,40 +686,40 @@ class RStringReplace final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(StringReplace, 3)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RTypeOf final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(TypeOf, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RToDouble final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(ToDouble, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RToFloat32 final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(ToFloat32, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RTruncateToInt32 final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(TruncateToInt32, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNewObject final : public RInstruction {
@@ -593,36 +729,27 @@ class RNewObject final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(NewObject, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNewTypedArray final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(NewTypedArray, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNewArray final : public RInstruction {
  private:
   uint32_t count_;
-  bool convertDoubleElements_;
 
  public:
   RINSTRUCTION_HEADER_NUM_OP_(NewArray, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
-};
-
-class RNewArrayCopyOnWrite final : public RInstruction {
- public:
-  RINSTRUCTION_HEADER_NUM_OP_(NewArrayCopyOnWrite, 1)
-
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNewIterator final : public RInstruction {
@@ -632,48 +759,48 @@ class RNewIterator final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(NewIterator, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RCreateThisWithTemplate final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(CreateThisWithTemplate, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RLambda final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Lambda, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RLambdaArrow final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(LambdaArrow, 3)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RFunctionWithProto final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(FunctionWithProto, 3)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RNewCallObject final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(NewCallObject, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RObjectState final : public RInstruction {
@@ -689,8 +816,8 @@ class RObjectState final : public RInstruction {
     return numSlots() + 1;
   }
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RArrayState final : public RInstruction {
@@ -707,32 +834,48 @@ class RArrayState final : public RInstruction {
     return numElements() + 2;
   }
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RSetArrayLength final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(SetArrayLength, 2)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RAtomicIsLockFree final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(AtomicIsLockFree, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntAsIntN final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntAsIntN, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntAsUintN final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntAsUintN, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 class RAssertRecoveredOnBailout final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(AssertRecoveredOnBailout, 1)
 
-  MOZ_MUST_USE bool recover(JSContext* cx,
-                            SnapshotIterator& iter) const override;
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
 };
 
 #undef RINSTRUCTION_HEADER_

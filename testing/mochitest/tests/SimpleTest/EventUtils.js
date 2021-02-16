@@ -162,7 +162,7 @@ function _EU_nativeMouseDownEventMsg() {
     case "windows":
       return 2; // MOUSEEVENTF_LEFTDOWN
     case "mac":
-      return 1; // NSLeftMouseDown
+      return 1; // NSEventTypeLeftMouseDown
     case "linux":
       return 4; // GDK_BUTTON_PRESS
     case "android":
@@ -178,7 +178,7 @@ function _EU_nativeMouseUpEventMsg() {
     case "windows":
       return 4; // MOUSEEVENTF_LEFTUP
     case "mac":
-      return 2; // NSLeftMouseUp
+      return 2; // NSEventTypeLeftMouseUp
     case "linux":
       return 7; // GDK_BUTTON_RELEASE
     case "android":
@@ -211,7 +211,7 @@ function computeButton(aEvent) {
   return aEvent.type == "contextmenu" ? 2 : 0;
 }
 
-function sendMouseEvent(aEvent, aTarget, aWindow) {
+async function sendMouseEvent(aEvent, aTarget, aWindow) {
   if (
     ![
       "click",
@@ -234,6 +234,10 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
 
   if (typeof aTarget == "string") {
     aTarget = aWindow.document.getElementById(aTarget);
+  }
+
+  if (aEvent.type === "click" && this.AccessibilityUtils) {
+    await this.AccessibilityUtils.assertCanBeClicked(aTarget);
   }
 
   var event = aWindow.document.createEvent("MouseEvent");
@@ -2414,19 +2418,30 @@ function synthesizeSelectionSet(aOffset, aLength, aReverse, aWindow) {
  *                 selection root.
  * @param aLength  The length of the text.  If the length is too long,
  *                 the extra length is ignored.
+ * @param aIsRelative   Optional (If true, aOffset is relative to start of
+ *                      composition if there is, or start of selection.)
  * @param aWindow  Optional (If null, current |window| will be used)
  * @return         An nsIQueryContentEventResult object.  If this failed,
  *                 the result might be null.
  */
-function synthesizeQueryTextRect(aOffset, aLength, aWindow) {
+function synthesizeQueryTextRect(aOffset, aLength, aIsRelative, aWindow) {
+  if (aIsRelative !== undefined && typeof aIsRelative !== "boolean") {
+    throw new Error(
+      "Maybe, you set Window object to the 3rd argument, but it should be a boolean value"
+    );
+  }
   var utils = _getDOMWindowUtils(aWindow);
+  let flags = QUERY_CONTENT_FLAG_USE_NATIVE_LINE_BREAK;
+  if (aIsRelative === true) {
+    flags |= QUERY_CONTENT_FLAG_OFFSET_RELATIVE_TO_INSERTION_POINT;
+  }
   return utils.sendQueryContentEvent(
     utils.QUERY_TEXT_RECT,
     aOffset,
     aLength,
     0,
     0,
-    QUERY_CONTENT_FLAG_USE_NATIVE_LINE_BREAK
+    flags
   );
 }
 
@@ -3303,25 +3318,6 @@ async function synthesizePlainDragAndCancel(
   }
   return result;
 }
-
-var PluginUtils = {
-  withTestPlugin(callback) {
-    var ph = _EU_Cc["@mozilla.org/plugin/host;1"].getService(
-      _EU_Ci.nsIPluginHost
-    );
-    var tags = ph.getPluginTags();
-
-    // Find the test plugin
-    for (var i = 0; i < tags.length; i++) {
-      if (tags[i].name == "Test Plug-in") {
-        callback(tags[i]);
-        return true;
-      }
-    }
-    todo(false, "Need a test plugin on this platform");
-    return false;
-  },
-};
 
 class EventCounter {
   constructor(aTarget, aType, aOptions = {}) {

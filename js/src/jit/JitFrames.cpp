@@ -37,7 +37,6 @@
 #include "vm/JSObject.h"
 #include "vm/JSScript.h"
 #include "vm/TraceLogging.h"
-#include "vm/TypeInference.h"
 #include "wasm/WasmBuiltins.h"
 #include "wasm/WasmInstance.h"
 
@@ -47,7 +46,6 @@
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/JSScript-inl.h"
 #include "vm/Probes-inl.h"
-#include "vm/TypeInference-inl.h"
 
 namespace js {
 namespace jit {
@@ -424,7 +422,7 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
         BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer,
                                                  &stackPointer);
         // Note: if this ever changes, also update the
-        // TryNoteKind::Destructuring code in IonBuilder.cpp!
+        // TryNoteKind::Destructuring code in WarpBuilder.cpp!
         RootedValue doneValue(cx, *(reinterpret_cast<Value*>(stackPointer)));
         MOZ_RELEASE_ASSERT(!doneValue.isMagic());
         bool done = ToBoolean(doneValue);
@@ -595,14 +593,6 @@ void HandleException(ResumeFromException* rfe) {
   rfe->kind = ResumeFromException::RESUME_ENTRY_FRAME;
 
   JitSpew(JitSpew_IonInvalidate, "handling exception");
-
-  // Clear any Ion return override that's been set.
-  // This may happen if a callVM function causes an invalidation (setting the
-  // override), and then fails, bypassing the bailout handlers that would
-  // otherwise clear the return override.
-  if (cx->hasIonReturnOverride()) {
-    cx->takeIonReturnOverride();
-  }
 
   JitActivation* activation = cx->activation()->asJit();
 
@@ -1019,8 +1009,12 @@ static void TraceBaselineStubFrame(JSTracer* trc, const JSJitFrameIter& frame) {
   JitStubFrameLayout* layout = (JitStubFrameLayout*)frame.fp();
 
   if (ICStub* stub = layout->maybeStubPtr()) {
-    MOZ_ASSERT(stub->makesGCCalls());
-    stub->trace(trc);
+    if (stub->isFallback()) {
+      stub->toFallbackStub()->trace(trc);
+    } else {
+      MOZ_ASSERT(stub->toCacheIRStub()->makesGCCalls());
+      stub->toCacheIRStub()->trace(trc);
+    }
   }
 }
 
@@ -1508,9 +1502,8 @@ uintptr_t SnapshotIterator::fromStack(int32_t offset) const {
 }
 
 static Value FromObjectPayload(uintptr_t payload) {
-  // Note: Both MIRType::Object and MIRType::ObjectOrNull are encoded in
-  // snapshots using JSVAL_TYPE_OBJECT.
-  return ObjectOrNullValue(reinterpret_cast<JSObject*>(payload));
+  MOZ_ASSERT(payload != 0);
+  return ObjectValue(*reinterpret_cast<JSObject*>(payload));
 }
 
 static Value FromStringPayload(uintptr_t payload) {
@@ -1912,9 +1905,10 @@ bool SnapshotIterator::computeInstructionResults(
       return true;
     }
 
-    // Use AutoEnterAnalysis to avoid invoking the object metadata callback,
-    // which could try to walk the stack while bailing out.
-    AutoEnterAnalysis enter(cx);
+    // Avoid invoking the object metadata callback, which could try to walk the
+    // stack while bailing out.
+    gc::AutoSuppressGC suppressGC(cx);
+    js::AutoSuppressAllocationMetadataBuilder suppressMetadata(cx);
 
     // Fill with the results of recover instructions.
     SnapshotIterator s(*this);

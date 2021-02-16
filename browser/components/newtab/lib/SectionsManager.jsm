@@ -34,7 +34,15 @@ const BUILT_IN_SECTIONS = {
         values: { provider: options.provider_name },
       },
       descString: {
-        id: "home-prefs-recommended-by-description-update",
+        id:
+          Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.newNewtabExperience.enabled"
+          ) ||
+          Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.customizationMenu.enabled"
+          )
+            ? "home-prefs-recommended-by-description-new"
+            : "home-prefs-recommended-by-description-update",
         values: { provider: options.provider_name },
       },
       nestedPrefs: options.show_spocs
@@ -43,6 +51,7 @@ const BUILT_IN_SECTIONS = {
               name: "showSponsored",
               titleString: "home-prefs-recommended-by-option-sponsored-stories",
               icon: "icon-info",
+              eventSource: "POCKET_SPOCS",
             },
           ]
         : [],
@@ -93,8 +102,28 @@ const BUILT_IN_SECTIONS = {
   "feeds.section.highlights": options => ({
     id: "highlights",
     pref: {
-      titleString: { id: "home-prefs-highlights-header" },
-      descString: { id: "home-prefs-highlights-description" },
+      titleString: {
+        id:
+          Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.newNewtabExperience.enabled"
+          ) ||
+          Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.customizationMenu.enabled"
+          )
+            ? "home-prefs-recent-activity-header"
+            : "home-prefs-highlights-header",
+      },
+      descString: {
+        id:
+          Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.newNewtabExperience.enabled"
+          ) ||
+          Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.customizationMenu.enabled"
+          )
+            ? "home-prefs-recent-activity-description"
+            : "home-prefs-highlights-description",
+      },
       nestedPrefs: [
         {
           name: "section.highlights.includeVisited",
@@ -121,7 +150,17 @@ const BUILT_IN_SECTIONS = {
     shouldHidePref: false,
     eventSource: "HIGHLIGHTS",
     icon: "highlights",
-    title: { id: "newtab-section-header-highlights" },
+    title: {
+      id:
+        Services.prefs.getBoolPref(
+          "browser.newtabpage.activity-stream.newNewtabExperience.enabled"
+        ) ||
+        Services.prefs.getBoolPref(
+          "browser.newtabpage.activity-stream.customizationMenu.enabled"
+        )
+          ? "newtab-section-header-recent-activity"
+          : "newtab-section-header-highlights",
+    },
     compactCards: true,
     rowsPref: "section.highlights.rows",
     maxRows: 4,

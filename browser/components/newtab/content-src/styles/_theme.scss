@@ -11,6 +11,8 @@
 $border-primary: 1px solid var(--newtab-border-primary-color);
 $border-secondary: 1px solid var(--newtab-border-secondary-color);
 $inner-box-shadow: 0 0 0 1px var(--newtab-inner-box-shadow-color);
+$inner-box-shadow-nte: 0 3px 8px var(--newtab-inner-box-shadow-color-nte);
+$tile-shadow-second: 0 0 2px var(--newtab-tile-shadow-secondary);
 $input-border: 1px solid var(--newtab-textbox-border);
 $input-border-active: 1px solid var(--newtab-textbox-focus-color);
 $input-error-border: 1px solid $red-60;
@@ -30,6 +32,9 @@ body {
   --newtab-icon-secondary-color: #{$grey-90-60};
   --newtab-icon-tertiary-color: #{$grey-30};
   --newtab-inner-box-shadow-color: #{$black-10};
+  --newtab-inner-box-shadow-color-nte: #{$newtab-card-firstshadow};
+  --newtab-tile-shadow-secondary: #{$newtab-tile-shadow-secondary};
+
   --newtab-link-primary-color: #{$blue-60};
   --newtab-link-secondary-color: #{$teal-70};
   --newtab-text-conditional-color: #{$grey-60};
@@ -38,6 +43,12 @@ body {
   --newtab-textbox-background-color: #{$white};
   --newtab-textbox-border: #{$grey-90-20};
   @include textbox-focus($blue-60); // sass-lint:disable-line mixins-before-declarations
+
+  // Background buttons
+  --newtab-background-button-color: #{$newtab-background-button-default-color};
+  --newtab-background-button-text-color: #{$newtab-background-button-default-text-color};
+  --newtab-background-button-hover-color: #{$newtab-background-button-default-hover-color};
+  --newtab-background-button-active-color: #{$newtab-background-button-default-active-color};
 
   // Buttons
   --newtab-button-primary-color: #{$blue-60};
@@ -75,6 +86,8 @@ body {
   --newtab-topsites-background-color: #{$white};
   --newtab-topsites-icon-shadow: inset #{$inner-box-shadow};
   --newtab-topsites-label-color: inherit;
+  --newtab-topsites-outer-card-hover: #{$newtab-card-hover-color};
+  --newtab-topsites-context-menu-hover: #{$newtab-card-hover-color};
 
   // Cards
   --newtab-card-active-outline-color: #{$grey-30};
@@ -87,12 +100,31 @@ body {
   --newtab-snippets-background-color: #{$white};
   --newtab-snippets-hairline-color: transparent;
 
-  // Trailhead
-  --trailhead-header-text-color: #{$trailhead-purple};
-  --trailhead-cards-background-color: #{$grey-20};
-  --trailhead-card-button-background-color: #{$grey-90-10};
-  --trailhead-card-button-background-hover-color: #{$grey-90-20};
-  --trailhead-card-button-background-active-color: #{$grey-90-30};
+  // New New Tab
+  --newtab-background-primary-text-color: #{$newtab-background-primary-text-color};
+  --newtab-focus-outline: #{$newtab-focus-outline-color};
+  --newtab-focus-border: #{$blue-60};
+  --newtab-focus-border-selected: #{$newtab-card-tint};
+  --newtab-seperator-line-color: #{$newtab-card-separator-line-color};
+  --newtab-primary-action-background: #{$blue-60};
+  --newtab-primary-action-background-off: #{$newtab-primary-action-background-off};
+  --customize-menu-primary-text-color: #{$newtab-card-primary-text-color};
+  --customize-menu-check-fill: #{$white};
+  --customize-menu-background: #{$white};
+  --customize-menu-secondary-action-background: #{$grey-10};
+  --customize-menu-secondary-action-background-hover: #{$grey-20};
+  --customize-menu-secondary-action-background-active: #{$newtab-card-secondary-action-background-active};
+  --customize-menu-seperator-line-color: #{$newtab-card-separator-line-color};
+  --customize-menu-first-shadow: #{$newtab-card-firstshadow};
+  --customize-menu-second-shadow: #{$newtab-card-secondshadow};
+  --customize-menu-primary-action-text: #{$white};
+  --customize-menu-line-color: #{$newtab-card-line-color};
+  --newtab-search-first-shadow: #{$newtab-card-firstshadow};
+  --newtab-search-second-shadow: #{$newtab-card-secondshadow};
+  --newtab-search-text-color: #{$newtab-card-secondary-text-color};
+  --newtab-card-first-shadow: #{$newtab-card-firstshadow};
+  --newtab-card-second-shadow: #{$newtab-card-secondshadow};
+  --newtab-wordmark-color: #{$newtab-wordmark-default-color};
 
   &[lwt-newtab-brighttext] {
     // General styles
@@ -107,6 +139,8 @@ body {
     --newtab-icon-secondary-color: #{$grey-10-40};
     --newtab-icon-tertiary-color: #{$grey-10-40};
     --newtab-inner-box-shadow-color: #{$grey-10-20};
+    --newtab-inner-box-shadow-color-nte: #{$newtab-card-darktheme-firstshadow};
+    --newtab-tile-shadow-secondary: #{$newtab-tile-darktheme-shadow-secondary};
     --newtab-link-primary-color: #{$blue-40};
     --newtab-link-secondary-color: #{$pocket-teal};
     --newtab-text-conditional-color: #{$grey-10};
@@ -115,6 +149,12 @@ body {
     --newtab-textbox-background-color: #{$grey-70};
     --newtab-textbox-border: #{$grey-10-20};
     @include textbox-focus($blue-40); // sass-lint:disable-line mixins-before-declarations
+
+    // Background buttons.
+    --newtab-background-button-color: #{$newtab-background-button-darktheme-color};
+    --newtab-background-button-text-color: #{$newtab-background-button-darktheme-text-color};
+    --newtab-background-button-hover-color: #{$newtab-background-button-darktheme-hover-color};
+    --newtab-background-button-active-color: #{$newtab-background-button-darktheme-active-color};
 
     // Feed buttons
     --newtab-feed-button-background: #{$grey-70};
@@ -148,6 +188,8 @@ body {
     --newtab-topsites-background-color: #{$grey-70};
     --newtab-topsites-icon-shadow: none;
     --newtab-topsites-label-color: #{$grey-10-80};
+    --newtab-topsites-outer-card-hover: #{$newtab-card-darktheme-hover-color};
+    --newtab-topsites-context-menu-hover: #{$newtab-card-darktheme-hover-color};
 
     // Cards
     --newtab-card-active-outline-color: #{$grey-60};
@@ -160,11 +202,30 @@ body {
     --newtab-snippets-background-color: #{$grey-70};
     --newtab-snippets-hairline-color: #{$white-10};
 
-    // Trailhead
-    --trailhead-header-text-color: #{$white-60};
-    --trailhead-cards-background-color: #{$grey-90-10};
-    --trailhead-card-button-background-color: #{$grey-90-30};
-    --trailhead-card-button-background-hover-color: #{$grey-90-50};
-    --trailhead-card-button-background-active-color: #{$grey-90-70};
+    // New New Tab
+    --newtab-background-primary-text-color: #{$newtab-background-darktheme-primary-text-color};
+    --newtab-focus-outline: #{$newtab-darktheme-focus-outline-color};
+    --newtab-focus-border: #{$newtab-darktheme-focus-border};
+    --newtab-focus-border-selected: #{$newtab-darktheme-focus-border-selected};
+    --newtab-primary-action-background: #{$newtab-darktheme-primary-action-background};
+    --newtab-primary-action-background-off: #{$newtab-darktheme-primary-action-background-off};
+    --newtab-seperator-line-color: #{$newtab-card-darktheme-separator-line-color};
+    --customize-menu-primary-text-color: #{$newtab-card-darktheme-primary-text-color};
+    --customize-menu-check-fill: #{$newtab-card-darktheme-primary-text-color};
+    --customize-menu-background: #{$grey-70};
+    --customize-menu-secondary-action-background: #{$newtab-card-darktheme-secondary-action-background};
+    --customize-menu-secondary-action-background-hover: #{$newtab-card-darktheme-secondary-action-background-hover};
+    --customize-menu-secondary-action-background-active: #{$newtab-card-darktheme-secondary-action-background-active};
+    --customize-menu-seperator-line-color: #{$newtab-card-darktheme-separator-line-color};
+    --customize-menu-first-shadow: #{$newtab-card-darktheme-firstshadow};
+    --customize-menu-second-shadow: #{$newtab-darktheme-card-secondshadow};
+    --customize-menu-primary-action-text: #{$newtab-card-darktheme-primary-text-color};
+    --customize-menu-line-color: #{$newtab-card-darktheme-line-color};
+    --newtab-search-first-shadow: #{$newtab-card-darktheme-firstshadow};
+    --newtab-search-second-shadow: #{$newtab-darktheme-card-secondshadow};
+    --newtab-search-text-color: #{$newtab-card-darktheme-secondary-text-color};
+    --newtab-card-first-shadow: #{$newtab-card-darktheme-firstshadow};
+    --newtab-card-second-shadow: #{$newtab-darktheme-card-secondshadow};
+    --newtab-wordmark-color: #{$firefox-wordmark-darktheme-color};
   }
 }

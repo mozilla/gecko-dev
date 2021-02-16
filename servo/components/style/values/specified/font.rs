@@ -925,7 +925,7 @@ impl FontSize {
                 // If the parent font was keyword-derived, this is too.
                 // Tack the % onto the factor
                 info = compose_keyword(pc.0);
-                base_size.resolve(context) * pc.0
+                (base_size.resolve(context) * pc.0).normalized()
             },
             FontSize::Length(LengthPercentage::Calc(ref calc)) => {
                 let calc = calc.to_computed_value_zoomed(context, base_size);
@@ -2317,14 +2317,18 @@ impl Parse for MathDepth {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<MathDepth, ParseError<'i>> {
-        if input.try_parse(|i| i.expect_ident_matching("auto-add")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_ident_matching("auto-add"))
+            .is_ok()
+        {
             return Ok(MathDepth::AutoAdd);
         }
         if let Ok(math_depth_value) = input.try_parse(|input| Integer::parse(context, input)) {
             return Ok(MathDepth::Absolute(math_depth_value));
         }
         input.expect_function_matching("add")?;
-        let math_depth_delta_value = input.parse_nested_block(|input| Integer::parse(context, input))?;
+        let math_depth_delta_value =
+            input.parse_nested_block(|input| Integer::parse(context, input))?;
         Ok(MathDepth::Add(math_depth_delta_value))
     }
 }

@@ -106,17 +106,6 @@ inline ProfileBufferBlockIndex AddMarker(const ProfilerString8View& aName,
   return AddMarker(aName, aCategory, std::move(aOptions), markers::NoPayload{});
 }
 
-// Marker types' StreamJSONMarkerData functions should use this to correctly
-// output timestamps as a JSON property.
-inline void WritePropertyTime(JSONWriter& aWriter,
-                              const Span<const char>& aName,
-                              const TimeStamp& aTime) {
-  if (!aTime.IsNull()) {
-    aWriter.DoubleProperty(
-        aName, (aTime - TimeStamp::ProcessCreation()).ToMilliseconds());
-  }
-}
-
 }  // namespace mozilla::baseprofiler
 
 // Same as `AddMarker()` (without payload). This macro is safe to use even if
@@ -143,7 +132,7 @@ inline void WritePropertyTime(JSONWriter& aWriter,
 
 namespace mozilla::baseprofiler::markers {
 // Most common marker type. Others are in BaseProfilerMarkerTypes.h.
-struct Text {
+struct TextMarker {
   static constexpr Span<const char> MarkerTypeName() {
     return MakeStringSpan("Text");
   }
@@ -154,9 +143,28 @@ struct Text {
   static MarkerSchema MarkerTypeDisplay() {
     using MS = MarkerSchema;
     MS schema{MS::Location::markerChart, MS::Location::markerTable};
-    schema.SetChartLabel("{marker.name} - {marker.data.name}");
+    schema.SetChartLabel("{marker.data.name}");
     schema.SetTableLabel("{marker.name} - {marker.data.name}");
     schema.AddKeyLabelFormat("name", "Details", MarkerSchema::Format::string);
+    return schema;
+  }
+};
+
+struct Tracing {
+  static constexpr Span<const char> MarkerTypeName() {
+    return MakeStringSpan("tracing");
+  }
+  static void StreamJSONMarkerData(SpliceableJSONWriter& aWriter,
+                                   const ProfilerString8View& aCategory) {
+    if (aCategory.Length() != 0) {
+      aWriter.StringProperty("category", aCategory);
+    }
+  }
+  static MarkerSchema MarkerTypeDisplay() {
+    using MS = MarkerSchema;
+    MS schema{MS::Location::markerChart, MS::Location::markerTable,
+              MS::Location::timelineOverview};
+    schema.AddKeyLabelFormat("category", "Type", MS::Format::string);
     return schema;
   }
 };
@@ -169,7 +177,7 @@ struct Text {
       AUTO_PROFILER_STATS(BASE_PROFILER_MARKER_TEXT);                        \
       ::mozilla::baseprofiler::AddMarker(                                    \
           markerName, ::mozilla::baseprofiler::category::categoryName,       \
-          options, ::mozilla::baseprofiler::markers::Text{}, text);          \
+          options, ::mozilla::baseprofiler::markers::TextMarker{}, text);    \
     } while (false)
 
 namespace mozilla::baseprofiler {
@@ -197,7 +205,7 @@ class MOZ_RAII AutoProfilerTextMarker {
     mOptions.TimingRef().SetIntervalEnd();
     AUTO_PROFILER_STATS(AUTO_BASE_PROFILER_MARKER_TEXT);
     AddMarker(ProfilerString8View::WrapNullTerminatedString(mMarkerName),
-              mCategory, std::move(mOptions), markers::Text{}, mText);
+              mCategory, std::move(mOptions), markers::TextMarker{}, mText);
   }
 
  protected:
@@ -206,6 +214,18 @@ class MOZ_RAII AutoProfilerTextMarker {
   MarkerOptions mOptions;
   std::string mText;
 };
+
+extern template MFBT_API ProfileBufferBlockIndex
+AddMarker(const ProfilerString8View&, const MarkerCategory&, MarkerOptions&&,
+          markers::TextMarker, const std::string&);
+
+extern template MFBT_API ProfileBufferBlockIndex
+AddMarkerToBuffer(ProfileChunkedBuffer&, const ProfilerString8View&,
+                  const MarkerCategory&, MarkerOptions&&, markers::NoPayload);
+
+extern template MFBT_API ProfileBufferBlockIndex AddMarkerToBuffer(
+    ProfileChunkedBuffer&, const ProfilerString8View&, const MarkerCategory&,
+    MarkerOptions&&, markers::TextMarker, const std::string&);
 
 }  // namespace mozilla::baseprofiler
 

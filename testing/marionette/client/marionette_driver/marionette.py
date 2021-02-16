@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import base64
 import datetime
@@ -206,6 +206,10 @@ class HTMLElement(object):
 
     def __eq__(self, other_element):
         return self.id == other_element.id
+
+    def __hash__(self):
+        # pylint --py3k: W1641
+        return hash(self.id)
 
     def find_element(self, method, target):
         """Returns an ``HTMLElement`` instance that matches the specified
@@ -1195,6 +1199,7 @@ class Marionette(object):
 
         timeout = self.session.get("moz:shutdownTimeout")
         if timeout is not None:
+            # pylint --py3k W1619
             self.shutdown_timeout = timeout / 1000 + 10
 
         return self.session
@@ -1438,7 +1443,7 @@ class Marionette(object):
         """
         self._send_message("WebDriver:SwitchToParentFrame")
 
-    def switch_to_frame(self, frame=None, focus=True):
+    def switch_to_frame(self, frame=None):
         """Switch the current context to the specified frame. Subsequent
         commands will operate in the context of the specified frame,
         if applicable.
@@ -1447,10 +1452,8 @@ class Marionette(object):
             be an :class:`~marionette_driver.marionette.HTMLElement`,
             or an integer index. If you call ``switch_to_frame`` without an
             argument, it will switch to the top-level frame.
-        :param focus: A boolean value which determins whether to focus
-            the frame that we just switched to.
         """
-        body = {"focus": focus}
+        body = {}
         if isinstance(frame, HTMLElement):
             body["element"] = frame.id
         elif frame is not None:

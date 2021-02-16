@@ -570,8 +570,8 @@ function makePrioritySearchResult(
  *   A URI for the engine's icon.
  * @param {boolean} [options.heuristic]
  *   True if this is a heuristic result. Defaults to false.
- * @param {number} [options.keywordOffer]
- *   A value from UrlbarUtils.KEYWORD_OFFER.
+ * @param {boolean} [options.providesSearchMode]
+ *   Whether search mode is entered when this result is selected.
  * @param {string} [options.providerName]
  *   The name of the provider offering this result. The test suite will not
  *   check which provider offered a result unless this option is specified.
@@ -589,13 +589,14 @@ function makeSearchResult(
     uri,
     query,
     engineIconUri,
-    keywordOffer,
+    providesSearchMode,
     providerName,
     inPrivateWindow,
     isPrivateEngine,
     heuristic = false,
     type = UrlbarUtils.RESULT_TYPE.SEARCH,
     source = UrlbarUtils.RESULT_SOURCE.SEARCH,
+    satisfiesAutofillThreshold = false,
   }
 ) {
   // Tail suggestion common cases, handled here to reduce verbosity in tests.
@@ -616,7 +617,7 @@ function makeSearchResult(
     tailOffsetIndex,
     keyword: [
       alias,
-      keywordOffer == UrlbarUtils.KEYWORD_OFFER.SHOW
+      providesSearchMode
         ? UrlbarUtils.HIGHLIGHT.TYPED
         : UrlbarUtils.HIGHLIGHT.NONE,
     ],
@@ -626,7 +627,7 @@ function makeSearchResult(
       UrlbarUtils.HIGHLIGHT.TYPED,
     ],
     icon: engineIconUri,
-    keywordOffer,
+    providesSearchMode,
     inPrivateWindow,
     isPrivateEngine,
   };
@@ -635,6 +636,12 @@ function makeSearchResult(
   // displayUrl parameter, so we add it only if specified.
   if (uri) {
     payload.url = uri;
+  }
+  if (providerName == "TabToSearch") {
+    payload.satisfiesAutofillThreshold = satisfiesAutofillThreshold;
+    if (payload.url.startsWith("www.")) {
+      payload.url = payload.url.substring(4);
+    }
   }
 
   let result = new UrlbarResult(

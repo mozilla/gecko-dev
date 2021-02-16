@@ -90,8 +90,16 @@ void MarkerSchema::Stream(JSONWriter& aWriter,
   {
     aWriter.StringProperty("name", aName);
 
+    if (!mChartLabel.empty()) {
+      aWriter.StringProperty("chartLabel", mChartLabel);
+    }
+
     if (!mTooltipLabel.empty()) {
       aWriter.StringProperty("tooltipLabel", mTooltipLabel);
+    }
+
+    if (!mTableLabel.empty()) {
+      aWriter.StringProperty("tableLabel", mTableLabel);
     }
 
     aWriter.StartArrayProperty("display");
@@ -195,3 +203,19 @@ Span<const char> MarkerSchema::FormatToStringSpan(
 }
 
 }  // namespace mozilla
+
+namespace mozilla::baseprofiler {
+template MFBT_API ProfileBufferBlockIndex AddMarker(const ProfilerString8View&,
+                                                    const MarkerCategory&,
+                                                    MarkerOptions&&,
+                                                    markers::TextMarker,
+                                                    const std::string&);
+
+template MFBT_API ProfileBufferBlockIndex
+AddMarkerToBuffer(ProfileChunkedBuffer&, const ProfilerString8View&,
+                  const MarkerCategory&, MarkerOptions&&, markers::NoPayload);
+
+template MFBT_API ProfileBufferBlockIndex AddMarkerToBuffer(
+    ProfileChunkedBuffer&, const ProfilerString8View&, const MarkerCategory&,
+    MarkerOptions&&, markers::TextMarker, const std::string&);
+}  // namespace mozilla::baseprofiler

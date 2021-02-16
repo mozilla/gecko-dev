@@ -183,6 +183,10 @@ class ConnectionEntry {
   // active connections and unconnected half open connections.
   uint32_t TotalActiveConnections() const;
 
+  bool RemoveTransFromPendingQ(nsHttpTransaction* aTrans);
+
+  void MaybeUpdateEchConfig(nsHttpConnectionInfo* aConnInfo);
+
  private:
   void InsertIntoIdleConnections_internal(nsHttpConnection* conn);
   void RemoveFromIdleConnectionsIndex(size_t inx);

@@ -160,12 +160,10 @@ namespace baseprofiler {
 using detail::RacyFeatures;
 
 bool LogTest(int aLevelToTest) {
-  static const int maxLevel =
-      getenv("MOZ_BASE_PROFILER_VERBOSE_LOGGING")
-          ? 5
-          : getenv("MOZ_BASE_PROFILER_DEBUG_LOGGING")
-                ? 4
-                : getenv("MOZ_BASE_PROFILER_LOGGING") ? 3 : 0;
+  static const int maxLevel = getenv("MOZ_BASE_PROFILER_VERBOSE_LOGGING") ? 5
+                              : getenv("MOZ_BASE_PROFILER_DEBUG_LOGGING") ? 4
+                              : getenv("MOZ_BASE_PROFILER_LOGGING")       ? 3
+                                                                          : 0;
   return aLevelToTest <= maxLevel;
 }
 
@@ -237,9 +235,11 @@ static uint32_t DefaultFeatures() {
 // Extra default features when MOZ_PROFILER_STARTUP is set (even if not
 // available).
 static uint32_t StartupExtraDefaultFeatures() {
+  // Enable CPUUtilization by default for startup profiles as it is useful to
+  // see when startup alternates between CPU intensive tasks and being blocked.
   // Enable mainthreadio by default for startup profiles as startup is heavy on
   // I/O operations, and main thread I/O is really important to see there.
-  return ProfilerFeature::MainThreadIO;
+  return ProfilerFeature::CPUUtilization | ProfilerFeature::MainThreadIO;
 }
 
 class MOZ_RAII PSAutoTryLock;
@@ -579,9 +579,6 @@ struct LiveProfiledThreadData {
 // bytes.
 constexpr static uint32_t scBytesPerEntry = 8;
 
-// Expected maximum size needed to store one stack sample.
-constexpr static uint32_t scExpectedMaximumStackSize = 64 * 1024;
-
 // This class contains the profiler's global state that is valid only when the
 // profiler is active. When not instantiated, the profiler is inactive.
 //
@@ -596,7 +593,8 @@ class ActivePS {
   // mechanism to control the overal memory limit.
 
   // Minimum chunk size allowed, enough for at least one stack.
-  constexpr static uint32_t scMinimumChunkSize = 2 * scExpectedMaximumStackSize;
+  constexpr static uint32_t scMinimumChunkSize =
+      2 * ProfileBufferChunkManager::scExpectedMaximumStackSize;
 
   // Ideally we want at least 2 unreleased chunks to work with (1 current and 1
   // next), and 2 released chunks (so that one can be recycled when old, leaving
@@ -2243,23 +2241,27 @@ void SamplerThread::Run() {
   // TODO: If possible, name this thread later on, after NSPR becomes available.
   // PR_SetCurrentThreadName("SamplerThread");
 
-  // Features won't change during this SamplerThread's lifetime, so we can
-  // determine now whether stack sampling is required.
-  const bool noStackSampling = []() {
+  // Features won't change during this SamplerThread's lifetime, so we can read
+  // them once and store them locally.
+  const uint32_t features = []() -> uint32_t {
     PSAutoLock lock;
     if (!ActivePS::Exists(lock)) {
       // If there is no active profiler, it doesn't matter what we return,
-      // because this thread will exit before any stack sampling is attempted.
-      return false;
+      // because this thread will exit before any feature is used.
+      return 0;
     }
-    return ActivePS::FeatureNoStackSampling(lock);
+    return ActivePS::Features(lock);
   }();
+
+  // Not *no*-stack-sampling means we do want stack sampling.
+  const bool stackSampling = !ProfilerFeature::HasNoStackSampling(features);
 
   // Use local BlocksRingBuffer&ProfileBuffer to capture the stack.
   // (This is to avoid touching the CorePS::CoreBuffer lock while
   // a thread is suspended, because that thread could be working with
   // the CorePS::CoreBuffer as well.)
-  ProfileBufferChunkManagerSingle localChunkManager(scExpectedMaximumStackSize);
+  ProfileBufferChunkManagerSingle localChunkManager(
+      ProfileBufferChunkManager::scExpectedMaximumStackSize);
   ProfileChunkedBuffer localBuffer(
       ProfileChunkedBuffer::ThreadSafety::WithoutMutex, localChunkManager);
   ProfileBuffer localProfileBuffer(localBuffer);
@@ -2318,7 +2320,7 @@ void SamplerThread::Run() {
         }
         TimeStamp countersSampled = TimeStamp::NowUnfuzzed();
 
-        if (!noStackSampling) {
+        if (stackSampling) {
           const Vector<LiveProfiledThreadData>& liveThreads =
               ActivePS::LiveProfiledThreads(lock);
 
@@ -3042,11 +3044,13 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
 #endif
 
   // Fall back to the default values if the passed-in values are unreasonable.
-  // Less than 8192 entries (65536 bytes) may not be enough for the most complex
-  // stack, so we should be able to store at least one full stack.
+  // We want to be able to store at least one full stack.
   // TODO: Review magic numbers.
   PowerOfTwo32 capacity =
-      (aCapacity.Value() >= 8192u) ? aCapacity : BASE_PROFILER_DEFAULT_ENTRIES;
+      (aCapacity.Value() >=
+       ProfileBufferChunkManager::scExpectedMaximumStackSize / scBytesPerEntry)
+          ? aCapacity
+          : BASE_PROFILER_DEFAULT_ENTRIES;
   Maybe<double> duration = aDuration;
 
   if (aDuration && *aDuration <= 0) {
@@ -3587,7 +3591,8 @@ UniquePtr<ProfileChunkedBuffer> profiler_capture_backtrace() {
 
   auto buffer = MakeUnique<ProfileChunkedBuffer>(
       ProfileChunkedBuffer::ThreadSafety::WithoutMutex,
-      MakeUnique<ProfileBufferChunkManagerSingle>(scExpectedMaximumStackSize));
+      MakeUnique<ProfileBufferChunkManagerSingle>(
+          ProfileBufferChunkManager::scExpectedMaximumStackSize));
 
   if (!profiler_capture_backtrace_into(*buffer)) {
     return nullptr;

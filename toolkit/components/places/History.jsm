@@ -73,16 +73,12 @@ var EXPORTED_SYMBOLS = ["History"];
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "NetUtil",
-  "resource://gre/modules/NetUtil.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "PlacesUtils",
-  "resource://gre/modules/PlacesUtils.jsm"
-);
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AppConstants: "resource://gre/modules/AppConstants.jsm",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
+  Services: "resource://gre/modules/Services.jsm",
+});
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -119,7 +115,14 @@ function notify(observers, notification, args = []) {
   for (let observer of observers) {
     try {
       observer[notification](...args);
-    } catch (ex) {}
+    } catch (ex) {
+      if (
+        ex.result != Cr.NS_ERROR_XPC_JSOBJECT_HAS_NO_FUNCTION_NAMED &&
+        (AppConstants.DEBUG || Cu.isInAutomation)
+      ) {
+        Cu.reportError(ex);
+      }
+    }
   }
 }
 
@@ -858,9 +861,8 @@ var invalidateFrecencies = async function(db, idList) {
   for (let chunk of PlacesUtils.chunkArray(idList, db.variableLimit)) {
     await db.execute(
       `UPDATE moz_places
-       SET frecency = NOTIFY_FRECENCY(
-         CALCULATE_FRECENCY(id), url, guid, hidden, last_visit_date
-       ) WHERE id in (${sqlBindPlaceholders(chunk)})`,
+       SET frecency = CALCULATE_FRECENCY(id)
+       WHERE id in (${sqlBindPlaceholders(chunk)})`,
       chunk
     );
     await db.execute(
@@ -871,6 +873,9 @@ var invalidateFrecencies = async function(db, idList) {
       chunk
     );
   }
+
+  PlacesObservers.notifyListeners([new PlacesRanking()]);
+
   // Trigger frecency updates for all affected origins.
   await db.execute(`DELETE FROM moz_updateoriginsupdate_temp`);
 };
@@ -913,10 +918,10 @@ var clear = async function(db) {
                         WHERE frecency > 0`);
   });
 
-  let observers = PlacesUtils.history.getObservers();
-  notify(observers, "onClearHistory");
-  // Notify frecency change observers.
-  notify(observers, "onManyFrecenciesChanged");
+  PlacesObservers.notifyListeners([
+    new PlacesHistoryCleared(),
+    new PlacesRanking(),
+  ]);
 
   // Trigger frecency updates for all affected origins.
   await db.execute(`DELETE FROM moz_updateoriginsupdate_temp`);
@@ -1034,11 +1039,12 @@ function removeOrphanIcons(db) {
 var notifyCleanup = async function(db, pages, transition = -1) {
   let notifiedCount = 0;
   let observers = PlacesUtils.history.getObservers();
+  let bookmarkObservers = PlacesUtils.bookmarks.getObservers();
 
   let reason = Ci.nsINavHistoryObserver.REASON_DELETED;
 
   for (let page of pages) {
-    let uri = NetUtil.newURI(page.url.href);
+    let uri = Services.io.newURI(page.url.href);
     let guid = page.guid;
     if (page.hasVisits || page.hasForeign) {
       // We have removed all visits, but the page is still alive, e.g.
@@ -1050,6 +1056,34 @@ var notifyCleanup = async function(db, pages, transition = -1) {
         reason,
         transition,
       ]);
+      // Also asynchronously notify bookmarks for this uri if all the visits
+      // have been removed.
+      if (!page.hasVisits) {
+        PlacesUtils.bookmarks
+          .fetch({ url: page.url }, async bookmark => {
+            let itemId = await PlacesUtils.promiseItemId(bookmark.guid);
+            let parentId = await PlacesUtils.promiseItemId(bookmark.parentGuid);
+            notify(
+              bookmarkObservers,
+              "onItemChanged",
+              [
+                itemId,
+                "cleartime",
+                false,
+                "",
+                0,
+                PlacesUtils.bookmarks.TYPE_BOOKMARK,
+                parentId,
+                bookmark.guid,
+                bookmark.parentGuid,
+                "",
+                PlacesUtils.bookmarks.SOURCES.DEFAULT,
+              ],
+              { concurrent: true }
+            );
+          })
+          .catch(Cu.reportError);
+      }
     } else {
       // The page has been entirely removed.
       notify(observers, "onDeleteURI", [uri, guid, reason]);
@@ -1585,31 +1619,27 @@ var insertMany = function(db, pageInfos, onResult, onError) {
   }
 
   return new Promise((resolve, reject) => {
-    asyncHistory.updatePlaces(
-      infos,
-      {
-        handleError: (resultCode, result) => {
-          let pageInfo = mergeUpdateInfoIntoPageInfo(result);
-          onErrorData.push(pageInfo);
-        },
-        handleResult: result => {
-          let pageInfo = mergeUpdateInfoIntoPageInfo(result);
-          onResultData.push(pageInfo);
-        },
-        ignoreErrors: !onError,
-        ignoreResults: !onResult,
-        handleCompletion: updatedCount => {
-          notifyOnResult(onResultData, onResult);
-          notifyOnResult(onErrorData, onError);
-          if (updatedCount > 0) {
-            resolve();
-          } else {
-            reject({ message: "No items were added to history." });
-          }
-        },
+    asyncHistory.updatePlaces(infos, {
+      handleError: (resultCode, result) => {
+        let pageInfo = mergeUpdateInfoIntoPageInfo(result);
+        onErrorData.push(pageInfo);
       },
-      true
-    );
+      handleResult: result => {
+        let pageInfo = mergeUpdateInfoIntoPageInfo(result);
+        onResultData.push(pageInfo);
+      },
+      ignoreErrors: !onError,
+      ignoreResults: !onResult,
+      handleCompletion: updatedCount => {
+        notifyOnResult(onResultData, onResult);
+        notifyOnResult(onErrorData, onError);
+        if (updatedCount > 0) {
+          resolve();
+        } else {
+          reject({ message: "No items were added to history." });
+        }
+      },
+    });
   });
 };
 

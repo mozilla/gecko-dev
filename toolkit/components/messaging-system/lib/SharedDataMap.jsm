@@ -27,7 +27,6 @@ ChromeUtils.defineModuleGetter(
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
-ChromeUtils.defineModuleGetter(this, "OS", "resource://gre/modules/osfile.jsm");
 
 class SharedDataMap extends EventEmitter {
   constructor(sharedDataKey, options = { isParent: IS_MAIN_PROCESS }) {
@@ -42,10 +41,21 @@ class SharedDataMap extends EventEmitter {
     if (this.isParent) {
       // Lazy-load JSON file that backs Storage instances.
       XPCOMUtils.defineLazyGetter(this, "_store", () => {
-        const path =
-          options.path || // Only used in tests
-          OS.Path.join(OS.Constants.Path.profileDir, `${sharedDataKey}.json`);
-        const store = new JSONFile({ path });
+        let path = options.path;
+        let store = null;
+        if (!path) {
+          try {
+            const profileDir = Services.dirsvc.get("ProfD", Ci.nsIFile).path;
+            path = PathUtils.join(profileDir, `${sharedDataKey}.json`);
+          } catch (e) {
+            Cu.reportError(e);
+          }
+        }
+        try {
+          store = new JSONFile({ path });
+        } catch (e) {
+          Cu.reportError(e);
+        }
         return store;
       });
     } else {
@@ -54,13 +64,9 @@ class SharedDataMap extends EventEmitter {
     }
   }
 
-  async init(runSync = false) {
+  async init() {
     if (!this._isReady && this.isParent) {
-      if (runSync) {
-        this._store.ensureDataReady();
-      } else {
-        await this._store.load();
-      }
+      await this._store.load();
       this._data = this._store.data;
       this._syncToChildren({ flush: true });
       this._checkIfReady();

@@ -29,7 +29,7 @@
 #include "vm/PromiseObject.h"  // js::PromiseObject, js::PromiseResolvedWithUndefined
 #include "vm/SelfHosting.h"
 
-#include "builtin/streams/HandlerFunction-inl.h"  // js::NewHandler
+#include "builtin/HandlerFunction-inl.h"  // js::NewHandler
 #include "builtin/streams/ReadableStreamReader-inl.h"  // js::Unwrap{ReaderFromStream{,NoThrow},StreamFromReader}
 #include "vm/Compartment-inl.h"
 #include "vm/List-inl.h"  // js::ListObject, js::StoreNewListInFixedSlot

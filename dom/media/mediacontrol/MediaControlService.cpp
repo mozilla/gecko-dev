@@ -135,45 +135,55 @@ void MediaControlService::Init() {
 MediaControlService::~MediaControlService() {
   LOG("destroy media control service");
   Shutdown();
-  UpdateTelemetryUsageProbe();
 }
 
-void MediaControlService::UpdateTelemetryUsageProbe() {
-  if (!mHasEverEnabledMediaControl) {
+void MediaControlService::NotifyMediaControlHasEverBeenUsed() {
+  // We've already updated the telemetry for using meida control.
+  if (mHasEverUsedMediaControl) {
     return;
   }
+  mHasEverUsedMediaControl = true;
+  const uint32_t usedOnMediaControl = 1;
 #ifdef XP_WIN
-  if (mHasEverUsedMediaControl) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::UsedOnWin);
-  }
-  AccumulateCategorical(
-      mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::EnabledOnWin);
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"Windows"_ns, usedOnMediaControl);
 #endif
 #ifdef XP_MACOSX
-  if (mHasEverUsedMediaControl) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::UsedOnMac);
-  }
-  AccumulateCategorical(
-      mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::EnabledOnMac);
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"MacOS"_ns, usedOnMediaControl);
 #endif
 #ifdef MOZ_WIDGET_GTK
-  if (mHasEverUsedMediaControl) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::UsedOnLinux);
-  }
-  AccumulateCategorical(
-      mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::EnabledOnLinux);
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"Linux"_ns, usedOnMediaControl);
 #endif
 #ifdef MOZ_WIDGET_ANDROID
-  if (mHasEverUsedMediaControl) {
-    AccumulateCategorical(
-        mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::UsedOnAndroid);
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"Android"_ns, usedOnMediaControl);
+#endif
+}
+
+void MediaControlService::NotifyMediaControlHasEverBeenEnabled() {
+  // We've already enabled the service and update the telemetry.
+  if (mHasEverEnabledMediaControl) {
+    return;
   }
-  AccumulateCategorical(
-      mozilla::Telemetry::LABELS_MEDIA_CONTROL_PLATFORM_USAGE::
-          EnabledOnAndroid);
+  mHasEverEnabledMediaControl = true;
+  const uint32_t enableOnMediaControl = 0;
+#ifdef XP_WIN
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"Windows"_ns, enableOnMediaControl);
+#endif
+#ifdef XP_MACOSX
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"MacOS"_ns, enableOnMediaControl);
+#endif
+#ifdef MOZ_WIDGET_GTK
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"Linux"_ns, enableOnMediaControl);
+#endif
+#ifdef MOZ_WIDGET_ANDROID
+  Telemetry::ScalarSet(Telemetry::ScalarID::MEDIA_CONTROL_PLATFORM_USAGE,
+                       u"Android"_ns, enableOnMediaControl);
 #endif
 }
 

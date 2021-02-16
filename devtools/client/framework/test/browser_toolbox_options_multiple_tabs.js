@@ -24,7 +24,7 @@ async function openToolboxOptionsInNewTab() {
   const doc = toolbox.doc;
   const panel = await toolbox.selectTool("options");
   const { id } = panel.panelDoc.querySelector(
-    "#default-tools-box input[type=checkbox]:not([data-unsupported]):not([checked])"
+    "#default-tools-box input[type=checkbox]:not([data-unsupported], [checked])"
   );
 
   return {
@@ -75,7 +75,7 @@ async function toggleTool({ doc, panelWin, checkbox, tab }, toolId) {
   const onToggleTool = gDevTools.once(
     `tool-${prevChecked ? "unregistered" : "registered"}`
   );
-  EventUtils.sendMouseEvent({ type: "click" }, checkbox, panelWin);
+  await EventUtils.sendMouseEvent({ type: "click" }, checkbox, panelWin);
   const id = await onToggleTool;
 
   is(id, toolId, `Correct event for ${toolId} was fired`);

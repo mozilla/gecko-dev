@@ -5,16 +5,39 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ScriptLoadHandler.h"
+
+#include <stdlib.h>
+#include <utility>
 #include "ScriptLoader.h"
 #include "ScriptTrace.h"
-
-#include "nsContentUtils.h"
-#include "nsICacheInfoChannel.h"
-#include "nsMimeTypes.h"
-
-#include "mozilla/dom/ScriptDecoding.h"  // mozilla::dom::ScriptDecoding
-#include "mozilla/Telemetry.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/CheckedInt.h"
+#include "mozilla/DebugOnly.h"
+#include "mozilla/Encoding.h"
+#include "mozilla/Logging.h"
+#include "mozilla/NotNull.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/Tuple.h"
+#include "mozilla/Utf8.h"
+#include "mozilla/Vector.h"
+#include "mozilla/dom/Document.h"
+#include "mozilla/dom/SRICheck.h"
+#include "mozilla/dom/ScriptDecoding.h"
+#include "mozilla/dom/ScriptLoadRequest.h"
+#include "nsCOMPtr.h"
+#include "nsContentUtils.h"
+#include "nsDebug.h"
+#include "nsICacheInfoChannel.h"
+#include "nsIChannel.h"
+#include "nsIHttpChannel.h"
+#include "nsIRequest.h"
+#include "nsIScriptElement.h"
+#include "nsIURI.h"
+#include "nsJSUtils.h"
+#include "nsMimeTypes.h"
+#include "nsString.h"
+#include "nsTArray.h"
 
 namespace mozilla {
 namespace dom {
@@ -151,9 +174,13 @@ ScriptLoadHandler::OnIncrementalData(nsIIncrementalStreamLoader* aLoader,
     }
 
     *aConsumedLength = aDataLength;
-    rv = MaybeDecodeSRI();
+    uint32_t sriLength = 0;
+    rv = MaybeDecodeSRI(&sriLength);
     if (NS_FAILED(rv)) {
       return channelRequest->Cancel(mScriptLoader->RestartLoad(mRequest));
+    }
+    if (sriLength) {
+      mRequest->mBytecodeOffset = JS::AlignTranscodingBytecodeOffset(sriLength);
     }
   }
 
@@ -239,7 +266,9 @@ bool ScriptLoadHandler::TrySetDecoder(nsIIncrementalStreamLoader* aLoader,
   return true;
 }
 
-nsresult ScriptLoadHandler::MaybeDecodeSRI() {
+nsresult ScriptLoadHandler::MaybeDecodeSRI(uint32_t* sriLength) {
+  *sriLength = 0;
+
   if (!mSRIDataVerifier || mSRIDataVerifier->IsComplete() ||
       NS_FAILED(mSRIStatus)) {
     return NS_OK;
@@ -263,7 +292,8 @@ nsresult ScriptLoadHandler::MaybeDecodeSRI() {
     return mSRIStatus;
   }
 
-  mRequest->mBytecodeOffset = mSRIDataVerifier->DataSummaryLength();
+  *sriLength = mSRIDataVerifier->DataSummaryLength();
+  MOZ_ASSERT(*sriLength > 0);
   return NS_OK;
 }
 
@@ -392,19 +422,25 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
       // the source. Thus, we should not continue in
       // ScriptLoader::OnStreamComplete, which removes the request from the
       // waiting lists.
-      rv = MaybeDecodeSRI();
+      //
+      // We calculate the SRI length below.
+      uint32_t unused;
+      rv = MaybeDecodeSRI(&unused);
       if (NS_FAILED(rv)) {
         return channelRequest->Cancel(mScriptLoader->RestartLoad(mRequest));
       }
 
       // The bytecode cache always starts with the SRI hash, thus even if there
       // is no SRI data verifier instance, we still want to skip the hash.
+      uint32_t sriLength;
       rv = SRICheckDataVerifier::DataSummaryLength(
           mRequest->mScriptBytecode.length(), mRequest->mScriptBytecode.begin(),
-          &mRequest->mBytecodeOffset);
+          &sriLength);
       if (NS_FAILED(rv)) {
         return channelRequest->Cancel(mScriptLoader->RestartLoad(mRequest));
       }
+
+      mRequest->mBytecodeOffset = JS::AlignTranscodingBytecodeOffset(sriLength);
     }
   }
 

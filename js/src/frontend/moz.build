@@ -25,6 +25,7 @@ if CONFIG["JS_ENABLE_SMOOSH"]:
 
 UNIFIED_SOURCES += [
     "AbstractScopePtr.cpp",
+    "AsyncEmitter.cpp",
     "BytecodeCompiler.cpp",
     "BytecodeControlStructures.cpp",
     "BytecodeEmitter.cpp",
@@ -77,3 +78,6 @@ if CONFIG["JS_ENABLE_SMOOSH"]:
 SOURCES += [
     "Parser.cpp",
 ]
+
+if CONFIG["FUZZING_INTERFACES"] and CONFIG["LIBFUZZER"]:
+    include("/tools/fuzzing/libfuzzer-config.mozbuild")

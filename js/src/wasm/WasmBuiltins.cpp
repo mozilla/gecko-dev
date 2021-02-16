@@ -213,13 +213,13 @@ const SymbolicAddressSignature SASigPostBarrierFiltering = {
     2,
     {_PTR, _PTR, _END}};
 const SymbolicAddressSignature SASigStructNew = {
-    SymbolicAddress::StructNew, _RoN, _FailOnNullPtr, 2, {_PTR, _I32, _END}};
+    SymbolicAddress::StructNew, _RoN, _FailOnNullPtr, 2, {_PTR, _RoN, _END}};
 const SymbolicAddressSignature SASigStructNarrow = {
     SymbolicAddress::StructNarrow,
     _RoN,
     _Infallible,
     3,
-    {_PTR, _I32, _RoN, _END}};
+    {_PTR, _RoN, _RoN, _END}};
 
 }  // namespace wasm
 }  // namespace js
@@ -1056,12 +1056,12 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
       return FuncCast(Instance::postBarrierFiltering, *abiType);
     case SymbolicAddress::StructNew:
       *abiType = MakeABIFunctionType(ArgType_General,
-                                     {ArgType_General, ArgType_Int32});
+                                     {ArgType_General, ArgType_General});
       MOZ_ASSERT(*abiType == ToABIType(SASigStructNew));
       return FuncCast(Instance::structNew, *abiType);
     case SymbolicAddress::StructNarrow:
       *abiType = MakeABIFunctionType(
-          ArgType_General, {ArgType_General, ArgType_Int32, ArgType_General});
+          ArgType_General, {ArgType_General, ArgType_General, ArgType_General});
       MOZ_ASSERT(*abiType == ToABIType(SASigStructNarrow));
       return FuncCast(Instance::structNarrow, *abiType);
 
@@ -1323,6 +1323,7 @@ struct BuiltinThunks {
   CodeRangeVector codeRanges;
   TypedNativeToCodeRangeMap typedNativeToCodeRange;
   SymbolicAddressToCodeRangeArray symbolicAddressToCodeRange;
+  uint32_t provisionalJitEntryOffset;
 
   BuiltinThunks() : codeBase(nullptr), codeSize(0) {}
 
@@ -1402,6 +1403,29 @@ bool wasm::EnsureBuiltinThunksInitialized() {
     }
   }
 
+  // Provisional JitEntry stub: This is a shared stub that can be installed in
+  // the jit-entry jump table.  It uses the JIT ABI and when invoked will
+  // retrieve (via TlsContext()) and invoke the context-appropriate
+  // invoke-from-interpreter jit stub, thus serving as the initial, unoptimized
+  // jit-entry stub for any exported wasm function that has a jit-entry.
+
+#ifdef DEBUG
+  // We need to allow this machine code to bake in a C++ code pointer, so we
+  // disable the wasm restrictions while generating this stub.
+  JitContext jitContext(&tempAlloc);
+  bool oldFlag = jitContext.setIsCompilingWasm(false);
+#endif
+
+  Offsets provisionalJitEntryOffsets;
+  if (!GenerateProvisionalJitEntryStub(masm, &provisionalJitEntryOffsets)) {
+    return false;
+  }
+  thunks->provisionalJitEntryOffset = provisionalJitEntryOffsets.begin;
+
+#ifdef DEBUG
+  jitContext.setIsCompilingWasm(oldFlag);
+#endif
+
   masm.finish();
   if (masm.oom()) {
     return false;
@@ -1458,6 +1482,13 @@ void* wasm::SymbolicAddressTarget(SymbolicAddress sym) {
   const BuiltinThunks& thunks = *builtinThunks;
   uint32_t codeRangeIndex = thunks.symbolicAddressToCodeRange[sym];
   return thunks.codeBase + thunks.codeRanges[codeRangeIndex].begin();
+}
+
+void* wasm::ProvisionalJitEntryStub() {
+  MOZ_ASSERT(builtinThunks);
+
+  const BuiltinThunks& thunks = *builtinThunks;
+  return thunks.codeBase + thunks.provisionalJitEntryOffset;
 }
 
 static Maybe<ABIFunctionType> ToBuiltinABIFunctionType(

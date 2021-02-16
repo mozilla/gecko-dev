@@ -35,17 +35,25 @@
 #include "mozilla/BaseProfilerMarkers.h"
 #include "mozilla/ProfilerMarkersDetail.h"
 
-// TODO: Move common stuff to shared header instead.
-#include "GeckoProfiler.h"
-
 #ifndef MOZ_GECKO_PROFILER
 
 #  define PROFILER_MARKER_UNTYPED(markerName, categoryName, ...)
 #  define PROFILER_MARKER(markerName, categoryName, options, MarkerType, ...)
 #  define PROFILER_MARKER_TEXT(markerName, categoryName, options, text)
 #  define AUTO_PROFILER_MARKER_TEXT(markerName, categoryName, options, text)
+#  define AUTO_PROFILER_TRACING_MARKER(categoryString, markerName, categoryPair)
+#  define AUTO_PROFILER_TRACING_MARKER_DOCSHELL(categoryString, markerName, \
+                                                categoryPair, docShell)
 
 #else  // ndef MOZ_GECKO_PROFILER
+
+namespace mozilla {
+class ProfileChunkedBuffer;
+}
+
+bool profiler_can_accept_markers();
+bool profiler_capture_backtrace_into(
+    mozilla::ProfileChunkedBuffer& aChunkedBuffer);
 
 // Bring category names from Base Profiler into the geckoprofiler::category
 // namespace, for consistency with other Gecko Profiler identifiers.
@@ -129,8 +137,9 @@ inline mozilla::ProfileBufferBlockIndex profiler_add_marker(
     } while (false)
 
 namespace geckoprofiler::markers {
-// Most common marker type. Others are in ProfilerMarkerTypes.h.
-using Text = ::mozilla::baseprofiler::markers::Text;
+// Most common marker types. Others are in ProfilerMarkerTypes.h.
+using TextMarker = ::mozilla::baseprofiler::markers::TextMarker;
+using Tracing = mozilla::baseprofiler::markers::Tracing;
 }  // namespace geckoprofiler::markers
 
 // Add a text marker. This macro is safe to use even if MOZ_GECKO_PROFILER is
@@ -140,7 +149,7 @@ using Text = ::mozilla::baseprofiler::markers::Text;
       AUTO_PROFILER_STATS(PROFILER_MARKER_TEXT);                              \
       ::profiler_add_marker(markerName,                                       \
                             ::geckoprofiler::category::categoryName, options, \
-                            ::geckoprofiler::markers::Text{}, text);          \
+                            ::geckoprofiler::markers::TextMarker{}, text);    \
     } while (false)
 
 // RAII object that adds a PROFILER_MARKER_TEXT when destroyed; the marker's
@@ -168,7 +177,8 @@ class MOZ_RAII AutoProfilerTextMarker {
     AUTO_PROFILER_STATS(AUTO_PROFILER_MARKER_TEXT);
     profiler_add_marker(
         mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
-        mCategory, std::move(mOptions), geckoprofiler::markers::Text{}, mText);
+        mCategory, std::move(mOptions), geckoprofiler::markers::TextMarker{},
+        mText);
   }
 
  protected:
@@ -184,6 +194,100 @@ class MOZ_RAII AutoProfilerTextMarker {
     AutoProfilerTextMarker PROFILER_RAII(                                     \
         markerName, ::mozilla::baseprofiler::category::categoryName, options, \
         text)
+
+class MOZ_RAII AutoProfilerTracing {
+ public:
+  AutoProfilerTracing(const char* aCategoryString, const char* aMarkerName,
+                      mozilla::MarkerCategory aCategoryPair,
+                      const mozilla::Maybe<uint64_t>& aInnerWindowID)
+      : mCategoryString(aCategoryString),
+        mMarkerName(aMarkerName),
+        mCategoryPair(aCategoryPair),
+        mInnerWindowID(aInnerWindowID) {
+    profiler_add_marker(
+        mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+        mCategoryPair,
+        {mozilla::MarkerTiming::IntervalStart(),
+         mozilla::MarkerInnerWindowId(mInnerWindowID)},
+        geckoprofiler::markers::Tracing{},
+        mozilla::ProfilerString8View::WrapNullTerminatedString(
+            mCategoryString));
+  }
+
+  AutoProfilerTracing(
+      const char* aCategoryString, const char* aMarkerName,
+      mozilla::MarkerCategory aCategoryPair,
+      mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aBacktrace,
+      const mozilla::Maybe<uint64_t>& aInnerWindowID)
+      : mCategoryString(aCategoryString),
+        mMarkerName(aMarkerName),
+        mCategoryPair(aCategoryPair),
+        mInnerWindowID(aInnerWindowID) {
+    profiler_add_marker(
+        mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+        mCategoryPair,
+        {mozilla::MarkerTiming::IntervalStart(),
+         mozilla::MarkerInnerWindowId(mInnerWindowID),
+         mozilla::MarkerStack::TakeBacktrace(std::move(aBacktrace))},
+        geckoprofiler::markers::Tracing{},
+        mozilla::ProfilerString8View::WrapNullTerminatedString(
+            mCategoryString));
+  }
+
+  ~AutoProfilerTracing() {
+    profiler_add_marker(
+        mozilla::ProfilerString8View::WrapNullTerminatedString(mMarkerName),
+        mCategoryPair,
+        {mozilla::MarkerTiming::IntervalEnd(),
+         mozilla::MarkerInnerWindowId(mInnerWindowID)},
+        geckoprofiler::markers::Tracing{},
+        mozilla::ProfilerString8View::WrapNullTerminatedString(
+            mCategoryString));
+  }
+
+ protected:
+  const char* mCategoryString;
+  const char* mMarkerName;
+  const mozilla::MarkerCategory mCategoryPair;
+  const mozilla::Maybe<uint64_t> mInnerWindowID;
+};
+
+// Adds a START/END pair of tracing markers.
+#  define AUTO_PROFILER_TRACING_MARKER(categoryString, markerName,           \
+                                       categoryPair)                         \
+    AutoProfilerTracing PROFILER_RAII(categoryString, markerName,            \
+                                      geckoprofiler::category::categoryPair, \
+                                      mozilla::Nothing())
+#  define AUTO_PROFILER_TRACING_MARKER_DOCSHELL(categoryString, markerName, \
+                                                categoryPair, docShell)     \
+    AutoProfilerTracing PROFILER_RAII(                                      \
+        categoryString, markerName, geckoprofiler::category::categoryPair,  \
+        profiler_get_inner_window_id_from_docshell(docShell))
+
+extern template mozilla::ProfileBufferBlockIndex AddMarkerToBuffer(
+    mozilla::ProfileChunkedBuffer&, const mozilla::ProfilerString8View&,
+    const mozilla::MarkerCategory&, mozilla::MarkerOptions&&,
+    mozilla::baseprofiler::markers::NoPayload);
+
+extern template mozilla::ProfileBufferBlockIndex AddMarkerToBuffer(
+    mozilla::ProfileChunkedBuffer&, const mozilla::ProfilerString8View&,
+    const mozilla::MarkerCategory&, mozilla::MarkerOptions&&,
+    mozilla::baseprofiler::markers::TextMarker, const std::string&);
+
+extern template mozilla::ProfileBufferBlockIndex profiler_add_marker(
+    const mozilla::ProfilerString8View&, const mozilla::MarkerCategory&,
+    mozilla::MarkerOptions&&, mozilla::baseprofiler::markers::TextMarker,
+    const std::string&);
+
+extern template mozilla::ProfileBufferBlockIndex profiler_add_marker(
+    const mozilla::ProfilerString8View&, const mozilla::MarkerCategory&,
+    mozilla::MarkerOptions&&, mozilla::baseprofiler::markers::TextMarker,
+    const nsCString&);
+
+extern template mozilla::ProfileBufferBlockIndex profiler_add_marker(
+    const mozilla::ProfilerString8View&, const mozilla::MarkerCategory&,
+    mozilla::MarkerOptions&&, mozilla::baseprofiler::markers::Tracing,
+    const mozilla::ProfilerString8View&);
 
 #endif  // nfed MOZ_GECKO_PROFILER else
 

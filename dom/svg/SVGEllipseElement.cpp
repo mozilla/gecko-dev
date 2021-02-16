@@ -148,8 +148,7 @@ bool SVGEllipseElement::GetGeometryBounds(
 already_AddRefed<Path> SVGEllipseElement::BuildPath(PathBuilder* aBuilder) {
   float x, y, rx, ry;
 
-  if (!SVGGeometryProperty::ResolveAllAllowFallback<SVGT::Cx, SVGT::Cy,
-                                                    SVGT::Rx, SVGT::Ry>(
+  if (!SVGGeometryProperty::ResolveAll<SVGT::Cx, SVGT::Cy, SVGT::Rx, SVGT::Ry>(
           this, &x, &y, &rx, &ry)) {
     // This function might be called for element in display:none subtree
     // (e.g. getTotalLength), we fall back to use SVG attributes.
@@ -167,13 +166,12 @@ already_AddRefed<Path> SVGEllipseElement::BuildPath(PathBuilder* aBuilder) {
 
 bool SVGEllipseElement::IsLengthChangedViaCSS(const ComputedStyle& aNewStyle,
                                               const ComputedStyle& aOldStyle) {
-  auto *newSVGReset = aNewStyle.StyleSVGReset(),
-       *oldSVGReset = aOldStyle.StyleSVGReset();
-
-  return newSVGReset->mCx != oldSVGReset->mCx ||
-         newSVGReset->mCy != oldSVGReset->mCy ||
-         newSVGReset->mRx != oldSVGReset->mRx ||
-         newSVGReset->mRy != oldSVGReset->mRy;
+  const auto& newSVGReset = *aNewStyle.StyleSVGReset();
+  const auto& oldSVGReset = *aOldStyle.StyleSVGReset();
+  return newSVGReset.mCx != oldSVGReset.mCx ||
+         newSVGReset.mCy != oldSVGReset.mCy ||
+         newSVGReset.mRx != oldSVGReset.mRx ||
+         newSVGReset.mRy != oldSVGReset.mRy;
 }
 
 nsCSSPropertyID SVGEllipseElement::GetCSSPropertyIdForAttrEnum(

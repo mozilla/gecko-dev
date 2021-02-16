@@ -12,6 +12,8 @@
 #include "jsapi-tests/tests.h"
 #include "vm/Realm.h"
 
+using namespace js;
+
 static bool ConstructCCW(JSContext* cx, const JSClass* globalClasp,
                          JS::HandleObject global1,
                          JS::MutableHandleObject wrapper,
@@ -372,8 +374,11 @@ BEGIN_TEST(testIncrementalRoots) {
   // descendants. It shouldn't make it all the way through (it gets a budget
   // of 1000, and the graph is about 3000 objects deep).
   js::SliceBudget budget(js::WorkBudget(1000));
-  JS_SetGCParameter(cx, JSGC_MODE, JSGC_MODE_ZONE_INCREMENTAL);
+  JS_SetGCParameter(cx, JSGC_INCREMENTAL_GC_ENABLED, true);
   rt->gc.startDebugGC(GC_NORMAL, budget);
+  while (rt->gc.state() != gc::State::Mark) {
+    rt->gc.debugGCSlice(budget);
+  }
 
   // We'd better be between iGC slices now. There's always a risk that
   // something will decide that we need to do a full GC (such as gczeal, but

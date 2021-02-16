@@ -619,8 +619,8 @@ void NativeLayerCA::InvalidateRegionThroughoutSwapchain(const MutexAutoLock&,
 
 bool NativeLayerCA::NextSurface(const MutexAutoLock& aLock) {
   if (mSize.IsEmpty()) {
-    NSLog(@"NextSurface returning false because of invalid mSize (%d, %d).", mSize.width,
-          mSize.height);
+    gfxCriticalError() << "NextSurface returning false because of invalid mSize (" << mSize.width
+                       << ", " << mSize.height << ").";
     return false;
   }
 
@@ -632,10 +632,7 @@ bool NativeLayerCA::NextSurface(const MutexAutoLock& aLock) {
   Maybe<SurfaceWithInvalidRegion> surf = GetUnusedSurfaceAndCleanUp(aLock);
   if (!surf) {
     CFTypeRefPtr<IOSurfaceRef> newSurf = mSurfacePoolHandle->ObtainSurfaceFromPool(mSize);
-    if (!newSurf) {
-      NSLog(@"NextSurface returning false because IOSurfaceCreate failed to create the surface.");
-      return false;
-    }
+    MOZ_RELEASE_ASSERT(newSurf, "NextSurface IOSurfaceCreate failed to create the surface.");
     surf = Some(SurfaceWithInvalidRegion{newSurf, IntRect({}, mSize)});
   }
 
@@ -710,15 +707,11 @@ Maybe<GLuint> NativeLayerCA::NextSurfaceAsFramebuffer(const IntRect& aDisplayRec
                                                       const IntRegion& aUpdateRegion,
                                                       bool aNeedsDepth) {
   MutexAutoLock lock(mMutex);
-  if (!NextSurface(lock)) {
-    return Nothing();
-  }
+  MOZ_RELEASE_ASSERT(NextSurface(lock), "NextSurfaceAsFramebuffer needs a surface.");
 
   Maybe<GLuint> fbo =
       mSurfacePoolHandle->GetFramebufferForSurface(mInProgressSurface->mSurface, aNeedsDepth);
-  if (!fbo) {
-    return Nothing();
-  }
+  MOZ_RELEASE_ASSERT(fbo, "GetFramebufferForSurface failed.");
 
   HandlePartialUpdate(
       lock, aDisplayRect, aUpdateRegion,
@@ -727,9 +720,8 @@ Maybe<GLuint> NativeLayerCA::NextSurfaceAsFramebuffer(const IntRect& aDisplayRec
         MOZ_RELEASE_ASSERT(mSurfacePoolHandle->gl());
         mSurfacePoolHandle->gl()->MakeCurrent();
         Maybe<GLuint> sourceFBO = mSurfacePoolHandle->GetFramebufferForSurface(validSource, false);
-        if (!sourceFBO) {
-          return;
-        }
+        MOZ_RELEASE_ASSERT(sourceFBO,
+                           "GetFramebufferForSurface failed during HandlePartialUpdate.");
         for (auto iter = copyRegion.RectIter(); !iter.Done(); iter.Next()) {
           gfx::IntRect r = iter.Get();
           if (mSurfaceIsFlipped) {

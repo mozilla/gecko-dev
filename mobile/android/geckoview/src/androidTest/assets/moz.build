@@ -5,6 +5,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 addons = {
+    "browsing-data": [
+        "background.js",
+        "manifest.json",
+    ],
     "tabs-activate-remove": [
         "background.js",
         "manifest.json",
@@ -40,6 +44,14 @@ addons = {
     ],
     "page-history": [
         "page.html",
+        "manifest.json",
+    ],
+    "download-flags-true": [
+        "download.js",
+        "manifest.json",
+    ],
+    "download-flags-false": [
+        "download.js",
         "manifest.json",
     ],
 }

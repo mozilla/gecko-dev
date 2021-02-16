@@ -42,7 +42,7 @@ impl Default for PingMaker {
 }
 
 impl PingMaker {
-    /// Creates a new PingMaker.
+    /// Creates a new [`PingMaker`].
     pub fn new() -> Self {
         Self
     }
@@ -65,6 +65,7 @@ impl PingMaker {
             glean.storage(),
             INTERNAL_STORAGE,
             &seq.meta().identifier(glean),
+            seq.meta().lifetime,
         ) {
             Some(Metric::Counter(i)) => i,
             _ => 0,
@@ -165,7 +166,7 @@ impl PingMaker {
     ///
     /// # Arguments
     ///
-    /// * `glean` - the Glean instance to collect metadata from.
+    /// * `glean` - the [`Glean`] instance to collect metadata from.
     ///
     /// # Returns
     ///
@@ -217,7 +218,7 @@ impl PingMaker {
     ///
     /// # Arguments
     ///
-    /// * `glean` - the Glean instance to collect data from.
+    /// * `glean` - the [`Glean`] instance to collect data from.
     /// * `ping` - the ping to collect for.
     /// * `reason` - an optional reason code to include in the ping.
     ///
@@ -266,7 +267,7 @@ impl PingMaker {
     ///
     /// # Arguments
     ///
-    /// * `glean` - the Glean instance to collect data from.
+    /// * `glean` - the [`Glean`] instance to collect data from.
     /// * `ping` - the ping to collect for.
     /// * `reason` - an optional reason code to include in the ping.
     ///

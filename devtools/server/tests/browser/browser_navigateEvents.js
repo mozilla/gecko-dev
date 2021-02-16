@@ -12,6 +12,10 @@ SpecialPowers.pushPrefEnv({
   set: [["dom.require_user_interaction_for_beforeunload", false]],
 });
 
+SpecialPowers.pushPrefEnv({
+  set: [["prompts.contentPromptSubDialog", false]],
+});
+
 var signalAllEventsReceived;
 var onAllEventsReceived = new Promise(resolve => {
   signalAllEventsReceived = resolve;
@@ -177,7 +181,7 @@ add_task(async function() {
   const onBrowserLoaded = BrowserTestUtils.browserLoaded(
     gBrowser.selectedBrowser
   );
-  await BrowserTestUtils.loadURI(gBrowser.selectedBrowser, URL2);
+  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, URL2);
   await onBrowserLoaded;
 
   // Wait for all events to be received

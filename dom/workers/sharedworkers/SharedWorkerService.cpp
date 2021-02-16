@@ -5,8 +5,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SharedWorkerService.h"
+#include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/RemoteWorkerTypes.h"
+#include "mozilla/dom/SharedWorkerManager.h"
 #include "mozilla/ipc/BackgroundParent.h"
+#include "mozilla/ipc/URIUtils.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticMutex.h"

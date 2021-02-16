@@ -22,14 +22,12 @@ using namespace mozilla::a11y;
 class HyperTextIterator {
  public:
   HyperTextIterator(HyperTextAccessible* aStartContainer, int32_t aStartOffset,
-                    HyperTextAccessible* aEndContainer, int32_t aEndOffset,
-                    bool aSkipBullet = false)
+                    HyperTextAccessible* aEndContainer, int32_t aEndOffset)
       : mCurrentContainer(aStartContainer),
         mCurrentStartOffset(aStartOffset),
         mCurrentEndOffset(aStartOffset),
         mEndContainer(aEndContainer),
-        mEndOffset(aEndOffset),
-        mSkipBullet(aSkipBullet) {}
+        mEndOffset(aEndOffset) {}
 
   bool Next();
 
@@ -56,8 +54,6 @@ class HyperTextIterator {
 
   HyperTextAccessible* mEndContainer;
   int32_t mEndOffset;
-
-  bool mSkipBullet;
 };
 
 bool HyperTextIterator::NormalizeForward() {
@@ -83,6 +79,12 @@ bool HyperTextIterator::NormalizeForward() {
       mCurrentContainer = mCurrentContainer->Parent()->AsHyperText();
       mCurrentStartOffset = endOffset;
 
+      if (mCurrentContainer == mEndContainer &&
+          mCurrentStartOffset >= mEndOffset) {
+        // Reached end boundary.
+        return false;
+      }
+
       // Call NormalizeForward recursively to get top-most link if at the end of
       // one, or innermost link if at the beginning.
       NormalizeForward();
@@ -94,12 +96,25 @@ bool HyperTextIterator::NormalizeForward() {
 
     // If there is a link at this offset, mutate into it.
     if (link && link->IsHyperText()) {
+      if (mCurrentStartOffset > 0 &&
+          mCurrentContainer->LinkIndexAtOffset(mCurrentStartOffset) ==
+              mCurrentContainer->LinkIndexAtOffset(mCurrentStartOffset - 1)) {
+        MOZ_ASSERT_UNREACHABLE("Same link for previous offset");
+        return false;
+      }
+
       mCurrentContainer = link->AsHyperText();
-      if (mSkipBullet && link->IsHTMLListItem()) {
+      if (link->IsHTMLListItem()) {
         Accessible* bullet = link->AsHTMLListItem()->Bullet();
         mCurrentStartOffset = bullet ? nsAccUtils::TextLength(bullet) : 0;
       } else {
         mCurrentStartOffset = 0;
+      }
+
+      if (mCurrentContainer == mEndContainer &&
+          mCurrentStartOffset >= mEndOffset) {
+        // Reached end boundary.
+        return false;
       }
 
       // Call NormalizeForward recursively to get top-most embedding ancestor
@@ -153,7 +168,7 @@ bool HyperTextIterator::NormalizeBackward() {
       return true;
     }
 
-    if (mSkipBullet && mCurrentContainer->IsHTMLListItem() &&
+    if (mCurrentContainer->IsHTMLListItem() &&
         mCurrentContainer->AsHTMLListItem()->Bullet() == link) {
       mCurrentStartOffset = 0;
       NormalizeBackward();
@@ -219,6 +234,16 @@ void HyperTextAccessibleWrap::TextForRange(nsAString& aText,
                                            int32_t aStartOffset,
                                            HyperTextAccessible* aEndContainer,
                                            int32_t aEndOffset) {
+  if (IsHTMLListItem()) {
+    Accessible* maybeBullet = GetChildAtOffset(aStartOffset - 1);
+    if (maybeBullet) {
+      Accessible* bullet = AsHTMLListItem()->Bullet();
+      if (maybeBullet == bullet) {
+        TextSubstring(0, nsAccUtils::TextLength(bullet), aText);
+      }
+    }
+  }
+
   HyperTextIterator iter(this, aStartOffset, aEndContainer, aEndOffset);
   while (iter.Next()) {
     nsAutoString text;
@@ -246,7 +271,7 @@ int32_t HyperTextAccessibleWrap::LengthForRange(
     int32_t aStartOffset, HyperTextAccessible* aEndContainer,
     int32_t aEndOffset) {
   int32_t length = 0;
-  HyperTextIterator iter(this, aStartOffset, aEndContainer, aEndOffset, true);
+  HyperTextIterator iter(this, aStartOffset, aEndContainer, aEndOffset);
   while (iter.Next()) {
     length += iter.SegmentLength();
   }
@@ -258,7 +283,7 @@ void HyperTextAccessibleWrap::OffsetAtIndex(int32_t aIndex,
                                             HyperTextAccessible** aContainer,
                                             int32_t* aOffset) {
   int32_t index = aIndex;
-  HyperTextIterator iter(this, 0, this, CharacterCount(), true);
+  HyperTextIterator iter(this, 0, this, CharacterCount());
   while (iter.Next()) {
     int32_t segmentLength = iter.SegmentLength();
     if (index <= segmentLength) {
@@ -518,7 +543,9 @@ void HyperTextAccessibleWrap::RangeOfChild(Accessible* aChild,
 Accessible* HyperTextAccessibleWrap::LeafAtOffset(int32_t aOffset) {
   HyperTextAccessible* text = this;
   Accessible* child = nullptr;
-  int32_t innerOffset = aOffset;
+  // The offset needed should "attach" the previous accessible if
+  // in between two accessibles.
+  int32_t innerOffset = aOffset > 0 ? aOffset - 1 : aOffset;
   do {
     int32_t childIdx = text->GetChildIndexAtOffset(innerOffset);
     if (childIdx == -1) {
@@ -550,7 +577,7 @@ TextPoint HyperTextAccessibleWrap::FindTextPoint(
     EWordMovementType aWordMovementType) {
   // Layout can remain trapped in an editable. We normalize out of
   // it if we are in its last offset.
-  HyperTextIterator iter(this, aOffset, this, CharacterCount(), true);
+  HyperTextIterator iter(this, aOffset, this, CharacterCount());
   if (aDirection == eDirNext) {
     iter.NormalizeForward();
   } else {

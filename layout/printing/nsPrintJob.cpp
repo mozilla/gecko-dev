@@ -220,30 +220,6 @@ static bool IsParentAFrameSet(nsIDocShell* aParent) {
   return isFrameSet;
 }
 
-static std::tuple<nsPageSequenceFrame*, int32_t>
-GetSeqFrameAndCountSheetsInternal(const UniquePtr<nsPrintObject>& aPO) {
-  if (!aPO) {
-    return {nullptr, 0};
-  }
-
-  // This is sometimes incorrectly called before the pres shell has been created
-  // (bug 1141756). MOZ_DIAGNOSTIC_ASSERT so we'll still see the crash in
-  // Nightly/Aurora in case the other patch fixes this.
-  if (!aPO->mPresShell) {
-    MOZ_DIAGNOSTIC_ASSERT(
-        false, "GetSeqFrameAndCountSheets needs a non-null pres shell");
-    return {nullptr, 0};
-  }
-
-  nsPageSequenceFrame* seqFrame = aPO->mPresShell->GetPageSequenceFrame();
-  if (!seqFrame) {
-    return {nullptr, 0};
-  }
-
-  // count the total number of sheets
-  return {seqFrame, seqFrame->PrincipalChildList().GetLength()};
-}
-
 /**
  * Build a tree of nsPrintObjects under aPO. It also appends a (depth first)
  * flat list of all the nsPrintObjects created to aPrintData->mPrintDocList. If
@@ -435,13 +411,33 @@ nsresult nsPrintJob::Cancel() {
 
 //-----------------------------------------------------------------
 std::tuple<nsPageSequenceFrame*, int32_t>
-nsPrintJob::GetSeqFrameAndCountSheets() {
-  MOZ_ASSERT(mPrtPreview);
-  // Guarantee that mPrintPreview->mPrintObject won't be deleted during a call
-  // of GetSeqFrameAndCountSheetsInternal().
-  RefPtr<nsPrintData> printDataForPrintPreview = mPrtPreview;
-  return GetSeqFrameAndCountSheetsInternal(
-      printDataForPrintPreview->mPrintObject);
+nsPrintJob::GetSeqFrameAndCountSheets() const {
+  nsPrintData* printData = mPrtPreview ? mPrtPreview : mPrt;
+  if (NS_WARN_IF(!printData)) {
+    return {nullptr, 0};
+  }
+
+  const nsPrintObject* po = printData->mPrintObject.get();
+  if (NS_WARN_IF(!po)) {
+    return {nullptr, 0};
+  }
+
+  // This is sometimes incorrectly called before the pres shell has been created
+  // (bug 1141756). MOZ_DIAGNOSTIC_ASSERT so we'll still see the crash in
+  // Nightly/Aurora in case the other patch fixes this.
+  if (!po->mPresShell) {
+    MOZ_DIAGNOSTIC_ASSERT(
+        false, "GetSeqFrameAndCountSheets needs a non-null pres shell");
+    return {nullptr, 0};
+  }
+
+  nsPageSequenceFrame* seqFrame = po->mPresShell->GetPageSequenceFrame();
+  if (!seqFrame) {
+    return {nullptr, 0};
+  }
+
+  // count the total number of sheets
+  return {seqFrame, seqFrame->PrincipalChildList().GetLength()};
 }
 //---------------------------------------------------------------------------------
 //-- Done: Methods needed by the DocViewer
@@ -866,39 +862,36 @@ nsresult nsPrintJob::PrintPreview(Document* aSourceDoc,
   if (NS_FAILED(rv)) {
     if (mPrintPreviewCallback) {
       mPrintPreviewCallback(
-          PrintPreviewResultInfo(0, 0, false));  // signal error
+          PrintPreviewResultInfo(0, 0, false, false, false));  // signal error
       mPrintPreviewCallback = nullptr;
     }
   }
   return rv;
 }
 
-//----------------------------------------------------------------------------------
 int32_t nsPrintJob::GetRawNumPages() const {
-  RefPtr<nsPrintData> printData = mPrtPreview ? mPrtPreview : mPrt;
-  if (NS_WARN_IF(!printData)) {
-    return 0;
-  }
-  auto [seqFrame, numSheets] =
-      GetSeqFrameAndCountSheetsInternal(printData->mPrintObject);
-
+  auto [seqFrame, numSheets] = GetSeqFrameAndCountSheets();
   Unused << numSheets;
   return seqFrame ? seqFrame->GetRawNumPages() : 0;
 }
 
-//----------------------------------------------------------------------------------
-int32_t nsPrintJob::GetPrintPreviewNumSheets() {
-  RefPtr<nsPrintData> printData = mPrtPreview ? mPrtPreview : mPrt;
-  if (NS_WARN_IF(!printData)) {
-    return 0;
+bool nsPrintJob::GetIsEmpty() const {
+  auto [seqFrame, numSheets] = GetSeqFrameAndCountSheets();
+  if (!seqFrame) {
+    return true;
   }
-  auto [seqFrame, numSheets] =
-      GetSeqFrameAndCountSheetsInternal(printData->mPrintObject);
+  if (numSheets > 1) {
+    return false;
+  }
+  return !seqFrame->GetPagesInFirstSheet();
+}
+
+int32_t nsPrintJob::GetPrintPreviewNumSheets() const {
+  auto [seqFrame, numSheets] = GetSeqFrameAndCountSheets();
   Unused << seqFrame;
   return numSheets;
 }
 
-//----------------------------------------------------------------------------------
 already_AddRefed<nsIPrintSettings> nsPrintJob::GetCurrentPrintSettings() {
   if (mPrt) {
     return do_AddRef(mPrt->mPrintSettings);
@@ -1084,7 +1077,8 @@ nsresult nsPrintJob::CleanupOnFailure(nsresult aResult, bool aIsPrinting) {
 //---------------------------------------------------------------------
 void nsPrintJob::FirePrintingErrorEvent(nsresult aPrintError) {
   if (mPrintPreviewCallback) {
-    mPrintPreviewCallback(PrintPreviewResultInfo(0, 0, false));  // signal error
+    mPrintPreviewCallback(
+        PrintPreviewResultInfo(0, 0, false, false, false));  // signal error
     mPrintPreviewCallback = nullptr;
   }
 
@@ -1829,7 +1823,19 @@ nsresult nsPrintJob::ReflowPrintObject(const UniquePtr<nsPrintObject>& aPO) {
          adjSize.width, adjSize.height));
 
   aPO->mPresShell->BeginObservingDocument();
-  aPO->mPresContext->SetPageSize(adjSize);
+
+  // Here, we inform nsPresContext of the page size. Note that 'adjSize' is
+  // *usually* the page size, but we need to check. Strictly speaking, adjSize
+  // is the *device output size*, which is really the dimensions of a "sheet"
+  // rather than a "page" (an important distinction in an N-pages-per-sheet
+  // scenario). For some pages-per-sheet values, the pages are orthogonal to
+  // the sheet; we adjust for that here by swapping the width with the height.
+  nsSize pageSize = adjSize;
+  if (printData->mPrintSettings->HasOrthogonalSheetsAndPages()) {
+    std::swap(pageSize.width, pageSize.height);
+  }
+
+  aPO->mPresContext->SetPageSize(pageSize);
 
   int32_t p2a = aPO->mPresContext->DeviceContext()->AppUnitsPerDevPixel();
   if (documentIsTopLevel && mIsCreatingPrintPreview) {
@@ -2606,9 +2612,11 @@ nsresult nsPrintJob::FinishPrintPreview() {
   }
 
   if (mPrintPreviewCallback) {
+    const bool hasSelection =
+        !mDisallowSelectionPrint && printData->mSelectionRoot;
     mPrintPreviewCallback(PrintPreviewResultInfo(
-        GetPrintPreviewNumSheets(), GetRawNumPages(),
-        !mDisallowSelectionPrint && printData->mSelectionRoot));
+        GetPrintPreviewNumSheets(), GetRawNumPages(), GetIsEmpty(),
+        hasSelection, hasSelection && printData->mPrintObject->HasSelection()));
     mPrintPreviewCallback = nullptr;
   }
 

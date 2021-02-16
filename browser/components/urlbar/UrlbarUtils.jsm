@@ -28,6 +28,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
   PlacesUIUtils: "resource:///modules/PlacesUIUtils.jsm",
   PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
+  SearchSuggestionController:
+    "resource://gre/modules/SearchSuggestionController.jsm",
   Services: "resource://gre/modules/Services.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.jsm",
@@ -156,20 +158,9 @@ var UrlbarUtils = {
   // Whether a result should be highlighted up to the point the user has typed
   // or after that point.
   HIGHLIGHT: {
+    NONE: 0,
     TYPED: 1,
     SUGGESTED: 2,
-  },
-
-  // "Keyword offers" are search results with keywords that enter search mode
-  // when the user picks them.  Depending on the use case, a keyword offer can
-  // visually show or hide the keyword itself in its result.  For example,
-  // typing "@" by itself will show keyword offers for all engines with @
-  // aliases, and those results will preview their search modes. When a keyword
-  // offer is a heuristic -- like an autofilled @  alias -- usually it hides
-  // its keyword since the user is already typing it.
-  KEYWORD_OFFER: {
-    SHOW: 1,
-    HIDE: 2,
   },
 
   // UnifiedComplete's autocomplete results store their titles and tags together
@@ -217,6 +208,31 @@ var UrlbarUtils = {
     "touchbar",
     "typed",
   ]),
+
+  // Search mode objects corresponding to the local shortcuts in the view, in
+  // order they appear.  Pref names are relative to the `browser.urlbar` branch.
+  get LOCAL_SEARCH_MODES() {
+    return [
+      {
+        source: UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
+        restrict: UrlbarTokenizer.RESTRICT.BOOKMARK,
+        icon: "chrome://browser/skin/bookmark.svg",
+        pref: "shortcuts.bookmarks",
+      },
+      {
+        source: UrlbarUtils.RESULT_SOURCE.TABS,
+        restrict: UrlbarTokenizer.RESTRICT.OPENPAGE,
+        icon: "chrome://browser/skin/tab.svg",
+        pref: "shortcuts.tabs",
+      },
+      {
+        source: UrlbarUtils.RESULT_SOURCE.HISTORY,
+        restrict: UrlbarTokenizer.RESTRICT.HISTORY,
+        icon: "chrome://browser/skin/history.svg",
+        pref: "shortcuts.history",
+      },
+    ];
+  },
 
   /**
    * Returns the payload schema for the given type of result.
@@ -268,8 +284,7 @@ var UrlbarUtils = {
       return { url, postData, mayInheritPrincipal };
     }
 
-    await Services.search.init();
-    let engine = Services.search.getEngineByAlias(keyword);
+    let engine = await Services.search.getEngineByAlias(keyword);
     if (engine) {
       let submission = engine.getSubmission(param, null, "keyword");
       return {
@@ -360,7 +375,10 @@ var UrlbarUtils = {
    *          The array is sorted by match indexes ascending.
    */
   getTokenMatches(tokens, str, highlightType) {
-    str = str.toLocaleLowerCase();
+    // Only search a portion of the string, because not more than a certain
+    // amount of characters are visible in the UI, matching over what is visible
+    // would be expensive and pointless.
+    str = str.substring(0, UrlbarUtils.MAX_TEXT_LENGTH).toLocaleLowerCase();
     // To generate non-overlapping ranges, we start from a 0-filled array with
     // the same length of the string, and use it as a collision marker, setting
     // 1 where the text should be highlighted.
@@ -559,24 +577,19 @@ var UrlbarUtils = {
    *   setSearchMode documentation for details.
    */
   searchModeForToken(token) {
-    if (!UrlbarPrefs.get("update2")) {
+    if (token == UrlbarTokenizer.RESTRICT.SEARCH) {
+      return {
+        engineName: UrlbarSearchUtils.getDefaultEngine(this.isPrivate).name,
+      };
+    }
+
+    let mode = UrlbarUtils.LOCAL_SEARCH_MODES.find(m => m.restrict == token);
+    if (!mode) {
       return null;
     }
 
-    switch (token) {
-      case UrlbarTokenizer.RESTRICT.BOOKMARK:
-        return { source: UrlbarUtils.RESULT_SOURCE.BOOKMARKS };
-      case UrlbarTokenizer.RESTRICT.HISTORY:
-        return { source: UrlbarUtils.RESULT_SOURCE.HISTORY };
-      case UrlbarTokenizer.RESTRICT.OPENPAGE:
-        return { source: UrlbarUtils.RESULT_SOURCE.TABS };
-      case UrlbarTokenizer.RESTRICT.SEARCH:
-        return {
-          engineName: UrlbarSearchUtils.getDefaultEngine(this.isPrivate).name,
-        };
-    }
-
-    return null;
+    // Return a copy so callers don't modify the object in LOCAL_SEARCH_MODES.
+    return { ...mode };
   },
 
   /**
@@ -683,10 +696,17 @@ var UrlbarUtils = {
    *   not be used in hot paths.
    */
   stripPublicSuffixFromHost(host) {
-    return host.substring(
-      0,
-      host.length - Services.eTLD.getKnownPublicSuffixFromHost(host).length
-    );
+    try {
+      return host.substring(
+        0,
+        host.length - Services.eTLD.getKnownPublicSuffixFromHost(host).length
+      );
+    } catch (ex) {
+      if (ex.result != Cr.NS_ERROR_HOST_IS_IP_ADDRESS) {
+        throw ex;
+      }
+    }
+    return host;
   },
 
   /**
@@ -903,7 +923,13 @@ var UrlbarUtils = {
     // If the user types a search engine alias without a search string,
     // we have an empty search string and we can't bump it.
     // We also don't want to add history in private browsing mode.
-    if (!value || input.isPrivate) {
+    // Finally we don't want to store extremely long strings that would not be
+    // particularly useful to the user.
+    if (
+      !value ||
+      input.isPrivate ||
+      value.length > SearchSuggestionController.SEARCH_HISTORY_MAX_VALUE_LENGTH
+    ) {
       return Promise.resolve();
     }
     return new Promise((resolve, reject) => {
@@ -1039,14 +1065,17 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       keyword: {
         type: "string",
       },
-      keywordOffer: {
-        type: "number", // UrlbarUtils.KEYWORD_OFFER
-      },
       lowerCaseSuggestion: {
         type: "string",
       },
+      providesSearchMode: {
+        type: "boolean",
+      },
       query: {
         type: "string",
+      },
+      satisfiesAutofillThreshold: {
+        type: "boolean",
       },
       suggestion: {
         type: "string",
@@ -1243,6 +1272,12 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
     properties: {
       dynamicType: {
         type: "string",
+      },
+      // If `shouldNavigate` is `true` and the payload contains a `url`
+      // property, when the result is selected the browser will navigate to the
+      // `url`.
+      shouldNavigate: {
+        type: "boolean",
       },
     },
   },
@@ -1590,6 +1625,12 @@ class UrlbarProvider {
    *
    * @param {UrlbarResult} result
    *   The result whose view will be updated.
+   * @param {Map} idsByName
+   *   A Map from an element's name, as defined by the provider; to its ID in
+   *   the DOM, as defined by the browser. The browser manages element IDs for
+   *   dynamic results to prevent collisions. However, a provider may need to
+   *   access the IDs of the elements created for its results. For example, to
+   *   set various `aria` attributes.
    * @returns {object}
    *   A view update object as described above.  The names of properties are the
    *   the names of elements declared in the view template.  The values of
@@ -1599,7 +1640,8 @@ class UrlbarProvider {
    *
    *   {object} [attributes]
    *     A mapping from attribute names to values.  Each name-value pair results
-   *     in an attribute being added to the element.
+   *     in an attribute being added to the element.  The `id` attribute is
+   *     reserved and cannot be set by the provider.
    *   {object} [style]
    *     A plain object that can be used to add inline styles to the element,
    *     like `display: none`.   `element.style` is updated for each name-value
@@ -1610,7 +1652,7 @@ class UrlbarProvider {
    *   {string} [textContent]
    *     A string that will be set as `element.textContent`.
    */
-  getViewUpdate(result) {
+  getViewUpdate(result, idsByName) {
     return null;
   }
 

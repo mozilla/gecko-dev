@@ -313,6 +313,7 @@ impl Encoder {
         self.buf.resize(self.buf.len() + n, 0);
         f(self);
         let len = self.buf.len() - start - n;
+        assert!(len < (1 << (n * 8)));
         for i in 0..n {
             self.buf[start + i] = ((len >> (8 * (n - i - 1))) & 0xff) as u8
         }
@@ -367,6 +368,13 @@ impl Encoder {
     /// Truncate the encoder to the given size.
     pub fn truncate(&mut self, len: usize) {
         self.buf.truncate(len);
+    }
+
+    /// Pad the buffer to `len` with bytes set to `v`.
+    pub fn pad_to(&mut self, len: usize, v: u8) {
+        if len > self.buf.len() {
+            self.buf.resize(len, v);
+        }
     }
 }
 
@@ -726,6 +734,15 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn encode_vec_with_overflow() {
+        let mut enc = Encoder::default();
+        enc.encode_vec_with(1, |enc_inner| {
+            enc_inner.encode(&[0xb0; 256]);
+        });
+    }
+
+    #[test]
     fn encode_vvec() {
         let mut enc = Encoder::default();
         enc.encode_vvec(&[1, 2, 0x34]);
@@ -776,5 +793,16 @@ mod tests {
         let mut enc = Encoder::from_hex("010234");
         enc[0] = 0xff;
         assert_eq!(enc, Encoder::from_hex("ff0234"));
+    }
+
+    #[test]
+    fn pad() {
+        let mut enc = Encoder::from_hex("010234");
+        enc.pad_to(5, 0);
+        assert_eq!(enc, Encoder::from_hex("0102340000"));
+        enc.pad_to(4, 0);
+        assert_eq!(enc, Encoder::from_hex("0102340000"));
+        enc.pad_to(7, 0xc2);
+        assert_eq!(enc, Encoder::from_hex("0102340000c2c2"));
     }
 }

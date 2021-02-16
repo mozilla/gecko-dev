@@ -681,21 +681,6 @@ describe("DiscoveryStreamFeed", () => {
       const { args } = global.Promise.all.firstCall;
       assert.equal(args[0].length, 3);
     });
-
-    it("should not record the request time if no fetch request was issued", async () => {
-      const fakeComponents = { components: [] };
-      const fakeLayout = [fakeComponents, { components: [{}] }, {}];
-      fakeDiscoveryStream = { DiscoveryStream: { layout: fakeLayout } };
-      fakeCache = {
-        feeds: { "foo.com": { lastUpdated: Date.now(), data: "data" } },
-      };
-      sandbox.stub(feed.cache, "get").returns(Promise.resolve(fakeCache));
-      feed.componentFeedRequestTime = undefined;
-
-      await feed.loadComponentFeeds(feed.store.dispatch);
-
-      assert.isUndefined(feed.componentFeedRequestTime);
-    });
   });
 
   describe("#getComponentFeed", () => {
@@ -1249,7 +1234,7 @@ describe("DiscoveryStreamFeed", () => {
     });
 
     it("should remove items with scores lower than min_score", async () => {
-      const { data: result, filtered } = await feed.scoreItems([
+      const { data: result } = await feed.scoreItems([
         { id: 2, flight_id: 2, item_score: 0.8, min_score: 0.9 },
         { id: 3, flight_id: 3, item_score: 0.7, min_score: 0.7 },
         { id: 1, flight_id: 1, item_score: 0.9, min_score: 0.8 },
@@ -1258,10 +1243,6 @@ describe("DiscoveryStreamFeed", () => {
       assert.deepEqual(result, [
         { id: 1, flight_id: 1, item_score: 0.9, score: 0.9, min_score: 0.8 },
         { id: 3, flight_id: 3, item_score: 0.7, score: 0.7, min_score: 0.7 },
-      ]);
-
-      assert.deepEqual(filtered, [
-        { id: 2, flight_id: 2, item_score: 0.8, min_score: 0.9, score: 0.8 },
       ]);
     });
 
@@ -1273,7 +1254,7 @@ describe("DiscoveryStreamFeed", () => {
       assert.equal(result[0].score, 0.9);
     });
     it("should score items using item_score and min_score", async () => {
-      const { data: result, filtered } = await feed.scoreItems([
+      const { data: result } = await feed.scoreItems([
         { item_score: 0.8, min_score: 0.1 },
         { item_score: 0.5, min_score: 0.6 },
         { item_score: 0.7, min_score: 0.1 },
@@ -1283,9 +1264,6 @@ describe("DiscoveryStreamFeed", () => {
         { item_score: 0.9, score: 0.9, min_score: 0.1 },
         { item_score: 0.8, score: 0.8, min_score: 0.1 },
         { item_score: 0.7, score: 0.7, min_score: 0.1 },
-      ]);
-      assert.deepEqual(filtered, [
-        { item_score: 0.5, min_score: 0.6, score: 0.5 },
       ]);
     });
   });
@@ -1302,21 +1280,6 @@ describe("DiscoveryStreamFeed", () => {
         { url: "test.com" },
       ]);
       assert.equal(result.length, 2);
-    });
-    it("should return filtered out based on blockedlist", () => {
-      fakeNewTabUtils.blockedLinks.links = [{ url: "https://foo.com" }];
-      fakeNewTabUtils.blockedLinks.isBlocked = site =>
-        fakeNewTabUtils.blockedLinks.links[0].url === site.url;
-
-      const { data: result, filtered } = feed.filterBlocked([
-        { id: 1, url: "https://foo.com" },
-        { id: 2, url: "test.com" },
-      ]);
-
-      assert.lengthOf(result, 1);
-      assert.equal(result[0].url, "test.com");
-      assert.notInclude(result, fakeNewTabUtils.blockedLinks.links[0]);
-      assert.deepEqual(filtered, [{ id: 1, url: "https://foo.com" }]);
     });
     it("should return initial recommendations data if links are not blocked", () => {
       const { data: result } = feed.filterBlocked([
@@ -1695,6 +1658,31 @@ describe("DiscoveryStreamFeed", () => {
     });
   });
 
+  describe("#addEndpointQuery", () => {
+    const url = "https://spocs.getpocket.com/spocs";
+
+    it("should return same url with no query", () => {
+      const result = feed.addEndpointQuery(url, "");
+      assert.equal(result, url);
+    });
+
+    it("should add multiple query params to standard url", () => {
+      const params = "?first=first&second=second";
+      const result = feed.addEndpointQuery(url, params);
+      assert.equal(result, url + params);
+    });
+
+    it("should add multiple query params to url with a query already", () => {
+      const params = "first=first&second=second";
+      const initialParams = "?zero=zero";
+      const result = feed.addEndpointQuery(
+        `${url}${initialParams}`,
+        `?${params}`
+      );
+      assert.equal(result, `${url}${initialParams}&${params}`);
+    });
+  });
+
   describe("#readDataPref", () => {
     it("should return what's in Services.prefs.getStringPref", () => {
       const fakeImpressions = {
@@ -1782,15 +1770,6 @@ describe("DiscoveryStreamFeed", () => {
           ],
         },
       };
-      const spocFillResult = [
-        {
-          id: 1,
-          reason: "frequency_cap",
-          displayed: 0,
-          full_recalc: 0,
-        },
-      ];
-
       sandbox.stub(feed, "recordFlightImpression").returns();
       sandbox.stub(feed, "readDataPref").returns(fakeImpressions);
       sandbox.spy(feed.store, "dispatch");
@@ -1803,10 +1782,6 @@ describe("DiscoveryStreamFeed", () => {
       assert.deepEqual(
         feed.store.dispatch.secondCall.args[0].data.spocs,
         result
-      );
-      assert.deepEqual(
-        feed.store.dispatch.thirdCall.args[0].data.spoc_fills,
-        spocFillResult
       );
     });
     it("should not call dispatch to ac.AlsoToPreloaded if spocs were not changed by frequency capping", async () => {
@@ -1896,16 +1871,8 @@ describe("DiscoveryStreamFeed", () => {
       });
     });
 
-    it("should call dispatch with the SPOCS Fill if found a blocked spoc", async () => {
+    it("should call dispatch if found a blocked spoc", async () => {
       Object.defineProperty(feed, "showSpocs", { get: () => true });
-      const spocFillResult = [
-        {
-          id: 1,
-          reason: "blocked_by_user",
-          displayed: 0,
-          full_recalc: 0,
-        },
-      ];
 
       sandbox.spy(feed.store, "dispatch");
 
@@ -1915,15 +1882,11 @@ describe("DiscoveryStreamFeed", () => {
       });
 
       assert.deepEqual(
-        feed.store.dispatch.firstCall.args[0].data.spoc_fills,
-        spocFillResult
-      );
-      assert.deepEqual(
-        feed.store.dispatch.secondCall.args[0].data.url,
+        feed.store.dispatch.firstCall.args[0].data.url,
         "foo.com"
       );
     });
-    it("should not call dispatch with the SPOCS Fill if the blocked is not a SPOC", async () => {
+    it("should dispatch once if the blocked is not a SPOC", async () => {
       Object.defineProperty(feed, "showSpocs", { get: () => true });
       sandbox.spy(feed.store, "dispatch");
 
@@ -1948,7 +1911,7 @@ describe("DiscoveryStreamFeed", () => {
       });
 
       assert.equal(
-        feed.store.dispatch.thirdCall.args[0].type,
+        feed.store.dispatch.secondCall.args[0].type,
         "DISCOVERY_STREAM_SPOC_BLOCKED"
       );
     });
@@ -1979,14 +1942,10 @@ describe("DiscoveryStreamFeed", () => {
       sandbox.stub(feed.cache, "set").returns(Promise.resolve());
       setPref(CONFIG_PREF_NAME, { enabled: true });
       sandbox.stub(feed, "loadLayout").returns(Promise.resolve());
-      sandbox.stub(feed, "reportCacheAge").resolves();
-      sandbox.spy(feed, "reportRequestTime");
 
       await feed.onAction({ type: at.INIT });
 
       assert.calledOnce(feed.loadLayout);
-      assert.calledOnce(feed.reportCacheAge);
-      assert.calledOnce(feed.reportRequestTime);
       assert.isTrue(feed.loaded);
     });
   });
@@ -2696,10 +2655,9 @@ describe("DiscoveryStreamFeed", () => {
   });
 
   describe("#scoreSpocs", () => {
-    it("should score spocs and set cache, dispatch, and spocsFill", async () => {
+    it("should score spocs and set cache, dispatch", async () => {
       sandbox.stub(feed.cache, "set").resolves();
       sandbox.spy(feed.store, "dispatch");
-      sandbox.stub(feed, "_sendSpocsFill").returns();
       const fakeDiscoveryStream = {
         Prefs: {
           values: {
@@ -2798,13 +2756,6 @@ describe("DiscoveryStreamFeed", () => {
         feed.store.dispatch.firstCall.args[0].data,
         spocsTestResult
       );
-      assert.calledWith(
-        feed._sendSpocsFill,
-        {
-          below_min_score: [{ item_score: 0.4, min_score: 0.5, score: 0.4 }],
-        },
-        false
-      );
     });
   });
 
@@ -2847,79 +2798,6 @@ describe("DiscoveryStreamFeed", () => {
 
       assert.calledOnce(feed.scoreFeeds);
       assert.calledOnce(feed.scoreSpocs);
-    });
-  });
-
-  describe("#reportCacheAge", () => {
-    let cache;
-    const cacheAge = 30;
-    beforeEach(() => {
-      cache = {
-        layout: { lastUpdated: Date.now() - 10 * 1000 },
-        feeds: { "foo.com": { lastUpdated: Date.now() - cacheAge * 1000 } },
-        spocs: { lastUpdated: Date.now() - 20 * 1000 },
-      };
-      sandbox.stub(feed.cache, "get").resolves(cache);
-    });
-
-    it("should report the oldest lastUpdated date as the cache age", async () => {
-      sandbox.spy(feed.store, "dispatch");
-      feed.loaded = false;
-      await feed.reportCacheAge();
-
-      assert.calledOnce(feed.store.dispatch);
-
-      const [action] = feed.store.dispatch.firstCall.args;
-      assert.equal(action.type, at.TELEMETRY_PERFORMANCE_EVENT);
-      assert.equal(action.data.event, "DS_CACHE_AGE_IN_SEC");
-      assert.isAtLeast(action.data.value, cacheAge);
-      feed.loaded = true;
-    });
-  });
-
-  describe("#reportRequestTime", () => {
-    let cache;
-    const cacheAge = 30;
-    beforeEach(() => {
-      cache = {
-        layout: { lastUpdated: Date.now() - 10 * 1000 },
-        feeds: { "foo.com": { lastUpdated: Date.now() - cacheAge * 1000 } },
-        spocs: { lastUpdated: Date.now() - 20 * 1000 },
-      };
-      sandbox.stub(feed.cache, "get").resolves(cache);
-    });
-
-    it("should report all the request times", async () => {
-      sandbox.spy(feed.store, "dispatch");
-      feed.loaded = false;
-      feed.layoutRequestTime = 1000;
-      feed.spocsRequestTime = 2000;
-      feed.componentFeedRequestTime = 3000;
-      feed.totalRequestTime = 5000;
-      feed.reportRequestTime();
-
-      assert.equal(feed.store.dispatch.callCount, 4);
-
-      let [action] = feed.store.dispatch.getCall(0).args;
-      assert.equal(action.type, at.TELEMETRY_PERFORMANCE_EVENT);
-      assert.equal(action.data.event, "LAYOUT_REQUEST_TIME");
-      assert.equal(action.data.value, 1000);
-
-      [action] = feed.store.dispatch.getCall(1).args;
-      assert.equal(action.type, at.TELEMETRY_PERFORMANCE_EVENT);
-      assert.equal(action.data.event, "SPOCS_REQUEST_TIME");
-      assert.equal(action.data.value, 2000);
-
-      [action] = feed.store.dispatch.getCall(2).args;
-      assert.equal(action.type, at.TELEMETRY_PERFORMANCE_EVENT);
-      assert.equal(action.data.event, "COMPONENT_FEED_REQUEST_TIME");
-      assert.equal(action.data.value, 3000);
-
-      [action] = feed.store.dispatch.getCall(3).args;
-      assert.equal(action.type, at.TELEMETRY_PERFORMANCE_EVENT);
-      assert.equal(action.data.event, "DS_FEED_TOTAL_REQUEST_TIME");
-      assert.equal(action.data.value, 5000);
-      feed.loaded = true;
     });
   });
 
@@ -2984,7 +2862,7 @@ describe("DiscoveryStreamFeed", () => {
   });
   describe("#scoreItems", () => {
     it("should score items using item_score and min_score", async () => {
-      const { data: result, filtered } = await feed.scoreItems([
+      const { data: result } = await feed.scoreItems([
         { item_score: 0.8, min_score: 0.1 },
         { item_score: 0.5, min_score: 0.6 },
         { item_score: 0.7, min_score: 0.1 },
@@ -2995,20 +2873,6 @@ describe("DiscoveryStreamFeed", () => {
         { item_score: 0.8, score: 0.8, min_score: 0.1 },
         { item_score: 0.7, score: 0.7, min_score: 0.1 },
       ]);
-      assert.deepEqual(filtered, [
-        { item_score: 0.5, min_score: 0.6, score: 0.5 },
-      ]);
-    });
-    it("should fire dispatchRelevanceScoreDuration if available", async () => {
-      feed.providerSwitcher.dispatchRelevanceScoreDuration = sandbox
-        .stub()
-        .returns();
-      feed._prefCache.config = {
-        personalized: true,
-      };
-      await feed.scoreItems([]);
-
-      assert.calledOnce(feed.providerSwitcher.dispatchRelevanceScoreDuration);
     });
   });
   describe("#scoreItem", () => {
@@ -3046,86 +2910,6 @@ describe("DiscoveryStreamFeed", () => {
       };
       const result = await feed.scoreItem(item);
       assert.equal(result.min_score, 0);
-    });
-  });
-
-  describe("#_sendSpocsFill", () => {
-    it("should send out all the SPOCS Fill pings", () => {
-      sandbox.spy(feed.store, "dispatch");
-      const expected = [
-        { id: 1, reason: "frequency_cap", displayed: 0, full_recalc: 1 },
-        { id: 2, reason: "frequency_cap", displayed: 0, full_recalc: 1 },
-        { id: 3, reason: "blocked_by_user", displayed: 0, full_recalc: 1 },
-        { id: 4, reason: "blocked_by_user", displayed: 0, full_recalc: 1 },
-        { id: 5, reason: "flight_duplicate", displayed: 0, full_recalc: 1 },
-        { id: 6, reason: "flight_duplicate", displayed: 0, full_recalc: 1 },
-        { id: 7, reason: "below_min_score", displayed: 0, full_recalc: 1 },
-        { id: 8, reason: "below_min_score", displayed: 0, full_recalc: 1 },
-      ];
-      const filtered = {
-        frequency_cap: [
-          { id: 1, flight_id: 1 },
-          { id: 2, flight_id: 2 },
-        ],
-        blocked_by_user: [
-          { id: 3, flight_id: 3 },
-          { id: 4, flight_id: 4 },
-        ],
-        flight_duplicate: [
-          { id: 5, flight_id: 5 },
-          { id: 6, flight_id: 6 },
-        ],
-        below_min_score: [
-          { id: 7, flight_id: 7 },
-          { id: 8, flight_id: 8 },
-        ],
-      };
-      feed._sendSpocsFill(filtered, true);
-
-      assert.deepEqual(
-        feed.store.dispatch.firstCall.args[0].data.spoc_fills,
-        expected
-      );
-    });
-    it("should send SPOCS Fill ping with the correct full_recalc", () => {
-      sandbox.spy(feed.store, "dispatch");
-      const expected = [
-        { id: 1, reason: "frequency_cap", displayed: 0, full_recalc: 0 },
-        { id: 2, reason: "frequency_cap", displayed: 0, full_recalc: 0 },
-      ];
-      const filtered = {
-        frequency_cap: [
-          { id: 1, flight_id: 1 },
-          { id: 2, flight_id: 2 },
-        ],
-      };
-      feed._sendSpocsFill(filtered, false);
-
-      assert.deepEqual(
-        feed.store.dispatch.firstCall.args[0].data.spoc_fills,
-        expected
-      );
-    });
-    it("should not send non-SPOCS Fill pings", () => {
-      sandbox.spy(feed.store, "dispatch");
-      const expected = [
-        { id: 1, reason: "frequency_cap", displayed: 0, full_recalc: 1 },
-        { id: 3, reason: "blocked_by_user", displayed: 0, full_recalc: 1 },
-        { id: 5, reason: "flight_duplicate", displayed: 0, full_recalc: 1 },
-        { id: 7, reason: "below_min_score", displayed: 0, full_recalc: 1 },
-      ];
-      const filtered = {
-        frequency_cap: [{ id: 1, flight_id: 1 }, { id: 2 }],
-        blocked_by_user: [{ id: 3, flight_id: 3 }, { id: 4 }],
-        flight_duplicate: [{ id: 5, flight_id: 5 }, { id: 6 }],
-        below_min_score: [{ id: 7, flight_id: 7 }, { id: 8 }],
-      };
-      feed._sendSpocsFill(filtered, true);
-
-      assert.deepEqual(
-        feed.store.dispatch.firstCall.args[0].data.spoc_fills,
-        expected
-      );
     });
   });
 });

@@ -26,6 +26,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   ChromeWebElement: "chrome://marionette/content/element.js",
   clearElementIdCache:
     "chrome://marionette/content/actors/MarionetteCommandsParent.jsm",
+  clearActionInputState:
+    "chrome://marionette/content/actors/MarionetteCommandsChild.jsm",
   Context: "chrome://marionette/content/browser.js",
   cookie: "chrome://marionette/content/cookie.js",
   DebounceCallback: "chrome://marionette/content/sync.js",
@@ -47,10 +49,18 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   print: "chrome://marionette/content/print.js",
   proxy: "chrome://marionette/content/proxy.js",
   reftest: "chrome://marionette/content/reftest.js",
+  registerCommandsActor:
+    "chrome://marionette/content/actors/MarionetteCommandsParent.jsm",
+  registerEventsActor:
+    "chrome://marionette/content/actors/MarionetteEventsParent.jsm",
   Sandboxes: "chrome://marionette/content/evaluate.js",
   TimedPromise: "chrome://marionette/content/sync.js",
   Timeouts: "chrome://marionette/content/capabilities.js",
   UnhandledPromptBehavior: "chrome://marionette/content/capabilities.js",
+  unregisterCommandsActor:
+    "chrome://marionette/content/actors/MarionetteCommandsParent.jsm",
+  unregisterEventsActor:
+    "chrome://marionette/content/actors/MarionetteEventsParent.jsm",
   waitForEvent: "chrome://marionette/content/sync.js",
   waitForLoadEvent: "chrome://marionette/content/sync.js",
   waitForObserverTopic: "chrome://marionette/content/sync.js",
@@ -113,7 +123,6 @@ this.GeckoDriver = function(server) {
   this._server = server;
 
   this.sessionID = null;
-  this.wins = new browser.Windows();
   this.browsers = {};
 
   // Maps permanentKey to browsing context id: WeakMap.<Object, number>
@@ -137,10 +146,12 @@ this.GeckoDriver = function(server) {
   this.capabilities = new Capabilities();
 
   this.mm = globalMessageManager;
-  this.listener = proxy.toListener(
-    this.sendAsync.bind(this),
-    () => this.curBrowser
-  );
+  if (!MarionettePrefs.useActors) {
+    this.listener = proxy.toListener(
+      this.sendAsync.bind(this),
+      () => this.curBrowser
+    );
+  }
 
   // used for modal dialogs or tab modal alerts
   this.dialog = null;
@@ -271,6 +282,11 @@ GeckoDriver.prototype.QueryInterface = ChromeUtils.generateQI([
 ]);
 
 GeckoDriver.prototype.init = function() {
+  if (MarionettePrefs.useActors) {
+    // When using JSWindowActors, we are not relying on framescript events
+    return;
+  }
+
   this.mm.addMessageListener("Marionette:ListenersAttached", this);
   this.mm.addMessageListener("Marionette:Register", this);
   this.mm.addMessageListener("Marionette:switchedToFrame", this);
@@ -279,6 +295,10 @@ GeckoDriver.prototype.init = function() {
 };
 
 GeckoDriver.prototype.uninit = function() {
+  if (MarionettePrefs.useActors) {
+    return;
+  }
+
   this.mm.removeMessageListener("Marionette:ListenersAttached", this);
   this.mm.removeMessageListener("Marionette:Register", this);
   this.mm.removeMessageListener("Marionette:switchedToFrame", this);
@@ -502,11 +522,6 @@ GeckoDriver.prototype.addBrowser = function(win) {
 
   this.browsers[winId] = context;
   this.curBrowser = this.browsers[winId];
-  if (!this.wins.has(winId)) {
-    // add this to seenItems so we can guarantee
-    // the user will get winId as this window's id
-    this.wins.set(winId, win);
-  }
 };
 
 /**
@@ -538,6 +553,11 @@ GeckoDriver.prototype.startBrowser = function(window, isNewSession = false) {
  *     True if this is the first time we're talking to this browser.
  */
 GeckoDriver.prototype.whenBrowserStarted = function(window, isNewSession) {
+  // Do not load the framescript when actors are used.
+  if (MarionettePrefs.useActors) {
+    return;
+  }
+
   let mm = window.messageManager;
   if (mm) {
     if (!isNewSession) {
@@ -599,8 +619,10 @@ GeckoDriver.prototype.getVisibleText = function(el, lines) {
 /**
  * Handles registration of new content listener browsers.  Depending on
  * their type they are either accepted or ignored.
+ *
+ * @param {xul:browser} browserElement
  */
-GeckoDriver.prototype.registerBrowser = function(id, be) {
+GeckoDriver.prototype.registerBrowser = function(browserElement) {
   // We want to ignore frames that are XUL browsers that aren't in the "main"
   // tabbrowser, but accept things on Fennec (which doesn't have a
   // xul:tabbrowser), and accept HTML iframes (because tests depend on it),
@@ -608,17 +630,12 @@ GeckoDriver.prototype.registerBrowser = function(id, be) {
   // keep track of browsers a different way.
   if (
     this.appId != APP_ID_FIREFOX ||
-    be.namespaceURI != XUL_NS ||
-    be.nodeName != "browser" ||
-    be.getTabBrowser()
+    browserElement.namespaceURI != XUL_NS ||
+    browserElement.nodeName != "browser" ||
+    browserElement.getTabBrowser()
   ) {
-    // curBrowser holds all the registered frames in knownFrames
-    this.curBrowser.register(id, be);
+    this.curBrowser.register(browserElement);
   }
-
-  this.wins.set(id, BrowsingContext.get(id).currentWindowGlobal);
-
-  return id;
 };
 
 GeckoDriver.prototype.registerPromise = function() {
@@ -626,8 +643,7 @@ GeckoDriver.prototype.registerPromise = function() {
 
   return new Promise(resolve => {
     let cb = ({ json, target }) => {
-      let { frameId } = json;
-      this.registerBrowser(frameId, target);
+      this.registerBrowser(target);
 
       if (this.curBrowser.frameRegsPending > 0) {
         this.curBrowser.frameRegsPending--;
@@ -638,7 +654,7 @@ GeckoDriver.prototype.registerPromise = function() {
         resolve();
       }
 
-      return { frameId };
+      return { frameId: json.frameId };
     };
     this.mm.addMessageListener(li, cb);
   });
@@ -797,9 +813,6 @@ GeckoDriver.prototype.newSession = async function(cmd) {
     logger.info("Preemptively starting accessibility service in Chrome");
   }
 
-  let registerBrowsers = this.registerPromise();
-  let browserListening = this.listeningPromise();
-
   let waitForWindow = function() {
     let windowTypes;
     switch (this.appId) {
@@ -851,6 +864,17 @@ GeckoDriver.prototype.newSession = async function(cmd) {
     }
   };
 
+  let registerBrowsers;
+  let browserListening;
+
+  if (MarionettePrefs.useActors) {
+    registerCommandsActor();
+    registerEventsActor();
+  } else {
+    registerBrowsers = this.registerPromise();
+    browserListening = this.listeningPromise();
+  }
+
   if (!MarionettePrefs.contentListener) {
     waitForWindow.call(this);
   } else if (this.appId != APP_ID_FIREFOX && this.curBrowser === null) {
@@ -862,25 +886,20 @@ GeckoDriver.prototype.newSession = async function(cmd) {
     throw new error.WebDriverError("Session already running");
   }
 
-  await registerBrowsers;
-  await browserListening;
-
   if (MarionettePrefs.useActors) {
-    // Register the JSWindowActor pair that holds all the commands.
-    ChromeUtils.registerWindowActor("MarionetteCommands", {
-      kind: "JSWindowActor",
-      parent: {
-        moduleURI:
-          "chrome://marionette/content/actors/MarionetteCommandsParent.jsm",
-      },
-      child: {
-        moduleURI:
-          "chrome://marionette/content/actors/MarionetteCommandsChild.jsm",
-      },
+    for (let win of this.windows) {
+      const tabBrowser = browser.getTabBrowser(win);
 
-      allFrames: true,
-      includeChrome: true,
-    });
+      if (tabBrowser) {
+        for (const tab of tabBrowser.tabs) {
+          const contentBrowser = browser.getBrowserForTab(tab);
+          this.registerBrowser(contentBrowser);
+        }
+      }
+    }
+  } else {
+    await registerBrowsers;
+    await browserListening;
   }
 
   if (this.mainFrame) {
@@ -897,6 +916,8 @@ GeckoDriver.prototype.newSession = async function(cmd) {
   this.dialogObserver = new modal.DialogObserver(this);
   this.dialogObserver.add(this.handleModalDialog.bind(this));
 
+  Services.obs.addObserver(this, "browsing-context-attached");
+
   // Check if there is already an open dialog for the selected browser window.
   this.dialog = modal.findModalDialogs(this.curBrowser);
 
@@ -904,6 +925,40 @@ GeckoDriver.prototype.newSession = async function(cmd) {
     sessionId: this.sessionID,
     capabilities: this.capabilities,
   };
+};
+
+GeckoDriver.prototype.observe = function(subject, topic, data) {
+  switch (topic) {
+    case "browsing-context-attached":
+      // For cross-group navigations the complete browsing context tree of a tab
+      // gets replaced. An indication for that is when the newly attached
+      // browsing context has the same browserId as the currently selected
+      // content browsing context, and doesn't have a parent.
+      //
+      // Also the current content browsing context gets only updated when it's
+      // the top-level one to not automatically switch away from the currently
+      // selected frame.
+      if (
+        subject.browserId == this.contentBrowsingContext?.browserId &&
+        !subject.parent &&
+        !this.contentBrowsingContext?.parent
+      ) {
+        logger.trace(
+          "Remoteness change detected. Set new top-level browsing context " +
+            `to ${subject.id}`
+        );
+        this.contentBrowsingContext = subject;
+        if (MarionettePrefs.useActors) {
+          // When using the framescript, the new browsing context created after
+          // a remoteness change will self-register. With JSWindowActors, we
+          // manually update the stored browsing context id.
+          // Switching to browserId instead of browsingContext.id would make
+          // this call unnecessary. See Bug 1681973.
+          this.updateIdForBrowser(this.curBrowser.contentBrowser, subject.id);
+        }
+      }
+      break;
+  }
 };
 
 /**
@@ -1191,10 +1246,18 @@ GeckoDriver.prototype.navigateTo = async function(cmd) {
   }
 
   // Switch to the top-level browsing context before navigating
-  await this.listener.switchToFrame();
+  if (MarionettePrefs.useActors) {
+    this.contentBrowsingContext = browsingContext;
+  } else {
+    await this.listener.switchToFrame();
+  }
 
-  const currentURL = await this._getCurrentURL();
-  const loadEventExpected = navigate.isLoadEventExpected(currentURL, validURL);
+  const loadEventExpected = navigate.isLoadEventExpected(
+    await this._getCurrentURL(),
+    {
+      future: validURL,
+    }
+  );
 
   await navigate.waitForNavigationCompleted(
     this,
@@ -1365,8 +1428,12 @@ GeckoDriver.prototype.refresh = async function() {
   const browsingContext = assert.open(this.getBrowsingContext({ top: true }));
   await this._handleUserPrompts();
 
-  // Switch to the top-level browsiing context before navigating
-  await this.listener.switchToFrame();
+  // Switch to the top-level browsing context before navigating
+  if (MarionettePrefs.useActors) {
+    this.contentBrowsingContext = browsingContext;
+  } else {
+    await this.listener.switchToFrame();
+  }
 
   await navigate.waitForNavigationCompleted(this, () => {
     navigate.refresh(browsingContext);
@@ -1607,15 +1674,6 @@ GeckoDriver.prototype.switchToWindow = async function(cmd) {
     try {
       await this.setWindowHandle(found, focus);
       selected = true;
-
-      // Temporarily inform the framescript of the current browsing context to
-      // allow sending the correct page load events. This has to be done until
-      // the framescript is no longer in use (bug 1669172).
-      if (this.context == Context.Content) {
-        await this.listener.setBrowsingContextId(
-          this.contentBrowsingContext.id
-        );
-      }
     } catch (e) {
       logger.error(e);
     }
@@ -1630,7 +1688,7 @@ GeckoDriver.prototype.switchToWindow = async function(cmd) {
  * Find a specific window according to some filter function.
  *
  * @param {Iterable.<Window>} winIterable
- *     Iterable that emits Windows.
+ *     Iterable that emits Window objects.
  * @param {function(Window, number): boolean} filter
  *     A callback function taking two arguments; the window and
  *     the outerId of the window, and returning a boolean indicating
@@ -1692,7 +1750,7 @@ GeckoDriver.prototype.setWindowHandle = async function(
     // Initialise Marionette if the current chrome window has not been seen
     // before. Also register the initial tab, if one exists.
     let registerBrowsers, browserListening;
-    if (winProperties.hasTabBrowser) {
+    if (!MarionettePrefs.useActors && winProperties.hasTabBrowser) {
       registerBrowsers = this.registerPromise();
       browserListening = this.listeningPromise();
     }
@@ -1701,12 +1759,23 @@ GeckoDriver.prototype.setWindowHandle = async function(
 
     this.chromeBrowsingContext = this.mainFrame.browsingContext;
 
-    if (registerBrowsers && browserListening) {
+    if (!winProperties.hasTabBrowser) {
+      this.contentBrowsingContext = null;
+    } else if (MarionettePrefs.useActors) {
+      const tabBrowser = browser.getTabBrowser(winProperties.win);
+
+      // For chrome windows such as a reftest window, `getTabBrowser` is not
+      // a tabbrowser, it is the content browser which should be used here.
+      const contentBrowser = tabBrowser.tabs
+        ? tabBrowser.selectedBrowser
+        : tabBrowser;
+
+      this.contentBrowsingContext = contentBrowser.browsingContext;
+      this.registerBrowser(contentBrowser);
+    } else {
       await registerBrowsers;
       const id = await browserListening;
       this.contentBrowsingContext = BrowsingContext.get(id);
-    } else {
-      this.contentBrowsingContext = null;
     }
   } else {
     // Otherwise switch to the known chrome window
@@ -1751,14 +1820,6 @@ GeckoDriver.prototype.switchToParentFrame = async function() {
 
   if (MarionettePrefs.useActors) {
     this.contentBrowsingContext = browsingContext;
-
-    // Temporarily inform the framescript of the current browsing context to
-    // allow sending the correct page load events. This has to be done until
-    // the web progress listener is used (bug 1664165).
-    if (this.context == Context.Content) {
-      await this.listener.setBrowsingContextId(browsingContext.id);
-    }
-
     return;
   }
 
@@ -1768,8 +1829,6 @@ GeckoDriver.prototype.switchToParentFrame = async function() {
 /**
  * Switch to a given frame within the current window.
  *
- * @param {boolean=} focus
- *     Focus the frame if set to true. Defaults to false.
  * @param {(string|Object)=} element
  *     A web element reference of the frame or its element id.
  * @param {number=} id
@@ -1782,7 +1841,7 @@ GeckoDriver.prototype.switchToParentFrame = async function() {
  *     A modal dialog is open, blocking this operation.
  */
 GeckoDriver.prototype.switchToFrame = async function(cmd) {
-  const { element: el, focus = false, id } = cmd.parameters;
+  const { element: el, id } = cmd.parameters;
 
   if (typeof id == "number") {
     assert.unsignedShort(id, `Expected id to be unsigned short, got ${id}`);
@@ -1806,14 +1865,6 @@ GeckoDriver.prototype.switchToFrame = async function(cmd) {
     );
 
     this.contentBrowsingContext = browsingContext;
-
-    // Temporarily inform the framescript of the current browsing context to
-    // allow sending the correct page load events. This has to be done until
-    // the web progress listener is used (bug 1664165).
-    if (this.context == Context.Content) {
-      await this.listener.setBrowsingContextId(browsingContext.id);
-    }
-
     return;
   }
 
@@ -1864,10 +1915,6 @@ GeckoDriver.prototype.switchToFrame = async function(cmd) {
 
     const frameWindow = browsingContext.window;
     await checkLoad(frameWindow);
-
-    if (focus) {
-      frameWindow.focus();
-    }
   } else if (this.context == Context.Content) {
     cmd.commandID = cmd.id;
     await this.listener.switchToFrame(cmd.parameters);
@@ -1975,74 +2022,6 @@ GeckoDriver.prototype.releaseActions = async function() {
     "Command 'releaseActions' is not yet available in chrome context"
   );
   await this.listener.releaseActions();
-};
-
-/**
- * An action chain.
- *
- * @param {Object} value
- *     A nested array where the inner array represents each event,
- *     and the outer array represents a collection of events.
- *
- * @return {number}
- *     Last touch ID.
- *
- * @throws {NoSuchWindowError}
- *     Browsing context has been discarded.
- * @throws {UnexpectedAlertOpenError}
- *     A modal dialog is open, blocking this operation.
- * @throws {UnsupportedOperationError}
- *     Not applicable to application.
- */
-GeckoDriver.prototype.actionChain = async function(cmd) {
-  assert.open(this.getBrowsingContext());
-  await this._handleUserPrompts();
-
-  let { chain, nextId } = cmd.parameters;
-
-  switch (this.context) {
-    case Context.Chrome:
-      // be conservative until this has a use case and is established
-      // to work as expected in Fennec
-      assert.firefox();
-
-      return this.legacyactions.dispatchActions(
-        chain,
-        nextId,
-        { frame: this.getCurrentWindow() },
-        this.curBrowser.seenEls
-      );
-
-    case Context.Content:
-      return this.listener.actionChain(chain, nextId);
-
-    default:
-      throw new TypeError(`Unknown context: ${this.context}`);
-  }
-};
-
-/**
- * A multi-action chain.
- *
- * @param {Object} value
- *     A nested array where the inner array represents eache vent,
- *     the middle array represents a collection of events for each
- *     finger, and the outer array represents all fingers.
- *
- * @throws {NoSuchWindowError}
- *     Browsing context has been discarded.
- * @throws {UnexpectedAlertOpenError}
- *     A modal dialog is open, blocking this operation.
- * @throws {UnsupportedOperationError}
- *     Not available in current context.
- */
-GeckoDriver.prototype.multiAction = async function(cmd) {
-  assert.content(this.context);
-  assert.open(this.getBrowsingContext());
-  await this._handleUserPrompts();
-
-  let { value, max_length } = cmd.parameters; // eslint-disable-line camelcase
-  await this.listener.multiAction(value, max_length);
 };
 
 /**
@@ -2197,7 +2176,7 @@ GeckoDriver.prototype.getActiveElement = async function() {
  *     A modal dialog is open, blocking this operation.
  */
 GeckoDriver.prototype.clickElement = async function(cmd) {
-  assert.open(this.getBrowsingContext());
+  const browsingContext = assert.open(this.getBrowsingContext());
   await this._handleUserPrompts();
 
   let id = assert.string(cmd.parameters.id);
@@ -2206,12 +2185,19 @@ GeckoDriver.prototype.clickElement = async function(cmd) {
   if (MarionettePrefs.useActors) {
     const actor = this.getActor();
 
-    const target = await actor.getElementAttribute(webEl, "target");
+    const loadEventExpected = navigate.isLoadEventExpected(
+      await this._getCurrentURL(),
+      {
+        browsingContext,
+        target: await actor.getElementAttribute(webEl, "target"),
+      }
+    );
+
     await navigate.waitForNavigationCompleted(
       this,
       () => actor.clickElement(webEl, this.capabilities),
       {
-        loadEventExpected: target !== "_blank",
+        loadEventExpected,
         // The click might trigger a navigation, so don't count on it.
         requireBeforeUnload: false,
       }
@@ -2226,13 +2212,19 @@ GeckoDriver.prototype.clickElement = async function(cmd) {
       break;
 
     case Context.Content:
-      const target = await this.listener.getElementAttribute(webEl, "target");
+      const loadEventExpected = navigate.isLoadEventExpected(
+        await this._getCurrentURL(),
+        {
+          browsingContext,
+          target: this.listener.getElementAttribute(webEl, "target"),
+        }
+      );
 
       await navigate.waitForNavigationCompleted(
         this,
         () => this.listener.clickElement(webEl, this.capabilities),
         {
-          loadEventExpected: target !== "_blank",
+          loadEventExpected,
           // The click might trigger a navigation, so don't count on it.
           requireBeforeUnload: false,
         }
@@ -3010,7 +3002,13 @@ GeckoDriver.prototype.closeChromeWindow = async function() {
 
 /** Delete Marionette session. */
 GeckoDriver.prototype.deleteSession = function() {
-  if (this.curBrowser !== null) {
+  if (MarionettePrefs.useActors) {
+    clearActionInputState();
+    clearElementIdCache();
+
+    unregisterCommandsActor();
+    unregisterEventsActor();
+  } else if (this.curBrowser !== null) {
     // frame scripts can be safely reused
     MarionettePrefs.contentListener = false;
 
@@ -3028,12 +3026,6 @@ GeckoDriver.prototype.deleteSession = function() {
     }
   }
 
-  if (MarionettePrefs.useActors) {
-    clearElementIdCache();
-
-    ChromeUtils.unregisterWindowActor("MarionetteCommands");
-  }
-
   // reset to the top-most frame, and clear browsing context references
   this.mainFrame = null;
   this.chromeBrowsingContext = null;
@@ -3043,6 +3035,10 @@ GeckoDriver.prototype.deleteSession = function() {
     this.dialogObserver.cleanup();
     this.dialogObserver = null;
   }
+
+  try {
+    Services.obs.removeObserver(this, "browsing-context-attached");
+  } catch (e) {}
 
   this.sandboxes.clear();
   allowAllCerts.disable();
@@ -3642,9 +3638,8 @@ GeckoDriver.prototype.receiveMessage = function(message) {
       break;
 
     case "Marionette:Register":
-      let { frameId } = message.json;
-      this.registerBrowser(frameId, message.target);
-      return { frameId };
+      this.registerBrowser(message.target);
+      return { frameId: message.json.frameId };
 
     case "Marionette:ListenersAttached":
       if (message.json.frameId === this.curBrowser.curFrameId) {
@@ -3907,8 +3902,6 @@ GeckoDriver.prototype.commands = {
   "Marionette:Quit": GeckoDriver.prototype.quit,
   "Marionette:SetContext": GeckoDriver.prototype.setContext,
   "Marionette:SetScreenOrientation": GeckoDriver.prototype.setScreenOrientation,
-  "Marionette:ActionChain": GeckoDriver.prototype.actionChain, // bug 1354578, legacy actions
-  "Marionette:MultiAction": GeckoDriver.prototype.multiAction, // bug 1354578, legacy actions
   "Marionette:SingleTap": GeckoDriver.prototype.singleTap,
 
   // Addon service

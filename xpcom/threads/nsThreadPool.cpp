@@ -13,6 +13,8 @@
 #include "prinrval.h"
 #include "mozilla/Logging.h"
 #include "mozilla/SchedulerGroup.h"
+#include "mozilla/ScopeExit.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "nsThreadSyncDispatch.h"
 
 #include <mutex>

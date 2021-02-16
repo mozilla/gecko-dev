@@ -12,8 +12,11 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/ThrottledEventQueue.h"
+#include "mozilla/dom/BrowsingContext.h"
+#include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/JSExecutionManager.h"
+#include "mozilla/dom/WindowContext.h"
 #include "nsDOMMutationObserver.h"
 #include "nsIDirectTaskDispatcher.h"
 #include "nsProxyRelease.h"
@@ -148,6 +151,16 @@ void DocGroup::SetExecutionManager(JSExecutionManager* aManager) {
   mExecutionManager = aManager;
 }
 
+mozilla::dom::CustomElementReactionsStack*
+DocGroup::CustomElementReactionsStack() {
+  MOZ_ASSERT(NS_IsMainThread());
+  if (!mReactionsStack) {
+    mReactionsStack = new mozilla::dom::CustomElementReactionsStack();
+  }
+
+  return mReactionsStack;
+}
+
 void DocGroup::AddDocument(Document* aDocument) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!mDocuments.Contains(aDocument));
@@ -209,38 +222,40 @@ RefPtr<PerformanceInfoPromise> DocGroup::ReportPerformanceInfo() {
   uint64_t windowID = 0;
   uint16_t count = 0;
   uint64_t duration = 0;
-  bool isTopLevel = false;
   nsCString host;
-  nsCOMPtr<nsPIDOMWindowOuter> top;
-  RefPtr<AbstractThread> mainThread;
+  bool isTopLevel = false;
+  RefPtr<BrowsingContext> top;
+  RefPtr<AbstractThread> mainThread =
+      AbstractMainThreadFor(TaskCategory::Performance);
 
-  // iterating on documents until we find the top window
   for (const auto& document : *this) {
-    nsCOMPtr<Document> doc = document;
-    MOZ_ASSERT(doc);
-    nsCOMPtr<nsIURI> docURI = doc->GetDocumentURI();
-    if (!docURI) {
-      continue;
-    }
-    docURI->GetHost(host);
-    // If the host is empty, using the url
     if (host.IsEmpty()) {
-      host = docURI->GetSpecOrDefault();
+      nsCOMPtr<nsIURI> docURI = document->GetDocumentURI();
+      if (!docURI) {
+        continue;
+      }
+
+      docURI->GetHost(host);
+      if (host.IsEmpty()) {
+        host = docURI->GetSpecOrDefault();
+      }
     }
-    // looking for the top level document URI
-    nsPIDOMWindowOuter* win = doc->GetWindow();
-    if (!win) {
+
+    BrowsingContext* context = document->GetBrowsingContext();
+    if (!context) {
       continue;
     }
-    top = win->GetInProcessTop();
-    if (!top) {
+
+    top = context->Top();
+
+    if (!top || !top->GetCurrentWindowContext()) {
       continue;
     }
-    windowID = top->WindowID();
-    isTopLevel = win->GetBrowsingContext()->IsTop();
-    mainThread = AbstractMainThreadFor(TaskCategory::Performance);
+
+    isTopLevel = context->IsTop();
+    windowID = top->GetCurrentWindowContext()->OuterWindowId();
     break;
-  }
+  };
 
   MOZ_ASSERT(!host.IsEmpty());
   duration = mPerformanceCounter->GetExecutionDuration();
@@ -257,7 +272,7 @@ RefPtr<PerformanceInfoPromise> DocGroup::ReportPerformanceInfo() {
     }
   }
 
-  if (!isTopLevel) {
+  if (!isTopLevel && top && top->IsInProcess()) {
     return PerformanceInfoPromise::CreateAndResolve(
         PerformanceInfo(host, pid, windowID, duration,
                         mPerformanceCounter->GetID(), false, isTopLevel,
@@ -268,8 +283,8 @@ RefPtr<PerformanceInfoPromise> DocGroup::ReportPerformanceInfo() {
 
   MOZ_ASSERT(mainThread);
   RefPtr<DocGroup> self = this;
-
-  return CollectMemoryInfo(top, mainThread)
+  return (isTopLevel ? CollectMemoryInfo(top, mainThread)
+                     : CollectMemoryInfo(self, mainThread))
       ->Then(
           mainThread, __func__,
           [self, host, pid, windowID, duration, isTopLevel,

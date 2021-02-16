@@ -40,22 +40,50 @@ add_task(async function basic_install_test() {
   await Services.search.init();
   await promiseAfterSettings();
 
-  // On first boot, we get the list.json defaults
+  // On first boot, we get the configuration defaults
   Assert.deepEqual(await getEngineNames(), ["Plain", "Special"]);
 
   // User installs a new search engine
-  let extension = await SearchTestUtils.installSearchExtension();
+  let extension = await SearchTestUtils.installSearchExtension({
+    encoding: "windows-1252",
+  });
   Assert.deepEqual((await getEngineNames()).sort(), [
     "Example",
     "Plain",
     "Special",
   ]);
 
+  let engine = await Services.search.getEngineByName("Example");
+  Assert.equal(
+    engine.wrappedJSObject.queryCharset,
+    "windows-1252",
+    "Should have the correct charset"
+  );
+
   // User uninstalls their engine
   await extension.awaitStartup();
   await extension.unload();
   await promiseAfterSettings();
   Assert.deepEqual(await getEngineNames(), ["Plain", "Special"]);
+});
+
+add_task(async function test_install_duplicate_engine() {
+  let extension = await SearchTestUtils.installSearchExtension({
+    name: "Plain",
+    search_url: "https://example.com/plain",
+  });
+
+  let engine = await Services.search.getEngineByName("Plain");
+  let submission = engine.getSubmission("foo");
+  Assert.equal(
+    submission.uri.spec,
+    "https://duckduckgo.com/?q=foo&t=ffsb",
+    "Should have not changed the app provided engine."
+  );
+
+  // User uninstalls their engine
+  await extension.awaitStartup();
+  await extension.unload();
 });
 
 add_task(async function basic_multilocale_test() {

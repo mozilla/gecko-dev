@@ -23,6 +23,7 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
+#include "mozilla/Logging.h"
 #include "mozilla/layers/ScrollInputMethods.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RangeBoundary.h"
@@ -79,6 +80,8 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 using mozilla::layers::ScrollInputMethod;
+
+static LazyLogModule sSelectionLog("Selection");
 
 //#define DEBUG_TABLE 1
 
@@ -928,6 +931,12 @@ nsresult Selection::AddRangesForSelectableNodes(
   }
 
   NS_ASSERTION(aOutIndex, "aOutIndex can't be null");
+
+  MOZ_LOG(
+      sSelectionLog, LogLevel::Debug,
+      ("%s: selection=%p, type=%i, range=(%p, StartOffset=%u, EndOffset=%u)",
+       __FUNCTION__, this, static_cast<int>(GetType()), aRange,
+       aRange->StartOffset(), aRange->EndOffset()));
 
   if (mUserInitiated) {
     return AddRangesForUserSelectableNodes(aRange, aOutIndex,
@@ -3070,7 +3079,7 @@ void Selection::StyledRanges::MaybeFocusCommonEditingHost(
   if (window && !document->HasFlag(NODE_IS_EDITABLE) &&
       nsContentUtils::GetHTMLEditor(presContext)) {
     RefPtr<Element> newEditingHost = GetCommonEditingHost();
-    nsFocusManager* fm = nsFocusManager::GetFocusManager();
+    RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager();
     nsCOMPtr<nsPIDOMWindowOuter> focusedWindow;
     nsIContent* focusedContent = nsFocusManager::GetFocusedDescendant(
         window, nsFocusManager::eOnlyCurrentWindow,
@@ -3101,6 +3110,9 @@ nsresult Selection::NotifySelectionListeners() {
   if (!mFrameSelection) {
     return NS_OK;  // nothing to do
   }
+
+  MOZ_LOG(sSelectionLog, LogLevel::Debug,
+          ("%s: selection=%p", __FUNCTION__, this));
 
   // Our internal code should not move focus with using this class while
   // this moves focus nor from selection listeners.
@@ -3139,6 +3151,9 @@ nsresult Selection::NotifySelectionListeners() {
       selectionListeners = mSelectionListeners;
 
   int16_t reason = frameSelection->PopChangeReasons();
+  if (calledByJSRestorer.SavedValue()) {
+    reason |= nsISelectionListener::JS_REASON;
+  }
 
   if (mNotifyAutoCopy) {
     AutoCopyListener::OnSelectionChange(doc, *this, reason);

@@ -549,8 +549,7 @@ void nsTableRowFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   }
 }
 
-nsIFrame::LogicalSides nsTableRowFrame::GetLogicalSkipSides(
-    const Maybe<SkipSidesDuringReflow>&) const {
+LogicalSides nsTableRowFrame::GetLogicalSkipSides() const {
   LogicalSides skip(mWritingMode);
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                    StyleBoxDecorationBreak::Clone)) {
@@ -1124,7 +1123,7 @@ nscoord nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
 
   rowRect.BStart(wm) -= aRowOffset;
   rowRect.ISize(wm) = aISize;
-  nsOverflowAreas overflow;
+  OverflowAreas overflow;
   nscoord shift = 0;
   nsSize containerSize = mRect.Size();
 
@@ -1241,7 +1240,7 @@ nscoord nsTableRowFrame::CollapseRowIfNecessary(nscoord aRowOffset,
         LogicalRect cellBounds(wm, 0, 0, cRect.ISize(wm), cRect.BSize(wm));
         nsRect cellPhysicalBounds =
             cellBounds.GetPhysicalRect(wm, containerSize);
-        nsOverflowAreas cellOverflow(cellPhysicalBounds, cellPhysicalBounds);
+        OverflowAreas cellOverflow(cellPhysicalBounds, cellPhysicalBounds);
         cellFrame->FinishAndStoreOverflow(cellOverflow,
                                           cRect.Size(wm).GetPhysicalSize(wm));
         nsTableFrame::RePositionViews(cellFrame);

@@ -238,9 +238,9 @@ grcov-osx-x86_64:
     description: grcov binary release
     fetch:
         type: static-url
-        url: https://github.com/mozilla/grcov/releases/download/v0.5.14/grcov-osx-x86_64.tar.bz2
-        sha256: 17692a7ee09fbd49cac1194500c9c9e2bc76a23cd702f88026955f25fe7548a8
-        size: 1213868
+        url: https://github.com/mozilla/grcov/releases/download/v0.7.1/grcov-osx-x86_64.tar.bz2
+        sha256: c7c323e0647b1309b412874000d677e8f5b898401ec57761c57a9c396c433823
+        size: 2476735
 
 zlib-1.2.11:
     description: zlib 1.2.11 source code
@@ -288,12 +288,12 @@ wine-5.0:
             sig-url: "{url}.sign"
             key-path: build/unix/build-gcc/DA23579A74D4AD9AF9D3F945CEFAC8EAAF17519D.key
 
-cbindgen-0.15.0:
+cbindgen-0.16.0:
     description: cbindgen source code
     fetch:
         type: git
         repo: https://github.com/eqrion/cbindgen
-        revision: 83b3be9f884697a51f8717af8b5498866a81e62e
+        revision: a00b4215a907601680f6e9acaf93df1cbafa8ded
 
 cctools-port:
     description: cctools-port source code
@@ -344,15 +344,15 @@ grcov:
     fetch:
         type: git
         repo: https://github.com/mozilla/grcov
-        revision: 51300e533abc21231881259290da7692c279c0d6
+        revision: 6ccd61964a0ab60d193394f18c0986eb37d14b9e
 
 sccache:
     description: sccache source code
     fetch:
         type: git
         repo: https://github.com/mozilla/sccache
-        # 0.2.13 release + various changes
-        revision: 6628e1f70db3d583cb5e79210603ad878de3d315
+        # 0.2.15 release
+        revision: 6b6d2f7d2dceefeb4f583712aa4c221db62be0bd
 
 fxc2:
     description: fxc2 source code
@@ -366,7 +366,7 @@ mingw-w64:
     fetch:
         type: git
         repo: https://git.code.sf.net/p/mingw-w64/mingw-w64
-        revision: bd8ca6c303658659496d0c440cf9f2baa8f7a5f0
+        revision: 660e09f3cb20f181b6d6435cb623d65a3922a063
 
 libunwind:
     description: libunwind source code
@@ -387,7 +387,7 @@ android-rs-glue:
     fetch:
         type: git
         repo: https://github.com/jamienicol/android-rs-glue
-        revision: 7a57ad320de79c74a57a8ce02b1dc69b1ea7332a
+        revision: 86d9cb4db7bf7a8052e6765d9f8caae6009107cb
 
 clang-5.0:
     description: clang 5.0.2 source code
@@ -410,13 +410,6 @@ clang-8:
         repo: https://github.com/llvm/llvm-project
         revision: 19a71f6bdf2dddb10764939e7f0ec2b98dba76c9
 
-clang-9:
-    description: clang 9.0.1 source code
-    fetch:
-        type: git
-        repo: https://github.com/llvm/llvm-project
-        revision: c1a0a213378a458fbea1a5c77b315c7dce08fd05
-
 clang-10:
     description: clang 10.0.0 source code
     fetch:
@@ -425,11 +418,18 @@ clang-10:
         revision: d32170dbd5b0d54436537b6b75beaf44324e0c28
 
 clang-11:
-    description: clang 11.0.0 source code
+    description: clang 11.0.1 source code
     fetch:
         type: git
         repo: https://github.com/llvm/llvm-project
-        revision: 176249bd6732a8044d457092ed932768724a6f06
+        revision: 43ff75f2c3feef64f9d73328230d34dac8832a91
+
+rust-1.47.0-dev:
+    description: Rust 1.47.0-dev source code
+    fetch:
+        type: git
+        repo: https://github.com/rust-lang/rust/
+        revision: 18bf6b4f01a6feaf7259ba7cdae58031af1b7b39
 
 wasi-sdk:
     description: wasi-sdk source code
@@ -464,7 +464,7 @@ lucetc-source:
     fetch:
         type: git
         repo: https://github.com/PLSysSec/lucet_sandbox_compiler/
-        revision: 477d8fc53a64705a9d3fbcce9de92f4988558525
+        revision: cd07861d1c92147b35b538e6f94fde7d1986f9ad
 
 dump-syms:
     description: dump_syms source code

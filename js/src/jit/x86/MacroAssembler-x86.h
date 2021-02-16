@@ -75,6 +75,12 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
                             X86Encoding::XMMRegisterID srcId,
                             X86Encoding::XMMRegisterID destId));
 
+  void vpPatchOpSimd128(const SimdConstant& v, FloatRegister reg,
+                        size_t (X86Encoding::BaseAssemblerX86::*op)(
+                            const void* address,
+                            X86Encoding::XMMRegisterID srcId,
+                            X86Encoding::XMMRegisterID destId));
+
  public:
   using MacroAssemblerX86Shared::call;
   using MacroAssemblerX86Shared::load32;
@@ -832,35 +838,40 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
   // Extended unboxing API. If the payload is already in a register, returns
   // that register. Otherwise, provides a move to the given scratch register,
   // and returns that.
-  MOZ_MUST_USE Register extractObject(const Address& address, Register dest) {
+  [[nodiscard]] Register extractObject(const Address& address, Register dest) {
     unboxObject(address, dest);
     return dest;
   }
-  MOZ_MUST_USE Register extractObject(const ValueOperand& value,
-                                      Register scratch) {
+  [[nodiscard]] Register extractObject(const ValueOperand& value,
+                                       Register scratch) {
     unboxNonDouble(value, value.payloadReg(), JSVAL_TYPE_OBJECT, scratch);
     return value.payloadReg();
   }
-  MOZ_MUST_USE Register extractSymbol(const ValueOperand& value,
-                                      Register scratch) {
+  [[nodiscard]] Register extractSymbol(const ValueOperand& value,
+                                       Register scratch) {
     unboxNonDouble(value, value.payloadReg(), JSVAL_TYPE_SYMBOL, scratch);
     return value.payloadReg();
   }
-  MOZ_MUST_USE Register extractInt32(const ValueOperand& value,
-                                     Register scratch) {
+  [[nodiscard]] Register extractInt32(const ValueOperand& value,
+                                      Register scratch) {
     return value.payloadReg();
   }
-  MOZ_MUST_USE Register extractBoolean(const ValueOperand& value,
-                                       Register scratch) {
+  [[nodiscard]] Register extractBoolean(const ValueOperand& value,
+                                        Register scratch) {
     return value.payloadReg();
   }
-  MOZ_MUST_USE Register extractTag(const Address& address, Register scratch) {
+  [[nodiscard]] Register extractTag(const Address& address, Register scratch) {
     movl(tagOf(address), scratch);
     return scratch;
   }
-  MOZ_MUST_USE Register extractTag(const ValueOperand& value,
-                                   Register scratch) {
+  [[nodiscard]] Register extractTag(const ValueOperand& value,
+                                    Register scratch) {
     return value.typeReg();
+  }
+
+  void convertDoubleToPtr(FloatRegister src, Register dest, Label* fail,
+                          bool negativeZeroCheck = true) {
+    convertDoubleToInt32(src, dest, fail, negativeZeroCheck);
   }
 
   void boolValueToDouble(const ValueOperand& operand, FloatRegister dest) {
@@ -935,6 +946,14 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
   void vpcmpgtwSimd128(const SimdConstant& v, FloatRegister src);
   void vpcmpeqdSimd128(const SimdConstant& v, FloatRegister src);
   void vpcmpgtdSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmpeqpsSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmpneqpsSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmpltpsSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmplepsSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmpeqpdSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmpneqpdSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmpltpdSimd128(const SimdConstant& v, FloatRegister src);
+  void vcmplepdSimd128(const SimdConstant& v, FloatRegister src);
 
   Condition testInt32Truthy(bool truthy, const ValueOperand& operand) {
     test32(operand.payloadReg(), operand.payloadReg());

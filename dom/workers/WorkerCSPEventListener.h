@@ -7,12 +7,14 @@
 #ifndef mozilla_dom_WorkerCSPEventListener_h
 #define mozilla_dom_WorkerCSPEventListener_h
 
+#include "mozilla/dom/WorkerRef.h"
 #include "mozilla/Mutex.h"
 #include "nsIContentSecurityPolicy.h"
 
 namespace mozilla {
 namespace dom {
 
+class WeakWorkerRef;
 class WorkerRef;
 class WorkerPrivate;
 

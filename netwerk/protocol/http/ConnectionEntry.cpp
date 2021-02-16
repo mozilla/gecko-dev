@@ -56,8 +56,9 @@ bool ConnectionEntry::AvailableForDispatchNow() {
     return true;
   }
 
-  return gHttpHandler->ConnMgr()->GetH2orH3ActiveConn(this, false, false) ? true
-                                                                   : false;
+  return gHttpHandler->ConnMgr()->GetH2orH3ActiveConn(this, false, false)
+             ? true
+             : false;
 }
 
 uint32_t ConnectionEntry::UnconnectedHalfOpens() const {
@@ -220,6 +221,7 @@ void ConnectionEntry::InsertTransaction(
     bool aInsertAsFirstForTheSamePriority /* = false */) {
   mPendingQ.InsertTransaction(pendingTransInfo,
                               aInsertAsFirstForTheSamePriority);
+  pendingTransInfo->Transaction()->OnPendingQueueInserted();
 }
 
 nsTArray<RefPtr<PendingTransactionInfo>>*
@@ -909,6 +911,51 @@ void ConnectionEntry::LogConnections() {
     MOZ_ASSERT(mIdleConns.Length() == 0);
   }
   LOG(("]"));
+}
+
+bool ConnectionEntry::RemoveTransFromPendingQ(nsHttpTransaction* aTrans) {
+  // We will abandon all half-open sockets belonging to the given
+  // transaction.
+  nsTArray<RefPtr<PendingTransactionInfo>>* infoArray =
+      GetTransactionPendingQHelper(aTrans);
+
+  RefPtr<PendingTransactionInfo> pendingTransInfo;
+  int32_t transIndex =
+      infoArray ? infoArray->IndexOf(aTrans, 0, PendingComparator()) : -1;
+  if (transIndex >= 0) {
+    pendingTransInfo = (*infoArray)[transIndex];
+    infoArray->RemoveElementAt(transIndex);
+  }
+
+  if (!pendingTransInfo) {
+    return false;
+  }
+
+  // Abandon all half-open sockets belonging to the given transaction.
+  pendingTransInfo->AbandonHalfOpenAndForgetActiveConn();
+  return true;
+}
+
+void ConnectionEntry::MaybeUpdateEchConfig(nsHttpConnectionInfo* aConnInfo) {
+  if (!mConnInfo->HashKey().Equals(aConnInfo->HashKey())) {
+    return;
+  }
+
+  const nsCString& echConfig = aConnInfo->GetEchConfig();
+  if (mConnInfo->GetEchConfig().Equals(echConfig)) {
+    return;
+  }
+
+  LOG(("ConnectionEntry::MaybeUpdateEchConfig [ci=%s]\n",
+       mConnInfo->HashKey().get()));
+
+  mConnInfo->SetEchConfig(echConfig);
+
+  // If echConfig is changed, we should close all half opens and idle
+  // connections. This is to make sure the new echConfig will be used for the
+  // next connection.
+  CloseAllHalfOpens();
+  CloseIdleConnections();
 }
 
 }  // namespace net

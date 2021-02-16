@@ -30,6 +30,7 @@
 #include "mozilla/dom/DirectionalityUtils.h"
 #include "nsCCUncollectableMarker.h"
 #include "mozAutoDocUpdate.h"
+#include "nsIContentInlines.h"
 #include "nsTextNode.h"
 #include "nsBidiUtils.h"
 #include "PLDHashTable.h"
@@ -59,6 +60,10 @@ CharacterData::~CharacterData() {
   if (GetParent()) {
     NS_RELEASE(mParent);
   }
+}
+
+Element* CharacterData::GetNameSpaceElement() {
+  return Element::FromNodeOrNull(GetParentNode());
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(CharacterData)
@@ -119,6 +124,14 @@ void CharacterData::SetNodeValueInternal(const nsAString& aNodeValue,
 //----------------------------------------------------------------------
 
 // Implementation of CharacterData
+
+void CharacterData::SetTextContentInternal(const nsAString& aTextContent,
+                                           nsIPrincipal* aSubjectPrincipal,
+                                           ErrorResult& aError) {
+  // Batch possible DOMSubtreeModified events.
+  mozAutoSubtreeModified subtree(OwnerDoc(), nullptr);
+  return SetNodeValue(aTextContent, aError);
+}
 
 void CharacterData::GetData(nsAString& aData) const {
   if (mText.Is2b()) {

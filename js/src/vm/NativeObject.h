@@ -181,21 +181,13 @@ extern bool ArraySetLength(JSContext* cx, Handle<ArrayObject*> obj, HandleId id,
 class ObjectElements {
  public:
   enum Flags : uint16_t {
-    // Integers written to these elements must be converted to doubles.
-    CONVERT_DOUBLE_ELEMENTS = 0x1,
+    // (0x1 is unused)
 
     // Present only if these elements correspond to an array with
     // non-writable length; never present for non-arrays.
     NONWRITABLE_ARRAY_LENGTH = 0x2,
 
-    // These elements are shared with another object and must be copied
-    // before they can be changed. A pointer to the original owner of the
-    // elements, which is immutable, is stored immediately after the
-    // elements data. There is one case where elements can be written to
-    // before being copied: when setting the CONVERT_DOUBLE_ELEMENTS flag
-    // the shared elements may change (from ints to doubles) without
-    // making a copy first.
-    COPY_ON_WRITE = 0x4,
+    // (0x4 is unused)
 
     // For TypedArrays only: this TypedArray's storage is mapping shared
     // memory.  This is a static property of the TypedArray, set when it
@@ -272,17 +264,6 @@ class ObjectElements {
   /* 'length' property of array objects, unused for other objects. */
   uint32_t length;
 
-  bool shouldConvertDoubleElements() const {
-    return flags & CONVERT_DOUBLE_ELEMENTS;
-  }
-  void setShouldConvertDoubleElements() {
-    // Note: allow isCopyOnWrite() here, see comment above.
-    flags |= CONVERT_DOUBLE_ELEMENTS;
-  }
-  void clearShouldConvertDoubleElements() {
-    MOZ_ASSERT(!isCopyOnWrite());
-    flags &= ~CONVERT_DOUBLE_ELEMENTS;
-  }
   bool hasNonwritableArrayLength() const {
     return flags & NONWRITABLE_ARRAY_LENGTH;
   }
@@ -290,20 +271,14 @@ class ObjectElements {
     // See ArrayObject::setNonWritableLength.
     MOZ_ASSERT(capacity == initializedLength);
     MOZ_ASSERT(numShiftedElements() == 0);
-    MOZ_ASSERT(!isCopyOnWrite());
     flags |= NONWRITABLE_ARRAY_LENGTH;
-  }
-  bool isCopyOnWrite() const { return flags & COPY_ON_WRITE; }
-  void clearCopyOnWrite() {
-    MOZ_ASSERT(isCopyOnWrite());
-    flags &= ~COPY_ON_WRITE;
   }
 
   void addShiftedElements(uint32_t count) {
     MOZ_ASSERT(count < capacity);
     MOZ_ASSERT(count < initializedLength);
-    MOZ_ASSERT(!(flags & (NONWRITABLE_ARRAY_LENGTH | NOT_EXTENSIBLE | SEALED |
-                          FROZEN | COPY_ON_WRITE)));
+    MOZ_ASSERT(!(
+        flags & (NONWRITABLE_ARRAY_LENGTH | NOT_EXTENSIBLE | SEALED | FROZEN)));
     uint32_t numShifted = numShiftedElements() + count;
     MOZ_ASSERT(numShifted <= MaxShiftedElements);
     flags = (numShifted << NumShiftedElementsShift) | (flags & FlagsMask);
@@ -312,8 +287,8 @@ class ObjectElements {
   }
   void unshiftShiftedElements(uint32_t count) {
     MOZ_ASSERT(count > 0);
-    MOZ_ASSERT(!(flags & (NONWRITABLE_ARRAY_LENGTH | NOT_EXTENSIBLE | SEALED |
-                          FROZEN | COPY_ON_WRITE)));
+    MOZ_ASSERT(!(
+        flags & (NONWRITABLE_ARRAY_LENGTH | NOT_EXTENSIBLE | SEALED | FROZEN)));
     uint32_t numShifted = numShiftedElements();
     MOZ_ASSERT(count <= numShifted);
     numShifted -= count;
@@ -341,14 +316,12 @@ class ObjectElements {
     MOZ_ASSERT(isNotExtensible());
     MOZ_ASSERT(!isSealed());
     MOZ_ASSERT(!isFrozen());
-    MOZ_ASSERT(!isCopyOnWrite());
     flags |= SEALED;
   }
   void freeze() {
     MOZ_ASSERT(isNotExtensible());
     MOZ_ASSERT(isSealed());
     MOZ_ASSERT(!isFrozen());
-    MOZ_ASSERT(!isCopyOnWrite());
     flags |= FROZEN;
   }
 
@@ -382,11 +355,6 @@ class ObjectElements {
 
   bool isSharedMemory() const { return flags & SHARED_MEMORY; }
 
-  GCPtrNativeObject& ownerObject() const {
-    MOZ_ASSERT(isCopyOnWrite());
-    return *(GCPtrNativeObject*)(&elements()[initializedLength]);
-  }
-
   static int offsetOfFlags() {
     return int(offsetof(ObjectElements, flags)) - int(sizeof(ObjectElements));
   }
@@ -402,11 +370,7 @@ class ObjectElements {
     return int(offsetof(ObjectElements, length)) - int(sizeof(ObjectElements));
   }
 
-  static void ConvertElementsToDoubles(JSContext* cx, uintptr_t elements);
-  static bool MakeElementsCopyOnWrite(JSContext* cx, NativeObject* obj);
-
-  static MOZ_MUST_USE bool PrepareForPreventExtensions(JSContext* cx,
-                                                       NativeObject* obj);
+  static void PrepareForPreventExtensions(JSContext* cx, NativeObject* obj);
   static void PreventExtensions(NativeObject* obj);
   static MOZ_MUST_USE bool FreezeOrSeal(JSContext* cx, HandleNativeObject obj,
                                         IntegrityLevel level);
@@ -429,7 +393,7 @@ class ObjectElements {
     uint32_t numShifted = flags >> NumShiftedElementsShift;
     MOZ_ASSERT_IF(numShifted > 0,
                   !(flags & (NONWRITABLE_ARRAY_LENGTH | NOT_EXTENSIBLE |
-                             SEALED | FROZEN | COPY_ON_WRITE)));
+                             SEALED | FROZEN)));
     return numShifted;
   }
 
@@ -522,8 +486,6 @@ class NewObjectCache;
 // become sparse instead. The enum below is used for such operations.
 enum class DenseElementResult { Failure, Success, Incomplete };
 
-enum class ShouldUpdateTypes { Update, DontUpdate };
-
 /*
  * [SMDOC] NativeObject layout
  *
@@ -604,13 +566,8 @@ class NativeObject : public JSObject {
 
   bool hasShapeIC() const { return lastProperty()->hasIC(); }
 
-  HeapSlotArray getDenseElements() {
-    return HeapSlotArray(elements_, !getElementsHeader()->isCopyOnWrite());
-  }
-  HeapSlotArray getDenseElementsAllowCopyOnWrite() {
-    // Backdoor allowing direct access to copy on write elements.
-    return HeapSlotArray(elements_, true);
-  }
+  HeapSlotArray getDenseElements() { return HeapSlotArray(elements_); }
+
   const Value& getDenseElement(uint32_t idx) const {
     MOZ_ASSERT(idx < getDenseInitializedLength());
     return elements_[idx];
@@ -629,12 +586,6 @@ class NativeObject : public JSObject {
   // Update the last property, keeping the number of allocated slots in sync
   // with the object's new slot span.
   MOZ_ALWAYS_INLINE bool setLastProperty(JSContext* cx, Shape* shape);
-
-  // As for setLastProperty(), but allows the number of fixed slots to
-  // change. This can only be used when fixed slots are being erased from the
-  // object, and only when the object will not require dynamic slots to cover
-  // the new properties.
-  void setLastPropertyShrinkFixedSlots(Shape* shape);
 
   // Newly-created TypedArrays that map a SharedArrayBuffer are
   // marked as shared by giving them an ObjectElements that has the
@@ -802,8 +753,6 @@ class NativeObject : public JSObject {
 
   static MOZ_MUST_USE bool reshapeForShadowedProp(JSContext* cx,
                                                   HandleNativeObject obj);
-  static MOZ_MUST_USE bool reshapeForProtoMutation(JSContext* cx,
-                                                   HandleNativeObject obj);
   static bool clearFlag(JSContext* cx, HandleNativeObject obj,
                         BaseShape::Flag flag);
 
@@ -949,13 +898,6 @@ class NativeObject : public JSObject {
     return lookup(cx, shape->propid()) == shape;
   }
 
-  bool containsShapeOrElement(JSContext* cx, jsid id) {
-    if (JSID_IS_INT(id) && containsDenseElement(JSID_TO_INT(id))) {
-      return true;
-    }
-    return contains(cx, id);
-  }
-
   /* Contextless; can be called from other pure code. */
   Shape* lookupPure(jsid id);
   Shape* lookupPure(PropertyName* name) { return lookupPure(NameToId(name)); }
@@ -1026,9 +968,6 @@ class NativeObject : public JSObject {
 
   /* Remove the property named by id from this object. */
   static bool removeProperty(JSContext* cx, HandleNativeObject obj, jsid id);
-
-  /* Clear the scope, making it empty. */
-  static void clear(JSContext* cx, HandleNativeObject obj);
 
  protected:
   /*
@@ -1153,7 +1092,6 @@ class NativeObject : public JSObject {
  private:
   void prepareElementRangeForOverwrite(size_t start, size_t end) {
     MOZ_ASSERT(end <= getDenseInitializedLength());
-    MOZ_ASSERT(!denseElementsAreCopyOnWrite());
     for (size_t i = start; i < end; i++) {
       elements_[i].destroy();
     }
@@ -1172,13 +1110,6 @@ class NativeObject : public JSObject {
   inline void shiftDenseElementsUnchecked(uint32_t count);
 
  public:
-  static bool rollbackProperties(JSContext* cx, HandleNativeObject obj,
-                                 uint32_t slotSpan);
-
-  MOZ_ALWAYS_INLINE void setSlotWithType(JSContext* cx, Shape* shape,
-                                         const Value& value,
-                                         bool overwriting = true);
-
   MOZ_ALWAYS_INLINE const Value& getReservedSlot(uint32_t index) const {
     MOZ_ASSERT(index < JSSLOT_FREE(getClass()));
     return getSlot(index);
@@ -1283,7 +1214,6 @@ class NativeObject : public JSObject {
 
   /* Accessors for elements. */
   bool ensureElements(JSContext* cx, uint32_t capacity) {
-    MOZ_ASSERT(!denseElementsAreCopyOnWrite());
     MOZ_ASSERT(isExtensible());
     if (capacity > getDenseCapacity()) {
       return growElements(cx, capacity);
@@ -1309,20 +1239,6 @@ class NativeObject : public JSObject {
                                            uint32_t* goodAmount);
   bool growElements(JSContext* cx, uint32_t newcap);
   void shrinkElements(JSContext* cx, uint32_t cap);
-  void setDynamicElements(ObjectElements* header) {
-    MOZ_ASSERT(!hasDynamicElements());
-    elements_ = header->elements();
-    MOZ_ASSERT(hasDynamicElements());
-  }
-
-  static bool CopyElementsForWrite(JSContext* cx, NativeObject* obj);
-
-  bool maybeCopyElementsForWrite(JSContext* cx) {
-    if (denseElementsAreCopyOnWrite()) {
-      return CopyElementsForWrite(cx, this);
-    }
-    return true;
-  }
 
  private:
   // Run a post write barrier that encompasses multiple contiguous elements in a
@@ -1335,7 +1251,6 @@ class NativeObject : public JSObject {
  private:
   void setDenseInitializedLengthInternal(uint32_t length) {
     MOZ_ASSERT(length <= getDenseCapacity());
-    MOZ_ASSERT(!denseElementsAreCopyOnWrite());
     MOZ_ASSERT(!denseElementsAreFrozen());
     prepareElementRangeForOverwrite(length,
                                     getElementsHeader()->initializedLength);
@@ -1356,8 +1271,7 @@ class NativeObject : public JSObject {
     }
   }
 
-  inline void ensureDenseInitializedLength(JSContext* cx, uint32_t index,
-                                           uint32_t extra);
+  inline void ensureDenseInitializedLength(uint32_t index, uint32_t extra);
 
   void setDenseElement(uint32_t index, const Value& val) {
     // Note: Streams code can call this for the internal ListObject type with
@@ -1368,44 +1282,39 @@ class NativeObject : public JSObject {
 
   void initDenseElement(uint32_t index, const Value& val) {
     MOZ_ASSERT(!val.isMagic(JS_ELEMENTS_HOLE));
-    MOZ_ASSERT(index < getDenseInitializedLength());
-    MOZ_ASSERT(!denseElementsAreCopyOnWrite());
-    MOZ_ASSERT(isExtensible());
-    checkStoredValue(val);
-    elements_[index].init(this, HeapSlot::Element, unshiftedIndex(index), val);
+    initDenseElementUnchecked(index, val);
   }
 
  private:
   // Note: 'Unchecked' here means we don't assert |val| isn't the hole
   // MagicValue.
+  void initDenseElementUnchecked(uint32_t index, const Value& val) {
+    MOZ_ASSERT(index < getDenseInitializedLength());
+    MOZ_ASSERT(isExtensible());
+    checkStoredValue(val);
+    elements_[index].init(this, HeapSlot::Element, unshiftedIndex(index), val);
+  }
   void setDenseElementUnchecked(uint32_t index, const Value& val) {
     MOZ_ASSERT(index < getDenseInitializedLength());
-    MOZ_ASSERT(!denseElementsAreCopyOnWrite());
     MOZ_ASSERT(!denseElementsAreFrozen());
     checkStoredValue(val);
     elements_[index].set(this, HeapSlot::Element, unshiftedIndex(index), val);
   }
 
-  inline void addDenseElementType(JSContext* cx, uint32_t index,
-                                  const Value& val);
-
   // Mark the dense elements as possibly containing holes.
-  inline void markDenseElementsNotPacked(JSContext* cx);
+  inline void markDenseElementsNotPacked();
 
  public:
-  inline void setDenseElementWithType(JSContext* cx, uint32_t index,
-                                      const Value& val);
-  inline void initDenseElementWithType(JSContext* cx, uint32_t index,
-                                       const Value& val);
-  inline void setDenseElementHole(JSContext* cx, uint32_t index);
-  inline void removeDenseElementForSparseIndex(JSContext* cx, uint32_t index);
+  inline void initDenseElementHole(uint32_t index);
+  inline void setDenseElementHole(uint32_t index);
+  inline void removeDenseElementForSparseIndex(uint32_t index);
 
   inline void copyDenseElements(uint32_t dstStart, const Value* src,
                                 uint32_t count);
 
   inline void initDenseElements(const Value* src, uint32_t count);
-  inline void initDenseElements(JSContext* cx, NativeObject* src,
-                                uint32_t srcStart, uint32_t count);
+  inline void initDenseElements(NativeObject* src, uint32_t srcStart,
+                                uint32_t count);
 
   // Store the Values in the range [begin, end) as elements of this array.
   //
@@ -1424,20 +1333,10 @@ class NativeObject : public JSObject {
                                 uint32_t count);
   inline void reverseDenseElementsNoPreBarrier(uint32_t length);
 
-  inline DenseElementResult setOrExtendDenseElements(
-      JSContext* cx, uint32_t start, const Value* vp, uint32_t count,
-      ShouldUpdateTypes updateTypes = ShouldUpdateTypes::Update);
-
-  bool shouldConvertDoubleElements() {
-    return getElementsHeader()->shouldConvertDoubleElements();
-  }
-
-  inline void setShouldConvertDoubleElements();
-  inline void clearShouldConvertDoubleElements();
-
-  bool denseElementsAreCopyOnWrite() const {
-    return getElementsHeader()->isCopyOnWrite();
-  }
+  inline DenseElementResult setOrExtendDenseElements(JSContext* cx,
+                                                     uint32_t start,
+                                                     const Value* vp,
+                                                     uint32_t count);
 
   bool denseElementsAreSealed() const {
     return getElementsHeader()->isSealed();
@@ -1450,12 +1349,8 @@ class NativeObject : public JSObject {
     return getElementsHeader()->isPacked();
   }
 
-  MOZ_MUST_USE bool markDenseElementsMaybeInIteration(JSContext* cx) {
-    if (!maybeCopyElementsForWrite(cx)) {
-      return false;
-    }
+  void markDenseElementsMaybeInIteration() {
     getElementsHeader()->markMaybeInIteration();
-    return true;
   }
 
   // Return whether the object's dense elements might be in the midst of for-in
@@ -1787,9 +1682,6 @@ inline NativeObject* MaybeNativeObject(JSObject* obj) {
 
 // Defined in NativeObject-inl.h.
 bool IsPackedArray(JSObject* obj);
-
-extern void AddPropertyTypesAfterProtoChange(JSContext* cx, NativeObject* obj,
-                                             ObjectGroup* oldGroup);
 
 // Initialize an object's reserved slot with a private value pointing to
 // malloc-allocated memory and associate the memory with the object.

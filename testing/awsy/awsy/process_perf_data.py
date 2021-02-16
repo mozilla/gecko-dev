@@ -3,8 +3,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, division, print_function
 
+import six
 import os
 import sys
 import json
@@ -54,10 +55,12 @@ PERF_SUITES = [
 
 def median(values):
     sorted_ = sorted(values)
+    # pylint --py3k W1619
     med = int(len(sorted_) / 2)
 
     if len(sorted_) % 2:
         return sorted_[med]
+    # pylint --py3k W1619
     return (sorted_[med - 1] + sorted_[med]) / 2
 
 
@@ -158,8 +161,8 @@ def create_suite(
             totals_uss = parse_about_memory.calculate_memory_report_values(
                 memory_report_path, "resident-unique"
             )
-            value = totals_rss.values()[0] + sum(
-                [v for k, v in totals_uss.iteritems() if "Main" not in k]
+            value = list(totals_rss.values())[0] + sum(
+                [v for k, v in six.iteritems(totals_uss) if "Main" not in k]
             )
 
         subtest = {
@@ -173,6 +176,7 @@ def create_suite(
 
     # Add the geometric mean. For more details on the calculation see:
     #   https://en.wikipedia.org/wiki/Geometric_mean#Relationship_with_arithmetic_mean_of_logarithms
+    # pylint --py3k W1619
     suite["value"] = math.exp(total / len(checkpoints))
 
     return suite

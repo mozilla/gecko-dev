@@ -19,6 +19,7 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/DebuggerOnGCRunnable.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/Sprintf.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimelineConsumers.h"
@@ -504,8 +505,6 @@ void CycleCollectedJSContext::IsIdleGCTaskNeeded() const {
       }
       return NS_OK;
     }
-
-    nsresult Cancel() override { return NS_OK; }
   };
 
   if (Runtime()->IsIdleGCTaskNeeded()) {
@@ -611,6 +610,8 @@ bool CycleCollectedJSContext::PerformMicroTaskCheckPoint(bool aForce) {
   mozilla::AutoRestore<uint32_t> restore(mMicroTaskRecursionDepth);
   MOZ_ASSERT(aForce ? currentDepth == 0 : currentDepth > 0);
   mMicroTaskRecursionDepth = currentDepth;
+
+  AUTO_PROFILER_TRACING_MARKER("JS", "Perform microtasks", JS);
 
   bool didProcess = false;
   AutoSlowOperation aso;
@@ -749,15 +750,16 @@ nsresult CycleCollectedJSContext::NotifyUnhandledRejections::Cancel() {
   return NS_OK;
 }
 
-class FinalizationRegistryCleanup::CleanupRunnable : public CancelableRunnable {
+class FinalizationRegistryCleanup::CleanupRunnable
+    : public DiscardableRunnable {
  public:
   explicit CleanupRunnable(FinalizationRegistryCleanup* aCleanupWork)
-      : CancelableRunnable("CleanupRunnable"), mCleanupWork(aCleanupWork) {}
+      : DiscardableRunnable("CleanupRunnable"), mCleanupWork(aCleanupWork) {}
 
   // MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is MOZ_CAN_RUN_SCRIPT.  See
   // bug 1535398.
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  NS_IMETHODIMP Run() {
+  NS_IMETHOD Run() override {
     mCleanupWork->DoCleanup();
     return NS_OK;
   }

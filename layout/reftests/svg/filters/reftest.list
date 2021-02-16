@@ -17,6 +17,8 @@ include svg-filter-chains/reftest.list
 == dynamic-filtered-foreignObject-01.svg pass.svg
 == dynamic-filter-invalidation-01.svg pass.svg
 == dynamic-filter-invalidation-02.svg pass.svg
+== dynamic-filter-invalidation-03.svg pass.svg
+== dynamic-filter-invalidation-04.svg pass.svg
 
 fuzzy(0-1,0-42500) == feBlend-1.svg feBlend-1-ref.svg
 == feBlend-2.svg feBlend-2-ref.svg
@@ -65,7 +67,7 @@ skip-if(d2d) == feGaussianBlur-cap-large-directional-radius-on-software.html feG
 
 # no tests for feTurbulence
 
-fuzzy-if(geckoview&&webrender,0-8,0-220) == filter-clipped-rect-01.svg pass.svg
+fuzzy-if(geckoview&&webrender,0-35,0-220) == filter-clipped-rect-01.svg pass.svg
 == filter-in-pattern-01.svg pass.svg
 fuzzy(0-5,0-67) != filter-in-pattern-02.svg filter-in-pattern-02-ref.svg
 random-if(winWidget) == filter-in-mask-01.svg pass.svg # bug 1356139
@@ -96,6 +98,7 @@ fails == filter-marked-line-01.svg pass.svg # bug 477704
 == feComponentTransfer-03.svg pass.svg
 == feComponentTransfer-04.svg pass.svg
 == feComposite-arguments-01.svg pass.svg
+fuzzy-if(winWidget&&webrender,0-1,0-39600) == feComposite-operator-lighter.svg feComposite-operator-lighter-ref.html
 fuzzy(0-1,0-26732) == feComposite-paint-01.svg feComposite-paint-01-ref.svg
 fuzzy(0-1,0-10000) == feConvolveMatrix-bias-01.svg feConvolveMatrix-bias-01-ref.svg
 == feConvolveMatrix-order-01.svg feConvolveMatrix-order-01-ref.svg

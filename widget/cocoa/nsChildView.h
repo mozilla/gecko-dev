@@ -396,7 +396,7 @@ class nsChildView final : public nsBaseWidget {
 
   virtual nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
                                              nsIObserver* aObserver) override {
-    return SynthesizeNativeMouseEvent(aPoint, NSMouseMoved, 0, aObserver);
+    return SynthesizeNativeMouseEvent(aPoint, NSEventTypeMouseMoved, 0, aObserver);
   }
   virtual nsresult SynthesizeNativeMouseScrollEvent(LayoutDeviceIntPoint aPoint,
                                                     uint32_t aNativeMessage, double aDeltaX,
@@ -478,14 +478,6 @@ class nsChildView final : public nsBaseWidget {
   NSRect DevPixelsToCocoaPoints(const LayoutDeviceIntRect& aRect) const {
     return nsCocoaUtils::DevPixelsToCocoaPoints(aRect, BackingScaleFactor());
   }
-
-  [[nodiscard]] virtual nsresult StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
-                                                int32_t aPanelX, int32_t aPanelY,
-                                                nsString& aCommitted) override;
-
-  virtual void SetPluginFocused(bool& aFocused) override;
-
-  bool IsPluginFocused() { return mPluginFocused; }
 
   virtual LayoutDeviceIntPoint GetClientOffset() override;
 
@@ -570,8 +562,6 @@ class nsChildView final : public nsBaseWidget {
   bool mVisible;
   bool mDrawing;
   bool mIsDispatchPaint;  // Is a paint event being dispatched
-
-  bool mPluginFocused;
 
   RefPtr<mozilla::layers::NativeLayerRootCA> mNativeLayerRoot;
 

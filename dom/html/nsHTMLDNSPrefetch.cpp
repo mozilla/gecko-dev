@@ -10,6 +10,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/net/NeckoCommon.h"
 #include "mozilla/net/NeckoChild.h"
+#include "mozilla/OriginAttributes.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "nsURLHelper.h"
 
@@ -41,11 +42,70 @@ using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::net;
 
+class NoOpDNSListener final : public nsIDNSListener {
+  // This class exists to give a safe callback no-op DNSListener
+ public:
+  NS_DECL_THREADSAFE_ISUPPORTS
+  NS_DECL_NSIDNSLISTENER
+
+  NoOpDNSListener() = default;
+
+ private:
+  ~NoOpDNSListener() = default;
+};
+
+NS_IMPL_ISUPPORTS(NoOpDNSListener, nsIDNSListener)
+
+NS_IMETHODIMP
+NoOpDNSListener::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
+                                  nsresult status) {
+  return NS_OK;
+}
+
+class DeferredDNSPrefetches final : public nsIWebProgressListener,
+                                    public nsSupportsWeakReference,
+                                    public nsIObserver {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIWEBPROGRESSLISTENER
+  NS_DECL_NSIOBSERVER
+
+  DeferredDNSPrefetches();
+
+  void Activate();
+  nsresult Add(uint32_t flags, mozilla::dom::Link* aElement);
+
+  void RemoveUnboundLinks();
+
+ private:
+  ~DeferredDNSPrefetches();
+  void Flush();
+
+  void SubmitQueue();
+
+  uint16_t mHead;
+  uint16_t mTail;
+  uint32_t mActiveLoaderCount;
+
+  nsCOMPtr<nsITimer> mTimer;
+  bool mTimerArmed;
+  static void Tick(nsITimer* aTimer, void* aClosure);
+
+  static const int sMaxDeferred = 512;  // keep power of 2 for masking
+  static const int sMaxDeferredMask = (sMaxDeferred - 1);
+
+  struct deferred_entry {
+    uint32_t mFlags;
+    // Link implementation clears this raw pointer in its destructor.
+    mozilla::dom::Link* mElement;
+  } mEntries[sMaxDeferred];
+};
+
 static NS_DEFINE_CID(kDNSServiceCID, NS_DNSSERVICE_CID);
 static bool sInitialized = false;
 static nsIDNSService* sDNSService = nullptr;
-static nsHTMLDNSPrefetch::nsDeferrals* sPrefetches = nullptr;
-static nsHTMLDNSPrefetch::nsListener* sDNSListener = nullptr;
+static DeferredDNSPrefetches* sPrefetches = nullptr;
+static NoOpDNSListener* sDNSListener = nullptr;
 
 nsresult nsHTMLDNSPrefetch::Initialize() {
   if (sInitialized) {
@@ -53,10 +113,10 @@ nsresult nsHTMLDNSPrefetch::Initialize() {
     return NS_OK;
   }
 
-  sPrefetches = new nsHTMLDNSPrefetch::nsDeferrals();
+  sPrefetches = new DeferredDNSPrefetches();
   NS_ADDREF(sPrefetches);
 
-  sDNSListener = new nsHTMLDNSPrefetch::nsListener();
+  sDNSListener = new NoOpDNSListener();
   NS_ADDREF(sDNSListener);
 
   sPrefetches->Activate();
@@ -110,24 +170,26 @@ static uint32_t GetDNSFlagsFromLink(Link* aElement) {
   return nsIDNSService::GetFlagsFromTRRMode(mode);
 }
 
-nsresult nsHTMLDNSPrefetch::Prefetch(Link* aElement, uint32_t flags) {
-  if (!(sInitialized && sPrefetches && sDNSListener) || !EnsureDNSService())
+uint32_t nsHTMLDNSPrefetch::PriorityToDNSServiceFlags(Priority aPriority) {
+  switch (aPriority) {
+    case Priority::Low:
+      return uint32_t(nsIDNSService::RESOLVE_PRIORITY_LOW);
+    case Priority::Medium:
+      return uint32_t(nsIDNSService::RESOLVE_PRIORITY_MEDIUM);
+    case Priority::High:
+      return 0u;
+  }
+  MOZ_ASSERT_UNREACHABLE("Unknown priority");
+  return 0u;
+}
+
+nsresult nsHTMLDNSPrefetch::Prefetch(Link* aElement, Priority aPriority) {
+  if (!(sInitialized && sPrefetches && sDNSListener) || !EnsureDNSService()) {
     return NS_ERROR_NOT_AVAILABLE;
-
-  flags |= GetDNSFlagsFromLink(aElement);
-  return sPrefetches->Add(flags, aElement);
-}
-
-nsresult nsHTMLDNSPrefetch::PrefetchLow(Link* aElement) {
-  return Prefetch(aElement, nsIDNSService::RESOLVE_PRIORITY_LOW);
-}
-
-nsresult nsHTMLDNSPrefetch::PrefetchMedium(Link* aElement) {
-  return Prefetch(aElement, nsIDNSService::RESOLVE_PRIORITY_MEDIUM);
-}
-
-nsresult nsHTMLDNSPrefetch::PrefetchHigh(Link* aElement) {
-  return Prefetch(aElement, 0);
+  }
+  return sPrefetches->Add(
+      GetDNSFlagsFromLink(aElement) | PriorityToDNSServiceFlags(aPriority),
+      aElement);
 }
 
 nsresult nsHTMLDNSPrefetch::Prefetch(
@@ -161,13 +223,10 @@ nsresult nsHTMLDNSPrefetch::Prefetch(
     return rv;
   }
 
-  // Fetch ESNI keys if needed.
-  if (isHttps && StaticPrefs::network_security_esni_enabled()) {
-    nsAutoCString esniHost;
-    esniHost.Append("_esni.");
-    esniHost.Append(NS_ConvertUTF16toUTF8(hostname));
+  if (StaticPrefs::network_dns_upgrade_with_https_rr() ||
+      StaticPrefs::network_dns_use_https_rr_as_altsvc()) {
     Unused << sDNSService->AsyncResolveNative(
-        esniHost, nsIDNSService::RESOLVE_TYPE_TXT,
+        NS_ConvertUTF16toUTF8(hostname), nsIDNSService::RESOLVE_TYPE_HTTPSSVC,
         flags | nsIDNSService::RESOLVE_SPECULATE, nullptr, sDNSListener,
         nullptr, aPartitionedPrincipalOriginAttributes,
         getter_AddRefs(tmpOutstanding));
@@ -176,36 +235,23 @@ nsresult nsHTMLDNSPrefetch::Prefetch(
   return NS_OK;
 }
 
-nsresult nsHTMLDNSPrefetch::PrefetchLow(
+nsresult nsHTMLDNSPrefetch::Prefetch(
     const nsAString& hostname, bool isHttps,
     const OriginAttributes& aPartitionedPrincipalOriginAttributes,
-    nsIRequest::TRRMode aMode) {
+    nsIRequest::TRRMode aMode, Priority aPriority) {
   return Prefetch(hostname, isHttps, aPartitionedPrincipalOriginAttributes,
                   nsIDNSService::GetFlagsFromTRRMode(aMode) |
-                      nsIDNSService::RESOLVE_PRIORITY_LOW);
+                      PriorityToDNSServiceFlags(aPriority));
 }
 
-nsresult nsHTMLDNSPrefetch::PrefetchMedium(
-    const nsAString& hostname, bool isHttps,
-    const OriginAttributes& aPartitionedPrincipalOriginAttributes,
-    nsIRequest::TRRMode aMode) {
-  return Prefetch(hostname, isHttps, aPartitionedPrincipalOriginAttributes,
-                  nsIDNSService::GetFlagsFromTRRMode(aMode) |
-                      nsIDNSService::RESOLVE_PRIORITY_MEDIUM);
-}
-
-nsresult nsHTMLDNSPrefetch::PrefetchHigh(
-    const nsAString& hostname, bool isHttps,
-    const OriginAttributes& aPartitionedPrincipalOriginAttributes,
-    nsIRequest::TRRMode aMode) {
-  return Prefetch(hostname, isHttps, aPartitionedPrincipalOriginAttributes,
-                  nsIDNSService::GetFlagsFromTRRMode(aMode));
-}
-
-nsresult nsHTMLDNSPrefetch::CancelPrefetch(Link* aElement, uint32_t flags,
+nsresult nsHTMLDNSPrefetch::CancelPrefetch(Link* aElement, Priority aPriority,
                                            nsresult aReason) {
-  if (!(sInitialized && sPrefetches && sDNSListener) || !EnsureDNSService())
+  if (!(sInitialized && sPrefetches && sDNSListener) || !EnsureDNSService()) {
     return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  uint32_t flags =
+      GetDNSFlagsFromLink(aElement) | PriorityToDNSServiceFlags(aPriority);
 
   nsAutoString hostname;
   aElement->GetHostname(hostname);
@@ -256,35 +302,26 @@ nsresult nsHTMLDNSPrefetch::CancelPrefetch(
       flags | nsIDNSService::RESOLVE_SPECULATE,
       nullptr,  // resolverInfo
       sDNSListener, aReason, aPartitionedPrincipalOriginAttributes);
-  // Cancel fetching ESNI keys if needed.
-  if (StaticPrefs::network_security_esni_enabled() && isHttps) {
-    nsAutoCString esniHost;
-    esniHost.Append("_esni.");
-    esniHost.Append(NS_ConvertUTF16toUTF8(hostname));
-    sDNSService->CancelAsyncResolveNative(
-        esniHost, nsIDNSService::RESOLVE_TYPE_TXT,
-        flags | nsIDNSService::RESOLVE_SPECULATE, nullptr, sDNSListener,
-        aReason, aPartitionedPrincipalOriginAttributes);
+
+  if (StaticPrefs::network_dns_upgrade_with_https_rr() ||
+      StaticPrefs::network_dns_use_https_rr_as_altsvc()) {
+    Unused << sDNSService->CancelAsyncResolveNative(
+        NS_ConvertUTF16toUTF8(hostname), nsIDNSService::RESOLVE_TYPE_HTTPSSVC,
+        flags | nsIDNSService::RESOLVE_SPECULATE,
+        nullptr,  // resolverInfo
+        sDNSListener, aReason, aPartitionedPrincipalOriginAttributes);
   }
   return rv;
 }
 
-nsresult nsHTMLDNSPrefetch::CancelPrefetchLow(Link* aElement,
-                                              nsresult aReason) {
-  return CancelPrefetch(
-      aElement,
-      GetDNSFlagsFromLink(aElement) | nsIDNSService::RESOLVE_PRIORITY_LOW,
-      aReason);
-}
-
-nsresult nsHTMLDNSPrefetch::CancelPrefetchLow(
+nsresult nsHTMLDNSPrefetch::CancelPrefetch(
     const nsAString& hostname, bool isHttps,
     const OriginAttributes& aPartitionedPrincipalOriginAttributes,
-    nsIRequest::TRRMode aTRRMode, nsresult aReason) {
+    nsIRequest::TRRMode aTRRMode, Priority aPriority, nsresult aReason) {
   return CancelPrefetch(hostname, isHttps,
                         aPartitionedPrincipalOriginAttributes,
                         nsIDNSService::GetFlagsFromTRRMode(aTRRMode) |
-                            nsIDNSService::RESOLVE_PRIORITY_LOW,
+                            PriorityToDNSServiceFlags(aPriority),
                         aReason);
 }
 
@@ -296,26 +333,12 @@ void nsHTMLDNSPrefetch::LinkDestroyed(Link* aLink) {
   }
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-NS_IMPL_ISUPPORTS(nsHTMLDNSPrefetch::nsListener, nsIDNSListener)
-
-NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsListener::OnLookupComplete(nsICancelable* request,
-                                                nsIDNSRecord* rec,
-                                                nsresult status) {
-  return NS_OK;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-nsHTMLDNSPrefetch::nsDeferrals::nsDeferrals()
+DeferredDNSPrefetches::DeferredDNSPrefetches()
     : mHead(0), mTail(0), mActiveLoaderCount(0), mTimerArmed(false) {
   mTimer = NS_NewTimer();
-  ;
 }
 
-nsHTMLDNSPrefetch::nsDeferrals::~nsDeferrals() {
+DeferredDNSPrefetches::~DeferredDNSPrefetches() {
   if (mTimerArmed) {
     mTimerArmed = false;
     mTimer->Cancel();
@@ -324,10 +347,10 @@ nsHTMLDNSPrefetch::nsDeferrals::~nsDeferrals() {
   Flush();
 }
 
-NS_IMPL_ISUPPORTS(nsHTMLDNSPrefetch::nsDeferrals, nsIWebProgressListener,
+NS_IMPL_ISUPPORTS(DeferredDNSPrefetches, nsIWebProgressListener,
                   nsISupportsWeakReference, nsIObserver)
 
-void nsHTMLDNSPrefetch::nsDeferrals::Flush() {
+void DeferredDNSPrefetches::Flush() {
   while (mHead != mTail) {
     if (mEntries[mTail].mElement) {
       mEntries[mTail].mElement->ClearIsInDNSPrefetch();
@@ -337,9 +360,10 @@ void nsHTMLDNSPrefetch::nsDeferrals::Flush() {
   }
 }
 
-nsresult nsHTMLDNSPrefetch::nsDeferrals::Add(uint32_t flags, Link* aElement) {
+nsresult DeferredDNSPrefetches::Add(uint32_t flags, Link* aElement) {
   // The FIFO has no lock, so it can only be accessed on main thread
-  NS_ASSERTION(NS_IsMainThread(), "nsDeferrals::Add must be on main thread");
+  NS_ASSERTION(NS_IsMainThread(),
+               "DeferredDNSPrefetches::Add must be on main thread");
 
   aElement->OnDNSPrefetchDeferred();
 
@@ -353,18 +377,17 @@ nsresult nsHTMLDNSPrefetch::nsDeferrals::Add(uint32_t flags, Link* aElement) {
 
   if (!mActiveLoaderCount && !mTimerArmed && mTimer) {
     mTimerArmed = true;
-    mTimer->InitWithNamedFuncCallback(Tick, this, 2000, nsITimer::TYPE_ONE_SHOT,
-                                      "nsHTMLDNSPrefetch::nsDeferrals::Tick");
+    mTimer->InitWithNamedFuncCallback(
+        Tick, this, 2000, nsITimer::TYPE_ONE_SHOT,
+        "nsHTMLDNSPrefetch::DeferredDNSPrefetches::Tick");
   }
 
   return NS_OK;
 }
 
-void nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue() {
-  recordreplay::RecordReplayAssert("nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue");
-
+void DeferredDNSPrefetches::SubmitQueue() {
   NS_ASSERTION(NS_IsMainThread(),
-               "nsDeferrals::SubmitQueue must be on main thread");
+               "DeferredDNSPrefetches::SubmitQueue must be on main thread");
   nsCString hostName;
   if (!EnsureDNSService()) {
     return;
@@ -412,18 +435,17 @@ void nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue() {
                 mEntries[mTail].mFlags | nsIDNSService::RESOLVE_SPECULATE,
                 nullptr, sDNSListener, nullptr, oa,
                 getter_AddRefs(tmpOutstanding));
-            // Fetch ESNI keys if needed.
+            // Fetch HTTPS RR if needed.
             if (NS_SUCCEEDED(rv) &&
-                StaticPrefs::network_security_esni_enabled() && isHttps) {
-              nsAutoCString esniHost;
-              esniHost.Append("_esni.");
-              esniHost.Append(hostName);
+                (StaticPrefs::network_dns_upgrade_with_https_rr() ||
+                 StaticPrefs::network_dns_use_https_rr_as_altsvc())) {
               sDNSService->AsyncResolveNative(
-                  esniHost, nsIDNSService::RESOLVE_TYPE_TXT,
+                  hostName, nsIDNSService::RESOLVE_TYPE_HTTPSSVC,
                   mEntries[mTail].mFlags | nsIDNSService::RESOLVE_SPECULATE,
                   nullptr, sDNSListener, nullptr, oa,
                   getter_AddRefs(tmpOutstanding));
             }
+
             // Tell link that deferred prefetch was requested
             if (NS_SUCCEEDED(rv)) link->OnDNSPrefetchRequested();
           }
@@ -441,7 +463,7 @@ void nsHTMLDNSPrefetch::nsDeferrals::SubmitQueue() {
   }
 }
 
-void nsHTMLDNSPrefetch::nsDeferrals::Activate() {
+void DeferredDNSPrefetches::Activate() {
   // Register as an observer for the document loader
   nsCOMPtr<nsIWebProgress> progress = components::DocLoader::Service();
   if (progress)
@@ -455,7 +477,7 @@ void nsHTMLDNSPrefetch::nsDeferrals::Activate() {
     observerService->AddObserver(this, "xpcom-shutdown", true);
 }
 
-void nsHTMLDNSPrefetch::nsDeferrals::RemoveUnboundLinks() {
+void DeferredDNSPrefetches::RemoveUnboundLinks() {
   uint16_t tail = mTail;
   while (mHead != tail) {
     if (mEntries[tail].mElement &&
@@ -469,11 +491,11 @@ void nsHTMLDNSPrefetch::nsDeferrals::RemoveUnboundLinks() {
 
 // nsITimer related method
 
-void nsHTMLDNSPrefetch::nsDeferrals::Tick(nsITimer* aTimer, void* aClosure) {
-  nsHTMLDNSPrefetch::nsDeferrals* self =
-      (nsHTMLDNSPrefetch::nsDeferrals*)aClosure;
+void DeferredDNSPrefetches::Tick(nsITimer* aTimer, void* aClosure) {
+  auto* self = static_cast<DeferredDNSPrefetches*>(aClosure);
 
-  NS_ASSERTION(NS_IsMainThread(), "nsDeferrals::Tick must be on main thread");
+  NS_ASSERTION(NS_IsMainThread(),
+               "DeferredDNSPrefetches::Tick must be on main thread");
   NS_ASSERTION(self->mTimerArmed, "Timer is not armed");
 
   self->mTimerArmed = false;
@@ -487,13 +509,13 @@ void nsHTMLDNSPrefetch::nsDeferrals::Tick(nsITimer* aTimer, void* aClosure) {
 //////////// nsIWebProgressListener methods
 
 NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsDeferrals::OnStateChange(nsIWebProgress* aWebProgress,
-                                              nsIRequest* aRequest,
-                                              uint32_t progressStateFlags,
-                                              nsresult aStatus) {
+DeferredDNSPrefetches::OnStateChange(nsIWebProgress* aWebProgress,
+                                     nsIRequest* aRequest,
+                                     uint32_t progressStateFlags,
+                                     nsresult aStatus) {
   // The FIFO has no lock, so it can only be accessed on main thread
   NS_ASSERTION(NS_IsMainThread(),
-               "nsDeferrals::OnStateChange must be on main thread");
+               "DeferredDNSPrefetches::OnStateChange must be on main thread");
 
   if (progressStateFlags & STATE_IS_DOCUMENT) {
     if (progressStateFlags & STATE_STOP) {
@@ -510,49 +532,47 @@ nsHTMLDNSPrefetch::nsDeferrals::OnStateChange(nsIWebProgress* aWebProgress,
 }
 
 NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsDeferrals::OnProgressChange(nsIWebProgress* aProgress,
-                                                 nsIRequest* aRequest,
-                                                 int32_t curSelfProgress,
-                                                 int32_t maxSelfProgress,
-                                                 int32_t curTotalProgress,
-                                                 int32_t maxTotalProgress) {
+DeferredDNSPrefetches::OnProgressChange(nsIWebProgress* aProgress,
+                                        nsIRequest* aRequest,
+                                        int32_t curSelfProgress,
+                                        int32_t maxSelfProgress,
+                                        int32_t curTotalProgress,
+                                        int32_t maxTotalProgress) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsDeferrals::OnLocationChange(nsIWebProgress* aWebProgress,
-                                                 nsIRequest* aRequest,
-                                                 nsIURI* location,
-                                                 uint32_t aFlags) {
+DeferredDNSPrefetches::OnLocationChange(nsIWebProgress* aWebProgress,
+                                        nsIRequest* aRequest, nsIURI* location,
+                                        uint32_t aFlags) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsDeferrals::OnStatusChange(nsIWebProgress* aWebProgress,
-                                               nsIRequest* aRequest,
-                                               nsresult aStatus,
-                                               const char16_t* aMessage) {
+DeferredDNSPrefetches::OnStatusChange(nsIWebProgress* aWebProgress,
+                                      nsIRequest* aRequest, nsresult aStatus,
+                                      const char16_t* aMessage) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsDeferrals::OnSecurityChange(nsIWebProgress* aWebProgress,
-                                                 nsIRequest* aRequest,
-                                                 uint32_t aState) {
+DeferredDNSPrefetches::OnSecurityChange(nsIWebProgress* aWebProgress,
+                                        nsIRequest* aRequest, uint32_t aState) {
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsDeferrals::OnContentBlockingEvent(
-    nsIWebProgress* aWebProgress, nsIRequest* aRequest, uint32_t aEvent) {
+DeferredDNSPrefetches::OnContentBlockingEvent(nsIWebProgress* aWebProgress,
+                                              nsIRequest* aRequest,
+                                              uint32_t aEvent) {
   return NS_OK;
 }
 
 //////////// nsIObserver method
 
 NS_IMETHODIMP
-nsHTMLDNSPrefetch::nsDeferrals::Observe(nsISupports* subject, const char* topic,
-                                        const char16_t* data) {
+DeferredDNSPrefetches::Observe(nsISupports* subject, const char* topic,
+                               const char16_t* data) {
   if (!strcmp(topic, "xpcom-shutdown")) Flush();
 
   return NS_OK;

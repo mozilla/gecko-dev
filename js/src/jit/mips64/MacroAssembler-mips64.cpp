@@ -2039,8 +2039,8 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
 
   unboxGCThingForGCBarrier(value, scratch2);
   orPtr(Imm32(gc::ChunkMask), scratch2);
-  load32(Address(scratch2, gc::ChunkLocationOffsetFromLastByte), scratch2);
-  branch32(cond, scratch2, Imm32(int32_t(gc::ChunkLocation::Nursery)), label);
+  loadPtr(Address(scratch2, gc::ChunkStoreBufferOffsetFromLastByte), scratch2);
+  branchPtr(InvertCondition(cond), scratch2, ImmWord(0), label);
 
   bind(&done);
 }
@@ -2279,7 +2279,7 @@ void MacroAssemblerMIPS64Compat::wasmLoadI64Impl(
     const wasm::MemoryAccessDesc& access, Register memoryBase, Register ptr,
     Register ptrScratch, Register64 output, Register tmp) {
   uint32_t offset = access.offset();
-  MOZ_ASSERT(offset < wasm::MaxOffsetGuardLimit);
+  MOZ_ASSERT(offset < asMasm().wasmMaxOffsetGuardLimit());
   MOZ_ASSERT_IF(offset, ptrScratch != InvalidReg);
 
   MOZ_ASSERT(!access.isZeroExtendSimd128Load());
@@ -2342,7 +2342,7 @@ void MacroAssemblerMIPS64Compat::wasmStoreI64Impl(
     const wasm::MemoryAccessDesc& access, Register64 value, Register memoryBase,
     Register ptr, Register ptrScratch, Register tmp) {
   uint32_t offset = access.offset();
-  MOZ_ASSERT(offset < wasm::MaxOffsetGuardLimit);
+  MOZ_ASSERT(offset < asMasm().wasmMaxOffsetGuardLimit());
   MOZ_ASSERT_IF(offset, ptrScratch != InvalidReg);
 
   // Maybe add the offset.

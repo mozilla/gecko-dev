@@ -77,54 +77,13 @@ enum CheckboxValue {
   }
 }
 
-- (BOOL)moxIgnoreWithParent:(mozAccessible*)parent {
-  if (Accessible* acc = mGeckoAccessible.AsAccessible()) {
-    if (acc->IsContent() &&
-        acc->GetContent()->IsXULElement(nsGkAtoms::menulist)) {
-      // The way select elements work is that content has a COMBOBOX accessible,
-      // when it is clicked it expands a COMBOBOX in our top-level main XUL
-      // window. The latter COMBOBOX is a stand-in for the content one while it
-      // is expanded.
-      // XXX: VO focus behaves weirdly if we expose the dummy XUL COMBOBOX in
-      // the tree. We are only interested in its menu child.
-      return YES;
-    }
-  }
-
-  return [super moxIgnoreWithParent:parent];
-}
-
 @end
 
 @implementation mozRadioButtonAccessible
 
-- (id)accessibilityAttributeValue:(NSString*)attribute {
-  NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NIL;
-  if ([self isExpired]) {
-    return nil;
-  }
-
-  if ([attribute isEqualToString:NSAccessibilityLinkedUIElementsAttribute]) {
-    if (HTMLRadioButtonAccessible* radioAcc =
-            (HTMLRadioButtonAccessible*)mGeckoAccessible.AsAccessible()) {
-      NSMutableArray* radioSiblings = [NSMutableArray new];
-      Relation rel = radioAcc->RelationByType(RelationType::MEMBER_OF);
-      Accessible* tempAcc;
-      while ((tempAcc = rel.Next())) {
-        [radioSiblings addObject:GetNativeFromGeckoAccessible(tempAcc)];
-      }
-      return radioSiblings;
-    } else {
-      ProxyAccessible* proxy = mGeckoAccessible.AsProxy();
-      nsTArray<ProxyAccessible*> accs =
-          proxy->RelationByType(RelationType::MEMBER_OF);
-      return utils::ConvertToNSArray(accs);
-    }
-  }
-
-  return [super accessibilityAttributeValue:attribute];
-
-  NS_OBJC_END_TRY_ABORT_BLOCK_NIL;
+- (NSArray*)moxLinkedUIElements {
+  return [[self getRelationsByType:RelationType::MEMBER_OF]
+      arrayByAddingObjectsFromArray:[super moxLinkedUIElements]];
 }
 
 @end
@@ -152,6 +111,14 @@ enum CheckboxValue {
   return [NSNumber numberWithInt:[self isChecked]];
 
   NS_OBJC_END_TRY_ABORT_BLOCK_NIL;
+}
+
+- (void)stateChanged:(uint64_t)state isEnabled:(BOOL)enabled {
+  [super stateChanged:state isEnabled:enabled];
+
+  if (state & (states::CHECKED | states::PRESSED | states::MIXED)) {
+    [self moxPostNotification:NSAccessibilityValueChangedNotification];
+  }
 }
 
 @end

@@ -25,6 +25,8 @@ const PREF_ACCEPTED_POLICY_VERSION =
 const PREF_ACCEPTED_POLICY_DATE =
   PREF_BRANCH + "dataSubmissionPolicyNotifiedTime";
 
+const PREF_TELEMETRY_LOG_LEVEL = "toolkit.telemetry.log.level";
+
 const TEST_POLICY_VERSION = 37;
 
 function fakeShowPolicyTimeout(set, clear) {
@@ -124,6 +126,7 @@ add_task(async function setup() {
     Preferences.set(PREF_FIRST_RUN, isFirstRun);
     Preferences.set(PREF_BYPASS_NOTIFICATION, bypassNotification);
     Preferences.set(PREF_CURRENT_POLICY_VERSION, currentPolicyVersion);
+    Preferences.reset(PREF_TELEMETRY_LOG_LEVEL);
 
     return closeAllNotifications();
   });
@@ -143,12 +146,7 @@ function clearAcceptedPolicy() {
   Preferences.reset(PREF_ACCEPTED_POLICY_DATE);
 }
 
-add_task(async function test_single_window() {
-  clearAcceptedPolicy();
-
-  // Close all the notifications, then try to trigger the data choices infobar.
-  await closeAllNotifications();
-
+function assertCoherentInitialState() {
   // Make sure that we have a coherent initial state.
   Assert.equal(
     Preferences.get(PREF_ACCEPTED_POLICY_VERSION, 0),
@@ -164,6 +162,15 @@ add_task(async function test_single_window() {
     !TelemetryReportingPolicy.testIsUserNotified(),
     "User not notified about datareporting policy."
   );
+}
+
+add_task(async function test_single_window() {
+  clearAcceptedPolicy();
+
+  // Close all the notifications, then try to trigger the data choices infobar.
+  await closeAllNotifications();
+
+  assertCoherentInitialState();
 
   let alertShownPromise = promiseWaitForAlertActive(gNotificationBox);
   Assert.ok(
@@ -217,6 +224,7 @@ add_task(async function test_single_window() {
   );
 });
 
+/* See bug 1571932
 add_task(async function test_multiple_windows() {
   clearAcceptedPolicy();
 
@@ -232,21 +240,7 @@ add_task(async function test_multiple_windows() {
     "2nd window has a global notification box."
   );
 
-  // Make sure that we have a coherent initial state.
-  Assert.equal(
-    Preferences.get(PREF_ACCEPTED_POLICY_VERSION, 0),
-    0,
-    "No version should be set on init."
-  );
-  Assert.equal(
-    Preferences.get(PREF_ACCEPTED_POLICY_DATE, 0),
-    0,
-    "No date should be set on init."
-  );
-  Assert.ok(
-    !TelemetryReportingPolicy.testIsUserNotified(),
-    "User not notified about datareporting policy."
-  );
+  assertCoherentInitialState();
 
   let showAlertPromises = [
     promiseWaitForAlertActive(gNotificationBox),
@@ -295,4 +289,4 @@ add_task(async function test_multiple_windows() {
     -1,
     "Date pref set."
   );
-});
+});*/

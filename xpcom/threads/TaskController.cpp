@@ -10,6 +10,7 @@
 #include "nsThreadUtils.h"
 #include <algorithm>
 #include <initializer_list>
+#include "GeckoProfiler.h"
 #include "mozilla/EventQueue.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/InputTaskManager.h"
@@ -21,6 +22,7 @@
 #include "nsIThreadInternal.h"
 #include "nsQueryObject.h"
 #include "nsThread.h"
+#include "prenv.h"
 #include "prsystem.h"
 
 #ifdef XP_WIN
@@ -104,16 +106,10 @@ bool TaskController::Initialize() {
   return sSingleton->InitializeInternal();
 }
 
-struct ThreadFuncPoolThreadArguments {
-  TaskController* mController;
-  size_t mIndex;
-};
-
-void* ThreadFuncPoolThread(void* arg) {
-  ThreadFuncPoolThreadArguments* nargs = (ThreadFuncPoolThreadArguments*)arg;
-  mThreadPoolIndex = nargs->mIndex;
-  nargs->mController->RunPoolThread();
-  return nullptr;
+void ThreadFuncPoolThread(void* aIndex) {
+  mThreadPoolIndex = *reinterpret_cast<int32_t*>(aIndex);
+  delete reinterpret_cast<int32_t*>(aIndex);
+  TaskController::Get()->RunPoolThread();
 }
 
 #ifdef XP_WIN
@@ -138,6 +134,9 @@ bool TaskController::InitializeInternal() {
   return true;
 }
 
+// Ample stack size allocated for applications like ImageLib's AV1 decoder.
+const PRUint32 sStackSize = 512u * 1024u;
+
 void TaskController::InitializeThreadPool() {
   mPoolInitializationMutex.AssertCurrentThreadOwns();
   MOZ_ASSERT(!mThreadPoolInitialized);
@@ -145,10 +144,12 @@ void TaskController::InitializeThreadPool() {
 
   int32_t poolSize = GetPoolThreadCount();
   for (int32_t i = 0; i < poolSize; i++) {
-    pthread_t thread;
-    void* args = new ThreadFuncPoolThreadArguments({ this, (size_t)i });
-    pthread_create(&thread, nullptr, ThreadFuncPoolThread, args);
-    mPoolThreads.push_back({ thread, nullptr });
+    int32_t* index = new int32_t(i);
+    mPoolThreads.push_back(
+        {PR_CreateThread(PR_USER_THREAD, ThreadFuncPoolThread, index,
+                         PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
+                         PR_JOINABLE_THREAD, 512u * 1024u),
+         nullptr});
   }
 
   recordreplay::RecordReplayAssert("TaskController::InitializeThreadPool DONE");
@@ -178,7 +179,7 @@ void TaskController::ShutdownThreadPoolInternal() {
     mThreadPoolCV.NotifyAll();
   }
   for (PoolThread& thread : mPoolThreads) {
-    pthread_join(thread.mThread, nullptr);
+    PR_JoinThread(thread.mThread);
   }
 }
 
@@ -210,10 +211,6 @@ void TaskController::RunPoolThread() {
 
   MutexAutoLock lock(mGraphMutex);
   while (true) {
-    if (mShuttingDown) {
-      IOInterposer::UnregisterCurrentThread();
-      return;
-    }
     bool ranTask = false;
 
     if (!mThreadableTasks.empty()) {
@@ -298,6 +295,12 @@ void TaskController::RunPoolThread() {
     }
 
     if (!ranTask) {
+      if (mShuttingDown) {
+        IOInterposer::UnregisterCurrentThread();
+        MOZ_ASSERT(mThreadableTasks.empty());
+        return;
+      }
+
       AUTO_PROFILER_LABEL("TaskController::RunPoolThread", IDLE);
       mThreadPoolCV.Wait();
     }
@@ -477,6 +480,16 @@ class RunnableTask : public Task {
 
   PerformanceCounter* GetPerformanceCounter() const override {
     return nsThread::GetPerformanceCounterBase(mRunnable);
+  }
+
+  virtual bool GetName(nsACString& aName) override {
+#ifdef MOZ_COLLECTING_RUNNABLE_TELEMETRY
+    nsThread::GetLabeledRunnableName(mRunnable, aName,
+                                     EventQueuePriority(GetPriority()));
+    return true;
+#else
+    return false;
+#endif
   }
 
  private:
@@ -834,12 +847,10 @@ void TaskController::MaybeInterruptTask(Task* aTask) {
     return;
   }
 
-  recordreplay::RecordReplayAssert("TaskController::MaybeInterruptTask #3");
-
-  EnsureMainThreadTasksScheduled();
-
   if (aTask->IsMainThreadOnly()) {
     mMayHaveMainThreadTask = true;
+
+    EnsureMainThreadTasksScheduled();
 
     if (mCurrentTasksMT.empty()) {
       return;
@@ -858,6 +869,7 @@ void TaskController::MaybeInterruptTask(Task* aTask) {
     Task* lowestPriorityTask = nullptr;
     for (PoolThread& thread : mPoolThreads) {
       if (!thread.mCurrentTask) {
+        mThreadPoolCV.Notify();
         // There's a free thread, no need to interrupt anything.
         return;
       }

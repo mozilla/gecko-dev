@@ -7,8 +7,9 @@
 #ifndef mozilla_dom_PlacesWeakCallbackWrapper_h
 #define mozilla_dom_PlacesWeakCallbackWrapper_h
 
+#include "mozilla/WeakPtr.h"
 #include "mozilla/dom/PlacesObserversBinding.h"
-#include "mozilla/ErrorResult.h"
+#include "nsIWeakReferenceUtils.h"
 #include "nsWrapperCache.h"
 
 namespace mozilla {

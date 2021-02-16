@@ -98,18 +98,8 @@ class UrlbarView {
   }
 
   /**
+   * Whether the panel is open.
    * @returns {boolean}
-   *   Whether the update2 one-offs are used.
-   */
-  get oneOffsRefresh() {
-    return (
-      UrlbarPrefs.get("update2") && UrlbarPrefs.get("update2.oneOffsRefresh")
-    );
-  }
-
-  /**
-   * @returns {boolean}
-   *   Whether the panel is open.
    */
   get isOpen() {
     return this.input.hasAttribute("open");
@@ -631,13 +621,12 @@ class UrlbarView {
       });
 
       // Show the one-off search buttons unless any of the following are true:
-      //
-      // * The update 2 refresh is enabled but the first result is a search tip
-      // * The update 2 refresh is disabled and the search string is empty
-      // * The search string starts with an `@` or search restriction character
+      //  * The first result is a search tip
+      //  * The search string is empty
+      //  * The search string starts with an `@` or a search restriction
+      //    character
       this.oneOffSearchButtons.enable(
-        ((this.oneOffsRefresh &&
-          firstResult.providerName != "UrlbarProviderSearchTips") ||
+        (firstResult.providerName != "UrlbarProviderSearchTips" ||
           queryContext.trimmedSearchString) &&
           queryContext.trimmedSearchString[0] != "@" &&
           (queryContext.trimmedSearchString[0] !=
@@ -656,8 +645,7 @@ class UrlbarView {
           setAccessibleFocus: this.controller._userSelectionBehavior == "arrow",
         });
       } else if (
-        UrlbarPrefs.get("update2") &&
-        firstResult.payload.keywordOffer == UrlbarUtils.KEYWORD_OFFER.SHOW &&
+        firstResult.payload.providesSearchMode &&
         queryContext.trimmedSearchString != "@"
       ) {
         // Filtered keyword offer results can be in the first position but not
@@ -800,7 +788,10 @@ class UrlbarView {
    *     Names must be unique within a view template, but they don't need to be
    *     globally unique.  i.e., two different view templates can use the same
    *     names, and other DOM elements can use the same names in their IDs and
-   *     classes.
+   *     classes.  The name also suffixes the dynamic element's ID: an element
+   *     with name `data` will get the ID `urlbarView-row-{unique number}-data`.
+   *     If there is no name provided for the root element, the root element
+   *     will not get an ID.
    *   {string} tag
    *     The tag name of the object.  It is required for all objects in the
    *     structure except the root object and declares the kind of element that
@@ -808,7 +799,9 @@ class UrlbarView {
    *   {object} [attributes]
    *     An optional mapping from attribute names to values.  For each
    *     name-value pair, an attribute is added to the element created for the
-   *     object.
+   *     object. The `id` attribute is reserved and cannot be set by the
+   *     provider. Element IDs are passed back to the provider in getViewUpdate
+   *     if they are needed.
    *   {array} [children]
    *     An optional list of children.  Each item in the array must be an object
    *     as described here.  For each item, a child element as described by the
@@ -1106,27 +1099,41 @@ class UrlbarView {
   _createRowContentForDynamicType(item, result) {
     let { dynamicType } = result.payload;
     let viewTemplate = UrlbarView.dynamicViewTemplatesByName.get(dynamicType);
-    this._buildViewForDynamicType(dynamicType, item._content, viewTemplate);
+    this._buildViewForDynamicType(
+      dynamicType,
+      item._content,
+      item._elements,
+      viewTemplate
+    );
   }
 
-  _buildViewForDynamicType(type, parentNode, template) {
+  _buildViewForDynamicType(type, parentNode, elementsByName, template) {
     // Add classes to parentNode's classList.
     for (let className of template.classList || []) {
       parentNode.classList.add(className);
     }
     // Set attributes on parentNode.
     for (let [name, value] of Object.entries(template.attributes || {})) {
+      if (name == "id") {
+        // We do not allow dynamic results to set IDs for their Nodes. IDs are
+        // managed by the view to ensure they are unique.
+        Cu.reportError(
+          "Dynamic results are prohibited from setting their own IDs."
+        );
+        continue;
+      }
       parentNode.setAttribute(name, value);
     }
     if (template.name) {
       parentNode.setAttribute("name", template.name);
+      elementsByName.set(template.name, parentNode);
     }
     // Recurse into children.
     for (let childTemplate of template.children || []) {
       let child = this._createElement(childTemplate.tag);
       child.classList.add(`urlbarView-dynamic-${type}-${childTemplate.name}`);
       parentNode.appendChild(child);
-      this._buildViewForDynamicType(type, child, childTemplate);
+      this._buildViewForDynamicType(type, child, elementsByName, childTemplate);
     }
   }
 
@@ -1167,7 +1174,7 @@ class UrlbarView {
 
     if (
       result.type == UrlbarUtils.RESULT_TYPE.SEARCH &&
-      !result.payload.keywordOffer &&
+      !result.payload.providesSearchMode &&
       !result.payload.inPrivateWindow
     ) {
       item.setAttribute("type", "search");
@@ -1284,13 +1291,7 @@ class UrlbarView {
               { engine: result.payload.engine }
             );
           };
-        } else if (!this._shouldLocalizeSearchResultTitle(result)) {
-          // _shouldLocalizeSearchResultTitle is a temporary function that will
-          // be in place only during the update2 transitions. Right now it
-          // returns if the result is a keyword offer result and meets some
-          // other conditions. Post-update2 the conditional above will only
-          // check if the result is a keyword offer. Keyword offer results don't
-          // have action text.
+        } else if (!result.payload.providesSearchMode) {
           actionSetter = () => {
             this.document.l10n.setAttributes(
               action,
@@ -1330,7 +1331,10 @@ class UrlbarView {
       item.removeAttribute("pinned");
     }
 
-    if (result.payload.isSponsored) {
+    if (
+      result.payload.isSponsored &&
+      result.type != UrlbarUtils.RESULT_TYPE.TAB_SWITCH
+    ) {
       item.toggleAttribute("sponsored", true);
       actionSetter = () => {
         this.document.l10n.setAttributes(
@@ -1372,12 +1376,14 @@ class UrlbarView {
     if (actionSetter) {
       actionSetter();
       item._originalActionSetter = actionSetter;
+      item.setAttribute("has-action", "true");
     } else {
       item._originalActionSetter = () => {
         action.removeAttribute("data-l10n-id");
         action.textContent = "";
       };
       item._originalActionSetter();
+      item.removeAttribute("has-action");
     }
 
     if (!title.hasAttribute("isurl")) {
@@ -1385,30 +1391,6 @@ class UrlbarView {
     } else {
       title.removeAttribute("dir");
     }
-
-    item._elements.get("titleSeparator").hidden = !actionSetter && !setURL;
-  }
-
-  /**
-   * Returns true if we should localize a result's title. This is a helper
-   * function for the update2 transition period. It can be removed when the
-   * update2 pref is removed. At that point, its callers can instead just check
-   * !!result.payload.keywordOffer.
-   * @param {UrlbarResult} result A search result.
-   * @returns {boolean} True if we should localize a title for search results.
-   */
-  _shouldLocalizeSearchResultTitle(result) {
-    if (
-      result.type != UrlbarUtils.RESULT_TYPE.SEARCH ||
-      !result.payload.keywordOffer
-    ) {
-      return false;
-    }
-
-    return (
-      UrlbarPrefs.get("update2") ||
-      result.payload.keywordOffer == UrlbarUtils.KEYWORD_OFFER.HIDE
-    );
   }
 
   _iconForResult(result, iconUrlOverride = null) {
@@ -1476,16 +1458,47 @@ class UrlbarView {
   async _updateRowForDynamicType(item, result) {
     item.setAttribute("dynamicType", result.payload.dynamicType);
 
+    let idsByName = new Map();
+    for (let [name, node] of item._elements) {
+      node.id = `${item.id}-${name}`;
+      idsByName.set(name, node.id);
+    }
+
+    // First, apply highlighting. We do this before updating via getViewUpdate
+    // so the dynamic provider can override the highlighting by setting the
+    // textContent of the highlighted node, if it wishes.
+    for (let [payloadName, highlights] of Object.entries(
+      result.payloadHighlights
+    )) {
+      if (!highlights.length) {
+        continue;
+      }
+      // Highlighting only works if the dynamic element name is the same as the
+      // highlighted payload property name.
+      let nodeToHighlight = item.querySelector(`#${item.id}-${payloadName}`);
+      this._addTextContentWithHighlights(
+        nodeToHighlight,
+        result.payload[payloadName],
+        highlights
+      );
+    }
+
     // Get the view update from the result's provider.
     let provider = UrlbarProvidersManager.getProvider(result.providerName);
-    let viewUpdate = await provider.getViewUpdate(result);
+    let viewUpdate = await provider.getViewUpdate(result, idsByName);
 
     // Update each node in the view by name.
     for (let [nodeName, update] of Object.entries(viewUpdate)) {
-      let node = item.querySelector(
-        `.urlbarView-dynamic-${result.payload.dynamicType}-${nodeName}`
-      );
+      let node = item.querySelector(`#${item.id}-${nodeName}`);
       for (let [attrName, value] of Object.entries(update.attributes || {})) {
+        if (attrName == "id") {
+          // We do not allow dynamic results to set IDs for their Nodes. IDs are
+          // managed by the view to ensure they are unique.
+          Cu.reportError(
+            "Dynamic results are prohibited from setting their own IDs."
+          );
+          continue;
+        }
         node.setAttribute(attrName, value);
       }
       for (let [styleName, value] of Object.entries(update.style || {})) {
@@ -1783,7 +1796,7 @@ class UrlbarView {
    *   The DOM node for the result's tile.
    */
   _setResultTitle(result, titleNode) {
-    if (this._shouldLocalizeSearchResultTitle(result)) {
+    if (result.payload.providesSearchMode) {
       // Keyword offers are the only result that require a localized title.
       // We localize the title instead of using the action text as a title
       // because some keyword offer results use both a title and action text
@@ -1919,31 +1932,12 @@ class UrlbarView {
 
     let engine = this.oneOffSearchButtons.selectedButton?.engine;
     let source = this.oneOffSearchButtons.selectedButton?.source;
-    switch (source) {
-      case UrlbarUtils.RESULT_SOURCE.BOOKMARKS:
-        source = {
-          attribute: "bookmarks",
-          l10nId: "urlbar-result-action-search-bookmarks",
-          icon: "chrome://browser/skin/bookmark.svg",
-        };
-        break;
-      case UrlbarUtils.RESULT_SOURCE.HISTORY:
-        source = {
-          attribute: "history",
-          l10nId: "urlbar-result-action-search-history",
-          icon: "chrome://browser/skin/history.svg",
-        };
-        break;
-      case UrlbarUtils.RESULT_SOURCE.TABS:
-        source = {
-          attribute: "tabs",
-          l10nId: "urlbar-result-action-search-tabs",
-          icon: "chrome://browser/skin/tab.svg",
-        };
-        break;
-      default:
-        source = null;
-        break;
+
+    let localSearchMode;
+    if (source) {
+      localSearchMode = UrlbarUtils.LOCAL_SEARCH_MODES.find(
+        m => m.source == source
+      );
     }
 
     for (let item of this._rows.children) {
@@ -1972,10 +1966,9 @@ class UrlbarView {
       // query. Don't change the heuristic result because it would be
       // immediately replaced with the search mode heuristic, causing flicker.
       if (
-        this.oneOffsRefresh &&
         result.heuristic &&
         !engine &&
-        !source &&
+        !localSearchMode &&
         this.input.searchMode &&
         !this.input.searchMode.isPreview
       ) {
@@ -1988,7 +1981,11 @@ class UrlbarView {
 
       // If a one-off button is the only selection, force the heuristic result
       // to show its action text, so the engine name is visible.
-      if (result.heuristic && !this.selectedElement && (source || engine)) {
+      if (
+        result.heuristic &&
+        !this.selectedElement &&
+        (localSearchMode || engine)
+      ) {
         item.setAttribute("show-action-text", "true");
       } else {
         item.removeAttribute("show-action-text");
@@ -2008,35 +2005,35 @@ class UrlbarView {
         }
       }
 
-      // When update2 is disabled, we only update search results when a search
-      // engine one-off is selected.
-      if (
-        !this.oneOffsRefresh &&
-        result.type != UrlbarUtils.RESULT_TYPE.SEARCH
-      ) {
-        continue;
-      }
-
-      // Update heuristic URL result titles to reflect the search string. This
-      // means we restyle a URL result to look like a search result. We override
-      // result-picking behaviour in UrlbarInput.pickResult.
-      if (
-        this.oneOffsRefresh &&
-        result.heuristic &&
-        result.type == UrlbarUtils.RESULT_TYPE.URL
-      ) {
+      // If the result is the heuristic and a one-off is selected (i.e.,
+      // localSearchMode || engine), then restyle it to look like a search
+      // result; otherwise, remove such styling. For restyled results, we
+      // override the usual result-picking behaviour in UrlbarInput.pickResult.
+      if (result.heuristic) {
         title.textContent =
-          source || engine
+          localSearchMode || engine
             ? this._queryContext.searchString
-            : result.payload.title;
+            : result.title;
+
+        // Set the restyled-search attribute so the action text and title
+        // separator are shown or hidden via CSS as appropriate.
+        if (localSearchMode || engine) {
+          item.setAttribute("restyled-search", "true");
+        } else {
+          item.removeAttribute("restyled-search");
+        }
       }
 
       // Update result action text.
-      if (source) {
+      if (localSearchMode) {
         // Update the result action text for a local one-off.
-        this.document.l10n.setAttributes(action, source.l10nId);
+        let name = UrlbarUtils.getResultSourceName(localSearchMode.source);
+        this.document.l10n.setAttributes(
+          action,
+          `urlbar-result-action-search-${name}`
+        );
         if (result.heuristic) {
-          item.setAttribute("source", source.attribute);
+          item.setAttribute("source", name);
         }
       } else if (engine && !result.payload.inPrivateWindow) {
         // Update the result action text for an engine one-off.
@@ -2060,20 +2057,13 @@ class UrlbarView {
       }
 
       // Update result favicons.
-      let iconOverride = source?.icon || engine?.iconURI?.spec;
-      if (
-        !iconOverride &&
-        (source || engine) &&
-        result.type == UrlbarUtils.RESULT_TYPE.URL
-      ) {
+      let iconOverride = localSearchMode?.icon || engine?.iconURI?.spec;
+      if (!iconOverride && (localSearchMode || engine)) {
         // For one-offs without an icon, do not allow restyled URL results to
         // use their own icons.
         iconOverride = UrlbarUtils.ICON.SEARCH_GLASS;
       }
       if (
-        // Don't update the favicon on non-heuristic results when update2 is
-        // enabled.
-        !this.oneOffsRefresh ||
         result.heuristic ||
         (result.payload.inPrivateWindow && !result.payload.isPrivateEngine)
       ) {

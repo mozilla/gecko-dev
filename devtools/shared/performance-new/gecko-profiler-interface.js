@@ -89,8 +89,6 @@ class ActorReadyGeckoProfilerInterface {
     // to be tweaked or made configurable as needed.
     const settings = {
       entries: options.entries || 1000000,
-      // Window length should be Infinite if nothing's been passed.
-      // options.duration is supported for `perfActorVersion > 0`.
       duration: options.duration || 0,
       interval: options.interval || 1,
       features: options.features || [
@@ -213,7 +211,10 @@ class ActorReadyGeckoProfilerInterface {
     // events in the perf actor.
     switch (topic) {
       case "chrome-document-global-created":
-        if (PrivateBrowsingUtils.isWindowPrivate(subject)) {
+        if (
+          subject.isChromeWindow &&
+          PrivateBrowsingUtils.isWindowPrivate(subject)
+        ) {
           this.emit("profile-locked-by-private-browsing");
         }
         break;

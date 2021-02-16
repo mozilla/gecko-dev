@@ -2,16 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef WR_FEATURE_PIXEL_LOCAL_STORAGE
-// For now, we need both extensions here, in order to initialize
-// the PLS to the current framebuffer color. In future, we can
-// possibly remove that requirement, or at least support the
-// other framebuffer fetch extensions that provide the same
-// functionality.
-#extension GL_EXT_shader_pixel_local_storage : require
-#extension GL_ARM_shader_framebuffer_fetch : require
-#endif
-
 #ifdef WR_FEATURE_TEXTURE_EXTERNAL
 // Please check https://www.khronos.org/registry/OpenGL/extensions/OES/OES_EGL_image_external_essl3.txt
 // for this extension.
@@ -66,67 +56,22 @@
 #ifdef WR_FRAGMENT_SHADER
     // Uniform inputs
 
-    #ifdef WR_FEATURE_PIXEL_LOCAL_STORAGE
-        // Define the storage class of the pixel local storage.
-        // If defined as writable, it's a compile time error to
-        // have a normal fragment output variable declared.
-        #if defined(PLS_READONLY)
-            #define PLS_BLOCK __pixel_local_inEXT
-        #elif defined(PLS_WRITEONLY)
-            #define PLS_BLOCK __pixel_local_outEXT
-        #else
-            #define PLS_BLOCK __pixel_localEXT
-        #endif
-
-        // The structure of pixel local storage. Right now, it's
-        // just the current framebuffer color. In future, we have
-        // (at least) 12 bytes of space we can store extra info
-        // here (such as clip mask values).
-        PLS_BLOCK FrameBuffer {
-            layout(rgba8) highp vec4 color;
-        } PLS;
-
-        #ifndef PLS_READONLY
-        // Write the output of a fragment shader to PLS. Applies
-        // premultipled alpha blending by default, since the blender
-        // is disabled when PLS is active.
-        // TODO(gw): Properly support alpha blend mode for webgl / canvas.
-        void write_output(vec4 color) {
-            PLS.color = color + PLS.color * (1.0 - color.a);
-        }
-
-        // Write a raw value straight to PLS, if the fragment shader has
-        // already applied blending.
-        void write_output_raw(vec4 color) {
-            PLS.color = color;
-        }
-        #endif
-
-        #ifndef PLS_WRITEONLY
-        // Retrieve the current framebuffer color. Useful in conjunction with
-        // the write_output_raw function.
-        vec4 get_current_framebuffer_color() {
-            return PLS.color;
-        }
-        #endif
-    #else
-        // Fragment shader outputs
-        #ifdef WR_FEATURE_ADVANCED_BLEND
-            layout(blend_support_all_equations) out;
-        #endif
-
-        #ifdef WR_FEATURE_DUAL_SOURCE_BLENDING
-            layout(location = 0, index = 0) out vec4 oFragColor;
-            layout(location = 0, index = 1) out vec4 oFragBlend;
-        #else
-            out vec4 oFragColor;
-        #endif
-
-        // Write an output color in normal (non-PLS) shaders.
-        void write_output(vec4 color) {
-            oFragColor = color;
-        }
+    // Fragment shader outputs
+    #ifdef WR_FEATURE_ADVANCED_BLEND
+        layout(blend_support_all_equations) out;
     #endif
+
+    #ifdef WR_FEATURE_DUAL_SOURCE_BLENDING
+        layout(location = 0, index = 0) out vec4 oFragColor;
+        layout(location = 0, index = 1) out vec4 oFragBlend;
+    #else
+        out vec4 oFragColor;
+    #endif
+
+    // Write an output color in normal shaders.
+    void write_output(vec4 color) {
+        oFragColor = color;
+    }
 
     #define EPSILON                     0.0001
 
@@ -142,7 +87,7 @@
     /// This range represents a coefficient to go from one CSS pixel to half a device pixel.
     float compute_aa_range(vec2 position) {
         // The constant factor is chosen to compensate for the fact that length(fw) is equal
-        // to sqrt(2) times the device pixel ratio in the typical case. 0.5/sqrt(2) = 0.35355.
+        // to sqrt(2) times the device pixel ratio in the typical case. 1/sqrt(2) = 0.7071.
         //
         // This coefficient is chosen to ensure that any sample 0.5 pixels or more inside of
         // the shape has no anti-aliasing applied to it (since pixels are sampled at their center,
@@ -157,7 +102,13 @@
         // We may want to adjust this constant in specific scenarios (for example keep the principled
         // value for straight edges where we want pixel-perfect equivalence with non antialiased lines
         // when axis aligned, while selecting a larger and smoother aa range on curves).
-        return 0.35355 * length(fwidth(position));
+        #ifdef SWGL
+            // SWGL uses an approximation for fwidth() such that it returns equal x and y.
+            // Thus, 1/sqrt(2) * length((x,y)) = 1/sqrt(2) * sqrt(x*x + x*x) = x.
+            return fwidth(position).x;
+        #else
+            return 0.7071 * length(fwidth(position));
+        #endif
     }
 
     /// Return the blending coefficient for distance antialiasing.
@@ -178,12 +129,12 @@
     /// See the comments in `compute_aa_range()` for more information on the
     /// cutoff values of -0.5 and 0.5.
     float distance_aa(float aa_range, float signed_distance) {
-        float dist = 0.5 * signed_distance / aa_range;
-        if (dist <= -0.5 + EPSILON)
-            return 1.0;
-        if (dist >= 0.5 - EPSILON)
-            return 0.0;
-        return 0.5 + dist * (0.8431027 * dist * dist - 1.14453603);
+        float dist = signed_distance / aa_range;
+        bool inside = dist <= -0.5 + EPSILON;
+        bool outside = dist >= 0.5 - EPSILON;
+        return inside || outside
+            ? float(inside)
+            : 0.5 + dist * (0.8431027 * dist * dist - 1.14453603);
     }
 
     /// Component-wise selection.
@@ -218,7 +169,7 @@ uniform sampler2DRect sColor2;
 uniform samplerExternalOES sColor0;
 uniform samplerExternalOES sColor1;
 uniform samplerExternalOES sColor2;
-#else
+#elif defined WR_FEATURE_TEXTURE_2D_ARRAY
 uniform sampler2DArray sColor0;
 uniform sampler2DArray sColor1;
 uniform sampler2DArray sColor2;

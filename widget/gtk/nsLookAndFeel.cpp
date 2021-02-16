@@ -59,7 +59,11 @@ extern mozilla::LazyLogModule gWidgetLog;
   ((nscolor)NS_RGBA((int)((c).red * 255), (int)((c).green * 255), \
                     (int)((c).blue * 255), (int)((c).alpha * 255)))
 
-nsLookAndFeel::nsLookAndFeel() = default;
+nsLookAndFeel::nsLookAndFeel(const LookAndFeelCache* aCache) {
+  if (aCache) {
+    DoSetCache(*aCache);
+  }
+}
 
 nsLookAndFeel::~nsLookAndFeel() = default;
 
@@ -295,6 +299,10 @@ widget::LookAndFeelCache nsLookAndFeel::GetCacheImpl() {
 }
 
 void nsLookAndFeel::SetCacheImpl(const LookAndFeelCache& aCache) {
+  DoSetCache(aCache);
+}
+
+void nsLookAndFeel::DoSetCache(const LookAndFeelCache& aCache) {
   for (const auto& entry : aCache.mInts()) {
     switch (entry.id()) {
       case IntID::SystemUsesDarkTheme:
@@ -586,27 +594,8 @@ static int32_t ConvertGTKStepperStyleToMozillaScrollArrowStyle(
                           mozilla::LookAndFeel::eScrollArrow_StartForward);
 }
 
-nsresult nsLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
+nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
   nsresult res = NS_OK;
-
-  // Set these before they can get overrided in the nsXPLookAndFeel.
-  switch (aID) {
-    case IntID::ScrollButtonLeftMouseButtonAction:
-      aResult = 0;
-      return NS_OK;
-    case IntID::ScrollButtonMiddleMouseButtonAction:
-      aResult = 1;
-      return NS_OK;
-    case IntID::ScrollButtonRightMouseButtonAction:
-      aResult = 2;
-      return NS_OK;
-    default:
-      break;
-  }
-
-  res = nsXPLookAndFeel::GetIntImpl(aID, aResult);
-  if (NS_SUCCEEDED(res)) return res;
-  res = NS_OK;
 
   // We use delayed initialization by EnsureInit() here
   // to make sure mozilla::Preferences is available (Bug 115807).
@@ -614,6 +603,15 @@ nsresult nsLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
   // are read, and so EnsureInit(), which depends on preference values,
   // is deliberately delayed until required.
   switch (aID) {
+    case IntID::ScrollButtonLeftMouseButtonAction:
+      aResult = 0;
+      break;
+    case IntID::ScrollButtonMiddleMouseButtonAction:
+      aResult = 1;
+      break;
+    case IntID::ScrollButtonRightMouseButtonAction:
+      aResult = 2;
+      break;
     case IntID::CaretBlinkTime:
       EnsureInit();
       aResult = mCaretBlinkTime;
@@ -625,13 +623,10 @@ nsresult nsLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
       aResult = 0;
       break;
     case IntID::SelectTextfieldsOnKeyFocus: {
-      GtkWidget* entry;
       GtkSettings* settings;
       gboolean select_on_focus;
 
-      entry = gtk_entry_new();
-      g_object_ref_sink(entry);
-      settings = gtk_widget_get_settings(entry);
+      settings = gtk_settings_get_default();
       g_object_get(settings, "gtk-entry-select-on-focus", &select_on_focus,
                    nullptr);
 
@@ -640,8 +635,6 @@ nsresult nsLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
       else
         aResult = 0;
 
-      gtk_widget_destroy(entry);
-      g_object_unref(entry);
     } break;
     case IntID::ScrollToClick: {
       GtkSettings* settings;
@@ -681,11 +674,9 @@ nsresult nsLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
       break;
     case IntID::DragThresholdX:
     case IntID::DragThresholdY: {
-      GtkWidget* box = gtk_hbox_new(FALSE, 5);
       gint threshold = 0;
-      g_object_get(gtk_widget_get_settings(box), "gtk-dnd-drag-threshold",
+      g_object_get(gtk_settings_get_default(), "gtk-dnd-drag-threshold",
                    &threshold, nullptr);
-      g_object_ref_sink(box);
 
       aResult = threshold;
     } break;
@@ -819,12 +810,8 @@ nsresult nsLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
   return res;
 }
 
-nsresult nsLookAndFeel::GetFloatImpl(FloatID aID, float& aResult) {
-  nsresult res = NS_OK;
-  res = nsXPLookAndFeel::GetFloatImpl(aID, aResult);
-  if (NS_SUCCEEDED(res)) return res;
-  res = NS_OK;
-
+nsresult nsLookAndFeel::NativeGetFloat(FloatID aID, float& aResult) {
+  nsresult rv = NS_OK;
   switch (aID) {
     case FloatID::IMEUnderlineRelativeSize:
       aResult = 1.0f;
@@ -838,9 +825,9 @@ nsresult nsLookAndFeel::GetFloatImpl(FloatID aID, float& aResult) {
       break;
     default:
       aResult = -1.0;
-      res = NS_ERROR_FAILURE;
+      rv = NS_ERROR_FAILURE;
   }
-  return res;
+  return rv;
 }
 
 static void GetSystemFontInfo(GtkStyleContext* aStyle, nsString* aFontName,
@@ -879,8 +866,8 @@ static void GetSystemFontInfo(GtkStyleContext* aStyle, nsString* aFontName,
   pango_font_description_free(desc);
 }
 
-bool nsLookAndFeel::GetFontImpl(FontID aID, nsString& aFontName,
-                                gfxFontStyle& aFontStyle) {
+bool nsLookAndFeel::NativeGetFont(FontID aID, nsString& aFontName,
+                                  gfxFontStyle& aFontStyle) {
   switch (aID) {
     case FontID::Menu:          // css2
     case FontID::PullDownMenu:  // css3
@@ -978,7 +965,7 @@ static bool IsGtkThemeCompatibleWithHTMLColors() {
 static nsCString GetGtkTheme() {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
   nsCString ret;
-  GtkSettings* settings = gtk_settings_get_for_screen(gdk_screen_get_default());
+  GtkSettings* settings = gtk_settings_get_default();
   char* themeName = nullptr;
   g_object_get(settings, "gtk-theme-name", &themeName, nullptr);
   if (themeName) {
@@ -988,14 +975,82 @@ static nsCString GetGtkTheme() {
   return ret;
 }
 
-void nsLookAndFeel::ConfigureContentGtkTheme() {
-  GtkSettings* settings = gtk_settings_get_for_screen(gdk_screen_get_default());
+static bool GetPreferDarkTheme() {
+  GtkSettings* settings = gtk_settings_get_default();
+  gboolean preferDarkTheme = FALSE;
+  g_object_get(settings, "gtk-application-prefer-dark-theme", &preferDarkTheme,
+               nullptr);
+  return preferDarkTheme == TRUE;
+}
+
+void nsLookAndFeel::ConfigureTheme(const LookAndFeelTheme& aTheme) {
+  MOZ_ASSERT(XRE_IsContentProcess());
+  GtkSettings* settings = gtk_settings_get_default();
+  g_object_set(settings, "gtk-theme-name", aTheme.themeName().get(),
+               "gtk-application-prefer-dark-theme",
+               aTheme.preferDarkTheme() ? TRUE : FALSE, nullptr);
+}
+
+void nsLookAndFeel::WithThemeConfiguredForContent(
+    const std::function<void(const LookAndFeelTheme& aTheme)>& aFn) {
+  nsWindow::WithSettingsChangesIgnored([&]() {
+    // Available on Gtk 3.20+.
+    static auto sGtkSettingsResetProperty =
+        (void (*)(GtkSettings*, const gchar*))dlsym(
+            RTLD_DEFAULT, "gtk_settings_reset_property");
+
+    nsCString themeName;
+    bool preferDarkTheme = false;
+
+    if (!sGtkSettingsResetProperty) {
+      // When gtk_settings_reset_property is not available, we instead
+      // record the current theme name and variant and explicitly restore
+      // them afterwards.  This means we won't respond to any subsequent
+      // theme settings changes, which is unfortunate.  (It's possible we
+      // could listen to xsettings changes and update the GtkSettings object
+      // ourselves in response, if we wanted to fix this.)
+      themeName = GetGtkTheme();
+      preferDarkTheme = GetPreferDarkTheme();
+    }
+
+    bool changed = ConfigureContentGtkTheme();
+    if (changed) {
+      RefreshImpl();
+    }
+
+    LookAndFeelTheme theme;
+    theme.themeName() = GetGtkTheme();
+    theme.preferDarkTheme() = GetPreferDarkTheme();
+
+    aFn(theme);
+
+    if (changed) {
+      GtkSettings* settings = gtk_settings_get_default();
+      if (sGtkSettingsResetProperty) {
+        sGtkSettingsResetProperty(settings, "gtk-theme-name");
+        sGtkSettingsResetProperty(settings,
+                                  "gtk-application-prefer-dark-theme");
+      } else {
+        g_object_set(settings, "gtk-theme-name", themeName.get(),
+                     "gtk-application-prefer-dark-theme",
+                     preferDarkTheme ? TRUE : FALSE, nullptr);
+      }
+      RefreshImpl();
+    }
+  });
+}
+
+bool nsLookAndFeel::ConfigureContentGtkTheme() {
+  bool changed = false;
+
+  GtkSettings* settings = gtk_settings_get_default();
 
   nsAutoCString themeOverride;
   mozilla::Preferences::GetCString("widget.content.gtk-theme-override",
                                    themeOverride);
   if (!themeOverride.IsEmpty()) {
     g_object_set(settings, "gtk-theme-name", themeOverride.get(), nullptr);
+    changed = true;
     LOG(("ConfigureContentGtkTheme(%s)\n", themeOverride.get()));
   } else {
     LOG(("ConfigureContentGtkTheme(%s)\n", GetGtkTheme().get()));
@@ -1006,23 +1061,24 @@ void nsLookAndFeel::ConfigureContentGtkTheme() {
   // of the page), so we're done now.
   if (!themeOverride.IsEmpty() || mHighContrast ||
       StaticPrefs::widget_content_allow_gtk_dark_theme()) {
-    return;
+    return changed;
   }
 
-  // Try to disable 'gtk-application-prefer-dark-theme' first...
-  const gchar* dark_theme_setting = "gtk-application-prefer-dark-theme";
-  gboolean darkThemeDefault;
-  g_object_get(settings, dark_theme_setting, &darkThemeDefault, nullptr);
-  if (darkThemeDefault) {
+  // Try to select the light variant of the current theme first...
+  if (GetPreferDarkTheme()) {
     LOG(("    disabling gtk-application-prefer-dark-theme\n"));
-    g_object_set(settings, dark_theme_setting, FALSE, nullptr);
+    g_object_set(settings, "gtk-application-prefer-dark-theme", FALSE, nullptr);
+    changed = true;
   }
 
   // ...and use a default Gtk theme as a fallback.
   if (!IsGtkThemeCompatibleWithHTMLColors()) {
     LOG(("    Non-compatible dark theme, default to Adwaita\n"));
     g_object_set(settings, "gtk-theme-name", "Adwaita", nullptr);
+    changed = true;
   }
+
+  return changed;
 }
 
 void nsLookAndFeel::EnsureInit() {
@@ -1033,12 +1089,7 @@ void nsLookAndFeel::EnsureInit() {
   // Gtk manages a screen's CSS in the settings object so we
   // ask Gtk to create it explicitly. Otherwise we may end up
   // with wrong color theme, see Bug 972382
-  GdkScreen* screen = gdk_screen_get_default();
-  if (MOZ_UNLIKELY(!screen)) {
-    NS_WARNING("EnsureInit: No screen");
-    return;
-  }
-  GtkSettings* settings = gtk_settings_get_for_screen(screen);
+  GtkSettings* settings = gtk_settings_get_default();
   if (MOZ_UNLIKELY(!settings)) {
     NS_WARNING("EnsureInit: No settings");
     return;
@@ -1084,13 +1135,27 @@ void nsLookAndFeel::EnsureInit() {
 
     // Colors that we pass to content processes through the LookAndFeelCache.
     if (ShouldHonorThemeScrollbarColors()) {
-      style = GetStyleContext(MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL);
+      // Some themes style the <trough>, while others style the <scrollbar>
+      // itself, so we look at both and compose the colors.
+      style = GetStyleContext(MOZ_GTK_SCROLLBAR_VERTICAL);
       gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL,
                                              &color);
-      mMozScrollbar = mThemedScrollbar = GDK_RGBA_TO_NS_RGBA(color);
+      mThemedScrollbar = GDK_RGBA_TO_NS_RGBA(color);
       gtk_style_context_get_background_color(style, GTK_STATE_FLAG_BACKDROP,
                                              &color);
       mThemedScrollbarInactive = GDK_RGBA_TO_NS_RGBA(color);
+
+      style = GetStyleContext(MOZ_GTK_SCROLLBAR_TROUGH_VERTICAL);
+      gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL,
+                                             &color);
+      mThemedScrollbar =
+          NS_ComposeColors(mThemedScrollbar, GDK_RGBA_TO_NS_RGBA(color));
+      gtk_style_context_get_background_color(style, GTK_STATE_FLAG_BACKDROP,
+                                             &color);
+      mThemedScrollbarInactive = NS_ComposeColors(mThemedScrollbarInactive,
+                                                  GDK_RGBA_TO_NS_RGBA(color));
+
+      mMozScrollbar = mThemedScrollbar;
 
       style = GetStyleContext(MOZ_GTK_SCROLLBAR_THUMB_VERTICAL);
       gtk_style_context_get_background_color(style, GTK_STATE_FLAG_NORMAL,

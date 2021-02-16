@@ -10,11 +10,9 @@
 #include "mozilla/Mutex.h"
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
-#include "nsIEventTarget.h"
 #include "nsIMemoryReporter.h"
-#include "nsITimer.h"
+#include "nsISupports.h"
 #include "nsServiceManagerUtils.h"
-#include "nsDataHashtable.h"
 
 #ifdef XP_WIN
 #  include <windows.h>
@@ -27,6 +25,9 @@ class MemoryReport;
 }  // namespace dom
 }  // namespace mozilla
 
+class mozIDOMWindowProxy;
+class nsIEventTarget;
+class nsIRunnable;
 class nsITimer;
 
 class nsMemoryReporterManager final : public nsIMemoryReporterManager,
@@ -43,10 +44,10 @@ class nsMemoryReporterManager final : public nsIMemoryReporterManager,
   nsMemoryReporterManager();
 
   // Gets the memory reporter manager service.
-  static nsMemoryReporterManager* GetOrCreate() {
+  static already_AddRefed<nsMemoryReporterManager> GetOrCreate() {
     nsCOMPtr<nsIMemoryReporterManager> imgr =
         do_GetService("@mozilla.org/memory-reporter-manager;1");
-    return static_cast<nsMemoryReporterManager*>(imgr.get());
+    return imgr.forget().downcast<nsMemoryReporterManager>();
   }
 
   typedef nsDataHashtable<nsRefPtrHashKey<nsIMemoryReporter>, bool>

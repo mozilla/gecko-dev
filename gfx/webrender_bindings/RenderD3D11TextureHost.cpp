@@ -44,17 +44,20 @@ RenderDXGITextureHost::~RenderDXGITextureHost() {
   DeleteTextureHandle();
 }
 
-ID3D11Texture2D* RenderDXGITextureHost::GetD3D11Texture2D() {
+ID3D11Texture2D* RenderDXGITextureHost::GetD3D11Texture2DWithGL() {
+  if (mTexture) {
+    return mTexture;
+  }
+
   if (!mGL) {
     // SharedGL is always used on Windows with ANGLE.
     mGL = RenderThread::Get()->SharedGL();
   }
 
-  if (!mTexture) {
-    if (!EnsureD3D11Texture2D()) {
-      return nullptr;
-    }
+  if (!EnsureD3D11Texture2DWithGL()) {
+    return nullptr;
   }
+
   return mTexture;
 }
 
@@ -145,7 +148,7 @@ void RenderDXGITextureHost::UnmapPlanes() {
   mDeviceContext = nullptr;
 }
 
-bool RenderDXGITextureHost::EnsureD3D11Texture2D() {
+bool RenderDXGITextureHost::EnsureD3D11Texture2DWithGL() {
   if (mTexture) {
     return true;
   }
@@ -172,6 +175,12 @@ bool RenderDXGITextureHost::EnsureD3D11Texture2D() {
 
 bool RenderDXGITextureHost::EnsureD3D11Texture2D(ID3D11Device* aDevice) {
   if (mTexture) {
+    RefPtr<ID3D11Device> device;
+    mTexture->GetDevice(getter_AddRefs(device));
+    if (aDevice != device) {
+      gfxCriticalNote << "RenderDXGITextureHost uses obsoleted device";
+      return false;
+    }
     return true;
   }
 
@@ -229,7 +238,7 @@ bool RenderDXGITextureHost::EnsureLockable(wr::ImageRendering aRendering) {
   }
 
   // Get the D3D11 texture from shared handle.
-  if (!EnsureD3D11Texture2D()) {
+  if (!EnsureD3D11Texture2DWithGL()) {
     return false;
   }
 
@@ -547,6 +556,19 @@ bool RenderDXGIYCbCrTextureHost::EnsureLockable(wr::ImageRendering aRendering) {
 }
 
 bool RenderDXGIYCbCrTextureHost::EnsureD3D11Texture2D(ID3D11Device* aDevice) {
+  if (mTextures[0]) {
+    RefPtr<ID3D11Device> device;
+    mTextures[0]->GetDevice(getter_AddRefs(device));
+    if (aDevice != device) {
+      gfxCriticalNote << "RenderDXGIYCbCrTextureHost uses obsoleted device";
+      return false;
+    }
+  }
+
+  if (mTextureHandles[0]) {
+    return true;
+  }
+
   for (int i = 0; i < 3; ++i) {
     // Get the R8 D3D11 texture from shared handle.
     HRESULT hr = aDevice->OpenSharedResource(

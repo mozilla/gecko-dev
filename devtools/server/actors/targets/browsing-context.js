@@ -291,7 +291,9 @@ const browsingContextTargetPrototype = {
       frames: true,
       // Supports the logInPage request.
       logInPage: true,
-      // Supports watchpoints in the server for Fx71+
+      // Supports watchpoints in the server. We need to keep this trait because target
+      // actors that don't extend BrowsingContextTargetActor (Worker, ContentProcess, …)
+      // might not support watchpoints.
       watchpoints: true,
       // Supports back and forward navigation
       navigation: true,
@@ -391,12 +393,16 @@ const browsingContextTargetPrototype = {
     return null;
   },
 
+  get browsingContext() {
+    return this.docShell?.browsingContext;
+  },
+
   get browsingContextID() {
-    return this.docShell && this.docShell.browsingContext.id;
+    return this.browsingContext?.id;
   },
 
   get browserId() {
-    return this.docShell && this.docShell.browsingContext.browserId;
+    return this.browsingContext?.browserId;
   },
 
   /**
@@ -526,8 +532,8 @@ const browsingContextTargetPrototype = {
       actor: this.actorID,
       browsingContextID: this.browsingContextID,
       traits: {
-        // FF64+ exposes a new trait to help identify BrowsingContextActor's inherited
-        // actors from the client side.
+        // @backward-compat { version 64 } Exposes a new trait to help identify
+        // BrowsingContextActor's inherited actors from the client side.
         isBrowsingContext: true,
       },
     };
@@ -1082,7 +1088,6 @@ const browsingContextTargetPrototype = {
     return {};
   },
 
-  // Added in Firefox 79
   goForward() {
     // Wait a tick so that the response packet can be dispatched before the
     // subsequent navigation event packet.
@@ -1101,7 +1106,6 @@ const browsingContextTargetPrototype = {
     return {};
   },
 
-  // Added in Firefox 79
   goBack() {
     // Wait a tick so that the response packet can be dispatched before the
     // subsequent navigation event packet.
@@ -1275,7 +1279,7 @@ const browsingContextTargetPrototype = {
     this._setServiceWorkersTestingEnabled(false);
     this._setPaintFlashingEnabled(false);
 
-    if (this._restoreFocus && this.window.docShell.isActive) {
+    if (this._restoreFocus && this.browsingContext?.isActive) {
       this.window.focus();
     }
   },

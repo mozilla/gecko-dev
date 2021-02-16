@@ -32,7 +32,6 @@ EXPORTS += [
     "ImageLayers.h",
     "ImageTypes.h",
     "IMFYCbCrImage.h",
-    "ipc/ThreadSafeRefcountingWithMainThreadDestruction.h",
     "Layers.h",
     "LayerScope.h",
     "LayerSorter.h",
@@ -83,6 +82,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
 
 EXPORTS.gfxipc += [
     "ipc/ShadowLayerUtils.h",
+    "ipc/SurfaceDescriptor.h",
 ]
 
 EXPORTS.mozilla.dom += [
@@ -164,6 +164,7 @@ EXPORTS.mozilla.layers += [
     "composite/ImageHost.h",
     "composite/ImageLayerComposite.h",
     "composite/LayerManagerComposite.h",
+    "composite/LayerManagerCompositeUtils.h",
     "composite/PaintedLayerComposite.h",
     "composite/TextRenderer.h",
     "composite/TextureHost.h",
@@ -222,6 +223,7 @@ EXPORTS.mozilla.layers += [
     "ipc/VideoBridgeParent.h",
     "ipc/VideoBridgeUtils.h",
     "LayerAttributes.h",
+    "LayerManager.h",
     "LayerMetricsWrapper.h",
     "LayersHelpers.h",
     "LayersTypes.h",
@@ -465,6 +467,7 @@ UNIFIED_SOURCES += [
     "ipc/CanvasChild.cpp",
     "ipc/CanvasThread.cpp",
     "ipc/CanvasTranslator.cpp",
+    "ipc/CompositableForwarder.cpp",
     "ipc/CompositableTransactionParent.cpp",
     "ipc/CompositorBench.cpp",
     "ipc/CompositorBridgeChild.cpp",
@@ -492,6 +495,7 @@ UNIFIED_SOURCES += [
     "ipc/UiCompositorControllerParent.cpp",
     "ipc/VideoBridgeChild.cpp",
     "ipc/VideoBridgeParent.cpp",
+    "LayerManager.cpp",
     "Layers.cpp",
     "LayerScope.cpp",
     "LayersHelpers.cpp",

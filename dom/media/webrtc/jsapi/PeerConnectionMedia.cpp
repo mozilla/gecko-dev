@@ -25,6 +25,7 @@
 #include "nsIScriptGlobalObject.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/BrowserChild.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/net/WebrtcProxyConfig.h"
 #include "MediaManager.h"
@@ -628,6 +629,9 @@ void PeerConnectionMedia::SelfDestruct_m() {
 
   ASSERT_ON_THREAD(mMainThread);
 
+  mTransportHandler->RemoveTransportsExcept(std::set<std::string>());
+  mTransportHandler = nullptr;
+
   mMainThread = nullptr;
 
   // Final self-destruct.
@@ -640,9 +644,6 @@ void PeerConnectionMedia::ShutdownMediaTransport_s() {
   CSFLogDebug(LOGTAG, "%s: ", __FUNCTION__);
 
   disconnect_all();
-
-  mTransportHandler->Destroy();
-  mTransportHandler = nullptr;
 
   // we're holding a ref to 'this' that's released by SelfDestruct_m
   mMainThread->Dispatch(
@@ -869,9 +870,16 @@ std::unique_ptr<NrSocketProxyConfig> PeerConnectionMedia::GetProxyConfig()
     return nullptr;
   }
 
+  Document* doc = mParent->GetWindow()->GetExtantDoc();
+  if (NS_WARN_IF(!doc)) {
+    NS_WARNING("Unable to get document from window");
+    return nullptr;
+  }
+
   TabId id = browserChild->GetTabId();
-  nsCOMPtr<nsILoadInfo> loadInfo = new net::LoadInfo(
-      nsContentUtils::GetSystemPrincipal(), nullptr, nullptr, 0, 0);
+  nsCOMPtr<nsILoadInfo> loadInfo =
+      new net::LoadInfo(doc->NodePrincipal(), doc->NodePrincipal(), doc, 0,
+                        nsIContentPolicy::TYPE_INVALID);
 
   Maybe<net::LoadInfoArgs> loadInfoArgs;
   MOZ_ALWAYS_SUCCEEDS(

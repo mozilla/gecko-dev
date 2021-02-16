@@ -404,39 +404,39 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     sbfx(ARMRegister(dest, 64), ARMRegister(src, 64), JSVAL_TAG_SHIFT,
          (64 - JSVAL_TAG_SHIFT));
   }
-  MOZ_MUST_USE Register extractTag(const Address& address, Register scratch) {
+  [[nodiscard]] Register extractTag(const Address& address, Register scratch) {
     loadPtr(address, scratch);
     splitSignExtTag(scratch, scratch);
     return scratch;
   }
-  MOZ_MUST_USE Register extractTag(const ValueOperand& value,
-                                   Register scratch) {
+  [[nodiscard]] Register extractTag(const ValueOperand& value,
+                                    Register scratch) {
     splitSignExtTag(value.valueReg(), scratch);
     return scratch;
   }
-  MOZ_MUST_USE Register extractObject(const Address& address,
-                                      Register scratch) {
+  [[nodiscard]] Register extractObject(const Address& address,
+                                       Register scratch) {
     loadPtr(address, scratch);
     unboxObject(scratch, scratch);
     return scratch;
   }
-  MOZ_MUST_USE Register extractObject(const ValueOperand& value,
-                                      Register scratch) {
+  [[nodiscard]] Register extractObject(const ValueOperand& value,
+                                       Register scratch) {
     unboxObject(value, scratch);
     return scratch;
   }
-  MOZ_MUST_USE Register extractSymbol(const ValueOperand& value,
-                                      Register scratch) {
+  [[nodiscard]] Register extractSymbol(const ValueOperand& value,
+                                       Register scratch) {
     unboxSymbol(value, scratch);
     return scratch;
   }
-  MOZ_MUST_USE Register extractInt32(const ValueOperand& value,
-                                     Register scratch) {
+  [[nodiscard]] Register extractInt32(const ValueOperand& value,
+                                      Register scratch) {
     unboxInt32(value, scratch);
     return scratch;
   }
-  MOZ_MUST_USE Register extractBoolean(const ValueOperand& value,
-                                       Register scratch) {
+  [[nodiscard]] Register extractBoolean(const ValueOperand& value,
+                                        Register scratch) {
     unboxBoolean(value, scratch);
     return scratch;
   }
@@ -608,6 +608,32 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
       bind(&nonzero);
     }
     And(dest64, dest64, Operand(0xffffffff));
+  }
+
+  void convertDoubleToPtr(FloatRegister src, Register dest, Label* fail,
+                          bool negativeZeroCheck = true) {
+    ARMFPRegister fsrc64(src, 64);
+    ARMRegister dest64(dest, 64);
+
+    vixl::UseScratchRegisterScope temps(this);
+    const ARMFPRegister scratch64 = temps.AcquireD();
+    MOZ_ASSERT(!scratch64.Is(fsrc64));
+
+    // Note: we can't use the FJCVTZS instruction here because that only works
+    // for 32-bit values.
+
+    Fcvtzs(dest64, fsrc64);    // Convert, rounding toward zero.
+    Scvtf(scratch64, dest64);  // Convert back, using FPCR rounding mode.
+    Fcmp(scratch64, fsrc64);
+    B(fail, Assembler::NotEqual);
+
+    if (negativeZeroCheck) {
+      Label nonzero;
+      Cbnz(dest64, &nonzero);
+      Fmov(dest64, fsrc64);
+      Cbnz(dest64, fail);
+      bind(&nonzero);
+    }
   }
 
   void floor(FloatRegister input, Register output, Label* bail) {
@@ -964,6 +990,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     storePtr(ImmWord(imm.value), address);
   }
 
+  void store64(Imm64 imm, const Address& address) {
+    storePtr(ImmWord(imm.value), address);
+  }
+
   template <typename S, typename T>
   void store64Unaligned(const S& src, const T& dest) {
     store64(src, dest);
@@ -1032,14 +1062,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Ldr(scratch32, toMemOperand(lhs));
     Cmp(scratch32, Operand(ARMRegister(rhs, 32)));
   }
-  void cmp32(Register lhs, const Address& rhs) {
-    vixl::UseScratchRegisterScope temps(this);
-    const ARMRegister scratch32 = temps.AcquireW();
-    MOZ_ASSERT(scratch32.asUnsized() != rhs.base);
-    MOZ_ASSERT(scratch32.asUnsized() != lhs);
-    Ldr(scratch32, toMemOperand(rhs));
-    Cmp(scratch32, Operand(ARMRegister(lhs, 32)));
-  }
   void cmp32(const vixl::Operand& lhs, Imm32 rhs) {
     vixl::UseScratchRegisterScope temps(this);
     const ARMRegister scratch32 = temps.AcquireW();
@@ -1051,12 +1073,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     const ARMRegister scratch32 = temps.AcquireW();
     Mov(scratch32, lhs);
     Cmp(scratch32, Operand(ARMRegister(rhs, 32)));
-  }
-  void cmp32(Register lhs, const vixl::Operand& rhs) {
-    vixl::UseScratchRegisterScope temps(this);
-    const ARMRegister scratch32 = temps.AcquireW();
-    Mov(scratch32, rhs);
-    Cmp(scratch32, Operand(ARMRegister(lhs, 32)));
   }
 
   void cmn32(Register lhs, Imm32 rhs) {
@@ -1288,6 +1304,13 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
     Adds(scratch32, scratch32, Operand(imm.value));
     Str(scratch32, toMemOperand(dest));
   }
+  void adds64(Imm32 imm, Register dest) {
+    Adds(ARMRegister(dest, 64), ARMRegister(dest, 64), Operand(imm.value));
+  }
+  void adds64(Register src, Register dest) {
+    Adds(ARMRegister(dest, 64), ARMRegister(dest, 64),
+         Operand(ARMRegister(src, 64)));
+  }
 
   void subs32(Imm32 imm, Register dest) {
     Subs(ARMRegister(dest, 32), ARMRegister(dest, 32), Operand(imm.value));
@@ -1295,6 +1318,13 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   void subs32(Register src, Register dest) {
     Subs(ARMRegister(dest, 32), ARMRegister(dest, 32),
          Operand(ARMRegister(src, 32)));
+  }
+  void subs64(Imm32 imm, Register dest) {
+    Subs(ARMRegister(dest, 64), ARMRegister(dest, 64), Operand(imm.value));
+  }
+  void subs64(Register src, Register dest) {
+    Subs(ARMRegister(dest, 64), ARMRegister(dest, 64),
+         Operand(ARMRegister(src, 64)));
   }
 
   void ret() {
@@ -1933,8 +1963,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
       MOZ_ASSERT(scratch64.asUnsized() != address.base);
       Ldr(scratch64, toMemOperand(address));
       int32OrDouble(scratch64.asUnsized(), ARMFPRegister(dest.fpu(), 64));
-    } else if (type == MIRType::ObjectOrNull) {
-      unboxObjectOrNull(address, dest.gpr());
     } else {
       unboxNonDouble(address, dest.gpr(), ValueTypeFromMIRType(type));
     }
@@ -1948,8 +1976,6 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
       MOZ_ASSERT(scratch64.asUnsized() != address.index);
       doBaseIndex(scratch64, address, vixl::LDR_x);
       int32OrDouble(scratch64.asUnsized(), ARMFPRegister(dest.fpu(), 64));
-    } else if (type == MIRType::ObjectOrNull) {
-      unboxObjectOrNull(address, dest.gpr());
     } else {
       unboxNonDouble(address, dest.gpr(), ValueTypeFromMIRType(type));
     }
@@ -2018,11 +2044,13 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   Address ToType(Address value) { return value; }
 
   void wasmLoadImpl(const wasm::MemoryAccessDesc& access, Register memoryBase,
-                    Register ptr, Register ptrScratch, AnyRegister outany,
-                    Register64 out64);
+                    Register ptr, AnyRegister outany, Register64 out64);
+  void wasmLoadImpl(const wasm::MemoryAccessDesc& access, MemOperand srcAddr,
+                    AnyRegister outany, Register64 out64);
   void wasmStoreImpl(const wasm::MemoryAccessDesc& access, AnyRegister valany,
-                     Register64 val64, Register memoryBase, Register ptr,
-                     Register ptrScratch);
+                     Register64 val64, Register memoryBase, Register ptr);
+  void wasmStoreImpl(const wasm::MemoryAccessDesc& access, MemOperand destAddr,
+                     AnyRegister valany, Register64 val64);
 
   // Emit a BLR or NOP instruction. ToggleCall can be used to patch
   // this instruction.

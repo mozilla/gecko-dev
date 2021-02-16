@@ -69,6 +69,12 @@ class SearchSettings {
    */
   _searchService = null;
 
+  /*
+   * A copy of the settings so we can persist metadata for engines that
+   * are not currently active.
+   */
+  _currentSettings = null;
+
   addObservers() {
     Services.obs.addObserver(this, SearchUtils.TOPIC_ENGINE_MODIFIED);
     Services.obs.addObserver(this, SearchUtils.TOPIC_SEARCH_SERVICE);
@@ -124,6 +130,7 @@ class SearchSettings {
       Services.prefs.clearUserPref(prefName);
     }
 
+    this._currentSettings = json;
     return json;
   }
 
@@ -190,20 +197,26 @@ class SearchSettings {
     }
 
     let settings = {};
-    let locale = Services.locale.requestedLocale;
-    let buildID = Services.appinfo.platformBuildID;
 
     // Allows us to force a settings refresh should the settings format change.
     settings.version = SearchUtils.SETTINGS_VERSION;
-    // We don't want to incur the costs of stat()ing each plugin on every
-    // startup when the only (supported) time they will change is during
-    // app updates (where the buildID is obviously going to change).
-    // Extension-shipped plugins are the only exception to this, but their
-    // directories are blown away during updates, so we'll detect their changes.
-    settings.buildID = buildID;
-    settings.locale = locale;
     settings.engines = [...this._searchService._engines.values()];
     settings.metaData = this._metaData;
+
+    // Persist metadata for AppProvided engines even if they aren't currently
+    // active, this means if they become active again their settings
+    // will be restored.
+    if (this._currentSettings?.engines) {
+      for (let engine of this._currentSettings.engines) {
+        let included = settings.engines.some(e => e._name == engine._name);
+        if (engine._isAppProvided && !included) {
+          settings.engines.push(engine);
+        }
+      }
+    }
+
+    // Update the local copy.
+    this._currentSettings = settings;
 
     try {
       if (!settings.engines.length) {

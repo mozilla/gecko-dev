@@ -23,7 +23,8 @@ class NetworkEventWatcher {
    * Start watching for all network events related to a given Watcher Actor.
    *
    * @param WatcherActor watcherActor
-   *        The watcher actor from which we should observe network events
+   *        The watcher actor in the parent process from which we should
+   *        observe network events.
    * @param Object options
    *        Dictionary object with following attributes:
    *        - onAvailable: mandatory function
@@ -33,6 +34,7 @@ class NetworkEventWatcher {
    */
   async watch(watcherActor, { onAvailable, onUpdated }) {
     this.networkEvents = new Map();
+
     this.watcherActor = watcherActor;
     this.onNetworkEventAvailable = onAvailable;
     this.onNetworkEventUpdated = onUpdated;
@@ -41,7 +43,44 @@ class NetworkEventWatcher {
       { browserId: watcherActor.browserId },
       { onNetworkEvent: this.onNetworkEvent.bind(this) }
     );
+
     this.listener.init();
+  }
+
+  /**
+   * Gets the throttle settings
+   *
+   * @return {*} data
+   *
+   */
+  getThrottleData() {
+    return this.listener.throttleData;
+  }
+
+  /**
+   * Sets the throttle data
+   *
+   * @param {*} data
+   *
+   */
+  setThrottleData(data) {
+    this.listener.throttleData = data;
+  }
+
+  /**
+   * Block requests based on the filters
+   * @param {Object} filters
+   */
+  blockRequest(filters) {
+    this.listener.blockRequest(filters);
+  }
+
+  /**
+   * Unblock requests based on the fitlers
+   * @param {Object} filters
+   */
+  unblockRequest(filters) {
+    this.listener.unblockRequest(filters);
   }
 
   /**
@@ -68,7 +107,8 @@ class NetworkEventWatcher {
 
   onNetworkEvent(event) {
     const { channelId } = event;
-    if (this.networkEvents.get(channelId)) {
+
+    if (this.networkEvents.has(channelId)) {
       throw new Error(
         `Got notified about channel ${channelId} more than once.`
       );
@@ -84,78 +124,89 @@ class NetworkEventWatcher {
     this.watcherActor.manage(actor);
 
     const resource = actor.asResource();
-    this.networkEvents.set(resource.resourceId, resource);
+
+    this.networkEvents.set(resource.resourceId, {
+      resourceId: resource.resourceId,
+      resourceType: resource.resourceType,
+      isBlocked: !!resource.blockedReason,
+      types: [],
+      resourceUpdates: {},
+    });
+
     this.onNetworkEventAvailable([resource]);
     return actor;
   }
 
   onNetworkEventUpdate(updateResource) {
-    const currentResource = this.networkEvents.get(updateResource.resourceId);
-    if (!currentResource) {
+    const networkEvent = this.networkEvents.get(updateResource.resourceId);
+
+    if (!networkEvent) {
       return;
     }
-    const resourceUpdates = {
-      updates: [...currentResource.updates, updateResource.updateType],
-    };
+
+    const {
+      resourceId,
+      resourceType,
+      resourceUpdates,
+      types,
+      isBlocked,
+    } = networkEvent;
 
     switch (updateResource.updateType) {
-      case "requestHeaders":
-        resourceUpdates.request = Object.assign(currentResource.request, {
-          headersSize: updateResource.headersSize,
-        });
-        break;
-      case "requestPostData":
-        resourceUpdates.discardRequestBody = updateResource.discardRequestBody;
-        resourceUpdates.request = Object.assign(currentResource.request, {
-          bodySize: updateResource.dataSize,
-        });
-        break;
       case "responseStart":
-        resourceUpdates.response = Object.assign(currentResource.response, {
-          httpVersion: updateResource.response.httpVersion,
-          status: updateResource.response.status,
-          statusText: updateResource.response.statusText,
-          headersSize: updateResource.response.headersSize,
-          remoteAddress: updateResource.response.remoteAddress,
-          remotePort: updateResource.response.remotePort,
-          content: {
-            mimeType: updateResource.response.mimeType,
-          },
-          waitingTime: updateResource.response.waitingTime,
-        });
-        resourceUpdates.discardResponseBody =
-          updateResource.response.discardResponseBody;
+        resourceUpdates.httpVersion = updateResource.httpVersion;
+        resourceUpdates.status = updateResource.status;
+        resourceUpdates.statusText = updateResource.statusText;
+        resourceUpdates.remoteAddress = updateResource.remoteAddress;
+        resourceUpdates.remotePort = updateResource.remotePort;
+        // The mimetype is only set when then the contentType is available
+        // in the _onResponseHeader and not for cached/service worker requests
+        // in _httpResponseExaminer.
+        resourceUpdates.mimeType = updateResource.mimeType;
+        resourceUpdates.waitingTime = updateResource.waitingTime;
         break;
       case "responseContent":
-        resourceUpdates.response = Object.assign(currentResource.response, {
-          content: { mimeType: updateResource.mimeType },
-          bodySize: updateResource.contentSize,
-          transferredSize: updateResource.transferredSize,
-        });
-        resourceUpdates.discardResponseBody =
-          updateResource.discardResponseBody;
+        resourceUpdates.contentSize = updateResource.contentSize;
+        resourceUpdates.transferredSize = updateResource.transferredSize;
+        resourceUpdates.mimeType = updateResource.mimeType;
+        resourceUpdates.blockingExtension = updateResource.blockingExtension;
+        resourceUpdates.blockedReason = updateResource.blockedReason;
         break;
       case "eventTimings":
         resourceUpdates.totalTime = updateResource.totalTime;
         break;
       case "securityInfo":
         resourceUpdates.securityState = updateResource.state;
-        break;
-      case "responseCache":
-        resourceUpdates.response = Object.assign(currentResource.response, {
-          responseCache: updateResource.responseCache,
-        });
+        resourceUpdates.isRacing = updateResource.isRacing;
         break;
     }
 
-    Object.assign(currentResource, resourceUpdates);
+    resourceUpdates[`${updateResource.updateType}Available`] = true;
+    types.push(updateResource.updateType);
+
+    if (isBlocked) {
+      // Blocked requests
+      if (
+        !types.includes("requestHeaders") ||
+        !types.includes("requestCookies")
+      ) {
+        return;
+      }
+    } else if (
+      // Un-blocked requests
+      !types.includes("requestHeaders") ||
+      !types.includes("requestCookies") ||
+      !types.includes("eventTimings") ||
+      !types.includes("responseContent")
+    ) {
+      return;
+    }
 
     this.onNetworkEventUpdated([
       {
-        resourceType: currentResource.resourceType,
-        resourceId: updateResource.resourceId,
+        resourceType,
+        resourceId,
         resourceUpdates,
-        updateType: updateResource.updateType,
       },
     ]);
   }

@@ -3,7 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from __future__ import absolute_import
+
 import os
+
+from functools import reduce
 
 from marionette_driver import Wait
 from marionette_harness import MarionetteTestCase
@@ -58,7 +61,10 @@ class TestSafeBrowsingInitialDownload(MarionetteTestCase):
             base_names = self.marionette.get_pref(pref_name).split(",")
 
             # moztest- lists are not saved to disk
-            base_names = filter(lambda x: not x.startswith("moztest-"), base_names)
+            # pylint --py3k: W1639
+            base_names = list(
+                filter(lambda x: not x.startswith("moztest-"), base_names)
+            )
 
             for ext in my_file_extensions:
                 files.extend(
@@ -116,7 +122,7 @@ class TestSafeBrowsingInitialDownload(MarionetteTestCase):
         def check_downloaded(_):
             return reduce(
                 lambda state, pref: state and int(self.marionette.get_pref(pref)) != 1,
-                self.prefs_provider_update_time.keys(),
+                list(self.prefs_provider_update_time),
                 True,
             )
 

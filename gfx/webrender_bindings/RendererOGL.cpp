@@ -137,11 +137,6 @@ void RendererOGL::Update() {
   }
 }
 
-static void DoNotifyWebRenderContextPurge(
-    layers::CompositorBridgeParent* aBridge) {
-  aBridge->NotifyWebRenderContextPurge();
-}
-
 static void DoWebRenderDisableNativeCompositor(
     layers::CompositorBridgeParent* aBridge) {
   aBridge->NotifyWebRenderDisableNativeCompositor();
@@ -166,10 +161,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
   }
   // XXX set clear color if MOZ_WIDGET_ANDROID is defined.
 
-  if (!mCompositor->BeginFrame()) {
-    if (mCompositor->IsContextLost()) {
-      RenderThread::Get()->HandleDeviceReset("BeginFrame", /* aNotify */ true);
-    }
+  if (mThread->IsHandlingDeviceReset() || !mCompositor->BeginFrame()) {
+    CheckGraphicsResetStatus("BeginFrame", /* aForce */ true);
     mCompositor->GetWidget()->PostRender(&widgetContext);
     return RenderedFrameId();
   }
@@ -213,8 +206,10 @@ RenderedFrameId RendererOGL::UpdateAndRender(
     }
   }
 
-  if (!mCompositor->MaybeGrabScreenshot(size.ToUnknownSize())) {
-    mScreenshotGrabber.MaybeGrabScreenshot(this, size.ToUnknownSize());
+  if (size.Width() != 0 && size.Height() != 0) {
+    if (!mCompositor->MaybeGrabScreenshot(size.ToUnknownSize())) {
+      mScreenshotGrabber.MaybeGrabScreenshot(this, size.ToUnknownSize());
+    }
   }
 
   RenderedFrameId frameId = mCompositor->EndFrame(dirtyRects);
@@ -256,27 +251,18 @@ bool RendererOGL::EnsureAsyncScreenshot() {
   return false;
 }
 
-void RendererOGL::CheckGraphicsResetStatus() {
-  if (!mCompositor || !mCompositor->gl()) {
-    return;
-  }
-
-  gl::GLContext* gl = mCompositor->gl();
-  if (gl->IsSupported(gl::GLFeature::robustness)) {
-    GLenum resetStatus = gl->fGetGraphicsResetStatus();
-    if (resetStatus == LOCAL_GL_PURGED_CONTEXT_RESET_NV) {
-      layers::CompositorThread()->Dispatch(
-          NewRunnableFunction("DoNotifyWebRenderContextPurgeRunnable",
-                              &DoNotifyWebRenderContextPurge, mBridge));
+void RendererOGL::CheckGraphicsResetStatus(const char* aCaller, bool aForce) {
+  if (mCompositor) {
+    auto reason = mCompositor->IsContextLost(aForce);
+    if (reason != LOCAL_GL_NO_ERROR) {
+      RenderThread::Get()->HandleDeviceReset(aCaller, mBridge, reason);
     }
   }
 }
 
 void RendererOGL::WaitForGPU() {
   if (!mCompositor->WaitForGPU()) {
-    if (mCompositor->IsContextLost()) {
-      RenderThread::Get()->HandleDeviceReset("WaitForGPU", /* aNotify */ true);
-    }
+    CheckGraphicsResetStatus("WaitForGPU", /* aForce */ true);
   }
 }
 
@@ -295,6 +281,8 @@ RenderedFrameId RendererOGL::UpdateFrameId() {
 void RendererOGL::Pause() { mCompositor->Pause(); }
 
 bool RendererOGL::Resume() { return mCompositor->Resume(); }
+
+bool RendererOGL::IsPaused() { return mCompositor->IsPaused(); }
 
 layers::SyncObjectHost* RendererOGL::GetSyncObject() const {
   return mCompositor->GetSyncObject();
@@ -320,6 +308,7 @@ void RendererOGL::BeginRecording(const TimeStamp& aRecordingStart,
   mRootPipelineId = aRootPipelineId;
   mCompositionRecorder =
       MakeUnique<layers::CompositionRecorder>(aRecordingStart);
+  mCompositor->MaybeRequestAllowFrameRecording(true);
 }
 
 void RendererOGL::MaybeRecordFrame(const WebRenderPipelineInfo* aPipelineInfo) {
@@ -391,6 +380,7 @@ void RendererOGL::WriteCollectedFrames() {
 
   wr_renderer_release_composition_recorder_structures(mRenderer);
 
+  mCompositor->MaybeRequestAllowFrameRecording(false);
   mCompositionRecorder = nullptr;
 }
 
@@ -405,6 +395,7 @@ Maybe<layers::CollectedFrames> RendererOGL::GetCollectedFrames() {
 
   wr_renderer_release_composition_recorder_structures(mRenderer);
 
+  mCompositor->MaybeRequestAllowFrameRecording(false);
   mCompositionRecorder = nullptr;
 
   return Some(std::move(frames));

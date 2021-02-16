@@ -27,7 +27,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TaskQueue.h"
-#include "nsCharSeparatedTokenizer.h"
 #include "nsContentTypeParser.h"
 #include "nsContentUtils.h"
 #include "nsDocShell.h"
@@ -37,6 +36,7 @@
 #include "nsIScriptError.h"
 #include "nsMimeTypes.h"
 #include "nsProxyRelease.h"
+#include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 
 mozilla::LazyLogModule gMediaRecorderLog("MediaRecorder");

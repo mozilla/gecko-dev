@@ -7,12 +7,11 @@
 #ifndef mozilla_dom_PushSubscription_h
 #define mozilla_dom_PushSubscription_h
 
-#include "jsapi.h"
+#include "js/RootingAPI.h"
 #include "nsCOMPtr.h"
 #include "nsWrapperCache.h"
 
 #include "mozilla/AlreadyAddRefed.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/RefPtr.h"
 
 #include "mozilla/dom/BindingDeclarations.h"
@@ -23,6 +22,8 @@
 class nsIGlobalObject;
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
 class Promise;

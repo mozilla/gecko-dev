@@ -959,10 +959,12 @@ AddonWrapper = class {
 
   get canBypassThirdParyInstallPrompt() {
     // We only bypass if the extension is signed (to support distributions
-    // that turn off the signing requirement) and has recommendation states.
+    // that turn off the signing requirement) and has recommendation states,
+    // or the extension is signed as privileged.
     return (
-      this.signedState >= AddonManager.SIGNEDSTATE_SIGNED &&
-      this.recommendationStates.length
+      this.signedState == AddonManager.SIGNEDSTATE_PRIVILEGED ||
+      (this.signedState >= AddonManager.SIGNEDSTATE_SIGNED &&
+        this.recommendationStates.length)
     );
   }
 
@@ -2926,9 +2928,8 @@ this.XPIDatabaseReconcile = {
    *        The new state of the add-on
    * @param {AddonInternal?} [aNewAddon]
    *        The manifest for the new add-on if it has already been loaded
-   * @returns {boolean?}
-   *        A boolean indicating if flushing caches is required to complete
-   *        changing this add-on
+   * @returns {AddonInternal}
+   *        The AddonInternal that was added to the database
    */
   updateMetadata(aLocation, aOldAddon, aAddonState, aNewAddon) {
     logger.debug(`Add-on ${aOldAddon.id} modified in ${aLocation.name}`);
@@ -2971,6 +2972,8 @@ this.XPIDatabaseReconcile = {
 
     // Set the additional properties on the new AddonInternal
     aNewAddon.updateDate = aAddonState.mtime;
+
+    XPIProvider.persistStartupData(aNewAddon, aAddonState);
 
     // Update the database
     return XPIDatabase.updateAddonMetadata(
@@ -3436,8 +3439,23 @@ this.XPIDatabaseReconcile = {
           id
         );
 
+        // Bug 1664144:  If the addon changed on disk we will catch it during
+        // the second scan initiated by getNewSideloads.  The addon may have
+        // already started, if so we need to ensure it restarts during the
+        // update, otherwise we're left in a state where the addon is enabled
+        // but not started.  We use the bootstrap started state to check that.
+        // isActive alone is not sufficient as that changes the characteristics
+        // of other updates and breaks many tests.
+        let restart =
+          isActive && XPIInternal.BootstrapScope.get(currentAddon).started;
+        if (restart) {
+          logger.warn(
+            `Updating and restart addon ${previousAddon.id} that changed on disk after being already started.`
+          );
+        }
         promise = XPIInternal.BootstrapScope.get(previousAddon).update(
-          currentAddon
+          currentAddon,
+          restart
         );
       }
 

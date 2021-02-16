@@ -7,10 +7,12 @@
 #ifndef mozilla_dom_ScriptLoadRequest_h
 #define mozilla_dom_ScriptLoadRequest_h
 
+#include "js/AllocPolicy.h"
+#include "js/RootingAPI.h"
+#include "js/TypeDecls.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CORSMode.h"
-#include "mozilla/dom/Element.h"
 #include "mozilla/dom/SRIMetadata.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
@@ -25,9 +27,14 @@
 
 class nsICacheInfoChannel;
 
+namespace JS {
+class OffThreadToken;
+}
+
 namespace mozilla {
 namespace dom {
 
+class Element;
 class ModuleLoadRequest;
 class ScriptLoadRequestList;
 
@@ -124,18 +131,9 @@ class ScriptLoadRequest
     mIsTracking = true;
   }
 
-  void BlockOnload(Document* aDocument) {
-    MOZ_ASSERT(!mLoadBlockedDocument);
-    aDocument->BlockOnload();
-    mLoadBlockedDocument = aDocument;
-  }
+  void BlockOnload(Document* aDocument);
 
-  void MaybeUnblockOnload() {
-    if (mLoadBlockedDocument) {
-      mLoadBlockedDocument->UnblockOnload(false);
-      mLoadBlockedDocument = nullptr;
-    }
-  }
+  void MaybeUnblockOnload();
 
   enum class Progress : uint8_t {
     eLoading,         // Request either source or bytecode
@@ -181,7 +179,7 @@ class ScriptLoadRequest
   // can be transferred in constant time to the JS engine, not copied in linear
   // time.
   template <typename Unit>
-  using ScriptTextBuffer = Vector<Unit, 0, JSMallocAllocPolicy>;
+  using ScriptTextBuffer = Vector<Unit, 0, js::MallocAllocPolicy>;
 
   // BinAST data isn't transferred to the JS engine, so it doesn't need to use
   // the JS allocator.
@@ -255,11 +253,7 @@ class ScriptLoadRequest
   enum ReferrerPolicy ReferrerPolicy() const {
     return mFetchOptions->mReferrerPolicy;
   }
-  nsIScriptElement* GetScriptElement() const {
-    nsCOMPtr<nsIScriptElement> scriptElement =
-        do_QueryInterface(mFetchOptions->mElement);
-    return scriptElement;
-  }
+  nsIScriptElement* GetScriptElement() const;
   nsIPrincipal* TriggeringPrincipal() const {
     return mFetchOptions->mTriggeringPrincipal;
   }
@@ -272,13 +266,7 @@ class ScriptLoadRequest
   }
 
   // Make a preload request into an actual load request for the given element.
-  void SetIsLoadRequest(nsIScriptElement* aElement) {
-    MOZ_ASSERT(aElement);
-    MOZ_ASSERT(!GetScriptElement());
-    MOZ_ASSERT(IsPreload());
-    mFetchOptions->mElement = do_QueryInterface(aElement);
-    mFetchOptions->mIsPreload = false;
-  }
+  void SetIsLoadRequest(nsIScriptElement* aElement);
 
   FromParser GetParserCreated() const {
     nsIScriptElement* element = GetScriptElement();

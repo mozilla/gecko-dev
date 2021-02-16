@@ -21,6 +21,11 @@ class nsIReferrerInfo;
 class nsISHistory;
 class nsIURI;
 
+namespace mozilla::ipc {
+template <typename P>
+struct IPDLParamTraits;
+}
+
 namespace mozilla {
 namespace dom {
 
@@ -36,9 +41,7 @@ class SessionHistoryInfo {
   SessionHistoryInfo(const SessionHistoryInfo& aInfo) = default;
   SessionHistoryInfo(nsDocShellLoadState* aLoadState, nsIChannel* aChannel);
   SessionHistoryInfo(const SessionHistoryInfo& aSharedStateFrom, nsIURI* aURI);
-  SessionHistoryInfo(const SessionHistoryInfo* aSharedStateFrom, nsIURI* aURI,
-                     const nsID& aDocShellID,
-                     nsIPrincipal* aTriggeringPrincipal,
+  SessionHistoryInfo(nsIURI* aURI, nsIPrincipal* aTriggeringPrincipal,
                      nsIPrincipal* aPrincipalToInherit,
                      nsIPrincipal* aPartitionedPrincipalToInherit,
                      nsIContentSecurityPolicy* aCsp,
@@ -101,6 +104,11 @@ class SessionHistoryInfo {
   }
   bool GetURIWasModified() const { return mURIWasModified; }
 
+  void SetHasUserInteraction(bool aHasUserInteraction) {
+    mHasUserInteraction = aHasUserInteraction;
+  }
+  bool GetHasUserInteraction() const { return mHasUserInteraction; }
+
   uint64_t SharedId() const;
 
   nsILayoutHistoryState* GetLayoutHistoryState();
@@ -152,6 +160,7 @@ class SessionHistoryInfo {
   bool mIsSrcdocEntry = false;
   bool mScrollRestorationIsManual = false;
   bool mPersist = true;
+  bool mHasUserInteraction = false;
 
   union SharedState {
     SharedState();
@@ -291,6 +300,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(SessionHistoryEntry, NS_SESSIONHISTORYENTRY_IID)
 }  // namespace dom
 
 namespace ipc {
+
+class IProtocol;
 
 // Allow sending SessionHistoryInfo objects over IPC.
 template <>

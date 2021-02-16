@@ -22,7 +22,7 @@
 #include "js/CharacterEncoding.h"
 #include "js/experimental/CodeCoverage.h"
 #include "js/experimental/CTypes.h"  // JS::AutoCTypesActivityCallback, JS::SetCTypesActivityCallback
-#include "js/experimental/Intl.h"  // JS::Add{,Moz}DisplayNamesConstructor, JS::AddMozDateTimeFormatConstructor
+#include "js/experimental/Intl.h"  // JS::AddMoz{DateTimeFormat,DisplayNames}Constructor
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/StackLimits.h"    // JS_STACK_GROWTH_DIRECTION
 #include "js/friend/WindowProxy.h"    // js::ToWindowIfWindowProxy
@@ -35,15 +35,18 @@
 #include "proxy/DeadObjectProxy.h"
 #include "util/Poison.h"
 #include "vm/ArgumentsObject.h"
+#include "vm/BooleanObject.h"
 #include "vm/DateObject.h"
 #include "vm/ErrorObject.h"
 #include "vm/FrameIter.h"  // js::FrameIter
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
+#include "vm/NumberObject.h"
 #include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/Printer.h"
 #include "vm/PromiseObject.h"  // js::PromiseObject
 #include "vm/Realm.h"
+#include "vm/StringObject.h"
 #include "vm/Time.h"
 #include "vm/WrapperObject.h"
 
@@ -107,45 +110,15 @@ JS_FRIEND_API JSFunction* JS_GetObjectFunction(JSObject* obj) {
   return nullptr;
 }
 
-JS_FRIEND_API bool JS_SplicePrototype(JSContext* cx, HandleObject obj,
+JS_FRIEND_API bool JS_SplicePrototype(JSContext* cx, HandleObject global,
                                       HandleObject proto) {
-  /*
-   * Change the prototype of an object which hasn't been used anywhere
-   * and does not share its type with another object. Unlike JS_SetPrototype,
-   * does not nuke type information for the object.
-   */
   CHECK_THREAD(cx);
-  cx->check(obj, proto);
+  cx->check(global, proto);
 
-  if (!obj->isSingleton()) {
-    /*
-     * We can see non-singleton objects when trying to splice prototypes
-     * due to mutable __proto__ (ugh).
-     */
-    return JS_SetPrototype(cx, obj, proto);
-  }
+  MOZ_ASSERT(global->is<GlobalObject>());
 
   Rooted<TaggedProto> tagged(cx, TaggedProto(proto));
-  return JSObject::splicePrototype(cx, obj, tagged);
-}
-
-JS_FRIEND_API JSObject* JS_NewObjectWithUniqueType(JSContext* cx,
-                                                   const JSClass* clasp,
-                                                   HandleObject proto) {
-  /*
-   * Create our object with a null proto and then splice in the correct proto
-   * after we setSingleton, so that we don't pollute the default
-   * ObjectGroup attached to our proto with information about our object, since
-   * we're not going to be using that ObjectGroup anyway.
-   */
-  RootedObject obj(cx, NewSingletonObjectWithGivenProto(cx, clasp, nullptr));
-  if (!obj) {
-    return nullptr;
-  }
-  if (!JS_SplicePrototype(cx, obj, proto)) {
-    return nullptr;
-  }
-  return obj;
+  return GlobalObject::splicePrototype(cx, global.as<GlobalObject>(), tagged);
 }
 
 JS_FRIEND_API JSObject* JS_NewObjectWithoutMetadata(
@@ -828,10 +801,6 @@ bool JS::AddMozDateTimeFormatConstructor(JSContext* cx, JS::HandleObject intl) {
 }
 
 bool JS::AddMozDisplayNamesConstructor(JSContext* cx, JS::HandleObject intl) {
-  return IntlNotEnabled(cx);
-}
-
-bool JS::AddDisplayNamesConstructor(JSContext* cx, JS::HandleObject intl) {
   return IntlNotEnabled(cx);
 }
 

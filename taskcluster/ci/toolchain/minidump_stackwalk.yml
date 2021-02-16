@@ -15,12 +15,9 @@ job-defaults:
         resources:
             - 'build/moz.configure'
             - 'config/external/zlib'
-            - 'mfbt'
             - 'moz.configure'
             - 'toolkit/crashreporter'
-            - 'toolkit/crashreporter/google-breakpad/src/common'
             - 'toolkit/crashreporter/google-breakpad/src/processor'
-            - 'toolkit/crashreporter/rust'
             - 'tools/crashreporter/'
         toolchain-artifact: public/build/minidump_stackwalk.tar.xz
     run-on-projects:
@@ -31,7 +28,7 @@ linux64-minidump-stackwalk:
         symbol: TL(stackwalk)
     fetches:
         toolchain:
-            - linux64-clang-9
+            - linux64-clang-11
             - linux64-binutils
             - linux64-rust-1.47
 
@@ -48,8 +45,8 @@ macosx64-minidump-stackwalk:
         tooltool-downloads: internal
     fetches:
         toolchain:
-            - linux64-cctools-port-clang-9
-            - linux64-clang-9
+            - linux64-cctools-port-clang-11
+            - linux64-clang-11
             - linux64-rust-macos-1.47
 
 win32-minidump-stackwalk:

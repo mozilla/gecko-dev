@@ -9,6 +9,7 @@ package org.mozilla.geckoview;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.math.BigInteger;
+import java.util.Locale;
 
 import androidx.annotation.AnyThread;
 import androidx.annotation.LongDef;
@@ -112,20 +113,11 @@ public final class StorageController {
     @AnyThread
     public @NonNull GeckoResult<Void> clearData(
             final @StorageControllerClearFlags long flags) {
-        final CallbackResult<Void> result = new CallbackResult<Void>() {
-            @Override
-            public void sendSuccess(final Object response) {
-                complete(null);
-            }
-        };
-
         final GeckoBundle bundle = new GeckoBundle(1);
         bundle.putLong("flags", flags);
 
-        EventDispatcher.getInstance().dispatch(
-            "GeckoView:ClearData", bundle, result);
-
-        return result;
+        return EventDispatcher.getInstance()
+                .queryVoid("GeckoView:ClearData", bundle);
     }
 
     /**
@@ -146,21 +138,12 @@ public final class StorageController {
     public @NonNull GeckoResult<Void> clearDataFromHost(
             final @NonNull String host,
             final @StorageControllerClearFlags long flags) {
-        final CallbackResult<Void> result = new CallbackResult<Void>() {
-            @Override
-            public void sendSuccess(final Object response) {
-                complete(null);
-            }
-        };
-
         final GeckoBundle bundle = new GeckoBundle(2);
         bundle.putString("host", host);
         bundle.putLong("flags", flags);
 
-        EventDispatcher.getInstance().dispatch(
-            "GeckoView:ClearHostData", bundle, result);
-
-        return result;
+        return EventDispatcher.getInstance()
+                .queryVoid("GeckoView:ClearHostData", bundle);
     }
 
     /**
@@ -196,6 +179,6 @@ public final class StorageController {
         // ensure that the string is safe for Gecko processing, we translate it to
         // its hex representation.
         return String.format("gvctx%x", new BigInteger(contextId.getBytes()))
-               .toLowerCase();
+               .toLowerCase(Locale.ROOT);
     }
 }

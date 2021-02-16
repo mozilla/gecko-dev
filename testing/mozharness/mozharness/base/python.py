@@ -7,6 +7,7 @@
 """Python usage, esp. virtualenv.
 """
 
+from __future__ import absolute_import, division
 import errno
 import json
 import os
@@ -125,6 +126,7 @@ class VirtualenvMixin(object):
         optional=False,
         two_pass=False,
         editable=False,
+        legacy_resolver=False,
     ):
         """Register a module to be installed with the virtualenv.
 
@@ -135,7 +137,16 @@ class VirtualenvMixin(object):
         applied.
         """
         self._virtualenv_modules.append(
-            (name, url, method, requirements, optional, two_pass, editable)
+            (
+                name,
+                url,
+                method,
+                requirements,
+                optional,
+                two_pass,
+                editable,
+                legacy_resolver,
+            )
         )
 
     def query_virtualenv_path(self):
@@ -235,8 +246,9 @@ class VirtualenvMixin(object):
         """
         Return whether the package is installed
         """
-        packages = self.package_versions(error_level=error_level).keys()
-        return package_name.lower() in [package.lower() for package in packages]
+        # pylint --py3k W1655
+        package_versions = self.package_versions(error_level=error_level)
+        return package_name.lower() in [package.lower() for package in package_versions]
 
     def install_module(
         self,
@@ -248,6 +260,7 @@ class VirtualenvMixin(object):
         global_options=[],
         no_deps=False,
         editable=False,
+        legacy_resolver=False,
     ):
         """
         Install module via pip.
@@ -278,6 +291,8 @@ class VirtualenvMixin(object):
                 command = [pip, "install"]
             if no_deps:
                 command += ["--no-deps"]
+            if legacy_resolver:
+                command += ["--use-deprecated=legacy-resolver"]
             # To avoid timeouts with our pypi server, increase default timeout:
             # https://bugzilla.mozilla.org/show_bug.cgi?id=1007230#c802
             command += ["--timeout", str(c.get("pip_timeout", 120))]
@@ -503,6 +518,7 @@ class VirtualenvMixin(object):
             optional,
             two_pass,
             editable,
+            legacy_resolver,
         ) in self._virtualenv_modules:
             if two_pass:
                 self.install_module(
@@ -513,6 +529,7 @@ class VirtualenvMixin(object):
                     optional=optional,
                     no_deps=True,
                     editable=editable,
+                    legacy_resolver=legacy_resolver,
                 )
             self.install_module(
                 module=module,
@@ -521,6 +538,7 @@ class VirtualenvMixin(object):
                 requirements=requirements or (),
                 optional=optional,
                 editable=editable,
+                legacy_resolver=legacy_resolver,
             )
 
         self.info("Done creating virtualenv %s." % venv_path)
@@ -700,6 +718,7 @@ class ResourceMonitoringMixin(PerfherderResourceOptionsMixin):
             # being fed into a 'f' formatter. This will help diagnose the
             # issue.
             if cpu_percent:
+                # pylint: disable=W1633
                 cpu_percent_str = str(round(cpu_percent)) + "%"
             else:
                 cpu_percent_str = "Can't collect data"
@@ -835,6 +854,7 @@ class ResourceMonitoringMixin(PerfherderResourceOptionsMixin):
         for attr in cpu_attrs:
             value = getattr(cpu_times, attr)
             # cpu_total can be 0.0. Guard against division by 0.
+            # pylint --py3k W1619
             percent = value / cpu_total * 100.0 if cpu_total else 0.0
 
             if percent > 1.00:

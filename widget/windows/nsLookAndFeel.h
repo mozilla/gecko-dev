@@ -46,22 +46,24 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   static OperatingSystemVersion GetOperatingSystemVersion();
 
  public:
-  nsLookAndFeel();
+  explicit nsLookAndFeel(const LookAndFeelCache* aCache);
   virtual ~nsLookAndFeel();
 
   void NativeInit() final;
   void RefreshImpl() override;
+  nsresult NativeGetInt(IntID aID, int32_t& aResult) override;
+  nsresult NativeGetFloat(FloatID aID, float& aResult) override;
   nsresult NativeGetColor(ColorID aID, nscolor& aResult) override;
-  nsresult GetIntImpl(IntID aID, int32_t& aResult) override;
-  nsresult GetFloatImpl(FloatID aID, float& aResult) override;
-  bool GetFontImpl(FontID aID, nsString& aFontName,
-                   gfxFontStyle& aFontStyle) override;
+  bool NativeGetFont(FontID aID, nsString& aFontName,
+                     gfxFontStyle& aFontStyle) override;
   char16_t GetPasswordCharacterImpl() override;
 
   LookAndFeelCache GetCacheImpl() override;
   void SetCacheImpl(const LookAndFeelCache& aCache) override;
 
  private:
+  void DoSetCache(const LookAndFeelCache& aCache);
+
   /**
    * Fetches the Windows accent color from the Windows settings if
    * the accent color is set to apply to the title bar, otherwise

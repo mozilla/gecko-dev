@@ -8,6 +8,7 @@
 
 #include "nsGkAtoms.h"
 #include "nsCOMPtr.h"
+#include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/NodeInfo.h"
 #include "mozilla/dom/Element.h"
@@ -26,6 +27,7 @@
 #include "nsNodeInfoManager.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
+#include "nsIFile.h"
 #include "nsUnicodeProperties.h"
 #include "mozilla/EventStates.h"
 #include "nsTextNode.h"
@@ -165,10 +167,12 @@ void nsFileControlFrame::Reflow(nsPresContext* aPresContext,
         labelBP +=
             lastLabelCont->GetLogicalUsedBorderAndPadding(wm).IStartEnd(wm);
       }
-      auto* buttonFrame = mBrowseFilesOrDirs->GetPrimaryFrame();
-      nscoord availableISizeForLabel =
-          contentISize - buttonFrame->ISize(wm) -
-          buttonFrame->GetLogicalUsedMargin(wm).IStartEnd(wm);
+      nscoord availableISizeForLabel = contentISize;
+      if (auto* buttonFrame = mBrowseFilesOrDirs->GetPrimaryFrame()) {
+        availableISizeForLabel -=
+            buttonFrame->ISize(wm) +
+            buttonFrame->GetLogicalUsedMargin(wm).IStartEnd(wm);
+      }
       if (CropTextToWidth(*aReflowInput.mRenderingContext, labelFrame,
                           availableISizeForLabel - labelBP, filename)) {
         nsBlockFrame::DidReflow(aPresContext, &aReflowInput);

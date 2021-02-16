@@ -13,6 +13,7 @@
 #include "gfxConfig.h"
 #include "gfxPlatform.h"
 #include "nsIGfxInfo.h"
+#include "nsPrintfCString.h"
 #include "nsXULAppAPI.h"
 
 #ifdef XP_WIN
@@ -30,6 +31,7 @@ void gfxConfigManager::Init() {
   EmplaceUserPref("gfx.webrender.compositor", mWrCompositorEnabled);
   mWrForceEnabled = gfxPlatform::WebRenderPrefEnabled();
   mWrForceDisabled = StaticPrefs::gfx_webrender_force_disabled_AtStartup();
+  mWrSoftwareForceEnabled = StaticPrefs::gfx_webrender_software_AtStartup();
   mWrCompositorForceEnabled =
       StaticPrefs::gfx_webrender_compositor_force_enabled_AtStartup();
   mGPUProcessAllowSoftware =
@@ -113,8 +115,21 @@ void gfxConfigManager::ConfigureWebRenderSoftware() {
 
   mFeatureWrSoftware->EnableByDefault();
 
-  if (StaticPrefs::gfx_webrender_software_AtStartup()) {
+  // Note that for testing in CI, software WebRender uses gfx.webrender.software
+  // to force enable WebRender Software. As a result, we need to prefer that
+  // over the MOZ_WEBRENDER envvar which is used to otherwise force on WebRender
+  // (hardware). See bug 1656811.
+  if (mWrSoftwareForceEnabled) {
     mFeatureWrSoftware->UserForceEnable("Force enabled by pref");
+  } else if (mWrForceEnabled || mWrEnvForceEnabled) {
+    mFeatureWrSoftware->UserDisable(
+        "User force-enabled full WR",
+        "FEATURE_FAILURE_USER_FORCE_ENABLED_FULL_WR"_ns);
+  } else if (mWrForceDisabled || mWrEnvForceDisabled) {
+    // If the user set the pref to force-disable, let's do that. This
+    // will override all the other enabling prefs
+    mFeatureWrSoftware->UserDisable("User force-disabled WR",
+                                    "FEATURE_FAILURE_USER_FORCE_DISABLED"_ns);
   }
 
   nsCString failureId;
@@ -189,7 +204,7 @@ void gfxConfigManager::ConfigureWebRenderQualified() {
     if (adapterVendorID == u"0x8086") {
       bool mixed;
       int32_t maxRefreshRate = mGfxInfo->GetMaxRefreshRate(&mixed);
-      if (maxRefreshRate > 60) {
+      if (maxRefreshRate > 75) {
         mFeatureWrQualified->Disable(FeatureStatus::Blocked,
                                      "Monitor refresh rate too high",
                                      "REFRESH_RATE_TOO_HIGH"_ns);
@@ -251,7 +266,11 @@ void gfxConfigManager::ConfigureWebRender() {
   // Prior to bug 1523788, the `prefEnabled` check was only done on Nightly,
   // so as to prevent random users from easily enabling WebRender on
   // unqualified hardware in beta/release.
-  if (mWrEnvForceEnabled) {
+  if (mWrSoftwareForceEnabled) {
+    MOZ_ASSERT(mFeatureWrSoftware->IsEnabled());
+    mFeatureWr->UserDisable("User force-enabled software WR",
+                            "FEATURE_FAILURE_USER_FORCE_ENABLED_SW_WR"_ns);
+  } else if (mWrEnvForceEnabled) {
     mFeatureWr->UserForceEnable("Force enabled by envvar");
   } else if (mWrForceEnabled) {
     mFeatureWr->UserForceEnable("Force enabled by pref");
@@ -267,21 +286,12 @@ void gfxConfigManager::ConfigureWebRender() {
   if (!mFeatureWrQualified->IsEnabled()) {
     // No qualified hardware. If we haven't allowed software fallback,
     // then we need to disable WR.
-    if (!mFeatureWrSoftware->IsEnabled()) {
-      mFeatureWr->Disable(FeatureStatus::Disabled, "Not qualified",
-                          "FEATURE_FAILURE_NOT_QUALIFIED"_ns);
-    }
-  } else {
-    // Otherwise we have qualified hardware, so we can disable the software
-    // feature. Note that this doesn't override the force-enabled state set by
-    // the pref, so the pref will still enable software.
-    mFeatureWrSoftware->Disable(FeatureStatus::Disabled,
-                                "Overriden by qualified hardware",
-                                "FEATURE_FAILURE_OVERRIDEN"_ns);
+    mFeatureWr->Disable(FeatureStatus::Disabled, "Not qualified",
+                        "FEATURE_FAILURE_NOT_QUALIFIED"_ns);
   }
 
   // HW_COMPOSITING being disabled implies interfacing with the GPU might break
-  if (!mFeatureHwCompositing->IsEnabled() && !mFeatureWrSoftware->IsEnabled()) {
+  if (!mFeatureHwCompositing->IsEnabled()) {
     mFeatureWr->ForceDisable(FeatureStatus::UnavailableNoHwCompositing,
                              "Hardware compositing is disabled",
                              "FEATURE_FAILURE_WEBRENDER_NEED_HWCOMP"_ns);
@@ -291,6 +301,9 @@ void gfxConfigManager::ConfigureWebRender() {
     mFeatureWr->ForceDisable(FeatureStatus::UnavailableInSafeMode,
                              "Safe-mode is enabled",
                              "FEATURE_FAILURE_SAFE_MODE"_ns);
+    mFeatureWrSoftware->ForceDisable(FeatureStatus::UnavailableInSafeMode,
+                                     "Safe-mode is enabled",
+                                     "FEATURE_FAILURE_SAFE_MODE"_ns);
   }
 
   if (mXRenderEnabled) {
@@ -298,6 +311,9 @@ void gfxConfigManager::ConfigureWebRender() {
     // default. If the user opts into it don't enable webrender.
     mFeatureWr->ForceDisable(FeatureStatus::Blocked, "XRender is enabled",
                              "FEATURE_FAILURE_XRENDER"_ns);
+    mFeatureWrSoftware->ForceDisable(FeatureStatus::Blocked,
+                                     "XRender is enabled",
+                                     "FEATURE_FAILURE_XRENDER"_ns);
   }
 
   mFeatureWrAngle->EnableByDefault();
@@ -308,12 +324,12 @@ void gfxConfigManager::ConfigureWebRender() {
                                       "ANGLE is disabled",
                                       mFeatureD3D11HwAngle->GetFailureId());
       } else if (!mFeatureGPUProcess->IsEnabled() &&
-                 (!mIsNightly || !mWrForceAngleNoGPUProcess)) {
+                 !mWrForceAngleNoGPUProcess) {
         // WebRender with ANGLE relies on the GPU process when on Windows
         mFeatureWrAngle->ForceDisable(
             FeatureStatus::UnavailableNoGpuProcess, "GPU Process is disabled",
             "FEATURE_FAILURE_GPU_PROCESS_DISABLED"_ns);
-      } else if (!mFeatureWr->IsEnabled()) {
+      } else if (!mFeatureWr->IsEnabled() && !mFeatureWrSoftware->IsEnabled()) {
         mFeatureWrAngle->ForceDisable(FeatureStatus::Unavailable,
                                       "WebRender disabled",
                                       "FEATURE_FAILURE_WR_DISABLED"_ns);
@@ -384,18 +400,8 @@ void gfxConfigManager::ConfigureWebRender() {
   // Initialize WebRender partial present config.
   // Partial present is used only when WebRender compositor is not used.
   if (mWrPartialPresent) {
-    if (mFeatureWr->IsEnabled()) {
+    if (mFeatureWr->IsEnabled() || mFeatureWrSoftware->IsEnabled()) {
       mFeatureWrPartial->EnableByDefault();
-
-      nsString adapter;
-      mGfxInfo->GetAdapterDeviceID(adapter);
-      // Block partial present on Mali-Gxx GPUs due to rendering issues.
-      // See bug 1676474.
-      if (adapter.Find("Mali-G", /*ignoreCase*/ true) >= 0) {
-        mFeatureWrPartial->Disable(FeatureStatus::Blocked,
-                                   "Partial present blocked on Mali-Gxx",
-                                   "FEATURE_FAILURE_PARTIAL_PRESENT_MALI"_ns);
-      }
     }
   }
 }

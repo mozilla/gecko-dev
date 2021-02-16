@@ -9,16 +9,15 @@ stubs.set("Pending", {
   type: "object",
   actor: "server1.conn1.child1/obj54",
   class: "Promise",
-  promiseState: {
-    state: "pending",
-    creationTimestamp: 1477327760242.5752,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "pending",
+      },
+    },
+    ownPropertiesLength: 1,
   },
 });
 
@@ -26,18 +25,18 @@ stubs.set("FulfilledWithNumber", {
   type: "object",
   actor: "server1.conn1.child1/obj55",
   class: "Promise",
-  promiseState: {
-    state: "fulfilled",
-    value: 42,
-    creationTimestamp: 1477327760242.721,
-    timeToSettle: 0.018497000000479602,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "fulfilled",
+      },
+      "<value>": {
+        value: 42,
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 
@@ -45,18 +44,18 @@ stubs.set("FulfilledWithString", {
   type: "object",
   actor: "server1.conn1.child1/obj56",
   class: "Promise",
-  promiseState: {
-    state: "fulfilled",
-    value: "foo",
-    creationTimestamp: 1477327760243.2483,
-    timeToSettle: 0.0019969999998465937,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "fulfilled",
+      },
+      "<value>": {
+        value: "foo",
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 
@@ -64,26 +63,26 @@ stubs.set("FulfilledWithObject", {
   type: "object",
   actor: "server1.conn1.child1/obj59",
   class: "Promise",
-  promiseState: {
-    state: "fulfilled",
-    value: {
-      type: "object",
-      actor: "server1.conn1.child1/obj60",
-      class: "Object",
-      extensible: true,
-      frozen: false,
-      sealed: false,
-      ownPropertyLength: 2,
-    },
-    creationTimestamp: 1477327760243.2214,
-    timeToSettle: 0.002035999999861815,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "fulfilled",
+      },
+      "<value>": {
+        value: {
+          type: "object",
+          actor: "server1.conn1.child1/obj60",
+          class: "Object",
+          extensible: true,
+          frozen: false,
+          sealed: false,
+          ownPropertyLength: 2,
+        },
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 
@@ -91,30 +90,30 @@ stubs.set("FulfilledWithArray", {
   type: "object",
   actor: "server1.conn1.child1/obj57",
   class: "Promise",
-  promiseState: {
-    state: "fulfilled",
-    value: {
-      type: "object",
-      actor: "server1.conn1.child1/obj58",
-      class: "Array",
-      extensible: true,
-      frozen: false,
-      sealed: false,
-      ownPropertyLength: 4,
-      preview: {
-        kind: "ArrayLike",
-        length: 3,
-      },
-    },
-    creationTimestamp: 1477327760242.9597,
-    timeToSettle: 0.006158000000141328,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "fulfilled",
+      },
+      "<value>": {
+        value: {
+          type: "object",
+          actor: "server1.conn1.child1/obj58",
+          class: "Array",
+          extensible: true,
+          frozen: false,
+          sealed: false,
+          ownPropertyLength: 4,
+          preview: {
+            kind: "ArrayLike",
+            length: 3,
+          },
+        },
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 
@@ -122,38 +121,38 @@ stubs.set("FulfilledWithNode", {
   type: "object",
   actor: "server1.conn1.child1/obj217",
   class: "Promise",
-  promiseState: {
-    state: "fulfilled",
-    value: {
-      type: "object",
-      actor: "server1.conn1.child1/obj218",
-      class: "HTMLButtonElement",
-      extensible: true,
-      frozen: false,
-      sealed: false,
-      ownPropertyLength: 0,
-      preview: {
-        kind: "DOMNode",
-        nodeType: 1,
-        nodeName: "button",
-        isConnected: true,
-        attributes: {
-          id: "btn-1",
-          class: "btn btn-log",
-          type: "button",
-        },
-        attributesLength: 3,
-      },
-    },
-    creationTimestamp: 1480423091620.3716,
-    timeToSettle: 0.02842400000372436,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "fulfilled",
+      },
+      "<value>": {
+        value: {
+          type: "object",
+          actor: "server1.conn1.child1/obj218",
+          class: "HTMLButtonElement",
+          extensible: true,
+          frozen: false,
+          sealed: false,
+          ownPropertyLength: 0,
+          preview: {
+            kind: "DOMNode",
+            nodeType: 1,
+            nodeName: "button",
+            isConnected: true,
+            attributes: {
+              id: "btn-1",
+              class: "btn btn-log",
+              type: "button",
+            },
+            attributesLength: 3,
+          },
+        },
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 
@@ -161,38 +160,38 @@ stubs.set("FulfilledWithDisconnectedNode", {
   type: "object",
   actor: "server1.conn1.child1/obj217",
   class: "Promise",
-  promiseState: {
-    state: "fulfilled",
-    value: {
-      type: "object",
-      actor: "server1.conn1.child1/obj218",
-      class: "HTMLButtonElement",
-      extensible: true,
-      frozen: false,
-      sealed: false,
-      ownPropertyLength: 0,
-      preview: {
-        kind: "DOMNode",
-        nodeType: 1,
-        nodeName: "button",
-        isConnected: false,
-        attributes: {
-          id: "btn-1",
-          class: "btn btn-log",
-          type: "button",
-        },
-        attributesLength: 3,
-      },
-    },
-    creationTimestamp: 1480423091620.3716,
-    timeToSettle: 0.02842400000372436,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "fulfilled",
+      },
+      "<value>": {
+        value: {
+          type: "object",
+          actor: "server1.conn1.child1/obj218",
+          class: "HTMLButtonElement",
+          extensible: true,
+          frozen: false,
+          sealed: false,
+          ownPropertyLength: 0,
+          preview: {
+            kind: "DOMNode",
+            nodeType: 1,
+            nodeName: "button",
+            isConnected: false,
+            attributes: {
+              id: "btn-1",
+              class: "btn btn-log",
+              type: "button",
+            },
+            attributesLength: 3,
+          },
+        },
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 
@@ -200,18 +199,18 @@ stubs.set("RejectedWithNumber", {
   type: "object",
   actor: "server0.conn0.child3/obj27",
   class: "Promise",
-  promiseState: {
-    state: "rejected",
-    reason: 123,
-    creationTimestamp: 1604166587850.8196,
-    timeToSettle: 0.002147999999579042,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "rejected",
+      },
+      "<reason>": {
+        value: 123,
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 
@@ -219,26 +218,26 @@ stubs.set("RejectedWithObject", {
   type: "object",
   actor: "server0.conn0.child3/obj67",
   class: "Promise",
-  promiseState: {
-    state: "rejected",
-    reason: {
-      type: "object",
-      actor: "server1.conn1.child1/obj68",
-      class: "Object",
-      extensible: true,
-      frozen: false,
-      sealed: false,
-      ownPropertyLength: 1,
-    },
-    creationTimestamp: 1604166111838.8694,
-    timeToSettle: 0.0017999999690800905,
-  },
   ownPropertyLength: 0,
   preview: {
     kind: "Object",
-    ownProperties: {},
-    ownPropertiesLength: 0,
-    safeGetterValues: {},
+    ownProperties: {
+      "<state>": {
+        value: "rejected",
+      },
+      "<reason>": {
+        value: {
+          type: "object",
+          actor: "server1.conn1.child1/obj68",
+          class: "Object",
+          extensible: true,
+          frozen: false,
+          sealed: false,
+          ownPropertyLength: 1,
+        },
+      },
+    },
+    ownPropertiesLength: 2,
   },
 });
 

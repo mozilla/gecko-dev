@@ -134,8 +134,8 @@ function TargetMixin(parentClass) {
      *
      * @return {TargetMixin} the parent target.
      */
-    getWatcher() {
-      // Starting with FF77, all additional frame targets are spawn by the WatcherActor and are managed by it.
+    getWatcherFront() {
+      // All additional frame targets are spawn by the WatcherActor and are managed by it.
       if (this.parentFront.typeName == "watcher") {
         return this.parentFront;
       }
@@ -150,7 +150,7 @@ function TargetMixin(parentClass) {
         return this.parentFront.getWatcher();
       }
 
-      // Finally, for FF<=76, there is no watcher.
+      // For WebExtension, the descriptor doesn't expose a watcher yet (See Bug 1675456).
       return null;
     }
 
@@ -160,29 +160,28 @@ function TargetMixin(parentClass) {
      * @return {TargetMixin} the parent target.
      */
     async getParentTarget() {
-      // Starting with FF77, we support frames watching via watchTargets for Tab and Process descriptors.
-      const watcher = await this.getWatcher();
-      if (watcher) {
-        // Safety check, in theory all watcher should support frames.
-        if (watcher.traits.frame) {
+      // We now support frames watching via watchTargets for Tab and Process descriptors.
+      const watcherFront = await this.getWatcherFront();
+      if (watcherFront) {
+        // Safety check, in theory all watcher should support frames. We should be able
+        // to remove this as part of Bug 1680280.
+        if (watcherFront.traits.frame) {
           // Retrieve the Watcher, which manage all the targets and should already have a reference to
           // to the parent target.
-          return watcher.getParentBrowsingContextTarget(this.browsingContextID);
+          return watcherFront.getParentBrowsingContextTarget(
+            this.browsingContextID
+          );
         }
         return null;
       }
 
-      // Other targets, like WebExtensions, don't have a Watcher yet, nor do expose `getParentTarget`.
-      // We can't fetch parent target yet for these targets.
-      if (!this.parentFront.getParentTarget) {
-        return null;
+      if (this.parentFront.getParentTarget) {
+        return this.parentFront.getParentTarget();
       }
 
-      // Backward compat for FF<=76
-      //
-      // In these versions of Firefox, we still have FrameDescriptor for Frame targets
-      // and can fetch the parent target from it.
-      return this.parentFront.getParentTarget();
+      // Other targets, like WebExtensions, don't have a Watcher yet, nor do expose `getParentTarget`.
+      // We can't fetch parent target yet for these targets.
+      return null;
     }
 
     /**
@@ -193,11 +192,11 @@ function TargetMixin(parentClass) {
     async getBrowsingContextTarget(browsingContextID) {
       // Tab and Process Descriptors expose a Watcher, which is creating the
       // targets and should be used to fetch any.
-      const watcher = await this.getWatcher();
-      if (watcher) {
+      const watcherFront = await this.getWatcherFront();
+      if (watcherFront) {
         // Safety check, in theory all watcher should support frames.
-        if (watcher.traits.frame) {
-          return watcher.getBrowsingContextTarget(browsingContextID);
+        if (watcherFront.traits.frame) {
+          return watcherFront.getBrowsingContextTarget(browsingContextID);
         }
         return null;
       }
@@ -489,6 +488,12 @@ function TargetMixin(parentClass) {
       }
       const threadFront = await this.attachThread(options);
 
+      // @backward-compat { version 86 } ThreadActor.attach no longer pause the thread,
+      //                                 so that we no longer have to resume.
+      // Once 86 is in release, we can remove the rest of this method.
+      if (this.getTrait("noPauseOnThreadActorAttach")) {
+        return;
+      }
       try {
         if (this.isDestroyedOrBeingDestroyed() || threadFront.isDestroyed()) {
           return;

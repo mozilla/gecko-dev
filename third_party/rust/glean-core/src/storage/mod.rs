@@ -100,7 +100,7 @@ impl StorageManager {
 
         if clear_store {
             if let Err(e) = storage.clear_ping_lifetime_storage(store_name) {
-                log::error!("Failed to clear lifetime storage: {:?}", e);
+                log::warn!("Failed to clear lifetime storage: {:?}", e);
             }
         }
 
@@ -129,6 +129,7 @@ impl StorageManager {
         storage: &Database,
         store_name: &str,
         metric_id: &str,
+        metric_lifetime: Lifetime,
     ) -> Option<Metric> {
         let mut snapshot: Option<Metric> = None;
 
@@ -139,9 +140,7 @@ impl StorageManager {
             }
         };
 
-        storage.iter_store_from(Lifetime::Ping, &store_name, None, &mut snapshotter);
-        storage.iter_store_from(Lifetime::Application, &store_name, None, &mut snapshotter);
-        storage.iter_store_from(Lifetime::User, &store_name, None, &mut snapshotter);
+        storage.iter_store_from(metric_lifetime, &store_name, None, &mut snapshotter);
 
         snapshot
     }

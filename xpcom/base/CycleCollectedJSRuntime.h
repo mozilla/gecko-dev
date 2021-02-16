@@ -7,27 +7,25 @@
 #ifndef mozilla_CycleCollectedJSRuntime_h
 #define mozilla_CycleCollectedJSRuntime_h
 
-#include <queue>
-
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DeferredFinalize.h"
 #include "mozilla/HashTable.h"
-#include "mozilla/LinkedList.h"
-#include "mozilla/mozalloc.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/SegmentedVector.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "js/TraceKind.h"
+#include "js/TypeDecls.h"
 
 #include "nsCycleCollectionParticipant.h"
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
+#include "nsStringFwd.h"
 #include "nsTHashtable.h"
 
 class nsCycleCollectionNoteRootCallback;
 class nsIException;
-class nsIRunnable;
 class nsWrapperCache;
 
 namespace mozilla {
@@ -337,6 +335,8 @@ class CycleCollectedJSRuntime {
   void AddZoneWaitingForGC(JS::Zone* aZone) {
     mZonesWaitingForGC.PutEntry(aZone);
   }
+
+  static void OnZoneDestroyed(JSFreeOp* aFop, JS::Zone* aZone);
 
   // Prepare any zones for GC that have been passed to AddZoneWaitingForGC()
   // since the last GC or since the last call to PrepareWaitingZonesForGC(),

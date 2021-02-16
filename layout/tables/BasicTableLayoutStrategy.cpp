@@ -126,11 +126,7 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   // columns.
   if (iSize.ConvertsToLength()) {
     hasSpecifiedISize = true;
-    // Note: since ComputeISizeValue was designed to return content-box
-    // isize, it will (in some cases) subtract the box-sizing edges.
-    // We prevent this unwanted behavior by calling it with
-    // aContentEdgeToBoxSizing and aBoxSizingToMarginEdge set to 0.
-    nscoord c = aFrame->ComputeISizeValue(aRenderingContext, 0, 0, 0, iSize);
+    nscoord c = iSize.ToLength();
     // Quirk: A cell with "nowrap" set and a coord value for the
     // isize which is bigger than the intrinsic minimum isize uses
     // that coord value as the minimum isize.
@@ -174,8 +170,13 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
   }
   // XXX To really implement 'max-inline-size' well, we'd need to store
   // it separately on the columns.
+  const LogicalSize zeroSize(aWM);
   if (maxISize.ConvertsToLength() || maxISize.IsExtremumLength()) {
-    nscoord c = aFrame->ComputeISizeValue(aRenderingContext, 0, 0, 0, maxISize);
+    nscoord c =
+        aFrame
+            ->ComputeISizeValue(aRenderingContext, aWM, zeroSize, zeroSize, 0,
+                                maxISize, {ComputeSizeFlag::SkipAspectRatio})
+            .mISize;
     minCoord = std::min(c, minCoord);
     prefCoord = std::min(c, prefCoord);
   } else if (maxISize.ConvertsToPercentage()) {
@@ -197,7 +198,11 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
     }
   }
   if (minISize.ConvertsToLength() || minISize.IsExtremumLength()) {
-    nscoord c = aFrame->ComputeISizeValue(aRenderingContext, 0, 0, 0, minISize);
+    nscoord c =
+        aFrame
+            ->ComputeISizeValue(aRenderingContext, aWM, zeroSize, zeroSize, 0,
+                                minISize, {ComputeSizeFlag::SkipAspectRatio})
+            .mISize;
     minCoord = std::max(c, minCoord);
     prefCoord = std::max(c, prefCoord);
   } else if (minISize.ConvertsToPercentage()) {

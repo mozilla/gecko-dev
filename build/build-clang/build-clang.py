@@ -308,6 +308,10 @@ def build_one_stage(
             "-DLLVM_TOOL_LIBCXX_BUILD=%s" % ("ON" if build_libcxx else "OFF"),
             "-DLLVM_ENABLE_BINDINGS=OFF",
         ]
+        if "TASK_ID" in os.environ:
+            cmake_args += [
+                "-DCLANG_REPOSITORY_STRING=taskcluster-%s" % os.environ["TASK_ID"],
+            ]
         if not is_final_stage:
             cmake_args += ["-DLLVM_ENABLE_PROJECTS=clang;compiler-rt"]
         if build_wasm:
@@ -763,7 +767,7 @@ if __name__ == "__main__":
         raise ValueError("Config file needs to set gcc_dir")
 
     if is_darwin() or osx_cross_compile:
-        os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.11"
+        os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.12"
 
     cc = get_tool(config, "cc")
     cxx = get_tool(config, "cxx")
@@ -862,7 +866,7 @@ if __name__ == "__main__":
         # Force things on.
         extra_cflags2 = []
         extra_cxxflags2 = [
-            "-fms-compatibility-version=19.13.26128",
+            "-fms-compatibility-version=19.15.26726",
             "-Xclang",
             "-std=c++14",
         ]

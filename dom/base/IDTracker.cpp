@@ -7,7 +7,9 @@
 #include "IDTracker.h"
 
 #include "mozilla/Encoding.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentOrShadowRoot.h"
+#include "mozilla/dom/ShadowRoot.h"
 #include "nsAtom.h"
 #include "nsContentUtils.h"
 #include "nsIURI.h"
@@ -48,6 +50,10 @@ static DocumentOrShadowRoot* FindTreeToWatch(nsIContent& aContent,
 
   return aContent.OwnerDoc();
 }
+
+IDTracker::IDTracker() = default;
+
+IDTracker::~IDTracker() { Unlink(); }
 
 void IDTracker::ResetToURIFragmentID(nsIContent* aFromContent, nsIURI* aURI,
                                      nsIReferrerInfo* aReferrerInfo,
@@ -182,6 +188,8 @@ void IDTracker::Unlink() {
   mReferencingImage = false;
 }
 
+void IDTracker::ElementChanged(Element* aFrom, Element* aTo) { mElement = aTo; }
+
 bool IDTracker::Observe(Element* aOldElement, Element* aNewElement,
                         void* aData) {
   IDTracker* p = static_cast<IDTracker*>(aData);
@@ -200,6 +208,23 @@ bool IDTracker::Observe(Element* aOldElement, Element* aNewElement,
     p->mWatchID = nullptr;
   }
   return keepTracking;
+}
+
+IDTracker::ChangeNotification::ChangeNotification(IDTracker* aTarget,
+                                                  Element* aFrom, Element* aTo)
+    : mozilla::Runnable("IDTracker::ChangeNotification"),
+      Notification(aTarget),
+      mFrom(aFrom),
+      mTo(aTo) {}
+
+IDTracker::ChangeNotification::~ChangeNotification() = default;
+
+void IDTracker::ChangeNotification::SetTo(Element* aTo) { mTo = aTo; }
+
+void IDTracker::ChangeNotification::Clear() {
+  Notification::Clear();
+  mFrom = nullptr;
+  mTo = nullptr;
 }
 
 NS_IMPL_ISUPPORTS_INHERITED0(IDTracker::ChangeNotification, mozilla::Runnable)
@@ -221,6 +246,18 @@ IDTracker::DocumentLoadNotification::Observe(nsISupports* aSubject,
     mTarget->ElementChanged(nullptr, mTarget->mElement);
   }
   return NS_OK;
+}
+
+DocumentOrShadowRoot* IDTracker::GetWatchDocOrShadowRoot() const {
+  if (!mWatchDocumentOrShadowRoot) {
+    return nullptr;
+  }
+  MOZ_ASSERT(mWatchDocumentOrShadowRoot->IsDocument() ||
+             mWatchDocumentOrShadowRoot->IsShadowRoot());
+  if (ShadowRoot* shadow = ShadowRoot::FromNode(*mWatchDocumentOrShadowRoot)) {
+    return shadow;
+  }
+  return mWatchDocumentOrShadowRoot->AsDocument();
 }
 
 }  // namespace mozilla::dom

@@ -15,6 +15,7 @@
 #include <semaphore.h>
 #include <signal.h>
 #include <libkern/OSAtomic.h>
+#include <libproc.h>
 #include <mach/mach.h>
 #include <mach/semaphore.h>
 #include <mach/task.h>
@@ -57,13 +58,18 @@ class PlatformData {
     MOZ_COUNT_DTOR(PlatformData);
   }
 
-  thread_act_t ProfiledThread() { return mProfiledThread; }
+  thread_act_t ProfiledThread() const { return mProfiledThread; }
+
+  RunningTimes& PreviousThreadRunningTimesRef() {
+    return mPreviousThreadRunningTimes;
+  }
 
  private:
   // Note: for mProfiledThread Mach primitives are used instead of pthread's
   // because the latter doesn't provide thread manipulation primitives required.
   // For details, consult "Mac OS X Internals" book, Section 7.3.
   thread_act_t mProfiledThread;
+  RunningTimes mPreviousThreadRunningTimes;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -72,6 +78,48 @@ class PlatformData {
 Sampler::Sampler(PSLockRef aLock) {}
 
 void Sampler::Disable(PSLockRef aLock) {}
+
+static void StreamMetaPlatformSampleUnits(PSLockRef aLock,
+                                          SpliceableJSONWriter& aWriter) {
+  // Microseconds.
+  aWriter.StringProperty("threadCPUDelta", "\u00B5s");
+}
+
+static RunningTimes GetThreadRunningTimesDiff(
+    PSLockRef aLock, const RegisteredThread& aRegisteredThread) {
+  AUTO_PROFILER_STATS(GetRunningTimes);
+
+  PlatformData* platformData = aRegisteredThread.GetPlatformData();
+  MOZ_RELEASE_ASSERT(platformData);
+
+  const RunningTimes newRunningTimes = GetRunningTimesWithTightTimestamp(
+      [platformData](RunningTimes& aRunningTimes) {
+        AUTO_PROFILER_STATS(GetRunningTimes_thread_info);
+        thread_basic_info_data_t threadBasicInfo;
+        mach_msg_type_number_t basicCount = THREAD_BASIC_INFO_COUNT;
+        if (thread_info(platformData->ProfiledThread(), THREAD_BASIC_INFO,
+                        reinterpret_cast<thread_info_t>(&threadBasicInfo),
+                        &basicCount) == KERN_SUCCESS &&
+            basicCount == THREAD_BASIC_INFO_COUNT) {
+          uint64_t userTimeUs =
+              uint64_t(threadBasicInfo.user_time.seconds) *
+                  uint64_t(USEC_PER_SEC) +
+              uint64_t(threadBasicInfo.user_time.microseconds);
+          uint64_t systemTimeUs =
+              uint64_t(threadBasicInfo.system_time.seconds) *
+                  uint64_t(USEC_PER_SEC) +
+              uint64_t(threadBasicInfo.system_time.microseconds);
+          aRunningTimes.ResetThreadCPUDelta(userTimeUs + systemTimeUs);
+        } else {
+          aRunningTimes.ClearThreadCPUDelta();
+        }
+      });
+
+  const RunningTimes diff =
+      newRunningTimes - platformData->PreviousThreadRunningTimesRef();
+  platformData->PreviousThreadRunningTimesRef() = newRunningTimes;
+  return diff;
+}
 
 template <typename Func>
 void Sampler::SuspendAndSampleAndResumeThread(

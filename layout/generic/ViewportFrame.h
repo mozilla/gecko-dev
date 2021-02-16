@@ -15,6 +15,7 @@
 #include "mozilla/Attributes.h"
 #include "nsContainerFrame.h"
 
+class nsDisplayWrapList;
 class nsPresContext;
 
 namespace mozilla {
@@ -51,9 +52,8 @@ class ViewportFrame : public nsContainerFrame {
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
 
-  void BuildDisplayListForTopLayer(nsDisplayListBuilder* aBuilder,
-                                   nsDisplayList* aList,
-                                   bool* aIsOpaque = nullptr);
+  nsDisplayWrapList* BuildDisplayListForTopLayer(nsDisplayListBuilder* aBuilder,
+                                                 bool* aIsOpaque = nullptr);
 
   virtual nscoord GetMinISize(gfxContext* aRenderingContext) override;
   virtual nscoord GetPrefISize(gfxContext* aRenderingContext) override;
@@ -61,7 +61,7 @@ class ViewportFrame : public nsContainerFrame {
                       const ReflowInput& aReflowInput,
                       nsReflowStatus& aStatus) override;
 
-  bool ComputeCustomOverflow(nsOverflowAreas&) override { return false; }
+  bool ComputeCustomOverflow(mozilla::OverflowAreas&) override { return false; }
 
   /**
    * Adjust aReflowInput to account for scrollbars and pres shell

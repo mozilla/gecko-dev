@@ -82,7 +82,7 @@ pub(crate) struct OperatorValidator {
 
     // The `operands` is the current type stack, and the `control` list is the
     // list of blocks that we're currently in.
-    operands: Vec<Option<Type>>,
+    pub(crate) operands: Vec<Option<Type>>,
     control: Vec<Frame>,
 
     // This is a list of flags for wasm features which are used to gate various
@@ -212,20 +212,29 @@ impl OperatorValidator {
             if control.unreachable {
                 None
             } else {
-                bail_op_err!(
-                    "type mismatch: expected {:?} but nothing on stack",
-                    expected
-                )
+                let desc = match expected {
+                    Some(ty) => ty_to_str(ty),
+                    None => "a type",
+                };
+                bail_op_err!("type mismatch: expected {} but nothing on stack", desc)
             }
         } else {
             self.operands.pop().unwrap()
         };
-        if actual.is_none() {
-            Ok(expected)
-        } else if expected.is_none() {
-            Ok(actual)
-        } else if actual != expected {
-            bail_op_err!("type mismatch: expected {:?}, found {:?}", expected, actual)
+        let actual_ty = match actual {
+            Some(ty) => ty,
+            None => return Ok(expected),
+        };
+        let expected_ty = match expected {
+            Some(ty) => ty,
+            None => return Ok(actual),
+        };
+        if actual_ty != expected_ty {
+            bail_op_err!(
+                "type mismatch: expected {}, found {}",
+                ty_to_str(expected_ty),
+                ty_to_str(actual_ty)
+            )
         } else {
             Ok(actual)
         }
@@ -396,10 +405,10 @@ impl OperatorValidator {
 
     fn check_shared_memarg_wo_align(
         &self,
-        _: MemoryImmediate,
+        memarg: MemoryImmediate,
         resources: impl WasmModuleResources,
     ) -> OperatorValidatorResult<Type> {
-        self.check_memory_index(0, resources)
+        self.check_memory_index(memarg.memory, resources)
     }
 
     fn check_simd_lane_index(&self, index: SIMDLaneIndex, max: u8) -> OperatorValidatorResult<()> {
@@ -479,10 +488,19 @@ impl OperatorValidator {
         table_index: u32,
         resources: &impl WasmModuleResources,
     ) -> OperatorValidatorResult<()> {
-        if resources.table_at(table_index).is_none() {
-            return Err(OperatorValidatorError::new(
-                "unknown table: table index out of bounds",
-            ));
+        match resources.table_at(table_index) {
+            None => {
+                return Err(OperatorValidatorError::new(
+                    "unknown table: table index out of bounds",
+                ));
+            }
+            Some(tab) => {
+                if tab.element_type != Type::FuncRef {
+                    return Err(OperatorValidatorError::new(
+                        "indirect calls must go through a table of funcref",
+                    ));
+                }
+            }
         }
         let ty = func_type_at(&resources, index)?;
         self.pop_operand(Some(Type::I32))?;
@@ -646,6 +664,10 @@ impl OperatorValidator {
                     | ty @ Some(Type::I64)
                     | ty @ Some(Type::F32)
                     | ty @ Some(Type::F64) => self.operands.push(ty),
+                    ty @ Some(Type::V128) => {
+                        self.check_simd_enabled()?;
+                        self.operands.push(ty)
+                    }
                     None => self.operands.push(None),
                     Some(_) => bail_op_err!("type mismatch: select only takes integral types"),
                 }
@@ -1463,6 +1485,7 @@ impl OperatorValidator {
             | Operator::I32x4MinU
             | Operator::I32x4MaxS
             | Operator::I32x4MaxU
+            | Operator::I32x4DotI16x8S
             | Operator::I64x2Add
             | Operator::I64x2Sub
             | Operator::I64x2Mul
@@ -1584,13 +1607,14 @@ impl OperatorValidator {
                 self.pop_operand(Some(ty))?;
                 self.push_operand(Type::V128)?;
             }
-            Operator::V128Load32Splat { memarg } => {
+            Operator::V128Load32Splat { memarg } | Operator::V128Load32Zero { memarg } => {
                 self.check_simd_enabled()?;
                 let ty = self.check_memarg(memarg, 2, resources)?;
                 self.pop_operand(Some(ty))?;
                 self.push_operand(Type::V128)?;
             }
             Operator::V128Load64Splat { memarg }
+            | Operator::V128Load64Zero { memarg }
             | Operator::V128Load8x8S { memarg }
             | Operator::V128Load8x8U { memarg }
             | Operator::V128Load16x4S { memarg }
@@ -1816,4 +1840,18 @@ fn label_types<'a>(
         FrameKind::Loop => Either::A(params(ty, resources)?),
         _ => Either::B(results(ty, resources)?),
     })
+}
+
+fn ty_to_str(ty: Type) -> &'static str {
+    match ty {
+        Type::I32 => "i32",
+        Type::I64 => "i64",
+        Type::F32 => "f32",
+        Type::F64 => "f64",
+        Type::V128 => "v128",
+        Type::FuncRef => "funcref",
+        Type::ExternRef => "externref",
+        Type::Func => "func",
+        Type::EmptyBlockType => "nil",
+    }
 }

@@ -165,10 +165,6 @@ const proto = {
 
     this.hooks.incrementGripDepth();
 
-    if (g.class == "Promise") {
-      g.promiseState = this._createPromiseState();
-    }
-
     if (g.class == "Function") {
       g.isClassConstructor = this.obj.isClassConstructor;
     }
@@ -192,8 +188,6 @@ const proto = {
   },
 
   _getOwnPropertyLength: function() {
-    // FF40+: Allow to know how many properties an object has to lazily display them
-    // when there is a bunch.
     if (isTypedArray(this.obj)) {
       // Bug 1348761: getOwnPropertyNames is unnecessary slow on TypedArrays
       return getArrayLength(this.obj);
@@ -250,7 +244,7 @@ const proto = {
   /**
    * Returns an object exposing the internal Promise state.
    */
-  _createPromiseState: function() {
+  promiseState: function() {
     const { state, value, reason } = getPromiseState(this.obj);
     const promiseState = { state };
 
@@ -267,7 +261,7 @@ const proto = {
       promiseState.timeToSettle = this.obj.promiseTimeToResolution;
     }
 
-    return promiseState;
+    return { promiseState };
   },
 
   /**

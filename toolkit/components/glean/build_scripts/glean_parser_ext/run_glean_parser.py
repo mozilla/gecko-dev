@@ -43,6 +43,12 @@ def parse(args):
     # Adapted to how mozbuild sends us a fd, and to expire on versions not dates.
 
     options = get_parser_options(moz_app_version)
+
+    # Lint the yaml first, then lint the metrics.
+    if lint.lint_yaml_files(input_files, parser_config=options):
+        # Warnings are Errors
+        sys.exit(1)
+
     all_objs = parser.parse_objects(input_files, options)
     if util.report_validation_errors(all_objs):
         sys.exit(1)
@@ -54,17 +60,24 @@ def parse(args):
     return all_objs.value, options
 
 
-def main(output_fd, _metrics_index, *args):
+# Must be kept in sync with the length of `deps` in moz.build.
+DEPS_LEN = 13
+
+
+def main(output_fd, *args):
+    args = args[DEPS_LEN:]
     all_objs, options = parse(args)
     rust.output_rust(all_objs, output_fd, options)
 
 
-def cpp_metrics(output_fd, _metrics_index, *args):
+def cpp_metrics(output_fd, *args):
+    args = args[DEPS_LEN:]
     all_objs, options = parse(args)
     cpp.output_cpp(all_objs, output_fd, options)
 
 
-def js_metrics(output_fd, _metrics_index, *args):
+def js_metrics(output_fd, *args):
+    args = args[DEPS_LEN:]
     all_objs, options = parse(args)
     js.output_js(all_objs, output_fd, options)
 

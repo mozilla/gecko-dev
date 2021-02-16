@@ -14,9 +14,6 @@
 
 #include "base/basictypes.h"
 #include "GeckoProfiler.h"
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
-#endif
 #include "MainThreadUtils.h"
 #include "mozilla/ArenaAllocatorExtensions.h"
 #include "mozilla/ArenaAllocator.h"
@@ -36,6 +33,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Services.h"
 #include "mozilla/ServoStyleSet.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPrefsAll.h"
 #include "mozilla/SyncRunnable.h"
@@ -49,6 +47,7 @@
 #include "nsClassHashtable.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
+#include "nsComponentManagerUtils.h"
 #include "nsCRT.h"
 #include "nsDataHashtable.h"
 #include "nsDirectoryServiceDefs.h"
@@ -2983,40 +2982,79 @@ class PreferencesWriter final {
   // that there are no outstanding writes left incomplete, and thus our prefs
   // on disk are in sync with what we have in memory.
   static Atomic<int> sPendingWriteCount;
+
+  // See PWRunnable::Run for details on why we need this lock.
+  static StaticMutex sWritingToFile;
 };
 
 Atomic<PrefSaveData*> PreferencesWriter::sPendingWriteData(nullptr);
 Atomic<int> PreferencesWriter::sPendingWriteCount(0);
+StaticMutex PreferencesWriter::sWritingToFile;
 
 class PWRunnable : public Runnable {
  public:
   explicit PWRunnable(nsIFile* aFile) : Runnable("PWRunnable"), mFile(aFile) {}
 
   NS_IMETHOD Run() override {
-    // If we get a nullptr on the exchange, it means that somebody
-    // else has already processed the request, and we can just return.
-    UniquePtr<PrefSaveData> prefs(
-        PreferencesWriter::sPendingWriteData.exchange(nullptr));
+    // Preference writes are handled a bit strangely, in that a "newer"
+    // write is generally regarded as always better. For this reason,
+    // sPendingWriteData can be overwritten multiple times before anyone
+    // gets around to actually using it, minimizing writes. However,
+    // once we've acquired sPendingWriteData we've reached a
+    // "point of no return" and have to complete the write.
+    //
+    // Unfortunately, this design allows the following behaviour:
+    //
+    // 1. write1 is queued up
+    // 2. thread1 acquires write1
+    // 3. write2 is queued up
+    // 4. thread2 acquires write2
+    // 5. thread1 and thread2 concurrently clobber each other
+    //
+    // To avoid this, we use this lock to ensure that only one thread
+    // at a time is trying to acquire the write, and when it does,
+    // all other threads are prevented from acquiring writes until it
+    // completes the write. New writes are still allowed to be queued
+    // up in this time.
+    //
+    // Although it's atomic, the acquire needs to be guarded by the mutex
+    // to avoid reordering of writes -- we don't want an older write to
+    // run after a newer one. To avoid this causing too much waiting, we check
+    // if sPendingWriteData is already null before acquiring the mutex. If it
+    // is, then there's definitely no work to be done (or someone is in the
+    // middle of doing it for us).
+    //
+    // Note that every time a new write is queued up, a new write task is
+    // is also queued up, so there will always be a task that can see the newest
+    // write.
+    //
+    // Ideally this lock wouldn't be necessary, and the PreferencesWriter
+    // would be used more carefully, but it's hard to untangle all that.
     nsresult rv = NS_OK;
-    if (prefs) {
-      rv = PreferencesWriter::Write(mFile, *prefs);
-
-      // Make a copy of these so we can have them in runnable lambda.
-      // nsIFile is only there so that we would never release the
-      // ref counted pointer off main thread.
-      nsresult rvCopy = rv;
-      nsCOMPtr<nsIFile> fileCopy(mFile);
-      SchedulerGroup::Dispatch(
-          TaskCategory::Other,
-          NS_NewRunnableFunction("Preferences::WriterRunnable",
-                                 [fileCopy, rvCopy] {
-                                   MOZ_RELEASE_ASSERT(NS_IsMainThread());
-                                   if (NS_FAILED(rvCopy)) {
-                                     Preferences::HandleDirty();
-                                   }
-                                 }));
+    if (PreferencesWriter::sPendingWriteData) {
+      StaticMutexAutoLock lock(PreferencesWriter::sWritingToFile);
+      // If we get a nullptr on the exchange, it means that somebody
+      // else has already processed the request, and we can just return.
+      UniquePtr<PrefSaveData> prefs(
+          PreferencesWriter::sPendingWriteData.exchange(nullptr));
+      if (prefs) {
+        rv = PreferencesWriter::Write(mFile, *prefs);
+        // Make a copy of these so we can have them in runnable lambda.
+        // nsIFile is only there so that we would never release the
+        // ref counted pointer off main thread.
+        nsresult rvCopy = rv;
+        nsCOMPtr<nsIFile> fileCopy(mFile);
+        SchedulerGroup::Dispatch(
+            TaskCategory::Other,
+            NS_NewRunnableFunction("Preferences::WriterRunnable",
+                                   [fileCopy, rvCopy] {
+                                     MOZ_RELEASE_ASSERT(NS_IsMainThread());
+                                     if (NS_FAILED(rvCopy)) {
+                                       Preferences::HandleDirty();
+                                     }
+                                   }));
+      }
     }
-
     // We've completed the write to the best of our abilities, whether
     // we had prefs to write or another runnable got to them first. If
     // PreferencesWriter::Write failed, this is still correct as the
@@ -4280,6 +4318,59 @@ static nsCString PrefValueToString(const nsACString& s) { return nsCString(s); }
 // We define these methods in a struct which is made friend of Preferences in
 // order to access private members.
 struct Internals {
+#ifdef MOZ_GECKO_PROFILER
+  struct PreferenceReadMarker {
+    static constexpr Span<const char> MarkerTypeName() {
+      return MakeStringSpan("PreferenceRead");
+    }
+    static void StreamJSONMarkerData(
+        baseprofiler::SpliceableJSONWriter& aWriter,
+        const ProfilerString8View& aPrefName,
+        const Maybe<PrefValueKind>& aPrefKind, PrefType aPrefType,
+        const ProfilerString8View& aPrefValue) {
+      aWriter.StringProperty("prefName", aPrefName);
+      aWriter.StringProperty("prefKind", PrefValueKindToString(aPrefKind));
+      aWriter.StringProperty("prefType", PrefTypeToString(aPrefType));
+      aWriter.StringProperty("prefValue", aPrefValue);
+    }
+    static MarkerSchema MarkerTypeDisplay() {
+      using MS = MarkerSchema;
+      MS schema{MS::Location::markerChart, MS::Location::markerTable};
+      schema.AddKeyLabelFormat("prefName", "Name", MS::Format::string);
+      schema.AddKeyLabelFormat("prefKind", "Kind", MS::Format::string);
+      schema.AddKeyLabelFormat("prefType", "Type", MS::Format::string);
+      schema.AddKeyLabelFormat("prefValue", "Value", MS::Format::string);
+      return schema;
+    }
+
+   private:
+    static Span<const char> PrefValueKindToString(
+        const Maybe<PrefValueKind>& aKind) {
+      if (aKind) {
+        return *aKind == PrefValueKind::Default ? MakeStringSpan("Default")
+                                                : MakeStringSpan("User");
+      }
+      return "Shared";
+    }
+
+    static Span<const char> PrefTypeToString(PrefType type) {
+      switch (type) {
+        case PrefType::None:
+          return "None";
+        case PrefType::Int:
+          return "Int";
+        case PrefType::Bool:
+          return "Bool";
+        case PrefType::String:
+          return "String";
+        default:
+          MOZ_ASSERT_UNREACHABLE("Unknown preference type.");
+          return "Unknown";
+      }
+    }
+  };
+#endif  // MOZ_GECKO_PROFILER
+
   template <typename T>
   static nsresult GetPrefValue(const char* aPrefName, T&& aResult,
                                PrefValueKind aKind) {
@@ -4291,10 +4382,11 @@ struct Internals {
 
 #ifdef MOZ_GECKO_PROFILER
       if (profiler_feature_active(ProfilerFeature::PreferenceReads)) {
-        PROFILER_ADD_MARKER_WITH_PAYLOAD(
-            "PreferenceRead", OTHER_PreferenceRead, PrefMarkerPayload,
-            (aPrefName, Some(aKind), Some(pref->Type()),
-             PrefValueToString(aResult), TimeStamp::Now()));
+        profiler_add_marker(
+            "PreferenceRead", baseprofiler::category::OTHER_PreferenceRead, {},
+            PreferenceReadMarker{},
+            ProfilerString8View::WrapNullTerminatedString(aPrefName),
+            Some(aKind), pref->Type(), PrefValueToString(aResult));
       }
 #endif
     }
@@ -4311,10 +4403,12 @@ struct Internals {
 
 #ifdef MOZ_GECKO_PROFILER
       if (profiler_feature_active(ProfilerFeature::PreferenceReads)) {
-        PROFILER_ADD_MARKER_WITH_PAYLOAD(
-            "PreferenceRead", OTHER_PreferenceRead, PrefMarkerPayload,
-            (aName, Nothing() /* indicates Shared */, Some(pref->Type()),
-             PrefValueToString(aResult), TimeStamp::Now()));
+        profiler_add_marker(
+            "PreferenceRead", baseprofiler::category::OTHER_PreferenceRead, {},
+            PreferenceReadMarker{},
+            ProfilerString8View::WrapNullTerminatedString(aName),
+            Nothing() /* indicates Shared */, pref->Type(),
+            PrefValueToString(aResult));
       }
 #endif
     }
@@ -4333,10 +4427,21 @@ struct Internals {
   template <typename T>
   static void UpdateMirror(const char* aPref, void* aMirror) {
     StripAtomic<T> value;
-    // We disallow the deletion of mirrored prefs.
-    // This assertion is the only place where we enforce this.
-    MOZ_ALWAYS_SUCCEEDS(GetPrefValue(aPref, &value, PrefValueKind::User));
-    *static_cast<T*>(aMirror) = value;
+
+    nsresult rv = GetPrefValue(aPref, &value, PrefValueKind::User);
+    if (NS_SUCCEEDED(rv)) {
+      *static_cast<T*>(aMirror) = value;
+    } else {
+      // GetPrefValue() can fail if the update is caused by the pref being
+      // deleted or if it fails to make a cast. This assertion is the only place
+      // where we safeguard these. In this case the mirror variable will be
+      // untouched, thus keeping the value it had prior to the change.
+      // (Note that this case won't happen for a deletion via DeleteBranch()
+      // unless bug 343600 is fixed, but it will happen for a deletion via
+      // ClearUserPref().)
+      NS_WARNING(nsPrintfCString("Pref changed failure: %s\n", aPref).get());
+      MOZ_ASSERT(false);
+    }
   }
 
   template <typename T>

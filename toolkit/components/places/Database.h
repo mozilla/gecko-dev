@@ -203,8 +203,6 @@ class Database final : public nsIObserver, public nsSupportsWeakReference {
   already_AddRefed<mozIStorageAsyncStatement> GetAsyncStatement(
       const nsACString& aQuery);
 
-  uint32_t MaxUrlLength();
-
   int64_t GetRootFolderId() {
     mozilla::Unused << EnsureConnection();
     return mRootId;
@@ -320,14 +318,6 @@ class Database final : public nsIObserver, public nsSupportsWeakReference {
   /**
    * Helpers used by schema upgrades.
    */
-  nsresult MigrateV36Up();
-  nsresult MigrateV37Up();
-  nsresult MigrateV38Up();
-  nsresult MigrateV39Up();
-  nsresult MigrateV40Up();
-  nsresult MigrateV41Up();
-  nsresult MigrateV42Up();
-  nsresult MigrateV43Up();
   nsresult MigrateV44Up();
   nsresult MigrateV45Up();
   nsresult MigrateV46Up();
@@ -368,12 +358,6 @@ class Database final : public nsIObserver, public nsSupportsWeakReference {
   int32_t mDBPageSize;
   uint16_t mDatabaseStatus;
   bool mClosed;
-  // Used to track whether icon payloads should be converted at the end of
-  // schema migration.
-  bool mShouldConvertIconPayloads;
-  // Used to track whether the favicons database should be vacuumed at the end
-  // of the schema migration.
-  bool mShouldVacuumIcons;
 
   /**
    * Phases for shutting down the Database.

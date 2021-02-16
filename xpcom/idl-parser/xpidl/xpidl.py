@@ -345,10 +345,20 @@ class Include(object):
             if not os.path.exists(file):
                 continue
 
-            self.IDL = parent.parser.parse(
-                open(file, encoding="utf-8").read(), filename=file
-            )
-            self.IDL.resolve(parent.incdirs, parent.parser, parent.webidlconfig)
+            if file in parent.includeCache:
+                self.IDL = parent.includeCache[file]
+            else:
+                self.IDL = parent.parser.parse(
+                    open(file, encoding="utf-8").read(), filename=file
+                )
+                self.IDL.resolve(
+                    parent.incdirs,
+                    parent.parser,
+                    parent.webidlconfig,
+                    parent.includeCache,
+                )
+                parent.includeCache[file] = self.IDL
+
             for type in self.IDL.getNames():
                 parent.setName(type)
             parent.deps.extend(self.IDL.deps)
@@ -390,11 +400,12 @@ class IDL(object):
     def __str__(self):
         return "".join([str(p) for p in self.productions])
 
-    def resolve(self, incdirs, parser, webidlconfig):
+    def resolve(self, incdirs, parser, webidlconfig, includeCache=None):
         self.namemap = NameMap()
         self.incdirs = incdirs
         self.parser = parser
         self.webidlconfig = webidlconfig
+        self.includeCache = {} if includeCache is None else includeCache
         for p in self.productions:
             p.resolve(self)
 
@@ -446,7 +457,7 @@ class Typedef(object):
         parent.setName(self)
         self.realtype = parent.getName(self.type, self.location)
 
-        if not isinstance(self.realtype, (Builtin, Native, Typedef)):
+        if not isinstance(self.realtype, (Builtin, CEnum, Native, Typedef)):
             raise IDLError("Unsupported typedef target type", self.location)
 
     def nativeType(self, calltype):
@@ -820,13 +831,13 @@ class Interface(object):
     def getConst(self, name, location):
         # The constant may be in a base class
         iface = self
-        while name not in iface.namemap and iface is not None:
-            iface = self.idl.getName(TypeId(self.base), self.location)
-        if iface is None:
-            raise IDLError("cannot find symbol '%s'" % name, self.location)
+        while name not in iface.namemap and iface.base is not None:
+            iface = self.idl.getName(TypeId(iface.base), self.location)
+        if name not in iface.namemap:
+            raise IDLError("cannot find symbol '%s'" % name, location)
         c = iface.namemap.get(name, location)
         if c.kind != "const":
-            raise IDLError("symbol '%s' is not a constant", c.location)
+            raise IDLError("symbol '%s' is not a constant" % name, location)
 
         return c.getValue()
 
@@ -924,7 +935,7 @@ class ConstMember(object):
     def __init__(self, type, name, value, location, doccomments):
         self.type = type
         self.name = name
-        self.value = value
+        self.valueFn = value
         self.location = location
         self.doccomments = doccomments
 
@@ -941,9 +952,11 @@ class ConstMember(object):
             )
 
         self.basetype = basetype
+        # Value is a lambda. Resolve it.
+        self.value = self.valueFn(self.iface)
 
     def getValue(self):
-        return self.value(self.iface)
+        return self.value
 
     def __str__(self):
         return "\tconst %s %s = %s\n" % (self.type, self.name, self.getValue())
@@ -960,7 +973,7 @@ class CEnumVariant(object):
 
     def __init__(self, name, value, location):
         self.name = name
-        self.value = value
+        self.valueFn = value
         self.location = location
 
     def getValue(self):
@@ -984,9 +997,6 @@ class CEnum(object):
         if self.width not in (8, 16, 32):
             raise IDLError("Width must be one of {8, 16, 32}", self.location)
 
-    def getValue(self):
-        return self.value(self.iface)
-
     def resolve(self, iface):
         self.iface = iface
         # Renaming enum to faux-namespace the enum type to the interface in JS
@@ -1006,8 +1016,8 @@ class CEnum(object):
             # collisions.
             self.iface.namemap.set(variant)
             # Value may be a lambda. If it is, resolve it.
-            if variant.value:
-                next_value = variant.value = variant.value(self.iface)
+            if variant.valueFn:
+                next_value = variant.value = variant.valueFn(self.iface)
             else:
                 variant.value = next_value
             next_value += 1
@@ -1061,11 +1071,8 @@ def ensureInfallibleIsSound(methodOrAttribute):
         )
 
 
-# An interface cannot be implemented by JS if it has a notxpcom
+# An interface cannot be implemented by JS if it has a notxpcom or nostdcall
 # method or attribute, so it must be marked as builtinclass.
-#
-# XXX(nika): Why does nostdcall not imply builtinclass?
-# It could screw up the shims as well...
 def ensureBuiltinClassIfNeeded(methodOrAttribute):
     iface = methodOrAttribute.iface
     if not iface.attributes.scriptable or iface.attributes.builtinclass:
@@ -1077,6 +1084,15 @@ def ensureBuiltinClassIfNeeded(methodOrAttribute):
             (
                 "scriptable interface '%s' must be marked [builtinclass] because it "
                 "contains a [notxpcom] %s '%s'"
+            )
+            % (iface.name, methodOrAttribute.kind, methodOrAttribute.name),
+            methodOrAttribute.location,
+        )
+    if methodOrAttribute.nostdcall:
+        raise IDLError(
+            (
+                "scriptable interface '%s' must be marked [builtinclass] because it "
+                "contains a [nostdcall] %s '%s'"
             )
             % (iface.name, methodOrAttribute.kind, methodOrAttribute.name),
             methodOrAttribute.location,
@@ -1179,7 +1195,7 @@ class Attribute(object):
     def isScriptable(self):
         if not self.iface.attributes.scriptable:
             return False
-        return not (self.noscript or self.notxpcom)
+        return not (self.noscript or self.notxpcom or self.nostdcall)
 
     def __str__(self):
         return "\t%sattribute %s %s\n" % (
@@ -1289,7 +1305,7 @@ class Method(object):
     def isScriptable(self):
         if not self.iface.attributes.scriptable:
             return False
-        return not (self.noscript or self.notxpcom)
+        return not (self.noscript or self.notxpcom or self.nostdcall)
 
     def __str__(self):
         return "\t%s %s(%s)\n" % (

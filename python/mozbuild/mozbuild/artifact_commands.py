@@ -25,7 +25,6 @@ from mozbuild.base import (
     MachCommandConditions as conditions,
 )
 from mozbuild.util import ensureParentDir
-import mozpack.path as mozpath
 import mozversioncontrol
 
 
@@ -242,11 +241,6 @@ class PackageFrontend(MachCommandBase):
         help="Explicit tooltool manifest to process",
     )
     @CommandArgument(
-        "--authentication-file",
-        metavar="FILE",
-        help="Use the RelengAPI token found in the given file to authenticate",
-    )
-    @CommandArgument(
         "--no-unpack", action="store_true", help="Do not unpack any downloaded file"
     )
     @CommandArgument(
@@ -263,12 +257,6 @@ class PackageFrontend(MachCommandBase):
         metavar="FILE",
         help="Store a manifest about the downloaded taskcluster artifacts",
     )
-    @CommandArgument(
-        "files",
-        nargs="*",
-        help="A list of files to download, in the form path@task-id, in "
-        "addition to the files listed in the tooltool manifest.",
-    )
     def artifact_toolchain(
         self,
         verbose=False,
@@ -276,12 +264,10 @@ class PackageFrontend(MachCommandBase):
         skip_cache=False,
         from_build=(),
         tooltool_manifest=None,
-        authentication_file=None,
         no_unpack=False,
         retry=0,
         bootstrap=False,
         artifact_manifest=None,
-        files=(),
     ):
         """Download, cache and install pre-built toolchains."""
         from mozbuild.artifacts import ArtifactCache
@@ -397,18 +383,9 @@ class PackageFrontend(MachCommandBase):
                 )
                 return 1
             from taskgraph.optimize.strategies import IndexSearch
-            from taskgraph.generator import load_tasks_for_kind
+            from mozbuild.toolchains import toolchain_task_definitions
 
-            params = {"level": six.ensure_text(os.environ.get("MOZ_SCM_LEVEL", "3"))}
-
-            root_dir = mozpath.join(self.topsrcdir, "taskcluster/ci")
-            toolchains = load_tasks_for_kind(params, "toolchain", root_dir=root_dir)
-
-            aliases = {}
-            for t in toolchains.values():
-                alias = t.attributes.get("toolchain-alias")
-                if alias:
-                    aliases["toolchain-{}".format(alias)] = t.task["metadata"]["name"]
+            tasks = toolchain_task_definitions()
 
             for b in from_build:
                 user_value = b
@@ -416,7 +393,7 @@ class PackageFrontend(MachCommandBase):
                 if not b.startswith("toolchain-"):
                     b = "toolchain-{}".format(b)
 
-                task = toolchains.get(aliases.get(b, b))
+                task = tasks.get(b)
                 if not task:
                     self.log(
                         logging.ERROR,
@@ -495,21 +472,6 @@ class PackageFrontend(MachCommandBase):
 
                 record = ArtifactRecord(task_id, artifact_name)
                 records[record.filename] = record
-
-        # Handle the list of files of the form path@task-id on the command
-        # line. Each of those give a path to an artifact to download.
-        for f in files:
-            if "@" not in f:
-                self.log(
-                    logging.ERROR,
-                    "artifact",
-                    {},
-                    "Expected a list of files of the form path@task-id",
-                )
-                return 1
-            name, task_id = f.rsplit("@", 1)
-            record = ArtifactRecord(task_id, name)
-            records[record.filename] = record
 
         for record in six.itervalues(records):
             self.log(
@@ -605,26 +567,11 @@ class PackageFrontend(MachCommandBase):
                     "sha256": h.hexdigest(),
                 }
             if record.unpack and not no_unpack:
-                # Try to unpack the file. If we get an exception importing
-                # zstandard when calling unpack_file, we can try installing
-                # zstandard locally and trying again
-                try:
-                    unpack_file(local)
-                except ImportError as e:
-                    # Need to do this branch while this code is still exercised
-                    # by Python 2.
-                    if six.PY3 and e.name != "zstandard":
-                        raise
-                    elif six.PY2 and e.message != "No module named zstandard":
-                        raise
-                    self._ensure_zstd()
-                    unpack_file(local)
+                unpack_file(local)
                 os.unlink(local)
 
         if not downloaded:
             self.log(logging.ERROR, "artifact", {}, "Nothing to download")
-            if files:
-                return 1
 
         if artifacts:
             ensureParentDir(artifact_manifest)

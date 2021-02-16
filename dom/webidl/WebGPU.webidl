@@ -178,8 +178,8 @@ interface GPUOutOfMemoryError {
 [Pref="dom.webgpu.enabled",
  Exposed=Window]
 interface GPUValidationError {
-    //constructor(DOMString message);
-    //readonly attribute DOMString message;
+    constructor(DOMString message);
+    readonly attribute DOMString message;
 };
 
 typedef (GPUOutOfMemoryError or GPUValidationError) GPUError;
@@ -188,8 +188,8 @@ partial interface GPUDevice {
     //readonly attribute Promise<GPUDeviceLostInfo> lost;
     //void pushErrorScope(GPUErrorFilter filter);
     //Promise<GPUError?> popErrorScope();
-    //[Exposed=Window]
-    //attribute EventHandler onuncapturederror;
+    [Exposed=Window]
+    attribute EventHandler onuncapturederror;
 };
 
 // ****************************************************************************

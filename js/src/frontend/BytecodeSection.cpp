@@ -36,12 +36,11 @@ AbstractScopePtr GCThingList::getScope(size_t index) const {
   if (elem.isEmptyGlobalScope()) {
     // The empty enclosing scope should be stored by
     // CompilationInput::initForSelfHostingGlobal.
-    MOZ_ASSERT(compilationInfo.input.enclosingScope);
-    MOZ_ASSERT(
-        !compilationInfo.input.enclosingScope->as<GlobalScope>().hasBindings());
-    return AbstractScopePtr(compilationInfo.input.enclosingScope);
+    MOZ_ASSERT(stencil.input.enclosingScope);
+    MOZ_ASSERT(!stencil.input.enclosingScope->as<GlobalScope>().hasBindings());
+    return AbstractScopePtr(stencil.input.enclosingScope);
   }
-  return AbstractScopePtr(compilationInfo, elem.toScope());
+  return AbstractScopePtr(compilationState, elem.toScope());
 }
 
 mozilla::Maybe<ScopeIndex> GCThingList::getScopeIndex(size_t index) const {
@@ -53,15 +52,14 @@ mozilla::Maybe<ScopeIndex> GCThingList::getScopeIndex(size_t index) const {
 }
 
 bool js::frontend::EmitScriptThingsVector(
-    JSContext* cx, CompilationInfo& compilationInfo,
+    JSContext* cx, CompilationInput& input, BaseCompilationStencil& stencil,
     CompilationGCOutput& gcOutput,
     mozilla::Span<const TaggedScriptThingIndex> things,
     mozilla::Span<JS::GCCellPtr> output) {
   MOZ_ASSERT(things.size() <= INDEX_LIMIT);
   MOZ_ASSERT(things.size() == output.size());
 
-  auto& atomCache = compilationInfo.input.atomCache;
-  auto& stencil = compilationInfo.stencil;
+  auto& atomCache = input.atomCache;
 
   for (uint32_t i = 0; i < things.size(); i++) {
     const auto& thing = things[i];
@@ -161,7 +159,7 @@ void CGScopeNoteList::recordEndImpl(uint32_t index, uint32_t offset) {
 
 JSObject* ObjLiteralStencil::create(JSContext* cx,
                                     CompilationAtomCache& atomCache) const {
-  return InterpretObjLiteral(cx, atomCache, atoms_, writer_);
+  return InterpretObjLiteral(cx, atomCache, code_, flags_);
 }
 
 BytecodeSection::BytecodeSection(JSContext* cx, uint32_t lineNum,
@@ -191,8 +189,9 @@ void BytecodeSection::updateDepth(BytecodeOffset target) {
 }
 
 PerScriptData::PerScriptData(JSContext* cx,
-                             frontend::CompilationInfo& compilationInfo)
-    : gcThingList_(cx, compilationInfo),
+                             frontend::CompilationStencil& stencil,
+                             frontend::CompilationState& compilationState)
+    : gcThingList_(cx, stencil, compilationState),
       atomIndices_(cx->frontendCollectionPool()) {}
 
 bool PerScriptData::init(JSContext* cx) { return atomIndices_.acquire(cx); }

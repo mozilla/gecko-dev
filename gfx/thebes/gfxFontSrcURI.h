@@ -7,8 +7,10 @@
 #define MOZILLA_GFX_FONTSRCURI_H
 
 #include "nsCOMPtr.h"
-#include "nsIURI.h"
+#include "nsTString.h"
 #include "PLDHashTable.h"
+
+class nsIURI;
 
 namespace mozilla {
 namespace net {

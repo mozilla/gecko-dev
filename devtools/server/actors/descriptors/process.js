@@ -154,7 +154,7 @@ const ProcessDescriptorActor = ActorClassWithSpec(processDescriptorSpec, {
       id: this.id,
       isParent: this.isParent,
       traits: {
-        // FF77+ supports the Watcher actor
+        // Supports the Watcher actor. Can be removed as part of Bug 1680280.
         watcher: true,
       },
     };

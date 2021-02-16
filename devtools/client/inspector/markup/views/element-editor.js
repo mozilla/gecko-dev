@@ -113,63 +113,11 @@ function ElementEditor(container, node) {
   this.onDisplayBadgeClick = this.onDisplayBadgeClick.bind(this);
   this.onScrollableBadgeClick = this.onScrollableBadgeClick.bind(this);
   this.onExpandBadgeClick = this.onExpandBadgeClick.bind(this);
-  this.onFlexboxHighlighterChange = this.onFlexboxHighlighterChange.bind(this);
-  this.onGridHighlighterChange = this.onGridHighlighterChange.bind(this);
   this.onTagEdit = this.onTagEdit.bind(this);
 
-  // Create the main editor
   this.buildMarkup();
 
-  // Make the tag name editable (unless this is a remote node or
-  // a document element)
-  if (!node.isDocumentElement) {
-    // Make the tag optionally tabbable but not by default.
-    this.tag.setAttribute("tabindex", "-1");
-    editableField({
-      element: this.tag,
-      multiline: true,
-      maxWidth: () => getAutocompleteMaxWidth(this.tag, this.container.elt),
-      trigger: "dblclick",
-      stopOnReturn: true,
-      done: this.onTagEdit,
-      cssProperties: this._cssProperties,
-    });
-  }
-
-  // Make the new attribute space editable.
-  this.newAttr.editMode = editableField({
-    element: this.newAttr,
-    multiline: true,
-    maxWidth: () => getAutocompleteMaxWidth(this.newAttr, this.container.elt),
-    trigger: "dblclick",
-    stopOnReturn: true,
-    contentType: InplaceEditor.CONTENT_TYPES.CSS_MIXED,
-    popup: this.markup.popup,
-    done: (val, commit) => {
-      if (!commit) {
-        return;
-      }
-
-      const doMods = this._startModifyingAttributes();
-      const undoMods = this._startModifyingAttributes();
-      this._applyAttributes(val, null, doMods, undoMods);
-      this.container.undo.do(
-        () => {
-          doMods.apply();
-        },
-        function() {
-          undoMods.apply();
-        }
-      );
-    },
-    cssProperties: this._cssProperties,
-  });
-
-  const displayName = this.node.displayName;
-  this.tag.textContent = displayName;
-  this.closeTag.textContent = displayName;
-
-  const isVoidElement = HTML_VOID_ELEMENTS.includes(displayName);
+  const isVoidElement = HTML_VOID_ELEMENTS.includes(this.node.displayName);
   if (node.isInHTMLDocument && isVoidElement) {
     this.elt.classList.add("void-element");
   }
@@ -183,6 +131,28 @@ ElementEditor.prototype = {
     this.elt = this.doc.createElement("span");
     this.elt.classList.add("editor");
 
+    this.renderOpenTag();
+    this.renderEventBadge();
+    this.renderCloseTag();
+
+    // Make the tag name editable (unless this is a remote node or
+    // a document element)
+    if (!this.node.isDocumentElement) {
+      // Make the tag optionally tabbable but not by default.
+      this.tag.setAttribute("tabindex", "-1");
+      editableField({
+        element: this.tag,
+        multiline: true,
+        maxWidth: () => getAutocompleteMaxWidth(this.tag, this.container.elt),
+        trigger: "dblclick",
+        stopOnReturn: true,
+        done: this.onTagEdit,
+        cssProperties: this._cssProperties,
+      });
+    }
+  },
+
+  renderOpenTag: function() {
     const open = this.doc.createElement("span");
     open.classList.add("open");
     open.appendChild(this.doc.createTextNode("<"));
@@ -191,11 +161,24 @@ ElementEditor.prototype = {
     this.tag = this.doc.createElement("span");
     this.tag.classList.add("tag", "theme-fg-color3");
     this.tag.setAttribute("tabindex", "-1");
+    this.tag.textContent = this.node.displayName;
     open.appendChild(this.tag);
 
-    this.attrList = this.doc.createElement("span");
-    open.appendChild(this.attrList);
+    this.renderAttributes(open);
+    this.renderNewAttributeEditor(open);
 
+    const closingBracket = this.doc.createElement("span");
+    closingBracket.classList.add("closing-bracket");
+    closingBracket.textContent = ">";
+    open.appendChild(closingBracket);
+  },
+
+  renderAttributes: function(containerEl) {
+    this.attrList = this.doc.createElement("span");
+    containerEl.appendChild(this.attrList);
+  },
+
+  renderNewAttributeEditor: function(containerEl) {
     this.newAttr = this.doc.createElement("span");
     this.newAttr.classList.add("newattr");
     this.newAttr.setAttribute("tabindex", "-1");
@@ -203,18 +186,46 @@ ElementEditor.prototype = {
       "aria-label",
       INSPECTOR_L10N.getStr("markupView.newAttribute.label")
     );
-    open.appendChild(this.newAttr);
+    containerEl.appendChild(this.newAttr);
 
-    const closingBracket = this.doc.createElement("span");
-    closingBracket.classList.add("closing-bracket");
-    closingBracket.textContent = ">";
-    open.appendChild(closingBracket);
+    // Make the new attribute space editable.
+    this.newAttr.editMode = editableField({
+      element: this.newAttr,
+      multiline: true,
+      maxWidth: () => getAutocompleteMaxWidth(this.newAttr, this.container.elt),
+      trigger: "dblclick",
+      stopOnReturn: true,
+      contentType: InplaceEditor.CONTENT_TYPES.CSS_MIXED,
+      popup: this.markup.popup,
+      done: (val, commit) => {
+        if (!commit) {
+          return;
+        }
 
+        const doMods = this._startModifyingAttributes();
+        const undoMods = this._startModifyingAttributes();
+        this._applyAttributes(val, null, doMods, undoMods);
+        this.container.undo.do(
+          () => {
+            doMods.apply();
+          },
+          function() {
+            undoMods.apply();
+          }
+        );
+      },
+      cssProperties: this._cssProperties,
+    });
+  },
+
+  renderEventBadge: function() {
     this.expandBadge = this.doc.createElement("span");
     this.expandBadge.classList.add("markup-expand-badge");
     this.expandBadge.addEventListener("click", this.onExpandBadgeClick);
     this.elt.appendChild(this.expandBadge);
+  },
 
+  renderCloseTag: function() {
     const close = this.doc.createElement("span");
     close.classList.add("close");
     close.appendChild(this.doc.createTextNode("</"));
@@ -222,9 +233,14 @@ ElementEditor.prototype = {
 
     this.closeTag = this.doc.createElement("span");
     this.closeTag.classList.add("tag", "theme-fg-color3");
+    this.closeTag.textContent = this.node.displayName;
     close.appendChild(this.closeTag);
 
     close.appendChild(this.doc.createTextNode(">"));
+  },
+
+  get displayBadge() {
+    return this._displayBadge;
   },
 
   set selected(value) {
@@ -365,7 +381,6 @@ ElementEditor.prototype = {
   _createScrollableBadge: function() {
     const isInteractive =
       this.isOverflowDebuggingEnabled &&
-      this.node.walkerFront.traits.supportsOverflowDebugging2 &&
       // Document elements cannot have interative scrollable badges since retrieval of their
       // overflow causing elements is not supported.
       !this.node.isDocumentElement;
@@ -401,9 +416,6 @@ ElementEditor.prototype = {
     const showDisplayBadge = displayType in DISPLAY_TYPES;
 
     if (this._displayBadge && !showDisplayBadge) {
-      this.stopTrackingFlexboxHighlighterEvents();
-      this.stopTrackingGridHighlighterEvents();
-
       this._displayBadge.remove();
       this._displayBadge = null;
     } else if (showDisplayBadge) {
@@ -429,22 +441,17 @@ ElementEditor.prototype = {
     this._displayBadge.dataset.display = displayType;
     this._displayBadge.title = DISPLAY_TYPES[displayType];
 
-    if (displayType === "flex" || displayType === "inline-flex") {
-      this._displayBadge.classList.toggle("interactive", true);
-      this.startTrackingFlexboxHighlighterEvents();
-    } else if (
+    const isFlex = displayType === "flex" || displayType === "inline-flex";
+    const isGrid =
       displayType === "grid" ||
       displayType === "inline-grid" ||
-      displayType === "subgrid"
-    ) {
-      this._displayBadge.classList.toggle(
-        "interactive",
-        this.highlighters.canGridHighlighterToggle(this.node)
-      );
-      this.startTrackingGridHighlighterEvents();
-    } else {
-      this._displayBadge.classList.remove("interactive");
-    }
+      displayType === "subgrid";
+
+    const isInteractive =
+      isFlex ||
+      (isGrid && this.highlighters.canGridHighlighterToggle(this.node));
+
+    this._displayBadge.classList.toggle("interactive", isInteractive);
   },
 
   updateOverflowBadge: function() {
@@ -503,10 +510,7 @@ ElementEditor.prototype = {
    * scrollable badge is active/inactive.
    */
   updateOverflowHighlight: async function() {
-    if (
-      !this.isOverflowDebuggingEnabled ||
-      !this.node.walkerFront.traits.supportsOverflowDebugging2
-    ) {
+    if (!this.isOverflowDebuggingEnabled) {
       return;
     }
 
@@ -604,6 +608,25 @@ ElementEditor.prototype = {
     }
   },
 
+  /**
+   * Creates and returns the DOM for displaying an attribute with the following DOM
+   * structure:
+   *
+   * dom.span(
+   *   {
+   *     className: "attreditor",
+   *     "data-attr": attribute.name,
+   *     "data-value": attribute.value,
+   *   },
+   *   " ",
+   *   dom.span(
+   *     { className: "editable", tabIndex: 0 },
+   *     dom.span({ className: "attr-name theme-fg-color1" }, attribute.name),
+   *     '="',
+   *     dom.span({ className: "attr-value theme-fg-color2" }, attribute.value),
+   *     '"'
+   *   )
+   */
   _createAttribute: function(attribute, before = null) {
     const attr = this.doc.createElement("span");
     attr.dataset.attr = attribute.name;
@@ -621,6 +644,7 @@ ElementEditor.prototype = {
     const name = this.doc.createElement("span");
     name.classList.add("attr-name");
     name.classList.add("theme-fg-color1");
+    name.textContent = attribute.name;
     inner.appendChild(name);
 
     inner.appendChild(this.doc.createTextNode('="'));
@@ -632,6 +656,47 @@ ElementEditor.prototype = {
 
     inner.appendChild(this.doc.createTextNode('"'));
 
+    this._setupAttributeEditor(attribute, attr, inner, name, val);
+
+    // Figure out where we should place the attribute.
+    if (attribute.name == "id") {
+      before = this.attrList.firstChild;
+    } else if (attribute.name == "class") {
+      const idNode = this.attrElements.get("id");
+      before = idNode ? idNode.nextSibling : this.attrList.firstChild;
+    }
+    this.attrList.insertBefore(attr, before);
+
+    this.removeAttribute(attribute.name);
+    this.attrElements.set(attribute.name, attr);
+
+    this._appendAttributeValue(attribute, val);
+
+    return attr;
+  },
+
+  /**
+   * Setup the editable field for the given attribute.
+   *
+   * @param  {Object} attribute
+   *         An object containing the name and value of a DOM attribute.
+   * @param  {Element} attrEditorEl
+   *         The attribute container <span class="attreditor"> element.
+   * @param  {Element} editableEl
+   *         The editable <span class="editable"> element that is setup to be
+   *         an editable field.
+   * @param  {Element} attrNameEl
+   *         The attribute name <span class="attr-name"> element.
+   * @param  {Element} attrValueEl
+   *         The attribute value <span class="attr-value"> element.
+   */
+  _setupAttributeEditor: function(
+    attribute,
+    attrEditorEl,
+    editableEl,
+    attrNameEl,
+    attrValueEl
+  ) {
     // Double quotes need to be handled specially to prevent DOMParser failing.
     // name="v"a"l"u"e" when editing -> name='v"a"l"u"e"'
     // name="v'a"l'u"e" when editing -> name="v'a&quot;l'u&quot;e"
@@ -652,22 +717,22 @@ ElementEditor.prototype = {
     }
 
     // Make the attribute editable.
-    attr.editMode = editableField({
-      element: inner,
+    attrEditorEl.editMode = editableField({
+      element: editableEl,
       trigger: "dblclick",
       stopOnReturn: true,
       selectAll: false,
       initial: initial,
       multiline: true,
-      maxWidth: () => getAutocompleteMaxWidth(inner, this.container.elt),
+      maxWidth: () => getAutocompleteMaxWidth(editableEl, this.container.elt),
       contentType: InplaceEditor.CONTENT_TYPES.CSS_MIXED,
       popup: this.markup.popup,
       start: (editor, event) => {
         // If the editing was started inside the name or value areas,
         // select accordingly.
-        if (event && event.target === name) {
-          editor.input.setSelectionRange(0, name.textContent.length);
-        } else if (event && event.target.closest(".attr-value") === val) {
+        if (event?.target === attrNameEl) {
+          editor.input.setSelectionRange(0, attrNameEl.textContent.length);
+        } else if (event?.target.closest(".attr-value") === attrValueEl) {
           const length = editValueDisplayed.length;
           const editorLength = editor.input.value.length;
           const start = editorLength - (length + 1);
@@ -687,10 +752,10 @@ ElementEditor.prototype = {
         // Remove the attribute stored in this editor and re-add any attributes
         // parsed out of the input element. Restore original attribute if
         // parsing fails.
-        this.refocusOnEdit(attribute.name, attr, direction);
+        this.refocusOnEdit(attribute.name, attrEditorEl, direction);
         this._saveAttribute(attribute.name, undoMods);
         doMods.removeAttribute(attribute.name);
-        this._applyAttributes(newValue, attr, doMods, undoMods);
+        this._applyAttributes(newValue, attrEditorEl, doMods, undoMods);
         this.container.undo.do(
           () => {
             doMods.apply();
@@ -702,19 +767,18 @@ ElementEditor.prototype = {
       },
       cssProperties: this._cssProperties,
     });
+  },
 
-    // Figure out where we should place the attribute.
-    if (attribute.name == "id") {
-      before = this.attrList.firstChild;
-    } else if (attribute.name == "class") {
-      const idNode = this.attrElements.get("id");
-      before = idNode ? idNode.nextSibling : this.attrList.firstChild;
-    }
-    this.attrList.insertBefore(attr, before);
-
-    this.removeAttribute(attribute.name);
-    this.attrElements.set(attribute.name, attr);
-
+  /**
+   * Appends the attribute value to the given attribute value <span> element.
+   *
+   * @param  {Object} attribute
+   *         An object containing the name and value of a DOM attribute.
+   * @param  {Element} attributeValueEl
+   *         The attribute value <span class="attr-value"> element to append
+   *         the parsed attribute values to.
+   */
+  _appendAttributeValue: function(attribute, attributeValueEl) {
     // Parse the attribute value to detect whether there are linkable parts in
     // it (make sure to pass a complete list of existing attributes to the
     // parseAttribute function, by concatenating attribute, because this could
@@ -722,8 +786,8 @@ ElementEditor.prototype = {
     const attributes = this.node.attributes.filter(
       existingAttribute => existingAttribute.name !== attribute.name
     );
-
     attributes.push(attribute);
+
     const parsedLinksData = parseAttribute(
       this.node.namespaceURI,
       this.node.tagName,
@@ -732,34 +796,42 @@ ElementEditor.prototype = {
       attribute.value
     );
 
-    // Create links in the attribute value, and collapse long attributes if
-    // needed.
-    const collapse = value => {
-      if (value && value.match(COLLAPSE_DATA_URL_REGEX)) {
-        return truncateString(value, COLLAPSE_DATA_URL_LENGTH);
-      }
-      return this.markup.collapseAttributes
-        ? truncateString(value, this.markup.collapseAttributeLength)
-        : value;
-    };
+    attributeValueEl.innerHTML = "";
 
-    val.innerHTML = "";
+    // Create links in the attribute value, and truncate long attribute values if
+    // needed.
     for (const token of parsedLinksData) {
       if (token.type === "string") {
-        val.appendChild(this.doc.createTextNode(collapse(token.value)));
+        attributeValueEl.appendChild(
+          this.doc.createTextNode(this._truncateAttributeValue(token.value))
+        );
       } else {
         const link = this.doc.createElement("span");
         link.classList.add("link");
         link.setAttribute("data-type", token.type);
         link.setAttribute("data-link", token.value);
-        link.textContent = collapse(token.value);
-        val.appendChild(link);
+        link.textContent = this._truncateAttributeValue(token.value);
+        attributeValueEl.appendChild(link);
       }
     }
+  },
 
-    name.textContent = attribute.name;
+  /**
+   * Truncates the given attribute value if it is a base64 data URL or the
+   * collapse attributes pref is enabled.
+   *
+   * @param  {String} value
+   *         Attribute value.
+   * @return {String} truncated attribute value.
+   */
+  _truncateAttributeValue: function(value) {
+    if (value && value.match(COLLAPSE_DATA_URL_REGEX)) {
+      return truncateString(value, COLLAPSE_DATA_URL_LENGTH);
+    }
 
-    return attr;
+    return this.markup.collapseAttributes
+      ? truncateString(value, this.markup.collapseAttributeLength)
+      : value;
   },
 
   /**
@@ -911,53 +983,13 @@ ElementEditor.prototype = {
     this.markup.inspector.once("markupmutation", onMutations);
   },
 
-  startTrackingFlexboxHighlighterEvents() {
-    this.highlighters.on(
-      "flexbox-highlighter-hidden",
-      this.onFlexboxHighlighterChange
-    );
-    this.highlighters.on(
-      "flexbox-highlighter-shown",
-      this.onFlexboxHighlighterChange
-    );
-  },
-
-  startTrackingGridHighlighterEvents() {
-    this.highlighters.on(
-      "grid-highlighter-hidden",
-      this.onGridHighlighterChange
-    );
-    this.highlighters.on(
-      "grid-highlighter-shown",
-      this.onGridHighlighterChange
-    );
-  },
-
-  stopTrackingFlexboxHighlighterEvents() {
-    this.highlighters.off(
-      "flexbox-highlighter-hidden",
-      this.onFlexboxHighlighterChange
-    );
-    this.highlighters.off(
-      "flexbox-highlighter-shown",
-      this.onFlexboxHighlighterChange
-    );
-  },
-
-  stopTrackingGridHighlighterEvents() {
-    this.highlighters.off(
-      "grid-highlighter-hidden",
-      this.onGridHighlighterChange
-    );
-    this.highlighters.off(
-      "grid-highlighter-shown",
-      this.onGridHighlighterChange
-    );
-  },
-
   /**
-   * Called when the display badge is clicked. Toggles on the flex/grid highlighter for
+   * Called when the display badge is clicked. Toggles on the flexbox/grid highlighter for
    * the selected node if it is a grid container.
+   *
+   * Event handling for highlighter events is delegated up to the Markup view panel.
+   * When a flexbox/grid highlighter is shown or hidden, the corresponding badge will
+   * be marked accordingly. See MarkupView.handleHighlighterEvent()
    */
   onDisplayBadgeClick: async function(event) {
     event.stopPropagation();
@@ -968,13 +1000,7 @@ ElementEditor.prototype = {
       target.dataset.display === "flex" ||
       target.dataset.display === "inline-flex"
     ) {
-      // Stop tracking highlighter events to avoid flickering of the active class.
-      this.stopTrackingFlexboxHighlighterEvents();
-
-      this._displayBadge.classList.toggle("active");
       await this.highlighters.toggleFlexboxHighlighter(this.node, "markup");
-
-      this.startTrackingFlexboxHighlighterEvents();
     }
 
     if (
@@ -988,13 +1014,7 @@ ElementEditor.prototype = {
         return;
       }
 
-      // Stop tracking highlighter events to avoid flickering of the active class.
-      this.stopTrackingGridHighlighterEvents();
-
-      this._displayBadge.classList.toggle("active");
       await this.highlighters.toggleGridHighlighter(this.node, "markup");
-
-      this.startTrackingGridHighlighterEvents();
     }
   },
 
@@ -1048,43 +1068,6 @@ ElementEditor.prototype = {
   },
 
   /**
-   * Handler for "flexbox-highlighter-hidden" and "flexbox-highlighter-shown" event
-   * emitted from the HighlightersOverlay. Toggles the active state of the display badge
-   * if it matches the highlighted flex container node.
-   */
-  onFlexboxHighlighterChange: function() {
-    if (!this._displayBadge) {
-      return;
-    }
-
-    this._displayBadge.classList.toggle(
-      "active",
-      this.highlighters.flexboxHighlighterShown === this.node
-    );
-  },
-
-  /**
-   * Handler for "grid-highlighter-hidden" and "grid-highlighter-shown" event emitted from
-   * the HighlightersOverlay. Toggles the active state of the display badge if it matches
-   * the highlighted grid node.
-   */
-  onGridHighlighterChange: function() {
-    if (!this._displayBadge) {
-      return;
-    }
-
-    this._displayBadge.classList.toggle(
-      "active",
-      this.highlighters.gridHighlighters.has(this.node)
-    );
-
-    this._displayBadge.classList.toggle(
-      "interactive",
-      this.highlighters.canGridHighlighterToggle(this.node)
-    );
-  },
-
-  /**
    * Called when the tag name editor has is done editing.
    */
   onTagEdit: function(newTagName, isCommit) {
@@ -1108,8 +1091,6 @@ ElementEditor.prototype = {
   destroy: function() {
     if (this._displayBadge) {
       this._displayBadge.removeEventListener("click", this.onDisplayBadgeClick);
-      this.stopTrackingFlexboxHighlighterEvents();
-      this.stopTrackingGridHighlighterEvents();
     }
 
     if (this._customBadge) {

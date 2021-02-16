@@ -10,27 +10,6 @@ Data collected from Activity Stream is retained on Mozilla secured servers for a
 
 The following is a detailed overview of the different kinds of data we collect in the Activity Stream. See [data_dictionary.md](data_dictionary.md) for more details for each field.
 
-## Health ping
-
-This is a heartbeat ping indicating whether Activity Stream is currently being used or not, it's submitted once upon the browser initialization.
-
-```js
-{
-  "client_id": "374dc4d8-0cb2-4ac5-a3cf-c5a9bc3c602e",
-  "locale": "en-US",
-  "version": "62.0a1",
-  "release_channel": "nightly",
-  "event": "AS_ENABLED",
-  "value": 10
-}
-```
-where the "value" is encoded as:
-  * Value 0: default
-  * Value 1: about:blank
-  * Value 2: web extension
-  * Value 3: other custom URL(s)
-Two encoded integers for about:newtab and about:home are combined in a bitwise fashion. For instance, if both about:home and about:newtab were set to about:blank, then `value = 5 = (1 | (1 << 2))`, i.e `value = (bitfield of about:newtab) | (bitfield of about:newhome << 2)`.
-
 ## Page takeover ping
 
 This ping is submitted once upon Activity Stream initialization if either about:home or about:newtab are set to a custom URL. It sends the category of the custom URL. It also includes the web extension id of the extension controlling the home and/or newtab page.
@@ -71,7 +50,7 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
 ```js
 {
   // This indicates the type of interaction
-  "event": ["CLICK", "SEARCH", "BLOCK", "DELETE", "OPEN_NEW_WINDOW", "OPEN_PRIVATE_WINDOW", "BOOKMARK_DELETE", "BOOKMARK_ADD", "OPEN_NEWTAB_PREFS", "CLOSE_NEWTAB_PREFS", "SEARCH_HANDOFF"],
+  "event": ["CLICK", "SEARCH", "BLOCK", "DELETE", "OPEN_NEW_WINDOW", "OPEN_PRIVATE_WINDOW", "BOOKMARK_DELETE", "BOOKMARK_ADD", "OPEN_NEWTAB_PREFS", "CLOSE_NEWTAB_PREFS", "SEARCH_HANDOFF", "SHOW_PERSONALIZE", "HIDE_PERSONALIZE"],
 
   // Optional field indicating the UI component type
   "source": "TOP_SITES",
@@ -98,6 +77,22 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
 ```
 
 ### Types of user interactions
+
+#### Show/hide Personalization Panel
+
+```js
+{
+  "event": [ "SHOW_PERSONALIZE" | "HIDE_PERSONALIZE" ],  // Basic metadata
+  "action": "activity_stream_event",
+  "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7
+}
+```
 
 #### Performing a search
 
@@ -469,6 +464,23 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
 }
 ```
 
+#### Changing preferences from about:preferences#home or on the customize menu on the newtab page.
+
+```js
+{
+  "event": "PREF_CHANGED",
+  "source": "TOP_STORIES|POCKET_SPOCS|HIGHLIGHTS|SNIPPETS|TOP_SITES|SPONSORED_TOP_SITES",
+  "value": "{\"status\":true|false,\"menu_source\":\"ABOUT_PREFERENCES|CUSTOMIZE_MENU\"}"
+  "release_channel": "default",
+  "experiments": {},
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
+  "addon_version": "20180710100040",
+  "locale": "en-US",
+  "user_prefs": 7
+}
+```
+
 #### Pinning a tab
 
 ```js
@@ -512,57 +524,6 @@ A user event ping includes some basic metadata (tab id, addon version, etc.) as 
   "source": "TOP_SITES"
 }
 ```
-
-### Onboarding user events on about:welcome
-
-#### Form Submit Events
-
-```js
-{
-  "event": ["SUBMIT_EMAIL" | "SUBMIT_SIGNIN" | "SKIPPED_SIGNIN"],
-  "value": {
-    "has_flow_params": false,
-  }
-
-  // Basic metadata
-  "action": "activity_stream_event",
-  "page": "about:welcome",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
-  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7
-}
-```
-
-#### Firefox Accounts Metrics flow errors
-
-```js
-{
-  "event": ["FXA_METRICS_FETCH_ERROR" | "FXA_METRICS_ERROR"],
-  "value": 500, // Only FXA_METRICS_FETCH_ERROR provides this value, this value is any valid HTTP status code except 200.
-
-  // Basic metadata
-  "action": "activity_stream_event",
-  "page": "about:welcome",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "session_id": "005deed0-e3e4-4c02-a041-17405fd703f6",
-  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7
-}
-```
-
 
 ## Session end pings
 
@@ -673,11 +634,6 @@ This reports all the Pocket recommended articles (a list of `id`s) when the user
 
 ```js
 {
-  "action": "activity_stream_impression_stats",
-
-  // both "client_id" and "session_id" are set to "n/a" in this ping.
-  "client_id": "n/a",
-  "session_id": "n/a",
   "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
   "addon_version": "20180710100040",
   "locale": "en-US",
@@ -698,11 +654,6 @@ This reports the user's interaction with those Pocket tiles.
 
 ```js
 {
-  "action": "activity_stream_impression_stats",
-
-  // both "client_id" and "session_id" are set to "n/a" in this ping.
-  "client_id": "n/a",
-  "session_id": "n/a",
   "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
   "addon_version": "20180710100040",
   "locale": "en-US",
@@ -741,389 +692,6 @@ These pings record user interaction with the save to Pocket button.
   "pocket_logged_in_state": true|false,
   "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
   "profile_creation_date": 18550
-}
-```
-
-## Performance pings
-
-These pings are captured to record performance related events i.e. how long certain operations take to execute.
-
-### Domain affinity calculation v1
-
-This reports the duration of the domain affinity calculation in milliseconds.
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "topstories.domain.affinity.calculation.ms",
-  "value": 43
-}
-```
-
-### Domain affinity calculation v2
-
-These report the duration of the domain affinity v2 calculations in milliseconds.
-
-#### Total calculation in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_TOTAL_DURATION",
-  "value": 43
-}
-```
-
-#### getRecipe calculation in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_GET_RECIPE_DURATION",
-  "value": 43
-}
-```
-
-#### RecipeExecutor calculation in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_RECIPE_EXECUTOR_DURATION",
-  "value": 43
-}
-```
-
-#### taggers calculation in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_TAGGERS_DURATION",
-  "value": 43
-}
-```
-
-#### createInterestVector calculation in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_CREATE_INTEREST_VECTOR_DURATION",
-  "value": 43
-}
-```
-
-#### calculateItemRelevanceScore calculation in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_ITEM_RELEVANCE_SCORE_DURATION",
-  "value": 43
-}
-```
-
-### History size used for v2 calculation
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_HISTORY_SIZE",
-  "value": 43
-}
-```
-
-### Error events for v2 calculation
-
-These report any failures during domain affinity v2 calculations, and where it failed.
-
-#### getRecipe error
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_GET_RECIPE_ERROR"
-}
-```
-
-#### generateRecipeExecutor error
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_GENERATE_RECIPE_EXECUTOR_ERROR"
-}
-```
-
-#### createInterestVector error
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "PERSONALIZATION_V2_CREATE_INTEREST_VECTOR_ERROR"
-}
-```
-
-### Discovery Stream loaded content
-
-This reports all the loaded content (a list of `id`s and positions) when the user opens a newtab page and the page becomes visible. Note that this ping is a superset of the Discovery Stream impression ping, as impression pings are also subject to the individual visibility.
-
-```js
-{
-  "action": "activity_stream_impression_stats",
-
-  // Both "client_id" and "session_id" are set to "n/a" in this ping.
-  "client_id": "n/a",
-  "session_id": "n/a",
-  "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "source": ["HERO" | "CARDGRID" | "LIST"],
-  "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"],
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-
-  // Indicating this is a `loaded content` ping (as opposed to impression) as well as the size of `tiles`
-  "loaded": 3,
-  "tiles": [{"id": 10000, "pos": 0}, {"id": 10001, "pos": 1}, {"id": 10002, "pos": 2}]
-}
-```
-
-### Discovery Stream performance pings
-
-#### Request time of layout feed in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "LAYOUT_REQUEST_TIME",
-  "value": 42
-}
-```
-
-#### Request time of SPOCS feed in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "SPOCS_REQUEST_TIME",
-  "value": 42
-}
-```
-
-#### Request time of component feed feed in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "COMPONENT_FEED_REQUEST_TIME",
-  "value": 42
-}
-```
-
-#### Request time of total Discovery Stream feed in ms
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "DS_FEED_TOTAL_REQUEST_TIME",
-  "value": 136
-}
-```
-
-#### Cache age of Discovery Stream feed in second
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "DS_CACHE_AGE_IN_SEC",
-  "value": 1800 // 30 minutes
-}
-```
-
-### Discovery Stream SPOCS Fill ping
-
-This reports the internal status of Pocket SPOCS (Sponsored Contents).
-
-```js
-{
-  // both "client_id" and "session_id" are set to "n/a" in this ping.
-  "client_id": "n/a",
-  "session_id": "n/a",
-  "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "version": "68",
-  "release_channel": "release",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "spoc_fills": [
-    {"id": 10000, displayed: 0, reason: "frequency_cap", full_recalc: 1},
-    {"id": 10001, displayed: 0, reason: "blocked_by_user", full_recalc: 1},
-    {"id": 10002, displayed: 0, reason: "below_min_score", full_recalc: 1},
-    {"id": 10003, displayed: 0, reason: "campaign_duplicate", full_recalc: 1},
-    {"id": 10004, displayed: 0, reason: "probability_selection", full_recalc: 0},
-    {"id": 10004, displayed: 0, reason: "out_of_position", full_recalc: 0},
-    {"id": 10005, displayed: 1, reason: "n/a", full_recalc: 0}
-  ]
-}
-```
-
-## Undesired event pings
-
-These pings record the undesired events happen in the addon for further investigation.
-
-### Addon initialization failure
-
-This reports when the addon fails to initialize
-
-```js
-{
-  "action": "activity_stream_undesired_event",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "user_prefs": 7,
-  "event": "ADDON_INIT_FAILED",
-  "value": -1
 }
 ```
 
@@ -1195,59 +763,6 @@ CFR impression ping has two forms, in which the message_id could be of different
 }
 ```
 
-#### Onboarding impression
-```js
-{
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "action": "onboarding_user_event",
-  "impression_id": "n/a",
-  "source": "FIRST_RUN",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "message_id": "EXTENDED_TRIPLETS_1",
-  "event": "IMPRESSION",
-  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
-  "event_context": { "page": ["about:welcome" | "about:home" | "about:newtab"] }
-}
-```
-
-#### Onboarding Simplified Welcome impression
-```js
-{
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "version": "76.0a1",
-  "locale": "en-US",
-  "experiments": {},
-  "release_channel": "default",
-  "addon_version": "20200330194034"
-  "message_id": "ABOUT_WELCOME",
-  "event": "IMPRESSION",
-  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
-  "event_context": { "page": "about:welcome" }
-}
-```
-#### Onboarding Simplified Welcome Session End ping
-```js
-{
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "version": "76.0a1",
-  "locale": "en-US",
-  "experiments": {},
-  "release_channel": "default",
-  "addon_version": "20200330194034"
-  "message_id": "ABOUT_WELCOME",
-  "id": "ABOUT_WELCOME",
-  "event": "SESSION_END",
-  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
-  "event_context": { "page": "about:welcome", "reason":
-    ["welcome-window-closed" | "welcome-tab-closed" | "app-shut-down" | "address-bar-navigated" | "unknown"]}
-}
-```
-
 ### User interaction pings
 
 This reports the user's interaction with Activity Stream Router.
@@ -1267,26 +782,6 @@ This reports the user's interaction with Activity Stream Router.
   "source": "NEWTAB_FOOTER_BAR",
   "message_id": "some_snippet_id",
   "event": ["CLICK_BUTTION" | "BLOCK"]
-}
-```
-
-#### Onboarding interaction pings
-```js
-{
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "action": "onboarding_user_event",
-  "addon_version": "20180710100040",
-  "impression_id": "n/a",
-  "locale": "en-US",
-  "experiments": {
-    "experiment_1": {"branch": "control"},
-    "experiment_2": {"branch": "treatment"}
-  },
-  "source": "ONBOARDING",
-  "message_id": "onboarding_message_1",
-  "event": ["IMPRESSION" | "CLICK_BUTTION" | "INSTALL" | "BLOCK"],
-  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
-  "event_context": { "page": ["about:welcome" | "about:home" | "about:newtab"] }
 }
 ```
 
@@ -1471,6 +966,30 @@ as other CFR messages.
 }
 ```
 
+## InfoBar pings
+
+This reports when the user interacts with the browser infobar (messaging area
+located at the top of the content area). Similar policy applied as for the
+What's New panel client_id is reported in all the channels.
+
+```
+{
+  "experiments" : {
+    "exp1" : {
+      "branch" : "treatment-a"
+    }
+  },
+  "addon_version" : "20210115035053",
+  "release_channel" : "release",
+  "locale" : "en-US",
+  "event" : ["IMPRESSION", "CLICK_PRIMARY_BUTTON", "CLICK_SECONDARY_BUTTON", "DISMISSED"],
+  "client_id" : "c4beb4bf-4feb-9c4e-9587-9323b28c2e50",
+  "version" : "86",
+  "message_id" : "INFOBAR_ACTION_86",
+  "browser_session_id" : "93714e76-9919-ca49-b697-5e7c09a1394f"
+}
+```
+
 ## Messaging-experiments pings
 
 As the new experiment platform, the Messaging experiment manager is now managing & operating all the experiments of Firefox Messaging System, including the first-run experience (about:welcome), CFR, Whats-new-panel, Moments Page, and Snippets.
@@ -1517,4 +1036,109 @@ Two different types of events are sent: `attribute_error` and `attribute_timeout
   "attribute_timeout", // event
   "bar" // attribute
 ]
+```
+
+## Firefox Onboarding (about:welcome) pings
+
+These record the telemetry metrics during the Firefox onboarding experience.
+
+### Onboarding impressions
+```js
+{
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "version": "76.0a1",
+  "locale": "en-US",
+  "experiments": {},
+  "release_channel": "default",
+  "addon_version": "20200330194034"
+  "message_id": ["DEFAULT_ABOUTWELCOME" | "DEFAULT_ABOUTWELCOME_AW_GET_STARTED" | "DEFAULT_ABOUTWELCOME_SITES" | "DEFAULT_ABOUTWELCOME_AW_IMPORT_SETTINGS" | "DEFAULT_ABOUTWELCOME_AW_CHOOSE_THEME", "RTAMO_DEFAULT_WELCOME"],
+  "event": "IMPRESSION",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
+  "event_context": { "page": "about:welcome" },
+  "attribution": {
+    "source": "mozilla.org",
+    "medium": "referral",
+    "campaign": "Firefox-Brand-US-Mozilla-Org",
+    "content": "test-addon@github.io",
+    "experiment": "ua-onboarding",
+    "variation": "chrome",
+    "ua": "firefox"
+  }
+}
+```
+
+### Onboarding button clicks
+```js
+{
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "version": "76.0a1",
+  "locale": "en-US",
+  "experiments": {},
+  "release_channel": "default",
+  "addon_version": "20200330194034"
+  "message_id": ["DEFAULT_ABOUTWELCOME_AW_GET_STARTED" | "DEFAULT_ABOUTWELCOME_AW_IMPORT_SETTINGS" | "DEFAULT_ABOUTWELCOME_AW_CHOOSE_THEME" | "RTAMO_DEFAULT_WELCOME"],
+  "event": "CLICK_BUTTION",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
+  "event_context": { "page": "about:welcome", "source": ["primary_button", "secondary_button"] },
+  "attribution": {
+    "source": "mozilla.org",
+    "medium": "referral",
+    "campaign": "Firefox-Brand-US-Mozilla-Org",
+    "content": "test-addon@github.io",
+    "experiment": "ua-onboarding",
+    "variation": "chrome",
+    "ua": "firefox"
+  }
+}
+```
+
+### Onboarding Return-To-AMO install ping
+```js
+{
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "version": "76.0a1",
+  "locale": "en-US",
+  "experiments": {},
+  "release_channel": "default",
+  "addon_version": "20200330194034"
+  "message_id": "RTAMO_DEFAULT_WELCOME",
+  "event": "INSTALL",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
+  "event_context": { "page": "about:welcome", "source": "ADD_EXTENSION_BUTTON" },
+  "attribution": {
+    "source": "mozilla.org",
+    "medium": "referral",
+    "campaign": "Firefox-Brand-US-Mozilla-Org",
+    "content": "test-addon@github.io",
+    "experiment": "ua-onboarding",
+    "variation": "chrome",
+    "ua": "firefox"
+  }
+}
+```
+
+### Onboarding session end ping
+```js
+{
+  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
+  "version": "76.0a1",
+  "locale": "en-US",
+  "experiments": {},
+  "release_channel": "default",
+  "addon_version": "20200330194034"
+  "message_id": "DEFAULT_ABOUTWELCOME",
+  "event": "SESSION_END",
+  "browser_session_id": "e7e52665-7db3-f348-9918-e93160eb2ef3",
+  "event_context": { "page": "about:welcome", "reason":
+    ["welcome-window-closed" | "welcome-tab-closed" | "app-shut-down" | "address-bar-navigated" | "unknown"]},
+  "attribution": {
+    "source": "mozilla.org",
+    "medium": "referral",
+    "campaign": "Firefox-Brand-US-Mozilla-Org",
+    "content": "test-addon@github.io",
+    "experiment": "ua-onboarding",
+    "variation": "chrome",
+    "ua": "firefox"
+  }
+}
 ```

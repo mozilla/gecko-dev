@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, division, print_function
 
 import datetime
 import errno
@@ -530,6 +530,7 @@ class TestInfoLongRunningTasks(TestInfo):
         def get_long_running_ratio(record):
             count = record["count"]
             tasks_gt_pct = record["tasks_gt_pct"]
+            # pylint --py3k W1619
             return count / tasks_gt_pct
 
         # Search test durations in ActiveData for long-running tests
@@ -589,6 +590,7 @@ class TestInfoLongRunningTasks(TestInfo):
                 count = record["count"]
                 max_run_time = record["max_run_time"]
                 tasks_gt_pct = record["tasks_gt_pct"]
+                # pylint --py3k W1619
                 print(
                     "%-55s: %d of %d runs (%.1f%%) exceeded %d%% of max-run-time (%d s)"
                     % (
@@ -669,7 +671,7 @@ class TestInfoReport(TestInfo):
             if type(new_value) == int:
                 item[label] = new_value
             else:
-                item[label] = round(new_value, 2)
+                item[label] = float(round(new_value, 2))  # pylint: disable=W1633
 
         if "test" in result and "tests" in by_component:
             test = result["test"]
@@ -678,7 +680,8 @@ class TestInfoReport(TestInfo):
             for bc in by_component["tests"]:
                 for item in by_component["tests"][bc]:
                     if test == item["test"]:
-                        seconds = round(result.get("duration", 0), 2)
+                        # pylint: disable=W1633
+                        seconds = float(round(result.get("duration", 0), 2))
                         update_item(item, "total run time, seconds", seconds)
                         update_item(item, "total runs", result.get("count", 0))
                         update_item(item, "skipped runs", result.get("skips", 0))

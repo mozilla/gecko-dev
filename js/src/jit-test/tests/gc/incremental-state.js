@@ -4,6 +4,12 @@ function assert(x) {
   assertEq(true, x);
 }
 
+function waitForState(state) {
+  while (gcstate() !== state && gcstate() !== "NotActive") {
+    gcslice(100);
+  }
+}
+
 // Test expected state changes during collection.
 gczeal(0);
 
@@ -22,6 +28,7 @@ assertEq(gcstate(), "NotActive");
 // we yield before we start sweeping.
 gczeal(0);
 gcslice(1);
+waitForState("Mark");
 assertEq(gcstate(), "Mark");
 gcslice(1000000);
 assertEq(gcstate(), "Mark");
@@ -29,8 +36,17 @@ gcslice(1000000);
 assert(gcstate() !== "Mark");
 finishgc();
 
+// Zeal mode 6: Incremental GC in two slices:
+//   1) prepare
+//   2) mark roots, mark and sweep
+gczeal(6, 0);
+gcslice(1);
+assertEq(gcstate(), "Prepare");
+gcslice(1);
+assertEq(gcstate(), "NotActive");
+
 // Zeal mode 8: Incremental GC in two slices:
-//   1) mark roots
+//   1) prepare and mark roots
 //   2) mark and sweep
 gczeal(8, 0);
 gcslice(1);
@@ -39,7 +55,7 @@ gcslice(1);
 assertEq(gcstate(), "NotActive");
 
 // Zeal mode 9: Incremental GC in two slices:
-//   1) mark roots and marking
+//   1) prepare, mark roots and marking
 //   2) new marking and sweeping
 gczeal(9, 0);
 gcslice(1);
@@ -52,6 +68,9 @@ assertEq(gcstate(), "NotActive");
 // in sweeping, where normal IGC (above) does not.
 gczeal(10, 0);
 gcslice(1000000);
+while (gcstate() === "Prepare") {
+  gcslice(1000000);
+}
 assertEq(gcstate(), "Sweep");
 gcslice(1000000);
 assert(gcstate() !== "Sweep");
@@ -59,7 +78,6 @@ finishgc();
 
 // Two-slice zeal modes that yield once during sweeping.
 for (let mode of [ 17, 19 ]) {
-    print(mode);
     gczeal(mode, 0);
     gcslice(1);
     assertEq(gcstate(), "Sweep");
@@ -70,7 +88,6 @@ for (let mode of [ 17, 19 ]) {
 // Two-slice zeal modes that yield per-zone during sweeping.
 const sweepingZealModes = [ 20, 21, 22, 23 ];
 for (let mode of sweepingZealModes) {
-    print(mode);
     gczeal(mode, 0);
     gcslice(1);
     while (gcstate() === "Sweep")

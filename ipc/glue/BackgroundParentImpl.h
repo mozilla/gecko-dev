@@ -12,11 +12,6 @@
 #include "mozilla/ipc/PBackgroundParent.h"
 
 namespace mozilla {
-
-namespace layout {
-class VsyncParent;
-}  // namespace layout
-
 namespace ipc {
 
 // Instances of this class should never be created directly. This class is meant
@@ -315,6 +310,10 @@ class BackgroundParentImpl : public PBackgroundParent,
 
   mozilla::ipc::IPCResult RecvShutdownBackgroundSessionStorageManagers()
       override;
+
+  mozilla::ipc::IPCResult RecvPropagateBackgroundSessionStorageManager(
+      const uint64_t& aCurrentTopContextId,
+      const uint64_t& aTargetTopContextId) override;
 
   mozilla::ipc::IPCResult RecvRemoveBackgroundSessionStorageManager(
       const uint64_t& aTopContextId) override;

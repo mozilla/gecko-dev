@@ -60,8 +60,6 @@ nsCString MapInternalContentPolicyTypeToDest(nsContentPolicyType aType) {
       return "iframe"_ns;
     case nsIContentPolicy::TYPE_INTERNAL_FRAME:
       return "frame"_ns;
-    case nsIContentPolicy::TYPE_REFRESH:
-      return "empty"_ns;
     case nsIContentPolicy::TYPE_PING:
       return "empty"_ns;
     case nsIContentPolicy::TYPE_XMLHTTPREQUEST:
@@ -103,12 +101,12 @@ nsCString MapInternalContentPolicyTypeToDest(nsContentPolicyType aType) {
       return "empty"_ns;
     case nsIContentPolicy::TYPE_SPECULATIVE:
       return "empty"_ns;
-    default:
-      MOZ_CRASH("Unhandled nsContentPolicyType value");
+    case nsIContentPolicy::TYPE_INVALID:
       break;
+      // Do not add default: so that compilers can catch the missing case.
   }
 
-  return "empty"_ns;
+  MOZ_CRASH("Unhandled nsContentPolicyType value");
 }
 
 // Helper function to determine whether a request (including involved
@@ -238,7 +236,7 @@ void mozilla::dom::SecFetch::AddSecFetchMode(nsIHttpChannel* aHTTPChannel) {
 
   nsCOMPtr<nsILoadInfo> loadInfo = aHTTPChannel->LoadInfo();
   uint32_t securityMode = loadInfo->GetSecurityMode();
-  nsContentPolicyType externalType = loadInfo->GetExternalContentPolicyType();
+  ExtContentPolicyType externalType = loadInfo->GetExternalContentPolicyType();
 
   if (securityMode ==
           nsILoadInfo::SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT ||
@@ -258,12 +256,11 @@ void mozilla::dom::SecFetch::AddSecFetchMode(nsIHttpChannel* aHTTPChannel) {
         "unhandled security mode");
   }
 
-  if (externalType == nsIContentPolicy::TYPE_DOCUMENT ||
-      externalType == nsIContentPolicy::TYPE_SUBDOCUMENT ||
-      externalType == nsIContentPolicy::TYPE_REFRESH ||
-      externalType == nsIContentPolicy::TYPE_OBJECT) {
+  if (externalType == ExtContentPolicy::TYPE_DOCUMENT ||
+      externalType == ExtContentPolicy::TYPE_SUBDOCUMENT ||
+      externalType == ExtContentPolicy::TYPE_OBJECT) {
     mode = "navigate"_ns;
-  } else if (externalType == nsIContentPolicy::TYPE_WEBSOCKET) {
+  } else if (externalType == ExtContentPolicy::TYPE_WEBSOCKET) {
     mode = "websocket"_ns;
   }
 
@@ -296,11 +293,11 @@ void mozilla::dom::SecFetch::AddSecFetchSite(nsIHttpChannel* aHTTPChannel) {
 
 void mozilla::dom::SecFetch::AddSecFetchUser(nsIHttpChannel* aHTTPChannel) {
   nsCOMPtr<nsILoadInfo> loadInfo = aHTTPChannel->LoadInfo();
-  nsContentPolicyType externalType = loadInfo->GetExternalContentPolicyType();
+  ExtContentPolicyType externalType = loadInfo->GetExternalContentPolicyType();
 
   // sec-fetch-user only applies to loads of type document or subdocument
-  if (externalType != nsIContentPolicy::TYPE_DOCUMENT &&
-      externalType != nsIContentPolicy::TYPE_SUBDOCUMENT) {
+  if (externalType != ExtContentPolicy::TYPE_DOCUMENT &&
+      externalType != ExtContentPolicy::TYPE_SUBDOCUMENT) {
     return;
   }
 

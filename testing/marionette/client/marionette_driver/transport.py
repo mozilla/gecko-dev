@@ -36,6 +36,10 @@ class Message(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        # pylint --py3k: W1641
+        return hash(self.id)
+
 
 class Command(Message):
     TYPE = 0
@@ -305,8 +309,10 @@ class TcpTransport(object):
                 if exc.errno not in (57, 107):
                     raise
 
-            self._sock.close()
-            self._sock = None
+            if self._sock:
+                # Guard against unclean shutdown.
+                self._sock.close()
+                self._sock = None
 
     def __del__(self):
         self.close()

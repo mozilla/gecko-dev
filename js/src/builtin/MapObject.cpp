@@ -332,8 +332,6 @@ bool MapIteratorObject::next(MapIteratorObject* mapIterator,
     return true;
   }
 
-  // Note: we don't need to call setDenseElementWithType because
-  // MapIteratorObject::createResultPair gave the elements unknown-types.
   switch (mapIterator->kind()) {
     case MapObject::Keys:
       resultPairObj->setDenseElement(0, range->front().key.get());
@@ -361,20 +359,9 @@ JSObject* MapIteratorObject::createResultPair(JSContext* cx) {
     return nullptr;
   }
 
-  Rooted<TaggedProto> proto(cx, resultPairObj->taggedProto());
-  ObjectGroup* group = ObjectGroupRealm::makeGroup(
-      cx, resultPairObj->realm(), resultPairObj->getClass(), proto);
-  if (!group) {
-    return nullptr;
-  }
-  resultPairObj->setGroup(group);
-
   resultPairObj->setDenseInitializedLength(2);
   resultPairObj->initDenseElement(0, NullValue());
   resultPairObj->initDenseElement(1, NullValue());
-
-  // See comments in MapIteratorObject::next.
-  AddTypePropertyId(cx, resultPairObj, JSID_VOID, TypeSet::UnknownType());
 
   return resultPairObj;
 }
@@ -1133,8 +1120,6 @@ bool SetIteratorObject::next(SetIteratorObject* setIterator,
     return true;
   }
 
-  // Note: we don't need to call setDenseElementWithType because
-  // SetIteratorObject::createResult gave the elements unknown-types.
   resultObj->setDenseElement(0, range->front().get());
   range->popFront();
   return false;
@@ -1148,19 +1133,8 @@ JSObject* SetIteratorObject::createResult(JSContext* cx) {
     return nullptr;
   }
 
-  Rooted<TaggedProto> proto(cx, resultObj->taggedProto());
-  ObjectGroup* group = ObjectGroupRealm::makeGroup(
-      cx, resultObj->realm(), resultObj->getClass(), proto);
-  if (!group) {
-    return nullptr;
-  }
-  resultObj->setGroup(group);
-
   resultObj->setDenseInitializedLength(1);
   resultObj->initDenseElement(0, NullValue());
-
-  // See comments in SetIteratorObject::next.
-  AddTypePropertyId(cx, resultObj, JSID_VOID, TypeSet::UnknownType());
 
   return resultObj;
 }

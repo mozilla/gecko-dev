@@ -15,80 +15,15 @@
 #endif  // MOZ_WEBRTC
 #include "MockCubeb.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/SpinEventLoopUntil.h"
+#include "WaitFor.h"
+#include "WavDumper.h"
 
 #define DRIFT_BUFFERING_PREF "media.clockdrift.buffering"
 
 using namespace mozilla;
 
 namespace {
-/**
- * Waits for an occurrence of aEvent on the current thread (by blocking it,
- * except tasks added to the event loop may run) and returns the event's
- * templated value, if it's non-void.
- *
- * The caller must be wary of eventloop issues, in
- * particular cases where we rely on a stable state runnable, but there is never
- * a task to trigger stable state. In such cases it is the responsibility of the
- * caller to create the needed tasks, as JS would. A noteworthy API that relies
- * on stable state is MediaTrackGraph::GetInstance.
- */
-template <typename T>
-T WaitFor(MediaEventSource<T>& aEvent) {
-  Maybe<T> value;
-  MediaEventListener listener = aEvent.Connect(
-      AbstractThread::GetCurrent(), [&](T aValue) { value = Some(aValue); });
-  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-      [&] { return value.isSome(); });
-  listener.Disconnect();
-  return value.value();
-}
-
-/**
- * Specialization of WaitFor<T> for void.
- */
-void WaitFor(MediaEventSource<void>& aEvent) {
-  bool done = false;
-  MediaEventListener listener =
-      aEvent.Connect(AbstractThread::GetCurrent(), [&] { done = true; });
-  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-      [&] { return done; });
-  listener.Disconnect();
-}
-
-/**
- * Variant of WaitFor that blocks the caller until a MozPromise has either been
- * resolved or rejected.
- */
-template <typename R, typename E, bool Exc>
-Result<R, E> WaitFor(const RefPtr<MozPromise<R, E, Exc>>& aPromise) {
-  Maybe<Result<R, E>> result;
-  aPromise->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [&](R aResult) { result = Some(Result<R, E>(aResult)); },
-      [&](E aError) { result = Some(Result<R, E>(aError)); });
-  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-      [&] { return result.isSome(); });
-  return result.extract();
-}
-
-/**
- * A variation of WaitFor that takes a callback to be called each time aEvent is
- * raised. Blocks the caller until the callback function returns true.
- */
-template <typename T, typename CallbackFunction>
-void WaitUntil(MediaEventSource<T>& aEvent, const CallbackFunction& aF) {
-  bool done = false;
-  MediaEventListener listener =
-      aEvent.Connect(AbstractThread::GetCurrent(), [&](T aValue) {
-        if (!done) {
-          done = aF(aValue);
-        }
-      });
-  SpinEventLoopUntil<ProcessFailureBehavior::IgnoreAndContinue>(
-      [&] { return done; });
-  listener.Disconnect();
-}
-
 // Short-hand for InvokeAsync on the current thread.
 #define Invoke(f) InvokeAsync(GetCurrentSerialEventTarget(), __func__, f)
 
@@ -233,7 +168,7 @@ TEST(TestAudioTrackGraph, SetOutputDeviceID)
   DispatchFunction(
       [&] { dummySource = graph->CreateSourceTrack(MediaSegment::AUDIO); });
 
-  MockCubebStream* stream = WaitFor(cubeb->StreamInitEvent());
+  RefPtr<SmartMockCubebStream> stream = WaitFor(cubeb->StreamInitEvent());
 
   EXPECT_EQ(stream->GetOutputDeviceID(), reinterpret_cast<cubeb_devid>(2))
       << "After init confirm the expected output device id";
@@ -280,14 +215,18 @@ TEST(TestAudioTrackGraph, ErrorCallback)
   CubebUtils::ForceSetCubebContext(cubeb->AsCubebContext());
 
   MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
-      MediaTrackGraph::AUDIO_THREAD_DRIVER, /*window*/ nullptr,
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*window*/ nullptr,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr);
 
   // Dummy track to make graph rolling. Add it and remove it to remove the
   // graph from the global hash table and let it shutdown.
+  //
+  // We open an input through this track so that there's something triggering
+  // EnsureNextIteration on the fallback driver after the callback driver has
+  // gotten the error.
   RefPtr<AudioInputTrack> inputTrack;
   RefPtr<AudioInputProcessing> listener;
-  Unused << WaitFor(Invoke([&] {
+  auto started = Invoke([&] {
     inputTrack = AudioInputTrack::Create(graph);
     listener = new AudioInputProcessing(2, PRINCIPAL_HANDLE_NONE);
     inputTrack->GraphImpl()->AppendMessage(
@@ -295,18 +234,11 @@ TEST(TestAudioTrackGraph, ErrorCallback)
     inputTrack->SetInputProcessing(listener);
     inputTrack->GraphImpl()->AppendMessage(
         MakeUnique<StartInputProcessing>(inputTrack, listener));
-    return graph->NotifyWhenDeviceStarted(inputTrack);
-  }));
-
-  // We open an input through this track so that there's something triggering
-  // EnsureNextIteration on the fallback driver after the callback driver has
-  // gotten the error.
-  auto started = Invoke([&] {
     inputTrack->OpenAudioInput((void*)1, listener);
     return graph->NotifyWhenDeviceStarted(inputTrack);
   });
 
-  MockCubebStream* stream = WaitFor(cubeb->StreamInitEvent());
+  RefPtr<SmartMockCubebStream> stream = WaitFor(cubeb->StreamInitEvent());
   Result<bool, nsresult> rv = WaitFor(started);
   EXPECT_TRUE(rv.unwrapOr(false));
 
@@ -340,16 +272,21 @@ TEST(TestAudioTrackGraph, AudioInputTrack)
 {
   MockCubeb* cubeb = new MockCubeb();
   CubebUtils::ForceSetCubebContext(cubeb->AsCubebContext());
+  auto unforcer = WaitFor(cubeb->ForceAudioThread()).unwrap();
+  Unused << unforcer;
 
+  // Start on a system clock driver, then switch to full-duplex in one go. If we
+  // did output-then-full-duplex we'd risk a second NotifyWhenDeviceStarted
+  // resolving early after checking the first audio driver only.
   MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
-      MediaTrackGraph::AUDIO_THREAD_DRIVER, /*window*/ nullptr,
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*window*/ nullptr,
       MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr);
 
   RefPtr<AudioInputTrack> inputTrack;
   RefPtr<ProcessedMediaTrack> outputTrack;
   RefPtr<MediaInputPort> port;
   RefPtr<AudioInputProcessing> listener;
-  Unused << WaitFor(Invoke([&] {
+  auto p = Invoke([&] {
     inputTrack = AudioInputTrack::Create(graph);
     outputTrack = graph->CreateForwardedInputTrack(MediaSegment::AUDIO);
     outputTrack->QueueSetAutoend(false);
@@ -362,16 +299,12 @@ TEST(TestAudioTrackGraph, AudioInputTrack)
     inputTrack->SetInputProcessing(listener);
     inputTrack->GraphImpl()->AppendMessage(
         MakeUnique<StartInputProcessing>(inputTrack, listener));
-    return graph->NotifyWhenDeviceStarted(inputTrack);
-  }));
-
-  DispatchFunction([&] {
     // Device id does not matter. Ignore.
     inputTrack->OpenAudioInput((void*)1, listener);
+    return graph->NotifyWhenDeviceStarted(inputTrack);
   });
 
-  auto p = Invoke([&] { return graph->NotifyWhenDeviceStarted(inputTrack); });
-  MockCubebStream* stream = WaitFor(cubeb->StreamInitEvent());
+  RefPtr<SmartMockCubebStream> stream = WaitFor(cubeb->StreamInitEvent());
   EXPECT_TRUE(stream->mHasInput);
   Unused << WaitFor(p);
 
@@ -420,10 +353,9 @@ TEST(TestAudioTrackGraph, AudioInputTrack)
   // driver has started to complete the switch, *usually* resulting two
   // 10ms-iterations of silence; sometimes only one.
   EXPECT_LE(preSilenceSamples, 128U + 2 * inputRate / 100 /* 2*10ms */);
-  // Waveform may start after the beginning. In this case, there is a gap
-  // at the beginning and the end which is counted as discontinuity.
-  EXPECT_GE(nrDiscontinuities, 0U);
-  EXPECT_LE(nrDiscontinuities, 2U);
+  // The waveform from AudioGenerator starts at 0, but we don't control its
+  // ending, so we expect a discontinuity there.
+  EXPECT_LE(nrDiscontinuities, 1U);
 }
 
 TEST(TestAudioTrackGraph, ReOpenAudioInput)
@@ -457,7 +389,7 @@ TEST(TestAudioTrackGraph, ReOpenAudioInput)
     return graph->NotifyWhenDeviceStarted(inputTrack);
   });
 
-  MockCubebStream* stream = WaitFor(cubeb->StreamInitEvent());
+  RefPtr<SmartMockCubebStream> stream = WaitFor(cubeb->StreamInitEvent());
   EXPECT_TRUE(stream->mHasInput);
   Unused << WaitFor(p);
 
@@ -569,6 +501,118 @@ TEST(TestAudioTrackGraph, ReOpenAudioInput)
   EXPECT_LE(nrDiscontinuities, 1U);
 }
 
+TEST(TestAudioTrackGraph, AudioInputTrackDisabling)
+{
+  MockCubeb* cubeb = new MockCubeb();
+  CubebUtils::ForceSetCubebContext(cubeb->AsCubebContext());
+
+  MediaTrackGraph* graph = MediaTrackGraph::GetInstance(
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*window*/ nullptr,
+      MediaTrackGraph::REQUEST_DEFAULT_SAMPLE_RATE, nullptr);
+
+  RefPtr<AudioInputTrack> inputTrack;
+  RefPtr<ProcessedMediaTrack> outputTrack;
+  RefPtr<MediaInputPort> port;
+  RefPtr<AudioInputProcessing> listener;
+  auto p = Invoke([&] {
+    inputTrack = AudioInputTrack::Create(graph);
+    outputTrack = graph->CreateForwardedInputTrack(MediaSegment::AUDIO);
+    outputTrack->QueueSetAutoend(false);
+    outputTrack->AddAudioOutput(reinterpret_cast<void*>(1));
+    port = outputTrack->AllocateInputPort(inputTrack);
+    /* Primary graph: Open Audio Input through SourceMediaTrack */
+    listener = new AudioInputProcessing(2, PRINCIPAL_HANDLE_NONE);
+    inputTrack->GraphImpl()->AppendMessage(
+        MakeUnique<SetPassThrough>(inputTrack, listener, true));
+    inputTrack->SetInputProcessing(listener);
+    inputTrack->OpenAudioInput((void*)1, listener);
+    inputTrack->GraphImpl()->AppendMessage(
+        MakeUnique<StartInputProcessing>(inputTrack, listener));
+    return graph->NotifyWhenDeviceStarted(inputTrack);
+  });
+
+  RefPtr<SmartMockCubebStream> stream = WaitFor(cubeb->StreamInitEvent());
+  EXPECT_TRUE(stream->mHasInput);
+  Unused << WaitFor(p);
+
+  stream->SetOutputRecordingEnabled(true);
+
+  // Wait for a second worth of audio data. GoFaster is dispatched through a
+  // ControlMessage so that it is called in the first audio driver iteration.
+  // Otherwise the audio driver might be going very fast while the fallback
+  // system clock driver is still in an iteration.
+  DispatchFunction([&] {
+    inputTrack->GraphImpl()->AppendMessage(MakeUnique<GoFaster>(cubeb));
+  });
+  uint32_t totalFrames = 0;
+  WaitUntil(stream->FramesProcessedEvent(), [&](uint32_t aFrames) {
+    totalFrames += aFrames;
+    return totalFrames > static_cast<uint32_t>(graph->GraphRate());
+  });
+  cubeb->DontGoFaster();
+
+  const uint32_t ITERATION_COUNT = 5;
+  uint32_t iterations = ITERATION_COUNT;
+  DisabledTrackMode currentMode = DisabledTrackMode::SILENCE_BLACK;
+  while (iterations--) {
+    // toggle the track enabled mode, wait a second, do this ITERATION_COUNT
+    // times
+    DispatchFunction([&] {
+      inputTrack->SetDisabledTrackMode(currentMode);
+      if (currentMode == DisabledTrackMode::SILENCE_BLACK) {
+        currentMode = DisabledTrackMode::ENABLED;
+      } else {
+        currentMode = DisabledTrackMode::SILENCE_BLACK;
+      }
+      inputTrack->GraphImpl()->AppendMessage(MakeUnique<GoFaster>(cubeb));
+    });
+
+    totalFrames = 0;
+    WaitUntil(stream->FramesProcessedEvent(), [&](uint32_t aFrames) {
+      totalFrames += aFrames;
+      return totalFrames > static_cast<uint32_t>(graph->GraphRate());
+    });
+    cubeb->DontGoFaster();
+  }
+
+  // Clean up.
+  DispatchFunction([&] {
+    outputTrack->RemoveAudioOutput((void*)1);
+    outputTrack->Destroy();
+    port->Destroy();
+    inputTrack->GraphImpl()->AppendMessage(
+        MakeUnique<StopInputProcessing>(listener));
+    Maybe<CubebUtils::AudioDeviceID> id =
+        Some(reinterpret_cast<CubebUtils::AudioDeviceID>(1));
+    inputTrack->CloseAudioInput(id);
+    inputTrack->Destroy();
+  });
+
+  uint64_t preSilenceSamples;
+  uint32_t estimatedFreq;
+  uint32_t nrDiscontinuities;
+  Tie(preSilenceSamples, estimatedFreq, nrDiscontinuities) =
+      WaitFor(stream->OutputVerificationEvent());
+
+  const char* dir = getenv("MOZ_UPLOAD_DIR");
+  if (dir && nrDiscontinuities != ITERATION_COUNT) {
+    WavDumper dumper;
+    char uploadPath[256];
+    SprintfLiteral(
+        uploadPath, "%s/%s.wav", dir,
+        ::testing::UnitTest::GetInstance()->current_test_info()->name());
+    printf("Writing debug WAV to %s\n", uploadPath);
+    dumper.OpenExplicit(uploadPath, 1, graph->GraphRate());
+    auto data = stream->TakeRecordedOutput();
+    dumper.Write(data.Elements(), data.Length());
+  }
+
+  // We're enabling/disabling the track ITERATION_COUNT times, so we expect the
+  // same number of discontinuities.
+  std::cerr << "nrDiscontinuities" << nrDiscontinuities << std::endl;
+  EXPECT_EQ(nrDiscontinuities, ITERATION_COUNT);
+}
+
 void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,
                         float aDriftFactor, uint32_t aBufferMs = 50) {
   std::cerr << "TestCrossGraphPort input: " << aInputRate
@@ -577,15 +621,25 @@ void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,
 
   MockCubeb* cubeb = new MockCubeb();
   CubebUtils::ForceSetCubebContext(cubeb->AsCubebContext());
+  auto unforcer = WaitFor(cubeb->ForceAudioThread()).unwrap();
+  Unused << unforcer;
 
-  /* Primary graph: Create the graph and a SourceMediaTrack. */
+  cubeb->SetStreamStartFreezeEnabled(true);
+
+  /* Primary graph: Create the graph. */
   MediaTrackGraph* primary =
-      MediaTrackGraph::GetInstance(MediaTrackGraph::AUDIO_THREAD_DRIVER,
+      MediaTrackGraph::GetInstance(MediaTrackGraph::SYSTEM_THREAD_DRIVER,
                                    /*window*/ nullptr, aInputRate, nullptr);
+
+  /* Partner graph: Create the graph. */
+  MediaTrackGraph* partner = MediaTrackGraph::GetInstance(
+      MediaTrackGraph::SYSTEM_THREAD_DRIVER, /*window*/ nullptr, aOutputRate,
+      /*OutputDeviceID*/ reinterpret_cast<cubeb_devid>(1));
 
   RefPtr<AudioInputTrack> inputTrack;
   RefPtr<AudioInputProcessing> listener;
-  DispatchFunction([&] {
+  auto primaryStarted = Invoke([&] {
+    /* Primary graph: Create input track and open it */
     inputTrack = AudioInputTrack::Create(primary);
     listener = new AudioInputProcessing(2, PRINCIPAL_HANDLE_NONE);
     inputTrack->GraphImpl()->AppendMessage(
@@ -593,18 +647,17 @@ void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,
     inputTrack->SetInputProcessing(listener);
     inputTrack->GraphImpl()->AppendMessage(
         MakeUnique<StartInputProcessing>(inputTrack, listener));
+    inputTrack->OpenAudioInput((void*)1, listener);
+    return primary->NotifyWhenDeviceStarted(inputTrack);
   });
-  WaitFor(cubeb->StreamInitEvent());
 
-  /* Partner graph: Create graph and the CrossGraphReceiver. */
-  MediaTrackGraph* partner = MediaTrackGraph::GetInstance(
-      MediaTrackGraph::AUDIO_THREAD_DRIVER, /*window*/ nullptr, aOutputRate,
-      /*OutputDeviceID*/ reinterpret_cast<cubeb_devid>(1));
+  RefPtr<SmartMockCubebStream> inputStream = WaitFor(cubeb->StreamInitEvent());
 
-  RefPtr<CrossGraphReceiver> receiver;
   RefPtr<CrossGraphTransmitter> transmitter;
   RefPtr<MediaInputPort> port;
-  DispatchFunction([&] {
+  RefPtr<CrossGraphReceiver> receiver;
+  auto partnerStarted = Invoke([&] {
+    /* Partner graph: Create CrossGraphReceiver */
     receiver = partner->CreateCrossGraphReceiver(primary->GraphRate());
 
     /* Primary graph: Create CrossGraphTransmitter */
@@ -614,30 +667,34 @@ void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,
      * Check in MediaManager how it is connected to AudioStreamTrack. */
     port = transmitter->AllocateInputPort(inputTrack);
     receiver->AddAudioOutput((void*)1);
-
-    /* Primary graph: Open Audio Input through SourceMediaTrack */
-    // Device id does not matter. Ignore.
-    inputTrack->OpenAudioInput((void*)1, listener);
+    return partner->NotifyWhenDeviceStarted(receiver);
   });
 
-  MockCubebStream* inputStream = nullptr;
-  MockCubebStream* partnerStream = nullptr;
-  // Wait for the streams to be created.
-  WaitUntil(cubeb->StreamInitEvent(), [&](MockCubebStream* aStream) {
-    if (aStream->mHasInput) {
-      inputStream = aStream;
-    } else {
-      partnerStream = aStream;
-    }
-    return inputStream && partnerStream;
-  });
-
+  RefPtr<SmartMockCubebStream> partnerStream =
+      WaitFor(cubeb->StreamInitEvent());
   partnerStream->SetDriftFactor(aDriftFactor);
 
-  // Wait for a second worth of audio data. GoFaster is dispatched through a
-  // ControlMessage so that it is called in the first audio driver iteration.
-  // Otherwise the audio driver might be going very fast while the fallback
-  // system clock driver is still in an iteration.
+  cubeb->SetStreamStartFreezeEnabled(false);
+
+  // One source of non-determinism in this type of test is that inputStream
+  // and partnerStream are started in sequence by the CubebOperation thread pool
+  // (of size 1). To minimize the chance that the stream that starts first sees
+  // an iteration before the other has started - this is a source of pre-silence
+  // - we freeze both on start and thaw them together here.
+  // Note that another source of non-determinism is the fallback driver. Handing
+  // over from the fallback to the audio driver requires first an audio callback
+  // (deterministic with the fake audio thread), then a fallback driver
+  // iteration (non-deterministic, since each graph has its own fallback driver,
+  // each with its own dedicated thread, which we have no control over). This
+  // non-determinism is worrisome, but both fallback drivers are likely to
+  // exhibit similar characteristics, hopefully keeping the level of
+  // non-determinism down sufficiently for this test to pass.
+  inputStream->Thaw();
+  partnerStream->Thaw();
+
+  Unused << WaitFor(primaryStarted);
+  Unused << WaitFor(partnerStarted);
+
   // Wait for 3s worth of audio data on the receiver stream.
   DispatchFunction([&] {
     inputTrack->GraphImpl()->AppendMessage(MakeUnique<GoFaster>(cubeb));
@@ -677,7 +734,9 @@ void TestCrossGraphPort(uint32_t aInputRate, uint32_t aOutputRate,
       static_cast<uint32_t>(partnerRate * aDriftFactor / 1000 * aBufferMs);
   uint32_t margin = partnerRate / 20 /* +/- 50ms */;
   EXPECT_NEAR(preSilenceSamples, expectedPreSilence, margin);
-  EXPECT_LE(nrDiscontinuities, 2U);
+  // The waveform from AudioGenerator starts at 0, but we don't control its
+  // ending, so we expect a discontinuity there.
+  EXPECT_LE(nrDiscontinuities, 1U);
 }
 
 TEST(TestAudioTrackGraph, CrossGraphPort)

@@ -53,11 +53,16 @@
 #include "Units.h"
 
 #include <stdint.h>
+#include "nsClassHashtable.h"
 #include "nsTHashtable.h"
 
 #include <stdlib.h>
 #include <algorithm>
 #include <unordered_set>
+
+// XXX Includes that could be avoided by moving function implementations to the
+// cpp file.
+#include "gfxPlatform.h"
 
 class gfxContext;
 class nsIContent;
@@ -531,7 +536,9 @@ class nsDisplayListBuilder {
   const nsIFrame* FindReferenceFrameFor(const nsIFrame* aFrame,
                                         nsPoint* aOffset = nullptr) const;
 
-  const Maybe<nsPoint>& AdditionalOffset() const { return mAdditionalOffset; }
+  const mozilla::Maybe<nsPoint>& AdditionalOffset() const {
+    return mAdditionalOffset;
+  }
 
   /**
    * @return the root of the display list's frame (sub)tree, whose origin
@@ -1577,9 +1584,7 @@ class nsDisplayListBuilder {
     return aFrame->GetParent()->GetProperty(OutOfFlowDisplayDataProperty());
   }
 
-  nsPresContext* CurrentPresContext() {
-    return CurrentPresShellState()->mPresShell->GetPresContext();
-  }
+  nsPresContext* CurrentPresContext();
 
   OutOfFlowDisplayData* GetCurrentFixedBackgroundDisplayData() {
     auto& displayData = CurrentPresShellState()->mFixedBackgroundDisplayData;
@@ -1764,10 +1769,15 @@ class nsDisplayListBuilder {
   AnimatedGeometryRoot* AnimatedGeometryRootForASR(
       const ActiveScrolledRoot* aASR);
 
-  bool HitTestIsForVisibility() const { return mHitTestIsForVisibility; }
+  bool HitTestIsForVisibility() const { return mVisibleThreshold.isSome(); }
 
-  void SetHitTestIsForVisibility(bool aHitTestIsForVisibility) {
-    mHitTestIsForVisibility = aHitTestIsForVisibility;
+  float VisibilityThreshold() const {
+    MOZ_DIAGNOSTIC_ASSERT(HitTestIsForVisibility());
+    return mVisibleThreshold.valueOr(1.0f);
+  }
+
+  void SetHitTestIsForVisibility(float aVisibleThreshold) {
+    mVisibleThreshold = mozilla::Some(aVisibleThreshold);
   }
 
   bool ShouldBuildAsyncZoomContainer() const {
@@ -2049,7 +2059,6 @@ class nsDisplayListBuilder {
   bool mForceLayerForScrollParent;
   bool mAsyncPanZoomEnabled;
   bool mBuildingInvisibleItems;
-  bool mHitTestIsForVisibility;
   bool mIsBuilding;
   bool mInInvalidSubtree;
   bool mBuildCompositorHitTestInfo;
@@ -2061,6 +2070,7 @@ class nsDisplayListBuilder {
   bool mIsRelativeToLayoutViewport;
   bool mUseOverlayScrollbars;
 
+  mozilla::Maybe<float> mVisibleThreshold;
   nsRect mHitTestArea;
   CompositorHitTestInfo mHitTestInfo;
 };
@@ -2559,11 +2569,38 @@ class nsDisplayItem : public nsDisplayItemBase {
   nsDisplayItem() = delete;
   nsDisplayItem(const nsDisplayItem&) = delete;
 
-  virtual void RestoreState() {
+  /**
+   * Roll back side effects carried out by processing the display list.
+   *
+   * @return true if the rollback actually modified anything, to help the caller
+   * decide whether to invalidate cached information about this node.
+   */
+  virtual bool RestoreState() {
+    if (mClipChain == mState.mClipChain && mClip == mState.mClip &&
+        !mItemFlags.contains(ItemFlag::DisableSubpixelAA)) {
+      return false;
+    }
+
     mClipChain = mState.mClipChain;
     mClip = mState.mClip;
     mItemFlags -= ItemFlag::DisableSubpixelAA;
+    return true;
   }
+
+  /**
+   * Invalidate cached information that depends on this node's contents, after
+   * a mutation of those contents.
+   *
+   * Specifically, if you mutate an |nsDisplayItem| in a way that would change
+   * the WebRender display list items generated for it, you should call this
+   * method.
+   *
+   * If a |RestoreState| method exists to restore some piece of state, that's a
+   * good indication that modifications to said state should be accompanied by a
+   * call to this method. Opacity flattening's effects on
+   * |nsDisplayBackgroundColor| items are one example.
+   */
+  virtual void InvalidateItemCacheEntry() {}
 
   struct HitTestState {
     explicit HitTestState() = default;
@@ -2575,10 +2612,13 @@ class nsDisplayItem : public nsDisplayItemBase {
 
     // Handling transform items for preserve 3D frames.
     bool mInPreserves3D = false;
-    // When hit-testing for visibility, we may hit a fully opaque item in a
+    // When hit-testing for visibility, we may hit an fully opaque item in a
     // nested display list. We want to stop at that point, without looking
     // further on other items.
-    bool mHitFullyOpaqueItem = false;
+    bool mHitOccludingItem = false;
+
+    float mCurrentOpacity = 1.0f;
+
     AutoTArray<nsDisplayItem*, 100> mItemBuffer;
   };
 
@@ -2744,8 +2784,8 @@ class nsDisplayItem : public nsDisplayItemBase {
   }
 
   /**
-   * This function is called when an item's list of children has been omdified
-   * by RetaineDisplayListBuilder.
+   * This function is called when an item's list of children has been modified
+   * by RetainedDisplayListBuilder.
    */
   virtual void InvalidateCachedChildInfo(nsDisplayListBuilder* aBuilder) {}
 
@@ -3258,7 +3298,14 @@ class nsPaintedDisplayItem : public nsDisplayItem {
    * If an item is reused and has the cache index set, it means that
    * |DisplayItemCache| has assigned a cache slot for the item.
    */
-  Maybe<uint16_t>& CacheIndex() { return mCacheIndex; }
+  mozilla::Maybe<uint16_t>& CacheIndex() { return mCacheIndex; }
+
+  void InvalidateItemCacheEntry() override {
+    // |nsPaintedDisplayItem|s may have |DisplayItemCache| entries
+    // that no longer match after a mutation. The cache will notice
+    // on its own that the entry is no longer in use, and free it.
+    mCacheIndex = mozilla::Nothing();
+  }
 
  protected:
   nsPaintedDisplayItem(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
@@ -4215,10 +4262,7 @@ class nsDisplayReflowCount : public nsPaintedDisplayItem {
 
   NS_DISPLAY_DECL_NAME("nsDisplayReflowCount", TYPE_REFLOW_COUNT)
 
-  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override {
-    mFrame->PresShell()->PaintCount(mFrameName, aCtx, mFrame->PresContext(),
-                                    mFrame, ToReferenceFrame(), mColor);
-  }
+  void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
 
  protected:
   const char* mFrameName;
@@ -4695,7 +4739,7 @@ class nsDisplayBackgroundImage : public nsDisplayImageContainer {
     const auto& styleImage =
         mBackgroundStyle->StyleBackground()->mImage.mLayers[mLayer].mImage;
 
-    return styleImage.IsSizeAvailable() && styleImage.IsUrl();
+    return styleImage.IsSizeAvailable() && styleImage.FinalImage().IsUrl();
   }
 
  protected:
@@ -4921,9 +4965,13 @@ class nsDisplayBackgroundColor : public nsPaintedDisplayItem {
 
   NS_DISPLAY_DECL_NAME("BackgroundColor", TYPE_BACKGROUND_COLOR)
 
-  void RestoreState() override {
-    nsPaintedDisplayItem::RestoreState();
+  bool RestoreState() override {
+    if (!nsPaintedDisplayItem::RestoreState() && mColor == mState.mColor) {
+      return false;
+    }
+
     mColor = mState.mColor;
+    return true;
   }
 
   bool HasBackgroundClipText() const {
@@ -4956,6 +5004,8 @@ class nsDisplayBackgroundColor : public nsPaintedDisplayItem {
                     const DisplayItemClipChain* aClip) override;
 
   bool CanApplyOpacity() const override;
+
+  float GetOpacity() const { return mColor.a; }
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const override {
     *aSnap = true;
@@ -5084,10 +5134,15 @@ class nsDisplayBoxShadowOuter final : public nsPaintedDisplayItem {
 
   NS_DISPLAY_DECL_NAME("BoxShadowOuter", TYPE_BOX_SHADOW_OUTER)
 
-  void RestoreState() override {
-    nsPaintedDisplayItem::RestoreState();
+  bool RestoreState() override {
+    if (!nsPaintedDisplayItem::RestoreState() && mOpacity == 1.0f &&
+        mVisibleRegion.IsEmpty()) {
+      return false;
+    }
+
     mVisibleRegion.SetEmpty();
     mOpacity = 1.0f;
+    return true;
   }
 
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
@@ -5142,9 +5197,13 @@ class nsDisplayBoxShadowInner : public nsPaintedDisplayItem {
 
   NS_DISPLAY_DECL_NAME("BoxShadowInner", TYPE_BOX_SHADOW_INNER)
 
-  void RestoreState() override {
-    nsPaintedDisplayItem::RestoreState();
+  bool RestoreState() override {
+    if (!nsPaintedDisplayItem::RestoreState() && mVisibleRegion.IsEmpty()) {
+      return false;
+    }
+
     mVisibleRegion.SetEmpty();
+    return true;
   }
 
   void Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) override;
@@ -5607,9 +5666,13 @@ class nsDisplayOpacity : public nsDisplayWrapList {
 
   NS_DISPLAY_DECL_NAME("Opacity", TYPE_OPACITY)
 
-  void RestoreState() override {
-    nsDisplayWrapList::RestoreState();
+  bool RestoreState() override {
+    if (!nsDisplayWrapList::RestoreState() && mOpacity == mState.mOpacity) {
+      return false;
+    }
+
     mOpacity = mState.mOpacity;
+    return true;
   }
 
   void InvalidateCachedChildInfo(nsDisplayListBuilder* aBuilder) override {
@@ -6308,7 +6371,7 @@ class nsDisplayScrollInfoLayer : public nsDisplayWrapList {
 
   void WriteDebugInfo(std::stringstream& aStream) override;
   mozilla::UniquePtr<ScrollMetadata> ComputeScrollMetadata(
-      LayerManager* aLayerManager,
+      nsDisplayListBuilder* aBuilder, LayerManager* aLayerManager,
       const ContainerLayerParameters& aContainerParameters);
   bool UpdateScrollData(
       mozilla::layers::WebRenderScrollData* aData,
@@ -6443,9 +6506,13 @@ class nsDisplayEffectsBase : public nsDisplayWrapList {
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                HitTestState* aState, nsTArray<nsIFrame*>* aOutFrames) override;
 
-  void RestoreState() override {
-    nsDisplayWrapList::RestoreState();
+  bool RestoreState() override {
+    if (!nsDisplayWrapList::RestoreState() && !mHandleOpacity) {
+      return false;
+    }
+
     mHandleOpacity = false;
+    return true;
   }
 
   bool ShouldFlattenAway(nsDisplayListBuilder* aBuilder) override {
@@ -6775,9 +6842,13 @@ class nsDisplayTransform : public nsDisplayHitTestInfoBase {
 
   NS_DISPLAY_DECL_NAME("nsDisplayTransform", TYPE_TRANSFORM)
 
-  void RestoreState() override {
-    nsDisplayHitTestInfoBase::RestoreState();
+  bool RestoreState() override {
+    if (!nsDisplayHitTestInfoBase::RestoreState() && !mShouldFlatten) {
+      return false;
+    }
+
     mShouldFlatten = false;
+    return true;
   }
 
   void UpdateBounds(nsDisplayListBuilder* aBuilder) override;
@@ -6966,7 +7037,7 @@ class nsDisplayTransform : public nsDisplayHitTestInfoBase {
         const mozilla::StyleTranslate& aTranslate,
         const mozilla::StyleRotate& aRotate, const mozilla::StyleScale& aScale,
         const mozilla::StyleTransform& aTransform,
-        const Maybe<mozilla::ResolvedMotionPathData>& aMotion,
+        const mozilla::Maybe<mozilla::ResolvedMotionPathData>& aMotion,
         const Point3D& aToTransformOrigin)
         : mFrame(nullptr),
           mTranslate(aTranslate),
@@ -7216,10 +7287,15 @@ class nsDisplayText final : public nsPaintedDisplayItem {
 
   NS_DISPLAY_DECL_NAME("Text", TYPE_TEXT)
 
-  void RestoreState() final {
-    nsPaintedDisplayItem::RestoreState();
+  bool RestoreState() final {
+    if (!nsPaintedDisplayItem::RestoreState() && mIsFrameSelected.isNothing() &&
+        mOpacity == 1.0f) {
+      return false;
+    }
+
     mIsFrameSelected.reset();
     mOpacity = 1.0f;
+    return true;
   }
 
   nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) const final {

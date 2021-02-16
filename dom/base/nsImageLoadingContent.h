@@ -18,13 +18,15 @@
 #include "mozilla/EventStates.h"
 #include "mozilla/TimeStamp.h"
 #include "nsCOMPtr.h"
+#include "nsIContentPolicy.h"
 #include "nsIImageLoadingContent.h"
 #include "nsIRequest.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Promise.h"
 #include "nsAttrValue.h"
+#include "Units.h"
 
+class nsINode;
 class nsIURI;
 class nsPresContext;
 class nsIContent;
@@ -32,6 +34,8 @@ class imgRequestProxy;
 
 namespace mozilla {
 class AsyncEventDispatcher;
+class ErrorResult;
+
 namespace dom {
 struct BindContext;
 class Document;

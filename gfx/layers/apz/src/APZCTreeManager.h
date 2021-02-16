@@ -26,11 +26,12 @@
 #include "mozilla/layers/KeyboardMap.h"      // for KeyboardMap
 #include "mozilla/layers/TouchCounter.h"     // for TouchCounter
 #include "mozilla/layers/ZoomConstraints.h"  // for ZoomConstraints
-#include "mozilla/RecursiveMutex.h"          // for RecursiveMutex
-#include "mozilla/RefPtr.h"                  // for RefPtr
-#include "mozilla/TimeStamp.h"               // for mozilla::TimeStamp
-#include "mozilla/UniquePtr.h"               // for UniquePtr
-#include "nsCOMPtr.h"                        // for already_AddRefed
+#include "mozilla/webrender/webrender_ffi.h"
+#include "mozilla/RecursiveMutex.h"  // for RecursiveMutex
+#include "mozilla/RefPtr.h"          // for RefPtr
+#include "mozilla/TimeStamp.h"       // for mozilla::TimeStamp
+#include "mozilla/UniquePtr.h"       // for UniquePtr
+#include "nsCOMPtr.h"                // for already_AddRefed
 #include "OvershootDetector.h"
 
 namespace mozilla {
@@ -114,7 +115,7 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   struct TreeBuildingState;
 
  public:
-  explicit APZCTreeManager(LayersId aRootLayersId);
+  APZCTreeManager(LayersId aRootLayersId, bool aIsUsingWebRender);
 
   void SetSampler(APZSampler* aSampler);
   void SetUpdater(APZUpdater* aUpdater);
@@ -195,9 +196,9 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
    * In effect it is the webrender equivalent of (part of) the code in
    * AsyncCompositionManager.
    */
-  void SampleForWebRender(wr::TransactionWrapper& aTxn,
-                          const SampleTime& aSampleTime,
-                          const wr::WrPipelineIdEpochs* aEpochsBeingRendered);
+  void SampleForWebRender(const Maybe<VsyncId>& aVsyncId,
+                          wr::TransactionWrapper& aTxn,
+                          const SampleTime& aSampleTime);
 
   /**
    * Walk through all the APZCs and do the sampling steps needed when
@@ -1025,6 +1026,8 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
 
   // This must only be touched on the controller thread.
   float mDPI;
+
+  bool mIsUsingWebRender;
 
 #if defined(MOZ_WIDGET_ANDROID)
  private:

@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # This file was copied from  mitmproxy/mitmproxy/addons/serverplayback.py release tag 4.0.4
 # and modified by Florin Strugariu
 
@@ -9,14 +13,13 @@ from __future__ import absolute_import, print_function
 import os
 import json
 import hashlib
-import urllib
 from collections import defaultdict
 import time
 import signal
 
 import typing
-from urllib import parse
 
+from six.moves import urllib
 from mitmproxy import ctx, http
 from mitmproxy import exceptions
 from mitmproxy import io
@@ -179,7 +182,7 @@ class AlternateServerPlayback:
 
         # unquote url
         # See Bug 1509835
-        _, _, path, _, query, _ = urllib.parse.urlparse(parse.unquote(r.url))
+        _, _, path, _, query, _ = urllib.parse.urlparse(urllib.parse.unquote(r.url))
         queriesArray = urllib.parse.parse_qsl(query, keep_blank_values=True)
 
         key = [str(r.port), str(r.scheme), str(r.method), str(path)]
@@ -268,7 +271,9 @@ class AlternateServerPlayback:
 
                 # collecting stats only if we can dump them (see .done())
                 if ctx.options.upload_dir:
-                    parsed_url = urllib.parse.urlparse(parse.unquote(f.request.url))
+                    parsed_url = urllib.parse.urlparse(
+                        urllib.parse.unquote(f.request.url)
+                    )
                     self.netlocs[parsed_url.netloc][f.response.status_code] += 1
                     self.calls.append(
                         {

@@ -1194,18 +1194,15 @@ bool Predictor::RunPredictions(nsIURI* referrer,
         nullptr, mDNSListener, nullptr, originAttributes,
         getter_AddRefs(tmpCancelable));
 
-    // Fetch esni keys if needed.
-    if (StaticPrefs::network_security_esni_enabled() &&
-        uri->SchemeIs("https")) {
-      nsAutoCString esniHost;
-      esniHost.Append("_esni.");
-      esniHost.Append(hostname);
-      mDnsService->AsyncResolveNative(esniHost, nsIDNSService::RESOLVE_TYPE_TXT,
-                                      (nsIDNSService::RESOLVE_PRIORITY_MEDIUM |
-                                       nsIDNSService::RESOLVE_SPECULATE),
-                                      nullptr, mDNSListener, nullptr,
-                                      originAttributes,
-                                      getter_AddRefs(tmpCancelable));
+    // Fetch HTTPS RR if needed.
+    if (StaticPrefs::network_dns_upgrade_with_https_rr() ||
+        StaticPrefs::network_dns_use_https_rr_as_altsvc()) {
+      mDnsService->AsyncResolveNative(
+          hostname, nsIDNSService::RESOLVE_TYPE_HTTPSSVC,
+          (nsIDNSService::RESOLVE_PRIORITY_MEDIUM |
+           nsIDNSService::RESOLVE_SPECULATE),
+          nullptr, mDNSListener, nullptr, originAttributes,
+          getter_AddRefs(tmpCancelable));
     }
 
     predicted = true;

@@ -1,8 +1,13 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 # Shared/common mozharness configuration for Android unit tests.
 #
 # This configuration should be combined with platform-specific mozharness
 # configuration such as androidx86_7_0.py, android_hw, or similar.
 
+from __future__ import absolute_import
 import os
 
 

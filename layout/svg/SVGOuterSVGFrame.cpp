@@ -11,7 +11,7 @@
 #include "gfxContext.h"
 #include "nsDisplayList.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsIObjectLoadingContent.h"
+#include "nsObjectLoadingContent.h"
 #include "nsSubDocumentFrame.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/SVGForeignObjectFrame.h"
@@ -518,7 +518,7 @@ void SVGOuterSVGFrame::DidReflow(nsPresContext* aPresContext,
 }
 
 /* virtual */
-void SVGOuterSVGFrame::UnionChildOverflow(nsOverflowAreas& aOverflowAreas) {
+void SVGOuterSVGFrame::UnionChildOverflow(OverflowAreas& aOverflowAreas) {
   // See the comments in Reflow above.
 
   // WARNING!! Keep this in sync with Reflow above!
@@ -923,13 +923,12 @@ void SVGOuterSVGFrame::MaybeSendIntrinsicSizeAndRatioToEmbedder(
 
   if (bc->GetParent()->IsInProcess()) {
     if (Element* embedder = bc->GetEmbedderElement()) {
-      nsSubDocumentFrame* sdf = do_QueryFrame(embedder->GetPrimaryFrame());
-      if (!sdf) {
-        return;
+      if (nsCOMPtr<nsIObjectLoadingContent> olc = do_QueryInterface(embedder)) {
+        static_cast<nsObjectLoadingContent*>(olc.get())
+            ->SubdocumentIntrinsicSizeOrRatioChanged(aIntrinsicSize,
+                                                     aIntrinsicRatio);
       }
-
-      sdf->SubdocumentIntrinsicSizeOrRatioChanged(aIntrinsicSize,
-                                                  aIntrinsicRatio);
+      return;
     }
   }
 

@@ -619,11 +619,9 @@ bool LazyStubSegment::addStubs(size_t codeLength,
     codeRanges_.back().offsetBy(offsetInSegment);
     i++;
 
-#ifdef ENABLE_WASM_SIMD
-    if (funcExports[funcExportIndex].funcType().hasV128ArgOrRet()) {
+    if (funcExports[funcExportIndex].funcType().hasUnexposableArgOrRet()) {
       continue;
     }
-#endif
     if (funcExports[funcExportIndex]
             .funcType()
             .temporarilyUnsupportedReftypeForEntry()) {
@@ -686,9 +684,7 @@ bool LazyStubTier::createMany(const Uint32Vector& funcExportIndices,
     const FuncExport& fe = funcExports[funcExportIndex];
     // Entries with unsupported types get only the interp exit
     bool unsupportedType =
-#ifdef ENABLE_WASM_SIMD
-        fe.funcType().hasV128ArgOrRet() ||
-#endif
+        fe.funcType().hasUnexposableArgOrRet() ||
         fe.funcType().temporarilyUnsupportedReftypeForEntry();
     numExpectedRanges += (unsupportedType ? 1 : 2);
     void* calleePtr =
@@ -781,9 +777,7 @@ bool LazyStubTier::createMany(const Uint32Vector& funcExportIndices,
     // Functions with unsupported types in their sig have only one entry
     // (interp).  All other functions get an extra jit entry.
     bool unsupportedType =
-#ifdef ENABLE_WASM_SIMD
-        fe.funcType().hasV128ArgOrRet() ||
-#endif
+        fe.funcType().hasUnexposableArgOrRet() ||
         fe.funcType().temporarilyUnsupportedReftypeForEntry();
     interpRangeIndex += (unsupportedType ? 1 : 2);
   }
@@ -816,14 +810,11 @@ bool LazyStubTier::createOne(uint32_t funcExportIndex,
   if (codeTier.metadata()
           .funcExports[funcExportIndex]
           .funcType()
-          .temporarilyUnsupportedReftypeForEntry()
-#ifdef ENABLE_WASM_SIMD
-      || codeTier.metadata()
-             .funcExports[funcExportIndex]
-             .funcType()
-             .hasV128ArgOrRet()
-#endif
-  ) {
+          .temporarilyUnsupportedReftypeForEntry() ||
+      codeTier.metadata()
+          .funcExports[funcExportIndex]
+          .funcType()
+          .hasUnexposableArgOrRet()) {
     MOZ_ASSERT(codeRanges.length() >= 1);
     MOZ_ASSERT(codeRanges.back().isInterpEntry());
     return true;
@@ -938,8 +929,11 @@ bool MetadataTier::clone(const MetadataTier& src) {
 }
 
 size_t Metadata::serializedSize() const {
-  return sizeof(pod()) + SerializedVectorSize(funcTypeIds) +
+  return sizeof(pod()) + SerializedVectorSize(types) +
          SerializedPodVectorSize(globals) + SerializedPodVectorSize(tables) +
+#ifdef ENABLE_WASM_EXCEPTIONS
+         SerializedPodVectorSize(events) +
+#endif
          sizeof(moduleName) + SerializedPodVectorSize(funcNames) +
          filename.serializedSize() + sourceMapURL.serializedSize();
 }
@@ -948,9 +942,12 @@ uint8_t* Metadata::serialize(uint8_t* cursor) const {
   MOZ_ASSERT(!debugEnabled && debugFuncArgTypes.empty() &&
              debugFuncReturnTypes.empty());
   cursor = WriteBytes(cursor, &pod(), sizeof(pod()));
-  cursor = SerializeVector(cursor, funcTypeIds);
+  cursor = SerializeVector(cursor, types);
   cursor = SerializePodVector(cursor, globals);
   cursor = SerializePodVector(cursor, tables);
+#ifdef ENABLE_WASM_EXCEPTIONS
+  cursor = SerializePodVector(cursor, events);
+#endif
   cursor = WriteBytes(cursor, &moduleName, sizeof(moduleName));
   cursor = SerializePodVector(cursor, funcNames);
   cursor = filename.serialize(cursor);
@@ -960,9 +957,12 @@ uint8_t* Metadata::serialize(uint8_t* cursor) const {
 
 /* static */ const uint8_t* Metadata::deserialize(const uint8_t* cursor) {
   (cursor = ReadBytes(cursor, &pod(), sizeof(pod()))) &&
-      (cursor = DeserializeVector(cursor, &funcTypeIds)) &&
+      (cursor = DeserializeVector(cursor, &types)) &&
       (cursor = DeserializePodVector(cursor, &globals)) &&
       (cursor = DeserializePodVector(cursor, &tables)) &&
+#ifdef ENABLE_WASM_EXCEPTIONS
+      (cursor = DeserializePodVector(cursor, &events)) &&
+#endif
       (cursor = ReadBytes(cursor, &moduleName, sizeof(moduleName))) &&
       (cursor = DeserializePodVector(cursor, &funcNames)) &&
       (cursor = filename.deserialize(cursor)) &&
@@ -974,9 +974,12 @@ uint8_t* Metadata::serialize(uint8_t* cursor) const {
 }
 
 size_t Metadata::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
-  return SizeOfVectorExcludingThis(funcTypeIds, mallocSizeOf) +
+  return SizeOfVectorExcludingThis(types, mallocSizeOf) +
          globals.sizeOfExcludingThis(mallocSizeOf) +
          tables.sizeOfExcludingThis(mallocSizeOf) +
+#ifdef ENABLE_WASM_EXCEPTIONS
+         events.sizeOfExcludingThis(mallocSizeOf) +
+#endif
          funcNames.sizeOfExcludingThis(mallocSizeOf) +
          filename.sizeOfExcludingThis(mallocSizeOf) +
          sourceMapURL.sizeOfExcludingThis(mallocSizeOf);
@@ -1162,13 +1165,12 @@ bool JumpTables::init(CompileMode mode, const ModuleSegment& ms,
 }
 
 Code::Code(UniqueCodeTier tier1, const Metadata& metadata,
-           JumpTables&& maybeJumpTables, StructTypeVector&& structTypes)
+           JumpTables&& maybeJumpTables)
     : tier1_(std::move(tier1)),
       metadata_(&metadata),
       profilingLabels_(mutexid::WasmCodeProfilingLabels,
                        CacheableCharsVector()),
-      jumpTables_(std::move(maybeJumpTables)),
-      structTypes_(std::move(structTypes)) {}
+      jumpTables_(std::move(maybeJumpTables)) {}
 
 bool Code::initialize(const LinkData& linkData) {
   MOZ_ASSERT(!initialized());
@@ -1436,13 +1438,11 @@ void Code::addSizeOfMiscIfNotSeen(MallocSizeOf mallocSizeOf,
   for (auto t : tiers()) {
     codeTier(t).addSizeOfMisc(mallocSizeOf, code, data);
   }
-  *data += SizeOfVectorExcludingThis(structTypes_, mallocSizeOf);
 }
 
 size_t Code::serializedSize() const {
   return metadata().serializedSize() +
-         codeTier(Tier::Serialized).serializedSize() +
-         SerializedVectorSize(structTypes_);
+         codeTier(Tier::Serialized).serializedSize();
 }
 
 uint8_t* Code::serialize(uint8_t* cursor, const LinkData& linkData) const {
@@ -1450,7 +1450,6 @@ uint8_t* Code::serialize(uint8_t* cursor, const LinkData& linkData) const {
 
   cursor = metadata().serialize(cursor);
   cursor = codeTier(Tier::Serialized).serialize(cursor, linkData);
-  cursor = SerializeVector(cursor, structTypes_);
   return cursor;
 }
 
@@ -1475,15 +1474,8 @@ uint8_t* Code::serialize(uint8_t* cursor, const LinkData& linkData) const {
     return nullptr;
   }
 
-  StructTypeVector structTypes;
-  cursor = DeserializeVector(cursor, &structTypes);
-  if (!cursor) {
-    return nullptr;
-  }
-
   MutableCode code =
-      js_new<Code>(std::move(codeTier), metadata, std::move(jumpTables),
-                   std::move(structTypes));
+      js_new<Code>(std::move(codeTier), metadata, std::move(jumpTables));
   if (!code || !code->initialize(linkData)) {
     return nullptr;
   }

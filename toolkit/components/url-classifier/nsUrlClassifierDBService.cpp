@@ -30,6 +30,7 @@
 #include "mozilla/ErrorNames.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
@@ -39,6 +40,7 @@
 #include "Classifier.h"
 #include "ProtocolParser.h"
 #include "mozilla/Attributes.h"
+#include "nsIHttpChannel.h"
 #include "nsIPrincipal.h"
 #include "nsIUrlListManager.h"
 #include "Classifier.h"
@@ -1426,13 +1428,7 @@ nsresult nsUrlClassifierLookupCallback::HandleResults() {
   mDBService->CacheCompletions(mCacheResults);
   mCacheResults.Clear();
 
-  nsAutoCString tableStr;
-  for (uint32_t i = 0; i < tables.Length(); i++) {
-    if (i != 0) tableStr.Append(',');
-    tableStr.Append(tables[i]);
-  }
-
-  return mCallback->HandleEvent(tableStr);
+  return mCallback->HandleEvent(StringJoin(","_ns, tables));
 }
 
 nsresult nsUrlClassifierLookupCallback::CacheMisses() {
@@ -2329,13 +2325,14 @@ nsresult nsUrlClassifierDBService::Shutdown() {
   //    is to avoid racing for Classifier::mUpdateThread
   //    between main thread and the worker thread. (Both threads
   //    would access Classifier::mUpdateThread.)
-  if (mWorker->IsDBOpened()) {
-    using Worker = nsUrlClassifierDBServiceWorker;
-    RefPtr<nsIRunnable> r = NewRunnableMethod(
-        "nsUrlClassifierDBServiceWorker::FlushAndDisableAsyncUpdate", mWorker,
-        &Worker::FlushAndDisableAsyncUpdate);
-    SyncRunnable::DispatchToThread(gDbBackgroundThread, r);
-  }
+  //    This event is dispatched unconditionally to avoid
+  //    accessing mWorker->mClassifier on the main thread, which
+  //    would be a race.
+  using Worker = nsUrlClassifierDBServiceWorker;
+  RefPtr<nsIRunnable> r = NewRunnableMethod(
+      "nsUrlClassifierDBServiceWorker::FlushAndDisableAsyncUpdate", mWorker,
+      &Worker::FlushAndDisableAsyncUpdate);
+  SyncRunnable::DispatchToThread(gDbBackgroundThread, r);
   // At this point the update thread has been shut down and
   // the worker thread should only have at most one event,
   // which is the callback event.

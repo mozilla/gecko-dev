@@ -17,8 +17,9 @@ use neqo_crypto::{
 };
 use neqo_transport::{
     server::{ActiveConnectionRef, Server, ValidateAddress},
-    Connection, ConnectionError, ConnectionEvent, Error, FixedConnectionIdManager, Output,
-    QuicVersion, State, StreamType,
+    Connection, ConnectionError, ConnectionEvent, ConnectionParameters, Error,
+    FixedConnectionIdManager, Output, QuicVersion, State, StreamType, LOCAL_STREAM_LIMIT_BIDI,
+    LOCAL_STREAM_LIMIT_UNI,
 };
 use test_fixture::{self, assertions, default_client, loopback, now, split_datagram};
 
@@ -38,6 +39,7 @@ fn default_server() -> Server {
         test_fixture::anti_replay(),
         Box::new(AllowZeroRtt {}),
         Rc::new(RefCell::new(FixedConnectionIdManager::new(9))),
+        ConnectionParameters::default(),
     )
     .expect("should create a server")
 }
@@ -851,7 +853,15 @@ fn bad_client_initial() {
     // The server should reject this.
     let response = server.process(Some(bad_dgram), now());
     let close_dgram = response.dgram().unwrap();
-    assert!(close_dgram.len() < 200); // Too small for anything real.
+    // The resulting datagram might contain multiple packets, but each is small.
+    let (initial_close, rest) = split_datagram(&close_dgram);
+    // Allow for large connection IDs and a 32 byte CONNECTION_CLOSE.
+    assert!(initial_close.len() <= 100);
+    let (handshake_close, short_close) = split_datagram(&rest.unwrap());
+    // The Handshake packet containing the close is the same size as the Initial,
+    // plus 1 byte for the Token field in the Initial.
+    assert_eq!(initial_close.len(), handshake_close.len() + 1);
+    assert!(short_close.unwrap().len() <= 73);
 
     // The client should accept this new and stop trying to connect.
     // It will generate a CONNECTION_CLOSE first though.
@@ -930,4 +940,72 @@ fn closed() {
     qtrace!("60s later");
     let res = server.process(None, now() + Duration::from_secs(60));
     assert_eq!(res, Output::None);
+}
+
+fn can_create_streams(c: &mut Connection, t: StreamType, n: usize) {
+    for _ in 0..n {
+        c.stream_create(t).unwrap();
+    }
+    assert_eq!(c.stream_create(t), Err(Error::StreamLimitError));
+}
+
+#[test]
+fn max_streams() {
+    const MAX_STREAMS: u64 = 40;
+    let mut server = Server::new(
+        now(),
+        test_fixture::DEFAULT_KEYS,
+        test_fixture::DEFAULT_ALPN,
+        test_fixture::anti_replay(),
+        Box::new(AllowZeroRtt {}),
+        Rc::new(RefCell::new(FixedConnectionIdManager::new(9))),
+        ConnectionParameters::default()
+            .max_streams(StreamType::BiDi, MAX_STREAMS)
+            .max_streams(StreamType::UniDi, MAX_STREAMS),
+    )
+    .expect("should create a server");
+
+    let mut client = default_client();
+    connect(&mut client, &mut server);
+
+    // Make sure that we can create MAX_STREAMS uni- and bidirectional streams.
+    can_create_streams(
+        &mut client,
+        StreamType::UniDi,
+        usize::try_from(MAX_STREAMS).unwrap(),
+    );
+    can_create_streams(
+        &mut client,
+        StreamType::BiDi,
+        usize::try_from(MAX_STREAMS).unwrap(),
+    );
+}
+
+#[test]
+fn max_streams_default() {
+    let mut server = Server::new(
+        now(),
+        test_fixture::DEFAULT_KEYS,
+        test_fixture::DEFAULT_ALPN,
+        test_fixture::anti_replay(),
+        Box::new(AllowZeroRtt {}),
+        Rc::new(RefCell::new(FixedConnectionIdManager::new(9))),
+        ConnectionParameters::default(),
+    )
+    .expect("should create a server");
+
+    let mut client = default_client();
+    connect(&mut client, &mut server);
+
+    // Make sure that we can create LOCAL_STREAM_LIMIT_UNI unidirectional streams
+    can_create_streams(
+        &mut client,
+        StreamType::UniDi,
+        usize::try_from(LOCAL_STREAM_LIMIT_UNI).unwrap(),
+    );
+    can_create_streams(
+        &mut client,
+        StreamType::BiDi,
+        usize::try_from(LOCAL_STREAM_LIMIT_BIDI).unwrap(),
+    );
 }

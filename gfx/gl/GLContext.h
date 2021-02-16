@@ -8,12 +8,10 @@
 #define GLCONTEXT_H_
 
 #include <bitset>
-#include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <map>
-#include <queue>
 #include <stack>
+#include <vector>
 
 #ifdef DEBUG
 #  include <string.h>
@@ -35,34 +33,31 @@
 
 #include "MozFramebuffer.h"
 #include "nsTArray.h"
+#include "GLConsts.h"
 #include "GLDefs.h"
-#include "GLLibraryLoader.h"
-#include "nsISupportsImpl.h"
+#include "GLTypes.h"
 #include "nsRegionFwd.h"
 #include "nsString.h"
-#include "plstr.h"
 #include "GLContextTypes.h"
-#include "SurfaceTypes.h"
 #include "GLContextSymbols.h"
 #include "base/platform_thread.h"  // for PlatformThreadId
 #include "mozilla/GenericRefCounted.h"
 #include "mozilla/WeakPtr.h"
-#include "gfx2DGlue.h"
-#include "GeckoProfiler.h"
+
+#ifdef MOZ_WIDGET_ANDROID
+#  include "GeckoProfiler.h"
+#endif
 
 namespace mozilla {
-namespace gfx {
-class DataSourceSurface;
-class SourceSurface;
-}  // namespace gfx
 
 namespace gl {
 class GLBlitHelper;
 class GLBlitTextureImageHelper;
-class GLContext;
 class GLLibraryEGL;
 class GLReadTexImageHelper;
 class SharedSurface;
+class SymbolLoader;
+struct SymLoadStruct;
 }  // namespace gl
 
 namespace layers {
@@ -3380,6 +3375,12 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
    * telling the system compositor which parts of the buffer were updated.
    */
   virtual void SetDamage(const nsIntRegion& aDamageRegion) {}
+
+  /**
+   * Get the buffer age. If it returns 0, that indicates the buffer state is
+   * unknown and the entire frame should be redrawn.
+   */
+  virtual GLint GetBufferAge() const { return 0; }
 
   /**
    * Defines a two-dimensional texture image for context target surface

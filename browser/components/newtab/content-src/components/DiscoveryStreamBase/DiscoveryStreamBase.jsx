@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { actionCreators as ac } from "common/Actions.jsm";
 import { CardGrid } from "content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid";
 import { CollectionCardGrid } from "content-src/components/DiscoveryStreamComponents/CollectionCardGrid/CollectionCardGrid";
 import { CollapsibleSection } from "content-src/components/CollapsibleSection/CollapsibleSection";
@@ -27,7 +26,6 @@ const ALLOWED_CSS_URL_PREFIXES = [
   "https://img-getpocket.cdn.mozilla.net/",
 ];
 const DUMMY_CSS_SELECTOR = "DUMMY#CSS.SELECTOR";
-let rollCache = []; // Cache of random probability values for a spoc position
 
 /**
  * Validate a CSS declaration. The values are assumed to be normalized by CSSOM.
@@ -252,35 +250,14 @@ export class _DiscoveryStreamBase extends React.PureComponent {
     return <style key={json} data-styles={json} ref={this.onStyleMount} />;
   }
 
-  componentWillReceiveProps(oldProps) {
-    if (this.props.DiscoveryStream.layout !== oldProps.DiscoveryStream.layout) {
-      rollCache = [];
-    }
-  }
-
   render() {
     // Select layout render data by adding spocs and position to recommendations
-    const { layoutRender, spocsFill } = selectLayoutRender({
+    const { layoutRender } = selectLayoutRender({
       state: this.props.DiscoveryStream,
       prefs: this.props.Prefs.values,
-      rollCache,
       locale: this.props.locale,
     });
-    const { config, spocs, feeds } = this.props.DiscoveryStream;
-
-    // Send SPOCS Fill if any. Note that it should not send it again if the same
-    // page gets re-rendered by state changes.
-    if (
-      spocs.loaded &&
-      feeds.loaded &&
-      spocsFill.length &&
-      !this._spocsFillSent
-    ) {
-      this.props.dispatch(
-        ac.DiscoveryStreamSpocsFill({ spoc_fills: spocsFill })
-      );
-      this._spocsFillSent = true;
-    }
+    const { config } = this.props.DiscoveryStream;
 
     // Allow rendering without extracting special components
     if (!config.collapsible) {
@@ -360,6 +337,7 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             privacyNoticeURL={topStories.privacyNoticeURL}
             showPrefName={topStories.pref.feed}
             title={message.header.title}
+            eventSource="CARDGRID"
           >
             {this.renderLayout(layoutRender)}
           </CollapsibleSection>

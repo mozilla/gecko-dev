@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use crate::*;
 
 // Currently the mozdevice API is not safe for multiple requests at the same
@@ -69,9 +73,9 @@ fn encode_message_with_invalid_string() {
     encode_message(&"a".repeat(65536)).expect_err("string lengths exceeds 4 bytes");
 }
 
-fn run_device_test<F>(test: F) -> ()
+fn run_device_test<F>(test: F)
 where
-    F: FnOnce(&Device, &TempDir, &Path) -> () + panic::UnwindSafe,
+    F: FnOnce(&Device, &TempDir, &Path) + panic::UnwindSafe,
 {
     let host = Host {
         ..Default::default()

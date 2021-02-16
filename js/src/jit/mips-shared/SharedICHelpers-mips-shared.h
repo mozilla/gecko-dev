@@ -50,21 +50,6 @@ inline void EmitCallIC(MacroAssembler& masm, CodeOffset* callOffset) {
   *callOffset = CodeOffset(masm.currentOffset());
 }
 
-inline void EmitEnterTypeMonitorIC(
-    MacroAssembler& masm,
-    size_t monitorStubOffset = ICMonitoredStub::offsetOfFirstMonitorStub()) {
-  // This is expected to be called from within an IC, when ICStubReg
-  // is properly initialized to point to the stub.
-  masm.loadPtr(Address(ICStubReg, (uint32_t)monitorStubOffset), ICStubReg);
-
-  // Load stubcode pointer from BaselineStubEntry.
-  // R2 won't be active when we call ICs, so we can use it.
-  masm.loadPtr(Address(ICStubReg, ICStub::offsetOfStubCode()), R2.scratchReg());
-
-  // Jump to the stubcode.
-  masm.branch(R2.scratchReg());
-}
-
 inline void EmitReturnFromIC(MacroAssembler& masm) { masm.branch(ra); }
 
 inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm,
@@ -108,7 +93,7 @@ inline void EmitPreBarrier(MacroAssembler& masm, const AddrType& addr,
 
 inline void EmitStubGuardFailure(MacroAssembler& masm) {
   // Load next stub into ICStubReg
-  masm.loadPtr(Address(ICStubReg, ICStub::offsetOfNext()), ICStubReg);
+  masm.loadPtr(Address(ICStubReg, ICCacheIRStub::offsetOfNext()), ICStubReg);
 
   // Return address is already loaded, just jump to the next stubcode.
   MOZ_ASSERT(ICTailCallReg == ra);

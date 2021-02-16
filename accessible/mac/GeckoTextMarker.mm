@@ -81,7 +81,8 @@ GeckoTextMarker::GeckoTextMarker(AccessibleOrProxy aDoc,
                                  AXTextMarkerRef aTextMarker) {
   MOZ_ASSERT(!aDoc.IsNull());
   OpaqueGeckoTextMarker opaqueMarker;
-  if (AXTextMarkerGetLength(aTextMarker) == sizeof(OpaqueGeckoTextMarker)) {
+  if (aTextMarker &&
+      AXTextMarkerGetLength(aTextMarker) == sizeof(OpaqueGeckoTextMarker)) {
     memcpy(&opaqueMarker, AXTextMarkerGetBytePtr(aTextMarker),
            sizeof(OpaqueGeckoTextMarker));
     if (DocumentExists(aDoc, opaqueMarker.mDoc)) {
@@ -200,7 +201,7 @@ bool GeckoTextMarker::operator<(const GeckoTextMarker& aPoint) const {
     uint32_t startOffset = child.IsProxy()
                                ? child.AsProxy()->StartOffset(&unused)
                                : child.AsAccessible()->StartOffset();
-    return static_cast<uint32_t>(mOffset) < startOffset;
+    return static_cast<uint32_t>(mOffset) <= startOffset;
   }
 
   MOZ_ASSERT_UNREACHABLE("Broken tree?!");
@@ -277,7 +278,7 @@ bool GeckoTextMarker::Previous() {
   return false;
 }
 
-uint32_t GeckoTextMarker::CharacterCount(const AccessibleOrProxy& aContainer) {
+static uint32_t CharacterCount(const AccessibleOrProxy& aContainer) {
   if (aContainer.IsProxy()) {
     return aContainer.AsProxy()->CharacterCount();
   }
@@ -335,7 +336,8 @@ AccessibleOrProxy GeckoTextMarker::Leaf() {
 
 GeckoTextMarkerRange::GeckoTextMarkerRange(
     AccessibleOrProxy aDoc, AXTextMarkerRangeRef aTextMarkerRange) {
-  if (CFGetTypeID(aTextMarkerRange) != AXTextMarkerRangeGetTypeID()) {
+  if (!aTextMarkerRange ||
+      CFGetTypeID(aTextMarkerRange) != AXTextMarkerRangeGetTypeID()) {
     return;
   }
 
@@ -352,16 +354,26 @@ GeckoTextMarkerRange::GeckoTextMarkerRange(
 
 GeckoTextMarkerRange::GeckoTextMarkerRange(
     const AccessibleOrProxy& aAccessible) {
-  mStart = GeckoTextMarker(aAccessible.Parent(), 0);
-  mEnd = GeckoTextMarker(aAccessible.Parent(), 0);
-  if (mStart.mContainer.IsProxy()) {
-    DocAccessibleParent* ipcDoc = mStart.mContainer.AsProxy()->Document();
-    Unused << ipcDoc->GetPlatformExtension()->SendRangeOfChild(
-        mStart.mContainer.AsProxy()->ID(), aAccessible.AsProxy()->ID(),
-        &mStart.mOffset, &mEnd.mOffset);
-  } else if (auto htWrap = mStart.ContainerAsHyperTextWrap()) {
-    htWrap->RangeOfChild(aAccessible.AsAccessible(), &mStart.mOffset,
-                         &mEnd.mOffset);
+  if ((aAccessible.IsAccessible() &&
+       aAccessible.AsAccessible()->IsHyperText()) ||
+      (aAccessible.IsProxy() && aAccessible.AsProxy()->mIsHyperText)) {
+    // The accessible is a hypertext. Initialize range to its inner text range.
+    mStart = GeckoTextMarker(aAccessible, 0);
+    mEnd = GeckoTextMarker(aAccessible, (CharacterCount(aAccessible)));
+  } else {
+    // The accessible is not a hypertext (maybe a text leaf?). Initialize range
+    // to its offsets in its container.
+    mStart = GeckoTextMarker(aAccessible.Parent(), 0);
+    mEnd = GeckoTextMarker(aAccessible.Parent(), 0);
+    if (mStart.mContainer.IsProxy()) {
+      DocAccessibleParent* ipcDoc = mStart.mContainer.AsProxy()->Document();
+      Unused << ipcDoc->GetPlatformExtension()->SendRangeOfChild(
+          mStart.mContainer.AsProxy()->ID(), aAccessible.AsProxy()->ID(),
+          &mStart.mOffset, &mEnd.mOffset);
+    } else if (auto htWrap = mStart.ContainerAsHyperTextWrap()) {
+      htWrap->RangeOfChild(aAccessible.AsAccessible(), &mStart.mOffset,
+                           &mEnd.mOffset);
+    }
   }
 }
 
@@ -440,6 +452,30 @@ void GeckoTextMarkerRange::Select() const {
     RefPtr<HyperTextAccessibleWrap> end = mEnd.ContainerAsHyperTextWrap();
     htWrap->SelectRange(mStart.mOffset, end, mEnd.mOffset);
   }
+}
+
+bool GeckoTextMarkerRange::Crop(const AccessibleOrProxy& aContainer) {
+  GeckoTextMarker containerStart(aContainer, 0);
+  GeckoTextMarker containerEnd(aContainer, CharacterCount(aContainer));
+
+  if (mEnd < containerStart || containerEnd < mStart) {
+    // The range ends before the container, or starts after it.
+    return false;
+  }
+
+  if (mStart < containerStart) {
+    // If range start is before container start, adjust range start to
+    // start of container.
+    mStart = containerStart;
+  }
+
+  if (containerEnd < mEnd) {
+    // If range end is after container end, adjust range end to end of
+    // container.
+    mEnd = containerEnd;
+  }
+
+  return true;
 }
 }
 }

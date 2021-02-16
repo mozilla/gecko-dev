@@ -87,10 +87,21 @@
 - (NSString*)moxLabel;
 
 // override
+- (NSArray*)moxVisibleChildren;
+
+// override
+- (BOOL)moxIgnoreWithParent:(mozAccessible*)parent;
+
+// override
+- (id)moxTitleUIElement;
+
+// override
 - (void)moxPostNotification:(NSString*)notification;
 
 // override
 - (void)expire;
+
+- (BOOL)isOpened;
 
 @end
 
@@ -98,6 +109,9 @@
 
 // override
 - (NSString*)moxLabel;
+
+// override
+- (BOOL)moxIgnoreWithParent:(mozAccessible*)parent;
 
 // override
 - (NSString*)moxMenuItemMarkChar;

@@ -19,6 +19,7 @@
 #include "DateTimeFormat.h"
 #include "History.h"
 #include "Helpers.h"
+#include "NotifyRankingChanged.h"
 
 #include "nsTArray.h"
 #include "nsCollationCID.h"
@@ -37,6 +38,7 @@
 #include "nsThreadUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsMathUtils.h"
+#include "nsReadableUtils.h"
 #include "mozilla/storage.h"
 #include "mozilla/Preferences.h"
 #include <algorithm>
@@ -221,13 +223,20 @@ class FixAndDecayFrecencyRunnable final : public Runnable {
         mDecayRate(aDecayRate),
         mDecayReason(mozIStorageStatementCallback::REASON_FINISHED) {}
 
-  NS_IMETHOD
-  Run() override {
+  // MOZ_CAN_RUN_SCRIPT_BOUNDARY until Runnable::Run is marked
+  // MOZ_CAN_RUN_SCRIPT.  See bug 1535398.
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  NS_IMETHOD Run() override {
     if (NS_IsMainThread()) {
       nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
       NS_ENSURE_STATE(navHistory);
 
-      navHistory->DecayFrecencyCompleted(mDecayReason);
+      navHistory->DecayFrecencyCompleted();
+
+      if (mozIStorageStatementCallback::REASON_FINISHED == mDecayReason) {
+        NotifyRankingChanged().Run();
+      }
+
       return NS_OK;
     }
 
@@ -376,7 +385,6 @@ nsNavHistory::nsNavHistory()
       mNumVisitsForFrecency(10),
       mDecayFrecencyPendingCount(0),
       mTagsFolder(-1),
-      mDaysOfHistory(-1),
       mLastCachedStartOfDay(INT64_MAX),
       mLastCachedEndOfDay(0),
       mCanNotify(true)
@@ -591,56 +599,13 @@ void nsNavHistory::LoadPrefs() {
 }
 
 void nsNavHistory::UpdateDaysOfHistory(PRTime visitTime) {
-  if (mDaysOfHistory == 0) {
-    mDaysOfHistory = 1;
+  if (sDaysOfHistory == 0) {
+    sDaysOfHistory = 1;
   }
 
   if (visitTime > mLastCachedEndOfDay || visitTime < mLastCachedStartOfDay) {
-    mDaysOfHistory = -1;
+    InvalidateDaysOfHistory();
   }
-}
-
-void nsNavHistory::NotifyTitleChange(nsIURI* aURI, const nsString& aTitle,
-                                     const nsACString& aGUID) {
-  MOZ_ASSERT(!aGUID.IsEmpty());
-  NOTIFY_OBSERVERS(mCanNotify, mObservers, nsINavHistoryObserver,
-                   OnTitleChanged(aURI, aTitle, aGUID));
-}
-
-void nsNavHistory::NotifyFrecencyChanged(const nsACString& aSpec,
-                                         int32_t aNewFrecency,
-                                         const nsACString& aGUID, bool aHidden,
-                                         PRTime aLastVisitDate) {
-  MOZ_ASSERT(!aGUID.IsEmpty());
-
-  nsCOMPtr<nsIURI> uri;
-  Unused << NS_NewURI(getter_AddRefs(uri), aSpec);
-  // We cannot assert since some automated tests are checking this path.
-  NS_WARNING_ASSERTION(uri,
-                       "Invalid URI in nsNavHistory::NotifyFrecencyChanged");
-  // Notify a frecency change only if we have a valid uri, otherwise
-  // the observer couldn't gather any useful data from the notification.
-  if (!uri) {
-    return;
-  }
-  NOTIFY_OBSERVERS(
-      mCanNotify, mObservers, nsINavHistoryObserver,
-      OnFrecencyChanged(uri, aNewFrecency, aGUID, aHidden, aLastVisitDate));
-}
-
-void nsNavHistory::NotifyManyFrecenciesChanged() {
-  NOTIFY_OBSERVERS(mCanNotify, mObservers, nsINavHistoryObserver,
-                   OnManyFrecenciesChanged());
-}
-
-void nsNavHistory::DispatchFrecencyChangedNotification(
-    const nsACString& aSpec, int32_t aNewFrecency, const nsACString& aGUID,
-    bool aHidden, PRTime aLastVisitDate) const {
-  Unused << NS_DispatchToMainThread(
-      NewRunnableMethod<nsCString, int32_t, nsCString, bool, PRTime>(
-          "nsNavHistory::NotifyFrecencyChanged",
-          const_cast<nsNavHistory*>(this), &nsNavHistory::NotifyFrecencyChanged,
-          aSpec, aNewFrecency, aGUID, aHidden, aLastVisitDate));
 }
 
 NS_IMETHODIMP
@@ -711,10 +676,17 @@ nsNavHistory::StoreLastInsertedId(const nsACString& aTable,
   }
 }
 
+Atomic<int32_t> nsNavHistory::sDaysOfHistory(-1);
+
+void  // static
+nsNavHistory::InvalidateDaysOfHistory() {
+  sDaysOfHistory = -1;
+}
+
 int32_t nsNavHistory::GetDaysOfHistory() {
   MOZ_ASSERT(NS_IsMainThread(), "This can only be called on the main thread");
 
-  if (mDaysOfHistory != -1) return mDaysOfHistory;
+  if (sDaysOfHistory != -1) return sDaysOfHistory;
 
   // SQLite doesn't have a CEIL() function, so we must do that later.
   // We should also take into account timers resolution, that may be as bad as
@@ -737,7 +709,7 @@ int32_t nsNavHistory::GetDaysOfHistory() {
     // at least 1 day of history.
     bool hasNoVisits;
     (void)stmt->GetIsNull(0, &hasNoVisits);
-    mDaysOfHistory =
+    sDaysOfHistory =
         hasNoVisits
             ? 0
             : std::max(1, static_cast<int32_t>(ceil(stmt->AsDouble(0))));
@@ -746,7 +718,7 @@ int32_t nsNavHistory::GetDaysOfHistory() {
     mLastCachedEndOfDay = stmt->AsInt64(1) - 1;  // Start of tomorrow - 1.
   }
 
-  return mDaysOfHistory;
+  return sDaysOfHistory;
 }
 
 PRTime nsNavHistory::GetNow() {
@@ -878,73 +850,9 @@ nsNavHistory::CanAddURI(nsIURI* aURI, bool* canAdd) {
   NS_ENSURE_ARG_POINTER(canAdd);
 
   // If history is disabled, don't add any entry.
-  if (IsHistoryDisabled()) {
-    *canAdd = false;
-    return NS_OK;
-  }
-
-  return CanAddURIToHistory(aURI, canAdd);
-}
-
-// nsNavHistory::CanAddURIToHistory
-//
-//    Helper for nsNavHistory::CanAddURI to be callable from a child process
-
-// static
-nsresult nsNavHistory::CanAddURIToHistory(nsIURI* aURI, bool* aCanAdd) {
-  // Default to false.
-  *aCanAdd = false;
-
-  // If the url length is over a threshold, don't add it.
-  nsCString spec;
-  nsresult rv = aURI->GetSpec(spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (spec.Length() > MaxURILength()) {
-    return NS_OK;
-  }
-
-  nsAutoCString scheme;
-  rv = aURI->GetScheme(scheme);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // first check the most common cases
-  if (scheme.EqualsLiteral("http") || scheme.EqualsLiteral("https")) {
-    *aCanAdd = true;
-    return NS_OK;
-  }
-
-  // now check for all bad things
-  *aCanAdd =
-      !scheme.EqualsLiteral("about") && !scheme.EqualsLiteral("blob") &&
-      !scheme.EqualsLiteral("chrome") && !scheme.EqualsLiteral("data") &&
-      !scheme.EqualsLiteral("imap") && !scheme.EqualsLiteral("javascript") &&
-      !scheme.EqualsLiteral("mailbox") && !scheme.EqualsLiteral("moz-anno") &&
-      !scheme.EqualsLiteral("news") && !scheme.EqualsLiteral("page-icon") &&
-      !scheme.EqualsLiteral("resource") &&
-      !scheme.EqualsLiteral("view-source") &&
-      !scheme.EqualsLiteral("moz-extension");
-
+  *canAdd = !IsHistoryDisabled() && BaseHistory::CanStore(aURI);
   return NS_OK;
 }
-
-// nsNavHistory::MaxURILength
-
-// static
-uint32_t nsNavHistory::MaxURILength() {
-  // Duplicates Database::MaxUrlLength() for use in
-  // child processes without a database instance.
-  static uint32_t maxSpecLength = 0;
-  if (!maxSpecLength) {
-    maxSpecLength = Preferences::GetInt(PREF_HISTORY_MAXURLLEN,
-                                        PREF_HISTORY_MAXURLLEN_DEFAULT);
-    if (maxSpecLength < 255 || maxSpecLength > INT32_MAX) {
-      maxSpecLength = PREF_HISTORY_MAXURLLEN_DEFAULT;
-    }
-  }
-  return maxSpecLength;
-}
-
-// nsNavHistory::GetNewQuery
 
 NS_IMETHODIMP
 nsNavHistory::GetNewQuery(nsINavHistoryQuery** _retval) {
@@ -2033,7 +1941,7 @@ nsNavHistory::GetObservers(
 
   // Clear any cached value, cause it's very likely the consumer has made
   // changes to history and is now trying to notify them.
-  mDaysOfHistory = -1;
+  InvalidateDaysOfHistory();
 
   if (!mCanNotify) return NS_OK;
 
@@ -2283,12 +2191,9 @@ nsNavHistory::DecayFrecency() {
   return target->Dispatch(runnable, NS_DISPATCH_NORMAL);
 }
 
-void nsNavHistory::DecayFrecencyCompleted(uint16_t reason) {
+void nsNavHistory::DecayFrecencyCompleted() {
   MOZ_ASSERT(mDecayFrecencyPendingCount > 0);
   mDecayFrecencyPendingCount--;
-  if (mozIStorageStatementCallback::REASON_FINISHED == reason) {
-    NotifyManyFrecenciesChanged();
-  }
 }
 
 bool nsNavHistory::IsFrecencyDecaying() const {
@@ -2848,19 +2753,10 @@ nsresult nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
 
   // itemId
   int64_t itemId = aRow->AsInt64(kGetInfoIndex_ItemId);
-  int64_t parentId = -1;
   if (itemId == 0) {
     // This is not a bookmark.  For non-bookmarks we use a -1 itemId value.
     // Notice ids in sqlite tables start from 1, so itemId cannot ever be 0.
     itemId = -1;
-  } else {
-    // This is a bookmark, so it has a parent.
-    int64_t itemParentId = aRow->AsInt64(kGetInfoIndex_ItemParentId);
-    if (itemParentId > 0) {
-      // The Places root has parent == 0, but that item id does not really
-      // exist. We want to set the parent only if it's a real one.
-      parentId = itemParentId;
-    }
   }
 
   if (IsQueryURI(url)) {
@@ -2919,7 +2815,6 @@ nsresult nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
 
     if (itemId != -1) {
       resultNode->mItemId = itemId;
-      resultNode->mFolderId = parentId;
       resultNode->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
       resultNode->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
 
@@ -3215,15 +3110,6 @@ nsresult nsNavHistory::URIToResultNode(nsIURI* aURI,
   return RowToResult(row, aOptions, aResult);
 }
 
-void nsNavHistory::SendPageChangedNotification(nsIURI* aURI,
-                                               uint32_t aChangedAttribute,
-                                               const nsAString& aNewValue,
-                                               const nsACString& aGUID) {
-  MOZ_ASSERT(!aGUID.IsEmpty());
-  NOTIFY_OBSERVERS(mCanNotify, mObservers, nsINavHistoryObserver,
-                   OnPageChanged(aURI, aChangedAttribute, aNewValue, aGUID));
-}
-
 void nsNavHistory::GetAgeInDaysString(int32_t aInt, const char* aName,
                                       nsACString& aResult) {
   nsIStringBundle* bundle = GetBundle();
@@ -3356,11 +3242,10 @@ nsresult nsNavHistory::UpdateFrecency(int64_t aPlaceId) {
   nsCOMPtr<mozIStorageAsyncStatement> updateFrecencyStmt =
       mDB->GetAsyncStatement(
           "UPDATE moz_places "
-          "SET frecency = NOTIFY_FRECENCY("
-          "CALCULATE_FRECENCY(:page_id), url, guid, hidden, last_visit_date"
-          ") "
+          "SET frecency = CALCULATE_FRECENCY(:page_id) "
           "WHERE id = :page_id");
   NS_ENSURE_STATE(updateFrecencyStmt);
+  NS_DispatchToMainThread(new NotifyRankingChanged());
   nsresult rv = updateFrecencyStmt->BindInt64ByName("page_id"_ns, aPlaceId);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCOMPtr<mozIStorageAsyncStatement> updateHiddenStmt = mDB->GetAsyncStatement(

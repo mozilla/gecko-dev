@@ -9,9 +9,38 @@ Outputter to generate C++ code for metrics.
 """
 
 import jinja2
+import json
 
-from util import generate_metric_ids, is_implemented_metric_type
+from util import generate_metric_ids, generate_ping_ids, is_implemented_metric_type
 from glean_parser import util
+
+
+def cpp_datatypes_filter(value):
+    """
+    A Jinja2 filter that renders Rust literals.
+
+    Based on Python's JSONEncoder, but overrides:
+      - lists to array literals {}
+      - strings to "value"
+    """
+
+    class CppEncoder(json.JSONEncoder):
+        def iterencode(self, value):
+            if isinstance(value, list):
+                yield "{"
+                first = True
+                for subvalue in list(value):
+                    if not first:
+                        yield ", "
+                    yield from self.iterencode(subvalue)
+                    first = False
+                yield "}"
+            elif isinstance(value, str):
+                yield '"' + value + '"'
+            else:
+                yield from super().iterencode(value)
+
+    return "".join(CppEncoder().iterencode(value))
 
 
 def type_name(obj):
@@ -19,6 +48,15 @@ def type_name(obj):
     Returns the C++ type to use for a given metric object.
     """
 
+    generate_enums = getattr(obj, "_generate_enums", [])  # Extra Keys? Reasons?
+    if len(generate_enums):
+        for name, suffix in generate_enums:
+            if not len(getattr(obj, name)) and suffix == "Keys":
+                return util.Camelize(obj.type) + "Metric<uint32_t>"
+            else:
+                return "{}Metric<{}>".format(
+                    util.Camelize(obj.type), util.Camelize(obj.name) + suffix
+                )
     return util.Camelize(obj.type) + "Metric"
 
 
@@ -42,21 +80,31 @@ def output_cpp(objs, output_fd, options={}):
             trim_blocks=True,
             lstrip_blocks=True,
         )
+        env.filters["camelize"] = util.camelize
+        env.filters["Camelize"] = util.Camelize
         for filter_name, filter_func in filters:
             env.filters[filter_name] = filter_func
         return env.get_template(template_name)
 
     util.get_jinja2_template = get_local_template
     get_metric_id = generate_metric_ids(objs)
+    get_ping_id = generate_ping_ids(objs)
 
-    template_filename = "cpp.jinja2"
+    if len(objs) == 1 and "pings" in objs:
+        template_filename = "cpp_pings.jinja2"
+    else:
+        template_filename = "cpp.jinja2"
+
     template = util.get_jinja2_template(
         template_filename,
         filters=(
+            ("cpp", cpp_datatypes_filter),
             ("snake_case", util.snake_case),
             ("type_name", type_name),
             ("metric_id", get_metric_id),
+            ("ping_id", get_ping_id),
             ("is_implemented_type", is_implemented_metric_type),
+            ("Camelize", util.Camelize),
         ),
     )
 

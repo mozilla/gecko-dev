@@ -18,7 +18,9 @@
 
 #include "nsIDOMXULContainerElement.h"
 #include "nsIPersistentProperties2.h"
+#include "nsISimpleEnumerator.h"
 #include "mozilla/a11y/PDocAccessibleChild.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "nsAccessibilityService.h"
 
@@ -360,6 +362,9 @@ bool nsAccUtils::GetLiveAttrValue(uint32_t aRule, nsAString& aValue) {
       return true;
     case ePoliteLiveAttr:
       aValue = u"polite"_ns;
+      return true;
+    case eAssertiveLiveAttr:
+      aValue = u"assertive"_ns;
       return true;
   }
 

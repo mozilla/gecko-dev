@@ -10,13 +10,13 @@
 
 #include "jsnum.h"
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/RangedPtr.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Utf8.h"
 
+#include <iterator>
 #ifdef HAVE_LOCALECONV
 #  include <locale.h>
 #endif
@@ -52,7 +52,6 @@
 using namespace js;
 
 using mozilla::Abs;
-using mozilla::ArrayLength;
 using mozilla::AsciiAlphanumericToNumber;
 using mozilla::IsAsciiAlphanumeric;
 using mozilla::IsAsciiDigit;
@@ -809,11 +808,11 @@ JSLinearString* js::Int32ToString(JSContext* cx, int32_t si) {
   Latin1Char buffer[JSFatInlineString::MAX_LENGTH_LATIN1 + 1];
   size_t length;
   Latin1Char* start =
-      BackfillInt32InBuffer(si, buffer, ArrayLength(buffer), &length);
+      BackfillInt32InBuffer(si, buffer, std::size(buffer), &length);
 
   mozilla::Range<const Latin1Char> chars(start, length);
   JSInlineString* str =
-      NewInlineString<allowGC>(cx, chars, js::gc::TenuredHeap);
+      NewInlineString<allowGC>(cx, chars, js::gc::DefaultHeap);
   if (!str) {
     return nullptr;
   }
@@ -874,7 +873,7 @@ const frontend::ParserAtom* js::Int32ToParserAtom(
     indexValue.emplace(si);
   }
 
-  return parserAtoms.internAscii(cx, start, length).unwrapOr(nullptr);
+  return parserAtoms.internAscii(cx, start, length);
 }
 
 /* Returns a non-nullptr pointer to inside cbuf.  */
@@ -1575,6 +1574,13 @@ static JSString* NumberToStringWithBase(JSContext* cx, double d, int base) {
       MOZ_ASSERT(StaticStrings::hasUnit(c));
       return cx->staticStrings().getUnit(c);
     }
+    if (unsigned(i) < unsigned(base * base)) {
+      static constexpr char digits[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+      char chars[] = {digits[i / base], digits[i % base]};
+      JSString* str = cx->staticStrings().lookup(chars, 2);
+      MOZ_ASSERT(str);
+      return str;
+    }
 
     if (JSLinearString* str = realm->dtoaCache.lookup(base, d)) {
       return str;
@@ -1602,7 +1608,7 @@ static JSString* NumberToStringWithBase(JSContext* cx, double d, int base) {
   }
 
   JSLinearString* s =
-      NewStringCopyN<allowGC>(cx, numStr, numStrLen, js::gc::TenuredHeap);
+      NewStringCopyN<allowGC>(cx, numStr, numStrLen, js::gc::DefaultHeap);
   if (!s) {
     return nullptr;
   }
@@ -1680,7 +1686,7 @@ const frontend::ParserAtom* js::NumberToParserAtom(
              numStr < cbuf.sbuf + cbuf.sbufSize);
 
   size_t length = strlen(numStr);
-  return parserAtoms.internAscii(cx, numStr, length).unwrapOr(nullptr);
+  return parserAtoms.internAscii(cx, numStr, length);
 }
 
 JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
@@ -1700,7 +1706,7 @@ JSLinearString* js::IndexToString(JSContext* cx, uint32_t index) {
   RangedPtr<Latin1Char> start = BackfillIndexInCharBuffer(index, end);
 
   mozilla::Range<const Latin1Char> chars(start.get(), end - start);
-  JSInlineString* str = NewInlineString<CanGC>(cx, chars, js::gc::TenuredHeap);
+  JSInlineString* str = NewInlineString<CanGC>(cx, chars, js::gc::DefaultHeap);
   if (!str) {
     return nullptr;
   }

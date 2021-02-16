@@ -25,12 +25,8 @@ UNSUPPORTED_FEATURES = set(
         "regexp-match-indices",
         "Intl.DateTimeFormat-quarter",
         "Intl.Segmenter",
-        "top-level-await",
         "Atomics.waitAsync",
         "legacy-regexp",
-        "TypedArray.prototype.item",
-        "Array.prototype.item",
-        "String.prototype.item",
         "arbitrary-module-namespace-names",
     ]
 )
@@ -39,6 +35,9 @@ FEATURE_CHECK_NEEDED = {
     "FinalizationRegistry": "!this.hasOwnProperty('FinalizationRegistry')",
     "SharedArrayBuffer": "!this.hasOwnProperty('SharedArrayBuffer')",
     "WeakRef": "!this.hasOwnProperty('WeakRef')",
+    "Array.prototype.at": "!Array.prototype.at",
+    "String.prototype.at": "!String.prototype.at",
+    "TypedArray.prototype.at": "!Int32Array.prototype.at",
 }
 RELEASE_OR_BETA = set(
     [
@@ -51,6 +50,7 @@ SHELL_OPTIONS = {
     "class-static-fields-private": "--enable-private-fields",
     "class-methods-private": "--enable-private-methods",
     "class-static-methods-private": "--enable-private-methods",
+    "top-level-await": "--enable-top-level-await",
 }
 
 
@@ -360,7 +360,7 @@ def convertTestFile(test262parser, testSource, testName, includeSet, strictTests
             if shellOptions:
                 refTestSkipIf.append(("!xulRuntime.shell", "requires shell-options"))
                 refTestOptions.extend(
-                    ("shell-option({})".format(opt) for opt in shellOptions)
+                    ("shell-option({})".format(opt) for opt in sorted(shellOptions))
                 )
 
     # Includes for every test file in a directory is collected in a single
@@ -483,9 +483,6 @@ def process_test262(test262Dir, test262OutDir, strictTests, externManifests):
     explicitIncludes[os.path.join("built-ins", "TypedArrays")] = [
         "detachArrayBuffer.js"
     ]
-
-    # Intl.DisplayNames isn't yet enabled by default.
-    localIncludesMap[os.path.join("intl402")] = ["test262-intl-displaynames.js"]
 
     # Process all test directories recursively.
     for (dirPath, dirNames, fileNames) in os.walk(testDir):

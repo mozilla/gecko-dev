@@ -11,8 +11,10 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/Encoding.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
@@ -933,7 +935,7 @@ static JSObject* CreateInterfacePrototypeObject(
     const NativeProperties* chromeOnlyProperties,
     const char* const* unscopableNames, bool isGlobal) {
   JS::Rooted<JSObject*> ourProto(
-      cx, JS_NewObjectWithUniqueType(cx, protoClass, parentProto));
+      cx, JS_NewObjectWithGivenProto(cx, protoClass, parentProto));
   if (!ourProto ||
       // We don't try to define properties on the global's prototype; those
       // properties go on the global itself.
@@ -2498,7 +2500,7 @@ bool ReportLenientThisUnwrappingFailure(JSContext* cx, JSObject* obj) {
   nsCOMPtr<nsPIDOMWindowInner> window =
       do_QueryInterface(global.GetAsSupports());
   if (window && window->GetDoc()) {
-    window->GetDoc()->WarnOnceAbout(Document::eLenientThis);
+    window->GetDoc()->WarnOnceAbout(DeprecatedOperations::eLenientThis);
   }
   return true;
 }
@@ -4016,7 +4018,7 @@ class GetLocalizedStringRunnable final : public WorkerMainThreadRunnable {
 };
 
 void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
-                       Document::DeprecatedOperations aOperation,
+                       DeprecatedOperations aOperation,
                        const nsAString& aFileName,
                        const Nullable<uint32_t>& aLineNumber,
                        const Nullable<uint32_t>& aColumnNumber) {
@@ -4033,10 +4035,10 @@ void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
   }
 
   nsAutoString type;
-  type.AssignASCII(kDeprecatedOperations[aOperation]);
+  type.AssignASCII(kDeprecatedOperations[static_cast<size_t>(aOperation)]);
 
   nsAutoCString key;
-  key.AssignASCII(kDeprecatedOperations[aOperation]);
+  key.AssignASCII(kDeprecatedOperations[static_cast<size_t>(aOperation)]);
   key.AppendASCII("Warning");
 
   nsAutoString msg;
@@ -4081,10 +4083,10 @@ void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
 // console running on the main-thread.
 class DeprecationWarningRunnable final
     : public WorkerProxyToMainThreadRunnable {
-  const Document::DeprecatedOperations mOperation;
+  const DeprecatedOperations mOperation;
 
  public:
-  explicit DeprecationWarningRunnable(Document::DeprecatedOperations aOperation)
+  explicit DeprecationWarningRunnable(DeprecatedOperations aOperation)
       : mOperation(aOperation) {}
 
  private:
@@ -4109,7 +4111,7 @@ class DeprecationWarningRunnable final
 };
 
 void MaybeShowDeprecationWarning(const GlobalObject& aGlobal,
-                                 Document::DeprecatedOperations aOperation) {
+                                 DeprecatedOperations aOperation) {
   if (NS_IsMainThread()) {
     nsCOMPtr<nsPIDOMWindowInner> window =
         do_QueryInterface(aGlobal.GetAsSupports());
@@ -4130,7 +4132,7 @@ void MaybeShowDeprecationWarning(const GlobalObject& aGlobal,
 }
 
 void MaybeReportDeprecation(const GlobalObject& aGlobal,
-                            Document::DeprecatedOperations aOperation) {
+                            DeprecatedOperations aOperation) {
   nsCOMPtr<nsIURI> uri;
 
   if (NS_IsMainThread()) {
@@ -4183,7 +4185,7 @@ void MaybeReportDeprecation(const GlobalObject& aGlobal,
 }  // anonymous namespace
 
 void DeprecationWarning(JSContext* aCx, JSObject* aObject,
-                        Document::DeprecatedOperations aOperation) {
+                        DeprecatedOperations aOperation) {
   GlobalObject global(aCx, aObject);
   if (global.Failed()) {
     NS_ERROR("Could not create global for DeprecationWarning");
@@ -4194,7 +4196,7 @@ void DeprecationWarning(JSContext* aCx, JSObject* aObject,
 }
 
 void DeprecationWarning(const GlobalObject& aGlobal,
-                        Document::DeprecatedOperations aOperation) {
+                        DeprecatedOperations aOperation) {
   MaybeShowDeprecationWarning(aGlobal, aOperation);
   MaybeReportDeprecation(aGlobal, aOperation);
 }

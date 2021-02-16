@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use http::Method;
 use serde_json::Value;
 
@@ -5,8 +9,7 @@ use crate::command::{VoidWebDriverExtensionCommand, WebDriverCommand, WebDriverE
 use crate::error::WebDriverResult;
 use crate::Parameters;
 
-pub(crate) fn standard_routes<U: WebDriverExtensionRoute>() -> Vec<(Method, &'static str, Route<U>)>
-{
+pub fn standard_routes<U: WebDriverExtensionRoute>() -> Vec<(Method, &'static str, Route<U>)> {
     return vec![
         (Method::POST, "/session", Route::NewSession),
         (Method::DELETE, "/session/{sessionId}", Route::DeleteSession),

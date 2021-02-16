@@ -57,6 +57,7 @@ treeherder:
         'l10n-bump': 'L10n Bumper'
         'M': 'Mochitests'
         'M-1proc': 'Mochitests without e10s'
+        'M-a11y-checks': 'Mochitests with accessibility checks enabled'
         'M-fis': 'Mochitests with fission enabled'
         'M-fis-xorig': 'Mochitests with cross-origin and fission enabled'
         'M-gli': 'Mochitests with WebGL over IPC'
@@ -114,6 +115,9 @@ treeherder:
         'X-1proc': 'Xpcshell tests, without e10s'
         'X-fis': 'Xpcshell tests with fission enabled'
         'X-spi-nw': 'Xpcshell tests with networking on socket process'
+        'X-f': 'Xpcshell tests that fail on a given config'
+        'X-f-fis': 'Xpcshell tests that fail on a given config w/fission'
+        'X-f-spi-nw': 'Xpcshell tests that fail on a given config w/socket process'
         'L10n': 'Localised Repacks'
         'L10n-Rpk': 'Localized Repackaged Repacks'
         'BM': 'Beetmover'
@@ -174,6 +178,7 @@ treeherder:
         'GhS': 'GitHub Synchronization'
         'perftest': 'Performance tests'
         'perftest-http3': 'Performance tests with HTTP/3'
+        'fuzzing': 'Fuzzing checks'
 
 index:
     products:
@@ -209,7 +214,6 @@ try:
             - 'sm-msan-linux64'
             - 'sm-fuzzing-linux64'
             - 'sm-rust-bindings-linux64'
-            - 'sm-nowarp-linux64'
         'win32':
             - 'sm-plain-win32'
             - 'sm-compacting-win32'
@@ -568,14 +572,6 @@ workers:
                 by-level:
                     '3': 'gecko-3-b-osx-1015'
                     default: 'gecko-1-b-osx-1015'
-        t-osx-1014-pgo:
-            provisioner: releng-hardware
-            implementation: generic-worker
-            os: macosx
-            worker-type:
-                by-level:
-                    '3': 'gecko-{level}-t-osx-1014'
-                    default: 'gecko-t-osx-1014'
         t-win10-64(|-gpu-s|-source):
             provisioner: '{trust-domain}-t'
             implementation: generic-worker

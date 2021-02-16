@@ -48,6 +48,10 @@ class GeckoTextMarker final {
 
   bool operator<(const GeckoTextMarker& aPoint) const;
 
+  bool operator==(const GeckoTextMarker& aPoint) const {
+    return mContainer == aPoint.mContainer && mOffset == aPoint.mOffset;
+  }
+
   AccessibleOrProxy mContainer;
   int32_t mOffset;
 
@@ -59,8 +63,6 @@ class GeckoTextMarker final {
   }
 
  private:
-  uint32_t CharacterCount(const AccessibleOrProxy& aContainer);
-
   bool IsEditableRoot();
 };
 
@@ -69,6 +71,8 @@ class GeckoTextMarkerRange final {
   GeckoTextMarkerRange(const GeckoTextMarker& aStart,
                        const GeckoTextMarker& aEnd)
       : mStart(aStart), mEnd(aEnd) {}
+
+  GeckoTextMarkerRange() {}
 
   GeckoTextMarkerRange(AccessibleOrProxy aDoc,
                        AXTextMarkerRangeRef aTextMarkerRange);
@@ -100,6 +104,13 @@ class GeckoTextMarkerRange final {
    * Set the current range as the DOM selection.
    */
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void Select() const;
+
+  /**
+   * Crops the range if it overlaps the given accessible element boundaries.
+   * Return true if successfully cropped. false if the range does not intersect
+   * with the container.
+   */
+  bool Crop(const AccessibleOrProxy& aContainer);
 
   GeckoTextMarker mStart;
   GeckoTextMarker mEnd;

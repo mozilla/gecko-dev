@@ -499,8 +499,17 @@ OSPreferences::GetDateTimePattern(int32_t aDateFormatStyle,
     return NS_OK;
   }
 
+  // If the locale is not specified, default to first regional prefs locale
+  const nsACString* locale = &aLocale;
+  AutoTArray<nsCString, 10> rpLocales;
+  if (aLocale.IsEmpty()) {
+    LocaleService::GetInstance()->GetRegionalPrefsLocales(rpLocales);
+    MOZ_ASSERT(rpLocales.Length() > 0);
+    locale = &rpLocales[0];
+  }
+
   // Create a cache key from the locale + style options
-  nsAutoCString key(aLocale);
+  nsAutoCString key(*locale);
   key.Append(':');
   key.AppendInt(aDateFormatStyle);
   key.Append(':');
@@ -512,9 +521,9 @@ OSPreferences::GetDateTimePattern(int32_t aDateFormatStyle,
     return NS_OK;
   }
 
-  if (!OverrideDateTimePattern(dateStyle, timeStyle, aLocale, pattern)) {
-    if (!ReadDateTimePattern(dateStyle, timeStyle, aLocale, pattern)) {
-      if (!GetDateTimePatternForStyle(dateStyle, timeStyle, aLocale, pattern)) {
+  if (!OverrideDateTimePattern(dateStyle, timeStyle, *locale, pattern)) {
+    if (!ReadDateTimePattern(dateStyle, timeStyle, *locale, pattern)) {
+      if (!GetDateTimePatternForStyle(dateStyle, timeStyle, *locale, pattern)) {
         return NS_ERROR_FAILURE;
       }
     }
@@ -531,4 +540,52 @@ OSPreferences::GetDateTimePattern(int32_t aDateFormatStyle,
 
   aRetVal = pattern;
   return NS_OK;
+}
+
+void OSPreferences::OverrideSkeletonHourCycle(bool aIs24Hour,
+                                              nsAutoCString& aSkeleton) {
+  if (aIs24Hour) {
+    // If aSkeleton contains 'h' or 'K', replace with 'H' or 'k' respectively,
+    // and delete 'a' if present.
+    if (aSkeleton.FindChar('h') == -1 && aSkeleton.FindChar('K') == -1) {
+      return;
+    }
+    for (int32_t i = 0; i < int32_t(aSkeleton.Length()); ++i) {
+      switch (aSkeleton[i]) {
+        case 'a':
+          aSkeleton.Cut(i, 1);
+          --i;
+          break;
+        case 'h':
+          aSkeleton.SetCharAt('H', i);
+          break;
+        case 'K':
+          aSkeleton.SetCharAt('k', i);
+          break;
+      }
+    }
+  } else {
+    // If skeleton contains 'H' or 'k', replace with 'h' or 'K' respectively,
+    // and add 'a' unless already present.
+    if (aSkeleton.FindChar('H') == -1 && aSkeleton.FindChar('k') == -1) {
+      return;
+    }
+    bool foundA = false;
+    for (size_t i = 0; i < aSkeleton.Length(); ++i) {
+      switch (aSkeleton[i]) {
+        case 'a':
+          foundA = true;
+          break;
+        case 'H':
+          aSkeleton.SetCharAt('h', i);
+          break;
+        case 'k':
+          aSkeleton.SetCharAt('K', i);
+          break;
+      }
+    }
+    if (!foundA) {
+      aSkeleton.Append(char16_t('a'));
+    }
+  }
 }

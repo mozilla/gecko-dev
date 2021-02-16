@@ -22,6 +22,7 @@
 #include "AudioDestinationNode.h"
 #include "mozilla/dom/MessageChannel.h"
 #include "mozilla/dom/MessagePort.h"
+#include "mozilla/ScopeExit.h"
 #include "nsReadableUtils.h"
 #include "mozilla/Span.h"
 #include "PlayingRefChangeHandler.h"
@@ -95,7 +96,7 @@ class WorkletNodeEngine final : public AudioNodeEngine {
                             Span<const AudioBlock> aInput,
                             Span<AudioBlock> aOutput, bool* aFinished) override;
 
-  void NotifyForcedShutdown() override { ReleaseJSResources(); }
+  void OnGraphThreadDone() override { ReleaseJSResources(); }
 
   bool IsActive() const override { return mKeepEngineActive; }
 

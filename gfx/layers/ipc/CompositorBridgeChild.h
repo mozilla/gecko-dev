@@ -21,7 +21,6 @@
 #include "nsHashKeys.h"        // for nsUint64HashKey
 #include "nsISupportsImpl.h"   // for NS_INLINE_DECL_REFCOUNTING
 #include "nsIWeakReferenceUtils.h"
-#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 
 #include <unordered_map>
 
@@ -51,6 +50,7 @@ class ClientLayerManager;
 class CompositorBridgeParent;
 class CompositorManagerChild;
 class CompositorOptions;
+class LayerManager;
 class TextureClient;
 class TextureClientPool;
 struct FrameMetrics;
@@ -228,7 +228,8 @@ class CompositorBridgeChild final : public PCompositorBridgeChild,
   void WillEndTransaction();
 
   PWebRenderBridgeChild* AllocPWebRenderBridgeChild(
-      const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize&);
+      const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize&,
+      const WindowKind&);
   bool DeallocPWebRenderBridgeChild(PWebRenderBridgeChild* aActor);
 
   webgpu::PWebGPUChild* AllocPWebGPUChild();

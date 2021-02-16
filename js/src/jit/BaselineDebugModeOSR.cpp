@@ -9,6 +9,7 @@
 #include "jit/BaselineFrame.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
+#include "jit/Invalidation.h"
 #include "jit/Ion.h"
 #include "jit/JitcodeMap.h"
 #include "jit/JitFrames.h"
@@ -16,10 +17,10 @@
 #include "jit/JSJitFrameIter.h"
 #include "jit/PerfSpewer.h"
 
+#include "jit/JitScript-inl.h"
 #include "jit/JSJitFrameIter-inl.h"
 #include "jit/MacroAssembler-inl.h"
 #include "vm/Stack-inl.h"
-#include "vm/TypeInference-inl.h"
 
 using namespace js;
 using namespace js::jit;
@@ -179,8 +180,6 @@ static const char* RetAddrEntryKindToString(RetAddrEntry::Kind kind) {
   switch (kind) {
     case RetAddrEntry::Kind::IC:
       return "IC";
-    case RetAddrEntry::Kind::PrologueIC:
-      return "prologue IC";
     case RetAddrEntry::Kind::CallVM:
       return "callVM";
     case RetAddrEntry::Kind::StackCheck:
@@ -354,7 +353,6 @@ static void PatchBaselineFramesForDebugMode(
                                    pc);
             break;
           }
-          case RetAddrEntry::Kind::PrologueIC:
           case RetAddrEntry::Kind::NonOpCallVM:
           case RetAddrEntry::Kind::Invalid:
             // These cannot trigger BaselineDebugModeOSR.
@@ -466,7 +464,7 @@ static bool InvalidateScriptsInZone(JSContext* cx, Zone* zone,
 
   // No need to cancel off-thread Ion compiles again, we already did it
   // above.
-  Invalidate(zone->types, cx->runtime()->defaultFreeOp(), invalid,
+  Invalidate(cx, invalid,
              /* resetUses = */ true, /* cancelOffThread = */ false);
   return true;
 }

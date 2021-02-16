@@ -387,13 +387,14 @@ static void PaintMenulistArrowButton(nsIFrame* aFrame, DrawTarget* aDrawTarget,
   const int32_t arrowSize = 8;
   int32_t arrowPolygonX[] = {-4, -2, 0};
   int32_t arrowPolygonY[] = {-1, 1, -1};
-  const int32_t arrowNumPoints = sizeof(arrowPolygonX) / sizeof(int32_t);
+  const int32_t arrowNumPoints = ArrayLength(arrowPolygonX);
 
-  PaintArrow(
-      aDrawTarget, aRect, arrowPolygonX, arrowPolygonY, arrowNumPoints,
-      arrowSize,
-      isPressed ? sActiveColor : isHovered ? sBorderHoverColor : sBorderColor,
-      aDpi);
+  PaintArrow(aDrawTarget, aRect, arrowPolygonX, arrowPolygonY, arrowNumPoints,
+             arrowSize,
+             isPressed   ? sActiveColor
+             : isHovered ? sBorderHoverColor
+                         : sBorderColor,
+             aDpi);
 }
 
 static void PaintSpinnerButton(DrawTarget* aDrawTarget, const Rect& aRect,
@@ -407,7 +408,7 @@ static void PaintSpinnerButton(DrawTarget* aDrawTarget, const Rect& aRect,
   const int32_t arrowSize = 8;
   int32_t arrowPolygonX[] = {0, 2, 4};
   int32_t arrowPolygonY[] = {-3, -1, -3};
-  const int32_t arrowNumPoints = sizeof(arrowPolygonX) / sizeof(int32_t);
+  const int32_t arrowNumPoints = ArrayLength(arrowPolygonX);
 
   if (aAppearance == StyleAppearance::SpinnerUpbutton) {
     for (int32_t i = 0; i < arrowNumPoints; i++) {
@@ -415,11 +416,12 @@ static void PaintSpinnerButton(DrawTarget* aDrawTarget, const Rect& aRect,
     }
   }
 
-  PaintArrow(
-      aDrawTarget, aRect, arrowPolygonX, arrowPolygonY, arrowNumPoints,
-      arrowSize,
-      isPressed ? sActiveColor : isHovered ? sBorderHoverColor : sBorderColor,
-      aDpi);
+  PaintArrow(aDrawTarget, aRect, arrowPolygonX, arrowPolygonY, arrowNumPoints,
+             arrowSize,
+             isPressed   ? sActiveColor
+             : isHovered ? sBorderHoverColor
+                         : sBorderColor,
+             aDpi);
 }
 
 static void PaintRangeInputBackground(DrawTarget* aDrawTarget,
@@ -497,15 +499,14 @@ static void PaintScrollbarbutton(DrawTarget* aDrawTarget,
   bool isHovered = aState.HasState(NS_EVENT_STATE_HOVER);
 
   aDrawTarget->FillRect(
-      aRect, ColorPattern(
-                 ToDeviceColor(isActive ? sScrollbarButtonActiveColor
+      aRect, ColorPattern(ToDeviceColor(isActive ? sScrollbarButtonActiveColor
                                         : isHovered ? sScrollbarButtonHoverColor
                                                     : sScrollbarColor)));
 
   // Start with Up arrow.
   int32_t arrowPolygonX[] = {3, 0, -3};
   int32_t arrowPolygonY[] = {2, -1, 2};
-  const int32_t arrowNumPoints = sizeof(arrowPolygonX) / sizeof(int32_t);
+  const int32_t arrowNumPoints = ArrayLength(arrowPolygonX);
   const int32_t arrowSize = 14;
 
   switch (aAppearance) {
@@ -536,9 +537,9 @@ static void PaintScrollbarbutton(DrawTarget* aDrawTarget,
 
   PaintArrow(aDrawTarget, aRect, arrowPolygonX, arrowPolygonY, arrowNumPoints,
              arrowSize,
-             isActive
-                 ? sScrollbarArrowColorActive
-                 : isHovered ? sScrollbarArrowColorHover : sScrollbarArrowColor,
+             isActive    ? sScrollbarArrowColorActive
+             : isHovered ? sScrollbarArrowColorHover
+                         : sScrollbarArrowColor,
              aDpi);
 
   RefPtr<PathBuilder> builder = aDrawTarget->CreatePathBuilder();

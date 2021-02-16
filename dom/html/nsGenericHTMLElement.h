@@ -13,12 +13,10 @@
 #include "nsIFormControl.h"
 #include "nsGkAtoms.h"
 #include "nsContentCreatorFunctions.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/ValidityState.h"
-#include "mozilla/dom/Element.h"
 
 class nsDOMTokenList;
 class nsIFormControlFrame;
@@ -28,6 +26,7 @@ class nsIURI;
 struct nsSize;
 
 namespace mozilla {
+class ErrorResult;
 class EventChainPostVisitor;
 class EventChainPreVisitor;
 class EventChainVisitor;
@@ -280,8 +279,8 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    */
   virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
                                int32_t* aTabIndex);
-  virtual bool PerformAccesskey(bool aKeyCausesActivation,
-                                bool aIsTrustedEvent) override;
+  MOZ_CAN_RUN_SCRIPT virtual bool PerformAccesskey(
+      bool aKeyCausesActivation, bool aIsTrustedEvent) override;
 
   /**
    * Check if an event for an anchor can be handled
@@ -576,12 +575,6 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    */
   static void MapScrollingAttributeInto(const nsMappedAttributes* aAttributes,
                                         mozilla::MappedDeclarations&);
-  /**
-   * Get the presentation context for this content node.
-   * @return the presentation context
-   */
-  enum PresContextFor { eForComposedDoc, eForUncomposedDoc };
-  nsPresContext* GetPresContext(PresContextFor aFor);
 
   // Form Helper Routines
   /**

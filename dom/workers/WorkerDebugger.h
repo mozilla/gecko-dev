@@ -8,9 +8,12 @@
 #define mozilla_dom_workers_WorkerDebugger_h
 
 #include "mozilla/PerformanceTypes.h"
-#include "mozilla/dom/DOMTypes.h"
-#include "mozilla/dom/WorkerCommon.h"
+#include "nsCOMPtr.h"
 #include "nsIWorkerDebugger.h"
+
+class mozIDOMWindow;
+class nsIPrincipal;
+class nsPIDOMWindowInner;
 
 namespace mozilla {
 namespace dom {
@@ -54,6 +57,8 @@ class WorkerDebugger : public nsIWorkerDebugger {
   void ReportErrorToDebuggerOnMainThread(const nsAString& aFilename,
                                          uint32_t aLineno,
                                          const nsAString& aMessage);
+
+  nsCOMPtr<nsPIDOMWindowInner> DedicatedWorkerWindow();
 };
 
 }  // namespace dom

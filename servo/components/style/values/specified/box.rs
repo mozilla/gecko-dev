@@ -40,7 +40,7 @@ fn flexbox_enabled() -> bool {
         return servo_config::prefs::pref_map()
             .get("layout.flexbox.enabled")
             .as_bool()
-            .unwrap_or(false)
+            .unwrap_or(false);
     }
 
     true
@@ -108,12 +108,6 @@ pub enum DisplayInside {
     WebkitBox,
     #[cfg(feature = "gecko")]
     MozBox,
-    #[cfg(feature = "gecko")]
-    MozGrid,
-    #[cfg(feature = "gecko")]
-    MozGridGroup,
-    #[cfg(feature = "gecko")]
-    MozGridLine,
     #[cfg(feature = "gecko")]
     MozStack,
     #[cfg(feature = "gecko")]
@@ -231,12 +225,6 @@ impl Display {
     pub const MozBox: Self = Self::new(DisplayOutside::Block, DisplayInside::MozBox);
     #[cfg(feature = "gecko")]
     pub const MozInlineBox: Self = Self::new(DisplayOutside::Inline, DisplayInside::MozBox);
-    #[cfg(feature = "gecko")]
-    pub const MozGrid: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGrid);
-    #[cfg(feature = "gecko")]
-    pub const MozGridGroup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
-    #[cfg(feature = "gecko")]
-    pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
     #[cfg(feature = "gecko")]
     pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
     #[cfg(feature = "gecko")]
@@ -615,12 +603,6 @@ impl Parse for Display {
             "-moz-box" if moz_box_display_values_enabled(context) => Display::MozBox,
             #[cfg(feature = "gecko")]
             "-moz-inline-box" if moz_box_display_values_enabled(context) => Display::MozInlineBox,
-            #[cfg(feature = "gecko")]
-            "-moz-grid" if moz_display_values_enabled(context) => Display::MozGrid,
-            #[cfg(feature = "gecko")]
-            "-moz-grid-group" if moz_display_values_enabled(context) => Display::MozGridGroup,
-            #[cfg(feature = "gecko")]
-            "-moz-grid-line" if moz_display_values_enabled(context) => Display::MozGridLine,
             #[cfg(feature = "gecko")]
             "-moz-stack" if moz_display_values_enabled(context) => Display::MozStack,
             #[cfg(feature = "gecko")]
@@ -1189,7 +1171,7 @@ bitflags! {
     /// Values for the `touch-action` property.
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
     /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
+    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y,pinch-zoom")]
     #[repr(C)]
     pub struct TouchAction: u8 {
         /// `none` variant
@@ -1202,6 +1184,8 @@ bitflags! {
         const PAN_Y = 1 << 3;
         /// `manipulation` variant
         const MANIPULATION = 1 << 4;
+        /// `pinch-zoom` variant
+        const PINCH_ZOOM = 1 << 5;
     }
 }
 
@@ -1218,43 +1202,70 @@ impl ToCss for TouchAction {
     where
         W: Write,
     {
-        match *self {
-            TouchAction::NONE => dest.write_str("none"),
-            TouchAction::AUTO => dest.write_str("auto"),
-            TouchAction::MANIPULATION => dest.write_str("manipulation"),
-            _ if self.contains(TouchAction::PAN_X | TouchAction::PAN_Y) => {
-                dest.write_str("pan-x pan-y")
-            },
-            _ if self.contains(TouchAction::PAN_X) => dest.write_str("pan-x"),
-            _ if self.contains(TouchAction::PAN_Y) => dest.write_str("pan-y"),
-            _ => panic!("invalid touch-action value"),
+        if self.contains(TouchAction::AUTO) {
+            return dest.write_str("auto");
         }
+        if self.contains(TouchAction::NONE) {
+            return dest.write_str("none");
+        }
+        if self.contains(TouchAction::MANIPULATION) {
+            return dest.write_str("manipulation");
+        }
+
+        let mut has_any = false;
+        macro_rules! maybe_write_value {
+            ($ident:path => $str:expr) => {
+                if self.contains($ident) {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    has_any = true;
+                    dest.write_str($str)?;
+                }
+            };
+        }
+        maybe_write_value!(TouchAction::PAN_X => "pan-x");
+        maybe_write_value!(TouchAction::PAN_Y => "pan-y");
+        maybe_write_value!(TouchAction::PINCH_ZOOM => "pinch-zoom");
+
+        debug_assert!(has_any);
+        Ok(())
     }
 }
 
 impl Parse for TouchAction {
+    /// auto | none | [ pan-x || pan-y || pinch-zoom ] | manipulation
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<TouchAction, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(TouchAction::AUTO),
-            "none" => Ok(TouchAction::NONE),
-            "manipulation" => Ok(TouchAction::MANIPULATION),
-            "pan-x" => {
-                if input.try_parse(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
-                } else {
-                    Ok(TouchAction::PAN_X)
-                }
-            },
-            "pan-y" => {
-                if input.try_parse(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
-                } else {
-                    Ok(TouchAction::PAN_Y)
-                }
-            },
+        let mut result = TouchAction::empty();
+        while let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
+            let flag = match_ignore_ascii_case! { &name,
+                "pan-x" => Some(TouchAction::PAN_X),
+                "pan-y" => Some(TouchAction::PAN_Y),
+                "pinch-zoom" => Some(TouchAction::PINCH_ZOOM),
+                "none" if result.is_empty() => return Ok(TouchAction::NONE),
+                "manipulation" if result.is_empty() => return Ok(TouchAction::MANIPULATION),
+                "auto" if result.is_empty() => return Ok(TouchAction::AUTO),
+                _ => None
+            };
+
+            let flag = match flag {
+                Some(flag) if !result.contains(flag) => flag,
+                _ => {
+                    return Err(
+                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
+                    );
+                },
+            };
+            result.insert(flag);
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }

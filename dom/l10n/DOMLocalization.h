@@ -10,14 +10,17 @@
 #include "nsXULPrototypeDocument.h"
 #include "mozilla/intl/Localization.h"
 #include "mozilla/dom/DOMLocalizationBinding.h"
-#include "mozilla/dom/Element.h"
 #include "mozilla/dom/L10nMutations.h"
 #include "mozilla/dom/L10nOverlaysBinding.h"
 #include "mozilla/dom/LocalizationBinding.h"
 
+// XXX Avoid including this here by moving function bodies to the cpp file
+#include "nsINode.h"
+
 namespace mozilla {
 namespace dom {
 
+class Element;
 class L10nMutations;
 
 class DOMLocalization : public intl::Localization {

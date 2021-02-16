@@ -3,6 +3,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import, print_function
 import ipaddr
 import socket
 import hmac
@@ -848,8 +849,9 @@ if __name__ == "__main__":
         lines = f.readlines()
         lines.pop(0)  # Remove BEGIN CERTIFICATE
         lines.pop()  # Remove END CERTIFICATE
-        lines = map(string.strip, lines)
-        certbase64 = string.join(lines, "")
+        # pylint --py3k: W1636 W1649
+        lines = list(map(str.strip, lines))
+        certbase64 = "".join(lines)  # pylint --py3k: W1649
 
         turns_url = ', "turns:' + hostname + '"'
         cert_prop = ', "cert":"' + certbase64 + '"'

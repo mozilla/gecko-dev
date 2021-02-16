@@ -169,7 +169,7 @@ impl Rectangle {
             true,
         );
         transaction.set_root_pipeline(pipeline_id);
-        transaction.generate_frame();
+        transaction.generate_frame(0);
         self.api.send_transaction(self.document_id, transaction);
         rx.recv().unwrap();
         let renderer = self.renderer.as_mut().unwrap();
@@ -197,7 +197,7 @@ impl api::RenderNotifier for Notifier {
         Box::new(Clone::clone(self))
     }
 
-    fn wake_up(&self) {
+    fn wake_up(&self, _composite_needed: bool) {
         self.tx.send(()).unwrap();
         let _ = self.events_proxy.wakeup();
     }
@@ -205,8 +205,8 @@ impl api::RenderNotifier for Notifier {
     fn new_frame_ready(&self,
                        _: api::DocumentId,
                        _: bool,
-                       _: bool,
+                       composite_needed: bool,
                        _: Option<u64>) {
-        self.wake_up();
+        self.wake_up(composite_needed);
     }
 }

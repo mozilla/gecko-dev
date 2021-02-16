@@ -13,12 +13,9 @@
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
-#include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CompactPair.h"
-#include "mozilla/Types.h"
-#include "mozilla/Variant.h"
 
 namespace mozilla {
 
@@ -49,53 +46,28 @@ struct UnusedZero;
 template <typename V, typename E, PackingStrategy Strategy>
 class ResultImplementation;
 
-template <typename V, typename E>
-class ResultImplementation<V, E, PackingStrategy::Variant> {
-  mozilla::Variant<V, E> mStorage;
+// The purpose of AlignedStorageOrEmpty is to make an empty class look like
+// std::aligned_storage_t for the purposes of the PackingStrategy::NullIsOk
+// specializations of ResultImplementation below. We can't use
+// std::aligned_storage_t itself with an empty class, since it would no longer
+// be empty.
+template <typename V, bool IsEmpty = std::is_empty_v<V>>
+struct AlignedStorageOrEmpty;
 
- public:
-  ResultImplementation(ResultImplementation&&) = default;
-  ResultImplementation(const ResultImplementation&) = delete;
-  ResultImplementation& operator=(const ResultImplementation&) = delete;
-  ResultImplementation& operator=(ResultImplementation&&) = default;
-
-  explicit ResultImplementation(V&& aValue)
-      : mStorage(std::forward<V>(aValue)) {}
-  explicit ResultImplementation(const V& aValue) : mStorage(aValue) {}
-  template <typename... Args>
-  explicit ResultImplementation(std::in_place_t, Args&&... aArgs)
-      : mStorage(VariantType<V>{}, std::forward<Args>(aArgs)...) {}
-
-  explicit ResultImplementation(const E& aErrorValue) : mStorage(aErrorValue) {}
-  explicit ResultImplementation(E&& aErrorValue)
-      : mStorage(std::forward<E>(aErrorValue)) {}
-
-  bool isOk() const { return mStorage.template is<V>(); }
-
-  // The callers of these functions will assert isOk() has the proper value, so
-  // these functions (in all ResultImplementation specializations) don't need
-  // to do so.
-  V unwrap() { return std::move(mStorage.template as<V>()); }
-  const V& inspect() const { return mStorage.template as<V>(); }
-
-  E unwrapErr() { return std::move(mStorage.template as<E>()); }
-  const E& inspectErr() const { return mStorage.template as<E>(); }
-};
-
-// The purpose of EmptyWrapper is to make an empty class look like
-// AlignedStorage2 for the purposes of the PackingStrategy::NullIsOk
-// specializations of ResultImplementation below. We can't use AlignedStorage2
-// itself with an empty class, since it would no longer be empty, and we want to
-// avoid changing AlignedStorage2 just for this purpose.
 template <typename V>
-struct EmptyWrapper : V {
-  const V* addr() const { return this; }
-  V* addr() { return this; }
+struct AlignedStorageOrEmpty<V, true> : V {
+  constexpr V* addr() { return this; }
+  constexpr const V* addr() const { return this; }
 };
 
 template <typename V>
-using AlignedStorageOrEmpty =
-    std::conditional_t<std::is_empty_v<V>, EmptyWrapper<V>, AlignedStorage2<V>>;
+struct AlignedStorageOrEmpty<V, false> {
+  V* addr() { return reinterpret_cast<V*>(&mData); }
+  const V* addr() const { return reinterpret_cast<const V*>(&mData); }
+
+ private:
+  std::aligned_storage_t<sizeof(V), alignof(V)> mData;
+};
 
 template <typename V, typename E>
 class ResultImplementationNullIsOkBase {
@@ -171,7 +143,7 @@ class ResultImplementationNullIsOkBase {
   const V& inspect() const { return *mValue.first().addr(); }
   V unwrap() { return std::move(*mValue.first().addr()); }
 
-  const E& inspectErr() const {
+  decltype(auto) inspectErr() const {
     return UnusedZero<E>::Inspect(mValue.second());
   }
   E unwrapErr() { return UnusedZero<E>::Unwrap(mValue.second()); }
@@ -349,6 +321,34 @@ struct UnusedZero {
   static const bool value = false;
 };
 
+// This template can be used as a helper for specializing UnusedZero for scoped
+// enum types which never use 0 as an error value, e.g.
+//
+// namespace mozilla::detail {
+//
+// template <>
+// struct UnusedZero<MyEnumType> : UnusedZeroEnum<MyEnumType> {};
+//
+// }  // namespace mozilla::detail
+//
+template <typename T>
+struct UnusedZeroEnum {
+  using StorageType = std::underlying_type_t<T>;
+
+  static constexpr bool value = true;
+  static constexpr StorageType nullValue = 0;
+
+  static constexpr T Inspect(const StorageType& aValue) {
+    return static_cast<T>(aValue);
+  }
+  static constexpr T Unwrap(StorageType aValue) {
+    return static_cast<T>(aValue);
+  }
+  static constexpr StorageType Store(T aValue) {
+    return static_cast<StorageType>(aValue);
+  }
+};
+
 // A bit of help figuring out which of the above specializations to use.
 //
 // We begin by safely assuming types don't have a spare bit, unless they are
@@ -379,13 +379,12 @@ struct SelectResultImpl {
   static const PackingStrategy value =
       (HasFreeLSB<V>::value && HasFreeLSB<E>::value)
           ? PackingStrategy::LowBitTagIsError
-          : (UnusedZero<E>::value && sizeof(E) <= sizeof(uintptr_t))
-                ? PackingStrategy::NullIsOk
-                : (std::is_default_constructible_v<V> &&
-                   std::is_default_constructible_v<E> &&
-                   IsPackableVariant<V, E>::value)
-                      ? PackingStrategy::PackedVariant
-                      : PackingStrategy::Variant;
+      : (UnusedZero<E>::value && sizeof(E) <= sizeof(uintptr_t))
+          ? PackingStrategy::NullIsOk
+      : (std::is_default_constructible_v<V> &&
+         std::is_default_constructible_v<E> && IsPackableVariant<V, E>::value)
+          ? PackingStrategy::PackedVariant
+          : PackingStrategy::Variant;
 
   using Type = ResultImplementation<V, E, value>;
 };

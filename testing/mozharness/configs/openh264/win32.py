@@ -1,3 +1,8 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import
 import sys
 import os
 
@@ -15,7 +20,9 @@ config = {
         "gittool.py": [sys.executable, os.path.join(external_tools_path, "gittool.py")],
         "python2.7": "c:\\mozilla-build\\python\\python.exe",
     },
-    "dump_syms_binary": "dump_syms.exe",
+    "dump_syms_binary": "{}/dump_syms/dump_syms.exe".format(
+        os.environ["MOZ_FETCHES_DIR"]
+    ),
     "arch": "x86",
     "use_yasm": True,
     "partial_env": {

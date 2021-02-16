@@ -11,6 +11,7 @@
 
 #include "nsCharSeparatedTokenizer.h"
 #include "nsContentUtils.h"
+#include "nsIHttpChannel.h"
 #include "nsIHttpHeaderVisitor.h"
 #include "nsNetUtil.h"
 #include "nsReadableUtils.h"
@@ -519,9 +520,8 @@ already_AddRefed<InternalHeaders> InternalHeaders::CORSHeaders(
 
   bool allowAllHeaders = false;
   AutoTArray<nsCString, 5> exposeNamesArray;
-  nsCCharSeparatedTokenizer exposeTokens(acExposedNames, ',');
-  while (exposeTokens.hasMoreTokens()) {
-    const nsDependentCSubstring& token = exposeTokens.nextToken();
+  for (const nsACString& token :
+       nsCCharSeparatedTokenizer(acExposedNames, ',').ToRange()) {
     if (token.IsEmpty()) {
       continue;
     }

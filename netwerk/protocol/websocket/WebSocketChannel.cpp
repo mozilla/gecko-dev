@@ -40,6 +40,7 @@
 #include "nsIObserverService.h"
 #include "nsCharSeparatedTokenizer.h"
 
+#include "nsComponentManagerUtils.h"
 #include "nsNetCID.h"
 #include "nsServiceManagerUtils.h"
 #include "nsCRT.h"
@@ -51,6 +52,7 @@
 #include "nsProxyRelease.h"
 #include "nsNetUtil.h"
 #include "nsINode.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticMutex.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
@@ -639,10 +641,10 @@ class CallOnServerClose final : public Runnable {
 // CallAcknowledge
 //-----------------------------------------------------------------------------
 
-class CallAcknowledge final : public CancelableRunnable {
+class CallAcknowledge final : public Runnable {
  public:
   CallAcknowledge(WebSocketChannel* aChannel, uint32_t aSize)
-      : CancelableRunnable("net::CallAcknowledge"),
+      : Runnable("net::CallAcknowledge"),
         mChannel(aChannel),
         mListenerMT(mChannel->mListenerMT),
         mSize(aSize) {}
@@ -853,7 +855,10 @@ class PMCECompression {
 
       uint32_t inflated = kBufferLen - mInflater.avail_out;
       if (inflated > 0) {
-        _retval.Append(reinterpret_cast<char*>(mBuffer), inflated);
+        if (!_retval.Append(reinterpret_cast<char*>(mBuffer), inflated,
+                            fallible)) {
+          return NS_ERROR_OUT_OF_MEMORY;
+        }
       }
 
       mInflater.avail_out = kBufferLen;
@@ -2635,16 +2640,16 @@ void ProcessServerWebSocketExtensions(const nsACString& aExtensions,
     }
   }
 
-  nsCCharSeparatedTokenizer extList(aExtensions, ',');
-  while (extList.hasMoreTokens()) {
+  for (const auto& ext :
+       nsCCharSeparatedTokenizer(aExtensions, ',').ToRange()) {
     bool clientNoContextTakeover;
     bool serverNoContextTakeover;
     int32_t clientMaxWindowBits;
     int32_t serverMaxWindowBits;
 
     nsresult rv = ParseWebSocketExtension(
-        extList.nextToken(), eParseServerSide, clientNoContextTakeover,
-        serverNoContextTakeover, clientMaxWindowBits, serverMaxWindowBits);
+        ext, eParseServerSide, clientNoContextTakeover, serverNoContextTakeover,
+        clientMaxWindowBits, serverMaxWindowBits);
     if (NS_FAILED(rv)) {
       // Ignore extensions that we can't parse
       continue;

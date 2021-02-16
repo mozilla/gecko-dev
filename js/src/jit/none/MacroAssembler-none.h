@@ -7,6 +7,8 @@
 #ifndef jit_none_MacroAssembler_none_h
 #define jit_none_MacroAssembler_none_h
 
+#include <iterator>
+
 #include "jit/MoveResolver.h"
 #include "jit/shared/Assembler-shared.h"
 #include "wasm/WasmTypes.h"
@@ -48,8 +50,7 @@ static constexpr Register CallTempReg4{Registers::invalid_reg};
 static constexpr Register CallTempReg5{Registers::invalid_reg};
 static constexpr Register InvalidReg{Registers::invalid_reg};
 static constexpr Register CallTempNonArgRegs[] = {InvalidReg, InvalidReg};
-static const uint32_t NumCallTempNonArgRegs =
-    mozilla::ArrayLength(CallTempNonArgRegs);
+static const uint32_t NumCallTempNonArgRegs = std::size(CallTempNonArgRegs);
 
 static constexpr Register IntArgReg0{Registers::invalid_reg};
 static constexpr Register IntArgReg1{Registers::invalid_reg};
@@ -534,13 +535,13 @@ class MacroAssemblerNone : public Assembler {
     MOZ_CRASH();
   }
   void notBoolean(ValueOperand) { MOZ_CRASH(); }
-  MOZ_MUST_USE Register extractObject(Address, Register) { MOZ_CRASH(); }
-  MOZ_MUST_USE Register extractObject(ValueOperand, Register) { MOZ_CRASH(); }
-  MOZ_MUST_USE Register extractSymbol(ValueOperand, Register) { MOZ_CRASH(); }
-  MOZ_MUST_USE Register extractInt32(ValueOperand, Register) { MOZ_CRASH(); }
-  MOZ_MUST_USE Register extractBoolean(ValueOperand, Register) { MOZ_CRASH(); }
+  [[nodiscard]] Register extractObject(Address, Register) { MOZ_CRASH(); }
+  [[nodiscard]] Register extractObject(ValueOperand, Register) { MOZ_CRASH(); }
+  [[nodiscard]] Register extractSymbol(ValueOperand, Register) { MOZ_CRASH(); }
+  [[nodiscard]] Register extractInt32(ValueOperand, Register) { MOZ_CRASH(); }
+  [[nodiscard]] Register extractBoolean(ValueOperand, Register) { MOZ_CRASH(); }
   template <typename T>
-  MOZ_MUST_USE Register extractTag(T, Register) {
+  [[nodiscard]] Register extractTag(T, Register) {
     MOZ_CRASH();
   }
 
@@ -548,6 +549,9 @@ class MacroAssemblerNone : public Assembler {
     MOZ_CRASH();
   }
   void convertDoubleToInt32(FloatRegister, Register, Label*, bool v = true) {
+    MOZ_CRASH();
+  }
+  void convertDoubleToPtr(FloatRegister, Register, Label*, bool v = true) {
     MOZ_CRASH();
   }
   void convertBoolToInt32(Register, Register) { MOZ_CRASH(); }

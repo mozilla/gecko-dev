@@ -8,7 +8,6 @@
 #define gc_ParallelWork_h
 
 #include "mozilla/Maybe.h"
-#include "mozilla/Variant.h"
 
 #include "gc/GC.h"
 #include "gc/GCParallelTask.h"
@@ -116,7 +115,7 @@ class MOZ_RAII AutoRunParallelWork {
   }
 
   ~AutoRunParallelWork() {
-    MOZ_ASSERT(gHelperThreadLock.ownedByCurrentThread());
+    gHelperThreadLock.assertOwnedByCurrentThread();
 
     for (size_t i = 0; i < tasksStarted; i++) {
       gc->joinTask(*tasks[i], phaseKind, lock);

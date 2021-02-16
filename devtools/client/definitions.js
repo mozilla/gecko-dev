@@ -319,11 +319,7 @@ Tools.memory = {
   tooltip: l10n("memory.tooltip"),
 
   isTargetSupported: function(target) {
-    return (
-      target.getTrait("heapSnapshots") &&
-      !target.isAddon &&
-      !target.isWorkerTarget
-    );
+    return !target.isAddon && !target.isWorkerTarget;
   },
 
   build: function(frame, target) {
@@ -377,10 +373,7 @@ Tools.storage = {
   inMenu: true,
 
   isTargetSupported: function(target) {
-    return (
-      target.isLocalTab ||
-      (target.hasActor("storage") && target.getTrait("storageInspector"))
-    );
+    return target.hasActor("storage");
   },
 
   build: function(iframeWindow, toolbox) {
@@ -581,10 +574,8 @@ function createHighlightButton(highlighterName, id) {
       if (highlighter.isShown()) {
         return highlighter.hide();
       }
-      // Starting with FF63, higlighter's spec accept a null first argument.
-      // Still pass an empty object to fake a domnode front in order to support old
-      // servers.
-      return highlighter.show({});
+
+      return highlighter.show();
     },
     isChecked(toolbox) {
       // if the inspector doesn't exist, then the highlighter has not yet been connected

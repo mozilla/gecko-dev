@@ -16,6 +16,7 @@
 #include "TCPFastOpenLayer.h"
 #include "TunnelUtils.h"
 #include "base/basictypes.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "nsCRT.h"
@@ -54,6 +55,7 @@
 #include "nsStringStream.h"
 #include "nsTransportUtils.h"
 #include "sslerr.h"
+#include "SpeculativeTransaction.h"
 
 //-----------------------------------------------------------------------------
 
@@ -62,11 +64,6 @@ static NS_DEFINE_CID(kMultiplexInputStream, NS_MULTIPLEXINPUTSTREAM_CID);
 // Place a limit on how much non-compliant HTTP can be skipped while
 // looking for a response header
 #define MAX_INVALID_RESPONSE_BODY_SIZE (1024 * 128)
-
-// TODO: These values should be removed when bug 1654332 is landed.
-#define MOCK_SSL_ERROR_ECH_RETRY_WITH_ECH (SSL_ERROR_BASE + 188)
-#define MOCK_SSL_ERROR_ECH_RETRY_WITHOUT_ECH (SSL_ERROR_BASE + 189)
-#define MOCK_SSL_ERROR_ECH_FAILED (SSL_ERROR_BASE + 190)
 
 using namespace mozilla::net;
 
@@ -139,15 +136,19 @@ nsHttpTransaction::nsHttpTransaction()
       mSynchronousRatePaceRequest(false),
       mClassOfService(0),
       mResolvedByTRR(false),
+      mEchConfigUsed(false),
       m0RTTInProgress(false),
       mDoNotTryEarlyData(false),
       mEarlyDataDisposition(EARLY_NONE),
       mFastOpenStatus(TFO_NOT_TRIED),
       mTrafficCategory(HttpTrafficCategory::eInvalid),
       mProxyConnectResponseCode(0),
+      mHTTPSSVCReceivedStage(HTTPSSVC_NOT_USED),
       m421Received(false),
       mDontRetryWithDirectRoute(false),
-      mFastFallbackTriggered(false) {
+      mFastFallbackTriggered(false),
+      mAllRecordsInH3ExcludedListBefore(false),
+      mHttp3BackupTimerCreated(false) {
   this->mSelfAddr.inet = {};
   this->mPeerAddr.inet = {};
   LOG(("Creating nsHttpTransaction @%p\n", this));
@@ -443,7 +444,7 @@ nsresult nsHttpTransaction::Init(
   }
 
   if (gHttpHandler->UseHTTPSRRAsAltSvcEnabled()) {
-    mHTTPSSVCReceivedStage.emplace(HTTPSSVC_NOT_PRESENT);
+    mHTTPSSVCReceivedStage = HTTPSSVC_NOT_PRESENT;
 
     nsCOMPtr<nsIEventTarget> target;
     Unused << gHttpHandler->GetSocketThreadTarget(getter_AddRefs(target));
@@ -462,6 +463,33 @@ nsresult nsHttpTransaction::Init(
     }
   }
   return NS_OK;
+}
+
+static inline void CreateAndStartTimer(nsCOMPtr<nsITimer>& aTimer,
+                                       nsITimerCallback* aCallback,
+                                       uint32_t aTimeout) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  MOZ_ASSERT(!aTimer);
+
+  if (!aTimeout) {
+    return;
+  }
+
+  NS_NewTimerWithCallback(getter_AddRefs(aTimer), aCallback, aTimeout,
+                          nsITimer::TYPE_ONE_SHOT);
+}
+
+void nsHttpTransaction::OnPendingQueueInserted() {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+
+  if (mConnInfo->IsHttp3() && !mResolver) {
+    // Backup timer should only be created once.
+    if (!mHttp3BackupTimerCreated) {
+      CreateAndStartTimer(mHttp3BackupTimer, this,
+                          StaticPrefs::network_http_http3_backup_timer_delay());
+      mHttp3BackupTimerCreated = true;
+    }
+  }
 }
 
 nsresult nsHttpTransaction::AsyncRead(nsIStreamListener* listener,
@@ -549,6 +577,9 @@ void nsHttpTransaction::SetConnection(nsAHttpConnection* conn) {
   {
     MutexAutoLock lock(mLock);
     mConnection = conn;
+    if (mConnection) {
+      mIsHttp3Used = mConnection->Version() == HttpVersion::v3_0;
+    }
   }
 }
 
@@ -557,12 +588,6 @@ void nsHttpTransaction::OnActivated() {
 
   if (mActivated) {
     return;
-  }
-
-  if (mFastFallbackTimer && !m0RTTInProgress) {
-    mFastFallbackTimer->Cancel();
-    mFastFallbackTimer = nullptr;
-    mFastFallbackRecord = nullptr;
   }
 
   if (mTrafficCategory != HttpTrafficCategory::eInvalid) {
@@ -627,6 +652,7 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
       socketTransport->GetSelfAddr(&mSelfAddr);
       socketTransport->GetPeerAddr(&mPeerAddr);
       socketTransport->ResolvedByTRR(&mResolvedByTRR);
+      socketTransport->GetEchConfigUsed(&mEchConfigUsed);
     }
   }
 
@@ -785,9 +811,16 @@ nsresult nsHttpTransaction::ReadSegments(nsAHttpSegmentReader* reader,
     return mStatus;
   }
 
+  if (!m0RTTInProgress) {
+    MaybeCancelFallbackTimer();
+  }
+
   if (!mConnected && !m0RTTInProgress) {
     mConnected = true;
-    mConnection->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
+    nsCOMPtr<nsISupports> info;
+    mConnection->GetSecurityInfo(getter_AddRefs(info));
+    MutexAutoLock lock(mLock);
+    mSecurityInfo = std::move(info);
   }
 
   mDeferredSendProgress = false;
@@ -1026,7 +1059,10 @@ bool nsHttpTransaction::ProxyConnectFailed() { return mProxyConnectFailed; }
 
 bool nsHttpTransaction::DataSentToChildProcess() { return false; }
 
-nsISupports* nsHttpTransaction::SecurityInfo() { return mSecurityInfo; }
+already_AddRefed<nsISupports> nsHttpTransaction::SecurityInfo() {
+  MutexAutoLock lock(mLock);
+  return do_AddRef(mSecurityInfo);
+}
 
 bool nsHttpTransaction::HasStickyConnection() const {
   return mCaps & NS_HTTP_STICKY_CONNECTION;
@@ -1037,6 +1073,8 @@ bool nsHttpTransaction::ResponseIsComplete() { return mResponseIsComplete; }
 int64_t nsHttpTransaction::GetTransferSize() { return mTransferSize; }
 
 int64_t nsHttpTransaction::GetRequestSize() { return mRequestSize; }
+
+bool nsHttpTransaction::IsHttp3Used() { return mIsHttp3Used; }
 
 bool nsHttpTransaction::Http2Disabled() const {
   return mCaps & NS_HTTP_DISALLOW_SPDY;
@@ -1133,12 +1171,12 @@ bool nsHttpTransaction::PrepareSVCBRecordsForRetry(
 
   // If we already failed to connect with h3, don't select records that supports
   // h3.
-  bool noHttp3 = (mCaps & NS_HTTP_DISALLOW_HTTP3) | mFastFallbackTriggered;
+  bool noHttp3 = mCaps & NS_HTTP_DISALLOW_HTTP3;
 
   nsTArray<RefPtr<nsISVCBRecord>> records;
   Unused << mHTTPSSVCRecord->GetAllRecordsWithEchConfig(
       mCaps & NS_HTTP_DISALLOW_SPDY, noHttp3, &aAllRecordsHaveEchConfig,
-      records);
+      &mAllRecordsInH3ExcludedListBefore, records);
 
   // Note that it's possible that we can't get any usable record here. For
   // example, when http3 connection is failed, we won't select records with
@@ -1167,15 +1205,47 @@ bool nsHttpTransaction::PrepareSVCBRecordsForRetry(
   return !mRecordsForRetry.IsEmpty();
 }
 
+already_AddRefed<nsHttpConnectionInfo>
+nsHttpTransaction::PrepareFastFallbackConnInfo(bool aEchConfigUsed) {
+  MOZ_ASSERT(mHTTPSSVCRecord && mOrigConnInfo);
+
+  RefPtr<nsHttpConnectionInfo> fallbackConnInfo;
+  nsCOMPtr<nsISVCBRecord> fastFallbackRecord;
+  Unused << mHTTPSSVCRecord->GetServiceModeRecord(
+      mCaps & NS_HTTP_DISALLOW_SPDY, true, getter_AddRefs(fastFallbackRecord));
+
+  if (!fastFallbackRecord) {
+    if (aEchConfigUsed) {
+      LOG(
+          ("nsHttpTransaction::PrepareFastFallbackConnInfo [this=%p] no record "
+           "can be used",
+           this));
+      return nullptr;
+    }
+    fallbackConnInfo = mOrigConnInfo;
+  }
+
+  fallbackConnInfo =
+      mOrigConnInfo->CloneAndAdoptHTTPSSVCRecord(fastFallbackRecord);
+  return fallbackConnInfo.forget();
+}
+
 void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
   LOG(("nsHttpTransaction::PrepareConnInfoForRetry [this=%p reason=%" PRIx32
        "]",
        this, static_cast<uint32_t>(aReason)));
   RefPtr<nsHttpConnectionInfo> failedConnInfo = mConnInfo->Clone();
   mConnInfo = nullptr;
+  bool echConfigUsed = gHttpHandler->EchConfigEnabled() &&
+                       !failedConnInfo->GetEchConfig().IsEmpty();
 
-  if (!gHttpHandler->EchConfigEnabled() ||
-      failedConnInfo->GetEchConfig().IsEmpty()) {
+  if (mFastFallbackTriggered) {
+    mFastFallbackTriggered = false;
+    mConnInfo = PrepareFastFallbackConnInfo(echConfigUsed);
+    return;
+  }
+
+  if (!echConfigUsed) {
     LOG((" echConfig is not used, fallback to origin conn info"));
     mOrigConnInfo.swap(mConnInfo);
     return;
@@ -1191,8 +1261,7 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
     }
   });
 
-  if (aReason ==
-      psm::GetXPCOMFromNSSError(MOCK_SSL_ERROR_ECH_RETRY_WITHOUT_ECH)) {
+  if (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_RETRY_WITHOUT_ECH)) {
     LOG((" Got SSL_ERROR_ECH_RETRY_WITHOUT_ECH, use empty echConfig to retry"));
     failedConnInfo->SetEchConfig(EmptyCString());
     failedConnInfo.swap(mConnInfo);
@@ -1200,8 +1269,8 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
     return;
   }
 
-  if (aReason == psm::GetXPCOMFromNSSError(MOCK_SSL_ERROR_ECH_RETRY_WITH_ECH)) {
-    LOG((" Got SSL_ERROR_ECH_RETRY_WITHOUT_ECH, use retry echConfig"));
+  if (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_RETRY_WITH_ECH)) {
+    LOG((" Got SSL_ERROR_ECH_RETRY_WITH_ECH, use retry echConfig"));
     MOZ_ASSERT(mConnection);
 
     nsCOMPtr<nsISupports> secInfo;
@@ -1226,10 +1295,10 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
 
   // Note that we retry the connection not only for SSL_ERROR_ECH_FAILED, but
   // also for all failure cases.
-  if (aReason == psm::GetXPCOMFromNSSError(MOCK_SSL_ERROR_ECH_FAILED) ||
+  if (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_FAILED) ||
       NS_FAILED(aReason)) {
     LOG((" Got SSL_ERROR_ECH_FAILED, try other records"));
-    if (aReason == psm::GetXPCOMFromNSSError(MOCK_SSL_ERROR_ECH_FAILED)) {
+    if (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_FAILED)) {
       id = Telemetry::TRANSACTION_ECH_RETRY_ECH_FAILED_COUNT;
     }
     if (mRecordsForRetry.IsEmpty()) {
@@ -1248,8 +1317,12 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
           return;
         }
       } else {
-        LOG((" No available records to retry"));
-        if (gHttpHandler->FallbackToOriginIfConfigsAreECHAndAllFailed()) {
+        LOG(
+            (" No available records to retry, "
+             "mAllRecordsInH3ExcludedListBefore=%d",
+             mAllRecordsInH3ExcludedListBefore));
+        if (gHttpHandler->FallbackToOriginIfConfigsAreECHAndAllFailed() &&
+            !mAllRecordsInH3ExcludedListBefore) {
           mOrigConnInfo.swap(mConnInfo);
         }
         return;
@@ -1272,6 +1345,28 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
   }
 }
 
+void nsHttpTransaction::MaybeReportFailedSVCDomain(
+    nsresult aReason, nsHttpConnectionInfo* aFailedConnInfo) {
+  if (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_RETRY_WITHOUT_ECH) ||
+      aReason != psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_RETRY_WITH_ECH)) {
+    return;
+  }
+
+  Telemetry::Accumulate(Telemetry::DNS_HTTPSSVC_CONNECTION_FAILED_REASON,
+                        ErrorCodeToFailedReason(aReason));
+
+  nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
+  if (dns) {
+    const nsCString& failedHost = aFailedConnInfo->GetRoutedHost().IsEmpty()
+                                      ? aFailedConnInfo->GetOrigin()
+                                      : aFailedConnInfo->GetRoutedHost();
+    LOG(("add failed domain name [%s] -> [%s] to exclusion list",
+         aFailedConnInfo->GetOrigin().get(), failedHost.get()));
+    Unused << dns->ReportFailedSVCDomainName(aFailedConnInfo->GetOrigin(),
+                                             failedHost);
+  }
+}
+
 void nsHttpTransaction::Close(nsresult reason) {
   LOG(("nsHttpTransaction::Close [this=%p reason=%" PRIx32 "]\n", this,
        static_cast<uint32_t>(reason)));
@@ -1286,11 +1381,7 @@ void nsHttpTransaction::Close(nsresult reason) {
     mDNSRequest = nullptr;
   }
 
-  if (mFastFallbackTimer) {
-    LOG(("  cancel fast fallback timer"));
-    mFastFallbackTimer->Cancel();
-    mFastFallbackTimer = nullptr;
-  }
+  MaybeCancelFallbackTimer();
 
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   if (reason == NS_BINDING_RETARGETED) {
@@ -1441,16 +1532,7 @@ void nsHttpTransaction::Close(nsresult reason) {
                             !reallySentData || connReused)) ||
         restartToFallbackConnInfo) {
       if (restartToFallbackConnInfo) {
-        Telemetry::Accumulate(Telemetry::DNS_HTTPSSVC_CONNECTION_FAILED_REASON,
-                              ErrorCodeToFailedReason(reason));
-        nsCOMPtr<nsIDNSService> dns = do_GetService(NS_DNSSERVICE_CONTRACTID);
-        if (dns) {
-          LOG(("add failed domain name [%s] -> [%s] to exclusion list",
-               mConnInfo->GetOrigin().get(), mConnInfo->GetRoutedHost().get()));
-          Unused << dns->ReportFailedSVCDomainName(mConnInfo->GetOrigin(),
-                                                   mConnInfo->GetRoutedHost());
-        }
-
+        MaybeReportFailedSVCDomain(reason, mConnInfo);
         PrepareConnInfoForRetry(reason);
         mDontRetryWithDirectRoute = true;
         LOG(
@@ -1483,6 +1565,14 @@ void nsHttpTransaction::Close(nsresult reason) {
           }
         }
         return;
+      }
+      // mConnInfo could be set to null in PrepareConnInfoForRetry() when we
+      // can't find an available https rr to retry. We have to set mConnInfo
+      // back to mOrigConnInfo to make sure no crash when mConnInfo being
+      // accessed again.
+      if (!mConnInfo) {
+        mConnInfo.swap(mOrigConnInfo);
+        MOZ_ASSERT(mConnInfo);
       }
     }
   }
@@ -1682,7 +1772,11 @@ nsresult nsHttpTransaction::Restart() {
   if (seekable) seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
 
   // clear old connection state...
-  mSecurityInfo = nullptr;
+  {
+    MutexAutoLock lock(mLock);
+    mSecurityInfo = nullptr;
+  }
+
   if (mConnection) {
     if (!mReuseOnRestart) {
       mConnection->DontReuse();
@@ -2426,12 +2520,19 @@ void nsHttpTransaction::DisableSpdy() {
 void nsHttpTransaction::DisableHttp3() {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  mCaps |= NS_HTTP_DISALLOW_HTTP3;
   // mOrigConnInfo is an indicator that HTTPS RR is used, so don't mess up the
   // connection info.
-  // When HTTPS RR is used, PrepareConnInfoForRetry() will make sure we'll retry
-  // with a non-http3 connection info.
-  if (mConnInfo && !mOrigConnInfo) {
+  // When HTTPS RR is used, PrepareConnInfoForRetry() could select other h3
+  // record to connect.
+  if (mOrigConnInfo) {
+    LOG(("nsHttpTransaction::DisableHttp3 this=%p mOrigConnInfo=%s", this,
+         mOrigConnInfo->HashKey().get()));
+    return;
+  }
+
+  mCaps |= NS_HTTP_DISALLOW_HTTP3;
+  MOZ_ASSERT(mConnInfo);
+  if (mConnInfo) {
     // After CloneAsDirectRoute(), http3 will be disabled.
     RefPtr<nsHttpConnectionInfo> connInfo;
     mConnInfo->CloneAsDirectRoute(getter_AddRefs(connInfo));
@@ -2752,11 +2853,13 @@ nsHttpTransaction::OnOutputStreamReady(nsIAsyncOutputStream* out) {
 }
 
 void nsHttpTransaction::GetNetworkAddresses(NetAddr& self, NetAddr& peer,
-                                            bool& aResolvedByTRR) {
+                                            bool& aResolvedByTRR,
+                                            bool& aEchConfigUsed) {
   MutexAutoLock lock(mLock);
   self = mSelfAddr;
   peer = mPeerAddr;
   aResolvedByTRR = mResolvedByTRR;
+  aEchConfigUsed = mEchConfigUsed;
 }
 
 bool nsHttpTransaction::CanDo0RTT() {
@@ -2781,11 +2884,8 @@ nsresult nsHttpTransaction::Finish0RTT(bool aRestart,
        aAlpnChanged));
   MOZ_ASSERT(m0RTTInProgress);
   m0RTTInProgress = false;
-  if (mFastFallbackTimer) {
-    mFastFallbackTimer->Cancel();
-    mFastFallbackTimer = nullptr;
-    mFastFallbackRecord = nullptr;
-  }
+
+  MaybeCancelFallbackTimer();
 
   if (!aRestart && (mEarlyDataDisposition == EARLY_SENT)) {
     // note that if this is invoked by a 3 param version of finish0rtt this
@@ -2803,7 +2903,10 @@ nsresult nsHttpTransaction::Finish0RTT(bool aRestart,
   } else if (!mConnected) {
     // this is code that was skipped in ::ReadSegments while in 0RTT
     mConnected = true;
-    mConnection->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
+    nsCOMPtr<nsISupports> info;
+    mConnection->GetSecurityInfo(getter_AddRefs(info));
+    MutexAutoLock lock(mLock);
+    mSecurityInfo = std::move(info);
   }
   return NS_OK;
 }
@@ -2824,7 +2927,10 @@ nsresult nsHttpTransaction::RestartOnFastOpenError() {
   nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mRequestStream);
   if (seekable) seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
   // clear old connection state...
-  mSecurityInfo = nullptr;
+  {
+    MutexAutoLock lock(mLock);
+    mSecurityInfo = nullptr;
+  }
 
   if (!mConnInfo->GetRoutedHost().IsEmpty()) {
     RefPtr<nsHttpConnectionInfo> ci;
@@ -2930,12 +3036,10 @@ void nsHttpTransaction::OnProxyConnectComplete(int32_t aResponseCode) {
   LOG(("nsHttpTransaction::OnProxyConnectComplete %p aResponseCode=%d", this,
        aResponseCode));
 
-  MutexAutoLock lock(mLock);
   mProxyConnectResponseCode = aResponseCode;
 }
 
 int32_t nsHttpTransaction::GetProxyConnectResponseCode() {
-  MutexAutoLock lock(mLock);
   return mProxyConnectResponseCode;
 }
 
@@ -3013,6 +3117,12 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
     mDNSRequest = nullptr;
   }
 
+  uint32_t receivedStage = HTTPSSVC_NO_USABLE_RECORD;
+  // Make sure we set the correct value to |mHTTPSSVCReceivedStage|, since we
+  // also use this value to indicate whether HTTPS RR is used or not.
+  auto updateHTTPSSVCReceivedStage =
+      MakeScopeExit([&] { mHTTPSSVCReceivedStage = receivedStage; });
+
   MakeDontWaitHTTPSSVC();
 
   nsCOMPtr<nsIDNSHTTPSSVCRecord> record = aHTTPSSVCRecord;
@@ -3024,15 +3134,13 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
   Unused << record->GetHasIPAddresses(&hasIPAddress);
 
   if (mActivated) {
-    mHTTPSSVCReceivedStage =
-        Some(hasIPAddress ? HTTPSSVC_WITH_IPHINT_RECEIVED_STAGE_2
-                          : HTTPSSVC_WITHOUT_IPHINT_RECEIVED_STAGE_2);
+    receivedStage = hasIPAddress ? HTTPSSVC_WITH_IPHINT_RECEIVED_STAGE_2
+                                 : HTTPSSVC_WITHOUT_IPHINT_RECEIVED_STAGE_2;
     return NS_OK;
   }
 
-  mHTTPSSVCReceivedStage =
-      Some(hasIPAddress ? HTTPSSVC_WITH_IPHINT_RECEIVED_STAGE_1
-                        : HTTPSSVC_WITHOUT_IPHINT_RECEIVED_STAGE_1);
+  receivedStage = hasIPAddress ? HTTPSSVC_WITH_IPHINT_RECEIVED_STAGE_1
+                               : HTTPSSVC_WITHOUT_IPHINT_RECEIVED_STAGE_1;
 
   nsCOMPtr<nsISVCBRecord> svcbRecord = aHighestPriorityRecord;
   if (!svcbRecord) {
@@ -3064,8 +3172,8 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
   RefPtr<nsHttpConnectionInfo> newInfo =
       mConnInfo->CloneAndAdoptHTTPSSVCRecord(svcbRecord);
   bool needFastFallback = !mConnInfo->IsHttp3() && newInfo->IsHttp3();
-  if (!gHttpHandler->ConnMgr()->MoveTransToHTTPSSVCConnEntry(this, newInfo)) {
-    // MoveTransToHTTPSSVCConnEntry() returning fail means this transaction is
+  if (!gHttpHandler->ConnMgr()->MoveTransToNewConnEntry(this, newInfo)) {
+    // MoveTransToNewConnEntry() returning fail means this transaction is
     // not in the connection entry's pending queue. This could happen if
     // OnLookupComplete() is called before this transaction is added in the
     // queue. We still need to update the connection info, so this transaction
@@ -3073,17 +3181,10 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
     UpdateConnectionInfo(newInfo);
   }
 
-  uint32_t fastFallbackTimeout =
-      StaticPrefs::network_dns_httpssvc_http3_fast_fallback_timeout();
-  if (needFastFallback && fastFallbackTimeout) {
-    if (NS_SUCCEEDED(record->GetServiceModeRecord(
-            mCaps & NS_HTTP_DISALLOW_SPDY, true,
-            getter_AddRefs(mFastFallbackRecord)))) {
-      LOG(("  Setup fastfallback timer"));
-      MOZ_ASSERT(!mFastFallbackTimer);
-      NS_NewTimerWithCallback(getter_AddRefs(mFastFallbackTimer), this,
-                              fastFallbackTimeout, nsITimer::TYPE_ONE_SHOT);
-    }
+  if (needFastFallback) {
+    CreateAndStartTimer(
+        mFastFallbackTimer, this,
+        StaticPrefs::network_dns_httpssvc_http3_fast_fallback_timeout());
   }
 
   // Prefetch the A/AAAA records of the target name.
@@ -3106,52 +3207,135 @@ nsresult nsHttpTransaction::OnHTTPSRRAvailable(
   return NS_OK;
 }
 
-Maybe<uint32_t> nsHttpTransaction::HTTPSSVCReceivedStage() {
+uint32_t nsHttpTransaction::HTTPSSVCReceivedStage() {
   return mHTTPSSVCReceivedStage;
 }
 
-NS_IMETHODIMP
-nsHttpTransaction::Notify(nsITimer* aTimer) {
+void nsHttpTransaction::MaybeCancelFallbackTimer() {
+  if (mFastFallbackTimer) {
+    mFastFallbackTimer->Cancel();
+    mFastFallbackTimer = nullptr;
+  }
+
+  if (mHttp3BackupTimer) {
+    mHttp3BackupTimer->Cancel();
+    mHttp3BackupTimer = nullptr;
+  }
+}
+
+void nsHttpTransaction::OnBackupConnectionReady() {
+  LOG(("nsHttpTransaction::OnBackupConnectionReady [%p] mConnected=%d", this,
+       mConnected));
+  if (mConnected || mClosed) {
+    return;
+  }
+
+  HandleFallback(mBackupConnInfo);
+
+  mCaps |= NS_HTTP_DISALLOW_HTTP3;
+  DebugOnly<nsresult> rv =
+      mRequestHead->SetHeader(nsHttp::Alternate_Service_Used, "0"_ns);
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+}
+
+void nsHttpTransaction::OnHttp3BackupTimer() {
+  LOG(("nsHttpTransaction::OnHttp3BackupTimer [%p]", this));
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
-  MOZ_ASSERT(aTimer == mFastFallbackTimer, "wrong timer");
-  MOZ_ASSERT(mFastFallbackRecord);
+  MOZ_ASSERT(mConnInfo->IsHttp3());
+
+  mHttp3BackupTimer = nullptr;
+
+  mConnInfo->CloneAsDirectRoute(getter_AddRefs(mBackupConnInfo));
+  MOZ_ASSERT(!mBackupConnInfo->IsHttp3());
+
+  RefPtr<nsHttpTransaction> self = this;
+  auto callback = [self](bool aSucceded) {
+    if (aSucceded) {
+      self->OnBackupConnectionReady();
+    }
+  };
+
+  RefPtr<SpeculativeTransaction> trans = new SpeculativeTransaction(
+      mBackupConnInfo, mCallbacks, mCaps | NS_HTTP_DISALLOW_HTTP3,
+      std::move(callback));
+  gHttpHandler->ConnMgr()->DoSpeculativeConnection(trans, false);
+}
+
+void nsHttpTransaction::OnFastFallbackTimer() {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+  LOG(("nsHttpTransaction::OnFastFallbackTimer [%p] mConnected=%d", this,
+       mConnected));
 
   mFastFallbackTimer = nullptr;
-  if (mActivated) {
-    return NS_OK;
+  mFastFallbackTriggered = true;
+
+  MOZ_ASSERT(mHTTPSSVCRecord && mOrigConnInfo);
+  if (!mHTTPSSVCRecord || !mOrigConnInfo) {
+    return;
   }
 
-  if (!gHttpHandler || !gHttpHandler->ConnMgr()) {
-    return NS_OK;
-  }
-
-  RefPtr<nsHttpConnectionInfo> connInfo =
-      mOrigConnInfo->CloneAndAdoptHTTPSSVCRecord(mFastFallbackRecord);
-  LOG(("nsHttpTransaction %p fastfallback to connInfo[%s]", this,
-       connInfo->HashKey().get()));
+  RefPtr<nsHttpConnectionInfo> fallbackConnInfo;
+  bool echConfigUsed =
+      gHttpHandler->EchConfigEnabled() && !mConnInfo->GetEchConfig().IsEmpty();
+  fallbackConnInfo = PrepareFastFallbackConnInfo(echConfigUsed);
 
   // Need to backup the origin conn info, since UpdateConnectionInfo() will be
-  // called in MoveTransToHTTPSSVCConnEntry() and mOrigConnInfo will be
+  // called in HandleFallback() and mOrigConnInfo will be
   // replaced.
-  RefPtr<nsHttpConnectionInfo> backup = mOrigConnInfo->Clone();
-  bool foundInPendingQ =
-      gHttpHandler->ConnMgr()->MoveTransToHTTPSSVCConnEntry(this, connInfo);
-  if (!foundInPendingQ) {
-    return NS_OK;
+  RefPtr<nsHttpConnectionInfo> backup = mOrigConnInfo;
+  HandleFallback(fallbackConnInfo);
+  mOrigConnInfo.swap(backup);
+
+  if (mResolver) {
+    mResolver->PrefetchAddrRecord(fallbackConnInfo->GetRoutedHost(),
+                                  mCaps & NS_HTTP_REFRESH_DNS);
+  }
+}
+
+void nsHttpTransaction::HandleFallback(
+    nsHttpConnectionInfo* aFallbackConnInfo) {
+  if (mConnection) {
+    MOZ_ASSERT(mActivated);
+    // Close the transaction with NS_ERROR_NET_RESET, since we know doing this
+    // will make transaction to be restarted.
+    mConnection->CloseTransaction(this, NS_ERROR_NET_RESET);
+    return;
   }
 
-  mOrigConnInfo.swap(backup);
+  if (!aFallbackConnInfo) {
+    // Nothing to do here.
+    return;
+  }
+
+  LOG(("nsHttpTransaction %p HandleFallback to connInfo[%s]", this,
+       aFallbackConnInfo->HashKey().get()));
+
+  bool foundInPendingQ =
+      gHttpHandler->ConnMgr()->MoveTransToNewConnEntry(this, aFallbackConnInfo);
+  if (!foundInPendingQ) {
+    MOZ_ASSERT(false, "transaction not in entry");
+    return;
+  }
 
   // rewind streams in case we already wrote out the request
   nsCOMPtr<nsISeekableStream> seekable = do_QueryInterface(mRequestStream);
   if (seekable) {
     seekable->Seek(nsISeekableStream::NS_SEEK_SET, 0);
   }
+}
 
-  nsAutoCString targetName;
-  Unused << mFastFallbackRecord->GetName(targetName);
-  if (mResolver) {
-    mResolver->PrefetchAddrRecord(targetName, mCaps & NS_HTTP_REFRESH_DNS);
+NS_IMETHODIMP
+nsHttpTransaction::Notify(nsITimer* aTimer) {
+  MOZ_ASSERT(OnSocketThread(), "not on socket thread");
+
+  if (!gHttpHandler || !gHttpHandler->ConnMgr()) {
+    return NS_OK;
+  }
+
+  if (aTimer == mFastFallbackTimer) {
+    OnFastFallbackTimer();
+  } else if (aTimer == mHttp3BackupTimer) {
+    OnHttp3BackupTimer();
   }
 
   return NS_OK;

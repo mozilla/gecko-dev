@@ -100,14 +100,7 @@ inline CallObject& BaselineFrame::callObj() const {
   return obj->as<CallObject>();
 }
 
-inline ICScript* BaselineFrame::icScript() const {
-  if (JitOptions.warpBuilder) {
-    return icScript_;
-  }
-  return script()->jitScript()->icScript();
-}
-
-inline JSScript* BaselineFrame::invalidationScript() const {
+inline JSScript* BaselineFrame::outerScript() const {
   if (!icScript()->isInlined()) {
     return script();
   }

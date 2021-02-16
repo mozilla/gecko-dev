@@ -11,8 +11,8 @@
 #include "base/platform_thread.h"  // for PlatformThreadId
 #include "base/thread.h"           // for Thread
 #include "base/message_loop.h"
+#include "GLTypes.h"  // for GLenum
 #include "nsISupportsImpl.h"
-#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/DataMutex.h"
@@ -33,6 +33,7 @@ namespace gl {
 class GLContext;
 }  // namespace gl
 namespace layers {
+class CompositorBridgeParent;
 class SurfacePool;
 }  // namespace layers
 namespace wr {
@@ -129,8 +130,7 @@ class RendererEvent {
 /// singleton but in some places we pretend it's not). Hopefully we can evolve
 /// this in a way that keeps the door open to removing the singleton bits.
 class RenderThread final {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_MAIN_THREAD_DESTRUCTION(
-      RenderThread)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_DELETE_ON_MAIN_THREAD(RenderThread)
 
  public:
   /// Can be called from any thread.
@@ -170,11 +170,8 @@ class RenderThread final {
 
   /// Automatically forwarded to the render thread. Will trigger a render for
   /// the current pending frame once one call per document in that pending
-  // frame has been received.
+  /// frame has been received.
   void HandleFrameOneDoc(wr::WindowId aWindowId, bool aRender);
-
-  /// Automatically forwarded to the render thread.
-  void WakeUp(wr::WindowId aWindowId);
 
   /// Automatically forwarded to the render thread.
   void SetClearColor(wr::WindowId aWindowId, wr::ColorF aColor);
@@ -265,7 +262,9 @@ class RenderThread final {
   void ClearSharedSurfacePool();
 
   /// Can only be called from the render thread.
-  void HandleDeviceReset(const char* aWhere, bool aNotify);
+  void HandleDeviceReset(const char* aWhere,
+                         layers::CompositorBridgeParent* aBridge,
+                         GLenum aReason);
   /// Can only be called from the render thread.
   bool IsHandlingDeviceReset();
   /// Can be called from any thread.

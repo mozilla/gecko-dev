@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 """
 Usage: extract_and_run_command.py [-j N] [command to run] -- [files and/or directories]
     -j is the number of workers to start, defaulting to 1.
@@ -16,6 +20,7 @@ WARNING: This script does NOT respond to SIGINT. You must use SIGQUIT or SIGKILL
 ### stage.mozilla.org, see
 # https://wiki.mozilla.org/ReleaseEngineering/How_To/Modify_scripts_on_stage
 
+from __future__ import absolute_import
 import logging
 import os
 import shutil
@@ -98,7 +103,7 @@ def maybe_extract(filename):
     directory and chmods it. The consumer is responsible for removing
     the extracted files, if desired."""
     ext = path.splitext(filename)[1]
-    if ext not in EXTRACTORS.keys():
+    if ext not in EXTRACTORS:
         return None
     # Append the full filepath to the tempdir
     tempdir_root = tempfile.mkdtemp()

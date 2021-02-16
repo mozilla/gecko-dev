@@ -66,26 +66,39 @@ void MacroAssembler::move32To64ZeroExtend(Register src, Register64 dest) {
 }
 
 void MacroAssembler::move8To64SignExtend(Register src, Register64 dest) {
-  MOZ_ASSERT(dest.low == eax);
-  MOZ_ASSERT(dest.high == edx);
-  move8SignExtend(src, eax);
-  masm.cdq();
+  move8SignExtend(src, dest.low);
+  if (dest.low == eax && dest.high == edx) {
+    masm.cdq();
+  } else {
+    movl(dest.low, dest.high);
+    sarl(Imm32(31), dest.high);
+  }
 }
 
 void MacroAssembler::move16To64SignExtend(Register src, Register64 dest) {
-  MOZ_ASSERT(dest.low == eax);
-  MOZ_ASSERT(dest.high == edx);
-  move16SignExtend(src, eax);
-  masm.cdq();
+  move16SignExtend(src, dest.low);
+  if (dest.low == eax && dest.high == edx) {
+    masm.cdq();
+  } else {
+    movl(dest.low, dest.high);
+    sarl(Imm32(31), dest.high);
+  }
 }
 
 void MacroAssembler::move32To64SignExtend(Register src, Register64 dest) {
-  MOZ_ASSERT(dest.low == eax);
-  MOZ_ASSERT(dest.high == edx);
-  if (src != eax) {
-    movl(src, eax);
+  if (src != dest.low) {
+    movl(src, dest.low);
   }
-  masm.cdq();
+  if (dest.low == eax && dest.high == edx) {
+    masm.cdq();
+  } else {
+    movl(dest.low, dest.high);
+    sarl(Imm32(31), dest.high);
+  }
+}
+
+void MacroAssembler::move32SignExtendToPtr(Register src, Register dest) {
+  movl(src, dest);
 }
 
 void MacroAssembler::move32ZeroExtendToPtr(Register src, Register dest) {
@@ -101,6 +114,8 @@ void MacroAssembler::load32SignExtendToPtr(const Address& src, Register dest) {
 
 // ===============================================================
 // Logical functions
+
+void MacroAssembler::notPtr(Register reg) { notl(reg); }
 
 void MacroAssembler::andPtr(Register src, Register dest) { andl(src, dest); }
 
@@ -252,6 +267,10 @@ void MacroAssembler::sub64(Imm64 imm, Register64 dest) {
   sbbl(imm.hi(), dest.high);
 }
 
+void MacroAssembler::mulPtr(Register rhs, Register srcDest) {
+  imull(rhs, srcDest);
+}
+
 // Note: this function clobbers eax and edx.
 void MacroAssembler::mul64(Imm64 imm, const Register64& dest) {
   // LOW32  = LOW(LOW(dest) * LOW(imm));
@@ -366,6 +385,15 @@ void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
   shll(imm, dest);
 }
 
+void MacroAssembler::lshiftPtr(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    shlxl(srcDest, shift, srcDest);
+    return;
+  }
+  MOZ_ASSERT(shift == ecx);
+  shll_cl(srcDest);
+}
+
 void MacroAssembler::lshift64(Imm32 imm, Register64 dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   if (imm.value < 32) {
@@ -401,6 +429,15 @@ void MacroAssembler::lshift64(Register shift, Register64 srcDest) {
 void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 32);
   shrl(imm, dest);
+}
+
+void MacroAssembler::rshiftPtr(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    shrxl(srcDest, shift, srcDest);
+    return;
+  }
+  MOZ_ASSERT(shift == ecx);
+  shrl_cl(srcDest);
 }
 
 void MacroAssembler::rshift64(Imm32 imm, Register64 dest) {
@@ -547,6 +584,27 @@ void MacroAssembler::rotateRight64(Imm32 count, Register64 src, Register64 dest,
 // Bit counting functions
 
 void MacroAssembler::clz64(Register64 src, Register dest) {
+  if (AssemblerX86Shared::HasLZCNT()) {
+    Label nonzero, zero;
+
+    testl(src.high, src.high);
+    j(Assembler::Zero, &zero);
+
+    lzcntl(src.high, dest);
+    jump(&nonzero);
+
+    bind(&zero);
+    lzcntl(src.low, dest);
+    addl(Imm32(32), dest);
+
+    bind(&nonzero);
+    return;
+  }
+
+  // Because |dest| may be equal to |src.low|, we rely on BSR not modifying its
+  // output when the input is zero. AMD ISA documents BSR not modifying the
+  // output and current Intel CPUs follow AMD.
+
   Label nonzero, zero;
 
   bsrl(src.high, dest);
@@ -564,6 +622,27 @@ void MacroAssembler::clz64(Register64 src, Register dest) {
 }
 
 void MacroAssembler::ctz64(Register64 src, Register dest) {
+  if (AssemblerX86Shared::HasBMI1()) {
+    Label nonzero, zero;
+
+    testl(src.low, src.low);
+    j(Assembler::Zero, &zero);
+
+    tzcntl(src.low, dest);
+    jump(&nonzero);
+
+    bind(&zero);
+    tzcntl(src.high, dest);
+    addl(Imm32(32), dest);
+
+    bind(&nonzero);
+    return;
+  }
+
+  // Because |dest| may be equal to |src.low|, we rely on BSF not modifying its
+  // output when the input is zero. AMD ISA documents BSF not modifying the
+  // output and current Intel CPUs follow AMD.
+
   Label done, nonzero;
 
   bsfl(src.low, dest);
@@ -868,6 +947,8 @@ void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
     movl(lhs.low, temp);
     orl(lhs.high, temp);
     branchTestPtr(cond, temp, temp, label);
+  } else if (cond == Assembler::Signed || cond == Assembler::NotSigned) {
+    branchTest32(cond, lhs.high, rhs.high, label);
   } else {
     MOZ_CRASH("Unsupported condition");
   }
@@ -909,6 +990,17 @@ void MacroAssembler::cmp32LoadPtr(Condition cond, const Address& lhs, Imm32 rhs,
                                   const Address& src, Register dest) {
   cmp32(lhs, rhs);
   cmovCCl(cond, Operand(src), dest);
+}
+
+void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
+                                   Register src, Register dest) {
+  cmp32Move32(cond, lhs, rhs, src, dest);
+}
+
+void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs,
+                                   const Address& rhs, Register src,
+                                   Register dest) {
+  cmp32Move32(cond, lhs, rhs, src, dest);
 }
 
 void MacroAssembler::test32LoadPtr(Condition cond, const Address& addr,
@@ -983,6 +1075,19 @@ void MacroAssembler::spectreBoundsCheck32(Register index, const Address& length,
   MOZ_ASSERT(index != maybeScratch);
 
   spectreBoundsCheck32(index, Operand(length), maybeScratch, failure);
+}
+
+void MacroAssembler::spectreBoundsCheckPtr(Register index, Register length,
+                                           Register maybeScratch,
+                                           Label* failure) {
+  spectreBoundsCheck32(index, length, maybeScratch, failure);
+}
+
+void MacroAssembler::spectreBoundsCheckPtr(Register index,
+                                           const Address& length,
+                                           Register maybeScratch,
+                                           Label* failure) {
+  spectreBoundsCheck32(index, length, maybeScratch, failure);
 }
 
 // ========================================================================

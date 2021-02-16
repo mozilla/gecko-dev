@@ -37,6 +37,7 @@ macro_rules! apply_non_ts_list {
                 ("any-link", AnyLink, IN_VISITED_OR_UNVISITED_STATE, _),
                 ("visited", Visited, IN_VISITED_STATE, _),
                 ("active", Active, IN_ACTIVE_STATE, _),
+                ("autofill", Autofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("checked", Checked, IN_CHECKED_STATE, _),
                 ("defined", Defined, IN_DEFINED_STATE, _),
                 ("disabled", Disabled, IN_DISABLED_STATE, _),
@@ -62,16 +63,11 @@ macro_rules! apply_non_ts_list {
                 ("-moz-dir-attr-ltr", MozDirAttrLTR, IN_HAS_DIR_ATTR_LTR_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-dir-attr-rtl", MozDirAttrRTL, IN_HAS_DIR_ATTR_RTL_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-dir-attr-like-auto", MozDirAttrLikeAuto, IN_HAS_DIR_ATTR_LIKE_AUTO_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
-                ("-moz-autofill", MozAutofill, IN_AUTOFILL_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+
                 ("-moz-autofill-preview", MozAutofillPreview, IN_AUTOFILL_PREVIEW_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
 
-                ("-moz-handler-clicktoplay", MozHandlerClickToPlay, IN_HANDLER_CLICK_TO_PLAY_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-vulnerable-updatable", MozHandlerVulnerableUpdatable, IN_HANDLER_VULNERABLE_UPDATABLE_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-vulnerable-no-update", MozHandlerVulnerableNoUpdate, IN_HANDLER_VULNERABLE_NO_UPDATE_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
+                ("-moz-handler-noplugins", MozHandlerNoPlugins, IN_HANDLER_NOPLUGINS, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
 
-                ("-moz-handler-disabled", MozHandlerDisabled, IN_HANDLER_DISABLED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-blocked", MozHandlerBlocked, IN_HANDLER_BLOCKED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-                ("-moz-handler-crashed", MozHandlerCrashed, IN_HANDLER_CRASHED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                 ("-moz-math-increment-script-level", MozMathIncrementScriptLevel, IN_INCREMENT_SCRIPT_LEVEL_STATE, _),
 
                 ("required", Required, IN_REQUIRED_STATE, _),

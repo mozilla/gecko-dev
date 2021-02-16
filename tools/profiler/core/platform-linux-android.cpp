@@ -152,9 +152,28 @@ int tgkill(pid_t tgid, pid_t tid, int signalno) {
 
 class PlatformData {
  public:
-  explicit PlatformData(int aThreadId) { MOZ_COUNT_CTOR(PlatformData); }
+  explicit PlatformData(int aThreadId) {
+    MOZ_ASSERT(aThreadId == profiler_current_thread_id());
+    MOZ_COUNT_CTOR(PlatformData);
+    if (clockid_t clockid;
+        pthread_getcpuclockid(pthread_self(), &clockid) == 0) {
+      mClockId = Some(clockid);
+    }
+  }
 
   MOZ_COUNTED_DTOR(PlatformData)
+
+  // Clock Id for this profiled thread. `Nothing` if `pthread_getcpuclockid`
+  // failed (e.g., if the system doesn't support per-thread clocks).
+  Maybe<clockid_t> GetClockId() const { return mClockId; }
+
+  RunningTimes& PreviousThreadRunningTimesRef() {
+    return mPreviousThreadRunningTimes;
+  }
+
+ private:
+  Maybe<clockid_t> mClockId;
+  RunningTimes mPreviousThreadRunningTimes;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -299,6 +318,43 @@ void Sampler::Disable(PSLockRef aLock) {
   // Restore old signal handler. This is global state so it's important that
   // we do it now, while gPSMutex is locked.
   sigaction(SIGPROF, &mOldSigprofHandler, 0);
+}
+
+static void StreamMetaPlatformSampleUnits(PSLockRef aLock,
+                                          SpliceableJSONWriter& aWriter) {
+  aWriter.StringProperty("threadCPUDelta", "ns");
+}
+
+static RunningTimes GetThreadRunningTimesDiff(
+    PSLockRef aLock, const RegisteredThread& aRegisteredThread) {
+  AUTO_PROFILER_STATS(GetRunningTimes_clock_gettime_thread);
+
+  PlatformData* platformData = aRegisteredThread.GetPlatformData();
+  MOZ_RELEASE_ASSERT(platformData);
+  Maybe<clockid_t> maybeCid = platformData->GetClockId();
+
+  if (MOZ_UNLIKELY(!maybeCid)) {
+    // No clock id -> Nothing to measure apart from the timestamp.
+    RunningTimes emptyRunningTimes;
+    emptyRunningTimes.SetPostMeasurementTimeStamp(TimeStamp::NowUnfuzzed());
+    return emptyRunningTimes;
+  }
+
+  const RunningTimes newRunningTimes = GetRunningTimesWithTightTimestamp(
+      [cid = *maybeCid](RunningTimes& aRunningTimes) {
+        AUTO_PROFILER_STATS(GetRunningTimes_clock_gettime);
+        if (timespec ts; clock_gettime(cid, &ts) == 0) {
+          aRunningTimes.ResetThreadCPUDelta(
+              uint64_t(ts.tv_sec) * 1'000'000'000u + uint64_t(ts.tv_nsec));
+        } else {
+          aRunningTimes.ClearThreadCPUDelta();
+        }
+      });
+
+  const RunningTimes diff =
+      newRunningTimes - platformData->PreviousThreadRunningTimesRef();
+  platformData->PreviousThreadRunningTimesRef() = newRunningTimes;
+  return diff;
 }
 
 template <typename Func>

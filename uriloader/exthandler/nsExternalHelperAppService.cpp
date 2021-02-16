@@ -488,6 +488,7 @@ static const nsExtraMimeTypeEntry extraMimeEntries[] = {
     {APPLICATION_GZIP2, "gz", "gzip"},
     {"application/x-arj", "arj", "ARJ file"},
     {"application/rtf", "rtf", "Rich Text Format File"},
+    {APPLICATION_ZIP, "zip", "ZIP Archive"},
     {APPLICATION_XPINSTALL, "xpi", "XPInstall Install"},
     {APPLICATION_PDF, "pdf", "Portable Document Format"},
     {APPLICATION_POSTSCRIPT, "ps,eps,ai", "Postscript File"},
@@ -545,6 +546,7 @@ static const nsExtraMimeTypeEntry extraMimeEntries[] = {
      "Extensible HyperText Markup Language"},
     {APPLICATION_MATHML_XML, "mml", "Mathematical Markup Language"},
     {APPLICATION_RDF, "rdf", "Resource Description Framework"},
+    {"text/csv", "csv", "CSV File"},
     {TEXT_XML, "xml,xsl,xbl", "Extensible Markup Language"},
     {TEXT_CSS, "css", "Style Sheet"},
     {TEXT_VCARD, "vcf,vcard", "Contact Information"},
@@ -604,15 +606,18 @@ static const char* forcedExtensionMimetypes[] = {
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 
+    // Note: zip and json mimetypes are commonly used with a variety of
+    // extensions; don't add them here. It's a similar story for text/xml,
+    // but slightly worse because we can use it when sniffing for a mimetype
+    // if one hasn't been provided, so don't re-add that here either.
+
     APPLICATION_PDF,
 
     APPLICATION_OGG,
 
-    APPLICATION_ZIP,
+    APPLICATION_WASM,
 
-    APPLICATION_JSON, APPLICATION_WASM,
-
-    TEXT_CALENDAR, TEXT_CSS, TEXT_VCARD, TEXT_XML};
+    TEXT_CALENDAR, TEXT_CSS, TEXT_VCARD};
 
 /**
  * Primary extensions of types whose descriptions should be overwritten.
@@ -1084,6 +1089,20 @@ nsExternalHelperAppService::LoadURI(nsIURI* aURI,
       bc = parent;
       wgp = parent->Canonical()->GetCurrentWindowGlobal();
     }
+
+    if (!foundAccessibleFrame) {
+      // See if this navigation could have come from a subframe.
+      nsTArray<RefPtr<BrowsingContext>> contexts;
+      aBrowsingContext->GetAllBrowsingContextsInSubtree(contexts);
+      for (const auto& kid : contexts) {
+        wgp = kid->Canonical()->GetCurrentWindowGlobal();
+        if (wgp && aTriggeringPrincipal->Subsumes(wgp->DocumentPrincipal())) {
+          foundAccessibleFrame = true;
+          break;
+        }
+      }
+    }
+
     if (!foundAccessibleFrame) {
       return NS_OK;  // deny the load.
     }
@@ -1340,17 +1359,19 @@ bool nsExternalAppHandler::ShouldForceExtension(const nsString& aFileExt) {
                   StringBeginsWith(MIMEType, "audio/"_ns) ||
                   StringBeginsWith(MIMEType, "video/"_ns);
 
-  if (!canForce) {
+  if (!canForce &&
+      StaticPrefs::browser_download_sanitize_non_media_extensions()) {
     for (const char* mime : forcedExtensionMimetypes) {
       if (MIMEType.Equals(mime)) {
         canForce = true;
         break;
       }
     }
-    if (!canForce) {
-      return false;
-    }
   }
+  if (!canForce) {
+    return false;
+  }
+
   // If we get here, we know for sure the mimetype allows us to overwrite the
   // existing extension, if it's wrong. Return whether the extension is wrong:
 
@@ -1676,15 +1697,12 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest* request) {
 
   mDownloadClassification =
       nsContentSecurityUtils::ClassifyDownload(aChannel, MIMEType);
-  if (mDownloadClassification != nsITransfer::DOWNLOAD_ACCEPTABLE) {
+
+  if (mDownloadClassification == nsITransfer::DOWNLOAD_FORBIDDEN) {
     // If the download is rated as forbidden,
-    // we need to silently cancel the request to make sure
-    // it wont show up in the download ui.
+    // cancel the request so no ui knows about this.
     mCanceled = true;
     request->Cancel(NS_ERROR_ABORT);
-    if (mDownloadClassification != nsITransfer::DOWNLOAD_FORBIDDEN) {
-      CreateFailedTransfer();
-    }
     return NS_OK;
   }
 
@@ -1917,7 +1935,6 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest* request) {
       rv = PromptForSaveDestination();
     }
   }
-
   return NS_OK;
 }
 
@@ -2264,6 +2281,13 @@ nsresult nsExternalAppHandler::CreateTransfer() {
   mDialog = nullptr;
   if (!mDialogProgressListener) {
     NS_WARNING("The dialog should nullify the dialog progress listener");
+  }
+  // In case of a non acceptable download, we need to cancel the request and
+  // pass a FailedTransfer for the Download UI.
+  if (mDownloadClassification != nsITransfer::DOWNLOAD_ACCEPTABLE) {
+    mCanceled = true;
+    mRequest->Cancel(NS_ERROR_ABORT);
+    return CreateFailedTransfer();
   }
   nsresult rv;
 

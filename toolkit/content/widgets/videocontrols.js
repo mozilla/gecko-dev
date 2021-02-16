@@ -77,7 +77,14 @@ this.VideoControlsWidget = class {
     }
     if (newImpl) {
       this.impl = new newImpl(this.shadowRoot, this.prefs);
-      this.impl.onsetup();
+
+      this.mDirection = "ltr";
+      let intlUtils = this.window.intlUtils;
+      if (intlUtils) {
+        this.mDirection = intlUtils.isAppLocaleRTL() ? "rtl" : "ltr";
+      }
+
+      this.impl.onsetup(this.mDirection);
     } else {
       this.impl = undefined;
     }
@@ -225,8 +232,10 @@ this.VideoControlsImplWidget = class {
     this.window = this.document.defaultView;
   }
 
-  onsetup() {
+  onsetup(direction) {
     this.generateContent();
+
+    this.shadowRoot.firstElementChild.setAttribute("localedir", direction);
 
     this.Utils = {
       debug: false,
@@ -961,6 +970,57 @@ this.VideoControlsImplWidget = class {
           case "media-videoCasting":
             this.updateCasting(aEvent.detail);
             break;
+          case "focusin":
+            // Show the controls to highlight the focused control, but only
+            // under certain conditions:
+            if (
+              this.prefs["media.videocontrols.keyboard-tab-to-all-controls"] &&
+              // The click-to-play overlay must already be hidden (we don't
+              // hide controls when the overlay is visible).
+              this.clickToPlay.hidden &&
+              // Don't do this if the controls are static.
+              this.dynamicControls &&
+              // If the mouse is hovering over the control bar, the controls
+              // are already showing and they shouldn't hide, so don't mess
+              // with them.
+              // We use "div:hover" instead of just ":hover" so this works in
+              // quirks mode documents. See
+              // https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
+              !this.controlBar.matches("div:hover")
+            ) {
+              this.startFadeIn(this.controlBar);
+              this.window.clearTimeout(this._hideControlsTimeout);
+              this._hideControlsTimeout = this.window.setTimeout(
+                () => this._hideControlsFn(),
+                this.HIDE_CONTROLS_TIMEOUT_MS
+              );
+            }
+            break;
+          case "mousedown":
+            // We only listen for mousedown on sliders.
+            // If this slider isn't focused already, mousedown will focus it.
+            // We don't want that because it will then handle additional keys.
+            // For example, we don't want the up/down arrow keys to seek after
+            // the scrubber is clicked. To prevent that, we need to redirect
+            // focus. However, dragging only works while the slider is focused,
+            // so we must redirect focus after mouseup.
+            if (
+              this.prefs["media.videocontrols.keyboard-tab-to-all-controls"] &&
+              !aEvent.currentTarget.matches(":focus")
+            ) {
+              aEvent.currentTarget.addEventListener(
+                "mouseup",
+                aEvent => {
+                  if (aEvent.currentTarget.matches(":focus")) {
+                    // We can't use target.blur() because that will blur the
+                    // video element as well.
+                    this.video.focus();
+                  }
+                },
+                { once: true }
+              );
+            }
+            break;
           default:
             this.log("!!! control event " + aEvent.type + " not handled!");
         }
@@ -1496,10 +1556,14 @@ this.VideoControlsImplWidget = class {
             if (!this.hasError() && this.isVideoInFullScreen) {
               this.controlsSpacer.setAttribute("hideCursor", true);
             }
-            // The Full Screen button is currently the only tabbable button
-            // when the controls are shown. Remove it from the tab order when
-            // visually hidden to prevent visual confusion.
-            this.fullscreenButton.setAttribute("tabindex", "-1");
+            if (
+              !this.prefs["media.videocontrols.keyboard-tab-to-all-controls"]
+            ) {
+              // The Full Screen button is currently the only tabbable button
+              // when the controls are shown. Remove it from the tab order when
+              // visually hidden to prevent visual confusion.
+              this.fullscreenButton.setAttribute("tabindex", "-1");
+            }
           }
 
           // No need to fade out if the hidden property returns true
@@ -1763,13 +1827,50 @@ this.VideoControlsImplWidget = class {
         this.muteButton.setAttribute("aria-label", value);
       },
 
+      keyboardVolumeDecrease() {
+        const oldval = this.video.volume;
+        this.video.volume = oldval < 0.1 ? 0 : oldval - 0.1;
+        this.video.muted = false;
+      },
+
+      keyboardVolumeIncrease() {
+        const oldval = this.video.volume;
+        this.video.volume = oldval > 0.9 ? 1 : oldval + 0.1;
+        this.video.muted = false;
+      },
+
+      keyboardSeekBack(tenPercent) {
+        const oldval = this.video.currentTime;
+        let newval;
+        if (tenPercent) {
+          newval =
+            oldval -
+            (this.video.duration || this.maxCurrentTimeSeen / 1000) / 10;
+        } else {
+          newval = oldval - 15;
+        }
+        this.video.currentTime = Math.max(0, newval);
+      },
+
+      keyboardSeekForward(tenPercent) {
+        const oldval = this.video.currentTime;
+        const maxtime = this.video.duration || this.maxCurrentTimeSeen / 1000;
+        let newval;
+        if (tenPercent) {
+          newval = oldval + maxtime / 10;
+        } else {
+          newval = oldval + 15;
+        }
+        this.video.currentTime = Math.min(newval, maxtime);
+      },
+
       keyHandler(event) {
         // Ignore keys when content might be providing its own.
         if (!this.video.hasAttribute("controls")) {
           return;
         }
 
-        var keystroke = "";
+        let keystroke = "";
         if (event.altKey) {
           keystroke += "alt-";
         }
@@ -1791,88 +1892,75 @@ this.VideoControlsImplWidget = class {
             keystroke += "accel-";
           }
         }
-        switch (event.keyCode) {
-          case this.window.KeyEvent.DOM_VK_UP:
-            keystroke += "upArrow";
-            break;
-          case this.window.KeyEvent.DOM_VK_DOWN:
-            keystroke += "downArrow";
-            break;
-          case this.window.KeyEvent.DOM_VK_LEFT:
-            keystroke += "leftArrow";
-            break;
-          case this.window.KeyEvent.DOM_VK_RIGHT:
-            keystroke += "rightArrow";
-            break;
-          case this.window.KeyEvent.DOM_VK_HOME:
-            keystroke += "home";
-            break;
-          case this.window.KeyEvent.DOM_VK_END:
-            keystroke += "end";
-            break;
-        }
-
-        if (String.fromCharCode(event.charCode) == " ") {
-          keystroke += "space";
+        if (event.key == " ") {
+          keystroke += "Space";
+        } else {
+          keystroke += event.key;
         }
 
         this.log("Got keystroke: " + keystroke);
-        var oldval, newval;
 
+        // If unmodified cursor keys are pressed when a slider is focused, we
+        // should act on that slider. For example, if we're focused on the
+        // volume slider, rightArrow should increase the volume, not seek.
+        // Normally, we'd just pass the keys through to the slider in this case.
+        // However, the native adjustment is too small, so we override it.
         try {
+          const target = event.originalTarget;
+          const allTabbable = this.prefs[
+            "media.videocontrols.keyboard-tab-to-all-controls"
+          ];
           switch (keystroke) {
-            case "space" /* Play */:
-              let target = event.originalTarget;
+            case "Space" /* Play */:
               if (target.localName === "button" && !target.disabled) {
                 break;
               }
-
               this.togglePause();
               break;
-            case "downArrow" /* Volume decrease */:
-              oldval = this.video.volume;
-              this.video.volume = oldval < 0.1 ? 0 : oldval - 0.1;
-              this.video.muted = false;
+            case "ArrowDown" /* Volume decrease */:
+              if (allTabbable && target == this.scrubber) {
+                this.keyboardSeekBack(/* tenPercent */ false);
+              } else {
+                this.keyboardVolumeDecrease();
+              }
               break;
-            case "upArrow" /* Volume increase */:
-              oldval = this.video.volume;
-              this.video.volume = oldval > 0.9 ? 1 : oldval + 0.1;
-              this.video.muted = false;
+            case "ArrowUp" /* Volume increase */:
+              if (allTabbable && target == this.scrubber) {
+                this.keyboardSeekForward(/* tenPercent */ false);
+              } else {
+                this.keyboardVolumeIncrease();
+              }
               break;
-            case "accel-downArrow" /* Mute */:
+            case "accel-ArrowDown" /* Mute */:
               this.video.muted = true;
               break;
-            case "accel-upArrow" /* Unmute */:
+            case "accel-ArrowUp" /* Unmute */:
               this.video.muted = false;
               break;
-            case "leftArrow": /* Seek back 15 seconds */
-            case "accel-leftArrow" /* Seek back 10% */:
-              oldval = this.video.currentTime;
-              if (keystroke == "leftArrow") {
-                newval = oldval - 15;
+            case "ArrowLeft" /* Seek back 15 seconds */:
+              if (allTabbable && target == this.volumeControl) {
+                this.keyboardVolumeDecrease();
               } else {
-                newval =
-                  oldval -
-                  (this.video.duration || this.maxCurrentTimeSeen / 1000) / 10;
+                this.keyboardSeekBack(/* tenPercent */ false);
               }
-              this.video.currentTime = newval >= 0 ? newval : 0;
               break;
-            case "rightArrow": /* Seek forward 15 seconds */
-            case "accel-rightArrow" /* Seek forward 10% */:
-              oldval = this.video.currentTime;
-              var maxtime =
-                this.video.duration || this.maxCurrentTimeSeen / 1000;
-              if (keystroke == "rightArrow") {
-                newval = oldval + 15;
+            case "accel-ArrowLeft" /* Seek back 10% */:
+              this.keyboardSeekBack(/* tenPercent */ true);
+              break;
+            case "ArrowRight" /* Seek forward 15 seconds */:
+              if (allTabbable && target == this.volumeControl) {
+                this.keyboardVolumeIncrease();
               } else {
-                newval = oldval + maxtime / 10;
+                this.keyboardSeekForward(/* tenPercent */ false);
               }
-              this.video.currentTime = newval <= maxtime ? newval : maxtime;
               break;
-            case "home" /* Seek to beginning */:
+            case "accel-ArrowRight" /* Seek forward 10% */:
+              this.keyboardSeekForward(/* tenPercent */ true);
+              break;
+            case "Home" /* Seek to beginning */:
               this.video.currentTime = 0;
               break;
-            case "end" /* Seek to end */:
+            case "End" /* Seek to end */:
               if (this.video.currentTime != this.video.duration) {
                 this.video.currentTime =
                   this.video.duration || this.maxCurrentTimeSeen / 1000;
@@ -2018,7 +2106,9 @@ this.VideoControlsImplWidget = class {
           }
         }
 
-        this.textTrackListContainer.hidden = true;
+        if (!this.textTrackListContainer.hidden) {
+          this.toggleClosedCaption();
+        }
       },
 
       onControlBarAnimationFinished() {
@@ -2038,8 +2128,37 @@ this.VideoControlsImplWidget = class {
       toggleClosedCaption() {
         if (this.textTrackListContainer.hidden) {
           this.textTrackListContainer.hidden = false;
+          if (this.prefs["media.videocontrols.keyboard-tab-to-all-controls"]) {
+            // If we're about to hide the controls after focus, prevent that, as
+            // that will dismiss the CC menu before the user can use it.
+            this.window.clearTimeout(this._hideControlsTimeout);
+            this._hideControlsTimeout = 0;
+          }
         } else {
           this.textTrackListContainer.hidden = true;
+          // If the CC menu was shown via the keyboard, we may have prevented
+          // the controls from hiding. We can now hide them.
+          if (
+            this.prefs["media.videocontrols.keyboard-tab-to-all-controls"] &&
+            !this.controlBar.hidden &&
+            // The click-to-play overlay must already be hidden (we don't
+            // hide controls when the overlay is visible).
+            this.clickToPlay.hidden &&
+            // Don't do this if the controls are static.
+            this.dynamicControls &&
+            // If the mouse is hovering over the control bar, the controls
+            // shouldn't hide.
+            // We use "div:hover" instead of just ":hover" so this works in
+            // quirks mode documents. See
+            // https://quirks.spec.whatwg.org/#the-active-and-hover-quirk
+            !this.controlBar.matches("div:hover")
+          ) {
+            this.window.clearTimeout(this._hideControlsTimeout);
+            this._hideControlsTimeout = this.window.setTimeout(
+              () => this._hideControlsFn(),
+              this.HIDE_CONTROLS_TIMEOUT_MS
+            );
+          }
         }
       },
 
@@ -2458,6 +2577,10 @@ this.VideoControlsImplWidget = class {
           { el: this.video.textTracks, type: "change" },
 
           { el: this.video, type: "media-videoCasting", touchOnly: true },
+
+          { el: this.controlBar, type: "focusin" },
+          { el: this.scrubber, type: "mousedown" },
+          { el: this.volumeControl, type: "mousedown" },
         ];
 
         for (let {
@@ -2740,6 +2863,14 @@ this.VideoControlsImplWidget = class {
       "toolkit/global/videocontrols.ftl",
     ]);
     this.l10n.connectRoot(this.shadowRoot);
+    if (this.prefs["media.videocontrols.keyboard-tab-to-all-controls"]) {
+      // Make all of the individual controls tabbable.
+      for (const el of parserDoc.documentElement.querySelectorAll(
+        '[tabindex="-1"]'
+      )) {
+        el.removeAttribute("tabindex");
+      }
+    }
     this.shadowRoot.importNodeAndAppendChildAt(
       this.shadowRoot,
       parserDoc.documentElement,
@@ -2794,11 +2925,14 @@ this.NoControlsMobileImplWidget = class {
     this.window = this.document.defaultView;
   }
 
-  onsetup() {
+  onsetup(direction) {
     this.generateContent();
 
+    this.shadowRoot.firstElementChild.setAttribute("localedir", direction);
+
     this.Utils = {
-      videoEvents: ["play", "playing", "MozNoControlsBlockedVideo"],
+      videoEvents: ["play", "playing"],
+      videoControlEvents: ["MozNoControlsBlockedVideo"],
       terminate() {
         for (let event of this.videoEvents) {
           try {
@@ -2806,6 +2940,12 @@ this.NoControlsMobileImplWidget = class {
               capture: true,
               mozSystemGroup: true,
             });
+          } catch (ex) {}
+        }
+
+        for (let event of this.videoControlEvents) {
+          try {
+            this.videocontrols.removeEventListener(event, this);
           } catch (ex) {}
         }
 
@@ -2894,6 +3034,10 @@ this.NoControlsMobileImplWidget = class {
             mozSystemGroup: true,
           });
         }
+
+        for (let event of this.videoControlEvents) {
+          this.videocontrols.addEventListener(event, this);
+        }
       },
     };
     this.Utils.init(this.shadowRoot);
@@ -2955,8 +3099,10 @@ this.NoControlsPictureInPictureImplWidget = class {
     this.window = this.document.defaultView;
   }
 
-  onsetup() {
+  onsetup(direction) {
     this.generateContent();
+
+    this.shadowRoot.firstElementChild.setAttribute("localedir", direction);
   }
 
   elementStateMatches(element) {
@@ -3010,8 +3156,10 @@ this.NoControlsDesktopImplWidget = class {
     this.prefs = prefs;
   }
 
-  onsetup() {
+  onsetup(direction) {
     this.generateContent();
+
+    this.shadowRoot.firstElementChild.setAttribute("localedir", direction);
 
     this.Utils = {
       handleEvent(event) {

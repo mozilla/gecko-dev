@@ -69,6 +69,20 @@ include LookAndFeelTypes;
 include protocol PSandboxTesting;
 #endif
 
+include "ipc/DataStorageIPCUtils.h";
+include "ipc/MediaControlIPC.h";
+include "mozilla/AntiTrackingIPCUtils.h";
+include "mozilla/GfxMessageUtils.h";
+include "mozilla/dom/BindingIPCUtils.h";
+include "mozilla/dom/CSPMessageUtils.h";
+include "mozilla/dom/DocShellMessageUtils.h";
+include "mozilla/dom/FeaturePolicyUtils.h";
+include "mozilla/dom/MediaSessionIPCUtils.h";
+include "mozilla/dom/ReferrerInfoUtils.h";
+include "mozilla/ipc/ByteBufUtils.h";
+include "mozilla/ipc/URIUtils.h";
+include "mozilla/PermissionDelegateIPCUtils.h";
+
 using refcounted class nsIDOMGeoPosition from "nsGeoPositionIPCSerialiser.h";
 using refcounted class nsIAlertNotification from "mozilla/AlertNotificationIPCSerializer.h";
 
@@ -106,20 +120,20 @@ using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
 using mozilla::dom::BrowsingContextTransaction from "mozilla/dom/BrowsingContext.h";
 using mozilla::dom::BrowsingContextInitializer from "mozilla/dom/BrowsingContext.h";
-using mozilla::dom::PermitUnloadResult from "mozilla/dom/DocShellMessageUtils.h";
+using mozilla::dom::PermitUnloadResult from "nsIContentViewer.h";
 using mozilla::dom::MaybeDiscardedWindowContext from "mozilla/dom/WindowContext.h";
 using mozilla::dom::WindowContextTransaction from "mozilla/dom/WindowContext.h";
 using base::SharedMemoryHandle from "base/shared_memory.h";
 using mozilla::fontlist::Pointer from "SharedFontList.h";
 using gfxSparseBitSet from "gfxFontUtils.h";
 using FontVisibility from "gfxFontEntry.h";
-using mozilla::dom::MediaControlAction from "ipc/MediaControlIPC.h";
-using mozilla::dom::MediaPlaybackState from "ipc/MediaControlIPC.h";
-using mozilla::dom::MediaAudibleState from "ipc/MediaControlIPC.h";
-using mozilla::dom::MaybeMediaMetadataBase from "mozilla/dom/MediaSessionIPCUtils.h";
-using mozilla::dom::MediaSessionAction from "mozilla/dom/MediaSessionIPCUtils.h";
-using mozilla::dom::MediaSessionPlaybackState from "mozilla/dom/MediaSessionIPCUtils.h";
-using mozilla::dom::PositionState from "mozilla/dom/MediaSessionIPCUtils.h";
+using mozilla::dom::MediaControlAction from "mozilla/dom/MediaControlKeySource.h";
+using mozilla::dom::MediaPlaybackState from "mozilla/dom/MediaPlaybackStatus.h";
+using mozilla::dom::MediaAudibleState from "mozilla/dom/MediaPlaybackStatus.h";
+using mozilla::dom::MediaMetadataBase from "mozilla/dom/MediaMetadata.h";
+using mozilla::dom::MediaSessionAction from "mozilla/dom/MediaSessionBinding.h";
+using mozilla::dom::MediaSessionPlaybackState from "mozilla/dom/MediaSessionBinding.h";
+using mozilla::dom::PositionState from "mozilla/dom/MediaSession.h";
 using refcounted class nsDocShellLoadState from "nsDocShellLoadState.h";
 using mozilla::dom::ServiceWorkerShutdownState::Progress from "mozilla/dom/ServiceWorkerShutdownState.h";
 using mozilla::ContentBlockingNotifier::StorageAccessPermissionGrantedReason from "mozilla/ContentBlockingNotifier.h";
@@ -127,13 +141,15 @@ using mozilla::ContentBlockingNotifier::BlockingDecision from "mozilla/ContentBl
 using mozilla::ContentBlocking::StorageAccessPromptChoices from "mozilla/ContentBlocking.h";
 using JSActorMessageKind from "mozilla/dom/JSActor.h";
 using JSActorMessageMeta from "mozilla/dom/PWindowGlobal.h";
-using mozilla::PermissionDelegateHandler::DelegatedPermissionList from "mozilla/PermissionDelegateIPCUtils.h";
+using mozilla::PermissionDelegateHandler::DelegatedPermissionList from "mozilla/PermissionDelegateHandler.h";
 using refcounted class nsILayoutHistoryState from "nsILayoutHistoryState.h";
 using class mozilla::dom::SessionHistoryInfo from "mozilla/dom/SessionHistoryEntry.h";
-using nsPoint from "mozilla/GfxMessageUtils.h";
+using struct nsPoint from "nsPoint.h";
 using struct mozilla::dom::LoadingSessionHistoryInfo from "mozilla/dom/SessionHistoryEntry.h";
 using mozilla::PDMFactory::MediaCodecsSupported from "PDMFactory.h";
+using mozilla::RemoteDecodeIn from "mozilla/RemoteDecoderManagerChild.h";
 using mozilla::dom::PerformanceTimingData from "mozilla/dom/PerformanceTiming.h";
+using refcounted mozilla::dom::FeaturePolicy from "mozilla/dom/FeaturePolicy.h";
 
 union ChromeRegistryItem
 {
@@ -302,7 +318,7 @@ struct XPCOMInitData
     int32_t captivePortalState;
     bool isLangRTL;
     bool haveBidiKeyboards;
-    nsString[] dictionaries;
+    nsCString[] dictionaries;
     ClipboardCapabilities clipboardCaps;
     DomainPolicyClone domainPolicy;
     nsIURI userContentSheetURL;
@@ -314,7 +330,6 @@ struct XPCOMInitData
     nsCString[] requestedLocales;
     DynamicScalarDefinition[] dynamicScalarDefs;
     SystemParameterKVPair[] systemParameters;
-    MediaCodecsSupported codecsSupported;
 };
 
 struct VisitedQueryResult
@@ -567,7 +582,7 @@ child:
      * Tell the child that the system theme has changed, and that a repaint is
      * necessary.
      */
-    async ThemeChanged(LookAndFeelCache aCache, ThemeChangeKind aKind);
+    async ThemeChanged(LookAndFeelData lookAndFeelData, ThemeChangeKind aKind);
 
     async UpdateSystemParameters(SystemParameterKVPair[] aUpdates);
 
@@ -587,15 +602,17 @@ child:
 
     async GeolocationError(uint16_t errorCode);
 
-    async UpdateDictionaryList(nsString[] dictionaries);
+    async UpdateDictionaryList(nsCString[] dictionaries);
 
     async UpdateFontList(SystemFontListEntry[] fontList);
 
     /**
-     * The shared font list has been reinitialized by the parent;
-     * child processes must discard and recreate their mappings to it.
+     * The shared font list has been updated by the parent, so child processes
+     * should globally reflow everything to pick up new character coverage etc.
+     * If aFullRebuild is true, child processes must discard and recreate
+     * their mappings to the shmem blocks, as those are no longer valid.
      */
-    async RebuildFontList();
+    async RebuildFontList(bool aFulLRebuild);
 
     /**
      * The shared font list has been modified, potentially adding matches
@@ -675,7 +692,7 @@ child:
 
     async SetXPCOMProcessAttributes(XPCOMInitData xpcomInit,
                                     StructuredCloneData initialData,
-                                    LookAndFeelCache lookAndFeelCache,
+                                    LookAndFeelData lookAndFeeldata,
                                     /* used on MacOSX/Linux/Android only: */
                                     SystemFontListEntry[] systemFontList,
                                     SharedMemoryHandle? sharedUASheetHandle,
@@ -900,7 +917,7 @@ child:
     async LoadURI(MaybeDiscardedBrowsingContext aContext, nsDocShellLoadState aLoadState, bool aSetNavigating)
         returns (bool aSuccess);
 
-    async InternalLoad(nsDocShellLoadState aLoadState, bool aTakeFocus);
+    async InternalLoad(nsDocShellLoadState aLoadState);
 
     async DisplayLoadError(MaybeDiscardedBrowsingContext aContext, nsString aURI);
 
@@ -936,6 +953,9 @@ child:
   // the `PermitUnloadResult` enum.
   async DispatchBeforeUnloadToSubtree(MaybeDiscardedBrowsingContext aStartingAt)
       returns (PermitUnloadResult result);
+
+  // Update the cached list of codec supported in the given process.
+  async UpdateMediaCodecsSupported(RemoteDecodeIn aLocation, MediaCodecsSupported aSupported);
 
 parent:
     /**
@@ -1047,7 +1067,7 @@ parent:
 
     async ShowAlert(nsIAlertNotification alert);
 
-    async CloseAlert(nsString name, Principal principal);
+    async CloseAlert(nsString name);
 
     async DisableNotifications(Principal principal);
 
@@ -1104,7 +1124,7 @@ parent:
 
     async PHandlerService();
 
-    async AddGeolocationListener(Principal principal, bool highAccuracy);
+    async AddGeolocationListener(bool highAccuracy);
     async RemoveGeolocationListener();
     async SetGeolocationHigherAccuracy(bool enable);
 
@@ -1118,7 +1138,7 @@ parent:
     async SetClipboard(IPCDataTransfer aDataTransfer,
                        bool aIsPrivateData,
                        Principal aRequestingPrincipal,
-                       uint32_t aContentPolicyType,
+                       nsContentPolicyType aContentPolicyType,
                        int32_t aWhichClipboard);
 
     // Given a list of supported types, returns the clipboard data for the
@@ -1153,7 +1173,7 @@ parent:
 
     async DeviceReset();
 
-    async CopyFavicon(nsIURI oldURI, nsIURI newURI, Principal aLoadingPrincipal, bool isPrivate);
+    async CopyFavicon(nsIURI oldURI, nsIURI newURI, bool isPrivate);
 
     /**
      * Notifies the parent about a recording device is starting or shutdown.
@@ -1425,6 +1445,23 @@ parent:
     sync InitOtherFamilyNames(uint32_t aGeneration, bool aDefer) returns (bool aLoaded);
 
     /**
+     * Ask the parent to load all font character maps, as we need to do an
+     * exhaustive font-fallback search. This is done asynchronously; when it
+     * finishes, the parent will trigger global reflow so that font selection
+     * is re-done in all content, making use of the newly-loaded cmaps.
+     * Normally this will only happen once per browser session (unless the
+     * font list is rebuilt due to installation/removal of system fonts).
+     *
+     * @param aGeneration
+     *   Font-list generation, so requests relating to an obsolete list can be
+     *   ignored (see comments for GetFontListShmBlock).
+     * @param aStartIndex
+     *   The family index to start from; the sender has determined that cmaps
+     *   up to this point are already loaded.
+     */
+    async StartCmapLoading(uint32_t aGeneration, uint32_t aStartIndex);
+
+    /**
      * Ask the parent for a specific hyphenation resource (identified by URI)
      * as a shared memory block.
      *
@@ -1616,7 +1653,7 @@ parent:
      * metadata is being updated.
      */
     async NotifyUpdateMediaMetadata(MaybeDiscardedBrowsingContext aContext,
-                                    MaybeMediaMetadataBase aMetadata);
+                                    MediaMetadataBase? aMetadata);
 
     /**
      * This method is used to update media session's playback state whenever its
@@ -1683,10 +1720,11 @@ parent:
                      bool? reloadActiveEntry);
 
     async HistoryCommit(MaybeDiscardedBrowsingContext aContext,
-                        uint64_t aLoadID, nsID aChangeID, uint32_t aLoadType);
+                        uint64_t aLoadID, nsID aChangeID, uint32_t aLoadType,
+                        bool aPersist, bool aCloneEntryChildren);
 
     async HistoryGo(MaybeDiscardedBrowsingContext aContext,
-                    int32_t aOffset, uint64_t aHistoryEpoch) returns(int32_t requestedIndex);
+                    int32_t aOffset, uint64_t aHistoryEpoch, bool aRequireUserInteraction) returns(int32_t requestedIndex);
 
     async BlobURLDataRequest(nsCString aBlobURL,
                              nsIPrincipal aTriggeringPrincipal,
@@ -1768,30 +1806,33 @@ both:
     async WindowClose(MaybeDiscardedBrowsingContext aContext,
                       bool aTrustedCaller);
     async WindowFocus(MaybeDiscardedBrowsingContext aContext,
-                      CallerType aCallerType);
+                      CallerType aCallerType, uint64_t aActionId);
     async WindowBlur(MaybeDiscardedBrowsingContext aContext);
-    async RaiseWindow(MaybeDiscardedBrowsingContext aContext, CallerType aCallerType);
+    async RaiseWindow(MaybeDiscardedBrowsingContext aContext, CallerType aCallerType, uint64_t aActionId);
     async ClearFocus(MaybeDiscardedBrowsingContext aContext);
     async SetFocusedBrowsingContext(MaybeDiscardedBrowsingContext aContext);
-    async SetActiveBrowsingContext(MaybeDiscardedBrowsingContext aContext);
-    async UnsetActiveBrowsingContext(MaybeDiscardedBrowsingContext aContext);
+    async SetActiveBrowsingContext(MaybeDiscardedBrowsingContext aContext, uint64_t aActionId);
+    async UnsetActiveBrowsingContext(MaybeDiscardedBrowsingContext aContext, uint64_t aActionId);
     async SetFocusedElement(MaybeDiscardedBrowsingContext aContext, bool aNeedsFocus);
     async FinalizeFocusOuter(MaybeDiscardedBrowsingContext aContext, bool aCanFocus,
                              CallerType aCallerType);
 parent:
+    async InsertNewFocusActionId(uint64_t aActionId);
     async BlurToParent(MaybeDiscardedBrowsingContext aFocusedBrowsingContext,
                       MaybeDiscardedBrowsingContext aBrowsingContextToClear,
                       MaybeDiscardedBrowsingContext aAncestorBrowsingContextToFocus,
                       bool aIsLeavingDocument, bool aAdjustWidget,
                       bool aBrowsingContextToClearHandled,
-                      bool aAncestorBrowsingContextToFocusHandled);
+                      bool aAncestorBrowsingContextToFocusHandled, uint64_t aActionId);
 child:
     async BlurToChild(MaybeDiscardedBrowsingContext aFocusedBrowsingContext,
                       MaybeDiscardedBrowsingContext aBrowsingContextToClear,
                       MaybeDiscardedBrowsingContext aAncestorBrowsingContextToFocus,
-                      bool aIsLeavingDocument, bool aAdjustWidget);
+                      bool aIsLeavingDocument, bool aAdjustWidget, uint64_t aActionId);
     async SetupFocusedAndActive(MaybeDiscardedBrowsingContext aFocusedBrowsingContext,
                                 MaybeDiscardedBrowsingContext aActiveBrowsingContext);
+    async ReviseActiveBrowsingContext(MaybeDiscardedBrowsingContext aActiveBrowsingContext,
+                                      uint64_t aActionId);
 both:
     async MaybeExitFullscreen(MaybeDiscardedBrowsingContext aContext);
     async WindowPostMessage(MaybeDiscardedBrowsingContext aContext,
@@ -1819,6 +1860,10 @@ child:
     // Tells the child to flush any pending data. Used in tests and ping
     // assembly. Buffer contains bincoded Rust structs.
     async FlushFOGData() returns (ByteBuf buf);
+
+parent:
+    async SetContainerFeaturePolicy(MaybeDiscardedBrowsingContext aContainerContext,
+                                    FeaturePolicy aContainerFeaturePolicy);
 };
 
 }

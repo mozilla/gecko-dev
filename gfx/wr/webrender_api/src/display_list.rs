@@ -263,7 +263,7 @@ impl DebugStats {
 
     /// Logs the stats for the given serialized slice
     #[cfg(feature = "display_list_stats")]
-    fn log_slice<T: Peek>(
+    fn log_slice<T: Copy + Default + peek_poke::Peek>(
         &mut self,
         slice_name: &'static str,
         range: &ItemRange<T>,
@@ -1724,7 +1724,7 @@ impl DisplayListBuilder {
     pub fn define_scroll_frame(
         &mut self,
         parent_space_and_clip: &di::SpaceAndClipInfo,
-        external_id: Option<di::ExternalScrollId>,
+        external_id: di::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
         scroll_sensitivity: di::ScrollSensitivity,

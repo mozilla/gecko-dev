@@ -45,10 +45,7 @@ inline bool TemplateObject::isPlainObject() const {
   return obj_->is<PlainObject>();
 }
 
-inline gc::Cell* TemplateObject::group() const {
-  MOZ_ASSERT(!obj_->hasLazyGroup());
-  return obj_->group();
-}
+inline gc::Cell* TemplateObject::group() const { return obj_->group(); }
 
 inline gc::Cell* TemplateObject::shape() const {
   Shape* shape = obj_->shape();
@@ -89,7 +86,7 @@ inline Value NativeTemplateObject::getSlot(uint32_t i) const {
 }
 
 inline const Value* NativeTemplateObject::getDenseElements() const {
-  return asNative().getDenseElementsAllowCopyOnWrite();
+  return asNative().getDenseElements();
 }
 
 #ifdef DEBUG

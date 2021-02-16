@@ -12,11 +12,13 @@
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/Document.h"
 
+#include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
 #include "nsIInputStream.h"
 #include "nsIProtocolHandler.h"
 #include "nsIUploadChannel2.h"
 
+#include "nsComponentManagerUtils.h"
 #include "nsNetUtil.h"
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"

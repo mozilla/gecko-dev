@@ -13,6 +13,7 @@
 #include "mozilla/MouseEvents.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/TextEvents.h"
@@ -20,7 +21,11 @@
 #include "mozilla/TouchEvents.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/WidgetUtils.h"
+#include "mozilla/X11Util.h"
+#include "mozilla/XREAppData.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/WheelEventBinding.h"
+#include "InputData.h"
 #include "nsAppRunner.h"
 #include <algorithm>
 
@@ -154,11 +159,43 @@ using mozilla::gl::GLContextGLX;
 // out to the bounding-box if there are more
 #define MAX_RECTS_IN_REGION 100
 
-const gint kEvents =
-    GDK_EXPOSURE_MASK | GDK_STRUCTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK |
-    GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_BUTTON_PRESS_MASK |
-    GDK_BUTTON_RELEASE_MASK | GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK |
-    GDK_SCROLL_MASK | GDK_POINTER_MOTION_MASK | GDK_PROPERTY_CHANGE_MASK;
+#if !GTK_CHECK_VERSION(3, 18, 0)
+
+struct _GdkEventTouchpadPinch {
+  GdkEventType type;
+  GdkWindow* window;
+  gint8 send_event;
+  gint8 phase;
+  gint8 n_fingers;
+  guint32 time;
+  gdouble x;
+  gdouble y;
+  gdouble dx;
+  gdouble dy;
+  gdouble angle_delta;
+  gdouble scale;
+  gdouble x_root, y_root;
+  guint state;
+};
+
+typedef enum {
+  GDK_TOUCHPAD_GESTURE_PHASE_BEGIN,
+  GDK_TOUCHPAD_GESTURE_PHASE_UPDATE,
+  GDK_TOUCHPAD_GESTURE_PHASE_END,
+  GDK_TOUCHPAD_GESTURE_PHASE_CANCEL
+} GdkTouchpadGesturePhase;
+
+GdkEventMask GDK_TOUCHPAD_GESTURE_MASK = static_cast<GdkEventMask>(1 << 24);
+GdkEventType GDK_TOUCHPAD_PINCH = static_cast<GdkEventType>(42);
+
+#endif
+
+const gint kEvents = GDK_TOUCHPAD_GESTURE_MASK | GDK_EXPOSURE_MASK |
+                     GDK_STRUCTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK |
+                     GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
+                     GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
+                     GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SCROLL_MASK |
+                     GDK_POINTER_MOTION_MASK | GDK_PROPERTY_CHANGE_MASK;
 
 #if !GTK_CHECK_VERSION(3, 22, 0)
 typedef enum {
@@ -212,6 +249,7 @@ static gboolean key_release_event_cb(GtkWidget* widget, GdkEventKey* event);
 static gboolean property_notify_event_cb(GtkWidget* widget,
                                          GdkEventProperty* event);
 static gboolean scroll_event_cb(GtkWidget* widget, GdkEventScroll* event);
+
 static void hierarchy_changed_cb(GtkWidget* widget,
                                  GtkWidget* previous_toplevel);
 static gboolean window_state_event_cb(GtkWidget* widget,
@@ -227,6 +265,8 @@ static void widget_composited_changed_cb(GtkWidget* widget, gpointer user_data);
 static void scale_changed_cb(GtkWidget* widget, GParamSpec* aPSpec,
                              gpointer aPointer);
 static gboolean touch_event_cb(GtkWidget* aWidget, GdkEventTouch* aEvent);
+static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent);
+
 static nsWindow* GetFirstNSWindowForGDKWindow(GdkWindow* aGdkWindow);
 
 #ifdef __cplusplus
@@ -269,6 +309,13 @@ static SystemTimeConverter<guint32>& TimeConverter() {
 
 nsWindow::CSDSupportLevel nsWindow::sCSDSupportLevel = CSD_SUPPORT_UNKNOWN;
 bool nsWindow::sTransparentMainWindow = false;
+static bool sIgnoreChangedSettings = false;
+
+void nsWindow::WithSettingsChangesIgnored(const std::function<void()>& aFn) {
+  AutoRestore ar(sIgnoreChangedSettings);
+  sIgnoreChangedSettings = true;
+  aFn();
+}
 
 namespace mozilla {
 
@@ -504,7 +551,7 @@ nsWindow::nsWindow() {
   mWindowScaleFactorChanged = true;
   mWindowScaleFactor = 1;
 
-  mIsAccelerated = false;
+  mCompositedScreen = gdk_screen_is_composited(gdk_screen_get_default());
 }
 
 nsWindow::~nsWindow() {
@@ -910,7 +957,18 @@ void nsWindow::SetParent(nsIWidget* aNewParent) {
   }
 }
 
-bool nsWindow::WidgetTypeSupportsAcceleration() { return !IsSmallPopup(); }
+bool nsWindow::WidgetTypeSupportsAcceleration() {
+  if (IsSmallPopup()) {
+    return false;
+  }
+  // Workaround for Bug 1479135
+  // We draw transparent popups on non-compositing screens by SW as we don't
+  // implement X shape masks in WebRender.
+  if (mWindowType == eWindowType_popup) {
+    return mCompositedScreen;
+  }
+  return true;
+}
 
 void nsWindow::ReparentNativeWidget(nsIWidget* aNewParent) {
   MOZ_ASSERT(aNewParent, "null widget");
@@ -1217,9 +1275,11 @@ void nsWindow::Move(double aX, double aY) {
   }
 }
 
-bool nsWindow::IsWaylandPopup() {
-  return !mIsX11Display && mIsTopLevel && mWindowType == eWindowType_popup;
+bool nsWindow::IsPopup() {
+  return mIsTopLevel && mWindowType == eWindowType_popup;
 }
+
+bool nsWindow::IsWaylandPopup() { return !mIsX11Display && IsPopup(); }
 
 void nsWindow::HideWaylandTooltips() {
   while (gVisibleWaylandPopupWindows) {
@@ -1901,13 +1961,17 @@ static bool GetWindowManagerName(GdkWindow* gdk_window, nsACString& wmName) {
   if (!property || !req_type) {
     return false;
   }
-  result =
-      XGetWindowProperty(xdisplay, wmWindow, property,
-                         0L,         // offset
-                         INT32_MAX,  // length
-                         false,      // delete
-                         req_type, &actual_type_return, &actual_format_return,
-                         &nitems_return, &bytes_after_return, &prop_return);
+  {
+    // Suppress fatal errors for a missing window.
+    ScopedXErrorHandler handler;
+    result =
+        XGetWindowProperty(xdisplay, wmWindow, property,
+                           0L,         // offset
+                           INT32_MAX,  // length
+                           false,      // delete
+                           req_type, &actual_type_return, &actual_format_return,
+                           &nitems_return, &bytes_after_return, &prop_return);
+  }
 
   if (result != Success || bytes_after_return != 0) {
     return false;
@@ -3236,8 +3300,8 @@ void nsWindow::OnLeaveNotifyEvent(GdkEventCrossing* aEvent) {
   event.AssignEventTime(GetWidgetEventTime(aEvent->time));
 
   event.mExitFrom = Some(is_top_level_mouse_exit(mGdkWindow, aEvent)
-                             ? WidgetMouseEvent::eTopLevel
-                             : WidgetMouseEvent::eChild);
+                             ? WidgetMouseEvent::ePlatformTopLevel
+                             : WidgetMouseEvent::ePlatformChild);
 
   LOG(("OnLeaveNotify: %p\n", (void*)this));
 
@@ -3670,9 +3734,9 @@ void nsWindow::OnContainerFocusOutEvent(GdkEventFocus* aEvent) {
 
   if (IsChromeWindowTitlebar()) {
     // DispatchDeactivateEvent() ultimately results in a call to
-    // nsGlobalWindowOuter::ActivateOrDeactivate(), which resets
-    // the mIsActive flag.  We call UpdateMozWindowActive() to keep
-    // the flag in sync with GDK_WINDOW_STATE_FOCUSED.
+    // BrowsingContext::SetIsActiveBrowserWindow(), which resets
+    // the state.  We call UpdateMozWindowActive() to keep it in
+    // sync with GDK_WINDOW_STATE_FOCUSED.
     UpdateMozWindowActive();
   }
 
@@ -3918,7 +3982,7 @@ void nsWindow::OnWindowStateEvent(GtkWidget* aWidget,
     mTitlebarBackdropState =
         !(aEvent->new_window_state & GDK_WINDOW_STATE_FOCUSED);
 
-    // keep mIsActive in sync with GDK_WINDOW_STATE_FOCUSED
+    // keep IsActiveBrowserWindow in sync with GDK_WINDOW_STATE_FOCUSED
     UpdateMozWindowActive();
 
     ForceTitlebarRedraw();
@@ -4034,6 +4098,7 @@ void nsWindow::OnCompositedChanged() {
   // Update CSD after the change in alpha visibility. This only affects
   // system metrics, not other theme shenanigans.
   NotifyThemeChanged(ThemeChangeKind::MediaQueriesOnly);
+  mCompositedScreen = gdk_screen_is_composited(gdk_screen_get_default());
 }
 
 void nsWindow::OnScaleChanged(GtkAllocation* aAllocation) {
@@ -4110,6 +4175,58 @@ bool nsWindow::IsHandlingTouchSequence(GdkEventSequence* aSequence) {
   return mHandleTouchEvent && mTouches.Contains(aSequence);
 }
 
+gboolean nsWindow::OnTouchpadPinchEvent(GdkEventTouchpadPinch* aEvent) {
+  if (StaticPrefs::apz_gtk_touchpad_pinch_enabled()) {
+    PinchGestureInput::PinchGestureType pinchGestureType =
+        PinchGestureInput::PINCHGESTURE_SCALE;
+    ScreenCoord CurrentSpan;
+    ScreenCoord PreviousSpan;
+
+    switch (aEvent->phase) {
+      case GDK_TOUCHPAD_GESTURE_PHASE_BEGIN:
+        pinchGestureType = PinchGestureInput::PINCHGESTURE_START;
+        CurrentSpan = aEvent->scale;
+
+        // Assign PreviousSpan --> 0.999 to make mDeltaY field of the
+        // WidgetWheelEvent that this PinchGestureInput event will be converted
+        // to not equal Zero as our discussion because we observed that the
+        // scale of the PHASE_BEGIN event is 1.
+        PreviousSpan = 0.999;
+        mLastPinchEventSpan = aEvent->scale;
+        break;
+
+      case GDK_TOUCHPAD_GESTURE_PHASE_UPDATE:
+        pinchGestureType = PinchGestureInput::PINCHGESTURE_SCALE;
+        if (aEvent->scale == mLastPinchEventSpan) {
+          return FALSE;
+        }
+        CurrentSpan = aEvent->scale;
+        PreviousSpan = mLastPinchEventSpan;
+        mLastPinchEventSpan = aEvent->scale;
+        break;
+
+      case GDK_TOUCHPAD_GESTURE_PHASE_END:
+        pinchGestureType = PinchGestureInput::PINCHGESTURE_END;
+        CurrentSpan = aEvent->scale;
+        PreviousSpan = mLastPinchEventSpan;
+        break;
+
+      default:
+        return FALSE;
+    }
+
+    LayoutDeviceIntPoint touchpadPoint = GetRefPoint(this, aEvent);
+    PinchGestureInput event(
+        pinchGestureType, PinchGestureInput::TRACKPAD, aEvent->time,
+        GetEventTimeStamp(aEvent->time), ExternalPoint(0, 0),
+        ScreenPoint(touchpadPoint.x, touchpadPoint.y), CurrentSpan,
+        PreviousSpan, KeymapWrapper::ComputeKeyModifiers(aEvent->state));
+
+    DispatchPinchGestureInput(event);
+  }
+  return TRUE;
+}
+
 gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {
   if (!mHandleTouchEvent) {
     // If a popup window was spawned (e.g. as the result of a long-press)
@@ -4176,12 +4293,14 @@ gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {
   return TRUE;
 }
 
-bool nsWindow::IsMainWindowTransparent() {
+// Return true if toplevel window is transparent.
+// It's transparent when we're running on composited screens
+// and we can draw main window without system titlebar.
+bool nsWindow::IsToplevelWindowTransparent() {
   static bool transparencyConfigured = false;
 
   if (!transparencyConfigured) {
-    GdkScreen* screen = gdk_screen_get_default();
-    if (gdk_screen_is_composited(screen)) {
+    if (gdk_screen_is_composited(gdk_screen_get_default())) {
       // Some Gtk+ themes use non-rectangular toplevel windows. To fully
       // support such themes we need to make toplevel window transparent
       // with ARGB visual.
@@ -4192,6 +4311,8 @@ bool nsWindow::IsMainWindowTransparent() {
         sTransparentMainWindow =
             Preferences::GetBool("mozilla.widget.use-argb-visuals");
       } else {
+        // Enable transparent toplevel window if we can draw main window
+        // without system titlebar as Gtk+ themes use titlebar round corners.
         sTransparentMainWindow = GetSystemCSDSupportLevel() != CSD_SUPPORT_NONE;
       }
     }
@@ -4217,6 +4338,58 @@ static GdkWindow* CreateGdkWindow(GdkWindow* parent, GtkWidget* widget) {
   gdk_window_set_user_data(window, widget);
 
   return window;
+}
+
+// Configure GL visual on X11. We add alpha silently
+// if we use WebRender to workaround NVIDIA specific Bug 1663273.
+bool nsWindow::ConfigureX11GLVisual(bool aUseAlpha) {
+  if (!mIsX11Display) {
+    return false;
+  }
+
+  // If using WebRender on X11, we need to select a visual with a depth
+  // buffer, as well as an alpha channel if transparency is requested. This
+  // must be done before the widget is realized.
+  bool useWebRender = gfx::gfxVars::UseWebRender();
+  auto* screen = gtk_widget_get_screen(mShell);
+  int visualId = 0;
+  bool haveVisual;
+
+  // See https://bugzilla.mozilla.org/show_bug.cgi?id=1663003
+  // We need to use GLX to get visual even on EGL until
+  // EGL can provide compositable visual:
+  // https://gitlab.freedesktop.org/mesa/mesa/-/issues/149
+  if ((true /* !gfx::gfxVars::UseEGL() */)) {
+    auto* display = GDK_DISPLAY_XDISPLAY(gtk_widget_get_display(mShell));
+    int screenNumber = GDK_SCREEN_XNUMBER(screen);
+    haveVisual = GLContextGLX::FindVisual(display, screenNumber, useWebRender,
+                                          aUseAlpha || useWebRender, &visualId);
+  } else {
+    haveVisual = GLContextEGL::FindVisual(useWebRender,
+                                          aUseAlpha || useWebRender, &visualId);
+  }
+
+  GdkVisual* gdkVisual = nullptr;
+  if (haveVisual) {
+    // If we're using CSD, rendering will go through mContainer, but
+    // it will inherit this visual as it is a child of mShell.
+    gdkVisual = gdk_x11_screen_lookup_visual(screen, visualId);
+  }
+  if (!gdkVisual) {
+    NS_WARNING("We're missing X11 Visual!");
+    if (aUseAlpha || useWebRender) {
+      // We try to use a fallback alpha visual
+      GdkScreen* screen = gtk_widget_get_screen(mShell);
+      gdkVisual = gdk_screen_get_rgba_visual(screen);
+    }
+  }
+  if (gdkVisual) {
+    // TODO: We use alpha visual even on non-compositing screens (Bug 1479135).
+    gtk_widget_set_visual(mShell, gdkVisual);
+    mHasAlphaVisual = aUseAlpha;
+  }
+
+  return true;
 }
 
 nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
@@ -4269,8 +4442,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   ConstrainSize(&mBounds.width, &mBounds.height);
 
   GtkWidget* eventWidget = nullptr;
-  bool needsAlphaVisual = (mWindowType == eWindowType_popup &&
-                           (aInitData && aInitData->mSupportTranslucency));
+  bool popupNeedsAlphaVisual = (mWindowType == eWindowType_popup &&
+                                (aInitData && aInitData->mSupportTranslucency));
 
   // Figure out our parent window - only used for eWindowType_child
   GtkWidget* parentMozContainer = nullptr;
@@ -4340,9 +4513,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       // gfxVars, used below.
       Unused << gfxPlatform::GetPlatform();
 
-      mIsAccelerated = ComputeShouldAccelerate();
-      bool useWebRender = gfx::gfxVars::UseWebRender() && mIsAccelerated;
-
       if (mWindowType == eWindowType_toplevel ||
           mWindowType == eWindowType_dialog) {
         bool isPopup = mIsPIPWindow || mWindowType == eWindowType_dialog;
@@ -4350,65 +4520,41 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       }
 
       // Don't use transparency for PictureInPicture windows.
+      bool toplevelNeedsAlphaVisual = false;
       if (mWindowType == eWindowType_toplevel && !mIsPIPWindow) {
-        needsAlphaVisual = IsMainWindowTransparent();
-        if (!needsAlphaVisual && mCSDSupportLevel != CSD_SUPPORT_NONE) {
-          mTransparencyBitmapForTitlebar = TitlebarCanUseShapeMask();
-        }
+        toplevelNeedsAlphaVisual = IsToplevelWindowTransparent();
       }
 
-      bool isSetVisual = false;
-      // If using WebRender on X11, we need to select a visual with a depth
-      // buffer, as well as an alpha channel if transparency is requested. This
-      // must be done before the widget is realized.
-
-      // Use GL/WebRender compatible visual only when it is necessary, since
-      // the visual consumes more memory.
-      if (mIsX11Display && mIsAccelerated) {
-        if (useWebRender) {
-          // WebRender rquests AlphaVisual for making readback to work
-          // correctly.
-          needsAlphaVisual = true;
-        }
-        auto screen = gtk_widget_get_screen(mShell);
-        int visualId = 0;
-        bool haveVisual;
-
-        // See https://bugzilla.mozilla.org/show_bug.cgi?id=1663003
-        // We need to use GLX to get visual even on EGL until
-        // EGL can provide compositable visual:
-        // https://gitlab.freedesktop.org/mesa/mesa/-/issues/149
-        if ((true /* !gfx::gfxVars::UseEGL() */)) {
-          auto display = GDK_DISPLAY_XDISPLAY(gtk_widget_get_display(mShell));
-          int screenNumber = GDK_SCREEN_XNUMBER(screen);
-          haveVisual = GLContextGLX::FindVisual(
-              display, screenNumber, useWebRender, needsAlphaVisual, &visualId);
-        } else {
-          haveVisual = GLContextEGL::FindVisual(useWebRender, needsAlphaVisual,
-                                                &visualId);
-        }
-        if (haveVisual) {
-          // If we're using CSD, rendering will go through mContainer, but
-          // it will inherit this visual as it is a child of mShell.
-          gtk_widget_set_visual(mShell,
-                                gdk_x11_screen_lookup_visual(screen, visualId));
-          mHasAlphaVisual = needsAlphaVisual;
-          isSetVisual = true;
-        } else {
-          NS_WARNING("We're missing X11 Visual!");
-        }
+      bool isGLVisualSet = false;
+      bool isAccelerated = ComputeShouldAccelerate();
+#ifdef MOZ_X11
+      if (isAccelerated) {
+        isGLVisualSet = ConfigureX11GLVisual(popupNeedsAlphaVisual ||
+                                             toplevelNeedsAlphaVisual);
       }
-
-      if (!isSetVisual && needsAlphaVisual) {
-        GdkScreen* screen = gtk_widget_get_screen(mShell);
-        if (gdk_screen_is_composited(screen)) {
-          GdkVisual* visual = gdk_screen_get_rgba_visual(screen);
+#endif
+      if (!isGLVisualSet &&
+          (popupNeedsAlphaVisual || toplevelNeedsAlphaVisual)) {
+        // We're running on composited screen so we can use alpha visual
+        // for both toplevel and popups.
+        if (mCompositedScreen) {
+          GdkVisual* visual =
+              gdk_screen_get_rgba_visual(gtk_widget_get_screen(mShell));
           if (visual) {
             gtk_widget_set_visual(mShell, visual);
             mHasAlphaVisual = true;
           }
         }
       }
+
+      // Use X shape mask to draw round corners of Firefox titlebar.
+      // We don't use shape masks any more as we switched to ARGB visual
+      // by default and non-compositing screens use solid-csd decorations
+      // without round corners.
+      // Leave the shape mask code here as it can be used to draw round
+      // corners on EGL (https://gitlab.freedesktop.org/mesa/mesa/-/issues/149)
+      // or when custom titlebar theme is used.
+      mTransparencyBitmapForTitlebar = TitlebarUseShapeMask();
 
       // We have a toplevel window with transparency.
       // Calls to UpdateTitlebarTransparencyBitmap() from OnExposeEvent()
@@ -4526,7 +4672,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       GtkWidget* container = moz_container_new();
       mContainer = MOZ_CONTAINER(container);
 #ifdef MOZ_WAYLAND
-      if (!mIsX11Display && mIsAccelerated) {
+      if (!mIsX11Display && isAccelerated) {
         mCompositorInitiallyPaused = true;
         RefPtr<nsWindow> self(this);
         moz_container_wayland_add_initial_draw_callback(
@@ -4700,6 +4846,21 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                            G_CALLBACK(settings_changed_cb), this);
     g_signal_connect_after(default_settings, "notify::gtk-xft-dpi",
                            G_CALLBACK(settings_xft_dpi_changed_cb), this);
+    // For remote LookAndFeel, to refresh the content processes' copies:
+    g_signal_connect_after(default_settings, "notify::gtk-cursor-blink-time",
+                           G_CALLBACK(settings_changed_cb), this);
+    g_signal_connect_after(default_settings, "notify::gtk-cursor-blink",
+                           G_CALLBACK(settings_changed_cb), this);
+    g_signal_connect_after(default_settings,
+                           "notify::gtk-entry-select-on-focus",
+                           G_CALLBACK(settings_changed_cb), this);
+    g_signal_connect_after(default_settings,
+                           "notify::gtk-primary-button-warps-slider",
+                           G_CALLBACK(settings_changed_cb), this);
+    g_signal_connect_after(default_settings, "notify::gtk-menu-popup-delay",
+                           G_CALLBACK(settings_changed_cb), this);
+    g_signal_connect_after(default_settings, "notify::gtk-dnd-drag-threshold",
+                           G_CALLBACK(settings_changed_cb), this);
   }
 
   if (mContainer) {
@@ -4781,6 +4942,10 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
                      G_CALLBACK(button_release_event_cb), nullptr);
     g_signal_connect(eventWidget, "scroll-event", G_CALLBACK(scroll_event_cb),
                      nullptr);
+    if (gtk_check_version(3, 18, 0) == nullptr) {
+      g_signal_connect(eventWidget, "event", G_CALLBACK(generic_event_cb),
+                       nullptr);
+    }
     g_signal_connect(eventWidget, "touch-event", G_CALLBACK(touch_event_cb),
                      nullptr);
   }
@@ -4810,7 +4975,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     GdkVisual* gdkVisual = gdk_window_get_visual(mGdkWindow);
     mXVisual = gdk_x11_visual_get_xvisual(gdkVisual);
     mXDepth = gdk_visual_get_depth(gdkVisual);
-    bool shaped = needsAlphaVisual && !mHasAlphaVisual;
+    bool shaped = popupNeedsAlphaVisual && !mHasAlphaVisual;
 
     mSurfaceProvider.Initialize(mXDisplay, mXWindow, mXVisual, mXDepth, shaped);
 
@@ -5019,13 +5184,19 @@ void nsWindow::NativeMoveResize() {
 void nsWindow::PauseRemoteRenderer() {
 #ifdef MOZ_WAYLAND
   if (!mIsDestroyed) {
-    if (mContainer && moz_container_wayland_has_egl_window(mContainer)) {
+    if (mContainer) {
       // Because wl_egl_window is destroyed on moz_container_unmap(),
       // the current compositor cannot use it anymore. To avoid crash,
       // pause the compositor and destroy EGLSurface & resume the compositor
       // and re-create EGLSurface on next expose event.
-      MOZ_ASSERT(GetRemoteRenderer());
-      if (CompositorBridgeChild* remoteRenderer = GetRemoteRenderer()) {
+
+      // moz_container_wayland_has_egl_window() could not be used here, since
+      // there is a case that resume compositor is not completed yet.
+
+      CompositorBridgeChild* remoteRenderer = GetRemoteRenderer();
+      bool needsCompositorPause = !mNeedsCompositorResume && !!remoteRenderer &&
+                                  mCompositorWidgetDelegate;
+      if (needsCompositorPause) {
         // XXX slow sync IPC
         remoteRenderer->SendPause();
         // Re-request initial draw callback
@@ -5345,6 +5516,10 @@ static void SubtractTitlebarCorners(cairo_region_t* aRegion, int aX, int aY,
 }
 
 void nsWindow::UpdateTopLevelOpaqueRegion(void) {
+  if (!mCompositedScreen) {
+    return;
+  }
+
   GdkWindow* window =
       (mDrawToContainer) ? gtk_widget_get_window(mShell) : mGdkWindow;
   if (!window) {
@@ -5354,9 +5529,9 @@ void nsWindow::UpdateTopLevelOpaqueRegion(void) {
 
   int x = 0;
   int y = 0;
-  if (!mIsX11Display || mDrawInTitlebar) {
-    x = DevicePixelsToGdkCoordRoundDown(mClientOffset.x);
-    y = DevicePixelsToGdkCoordRoundDown(mClientOffset.y);
+
+  if (mDrawToContainer) {
+    gdk_window_get_position(mGdkWindow, &x, &y);
   }
 
   int width = DevicePixelsToGdkCoordRoundDown(mBounds.width);
@@ -5637,6 +5812,15 @@ nsresult nsWindow::UpdateTranslucentWindowAlphaInternal(const nsIntRect& aRect,
     ApplyTransparencyBitmap();
   }
   return NS_OK;
+}
+
+bool nsWindow::GetTitlebarRect(mozilla::gfx::Rect& aRect) {
+  if (!mGdkWindow || !mDrawInTitlebar) {
+    return false;
+  }
+
+  aRect = gfx::Rect(0, 0, mBounds.width, TITLEBAR_SHAPE_MASK_HEIGHT);
+  return true;
 }
 
 void nsWindow::UpdateTitlebarTransparencyBitmap() {
@@ -5932,8 +6116,7 @@ gboolean FullscreenTransitionData::TimeoutCallback(gpointer aData) {
 
 /* virtual */
 bool nsWindow::PrepareForFullscreenTransition(nsISupports** aData) {
-  GdkScreen* screen = gtk_widget_get_screen(mShell);
-  if (!gdk_screen_is_composited(screen)) {
+  if (!mCompositedScreen) {
     return false;
   }
   *aData = do_AddRef(new FullscreenTransitionWindow(mShell)).take();
@@ -6827,6 +7010,9 @@ static gboolean window_state_event_cb(GtkWidget* widget,
 
 static void settings_changed_cb(GtkSettings* settings, GParamSpec* pspec,
                                 nsWindow* data) {
+  if (sIgnoreChangedSettings) {
+    return;
+  }
   RefPtr<nsWindow> window = data;
   window->ThemeChanged();
 }
@@ -6890,6 +7076,25 @@ static gboolean touch_event_cb(GtkWidget* aWidget, GdkEventTouch* aEvent) {
   }
 
   return window->OnTouchEvent(aEvent);
+}
+
+// This function called generic because there is no signal specific to touchpad
+// pinch events.
+static gboolean generic_event_cb(GtkWidget* widget, GdkEvent* aEvent) {
+  if (aEvent->type != GDK_TOUCHPAD_PINCH) {
+    return FALSE;
+  }
+  // Using reinterpret_cast because the touchpad_pinch field of GdkEvent is not
+  // available in GTK+ versions lower than v3.18
+  GdkEventTouchpadPinch* event =
+      reinterpret_cast<GdkEventTouchpadPinch*>(aEvent);
+
+  nsWindow* window = GetFirstNSWindowForGDKWindow(event->window);
+
+  if (!window) {
+    return FALSE;
+  }
+  return window->OnTouchpadPinchEvent(event);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -7125,7 +7330,7 @@ void nsWindow::SetInputContext(const InputContext& aContext,
 InputContext nsWindow::GetInputContext() {
   InputContext context;
   if (!mIMContext) {
-    context.mIMEState.mEnabled = IMEState::DISABLED;
+    context.mIMEState.mEnabled = IMEEnabled::Disabled;
     context.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
   } else {
     context = mIMContext->GetInputContext();
@@ -7172,16 +7377,18 @@ bool nsWindow::GetEditCommands(NativeKeyBindingsType aType,
     // Check if we're targeting content with vertical writing mode,
     // and if so remap the arrow keys.
     // XXX This may be expensive.
-    WidgetQueryContentEvent query(true, eQuerySelectedText, this);
+    WidgetQueryContentEvent querySelectedTextEvent(true, eQuerySelectedText,
+                                                   this);
     nsEventStatus status;
-    DispatchEvent(&query, status);
+    DispatchEvent(&querySelectedTextEvent, status);
 
-    if (query.mSucceeded && query.mReply.mWritingMode.IsVertical()) {
+    if (querySelectedTextEvent.FoundSelection() &&
+        querySelectedTextEvent.mReply->mWritingMode.IsVertical()) {
       uint32_t geckoCode = 0;
       uint32_t gdkCode = 0;
       switch (aEvent.mKeyCode) {
         case NS_VK_LEFT:
-          if (query.mReply.mWritingMode.IsVerticalLR()) {
+          if (querySelectedTextEvent.mReply->mWritingMode.IsVerticalLR()) {
             geckoCode = NS_VK_UP;
             gdkCode = GDK_Up;
           } else {
@@ -7191,7 +7398,7 @@ bool nsWindow::GetEditCommands(NativeKeyBindingsType aType,
           break;
 
         case NS_VK_RIGHT:
-          if (query.mReply.mWritingMode.IsVerticalLR()) {
+          if (querySelectedTextEvent.mReply->mWritingMode.IsVerticalLR()) {
             geckoCode = NS_VK_DOWN;
             gdkCode = GDK_Down;
           } else {
@@ -7544,10 +7751,10 @@ gint nsWindow::GdkScaleFactor() {
       (gint(*)(GdkWindow*))dlsym(RTLD_DEFAULT, "gdk_window_get_scale_factor");
   if (sGdkWindowGetScaleFactorPtr && scaledGdkWindow) {
     mWindowScaleFactor = (*sGdkWindowGetScaleFactorPtr)(scaledGdkWindow);
+    mWindowScaleFactorChanged = false;
   } else {
     mWindowScaleFactor = ScreenHelperGTK::GetGTKMonitorScaleFactor();
   }
-  mWindowScaleFactorChanged = false;
 
   return mWindowScaleFactor;
 }
@@ -7856,69 +8063,49 @@ nsWindow::CSDSupportLevel nsWindow::GetSystemCSDSupportLevel(bool aIsPopup) {
   return sCSDSupportLevel;
 }
 
-// Check for Mutter regression on X.org (Bug 1530252). In that case we
-// don't hide system titlebar by default as we can't draw transparent
-// corners reliably.
-bool nsWindow::TitlebarCanUseShapeMask() {
-  static int canUseShapeMask = -1;
-  if (canUseShapeMask != -1) {
-    return canUseShapeMask;
-  }
-  canUseShapeMask = gfxPlatformGtk::GetPlatform()->IsX11Display();
+bool nsWindow::TitlebarUseShapeMask() {
+  static int useShapeMask = []() {
+    // Don't use titlebar shape mask on Wayland
+    if (!gfxPlatformGtk::GetPlatform()->IsX11Display()) {
+      return false;
+    }
 
-  const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
-  if (!currentDesktop) {
-    return canUseShapeMask;
-  }
+    // We can'y use shape masks on Mutter/X.org as we can't resize Firefox
+    // window there (Bug 1530252).
+    const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
+    if (currentDesktop) {
+      if (strstr(currentDesktop, "GNOME") != nullptr) {
+        const char* sessionType = getenv("XDG_SESSION_TYPE");
+        if (sessionType && strstr(sessionType, "x11") != nullptr) {
+          return false;
+        }
+      }
+    }
 
-  if (strstr(currentDesktop, "GNOME-Flashback:GNOME") != nullptr ||
-      strstr(currentDesktop, "GNOME") != nullptr) {
-    const char* sessionType = getenv("XDG_SESSION_TYPE");
-    canUseShapeMask = (sessionType && strstr(sessionType, "x11") == nullptr);
-  }
-
-  return canUseShapeMask;
+    return Preferences::GetBool("widget.titlebar-x11-use-shape-mask", false);
+  }();
+  return useShapeMask;
 }
 
 bool nsWindow::HideTitlebarByDefault() {
-  static int hideTitlebar = -1;
-  if (hideTitlebar != -1) {
-    return hideTitlebar;
-  }
+  static int hideTitlebar = []() {
+    // When user defined widget.default-hidden-titlebar don't do any
+    // heuristics and just follow it.
+    if (Preferences::HasUserValue("widget.default-hidden-titlebar")) {
+      return Preferences::GetBool("widget.default-hidden-titlebar", false);
+    }
 
-  // When user defined widget.default-hidden-titlebar don't do any
-  // heuristics and just follow it.
-  if (Preferences::HasUserValue("widget.default-hidden-titlebar")) {
-    hideTitlebar =
-        Preferences::GetBool("widget.default-hidden-titlebar", false);
-    return hideTitlebar;
-  }
+    // Don't hide titlebar when it's disabled on current desktop.
+    const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
+    if (!currentDesktop || GetSystemCSDSupportLevel() == CSD_SUPPORT_NONE) {
+      return false;
+    }
 
-  // We want to hide the system titlebar by default.
-  hideTitlebar = true;
-
-  // Don't hide titlebar when we can't draw round corners.
-  GdkScreen* screen = gdk_screen_get_default();
-  if (!gdk_screen_is_composited(screen) && !TitlebarCanUseShapeMask()) {
-    hideTitlebar = false;
-    return hideTitlebar;
-  }
-  // Don't hide titlebar when it's disabled on current desktop.
-  const char* currentDesktop = getenv("XDG_CURRENT_DESKTOP");
-  if (!currentDesktop || GetSystemCSDSupportLevel() == CSD_SUPPORT_NONE) {
-    hideTitlebar = false;
-    return hideTitlebar;
-  }
-
-  // We hide system titlebar on Gnome/ElementaryOS without any restriction.
-  if ((strstr(currentDesktop, "GNOME-Flashback:GNOME") != nullptr ||
-       strstr(currentDesktop, "GNOME") != nullptr ||
-       strstr(currentDesktop, "Pantheon") != nullptr)) {
-    return hideTitlebar;
-  }
-
-  // Don't hide system titlebar by default for other desktops.
-  hideTitlebar = false;
+    // We hide system titlebar on Gnome/ElementaryOS without any restriction.
+    return ((strstr(currentDesktop, "GNOME-Flashback:GNOME") != nullptr ||
+             strstr(currentDesktop, "GNOME") != nullptr ||
+             strstr(currentDesktop, "Pantheon") != nullptr));
+  }();
   return hideTitlebar;
 }
 
@@ -8140,11 +8327,12 @@ void nsWindow::UpdateMozWindowActive() {
   // Update activation state for the :-moz-window-inactive pseudoclass.
   // Normally, this follows focus; we override it here to follow
   // GDK_WINDOW_STATE_FOCUSED.
-  mozilla::dom::Document* document = GetDocument();
-  if (document) {
-    nsPIDOMWindowOuter* window = document->GetWindow();
-    if (window) {
-      window->SetActive(!mTitlebarBackdropState);
+  if (mozilla::dom::Document* document = GetDocument()) {
+    if (nsPIDOMWindowOuter* window = document->GetWindow()) {
+      if (RefPtr<mozilla::dom::BrowsingContext> bc =
+              window->GetBrowsingContext()) {
+        bc->SetIsActiveBrowserWindow(!mTitlebarBackdropState);
+      }
     }
   }
 }

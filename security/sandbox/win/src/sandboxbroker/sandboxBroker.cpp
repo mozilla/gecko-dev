@@ -313,7 +313,16 @@ bool SandboxBroker::LaunchApp(const wchar_t* aPath, const wchar_t* aArguments,
           last_error, last_warning);
   }
 
-  if (XRE_GetChildProcBinPathType(aProcessType) == BinPathType::Self) {
+#ifdef MOZ_THUNDERBIRD
+  // In Thunderbird, mInitDllBlocklistOOP is null, so InitDllBlocklistOOP would
+  // hit MOZ_RELEASE_ASSERT.
+  constexpr bool isThunderbird = true;
+#else
+  constexpr bool isThunderbird = false;
+#endif
+
+  if (!isThunderbird &&
+      XRE_GetChildProcBinPathType(aProcessType) == BinPathType::Self) {
     RefPtr<DllServices> dllSvc(DllServices::Get());
     LauncherVoidResultWithLineInfo blocklistInitOk =
         dllSvc->InitDllBlocklistOOP(aPath, targetInfo.hProcess,
@@ -390,6 +399,75 @@ static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
     LOG_E("Failed (ResultCode %d) to add %d access to: %S", result, aAccess,
           rulePath.get());
   }
+}
+
+// This function caches and returns an array of NT paths of the executable's
+// dependent modules.
+// If this returns Nothing(), it means the retrieval of the modules failed
+// (e.g. when the launcher process is disabled), so the process should not
+// enable pre-spawn CIG.
+static const Maybe<Vector<const wchar_t*>>& GetPrespawnCigExceptionModules() {
+  // sDependentModules points to a shared section created in the launcher
+  // process and the mapped address is static in each process, so we cache
+  // it as a static variable instead of retrieving it every time.
+  static Maybe<Vector<const wchar_t*>> sDependentModules =
+      []() -> Maybe<Vector<const wchar_t*>> {
+    using GetDependentModulePathsFn = const wchar_t* (*)();
+    GetDependentModulePathsFn getDependentModulePaths =
+        reinterpret_cast<GetDependentModulePathsFn>(::GetProcAddress(
+            ::GetModuleHandleW(nullptr), "GetDependentModulePaths"));
+    if (!getDependentModulePaths) {
+      return Nothing();
+    }
+
+    const wchar_t* arrayBase = getDependentModulePaths();
+    if (!arrayBase) {
+      return Nothing();
+    }
+
+    // Convert a null-delimited string set to a string vector.
+    Vector<const wchar_t*> paths;
+    for (const wchar_t* p = arrayBase; *p;) {
+      Unused << paths.append(p);
+      while (*p) {
+        ++p;
+      }
+      ++p;
+    }
+
+    return Some(std::move(paths));
+  }();
+
+  return sDependentModules;
+}
+
+static sandbox::ResultCode InitSignedPolicyRulesToBypassCig(
+    sandbox::TargetPolicy* aPolicy,
+    const Vector<const wchar_t*>& aExceptionModules) {
+  // Allow modules in the directory containing the executable such as
+  // mozglue.dll, nss3.dll, etc.
+  nsAutoString rulePath(*sBinDir);
+  rulePath.Append(u"\\*");
+  auto result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_SIGNED_BINARY,
+                                 sandbox::TargetPolicy::SIGNED_ALLOW_LOAD,
+                                 rulePath.get());
+  if (result != sandbox::SBOX_ALL_OK) {
+    return result;
+  }
+
+  if (aExceptionModules.empty()) {
+    return sandbox::SBOX_ALL_OK;
+  }
+
+  for (const wchar_t* path : aExceptionModules) {
+    result = aPolicy->AddRule(sandbox::TargetPolicy::SUBSYS_SIGNED_BINARY,
+                              sandbox::TargetPolicy::SIGNED_ALLOW_LOAD, path);
+    if (result != sandbox::SBOX_ALL_OK) {
+      return result;
+    }
+  }
+
+  return sandbox::SBOX_ALL_OK;
 }
 
 // Checks whether we can use a job object as part of the sandbox.
@@ -898,12 +976,28 @@ bool SandboxBroker::SetSecurityLevelForRDDProcess() {
       sandbox::MITIGATION_DEP_NO_ATL_THUNK | sandbox::MITIGATION_DEP |
       sandbox::MITIGATION_IMAGE_LOAD_PREFER_SYS32;
 
+  const Maybe<Vector<const wchar_t*>>& exceptionModules =
+      GetPrespawnCigExceptionModules();
+  if (exceptionModules.isSome()) {
+    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+  }
+
   result = mPolicy->SetProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result, "Invalid flags for SetProcessMitigations.");
 
+  if (exceptionModules.isSome()) {
+    // This needs to be called after MITIGATION_FORCE_MS_SIGNED_BINS is set
+    // because of DCHECK in PolicyBase::AddRuleInternal.
+    result = InitSignedPolicyRulesToBypassCig(mPolicy, exceptionModules.ref());
+    SANDBOX_ENSURE_SUCCESS(result, "Failed to initialize signed policy rules.");
+  }
+
   mitigations = sandbox::MITIGATION_STRICT_HANDLE_CHECKS |
-                sandbox::MITIGATION_DLL_SEARCH_ORDER |
-                sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+                sandbox::MITIGATION_DLL_SEARCH_ORDER;
+
+  if (exceptionModules.isNothing()) {
+    mitigations |= sandbox::MITIGATION_FORCE_MS_SIGNED_BINS;
+  }
 
   result = mPolicy->SetDelayedProcessMitigations(mitigations);
   SANDBOX_ENSURE_SUCCESS(result,

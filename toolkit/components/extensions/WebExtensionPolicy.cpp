@@ -41,6 +41,18 @@ static const char kBackgroundPageHTMLEnd[] =
   </body>\n\
 </html>";
 
+#define BASE_CSP_PREF_V2 "extensions.webextensions.base-content-security-policy"
+#define DEFAULT_BASE_CSP_V2                                       \
+  "script-src 'self' https://* moz-extension: blob: filesystem: " \
+  "'unsafe-eval' 'unsafe-inline'; "                               \
+  "object-src 'self' https://* moz-extension: blob: filesystem:;"
+
+#define BASE_CSP_PREF_V3 \
+  "extensions.webextensions.base-content-security-policy.v3"
+#define DEFAULT_BASE_CSP_V3                \
+  "script-src 'self'; object-src 'self'; " \
+  "style-src 'self'; worker-src 'self';"
+
 static const char kRestrictedDomainPref[] =
     "extensions.webextensions.restrictedDomains";
 
@@ -133,8 +145,8 @@ WebExtensionPolicy::WebExtensionPolicy(GlobalObject& aGlobal,
     : mId(NS_AtomizeMainThread(aInit.mId)),
       mHostname(aInit.mMozExtensionHostname),
       mName(aInit.mName),
+      mManifestVersion(aInit.mManifestVersion),
       mExtensionPageCSP(aInit.mExtensionPageCSP),
-      mContentScriptCSP(aInit.mContentScriptCSP),
       mLocalizeCallback(aInit.mLocalizeCallback),
       mIsPrivileged(aInit.mIsPrivileged),
       mPermissions(new AtomSet(aInit.mPermissions)) {
@@ -165,12 +177,10 @@ WebExtensionPolicy::WebExtensionPolicy(GlobalObject& aGlobal,
     mBackgroundWorkerScript.Assign(aInit.mBackgroundWorkerScript);
   }
 
+  InitializeBaseCSP();
+
   if (mExtensionPageCSP.IsVoid()) {
     EPS().GetDefaultCSP(mExtensionPageCSP);
-  }
-
-  if (mContentScriptCSP.IsVoid()) {
-    EPS().GetDefaultCSP(mContentScriptCSP);
   }
 
   mContentScripts.SetCapacity(aInit.mContentScripts.Length());
@@ -208,6 +218,21 @@ already_AddRefed<WebExtensionPolicy> WebExtensionPolicy::Constructor(
     return nullptr;
   }
   return policy.forget();
+}
+
+void WebExtensionPolicy::InitializeBaseCSP() {
+  if (mManifestVersion < 3) {
+    nsresult rv = Preferences::GetString(BASE_CSP_PREF_V2, mBaseCSP);
+    if (NS_FAILED(rv)) {
+      mBaseCSP.AssignLiteral(DEFAULT_BASE_CSP_V2);
+    }
+    return;
+  }
+  // Version 3 or higher.
+  nsresult rv = Preferences::GetString(BASE_CSP_PREF_V3, mBaseCSP);
+  if (NS_FAILED(rv)) {
+    mBaseCSP.AssignLiteral(DEFAULT_BASE_CSP_V3);
+  }
 }
 
 /* static */
@@ -328,6 +353,14 @@ void WebExtensionPolicy::UnregisterContentScript(
   }
 
   WebExtensionPolicy_Binding::ClearCachedContentScriptsValue(this);
+}
+
+bool WebExtensionPolicy::CanAccessURI(const URLInfo& aURI, bool aExplicit,
+                                      bool aCheckRestricted,
+                                      bool aAllowFilePermission) const {
+  return (!aCheckRestricted || !IsRestrictedURI(aURI)) && mHostPermissions &&
+         mHostPermissions->Matches(aURI, aExplicit) &&
+         (aURI.Scheme() != nsGkAtoms::file || aAllowFilePermission);
 }
 
 void WebExtensionPolicy::InjectContentScripts(ErrorResult& aRv) {
@@ -474,6 +507,11 @@ JSObject* WebExtensionPolicy::WrapObject(JSContext* aCx,
 void WebExtensionPolicy::GetContentScripts(
     nsTArray<RefPtr<WebExtensionContentScript>>& aScripts) const {
   aScripts.AppendElements(mContentScripts);
+}
+
+bool WebExtensionPolicy::PrivateBrowsingAllowed() const {
+  return mAllowPrivateBrowsingByDefault ||
+         HasPermission(nsGkAtoms::privateBrowsingAllowedPermission);
 }
 
 bool WebExtensionPolicy::CanAccessContext(nsILoadContext* aContext) const {

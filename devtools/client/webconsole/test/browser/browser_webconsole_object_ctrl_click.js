@@ -27,7 +27,12 @@ add_task(async function() {
   const onSidebarShown = waitFor(() =>
     hud.ui.document.querySelector(".sidebar")
   );
-  EventUtils.sendMouseEvent(
+  AccessibilityUtils.setEnv({
+    // Component that renders an object handles keyboard interactions on the
+    // container level.
+    mustHaveAccessibleRule: false,
+  });
+  await EventUtils.sendMouseEvent(
     {
       type: "click",
       [isMacOS ? "metaKey" : "ctrlKey"]: true,
@@ -35,6 +40,7 @@ add_task(async function() {
     object,
     hud.ui.window
   );
+  AccessibilityUtils.resetEnv();
   await onSidebarShown;
   ok(true, "sidebar is displayed after user Ctrl+clicked on it");
 
@@ -76,7 +82,14 @@ add_task(async function() {
   );
   message.querySelector(".node").click();
   const cNode = await waitFor(() => message.querySelectorAll(".node")[3]);
-  EventUtils.sendMouseEvent(
+  AccessibilityUtils.setEnv({
+    // Component that renders an object handles keyboard interactions on the
+    // container level.
+    focusableRule: false,
+    interactiveRule: false,
+    labelRule: false,
+  });
+  await EventUtils.sendMouseEvent(
     {
       type: "click",
       [isMacOS ? "metaKey" : "ctrlKey"]: true,
@@ -84,6 +97,7 @@ add_task(async function() {
     cNode,
     hud.ui.window
   );
+  AccessibilityUtils.resetEnv();
 
   objectInspectors = [...sidebarContents.querySelectorAll(".tree")];
   is(objectInspectors.length, 1, "There is still only one object inspector");

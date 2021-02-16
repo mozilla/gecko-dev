@@ -11,7 +11,6 @@
 #ifndef gc_GCInternals_h
 #define gc_GCInternals_h
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/Maybe.h"
 
 #include "gc/GC.h"
@@ -274,46 +273,6 @@ struct SweepingTracer final : public GenericTracer {
   T* onEdge(T* thingp);
 };
 
-// Structure for counting how many times objects in a particular group have
-// been tenured during a minor collection.
-struct TenureCount {
-  ObjectGroup* group;
-  unsigned count;
-
-  // ObjectGroups are never nursery-allocated, and TenureCounts are only used
-  // in minor GC (not compacting GC), so prevent the analysis from
-  // complaining about TenureCounts being held live across a minor GC.
-} JS_HAZ_NON_GC_POINTER;
-
-// Keep rough track of how many times we tenure objects in particular groups
-// during minor collections, using a fixed size hash for efficiency at the cost
-// of potential collisions.
-struct TenureCountCache {
-  static const size_t EntryShift = 4;
-  static const size_t EntryCount = 1 << EntryShift;
-
-  TenureCount entries[EntryCount] = {};  // zeroes
-
-  TenureCountCache() = default;
-
-  HashNumber hash(ObjectGroup* group) {
-#if JS_BITS_PER_WORD == 32
-    static const size_t ZeroBits = 3;
-#else
-    static const size_t ZeroBits = 4;
-#endif
-
-    uintptr_t word = uintptr_t(group);
-    MOZ_ASSERT((word & ((1 << ZeroBits) - 1)) == 0);
-    word >>= ZeroBits;
-    return HashNumber((word >> EntryShift) ^ word);
-  }
-
-  TenureCount& findEntry(ObjectGroup* group) {
-    return entries[hash(group) % EntryCount];
-  }
-};
-
 extern void DelayCrossCompartmentGrayMarking(JSObject* src);
 
 inline bool IsOOMReason(JS::GCReason reason) {
@@ -321,11 +280,11 @@ inline bool IsOOMReason(JS::GCReason reason) {
          reason == JS::GCReason::MEM_PRESSURE;
 }
 
+// TODO: Bug 1650075. Adding XPCONNECT_SHUTDOWN seems to cause crash.
 inline bool IsShutdownReason(JS::GCReason reason) {
   return reason == JS::GCReason::WORKER_SHUTDOWN ||
          reason == JS::GCReason::SHUTDOWN_CC ||
-         reason == JS::GCReason::DESTROY_RUNTIME ||
-         reason == JS::GCReason::XPCONNECT_SHUTDOWN;
+         reason == JS::GCReason::DESTROY_RUNTIME;
 }
 
 TenuredCell* AllocateCellInGC(JS::Zone* zone, AllocKind thingKind);

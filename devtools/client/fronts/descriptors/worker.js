@@ -31,10 +31,7 @@ class WorkerDescriptorFront extends TargetMixin(
 
   form(json) {
     this.actorID = json.actor;
-    // `id` was added in Firefox 68 to the worker target actor. Fallback to the actorID
-    // when debugging older clients.
-    // Fallback can be removed when Firefox 68 will be in the Release channel.
-    this.id = json.id || this.actorID;
+    this.id = json.id;
 
     // Save the full form for Target class usage.
     // Do not use `form` name to avoid colliding with protocol.js's `form` method
@@ -91,20 +88,12 @@ class WorkerDescriptorFront extends TargetMixin(
         return;
       }
 
-      // Immediately retrieve console and thread actors that will be later used by Target.
-      let connectResponse;
-      if (this.actorID.includes("workerDescriptor")) {
-        connectResponse = await super.getTarget();
-      } else {
-        // Backwards compatibility for FF82 servers and below.
-        // Can be deleted once FF83 is merged into release.
-        connectResponse = await this.connect({});
-      }
+      const workerTargetForm = await super.getTarget();
 
       // Set the console actor ID on the form to expose it to Target.attachConsole
       // Set the ThreadActor on the target form so it is accessible by getFront
-      this.targetForm.consoleActor = connectResponse.consoleActor;
-      this.targetForm.threadActor = connectResponse.threadActor;
+      this.targetForm.consoleActor = workerTargetForm.consoleActor;
+      this.targetForm.threadActor = workerTargetForm.threadActor;
 
       if (this.isDestroyedOrBeingDestroyed()) {
         return;

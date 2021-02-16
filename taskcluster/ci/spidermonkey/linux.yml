@@ -70,16 +70,6 @@ sm-plain-linux64/opt:
     run:
         spidermonkey-variant: plain
 
-sm-nowarp-linux64/debug:
-    description: "Spidermonkey No Warp"
-    index:
-        job-name: sm-plain-linux64-nowarp
-    treeherder:
-        platform: linux64/debug
-        symbol: SM(nowarp)
-    run:
-        spidermonkey-variant: nowarpdebug
-
 sm-smoosh-linux64/debug:
     description: "Spidermonkey SmooshMonkey"
     index:
@@ -116,18 +106,6 @@ sm-smoosh-linux64/opt:
             - linux64-rust
             - linux64-cbindgen
             - linux64-dump-syms
-    run-on-projects: ['mozilla-central']
-
-sm-warp-linux64/debug:
-    description: "Spidermonkey WarpBuilder"
-    index:
-        job-name: sm-warp-linux64-debug
-    treeherder:
-        platform: linux64/debug
-        symbol: SM(warp)
-        tier: 2
-    run:
-        spidermonkey-variant: warpdebug
     run-on-projects: ['mozilla-central']
 
 sm-nojit-linux64/opt:
@@ -194,6 +172,13 @@ sm-asan-linux64/opt:
             MOZ_AUTOMATION_UPLOAD: "1"
     run:
         spidermonkey-variant: asan
+    fetches:
+        toolchain:
+            - linux64-clang
+            - linux64-gcc
+            - linux64-rust
+            - linux64-dump-syms
+            - linux64-llvm-symbolizer
 
 sm-compacting-linux64/debug:
     description: "Spidermonkey Compacting"
@@ -239,6 +224,7 @@ sm-tsan-linux64/opt:
             - linux64-clang
             - linux64-rust-nightly
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
 
 sm-rootanalysis-linux64/debug:
     description: "Spidermonkey Root Analysis"
@@ -279,6 +265,13 @@ sm-fuzzing-linux64/opt:
             MOZ_AUTOMATION_UPLOAD: "1"
     run:
         spidermonkey-variant: fuzzing
+    fetches:
+        toolchain:
+            - linux64-clang
+            - linux64-gcc
+            - linux64-rust
+            - linux64-dump-syms
+            - linux64-llvm-symbolizer
 
 sm-gdb-linux64/debug:
     description: "Spidermonkey GDB Pretty-printers"

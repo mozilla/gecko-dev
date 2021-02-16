@@ -1103,16 +1103,16 @@ function runTests() {
     test_parseable(":-moz-lwtheme-darktext");
 
     test_balanced_unparseable(":-moz-tree-row(selected)");
-    test_parseable("::-moz-tree-row(selected)");
-    test_parseable("::-MoZ-trEE-RoW(sElEcTeD)");
+    test_balanced_unparseable("::-moz-tree-row(selected)");
+    test_balanced_unparseable("::-MoZ-trEE-RoW(sElEcTeD)");
     test_balanced_unparseable(":-moz-tree-row(selected focus)");
     test_balanced_unparseable(":-moz-tree-row(selected , focus)");
-    test_parseable("::-moz-tree-row(selected ,focus)");
+    test_balanced_unparseable("::-moz-tree-row(selected ,focus)");
     test_balanced_unparseable(":-moz-tree-row(selected, focus)");
-    test_parseable("::-moz-tree-row(selected,focus)");
+    test_balanced_unparseable("::-moz-tree-row(selected,focus)");
     test_balanced_unparseable(":-moz-tree-row(selected     focus)");
-    test_parseable("::-moz-tree-row(selected    ,   focus)");
-    test_parseable("::-moz-tree-twisty(  hover open  )");
+    test_balanced_unparseable("::-moz-tree-row(selected    ,   focus)");
+    test_balanced_unparseable("::-moz-tree-twisty(  hover open  )");
     test_balanced_unparseable("::-moz-tree-row(selected {[]} )");
     test_balanced_unparseable(":-moz-tree-twisty(open())");
     test_balanced_unparseable("::-moz-tree-twisty(hover ())");
@@ -1243,22 +1243,23 @@ function runTests() {
     test_balanced_unparseable(":not(:nth-child(2k))");
     test_balanced_unparseable(":not(:nth-child(()))");
 
+    // Bug 1685621 - Serialization of :not()
+    should_serialize_to(":not([disabled][selected])", ":not([disabled][selected])");
+    should_serialize_to(":not([disabled],[selected])", ":not([disabled], [selected])");
+
     // :-moz-any()
     let parseable_if_any_is_is_and_has_better_error_recovery =
-      SpecialPowers.getBoolPref("layout.css.moz-any-is-is.enabled") &&
       SpecialPowers.getBoolPref("layout.css.is-and-where-better-error-recovery.enabled")
       ? test_parseable : test_balanced_unparseable;
     parseable_if_any_is_is_and_has_better_error_recovery(":-moz-any()");
     parseable_if_any_is_is_and_has_better_error_recovery(":-moz-any('foo')");
-    let parseable_if_any_is_is = SpecialPowers.getBoolPref("layout.css.moz-any-is-is.enabled")
-      ? test_parseable : test_balanced_unparseable;
-    parseable_if_any_is_is(":-moz-any(div p)");
-    parseable_if_any_is_is(":-moz-any(div ~ p)");
-    parseable_if_any_is_is(":-moz-any(div~p)");
-    parseable_if_any_is_is(":-moz-any(div + p)");
-    parseable_if_any_is_is(":-moz-any(div+p)");
-    parseable_if_any_is_is(":-moz-any(div > p)");
-    parseable_if_any_is_is(":-moz-any(div>p)");
+    test_parseable(":-moz-any(div p)");
+    test_parseable(":-moz-any(div ~ p)");
+    test_parseable(":-moz-any(div~p)");
+    test_parseable(":-moz-any(div + p)");
+    test_parseable(":-moz-any(div+p)");
+    test_parseable(":-moz-any(div > p)");
+    test_parseable(":-moz-any(div>p)");
     test_parseable(":-moz-any(div, p)");
     test_parseable(":-moz-any( div , p  )");
     test_parseable(":-moz-any(div,p)");

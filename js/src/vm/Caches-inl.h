@@ -9,6 +9,8 @@
 
 #include "vm/Caches.h"
 
+#include <iterator>
+
 #include "gc/Allocator.h"
 #include "gc/GCProbes.h"
 #include "vm/Probes.h"
@@ -42,30 +44,18 @@ inline void NewObjectCache::fillGlobal(EntryIndex entry, const JSClass* clasp,
 inline NativeObject* NewObjectCache::newObjectFromHit(JSContext* cx,
                                                       EntryIndex entryIndex,
                                                       gc::InitialHeap heap) {
-  MOZ_ASSERT(unsigned(entryIndex) < mozilla::ArrayLength(entries));
+  MOZ_ASSERT(unsigned(entryIndex) < std::size(entries));
   Entry* entry = &entries[entryIndex];
 
   NativeObject* templateObj =
       reinterpret_cast<NativeObject*>(&entry->templateObject);
 
-  // Do an end run around JSObject::group() to avoid doing AutoUnprotectCell
-  // on the templateObj, which is not a GC thing and can't use
-  // runtimeFromAnyThread.
-  ObjectGroup* group = templateObj->groupRaw();
+  ObjectGroup* group = templateObj->group();
 
   // If we did the lookup based on the proto we might have a group/object from a
   // different (same-compartment) realm, so we have to do a realm check.
   if (group->realm() != cx->realm()) {
     return nullptr;
-  }
-
-  MOZ_ASSERT(!group->hasUnanalyzedPreliminaryObjects());
-
-  {
-    AutoSweepObjectGroup sweepGroup(group);
-    if (group->shouldPreTenure(sweepGroup)) {
-      heap = gc::TenuredHeap;
-    }
   }
 
   if (cx->runtime()->gc.upcomingZealousGC()) {

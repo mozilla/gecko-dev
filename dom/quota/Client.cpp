@@ -7,9 +7,13 @@
 #include "Client.h"
 
 // Global includes
+#include "BackgroundParent.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/dom/quota/QuotaManager.h"
 
 namespace mozilla::dom::quota {
+
+using mozilla::ipc::AssertIsOnBackgroundThread;
 
 namespace {
 
@@ -179,17 +183,12 @@ bool Client::TypeToText(Type aType, nsAString& aText, const fallible_t&) {
 }
 
 // static
-void Client::TypeToText(Type aType, nsAString& aText) {
-  if (!TypeTo_impl(aType, aText)) {
+nsAutoCString Client::TypeToText(Type aType) {
+  nsAutoCString res;
+  if (!TypeTo_impl(aType, res)) {
     BadType();
   }
-}
-
-// static
-void Client::TypeToText(Type aType, nsACString& aText) {
-  if (!TypeTo_impl(aType, aText)) {
-    BadType();
-  }
+  return res;
 }
 
 // static
@@ -229,6 +228,22 @@ bool Client::TypeFromPrefix(char aPrefix, Type& aType, const fallible_t&) {
   }
   aType = type;
   return true;
+}
+
+bool Client::InitiateShutdownWorkThreads() {
+  AssertIsOnBackgroundThread();
+
+  QuotaManager::GetRef().MaybeRecordShutdownStep(GetType(), "starting"_ns);
+
+  InitiateShutdown();
+
+  return IsShutdownCompleted();
+}
+
+void Client::FinalizeShutdownWorkThreads() {
+  QuotaManager::GetRef().MaybeRecordShutdownStep(GetType(), "completed"_ns);
+
+  FinalizeShutdown();
 }
 
 }  // namespace mozilla::dom::quota

@@ -14,6 +14,7 @@
 #include "nsIChromeRegistry.h"
 #include "nsIObserverService.h"
 #include "nsIXULAppInfo.h"
+#include "nsNetUtil.h"
 
 #ifdef MOZ_PLACES
 #  include "nsIFaviconService.h"
@@ -103,8 +104,10 @@ void MediaStatusManager::UpdateMetadata(
   }
   // Only notify the event if the changed metadata belongs to the active media
   // session.
-  if (!mActiveMediaSessionContextId ||
+  if (mActiveMediaSessionContextId &&
       *mActiveMediaSessionContextId == aBrowsingContextId) {
+    LOG("Notify metadata change for active session %" PRIu64,
+        aBrowsingContextId);
     mMetadataChangedEvent.Notify(GetCurrentMediaMetadata());
   }
   if (StaticPrefs::media_mediacontrol_testingevents_enabled()) {
@@ -318,7 +321,6 @@ void MediaStatusManager::UpdateActualPlaybackState() {
   mActualPlaybackState = newState;
   LOG("UpdateActualPlaybackState : '%s'",
       ToMediaSessionPlaybackStateStr(mActualPlaybackState));
-  HandleActualPlaybackStateChanged();
   mPlaybackStateChangedEvent.Notify(mActualPlaybackState);
 }
 

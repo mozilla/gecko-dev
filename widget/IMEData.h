@@ -6,7 +6,9 @@
 #ifndef mozilla_widget_IMEData_h_
 #define mozilla_widget_IMEData_h_
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/ToString.h"
 
 #include "nsPoint.h"
 #include "nsRect.h"
@@ -19,6 +21,167 @@ class nsIWidget;
 namespace mozilla {
 
 class WritingMode;
+
+// Helper class to logging string which may contain various Unicode characters
+// and/or may be too long string for logging.
+class MOZ_STACK_CLASS PrintStringDetail : public nsAutoCString {
+ public:
+  static constexpr uint32_t kMaxLengthForCompositionString = 8;
+  static constexpr uint32_t kMaxLengthForSelectedString = 12;
+  static constexpr uint32_t kMaxLengthForEditor = 20;
+
+  PrintStringDetail() = delete;
+  explicit PrintStringDetail(const nsAString& aString,
+                             uint32_t aMaxLength = UINT32_MAX);
+
+ private:
+  static nsCString PrintCharData(char32_t aChar);
+};
+
+// StartAndEndOffsets represents a range in flat-text.
+template <typename IntType>
+class StartAndEndOffsets {
+ protected:
+  static IntType MaxOffset() { return std::numeric_limits<IntType>::max(); }
+
+ public:
+  StartAndEndOffsets() = delete;
+  explicit StartAndEndOffsets(IntType aStartOffset, IntType aEndOffset)
+      : mStartOffset(aStartOffset),
+        mEndOffset(aStartOffset <= aEndOffset ? aEndOffset : aStartOffset) {
+    MOZ_ASSERT(aStartOffset <= mEndOffset);
+  }
+
+  IntType StartOffset() const { return mStartOffset; }
+  IntType Length() const { return mEndOffset - mStartOffset; }
+  IntType EndOffset() const { return mEndOffset; }
+
+  bool IsOffsetInRange(IntType aOffset) const {
+    return aOffset >= mStartOffset && aOffset < mEndOffset;
+  }
+  bool IsOffsetInRangeOrEndOffset(IntType aOffset) const {
+    return aOffset >= mStartOffset && aOffset <= mEndOffset;
+  }
+
+  void MoveTo(IntType aNewStartOffset) {
+    auto delta = static_cast<int64_t>(mStartOffset) - aNewStartOffset;
+    mStartOffset += delta;
+    mEndOffset += delta;
+  }
+  void SetOffsetAndLength(IntType aNewOffset, IntType aNewLength) {
+    mStartOffset = aNewOffset;
+    CheckedInt<IntType> endOffset(aNewOffset + aNewLength);
+    mEndOffset = endOffset.isValid() ? endOffset.value() : MaxOffset();
+  }
+  void SetEndOffset(IntType aEndOffset) {
+    MOZ_ASSERT(mStartOffset <= aEndOffset);
+    mEndOffset = std::max(aEndOffset, mStartOffset);
+  }
+  void SetStartAndEndOffsets(IntType aStartOffset, IntType aEndOffset) {
+    MOZ_ASSERT(aStartOffset <= aEndOffset);
+    mStartOffset = aStartOffset;
+    mEndOffset = aStartOffset <= aEndOffset ? aEndOffset : aStartOffset;
+  }
+  void SetLength(IntType aNewLength) {
+    CheckedInt<IntType> endOffset(mStartOffset + aNewLength);
+    mEndOffset = endOffset.isValid() ? endOffset.value() : MaxOffset();
+  }
+
+  friend std::ostream& operator<<(
+      std::ostream& aStream,
+      const StartAndEndOffsets<IntType>& aStartAndEndOffsets) {
+    aStream << "{ mStartOffset=" << aStartAndEndOffsets.mStartOffset
+            << ", mEndOffset=" << aStartAndEndOffsets.mEndOffset
+            << ", Length()=" << aStartAndEndOffsets.Length() << " }";
+    return aStream;
+  }
+
+ private:
+  IntType mStartOffset;
+  IntType mEndOffset;
+};
+
+// OffsetAndData class is designed for storing composition string and its
+// start offset.  Length() and EndOffset() return only valid length or
+// offset.  I.e., if the string is too long for inserting at the offset,
+// the length is shrunken.  However, the string itself is not shrunken.
+// Therefore, moving it to where all of the string can be contained,
+// they will return longer/bigger value.
+enum class OffsetAndDataFor {
+  CompositionString,
+  SelectedString,
+  EditorString,
+};
+template <typename IntType>
+class OffsetAndData {
+ protected:
+  static IntType MaxOffset() { return std::numeric_limits<IntType>::max(); }
+
+ public:
+  OffsetAndData() = delete;
+  explicit OffsetAndData(
+      IntType aStartOffset, const nsAString& aData,
+      OffsetAndDataFor aFor = OffsetAndDataFor::CompositionString)
+      : mData(aData), mOffset(aStartOffset), mFor(aFor) {}
+
+  IntType StartOffset() const { return mOffset; }
+  IntType Length() const {
+    CheckedInt<IntType> endOffset(mOffset + mData.Length());
+    return endOffset.isValid() ? mData.Length() : MaxOffset() - mOffset;
+  }
+  IntType EndOffset() const { return mOffset + Length(); }
+  StartAndEndOffsets<IntType> CreateStartAndEndOffsets() const {
+    return StartAndEndOffsets<IntType>(StartOffset(), EndOffset());
+  }
+  const nsString& DataRef() const {
+    // In strictly speaking, we should return substring which may be shrunken
+    // for rounding to the max offset.  However, it's unrealistic edge case,
+    // and creating new string is not so cheap job in a hot path.  Therefore,
+    // this just returns the data as-is.
+    return mData;
+  }
+  bool IsDataEmpty() const { return mData.IsEmpty(); }
+
+  bool IsOffsetInRange(IntType aOffset) const {
+    return aOffset >= mOffset && aOffset < EndOffset();
+  }
+  bool IsOffsetInRangeOrEndOffset(IntType aOffset) const {
+    return aOffset >= mOffset && aOffset <= EndOffset();
+  }
+
+  void MoveTo(IntType aNewOffset) { mOffset = aNewOffset; }
+  void SetOffsetAndData(IntType aStartOffset, const nsAString& aData) {
+    mOffset = aStartOffset;
+    mData = aData;
+  }
+  void SetData(const nsAString& aData) { mData = aData; }
+  void TruncateData(uint32_t aLength = 0) { mData.Truncate(aLength); }
+  void ReplaceData(nsAString::size_type aCutStart,
+                   nsAString::size_type aCutLength,
+                   const nsAString& aNewString) {
+    mData.Replace(aCutStart, aCutLength, aNewString);
+  }
+
+  friend std::ostream& operator<<(
+      std::ostream& aStream, const OffsetAndData<IntType>& aOffsetAndData) {
+    const auto maxDataLength =
+        aOffsetAndData.mFor == OffsetAndDataFor::CompositionString
+            ? PrintStringDetail::kMaxLengthForCompositionString
+            : (aOffsetAndData.mFor == OffsetAndDataFor::SelectedString
+                   ? PrintStringDetail::kMaxLengthForSelectedString
+                   : PrintStringDetail::kMaxLengthForEditor);
+    aStream << "{ mOffset=" << aOffsetAndData.mOffset << ", mData="
+            << PrintStringDetail(aOffsetAndData.mData, maxDataLength).get()
+            << ", Length()=" << aOffsetAndData.Length()
+            << ", EndOffset()=" << aOffsetAndData.EndOffset() << " }";
+    return aStream;
+  }
+
+ private:
+  nsString mData;
+  IntType mOffset;
+  OffsetAndDataFor mFor;
+};
 
 namespace widget {
 
@@ -94,51 +257,42 @@ struct IMENotificationRequests final {
 };
 
 /**
+ * IME enabled states.
+ *
+ * WARNING: If you change these values, you also need to edit:
+ *   nsIDOMWindowUtils.idl
+ */
+enum class IMEEnabled {
+  /**
+   * 'Disabled' means the user cannot use IME. So, the IME open state should
+   * be 'closed' during 'disabled'.
+   */
+  Disabled,
+  /**
+   * 'Enabled' means the user can use IME.
+   */
+  Enabled,
+  /**
+   * 'Password' state is a special case for the password editors.
+   * E.g., on mac, the password editors should disable the non-Roman
+   * keyboard layouts at getting focus. Thus, the password editor may have
+   * special rules on some platforms.
+   */
+  Password,
+  /**
+   * 'Unknown' is useful when you cache this enum.  So, this shouldn't be
+   * used with nsIWidget::SetInputContext().
+   */
+  Unknown,
+};
+
+/**
  * Contains IMEStatus plus information about the current
  * input context that the IME can use as hints if desired.
  */
 
 struct IMEState final {
-  /**
-   * IME enabled states, the mEnabled value of
-   * SetInputContext()/GetInputContext() should be one value of following
-   * values.
-   *
-   * WARNING: If you change these values, you also need to edit:
-   *   nsIDOMWindowUtils.idl
-   *   nsContentUtils::GetWidgetStatusFromIMEStatus
-   */
-  enum Enabled {
-    /**
-     * 'Disabled' means the user cannot use IME. So, the IME open state should
-     * be 'closed' during 'disabled'.
-     */
-    DISABLED,
-    /**
-     * 'Enabled' means the user can use IME.
-     */
-    ENABLED,
-    /**
-     * 'Password' state is a special case for the password editors.
-     * E.g., on mac, the password editors should disable the non-Roman
-     * keyboard layouts at getting focus. Thus, the password editor may have
-     * special rules on some platforms.
-     */
-    PASSWORD,
-    /**
-     * This state is used when a plugin is focused.
-     * When a plug-in is focused content, we should send native events
-     * directly. Because we don't process some native events, but they may
-     * be needed by the plug-in.
-     */
-    PLUGIN,
-    /**
-     * 'Unknown' is useful when you cache this enum.  So, this shouldn't be
-     * used with nsIWidget::SetInputContext().
-     */
-    UNKNOWN
-  };
-  Enabled mEnabled;
+  IMEEnabled mEnabled;
 
   /**
    * IME open states the mOpen value of SetInputContext() should be one value of
@@ -173,22 +327,17 @@ struct IMEState final {
   };
   Open mOpen;
 
-  IMEState() : mEnabled(ENABLED), mOpen(DONT_CHANGE_OPEN_STATE) {}
+  IMEState() : mEnabled(IMEEnabled::Enabled), mOpen(DONT_CHANGE_OPEN_STATE) {}
 
-  explicit IMEState(Enabled aEnabled, Open aOpen = DONT_CHANGE_OPEN_STATE)
+  explicit IMEState(IMEEnabled aEnabled, Open aOpen = DONT_CHANGE_OPEN_STATE)
       : mEnabled(aEnabled), mOpen(aOpen) {}
 
   // Returns true if the user can input characters.
   // This means that a plain text editor, an HTML editor, a password editor or
   // a plain text editor whose ime-mode is "disabled".
   bool IsEditable() const {
-    return mEnabled == ENABLED || mEnabled == PASSWORD;
+    return mEnabled == IMEEnabled::Enabled || mEnabled == IMEEnabled::Password;
   }
-  // Returns true if the user might be able to input characters.
-  // This means that a plain text editor, an HTML editor, a password editor,
-  // a plain text editor whose ime-mode is "disabled" or a windowless plugin
-  // has focus.
-  bool MaybeEditable() const { return IsEditable() || mEnabled == PLUGIN; }
 };
 
 // NS_ONLY_ONE_NATIVE_IME_CONTEXT is a special value of native IME context.
@@ -817,8 +966,7 @@ struct CandidateWindowPosition {
   bool mExcludeRect;
 };
 
-std::ostream& operator<<(std::ostream& aStream,
-                         const IMEState::Enabled& aEnabled);
+std::ostream& operator<<(std::ostream& aStream, const IMEEnabled& aEnabled);
 std::ostream& operator<<(std::ostream& aStream, const IMEState::Open& aOpen);
 std::ostream& operator<<(std::ostream& aStream, const IMEState& aState);
 std::ostream& operator<<(std::ostream& aStream,

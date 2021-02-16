@@ -44,9 +44,6 @@ mozilla.pth:third_party/python/pyrsistent
 mozilla.pth:third_party/python/python-hglib
 mozilla.pth:third_party/python/pluggy
 mozilla.pth:third_party/python/jsmin
-!windows:optional:setup.py:third_party/python/psutil:build_ext:--inplace
-!windows:mozilla.pth:third_party/python/psutil
-windows:mozilla.pth:third_party/python/psutil-cp27-none-win_amd64
 mozilla.pth:third_party/python/pylru
 mozilla.pth:third_party/python/pystache
 python2:mozilla.pth:third_party/python/PyYAML/lib
@@ -96,6 +93,7 @@ mozilla.pth:testing/web-platform/tests/tools/third_party/h2
 mozilla.pth:testing/web-platform/tests/tools/third_party/hpack
 mozilla.pth:testing/web-platform/tests/tools/third_party/hyperframe
 mozilla.pth:testing/web-platform/tests/tools/third_party/certifi
+mozilla.pth:testing/web-platform/tests/tools/third_party/pywebsocket3
 mozilla.pth:testing/web-platform/tests/tools/wptserve
 mozilla.pth:testing/web-platform/tests/tools/wptrunner
 mozilla.pth:testing/web-platform/tests/tools/six

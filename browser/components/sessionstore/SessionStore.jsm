@@ -13,7 +13,6 @@ const TAB_CUSTOM_VALUES = new WeakMap();
 const TAB_LAZY_STATES = new WeakMap();
 const TAB_STATE_NEEDS_RESTORE = 1;
 const TAB_STATE_RESTORING = 2;
-const TAB_STATE_WILL_RESTORE = 3;
 const TAB_STATE_FOR_BROWSER = new WeakMap();
 const WINDOW_RESTORE_IDS = new WeakMap();
 const WINDOW_RESTORE_ZINDICES = new WeakMap();
@@ -214,7 +213,6 @@ ChromeUtils.defineModuleGetter(
 
 XPCOMUtils.defineLazyServiceGetters(this, {
   gScreenManager: ["@mozilla.org/gfx/screenmanager;1", "nsIScreenManager"],
-  Telemetry: ["@mozilla.org/base/telemetry;1", "nsITelemetry"],
 });
 
 XPCOMUtils.defineLazyModuleGetters(this, {
@@ -430,14 +428,6 @@ var SessionStore = {
     return SessionStoreInternal.reviveAllCrashedTabs();
   },
 
-  navigateAndRestore(tab, loadArguments, historyIndex) {
-    return SessionStoreInternal.navigateAndRestore(
-      tab,
-      loadArguments,
-      historyIndex
-    );
-  },
-
   updateSessionStoreFromTablistener(aBrowser, aBrowsingContext, aData) {
     return SessionStoreInternal.updateSessionStoreFromTablistener(
       aBrowser,
@@ -604,11 +594,6 @@ var SessionStoreInternal = {
   // reason about.
   _saveableClosedWindowData: new WeakSet(),
 
-  // A map (xul:browser -> object) that maps a browser that is switching
-  // remoteness via navigateAndRestore, to the loadArguments that were
-  // most recently passed when calling navigateAndRestore.
-  _remotenessChangingBrowsers: new WeakMap(),
-
   // whether a setBrowserState call is in progress
   _browserSetState: false,
 
@@ -760,9 +745,9 @@ var SessionStoreInternal = {
     this._initialized = true;
     this._closedTabCache = new WeakMap();
 
-    Telemetry.getHistogramById("FX_SESSION_RESTORE_PRIVACY_LEVEL").add(
-      Services.prefs.getIntPref("browser.sessionstore.privacy_level")
-    );
+    Services.telemetry
+      .getHistogramById("FX_SESSION_RESTORE_PRIVACY_LEVEL")
+      .add(Services.prefs.getIntPref("browser.sessionstore.privacy_level"));
   },
 
   /**
@@ -800,15 +785,24 @@ var SessionStoreInternal = {
           if (remainingState.windows.length) {
             LastSession.setState(remainingState);
           }
+          Services.telemetry.keyedScalarAdd(
+            "browser.engagement.sessionrestore_interstitial",
+            "deferred_restore",
+            1
+          );
         } else {
           // Get the last deferred session in case the user still wants to
           // restore it
           LastSession.setState(state.lastSessionState);
 
-          if (ss.willRestoreAsCrashed()) {
+          let restoreAsCrashed = ss.willRestoreAsCrashed();
+          if (restoreAsCrashed) {
             this._recentCrashes =
               ((state.session && state.session.recentCrashes) || 0) + 1;
 
+            // _needsRestorePage will record sessionrestore_interstitial,
+            // including the specific reason we decided we needed to show
+            // about:sessionrestore, if that's what we do.
             if (this._needsRestorePage(state, this._recentCrashes)) {
               // replace the crashed session with a restore-page-only session
               let url = "about:sessionrestore";
@@ -822,12 +816,28 @@ var SessionStoreInternal = {
             } else if (
               this._hasSingleTabWithURL(state.windows, "about:welcomeback")
             ) {
+              Services.telemetry.keyedScalarAdd(
+                "browser.engagement.sessionrestore_interstitial",
+                "shown_only_about_welcomeback",
+                1
+              );
               // On a single about:welcomeback URL that crashed, replace about:welcomeback
               // with about:sessionrestore, to make clear to the user that we crashed.
               state.windows[0].tabs[0].entries[0].url = "about:sessionrestore";
               state.windows[0].tabs[0].entries[0].triggeringPrincipal_base64 =
                 E10SUtils.SERIALIZED_SYSTEMPRINCIPAL;
+            } else {
+              restoreAsCrashed = false;
             }
+          }
+
+          // If we didn't use about:sessionrestore, record that:
+          if (!restoreAsCrashed) {
+            Services.telemetry.keyedScalarAdd(
+              "browser.engagement.sessionrestore_interstitial",
+              "autorestore",
+              1
+            );
           }
 
           // Update the session start time using the restored session state.
@@ -1038,7 +1048,9 @@ var SessionStoreInternal = {
       },
 
       OnHistoryNewEntry(newURI, oldIndex) {
-        this.notifySHistoryChanges(oldIndex);
+        // We use oldIndex - 1 to collect the current entry as well. This makes sure to
+        // collect any changes that were made to the entry while the document was active.
+        this.notifySHistoryChanges(oldIndex == -1 ? oldIndex : oldIndex - 1);
       },
 
       OnHistoryGotoIndex() {
@@ -1055,14 +1067,6 @@ var SessionStoreInternal = {
 
       OnHistoryReplaceEntry() {
         this.notifySHistoryChanges(-1);
-
-        let win = this.browser.ownerGlobal;
-        let tab = win ? win.gBrowser.getTabForBrowser(this.browser) : null;
-        if (tab) {
-          let event = tab.ownerDocument.createEvent("CustomEvent");
-          event.initCustomEvent("SSHistoryReplaceEntry", true, false);
-          tab.dispatchEvent(event);
-        }
       },
     };
 
@@ -1648,26 +1652,6 @@ var SessionStoreInternal = {
           this.resetEpoch(target);
         }
         break;
-      case "BrowserChangedProcess":
-        let newEpoch =
-          1 +
-          Math.max(
-            this.getCurrentEpoch(target),
-            this.getCurrentEpoch(aEvent.otherBrowser)
-          );
-        this.setCurrentEpoch(target, newEpoch);
-        target.messageManager.sendAsyncMessage(
-          "SessionStore:becomeActiveProcess",
-          {
-            epoch: newEpoch,
-          }
-        );
-
-        let listener = this._browserSHistoryListener.get(target.permanentKey);
-        if (listener) {
-          listener.notifySHistoryChanges(-1);
-        }
-        break;
       default:
         throw new Error(`unhandled event ${aEvent.type}?`);
     }
@@ -1748,7 +1732,6 @@ var SessionStoreInternal = {
 
     // Keep track of a browser's latest frameLoader.
     aWindow.gBrowser.addEventListener("XULFrameLoaderCreated", this);
-    aWindow.gBrowser.addEventListener("BrowserChangedProcess", this);
   },
 
   /**
@@ -2049,7 +2032,6 @@ var SessionStoreInternal = {
     }, this);
 
     aWindow.gBrowser.removeEventListener("XULFrameLoaderCreated", this);
-    aWindow.gBrowser.removeEventListener("BrowserChangedProcess", this);
 
     let winData = this._windows[aWindow.__SSi];
 
@@ -3866,148 +3848,6 @@ var SessionStoreInternal = {
   },
 
   /**
-   * Navigate the given |tab| by first collecting its current state and then
-   * either changing only the index of the currently shown history entry,
-   * or restoring the exact same state again and passing the new URL to load
-   * in |loadArguments|. Use this method to seamlessly switch between pages
-   * loaded in the parent and pages loaded in the child process.
-   *
-   * This method might be called multiple times before it has finished
-   * flushing the browser tab. If that occurs, the loadArguments from
-   * the most recent call to navigateAndRestore will be used once the
-   * flush has finished.
-   *
-   * This method returns a promise which will be resolved when the browser
-   * element's process has been swapped. The load is not guaranteed to have
-   * been completed at this point.
-   */
-  navigateAndRestore(tab, loadArguments, historyIndex) {
-    let window = tab.ownerGlobal;
-
-    if (!window.__SSi) {
-      Cu.reportError("Tab's window must be tracked.");
-      return Promise.reject();
-    }
-
-    let browser = tab.linkedBrowser;
-
-    // If we were alerady waiting for a flush from a previous call to
-    // navigateAndRestore on this tab, update the loadArguments stored, and
-    // asynchronously wait on the flush's promise.
-    if (this._remotenessChangingBrowsers.has(browser.permanentKey)) {
-      let opts = this._remotenessChangingBrowsers.get(browser.permanentKey);
-      // XXX(nika): In the existing logic, we always use the initial
-      // historyIndex value, and don't update it if multiple navigateAndRestore
-      // calls are made. Should we update it here?
-      opts.loadArguments = loadArguments;
-      return opts.promise;
-    }
-
-    // Begin the asynchronous NavigateAndRestore process, and store the current
-    // load arguments and promise in our _remotenessChangingBrowsers weakmap.
-    let promise = this._asyncNavigateAndRestore(tab);
-    this._remotenessChangingBrowsers.set(browser.permanentKey, {
-      loadArguments,
-      historyIndex,
-      promise,
-    });
-
-    // Set up the browser UI to look like we're doing something while waiting
-    // for a TabStateFlush from our frame scripts.
-    let uriObj;
-    try {
-      uriObj = Services.io.newURI(loadArguments.uri);
-    } catch (e) {}
-
-    // Start the throbber to pretend we're doing something while actually
-    // waiting for data from the frame script. This throbber is disabled
-    // if the URI is a local about: URI.
-    if (!uriObj || (uriObj && !uriObj.schemeIs("about"))) {
-      tab.setAttribute("busy", "true");
-    }
-
-    // Hack to ensure that the about:home, about:newtab, and about:welcome
-    // favicon is loaded instantaneously, to avoid flickering and improve
-    // perceived performance.
-    window.gBrowser.setDefaultIcon(tab, uriObj);
-
-    TAB_STATE_FOR_BROWSER.set(tab.linkedBrowser, TAB_STATE_WILL_RESTORE);
-
-    // Notify of changes to closed objects.
-    this._notifyOfClosedObjectsChange();
-
-    return promise;
-  },
-
-  /**
-   * Internal logic called by navigateAndRestore to flush tab state, and
-   * trigger a remoteness changing load with the most recent load arguments.
-   *
-   * This method's promise will resolve when the process for the given
-   * xul:browser element has successfully been swapped.
-   *
-   * @param tab to navigate and restore.
-   */
-  async _asyncNavigateAndRestore(tab) {
-    let permanentKey = tab.linkedBrowser.permanentKey;
-    let browser = tab.linkedBrowser;
-
-    // NOTE: This is currently the only async operation used, but this is likely
-    // to change in the future.
-    await this.prepareToChangeRemoteness(browser);
-
-    // Now that we have flushed state, our loadArguments, etc. may have been
-    // overwritten by multiple calls to navigateAndRestore. Load the most
-    // recently stored one.
-    let { loadArguments, historyIndex } = this._remotenessChangingBrowsers.get(
-      permanentKey
-    );
-    this._remotenessChangingBrowsers.delete(permanentKey);
-
-    // The tab might have been closed/gone in the meantime.
-    if (tab.closing || !tab.linkedBrowser) {
-      return;
-    }
-
-    // The tab or its window might be gone.
-    let window = tab.ownerGlobal;
-    if (!window || !window.__SSi || window.closed) {
-      return;
-    }
-
-    let tabState = TabState.clone(tab, TAB_CUSTOM_VALUES.get(tab));
-    let options = {
-      restoreImmediately: true,
-      // We want to make sure that this information is passed to restoreTab
-      // whether or not a historyIndex is passed in. Thus, we extract it from
-      // the loadArguments.
-      newFrameloader: loadArguments.newFrameloader,
-      remoteType: loadArguments.remoteType,
-      // Make sure that SessionStore knows that this restoration is due
-      // to a navigation, as opposed to us restoring a closed window or tab.
-      restoreContentReason: RESTORE_TAB_CONTENT_REASON.NAVIGATE_AND_RESTORE,
-    };
-
-    if (historyIndex >= 0) {
-      tabState.index = historyIndex + 1;
-      tabState.index = Math.max(
-        1,
-        Math.min(tabState.index, tabState.entries.length)
-      );
-    } else {
-      options.loadArguments = loadArguments;
-    }
-
-    // Need to reset restoring tabs.
-    if (TAB_STATE_FOR_BROWSER.has(tab.linkedBrowser)) {
-      this._resetLocalTabRestoringState(tab);
-    }
-
-    // Restore the state into the tab.
-    this.restoreTab(tab, tabState, options);
-  },
-
-  /**
    * Retrieves the latest session history information for a tab. The cached data
    * is returned immediately, but a callback may be provided that supplies
    * up-to-date data when or if it is available. The callback is passed a single
@@ -4943,9 +4783,6 @@ var SessionStoreInternal = {
     let activeIndex = tabData.index - 1;
     let activePageData = tabData.entries[activeIndex] || null;
     let uri = activePageData ? activePageData.url || null : null;
-    if (loadArguments) {
-      uri = loadArguments.uri;
-    }
 
     this.markTabAsRestoring(aTab);
 
@@ -4953,22 +4790,10 @@ var SessionStoreInternal = {
     // necessary.
     let isRemotenessUpdate = aOptions.isRemotenessUpdate;
     if (!isRemotenessUpdate) {
-      let newFrameloader = aOptions.newFrameloader;
-      if (aOptions.remoteType !== undefined) {
-        // We already have a selected remote type so we update to that.
-        isRemotenessUpdate = tabbrowser.updateBrowserRemoteness(browser, {
-          remoteType: aOptions.remoteType,
-          newFrameloader,
-        });
-      } else {
-        isRemotenessUpdate = tabbrowser.updateBrowserRemotenessByURL(
-          browser,
-          uri,
-          {
-            newFrameloader,
-          }
-        );
-      }
+      isRemotenessUpdate = tabbrowser.updateBrowserRemotenessByURL(
+        browser,
+        uri
+      );
 
       if (isRemotenessUpdate) {
         // We updated the remoteness, so we need to send the history down again.
@@ -5566,11 +5391,28 @@ var SessionStoreInternal = {
       aState.session.lastUpdate &&
       Date.now() - aState.session.lastUpdate;
 
-    return (
+    let decision =
       max_resumed_crashes != -1 &&
       (aRecentCrashes > max_resumed_crashes ||
-        (sessionAge && sessionAge >= SIX_HOURS_IN_MS))
-    );
+        (sessionAge && sessionAge >= SIX_HOURS_IN_MS));
+    if (decision) {
+      let key;
+      if (aRecentCrashes > max_resumed_crashes) {
+        if (sessionAge && sessionAge >= SIX_HOURS_IN_MS) {
+          key = "shown_many_crashes_old_session";
+        } else {
+          key = "shown_many_crashes";
+        }
+      } else {
+        key = "shown_old_session";
+      }
+      Services.telemetry.keyedScalarAdd(
+        "browser.engagement.sessionrestore_interstitial",
+        key,
+        1
+      );
+    }
+    return decision;
   },
 
   /**

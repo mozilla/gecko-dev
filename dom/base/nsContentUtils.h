@@ -17,36 +17,41 @@
 #  include <ieeefp.h>
 #endif
 
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <utility>
+#include "ErrorList.h"
+#include "Units.h"
+#include "js/Id.h"
 #include "js/RootingAPI.h"
-#include "mozilla/dom/FromParser.h"
+#include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/BasicEvents.h"
-#include "mozilla/CallState.h"
 #include "mozilla/CORSMode.h"
-#include "mozilla/EventForwards.h"
-#include "mozilla/StaticPtr.h"
+#include "mozilla/CallState.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/TaskCategory.h"
 #include "mozilla/TimeStamp.h"
-#include "nsContentListDeclarations.h"
-#include "nsMathUtils.h"
-#include "nsTArrayForwardDeclare.h"
-#include "Units.h"
-#include "mozilla/dom/AutocompleteInfoBinding.h"
-#include "mozilla/dom/BindingDeclarations.h"  // For CallerType
-#include "mozilla/dom/ScriptSettings.h"
-#include "mozilla/FloatingPoint.h"
-#include "mozilla/intl/LineBreaker.h"
-#include "mozilla/intl/WordBreaker.h"
-#include "mozilla/Logging.h"
-#include "mozilla/NotNull.h"
-#include "mozilla/Maybe.h"
-#include "mozilla/RangeBoundary.h"
+#include "mozilla/UniquePtr.h"
+#include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/FromParser.h"
+#include "mozilla/fallible.h"
+#include "mozilla/gfx/Point.h"
+#include "nsCOMPtr.h"
 #include "nsIContentPolicy.h"
+#include "nsID.h"
+#include "nsINode.h"
 #include "nsIScriptError.h"
-#include "mozilla/dom/Document.h"
+#include "nsIThread.h"
+#include "nsLiteralString.h"
+#include "nsMargin.h"
 #include "nsPIDOMWindow.h"
-#include "nsRFPService.h"
+#include "nsStringFwd.h"
+#include "nsTArray.h"
+#include "nsTLiteralString.h"
 #include "prtime.h"
 
 #if defined(XP_WIN)
@@ -54,85 +59,110 @@
 #  undef LoadImage
 #endif
 
+class JSObject;
 class imgICache;
 class imgIContainer;
 class imgINotificationObserver;
 class imgIRequest;
 class imgLoader;
 class imgRequestProxy;
-class nsAutoScriptBlockerSuppressNodeRemoved;
-class nsCacheableFuncStringHTMLCollection;
-class nsHtml5StringParser;
 class nsAtom;
+class nsAttrValue;
+class nsAutoScriptBlockerSuppressNodeRemoved;
+class nsContentList;
+class nsCycleCollectionTraversalCallback;
+class nsDocShell;
+class nsGlobalWindowInner;
+class nsHtml5StringParser;
+class nsIArray;
+class nsIBidiKeyboard;
 class nsIChannel;
 class nsIConsoleService;
 class nsIContent;
-class nsIContentPolicy;
-class nsIContentSecurityPolicy;
+class nsIDocShell;
 class nsIDocShellTreeItem;
 class nsIDocumentLoaderFactory;
 class nsIDragSession;
-class nsIEventTarget;
+class nsIFile;
 class nsIFragmentContentSink;
 class nsIFrame;
+class nsIHttpChannel;
+class nsIIOService;
 class nsIImageLoadingContent;
 class nsIInterfaceRequestor;
-class nsIIOService;
-class nsILoadInfo;
 class nsILoadGroup;
-class nsNameSpaceManager;
+class nsILoadInfo;
 class nsIObserver;
 class nsIParser;
 class nsIPluginTag;
 class nsIPrincipal;
+class nsIReferrerInfo;
 class nsIRequest;
 class nsIRunnable;
+class nsIScreen;
 class nsIScriptContext;
 class nsIScriptSecurityManager;
+class nsISerialEventTarget;
 class nsIStringBundle;
 class nsIStringBundleService;
-class nsISupportsHashKey;
+class nsISupports;
+class nsITransferable;
 class nsIURI;
 class nsIUUIDGenerator;
 class nsIWidget;
 class nsIXPConnect;
+class nsNameSpaceManager;
 class nsNodeInfoManager;
-class nsPIDOMWindowInner;
-class nsPIDOMWindowOuter;
+class nsPIWindowRoot;
 class nsPresContext;
 class nsStringBuffer;
 class nsStringHashKey;
 class nsTextFragment;
 class nsView;
-class nsViewportInfo;
 class nsWrapperCache;
-class nsAttrValue;
-class nsITransferable;
-class nsPIWindowRoot;
-class nsIReferrerInfo;
 
-struct JSRuntime;
+struct JSContext;
+struct nsPoint;
 
-template <class E>
-class nsCOMArray;
 template <class K, class V>
 class nsDataHashtable;
-template <class K, class V>
-class nsRefPtrHashtable;
 template <class T>
-class nsReadingIterator;
+class nsRefPtrHashKey;
+
+namespace IPC {
+class Message;
+}
+
+namespace JS {
+class Value;
+
+struct PropertyDescriptor;
+}  // namespace JS
 
 namespace mozilla {
 class Dispatcher;
 class ErrorResult;
 class EventListenerManager;
 class HTMLEditor;
+class LazyLogModule;
+class LogModule;
 class PresShell;
 class TextEditor;
+class WidgetDragEvent;
+class WidgetKeyboardEvent;
 
 struct InputEventOptions;
 
+template <typename ParentType, typename RefType>
+class RangeBoundaryBase;
+
+template <typename T>
+class NotNull;
+template <class T>
+class StaticRefPtr;
+
 namespace dom {
+struct AutocompleteInfo;
 class BrowserChild;
 class BrowserParent;
 class BrowsingContext;
@@ -141,8 +171,11 @@ class ContentChild;
 class ContentFrameMessageManager;
 class ContentParent;
 struct CustomElementDefinition;
+class CustomElementRegistry;
 class DataTransfer;
+class Document;
 class DocumentFragment;
+class DOMArena;
 class Element;
 class Event;
 class EventTarget;
@@ -154,9 +187,15 @@ struct LifecycleAdoptedCallbackArgs;
 class MessageBroadcaster;
 class NodeInfo;
 class Selection;
-class StaticRange;
 class WorkerPrivate;
+enum class ElementCallbackType;
+enum class ReferrerPolicy : uint8_t;
 }  // namespace dom
+
+namespace intl {
+class LineBreaker;
+class WordBreaker;
+}  // namespace intl
 
 namespace ipc {
 class Shmem;
@@ -165,6 +204,7 @@ class IShmemAllocator;
 
 namespace gfx {
 class DataSourceSurface;
+enum class SurfaceFormat : int8_t;
 }  // namespace gfx
 
 namespace layers {
@@ -172,8 +212,6 @@ class LayerManager;
 }  // namespace layers
 
 }  // namespace mozilla
-
-class nsIBidiKeyboard;
 
 extern const char kLoadAsData[];
 
@@ -506,11 +544,11 @@ class nsContentUtils {
    *          0 if point1 == point2.
    *          `Nothing` if the two nodes aren't in the same connected subtree.
    */
-  static Maybe<int32_t> ComparePoints(
+  static mozilla::Maybe<int32_t> ComparePoints(
       const nsINode* aParent1, int32_t aOffset1, const nsINode* aParent2,
       int32_t aOffset2, ComparePointsCache* aParent1Cache = nullptr);
   template <typename FPT, typename FRT, typename SPT, typename SRT>
-  static Maybe<int32_t> ComparePoints(
+  static mozilla::Maybe<int32_t> ComparePoints(
       const mozilla::RangeBoundaryBase<FPT, FRT>& aFirstBoundary,
       const mozilla::RangeBoundaryBase<SPT, SRT>& aSecondBoundary);
 
@@ -917,7 +955,8 @@ class nsContentUtils {
       nsIReferrerInfo* aReferrerInfo, imgINotificationObserver* aObserver,
       int32_t aLoadFlags, const nsAString& initiatorType,
       imgRequestProxy** aRequest,
-      uint32_t aContentPolicyType = nsIContentPolicy::TYPE_INTERNAL_IMAGE,
+      nsContentPolicyType aContentPolicyType =
+          nsIContentPolicy::TYPE_INTERNAL_IMAGE,
       bool aUseUrgentStartForChannel = false, bool aLinkPreload = false);
 
   /**
@@ -1283,9 +1322,7 @@ class nsContentUtils {
   /**
    * Returns true if aDocument is a chrome document
    */
-  static bool IsChromeDoc(const Document* aDocument) {
-    return aDocument && aDocument->NodePrincipal() == sSystemPrincipal;
-  }
+  static bool IsChromeDoc(const Document* aDocument);
 
   /**
    * Returns true if aDocument is in a docshell whose parent is the same type
@@ -1308,9 +1345,7 @@ class nsContentUtils {
    * display purposes.  Returns false for null documents or documents
    * which do not belong to a docshell.
    */
-  static bool IsInChromeDocshell(const Document* aDocument) {
-    return aDocument && aDocument->IsInChromeDocShell();
-  }
+  static bool IsInChromeDocshell(const Document* aDocument);
 
   /**
    * Return the content policy service
@@ -1320,30 +1355,7 @@ class nsContentUtils {
   /**
    * Map internal content policy types to external ones.
    */
-  static inline nsContentPolicyType InternalContentPolicyTypeToExternal(
-      nsContentPolicyType aType);
-
-  /**
-   * Map internal content policy types to external ones or preload types:
-   *   * TYPE_INTERNAL_SCRIPT_PRELOAD
-   *   * TYPE_INTERNAL_IMAGE_PRELOAD
-   *   * TYPE_INTERNAL_STYLESHEET_PRELOAD
-   *
-   * Note: DO NOT call this function unless you know what you're doing!
-   */
-  static inline nsContentPolicyType
-  InternalContentPolicyTypeToExternalOrPreload(nsContentPolicyType aType);
-
-  /**
-   * Map internal content policy types to external ones, worker, or preload
-   * types:
-   *   * TYPE_INTERNAL_WORKER
-   *   * TYPE_INTERNAL_SHARED_WORKER
-   *   * TYPE_INTERNAL_SERVICE_WORKER
-   *
-   * Note: DO NOT call this function unless you know what you're doing!
-   */
-  static nsContentPolicyType InternalContentPolicyTypeToExternalOrWorker(
+  static inline ExtContentPolicyType InternalContentPolicyTypeToExternal(
       nsContentPolicyType aType);
 
   /**
@@ -1360,7 +1372,7 @@ class nsContentUtils {
    *   * TYPE_IMAGE
    *   * TYPE_MEDIA
    */
-  static bool IsUpgradableDisplayType(nsContentPolicyType aType);
+  static bool IsUpgradableDisplayType(ExtContentPolicyType aType);
 
   /**
    * Quick helper to determine whether there are any mutation listeners
@@ -1571,8 +1583,9 @@ class nsContentUtils {
    * Helper to dispatch a "framefocusrequested" event to chrome, which will only
    * bring the window to the foreground and switch tabs if aCanRaise is true.
    */
-  static void RequestFrameFocus(Element& aFrameElement, bool aCanRaise,
-                                mozilla::dom::CallerType aCallerType);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY static void RequestFrameFocus(
+      Element& aFrameElement, bool aCanRaise,
+      mozilla::dom::CallerType aCallerType);
 
   /**
    * This method creates and dispatches a trusted event.
@@ -1845,10 +1858,6 @@ class nsContentUtils {
   static already_AddRefed<Document> CreateInertXMLDocument(
       const Document* aTemplate);
 
- private:
-  static already_AddRefed<Document> CreateInertDocument(
-      const Document* aTemplate, DocumentFlavor aFlavor);
-
  public:
   /**
    * Sets the text contents of a node by replacing all existing children
@@ -1942,10 +1951,7 @@ class nsContentUtils {
   /**
    * Returns true if aPrincipal is the system or an ExpandedPrincipal.
    */
-  static bool IsSystemOrExpandedPrincipal(nsIPrincipal* aPrincipal) {
-    return (aPrincipal && aPrincipal->IsSystemPrincipal()) ||
-           IsExpandedPrincipal(aPrincipal);
-  }
+  static bool IsSystemOrExpandedPrincipal(nsIPrincipal* aPrincipal);
 
   /**
    * Gets the system principal from the security manager.
@@ -2108,11 +2114,7 @@ class nsContentUtils {
    * The only known case where this lies is mutation events. They run, and can
    * run anything else, when this function returns false, but this is ok.
    */
-  static bool IsSafeToRunScript() {
-    MOZ_ASSERT(NS_IsMainThread(),
-               "This static variable only makes sense on the main thread!");
-    return sScriptBlockerCount == 0;
-  }
+  static bool IsSafeToRunScript();
 
   // Returns the browser window with the most recent time stamp that is
   // not in private browsing mode.
@@ -2156,20 +2158,7 @@ class nsContentUtils {
   /**
    * Case insensitive comparison between two atoms.
    */
-  static bool EqualsIgnoreASCIICase(nsAtom* aAtom1, nsAtom* aAtom2) {
-    if (aAtom1 == aAtom2) {
-      return true;
-    }
-
-    // If both are ascii lowercase already, we know that the slow comparison
-    // below is going to return false.
-    if (aAtom1->IsAsciiLowercase() && aAtom2->IsAsciiLowercase()) {
-      return false;
-    }
-
-    return EqualsIgnoreASCIICase(nsDependentAtomString(aAtom1),
-                                 nsDependentAtomString(aAtom2));
-  }
+  static bool EqualsIgnoreASCIICase(nsAtom* aAtom1, nsAtom* aAtom2);
 
   /**
    * Case insensitive comparison between two strings. However it only ignores
@@ -2315,13 +2304,7 @@ class nsContentUtils {
    * document or element), which getElementsByClassName was called on.
    */
   static already_AddRefed<nsContentList> GetElementsByClassName(
-      nsINode* aRootNode, const nsAString& aClasses) {
-    MOZ_ASSERT(aRootNode, "Must have root node");
-
-    return GetFuncStringContentList<nsCacheableFuncStringHTMLCollection>(
-        aRootNode, MatchClassNames, DestroyClassNameArray,
-        AllocClassMatchingInfo, aClasses);
-  }
+      nsINode* aRootNode, const nsAString& aClasses);
 
   /**
    * Returns a presshell for this document, if there is one. This will be
@@ -2713,6 +2696,7 @@ class nsContentUtils {
    * is not in designMode, this returns nullptr.
    */
   static mozilla::HTMLEditor* GetHTMLEditor(nsPresContext* aPresContext);
+  static mozilla::HTMLEditor* GetHTMLEditor(nsDocShell* aDocShell);
 
   /**
    * Returns pointer to a text editor if <input> or <textarea> element is
@@ -2723,6 +2707,7 @@ class nsContentUtils {
    * Note that this does not return editor in descendant documents.
    */
   static mozilla::TextEditor* GetActiveEditor(nsPresContext* aPresContext);
+  static mozilla::TextEditor* GetActiveEditor(nsPIDOMWindowOuter* aWindow);
 
   /**
    * Returns `TextEditor` which manages `aAnonymousContent` if there is.
@@ -3049,7 +3034,7 @@ class nsContentUtils {
       Element* aElement, mozilla::dom::CustomElementDefinition* aDefinition);
 
   static void EnqueueLifecycleCallback(
-      Document::ElementCallbackType aType, Element* aCustomElement,
+      mozilla::dom::ElementCallbackType aType, Element* aCustomElement,
       mozilla::dom::LifecycleCallbackArgs* aArgs = nullptr,
       mozilla::dom::LifecycleAdoptedCallbackArgs* aAdoptedCallbackArgs =
           nullptr,
@@ -3148,7 +3133,7 @@ class nsContentUtils {
    * Detect whether a string is a local-url.
    * https://drafts.csswg.org/css-values/#local-urls
    */
-  static bool IsLocalRefURL(const nsString& aString);
+  static bool IsLocalRefURL(const nsAString& aString);
 
   /**
    * Compose a tab id with process id and a serial number.
@@ -3282,7 +3267,7 @@ class nsContentUtils {
 
   struct SubresourceCacheValidationInfo {
     // The expiration time, in seconds, if known.
-    Maybe<uint32_t> mExpirationTime;
+    mozilla::Maybe<uint32_t> mExpirationTime;
     bool mMustRevalidate = false;
   };
 
@@ -3432,7 +3417,7 @@ class nsContentUtils {
   static uint32_t sInnerOrOuterWindowSerialCounter;
 };
 
-/* static */ inline nsContentPolicyType
+/* static */ inline ExtContentPolicyType
 nsContentUtils::InternalContentPolicyTypeToExternal(nsContentPolicyType aType) {
   switch (aType) {
     case nsIContentPolicy::TYPE_INTERNAL_SCRIPT:
@@ -3447,60 +3432,46 @@ nsContentUtils::InternalContentPolicyTypeToExternal(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_INTERNAL_PAINTWORKLET:
     case nsIContentPolicy::TYPE_INTERNAL_CHROMEUTILS_COMPILED_SCRIPT:
     case nsIContentPolicy::TYPE_INTERNAL_FRAME_MESSAGEMANAGER_SCRIPT:
-      return nsIContentPolicy::TYPE_SCRIPT;
+      return ExtContentPolicy::TYPE_SCRIPT;
 
     case nsIContentPolicy::TYPE_INTERNAL_EMBED:
     case nsIContentPolicy::TYPE_INTERNAL_OBJECT:
-      return nsIContentPolicy::TYPE_OBJECT;
+      return ExtContentPolicy::TYPE_OBJECT;
 
     case nsIContentPolicy::TYPE_INTERNAL_FRAME:
     case nsIContentPolicy::TYPE_INTERNAL_IFRAME:
-      return nsIContentPolicy::TYPE_SUBDOCUMENT;
+      return ExtContentPolicy::TYPE_SUBDOCUMENT;
 
     case nsIContentPolicy::TYPE_INTERNAL_AUDIO:
     case nsIContentPolicy::TYPE_INTERNAL_VIDEO:
     case nsIContentPolicy::TYPE_INTERNAL_TRACK:
-      return nsIContentPolicy::TYPE_MEDIA;
+      return ExtContentPolicy::TYPE_MEDIA;
 
     case nsIContentPolicy::TYPE_INTERNAL_XMLHTTPREQUEST:
     case nsIContentPolicy::TYPE_INTERNAL_EVENTSOURCE:
-      return nsIContentPolicy::TYPE_XMLHTTPREQUEST;
+      return ExtContentPolicy::TYPE_XMLHTTPREQUEST;
 
     case nsIContentPolicy::TYPE_INTERNAL_IMAGE:
     case nsIContentPolicy::TYPE_INTERNAL_IMAGE_PRELOAD:
     case nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON:
-      return nsIContentPolicy::TYPE_IMAGE;
+      return ExtContentPolicy::TYPE_IMAGE;
 
     case nsIContentPolicy::TYPE_INTERNAL_STYLESHEET:
     case nsIContentPolicy::TYPE_INTERNAL_STYLESHEET_PRELOAD:
-      return nsIContentPolicy::TYPE_STYLESHEET;
+      return ExtContentPolicy::TYPE_STYLESHEET;
 
     case nsIContentPolicy::TYPE_INTERNAL_DTD:
     case nsIContentPolicy::TYPE_INTERNAL_FORCE_ALLOWED_DTD:
-      return nsIContentPolicy::TYPE_DTD;
+      return ExtContentPolicy::TYPE_DTD;
 
     case nsIContentPolicy::TYPE_INTERNAL_FONT_PRELOAD:
-      return nsIContentPolicy::TYPE_FONT;
+      return ExtContentPolicy::TYPE_FONT;
 
     case nsIContentPolicy::TYPE_INTERNAL_FETCH_PRELOAD:
-      return nsIContentPolicy::TYPE_FETCH;
+      return ExtContentPolicy::TYPE_FETCH;
 
     default:
-      return aType;
-  }
-}
-
-/* static */ inline nsContentPolicyType
-nsContentUtils::InternalContentPolicyTypeToExternalOrWorker(
-    nsContentPolicyType aType) {
-  switch (aType) {
-    case nsIContentPolicy::TYPE_INTERNAL_WORKER:
-    case nsIContentPolicy::TYPE_INTERNAL_SHARED_WORKER:
-    case nsIContentPolicy::TYPE_INTERNAL_SERVICE_WORKER:
-      return aType;
-
-    default:
-      return InternalContentPolicyTypeToExternal(aType);
+      return static_cast<ExtContentPolicyType>(aType);
   }
 }
 
@@ -3525,26 +3496,6 @@ class MOZ_STACK_CLASS nsAutoScriptBlockerSuppressNodeRemoved
 
 namespace mozilla {
 namespace dom {
-
-/**
- * Suppresses event handling and suspends the active inner window for all
- * in-process documents in a BrowsingContextGroup. This should be used while
- * spinning the event loop for a synchronous operation (like `window.open()`)
- * which affects operations in any other window in the same BrowsingContext
- * group.
- */
-
-class MOZ_RAII AutoSuppressEventHandlingAndSuspend {
- public:
-  explicit AutoSuppressEventHandlingAndSuspend(BrowsingContextGroup* aGroup);
-  ~AutoSuppressEventHandlingAndSuspend();
-
- private:
-  void SuppressBrowsingContext(BrowsingContext* aBC);
-
-  AutoTArray<RefPtr<Document>, 16> mDocuments;
-  AutoTArray<nsCOMPtr<nsPIDOMWindowInner>, 16> mWindows;
-};
 
 class TreeOrderComparator {
  public:

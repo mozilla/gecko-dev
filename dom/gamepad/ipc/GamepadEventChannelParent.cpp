@@ -44,8 +44,8 @@ GamepadEventChannelParent::Create() {
       .forget();
 }
 
-GamepadEventChannelParent::GamepadEventChannelParent() {
-  AssertIsOnBackgroundThread();
+GamepadEventChannelParent::GamepadEventChannelParent() : mIsShutdown{false} {
+  MOZ_DIAGNOSTIC_ASSERT(IsOnBackgroundThread());
 
   mBackgroundEventTarget = GetCurrentEventTarget();
 
@@ -57,7 +57,10 @@ GamepadEventChannelParent::GamepadEventChannelParent() {
 }
 
 void GamepadEventChannelParent::ActorDestroy(ActorDestroyReason aWhy) {
-  AssertIsOnBackgroundThread();
+  MOZ_DIAGNOSTIC_ASSERT(IsOnBackgroundThread());
+  MOZ_DIAGNOSTIC_ASSERT(!mIsShutdown);
+
+  mIsShutdown = true;
 
   RefPtr<GamepadPlatformService> service =
       GamepadPlatformService::GetParentService();
@@ -66,12 +69,15 @@ void GamepadEventChannelParent::ActorDestroy(ActorDestroyReason aWhy) {
 }
 
 mozilla::ipc::IPCResult GamepadEventChannelParent::RecvVibrateHaptic(
-    const uint32_t& aControllerIdx, const uint32_t& aHapticIndex,
-    const double& aIntensity, const double& aDuration,
-    const uint32_t& aPromiseID) {
+    const Tainted<GamepadHandle>& aHandle,
+    const Tainted<uint32_t>& aHapticIndex, const Tainted<double>& aIntensity,
+    const Tainted<double>& aDuration, const Tainted<uint32_t>& aPromiseID) {
   // TODO: Bug 680289, implement for standard gamepads
 
-  if (SendReplyGamepadPromise(aPromiseID)) {
+  // TODO: simplify tainted validation, see 1610570
+  if (SendReplyGamepadPromise(MOZ_NO_VALIDATE(
+          aPromiseID,
+          "This value is unused aside from being passed back to the child."))) {
     return IPC_OK();
   }
 
@@ -79,19 +85,22 @@ mozilla::ipc::IPCResult GamepadEventChannelParent::RecvVibrateHaptic(
 }
 
 mozilla::ipc::IPCResult GamepadEventChannelParent::RecvStopVibrateHaptic(
-    const uint32_t& aControllerIdx) {
+    const Tainted<GamepadHandle>& aHandle) {
   // TODO: Bug 680289, implement for standard gamepads
   return IPC_OK();
 }
 
 mozilla::ipc::IPCResult GamepadEventChannelParent::RecvLightIndicatorColor(
-    const uint32_t& aControllerIdx, const uint32_t& aLightColorIndex,
-    const uint8_t& aRed, const uint8_t& aGreen, const uint8_t& aBlue,
-    const uint32_t& aPromiseID) {
-  SetGamepadLightIndicatorColor(aControllerIdx, aLightColorIndex, aRed, aGreen,
-                                aBlue);
+    const Tainted<GamepadHandle>& aHandle,
+    const Tainted<uint32_t>& aLightColorIndex, const Tainted<uint8_t>& aRed,
+    const Tainted<uint8_t>& aGreen, const Tainted<uint8_t>& aBlue,
+    const Tainted<uint32_t>& aPromiseID) {
+  SetGamepadLightIndicatorColor(aHandle, aLightColorIndex, aRed, aGreen, aBlue);
 
-  if (SendReplyGamepadPromise(aPromiseID)) {
+  // TODO: simplify tainted validation, see 1610570
+  if (SendReplyGamepadPromise(MOZ_NO_VALIDATE(
+          aPromiseID,
+          "This value is unused aside from being passed back to the child."))) {
     return IPC_OK();
   }
 

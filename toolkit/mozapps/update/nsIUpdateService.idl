@@ -292,8 +292,11 @@ interface nsIApplicationUpdateService : nsISupports
   /**
    * Checks for available updates in the background using the listener provided
    * by the application update service for background checks.
+   * @returns true if the update check was started, false if not. Note that the
+   *          check starting does not necessarily mean that the check will
+   *          succeed or that an update will be downloaded.
    */
-  void checkForBackgroundUpdates();
+  bool checkForBackgroundUpdates();
 
   /**
    * The Update Checker used for background update checking.
@@ -332,12 +335,6 @@ interface nsIApplicationUpdateService : nsISupports
    *
    */
   bool downloadUpdate(in nsIUpdate update, in boolean background);
-
-  /**
-   * Get the Active Updates directory
-   * @returns An nsIFile for the active updates directory.
-   */
-  nsIFile getUpdatesDirectory();
 
   /**
    * Stop the active update download process. This is the equivalent of
@@ -426,6 +423,35 @@ interface nsIUpdateProcessor : nsISupports
 };
 
 /**
+ * Upon creation, which should happen early during startup, the sync manager
+ * creates/opens and locks a file. All other running instances of the same
+ * installation of the app also open the same lock, so we can use it to
+ * determine whether any other instance is running. If so, we'll temporarily
+ * hold off on performing update tasks until there are no other instances or
+ * until a timeout expires, whichever comes first. That way we can avoid
+ * updating behind the back of copies that are still running, so we don't force
+ * all running instances to restart (see bug 1366808, where an error was added
+ * informing the user of the need to restart any running instances that have
+ * been updated).
+ */
+[scriptable, uuid(cf4c4487-66d9-4e18-a2e9-39002245332f)]
+interface nsIUpdateSyncManager : nsISupports
+{
+  /**
+   * Returns whether another instance of this application is running.
+   * @returns true if another instance has the lock open, false if not
+   */
+  bool isOtherInstanceRunning();
+
+  /**
+   * Should only be used for testing.
+   * Closes and reopens the lock file, possibly under a different name if the
+   * path hash has changed (which should only happen if a test is forcing it).
+   */
+  void resetLock();
+};
+
+/**
  * An interface describing a global application service that maintains a list
  * of updates previously performed as well as the current active update.
  */
@@ -452,10 +478,11 @@ interface nsIUpdateManager : nsISupports
 
   /**
    * The update that is currently downloading, or null if there isn't one.
-   * An update is considered to be downloading until after onStopRequest is
-   * called. This means that download listeners' onStopRequest handlers should
-   * use downloadingUpdate, but observers of the "update-downloaded" topic
-   * should use readyUpdate.
+   * An update is no longer considered to be downloading once onStopRequest is
+   * called. This means that both onStopRequest handlers for download listeners
+   * and observers of the "update-downloaded" topic should expect the update
+   * that was just downloaded to be stored in readyUpdate, not
+   * downloadingUpdate.
    */
   attribute nsIUpdate downloadingUpdate;
 

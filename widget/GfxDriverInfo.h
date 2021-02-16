@@ -171,6 +171,8 @@ enum class DeviceFamily : uint8_t {
   MicrosoftAll,
   ParallelsAll,
   QualcommAll,
+  AppleAll,
+  AmazonAll,
   IntelGMA500,
   IntelGMA900,
   IntelGMA950,
@@ -216,6 +218,8 @@ enum class DeviceVendor : uint8_t {
   Qualcomm,
   MicrosoftBasic,
   MicrosoftHyperV,
+  Apple,
+  Amazon,
 
   Max
 };
@@ -236,6 +240,10 @@ enum DriverVendor : uint8_t {
   MesaUnknown,
   // Wildcard for all non-Mesa drivers.
   NonMesaAll,
+  // Wildcard for all hardware Mesa drivers.
+  HardwareMesaAll,
+  // Wildcard for all software Mesa drivers.
+  SoftwareMesaAll,
 
   Max
 };

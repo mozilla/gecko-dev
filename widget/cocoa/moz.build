@@ -22,7 +22,6 @@ EXPORTS += [
     "DesktopBackgroundImage.h",
     "MediaHardwareKeysEventSourceMac.h",
     "MediaHardwareKeysEventSourceMacMediaCenter.h",
-    "MediaPlayerWrapper.h",
     "mozView.h",
     "nsBidiKeyboard.h",
     "nsChangeObserver.h",
@@ -32,7 +31,6 @@ EXPORTS += [
 ]
 
 UNIFIED_SOURCES += [
-    "ComplexTextInputPanel.mm",
     "GfxInfo.mm",
     "IconLoaderHelperCocoa.mm",
     "NativeKeyBindings.mm",
@@ -73,7 +71,6 @@ UNIFIED_SOURCES += [
     "nsWidgetFactory.mm",
     "nsWindowMap.mm",
     "OSXNotificationCenter.mm",
-    "ProcInfo.mm",
     "ScreenHelperCocoa.mm",
     "SwipeTracker.mm",
     "TextInputHandler.mm",
@@ -88,7 +85,6 @@ SOURCES += [
     "MediaHardwareKeysEventSourceMac.mm",
     "MediaHardwareKeysEventSourceMacMediaCenter.mm",
     "MediaKeysEventSourceFactory.cpp",
-    "MediaPlayerWrapper.mm",
     "nsChildView.mm",
     "nsClipboard.mm",
     "nsCocoaDebugUtils.mm",

@@ -7,13 +7,19 @@
 #ifndef CHROME_COMMON_IPC_CHANNEL_H_
 #define CHROME_COMMON_IPC_CHANNEL_H_
 
-#include <string>
-
+#include <cstdint>
 #include <queue>
-#include "chrome/common/ipc_message.h"
+#include "base/basictypes.h"
+#include "build/build_config.h"
 #include "mozilla/UniquePtr.h"
 
+#ifdef OS_WIN
+#  include <string>
+#endif
+
 namespace IPC {
+
+class Message;
 
 //------------------------------------------------------------------------------
 

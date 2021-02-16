@@ -7,26 +7,35 @@
 #ifndef mozilla_BasePrincipal_h
 #define mozilla_BasePrincipal_h
 
-#include "nsJSPrincipals.h"
-
-#include "mozilla/Attributes.h"
+#include <stdint.h>
+#include "ErrorList.h"
+#include "js/TypeDecls.h"
+#include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/OriginAttributes.h"
-
-class nsAtom;
-class nsIContentSecurityPolicy;
-class nsIObjectOutputStream;
-class nsIObjectInputStream;
-class nsIURI;
+#include "mozilla/RefPtr.h"
+#include "nsAtom.h"
+#include "nsIPrincipal.h"
+#include "nsJSPrincipals.h"
+#include "nsStringFwd.h"
+#include "nscore.h"
 
 class ExpandedPrincipal;
-
+class mozIDOMWindow;
+class nsIChannel;
+class nsIReferrerInfo;
+class nsISupports;
+class nsIURI;
 namespace Json {
 class Value;
 }
+
 namespace mozilla {
+
 namespace dom {
-class Document;
+enum class ReferrerPolicy : uint8_t;
 }
+
 namespace extensions {
 class WebExtensionPolicy;
 }
@@ -146,7 +155,8 @@ class BasePrincipal : public nsJSPrincipals {
       bool* aIsInIsolatedMozBrowserElement) final;
   NS_IMETHOD GetUserContextId(uint32_t* aUserContextId) final;
   NS_IMETHOD GetPrivateBrowsingId(uint32_t* aPrivateBrowsingId) final;
-  NS_IMETHOD GetSiteOrigin(nsACString& aOrigin) override;
+  NS_IMETHOD GetSiteOrigin(nsACString& aSiteOrigin) final;
+  NS_IMETHOD GetSiteOriginNoSuffix(nsACString& aSiteOrigin) override;
   NS_IMETHOD IsThirdPartyURI(nsIURI* uri, bool* aRes) override;
   NS_IMETHOD IsThirdPartyPrincipal(nsIPrincipal* uri, bool* aRes) override;
   NS_IMETHOD IsThirdPartyChannel(nsIChannel* aChannel, bool* aRes) override;
@@ -321,8 +331,8 @@ class BasePrincipal : public nsJSPrincipals {
       nsIURI* aURI, const OriginAttributes& aAttrs,
       const nsACString& aOriginNoSuffix);
 
-  inline bool FastSubsumesIgnoringFPD(
-      nsIPrincipal* aOther, DocumentDomainConsideration aConsideration);
+  bool FastSubsumesIgnoringFPD(nsIPrincipal* aOther,
+                               DocumentDomainConsideration aConsideration);
 
   RefPtr<nsAtom> mOriginNoSuffix;
   RefPtr<nsAtom> mOriginSuffix;
@@ -395,19 +405,6 @@ inline bool BasePrincipal::FastSubsumesConsideringDomain(nsIPrincipal* aOther) {
   }
 
   return Subsumes(aOther, ConsiderDocumentDomain);
-}
-
-inline bool BasePrincipal::FastSubsumesIgnoringFPD(
-    nsIPrincipal* aOther, DocumentDomainConsideration aConsideration) {
-  MOZ_ASSERT(aOther);
-
-  if (Kind() == eContentPrincipal &&
-      !dom::ChromeUtils::IsOriginAttributesEqualIgnoringFPD(
-          mOriginAttributes, Cast(aOther)->mOriginAttributes)) {
-    return false;
-  }
-
-  return SubsumesInternal(aOther, aConsideration);
 }
 
 inline bool BasePrincipal::FastSubsumesIgnoringFPD(nsIPrincipal* aOther) {

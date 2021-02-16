@@ -9,14 +9,20 @@
 
 #include "GLContextTypes.h"
 #include "GLConsts.h"
+#include "mozilla/gfx/Rect.h"
 #include "nsSize.h"
-#include "ipc/IPCMessageUtils.h"
+#include "nsTString.h"
+#include "mozilla/ipc/IPCTypes.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/gfx/Point.h"
 #include "../layers/ImageTypes.h"
+#include "nsStringFwd.h"
+
+#include <map>
 
 #ifdef XP_WIN
 #  include <windows.h>
+struct ID3D11Texture2D;
 #endif
 
 #ifdef XP_MACOSX
@@ -33,6 +39,7 @@ class GPUVideoImage;
 class PlanarYCbCrImage;
 class SurfaceTextureImage;
 class MacIOSurfaceImage;
+class SurfaceDescriptor;
 class SurfaceDescriptorD3D10;
 class SurfaceDescriptorDXGIYCbCr;
 }  // namespace layers
@@ -188,6 +195,8 @@ class GLBlitHelper final {
   bool BlitImageToFramebuffer(layers::Image* srcImage,
                               const gfx::IntSize& destSize,
                               OriginPos destOrigin);
+  bool BlitSdToFramebuffer(const layers::SurfaceDescriptor&,
+                           const gfx::IntSize& destSize, OriginPos destOrigin);
 
  private:
   bool BlitImage(layers::GPUVideoImage* srcImage, const gfx::IntSize& destSize,

@@ -54,10 +54,6 @@ class GlobalScope;
 class LexicalEnvironmentObject;
 class PlainObject;
 class RegExpStatics;
-class TypeDescr;
-class WasmNamespaceObject;
-
-enum class ReferenceType;
 
 /*
  * Global object slots are reserved as follows:
@@ -280,6 +276,10 @@ class GlobalObject : public NativeObject {
    */
   bool shouldSplicePrototype();
 
+  /* Set a new prototype for the global object during bootstrapping. */
+  static bool splicePrototype(JSContext* cx, Handle<GlobalObject*> global,
+                              Handle<TaggedProto> proto);
+
   /*
    * Create a constructor function with the specified name and length using
    * ctor, a method which creates objects with the given class.
@@ -499,21 +499,6 @@ class GlobalObject : public NativeObject {
     }
     return &global->getPrototype(JSProto_WeakSet).toObject().as<NativeObject>();
   }
-
-  static JSObject* getOrCreateWebAssemblyNamespace(
-      JSContext* cx, Handle<GlobalObject*> global) {
-    return getOrCreateConstructor(cx, JSProto_WebAssembly);
-  }
-
-  static TypeDescr* getOrCreateScalarTypeDescr(JSContext* cx,
-                                               Handle<GlobalObject*> global,
-                                               Scalar::Type scalarType);
-
-  static TypeDescr* getOrCreateReferenceTypeDescr(JSContext* cx,
-                                                  Handle<GlobalObject*> global,
-                                                  ReferenceType type);
-
-  WasmNamespaceObject& getWebAssemblyNamespace() const;
 
   static bool ensureModulePrototypesCreated(JSContext* cx,
                                             Handle<GlobalObject*> global);
@@ -1000,8 +985,8 @@ inline JSProtoKey StandardProtoKeyOrNull(const JSObject* obj) {
   return JSCLASS_CACHED_PROTO_KEY(obj->getClass());
 }
 
-JSObject* NewSingletonObjectWithFunctionPrototype(JSContext* cx,
-                                                  Handle<GlobalObject*> global);
+JSObject* NewTenuredObjectWithFunctionPrototype(JSContext* cx,
+                                                Handle<GlobalObject*> global);
 
 }  // namespace js
 

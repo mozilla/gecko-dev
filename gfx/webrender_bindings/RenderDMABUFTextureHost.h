@@ -26,6 +26,12 @@ class RenderDMABUFTextureHost final : public RenderTextureHost {
   wr::WrExternalImage Lock(uint8_t aChannelIndex, gl::GLContext* aGL,
                            wr::ImageRendering aRendering) override;
   void Unlock() override;
+  void ClearCachedResources() override;
+
+  size_t Bytes() override {
+    return mSurface->GetWidth() * mSurface->GetHeight() *
+           BytesPerPixel(mSurface->GetFormat());
+  }
 
  private:
   virtual ~RenderDMABUFTextureHost();

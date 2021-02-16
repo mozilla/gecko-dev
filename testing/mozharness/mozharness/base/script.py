@@ -9,7 +9,7 @@ script.py, along with config.py and log.py, represents the core of
 mozharness.
 """
 
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import codecs
 import datetime
@@ -321,7 +321,7 @@ class ScriptMixin(PlatformMixin):
             str: in case `path` is a string. The result is the path with the new notation.
             type(path): `path` itself is returned in case `path` is not str type.
         """
-        if not isinstance(path, basestring):
+        if not isinstance(path, six.string_types):
             return path
         path = path.replace("\\", "/")
 
@@ -1416,7 +1416,7 @@ class ScriptMixin(PlatformMixin):
         if isinstance(exe, dict):
             found = False
             # allow for searchable paths of the exe
-            for name, path in exe.iteritems():
+            for name, path in six.iteritems(exe):
                 if isinstance(path, list) or isinstance(path, tuple):
                     path = [x % repl_dict for x in path]
                     if all([os.path.exists(section) for section in path]):
@@ -1930,7 +1930,7 @@ class ScriptMixin(PlatformMixin):
                             os.chmod(fname, mode)
             except zipfile.BadZipfile as e:
                 self.log(
-                    "%s (%s)" % (e.message, filename),
+                    "%s (%s)" % (str(e), filename),
                     level=error_level,
                     exit_code=fatal_exit_code,
                 )
@@ -1948,7 +1948,7 @@ class ScriptMixin(PlatformMixin):
                         bundle.extract(entry, path=extract_to)
             except tarfile.TarError as e:
                 self.log(
-                    "%s (%s)" % (e.message, filename),
+                    "%s (%s)" % (str(e), filename),
                     level=error_level,
                     exit_code=fatal_exit_code,
                 )

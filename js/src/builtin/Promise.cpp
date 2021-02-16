@@ -2711,7 +2711,7 @@ MOZ_MUST_USE JSObject* js::GetWaitForAllPromise(
       if (!valuesArray) {
         return nullptr;
       }
-      valuesArray->ensureDenseInitializedLength(cx, 0, promiseCount);
+      valuesArray->ensureDenseInitializedLength(0, promiseCount);
 
       values.initialize(valuesArray);
     }
@@ -5702,7 +5702,13 @@ static MOZ_MUST_USE bool IsTopMostAsyncFunctionCall(JSContext* cx) {
   if (iter.done()) {
     return false;
   }
-  MOZ_ASSERT(iter.isFunctionFrame());
+
+  if (!iter.isFunctionFrame() && iter.isModuleFrame()) {
+    // The iterator is not a function frame, it is a module frame.
+    // Ignore this optimization for now.
+    return true;
+  }
+
   MOZ_ASSERT(iter.calleeTemplate()->isAsync());
 
 #ifdef DEBUG
@@ -5754,8 +5760,8 @@ static MOZ_MUST_USE bool IsTopMostAsyncFunctionCall(JSContext* cx) {
   return false;
 }
 
-MOZ_MUST_USE bool js::TrySkipAwait(JSContext* cx, HandleValue val,
-                                   bool* canSkip, MutableHandleValue resolved) {
+MOZ_MUST_USE bool js::CanSkipAwait(JSContext* cx, HandleValue val,
+                                   bool* canSkip) {
   if (!cx->canSkipEnqueuingJobs) {
     *canSkip = false;
     return true;
@@ -5769,7 +5775,6 @@ MOZ_MUST_USE bool js::TrySkipAwait(JSContext* cx, HandleValue val,
   // Primitive values cannot be 'thenables', so we can trivially skip the
   // await operation.
   if (!val.isObject()) {
-    resolved.set(val);
     *canSkip = true;
     return true;
   }
@@ -5799,8 +5804,33 @@ MOZ_MUST_USE bool js::TrySkipAwait(JSContext* cx, HandleValue val,
     return true;
   }
 
-  resolved.set(promise->value());
   *canSkip = true;
+  return true;
+}
+
+MOZ_MUST_USE bool js::ExtractAwaitValue(JSContext* cx, HandleValue val,
+                                        MutableHandleValue resolved) {
+// Ensure all callers of this are jumping past the
+// extract if it's not possible to extract.
+#ifdef DEBUG
+  bool canSkip;
+  if (!CanSkipAwait(cx, val, &canSkip)) {
+    return false;
+  }
+  MOZ_ASSERT(canSkip == true);
+#endif
+
+  // Primitive values cannot be 'thenables', so we can trivially skip the
+  // await operation.
+  if (!val.isObject()) {
+    resolved.set(val);
+    return true;
+  }
+
+  JSObject* obj = &val.toObject();
+  PromiseObject* promise = &obj->as<PromiseObject>();
+  resolved.set(promise->value());
+
   return true;
 }
 

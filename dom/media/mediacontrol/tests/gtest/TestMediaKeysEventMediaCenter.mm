@@ -1,17 +1,14 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#import "MediaPlayerWrapper.h"
+#import <MediaPlayer/MediaPlayer.h>
 
 #include "MediaHardwareKeysEventSourceMacMediaCenter.h"
 #include "MediaKeyListenerTest.h"
 #include "nsCocoaFeatures.h"
-
-extern _Nullable Class mpNowPlayingInfoCenterClass;
-
-extern _Nullable Class mpRemoteCommandCenterClass;
-
-extern _Nullable Class mpRemoteCommandClass;
+#include "nsCocoaUtils.h"
+#include "prinrval.h"
+#include "prthread.h"
 
 using namespace mozilla::dom;
 
@@ -19,136 +16,149 @@ NS_ASSUME_NONNULL_BEGIN
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayPauseEvent)
 {
-  if (nsCocoaFeatures::IsAtLeastVersion(10, 12, 2)) {
-    ASSERT_TRUE(MediaPlayerWrapperInit());
-    RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
-        new MediaHardwareKeysEventSourceMacMediaCenter();
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
+      new MediaHardwareKeysEventSourceMacMediaCenter();
 
-    ASSERT_TRUE(source->GetListenersNum() == 0);
+  ASSERT_TRUE(source->GetListenersNum() == 0);
 
-    RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
+  RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
 
-    MPNowPlayingInfoCenter* center =
-        (MPNowPlayingInfoCenter*)[mpNowPlayingInfoCenterClass defaultCenter];
+  MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
 
-    source->AddListener(listener.get());
+  source->AddListener(listener.get());
 
-    ASSERT_TRUE(source->Open());
+  ASSERT_TRUE(source->Open());
 
-    ASSERT_TRUE(source->GetListenersNum() == 1);
-    ASSERT_TRUE(!listener->IsReceivedResult());
-    ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
+  ASSERT_TRUE(source->GetListenersNum() == 1);
+  ASSERT_TRUE(!listener->IsReceivedResult());
+  ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
 
-    MediaCenterEventHandler playPauseHandler = source->CreatePlayPauseHandler();
-    playPauseHandler(nil);
+  MediaCenterEventHandler playPauseHandler = source->CreatePlayPauseHandler();
+  playPauseHandler(nil);
 
-    ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePaused);
-    ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Playpause));
+  ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePaused);
+  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Playpause));
 
-    listener->Clear();  // Reset stored media key
+  listener->Clear();  // Reset stored media key
 
-    playPauseHandler(nil);
+  playPauseHandler(nil);
 
-    ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
-    ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Playpause));
-    MediaPlayerWrapperClose();
-  }
+  ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
+  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Playpause));
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayEvent)
 {
-  if (nsCocoaFeatures::IsAtLeastVersion(10, 12, 2)) {
-    ASSERT_TRUE(MediaPlayerWrapperInit());
-    RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
-        new MediaHardwareKeysEventSourceMacMediaCenter();
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
+      new MediaHardwareKeysEventSourceMacMediaCenter();
 
-    ASSERT_TRUE(source->GetListenersNum() == 0);
+  ASSERT_TRUE(source->GetListenersNum() == 0);
 
-    RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
+  RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
 
-    MPNowPlayingInfoCenter* center =
-        (MPNowPlayingInfoCenter*)[mpNowPlayingInfoCenterClass defaultCenter];
+  MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
 
-    source->AddListener(listener.get());
+  source->AddListener(listener.get());
 
-    ASSERT_TRUE(source->Open());
+  ASSERT_TRUE(source->Open());
 
-    ASSERT_TRUE(source->GetListenersNum() == 1);
-    ASSERT_TRUE(!listener->IsReceivedResult());
-    ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
+  ASSERT_TRUE(source->GetListenersNum() == 1);
+  ASSERT_TRUE(!listener->IsReceivedResult());
+  ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
 
-    MediaCenterEventHandler playHandler = source->CreatePlayHandler();
+  MediaCenterEventHandler playHandler = source->CreatePlayHandler();
 
-    center.playbackState = MPNowPlayingPlaybackStatePaused;
+  center.playbackState = MPNowPlayingPlaybackStatePaused;
 
-    playHandler(nil);
+  playHandler(nil);
 
-    ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
-    ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Play));
-    MediaPlayerWrapperClose();
-  }
+  ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
+  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Play));
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPauseEvent)
 {
-  if (nsCocoaFeatures::IsAtLeastVersion(10, 12, 2)) {
-    ASSERT_TRUE(MediaPlayerWrapperInit());
-    RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
-        new MediaHardwareKeysEventSourceMacMediaCenter();
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
+      new MediaHardwareKeysEventSourceMacMediaCenter();
 
-    ASSERT_TRUE(source->GetListenersNum() == 0);
+  ASSERT_TRUE(source->GetListenersNum() == 0);
 
-    RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
+  RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
 
-    MPNowPlayingInfoCenter* center =
-        (MPNowPlayingInfoCenter*)[mpNowPlayingInfoCenterClass defaultCenter];
+  MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
 
-    source->AddListener(listener.get());
+  source->AddListener(listener.get());
 
-    ASSERT_TRUE(source->Open());
+  ASSERT_TRUE(source->Open());
 
-    ASSERT_TRUE(source->GetListenersNum() == 1);
-    ASSERT_TRUE(!listener->IsReceivedResult());
-    ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
+  ASSERT_TRUE(source->GetListenersNum() == 1);
+  ASSERT_TRUE(!listener->IsReceivedResult());
+  ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
 
-    MediaCenterEventHandler pauseHandler = source->CreatePauseHandler();
+  MediaCenterEventHandler pauseHandler = source->CreatePauseHandler();
 
-    pauseHandler(nil);
+  pauseHandler(nil);
 
-    ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePaused);
-    ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Pause));
-    MediaPlayerWrapperClose();
-  }
+  ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePaused);
+  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Pause));
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPrevNextEvent)
 {
-  if (nsCocoaFeatures::IsAtLeastVersion(10, 12, 2)) {
-    ASSERT_TRUE(MediaPlayerWrapperInit());
-    RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
-        new MediaHardwareKeysEventSourceMacMediaCenter();
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
+      new MediaHardwareKeysEventSourceMacMediaCenter();
 
-    ASSERT_TRUE(source->GetListenersNum() == 0);
+  ASSERT_TRUE(source->GetListenersNum() == 0);
 
-    RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
+  RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
 
-    source->AddListener(listener.get());
+  source->AddListener(listener.get());
 
-    ASSERT_TRUE(source->Open());
+  ASSERT_TRUE(source->Open());
 
-    MediaCenterEventHandler nextHandler = source->CreateNextTrackHandler();
+  MediaCenterEventHandler nextHandler = source->CreateNextTrackHandler();
 
-    nextHandler(nil);
+  nextHandler(nil);
 
-    ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Nexttrack));
+  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Nexttrack));
 
-    MediaCenterEventHandler previousHandler = source->CreatePreviousTrackHandler();
+  MediaCenterEventHandler previousHandler = source->CreatePreviousTrackHandler();
 
-    previousHandler(nil);
+  previousHandler(nil);
 
-    ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Previoustrack));
-    MediaPlayerWrapperClose();
-  }
+  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Previoustrack));
+}
+
+TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestSetMetadata)
+{
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
+      new MediaHardwareKeysEventSourceMacMediaCenter();
+
+  ASSERT_TRUE(source->GetListenersNum() == 0);
+
+  RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
+
+  source->AddListener(listener.get());
+
+  ASSERT_TRUE(source->Open());
+
+  MediaMetadataBase metadata;
+  metadata.mTitle = u"MediaPlayback";
+  metadata.mArtist = u"Firefox";
+  metadata.mAlbum = u"Mozilla";
+  source->SetMediaMetadata(metadata);
+
+  // The update procedure of nowPlayingInfo is async, so wait for a second
+  // before checking the result.
+  PR_Sleep(PR_SecondsToInterval(1));
+  MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
+  ASSERT_TRUE([center.nowPlayingInfo[MPMediaItemPropertyTitle] isEqualToString:@"MediaPlayback"]);
+  ASSERT_TRUE([center.nowPlayingInfo[MPMediaItemPropertyArtist] isEqualToString:@"Firefox"]);
+  ASSERT_TRUE([center.nowPlayingInfo[MPMediaItemPropertyAlbumTitle] isEqualToString:@"Mozilla"]);
+
+  source->Close();
+  PR_Sleep(PR_SecondsToInterval(1));
+  ASSERT_TRUE(center.nowPlayingInfo == nil);
 }
 
 NS_ASSUME_NONNULL_END

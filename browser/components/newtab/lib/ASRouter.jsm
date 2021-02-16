@@ -18,6 +18,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   ToolbarBadgeHub: "resource://activity-stream/lib/ToolbarBadgeHub.jsm",
   ToolbarPanelHub: "resource://activity-stream/lib/ToolbarPanelHub.jsm",
   MomentsPageHub: "resource://activity-stream/lib/MomentsPageHub.jsm",
+  InfoBar: "resource://activity-stream/lib/InfoBar.jsm",
   ASRouterTargeting: "resource://activity-stream/lib/ASRouterTargeting.jsm",
   ASRouterPreferences: "resource://activity-stream/lib/ASRouterPreferences.jsm",
   TARGETING_PREFERENCES:
@@ -37,12 +38,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 XPCOMUtils.defineLazyServiceGetters(this, {
   BrowserHandler: ["@mozilla.org/browser/clh;1", "nsIBrowserHandler"],
 });
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "isSeparateAboutWelcome",
-  "browser.aboutwelcome.enabled",
-  true
-);
 const { actionCreators: ac } = ChromeUtils.import(
   "resource://activity-stream/common/Actions.jsm"
 );
@@ -62,11 +57,6 @@ const { CFRPageActions } = ChromeUtils.import(
 const { AttributionCode } = ChromeUtils.import(
   "resource:///modules/AttributionCode.jsm"
 );
-
-const TRAILHEAD_CONFIG = {
-  DID_SEE_ABOUT_WELCOME_PREF: "trailhead.firstrun.didSeeAboutWelcome",
-  DYNAMIC_TRIPLET_BUNDLE_LENGTH: 3,
-};
 
 // List of hosts for endpoints that serve router messages.
 // Key is allowed host, value is a name for the endpoint host.
@@ -298,8 +288,19 @@ const MessageLoaderUtils = {
             provider.id,
             options.dispatchCFRAction
           );
-        } else if (RS_PROVIDERS_WITH_L10N.includes(provider.id)) {
-          const locale = Services.locale.appLocaleAsBCP47;
+        } else if (
+          RS_PROVIDERS_WITH_L10N.includes(provider.id) &&
+          (RemoteL10n.isLocaleSupported(Services.locale.appLocaleAsBCP47) ||
+            // While it's not a valid locale, "und" is commonly observed on
+            // Linux platforms. Per l10n team, it's reasonable to fallback to
+            // "en-US", therefore, we should allow the fetch for it.
+            Services.locale.appLocaleAsBCP47 === "und")
+        ) {
+          let locale = Services.locale.appLocaleAsBCP47;
+          // Fallback to "en-US" if locale is "und"
+          if (locale === "und") {
+            locale = "en-US";
+          }
           const recordId = `${RS_FLUENT_RECORD_PREFIX}-${locale}`;
           const kinto = new KintoHttpClient(
             Services.prefs.getStringPref(RS_SERVER_PREF)
@@ -1021,7 +1022,6 @@ class _ASRouter {
       providerPrefs: ASRouterPreferences.providers,
       userPrefs: ASRouterPreferences.getAllUserPreferences(),
       targetingParameters,
-      trailheadTriplet: ASRouterPreferences.trailheadTriplet,
       errors: this.errors,
     }));
   }
@@ -1057,14 +1057,14 @@ class _ASRouter {
     return targetingParameters;
   }
 
-  _handleTargetingError(type, error, message) {
+  _handleTargetingError(error, message) {
     Cu.reportError(error);
     this.dispatchCFRAction(
       ac.ASRouterUserEvent({
         message_id: message.id,
         action: "asrouter_undesired_event",
         event: "TARGETING_EXPRESSION_ERROR",
-        event_context: type,
+        event_context: {},
       })
     );
   }
@@ -1095,10 +1095,6 @@ class _ASRouter {
       evaluationStatus = { result: e.message, success: false };
     }
     return Promise.resolve({ evaluationStatus });
-  }
-
-  _orderBundle(bundle) {
-    return bundle.sort((a, b) => a.order - b.order);
   }
 
   unblockAll() {
@@ -1160,97 +1156,6 @@ class _ASRouter {
     return true;
   }
 
-  async _getBundledMessages(originalMessage, trigger, force = false) {
-    let result = [];
-    let bundleLength;
-    let bundleTemplate;
-    let originalId;
-
-    if (originalMessage.includeBundle) {
-      // The original message is not part of the bundle, so don't include it
-      bundleLength = originalMessage.includeBundle.length;
-      bundleTemplate = originalMessage.includeBundle.template;
-    } else {
-      // The original message is part of the bundle
-      bundleLength = originalMessage.bundled;
-      bundleTemplate = originalMessage.template;
-      originalId = originalMessage.id;
-      // Add in a copy of the first message
-      result.push({
-        content: originalMessage.content,
-        id: originalMessage.id,
-        order: originalMessage.order || 0,
-      });
-    }
-
-    // First, find all messages of same template. These are potential matching targeting candidates
-    let bundledMessagesOfSameTemplate = this.state.messages.filter(
-      msg =>
-        msg.bundled &&
-        msg.template === bundleTemplate &&
-        msg.id !== originalId &&
-        this.isUnblockedMessage(msg)
-    );
-
-    if (force) {
-      // Forcefully show the messages without targeting matching - this is for about:newtab#asrouter to show the messages
-      for (const message of bundledMessagesOfSameTemplate) {
-        result.push({ content: message.content, id: message.id });
-        // Stop once we have enough messages to fill a bundle
-        if (result.length === bundleLength) {
-          break;
-        }
-      }
-    } else {
-      // Find all messages that matches the targeting context
-      const allMessages = await this.handleMessageRequest({
-        messages: bundledMessagesOfSameTemplate,
-        triggerId: trigger && trigger.id,
-        triggerContext: trigger && trigger.context,
-        triggerParam: trigger && trigger.param,
-        ordered: true,
-        returnAll: true,
-      });
-
-      if (allMessages && allMessages.length) {
-        // Retrieve enough messages needed to fill a bundle
-        // Only copy the content of the message (that's what the UI cares about)
-        result = result.concat(
-          allMessages.slice(0, bundleLength).map(message => ({
-            content: message.content,
-            id: message.id,
-            order: message.order || 0,
-            // This is used to determine whether to block when action is triggered
-            // Only block for dynamic triplets experiment and when there are more messages available
-            blockOnClick:
-              ASRouterPreferences.trailheadTriplet.startsWith("dynamic") &&
-              allMessages.length >
-                TRAILHEAD_CONFIG.DYNAMIC_TRIPLET_BUNDLE_LENGTH,
-          }))
-        );
-      }
-    }
-
-    // If we did not find enough messages to fill the bundle, do not send the bundle down
-    if (result.length < bundleLength) {
-      return null;
-    }
-
-    // The bundle may have some extra attributes, like a header, or a dismiss button, so attempt to get those strings now
-    // This is a temporary solution until we can use Fluent strings in the content process, in which case the content can
-    // handle finding these strings on its own. See bug 1488973
-    const extraTemplateStrings = await this._extraTemplateStrings(
-      originalMessage
-    );
-
-    return {
-      bundle: this._orderBundle(result),
-      ...(extraTemplateStrings && { extraTemplateStrings }),
-      provider: originalMessage.provider,
-      template: originalMessage.template,
-    };
-  }
-
   async _extraTemplateStrings(originalMessage) {
     let extraTemplateStrings;
     let localProvider = this._findProvider(originalMessage.provider);
@@ -1268,6 +1173,10 @@ class _ASRouter {
   }
 
   routeCFRMessage(message, browser, trigger, force = false) {
+    if (!message) {
+      return { message: {} };
+    }
+
     switch (message.template) {
       case "whatsnew_panel_message":
         if (force) {
@@ -1318,33 +1227,10 @@ class _ASRouter {
       case "update_action":
         MomentsPageHub.executeAction(message);
         break;
-      default:
+      case "infobar":
+        InfoBar.showInfoBarMessage(browser, message, this.dispatchCFRAction);
         break;
     }
-  }
-
-  async sendMessage(message, trigger, force, browser) {
-    if (!message) {
-      return { message: {} };
-    } else if (message.bundled) {
-      const bundle =
-        (await this._getBundledMessages(message, trigger, force)) || {};
-      return { message: bundle };
-    } else if (message.includeBundle) {
-      const bundledMessages = await this._getBundledMessages(
-        message,
-        message.includeBundle.trigger,
-        force
-      );
-      return {
-        message: {
-          ...message,
-          trailheadTriplet: ASRouterPreferences.trailheadTriplet || "",
-          bundle: bundledMessages && bundledMessages.bundle,
-        },
-      };
-    }
-    this.routeCFRMessage(message, browser, trigger, force);
 
     return { message };
   }
@@ -1537,7 +1423,7 @@ class _ASRouter {
   }
 
   setMessageById({ id, ...data }, force, browser) {
-    return this.sendMessage(this.getMessageById(id), data, force, browser);
+    return this.routeCFRMessage(this.getMessageById(id), browser, data, force);
   }
 
   blockMessageById(idOrIds) {
@@ -1764,21 +1650,11 @@ class _ASRouter {
     } else {
       const telemetryObject = { tabId };
       TelemetryStopwatch.start("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
-      // On new tab, send cards if they match and not part of default multistage onboarding experience;
-      // othwerise send a snippet
-      if (!isSeparateAboutWelcome) {
-        message = await this.handleMessageRequest({
-          template: "extended_triplets",
-        });
-      }
-      // If no extended triplets message was returned, show snippets instead
-      if (!message) {
-        message = await this.handleMessageRequest({ provider: "snippets" });
-      }
+      message = await this.handleMessageRequest({ provider: "snippets" });
       TelemetryStopwatch.finish("MS_MESSAGE_REQUEST_TIME_MS", telemetryObject);
     }
 
-    return this.sendMessage(message, undefined, false, browser);
+    return this.routeCFRMessage(message, browser, undefined, false);
   }
 
   _recordReachEvent(message) {
@@ -1835,11 +1711,11 @@ class _ASRouter {
       );
     }
 
-    return this.sendMessage(
+    return this.routeCFRMessage(
       nonReachMessages[0] || null,
+      browser,
       trigger,
-      false,
-      browser
+      false
     );
   }
 
@@ -1867,7 +1743,6 @@ class _ASRouter {
   }
 }
 this._ASRouter = _ASRouter;
-this.TRAILHEAD_CONFIG = TRAILHEAD_CONFIG;
 
 /**
  * ASRouter - singleton instance of _ASRouter that controls all messages
@@ -1875,9 +1750,4 @@ this.TRAILHEAD_CONFIG = TRAILHEAD_CONFIG;
  */
 this.ASRouter = new _ASRouter();
 
-const EXPORTED_SYMBOLS = [
-  "_ASRouter",
-  "ASRouter",
-  "MessageLoaderUtils",
-  "TRAILHEAD_CONFIG",
-];
+const EXPORTED_SYMBOLS = ["_ASRouter", "ASRouter", "MessageLoaderUtils"];

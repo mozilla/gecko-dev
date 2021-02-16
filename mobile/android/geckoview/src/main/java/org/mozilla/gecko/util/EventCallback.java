@@ -2,6 +2,9 @@ package org.mozilla.gecko.util;
 
 import org.mozilla.gecko.annotation.RobocopTarget;
 import org.mozilla.gecko.annotation.WrapForJNI;
+import org.mozilla.geckoview.GeckoResult;
+
+import javax.annotation.Nullable;
 
 /**
  * Callback interface for Gecko requests.
@@ -19,7 +22,7 @@ public interface EventCallback {
      * @param response The response data to send to Gecko. Can be any of the types accepted by
      *                 JSONObject#put(String, Object).
      */
-    public void sendSuccess(Object response);
+    void sendSuccess(Object response);
 
     /**
      * Sends an error response with the given data.
@@ -27,5 +30,24 @@ public interface EventCallback {
      * @param response The response data to send to Gecko. Can be any of the types accepted by
      *                 JSONObject#put(String, Object).
      */
-    public void sendError(Object response);
+    void sendError(Object response);
+
+    /**
+     * Resolve this Event callback with the result from the {@link GeckoResult}.
+     *
+     * @param response the result that will be used for this callback.
+     */
+    default <T> void resolveTo(final @Nullable GeckoResult<T> response) {
+        if (response == null) {
+            sendSuccess(null);
+            return;
+        }
+        response.accept(this::sendSuccess, throwable -> {
+            // Don't propagate Errors, just crash
+            if (!(throwable instanceof Exception)) {
+                throw new GeckoResult.UncaughtException(throwable);
+            }
+            sendError(throwable.getMessage());
+        });
+    }
 }

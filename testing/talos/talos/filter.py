@@ -1,4 +1,8 @@
-from __future__ import absolute_import
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import, division
 
 import math
 import six
@@ -176,6 +180,7 @@ def geometric_mean(series):
     total = 0
     for i in series:
         total += math.log(i + 1)
+    # pylint --py3k W1619
     return math.exp(total / len(series)) - 1
 
 
@@ -250,6 +255,7 @@ def v8_subtest(series, name):
         "Splay": 81491.0,
     }
 
+    # pylint --py3k W1619
     return reference[name] / geometric_mean(series)
 
 

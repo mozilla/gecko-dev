@@ -20,7 +20,8 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/DeferredTask.jsm"
 );
 
-const INPUT_DELAY_MS = 500;
+const PDF_JS_URI = "resource://pdf.js/web/viewer.html";
+const INPUT_DELAY_MS = Cu.isInAutomation ? 100 : 500;
 const MM_PER_POINT = 25.4 / 72;
 const INCHES_PER_POINT = 1 / 72;
 const ourBrowser = window.docShell.chromeEventHandler;
@@ -84,12 +85,6 @@ function cancelDeferredTasks() {
   deferredTasks = [];
 }
 
-async function finalizeDeferredTasks() {
-  await Promise.all(deferredTasks.map(task => task.finalize()));
-  printPending = true;
-  await PrintEventHandler._updatePrintPreviewTask.finalize();
-}
-
 document.addEventListener(
   "DOMContentLoaded",
   e => {
@@ -118,7 +113,10 @@ var PrintEventHandler = {
   settings: null,
   defaultSettings: null,
   allPaperSizes: {},
-  _nonFlaggedChangedSettings: {},
+  previewIsEmpty: false,
+  _delayedChanges: {},
+  _hasRenderedSelectionPreview: false,
+  _hasRenderedPrimaryPreview: false,
   _userChangedSettings: {},
   settingFlags: {
     margins: Ci.nsIPrintSettings.kInitSaveMargins,
@@ -145,10 +143,17 @@ var PrintEventHandler = {
   originalSourceContentTitle: null,
   originalSourceCurrentURI: null,
   previewBrowser: null,
+  selectionPreviewBrowser: null,
+  currentPreviewBrowser: null,
 
   // These settings do not have an associated pref value or flag, but
   // changing them requires us to update the print preview.
-  _nonFlaggedUpdatePreviewSettings: new Set(["pageRanges"]),
+  _nonFlaggedUpdatePreviewSettings: new Set([
+    "pageRanges",
+    "numPagesPerSheet",
+    "printSelectionOnly",
+  ]),
+  _noPreviewUpdateSettings: new Set(["numCopies", "printDuplex"]),
 
   async init() {
     Services.telemetry.scalarAdd("printing.preview_opened_tm", 1);
@@ -157,30 +162,53 @@ var PrintEventHandler = {
     // is initiated and the print preview clone must be a snapshot from the
     // time that the print was started.
     let sourceBrowsingContext = this.getSourceBrowsingContext();
-    this.previewBrowser = PrintUtils.createPreviewBrowser(
-      sourceBrowsingContext,
-      ourBrowser
-    );
+    ({
+      previewBrowser: this.previewBrowser,
+      selectionPreviewBrowser: this.selectionPreviewBrowser,
+    } = PrintUtils.createPreviewBrowsers(sourceBrowsingContext, ourBrowser));
 
+    let args = window.arguments[0];
+    this.printSelectionOnly = args.getProperty("printSelectionOnly");
+    this.hasSelection =
+      args.getProperty("hasSelection") && this.selectionPreviewBrowser;
+    this.printFrameOnly = args.getProperty("printFrameOnly");
     // Get the temporary browser that will previously have been created for the
     // platform code to generate the static clone printing doc into if this
     // print is for a window.print() call.  In that case we steal the browser's
     // docshell to get the static clone, then discard it.
-    let args = window.arguments[0];
-    this.printSelectionOnly = args.getProperty("printSelectionOnly");
     let existingBrowser = args.getProperty("previewBrowser");
     if (existingBrowser) {
       sourceBrowsingContext = existingBrowser.browsingContext;
       this.previewBrowser.swapDocShells(existingBrowser);
       existingBrowser.remove();
     }
+    document.querySelector("#print-selection-container").hidden = !this
+      .hasSelection;
 
+    let sourcePrincipal =
+      sourceBrowsingContext.currentWindowGlobal.documentPrincipal;
+    let sourceIsPdf =
+      !sourcePrincipal.isNullPrincipal && sourcePrincipal.spec == PDF_JS_URI;
     this.originalSourceContentTitle =
       sourceBrowsingContext.currentWindowContext.documentTitle;
     this.originalSourceCurrentURI =
       sourceBrowsingContext.currentWindowContext.documentURI.spec;
 
+    this.sourceWindowId = this.printFrameOnly
+      ? sourceBrowsingContext.currentWindowGlobal.outerWindowId
+      : sourceBrowsingContext.top.embedderElement.browsingContext
+          .currentWindowGlobal.outerWindowId;
+    this.selectionWindowId =
+      sourceBrowsingContext.currentWindowGlobal.outerWindowId;
+
+    // We don't need the sourceBrowsingContext anymore, get rid of it.
+    sourceBrowsingContext = undefined;
+
+    this.printProgressIndicator = document.getElementById("print-progress");
     this.printForm = document.getElementById("print");
+    if (sourceIsPdf) {
+      this.printForm.removeNonPdfSettings();
+    }
 
     // Let the dialog appear before doing any potential main thread work.
     await ourBrowser._dialogReady;
@@ -212,15 +240,33 @@ var PrintEventHandler = {
     logger.debug("defaultSystemPrinter: ", defaultSystemPrinter);
 
     document.addEventListener("print", async () => {
+      let cancelButton = document.getElementById("cancel-button");
+      document.l10n.setAttributes(
+        cancelButton,
+        cancelButton.dataset.closeL10nId
+      );
       let didPrint = await this.print();
       if (!didPrint) {
-        // Re-enable elements of the form if the user cancels saving
+        // Re-enable elements of the form if the user cancels saving or
+        // if a deferred task rendered the page invalid.
         this.printForm.enable();
       }
+      // Reset the cancel button regardless of the outcome.
+      document.l10n.setAttributes(
+        cancelButton,
+        cancelButton.dataset.cancelL10nId
+      );
     });
-    document.addEventListener("update-print-settings", e =>
-      this.onUserSettingsChange(e.detail)
-    );
+    this._createDelayedSettingsChangeTask();
+    document.addEventListener("update-print-settings", e => {
+      this.handleSettingsChange(e.detail);
+    });
+    document.addEventListener("cancel-print-settings", e => {
+      this._delayedSettingsChangeTask.disarm();
+      for (let setting of Object.keys(e.detail)) {
+        delete this._delayedChanges[setting];
+      }
+    });
     document.addEventListener("cancel-print", () => this.cancelPrint());
     document.addEventListener("open-system-dialog", async () => {
       // This file in only used if pref print.always_print_silent is false, so
@@ -232,7 +278,7 @@ var PrintEventHandler = {
       let sourceBrowser = this.getSourceBrowsingContext().top.embedderElement;
       let dialogBoxManager = gBrowser
         .getTabDialogBox(sourceBrowser)
-        .getManager();
+        .getTabDialogManager();
       dialogBoxManager.hideDialog(sourceBrowser);
 
       // Use our settings to prepopulate the system dialog.
@@ -243,7 +289,7 @@ var PrintEventHandler = {
         this.settings.printerName == PrintUtils.SAVE_TO_PDF_PRINTER
           ? PrintUtils.getPrintSettings(this.viewSettings.defaultSystemPrinter)
           : this.settings.clone();
-      settings.showPrintProgress = true;
+      settings.showPrintProgress = false;
       // We set the title so that if the user chooses save-to-PDF from the
       // system dialog the title will be used to generate the prepopulated
       // filename in the file picker.
@@ -274,18 +320,11 @@ var PrintEventHandler = {
     let settingsToChange = await this.refreshSettings(selectedPrinter.value);
     await this.updateSettings(settingsToChange, true);
 
-    // Kick off the initial print preview with the source browsing context.
-    let initialPreviewDone = this._updatePrintPreview(sourceBrowsingContext);
-    // We don't need the sourceBrowsingContext anymore, get rid of it.
-    sourceBrowsingContext = undefined;
+    let initialPreviewDone = this._updatePrintPreview();
 
     // Use a DeferredTask for updating the preview. This will ensure that we
     // only have one update running at a time.
-    this._updatePrintPreviewTask = new DeferredTask(async () => {
-      await initialPreviewDone;
-      await this._updatePrintPreview();
-      document.dispatchEvent(new CustomEvent("preview-updated"));
-    }, 0);
+    this._createUpdatePrintPreviewTask(initialPreviewDone);
 
     document.dispatchEvent(
       new CustomEvent("available-destinations", {
@@ -300,6 +339,9 @@ var PrintEventHandler = {
     );
 
     await document.l10n.translateElements([this.previewBrowser]);
+    if (this.selectionPreviewBrowser) {
+      await document.l10n.translateElements([this.selectionPreviewBrowser]);
+    }
 
     document.body.removeAttribute("loading");
 
@@ -315,11 +357,32 @@ var PrintEventHandler = {
 
   unload() {
     this.previewBrowser.frameLoader.exitPrintPreview();
+    if (this.selectionPreviewBrowser) {
+      this.selectionPreviewBrowser.frameLoader.exitPrintPreview();
+    }
   },
 
   async print(systemDialogSettings) {
     // Disable the form when a print is in progress
     this.printForm.disable();
+
+    if (Object.keys(this._delayedChanges).length) {
+      // Make sure any pending changes get saved.
+      let task = this._delayedSettingsChangeTask;
+      this._createDelayedSettingsChangeTask();
+      await task.finalize();
+    }
+
+    if (this.settings.pageRanges.length) {
+      // Finish any running previews to verify the range is still valid.
+      let task = this._updatePrintPreviewTask;
+      this._createUpdatePrintPreviewTask();
+      await task.finalize();
+    }
+
+    if (!this.printForm.checkValidity() || this.previewIsEmpty) {
+      return false;
+    }
 
     let settings = systemDialogSettings || this.settings;
 
@@ -336,16 +399,20 @@ var PrintEventHandler = {
 
     await window._initialized;
 
-    await finalizeDeferredTasks();
-
     // This seems like it should be handled automatically but it isn't.
     Services.prefs.setStringPref("print_printer", settings.printerName);
 
     try {
-      // The print progress dialog is causing an uncaught exception in tests.
-      // Only show it to users.
-      this.settings.showPrintProgress = !Cu.isInAutomation;
-      let bc = this.previewBrowser.browsingContext;
+      // We'll provide our own progress indicator.
+      this.settings.showPrintProgress = false;
+      let l10nId =
+        settings.printerName == PrintUtils.SAVE_TO_PDF_PRINTER
+          ? "printui-print-progress-indicator-saving"
+          : "printui-print-progress-indicator";
+      document.l10n.setAttributes(this.printProgressIndicator, l10nId);
+      this.printProgressIndicator.hidden = false;
+
+      let bc = this.currentPreviewBrowser.browsingContext;
       await this._doPrint(bc, settings);
     } catch (e) {
       Cu.reportError(e);
@@ -361,6 +428,7 @@ var PrintEventHandler = {
   },
 
   async refreshSettings(printerName) {
+    this.currentPrinterName = printerName;
     let currentPrinter;
     try {
       currentPrinter = await PrintSettingsViewProxy.resolvePropertiesForPrinter(
@@ -370,6 +438,12 @@ var PrintEventHandler = {
       this.reportPrintingError("PRINTER_PROPERTIES");
       throw e;
     }
+    if (this.currentPrinterName != printerName) {
+      // Refresh settings could take a while, if the destination has changed
+      // then we don't want to update the settings after all.
+      return {};
+    }
+
     this.settings = currentPrinter.settings;
     this.defaultSettings = currentPrinter.defaultSettings;
 
@@ -455,7 +529,60 @@ var PrintEventHandler = {
     return settingsToUpdate;
   },
 
+  _createDelayedSettingsChangeTask() {
+    this._delayedSettingsChangeTask = createDeferredTask(async () => {
+      if (Object.keys(this._delayedChanges).length) {
+        let changes = this._delayedChanges;
+        this._delayedChanges = {};
+        await this.onUserSettingsChange(changes);
+      }
+    }, INPUT_DELAY_MS);
+  },
+
+  _createUpdatePrintPreviewTask(initialPreviewDone = null) {
+    this._updatePrintPreviewTask = new DeferredTask(async () => {
+      await initialPreviewDone;
+      await this._updatePrintPreview();
+      document.dispatchEvent(new CustomEvent("preview-updated"));
+    }, 0);
+  },
+
+  _scheduleDelayedSettingsChange(changes) {
+    Object.assign(this._delayedChanges, changes);
+    this._delayedSettingsChangeTask.disarm();
+    this._delayedSettingsChangeTask.arm();
+  },
+
+  handleSettingsChange(changedSettings = {}) {
+    let delayedChanges = {};
+    let instantChanges = {};
+    for (let [setting, value] of Object.entries(changedSettings)) {
+      switch (setting) {
+        case "pageRanges":
+        case "scaling":
+          delayedChanges[setting] = value;
+          break;
+        case "customMargins":
+          delete this._delayedChanges.margins;
+          changedSettings.margins == "custom"
+            ? (delayedChanges[setting] = value)
+            : (instantChanges[setting] = value);
+          break;
+        default:
+          instantChanges[setting] = value;
+          break;
+      }
+    }
+    if (Object.keys(delayedChanges).length) {
+      this._scheduleDelayedSettingsChange(delayedChanges);
+    }
+    if (Object.keys(instantChanges).length) {
+      this.onUserSettingsChange(instantChanges);
+    }
+  },
+
   async onUserSettingsChange(changedSettings = {}) {
+    let previewableChange = false;
     for (let [setting, value] of Object.entries(changedSettings)) {
       Services.telemetry.keyedScalarAdd(
         "printing.settings_changed",
@@ -465,23 +592,36 @@ var PrintEventHandler = {
       // Update the list of user-changed settings, which we attempt to maintain
       // across printer changes.
       this._userChangedSettings[setting] = value;
+      if (!this._noPreviewUpdateSettings.has(setting)) {
+        previewableChange = true;
+      }
     }
     if (changedSettings.printerName) {
       logger.debug(
         "onUserSettingsChange, changing to printerName:",
         changedSettings.printerName
       );
+      this.printForm.printerChanging = true;
+      this.printForm.disable(el => el.id != "printer-picker");
+      let { printerName } = changedSettings;
       // Treat a printerName change separately, because it involves a settings
       // object switch and we don't want to set the new name on the old settings.
-      changedSettings = await this.refreshSettings(changedSettings.printerName);
+      changedSettings = await this.refreshSettings(printerName);
+      if (printerName != this.currentPrinterName) {
+        // Don't continue this update if the printer changed again.
+        return;
+      }
+      this.printForm.printerChanging = false;
+      this.printForm.enable();
     } else {
       changedSettings = this.getSettingsToUpdate();
     }
 
-    let shouldPreviewUpdate = await this.updateSettings(
-      changedSettings,
-      !!changedSettings.printerName
-    );
+    let shouldPreviewUpdate =
+      (await this.updateSettings(
+        changedSettings,
+        !!changedSettings.printerName
+      )) && previewableChange;
 
     if (shouldPreviewUpdate && !printPending) {
       // We do not need to arm the preview task if the user has already printed
@@ -562,6 +702,14 @@ var PrintEventHandler = {
         this.viewSettings[setting] != value ||
         (printerChanged && setting == "paperId")
       ) {
+        if (setting == "pageRanges") {
+          // The page range is kept as an array. If the user switches between all
+          // and custom with no specified range input (which is represented as an
+          // empty array), we do not want to send an update.
+          if (!this.viewSettings[setting].length && !value.length) {
+            continue;
+          }
+        }
         this.viewSettings[setting] = value;
 
         if (
@@ -606,17 +754,16 @@ var PrintEventHandler = {
   },
 
   /**
-   * Create a print preview for the provided source browsingContext, or refresh
-   * the preview with new settings when omitted.
-   *
-   * @param sourceBrowsingContext {BrowsingContext} [optional]
-   *        The source BrowsingContext (the one associated with a tab or
-   *        subdocument) that should be previewed.
+   * Creates a print preview or refreshes the preview with new settings when omitted.
    *
    * @return {Promise} Resolves when the preview has been updated.
    */
-  async _updatePrintPreview(sourceBrowsingContext) {
-    let { previewBrowser, settings } = this;
+  async _updatePrintPreview() {
+    let { settings } = this;
+    let { printSelectionOnly } = this.viewSettings;
+    if (!this.selectionPreviewBrowser) {
+      printSelectionOnly = false;
+    }
 
     // We never want the progress dialog to show
     settings.showPrintProgress = false;
@@ -624,9 +771,24 @@ var PrintEventHandler = {
     this._showRenderingIndicator();
 
     let sourceWinId;
-    if (sourceBrowsingContext) {
-      sourceWinId = sourceBrowsingContext.currentWindowGlobal.outerWindowId;
+
+    // If it's the first time loading this type of browser, get the stored window id.
+    if (printSelectionOnly && !this._hasRenderedSelectionPreview) {
+      sourceWinId = this.selectionWindowId;
+      this._hasRenderedSelectionPreview = true;
+    } else if (!printSelectionOnly && !this._hasRenderedPrimaryPreview) {
+      sourceWinId = this.sourceWindowId;
+      this._hasRenderedPrimaryPreview = true;
     }
+
+    this.previewBrowser.parentElement.setAttribute(
+      "previewtype",
+      printSelectionOnly ? "selection" : "primary"
+    );
+
+    this.currentPreviewBrowser = printSelectionOnly
+      ? this.selectionPreviewBrowser
+      : this.previewBrowser;
 
     const isFirstCall = !this.printInitiationTime;
     if (isFirstCall) {
@@ -641,27 +803,39 @@ var PrintEventHandler = {
         .add(elapsed);
     }
 
-    let totalPageCount, sheetCount, hasSelection;
+    let totalPageCount, sheetCount, isEmpty;
     try {
       // This resolves with a PrintPreviewSuccessInfo dictionary.
       ({
         totalPageCount,
         sheetCount,
-        hasSelection,
-      } = await previewBrowser.frameLoader.printPreview(settings, sourceWinId));
+        isEmpty,
+      } = await this.currentPreviewBrowser.frameLoader.printPreview(
+        settings,
+        sourceWinId
+      ));
     } catch (e) {
       this.reportPrintingError("PRINT_PREVIEW");
       throw e;
     }
 
+    this.previewIsEmpty = isEmpty;
+    // If the preview is empty, we know our range is greater than the number of pages.
+    // We have to send a pageRange update to display a non-empty page.
+    if (this.previewIsEmpty) {
+      this.viewSettings.pageRanges = [];
+      this.updatePrintPreview();
+    }
+
     // Update the settings print options on whether there is a selection.
-    settings.isPrintSelectionRBEnabled = hasSelection;
+    settings.isPrintSelectionRBEnabled = this.hasSelection;
 
     document.dispatchEvent(
       new CustomEvent("page-count", {
         detail: { sheetCount, totalPages: totalPageCount },
       })
     );
+    this.currentPreviewBrowser.setAttribute("sheet-count", sheetCount);
 
     this._hideRenderingIndicator();
 
@@ -1237,6 +1411,10 @@ var PrintSettingsViewProxy = {
         break;
       }
 
+      case "printerName":
+        // Can't set printerName, settings objects belong to a specific printer.
+        break;
+
       case "printBackgrounds":
         target.printBGImages = value;
         target.printBGColors = value;
@@ -1294,6 +1472,7 @@ var PrintSettingsViewProxy = {
 function PrintUIControlMixin(superClass) {
   return class PrintUIControl extends superClass {
     connectedCallback() {
+      this.setAttribute("autocomplete", "off");
       this.initialize();
       this.render();
     }
@@ -1313,7 +1492,7 @@ function PrintUIControlMixin(superClass) {
         this.update(settings);
       });
 
-      this.addEventListener("change", this);
+      this.addEventListener("input", this);
     }
 
     render() {}
@@ -1329,31 +1508,151 @@ function PrintUIControlMixin(superClass) {
       );
     }
 
-    handleKeypress(e) {
-      let char = String.fromCharCode(e.charCode);
-      let acceptedChar = e.target.step.includes(".")
-        ? char.match(/^[0-9.]$/)
-        : char.match(/^[0-9]$/);
-      if (!acceptedChar && !char.match("\x00") && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-      }
-    }
-
-    handlePaste(e) {
-      let paste = (e.clipboardData || window.clipboardData)
-        .getData("text")
-        .trim();
-      let acceptedChars = e.target.step.includes(".")
-        ? paste.match(/^[0-9.]*$/)
-        : paste.match(/^[0-9]*$/);
-      if (!acceptedChars) {
-        e.preventDefault();
-      }
+    cancelSettingsChange(changedSettings) {
+      this.dispatchEvent(
+        new CustomEvent("cancel-print-settings", {
+          bubbles: true,
+          detail: changedSettings,
+        })
+      );
     }
 
     handleEvent(event) {}
   };
 }
+
+class PrintUIForm extends PrintUIControlMixin(HTMLFormElement) {
+  initialize() {
+    super.initialize();
+
+    this.addEventListener("submit", this);
+    this.addEventListener("click", this);
+    this.addEventListener("revalidate", this);
+
+    this._printerDestination = this.querySelector("#destination");
+
+    this.printButton = this.querySelector("#print-button");
+    if (AppConstants.platform != "win") {
+      // Move the Print button to the end if this isn't Windows.
+      this.printButton.parentElement.append(this.printButton);
+    }
+    this.querySelector("#pages-per-sheet").hidden = !Services.prefs.getBoolPref(
+      "print.pages_per_sheet.enabled",
+      false
+    );
+  }
+
+  removeNonPdfSettings() {
+    let selectors = [
+      "#margins",
+      "#headers-footers",
+      "#backgrounds",
+      "#print-selection-container",
+    ];
+    for (let selector of selectors) {
+      this.querySelector(selector).remove();
+    }
+    let moreSettings = this.querySelector("#more-settings-options");
+    if (moreSettings.children.length <= 1) {
+      moreSettings.remove();
+    }
+  }
+
+  requestPrint() {
+    this.requestSubmit(this.printButton);
+  }
+
+  update(settings) {
+    // If there are no default system printers available and we are not on mac,
+    // we should hide the system dialog because it won't be populated with
+    // the correct settings. Mac and Gtk support save to pdf functionality
+    // in the native dialog, so it can be shown regardless.
+    this.querySelector("#system-print").hidden =
+      AppConstants.platform === "win" && !settings.defaultSystemPrinter;
+
+    this.querySelector("#copies").hidden = settings.willSaveToFile;
+
+    this.querySelector("#two-sided-printing").hidden = !settings.supportsDuplex;
+  }
+
+  enable() {
+    let isValid = this.checkValidity();
+    document.body.toggleAttribute("invalid", !isValid);
+    if (isValid) {
+      for (let element of this.elements) {
+        if (!element.hasAttribute("disallowed")) {
+          element.disabled = false;
+        }
+      }
+      // aria-describedby will usually cause the first value to be reported.
+      // Unfortunately, screen readers don't pick up description changes from
+      // dialogs, so we must use a live region. To avoid double reporting of
+      // the first value, we don't set aria-live initially. We only set it for
+      // subsequent updates.
+      // aria-live is set on the parent because sheetCount itself might be
+      // hidden and then shown, and updates are only reported for live
+      // regions that were already visible.
+      document
+        .querySelector("#sheet-count")
+        .parentNode.setAttribute("aria-live", "polite");
+    } else {
+      // Find the invalid element
+      let invalidElement;
+      for (let element of this.elements) {
+        if (!element.checkValidity()) {
+          invalidElement = element;
+          break;
+        }
+      }
+      let section = invalidElement.closest(".section-block");
+      document.body.toggleAttribute("invalid", !isValid);
+      // We're hiding the sheet count and aria-describedby includes the
+      // content of hidden elements, so remove aria-describedby.
+      document.body.removeAttribute("aria-describedby");
+      for (let element of this.elements) {
+        // If we're valid, enable all inputs.
+        // Otherwise, disable the valid inputs other than the cancel button and the elements
+        // in the invalid section.
+        element.disabled =
+          element.hasAttribute("disallowed") ||
+          (!isValid &&
+            element.validity.valid &&
+            element.name != "cancel" &&
+            element.closest(".section-block") != this._printerDestination &&
+            element.closest(".section-block") != section);
+      }
+    }
+  }
+
+  disable(filterFn) {
+    for (let element of this.elements) {
+      if (filterFn && !filterFn(element)) {
+        continue;
+      }
+      element.disabled = element.name != "cancel";
+    }
+  }
+
+  handleEvent(e) {
+    if (e.target.id == "open-dialog-link") {
+      this.dispatchEvent(new Event("open-system-dialog", { bubbles: true }));
+      return;
+    }
+
+    if (e.type == "submit") {
+      e.preventDefault();
+      if (e.submitter.name == "print" && this.checkValidity()) {
+        this.dispatchEvent(new Event("print", { bubbles: true }));
+      }
+    } else if (
+      (e.type == "input" || e.type == "revalidate") &&
+      !this.printerChanging
+    ) {
+      this.enable();
+    }
+  }
+}
+customElements.define("print-form", PrintUIForm, { extends: "form" });
 
 class PrintSettingSelect extends PrintUIControlMixin(HTMLSelectElement) {
   initialize() {
@@ -1388,7 +1687,7 @@ class PrintSettingSelect extends PrintUIControlMixin(HTMLSelectElement) {
   }
 
   handleEvent(e) {
-    if (e.type == "change" && this.settingName) {
+    if (e.type == "input" && this.settingName) {
       this.dispatchSettingsChange({
         [this.settingName]: e.target.value,
       });
@@ -1404,6 +1703,90 @@ class PrintSettingSelect extends PrintUIControlMixin(HTMLSelectElement) {
 }
 customElements.define("setting-select", PrintSettingSelect, {
   extends: "select",
+});
+
+class PrintSettingNumber extends PrintUIControlMixin(HTMLInputElement) {
+  initialize() {
+    super.initialize();
+    this.addEventListener("keypress", e => this.handleKeypress(e));
+    this.addEventListener("paste", e => this.handlePaste(e));
+  }
+
+  connectedCallback() {
+    this.type = "number";
+    this.settingName = this.dataset.settingName;
+    super.connectedCallback();
+  }
+
+  update(settings) {
+    if (this.settingName) {
+      this.value = settings[this.settingName];
+    }
+  }
+
+  handleKeypress(e) {
+    let char = String.fromCharCode(e.charCode);
+    let acceptedChar = e.target.step.includes(".")
+      ? char.match(/^[0-9.]$/)
+      : char.match(/^[0-9]$/);
+    if (!acceptedChar && !char.match("\x00") && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+    }
+  }
+
+  handlePaste(e) {
+    let paste = (e.clipboardData || window.clipboardData)
+      .getData("text")
+      .trim();
+    let acceptedChars = e.target.step.includes(".")
+      ? paste.match(/^[0-9.]*$/)
+      : paste.match(/^[0-9]*$/);
+    if (!acceptedChars) {
+      e.preventDefault();
+    }
+  }
+
+  handleEvent(e) {
+    switch (e.type) {
+      case "paste":
+        this.handlePaste();
+        break;
+      case "keypress":
+        this.handleKeypress();
+        break;
+      case "input":
+        if (this.settingName && this.checkValidity()) {
+          this.dispatchSettingsChange({
+            [this.settingName]: this.value,
+          });
+        }
+        break;
+    }
+  }
+}
+customElements.define("setting-number", PrintSettingNumber, {
+  extends: "input",
+});
+
+class PrintSettingCheckbox extends PrintUIControlMixin(HTMLInputElement) {
+  connectedCallback() {
+    this.type = "checkbox";
+    this.settingName = this.dataset.settingName;
+    super.connectedCallback();
+  }
+
+  update(settings) {
+    this.checked = settings[this.settingName];
+  }
+
+  handleEvent(e) {
+    this.dispatchSettingsChange({
+      [this.settingName]: this.checked,
+    });
+  }
+}
+customElements.define("setting-checkbox", PrintSettingCheckbox, {
+  extends: "input",
 });
 
 class DestinationPicker extends PrintSettingSelect {
@@ -1434,12 +1817,15 @@ class ColorModePicker extends PrintSettingSelect {
   update(settings) {
     this.value = settings[this.settingName] ? "color" : "bw";
     let canSwitch = settings.supportsColor && settings.supportsMonochrome;
-    this.toggleAttribute("disallowed", !canSwitch);
-    this.disabled = !canSwitch;
+    if (this.disablePicker != canSwitch) {
+      this.toggleAttribute("disallowed", !canSwitch);
+      this.disabled = !canSwitch;
+    }
+    this.disablePicker = canSwitch;
   }
 
   handleEvent(e) {
-    if (e.type == "change") {
+    if (e.type == "input") {
       // turn our string value into the expected boolean
       this.dispatchSettingsChange({
         [this.settingName]: this.value == "color",
@@ -1488,142 +1874,6 @@ class OrientationInput extends PrintUIControlMixin(HTMLElement) {
 }
 customElements.define("orientation-input", OrientationInput);
 
-class CopiesInput extends PrintUIControlMixin(HTMLInputElement) {
-  initialize() {
-    super.initialize();
-    this.addEventListener("input", this);
-    this.addEventListener("keypress", this);
-    this.addEventListener("paste", this);
-  }
-
-  update(settings) {
-    this.value = settings.numCopies;
-  }
-
-  handleEvent(e) {
-    if (e.type == "keypress") {
-      this.handleKeypress(e);
-      return;
-    }
-
-    if (e.type === "paste") {
-      this.handlePaste(e);
-    }
-
-    if (this.checkValidity()) {
-      this.dispatchSettingsChange({
-        numCopies: e.target.value,
-      });
-    }
-  }
-}
-customElements.define("copy-count-input", CopiesInput, {
-  extends: "input",
-});
-
-class PrintUIForm extends PrintUIControlMixin(HTMLFormElement) {
-  initialize() {
-    super.initialize();
-
-    this.addEventListener("change", this);
-    this.addEventListener("submit", this);
-    this.addEventListener("click", this);
-    this.addEventListener("input", this);
-    this.addEventListener("revalidate", this);
-
-    this._printerDestination = this.querySelector("#destination");
-
-    this.printButton = this.querySelector("#print-button");
-    if (AppConstants.platform != "win") {
-      // Move the Print button to the end if this isn't Windows.
-      this.printButton.parentElement.append(this.printButton);
-    }
-  }
-
-  requestPrint() {
-    this.requestSubmit(this.printButton);
-  }
-
-  update(settings) {
-    // If there are no default system printers available and we are not on mac,
-    // we should hide the system dialog because it won't be populated with
-    // the correct settings. Mac and Gtk support save to pdf functionality
-    // in the native dialog, so it can be shown regardless.
-    this.querySelector("#system-print").hidden =
-      AppConstants.platform === "win" && !settings.defaultSystemPrinter;
-
-    this.querySelector("#copies").hidden = settings.willSaveToFile;
-
-    this.querySelector("#two-sided-printing").hidden = !settings.supportsDuplex;
-  }
-
-  enable() {
-    for (let element of this.elements) {
-      if (!element.hasAttribute("disallowed")) {
-        element.disabled = false;
-      }
-    }
-  }
-
-  disable() {
-    for (let element of this.elements) {
-      element.disabled = element.name != "cancel";
-    }
-  }
-
-  handleEvent(e) {
-    if (e.target.id == "open-dialog-link") {
-      this.dispatchEvent(new Event("open-system-dialog", { bubbles: true }));
-      return;
-    }
-
-    if (e.type == "submit") {
-      e.preventDefault();
-      if (e.submitter.name == "print" && this.checkValidity()) {
-        this.dispatchEvent(new Event("print", { bubbles: true }));
-      }
-    } else if (
-      e.type == "change" ||
-      e.type == "input" ||
-      e.type == "revalidate"
-    ) {
-      let isValid = this.checkValidity();
-      let section = e.target.closest(".section-block");
-      document.body.toggleAttribute("invalid", !isValid);
-      if (isValid) {
-        // aria-describedby will usually cause the first value to be reported.
-        // Unfortunately, screen readers don't pick up description changes from
-        // dialogs, so we must use a live region. To avoid double reporting of
-        // the first value, we don't set aria-live initially. We only set it for
-        // subsequent updates.
-        // aria-live is set on the parent because sheetCount itself might be
-        // hidden and then shown, and updates are only reported for live
-        // regions that were already visible.
-        document
-          .querySelector("#sheet-count")
-          .parentNode.setAttribute("aria-live", "polite");
-      } else {
-        // We're hiding the sheet count and aria-describedby includes the
-        // content of hidden elements, so remove aria-describedby.
-        document.body.removeAttribute("aria-describedby");
-      }
-      for (let element of this.elements) {
-        // If we're valid, enable all inputs.
-        // Otherwise, disable the valid inputs other than the cancel button and the elements
-        // in the invalid section.
-        element.disabled =
-          element.hasAttribute("disallowed") ||
-          (!isValid &&
-            element.validity.valid &&
-            element.name != "cancel" &&
-            element.closest(".section-block") != this._printerDestination &&
-            element.closest(".section-block") != section);
-      }
-    }
-  }
-}
-customElements.define("print-form", PrintUIForm, { extends: "form" });
-
 class ScaleInput extends PrintUIControlMixin(HTMLElement) {
   get templateId() {
     return "scale-template";
@@ -1636,16 +1886,6 @@ class ScaleInput extends PrintUIControlMixin(HTMLElement) {
     this._shrinkToFitChoice = this.querySelector("#fit-choice");
     this._scaleChoice = this.querySelector("#percent-scale-choice");
     this._scaleError = this.querySelector("#error-invalid-scale");
-
-    this._percentScale.addEventListener("input", this);
-    this._percentScale.addEventListener("keypress", this);
-    this._percentScale.addEventListener("paste", this);
-    this.addEventListener("input", this);
-
-    this._updateScaleTask = createDeferredTask(
-      () => this.updateScale(),
-      INPUT_DELAY_MS
-    );
   }
 
   updateScale() {
@@ -1658,8 +1898,11 @@ class ScaleInput extends PrintUIControlMixin(HTMLElement) {
     let { scaling, shrinkToFit, printerName } = settings;
     this._shrinkToFitChoice.checked = shrinkToFit;
     this._scaleChoice.checked = !shrinkToFit;
-    this._percentScale.disabled = shrinkToFit;
-    this._percentScale.toggleAttribute("disallowed", shrinkToFit);
+    if (this.disableScale != shrinkToFit) {
+      this._percentScale.disabled = shrinkToFit;
+      this._percentScale.toggleAttribute("disallowed", shrinkToFit);
+    }
+    this.disableScale = shrinkToFit;
     if (!this.printerName) {
       this.printerName = printerName;
     }
@@ -1683,22 +1926,6 @@ class ScaleInput extends PrintUIControlMixin(HTMLElement) {
   }
 
   handleEvent(e) {
-    if (e.type == "change") {
-      // We listen to input events, no need for change too.
-      return;
-    }
-
-    if (e.type == "keypress") {
-      this.handleKeypress(e);
-      return;
-    }
-
-    if (e.type === "paste") {
-      this.handlePaste(e);
-    }
-
-    this._updateScaleTask.disarm();
-
     if (e.target == this._shrinkToFitChoice || e.target == this._scaleChoice) {
       if (!this._percentScale.checkValidity()) {
         this._percentScale.value = 100;
@@ -1714,7 +1941,7 @@ class ScaleInput extends PrintUIControlMixin(HTMLElement) {
       this._scaleError.hidden = true;
     } else if (e.type == "input") {
       if (this._percentScale.checkValidity()) {
-        this._updateScaleTask.arm();
+        this.updateScale();
       }
     }
 
@@ -1722,6 +1949,7 @@ class ScaleInput extends PrintUIControlMixin(HTMLElement) {
     if (this._percentScale.validity.valid) {
       this._scaleError.hidden = true;
     } else {
+      this.cancelSettingsChange({ scaling: true });
       this.showErrorTimeoutId = window.setTimeout(() => {
         this._scaleError.hidden = false;
       }, INPUT_DELAY_MS);
@@ -1734,20 +1962,16 @@ class PageRangeInput extends PrintUIControlMixin(HTMLElement) {
   initialize() {
     super.initialize();
 
-    this._startRange = this.querySelector("#custom-range-start");
-    this._endRange = this.querySelector("#custom-range-end");
+    this._rangeInput = this.querySelector("#custom-range");
+    this._rangeInput.title = "";
     this._rangePicker = this.querySelector("#range-picker");
     this._rangeError = this.querySelector("#error-invalid-range");
     this._startRangeOverflowError = this.querySelector(
       "#error-invalid-start-range-overflow"
     );
 
-    this._updatePageRangeTask = createDeferredTask(
-      () => this.updatePageRange(),
-      INPUT_DELAY_MS
-    );
+    this._pagesSet = new Set();
 
-    this.addEventListener("input", this);
     this.addEventListener("keypress", this);
     this.addEventListener("paste", this);
     document.addEventListener("page-count", this);
@@ -1758,139 +1982,240 @@ class PageRangeInput extends PrintUIControlMixin(HTMLElement) {
   }
 
   updatePageRange() {
-    this.dispatchSettingsChange({
-      pageRanges: this._rangePicker.value
-        ? [this._startRange.value, this._endRange.value]
-        : [],
-    });
+    let isAll = this._rangePicker.value == "all";
+    if (isAll) {
+      this._pagesSet.clear();
+      if (!this._rangeInput.checkValidity()) {
+        this._rangeInput.setCustomValidity("");
+        this._rangeInput.value = "";
+      }
+    } else {
+      this.validateRangeInput();
+    }
+
+    this.dispatchEvent(new Event("revalidate", { bubbles: true }));
+
+    document.l10n.setAttributes(
+      this._rangeError,
+      "printui-error-invalid-range",
+      {
+        numPages: this._numPages,
+      }
+    );
+
+    // If it's valid, update the page range and hide the error messages.
+    // Otherwise, set the appropriate error message
+    if (this._rangeInput.validity.valid || isAll) {
+      window.clearTimeout(this.showErrorTimeoutId);
+      this._startRangeOverflowError.hidden = this._rangeError.hidden = true;
+    } else {
+      this._rangeInput.focus();
+    }
+  }
+
+  dispatchPageRange(shouldCancel = true) {
+    window.clearTimeout(this.showErrorTimeoutId);
+    if (this._rangeInput.validity.valid || this._rangePicker.value == "all") {
+      this.dispatchSettingsChange({
+        pageRanges: this.formatPageRange(),
+      });
+    } else {
+      if (shouldCancel) {
+        this.cancelSettingsChange({ pageRanges: true });
+      }
+      this.showErrorTimeoutId = window.setTimeout(() => {
+        this._rangeError.hidden =
+          this._rangeInput.validationMessage != "invalid";
+        this._startRangeOverflowError.hidden =
+          this._rangeInput.validationMessage != "startRangeOverflow";
+      }, INPUT_DELAY_MS);
+    }
+  }
+
+  // The platform expects pageRanges to be an array of
+  // ranges represented by ints.
+  // Ex: Printing pages 1-3 would return [1,3]
+  // Ex: Printing page 1 would return [1,1]
+  // Ex: Printing pages 1-2,4 would return [1,2,4,4]
+  formatPageRange() {
+    if (
+      this._pagesSet.size == 0 ||
+      this._rangeInput.value == "" ||
+      this._rangePicker.value == "all"
+    ) {
+      // Show all pages.
+      return [];
+    }
+    let pages = Array.from(this._pagesSet).sort((a, b) => a - b);
+
+    let formattedRanges = [];
+    let startRange = pages[0];
+    let endRange = pages[0];
+    formattedRanges.push(startRange);
+
+    for (let i = 1; i < pages.length; i++) {
+      let currentPage = pages[i - 1];
+      let nextPage = pages[i];
+      if (nextPage > currentPage + 1) {
+        formattedRanges.push(endRange);
+        startRange = endRange = nextPage;
+        formattedRanges.push(startRange);
+      } else {
+        endRange = nextPage;
+      }
+    }
+    formattedRanges.push(endRange);
+
+    return formattedRanges;
   }
 
   update(settings) {
-    this.toggleAttribute("all-pages", !settings.pageRanges.length);
+    let { pageRanges, printerName } = settings;
+    this.toggleAttribute("all-pages", !pageRanges.length);
+    if (!this.printerName) {
+      this.printerName = printerName;
+    }
+
+    let isValid = this._rangeInput.checkValidity();
+    if (this.printerName != printerName && !isValid) {
+      this.printerName = printerName;
+      this._rangeInput.value = "";
+      this.updatePageRange();
+      this.dispatchPageRange();
+    }
+  }
+
+  handleKeypress(e) {
+    let char = String.fromCharCode(e.charCode);
+    let acceptedChar = char.match(/^[0-9,-]$/);
+    if (!acceptedChar && !char.match("\x00") && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+    }
+  }
+
+  handlePaste(e) {
+    let paste = (e.clipboardData || window.clipboardData)
+      .getData("text")
+      .trim();
+    if (!paste.match(/^[0-9,-]*$/)) {
+      e.preventDefault();
+    }
+  }
+
+  // This method has been abstracted into a helper for testing purposes
+  _validateRangeInput(value, numPages) {
+    this._pagesSet.clear();
+    var ranges = value.split(",");
+
+    for (let range of ranges) {
+      let rangeParts = range.split("-");
+      if (rangeParts.length > 2) {
+        this._rangeInput.setCustomValidity("invalid");
+        this._rangeInput.title = "";
+        this._pagesSet.clear();
+        return;
+      }
+      let startRange = parseInt(rangeParts[0], 10);
+      let endRange = parseInt(
+        rangeParts.length == 2 ? rangeParts[1] : rangeParts[0],
+        10
+      );
+
+      if (isNaN(startRange) && isNaN(endRange)) {
+        continue;
+      }
+
+      // If the startRange was not specified, then we infer this
+      // to be 1.
+      if (isNaN(startRange) && rangeParts[0] == "") {
+        startRange = 1;
+      }
+      // If the end range was not specified, then we infer this
+      // to be the total number of pages.
+      if (isNaN(endRange) && rangeParts[1] == "") {
+        endRange = numPages;
+      }
+
+      // Check the range for errors
+      if (endRange < startRange) {
+        this._rangeInput.setCustomValidity("startRangeOverflow");
+        this._pagesSet.clear();
+        return;
+      } else if (
+        startRange > numPages ||
+        endRange > numPages ||
+        startRange == 0
+      ) {
+        this._rangeInput.setCustomValidity("invalid");
+        this._rangeInput.title = "";
+        this._pagesSet.clear();
+        return;
+      }
+
+      for (let i = startRange; i <= endRange; i++) {
+        this._pagesSet.add(i);
+      }
+    }
+
+    this._rangeInput.setCustomValidity("");
+  }
+
+  validateRangeInput() {
+    let value = this._rangePicker.value == "all" ? "" : this._rangeInput.value;
+    this._validateRangeInput(value, this._numPages);
   }
 
   handleEvent(e) {
     if (e.type == "keypress") {
-      if (e.target == this._startRange || e.target == this._endRange) {
+      if (e.target == this._rangeInput) {
         this.handleKeypress(e);
       }
       return;
     }
 
-    if (
-      e.type === "paste" &&
-      (e.target == this._startRange || e.target == this._endRange)
-    ) {
+    if (e.type === "paste" && e.target == this._rangeInput) {
       this.handlePaste(e);
+      return;
     }
-
-    this._updatePageRangeTask.disarm();
 
     if (e.type == "page-count") {
       let { totalPages } = e.detail;
-      this._startRange.max = this._endRange.max = this._totalPages = totalPages;
-      this._startRange.disabled = this._endRange.disabled = false;
-      let isChanged = false;
-
-      // Changing certain settings (like orientation, scale or printer) can
-      // change the number of pages. We need to update the start and end rages
-      // if their values are no longer valid.
-      if (!this._startRange.checkValidity()) {
-        this._startRange.value = this._totalPages;
-        isChanged = true;
+      // This means we have already handled the page count event
+      // and do not need to dispatch another event.
+      if (this._numPages == totalPages) {
+        return;
       }
-      if (!this._endRange.checkValidity()) {
-        this._endRange.value = this._totalPages;
-        isChanged = true;
-      }
-      if (isChanged) {
-        window.clearTimeout(this.showErrorTimeoutId);
-        this._startRange.max = Math.min(this._endRange.value, totalPages);
-        this._endRange.min = Math.max(this._startRange.value, 1);
 
-        this.dispatchEvent(new Event("revalidate", { bubbles: true }));
+      this._numPages = totalPages;
+      this._rangeInput.disabled = false;
 
-        if (this._startRange.validity.valid && this._endRange.validity.valid) {
-          this.dispatchSettingsChange({
-            pageRanges: [this._startRange.value, this._endRange.value],
-          });
-          this._rangeError.hidden = true;
-          this._startRangeOverflowError.hidden = true;
-        }
+      let prevPages = Array.from(this._pagesSet);
+      this.updatePageRange();
+      if (
+        prevPages.length != this._pagesSet.size ||
+        !prevPages.every(page => this._pagesSet.has(page))
+      ) {
+        // If the calculated set of pages has changed then we need to dispatch
+        // a new pageRanges setting :(
+        // Ideally this would be resolved in the settings code since it should
+        // only happen for the "N-" case where pages N through the end of the
+        // document are in the range.
+        this.dispatchPageRange(false);
       }
+
       return;
     }
 
     if (e.target == this._rangePicker) {
-      let printAll = e.target.value == "all";
-      this._startRange.required = this._endRange.required = !printAll;
-      this.querySelector(".range-group").hidden = printAll;
-      this._startRange.value = 1;
-      this._endRange.value = this._totalPages || 1;
-
+      this._rangeInput.hidden = e.target.value == "all";
       this.updatePageRange();
-
-      window.clearTimeout(this.showErrorTimeoutId);
-      this._rangeError.hidden = true;
-      this._startRangeOverflowError.hidden = true;
-      return;
-    }
-
-    if (e.target == this._startRange || e.target == this._endRange) {
-      if (this._startRange.checkValidity()) {
-        this._endRange.min = this._startRange.value;
+      this.dispatchPageRange();
+    } else if (e.target == this._rangeInput) {
+      this._rangeInput.focus();
+      if (this._numPages) {
+        this.updatePageRange();
+        this.dispatchPageRange();
       }
-      if (this._endRange.checkValidity()) {
-        this._startRange.max = this._endRange.value;
-      }
-      if (this._startRange.checkValidity() && this._endRange.checkValidity()) {
-        if (this._startRange.value && this._endRange.value) {
-          // Update the page range after a short delay so we don't update
-          // multiple times as the user types a multi-digit number or uses
-          // up/down/mouse wheel.
-          this._updatePageRangeTask.arm();
-        }
-      }
-    }
-    document.l10n.setAttributes(
-      this._rangeError,
-      "printui-error-invalid-range",
-      {
-        numPages: this._totalPages,
-      }
-    );
-
-    window.clearTimeout(this.showErrorTimeoutId);
-    let hasShownOverflowError = false;
-    let startValidity = this._startRange.validity;
-    let endValidity = this._endRange.validity;
-
-    // Display the startRangeOverflowError if the start range exceeds
-    // the end range. This means either the start range is greater than its
-    // max constraint, whiich is determined by the end range, or the end range
-    // is less than its minimum constraint, determined by the start range.
-    if (
-      !(
-        (startValidity.rangeOverflow && endValidity.valid) ||
-        (endValidity.rangeUnderflow && startValidity.valid)
-      )
-    ) {
-      this._startRangeOverflowError.hidden = true;
-    } else {
-      hasShownOverflowError = true;
-      this.showErrorTimeoutId = window.setTimeout(() => {
-        this._startRangeOverflowError.hidden = false;
-      }, INPUT_DELAY_MS);
-    }
-
-    // Display the generic error if the startRangeOverflowError is not already
-    // showing and a range input is invalid.
-    if (hasShownOverflowError || (startValidity.valid && endValidity.valid)) {
-      this._rangeError.hidden = true;
-    } else {
-      this.showErrorTimeoutId = window.setTimeout(() => {
-        this._rangeError.hidden = false;
-      }, INPUT_DELAY_MS);
     }
   }
 }
@@ -1906,15 +2231,6 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
     this._customLeftMargin = this.querySelector("#custom-margin-left");
     this._customRightMargin = this.querySelector("#custom-margin-right");
     this._marginError = this.querySelector("#error-invalid-margin");
-
-    this._updateCustomMarginsTask = createDeferredTask(
-      () => this.updateCustomMargins(),
-      INPUT_DELAY_MS
-    );
-
-    this.addEventListener("input", this);
-    this.addEventListener("keypress", this);
-    this.addEventListener("paste", this);
   }
 
   get templateId() {
@@ -2002,7 +2318,7 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
       // The values in custom fields should be initialized to custom margin values
       // and must be overriden if they are no longer valid.
       this.setAllMarginValues(settings);
-
+      this.updateMaxValues();
       this.dispatchEvent(new Event("revalidate", { bubbles: true }));
       this._marginError.hidden = true;
     }
@@ -2018,6 +2334,7 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
       ) {
         window.clearTimeout(this.showErrorTimeoutId);
         this.setAllMarginValues(settings);
+        this.updateMaxValues();
         this.dispatchEvent(new Event("revalidate", { bubbles: true }));
         this._marginError.hidden = true;
       }
@@ -2027,28 +2344,9 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
       }
       this._marginPicker.value = settings.margins;
     }
-
-    this.updateMaxValues();
   }
 
   handleEvent(e) {
-    if (e.type == "change") {
-      // We handle input events rather than change events, make sure we only
-      // dispatch one settings change per user change.
-      return;
-    }
-
-    if (e.type == "keypress") {
-      this.handleKeypress(e);
-      return;
-    }
-
-    if (e.type === "paste") {
-      this.handlePaste(e);
-    }
-
-    this._updateCustomMarginsTask.disarm();
-
     if (e.target == this._marginPicker) {
       let customMargin = e.target.value == "custom";
       this.querySelector(".margin-group").hidden = !customMargin;
@@ -2080,7 +2378,7 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
         this._customRightMargin.validity.valid
       ) {
         this.formatMargin(e.target);
-        this._updateCustomMarginsTask.arm();
+        this.updateCustomMargins();
       } else if (e.target.validity.stepMismatch) {
         // If this is the third digit after the decimal point, we should
         // truncate the string.
@@ -2097,6 +2395,7 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
     ) {
       this._marginError.hidden = true;
     } else {
+      this.cancelSettingsChange({ customMargins: true, margins: true });
       this.showErrorTimeoutId = window.setTimeout(() => {
         this._marginError.hidden = false;
       }, INPUT_DELAY_MS);
@@ -2104,47 +2403,6 @@ class MarginsPicker extends PrintUIControlMixin(HTMLElement) {
   }
 }
 customElements.define("margins-select", MarginsPicker);
-
-class PrintSettingNumber extends PrintUIControlMixin(HTMLInputElement) {
-  connectedCallback() {
-    this.type = "number";
-    this.settingName = this.dataset.settingName;
-    super.connectedCallback();
-  }
-  update(settings) {
-    this.value = settings[this.settingName];
-  }
-
-  handleEvent(e) {
-    this.dispatchSettingsChange({
-      [this.settingName]: this.value,
-    });
-  }
-}
-customElements.define("setting-number", PrintSettingNumber, {
-  extends: "input",
-});
-
-class PrintSettingCheckbox extends PrintUIControlMixin(HTMLInputElement) {
-  connectedCallback() {
-    this.type = "checkbox";
-    this.settingName = this.dataset.settingName;
-    super.connectedCallback();
-  }
-
-  update(settings) {
-    this.checked = settings[this.settingName];
-  }
-
-  handleEvent(e) {
-    this.dispatchSettingsChange({
-      [this.settingName]: this.checked,
-    });
-  }
-}
-customElements.define("setting-checkbox", PrintSettingCheckbox, {
-  extends: "input",
-});
 
 class TwistySummary extends PrintUIControlMixin(HTMLElement) {
   get isOpen() {
@@ -2291,6 +2549,10 @@ async function pickFileName(contentTitle, currentURI) {
       ].createInstance(Ci.nsIFileOutputStream);
       fstream.init(picker.file, 0x2a, 0o666, 0); // ioflags = write|create|truncate, file permissions = rw-rw-rw-
       fstream.close();
+
+      // Remove the file to reduce the likelihood of the user opening an empty or damaged fle when the
+      // preview is loading
+      await IOUtils.remove(picker.file.path);
     } catch (e) {
       throw new Error({ reason: retval == 0 ? "not_saved" : "not_replaced" });
     }

@@ -46,10 +46,17 @@ const watcherSpecPrototype = {
       oneway: true,
     },
 
-    getNetworkActor: {
+    getNetworkParentActor: {
       request: {},
       response: {
-        network: RetVal("network"),
+        network: RetVal("networkParent"),
+      },
+    },
+
+    getBreakpointListActor: {
+      request: {},
+      response: {
+        breakpointList: RetVal("breakpoint-list"),
       },
     },
   },

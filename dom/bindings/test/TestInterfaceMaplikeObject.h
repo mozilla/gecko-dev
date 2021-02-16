@@ -19,6 +19,7 @@ class ErrorResult;
 namespace dom {
 
 class GlobalObject;
+class TestInterfaceMaplike;
 
 // Implementation of test binding for webidl maplike interfaces, using
 // primitives for key types and objects for value types.
@@ -40,6 +41,8 @@ class TestInterfaceMaplikeObject final : public nsISupports,
   void ClearInternal();
   bool DeleteInternal(const nsAString& aKey);
   bool HasInternal(const nsAString& aKey);
+  already_AddRefed<TestInterfaceMaplike> GetInternal(const nsAString& aKey,
+                                                     ErrorResult& aRv);
 
  private:
   virtual ~TestInterfaceMaplikeObject() = default;

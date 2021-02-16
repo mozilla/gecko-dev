@@ -65,9 +65,6 @@ if CONFIG['MOZ_BITS_DOWNLOAD']:
 if CONFIG['MOZ_NEW_XULSTORE']:
     gkrust_features += ['new_xulstore']
 
-if CONFIG['MOZ_NEW_CERT_STORAGE']:
-    gkrust_features += ['new_cert_storage']
-
 if CONFIG['LIBFUZZER']:
     gkrust_features += ['libfuzzer']
 
@@ -88,3 +85,6 @@ if CONFIG['MOZ_USING_WASM_SANDBOXING']:
 
 if CONFIG['MOZ_ENABLE_DBUS']:
     gkrust_features += ['with_dbus']
+
+if CONFIG['MOZ_OXIDIZED_BREAKPAD']:
+    gkrust_features += ['oxidized_breakpad']

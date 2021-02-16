@@ -933,18 +933,29 @@ inline bool RestyleHint::DefinitelyRecascadesAllSubtree() const {
 }
 
 template <>
+inline const StyleImage& StyleImage::FinalImage() const {
+  if (!IsImageSet()) {
+    return *this;
+  }
+  auto& set = AsImageSet();
+  return set->items.AsSpan()[set->selected_index].image.FinalImage();
+}
+
+template <>
 inline bool StyleImage::IsImageRequestType() const {
-  return IsUrl() || IsRect();
+  auto& finalImage = FinalImage();
+  return finalImage.IsUrl() || finalImage.IsRect();
 }
 
 template <>
 inline const StyleComputedImageUrl* StyleImage::GetImageRequestURLValue()
     const {
-  if (IsUrl()) {
-    return &AsUrl();
+  auto& finalImage = FinalImage();
+  if (finalImage.IsUrl()) {
+    return &finalImage.AsUrl();
   }
-  if (IsRect()) {
-    return &AsRect()->url;
+  if (finalImage.IsRect()) {
+    return &finalImage.AsRect()->url;
   }
   return nullptr;
 }
@@ -968,17 +979,24 @@ bool StyleImage::IsSizeAvailable() const;
 template <>
 bool StyleImage::IsComplete() const;
 template <>
-bool StyleImage::StartDecoding() const;
-template <>
 Maybe<StyleImage::ActualCropRect> StyleImage::ComputeActualCropRect() const;
 template <>
 void StyleImage::ResolveImage(dom::Document&, const StyleImage*);
 
 template <>
-inline AspectRatio StyleRatio<StyleNonNegativeNumber>::ToLayoutRatio() const {
-  // Basically, 0/1, 1/0, and 0/0 all behave as auto, and so we always return
-  // 0.0 for these edge cases. The caller should take care about it.
-  return AspectRatio::FromSize(_0, _1);
+inline AspectRatio StyleRatio<StyleNonNegativeNumber>::ToLayoutRatio(
+    UseBoxSizing aUseBoxSizing) const {
+  // 0/1, 1/0, and 0/0 are all degenerate ratios (which behave as auto), and we
+  // always return 0.0f.
+  // https://drafts.csswg.org/css-values-4/#degenerate-ratio
+  return AspectRatio::FromSize(_0, _1, aUseBoxSizing);
+}
+
+template <>
+inline AspectRatio StyleAspectRatio::ToLayoutRatio() const {
+  return HasRatio() ? ratio.AsRatio().ToLayoutRatio(auto_ ? UseBoxSizing::No
+                                                          : UseBoxSizing::Yes)
+                    : AspectRatio();
 }
 
 }  // namespace mozilla

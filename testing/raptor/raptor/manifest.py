@@ -77,8 +77,12 @@ def filter_live_sites(tests, values):
                 yield test
 
             # can run with live sites when white-listed
-            elif filter(
-                lambda name: test["name"].startswith(name), whitelist_live_site_tests
+            # pylint --py3k: W1639
+            elif list(
+                filter(
+                    lambda name: test["name"].startswith(name),
+                    whitelist_live_site_tests,
+                )
             ):
                 yield test
 
@@ -293,8 +297,9 @@ def write_test_settings_json(args, test_details, oskey):
             threads.extend(["Renderer", "WR"])
 
         if test_details.get("gecko_profile_threads"):
-            test_threads = filter(
-                None, test_details["gecko_profile_threads"].split(",")
+            # pylint --py3k: W1639
+            test_threads = list(
+                filter(None, test_details["gecko_profile_threads"].split(","))
             )
             threads.extend(test_threads)
 
@@ -395,8 +400,8 @@ def get_raptor_test_list(args, oskey):
     # gecko-profiling enabled, or when --page-cycles cmd line arg was used (that overrides all)
     for next_test in tests_to_run:
         LOG.info("configuring settings for test %s" % next_test["name"])
-        max_page_cycles = next_test.get("page_cycles", 1)
-        max_browser_cycles = next_test.get("browser_cycles", 1)
+        max_page_cycles = int(next_test.get("page_cycles", 1))
+        max_browser_cycles = int(next_test.get("browser_cycles", 1))
 
         # If using playback, the playback recording info may need to be transformed.
         # This transformation needs to happen before the test name is changed
@@ -437,8 +442,9 @@ def get_raptor_test_list(args, oskey):
                 "gecko_profile_threads" in args
                 and args.gecko_profile_threads is not None
             ):
-                threads = filter(
-                    None, next_test.get("gecko_profile_threads", "").split(",")
+                # pylint --py3k: W1639
+                threads = list(
+                    filter(None, next_test.get("gecko_profile_threads", "").split(","))
                 )
                 threads.extend(args.gecko_profile_threads)
                 next_test["gecko_profile_threads"] = ",".join(threads)
@@ -465,7 +471,7 @@ def get_raptor_test_list(args, oskey):
                 "setting page-cycles to %d as specified on cmd line" % args.page_cycles
             )
         else:
-            if int(next_test.get("page_cycles", 1)) > int(max_page_cycles):
+            if int(next_test.get("page_cycles", 1)) > max_page_cycles:
                 next_test["page_cycles"] = max_page_cycles
                 LOG.info(
                     "setting page-cycles to %d because gecko-profling is enabled"
@@ -579,9 +585,9 @@ def get_raptor_test_list(args, oskey):
         # convert 'measure =' test INI line to list
         if next_test.get("measure") is not None:
             _measures = []
-            for m in [m.strip() for m in next_test["measure"].split(",")]:
+            for measure in [m.strip() for m in next_test["measure"].split(",")]:
                 # build the 'measures =' list
-                _measures.append(m)
+                _measures.append(measure)
             next_test["measure"] = _measures
 
             # if using live sites, don't measure hero element as it only exists in recordings

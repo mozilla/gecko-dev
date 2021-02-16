@@ -27,7 +27,9 @@ namespace a11y {
 
 inline mozAccessible* GetNativeFromGeckoAccessible(
     mozilla::a11y::AccessibleOrProxy aAccOrProxy) {
-  MOZ_ASSERT(!aAccOrProxy.IsNull(), "Cannot get native from null accessible");
+  if (aAccOrProxy.IsNull()) {
+    return nil;
+  }
   if (Accessible* acc = aAccOrProxy.AsAccessible()) {
     mozAccessible* native = nil;
     acc->GetNativeInterface((void**)&native);
@@ -59,6 +61,8 @@ inline mozAccessible* GetNativeFromGeckoAccessible(
   uint64_t mCachedState;
 
   nsStaticAtom* mARIARole;
+
+  bool mIsLiveRegion;
 }
 
 // inits with the given wrap or proxy accessible
@@ -109,6 +113,13 @@ inline mozAccessible* GetNativeFromGeckoAccessible(
 // Handle a role change
 - (void)handleRoleChanged:(mozilla::a11y::role)newRole;
 
+// Get ARIA role
+- (nsStaticAtom*)ARIARole;
+
+// Get array of related mozAccessibles
+- (NSArray<mozAccessible*>*)getRelationsByType:
+    (mozilla::a11y::RelationType)relationType;
+
 #pragma mark - mozAccessible protocol / widget
 
 // override
@@ -132,6 +143,8 @@ inline mozAccessible* GetNativeFromGeckoAccessible(
 - (id)moxFocusedUIElement;
 
 - (id<MOXTextMarkerSupport>)moxTextMarkerDelegate;
+
+- (BOOL)moxIsLiveRegion;
 
 // Attribute getters
 
@@ -184,6 +197,15 @@ inline mozAccessible* GetNativeFromGeckoAccessible(
 - (NSString*)moxARIACurrent;
 
 // override
+- (NSNumber*)moxARIAAtomic;
+
+// override
+- (NSString*)moxARIALive;
+
+// override
+- (NSString*)moxARIARelevant;
+
+// override
 - (id)moxTitleUIElement;
 
 // override
@@ -193,7 +215,22 @@ inline mozAccessible* GetNativeFromGeckoAccessible(
 - (NSNumber*)moxRequired;
 
 // override
+- (NSNumber*)moxElementBusy;
+
+// override
+- (NSArray*)moxLinkedUIElements;
+
+// override
+- (NSArray*)moxARIAControls;
+
+// override
 - (id)moxEditableAncestor;
+
+// override
+- (id)moxHighestEditableAncestor;
+
+// override
+- (id)moxFocusableAncestor;
 
 #ifndef RELEASE_OR_BETA
 // override

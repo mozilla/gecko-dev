@@ -2,6 +2,7 @@
 
 #include "FuzzingInterface.h"
 #include "FuzzyLayer.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
@@ -92,6 +93,12 @@ NS_IMETHODIMP
 FuzzingWebSocketListener::OnBinaryMessageAvailable(nsISupports* aContext,
                                                    const nsACString& aMsg) {
   FUZZING_LOG(("FuzzingWebSocketListener::OnBinaryMessageAvailable"));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FuzzingWebSocketListener::OnError() {
+  FUZZING_LOG(("FuzzingWebSocketListener::OnError"));
   return NS_OK;
 }
 

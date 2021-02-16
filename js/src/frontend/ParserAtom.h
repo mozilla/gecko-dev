@@ -10,6 +10,7 @@
 #include "mozilla/DebugOnly.h"      // mozilla::DebugOnly
 #include "mozilla/HashFunctions.h"  // HashString
 #include "mozilla/Range.h"          // mozilla::Range
+#include "mozilla/Span.h"           // mozilla::Span
 #include "mozilla/Variant.h"        // mozilla::Variant
 
 #include "ds/LifoAlloc.h"         // LifoAlloc
@@ -24,7 +25,7 @@ namespace js {
 namespace frontend {
 
 struct CompilationAtomCache;
-struct CompilationInfo;
+struct CompilationStencil;
 class ParserAtom;
 class ParserName;
 
@@ -32,8 +33,6 @@ template <typename CharT>
 class SpecificParserAtomLookup;
 
 class ParserAtomsTable;
-
-mozilla::GenericErrorResult<OOM> RaiseParserAtomsOOMError(JSContext* cx);
 
 // An index to map WellKnownParserAtoms to cx->names().
 // This is consistent across multiple compilation.
@@ -136,10 +135,27 @@ class TaggedParserAtomIndex {
   static TaggedParserAtomIndex star() {
     return TaggedParserAtomIndex(StaticParserString1('*'));
   }
+  static TaggedParserAtomIndex arguments() {
+    return TaggedParserAtomIndex(WellKnownAtomId::arguments);
+  }
+  static TaggedParserAtomIndex dotThis() {
+    return TaggedParserAtomIndex(WellKnownAtomId::dotThis);
+  }
+  static TaggedParserAtomIndex dotGenerator() {
+    return TaggedParserAtomIndex(WellKnownAtomId::dotGenerator);
+  }
   static TaggedParserAtomIndex null() { return TaggedParserAtomIndex(); }
 
+#ifdef DEBUG
+  void validateRaw();
+#endif
+
   static TaggedParserAtomIndex fromRaw(uint32_t data) {
-    return TaggedParserAtomIndex(data);
+    auto result = TaggedParserAtomIndex(data);
+#ifdef DEBUG
+    result.validateRaw();
+#endif
+    return result;
   }
 
   bool isParserAtomIndex() const {
@@ -201,6 +217,10 @@ class alignas(alignof(uint32_t)) ParserAtomEntry {
 
   static const uint16_t MAX_LATIN1_CHAR = 0xff;
 
+  // Bit flags inside flags_.
+  static constexpr uint32_t HasTwoByteCharsFlag = 1 << 0;
+  static constexpr uint32_t UsedByStencilFlag = 1 << 1;
+
   // Helper routine to read some sequence of two-byte chars, and write them
   // into a target buffer of a particular character width.
   //
@@ -232,33 +252,34 @@ class alignas(alignof(uint32_t)) ParserAtomEntry {
 
   TaggedParserAtomIndex index_;
 
-  // Encoding type.
-  bool hasTwoByteChars_ = false;
-
-  // Mutable flags.
-  bool usedByStencil_ = false;
+  uint32_t flags_ = 0;
 
   // End of fields.
 
   static const uint32_t MAX_LENGTH = JSString::MAX_LENGTH;
 
   ParserAtomEntry(uint32_t length, HashNumber hash, bool hasTwoByteChars)
-      : hash_(hash), length_(length), hasTwoByteChars_(hasTwoByteChars) {}
-
- protected:
-  // The constexpr constructor is used by StaticParserAtomEntry.
-  constexpr ParserAtomEntry() = default;
+      : hash_(hash),
+        length_(length),
+        flags_(hasTwoByteChars ? HasTwoByteCharsFlag : 0) {}
 
  public:
+  // The constexpr constructor is used by StaticParserAtomEntry and XDR
+  constexpr ParserAtomEntry() = default;
+
   // ParserAtomEntries may own their content buffers in variant_, and thus
   // cannot be copy-constructed - as a new chars would need to be allocated.
   ParserAtomEntry(const ParserAtomEntry&) = delete;
   ParserAtomEntry(ParserAtomEntry&& other) = delete;
 
   template <typename CharT, typename SeqCharT>
-  static JS::Result<ParserAtomEntry*, OOM> allocate(
-      JSContext* cx, LifoAlloc& alloc, InflatedChar16Sequence<SeqCharT> seq,
-      uint32_t length, HashNumber hash);
+  static ParserAtomEntry* allocate(JSContext* cx, LifoAlloc& alloc,
+                                   InflatedChar16Sequence<SeqCharT> seq,
+                                   uint32_t length, HashNumber hash);
+
+  static ParserAtomEntry* allocateRaw(JSContext* cx, LifoAlloc& alloc,
+                                      const uint8_t* srcRaw,
+                                      size_t totalLength);
 
   ParserAtom* asAtom() { return reinterpret_cast<ParserAtom*>(this); }
   const ParserAtom* asAtom() const {
@@ -268,8 +289,8 @@ class alignas(alignof(uint32_t)) ParserAtomEntry {
   inline ParserName* asName();
   inline const ParserName* asName() const;
 
-  bool hasLatin1Chars() const { return !hasTwoByteChars_; }
-  bool hasTwoByteChars() const { return hasTwoByteChars_; }
+  bool hasLatin1Chars() const { return !(flags_ & HasTwoByteCharsFlag); }
+  bool hasTwoByteChars() const { return flags_ & HasTwoByteCharsFlag; }
 
   template <typename CharT>
   const CharT* chars() const {
@@ -313,12 +334,12 @@ class alignas(alignof(uint32_t)) ParserAtomEntry {
   HashNumber hash() const { return hash_; }
   uint32_t length() const { return length_; }
 
-  bool isUsedByStencil() const { return usedByStencil_; }
+  bool isUsedByStencil() const { return flags_ & UsedByStencilFlag; }
   void markUsedByStencil() const {
     if (isParserAtomIndex()) {
       // Use const method + const_cast here to avoid marking static strings'
       // field mutable.
-      const_cast<ParserAtomEntry*>(this)->usedByStencil_ = true;
+      const_cast<ParserAtomEntry*>(this)->flags_ |= UsedByStencilFlag;
     }
   }
 
@@ -361,11 +382,9 @@ class alignas(alignof(uint32_t)) ParserAtomEntry {
   constexpr void setStaticParserString2(StaticParserString2 s) {
     index_ = TaggedParserAtomIndex(s);
   }
-  constexpr void setHashAndLength(HashNumber hash, uint32_t length,
-                                  bool hasTwoByteChars = false) {
+  constexpr void setHashAndLength(HashNumber hash, uint32_t length) {
     hash_ = hash;
     length_ = length;
-    hasTwoByteChars_ = hasTwoByteChars;
   }
 
  public:
@@ -587,6 +606,7 @@ class WellKnownParserAtoms_ROM {
 };
 
 using ParserAtomVector = Vector<ParserAtomEntry*, 0, js::SystemAllocPolicy>;
+using ParserAtomSpan = mozilla::Span<ParserAtomEntry*>;
 
 /**
  * WellKnownParserAtoms reserves a set of common ParserAtoms on the JSRuntime
@@ -648,7 +668,7 @@ class WellKnownParserAtoms {
   static const ParserAtom* getStatic2(StaticParserString2 s);
 };
 
-bool InstantiateMarkedAtoms(JSContext* cx, const ParserAtomVector& entries,
+bool InstantiateMarkedAtoms(JSContext* cx, const ParserAtomSpan& entries,
                             CompilationAtomCache& atomCache);
 
 /**
@@ -665,80 +685,68 @@ class ParserAtomsTable {
   using EntrySet = HashSet<const ParserAtomEntry*, ParserAtomLookupHasher,
                            js::SystemAllocPolicy>;
   EntrySet entrySet_;
-  ParserAtomVector& entries_;
+  ParserAtomVector entries_;
 
  public:
-  ParserAtomsTable(JSRuntime* rt, LifoAlloc& alloc, ParserAtomVector& entries);
+  ParserAtomsTable(JSRuntime* rt, LifoAlloc& alloc);
   ParserAtomsTable(ParserAtomsTable&&) = default;
 
  private:
   // Internal APIs for interning to the table after well-known atoms cases have
   // been tested.
-  JS::Result<const ParserAtom*, OOM> addEntry(JSContext* cx,
-                                              EntrySet::AddPtr& addPtr,
-                                              ParserAtomEntry* entry);
+  const ParserAtom* addEntry(JSContext* cx, EntrySet::AddPtr& addPtr,
+                             ParserAtomEntry* entry);
   template <typename AtomCharT, typename SeqCharT>
-  JS::Result<const ParserAtom*, OOM> internChar16Seq(
-      JSContext* cx, EntrySet::AddPtr& addPtr, HashNumber hash,
-      InflatedChar16Sequence<SeqCharT> seq, uint32_t length);
+  const ParserAtom* internChar16Seq(JSContext* cx, EntrySet::AddPtr& addPtr,
+                                    HashNumber hash,
+                                    InflatedChar16Sequence<SeqCharT> seq,
+                                    uint32_t length);
 
  public:
-  JS::Result<const ParserAtom*, OOM> internAscii(JSContext* cx,
-                                                 const char* asciiPtr,
-                                                 uint32_t length);
+  const ParserAtom* internAscii(JSContext* cx, const char* asciiPtr,
+                                uint32_t length);
 
-  JS::Result<const ParserAtom*, OOM> internLatin1(
-      JSContext* cx, const JS::Latin1Char* latin1Ptr, uint32_t length);
+  const ParserAtom* internLatin1(JSContext* cx, const JS::Latin1Char* latin1Ptr,
+                                 uint32_t length);
 
-  JS::Result<const ParserAtom*, OOM> internUtf8(
-      JSContext* cx, const mozilla::Utf8Unit* utf8Ptr, uint32_t nbyte);
+  const ParserAtom* internUtf8(JSContext* cx, const mozilla::Utf8Unit* utf8Ptr,
+                               uint32_t nbyte);
 
-  JS::Result<const ParserAtom*, OOM> internChar16(JSContext* cx,
-                                                  const char16_t* char16Ptr,
-                                                  uint32_t length);
+  const ParserAtom* internChar16(JSContext* cx, const char16_t* char16Ptr,
+                                 uint32_t length);
 
-  JS::Result<const ParserAtom*, OOM> internJSAtom(
-      JSContext* cx, CompilationInfo& compilationInfo, JSAtom* atom);
+  const ParserAtom* internJSAtom(JSContext* cx, CompilationStencil& stencil,
+                                 JSAtom* atom);
 
-  JS::Result<const ParserAtom*, OOM> concatAtoms(
-      JSContext* cx, mozilla::Range<const ParserAtom*> atoms);
+  const ParserAtom* concatAtoms(JSContext* cx,
+                                mozilla::Range<const ParserAtom*> atoms);
 
   const ParserAtom* getWellKnown(WellKnownAtomId atomId) const;
   const ParserAtom* getStatic1(StaticParserString1 s) const;
   const ParserAtom* getStatic2(StaticParserString2 s) const;
   const ParserAtom* getParserAtom(ParserAtomIndex index) const;
   const ParserAtom* getParserAtom(TaggedParserAtomIndex index) const;
+
+  const ParserAtomVector& entries() const { return entries_; }
 };
 
 // Lightweight version of ParserAtomsTable.
 // This doesn't support deduplication.
 // Used while decoding XDR.
-class ParserAtomVectorBuilder {
+class ParserAtomSpanBuilder {
  private:
   const WellKnownParserAtoms& wellKnownTable_;
-  LifoAlloc* alloc_;
-  ParserAtomVector& entries_;
+  ParserAtomSpan& entries_;
 
  public:
-  ParserAtomVectorBuilder(JSRuntime* rt, LifoAlloc& alloc,
-                          ParserAtomVector& entries);
+  ParserAtomSpanBuilder(JSRuntime* rt, ParserAtomSpan& entries);
 
-  bool resize(JSContext* cx, size_t count);
-  size_t length() const { return entries_.length(); }
+  bool allocate(JSContext* cx, LifoAlloc& alloc, size_t count);
+  size_t size() const { return entries_.size(); }
 
-  JS::Result<const ParserAtom*, OOM> internLatin1At(
-      JSContext* cx, const JS::Latin1Char* latin1Ptr, HashNumber hash,
-      uint32_t length, ParserAtomIndex index);
-
-  JS::Result<const ParserAtom*, OOM> internChar16At(
-      JSContext* cx, const LittleEndianChars twoByteLE, HashNumber hash,
-      uint32_t length, ParserAtomIndex index);
-
- private:
-  template <typename CharT, typename SeqCharT, typename InputCharsT>
-  JS::Result<const ParserAtom*, OOM> internAt(JSContext* cx, InputCharsT chars,
-                                              HashNumber hash, uint32_t length,
-                                              ParserAtomIndex index);
+  void set(ParserAtomIndex index, const ParserAtomEntry* atom) {
+    entries_[index] = const_cast<ParserAtomEntry*>(atom);
+  }
 
  public:
   const ParserAtom* getWellKnown(WellKnownAtomId atomId) const;

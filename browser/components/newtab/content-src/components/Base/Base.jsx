@@ -9,18 +9,28 @@ import { ConfirmDialog } from "content-src/components/ConfirmDialog/ConfirmDialo
 import { connect } from "react-redux";
 import { DiscoveryStreamBase } from "content-src/components/DiscoveryStreamBase/DiscoveryStreamBase";
 import { ErrorBoundary } from "content-src/components/ErrorBoundary/ErrorBoundary";
+import { CustomizeMenu } from "content-src/components/CustomizeMenu/CustomizeMenu";
 import React from "react";
 import { Search } from "content-src/components/Search/Search";
 import { Sections } from "content-src/components/Sections/Sections";
+import { CSSTransition } from "react-transition-group";
 
-const PrefsButton = props => (
+export const PrefsButton = ({ onClick, icon }) => (
   <div className="prefs-button">
     <button
-      className="icon icon-settings"
-      onClick={props.onClick}
+      className={`icon ${icon || "icon-settings"}`}
+      onClick={onClick}
       data-l10n-id="newtab-settings-button"
     />
   </div>
+);
+
+export const PersonalizeButton = ({ onClick }) => (
+  <button
+    className="personalize-button"
+    onClick={onClick}
+    data-l10n-id="newtab-personalize-button-label"
+  />
 );
 
 // Returns a function will not be continuously triggered when called. The
@@ -102,25 +112,27 @@ export class BaseContent extends React.PureComponent {
   constructor(props) {
     super(props);
     this.openPreferences = this.openPreferences.bind(this);
+    this.openCustomizationMenu = this.openCustomizationMenu.bind(this);
+    this.closeCustomizationMenu = this.closeCustomizationMenu.bind(this);
+    this.handleOnKeyDown = this.handleOnKeyDown.bind(this);
     this.onWindowScroll = debounce(this.onWindowScroll.bind(this), 5);
-    this.state = { fixedSearch: false };
+    this.setPref = this.setPref.bind(this);
+    this.state = { fixedSearch: false, customizeMenuVisible: false };
   }
 
   componentDidMount() {
     global.addEventListener("scroll", this.onWindowScroll);
+    global.addEventListener("keydown", this.handleOnKeyDown);
   }
 
   componentWillUnmount() {
     global.removeEventListener("scroll", this.onWindowScroll);
+    global.removeEventListener("keydown", this.handleOnKeyDown);
   }
 
   onWindowScroll() {
     const prefs = this.props.Prefs.values;
-    // Show logo only if the logo is enabled and pocket is not enabled.
-    const showLogo =
-      prefs["logowordmark.alwaysVisible"] &&
-      !(prefs["feeds.section.topstories"] && prefs["feeds.system.topstories"]);
-    const SCROLL_THRESHOLD = showLogo ? 179 : 34;
+    const SCROLL_THRESHOLD = prefs["logowordmark.alwaysVisible"] ? 179 : 34;
     if (global.scrollY > SCROLL_THRESHOLD && !this.state.fixedSearch) {
       this.setState({ fixedSearch: true });
     } else if (global.scrollY <= SCROLL_THRESHOLD && this.state.fixedSearch) {
@@ -133,11 +145,36 @@ export class BaseContent extends React.PureComponent {
     this.props.dispatch(ac.UserEvent({ event: "OPEN_NEWTAB_PREFS" }));
   }
 
+  openCustomizationMenu() {
+    this.setState({ customizeMenuVisible: true });
+    this.props.dispatch(ac.UserEvent({ event: "SHOW_PERSONALIZE" }));
+  }
+
+  closeCustomizationMenu() {
+    if (this.state.customizeMenuVisible) {
+      this.setState({ customizeMenuVisible: false });
+      this.props.dispatch(ac.UserEvent({ event: "HIDE_PERSONALIZE" }));
+    }
+  }
+
+  handleOnKeyDown(e) {
+    if (e.key === "Escape") {
+      this.closeCustomizationMenu();
+    }
+  }
+
+  setPref(pref, value) {
+    this.props.dispatch(ac.SetPref(pref, value));
+  }
+
   render() {
     const { props } = this;
     const { App } = props;
     const { initialized } = App;
     const prefs = props.Prefs.values;
+
+    // Values from experiment data
+    const { prefsButtonIcon } = prefs.featureConfig || {};
 
     const isDiscoveryStream =
       props.DiscoveryStream.config && props.DiscoveryStream.config.enabled;
@@ -152,10 +189,23 @@ export class BaseContent extends React.PureComponent {
       !pocketEnabled &&
       filteredSections.filter(section => section.enabled).length === 0;
     const searchHandoffEnabled = prefs["improvesearch.handoffToAwesomebar"];
-    const showLogo =
-      prefs["logowordmark.alwaysVisible"] &&
-      (!prefs["feeds.section.topstories"] ||
-        (!prefs["feeds.system.topstories"] && prefs.region));
+    const customizationMenuEnabled = prefs["customizationMenu.enabled"];
+    const newNewtabExperienceEnabled = prefs["newNewtabExperience.enabled"];
+    const canShowCustomizationMenu =
+      customizationMenuEnabled || newNewtabExperienceEnabled;
+    const showCustomizationMenu =
+      canShowCustomizationMenu && this.state.customizeMenuVisible;
+    const enabledSections = {
+      topSitesEnabled: prefs["feeds.topsites"],
+      pocketEnabled: prefs["feeds.section.topstories"],
+      snippetsEnabled: prefs["feeds.snippets"],
+      highlightsEnabled: prefs["feeds.section.highlights"],
+      showSponsoredTopSitesEnabled: prefs.showSponsoredTopSites,
+      showSponsoredPocketEnabled: prefs.showSponsored,
+      topSitesRowsCount: prefs.topSitesRows,
+    };
+    const pocketRegion = prefs["feeds.system.topstories"];
+    const { mayHaveSponsoredTopSites } = prefs;
 
     const outerClassName = [
       "outer-wrapper",
@@ -166,20 +216,46 @@ export class BaseContent extends React.PureComponent {
         !noSectionsEnabled &&
         "fixed-search",
       prefs.showSearch && noSectionsEnabled && "only-search",
-      showLogo && "visible-logo",
+      prefs["logowordmark.alwaysVisible"] && "visible-logo",
+      newNewtabExperienceEnabled && "newtab-experience",
     ]
       .filter(v => v)
       .join(" ");
 
     return (
       <div>
-        <div className={outerClassName}>
+        {canShowCustomizationMenu ? (
+          <span>
+            <PersonalizeButton onClick={this.openCustomizationMenu} />
+            <CSSTransition
+              timeout={0}
+              classNames="customize-animate"
+              in={showCustomizationMenu}
+              appear={true}
+            >
+              <CustomizeMenu
+                onClose={this.closeCustomizationMenu}
+                openPreferences={this.openPreferences}
+                setPref={this.setPref}
+                enabledSections={enabledSections}
+                pocketRegion={pocketRegion}
+                mayHaveSponsoredTopSites={mayHaveSponsoredTopSites}
+              />
+            </CSSTransition>
+          </span>
+        ) : (
+          <PrefsButton onClick={this.openPreferences} icon={prefsButtonIcon} />
+        )}
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions*/}
+        <div className={outerClassName} onClick={this.closeCustomizationMenu}>
           <main>
             {prefs.showSearch && (
               <div className="non-collapsible-section">
                 <ErrorBoundary>
                   <Search
-                    showLogo={noSectionsEnabled || showLogo}
+                    showLogo={
+                      noSectionsEnabled || prefs["logowordmark.alwaysVisible"]
+                    }
                     handoffEnabled={searchHandoffEnabled}
                     {...props.Search}
                   />
@@ -200,7 +276,6 @@ export class BaseContent extends React.PureComponent {
               ) : (
                 <Sections />
               )}
-              <PrefsButton onClick={this.openPreferences} />
             </div>
             <ConfirmDialog />
           </main>

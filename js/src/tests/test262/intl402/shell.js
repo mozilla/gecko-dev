@@ -330,7 +330,7 @@ function isCanonicalizedStructurallyValidLanguageTag(locale) {
     // property names must be in lower case; values in canonical form
 
     "art-lojban": "jbo",
-    "cel-gaulish": "xtg-x-cel-gaulish",
+    "cel-gaulish": "xtg",
     "zh-guoyu": "zh",
     "zh-hakka": "hak",
     "zh-xiang": "hsn",
@@ -2368,20 +2368,4 @@ function isCanonicalizedStructurallyValidTimeZoneName(timeZone) {
     return false;
   }
   return zoneNamePattern.test(timeZone);
-}
-
-// file: test262-intl-displaynames.js
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
-
-// Call the shell helper to add Intl.DisplayNames to the Intl object.
-if (typeof addIntlExtras === "function") {
-    let intlExtras = {};
-    addIntlExtras(intlExtras);
-
-    Object.defineProperty(Intl, "DisplayNames", {
-        value: intlExtras.DisplayNames,
-        writable: true, enumerable: false, configurable: true
-    });
 }

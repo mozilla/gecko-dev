@@ -5,14 +5,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "SessionHistoryEntry.h"
+#include "ipc/IPCMessageUtilsSpecializations.h"
+#include "nsDocShell.h"
 #include "nsDocShellLoadState.h"
+#include "nsIHttpChannel.h"
 #include "nsSHEntryShared.h"
+#include "nsSHistory.h"
 #include "nsStructuredCloneContainer.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/PresState.h"
 #include "mozilla/Tuple.h"
+#include "mozilla/dom/CSPMessageUtils.h"
+#include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/PermissionMessageUtils.h"
+#include "mozilla/dom/ReferrerInfoUtils.h"
 #include "mozilla/ipc/IPDLParamTraits.h"
+#include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/ipc/URIUtils.h"
 
 extern mozilla::LazyLogModule gSHLog;
 
@@ -24,7 +34,6 @@ SessionHistoryInfo::SessionHistoryInfo(nsDocShellLoadState* aLoadState,
     : mURI(aLoadState->URI()),
       mOriginalURI(aLoadState->OriginalURI()),
       mResultPrincipalURI(aLoadState->ResultPrincipalURI()),
-      mReferrerInfo(aLoadState->GetReferrerInfo()),
       mPostData(aLoadState->PostDataStream()),
       mLoadType(aLoadState->LoadType()),
       mSrcdocData(aLoadState->SrcdocData()),
@@ -32,11 +41,16 @@ SessionHistoryInfo::SessionHistoryInfo(nsDocShellLoadState* aLoadState,
       mLoadReplace(aLoadState->LoadReplace()),
       /* FIXME Should this be aLoadState->IsSrcdocLoad()? */
       mIsSrcdocEntry(!aLoadState->SrcdocData().IsEmpty()),
+      mHasUserInteraction(false),
       mSharedState(SharedState::Create(
           aLoadState->TriggeringPrincipal(), aLoadState->PrincipalToInherit(),
           aLoadState->PartitionedPrincipalToInherit(), aLoadState->Csp(),
           /* FIXME Is this correct? */
           aLoadState->TypeHint())) {
+  if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel)) {
+    mReferrerInfo = httpChannel->GetReferrerInfo();
+  }
+
   MaybeUpdateTitleFromURI();
 }
 
@@ -47,21 +61,14 @@ SessionHistoryInfo::SessionHistoryInfo(
 }
 
 SessionHistoryInfo::SessionHistoryInfo(
-    const SessionHistoryInfo* aSharedStateFrom, nsIURI* aURI,
-    const nsID& aDocShellID, nsIPrincipal* aTriggeringPrincipal,
+    nsIURI* aURI, nsIPrincipal* aTriggeringPrincipal,
     nsIPrincipal* aPrincipalToInherit,
     nsIPrincipal* aPartitionedPrincipalToInherit,
     nsIContentSecurityPolicy* aCsp, const nsACString& aContentType)
     : mURI(aURI),
-      mSharedState(aSharedStateFrom ? SomeRef(aSharedStateFrom->mSharedState)
-                                    : Nothing()) {
-  mSharedState.Get()->mTriggeringPrincipal = aTriggeringPrincipal;
-  mSharedState.Get()->mPrincipalToInherit = aPrincipalToInherit;
-  mSharedState.Get()->mPartitionedPrincipalToInherit =
-      aPartitionedPrincipalToInherit;
-  mSharedState.Get()->mCsp = aCsp;
-  mSharedState.Get()->mContentType = aContentType;
-
+      mSharedState(SharedState::Create(
+          aTriggeringPrincipal, aPrincipalToInherit,
+          aPartitionedPrincipalToInherit, aCsp, aContentType)) {
   MaybeUpdateTitleFromURI();
 }
 
@@ -126,6 +133,7 @@ void SessionHistoryInfo::Reset(nsIURI* aURI, const nsID& aDocShellID,
   mIsSrcdocEntry = false;
   mScrollRestorationIsManual = false;
   mPersist = false;
+  mHasUserInteraction = false;
 
   mSharedState.Get()->mTriggeringPrincipal = aTriggeringPrincipal;
   mSharedState.Get()->mPrincipalToInherit = aPrincipalToInherit;
@@ -500,14 +508,27 @@ SessionHistoryEntry::SetIsSubFrame(bool aIsSubFrame) {
 
 NS_IMETHODIMP
 SessionHistoryEntry::GetHasUserInteraction(bool* aFlag) {
-  NS_WARNING("Not implemented in the parent process!");
-  *aFlag = true;
+  // The back button and menulist deal with root/top-level
+  // session history entries, thus we annotate only the root entry.
+  if (!mParent) {
+    *aFlag = mInfo->mHasUserInteraction;
+  } else {
+    nsCOMPtr<nsISHEntry> root = nsSHistory::GetRootSHEntry(this);
+    root->GetHasUserInteraction(aFlag);
+  }
   return NS_OK;
 }
 
 NS_IMETHODIMP
 SessionHistoryEntry::SetHasUserInteraction(bool aFlag) {
-  NS_WARNING("Not implemented in the parent process!");
+  // The back button and menulist deal with root/top-level
+  // session history entries, thus we annotate only the root entry.
+  if (!mParent) {
+    mInfo->mHasUserInteraction = aFlag;
+  } else {
+    nsCOMPtr<nsISHEntry> root = nsSHistory::GetRootSHEntry(this);
+    root->SetHasUserInteraction(aFlag);
+  }
   return NS_OK;
 }
 
@@ -954,7 +975,7 @@ SessionHistoryEntry::Clone(nsISHEntry** aEntry) {
   entry->mInfo->mScrollPositionY = 0;
   entry->mInfo->mScrollRestorationIsManual = false;
 
-  // entry->mInfo->mHasUserInteraction = false;
+  entry->mInfo->mHasUserInteraction = false;
 
   entry.forget(aEntry);
 
@@ -1361,6 +1382,7 @@ void IPDLParamTraits<dom::SessionHistoryInfo>::Write(
   WriteIPDLParam(aMsg, aActor, aParam.mIsSrcdocEntry);
   WriteIPDLParam(aMsg, aActor, aParam.mScrollRestorationIsManual);
   WriteIPDLParam(aMsg, aActor, aParam.mPersist);
+  WriteIPDLParam(aMsg, aActor, aParam.mHasUserInteraction);
   WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mId);
   WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mTriggeringPrincipal);
   WriteIPDLParam(aMsg, aActor, aParam.mSharedState.Get()->mPrincipalToInherit);
@@ -1397,6 +1419,7 @@ bool IPDLParamTraits<dom::SessionHistoryInfo>::Read(
       !ReadIPDLParam(aMsg, aIter, aActor,
                      &aResult->mScrollRestorationIsManual) ||
       !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mPersist) ||
+      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mHasUserInteraction) ||
       !ReadIPDLParam(aMsg, aIter, aActor, &sharedId)) {
     aActor->FatalError("Error reading fields for SessionHistoryInfo");
     return false;

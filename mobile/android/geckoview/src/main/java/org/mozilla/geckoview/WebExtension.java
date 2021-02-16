@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Represents a WebExtension that may be used by GeckoView.
@@ -63,9 +64,13 @@ public class WebExtension {
     /* package */ interface DelegateController {
         void onMessageDelegate(final String nativeApp, final MessageDelegate delegate);
         void onActionDelegate(final ActionDelegate delegate);
+        void onBrowsingDataDelegate(final BrowsingDataDelegate delegate);
         void onTabDelegate(final TabDelegate delegate);
+        void onDownloadDelegate(final DownloadDelegate delegate);
         ActionDelegate getActionDelegate();
+        BrowsingDataDelegate getBrowsingDataDelegate();
         TabDelegate getTabDelegate();
+        DownloadDelegate getDownloadDelegate();
     }
 
     private DelegateController mDelegateController = null;
@@ -171,6 +176,173 @@ public class WebExtension {
                                    final @NonNull String nativeApp) {
         if (mDelegateController != null) {
             mDelegateController.onMessageDelegate(nativeApp, messageDelegate);
+        }
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @LongDef(value = {
+            BrowsingDataDelegate.Type.CACHE,
+            BrowsingDataDelegate.Type.COOKIES,
+            BrowsingDataDelegate.Type.DOWNLOADS,
+            BrowsingDataDelegate.Type.FORM_DATA,
+            BrowsingDataDelegate.Type.HISTORY,
+            BrowsingDataDelegate.Type.LOCAL_STORAGE,
+            BrowsingDataDelegate.Type.PASSWORDS
+    }, flag = true)
+    @interface BrowsingDataTypes {}
+
+    /**
+     * This delegate is used to handle calls from the |browsingData| WebExtension API.
+     *
+     * See also: <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browsingData">
+     *     WebExtensions/API/browsingData
+     * </a>
+     */
+    @UiThread
+    public interface BrowsingDataDelegate {
+        /**
+         * This class represents the current default settings for the "Clear Data"
+         * functionality in the browser.
+         *
+         * See also: <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browsingData/settings">
+         *     WebExtensions/API/browsingData/settings
+         * </a>
+         */
+        @UiThread
+        class Settings {
+            /**
+             * Currently selected setting in the browser's "Clear Data" UI for
+             * how far back in time to remove data given in milliseconds
+             * since the UNIX epoch.
+             */
+            final public int sinceUnixTimestamp;
+            /**
+             * Data types that can be toggled in the browser's "Clear Data" UI.
+             * One or more flags from {@link Type}.
+             */
+            final public @BrowsingDataTypes long toggleableTypes;
+
+            /**
+             * Data types currently selected in the browser's "Clear Data" UI.
+             * One or more flags from {@link Type}.
+             */
+            final public @BrowsingDataTypes long selectedTypes;
+
+            /**
+             * Creates an instance of Settings.
+             *
+             * This class represents the current default settings for the "Clear Data"
+             * functionality in the browser.
+             *
+             * @param since Currently selected setting in the browser's "Clear Data" UI for
+             *              how far back in time to remove data given in milliseconds
+             *              since the UNIX epoch.
+             * @param toggleableTypes Data types that can be toggled in the browser's
+             *                        "Clear Data" UI. One or more flags from {@link Type}.
+             * @param selectedTypes   Data types currently selected in the browser's
+             *                        "Clear Data" UI. One or more flags from {@link Type}.
+             */
+            @UiThread
+            public Settings(final int since,
+                            final @BrowsingDataTypes long toggleableTypes,
+                            final @BrowsingDataTypes long selectedTypes) {
+                this.toggleableTypes = toggleableTypes;
+                this.selectedTypes = selectedTypes;
+                this.sinceUnixTimestamp = since;
+            }
+
+            private GeckoBundle fromBrowsingDataType(final @BrowsingDataTypes long types) {
+                final GeckoBundle result = new GeckoBundle(7);
+                result.putBoolean("cache", (types & Type.CACHE) != 0);
+                result.putBoolean("cookies", (types & Type.COOKIES) != 0);
+                result.putBoolean("downloads", (types & Type.DOWNLOADS) != 0);
+                result.putBoolean("formData", (types & Type.FORM_DATA) != 0);
+                result.putBoolean("history", (types & Type.HISTORY) != 0);
+                result.putBoolean("localStorage", (types & Type.LOCAL_STORAGE) != 0);
+                result.putBoolean("passwords", (types & Type.PASSWORDS) != 0);
+                return result;
+            }
+
+            /* package */ GeckoBundle toGeckoBundle() {
+                final GeckoBundle options = new GeckoBundle(1);
+                options.putLong("since", sinceUnixTimestamp);
+
+                final GeckoBundle result = new GeckoBundle(3);
+                result.putBundle("options", options);
+                result.putBundle("dataToRemove", fromBrowsingDataType(selectedTypes));
+                result.putBundle("dataRemovalPermitted", fromBrowsingDataType(toggleableTypes));
+                return result;
+            }
+        }
+
+        /**
+         * Types of data that a browser "Clear Data" UI might have access to.
+         */
+        class Type {
+            protected Type() {}
+            final public static long CACHE = 1 << 0;
+            final public static long COOKIES = 1 << 1;
+            final public static long DOWNLOADS = 1 << 2;
+            final public static long FORM_DATA = 1 << 3;
+            final public static long HISTORY = 1 << 4;
+            final public static long LOCAL_STORAGE = 1 << 5;
+            final public static long PASSWORDS = 1 << 6;
+        }
+
+        /**
+         * Gets current settings for the browser's "Clear Data" UI.
+         *
+         * @return a {@link GeckoResult} that resolves to an instance of {@link Settings} that
+         *         represents the current state for the browser's "Clear Data" UI.
+         * @see Settings
+         */
+        @Nullable
+        default GeckoResult<Settings> onGetSettings() {
+            return null;
+        }
+
+        /**
+         * Clear form data created after the given timestamp.
+         *
+         * @param sinceUnixTimestamp timestamp in seconds since the UNIX Epoch.
+         * @return a {@link GeckoResult} that resolves when data has been cleared.
+         */
+        @Nullable
+        default GeckoResult<Void> onClearFormData(final long sinceUnixTimestamp) {
+            return null;
+        }
+
+        /**
+         * Clear passwords saved after the given timestamp.
+         *
+         * @param sinceUnixTimestamp timestamp in seconds since the UNIX Epoch.
+         * @return a {@link GeckoResult} that resolves when data has been cleared.
+         */
+        @Nullable
+        default GeckoResult<Void> onClearPasswords(final long sinceUnixTimestamp) {
+            return null;
+        }
+
+        /**
+         * Clear history saved after the given timestamp.
+         *
+         * @param sinceUnixTimestamp timestamp in seconds since the UNIX Epoch.
+         * @return a {@link GeckoResult} that resolves when data has been cleared.
+         */
+        @Nullable
+        default GeckoResult<Void> onClearHistory(final long sinceUnixTimestamp) {
+            return null;
+        }
+
+        /**
+         * Clear downloads created after the given timestamp.
+         *
+         * @param sinceUnixTimestamp timestamp in seconds since the UNIX Epoch.
+         * @return a {@link GeckoResult} that resolves when data has been cleared.
+         */
+        @Nullable
+        default GeckoResult<Void> onClearDownloads(final long sinceUnixTimestamp) {
+            return null;
         }
     }
 
@@ -651,6 +823,18 @@ public class WebExtension {
         }
     }
 
+    @UiThread
+    @Nullable
+    public BrowsingDataDelegate getBrowsingDataDelegate() {
+        return mDelegateController.getBrowsingDataDelegate();
+    }
+
+    @UiThread
+    public void setBrowsingDataDelegate(final @Nullable BrowsingDataDelegate delegate) {
+        if (mDelegateController != null) {
+            mDelegateController.onBrowsingDataDelegate(delegate);
+        }
+    }
 
     private static class Sender {
         public String webExtensionId;
@@ -803,14 +987,17 @@ public class WebExtension {
     }
 
     /* package */ final static class Listener<TabDelegate> implements BundleEventListener {
-        final private HashMap<Sender, WebExtension.MessageDelegate> mMessageDelegates;
-        final private HashMap<String, WebExtension.ActionDelegate> mActionDelegates;
+        final private HashMap<Sender, MessageDelegate> mMessageDelegates;
+        final private HashMap<String, ActionDelegate> mActionDelegates;
+        final private HashMap<String, BrowsingDataDelegate> mBrowsingDataDelegates;
         final private HashMap<String, TabDelegate> mTabDelegates;
+        final private HashMap<String, DownloadDelegate> mDownloadDelegates;
 
         final private GeckoSession mSession;
         final private EventDispatcher mEventDispatcher;
 
         private boolean mActionDelegateRegistered = false;
+        private boolean mBrowsingDataDelegateRegistered = false;
         private boolean mTabDelegateRegistered = false;
 
         public GeckoRuntime runtime;
@@ -837,7 +1024,9 @@ public class WebExtension {
         private Listener(final GeckoSession session, final GeckoRuntime runtime) {
             mMessageDelegates = new HashMap<>();
             mActionDelegates = new HashMap<>();
+            mBrowsingDataDelegates = new HashMap<>();
             mTabDelegates = new HashMap<>();
+            mDownloadDelegates = new HashMap<>();
             mEventDispatcher = session != null
                     ? session.getEventDispatcher()
                     : EventDispatcher.getInstance();
@@ -850,13 +1039,18 @@ public class WebExtension {
                     "GeckoView:WebExtension:Message",
                     "GeckoView:WebExtension:PortMessage",
                     "GeckoView:WebExtension:Connect",
-                    "GeckoView:WebExtension:Disconnect");
+                    "GeckoView:WebExtension:Disconnect",
+                    "GeckoView:BrowsingData:GetSettings",
+                    "GeckoView:BrowsingData:Clear",
+                    "GeckoView:WebExtension:Download");
         }
 
         public void unregisterWebExtension(final WebExtension extension) {
             mMessageDelegates.remove(extension.id);
             mActionDelegates.remove(extension.id);
+            mBrowsingDataDelegates.remove(extension.id);
             mTabDelegates.remove(extension.id);
+            mDownloadDelegates.remove(extension.id);
         }
 
         public void setTabDelegate(final WebExtension webExtension,
@@ -877,6 +1071,15 @@ public class WebExtension {
 
         public TabDelegate getTabDelegate(final WebExtension webExtension) {
             return mTabDelegates.get(webExtension.id);
+        }
+
+        public void setBrowsingDataDelegate(final WebExtension webExtension,
+                                            final BrowsingDataDelegate delegate) {
+            mBrowsingDataDelegates.put(webExtension.id, delegate);
+        }
+
+        public BrowsingDataDelegate getBrowsingDataDelegate(final WebExtension webExtension) {
+            return mBrowsingDataDelegates.get(webExtension.id);
         }
 
         public void setActionDelegate(final WebExtension webExtension,
@@ -921,6 +1124,15 @@ public class WebExtension {
             }
 
             runtime.getWebExtensionController().handleMessage(event, message, callback, mSession);
+        }
+
+        public void setDownloadDelegate(final @NonNull WebExtension extension,
+                                        final @Nullable DownloadDelegate delegate) {
+            mDownloadDelegates.put(extension.id, delegate);
+        }
+
+        public WebExtension.DownloadDelegate getDownloadDelegate(final WebExtension extension) {
+            return mDownloadDelegates.get(extension.id);
         }
     }
 
@@ -1003,6 +1215,13 @@ public class WebExtension {
         public boolean isTopLevel() {
             return this.isTopLevel;
         }
+    }
+
+    /* package */ static WebExtension fromBundle(final GeckoBundle bundle) {
+        if (bundle == null) {
+            return null;
+        }
+        return new WebExtension(bundle.getBundle("extension"));
     }
 
     /**
@@ -1391,6 +1610,33 @@ public class WebExtension {
 
             /** For testing. */
             protected ErrorCodes() {}
+        }
+
+        /** These states should match gecko's AddonManager.STATE_* constants. */
+        private static class StateCodes {
+            public static final int STATE_POSTPONED = 7;
+            public static final int STATE_CANCELED = 12;
+        }
+
+        /* package */ static Throwable fromQueryException(final Throwable exception) {
+            final EventDispatcher.QueryException queryException =
+                    (EventDispatcher.QueryException) exception;
+            final Object response = queryException.data;
+            if (response instanceof GeckoBundle
+                    && ((GeckoBundle) response).containsKey("installError")) {
+                final GeckoBundle bundle = (GeckoBundle) response;
+                int errorCode = bundle.getInt("installError");
+                final int installState = bundle.getInt("state");
+                if (errorCode == 0 && installState ==
+                        StateCodes.STATE_CANCELED) {
+                    errorCode = ErrorCodes.ERROR_USER_CANCELED;
+                } else if (errorCode == 0 && installState == StateCodes.STATE_POSTPONED) {
+                    errorCode = ErrorCodes.ERROR_POSTPONED;
+                }
+                return new WebExtension.InstallException(errorCode);
+            } else {
+                return new Exception(response.toString());
+            }
         }
 
         @Retention(RetentionPolicy.SOURCE)
@@ -1998,23 +2244,68 @@ public class WebExtension {
         }
     }
 
-    // TODO: implement bug 1538348
-    /* package */ interface DownloadDelegate {
+    public interface DownloadDelegate {
+        /**
+         * Method that is called when Web Extension requests a download
+         * (when downloads.download() is called in Web Extension)
+         *
+         * @param source - Web Extension that requested the download
+         * @param request - contains the {@link WebRequest} and additional parameters for the request
+         * @return {@link Download} instance
+         */
         @AnyThread
-        default GeckoResult<WebExtension.Download> onDownload(WebExtension source, DownloadRequest request) {
+        @Nullable
+        default GeckoResult<WebExtension.Download> onDownload(@NonNull WebExtension source, @NonNull DownloadRequest request) {
             return null;
         }
     }
 
-    // TODO: make public bug 1538348
     /**
-     * Represents a download
+     * Set the download delegate for this extension. This delegate will be invoked whenever
+     * this extension tries to use the `downloads` WebExtension API.
+     *
+     * See also
+     * <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads">WebExtensions/API/downloads</a>.
+     *
+     * @param delegate the {@link DownloadDelegate} instance for this extension.
+     */
+    @UiThread
+    public void setDownloadDelegate(final @Nullable DownloadDelegate delegate) {
+        if (mDelegateController != null) {
+            mDelegateController.onDownloadDelegate(delegate);
+        }
+    }
+
+    /**
+     * Get the download delegate for this extension.
+     *
+     * See also
+     * <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads">WebExtensions downloads API</a>.
+     *
+     * @return The {@link DownloadDelegate} instance for this extension.
+     */
+    @UiThread
+    @Nullable
+    public DownloadDelegate getDownloadDelegate() {
+        return mDelegateController.getDownloadDelegate();
+    }
+
+    /**
+     * Represents a download for <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads">downloads API</a>
      * Instantiate using {@link WebExtensionController#createDownload}
      */
-    static class Download {
-        /* package */ final String id;
+    public static class Download {
+        /**
+         * Represents a unique identifier for the downloaded item
+         * that is persistent across browser sessions
+         */
+        public final @NonNull int id;
 
-        private Download(final String id) {
+        /**
+         * For testing.
+         * @param id - integer id for the download item
+         */
+        protected Download(final int id) {
             this.id = id;
         }
 
@@ -2139,46 +2430,148 @@ public class WebExtension {
         }
     }
 
-    // TODO: make public bug 1538348
     /**
      * Represents Web Extension API specific download request
      */
-    static final class DownloadRequest {
-        /* package */ final WebRequest request;
-        /* package */ final @GeckoWebExecutor.FetchFlags int downloadFlags;
-        /* package */ final String filename;
-        /* package */ final @ConflictActionFlags int conflictActionFlag;
+    public static class DownloadRequest {
+        /**
+         * Regular GeckoView {@link WebRequest} object
+         */
+        public final @NonNull WebRequest request;
 
-        @IntDef(flag = true, value = { UNIQUIFY, OVERWRITE, PROMPT })
+        /**
+         * Optional fetch flags for {@link GeckoWebExecutor}
+         */
+        public final @GeckoWebExecutor.FetchFlags int downloadFlags;
+
+        /**
+         * A file path relative to the default downloads directory
+         */
+        public final @Nullable String filename;
+
+        /**
+         * The action you want taken if there is a filename conflict, as defined
+         * <a href="https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/downloads/FilenameConflictAction">here</a>
+         */
+        public final @ConflictActionFlags int conflictActionFlag;
+
+        /**
+         * Specifies whether to provide a file chooser dialog to allow
+         * the user to select a filename (true), or not (false)
+         */
+        public final boolean saveAs;
+
+        /**
+         * Flag that enables downloads to continue even if they encounter HTTP errors.
+         * When false, the download is canceled when it encounters an HTTP error.
+         * When true, the download continues when an HTTP error is encountered and
+         * the HTTP server error is not reported. However, if the download fails due to
+         * file-related, network-related, user-related, or other error, that error is reported.
+         */
+        public final boolean allowHttpErrors;
+
+        @IntDef(flag = true, value = {CONFLICT_ACTION_UNIQUIFY, CONFLICT_ACTION_OVERWRITE, CONFLICT_ACTION_PROMPT})
         /* package */ @interface ConflictActionFlags {}
 
         /**
          * The app should modify the filename to make it unique
          */
-        /* package */ static final int UNIQUIFY = 0;
+        public static final int CONFLICT_ACTION_UNIQUIFY = 0;
 
         /**
          * The app should overwrite the old file with the newly-downloaded file
          */
-        /* package */ static final int OVERWRITE = 1;
+        public static final int CONFLICT_ACTION_OVERWRITE = 1;
 
         /**
          * The app should prompt the user, asking them to choose whether to uniquify or overwrite
          */
-        /* package */ static final int PROMPT = 1 << 1;
+        public static final int CONFLICT_ACTION_PROMPT = 1 << 1;
 
-        private DownloadRequest(final DownloadRequest.Builder builder) {
+        protected DownloadRequest(final DownloadRequest.Builder builder) {
             this.request = builder.mRequest;
             this.downloadFlags = builder.mDownloadFlags;
             this.filename = builder.mFilename;
             this.conflictActionFlag = builder.mConflictActionFlag;
+            this.saveAs = builder.mSaveAs;
+            this.allowHttpErrors = builder.mAllowHttpErrors;
         }
 
-        /* package */ class Builder {
+        /**
+         * Convenience method to convert a GeckoBundle to a DownloadRequest.
+         *
+         * @param optionsBundle - in the shape of the options object browser.downloads.download() accepts
+         * @return request - a DownloadRequest instance
+         */
+        /* package */ static DownloadRequest fromBundle(final GeckoBundle optionsBundle) {
+            final String uri = optionsBundle.getString("url");
+
+            WebRequest.Builder mainRequestBuilder = new WebRequest.Builder(uri);
+
+            String method = optionsBundle.getString("method");
+            if (method != null) {
+                mainRequestBuilder.method(method);
+
+                if (method.equals("POST")) {
+                    String body = optionsBundle.getString("body");
+                    mainRequestBuilder.body(body);
+                }
+            }
+
+            GeckoBundle[] headers = optionsBundle.getBundleArray("headers");
+            if (headers != null) {
+                for (GeckoBundle header : headers) {
+                    String value = header.getString("value");
+                    if (value == null) {
+                        value = header.getString("binaryValue");
+                    }
+                    mainRequestBuilder.addHeader(header.getString("name"), value);
+                }
+            }
+
+            WebRequest mainRequest = mainRequestBuilder.build();
+
+            int downloadFlags = GeckoWebExecutor.FETCH_FLAGS_NONE;
+            boolean incognito = optionsBundle.getBoolean("incognito");
+            if (incognito) {
+                downloadFlags |= GeckoWebExecutor.FETCH_FLAGS_PRIVATE;
+            }
+
+            boolean allowHttpErrors = optionsBundle.getBoolean("allowHttpErrors");
+
+            int conflictActionFlags = CONFLICT_ACTION_UNIQUIFY;
+            String conflictActionString = optionsBundle.getString("conflictAction");
+            if (conflictActionString != null) {
+                switch (conflictActionString.toLowerCase(Locale.ROOT)) {
+                    case "overwrite":
+                        conflictActionFlags |= WebExtension.DownloadRequest.CONFLICT_ACTION_OVERWRITE;
+                        break;
+                    case "prompt":
+                        conflictActionFlags |= WebExtension.DownloadRequest.CONFLICT_ACTION_PROMPT;
+                        break;
+                }
+            }
+
+            boolean saveAs = optionsBundle.getBoolean("saveAs");
+
+            WebExtension.DownloadRequest request = new WebExtension.DownloadRequest.Builder(mainRequest)
+                    .filename(optionsBundle.getString("filename"))
+                    .downloadFlags(downloadFlags)
+                    .conflictAction(conflictActionFlags)
+                    .saveAs(saveAs)
+                    .allowHttpErrors(allowHttpErrors)
+                    .build();
+
+            return request;
+        }
+
+        /* package */ static class Builder {
             private final WebRequest mRequest;
             private @GeckoWebExecutor.FetchFlags int mDownloadFlags = 0;
             private String mFilename = null;
-            private @ConflictActionFlags int mConflictActionFlag = UNIQUIFY;
+            private @ConflictActionFlags int mConflictActionFlag = CONFLICT_ACTION_UNIQUIFY;
+            private boolean mSaveAs = false;
+            private boolean mAllowHttpErrors = false;
 
             /* package */ Builder(final WebRequest request) {
                 this.mRequest = request;
@@ -2196,6 +2589,16 @@ public class WebExtension {
 
             /* package */ Builder conflictAction(final @ConflictActionFlags int conflictActionFlag) {
                 this.mConflictActionFlag = conflictActionFlag;
+                return this;
+            }
+
+            /* package */ Builder saveAs(final boolean saveAs) {
+                this.mSaveAs = saveAs;
+                return this;
+            }
+
+            /* package */ Builder allowHttpErrors(final boolean allowHttpErrors) {
+                this.mAllowHttpErrors = allowHttpErrors;
                 return this;
             }
 

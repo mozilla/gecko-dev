@@ -35,6 +35,8 @@
 ///     }
 /// }
 /// ```
+///
+/// Note that the keyword name can only start with a lower-case letter, i.e. 'a'..'z'.
 #[macro_export]
 macro_rules! custom_keyword {
     ($name:ident) => {
@@ -43,7 +45,7 @@ macro_rules! custom_keyword {
     ($name:ident = $kw:expr) => {
         #[allow(non_camel_case_types)]
         #[allow(missing_docs)]
-        #[derive(Debug)]
+        #[derive(Debug, Copy, Clone)]
         pub struct $name(pub $crate::Span);
 
         impl<'a> $crate::parser::Parse<'a> for $name {
@@ -326,6 +328,7 @@ pub mod kw {
     custom_keyword!(any);
     custom_keyword!(anyfunc);
     custom_keyword!(anyref);
+    custom_keyword!(arg);
     custom_keyword!(array);
     custom_keyword!(assert_exhaustion);
     custom_keyword!(assert_invalid);
@@ -344,6 +347,7 @@ pub mod kw {
     custom_keyword!(binary);
     custom_keyword!(block);
     custom_keyword!(catch);
+    custom_keyword!(catch_all);
     custom_keyword!(code);
     custom_keyword!(data);
     custom_keyword!(declare);
@@ -393,6 +397,7 @@ pub mod kw {
     custom_keyword!(null);
     custom_keyword!(nullref);
     custom_keyword!(offset);
+    custom_keyword!(outer);
     custom_keyword!(param);
     custom_keyword!(parent);
     custom_keyword!(passive);
@@ -414,6 +419,7 @@ pub mod kw {
     custom_keyword!(table);
     custom_keyword!(then);
     custom_keyword!(r#try = "try");
+    custom_keyword!(unwind);
     custom_keyword!(v128);
 }
 

@@ -6,7 +6,6 @@
 
 #include "vm/SavedStacks.h"
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
 
@@ -29,6 +28,7 @@
 #include "js/PropertySpec.h"
 #include "js/SavedFrameAPI.h"
 #include "js/Vector.h"
+#include "util/DifferentialTesting.h"
 #include "util/StringBuffer.h"
 #include "vm/ErrorObject.h"
 #include "vm/GeckoProfiler.h"
@@ -68,7 +68,7 @@ void LiveSavedFrameCache::trace(JSTracer* trc) {
   }
 }
 
-bool LiveSavedFrameCache::insert(JSContext* cx, FramePtr& framePtr,
+bool LiveSavedFrameCache::insert(JSContext* cx, FramePtr&& framePtr,
                                  const jsbytecode* pc,
                                  HandleSavedFrame savedFrame) {
   MOZ_ASSERT(savedFrame);
@@ -196,9 +196,9 @@ struct MOZ_STACK_CLASS SavedFrame::Lookup {
         activation(activation) {
     MOZ_ASSERT(source);
     MOZ_ASSERT_IF(framePtr.isSome(), activation);
-#ifdef JS_MORE_DETERMINISTIC
-    column = 0;
-#endif
+    if (js::SupportDifferentialTesting()) {
+      column = 0;
+    }
   }
 
   explicit Lookup(SavedFrame& savedFrame)
@@ -498,9 +498,9 @@ void SavedFrame::initLine(uint32_t line) {
 }
 
 void SavedFrame::initColumn(uint32_t column) {
-#ifdef JS_MORE_DETERMINISTIC
-  column = 0;
-#endif
+  if (js::SupportDifferentialTesting()) {
+    column = 0;
+  }
   initReservedSlot(JSSLOT_COLUMN, PrivateUint32Value(column));
 }
 
@@ -1586,11 +1586,10 @@ bool SavedStacks::insertFrames(JSContext* cx, MutableHandleSavedFrame frame,
       // Translate our capture into a frame count limit for
       // adoptAsyncStack, which will impose further limits.
       Maybe<size_t> maxFrames =
-          !capture.is<JS::MaxFrames>()
+          !capture.is<JS::MaxFrames>() ? Nothing()
+          : capture.as<JS::MaxFrames>().maxFrames == 0
               ? Nothing()
-              : capture.as<JS::MaxFrames>().maxFrames == 0
-                    ? Nothing()
-                    : Some(capture.as<JS::MaxFrames>().maxFrames);
+              : Some(capture.as<JS::MaxFrames>().maxFrames);
 
       // Clip the stack if needed, attach the async cause string to the
       // top frame, and copy it into our compartment if necessary.

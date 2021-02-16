@@ -455,22 +455,41 @@ option(
 set_define("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 set_config("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 
+# Architecture feature flags
+# =======================================================
+
+# Apple silicon does not seem to have any way to query the OS for the JSCVT
+# flag stored in the ID_AA64ISAR1_EL1 system register. In the mean time, we
+# hard code the value of the JSCVT flag which guards the implementation of
+# FJCVTZS instruction as part of ARMv8.3-JSConv.
+@depends(target)
+def is_apple_silicon(target):
+    return target.os == "OSX" and target.kernel == "Darwin" and target.cpu == "aarch64"
+
 
 option(
-    "--enable-more-deterministic",
-    env="JS_MORE_DETERMINISTIC",
-    help="Enable changes that make the shell more deterministic",
+    "--enable-arm64-fjcvtzs",
+    default=is_apple_silicon,
+    help="{Enable|Disable} static use of FJCVTZS instruction on Aarch64 targets.",
 )
 
+# The "ARM Architecture Reference Manual" for ARMv8 defines the JSCVT flag as
+# being a 4 bit integer (D12.2.52) and it can be manipulated using >= operator
+# (D12.1.4).
+#
+# The FJCVTZS instruction is implemented if ID_AA64ISAR1_EL1.JSCVT >= 1.
+@depends("--enable-arm64-fjcvtzs", target, simulator)
+def aarch64_jscvt(fjcvtzs, target, simulator):
+    if target.cpu == "aarch64" and fjcvtzs:
+        return 1
 
-@depends("--enable-more-deterministic")
-def more_deterministic(value):
-    if value:
-        return True
+    if simulator and getattr(simulator, "arm64", False) and fjcvtzs:
+        return 1
+
+    return 0
 
 
-set_define("JS_MORE_DETERMINISTIC", more_deterministic)
-
+set_define("MOZ_AARCH64_JSCVT", aarch64_jscvt)
 
 # CTypes
 # =======================================================
@@ -742,17 +761,13 @@ set_define("ENABLE_SHARED_MEMORY", enable_shared_memory)
 # Support for WebAssembly SIMD
 # =====================================================
 
-# Currently off by default for ARM64 (whether simulator or hardware)
-# and not properly supported by Cranelift, but can be enabled so as
-# to be tested with baseline.
-
 
 @depends("--enable-jit", "--enable-simulator", target)
 def default_wasm_simd(jit_enabled, simulator, target):
     if not jit_enabled or simulator:
         return
 
-    if target.cpu in ("x86_64", "x86"):
+    if target.cpu in ("x86_64", "x86", "aarch64"):
         return True
 
 
@@ -810,6 +825,40 @@ def wasm_simd_experimental(value, wasm_simd):
 
 set_config("ENABLE_WASM_SIMD_EXPERIMENTAL", wasm_simd_experimental)
 set_define("ENABLE_WASM_SIMD_EXPERIMENTAL", wasm_simd_experimental)
+
+# Wormhole opcodes are experimental *and* x64-only
+
+
+@depends("--enable-wasm-simd-experimental", target)
+def default_wasm_simd_wormhole(wasm_simd_experimental, target):
+    if wasm_simd_experimental and target.cpu == "x86_64":
+        return True
+
+
+option(
+    "--enable-wasm-simd-wormhole",
+    default=default_wasm_simd_wormhole,
+    help="{Enable|Disable} WebAssembly SIMD wormhole opcodes",
+)
+
+
+@depends("--enable-wasm-simd-wormhole", "--enable-wasm-simd-experimental", target)
+def wasm_simd_wormhole(value, wasm_simd_experimental, target):
+    if not value:
+        return
+
+    if not wasm_simd_experimental:
+        die("SIMD wormhole also requires --enable-wasm-simd-experimental.")
+
+    if target.cpu != "x86_64":
+        die("SIMD wormhole is only available on x86_64.")
+
+    return True
+
+
+set_config("ENABLE_WASM_SIMD_WORMHOLE", wasm_simd_wormhole)
+set_define("ENABLE_WASM_SIMD_WORMHOLE", wasm_simd_wormhole)
+
 
 # Options for generating the shell as a script
 # ============================================
@@ -977,4 +1026,27 @@ set_config(
 set_define(
     "ENABLE_WASM_TYPE_REFLECTIONS",
     depends_if("--enable-wasm-type-reflections")(lambda x: True),
+)
+
+# Support for WebAssembly exceptions
+# ==================================
+
+
+@depends(milestone.is_nightly, "--enable-wasm-multi-value")
+def default_wasm_exceptions(is_nightly, multi_value):
+    if multi_value and is_nightly:
+        return True
+
+
+option(
+    "--enable-wasm-exceptions",
+    default=default_wasm_exceptions,
+    help="{Enable|Disable} WebAssembly exceptions",
+)
+
+set_config(
+    "ENABLE_WASM_EXCEPTIONS", depends_if("--enable-wasm-exceptions")(lambda x: True)
+)
+set_define(
+    "ENABLE_WASM_EXCEPTIONS", depends_if("--enable-wasm-exceptions")(lambda x: True)
 )

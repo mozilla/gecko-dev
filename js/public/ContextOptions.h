@@ -30,6 +30,8 @@ class JS_PUBLIC_API ContextOptions {
         wasmGc_(false),
         wasmMultiValue_(false),
         wasmSimd_(false),
+        wasmSimdWormhole_(false),
+        wasmExceptions_(false),
         testWasmAwaitTier2_(false),
         throwOnAsmJSValidationFailure_(false),
         disableIon_(false),
@@ -46,7 +48,8 @@ class JS_PUBLIC_API ContextOptions {
 #endif
         fuzzing_(false),
         privateClassFields_(false),
-        privateClassMethods_(false) {
+        privateClassMethods_(false),
+        topLevelAwait_(false) {
   }
 
   bool asmJS() const { return asmJS_; }
@@ -125,6 +128,14 @@ class JS_PUBLIC_API ContextOptions {
   // Defined out-of-line because it depends on a compile-time option
   ContextOptions& setWasmSimd(bool flag);
 
+  bool wasmSimdWormhole() const { return wasmSimdWormhole_; }
+  // Defined out-of-line because it depends on a compile-time option
+  ContextOptions& setWasmSimdWormhole(bool flag);
+
+  bool wasmExceptions() const { return wasmExceptions_; }
+  // Defined out-of-line because it depends on a compile-time option
+  ContextOptions& setWasmExceptions(bool flag);
+
   bool throwOnAsmJSValidationFailure() const {
     return throwOnAsmJSValidationFailure_;
   }
@@ -155,6 +166,12 @@ class JS_PUBLIC_API ContextOptions {
   bool privateClassMethods() const { return privateClassMethods_; }
   ContextOptions& setPrivateClassMethods(bool enabled) {
     privateClassMethods_ = enabled;
+    return *this;
+  }
+
+  bool topLevelAwait() const { return topLevelAwait_; }
+  ContextOptions& setTopLevelAwait(bool enabled) {
+    topLevelAwait_ = enabled;
     return *this;
   }
 
@@ -251,6 +268,8 @@ class JS_PUBLIC_API ContextOptions {
   bool wasmGc_ : 1;
   bool wasmMultiValue_ : 1;
   bool wasmSimd_ : 1;
+  bool wasmSimdWormhole_ : 1;
+  bool wasmExceptions_ : 1;
   bool testWasmAwaitTier2_ : 1;
   bool throwOnAsmJSValidationFailure_ : 1;
   bool disableIon_ : 1;
@@ -268,6 +287,7 @@ class JS_PUBLIC_API ContextOptions {
   bool fuzzing_ : 1;
   bool privateClassFields_ : 1;
   bool privateClassMethods_ : 1;
+  bool topLevelAwait_ : 1;
 };
 
 JS_PUBLIC_API ContextOptions& ContextOptionsRef(JSContext* cx);

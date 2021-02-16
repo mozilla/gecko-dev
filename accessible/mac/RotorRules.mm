@@ -164,6 +164,31 @@ uint16_t RotorControlRule::Match(const AccessibleOrProxy& aAccOrProxy) {
   return result;
 }
 
+// Rotor TextEntry Rule
+
+RotorTextEntryRule::RotorTextEntryRule(
+    AccessibleOrProxy& aDirectDescendantsFrom)
+    : RotorRule(aDirectDescendantsFrom){};
+
+RotorTextEntryRule::RotorTextEntryRule() : RotorRule(){};
+
+uint16_t RotorTextEntryRule::Match(const AccessibleOrProxy& aAccOrProxy) {
+  uint16_t result = RotorRule::Match(aAccOrProxy);
+
+  // if a match was found in the base-class's Match function,
+  // it is valid to consider that match again here. if it is
+  // not of the desired role, we flip the match bit to "unmatch"
+  // otherwise, the match persists.
+  if ((result & nsIAccessibleTraversalRule::FILTER_MATCH)) {
+    if (aAccOrProxy.Role() != roles::PASSWORD_TEXT &&
+        aAccOrProxy.Role() != roles::ENTRY) {
+      result &= ~nsIAccessibleTraversalRule::FILTER_MATCH;
+    }
+  }
+
+  return result;
+}
+
 // Rotor Link Rule
 
 RotorLinkRule::RotorLinkRule(AccessibleOrProxy& aDirectDescendantsFrom)
@@ -305,6 +330,18 @@ uint16_t RotorHeadingLevelRule::Match(const AccessibleOrProxy& aAccOrProxy) {
     }
   }
 
+  return result;
+}
+
+uint16_t RotorLiveRegionRule::Match(const AccessibleOrProxy& aAccOrProxy) {
+  uint16_t result = RotorRule::Match(aAccOrProxy);
+
+  if ((result & nsIAccessibleTraversalRule::FILTER_MATCH)) {
+    mozAccessible* nativeMatch = GetNativeFromGeckoAccessible(aAccOrProxy);
+    if (![nativeMatch moxIsLiveRegion]) {
+      result &= ~nsIAccessibleTraversalRule::FILTER_MATCH;
+    }
+  }
   return result;
 }
 

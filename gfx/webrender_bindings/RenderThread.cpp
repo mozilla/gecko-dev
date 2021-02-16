@@ -6,6 +6,7 @@
 
 #include "base/task.h"
 #include "GeckoProfiler.h"
+#include "gfxPlatform.h"
 #include "GLContext.h"
 #include "RenderThread.h"
 #include "nsThreadUtils.h"
@@ -13,6 +14,7 @@
 #include "mozilla/layers/AsyncImagePipelineManager.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUParent.h"
+#include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/layers/CompositorThread.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorManagerParent.h"
@@ -172,6 +174,15 @@ void RenderThread::DoAccumulateMemoryReport(
     aReport.shader_cache = wr_program_cache_report_memory(
         mProgramCache->Raw(), &WebRenderRendererMallocSizeOf);
   }
+
+  size_t renderTextureMemory = 0;
+  {
+    MutexAutoLock lock(mRenderTextureMapLock);
+    for (const auto& entry : mRenderTextures) {
+      renderTextureMemory += entry.second->Bytes();
+    }
+  }
+  aReport.render_texture_hosts = renderTextureMemory;
 
   aPromise->Resolve(aReport, __func__);
 }
@@ -345,32 +356,6 @@ void RenderThread::HandleFrameOneDoc(wr::WindowId aWindowId, bool aRender) {
                                           frame.mStartTime);
 }
 
-void RenderThread::WakeUp(wr::WindowId aWindowId) {
-  if (mHasShutdown) {
-    return;
-  }
-
-  if (!IsInRenderThread()) {
-    Loop()->PostTask(NewRunnableMethod<wr::WindowId>(
-        "wr::RenderThread::WakeUp", this, &RenderThread::WakeUp, aWindowId));
-    return;
-  }
-
-  if (IsDestroyed(aWindowId)) {
-    return;
-  }
-
-  if (mHandlingDeviceReset) {
-    return;
-  }
-
-  auto it = mRenderers.find(aWindowId);
-  MOZ_ASSERT(it != mRenderers.end());
-  if (it != mRenderers.end()) {
-    it->second->Update();
-  }
-}
-
 void RenderThread::SetClearColor(wr::WindowId aWindowId, wr::ColorF aColor) {
   if (mHasShutdown) {
     return;
@@ -439,6 +424,9 @@ static void NotifyDidRender(layers::CompositorBridgeParent* aBridge,
     aBridge->GetWrBridge()->RecordFrame();
   }
 
+  aBridge->NotifyDidRender(aCompositeStartId, aCompositeStart, aRenderStart,
+                           aEnd, &aStats);
+
   for (const auto& epoch : aInfo->Raw().epochs) {
     aBridge->NotifyPipelineRendered(epoch.pipeline_id, epoch.epoch,
                                     aCompositeStartId, aCompositeStart,
@@ -478,6 +466,10 @@ void RenderThread::UpdateAndRender(
 
   auto& renderer = it->second;
 
+  if (renderer->IsPaused()) {
+    aRender = false;
+  }
+
   layers::CompositorThread()->Dispatch(
       NewRunnableFunction("NotifyDidStartRenderRunnable", &NotifyDidStartRender,
                           renderer->GetCompositorBridge()));
@@ -491,7 +483,7 @@ void RenderThread::UpdateAndRender(
     renderer->Update();
   }
   // Check graphics reset status even when rendering is skipped.
-  renderer->CheckGraphicsResetStatus();
+  renderer->CheckGraphicsResetStatus("PostUpdate", /* aForce */ false);
 
   TimeStamp end = TimeStamp::Now();
   RefPtr<const WebRenderPipelineInfo> info = renderer->FlushPipelineInfo();
@@ -516,11 +508,11 @@ void RenderThread::UpdateAndRender(
     // and for avoiding GPU queue is filled with too much tasks.
     // WaitForGPU's implementation is different for each platform.
     renderer->WaitForGPU();
-  }
-
-  if (!aRender) {
+  } else {
     // Update frame id for NotifyPipelinesUpdated() when rendering does not
-    // happen.
+    // happen, either because rendering was not requested or the frame was
+    // canceled. Rendering can sometimes be canceled if UpdateAndRender is
+    // called when the window is not yet ready (not mapped or 0 size).
     latestFrameId = renderer->UpdateFrameId();
   }
 
@@ -787,20 +779,40 @@ void RenderThread::InitDeviceTask() {
   SharedGL();
 }
 
-void RenderThread::HandleDeviceReset(const char* aWhere, bool aNotify) {
+#ifndef XP_WIN
+static DeviceResetReason GLenumToResetReason(GLenum aReason) {
+  switch (aReason) {
+    case LOCAL_GL_NO_ERROR:
+      return DeviceResetReason::FORCED_RESET;
+    case LOCAL_GL_INNOCENT_CONTEXT_RESET_ARB:
+      return DeviceResetReason::DRIVER_ERROR;
+    case LOCAL_GL_PURGED_CONTEXT_RESET_NV:
+      return DeviceResetReason::NVIDIA_VIDEO;
+    case LOCAL_GL_GUILTY_CONTEXT_RESET_ARB:
+      return DeviceResetReason::RESET;
+    case LOCAL_GL_UNKNOWN_CONTEXT_RESET_ARB:
+      return DeviceResetReason::UNKNOWN;
+    case LOCAL_GL_OUT_OF_MEMORY:
+      return DeviceResetReason::OUT_OF_MEMORY;
+    default:
+      return DeviceResetReason::OTHER;
+  }
+}
+#endif
+
+void RenderThread::HandleDeviceReset(const char* aWhere,
+                                     layers::CompositorBridgeParent* aBridge,
+                                     GLenum aReason) {
   MOZ_ASSERT(IsInRenderThread());
 
   if (mHandlingDeviceReset) {
     return;
   }
 
-  if (aNotify) {
-    gfxCriticalNote << "GFX: RenderThread detected a device reset in "
-                    << aWhere;
-    if (XRE_IsGPUProcess()) {
-      gfx::GPUParent::GetSingleton()->NotifyDeviceReset();
-    }
-  }
+#ifndef XP_WIN
+  // On Windows, see DeviceManagerDx::MaybeResetAndReacquireDevices.
+  gfx::GPUProcessManager::RecordDeviceReset(GLenumToResetReason(aReason));
+#endif
 
   {
     MutexAutoLock lock(mRenderTextureMapLock);
@@ -810,9 +822,27 @@ void RenderThread::HandleDeviceReset(const char* aWhere, bool aNotify) {
     }
   }
 
-  mHandlingDeviceReset = true;
-  // All RenderCompositors will be destroyed by
-  // GPUChild::RecvNotifyDeviceReset()
+  mHandlingDeviceReset = aReason != LOCAL_GL_NO_ERROR;
+  if (mHandlingDeviceReset) {
+    // All RenderCompositors will be destroyed by the GPUProcessManager in
+    // either OnRemoteProcessDeviceReset via the GPUChild, or
+    // OnInProcessDeviceReset here directly.
+    gfxCriticalNote << "GFX: RenderThread detected a device reset in "
+                    << aWhere;
+    if (XRE_IsGPUProcess()) {
+      gfx::GPUParent::GetSingleton()->NotifyDeviceReset();
+    } else {
+#ifndef XP_WIN
+      // FIXME(aosmond): Do we need to do this on Windows? nsWindow::OnPaint
+      // seems to do its own detection for the parent process.
+      bool guilty = aReason == LOCAL_GL_GUILTY_CONTEXT_RESET_ARB;
+      NS_DispatchToMainThread(NS_NewRunnableFunction(
+          "gfx::GPUProcessManager::OnInProcessDeviceReset", [guilty]() -> void {
+            gfx::GPUProcessManager::Get()->OnInProcessDeviceReset(guilty);
+          }));
+#endif
+    }
+  }
 }
 
 bool RenderThread::IsHandlingDeviceReset() {
@@ -829,7 +859,7 @@ void RenderThread::SimulateDeviceReset() {
     // When this function is called GPUProcessManager::SimulateDeviceReset()
     // already triggers destroying all CompositorSessions before re-creating
     // them.
-    HandleDeviceReset("SimulateDeviceReset", /* aNotify */ false);
+    HandleDeviceReset("SimulateDeviceReset", nullptr, LOCAL_GL_NO_ERROR);
   }
 }
 
@@ -1107,8 +1137,13 @@ static already_AddRefed<gl::GLContext> CreateGLContext(nsACString& aError) {
 
 extern "C" {
 
-void wr_notifier_wake_up(mozilla::wr::WrWindowId aWindowId) {
-  mozilla::wr::RenderThread::Get()->WakeUp(aWindowId);
+void wr_notifier_wake_up(mozilla::wr::WrWindowId aWindowId,
+                         bool aCompositeNeeded) {
+  mozilla::wr::RenderThread::Get()->IncPendingFrameCount(aWindowId, VsyncId(),
+                                                         TimeStamp::Now());
+  mozilla::wr::RenderThread::Get()->DecPendingFrameBuildCount(aWindowId);
+  mozilla::wr::RenderThread::Get()->HandleFrameOneDoc(aWindowId,
+                                                      aCompositeNeeded);
 }
 
 void wr_notifier_new_frame_ready(mozilla::wr::WrWindowId aWindowId) {

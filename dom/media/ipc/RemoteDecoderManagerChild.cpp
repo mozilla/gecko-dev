@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "RemoteDecoderManagerChild.h"
 
+#include "PDMFactory.h"
 #include "RemoteAudioDecoder.h"
 #include "RemoteMediaDataDecoder.h"
 #include "RemoteVideoDecoder.h"
@@ -16,8 +17,9 @@
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
-#include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
+#include "nsContentUtils.h"
 #include "nsIObserver.h"
 
 namespace mozilla {
@@ -43,6 +45,11 @@ static StaticRefPtr<RemoteDecoderManagerChild>
 static StaticRefPtr<RemoteDecoderManagerChild>
     sRemoteDecoderManagerChildForGPUProcess;
 static UniquePtr<nsTArray<RefPtr<Runnable>>> sRecreateTasks;
+
+static StaticDataMutex<Maybe<PDMFactory::MediaCodecsSupported>> sGPUSupported(
+    "RDMC::sGPUSupported");
+static StaticDataMutex<Maybe<PDMFactory::MediaCodecsSupported>> sRDDSupported(
+    "RDMC::sRDDSupported");
 
 class ShutdownObserver final : public nsIObserver {
  public:
@@ -143,7 +150,12 @@ void RemoteDecoderManagerChild::Shutdown() {
 
 void RemoteDecoderManagerChild::RunWhenGPUProcessRecreated(
     already_AddRefed<Runnable> aTask) {
-  MOZ_ASSERT(GetManagerThread() && GetManagerThread()->IsOnCurrentThread());
+  nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
+  if (!managerThread) {
+    // We've been shutdown, bail.
+    return;
+  }
+  MOZ_ASSERT(managerThread->IsOnCurrentThread());
 
   // If we've already been recreated, then run the task immediately.
   auto* manager = GetSingleton(RemoteDecodeIn::GpuProcess);
@@ -158,7 +170,12 @@ void RemoteDecoderManagerChild::RunWhenGPUProcessRecreated(
 /* static */
 RemoteDecoderManagerChild* RemoteDecoderManagerChild::GetSingleton(
     RemoteDecodeIn aLocation) {
-  MOZ_ASSERT(GetManagerThread() && GetManagerThread()->IsOnCurrentThread());
+  nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
+  if (!managerThread) {
+    // We've been shutdown, bail.
+    return nullptr;
+  }
+  MOZ_ASSERT(managerThread->IsOnCurrentThread());
   switch (aLocation) {
     case RemoteDecodeIn::GpuProcess:
       return sRemoteDecoderManagerChildForGPUProcess;
@@ -179,18 +196,35 @@ nsISerialEventTarget* RemoteDecoderManagerChild::GetManagerThread() {
 bool RemoteDecoderManagerChild::Supports(
     RemoteDecodeIn aLocation, const SupportDecoderParams& aParams,
     DecoderDoctorDiagnostics* aDiagnostics) {
-  RefPtr<PDMFactory> pdm;
+  Maybe<PDMFactory::MediaCodecsSupported> supported;
   switch (aLocation) {
-    case RemoteDecodeIn::RddProcess:
-      pdm = PDMFactory::PDMFactoryForRdd();
+    case RemoteDecodeIn::RddProcess: {
+      auto supportedRDD = sRDDSupported.Lock();
+      supported = *supportedRDD;
       break;
-    case RemoteDecodeIn::GpuProcess:
-      pdm = PDMFactory::PDMFactoryForGpu();
+    }
+    case RemoteDecodeIn::GpuProcess: {
+      auto supportedGPU = sGPUSupported.Lock();
+      supported = *supportedGPU;
       break;
+    }
     default:
       return false;
   }
-  return pdm->Supports(aParams, aDiagnostics);
+  if (!supported) {
+    // We haven't received the correct information yet from either the GPU or
+    // the RDD process; assume it is supported to prevent false negative.
+    if (aLocation == RemoteDecodeIn::RddProcess) {
+      // Ensure the RDD process got started.
+      // TODO: This can be removed once bug 1684991 is fixed.
+      LaunchRDDProcessIfNeeded();
+    }
+    return true;
+  }
+
+  // We can ignore the SupportDecoderParams argument for now as creation of the
+  // decoder will actually fail later and fallback PDMs will be tested on later.
+  return PDMFactory::SupportsMimeType(aParams.MimeType(), *supported);
 }
 
 /* static */
@@ -404,7 +438,13 @@ RemoteDecoderManagerChild::RemoteDecoderManagerChild(RemoteDecodeIn aLocation)
 
 void RemoteDecoderManagerChild::OpenForRDDProcess(
     Endpoint<PRemoteDecoderManagerChild>&& aEndpoint) {
-  MOZ_ASSERT(GetManagerThread() && GetManagerThread()->IsOnCurrentThread());
+  nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
+  if (!managerThread) {
+    // We've been shutdown, bail.
+    return;
+  }
+  MOZ_ASSERT(managerThread->IsOnCurrentThread());
+
   // Only create RemoteDecoderManagerChild, bind new endpoint and init
   // ipdl if:
   // 1) haven't init'd sRemoteDecoderManagerChild
@@ -428,7 +468,12 @@ void RemoteDecoderManagerChild::OpenForRDDProcess(
 
 void RemoteDecoderManagerChild::OpenForGPUProcess(
     Endpoint<PRemoteDecoderManagerChild>&& aEndpoint) {
-  MOZ_ASSERT(GetManagerThread() && GetManagerThread()->IsOnCurrentThread());
+  nsCOMPtr<nsISerialEventTarget> managerThread = GetManagerThread();
+  if (!managerThread) {
+    // We've been shutdown, bail.
+    return;
+  }
+  MOZ_ASSERT(managerThread->IsOnCurrentThread());
   // Make sure we always dispatch everything in sRecreateTasks, even if we
   // fail since this is as close to being recreated as we will ever be.
   sRemoteDecoderManagerChildForGPUProcess = nullptr;
@@ -550,6 +595,25 @@ void RemoteDecoderManagerChild::DeallocateSurfaceDescriptor(
 
 void RemoteDecoderManagerChild::HandleFatalError(const char* aMsg) const {
   dom::ContentChild::FatalErrorIfNotUsingGPUProcess(aMsg, OtherPid());
+}
+
+void RemoteDecoderManagerChild::SetSupported(
+    RemoteDecodeIn aLocation,
+    const PDMFactory::MediaCodecsSupported& aSupported) {
+  switch (aLocation) {
+    case RemoteDecodeIn::GpuProcess: {
+      auto supported = sGPUSupported.Lock();
+      *supported = Some(aSupported);
+      break;
+    }
+    case RemoteDecodeIn::RddProcess: {
+      auto supported = sRDDSupported.Lock();
+      *supported = Some(aSupported);
+      break;
+    }
+    default:
+      MOZ_CRASH("Not to be used for any other process");
+  }
 }
 
 }  // namespace mozilla

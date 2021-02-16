@@ -10,13 +10,15 @@
 #include "nsDataHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsWrapperCache.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/DOMString.h"
 #include "mozilla/dom/Nullable.h"
 
 class nsINode;
 
 namespace mozilla {
+
+class ErrorResult;
 
 namespace a11y {
 class Accessible;

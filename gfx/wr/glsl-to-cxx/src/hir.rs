@@ -1,6 +1,38 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ *
+ * Large chunks of this file are derived from the glsl crate which is:
+ * Copyright (c) 2018, Dimitri Sabadie <dimitri.sabadie@gmail.com>
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *
+ *   * Redistributions in binary form must reproduce the above
+ *     copyright notice, this list of conditions and the following
+ *     disclaimer in the documentation and/or other materials provided
+ *     with the distribution.
+ *
+ *   * Neither the name of Dimitri Sabadie <dimitri.sabadie@gmail.com> nor the names of other
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
 
 use glsl::syntax;
 use glsl::syntax::{ArrayedIdentifier, ArraySpecifier, AssignmentOp, BinaryOp, Identifier};
@@ -1878,6 +1910,9 @@ fn is_vector(ty: &Type) -> bool {
         TypeKind::Vec2
         | TypeKind::Vec3
         | TypeKind::Vec4
+        | TypeKind::BVec2
+        | TypeKind::BVec3
+        | TypeKind::BVec4
         | TypeKind::IVec2
         | TypeKind::IVec3
         | TypeKind::IVec4 => ty.array_sizes == None,
@@ -2922,6 +2957,13 @@ pub fn ast_to_hir(state: &mut State, tu: &syntax::TranslationUnit) -> Translatio
     );
     declare_function(
         state,
+        "bvec3",
+        Some("make_bvec3"),
+        Type::new(BVec3),
+        vec![Type::new(Bool)],
+    );
+    declare_function(
+        state,
         "bvec4",
         Some("make_bvec4"),
         Type::new(BVec4),
@@ -3337,6 +3379,9 @@ pub fn ast_to_hir(state: &mut State, tu: &syntax::TranslationUnit) -> Translatio
     declare_function(state, "pow", None, Type::new(Vec3), vec![Type::new(Vec3)]);
     declare_function(state, "pow", None, Type::new(Float), vec![Type::new(Float)]);
     declare_function(state, "exp", None, Type::new(Float), vec![Type::new(Float)]);
+    declare_function(state, "exp2", None, Type::new(Float), vec![Type::new(Float)]);
+    declare_function(state, "log", None, Type::new(Float), vec![Type::new(Float)]);
+    declare_function(state, "log2", None, Type::new(Float), vec![Type::new(Float)]);
     declare_function(
         state,
         "inversesqrt",
@@ -3448,6 +3493,13 @@ pub fn ast_to_hir(state: &mut State, tu: &syntax::TranslationUnit) -> Translatio
         None,
         Type::new(Float),
         vec![Type::new(Float)],
+    );
+    declare_function(
+        state,
+        "fract",
+        None,
+        Type::new(Vec2),
+        vec![Type::new(Vec2)],
     );
     declare_function(state, "mod", None, Type::new(Vec2), vec![Type::new(Vec2)]);
     declare_function(state, "mod", None, Type::new(Float), vec![Type::new(Float)]);
@@ -3648,35 +3700,45 @@ pub fn ast_to_hir(state: &mut State, tu: &syntax::TranslationUnit) -> Translatio
         Type::new(Void),
         vec![Type::new(Float), Type::new(Float)],
     );
-
+    declare_function(
+        state,
+        "swgl_clipMask",
+        None,
+        Type::new(Void),
+        vec![Type::new(Sampler2D), Type::new(Vec2), Type::new(Vec2), Type::new(Vec2)],
+    );
     for s in &[Sampler2D, Sampler2DRect, Sampler2DArray] {
-        declare_function(
+        declare_function_ext(
             state,
             "swgl_isTextureLinear",
             None,
             Type::new(Bool),
             vec![Type::new(*s)],
+            RunClass::Scalar,
         );
-        declare_function(
+        declare_function_ext(
             state,
             "swgl_isTextureRGBA8",
             None,
             Type::new(Bool),
             vec![Type::new(*s)],
+            RunClass::Scalar,
         );
-        declare_function(
+        declare_function_ext(
             state,
             "swgl_isTextureR8",
             None,
             Type::new(Bool),
             vec![Type::new(*s)],
+            RunClass::Scalar,
         );
-        declare_function(
+        declare_function_ext(
             state,
             "swgl_textureLayerOffset",
             None,
             Type::new(Int),
             vec![Type::new(*s), Type::new(Float)],
+            RunClass::Scalar,
         );
         declare_function(
             state,
@@ -3727,6 +3789,35 @@ pub fn ast_to_hir(state: &mut State, tu: &syntax::TranslationUnit) -> Translatio
             Type::new(Void),
             vec![Type::new(*s), Type::new(Vec2), Type::new(Float), Type::new(Int)],
         );
+        declare_function_ext(
+            state,
+            "swgl_allowTextureNearest",
+            None,
+            Type::new(Bool),
+            vec![Type::new(*s), Type::new(Vec2)],
+            RunClass::Scalar,
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureNearestRGBA8",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Vec4), Type::new(Int)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureNearestColorRGBA8",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Vec4), Type::new(Vec4), Type::new(Int)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureNearestColorRGBA8",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Vec4), Type::new(Float), Type::new(Int)],
+        );
         declare_function(
             state,
             "swgl_commitGaussianBlurRGBA8",
@@ -3742,6 +3833,60 @@ pub fn ast_to_hir(state: &mut State, tu: &syntax::TranslationUnit) -> Translatio
             Type::new(Void),
             vec![Type::new(*s), Type::new(Vec2), Type::new(Vec4), Type::new(Bool),
                  Type::new(Int), Type::new(Vec2), Type::new(Int)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureLinearYUV",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(Int), Type::new(Int)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureLinearYUV",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(Int), Type::new(Int)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureLinearYUV",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(Int), Type::new(Int)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureLinearColorYUV",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(Int), Type::new(Int), Type::new(Float)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureLinearColorYUV",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(Int), Type::new(Int), Type::new(Float)],
+        );
+        declare_function(
+            state,
+            "swgl_commitTextureLinearColorYUV",
+            None,
+            Type::new(Void),
+            vec![Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(*s), Type::new(Vec2), Type::new(Int),
+                 Type::new(Int), Type::new(Int), Type::new(Float)],
         );
     }
 

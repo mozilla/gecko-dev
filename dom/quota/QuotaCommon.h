@@ -13,11 +13,13 @@
 #include <map>
 #include <type_traits>
 #include <utility>
-#include "ErrorList.h"
+#include "mozIStorageStatement.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Likely.h"
 #include "mozilla/MacroArgs.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/ThreadLocal.h"
@@ -25,13 +27,21 @@
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsError.h"
+#include "nsIDirectoryEnumerator.h"
 #include "nsIEventTarget.h"
+#include "nsIFile.h"
 #include "nsLiteralString.h"
 #include "nsPrintfCString.h"
+#include "nsReadableUtils.h"
 #include "nsString.h"
-#include "nsStringFwd.h"
+#include "nsTArray.h"
 #include "nsTLiteralString.h"
 #include "nsXULAppAPI.h"
+
+namespace mozilla {
+template <typename T>
+class NotNull;
+}
 
 // Proper use of unique variable names can be tricky (especially if nesting of
 // the final macro is required).
@@ -52,16 +62,6 @@
   [](auto&&... aArgs) -> decltype(auto) {                 \
     return func(std::forward<decltype(aArgs)>(aArgs)...); \
   }
-
-#define BEGIN_QUOTA_NAMESPACE \
-  namespace mozilla {         \
-  namespace dom {             \
-  namespace quota {
-#define END_QUOTA_NAMESPACE \
-  } /* namespace quota */   \
-  } /* namespace dom */     \
-  } /* namespace mozilla */
-#define USING_QUOTA_NAMESPACE using namespace mozilla::dom::quota;
 
 #define DSSTORE_FILE_NAME ".DS_Store"
 #define DESKTOP_FILE_NAME ".desktop"
@@ -444,9 +444,11 @@
   } while (0)
 
 #ifdef DEBUG
-#  define QM_HANDLE_ERROR(expr) HandleError(#  expr, __FILE__, __LINE__)
+#  define QM_HANDLE_ERROR(expr, error) \
+    HandleError(#expr, error, __FILE__, __LINE__)
 #else
-#  define QM_HANDLE_ERROR(expr) HandleError("Unavailable", __FILE__, __LINE__)
+#  define QM_HANDLE_ERROR(expr, error) \
+    HandleError("Unavailable", error, __FILE__, __LINE__)
 #endif
 
 // QM_TRY_PROPAGATE_ERR, QM_TRY_CUSTOM_RET_VAL,
@@ -458,7 +460,7 @@
   auto tryResult = ::mozilla::ToResult(expr);                            \
   static_assert(std::is_empty_v<typename decltype(tryResult)::ok_type>); \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                 \
-    ns::QM_HANDLE_ERROR(expr);                                           \
+    ns::QM_HANDLE_ERROR(expr, tryResult.inspectErr());                   \
     return tryResult.propagateErr();                                     \
   }
 
@@ -469,7 +471,7 @@
   static_assert(std::is_empty_v<typename decltype(tryResult)::ok_type>); \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                 \
     auto tryTempError MOZ_MAYBE_UNUSED = tryResult.unwrapErr();          \
-    ns::QM_HANDLE_ERROR(expr);                                           \
+    ns::QM_HANDLE_ERROR(expr, tryTempError);                             \
     return customRetVal;                                                 \
   }
 
@@ -481,7 +483,7 @@
   static_assert(std::is_empty_v<typename decltype(tryResult)::ok_type>);      \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                      \
     auto tryTempError = tryResult.unwrapErr();                                \
-    ns::QM_HANDLE_ERROR(expr);                                                \
+    ns::QM_HANDLE_ERROR(expr, tryTempError);                                  \
     cleanup(tryTempError);                                                    \
     return customRetVal;                                                      \
   }
@@ -526,7 +528,7 @@
                                     expr)                                  \
   auto tryResult = (expr);                                                 \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                   \
-    ns::QM_HANDLE_ERROR(expr);                                             \
+    ns::QM_HANDLE_ERROR(expr, tryResult.inspectErr());                     \
     return tryResult.propagateErr();                                       \
   }                                                                        \
   MOZ_REMOVE_PAREN(target) = tryResult.accessFunction();
@@ -538,7 +540,7 @@
   auto tryResult = (expr);                                                  \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                    \
     auto tryTempError MOZ_MAYBE_UNUSED = tryResult.unwrapErr();             \
-    ns::QM_HANDLE_ERROR(expr);                                              \
+    ns::QM_HANDLE_ERROR(expr, tryTempError);                                \
     return customRetVal;                                                    \
   }                                                                         \
   MOZ_REMOVE_PAREN(target) = tryResult.accessFunction();
@@ -550,7 +552,7 @@
   auto tryResult = (expr);                                              \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                \
     auto tryTempError = tryResult.unwrapErr();                          \
-    ns::QM_HANDLE_ERROR(expr);                                          \
+    ns::QM_HANDLE_ERROR(expr, tryTempError);                            \
     cleanup(tryTempError);                                              \
     return customRetVal;                                                \
   }                                                                     \
@@ -610,7 +612,7 @@
 #define QM_TRY_RETURN_PROPAGATE_ERR(ns, tryResult, expr) \
   auto tryResult = (expr);                               \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                 \
-    ns::QM_HANDLE_ERROR(expr);                           \
+    ns::QM_HANDLE_ERROR(expr, tryResult.inspectErr());   \
   }                                                      \
   return tryResult;
 
@@ -620,7 +622,7 @@
   auto tryResult = (expr);                                              \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                \
     auto tryTempError MOZ_MAYBE_UNUSED = tryResult.unwrapErr();         \
-    ns::QM_HANDLE_ERROR(expr);                                          \
+    ns::QM_HANDLE_ERROR(expr, tryResult.inspectErr());                  \
     return customRetVal;                                                \
   }                                                                     \
   return tryResult.unwrap();
@@ -632,7 +634,7 @@
   auto tryResult = (expr);                                               \
   if (MOZ_UNLIKELY(tryResult.isErr())) {                                 \
     auto tryTempError = tryResult.unwrapErr();                           \
-    ns::QM_HANDLE_ERROR(expr);                                           \
+    ns::QM_HANDLE_ERROR(expr, tryTempError);                             \
     cleanup(tryTempError);                                               \
     return customRetVal;                                                 \
   }                                                                      \
@@ -671,13 +673,13 @@
 
 // Handles the two arguments case when just an error is returned
 #define QM_FAIL_RET_VAL(ns, retVal) \
-  ns::QM_HANDLE_ERROR(Failure);     \
+  ns::QM_HANDLE_ERROR(Failure, 0);  \
   return retVal;
 
 // Handles the three arguments case when a cleanup function needs to be called
 // before a return value is returned
 #define QM_FAIL_RET_VAL_WITH_CLEANUP(ns, retVal, cleanup) \
-  ns::QM_HANDLE_ERROR(Failure);                           \
+  ns::QM_HANDLE_ERROR(Failure, 0);                        \
   cleanup();                                              \
   return retVal;
 
@@ -700,18 +702,6 @@
 
 // Telemetry probes to collect number of failure during the initialization.
 #ifdef NIGHTLY_BUILD
-#  define REPORT_TELEMETRY_INIT_ERR(_key, _label)   \
-    mozilla::Telemetry::AccumulateCategoricalKeyed( \
-        mozilla::dom::quota::_key,                  \
-        mozilla::Telemetry::LABELS_QM_INIT_TELEMETRY_ERROR::_label);
-
-#  define REPORT_TELEMETRY_ERR_IN_INIT(_initializing, _key, _label) \
-    do {                                                            \
-      if (_initializing) {                                          \
-        REPORT_TELEMETRY_INIT_ERR(_key, _label)                     \
-      }                                                             \
-    } while (0)
-
 #  define RECORD_IN_NIGHTLY(_recorder, _status) \
     do {                                        \
       if (NS_SUCCEEDED(_recorder)) {            \
@@ -719,25 +709,22 @@
       }                                         \
     } while (0)
 
-#  define CONTINUE_IN_NIGHTLY_RETURN_IN_OTHERS(_dummy) continue
+#  define OK_IN_NIGHTLY_PROPAGATE_IN_OTHERS \
+    Ok {}
 
 #  define RETURN_STATUS_OR_RESULT(_status, _rv) \
-    return NS_FAILED(_status) ? _status : _rv
+    return Err(NS_FAILED(_status) ? (_status) : (_rv))
 #else
-#  define REPORT_TELEMETRY_INIT_ERR(_key, _label) \
-    {}
-
-#  define REPORT_TELEMETRY_ERR_IN_INIT(_initializing, _key, _label) \
-    {}
-
 #  define RECORD_IN_NIGHTLY(_dummy, _status) \
     {}
 
-#  define CONTINUE_IN_NIGHTLY_RETURN_IN_OTHERS(_rv) return _rv
+#  define OK_IN_NIGHTLY_PROPAGATE_IN_OTHERS QM_PROPAGATE
 
-#  define RETURN_STATUS_OR_RESULT(_status, _rv) return _rv
+#  define RETURN_STATUS_OR_RESULT(_status, _rv) return Err(_rv)
 #endif
 
+class mozIStorageConnection;
+class mozIStorageStatement;
 class nsIFile;
 
 namespace mozilla {
@@ -800,7 +787,7 @@ Result<R, nsresult> ToResultGet(const Func& aFunc, Args&&... aArgs) {
 // Body must a function type accepting a V xvalue with a return type convertible
 // to Result<empty, E>.
 template <typename Step, typename Body>
-auto CollectEach(const Step& aStep, const Body& aBody)
+auto CollectEach(Step aStep, const Body& aBody)
     -> Result<mozilla::Ok, typename std::result_of_t<Step()>::err_type> {
   using StepResultType = typename std::result_of_t<Step()>::ok_type;
 
@@ -821,10 +808,51 @@ auto CollectEach(const Step& aStep, const Body& aBody)
   return mozilla::Ok{};
 }
 
+// This is like std::reduce with a to-be-defined execution policy (we don't want
+// to std::terminate on an error, but probably it's fine to just propagate any
+// error that occurred), operating not on a pair of iterators but rather a
+// generator function.
+template <typename InputGenerator, typename T, typename BinaryOp>
+auto ReduceEach(InputGenerator aInputGenerator, T aInit,
+                const BinaryOp& aBinaryOp)
+    -> Result<T, typename std::invoke_result_t<InputGenerator>::err_type> {
+  T res = std::move(aInit);
+
+  // XXX This can be done in parallel!
+  MOZ_TRY(CollectEach(
+      std::move(aInputGenerator),
+      [&res, &aBinaryOp](const auto& element)
+          -> Result<Ok,
+                    typename std::invoke_result_t<InputGenerator>::err_type> {
+        MOZ_TRY_VAR(res, aBinaryOp(std::move(res), element));
+
+        return Ok{};
+      }));
+
+  return std::move(res);
+}
+
+// This is like std::reduce with a to-be-defined execution policy (we don't want
+// to std::terminate on an error, but probably it's fine to just propagate any
+// error that occurred).
+template <typename Range, typename T, typename BinaryOp>
+auto Reduce(Range&& aRange, T aInit, const BinaryOp& aBinaryOp) {
+  using std::begin;
+  using std::end;
+  return ReduceEach(
+      [it = begin(aRange), end = end(aRange)]() mutable {
+        auto res = ToMaybeRef(it != end ? &*it++ : nullptr);
+        return Result<decltype(res), typename std::invoke_result_t<
+                                         BinaryOp, T, decltype(res)>::err_type>(
+            res);
+      },
+      aInit, aBinaryOp);
+}
+
 template <typename Range, typename Body>
-auto CollectEachInRange(const Range& aRange, const Body& aBody)
+auto CollectEachInRange(Range&& aRange, const Body& aBody)
     -> Result<mozilla::Ok, nsresult> {
-  for (const auto& element : aRange) {
+  for (auto&& element : aRange) {
     MOZ_TRY(aBody(element));
   }
 
@@ -928,18 +956,9 @@ inline auto AnonymizedOriginString(const nsACString& aOriginString) {
 
 template <typename T>
 void StringifyTableKeys(const T& aTable, nsACString& aResult) {
-  bool first = true;
-  for (auto iter = aTable.ConstIter(); !iter.Done(); iter.Next()) {
-    if (first) {
-      first = false;
-    } else {
-      aResult.Append(", "_ns);
-    }
-
-    const auto& key = iter.Get()->GetKey();
-
-    aResult.Append(key);
-  }
+  StringJoinAppend(
+      aResult, ", "_ns, aTable,
+      [](nsACString& dest, const auto& entry) { dest.Append(entry.GetKey()); });
 }
 
 #ifdef XP_WIN
@@ -953,8 +972,49 @@ nsDependentCSubstring GetLeafName(const nsACString& aPath);
 Result<nsCOMPtr<nsIFile>, nsresult> CloneFileAndAppend(
     nsIFile& aDirectory, const nsAString& aPathElement);
 
+enum class nsIFileKind {
+  ExistsAsDirectory,
+  ExistsAsFile,
+  DoesNotExist,
+};
+
+// XXX We can use this outside of QM and its clients as well, probably. Maybe it
+// could be moved to xpcom/io?
+Result<nsIFileKind, nsresult> GetDirEntryKind(nsIFile& aFile);
+
+Result<nsCOMPtr<mozIStorageStatement>, nsresult> CreateStatement(
+    mozIStorageConnection& aConnection, const nsACString& aStatementString);
+
+enum class SingleStepResult { AssertHasResult, ReturnNullIfNoResult };
+
+template <SingleStepResult ResultHandling>
+using SingleStepSuccessType =
+    std::conditional_t<ResultHandling == SingleStepResult::AssertHasResult,
+                       NotNull<nsCOMPtr<mozIStorageStatement>>,
+                       nsCOMPtr<mozIStorageStatement>>;
+
+template <SingleStepResult ResultHandling>
+Result<SingleStepSuccessType<ResultHandling>, nsresult> ExecuteSingleStep(
+    nsCOMPtr<mozIStorageStatement>&& aStatement);
+
+// Creates a statement with the specified aStatementString, executes a single
+// step, and returns the statement.
+// Depending on the value ResultHandling,
+// - it is asserted that there is a result (default resp.
+//   SingleStepResult::AssertHasResult), and the success type is
+//   MovingNotNull<nsCOMPtr<mozIStorageStatement>>
+// - it is asserted that there is no result, and the success type is Ok
+// - in case there is no result, nullptr is returned, and the success type is
+//   nsCOMPtr<mozIStorageStatement>
+// Any other errors are always propagated.
+template <SingleStepResult ResultHandling = SingleStepResult::AssertHasResult>
+Result<SingleStepSuccessType<ResultHandling>, nsresult>
+CreateAndExecuteSingleStepStatement(mozIStorageConnection& aConnection,
+                                    const nsACString& aStatementString);
+
 void LogError(const nsLiteralCString& aModule, const nsACString& aExpr,
-              const nsACString& aSourceFile, int32_t aSourceLine);
+              const nsACString& aSourceFile, int32_t aSourceLine,
+              Maybe<nsresult> aRv);
 
 #ifdef DEBUG
 Result<bool, nsresult> WarnIfFileIsUnknown(nsIFile& aFile,
@@ -968,6 +1028,7 @@ Result<bool, nsresult> WarnIfFileIsUnknown(nsIFile& aFile,
 
 struct MOZ_STACK_CLASS ScopedLogExtraInfo {
   static constexpr const char kTagQuery[] = "query";
+  static constexpr const char kTagContext[] = "context";
 
 #ifdef QM_ENABLE_SCOPED_LOG_EXTRA_INFO
  private:
@@ -1005,6 +1066,7 @@ struct MOZ_STACK_CLASS ScopedLogExtraInfo {
   nsCString mCurrentValue;
 
   static MOZ_THREAD_LOCAL(const nsACString*) sQueryValue;
+  static MOZ_THREAD_LOCAL(const nsACString*) sContextValue;
 
   void AddInfo();
 #else
@@ -1017,17 +1079,27 @@ struct MOZ_STACK_CLASS ScopedLogExtraInfo {
 };
 
 #if defined(EARLY_BETA_OR_EARLIER) || defined(DEBUG)
-#  define QM_META_HANDLE_ERROR(module)                                     \
-    MOZ_COLD inline void HandleError(                                      \
-        const char* aExpr, const char* aSourceFile, int32_t aSourceLine) { \
-      mozilla::dom::quota::LogError(module, nsDependentCString(aExpr),     \
-                                    nsDependentCString(aSourceFile),       \
-                                    aSourceLine);                          \
+#  define QM_META_HANDLE_ERROR(module)                                   \
+    template <typename T>                                                \
+    MOZ_COLD inline void HandleError(const char* aExpr, const T& aRv,    \
+                                     const char* aSourceFile,            \
+                                     int32_t aSourceLine) {              \
+      if constexpr (std::is_same_v<T, nsresult>) {                       \
+        mozilla::dom::quota::LogError(module, nsDependentCString(aExpr), \
+                                      nsDependentCString(aSourceFile),   \
+                                      aSourceLine, Some(aRv));           \
+      } else {                                                           \
+        mozilla::dom::quota::LogError(module, nsDependentCString(aExpr), \
+                                      nsDependentCString(aSourceFile),   \
+                                      aSourceLine, Nothing{});           \
+      }                                                                  \
     }
 #else
-#  define QM_META_HANDLE_ERROR(module)            \
-    MOZ_ALWAYS_INLINE constexpr void HandleError( \
-        const char* aExpr, const char* aSourceFile, int32_t aSourceLine) {}
+#  define QM_META_HANDLE_ERROR(module)                            \
+    template <typename T>                                         \
+    MOZ_ALWAYS_INLINE constexpr void HandleError(                 \
+        const char* aExpr, const T& aRv, const char* aSourceFile, \
+        int32_t aSourceLine) {}
 #endif
 
 // As this is a function that will only be called in error cases, this is marked
@@ -1045,6 +1117,108 @@ struct MOZ_STACK_CLASS ScopedLogExtraInfo {
 // directly, they should only be called from the QM_* macros.
 
 QM_META_HANDLE_ERROR("QuotaManager"_ns)
+
+template <SingleStepResult ResultHandling = SingleStepResult::AssertHasResult,
+          typename BindFunctor>
+Result<SingleStepSuccessType<ResultHandling>, nsresult>
+CreateAndExecuteSingleStepStatement(mozIStorageConnection& aConnection,
+                                    const nsACString& aStatementString,
+                                    BindFunctor aBindFunctor) {
+  QM_TRY_UNWRAP(auto stmt, CreateStatement(aConnection, aStatementString));
+
+  QM_TRY(aBindFunctor(*stmt));
+
+  return ExecuteSingleStep<ResultHandling>(std::move(stmt));
+}
+
+template <typename StepFunc>
+Result<Ok, nsresult> CollectWhileHasResult(mozIStorageStatement& aStmt,
+                                           StepFunc&& aStepFunc) {
+  return CollectWhile(
+      [&aStmt] { QM_TRY_RETURN(MOZ_TO_RESULT_INVOKE(aStmt, ExecuteStep)); },
+      [&aStmt, &aStepFunc] { return aStepFunc(aStmt); });
+}
+
+template <typename StepFunc,
+          typename ArrayType = nsTArray<typename std::invoke_result_t<
+              StepFunc, mozIStorageStatement&>::ok_type>>
+auto CollectElementsWhileHasResult(mozIStorageStatement& aStmt,
+                                   StepFunc&& aStepFunc)
+    -> Result<ArrayType, nsresult> {
+  ArrayType res;
+
+  QM_TRY(CollectWhileHasResult(
+      aStmt, [&aStepFunc, &res](auto& stmt) -> Result<Ok, nsresult> {
+        QM_TRY_UNWRAP(auto element, aStepFunc(stmt));
+        res.AppendElement(std::move(element));
+        return Ok{};
+      }));
+
+  return std::move(res);
+}
+
+template <typename ArrayType, typename StepFunc>
+auto CollectElementsWhileHasResultTyped(mozIStorageStatement& aStmt,
+                                        StepFunc&& aStepFunc) {
+  return CollectElementsWhileHasResult<StepFunc, ArrayType>(
+      aStmt, std::forward<StepFunc>(aStepFunc));
+}
+
+namespace detail {
+template <typename Cancel, typename Body>
+Result<mozilla::Ok, nsresult> CollectEachFile(nsIFile& aDirectory,
+                                              const Cancel& aCancel,
+                                              const Body& aBody) {
+  QM_TRY_INSPECT(const auto& entries,
+                 MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<nsIDirectoryEnumerator>,
+                                            aDirectory, GetDirectoryEntries));
+
+  return CollectEach(
+      [&entries, &aCancel]() -> Result<nsCOMPtr<nsIFile>, nsresult> {
+        if (aCancel()) {
+          return nsCOMPtr<nsIFile>{};
+        }
+
+        QM_TRY_RETURN(MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<nsIFile>, entries,
+                                                 GetNextFile));
+      },
+      aBody);
+}
+}  // namespace detail
+
+template <typename Body>
+Result<mozilla::Ok, nsresult> CollectEachFile(nsIFile& aDirectory,
+                                              const Body& aBody) {
+  return detail::CollectEachFile(
+      aDirectory, [] { return false; }, aBody);
+}
+
+template <typename Body>
+Result<mozilla::Ok, nsresult> CollectEachFileAtomicCancelable(
+    nsIFile& aDirectory, const Atomic<bool>& aCanceled, const Body& aBody) {
+  return detail::CollectEachFile(
+      aDirectory, [&aCanceled] { return static_cast<bool>(aCanceled); }, aBody);
+}
+
+template <typename T, typename Body>
+auto ReduceEachFileAtomicCancelable(nsIFile& aDirectory,
+                                    const Atomic<bool>& aCanceled, T aInit,
+                                    const Body& aBody) -> Result<T, nsresult> {
+  QM_TRY_INSPECT(const auto& entries,
+                 MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<nsIDirectoryEnumerator>,
+                                            aDirectory, GetDirectoryEntries));
+
+  return ReduceEach(
+      [&entries, &aCanceled]() -> Result<nsCOMPtr<nsIFile>, nsresult> {
+        if (aCanceled) {
+          return nsCOMPtr<nsIFile>{};
+        }
+
+        QM_TRY_RETURN(MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<nsIFile>, entries,
+                                                 GetNextFile));
+      },
+      std::move(aInit), aBody);
+}
 
 }  // namespace quota
 }  // namespace dom

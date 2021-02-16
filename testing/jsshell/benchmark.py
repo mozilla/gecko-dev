@@ -2,8 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, division, print_function
 
+import six
 import json
 import os
 import re
@@ -25,8 +26,8 @@ with `ac_add_options --enable-js-shell` or specify it with `--binary`.
 """.strip()
 
 
+@six.add_metaclass(ABCMeta)
 class Benchmark(object):
-    __metaclass__ = ABCMeta
     lower_is_better = True
     should_alert = True
 
@@ -137,6 +138,7 @@ class RunOnceBenchmark(Benchmark):
         for bench, scores in self.scores.items():
             for score, values in scores.items():
                 test_name = "{}-{}".format(self.name, score)
+                # pylint --py3k W1619
                 mean = sum(values) / len(values)
                 self.suite["subtests"].append({"name": test_name, "value": mean})
                 bench_total += int(sum(values))
@@ -193,6 +195,7 @@ class Ares6(Benchmark):
     def collect_results(self):
         for bench, scores in self.scores.items():
             for score, values in scores.items():
+                # pylint --py3k W1619
                 mean = sum(values) / len(values)
                 test_name = "{}-{}".format(bench, score)
                 self.suite["subtests"].append({"name": test_name, "value": mean})
@@ -296,6 +299,7 @@ class WebToolingBenchmark(Benchmark):
         for bench, scores in self.scores.items():
             for score_name, values in scores.items():
                 test_name = "{}-{}".format(self.name, score_name)
+                # pylint --py3k W1619
                 mean = sum(values) / len(values)
                 self.suite["subtests"].append(
                     {
@@ -348,6 +352,7 @@ class Octane(RunOnceBenchmark):
         for bench, scores in self.scores.items():
             for score_name, values in scores.items():
                 test_name = "{}-{}".format(self.name, score_name)
+                # pylint --py3k W1619
                 mean = sum(values) / len(values)
                 self.suite["subtests"].append({"name": test_name, "value": mean})
                 if score_name == "score":
@@ -393,7 +398,7 @@ def get_parser():
     parser = ArgumentParser()
     parser.add_argument(
         "benchmark",
-        choices=all_benchmarks.keys(),
+        choices=list(all_benchmarks),
         help="The name of the benchmark to run.",
     )
     parser.add_argument(

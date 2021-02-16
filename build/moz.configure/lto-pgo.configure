@@ -7,7 +7,7 @@
 # PGO
 # ==============================================================
 llvm_profdata = check_prog(
-    "LLVM_PROFDATA", ["llvm-profdata"], allow_missing=True, paths=toolchain_search_path
+    "LLVM_PROFDATA", ["llvm-profdata"], allow_missing=True, paths=clang_search_path
 )
 
 option(
@@ -183,12 +183,24 @@ imply_option("MOZ_LD64_KNOWN_GOOD", depends_if("MOZ_AUTOMATION")(lambda _: True)
 @depends(
     "--enable-lto",
     c_compiler,
+    select_linker,
+    "MOZ_AUTOMATION",
     "MOZ_LD64_KNOWN_GOOD",
     target,
     "--enable-profile-generate",
+    new_pass_manager_flags,
 )
 @imports("multiprocessing")
-def lto(value, c_compiler, ld64_known_good, target, instrumented_build):
+def lto(
+    value,
+    c_compiler,
+    select_linker,
+    automation,
+    ld64_known_good,
+    target,
+    instrumented_build,
+    newpm_flags,
+):
     cflags = []
     ldflags = []
     enabled = None
@@ -265,10 +277,13 @@ def lto(value, c_compiler, ld64_known_good, target, instrumented_build):
             # instruction sets.
         else:
             num_cores = multiprocessing.cpu_count()
-            if len(value) and value[0].lower() == "full":
-                cflags.append("-flto")
+            if len(value) and value[0].lower() == "thin":
+                die(
+                    "gcc does not support thin LTO. Use `--enable-lto` "
+                    "to enable full LTO for gcc."
+                )
             else:
-                cflags.append("-flto=thin")
+                cflags.append("-flto")
             cflags.append("-flifetime-dse=1")
 
             ldflags.append("-flto=%s" % num_cores)
@@ -283,6 +298,20 @@ def lto(value, c_compiler, ld64_known_good, target, instrumented_build):
             ldflags.append("-Wl,-mllvm,-import-instr-limit=10")
         elif c_compiler.type == "clang":
             ldflags.append("-Wl,-plugin-opt=-import-instr-limit=10")
+
+        # If we're using the new pass manager, we can also enable the new PM
+        # during LTO. Further we can use the resulting size savings to increase
+        # the import limit in hot functions.
+        if newpm_flags:
+            if target.os == "WINNT":
+                # On Windows, this flag requires a change from clang-12, which
+                # is applied as a patch to our automation toolchain.
+                if automation or c_compiler.version >= "12.0.0":
+                    ldflags.append("-opt:ltonewpassmanager")
+                    ldflags.append("-mllvm:-import-hot-multiplier=30")
+            elif select_linker.KIND != "ld64" and c_compiler.type == "clang":
+                ldflags.append("-Wl,-plugin-opt=new-pass-manager")
+                ldflags.append("-Wl,-plugin-opt=-import-hot-multiplier=30")
 
     return namespace(
         enabled=enabled,

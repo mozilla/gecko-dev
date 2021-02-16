@@ -18,6 +18,9 @@
 
 #include "wasm/WasmTypes.h"
 
+#include <algorithm>
+
+#include "jsmath.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/Printf.h"
 #include "util/Memory.h"
@@ -25,6 +28,7 @@
 #include "vm/Warnings.h"  // js:WarnNumberASCII
 #include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmInstance.h"
+#include "wasm/WasmJS.h"
 #include "wasm/WasmSerialize.h"
 #include "wasm/WasmStubs.h"
 
@@ -35,6 +39,7 @@ using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
 
+using mozilla::CheckedInt32;
 using mozilla::IsPowerOfTwo;
 using mozilla::MakeEnumeratedRange;
 
@@ -63,35 +68,367 @@ Val::Val(const LitVal& val) {
   type_ = val.type();
   switch (type_.kind()) {
     case ValType::I32:
-      u.i32_ = val.i32();
+      cell_.i32_ = val.i32();
       return;
     case ValType::F32:
-      u.f32_ = val.f32();
+      cell_.f32_ = val.f32();
       return;
     case ValType::I64:
-      u.i64_ = val.i64();
+      cell_.i64_ = val.i64();
       return;
     case ValType::F64:
-      u.f64_ = val.f64();
+      cell_.f64_ = val.f64();
       return;
     case ValType::V128:
-      u.v128_ = val.v128();
+      cell_.v128_ = val.v128();
       return;
     case ValType::Ref:
-      u.ref_ = val.ref();
+      cell_.ref_ = val.ref();
       return;
   }
   MOZ_CRASH();
 }
 
-void Val::trace(JSTracer* trc) {
-  if (type_.isValid() && type_.isReference() && !u.ref_.isNull()) {
+bool Val::fromJSValue(JSContext* cx, ValType targetType, HandleValue val,
+                      MutableHandleVal rval) {
+  rval.get().type_ = targetType;
+  // No pre/post barrier needed as rval is rooted
+  return ToWebAssemblyValue(cx, val, targetType, &rval.get().cell_,
+                            targetType.size() == 8);
+}
+
+bool Val::toJSValue(JSContext* cx, MutableHandleValue rval) const {
+  return ToJSValue(cx, &cell_, type_, rval);
+}
+
+void Val::trace(JSTracer* trc) const {
+  if (isJSObject()) {
     // TODO/AnyRef-boxing: With boxed immediates and strings, the write
     // barrier is going to have to be more complicated.
     ASSERT_ANYREF_IS_JSOBJECT;
-    TraceManuallyBarrieredEdge(trc, u.ref_.asJSObjectAddress(),
-                               "wasm reference-typed global");
+    TraceManuallyBarrieredEdge(trc, asJSObjectAddress(), "wasm val");
   }
+}
+
+bool wasm::CheckRefType(JSContext* cx, RefType targetType, HandleValue v,
+                        MutableHandleFunction fnval,
+                        MutableHandleAnyRef refval) {
+  if (!targetType.isNullable() && v.isNull()) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_REF_NONNULLABLE_VALUE);
+    return false;
+  }
+  switch (targetType.kind()) {
+    case RefType::Func:
+      if (!CheckFuncRefValue(cx, v, fnval)) {
+        return false;
+      }
+      break;
+    case RefType::Extern:
+      if (!BoxAnyRef(cx, v, refval)) {
+        return false;
+      }
+      break;
+    case RefType::Eq:
+      if (!CheckEqRefValue(cx, v, refval)) {
+        return false;
+      }
+      break;
+    case RefType::TypeIndex:
+      MOZ_CRASH("temporarily unsupported Ref type");
+  }
+  return true;
+}
+
+bool wasm::CheckFuncRefValue(JSContext* cx, HandleValue v,
+                             MutableHandleFunction fun) {
+  if (v.isNull()) {
+    MOZ_ASSERT(!fun);
+    return true;
+  }
+
+  if (v.isObject()) {
+    JSObject& obj = v.toObject();
+    if (obj.is<JSFunction>()) {
+      JSFunction* f = &obj.as<JSFunction>();
+      if (IsWasmExportedFunction(f)) {
+        fun.set(f);
+        return true;
+      }
+    }
+  }
+
+  JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                           JSMSG_WASM_BAD_FUNCREF_VALUE);
+  return false;
+}
+
+bool wasm::CheckEqRefValue(JSContext* cx, HandleValue v,
+                           MutableHandleAnyRef vp) {
+  if (v.isNull()) {
+    vp.set(AnyRef::null());
+    return true;
+  }
+
+  if (v.isObject()) {
+    JSObject& obj = v.toObject();
+    if (obj.is<TypedObject>()) {
+      vp.set(AnyRef::fromJSObject(&obj.as<TypedObject>()));
+      return true;
+    }
+  }
+
+  JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                           JSMSG_WASM_BAD_EQREF_VALUE);
+  return false;
+}
+
+class wasm::NoDebug {
+ public:
+  template <typename T>
+  static void print(T v) {}
+};
+
+class wasm::DebugCodegenVal {
+  template <typename T>
+  static void print(const char* fmt, T v) {
+    DebugCodegen(DebugChannel::Function, fmt, v);
+  }
+
+ public:
+  static void print(int32_t v) { print(" i32(%d)", v); }
+  static void print(int64_t v) { print(" i64(%" PRId64 ")", v); }
+  static void print(float v) { print(" f32(%f)", v); }
+  static void print(double v) { print(" f64(%lf)", v); }
+  static void print(void* v) { print(" ptr(%p)", v); }
+};
+
+template bool wasm::ToWebAssemblyValue<NoDebug>(JSContext* cx, HandleValue val,
+                                                ValType type, void* loc,
+                                                bool mustWrite64);
+template bool wasm::ToWebAssemblyValue<DebugCodegenVal>(JSContext* cx,
+                                                        HandleValue val,
+                                                        ValType type, void* loc,
+                                                        bool mustWrite64);
+template bool wasm::ToJSValue<NoDebug>(JSContext* cx, const void* src,
+                                       ValType type, MutableHandleValue dst);
+template bool wasm::ToJSValue<DebugCodegenVal>(JSContext* cx, const void* src,
+                                               ValType type,
+                                               MutableHandleValue dst);
+
+template <typename Debug = NoDebug>
+bool ToWebAssemblyValue_i32(JSContext* cx, HandleValue val, int32_t* loc,
+                            bool mustWrite64) {
+  bool ok = ToInt32(cx, val, loc);
+  if (ok && mustWrite64) {
+#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_MIPS64)
+    loc[1] = loc[0] >> 31;
+#else
+    loc[1] = 0;
+#endif
+  }
+  Debug::print(*loc);
+  return ok;
+}
+template <typename Debug = NoDebug>
+bool ToWebAssemblyValue_i64(JSContext* cx, HandleValue val, int64_t* loc,
+                            bool mustWrite64) {
+  MOZ_ASSERT(mustWrite64);
+  JS_TRY_VAR_OR_RETURN_FALSE(cx, *loc, ToBigInt64(cx, val));
+  Debug::print(*loc);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToWebAssemblyValue_f32(JSContext* cx, HandleValue val, float* loc,
+                            bool mustWrite64) {
+  bool ok = RoundFloat32(cx, val, loc);
+  if (ok && mustWrite64) {
+    loc[1] = 0.0;
+  }
+  Debug::print(*loc);
+  return ok;
+}
+template <typename Debug = NoDebug>
+bool ToWebAssemblyValue_f64(JSContext* cx, HandleValue val, double* loc,
+                            bool mustWrite64) {
+  MOZ_ASSERT(mustWrite64);
+  bool ok = ToNumber(cx, val, loc);
+  Debug::print(*loc);
+  return ok;
+}
+template <typename Debug = NoDebug>
+bool ToWebAssemblyValue_externref(JSContext* cx, HandleValue val, void** loc,
+                                  bool mustWrite64) {
+  RootedAnyRef result(cx, AnyRef::null());
+  if (!BoxAnyRef(cx, val, &result)) {
+    return false;
+  }
+  *loc = result.get().forCompiledCode();
+#ifndef JS_64BIT
+  if (mustWrite64) {
+    loc[1] = nullptr;
+  }
+#endif
+  Debug::print(*loc);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToWebAssemblyValue_eqref(JSContext* cx, HandleValue val, void** loc,
+                              bool mustWrite64) {
+  RootedAnyRef result(cx, AnyRef::null());
+  if (!CheckEqRefValue(cx, val, &result)) {
+    return false;
+  }
+  *loc = result.get().forCompiledCode();
+#ifndef JS_64BIT
+  if (mustWrite64) {
+    loc[1] = nullptr;
+  }
+#endif
+  Debug::print(*loc);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToWebAssemblyValue_funcref(JSContext* cx, HandleValue val, void** loc,
+                                bool mustWrite64) {
+  RootedFunction fun(cx);
+  if (!CheckFuncRefValue(cx, val, &fun)) {
+    return false;
+  }
+  *loc = fun;
+#ifndef JS_64BIT
+  if (mustWrite64) {
+    loc[1] = nullptr;
+  }
+#endif
+  Debug::print(*loc);
+  return true;
+}
+
+template <typename Debug>
+bool wasm::ToWebAssemblyValue(JSContext* cx, HandleValue val, ValType type,
+                              void* loc, bool mustWrite64) {
+  switch (type.kind()) {
+    case ValType::I32:
+      return ToWebAssemblyValue_i32<Debug>(cx, val, (int32_t*)loc, mustWrite64);
+    case ValType::I64:
+      return ToWebAssemblyValue_i64<Debug>(cx, val, (int64_t*)loc, mustWrite64);
+    case ValType::F32:
+      return ToWebAssemblyValue_f32<Debug>(cx, val, (float*)loc, mustWrite64);
+    case ValType::F64:
+      return ToWebAssemblyValue_f64<Debug>(cx, val, (double*)loc, mustWrite64);
+    case ValType::V128:
+      break;
+    case ValType::Ref:
+#ifdef ENABLE_WASM_FUNCTION_REFERENCES
+      if (!type.isNullable() && val.isNull()) {
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_WASM_BAD_REF_NONNULLABLE_VALUE);
+        return false;
+      }
+#else
+      MOZ_ASSERT(type.isNullable());
+#endif
+      switch (type.refTypeKind()) {
+        case RefType::Func:
+          return ToWebAssemblyValue_funcref<Debug>(cx, val, (void**)loc,
+                                                   mustWrite64);
+        case RefType::Extern:
+          return ToWebAssemblyValue_externref<Debug>(cx, val, (void**)loc,
+                                                     mustWrite64);
+        case RefType::Eq:
+          return ToWebAssemblyValue_eqref<Debug>(cx, val, (void**)loc,
+                                                 mustWrite64);
+        case RefType::TypeIndex:
+          break;
+      }
+  }
+  MOZ_ASSERT(!type.isExposable());
+  JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                           JSMSG_WASM_BAD_VAL_TYPE);
+  return false;
+}
+
+template <typename Debug = NoDebug>
+bool ToJSValue_i32(JSContext* cx, int32_t src, MutableHandleValue dst) {
+  dst.set(Int32Value(src));
+  Debug::print(src);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToJSValue_i64(JSContext* cx, int64_t src, MutableHandleValue dst) {
+  // If bi is manipulated other than test & storing, it would need
+  // to be rooted here.
+  BigInt* bi = BigInt::createFromInt64(cx, src);
+  if (!bi) {
+    return false;
+  }
+  dst.set(BigIntValue(bi));
+  Debug::print(src);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToJSValue_f32(JSContext* cx, float src, MutableHandleValue dst) {
+  dst.set(JS::CanonicalizedDoubleValue(src));
+  Debug::print(src);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToJSValue_f64(JSContext* cx, double src, MutableHandleValue dst) {
+  dst.set(JS::CanonicalizedDoubleValue(src));
+  Debug::print(src);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToJSValue_funcref(JSContext* cx, void* src, MutableHandleValue dst) {
+  dst.set(UnboxFuncRef(FuncRef::fromCompiledCode(src)));
+  Debug::print(src);
+  return true;
+}
+template <typename Debug = NoDebug>
+bool ToJSValue_anyref(JSContext* cx, void* src, MutableHandleValue dst) {
+  dst.set(UnboxAnyRef(AnyRef::fromCompiledCode(src)));
+  Debug::print(src);
+  return true;
+}
+
+template <typename Debug>
+bool wasm::ToJSValue(JSContext* cx, const void* src, ValType type,
+                     MutableHandleValue dst) {
+  switch (type.kind()) {
+    case ValType::I32:
+      return ToJSValue_i32<Debug>(cx, *reinterpret_cast<const int32_t*>(src),
+                                  dst);
+    case ValType::I64:
+      return ToJSValue_i64<Debug>(cx, *reinterpret_cast<const int64_t*>(src),
+                                  dst);
+    case ValType::F32:
+      return ToJSValue_f32<Debug>(cx, *reinterpret_cast<const float*>(src),
+                                  dst);
+    case ValType::F64:
+      return ToJSValue_f64<Debug>(cx, *reinterpret_cast<const double*>(src),
+                                  dst);
+    case ValType::V128:
+      break;
+    case ValType::Ref:
+      switch (type.refTypeKind()) {
+        case RefType::Func:
+          return ToJSValue_funcref<Debug>(
+              cx, *reinterpret_cast<void* const*>(src), dst);
+        case RefType::Extern:
+          return ToJSValue_anyref<Debug>(
+              cx, *reinterpret_cast<void* const*>(src), dst);
+        case RefType::Eq:
+          return ToJSValue_anyref<Debug>(
+              cx, *reinterpret_cast<void* const*>(src), dst);
+        case RefType::TypeIndex:
+          break;
+      }
+  }
+  MOZ_ASSERT(!type.isExposable());
+  Debug::print(nullptr);
+  dst.setUndefined();
+  return true;
 }
 
 void AnyRef::trace(JSTracer* trc) {
@@ -150,6 +487,22 @@ Value wasm::UnboxAnyRef(AnyRef val) {
     result.setObjectOrNull(obj);
   }
   return result;
+}
+
+/* static */
+wasm::FuncRef wasm::FuncRef::fromAnyRefUnchecked(AnyRef p) {
+#ifdef DEBUG
+  Value v = UnboxAnyRef(p);
+  if (v.isNull()) {
+    return FuncRef(nullptr);
+  }
+  if (v.toObject().is<JSFunction>()) {
+    return FuncRef(&v.toObject().as<JSFunction>());
+  }
+  MOZ_CRASH("Bad value");
+#else
+  return FuncRef(&p.asJSObject()->as<JSFunction>());
+#endif
 }
 
 Value wasm::UnboxFuncRef(FuncRef val) {
@@ -266,7 +619,11 @@ static unsigned EncodeImmediateType(ValType vt) {
 }
 
 /* static */
-bool FuncTypeIdDesc::isGlobal(const FuncType& funcType) {
+bool TypeIdDesc::isGlobal(const TypeDef& type) {
+  if (!type.isFuncType()) {
+    return true;
+  }
+  const FuncType& funcType = type.funcType();
   const ValTypeVector& results = funcType.results();
   const ValTypeVector& args = funcType.args();
   if (results.length() + args.length() > sMaxTypes) {
@@ -293,10 +650,9 @@ bool FuncTypeIdDesc::isGlobal(const FuncType& funcType) {
 }
 
 /* static */
-FuncTypeIdDesc FuncTypeIdDesc::global(const FuncType& funcType,
-                                      uint32_t globalDataOffset) {
-  MOZ_ASSERT(isGlobal(funcType));
-  return FuncTypeIdDesc(FuncTypeIdDescKind::Global, globalDataOffset);
+TypeIdDesc TypeIdDesc::global(const TypeDef& type, uint32_t globalDataOffset) {
+  MOZ_ASSERT(isGlobal(type));
+  return TypeIdDesc(TypeIdDescKind::Global, globalDataOffset);
 }
 
 static ImmediateType LengthToBits(uint32_t length) {
@@ -306,7 +662,9 @@ static ImmediateType LengthToBits(uint32_t length) {
 }
 
 /* static */
-FuncTypeIdDesc FuncTypeIdDesc::immediate(const FuncType& funcType) {
+TypeIdDesc TypeIdDesc::immediate(const TypeDef& type) {
+  const FuncType& funcType = type.funcType();
+
   ImmediateType immediate = ImmediateBit;
   uint32_t shift = sTagBits;
 
@@ -330,33 +688,186 @@ FuncTypeIdDesc FuncTypeIdDesc::immediate(const FuncType& funcType) {
   }
 
   MOZ_ASSERT(shift <= sTotalBits);
-  return FuncTypeIdDesc(FuncTypeIdDescKind::Immediate, immediate);
+  return TypeIdDesc(TypeIdDescKind::Immediate, immediate);
 }
 
-size_t FuncTypeWithId::serializedSize() const {
-  return FuncType::serializedSize() + sizeof(id);
+size_t TypeDef::serializedSize() const {
+  size_t size = sizeof(tag_);
+  switch (tag_) {
+    case TypeDef::IsStructType: {
+      size += sizeof(structType_);
+      break;
+    }
+    case TypeDef::IsFuncType: {
+      size += sizeof(funcType_);
+      break;
+    }
+    case TypeDef::IsNone: {
+      break;
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE();
+  }
+  return size;
 }
 
-uint8_t* FuncTypeWithId::serialize(uint8_t* cursor) const {
-  cursor = FuncType::serialize(cursor);
+uint8_t* TypeDef::serialize(uint8_t* cursor) const {
+  cursor = WriteBytes(cursor, &tag_, sizeof(tag_));
+  switch (tag_) {
+    case TypeDef::IsStructType: {
+      cursor = structType_.serialize(cursor);
+      break;
+    }
+    case TypeDef::IsFuncType: {
+      cursor = funcType_.serialize(cursor);
+      break;
+    }
+    case TypeDef::IsNone: {
+      break;
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE();
+  }
+  return cursor;
+}
+
+const uint8_t* TypeDef::deserialize(const uint8_t* cursor) {
+  cursor = ReadBytes(cursor, &tag_, sizeof(tag_));
+  switch (tag_) {
+    case TypeDef::IsStructType: {
+      cursor = structType_.deserialize(cursor);
+      break;
+    }
+    case TypeDef::IsFuncType: {
+      cursor = funcType_.deserialize(cursor);
+      break;
+    }
+    case TypeDef::IsNone: {
+      break;
+    }
+    default:
+      MOZ_ASSERT_UNREACHABLE();
+  }
+  return cursor;
+}
+
+size_t TypeDef::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+  switch (tag_) {
+    case TypeDef::IsStructType: {
+      return structType_.sizeOfExcludingThis(mallocSizeOf);
+    }
+    case TypeDef::IsFuncType: {
+      return funcType_.sizeOfExcludingThis(mallocSizeOf);
+    }
+    case TypeDef::IsNone: {
+      return 0;
+    }
+    default:
+      break;
+  }
+  MOZ_ASSERT_UNREACHABLE();
+  return 0;
+}
+
+size_t TypeDefWithId::serializedSize() const {
+  return TypeDef::serializedSize() + sizeof(TypeIdDesc);
+}
+
+uint8_t* TypeDefWithId::serialize(uint8_t* cursor) const {
+  cursor = TypeDef::serialize(cursor);
   cursor = WriteBytes(cursor, &id, sizeof(id));
   return cursor;
 }
 
-const uint8_t* FuncTypeWithId::deserialize(const uint8_t* cursor) {
-  (cursor = FuncType::deserialize(cursor)) &&
-      (cursor = ReadBytes(cursor, &id, sizeof(id)));
+const uint8_t* TypeDefWithId::deserialize(const uint8_t* cursor) {
+  cursor = TypeDef::deserialize(cursor);
+  cursor = ReadBytes(cursor, &id, sizeof(id));
   return cursor;
 }
 
-size_t FuncTypeWithId::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
-  return FuncType::sizeOfExcludingThis(mallocSizeOf);
+size_t TypeDefWithId::sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
+  return TypeDef::sizeOfExcludingThis(mallocSizeOf);
 }
 
 ArgTypeVector::ArgTypeVector(const FuncType& funcType)
     : args_(funcType.args()),
       hasStackResults_(ABIResultIter::HasStackResults(
           ResultType::Vector(funcType.results()))) {}
+
+static inline CheckedInt32 RoundUpToAlignment(CheckedInt32 address,
+                                              uint32_t align) {
+  MOZ_ASSERT(IsPowerOfTwo(align));
+
+  // Note: Be careful to order operators such that we first make the
+  // value smaller and then larger, so that we don't get false
+  // overflow errors due to (e.g.) adding `align` and then
+  // subtracting `1` afterwards when merely adding `align-1` would
+  // not have overflowed. Note that due to the nature of two's
+  // complement representation, if `address` is already aligned,
+  // then adding `align-1` cannot itself cause an overflow.
+
+  return ((address + (align - 1)) / align) * align;
+}
+
+class StructLayout {
+  CheckedInt32 sizeSoFar = 0;
+  uint32_t structAlignment = 1;
+
+ public:
+  // The field adders return the offset of the the field.
+  CheckedInt32 addField(ValType type) {
+    uint32_t fieldSize = type.size();
+    uint32_t fieldAlignment = type.alignmentInStruct();
+
+    // Alignment of the struct is the max of the alignment of its fields.
+    structAlignment = std::max(structAlignment, fieldAlignment);
+
+    // Align the pointer.
+    CheckedInt32 offset = RoundUpToAlignment(sizeSoFar, fieldAlignment);
+    if (!offset.isValid()) {
+      return offset;
+    }
+
+    // Allocate space.
+    sizeSoFar = offset + fieldSize;
+    if (!sizeSoFar.isValid()) {
+      return sizeSoFar;
+    }
+
+    return offset;
+  }
+
+  // The close method rounds up the structure size to the appropriate
+  // alignment and returns that size.
+  CheckedInt32 close() {
+    return RoundUpToAlignment(sizeSoFar, structAlignment);
+  }
+};
+
+bool StructType::computeLayout() {
+  StructLayout layout;
+  for (StructField& field : fields_) {
+    CheckedInt32 offset = layout.addField(field.type);
+    if (!offset.isValid()) {
+      return false;
+    }
+    field.offset = offset.value();
+  }
+
+  CheckedInt32 size = layout.close();
+  if (!size.isValid()) {
+    return false;
+  }
+  size_ = size.value();
+  isInline_ = InlineTypedObject::canAccommodateSize(size_);
+
+  return true;
+}
+
+uint32_t StructType::objectBaseFieldOffset(uint32_t fieldIndex) const {
+  return fields_[fieldIndex].offset +
+         (isInline_ ? InlineTypedObject::offsetOfDataStart() : 0);
+}
 
 // A simple notion of prefix: types and mutability must match exactly.
 
@@ -375,16 +886,20 @@ bool StructType::hasPrefix(const StructType& other) const {
 }
 
 size_t StructType::serializedSize() const {
-  return SerializedPodVectorSize(fields_);
+  return SerializedPodVectorSize(fields_) + sizeof(size_) + sizeof(isInline_);
 }
 
 uint8_t* StructType::serialize(uint8_t* cursor) const {
   cursor = SerializePodVector(cursor, fields_);
+  cursor = WriteBytes(cursor, &size_, sizeof(size_));
+  cursor = WriteBytes(cursor, &isInline_, sizeof(isInline_));
   return cursor;
 }
 
 const uint8_t* StructType::deserialize(const uint8_t* cursor) {
-  (cursor = DeserializePodVector(cursor, &fields_));
+  (cursor = DeserializePodVector(cursor, &fields_)) &&
+      (cursor = ReadBytes(cursor, &size_, sizeof(size_))) &&
+      (cursor = ReadBytes(cursor, &isInline_, sizeof(isInline_)));
   return cursor;
 }
 
@@ -436,6 +951,13 @@ uint32_t Export::globalIndex() const {
   MOZ_ASSERT(pod.kind_ == DefinitionKind::Global);
   return pod.index_;
 }
+
+#ifdef ENABLE_WASM_EXCEPTIONS
+uint32_t Export::eventIndex() const {
+  MOZ_ASSERT(pod.kind_ == DefinitionKind::Event);
+  return pod.index_;
+}
+#endif
 
 uint32_t Export::tableIndex() const {
   MOZ_ASSERT(pod.kind_ == DefinitionKind::Table);

@@ -7,6 +7,7 @@
 #include "AntiTrackingUtils.h"
 
 #include "AntiTrackingLog.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/net/CookieJarSettings.h"
@@ -18,6 +19,7 @@
 #include "mozIThirdPartyUtil.h"
 #include "nsGlobalWindowInner.h"
 #include "nsIChannel.h"
+#include "nsIHttpChannel.h"
 #include "nsIPermission.h"
 #include "nsIURI.h"
 #include "nsNetUtil.h"
@@ -265,7 +267,7 @@ bool AntiTrackingUtils::CheckStoragePermission(nsIPrincipal* aPrincipal,
   // The channel is for the document load of the top-level window. The top-level
   // window should always has 'hasStoragePermission' flag as false. So, we can
   // return here directly.
-  if (policyType == nsIContentPolicy::TYPE_DOCUMENT) {
+  if (policyType == ExtContentPolicy::TYPE_DOCUMENT) {
     return false;
   }
 
@@ -532,7 +534,7 @@ void AntiTrackingUtils::ComputeIsThirdPartyToTopWindow(nsIChannel* aChannel) {
   // below returns an incorrect result. So we use TYPE_DOCUMENT to
   // ensure a top-level load is not considered 3rd-party.
   auto policyType = loadInfo->GetExternalContentPolicyType();
-  if (policyType == nsIContentPolicy::TYPE_DOCUMENT) {
+  if (policyType == ExtContentPolicy::TYPE_DOCUMENT) {
     loadInfo->SetIsThirdPartyContextToTopWindow(false);
     return;
   }
@@ -700,7 +702,7 @@ void AntiTrackingUtils::UpdateAntiTrackingInfoForChannel(nsIChannel* aChannel) {
   // for channels other than http channels.
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
   if (!httpChannel || loadInfo->GetExternalContentPolicyType() !=
-                          nsIContentPolicy::TYPE_DOCUMENT) {
+                          ExtContentPolicy::TYPE_DOCUMENT) {
     return;
   }
 

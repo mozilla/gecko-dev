@@ -35,7 +35,6 @@ function setup() {
   do_get_profile();
   prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
 
-  prefs.setBoolPref("network.security.esni.enabled", false);
   prefs.setBoolPref("network.http.spdy.enabled", true);
   prefs.setBoolPref("network.http.spdy.enabled.http2", true);
   // the TRR server is on 127.0.0.1
@@ -67,7 +66,6 @@ function setup() {
 
 setup();
 registerCleanupFunction(() => {
-  prefs.clearUserPref("network.security.esni.enabled");
   prefs.clearUserPref("network.http.spdy.enabled");
   prefs.clearUserPref("network.http.spdy.enabled.http2");
   prefs.clearUserPref("network.dns.localDomains");
@@ -108,7 +106,9 @@ DNSListener.prototype.QueryInterface = ChromeUtils.generateQI([
 // Test if IP hint addresses can be accessed as regular A/AAAA records.
 add_task(async function testStoreIPHint() {
   let trrServer = new TRRServer();
-  registerCleanupFunction(async () => trrServer.stop());
+  registerCleanupFunction(async () => {
+    await trrServer.stop();
+  });
   await trrServer.start();
 
   Services.prefs.setIntPref("network.trr.mode", 3);
@@ -127,7 +127,7 @@ add_task(async function testStoreIPHint() {
         priority: 1,
         name: "test.IPHint.com",
         values: [
-          { key: "alpn", value: "h2,h3" },
+          { key: "alpn", value: ["h2", "h3"] },
           { key: "port", value: 8888 },
           { key: "ipv4hint", value: ["1.2.3.4", "5.6.7.8"] },
           { key: "ipv6hint", value: ["::1", "fe80::794f:6d2c:3d5e:7836"] },
@@ -156,9 +156,9 @@ add_task(async function testStoreIPHint() {
   Assert.equal(answer[0].priority, 1);
   Assert.equal(answer[0].name, "test.IPHint.com");
   Assert.equal(answer[0].values.length, 4);
-  Assert.equal(
+  Assert.deepEqual(
     answer[0].values[0].QueryInterface(Ci.nsISVCParamAlpn).alpn,
-    "h2,h3",
+    ["h2", "h3"],
     "got correct answer"
   );
   Assert.equal(
@@ -236,6 +236,7 @@ function makeChan(url) {
   let chan = NetUtil.newChannel({
     uri: url,
     loadUsingSystemPrincipal: true,
+    contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
   }).QueryInterface(Ci.nsIHttpChannel);
   return chan;
 }
@@ -272,7 +273,7 @@ add_task(async function testConnectionWithIPHint() {
     defaultOriginAttributes
   );
 
-  let [inRequest, inRecord, inStatus] = await listener;
+  let [inRequest, , inStatus] = await listener;
   Assert.equal(inRequest, request, "correct request was used");
   Assert.equal(
     inStatus,
@@ -285,8 +286,13 @@ add_task(async function testConnectionWithIPHint() {
   );
 
   // The connection should be succeeded since the IP hint is 127.0.0.1.
-  let chan = makeChan(`https://test.iphint.com:8080/`);
-  let [req, resp] = await channelOpenPromise(chan);
+  let chan = makeChan(`http://test.iphint.com:8080/`);
+  // Note that the partitionKey stored in DNS cache would be
+  // "%28https%2Ciphint.com%29". The http request to test.iphint.com will be
+  // upgraded to https and the ip hint address will be used by the https
+  // request in the end.
+  let [req] = await channelOpenPromise(chan);
+  req.QueryInterface(Ci.nsIHttpChannel);
   Assert.equal(req.getResponseHeader("x-connection-http2"), "yes");
 
   certOverrideService.setDisableAllSecurityChecksAndLetAttackersInterceptMyData(

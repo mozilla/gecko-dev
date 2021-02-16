@@ -147,7 +147,7 @@ class FunctionCompiler {
   // FIXME(1401675): Replace with BlockType.
   uint32_t funcIndex() const { return func_.index; }
   const FuncType& funcType() const {
-    return *moduleEnv_.funcTypes[func_.index];
+    return *moduleEnv_.funcs[func_.index].type;
   }
 
   BytecodeOffset bytecodeOffset() const { return iter_.bytecodeOffset(); }
@@ -663,7 +663,7 @@ class FunctionCompiler {
     if (inDeadCode()) {
       return nullptr;
     }
-    auto* ins = MCompare::New(alloc(), lhs, rhs, op, type);
+    auto* ins = MCompare::NewWasm(alloc(), lhs, rhs, op, type);
     curBlock_->add(ins);
     return ins;
   }
@@ -962,11 +962,12 @@ class FunctionCompiler {
     MOZ_ASSERT(!inDeadCode());
 
     uint32_t offsetGuardLimit =
-        GetOffsetGuardLimit(moduleEnv_.hugeMemoryEnabled());
+        GetMaxOffsetGuardLimit(moduleEnv_.hugeMemoryEnabled());
 
-    // Fold a constant base into the offset (so the base is 0 in which case
-    // the codegen is optimized), if it doesn't wrap or trigger an
-    // MWasmAddOffset.
+    // Fold a constant base into the offset and make the base 0, provided the
+    // offset stays below the guard limit.  The reason for folding the base into
+    // the offset rather than vice versa is that a small offset can be ignored
+    // by both explicit bounds checking and bounds check elimination.
     if ((*base)->isConstant()) {
       uint32_t basePtr = (*base)->toConstant()->toInt32();
       uint32_t offset = access->offset();
@@ -982,11 +983,11 @@ class FunctionCompiler {
     bool mustAdd = false;
     bool alignmentCheck = needAlignmentCheck(access, *base, &mustAdd);
 
-    // If the offset is bigger than the guard region, a separate instruction
-    // is necessary to add the offset to the base and check for overflow.
+    // If the offset is bigger than the guard region, a separate instruction is
+    // necessary to add the offset to the base and check for overflow.
     //
-    // Also add the offset if we have a Wasm atomic access that needs
-    // alignment checking and the offset affects alignment.
+    // Also add the offset if we have a Wasm atomic access that needs alignment
+    // checking and the offset affects alignment.
     if (access->offset() >= offsetGuardLimit || mustAdd ||
         !JitOptions.wasmFoldOffsets) {
       *base = computeEffectiveAddress(*base, access);
@@ -1446,6 +1447,9 @@ class FunctionCompiler {
     }
 
     for (iter.switchToPrev(); !iter.done(); iter.prev()) {
+      if (!mirGen().ensureBallast()) {
+        return false;
+      }
       const ABIResult& result = iter.cur();
       MInstruction* def;
       if (result.inRegister()) {
@@ -1525,12 +1529,13 @@ class FunctionCompiler {
       return true;
     }
 
-    const FuncTypeWithId& funcType = moduleEnv_.types[funcTypeIndex].funcType();
+    const FuncType& funcType = moduleEnv_.types[funcTypeIndex].funcType();
+    const TypeIdDesc& funcTypeId = moduleEnv_.typeIds[funcTypeIndex];
 
     CalleeDesc callee;
     if (moduleEnv_.isAsmJS()) {
       MOZ_ASSERT(tableIndex == 0);
-      MOZ_ASSERT(funcType.id.kind() == FuncTypeIdDescKind::None);
+      MOZ_ASSERT(funcTypeId.kind() == TypeIdDescKind::None);
       const TableDesc& table =
           moduleEnv_.tables[moduleEnv_.asmJSSigToTableIndex[funcTypeIndex]];
       MOZ_ASSERT(IsPowerOfTwo(table.initialLength));
@@ -1544,9 +1549,9 @@ class FunctionCompiler {
       index = maskedIndex;
       callee = CalleeDesc::asmJSTable(table);
     } else {
-      MOZ_ASSERT(funcType.id.kind() != FuncTypeIdDescKind::None);
+      MOZ_ASSERT(funcTypeId.kind() != TypeIdDescKind::None);
       const TableDesc& table = moduleEnv_.tables[tableIndex];
-      callee = CalleeDesc::wasmTable(table, funcType.id);
+      callee = CalleeDesc::wasmTable(table, funcTypeId);
     }
 
     CallSiteDesc desc(lineOrBytecode, CallSiteDesc::Dynamic);
@@ -1700,7 +1705,7 @@ class FunctionCompiler {
   }
 
  public:
-  MOZ_MUST_USE bool pushDefs(const DefVector& defs) {
+  [[nodiscard]] bool pushDefs(const DefVector& defs) {
     if (inDeadCode()) {
       return true;
     }
@@ -2418,6 +2423,14 @@ static bool EmitEnd(FunctionCompiler& f) {
         return false;
       }
       break;
+#ifdef ENABLE_WASM_EXCEPTIONS
+    case LabelKind::Try:
+      MOZ_CRASH("NYI");
+      break;
+    case LabelKind::Catch:
+      MOZ_CRASH("NYI");
+      break;
+#endif
   }
 
   MOZ_ASSERT_IF(!f.inDeadCode(), postJoinDefs.length() == type.length());
@@ -2496,6 +2509,40 @@ static bool EmitUnreachable(FunctionCompiler& f) {
   return true;
 }
 
+#ifdef ENABLE_WASM_EXCEPTIONS
+static bool EmitTry(FunctionCompiler& f) {
+  ResultType params;
+  if (!f.iter().readTry(&params)) {
+    return false;
+  }
+
+  MOZ_CRASH("NYI");
+}
+
+static bool EmitCatch(FunctionCompiler& f) {
+  LabelKind kind;
+  uint32_t eventIndex;
+  ResultType paramType, resultType;
+  DefVector tryValues;
+  if (!f.iter().readCatch(&kind, &eventIndex, &paramType, &resultType,
+                          &tryValues)) {
+    return false;
+  }
+
+  MOZ_CRASH("NYI");
+}
+
+static bool EmitThrow(FunctionCompiler& f) {
+  uint32_t exnIndex;
+  DefVector argValues;
+  if (!f.iter().readThrow(&exnIndex, &argValues)) {
+    return false;
+  }
+
+  MOZ_CRASH("NYI");
+}
+#endif
+
 static bool EmitCallArgs(FunctionCompiler& f, const FuncType& funcType,
                          const DefVector& args, CallCompileState* call) {
   for (size_t i = 0, n = funcType.args().length(); i < n; ++i) {
@@ -2535,7 +2582,7 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
     return true;
   }
 
-  const FuncType& funcType = *f.moduleEnv().funcTypes[funcIndex];
+  const FuncType& funcType = *f.moduleEnv().funcs[funcIndex].type;
 
   CallCompileState call;
   if (!EmitCallArgs(f, funcType, args, &call)) {
@@ -4277,6 +4324,34 @@ static bool EmitShuffleSimd128(FunctionCompiler& f) {
     return false;
   }
 
+#  ifdef ENABLE_WASM_SIMD_WORMHOLE
+  static const uint8_t trigger[] = {31, 0, 30, 2,  29, 4,  28, 6,
+                                    27, 8, 26, 10, 25, 12, 24};
+  static_assert(sizeof(trigger) == 15);
+
+  if (f.moduleEnv().features.simdWormhole &&
+      memcmp(control.bytes, trigger, sizeof(trigger)) == 0) {
+    switch (control.bytes[15]) {
+      case 0:
+        f.iter().setResult(
+            f.binarySimd128(v1, v2, false, wasm::SimdOp::MozWHSELFTEST));
+        return true;
+#    if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
+      case 1:
+        f.iter().setResult(
+            f.binarySimd128(v1, v2, false, wasm::SimdOp::MozWHPMADDUBSW));
+        return true;
+      case 2:
+        f.iter().setResult(
+            f.binarySimd128(v1, v2, false, wasm::SimdOp::MozWHPMADDWD));
+        return true;
+#    endif
+      default:
+        return f.iter().fail("Unrecognized wormhole opcode");
+    }
+  }
+#  endif
+
   f.iter().setResult(f.shuffleSimd128(v1, v2, control));
   return true;
 }
@@ -4362,6 +4437,23 @@ static bool EmitBodyExprs(FunctionCompiler& f) {
         CHECK(EmitIf(f));
       case uint16_t(Op::Else):
         CHECK(EmitElse(f));
+#ifdef ENABLE_WASM_EXCEPTIONS
+      case uint16_t(Op::Try):
+        if (!f.moduleEnv().exceptionsEnabled()) {
+          return f.iter().unrecognizedOpcode(&op);
+        }
+        CHECK(EmitTry(f));
+      case uint16_t(Op::Catch):
+        if (!f.moduleEnv().exceptionsEnabled()) {
+          return f.iter().unrecognizedOpcode(&op);
+        }
+        CHECK(EmitCatch(f));
+      case uint16_t(Op::Throw):
+        if (!f.moduleEnv().exceptionsEnabled()) {
+          return f.iter().unrecognizedOpcode(&op);
+        }
+        CHECK(EmitThrow(f));
+#endif
       case uint16_t(Op::Br):
         CHECK(EmitBr(f));
       case uint16_t(Op::BrIf):
@@ -5377,7 +5469,7 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
   TempAllocator alloc(&lifo);
   JitContext jitContext(&alloc);
   MOZ_ASSERT(IsCompilingWasm());
-  WasmMacroAssembler masm(alloc);
+  WasmMacroAssembler masm(alloc, moduleEnv);
 
   // Swap in already-allocated empty vectors to avoid malloc/free.
   MOZ_ASSERT(code->empty());
@@ -5391,7 +5483,10 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
   GenerateTrapExitMachineState(&trapExitLayout, &trapExitLayoutNumWords);
 
   for (const FuncCompileInput& func : inputs) {
-    JitSpew(JitSpew_Codegen, "# ========================================");
+    JitSpewCont(JitSpew_Codegen, "\n");
+    JitSpew(JitSpew_Codegen,
+            "# ================================"
+            "==================================");
     JitSpew(JitSpew_Codegen, "# ==");
     JitSpew(JitSpew_Codegen,
             "# wasm::IonCompileFunctions: starting on function index %d",
@@ -5401,7 +5496,8 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
 
     // Build the local types vector.
 
-    const FuncTypeWithId& funcType = *moduleEnv.funcTypes[func.index];
+    const FuncType& funcType = *moduleEnv.funcs[func.index].type;
+    const TypeIdDesc& funcTypeId = *moduleEnv.funcs[func.index].typeId;
     ValTypeVector locals;
     if (!locals.appendAll(funcType.args())) {
       return false;
@@ -5456,7 +5552,7 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
       BytecodeOffset prologueTrapOffset(func.lineOrBytecode);
       FuncOffsets offsets;
       ArgTypeVector args(funcType);
-      if (!codegen.generateWasm(funcType.id, prologueTrapOffset, args,
+      if (!codegen.generateWasm(funcTypeId, prologueTrapOffset, args,
                                 trapExitLayout, trapExitLayoutNumWords,
                                 &offsets, &code->stackMaps)) {
         return false;
@@ -5472,7 +5568,10 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
             "# wasm::IonCompileFunctions: completed function index %d",
             (int)func.index);
     JitSpew(JitSpew_Codegen, "# ==");
-    JitSpew(JitSpew_Codegen, "# ========================================");
+    JitSpew(JitSpew_Codegen,
+            "# ================================"
+            "==================================");
+    JitSpewCont(JitSpew_Codegen, "\n");
   }
 
   masm.finish();

@@ -5,8 +5,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "RefMessageBodyService.h"
+
+#include <cstdint>
+#include <cstdlib>
+#include "mozilla/ErrorResult.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/dom/ipc/StructuredCloneData.h"
+#include "nsBaseHashtable.h"
 #include "nsContentUtils.h"
+#include "nsDebug.h"
 
 namespace mozilla::dom {
 
@@ -133,6 +140,8 @@ RefMessageBody::RefMessageBody(const nsID& aPortID,
       mCloneData(std::move(aCloneData)),
       mMaxCount(Nothing()),
       mCount(0) {}
+
+RefMessageBody::~RefMessageBody() = default;
 
 void RefMessageBody::Read(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
                           const JS::CloneDataPolicy& aCloneDataPolicy,

@@ -144,12 +144,9 @@ let actionChainFn = dispatch(actionChain);
 let multiActionFn = dispatch(multiAction);
 let executeScriptFn = dispatch(executeScript);
 let sendKeysToElementFn = dispatch(sendKeysToElement);
-let setBrowsingContextIdFn = dispatch(setBrowsingContextId);
 
 function startListeners() {
-  if (!MarionettePrefs.useActors) {
-    eventDispatcher.enable();
-  }
+  eventDispatcher.enable();
 
   addMessageListener("Marionette:actionChain", actionChainFn);
   addMessageListener("Marionette:clearElement", clearElementFn);
@@ -185,16 +182,13 @@ function startListeners() {
   addMessageListener("Marionette:releaseActions", releaseActionsFn);
   addMessageListener("Marionette:sendKeysToElement", sendKeysToElementFn);
   addMessageListener("Marionette:Session:Delete", deleteSession);
-  addMessageListener("Marionette:setBrowsingContextId", setBrowsingContextIdFn);
   addMessageListener("Marionette:singleTap", singleTapFn);
   addMessageListener("Marionette:switchToFrame", switchToFrame);
   addMessageListener("Marionette:switchToParentFrame", switchToParentFrame);
 }
 
 function deregister() {
-  if (!MarionettePrefs.useActors) {
-    eventDispatcher.disable();
-  }
+  eventDispatcher.disable();
 
   removeMessageListener("Marionette:actionChain", actionChainFn);
   removeMessageListener("Marionette:clearElement", clearElementFn);
@@ -234,10 +228,6 @@ function deregister() {
   removeMessageListener("Marionette:releaseActions", releaseActionsFn);
   removeMessageListener("Marionette:sendKeysToElement", sendKeysToElementFn);
   removeMessageListener("Marionette:Session:Delete", deleteSession);
-  removeMessageListener(
-    "Marionette:setBrowsingContextId",
-    setBrowsingContextIdFn
-  );
   removeMessageListener("Marionette:singleTap", singleTapFn);
   removeMessageListener("Marionette:switchToFrame", switchToFrame);
   removeMessageListener("Marionette:switchToParentFrame", switchToParentFrame);
@@ -251,12 +241,6 @@ function deleteSession() {
   curContainer.frame.focus();
 
   legacyactions.touchIds = {};
-  if (action.inputStateMap !== undefined) {
-    action.inputStateMap.clear();
-  }
-  if (action.inputsToCancel !== undefined) {
-    action.inputsToCancel.length = 0;
-  }
 }
 
 /**
@@ -629,17 +613,6 @@ function getBrowsingContextId(topContext = false) {
 }
 
 /**
- * Set the current browsing context.
- *
- * @param {number} browsingContextId
- *     Id of the current BrowsingContext.
- */
-function setBrowsingContextId(browsingContextId) {
-  const bc = BrowsingContext.get(browsingContextId);
-  curContainer.frame = bc.window;
-}
-
-/**
  * Return the current visible URL.
  *
  * @return {string}
@@ -789,8 +762,6 @@ function switchToParentFrame(msg) {
 /**
  * Switch to the specified frame.
  *
- * @param {boolean=} focus
- *     Focus the frame if set to true. Defaults to false.
  * @param {(string|Object)=} element
  *     A web element reference of the frame or its element id.
  * @param {number=} id
@@ -798,7 +769,7 @@ function switchToParentFrame(msg) {
  *     If both element and id are not defined, switch to top-level frame.
  */
 function switchToFrame({ json }) {
-  let { commandID, element, focus, id } = json;
+  let { commandID, element, id } = json;
 
   let foundFrame;
   let wantedFrame = null;
@@ -819,10 +790,6 @@ function switchToFrame({ json }) {
     sendSyncMessage("Marionette:switchedToFrame", {
       browsingContextId: curContainer.id,
     });
-
-    if (focus) {
-      curContainer.frame.focus();
-    }
 
     sendOk(commandID);
     return;
@@ -885,10 +852,6 @@ function switchToFrame({ json }) {
               browsingContextId: curContainer.id,
             });
 
-            if (focus) {
-              curContainer.frame.focus();
-            }
-
             sendOk(commandID);
             return;
           }
@@ -919,10 +882,6 @@ function switchToFrame({ json }) {
   sendSyncMessage("Marionette:switchedToFrame", {
     browsingContextId: curContainer.id,
   });
-
-  if (focus) {
-    curContainer.frame.focus();
-  }
 
   sendOk(commandID);
 }
@@ -1088,8 +1047,6 @@ function registerSelf() {
 
   sandboxes.clear();
   legacyactions.mouseEventsOnly = false;
-  action.inputStateMap = new Map();
-  action.inputsToCancel = [];
 
   let reply = sendSyncMessage("Marionette:Register", {
     frameId: contentId,

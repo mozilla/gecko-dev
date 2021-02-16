@@ -110,15 +110,11 @@ static inline SymbolicAddress ToSymbolicAddress(BD_SymbolicAddress bd) {
   MOZ_CRASH("unknown baldrdash symbolic address");
 }
 
-static bool GenerateCraneliftCode(WasmMacroAssembler& masm,
-                                  const CraneliftCompiledFunc& func,
-                                  const FuncTypeWithId& funcType,
-                                  uint32_t lineOrBytecode,
-                                  uint32_t funcBytecodeSize,
-                                  StackMaps* stackMaps, size_t stackMapsOffset,
-                                  size_t stackMapsCount, FuncOffsets* offsets) {
-  const FuncTypeIdDesc& funcTypeId = funcType.id;
-
+static bool GenerateCraneliftCode(
+    WasmMacroAssembler& masm, const CraneliftCompiledFunc& func,
+    const FuncType& funcType, const TypeIdDesc& funcTypeId,
+    uint32_t lineOrBytecode, uint32_t funcBytecodeSize, StackMaps* stackMaps,
+    size_t stackMapsOffset, size_t stackMapsCount, FuncOffsets* offsets) {
   wasm::GenerateFunctionPrologue(masm, funcTypeId, mozilla::Nothing(), offsets);
 
   // Omit the check when framePushed is small and we know there's no
@@ -297,6 +293,7 @@ class CraneliftContext {
       : moduleEnv_(moduleEnv), compiler_(nullptr) {
     staticEnv_.ref_types_enabled = moduleEnv.refTypesEnabled();
     staticEnv_.threads_enabled = true;
+    staticEnv_.v128_enabled = moduleEnv.v128Enabled();
 #ifdef WASM_SUPPORTS_HUGE_MEMORY
     if (moduleEnv.hugeMemoryEnabled()) {
       // In the huge memory configuration, we always reserve the full 4 GB
@@ -361,6 +358,8 @@ CraneliftStaticEnvironment::CraneliftStaticEnvironment()
       platform_is_windows(false),
 #endif
       ref_types_enabled(false),
+      threads_enabled(false),
+      v128_enabled(false),
       static_memory_bound(0),
       memory_guard_size(0),
       memory_base_tls_offset(offsetof(TlsData, memoryBase)),
@@ -388,7 +387,13 @@ static size_t globalToTlsOffset(size_t globalOffset) {
 
 CraneliftModuleEnvironment::CraneliftModuleEnvironment(
     const ModuleEnvironment& env)
-    : env(&env), min_memory_length(env.minMemoryLength) {}
+    : env(&env) {
+  // env.minMemoryLength is in bytes.  Convert it to wasm pages.
+  static_assert(sizeof(env.minMemoryLength) == 8);
+  MOZ_RELEASE_ASSERT(env.minMemoryLength <= (((uint64_t)1) << 32));
+  MOZ_RELEASE_ASSERT((env.minMemoryLength & wasm::PageMask) == 0);
+  min_memory_length = (uint32_t)(env.minMemoryLength >> wasm::PageBits);
+}
 
 TypeCode env_unpack(BD_ValType valType) {
   return UnpackTypeCodeType(PackedTypeCode(valType.packed));
@@ -407,7 +412,18 @@ TypeCode env_elem_typecode(const CraneliftModuleEnvironment* env,
 }
 
 uint32_t env_max_memory(const CraneliftModuleEnvironment* env) {
-  return env->env->maxMemoryLength.valueOr(UINT32_MAX);
+  // env.maxMemoryLength is in bytes.  Convert it to wasm pages.
+  if (env->env->maxMemoryLength.isSome()) {
+    // We use |auto| here rather than |uint64_t| so that the static_assert will
+    // fail if |maxMemoryLength| is changed to some other size.
+    auto inBytes = *(env->env->maxMemoryLength);
+    static_assert(sizeof(inBytes) == 8);
+    MOZ_RELEASE_ASSERT(inBytes <= (((uint64_t)1) << 32));
+    MOZ_RELEASE_ASSERT((inBytes & wasm::PageMask) == 0);
+    return (uint32_t)(inBytes >> wasm::PageBits);
+  } else {
+    return UINT32_MAX;
+  }
 }
 
 bool env_uses_shared_memory(const CraneliftModuleEnvironment* env) {
@@ -421,21 +437,25 @@ bool env_has_memory(const CraneliftModuleEnvironment* env) {
 size_t env_num_types(const CraneliftModuleEnvironment* env) {
   return env->env->types.length();
 }
-const FuncTypeWithId* env_type(const CraneliftModuleEnvironment* env,
-                               size_t typeIndex) {
+const FuncType* env_type(const CraneliftModuleEnvironment* env,
+                         size_t typeIndex) {
   return &env->env->types[typeIndex].funcType();
 }
 
 size_t env_num_funcs(const CraneliftModuleEnvironment* env) {
-  return env->env->funcTypes.length();
+  return env->env->funcs.length();
 }
-const FuncTypeWithId* env_func_sig(const CraneliftModuleEnvironment* env,
-                                   size_t funcIndex) {
-  return env->env->funcTypes[funcIndex];
+const FuncType* env_func_sig(const CraneliftModuleEnvironment* env,
+                             size_t funcIndex) {
+  return env->env->funcs[funcIndex].type;
+}
+const TypeIdDesc* env_func_sig_id(const CraneliftModuleEnvironment* env,
+                                  size_t funcIndex) {
+  return env->env->funcs[funcIndex].typeId;
 }
 size_t env_func_sig_index(const CraneliftModuleEnvironment* env,
                           size_t funcIndex) {
-  return env->env->funcTypeIndices[funcIndex];
+  return env->env->funcs[funcIndex].typeIndex;
 }
 bool env_is_func_valid_for_ref(const CraneliftModuleEnvironment* env,
                                uint32_t index) {
@@ -452,9 +472,14 @@ bool env_func_is_import(const CraneliftModuleEnvironment* env,
   return env->env->funcIsImport(funcIndex);
 }
 
-const FuncTypeWithId* env_signature(const CraneliftModuleEnvironment* env,
-                                    size_t funcTypeIndex) {
+const FuncType* env_signature(const CraneliftModuleEnvironment* env,
+                              size_t funcTypeIndex) {
   return &env->env->types[funcTypeIndex].funcType();
+}
+
+const TypeIdDesc* env_signature_id(const CraneliftModuleEnvironment* env,
+                                   size_t funcTypeIndex) {
+  return &env->env->typeIds[funcTypeIndex];
 }
 
 size_t env_num_tables(const CraneliftModuleEnvironment* env) {
@@ -487,7 +512,7 @@ bool wasm::CraneliftCompileFunctions(const ModuleEnvironment& moduleEnv,
 
   TempAllocator alloc(&lifo);
   JitContext jitContext(&alloc);
-  WasmMacroAssembler masm(alloc);
+  WasmMacroAssembler masm(alloc, moduleEnv);
   MOZ_ASSERT(IsCompilingWasm());
 
   // Swap in already-allocated empty vectors to avoid malloc/free.
@@ -542,12 +567,13 @@ bool wasm::CraneliftCompileFunctions(const ModuleEnvironment& moduleEnv,
     }
 
     uint32_t lineOrBytecode = func.lineOrBytecode;
-    const FuncTypeWithId& funcType = *moduleEnv.funcTypes[clifInput.index];
+    const FuncType& funcType = *moduleEnv.funcs[clifInput.index].type;
+    const TypeIdDesc& funcTypeId = *moduleEnv.funcs[clifInput.index].typeId;
 
     FuncOffsets offsets;
     if (!GenerateCraneliftCode(
-            masm, clifFunc, funcType, lineOrBytecode, funcBytecodeSize,
-            &code->stackMaps, previousStackmapCount,
+            masm, clifFunc, funcType, funcTypeId, lineOrBytecode,
+            funcBytecodeSize, &code->stackMaps, previousStackmapCount,
             code->stackMaps.length() - previousStackmapCount, &offsets)) {
       return false;
     }
@@ -651,6 +677,9 @@ BD_ConstantValue global_constantValue(const GlobalDesc* global) {
     case TypeCode::F64:
       v.u.f64 = value.f64();
       break;
+    case TypeCode::V128:
+      memcpy(&v.u.v128, &value.v128(), sizeof(v.u.v128));
+      break;
     case AbstractReferenceTypeCode:
       v.u.r = value.ref().forCompiledCode();
       break;
@@ -686,34 +715,34 @@ TypeCode table_elementTypeCode(const TableDesc* table) {
 
 // Sig
 
-size_t funcType_numArgs(const FuncTypeWithId* funcType) {
+size_t funcType_numArgs(const FuncType* funcType) {
   return funcType->args().length();
 }
 
-const BD_ValType* funcType_args(const FuncTypeWithId* funcType) {
+const BD_ValType* funcType_args(const FuncType* funcType) {
   static_assert(sizeof(BD_ValType) == sizeof(ValType), "update BD_ValType");
   return (const BD_ValType*)funcType->args().begin();
 }
 
-size_t funcType_numResults(const FuncTypeWithId* funcType) {
+size_t funcType_numResults(const FuncType* funcType) {
   return funcType->results().length();
 }
 
-const BD_ValType* funcType_results(const FuncTypeWithId* funcType) {
+const BD_ValType* funcType_results(const FuncType* funcType) {
   static_assert(sizeof(BD_ValType) == sizeof(ValType), "update BD_ValType");
   return (const BD_ValType*)funcType->results().begin();
 }
 
-FuncTypeIdDescKind funcType_idKind(const FuncTypeWithId* funcType) {
-  return funcType->id.kind();
+TypeIdDescKind funcType_idKind(const TypeIdDesc* funcTypeId) {
+  return funcTypeId->kind();
 }
 
-size_t funcType_idImmediate(const FuncTypeWithId* funcType) {
-  return funcType->id.immediate();
+size_t funcType_idImmediate(const TypeIdDesc* funcTypeId) {
+  return funcTypeId->immediate();
 }
 
-size_t funcType_idTlsOffset(const FuncTypeWithId* funcType) {
-  return globalToTlsOffset(funcType->id.globalDataOffset());
+size_t funcType_idTlsOffset(const TypeIdDesc* funcTypeId) {
+  return globalToTlsOffset(funcTypeId->globalDataOffset());
 }
 
 void stackmaps_add(BD_Stackmaps* sink, const uint32_t* bitMap,

@@ -9,16 +9,16 @@
 
 class nsLookAndFeel final : public nsXPLookAndFeel {
  public:
-  nsLookAndFeel();
+  explicit nsLookAndFeel(const LookAndFeelCache* aCache);
   virtual ~nsLookAndFeel();
 
   void NativeInit() final;
   virtual void RefreshImpl() override;
-  virtual nsresult NativeGetColor(ColorID aID, nscolor& aResult) override;
-  virtual nsresult GetIntImpl(IntID aID, int32_t& aResult) override;
-  virtual nsresult GetFloatImpl(FloatID aID, float& aResult) override;
-  virtual bool GetFontImpl(FontID aID, nsString& aFontName,
-                           gfxFontStyle& aFontStyle) override;
+  nsresult NativeGetColor(ColorID aID, nscolor& aResult) override;
+  nsresult NativeGetInt(IntID aID, int32_t& aResult) override;
+  nsresult NativeGetFloat(FloatID aID, float& aResult) override;
+  bool NativeGetFont(FontID aID, nsString& aFontName,
+                     gfxFontStyle& aFontStyle) override;
 
   virtual char16_t GetPasswordCharacterImpl() override {
     // unicode value for the bullet character, used for password textfields.
@@ -31,6 +31,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   void SetCacheImpl(const LookAndFeelCache& aCache) override;
 
  protected:
+  void DoSetCache(const LookAndFeelCache& aCache);
   static bool AllowOverlayScrollbarsOverlap();
 
   static bool SystemWantsDarkTheme();

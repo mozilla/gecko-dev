@@ -12,6 +12,7 @@
 #include "nsContentUtils.h"
 #include "nsSize.h"
 #include "mozilla/ReflowInput.h"
+#include "mozilla/ScopeExit.h"
 #include "nsComponentManagerUtils.h"
 #include "nsString.h"
 #include "nsAtom.h"
@@ -24,6 +25,7 @@
 #include "nsITooltipListener.h"
 #include "nsINode.h"
 #include "Link.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/MouseEvent.h"
 #include "mozilla/dom/SVGTitleElement.h"
@@ -39,6 +41,7 @@
 #include "nsRect.h"
 #include "nsIWebBrowserChromeFocus.h"
 #include "nsIContent.h"
+#include "nsServiceManagerUtils.h"
 #include "nsViewManager.h"
 #include "nsView.h"
 #include "nsIConstraintValidation.h"
@@ -1272,7 +1275,7 @@ void ChromeTooltipListener::sTooltipCallback(nsITimer* aTimer,
       }
     }
 
-    if (!widget || !docShell || !docShell->GetIsActive()) {
+    if (!widget || !docShell || !docShell->GetBrowsingContext()->IsActive()) {
       return;
     }
 

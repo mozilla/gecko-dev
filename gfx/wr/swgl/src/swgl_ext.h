@@ -3,45 +3,47 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 static inline void commit_span(uint32_t* buf, WideRGBA8 r) {
-  if (blend_key) r = blend_pixels_RGBA8(unaligned_load<PackedRGBA8>(buf), r);
+  if (blend_key) r = blend_pixels(buf, unaligned_load<PackedRGBA8>(buf), r);
   unaligned_store(buf, pack(r));
+}
+
+static inline void commit_span(uint32_t* buf, PackedRGBA8 r) {
+  if (blend_key)
+    r = pack(blend_pixels(buf, unaligned_load<PackedRGBA8>(buf), unpack(r)));
+  unaligned_store(buf, r);
 }
 
 UNUSED static inline void commit_solid_span(uint32_t* buf, WideRGBA8 r,
                                             int len) {
   if (blend_key) {
-    for (uint32_t* end = &buf[len]; buf < end; buf += 4) {
+    for (uint32_t* end = &buf[len & ~3]; buf < end; buf += 4) {
       unaligned_store(
-          buf, pack(blend_pixels_RGBA8(unaligned_load<PackedRGBA8>(buf), r)));
+          buf, pack(blend_pixels(buf, unaligned_load<PackedRGBA8>(buf), r)));
+    }
+    len &= 3;
+    if (len > 0) {
+      partial_store_span(
+          buf,
+          pack(blend_pixels(buf, partial_load_span<PackedRGBA8>(buf, len), r,
+                            len)),
+          len);
     }
   } else {
     fill_n(buf, len, bit_cast<U32>(pack(r)).x);
   }
 }
 
-UNUSED static inline void commit_texture_span(uint32_t* buf, uint32_t* src,
-                                              int len) {
-  if (blend_key) {
-    for (uint32_t* end = &buf[len]; buf < end; buf += 4, src += 4) {
-      PackedRGBA8 r = unaligned_load<PackedRGBA8>(src);
-      unaligned_store(buf, pack(blend_pixels_RGBA8(
-                               unaligned_load<PackedRGBA8>(buf), unpack(r))));
-    }
-  } else {
-    memcpy(buf, src, len * sizeof(uint32_t));
-  }
-}
-
 static inline void commit_span(uint8_t* buf, WideR8 r) {
-  if (blend_key) r = blend_pixels_R8(unpack(unaligned_load<PackedR8>(buf)), r);
+  if (blend_key)
+    r = blend_pixels(buf, unpack(unaligned_load<PackedR8>(buf)), r);
   unaligned_store(buf, pack(r));
 }
 
 UNUSED static inline void commit_solid_span(uint8_t* buf, WideR8 r, int len) {
   if (blend_key) {
     for (uint8_t* end = &buf[len]; buf < end; buf += 4) {
-      unaligned_store(
-          buf, pack(blend_pixels_R8(unpack(unaligned_load<PackedR8>(buf)), r)));
+      unaligned_store(buf, pack(blend_pixels(
+                               buf, unpack(unaligned_load<PackedR8>(buf)), r)));
     }
   } else {
     fill_n((uint32_t*)buf, len / 4, bit_cast<uint32_t>(pack(r)));
@@ -205,6 +207,310 @@ static ALWAYS_INLINE T swgl_linearQuantizeStep(S s, T p) {
 #define swgl_commitGaussianBlurR8(s, p, uv_rect, hori, radius, coeffs, ...) \
   swgl_commitGaussianBlur(R8, uint8_t, s, p, uv_rect, hori, radius, coeffs, \
                           __VA_ARGS__)
+
+// Convert and pack planar YUV samples to RGB output using a color space
+static ALWAYS_INLINE PackedRGBA8 convertYUV(int colorSpace, U16 y, U16 u,
+                                            U16 v) {
+  auto yy = V8<int16_t>(zip(y, y));
+  auto uv = V8<int16_t>(zip(u, v));
+  switch (colorSpace) {
+    case REC_601:
+      return YUVConverter<REC_601>::convert(yy, uv);
+    case REC_709:
+      return YUVConverter<REC_709>::convert(yy, uv);
+    case REC_2020:
+      return YUVConverter<REC_2020>::convert(yy, uv);
+    default:
+      return YUVConverter<IDENTITY>::convert(yy, uv);
+  }
+}
+
+// Helper functions to sample from planar YUV textures before converting to RGB
+template <typename S0>
+static inline PackedRGBA8 sampleYUV(S0 sampler0, vec2 uv0, int layer0,
+                                    int colorSpace, int rescaleFactor) {
+  ivec2 i0(uv0);
+  switch (sampler0->format) {
+    case TextureFormat::RGBA8: {
+      auto planar = textureLinearPlanarRGBA8(sampler0, i0, layer0);
+      return convertYUV(colorSpace, highHalf(planar.rg), lowHalf(planar.rg),
+                        lowHalf(planar.ba));
+    }
+    case TextureFormat::YUV422: {
+      auto planar = textureLinearPlanarYUV422(sampler0, i0, layer0);
+      return convertYUV(colorSpace, planar.y, planar.u, planar.v);
+    }
+    default:
+      assert(false);
+      return PackedRGBA8(0);
+  }
+}
+
+template <typename S0, typename C>
+static inline WideRGBA8 sampleColorYUV(S0 sampler0, vec2 uv0, int layer0,
+                                       int colorSpace, int rescaleFactor,
+                                       C color) {
+  return muldiv255(
+      unpack(sampleYUV(sampler0, uv0, layer0, colorSpace, rescaleFactor)),
+      pack_pixels_RGBA8(color));
+}
+
+template <typename S0, typename S1>
+static inline PackedRGBA8 sampleYUV(S0 sampler0, vec2 uv0, int layer0,
+                                    S1 sampler1, vec2 uv1, int layer1,
+                                    int colorSpace, int rescaleFactor) {
+  ivec2 i0(uv0);
+  ivec2 i1(uv1);
+  switch (sampler1->format) {
+    case TextureFormat::RG8: {
+      assert(sampler0->format == TextureFormat::R8);
+      auto y = textureLinearUnpackedR8(sampler0, i0, layer0);
+      auto planar = textureLinearPlanarRG8(sampler1, i1, layer1);
+      return convertYUV(colorSpace, y, lowHalf(planar.rg), highHalf(planar.rg));
+    }
+    case TextureFormat::RGBA8: {
+      assert(sampler0->format == TextureFormat::R8);
+      auto y = textureLinearUnpackedR8(sampler0, i0, layer0);
+      auto planar = textureLinearPlanarRGBA8(sampler1, i1, layer1);
+      return convertYUV(colorSpace, y, lowHalf(planar.ba), highHalf(planar.rg));
+    }
+    default:
+      assert(false);
+      return PackedRGBA8(0);
+  }
+}
+
+template <typename S0, typename S1, typename C>
+static inline WideRGBA8 sampleColorYUV(S0 sampler0, vec2 uv0, int layer0,
+                                       S1 sampler1, vec2 uv1, int layer1,
+                                       int colorSpace, int rescaleFactor,
+                                       C color) {
+  return muldiv255(unpack(sampleYUV(sampler0, uv0, layer0, sampler1, uv1,
+                                    layer1, colorSpace, rescaleFactor)),
+                   pack_pixels_RGBA8(color));
+}
+
+template <typename S0, typename S1, typename S2>
+static inline PackedRGBA8 sampleYUV(S0 sampler0, vec2 uv0, int layer0,
+                                    S1 sampler1, vec2 uv1, int layer1,
+                                    S2 sampler2, vec2 uv2, int layer2,
+                                    int colorSpace, int rescaleFactor) {
+  ivec2 i0(uv0);
+  ivec2 i1(uv1);
+  ivec2 i2(uv2);
+  assert(sampler0->format == sampler1->format &&
+         sampler0->format == sampler2->format);
+  switch (sampler0->format) {
+    case TextureFormat::R8: {
+      auto y = textureLinearUnpackedR8(sampler0, i0, layer0);
+      auto u = textureLinearUnpackedR8(sampler1, i1, layer1);
+      auto v = textureLinearUnpackedR8(sampler2, i2, layer2);
+      return convertYUV(colorSpace, y, u, v);
+    }
+    case TextureFormat::R16: {
+      // The rescaling factor represents how many bits to add to renormalize the
+      // texture to 16 bits, and so the color depth is actually 16 minus the
+      // rescaling factor.
+      // Need to right shift the sample by the amount of bits over 8 it
+      // occupies. On output from textureLinearUnpackedR16, we have lost 1 bit
+      // of precision at the low end already, hence 1 is subtracted from the
+      // color depth.
+      int colorDepth = 16 - rescaleFactor;
+      int rescaleBits = (colorDepth - 1) - 8;
+      auto y = textureLinearUnpackedR16(sampler0, i0, layer0) >> rescaleBits;
+      auto u = textureLinearUnpackedR16(sampler1, i1, layer1) >> rescaleBits;
+      auto v = textureLinearUnpackedR16(sampler2, i2, layer2) >> rescaleBits;
+      return convertYUV(colorSpace, U16(y), U16(u), U16(v));
+    }
+    default:
+      assert(false);
+      return PackedRGBA8(0);
+  }
+}
+
+template <typename S0, typename S1, typename S2, typename C>
+static inline WideRGBA8 sampleColorYUV(S0 sampler0, vec2 uv0, int layer0,
+                                       S1 sampler1, vec2 uv1, int layer1,
+                                       S2 sampler2, vec2 uv2, int layer2,
+                                       int colorSpace, int rescaleFactor,
+                                       C color) {
+  return muldiv255(
+      unpack(sampleYUV(sampler0, uv0, layer0, sampler1, uv1, layer1, sampler2,
+                       uv2, layer2, colorSpace, rescaleFactor)),
+      pack_pixels_RGBA8(color));
+}
+
+// Commit a single chunk of a YUV surface represented by multiple planar
+// textures. This requires a color space specifier selecting how to convert
+// from YUV to RGB output. In the case of HDR formats, a rescaling factor
+// selects how many bits of precision must be utilized on conversion. See the
+// sampleYUV dispatcher functions for the various supported plane
+// configurations this intrinsic accepts.
+#define swgl_commitTextureLinearYUV(...) \
+  swgl_commitChunk(RGBA8, sampleYUV(__VA_ARGS__))
+// Commit a single chunk of a YUV surface scaled by a color.
+#define swgl_commitTextureLinearColorYUV(...) \
+  swgl_commitChunk(RGBA8, sampleColorYUV(__VA_ARGS__))
+
+// Helper functions to apply a color modulus when available.
+struct NoColor {};
+
+SI WideRGBA8 applyColor(WideRGBA8 src, NoColor) { return src; }
+
+SI WideRGBA8 applyColor(WideRGBA8 src, WideRGBA8 color) {
+  return muldiv255(src, color);
+}
+
+SI PackedRGBA8 applyColor(PackedRGBA8 src, NoColor) { return src; }
+
+SI PackedRGBA8 applyColor(PackedRGBA8 src, WideRGBA8 color) {
+  return pack(muldiv255(unpack(src), color));
+}
+
+// Samples an axis-aligned span of on a single row of a texture using 1:1
+// nearest filtering. Sampling is constrained to only fall within the given UV
+// bounds. This requires a pointer to the destination buffer. An optional color
+// modulus can be supplied.
+template <typename S, typename C>
+static void blendTextureNearestRGBA8(S sampler, const ivec2_scalar& i, int span,
+                                     const ivec2_scalar& minUV,
+                                     const ivec2_scalar& maxUV, C color,
+                                     uint32_t* buf, int layerOffset = 0) {
+  // Calculate the row pointer within the buffer, clamping to within valid row
+  // bounds.
+  uint32_t* row =
+      &sampler->buf[clamp(clampCoord(i.y, sampler->height), minUV.y, maxUV.y) *
+                        sampler->stride +
+                    layerOffset];
+  // Find clamped X bounds within the row.
+  int minX = clamp(minUV.x, 0, sampler->width - 1);
+  int maxX = clamp(maxUV.x, minX, sampler->width - 1);
+  int curX = i.x;
+  // If we need to start sampling below the valid sample bounds, then we need to
+  // fill this section with a constant clamped sample.
+  if (curX < minX) {
+    int n = min(minX - curX, span);
+    auto src = applyColor(unpack(bit_cast<PackedRGBA8>(U32(row[minX]))), color);
+    commit_solid_span(buf, src, n);
+    buf += n;
+    span -= n;
+    curX += n;
+  }
+  // Here we only deal with valid samples within the sample bounds. No clamping
+  // should occur here within these inner loops.
+  int n = clamp(maxX + 1 - curX, 0, span);
+  span -= n;
+  // Try to process as many chunks as possible with full loads and stores.
+  if (blend_key) {
+    for (int end = curX + (n & ~3); curX < end; curX += 4, buf += 4) {
+      auto src =
+          applyColor(unpack(unaligned_load<PackedRGBA8>(&row[curX])), color);
+      auto r = blend_pixels(buf, unaligned_load<PackedRGBA8>(buf), src);
+      unaligned_store(buf, pack(r));
+    }
+  } else {
+    for (int end = curX + (n & ~3); curX < end; curX += 4, buf += 4) {
+      auto src = applyColor(unaligned_load<PackedRGBA8>(&row[curX]), color);
+      unaligned_store(buf, src);
+    }
+  }
+  n &= 3;
+  // If we have any leftover samples after processing chunks, use partial loads
+  // and stores.
+  if (n > 0) {
+    if (blend_key) {
+      auto src = applyColor(
+          unpack(partial_load_span<PackedRGBA8>(&row[curX], n)), color);
+      auto r =
+          blend_pixels(buf, partial_load_span<PackedRGBA8>(buf, n), src, n);
+      partial_store_span(buf, pack(r), n);
+    } else {
+      auto src =
+          applyColor(partial_load_span<PackedRGBA8>(&row[curX], n), color);
+      partial_store_span(buf, src, n);
+    }
+    buf += n;
+    curX += n;
+  }
+  // If we still have samples left above the valid sample bounds, then we again
+  // need to fill this section with a constant clamped sample.
+  if (span > 0) {
+    auto src = applyColor(unpack(bit_cast<PackedRGBA8>(U32(row[maxX]))), color);
+    commit_solid_span(buf, src, span);
+  }
+}
+
+// TODO: blendTextureNearestR8 if it is actually needed
+
+// Commit an entire span of 1:1 nearest texture fetches, potentially scaled by a
+// color
+#define swgl_commitTextureNearest(format, s, p, uv_rect, color, ...)          \
+  do {                                                                        \
+    ivec2_scalar i = make_ivec2(samplerScale(s, force_scalar(p)));            \
+    ivec2_scalar min_uv =                                                     \
+        make_ivec2(samplerScale(s, vec2_scalar{uv_rect.x, uv_rect.y}));       \
+    ivec2_scalar max_uv =                                                     \
+        make_ivec2(samplerScale(s, vec2_scalar{uv_rect.z, uv_rect.w}));       \
+    blendTextureNearest##format(s, i, swgl_SpanLength, min_uv, max_uv, color, \
+                                swgl_Out##format, __VA_ARGS__);               \
+    swgl_Out##format += swgl_SpanLength;                                      \
+    swgl_SpanLength = 0;                                                      \
+  } while (0)
+#define swgl_commitTextureNearestRGBA8(s, p, uv_rect, ...) \
+  swgl_commitTextureNearest(RGBA8, s, p, uv_rect, NoColor(), __VA_ARGS__)
+#define swgl_commitTextureNearestR8(s, p, uv_rect, ...) \
+  swgl_commitTextureNearest(R8, s, p, uv_rect, NoColor(), __VA_ARGS__)
+
+#define swgl_commitTextureNearestColor(format, s, p, uv_rect, color, ...) \
+  swgl_commitTextureNearest(format, s, p, uv_rect,                        \
+                            pack_pixels_##format(color), __VA_ARGS__)
+#define swgl_commitTextureNearestColorRGBA8(s, p, uv_rect, color, ...) \
+  swgl_commitTextureNearestColor(RGBA8, s, p, uv_rect, color, __VA_ARGS__)
+#define swgl_commitTextureNearestColorR8(s, p, uv_rect, color, ...) \
+  swgl_commitTextureNearestColor(R8, s, p, uv_rect, color, __VA_ARGS__)
+
+// Helper function to decide whether we can safely apply 1:1 nearest filtering
+// without diverging too much from the linear filter
+template <typename S, typename T>
+static bool allowTextureNearest(S sampler, T P, int span) {
+  // First verify if the row Y doesn't change across samples
+  if (P.y.x != P.y.y) {
+    return false;
+  }
+  P = samplerScale(sampler, P);
+  // We need to verify that the pixel step reasonably approximates stepping
+  // by a single texel for every pixel we need to reproduce. Try to ensure
+  // that the margin of error is no more than approximately 2^-7.
+  span &= ~(128 - 1);
+  span += 128;
+  return round((P.x.y - P.x.x) * span) == span &&
+         // Also verify that we're reasonably close to the center of a texel
+         // so that it doesn't look that much different than if a linear filter
+         // was used.
+         (int(P.x.x * 4.0f + 0.5f) & 3) == 2 &&
+         (int(P.y.x * 4.0f + 0.5f) & 3) == 2;
+}
+
+// Determine if we can apply 1:1 nearest filtering to a span of texture
+#define swgl_allowTextureNearest(s, p) \
+  allowTextureNearest(s, p, swgl_SpanLength)
+
+// Extension to set a clip mask image to be sampled during blending. The offset
+// specifies the positioning of the clip mask image relative to the viewport
+// origin. The bounding box specifies the rectangle relative to the clip mask's
+// origin that constrains sampling within the clip mask.
+static sampler2D swgl_ClipMask = nullptr;
+static IntPoint swgl_ClipMaskOffset = {0, 0};
+static IntRect swgl_ClipMaskBounds = {0, 0, 0, 0};
+#define swgl_clipMask(mask, offset, bb_origin, bb_size)        \
+  do {                                                         \
+    if (bb_size != vec2_scalar(0.0f, 0.0f)) {                  \
+      swgl_ClipMask = mask;                                    \
+      swgl_ClipMaskOffset = make_ivec2(offset);                \
+      swgl_ClipMaskBounds =                                    \
+          IntRect(make_ivec2(bb_origin), make_ivec2(bb_size)); \
+    }                                                          \
+  } while (0)
 
 // Dispatch helper used by the GLSL translator to swgl_drawSpan functions.
 // The number of pixels committed is tracked by checking for the difference in

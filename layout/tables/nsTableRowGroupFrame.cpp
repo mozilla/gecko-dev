@@ -257,8 +257,7 @@ void nsTableRowGroupFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   DisplayRows(aBuilder, this, aLists);
 }
 
-nsIFrame::LogicalSides nsTableRowGroupFrame::GetLogicalSkipSides(
-    const Maybe<SkipSidesDuringReflow>&) const {
+LogicalSides nsTableRowGroupFrame::GetLogicalSkipSides() const {
   LogicalSides skip(mWritingMode);
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                    StyleBoxDecorationBreak::Clone)) {
@@ -877,7 +876,7 @@ nscoord nsTableRowGroupFrame::CollapseRowGroupIfNecessary(nscoord aBTotalOffset,
     tableFrame->SetNeedToCollapse(true);
   }
 
-  nsOverflowAreas overflow;
+  OverflowAreas overflow;
 
   nsTableRowFrame* rowFrame = GetFirstRow();
   bool didCollapse = false;
@@ -1101,6 +1100,7 @@ nsresult nsTableRowGroupFrame::SplitRowGroup(nsPresContext* aPresContext,
 
   nsTableRowFrame* prevRowFrame = nullptr;
   aDesiredSize.Height() = 0;
+  aDesiredSize.SetOverflowAreasToDesiredBounds();
 
   const nscoord availWidth = aReflowInput.AvailableWidth();
   const nscoord availHeight = aReflowInput.AvailableHeight();
@@ -1334,17 +1334,15 @@ nsresult nsTableRowGroupFrame::SplitRowGroup(nsPresContext* aPresContext,
       }
       break;
     }  // if (rowRect.YMost() > availHeight)
-    else {
-      aDesiredSize.Height() = rowRect.YMost();
-      prevRowFrame = rowFrame;
-      // see if there is a page break after the row
-      nsTableRowFrame* nextRow = rowFrame->GetNextRow();
-      if (nextRow && nsTableFrame::PageBreakAfter(rowFrame, nextRow)) {
-        PushChildren(nextRow, rowFrame);
-        aStatus.Reset();
-        aStatus.SetIncomplete();
-        break;
-      }
+    aDesiredSize.Height() = rowRect.YMost();
+    prevRowFrame = rowFrame;
+    // see if there is a page break after the row
+    nsTableRowFrame* nextRow = rowFrame->GetNextRow();
+    if (nextRow && nsTableFrame::PageBreakAfter(rowFrame, nextRow)) {
+      PushChildren(nextRow, rowFrame);
+      aStatus.Reset();
+      aStatus.SetIncomplete();
+      break;
     }
     // after the 1st row that has a height, we can't be on top
     // of the page anymore.
@@ -1441,7 +1439,7 @@ void nsTableRowGroupFrame::Reflow(nsPresContext* aPresContext,
 }
 
 bool nsTableRowGroupFrame::ComputeCustomOverflow(
-    nsOverflowAreas& aOverflowAreas) {
+    OverflowAreas& aOverflowAreas) {
   // Row cursor invariants depend on the ink overflow area of the rows,
   // which may have changed, so we need to clear the cursor now.
   ClearRowCursor();

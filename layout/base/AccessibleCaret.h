@@ -9,7 +9,6 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/AnonymousContent.h"
-#include "mozilla/dom/Element.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMEventListener.h"
 #include "nsIFrame.h"  // for WeakFrame only
@@ -26,6 +25,7 @@ struct nsPoint;
 namespace mozilla {
 class PresShell;
 namespace dom {
+class Element;
 class Event;
 }  // namespace dom
 
@@ -159,7 +159,7 @@ class AccessibleCaret {
     return mCaretElementHolder->GetElementById(sCaretImageElementId);
   }
 
-  nsIFrame* RootFrame() const { return mPresShell->GetRootFrame(); }
+  nsIFrame* RootFrame() const;
 
   nsIFrame* CustomContentContainerFrame() const;
 

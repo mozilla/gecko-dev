@@ -75,6 +75,8 @@ class Device final : public DOMEventTargetHelper {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Device, DOMEventTargetHelper)
   GPU_DECL_JS_WRAP(Device)
 
+  const RawId mId;
+
   explicit Device(Adapter* const aParent, RawId aId);
 
   RefPtr<WebGPUChild> GetBridge();
@@ -95,7 +97,6 @@ class Device final : public DOMEventTargetHelper {
   void Cleanup();
 
   RefPtr<WebGPUChild> mBridge;
-  const RawId mId;
   bool mValid = true;
   nsString mLabel;
   RefPtr<Queue> mQueue;
@@ -131,7 +132,7 @@ class Device final : public DOMEventTargetHelper {
   already_AddRefed<RenderPipeline> CreateRenderPipeline(
       const dom::GPURenderPipelineDescriptor& aDesc);
 
-  // IMPL_EVENT_HANDLER(uncapturederror)
+  IMPL_EVENT_HANDLER(uncapturederror)
 };
 
 }  // namespace webgpu

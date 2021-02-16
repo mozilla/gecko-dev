@@ -10,6 +10,7 @@ provides a base class for fx desktop builds
 author: Jordan Lund
 
 """
+from __future__ import absolute_import
 import copy
 import json
 import os
@@ -673,7 +674,7 @@ items from that key's value."
             # explicitly
             if c.get("update_channel"):
                 update_channel = c["update_channel"]
-                if isinstance(update_channel, six.text_type):
+                if six.PY2 and isinstance(update_channel, six.text_type):
                     update_channel = update_channel.encode("utf-8")
                 env["MOZ_UPDATE_CHANNEL"] = update_channel
             else:  # let's just give the generic channel based on branch
@@ -725,35 +726,16 @@ items from that key's value."
             abs_mozconfig_path, os.path.join(dirs["abs_src_dir"], ".mozconfig")
         )
 
-    # TODO: replace with ToolToolMixin
-    def _get_tooltool_auth_file(self):
-        # set the default authentication file based on platform; this
-        # corresponds to where puppet puts the token
-        if "tooltool_authentication_file" in self.config:
-            fn = self.config["tooltool_authentication_file"]
-        elif self._is_windows():
-            fn = r"c:\builds\relengapi.tok"
-        else:
-            fn = "/builds/relengapi.tok"
-
-        # if the file doesn't exist, don't pass it to tooltool (it will just
-        # fail).  In taskcluster, this will work OK as the relengapi-proxy will
-        # take care of auth.  Everywhere else, we'll get auth failures if
-        # necessary.
-        if os.path.exists(fn):
-            return fn
-
     def _run_tooltool(self):
         env = self.query_build_env()
         env.update(self.query_mach_build_env())
 
         c = self.config
         dirs = self.query_abs_dirs()
-        toolchains = os.environ.get("MOZ_TOOLCHAINS")
         manifest_src = os.environ.get("TOOLTOOL_MANIFEST")
         if not manifest_src:
             manifest_src = c.get("tooltool_manifest_src")
-        if not manifest_src and not toolchains:
+        if not manifest_src:
             return self.warning(ERROR_MSGS["tooltool_manifest_undetermined"])
         cmd = [
             sys.executable,
@@ -774,14 +756,9 @@ items from that key's value."
                     os.path.join(dirs["abs_src_dir"], manifest_src),
                 ]
             )
-            auth_file = self._get_tooltool_auth_file()
-            if auth_file:
-                cmd.extend(["--authentication-file", auth_file])
         cache = c["env"].get("TOOLTOOL_CACHE")
         if cache:
             cmd.extend(["--cache-dir", cache])
-        if toolchains:
-            cmd.extend(toolchains.split())
         self.info(str(cmd))
         self.run_command(cmd, cwd=dirs["abs_src_dir"], halt_on_failure=True, env=env)
 

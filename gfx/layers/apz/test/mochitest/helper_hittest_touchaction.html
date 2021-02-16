@@ -65,6 +65,8 @@
  <div id="taListener" class="taBox" ontouchstart="return false;">
   <div id="taInnerListenerPanX" style="touch-action: pan-x"></div>
  </div>
+ <div id="taPinchZoom" class="taBox" style="touch-action: pinch-zoom">
+ </div>
 
  <br/>
 
@@ -108,12 +110,12 @@
 
 var config = getHitTestConfig();
 
-function* test(testDriver) {
+async function test() {
   for (var scroller of document.querySelectorAll(".taBigBox > div")) {
     // layerize all the scrollable divs
     config.utils.setDisplayPortForElement(0, 0, 100, 100, scroller, 1);
   }
-  yield waitForApzFlushedRepaints(testDriver);
+  await promiseApzFlushedRepaints();
 
   var scrollId = config.utils.getViewId(document.scrollingElement);
   var layersId = config.utils.getLayersId();
@@ -286,6 +288,16 @@ function* test(testDriver) {
       "touch-action: pan-x inside div with touch listener");
 
   checkHitResult(
+      hitTest(centerOf("taPinchZoom")),
+      APZHitResultFlags.VISIBLE |
+      APZHitResultFlags.PAN_Y_DISABLED |
+      APZHitResultFlags.PAN_X_DISABLED |
+      APZHitResultFlags.DOUBLE_TAP_ZOOM_DISABLED,
+      scrollId,
+      layersId,
+      "touch-action: pinch-zoom inside div with touch listener");
+
+  checkHitResult(
       hitTest(centerOf("taScrollerPanY")),
       APZHitResultFlags.VISIBLE |
       APZHitResultFlags.PAN_X_DISABLED |
@@ -344,7 +356,7 @@ if (!config.isWebRender) {
   subtestDone();
 } else {
   waitUntilApzStable()
-    .then(runContinuation(test))
+    .then(test)
     .then(subtestDone, subtestFailed);
 }
 

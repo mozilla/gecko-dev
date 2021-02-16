@@ -5,8 +5,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ArrayUtils.h"
-
 #include "jit/IonAnalysis.h"
 #include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
@@ -141,8 +139,8 @@ BEGIN_TEST(testJitRangeAnalysis_MathSignBeta) {
   entry->add(c0);
   MConstant* cm0 = MConstant::New(func.alloc, DoubleValue(-0.0));
   entry->add(cm0);
-  MCompare* cmp = MCompare::New(func.alloc, p, c0, JSOp::Lt);
-  cmp->setCompareType(MCompare::Compare_Double);
+  MCompare* cmp =
+      MCompare::New(func.alloc, p, c0, JSOp::Lt, MCompare::Compare_Double);
   entry->add(cmp);
   entry->end(MTest::New(func.alloc, cmp, thenBlock, elseBlock));
 
@@ -159,8 +157,8 @@ BEGIN_TEST(testJitRangeAnalysis_MathSignBeta) {
   // else
   // {
   //   if (p >= 0)
-  MCompare* elseCmp = MCompare::New(func.alloc, p, c0, JSOp::Ge);
-  elseCmp->setCompareType(MCompare::Compare_Double);
+  MCompare* elseCmp =
+      MCompare::New(func.alloc, p, c0, JSOp::Ge, MCompare::Compare_Double);
   elseBlock->add(elseCmp);
   elseBlock->end(MTest::New(func.alloc, elseCmp, elseThenBlock, elseElseBlock));
 
@@ -242,9 +240,11 @@ BEGIN_TEST(testJitRangeAnalysis_StrictCompareBeta) {
   entry->add(p);
   MConstant* c0 = MConstant::New(func.alloc, DoubleValue(0.0));
   entry->add(c0);
-  MCompare* cmp = MCompare::New(func.alloc, p, c0, JSOp::StrictEq);
+  MCompare* cmp = MCompare::New(func.alloc, p, c0, JSOp::StrictEq,
+                                MCompare::Compare_Double);
   entry->add(cmp);
-  entry->end(MTest::New(func.alloc, cmp, thenBlock, elseBlock));
+  auto* test = MTest::New(func.alloc, cmp, thenBlock, elseBlock);
+  entry->end(test);
 
   // {
   //   return p + -0;
@@ -266,13 +266,20 @@ BEGIN_TEST(testJitRangeAnalysis_StrictCompareBeta) {
   // If range analysis inserts a beta node for p, it will be able to compute
   // a meaningful range for p + -0.
 
+  auto replaceCompare = [&](auto compareType) {
+    auto* newCmp =
+        MCompare::New(func.alloc, p, c0, JSOp::StrictEq, compareType);
+    entry->insertBefore(cmp, newCmp);
+    test->replaceOperand(0, newCmp);
+    cmp = newCmp;
+  };
+
   // We can't do beta node insertion with StrictEq and a non-numeric
   // comparison though.
-  MCompare::CompareType nonNumerics[] = {
-      MCompare::Compare_Unknown, MCompare::Compare_Object,
-      MCompare::Compare_Bitwise, MCompare::Compare_String};
-  for (size_t i = 0; i < mozilla::ArrayLength(nonNumerics); ++i) {
-    cmp->setCompareType(nonNumerics[i]);
+  for (auto compareType :
+       {MCompare::Compare_Object, MCompare::Compare_String}) {
+    replaceCompare(compareType);
+
     if (!func.runRangeAnalysis()) {
       return false;
     }
@@ -281,7 +288,7 @@ BEGIN_TEST(testJitRangeAnalysis_StrictCompareBeta) {
   }
 
   // We can do it with a numeric comparison.
-  cmp->setCompareType(MCompare::Compare_Double);
+  replaceCompare(MCompare::Compare_Double);
   if (!func.runRangeAnalysis()) {
     return false;
   }

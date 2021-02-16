@@ -374,7 +374,7 @@ class MOZ_RAII CacheRegisterAllocator {
         writer_(writer) {
   }
 
-  MOZ_MUST_USE bool init();
+  [[nodiscard]] bool init();
 
   void initAvailableRegs(const AllocatableGeneralRegisterSet& available) {
     availableRegs_ = available;
@@ -419,7 +419,7 @@ class MOZ_RAII CacheRegisterAllocator {
 
   const SpilledRegisterVector& spilledRegs() const { return spilledRegs_; }
 
-  MOZ_MUST_USE bool setSpilledRegs(const SpilledRegisterVector& regs) {
+  [[nodiscard]] bool setSpilledRegs(const SpilledRegisterVector& regs) {
     spilledRegs_.clear();
     return spilledRegs_.appendAll(regs);
   }
@@ -641,14 +641,14 @@ class FailurePath {
   void setStackPushed(uint32_t i) { stackPushed_ = i; }
   uint32_t stackPushed() const { return stackPushed_; }
 
-  MOZ_MUST_USE bool appendInput(const OperandLocation& loc) {
+  [[nodiscard]] bool appendInput(const OperandLocation& loc) {
     return inputs_.append(loc);
   }
   OperandLocation input(size_t i) const { return inputs_[i]; }
 
   const SpilledRegisterVector& spilledRegs() const { return spilledRegs_; }
 
-  MOZ_MUST_USE bool setSpilledRegs(const SpilledRegisterVector& regs) {
+  [[nodiscard]] bool setSpilledRegs(const SpilledRegisterVector& regs) {
     MOZ_ASSERT(spilledRegs_.empty());
     return spilledRegs_.appendAll(regs);
   }
@@ -726,9 +726,6 @@ class MOZ_RAII CacheIRCompiler {
   mozilla::Maybe<TypedOrValueRegister> outputUnchecked_;
   Mode mode_;
 
-  // Whether this IC may read double values from uint32 arrays.
-  mozilla::Maybe<bool> allowDoubleResult_;
-
   // Distance from the IC to the stub data; mostly will be
   // sizeof(stubType)
   uint32_t stubDataOffset_;
@@ -750,8 +747,8 @@ class MOZ_RAII CacheIRCompiler {
     MOZ_ASSERT(!writer.failed());
   }
 
-  MOZ_MUST_USE bool addFailurePath(FailurePath** failure);
-  MOZ_MUST_USE bool emitFailurePath(size_t i);
+  [[nodiscard]] bool addFailurePath(FailurePath** failure);
+  [[nodiscard]] bool emitFailurePath(size_t i);
 
   // Returns the set of volatile float registers that are live. These
   // registers need to be saved when making non-GC calls with callWithABI.
@@ -797,27 +794,22 @@ class MOZ_RAII CacheIRCompiler {
   bool emitComparePointerResultShared(JSOp op, TypedOperandId lhsId,
                                       TypedOperandId rhsId);
 
-  bool emitCompareBigIntInt32ResultShared(Register bigInt, Register int32,
-                                          Register scratch1, Register scratch2,
-                                          JSOp op,
-                                          const AutoOutputRegister& output);
-
-  MOZ_MUST_USE bool emitMathFunctionNumberResultShared(
+  [[nodiscard]] bool emitMathFunctionNumberResultShared(
       UnaryMathFunction fun, FloatRegister inputScratch, ValueOperand output);
 
   template <typename Fn, Fn fn>
-  MOZ_MUST_USE bool emitBigIntBinaryOperationShared(BigIntOperandId lhsId,
-                                                    BigIntOperandId rhsId);
+  [[nodiscard]] bool emitBigIntBinaryOperationShared(BigIntOperandId lhsId,
+                                                     BigIntOperandId rhsId);
 
   template <typename Fn, Fn fn>
-  MOZ_MUST_USE bool emitBigIntUnaryOperationShared(BigIntOperandId inputId);
+  [[nodiscard]] bool emitBigIntUnaryOperationShared(BigIntOperandId inputId);
 
   bool emitDoubleIncDecResult(bool isInc, NumberOperandId inputId);
 
   using AtomicsReadWriteModifyFn = int32_t (*)(TypedArrayObject*, int32_t,
                                                int32_t);
 
-  MOZ_MUST_USE bool emitAtomicsReadModifyWriteResult(
+  [[nodiscard]] bool emitAtomicsReadModifyWriteResult(
       ObjOperandId objId, Int32OperandId indexId, Int32OperandId valueId,
       Scalar::Type elementType, AtomicsReadWriteModifyFn fn);
 
@@ -1222,15 +1214,15 @@ class CacheIRStubInfo {
   js::GCPtr<T>& getStubField(Stub* stub, uint32_t offset) const;
 
   template <class T>
-  js::GCPtr<T>& getStubField(ICStub* stub, uint32_t offset) const {
-    return getStubField<ICStub, T>(stub, offset);
+  js::GCPtr<T>& getStubField(ICCacheIRStub* stub, uint32_t offset) const {
+    return getStubField<ICCacheIRStub, T>(stub, offset);
   }
 
   uintptr_t getStubRawWord(const uint8_t* stubData, uint32_t offset) const;
-  uintptr_t getStubRawWord(ICStub* stub, uint32_t offset) const;
+  uintptr_t getStubRawWord(ICCacheIRStub* stub, uint32_t offset) const;
 
   int64_t getStubRawInt64(const uint8_t* stubData, uint32_t offset) const;
-  int64_t getStubRawInt64(ICStub* stub, uint32_t offset) const;
+  int64_t getStubRawInt64(ICCacheIRStub* stub, uint32_t offset) const;
 
   void replaceStubRawWord(uint8_t* stubData, uint32_t offset, uintptr_t oldWord,
                           uintptr_t newWord) const;

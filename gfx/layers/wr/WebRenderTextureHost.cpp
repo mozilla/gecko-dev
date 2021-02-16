@@ -8,6 +8,7 @@
 
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/LayersSurfaces.h"
+#include "mozilla/layers/TextureSourceProvider.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 
@@ -212,6 +213,10 @@ void WebRenderTextureHost::PushDisplayItems(
 
   mWrappedTextureHost->PushDisplayItems(aBuilder, aBounds, aClip, aFilter,
                                         aImageKeys, aFlags);
+}
+
+bool WebRenderTextureHost::SupportsExternalCompositing() {
+  return mWrappedTextureHost->SupportsExternalCompositing();
 }
 
 bool WebRenderTextureHost::NeedsYFlip() const {

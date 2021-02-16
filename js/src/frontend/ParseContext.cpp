@@ -396,7 +396,7 @@ bool ParseContext::computeAnnexBAppliesToLexicalFunctionInInnermostScope(
         if (DeclarationKindIsParameter(declaredKind)) {
           redeclaredKind = Some(declaredKind);
         } else {
-          MOZ_ASSERT(FunctionScope::isSpecialName(sc()->cx_, name));
+          MOZ_ASSERT(FunctionScope::isSpecialName(sc()->cx_, name->toIndex()));
         }
       }
     }
@@ -424,15 +424,14 @@ bool ParseContext::isVarRedeclaredInEval(const ParserName* name,
   MOZ_ASSERT(sc()->isEvalContext());
 
   // TODO-Stencil: After scope snapshotting, this can be done away with.
-  JSAtom* nameAtom =
-      name->toJSAtom(sc()->cx_, sc()->compilationInfo().input.atomCache);
+  JSAtom* nameAtom = name->toJSAtom(sc()->cx_, sc()->stencil().input.atomCache);
   if (!nameAtom) {
     return false;
   }
 
   // In the case of eval, we also need to check enclosing VM scopes to see
   // if the var declaration is allowed in the context.
-  js::Scope* enclosingScope = sc()->compilationInfo().input.enclosingScope;
+  js::Scope* enclosingScope = sc()->stencil().input.enclosingScope;
   js::Scope* varScope = EvalScope::nearestVarScopeForDirectEval(enclosingScope);
   MOZ_ASSERT(varScope);
   for (ScopeIter si(enclosingScope); si; si++) {
@@ -699,6 +698,21 @@ bool ParseContext::declareDotGeneratorName() {
     }
   }
   return true;
+}
+
+bool ParseContext::declareTopLevelDotGeneratorName() {
+  // Provide a .generator binding on the module scope for compatibility with
+  // generator code, which expect to find it on the CallObject for normal
+  // generators.
+  MOZ_ASSERT(
+      sc()->isModuleContext(),
+      "Tried to declare top level dot generator in a non-module context.");
+  ParseContext::Scope& modScope = varScope();
+  const ParserName* dotGenerator = sc()->cx_->parserNames().dotGenerator;
+  AddDeclaredNamePtr p = modScope.lookupDeclaredNameForAdd(dotGenerator);
+  return p ||
+         modScope.addDeclaredName(this, p, dotGenerator, DeclarationKind::Var,
+                                  DeclaredNameInfo::npos, ClosedOver::Yes);
 }
 
 }  // namespace frontend

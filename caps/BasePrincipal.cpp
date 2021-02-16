@@ -21,6 +21,7 @@
 #include "mozilla/NullPrincipal.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/ChromeUtils.h"
+#include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/Components.h"
@@ -105,7 +106,21 @@ BasePrincipal::GetOriginNoSuffix(nsACString& aOrigin) {
 NS_IMETHODIMP
 BasePrincipal::GetSiteOrigin(nsACString& aSiteOrigin) {
   MOZ_ASSERT(mInitialized);
-  return GetOrigin(aSiteOrigin);
+
+  nsresult rv = GetSiteOriginNoSuffix(aSiteOrigin);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoCString suffix;
+  rv = GetOriginSuffix(suffix);
+  NS_ENSURE_SUCCESS(rv, rv);
+  aSiteOrigin.Append(suffix);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+BasePrincipal::GetSiteOriginNoSuffix(nsACString& aSiteOrigin) {
+  MOZ_ASSERT(mInitialized);
+  return GetOriginNoSuffix(aSiteOrigin);
 }
 
 // Returns the inner Json::value of the serialized principal
@@ -320,6 +335,19 @@ nsresult BasePrincipal::ToJSON(nsACString& aResult) {
     return NS_ERROR_UNEXPECTED;
   }
   return NS_OK;
+}
+
+bool BasePrincipal::FastSubsumesIgnoringFPD(
+    nsIPrincipal* aOther, DocumentDomainConsideration aConsideration) {
+  MOZ_ASSERT(aOther);
+
+  if (Kind() == eContentPrincipal &&
+      !dom::ChromeUtils::IsOriginAttributesEqualIgnoringFPD(
+          mOriginAttributes, Cast(aOther)->mOriginAttributes)) {
+    return false;
+  }
+
+  return SubsumesInternal(aOther, aConsideration);
 }
 
 bool BasePrincipal::Subsumes(nsIPrincipal* aOther,

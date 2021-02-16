@@ -23,7 +23,7 @@ const { require, loader } = ChromeUtils.import(
 const { worker } = ChromeUtils.import(
   "resource://devtools/shared/worker/loader.js"
 );
-const defer = require("devtools/shared/defer");
+
 const { NetUtil } = require("resource://gre/modules/NetUtil.jsm");
 
 const Services = require("Services");
@@ -75,8 +75,6 @@ async function startupAddonsManager() {
   const profileDir = do_get_profile().clone();
   profileDir.append("extensions");
 
-  /* global globalThis */
-  /* See Bug 1595810 to add globalThis to eslint */
   AddonTestUtils.init(globalThis);
   AddonTestUtils.overrideCertDB();
   AddonTestUtils.appInfo = getAppInfo();
@@ -363,7 +361,7 @@ function addTestGlobal(name, server = DevToolsServer) {
 }
 
 // List the DevToolsClient |client|'s tabs, look for one whose title is
-// |title|, and apply |callback| to the packet's entry for that tab.
+// |title|.
 async function getTestTab(client, title) {
   const tabs = await client.mainRoot.listTabs();
   for (const tab of tabs) {
@@ -384,32 +382,15 @@ async function attachTestTab(client, title) {
 }
 
 // Attach to |client|'s tab whose title is |title|, and then attach to
-// that tab's thread. Pass |callback| the thread attach response packet, a
-// TargetFront referring to the tab, and a ThreadFront referring to the
-// thread.
-async function attachTestThread(client, title, callback = () => {}) {
+// that tab's thread. Return the TargetFront referring to the tab,
+// and a ThreadFront referring to the thread.
+async function attachTestThread(client, title) {
   const targetFront = await attachTestTab(client, title);
   const threadFront = await targetFront.getFront("thread");
-  const onPaused = threadFront.once("paused");
   await targetFront.attachThread({
     autoBlackBox: true,
   });
-  const response = await onPaused;
-  Assert.equal(threadFront.state, "paused", "Thread client is paused");
-  Assert.ok("why" in response);
-  Assert.equal(response.why.type, "attached");
-  callback(response, targetFront, threadFront);
-  return { targetFront, threadFront };
-}
-
-// Attach to |client|'s tab whose title is |title|, attach to the tab's
-// thread, and then resume it. Pass |callback| the thread's response to
-// the 'resume' packet, a TargetFront for the tab, and a ThreadFront for the
-// thread.
-async function attachTestTabAndResume(client, title, callback = () => {}) {
-  const { targetFront, threadFront } = await attachTestThread(client, title);
-  const response = await threadFront.resume();
-  callback(response, targetFront, threadFront);
+  Assert.equal(threadFront.state, "attached", "Thread front is attached");
   return { targetFront, threadFront };
 }
 
@@ -814,7 +795,6 @@ async function setupTestFromUrl(url) {
   await targetFront.attach();
 
   const threadFront = await attachThread(targetFront);
-  await resume(threadFront);
 
   const sourceUrl = getFileUrl(url);
   const promise = waitForNewSource(threadFront, sourceUrl);
@@ -878,7 +858,7 @@ function threadFrontTest(test, options = {}) {
 
     // Attach to the fake tab target and retrieve the ThreadFront instance.
     // Automatically resume as the thread is paused by default after attach.
-    const { targetFront, threadFront } = await attachTestTabAndResume(
+    const { targetFront, threadFront } = await attachTestThread(
       client,
       scriptName
     );

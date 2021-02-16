@@ -15,18 +15,18 @@
 #define RASTER_LOCAL            0
 #define RASTER_SCREEN           1
 
-uniform sampler2DArray sPrevPassAlpha;
-uniform sampler2DArray sPrevPassColor;
+uniform sampler2D sClipMask;
 
 vec2 clamp_rect(vec2 pt, RectWithSize rect) {
     return clamp(pt, rect.p0, rect.p0 + rect.size);
 }
 
+#ifndef SWGL
 // TODO: convert back to RectWithEndPoint if driver issues are resolved, if ever.
 flat varying vec4 vClipMaskUvBounds;
 // XY and W are homogeneous coordinates, Z is the layer index
 varying vec4 vClipMaskUv;
-
+#endif
 
 #ifdef WR_VERTEX_SHADER
 
@@ -218,7 +218,15 @@ VertexInfo write_transform_vertex(RectWithSize local_segment_rect,
     return vi;
 }
 
-void write_clip(vec4 world_pos, ClipArea area) {
+void write_clip(vec4 world_pos, ClipArea area, PictureTask task) {
+#ifdef SWGL
+    swgl_clipMask(
+        sClipMask,
+        (task.common_data.task_rect.p0 - task.content_origin) - (area.common_data.task_rect.p0 - area.screen_origin),
+        area.common_data.task_rect.p0,
+        area.common_data.task_rect.size
+    );
+#else
     vec2 uv = world_pos.xy * area.device_pixel_scale +
         world_pos.w * (area.common_data.task_rect.p0 - area.screen_origin);
     vClipMaskUvBounds = vec4(
@@ -226,6 +234,7 @@ void write_clip(vec4 world_pos, ClipArea area) {
         area.common_data.task_rect.p0 + area.common_data.task_rect.size
     );
     vClipMaskUv = vec4(uv, area.common_data.texture_layer_index, world_pos.w);
+#endif
 }
 
 // Read the exta image data containing the homogeneous screen space coordinates
@@ -248,11 +257,12 @@ struct Fragment {
 #endif
 };
 
-bool needs_clip() {
-    return vClipMaskUvBounds.xy != vClipMaskUvBounds.zw;
-}
-
 float do_clip() {
+#ifdef SWGL
+    // SWGL relies on builtin clip-mask support to do this more efficiently,
+    // so no clipping is required here.
+    return 1.0;
+#else
     // check for the dummy bounds, which are given to the opaque objects
     if (vClipMaskUvBounds.xy == vClipMaskUvBounds.zw) {
         return 1.0;
@@ -267,56 +277,8 @@ float do_clip() {
         return 0.0;
     }
     // finally, the slow path - fetch the mask value from an image
-    // Note the Z getting rounded to the nearest integer because the variable
-    // is still interpolated and becomes a subject of precision-caused
-    // fluctuations, see https://bugzilla.mozilla.org/show_bug.cgi?id=1491911
-    ivec3 tc = ivec3(mask_uv, vClipMaskUv.z + 0.5);
-    return texelFetch(sPrevPassAlpha, tc, 0).r;
-}
-
-#ifdef WR_FEATURE_DITHERING
-vec4 dither(vec4 color) {
-    const int matrix_mask = 7;
-
-    ivec2 pos = ivec2(gl_FragCoord.xy) & ivec2(matrix_mask);
-    float noise_normalized = (texelFetch(sDither, pos, 0).r * 255.0 + 0.5) / 64.0;
-    float noise = (noise_normalized - 0.5) / 256.0; // scale down to the unit length
-
-    return color + vec4(noise, noise, noise, 0);
-}
-#else
-vec4 dither(vec4 color) {
-    return color;
-}
-#endif //WR_FEATURE_DITHERING
-
-vec4 sample_gradient(HIGHP_FS_ADDRESS int address, float offset, float gradient_repeat) {
-    // Modulo the offset if the gradient repeats.
-    float x = offset - floor(offset) * gradient_repeat;
-
-    // Calculate the color entry index to use for this offset:
-    //     offsets < 0 use the first color entry, 0
-    //     offsets from [0, 1) use the color entries in the range of [1, N-1)
-    //     offsets >= 1 use the last color entry, N-1
-    //     so transform the range [0, 1) -> [1, N-1)
-
-    // TODO(gw): In the future we might consider making the size of the
-    // LUT vary based on number / distribution of stops in the gradient.
-    // Ensure we don't fetch outside the valid range of the LUT.
-    const float GRADIENT_ENTRIES = 128.0;
-    x = clamp(1.0 + x * GRADIENT_ENTRIES, 0.0, 1.0 + GRADIENT_ENTRIES);
-
-    // Calculate the texel to index into the gradient color entries:
-    //     floor(x) is the gradient color entry index
-    //     fract(x) is the linear filtering factor between start and end
-    float entry_index = floor(x);
-    float entry_fract = x - entry_index;
-
-    // Fetch the start and end color. There is a [start, end] color per entry.
-    vec4 texels[2] = fetch_from_gpu_cache_2(address + 2 * int(entry_index));
-
-    // Finally interpolate and apply dithering
-    return dither(mix(texels[0], texels[1], entry_fract));
+    return texelFetch(sClipMask, ivec2(mask_uv), 0).r;
+#endif
 }
 
 #endif //WR_FRAGMENT_SHADER

@@ -50,7 +50,7 @@ interface CanvasRenderingContext2D {
   attribute object mozCurrentTransformInverse;
 
   [SetterThrows]
-  attribute DOMString mozTextStyle;
+  attribute UTF8String mozTextStyle;
 
   // image smoothing mode -- if disabled, images won't be smoothed
   // if scaled.
@@ -183,12 +183,14 @@ interface mixin CanvasImageSmoothing {
 
 interface mixin CanvasFillStrokeStyles {
   // colors and styles (see also the CanvasPathDrawingStyles interface)
-  attribute (DOMString or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
-  attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
+  attribute (UTF8String or CanvasGradient or CanvasPattern) strokeStyle; // (default black)
+  attribute (UTF8String or CanvasGradient or CanvasPattern) fillStyle; // (default black)
   [NewObject]
   CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
   [NewObject, Throws]
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
+  [Pref="canvas.createConicGradient.enabled", NewObject]
+  CanvasGradient createConicGradient(double angle, double cx, double cy);
   [NewObject, Throws]
   CanvasPattern? createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
 };
@@ -200,12 +202,12 @@ interface mixin CanvasShadowStyles {
   attribute double shadowOffsetY; // (default 0)
   [LenientFloat]
   attribute double shadowBlur; // (default 0)
-  attribute DOMString shadowColor; // (default transparent black)
+  attribute UTF8String shadowColor; // (default transparent black)
 };
 
 interface mixin CanvasFilters {
   [Pref="canvas.filters.enabled", SetterThrows]
-  attribute DOMString filter; // (default empty string = no filter)
+  attribute UTF8String filter; // (default empty string = no filter)
 };
 
 interface mixin CanvasRect {
@@ -262,18 +264,19 @@ interface mixin CanvasDrawImage {
   void drawImage(CanvasImageSource image, double sx, double sy, double sw, double sh, double dx, double dy, double dw, double dh);
 };
 
+// See https://github.com/whatwg/html/issues/6262 for [EnforceRange] usage.
 interface mixin CanvasImageData {
   // pixel manipulation
   [NewObject, Throws]
-  ImageData createImageData(double sw, double sh);
+  ImageData createImageData([EnforceRange] long sw, [EnforceRange] long sh);
   [NewObject, Throws]
   ImageData createImageData(ImageData imagedata);
   [NewObject, Throws, NeedsSubjectPrincipal]
-  ImageData getImageData(double sx, double sy, double sw, double sh);
+  ImageData getImageData([EnforceRange] long sx, [EnforceRange] long sy, [EnforceRange] long sw, [EnforceRange] long sh);
   [Throws]
-  void putImageData(ImageData imagedata, double dx, double dy);
+  void putImageData(ImageData imagedata, [EnforceRange] long dx, [EnforceRange] long dy);
   [Throws]
-  void putImageData(ImageData imagedata, double dx, double dy, double dirtyX, double dirtyY, double dirtyWidth, double dirtyHeight);
+  void putImageData(ImageData imagedata, [EnforceRange] long dx, [EnforceRange] long dy, [EnforceRange] long dirtyX, [EnforceRange] long dirtyY, [EnforceRange] long dirtyWidth, [EnforceRange] long dirtyHeight);
 };
 
 interface mixin CanvasPathDrawingStyles {
@@ -295,7 +298,7 @@ interface mixin CanvasPathDrawingStyles {
 interface mixin CanvasTextDrawingStyles {
   // text
   [SetterThrows]
-  attribute DOMString font; // (default 10px sans-serif)
+  attribute UTF8String font; // (default 10px sans-serif)
   attribute DOMString textAlign; // "start", "end", "left", "right", "center" (default: "start")
   attribute DOMString textBaseline; // "top", "hanging", "middle", "alphabetic", "ideographic", "bottom" (default: "alphabetic")
 };

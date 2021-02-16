@@ -48,7 +48,21 @@ mod backend {
     pub type Writer<'t> = rkv::Writer<rkv::backend::SafeModeRwTransaction<'t>>;
 
     pub fn rkv_new(path: &Path) -> Result<Rkv, rkv::StoreError> {
-        Rkv::new::<rkv::backend::SafeMode>(path)
+        match Rkv::new::<rkv::backend::SafeMode>(path) {
+            // An invalid file can mean:
+            // 1. An empty file.
+            // 2. A corrupted file.
+            //
+            // In both instances there's not much we can do.
+            // Drop the data by removing the file, and start over.
+            Err(rkv::StoreError::FileInvalid) => {
+                let safebin = path.join("data.safe.bin");
+                fs::remove_file(safebin).map_err(|_| rkv::StoreError::FileInvalid)?;
+                // Now try again, we only handle that error once.
+                Rkv::new::<rkv::backend::SafeMode>(path)
+            }
+            other => other,
+        }
     }
 
     fn delete_and_log(path: &Path, msg: &str) {
@@ -98,6 +112,7 @@ mod backend {
                 // Source environment is corrupted.
                 // We start fresh with the new database.
                 Err(MigrateError::StoreError(StoreError::FileInvalid)) => true,
+                Err(MigrateError::StoreError(StoreError::DatabaseCorrupted)) => true,
                 // Path not accessible.
                 // Somehow our directory vanished between us creating it and reading from it.
                 // Nothing we can do really.
@@ -120,6 +135,10 @@ mod backend {
                 // An internal lock was poisoned.
                 // This would only happen if multiple things run concurrently and one crashes.
                 Err(MigrateError::ManagerPoisonError) => false,
+                // Couldn't close source environment and delete files on disk (e.g. other stores still open).
+                // This could only happen if multiple instances are running,
+                // we leave files in place.
+                Err(MigrateError::CloseError(_)) => false,
                 // Other store errors are never returned from the migrator.
                 // We need to handle them to please rustc.
                 Err(MigrateError::StoreError(_)) => false,
@@ -631,7 +650,7 @@ impl Database {
             let mut res = Ok(());
             for to_delete in metrics {
                 if let Err(e) = store.delete(&mut writer, to_delete) {
-                    log::error!("Can't delete from store: {:?}", e);
+                    log::warn!("Can't delete from store: {:?}", e);
                     res = Err(e);
                 }
             }
@@ -706,7 +725,7 @@ impl Database {
             Ok(())
         });
         if let Err(e) = res {
-            log::error!("Could not clear store for lifetime {:?}: {:?}", lifetime, e);
+            log::warn!("Could not clear store for lifetime {:?}: {:?}", lifetime, e);
         }
     }
 
@@ -1303,10 +1322,70 @@ mod test {
         );
     }
 
+    /// LDMB ignores an empty database file just fine.
+    #[cfg(not(feature = "rkv-safe-mode"))]
+    #[test]
+    fn empty_data_file() {
+        let dir = tempdir().unwrap();
+        let str_dir = dir.path().display().to_string();
+
+        // Create database directory structure.
+        let database_dir = dir.path().join("db");
+        fs::create_dir_all(&database_dir).expect("create database dir");
+
+        // Create empty database file.
+        let datamdb = database_dir.join("data.mdb");
+        let f = fs::File::create(datamdb).expect("create database file");
+        drop(f);
+
+        Database::new(&str_dir, false).unwrap();
+
+        assert!(dir.path().exists());
+    }
+
     #[cfg(feature = "rkv-safe-mode")]
-    mod safe_mode_migration {
+    mod safe_mode {
+        use std::fs::File;
+
         use super::*;
         use rkv::Value;
+
+        #[test]
+        fn empty_data_file() {
+            let dir = tempdir().unwrap();
+            let str_dir = dir.path().display().to_string();
+
+            // Create database directory structure.
+            let database_dir = dir.path().join("db");
+            fs::create_dir_all(&database_dir).expect("create database dir");
+
+            // Create empty database file.
+            let safebin = database_dir.join("data.safe.bin");
+            let f = File::create(safebin).expect("create database file");
+            drop(f);
+
+            Database::new(&str_dir, false).unwrap();
+
+            assert!(dir.path().exists());
+        }
+
+        #[test]
+        fn corrupted_data_file() {
+            let dir = tempdir().unwrap();
+            let str_dir = dir.path().display().to_string();
+
+            // Create database directory structure.
+            let database_dir = dir.path().join("db");
+            fs::create_dir_all(&database_dir).expect("create database dir");
+
+            // Create empty database file.
+            let safebin = database_dir.join("data.safe.bin");
+            fs::write(safebin, "<broken>").expect("write to database file");
+
+            Database::new(&str_dir, false).unwrap();
+
+            assert!(dir.path().exists());
+        }
 
         #[test]
         fn migration_works_on_startup() {

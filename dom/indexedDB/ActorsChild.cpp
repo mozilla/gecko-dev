@@ -9,6 +9,7 @@
 #include <type_traits>
 
 #include "BackgroundChildImpl.h"
+#include "GeckoProfiler.h"
 #include "IDBDatabase.h"
 #include "IDBEvents.h"
 #include "IDBFactory.h"
@@ -29,6 +30,7 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ResultExtensions.h"
+#include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/PermissionMessageUtils.h"
@@ -572,8 +574,8 @@ void SetResultAndDispatchSuccessEvent(
     const NotNull<RefPtr<IDBRequest>>& aRequest,
     const SafeRefPtr<IDBTransaction>& aTransaction, T& aPtr,
     RefPtr<Event> aEvent) {
-  const auto autoTransaction = AutoSetCurrentTransaction{
-      aTransaction ? SomeRef(*aTransaction) : Nothing()};
+  const auto autoTransaction =
+      AutoSetCurrentTransaction{aTransaction.maybeDeref()};
 
   AUTO_PROFILER_LABEL("IndexedDB:SetResultAndDispatchSuccessEvent", DOM);
 
@@ -1062,9 +1064,9 @@ class DelayedActionRunnable final : public CancelableRunnable {
  * Actor class declarations
  ******************************************************************************/
 
-// CancelableRunnable is used to make workers happy.
+// DiscardableRunnable is used to make workers happy.
 class BackgroundRequestChild::PreprocessHelper final
-    : public CancelableRunnable,
+    : public DiscardableRunnable,
       public nsIInputStreamCallback,
       public nsIFileMetadataCallback {
   enum class State {
@@ -1095,7 +1097,7 @@ class BackgroundRequestChild::PreprocessHelper final
 
  public:
   PreprocessHelper(uint32_t aCloneDataIndex, BackgroundRequestChild* aActor)
-      : CancelableRunnable(
+      : DiscardableRunnable(
             "indexedDB::BackgroundRequestChild::PreprocessHelper"),
         mOwningEventTarget(aActor->GetActorEventTarget()),
         mActor(aActor),
@@ -2819,7 +2821,7 @@ void BackgroundRequestChild::PreprocessHelper::Finish() {
 }
 
 NS_IMPL_ISUPPORTS_INHERITED(BackgroundRequestChild::PreprocessHelper,
-                            CancelableRunnable, nsIInputStreamCallback,
+                            DiscardableRunnable, nsIInputStreamCallback,
                             nsIFileMetadataCallback)
 
 NS_IMETHODIMP

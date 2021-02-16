@@ -679,6 +679,41 @@ const DrawBlitProg* GLBlitHelper::CreateDrawBlitProg(
 
 // -----------------------------------------------------------------------------
 
+#ifdef XP_MACOSX
+static RefPtr<MacIOSurface> LookupSurface(
+    const layers::SurfaceDescriptorMacIOSurface& sd) {
+  return MacIOSurface::LookupSurface(sd.surfaceId(), sd.scaleFactor(),
+                                     !sd.isOpaque(), sd.yUVColorSpace());
+}
+#endif
+
+bool GLBlitHelper::BlitSdToFramebuffer(const layers::SurfaceDescriptor& asd,
+                                       const gfx::IntSize& destSize,
+                                       const OriginPos destOrigin) {
+  const auto sdType = asd.type();
+  switch (sdType) {
+#ifdef XP_WIN
+    case layers::SurfaceDescriptor::TSurfaceDescriptorD3D10: {
+      const auto& sd = asd.get_SurfaceDescriptorD3D10();
+      return BlitDescriptor(sd, destSize, destOrigin);
+    }
+    case layers::SurfaceDescriptor::TSurfaceDescriptorDXGIYCbCr: {
+      const auto& sd = asd.get_SurfaceDescriptorDXGIYCbCr();
+      return BlitDescriptor(sd, destSize, destOrigin);
+    }
+#endif
+#ifdef XP_MACOSX
+    case layers::SurfaceDescriptor::TSurfaceDescriptorMacIOSurface: {
+      const auto& sd = asd.get_SurfaceDescriptorMacIOSurface();
+      const auto surf = LookupSurface(sd);
+      return BlitImage(surf, destSize, destOrigin);
+    }
+#endif
+    default:
+      return false;
+  }
+}
+
 bool GLBlitHelper::BlitImageToFramebuffer(layers::Image* const srcImage,
                                           const gfx::IntSize& destSize,
                                           const OriginPos destOrigin) {
@@ -947,6 +982,10 @@ bool GLBlitHelper::BlitImage(layers::MacIOSurfaceImage* const srcImage,
 bool GLBlitHelper::BlitImage(MacIOSurface* const iosurf,
                              const gfx::IntSize& destSize,
                              const OriginPos destOrigin) const {
+  if (!iosurf) {
+    gfxCriticalError() << "Null MacIOSurface for GLBlitHelper::BlitImage";
+    return false;
+  }
   if (mGL->GetContextType() != GLContextType::CGL) {
     MOZ_ASSERT(false);
     return false;

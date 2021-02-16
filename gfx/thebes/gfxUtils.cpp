@@ -30,7 +30,9 @@
 #include "mozilla/image/nsPNGEncoder.h"
 #include "mozilla/layers/SynchronousTask.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/ServoStyleConsts.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/UniquePtrExtensions.h"
@@ -421,7 +423,7 @@ static bool PrescaleAndTileDrawable(gfxDrawable* aDrawable,
                                     const SamplingFilter aSamplingFilter,
                                     const SurfaceFormat aFormat,
                                     gfxFloat aOpacity, ExtendMode aExtendMode) {
-  Size scaleFactor = aContext->CurrentMatrix().ScaleFactors(true);
+  Size scaleFactor = aContext->CurrentMatrix().ScaleFactors();
   Matrix scaleMatrix = Matrix::Scaling(scaleFactor.width, scaleFactor.height);
   const float fuzzFactor = 0.01;
 

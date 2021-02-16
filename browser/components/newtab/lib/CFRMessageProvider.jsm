@@ -840,7 +840,7 @@ const CFR_MESSAGES = [
         ],
       },
     },
-    targeting: "pageLoad >= 4 && firefoxVersion >= 71",
+    targeting: "pageLoad >= 0 && firefoxVersion >= 71",
     frequency: {
       lifetime: 2,
       custom: [{ period: 2 * 86400 * 1000, cap: 1 }],
@@ -931,7 +931,7 @@ const CFR_MESSAGES = [
         ],
       },
     },
-    targeting: "pageLoad >= 4",
+    targeting: "pageLoad >= 1",
     frequency: {
       lifetime: 7, // Length of privacy.contentBlocking.cfr-milestone.milestones pref
     },
@@ -1043,6 +1043,26 @@ const CFR_MESSAGES = [
       id: "openURL",
       params: ["google.com", "www.google.com"],
     },
+  },
+  {
+    id: "INFOBAR_ACTION_86",
+    targeting: "false",
+    template: "infobar",
+    content: {
+      type: "global",
+      text: { string_id: "default-browser-notification-message" },
+      buttons: [
+        {
+          label: { string_id: "default-browser-notification-button" },
+          primary: true,
+          accessKey: "O",
+          action: {
+            type: "SET_DEFAULT_BROWSER",
+          },
+        },
+      ],
+    },
+    trigger: { id: "defaultBrowserCheck" },
   },
 ];
 

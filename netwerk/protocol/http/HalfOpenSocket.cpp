@@ -167,8 +167,10 @@ nsresult HalfOpenSocket::SetupStreams(nsISocketTransport** transport,
     tmpFlags |= nsISocketTransport::NO_PERMANENT_STORAGE;
   }
 
+  Unused << socketTransport->SetIsPrivate(ci->GetPrivate());
+
   if (ci->GetLessThanTls13()) {
-    tmpFlags |= nsISocketTransport::DONT_TRY_ESNI_OR_ECH;
+    tmpFlags |= nsISocketTransport::DONT_TRY_ECH;
   }
 
   if (((mCaps & NS_HTTP_BE_CONSERVATIVE) || ci->GetBeConservative()) &&
@@ -956,16 +958,17 @@ nsresult HalfOpenSocket::SetupConn(nsIAsyncOutputStream* out, bool aFastOpen) {
       }
     }
 
-    if (nullTrans) {
-      nullTrans->Close(rv);
-    } else if (nsHttpTransaction* trans =
-                   mTransaction->QueryHttpTransaction()) {
+    if (nsHttpTransaction* trans = mTransaction->QueryHttpTransaction()) {
       if (mIsHttp3) {
         trans->DisableHttp3();
         gHttpHandler->ExcludeHttp3(mEnt->mConnInfo);
       }
-      Unused << gHttpHandler->ConnMgr()->CancelTransaction(trans, rv);
+      // The transaction's connection info is changed after DisableHttp3(), so
+      // this is the only point we can remove this transaction from its conn
+      // entry.
+      mEnt->RemoveTransFromPendingQ(trans);
     }
+    mTransaction->Close(rv);
 
     return rv;
   }
@@ -1172,6 +1175,17 @@ HalfOpenSocket::OnTransportStatus(nsITransport* trans, nsresult status,
 
     if (NS_SUCCEEDED(rv) && !addressSet.IsEmpty()) {
       for (uint32_t i = 0; i < addressSet.Length(); ++i) {
+        if ((addressSet[i].raw.family == AF_INET &&
+             addressSet[i].inet.ip == 0) ||
+            (addressSet[i].raw.family == AF_INET6 &&
+             addressSet[i].inet6.ip.u64[0] == 0 &&
+             addressSet[i].inet6.ip.u64[1] == 0)) {
+          // Bug 1680249 - Don't create the coalescing key if the ip address is
+          // `0.0.0.0` or `::`.
+          LOG(("HalfOpenSocket: skip creating Coalescing Key for host [%s]",
+               mEnt->mConnInfo->Origin()));
+          continue;
+        }
         nsCString* newKey = mEnt->mCoalescingKeys.AppendElement(nsCString());
         newKey->SetLength(kIPv6CStrBufSize + 26);
         addressSet[i].ToStringBuffer(newKey->BeginWriting(), kIPv6CStrBufSize);

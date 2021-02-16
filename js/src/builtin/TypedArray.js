@@ -193,82 +193,6 @@ function TypedArraySpeciesCreateWithBuffer(exemplar, buffer, byteOffset, length)
     return TypedArrayCreateWithBuffer(C, buffer, byteOffset, length);
 }
 
-// ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
-// 22.2.3.5 %TypedArray%.prototype.copyWithin ( target, start [ , end ] )
-function TypedArrayCopyWithin(target, start, end = undefined) {
-    // Step 2.
-    if (!IsObject(this) || !IsTypedArray(this)) {
-        return callFunction(CallTypedArrayMethodIfWrapped, this, target, start, end,
-                            "TypedArrayCopyWithin");
-    }
-
-    GetAttachedArrayBuffer(this);
-
-    // Step 1.
-    var obj = this;
-
-    // Step 3.
-    var len = TypedArrayLength(obj);
-
-    assert(0 <= len && len <= 0x7FFFFFFF,
-           "assumed by some of the math below, see also the other assertions");
-
-    // Step 4.
-    var relativeTarget = ToInteger(target);
-
-    // Step 5.
-    var to = relativeTarget < 0 ? std_Math_max(len + relativeTarget, 0)
-                                : std_Math_min(relativeTarget, len);
-
-    // Step 6.
-    var relativeStart = ToInteger(start);
-
-    // Step 7.
-    var from = relativeStart < 0 ? std_Math_max(len + relativeStart, 0)
-                                 : std_Math_min(relativeStart, len);
-
-    // Step 8.
-    var relativeEnd = end === undefined ? len : ToInteger(end);
-
-    // Step 9.
-    var final = relativeEnd < 0 ? std_Math_max(len + relativeEnd, 0)
-                                : std_Math_min(relativeEnd, len);
-
-    // Step 10.
-    var count = std_Math_min(final - from, len - to);
-
-    assert(0 <= to && to <= 0x7FFFFFFF,
-           "typed array |to| index assumed int32_t");
-    assert(0 <= from && from <= 0x7FFFFFFF,
-           "typed array |from| index assumed int32_t");
-
-    // Negative counts are possible for cases like tarray.copyWithin(0, 3, 0)
-    // where |count === final - from|.  As |to| is within the [0, len] range,
-    // only |final - from| may underflow; with |final| in the range [0, len]
-    // and |from| in the range [0, len] the overall subtraction range is
-    // [-len, len] for |count| -- and with |len| bounded by implementation
-    // limits to 2**31 - 1, there can be no exceeding int32_t.
-    assert(-0x7FFFFFFF - 1 <= count && count <= 0x7FFFFFFF,
-           "typed array element count assumed int32_t");
-
-    // Step 11.
-    //
-    // Note that getting or setting a typed array element must throw if the
-    // underlying buffer is detached, so the intrinsic below checks for
-    // detachment.  This happens *only* if a get/set occurs, i.e. when
-    // |count > 0|.
-    //
-    // Also note that this copies elements effectively by memmove, *not* in
-    // step 11's specified order.  This is unobservable, even when the
-    // underlying buffer is a SharedArrayBuffer instance, because the access is
-    // unordered and therefore is allowed to have data races.
-    if (count > 0)
-        MoveTypedArrayElements(obj, to | 0, from | 0, count | 0);
-
-    // Step 12.
-    return obj;
-}
-
 // ES6 draft rev30 (2014/12/24) 22.2.3.6 %TypedArray%.prototype.entries()
 function TypedArrayEntries() {
     // Step 1.
@@ -293,48 +217,47 @@ function TypedArrayEntries() {
     return CreateArrayIterator(O, ITEM_KIND_KEY_AND_VALUE);
 }
 
-// ES6 draft rev30 (2014/12/24) 22.2.3.7 %TypedArray%.prototype.every(callbackfn[, thisArg]).
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.7 %TypedArray%.prototype.every ( callbackfn [ , thisArg ] )
 function TypedArrayEvery(callbackfn/*, thisArg*/) {
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // This function is not generic.
-    // We want to make sure that we have an attached buffer, per spec prose.
+    // Step 2.
     var isTypedArray = IsTypedArrayEnsuringArrayBuffer(O);
 
     // If we got here, `this` is either a typed array or a wrapper for one.
 
-    // Steps 3-5.
+    // Step 3.
     var len;
     if (isTypedArray)
         len = TypedArrayLength(O);
     else
         len = callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayLengthMethod");
 
-    // Step 6.
+    // Step 4.
     if (arguments.length === 0)
         ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.every");
     if (!IsCallable(callbackfn))
         ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
-    // Step 7.
-    var T = arguments.length > 1 ? arguments[1] : void 0;
+    var thisArg = arguments.length > 1 ? arguments[1] : void 0;
 
-    // Steps 8-9.
-    // Omit steps 9.a-9.c and the 'if' clause in step 9.d, since there are no holes in typed arrays.
+    // Steps 5-6.
     for (var k = 0; k < len; k++) {
-        // Steps 9.d.i-9.d.ii.
+        // Steps 6.b-d.
         var kValue = O[k];
 
-        // Steps 9.d.iii-9.d.iv.
-        var testResult = callContentFunction(callbackfn, T, kValue, k, O);
+        // Step 6.c.
+        var testResult = callContentFunction(callbackfn, thisArg, kValue, k, O);
 
-        // Step 9.d.v.
+        // Step 6.d.
         if (!testResult)
             return false;
     }
 
-    // Step 10.
+    // Step 7.
     return true;
 }
 
@@ -462,129 +385,127 @@ function TypedArrayFilter(callbackfn/*, thisArg*/) {
     return A;
 }
 
-// ES6 draft rev28 (2014/10/14) 22.2.3.10 %TypedArray%.prototype.find(predicate[, thisArg]).
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.10 %TypedArray%.prototype.find ( predicate [ , thisArg ] )
 function TypedArrayFind(predicate/*, thisArg*/) {
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // This function is not generic.
-    // We want to make sure that we have an attached buffer, per spec prose.
+    // Step 2.
     var isTypedArray = IsTypedArrayEnsuringArrayBuffer(O);
 
     // If we got here, `this` is either a typed array or a wrapper for one.
 
-    // Steps 3-5.
+    // Step 3.
     var len;
     if (isTypedArray)
         len = TypedArrayLength(O);
     else
         len = callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayLengthMethod");
 
-    // Step 6.
+    // Step 4.
     if (arguments.length === 0)
         ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.find");
     if (!IsCallable(predicate))
         ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
 
-    // Step 7.
-    var T = arguments.length > 1 ? arguments[1] : void 0;
+    var thisArg = arguments.length > 1 ? arguments[1] : void 0;
 
-    // Steps 8-9.
-    // Steps a (implicit), and g.
+    // Steps 5-6.
     for (var k = 0; k < len; k++) {
-        // Steps a-c.
+        // Steps 6.a-b.
         var kValue = O[k];
-        // Steps d-f.
-        if (callContentFunction(predicate, T, kValue, k, O))
+
+        // Steps 6.c-d.
+        if (callContentFunction(predicate, thisArg, kValue, k, O))
             return kValue;
     }
 
-    // Step 10.
+    // Step 7.
     return undefined;
 }
 
-// ES6 draft rev28 (2014/10/14) 22.2.3.11 %TypedArray%.prototype.findIndex(predicate[, thisArg]).
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.11 %TypedArray%.prototype.findIndex ( predicate [ , thisArg ] )
 function TypedArrayFindIndex(predicate/*, thisArg*/) {
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // This function is not generic.
-    // We want to make sure that we have an attached buffer, per spec prose.
+    // Step 2.
     var isTypedArray = IsTypedArrayEnsuringArrayBuffer(O);
 
     // If we got here, `this` is either a typed array or a wrapper for one.
 
-    // Steps 3-5.
+    // Step 3.
     var len;
     if (isTypedArray)
         len = TypedArrayLength(O);
     else
         len = callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayLengthMethod");
 
-    // Step 6.
+    // Step 4.
     if (arguments.length === 0)
         ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.findIndex");
     if (!IsCallable(predicate))
         ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
 
-    // Step 7.
-    var T = arguments.length > 1 ? arguments[1] : void 0;
+    var thisArg = arguments.length > 1 ? arguments[1] : void 0;
 
-    // Steps 8-9.
-    // Steps a (implicit), and g.
+    // Steps 5-6.
     for (var k = 0; k < len; k++) {
-        // Steps a-f.
-        if (callContentFunction(predicate, T, O[k], k, O))
+        // Steps 6.a-f.
+        if (callContentFunction(predicate, thisArg, O[k], k, O))
             return k;
     }
 
-    // Step 10.
+    // Step 7.
     return -1;
 }
 
-// ES6 draft rev31 (2015-01-15) 22.1.3.10 %TypedArray%.prototype.forEach(callbackfn[,thisArg])
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.12 %TypedArray%.prototype.forEach ( callbackfn [ , thisArg ] )
 function TypedArrayForEach(callbackfn/*, thisArg*/) {
-    // Step 1-2.
+    // Step 1.
     var O = this;
 
-    // This function is not generic.
-    // We want to make sure that we have an attached buffer, per spec prose.
+    // Step 2.
     var isTypedArray = IsTypedArrayEnsuringArrayBuffer(O);
 
     // If we got here, `this` is either a typed array or a wrapper for one.
 
-    // Step 3-4.
+    // Step 3.
     var len;
     if (isTypedArray)
         len = TypedArrayLength(O);
     else
         len = callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayLengthMethod");
 
-    // Step 5.
+    // Step 4.
     if (arguments.length === 0)
         ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, "TypedArray.prototype.forEach");
     if (!IsCallable(callbackfn))
         ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
-    // Step 6.
-    var T = arguments.length > 1 ? arguments[1] : void 0;
+    var thisArg = arguments.length > 1 ? arguments[1] : void 0;
 
-    // Step 7-8.
-    // Step 7, 8a (implicit) and 8e.
+    // Steps 5-6.
     for (var k = 0; k < len; k++) {
-        // Step 8b-8c are unnecessary since the condition always holds true for TypedArray.
-        // Step 8d.
-        callContentFunction(callbackfn, T, O[k], k, O);
+        // Steps 6.a-c.
+        callContentFunction(callbackfn, thisArg, O[k], k, O);
     }
 
-    // Step 9.
+    // Step 7.
     return undefined;
 }
 
-// ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
 // 22.2.3.14 %TypedArray%.prototype.indexOf ( searchElement [ , fromIndex ] )
 function TypedArrayIndexOf(searchElement, fromIndex = 0) {
-    // This function is not generic.
+    // Step 2.
     if (!IsObject(this) || !IsTypedArray(this)) {
         return callFunction(CallTypedArrayMethodIfWrapped, this, searchElement, fromIndex,
                             "TypedArrayIndexOf");
@@ -595,91 +516,116 @@ function TypedArrayIndexOf(searchElement, fromIndex = 0) {
     // Step 1.
     var O = this;
 
-    // Step 2.
+    // Step 3.
     var len = TypedArrayLength(O);
 
-    // Step 3.
+    // Step 4.
     if (len === 0)
         return -1;
 
-    // Steps 4-5.
+    // Step 5.
     var n = ToInteger(fromIndex);
 
     // Step 6.
+    assert(fromIndex !== undefined || n === 0, "ToInteger(undefined) is zero");
+
+    // Reload O.[[ArrayLength]] in case ToInteger() detached the ArrayBuffer.
+    // This let's us avoid executing the HasProperty operation in step 11.a.
+    len = TypedArrayLength(O);
+
+    assert(len === 0 || !IsDetachedBuffer(ViewedArrayBufferIfReified(O)),
+           "TypedArrays with detached buffers have a length of zero");
+
+    // Step 7.
     if (n >= len)
         return -1;
 
-    // Steps 7-8.
+    // Steps 7-10.
+    // Steps 7-8 are handled implicitly.
     var k;
     if (n >= 0) {
-        // Step 7.a.
+        // Step 9.a.
         k = n;
     } else {
-        // Step 8.a.
+        // Step 10.a.
         k = len + n;
 
-        // Step 8.b.
+        // Step 10.b.
         if (k < 0)
             k = 0;
     }
 
-    // Step 9.
-    // Omit steps 9.a-b, since there are no holes in typed arrays.
+    // Step 11.
     for (; k < len; k++) {
+        // Step 11.a (not necessary in our implementation).
+        assert(k in O, "unexpected missing element");
+
+        // Steps 11.b.i-iii.
         if (O[k] === searchElement)
             return k;
     }
 
-    // Step 10.
+    // Step 12.
     return -1;
 }
 
-// ES6 draft rev30 (2014/12/24) 22.2.3.14 %TypedArray%.prototype.join(separator).
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.15 %TypedArray%.prototype.join ( separator )
 function TypedArrayJoin(separator) {
-    // This function is not generic.
+    // Step 2.
     if (!IsObject(this) || !IsTypedArray(this)) {
         return callFunction(CallTypedArrayMethodIfWrapped, this, separator, "TypedArrayJoin");
     }
 
     GetAttachedArrayBuffer(this);
 
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // Steps 3-5.
+    // Step 3.
     var len = TypedArrayLength(O);
 
-    // Steps 6-7.
+    // Steps 4-5.
     var sep = separator === undefined ? "," : ToString(separator);
 
-    // Step 8.
+    // Steps 6 and 9.
     if (len === 0)
         return "";
 
-    // Step 9.
-    var element0 = O[0];
+    // ToString() might have detached the underlying ArrayBuffer. To avoid
+    // checking for this condition when looping in step 8.c, do it once here.
+    if (TypedArrayLength(O) === 0) {
+        assert(IsDetachedBuffer(ViewedArrayBufferIfReified(O)),
+               "TypedArrays with detached buffers have a length of zero");
 
-    // Steps 10-11.
-    // Omit the 'if' clause in step 10, since typed arrays can't have undefined or null elements.
-    var R = ToString(element0);
-
-    // Steps 12-13.
-    for (var k = 1; k < len; k++) {
-        // Step 13.a.
-        var S = R + sep;
-
-        // Step 13.b.
-        var element = O[k];
-
-        // Steps 13.c-13.d.
-        // Omit the 'if' clause in step 13.c, since typed arrays can't have undefined or null elements.
-        var next = ToString(element);
-
-        // Step 13.e.
-        R = S + next;
+        return callFunction(String_repeat, ",", len - 1);
     }
 
-    // Step 14.
+    assert(!IsDetachedBuffer(ViewedArrayBufferIfReified(O)),
+           "TypedArrays with detached buffers have a length of zero");
+
+    var element0 = O[0];
+
+    // Omit the 'if' clause in step 8.c, since typed arrays can't have undefined or null elements.
+    assert(element0 !== undefined, "unexpected undefined element");
+
+    // Step 6.
+    var R = ToString(element0);
+
+    // Steps 7-8.
+    for (var k = 1; k < len; k++) {
+        // Step 8.b.
+        var element = O[k];
+
+        // Omit the 'if' clause in step 8.c, since typed arrays can't have undefined or null elements.
+        assert(element !== undefined, "unexpected undefined element");
+
+        // Steps 8.a and 8.c-d.
+        R += sep + ToString(element);
+    }
+
+    // Step 9.
     return R;
 }
 
@@ -697,10 +643,11 @@ function TypedArrayKeys() {
     return CreateArrayIterator(O, ITEM_KIND_KEY);
 }
 
-// ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
 // 22.2.3.17 %TypedArray%.prototype.lastIndexOf ( searchElement [ , fromIndex ] )
 function TypedArrayLastIndexOf(searchElement/*, fromIndex*/) {
-    // This function is not generic.
+    // Step 2.
     if (!IsObject(this) || !IsTypedArray(this)) {
         if (arguments.length > 1) {
             return callFunction(CallTypedArrayMethodIfWrapped, this, searchElement, arguments[1],
@@ -715,27 +662,37 @@ function TypedArrayLastIndexOf(searchElement/*, fromIndex*/) {
     // Step 1.
     var O = this;
 
-    // Step 2.
+    // Step 3.
     var len = TypedArrayLength(O);
 
-    // Step 3.
+    // Step 4.
     if (len === 0)
         return -1;
 
-    // Steps 4.
+    // Step 5.
     var n = arguments.length > 1 ? ToInteger(arguments[1]) : len - 1;
 
-    // Steps 5-6.
+    // Reload O.[[ArrayLength]] in case ToInteger() detached the ArrayBuffer.
+    // This let's us avoid executing the HasProperty operation in step 9.a.
+    len = TypedArrayLength(O);
+
+    assert(len === 0 || !IsDetachedBuffer(ViewedArrayBufferIfReified(O)),
+           "TypedArrays with detached buffers have a length of zero");
+
+    // Steps 6-8.
     var k = n >= 0 ? std_Math_min(n, len - 1) : len + n;
 
-    // Step 7.
-    // Omit steps 7.a-b, since there are no holes in typed arrays.
+    // Step 9.
     for (; k >= 0; k--) {
+        // Step 9.a (not necessary in our implementation).
+        assert(k in O, "unexpected missing element");
+
+        // Steps 9.b.i-iii.
         if (O[k] === searchElement)
             return k;
     }
 
-    // Step 8.
+    // Step 10.
     return -1;
 }
 
@@ -784,133 +741,131 @@ function TypedArrayMap(callbackfn/*, thisArg*/) {
     return A;
 }
 
-// ES6 draft rev30 (2014/12/24) 22.2.3.19 %TypedArray%.prototype.reduce(callbackfn[, initialValue]).
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.20 %TypedArray%.prototype.reduce ( callbackfn [ , initialValue ] )
 function TypedArrayReduce(callbackfn/*, initialValue*/) {
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // This function is not generic.
-    // We want to make sure that we have an attached buffer, per spec prose.
+    // Step 2.
     var isTypedArray = IsTypedArrayEnsuringArrayBuffer(O);
 
     // If we got here, `this` is either a typed array or a wrapper for one.
 
-    // Steps 3-5.
+    // Step 3.
     var len;
     if (isTypedArray)
         len = TypedArrayLength(O);
     else
         len = callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayLengthMethod");
 
-    // Step 6.
+    // Step 4.
     if (arguments.length === 0)
         ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.reduce");
     if (!IsCallable(callbackfn))
         ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
-    // Step 7.
+    // Step 5.
     if (len === 0 && arguments.length === 1)
         ThrowTypeError(JSMSG_EMPTY_ARRAY_REDUCE);
 
-    // Step 8.
+    // Step 6.
     var k = 0;
 
-    // Steps 9-10.
-    // Omit some steps, since 'accumulator' should always be O[0] in step 10 for typed arrays.
+    // Steps 7-9.
     var accumulator = arguments.length > 1 ? arguments[1] : O[k++];
 
-    // Step 11.
-    // Omit steps 11.b-11.c and the 'if' clause in step 11.d, since there are no holes in typed arrays.
+    // Step 10.
     for (; k < len; k++) {
         accumulator = callContentFunction(callbackfn, undefined, accumulator, O[k], k, O);
     }
 
-    // Step 12.
+    // Step 11.
     return accumulator;
 }
 
-// ES6 draft rev30 (2014/12/24) 22.2.3.20 %TypedArray%.prototype.reduceRight(callbackfn[, initialValue]).
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.21 %TypedArray%.prototype.reduceRight ( callbackfn [ , initialValue ] )
 function TypedArrayReduceRight(callbackfn/*, initialValue*/) {
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // This function is not generic.
-    // We want to make sure that we have an attached buffer, per spec prose.
+    // Step 2.
     var isTypedArray = IsTypedArrayEnsuringArrayBuffer(O);
 
     // If we got here, `this` is either a typed array or a wrapper for one.
 
-    // Steps 3-5.
+    // Step 3.
     var len;
     if (isTypedArray)
         len = TypedArrayLength(O);
     else
         len = callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayLengthMethod");
 
-    // Step 6.
+    // Step 4.
     if (arguments.length === 0)
         ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.reduceRight");
     if (!IsCallable(callbackfn))
         ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
-    // Step 7.
+    // Step 5.
     if (len === 0 && arguments.length === 1)
         ThrowTypeError(JSMSG_EMPTY_ARRAY_REDUCE);
 
-    // Step 8.
+    // Step 6.
     var k = len - 1;
 
-    // Steps 9-10.
-    // Omit some steps, since 'accumulator' should always be O[len-1] in step 10 for typed arrays.
+    // Steps 7-9.
     var accumulator = arguments.length > 1 ? arguments[1] : O[k--];
 
-    // Step 11.
-    // Omit steps 11.b-11.c and the 'if' clause in step 11.d, since there are no holes in typed arrays.
+    // Step 10.
     for (; k >= 0; k--) {
         accumulator = callContentFunction(callbackfn, undefined, accumulator, O[k], k, O);
     }
 
-    // Step 12.
+    // Step 11.
     return accumulator;
 }
 
-// ES6 draft rev29 (2014/12/06) 22.2.3.21 %TypedArray%.prototype.reverse().
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.22 %TypedArray%.prototype.reverse ( )
 function TypedArrayReverse() {
-    // This function is not generic.
+    // Step 2.
     if (!IsObject(this) || !IsTypedArray(this)) {
         return callFunction(CallTypedArrayMethodIfWrapped, this, "TypedArrayReverse");
     }
 
     GetAttachedArrayBuffer(this);
 
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // Steps 3-5.
+    // Step 3.
     var len = TypedArrayLength(O);
 
-    // Step 6.
+    // Step 4.
     var middle = std_Math_floor(len / 2);
 
-    // Steps 7-8.
-    // Omit some steps, since there are no holes in typed arrays.
-    // Especially all the HasProperty/*exists checks always succeed.
+    // Steps 5-6.
     for (var lower = 0; lower !== middle; lower++) {
-        // Step 8.a.
+        // Step 6.a.
         var upper = len - lower - 1;
 
-        // Step 8.f.i.
+        // Step 6.d.
         var lowerValue = O[lower];
 
-        // Step 8.i.i.
+        // Step 6.e.
         var upperValue = O[upper];
 
-        // We always end up in the step 8.j. case.
+        // Steps 6.f-g.
         O[lower] = upperValue;
         O[upper] = lowerValue;
     }
 
-    // Step 9.
+    // Step 7.
     return O;
 }
 
@@ -965,7 +920,7 @@ function TypedArraySlice(start, end) {
             ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
 
         // Steps 10-13, 15.
-        var sliced = TypedArrayBitwiseSlice(O, A, k | 0, count | 0);
+        var sliced = TypedArrayBitwiseSlice(O, A, k, count);
 
         // Step 14.
         if (!sliced) {
@@ -984,48 +939,47 @@ function TypedArraySlice(start, end) {
     return A;
 }
 
-// ES6 draft rev30 (2014/12/24) 22.2.3.25 %TypedArray%.prototype.some(callbackfn[, thisArg]).
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
+// 22.2.3.25 %TypedArray%.prototype.some ( callbackfn [ , thisArg ] )
 function TypedArraySome(callbackfn/*, thisArg*/) {
-    // Steps 1-2.
+    // Step 1.
     var O = this;
 
-    // This function is not generic.
-    // We want to make sure that we have an attached buffer, per spec prose.
+    // Step 2.
     var isTypedArray = IsTypedArrayEnsuringArrayBuffer(O);
 
     // If we got here, `this` is either a typed array or a wrapper for one.
 
-    // Steps 3-5.
+    // Step 3.
     var len;
     if (isTypedArray)
         len = TypedArrayLength(O);
     else
         len = callFunction(CallTypedArrayMethodIfWrapped, O, "TypedArrayLengthMethod");
 
-    // Step 6.
+    // Step 4.
     if (arguments.length === 0)
         ThrowTypeError(JSMSG_MISSING_FUN_ARG, 0, "%TypedArray%.prototype.some");
     if (!IsCallable(callbackfn))
         ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
 
-    // Step 7.
-    var T = arguments.length > 1 ? arguments[1] : void 0;
+    var thisArg = arguments.length > 1 ? arguments[1] : void 0;
 
-    // Steps 8-9.
-    // Omit steps 9.a-9.c and the 'if' clause in step 9.d, since there are no holes in typed arrays.
+    // Steps 5-6.
     for (var k = 0; k < len; k++) {
-        // Steps 9.d.i-9.d.ii.
+        // Steps 6.a-b.
         var kValue = O[k];
 
-        // Steps 9.d.iii-9.d.iv.
-        var testResult = callContentFunction(callbackfn, T, kValue, k, O);
+        // Step 6.c.
+        var testResult = callContentFunction(callbackfn, thisArg, kValue, k, O);
 
-        // Step 9.d.v.
+        // Step 6.d.
         if (testResult)
             return true;
     }
 
-    // Step 10.
+    // Step 7.
     return false;
 }
 
@@ -1337,6 +1291,45 @@ function TypedArraySubarray(begin, end) {
     return TypedArraySpeciesCreateWithBuffer(obj, buffer, beginByteOffset, newLength);
 }
 
+// https://tc39.es/proposal-relative-indexing-method
+// %TypedArray%.prototype.at ( index )
+function TypedArrayAt(index) {
+    // Step 1.
+    var obj = this;
+
+    // Step 2.
+    // This function is not generic.
+    if (!IsObject(obj) || !IsTypedArray(obj)) {
+        return callFunction(CallTypedArrayMethodIfWrapped, obj, index,
+                            "TypedArrayAt");
+    }
+    GetAttachedArrayBuffer(obj);
+
+    // If we got here, `this` is either a typed array or a wrapper for one.
+
+    // Step 3.
+    var len = TypedArrayLength(obj);
+
+    // Step 4.
+    var relativeIndex = ToInteger(index);
+
+    // Steps 5-6.
+    var k;
+    if (relativeIndex >= 0) {
+        k = relativeIndex;
+    } else {
+        k = len + relativeIndex;
+    }
+
+    // Step 7.
+    if (k < 0 || k >= len) {
+        return undefined;
+    }
+
+    // Step 8.
+    return obj[k];
+}
+
 // ES6 draft rev30 (2014/12/24) 22.2.3.30 %TypedArray%.prototype.values()
 //
 // Uncloned functions with `$` prefix are allocated as extended function
@@ -1353,10 +1346,11 @@ function $TypedArrayValues() {
 }
 _SetCanonicalName($TypedArrayValues, "values");
 
-// ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
+// ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
+// Plus <https://github.com/tc39/ecma262/pull/2221>
 // 22.2.3.13 %TypedArray%.prototype.includes ( searchElement [ , fromIndex ] )
 function TypedArrayIncludes(searchElement, fromIndex = 0) {
-    // This function is not generic.
+    // Step 2.
     if (!IsObject(this) || !IsTypedArray(this)) {
         return callFunction(CallTypedArrayMethodIfWrapped, this, searchElement,
                             fromIndex, "TypedArrayIncludes");
@@ -1367,41 +1361,45 @@ function TypedArrayIncludes(searchElement, fromIndex = 0) {
     // Step 1.
     var O = this;
 
-    // Step 2.
+    // Step 3.
     var len = TypedArrayLength(O);
 
-    // Step 3.
+    // Step 4.
     if (len === 0)
         return false;
 
-    // Steps 4-5.
+    // Step 5.
     var n = ToInteger(fromIndex);
 
-    // Steps 6-7
+    // Step 6.
+    assert(fromIndex !== undefined || n === 0, "ToInteger(undefined) is zero");
+
+    // Steps 7-10.
+    // Steps 7-8 are handled implicitly.
     var k;
     if (n >= 0) {
-        // Step 6.a
+        // Step 9.a
         k = n;
     } else {
-        // Step 7.a.
+        // Step 10.a.
         k = len + n;
 
-        // Step 7.b.
+        // Step 10.b.
         if (k < 0)
             k = 0;
     }
 
-    // Step 8.
+    // Step 11.
     while (k < len) {
-        // Steps 8.a-c.
+        // Steps 11.a-b.
         if (SameValueZero(searchElement, O[k]))
             return true;
 
-        // Step 8.d.
+        // Step 11.c.
         k++;
     }
 
-    // Step 9.
+    // Step 12.
     return false;
 }
 
@@ -1693,7 +1691,7 @@ function ArrayBufferSlice(start, end) {
         ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
 
     // Steps 20-22.
-    ArrayBufferCopyData(newBuffer, 0, O, first | 0, newLen | 0, isWrapped);
+    ArrayBufferCopyData(newBuffer, 0, O, first, newLen, isWrapped);
 
     // Step 23.
     return newBuffer;
@@ -1776,7 +1774,7 @@ function SharedArrayBufferSlice(start, end) {
         ThrowTypeError(JSMSG_SHORT_SHARED_ARRAY_BUFFER_RETURNED, newLen, actualLen);
 
     // Steps 16-18.
-    SharedArrayBufferCopyData(newObj, 0, O, first | 0, newLen | 0, isWrapped);
+    SharedArrayBufferCopyData(newObj, 0, O, first, newLen, isWrapped);
 
     // Step 19.
     return newObj;

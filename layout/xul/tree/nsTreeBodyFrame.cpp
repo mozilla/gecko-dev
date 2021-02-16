@@ -20,6 +20,7 @@
 #include "gfxUtils.h"
 #include "nsAlgorithm.h"
 #include "nsCOMPtr.h"
+#include "nsComponentManagerUtils.h"
 #include "nsFontMetrics.h"
 #include "nsPresContext.h"
 #include "nsNameSpaceManager.h"
@@ -1598,10 +1599,17 @@ nsresult nsTreeBodyFrame::RowCountChanged(int32_t aIndex, int32_t aCount) {
   }
 #endif  // #ifdef ACCESSIBILITY
 
+  AutoWeakFrame weakFrame(this);
+
   // Adjust our selection.
+  nsCOMPtr<nsITreeView> view = mView;
   nsCOMPtr<nsITreeSelection> sel;
-  mView->GetSelection(getter_AddRefs(sel));
-  if (sel) sel->AdjustSelection(aIndex, aCount);
+  view->GetSelection(getter_AddRefs(sel));
+  if (sel) {
+    sel->AdjustSelection(aIndex, aCount);
+  }
+
+  NS_ENSURE_STATE(weakFrame.IsAlive());
 
   if (mUpdateBatchNest) return NS_OK;
 
@@ -1972,7 +1980,7 @@ nsRect nsTreeBodyFrame::GetImageSize(int32_t aRowIndex, nsTreeColumn* aCol,
   bool needHeight = false;
 
   // We have to load image even though we already have a size.
-  // Don't change this, otherwise things start to go crazy.
+  // Don't change this, otherwise things start to go awry.
   bool useImageRegion = true;
   nsCOMPtr<imgIContainer> image;
   GetImage(aRowIndex, aCol, aUseContext, aComputedStyle, useImageRegion,

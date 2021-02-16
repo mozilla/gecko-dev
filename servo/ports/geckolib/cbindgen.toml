@@ -65,7 +65,7 @@ derive_tagged_enum_destructor = true
 derive_tagged_enum_copy_constructor = true
 derive_tagged_enum_copy_assignment = true
 private_default_tagged_enum_constructor = true
-cast_assert_name = "MOZ_ASSERT"
+cast_assert_name = "MOZ_DIAGNOSTIC_ASSERT"
 
 [export]
 prefix = "Style"
@@ -785,6 +785,10 @@ renaming_overrides_prefixing = true
 
 "GenericImage" = """
  public:
+  // If this is an image-set(), the final image we've selected, otherwise it
+  // returns *this.
+  const StyleGenericImage& FinalImage() const;
+
   // Whether this image may have an image request associated with it.
   bool IsImageRequestType() const;
 
@@ -803,12 +807,6 @@ renaming_overrides_prefixing = true
   // Always returns true if there's no image request involved and this image
   // is not `none`.
   bool IsSizeAvailable() const;
-
-  // Starts the decoding of a image. Returns true if the current frame of the
-  // image is complete. The return value is intended to be used instead of
-  // IsComplete because IsComplete may not be up to date if notifications
-  // from decoding are pending because they are being sent async.
-  bool StartDecoding() const;
 
   // Returns true if the item is definitely opaque --- i.e., paints every
   // pixel within its bounds opaquely, and the bounds contains at least a pixel.
@@ -829,15 +827,14 @@ renaming_overrides_prefixing = true
 """
 
 "Ratio" = """
-  inline AspectRatio ToLayoutRatio() const;
+  inline AspectRatio ToLayoutRatio(UseBoxSizing aUseBoxSizing) const;
 """
 
 "GenericAspectRatio" = """
   bool HasRatio() const { return ratio.IsRatio(); }
-  bool HasFiniteRatio() const {
-    return HasRatio() && ratio.AsRatio().ToLayoutRatio();
-  }
+  bool HasFiniteRatio() const { return static_cast<bool>(ToLayoutRatio()); }
   bool BehavesAsAuto() const { return auto_ || !HasFiniteRatio(); }
+  inline AspectRatio ToLayoutRatio() const;
 
   static StyleGenericAspectRatio Auto() {
     return {true, StylePreferredRatio<N>::None()};

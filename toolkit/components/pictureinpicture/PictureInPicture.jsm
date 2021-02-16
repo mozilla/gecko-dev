@@ -43,6 +43,11 @@ const TOGGLE_ENABLED_PREF =
 let gCloseReasons = new WeakMap();
 
 /**
+ * Tracks the number of currently open player windows for Telemetry tracking
+ */
+let gCurrentPlayerCount = 0;
+
+/**
  * To differentiate windows in the Telemetry Event Log, each Picture-in-Picture
  * player window is given a unique ID.
  */
@@ -78,7 +83,6 @@ class PictureInPictureToggleParent extends JSWindowActorParent {
  * This module is responsible for creating a Picture in Picture window to host
  * a clone of a video element running in web content.
  */
-
 class PictureInPictureParent extends JSWindowActorParent {
   receiveMessage(aMessage) {
     switch (aMessage.name) {
@@ -315,16 +319,24 @@ var PictureInPicture = {
       // If there's a pre-existing PiP window, close it first if multiple
       // pips are disabled
       await this.closeAllPipWindows({ reason: "new-pip" });
+
+      gCurrentPlayerCount = 1;
+    } else {
+      // track specific number of open pip players if multi pip is
+      // enabled
+
+      gCurrentPlayerCount += 1;
     }
+
+    Services.telemetry.scalarSetMaximum(
+      "pictureinpicture.most_concurrent_players",
+      gCurrentPlayerCount
+    );
 
     let browser = wgp.browsingContext.top.embedderElement;
     let parentWin = browser.ownerGlobal;
 
-    let actorRef = browser.browsingContext.currentWindowGlobal.getActor(
-      "PictureInPicture"
-    );
-
-    let win = await this.openPipWindow(parentWin, videoData, actorRef);
+    let win = await this.openPipWindow(parentWin, videoData);
     win.setIsPlayingState(videoData.playing);
     win.setIsMutedState(videoData.isMuted);
 
@@ -359,6 +371,7 @@ var PictureInPicture = {
       reason,
       1
     );
+    gCurrentPlayerCount -= 1;
     // Saves the location of the Picture in Picture window
     this.savePosition(window);
     this.clearPipTabIcon(window);
@@ -387,12 +400,8 @@ var PictureInPicture = {
    * @returns Promise
    *   Resolves once the window has opened and loaded the player component.
    */
-  async openPipWindow(parentWin, videoData, actorReference) {
-    let { top, left, width, height } = this.fitToScreen(
-      parentWin,
-      videoData,
-      actorReference
-    );
+  async openPipWindow(parentWin, videoData) {
+    let { top, left, width, height } = this.fitToScreen(parentWin, videoData);
 
     let features =
       `${PLAYER_FEATURES},top=${top},left=${left},` +
@@ -430,7 +439,7 @@ var PictureInPicture = {
    * and size. If those values are unknown or offscreen, then a default
    * location and size is used.
    *
-   * @param windowOrPlayer (chrome window|player window)
+   * @param requestingWin (chrome window|player window)
    *   The window hosting the browser that requested the Picture in
    *   Picture window. If this is an existing player window then the returned
    *   player size and position will be determined based on the existing
@@ -444,9 +453,6 @@ var PictureInPicture = {
    *
    *   videoWidth (int):
    *     The preferred width of the video.
-   *
-   * @param actorReference (PictureInPictureParent)
-   * 	Reference to calling PictureInPictureParent actor
    *
    * @returns (object)
    *   The size and position for the player window.
@@ -463,19 +469,22 @@ var PictureInPicture = {
    *   height (int):
    *     The height of the player window.
    */
-  fitToScreen(windowOrPlayer, videoData, actorReference) {
+  fitToScreen(requestingWin, videoData) {
     let { videoHeight, videoWidth } = videoData;
 
-    // if current PiP window is being resized, the underlying video is changing,
-    // then save the location and size for opening the new window
-    let isPlayerWindow =
-      windowOrPlayer == this.getWeakPipPlayer(actorReference);
-    if (isPlayerWindow) {
-      this.savePosition(windowOrPlayer);
-    }
+    const isPlayer = requestingWin.document.location.href == PLAYER_URI;
 
-    // The last PiP location and size
-    let { top, left, width, height } = this.loadPosition();
+    let top, left, width, height;
+    if (isPlayer) {
+      // requestingWin is a PiP player, conserve its dimensions in this case
+      left = requestingWin.screenX;
+      top = requestingWin.screenY;
+      width = requestingWin.innerWidth;
+      height = requestingWin.innerHeight;
+    } else {
+      // requestingWin is a content window, load last PiP's dimensions
+      ({ top, left, width, height } = this.loadPosition());
+    }
 
     // Check that previous location and size were loaded
     if (!isNaN(top) && !isNaN(left) && !isNaN(width) && !isNaN(height)) {
@@ -560,10 +569,10 @@ var PictureInPicture = {
     // We don't have the size or position of the last PiP window, so fall
     // back to calculating the default location.
     let screen = this.getWorkingScreen(
-      windowOrPlayer.screenX,
-      windowOrPlayer.screenY,
-      windowOrPlayer.innerWidth,
-      windowOrPlayer.innerHeight
+      requestingWin.screenX,
+      requestingWin.screenY,
+      requestingWin.innerWidth,
+      requestingWin.innerHeight
     );
     let [
       screenLeft,
@@ -630,11 +639,7 @@ var PictureInPicture = {
       return;
     }
 
-    let { top, left, width, height } = this.fitToScreen(
-      win,
-      videoData,
-      actorRef
-    );
+    let { top, left, width, height } = this.fitToScreen(win, videoData);
     win.resizeTo(width, height);
     win.moveTo(left, top);
   },

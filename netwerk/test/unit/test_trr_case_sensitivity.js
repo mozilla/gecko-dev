@@ -34,11 +34,13 @@ function channelOpenPromise(chan) {
 
 add_task(async function test_trr_casing() {
   let trrServer = new TRRServer();
-  registerCleanupFunction(async () => trrServer.stop());
+  registerCleanupFunction(async () => {
+    await trrServer.stop();
+  });
   await trrServer.start();
   dump(`port = ${trrServer.port}\n`);
   let chan = makeChan(`https://localhost:${trrServer.port}/test?bla=some`);
-  let [req, resp] = await channelOpenPromise(chan);
+  let [, resp] = await channelOpenPromise(chan);
   equal(resp, "<h1> 404 Path not found: /test?bla=some</h1>");
 
   dns.clearCache(true);

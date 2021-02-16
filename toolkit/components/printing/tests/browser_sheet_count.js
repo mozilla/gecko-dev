@@ -103,6 +103,10 @@ add_task(async function testSheetCountPageRange() {
     );
 
     let sheetCount = helper.get("sheet-count");
+    await BrowserTestUtils.waitForCondition(
+      () => getSheetCount(sheetCount) != 1,
+      "Wait for sheet count to update"
+    );
     let sheets = getSheetCount(sheetCount);
     ok(sheets >= 3, "There are at least 3 pages");
 
@@ -115,5 +119,110 @@ add_task(async function testSheetCountPageRange() {
 
     sheets = getSheetCount(sheetCount);
     is(sheets, 2, "There are now only 2 pages shown");
+  });
+});
+
+add_task(async function testPagesPerSheetCount() {
+  await PrintHelper.withTestPage(async helper => {
+    let mockPrinterName = "A real printer!";
+    helper.addMockPrinter(mockPrinterName);
+
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["print.pages_per_sheet.enabled", true],
+        ["print_printer", mockPrinterName],
+      ],
+    });
+
+    await helper.startPrint();
+
+    await helper.waitForPreview(() =>
+      helper.dispatchSettingsChange({
+        shrinkToFit: false,
+        scaling: 2,
+      })
+    );
+
+    let sheetCount = helper.get("sheet-count");
+    await BrowserTestUtils.waitForCondition(
+      () => getSheetCount(sheetCount) != 1,
+      "Wait for sheet count to update"
+    );
+    let sheets = getSheetCount(sheetCount);
+
+    ok(sheets > 1, "There are multiple pages");
+
+    await helper.openMoreSettings();
+    let pagesPerSheet = helper.get("pages-per-sheet-picker");
+    ok(BrowserTestUtils.is_visible(pagesPerSheet), "Pages per sheet is shown");
+    pagesPerSheet.focus();
+    EventUtils.sendKey("space", helper.win);
+    for (let i = 0; i < 7; i++) {
+      EventUtils.sendKey("down", helper.win);
+      if (pagesPerSheet.value == 16) {
+        break;
+      }
+    }
+    await helper.waitForPreview(() => EventUtils.sendKey("return", helper.win));
+
+    sheets = getSheetCount(sheetCount);
+    is(sheets, 1, "There's only one sheet now");
+
+    await helper.waitForSettingsEvent(() =>
+      helper.dispatchSettingsChange({ numCopies: 5 })
+    );
+
+    sheets = getSheetCount(sheetCount);
+    is(sheets, 5, "Copies are handled with pages per sheet correctly");
+
+    await helper.closeDialog();
+  });
+});
+
+add_task(async function testPagesPerSheetPref() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["print.pages_per_sheet.enabled", false]],
+  });
+
+  await PrintHelper.withTestPage(async helper => {
+    await helper.startPrint();
+
+    ok(
+      BrowserTestUtils.is_hidden(helper.get("pages-per-sheet")),
+      "Pages per sheet is hidden"
+    );
+
+    await helper.closeDialog();
+  });
+});
+
+add_task(async function testUpdateCopiesNoPreviewUpdate() {
+  const mockPrinterName = "Fake Printer";
+  await PrintHelper.withTestPage(async helper => {
+    helper.addMockPrinter(mockPrinterName);
+    await helper.startPrint();
+
+    await helper.waitForSettingsEvent(() =>
+      helper.dispatchSettingsChange({ numCopies: 5 })
+    );
+
+    ok(
+      !helper.win.PrintEventHandler._updatePrintPreviewTask.isArmed,
+      "Preview Task is not armed"
+    );
+
+    await helper.waitForPreview(() =>
+      helper.dispatchSettingsChange({ printerName: mockPrinterName })
+    );
+
+    await helper.waitForSettingsEvent(() =>
+      helper.dispatchSettingsChange({ numCopies: 2 })
+    );
+    ok(
+      !helper.win.PrintEventHandler._updatePrintPreviewTask.isArmed,
+      "Preview Task is not armed"
+    );
+
+    await helper.closeDialog();
   });
 });

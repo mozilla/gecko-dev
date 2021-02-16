@@ -403,25 +403,27 @@ class nsLineBox final : public nsLineLink {
   // The ink overflow area should never be used for things that affect layout.
   // The scrollable overflow area are permitted to affect layout for handling of
   // overflow and scrollbars.
-  void SetOverflowAreas(const nsOverflowAreas& aOverflowAreas);
-  mozilla::LogicalRect GetOverflowArea(nsOverflowType aType,
+  void SetOverflowAreas(const mozilla::OverflowAreas& aOverflowAreas);
+  mozilla::LogicalRect GetOverflowArea(mozilla::OverflowType aType,
                                        mozilla::WritingMode aWM,
                                        const nsSize& aContainerSize) {
     return mozilla::LogicalRect(aWM, GetOverflowArea(aType), aContainerSize);
   }
-  nsRect GetOverflowArea(nsOverflowType aType) const {
+  nsRect GetOverflowArea(mozilla::OverflowType aType) const {
     return mData ? mData->mOverflowAreas.Overflow(aType) : GetPhysicalBounds();
   }
-  nsOverflowAreas GetOverflowAreas() const {
+  mozilla::OverflowAreas GetOverflowAreas() const {
     if (mData) {
       return mData->mOverflowAreas;
     }
     nsRect bounds = GetPhysicalBounds();
-    return nsOverflowAreas(bounds, bounds);
+    return mozilla::OverflowAreas(bounds, bounds);
   }
-  nsRect InkOverflowRect() const { return GetOverflowArea(eInkOverflow); }
+  nsRect InkOverflowRect() const {
+    return GetOverflowArea(mozilla::OverflowType::Ink);
+  }
   nsRect ScrollableOverflowRect() {
-    return GetOverflowArea(eScrollableOverflow);
+    return GetOverflowArea(mozilla::OverflowType::Scrollable);
   }
 
   void SlideBy(nscoord aDBCoord, const nsSize& aContainerSize) {
@@ -436,7 +438,7 @@ class nsLineBox final : public nsLineLink {
       nsPoint physicalDelta =
           mozilla::LogicalPoint(mWritingMode, 0, aDBCoord)
               .GetPhysicalPoint(mWritingMode, nullContainerSize);
-      NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+      for (const auto otype : mozilla::AllOverflowTypes()) {
         mData->mOverflowAreas.Overflow(otype) += physicalDelta;
       }
     }
@@ -453,7 +455,7 @@ class nsLineBox final : public nsLineLink {
     // this has a physical-coordinate effect only in vertical-rl mode
     if (mWritingMode.IsVerticalRL() && mData) {
       nsPoint physicalDelta(-delta.width, 0);
-      NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+      for (const auto otype : mozilla::AllOverflowTypes()) {
         mData->mOverflowAreas.Overflow(otype) += physicalDelta;
       }
     }
@@ -638,7 +640,7 @@ class nsLineBox final : public nsLineLink {
   struct ExtraData {
     explicit ExtraData(const nsRect& aBounds)
         : mOverflowAreas(aBounds, aBounds) {}
-    nsOverflowAreas mOverflowAreas;
+    mozilla::OverflowAreas mOverflowAreas;
   };
 
   struct ExtraBlockData : public ExtraData {

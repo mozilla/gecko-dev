@@ -86,10 +86,26 @@ add_task(async function testTabOrder() {
 
     const previewBrowser = document.querySelector(".printPreviewBrowser");
     ok(previewBrowser, "Got the print preview browser");
-    let focused = BrowserTestUtils.waitForEvent(previewBrowser, "focus");
-    EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+
+    let focused;
+    let navigationShadowRoot = document.querySelector(".printPreviewNavigation")
+      .shadowRoot;
+    for (let buttonId of [
+      "navigateEnd",
+      "navigateNext",
+      "navigatePrevious",
+      "navigateHome",
+    ]) {
+      let button = navigationShadowRoot.getElementById(buttonId);
+      focused = BrowserTestUtils.waitForEvent(button, "focus");
+      await EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
+      await focused;
+    }
+
+    focused = BrowserTestUtils.waitForEvent(previewBrowser, "focus");
+    await EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
     await focused;
-    ok(true, "Print preview focused after shift+tab");
+    ok(true, "Print preview focused after shift+tab through the paginator");
 
     focused = BrowserTestUtils.waitForEvent(gNavToolbox, "focus", true);
     EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true });
@@ -101,6 +117,17 @@ add_task(async function testTabOrder() {
     await focused;
     ok(true, "Print preview focused after tab");
 
+    for (let buttonId of [
+      "navigateHome",
+      "navigatePrevious",
+      "navigateNext",
+      "navigateEnd",
+    ]) {
+      let button = navigationShadowRoot.getElementById(buttonId);
+      focused = BrowserTestUtils.waitForEvent(button, "focus");
+      await EventUtils.synthesizeKey("KEY_Tab");
+      await focused;
+    }
     focused = BrowserTestUtils.waitForEvent(printerPicker, "focus");
     EventUtils.synthesizeKey("KEY_Tab");
     await focused;
@@ -182,20 +209,39 @@ add_task(async function testPrintOnNewWindowDoesntClose() {
     set: [["print.tab_modal.enabled", true]],
   });
   let win = await BrowserTestUtils.openNewBrowserWindow();
-  let browser = win.gBrowser.selectedBrowser;
-  await BrowserTestUtils.loadURI(browser, PrintHelper.defaultTestPageUrl);
-  await BrowserTestUtils.browserLoaded(
-    browser,
-    true,
-    PrintHelper.defaultTestPageUrl
-  );
-  let helper = new PrintHelper(browser);
-  await helper.startPrint();
-  let file = helper.mockFilePicker("print_new_window_close.pdf");
-  await helper.assertPrintToFile(file, () => {
-    EventUtils.sendKey("return", helper.win);
+
+  await PrintHelper.withTestPage(async helper => {
+    await helper.startPrint();
+    let file = helper.mockFilePicker("print_new_window_close.pdf");
+    await helper.assertPrintToFile(file, () => {
+      EventUtils.sendKey("return", helper.win);
+    });
   });
   ok(!win.closed, "Shouldn't be closed");
   await BrowserTestUtils.closeWindow(win);
   await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function testPrintProgressIndicator() {
+  await PrintHelper.withTestPage(async helper => {
+    await helper.startPrint();
+
+    helper.setupMockPrint();
+
+    let progressIndicator = helper.get("print-progress");
+    ok(progressIndicator.hidden, "Progress indicator is hidden");
+
+    let indicatorShown = BrowserTestUtils.waitForAttributeRemoval(
+      "hidden",
+      progressIndicator
+    );
+    helper.click(helper.get("print-button"));
+    await indicatorShown;
+
+    ok(!progressIndicator.hidden, "Progress indicator is shown on print start");
+
+    await helper.withClosingFn(async () => {
+      await helper.resolvePrint();
+    });
+  });
 });

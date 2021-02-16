@@ -8,6 +8,7 @@
 
 #include "FrameMetrics.h"
 #include "Layers.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/Point.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
@@ -15,6 +16,7 @@
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/PAPZ.h"
 #include "mozilla/layers/RepaintRequest.h"
+#include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_layers.h"
 #include "nsDeckFrame.h"
 #include "nsIScrollableFrame.h"
@@ -549,9 +551,13 @@ static bool GetDisplayPortImpl(nsIContent* aContent, nsRect* aResult,
     result = GetDisplayPortFromRectData(aContent, rectData, aMultiplier);
   } else if (isDisplayportSuppressed ||
              nsLayoutUtils::ShouldDisableApzForElement(aContent)) {
-    DisplayPortMarginsPropertyData noMargins(
-        DisplayPortMargins::Empty(aContent), 1,
-        /*painted=*/false);
+    // Make a copy of the margins data but set the margins to empty.
+    // Do not create a new DisplayPortMargins object with
+    // DisplayPortMargins::Empty(), because that will record the visual
+    // and layout scroll offsets in place right now on the DisplayPortMargins,
+    // and those are only meant to be recorded when the margins are stored.
+    DisplayPortMarginsPropertyData noMargins = *marginsData;
+    noMargins.mMargins.mMargins = ScreenMargin();
     result = GetDisplayPortFromMarginsData(aContent, &noMargins, aMultiplier,
                                            aOptions);
   } else {
@@ -957,7 +963,7 @@ void DisplayPortUtils::SetZeroMarginDisplayPortOnAsyncScrollableAncestors(
     nsIFrame* aFrame) {
   nsIFrame* frame = aFrame;
   while (frame) {
-    frame = nsLayoutUtils::GetCrossDocParentFrame(frame);
+    frame = nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(frame);
     if (!frame) {
       break;
     }

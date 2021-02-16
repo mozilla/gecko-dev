@@ -19,6 +19,7 @@
 
 #include "nsArray.h"
 #include "nsXPCOM.h"
+#include "nsXULAppAPI.h"
 
 #include "nsIStringEnumerator.h"
 #include "stdlib.h"
@@ -85,12 +86,6 @@ nsresult nsPrintSettingsService::Init() { return NS_OK; }
 NS_IMETHODIMP
 nsPrintSettingsService::SerializeToPrintData(nsIPrintSettings* aSettings,
                                              PrintData* data) {
-  nsCOMPtr<nsIPrintSession> session;
-  nsresult rv = aSettings->GetPrintSession(getter_AddRefs(session));
-  if (NS_SUCCEEDED(rv) && session) {
-    data->remotePrintJobChild() = session->GetRemotePrintJob();
-  }
-
   aSettings->GetPageRanges(data->pageRanges());
 
   aSettings->GetEdgeTop(&data->edgeTop());
@@ -143,6 +138,7 @@ nsPrintSettingsService::SerializeToPrintData(nsIPrintSettings* aSettings,
   aSettings->GetOrientation(&data->orientation());
 
   aSettings->GetNumCopies(&data->numCopies());
+  aSettings->GetNumPagesPerSheet(&data->numPagesPerSheet());
 
   aSettings->GetPrinterName(data->printerName());
 
@@ -232,6 +228,7 @@ nsPrintSettingsService::DeserializeToPrintSettings(const PrintData& data,
   settings->SetOrientation(data.orientation());
 
   settings->SetNumCopies(data.numCopies());
+  settings->SetNumPagesPerSheet(data.numPagesPerSheet());
 
   settings->SetPrinterName(data.printerName());
 

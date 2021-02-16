@@ -242,6 +242,9 @@ const shortcutHandlers = {
  *         The inspector we're watching.
  * @param  {iframe} frame
  *         An iframe in which the caller has kindly loaded markup.xhtml.
+ * @param  {XULWindow} controllerWindow
+ *         Will enable the undo/redo feature from devtools/client/shared/undo.
+ *         Should be a XUL window, will typically point to the toolbox window.
  */
 function MarkupView(inspector, frame, controllerWindow) {
   EventEmitter.decorate(this);
@@ -320,6 +323,17 @@ function MarkupView(inspector, frame, controllerWindow) {
   this.inspector.toolbox.nodePicker.on(
     "picker-node-hovered",
     this._onToolboxPickerHover
+  );
+
+  // Event listeners for highlighter events
+  this.onHighlighterShown = data =>
+    this.handleHighlighterEvent("highlighter-shown", data);
+  this.onHighlighterHidden = data =>
+    this.handleHighlighterEvent("highlighter-hidden", data);
+  this.inspector.highlighters.on("highlighter-shown", this.onHighlighterShown);
+  this.inspector.highlighters.on(
+    "highlighter-hidden",
+    this.onHighlighterHidden
   );
 
   if (flags.testing) {
@@ -718,6 +732,59 @@ MarkupView.prototype = {
     return this.inspector.highlighters.hideHighlighterType(
       this.inspector.highlighters.TYPES.BOXMODEL
     );
+  },
+
+  /**
+   * Delegate handler for highlighter events.
+   *
+   * This is the place to observe for highlighter events, check the highlighter type and
+   * event name, then react for example by modifying the DOM.
+   *
+   * @param {String} eventName
+   *        Highlighter event name. One of: "highlighter-hidden", "highlighter-shown"
+   * @param {Object} data
+   *        Object with data associated with the highlighter event.
+   *        {String} data.type
+   *        Highlighter type
+   *        {NodeFront} data.nodeFront
+   *        NodeFront of the node associated with the highlighter event
+   *        {Object} data.options
+   *        Optional configuration passed to the highlighter when shown
+   *        {CustomHighlighterFront} data.highlighter
+   *        Highlighter instance
+   *
+   */
+  handleHighlighterEvent: function(eventName, data) {
+    switch (data.type) {
+      // Toggle the "active" CSS class name on flex and grid display badges next to
+      // elements in the Markup view when a coresponding flex or grid highlighter is
+      // shown or hidden for a node.
+      case this.inspector.highlighters.TYPES.FLEXBOX:
+      case this.inspector.highlighters.TYPES.GRID:
+        const { nodeFront } = data;
+        if (!nodeFront) {
+          return;
+        }
+
+        // Find the badge corresponding to the node from the highlighter event payload.
+        const container = this.getContainer(nodeFront);
+        const badge = container?.editor?.displayBadge;
+        if (badge) {
+          badge.classList.toggle("active", eventName == "highlighter-shown");
+        }
+
+        // There is a limit to how many grid highlighters can be active at the same time.
+        // If the limit was reached, disable all non-active grid badges.
+        if (data.type === this.inspector.highlighters.TYPES.GRID) {
+          // Matches badges for "grid", "inline-grid" and "subgrid"
+          const selector = "[data-display*='grid']:not(.active)";
+          const isLimited = this.inspector.highlighters.isGridHighlighterLimitReached();
+          Array.from(this._elt.querySelectorAll(selector)).map(el => {
+            el.classList.toggle("interactive", !isLimited);
+          });
+        }
+        break;
+    }
   },
 
   /**
@@ -1404,22 +1471,8 @@ MarkupView.prototype = {
    */
   _onWalkerMutations: function(mutations) {
     for (const mutation of mutations) {
-      let type = mutation.type;
-      let target = mutation.target;
-
-      if (mutation.type === "documentUnload") {
-        // Backward compatibility for FF80 or older.
-        // The documentUnload mutation was removed in FF81 in favor of the
-        // root-node resource.
-
-        // Treat this as a childList change of the child (maybe the protocol
-        // should do this).
-        type = "childList";
-        target = mutation.targetParent;
-        if (!target) {
-          continue;
-        }
-      }
+      const type = mutation.type;
+      const target = mutation.target;
 
       const container = this.getContainer(target);
       if (!container) {
@@ -2329,6 +2382,14 @@ MarkupView.prototype = {
     this.inspector.toolbox.nodePicker.off(
       "picker-node-hovered",
       this._onToolboxPickerHover
+    );
+    this.inspector.highlighters.off(
+      "highlighter-shown",
+      this.onHighlighterShown
+    );
+    this.inspector.highlighters.off(
+      "highlighter-hidden",
+      this.onHighlighterHidden
     );
     this.win.removeEventListener("copy", this._onCopy);
     this.win.removeEventListener("mouseup", this._onMouseUp);

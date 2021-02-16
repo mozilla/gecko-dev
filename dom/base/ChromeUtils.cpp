@@ -13,48 +13,36 @@
 #include "WrapperFactory.h"
 
 #include "mozilla/Base64.h"
-#include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/IntentionalCrash.h"
 #include "mozilla/PerformanceMetricsCollector.h"
 #include "mozilla/PerfStats.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProcInfo.h"
-#include "mozilla/RDDProcessManager.h"
 #include "mozilla/ResultExtensions.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/SharedStyleSheetCache.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/dom/BrowserHost.h"
-#include "mozilla/dom/BrowsingContext.h"
-#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/IdleDeadline.h"
 #include "mozilla/dom/InProcessParent.h"
-#include "mozilla/dom/InProcessChild.h"
 #include "mozilla/dom/JSActorService.h"
-#include "mozilla/dom/MediaMetadata.h"
 #include "mozilla/dom/MediaSessionBinding.h"
 #include "mozilla/dom/PBrowserParent.h"
-#include "mozilla/dom/PWindowGlobalParent.h"
 #include "mozilla/dom/Performance.h"
+#include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ReportingHeader.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/WindowBinding.h"  // For IdleRequestCallback/Options
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/WorkerPrivate.h"
-#include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
-#include "mozilla/net/SocketProcessHost.h"
 #include "IOActivityMonitor.h"
-#include "nsIOService.h"
 #include "nsThreadUtils.h"
 #include "mozJSComponentLoader.h"
 #include "GeckoProfiler.h"
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
-#endif
 #include "nsIException.h"
 
 namespace mozilla {
@@ -199,12 +187,37 @@ void ChromeUtils::ReleaseAssert(GlobalObject& aGlobal, bool aCondition,
 /* static */
 void ChromeUtils::AddProfilerMarker(
     GlobalObject& aGlobal, const nsACString& aName,
-    const Optional<DOMHighResTimeStamp>& aStartTime,
+    const ProfilerMarkerOptionsOrDouble& aOptions,
     const Optional<nsACString>& aText) {
 #ifdef MOZ_GECKO_PROFILER
   MarkerOptions options;
+  MarkerCategory category = ::geckoprofiler::category::JS;
 
-  if (aStartTime.WasPassed()) {
+  DOMHighResTimeStamp startTime = 0;
+  if (aOptions.IsDouble()) {
+    startTime = aOptions.GetAsDouble();
+  } else {
+    const ProfilerMarkerOptions& opt = aOptions.GetAsProfilerMarkerOptions();
+    startTime = opt.mStartTime;
+
+    if (opt.mCaptureStack) {
+      options.Set(MarkerStack::Capture());
+    }
+#  define BEGIN_CATEGORY(name, labelAsString, color) \
+    if (opt.mCategory.Equals(labelAsString)) {       \
+      category = ::geckoprofiler::category::name;    \
+    } else
+#  define SUBCATEGORY(supercategory, name, labelAsString)
+#  define END_CATEGORY
+    MOZ_PROFILING_CATEGORY_LIST(BEGIN_CATEGORY, SUBCATEGORY, END_CATEGORY)
+#  undef BEGIN_CATEGORY
+#  undef SUBCATEGORY
+#  undef END_CATEGORY
+    {
+      category = ::geckoprofiler::category::OTHER;
+    }
+  }
+  if (startTime) {
     RefPtr<Performance> performance;
 
     if (NS_IsMainThread()) {
@@ -224,18 +237,23 @@ void ChromeUtils::AddProfilerMarker(
     if (performance) {
       options.Set(MarkerTiming::IntervalUntilNowFrom(
           performance->CreationTimeStamp() +
-          TimeDuration::FromMilliseconds(aStartTime.Value())));
+          TimeDuration::FromMilliseconds(startTime)));
     } else {
       options.Set(MarkerTiming::IntervalUntilNowFrom(
           TimeStamp::ProcessCreation() +
-          TimeDuration::FromMilliseconds(aStartTime.Value())));
+          TimeDuration::FromMilliseconds(startTime)));
     }
   }
 
-  if (aText.WasPassed()) {
-    PROFILER_MARKER_TEXT(aName, JS, std::move(options), aText.Value());
-  } else {
-    PROFILER_MARKER_UNTYPED(aName, JS, std::move(options));
+  {
+    AUTO_PROFILER_STATS(ChromeUtils_AddProfilerMarker);
+    if (aText.WasPassed()) {
+      profiler_add_marker(aName, category, std::move(options),
+                          ::geckoprofiler::markers::TextMarker{},
+                          aText.Value());
+    } else {
+      profiler_add_marker(aName, category, std::move(options));
+    }
   }
 #endif  // MOZ_GECKO_PROFILER
 }
@@ -1261,11 +1279,6 @@ PopupBlockerState ChromeUtils::GetPopupControlState(GlobalObject& aGlobal) {
           "PopupBlocker::PopupControlState and PopupBlockerState are out of "
           "sync");
   }
-}
-
-/* static */
-bool ChromeUtils::IsPopupTokenUnused(GlobalObject& aGlobal) {
-  return PopupBlocker::IsPopupOpeningTokenUnused();
 }
 
 /* static */

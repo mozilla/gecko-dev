@@ -11,6 +11,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/LoadInfo.h"
 #include "mozilla/MozPromiseInlines.h"  // For MozPromise::FromDomPromise
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/StaticPrefs_security.h"
@@ -539,15 +540,6 @@ auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
     }
   }
 
-  // nsViewSourceChannel normally replaces the nsIRequest passed to
-  // OnStart/StopRequest with itself. We don't need this, and instead
-  // we want the original request so that we get different ones for
-  // each part of a multipart channel.
-  nsCOMPtr<nsIViewSourceChannel> viewSourceChannel;
-  if (aPid && (viewSourceChannel = do_QueryInterface(mChannel))) {
-    viewSourceChannel->SetReplaceRequest(false);
-  }
-
   // Setup a ClientChannelHelper to watch for redirects, and copy
   // across any serviceworker related data between channels as needed.
   AddClientChannelHelperInParent(mChannel, std::move(aInfo));
@@ -743,7 +735,7 @@ auto DocumentLoadListener::OpenInParent(nsDocShellLoadState* aLoadState,
 
   RefPtr<nsDOMNavigationTiming> timing = new nsDOMNavigationTiming(nullptr);
   timing->NotifyNavigationStart(
-      browsingContext->GetIsActive()
+      browsingContext->IsActive()
           ? nsDOMNavigationTiming::DocShellState::eActive
           : nsDOMNavigationTiming::DocShellState::eInactive);
 
@@ -1719,7 +1711,7 @@ void DocumentLoadListener::TriggerProcessSwitch(
       // This load has already started, so we want to filter out any 'stop'
       // progress events coming from the old process as a result of us
       // disconnecting from it.
-      browserParent->SuspendProgressEventsUntilAfterNextLoadStarts();
+      browserParent->SuspendProgressEvents();
     }
   }
   DisconnectListeners(NS_BINDING_ABORTED, NS_BINDING_ABORTED, true);
@@ -1805,8 +1797,12 @@ DocumentLoadListener::RedirectToRealChannel(
   nsCOMPtr<nsIRedirectChannelRegistrar> registrar =
       RedirectChannelRegistrar::GetOrCreate();
   MOZ_ASSERT(registrar);
+  nsCOMPtr<nsIChannel> chan = mChannel;
+  if (nsCOMPtr<nsIViewSourceChannel> vsc = do_QueryInterface(chan)) {
+    chan = vsc->GetInnerChannel();
+  }
   mRedirectChannelId = nsContentUtils::GenerateLoadIdentifier();
-  MOZ_ALWAYS_SUCCEEDS(registrar->RegisterChannel(mChannel, mRedirectChannelId));
+  MOZ_ALWAYS_SUCCEEDS(registrar->RegisterChannel(chan, mRedirectChannelId));
 
   if (aDestinationProcess) {
     if (!*aDestinationProcess) {
@@ -2166,9 +2162,9 @@ DocumentLoadListener::OnStartRequest(nsIRequest* aRequest) {
       RefPtr<BrowserParent> browserParent =
           loadingContext->GetCurrentWindowGlobal()->GetBrowserParent();
 
-      // This load has already started, so we want to suspend the start progress
-      // events from the docshell from reaching the parent.
-      browserParent->SuspendProgressEventsUntilAfterNextLoadStarts();
+      // XXX(anny) This is currently a dead code path because parent-controlled
+      // DC pref is off. When we enable the pref, we might get extra STATE_START
+      // progress events
 
       // Notify the docshell that it should load using the newly connected
       // channel

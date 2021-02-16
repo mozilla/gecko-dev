@@ -9,6 +9,7 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/RefPtr.h"
 #include "nsPrintfCString.h"
 #include "WebGLBuffer.h"
@@ -681,7 +682,7 @@ webgl::LinkedProgramInfo::GetDrawFetchLimits() const {
     }
   }
 
-  if (hasActiveAttrib && !hasActiveDivisor0) {
+  if (!webgl->IsWebGL2() && hasActiveAttrib && !hasActiveDivisor0) {
     webgl->ErrorInvalidOperation(
         "One active vertex attrib (if any are active)"
         " must have a divisor of 0.");

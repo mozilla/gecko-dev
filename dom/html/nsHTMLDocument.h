@@ -68,6 +68,10 @@ class nsHTMLDocument : public mozilla::dom::Document {
 
   nsContentList* GetExistingForms() const { return mForms; }
 
+  bool IsPlainText() const { return mIsPlainText; }
+
+  bool IsViewSource() const { return mViewSource; }
+
   // Returns whether an object was found for aName.
   bool ResolveName(JSContext* aCx, const nsAString& aName,
                    JS::MutableHandle<JS::Value> aRetval,
@@ -192,6 +196,11 @@ class nsHTMLDocument : public mozilla::dom::Document {
    * Set to true once we know that we are loading plain text content.
    */
   bool mIsPlainText;
+
+  /**
+   * Set to true once we know that we are viewing source.
+   */
+  bool mViewSource;
 };
 
 namespace mozilla {
@@ -200,6 +209,11 @@ namespace dom {
 inline nsHTMLDocument* Document::AsHTMLDocument() {
   MOZ_ASSERT(IsHTMLOrXHTML());
   return static_cast<nsHTMLDocument*>(this);
+}
+
+inline const nsHTMLDocument* Document::AsHTMLDocument() const {
+  MOZ_ASSERT(IsHTMLOrXHTML());
+  return static_cast<const nsHTMLDocument*>(this);
 }
 
 }  // namespace dom

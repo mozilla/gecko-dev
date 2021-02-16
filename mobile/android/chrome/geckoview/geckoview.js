@@ -76,10 +76,6 @@ var ModuleManager = {
 
     window.document.documentElement.appendChild(aBrowser);
 
-    // TODO: Bug 1635914 remove workaround. In theory this should not be needed
-    // as docShell should be active by default, but this is not currently the
-    // case so we force it here.
-    aBrowser.docShellIsActive = true;
     // By default all layers are discarded when a browser is set to inactive.
     // GeckoView by default sets browsers to inactive every time they're not
     // visible. To avoid flickering when changing tabs, we preserve layers for
@@ -148,16 +144,6 @@ var ModuleManager = {
     );
   },
 
-  remoteTypeFor(aURI, currentType) {
-    return E10SUtils.getRemoteTypeForURI(
-      aURI,
-      /* multiProcess */ true,
-      /* useRemoteSubframes */ false,
-      currentType,
-      this.browser.currentURI
-    );
-  },
-
   // Ensures that session history has been flushed before changing remoteness
   async prepareToChangeRemoteness() {
     // Session state like history is maintained at the process level so we need
@@ -186,17 +172,10 @@ var ModuleManager = {
     this.forEach(module => {
       module.onDestroyBrowser();
     });
-
-    // TODO: Bug 1673683: `docShellIsActive` is sometimes not preserved when
-    // switching process.
-    this.docShellIsActiveWhileSwitchingProcess = this.browser.docShellIsActive;
   },
 
   didChangeBrowserRemoteness() {
     debug`DidChangeBrowserRemoteness`;
-
-    this.browser.docShellIsActive = this.docShellIsActiveWhileSwitchingProcess;
-    this.docShellIsActiveWhileSwitchingProcess = undefined;
 
     this.forEach(module => {
       if (module.impl) {

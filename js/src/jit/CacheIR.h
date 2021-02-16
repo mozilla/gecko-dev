@@ -35,7 +35,7 @@ namespace jit {
 enum class BaselineCacheIRStubKind;
 enum class InlinableNative : uint16_t;
 
-class ICStub;
+class ICCacheIRStub;
 class ICScript;
 class Label;
 class MacroAssembler;
@@ -407,8 +407,20 @@ enum class ArgumentKind : uint8_t {
   Arg1,
   Arg2,
   Arg3,
+  Arg4,
+  Arg5,
+  Arg6,
+  Arg7,
   NumKinds
 };
+
+const uint8_t ArgumentKindArgIndexLimit =
+    uint8_t(ArgumentKind::NumKinds) - uint8_t(ArgumentKind::Arg0);
+
+inline ArgumentKind ArgumentKindForArgIndex(uint32_t idx) {
+  MOZ_ASSERT(idx < ArgumentKindArgIndexLimit);
+  return ArgumentKind(uint32_t(ArgumentKind::Arg0) + idx);
+}
 
 // This function calculates the index of an argument based on the call flags.
 // addArgc is an out-parameter, indicating whether the value of argc should
@@ -461,6 +473,14 @@ inline int32_t GetIndexOfArgument(ArgumentKind kind, CallFlags flags,
       return flags.isConstructing() + hasArgumentArray - 3;
     case ArgumentKind::Arg3:
       return flags.isConstructing() + hasArgumentArray - 4;
+    case ArgumentKind::Arg4:
+      return flags.isConstructing() + hasArgumentArray - 5;
+    case ArgumentKind::Arg5:
+      return flags.isConstructing() + hasArgumentArray - 6;
+    case ArgumentKind::Arg6:
+      return flags.isConstructing() + hasArgumentArray - 7;
+    case ArgumentKind::Arg7:
+      return flags.isConstructing() + hasArgumentArray - 8;
     case ArgumentKind::NewTarget:
       MOZ_ASSERT(flags.isConstructing());
       *addArgc = false;
@@ -491,11 +511,6 @@ JSObject* NewWrapperWithObjectShape(JSContext* cx, HandleNativeObject obj);
 
 void LoadShapeWrapperContents(MacroAssembler& masm, Register obj, Register dst,
                               Label* failure);
-
-enum class MetaTwoByteKind : uint8_t {
-  NativeTemplateObject,
-  ScriptedTemplateObject,
-};
 
 #ifdef JS_SIMULATOR
 bool CallAnyNative(JSContext* cx, unsigned argc, Value* vp);
@@ -660,11 +675,6 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     MOZ_ASSERT(size_t(type) <= UINT8_MAX);
     buffer_.writeByte(uint8_t(type));
   }
-  void writeMetaTwoByteKindImm(MetaTwoByteKind kind) {
-    static_assert(sizeof(MetaTwoByteKind) == sizeof(uint8_t),
-                  "MetaTwoByteKind must fit in a byte");
-    buffer_.writeByte(uint8_t(kind));
-  }
   void writeUnaryMathFunctionImm(UnaryMathFunction fun) {
     static_assert(sizeof(UnaryMathFunction) == sizeof(uint8_t),
                   "UnaryMathFunction must fit in a byte");
@@ -685,6 +695,11 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     writePointer(JS_FUNC_TO_DATA_PTR(void*, native));
   }
   void writeStaticStringImm(const char* str) { writePointer(str); }
+
+  void writeWasmValTypeImm(wasm::ValType::Kind kind) {
+    static_assert(unsigned(wasm::TypeCode::Limit) <= UINT8_MAX);
+    buffer_.writeByte(uint8_t(kind));
+  }
 
   uint32_t newOperandId() { return nextOperandId_++; }
 
@@ -814,20 +829,10 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
   // Instead of calling guardGroup manually, use (or create) a specialization
   // below to clarify what constraint the group guard is implying.
   void guardGroupForProto(ObjOperandId obj, ObjectGroup* group) {
-    MOZ_ASSERT(!group->hasUncacheableProto());
-    guardGroup(obj, group);
-  }
-
-  void guardGroupForTypeBarrier(ObjOperandId obj, ObjectGroup* group) {
-    // Typesets will always be a super-set of any typesets previously seen
-    // for this group. If the type/group of a value being stored to a
-    // property in this group is not known, a TypeUpdate IC chain should be
-    // used as well.
     guardGroup(obj, group);
   }
 
   void guardGroupForLayout(ObjOperandId obj, ObjectGroup* group) {
-    // NOTE: Comment in guardGroupForTypeBarrier also applies.
     MOZ_ASSERT(IsTypedObjectClass(group->clasp()));
     guardGroup(obj, group);
   }
@@ -1021,16 +1026,9 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     callNativeSetter_(receiver, setter, rhs, sameRealm, nargsAndFlags);
   }
 
-  // These generate no code, but save the template object in a stub
-  // field for BaselineInspector.
-  void metaNativeTemplateObject(JSFunction* callee, JSObject* templateObject) {
-    metaTwoByte_(MetaTwoByteKind::NativeTemplateObject, callee, templateObject);
-  }
-
   void metaScriptedTemplateObject(JSFunction* callee,
                                   JSObject* templateObject) {
-    metaTwoByte_(MetaTwoByteKind::ScriptedTemplateObject, callee,
-                 templateObject);
+    metaTwoByte_(callee, templateObject);
   }
   friend class CacheIRCloner;
 
@@ -1098,6 +1096,9 @@ class MOZ_RAII CacheIRReader {
   GuardClassKind guardClassKind() { return GuardClassKind(buffer_.readByte()); }
   JSValueType jsValueType() { return JSValueType(buffer_.readByte()); }
   ValueType valueType() { return ValueType(buffer_.readByte()); }
+  wasm::ValType::Kind wasmValType() {
+    return wasm::ValType::Kind(buffer_.readByte());
+  }
 
   Scalar::Type scalarType() { return Scalar::Type(buffer_.readByte()); }
   uint32_t typeDescrKey() { return buffer_.readByte(); }
@@ -1181,7 +1182,7 @@ class MOZ_RAII CacheIRReader {
 
 class MOZ_RAII CacheIRCloner {
  public:
-  explicit CacheIRCloner(ICStub* stubInfo);
+  explicit CacheIRCloner(ICCacheIRStub* stubInfo);
 
   void cloneOp(CacheOp op, CacheIRReader& reader, CacheIRWriter& writer);
 
@@ -1245,56 +1246,13 @@ class MOZ_RAII IRGenerator {
   static constexpr char* NotAttached = nullptr;
 };
 
-// Flags used to describe what values a GetProperty cache may produce.
-enum class GetPropertyResultFlags {
-  None = 0,
-
-  // Values produced by this cache will go through a type barrier,
-  // so the cache may produce any type of value that is compatible with its
-  // result operand.
-  Monitored = 1 << 0,
-
-  // Whether particular primitives may be produced by this cache.
-  AllowUndefined = 1 << 1,
-  AllowInt32 = 1 << 2,
-  AllowDouble = 1 << 3,
-
-  All = Monitored | AllowUndefined | AllowInt32 | AllowDouble
-};
-
-static inline bool operator&(GetPropertyResultFlags a,
-                             GetPropertyResultFlags b) {
-  return static_cast<int>(a) & static_cast<int>(b);
-}
-
-static inline GetPropertyResultFlags operator|(GetPropertyResultFlags a,
-                                               GetPropertyResultFlags b) {
-  return static_cast<GetPropertyResultFlags>(static_cast<int>(a) |
-                                             static_cast<int>(b));
-}
-
-static inline GetPropertyResultFlags& operator|=(GetPropertyResultFlags& lhs,
-                                                 GetPropertyResultFlags b) {
-  lhs = lhs | b;
-  return lhs;
-}
-
 // GetPropIRGenerator generates CacheIR for a GetProp IC.
 class MOZ_RAII GetPropIRGenerator : public IRGenerator {
   HandleValue val_;
   HandleValue idVal_;
-  HandleValue receiver_;
-  GetPropertyResultFlags resultFlags_;
-
-  enum class PreliminaryObjectAction { None, Unlink, NotePreliminary };
-  PreliminaryObjectAction preliminaryObjectAction_;
 
   AttachDecision tryAttachNative(HandleObject obj, ObjOperandId objId,
                                  HandleId id, ValOperandId receiverId);
-  AttachDecision tryAttachUnboxed(HandleObject obj, ObjOperandId objId,
-                                  HandleId id);
-  AttachDecision tryAttachUnboxedExpando(HandleObject obj, ObjOperandId objId,
-                                         HandleId id);
   AttachDecision tryAttachObjectLength(HandleObject obj, ObjOperandId objId,
                                        HandleId id);
   AttachDecision tryAttachTypedArrayLength(HandleObject obj, ObjOperandId objId,
@@ -1381,10 +1339,6 @@ class MOZ_RAII GetPropIRGenerator : public IRGenerator {
             cacheKind_ == CacheKind::GetElemSuper);
   }
 
-  // No pc if idempotent, as there can be multiple bytecode locations
-  // due to GVN.
-  bool idempotent() const { return pc_ == nullptr; }
-
   // If this is a GetElem cache, emit instructions to guard the incoming Value
   // matches |id|.
   void maybeEmitIdGuard(jsid id);
@@ -1394,19 +1348,9 @@ class MOZ_RAII GetPropIRGenerator : public IRGenerator {
  public:
   GetPropIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc,
                      ICState::Mode mode, CacheKind cacheKind, HandleValue val,
-                     HandleValue idVal, HandleValue receiver,
-                     GetPropertyResultFlags resultFlags);
+                     HandleValue idVal);
 
   AttachDecision tryAttachStub();
-  AttachDecision tryAttachIdempotentStub();
-
-  bool shouldUnlinkPreliminaryObjectStubs() const {
-    return preliminaryObjectAction_ == PreliminaryObjectAction::Unlink;
-  }
-
-  bool shouldNotePreliminaryObjectStub() const {
-    return preliminaryObjectAction_ == PreliminaryObjectAction::NotePreliminary;
-  }
 };
 
 // GetNameIRGenerator generates CacheIR for a GetName IC.
@@ -1446,58 +1390,11 @@ class MOZ_RAII BindNameIRGenerator : public IRGenerator {
   AttachDecision tryAttachStub();
 };
 
-// Information used by SetProp/SetElem stubs to check/update property types.
-class MOZ_RAII PropertyTypeCheckInfo {
-  RootedObjectGroup group_;
-  RootedId id_;
-  bool needsTypeBarrier_;
-
-  PropertyTypeCheckInfo(const PropertyTypeCheckInfo&) = delete;
-  void operator=(const PropertyTypeCheckInfo&) = delete;
-
- public:
-  PropertyTypeCheckInfo(JSContext* cx, bool needsTypeBarrier)
-      : group_(cx), id_(cx), needsTypeBarrier_(needsTypeBarrier) {
-    if (!IsTypeInferenceEnabled()) {
-      needsTypeBarrier_ = false;
-    }
-  }
-
-  bool needsTypeBarrier() const { return needsTypeBarrier_; }
-  bool isSet() const { return group_ != nullptr; }
-
-  ObjectGroup* group() const {
-    MOZ_ASSERT(isSet());
-    return group_;
-  }
-
-  jsid id() const {
-    MOZ_ASSERT(isSet());
-    return id_;
-  }
-
-  void set(ObjectGroup* group, jsid id) {
-    MOZ_ASSERT(!group_);
-    MOZ_ASSERT(group);
-    if (needsTypeBarrier_) {
-      group_ = group;
-      id_ = id;
-    }
-  }
-};
-
 // SetPropIRGenerator generates CacheIR for a SetProp IC.
 class MOZ_RAII SetPropIRGenerator : public IRGenerator {
   HandleValue lhsVal_;
   HandleValue idVal_;
   HandleValue rhsVal_;
-  PropertyTypeCheckInfo typeCheckInfo_;
-
-  enum class PreliminaryObjectAction { None, Unlink, NotePreliminary };
-  PreliminaryObjectAction preliminaryObjectAction_;
-  bool attachedTypedArrayOOBStub_;
-
-  bool maybeHasExtraIndexedProps_;
 
  public:
   enum class DeferType { None, AddSlot };
@@ -1524,11 +1421,6 @@ class MOZ_RAII SetPropIRGenerator : public IRGenerator {
 
   AttachDecision tryAttachNativeSetSlot(HandleObject obj, ObjOperandId objId,
                                         HandleId id, ValOperandId rhsId);
-  AttachDecision tryAttachUnboxedExpandoSetSlot(HandleObject obj,
-                                                ObjOperandId objId, HandleId id,
-                                                ValOperandId rhsId);
-  AttachDecision tryAttachUnboxedProperty(HandleObject obj, ObjOperandId objId,
-                                          HandleId id, ValOperandId rhsId);
   AttachDecision tryAttachSetter(HandleObject obj, ObjOperandId objId,
                                  HandleId id, ValOperandId rhsId);
   AttachDecision tryAttachSetArrayLength(HandleObject obj, ObjOperandId objId,
@@ -1584,26 +1476,11 @@ class MOZ_RAII SetPropIRGenerator : public IRGenerator {
  public:
   SetPropIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc,
                      CacheKind cacheKind, ICState::Mode mode,
-                     HandleValue lhsVal, HandleValue idVal, HandleValue rhsVal,
-                     bool needsTypeBarrier = true,
-                     bool maybeHasExtraIndexedProps = true);
+                     HandleValue lhsVal, HandleValue idVal, HandleValue rhsVal);
 
   AttachDecision tryAttachStub();
-  AttachDecision tryAttachAddSlotStub(HandleObjectGroup oldGroup,
-                                      HandleShape oldShape);
+  AttachDecision tryAttachAddSlotStub(HandleShape oldShape);
   void trackAttached(const char* name);
-
-  bool shouldUnlinkPreliminaryObjectStubs() const {
-    return preliminaryObjectAction_ == PreliminaryObjectAction::Unlink;
-  }
-
-  bool shouldNotePreliminaryObjectStub() const {
-    return preliminaryObjectAction_ == PreliminaryObjectAction::NotePreliminary;
-  }
-
-  const PropertyTypeCheckInfo* typeCheckInfo() const { return &typeCheckInfo_; }
-
-  bool attachedTypedArrayOOBStub() const { return attachedTypedArrayOOBStub_; }
 
   DeferType deferType() const { return deferType_; }
 };
@@ -1631,10 +1508,6 @@ class MOZ_RAII HasPropIRGenerator : public IRGenerator {
   AttachDecision tryAttachNative(JSObject* obj, ObjOperandId objId, jsid key,
                                  ValOperandId keyId, PropertyResult prop,
                                  JSObject* holder);
-  AttachDecision tryAttachUnboxed(JSObject* obj, ObjOperandId objId, jsid key,
-                                  ValOperandId keyId);
-  AttachDecision tryAttachUnboxedExpando(JSObject* obj, ObjOperandId objId,
-                                         jsid key, ValOperandId keyId);
   AttachDecision tryAttachSlotDoesNotExist(JSObject* obj, ObjOperandId objId,
                                            jsid key, ValOperandId keyId);
   AttachDecision tryAttachDoesNotExist(HandleObject obj, ObjOperandId objId,
@@ -1728,12 +1601,7 @@ class MOZ_RAII OptimizeSpreadCallIRGenerator : public IRGenerator {
 };
 
 enum class StringChar { CodeAt, At };
-enum class ScriptedThisResult {
-  NoAction,
-  TemporarilyUnoptimizable,
-  UninitializedThis,
-  TemplateObject
-};
+enum class ScriptedThisResult { NoAction, UninitializedThis, TemplateObject };
 
 class MOZ_RAII CallIRGenerator : public IRGenerator {
  private:
@@ -1744,13 +1612,9 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   HandleValue thisval_;
   HandleValue newTarget_;
   HandleValueArray args_;
-  PropertyTypeCheckInfo typeCheckInfo_;
-  BaselineCacheIRStubKind cacheIRStubKind_;
 
   ScriptedThisResult getThisForScripted(HandleFunction calleeFunc,
                                         MutableHandleObject result);
-  bool getTemplateObjectForNative(HandleFunction calleeFunc,
-                                  MutableHandleObject result);
 
   void emitNativeCalleeGuard(HandleFunction callee);
   void emitCalleeGuard(ObjOperandId calleeId, HandleFunction callee);
@@ -1866,6 +1730,9 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   AttachDecision tryAttachAssertRecoveredOnBailout(HandleFunction callee);
   AttachDecision tryAttachObjectIs(HandleFunction callee);
   AttachDecision tryAttachObjectIsPrototypeOf(HandleFunction callee);
+  AttachDecision tryAttachObjectToString(HandleFunction callee);
+  AttachDecision tryAttachBigIntAsIntN(HandleFunction callee);
+  AttachDecision tryAttachBigIntAsUintN(HandleFunction callee);
 
   AttachDecision tryAttachFunCall(HandleFunction calleeFunc);
   AttachDecision tryAttachFunApply(HandleFunction calleeFunc);
@@ -1884,12 +1751,6 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
                   HandleValue newTarget, HandleValueArray args);
 
   AttachDecision tryAttachStub();
-
-  AttachDecision tryAttachDeferredStub(HandleValue result);
-
-  BaselineCacheIRStubKind cacheIRStubKind() const { return cacheIRStubKind_; }
-
-  const PropertyTypeCheckInfo* typeCheckInfo() const { return &typeCheckInfo_; }
 };
 
 class MOZ_RAII CompareIRGenerator : public IRGenerator {

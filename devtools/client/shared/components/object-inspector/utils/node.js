@@ -2,14 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-const { maybeEscapePropertyName } = require("devtools/client/shared/components/reps/reps/rep-utils");
+const {
+  maybeEscapePropertyName,
+} = require("devtools/client/shared/components/reps/reps/rep-utils");
 const ArrayRep = require("devtools/client/shared/components/reps/reps/array");
 const GripArrayRep = require("devtools/client/shared/components/reps/reps/grip-array");
 const GripMap = require("devtools/client/shared/components/reps/reps/grip-map");
 const GripMapEntryRep = require("devtools/client/shared/components/reps/reps/grip-map-entry");
 const ErrorRep = require("devtools/client/shared/components/reps/reps/error");
 const BigIntRep = require("devtools/client/shared/components/reps/reps/big-int");
-const { isLongString } = require("devtools/client/shared/components/reps/reps/string");
+const {
+  isLongString,
+} = require("devtools/client/shared/components/reps/reps/string");
 
 const MAX_NUMERICAL_PROPERTIES = 100;
 
@@ -281,11 +285,8 @@ function nodeNeedsNumericalBuckets(item) {
   );
 }
 
-function makeNodesForPromiseProperties(item) {
-  const {
-    promiseState: { reason, value, state },
-  } = getValue(item);
-
+function makeNodesForPromiseProperties(loadedProps, item) {
+  const { reason, value, state } = loadedProps.promiseState;
   const properties = [];
 
   if (state) {
@@ -555,30 +556,23 @@ function makeNodesForProperties(objProps, parent) {
 
   if (Array.isArray(ownSymbols)) {
     ownSymbols.forEach((ownSymbol, index) => {
-      const descriptorValue =
-        ownSymbol && ownSymbol.descriptor && ownSymbol.descriptor.value;
-      const isFront = descriptorValue && descriptorValue.getGrip;
-      const symbolGrip = isFront ? descriptorValue.getGrip() : descriptorValue;
-      const symbolFront = isFront ? ownSymbol.descriptor.value : null;
+      const descriptorValue = ownSymbol?.descriptor?.value;
+      const hasGrip = descriptorValue?.getGrip;
+      const symbolGrip = hasGrip ? descriptorValue.getGrip() : descriptorValue;
+      const symbolFront = hasGrip ? ownSymbol.descriptor.value : null;
 
       nodes.push(
         createNode({
           parent,
           name: ownSymbol.name,
           path: `symbol-${index}`,
-          contents: symbolGrip
-            ? {
-                value: symbolGrip,
-                front: symbolFront,
-              }
-            : null,
+          contents: {
+            value: symbolGrip,
+            front: symbolFront,
+          },
         })
       );
     }, this);
-  }
-
-  if (nodeIsPromise(parent)) {
-    nodes.push(...makeNodesForPromiseProperties(parent));
   }
 
   if (nodeHasEntries(parent)) {
@@ -803,6 +797,10 @@ function getChildren(options) {
 
   if (nodeIsMapEntry(item)) {
     return addToCache(makeNodesForMapEntry(item));
+  }
+
+  if (nodeIsPromise(item) && hasLoadedProps) {
+    return addToCache(makeNodesForPromiseProperties(loadedProps, item));
   }
 
   if (nodeIsProxy(item) && hasLoadedProps) {

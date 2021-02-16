@@ -10,8 +10,13 @@ const PASS1 = "mypass";
 const PASS2 = "anotherpass";
 const PASS3 = "yetanotherpass";
 
+async function maybeImportLogins(logins) {
+  let summary = await LoginHelper.maybeImportLogins(logins);
+  return summary.filter(ir => ir.result == "added").map(ir => ir.login);
+}
+
 add_task(async function test_invalid_logins() {
-  let importedLogins = await LoginHelper.maybeImportLogins([
+  let importedLogins = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -46,11 +51,11 @@ add_task(async function test_invalid_logins() {
     0,
     `Should have no logins in storage: ${JSON.stringify(savedLogins, null, 2)}`
   );
-  Services.logins.removeAllLogins();
+  Services.logins.removeAllUserFacingLogins();
 });
 
 add_task(async function test_new_logins() {
-  let [importedLogin] = await LoginHelper.maybeImportLogins([
+  let [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -66,7 +71,7 @@ add_task(async function test_new_logins() {
     `There should be 1 login for ${HOST1}`
   );
 
-  [importedLogin] = await LoginHelper.maybeImportLogins([
+  [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -97,11 +102,11 @@ add_task(async function test_new_logins() {
     2,
     "There should be 2 logins in total"
   );
-  Services.logins.removeAllLogins();
+  Services.logins.removeAllUserFacingLogins();
 });
 
 add_task(async function test_duplicate_logins() {
-  let [importedLogin] = await LoginHelper.maybeImportLogins([
+  let [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -117,7 +122,7 @@ add_task(async function test_duplicate_logins() {
     `There should be 1 login for ${HOST1}`
   );
 
-  [importedLogin] = await LoginHelper.maybeImportLogins([
+  [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -135,11 +140,11 @@ add_task(async function test_duplicate_logins() {
     1,
     `There should still be 1 login for ${HOST1}`
   );
-  Services.logins.removeAllLogins();
+  Services.logins.removeAllUserFacingLogins();
 });
 
 add_task(async function test_different_passwords() {
-  let [importedLogin] = await LoginHelper.maybeImportLogins([
+  let [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -157,7 +162,7 @@ add_task(async function test_different_passwords() {
   );
 
   // This item will be newer, so its password should take precedence.
-  [importedLogin] = await LoginHelper.maybeImportLogins([
+  [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS2,
@@ -183,7 +188,7 @@ add_task(async function test_different_passwords() {
   );
 
   // Now try to update with an older password:
-  [importedLogin] = await LoginHelper.maybeImportLogins([
+  [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS3,
@@ -208,11 +213,11 @@ add_task(async function test_different_passwords() {
     "We should NOT have updated the password for this login."
   );
 
-  Services.logins.removeAllLogins();
+  Services.logins.removeAllUserFacingLogins();
 });
 
 add_task(async function test_different_usernames_without_guid() {
-  let [importedLogin] = await LoginHelper.maybeImportLogins([
+  let [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -228,7 +233,7 @@ add_task(async function test_different_usernames_without_guid() {
     `There should be 1 login for ${HOST1}`
   );
 
-  [importedLogin] = await LoginHelper.maybeImportLogins([
+  [importedLogin] = await maybeImportLogins([
     {
       username: USER2,
       password: PASS1,
@@ -247,11 +252,11 @@ add_task(async function test_different_usernames_without_guid() {
     `There should now be 2 logins for ${HOST1}`
   );
 
-  Services.logins.removeAllLogins();
+  Services.logins.removeAllUserFacingLogins();
 });
 
 add_task(async function test_different_usernames_with_guid() {
-  let [importedLogin] = await LoginHelper.maybeImportLogins([
+  let [{ login: importedLogin }] = await LoginHelper.maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -277,7 +282,11 @@ add_task(async function test_different_usernames_with_guid() {
       guid: importedLogin.guid,
     },
   ]);
-  Assert.ok(!importedLogins.length, "Return value should indicate an update");
+  Assert.equal(
+    importedLogins[0].result,
+    "modified",
+    "Return value should indicate an update"
+  );
   matchingLogins = LoginHelper.searchLoginsWithObject({ origin: HOST2 });
   Assert.equal(
     matchingLogins.length,
@@ -289,11 +298,11 @@ add_task(async function test_different_usernames_with_guid() {
   Assert.equal(storageLogin.username, USER2, "Check username updated");
   Assert.equal(storageLogin.origin, HOST2, "Check origin updated");
 
-  Services.logins.removeAllLogins();
+  Services.logins.removeAllUserFacingLogins();
 });
 
 add_task(async function test_different_targets() {
-  let [importedLogin] = await LoginHelper.maybeImportLogins([
+  let [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -311,7 +320,7 @@ add_task(async function test_different_targets() {
 
   // Not passing either a formActionOrigin or a httpRealm should be treated as
   // the same as the previous login
-  [importedLogin] = await LoginHelper.maybeImportLogins([
+  [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -335,7 +344,7 @@ add_task(async function test_different_targets() {
     "The form submission URL should have been kept."
   );
 
-  [importedLogin] = await LoginHelper.maybeImportLogins([
+  [importedLogin] = await maybeImportLogins([
     {
       username: USER1,
       password: PASS1,
@@ -355,5 +364,5 @@ add_task(async function test_different_targets() {
     `There should now be 2 logins for ${HOST1}`
   );
 
-  Services.logins.removeAllLogins();
+  Services.logins.removeAllUserFacingLogins();
 });

@@ -33,14 +33,14 @@ mod uuid;
 pub use self::boolean::BooleanMetric;
 pub use self::counter::CounterMetric;
 pub use self::datetime::DatetimeMetric;
-pub use self::event::{EventMetric, ExtraKeys, NoExtraKeys};
+pub use self::event::{EventMetric, EventRecordingError, ExtraKeys, NoExtraKeys};
 pub use self::labeled::LabeledMetric;
 pub use self::memory_distribution::MemoryDistributionMetric;
 pub use self::ping::Ping;
 pub use self::string::StringMetric;
 pub use self::string_list::StringListMetric;
 pub use self::timespan::TimespanMetric;
-pub use self::timing_distribution::{TimerId, TimingDistributionMetric};
+pub use self::timing_distribution::TimingDistributionMetric;
 pub use self::uuid::UuidMetric;
 
 /// An instant in time.
@@ -69,17 +69,6 @@ impl Instant {
                 panic!("timestamp exceeds value range")
             }
         }
-    }
-
-    /// Get this instant as a timestamp in nanoseconds.
-    fn as_nanos(&self) -> u64 {
-        self.0
-    }
-
-    /// Get this instant as a timestamp in milliseconds.
-    fn as_millis(&self) -> u64 {
-        const NANOS_PER_MILLI: u64 = 1_000_000;
-        self.0 / NANOS_PER_MILLI
     }
 }
 

@@ -136,6 +136,7 @@ Preferences.addAll([
   { id: "browser.urlbar.suggest.history", type: "bool" },
   { id: "browser.urlbar.suggest.openpage", type: "bool" },
   { id: "browser.urlbar.suggest.topsites", type: "bool" },
+  { id: "browser.urlbar.suggest.engines", type: "bool" },
 
   // History
   { id: "places.history.enabled", type: "bool" },
@@ -726,6 +727,24 @@ var gPrivacyPane = {
         );
         notificationsDoNotDisturb.setAttribute("checked", true);
       }
+    }
+
+    // When these prefs are made the default, add this data-l10n-id directly to privacy.inc.xhtml.
+    if (
+      Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.newNewtabExperience.enabled"
+      ) ||
+      Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.customizationMenu.enabled"
+      )
+    ) {
+      document
+        .getElementById("topSitesSuggestion")
+        .setAttribute("data-l10n-id", "addressbar-locbar-shortcuts-option");
+    } else {
+      document
+        .getElementById("topSitesSuggestion")
+        .setAttribute("data-l10n-id", "addressbar-locbar-topsites-option");
     }
 
     this.initSiteDataControls();

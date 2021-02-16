@@ -9,6 +9,7 @@
 
 use crate::custom_properties::SpecifiedValue;
 use crate::parser::{Parse, ParserContext};
+use crate::stylesheets::CorsMode;
 use crate::values::generics::image::PaintWorklet;
 use crate::values::generics::image::{
     self as generic, Circle, Ellipse, GradientCompatMode, ShapeExtent,
@@ -20,7 +21,7 @@ use crate::values::specified::position::{Position, PositionComponent, Side};
 use crate::values::specified::url::SpecifiedImageUrl;
 use crate::values::specified::{
     Angle, AngleOrPercentage, Color, Length, LengthPercentage, NonNegativeLength,
-    NonNegativeLengthPercentage,
+    NonNegativeLengthPercentage, Resolution
 };
 use crate::values::specified::{Number, NumberOrPercentage, Percentage};
 use crate::Atom;
@@ -35,7 +36,7 @@ use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 /// Specified values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
-pub type Image = generic::Image<Gradient, MozImageRect, SpecifiedImageUrl, Color, Percentage>;
+pub type Image = generic::Image<Gradient, MozImageRect, SpecifiedImageUrl, Color, Percentage, Resolution>;
 
 /// Specified values for a CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
@@ -61,17 +62,13 @@ pub type CrossFadeImage = generic::CrossFadeImage<Image, Color>;
 /// A specified percentage or nothing.
 pub type PercentOrNone = generic::PercentOrNone<Percentage>;
 
+/// `image-set()`
+pub type ImageSet = generic::ImageSet<Image, Resolution>;
+
+/// Each of the arguments to `image-set()`
+pub type ImageSetItem = generic::ImageSetItem<Image, Resolution>;
+
 type LengthPercentageItemList = crate::OwnedSlice<generic::GradientItem<Color, LengthPercentage>>;
-
-#[cfg(feature = "gecko")]
-fn conic_gradients_enabled() -> bool {
-    static_prefs::pref!("layout.css.conic-gradient.enabled")
-}
-
-#[cfg(feature = "servo")]
-fn conic_gradients_enabled() -> bool {
-    false
-}
 
 #[cfg(feature = "gecko")]
 fn cross_fade_enabled() -> bool {
@@ -80,6 +77,16 @@ fn cross_fade_enabled() -> bool {
 
 #[cfg(feature = "servo")]
 fn cross_fade_enabled() -> bool {
+    false
+}
+
+#[cfg(feature = "gecko")]
+fn image_set_enabled() -> bool {
+    static_prefs::pref!("layout.css.image-set.enabled")
+}
+
+#[cfg(feature = "servo")]
+fn image_set_enabled() -> bool {
     false
 }
 
@@ -102,11 +109,9 @@ impl SpecifiedValueInfo for Gradient {
             "-webkit-repeating-radial-gradient",
             "-moz-repeating-radial-gradient",
             "-webkit-gradient",
+            "conic-gradient",
+            "repeating-conic-gradient",
         ]);
-
-        if conic_gradients_enabled() {
-            f(&["conic-gradient", "repeating-conic-gradient"]);
-        }
     }
 }
 
@@ -118,6 +123,16 @@ impl<Image, Color, Percentage> SpecifiedValueInfo for generic::CrossFade<Image, 
     fn collect_completion_keywords(f: KeywordsCollectFn) {
         if cross_fade_enabled() {
             f(&["cross-fade"]);
+        }
+    }
+}
+
+impl<Image, Resolution> SpecifiedValueInfo for generic::ImageSet<Image, Resolution> {
+    const SUPPORTED_TYPES: u8 = 0;
+
+    fn collect_completion_keywords(f: KeywordsCollectFn) {
+        if image_set_enabled() {
+            f(&["image-set"]);
         }
     }
 }
@@ -165,17 +180,33 @@ impl Parse for Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
+        Image::parse_with_cors_mode(context, input, CorsMode::None, /* allow_none = */ true)
+    }
+}
+
+impl Image {
+    fn parse_with_cors_mode<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
+        allow_none: bool,
+    ) -> Result<Image, ParseError<'i>> {
+        if allow_none && input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(generic::Image::None);
         }
-        if let Ok(url) = input.try_parse(|input| SpecifiedImageUrl::parse(context, input)) {
+        if let Ok(url) = input.try_parse(|input| SpecifiedImageUrl::parse_with_cors_mode(context, input, cors_mode)) {
             return Ok(generic::Image::Url(url));
         }
         if let Ok(gradient) = input.try_parse(|i| Gradient::parse(context, i)) {
             return Ok(generic::Image::Gradient(Box::new(gradient)));
         }
+        if image_set_enabled() {
+            if let Ok(is) = input.try_parse(|input| ImageSet::parse(context, input, cors_mode)) {
+                return Ok(generic::Image::ImageSet(Box::new(is)));
+            }
+        }
         if cross_fade_enabled() {
-            if let Ok(cf) = input.try_parse(|input| CrossFade::parse(context, input)) {
+            if let Ok(cf) = input.try_parse(|input| CrossFade::parse(context, input, cors_mode)) {
                 return Ok(generic::Image::CrossFade(Box::new(cf)));
             }
         }
@@ -187,7 +218,7 @@ impl Parse for Image {
         }
         #[cfg(feature = "gecko")]
         {
-            if let Ok(image_rect) = input.try_parse(|input| MozImageRect::parse(context, input)) {
+            if let Ok(image_rect) = input.try_parse(|input| MozImageRect::parse(context, input, cors_mode)) {
                 return Ok(generic::Image::Rect(Box::new(image_rect)));
             }
             Ok(generic::Image::Element(Image::parse_element(input)?))
@@ -219,47 +250,41 @@ impl Image {
 
     /// Provides an alternate method for parsing that associates the URL with
     /// anonymous CORS headers.
-    ///
-    /// FIXME(emilio): It'd be nicer for this to pass a `CorsMode` parameter to
-    /// a shared function instead.
     pub fn parse_with_cors_anonymous<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
-        if let Ok(url) =
-            input.try_parse(|input| SpecifiedImageUrl::parse_with_cors_anonymous(context, input))
-        {
-            return Ok(generic::Image::Url(url));
-        }
-        Self::parse(context, input)
+        Self::parse_with_cors_mode(context, input, CorsMode::Anonymous, /* allow_none = */ true)
     }
 }
 
-impl Parse for CrossFade {
+impl CrossFade {
     /// cross-fade() = cross-fade( <cf-image># )
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         input.expect_function_matching("cross-fade")?;
         let elements = input.parse_nested_block(|input| {
-            input.parse_comma_separated(|input| CrossFadeElement::parse(context, input))
+            input.parse_comma_separated(|input| CrossFadeElement::parse(context, input, cors_mode))
         })?;
         let elements = crate::OwnedSlice::from(elements);
         Ok(Self { elements })
     }
 }
 
-impl Parse for CrossFadeElement {
+impl CrossFadeElement {
     /// <cf-image> = <percentage>? && [ <image> | <color> ]
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         // Try and parse a leading percent sign.
         let mut percent = PercentOrNone::parse_or_none(context, input);
         // Parse the image
-        let image = CrossFadeImage::parse(context, input)?;
+        let image = CrossFadeImage::parse(context, input, cors_mode)?;
         // Try and parse a trailing percent sign.
         if percent == PercentOrNone::None {
             percent = PercentOrNone::parse_or_none(context, input);
@@ -268,21 +293,67 @@ impl Parse for CrossFadeElement {
     }
 }
 
-impl PercentOrNone {
-    fn parse_or_none<'i, 't>(
+impl CrossFadeImage {
+    fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-    ) -> Self {
+        cors_mode: CorsMode,
+    ) -> Result<Self, ParseError<'i>> {
+        if let Ok(image) = input.try_parse(|input| Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)) {
+            return Ok(Self::Image(image))
+        }
+        Ok(Self::Color(Color::parse(context, input)?))
+    }
+}
+
+impl PercentOrNone {
+    fn parse_or_none<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>) -> Self {
         // We clamp our values here as this is the way that Safari and
         // Chrome's implementation handle out-of-bounds percentages
         // but whether or not this behavior follows the specification
         // is still being discussed. See:
         // <https://github.com/w3c/csswg-drafts/issues/5333>
-        if let Ok(percent) = input.try_parse(|input| Percentage::parse_non_negative(context, input)) {
+        if let Ok(percent) = input.try_parse(|input| Percentage::parse_non_negative(context, input))
+        {
             Self::Percent(percent.clamp_to_hundred())
         } else {
             Self::None
         }
+    }
+}
+
+impl ImageSet {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
+    ) -> Result<Self, ParseError<'i>> {
+        input.expect_function_matching("image-set")?;
+        let items = input.parse_nested_block(|input| {
+            input.parse_comma_separated(|input| ImageSetItem::parse(context, input, cors_mode))
+        })?;
+        Ok(Self {
+            selected_index: 0,
+            items: items.into()
+        })
+    }
+}
+
+impl ImageSetItem {
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
+    ) -> Result<Self, ParseError<'i>> {
+        let image = match input.try_parse(|i| i.expect_url_or_string()) {
+            Ok(url) => Image::Url(SpecifiedImageUrl::parse_from_string(url.as_ref().into(), context, cors_mode)),
+            Err(..) => Image::parse_with_cors_mode(context, input, cors_mode, /* allow_none = */ false)?,
+        };
+        let resolution = input.try_parse(|input| Resolution::parse(context, input)).unwrap_or(Resolution::X(1.0));
+        Ok(Self {
+            image,
+            resolution,
+        })
     }
 }
 
@@ -339,10 +410,10 @@ impl Parse for Gradient {
             "-moz-repeating-radial-gradient" => {
                 (Shape::Radial, true, GradientCompatMode::Moz)
             },
-            "conic-gradient" if conic_gradients_enabled() => {
+            "conic-gradient" => {
                 (Shape::Conic, false, GradientCompatMode::Modern)
             },
-            "repeating-conic-gradient" if conic_gradients_enabled() => {
+            "repeating-conic-gradient" => {
                 (Shape::Conic, true, GradientCompatMode::Modern)
             },
             "-webkit-gradient" => {
@@ -1055,11 +1126,12 @@ impl Parse for PaintWorklet {
     }
 }
 
-impl Parse for MozImageRect {
+impl MozImageRect {
     #[cfg(not(feature = "gecko"))]
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        _cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         Err(input.new_error_for_next_token())
     }
@@ -1068,6 +1140,7 @@ impl Parse for MozImageRect {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        cors_mode: CorsMode,
     ) -> Result<Self, ParseError<'i>> {
         input.try_parse(|i| i.expect_function_matching("-moz-image-rect"))?;
         input.parse_nested_block(|i| {
@@ -1075,7 +1148,7 @@ impl Parse for MozImageRect {
             let url = SpecifiedImageUrl::parse_from_string(
                 string.as_ref().to_owned(),
                 context,
-                crate::stylesheets::CorsMode::None,
+                cors_mode,
             );
             i.expect_comma()?;
             let top = NumberOrPercentage::parse_non_negative(context, i)?;

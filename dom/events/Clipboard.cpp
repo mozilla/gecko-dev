@@ -12,10 +12,12 @@
 #include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/DataTransferItemList.h"
 #include "mozilla/dom/DataTransferItem.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "nsIClipboard.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
+#include "nsServiceManagerUtils.h"
 #include "nsITransferable.h"
 #include "nsArrayUtils.h"
 
@@ -114,7 +116,8 @@ already_AddRefed<Promise> Clipboard::Write(DataTransfer& aData,
       !nsContentUtils::IsCutCopyAllowed(doc, aSubjectPrincipal)) {
     MOZ_LOG(GetClipboardLog(), LogLevel::Debug,
             ("Clipboard, Write, Not allowed to write to clipboard\n"));
-    p->MaybeRejectWithUndefined();
+    p->MaybeRejectWithNotAllowedError(
+        "Clipboard write was blocked due to lack of user activation.");
     return p.forget();
   }
 

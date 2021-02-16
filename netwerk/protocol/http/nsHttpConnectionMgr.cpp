@@ -17,6 +17,7 @@
 
 #include "NullHttpTransaction.h"
 #include "mozilla/Services.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "mozilla/net/DNS.h"
@@ -637,8 +638,8 @@ nsresult nsHttpConnectionMgr::RemoveIdleConnection(nsHttpConnection* conn) {
 }
 
 HttpConnectionBase* nsHttpConnectionMgr::FindCoalescableConnectionByHashKey(
-    ConnectionEntry* ent, const nsCString& key, bool justKidding,
-    bool aNoHttp2, bool aNoHttp3) {
+    ConnectionEntry* ent, const nsCString& key, bool justKidding, bool aNoHttp2,
+    bool aNoHttp3) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   MOZ_ASSERT(!aNoHttp2 || !aNoHttp3);
   MOZ_ASSERT(ent->mConnInfo);
@@ -736,8 +737,8 @@ HttpConnectionBase* nsHttpConnectionMgr::FindCoalescableConnection(
   // First try and look it up by origin frame
   nsCString newKey;
   BuildOriginFrameHashKey(newKey, ci, ci->GetOrigin(), ci->OriginPort());
-  HttpConnectionBase* conn =
-      FindCoalescableConnectionByHashKey(ent, newKey, justKidding, aNoHttp2, aNoHttp3);
+  HttpConnectionBase* conn = FindCoalescableConnectionByHashKey(
+      ent, newKey, justKidding, aNoHttp2, aNoHttp3);
   if (conn) {
     LOG(("FindCoalescableConnection(%s) match conn %p on frame key %s\n",
          ci->HashKey().get(), conn, newKey.get()));
@@ -1294,8 +1295,7 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
   // essentially pipelining without head of line blocking
 
   RefPtr<HttpConnectionBase> conn = GetH2orH3ActiveConn(
-      ent,
-      (!gHttpHandler->IsSpdyEnabled() || (caps & NS_HTTP_DISALLOW_SPDY)),
+      ent, (!gHttpHandler->IsSpdyEnabled() || (caps & NS_HTTP_DISALLOW_SPDY)),
       (!gHttpHandler->IsHttp3Enabled() || (caps & NS_HTTP_DISALLOW_HTTP3)));
   if (conn) {
     if (trans->IsWebsocketUpgrade() && !conn->CanAcceptWebsocket()) {
@@ -1627,6 +1627,10 @@ nsresult nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction* trans) {
       trans->Caps() & NS_HTTP_DISALLOW_HTTP3);
   MOZ_ASSERT(ent);
 
+  if (gHttpHandler->EchConfigEnabled()) {
+    ent->MaybeUpdateEchConfig(ci);
+  }
+
   ReportProxyTelemetry(ent);
 
   // Check if the transaction already has a sticky reference to a connection.
@@ -1752,7 +1756,8 @@ void nsHttpConnectionMgr::DispatchSpdyPendingQ(
   uint32_t index;
   // Dispatch all the transactions we can
   for (index = 0; index < pendingQ.Length() &&
-       ((connH3 && connH3->CanDirectlyActivate()) || (connH2 && connH2->CanDirectlyActivate()));
+                  ((connH3 && connH3->CanDirectlyActivate()) ||
+                   (connH2 && connH2->CanDirectlyActivate()));
        ++index) {
     PendingTransactionInfo* pendingTransInfo = pendingQ[index];
 
@@ -1767,7 +1772,8 @@ void nsHttpConnectionMgr::DispatchSpdyPendingQ(
     if (!(pendingTransInfo->Transaction()->Caps() & NS_HTTP_DISALLOW_HTTP3) &&
         connH3 && connH3->CanDirectlyActivate()) {
       conn = connH3;
-    } else if (!(pendingTransInfo->Transaction()->Caps() & NS_HTTP_DISALLOW_SPDY) &&
+    } else if (!(pendingTransInfo->Transaction()->Caps() &
+                 NS_HTTP_DISALLOW_SPDY) &&
                connH2 && connH2->CanDirectlyActivate()) {
       conn = connH2;
     } else {
@@ -2064,29 +2070,11 @@ void nsHttpConnectionMgr::OnMsgCancelTransaction(int32_t reason,
     if (trans->ConnectionInfo()) {
       ent = mCT.GetWeak(trans->ConnectionInfo()->HashKey());
     }
-    if (ent) {
-      int32_t transIndex;
-      // We will abandon all half-open sockets belonging to the given
-      // transaction.
-      nsTArray<RefPtr<PendingTransactionInfo>>* infoArray =
-          ent->GetTransactionPendingQHelper(trans);
-
-      RefPtr<PendingTransactionInfo> pendingTransInfo;
-      transIndex =
-          infoArray ? infoArray->IndexOf(trans, 0, PendingComparator()) : -1;
-      if (transIndex >= 0) {
-        LOG(
-            ("nsHttpConnectionMgr::OnMsgCancelTransaction [trans=%p]"
-             " found in urgentStart queue\n",
-             trans));
-        pendingTransInfo = (*infoArray)[transIndex];
-        infoArray->RemoveElementAt(transIndex);
-      }
-
-      // Abandon all half-open sockets belonging to the given transaction.
-      if (pendingTransInfo) {
-        pendingTransInfo->AbandonHalfOpenAndForgetActiveConn();
-      }
+    if (ent && ent->RemoveTransFromPendingQ(trans)) {
+      LOG(
+          ("nsHttpConnectionMgr::OnMsgCancelTransaction [trans=%p]"
+           " removed from pending queue\n",
+           trans));
     }
 
     trans->Close(closeCode);
@@ -2287,7 +2275,8 @@ void nsHttpConnectionMgr::OnMsgReclaimConnection(HttpConnectionBase* conn) {
     // this can happen if the connection is made outside of the
     // connection manager and is being "reclaimed" for use with
     // future transactions. HTTP/2 tunnels work like this.
-    ent = GetOrCreateConnectionEntry(conn->ConnectionInfo(), true, false, false);
+    ent =
+        GetOrCreateConnectionEntry(conn->ConnectionInfo(), true, false, false);
     LOG(
         ("nsHttpConnectionMgr::OnMsgReclaimConnection conn %p "
          "forced new hash entry %s\n",
@@ -3236,7 +3225,8 @@ ConnectionEntry* nsHttpConnectionMgr::GetOrCreateConnectionEntry(
   anonInvertedCI->SetAnonymous(!specificCI->GetAnonymous());
   ConnectionEntry* invertedEnt = mCT.GetWeak(anonInvertedCI->HashKey());
   if (invertedEnt) {
-    HttpConnectionBase* h2orh3conn = GetH2orH3ActiveConn(invertedEnt, aNoHttp2, aNoHttp3);
+    HttpConnectionBase* h2orh3conn =
+        GetH2orH3ActiveConn(invertedEnt, aNoHttp2, aNoHttp3);
     if (h2orh3conn && h2orh3conn->IsExperienced() &&
         h2orh3conn->NoClientCertAuth()) {
       MOZ_ASSERT(h2orh3conn->UsingSpdy() || h2orh3conn->UsingHttp3());
@@ -3435,7 +3425,8 @@ void nsHttpConnectionMgr::MoveToWildCardConnEntry(
     return;
   }
 
-  ConnectionEntry* wcEnt = GetOrCreateConnectionEntry(wildCardCI, true, false, false);
+  ConnectionEntry* wcEnt =
+      GetOrCreateConnectionEntry(wildCardCI, true, false, false);
   if (wcEnt == ent) {
     // nothing to do!
     return;
@@ -3457,53 +3448,25 @@ void nsHttpConnectionMgr::MoveToWildCardConnEntry(
   ent->MoveConnection(proxyConn, wcEnt);
 }
 
-bool nsHttpConnectionMgr::MoveTransToHTTPSSVCConnEntry(
+bool nsHttpConnectionMgr::MoveTransToNewConnEntry(
     nsHttpTransaction* aTrans, nsHttpConnectionInfo* aNewCI) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  LOG(("nsHttpConnectionMgr::MoveTransToHTTPSSVCConnEntry: trans=%p aNewCI=%s",
+  LOG(("nsHttpConnectionMgr::MoveTransToNewConnEntry: trans=%p aNewCI=%s",
        aTrans, aNewCI->HashKey().get()));
 
-  bool prohibitWildCard = !!aTrans->TunnelProvider();
-  bool noHttp3 = aTrans->Caps() & NS_HTTP_DISALLOW_HTTP3;
-  bool noHttp2 = aTrans->Caps() & NS_HTTP_DISALLOW_SPDY;
-  // Step 1: Check if the new entry is the same as the old one.
-  ConnectionEntry* oldEntry = GetOrCreateConnectionEntry(
-      aTrans->ConnectionInfo(), prohibitWildCard, noHttp2, noHttp3);
-
-  ConnectionEntry* newEntry =
-      GetOrCreateConnectionEntry(aNewCI, prohibitWildCard, noHttp2, noHttp3);
-
-  if (oldEntry == newEntry) {
-    return true;
-  }
-
-  // Step 2: Try to find the undispatched transaction.
-  int32_t transIndex;
-  // We will abandon all half-open sockets belonging to the given
-  // transaction.
-  nsTArray<RefPtr<PendingTransactionInfo>>* infoArray =
-      oldEntry->GetTransactionPendingQHelper(aTrans);
-
-  RefPtr<PendingTransactionInfo> pendingTransInfo;
-  transIndex =
-      infoArray ? infoArray->IndexOf(aTrans, 0, PendingComparator()) : -1;
-  if (transIndex >= 0) {
-    pendingTransInfo = (*infoArray)[transIndex];
-    infoArray->RemoveElementAt(transIndex);
-  }
-
-  // It's fine we can't find the transaction. The transaction may not be added.
-  if (!pendingTransInfo) {
+  // Step 1: Get the transaction's connection entry.
+  ConnectionEntry* entry = mCT.GetWeak(aTrans->ConnectionInfo()->HashKey());
+  if (!entry) {
     return false;
   }
 
-  MOZ_ASSERT(pendingTransInfo->Transaction() == aTrans);
+  // Step 2: Try to find the undispatched transaction.
+  if (!entry->RemoveTransFromPendingQ(aTrans)) {
+    return false;
+  }
 
-  // Abandon all half-open sockets belonging to the given transaction.
-  pendingTransInfo->AbandonHalfOpenAndForgetActiveConn();
-
-  // Step 3: Add the transaction to the new entry.
+  // Step 3: Add the transaction.
   aTrans->UpdateConnectionInfo(aNewCI);
   Unused << ProcessNewTransaction(aTrans);
   return true;

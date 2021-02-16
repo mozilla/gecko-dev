@@ -34,6 +34,7 @@
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/LoadInfo.h"
+#include "nsComponentManagerUtils.h"
 #include "nsContentPolicyUtils.h"
 #include "nsContentUtils.h"
 #include "nsDeviceContext.h"
@@ -197,7 +198,7 @@ void FontFaceSet::RemoveDOMContentLoadedListener() {
 }
 
 void FontFaceSet::ParseFontShorthandForMatching(
-    const nsAString& aFont, RefPtr<SharedFontList>& aFamilyList,
+    const nsACString& aFont, RefPtr<SharedFontList>& aFamilyList,
     FontWeight& aWeight, FontStretch& aStretch, FontSlantStyle& aStyle,
     ErrorResult& aRv) {
   auto style = StyleComputedFontStyleDescriptor::Normal();
@@ -244,7 +245,7 @@ static bool HasAnyCharacterInUnicodeRange(gfxUserFontEntry* aEntry,
   return false;
 }
 
-void FontFaceSet::FindMatchingFontFaces(const nsAString& aFont,
+void FontFaceSet::FindMatchingFontFaces(const nsACString& aFont,
                                         const nsAString& aText,
                                         nsTArray<FontFace*>& aFontFaces,
                                         ErrorResult& aRv) {
@@ -317,7 +318,7 @@ TimeStamp FontFaceSet::GetNavigationStartTimeStamp() {
 }
 
 already_AddRefed<Promise> FontFaceSet::Load(JSContext* aCx,
-                                            const nsAString& aFont,
+                                            const nsACString& aFont,
                                             const nsAString& aText,
                                             ErrorResult& aRv) {
   FlushUserFontSet();
@@ -344,7 +345,7 @@ already_AddRefed<Promise> FontFaceSet::Load(JSContext* aCx,
   return Promise::All(aCx, promises, aRv);
 }
 
-bool FontFaceSet::Check(const nsAString& aFont, const nsAString& aText,
+bool FontFaceSet::Check(const nsACString& aFont, const nsAString& aText,
                         ErrorResult& aRv) {
   FlushUserFontSet();
 
@@ -1220,7 +1221,7 @@ nsresult FontFaceSet::LogMessage(gfxUserFontEntry* aUserFontEntry,
   // try to give the user an indication of where the rule came from
   RawServoFontFaceRule* rule = FindRuleForUserFontEntry(aUserFontEntry);
   nsString href;
-  nsString text;
+  nsAutoCString text;
   uint32_t line = 0;
   uint32_t column = 0;
   if (rule) {
@@ -1249,8 +1250,8 @@ nsresult FontFaceSet::LogMessage(gfxUserFontEntry* aUserFontEntry,
 
   uint64_t innerWindowID = mDocument->InnerWindowID();
   rv = scriptError->InitWithWindowID(NS_ConvertUTF8toUTF16(message),
-                                     href,  // file
-                                     text,  // src line
+                                     href,                         // file
+                                     NS_ConvertUTF8toUTF16(text),  // src line
                                      line, column,
                                      aFlags,        // flags
                                      "CSS Loader",  // category (make separate?)

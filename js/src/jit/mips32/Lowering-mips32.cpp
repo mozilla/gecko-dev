@@ -67,16 +67,6 @@ void LIRGenerator::visitBox(MBox* box) {
 void LIRGenerator::visitUnbox(MUnbox* unbox) {
   MDefinition* inner = unbox->getOperand(0);
 
-  if (inner->type() == MIRType::ObjectOrNull) {
-    LUnboxObjectOrNull* lir =
-        new (alloc()) LUnboxObjectOrNull(useRegisterAtStart(inner));
-    if (unbox->fallible()) {
-      assignSnapshot(lir, unbox->bailoutKind());
-    }
-    defineReuseInput(lir, unbox, 0);
-    return;
-  }
-
   // An unbox on mips reads in a type tag (either in memory or a register) and
   // a payload. Unlike most instructions consuming a box, we ask for the type
   // second, so that the result can re-use the first input.
@@ -112,11 +102,10 @@ void LIRGenerator::visitUnbox(MUnbox* unbox) {
   defineReuseInput(lir, unbox, 0);
 }
 
-void LIRGenerator::visitReturn(MReturn* ret) {
-  MDefinition* opd = ret->getOperand(0);
+void LIRGenerator::visitReturnImpl(MDefinition* opd, bool isGenerator) {
   MOZ_ASSERT(opd->type() == MIRType::Value);
 
-  LReturn* ins = new (alloc()) LReturn;
+  LReturn* ins = new (alloc()) LReturn(isGenerator);
   ins->setOperand(0, LUse(JSReturnReg_Type));
   ins->setOperand(1, LUse(JSReturnReg_Data));
   fillBoxUses(ins, 0, opd);
@@ -224,6 +213,20 @@ void LIRGeneratorMIPS::lowerUModI64(MMod* mod) {
   LUDivOrModI64* lir = new (alloc()) LUDivOrModI64(
       useInt64RegisterAtStart(mod->lhs()), useInt64RegisterAtStart(mod->rhs()));
   defineReturn(lir, mod);
+}
+
+void LIRGeneratorMIPS::lowerBigIntDiv(MBigIntDiv* ins) {
+  auto* lir = new (alloc()) LBigIntDiv(useRegister(ins->lhs()),
+                                       useRegister(ins->rhs()), temp(), temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGeneratorMIPS::lowerBigIntMod(MBigIntMod* ins) {
+  auto* lir = new (alloc()) LBigIntMod(useRegister(ins->lhs()),
+                                       useRegister(ins->rhs()), temp(), temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
 }
 
 void LIRGenerator::visitWasmTruncateToInt64(MWasmTruncateToInt64* ins) {

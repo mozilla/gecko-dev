@@ -59,6 +59,7 @@
 #include "mozilla/ServoUtils.h"
 #include "mozilla/css/StreamLoader.h"
 #include "mozilla/SharedStyleSheetCache.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "ReferrerInfo.h"
 
 #ifdef MOZ_XUL
@@ -1016,7 +1017,7 @@ Loader::MediaMatched Loader::PrepareSheet(
   if (!aMediaString.IsEmpty()) {
     NS_ASSERTION(!aMediaList,
                  "must not provide both aMediaString and aMediaList");
-    mediaList = MediaList::Create(aMediaString);
+    mediaList = MediaList::Create(NS_ConvertUTF16toUTF8(aMediaString));
   }
 
   aSheet.SetMedia(do_AddRef(mediaList));

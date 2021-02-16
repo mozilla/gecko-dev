@@ -75,16 +75,11 @@
                 <menuitem id="goOfflineMenuitem"
                           type="checkbox"
                           command="cmd_toggleOfflineStatus" data-l10n-id="menu-file-go-offline"/>
-<!-- We need to leave those strings in DTD until bug 1568133 is fixed. -->
                 <menuitem id="menu_FileQuitItem"
-#ifdef XP_WIN
-                          label="&quitApplicationCmdWin2.label;"
-                          accesskey="&quitApplicationCmdWin2.accesskey;"
-#elifdef XP_MACOSX
-                          label="&quitApplicationCmdMac2.label;"
+#ifdef XP_MACOSX
+                          data-l10n-id="menu-quit-mac"
 #else
-                          label="&quitApplicationCmd.label;"
-                          accesskey="&quitApplicationCmd.accesskey;"
+                          data-l10n-id="menu-quit"
 #endif
                           key="key_quitApplication"
                           command="cmd_quitApplication"/>
@@ -434,13 +429,12 @@
 #endif
 #ifdef XP_MACOSX
 <!-- nsMenuBarX hides these and uses them to build the Application menu. -->
-<!-- We need to leave those strings in DTD until bug 1568133 is fixed. -->
-              <menuitem id="menu_preferences" label="&preferencesCmdMac.label;" key="key_preferencesCmdMac" oncommand="openPreferences(undefined);"/>
-              <menuitem id="menu_mac_services" label="&servicesMenuMac.label;"/>
-              <menuitem id="menu_mac_hide_app" label="&hideThisAppCmdMac2.label;" key="key_hideThisAppCmdMac"/>
-              <menuitem id="menu_mac_hide_others" label="&hideOtherAppsCmdMac.label;" key="key_hideOtherAppsCmdMac"/>
-              <menuitem id="menu_mac_show_all" label="&showAllAppsCmdMac.label;"/>
-              <menuitem id="menu_mac_touch_bar" label="&touchBarCmdMac.label;"/>
+              <menuitem id="menu_preferences" data-l10n-id="menu-preferences" key="key_preferencesCmdMac" oncommand="openPreferences(undefined);"/>
+              <menuitem id="menu_mac_services" data-l10n-id="menu-application-services"/>
+              <menuitem id="menu_mac_hide_app" data-l10n-id="menu-application-hide-this" key="key_hideThisAppCmdMac"/>
+              <menuitem id="menu_mac_hide_others" data-l10n-id="menu-application-hide-other" key="key_hideOtherAppsCmdMac"/>
+              <menuitem id="menu_mac_show_all" data-l10n-id="menu-application-show-all"/>
+              <menuitem id="menu_mac_touch_bar" data-l10n-id="menu-application-touch-bar"/>
 #endif
               </menupopup>
             </menu>
@@ -465,40 +459,58 @@
 #endif
                    data-l10n-id="menu-help">
               <menupopup id="menu_HelpPopup" onpopupshowing="buildHelpMenu();">
+<!-- Note: Items under here are cloned to the AppMenu Help submenu. The cloned items
+     have their strings defined by appmenu-data-l10n-id. -->
                 <menuitem id="menu_openHelp"
                           oncommand="openHelpLink('firefox-help')"
                           onclick="checkForMiddleClick(this, event);"
                           data-l10n-id="menu-help-product"
+                          appmenu-data-l10n-id="appmenu-help-product"
 #ifdef XP_MACOSX
                           key="key_openHelpMac"/>
 #else
                           />
 #endif
                 <menuitem id="menu_openTour"
-                          oncommand="openTourPage();" data-l10n-id="menu-help-show-tour"/>
+                          oncommand="openTourPage();"
+                          data-l10n-id="menu-help-show-tour"
+                          appmenu-data-l10n-id="appmenu-help-show-tour"/>
                 <menuitem id="help_importFromAnotherBrowser"
-                          command="cmd_help_importFromAnotherBrowser" data-l10n-id="menu-help-import-from-another-browser"/>
+                          command="cmd_help_importFromAnotherBrowser"
+                          data-l10n-id="menu-help-import-from-another-browser"
+                          appmenu-data-l10n-id="appmenu-help-import-from-another-browser"/>
                 <menuitem id="menu_keyboardShortcuts"
                           oncommand="openHelpLink('keyboard-shortcuts')"
-                          onclick="checkForMiddleClick(this, event);" data-l10n-id="menu-help-keyboard-shortcuts"/>
+                          onclick="checkForMiddleClick(this, event);"
+                          data-l10n-id="menu-help-keyboard-shortcuts"
+                          appmenu-data-l10n-id="appmenu-help-keyboard-shortcuts"/>
                 <menuitem id="troubleShooting"
                           oncommand="openTroubleshootingPage()"
-                          onclick="checkForMiddleClick(this, event);" data-l10n-id="menu-help-troubleshooting-info"/>
+                          onclick="checkForMiddleClick(this, event);"
+                          data-l10n-id="menu-help-troubleshooting-info"
+                          appmenu-data-l10n-id="appmenu-help-troubleshooting-info"/>
                 <menuitem id="feedbackPage"
                           oncommand="openFeedbackPage()"
-                          onclick="checkForMiddleClick(this, event);" data-l10n-id="menu-help-feedback-page"/>
+                          onclick="checkForMiddleClick(this, event);"
+                          data-l10n-id="menu-help-feedback-page"
+                          appmenu-data-l10n-id="appmenu-help-feedback-page"/>
                 <menuitem id="helpSafeMode"
-                          oncommand="safeModeRestart();" data-l10n-id="menu-help-safe-mode-without-addons"/>
+                          oncommand="safeModeRestart();"
+                          data-l10n-id="menu-help-safe-mode-without-addons"
+                          appmenu-data-l10n-id="appmenu-help-safe-mode-without-addons"/>
                 <menuitem id="menu_HelpPopup_reportPhishingtoolmenu"
                           disabled="true"
                           oncommand="openUILink(gSafeBrowsing.getReportURL('Phish'), event, {triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({})});"
                           onclick="checkForMiddleClick(this, event);"
-                          hidden="true" data-l10n-id="menu-help-report-deceptive-site"/>
+                          hidden="true"
+                          data-l10n-id="menu-help-report-deceptive-site"
+                          appmenu-data-l10n-id="appmenu-help-report-deceptive-site"/>
                 <menuitem id="menu_HelpPopup_reportPhishingErrortoolmenu"
                           disabled="true"
                           oncommand="ReportFalseDeceptiveSite();"
                           onclick="checkForMiddleClick(this, event);"
                           data-l10n-id="menu-help-not-deceptive"
+                          appmenu-data-l10n-id="appmenu-help-not-deceptive"
                           hidden="true"/>
                 <menuseparator id="helpPolicySeparator"
                           hidden="true"/>
@@ -507,11 +519,10 @@
                           oncommand="openUILinkIn(Services.policies.getSupportMenu().URL.href, 'tab', {triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({})});"
                           onclick="checkForMiddleClick(this, event);"/>
                 <menuseparator id="aboutSeparator"/>
-                <!-- We need to leave those strings in DTD until bug 1568133 is fixed. -->
                 <menuitem id="aboutName"
-                          accesskey="&aboutProduct2.accesskey;"
-                          label="&aboutProduct2.label;"
-                          oncommand="openAboutDialog();"/>
+                          oncommand="openAboutDialog();"
+                          data-l10n-id="menu-about"
+                          appmenu-data-l10n-id="appmenu-about"/>
               </menupopup>
           </menu>
         </menubar>

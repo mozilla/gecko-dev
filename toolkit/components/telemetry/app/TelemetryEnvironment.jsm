@@ -17,6 +17,9 @@ const { ObjectUtils } = ChromeUtils.import(
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
+if (AppConstants.MOZ_GLEAN) {
+  Cu.importGlobalProperties(["Glean"]);
+}
 
 const Utils = TelemetryUtils;
 
@@ -233,6 +236,9 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["app.support.baseURL", { what: RECORD_PREF_VALUE }],
   ["accessibility.browsewithcaret", { what: RECORD_PREF_VALUE }],
   ["accessibility.force_disabled", { what: RECORD_PREF_VALUE }],
+  ["app.normandy.test-prefs.bool", { what: RECORD_PREF_VALUE }],
+  ["app.normandy.test-prefs.integer", { what: RECORD_PREF_VALUE }],
+  ["app.normandy.test-prefs.string", { what: RECORD_PREF_VALUE }],
   ["app.shield.optoutstudies.enabled", { what: RECORD_PREF_VALUE }],
   ["app.update.interval", { what: RECORD_PREF_VALUE }],
   ["app.update.service.enabled", { what: RECORD_PREF_VALUE }],
@@ -1088,6 +1094,11 @@ EnvironmentCache.prototype = {
 
     if (AppConstants.platform == "win") {
       this._hddData = await Services.sysinfo.diskInfo;
+      if (AppConstants.MOZ_GLEAN) {
+        Glean.fogValidation.profileDiskIsSsd.set(
+          this._hddData.profile.type == "SSD"
+        );
+      }
       let osData = await Services.sysinfo.osInfo;
 
       if (!this._initTask) {
@@ -1374,7 +1385,18 @@ EnvironmentCache.prototype = {
     this._log.trace("observe - aTopic: " + aTopic + ", aData: " + aData);
     switch (aTopic) {
       case SEARCH_ENGINE_MODIFIED_TOPIC:
-        if (aData != "engine-default" && aData != "engine-default-private") {
+        if (
+          aData != "engine-default" &&
+          aData != "engine-default-private" &&
+          aData != "engine-changed"
+        ) {
+          return;
+        }
+        if (
+          aData == "engine-changed" &&
+          aSubject.QueryInterface(Ci.nsISearchEngine) &&
+          Services.search.defaultEngine != aSubject
+        ) {
           return;
         }
         // Record the new default search choice and send the change notification.
@@ -1843,6 +1865,7 @@ EnvironmentCache.prototype = {
       "hasARMv6",
       "hasARMv7",
       "hasNEON",
+      "hasUserCET",
     ];
 
     // Enumerate the available CPU extensions.

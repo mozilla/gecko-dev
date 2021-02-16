@@ -14,6 +14,7 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/gfx/GPUParent.h"
+#include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/gfx/GraphicsMessages.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
@@ -22,6 +23,7 @@
 #include "mozilla/layers/DeviceAttachmentsD3D11.h"
 #include "mozilla/layers/MLGDeviceD3D11.h"
 #include "mozilla/layers/PaintThread.h"
+#include "mozilla/Preferences.h"
 #include "nsExceptionHandler.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -1043,13 +1045,7 @@ bool DeviceManagerDx::MaybeResetAndReacquireDevices() {
     return false;
   }
 
-  if (resetReason != DeviceResetReason::FORCED_RESET) {
-    Telemetry::Accumulate(Telemetry::DEVICE_RESET_REASON,
-                          uint32_t(resetReason));
-  }
-
-  CrashReporter::AnnotateCrashReport(
-      CrashReporter::Annotation::DeviceResetReason, int(resetReason));
+  GPUProcessManager::RecordDeviceReset(resetReason);
 
   bool createCompositorDevice = !!mCompositorDevice;
   bool createContentDevice = !!mContentDevice;
@@ -1114,7 +1110,7 @@ static DeviceResetReason HResultToResetReason(HRESULT hr) {
     default:
       MOZ_ASSERT(false);
   }
-  return DeviceResetReason::UNKNOWN;
+  return DeviceResetReason::OTHER;
 }
 
 bool DeviceManagerDx::HasDeviceReset(DeviceResetReason* aOutReason) {

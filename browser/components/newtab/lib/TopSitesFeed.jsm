@@ -75,7 +75,6 @@ ChromeUtils.defineModuleGetter(
 const DEFAULT_SITES_PREF = "default.sites";
 const SHOWN_ON_NEWTAB_PREF = "feeds.topsites";
 const DEFAULT_TOP_SITES = [];
-const ATTRIBUTION_REQUEST_SITES = [];
 const FRECENCY_THRESHOLD = 100 + 1; // 1 visit (skip first-run/one-time pages)
 const MIN_FAVICON_SIZE = 96;
 const CACHED_LINK_PROPS_TO_MIGRATE = ["screenshot", "customScreenshot"];
@@ -98,13 +97,6 @@ const SEARCH_FILTERS = [
   "ask",
   "duckduckgo",
 ];
-let SEARCH_TILE_OVERRIDE_PREFS = new Map();
-for (let searchProvider of ["amazon", "google"]) {
-  SEARCH_TILE_OVERRIDE_PREFS.set(
-    `browser.newtabpage.searchTileOverride.${searchProvider}.url`,
-    searchProvider
-  );
-}
 
 const REMOTE_SETTING_DEFAULTS_PREF = "browser.topsites.useRemoteSetting";
 const REMOTE_SETTING_MIGRATION_ID_PREF =
@@ -147,9 +139,7 @@ this.TopSitesFeed = class TopSitesFeed {
     this._readDefaults({ isStartup: true });
     this._storage = this.store.dbStorage.getDbTable("sectionPrefs");
     Services.obs.addObserver(this, "browser-search-engine-modified");
-    for (let [pref] of SEARCH_TILE_OVERRIDE_PREFS) {
-      Services.prefs.addObserver(pref, this);
-    }
+    Services.obs.addObserver(this, "browser-region");
     Services.prefs.addObserver(REMOTE_SETTING_DEFAULTS_PREF, this);
     Services.prefs.addObserver(DEFAULT_SITES_POLICY_PREF, this);
     Services.prefs.addObserver(DEFAULT_SITES_EXPERIMENTS_PREF_BRANCH, this);
@@ -158,9 +148,7 @@ this.TopSitesFeed = class TopSitesFeed {
   uninit() {
     PageThumbs.removeExpirationFilter(this);
     Services.obs.removeObserver(this, "browser-search-engine-modified");
-    for (let [pref] of SEARCH_TILE_OVERRIDE_PREFS) {
-      Services.prefs.removeObserver(pref, this);
-    }
+    Services.obs.removeObserver(this, "browser-region");
     Services.prefs.removeObserver(REMOTE_SETTING_DEFAULTS_PREF, this);
     Services.prefs.removeObserver(DEFAULT_SITES_POLICY_PREF, this);
     Services.prefs.removeObserver(DEFAULT_SITES_EXPERIMENTS_PREF_BRANCH, this);
@@ -180,6 +168,9 @@ this.TopSitesFeed = class TopSitesFeed {
           this.refresh({ broadcast: true });
         }
         break;
+      case "browser-region":
+        this._readDefaults();
+        break;
       case "nsPref:changed":
         if (
           data === REMOTE_SETTING_DEFAULTS_PREF ||
@@ -187,8 +178,6 @@ this.TopSitesFeed = class TopSitesFeed {
           data.startsWith(DEFAULT_SITES_EXPERIMENTS_PREF_BRANCH)
         ) {
           this._readDefaults();
-        } else if (SEARCH_TILE_OVERRIDE_PREFS.has(data)) {
-          this.refresh({ broadcast: true });
         }
         break;
     }
@@ -246,13 +235,13 @@ this.TopSitesFeed = class TopSitesFeed {
 
     // Clear out the array of any previous defaults.
     DEFAULT_TOP_SITES.length = 0;
-    ATTRIBUTION_REQUEST_SITES.length = 0;
 
     for (let siteData of remoteSettingData) {
       let link = {
         isDefault: true,
         url: siteData.url,
         hostname: shortURL(siteData),
+        sendAttributionRequest: !!siteData.send_attribution_request,
       };
       if (siteData.url_urlbar_override) {
         link.url_urlbar = siteData.url_urlbar_override;
@@ -262,13 +251,8 @@ this.TopSitesFeed = class TopSitesFeed {
       }
       if (siteData.search_shortcut) {
         link = await this.topSiteToSearchTopSite(link);
-      } else {
-        if (siteData.sponsored_position) {
-          link.sponsored_position = siteData.sponsored_position;
-        }
-        if (siteData.send_attribution_request) {
-          ATTRIBUTION_REQUEST_SITES.push(siteData.url);
-        }
+      } else if (siteData.sponsored_position) {
+        link.sponsored_position = siteData.sponsored_position;
       }
       DEFAULT_TOP_SITES.push(link);
     }
@@ -279,7 +263,6 @@ this.TopSitesFeed = class TopSitesFeed {
   refreshDefaults(sites, { isStartup = false } = {}) {
     // Clear out the array of any previous defaults
     DEFAULT_TOP_SITES.length = 0;
-    ATTRIBUTION_REQUEST_SITES.length = 0;
 
     // Add default sites if any based on the pref
     if (sites) {
@@ -525,20 +508,25 @@ this.TopSitesFeed = class TopSitesFeed {
     // Get defaults.
     let date = new Date();
     let pad = number => number.toString().padStart(2, "0");
-    let yyyymmdd =
+    let yyyymmddhh =
       String(date.getFullYear()) +
       pad(date.getMonth() + 1) +
-      pad(date.getDate());
-    let yyyymmddhh = yyyymmdd + pad(date.getHours());
+      pad(date.getDate()) +
+      pad(date.getHours());
     let notBlockedDefaultSites = [];
     let sponsored = [];
     for (let link of DEFAULT_TOP_SITES) {
       if (this.shouldFilterSearchTile(link.hostname)) {
         continue;
       }
-      let isBlocked = NewTabUtils.blockedLinks.isBlocked({
-        url: link.url,
-      });
+      // Drop blocked default sites.
+      if (
+        NewTabUtils.blockedLinks.isBlocked({
+          url: link.url,
+        })
+      ) {
+        continue;
+      }
       // Process %YYYYMMDDHH% tag in the URL.
       let url_end;
       let url_start;
@@ -556,30 +544,6 @@ this.TopSitesFeed = class TopSitesFeed {
         if (link.url_urlbar) {
           link.url_urlbar = link.url_urlbar.replace("%YYYYMMDDHH%", yyyymmddhh);
         }
-        // Update frecent link that may have an unprocessed or old datetime
-        // tag. This list has only one entry per domain so we don't have
-        // to look for multiple entries here.
-        let frecentIndex = frecent.findIndex(
-          frecentLink =>
-            // Look for unprocessed datetime tag:
-            frecentLink.url === link.original_url ||
-            // Look for processed datetime tag:
-            (frecentLink.url.startsWith(url_start) &&
-              frecentLink.url.endsWith(url_end) &&
-              frecentLink.url.length === link.url.length)
-        );
-        if (frecentIndex > -1) {
-          if (isBlocked) {
-            frecent.splice(frecentIndex, 1);
-          } else {
-            frecent[frecentIndex].original_url = link.original_url;
-            frecent[frecentIndex].url = link.url;
-          }
-        }
-      }
-      // Drop blocked default sites.
-      if (isBlocked) {
-        continue;
       }
       // If we've previously blocked a search shortcut, remove the default top site
       // that matches the hostname
@@ -689,19 +653,6 @@ this.TopSitesFeed = class TopSitesFeed {
     // Remove excess items after we inserted sponsored ones.
     withPinned = withPinned.slice(0, numItems);
 
-    let searchTileOverrideURLs = new Map();
-    if (!this._useRemoteSetting) {
-      for (let [pref, hostname] of SEARCH_TILE_OVERRIDE_PREFS) {
-        let url = Services.prefs.getStringPref(pref, "");
-        if (url) {
-          url = url
-            .replace("%YYYYMMDD%", yyyymmdd)
-            .replace("%YYYYMMDDHH%", yyyymmddhh);
-          searchTileOverrideURLs.set(hostname, url);
-        }
-      }
-    }
-
     // Now, get a tippy top icon, a rich icon, or screenshot for every item
     for (const link of withPinned) {
       if (link) {
@@ -709,7 +660,7 @@ this.TopSitesFeed = class TopSitesFeed {
         if (link.customScreenshotURL) {
           this._fetchScreenshot(link, link.customScreenshotURL, isStartup);
         } else if (link.searchTopSite && !link.isDefault) {
-          this._attachTippyTopIconForSearchShortcut(link, link.label);
+          await this._attachTippyTopIconForSearchShortcut(link, link.label);
         } else {
           this._fetchIcon(link, isStartup);
         }
@@ -719,24 +670,6 @@ this.TopSitesFeed = class TopSitesFeed {
 
         // Indicate that these links should get a frecency bonus when clicked
         link.typedBonus = true;
-
-        if (ATTRIBUTION_REQUEST_SITES.includes(link.original_url || link.url)) {
-          link.sendAttributionRequest = true;
-        }
-
-        for (let [hostname, url] of searchTileOverrideURLs) {
-          // The `searchVendor` property is set if the engine was re-added manually.
-          if (
-            link.searchTopSite &&
-            !link.searchVendor &&
-            link.hostname === hostname
-          ) {
-            delete link.searchTopSite;
-            delete link.label;
-            link.url = url;
-            link.sendAttributionRequest = true;
-          }
-        }
       }
     }
 
@@ -754,12 +687,12 @@ this.TopSitesFeed = class TopSitesFeed {
    * @param {Object} link A link object with a `url` property
    * @param {string} keyword Search keyword
    */
-  _attachTippyTopIconForSearchShortcut(link, keyword) {
+  async _attachTippyTopIconForSearchShortcut(link, keyword) {
     if (
       ["@\u044F\u043D\u0434\u0435\u043A\u0441", "@yandex"].includes(keyword)
     ) {
       let site = { url: link.url };
-      site.url = getSearchFormURL(keyword) || site.url;
+      site.url = (await getSearchFormURL(keyword)) || site.url;
       this._tippyTopProvider.processSite(site);
       link.tippyTopIcon = site.tippyTopIcon;
       link.smallFavicon = site.smallFavicon;
@@ -823,20 +756,18 @@ this.TopSitesFeed = class TopSitesFeed {
     }
 
     // Populate the state with available search shortcuts
-    const searchShortcuts = (await Services.search.getDefaultEngines()).reduce(
-      (result, engine) => {
-        const shortcut = CUSTOM_SEARCH_SHORTCUTS.find(s =>
-          engine.aliases.includes(s.keyword)
-        );
-        if (shortcut) {
-          let clone = { ...shortcut };
-          this._attachTippyTopIconForSearchShortcut(clone, clone.keyword);
-          result.push(clone);
-        }
-        return result;
-      },
-      []
-    );
+    let searchShortcuts = [];
+    for (const engine of await Services.search.getAppProvidedEngines()) {
+      const shortcut = CUSTOM_SEARCH_SHORTCUTS.find(s =>
+        engine.aliases.includes(s.keyword)
+      );
+      if (shortcut) {
+        let clone = { ...shortcut };
+        await this._attachTippyTopIconForSearchShortcut(clone, clone.keyword);
+        searchShortcuts.push(clone);
+      }
+    }
+
     this.store.dispatch(
       ac.BroadcastToContent({
         type: at.UPDATE_SEARCH_SHORTCUTS,

@@ -94,6 +94,7 @@ load 1389304.html
 load 1393272.webm
 load 1411322.html
 load 1450845.html
+load 1489160.html
 load disconnect-wrong-destination.html
 load analyser-channels-1.html
 load audiocontext-after-unload-1.html
@@ -105,6 +106,7 @@ load buffer-source-resampling-start-1.html
 load buffer-source-slow-resampling-1.html
 load convolver-memory-report-1.html
 load copyFromChannel-2.html
+load empty-buffer-source.html
 skip-if(verify&&isDebugBuild&&gtkWidget) HTTP load media-element-source-seek-1.html
 skip-if(verify&&isDebugBuild&&gtkWidget) load offline-buffer-source-ended-1.html
 load oscillator-ended-1.html
@@ -131,7 +133,10 @@ load 1575271.html
 load 1577184.html
 pref(media.autoplay.default,0) load 1587248.html
 load 1594466.html
+load 1601385.html
+load 1601422.html
 load 1604941.html
+pref(media.autoplay.default,0) load 1673525.html
 skip-if(!winWidget) load 1608286.html
 load channel-count-in-metadata-different-than-in-content.mp4 # Bug 1584959
 load mp4_box_emptyrange.mp4 # Bug 1667480

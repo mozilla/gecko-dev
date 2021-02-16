@@ -170,7 +170,7 @@ assertErrorMessage(() => new WebAssembly.Module(wasmTextToBinary(
        (func (result i32)
          (call_indirect (type $t) (i32.const 37))))`)),
                    WebAssembly.CompileError,
-                   /(indirect calls must go through a table of 'funcref')|(type mismatch)/);
+                   /(indirect calls must go through a table of 'funcref')|(indirect calls must go through a table of funcref)/);
 
 ///////////////////////////////////////////////////////////////////////////
 //
@@ -179,8 +179,9 @@ assertErrorMessage(() => new WebAssembly.Module(wasmTextToBinary(
 {
     let tbl = new WebAssembly.Table({element:"externref", initial:10});
 
-    // Initial value.
-    assertEq(tbl.get(0), null);
+    // Initial value is undefined. This is different from when tables are
+    // created inside wasm.
+    assertEq(tbl.get(0), undefined);
 
     // Identity preserving.
     let x = {hi: 48};
@@ -276,7 +277,7 @@ assertErrorMessage(() => new WebAssembly.Module(wasmTextToBinary(
            (func (export "set_ref") (param i32) (param externref)
              (table.set (local.get 0) (local.get 1))))`)),
                    WebAssembly.CompileError,
-                   /(type mismatch: expression has type externref but expected funcref)|(type mismatch: expected Some\(FuncRef\), found Some\(ExternRef\))/);
+                   /(type mismatch: expression has type externref but expected funcref)|(type mismatch: expected funcref, found externref)/);
 
 // table.set with non-i32 index - fails validation
 
@@ -360,7 +361,7 @@ assertErrorMessage(() => new WebAssembly.Module(wasmTextToBinary(
         (func (export "grow2") (param i32) (param externref) (result i32)
          (table.grow (local.get 1) (local.get 0))))`)),
                    WebAssembly.CompileError,
-                   /(type mismatch: expression has type externref but expected funcref)|(type mismatch: expected Some\(FuncRef\), found Some\(ExternRef\))/);
+                   /(type mismatch: expression has type externref but expected funcref)|(type mismatch: expected funcref, found externref)/);
 
 // Special case for private tables without a maximum
 
@@ -430,56 +431,4 @@ for (let visibility of ['', '(export "t")', '(import "m" "t")']) {
     assertEq(ins.exports.f(), 2);
     ins.exports.t.grow(1);
     assertEq(ins.exports.f(), 3);
-}
-
-// JS API for growing the table can take a fill argument, defaulting to null
-
-let VALUES = [null,
-              undefined,
-              true,
-              false,
-              {x:1337},
-              ["abracadabra"],
-              1337,
-              13.37,
-              "hi",
-              37n,
-              Symbol("status"),
-              () => 1337];
-
-{
-    let t = new WebAssembly.Table({element:"externref", initial:0});
-    t.grow(1);
-    assertEq(t.get(t.length-1), null);
-    let prev = null;
-    for (let v of VALUES) {
-        t.grow(2, v);
-        assertEq(t.get(t.length-3), prev);
-        assertEq(t.get(t.length-2), v);
-        assertEq(t.get(t.length-1), v);
-        prev = v;
-    }
-}
-
-{
-    let t = new WebAssembly.Table({element:"funcref", initial:0});
-    let ins = wasmEvalText(
-        `(module
-           (func (export "f") (param i32) (result i32)
-             (local.get 0)))`);
-    t.grow(1);
-    assertEq(t.get(t.length-1), null);
-    t.grow(2, ins.exports.f);
-    assertEq(t.get(t.length-3), null);
-    assertEq(t.get(t.length-2), ins.exports.f);
-    assertEq(t.get(t.length-1), ins.exports.f);
-}
-
-// If growing by zero elements there are no spurious writes
-
-{
-    let t = new WebAssembly.Table({element:"externref", initial:1});
-    t.set(0, 1337);
-    t.grow(0, 1789);
-    assertEq(t.get(0), 1337);
 }

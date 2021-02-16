@@ -7,7 +7,7 @@
 // The class implementing a QUIC connection.
 
 use std::cell::RefCell;
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt::{self, Debug};
@@ -29,7 +29,6 @@ use neqo_crypto::{
 };
 
 use crate::addr_valid::{AddressValidation, NewTokenState};
-use crate::cc::CongestionControlAlgorithm;
 use crate::cid::{ConnectionId, ConnectionIdDecoder, ConnectionIdManager, ConnectionIdRef};
 use crate::crypto::{Crypto, CryptoDxState, CryptoSpace};
 use crate::dump::*;
@@ -53,9 +52,11 @@ use crate::tparams::{
     self, TransportParameter, TransportParameterId, TransportParameters, TransportParametersHandler,
 };
 use crate::tracking::{AckTracker, PNSpace, SentPacket};
+use crate::ConnectionParameters;
 use crate::{AppError, ConnectionError, Error, Res};
 
 mod idle;
+pub mod params;
 mod saved;
 mod state;
 
@@ -311,8 +312,7 @@ impl Connection {
         cid_manager: CidMgr,
         local_addr: SocketAddr,
         remote_addr: SocketAddr,
-        cc_algorithm: &CongestionControlAlgorithm,
-        quic_version: QuicVersion,
+        conn_params: &ConnectionParameters,
     ) -> Res<Self> {
         let dcid = ConnectionId::generate_initial();
         let mut c = Self::new(
@@ -321,10 +321,11 @@ impl Connection {
             cid_manager,
             protocols,
             None,
-            cc_algorithm,
-            quic_version,
+            conn_params,
         )?;
-        c.crypto.states.init(quic_version, Role::Client, &dcid);
+        c.crypto
+            .states
+            .init(conn_params.get_quic_version(), Role::Client, &dcid);
         c.original_destination_cid = Some(dcid);
         c.initialize_path(local_addr, remote_addr);
         Ok(c)
@@ -335,8 +336,7 @@ impl Connection {
         certs: &[impl AsRef<str>],
         protocols: &[impl AsRef<str>],
         cid_manager: CidMgr,
-        cc_algorithm: &CongestionControlAlgorithm,
-        quic_version: QuicVersion,
+        conn_params: &ConnectionParameters,
     ) -> Res<Self> {
         Self::new(
             Role::Server,
@@ -344,8 +344,7 @@ impl Connection {
             cid_manager,
             protocols,
             None,
-            cc_algorithm,
-            quic_version,
+            conn_params,
         )
     }
 
@@ -388,11 +387,18 @@ impl Connection {
         cid_manager: CidMgr,
         protocols: &[impl AsRef<str>],
         path: Option<Path>,
-        cc_algorithm: &CongestionControlAlgorithm,
-        quic_version: QuicVersion,
+        conn_params: &ConnectionParameters,
     ) -> Res<Self> {
         let tphandler = Rc::new(RefCell::new(TransportParametersHandler::default()));
         Self::set_tp_defaults(&mut tphandler.borrow_mut().local);
+        tphandler.borrow_mut().local.set_integer(
+            tparams::INITIAL_MAX_STREAMS_BIDI,
+            conn_params.get_max_streams(StreamType::BiDi),
+        );
+        tphandler.borrow_mut().local.set_integer(
+            tparams::INITIAL_MAX_STREAMS_UNI,
+            conn_params.get_max_streams(StreamType::UniDi),
+        );
         let local_initial_source_cid = cid_manager.borrow_mut().generate_cid();
         tphandler.borrow_mut().local.set_bytes(
             tparams::INITIAL_SOURCE_CONNECTION_ID,
@@ -424,13 +430,13 @@ impl Connection {
             recv_streams: RecvStreams::default(),
             flow_mgr: Rc::new(RefCell::new(FlowMgr::default())),
             state_signaling: StateSignaling::Idle,
-            loss_recovery: LossRecovery::new(cc_algorithm, stats.clone()),
+            loss_recovery: LossRecovery::new(conn_params.get_cc_algorithm(), stats.clone()),
             events: ConnectionEvents::default(),
             new_token: NewTokenState::new(role),
             stats,
             qlog: NeqoQlog::disabled(),
             release_resumption_token_timer: None,
-            quic_version,
+            quic_version: conn_params.get_quic_version(),
         };
         c.stats.borrow_mut().init(format!("{}", c));
         Ok(c)
@@ -716,12 +722,18 @@ impl Connection {
         self.crypto.tls.peer_certificate()
     }
 
-    /// Call by application when the peer cert has been verified
+    /// Call by application when the peer cert has been verified.
+    ///
+    /// This panics if there is no active peer.  It's OK to call this
+    /// when authentication isn't needed, that will likely only cause
+    /// the connection to fail.  However, if no packets have been
+    /// exchanged, it's not OK.
     pub fn authenticated(&mut self, status: AuthenticationStatus, now: Instant) {
         qinfo!([self], "Authenticated {:?}", status);
         self.crypto.tls.authenticated(status);
         let res = self.handshake(now, PNSpace::Handshake, None);
         self.absorb_error(now, res);
+        self.process_saved(now);
     }
 
     /// Get the role of the connection.
@@ -831,11 +843,11 @@ impl Connection {
         }
     }
 
-    /// Call in to process activity on the connection. Either new packets have
-    /// arrived or a timeout has expired (or both).
+    /// Process new input datagrams on the connection.
     pub fn process_input(&mut self, d: Datagram, now: Instant) {
         let res = self.input(d, now);
         self.absorb_error(now, res);
+        self.process_saved(now);
         self.cleanup_streams();
     }
 
@@ -928,6 +940,7 @@ impl Connection {
         if let Some(d) = dgram {
             let res = self.input(d, now);
             self.absorb_error(now, res);
+            self.process_saved(now);
         }
         self.process_output(now)
     }
@@ -1033,12 +1046,15 @@ impl Connection {
         }
     }
 
-    /// Process any saved packets if the appropriate keys are available.
-    fn process_saved(&mut self, cspace: CryptoSpace) {
-        if self.crypto.states.rx_hp(cspace).is_some() {
-            for saved in self.saved_datagrams.take_saved(cspace) {
-                qtrace!([self], "process saved @{:?}: {:?}", saved.t, saved.d);
-                self.process_input(saved.d, saved.t);
+    /// Process any saved datagrams that might be available for processing.
+    fn process_saved(&mut self, now: Instant) {
+        while let Some(cspace) = self.saved_datagrams.available() {
+            qdebug!([self], "process saved for space {:?}", cspace);
+            debug_assert!(self.crypto.states.rx_hp(cspace).is_some());
+            for saved in self.saved_datagrams.take_saved() {
+                qtrace!([self], "input saved @{:?}: {:?}", saved.t, saved.d);
+                let res = self.input(saved.d, saved.t);
+                self.absorb_error(now, res);
             }
         }
     }
@@ -1342,10 +1358,11 @@ impl Connection {
     }
 
     fn start_handshake(&mut self, packet: &PublicPacket, d: &Datagram) -> Res<()> {
+        qtrace!([self], "starting handshake");
+        debug_assert_eq!(packet.packet_type(), PacketType::Initial);
         self.remote_initial_source_cid = Some(ConnectionId::from(packet.scid()));
-        if self.role == Role::Server {
-            assert_eq!(packet.packet_type(), PacketType::Initial);
 
+        if self.role == Role::Server {
             // A server needs to accept the client's selected CID during the handshake.
             self.valid_cids.push(ConnectionId::from(packet.dcid()));
             self.original_destination_cid = Some(ConnectionId::from(packet.dcid()));
@@ -1368,6 +1385,7 @@ impl Connection {
                 .expect("should have a path for sending Initial");
             p.set_remote_cid(packet.scid());
         }
+
         self.set_state(State::Handshaking);
         Ok(())
     }
@@ -1415,7 +1433,7 @@ impl Connection {
         address_validation: &AddressValidationInfo,
         quic_version: QuicVersion,
         grease_quic_bit: bool,
-    ) -> (PacketType, PacketNumber, PacketBuilder) {
+    ) -> (PacketType, PacketBuilder) {
         let pt = PacketType::from(cspace);
         let mut builder = if pt == PacketType::Short {
             qdebug!("Building Short dcid {}", path.remote_cid());
@@ -1440,10 +1458,30 @@ impl Connection {
         if pt == PacketType::Initial {
             builder.initial_token(address_validation.token());
         }
-        // TODO(mt) work out packet number length based on `4*path CWND/path MTU`.
+
+        (pt, builder)
+    }
+
+    fn add_packet_number(
+        builder: &mut PacketBuilder,
+        tx: &CryptoDxState,
+        largest_acknowledged: Option<PacketNumber>,
+    ) -> PacketNumber {
+        // Get the packet number and work out how long it is.
         let pn = tx.next_pn();
-        builder.pn(pn, 3);
-        (pt, pn, builder)
+        let unacked_range = if let Some(la) = largest_acknowledged {
+            // Double the range from this to the last acknowledged in this space.
+            (pn - la) << 1
+        } else {
+            pn + 1
+        };
+        // Count how many bytes in this range are non-zero.
+        let pn_len = mem::size_of::<PacketNumber>()
+            - usize::try_from(unacked_range.leading_zeros() / 8).unwrap();
+        // pn_len can't be zero (unacked_range is > 0)
+        // TODO(mt) also use `4*path CWND/path MTU` to set a minimum length.
+        builder.pn(pn, pn_len);
+        pn
     }
 
     fn can_grease_quic_bit(&self) -> bool {
@@ -1467,7 +1505,7 @@ impl Connection {
                 continue;
             };
 
-            let (_, _, mut builder) = Self::build_packet_header(
+            let (_, mut builder) = Self::build_packet_header(
                 path,
                 cspace,
                 encoder,
@@ -1475,6 +1513,11 @@ impl Connection {
                 &AddressValidationInfo::None,
                 self.quic_version,
                 grease_quic_bit,
+            );
+            let _ = Self::add_packet_number(
+                &mut builder,
+                tx,
+                self.loss_recovery.largest_acknowledged_pn(*space),
             );
 
             // ConnectionError::Application is only allowed at 1RTT.
@@ -1494,7 +1537,8 @@ impl Connection {
                 if let CloseError::Transport(_) = error_code {
                     builder.encode_varint(*frame_type);
                 }
-                builder.encode_vvec(reason_phrase);
+                let reason_len = min(min(reason_phrase.len(), 256), builder.remaining() - 2);
+                builder.encode_vvec(&reason_phrase[..reason_len]);
             } else {
                 unreachable!();
             }
@@ -1506,14 +1550,16 @@ impl Connection {
     }
 
     /// Write frames to the provided builder.  Returns a list of tokens used for
-    /// tracking loss or acknowledgment and whether any frame was ACK eliciting.
+    /// tracking loss or acknowledgment, whether any frame was ACK eliciting, and
+    /// whether the packet was padded.
     fn write_frames(
         &mut self,
         space: PNSpace,
         profile: &SendProfile,
         builder: &mut PacketBuilder,
+        mut pad: bool,
         now: Instant,
-    ) -> (Vec<RecoveryToken>, bool) {
+    ) -> (Vec<RecoveryToken>, bool, bool) {
         let mut tokens = Vec::new();
         let stats = &mut self.stats.borrow_mut().frame_tx;
 
@@ -1524,7 +1570,7 @@ impl Connection {
             if let Some(t) = ack_token {
                 tokens.push(t);
             }
-            return (tokens, false);
+            return (tokens, false, false);
         }
 
         if space == PNSpace::ApplicationData && self.role == Role::Server {
@@ -1561,11 +1607,21 @@ impl Connection {
                 false
             };
 
+        // Add padding.  Only pad 1-RTT packets so that we don't prevent coalescing.
+        // And avoid padding packets that otherwise only contain ACK because adding PADDING
+        // causes those packets to consume congestion window, which is not tracked (yet).
+        pad &= ack_eliciting && space == PNSpace::ApplicationData;
+        if pad {
+            builder.pad();
+            stats.padding += 1;
+            stats.all += 1;
+        }
+
         if let Some(t) = ack_token {
             tokens.push(t);
         }
         stats.all += tokens.len();
-        (tokens, ack_eliciting)
+        (tokens, ack_eliciting, pad)
     }
 
     /// Build a datagram, possibly from multiple packets (for different PN
@@ -1591,7 +1647,7 @@ impl Connection {
             };
 
             let header_start = encoder.len();
-            let (pt, pn, mut builder) = Self::build_packet_header(
+            let (pt, mut builder) = Self::build_packet_header(
                 path,
                 cspace,
                 encoder,
@@ -1599,6 +1655,11 @@ impl Connection {
                 &self.address_validation,
                 self.quic_version,
                 grease_quic_bit,
+            );
+            let pn = Self::add_packet_number(
+                &mut builder,
+                tx,
+                self.loss_recovery.largest_acknowledged_pn(*space),
             );
             let payload_start = builder.len();
 
@@ -1613,7 +1674,8 @@ impl Connection {
             // Add frames to the packet.
             let limit = profile.limit() - aead_expansion;
             builder.set_limit(limit);
-            let (tokens, ack_eliciting) = self.write_frames(*space, &profile, &mut builder, now);
+            let (tokens, ack_eliciting, padded) =
+                self.write_frames(*space, &profile, &mut builder, needs_padding, now);
             if builder.packet_empty() {
                 // Nothing to include in this packet.
                 encoder = builder.abort();
@@ -1642,16 +1704,19 @@ impl Connection {
                 pn,
                 now,
                 ack_eliciting,
-                Rc::new(tokens),
+                tokens,
                 encoder.len() - header_start,
             );
-            if pt == PacketType::Initial && (self.role == Role::Client || ack_eliciting) {
+            if padded {
+                needs_padding = false;
+                self.loss_recovery.on_packet_sent(sent);
+            } else if pt == PacketType::Initial && (self.role == Role::Client || ack_eliciting) {
                 // Packets containing Initial packets might need padding, and we want to
                 // track that padding along with the Initial packet.  So defer tracking.
                 initial_sent = Some(sent);
                 needs_padding = true;
             } else {
-                if pt != PacketType::ZeroRtt && self.role == Role::Client {
+                if pt == PacketType::Handshake && self.role == Role::Client {
                     needs_padding = false;
                 }
                 self.loss_recovery.on_packet_sent(sent);
@@ -1671,7 +1736,7 @@ impl Connection {
         if encoder.is_empty() {
             Ok(SendOption::No(profile.paced()))
         } else {
-            // Pad Initial packets sent by the client to mtu bytes.
+            // Perform additional padding for Initial packets as necessary.
             let mut packets: Vec<u8> = encoder.into();
             if let Some(mut initial) = initial_sent.take() {
                 if needs_padding {
@@ -1890,7 +1955,7 @@ impl Connection {
                 self.set_initial_limits();
             }
             if self.crypto.install_keys(self.role)? {
-                self.process_saved(CryptoSpace::Handshake);
+                self.saved_datagrams.make_available(CryptoSpace::Handshake);
             }
         }
 
@@ -1917,7 +1982,7 @@ impl Connection {
 
     fn input_frame(&mut self, ptype: PacketType, frame: Frame, now: Instant) -> Res<()> {
         if !frame.is_allowed(ptype) {
-            qerror!("frame not allowed: {:?} {:?}", frame, ptype);
+            qinfo!("frame not allowed: {:?} {:?}", frame, ptype);
             return Err(Error::ProtocolViolation);
         }
         self.stats.borrow_mut().frame_rx.all += 1;
@@ -2161,7 +2226,7 @@ impl Connection {
     /// to retransmit the frame as needed.
     fn handle_lost_packets(&mut self, lost_packets: &[SentPacket]) {
         for lost in lost_packets {
-            for token in lost.tokens.as_ref() {
+            for token in &lost.tokens {
                 qdebug!([self], "Lost: {:?}", token);
                 match token {
                     RecoveryToken::Ack(_) => {}
@@ -2219,7 +2284,7 @@ impl Connection {
             now,
         );
         for acked in acked_packets {
-            for token in acked.tokens.as_ref() {
+            for token in &acked.tokens {
                 match token {
                     RecoveryToken::Ack(at) => self.acks.acked(at),
                     RecoveryToken::Stream(st) => self.send_streams.acked(st),
@@ -2286,7 +2351,8 @@ impl Connection {
         self.process_tps()?;
         self.set_state(State::Connected);
         self.create_resumption_token(now);
-        self.process_saved(CryptoSpace::ApplicationData);
+        self.saved_datagrams
+            .make_available(CryptoSpace::ApplicationData);
         self.stats.borrow_mut().resumed = self.crypto.tls.info().unwrap().resumed();
         if self.role == Role::Server {
             self.state_signaling.handshake_done();
@@ -2648,7 +2714,7 @@ impl Connection {
         let stream = self
             .recv_streams
             .get_mut(&stream_id.into())
-            .ok_or_else(|| Error::InvalidStreamId)?;
+            .ok_or(Error::InvalidStreamId)?;
 
         let rb = stream.read(data)?;
         Ok((rb.0 as usize, rb.1))
@@ -2659,7 +2725,7 @@ impl Connection {
         let stream = self
             .recv_streams
             .get_mut(&stream_id.into())
-            .ok_or_else(|| Error::InvalidStreamId)?;
+            .ok_or(Error::InvalidStreamId)?;
 
         stream.stop_sending(err);
         Ok(())

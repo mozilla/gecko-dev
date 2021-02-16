@@ -23,12 +23,6 @@ XPCOMUtils.defineLazyServiceGetter(
  * Tests the search restriction buttons in the Touch Bar.
  */
 
-add_task(async function init() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.update2", true]],
-  });
-});
-
 /**
  * @param {string} input
  *   The value to be inserted in the Urlbar.
@@ -85,10 +79,6 @@ add_task(async function insertTokens() {
     {
       input: "mozilla",
       token: UrlbarTokenizer.RESTRICT.OPENPAGE,
-    },
-    {
-      input: "mozilla",
-      token: UrlbarTokenizer.RESTRICT.TITLE,
     },
   ];
   for (let test of tests) {

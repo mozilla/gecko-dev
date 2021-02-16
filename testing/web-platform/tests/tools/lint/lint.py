@@ -507,6 +507,7 @@ def check_parsed(repo_root, path, f):
         if (source_file.type != "support" and
             not source_file.name_is_reference and
             not source_file.name_is_tentative and
+            not source_file.name_is_crashtest and
             not source_file.spec_links):
             return [rules.MissingLink.error(path)]
 
@@ -654,6 +655,16 @@ def check_parsed(repo_root, path, f):
 
         if incorrect_path("testdriver-vendor.js", src):
             errors.append(rules.TestdriverVendorPath.error(path))
+
+        script_path = None
+        try:
+            script_path = urlsplit(urljoin(source_file.url, src)).path
+        except ValueError:
+            # This happens if the contents of src isn't something that looks like a URL to Python
+            pass
+        if (script_path == "/common/reftest-wait.js" and
+            "reftest-wait" not in source_file.root.attrib.get("class", "").split()):
+            errors.append(rules.MissingReftestWait.error(path))
 
     return errors
 

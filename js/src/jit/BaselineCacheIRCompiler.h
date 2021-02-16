@@ -16,38 +16,30 @@
 namespace js {
 namespace jit {
 
+class ICCacheIRStub;
 class ICFallbackStub;
-class ICStub;
 
-enum class BaselineCacheIRStubKind { Regular, Monitored, Updated };
-
-ICStub* AttachBaselineCacheIRStub(JSContext* cx, const CacheIRWriter& writer,
-                                  CacheKind kind,
-                                  BaselineCacheIRStubKind stubKind,
-                                  JSScript* outerScript, ICScript* icScript,
-                                  ICFallbackStub* stub, bool* attached);
+ICCacheIRStub* AttachBaselineCacheIRStub(JSContext* cx,
+                                         const CacheIRWriter& writer,
+                                         CacheKind kind, JSScript* outerScript,
+                                         ICScript* icScript,
+                                         ICFallbackStub* stub, bool* attached);
 
 // BaselineCacheIRCompiler compiles CacheIR to BaselineIC native code.
 class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
   bool makesGCCalls_;
-  BaselineCacheIRStubKind kind_;
 
   void tailCallVMInternal(MacroAssembler& masm, TailCallVMFunctionId id);
 
   template <typename Fn, Fn fn>
   void tailCallVM(MacroAssembler& masm);
 
-  MOZ_MUST_USE bool callTypeUpdateIC(Register obj, ValueOperand val,
-                                     Register scratch,
-                                     LiveGeneralRegisterSet saveRegs);
-
-  MOZ_MUST_USE bool emitStoreSlotShared(bool isFixed, ObjOperandId objId,
-                                        uint32_t offsetOffset,
-                                        ValOperandId rhsId);
-  MOZ_MUST_USE bool emitAddAndStoreSlotShared(
+  [[nodiscard]] bool emitStoreSlotShared(bool isFixed, ObjOperandId objId,
+                                         uint32_t offsetOffset,
+                                         ValOperandId rhsId);
+  [[nodiscard]] bool emitAddAndStoreSlotShared(
       CacheOp op, ObjOperandId objId, uint32_t offsetOffset, ValOperandId rhsId,
-      bool changeGroup, uint32_t newGroupOffset, uint32_t newShapeOffset,
-      mozilla::Maybe<uint32_t> numNewSlotsOffset);
+      uint32_t newShapeOffset, mozilla::Maybe<uint32_t> numNewSlotsOffset);
 
   bool updateArgc(CallFlags flags, Register argcReg, Register scratch);
   void loadStackObject(ArgumentKind kind, CallFlags flags, size_t stackPushed,
@@ -93,10 +85,9 @@ class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
   friend class AutoStubFrame;
 
   BaselineCacheIRCompiler(JSContext* cx, const CacheIRWriter& writer,
-                          uint32_t stubDataOffset,
-                          BaselineCacheIRStubKind stubKind);
+                          uint32_t stubDataOffset);
 
-  MOZ_MUST_USE bool init(CacheKind kind);
+  [[nodiscard]] bool init(CacheKind kind);
 
   template <typename Fn, Fn fn>
   void callVM(MacroAssembler& masm);

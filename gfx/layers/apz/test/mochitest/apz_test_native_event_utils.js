@@ -105,7 +105,7 @@ function nativeMouseDownEventMsg() {
     case "windows":
       return 2; // MOUSEEVENTF_LEFTDOWN
     case "mac":
-      return 1; // NSLeftMouseDown
+      return 1; // NSEventTypeLeftMouseDown
     case "linux":
       return 4; // GDK_BUTTON_PRESS
     case "android":
@@ -121,7 +121,7 @@ function nativeMouseMoveEventMsg() {
     case "windows":
       return 1; // MOUSEEVENTF_MOVE
     case "mac":
-      return 5; // NSMouseMoved
+      return 5; // NSEventTypeMouseMoved
     case "linux":
       return 3; // GDK_MOTION_NOTIFY
     case "android":
@@ -137,7 +137,7 @@ function nativeMouseUpEventMsg() {
     case "windows":
       return 4; // MOUSEEVENTF_LEFTUP
     case "mac":
-      return 2; // NSLeftMouseUp
+      return 2; // NSEventTypeLeftMouseUp
     case "linux":
       return 7; // GDK_BUTTON_RELEASE
     case "android":
@@ -632,6 +632,28 @@ function synthesizeNativeTouchDrag(
   ]);
 }
 
+// Promise-returning variant of synthesizeNativeTouchDrag
+function promiseNativeTouchDrag(
+  aTarget,
+  aX,
+  aY,
+  aDeltaX,
+  aDeltaY,
+  aTouchId = 0
+) {
+  return new Promise(resolve => {
+    synthesizeNativeTouchDrag(
+      aTarget,
+      aX,
+      aY,
+      aDeltaX,
+      aDeltaY,
+      resolve,
+      aTouchId
+    );
+  });
+}
+
 function synthesizeNativeTap(aElement, aX, aY, aObserver = null) {
   var pt = coordinatesRelativeToScreen(aX, aY, aElement);
   var utils = SpecialPowers.getDOMWindowUtils(
@@ -705,6 +727,13 @@ function synthesizeNativeClickAndWaitForClickEvent(
   return synthesizeNativeClick(aElement, aX, aY);
 }
 
+// Promise-returning variant of synthesizeNativeClickAndWaitForClickEvent
+function promiseNativeClickAndClickEvent(aElement, aX, aY) {
+  return new Promise(resolve => {
+    synthesizeNativeClickAndWaitForClickEvent(aElement, aX, aY, resolve);
+  });
+}
+
 // Move the mouse to (dx, dy) relative to |target|, and scroll the wheel
 // at that location.
 // Moving the mouse is necessary to avoid wheel events from two consecutive
@@ -755,8 +784,8 @@ function promiseMoveMouseAndScrollWheelOver(
 
 // Synthesizes events to drag |target|'s vertical scrollbar by the distance
 // specified, synthesizing a mousemove for each increment as specified.
-// Returns false if the element doesn't have a vertical scrollbar. Otherwise,
-// returns a generator that should be invoked after the mousemoves have been
+// Returns null if the element doesn't have a vertical scrollbar. Otherwise,
+// returns an async function that should be invoked after the mousemoves have been
 // processed by the widget code, to end the scrollbar drag. Mousemoves being
 // processed by the widget code can be detected by listening for the mousemove
 // events in the caller, or for some other event that is triggered by the
@@ -768,9 +797,8 @@ function promiseMoveMouseAndScrollWheelOver(
 // Note: helper_scrollbar_snap_bug1501062.html contains a copy of this code
 // with modifications. Fixes here should be copied there if appropriate.
 // |target| can be an element (for subframes) or a window (for root frames).
-function* dragVerticalScrollbar(
+async function promiseVerticalScrollbarDrag(
   target,
-  testDriver,
   distance = 20,
   increment = 5,
   scaleFactor = 1
@@ -781,7 +809,7 @@ function* dragVerticalScrollbar(
   utilsForTarget(target).getScrollbarSizes(targetElement, w, h);
   var verticalScrollbarWidth = w.value;
   if (verticalScrollbarWidth == 0) {
-    return false;
+    return null;
   }
 
   var upArrowHeight = verticalScrollbarWidth; // assume square scrollbar buttons
@@ -801,48 +829,43 @@ function* dragVerticalScrollbar(
   );
 
   // Move the mouse to the scrollbar thumb and drag it down
-  yield synthesizeNativeMouseEvent(
+  await promiseNativeMouseEvent(
     target,
     mouseX,
     mouseY,
-    nativeMouseMoveEventMsg(),
-    testDriver
+    nativeMouseMoveEventMsg()
   );
   // mouse down
-  yield synthesizeNativeMouseEvent(
+  await promiseNativeMouseEvent(
     target,
     mouseX,
     mouseY,
-    nativeMouseDownEventMsg(),
-    testDriver
+    nativeMouseDownEventMsg()
   );
   // drag vertically by |increment| until we reach the specified distance
   for (var y = increment; y < distance; y += increment) {
-    yield synthesizeNativeMouseEvent(
+    await promiseNativeMouseEvent(
       target,
       mouseX,
       mouseY + y,
-      nativeMouseMoveEventMsg(),
-      testDriver
+      nativeMouseMoveEventMsg()
     );
   }
-  yield synthesizeNativeMouseEvent(
+  await promiseNativeMouseEvent(
     target,
     mouseX,
     mouseY + distance,
-    nativeMouseMoveEventMsg(),
-    testDriver
+    nativeMouseMoveEventMsg()
   );
 
-  // and return a generator to call afterwards to finish up the drag
-  return function*() {
+  // and return an async function to call afterwards to finish up the drag
+  return async function() {
     dump("Finishing drag of #" + targetElement.id + "\n");
-    yield synthesizeNativeMouseEvent(
+    await promiseNativeMouseEvent(
       target,
       mouseX,
       mouseY + distance,
-      nativeMouseUpEventMsg(),
-      testDriver
+      nativeMouseUpEventMsg()
     );
   };
 }
@@ -958,6 +981,24 @@ function promiseTopic(aTopic) {
 // Returns a promise that is resolved when a APZ transform ends.
 function promiseTransformEnd() {
   return promiseTopic("APZ:TransformEnd");
+}
+
+// Returns a promise that resolves after the indicated number
+// of touchend events have fired on the given target element.
+function promiseTouchEnd(element, count = 1) {
+  return new Promise(resolve => {
+    var eventCount = 0;
+    var counterFunction = function(e) {
+      eventCount++;
+      if (eventCount == count) {
+        element.removeEventListener("touchend", counterFunction, {
+          passive: true,
+        });
+        resolve();
+      }
+    };
+    element.addEventListener("touchend", counterFunction, { passive: true });
+  });
 }
 
 // This generates a touch-based pinch zoom-in gesture that is expected

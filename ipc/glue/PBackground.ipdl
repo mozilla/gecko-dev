@@ -65,6 +65,7 @@ include RemoteWorkerTypes;
 include MIDITypes;
 
 include "mozilla/dom/cache/IPCUtils.h";
+include "mozilla/dom/quota/SerializationHelpers.h";
 include "mozilla/layers/LayersMessageUtils.h";
 
 using mozilla::dom::cache::Namespace
@@ -73,7 +74,7 @@ using mozilla::dom::cache::Namespace
 namespace mozilla {
 namespace ipc {
 
-sync protocol PBackground
+sync refcounted protocol PBackground
 {
   manages PBackgroundDataBridge;
   manages PBackgroundIDBFactory;
@@ -201,6 +202,8 @@ parent:
   async ShutdownQuotaManager();
 
   async ShutdownBackgroundSessionStorageManagers();
+
+  async PropagateBackgroundSessionStorageManager(uint64_t currentTopContextId, uint64_t targetTopContextId);
 
   async RemoveBackgroundSessionStorageManager(uint64_t topContextId);
 

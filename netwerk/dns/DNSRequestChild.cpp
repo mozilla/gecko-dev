@@ -54,6 +54,7 @@ class ChildDNSRecord : public nsIDNSAddrRecord {
   double mTrrFetchDuration;
   double mTrrFetchDurationNetworkOnly;
   bool mIsTRR;
+  uint32_t mEffectiveTRRMode;
 };
 
 NS_IMPL_ISUPPORTS(ChildDNSRecord, nsIDNSRecord, nsIDNSAddrRecord)
@@ -64,6 +65,7 @@ ChildDNSRecord::ChildDNSRecord(const DNSRecord& reply, uint16_t flags)
   mTrrFetchDuration = reply.trrFetchDuration();
   mTrrFetchDurationNetworkOnly = reply.trrFetchDurationNetworkOnly();
   mIsTRR = reply.isTRR();
+  mEffectiveTRRMode = reply.effectiveTRRMode();
 
   // A shame IPDL gives us no way to grab ownership of array: so copy it.
   const nsTArray<NetAddr>& addrs = reply.addrs();
@@ -174,6 +176,12 @@ ChildDNSRecord::ReportUnusable(uint16_t aPort) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+ChildDNSRecord::GetEffectiveTRRMode(uint32_t* aMode) {
+  *aMode = mEffectiveTRRMode;
+  return NS_OK;
+}
+
 class ChildDNSByTypeRecord : public nsIDNSByTypeRecord,
                              public nsIDNSTXTRecord,
                              public nsIDNSHTTPSSVCRecord,
@@ -274,6 +282,7 @@ ChildDNSByTypeRecord::GetServiceModeRecord(bool aNoHttp2, bool aNoHttp3,
 NS_IMETHODIMP
 ChildDNSByTypeRecord::GetAllRecordsWithEchConfig(
     bool aNoHttp2, bool aNoHttp3, bool* aAllRecordsHaveEchConfig,
+    bool* aAllRecordsInH3ExcludedList,
     nsTArray<RefPtr<nsISVCBRecord>>& aResult) {
   if (!mResults.is<TypeRecordHTTPSSVC>()) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -281,7 +290,8 @@ ChildDNSByTypeRecord::GetAllRecordsWithEchConfig(
 
   auto& records = mResults.as<TypeRecordHTTPSSVC>();
   GetAllRecordsWithEchConfigInternal(aNoHttp2, aNoHttp3, records,
-                                     aAllRecordsHaveEchConfig, aResult);
+                                     aAllRecordsHaveEchConfig,
+                                     aAllRecordsInH3ExcludedList, aResult);
   return NS_OK;
 }
 

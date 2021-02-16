@@ -233,6 +233,7 @@ let InternalFaviconLoader = {
 };
 
 var PlacesUIUtils = {
+  _bookmarkToolbarTelemetryListening: false,
   LAST_USED_FOLDERS_META_KEY: "bookmarks/lastusedfolders",
 
   getFormattedString: function PUIU_getFormattedString(key, params) {
@@ -1160,6 +1161,69 @@ var PlacesUIUtils = {
     }
   },
 
+  ensureBookmarkToolbarTelemetryListening() {
+    if (this._bookmarkToolbarTelemetryListening) {
+      return;
+    }
+
+    // This listener is for counting new bookmarks
+    let placesUtilsObserversListener = events => {
+      for (let event of events) {
+        if (
+          event.type == "bookmark-added" &&
+          event.parentGuid == PlacesUtils.bookmarks.toolbarGuid
+        ) {
+          Services.telemetry.scalarAdd(
+            "browser.engagement.bookmarks_toolbar_bookmark_added",
+            1
+          );
+        }
+      }
+    };
+
+    // This listener is for tracking bookmark moves
+    let placesUtilsBookmarksObserver = {
+      onBeginUpdateBatch() {},
+      onEndUpdateBatch() {},
+      onItemChanged() {},
+      onItemMoved(
+        aItemId,
+        aProperty,
+        aIsAnnotationProperty,
+        aNewValue,
+        aLastModified,
+        aItemType,
+        aGuid,
+        oldParentGuid,
+        newParentGuid
+      ) {
+        let hasMovedToToolbar =
+          newParentGuid == PlacesUtils.bookmarks.toolbarGuid &&
+          oldParentGuid != PlacesUtils.bookmarks.toolbarGuid;
+        if (hasMovedToToolbar) {
+          Services.telemetry.scalarAdd(
+            "browser.engagement.bookmarks_toolbar_bookmark_added",
+            1
+          );
+        }
+      },
+    };
+
+    this._bookmarkToolbarTelemetryListening = true;
+    PlacesUtils.observers.addListener(
+      ["bookmark-added"],
+      placesUtilsObserversListener
+    );
+    PlacesUtils.bookmarks.addObserver(placesUtilsBookmarksObserver);
+    PlacesUtils.registerShutdownFunction(() => {
+      PlacesUtils.observers.removeListener(
+        ["bookmark-added"],
+        placesUtilsObserversListener
+      );
+      PlacesUtils.bookmarks.removeObserver(placesUtilsBookmarksObserver);
+    });
+  },
+
   /**
    * Uncollapses PersonalToolbar if its collapsed status is not
    * persisted, and user customized it or changed default bookmarks.
@@ -1278,6 +1342,12 @@ var PlacesUIUtils = {
     }
     let document = menupopup.ownerDocument;
     menupopup._view = this.getViewForNode(document.popupNode);
+    if (!menupopup._view) {
+      // This can happen if we try to invoke the context menu on
+      // an uninitialized places toolbar. Just bail out:
+      event.preventDefault();
+      return false;
+    }
     if (!this.openInTabClosesMenu) {
       document
         .getElementById("placesContext_open:newtab")
@@ -1487,6 +1557,23 @@ var PlacesUIUtils = {
     return this._defaultParentGuid;
   },
 };
+
+/**
+ * Promise used by the toolbar view browser-places to determine whether we
+ * can start loading its content (which involves IO, and so is postponed
+ * during startup).
+ * This promise's resolution value indicates whether toolbar initialization
+ * waited on sessionstore-windows-restored and then an idle task, or happened
+ * immediately as the window was opened. This is used for telemetry.
+ */
+PlacesUIUtils.canLoadToolbarContentPromise = new Promise(resolve => {
+  PlacesUIUtils.unblockToolbars = () => {
+    resolve("waited-for-session-idle");
+    // Overwrite the property with the new promise, as the session has
+    // now been restored:
+    PlacesUIUtils.canLoadToolbarContentPromise = Promise.resolve("immediate");
+  };
+});
 
 // These are lazy getters to avoid importing PlacesUtils immediately.
 XPCOMUtils.defineLazyGetter(PlacesUIUtils, "PLACES_FLAVORS", () => {

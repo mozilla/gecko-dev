@@ -6,12 +6,21 @@
 
 #include "mozilla/dom/cache/StreamList.h"
 
+#include <algorithm>
 #include "mozilla/dom/cache/CacheStreamControlParent.h"
 #include "mozilla/dom/cache/Context.h"
 #include "mozilla/dom/cache/Manager.h"
 #include "nsIInputStream.h"
 
 namespace mozilla::dom::cache {
+
+namespace {
+
+auto MatchById(const nsID& aId) {
+  return [aId](const auto& entry) { return entry.mId == aId; };
+}
+
+}  // namespace
 
 StreamList::StreamList(SafeRefPtr<Manager> aManager,
                        SafeRefPtr<Context> aContext)
@@ -21,7 +30,7 @@ StreamList::StreamList(SafeRefPtr<Manager> aManager,
       mStreamControl(nullptr),
       mActivated(false) {
   MOZ_DIAGNOSTIC_ASSERT(mManager);
-  mContext->AddActivity(this);
+  mContext->AddActivity(*this);
 }
 
 Manager& StreamList::GetManager() const {
@@ -32,13 +41,7 @@ Manager& StreamList::GetManager() const {
 bool StreamList::ShouldOpenStreamFor(const nsID& aId) const {
   NS_ASSERT_OWNINGTHREAD(StreamList);
 
-  for (auto entry : mList) {
-    if (entry.mId == aId) {
-      return true;
-    }
-  }
-
-  return false;
+  return std::any_of(mList.cbegin(), mList.cend(), MatchById(aId));
 }
 
 void StreamList::SetStreamControl(CacheStreamControlParent* aStreamControl) {
@@ -71,7 +74,7 @@ void StreamList::Activate(CacheId aCacheId) {
   mActivated = true;
   mCacheId = aCacheId;
   mManager->AddRefCacheId(mCacheId);
-  mManager->AddStreamList(this);
+  mManager->AddStreamList(*this);
 
   for (uint32_t i = 0; i < mList.Length(); ++i) {
     mManager->AddRefBodyId(mList[i].mId);
@@ -82,27 +85,24 @@ void StreamList::Add(const nsID& aId, nsCOMPtr<nsIInputStream>&& aStream) {
   // All streams should be added on IO thread before we set the stream
   // control on the owning IPC thread.
   MOZ_DIAGNOSTIC_ASSERT(!mStreamControl);
-  mList.AppendElement(Entry(aId, std::move(aStream)));
+  mList.EmplaceBack(aId, std::move(aStream));
 }
 
 already_AddRefed<nsIInputStream> StreamList::Extract(const nsID& aId) {
   NS_ASSERT_OWNINGTHREAD(StreamList);
-  for (uint32_t i = 0; i < mList.Length(); ++i) {
-    if (mList[i].mId == aId) {
-      return mList[i].mStream.forget();
-    }
-  }
-  return nullptr;
+
+  const auto it = std::find_if(mList.begin(), mList.end(), MatchById(aId));
+
+  return it != mList.end() ? it->mStream.forget() : nullptr;
 }
 
 void StreamList::NoteClosed(const nsID& aId) {
   NS_ASSERT_OWNINGTHREAD(StreamList);
-  for (uint32_t i = 0; i < mList.Length(); ++i) {
-    if (mList[i].mId == aId) {
-      mList.RemoveElementAt(i);
-      mManager->ReleaseBodyId(aId);
-      break;
-    }
+
+  const auto it = std::find_if(mList.begin(), mList.end(), MatchById(aId));
+  if (it != mList.end()) {
+    mList.RemoveElementAt(it);
+    mManager->ReleaseBodyId(aId);
   }
 
   if (mList.IsEmpty() && mStreamControl) {
@@ -125,13 +125,11 @@ void StreamList::NoteClosedAll() {
 void StreamList::CloseAll() {
   NS_ASSERT_OWNINGTHREAD(StreamList);
   if (mStreamControl) {
-    auto streamControl = mStreamControl;
-    mStreamControl = nullptr;
+    auto* streamControl = std::exchange(mStreamControl, nullptr);
 
     streamControl->CloseAll();
 
-    mStreamControl = streamControl;
-    streamControl = nullptr;
+    mStreamControl = std::exchange(streamControl, nullptr);
 
     mStreamControl->Shutdown();
   }
@@ -151,13 +149,13 @@ StreamList::~StreamList() {
   NS_ASSERT_OWNINGTHREAD(StreamList);
   MOZ_DIAGNOSTIC_ASSERT(!mStreamControl);
   if (mActivated) {
-    mManager->RemoveStreamList(this);
+    mManager->RemoveStreamList(*this);
     for (uint32_t i = 0; i < mList.Length(); ++i) {
       mManager->ReleaseBodyId(mList[i].mId);
     }
     mManager->ReleaseCacheId(mCacheId);
   }
-  mContext->RemoveActivity(this);
+  mContext->RemoveActivity(*this);
 }
 
 }  // namespace mozilla::dom::cache

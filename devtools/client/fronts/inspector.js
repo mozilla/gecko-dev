@@ -58,11 +58,6 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
     );
     this.walker = await this.getWalker({
       showAllAnonymousContent,
-      // Backward compatibility for Firefox 74 or older.
-      // getWalker() now uses a single boolean flag to drive the display of
-      // both anonymous content and user-agent shadow roots.
-      // Older servers used separate flags. See Bug 1613773.
-      showUserAgentShadowRoots: showAllAnonymousContent,
     });
 
     // We need to reparent the RootNode of remote iframe Walkers
@@ -177,16 +172,6 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
    *                                    if the NodeFront couldn't be created/retrieved.
    */
   async getNodeFrontFromNodeGrip(grip) {
-    const gripHasContentDomReference = "contentDomReference" in grip;
-
-    if (!gripHasContentDomReference) {
-      // Backward compatibility ( < Firefox 71):
-      // If the grip does not have a contentDomReference, we can't know in which browsing
-      // context id the node lives. We fall back on gripToNodeFront that might retrieve
-      // the expected nodeFront.
-      return this.walker.gripToNodeFront(grip);
-    }
-
     return this.getNodeActorFromContentDomReference(grip.contentDomReference);
   }
 
@@ -210,8 +195,8 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
     // fetch the node's target.
     let target;
     if (descriptorFront && descriptorFront.traits.watcher) {
-      const watcher = await descriptorFront.getWatcher();
-      target = await watcher.getBrowsingContextTarget(browsingContextId);
+      const watcherFront = await descriptorFront.getWatcher();
+      target = await watcherFront.getBrowsingContextTarget(browsingContextId);
     } else {
       // For descriptors which don't expose a watcher (e.g. WebExtension)
       // we used to call RootActor::getBrowsingContextDescriptor, but it was

@@ -12,47 +12,15 @@
 #include "GLContextProvider.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/CompositionRecorder.h"
+#include "mozilla/layers/NativeLayer.h"
 #include "mozilla/layers/SurfacePool.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/widget/CompositorWidget.h"
-
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
-#endif
+#include "RenderCompositorRecordedFrame.h"
 
 namespace mozilla {
 namespace wr {
-
-class RenderCompositorRecordedFrame final : public layers::RecordedFrame {
- public:
-  RenderCompositorRecordedFrame(
-      const TimeStamp& aTimeStamp,
-      RefPtr<layers::profiler_screenshots::AsyncReadbackBuffer>&& aBuffer)
-      : RecordedFrame(aTimeStamp), mBuffer(aBuffer) {}
-
-  virtual already_AddRefed<gfx::DataSourceSurface> GetSourceSurface() override {
-    if (mSurface) {
-      return do_AddRef(mSurface);
-    }
-
-    gfx::IntSize size = mBuffer->Size();
-    mSurface = gfx::Factory::CreateDataSourceSurface(
-        size, gfx::SurfaceFormat::B8G8R8A8,
-        /* aZero = */ false);
-
-    if (!mBuffer->MapAndCopyInto(mSurface, size)) {
-      mSurface = nullptr;
-      return nullptr;
-    }
-
-    return do_AddRef(mSurface);
-  }
-
- private:
-  RefPtr<layers::profiler_screenshots::AsyncReadbackBuffer> mBuffer;
-  RefPtr<gfx::DataSourceSurface> mSurface;
-};
 
 RenderCompositorNative::RenderCompositorNative(
     RefPtr<widget::CompositorWidget>&& aWidget, gl::GLContext* aGL)
@@ -559,7 +527,6 @@ void RenderCompositorNativeOGL::Bind(wr::NativeTileId aId,
 
   Maybe<GLuint> fbo = mCurrentlyBoundNativeLayer->NextSurfaceAsFramebuffer(
       validRect, dirtyRect, true);
-  MOZ_RELEASE_ASSERT(fbo);  // TODO: make fallible
 
   *aFboId = *fbo;
   *aOffset = wr::DeviceIntPoint{0, 0};
@@ -603,7 +570,8 @@ bool RenderCompositorNativeSWGL::InitDefaultFramebuffer(
     if (!MapNativeLayer(mNativeLayerForEntireWindow, aBounds, aBounds)) {
       return false;
     }
-    wr_swgl_init_default_framebuffer(mContext, aBounds.width, aBounds.height,
+    wr_swgl_init_default_framebuffer(mContext, aBounds.x, aBounds.y,
+                                     aBounds.width, aBounds.height,
                                      mLayerStride, mLayerValidRectData);
   }
   return true;
@@ -611,12 +579,14 @@ bool RenderCompositorNativeSWGL::InitDefaultFramebuffer(
 
 void RenderCompositorNativeSWGL::CancelFrame() {
   if (mNativeLayerForEntireWindow && mLayerTarget) {
+    wr_swgl_init_default_framebuffer(mContext, 0, 0, 0, 0, 0, nullptr);
     UnmapNativeLayer();
   }
 }
 
 void RenderCompositorNativeSWGL::DoSwap() {
   if (mNativeLayerForEntireWindow && mLayerTarget) {
+    wr_swgl_init_default_framebuffer(mContext, 0, 0, 0, 0, 0, nullptr);
     UnmapNativeLayer();
   }
 }

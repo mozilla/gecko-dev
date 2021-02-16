@@ -105,17 +105,6 @@ cfr-whatsnew-button =
 
 cfr-whatsnew-release-notes-link-text = Read the release notes
 
-cfr-whatsnew-fx70-title = { -brand-short-name } now fights harder for your privacy
-cfr-whatsnew-fx70-body =
-   The latest update enhances the Tracking Protection feature and makes it
-   easier than ever to create secure passwords for every site.
-
-cfr-whatsnew-tracking-protect-title = Protect yourself from trackers
-cfr-whatsnew-tracking-protect-body =
-   { -brand-short-name } blocks many common social and cross-site trackers that
-   follow what you do online.
-cfr-whatsnew-tracking-protect-link-text = View Your Report
-
 # This string is displayed before a large numeral that indicates the total
 # number of tracking elements blocked. Don’t add $blockedCount to your
 # localization, because it would result in the number showing twice.
@@ -139,10 +128,8 @@ cfr-whatsnew-lockwise-take-body =
    backed up passwords from anywhere.
 cfr-whatsnew-lockwise-take-link-text = Get the app
 
-## Search Bar
+## Search bar
 
-cfr-whatsnew-searchbar-title = Type less, find more with the address bar
-cfr-whatsnew-searchbar-body-topsites = Now, just select the address bar, and a box will expand with links to your top sites.
 cfr-whatsnew-searchbar-icon-alt-text = Magnifying glass icon
 
 ## Picture-in-Picture
@@ -150,12 +137,6 @@ cfr-whatsnew-searchbar-icon-alt-text = Magnifying glass icon
 cfr-whatsnew-pip-header = Watch videos while you browse
 cfr-whatsnew-pip-body = Picture-in-picture pops video into a floating window so you can watch while working in other tabs.
 cfr-whatsnew-pip-cta = Learn more
-
-## Permission Prompt
-
-cfr-whatsnew-permission-prompt-header = Fewer annoying site pop-ups
-cfr-whatsnew-permission-prompt-body = { -brand-shorter-name } now blocks sites from automatically asking to send you pop-up messages.
-cfr-whatsnew-permission-prompt-cta = Learn more
 
 ## Fingerprinter Counter
 
@@ -185,21 +166,6 @@ cfr-doorhanger-sync-bookmarks-ok-button = Turn on { -sync-brand-short-name }
 cfr-doorhanger-sync-logins-header = Never Lose a Password Again
 cfr-doorhanger-sync-logins-body = Securely store and sync your passwords to all your devices.
 cfr-doorhanger-sync-logins-ok-button = Turn on { -sync-brand-short-name }
-  .accesskey = T
-
-## Send Tab
-
-cfr-doorhanger-send-tab-header = Read this on the go
-cfr-doorhanger-send-tab-recipe-header = Take this recipe to the kitchen
-cfr-doorhanger-send-tab-body = Send Tab lets you easily share this link to your phone or anywhere you’re signed in to { -brand-product-name }.
-cfr-doorhanger-send-tab-ok-button = Try Send Tab
-  .accesskey = T
-
-## Firefox Send
-
-cfr-doorhanger-firefox-send-header = Share this PDF securely
-cfr-doorhanger-firefox-send-body = Keep your sensitive documents safe from prying eyes with end-to-end encryption and a link that disappears when you’re done.
-cfr-doorhanger-firefox-send-ok-button = Try { -send-brand-name }
   .accesskey = T
 
 ## Social Tracking Protection
@@ -233,35 +199,12 @@ cfr-doorhanger-milestone-close-button = Close
 
 ## What’s New Panel Content for Firefox 76
 
-## Lockwise message
-
-cfr-whatsnew-lockwise-header = Easily create secure passwords
-cfr-whatsnew-lockwise-body = It’s difficult to think of unique, secure passwords for every account. When creating a password, select the password field to use a secure, generated password from { -brand-shorter-name }.
-cfr-whatsnew-lockwise-icon-alt = { -lockwise-brand-short-name } icon
-
-## Vulnerable Passwords message
-
-cfr-whatsnew-passwords-header = Get alerts about vulnerable passwords
-cfr-whatsnew-passwords-body = Hackers know people reuse the same passwords. If you used the same password on multiple sites, and one of those sites was in a data breach, you’ll see an alert in { -lockwise-brand-short-name } to change your password on those sites.
-cfr-whatsnew-passwords-icon-alt = Vulnerable password key icon
-
-## Picture-in-Picture fullscreen message
-
-cfr-whatsnew-pip-fullscreen-header = Take picture-in-picture fullscreen
-cfr-whatsnew-pip-fullscreen-body = When you pop a video into a floating window, you can now double-click on that window to go fullscreen.
-cfr-whatsnew-pip-fullscreen-icon-alt = Picture-in-picture icon
-
 ## Protections Dashboard message
 
 cfr-whatsnew-protections-header = Protections at a glance
 cfr-whatsnew-protections-body = The Protections Dashboard includes summary reports about data breaches and password management. You can now track how many breaches you’ve resolved, and see if any of your saved passwords may have been exposed in a data breach.
 cfr-whatsnew-protections-cta-link = View Protections Dashboard
 cfr-whatsnew-protections-icon-alt = Shield icon
-
-## Better PDF message
-
-cfr-whatsnew-better-pdf-header = Better PDF experience
-cfr-whatsnew-better-pdf-body = PDF documents now open directly in { -brand-short-name }, keeping your workflow within easy reach.
 
 ## DOH Message
 
@@ -297,3 +240,18 @@ cfr-whatsnew-media-keys-button = Learn how
 
 cfr-whatsnew-search-shortcuts-header = Search shortcuts in the address bar
 cfr-whatsnew-search-shortcuts-body = Now, when you type a search engine or specific site into the address bar, a blue shortcut will appear in the search suggestions beneath. Select that shortcut to complete your search directly from the address bar.
+
+## What's new: Cookies protection
+
+cfr-whatsnew-supercookies-header = Protection from malicious supercookies
+cfr-whatsnew-supercookies-body = Websites can secretly attach a “supercookie” to your browser that can follow you around the web, even after you clear your cookies. { -brand-short-name } now provides strong protection against supercookies so they can’t be used to track your online activities from one site to the next.
+
+## What's new: Better bookmarking
+
+cfr-whatsnew-bookmarking-header = Better bookmarking
+cfr-whatsnew-bookmarking-body = It’s easier to keep track of your favorite sites. { -brand-short-name } now remembers your preferred location for saved bookmarks, shows the bookmarks toolbar by default on new tabs, and gives you easy access to the rest of your bookmarks via a toolbar folder.
+
+## What's new: Cross-site cookie tracking
+
+cfr-whatsnew-cross-site-tracking-header = Comprehensive protection from cross-site cookie tracking
+cfr-whatsnew-cross-site-tracking-body = You can now opt in to better protection from cookie tracking. { -brand-short-name} can isolate your activities and data to the site you’re currently on so information stored in the browser isn’t shared between websites.

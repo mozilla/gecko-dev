@@ -10,13 +10,16 @@
 #include "GMPContentParent.h"
 #include "GMPLog.h"
 #include "GMPTimerParent.h"
+#include "MediaResult.h"
 #include "mozIGeckoMediaPluginService.h"
 #include "mozilla/dom/WidevineCDMManifestBinding.h"
 #include "mozilla/ipc/CrashReporterHost.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxInfo.h"
 #endif
+#include "mozilla/Services.h"
 #include "mozilla/SSE.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"

@@ -6,25 +6,52 @@
 #ifndef nsHtml5StreamParser_h
 #define nsHtml5StreamParser_h
 
-#include "nsCOMPtr.h"
-#include "nsHtml5MetaScanner.h"
+#include "MainThreadUtils.h"
+#include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Encoding.h"
-#include "mozilla/EncodingDetector.h"
-#include "mozilla/JapaneseDetector.h"
-#include "mozilla/UniquePtr.h"
-#include "nsHtml5TreeOpExecutor.h"
-#include "nsHtml5OwningUTF16Buffer.h"
-#include "nsIInputStream.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/NotNull.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/Span.h"
 #include "mozilla/UniquePtr.h"
+#include "nsCOMPtr.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsDebug.h"
 #include "nsHtml5AtomTable.h"
-#include "nsHtml5Speculation.h"
+#include "nsIRequestObserver.h"
 #include "nsISerialEventTarget.h"
-#include "nsITimer.h"
-#include "mozilla/dom/DocGroup.h"
-#include "mozilla/Buffer.h"
+#include "nsISupports.h"
+#include "nsStringFwd.h"
+#include "nsTArray.h"
+#include "nscore.h"
 
+class nsCycleCollectionTraversalCallback;
+class nsHtml5MetaScanner;
+class nsHtml5OwningUTF16Buffer;
 class nsHtml5Parser;
+class nsHtml5Speculation;
+class nsHtml5String;
+class nsHtml5Tokenizer;
+class nsHtml5TreeBuilder;
+class nsHtml5TreeOpExecutor;
+class nsIChannel;
+class nsIInputStream;
+class nsIRequest;
+class nsIRunnable;
+class nsITimer;
+class nsIURI;
+
+namespace mozilla {
+class EncodingDetector;
+class JapaneseDetector;
+template <typename T>
+class Buffer;
+
+namespace dom {
+class DocGroup;
+}
+}  // namespace mozilla
 
 enum eParserMode {
   /**
@@ -336,6 +363,11 @@ class nsHtml5StreamParser final : public nsISupports {
   void ReDecodeLocalFile();
 
   /**
+   * Change a final autodetection source to the corresponding initial one.
+   */
+  int32_t MaybeRollBackSource(int32_t aSource);
+
+  /**
    * Potentially guess the encoding using mozilla::EncodingDetector.
    */
   void GuessEncoding(bool aEof, bool aInitial);
@@ -586,6 +618,10 @@ class nsHtml5StreamParser final : public nsISupports {
   bool mInitialEncodingWasFromParentFrame;
 
   bool mHasHadErrors;
+
+  bool mDetectorHasSeenNonAscii;
+
+  bool mDetectorHadOnlySeenAsciiWhenFirstGuessing;
 
   /**
    * If true, we are decoding a local file that lacks an encoding

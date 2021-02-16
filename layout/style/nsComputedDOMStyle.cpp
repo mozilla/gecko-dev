@@ -14,6 +14,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/PresShellInlines.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/StaticPrefs_layout.h"
 
@@ -83,7 +84,8 @@ static nsDOMCSSValueList* GetROCSSValueList(bool aCommaDelimited) {
   return new nsDOMCSSValueList(aCommaDelimited);
 }
 
-static Element* GetRenderedElement(Element* aElement, nsAtom* aPseudo) {
+static const Element* GetRenderedElement(const Element* aElement,
+                                         nsAtom* aPseudo) {
   if (aPseudo == nsCSSPseudoElements::before()) {
     return nsLayoutUtils::GetBeforePseudo(aElement);
   }
@@ -169,7 +171,7 @@ static bool ElementNeedsRestyle(Element* aElement, nsAtom* aPseudo,
 
   // If there's a pseudo, we need to prefer that element, as the pseudo itself
   // may have explicit restyles.
-  Element* styledElement = GetRenderedElement(aElement, aPseudo);
+  const Element* styledElement = GetRenderedElement(aElement, aPseudo);
   // Try to skip the restyle otherwise.
   return Servo_HasPendingRestyleAncestor(
       styledElement ? styledElement : aElement, aMayNeedToFlushLayout);
@@ -356,11 +358,8 @@ NS_IMPL_MAIN_THREAD_ONLY_CYCLE_COLLECTING_RELEASE_WITH_LAST_RELEASE(
     nsComputedDOMStyle, ClearComputedStyle())
 
 nsresult nsComputedDOMStyle::GetPropertyValue(const nsCSSPropertyID aPropID,
-                                              nsAString& aValue) {
-  // This is mostly to avoid code duplication with GetPropertyCSSValue(); if
-  // perf ever becomes an issue here (doubtful), we can look into changing
-  // this.
-  return GetPropertyValue(nsCSSProps::GetStringValue(aPropID), aValue);
+                                              nsACString& aValue) {
+  return GetPropertyValue(aPropID, EmptyCString(), aValue);
 }
 
 void nsComputedDOMStyle::SetPropertyValue(const nsCSSPropertyID aPropID,
@@ -372,11 +371,11 @@ void nsComputedDOMStyle::SetPropertyValue(const nsCSSPropertyID aPropID,
       PromiseFlatCString(nsCSSProps::GetStringValue(aPropID)).get()));
 }
 
-void nsComputedDOMStyle::GetCssText(nsAString& aCssText) {
+void nsComputedDOMStyle::GetCssText(nsACString& aCssText) {
   aCssText.Truncate();
 }
 
-void nsComputedDOMStyle::SetCssText(const nsAString& aCssText,
+void nsComputedDOMStyle::SetCssText(const nsACString& aCssText,
                                     nsIPrincipal* aSubjectPrincipal,
                                     ErrorResult& aRv) {
   aRv.ThrowNoModificationAllowedError("Can't set cssText on computed style");
@@ -402,20 +401,25 @@ css::Rule* nsComputedDOMStyle::GetParentRule() { return nullptr; }
 
 NS_IMETHODIMP
 nsComputedDOMStyle::GetPropertyValue(const nsACString& aPropertyName,
-                                     nsAString& aReturn) {
-  aReturn.Truncate();
-
+                                     nsACString& aReturn) {
   nsCSSPropertyID prop = nsCSSProps::LookupProperty(aPropertyName);
+  return GetPropertyValue(prop, aPropertyName, aReturn);
+}
+
+nsresult nsComputedDOMStyle::GetPropertyValue(
+    nsCSSPropertyID aPropID, const nsACString& aMaybeCustomPropertyName,
+    nsACString& aReturn) {
+  MOZ_ASSERT(aReturn.IsEmpty());
 
   const ComputedStyleMap::Entry* entry = nullptr;
-  if (prop != eCSSPropertyExtra_variable) {
-    entry = GetComputedStyleMap()->FindEntryForProperty(prop);
+  if (aPropID != eCSSPropertyExtra_variable) {
+    entry = GetComputedStyleMap()->FindEntryForProperty(aPropID);
     if (!entry) {
       return NS_OK;
     }
   }
 
-  UpdateCurrentStyleSources(prop);
+  UpdateCurrentStyleSources(aPropID);
   if (!mComputedStyle) {
     return NS_OK;
   }
@@ -423,40 +427,40 @@ nsComputedDOMStyle::GetPropertyValue(const nsACString& aPropertyName,
   auto cleanup = mozilla::MakeScopeExit([&] { ClearCurrentStyleSources(); });
 
   if (!entry) {
-    MOZ_ASSERT(nsCSSProps::IsCustomPropertyName(aPropertyName));
+    MOZ_ASSERT(nsCSSProps::IsCustomPropertyName(aMaybeCustomPropertyName));
     const nsACString& name =
-        Substring(aPropertyName, CSS_CUSTOM_NAME_PREFIX_LENGTH);
+        Substring(aMaybeCustomPropertyName, CSS_CUSTOM_NAME_PREFIX_LENGTH);
     Servo_GetCustomPropertyValue(mComputedStyle, &name, &aReturn);
     return NS_OK;
   }
 
-  if (nsCSSProps::PropHasFlags(prop, CSSPropFlags::IsLogical)) {
+  if (nsCSSProps::PropHasFlags(aPropID, CSSPropFlags::IsLogical)) {
     MOZ_ASSERT(entry);
     MOZ_ASSERT(entry->mGetter == &nsComputedDOMStyle::DummyGetter);
 
-    DebugOnly<nsCSSPropertyID> logicalProp = prop;
+    DebugOnly<nsCSSPropertyID> logicalProp = aPropID;
 
-    prop = Servo_ResolveLogicalProperty(prop, mComputedStyle);
-    entry = GetComputedStyleMap()->FindEntryForProperty(prop);
+    aPropID = Servo_ResolveLogicalProperty(aPropID, mComputedStyle);
+    entry = GetComputedStyleMap()->FindEntryForProperty(aPropID);
 
-    MOZ_ASSERT(NeedsToFlushLayout(logicalProp) == NeedsToFlushLayout(prop),
+    MOZ_ASSERT(NeedsToFlushLayout(logicalProp) == NeedsToFlushLayout(aPropID),
                "Logical and physical property don't agree on whether layout is "
                "needed");
   }
 
-  if (!nsCSSProps::PropHasFlags(prop, CSSPropFlags::SerializedByServo)) {
+  if (!nsCSSProps::PropHasFlags(aPropID, CSSPropFlags::SerializedByServo)) {
     if (RefPtr<CSSValue> value = (this->*entry->mGetter)()) {
       ErrorResult rv;
-      nsString text;
+      nsAutoString text;
       value->GetCssText(text, rv);
-      aReturn.Assign(text);
+      CopyUTF16toUTF8(text, aReturn);
       return rv.StealNSResult();
     }
     return NS_OK;
   }
 
   MOZ_ASSERT(entry->mGetter == &nsComputedDOMStyle::DummyGetter);
-  mComputedStyle->GetComputedPropertyValue(prop, aReturn);
+  mComputedStyle->GetComputedPropertyValue(aPropID, aReturn);
   return NS_OK;
 }
 
@@ -494,7 +498,7 @@ static inline PseudoStyleType GetPseudoType(nsAtom* aPseudo) {
 }
 
 already_AddRefed<ComputedStyle> nsComputedDOMStyle::DoGetComputedStyleNoFlush(
-    Element* aElement, nsAtom* aPseudo, PresShell* aPresShell,
+    const Element* aElement, nsAtom* aPseudo, PresShell* aPresShell,
     StyleType aStyleType) {
   MOZ_ASSERT(aElement, "NULL element");
 
@@ -532,7 +536,7 @@ already_AddRefed<ComputedStyle> nsComputedDOMStyle::DoGetComputedStyleNoFlush(
   // mPrimaryFrame). Remove it once that's fixed.
   if (inDocWithShell && aStyleType == eAll &&
       !aElement->IsHTMLElement(nsGkAtoms::area)) {
-    if (Element* element = GetRenderedElement(aElement, aPseudo)) {
+    if (const Element* element = GetRenderedElement(aElement, aPseudo)) {
       if (nsIFrame* styleFrame = nsLayoutUtils::GetStyleFrame(element)) {
         ComputedStyle* result = styleFrame->Style();
         // Don't use the style if it was influenced by pseudo-elements,
@@ -1104,7 +1108,7 @@ void nsComputedDOMStyle::ClearCurrentStyleSources() {
 }
 
 void nsComputedDOMStyle::RemoveProperty(const nsACString& aPropertyName,
-                                        nsAString& aReturn, ErrorResult& aRv) {
+                                        nsACString& aReturn, ErrorResult& aRv) {
   // Note: not using nsPrintfCString here in case aPropertyName contains
   // nulls.
   aRv.ThrowNoModificationAllowedError("Can't remove property '"_ns +
@@ -1113,13 +1117,13 @@ void nsComputedDOMStyle::RemoveProperty(const nsACString& aPropertyName,
 }
 
 void nsComputedDOMStyle::GetPropertyPriority(const nsACString& aPropertyName,
-                                             nsAString& aReturn) {
+                                             nsACString& aReturn) {
   aReturn.Truncate();
 }
 
 void nsComputedDOMStyle::SetProperty(const nsACString& aPropertyName,
                                      const nsACString& aValue,
-                                     const nsAString& aPriority,
+                                     const nsACString& aPriority,
                                      nsIPrincipal* aSubjectPrincipal,
                                      ErrorResult& aRv) {
   // Note: not using nsPrintfCString here in case aPropertyName contains
@@ -1313,7 +1317,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetOsxFontSmoothing() {
     return nullptr;
   }
 
-  nsAutoString result;
+  nsAutoCString result;
   mComputedStyle->GetComputedPropertyValue(eCSSProperty__moz_osx_font_smoothing,
                                            result);
   RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
@@ -1378,7 +1382,7 @@ void nsComputedDOMStyle::SetValueToURLValue(const StyleComputedUrl* aURL,
 
 enum class Brackets { No, Yes };
 
-static void AppendGridLineNames(nsAString& aResult,
+static void AppendGridLineNames(nsACString& aResult,
                                 Span<const StyleCustomIdent> aLineNames,
                                 Brackets aBrackets) {
   if (aLineNames.IsEmpty()) {
@@ -1392,8 +1396,12 @@ static void AppendGridLineNames(nsAString& aResult,
     aResult.Append('[');
   }
   for (uint32_t i = 0;;) {
+    // TODO: Maybe use servo to do this and avoid the silly utf16->utf8 dance?
+    nsAutoString name;
     nsStyleUtil::AppendEscapedCSSIdent(
-        nsDependentAtomString(aLineNames[i].AsAtom()), aResult);
+        nsDependentAtomString(aLineNames[i].AsAtom()), name);
+    AppendUTF16toUTF8(name, aResult);
+
     if (++i == numLines) {
       break;
     }
@@ -1411,7 +1419,7 @@ static void AppendGridLineNames(nsDOMCSSValueList* aValueList,
     return;
   }
   RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
-  nsAutoString lineNamesString;
+  nsAutoCString lineNamesString;
   AppendGridLineNames(lineNamesString, aLineNames, Brackets::Yes);
   val->SetString(lineNamesString);
   aValueList->AppendCSSValue(val.forget());
@@ -1424,7 +1432,7 @@ static void AppendGridLineNames(nsDOMCSSValueList* aValueList,
     return;
   }
   RefPtr<nsROCSSPrimitiveValue> val = new nsROCSSPrimitiveValue;
-  nsAutoString lineNamesString;
+  nsAutoCString lineNamesString;
   lineNamesString.Assign('[');
   if (!aLineNames1.IsEmpty()) {
     AppendGridLineNames(lineNamesString, aLineNames1, Brackets::No);
@@ -1706,7 +1714,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetGridTemplateColumns() {
   if (!gridFrame) {
     // The element doesn't have a box - return the computed value.
     // https://drafts.csswg.org/css-grid/#resolved-track-list
-    nsAutoString string;
+    nsAutoCString string;
     mComputedStyle->GetComputedPropertyValue(eCSSProperty_grid_template_columns,
                                              string);
     RefPtr<nsROCSSPrimitiveValue> value = new nsROCSSPrimitiveValue;
@@ -1726,7 +1734,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetGridTemplateRows() {
   if (!gridFrame) {
     // The element doesn't have a box - return the computed value.
     // https://drafts.csswg.org/css-grid/#resolved-track-list
-    nsAutoString string;
+    nsAutoCString string;
     mComputedStyle->GetComputedPropertyValue(eCSSProperty_grid_template_rows,
                                              string);
     RefPtr<nsROCSSPrimitiveValue> value = new nsROCSSPrimitiveValue;
@@ -1831,7 +1839,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetLineHeight() {
 already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetTextDecoration() {
   auto getPropertyValue = [&](nsCSSPropertyID aID) {
     RefPtr<nsROCSSPrimitiveValue> value = new nsROCSSPrimitiveValue;
-    nsAutoString string;
+    nsAutoCString string;
     mComputedStyle->GetComputedPropertyValue(aID, string);
     value->SetString(string);
     return value.forget();
@@ -2290,7 +2298,7 @@ void nsComputedDOMStyle::SetValueToLengthPercentage(
     return aValue->SetPercent(result);
   }
 
-  nsAutoString result;
+  nsAutoCString result;
   Servo_LengthPercentage_ToCss(&aLength, &result);
   aValue->SetString(result);
 }

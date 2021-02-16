@@ -4,7 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+include "mozilla/dom/PermissionMessageUtils.h";
 include "mozilla/ipc/TransportSecurityInfoUtils.h";
+include "mozilla/ipc/URIUtils.h";
 
 include NeckoChannelParams;
 include DOMTypes;
@@ -22,7 +24,6 @@ struct WindowGlobalInit
 
   // Private fields only shared with the parent process.
   nsIPrincipal principal;
-  nsIPrincipal contentBlockingAllowListPrincipal;
   nsIURI documentURI;
 
   bool blockAllMixedContent;

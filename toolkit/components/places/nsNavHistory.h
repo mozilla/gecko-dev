@@ -173,12 +173,6 @@ class nsNavHistory final : public nsSupportsWeakReference,
   static void GetMonthName(const PRExplodedTime& aTime, nsACString& aResult);
   static void GetMonthYear(const PRExplodedTime& aTime, nsACString& aResult);
 
-  // Returns true if the provided URI spec and scheme is allowed in history
-  static nsresult CanAddURIToHistory(nsIURI* aURI, bool* aCanAdd);
-
-  // The max URI spec length allowed for a URI to be added to history
-  static uint32_t MaxURILength();
-
   // Returns whether history is enabled or not.
   bool IsHistoryDisabled() { return !mHistoryEnabled; }
 
@@ -233,12 +227,6 @@ class nsNavHistory final : public nsSupportsWeakReference,
                                   nsNavHistoryResultNode** aResult);
   nsresult URIToResultNode(nsIURI* aURI, nsNavHistoryQueryOptions* aOptions,
                            nsNavHistoryResultNode** aResult);
-
-  // used by other places components to send history notifications (for example,
-  // when the favicon has changed)
-  void SendPageChangedNotification(nsIURI* aURI, uint32_t aChangedAttribute,
-                                   const nsAString& aValue,
-                                   const nsACString& aGUID);
 
   /**
    * Returns current number of days stored in history.
@@ -358,33 +346,6 @@ class nsNavHistory final : public nsSupportsWeakReference,
   void UpdateDaysOfHistory(PRTime visitTime);
 
   /**
-   * Fires onTitleChanged event to nsINavHistoryService observers
-   */
-  void NotifyTitleChange(nsIURI* aURI, const nsString& title,
-                         const nsACString& aGUID);
-
-  /**
-   * Fires onFrecencyChanged event to nsINavHistoryService observers
-   */
-  void NotifyFrecencyChanged(const nsACString& aSpec, int32_t aNewFrecency,
-                             const nsACString& aGUID, bool aHidden,
-                             PRTime aLastVisitDate);
-
-  /**
-   * Fires onManyFrecenciesChanged event to nsINavHistoryService observers
-   */
-  void NotifyManyFrecenciesChanged();
-
-  /**
-   * Posts a runnable to the main thread that calls NotifyFrecencyChanged.
-   */
-  void DispatchFrecencyChangedNotification(const nsACString& aSpec,
-                                           int32_t aNewFrecency,
-                                           const nsACString& aGUID,
-                                           bool aHidden,
-                                           PRTime aLastVisitDate) const;
-
-  /**
    * Returns true if frecency is currently being decayed.
    *
    * @return True if frecency is being decayed, false if not.
@@ -418,13 +379,17 @@ class nsNavHistory final : public nsSupportsWeakReference,
       const RefPtr<nsNavHistoryQuery>& aQuery,
       nsNavHistoryQueryOptions* aOptions);
 
-  void DecayFrecencyCompleted(uint16_t reason);
+  void DecayFrecencyCompleted();
+
+  static void InvalidateDaysOfHistory();
 
  private:
   ~nsNavHistory();
 
   // used by GetHistoryService
   static nsNavHistory* gHistoryService;
+
+  static mozilla::Atomic<int32_t> sDaysOfHistory;
 
  protected:
   // Database handle.
@@ -532,7 +497,6 @@ class nsNavHistory final : public nsSupportsWeakReference,
 
   int64_t mTagsFolder;
 
-  int32_t mDaysOfHistory;
   int64_t mLastCachedStartOfDay;
   int64_t mLastCachedEndOfDay;
 

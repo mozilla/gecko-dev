@@ -68,6 +68,7 @@ job-defaults:
             - --browsertime
             # Bug 1635749, disable window recorder temporarily
             - --browsertime-no-ffwindowrecorder
+            - --no-conditioned-profile
     optimization:
         skip-unless-backstop: null
     variants:
@@ -336,6 +337,7 @@ browsertime-tp6m-live:
                 - youtube
                 - [youtube-watch, youtube-w]
     apps: ["fenix", "chrome-m", "geckoview"]
+    run-on-projects: []
     webrender-run-on-projects:
         by-app:
             geckoview:

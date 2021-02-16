@@ -42,15 +42,6 @@ mozilla::LazyLogModule gMediaDemuxerLog("MediaDemuxer");
   DDMOZ_LOG(sFormatDecoderLog, mozilla::LogLevel::Verbose, "::%s: " arg, \
             __func__, ##__VA_ARGS__)
 
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
-#  define MEDIA_FORMAT_READER_STATUS_MARKER(tag, text, markerTime)           \
-    PROFILER_ADD_MARKER_WITH_PAYLOAD(tag, MEDIA_PLAYBACK, TextMarkerPayload, \
-                                     (text, markerTime))
-#else
-#  define MEDIA_FORMAT_READER_STATUS_MARKER(tag, text, markerTime)
-#endif
-
 #define NS_DispatchToMainThread(...) CompileError_UseAbstractMainThreadInstead
 
 namespace mozilla {
@@ -1633,10 +1624,9 @@ void MediaFormatReader::NotifyNewOutput(
             break;
           case MediaData::Type::RAW_DATA:
             DDLOGPR(DDLogCategory::Log,
-                    aTrack == TrackInfo::kAudioTrack
-                        ? "decoded_audio"
-                        : aTrack == TrackInfo::kVideoTrack ? "decoded_video"
-                                                           : "decoded_?",
+                    aTrack == TrackInfo::kAudioTrack   ? "decoded_audio"
+                    : aTrack == TrackInfo::kVideoTrack ? "decoded_video"
+                                                       : "decoded_?",
                     "{\"type\":\"RawData\", \"offset\":%" PRIi64
                     " \"time_us\":%" PRIi64 ", \"timecode_us\":%" PRIi64
                     ", \"duration_us\":%" PRIi64 ", \"kf\":%s}",
@@ -1647,10 +1637,9 @@ void MediaFormatReader::NotifyNewOutput(
             break;
           case MediaData::Type::NULL_DATA:
             DDLOGPR(DDLogCategory::Log,
-                    aTrack == TrackInfo::kAudioTrack
-                        ? "decoded_audio"
-                        : aTrack == TrackInfo::kVideoTrack ? "decoded_video"
-                                                           : "decoded_?",
+                    aTrack == TrackInfo::kAudioTrack   ? "decoded_audio"
+                    : aTrack == TrackInfo::kVideoTrack ? "decoded_video"
+                                                       : "decoded_?",
                     "{\"type\":\"NullData\", \"offset\":%" PRIi64
                     " \"time_us\":%" PRIi64 ", \"timecode_us\":%" PRIi64
                     ", \"duration_us\":%" PRIi64 ", \"kf\":%s}",
@@ -1860,9 +1849,9 @@ void MediaFormatReader::DecodeDemuxedSamples(TrackType aTrack,
   RefPtr<MediaFormatReader> self = this;
   decoder.mFlushed = false;
   DDLOGPR(DDLogCategory::Log,
-          aTrack == TrackInfo::kAudioTrack
-              ? "decode_audio"
-              : aTrack == TrackInfo::kVideoTrack ? "decode_video" : "decode_?",
+          aTrack == TrackInfo::kAudioTrack   ? "decode_audio"
+          : aTrack == TrackInfo::kVideoTrack ? "decode_video"
+                                             : "decode_?",
           "{\"type\":\"MediaRawData\", \"offset\":%" PRIi64
           ", \"bytes\":%zu, \"time_us\":%" PRIi64 ", \"timecode_us\":%" PRIi64
           ", \"duration_us\":%" PRIi64 ",%s%s}",
@@ -1939,8 +1928,7 @@ void MediaFormatReader::HandleDemuxedSamples(
     nsPrintfCString markerString(
         "%s stream id changed from:%" PRIu32 " to:%" PRIu32,
         TrackTypeToStr(aTrack), decoder.mLastStreamSourceID, info->GetID());
-    MEDIA_FORMAT_READER_STATUS_MARKER("StreamID Change", markerString,
-                                      TimeStamp::NowUnfuzzed());
+    PROFILER_MARKER_TEXT("StreamID Change", MEDIA_PLAYBACK, {}, markerString);
     LOG("%s", markerString.get());
 
     if (aTrack == TrackInfo::kVideoTrack) {
@@ -3158,6 +3146,5 @@ void MediaFormatReader::OnFirstDemuxFailed(TrackInfo::TrackType aType,
 }  // namespace mozilla
 
 #undef NS_DispatchToMainThread
-#undef MEDIA_FORMAT_READER_STATUS_MARKER
 #undef LOGV
 #undef LOG

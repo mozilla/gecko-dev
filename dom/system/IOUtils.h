@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_IOUtils__
 #define mozilla_dom_IOUtils__
 
+#include "js/Utility.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Buffer.h"
@@ -63,13 +64,24 @@ class IOUtils final {
                                             const nsAString& aPath,
                                             const ReadUTF8Options& aOptions);
 
-  static already_AddRefed<Promise> WriteAtomic(
-      GlobalObject& aGlobal, const nsAString& aPath, const Uint8Array& aData,
-      const WriteAtomicOptions& aOptions);
+  static already_AddRefed<Promise> ReadJSON(GlobalObject& aGlobal,
+                                            const nsAString& aPath,
+                                            const ReadUTF8Options& aOptions);
 
-  static already_AddRefed<Promise> WriteAtomicUTF8(
-      GlobalObject& aGlobal, const nsAString& aPath, const nsAString& aString,
-      const WriteAtomicOptions& aOptions);
+  static already_AddRefed<Promise> Write(GlobalObject& aGlobal,
+                                         const nsAString& aPath,
+                                         const Uint8Array& aData,
+                                         const WriteOptions& aOptions);
+
+  static already_AddRefed<Promise> WriteUTF8(GlobalObject& aGlobal,
+                                             const nsAString& aPath,
+                                             const nsACString& aString,
+                                             const WriteOptions& aOptions);
+
+  static already_AddRefed<Promise> WriteJSON(GlobalObject& aGlobal,
+                                             const nsAString& aPath,
+                                             JS::Handle<JS::Value> aValue,
+                                             const WriteOptions& aOptions);
 
   static already_AddRefed<Promise> Move(GlobalObject& aGlobal,
                                         const nsAString& aSourcePath,
@@ -99,14 +111,35 @@ class IOUtils final {
   static already_AddRefed<Promise> GetChildren(GlobalObject& aGlobal,
                                                const nsAString& aPath);
 
-  static bool IsAbsolutePath(const nsAString& aPath);
+  static already_AddRefed<Promise> SetPermissions(GlobalObject& aGlobal,
+                                                  const nsAString& aPath,
+                                                  const uint32_t aPermissions);
+
+  static already_AddRefed<Promise> Exists(GlobalObject& aGlobal,
+                                          const nsAString& aPath);
+
+  class JsBuffer;
+
+  /**
+   * The kind of buffer to allocate.
+   *
+   * This controls what kind of JS object (a JSString or a Uint8Array) is
+   * returned by |ToJSValue()|.
+   */
+  enum class BufferKind {
+    String,
+    Uint8Array,
+  };
 
  private:
   ~IOUtils() = default;
 
+  template <typename T>
+  using IOPromise = MozPromise<T, IOError, true>;
+
   friend class IOUtilsShutdownBlocker;
   struct InternalFileInfo;
-  struct InternalWriteAtomicOpts;
+  struct InternalWriteOpts;
   class MozLZ4;
 
   static StaticDataMutex<StaticRefPtr<nsISerialEventTarget>>
@@ -114,15 +147,21 @@ class IOUtils final {
   static StaticRefPtr<nsIAsyncShutdownClient> sBarrier;
   static Atomic<bool> sShutdownStarted;
 
+  template <typename OkT, typename Fn, typename... Args>
+  static RefPtr<IOUtils::IOPromise<OkT>> InvokeToIOPromise(Fn aFunc,
+                                                           Args... aArgs);
+
   static already_AddRefed<nsIAsyncShutdownClient> GetShutdownBarrier();
 
   static already_AddRefed<nsISerialEventTarget> GetBackgroundEventTarget();
 
   static void SetShutdownHooks();
 
-  template <typename OkT, typename Fn, typename... Args>
-  static already_AddRefed<Promise> RunOnBackgroundThread(
-      RefPtr<Promise>& aPromise, Fn aFunc, Args... aArgs);
+  template <typename OkT, typename Fn>
+  static RefPtr<IOPromise<OkT>> RunOnBackgroundThread(Fn aFunc);
+
+  template <typename OkT, typename Fn>
+  static void RunOnBackgroundThreadAndResolve(Promise* aPromise, Fn aFunc);
 
   /**
    * Creates a new JS Promise.
@@ -137,10 +176,14 @@ class IOUtils final {
                                      JS::MutableHandle<JS::Value> aValue);
 
   /**
+   * Resolves |aPromise| with an appropriate JS value for |aValue|.
+   */
+  template <typename T>
+  static void ResolveJSPromise(Promise* aPromise, T&& aValue);
+  /**
    * Rejects |aPromise| with an appropriate |DOMException| describing |aError|.
    */
-  static void RejectJSPromise(const RefPtr<Promise>& aPromise,
-                              const IOError& aError);
+  static void RejectJSPromise(Promise* aPromise, const IOError& aError);
 
   /**
    * Attempts to read the entire file at |aPath| into a buffer.
@@ -150,15 +193,17 @@ class IOUtils final {
    *                    otherwise attempt to read the whole file.
    * @param aDecompress If true, decompress the bytes read from disk before
    *                    returning the result to the caller.
+   * @param aBufferKind The kind of buffer to allocate.
    *
-   * @return A byte array of the entire (decompressed) file contents, or an
+   * @return A buffer containing the entire (decompressed) file contents, or an
    *         error.
    */
-  static Result<nsTArray<uint8_t>, IOError> ReadSync(
-      already_AddRefed<nsIFile> aFile, const Maybe<uint32_t>& aMaxBytes,
-      const bool aDecompress);
+  static Result<JsBuffer, IOError> ReadSync(nsIFile* aFile,
+                                            const Maybe<uint32_t>& aMaxBytes,
+                                            const bool aDecompress,
+                                            BufferKind aBufferKind);
 
-  /**
+  /*
    * Attempts to read the entire file at |aPath| as a UTF-8 string.
    *
    * @param aFile       The location of the file.
@@ -168,7 +213,7 @@ class IOUtils final {
    * @return The (decompressed) contents of the file re-encoded as a UTF-16
    *         string.
    */
-  static Result<nsString, IOError> ReadUTF8Sync(already_AddRefed<nsIFile> aFile,
+  static Result<JsBuffer, IOError> ReadUTF8Sync(nsIFile* aFile,
                                                 const bool aDecompress);
 
   /**
@@ -183,39 +228,9 @@ class IOUtils final {
    * @return The number of bytes written to the file, or an error if the write
    *         failed or was incomplete.
    */
-  static Result<uint32_t, IOError> WriteAtomicSync(
-      already_AddRefed<nsIFile> aFile, const Span<const uint8_t>& aByteArray,
-      InternalWriteAtomicOpts aOptions);
-
-  /**
-   * Attempt to write the entirety of |aUTF8String| to the file at |aFile|.
-   * This may occur by writing to an intermediate destination and performing a
-   * move, depending on |aOptions|.
-   *
-   * @param aFile The location of the file.
-   * @param aByteArray The data to write to the file.
-   * @param aOptions Options to modify the way the write is completed.
-   *
-   * @return The number of bytes written to the file, or an error if the write
-   *         failed or was incomplete.
-   */
-  static Result<uint32_t, IOError> WriteAtomicUTF8Sync(
-      already_AddRefed<nsIFile> aFile, const nsCString& aUTF8String,
-      InternalWriteAtomicOpts aOptions);
-
-  /**
-   * Attempts to write |aBytes| to the file pointed by |aFd|.
-   *
-   * @param aFd    An open PRFileDesc for the destination file to be
-   *               overwritten.
-   * @param aFile  The location of the file.
-   * @param aBytes The data to write to the file.
-   *
-   * @return The number of bytes written to the file, or an error if the write
-   *         failed or was incomplete.
-   */
-  static Result<uint32_t, IOError> WriteSync(PRFileDesc* aFd, nsIFile* aFile,
-                                             const Span<const uint8_t>& aBytes);
+  static Result<uint32_t, IOError> WriteSync(
+      nsIFile* aFile, const Span<const uint8_t>& aByteArray,
+      const InternalWriteOpts& aOptions);
 
   /**
    * Attempts to move the file located at |aSourceFile| to |aDestFile|.
@@ -228,8 +243,7 @@ class IOUtils final {
    *
    * @return Ok if the file was moved successfully, or an error.
    */
-  static Result<Ok, IOError> MoveSync(already_AddRefed<nsIFile> aSourceFile,
-                                      already_AddRefed<nsIFile> aDestFile,
+  static Result<Ok, IOError> MoveSync(nsIFile* aSourceFile, nsIFile* aDestFile,
                                       bool aNoOverwrite);
 
   /**
@@ -240,8 +254,7 @@ class IOUtils final {
    *
    * @return Ok if the operation was successful, or an error.
    */
-  static Result<Ok, IOError> CopySync(already_AddRefed<nsIFile> aSourceFile,
-                                      already_AddRefed<nsIFile> aDestFile,
+  static Result<Ok, IOError> CopySync(nsIFile* aSourceFile, nsIFile* aDestFile,
                                       bool aNoOverWrite, bool aRecursive);
 
   /**
@@ -276,8 +289,8 @@ class IOUtils final {
    *
    * @return Ok if the file was removed successfully, or an error.
    */
-  static Result<Ok, IOError> RemoveSync(already_AddRefed<nsIFile> aFile,
-                                        bool aIgnoreAbsent, bool aRecursive);
+  static Result<Ok, IOError> RemoveSync(nsIFile* aFile, bool aIgnoreAbsent,
+                                        bool aRecursive);
 
   /**
    * Attempts to create a new directory at |aFile|.
@@ -295,7 +308,7 @@ class IOUtils final {
    *
    * @return Ok if the directory was created successfully, or an error.
    */
-  static Result<Ok, IOError> MakeDirectorySync(already_AddRefed<nsIFile> aFile,
+  static Result<Ok, IOError> MakeDirectorySync(nsIFile* aFile,
                                                bool aCreateAncestors,
                                                bool aIgnoreExisting,
                                                int32_t aMode = 0777);
@@ -307,8 +320,7 @@ class IOUtils final {
    *
    * @return An |InternalFileInfo| struct if successful, or an error.
    */
-  static Result<IOUtils::InternalFileInfo, IOError> StatSync(
-      already_AddRefed<nsIFile> aFile);
+  static Result<IOUtils::InternalFileInfo, IOError> StatSync(nsIFile* aFile);
 
   /**
    * Attempts to update the last modification time of the file at |aFile|.
@@ -319,7 +331,7 @@ class IOUtils final {
    *
    * @return Timestamp of the file if the operation was successful, or an error.
    */
-  static Result<int64_t, IOError> TouchSync(already_AddRefed<nsIFile> aFile,
+  static Result<int64_t, IOError> TouchSync(nsIFile* aFile,
                                             const Maybe<int64_t>& aNewModTime);
 
   /**
@@ -330,8 +342,32 @@ class IOUtils final {
    * @return An array of absolute paths identifying the children of |aFile|.
    *         If there are no children, an empty array. Otherwise, an error.
    */
-  static Result<nsTArray<nsString>, IOError> GetChildrenSync(
-      already_AddRefed<nsIFile> aFile);
+  static Result<nsTArray<nsString>, IOError> GetChildrenSync(nsIFile* aFile);
+
+  /**
+   * Set the permissions of the given file.
+   *
+   * Windows does not make a distinction between user, group, and other
+   * permissions like UNICES do. If a permission flag is set for any of user,
+   * group, or other has a permission, then all users will have that
+   * permission.
+   *
+   * @param aFile        The location of the file.
+   * @param aPermissions The permissions to set, as a UNIX file mode.
+   *
+   * @return |Ok| if the permissions were successfully set, or an error.
+   */
+  static Result<Ok, IOError> SetPermissionsSync(nsIFile* aFile,
+                                                const uint32_t aPermissions);
+
+  /**
+   * Return whether or not the file exists.
+   *
+   * @param aFile The location of the file.
+   *
+   * @return Whether or not the file exists.
+   */
+  static Result<bool, IOError> ExistsSync(nsIFile* aFile);
 };
 
 /**
@@ -384,28 +420,30 @@ class IOUtils::IOError {
  */
 struct IOUtils::InternalFileInfo {
   nsString mPath;
-  FileType mType;
-  uint64_t mSize;
-  uint64_t mLastModified;
+  FileType mType = FileType::Other;
+  uint64_t mSize = 0;
+  uint64_t mLastModified = 0;
+  Maybe<uint64_t> mCreationTime;
+  uint32_t mPermissions = 0;
 };
 
 /**
  * This is an easier to work with representation of a
- * |mozilla::dom::WriteAtomicOptions| for private use in the |IOUtils|
+ * |mozilla::dom::WriteOptions| for private use in the |IOUtils|
  * implementation.
  *
  * Because web IDL dictionaries are not easily copy/moveable, this class is
  * used instead.
  */
-struct IOUtils::InternalWriteAtomicOpts {
+struct IOUtils::InternalWriteOpts {
   RefPtr<nsIFile> mBackupFile;
-  bool mFlush;
-  bool mNoOverwrite;
   RefPtr<nsIFile> mTmpFile;
-  bool mCompress;
+  bool mFlush = false;
+  bool mNoOverwrite = false;
+  bool mCompress = false;
 
-  static Result<InternalWriteAtomicOpts, IOUtils::IOError> FromBinding(
-      const WriteAtomicOptions& aOptions);
+  static Result<InternalWriteOpts, IOUtils::IOError> FromBinding(
+      const WriteOptions& aOptions);
 };
 
 /**
@@ -438,8 +476,8 @@ class IOUtils::MozLZ4 {
    * Checks |aFileContents| for the correct file header, and returns the
    * decompressed content.
    */
-  static Result<nsTArray<uint8_t>, IOError> Decompress(
-      Span<const uint8_t> aFileContents);
+  static Result<IOUtils::JsBuffer, IOError> Decompress(
+      Span<const uint8_t> aFileContents, IOUtils::BufferKind);
 };
 
 class IOUtilsShutdownBlocker : public nsIAsyncShutdownBlocker {
@@ -449,6 +487,111 @@ class IOUtilsShutdownBlocker : public nsIAsyncShutdownBlocker {
 
  private:
   virtual ~IOUtilsShutdownBlocker() = default;
+};
+
+/**
+ * A buffer that is allocated inside one of JS heaps so that it can be converted
+ * to a JSString or Uint8Array object with at most one copy in the worst case.
+ */
+class IOUtils::JsBuffer final {
+ public:
+  /**
+   * Create a new buffer of the given kind with the requested capacity.
+   *
+   * @param aBufferKind The kind of buffer to create (either a string or an
+   *                    array).
+   * @param aCapacity The capacity of the buffer.
+   *
+   * @return Either a successfully created buffer or an error if it could not be
+   * allocated.
+   */
+  static Result<JsBuffer, IOUtils::IOError> Create(
+      IOUtils::BufferKind aBufferKind, size_t aCapacity);
+
+  /**
+   * Create a new, empty buffer.
+   *
+   * This operation cannot fail.
+   *
+   * @param aBufferKind The kind of buffer to create (either a string or an
+   *                    array).
+   *
+   * @return An empty JsBuffer.
+   */
+  static JsBuffer CreateEmpty(IOUtils::BufferKind aBufferKind);
+
+  JsBuffer(const JsBuffer&) = delete;
+  JsBuffer(JsBuffer&& aOther) noexcept;
+  JsBuffer& operator=(const JsBuffer&) = delete;
+  JsBuffer& operator=(JsBuffer&& aOther) noexcept;
+
+  size_t Length() { return mLength; }
+  char* Elements() { return mBuffer.get(); }
+  void SetLength(size_t aNewLength) {
+    MOZ_RELEASE_ASSERT(aNewLength <= mCapacity);
+    mLength = aNewLength;
+  }
+
+  /**
+   * Return a span for writing to the buffer.
+   *
+   * |SetLength| should be called after the buffer has been written to.
+   *
+   * @returns A span for writing to. The size of the span is the entire
+   *          allocated capacity.
+   */
+  Span<char> BeginWriting() {
+    MOZ_RELEASE_ASSERT(mBuffer.get());
+    return Span(mBuffer.get(), mCapacity);
+  }
+
+  /**
+   * Return a span for reading from.
+   *
+   * @returns A span for reading form. The size of the span is the set length
+   *          of the buffer.
+   */
+  Span<const char> BeginReading() const {
+    MOZ_RELEASE_ASSERT(mBuffer.get() || mLength == 0);
+    return Span(mBuffer.get(), mLength);
+  }
+
+  /**
+   * Consume the JsBuffer and convert it into a JSString.
+   *
+   * NOTE: This method asserts the buffer was allocated as a string buffer.
+   *
+   * @param aBuffer The buffer to convert to a string. After this call, the
+   *                buffer will be invaldated and |IntoString| cannot be called
+   *                again.
+   *
+   * @returns A JSString with the contents of |aBuffer|.
+   */
+  static JSString* IntoString(JSContext* aCx, JsBuffer aBuffer);
+
+  /**
+   * Consume the JsBuffer and convert it into a Uint8Array.
+   *
+   * NOTE: This method asserts the buffer was allocated as an array buffer.
+   *
+   * @param aBuffer The buffer to convert to an array. After this call, the
+   *                buffer will be invalidated and |IntoUint8Array| cannot be
+   *                called again.
+   *
+   * @returns A JSBuffer
+   */
+  static JSObject* IntoUint8Array(JSContext* aCx, JsBuffer aBuffer);
+
+  friend MOZ_MUST_USE bool ToJSValue(JSContext* aCx, JsBuffer&& aBuffer,
+                                     JS::MutableHandle<JS::Value> aValue);
+
+ private:
+  IOUtils::BufferKind mBufferKind;
+  size_t mCapacity;
+  size_t mLength;
+  JS::UniqueChars mBuffer;
+
+  JsBuffer(BufferKind aBufferKind, size_t aCapacity);
 };
 
 }  // namespace dom

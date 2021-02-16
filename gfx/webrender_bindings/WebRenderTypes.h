@@ -19,7 +19,6 @@
 #include "mozilla/PodOperations.h"
 #include "mozilla/Range.h"
 #include "mozilla/TypeTraits.h"
-#include "mozilla/Variant.h"
 #include "Units.h"
 
 namespace mozilla {
@@ -762,6 +761,7 @@ enum class WebRenderError : int8_t {
   RENDER,
   NEW_SURFACE,
   VIDEO_OVERLAY,
+  EXCESSIVE_RESETS,
 
   Sentinel /* this must be last for serialization purposes. */
 };

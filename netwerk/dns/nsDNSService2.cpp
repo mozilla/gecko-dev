@@ -345,6 +345,12 @@ nsDNSRecord::ReportUnusable(uint16_t aPort) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsDNSRecord::GetEffectiveTRRMode(uint32_t* aMode) {
+  *aMode = mHostRecord->EffectiveTRRMode();
+  return NS_OK;
+}
+
 class nsDNSByTypeRecord : public nsIDNSByTypeRecord,
                           public nsIDNSTXTRecord,
                           public nsIDNSHTTPSSVCRecord {
@@ -399,9 +405,11 @@ nsDNSByTypeRecord::GetServiceModeRecord(bool aNoHttp2, bool aNoHttp3,
 NS_IMETHODIMP
 nsDNSByTypeRecord::GetAllRecordsWithEchConfig(
     bool aNoHttp2, bool aNoHttp3, bool* aAllRecordsHaveEchConfig,
+    bool* aAllRecordsInH3ExcludedList,
     nsTArray<RefPtr<nsISVCBRecord>>& aResult) {
   return mHostRecord->GetAllRecordsWithEchConfig(
-      aNoHttp2, aNoHttp3, aAllRecordsHaveEchConfig, aResult);
+      aNoHttp2, aNoHttp3, aAllRecordsHaveEchConfig, aAllRecordsInH3ExcludedList,
+      aResult);
 }
 
 NS_IMETHODIMP
@@ -645,27 +653,14 @@ already_AddRefed<nsDNSService> nsDNSService::GetSingleton() {
   MOZ_ASSERT_IF(!nsIOService::UseSocketProcess(), XRE_IsParentProcess());
 
   if (!gDNSService) {
-    auto initTask = []() {
-      gDNSService = new nsDNSService();
-      if (NS_SUCCEEDED(gDNSService->Init())) {
-        ClearOnShutdown(&gDNSService);
-      } else {
-        gDNSService = nullptr;
-      }
-    };
-
     if (!NS_IsMainThread()) {
-      // Forward to the main thread synchronously.
-      RefPtr<nsIThread> mainThread = do_GetMainThread();
-      if (!mainThread) {
-        return nullptr;
-      }
-
-      SyncRunnable::DispatchToThread(mainThread,
-                                     new SyncRunnable(NS_NewRunnableFunction(
-                                         "nsDNSService::Init", initTask)));
+      return nullptr;
+    }
+    gDNSService = new nsDNSService();
+    if (NS_SUCCEEDED(gDNSService->Init())) {
+      ClearOnShutdown(&gDNSService);
     } else {
-      initTask();
+      gDNSService = nullptr;
     }
   }
 
@@ -745,12 +740,12 @@ nsresult nsDNSService::ReadPrefs(const char* name) {
     Preferences::GetCString(kPrefDnsLocalDomains, localDomains);
     MutexAutoLock lock(mLock);
     mLocalDomains.Clear();
-    if (!localDomains.IsEmpty()) {
-      nsCCharSeparatedTokenizer tokenizer(
-          localDomains, ',', nsCCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
-      while (tokenizer.hasMoreTokens()) {
-        mLocalDomains.PutEntry(tokenizer.nextToken());
-      }
+    for (const auto& token :
+         nsCCharSeparatedTokenizerTemplate<NS_IsAsciiWhitespace,
+                                           nsTokenizerFlags::SeparatorOptional>(
+             localDomains, ',')
+             .ToRange()) {
+      mLocalDomains.PutEntry(token);
     }
   }
   if (!name || !strcmp(name, kPrefDnsForceResolve)) {

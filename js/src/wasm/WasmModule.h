@@ -47,6 +47,7 @@ struct ImportValues {
   JSFunctionVector funcs;
   WasmTableObjectVector tables;
   WasmMemoryObject* memory;
+  WasmExceptionObjectVector exceptionObjs;
   WasmGlobalObjectVector globalObjs;
   ValVector globalValues;
 
@@ -58,6 +59,7 @@ struct ImportValues {
     if (memory) {
       TraceRoot(trc, &memory, "import values memory");
     }
+    exceptionObjs.trace(trc);
     globalObjs.trace(trc);
     globalValues.trace(trc);
   }
@@ -123,6 +125,18 @@ class Module : public JS::WasmModule {
                             const JSFunctionVector& funcImports) const;
   bool instantiateMemory(JSContext* cx,
                          MutableHandleWasmMemoryObject memory) const;
+#ifdef ENABLE_WASM_EXCEPTIONS
+  bool instantiateImportedException(JSContext* cx,
+                                    Handle<WasmExceptionObject*> exnObj,
+                                    WasmExceptionObjectVector& exnObjs,
+                                    SharedExceptionTagVector* tags) const;
+  bool instantiateLocalException(JSContext* cx, const EventDesc& ed,
+                                 WasmExceptionObjectVector& exnObjs,
+                                 SharedExceptionTagVector* tags,
+                                 uint32_t exnIndex) const;
+  bool instantiateExceptions(JSContext* cx, WasmExceptionObjectVector& exnObjs,
+                             SharedExceptionTagVector* tags) const;
+#endif
   bool instantiateImportedTable(JSContext* cx, const TableDesc& td,
                                 Handle<WasmTableObject*> table,
                                 WasmTableObjectVector* tableObjs,
@@ -140,9 +154,6 @@ class Module : public JS::WasmModule {
                     HandleWasmMemoryObject memory,
                     const ValVector& globalImportValues) const;
   SharedCode getDebugEnabledCode() const;
-  bool makeStructTypeDescrs(
-      JSContext* cx,
-      MutableHandle<StructTypeDescrVector> structTypeDescrs) const;
 
   class Tier2GeneratorTaskImpl;
 
@@ -181,7 +192,6 @@ class Module : public JS::WasmModule {
   const CustomSectionVector& customSections() const { return customSections_; }
   const Bytes& debugBytecode() const { return debugBytecode_->bytes; }
   uint32_t codeLength(Tier t) const { return code_->segment(t).length(); }
-  const StructTypeVector& structTypes() const { return code_->structTypes(); }
 
   // Instantiate this module with the given imports:
 
@@ -239,7 +249,7 @@ using SharedModule = RefPtr<const Module>;
 
 // JS API implementations:
 
-MOZ_MUST_USE bool GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId);
+[[nodiscard]] bool GetOptimizedEncodingBuildId(JS::BuildIdCharVector* buildId);
 
 }  // namespace wasm
 }  // namespace js

@@ -229,9 +229,16 @@ function getLastContentDisplayportFor(elementId) {
 }
 
 // Return a promise that is resolved on the next rAF callback
-function waitForFrame() {
+function promiseFrame() {
   return new Promise(resolve => {
     window.requestAnimationFrame(resolve);
+  });
+}
+
+// Return a promise that is resolved on the next MozAfterPaint event
+function promiseAfterPaint() {
+  return new Promise(resolve => {
+    window.addEventListener("MozAfterPaint", resolve, { once: true });
   });
 }
 
@@ -672,26 +679,6 @@ function runContinuation(testFunction) {
   };
 }
 
-// Same as runContinuation, except it takes an async generator, and doesn't
-// invoke it with any callback, since the generator doesn't need one.
-function runAsyncContinuation(testFunction) {
-  return async function() {
-    var asyncContinuation = testFunction();
-    try {
-      var ret = await asyncContinuation.next();
-      while (!ret.done) {
-        ret = await asyncContinuation.next();
-      }
-    } catch (ex) {
-      SimpleTest.ok(
-        false,
-        "APZ async test continuation failed with exception: " + ex
-      );
-      throw ex;
-    }
-  };
-}
-
 // Take a snapshot of the given rect, *including compositor transforms* (i.e.
 // includes async scroll transforms applied by APZ). If you don't need the
 // compositor transforms, you can probably get away with using
@@ -1055,6 +1042,10 @@ function getPrefs(ident) {
         // position is synced back to the main thread. So we disable displayport
         // expiry for these tests.
         ["apz.displayport_expiry_ms", 0],
+        // We need to disable touch resampling during these tests because we
+        // rely on touch move events being processed without delay. Touch
+        // resampling only processes them once vsync fires.
+        ["android.touch_resampling.enabled", false],
       ];
     case "TOUCH_ACTION":
       return [

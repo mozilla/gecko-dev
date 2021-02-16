@@ -9,6 +9,7 @@
 
 #include "mozilla/BasicEvents.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/ToString.h"
 #include "mozilla/dom/Element.h"
@@ -2220,7 +2221,7 @@ mozilla::ipc::IPCResult PluginInstanceParent::AnswerPluginFocusChange(
   if (gotFocus) {
     nsPluginInstanceOwner* owner = GetOwner();
     if (owner) {
-      nsFocusManager* fm = nsFocusManager::GetFocusManager();
+      RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager();
       RefPtr<dom::Element> element;
       owner->GetDOMElement(getter_AddRefs(element));
       if (fm && element) {
@@ -2267,17 +2268,6 @@ mozilla::ipc::IPCResult PluginInstanceParent::RecvGetCompositionString(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult PluginInstanceParent::RecvSetCandidateWindow(
-    const mozilla::widget::CandidateWindowPosition& aPosition) {
-#if defined(OS_WIN)
-  nsPluginInstanceOwner* owner = GetOwner();
-  if (owner) {
-    owner->SetCandidateWindow(aPosition);
-  }
-#endif
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult PluginInstanceParent::RecvRequestCommitOrCancel(
     const bool& aCommitted) {
 #if defined(OS_WIN)
@@ -2285,19 +2275,6 @@ mozilla::ipc::IPCResult PluginInstanceParent::RecvRequestCommitOrCancel(
   if (owner) {
     owner->RequestCommitOrCancel(aCommitted);
   }
-#endif
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult PluginInstanceParent::RecvEnableIME(
-    const bool& aEnable) {
-#if defined(OS_WIN)
-  nsPluginInstanceOwner* owner = GetOwner();
-  if (owner) {
-    owner->EnableIME(aEnable);
-  }
-#else
-  MOZ_CRASH("Not reachable");
 #endif
   return IPC_OK();
 }

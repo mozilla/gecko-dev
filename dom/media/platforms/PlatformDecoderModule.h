@@ -14,6 +14,7 @@
 #  include "MediaEventSource.h"
 #  include "MediaInfo.h"
 #  include "MediaResult.h"
+#  include "PDMFactory.h"
 #  include "mozilla/EnumSet.h"
 #  include "mozilla/EnumTypeTraits.h"
 #  include "mozilla/MozPromise.h"
@@ -314,6 +315,8 @@ class PlatformDecoderModule {
   virtual nsresult Startup() { return NS_OK; }
 
   // Indicates if the PlatformDecoderModule supports decoding of aMimeType.
+  // The answer to both SupportsMimeType and Supports doesn't guarantee that
+  // creation of a decoder will actually succeed.
   virtual bool SupportsMimeType(
       const nsACString& aMimeType,
       DecoderDoctorDiagnostics* aDiagnostics) const = 0;
@@ -329,9 +332,7 @@ class PlatformDecoderModule {
            SupportsColorDepth(videoInfo->mColorDepth, aDiagnostics);
   }
 
-  typedef MozPromise<RefPtr<MediaDataDecoder>, MediaResult,
-                     /* IsExclusive = */ true>
-      CreateDecoderPromise;
+  using CreateDecoderPromise = PDMCreateDecoderPromise;
 
  protected:
   PlatformDecoderModule() = default;

@@ -249,9 +249,20 @@ dictionary PrintPreviewSuccessInfo {
   unsigned long totalPageCount = 0;
 
   /**
-   * Whether the document has a selection that can be printed.
+   * Whether the preview is empty because of page range selection.
+   */
+  boolean isEmpty = false;
+
+  /**
+   * Whether the document or any subdocument has a selection that can be
+   * printed.
    */
   boolean hasSelection = false;
+
+  /**
+   * Whether the previewed document has a selection itself.
+   */
+  boolean hasSelfSelection = false;
 };
 
 FrameLoader includes WebBrowserPersistable;

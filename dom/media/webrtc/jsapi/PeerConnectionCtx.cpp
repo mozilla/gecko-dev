@@ -24,6 +24,7 @@
 #include "mozilla/StaticPtr.h"
 
 #include "nsCRTGlue.h"
+#include "nsIIOService.h"
 
 #include "gmp-video-decode.h"  // GMP_API_VIDEO_DECODER
 #include "gmp-video-encode.h"  // GMP_API_VIDEO_ENCODER
@@ -117,7 +118,7 @@ StaticRefPtr<PeerConnectionCtxObserver>
     PeerConnectionCtx::gPeerConnectionCtxObserver;
 
 const std::map<const std::string, PeerConnectionImpl*>&
-PeerConnectionCtx::mGetPeerConnections() {
+PeerConnectionCtx::GetPeerConnections() {
   return mPeerConnections;
 }
 
@@ -354,7 +355,7 @@ nsresult PeerConnectionCtx::Cleanup() {
 
   mQueuedJSEPOperations.Clear();
   mGMPService = nullptr;
-  mTransportHandler->Destroy();
+  mTransportHandler = nullptr;
   return NS_OK;
 }
 

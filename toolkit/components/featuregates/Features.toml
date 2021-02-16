@@ -18,16 +18,6 @@ type = "boolean"
 bug-numbers = [1602129]
 is-public = {default = false, nightly = true}
 
-[media-avif]
-title = "experimental-features-media-avif"
-description = "experimental-features-media-avif-description"
-description-links = {bugzilla = "https://bugzilla.mozilla.org/show_bug.cgi?id=1443863"}
-restart-required = false
-preference = "image.avif.enabled"
-type = "boolean"
-bug-numbers = [1443863]
-is-public = {default = false, nightly = true}
-
 [web-api-inputmode]
 title = "experimental-features-web-api-inputmode"
 description = "experimental-features-web-api-inputmode-description"
@@ -177,15 +167,6 @@ type = "boolean"
 bug-numbers = [1643027]
 is-public = true
 
-[js-warp]
-title = "experimental-features-js-warp"
-description = "experimental-features-js-warp-description"
-restart-required = true
-preference = "javascript.options.warp"
-type = "boolean"
-bug-numbers = [1613592]
-is-public = true
-
 [fission]
 title = "experimental-features-fission"
 description = "experimental-features-fission-description"
@@ -204,5 +185,15 @@ restart-required = false
 preference = "media.videocontrols.picture-in-picture.allow-multiple"
 type = "boolean"
 bug-numbers = [1676162]
+is-public = true
+default-value = false
+
+[http3]
+title = "experimental-features-http3"
+description = "experimental-features-http3-description"
+restart-required = false
+preference = "network.http.http3.enabled"
+type = "boolean"
+bug-numbers = [1682539]
 is-public = true
 default-value = false

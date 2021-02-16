@@ -71,8 +71,8 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecProxy::MakePrintTarget() {
   MOZ_ASSERT(mRealDeviceContextSpec);
 
   double width, height;
-  nsresult rv = mPrintSettings->GetEffectivePageSize(&width, &height);
-  if (NS_WARN_IF(NS_FAILED(rv)) || width <= 0 || height <= 0) {
+  mPrintSettings->GetEffectiveSheetSize(&width, &height);
+  if (width <= 0 || height <= 0) {
     return nullptr;
   }
 
@@ -82,7 +82,7 @@ already_AddRefed<PrintTarget> nsDeviceContextSpecProxy::MakePrintTarget() {
 
   RefPtr<gfxASurface> surface =
       gfxPlatform::GetPlatform()->CreateOffscreenSurface(
-          mozilla::gfx::IntSize::Truncate(width, height),
+          mozilla::gfx::IntSize::Ceil(width, height),
           mozilla::gfx::SurfaceFormat::A8R8G8B8_UINT32);
   if (!surface) {
     return nullptr;

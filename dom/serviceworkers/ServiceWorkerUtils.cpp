@@ -6,6 +6,8 @@
 
 #include "ServiceWorkerUtils.h"
 
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/ErrorResult.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/ClientInfo.h"
 #include "mozilla/dom/ServiceWorkerRegistrarTypes.h"
@@ -17,17 +19,7 @@
 namespace mozilla {
 namespace dom {
 
-bool ServiceWorkerParentInterceptEnabled() {
-  static Atomic<bool> sEnabled;
-  static Atomic<bool> sInitialized;
-  if (!sInitialized) {
-    AssertIsOnMainThread();
-    sInitialized = true;
-    sEnabled =
-        Preferences::GetBool("dom.serviceWorkers.parent_intercept", false);
-  }
-  return sEnabled;
-}
+bool ServiceWorkerParentInterceptEnabled() { return true; }
 
 bool ServiceWorkerRegistrationDataIsValid(
     const ServiceWorkerRegistrationData& aData) {

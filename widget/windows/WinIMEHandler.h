@@ -151,17 +151,6 @@ class IMEHandler final {
    */
   static void InitInputContext(nsWindow* aWindow, InputContext& aInputContext);
 
-  /*
-   * For windowless plugin helper.
-   */
-  static void SetCandidateWindow(nsWindow* aWindow, CANDIDATEFORM* aForm);
-
-  /*
-   * For WM_IME_*COMPOSITION messages and e10s with windowless plugin
-   */
-  static void DefaultProcOfPluginEvent(nsWindow* aWindow,
-                                       const NPEvent* aPluginEvent);
-
   /**
    * This is called by TSFStaticSink when active IME is changed.
    */
@@ -192,7 +181,6 @@ class IMEHandler final {
 
   static bool sMaybeEditable;
   static bool sForceDisableCurrentIMM_IME;
-  static bool sPluginHasFocus;
   static bool sNativeCaretIsCreated;
   static bool sHasNativeCaretBeenRequested;
 
@@ -216,7 +204,7 @@ class IMEHandler final {
   static bool sIsIMMEnabled;
   static bool sAssociateIMCOnlyWhenIMM_IMEActive;
 
-  static bool IsTSFAvailable() { return (sIsInTSFMode && !sPluginHasFocus); }
+  static bool IsTSFAvailable() { return sIsInTSFMode; }
   static bool IsIMMActive();
 
   static void MaybeShowOnScreenKeyboard(nsWindow* aWindow,

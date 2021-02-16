@@ -93,6 +93,9 @@ MediaController::MediaController(uint64_t aBrowsingContextId)
   mSupportedActionsChangedListener = SupportedActionsChangedEvent().Connect(
       AbstractThread::MainThread(), this,
       &MediaController::HandleSupportedMediaSessionActionsChanged);
+  mPlaybackChangedListener = PlaybackChangedEvent().Connect(
+      AbstractThread::MainThread(), this,
+      &MediaController::HandleActualPlaybackStateChanged);
   mPositionStateChangedListener = PositionChangedEvent().Connect(
       AbstractThread::MainThread(), this,
       &MediaController::HandlePositionStateChanged);
@@ -231,6 +234,7 @@ void MediaController::Shutdown() {
   Deactivate();
   mShutdown = true;
   mSupportedActionsChangedListener.DisconnectIfExists();
+  mPlaybackChangedListener.DisconnectIfExists();
   mPositionStateChangedListener.DisconnectIfExists();
   mMetadataChangedListener.DisconnectIfExists();
 }
@@ -335,22 +339,13 @@ bool MediaController::ShouldActivateController() const {
   // sound, then it would be able to be controlled once the controll gets
   // activated.
   //
-  // Activating a controller means that we would start to interfere the media
+  // Activating a controller means that we would start to intercept the media
   // keys on the platform and show the virtual control interface (if needed).
-  // The controller would be activated when (1) the controller becomes audible
-  // or (2) enters fullscreen or PIP mode.
-  //
-  // The reason of activating controller after it beomes audible is, if there is
-  // another application playing audio at the same time, it doesn't make sense
-  // to interfere it if we're playing an inaudible media. In addtion, it can
-  // preven showing control interface for those inaudible media which are used
-  // for GIF-like image or background image.
-  //
-  // When a media enters fullscreen or Picture-in-Picture mode, we can regard it
-  // as a sign of that a user is going to start that media soon. Therefore, it
-  // makes sense to activate the controller in order to start controlling media.
+  // The controller would be activated when (1) controllable media starts in the
+  // browsing context that controller belongs to (2) controllable media enters
+  // fullscreen or PIP mode.
   return IsAnyMediaBeingControlled() &&
-         (IsAudible() || IsBeingUsedInPIPModeOrFullscreen()) && !mIsActive;
+         (IsPlaying() || IsBeingUsedInPIPModeOrFullscreen()) && !mIsActive;
 }
 
 bool MediaController::ShouldDeactivateController() const {
@@ -517,16 +512,22 @@ void MediaController::HandleMetadataChanged(
 }
 
 void MediaController::DispatchAsyncEvent(const nsAString& aName) {
-  LOG("Dispatch event %s", NS_ConvertUTF16toUTF8(aName).get());
-  RefPtr<AsyncEventDispatcher> asyncDispatcher =
-      new AsyncEventDispatcher(this, aName, CanBubble::eYes);
-  asyncDispatcher->PostDOMEvent();
+  RefPtr<Event> event = NS_NewDOMEvent(this, nullptr, nullptr);
+  event->InitEvent(aName, false, false);
+  event->SetTrusted(true);
+  DispatchAsyncEvent(event);
 }
 
 void MediaController::DispatchAsyncEvent(Event* aEvent) {
   MOZ_ASSERT(aEvent);
   nsAutoString eventType;
   aEvent->GetType(eventType);
+  if (!mIsActive && !eventType.EqualsLiteral("deactivated")) {
+    LOG("Only 'deactivated' can be dispatched on a deactivated controller, not "
+        "'%s'",
+        NS_ConvertUTF16toUTF8(eventType).get());
+    return;
+  }
   LOG("Dispatch event %s", NS_ConvertUTF16toUTF8(eventType).get());
   RefPtr<AsyncEventDispatcher> asyncDispatcher =
       new AsyncEventDispatcher(this, aEvent);

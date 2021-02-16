@@ -159,7 +159,7 @@ impl RenderNotifier for Notifier {
         })
     }
 
-    fn wake_up(&self) {
+    fn wake_up(&self, _composite_needed: bool) {
     }
 
     fn new_frame_ready(&self,
@@ -235,7 +235,7 @@ fn build_display_list(
 
     let scroll_space_info = builder.define_scroll_frame(
         &fixed_space_info,
-        Some(scroll_id),
+        scroll_id,
         LayoutRect::new(LayoutPoint::zero(), layout_size),
         LayoutRect::new(LayoutPoint::zero(), layout_size),
         ScrollSensitivity::Script,
@@ -417,7 +417,7 @@ fn main() {
         );
     }
 
-    txn.generate_frame();
+    txn.generate_frame(0);
     api.send_transaction(document_id, txn);
 
     // Tick the compositor (in this sample, we don't block on UI events)
@@ -464,7 +464,7 @@ fn main() {
                 }
             }
 
-            txn.generate_frame();
+            txn.generate_frame(0);
             api.send_transaction(document_id, txn);
             current_epoch.0 += 1;
             time += 0.001;

@@ -1245,6 +1245,11 @@ var DownloadObserver = {
 var DownloadHistoryObserver = function(aList) {
   this._list = aList;
   PlacesUtils.history.addObserver(this);
+
+  const placesObserver = new PlacesWeakCallbackWrapper(
+    this.handlePlacesEvents.bind(this)
+  );
+  PlacesObservers.addListener(["history-cleared"], placesObserver);
 };
 
 DownloadHistoryObserver.prototype = {
@@ -1255,6 +1260,17 @@ DownloadHistoryObserver.prototype = {
 
   QueryInterface: ChromeUtils.generateQI(["nsINavHistoryObserver"]),
 
+  handlePlacesEvents(events) {
+    for (const event of events) {
+      switch (event.type) {
+        case "history-cleared": {
+          this._list.removeFinished();
+          break;
+        }
+      }
+    }
+  },
+
   // nsINavHistoryObserver
   onDeleteURI: function DL_onDeleteURI(aURI, aGUID) {
     this._list.removeFinished(download =>
@@ -1262,15 +1278,8 @@ DownloadHistoryObserver.prototype = {
     );
   },
 
-  // nsINavHistoryObserver
-  onClearHistory: function DL_onClearHistory() {
-    this._list.removeFinished();
-  },
-
-  onTitleChanged() {},
   onBeginUpdateBatch() {},
   onEndUpdateBatch() {},
-  onPageChanged() {},
   onDeleteVisits() {},
 };
 

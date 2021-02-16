@@ -36,6 +36,9 @@
     SUBCATEGORY(OTHER, OTHER_PreferenceRead, "Preference Read") \
     SUBCATEGORY(OTHER, OTHER_Profiling, "Profiling") \
   END_CATEGORY \
+  BEGIN_CATEGORY(TEST, "Test", "darkgray") \
+    SUBCATEGORY(TEST, TEST, "Test") \
+  END_CATEGORY \
   BEGIN_CATEGORY(LAYOUT, "Layout", "purple") \
     SUBCATEGORY(LAYOUT, LAYOUT, "Other") \
     SUBCATEGORY(LAYOUT, LAYOUT_FrameConstruction, "Frame construction") \
@@ -63,6 +66,11 @@
     SUBCATEGORY(GCCC, GCCC_MajorGC_Compact, "Major GC (Compact)") \
     SUBCATEGORY(GCCC, GCCC_UnmarkGray, "Unmark Gray") \
     SUBCATEGORY(GCCC, GCCC_Barrier, "Barrier") \
+    SUBCATEGORY(GCCC, GCCC_FreeSnowWhite, "CC (Free Snow White)") \
+    SUBCATEGORY(GCCC, GCCC_BuildGraph, "CC (Build Graph)") \
+    SUBCATEGORY(GCCC, GCCC_ScanRoots, "CC (Scan Roots)") \
+    SUBCATEGORY(GCCC, GCCC_CollectWhite, "CC (Collect White)") \
+    SUBCATEGORY(GCCC, GCCC_Finalize, "CC (Finalize)") \
   END_CATEGORY \
   BEGIN_CATEGORY(NETWORK, "Network", "lightblue") \
     SUBCATEGORY(NETWORK, NETWORK, "Other") \
@@ -103,6 +111,7 @@
     SUBCATEGORY(IPC, IPC, "Other") \
   END_CATEGORY \
   BEGIN_CATEGORY(MEDIA, "Media", "orange") \
+    SUBCATEGORY(MEDIA, MEDIA, "Other") \
     SUBCATEGORY(MEDIA, MEDIA_CUBEB, "Cubeb") \
     SUBCATEGORY(MEDIA, MEDIA_PLAYBACK, "Playback") \
     SUBCATEGORY(MEDIA, MEDIA_RT, "Real-time rendering") \

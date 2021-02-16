@@ -94,7 +94,7 @@ PuppetWidget::PuppetWidget(BrowserChild* aBrowserChild)
       mNeedIMEStateInit(false),
       mIgnoreCompositionEvents(false) {
   // Setting 'Unknown' means "not yet cached".
-  mInputContext.mIMEState.mEnabled = IMEState::UNKNOWN;
+  mInputContext.mIMEState.mEnabled = IMEEnabled::Unknown;
 }
 
 PuppetWidget::~PuppetWidget() { Destroy(); }
@@ -342,6 +342,7 @@ nsresult PuppetWidget::DispatchEvent(WidgetGUIEvent* aEvent,
     }
 #endif  // #ifdef DEBUG
     mNativeIMEContext = compositionEvent->mNativeIMEContext;
+    mContentCache.OnCompositionEvent(*compositionEvent);
   }
 
   // If the event is a composition event or a keyboard event, it should be
@@ -648,54 +649,10 @@ nsresult PuppetWidget::RequestIMEToCommitComposition(bool aCancel) {
   return NS_OK;
 }
 
-nsresult PuppetWidget::StartPluginIME(const WidgetKeyboardEvent& aKeyboardEvent,
-                                      int32_t aPanelX, int32_t aPanelY,
-                                      nsString& aCommitted) {
-  DebugOnly<bool> propagationAlreadyStopped =
-      aKeyboardEvent.mFlags.mPropagationStopped;
-  DebugOnly<bool> immediatePropagationAlreadyStopped =
-      aKeyboardEvent.mFlags.mImmediatePropagationStopped;
-  if (!mBrowserChild || !mBrowserChild->SendStartPluginIME(
-                            aKeyboardEvent, aPanelX, aPanelY, &aCommitted)) {
-    return NS_ERROR_FAILURE;
-  }
-  // BrowserChild::SendStartPluginIME() sends back the keyboard event to the
-  // main process synchronously.  At this time,
-  // ParamTraits<WidgetEvent>::Write() marks the event as "posted to remote
-  // process".  However, this is not correct here since the event has been
-  // handled synchronously in the main process.  So, we adjust the cross process
-  // dispatching state here.
-  const_cast<WidgetKeyboardEvent&>(aKeyboardEvent)
-      .ResetCrossProcessDispatchingState();
-  // Although it shouldn't occur in content process,
-  // ResetCrossProcessDispatchingState() may reset propagation state too
-  // if the event was posted to a remote process and we're waiting its
-  // result.  So, if you saw hitting the following assertions, you'd
-  // need to restore the propagation state too.
-  MOZ_ASSERT(propagationAlreadyStopped ==
-             aKeyboardEvent.mFlags.mPropagationStopped);
-  MOZ_ASSERT(immediatePropagationAlreadyStopped ==
-             aKeyboardEvent.mFlags.mImmediatePropagationStopped);
-  return NS_OK;
-}
-
-void PuppetWidget::SetPluginFocused(bool& aFocused) {
-  if (mBrowserChild) {
-    mBrowserChild->SendSetPluginFocused(aFocused);
-  }
-}
-
-void PuppetWidget::DefaultProcOfPluginEvent(const WidgetPluginEvent& aEvent) {
-  if (!mBrowserChild) {
-    return;
-  }
-  mBrowserChild->SendDefaultProcOfPluginEvent(aEvent);
-}
-
 // When this widget caches input context and currently managed by
 // IMEStateManager, the cache is valid.
 bool PuppetWidget::HaveValidInputContextCache() const {
-  return (mInputContext.mIMEState.mEnabled != IMEState::UNKNOWN &&
+  return (mInputContext.mIMEState.mEnabled != IMEEnabled::Unknown &&
           IMEStateManager::GetWidgetForActiveInputContext() == this);
 }
 
@@ -760,18 +717,10 @@ nsresult PuppetWidget::NotifyIMEOfFocusChange(
 
   bool gotFocus = aIMENotification.mMessage == NOTIFY_IME_OF_FOCUS;
   if (gotFocus) {
-    if (mInputContext.mIMEState.mEnabled != IMEState::PLUGIN) {
-      // When IME gets focus, we should initalize all information of the
-      // content.
-      if (NS_WARN_IF(!mContentCache.CacheAll(this, &aIMENotification))) {
-        return NS_ERROR_FAILURE;
-      }
-    } else {
-      // However, if a plugin has focus, only the editor rect information is
-      // available.
-      if (NS_WARN_IF(!mContentCache.CacheEditorRect(this, &aIMENotification))) {
-        return NS_ERROR_FAILURE;
-      }
+    // When IME gets focus, we should initialize all information of the
+    // content.
+    if (NS_WARN_IF(!mContentCache.CacheAll(this, &aIMENotification))) {
+      return NS_ERROR_FAILURE;
     }
   } else {
     // When IME loses focus, we don't need to store anything.
@@ -806,8 +755,7 @@ nsresult PuppetWidget::NotifyIMEOfCompositionUpdate(
     return NS_ERROR_FAILURE;
   }
 
-  if (mInputContext.mIMEState.mEnabled != IMEState::PLUGIN &&
-      NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
+  if (NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
     return NS_ERROR_FAILURE;
   }
   mBrowserChild->SendNotifyIMECompositionUpdate(mContentCache,
@@ -822,11 +770,6 @@ nsresult PuppetWidget::NotifyIMEOfTextChange(
              "Passed wrong notification");
 
   if (!mBrowserChild) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // While a plugin has focus, text change notification shouldn't be available.
-  if (NS_WARN_IF(mInputContext.mIMEState.mEnabled == IMEState::PLUGIN)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -857,12 +800,6 @@ nsresult PuppetWidget::NotifyIMEOfSelectionChange(
     return NS_ERROR_FAILURE;
   }
 
-  // While a plugin has focus, selection change notification shouldn't be
-  // available.
-  if (NS_WARN_IF(mInputContext.mIMEState.mEnabled == IMEState::PLUGIN)) {
-    return NS_ERROR_FAILURE;
-  }
-
   // Note that selection change must be notified after text change if it occurs.
   // Therefore, we don't need to query text content again here.
   mContentCache.SetSelection(
@@ -880,12 +817,6 @@ nsresult PuppetWidget::NotifyIMEOfMouseButtonEvent(
     const IMENotification& aIMENotification) {
   MOZ_ASSERT(IMEStateManager::CanSendNotificationToWidget());
   if (!mBrowserChild) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // While a plugin has focus, mouse button event notification shouldn't be
-  // available.
-  if (NS_WARN_IF(mInputContext.mIMEState.mEnabled == IMEState::PLUGIN)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -908,10 +839,7 @@ nsresult PuppetWidget::NotifyIMEOfPositionChange(
   if (NS_WARN_IF(!mContentCache.CacheEditorRect(this, &aIMENotification))) {
     return NS_ERROR_FAILURE;
   }
-  // While a plugin has focus, selection range isn't available.  So, we don't
-  // need to cache it at that time.
-  if (mInputContext.mIMEState.mEnabled != IMEState::PLUGIN &&
-      NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
+  if (NS_WARN_IF(!mContentCache.CacheSelection(this, &aIMENotification))) {
     return NS_ERROR_FAILURE;
   }
   if (mIMENotificationRequestsOfParent.WantPositionChanged()) {
@@ -1216,32 +1144,6 @@ nsIWidgetListener* PuppetWidget::GetCurrentWidgetListener() {
   return mAttachedWidgetListener;
 }
 
-void PuppetWidget::SetCandidateWindowForPlugin(
-    const CandidateWindowPosition& aPosition) {
-  if (!mBrowserChild) {
-    return;
-  }
-
-  mBrowserChild->SendSetCandidateWindowForPlugin(aPosition);
-}
-
-void PuppetWidget::EnableIMEForPlugin(bool aEnable) {
-  if (!mBrowserChild) {
-    return;
-  }
-
-  // If current IME state isn't plugin, we ignore this call.
-  if (NS_WARN_IF(HaveValidInputContextCache() &&
-                 mInputContext.mIMEState.mEnabled != IMEState::UNKNOWN &&
-                 mInputContext.mIMEState.mEnabled != IMEState::PLUGIN)) {
-    return;
-  }
-
-  // We don't have valid state in cache or state is plugin, so delegate to
-  // chrome process.
-  mBrowserChild->SendEnableIMEForPlugin(aEnable);
-}
-
 void PuppetWidget::ZoomToRect(const uint32_t& aPresShellId,
                               const ScrollableLayerGuid::ViewID& aViewId,
                               const CSSRect& aRect, const uint32_t& aFlags) {
@@ -1349,14 +1251,6 @@ PuppetWidget::NotifyIME(TextEventDispatcher* aTextEventDispatcher,
 
 NS_IMETHODIMP_(IMENotificationRequests)
 PuppetWidget::GetIMENotificationRequests() {
-  if (mInputContext.mIMEState.mEnabled == IMEState::PLUGIN) {
-    // If a plugin has focus, we cannot receive text nor selection change
-    // in the plugin.  Therefore, PuppetWidget needs to receive only position
-    // change event for updating the editor rect cache.
-    return IMENotificationRequests(
-        mIMENotificationRequestsOfParent.mWantUpdates |
-        IMENotificationRequests::NOTIFY_POSITION_CHANGE);
-  }
   return IMENotificationRequests(
       mIMENotificationRequestsOfParent.mWantUpdates |
       IMENotificationRequests::NOTIFY_TEXT_CHANGE |

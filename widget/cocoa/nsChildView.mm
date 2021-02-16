@@ -52,7 +52,6 @@
 #include "nsMenuUtilsX.h"
 #include "nsMenuBarX.h"
 #include "NativeKeyBindings.h"
-#include "ComplexTextInputPanel.h"
 
 #include "gfxContext.h"
 #include "gfxQuartzSurface.h"
@@ -161,8 +160,6 @@ static bool sIsTabletPointerActivated = false;
 
 static uint32_t sUniqueKeyEventId = 0;
 
-static NSMutableDictionary* sNativeKeyEventsMap = [NSMutableDictionary dictionary];
-
 // The view that will do our drawing or host our NSOpenGLContext or Core Animation layer.
 @interface PixelHostingView : NSView {
 }
@@ -235,7 +232,6 @@ nsChildView::nsChildView()
       mVisible(false),
       mDrawing(false),
       mIsDispatchPaint(false),
-      mPluginFocused{false},
       mCurrentPanGestureBelongsToSwipe{false} {}
 
 nsChildView::~nsChildView() {
@@ -333,8 +329,6 @@ nsresult nsChildView::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
   NS_ASSERTION(!mTextInputHandler, "mTextInputHandler has already existed");
   mTextInputHandler = new TextInputHandler(this, mView);
-
-  mPluginFocused = false;
 
   return NS_OK;
 
@@ -904,15 +898,15 @@ nsresult nsChildView::SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
     // Tracking area events don't end up in their tracking areas when sent
     // through [NSApp sendEvent:], so pass them directly to the right methods.
     BaseWindow* window = (BaseWindow*)[mView window];
-    if (aNativeMessage == NSMouseEntered) {
+    if (aNativeMessage == NSEventTypeMouseEntered) {
       [window mouseEntered:event];
       return NS_OK;
     }
-    if (aNativeMessage == NSMouseExited) {
+    if (aNativeMessage == NSEventTypeMouseExited) {
       [window mouseExited:event];
       return NS_OK;
     }
-    if (aNativeMessage == NSMouseMoved) {
+    if (aNativeMessage == NSEventTypeMouseMoved) {
       [window mouseMoved:event];
       return NS_OK;
     }
@@ -1058,7 +1052,8 @@ void nsChildView::PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent) {
   // not handled we give menu items a chance to act. This allows for handling of
   // custom shortcuts. Note that existing shortcuts cannot be reassigned yet and
   // will have been handled by keyDown: before we get here.
-  NSEvent* cocoaEvent = [sNativeKeyEventsMap objectForKey:@(aEvent->mUniqueId)];
+  NSMutableDictionary* nativeKeyEventsMap = [ChildView sNativeKeyEventsMap];
+  NSEvent* cocoaEvent = [nativeKeyEventsMap objectForKey:@(aEvent->mUniqueId)];
   if (!cocoaEvent) {
     return;
   }
@@ -1066,7 +1061,7 @@ void nsChildView::PostHandleKeyEvent(mozilla::WidgetKeyboardEvent* aEvent) {
   if (SendEventToNativeMenuSystem(cocoaEvent)) {
     aEvent->PreventDefault();
   }
-  [sNativeKeyEventsMap removeObjectForKey:@(aEvent->mUniqueId)];
+  [nativeKeyEventsMap removeObjectForKey:@(aEvent->mUniqueId)];
 
   NS_OBJC_END_TRY_ABORT_BLOCK;
 }
@@ -1474,40 +1469,6 @@ bool nsChildView::HasPendingInputEvent() { return DoHasPendingInputEvent(); }
 
 #pragma mark -
 
-nsresult nsChildView::StartPluginIME(const mozilla::WidgetKeyboardEvent& aKeyboardEvent,
-                                     int32_t aPanelX, int32_t aPanelY, nsString& aCommitted) {
-  NS_ENSURE_TRUE(mView, NS_ERROR_NOT_AVAILABLE);
-
-  ComplexTextInputPanel* ctiPanel = ComplexTextInputPanel::GetSharedComplexTextInputPanel();
-
-  ctiPanel->PlacePanel(aPanelX, aPanelY);
-  // We deliberately don't use TextInputHandler::GetCurrentKeyEvent() to
-  // obtain the NSEvent* we pass to InterpretKeyEvent().  This works fine in
-  // non-e10s mode.  But in e10s mode TextInputHandler::HandleKeyDownEvent()
-  // has already returned, so the relevant KeyEventState* (and its NSEvent*)
-  // is already out of scope.  Furthermore we don't *need* to use it.
-  // StartPluginIME() is only ever called to start a new IME session when none
-  // currently exists.  So nested IME should never reach here, and so it should
-  // be fine to use the last key-down event received by -[ChildView keyDown:]
-  // (as we currently do).
-  ctiPanel->InterpretKeyEvent([mView lastKeyDownEvent], aCommitted);
-
-  return NS_OK;
-}
-
-void nsChildView::SetPluginFocused(bool& aFocused) {
-  if (aFocused == mPluginFocused) {
-    return;
-  }
-  if (!aFocused) {
-    ComplexTextInputPanel* ctiPanel = ComplexTextInputPanel::GetSharedComplexTextInputPanel();
-    if (ctiPanel) {
-      ctiPanel->CancelComposition();
-    }
-  }
-  mPluginFocused = aFocused;
-}
-
 void nsChildView::SetInputContext(const InputContext& aContext, const InputContextAction& aAction) {
   NS_ENSURE_TRUE_VOID(mTextInputHandler);
 
@@ -1525,19 +1486,18 @@ void nsChildView::SetInputContext(const InputContext& aContext, const InputConte
   // IMEInputHandler::IsEditableContent() too.
   mInputContext = aContext;
   switch (aContext.mIMEState.mEnabled) {
-    case IMEState::ENABLED:
-    case IMEState::PLUGIN:
+    case IMEEnabled::Enabled:
       mTextInputHandler->SetASCIICapableOnly(false);
       mTextInputHandler->EnableIME(true);
       if (mInputContext.mIMEState.mOpen != IMEState::DONT_CHANGE_OPEN_STATE) {
         mTextInputHandler->SetIMEOpenState(mInputContext.mIMEState.mOpen == IMEState::OPEN);
       }
       break;
-    case IMEState::DISABLED:
+    case IMEEnabled::Disabled:
       mTextInputHandler->SetASCIICapableOnly(false);
       mTextInputHandler->EnableIME(false);
       break;
-    case IMEState::PASSWORD:
+    case IMEEnabled::Password:
       mTextInputHandler->SetASCIICapableOnly(true);
       mTextInputHandler->EnableIME(false);
       break;
@@ -1548,8 +1508,7 @@ void nsChildView::SetInputContext(const InputContext& aContext, const InputConte
 
 InputContext nsChildView::GetInputContext() {
   switch (mInputContext.mIMEState.mEnabled) {
-    case IMEState::ENABLED:
-    case IMEState::PLUGIN:
+    case IMEEnabled::Enabled:
       if (mTextInputHandler) {
         mInputContext.mIMEState.mOpen =
             mTextInputHandler->IsIMEOpened() ? IMEState::OPEN : IMEState::CLOSED;
@@ -1616,16 +1575,17 @@ bool nsChildView::GetEditCommands(NativeKeyBindingsType aType, const WidgetKeybo
   // the physical direction of the arrow.
   if (aEvent.mKeyCode >= NS_VK_LEFT && aEvent.mKeyCode <= NS_VK_DOWN) {
     // XXX This may be expensive. Should use the cache in TextInputHandler.
-    WidgetQueryContentEvent query(true, eQuerySelectedText, this);
-    DispatchWindowEvent(query);
+    WidgetQueryContentEvent querySelectedTextEvent(true, eQuerySelectedText, this);
+    DispatchWindowEvent(querySelectedTextEvent);
 
-    if (query.mSucceeded && query.mReply.mWritingMode.IsVertical()) {
+    if (querySelectedTextEvent.FoundSelection() &&
+        querySelectedTextEvent.mReply->mWritingMode.IsVertical()) {
       uint32_t geckoKey = 0;
       uint32_t cocoaKey = 0;
 
       switch (aEvent.mKeyCode) {
         case NS_VK_LEFT:
-          if (query.mReply.mWritingMode.IsVerticalLR()) {
+          if (querySelectedTextEvent.mReply->mWritingMode.IsVerticalLR()) {
             geckoKey = NS_VK_UP;
             cocoaKey = kVK_UpArrow;
           } else {
@@ -1635,7 +1595,7 @@ bool nsChildView::GetEditCommands(NativeKeyBindingsType aType, const WidgetKeybo
           break;
 
         case NS_VK_RIGHT:
-          if (query.mReply.mWritingMode.IsVerticalLR()) {
+          if (querySelectedTextEvent.mReply->mWritingMode.IsVerticalLR()) {
             geckoKey = NS_VK_DOWN;
             cocoaKey = kVK_DownArrow;
           } else {
@@ -1677,9 +1637,9 @@ NSView<mozView>* nsChildView::GetEditorView() {
   // need any layout information right now.
   queryContentState.mNeedsToFlushLayout = false;
   DispatchWindowEvent(queryContentState);
-  if (queryContentState.mSucceeded && queryContentState.mReply.mFocusedWidget) {
+  if (queryContentState.Succeeded() && queryContentState.mReply->mFocusedWidget) {
     NSView<mozView>* view = static_cast<NSView<mozView>*>(
-        queryContentState.mReply.mFocusedWidget->GetNativeData(NS_NATIVE_WIDGET));
+        queryContentState.mReply->mFocusedWidget->GetNativeData(NS_NATIVE_WIDGET));
     if (view) editorView = view;
   }
   return editorView;
@@ -1962,7 +1922,7 @@ void nsChildView::UpdateBoundsFromView() {
   return nil;
 }
 - (NSRect)_opaqueRectForWindowMoveWhenInTitlebar {
-  // In NSWindows that use NSFullSizeContentViewWindowMask, NSViews which
+  // In NSWindows that use NSWindowStyleMaskFullSizeContentView, NSViews which
   // overlap the titlebar do not disable window dragging in the overlapping
   // areas even if they return NO from mouseDownCanMoveWindow. This can have
   // unfortunate effects: For example, dragging tabs in a browser window would
@@ -2410,31 +2370,17 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
   NS_OBJC_END_TRY_ABORT_BLOCK_NIL;
 }
 
-// ComplexTextInputPanel's interpretKeyEvent hack won't work without this.
-// It makes calls to +[NSTextInputContext currentContext], deep in system
-// code, return the appropriate context.
 - (NSTextInputContext*)inputContext {
-  NSTextInputContext* pluginContext = NULL;
-  if (mGeckoChild && mGeckoChild->IsPluginFocused()) {
-    ComplexTextInputPanel* ctiPanel = ComplexTextInputPanel::GetSharedComplexTextInputPanel();
-    if (ctiPanel) {
-      pluginContext = (NSTextInputContext*)ctiPanel->GetInputContext();
-    }
+  if (!mGeckoChild) {
+    // -[ChildView widgetDestroyed] has been called, but
+    // -[ChildView delayedTearDown] has not yet completed.  Accessing
+    // [super inputContext] now would uselessly recreate a text input context
+    // for us, under which -[ChildView validAttributesForMarkedText] would
+    // be called and the assertion checking for mTextInputHandler would fail.
+    // We return nil to avoid that.
+    return nil;
   }
-  if (pluginContext) {
-    return pluginContext;
-  } else {
-    if (!mGeckoChild) {
-      // -[ChildView widgetDestroyed] has been called, but
-      // -[ChildView delayedTearDown] has not yet completed.  Accessing
-      // [super inputContext] now would uselessly recreate a text input context
-      // for us, under which -[ChildView validAttributesForMarkedText] would
-      // be called and the assertion checking for mTextInputHandler would fail.
-      // We return nil to avoid that.
-      return nil;
-    }
-    return [super inputContext];
-  }
+  return [super inputContext];
 }
 
 - (void)installTextInputHandler:(TextInputHandler*)aHandler {
@@ -2665,7 +2611,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
       bool shouldRollup = true;
 
       // check to see if scroll/zoom events should roll up the popup
-      if ([theEvent type] == NSScrollWheel || [theEvent type] == NSEventTypeMagnify) {
+      if ([theEvent type] == NSEventTypeScrollWheel || [theEvent type] == NSEventTypeMagnify) {
         shouldRollup = rollupListener->ShouldRollupOnMouseWheelEvent();
         // consume scroll events that aren't over the popup
         // unless the popup is an arrow panel
@@ -2696,7 +2642,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
       }
 
       if (shouldRollup) {
-        if ([theEvent type] == NSLeftMouseDown) {
+        if ([theEvent type] == NSEventTypeLeftMouseDown) {
           NSPoint point = [NSEvent mouseLocation];
           FlipCocoaScreenCoordinate(point);
           LayoutDeviceIntPoint devPoint = mGeckoChild->CocoaPointsToDevPixels(point);
@@ -2987,7 +2933,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
   // otherwise a scroll to one side of the page can have a swipe tacked on
   // to it.
   NSEventPhase eventPhase = nsCocoaUtils::EventPhase(anEvent);
-  if ([anEvent type] != NSScrollWheel || eventPhase != NSEventPhaseBegan ||
+  if ([anEvent type] != NSEventTypeScrollWheel || eventPhase != NSEventPhaseBegan ||
       ![anEvent hasPreciseScrollingDeltas]) {
     return false;
   }
@@ -3075,7 +3021,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
   geckoEvent.mClickCount = clickCount;
 
   if (!StaticPrefs::dom_event_treat_ctrl_click_as_right_click_disabled() &&
-      ([theEvent modifierFlags] & NSControlKeyMask)) {
+      ([theEvent modifierFlags] & NSEventModifierFlagControl)) {
     geckoEvent.mButton = MouseButton::eSecondary;
   } else {
     geckoEvent.mButton = MouseButton::ePrimary;
@@ -3105,7 +3051,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
   [self convertCocoaMouseEvent:theEvent toGeckoEvent:&geckoEvent];
 
   if (!StaticPrefs::dom_event_treat_ctrl_click_as_right_click_disabled() &&
-      ([theEvent modifierFlags] & NSControlKeyMask)) {
+      ([theEvent modifierFlags] & NSEventModifierFlagControl)) {
     geckoEvent.mButton = MouseButton::eSecondary;
   } else {
     geckoEvent.mButton = MouseButton::ePrimary;
@@ -3238,7 +3184,7 @@ NSEvent* gLastDragMouseDownEvent = nil;  // [strong]
 
   if (StaticPrefs::ui_context_menus_after_mouseup()) {
     // Let the superclass do the context menu stuff, but pretend it's rightMouseDown.
-    NSEvent* dupeEvent = [NSEvent mouseEventWithType:NSRightMouseDown
+    NSEvent* dupeEvent = [NSEvent mouseEventWithType:NSEventTypeRightMouseDown
                                             location:theEvent.locationInWindow
                                        modifierFlags:theEvent.modifierFlags
                                            timestamp:theEvent.timestamp
@@ -3466,7 +3412,7 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
     if (panEvent.mType == PanGestureInput::PANGESTURE_END) {
       // Check if there's a momentum start event in the event queue, so that we
       // can annotate this event.
-      NSEvent* nextWheelEvent = [NSApp nextEventMatchingMask:NSScrollWheelMask
+      NSEvent* nextWheelEvent = [NSApp nextEventMatchingMask:NSEventMaskScrollWheel
                                                    untilDate:[NSDate distantPast]
                                                       inMode:NSDefaultRunLoopMode
                                                      dequeue:NO];
@@ -3538,7 +3484,7 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   // depends on what we return from menuForEvent:. Gecko always expects one
   // and expects the mouse down event before the context menu event, so
   // get that event sent first if this is a left mouse click.
-  if ([theEvent type] == NSLeftMouseDown) {
+  if ([theEvent type] == NSEventTypeLeftMouseDown) {
     [self mouseDown:theEvent];
     if (!mGeckoChild) return nil;
   }
@@ -3546,7 +3492,7 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   WidgetMouseEvent geckoEvent(true, eContextMenu, mGeckoChild, WidgetMouseEvent::eReal);
   [self convertCocoaMouseEvent:theEvent toGeckoEvent:&geckoEvent];
   if (StaticPrefs::dom_event_treat_ctrl_click_as_right_click_disabled() &&
-      [theEvent type] == NSLeftMouseDown) {
+      [theEvent type] == NSEventTypeLeftMouseDown) {
     geckoEvent.mContextMenuTrigger = WidgetMouseEvent::eControlClick;
     geckoEvent.mButton = MouseButton::ePrimary;
   } else {
@@ -3612,17 +3558,17 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   }
 
   switch ([aMouseEvent type]) {
-    case NSLeftMouseDown:
-    case NSLeftMouseUp:
-    case NSLeftMouseDragged:
-    case NSRightMouseDown:
-    case NSRightMouseUp:
-    case NSRightMouseDragged:
-    case NSOtherMouseDown:
-    case NSOtherMouseUp:
-    case NSOtherMouseDragged:
-    case NSMouseMoved:
-      if ([aMouseEvent subtype] == NSTabletPointEventSubtype) {
+    case NSEventTypeLeftMouseDown:
+    case NSEventTypeLeftMouseUp:
+    case NSEventTypeLeftMouseDragged:
+    case NSEventTypeRightMouseDown:
+    case NSEventTypeRightMouseUp:
+    case NSEventTypeRightMouseDragged:
+    case NSEventTypeOtherMouseDown:
+    case NSEventTypeOtherMouseUp:
+    case NSEventTypeOtherMouseDragged:
+    case NSEventTypeMouseMoved:
+      if ([aMouseEvent subtype] == NSEventSubtypeTabletPoint) {
         [self convertCocoaTabletPointerEvent:aMouseEvent toGeckoEvent:mouseEvent->AsMouseEvent()];
       }
       break;
@@ -3641,7 +3587,7 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   if (!aOutGeckoEvent || !sIsTabletPointerActivated) {
     return;
   }
-  if ([aPointerEvent type] != NSMouseMoved) {
+  if ([aPointerEvent type] != NSEventTypeMouseMoved) {
     aOutGeckoEvent->mPressure = [aPointerEvent pressure];
     MOZ_ASSERT(aOutGeckoEvent->mPressure >= 0.0 && aOutGeckoEvent->mPressure <= 1.0);
   }
@@ -3868,10 +3814,11 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   if (mGeckoChild) {
     if (mTextInputHandler) {
       sUniqueKeyEventId++;
-      [sNativeKeyEventsMap setObject:theEvent forKey:@(sUniqueKeyEventId)];
+      NSMutableDictionary* nativeKeyEventsMap = [ChildView sNativeKeyEventsMap];
+      [nativeKeyEventsMap setObject:theEvent forKey:@(sUniqueKeyEventId)];
       // Purge old native events, in case we're still holding on to them. We
       // keep at most 10 references to 10 different native events.
-      [sNativeKeyEventsMap removeObjectForKey:@(sUniqueKeyEventId - 10)];
+      [nativeKeyEventsMap removeObjectForKey:@(sUniqueKeyEventId - 10)];
       mTextInputHandler->HandleKeyDownEvent(theEvent, sUniqueKeyEventId);
     } else {
       // There was no text input handler. Offer the event to the native menu
@@ -4342,8 +4289,8 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
     unsigned int modifierFlags = [[NSApp currentEvent] modifierFlags];
     uint32_t action = nsIDragService::DRAGDROP_ACTION_MOVE;
     // force copy = option, alias = cmd-option, default is move
-    if (modifierFlags & NSAlternateKeyMask) {
-      if (modifierFlags & NSCommandKeyMask)
+    if (modifierFlags & NSEventModifierFlagOption) {
+      if (modifierFlags & NSEventModifierFlagCommand)
         action = nsIDragService::DRAGDROP_ACTION_LINK;
       else
         action = nsIDragService::DRAGDROP_ACTION_COPY;
@@ -4471,7 +4418,8 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   gDraggedTransferables = nullptr;
 
   NSEvent* currentEvent = [NSApp currentEvent];
-  gUserCancelledDrag = ([currentEvent type] == NSKeyDown && [currentEvent keyCode] == kVK_Escape);
+  gUserCancelledDrag =
+      ([currentEvent type] == NSEventTypeKeyDown && [currentEvent keyCode] == kVK_Escape);
 
   if (!mDragService) {
     CallGetService(kDragServiceContractID, &mDragService);
@@ -4989,6 +4937,8 @@ nsresult nsChildView::GetSelectionAsPlaintext(nsAString& aResult) {
 }
 
 + (NSMutableDictionary*)sNativeKeyEventsMap {
+  // This dictionary is "leaked".
+  static NSMutableDictionary* sNativeKeyEventsMap = [[NSMutableDictionary alloc] init];
   return sNativeKeyEventsMap;
 }
 
@@ -5066,11 +5016,11 @@ void ChildViewMouseTracker::ReEvaluateMouseEnterState(NSEvent* aEvent, ChildView
   if (sLastMouseEventView != oldView) {
     // Send enter and / or exit events.
     WidgetMouseEvent::ExitFrom exitFrom = [sLastMouseEventView window] == [oldView window]
-                                              ? WidgetMouseEvent::eChild
-                                              : WidgetMouseEvent::eTopLevel;
+                                              ? WidgetMouseEvent::ePlatformChild
+                                              : WidgetMouseEvent::ePlatformTopLevel;
     [oldView sendMouseEnterOrExitEvent:aEvent enter:NO exitFrom:exitFrom];
     // After the cursor exits the window set it to a visible regular arrow cursor.
-    if (exitFrom == WidgetMouseEvent::eTopLevel) {
+    if (exitFrom == WidgetMouseEvent::ePlatformTopLevel) {
       [[nsCursorManager sharedInstance] setCursor:eCursor_standard];
     }
     [sLastMouseEventView sendMouseEnterOrExitEvent:aEvent enter:YES exitFrom:exitFrom];
@@ -5118,7 +5068,7 @@ BOOL ChildViewMouseTracker::WindowAcceptsEvent(NSWindow* aWindow, NSEvent* aEven
                                                BOOL aIsClickThrough) {
   // Right mouse down events may get through to all windows, even to a top level
   // window with an open sheet.
-  if (!aWindow || [aEvent type] == NSRightMouseDown) return YES;
+  if (!aWindow || [aEvent type] == NSEventTypeRightMouseDown) return YES;
 
   id delegate = [aWindow delegate];
   if (!delegate || ![delegate isKindOfClass:[WindowDelegate class]]) return YES;
@@ -5155,8 +5105,9 @@ BOOL ChildViewMouseTracker::WindowAcceptsEvent(NSWindow* aWindow, NSEvent* aEven
   }
 
   if (!topLevelWindow || ([topLevelWindow isMainWindow] && !aIsClickThrough) ||
-      [aEvent type] == NSOtherMouseDown ||
-      (([aEvent modifierFlags] & NSCommandKeyMask) != 0 && [aEvent type] != NSMouseMoved))
+      [aEvent type] == NSEventTypeOtherMouseDown ||
+      (([aEvent modifierFlags] & NSEventModifierFlagCommand) != 0 &&
+       [aEvent type] != NSEventTypeMouseMoved))
     return YES;
 
   // If we're here then we're dealing with a left click or mouse move on an

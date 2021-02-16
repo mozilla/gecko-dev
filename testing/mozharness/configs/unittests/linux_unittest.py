@@ -1,3 +1,8 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import
 import os
 import platform
 
@@ -25,11 +30,11 @@ if platform.architecture()[0] == "64bit":
     VALGRIND_SUPP_ARCH = os.path.join(VALGRIND_SUPP_DIR, "x86_64-pc-linux-gnu.sup")
 else:
     VALGRIND_SUPP_ARCH = os.path.join(VALGRIND_SUPP_DIR, "i386-pc-linux-gnu.sup")
-    NODEJS_TOOLTOOL_MANIFEST_PATH = "config/tooltool-manifests/linux32/nodejs.manifest"
 
 #####
 config = {
     ###
+    "virtualenv_modules": ["six==1.13.0", "vcversioner==2.16.0.0"],
     "installer_path": INSTALLER_PATH,
     "binary_path": BINARY_PATH,
     "xpcshell_name": XPCSHELL_NAME,

@@ -81,6 +81,44 @@ add_task(async function setupTestCommon() {
     ],
   });
 
+  // We need to keep the update sync manager from thinking two instances are
+  // running because of the mochitest parent instance, which means we need to
+  // override the directory service with a fake executable path and then reset
+  // the lock. But leaving the directory service overridden causes problems for
+  // these tests, so we need to restore the real service immediately after.
+  // To form the path, we'll use the real executable path with a token appended
+  // (the path needs to be absolute, but not to point to a real file).
+  // This block is loosely copied from adjustGeneralPaths() in another update
+  // test file, xpcshellUtilsAUS.js, but this is a much more limited version;
+  // it's been copied here both because the full function is overkill and also
+  // because making it general enough to run in both xpcshell and mochitest
+  // would have been unreasonably difficult.
+  let exePath = Services.dirsvc.get(XRE_EXECUTABLE_FILE, Ci.nsIFile);
+  let dirProvider = {
+    getFile: function AGP_DP_getFile(aProp, aPersistent) {
+      // Set the value of persistent to false so when this directory provider is
+      // unregistered it will revert back to the original provider.
+      aPersistent.value = false;
+      switch (aProp) {
+        case XRE_EXECUTABLE_FILE:
+          exePath.append("browser-test");
+          return exePath;
+      }
+      return null;
+    },
+    QueryInterface: ChromeUtils.generateQI(["nsIDirectoryServiceProvider"]),
+  };
+  let ds = Services.dirsvc.QueryInterface(Ci.nsIDirectoryService);
+  ds.QueryInterface(Ci.nsIProperties).undefine(XRE_EXECUTABLE_FILE);
+  ds.registerProvider(dirProvider);
+
+  let syncManager = Cc["@mozilla.org/updates/update-sync-manager;1"].getService(
+    Ci.nsIUpdateSyncManager
+  );
+  syncManager.resetLock();
+
+  ds.unregisterProvider(dirProvider);
+
   setUpdateTimerPrefs();
   reloadUpdateManagerData(true);
   removeUpdateFiles(true);
@@ -107,6 +145,13 @@ registerCleanupFunction(async () => {
   // Always try to restore the original updater files. If none of the updater
   // backup files are present then this is just a no-op.
   await finishTestRestoreUpdaterBackup();
+  // Reset the update lock once again so that we know the lock we're
+  // interested in here will be closed properly (normally that happens during
+  // XPCOM shutdown, but that isn't consistent during tests).
+  let syncManager = Cc["@mozilla.org/updates/update-sync-manager;1"].getService(
+    Ci.nsIUpdateSyncManager
+  );
+  syncManager.resetLock();
 });
 
 /**
@@ -135,90 +180,6 @@ function mockLangpackInstall() {
   };
 
   return stagingCall.promise;
-}
-
-/**
- * Creates the continue file used to signal that update staging or the mock http
- * server should continue. The delay this creates allows the tests to verify the
- * user interfaces before they auto advance to other phases of an update. The
- * continue file for staging will be deleted by the test updater and the
- * continue file for the update check and update download requests will be
- * deleted by the test http server handler implemented in app_update.sjs. The
- * test returns a promise so the test can wait on the deletion of the continue
- * file when necessary. If the continue file still exists at the end of a test
- * it will be removed to prevent it from affecting tests that run after the test
- * that created it.
- *
- * @param  leafName
- *         The leafName of the file to create. This should be one of the
- *         folowing constants that are defined in testConstants.js:
- *         CONTINUE_CHECK
- *         CONTINUE_DOWNLOAD
- *         CONTINUE_STAGING
- * @return Promise
- *         Resolves when the file is deleted or if the file is not deleted when
- *         the check for the file's existence times out. If the file isn't
- *         deleted before the check for the file's existence times out it will
- *         be deleted when the test ends so it doesn't affect tests that run
- *         after the test that created the continue file.
- * @throws If the file already exists.
- */
-async function continueFileHandler(leafName) {
-  // The total time to wait with 300 retries and the default interval of 100 is
-  // approximately 30 seconds.
-  let interval = 100;
-  let retries = 300;
-  let continueFile;
-  if (leafName == CONTINUE_STAGING) {
-    // The total time to wait with 600 retries and an interval of 200 is
-    // approximately 120 seconds.
-    interval = 200;
-    retries = 600;
-    continueFile = getGREBinDir();
-    if (AppConstants.platform == "macosx") {
-      continueFile = continueFile.parent.parent;
-    }
-    continueFile.append(leafName);
-  } else {
-    continueFile = Services.dirsvc.get("CurWorkD", Ci.nsIFile);
-    let continuePath = REL_PATH_DATA + leafName;
-    let continuePathParts = continuePath.split("/");
-    for (let i = 0; i < continuePathParts.length; ++i) {
-      continueFile.append(continuePathParts[i]);
-    }
-  }
-  if (continueFile.exists()) {
-    logTestInfo(
-      "The continue file should not exist, path: " + continueFile.path
-    );
-    continueFile.remove(false);
-  }
-  debugDump("Creating continue file, path: " + continueFile.path);
-  continueFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, PERMS_FILE);
-  // If for whatever reason the continue file hasn't been removed when a test
-  // has finished remove it during cleanup so it doesn't affect tests that run
-  // after the test that created it.
-  registerCleanupFunction(() => {
-    if (continueFile.exists()) {
-      logTestInfo(
-        "Removing continue file during test cleanup, path: " + continueFile.path
-      );
-      continueFile.remove(false);
-    }
-  });
-  return TestUtils.waitForCondition(
-    () => !continueFile.exists(),
-    "Waiting for file to be deleted, path: " + continueFile.path,
-    interval,
-    retries
-  ).catch(e => {
-    logTestInfo(
-      "Continue file was not removed after checking " +
-        retries +
-        " times, path: " +
-        continueFile.path
-    );
-  });
 }
 
 /**
@@ -606,7 +567,7 @@ function runDoorhangerUpdateTest(params, steps) {
 
     const { notificationId, button, checkActiveUpdate, pageURLs } = step;
     return (async function() {
-      if (!params.popupShown) {
+      if (!params.popupShown && !PanelUI.isNotificationPanelOpen) {
         await BrowserTestUtils.waitForEvent(
           PanelUI.notificationPanel,
           "popupshown"
@@ -662,7 +623,11 @@ function runDoorhangerUpdateTest(params, steps) {
   }
 
   return (async function() {
-    gEnv.set("MOZ_TEST_SKIP_UPDATE_STAGE", "1");
+    if (params.slowStaging) {
+      gEnv.set("MOZ_TEST_SLOW_SKIP_UPDATE_STAGE", "1");
+    } else {
+      gEnv.set("MOZ_TEST_SKIP_UPDATE_STAGE", "1");
+    }
     await SpecialPowers.pushPrefEnv({
       set: [
         [PREF_APP_UPDATE_DISABLEDFORTESTING, false],
@@ -679,7 +644,7 @@ function runDoorhangerUpdateTest(params, steps) {
       "?detailsURL=" +
       gDetailsURL +
       queryString +
-      getVersionParams();
+      getVersionParams(params.version);
     setUpdateURL(updateURL);
 
     if (params.checkAttempts) {
@@ -728,13 +693,9 @@ function runAboutDialogUpdateTest(params, steps) {
     const { panelId, checkActiveUpdate, continueFile, downloadInfo } = step;
     return (async function() {
       let updateDeck = aboutDialog.document.getElementById("updateDeck");
-      // Also continue if the selected panel ID is 'apply' since there are no
-      // other panels after 'apply'.
       await TestUtils.waitForCondition(
         () =>
-          updateDeck.selectedPanel &&
-          (updateDeck.selectedPanel.id == panelId ||
-            updateDeck.selectedPanel.id == "apply"),
+          updateDeck.selectedPanel && updateDeck.selectedPanel.id == panelId,
         "Waiting for the expected panel ID: " + panelId,
         undefined,
         200
@@ -871,7 +832,7 @@ function runAboutDialogUpdateTest(params, steps) {
       "?detailsURL=" +
       gDetailsURL +
       queryString +
-      getVersionParams();
+      getVersionParams(params.version);
     if (params.backgroundUpdate) {
       setUpdateURL(updateURL);
       gAUS.checkForBackgroundUpdates();
@@ -943,13 +904,10 @@ function runAboutPrefsUpdateTest(params, steps) {
         [{ panelId }],
         async ({ panelId }) => {
           let updateDeck = content.document.getElementById("updateDeck");
-          // Also continue if the selected panel ID is 'apply' since there are no
-          // other panels after 'apply'.
           await ContentTaskUtils.waitForCondition(
             () =>
               updateDeck.selectedPanel &&
-              (updateDeck.selectedPanel.id == panelId ||
-                updateDeck.selectedPanel.id == "apply"),
+              updateDeck.selectedPanel.id == panelId,
             "Waiting for the expected panel ID: " + panelId,
             undefined,
             200
@@ -1117,7 +1075,7 @@ function runAboutPrefsUpdateTest(params, steps) {
       "?detailsURL=" +
       gDetailsURL +
       queryString +
-      getVersionParams();
+      getVersionParams(params.version);
     if (params.backgroundUpdate) {
       setUpdateURL(updateURL);
       gAUS.checkForBackgroundUpdates();

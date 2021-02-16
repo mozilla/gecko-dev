@@ -60,10 +60,12 @@
 #include "mozilla/layers/OMTASampler.h"
 #include "mozilla/layers/PLayerTransactionParent.h"
 #include "mozilla/layers/RemoteContentController.h"
+#include "mozilla/layers/UiCompositorControllerParent.h"
 #include "mozilla/layers/WebRenderBridgeParent.h"
 #include "mozilla/layers/AsyncImagePipelineManager.h"
 #include "mozilla/webrender/WebRenderAPI.h"
 #include "mozilla/webgpu/WebGPUParent.h"
+#include "mozilla/webrender/RenderThread.h"
 #include "mozilla/media/MediaSystemResourceService.h"  // for MediaSystemResourceService
 #include "mozilla/mozalloc.h"                          // for operator new, etc
 #include "mozilla/PerfStats.h"
@@ -90,9 +92,6 @@
 #include "mozilla/HalTypes.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
-#endif
 #include "mozilla/VsyncDispatcher.h"
 #if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
 #  include "VsyncSource.h"
@@ -117,7 +116,6 @@ using namespace mozilla::ipc;
 using namespace mozilla::gfx;
 
 using base::ProcessId;
-using base::Thread;
 
 using mozilla::Telemetry::LABELS_CONTENT_FRAME_TIME_REASON;
 
@@ -397,7 +395,8 @@ void CompositorBridgeParent::Initialize() {
     MOZ_ASSERT(!mApzcTreeManager);
     MOZ_ASSERT(!mApzSampler);
     MOZ_ASSERT(!mApzUpdater);
-    mApzcTreeManager = new APZCTreeManager(mRootLayerTreeID);
+    mApzcTreeManager =
+        new APZCTreeManager(mRootLayerTreeID, mOptions.UseWebRender());
     mApzSampler = new APZSampler(mApzcTreeManager, mOptions.UseWebRender());
     mApzUpdater = new APZUpdater(mApzcTreeManager, mOptions.UseWebRender());
   }
@@ -706,13 +705,6 @@ void CompositorBridgeParent::ScheduleRenderOnCompositorThread() {
                         this, &CompositorBridgeParent::ScheduleComposition));
 }
 
-void CompositorBridgeParent::InvalidateOnCompositorThread() {
-  MOZ_ASSERT(CompositorThread());
-  CompositorThread()->Dispatch(
-      NewRunnableMethod("layers::CompositorBridgeParent::Invalidate", this,
-                        &CompositorBridgeParent::Invalidate));
-}
-
 void CompositorBridgeParent::PauseComposition() {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread(),
              "PauseComposition() can only be called on the compositor thread");
@@ -797,53 +789,6 @@ void CompositorBridgeParent::ResumeCompositionAndResize(int x, int y, int width,
                                                         int height) {
   SetEGLSurfaceRect(x, y, width, height);
   ResumeComposition();
-}
-
-/*
- * This will execute a pause synchronously, waiting to make sure that the
- * compositor really is paused.
- */
-void CompositorBridgeParent::SchedulePauseOnCompositorThread() {
-  MonitorAutoLock lock(mPauseCompositionMonitor);
-
-  MOZ_ASSERT(CompositorThread());
-  CompositorThread()->Dispatch(
-      NewRunnableMethod("layers::CompositorBridgeParent::PauseComposition",
-                        this, &CompositorBridgeParent::PauseComposition));
-
-  // Wait until the pause has actually been processed by the compositor thread
-  lock.Wait();
-}
-
-bool CompositorBridgeParent::ScheduleResumeOnCompositorThread() {
-  MonitorAutoLock lock(mResumeCompositionMonitor);
-
-  MOZ_ASSERT(CompositorThread());
-  CompositorThread()->Dispatch(
-      NewRunnableMethod("layers::CompositorBridgeParent::ResumeComposition",
-                        this, &CompositorBridgeParent::ResumeComposition));
-
-  // Wait until the resume has actually been processed by the compositor thread
-  lock.Wait();
-
-  return !mPaused;
-}
-
-bool CompositorBridgeParent::ScheduleResumeOnCompositorThread(int x, int y,
-                                                              int width,
-                                                              int height) {
-  MonitorAutoLock lock(mResumeCompositionMonitor);
-
-  MOZ_ASSERT(CompositorThread());
-  CompositorThread()->Dispatch(NewRunnableMethod<int, int, int, int>(
-      "layers::CompositorBridgeParent::ResumeCompositionAndResize", this,
-      &CompositorBridgeParent::ResumeCompositionAndResize, x, y, width,
-      height));
-
-  // Wait until the resume has actually been processed by the compositor thread
-  lock.Wait();
-
-  return !mPaused;
 }
 
 void CompositorBridgeParent::UpdatePaintTime(LayerTransactionParent* aLayerTree,
@@ -1935,7 +1880,8 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvAdoptChild(
 }
 
 PWebRenderBridgeParent* CompositorBridgeParent::AllocPWebRenderBridgeParent(
-    const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize& aSize) {
+    const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize& aSize,
+    const WindowKind& aWindowKind) {
   MOZ_ASSERT(wr::AsLayersId(aPipelineId) == mRootLayerTreeID);
   MOZ_ASSERT(!mWrBridge);
   MOZ_ASSERT(!mCompositor);
@@ -1966,9 +1912,9 @@ PWebRenderBridgeParent* CompositorBridgeParent::AllocPWebRenderBridgeParent(
     mOMTASampler->SetWebRenderWindowId(windowId);
   }
 
-  nsCString error("FEATURE_FAILTURE_WEBRENDER_INITIALIZE_UNSPECIFIED");
-  RefPtr<wr::WebRenderAPI> api =
-      wr::WebRenderAPI::Create(this, std::move(widget), windowId, aSize, error);
+  nsCString error("FEATURE_FAILURE_WEBRENDER_INITIALIZE_UNSPECIFIED");
+  RefPtr<wr::WebRenderAPI> api = wr::WebRenderAPI::Create(
+      this, std::move(widget), windowId, aSize, aWindowKind, error);
   if (!api) {
     mWrBridge =
         WebRenderBridgeParent::CreateDestroyed(aPipelineId, std::move(error));
@@ -1982,7 +1928,10 @@ PWebRenderBridgeParent* CompositorBridgeParent::AllocPWebRenderBridgeParent(
 
   bool useCompositorWnd = false;
 #ifdef XP_WIN
-  useCompositorWnd = !!mWidget->AsWindows()->GetCompositorHwnd();
+  // Headless mode uses HeadlessWidget.
+  if (mWidget->AsWindows()) {
+    useCompositorWnd = !!mWidget->AsWindows()->GetCompositorHwnd();
+  }
 #endif
   mAsyncImageManager =
       new AsyncImagePipelineManager(api->Clone(), useCompositorWnd);
@@ -2244,8 +2193,23 @@ already_AddRefed<IAPZCTreeManager> CompositorBridgeParent::GetAPZCTreeManager(
 static void InsertVsyncProfilerMarker(TimeStamp aVsyncTimestamp) {
   MOZ_ASSERT(CompositorThreadHolder::IsInCompositorThread());
   if (profiler_thread_is_being_profiled()) {
-    PROFILER_ADD_MARKER_WITH_PAYLOAD("VsyncTimestamp", GRAPHICS,
-                                     VsyncMarkerPayload, (aVsyncTimestamp));
+    // Tracks when a vsync occurs according to the HardwareComposer.
+    struct VsyncMarker {
+      static constexpr mozilla::Span<const char> MarkerTypeName() {
+        return mozilla::MakeStringSpan("VsyncTimestamp");
+      }
+      static void StreamJSONMarkerData(
+          baseprofiler::SpliceableJSONWriter& aWriter) {}
+      static MarkerSchema MarkerTypeDisplay() {
+        using MS = MarkerSchema;
+        MS schema{MS::Location::markerChart, MS::Location::markerTable};
+        // Nothing outside the defaults.
+        return schema;
+      }
+    };
+    profiler_add_marker("VsyncTimestamp", geckoprofiler::category::GRAPHICS,
+                        MarkerTiming::InstantAt(aVsyncTimestamp),
+                        VsyncMarker{});
   }
 }
 #endif
@@ -2373,6 +2337,38 @@ void CompositorBridgeParent::NotifyDidSceneBuild(
   }
 }
 
+void CompositorBridgeParent::NotifyDidRender(const VsyncId& aCompositeStartId,
+                                             TimeStamp& aCompositeStart,
+                                             TimeStamp& aRenderStart,
+                                             TimeStamp& aCompositeEnd,
+                                             wr::RendererStats* aStats) {
+  if (!mWrBridge) {
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(mWrBridge->IsRootWebRenderBridgeParent());
+
+  RefPtr<UiCompositorControllerParent> uiController =
+      UiCompositorControllerParent::GetFromRootLayerTreeId(mRootLayerTreeID);
+
+  if (uiController && mIsForcedFirstPaint) {
+    uiController->NotifyFirstPaint();
+    mIsForcedFirstPaint = false;
+  }
+
+  nsTArray<CompositionPayload> payload =
+      mWrBridge->TakePendingScrollPayload(aCompositeStartId);
+  if (!payload.IsEmpty()) {
+    RecordCompositionPayloadsPresented(aCompositeEnd, payload);
+  }
+
+  nsTArray<ImageCompositeNotificationInfo> notifications;
+  mWrBridge->ExtractImageCompositeNotifications(&notifications);
+  if (!notifications.IsEmpty()) {
+    Unused << ImageBridgeParent::NotifyImageComposites(notifications);
+  }
+}
+
 void CompositorBridgeParent::NotifyPipelineRendered(
     const wr::PipelineId& aPipelineId, const wr::Epoch& aEpoch,
     const VsyncId& aCompositeStartId, TimeStamp& aCompositeStart,
@@ -2382,58 +2378,37 @@ void CompositorBridgeParent::NotifyPipelineRendered(
     return;
   }
 
+  bool isRoot = mWrBridge->PipelineId() == aPipelineId;
+  RefPtr<WebRenderBridgeParent> wrBridge =
+      isRoot ? mWrBridge
+             : RefPtr<WebRenderBridgeParent>(
+                   mAsyncImageManager->GetWrBridge(aPipelineId));
+  if (!wrBridge) {
+    return;
+  }
+
+  CompositorBridgeParentBase* compBridge =
+      isRoot ? this : wrBridge->GetCompositorBridge();
+  if (!compBridge) {
+    return;
+  }
+
+  MOZ_RELEASE_ASSERT(isRoot == wrBridge->IsRootWebRenderBridgeParent());
+
+  wrBridge->RemoveEpochDataPriorTo(aEpoch);
+
   nsTArray<FrameStats> stats;
 
   RefPtr<UiCompositorControllerParent> uiController =
       UiCompositorControllerParent::GetFromRootLayerTreeId(mRootLayerTreeID);
 
-  if (mWrBridge->PipelineId() == aPipelineId) {
-    mWrBridge->RemoveEpochDataPriorTo(aEpoch);
+  TransactionId transactionId = wrBridge->FlushTransactionIdsForEpoch(
+      aEpoch, aCompositeStartId, aCompositeStart, aRenderStart, aCompositeEnd,
+      uiController, aStats, &stats);
 
-    if (mIsForcedFirstPaint) {
-      uiController->NotifyFirstPaint();
-      mIsForcedFirstPaint = false;
-    }
-
-    std::pair<wr::PipelineId, wr::Epoch> key(aPipelineId, aEpoch);
-    nsTArray<CompositionPayload> payload =
-        mWrBridge->TakePendingScrollPayload(key);
-    if (!payload.IsEmpty()) {
-      RecordCompositionPayloadsPresented(payload);
-    }
-
-    TransactionId transactionId = mWrBridge->FlushTransactionIdsForEpoch(
-        aEpoch, aCompositeStartId, aCompositeStart, aRenderStart, aCompositeEnd,
-        uiController);
-    Unused << SendDidComposite(LayersId{0}, transactionId, aCompositeStart,
-                               aCompositeEnd);
-
-    nsTArray<ImageCompositeNotificationInfo> notifications;
-    mWrBridge->ExtractImageCompositeNotifications(&notifications);
-    if (!notifications.IsEmpty()) {
-      Unused << ImageBridgeParent::NotifyImageComposites(notifications);
-    }
-    return;
-  }
-
-  auto wrBridge = mAsyncImageManager->GetWrBridge(aPipelineId);
-  if (wrBridge && wrBridge->GetCompositorBridge()) {
-    MOZ_ASSERT(!wrBridge->IsRootWebRenderBridgeParent());
-    wrBridge->RemoveEpochDataPriorTo(aEpoch);
-
-    std::pair<wr::PipelineId, wr::Epoch> key(aPipelineId, aEpoch);
-    nsTArray<CompositionPayload> payload =
-        wrBridge->TakePendingScrollPayload(key);
-    if (!payload.IsEmpty()) {
-      RecordCompositionPayloadsPresented(payload);
-    }
-
-    TransactionId transactionId = wrBridge->FlushTransactionIdsForEpoch(
-        aEpoch, aCompositeStartId, aCompositeStart, aRenderStart, aCompositeEnd,
-        uiController, aStats, &stats);
-    Unused << wrBridge->GetCompositorBridge()->SendDidComposite(
-        wrBridge->GetLayersId(), transactionId, aCompositeStart, aCompositeEnd);
-  }
+  LayersId layersId = isRoot ? LayersId{0} : wrBridge->GetLayersId();
+  Unused << compBridge->SendDidComposite(layersId, transactionId,
+                                         aCompositeStart, aCompositeEnd);
 
   if (!stats.IsEmpty()) {
     Unused << SendNotifyFrameStats(stats);
@@ -2449,8 +2424,9 @@ void CompositorBridgeParent::NotifyDidComposite(TransactionId aTransactionId,
                                                 VsyncId aId,
                                                 TimeStamp& aCompositeStart,
                                                 TimeStamp& aCompositeEnd) {
-  MOZ_ASSERT(
-      !mWrBridge);  // We should be going through NotifyPipelineRendered instead
+  MOZ_ASSERT(!mWrBridge,
+             "We should be going through NotifyDidRender and "
+             "NotifyPipelineRendered instead");
 
   Unused << SendDidComposite(LayersId{0}, aTransactionId, aCompositeStart,
                              aCompositeEnd);
@@ -2597,15 +2573,6 @@ mozilla::ipc::IPCResult CompositorBridgeParent::RecvReleasePCanvasParent() {
 
 bool CompositorBridgeParent::IsSameProcess() const {
   return OtherPid() == base::GetCurrentProcId();
-}
-
-void CompositorBridgeParent::NotifyWebRenderContextPurge() {
-  MOZ_ASSERT(CompositorThread()->IsOnCurrentThread());
-  if (!mWrBridge) {
-    return;
-  }
-  RefPtr<wr::WebRenderAPI> api = mWrBridge->GetWebRenderAPI();
-  api->ClearAllCaches();
 }
 
 void CompositorBridgeParent::NotifyWebRenderDisableNativeCompositor() {
@@ -2810,42 +2777,23 @@ int32_t RecordContentFrameTime(
 
 #ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers()) {
-    class ContentFramePayload : public ProfilerMarkerPayload {
-     public:
-      ContentFramePayload(const mozilla::TimeStamp& aStartTime,
-                          const mozilla::TimeStamp& aEndTime)
-          : ProfilerMarkerPayload(aStartTime, aEndTime) {}
-      mozilla::ProfileBufferEntryWriter::Length TagAndSerializationBytes()
-          const override {
-        return CommonPropsTagAndSerializationBytes();
+    struct ContentFrameMarker {
+      static constexpr Span<const char> MarkerTypeName() {
+        return MakeStringSpan("CONTENT_FRAME_TIME");
       }
-      void SerializeTagAndPayload(
-          mozilla::ProfileBufferEntryWriter& aEntryWriter) const override {
-        static const DeserializerTag tag = TagForDeserializer(Deserialize);
-        SerializeTagAndCommonProps(tag, aEntryWriter);
-      }
-      void StreamPayload(mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
-                         const TimeStamp& aProcessStartTime,
-                         UniqueStacks& aUniqueStacks) const override {
-        StreamCommonProps("CONTENT_FRAME_TIME", aWriter, aProcessStartTime,
-                          aUniqueStacks);
-      }
-
-     private:
-      explicit ContentFramePayload(CommonProps&& aCommonProps)
-          : ProfilerMarkerPayload(std::move(aCommonProps)) {}
-      static mozilla::UniquePtr<ProfilerMarkerPayload> Deserialize(
-          mozilla::ProfileBufferEntryReader& aEntryReader) {
-        ProfilerMarkerPayload::CommonProps props =
-            DeserializeCommonProps(aEntryReader);
-        return UniquePtr<ProfilerMarkerPayload>(
-            new ContentFramePayload(std::move(props)));
+      static void StreamJSONMarkerData(
+          baseprofiler::SpliceableJSONWriter& aWriter) {}
+      static MarkerSchema MarkerTypeDisplay() {
+        using MS = MarkerSchema;
+        MS schema{MS::Location::markerChart, MS::Location::markerTable};
+        // Nothing outside the defaults.
+        return schema;
       }
     };
-    AUTO_PROFILER_STATS(add_marker_with_ContentFramePayload);
-    profiler_add_marker_for_thread(
-        profiler_current_thread_id(), JS::ProfilingCategoryPair::GRAPHICS,
-        "CONTENT_FRAME_TIME", ContentFramePayload(aTxnStart, aCompositeEnd));
+
+    profiler_add_marker("CONTENT_FRAME_TIME", geckoprofiler::category::GRAPHICS,
+                        MarkerTiming::Interval(aTxnStart, aCompositeEnd),
+                        ContentFrameMarker{});
   }
 #endif
 

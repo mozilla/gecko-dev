@@ -9,6 +9,7 @@
 
 #include "nsAppRunner.h"
 #include "Effects.h"
+#include "Layers.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Preferences.h"
@@ -34,6 +35,7 @@
 #include "mozilla/Base64.h"
 #include "mozilla/SHA1.h"
 #include "mozilla/StaticPtr.h"
+#include "nsComponentManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "nsISocketTransport.h"
 #include "nsIServerSocket.h"

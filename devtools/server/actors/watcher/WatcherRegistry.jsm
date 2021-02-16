@@ -32,6 +32,10 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { ActorManagerParent } = ChromeUtils.import(
   "resource://gre/modules/ActorManagerParent.jsm"
 );
+const { WatchedDataHelpers } = ChromeUtils.import(
+  "resource://devtools/server/actors/watcher/WatchedDataHelpers.jsm"
+);
+const { SUPPORTED_DATA } = WatchedDataHelpers;
 
 // Define the Map that will be saved in `sharedData`.
 // It is keyed by WatcherActor ID and values contains following attributes:
@@ -55,12 +59,6 @@ const watcherActors = new Map();
 
 // Name of the attribute into which we save this Map in `sharedData` object.
 const SHARED_DATA_KEY_NAME = "DevTools:watchedPerWatcher";
-
-// List of all arrays stored in `sharedData` which are replicated across processes and threads
-const SUPPORTED_DATA = {
-  TARGETS: "targets",
-  RESOURCES: "resources",
-};
 
 /**
  * Use `sharedData` to allow processes, early during their creation,
@@ -162,20 +160,10 @@ const WatcherRegistry = {
       throw new Error(`Unsupported watcher data type: ${type}`);
     }
 
-    for (const entry of entries) {
-      if (watchedData[type].includes(entry)) {
-        throw new Error(
-          `'${type}:${entry} already exists for Watcher Actor ${watcher.actorID}`
-        );
-      }
-    }
+    WatchedDataHelpers.addWatchedDataEntry(watchedData, type, entries);
 
     // Register the JS Window Actor the first time we start watching for something (e.g. resource, target, …).
     registerJSWindowActor();
-
-    for (const entry of entries) {
-      watchedData[type].push(entry);
-    }
 
     persistMapToSharedData();
   },
@@ -198,15 +186,9 @@ const WatcherRegistry = {
       throw new Error(`Unsupported watcher data type: ${type}`);
     }
 
-    let includesAtLeastOne = false;
-    for (const entry of entries) {
-      const idx = watchedData[type].indexOf(entry);
-      if (idx !== -1) {
-        watchedData[type].splice(idx, 1);
-        includesAtLeastOne = true;
-      }
-    }
-    if (!includesAtLeastOne) {
+    if (
+      !WatchedDataHelpers.removeWatchedDataEntry(watchedData, type, entries)
+    ) {
       return false;
     }
 
@@ -221,6 +203,19 @@ const WatcherRegistry = {
     persistMapToSharedData();
 
     return true;
+  },
+
+  /**
+   * Cleanup everything about a given watcher actor.
+   * Remove it from any registry so that we stop interacting with it.
+   *
+   * The watcher would be automatically unregistered from removeWatcherEntry,
+   * if we remove all entries. But we aren't removing all breakpoints.
+   * So here, we force clearing any reference to the watcher actor when it destroys.
+   */
+  unregisterWatcher(watcher) {
+    watchedDataByWatcherActor.delete(watcher.actorID);
+    watcherActors.delete(watcher.actorID);
   },
 
   /**

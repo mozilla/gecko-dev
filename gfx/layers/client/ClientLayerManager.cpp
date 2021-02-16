@@ -23,6 +23,7 @@
 #include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/PersistentBufferProvider.h"
 #include "mozilla/layers/SyncObject.h"
+#include "mozilla/layers/TransactionIdAllocator.h"
 #include "mozilla/PerfStats.h"
 #include "ClientReadbackLayer.h"  // for ClientReadbackLayer
 #include "nsAString.h"
@@ -899,6 +900,10 @@ ClientLayerManager::CreatePersistentBufferProvider(const gfx::IntSize& aSize,
 }
 
 ClientLayer::~ClientLayer() { MOZ_COUNT_DTOR(ClientLayer); }
+
+ClientLayer* ClientLayer::ToClientLayer(Layer* aLayer) {
+  return static_cast<ClientLayer*>(aLayer->ImplData());
+}
 
 }  // namespace layers
 }  // namespace mozilla

@@ -126,9 +126,6 @@ class IMMHandler final {
   // IME.  Otherwise, NS_OK.
   static nsresult OnMouseButtonEvent(nsWindow* aWindow,
                                      const IMENotification& aIMENotification);
-  static void SetCandidateWindow(nsWindow* aWindow, CANDIDATEFORM* aForm);
-  static void DefaultProcOfPluginEvent(nsWindow* aWindow,
-                                       const NPEvent* aEvent);
 
 #define DECL_IS_IME_ACTIVE(aReadableName) \
   static bool Is##aReadableName##Active();
@@ -155,7 +152,6 @@ class IMMHandler final {
   static void EnsureHandlerInstance();
 
   static bool IsComposingOnOurEditor();
-  static bool IsComposingOnPlugin();
   static bool IsComposingWindow(nsWindow* aWindow);
 
   static bool ShouldDrawCompositionStringOurselves();
@@ -173,9 +169,6 @@ class IMMHandler final {
 
   static bool ProcessInputLangChangeMessage(nsWindow* aWindow, WPARAM wParam,
                                             LPARAM lParam, MSGResult& aResult);
-  static bool ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
-                                      WPARAM& wParam, LPARAM& lParam,
-                                      bool& aRet, MSGResult& aResult);
 
   IMMHandler();
   ~IMMHandler();
@@ -186,23 +179,13 @@ class IMMHandler final {
                              MSGResult& aResult);
 
   bool OnIMEStartComposition(nsWindow* aWindow, MSGResult& aResult);
-  void OnIMEStartCompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                     LPARAM lParam);
   bool OnIMEComposition(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                         MSGResult& aResult);
-  void OnIMECompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                LPARAM lParam);
   bool OnIMEEndComposition(nsWindow* aWindow, MSGResult& aResult);
-  void OnIMEEndCompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                   LPARAM lParam);
   bool OnIMERequest(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                     MSGResult& aResult);
-  bool OnIMECharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
-                         MSGResult& aResult);
   bool OnChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
               MSGResult& aResult);
-  bool OnCharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
-                      MSGResult& aResult);
   void OnInputLangChange(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                          MSGResult& aResult);
 
@@ -212,8 +195,6 @@ class IMMHandler final {
                         MSGResult& aResult);
   static bool OnIMESetContext(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                               MSGResult& aResult);
-  static bool OnIMESetContextOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                      LPARAM lParam, MSGResult& aResult);
   static bool OnIMECompositionFull(nsWindow* aWindow, MSGResult& aResult);
   static bool OnIMENotify(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
                           MSGResult& aResult);
@@ -268,8 +249,6 @@ class IMMHandler final {
                            nsACString& aANSIStr);
 
   bool SetIMERelatedWindowsPos(nsWindow* aWindow, const IMEContext& aContext);
-  void SetIMERelatedWindowsPosOnPlugin(nsWindow* aWindow,
-                                       const IMEContext& aContext);
   /**
    * GetCharacterRectOfSelectedTextAt() returns character rect of the offset
    * from the selection start or the start of composition string if there is
@@ -441,7 +420,6 @@ class IMMHandler final {
   }
 
   bool mIsComposing;
-  bool mIsComposingOnPlugin;
 
   static mozilla::WritingMode sWritingModeOfCompositionFont;
   static nsString sIMEName;

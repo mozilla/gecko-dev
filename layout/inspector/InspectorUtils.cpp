@@ -300,7 +300,7 @@ uint32_t InspectorUtils::GetSelectorCount(GlobalObject& aGlobal,
 /* static */
 void InspectorUtils::GetSelectorText(GlobalObject& aGlobal,
                                      BindingStyleRule& aRule,
-                                     uint32_t aSelectorIndex, nsString& aText,
+                                     uint32_t aSelectorIndex, nsACString& aText,
                                      ErrorResult& aRv) {
   aRv = aRule.GetSelectorText(aSelectorIndex, aText);
 }
@@ -769,7 +769,7 @@ static void AddOverflowingChildrenOfElement(const nsIFrame* aFrame,
 
       if (FrameHasSpecifiedSize(child) &&
           IsFrameOutsideOfAncestor(child, aAncestorFrame, aRect)) {
-        aList.AppendElement(child->GetContent());
+        aList.MaybeAppendElement(child->GetContent());
         continue;
       }
 
@@ -780,7 +780,7 @@ static void AddOverflowingChildrenOfElement(const nsIFrame* aFrame,
       // calling AddOverflowingChildrenOfElement on it.
       if (currListLength == aList.Length() &&
           IsFrameOutsideOfAncestor(child, aAncestorFrame, aRect)) {
-        aList.AppendElement(child->GetContent());
+        aList.MaybeAppendElement(child->GetContent());
       }
     }
   }

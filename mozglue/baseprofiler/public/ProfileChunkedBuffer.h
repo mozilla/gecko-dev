@@ -14,6 +14,7 @@
 #include "mozilla/ProfileBufferEntrySerialization.h"
 #include "mozilla/RefCounted.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/Unused.h"
 
 #include <cstdio>
@@ -523,6 +524,13 @@ class ProfileChunkedBuffer {
     return ResetChunkManager(lock);
   }
 
+  // Clear the contents of this buffer, ready to receive new chunks.
+  // Note that memory is not freed: No chunks are destroyed, they are all
+  // receycled.
+  // Also the range doesn't reset, instead it continues at some point after the
+  // previous range. This may be useful if the caller may be keeping indexes
+  // into old chunks that have now been cleared, using these indexes will fail
+  // gracefully (instead of potentially pointing into new data).
   void Clear() {
     baseprofiler::detail::BaseProfilerMaybeAutoLock lock(mMutex);
     if (MOZ_UNLIKELY(!mChunkManager)) {
@@ -530,16 +538,46 @@ class ProfileChunkedBuffer {
       return;
     }
 
-    Unused << mChunkManager->GetExtantReleasedChunks();
-
     mRangeStart = mRangeEnd = mNextChunkRangeStart;
     mPushedBlockCount = 0;
     mClearedBlockCount = 0;
+    mFailedPutBytes = 0;
+
+    // Recycle all released chunks as "next" chunks. This will reduce the number
+    // of future allocations. Also, when using ProfileBufferChunkManagerSingle,
+    // this retrieves the one chunk if it was released.
+    UniquePtr<ProfileBufferChunk> releasedChunks =
+        mChunkManager->GetExtantReleasedChunks();
+    if (releasedChunks) {
+      // Released chunks should be in the "Done" state, they need to be marked
+      // "recycled" before they can be reused.
+      for (ProfileBufferChunk* chunk = releasedChunks.get(); chunk;
+           chunk = chunk->GetNext()) {
+        chunk->MarkRecycled();
+      }
+      mNextChunks = ProfileBufferChunk::Join(std::move(mNextChunks),
+                                             std::move(releasedChunks));
+    }
+
     if (mCurrentChunk) {
+      // We already have a current chunk (empty or in-use), mark it "done" and
+      // then "recycled", ready to be reused.
       mCurrentChunk->MarkDone();
       mCurrentChunk->MarkRecycled();
-      InitializeCurrentChunk(lock);
+    } else {
+      if (!mNextChunks) {
+        // No current chunk, and no next chunks to recycle, nothing more to do.
+        // The next "Put" operation will try to allocate a chunk as needed.
+        return;
+      }
+
+      // No current chunk, take a next chunk.
+      mCurrentChunk = std::exchange(mNextChunks, mNextChunks->ReleaseNext());
     }
+
+    // Here, there was already a current chunk, or one has just been taken.
+    // Make sure it's ready to receive new entries.
+    InitializeCurrentChunk(lock);
   }
 
   // Buffer maximum length in bytes.
@@ -575,6 +613,9 @@ class ProfileChunkedBuffer {
     // Number of blocks that have been removed from this buffer.
     // Note: Live entries = pushed - cleared.
     uint64_t mClearedBlockCount = 0;
+
+    // Number of bytes that could not be put into this buffer.
+    uint64_t mFailedPutBytes = 0;
   };
 
   // Get a snapshot of the current state.
@@ -584,7 +625,8 @@ class ProfileChunkedBuffer {
   // should only be used for statistical purposes.
   [[nodiscard]] State GetState() const {
     baseprofiler::detail::BaseProfilerMaybeAutoLock lock(mMutex);
-    return {mRangeStart, mRangeEnd, mPushedBlockCount, mClearedBlockCount};
+    return {mRangeStart, mRangeEnd, mPushedBlockCount, mClearedBlockCount,
+            mFailedPutBytes};
   }
 
   [[nodiscard]] bool IsEmpty() const {
@@ -1099,10 +1141,11 @@ class ProfileChunkedBuffer {
     baseprofiler::detail::BaseProfilerMaybeAutoLock lock(mMutex);
     fprintf(aFile,
             "ProfileChunkedBuffer[%p] State: range %u-%u pushed=%u cleared=%u "
-            "(live=%u)",
+            "(live=%u) failed-puts=%u bytes",
             this, unsigned(mRangeStart), unsigned(mRangeEnd),
             unsigned(mPushedBlockCount), unsigned(mClearedBlockCount),
-            unsigned(mPushedBlockCount) - unsigned(mClearedBlockCount));
+            unsigned(mPushedBlockCount) - unsigned(mClearedBlockCount),
+            unsigned(mFailedPutBytes));
     if (MOZ_UNLIKELY(!mChunkManager)) {
       fprintf(aFile, " - Out-of-session\n");
       return;
@@ -1174,6 +1217,7 @@ class ProfileChunkedBuffer {
       mRangeStart = mRangeEnd;
       mPushedBlockCount = 0;
       mClearedBlockCount = 0;
+      mFailedPutBytes = 0;
     }
     return chunkManager;
   }
@@ -1385,10 +1429,11 @@ class ProfileChunkedBuffer {
     if (MOZ_LIKELY(mChunkManager)) {
       // In-session.
 
+      const Length blockBytes =
+          std::forward<CallbackBlockBytes>(aCallbackBlockBytes)();
+
       if (ProfileBufferChunk* current = GetOrCreateCurrentChunk(aLock);
           MOZ_LIKELY(current)) {
-        const Length blockBytes =
-            std::forward<CallbackBlockBytes>(aCallbackBlockBytes)();
         if (blockBytes <= current->RemainingBytes()) {
           // Block fits in current chunk with only one span.
           currentChunkFilled = blockBytes == current->RemainingBytes();
@@ -1404,6 +1449,11 @@ class ProfileChunkedBuffer {
         } else {
           // Block doesn't fit fully in current chunk, it needs to overflow into
           // the next one.
+          // Whether or not we can write this entry, the current chunk is now
+          // considered full, so it will be released. (Otherwise we could refuse
+          // this entry, but later accept a smaller entry into this chunk, which
+          // would be somewhat inconsistent.)
+          currentChunkFilled = true;
           // Make sure the next chunk is available (from a previous request),
           // otherwise create one on the spot.
           if (ProfileBufferChunk* next = GetOrCreateNextChunk(aLock);
@@ -1421,7 +1471,6 @@ class ProfileChunkedBuffer {
             const auto mem1 = next->ReserveInitialBlockAsTail(
                 blockBytes - mem0.LengthBytes());
             MOZ_ASSERT(next->RemainingBytes() != 0);
-            currentChunkFilled = true;
             nextChunkInitialized = true;
             // Block is split in two spans.
             maybeEntryWriter.emplace(
@@ -1431,10 +1480,16 @@ class ProfileChunkedBuffer {
             MOZ_ASSERT(maybeEntryWriter->RemainingBytes() == blockBytes);
             mRangeEnd += blockBytes;
             mPushedBlockCount += aBlockCount;
+          } else {
+            // Cannot get a new chunk. Record put failure.
+            mFailedPutBytes += blockBytes;
           }
         }
-      }  // end of `MOZ_LIKELY(current)`
-    }    // end of `if (MOZ_LIKELY(mChunkManager))`
+      } else {
+        // Cannot get a current chunk. Record put failure.
+        mFailedPutBytes += blockBytes;
+      }
+    }  // end of `if (MOZ_LIKELY(mChunkManager))`
 
     // Here, we either have a `Nothing` (failure), or a non-empty entry writer
     // pointing at the start of the block.
@@ -1463,7 +1518,7 @@ class ProfileChunkedBuffer {
 
         // And finally mark filled chunk done and release it.
         filled->MarkDone();
-        mChunkManager->ReleaseChunks(std::move(filled));
+        mChunkManager->ReleaseChunk(std::move(filled));
 
         // Request another chunk if needed.
         // In most cases, here we should have one current chunk and no next
@@ -1597,6 +1652,9 @@ class ProfileChunkedBuffer {
   // callback may be invoked from anywhere, including from inside one of our
   // locked section, so we cannot protect it with a mutex.
   Atomic<uint64_t, MemoryOrdering::ReleaseAcquire> mClearedBlockCount{0};
+
+  // Number of bytes that could not be put into this buffer.
+  uint64_t mFailedPutBytes = 0;
 };
 
 // ----------------------------------------------------------------------------
@@ -1663,6 +1721,7 @@ struct ProfileBufferEntryWriter::Serializer<ProfileChunkedBuffer> {
       // And write stats.
       aEW.WriteObject(static_cast<uint64_t>(aBuffer.mPushedBlockCount));
       aEW.WriteObject(static_cast<uint64_t>(aBuffer.mClearedBlockCount));
+      // Note: Failed pushes are not important to serialize.
     });
   }
 };
@@ -1712,6 +1771,8 @@ struct ProfileBufferEntryReader::Deserializer<ProfileChunkedBuffer> {
     // Finally copy stats.
     aBuffer.mPushedBlockCount = aER.ReadObject<uint64_t>();
     aBuffer.mClearedBlockCount = aER.ReadObject<uint64_t>();
+    // Failed puts are not important to keep.
+    aBuffer.mFailedPutBytes = 0;
   }
 
   // We cannot output a ProfileChunkedBuffer object (not copyable), use

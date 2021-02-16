@@ -177,7 +177,22 @@ async function webdriverClickElement(el, a11y) {
   } else {
     // step 9
     let clicked = interaction.flushEventLoop(containerEl);
+
+    // Synthesize a pointerMove action.
+    event.synthesizeMouseAtPoint(
+      clickPoint.x,
+      clickPoint.y,
+      {
+        type: "mousemove",
+        // Remove buttons attribute with https://bugzilla.mozilla.org/show_bug.cgi?id=1686361
+        buttons: 0,
+      },
+      win
+    );
+
+    // Synthesize a pointerDown + pointerUp action.
     event.synthesizeMouseAtPoint(clickPoint.x, clickPoint.y, {}, win);
+
     await clicked;
   }
 
@@ -466,6 +481,23 @@ interaction.isKeyboardInteractable = function(el) {
 
   // body and document element are always keyboard-interactable
   if (el.localName === "body" || el === win.document.documentElement) {
+    return true;
+  }
+
+  // context menu popups do not take the focus from the document.
+  const menuPopup = el.closest("menupopup");
+  if (menuPopup) {
+    if (menuPopup.state !== "open") {
+      // closed menupopups are not keyboard interactable.
+      return false;
+    }
+
+    const menuItem = el.closest("menuitem");
+    if (menuItem) {
+      // hidden or disabled menu items are not keyboard interactable.
+      return !menuItem.disabled && !menuItem.hidden;
+    }
+
     return true;
   }
 

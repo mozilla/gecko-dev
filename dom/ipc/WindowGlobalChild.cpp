@@ -22,12 +22,15 @@
 #include "mozilla/dom/WindowContext.h"
 #include "mozilla/dom/InProcessChild.h"
 #include "mozilla/dom/InProcessParent.h"
+#include "mozilla/ipc/Endpoint.h"
+#include "mozilla/PresShell.h"
 #include "nsContentUtils.h"
 #include "nsDocShell.h"
 #include "nsFocusManager.h"
 #include "nsFrameLoaderOwner.h"
 #include "nsGlobalWindowInner.h"
 #include "nsFrameLoaderOwner.h"
+#include "nsNetUtil.h"
 #include "nsQueryObject.h"
 #include "nsSerializationHelper.h"
 #include "nsFrameLoader.h"
@@ -86,7 +89,7 @@ already_AddRefed<WindowGlobalChild> WindowGlobalChild::Create(
   nsILoadInfo::CrossOriginOpenerPolicy policy;
   if (httpChan &&
       loadInfo->GetExternalContentPolicyType() ==
-          nsIContentPolicy::TYPE_DOCUMENT &&
+          ExtContentPolicy::TYPE_DOCUMENT &&
       NS_SUCCEEDED(httpChan->GetCrossOriginOpenerPolicy(&policy))) {
     MOZ_DIAGNOSTIC_ASSERT(policy ==
                           aWindow->GetBrowsingContext()->GetOpenerPolicy());
@@ -246,6 +249,9 @@ void WindowGlobalChild::OnNewDocument(Document* aDocument) {
   if (mixedChannel && (mixedChannel == aDocument->GetChannel())) {
     txn.SetAllowMixedContent(true);
   }
+
+  MOZ_DIAGNOSTIC_ASSERT(mDocumentPrincipal->GetIsLocalIpAddress() ==
+                        mWindowContext->IsLocalIP());
 
   MOZ_ALWAYS_SUCCEEDS(txn.Commit(mWindowContext));
 }
@@ -441,13 +447,8 @@ mozilla::ipc::IPCResult WindowGlobalChild::RecvDrawSnapshot(
     const Maybe<IntRect>& aRect, const float& aScale,
     const nscolor& aBackgroundColor, const uint32_t& aFlags,
     DrawSnapshotResolver&& aResolve) {
-  nsCOMPtr<nsIDocShell> docShell = BrowsingContext()->GetDocShell();
-  if (!docShell) {
-    aResolve(gfx::PaintFragment{});
-    return IPC_OK();
-  }
-
-  aResolve(gfx::PaintFragment::Record(docShell, aRect, aScale, aBackgroundColor,
+  aResolve(gfx::PaintFragment::Record(BrowsingContext(), aRect, aScale,
+                                      aBackgroundColor,
                                       (gfx::CrossProcessPaintFlags)aFlags));
   return IPC_OK();
 }
@@ -550,6 +551,12 @@ mozilla::ipc::IPCResult WindowGlobalChild::RecvResetScalingZoom() {
                                   ResolutionChangeOrigin::MainThreadAdjustment);
     }
   }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult WindowGlobalChild::RecvSetContainerFeaturePolicy(
+    dom::FeaturePolicy* aContainerFeaturePolicy) {
+  mContainerFeaturePolicy = aContainerFeaturePolicy;
   return IPC_OK();
 }
 
@@ -679,7 +686,8 @@ void WindowGlobalChild::MaybeSendUpdateDocumentWouldPreloadResources() {
   }
 }
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WindowGlobalChild, mWindowGlobal)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(WindowGlobalChild, mWindowGlobal,
+                                      mContainerFeaturePolicy)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WindowGlobalChild)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY

@@ -15,10 +15,10 @@
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/MiscEvents.h"
-#include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/StaticPrefs_intl.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/Unused.h"
@@ -71,8 +71,8 @@ TextComposition::TextComposition(nsPresContext* aPresContext, nsINode* aNode,
       mHasDispatchedDOMTextEvent(false),
       mHasReceivedCommitEvent(false),
       mWasNativeCompositionEndEventDiscarded(false),
-      mAllowControlCharacters(Preferences::GetBool(
-          "dom.compositionevent.allow_control_characters", false)),
+      mAllowControlCharacters(
+          StaticPrefs::dom_compositionevent_allow_control_characters()),
       mWasCompositionStringEmpty(true) {
   MOZ_ASSERT(aCompositionEvent->mNativeIMEContext.IsValid());
 }
@@ -233,6 +233,18 @@ static void RemoveControlCharactersFrom(nsAString& aStr,
   aStr.SetLength(curDest - dest);
 }
 
+nsString TextComposition::CommitStringIfCommittedAsIs() const {
+  nsString result(mLastData);
+  if (!mAllowControlCharacters) {
+    RemoveControlCharactersFrom(result, nullptr);
+  }
+  if (StaticPrefs::intl_ime_remove_placeholder_character_at_commit() &&
+      mLastData == IDEOGRAPHIC_SPACE) {
+    return EmptyString();
+  }
+  return result;
+}
+
 void TextComposition::DispatchCompositionEvent(
     WidgetCompositionEvent* aCompositionEvent, nsEventStatus* aStatus,
     EventDispatchingCallback* aCallBack, bool aIsSynthesized) {
@@ -279,9 +291,8 @@ void TextComposition::DispatchCompositionEvent(
     aCompositionEvent->mRanges = nullptr;
     NS_ASSERTION(aCompositionEvent->mData.IsEmpty(),
                  "mData of eCompositionCommitAsIs should be empty string");
-    bool removePlaceholderCharacter = Preferences::GetBool(
-        "intl.ime.remove_placeholder_character_at_commit", false);
-    if (removePlaceholderCharacter && mLastData == IDEOGRAPHIC_SPACE) {
+    if (StaticPrefs::intl_ime_remove_placeholder_character_at_commit() &&
+        mLastData == IDEOGRAPHIC_SPACE) {
       // If the last data is an ideographic space (FullWidth space), it might be
       // a placeholder character of some Chinese IME.  So, committing with
       // this data might not be expected by users.  Let's use empty string.
@@ -437,18 +448,19 @@ void TextComposition::HandleSelectionEvent(
 
 uint32_t TextComposition::GetSelectionStartOffset() {
   nsCOMPtr<nsIWidget> widget = mPresContext->GetRootWidget();
-  WidgetQueryContentEvent selectedTextEvent(true, eQuerySelectedText, widget);
+  WidgetQueryContentEvent querySelectedTextEvent(true, eQuerySelectedText,
+                                                 widget);
   // Due to a bug of widget, mRanges may not be nullptr even though composition
   // string is empty.  So, we need to check it here for avoiding to return
   // odd start offset.
   if (!mLastData.IsEmpty() && mRanges && mRanges->HasClauses()) {
-    selectedTextEvent.InitForQuerySelectedText(
+    querySelectedTextEvent.InitForQuerySelectedText(
         ToSelectionType(mRanges->GetFirstClause()->mRangeType));
   } else {
     NS_WARNING_ASSERTION(
         !mLastData.IsEmpty() || !mRanges || !mRanges->HasClauses(),
         "Shouldn't have empty clause info when composition string is empty");
-    selectedTextEvent.InitForQuerySelectedText(SelectionType::eNormal);
+    querySelectedTextEvent.InitForQuerySelectedText(SelectionType::eNormal);
   }
 
   // The editor which has this composition is observed by active
@@ -459,7 +471,7 @@ uint32_t TextComposition::GetSelectionStartOffset() {
   if (contentObserver) {
     if (contentObserver->IsManaging(this)) {
       doQuerySelection = false;
-      contentObserver->HandleQueryContentEvent(&selectedTextEvent);
+      contentObserver->HandleQueryContentEvent(&querySelectedTextEvent);
     }
     // If another editor already has focus, we cannot retrieve selection
     // in the editor which has this composition...
@@ -472,13 +484,13 @@ uint32_t TextComposition::GetSelectionStartOffset() {
   // ContentEventHandler)
   if (doQuerySelection) {
     ContentEventHandler handler(mPresContext);
-    handler.HandleQueryContentEvent(&selectedTextEvent);
+    handler.HandleQueryContentEvent(&querySelectedTextEvent);
   }
 
-  if (NS_WARN_IF(!selectedTextEvent.mSucceeded)) {
+  if (NS_WARN_IF(querySelectedTextEvent.DidNotFindSelection())) {
     return 0;  // XXX Is this okay?
   }
-  return selectedTextEvent.mReply.mOffset;
+  return querySelectedTextEvent.mReply->SelectionStartOffset();
 }
 
 void TextComposition::OnCompositionEventDispatched(
@@ -814,11 +826,15 @@ TextComposition::CompositionEventDispatcher::Run() {
     case eCompositionStart: {
       WidgetCompositionEvent compStart(true, eCompositionStart, widget);
       compStart.mNativeIMEContext = mTextComposition->mNativeContext;
-      WidgetQueryContentEvent selectedText(true, eQuerySelectedText, widget);
+      WidgetQueryContentEvent querySelectedTextEvent(true, eQuerySelectedText,
+                                                     widget);
       ContentEventHandler handler(presContext);
-      handler.OnQuerySelectedText(&selectedText);
-      NS_ASSERTION(selectedText.mSucceeded, "Failed to get selected text");
-      compStart.mData = selectedText.mReply.mString;
+      handler.OnQuerySelectedText(&querySelectedTextEvent);
+      NS_ASSERTION(querySelectedTextEvent.Succeeded(),
+                   "Failed to get selected text");
+      if (querySelectedTextEvent.FoundSelection()) {
+        compStart.mData = querySelectedTextEvent.mReply->DataRef();
+      }
       compStart.mFlags.mIsSynthesizedForTests =
           mTextComposition->IsSynthesizedForTests();
       IMEStateManager::DispatchCompositionEvent(

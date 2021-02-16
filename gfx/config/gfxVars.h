@@ -36,8 +36,6 @@ class gfxVarReceiver;
     mozilla::gfx::SurfaceFormat::X8R8G8B8_UINT32)                  \
   _(RequiresAcceleratedGLContextForCompositorOGL, bool, false)     \
   _(CanUseHardwareVideoDecoding, bool, false)                      \
-  _(PDMWMFDisableD3D11Dlls, nsCString, nsCString())                \
-  _(PDMWMFDisableD3D9Dlls, nsCString, nsCString())                 \
   _(DXInterop2Blocked, bool, false)                                \
   _(DXNV12Blocked, bool, false)                                    \
   _(DXP010Blocked, bool, false)                                    \
@@ -75,7 +73,8 @@ class gfxVarReceiver;
   _(FxREmbedded, bool, false)                                      \
   _(UseAHardwareBufferContent, bool, false)                        \
   _(UseAHardwareBufferSharedSurface, bool, false)                  \
-  _(UseEGL, bool, false)
+  _(UseEGL, bool, false)                                           \
+  _(DrmRenderDevice, nsCString, nsCString())
 
 /* Add new entries above this line. */
 

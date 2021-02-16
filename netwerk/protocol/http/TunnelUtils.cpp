@@ -164,20 +164,6 @@ void TLSFilterTransaction::Close(nsresult aReason) {
   mTransaction->Close(aReason);
   mTransaction = nullptr;
 
-  if (!gHttpHandler->Bug1563695()) {
-    RefPtr<NullHttpTransaction> baseTrans(do_QueryReferent(mWeakTrans));
-    SpdyConnectTransaction* trans =
-        baseTrans ? baseTrans->QuerySpdyConnectTransaction() : nullptr;
-
-    LOG(("TLSFilterTransaction::Close %p aReason=%" PRIx32 " trans=%p\n", this,
-         static_cast<uint32_t>(aReason), trans));
-
-    if (trans) {
-      trans->Close(aReason);
-      trans = nullptr;
-    }
-  }
-
   if (gHttpHandler->Bug1563538()) {
     if (NS_FAILED(aReason)) {
       mCloseReason = aReason;
@@ -2059,9 +2045,9 @@ SocketTransportShim::GetFirstRetryError(nsresult* aFirstRetryError) {
 }
 
 NS_IMETHODIMP
-SocketTransportShim::GetEsniUsed(bool* aEsniUsed) {
+SocketTransportShim::GetEchConfigUsed(bool* aEchConfigUsed) {
   if (mIsWebsocket) {
-    LOG3(("WARNING: SocketTransportShim::GetEsniUsed %p", this));
+    LOG3(("WARNING: SocketTransportShim::GetEchConfigUsed %p", this));
   }
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -2106,6 +2092,7 @@ FWD_TS_ADDREF(GetSecurityInfo, nsISupports);
 FWD_TS_PTR(IsAlive, bool);
 FWD_TS_PTR(GetConnectionFlags, uint32_t);
 FWD_TS(SetConnectionFlags, uint32_t);
+FWD_TS(SetIsPrivate, bool);
 FWD_TS_PTR(GetTlsFlags, uint32_t);
 FWD_TS(SetTlsFlags, uint32_t);
 FWD_TS_PTR(GetRecvBufferSize, uint32_t);

@@ -8,8 +8,10 @@ from __future__ import absolute_import
 
 import json
 import os
-
+import shutil
 from abc import ABCMeta, abstractmethod
+
+import six
 from logger.logger import RaptorLogger
 from output import RaptorOutput, BrowsertimeOutput
 
@@ -24,10 +26,9 @@ KNOWN_TEST_MODIFIERS = [
 ]
 
 
+@six.add_metaclass(ABCMeta)
 class PerftestResultsHandler(object):
     """Abstract base class to handle perftest results"""
-
-    __metaclass__ = ABCMeta
 
     def __init__(
         self,
@@ -97,6 +98,17 @@ class PerftestResultsHandler(object):
                         "Unknown test modifier %s was provided as an extra option"
                         % name
                     )
+
+        if (
+            self.app.lower()
+            in (
+                "chrome",
+                "chrome-m",
+                "chromium",
+            )
+            and "webrender" in extra_options
+        ):
+            extra_options.remove("webrender")
 
         return extra_options
 
@@ -298,12 +310,20 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
         super(BrowsertimeResultsHandler, self).__init__(**config)
         self._root_results_dir = root_results_dir
         self.browsertime_visualmetrics = False
+        if not os.path.exists(self._root_results_dir):
+            os.mkdir(self._root_results_dir)
 
     def result_dir(self):
         return self._root_results_dir
 
     def result_dir_for_test(self, test):
         return os.path.join(self._root_results_dir, test["name"])
+
+    def remove_result_dir_for_test(self, test):
+        test_result_dir = self.result_dir_for_test(test)
+        if os.path.exists(test_result_dir):
+            shutil.rmtree(test_result_dir)
+        return test_result_dir
 
     def add(self, new_result_json):
         # not using control server with bt
@@ -772,9 +792,6 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                     new_result = _new_standard_result(
                         new_result, subtest_unit=test.get("subtest_unit", "ms")
                     )
-                    # XXX Is this still needed?
-                    if self.app != "firefox":
-                        new_result["extra_options"].append(self.app)
 
                     LOG.info("parsed new benchmark result: %s" % str(new_result))
                     return new_result
@@ -794,7 +811,9 @@ class BrowsertimeResultsHandler(PerftestResultsHandler):
                             item
                         ):
                             # add page cycle custom measurements to the existing results
-                            for measurement in new_result["measurements"].iteritems():
+                            for measurement in six.iteritems(
+                                new_result["measurements"]
+                            ):
                                 self.results[i]["measurements"][measurement[0]].extend(
                                     measurement[1]
                                 )

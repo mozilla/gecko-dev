@@ -399,6 +399,8 @@ CssRuleView.prototype = {
 
   /**
    * Delegate handler for click events happening within the DOM tree of the Rules view.
+   * Stop propagation of click event wrapping a CSS rule or CSS declaration to avoid
+   * triggering the prompt to add a new CSS declaration or to edit the existing one.
    *
    * @param {MouseEvent} event
    */
@@ -408,8 +410,24 @@ CssRuleView.prototype = {
     // Handle click on the icon next to a CSS selector.
     if (target.classList.contains("js-toggle-selector-highlighter")) {
       this.toggleSelectorHighlighter(target.dataset.selector);
-      // Prevent the click on the element wrapping the CSS rule
-      // from triggering the prompt to add a new CSS declaration
+      event.stopPropagation();
+    }
+
+    // Handle click on swatches next to flex and inline-flex CSS properties
+    if (target.classList.contains("js-toggle-flexbox-highlighter")) {
+      this.inspector.highlighters.toggleFlexboxHighlighter(
+        this.inspector.selection.nodeFront,
+        "rule"
+      );
+      event.stopPropagation();
+    }
+
+    // Handle click on swatches next to grid CSS properties
+    if (target.classList.contains("js-toggle-grid-highlighter")) {
+      this.inspector.highlighters.toggleGridHighlighter(
+        this.inspector.selection.nodeFront,
+        "rule"
+      );
       event.stopPropagation();
     }
   },
@@ -427,19 +445,57 @@ CssRuleView.prototype = {
    */
   handleHighlighterEvent(eventName, data) {
     switch (data.type) {
-      // Toggle the "highlighted" CSS class name on selector icons in the Rules view when
+      // Toggle the "highlighted" class on selector icons in the Rules view when
       // the SelectorHighlighter is shown/hidden for a certain CSS selector.
       case this.inspector.highlighters.TYPES.SELECTOR:
-        if (data?.options?.selector) {
+        {
           const selector = data?.options?.selector;
+          if (!selector) {
+            return;
+          }
+
           const query = `.js-toggle-selector-highlighter[data-selector='${selector}']`;
           for (const node of this.styleDocument.querySelectorAll(query)) {
-            if (eventName == "highlighter-hidden") {
-              node.classList.remove("highlighted");
+            node.classList.toggle(
+              "highlighted",
+              eventName == "highlighter-shown"
+            );
+          }
+        }
+        break;
+
+      // Toggle the "active" class on swatches next to flex and inline-flex CSS properties
+      // when the FlexboxHighlighter is shown/hidden for the currently selected node.
+      case this.inspector.highlighters.TYPES.FLEXBOX:
+        {
+          const query = ".js-toggle-flexbox-highlighter";
+          for (const node of this.styleDocument.querySelectorAll(query)) {
+            node.classList.toggle("active", eventName == "highlighter-shown");
+          }
+        }
+        break;
+
+      // Toggle the "active" class on swatches next to grid CSS properties
+      // when the GridHighlighter is shown/hidden for the currently selected node.
+      case this.inspector.highlighters.TYPES.GRID:
+        {
+          const query = ".js-toggle-grid-highlighter";
+          for (const node of this.styleDocument.querySelectorAll(query)) {
+            // From the Layout panel, we can toggle grid highlighters for nodes which are
+            // not currently selected. The Rules view shows `display: grid` declarations
+            // only for the selected node. Avoid mistakenly marking them as "active".
+            if (data.nodeFront === this.inspector.selection.nodeFront) {
+              node.classList.toggle("active", eventName == "highlighter-shown");
             }
-            if (eventName == "highlighter-shown") {
-              node.classList.add("highlighted");
-            }
+
+            // When the max limit of grid highlighters is reached (default 3),
+            // mark inactive grid swatches as disabled.
+            node.toggleAttribute(
+              "disabled",
+              !this.inspector.highlighters.canGridHighlighterToggle(
+                this.inspector.selection.nodeFront
+              )
+            );
           }
         }
         break;
@@ -565,7 +621,13 @@ CssRuleView.prototype = {
       let text = "";
 
       const nodeName = target?.nodeName;
-      if (nodeName === "input" || nodeName == "textarea") {
+      const targetType = target?.type;
+
+      if (
+        // The target can be the enable/disable rule checkbox here (See Bug 1680893).
+        (nodeName === "input" && targetType !== "checkbox") ||
+        nodeName == "textarea"
+      ) {
         const start = Math.min(target.selectionStart, target.selectionEnd);
         const end = Math.max(target.selectionStart, target.selectionEnd);
         const count = end - start;

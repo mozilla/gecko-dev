@@ -11,7 +11,6 @@
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "mozilla/layers/WebRenderMessages.h"
 #include "mozilla/layers/WebRenderScrollData.h"
-#include "mozilla/Variant.h"
 
 namespace mozilla {
 
@@ -31,6 +30,7 @@ struct DisplayListData {
 };
 
 struct TransactionData {
+  wr::IdNamespace mIdNamespace;
   nsTArray<WebRenderParentCommand> mCommands;
   nsTArray<OpUpdateResource> mResourceUpdates;
   nsTArray<RefCountedShmem> mSmallShmems;

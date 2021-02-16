@@ -1,4 +1,3 @@
-/* jshint moz:true, browser:true */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -881,9 +880,6 @@ class RTCPeerConnection {
     } else {
       options = optionsOrOnSucc;
     }
-    if (this._localUfragsToReplace.size > 0) {
-      options.iceRestart = true;
-    }
     // This entry-point handles both new and legacy call sig. Decipher which one
     if (onSuccess) {
       return this._legacy(onSuccess, onErr, () => this._createOffer(options));
@@ -952,6 +948,9 @@ class RTCPeerConnection {
           `Cannot create offer in ${this.signalingState}`,
           "InvalidStateError"
         );
+    }
+    if (this._localUfragsToReplace.size > 0) {
+      options.iceRestart = true;
     }
     let haveAssertion;
     if (this._localIdp.enabled) {

@@ -38,8 +38,9 @@ class LocationError(Exception):
 
     def __str__(self):
         s = "Bad location"
-        if self.message:
-            s += ": %s" % self.message
+        m = str(Exception.__str__(self))
+        if m:
+            s += ": %s" % m
         return s
 
 
@@ -108,6 +109,10 @@ class Location(object):
         ) == len(self.attrs)
 
     __eq__ = isEqual
+
+    def __hash__(self):
+        # pylint --py3k: W1641
+        return hash(tuple(getattr(attr) for attr in self.attrs))
 
     def url(self):
         return "%s://%s:%s" % (self.scheme, self.host, self.port)

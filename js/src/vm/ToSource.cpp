@@ -6,10 +6,10 @@
 
 #include "vm/ToSource.h"
 
-#include "mozilla/ArrayUtils.h"     // mozilla::ArrayLength
 #include "mozilla/Assertions.h"     // MOZ_ASSERT
 #include "mozilla/FloatingPoint.h"  // mozilla::IsNegativeZero
 
+#include <iterator>  // std::size
 #include <stdint.h>  // uint32_t
 
 #include "jsfriendapi.h"  // CheckRecursionLimit
@@ -70,29 +70,27 @@ static JSString* SymbolToSource(JSContext* cx, JS::Symbol* symbol) {
     return desc;
   }
 
-  JSStringBuilder buf(cx);
   if (code == SymbolCode::PrivateNameSymbol) {
     MOZ_ASSERT(desc);
-    if (!buf.append('#') || !buf.append(desc)) {
-      return nullptr;
-    }
-  } else {
-    MOZ_ASSERT(code == SymbolCode::InSymbolRegistry ||
-               code == SymbolCode::UniqueSymbol);
+    return desc;
+  }
 
-    if (code == SymbolCode::InSymbolRegistry ? !buf.append("Symbol.for(")
-                                             : !buf.append("Symbol(")) {
+  MOZ_ASSERT(code == SymbolCode::InSymbolRegistry ||
+             code == SymbolCode::UniqueSymbol);
+
+  JSStringBuilder buf(cx);
+  if (code == SymbolCode::InSymbolRegistry ? !buf.append("Symbol.for(")
+                                           : !buf.append("Symbol(")) {
+    return nullptr;
+  }
+  if (desc) {
+    UniqueChars quoted = QuoteString(cx, desc, '"');
+    if (!quoted || !buf.append(quoted.get(), strlen(quoted.get()))) {
       return nullptr;
     }
-    if (desc) {
-      UniqueChars quoted = QuoteString(cx, desc, '"');
-      if (!quoted || !buf.append(quoted.get(), strlen(quoted.get()))) {
-        return nullptr;
-      }
-    }
-    if (!buf.append(')')) {
-      return nullptr;
-    }
+  }
+  if (!buf.append(')')) {
+    return nullptr;
   }
   return buf.finishString();
 }
@@ -146,8 +144,7 @@ JSString* js::ValueToSource(JSContext* cx, HandleValue v) {
       if (IsNegativeZero(v.toDouble())) {
         static const Latin1Char negativeZero[] = {'-', '0'};
 
-        return NewStringCopyN<CanGC>(cx, negativeZero,
-                                     mozilla::ArrayLength(negativeZero));
+        return NewStringCopyN<CanGC>(cx, negativeZero, std::size(negativeZero));
       }
       [[fallthrough]];
     case JS::ValueType::Int32:

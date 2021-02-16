@@ -19,6 +19,7 @@
 #include "mozilla/dom/SpeechGrammar.h"
 #include "mozilla/MediaManager.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ResultVariant.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/AbstractThread.h"
@@ -28,6 +29,7 @@
 #include "endpointer.h"
 
 #include "mozilla/dom/SpeechRecognitionEvent.h"
+#include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/Document.h"
 #include "nsIObserverService.h"
@@ -698,7 +700,7 @@ SpeechRecognition::Observe(nsISupports* aSubject, const char* aTopic,
       StateBetween(STATE_IDLE, STATE_WAITING_FOR_SPEECH)) {
     DispatchError(SpeechRecognition::EVENT_AUDIO_ERROR,
                   SpeechRecognitionErrorCode::No_speech,
-                  u"No speech detected (timeout)"_ns);
+                  "No speech detected (timeout)");
   } else if (!strcmp(aTopic, SPEECH_RECOGNITION_TEST_END_TOPIC)) {
     nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
     obs->RemoveObserver(this, SPEECH_RECOGNITION_TEST_EVENT_REQUEST_TOPIC);
@@ -719,7 +721,7 @@ void SpeechRecognition::ProcessTestEventRequest(nsISupports* aSubject,
     DispatchError(
         SpeechRecognition::EVENT_AUDIO_ERROR,
         SpeechRecognitionErrorCode::Audio_capture,  // TODO different codes?
-        u"AUDIO_ERROR test event"_ns);
+        "AUDIO_ERROR test event");
   } else {
     NS_ASSERTION(StaticPrefs::media_webspeech_test_fake_recognition_service(),
                  "Got request for fake recognition service event, but "
@@ -811,10 +813,15 @@ void SpeechRecognition::Start(const Optional<NonNull<DOMMediaStream>>& aStream,
     }
   } else {
     mTrackIsOwned = true;
+    nsPIDOMWindowInner* win = GetOwner();
+    if (!win || !win->IsFullyActive()) {
+      aRv.ThrowInvalidStateError("The document is not fully active.");
+      return;
+    }
     AutoNoJSAPI nojsapi;
     RefPtr<SpeechRecognition> self(this);
     MediaManager::Get()
-        ->GetUserMedia(GetOwner(), constraints, aCallerType)
+        ->GetUserMedia(win, constraints, aCallerType)
         ->Then(
             GetCurrentSerialEventTarget(), __func__,
             [this, self,
@@ -963,7 +970,7 @@ void SpeechRecognition::NotifyTrackAdded(
 
 void SpeechRecognition::DispatchError(EventType aErrorType,
                                       SpeechRecognitionErrorCode aErrorCode,
-                                      const nsAString& aMessage) {
+                                      const nsACString& aMessage) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aErrorType == EVENT_RECOGNITIONSERVICE_ERROR ||
                  aErrorType == EVENT_AUDIO_ERROR,

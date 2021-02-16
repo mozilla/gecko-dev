@@ -27,9 +27,8 @@ export default class MenuButton extends HTMLElement {
     this._menu = this.shadowRoot.querySelector(".menu");
     this._menuButton = this.shadowRoot.querySelector(".menu-button");
 
-    this.addEventListener("blur", this);
     this._menuButton.addEventListener("click", this);
-    this.addEventListener("keydown", this, true);
+    document.addEventListener("keydown", this, true);
   }
 
   handleEvent(event) {
@@ -82,6 +81,15 @@ export default class MenuButton extends HTMLElement {
           // So that the menu isn't closed when non-buttons (e.g. separators, paddings) are clicked
           this._hideMenu();
         }
+
+        // Explicitly close menu at the catch-all click event (i.e. a click outside of the menu)
+        if (
+          !this._menu.contains(event.originalTarget) &&
+          !this._menuButton.contains(event.originalTarget)
+        ) {
+          this._hideMenu();
+        }
+
         break;
       }
       case "keydown": {
@@ -95,10 +103,13 @@ export default class MenuButton extends HTMLElement {
       event.preventDefault();
       this._toggleMenu();
       this._focusSuccessor(true);
-    } else if (event.key == "Escape") {
+    } else if (event.key == "Escape" && !this._menu.hidden) {
       this._hideMenu();
       this._menuButton.focus();
-    } else if (event.key.startsWith("Arrow")) {
+    } else if (
+      (event.key == "ArrowDown" || event.key == "ArrowUp") &&
+      !this._menu.hidden
+    ) {
       event.preventDefault();
       this._focusSuccessor(event.key == "ArrowDown");
     }
@@ -129,11 +140,20 @@ export default class MenuButton extends HTMLElement {
     if (this._menu.hidden) {
       this._showMenu();
     }
-    successor.focus();
+    if (successor.disabled) {
+      if (next) {
+        successor = items[activeItemIndex + 2];
+      } else {
+        successor = items[activeItemIndex - 2];
+      }
+    }
+    window.AboutLoginsUtils.setFocus(successor);
   }
 
   _hideMenu() {
     this._menu.hidden = true;
+
+    this.removeEventListener("blur", this);
     document.documentElement.removeEventListener("click", this, true);
   }
 
@@ -143,7 +163,8 @@ export default class MenuButton extends HTMLElement {
 
     this._menu.hidden = false;
 
-    // Add a catch-all event listener to close the menu.
+    // Event listeners to close the menu
+    this.addEventListener("blur", this);
     document.documentElement.addEventListener("click", this, true);
   }
 

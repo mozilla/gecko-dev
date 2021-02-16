@@ -7,14 +7,17 @@
 #ifndef vm_SharedStencil_h
 #define vm_SharedStencil_h
 
-#include "mozilla/HashFunctions.h"    // mozilla::HahNumber, mozilla::HashBytes
-#include "mozilla/HashTable.h"        // mozilla::HashSet
+#include "mozilla/Assertions.h"     // MOZ_ASSERT, MOZ_CRASH
+#include "mozilla/Atomics.h"        // mozilla::{Atomic, SequentiallyConsistent}
+#include "mozilla/Attributes.h"     // MOZ_MUST_USE
+#include "mozilla/HashFunctions.h"  // mozilla::HahNumber, mozilla::HashBytes
+#include "mozilla/HashTable.h"      // mozilla::HashSet
 #include "mozilla/MemoryReporting.h"  // mozilla::MallocSizeOf
 #include "mozilla/RefPtr.h"           // RefPtr
 #include "mozilla/Span.h"             // mozilla::Span
 
 #include <stddef.h>  // size_t
-#include <stdint.h>  // uint32_t
+#include <stdint.h>  // uint8_t, uint16_t, uint32_t
 
 #include "frontend/SourceNotes.h"  // js::SrcNote
 #include "frontend/TypedIndex.h"   // js::frontend::TypedIndex
@@ -200,6 +203,11 @@ struct SourceExtent {
     return SourceExtent(0, len, 0, len, lineno, column);
   }
 
+  static SourceExtent makeClassExtent(uint32_t start, uint32_t end,
+                                      uint32_t lineno, uint32_t column) {
+    return SourceExtent(start, end, start, end, lineno, column);
+  }
+
   uint32_t sourceStart = 0;
   uint32_t sourceEnd = 0;
   uint32_t toStringStart = 0;
@@ -342,11 +350,9 @@ class alignas(uint32_t) ImmutableScriptData final : public TrailingArray {
   // ES6 function length.
   uint16_t funLength = 0;
 
-  // Number of type sets used in this script for dynamic type monitoring.
-  uint16_t numBytecodeTypeSets = 0;
-
   // NOTE: The raw bytes of this structure are used for hashing so use explicit
   // padding values as needed for predicatable results across compilers.
+  uint16_t padding = 0;
 
  private:
   struct Flags {
@@ -417,9 +423,9 @@ class alignas(uint32_t) ImmutableScriptData final : public TrailingArray {
  public:
   static js::UniquePtr<ImmutableScriptData> new_(
       JSContext* cx, uint32_t mainOffset, uint32_t nfixed, uint32_t nslots,
-      GCThingIndex bodyScopeIndex, uint32_t numICEntries,
-      uint32_t numBytecodeTypeSets, bool isFunction, uint16_t funLength,
-      mozilla::Span<const jsbytecode> code, mozilla::Span<const SrcNote> notes,
+      GCThingIndex bodyScopeIndex, uint32_t numICEntries, bool isFunction,
+      uint16_t funLength, mozilla::Span<const jsbytecode> code,
+      mozilla::Span<const SrcNote> notes,
       mozilla::Span<const uint32_t> resumeOffsets,
       mozilla::Span<const ScopeNote> scopeNotes,
       mozilla::Span<const TryNote> tryNotes);
@@ -592,6 +598,33 @@ struct SharedImmutableScriptData::Hasher {
 using SharedImmutableScriptDataTable =
     mozilla::HashSet<SharedImmutableScriptData*,
                      SharedImmutableScriptData::Hasher, SystemAllocPolicy>;
+
+struct MemberInitializers {
+  static constexpr uint32_t MaxInitializers = INT32_MAX;
+
+#ifdef DEBUG
+  bool valid = false;
+#endif
+
+  // This struct will eventually have a vector of constant values for optimizing
+  // field initializers.
+  uint32_t numMemberInitializers = 0;
+
+  explicit MemberInitializers(uint32_t numMemberInitializers)
+      :
+#ifdef DEBUG
+        valid(true),
+#endif
+        numMemberInitializers(numMemberInitializers) {
+  }
+
+  static MemberInitializers Invalid() { return MemberInitializers(); }
+
+  uint32_t serialize() const { return numMemberInitializers; }
+
+ private:
+  MemberInitializers() = default;
+};
 
 }  // namespace js
 

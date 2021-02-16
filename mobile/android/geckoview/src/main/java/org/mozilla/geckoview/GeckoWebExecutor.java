@@ -16,6 +16,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Locale;
 
 import org.mozilla.gecko.GeckoThread;
 import org.mozilla.gecko.annotation.WrapForJNI;
@@ -58,7 +59,6 @@ public class GeckoWebExecutor {
             FETCH_FLAGS_NONE,
             FETCH_FLAGS_ANONYMOUS,
             FETCH_FLAGS_NO_REDIRECTS,
-            FETCH_FLAGS_ALLOW_SOME_ERRORS,
             FETCH_FLAGS_PRIVATE,
             FETCH_FLAGS_STREAM_FAILURE_TEST,
     })
@@ -81,13 +81,8 @@ public class GeckoWebExecutor {
     @WrapForJNI
     public static final int FETCH_FLAGS_NO_REDIRECTS = 1 << 1;
 
-    // TODO: implement in WebExecutorSupport and make public bug 1538348
-    /**
-     * Enables downloads to continue even if they encounter HTTP errors.
-     * Using this flag, for example, enables the download of server error pages.
-     */
-    @WrapForJNI
-    /* package */ static final int FETCH_FLAGS_ALLOW_SOME_ERRORS = 1 << 2;
+    // There was supposed to be another flag, which we then decided not to implement.
+    // That's the reason there's no value 1 << 2, and it can absolutely be used :)
 
     /**
      * Associates this download with the current private browsing session
@@ -144,9 +139,11 @@ public class GeckoWebExecutor {
             throw new IllegalArgumentException("Unknown cache mode");
         }
 
+        final String uri = request.uri.toLowerCase(Locale.ROOT);
         // We don't need to fully validate the URI here, just a sanity check
-        if (!request.uri.toLowerCase().matches("(http|blob).*")) {
-            throw new IllegalArgumentException("Unsupported URI scheme");
+        if (!uri.matches("(http|blob).*")) {
+            throw new IllegalArgumentException("Unsupported URI scheme: " +
+                    (uri.length() > 10 ? uri.substring(0, 10) : uri));
         }
 
         final GeckoResult<WebResponse> result = new GeckoResult<>();
@@ -160,11 +157,6 @@ public class GeckoWebExecutor {
         }
 
         return result;
-    }
-
-    // TODO: make public bug 1538348
-    /* package */ @NonNull GeckoResult<WebResponse> fetch(final @NonNull WebExtension.DownloadRequest request) {
-        return fetch(request.request, request.downloadFlags);
     }
 
     /**

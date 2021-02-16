@@ -7,9 +7,10 @@
 #ifndef MOZILLA_GFX_RENDERCOMPOSITOR_D3D11_H
 #define MOZILLA_GFX_RENDERCOMPOSITOR_D3D11_H
 
-#include "mozilla/webrender/RenderCompositor.h"
+#include "mozilla/layers/ScreenshotGrabber.h"
 #include "mozilla/layers/TextureD3D11.h"
 #include "mozilla/layers/CompositorD3D11.h"
+#include "mozilla/webrender/RenderCompositor.h"
 
 namespace mozilla {
 
@@ -39,6 +40,8 @@ class RenderCompositorD3D11SWGL : public RenderCompositor {
   bool SurfaceOriginIsTopLeft() override { return true; }
 
   LayoutDeviceIntSize GetBufferSize() override;
+
+  GLenum IsContextLost(bool aForce) override;
 
   // Should we support this?
   bool SupportsExternalBufferTextures() const override { return false; }
@@ -87,6 +90,10 @@ class RenderCompositorD3D11SWGL : public RenderCompositor {
                      const wr::ImageFormat& aReadbackFormat,
                      const Range<uint8_t>& aReadbackBuffer,
                      bool* aNeedsYFlip) override;
+  void MaybeRequestAllowFrameRecording(bool aWillRecord) override;
+  bool MaybeRecordFrame(layers::CompositionRecorder& aRecorder) override;
+  bool MaybeGrabScreenshot(const gfx::IntSize& aWindowSize) override;
+  bool MaybeProcessScreenshotQueue() override;
 
   // TODO: Screenshots etc
 
@@ -100,6 +107,11 @@ class RenderCompositorD3D11SWGL : public RenderCompositor {
   ID3D11Device* GetDevice() { return mCompositor->GetDevice(); }
 
  private:
+  already_AddRefed<ID3D11Texture2D> CreateStagingTexture(
+      const gfx::IntSize aSize);
+  already_AddRefed<DataSourceSurface> CreateStagingSurface(
+      const gfx::IntSize aSize);
+
   RefPtr<layers::CompositorD3D11> mCompositor;
   void* mContext = nullptr;
 
@@ -109,7 +121,9 @@ class RenderCompositorD3D11SWGL : public RenderCompositor {
     // changed area into the texture.
     RefPtr<layers::DataTextureSourceD3D11> mTexture;
     RefPtr<ID3D11Texture2D> mStagingTexture;
+    RefPtr<DataSourceSurface> mSurface;
     gfx::Rect mValidRect;
+    bool mIsTemp = false;
 
     struct KeyHashFn {
       std::size_t operator()(const TileKey& aId) const {
@@ -134,6 +148,8 @@ class RenderCompositorD3D11SWGL : public RenderCompositor {
     std::unordered_map<TileKey, Tile, Tile::KeyHashFn> mTiles;
     RefPtr<RenderTextureHost> mExternalImage;
 
+    nsTArray<RefPtr<ID3D11Texture2D>> mStagingPool;
+
     struct IdHashFn {
       std::size_t operator()(const wr::NativeSurfaceId& aId) const {
         return HashGeneric(wr::AsUint64(aId));
@@ -142,9 +158,19 @@ class RenderCompositorD3D11SWGL : public RenderCompositor {
   };
   std::unordered_map<wr::NativeSurfaceId, Surface, Surface::IdHashFn> mSurfaces;
 
+  enum UploadMode {
+    Upload_Immediate,
+    Upload_Staging,
+    Upload_StagingNoBlock,
+    Upload_StagingPooled
+  };
+  UploadMode GetUploadMode();
+  UploadMode mUploadMode = Upload_Staging;
+
   // Temporary state held between MapTile and UnmapTile
   Tile mCurrentTile;
   gfx::IntRect mCurrentTileDirty;
+  wr::NativeTileId mCurrentTileId;
 
   // The set of surfaces added to be composited for the current frame
   struct FrameSurface {
@@ -155,6 +181,8 @@ class RenderCompositorD3D11SWGL : public RenderCompositor {
   };
   nsTArray<FrameSurface> mFrameSurfaces;
   bool mInFrame = false;
+
+  layers::ScreenshotGrabber mProfilerScreenshotGrabber;
 };
 
 static inline bool operator==(const RenderCompositorD3D11SWGL::TileKey& a0,

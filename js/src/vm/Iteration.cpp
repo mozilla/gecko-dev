@@ -29,6 +29,7 @@
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
 #include "js/Proxy.h"
+#include "util/DifferentialTesting.h"
 #include "util/Poison.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/GlobalObject.h"
@@ -213,7 +214,17 @@ static bool EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj,
     // Collect any typed array or shared typed array elements from this
     // object.
     if (pobj->is<TypedArrayObject>()) {
-      size_t len = pobj->as<TypedArrayObject>().length().deprecatedGetUint32();
+      size_t len = pobj->as<TypedArrayObject>().length().get();
+
+      // Fail early if the typed array is enormous, because this will be very
+      // slow and will likely report OOM. This also means we don't need to
+      // handle indices greater than JSID_INT_MAX in the loop below.
+      static_assert(JSID_INT_MAX == INT32_MAX);
+      if (len > INT32_MAX) {
+        ReportOutOfMemory(cx);
+        return false;
+      }
+
       for (size_t i = 0; i < len; i++) {
         if (!Enumerate<CheckForDuplicates>(cx, pobj, INT_TO_JSID(i),
                                            /* enumerable = */ true, flags,
@@ -375,14 +386,17 @@ static bool EnumerateProxyProperties(JSContext* cx, HandleObject pobj,
   return true;
 }
 
-#ifdef JS_MORE_DETERMINISTIC
+#ifdef DEBUG
 
 struct SortComparatorIds {
   JSContext* const cx;
 
-  SortComparatorIds(JSContext* cx) : cx(cx) {}
+  explicit SortComparatorIds(JSContext* cx) : cx(cx) {}
 
-  bool operator()(jsid a, jsid b, bool* lessOrEqualp) {
+  bool operator()(jsid aArg, jsid bArg, bool* lessOrEqualp) {
+    RootedId a(cx, aArg);
+    RootedId b(cx, bArg);
+
     // Pick an arbitrary order on jsids that is as stable as possible
     // across executions.
     if (a == b) {
@@ -390,8 +404,8 @@ struct SortComparatorIds {
       return true;
     }
 
-    size_t ta = JSID_BITS(a) & JSID_TYPE_MASK;
-    size_t tb = JSID_BITS(b) & JSID_TYPE_MASK;
+    size_t ta = JSID_BITS(a.get()) & JSID_TYPE_MASK;
+    size_t tb = JSID_BITS(b.get()) & JSID_TYPE_MASK;
     if (ta != tb) {
       *lessOrEqualp = (ta <= tb);
       return true;
@@ -444,7 +458,7 @@ struct SortComparatorIds {
   }
 };
 
-#endif /* JS_MORE_DETERMINISTIC */
+#endif /* DEBUG */
 
 static bool Snapshot(JSContext* cx, HandleObject pobj_, unsigned flags,
                      MutableHandleIdVector props) {
@@ -514,37 +528,37 @@ static bool Snapshot(JSContext* cx, HandleObject pobj_, unsigned flags,
     }
   } while (pobj != nullptr);
 
-#ifdef JS_MORE_DETERMINISTIC
+#ifdef DEBUG
+  if (js::SupportDifferentialTesting()) {
+    /*
+     * In some cases the enumeration order for an object depends on the
+     * execution mode (interpreter vs. JIT), especially for native objects
+     * with a class enumerate hook (where resolving a property changes the
+     * resulting enumeration order). These aren't really bugs, but the
+     * differences can change the generated output and confuse correctness
+     * fuzzers, so we sort the ids if such a fuzzer is running.
+     *
+     * We don't do this in the general case because (a) doing so is slow,
+     * and (b) it also breaks the web, which expects enumeration order to
+     * follow the order in which properties are added, in certain cases.
+     * Since ECMA does not specify an enumeration order for objects, both
+     * behaviors are technically correct to do.
+     */
 
-  /*
-   * In some cases the enumeration order for an object depends on the
-   * execution mode (interpreter vs. JIT), especially for native objects
-   * with a class enumerate hook (where resolving a property changes the
-   * resulting enumeration order). These aren't really bugs, but the
-   * differences can change the generated output and confuse correctness
-   * fuzzers, so we sort the ids if such a fuzzer is running.
-   *
-   * We don't do this in the general case because (a) doing so is slow,
-   * and (b) it also breaks the web, which expects enumeration order to
-   * follow the order in which properties are added, in certain cases.
-   * Since ECMA does not specify an enumeration order for objects, both
-   * behaviors are technically correct to do.
-   */
+    jsid* ids = props.begin();
+    size_t n = props.length();
 
-  jsid* ids = props.begin();
-  size_t n = props.length();
+    RootedIdVector tmp(cx);
+    if (!tmp.resize(n)) {
+      return false;
+    }
+    PodCopy(tmp.begin(), ids, n);
 
-  RootedIdVector tmp(cx);
-  if (!tmp.resize(n)) {
-    return false;
+    if (!MergeSort(ids, n, tmp.begin(), SortComparatorIds(cx))) {
+      return false;
+    }
   }
-  PodCopy(tmp.begin(), ids, n);
-
-  if (!MergeSort(ids, n, tmp.begin(), SortComparatorIds(cx))) {
-    return false;
-  }
-
-#endif /* JS_MORE_DETERMINISTIC */
+#endif
 
   return true;
 }
@@ -935,13 +949,6 @@ static JSObject* GetIterator(JSContext* cx, HandleObject obj) {
     return nullptr;
   }
 
-  if (IsTypeInferenceEnabled()) {
-    if (obj->isSingleton() && !JSObject::setIteratedSingleton(cx, obj)) {
-      return nullptr;
-    }
-    MarkObjectGroupFlags(cx, obj, OBJECT_FLAG_ITERATED);
-  }
-
   // If the object has dense elements, mark the dense elements as
   // maybe-in-iteration.
   //
@@ -954,9 +961,7 @@ static JSObject* GetIterator(JSContext* cx, HandleObject obj) {
   // is set correctly.
   if (obj->is<NativeObject>() &&
       obj->as<NativeObject>().getDenseInitializedLength() > 0) {
-    if (!obj->as<NativeObject>().markDenseElementsMaybeInIteration(cx)) {
-      return nullptr;
-    }
+    obj->as<NativeObject>().markDenseElementsMaybeInIteration();
   }
 
   PropertyIteratorObject* iterobj =
@@ -1056,16 +1061,6 @@ PlainObject* Realm::createIterResultTemplateObject(
     return nullptr;
   }
 
-  // Create a new group for the template.
-  Rooted<TaggedProto> proto(cx, templateObject->taggedProto());
-  RootedObjectGroup group(
-      cx, ObjectGroupRealm::makeGroup(cx, templateObject->realm(),
-                                      templateObject->getClass(), proto));
-  if (!group) {
-    return nullptr;
-  }
-  templateObject->setGroup(group);
-
   // Set dummy `value` property
   if (!NativeDefineDataProperty(cx, templateObject, cx->names().value,
                                 UndefinedHandleValue, JSPROP_ENUMERATE)) {
@@ -1076,18 +1071,6 @@ PlainObject* Realm::createIterResultTemplateObject(
   if (!NativeDefineDataProperty(cx, templateObject, cx->names().done,
                                 TrueHandleValue, JSPROP_ENUMERATE)) {
     return nullptr;
-  }
-
-  AutoSweepObjectGroup sweep(group);
-  if (!group->unknownProperties(sweep)) {
-    // Update `value` property typeset, since it can be any value.
-    HeapTypeSet* types =
-        group->maybeGetProperty(sweep, NameToId(cx->names().value));
-    MOZ_ASSERT(types);
-    {
-      AutoEnterAnalysis enter(cx);
-      types->makeUnknown(sweep, cx);
-    }
   }
 
   // Make sure that the properties are in the right slots.

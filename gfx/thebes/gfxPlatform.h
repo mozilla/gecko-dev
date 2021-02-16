@@ -7,17 +7,15 @@
 #define GFX_PLATFORM_H
 
 #include "mozilla/FontPropertyTypes.h"
-#include "mozilla/Logging.h"
 #include "mozilla/gfx/Types.h"
 #include "nsTArray.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsUnicodeScriptCodes.h"
 
+#include "gfxTelemetry.h"
 #include "gfxTypes.h"
-#include "gfxBlur.h"
 #include "gfxSkipChars.h"
-#include "nsRect.h"
 
 #include "qcms.h"
 
@@ -25,6 +23,7 @@
 #include "GfxInfoCollector.h"
 
 #include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/MemoryPressureObserver.h"
 
 class gfxASurface;
@@ -45,6 +44,7 @@ typedef struct FT_LibraryRec_* FT_Library;
 
 namespace mozilla {
 class FontFamilyList;
+class LogModule;
 namespace layers {
 class FrameStats;
 }
@@ -147,16 +147,18 @@ inline const char* GetBackendName(mozilla::gfx::BackendType aBackend) {
 }
 
 enum class DeviceResetReason {
-  OK = 0,
-  HUNG,
-  REMOVED,
-  RESET,
-  DRIVER_ERROR,
-  INVALID_CALL,
+  OK = 0,        // No reset.
+  HUNG,          // Windows specific, guilty device reset.
+  REMOVED,       // Windows specific, device removed or driver upgraded.
+  RESET,         // Guilty device reset.
+  DRIVER_ERROR,  // Innocent device reset.
+  INVALID_CALL,  // Windows specific, guilty device reset.
   OUT_OF_MEMORY,
-  FORCED_RESET,
-  UNKNOWN,
-  D3D9_RESET
+  FORCED_RESET,  // Simulated device reset.
+  OTHER,         // Unrecognized reason for device reset.
+  D3D9_RESET,    // Windows specific, not used.
+  NVIDIA_VIDEO,  // Linux specific, NVIDIA video memory was reset.
+  UNKNOWN,       // GL specific, unknown if guilty or innocent.
 };
 
 enum class ForcedDeviceResetReason {
@@ -355,9 +357,11 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
       nsTArray<mozilla::dom::SystemFontListEntry>* aFontList) {}
 
   /**
-   * Rebuilds the any cached system font lists
+   * Rebuilds the system font lists (if aFullRebuild is true), or just notifies
+   * content that the list has changed but existing memory mappings are still
+   * valid (aFullRebuild is false).
    */
-  virtual nsresult UpdateFontList();
+  nsresult UpdateFontList(bool aFullRebuild = true);
 
   /**
    * Create the platform font-list object (gfxPlatformFontList concrete
@@ -786,6 +790,12 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   // you probably want to use gfxVars::UseWebRender() instead of this
   static bool WebRenderEnvvarDisabled();
 
+  static const char* WebRenderResourcePathOverride();
+
+  static void DisableWebRender(mozilla::gfx::FeatureStatus aStatus,
+                               const char* aMessage,
+                               const nsACString& aFailureId);
+
   void NotifyFrameStats(nsTArray<mozilla::layers::FrameStats>&& aFrameStats);
 
   virtual void OnMemoryPressure(
@@ -927,7 +937,8 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   // max number of entries in word cache
   int32_t mWordCacheMaxEntries;
 
-  uint64_t mTotalSystemMemory;
+  uint64_t mTotalPhysicalMemory;
+  uint64_t mTotalVirtualMemory;
 
   // Hardware vsync source. Only valid on parent process
   RefPtr<mozilla::gfx::VsyncSource> mVsyncSource;

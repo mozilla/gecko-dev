@@ -39,7 +39,7 @@
 //
 // - This bulk-deallocation DOES NOT run destructors.
 //
-// - Instances of `ParserScopeData<LexicalScope>` MUST BE allocated as
+// - Instances of `LexicalScope::ParserData` MUST BE allocated as
 //   instances of `ParseNode`, in the same `LifoAlloc`. They are bulk-
 //   deallocated alongside the rest of the tree.
 
@@ -59,17 +59,11 @@ namespace frontend {
 
 class ParseContext;
 class ParserAtomsTable;
-struct CompilationStencil;
+struct BaseCompilationStencil;
 class ParserSharedBase;
 class FullParseHandler;
 
 class FunctionBox;
-
-// This typedef unfortunately needs to be replicated here.
-using ParserBindingName = AbstractBindingName<const ParserAtom>;
-
-template <typename Scope>
-using ParserScopeData = typename Scope::template AbstractData<const ParserAtom>;
 
 #define FOR_EACH_PARSE_NODE_KIND(F)                              \
   F(EmptyStmt, NullaryNode)                                      \
@@ -1078,8 +1072,14 @@ class TernaryNode : public ParseNode {
   TernaryNode(ParseNodeKind kind, ParseNode* kid1, ParseNode* kid2,
               ParseNode* kid3)
       : TernaryNode(kind, kid1, kid2, kid3,
-                    TokenPos((kid1 ? kid1 : kid2 ? kid2 : kid3)->pn_pos.begin,
-                             (kid3 ? kid3 : kid2 ? kid2 : kid1)->pn_pos.end)) {}
+                    TokenPos((kid1   ? kid1
+                              : kid2 ? kid2
+                                     : kid3)
+                                 ->pn_pos.begin,
+                             (kid3   ? kid3
+                              : kid2 ? kid2
+                                     : kid1)
+                                 ->pn_pos.end)) {}
 
   TernaryNode(ParseNodeKind kind, ParseNode* kid1, ParseNode* kid2,
               ParseNode* kid3, const TokenPos& pos)
@@ -1577,11 +1577,11 @@ class NumericLiteral : public ParseNode {
 };
 
 class BigIntLiteral : public ParseNode {
-  CompilationStencil& stencil_;
+  BaseCompilationStencil& stencil_;
   BigIntIndex index_;
 
  public:
-  BigIntLiteral(BigIntIndex index, CompilationStencil& stencil,
+  BigIntLiteral(BigIntIndex index, BaseCompilationStencil& stencil,
                 const TokenPos& pos)
       : ParseNode(ParseNodeKind::BigIntExpr, pos),
         stencil_(stencil),
@@ -1611,12 +1611,12 @@ class BigIntLiteral : public ParseNode {
 };
 
 class LexicalScopeNode : public ParseNode {
-  ParserScopeData<LexicalScope>* bindings;
+  LexicalScope::ParserData* bindings;
   ParseNode* body;
   ScopeKind kind_;
 
  public:
-  LexicalScopeNode(ParserScopeData<LexicalScope>* bindings, ParseNode* body,
+  LexicalScopeNode(LexicalScope::ParserData* bindings, ParseNode* body,
                    ScopeKind kind = ScopeKind::Lexical)
       : ParseNode(ParseNodeKind::LexicalScope, body->pn_pos),
         bindings(bindings),
@@ -1638,7 +1638,7 @@ class LexicalScopeNode : public ParseNode {
   void dumpImpl(GenericPrinter& out, int indent);
 #endif
 
-  ParserScopeData<LexicalScope>* scopeBindings() const {
+  LexicalScope::ParserData* scopeBindings() const {
     MOZ_ASSERT(!isEmptyScope());
     return bindings;
   }
@@ -1889,7 +1889,7 @@ class RegExpLiteral : public ParseNode {
 
   // Create a RegExp object of this RegExp literal.
   RegExpObject* create(JSContext* cx, CompilationAtomCache& atomCache,
-                       CompilationStencil& stencil) const;
+                       BaseCompilationStencil& stencil) const;
 
 #ifdef DEBUG
   void dumpImpl(GenericPrinter& out, int indent);

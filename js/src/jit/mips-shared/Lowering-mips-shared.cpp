@@ -227,7 +227,7 @@ void LIRGeneratorMIPSShared::lowerDivI(MDiv* div) {
       LDivPowTwoI* lir =
           new (alloc()) LDivPowTwoI(useRegister(div->lhs()), shift, temp());
       if (div->fallible()) {
-        assignSnapshot(lir, BailoutKind::DoubleOutput);
+        assignSnapshot(lir, div->bailoutKind());
       }
       define(lir, div);
       return;
@@ -237,7 +237,7 @@ void LIRGeneratorMIPSShared::lowerDivI(MDiv* div) {
   LDivI* lir = new (alloc())
       LDivI(useRegister(div->lhs()), useRegister(div->rhs()), temp());
   if (div->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, div->bailoutKind());
   }
   define(lir, div);
 }
@@ -246,7 +246,7 @@ void LIRGeneratorMIPSShared::lowerMulI(MMul* mul, MDefinition* lhs,
                                        MDefinition* rhs) {
   LMulI* lir = new (alloc()) LMulI;
   if (mul->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, mul->bailoutKind());
   }
 
   lowerForALU(lir, mul, lhs, rhs);
@@ -265,7 +265,7 @@ void LIRGeneratorMIPSShared::lowerModI(MMod* mod) {
       LModPowTwoI* lir =
           new (alloc()) LModPowTwoI(useRegister(mod->lhs()), shift);
       if (mod->fallible()) {
-        assignSnapshot(lir, BailoutKind::DoubleOutput);
+        assignSnapshot(lir, mod->bailoutKind());
       }
       define(lir, mod);
       return;
@@ -274,7 +274,7 @@ void LIRGeneratorMIPSShared::lowerModI(MMod* mod) {
           LModMaskI(useRegister(mod->lhs()), temp(LDefinition::GENERAL),
                     temp(LDefinition::GENERAL), shift + 1);
       if (mod->fallible()) {
-        assignSnapshot(lir, BailoutKind::DoubleOutput);
+        assignSnapshot(lir, mod->bailoutKind());
       }
       define(lir, mod);
       return;
@@ -285,7 +285,7 @@ void LIRGeneratorMIPSShared::lowerModI(MMod* mod) {
                           temp(LDefinition::GENERAL));
 
   if (mod->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, mod->bailoutKind());
   }
   define(lir, mod);
 }
@@ -326,8 +326,22 @@ void LIRGeneratorMIPSShared::lowerPowOfTwoI(MPow* mir) {
   MDefinition* power = mir->power();
 
   auto* lir = new (alloc()) LPowOfTwoI(base, useRegister(power));
-  assignSnapshot(lir, BailoutKind::PrecisionLoss);
+  assignSnapshot(lir, mir->bailoutKind());
   define(lir, mir);
+}
+
+void LIRGeneratorMIPSShared::lowerBigIntLsh(MBigIntLsh* ins) {
+  auto* lir = new (alloc()) LBigIntLsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp(), temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGeneratorMIPSShared::lowerBigIntRsh(MBigIntRsh* ins) {
+  auto* lir = new (alloc()) LBigIntRsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp(), temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
 }
 
 void LIRGenerator::visitWasmNeg(MWasmNeg* ins) {
@@ -476,7 +490,7 @@ void LIRGeneratorMIPSShared::lowerUDiv(MDiv* div) {
   lir->setOperand(0, useRegister(lhs));
   lir->setOperand(1, useRegister(rhs));
   if (div->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, div->bailoutKind());
   }
 
   define(lir, div);
@@ -490,7 +504,7 @@ void LIRGeneratorMIPSShared::lowerUMod(MMod* mod) {
   lir->setOperand(0, useRegister(lhs));
   lir->setOperand(1, useRegister(rhs));
   if (mod->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, mod->bailoutKind());
   }
 
   define(lir, mod);
@@ -816,4 +830,46 @@ void LIRGenerator::visitSignExtendInt64(MSignExtendInt64* ins) {
   defineInt64(new (alloc())
                   LSignExtendInt64(useInt64RegisterAtStart(ins->input())),
               ins);
+}
+
+void LIRGenerator::visitWasmBitselectSimd128(MWasmBitselectSimd128* ins) {
+  MOZ_CRASH("bitselect NYI");
+}
+
+void LIRGenerator::visitWasmBinarySimd128(MWasmBinarySimd128* ins) {
+  MOZ_CRASH("binary SIMD NYI");
+}
+
+bool MWasmBinarySimd128::specializeForConstantRhs() {
+  // Probably many we want to do here
+  return false;
+}
+
+void LIRGenerator::visitWasmBinarySimd128WithConstant(
+    MWasmBinarySimd128WithConstant* ins) {
+  MOZ_CRASH("binary SIMD with constant NYI");
+}
+
+void LIRGenerator::visitWasmShiftSimd128(MWasmShiftSimd128* ins) {
+  MOZ_CRASH("shift SIMD NYI");
+}
+
+void LIRGenerator::visitWasmShuffleSimd128(MWasmShuffleSimd128* ins) {
+  MOZ_CRASH("shuffle SIMD NYI");
+}
+
+void LIRGenerator::visitWasmReplaceLaneSimd128(MWasmReplaceLaneSimd128* ins) {
+  MOZ_CRASH("replace-lane SIMD NYI");
+}
+
+void LIRGenerator::visitWasmScalarToSimd128(MWasmScalarToSimd128* ins) {
+  MOZ_CRASH("scalar-to-SIMD NYI");
+}
+
+void LIRGenerator::visitWasmUnarySimd128(MWasmUnarySimd128* ins) {
+  MOZ_CRASH("unary SIMD NYI");
+}
+
+void LIRGenerator::visitWasmReduceSimd128(MWasmReduceSimd128* ins) {
+  MOZ_CRASH("reduce-SIMD NYI");
 }

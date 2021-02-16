@@ -16,10 +16,12 @@ const DISABLE_AUTOHIDE_PREF = "ui.popup.disable_autohide";
 const HOST_HISTOGRAM = "DEVTOOLS_TOOLBOX_HOST";
 const CURRENT_THEME_SCALAR = "devtools.current_theme";
 const HTML_NS = "http://www.w3.org/1999/xhtml";
+const REGEX_4XX_5XX = /^[4,5]\d\d$/;
 
 var { Ci, Cc } = require("chrome");
 var promise = require("promise");
 const { debounce } = require("devtools/shared/debounce");
+const { throttle } = require("devtools/shared/throttle");
 const { safeAsyncMethod } = require("devtools/shared/async-utils");
 var Services = require("Services");
 var ChromeUtils = require("ChromeUtils");
@@ -305,7 +307,6 @@ function Toolbox(
   this._saveSplitConsoleHeight = this._saveSplitConsoleHeight.bind(this);
   this._onFocus = this._onFocus.bind(this);
   this._onBrowserMessage = this._onBrowserMessage.bind(this);
-  this._updateTextBoxMenuItems = this._updateTextBoxMenuItems.bind(this);
   this._onPerformanceFrontEvent = this._onPerformanceFrontEvent.bind(this);
   this._onTabsOrderUpdated = this._onTabsOrderUpdated.bind(this);
   this._onToolbarFocus = this._onToolbarFocus.bind(this);
@@ -338,6 +339,14 @@ function Toolbox(
   this._onTargetAvailable = this._onTargetAvailable.bind(this);
   this._onTargetDestroyed = this._onTargetDestroyed.bind(this);
   this._onNavigate = this._onNavigate.bind(this);
+  this._onResourceAvailable = this._onResourceAvailable.bind(this);
+  this._onResourceUpdated = this._onResourceUpdated.bind(this);
+
+  this._throttledSetToolboxButtons = throttle(
+    () => this.component.setToolboxButtons(this.toolbarButtons),
+    500,
+    this
+  );
 
   this.isPaintFlashing = false;
 
@@ -778,15 +787,23 @@ Toolbox.prototype = {
         this._onTargetDestroyed
       );
 
-      // Start tracking network activity on toolbox open for targets such as tabs.
-      // The listeners attached here do nothing. Doing this just makes sure that
-      // there is always at least one listener existing for network events across
-      // the lifetime of the various panels, so stopping the resource watcher from
-      // clearing out its cache of network event resources.
-      this.noopNetworkEventListener = () => {};
-      await this.resourceWatcher.watchResources(
-        [this.resourceWatcher.TYPES.NETWORK_EVENT],
-        { onAvailable: this.noopNetworkEventListener }
+      // Watch for console API messages, errors and network events in order to populate
+      // the error count icon in the toolbox.
+      const onResourcesWatched = this.resourceWatcher.watchResources(
+        [
+          this.resourceWatcher.TYPES.CONSOLE_MESSAGE,
+          this.resourceWatcher.TYPES.ERROR_MESSAGE,
+          // Independently of watching network event resources for the error count icon,
+          // we need to start tracking network activity on toolbox open for targets such
+          // as tabs, in order to ensure there is always at least one listener existing
+          // for network events across the lifetime of the various panels, so stopping
+          // the resource watcher from clearing out its cache of network event resources.
+          this.resourceWatcher.TYPES.NETWORK_EVENT,
+        ],
+        {
+          onAvailable: this._onResourceAvailable,
+          onUpdated: this._onResourceUpdated,
+        }
       );
 
       await domReady;
@@ -898,7 +915,11 @@ Toolbox.prototype = {
         );
       }
 
-      await promise.all([splitConsolePromise, framesPromise]);
+      await promise.all([
+        splitConsolePromise,
+        framesPromise,
+        onResourcesWatched,
+      ]);
 
       // We do not expect the focus to be restored when using about:debugging toolboxes
       // Otherwise, when reloading the toolbox, the debugged tab will be focused.
@@ -1846,7 +1867,11 @@ Toolbox.prototype = {
    */
   _buildButtons() {
     // Beyond the normal preference filtering
-    this.toolbarButtons = [this._buildPickerButton(), this._buildFrameButton()];
+    this.toolbarButtons = [
+      this._buildErrorCountButton(),
+      this._buildPickerButton(),
+      this._buildFrameButton(),
+    ];
 
     ToolboxButtons.forEach(definition => {
       const button = this._createButtonState(definition);
@@ -1874,6 +1899,23 @@ Toolbox.prototype = {
     });
 
     return this.frameButton;
+  },
+
+  /**
+   * Button to display the number of errors.
+   */
+  _buildErrorCountButton() {
+    this.errorCountButton = this._createButtonState({
+      id: "command-button-errorcount",
+      isInStartContainer: false,
+      isTargetSupported: target => true,
+      description: L10N.getStr("toolbox.errorCountButton.description"),
+    });
+    // Use updateErrorCountButton to set some properties so we don't have to repeat
+    // the logic here.
+    this.updateErrorCountButton();
+
+    return this.errorCountButton;
   },
 
   /**
@@ -2144,6 +2186,12 @@ Toolbox.prototype = {
     if (isVisible) {
       this.frameButton.isChecked = selectedFrame.parentID != null;
     }
+  },
+
+  updateErrorCountButton() {
+    this.errorCountButton.isVisible =
+      this._commandIsVisible(this.errorCountButton) && this._errorCount > 0;
+    this.errorCountButton.errorCount = this._errorCount;
   },
 
   /**
@@ -2934,6 +2982,8 @@ Toolbox.prototype = {
    * Fired when user just started navigating away to another web page.
    */
   async _onWillNavigate() {
+    // Clearing the error count as soon as we navigate
+    this.setErrorCount(0);
     this.updateToolboxButtons();
     const toolId = this.currentToolId;
     // For now, only inspector, webconsole and netmonitor fire "reloaded" event
@@ -3524,6 +3574,7 @@ Toolbox.prototype = {
 
     this.updatePickerButton();
     this.updateFrameButton();
+    this.updateErrorCountButton();
 
     // Calling setToolboxButtons in case the visibility of a button changed.
     this.component.setToolboxButtons(this.toolbarButtons);
@@ -3688,8 +3739,12 @@ Toolbox.prototype = {
       this._onTargetDestroyed
     );
     this.resourceWatcher.unwatchResources(
-      [this.resourceWatcher.TYPES.NETWORK_EVENT],
-      { onAvailable: this.noopNetworkEventListener }
+      [
+        this.resourceWatcher.TYPES.CONSOLE_MESSAGE,
+        this.resourceWatcher.TYPES.ERROR_MESSAGE,
+        this.resourceWatcher.TYPES.NETWORK_EVENT,
+      ],
+      { onAvailable: this._onResourceAvailable }
     );
 
     this.targetList.destroy();
@@ -3790,21 +3845,6 @@ Toolbox.prototype = {
     await onceDestroyed;
 
     Services.obs.removeObserver(leakCheckObserver, topic);
-  },
-
-  /**
-   * Enable / disable necessary textbox menu items using globalOverlay.js.
-   */
-  _updateTextBoxMenuItems: function() {
-    const window = this.win;
-    [
-      "cmd_undo",
-      "cmd_delete",
-      "cmd_cut",
-      "cmd_copy",
-      "cmd_paste",
-      "cmd_selectAll",
-    ].forEach(window.goUpdateCommand);
   },
 
   /**
@@ -3979,14 +4019,11 @@ Toolbox.prototype = {
     );
   },
 
-  viewElementInInspector: async function(objectActor, reason) {
+  viewElementInInspector: async function(objectGrip, reason) {
     // Open the inspector and select the DOM Element.
     await this.loadTool("inspector");
     const inspector = this.getPanel("inspector");
-    const nodeFound = await inspector.inspectNodeActor(
-      objectActor.actor,
-      reason
-    );
+    const nodeFound = await inspector.inspectNodeActor(objectGrip, reason);
     if (nodeFound) {
       await this.selectTool("inspector", reason);
     }
@@ -4237,5 +4274,71 @@ Toolbox.prototype = {
       // DebugTargetInfo requires this._debugTargetData to be populated
       this.component.setDebugTargetData(this._getDebugTargetData());
     }
+  },
+
+  _onResourceAvailable(resources) {
+    let errors = this._errorCount || 0;
+
+    for (const resource of resources) {
+      if (
+        resource.resourceType === this.resourceWatcher.TYPES.ERROR_MESSAGE &&
+        // ERROR_MESSAGE resources can be warnings/info, but here we only want to count errors
+        resource.pageError.error
+      ) {
+        errors++;
+        continue;
+      }
+
+      if (
+        resource.resourceType === this.resourceWatcher.TYPES.CONSOLE_MESSAGE
+      ) {
+        const { level } = resource.message;
+        if (level === "error" || level === "exception" || level === "assert") {
+          errors++;
+        }
+
+        // Reset the count on console.clear
+        if (level === "clear") {
+          errors = 0;
+        }
+      }
+    }
+
+    this.setErrorCount(errors);
+  },
+
+  _onResourceUpdated(resources) {
+    let errors = this._errorCount || 0;
+
+    for (const { update } of resources) {
+      // In order to match webconsole behaviour, we treat 4xx and 5xx network calls as errors.
+      if (
+        update.resourceType === this.resourceWatcher.TYPES.NETWORK_EVENT &&
+        update.resourceUpdates.status &&
+        update.resourceUpdates.status.toString().match(REGEX_4XX_5XX)
+      ) {
+        errors++;
+      }
+    }
+
+    this.setErrorCount(errors);
+  },
+
+  /**
+   * Set the number of errors in the toolbar icon.
+   *
+   * @param {Number} count
+   */
+  setErrorCount(count) {
+    // Don't re-render if the number of errors changed
+    if (!this.component || this._errorCount === count) {
+      return;
+    }
+
+    this._errorCount = count;
+
+    // Update button properties and trigger a render of the toolbox
+    this.updateErrorCountButton();
+    this._throttledSetToolboxButtons();
   },
 };

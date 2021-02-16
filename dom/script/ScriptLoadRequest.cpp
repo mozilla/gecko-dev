@@ -6,6 +6,7 @@
 
 #include "ScriptLoadRequest.h"
 
+#include "mozilla/dom/Document.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Unused.h"
@@ -126,6 +127,19 @@ ScriptLoadRequest::~ScriptLoadRequest() {
   DropJSObjects(this);
 }
 
+void ScriptLoadRequest::BlockOnload(Document* aDocument) {
+  MOZ_ASSERT(!mLoadBlockedDocument);
+  aDocument->BlockOnload();
+  mLoadBlockedDocument = aDocument;
+}
+
+void ScriptLoadRequest::MaybeUnblockOnload() {
+  if (mLoadBlockedDocument) {
+    mLoadBlockedDocument->UnblockOnload(false);
+    mLoadBlockedDocument = nullptr;
+  }
+}
+
 void ScriptLoadRequest::SetReady() {
   MOZ_ASSERT(mProgress != Progress::eReady);
   mProgress = Progress::eReady;
@@ -244,6 +258,20 @@ void ScriptLoadRequest::PrioritizeAsPreload() {
     // as a preload.
     PrioritizeAsPreload(Channel());
   }
+}
+
+nsIScriptElement* ScriptLoadRequest::GetScriptElement() const {
+  nsCOMPtr<nsIScriptElement> scriptElement =
+      do_QueryInterface(mFetchOptions->mElement);
+  return scriptElement;
+}
+
+void ScriptLoadRequest::SetIsLoadRequest(nsIScriptElement* aElement) {
+  MOZ_ASSERT(aElement);
+  MOZ_ASSERT(!GetScriptElement());
+  MOZ_ASSERT(IsPreload());
+  mFetchOptions->mElement = do_QueryInterface(aElement);
+  mFetchOptions->mIsPreload = false;
 }
 
 //////////////////////////////////////////////////////////////

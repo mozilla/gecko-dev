@@ -143,12 +143,12 @@ Size AnimationValue::GetScaleValue(const nsIFrame* aFrame) const {
   if (!canDraw2D) {
     return Size();
   }
-  return transform2d.ScaleFactors(true);
+  return transform2d.ScaleFactors();
 }
 
 void AnimationValue::SerializeSpecifiedValue(nsCSSPropertyID aProperty,
                                              const RawServoStyleSet* aRawSet,
-                                             nsAString& aString) const {
+                                             nsACString& aString) const {
   MOZ_ASSERT(mServo);
   Servo_AnimationValue_Serialize(mServo, aProperty, aRawSet, &aString);
 }
@@ -180,7 +180,7 @@ double AnimationValue::ComputeDistance(nsCSSPropertyID aProperty,
 
 /* static */
 AnimationValue AnimationValue::FromString(nsCSSPropertyID aProperty,
-                                          const nsAString& aValue,
+                                          const nsACString& aValue,
                                           Element* aElement) {
   MOZ_ASSERT(aElement);
 

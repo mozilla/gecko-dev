@@ -31,6 +31,8 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/CharacterData.h"
+#include "mozilla/dom/CustomElementRegistry.h"
+#include "mozilla/dom/DebuggerNotificationBinding.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
@@ -115,6 +117,14 @@
 
 using namespace mozilla;
 using namespace mozilla::dom;
+
+static bool ShouldUseNACScope(const nsINode* aNode) {
+  return aNode->IsInNativeAnonymousSubtree();
+}
+
+static bool ShouldUseUAWidgetScope(const nsINode* aNode) {
+  return aNode->HasBeenInUAWidget();
+}
 
 void* nsINode::operator new(size_t aSize, nsNodeInfoManager* aManager) {
   if (StaticPrefs::dom_arena_allocator_enabled_AtStartup()) {
@@ -1255,6 +1265,12 @@ void nsINode::LookupNamespaceURI(const nsAString& aNamespacePrefix,
                       aNamespacePrefix, aNamespaceURI))) {
     SetDOMStringToNull(aNamespaceURI);
   }
+}
+
+mozilla::Maybe<mozilla::dom::EventCallbackDebuggerNotificationType>
+nsINode::GetDebuggerNotificationType() const {
+  return mozilla::Some(
+      mozilla::dom::EventCallbackDebuggerNotificationType::Node);
 }
 
 bool nsINode::ComputeDefaultWantsUntrusted(ErrorResult& aRv) {
@@ -2507,7 +2523,7 @@ nsINode* nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     fragChildren->SetCapacity(count);
     for (nsIContent* child = newContent->GetFirstChild(); child;
          child = child->GetNextSibling()) {
-      NS_ASSERTION(child->GetComposedDoc() == nullptr,
+      NS_ASSERTION(child->GetUncomposedDoc() == nullptr,
                    "How did we get a child with a current doc?");
       fragChildren->AppendElement(child);
     }
@@ -2839,38 +2855,26 @@ uint32_t nsINode::Length() const {
 }
 
 const RawServoSelectorList* nsINode::ParseSelectorList(
-    const nsAString& aSelectorString, ErrorResult& aRv) {
+    const nsACString& aSelectorString, ErrorResult& aRv) {
   Document* doc = OwnerDoc();
 
   Document::SelectorCache& cache = doc->GetSelectorCache();
-  Document::SelectorCache::SelectorList* list = cache.GetList(aSelectorString);
-  if (list) {
-    if (!*list) {
-      // Invalid selector.
-      aRv.ThrowSyntaxError("'"_ns + NS_ConvertUTF16toUTF8(aSelectorString) +
-                           "' is not a valid selector"_ns);
-      return nullptr;
-    }
+  RawServoSelectorList* list =
+      cache.GetList(aSelectorString)
+          .OrInsert([&] {
+            // Note that we want to cache even if null was returned, because we
+            // want to cache the "This is not a valid selector" result.
+            return Servo_SelectorList_Parse(&aSelectorString).Consume();
+          })
+          .get();
 
-    return list->get();
-  }
-
-  NS_ConvertUTF16toUTF8 selectorString(aSelectorString);
-
-  UniquePtr<RawServoSelectorList> selectorList =
-      Servo_SelectorList_Parse(&selectorString).Consume();
-  // We want to cache even if null was returned, because we want to
-  // cache the "This is not a valid selector" result.
-  auto* ret = selectorList.get();
-  cache.CacheList(aSelectorString, std::move(selectorList));
-
-  // Now make sure we throw an exception if the selector was invalid.
-  if (!ret) {
-    aRv.ThrowSyntaxError("'"_ns + selectorString +
+  if (!list) {
+    // Invalid selector.
+    aRv.ThrowSyntaxError("'"_ns + aSelectorString +
                          "' is not a valid selector"_ns);
   }
 
-  return ret;
+  return list;
 }
 
 // Given an id, find first element with that id under aRoot.
@@ -2909,10 +2913,10 @@ inline static Element* FindMatchingElementWithId(
   return nullptr;
 }
 
-Element* nsINode::QuerySelector(const nsAString& aSelector,
+Element* nsINode::QuerySelector(const nsACString& aSelector,
                                 ErrorResult& aResult) {
-  AUTO_PROFILER_LABEL_DYNAMIC_LOSSY_NSSTRING("nsINode::QuerySelector",
-                                             LAYOUT_SelectorQuery, aSelector);
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("nsINode::QuerySelector",
+                                        LAYOUT_SelectorQuery, aSelector);
 
   const RawServoSelectorList* list = ParseSelectorList(aSelector, aResult);
   if (!list) {
@@ -2924,9 +2928,9 @@ Element* nsINode::QuerySelector(const nsAString& aSelector,
 }
 
 already_AddRefed<nsINodeList> nsINode::QuerySelectorAll(
-    const nsAString& aSelector, ErrorResult& aResult) {
-  AUTO_PROFILER_LABEL_DYNAMIC_LOSSY_NSSTRING("nsINode::QuerySelectorAll",
-                                             LAYOUT_SelectorQuery, aSelector);
+    const nsACString& aSelector, ErrorResult& aResult) {
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("nsINode::QuerySelectorAll",
+                                        LAYOUT_SelectorQuery, aSelector);
 
   RefPtr<nsSimpleContentList> contentList = new nsSimpleContentList(this);
   const RawServoSelectorList* list = ParseSelectorList(aSelector, aResult);
@@ -3121,27 +3125,6 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
       return nullptr;
     }
 
-    if (clone->IsHTMLElement() || clone->IsXULElement()) {
-      // The cloned node may be a custom element that may require
-      // enqueing upgrade reaction.
-      Element* cloneElem = clone->AsElement();
-      CustomElementData* data = elem->GetCustomElementData();
-      RefPtr<nsAtom> typeAtom = data ? data->GetCustomElementType() : nullptr;
-
-      if (typeAtom) {
-        cloneElem->SetCustomElementData(new CustomElementData(typeAtom));
-
-        MOZ_ASSERT(nodeInfo->NameAtom()->Equals(nodeInfo->LocalName()));
-        CustomElementDefinition* definition =
-            nsContentUtils::LookupCustomElementDefinition(
-                nodeInfo->GetDocument(), nodeInfo->NameAtom(),
-                nodeInfo->NamespaceID(), typeAtom);
-        if (definition) {
-          nsContentUtils::EnqueueUpgradeReaction(cloneElem, definition);
-        }
-      }
-    }
-
     if (aParent) {
       // If we're cloning we need to insert the cloned children into the cloned
       // parent.
@@ -3158,6 +3141,11 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
     }
   } else if (nodeInfoManager) {
     Document* oldDoc = aNode->OwnerDoc();
+
+    DOMArena* domArenaToStore =
+        !aNode->HasFlag(NODE_KEEPS_DOMARENA)
+            ? aNode->NodeInfo()->NodeInfoManager()->GetArenaAllocator()
+            : nullptr;
 
     Document* newDoc = nodeInfoManager->GetDocument();
     MOZ_ASSERT(newDoc);
@@ -3188,8 +3176,8 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
       CustomElementData* data = elem->GetCustomElementData();
       if (data && data->mState == CustomElementData::State::eCustom) {
         LifecycleAdoptedCallbackArgs args = {oldDoc, newDoc};
-        nsContentUtils::EnqueueLifecycleCallback(Document::eAdopted, elem,
-                                                 nullptr, &args);
+        nsContentUtils::EnqueueLifecycleCallback(ElementCallbackType::eAdopted,
+                                                 elem, nullptr, &args);
       }
     }
 
@@ -3294,6 +3282,10 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
               docGroup->ArenaAllocator());
         }
       }
+
+      if (domArenaToStore && newDoc->GetDocGroup() != oldDoc->GetDocGroup()) {
+        nsContentUtils::AddEntryToDOMArenaTable(aNode, domArenaToStore);
+      }
     }
   }
 
@@ -3312,10 +3304,14 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
 
   if (aDeep && aNode->IsElement()) {
     if (aClone) {
-      if (clone->OwnerDoc()->IsStaticDocument()) {
+      if (nodeInfo->GetDocument()->IsStaticDocument()) {
         // Clone any animations to the node in the static document, including
         // the current timing. They will need to be paused later after the new
         // document's pres shell gets initialized.
+        //
+        // This needs to be done here rather than in Element::CopyInnerTo
+        // because the animations clone code relies on the target (that is,
+        // `clone`) being connected already.
         clone->AsElement()->CloneAnimationsFrom(*aNode->AsElement());
 
         // Clone the Shadow DOM
@@ -3395,13 +3391,6 @@ void nsINode::Adopt(nsNodeInfoManager* aNewNodeInfoManager,
         return aError.ThrowSecurityError(
             "Adopting nodes across docgroups in chrome documents "
             "is unsupported");
-      } else {
-        if (StaticPrefs::dom_arena_allocator_enabled_AtStartup()) {
-          if (DOMArena* arena =
-                  NodeInfo()->NodeInfoManager()->GetArenaAllocator()) {
-            nsContentUtils::AddEntryToDOMArenaTable(this, arena);
-          }
-        }
       }
     }
   }
@@ -3435,6 +3424,18 @@ DocGroup* nsINode::GetDocGroup() const { return OwnerDoc()->GetDocGroup(); }
 
 nsINode* nsINode::GetFlattenedTreeParentNodeNonInline() const {
   return GetFlattenedTreeParentNode();
+}
+
+ParentObject nsINode::GetParentObject() const {
+  ParentObject p(OwnerDoc());
+  // Note that mReflectionScope is a no-op for chrome, and other places
+  // where we don't check this value.
+  if (ShouldUseNACScope(this)) {
+    p.mReflectionScope = ReflectionScope::NAC;
+  } else if (ShouldUseUAWidgetScope(this)) {
+    p.mReflectionScope = ReflectionScope::UAWidget;
+  }
+  return p;
 }
 
 NS_IMPL_ISUPPORTS(nsNodeWeakReference, nsIWeakReference)

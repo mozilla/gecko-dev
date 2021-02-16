@@ -10,6 +10,8 @@
 #include "gfxPlatform.h"
 
 #include "imgITools.h"
+#include "mozilla/Preferences.h"
+#include "nsComponentManagerUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
 #include "nsIInputStream.h"
@@ -536,6 +538,11 @@ ImageTestCase CorruptICOWithBadBppTestCase() {
 ImageTestCase CorruptAVIFTestCase() {
   return ImageTestCase("bug-1655846.avif", "image/avif", IntSize(100, 100),
                        TEST_CASE_HAS_ERROR);
+}
+
+ImageTestCase TransparentAVIFTestCase() {
+  return ImageTestCase("transparent.avif", "image/avif", IntSize(1200, 1200),
+                       TEST_CASE_IS_TRANSPARENT);
 }
 
 ImageTestCase TransparentPNGTestCase() {

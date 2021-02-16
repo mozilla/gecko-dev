@@ -497,6 +497,19 @@ class FileRecord(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        # pylint --py3k: W1641
+        return hash(
+            (
+                self.filename,
+                self.size,
+                self.digest,
+                self.algorithm,
+                self.version,
+                self.visibility,
+            )
+        )
+
     def __str__(self):
         return repr(self)
 
@@ -669,6 +682,10 @@ class Manifest(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __hash__(self):
+        # pylint --py3k: W1641
+        return hash(tuple(sorted((fr.filename, fr) for fr in self.file_records)))
+
     def __deepcopy__(self, memo):
         # This is required for a deep copy
         return Manifest(self.file_records[:])
@@ -762,7 +779,7 @@ def open_manifest(manifest_file):
     """I know how to take a filename and load it into a Manifest object"""
     if os.path.exists(manifest_file):
         manifest = Manifest()
-        with open(manifest_file, "rb") as f:
+        with open(manifest_file, "r" if PY3 else "rb") as f:
             manifest.load(f)
             log.debug("loaded manifest from file '%s'" % manifest_file)
         return manifest

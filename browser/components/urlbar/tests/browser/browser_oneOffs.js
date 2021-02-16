@@ -26,18 +26,13 @@ add_task(async function init() {
   );
   await Services.search.moveEngine(engine, 0);
 
-  Services.prefs.setBoolPref(
-    "browser.search.separatePrivateDefault.ui.enabled",
-    false
-  );
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.search.separatePrivateDefault.ui.enabled", false]],
+  });
+
   registerCleanupFunction(async function() {
     await PlacesUtils.history.clear();
     await UrlbarTestUtils.formHistory.clear();
-    Services.prefs.clearUserPref(
-      "browser.search.separatePrivateDefault.ui.enabled"
-    );
-    Services.prefs.clearUserPref("browser.urlbar.update2");
-    Services.prefs.clearUserPref("browser.urlbar.update2.oneOffsRefresh");
   });
 
   // Initialize history with enough visits to fill up the view.
@@ -73,75 +68,7 @@ add_task(async function init() {
 
 // Opens the view without showing the one-offs.  They should be hidden and arrow
 // key selection should work properly.
-//
-// This task can be removed when update2 is enabled by default.
-add_task(async function noOneOffs_legacy() {
-  // Do a search for "@" since we hide the one-offs in that case.
-  let value = "@";
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value,
-    fireInputEvent: true,
-  });
-  await TestUtils.waitForCondition(
-    () => !oneOffSearchButtons._rebuilding,
-    "Waiting for one-offs to finish rebuilding"
-  );
-
-  Assert.equal(
-    UrlbarTestUtils.getOneOffSearchButtonsVisible(window),
-    false,
-    "One-offs should be hidden"
-  );
-  assertState(-1, -1, value);
-
-  // Get the result count.  We don't care what the results are, just what the
-  // count is so that we can key through them all.
-  let resultCount = UrlbarTestUtils.getResultCount(window);
-
-  // Key down through all results.
-  for (let i = 0; i < resultCount; i++) {
-    EventUtils.synthesizeKey("KEY_ArrowDown");
-    assertState(i, -1);
-  }
-
-  // Key down again.  Nothing should be selected.
-  EventUtils.synthesizeKey("KEY_ArrowDown");
-  assertState(-1, -1, value);
-
-  // Key down again.  The first result should be selected.
-  EventUtils.synthesizeKey("KEY_ArrowDown");
-  assertState(0, -1);
-
-  // Key up.  Nothing should be selected.
-  EventUtils.synthesizeKey("KEY_ArrowUp");
-  assertState(-1, -1, value);
-
-  // Key up through all the results.
-  for (let i = resultCount - 1; i >= 0; i--) {
-    EventUtils.synthesizeKey("KEY_ArrowUp");
-    assertState(i, -1);
-  }
-
-  // Key up again.  Nothing should be selected.
-  EventUtils.synthesizeKey("KEY_ArrowUp");
-  assertState(-1, -1, value);
-
-  await hidePopup();
-});
-
-// Opens the view without showing the one-offs.  They should be hidden and arrow
-// key selection should work properly.
 add_task(async function noOneOffs() {
-  // Set the update2 prefs.
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.localOneOffs", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-    ],
-  });
-
   // Do a search for "@" since we hide the one-offs in that case.
   let value = "@";
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -194,20 +121,10 @@ add_task(async function noOneOffs() {
   assertState(-1, -1, value);
 
   await hidePopup();
-  await SpecialPowers.popPrefEnv();
 });
 
 // Opens the top-sites view.  The one-offs should be shown.
 add_task(async function topSites() {
-  // Set the update2 prefs.
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.localOneOffs", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-    ],
-  });
-
   // Do a search that shows top sites.
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
@@ -270,7 +187,6 @@ add_task(async function topSites() {
   assertState(-1, -1, "");
 
   await hidePopup();
-  await SpecialPowers.popPrefEnv();
 });
 
 // Keys up and down through the non-top-sites view, i.e., the view that's shown
@@ -372,11 +288,10 @@ add_task(async function editedView() {
 add_task(async function searchWith() {
   // Enable suggestions for this subtest so we can check non-heuristic results.
   let oldDefaultEngine = await Services.search.getDefault();
-  let oldSuggestPref = Services.prefs.getBoolPref(
-    "browser.urlbar.suggest.searches"
-  );
   await Services.search.setDefault(engine);
-  Services.prefs.setBoolPref("browser.urlbar.suggest.searches", true);
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.suggest.searches", true]],
+  });
 
   let typedValue = "foo";
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -443,7 +358,7 @@ add_task(async function searchWith() {
     "Second result's action text should be updated"
   );
 
-  Services.prefs.setBoolPref("browser.urlbar.suggest.searches", oldSuggestPref);
+  await SpecialPowers.popPrefEnv();
   await Services.search.setDefault(oldDefaultEngine);
   await hidePopup();
 });
@@ -456,41 +371,23 @@ add_task(async function oneOffClick() {
   // stricter. Even if it looks like a url, we should search.
   let typedValue = "foo.bar";
 
-  for (let refresh of [true, false]) {
-    UrlbarPrefs.set("update2", refresh);
-    UrlbarPrefs.set("update2.oneOffsRefresh", refresh);
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: typedValue,
+  });
+  await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+  assertState(0, -1, typedValue);
+  let oneOffs = oneOffSearchButtons.getSelectableButtons(true);
 
-    await UrlbarTestUtils.promiseAutocompleteResultPopup({
-      window,
-      value: typedValue,
-    });
-    await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-    assertState(0, -1, typedValue);
-    let oneOffs = oneOffSearchButtons.getSelectableButtons(true);
-
-    if (refresh) {
-      let searchPromise = UrlbarTestUtils.promiseSearchComplete(window);
-      EventUtils.synthesizeMouseAtCenter(oneOffs[0], {});
-      await searchPromise;
-      Assert.ok(
-        UrlbarTestUtils.isPopupOpen(window),
-        "Urlbar view is still open."
-      );
-      await UrlbarTestUtils.assertSearchMode(window, {
-        engineName: oneOffs[0].engine.name,
-        entry: "oneoff",
-      });
-      await UrlbarTestUtils.exitSearchMode(window, { backspace: true });
-    } else {
-      let resultsPromise = BrowserTestUtils.browserLoaded(
-        gBrowser.selectedBrowser,
-        false,
-        "http://mochi.test:8888/?terms=foo.bar"
-      );
-      EventUtils.synthesizeMouseAtCenter(oneOffs[0], {});
-      await resultsPromise;
-    }
-  }
+  let searchPromise = UrlbarTestUtils.promiseSearchComplete(window);
+  EventUtils.synthesizeMouseAtCenter(oneOffs[0], {});
+  await searchPromise;
+  Assert.ok(UrlbarTestUtils.isPopupOpen(window), "Urlbar view is still open.");
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: oneOffs[0].engine.name,
+    entry: "oneoff",
+  });
+  await UrlbarTestUtils.exitSearchMode(window, { backspace: true });
 
   gBrowser.removeTab(gBrowser.selectedTab);
   await UrlbarTestUtils.formHistory.clear();
@@ -504,53 +401,37 @@ add_task(async function oneOffReturn() {
   // stricter. Even if it looks like a url, we should search.
   let typedValue = "foo.bar";
 
-  for (let refresh of [true, false]) {
-    UrlbarPrefs.set("update2", refresh);
-    UrlbarPrefs.set("update2.oneOffsRefresh", refresh);
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: typedValue,
+    fireInputEvent: true,
+  });
+  await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
+  assertState(0, -1, typedValue);
+  let oneOffs = oneOffSearchButtons.getSelectableButtons(true);
 
-    await UrlbarTestUtils.promiseAutocompleteResultPopup({
-      window,
-      value: typedValue,
-      fireInputEvent: true,
-    });
-    await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
-    assertState(0, -1, typedValue);
-    let oneOffs = oneOffSearchButtons.getSelectableButtons(true);
+  // Alt+Down to select the first one-off.
+  EventUtils.synthesizeKey("KEY_ArrowDown", { altKey: true });
+  assertState(0, 0, typedValue);
 
-    // Alt+Down to select the first one-off.
-    EventUtils.synthesizeKey("KEY_ArrowDown", { altKey: true });
-    assertState(0, 0, typedValue);
-
-    if (refresh) {
-      let searchPromise = UrlbarTestUtils.promiseSearchComplete(window);
-      EventUtils.synthesizeKey("KEY_Enter");
-      await searchPromise;
-      Assert.ok(
-        UrlbarTestUtils.isPopupOpen(window),
-        "Urlbar view is still open."
-      );
-      await UrlbarTestUtils.assertSearchMode(window, {
-        engineName: oneOffs[0].engine.name,
-        entry: "oneoff",
-      });
-      await UrlbarTestUtils.exitSearchMode(window, { backspace: true });
-    } else {
-      let resultsPromise = BrowserTestUtils.browserLoaded(
-        gBrowser.selectedBrowser,
-        false,
-        "http://mochi.test:8888/?terms=foo.bar"
-      );
-      EventUtils.synthesizeKey("KEY_Enter");
-      await resultsPromise;
-    }
-  }
+  let searchPromise = UrlbarTestUtils.promiseSearchComplete(window);
+  EventUtils.synthesizeKey("KEY_Enter");
+  await searchPromise;
+  Assert.ok(UrlbarTestUtils.isPopupOpen(window), "Urlbar view is still open.");
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: oneOffs[0].engine.name,
+    entry: "oneoff",
+  });
+  await UrlbarTestUtils.exitSearchMode(window, { backspace: true });
 
   gBrowser.removeTab(gBrowser.selectedTab);
   await UrlbarTestUtils.formHistory.clear();
+  await hidePopup();
 });
 
-// Hidden engines should not appear in the one-offs.
-add_task(async function hiddenOneOffs() {
+// When all engines and local shortcuts are hidden except for the current
+// engine, the one-offs container should be hidden.
+add_task(async function allOneOffsHiddenExceptCurrentEngine() {
   // Disable all the engines but the current one, check the oneoffs are
   // hidden and that moving up selects the last match.
   let defaultEngine = await Services.search.getDefault();
@@ -558,7 +439,13 @@ add_task(async function hiddenOneOffs() {
     e => e.name != defaultEngine.name
   );
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.search.hiddenOneOffs", engines.map(e => e.name).join(",")]],
+    set: [
+      ["browser.search.hiddenOneOffs", engines.map(e => e.name).join(",")],
+      ...UrlbarUtils.LOCAL_SEARCH_MODES.map(m => [
+        `browser.urlbar.${m.pref}`,
+        false,
+      ]),
+    ],
   });
 
   let typedValue = "foo";
@@ -570,12 +457,12 @@ add_task(async function hiddenOneOffs() {
   await UrlbarTestUtils.getDetailsOfResultAt(window, 0);
   assertState(0, -1);
   Assert.equal(
-    getComputedStyle(oneOffSearchButtons.container).display,
-    "none",
+    UrlbarTestUtils.getOneOffSearchButtonsVisible(window),
+    false,
     "The one-off buttons should be hidden"
   );
   EventUtils.synthesizeKey("KEY_ArrowUp");
-  assertState(1, -1);
+  assertState(0, -1);
   await hidePopup();
   await SpecialPowers.popPrefEnv();
 });
@@ -612,62 +499,14 @@ add_task(async function hiddenWhenUsingSearchAlias() {
   await hidePopup();
 });
 
-// Makes sure local search mode one-offs don't exist without update2.
-//
-// This task can be removed when update2 is enabled by default.
-add_task(async function localOneOffs_legacy() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.update2", false]],
-  });
-
+// Makes sure the local shortcuts exist.
+add_task(async function localShortcuts() {
   oneOffSearchButtons.invalidateCache();
-  let rebuildPromise = BrowserTestUtils.waitForEvent(
-    oneOffSearchButtons,
-    "rebuild"
-  );
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "localOneOffsWithoutUpdate2",
-  });
-  await rebuildPromise;
-
-  Assert.equal(oneOffSearchButtons.localButtons.length, 0);
-  Assert.equal(
-    document.getElementById("urlbar-engine-one-off-item-bookmarks"),
-    null,
-    "Bookmarks one-off should not exist"
-  );
-  Assert.equal(
-    document.getElementById("urlbar-engine-one-off-item-tabs"),
-    null,
-    "Tabs one-off should not exist"
-  );
-  Assert.equal(
-    document.getElementById("urlbar-engine-one-off-item-history"),
-    null,
-    "History one-off should not exist"
-  );
-
-  await hidePopup();
-  await SpecialPowers.popPrefEnv();
+  await doLocalShortcutsShownTest();
 });
 
-// Makes sure local search mode one-offs exist.
-add_task(async function localOneOffs() {
-  oneOffSearchButtons.invalidateCache();
-  await doLocalOneOffsShownTest();
-});
-
-// Clicks a local search mode one-off.
-add_task(async function localOneOffClick() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.localOneOffs", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-    ],
-  });
-
+// Clicks a local shortcut button.
+add_task(async function localShortcutClick() {
   // We are explicitly using something that looks like a url, to make the test
   // stricter. Even if it looks like a url, we should search.
   let typedValue = "foo.bar";
@@ -684,7 +523,7 @@ add_task(async function localOneOffClick() {
   await rebuildPromise;
 
   let buttons = oneOffSearchButtons.localButtons;
-  Assert.ok(buttons.length, "Sanity check: Local one-offs exist");
+  Assert.ok(buttons.length, "Sanity check: Local shortcuts exist");
 
   for (let button of buttons) {
     Assert.ok(button.source, "Sanity check: Button has a source");
@@ -703,19 +542,10 @@ add_task(async function localOneOffClick() {
 
   await UrlbarTestUtils.exitSearchMode(window, { backspace: true });
   await hidePopup();
-  await SpecialPowers.popPrefEnv();
 });
 
-// Presses the Return key when a local search mode one-off is selected.
-add_task(async function localOneOffReturn() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.localOneOffs", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-    ],
-  });
-
+// Presses the Return key when a local shortcut is selected.
+add_task(async function localShortcutReturn() {
   // We are explicitly using something that looks like a url, to make the test
   // stricter. Even if it looks like a url, we should search.
   let typedValue = "foo.bar";
@@ -732,7 +562,7 @@ add_task(async function localOneOffReturn() {
   await rebuildPromise;
 
   let buttons = oneOffSearchButtons.localButtons;
-  Assert.ok(buttons.length, "Sanity check: Local one-offs exist");
+  Assert.ok(buttons.length, "Sanity check: Local shortcuts exist");
 
   let allButtons = oneOffSearchButtons.getSelectableButtons(false);
   let firstLocalIndex = allButtons.length - buttons.length;
@@ -748,7 +578,7 @@ add_task(async function localOneOffReturn() {
     });
     await TestUtils.waitForCondition(
       () => oneOffSearchButtons.selectedButtonIndex == index,
-      "Waiting for local one-off to become selected"
+      "Waiting for local shortcut to become selected"
     );
 
     let expectedSelectedResultIndex = -1;
@@ -777,20 +607,11 @@ add_task(async function localOneOffReturn() {
 
   await UrlbarTestUtils.exitSearchMode(window, { backspace: true });
   await hidePopup();
-  await SpecialPowers.popPrefEnv();
 });
 
-// With an empty search string, clicking a local one-off should result in no
+// With an empty search string, clicking a local shortcut should result in no
 // heuristic result.
-add_task(async function localOneOffEmptySearchString() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.localOneOffs", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-    ],
-  });
-
+add_task(async function localShortcutEmptySearchString() {
   oneOffSearchButtons.invalidateCache();
   let rebuildPromise = BrowserTestUtils.waitForEvent(
     oneOffSearchButtons,
@@ -809,7 +630,7 @@ add_task(async function localOneOffEmptySearchString() {
   );
 
   let buttons = oneOffSearchButtons.localButtons;
-  Assert.ok(buttons.length, "Sanity check: Local one-offs exist");
+  Assert.ok(buttons.length, "Sanity check: Local shortcuts exist");
 
   for (let button of buttons) {
     Assert.ok(button.source, "Sanity check: Button has a source");
@@ -850,7 +671,6 @@ add_task(async function localOneOffEmptySearchString() {
   await UrlbarTestUtils.exitSearchMode(window, { backspace: true });
 
   await hidePopup();
-  await SpecialPowers.popPrefEnv();
 });
 
 // Trigger SearchOneOffs.willHide() outside of SearchOneOffs.__rebuild(). Ensure
@@ -861,11 +681,7 @@ add_task(async function avoidWillHideRace() {
   // UrlbarView calling SearchOneOffs.willHide(). That only happens when the
   // Urlbar is in search mode after a query that returned no results.
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-      ["browser.urlbar.maxHistoricalSearchSuggestions", 0],
-    ],
+    set: [["browser.urlbar.maxHistoricalSearchSuggestions", 0]],
   });
 
   oneOffSearchButtons.invalidateCache();
@@ -888,7 +704,13 @@ add_task(async function avoidWillHideRace() {
     e => e.name != engine.name
   );
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.search.hiddenOneOffs", engines.map(e => e.name).join(",")]],
+    set: [
+      ["browser.search.hiddenOneOffs", engines.map(e => e.name).join(",")],
+      ...UrlbarUtils.LOCAL_SEARCH_MODES.map(m => [
+        `browser.urlbar.${m.pref}`,
+        false,
+      ]),
+    ],
   });
   Assert.ok(
     !oneOffSearchButtons._engineInfo,
@@ -940,16 +762,62 @@ add_task(async function avoidWillHideRace() {
   await SpecialPowers.popPrefEnv();
 });
 
-/**
- * Checks that the local one-offs are shown correctly.
- */
-async function doLocalOneOffsShownTest() {
+// Hides each of the local shortcuts one at a time.  The search buttons should
+// automatically rebuild themselves.
+add_task(async function individualLocalShortcutsHidden() {
+  for (let { pref, source } of UrlbarUtils.LOCAL_SEARCH_MODES) {
+    await SpecialPowers.pushPrefEnv({
+      set: [[`browser.urlbar.${pref}`, false]],
+    });
+
+    let rebuildPromise = BrowserTestUtils.waitForEvent(
+      oneOffSearchButtons,
+      "rebuild"
+    );
+    await UrlbarTestUtils.promiseAutocompleteResultPopup({
+      window,
+      value: "",
+    });
+    await rebuildPromise;
+
+    Assert.equal(
+      UrlbarTestUtils.getOneOffSearchButtonsVisible(window),
+      true,
+      "One-offs are visible"
+    );
+
+    let buttons = oneOffSearchButtons.localButtons;
+    Assert.ok(buttons.length, "Sanity check: Local shortcuts exist");
+
+    let otherModes = UrlbarUtils.LOCAL_SEARCH_MODES.filter(
+      m => m.source != source
+    );
+    Assert.equal(
+      buttons.length,
+      otherModes.length,
+      "Expected number of enabled local shortcut buttons"
+    );
+
+    for (let i = 0; i < buttons.length; i++) {
+      Assert.equal(
+        buttons[i].source,
+        otherModes[i].source,
+        "Button has the expected source"
+      );
+    }
+
+    await hidePopup();
+    await SpecialPowers.popPrefEnv();
+  }
+});
+
+// Hides all the local shortcuts at once.
+add_task(async function allLocalShortcutsHidden() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.localOneOffs", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-    ],
+    set: UrlbarUtils.LOCAL_SEARCH_MODES.map(m => [
+      `browser.urlbar.${m.pref}`,
+      false,
+    ]),
   });
 
   let rebuildPromise = BrowserTestUtils.waitForEvent(
@@ -958,12 +826,89 @@ async function doLocalOneOffsShownTest() {
   );
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
-    value: "doLocalOneOffsShownTest",
+    value: "",
+  });
+  await rebuildPromise;
+
+  Assert.equal(
+    UrlbarTestUtils.getOneOffSearchButtonsVisible(window),
+    true,
+    "One-offs are visible"
+  );
+
+  Assert.equal(
+    oneOffSearchButtons.localButtons.length,
+    0,
+    "All local shortcuts should be hidden"
+  );
+
+  Assert.greater(
+    oneOffSearchButtons.getSelectableButtons(false).filter(b => b.engine)
+      .length,
+    0,
+    "Engine one-offs should not be hidden"
+  );
+
+  await hidePopup();
+  await SpecialPowers.popPrefEnv();
+});
+
+// Hides all the engines but none of the local shortcuts.
+add_task(async function localShortcutsShownWhenEnginesHidden() {
+  let engines = await Services.search.getVisibleEngines();
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.search.hiddenOneOffs", engines.map(e => e.name).join(",")]],
+  });
+
+  let rebuildPromise = BrowserTestUtils.waitForEvent(
+    oneOffSearchButtons,
+    "rebuild"
+  );
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+  await rebuildPromise;
+
+  Assert.equal(
+    UrlbarTestUtils.getOneOffSearchButtonsVisible(window),
+    true,
+    "One-offs are visible"
+  );
+
+  Assert.equal(
+    oneOffSearchButtons.localButtons.length,
+    UrlbarUtils.LOCAL_SEARCH_MODES.length,
+    "All local shortcuts are visible"
+  );
+
+  Assert.equal(
+    oneOffSearchButtons.getSelectableButtons(false).filter(b => b.engine)
+      .length,
+    0,
+    "All engine one-offs are hidden"
+  );
+
+  await hidePopup();
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * Checks that the local shortcuts are shown correctly.
+ */
+async function doLocalShortcutsShownTest() {
+  let rebuildPromise = BrowserTestUtils.waitForEvent(
+    oneOffSearchButtons,
+    "rebuild"
+  );
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "doLocalShortcutsShownTest",
   });
   await rebuildPromise;
 
   let buttons = oneOffSearchButtons.localButtons;
-  Assert.equal(buttons.length, 3, "Expected number of local buttons");
+  Assert.equal(buttons.length, 3, "Expected number of local shortcuts");
 
   let expectedSource;
   let seenIDs = new Set();
@@ -984,14 +929,13 @@ async function doLocalOneOffsShownTest() {
         expectedSource = UrlbarUtils.RESULT_SOURCE.HISTORY;
         break;
       default:
-        Assert.ok(false, `Unexpected local button ID: ${button.id}`);
+        Assert.ok(false, `Unexpected local shortcut ID: ${button.id}`);
         break;
     }
     Assert.equal(button.source, expectedSource, "Expected button.source");
   }
 
   await hidePopup();
-  await SpecialPowers.popPrefEnv();
 }
 
 function assertState(result, oneOff, textValue = undefined) {

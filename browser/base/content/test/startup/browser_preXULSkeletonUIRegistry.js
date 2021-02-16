@@ -70,10 +70,19 @@ add_task(async function testWritesEnabledOnPrefChange() {
   );
   is(enabled, 0, "Pre-XUL skeleton UI is disabled in the Windows registry");
 
+  Services.prefs.setBoolPref("browser.startup.preXulSkeletonUI", true);
+  Services.prefs.setBoolPref("browser.tabs.drawInTitlebar", false);
+  enabled = WindowsRegistry.readRegKey(
+    Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+    "Software\\Mozilla\\Firefox\\PreXULSkeletonUISettings",
+    `${firefoxPath}|Enabled`
+  );
+  is(enabled, 0, "Pre-XUL skeleton UI is disabled in the Windows registry");
+
   await BrowserTestUtils.closeWindow(win);
 });
 
-add_task(async function testWritesSizeValuesOnChange() {
+add_task(async function testPersistsNecessaryValuesOnChange() {
   // Enable the skeleton UI, since if it's disabled we won't persist the size values
   await SpecialPowers.pushPrefEnv({
     set: [["browser.startup.preXulSkeletonUI", true]],
@@ -89,6 +98,7 @@ add_task(async function testWritesSizeValuesOnChange() {
     "SpringsCSSSpan",
     "SearchbarCSSSpan",
     "Theme",
+    "Flags",
   ];
 
   // Remove all of the registry values to ensure old tests aren't giving us false
@@ -109,9 +119,10 @@ add_task(async function testWritesSizeValuesOnChange() {
       "Software\\Mozilla\\Firefox\\PreXULSkeletonUISettings",
       `${firefoxPath}|${key}`
     );
-    ok(
-      value,
-      `Skeleton UI registry values should have a non-zero value for ${key}`
+    isnot(
+      typeof value,
+      "undefined",
+      `Skeleton UI registry values should have a defined value for ${key}`
     );
     if (value.length) {
       let hasNonZero = false;

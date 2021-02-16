@@ -6,7 +6,6 @@
 
 #include "vm/DateTime.h"
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/TextUtils.h"
 #include "mozilla/Unused.h"
@@ -14,6 +13,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <time.h>
 
 #if !defined(XP_WIN)
@@ -22,6 +22,7 @@
 #endif /* !defined(XP_WIN) */
 
 #include "js/Date.h"
+#include "js/GCAPI.h"
 #include "threading/ExclusiveData.h"
 
 #if JS_HAS_INTL_API && !MOZ_SYSTEM_ICU
@@ -653,8 +654,7 @@ static icu::UnicodeString ReadTimeZoneLink(const char* tz) {
   // The resolved link name can have different paths depending on the OS.
   // Follow ICU and only search for "/zoneinfo/"; see $ICU/common/putil.cpp.
   static constexpr char ZoneInfoPath[] = "/zoneinfo/";
-  constexpr size_t ZoneInfoPathLength =
-      mozilla::ArrayLength(ZoneInfoPath) - 1;  // exclude NUL
+  constexpr size_t ZoneInfoPathLength = js_strlen(ZoneInfoPath);
 
   // Stop following symlinks after a fixed depth, because some common time
   // zones are stored in files whose name doesn't match an Olson time zone
@@ -673,7 +673,7 @@ static icu::UnicodeString ReadTimeZoneLink(const char* tz) {
 
   char linkName[PathMax];
   constexpr size_t linkNameLen =
-      mozilla::ArrayLength(linkName) - 1;  // -1 to null-terminate.
+      std::size(linkName) - 1;  // -1 to null-terminate.
 
   // Return if the TZ value is too large.
   if (std::strlen(tz) > linkNameLen) {
@@ -684,7 +684,7 @@ static icu::UnicodeString ReadTimeZoneLink(const char* tz) {
 
   char linkTarget[PathMax];
   constexpr size_t linkTargetLen =
-      mozilla::ArrayLength(linkTarget) - 1;  // -1 to null-terminate.
+      std::size(linkTarget) - 1;  // -1 to null-terminate.
 
   uint32_t depth = 0;
 

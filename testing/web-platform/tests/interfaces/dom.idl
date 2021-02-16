@@ -43,7 +43,7 @@ dictionary EventInit {
 };
 
 partial interface Window {
-  [Replaceable] readonly attribute any event; // legacy
+  [Replaceable] readonly attribute (Event or undefined) event; // legacy
 };
 
 [Exposed=(Window,Worker)]
@@ -79,6 +79,7 @@ dictionary EventListenerOptions {
 dictionary AddEventListenerOptions : EventListenerOptions {
   boolean passive = false;
   boolean once = false;
+  AbortSignal signal;
 };
 
 [Exposed=(Window,Worker)]

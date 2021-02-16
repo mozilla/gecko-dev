@@ -37,6 +37,9 @@ const compatibilitySpec = generateActorSpec({
   typeName: "compatibility",
 
   methods: {
+    // While not being used on the client at the moment, keep this method in case
+    // we need traits again to support backwards compatibility for the Compatibility
+    // actor.
     getTraits: {
       request: {},
       response: { traits: RetVal("json") },
@@ -46,14 +49,18 @@ const compatibilitySpec = generateActorSpec({
         declarationBlock: Arg(0, "array:declaration"),
         targetBrowsers: Arg(1, "array:browsertype"),
       },
-      response: RetVal("array:compatibilityissues"),
+      response: {
+        compatibilityIssues: RetVal("array:compatibilityissues"),
+      },
     },
     getNodeCssIssues: {
       request: {
         node: Arg(0, "domnode"),
         targetBrowsers: Arg(1, "array:browsertype"),
       },
-      response: RetVal("array:compatibilityissues"),
+      response: {
+        compatibilityIssues: RetVal("array:compatibilityissues"),
+      },
     },
   },
 });

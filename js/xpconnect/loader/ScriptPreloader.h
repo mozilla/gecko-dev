@@ -6,6 +6,7 @@
 #ifndef ScriptPreloader_h
 #define ScriptPreloader_h
 
+#include "mozilla/Atomics.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/LinkedList.h"
@@ -25,11 +26,17 @@
 #include "nsIThread.h"
 #include "nsITimer.h"
 
-#include "jsapi.h"
-#include "js/CompileOptions.h"  // JS::CompileOptions, JS::ReadOnlyCompileOptions
-#include "js/GCAnnotations.h"
+#include "js/GCAnnotations.h"  // for JS_HAZ_NON_GC_POINTER
+#include "js/RootingAPI.h"     // for Handle, Heap
+#include "js/Transcoding.h"  // for TranscodeBuffer, TranscodeRange, TranscodeSources
+#include "js/TypeDecls.h"  // for HandleObject, HandleScript
 
 #include <prio.h>
+
+namespace JS {
+class CompileOptions;
+class OffThreadToken;
+}  // namespace JS
 
 namespace mozilla {
 namespace dom {
@@ -206,6 +213,50 @@ class ScriptPreloader : public nsIObserver,
       const ScriptStatus mStatus;
     };
 
+    // The purpose of this helper class is to avoid a race between
+    // ScriptPreloader::WriteCache() and the GC on a JSScript*.
+    // The former checks if the actual JSScript* is null on the save thread
+    // while holding mMonitor. Aside from GC tracing, all places that mutate
+    // the JSScript* either hold mMonitor or don't run at the same time as the
+    // save thread. The GC can move the script, which will cause the value to
+    // change, but this will not change whether it is null or not.
+    //
+    // We can't hold mMonitor while tracing, because we can end running the
+    // GC while the current thread already holds mMonitor. Instead, this class
+    // avoids the race by storing a separate field to indicate if the script is
+    // null or not. To enforce this, the mutation by the GC that cannot affect
+    // the nullness of the script is split out from other mutation.
+    class MOZ_HEAP_CLASS ScriptHolder {
+     public:
+      explicit ScriptHolder(JSScript* script)
+          : mScript(script), mHasScript(script) {}
+      ScriptHolder() : mHasScript(false) {}
+
+      // This should only be called on the main thread (either while holding
+      // the preloader's mMonitor or while the save thread isn't running), or on
+      // the save thread while holding the preloader's mMonitor.
+      explicit operator bool() const { return mHasScript; }
+
+      // This should only be called on the main thread.
+      JSScript* Get() const {
+        MOZ_ASSERT(NS_IsMainThread());
+        return mScript;
+      }
+
+      // This should only be called on the main thread (or from a GC thread
+      // while the main thread is GCing).
+      void Trace(JSTracer* trc);
+
+      // These should only be called on the main thread, either while holding
+      // the preloader's mMonitor or while the save thread isn't running.
+      void Set(JS::HandleScript jsscript);
+      void Clear();
+
+     private:
+      JS::Heap<JSScript*> mScript;
+      bool mHasScript;  // true iff mScript is non-null.
+    };
+
     void FreeData() {
       // If the script data isn't mmapped, we need to release both it
       // and the Range that points to it at the same time.
@@ -231,7 +282,7 @@ class ScriptPreloader : public nsIObserver,
     // not.
     bool MaybeDropScript() {
       if (mIsRunOnce && (HasRange() || !mCache.WillWriteScripts())) {
-        mScript = nullptr;
+        mScript.Clear();
         return true;
       }
       return false;
@@ -315,7 +366,7 @@ class ScriptPreloader : public nsIObserver,
 
     TimeStamp mLoadTime{};
 
-    JS::Heap<JSScript*> mScript;
+    ScriptHolder mScript;
 
     // True if this script is ready to be executed. This means that either the
     // off-thread portion of an off-thread decode has finished, or the script
@@ -428,7 +479,7 @@ class ScriptPreloader : public nsIObserver,
   void DecodeNextBatch(size_t chunkSize, JS::HandleObject scope = nullptr);
 
   static void OffThreadDecodeCallback(JS::OffThreadToken* token, void* context);
-  void MaybeFinishOffThreadDecode();
+  void FinishOffThreadDecode(JS::OffThreadToken* token);
   void DoFinishOffThreadDecode();
 
   already_AddRefed<nsIAsyncShutdownClient> GetShutdownBarrier();
@@ -473,11 +524,15 @@ class ScriptPreloader : public nsIObserver,
   Vector<CachedScript*> mParsingScripts;
 
   // The token for the completed off-thread decode task.
-  JS::OffThreadToken* mToken = nullptr;
+  Atomic<JS::OffThreadToken*, ReleaseAcquire> mToken{nullptr};
 
   // True if a runnable has been dispatched to the main thread to finish an
-  // off-thread decode operation.
+  // off-thread decode operation. Access only while 'mMonitor' is held.
   bool mFinishDecodeRunnablePending = false;
+
+  // True is main-thread is blocked and we should notify with Monitor. Access
+  // only while `mMonitor` is held.
+  bool mWaitingForDecode = false;
 
   // The process type of the current process.
   static ProcessType sProcessType;

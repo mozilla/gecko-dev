@@ -11,6 +11,7 @@
 #include "base/process_util.h"
 #include "base/waitable_event.h"
 #include "chrome/common/child_process_host.h"
+#include "chrome/common/ipc_message.h"
 
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/Atomics.h"
@@ -18,6 +19,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/MozPromise.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 

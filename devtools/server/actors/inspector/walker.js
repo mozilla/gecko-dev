@@ -320,12 +320,7 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
     return {
       actor: this.actorID,
       root: this.rootNode.form(),
-      traits: {
-        // Walker implements node picker starting with Firefox 80
-        supportsNodePicker: true,
-        // Walker implements overflow debugging support starting with Firefox 83
-        supportsOverflowDebugging2: true,
-      },
+      traits: {},
     };
   },
 
@@ -2623,33 +2618,6 @@ var WalkerActor = protocol.ActorClassWithSpec(walkerSpec, {
       return false;
     }
     return this._isInDOMTree(node.rawNode);
-  },
-
-  /**
-   * Given an ObjectActor (identified by its ID), commonly used in the debugger,
-   * webconsole and variablesView, return the corresponding inspector's
-   * NodeActor
-   */
-  getNodeActorFromObjectActor: function(objectActorID) {
-    const actor = this.conn.getActor(objectActorID);
-    if (!actor) {
-      return null;
-    }
-
-    const debuggerObject = this.conn.getActor(objectActorID).obj;
-    let rawNode = debuggerObject.unsafeDereference();
-
-    if (!this._isInDOMTree(rawNode)) {
-      return null;
-    }
-
-    // This is a special case for the document object whereby it is considered
-    // as document.documentElement (the <html> node)
-    if (rawNode.defaultView && rawNode === rawNode.defaultView.document) {
-      rawNode = rawNode.documentElement;
-    }
-
-    return this.attachElement(rawNode);
   },
 
   /**

@@ -7,10 +7,14 @@
 #ifndef GFX_VR_MANAGER_H
 #define GFX_VR_MANAGER_H
 
+#include "nsHashKeys.h"
 #include "nsIObserver.h"
 #include "nsTArray.h"
+#include "nsThreadUtils.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/dom/GamepadHandle.h"
 #include "mozilla/layers/LayersSurfaces.h"  // for SurfaceDescriptor
+#include "mozilla/Monitor.h"
 #include "mozilla/TimeStamp.h"
 #include "gfxVR.h"
 
@@ -51,10 +55,10 @@ class VRManager : nsIObserver {
   void EnumerateDevices();
   void StopAllHaptics();
 
-  void VibrateHaptic(uint32_t aControllerIdx, uint32_t aHapticIndex,
-                     double aIntensity, double aDuration,
+  void VibrateHaptic(mozilla::dom::GamepadHandle aGamepadHandle,
+                     uint32_t aHapticIndex, double aIntensity, double aDuration,
                      const VRManagerPromise& aPromise);
-  void StopVibrateHaptic(uint32_t aControllerIdx);
+  void StopVibrateHaptic(mozilla::dom::GamepadHandle aGamepadHandle);
   void NotifyVibrateHapticCompleted(const VRManagerPromise& aPromise);
   void StartVRNavigation(const uint32_t& aDisplayID);
   void StopVRNavigation(const uint32_t& aDisplayID,

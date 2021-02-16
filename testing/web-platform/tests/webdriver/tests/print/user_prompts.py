@@ -3,15 +3,19 @@ import base64
 
 import pytest
 
-from six import ensure_binary
+import six
 
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
-from tests.support.inline import inline
 from .printcmd import do_print, assert_pdf
 
 
+def decodebytes(s):
+    if six.PY3:
+        return base64.decodebytes(six.ensure_binary(s))
+    return base64.decodestring(s)
+
 @pytest.fixture
-def check_user_prompt_closed_without_exception(session, create_dialog):
+def check_user_prompt_closed_without_exception(session, create_dialog, inline):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
         session.url = inline("<input/>")
 
@@ -20,7 +24,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
         response = do_print(session, {})
         value = assert_success(response)
 
-        pdf = base64.decodestring(ensure_binary(value))
+        pdf = decodebytes(six.ensure_binary(value))
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
         assert_pdf(pdf)
@@ -29,7 +33,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_closed_with_exception(session, create_dialog):
+def check_user_prompt_closed_with_exception(session, create_dialog, inline):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
         session.url = inline("<input/>")
 
@@ -44,7 +48,7 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_not_closed_but_exception(session, create_dialog):
+def check_user_prompt_not_closed_but_exception(session, create_dialog, inline):
     def check_user_prompt_not_closed_but_exception(dialog_type):
         session.url = inline("<input/>")
 

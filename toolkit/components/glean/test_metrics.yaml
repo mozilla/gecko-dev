@@ -64,6 +64,41 @@ test_only:
     send_in_pings:
       - test-ping
 
+  cheesy_string_list:
+    type: string_list
+    description: |
+      Only the cheesiest of strings. In list form!
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1682960
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1682960#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+
+  what_a_date:
+    type: datetime
+    time_unit: second
+    description: >
+      ...To be writing FOG code.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+
   what_id_it:  # Using a different metrics yaml style for fun.
     type: uuid
     description: |
@@ -75,6 +110,60 @@ test_only:
     notification_emails: ["glean-team@mozilla.com"]
     expires: never
     send_in_pings: ["test-ping"]
+
+  can_we_flag_it:
+    type: boolean
+    description: |
+      Test metric for a boolean.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - test-ping
+
+  do_you_remember:
+    type: memory_distribution
+    memory_unit: megabyte
+    description: |
+      They say it's the second thing to go.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1673648
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1673648#c1
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - glean-team@mozilla.com
+    send_in_pings:
+      - test-ping
+
+  what_time_is_it:
+    type: timing_distribution
+    time_unit: microsecond
+    description: |
+      Adheres to at least two of the top ten fallacies programmers believe
+      about time.
+      This is a test-only metric.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1673663
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1673663#c1
+    data_sensitivity:
+      - technical
+    expires: never
+    notification_emails:
+      - glean-team@mozilla.com
+    send_in_pings:
+      - test-ping
 
 test_only.ipc:
   a_counter:
@@ -210,6 +299,8 @@ test_only.ipc:
     extra_keys:
       extra1:
         description: "Some extra data"
+      extra2:
+        description: "Some extra data again"
     description: |
       This is a test-only metric.
       Just recording some events.
@@ -226,6 +317,22 @@ test_only.ipc:
       - store1
     no_lint:
       - COMMON_PREFIX
+  no_extra_event:
+    type: event
+    description: |
+      This is a test-only metric.
+      Just recording some events without the extra fuss.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646165#c1
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - glean-team@mozilla.com
+    expires: never
+    send_in_pings:
+      - store1
   a_uuid:
     type: uuid
     description: |

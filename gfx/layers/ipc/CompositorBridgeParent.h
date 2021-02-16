@@ -15,38 +15,25 @@
 //       which the deadline will be 15ms + throttle threshold
 //#define COMPOSITOR_PERFORMANCE_WARNING
 
-#include <stdint.h>                   // for uint64_t
-#include "Layers.h"                   // for Layer
-#include "mozilla/Assertions.h"       // for MOZ_ASSERT_HELPER2
-#include "mozilla/Attributes.h"       // for override
-#include "mozilla/GfxMessageUtils.h"  // for WebGLVersion
+#include <stdint.h>  // for uint64_t
+#include <unordered_map>
+#include "mozilla/Assertions.h"  // for MOZ_ASSERT_HELPER2
 #include "mozilla/Maybe.h"
 #include "mozilla/Monitor.h"    // for Monitor
 #include "mozilla/RefPtr.h"     // for RefPtr
 #include "mozilla/TimeStamp.h"  // for TimeStamp
-#include "mozilla/dom/ipc/IdType.h"
 #include "mozilla/gfx/Point.h"  // for IntSize
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/ipc/SharedMemory.h"
-#include "mozilla/layers/CompositionRecorder.h"
 #include "mozilla/layers/CompositorController.h"
-#include "mozilla/layers/CompositorOptions.h"
 #include "mozilla/layers/CompositorVsyncSchedulerOwner.h"
 #include "mozilla/layers/ISurfaceAllocator.h"  // for IShmemAllocator
-#include "mozilla/layers/LayersMessages.h"     // for TargetConfig
+#include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/MetricsSharingController.h"
-#include "mozilla/layers/PCompositorBridgeTypes.h"
 #include "mozilla/layers/PCompositorBridgeParent.h"
-#include "mozilla/layers/APZTestData.h"
 #include "mozilla/webrender/WebRenderTypes.h"
-#include "mozilla/webrender/RenderThread.h"
-#include "mozilla/widget/CompositorWidget.h"
-#include "nsISupportsImpl.h"
-#include "ThreadSafeRefcountingWithMainThreadDestruction.h"
-#include "mozilla/layers/UiCompositorControllerParent.h"
-#include "mozilla/VsyncDispatcher.h"
 
-class nsIWidget;
+struct DxgiAdapterDesc;
 
 namespace mozilla {
 
@@ -74,11 +61,24 @@ class PWebGPUParent;
 class WebGPUParent;
 }  // namespace webgpu
 
+namespace widget {
+class CompositorWidget;
+}
+
+namespace wr {
+class WebRenderPipelineInfo;
+struct Epoch;
+struct MemoryReport;
+struct PipelineId;
+struct RendererStats;
+}  // namespace wr
+
 namespace layers {
 
 class APZCTreeManager;
 class APZCTreeManagerParent;
 class APZSampler;
+class APZTestData;
 class APZUpdater;
 class AsyncCompositionManager;
 class AsyncImagePipelineManager;
@@ -87,17 +87,19 @@ class CompositorAnimationStorage;
 class CompositorBridgeParent;
 class CompositorManagerParent;
 class CompositorVsyncScheduler;
+class FrameUniformityData;
 class GeckoContentController;
 class HostLayerManager;
 class IAPZCTreeManager;
+class Layer;
 class LayerTransactionParent;
 class OMTASampler;
-class PAPZParent;
 class ContentCompositorBridgeParent;
 class CompositorThreadHolder;
 class InProcessCompositorSession;
-class TextureData;
+class UiCompositorControllerParent;
 class WebRenderBridgeParent;
+struct CollectedFrames;
 
 struct ScopedLayerTreeRegistration {
   ScopedLayerTreeRegistration(APZCTreeManager* aApzctm, LayersId aLayersId,
@@ -240,7 +242,8 @@ class CompositorBridgeParentBase : public PCompositorBridgeParent,
   virtual bool DeallocPTextureParent(PTextureParent* aActor) = 0;
 
   virtual PWebRenderBridgeParent* AllocPWebRenderBridgeParent(
-      const PipelineId& pipelineId, const LayoutDeviceIntSize& aSize) = 0;
+      const PipelineId& pipelineId, const LayoutDeviceIntSize& aSize,
+      const WindowKind& aWindowKind) = 0;
   virtual bool DeallocPWebRenderBridgeParent(
       PWebRenderBridgeParent* aActor) = 0;
 
@@ -445,9 +448,12 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
 
   bool IsSameProcess() const override;
 
-  void NotifyWebRenderContextPurge();
   void NotifyWebRenderDisableNativeCompositor();
 
+  void NotifyDidRender(const VsyncId& aCompositeStartId,
+                       TimeStamp& aCompositeStart, TimeStamp& aRenderStart,
+                       TimeStamp& aCompositeEnd,
+                       wr::RendererStats* aStats = nullptr);
   void NotifyPipelineRendered(const wr::PipelineId& aPipelineId,
                               const wr::Epoch& aEpoch,
                               const VsyncId& aCompositeStartId,
@@ -481,14 +487,6 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
 
   // Can be called from any thread
   void ScheduleRenderOnCompositorThread() override;
-  void SchedulePauseOnCompositorThread();
-  void InvalidateOnCompositorThread();
-  /**
-   * Returns true if a surface was obtained and the resume succeeded; false
-   * otherwise.
-   */
-  bool ScheduleResumeOnCompositorThread();
-  bool ScheduleResumeOnCompositorThread(int x, int y, int width, int height);
 
   void ScheduleComposition();
 
@@ -670,8 +668,8 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
   }
 
   PWebRenderBridgeParent* AllocPWebRenderBridgeParent(
-      const wr::PipelineId& aPipelineId,
-      const LayoutDeviceIntSize& aSize) override;
+      const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize& aSize,
+      const WindowKind& aWindowKind) override;
   bool DeallocPWebRenderBridgeParent(PWebRenderBridgeParent* aActor) override;
   RefPtr<WebRenderBridgeParent> GetWebRenderBridgeParent() const;
   Maybe<TimeStamp> GetTestingTimeStamp() const;

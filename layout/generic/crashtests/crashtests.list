@@ -51,7 +51,6 @@ load 345617-1.html
 load 348510-1.html
 load 348510-2.html
 load 348887-1.html
-load 348991-1.xhtml
 load 350370.html
 load 354458-1.html
 load 354458-2.html
@@ -343,7 +342,7 @@ load 478170-1.html
 load 478185-1.html
 load 478504.html
 asserts-if(!Android,0-1) load 479938-1.html # Bug 575011
-asserts(60) load 480345-1.html # bug 1655630
+asserts(20) load 480345-1.html # bug 1655630
 load 481921.html
 load 489462-1.html
 load 489477.html
@@ -405,12 +404,12 @@ load 553504-1.xhtml
 load 564368-1.xhtml
 load 564968.xhtml
 load 569193-1.html
-asserts(2) load 570160.html # bug 1655630
+load 570160.html
 load 570289-1.html
 load 571618-1.svg
 asserts(0-1) load 571975-1.html # bug 574889
 load 571995.xhtml
-asserts(3) load 574958.xhtml # bug 1655630
+asserts(1) load 574958.xhtml # bug 1655630
 asserts(0-6) load 578977.html # bug 757305
 load 580504-1.xhtml
 load 585598-1.xhtml
@@ -698,6 +697,7 @@ load 1460158-2.html
 load 1460158-3.html
 load 1461039.html
 load 1461979-1.html
+asserts(0-1) load 1466224.html # assertion is bug 1683800
 load 1467239.html
 load 1472403.html
 load 1474768.html
@@ -774,6 +774,9 @@ load 1633737-3.html
 load 1633737-4.html
 load 1633737-5.html
 load 1633828.html
+load 1638860-1.html
+load 1638860-2.html
+load 1638906.html
 load 1640028.html
 load 1640051.html
 load 1640275.html
@@ -783,4 +786,10 @@ load 1648577.html
 load 1652618.html
 load 1652897.html
 asserts(0-7) load 1654925.html
+load 1663222.html
 load 1666592.html
+load 1670336.html
+HTTP load 1677518-1.html
+load 1680406.html
+load 1681788.html
+HTTP load 1682882.html

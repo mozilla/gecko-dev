@@ -254,7 +254,14 @@ extern "C" {
     fn GetString(name: GLenum) -> *const c_char;
     fn GetStringi(name: GLenum, index: GLuint) -> *const c_char;
     fn GetError() -> GLenum;
-    fn InitDefaultFramebuffer(width: i32, height: i32, stride: i32, buf: *mut c_void);
+    fn InitDefaultFramebuffer(
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        stride: i32,
+        buf: *mut c_void,
+    );
     fn GetColorBuffer(
         fbo: GLuint,
         flush: GLboolean,
@@ -305,8 +312,10 @@ extern "C" {
         opaque: GLboolean,
         flip: GLboolean,
         filter: GLenum,
-        band_offset: GLint,
-        band_height: GLsizei,
+        clip_x: GLint,
+        clip_y: GLint,
+        clip_width: GLsizei,
+        clip_height: GLsizei,
     );
     fn CompositeYUV(
         locked_dst: *mut LockedTexture,
@@ -324,8 +333,10 @@ extern "C" {
         dst_width: GLsizei,
         dst_height: GLsizei,
         flip: GLboolean,
-        band_offset: GLint,
-        band_height: GLsizei,
+        clip_x: GLint,
+        clip_y: GLint,
+        clip_width: GLsizei,
+        clip_height: GLsizei,
     );
     fn CreateContext() -> *mut c_void;
     fn ReferenceContext(ctx: *mut c_void);
@@ -359,9 +370,17 @@ impl Context {
         }
     }
 
-    pub fn init_default_framebuffer(&self, width: i32, height: i32, stride: i32, buf: *mut c_void) {
+    pub fn init_default_framebuffer(
+        &self,
+        x: i32,
+        y: i32,
+        width: i32,
+        height: i32,
+        stride: i32,
+        buf: *mut c_void,
+    ) {
         unsafe {
-            InitDefaultFramebuffer(width, height, stride, buf);
+            InitDefaultFramebuffer(x, y, width, height, stride, buf);
         }
     }
 
@@ -2369,8 +2388,10 @@ impl LockedResource {
         opaque: bool,
         flip: bool,
         filter: GLenum,
-        band_offset: GLint,
-        band_height: GLsizei,
+        clip_x: GLint,
+        clip_y: GLint,
+        clip_width: GLsizei,
+        clip_height: GLsizei,
     ) {
         unsafe {
             Composite(
@@ -2387,8 +2408,10 @@ impl LockedResource {
                 opaque as GLboolean,
                 flip as GLboolean,
                 filter,
-                band_offset,
-                band_height,
+                clip_x,
+                clip_y,
+                clip_width,
+                clip_height,
             );
         }
     }
@@ -2410,8 +2433,10 @@ impl LockedResource {
         dst_width: GLsizei,
         dst_height: GLsizei,
         flip: bool,
-        band_offset: GLint,
-        band_height: GLsizei,
+        clip_x: GLint,
+        clip_y: GLint,
+        clip_width: GLsizei,
+        clip_height: GLsizei,
     ) {
         unsafe {
             CompositeYUV(
@@ -2430,8 +2455,10 @@ impl LockedResource {
                 dst_width,
                 dst_height,
                 flip as GLboolean,
-                band_offset,
-                band_height,
+                clip_x,
+                clip_y,
+                clip_width,
+                clip_height,
             );
         }
     }

@@ -15,15 +15,22 @@
 #include "js/LocaleSensitive.h"
 #include "js/MemoryMetrics.h"
 #include "js/SourceText.h"
+#include "GeckoProfiler.h"
 #include "MessageEventRunnable.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/Result.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/CallbackDebuggerNotification.h"
 #include "mozilla/dom/ClientManager.h"
 #include "mozilla/dom/ClientState.h"
 #include "mozilla/dom/Console.h"
+#include "mozilla/dom/DocGroup.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/Exceptions.h"
@@ -54,6 +61,7 @@
 #include "nsCycleCollector.h"
 #include "nsGlobalWindowInner.h"
 #include "nsNetUtil.h"
+#include "nsIFile.h"
 #include "nsIMemoryReporter.h"
 #include "nsIPermissionManager.h"
 #include "nsIProtocolHandler.h"
@@ -192,13 +200,11 @@ class ExternalRunnableWrapper final : public WorkerRunnable {
   }
 
   nsresult Cancel() override {
-    nsresult rv;
-    nsCOMPtr<nsICancelableRunnable> cancelable =
+    nsCOMPtr<nsIDiscardableRunnable> doomed =
         do_QueryInterface(mWrappedRunnable);
-    MOZ_ASSERT(cancelable);  // We checked this earlier!
-    rv = cancelable->Cancel();
-    nsresult rv2 = WorkerRunnable::Cancel();
-    return NS_FAILED(rv) ? rv : rv2;
+    MOZ_ASSERT(doomed);  // We checked this earlier!
+    doomed->OnDiscard();
+    return WorkerRunnable::Cancel();
   }
 };
 
@@ -1564,9 +1570,11 @@ already_AddRefed<WorkerRunnable> WorkerPrivate::MaybeWrapAsWorkerRunnable(
     return workerRunnable.forget();
   }
 
-  nsCOMPtr<nsICancelableRunnable> cancelable = do_QueryInterface(runnable);
-  if (!cancelable) {
-    MOZ_CRASH("All runnables destined for a worker thread must be cancelable!");
+  nsCOMPtr<nsIDiscardableRunnable> maybe = do_QueryInterface(runnable);
+  if (!maybe) {
+    MOZ_CRASH(
+        "All runnables destined for a worker thread must be "
+        "nsIDiscardableRunnable!");
   }
 
   workerRunnable = new ExternalRunnableWrapper(this, runnable);
@@ -3264,10 +3272,10 @@ void WorkerPrivate::SetGCTimerMode(GCTimerMode aMode) {
 
   data->mPeriodicGCTimerRunning = false;
   data->mIdleGCTimerRunning = false;
-  LOG(WorkerLog(),
-      ("Worker %p canceled GC timer because %s\n", this,
-       aMode == PeriodicTimer ? "periodic"
-                              : aMode == IdleTimer ? "idle" : "none"));
+  LOG(WorkerLog(), ("Worker %p canceled GC timer because %s\n", this,
+                    aMode == PeriodicTimer ? "periodic"
+                    : aMode == IdleTimer   ? "idle"
+                                           : "none"));
 
   if (aMode == NoTimer) {
     return;
@@ -4877,7 +4885,7 @@ void WorkerPrivate::GarbageCollectInternal(JSContext* aCx, bool aShrinking,
   if (aShrinking || aCollectChildren) {
     JS::PrepareForFullGC(aCx);
 
-    if (aShrinking) {
+    if (aShrinking && mSyncLoopStack.IsEmpty()) {
       JS::NonIncrementalGC(aCx, GC_SHRINK, JS::GCReason::DOM_WORKER);
 
       // Check whether the CC collected anything and if so GC again. This is
@@ -5194,8 +5202,8 @@ RemoteWorkerChild* WorkerPrivate::GetRemoteWorkerController() {
 
 void WorkerPrivate::SetRemoteWorkerControllerWeakRef(
     ThreadSafeWeakPtr<RemoteWorkerChild> aWeakRef) {
-  MOZ_ASSERT(aWeakRef);
-  MOZ_ASSERT(!mRemoteWorkerControllerWeakRef);
+  MOZ_ASSERT(!aWeakRef.IsNull());
+  MOZ_ASSERT(mRemoteWorkerControllerWeakRef.IsNull());
   MOZ_ASSERT(IsServiceWorker());
 
   mRemoteWorkerControllerWeakRef = std::move(aWeakRef);

@@ -38,6 +38,7 @@
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/Printf.h"
 #include "js/Symbol.h"
+#include "util/DifferentialTesting.h"
 #include "util/Memory.h"
 #include "util/StringBuffer.h"
 #include "util/Text.h"
@@ -690,7 +691,6 @@ uint32_t BytecodeParser::simulateOp(JSOp op, uint32_t offset,
     case JSOp::SetIntrinsic:
     case JSOp::SetLocal:
     case JSOp::InitAliasedLexical:
-    case JSOp::IterNext:
     case JSOp::CheckLexical:
     case JSOp::CheckAliasedLexical:
       // Keep the top value.
@@ -1174,7 +1174,8 @@ static UniqueChars ToDisassemblySource(JSContext* cx, HandleValue v) {
     }
 
     if (obj.is<RegExpObject>()) {
-      JSString* source = obj.as<RegExpObject>().toString(cx);
+      Rooted<RegExpObject*> reobj(cx, &obj.as<RegExpObject>());
+      JSString* source = RegExpObject::toString(cx, reobj);
       if (!source) {
         return nullptr;
       }
@@ -1488,14 +1489,6 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
     }
 
     case JOF_OBJECT: {
-      /* Don't call obj.toSource if analysis/inference is active. */
-      if (script->zone()->types.activeAnalysis) {
-        if (!sp->jsprintf(" object")) {
-          return 0;
-        }
-        break;
-      }
-
       JSObject* obj = script->getObject(pc);
       {
         RootedValue v(cx, ObjectValue(*obj));
@@ -1560,6 +1553,12 @@ static unsigned Disassemble1(JSContext* cx, HandleScript script, jsbytecode* pc,
 
     case JOF_LOCAL:
       if (!sp->jsprintf(" %u", GET_LOCALNO(pc))) {
+        return 0;
+      }
+      break;
+
+    case JOF_GCTHING:
+      if (!sp->jsprintf(" %u", unsigned(GET_GCTHING_INDEX(pc)))) {
         return 0;
       }
       break;
@@ -1826,13 +1825,10 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
 
     case JSOp::DelProp:
     case JSOp::StrictDelProp:
-    case JSOp::Length:
     case JSOp::GetProp:
-    case JSOp::GetBoundName:
-    case JSOp::CallProp: {
+    case JSOp::GetBoundName: {
       bool hasDelete = op == JSOp::DelProp || op == JSOp::StrictDelProp;
-      RootedAtom prop(cx,
-                      (op == JSOp::Length) ? cx->names().length : loadAtom(pc));
+      RootedAtom prop(cx, loadAtom(pc));
       MOZ_ASSERT(prop);
       return (hasDelete ? write("(delete ") : true) &&
              decompilePCForStackOperand(pc, -1) &&
@@ -1856,8 +1852,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
 
     case JSOp::DelElem:
     case JSOp::StrictDelElem:
-    case JSOp::GetElem:
-    case JSOp::CallElem: {
+    case JSOp::GetElem: {
       bool hasDelete = (op == JSOp::DelElem || op == JSOp::StrictDelElem);
       return (hasDelete ? write("(delete ") : true) &&
              decompilePCForStackOperand(pc, -2) && write("[") &&
@@ -1913,33 +1908,12 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
     case JSOp::NewArray:
       return write("[]");
     case JSOp::RegExp: {
-      RootedObject obj(cx, script->getObject(pc));
-      JSString* str = obj->as<RegExpObject>().toString(cx);
+      Rooted<RegExpObject*> obj(cx, &script->getObject(pc)->as<RegExpObject>());
+      JSString* str = RegExpObject::toString(cx, obj);
       if (!str) {
         return false;
       }
       return write(str);
-    }
-    case JSOp::NewArrayCopyOnWrite: {
-      RootedObject obj(cx, script->getObject(pc));
-      Handle<ArrayObject*> aobj = obj.as<ArrayObject>();
-      if (!write("[")) {
-        return false;
-      }
-      for (size_t i = 0; i < aobj->getDenseInitializedLength(); i++) {
-        if (i > 0 && !write(", ")) {
-          return false;
-        }
-
-        RootedValue v(cx, aobj->getDenseElement(i));
-        MOZ_RELEASE_ASSERT(v.isPrimitive() && !v.isMagic());
-
-        JSString* str = ValueToSource(cx, v);
-        if (!str || !write(str)) {
-          return false;
-        }
-      }
-      return write("]");
     }
     case JSOp::Object: {
       JSObject* obj = script->getObject(pc);
@@ -2123,7 +2097,6 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
 
       case JSOp::NewInit:
       case JSOp::NewObject:
-      case JSOp::NewObjectWithGroup:
       case JSOp::ObjWithProto:
         return write("OBJ");
 
@@ -2365,14 +2338,14 @@ static bool DecompileExpressionFromStack(JSContext* cx, int spindex,
 
   *res = nullptr;
 
-#ifdef JS_MORE_DETERMINISTIC
   /*
    * Give up if we need deterministic behavior for differential testing.
    * IonMonkey doesn't use InterpreterFrames and this ensures we get the same
    * error messages.
    */
-  return true;
-#endif
+  if (js::SupportDifferentialTesting()) {
+    return true;
+  }
 
   if (spindex == JSDVG_IGNORE_STACK) {
     return true;
@@ -2463,10 +2436,10 @@ static bool DecompileArgumentFromStack(JSContext* cx, int formalIndex,
 
   *res = nullptr;
 
-#ifdef JS_MORE_DETERMINISTIC
   /* See note in DecompileExpressionFromStack. */
-  return true;
-#endif
+  if (js::SupportDifferentialTesting()) {
+    return true;
+  }
 
   /*
    * Settle on the nearest script frame, which should be the builtin that

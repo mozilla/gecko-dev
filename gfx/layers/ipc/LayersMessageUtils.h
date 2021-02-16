@@ -14,6 +14,7 @@
 #include "FrameMetrics.h"
 #include "VsyncSource.h"
 #include "chrome/common/ipc_message_utils.h"
+#include "ipc/EnumSerializer.h"
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/MotionPathUtils.h"
 #include "mozilla/ServoBindings.h"
@@ -92,6 +93,12 @@ struct ParamTraits<mozilla::layers::MatrixMessage> {
 template <>
 struct ParamTraits<mozilla::layers::LayersObserverEpoch>
     : public PlainOldDataSerializer<mozilla::layers::LayersObserverEpoch> {};
+
+template <>
+struct ParamTraits<mozilla::layers::WindowKind>
+    : public ContiguousEnumSerializer<mozilla::layers::WindowKind,
+                                      mozilla::layers::WindowKind::MAIN,
+                                      mozilla::layers::WindowKind::LAST> {};
 
 template <>
 struct ParamTraits<mozilla::layers::LayersBackend>

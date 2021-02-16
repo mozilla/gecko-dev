@@ -2,36 +2,35 @@
 
 1. `git clone https://github.com/beautify-web/js-beautify.git`
 
-2. Copy `js/lib/beautify.js` to `devtools/shared/jsbeautify/src/beautify-js.js`
+2. `cd js-beautify`
 
-3. Remove the acorn section from the file and add the following to the top:
+3. Retrieve the latest tag with
 
- ```
- const acorn = require("acorn/acorn");
- ```
+```
+git describe --tags `git rev-list --tags --max-count=1`
+```
 
-4. Just above `function Beautifier(js_source_text, options) {` add:
+4. Move to the latest tag `git checkout ${latestTag}` (`${latestTag}` should be replaced with
+   what was printed at step 3).
 
- ```
- exports.jsBeautify = js_beautify;
- ```
+5. `npm install`
 
-5. Copy `beautify-html.js` to `devtools/shared/jsbeautify/src/beautify-html.js`
+6. `npx webpack`
 
-6. Replace the require blocks at the bottom of the file with:
+7. Copy `js/lib/beautify.js` to `devtools/shared/jsbeautify/src/beautify-js.js`
 
- ```
- var beautify = require('devtools/shared/jsbeautify/beautify');
+8. Copy `js/lib/beautify-html.js` to `devtools/shared/jsbeautify/src/beautify-html.js`
 
- exports.htmlBeautify = function(html_source, options) {
-    return style_html(html_source, options, beautify.js, beautify.css);
- };
- ```
+9. Replace the following line at the bottom of the file:
 
-7. Copy `beautify-css.js` to `devtools/shared/jsbeautify/src/beautify-css.js`
+```
+var js_beautify = require('./beautify.js');
+```
 
-8. Replace the global define block at the bottom of the file with:
- ```
- exports.cssBeautify = css_beautify;
- ```
-9. Copy `js/test/beautify-tests.js` to `devtools/shared/jsbeautify/src/beautify-tests.js`
+with (changing `beautify.js` into `beautify-js.js`):
+
+```
+var js_beautify = require('./beautify-js.js');
+```
+
+10. Copy `js/lib/beautify-css.js` to `devtools/shared/jsbeautify/src/beautify-css.js`

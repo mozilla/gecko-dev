@@ -20,7 +20,6 @@
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/EnumeratedArray.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/UniquePtr.h"
@@ -1238,35 +1237,7 @@ class WebGLContext : public VRefCounted, public SupportsWeakPtr {
 
   template <typename... Args>
   void GeneratePerfWarning(const char* const fmt, const Args&... args) const {
-    if (!ShouldGeneratePerfWarnings()) return;
-
-    const auto funcName = FuncName();
-    nsCString msg;
-    msg.AppendPrintf("WebGL perf warning: %s: ", funcName);
-
-#ifdef __clang__
-#  pragma clang diagnostic push
-#  pragma clang diagnostic ignored "-Wformat-security"
-#elif defined(__GNUC__)
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wformat-security"
-#endif
-    msg.AppendPrintf(fmt, args...);
-#ifdef __clang__
-#  pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#  pragma GCC diagnostic pop
-#endif
-
-    GenerateErrorImpl(0, msg);
-
-    mNumPerfWarnings++;
-    if (!ShouldGeneratePerfWarnings()) {
-      GenerateWarning(
-          "After reporting %u, no further WebGL perf warnings will"
-          " be reported for this WebGL context.",
-          uint32_t(mNumPerfWarnings));
-    }
+    GenerateError(webgl::kErrorPerfWarning, fmt, args...);
   }
 
  public:

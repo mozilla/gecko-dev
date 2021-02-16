@@ -493,8 +493,8 @@ TextPropertyEditor.prototype = {
       colorSwatchClass: SHARED_SWATCH_CLASS + " " + COLOR_SWATCH_CLASS,
       filterClass: "ruleview-filter",
       filterSwatchClass: SHARED_SWATCH_CLASS + " " + FILTER_SWATCH_CLASS,
-      flexClass: "ruleview-flex",
-      gridClass: "ruleview-grid",
+      flexClass: "ruleview-flex js-toggle-flexbox-highlighter",
+      gridClass: "ruleview-grid js-toggle-grid-highlighter",
       shapeClass: "ruleview-shape",
       shapeSwatchClass: SHAPE_SWATCH_CLASS,
       // Only ask the parser to convert colors to the default color type specified by the
@@ -654,7 +654,9 @@ TextPropertyEditor.prototype = {
       flexToggle.setAttribute("title", l10n("rule.flexToggle.tooltip"));
       flexToggle.classList.toggle(
         "active",
-        this.ruleView.highlighters.flexboxHighlighterShown === nodeFront
+        this.ruleView.inspector.highlighters.getNodeForActiveHighlighter(
+          this.ruleView.inspector.highlighters.TYPES.FLEXBOX
+        ) === nodeFront
       );
     }
 
@@ -1132,18 +1134,6 @@ TextPropertyEditor.prototype = {
       session_id: this.toolbox.sessionId,
     });
 
-    // Since the value was changed, check if the original property was a flex or grid
-    // display declaration and hide their respective highlighters.
-    if (this.isDisplayFlex()) {
-      this.ruleView.highlighters.hideFlexboxHighlighter();
-    }
-
-    if (this.isDisplayGrid()) {
-      this.ruleView.highlighters.hideGridHighlighter(
-        this.ruleView.inspector.selection.nodeFront
-      );
-    }
-
     // First, set this property value (common case, only modified a property)
     this.prop.setValue(val.value, val.priority);
 
@@ -1281,30 +1271,6 @@ TextPropertyEditor.prototype = {
    */
   isNameValid: function() {
     return this.prop.isNameValid();
-  },
-
-  /**
-   * Returns true if the property is a `display: [inline-]flex` declaration.
-   *
-   * @return {Boolean} true if the property is a `display: [inline-]flex` declaration.
-   */
-  isDisplayFlex: function() {
-    return (
-      this.prop.name === "display" &&
-      (this.prop.value === "flex" || this.prop.value === "inline-flex")
-    );
-  },
-
-  /**
-   * Returns true if the property is a `display: [inline-]grid` declaration.
-   *
-   * @return {Boolean} true if the property is a `display: [inline-]grid` declaration.
-   */
-  isDisplayGrid: function() {
-    return (
-      this.prop.name === "display" &&
-      (this.prop.value === "grid" || this.prop.value === "inline-grid")
-    );
   },
 };
 

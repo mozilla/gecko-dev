@@ -7,6 +7,7 @@
 #include "WebRenderLayerManager.h"
 
 #include "BasicLayers.h"
+#include "Layers.h"
 
 #include "GeckoProfiler.h"
 #include "mozilla/StaticPrefs_apz.h"
@@ -17,6 +18,7 @@
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/StackingContextHelper.h"
 #include "mozilla/layers/TextureClient.h"
+#include "mozilla/layers/TransactionIdAllocator.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "mozilla/layers/UpdateImageHelper.h"
 #include "nsDisplayList.h"
@@ -66,9 +68,16 @@ bool WebRenderLayerManager::Initialize(
   // succeeded, or if this is the first attempt.
   static bool hasInitialized = false;
 
+  WindowKind windowKind;
+  if (mWidget->WindowType() != eWindowType_popup) {
+    windowKind = WindowKind::MAIN;
+  } else {
+    windowKind = WindowKind::SECONDARY;
+  }
+
   LayoutDeviceIntSize size = mWidget->GetClientSize();
   PWebRenderBridgeChild* bridge =
-      aCBChild->SendPWebRenderBridgeConstructor(aLayersId, size);
+      aCBChild->SendPWebRenderBridgeConstructor(aLayersId, size, windowKind);
   if (!bridge) {
     // This should only fail if we attempt to access a layer we don't have
     // permission for, or more likely, the GPU process crashed again during
@@ -157,7 +166,9 @@ CompositorBridgeChild* WebRenderLayerManager::GetCompositorBridgeChild() {
 }
 
 void WebRenderLayerManager::GetBackendName(nsAString& name) {
-  if (WrBridge()->UsingSoftwareWebRender()) {
+  if (WrBridge()->UsingSoftwareWebRenderD3D11()) {
+    name.AssignLiteral("WebRender (Software D3D11)");
+  } else if (WrBridge()->UsingSoftwareWebRender()) {
     name.AssignLiteral("WebRender (Software)");
   } else {
     name.AssignLiteral("WebRender");
@@ -182,7 +193,7 @@ void WebRenderLayerManager::StopFrameTimeRecording(
   }
 }
 
-void WebRenderLayerManager::PayloadPresented() {
+void WebRenderLayerManager::PayloadPresented(const TimeStamp& aTimeStamp) {
   MOZ_CRASH("WebRenderLayerManager::PayloadPresented should not be called");
 }
 
@@ -274,6 +285,7 @@ bool WebRenderLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags) {
   if (mStateManager.mAsyncResourceUpdates || !mPendingScrollUpdates.IsEmpty() ||
       WrBridge()->HasWebRenderParentCommands()) {
     transactionData.emplace();
+    transactionData->mIdNamespace = WrBridge()->GetNamespace();
     transactionData->mPaintSequenceNumber = mPaintSequenceNumber;
     if (mStateManager.mAsyncResourceUpdates) {
       mStateManager.mAsyncResourceUpdates->Flush(
@@ -319,8 +331,16 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
 
   LayoutDeviceIntSize size = mWidget->GetClientSize();
 
-  wr::DisplayListBuilder builder(WrBridge()->GetPipeline(),
-                                 mLastDisplayListSize, &mDisplayItemCache);
+  // While the first display list after tab-switch can be large, the
+  // following ones are always smaller thanks to interning (rarely above 0.3MB).
+  // So don't let the spike of the first allocation make us allocate a large
+  // contiguous buffer (with some likelihood of OOM, see bug 1531819).
+  static const size_t kMaxPrealloc = 300000;
+  size_t preallocate =
+      mLastDisplayListSize < kMaxPrealloc ? mLastDisplayListSize : kMaxPrealloc;
+
+  wr::DisplayListBuilder builder(WrBridge()->GetPipeline(), preallocate,
+                                 &mDisplayItemCache);
 
   wr::IpcResourceUpdateQueue resourceUpdates(WrBridge());
   wr::usize builderDumpIndex = 0;
@@ -349,6 +369,8 @@ void WebRenderLayerManager::EndTransactionWithoutLayer(
     mWebRenderCommandBuilder.BuildWebRenderCommands(
         builder, resourceUpdates, aDisplayList, aDisplayListBuilder,
         mScrollData, std::move(aFilters));
+
+    aDisplayListBuilder->NotifyAndClearScrollFrames();
 
     builderDumpIndex = mWebRenderCommandBuilder.GetBuilderDumpIndex();
     containsSVGGroup = mWebRenderCommandBuilder.GetContainsSVGGroup();

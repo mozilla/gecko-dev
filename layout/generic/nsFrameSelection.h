@@ -239,11 +239,11 @@ class nsFrameSelection final {
    * @param aHint will tell the selection which direction geometrically to
    * actually show the caret on. 1 = end of this line 0 = beginning of this line
    */
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult HandleClick(nsIContent* aNewFocus,
-                                                   uint32_t aContentOffset,
-                                                   uint32_t aContentEndOffset,
-                                                   FocusMode aFocusMode,
-                                                   CaretAssociateHint aHint);
+  MOZ_CAN_RUN_SCRIPT nsresult HandleClick(nsIContent* aNewFocus,
+                                          uint32_t aContentOffset,
+                                          uint32_t aContentEndOffset,
+                                          FocusMode aFocusMode,
+                                          CaretAssociateHint aHint);
 
   /**
    * HandleDrag extends the selection to contain the frame closest to aPoint.
@@ -256,7 +256,6 @@ class nsFrameSelection final {
    *
    * @param aPoint is relative to aFrame
    */
-  // TODO: replace with `MOZ_CAN_RUN_SCRIPT`.
   MOZ_CAN_RUN_SCRIPT void HandleDrag(nsIFrame* aFrame, const nsPoint& aPoint);
 
   /**
@@ -371,7 +370,7 @@ class nsFrameSelection final {
    *
    * @param aState is the new state of drag
    */
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  MOZ_CAN_RUN_SCRIPT
   void SetDragState(bool aState);
 
   /**
@@ -608,12 +607,6 @@ class nsFrameSelection final {
                                                      eLogical);
   }
 
-  /**
-   * Select All will generally be called from the nsiselectioncontroller
-   * implementations. it will select the whole doc
-   */
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult SelectAll();
-
   /** Sets/Gets The display selection enum.
    */
   void SetDisplaySelection(int16_t aState) { mDisplaySelection = aState; }
@@ -637,17 +630,17 @@ class nsFrameSelection final {
    * by the selection during MouseDown processing. It can be nullptr
    * if the data is no longer valid.
    */
-  bool HasDelayedCaretData() { return mDelayedMouseEvent.mIsValid; }
-  bool IsShiftDownInDelayedCaretData() {
+  bool HasDelayedCaretData() const { return mDelayedMouseEvent.mIsValid; }
+  bool IsShiftDownInDelayedCaretData() const {
     NS_ASSERTION(mDelayedMouseEvent.mIsValid, "No valid delayed caret data");
     return mDelayedMouseEvent.mIsShift;
   }
-  uint32_t GetClickCountInDelayedCaretData() {
+  uint32_t GetClickCountInDelayedCaretData() const {
     NS_ASSERTION(mDelayedMouseEvent.mIsValid, "No valid delayed caret data");
     return mDelayedMouseEvent.mClickCount;
   }
 
-  bool MouseDownRecorded() {
+  bool MouseDownRecorded() const {
     return !GetDragState() && HasDelayedCaretData() &&
            GetClickCountInDelayedCaretData() < 2;
   }
@@ -754,10 +747,40 @@ class nsFrameSelection final {
                      uint32_t aContentEndOffset, CaretAssociateHint aHint,
                      FocusMode aFocusMode);
 
+  /**
+   * After moving the caret, its Bidi level is set according to the following
+   * rules:
+   *
+   * After moving over a character with left/right arrow, set to the Bidi level
+   * of the last moved over character. After Home and End, set to the paragraph
+   * embedding level. After up/down arrow, PageUp/Down, set to the lower level
+   * of the 2 surrounding characters. After mouse click, set to the level of the
+   * current frame.
+   *
+   * The following two methods use GetPrevNextBidiLevels to determine the new
+   * Bidi level. BidiLevelFromMove is called when the caret is moved in response
+   * to a keyboard event
+   *
+   * @param aPresShell is the presentation shell
+   * @param aNode is the content node
+   * @param aContentOffset is the new caret position, as an offset into aNode
+   * @param aAmount is the amount of the move that gave the caret its new
+   * position
+   * @param aHint is the hint indicating in what logical direction the caret
+   * moved
+   */
   void BidiLevelFromMove(mozilla::PresShell* aPresShell, nsIContent* aNode,
                          uint32_t aContentOffset, nsSelectionAmount aAmount,
                          CaretAssociateHint aHint);
+  /**
+   * BidiLevelFromClick is called when the caret is repositioned by clicking the
+   * mouse
+   *
+   * @param aNode is the content node
+   * @param aContentOffset is the new caret position, as an offset into aNode
+   */
   void BidiLevelFromClick(nsIContent* aNewFocus, uint32_t aContentOffset);
+
   static nsPrevNextBidiLevels GetPrevNextBidiLevels(nsIContent* aNode,
                                                     uint32_t aContentOffset,
                                                     CaretAssociateHint aHint,

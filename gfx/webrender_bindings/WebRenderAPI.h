@@ -17,6 +17,7 @@
 #include "mozilla/layers/ScrollableLayerGuid.h"
 #include "mozilla/layers/SyncObject.h"
 #include "mozilla/layers/CompositionRecorder.h"
+#include "mozilla/MozPromise.h"
 #include "mozilla/Range.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/webrender/webrender_ffi.h"
@@ -24,6 +25,7 @@
 #include "GLTypes.h"
 #include "Units.h"
 
+class gfxContext;
 class nsDisplayItem;
 class nsPaintedDisplayItem;
 class nsDisplayTransform;
@@ -43,6 +45,7 @@ class CompositorBridgeParent;
 class DisplayItemCache;
 class WebRenderBridgeParent;
 class RenderRootStateManager;
+class StackingContextHelper;
 struct DisplayListData;
 }  // namespace layers
 
@@ -108,7 +111,7 @@ class TransactionBuilder final {
 
   void ClearDisplayList(Epoch aEpoch, wr::WrPipelineId aPipeline);
 
-  void GenerateFrame();
+  void GenerateFrame(const VsyncId& aVsyncId);
 
   void InvalidateRenderedFrame();
 
@@ -232,7 +235,7 @@ class WebRenderAPI final {
       layers::CompositorBridgeParent* aBridge,
       RefPtr<widget::CompositorWidget>&& aWidget,
       const wr::WrWindowId& aWindowId, LayoutDeviceIntSize aSize,
-      nsACString& aError);
+      layers::WindowKind aWindowKind, nsACString& aError);
 
   already_AddRefed<WebRenderAPI> Clone();
 

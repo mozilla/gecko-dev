@@ -8,10 +8,7 @@ import {
   ASRouterEventPing,
   BasePing,
   ImpressionStatsPing,
-  PerfPing,
   SessionPing,
-  SpocsFillPing,
-  UndesiredPing,
   UserEventPing,
 } from "test/schemas/pings";
 import { FakePrefs, GlobalOverrider } from "test/unit/utils";
@@ -102,16 +99,8 @@ describe("TelemetryFeed", () => {
     ASRouterPreferences.uninit();
   });
   describe("#init", () => {
-    it("should set preferences in parent process", () => {
-      const testInstance = new TelemetryFeed({ isParentProcess: true });
-      // unfortuntely testing gUUIDGenerator.generateUUID is not possible here
-      // but we still need test coverage
-      assert.isDefined(testInstance);
-    });
-    it("should not set preferences in content process", () => {
-      const testInstance = new TelemetryFeed({ isParentProcess: false });
-      // unfortuntely testing gUUIDGenerator.generateUUID is not possible here
-      // but we still need test coverage
+    it("should create an instance", () => {
+      const testInstance = new TelemetryFeed();
       assert.isDefined(testInstance);
     });
     it("should add .pingCentre, a PingCentre instance", () => {
@@ -591,68 +580,6 @@ describe("TelemetryFeed", () => {
         assert.propertyVal(ping, "session_id", session.session_id);
       });
     });
-    describe("#createUndesiredEvent", () => {
-      it("should create a valid event without a session", async () => {
-        const action = ac.UndesiredEvent({
-          source: "TOP_SITES",
-          event: "MISSING_IMAGE",
-          value: 10,
-        });
-
-        const ping = await instance.createUndesiredEvent(action);
-
-        // Is it valid?
-        assert.validate(ping, UndesiredPing);
-        // Does it have the right value?
-        assert.propertyVal(ping, "value", 10);
-      });
-      it("should create a valid event with a session", async () => {
-        const portID = "foo";
-        const data = { source: "TOP_SITES", event: "MISSING_IMAGE", value: 10 };
-        const action = ac.AlsoToMain(ac.UndesiredEvent(data), portID);
-        const session = instance.addSession(portID);
-
-        const ping = await instance.createUndesiredEvent(action);
-
-        // Is it valid?
-        assert.validate(ping, UndesiredPing);
-        // Does it have the right session_id?
-        assert.propertyVal(ping, "session_id", session.session_id);
-        // Does it have the right value?
-        assert.propertyVal(ping, "value", 10);
-      });
-      describe("#validate *_data_late_by_ms", () => {
-        it("should create a valid highlights_data_late_by_ms ping", () => {
-          const data = {
-            type: at.TELEMETRY_UNDESIRED_EVENT,
-            data: {
-              source: "HIGHLIGHTS",
-              event: `highlights_data_late_by_ms`,
-              value: 2,
-            },
-          };
-          const ping = instance.createUndesiredEvent(data);
-
-          assert.validate(ping, UndesiredPing);
-          assert.propertyVal(ping, "value", data.data.value);
-          assert.propertyVal(ping, "event", data.data.event);
-        });
-      });
-    });
-    describe("#createPerformanceEvent", () => {
-      it("should create a valid event without a session", async () => {
-        const action = ac.PerfEvent({
-          event: "SCREENSHOT_FINISHED",
-          value: 100,
-        });
-        const ping = await instance.createPerformanceEvent(action);
-
-        // Is it valid?
-        assert.validate(ping, PerfPing);
-        // Does it have the right value?
-        assert.propertyVal(ping, "value", 100);
-      });
-    });
     describe("#createSessionEndEvent", () => {
       it("should create a valid event", async () => {
         const ping = await instance.createSessionEndEvent({
@@ -753,19 +680,17 @@ describe("TelemetryFeed", () => {
       assert.propertyVal(ping, "tiles", tiles);
       assert.propertyVal(ping.tiles[0], "shim", tiles[0].shim);
     });
-  });
-  describe("#createSpocsFillPing", () => {
-    it("should create a valid SPOCS Fill ping", async () => {
-      const spocFills = [
-        { id: 10001, displayed: 0, reason: "frequency_cap", full_recalc: 1 },
-        { id: 10002, displayed: 0, reason: "blocked_by_user", full_recalc: 1 },
-        { id: 10003, displayed: 1, reason: "n/a", full_recalc: 1 },
-      ];
-      const action = ac.DiscoveryStreamSpocsFill({ spoc_fills: spocFills });
-      const ping = await instance.createSpocsFillPing(action.data);
+    it("should not include client_id and session_id", async () => {
+      const tiles = [{ id: 10001 }, { id: 10002 }, { id: 10003 }];
+      const action = ac.ImpressionStats({ source: "POCKET", tiles });
+      const ping = await instance.createImpressionStats(
+        au.getPortIdOfSender(action),
+        action.data
+      );
 
-      assert.validate(ping, SpocsFillPing);
-      assert.propertyVal(ping, "spoc_fills", spocFills);
+      assert.validate(ping, ImpressionStatsPing);
+      assert.notProperty(ping, "client_id");
+      assert.notProperty(ping, "session_id");
     });
   });
   describe("#applyCFRPolicy", () => {
@@ -839,6 +764,14 @@ describe("TelemetryFeed", () => {
 
       assert.propertyVal(ping, "client_id", FAKE_TELEMETRY_ID);
       assert.equal(pingType, "whats-new-panel");
+    });
+  });
+  describe("#applyInfoBarPolicy", () => {
+    it("should set client_id and set pingType", async () => {
+      const { ping, pingType } = await instance.applyInfoBarPolicy({});
+
+      assert.propertyVal(ping, "client_id", FAKE_TELEMETRY_ID);
+      assert.equal(pingType, "infobar");
     });
   });
   describe("#applyMomentsPolicy", () => {
@@ -916,8 +849,7 @@ describe("TelemetryFeed", () => {
       const { ping, pingType } = await instance.applySnippetsPolicy(data);
 
       assert.equal(pingType, "snippets");
-      // XXX Bug 1677723
-      assert.propertyVal(ping, "client_id", FAKE_UUID);
+      assert.propertyVal(ping, "client_id", FAKE_TELEMETRY_ID);
       assert.propertyVal(ping, "message_id", "snippets_message_01");
     });
   });
@@ -1447,16 +1379,6 @@ describe("TelemetryFeed", () => {
 
       assert.calledWith(stub, "port123", data);
     });
-    it("should send an event on a TELEMETRY_UNDESIRED_EVENT action", () => {
-      const sendEvent = sandbox.stub(instance, "sendEvent");
-      const eventCreator = sandbox.stub(instance, "createUndesiredEvent");
-      const action = { type: at.TELEMETRY_UNDESIRED_EVENT };
-
-      instance.onAction(action);
-
-      assert.calledWith(eventCreator, action);
-      assert.calledWith(sendEvent, eventCreator.returnValue);
-    });
     it("should send an event on a TELEMETRY_USER_EVENT action", () => {
       FakePrefs.prototype.prefs[TELEMETRY_PREF] = true;
       FakePrefs.prototype.prefs[EVENTS_TELEMETRY_PREF] = true;
@@ -1498,16 +1420,6 @@ describe("TelemetryFeed", () => {
           assert.calledWith(eventHandler, action);
         });
       });
-    });
-    it("should send an event on a TELEMETRY_PERFORMANCE_EVENT action", () => {
-      const sendEvent = sandbox.stub(instance, "sendEvent");
-      const eventCreator = sandbox.stub(instance, "createPerformanceEvent");
-      const action = { type: at.TELEMETRY_PERFORMANCE_EVENT };
-
-      instance.onAction(action);
-
-      assert.calledWith(eventCreator, action);
-      assert.calledWith(sendEvent, eventCreator.returnValue);
     });
     it("should send an event on a TELEMETRY_IMPRESSION_STATS action", () => {
       const sendEvent = sandbox.stub(instance, "sendStructuredIngestionEvent");
@@ -1554,21 +1466,6 @@ describe("TelemetryFeed", () => {
         data
       );
     });
-    it("should send an event on a DISCOVERY_STREAM_SPOCS_FILL action", () => {
-      const sendEvent = sandbox.stub(instance, "sendStructuredIngestionEvent");
-      const eventCreator = sandbox.stub(instance, "createSpocsFillPing");
-      const spocFills = [
-        { id: 10001, displayed: 0, reason: "frequency_cap", full_recalc: 1 },
-        { id: 10002, displayed: 0, reason: "blocked_by_user", full_recalc: 1 },
-        { id: 10003, displayed: 1, reason: "n/a", full_recalc: 1 },
-      ];
-      const action = ac.DiscoveryStreamSpocsFill({ spoc_fills: spocFills });
-
-      instance.onAction(action);
-
-      assert.calledWith(eventCreator, action.data);
-      assert.calledWith(sendEvent, eventCreator.returnValue);
-    });
   });
   describe("#handleNewTabInit", () => {
     it("should set the session as preloaded if the browser is preloaded", () => {
@@ -1606,6 +1503,18 @@ describe("TelemetryFeed", () => {
       );
 
       assert.ok(!session.perf.is_preloaded);
+    });
+  });
+  describe("#SendASRouterUndesiredEvent", () => {
+    it("should call handleASRouterUserEvent", () => {
+      let stub = sandbox.stub(instance, "handleASRouterUserEvent");
+
+      instance.SendASRouterUndesiredEvent({ foo: "bar" });
+
+      assert.calledOnce(stub);
+      let [payload] = stub.firstCall.args;
+      assert.propertyVal(payload.data, "action", "asrouter_undesired_event");
+      assert.propertyVal(payload.data, "foo", "bar");
     });
   });
   describe("#sendPageTakeoverData", () => {

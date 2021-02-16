@@ -125,6 +125,9 @@
 // override
 - (NSArray*)moxSelectedRows;
 
+// override
+- (NSString*)moxOrientation;
+
 @end
 
 @interface mozOutlineRowAccessible : mozTableRowAccessible
@@ -134,6 +137,12 @@
 
 // override
 - (NSNumber*)moxDisclosing;
+
+// override
+- (void)moxSetDisclosing:(NSNumber*)disclosing;
+
+// override
+- (NSNumber*)moxExpanded;
 
 // override
 - (id)moxDisclosedByRow;
@@ -149,5 +158,8 @@
 
 // override
 - (NSString*)moxLabel;
+
+// override
+- (void)stateChanged:(uint64_t)state isEnabled:(BOOL)enabled;
 
 @end

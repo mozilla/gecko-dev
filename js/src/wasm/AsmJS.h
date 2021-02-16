@@ -19,8 +19,7 @@
 #ifndef wasm_AsmJS_h
 #define wasm_AsmJS_h
 
-#include "mozilla/Attributes.h"  // MOZ_MUST_USE
-#include "mozilla/Utf8.h"        // mozilla::Utf8Unit
+#include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 
 #include <stdint.h>  // uint32_t
 
@@ -63,17 +62,17 @@ using AsmJSParser = frontend::Parser<frontend::FullParseHandler, Unit>;
 // indeterminate amount and the entire function should be reparsed from the
 // beginning.
 
-extern MOZ_MUST_USE bool CompileAsmJS(JSContext* cx,
-                                      frontend::ParserAtomsTable& parserAtoms,
-                                      AsmJSParser<mozilla::Utf8Unit>& parser,
-                                      frontend::ParseNode* stmtList,
-                                      bool* validated);
+[[nodiscard]] extern bool CompileAsmJS(JSContext* cx,
+                                       frontend::ParserAtomsTable& parserAtoms,
+                                       AsmJSParser<mozilla::Utf8Unit>& parser,
+                                       frontend::ParseNode* stmtList,
+                                       bool* validated);
 
-extern MOZ_MUST_USE bool CompileAsmJS(JSContext* cx,
-                                      frontend::ParserAtomsTable& parserAtoms,
-                                      AsmJSParser<char16_t>& parser,
-                                      frontend::ParseNode* stmtList,
-                                      bool* validated);
+[[nodiscard]] extern bool CompileAsmJS(JSContext* cx,
+                                       frontend::ParserAtomsTable& parserAtoms,
+                                       AsmJSParser<char16_t>& parser,
+                                       frontend::ParseNode* stmtList,
+                                       bool* validated);
 
 // asm.js module/export queries:
 

@@ -32,9 +32,9 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
   mozilla::PodZero(infos_.begin(), infos_.length());
   infos_[0].init(/*stackDepth=*/0);
 
-  // Because IonBuilder and WarpBuilder can compile try-blocks but don't compile
-  // the catch-body, we need some special machinery to prevent OSR into Ion/Warp
-  // in the following cases:
+  // Because WarpBuilder can compile try-blocks but doesn't compile the
+  // catch-body, we need some special machinery to prevent OSR into Warp code in
+  // the following cases:
   //
   // (1) Loops in catch/finally blocks:
   //
@@ -74,9 +74,7 @@ bool BytecodeAnalysis::init(TempAllocator& alloc) {
     JitSpew(JitSpew_BaselineOp, "Analyzing op @ %u (end=%u): %s",
             unsigned(offset), unsigned(script_->length()), CodeName(op));
 
-    if (JitOptions.warpBuilder) {
-      checkWarpSupport(op);
-    }
+    checkWarpSupport(op);
 
     // If this bytecode info has not yet been initialized, it's not reachable.
     if (!infos_[offset].initialized) {
@@ -231,7 +229,12 @@ void BytecodeAnalysis::checkWarpSupport(JSOp op) {
 #define DEF_CASE(OP) case JSOp::OP:
     WARP_UNSUPPORTED_OPCODE_LIST(DEF_CASE)
 #undef DEF_CASE
-    script_->disableIon();
+    if (script_->canIonCompile()) {
+      JitSpew(JitSpew_IonAbort, "Disabling Warp support for %s:%d:%d due to %s",
+              script_->filename(), script_->lineno(), script_->column(),
+              CodeName(op));
+      script_->disableIon();
+    }
     break;
     default:
       break;
@@ -266,14 +269,11 @@ IonBytecodeInfo js::jit::AnalyzeBytecodeForIon(JSContext* cx,
       case JSOp::SetAliasedVar:
       case JSOp::Lambda:
       case JSOp::LambdaArrow:
-      case JSOp::DefFun:
-      case JSOp::DefVar:
-      case JSOp::DefLet:
-      case JSOp::DefConst:
       case JSOp::PushLexicalEnv:
       case JSOp::PopLexicalEnv:
       case JSOp::ImplicitThis:
       case JSOp::FunWithProto:
+      case JSOp::GlobalOrEvalDeclInstantiation:
         result.usesEnvironmentChain = true;
         break;
 

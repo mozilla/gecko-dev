@@ -5,6 +5,7 @@
 
 #include "gfxFontEntry.h"
 
+#include "GeckoProfiler.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/MathAlgorithms.h"
@@ -1367,11 +1368,10 @@ void gfxFontEntry::GetVariationsForStyle(nsTArray<gfxFontVariation>& aResult,
   } else if (SlantStyle().Min().IsOblique()) {
     // Figure out what slant angle we should try to match from the
     // requested style.
-    float angle = aStyle.style.IsNormal()
-                      ? 0.0f
-                      : aStyle.style.IsItalic()
-                            ? FontSlantStyle::Oblique().ObliqueAngle()
-                            : aStyle.style.ObliqueAngle();
+    float angle = aStyle.style.IsNormal() ? 0.0f
+                  : aStyle.style.IsItalic()
+                      ? FontSlantStyle::Oblique().ObliqueAngle()
+                      : aStyle.style.ObliqueAngle();
     // Clamp to the available range, unless the face is a user font
     // with no explicit descriptor.
     if (!(IsUserFont() && (mRangeFlags & RangeFlags::eAutoSlantStyle))) {

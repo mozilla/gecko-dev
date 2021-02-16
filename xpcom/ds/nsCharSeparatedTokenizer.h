@@ -7,16 +7,28 @@
 #ifndef __nsCharSeparatedTokenizer_h
 #define __nsCharSeparatedTokenizer_h
 
+#include "mozilla/Maybe.h"
 #include "mozilla/RangedPtr.h"
+#include "mozilla/TypedEnumBits.h"
 
-#include "nsDependentSubstring.h"
-#include "nsCRT.h"
+#include "nsCRTGlue.h"
+#include "nsTDependentSubstring.h"
+
+// Flags -- only one for now. If we need more, they should be defined to
+// be 1 << 1, 1 << 2, etc. (They're masks, and aFlags is a bitfield.)
+enum class nsTokenizerFlags {
+  Default = 0,
+  SeparatorOptional = 1 << 0,
+  IncludeEmptyTokenAtEnd = 1 << 1
+};
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(nsTokenizerFlags)
 
 /**
  * This parses a SeparatorChar-separated string into tokens.
  * Whitespace surrounding tokens is not treated as part of tokens, however
  * whitespace inside a token is. If the final token is the empty string, it is
- * not returned.
+ * not returned by default.
  *
  * Some examples, with SeparatorChar = ',':
  *
@@ -30,26 +42,24 @@
  * The function used for whitespace detection is a template argument.
  * By default, it is NS_IsAsciiWhitespace.
  */
-template <typename DependentSubstringType, bool IsWhitespace(char16_t)>
+template <typename TDependentSubstringType, bool IsWhitespace(char16_t),
+          nsTokenizerFlags Flags = nsTokenizerFlags::Default>
 class nsTCharSeparatedTokenizer {
-  typedef typename DependentSubstringType::char_type CharType;
-  typedef typename DependentSubstringType::substring_type SubstringType;
+  using CharType = typename TDependentSubstringType::char_type;
+  using SubstringType = typename TDependentSubstringType::substring_type;
 
  public:
-  // Flags -- only one for now. If we need more, they should be defined to
-  // be 1 << 1, 1 << 2, etc. (They're masks, and aFlags is a bitfield.)
-  enum { SEPARATOR_OPTIONAL = 1 };
+  using DependentSubstringType = TDependentSubstringType;
 
   nsTCharSeparatedTokenizer(const SubstringType& aSource,
-                            CharType aSeparatorChar, uint32_t aFlags = 0)
+                            CharType aSeparatorChar)
       : mIter(aSource.Data(), aSource.Length()),
         mEnd(aSource.Data() + aSource.Length(), aSource.Data(),
              aSource.Length()),
         mSeparatorChar(aSeparatorChar),
         mWhitespaceBeforeFirstToken(false),
         mWhitespaceAfterCurrentToken(false),
-        mSeparatorAfterCurrentToken(false),
-        mSeparatorOptional(aFlags & SEPARATOR_OPTIONAL) {
+        mSeparatorAfterCurrentToken(false) {
     // Skip initial whitespace
     while (mIter < mEnd && IsWhitespace(*mIter)) {
       mWhitespaceBeforeFirstToken = true;
@@ -64,7 +74,11 @@ class nsTCharSeparatedTokenizer {
     MOZ_ASSERT(mIter == mEnd || !IsWhitespace(*mIter),
                "Should be at beginning of token if there is one");
 
-    return mIter < mEnd;
+    if constexpr (Flags & nsTokenizerFlags::IncludeEmptyTokenAtEnd) {
+      return mIter < mEnd || (mIter == mEnd && mSeparatorAfterCurrentToken);
+    } else {
+      return mIter < mEnd;
+    }
   }
 
   /*
@@ -116,7 +130,7 @@ class nsTCharSeparatedTokenizer {
         mWhitespaceAfterCurrentToken = true;
         ++mIter;
       }
-      if (mSeparatorOptional) {
+      if constexpr (Flags & nsTokenizerFlags::SeparatorOptional) {
         // We've hit (and skipped) whitespace, and that's sufficient to end
         // our token, regardless of whether we've reached a SeparatorChar.
         break;
@@ -124,11 +138,11 @@ class nsTCharSeparatedTokenizer {
     }
 
     mSeparatorAfterCurrentToken = (mIter != mEnd && *mIter == mSeparatorChar);
-    MOZ_ASSERT(
-        mSeparatorOptional || (mSeparatorAfterCurrentToken == (mIter < mEnd)),
-        "If we require a separator and haven't hit the end of "
-        "our string, then we shouldn't have left the loop "
-        "unless we hit a separator");
+    MOZ_ASSERT((Flags & nsTokenizerFlags::SeparatorOptional) ||
+                   (mSeparatorAfterCurrentToken == (mIter < mEnd)),
+               "If we require a separator and haven't hit the end of "
+               "our string, then we shouldn't have left the loop "
+               "unless we hit a separator");
 
     // Skip separator (and any whitespace after it), if we're at one.
     if (mSeparatorAfterCurrentToken) {
@@ -143,38 +157,118 @@ class nsTCharSeparatedTokenizer {
     return Substring(tokenStart.get(), tokenEnd.get());
   }
 
+  auto ToRange() const;
+
  private:
   mozilla::RangedPtr<const CharType> mIter;
   const mozilla::RangedPtr<const CharType> mEnd;
-  CharType mSeparatorChar;
+  const CharType mSeparatorChar;
   bool mWhitespaceBeforeFirstToken;
   bool mWhitespaceAfterCurrentToken;
   bool mSeparatorAfterCurrentToken;
-  bool mSeparatorOptional;
 };
 
-template <bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
-class nsCharSeparatedTokenizerTemplate
-    : public nsTCharSeparatedTokenizer<nsDependentSubstring, IsWhitespace> {
+constexpr bool NS_TokenizerIgnoreNothing(char16_t) { return false; }
+
+template <bool IsWhitespace(char16_t), typename CharType,
+          nsTokenizerFlags Flags = nsTokenizerFlags::Default>
+using nsTCharSeparatedTokenizerTemplate =
+    nsTCharSeparatedTokenizer<nsTDependentSubstring<CharType>, IsWhitespace,
+                              Flags>;
+
+template <bool IsWhitespace(char16_t),
+          nsTokenizerFlags Flags = nsTokenizerFlags::Default>
+using nsCharSeparatedTokenizerTemplate =
+    nsTCharSeparatedTokenizerTemplate<IsWhitespace, char16_t, Flags>;
+
+using nsCharSeparatedTokenizer =
+    nsCharSeparatedTokenizerTemplate<NS_IsAsciiWhitespace>;
+
+template <bool IsWhitespace(char16_t),
+          nsTokenizerFlags Flags = nsTokenizerFlags::Default>
+using nsCCharSeparatedTokenizerTemplate =
+    nsTCharSeparatedTokenizerTemplate<IsWhitespace, char, Flags>;
+
+using nsCCharSeparatedTokenizer =
+    nsCCharSeparatedTokenizerTemplate<NS_IsAsciiWhitespace>;
+
+/**
+ * Adapts a char separated tokenizer for use in a range-based for loop.
+ *
+ * Use this typically only indirectly, e.g. like
+ *
+ * for (const auto& token : nsCharSeparatedTokenizer(aText, ' ').ToRange()) {
+ *    // ...
+ * }
+ */
+template <typename Tokenizer>
+class nsTokenizedRange {
  public:
-  nsCharSeparatedTokenizerTemplate(const nsAString& aSource,
-                                   char16_t aSeparatorChar, uint32_t aFlags = 0)
-      : nsTCharSeparatedTokenizer<nsDependentSubstring, IsWhitespace>(
-            aSource, aSeparatorChar, aFlags) {}
+  using DependentSubstringType = typename Tokenizer::DependentSubstringType;
+
+  explicit nsTokenizedRange(Tokenizer&& aTokenizer)
+      : mTokenizer(std::move(aTokenizer)) {}
+
+  struct EndSentinel {};
+  struct Iterator {
+    explicit Iterator(const Tokenizer& aTokenizer) : mTokenizer(aTokenizer) {
+      Next();
+    }
+
+    const DependentSubstringType& operator*() const { return *mCurrentToken; }
+
+    Iterator& operator++() {
+      Next();
+      return *this;
+    }
+
+    bool operator==(const EndSentinel&) const {
+      return mCurrentToken.isNothing();
+    }
+
+    bool operator!=(const EndSentinel&) const { return mCurrentToken.isSome(); }
+
+   private:
+    void Next() {
+      mCurrentToken.reset();
+
+      if (mTokenizer.hasMoreTokens()) {
+        mCurrentToken.emplace(mTokenizer.nextToken());
+      }
+    }
+
+    Tokenizer mTokenizer;
+    mozilla::Maybe<DependentSubstringType> mCurrentToken;
+  };
+
+  auto begin() const { return Iterator{mTokenizer}; }
+  auto end() const { return EndSentinel{}; }
+
+ private:
+  const Tokenizer mTokenizer;
 };
 
-typedef nsCharSeparatedTokenizerTemplate<> nsCharSeparatedTokenizer;
+template <typename TDependentSubstringType, bool IsWhitespace(char16_t),
+          nsTokenizerFlags Flags>
+auto nsTCharSeparatedTokenizer<TDependentSubstringType, IsWhitespace,
+                               Flags>::ToRange() const {
+  return nsTokenizedRange{nsTCharSeparatedTokenizer{*this}};
+}
 
-template <bool IsWhitespace(char16_t) = NS_IsAsciiWhitespace>
-class nsCCharSeparatedTokenizerTemplate
-    : public nsTCharSeparatedTokenizer<nsDependentCSubstring, IsWhitespace> {
+// You should not need to instantiate this class directly.
+// Use nsTSubstring::Split instead.
+template <typename T>
+class nsTSubstringSplitter
+    : public nsTokenizedRange<nsTCharSeparatedTokenizerTemplate<
+          NS_TokenizerIgnoreNothing, T,
+          nsTokenizerFlags::IncludeEmptyTokenAtEnd>> {
  public:
-  nsCCharSeparatedTokenizerTemplate(const nsACString& aSource,
-                                    char aSeparatorChar, uint32_t aFlags = 0)
-      : nsTCharSeparatedTokenizer<nsDependentCSubstring, IsWhitespace>(
-            aSource, aSeparatorChar, aFlags) {}
+  using nsTokenizedRange<nsTCharSeparatedTokenizerTemplate<
+      NS_TokenizerIgnoreNothing, T,
+      nsTokenizerFlags::IncludeEmptyTokenAtEnd>>::nsTokenizedRange;
 };
 
-typedef nsCCharSeparatedTokenizerTemplate<> nsCCharSeparatedTokenizer;
+extern template class nsTSubstringSplitter<char>;
+extern template class nsTSubstringSplitter<char16_t>;
 
 #endif /* __nsCharSeparatedTokenizer_h */

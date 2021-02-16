@@ -5,6 +5,7 @@
 
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -948,6 +949,10 @@ nsresult nsToolkitProfileService::Init() {
 NS_IMETHODIMP
 nsToolkitProfileService::SetStartWithLastProfile(bool aValue) {
   if (mStartWithLast != aValue) {
+    // Note: the skeleton ui (see PreXULSkeletonUI.cpp) depends on this
+    // having this name and being under General. If that ever changes,
+    // the skeleton UI will just need to be updated. If it changes frequently,
+    // it's probably best we just mirror the value to the registry here.
     nsresult rv = mProfileDB.SetString("General", "StartWithLastProfile",
                                        aValue ? "1" : "0");
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1836,7 +1841,14 @@ nsToolkitProfileService::CreateProfile(nsIFile* aRootDir,
  * get essentially the same benefits as dedicated profiles provides.
  */
 bool nsToolkitProfileService::IsSnapEnvironment() {
-  return !!PR_GetEnv("SNAP_NAME");
+  // Copied from IsRunningAsASnap() in
+  // browser/components/shell/nsGNOMEShellService.cpp
+  // TODO: factor out this common code in one place.
+  const char* snap_name = PR_GetEnv("SNAP_NAME");
+  if (snap_name == nullptr) {
+    return false;
+  }
+  return (strcmp(snap_name, "firefox") == 0);
 }
 
 /**

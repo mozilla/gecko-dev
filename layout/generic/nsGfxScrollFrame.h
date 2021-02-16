@@ -338,11 +338,18 @@ class ScrollFrameHelper : public nsIReflowCallback {
   nsRect GetUnsnappedScrolledRectInternal(const nsRect& aScrolledOverflowArea,
                                           const nsSize& aScrollPortSize) const;
 
-  uint32_t GetAvailableScrollingDirectionsForUserInputEvents() const;
+  layers::ScrollDirections GetAvailableScrollingDirectionsForUserInputEvents()
+      const;
 
-  uint32_t GetScrollbarVisibility() const {
-    return (mHasVerticalScrollbar ? nsIScrollableFrame::VERTICAL : 0) |
-           (mHasHorizontalScrollbar ? nsIScrollableFrame::HORIZONTAL : 0);
+  layers::ScrollDirections GetScrollbarVisibility() const {
+    layers::ScrollDirections result;
+    if (mHasHorizontalScrollbar) {
+      result += layers::ScrollDirection::eHorizontal;
+    }
+    if (mHasVerticalScrollbar) {
+      result += layers::ScrollDirection::eVertical;
+    }
+    return result;
   }
   nsMargin GetActualScrollbarSizes(
       nsIScrollableFrame::ScrollbarSizesOptions aOptions =
@@ -381,7 +388,7 @@ class ScrollFrameHelper : public nsIReflowCallback {
     mScrollPosForLayerPixelAlignment = GetScrollPosition();
   }
 
-  bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas);
+  bool ComputeCustomOverflow(mozilla::OverflowAreas& aOverflowAreas);
 
   void UpdateSticky();
 
@@ -835,7 +842,7 @@ class nsHTMLScrollFrame : public nsContainerFrame,
   void DidReflow(nsPresContext* aPresContext,
                  const ReflowInput* aReflowInput) override;
 
-  bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) final {
+  bool ComputeCustomOverflow(mozilla::OverflowAreas& aOverflowAreas) final {
     return mHelper.ComputeCustomOverflow(aOverflowAreas);
   }
 
@@ -867,7 +874,9 @@ class nsHTMLScrollFrame : public nsContainerFrame,
 
   void DestroyFrom(nsIFrame* aDestructRoot, PostDestroyData&) override;
 
-  nsIScrollableFrame* GetScrollTargetFrame() final { return this; }
+  nsIScrollableFrame* GetScrollTargetFrame() const final {
+    return const_cast<nsHTMLScrollFrame*>(this);
+  }
 
   nsContainerFrame* GetContentInsertionFrame() override {
     return mHelper.GetScrolledFrame()->GetContentInsertionFrame();
@@ -899,10 +908,11 @@ class nsHTMLScrollFrame : public nsContainerFrame,
       const final {
     return mHelper.GetOverscrollBehaviorInfo();
   }
-  uint32_t GetAvailableScrollingDirectionsForUserInputEvents() const final {
+  mozilla::layers::ScrollDirections
+  GetAvailableScrollingDirectionsForUserInputEvents() const final {
     return mHelper.GetAvailableScrollingDirectionsForUserInputEvents();
   }
-  uint32_t GetScrollbarVisibility() const final {
+  mozilla::layers::ScrollDirections GetScrollbarVisibility() const final {
     return mHelper.GetScrollbarVisibility();
   }
   nsMargin GetActualScrollbarSizes(
@@ -1055,7 +1065,7 @@ class nsHTMLScrollFrame : public nsContainerFrame,
   bool IsScrollAnimating(IncludeApzAnimation aIncludeApz) final {
     return mHelper.IsScrollAnimating(aIncludeApz);
   }
-  mozilla::ScrollGeneration CurrentScrollGeneration() final {
+  mozilla::ScrollGeneration CurrentScrollGeneration() const final {
     return mHelper.CurrentScrollGeneration();
   }
   nsPoint LastScrollDestination() final {
@@ -1290,7 +1300,7 @@ class nsXULScrollFrame final : public nsBoxFrame,
   nscoord GetMinISize(gfxContext *aRenderingContext) final;
 #endif
 
-  bool ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) final {
+  bool ComputeCustomOverflow(mozilla::OverflowAreas& aOverflowAreas) final {
     return mHelper.ComputeCustomOverflow(aOverflowAreas);
   }
 
@@ -1312,7 +1322,9 @@ class nsXULScrollFrame final : public nsBoxFrame,
   void DestroyFrom(nsIFrame* aDestructRoot,
                    PostDestroyData& aPostDestroyData) final;
 
-  nsIScrollableFrame* GetScrollTargetFrame() final { return this; }
+  nsIScrollableFrame* GetScrollTargetFrame() const final {
+    return const_cast<nsXULScrollFrame*>(this);
+  }
 
   nsContainerFrame* GetContentInsertionFrame() final {
     return mHelper.GetScrolledFrame()->GetContentInsertionFrame();
@@ -1379,10 +1391,11 @@ class nsXULScrollFrame final : public nsBoxFrame,
       const final {
     return mHelper.GetOverscrollBehaviorInfo();
   }
-  uint32_t GetAvailableScrollingDirectionsForUserInputEvents() const final {
+  mozilla::layers::ScrollDirections
+  GetAvailableScrollingDirectionsForUserInputEvents() const final {
     return mHelper.GetAvailableScrollingDirectionsForUserInputEvents();
   }
-  uint32_t GetScrollbarVisibility() const final {
+  mozilla::layers::ScrollDirections GetScrollbarVisibility() const final {
     return mHelper.GetScrollbarVisibility();
   }
   nsMargin GetActualScrollbarSizes(
@@ -1531,7 +1544,7 @@ class nsXULScrollFrame final : public nsBoxFrame,
   bool IsScrollAnimating(IncludeApzAnimation aIncludeApz) final {
     return mHelper.IsScrollAnimating(aIncludeApz);
   }
-  mozilla::ScrollGeneration CurrentScrollGeneration() final {
+  mozilla::ScrollGeneration CurrentScrollGeneration() const final {
     return mHelper.CurrentScrollGeneration();
   }
   nsPoint LastScrollDestination() final {

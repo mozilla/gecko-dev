@@ -782,15 +782,18 @@ static bool IsCSSWordSpacingSpace(const nsTextFragment* aFrag, uint32_t aPos,
   }
 }
 
+constexpr char16_t kOghamSpaceMark = 0x1680;
+
 // Check whether the string aChars/aLength starts with space that's
 // trimmable according to CSS 'white-space:normal/nowrap'.
 static bool IsTrimmableSpace(const char16_t* aChars, uint32_t aLength) {
   NS_ASSERTION(aLength > 0, "No text for IsSpace!");
 
   char16_t ch = *aChars;
-  if (ch == ' ')
+  if (ch == ' ' || ch == kOghamSpaceMark) {
     return !nsTextFrameUtils::IsSpaceCombiningSequenceTail(aChars + 1,
                                                            aLength - 1);
+  }
   return ch == '\t' || ch == '\f' || ch == '\n' || ch == '\r';
 }
 
@@ -807,6 +810,7 @@ static bool IsTrimmableSpace(const nsTextFragment* aFrag, uint32_t aPos,
 
   switch (aFrag->CharAt(aPos)) {
     case ' ':
+    case kOghamSpaceMark:
       return (!aStyleText->WhiteSpaceIsSignificant() || aAllowHangingWS) &&
              !IsSpaceCombiningSequenceTail(aFrag, aPos + 1);
     case '\n':
@@ -7190,7 +7194,7 @@ NS_DECLARE_FRAME_PROPERTY_DELETABLE(WebRenderTextBounds, nsRect)
 nsRect nsTextFrame::WebRenderBounds() {
   nsRect* cachedBounds = GetProperty(WebRenderTextBounds());
   if (!cachedBounds) {
-    nsOverflowAreas overflowAreas;
+    OverflowAreas overflowAreas;
     ComputeCustomOverflowInternal(overflowAreas, false);
     cachedBounds = new nsRect();
     *cachedBounds = overflowAreas.InkOverflow();
@@ -8419,8 +8423,8 @@ void nsTextFrame::AddInlineMinISizeForFlow(gfxContext* aRenderingContext,
       aData->mAtStartOfLine = false;
 
       if (collapseWhitespace || whitespaceCanHang) {
-        uint32_t trimStart =
-            GetEndOfTrimmedText(frag, textStyle, wordStart, i, &iter, whitespaceCanHang);
+        uint32_t trimStart = GetEndOfTrimmedText(frag, textStyle, wordStart, i,
+                                                 &iter, whitespaceCanHang);
         if (trimStart == start) {
           // This is *all* trimmable whitespace, so whatever trailingWhitespace
           // we saw previously is still trailing...
@@ -9703,12 +9707,12 @@ nsTextFrame::TrimOutput nsTextFrame::TrimTrailingWhiteSpace(
   return result;
 }
 
-nsOverflowAreas nsTextFrame::RecomputeOverflow(nsIFrame* aBlockFrame,
-                                               bool aIncludeShadows) {
+OverflowAreas nsTextFrame::RecomputeOverflow(nsIFrame* aBlockFrame,
+                                             bool aIncludeShadows) {
   RemoveProperty(WebRenderTextBounds());
 
   nsRect bounds(nsPoint(0, 0), GetSize());
-  nsOverflowAreas result(bounds, bounds);
+  OverflowAreas result(bounds, bounds);
 
   gfxSkipCharsIterator iter = EnsureTextRun(nsTextFrame::eInflated);
   if (!mTextRun) return result;
@@ -10156,11 +10160,11 @@ bool nsTextFrame::HasAnyNoncollapsedCharacters() {
   return skippedOffset != skippedOffsetEnd;
 }
 
-bool nsTextFrame::ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) {
+bool nsTextFrame::ComputeCustomOverflow(OverflowAreas& aOverflowAreas) {
   return ComputeCustomOverflowInternal(aOverflowAreas, true);
 }
 
-bool nsTextFrame::ComputeCustomOverflowInternal(nsOverflowAreas& aOverflowAreas,
+bool nsTextFrame::ComputeCustomOverflowInternal(OverflowAreas& aOverflowAreas,
                                                 bool aIncludeShadows) {
   if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
     return true;

@@ -65,8 +65,12 @@ SI bool test_none(Bool cond) { return _mm_movemask_ps(cond) == 0; }
 SI bool test_all(Bool cond) {
   return bit_cast<uint32_t>(CONVERT(cond, U8)) == 0xFFFFFFFFU;
 }
-SI bool test_any(Bool cond) { return bit_cast<uint32_t>(CONVERT(cond, U8)) != 0; }
-SI bool test_none(Bool cond) { return bit_cast<uint32_t>(CONVERT(cond, U8)) == 0; }
+SI bool test_any(Bool cond) {
+  return bit_cast<uint32_t>(CONVERT(cond, U8)) != 0;
+}
+SI bool test_none(Bool cond) {
+  return bit_cast<uint32_t>(CONVERT(cond, U8)) == 0;
+}
 #endif
 
 float make_float(float n) { return n; }
@@ -125,7 +129,8 @@ SI int32_t if_then_else(int32_t c, int32_t t, int32_t e) { return c ? t : e; }
 SI float if_then_else(int32_t c, float t, float e) { return c ? t : e; }
 
 SI Float if_then_else(I32 c, float t, float e) {
-  return bit_cast<Float>((c & bit_cast<I32>(Float(t))) | (~c & bit_cast<I32>(Float(e))));
+  return bit_cast<Float>((c & bit_cast<I32>(Float(t))) |
+                         (~c & bit_cast<I32>(Float(e))));
 }
 
 SI I32 if_then_else(I32 c, int32_t t, int32_t e) {
@@ -146,7 +151,10 @@ SI Bool if_then_else(I32 c, Bool t, Bool e) { return (c & t) | (~c & e); }
 
 SI Bool if_then_else(int32_t c, Bool t, Bool e) { return c ? t : e; }
 
-template <typename T> SI void swap(T& a, T& b) {
+SI I16 if_then_else(I16 c, I16 t, I16 e) { return (c & t) | (~c & e); }
+
+template <typename T>
+SI void swap(T& a, T& b) {
   T t(a);
   a = b;
   b = t;
@@ -250,13 +258,13 @@ struct bvec2_scalar {
   bool y;
 
   bvec2_scalar() : bvec2_scalar(false) {}
-  constexpr bvec2_scalar(bool a) : x(a), y(a) {}
+  IMPLICIT constexpr bvec2_scalar(bool a) : x(a), y(a) {}
   constexpr bvec2_scalar(bool x, bool y) : x(x), y(y) {}
 };
 
 struct bvec2 {
   bvec2() : bvec2(0) {}
-  bvec2(Bool a) : x(a), y(a) {}
+  IMPLICIT bvec2(Bool a) : x(a), y(a) {}
   bvec2(Bool x, Bool y) : x(x), y(y) {}
   Bool& select(XYZW c) {
     switch (c) {
@@ -300,8 +308,8 @@ struct vec2_scalar {
   float y;
 
   constexpr vec2_scalar() : vec2_scalar(0.0f) {}
-  constexpr vec2_scalar(float a) : x(a), y(a) {}
-  constexpr vec2_scalar(int a) : x(a), y(a) {}
+  IMPLICIT constexpr vec2_scalar(float a) : x(a), y(a) {}
+  IMPLICIT constexpr vec2_scalar(int a) : x(a), y(a) {}
   constexpr vec2_scalar(float x, float y) : x(x), y(y) {}
 
   float& select(XYZW c) {
@@ -359,6 +367,12 @@ struct vec2_scalar {
     return *this;
   }
 
+  vec2_scalar operator/=(vec2_scalar a) {
+    x /= a.x;
+    y /= a.y;
+    return *this;
+  }
+
   vec2_scalar operator+=(vec2_scalar a) {
     x += a.x;
     y += a.y;
@@ -407,12 +421,12 @@ struct vec2 {
   typedef float element_type;
 
   constexpr vec2() : vec2(Float(0.0f)) {}
-  constexpr vec2(Float a) : x(a), y(a) {}
+  IMPLICIT constexpr vec2(Float a) : x(a), y(a) {}
   vec2(Float x, Float y) : x(x), y(y) {}
-  constexpr vec2(vec2_scalar s) : x(s.x), y(s.y) {}
+  IMPLICIT constexpr vec2(vec2_scalar s) : x(s.x), y(s.y) {}
   constexpr vec2(vec2_scalar s0, vec2_scalar s1, vec2_scalar s2, vec2_scalar s3)
       : x(Float{s0.x, s1.x, s2.x, s3.x}), y(Float{s0.y, s1.y, s2.y, s3.y}) {}
-  vec2(ivec2 a);
+  explicit vec2(ivec2 a);
   Float x;
   Float y;
 
@@ -633,17 +647,22 @@ SI I32 roundfast(Float v, Float scale) {
 #endif
 }
 
-template <typename T> SI auto round_pixel(T v) { return roundfast(v, 255.0f); }
+template <typename T>
+SI auto round_pixel(T v) {
+  return roundfast(v, 255.0f);
+}
 
 #define round __glsl_round
 
 float round(float a) { return roundf(a); }
 
-float fract(float a) { return a - floor(a); }
-
 Float round(Float v) { return floor(v + 0.5f); }
 
+float fract(float a) { return a - floor(a); }
+
 Float fract(Float v) { return v - floor(v); }
+
+vec2 fract(vec2 v) { return vec2(fract(v.x), fract(v.y)); }
 
 // X derivatives can be approximated by dFdx(x) = x[1] - x[0].
 // Y derivatives are not easily available since we operate in terms of X spans
@@ -653,7 +672,7 @@ Float fract(Float v) { return v - floor(v); }
 // + abs(dFdx(p.x)).
 vec2 fwidth(vec2 p) {
   Float d = abs(SHUFFLE(p.x, p.y, 1, 1, 5, 5) - SHUFFLE(p.x, p.y, 0, 0, 4, 4));
-  return vec2(d.xyxy + d.zwzw);
+  return vec2(d + d.zwxy);
 }
 
 // See
@@ -692,6 +711,24 @@ Float exp(Float y) {
   return approx_pow2(l2e * y);
 }
 
+#define exp2 __glsl_exp2
+
+SI float exp2(float x) { return exp2f(x); }
+
+Float exp2(Float x) { return approx_pow2(x); }
+
+#define log __glsl_log
+
+SI float log(float x) { return logf(x); }
+
+Float log(Float x) { return approx_log2(x) * 0.69314718f; }
+
+#define log2 __glsl_log2
+
+SI float log2(float x) { return log2f(x); }
+
+Float log2(Float x) { return approx_log2(x); }
+
 struct ivec4;
 
 struct ivec2_scalar {
@@ -701,7 +738,7 @@ struct ivec2_scalar {
   int32_t y;
 
   ivec2_scalar() : ivec2_scalar(0) {}
-  constexpr ivec2_scalar(int32_t a) : x(a), y(a) {}
+  IMPLICIT constexpr ivec2_scalar(int32_t a) : x(a), y(a) {}
   constexpr ivec2_scalar(int32_t x, int32_t y) : x(x), y(y) {}
 
   int32_t& select(XYZW c) {
@@ -718,6 +755,8 @@ struct ivec2_scalar {
   ivec2_scalar sel(XYZW c1, XYZW c2) {
     return ivec2_scalar{select(c1), select(c2)};
   }
+
+  ivec2_scalar operator-() const { return ivec2_scalar{-x, -y}; }
 
   ivec2_scalar& operator+=(ivec2_scalar a) {
     x += a.x;
@@ -743,17 +782,25 @@ struct ivec2_scalar {
   friend ivec2_scalar operator+(ivec2_scalar a, ivec2_scalar b) {
     return ivec2_scalar{a.x + b.x, a.y + b.y};
   }
+
+  friend ivec2_scalar operator-(ivec2_scalar a, ivec2_scalar b) {
+    return ivec2_scalar{a.x - b.x, a.y - b.y};
+  }
+
+  friend bool operator==(const ivec2_scalar& l, const ivec2_scalar& r) {
+    return l.x == r.x && l.y == r.y;
+  }
 };
 
 struct ivec2 {
   typedef int32_t element_type;
 
   ivec2() : ivec2(I32(0)) {}
-  ivec2(I32 a) : x(a), y(a) {}
+  IMPLICIT ivec2(I32 a) : x(a), y(a) {}
   ivec2(I32 x, I32 y) : x(x), y(y) {}
-  ivec2(vec2 a) : x(cast(a.x)), y(cast(a.y)) {}
+  IMPLICIT ivec2(vec2 a) : x(cast(a.x)), y(cast(a.y)) {}
   ivec2(U32 x, U32 y) : x(CONVERT(x, I32)), y(CONVERT(y, I32)) {}
-  constexpr ivec2(ivec2_scalar s) : x(s.x), y(s.y) {}
+  IMPLICIT constexpr ivec2(ivec2_scalar s) : x(s.x), y(s.y) {}
   constexpr ivec2(ivec2_scalar s0, ivec2_scalar s1, ivec2_scalar s2,
                   ivec2_scalar s3)
       : x(I32{s0.x, s1.x, s2.x, s3.x}), y(I32{s0.y, s1.y, s2.y, s3.y}) {}
@@ -844,7 +891,7 @@ struct ivec3_scalar {
   int32_t z;
 
   ivec3_scalar() : ivec3_scalar(0) {}
-  constexpr ivec3_scalar(int32_t a) : x(a), y(a), z(a) {}
+  IMPLICIT constexpr ivec3_scalar(int32_t a) : x(a), y(a), z(a) {}
   constexpr ivec3_scalar(int32_t x, int32_t y, int32_t z) : x(x), y(y), z(z) {}
 
   int32_t& select(XYZW c) {
@@ -867,7 +914,7 @@ struct ivec3_scalar {
 
 struct ivec3 {
   ivec3() : ivec3(0) {}
-  ivec3(I32 a) : x(a), y(a), z(a) {}
+  IMPLICIT ivec3(I32 a) : x(a), y(a), z(a) {}
   ivec3(I32 x, I32 y, I32 z) : x(x), y(y), z(z) {}
   ivec3(ivec2 a, I32 b) : x(a.x), y(a.y), z(b) {}
   ivec3(vec2 a, Float b) : x(cast(a.x)), y(cast(a.y)), z(cast(b)) {}
@@ -918,7 +965,7 @@ struct ivec4_scalar {
   int32_t w;
 
   ivec4_scalar() : ivec4_scalar(0) {}
-  constexpr ivec4_scalar(int32_t a) : x(a), y(a), z(a), w(a) {}
+  IMPLICIT constexpr ivec4_scalar(int32_t a) : x(a), y(a), z(a), w(a) {}
   constexpr ivec4_scalar(int32_t x, int32_t y, int32_t z, int32_t w)
       : x(x), y(y), z(z), w(w) {}
 
@@ -950,10 +997,10 @@ struct ivec4 {
   typedef int32_t element_type;
 
   ivec4() : ivec4(I32(0)) {}
-  ivec4(I32 a) : x(a), y(a), z(a), w(a) {}
+  IMPLICIT ivec4(I32 a) : x(a), y(a), z(a), w(a) {}
   ivec4(I32 x, I32 y, I32 z, I32 w) : x(x), y(y), z(z), w(w) {}
   ivec4(ivec2 a, I32 b, I32 c) : x(a.x), y(a.y), z(b), w(c) {}
-  constexpr ivec4(ivec4_scalar s) : x(s.x), y(s.y), z(s.z), w(s.w) {}
+  IMPLICIT constexpr ivec4(ivec4_scalar s) : x(s.x), y(s.y), z(s.z), w(s.w) {}
   constexpr ivec4(ivec4_scalar s0, ivec4_scalar s1, ivec4_scalar s2,
                   ivec4_scalar s3)
       : x(I32{s0.x, s1.x, s2.x, s3.x}),
@@ -1046,13 +1093,13 @@ struct bvec3_scalar {
   bool z;
 
   bvec3_scalar() : bvec3_scalar(false) {}
-  constexpr bvec3_scalar(bool a) : x(a), y(a), z(a) {}
+  IMPLICIT constexpr bvec3_scalar(bool a) : x(a), y(a), z(a) {}
   constexpr bvec3_scalar(bool x, bool y, bool z) : x(x), y(y), z(z) {}
 };
 
 struct bvec3 {
   bvec3() : bvec3(0) {}
-  bvec3(Bool a) : x(a), y(a), z(a) {}
+  IMPLICIT bvec3(Bool a) : x(a), y(a), z(a) {}
   bvec3(Bool x, Bool y, Bool z) : x(x), y(y), z(z) {}
   Bool& select(XYZW c) {
     switch (c) {
@@ -1073,6 +1120,8 @@ struct bvec3 {
   Bool z;
 };
 
+bvec3_scalar make_bvec3(bool n) { return bvec3_scalar{n, n, n}; }
+
 struct bvec4_scalar {
   bool x;
   bool y;
@@ -1080,14 +1129,14 @@ struct bvec4_scalar {
   bool w;
 
   bvec4_scalar() : bvec4_scalar(false) {}
-  constexpr bvec4_scalar(bool a) : x(a), y(a), z(a), w(a) {}
+  IMPLICIT constexpr bvec4_scalar(bool a) : x(a), y(a), z(a), w(a) {}
   constexpr bvec4_scalar(bool x, bool y, bool z, bool w)
       : x(x), y(y), z(z), w(w) {}
 };
 
 struct bvec4 {
   bvec4() : bvec4(0) {}
-  bvec4(Bool a) : x(a), y(a), z(a), w(a) {}
+  IMPLICIT bvec4(Bool a) : x(a), y(a), z(a), w(a) {}
   bvec4(Bool x, Bool y, Bool z, Bool w) : x(x), y(y), z(z), w(w) {}
   bvec4(bvec2 x, bvec2 y) : x(x.x), y(x.y), z(y.x), w(y.y) {}
   Bool& select(XYZW c) {
@@ -1192,7 +1241,7 @@ struct vec3_scalar {
   float z;
 
   constexpr vec3_scalar() : vec3_scalar(0.0f) {}
-  constexpr vec3_scalar(float a) : x(a), y(a), z(a) {}
+  IMPLICIT constexpr vec3_scalar(float a) : x(a), y(a), z(a) {}
   constexpr vec3_scalar(float x, float y, float z) : x(x), y(y), z(z) {}
 
   float& select(XYZW c) {
@@ -1283,10 +1332,10 @@ struct vec3 {
   typedef float element_type;
 
   constexpr vec3() : vec3(Float(0.0f)) {}
-  constexpr vec3(Float a) : x(a), y(a), z(a) {}
+  IMPLICIT constexpr vec3(Float a) : x(a), y(a), z(a) {}
   constexpr vec3(Float x, Float y, Float z) : x(x), y(y), z(z) {}
   vec3(vec2 a, Float z) : x(a.x), y(a.y), z(z) {}
-  constexpr vec3(vec3_scalar s) : x(s.x), y(s.y), z(s.z) {}
+  IMPLICIT constexpr vec3(vec3_scalar s) : x(s.x), y(s.y), z(s.z) {}
   constexpr vec3(vec3_scalar s0, vec3_scalar s1, vec3_scalar s2, vec3_scalar s3)
       : x(Float{s0.x, s1.x, s2.x, s3.x}),
         y(Float{s0.y, s1.y, s2.y, s3.y}),
@@ -1463,7 +1512,7 @@ struct vec4_scalar {
   float w;
 
   constexpr vec4_scalar() : vec4_scalar(0.0f) {}
-  constexpr vec4_scalar(float a) : x(a), y(a), z(a), w(a) {}
+  IMPLICIT constexpr vec4_scalar(float a) : x(a), y(a), z(a), w(a) {}
   constexpr vec4_scalar(float x, float y, float z, float w)
       : x(x), y(y), z(z), w(w) {}
   vec4_scalar(vec3_scalar xyz, float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
@@ -1555,13 +1604,13 @@ struct vec4 {
   typedef float element_type;
 
   constexpr vec4() : vec4(Float(0.0f)) {}
-  constexpr vec4(Float a) : x(a), y(a), z(a), w(a) {}
+  IMPLICIT constexpr vec4(Float a) : x(a), y(a), z(a), w(a) {}
   vec4(Float x, Float y, Float z, Float w) : x(x), y(y), z(z), w(w) {}
   vec4(vec3 xyz, Float w) : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
   vec4(vec2 xy, vec2 zw) : x(xy.x), y(xy.y), z(zw.x), w(zw.y) {}
   vec4(vec2 xy, Float z, Float w) : x(xy.x), y(xy.y), z(z), w(w) {}
   vec4(Float x, Float y, vec2 zw) : x(x), y(y), z(zw.x), w(zw.y) {}
-  constexpr vec4(vec4_scalar s) : x(s.x), y(s.y), z(s.z), w(s.w) {}
+  IMPLICIT constexpr vec4(vec4_scalar s) : x(s.x), y(s.y), z(s.z), w(s.w) {}
   constexpr vec4(vec4_scalar s0, vec4_scalar s1, vec4_scalar s2, vec4_scalar s3)
       : x(Float{s0.x, s1.x, s2.x, s3.x}),
         y(Float{s0.y, s1.y, s2.y, s3.y}),
@@ -1887,7 +1936,7 @@ struct mat2_scalar {
   vec2_scalar data[2];
 
   mat2_scalar() = default;
-  constexpr mat2_scalar(float a) {
+  IMPLICIT constexpr mat2_scalar(float a) {
     data[0] = vec2_scalar(a);
     data[1] = vec2_scalar(a);
   }
@@ -1895,7 +1944,7 @@ struct mat2_scalar {
     data[0] = a;
     data[1] = b;
   }
-  mat2_scalar(const mat4_scalar& mat);
+  IMPLICIT mat2_scalar(const mat4_scalar& mat);
 
   vec2_scalar& operator[](int index) { return data[index]; }
   const vec2_scalar& operator[](int index) const { return data[index]; }
@@ -1933,7 +1982,7 @@ struct mat2 {
   const vec2& operator[](int index) const { return data[index]; }
   mat2() = default;
 
-  mat2(Float a) {
+  IMPLICIT mat2(Float a) {
     data[0] = vec2(a);
     data[1] = vec2(a);
   }
@@ -1942,8 +1991,8 @@ struct mat2 {
     data[0] = a;
     data[1] = b;
   }
-  mat2(const mat4& mat);
-  constexpr mat2(mat2_scalar s) {
+  IMPLICIT mat2(const mat4& mat);
+  IMPLICIT constexpr mat2(mat2_scalar s) {
     data[0] = vec2(s.data[0]);
     data[1] = vec2(s.data[1]);
   }
@@ -1997,7 +2046,7 @@ struct mat3_scalar {
     data[1] = b;
     data[2] = c;
   }
-  mat3_scalar(const mat4_scalar& mat);
+  IMPLICIT mat3_scalar(const mat4_scalar& mat);
 
   vec3_scalar& operator[](int index) { return data[index]; }
   const vec3_scalar& operator[](int index) const { return data[index]; }
@@ -2031,7 +2080,7 @@ struct mat3 {
     data[2] = c;
   }
 
-  constexpr mat3(mat3_scalar s) {
+  IMPLICIT constexpr mat3(mat3_scalar s) {
     data[0] = vec3(s.data[0]);
     data[1] = vec3(s.data[1]);
     data[2] = vec3(s.data[2]);
@@ -2050,7 +2099,7 @@ struct mat3 {
     data[2] = vec3(d7, d8, d9);
   }
 
-  mat3(const mat4& mat);
+  IMPLICIT mat3(const mat4& mat);
 
   friend vec3 operator*(mat3 m, vec3 v) {
     vec3 u;
@@ -2137,7 +2186,7 @@ struct mat4 {
   vec4 data[4];
 
   mat4() = default;
-  constexpr mat4(mat4_scalar s) {
+  IMPLICIT constexpr mat4(mat4_scalar s) {
     data[0] = vec4(s.data[0]);
     data[1] = vec4(s.data[1]);
     data[2] = vec4(s.data[2]);
@@ -2169,15 +2218,15 @@ mat3::mat3(const mat4& mat)
            vec3(mat[1].x, mat[1].y, mat[1].z),
            vec3(mat[2].x, mat[2].y, mat[2].z)) {}
 
-mat3_scalar::mat3_scalar(const mat4_scalar& mat)
+IMPLICIT mat3_scalar::mat3_scalar(const mat4_scalar& mat)
     : mat3_scalar(vec3_scalar(mat[0].x, mat[0].y, mat[0].z),
                   vec3_scalar(mat[1].x, mat[1].y, mat[1].z),
                   vec3_scalar(mat[2].x, mat[2].y, mat[2].z)) {}
 
-mat2::mat2(const mat4& mat)
+IMPLICIT mat2::mat2(const mat4& mat)
     : mat2(vec2(mat[0].x, mat[0].y), vec2(mat[1].x, mat[1].y)) {}
 
-mat2_scalar::mat2_scalar(const mat4_scalar& mat)
+IMPLICIT mat2_scalar::mat2_scalar(const mat4_scalar& mat)
     : mat2_scalar(vec2_scalar(mat[0].x, mat[0].y),
                   vec2_scalar(mat[1].x, mat[1].y)) {}
 
@@ -2358,7 +2407,8 @@ Float atan(Float v) { return {atanf(v.x), atanf(v.y), atanf(v.z), atanf(v.w)}; }
 float atan(float a, float b) { return atan2f(a, b); }
 
 Float atan(Float a, Float b) {
-    return {atan2f(a.x, b.x), atan2f(a.y, b.y), atan2f(a.z, b.z), atan2f(a.w, b.w)};
+  return {atan2f(a.x, b.x), atan2f(a.y, b.y), atan2f(a.z, b.z),
+          atan2f(a.w, b.w)};
 }
 
 bvec4 notEqual(ivec4 a, ivec4 b) {

@@ -247,7 +247,7 @@ fn set_raw_time() {
     );
 
     let time = Duration::from_secs(1);
-    metric.set_raw(&glean, time, false);
+    metric.set_raw(&glean, time);
 
     let time_in_ns = time.as_nanos() as u64;
     assert_eq!(Some(time_in_ns), metric.test_get_value(&glean, "store1"));
@@ -272,7 +272,7 @@ fn set_raw_time_does_nothing_when_timer_running() {
     let time = Duration::from_secs(42);
 
     metric.set_start(&glean, 0);
-    metric.set_raw(&glean, time, false);
+    metric.set_raw(&glean, time);
     metric.set_stop(&glean, 60);
 
     // We expect the start/stop value, not the raw value.
@@ -325,5 +325,29 @@ fn timespan_is_not_tracked_across_upload_toggle() {
     assert_eq!(
         Ok(1),
         test_get_num_recorded_errors(&glean, metric.meta(), ErrorType::InvalidState, None)
+    );
+}
+
+#[test]
+fn time_cannot_go_backwards() {
+    let (glean, _t) = new_glean(None);
+
+    let mut metric: TimespanMetric = TimespanMetric::new(
+        CommonMetricData {
+            name: "raw_timespan".into(),
+            category: "test".into(),
+            send_in_pings: vec!["test1".into()],
+            ..Default::default()
+        },
+        TimeUnit::Millisecond,
+    );
+
+    // Time cannot go backwards.
+    metric.set_start(&glean, 10);
+    metric.set_stop(&glean, 0);
+    assert!(metric.test_get_value(&glean, "test1").is_none());
+    assert_eq!(
+        Ok(1),
+        test_get_num_recorded_errors(&glean, metric.meta(), ErrorType::InvalidValue, None),
     );
 }

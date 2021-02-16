@@ -60,7 +60,6 @@ const TEST_MULTISTAGE_CONTENT = {
       content: {
         zap: true,
         title: "Step 2 longzaptest",
-        disclaimer: "test",
         tiles: {
           type: "topsites",
           info: true,
@@ -82,11 +81,30 @@ const TEST_MULTISTAGE_CONTENT = {
       order: 2,
       content: {
         title: "Step 3",
+        tiles: {
+          type: "image",
+          media_type: "test-img",
+          source: {
+            default:
+              "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHBhdGggZmlsbD0iIzQ1YTFmZiIgZmlsbC1vcGFjaXR5PSJjb250ZXh0LWZpbGwtb3BhY2l0eSIgZD0iTTE1Ljg0NSA2LjA2NEExLjEgMS4xIDAgMCAwIDE1IDUuMzMxTDEwLjkxMSA0LjYgOC45ODUuNzM1YTEuMSAxLjEgMCAwIDAtMS45NjkgMEw1LjA4OSA0LjZsLTQuMDgxLjcyOWExLjEgMS4xIDAgMCAwLS42MTUgMS44MzRMMy4zMiAxMC4zMWwtLjYwOSA0LjM2YTEuMSAxLjEgMCAwIDAgMS42IDEuMTI3TDggMTMuODczbDMuNjkgMS45MjdhMS4xIDEuMSAwIDAgMCAxLjYtMS4xMjdsLS42MS00LjM2MyAyLjkyNi0zLjE0NmExLjEgMS4xIDAgMCAwIC4yMzktMS4xeiIvPjwvc3ZnPg==",
+          },
+        },
         primary_button: {
           label: "Next",
           action: {
             navigate: true,
           },
+        },
+        secondary_button: {
+          label: "Import",
+          action: {
+            type: "SHOW_MIGRATION_WIZARD",
+            data: { source: "chrome" },
+          },
+        },
+        help_text: {
+          text: "Here's some sample help text",
+          position: "default",
         },
       },
     },
@@ -298,7 +316,7 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
       "div.tiles-container.info",
     ],
     // Unexpected selectors:
-    ["main.AW_STEP1", "main.AW_STEP3", "div.secondary-cta.top"]
+    ["main.AW_STEP1", "main.AW_STEP3", "div.secondary-cta.top", "div.test-img"]
   );
   await onButtonClick(browser, "button.primary");
   await test_screen_content(
@@ -310,6 +328,8 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
       "main.AW_STEP3",
       "div.brand-logo",
       "div.welcome-text",
+      "p.helptext",
+      "div.test-img",
     ],
     // Unexpected selectors:
     ["main.AW_STEP1", "main.AW_STEP2"]
@@ -637,6 +657,7 @@ add_task(async function test_AWMultistage_Secondary_Open_URL_Action() {
 add_task(async function test_AWMultistage_Themes() {
   let browser = await openAboutWelcome();
   let aboutWelcomeActor = await getAboutWelcomeParent(browser);
+
   const sandbox = sinon.createSandbox();
   // Stub AboutWelcomeParent Content Message Handler
   sandbox
@@ -698,5 +719,61 @@ add_task(async function test_AWMultistage_Themes() {
     eventCall.args[1].event_context.source,
     "automatic",
     "automatic click source recorded in Telemetry"
+  );
+});
+
+add_task(async function test_AWMultistage_Import() {
+  let browser = await openAboutWelcome();
+  let aboutWelcomeActor = await getAboutWelcomeParent(browser);
+
+  // click twice to advance to screen 3
+  await onButtonClick(browser, "button.primary");
+  await onButtonClick(browser, "button.primary");
+
+  const sandbox = sinon.createSandbox();
+  // Stub AboutWelcomeParent Content Message Handler
+  sandbox
+    .stub(aboutWelcomeActor, "onContentMessage")
+    .resolves("")
+    .withArgs("AWPage:IMPORTABLE_SITES")
+    .resolves([]);
+  registerCleanupFunction(() => {
+    sandbox.restore();
+  });
+
+  await onButtonClick(browser, "button.secondary");
+  const { callCount } = aboutWelcomeActor.onContentMessage;
+
+  let actionCall;
+  let eventCall;
+  for (let i = 0; i < callCount; i++) {
+    const call = aboutWelcomeActor.onContentMessage.getCall(i);
+    info(`Call #${i}: ${call.args[0]} ${JSON.stringify(call.args[1])}`);
+    if (call.calledWithMatch("SPECIAL")) {
+      actionCall = call;
+    } else if (call.calledWithMatch("", { event: "CLICK_BUTTON" })) {
+      eventCall = call;
+    }
+  }
+
+  Assert.equal(
+    actionCall.args[0],
+    "AWPage:SPECIAL_ACTION",
+    "Got call to handle special action"
+  );
+  Assert.equal(
+    actionCall.args[1].type,
+    "SHOW_MIGRATION_WIZARD",
+    "Special action SHOW_MIGRATION_WIZARD event handled"
+  );
+  Assert.equal(
+    actionCall.args[1].data.source,
+    "chrome",
+    "Source passed to event handler"
+  );
+  Assert.equal(
+    eventCall.args[0],
+    "AWPage:TELEMETRY_EVENT",
+    "Got call to handle Telemetry event"
   );
 });

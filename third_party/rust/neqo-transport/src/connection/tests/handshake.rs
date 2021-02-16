@@ -14,7 +14,7 @@ use crate::events::ConnectionEvent;
 use crate::frame::StreamType;
 use crate::path::PATH_MTU_V6;
 use crate::server::ValidateAddress;
-use crate::{CongestionControlAlgorithm, ConnectionError, Error, QuicVersion};
+use crate::{ConnectionError, ConnectionParameters, Error};
 
 use neqo_common::{event::Provider, qdebug, Datagram};
 use neqo_crypto::{constants::TLS_CHACHA20_POLY1305_SHA256, AuthenticationStatus};
@@ -106,8 +106,7 @@ fn no_alpn() {
         Rc::new(RefCell::new(FixedConnectionIdManager::new(9))),
         loopback(),
         loopback(),
-        &CongestionControlAlgorithm::NewReno,
-        QuicVersion::default(),
+        &ConnectionParameters::default(),
     )
     .unwrap();
     let mut server = default_server();
@@ -178,8 +177,7 @@ fn crypto_frame_split() {
         test_fixture::LONG_CERT_KEYS,
         test_fixture::DEFAULT_ALPN,
         Rc::new(RefCell::new(FixedConnectionIdManager::new(6))),
-        &CongestionControlAlgorithm::NewReno,
-        QuicVersion::default(),
+        &ConnectionParameters::default(),
     )
     .expect("create a server");
 
@@ -236,8 +234,7 @@ fn chacha20poly1305() {
         Rc::new(RefCell::new(FixedConnectionIdManager::new(0))),
         loopback(),
         loopback(),
-        &CongestionControlAlgorithm::NewReno,
-        QuicVersion::default(),
+        &ConnectionParameters::default(),
     )
     .expect("create a default client");
     client.set_ciphers(&[TLS_CHACHA20_POLY1305_SHA256]).unwrap();
@@ -253,6 +250,7 @@ fn send_05rtt() {
     let c1 = client.process(None, now()).dgram();
     assert!(c1.is_some());
     let s1 = server.process(c1, now()).dgram().unwrap();
+    assert_eq!(s1.len(), PATH_MTU_V6);
 
     // The server should accept writes at this point.
     let s2 = send_something(&mut server, now());
@@ -418,7 +416,9 @@ fn coalesce_05rtt() {
     assert!(c2.is_some());
     now += RTT / 2;
     let s2 = server.process(c2, now).dgram();
-    assert!(s2.is_some());
+    // Even though there is a 1-RTT packet at the end of the datagram, the
+    // flight should be padded to full size.
+    assert_eq!(s2.as_ref().unwrap().len(), PATH_MTU_V6);
 
     // The client should process the datagram.  It can't process the 1-RTT
     // packet until authentication completes though.  So it saves it.
@@ -434,9 +434,10 @@ fn coalesce_05rtt() {
     maybe_authenticate(&mut client);
     let c3 = client.process(None, now).dgram();
     assert!(c3.is_some());
-    assert_eq!(client.stats().dropped_rx, 1); // Just Initial padding.
+    assert_eq!(client.stats().dropped_rx, 0); // No Initial padding.
     assert_eq!(client.stats().packets_rx, 4);
     assert_eq!(client.stats().saved_datagrams, 1);
+    assert_eq!(client.stats().frame_rx.padding, 1); // Padding uses frames.
 
     // Allow the handshake to complete.
     now += RTT / 2;
@@ -447,7 +448,7 @@ fn coalesce_05rtt() {
     let _ = client.process(s3, now).dgram();
     assert_eq!(*client.state(), State::Confirmed);
 
-    assert_eq!(client.stats().dropped_rx, 1); // Just Initial padding.
+    assert_eq!(client.stats().dropped_rx, 0); // No dropped packets.
 }
 
 #[test]

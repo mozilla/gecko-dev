@@ -5,6 +5,7 @@
 
 #include "mozilla/Logging.h"
 
+#include "GeckoProfiler.h"
 #include "gfxUserFontSet.h"
 #include "gfxPlatform.h"
 #include "gfxFontConstants.h"
@@ -18,6 +19,8 @@
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/PostTraversalTask.h"
 #include "gfxOTSUtils.h"
+#include "nsIFontLoadCompleteCallback.h"
+#include "nsProxyRelease.h"
 
 using namespace mozilla;
 

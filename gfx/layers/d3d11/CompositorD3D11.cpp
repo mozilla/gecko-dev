@@ -110,7 +110,8 @@ CompositorD3D11::CompositorD3D11(CompositorBridgeParent* aParent,
       mAllowPartialPresents(false),
       mIsDoubleBuffered(false),
       mVerifyBuffersFailed(false),
-      mUseMutexOnPresent(false) {
+      mUseMutexOnPresent(false),
+      mUseForSoftwareWebRender(false) {
   mUseMutexOnPresent = StaticPrefs::gfx_use_mutex_on_present_AtStartup();
 }
 
@@ -251,6 +252,12 @@ bool CompositorD3D11::Initialize(nsCString* const out_failureReason) {
     if (!mSwapChain)
 #endif
     {
+      if (mWidget->AsWindows()->GetCompositorHwnd()) {
+        // Destroy compositor window.
+        mWidget->AsWindows()->DestroyCompositorWindow();
+        mHwnd = mWidget->AsWindows()->GetHwnd();
+      }
+
       DXGI_SWAP_CHAIN_DESC swapDesc;
       ::ZeroMemory(&swapDesc, sizeof(swapDesc));
       swapDesc.BufferDesc.Width = 0;
@@ -1159,8 +1166,11 @@ Maybe<IntRect> CompositorD3D11::BeginFrame(const nsIntRegion& aInvalidRegion,
       gfxCriticalNote << "GFX: D3D11 skip BeginFrame with device-removed.";
 
       // If we are in the GPU process then the main process doesn't
-      // know that a device reset has happened and needs to be informed
-      if (XRE_IsGPUProcess()) {
+      // know that a device reset has happened and needs to be informed.
+      //
+      // When CompositorD3D11 is used for Software WebRender, it does not need
+      // to notify device reset. The device reset is notified by WebRender.
+      if (XRE_IsGPUProcess() && !mUseForSoftwareWebRender) {
         GPUParent::GetSingleton()->NotifyDeviceReset();
       }
       mAttachments->SetDeviceReset();
@@ -1275,8 +1285,12 @@ void CompositorD3D11::EndFrame() {
   }
 
   RefPtr<ID3D11Query> query;
-  CD3D11_QUERY_DESC desc(D3D11_QUERY_EVENT);
-  mDevice->CreateQuery(&desc, getter_AddRefs(query));
+  if (mRecycledQuery) {
+    query = mRecycledQuery.forget();
+  } else {
+    CD3D11_QUERY_DESC desc(D3D11_QUERY_EVENT);
+    mDevice->CreateQuery(&desc, getter_AddRefs(query));
+  }
   if (query) {
     mContext->End(query);
   }
@@ -1294,6 +1308,8 @@ void CompositorD3D11::EndFrame() {
   if (mQuery) {
     BOOL result;
     WaitForFrameGPUQuery(mDevice, mContext, mQuery, &result);
+    // Store the query for recycling
+    mRecycledQuery = mQuery;
   }
   // Store the query for this frame so we can flush it next time.
   mQuery = query;
@@ -1425,7 +1441,7 @@ void CompositorD3D11::ForcePresent() {
   mSwapChain->GetDesc(&desc);
 
   if (desc.BufferDesc.Width == size.width &&
-      desc.BufferDesc.Height == size.height) {
+      desc.BufferDesc.Height == size.height && size == mBufferSize) {
     mSwapChain->Present(0, 0);
     if (mIsDoubleBuffered) {
       // Make sure we present what was the front buffer before that we know is
@@ -1528,6 +1544,9 @@ bool CompositorD3D11::VerifyBufferSize() {
     gfxCriticalNote << "D3D11 swap resize buffers failed " << hexa(hr) << " on "
                     << mSize;
     HandleError(hr);
+    mBufferSize = LayoutDeviceIntSize();
+  } else {
+    mBufferSize = mSize;
   }
 
   mBackBufferInvalid = mFrontBufferInvalid =
@@ -1574,7 +1593,7 @@ bool CompositorD3D11::UpdateRenderTarget() {
   IntRegion validFront;
   validFront.Sub(mBackBufferInvalid, mFrontBufferInvalid);
 
-  if (!validFront.IsEmpty()) {
+  if (mIsDoubleBuffered && !validFront.IsEmpty()) {
     RefPtr<ID3D11Texture2D> frontBuf;
     hr = mSwapChain->GetBuffer(1, __uuidof(ID3D11Texture2D),
                                (void**)frontBuf.StartAssignment());

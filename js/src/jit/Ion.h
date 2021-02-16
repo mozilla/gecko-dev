@@ -28,7 +28,6 @@
 #include "vm/JSContext.h"
 #include "vm/JSFunction.h"
 #include "vm/JSScript.h"
-#include "vm/TypeInference.h"
 
 namespace js {
 
@@ -41,8 +40,8 @@ class BaselineFrame;
 bool CanIonCompileScript(JSContext* cx, JSScript* script);
 bool CanIonInlineScript(JSScript* script);
 
-MOZ_MUST_USE bool IonCompileScriptForBaselineAtEntry(JSContext* cx,
-                                                     BaselineFrame* frame);
+[[nodiscard]] bool IonCompileScriptForBaselineAtEntry(JSContext* cx,
+                                                      BaselineFrame* frame);
 
 struct IonOsrTempData {
   void* jitcode;
@@ -56,24 +55,13 @@ struct IonOsrTempData {
   }
 };
 
-MOZ_MUST_USE bool IonCompileScriptForBaselineOSR(JSContext* cx,
-                                                 BaselineFrame* frame,
-                                                 uint32_t frameSize,
-                                                 jsbytecode* pc,
-                                                 IonOsrTempData** infoPtr);
+[[nodiscard]] bool IonCompileScriptForBaselineOSR(JSContext* cx,
+                                                  BaselineFrame* frame,
+                                                  uint32_t frameSize,
+                                                  jsbytecode* pc,
+                                                  IonOsrTempData** infoPtr);
 
 MethodStatus CanEnterIon(JSContext* cx, RunState& state);
-
-MethodStatus Recompile(JSContext* cx, HandleScript script, bool force);
-
-// Walk the stack and invalidate active Ion frames for the invalid scripts.
-void Invalidate(TypeZone& types, JSFreeOp* fop,
-                const RecompileInfoVector& invalid, bool resetUses = true,
-                bool cancelOffThread = true);
-void Invalidate(JSContext* cx, const RecompileInfoVector& invalid,
-                bool resetUses = true, bool cancelOffThread = true);
-void Invalidate(JSContext* cx, JSScript* script, bool resetUses = true,
-                bool cancelOffThread = true);
 
 class MIRGenerator;
 class LIRGraph;
@@ -81,7 +69,7 @@ class CodeGenerator;
 class LazyLinkExitFrameLayout;
 class WarpSnapshot;
 
-MOZ_MUST_USE bool OptimizeMIR(MIRGenerator* mir);
+[[nodiscard]] bool OptimizeMIR(MIRGenerator* mir);
 LIRGraph* GenerateLIR(MIRGenerator* mir);
 CodeGenerator* GenerateCode(MIRGenerator* mir, LIRGraph* lir);
 CodeGenerator* CompileBackEnd(MIRGenerator* mir, WarpSnapshot* snapshot);
@@ -122,10 +110,10 @@ inline size_t NumLocalsAndArgs(JSScript* script) {
 // backend compilation.
 class MOZ_RAII AutoEnterIonBackend {
  public:
-  explicit AutoEnterIonBackend(bool safeForMinorGC) {
+  AutoEnterIonBackend() {
 #ifdef DEBUG
     JitContext* jcx = GetJitContext();
-    jcx->enterIonBackend(safeForMinorGC);
+    jcx->enterIonBackend();
 #endif
   }
 
@@ -146,16 +134,6 @@ size_t SizeOfIonData(JSScript* script, mozilla::MallocSizeOf mallocSizeOf);
 inline bool IsIonEnabled(JSContext* cx) {
   if (MOZ_UNLIKELY(!IsBaselineJitEnabled(cx) || cx->options().disableIon())) {
     return false;
-  }
-
-  // If TI is disabled, Ion can only be used if WarpBuilder is enabled.
-  if (MOZ_LIKELY(IsTypeInferenceEnabled())) {
-    MOZ_ASSERT(!JitOptions.warpBuilder,
-               "Shouldn't enable WarpBuilder without disabling TI!");
-  } else {
-    if (!JitOptions.warpBuilder) {
-      return false;
-    }
   }
 
   if (MOZ_LIKELY(JitOptions.ion)) {

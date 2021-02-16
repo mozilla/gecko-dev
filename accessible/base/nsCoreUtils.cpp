@@ -360,7 +360,7 @@ bool nsCoreUtils::IsContentDocument(Document* aDocument) {
 }
 
 bool nsCoreUtils::IsTopLevelContentDocInProcess(Document* aDocumentNode) {
-  BrowsingContext* bc = aDocumentNode->GetBrowsingContext();
+  mozilla::dom::BrowsingContext* bc = aDocumentNode->GetBrowsingContext();
   return bc->IsContent() && (
                                 // Tab document.
                                 bc->IsTop() ||
@@ -381,6 +381,10 @@ bool nsCoreUtils::IsErrorPage(Document* aDocument) {
   constexpr auto certerror = "certerror"_ns;
 
   return StringBeginsWith(path, neterror) || StringBeginsWith(path, certerror);
+}
+
+PresShell* nsCoreUtils::GetPresShellFor(nsINode* aNode) {
+  return aNode->OwnerDoc()->GetPresShell();
 }
 
 bool nsCoreUtils::GetID(nsIContent* aContent, nsAString& aID) {
@@ -536,6 +540,12 @@ void nsCoreUtils::ScrollTo(PresShell* aPresShell, nsIContent* aContent,
   ConvertScrollTypeToPercents(aScrollType, &vertical, &horizontal);
   aPresShell->ScrollContentIntoView(aContent, vertical, horizontal,
                                     ScrollFlags::ScrollOverflowHidden);
+}
+
+bool nsCoreUtils::IsHTMLTableHeader(nsIContent* aContent) {
+  return aContent->NodeInfo()->Equals(nsGkAtoms::th) ||
+         (aContent->IsElement() &&
+          aContent->AsElement()->HasAttr(kNameSpaceID_None, nsGkAtoms::scope));
 }
 
 bool nsCoreUtils::IsWhitespaceString(const nsAString& aString) {

@@ -6,12 +6,15 @@
 #include "nsReadConfig.h"
 #include "nsJSConfigTriggers.h"
 
+#include "mozilla/Logging.h"
 #include "mozilla/Components.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsIAppStartup.h"
+#include "nsIChannel.h"
 #include "nsContentUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
+#include "nsIInputStream.h"
 #include "nsIObserverService.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefService.h"
@@ -103,7 +106,7 @@ NS_IMETHODIMP nsReadConfig::Observe(nsISupports* aSubject, const char* aTopic,
               components::AppStartup::Service();
           if (appStartup) {
             bool userAllowedQuit = true;
-            appStartup->Quit(nsIAppStartup::eAttemptQuit, &userAllowedQuit);
+            appStartup->Quit(nsIAppStartup::eAttemptQuit, 0, &userAllowedQuit);
           }
         }
       }

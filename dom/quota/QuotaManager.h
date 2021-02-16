@@ -13,6 +13,7 @@
 #include "ErrorList.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/InitializedOnce.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/Result.h"
@@ -57,7 +58,7 @@ class PrincipalInfo;
 
 }  // namespace mozilla
 
-BEGIN_QUOTA_NAMESPACE
+namespace mozilla::dom::quota {
 
 class ClientUsageArray;
 class DirectoryLockImpl;
@@ -125,7 +126,8 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class QuotaObject;
 
   typedef mozilla::ipc::PrincipalInfo PrincipalInfo;
-  typedef nsClassHashtable<nsCStringHashKey, nsTArray<DirectoryLockImpl*>>
+  typedef nsClassHashtable<nsCStringHashKey,
+                           nsTArray<NotNull<DirectoryLockImpl*>>>
       DirectoryLockTable;
 
   class Observer;
@@ -153,6 +155,8 @@ class QuotaManager final : public BackgroundThreadObject {
 
   // Returns a non-owning reference.
   static QuotaManager* Get();
+
+  static QuotaManager& GetRef();
 
   // Returns true if we've begun the shutdown process.
   static bool IsShuttingDown();
@@ -219,9 +223,9 @@ class QuotaManager final : public BackgroundThreadObject {
                            const GroupAndOrigin& aGroupAndOrigin,
                            Client::Type aClientType);
 
-  bool GetUsageForClient(PersistenceType aPersistenceType,
-                         const GroupAndOrigin& aGroupAndOrigin,
-                         Client::Type aClientType, uint64_t& aUsage);
+  UsageInfo GetUsageForClient(PersistenceType aPersistenceType,
+                              const GroupAndOrigin& aGroupAndOrigin,
+                              Client::Type aClientType);
 
   void UpdateOriginAccessTime(PersistenceType aPersistenceType,
                               const GroupAndOrigin& aGroupAndOrigin);
@@ -264,20 +268,27 @@ class QuotaManager final : public BackgroundThreadObject {
 
   nsresult RestoreDirectoryMetadata2(nsIFile* aDirectory, bool aPersistent);
 
-  nsresult GetDirectoryMetadata2(nsIFile* aDirectory, int64_t* aTimestamp,
-                                 bool* aPersisted, QuotaInfo& aQuotaInfo);
+  struct GetDirectoryResult {
+    int64_t mTimestamp;
+    bool mPersisted;
+  };
 
-  nsresult GetDirectoryMetadata2WithRestore(
-      nsIFile* aDirectory, bool aPersistent, int64_t* aTimestamp,
-      bool* aPersisted, QuotaInfo& aQuotaInfo, const bool aTelemetry = false);
+  struct GetDirectoryResultWithQuotaInfo : GetDirectoryResult {
+    QuotaInfo mQuotaInfo;
+  };
 
-  nsresult GetDirectoryMetadata2(nsIFile* aDirectory, int64_t* aTimestamp,
-                                 bool* aPersisted);
+  Result<GetDirectoryResultWithQuotaInfo, nsresult>
+  GetDirectoryMetadataWithQuotaInfo2(nsIFile* aDirectory);
 
-  nsresult GetDirectoryMetadata2WithRestore(nsIFile* aDirectory,
-                                            bool aPersistent,
-                                            int64_t* aTimestamp,
-                                            bool* aPersisted);
+  Result<GetDirectoryResultWithQuotaInfo, nsresult>
+  GetDirectoryMetadataWithQuotaInfo2WithRestore(nsIFile* aDirectory,
+                                                bool aPersistent);
+
+  Result<GetDirectoryResult, nsresult> GetDirectoryMetadata2(
+      nsIFile* aDirectory);
+
+  Result<GetDirectoryResult, nsresult> GetDirectoryMetadata2WithRestore(
+      nsIFile* aDirectory, bool aPersistent);
 
   // This is the main entry point into the QuotaManager API.
   // Any storage API implementation (quota client) that participates in
@@ -338,35 +349,23 @@ class QuotaManager final : public BackgroundThreadObject {
 
   nsresult EnsureStorageIsInitialized();
 
-  /**
-   * @returns a Result with the success value pointing to the storage directory
-   * for the origin.
-   */
-  Result<nsCOMPtr<nsIFile>, nsresult> EnsureStorageAndOriginIsInitialized(
-      PersistenceType aPersistenceType, const QuotaInfo& aQuotaInfo,
-      Client::Type aClientType);
+  // Returns a pair of an nsIFile object referring to the directory, and a bool
+  // indicating whether the directory was newly created.
+  Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
+  EnsurePersistentOriginIsInitialized(const QuotaInfo& aQuotaInfo);
 
   // Returns a pair of an nsIFile object referring to the directory, and a bool
   // indicating whether the directory was newly created.
   Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
-  EnsureStorageAndOriginIsInitializedInternal(
-      PersistenceType aPersistenceType, const QuotaInfo& aQuotaInfo,
-      const Nullable<Client::Type>& aClientType);
-
-  nsresult EnsurePersistentOriginIsInitialized(const QuotaInfo& aQuotaInfo,
-                                               nsIFile** aDirectory,
-                                               bool* aCreated);
-
-  nsresult EnsureTemporaryOriginIsInitialized(PersistenceType aPersistenceType,
-                                              const QuotaInfo& aQuotaInfo,
-                                              nsIFile** aDirectory,
-                                              bool* aCreated);
+  EnsureTemporaryOriginIsInitialized(PersistenceType aPersistenceType,
+                                     const QuotaInfo& aQuotaInfo);
 
   nsresult EnsureTemporaryStorageIsInitialized();
 
   void ShutdownStorage();
 
-  nsresult EnsureOriginDirectory(nsIFile* aDirectory, bool* aCreated);
+  // Returns a bool indicating whether the directory was newly created.
+  Result<bool, nsresult> EnsureOriginDirectory(nsIFile& aDirectory);
 
   nsresult AboutToClearOrigins(
       const Nullable<PersistenceType>& aPersistenceType,
@@ -380,7 +379,7 @@ class QuotaManager final : public BackgroundThreadObject {
   void StartIdleMaintenance() {
     AssertIsOnOwningThread();
 
-    for (auto& client : mClients) {
+    for (const auto& client : *mClients) {
       client->StartIdleMaintenance();
     }
   }
@@ -388,7 +387,7 @@ class QuotaManager final : public BackgroundThreadObject {
   void StopIdleMaintenance() {
     AssertIsOnOwningThread();
 
-    for (auto& client : mClients) {
+    for (const auto& client : *mClients) {
       client->StopIdleMaintenance();
     }
   }
@@ -397,10 +396,7 @@ class QuotaManager final : public BackgroundThreadObject {
     mQuotaMutex.AssertCurrentThreadOwns();
   }
 
-  nsIThread* IOThread() {
-    NS_ASSERTION(mIOThread, "This should never be null!");
-    return mIOThread;
-  }
+  nsIThread* IOThread() { return mIOThread->get(); }
 
   Client* GetClient(Client::Type aClientType);
 
@@ -410,20 +406,20 @@ class QuotaManager final : public BackgroundThreadObject {
 
   const nsString& GetStorageName() const { return mStorageName; }
 
-  const nsString& GetStoragePath() const { return mStoragePath; }
+  const nsString& GetStoragePath() const { return *mStoragePath; }
 
   const nsString& GetStoragePath(PersistenceType aPersistenceType) const {
     if (aPersistenceType == PERSISTENCE_TYPE_PERSISTENT) {
-      return mPermanentStoragePath;
+      return *mPermanentStoragePath;
     }
 
     if (aPersistenceType == PERSISTENCE_TYPE_TEMPORARY) {
-      return mTemporaryStoragePath;
+      return *mTemporaryStoragePath;
     }
 
     MOZ_ASSERT(aPersistenceType == PERSISTENCE_TYPE_DEFAULT);
 
-    return mDefaultStoragePath;
+    return *mDefaultStoragePath;
   }
 
   uint64_t GetGroupLimit() const;
@@ -433,6 +429,13 @@ class QuotaManager final : public BackgroundThreadObject {
   uint64_t GetOriginUsage(const GroupAndOrigin& aGroupAndOrigin);
 
   void NotifyStoragePressure(uint64_t aUsage);
+
+  // Record a quota client shutdown step, if shutting down.
+  void MaybeRecordShutdownStep(Client::Type aClientType,
+                               const nsACString& aStepDescription);
+
+  // Record a quota manager shutdown step, if shutting down.
+  void MaybeRecordQuotaManagerShutdownStep(const nsACString& aStepDescription);
 
   static void GetStorageId(PersistenceType aPersistenceType,
                            const nsACString& aOrigin, Client::Type aClientType,
@@ -464,8 +467,7 @@ class QuotaManager final : public BackgroundThreadObject {
   static bool AreOriginsEqualOnDisk(const nsACString& aOrigin1,
                                     const nsACString& aOrigin2);
 
-  static bool ParseOrigin(const nsACString& aOrigin, nsCString& aSpec,
-                          OriginAttributes* aAttrs);
+  static Result<PrincipalInfo, nsresult> ParseOrigin(const nsACString& aOrigin);
 
   static void InvalidateQuotaCache();
 
@@ -530,8 +532,8 @@ class QuotaManager final : public BackgroundThreadObject {
 
   nsresult MaybeRemoveLocalStorageDirectories();
 
-  nsresult CreateLocalStorageArchiveConnectionFromWebAppsStore(
-      mozIStorageConnection** aConnection);
+  Result<nsCOMPtr<mozIStorageConnection>, nsresult>
+  CreateLocalStorageArchiveConnectionFromWebAppsStore();
 
   // The second object in the pair is used to signal if the localStorage
   // archive database was newly created or recreated.
@@ -569,7 +571,7 @@ class QuotaManager final : public BackgroundThreadObject {
     AssertIsOnIOThread();
 
     for (Client::Type type : AllClientTypes()) {
-      mClients[type]->ReleaseIOThreadObjects();
+      (*mClients)[type]->ReleaseIOThreadObjects();
     }
   }
 
@@ -579,15 +581,23 @@ class QuotaManager final : public BackgroundThreadObject {
 
   int64_t GenerateDirectoryLockId();
 
-  static void ShutdownTimerCallback(nsITimer* aTimer, void* aClosure);
+  void MaybeRecordShutdownStep(Maybe<Client::Type> aClientType,
+                               const nsACString& aStepDescription);
 
   // Thread on which IO is performed.
-  nsCOMPtr<nsIThread> mIOThread;
+  LazyInitializedOnceNotNull<const nsCOMPtr<nsIThread>> mIOThread;
 
   nsCOMPtr<mozIStorageConnection> mStorageConnection;
 
   // A timer that gets activated at shutdown to ensure we close all storages.
-  nsCOMPtr<nsITimer> mShutdownTimer;
+  LazyInitializedOnceNotNull<const nsCOMPtr<nsITimer>> mShutdownTimer;
+
+  EnumeratedArray<Client::Type, Client::TYPE_MAX, nsCString> mShutdownSteps;
+  LazyInitializedOnce<const TimeStamp> mShutdownStartedAt;
+  Atomic<bool> mShutdownStarted;
+
+  // Accesses to mQuotaManagerShutdownSteps must be protected by mQuotaMutex.
+  nsCString mQuotaManagerShutdownSteps;
 
   mozilla::Mutex mQuotaMutex;
 
@@ -632,20 +642,22 @@ class QuotaManager final : public BackgroundThreadObject {
 
   // This array is populated at initialization time and then never modified, so
   // it can be iterated on any thread.
-  AutoTArray<RefPtr<Client>, Client::TYPE_MAX> mClients;
+  LazyInitializedOnce<const AutoTArray<RefPtr<Client>, Client::TYPE_MAX>>
+      mClients;
 
-  AutoTArray<Client::Type, Client::TYPE_MAX> mAllClientTypes;
-  AutoTArray<Client::Type, Client::TYPE_MAX> mAllClientTypesExceptLS;
+  using ClientTypesArray = AutoTArray<Client::Type, Client::TYPE_MAX>;
+  LazyInitializedOnce<const ClientTypesArray> mAllClientTypes;
+  LazyInitializedOnce<const ClientTypesArray> mAllClientTypesExceptLS;
 
   InitializationInfo mInitializationInfo;
 
-  nsString mBasePath;
-  nsString mStorageName;
-  nsString mIndexedDBPath;
-  nsString mStoragePath;
-  nsString mPermanentStoragePath;
-  nsString mTemporaryStoragePath;
-  nsString mDefaultStoragePath;
+  const nsString mBasePath;
+  const nsString mStorageName;
+  LazyInitializedOnce<const nsString> mIndexedDBPath;
+  LazyInitializedOnce<const nsString> mStoragePath;
+  LazyInitializedOnce<const nsString> mPermanentStoragePath;
+  LazyInitializedOnce<const nsString> mTemporaryStoragePath;
+  LazyInitializedOnce<const nsString> mDefaultStoragePath;
 
   uint64_t mTemporaryStorageLimit;
   uint64_t mTemporaryStorageUsage;
@@ -654,6 +666,6 @@ class QuotaManager final : public BackgroundThreadObject {
   bool mCacheUsable;
 };
 
-END_QUOTA_NAMESPACE
+}  // namespace mozilla::dom::quota
 
 #endif /* mozilla_dom_quota_quotamanager_h__ */

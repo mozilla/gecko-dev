@@ -19,6 +19,7 @@
 #include "mozilla/dom/DeviceLightEvent.h"
 #include "mozilla/dom/DeviceOrientationEvent.h"
 #include "mozilla/dom/DeviceProximityEvent.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/UserProximityEvent.h"
 #include "mozilla/ErrorResult.h"
@@ -195,15 +196,12 @@ static bool WindowCannotReceiveSensorEvent(nsPIDOMWindowInner* aWindow) {
   }
 
   nsPIDOMWindowOuter* windowOuter = aWindow->GetOuterWindow();
-  bool disabled =
-      windowOuter->IsBackground() || !windowOuter->IsTopLevelWindowActive();
-  if (disabled) {
+  BrowsingContext* topBC = aWindow->GetBrowsingContext()->Top();
+  if (windowOuter->IsBackground() || !topBC->GetIsActiveBrowserWindow()) {
     return true;
   }
 
   // Check to see if this window is a cross-origin iframe:
-
-  auto topBC = aWindow->GetBrowsingContext()->Top();
   if (!topBC->IsInProcess()) {
     return true;
   }
@@ -531,7 +529,7 @@ bool nsDeviceSensors::IsSensorAllowedByPref(uint32_t aType,
       if (!StaticPrefs::device_sensors_motion_enabled()) {
         return false;
       } else if (doc) {
-        doc->WarnOnceAbout(Document::eMotionEvent);
+        doc->WarnOnceAbout(DeprecatedOperations::eMotionEvent);
       }
       break;
     case nsIDeviceSensorData::TYPE_GAME_ROTATION_VECTOR:
@@ -541,7 +539,7 @@ bool nsDeviceSensors::IsSensorAllowedByPref(uint32_t aType,
       if (!StaticPrefs::device_sensors_orientation_enabled()) {
         return false;
       } else if (doc) {
-        doc->WarnOnceAbout(Document::eOrientationEvent);
+        doc->WarnOnceAbout(DeprecatedOperations::eOrientationEvent);
       }
       break;
     case nsIDeviceSensorData::TYPE_PROXIMITY:
@@ -549,7 +547,7 @@ bool nsDeviceSensors::IsSensorAllowedByPref(uint32_t aType,
       if (!StaticPrefs::device_sensors_proximity_enabled()) {
         return false;
       } else if (doc) {
-        doc->WarnOnceAbout(Document::eProximityEvent, true);
+        doc->WarnOnceAbout(DeprecatedOperations::eProximityEvent, true);
       }
       break;
     case nsIDeviceSensorData::TYPE_LIGHT:
@@ -557,7 +555,7 @@ bool nsDeviceSensors::IsSensorAllowedByPref(uint32_t aType,
       if (!StaticPrefs::device_sensors_ambientLight_enabled()) {
         return false;
       } else if (doc) {
-        doc->WarnOnceAbout(Document::eAmbientLightEvent, true);
+        doc->WarnOnceAbout(DeprecatedOperations::eAmbientLightEvent, true);
       }
       break;
     default:

@@ -10,7 +10,6 @@
 
 #include "vm/JSContext-inl.h"
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
@@ -47,8 +46,10 @@
 #include "js/friend/StackLimits.h"    // js::ReportOverRecursed
 #include "js/Printf.h"
 #include "util/DiagnosticAssertions.h"
+#include "util/DifferentialTesting.h"
 #include "util/DoubleToString.h"
 #include "util/NativeStack.h"
+#include "util/Text.h"
 #include "util/Windows.h"
 #include "vm/BytecodeUtil.h"  // JSDVG_IGNORE_STACK
 #include "vm/ErrorObject.h"
@@ -246,14 +247,14 @@ bool AutoResolving::alreadyStartedSlow() const {
  * not occur, so GC must be avoided or suppressed.
  */
 JS_FRIEND_API void js::ReportOutOfMemory(JSContext* cx) {
-#ifdef JS_MORE_DETERMINISTIC
   /*
    * OOMs are non-deterministic, especially across different execution modes
-   * (e.g. interpreter vs JIT). In more-deterministic builds, print to stderr
+   * (e.g. interpreter vs JIT). When doing differential testing, print to stderr
    * so that the fuzzers can detect this.
    */
-  fprintf(stderr, "ReportOutOfMemory called\n");
-#endif
+  if (js::SupportDifferentialTesting()) {
+    fprintf(stderr, "ReportOutOfMemory called\n");
+  }
 
   if (cx->isHelperThreadContext()) {
     return cx->addPendingOutOfMemory();
@@ -284,7 +285,7 @@ mozilla::GenericErrorResult<OOM> js::ReportOutOfMemoryResult(JSContext* cx) {
 
 void js::ReportOverRecursed(JSContext* maybecx, unsigned errorNumber) {
   mozilla::recordreplay::InvalidateRecording("Over-recursed exception unwind");
-#ifdef JS_MORE_DETERMINISTIC
+
   /*
    * We cannot make stack depth deterministic across different
    * implementations (e.g. JIT vs. interpreter will differ in
@@ -293,8 +294,10 @@ void js::ReportOverRecursed(JSContext* maybecx, unsigned errorNumber) {
    * stack depth which is useful for external testing programs
    * like fuzzers.
    */
-  fprintf(stderr, "ReportOverRecursed called\n");
-#endif
+  if (js::SupportDifferentialTesting()) {
+    fprintf(stderr, "ReportOverRecursed called\n");
+  }
+
   if (maybecx) {
     if (!maybecx->isHelperThreadContext()) {
       JS_ReportErrorNumberASCII(maybecx, GetErrorMessage, nullptr, errorNumber);
@@ -302,6 +305,9 @@ void js::ReportOverRecursed(JSContext* maybecx, unsigned errorNumber) {
     } else {
       maybecx->addPendingOverRecursed();
     }
+#ifdef DEBUG
+    maybecx->hadOverRecursed_ = true;
+#endif
   }
 }
 
@@ -372,7 +378,7 @@ static void PrintErrorLine(FILE* file, const char* prefix,
     } else {
       static const char unavailableStr[] = "<context unavailable>";
       utf8buf = unavailableStr;
-      n = mozilla::ArrayLength(unavailableStr) - 1;
+      n = js_strlen(unavailableStr);
     }
 
     fputs(":\n", file);
@@ -914,8 +920,6 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       compactingDisabledCount(this, 0),
       frontendCollectionPool_(this),
       suppressProfilerSampling(false),
-      wasmTriedToInstallSignalHandlers(false),
-      wasmHaveSignalHandlers(false),
       tempLifoAlloc_(this, (size_t)TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
       debuggerMutations(this, 0),
       ionPcScriptCache(this, nullptr),
@@ -923,6 +927,9 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       unwrappedException_(this),
       unwrappedExceptionStack_(this),
       overRecursed_(this, false),
+#ifdef DEBUG
+      hadOverRecursed_(this, false),
+#endif
       propagatingForcedReturn_(this, false),
       reportGranularity(this, JS_DEFAULT_JITREPORT_GRANULARITY),
       resolvingList(this, nullptr),
@@ -939,7 +946,6 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       interruptCallbackDisabled(this, false),
       interruptBits_(0),
       inlinedICScript_(this, nullptr),
-      ionReturnOverride_(this, MagicValue(JS_ARG_POISON)),
       jitStackLimit(UINTPTR_MAX),
       jitStackLimitNoInterrupt(this, UINTPTR_MAX),
       jobQueue(this, nullptr),
@@ -1122,6 +1128,7 @@ size_t JSContext::sizeOfExcludingThis(
    * added later.
    */
   return cycleDetectorVector().sizeOfExcludingThis(mallocSizeOf) +
+         wasm_.sizeOfExcludingThis(mallocSizeOf) +
          irregexp::IsolateSizeOfIncludingThis(isolate, mallocSizeOf);
 }
 

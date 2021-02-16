@@ -377,7 +377,7 @@ const MultiStageAboutWelcome = props => {
     })();
   }, [metricsFlowUri]); // Transition to next screen, opening about:home on last screen button CTA
 
-  const handleTransition = index < props.screens.length ? Object(react__WEBPACK_IMPORTED_MODULE_0__["useCallback"])(() => setScreenIndex(prevState => prevState + 1), []) : _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_3__["AboutWelcomeUtils"].handleUserAction({
+  const handleTransition = index < props.screens.length - 1 ? () => setScreenIndex(prevState => prevState + 1) : () => _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_3__["AboutWelcomeUtils"].handleUserAction({
     type: "OPEN_ABOUT_PAGE",
     data: {
       args: "home",
@@ -404,7 +404,7 @@ const MultiStageAboutWelcome = props => {
   }, []);
   const useImportable = props.message_id.includes("IMPORTABLE"); // Track whether we have already sent the importable sites impression telemetry
 
-  const [importTelemetrySent, setImportTelemetrySent] = Object(react__WEBPACK_IMPORTED_MODULE_0__["useState"])(null);
+  const importTelemetrySent = Object(react__WEBPACK_IMPORTED_MODULE_0__["useRef"])(false);
   const [topSites, setTopSites] = Object(react__WEBPACK_IMPORTED_MODULE_0__["useState"])([]);
   Object(react__WEBPACK_IMPORTED_MODULE_0__["useEffect"])(() => {
     (async () => {
@@ -412,12 +412,12 @@ const MultiStageAboutWelcome = props => {
       const importable = JSON.parse((await window.AWGetImportableSites()));
       const showImportable = useImportable && importable.length >= 5;
 
-      if (!importTelemetrySent) {
+      if (!importTelemetrySent.current) {
         _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_3__["AboutWelcomeUtils"].sendImpressionTelemetry(`${props.message_id}_SITES`, {
           display: showImportable ? "importable" : "static",
           importable: importable.length
         });
-        setImportTelemetrySent(true);
+        importTelemetrySent.current = true;
       }
 
       setTopSites(showImportable ? {
@@ -558,7 +558,7 @@ class WelcomeScreen extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureCom
           className: "tiles-topsites-section",
           name: "topsites-section",
           id: "topsites-section",
-          "aria-labelledby": "topsites-disclaimer",
+          "aria-labelledby": "helptext",
           role: "region"
         }, this.props.topSites.data.slice(0, 5).map(({
           icon,
@@ -629,6 +629,15 @@ class WelcomeScreen extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureCom
           muted: "true",
           src: _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_3__["AboutWelcomeUtils"].hasDarkMode() ? this.props.content.tiles.source.dark : this.props.content.tiles.source.default
         })) : null;
+
+      case "image":
+        return this.props.content.tiles.source ? react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
+          className: `${this.props.content.tiles.media_type}`
+        }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("img", {
+          src: _lib_aboutwelcome_utils__WEBPACK_IMPORTED_MODULE_3__["AboutWelcomeUtils"].hasDarkMode() && this.props.content.tiles.source.dark ? this.props.content.tiles.source.dark : this.props.content.tiles.source.default,
+          role: "presentation",
+          alt: ""
+        })) : null;
     }
 
     return null;
@@ -648,17 +657,13 @@ class WelcomeScreen extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureCom
     return steps;
   }
 
-  renderDisclaimer() {
-    if (this.props.content.tiles && this.props.content.tiles.type === "topsites" && this.props.topSites && this.props.topSites.showImportable) {
-      return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__["Localized"], {
-        text: this.props.content.disclaimer
-      }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("p", {
-        id: "topsites-disclaimer",
-        className: "tiles-topsites-disclaimer"
-      }));
-    }
-
-    return null;
+  renderHelpText() {
+    return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__["Localized"], {
+      text: this.props.content.help_text.text
+    }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("p", {
+      id: "helptext",
+      className: `helptext ${this.props.content.help_text.position}`
+    }));
   }
 
   render() {
@@ -667,6 +672,7 @@ class WelcomeScreen extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureCom
       topSites
     } = this.props;
     const hasSecondaryTopCTA = content.secondary_button && content.secondary_button.position === "top";
+    const showImportableSitesDisclaimer = content.tiles && content.tiles.type === "topsites" && topSites && topSites.showImportable;
     return react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("main", {
       className: `screen ${this.props.id}`
     }, hasSecondaryTopCTA ? this.renderSecondaryCTA("top") : null, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("div", {
@@ -684,11 +690,11 @@ class WelcomeScreen extends react__WEBPACK_IMPORTED_MODULE_0___default.a.PureCom
       className: "primary",
       value: "primary_button",
       onClick: this.handleAction
-    }))), content.secondary_button && content.secondary_button.position !== "top" ? this.renderSecondaryCTA() : null, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("nav", {
-      className: content.tiles && content.tiles.type === "topsites" && topSites && topSites.showImportable ? "steps has-disclaimer" : "steps",
+    }))), content.secondary_button && content.secondary_button.position !== "top" ? this.renderSecondaryCTA() : null, content.help_text && content.help_text.position === "default" ? this.renderHelpText() : null, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("nav", {
+      className: content.help_text && content.help_text.position === "footer" || showImportableSitesDisclaimer ? "steps has-helptext" : "steps",
       "data-l10n-id": "onboarding-welcome-steps-indicator",
       "data-l10n-args": `{"current": ${parseInt(this.props.order, 10) + 1}, "total": ${this.props.totalNumberOfScreens}}`
-    }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("br", null), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("p", null), this.renderStepsIndicator()), this.renderDisclaimer());
+    }, react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("br", null), react__WEBPACK_IMPORTED_MODULE_0___default.a.createElement("p", null), this.renderStepsIndicator()), content.help_text && content.help_text.position === "footer" || showImportableSitesDisclaimer ? this.renderHelpText() : null);
   }
 
 }
@@ -984,8 +990,10 @@ const DEFAULT_WELCOME_CONTENT = {
     order: 1,
     content: {
       zap: true,
-      disclaimer: {
-        string_id: "onboarding-import-sites-disclaimer"
+      help_text: {
+        text: {
+          string_id: "onboarding-import-sites-disclaimer"
+        }
       },
       title: {
         string_id: "onboarding-multistage-import-header"

@@ -51,6 +51,8 @@ const SELECTOR_HIGHLIGHT_TIMEOUT = 500;
 // Minimum delay between firing two media-rules-changed events.
 const EMIT_MEDIA_RULES_THROTTLING = 500;
 
+const STYLE_SHEET_UPDATE_CAUSED_BY_STYLE_EDITOR = "styleeditor";
+
 /**
  * StyleSheetEditor controls the editor linked to a particular StyleSheet
  * object.
@@ -92,6 +94,10 @@ function StyleSheetEditor(
   this.styleSheetFriendlyIndex = styleSheetFriendlyIndex;
 
   // True when we've called update() on the style sheet.
+  // @backward-compat { version 86 } Starting 86, onStyleApplied will be able to know
+  // if the style was applied because of a change in the StyleEditor (via the `event.cause`
+  // property inside the resource update). `this._isUpdating` can be dropped when 86
+  // reaches release.
   this._isUpdating = false;
   // True when we've just set the editor text based on a style-applied
   // event from the StyleSheetActor.
@@ -276,15 +282,11 @@ StyleSheetEditor.prototype = {
    */
   async _getSourceTextAndPrettify() {
     const styleSheetsFront = await this._getStyleSheetsFront();
-    const traits = await styleSheetsFront.getTraits();
 
     let longStr = null;
     if (this.styleSheet.isOriginalSource) {
       // If the stylesheet is OriginalSource, we should get the texts from SourceMapService.
       // So, for now, we use OriginalSource.getText() as it is.
-      longStr = await this.styleSheet.getText();
-    } else if (!traits.supportResourceRequests) {
-      // Backward compat, can be removed when FF 81 hits release.
       longStr = await this.styleSheet.getText();
     } else {
       longStr = await styleSheetsFront.getText(this.resourceId);
@@ -391,14 +393,24 @@ StyleSheetEditor.prototype = {
 
   /**
    * Called when the stylesheet text changes.
+   * @param {Object} update: The stylesheet resource update packet.
    */
-  onStyleApplied: function() {
-    if (this._isUpdating) {
+  onStyleApplied: function(update) {
+    const updateIsFromSyleSheetEditor =
+      update?.event?.cause === STYLE_SHEET_UPDATE_CAUSED_BY_STYLE_EDITOR;
+
+    // @backward-compat { version 86 } this._isUpdating can be removed.
+    // See property declaration for more information.
+    if (this._isUpdating || updateIsFromSyleSheetEditor) {
       // We just applied an edit in the editor, so we can drop this
       // notification.
+      // @backward-compat { version 86 } this._isUpdating can be removed.
       this._isUpdating = false;
       this.emit("style-applied");
-    } else if (this.sourceEditor) {
+      return;
+    }
+
+    if (this.sourceEditor) {
       this._getSourceTextAndPrettify().then(newText => {
         this._justSetText = true;
         const firstLine = this.sourceEditor.getFirstVisibleLine();
@@ -556,13 +568,7 @@ StyleSheetEditor.prototype = {
    */
   async toggleDisabled() {
     const styleSheetsFront = await this._getStyleSheetsFront();
-    const traits = await styleSheetsFront.getTraits();
-
-    if (traits.supportResourceRequests) {
-      styleSheetsFront.toggleDisabled(this.resourceId).catch(console.error);
-    } else {
-      this.styleSheet.toggleDisabled().catch(console.error);
-    }
+    styleSheetsFront.toggleDisabled(this.resourceId).catch(console.error);
   },
 
   /**
@@ -604,21 +610,18 @@ StyleSheetEditor.prototype = {
       this._state.text = this.sourceEditor.getText();
     }
 
+    // @backward-compat { version 86 } See property declaration for more information.
     this._isUpdating = true;
 
     try {
       const styleSheetsFront = await this._getStyleSheetsFront();
-      const traits = await styleSheetsFront.getTraits();
+      await styleSheetsFront.update(
+        this.resourceId,
+        this._state.text,
+        this.transitionsEnabled,
+        STYLE_SHEET_UPDATE_CAUSED_BY_STYLE_EDITOR
+      );
 
-      if (traits.supportResourceRequests) {
-        await styleSheetsFront.update(
-          this.resourceId,
-          this._state.text,
-          this.transitionsEnabled
-        );
-      } else {
-        await this.styleSheet.update(this._state.text, this.transitionsEnabled);
-      }
       // Clear any existing mappings from automatic CSS prettification
       // because they were likely invalided by manually editing the stylesheet.
       this._mappings = null;
@@ -820,21 +823,17 @@ StyleSheetEditor.prototype = {
 
       // Ensure we don't re-fetch the text from the original source
       // actor when we're notified that the style sheet changed.
+      // @backward-compat { version 86 } See property declaration for more information.
       this._isUpdating = true;
 
       const styleSheetsFront = await this._getStyleSheetsFront();
-      const traits = await styleSheetsFront.getTraits();
 
-      if (traits.supportResourceRequests) {
-        await styleSheetsFront.update(
-          this.resourceId,
-          text,
-          this.transitionsEnabled
-        );
-      } else {
-        const relatedSheet = this.styleSheet.relatedStyleSheet;
-        await relatedSheet.update(text, this.transitionsEnabled);
-      }
+      await styleSheetsFront.update(
+        this.resourceId,
+        text,
+        this.transitionsEnabled,
+        STYLE_SHEET_UPDATE_CAUSED_BY_STYLE_EDITOR
+      );
     }, this.markLinkedFileBroken);
   },
 

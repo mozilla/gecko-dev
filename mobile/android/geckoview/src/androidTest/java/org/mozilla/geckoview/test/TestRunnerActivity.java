@@ -329,7 +329,7 @@ public class TestRunnerActivity extends Activity {
         // If we were passed a URI in the Intent, open it
         final Uri uri = intent.getData();
         if (uri != null) {
-            mSession.loadUri(uri);
+            mSession.loadUri(uri.toString());
         }
 
         mView = new GeckoView(this);
@@ -360,6 +360,20 @@ public class TestRunnerActivity extends Activity {
                                 settings,
                                 details.active == Boolean.TRUE);
                         return GeckoResult.fromValue(newSession);
+                    }
+                });
+
+                extension.setBrowsingDataDelegate(new WebExtension.BrowsingDataDelegate() {
+                    @Nullable
+                    @Override
+                    public GeckoResult<Settings> onGetSettings() {
+                        final long types =
+                                Type.CACHE |
+                                Type.COOKIES |
+                                Type.HISTORY |
+                                Type.FORM_DATA |
+                                Type.DOWNLOADS;
+                        return GeckoResult.fromValue(new Settings(1234, types, types ));
                     }
                 });
 

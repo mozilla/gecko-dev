@@ -11,6 +11,7 @@
 
 #include "mozilla/Attributes.h"
 #include "LayoutConstants.h"
+#include "nsISelectionDisplay.h"
 #include "nsSplittableFrame.h"
 #include "nsFrameList.h"
 #include "nsLineBox.h"
@@ -29,9 +30,9 @@ class PresShell;
 #ifdef DEBUG
 // 10 million pixels, converted to app units. Note that this a bit larger
 // than 1/4 of nscoord_MAX. So, if any content gets to be this large, we're
-// definitely in danger of grazing up against nscoord_MAX; hence, it's CRAZY.
-#  define CRAZY_COORD (10000000 * 60)
-#  define CRAZY_SIZE(_x) (((_x) < -CRAZY_COORD) || ((_x) > CRAZY_COORD))
+// definitely in danger of grazing up against nscoord_MAX; hence, it's ABSURD.
+#  define ABSURD_COORD (10000000 * 60)
+#  define ABSURD_SIZE(_x) (((_x) < -ABSURD_COORD) || ((_x) > ABSURD_COORD))
 #endif
 
 /**
@@ -326,6 +327,18 @@ class nsContainerFrame : public nsSplittableFrame {
    * See nsBlockFrame::Reflow for a sample implementation.
    *
    * For more information, see https://wiki.mozilla.org/Gecko:Continuation_Model
+   *
+   * Note that Flex/GridContainerFrame doesn't use nsOverflowContinuationTracker
+   * so the above doesn't apply.  Flex/Grid containers may have items that
+   * aren't in document order between fragments, due to the 'order' property,
+   * but they do maintain the invariant that children in the same nsFrameList
+   * are in document order.  This means that when pushing/pulling items or
+   * merging lists, the result needs to be sorted to restore the order.
+   * However, given that lists are individually sorted, it's a simple merge
+   * operation of the two lists to make the result sorted.
+   * DrainExcessOverflowContainersList takes a merging function to perform that
+   * operation.  (By "document order" here we mean normal frame tree order,
+   * which is approximately flattened DOM tree order.)
    */
 
   friend class nsOverflowContinuationTracker;
@@ -369,7 +382,7 @@ class nsContainerFrame : public nsSplittableFrame {
    */
   void ReflowOverflowContainerChildren(
       nsPresContext* aPresContext, const ReflowInput& aReflowInput,
-      nsOverflowAreas& aOverflowRects, ReflowChildFlags aFlags,
+      mozilla::OverflowAreas& aOverflowRects, ReflowChildFlags aFlags,
       nsReflowStatus& aStatus,
       ChildFrameMerger aMergeFunc = DefaultChildFrameMerge,
       Maybe<nsSize> aContainerSize = Nothing());
@@ -482,16 +495,16 @@ class nsContainerFrame : public nsSplittableFrame {
   void ClearHasFirstLetterChild() { mHasFirstLetterChild = false; }
 
 #ifdef DEBUG
-  // Use this to suppress the CRAZY_SIZE assertions.
+  // Use this to suppress the ABSURD_SIZE assertions.
   NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(DebugReflowingWithInfiniteISize, bool)
-  bool IsCrazySizeAssertSuppressed() const {
+  bool IsAbsurdSizeAssertSuppressed() const {
     return GetProperty(DebugReflowingWithInfiniteISize());
   }
 #endif
 
   // Incorporate the child overflow areas into aOverflowAreas.
   // If the child does not have a overflow, use the child area.
-  void ConsiderChildOverflow(nsOverflowAreas& aOverflowAreas,
+  void ConsiderChildOverflow(mozilla::OverflowAreas& aOverflowAreas,
                              nsIFrame* aChildFrame);
 
  protected:
@@ -793,6 +806,19 @@ class nsContainerFrame : public nsSplittableFrame {
                                            nsIFrame* aFrame,
                                            bool aReparentSiblings);
 
+  /**
+   * Try to remove aChildToRemove from the frame list stored in aProp.
+   * If aChildToRemove was removed from the aProp list and that list became
+   * empty, then aProp is removed from this frame and deleted.
+   * @note if aChildToRemove isn't on the aProp frame list, it might still be
+   * removed from whatever list it happens to be on, so use this method
+   * carefully.  This method is primarily meant for removing frames from the
+   * [Excess]OverflowContainers lists.
+   * @return true if aChildToRemove was removed from some list
+   */
+  bool TryRemoveFrame(FrameListPropertyDescriptor aProp,
+                      nsIFrame* aChildToRemove);
+
   // ==========================================================================
   /*
    * Convenience methods for traversing continuations
@@ -838,12 +864,12 @@ class nsContainerFrame : public nsSplittableFrame {
    * Calculate the used values for 'width' and 'height' for a replaced element.
    *   http://www.w3.org/TR/CSS21/visudet.html#min-max-widths
    *
-   * @param aIntrinsicRatio the aspect ratio calculated by GetAspectRatio().
+   * @param aAspectRatio the aspect ratio calculated by GetAspectRatio().
    */
   mozilla::LogicalSize ComputeSizeWithIntrinsicDimensions(
       gfxContext* aRenderingContext, mozilla::WritingMode aWM,
       const mozilla::IntrinsicSize& aIntrinsicSize,
-      const mozilla::AspectRatio& aIntrinsicRatio,
+      const mozilla::AspectRatio& aAspectRatio,
       const mozilla::LogicalSize& aCBSize, const mozilla::LogicalSize& aMargin,
       const mozilla::LogicalSize& aBorderPadding,
       mozilla::ComputeSizeFlags aFlags);
@@ -1135,15 +1161,6 @@ struct DR_init_offsets_cookie {
   void* mValue;
 };
 
-struct DR_init_type_cookie {
-  DR_init_type_cookie(nsIFrame* aFrame, mozilla::ReflowInput* aState);
-  ~DR_init_type_cookie();
-
-  nsIFrame* mFrame;
-  mozilla::ReflowInput* mState;
-  void* mValue;
-};
-
 #  define DISPLAY_REFLOW(dr_pres_context, dr_frame, dr_rf_state,               \
                          dr_rf_metrics, dr_rf_status)                          \
     DR_cookie dr_cookie(dr_pres_context, dr_frame, dr_rf_state, dr_rf_metrics, \
@@ -1168,8 +1185,6 @@ struct DR_init_type_cookie {
                                dr_pad)                                     \
     DR_init_offsets_cookie dr_cookie(dr_frame, dr_state, dr_pb, dr_cbwm,   \
                                      dr_bdr, dr_pad)
-#  define DISPLAY_INIT_TYPE(dr_frame, dr_result) \
-    DR_init_type_cookie dr_cookie(dr_frame, dr_result)
 
 #else
 
@@ -1190,7 +1205,6 @@ struct DR_init_type_cookie {
 #  define DISPLAY_INIT_OFFSETS(dr_frame, dr_state, dr_pb, dr_cbwm, dr_bdr, \
                                dr_pad)                                     \
     PR_BEGIN_MACRO PR_END_MACRO
-#  define DISPLAY_INIT_TYPE(dr_frame, dr_result) PR_BEGIN_MACRO PR_END_MACRO
 
 #endif
 // End Display Reflow Debugging

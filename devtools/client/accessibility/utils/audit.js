@@ -21,7 +21,7 @@ class CombinedProgress {
 
   onProgressForWalker(walker, progress) {
     this.combinedProgress.set(walker, progress);
-    // We did not get all initial progres events from all frames, do not
+    // We did not get all initial progress events from all frames, do not
     // relay them to the client until we can calculate combined total below.
     if (this.combinedProgress.size < this.totalFrames) {
       return;
@@ -29,15 +29,10 @@ class CombinedProgress {
 
     let combinedTotal = 0;
     let combinedCompleted = 0;
-    // TODO: We can stop using percentage when Firefox 79 is on the release
-    // channel. Until then ...
-    for (const {
-      completed,
-      total,
-      percentage,
-    } of this.combinedProgress.values()) {
+
+    for (const { completed, total } of this.combinedProgress.values()) {
       combinedTotal += total;
-      combinedCompleted += completed ?? Math.round((percentage * total) / 100);
+      combinedCompleted += completed;
     }
     this.onProgress({
       total: combinedTotal,

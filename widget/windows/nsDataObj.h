@@ -19,6 +19,7 @@
 #include "nsCOMArray.h"
 #include "nsITimer.h"
 
+class nsICookieJarSettings;
 class nsIThread;
 class nsIPrincipal;
 class CEnumFormatEtc;
@@ -221,8 +222,9 @@ class nsDataObj : public IDataObject, public IDataObjectAsyncCapability {
 
    public:
     CStream();
-    nsresult Init(nsIURI* pSourceURI, uint32_t aContentPolicyType,
-                  nsIPrincipal* aRequestingPrincipal);
+    nsresult Init(nsIURI* pSourceURI, nsContentPolicyType aContentPolicyType,
+                  nsIPrincipal* aRequestingPrincipal,
+                  nsICookieJarSettings* aCookieJarSettings);
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIREQUESTOBSERVER

@@ -336,9 +336,9 @@ class WebExtensionManager implements WebExtension.ActionDelegate,
             return GeckoResult.fromValue(null);
         }
 
-        return mRuntime.getWebExtensionController().update(extension).then((newExtension) -> {
+        return mRuntime.getWebExtensionController().update(extension).map(newExtension -> {
             registerExtension(newExtension);
-            return GeckoResult.fromValue(newExtension);
+            return newExtension;
         });
     }
 
@@ -1316,7 +1316,10 @@ public class GeckoViewActivity
     private void loadFromIntent(final Intent intent) {
         final Uri uri = intent.getData();
         if (uri != null) {
-            mTabSessionManager.getCurrentSession().loadUri(uri.toString());
+            mTabSessionManager.getCurrentSession().load(
+                    new GeckoSession.Loader()
+                        .uri(uri.toString())
+                        .flags(GeckoSession.LOAD_FLAGS_EXTERNAL));
         }
     }
 
@@ -1806,7 +1809,7 @@ public class GeckoViewActivity
                 final int mediaSource = sources[i].source;
                 final String name = sources[i].name;
                 if (MediaSource.SOURCE_CAMERA == mediaSource) {
-                    if (name.toLowerCase(Locale.ENGLISH).contains("front")) {
+                    if (name.toLowerCase(Locale.ROOT).contains("front")) {
                         res[i] = getString(R.string.media_front_camera);
                     } else {
                         res[i] = getString(R.string.media_back_camera);

@@ -64,6 +64,7 @@ describe("RemoteL10n", () => {
         "browser/branding/brandings.ftl",
         "browser/branding/sync-brand.ftl",
         "branding/brand.ftl",
+        "browser/defaultBrowserNotification.ftl",
       ]);
       assert.isFalse(args[1]);
       assert.isFunction(args[2].generateBundles);
@@ -82,6 +83,7 @@ describe("RemoteL10n", () => {
         "browser/branding/brandings.ftl",
         "browser/branding/sync-brand.ftl",
         "branding/brand.ftl",
+        "browser/defaultBrowserNotification.ftl",
       ]);
       assert.isFalse(args[1]);
       assert.isEmpty(args[2]);
@@ -147,6 +149,17 @@ describe("RemoteL10n", () => {
 
       assert.notCalled(el.setAttribute);
       assert.equal(el.textContent, "foo");
+    });
+  });
+  describe("#isLocaleSupported", () => {
+    it("should return true if the locale is en-US", () => {
+      assert.ok(RemoteL10n.isLocaleSupported("en-US"));
+    });
+    it("should return true if the locale is in all-locales", () => {
+      assert.ok(RemoteL10n.isLocaleSupported("en-CA"));
+    });
+    it("should return false if the locale is not in all-locales", () => {
+      assert.ok(!RemoteL10n.isLocaleSupported("und"));
     });
   });
 });

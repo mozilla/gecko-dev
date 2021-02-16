@@ -36,6 +36,7 @@
 #include "mozJSLoaderUtils.h"
 #include "nsIFileURL.h"
 #include "nsIJARURI.h"
+#include "nsIChannel.h"
 #include "nsNetUtil.h"
 #include "nsJSPrincipals.h"
 #include "nsJSUtils.h"
@@ -378,9 +379,9 @@ const mozilla::Module* mozJSComponentLoader::LoadModule(FileLocation& aFile) {
 
   mInitialized = true;
 
-  AUTO_PROFILER_MARKER_TEXT("JS XPCOM", JS, MarkerStack::Capture(), spec);
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("mozJSComponentLoader::LoadModule",
                                         OTHER, spec);
+  AUTO_PROFILER_MARKER_TEXT("JS XPCOM", JS, MarkerStack::Capture(), spec);
 
   ModuleEntry* mod;
   if (mModules.Get(spec, &mod)) {

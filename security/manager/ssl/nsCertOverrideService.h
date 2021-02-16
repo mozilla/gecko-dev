@@ -111,15 +111,6 @@ class nsCertOverrideService final : public nsICertOverrideService,
   nsresult Init();
   void RemoveAllTemporaryOverrides();
 
-  typedef void (*CertOverrideEnumerator)(
-      const RefPtr<nsCertOverride>& aSettings, void* aUserData);
-
-  // aCert == null: return all overrides
-  // aCert != null: return overrides that match the given cert
-  nsresult EnumerateCertOverrides(nsIX509Cert* aCert,
-                                  CertOverrideEnumerator enumerator,
-                                  void* aUserData);
-
   // Concates host name and the port number. If the port number is -1 then
   // port 443 is automatically used. This method ensures there is always a port
   // number separated with colon.
@@ -153,7 +144,7 @@ class nsCertOverrideService final : public nsICertOverrideService,
                           const nsACString& dbKey,
                           const mozilla::MutexAutoLock& aProofOfLock);
 
-  RefPtr<TaskQueue> mWriterTaskQueue;
+  RefPtr<mozilla::TaskQueue> mWriterTaskQueue;
 
   // Only accessed on the main thread
   uint64_t mPendingWriteCount;

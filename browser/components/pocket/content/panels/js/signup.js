@@ -23,7 +23,6 @@ var PKT_SIGNUP_OVERLAY = function(options) {
   this.inoverflowmenu = false;
   this.controlvariant;
   this.pockethost = "getpocket.com";
-  this.fxasignedin = false;
   this.loggedOutVariant = "control";
   this.dictJSON = {};
   this.initCloseTabEvents = function() {
@@ -109,10 +108,6 @@ PKT_SIGNUP_OVERLAY.prototype = {
     if (loggedOutVariant && loggedOutVariant.length > 1) {
       this.loggedOutVariant = loggedOutVariant[1];
     }
-    var fxasignedin = window.location.href.match(/fxasignedin=([\w|\d|\.]*)&?/);
-    if (fxasignedin && fxasignedin.length > 1) {
-      this.fxasignedin = fxasignedin[1] == "1";
-    }
     var host = window.location.href.match(/pockethost=([\w|\.]*)&?/);
     if (host && host.length > 1) {
       this.pockethost = host[1];
@@ -135,12 +130,12 @@ PKT_SIGNUP_OVERLAY.prototype = {
 
     // set translations
     this.getTranslations();
-    this.dictJSON.fxasignedin = this.fxasignedin ? 1 : 0;
     this.dictJSON.controlvariant = this.controlvariant == "true" ? 1 : 0;
     this.dictJSON.variant = this.variant ? this.variant : "undefined";
-    this.dictJSON.variant += this.fxasignedin ? "_fxa" : "_nonfxa";
     this.dictJSON.pockethost = this.pockethost;
     this.dictJSON.showlearnmore = true;
+    this.dictJSON.utmCampaign = "logged_out_save_test";
+    this.dictJSON.utmSource = "control";
 
     // extra modifier class for collapsed state
     if (this.inoverflowmenu) {
@@ -162,18 +157,34 @@ PKT_SIGNUP_OVERLAY.prototype = {
         variant_a: "variant_a",
         variant_b: "variant_b",
         variant_c: "variant_c",
+        button_variant: "signupstoryboard_shell",
+        button_control: "signupstoryboard_shell",
       };
 
-      if (this.loggedOutVariant !== `control`) {
+      let loggedOutVariantTemplate = variants[this.loggedOutVariant];
+      if (
+        this.loggedOutVariant === "button_variant" ||
+        this.loggedOutVariant === "button_control"
+      ) {
+        this.dictJSON.buttonVariant = true;
+        this.dictJSON.utmCampaign = "logged_out_button_test";
+        this.dictJSON.utmSource = "button_control";
+        if (this.loggedOutVariant === "button_variant") {
+          this.dictJSON.oneButton = true;
+          this.dictJSON.utmSource = "button_variant";
+        }
+      }
+
+      if (loggedOutVariantTemplate !== `signupstoryboard_shell`) {
         $("body").addClass(`
-          los_variant los_${variants[this.loggedOutVariant]}
+          los_variant los_${loggedOutVariantTemplate}
         `);
       }
 
       $("body").append(
-        Handlebars.templates[
-          variants[this.loggedOutVariant] || variants.control
-        ](this.dictJSON)
+        Handlebars.templates[loggedOutVariantTemplate || variants.control](
+          this.dictJSON
+        )
       );
     }
 

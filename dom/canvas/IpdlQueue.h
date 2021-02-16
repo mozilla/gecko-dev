@@ -12,12 +12,14 @@
 #include <tuple>
 #include <vector>
 #include <unordered_map>
+#include "ipc/IPCMessageUtilsSpecializations.h"
 #include "mozilla/dom/QueueParamTraits.h"
 #include "mozilla/ipc/SharedMemoryBasic.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ipc/Shmem.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/Logging.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/TypeTraits.h"
 #include "nsString.h"

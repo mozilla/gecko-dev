@@ -19,7 +19,7 @@ async function startTest() {
   await startVideo(video);
   await suspendVideoDecoding(video);
   await resumeVideoDecoding(video);
-  await waitUntilVideoLoopAgain(video);
+  await checkIfVideoIsStillPlaying(video);
   endTestAndClearVideo(video);
 }
 
@@ -40,9 +40,6 @@ async function createVisibleVideo() {
   video.src = "gizmo-noaudio.webm";
   video.controls = true;
   video.loop = true;
-  // In order to reduce the test running time, because we don't need to acutally
-  // go through the whole video.
-  video.currentTime = 3;
   document.body.appendChild(video);
   info(`ensure video becomes visible`);
   await waitUntilVisible(video);
@@ -59,20 +56,19 @@ async function suspendVideoDecoding(video) {
   info(`suspend video decoding`);
   video.setVisible(false);
   await nextVideoSuspends(video);
+  info(`suspended video decoding`);
 }
 
 async function resumeVideoDecoding(video) {
   info(`resume video decoding.`);
   video.setVisible(true);
   await nextVideoResumes(video);
+  info(`resumed video decoding`);
 }
 
-async function waitUntilVideoLoopAgain(video) {
-  info(`ensure video is still playing after resuming video decoding.`);
-  await once(video, "seeking");
-  info(`got 'seeking' event.`);
-  await once(video, "seeked");
-  ok(!video.paused, "video is still playing and looping again.")
+async function checkIfVideoIsStillPlaying(video) {
+  await once(video, "timeupdate");
+  ok(!video.paused, "video is still playing after resuming video decoding.")
 }
 
 function endTestAndClearVideo(video) {

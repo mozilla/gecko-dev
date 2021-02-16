@@ -446,8 +446,9 @@ BEGIN_TEST(testGCHeapPreBarriers) {
   AutoLeaveZeal nozeal(cx);
 #endif /* JS_GC_ZEAL */
 
-  uint32_t oldMode = JS_GetGCParameter(cx, JSGC_MODE);
-  JS_SetGCParameter(cx, JSGC_MODE, JSGC_MODE_ZONE_INCREMENTAL);
+  bool wasIncrementalGCEnabled =
+      JS_GetGCParameter(cx, JSGC_INCREMENTAL_GC_ENABLED);
+  JS_SetGCParameter(cx, JSGC_INCREMENTAL_GC_ENABLED, true);
 
   RootedObject obj1(cx, CreateTenuredGCThing<JSObject>(cx));
   RootedObject obj2(cx, CreateTenuredGCThing<JSObject>(cx));
@@ -460,6 +461,9 @@ BEGIN_TEST(testGCHeapPreBarriers) {
   SliceBudget budget(WorkBudget(1));
   gc::GCRuntime* gc = &cx->runtime()->gc;
   gc->startDebugGC(GC_NORMAL, budget);
+  while (gc->state() != gc::State::Mark) {
+    gc->debugGCSlice(budget);
+  }
   MOZ_ASSERT(cx->zone()->needsIncrementalBarrier());
 
   TestWrapper<HeapPtr<JSObject*>>(obj1, obj2);
@@ -473,7 +477,7 @@ BEGIN_TEST(testGCHeapPreBarriers) {
 
   gc::FinishGC(cx, JS::GCReason::API);
 
-  JS_SetGCParameter(cx, JSGC_MODE, oldMode);
+  JS_SetGCParameter(cx, JSGC_INCREMENTAL_GC_ENABLED, wasIncrementalGCEnabled);
 
   return true;
 }

@@ -80,17 +80,6 @@ void LIRGenerator::visitBox(MBox* box) {
 
 void LIRGenerator::visitUnbox(MUnbox* unbox) {
   MDefinition* box = unbox->getOperand(0);
-
-  if (box->type() == MIRType::ObjectOrNull) {
-    LUnboxObjectOrNull* lir =
-        new (alloc()) LUnboxObjectOrNull(useRegisterAtStart(box));
-    if (unbox->fallible()) {
-      assignSnapshot(lir, unbox->bailoutKind());
-    }
-    defineReuseInput(lir, unbox, 0);
-    return;
-  }
-
   MOZ_ASSERT(box->type() == MIRType::Value);
 
   LUnboxBase* lir;
@@ -112,11 +101,10 @@ void LIRGenerator::visitUnbox(MUnbox* unbox) {
   define(lir, unbox);
 }
 
-void LIRGenerator::visitReturn(MReturn* ret) {
-  MDefinition* opd = ret->getOperand(0);
+void LIRGenerator::visitReturnImpl(MDefinition* opd, bool isGenerator) {
   MOZ_ASSERT(opd->type() == MIRType::Value);
 
-  LReturn* ins = new (alloc()) LReturn;
+  LReturn* ins = new (alloc()) LReturn(isGenerator);
   ins->setOperand(0, useFixed(opd, JSReturnReg));
   add(ins);
 }
@@ -381,6 +369,20 @@ void LIRGeneratorX64::lowerUModI64(MMod* mod) {
   LUDivOrModI64* lir = new (alloc()) LUDivOrModI64(
       useRegister(mod->lhs()), useRegister(mod->rhs()), tempFixed(rax));
   defineInt64Fixed(lir, mod, LInt64Allocation(LAllocation(AnyRegister(rdx))));
+}
+
+void LIRGeneratorX64::lowerBigIntDiv(MBigIntDiv* ins) {
+  auto* lir = new (alloc()) LBigIntDiv(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), tempFixed(rax), temp());
+  defineFixed(lir, ins, LAllocation(AnyRegister(rdx)));
+  assignSafepoint(lir, ins);
+}
+
+void LIRGeneratorX64::lowerBigIntMod(MBigIntMod* ins) {
+  auto* lir = new (alloc()) LBigIntMod(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), tempFixed(rax), temp());
+  defineFixed(lir, ins, LAllocation(AnyRegister(rdx)));
+  assignSafepoint(lir, ins);
 }
 
 void LIRGenerator::visitWasmTruncateToInt64(MWasmTruncateToInt64* ins) {

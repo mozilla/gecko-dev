@@ -28,7 +28,9 @@
 #include "nsFocusManager.h"
 #include "Layers.h"
 #include "nsILoadContext.h"
+#include "nsComponentManagerUtils.h"
 #include "nsDocShell.h"
+#include "nsServiceManagerUtils.h"
 
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/BrowsingContext.h"
@@ -1169,7 +1171,7 @@ void nsWebBrowser::WindowActivated() {
   printf("nsWebBrowser::NS_ACTIVATE %p %s\n", (void*)this,
          NS_ConvertUTF16toUTF8(documentURI).get());
 #endif
-  FocusActivate();
+  FocusActivate(nsFocusManager::GenerateFocusActionId());
 }
 
 void nsWebBrowser::WindowDeactivated() {
@@ -1180,7 +1182,7 @@ void nsWebBrowser::WindowDeactivated() {
   printf("nsWebBrowser::NS_DEACTIVATE %p %s\n", (void*)this,
          NS_ConvertUTF16toUTF8(documentURI).get());
 #endif
-  FocusDeactivate();
+  FocusDeactivate(nsFocusManager::GenerateFocusActionId());
 }
 
 bool nsWebBrowser::PaintWindow(nsIWidget* aWidget,
@@ -1200,19 +1202,19 @@ bool nsWebBrowser::PaintWindow(nsIWidget* aWidget,
   return true;
 }
 
-void nsWebBrowser::FocusActivate() {
+void nsWebBrowser::FocusActivate(uint64_t aActionId) {
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   nsCOMPtr<nsPIDOMWindowOuter> window = GetWindow();
   if (fm && window) {
-    fm->WindowRaised(window);
+    fm->WindowRaised(window, aActionId);
   }
 }
 
-void nsWebBrowser::FocusDeactivate() {
+void nsWebBrowser::FocusDeactivate(uint64_t aActionId) {
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   nsCOMPtr<nsPIDOMWindowOuter> window = GetWindow();
   if (fm && window) {
-    fm->WindowLowered(window);
+    fm->WindowLowered(window, aActionId);
   }
 }
 

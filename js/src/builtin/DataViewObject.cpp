@@ -26,6 +26,7 @@
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
 #include "js/Wrapper.h"
+#include "util/DifferentialTesting.h"
 #include "util/Windows.h"
 #include "vm/ArrayBufferObject.h"
 #include "vm/GlobalObject.h"
@@ -455,12 +456,10 @@ bool DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
     return false;
   }
 
-#ifdef JS_MORE_DETERMINISTIC
   // See the comment in ElementSpecific::doubleToNative.
-  if (TypeIsFloatingPoint<NativeType>()) {
+  if (js::SupportDifferentialTesting() && TypeIsFloatingPoint<NativeType>()) {
     value = JS::CanonicalizeNaN(value);
   }
-#endif
 
   // Step 6.
   bool isLittleEndian = args.length() >= 3 && ToBoolean(args[2]);
@@ -1028,8 +1027,7 @@ const JSPropertySpec DataViewObject::properties[] = {
     JS_STRING_SYM_PS(toStringTag, "DataView", JSPROP_READONLY), JS_PS_END};
 
 JS_FRIEND_API JSObject* JS_NewDataView(JSContext* cx, HandleObject buffer,
-                                       uint32_t byteOffset,
-                                       int32_t byteLength) {
+                                       size_t byteOffset, size_t byteLength) {
   JSProtoKey key = JSProto_DataView;
   RootedObject constructor(cx, GlobalObject::getOrCreateConstructor(cx, key));
   if (!constructor) {
@@ -1040,7 +1038,7 @@ JS_FRIEND_API JSObject* JS_NewDataView(JSContext* cx, HandleObject buffer,
 
   cargs[0].setObject(*buffer);
   cargs[1].setNumber(byteOffset);
-  cargs[2].setInt32(byteLength);
+  cargs[2].setNumber(byteLength);
 
   RootedValue fun(cx, ObjectValue(*constructor));
   RootedObject obj(cx);

@@ -17,7 +17,6 @@ extern crate bitsdownload;
 #[cfg(feature = "moz_places")]
 extern crate bookmark_sync;
 extern crate cascade_bloom_filter;
-#[cfg(feature = "new_cert_storage")]
 extern crate cert_storage;
 extern crate chardetng_c;
 extern crate cosec;
@@ -87,6 +86,9 @@ extern crate viaduct;
 extern crate remote;
 
 extern crate gecko_logger;
+
+#[cfg(feature = "oxidized_breakpad")]
+extern crate rust_minidump_writer_linux;
 
 extern crate log;
 use log::info;

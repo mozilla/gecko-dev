@@ -10,6 +10,8 @@
 #include "gfxUtils.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/gfx/gfxVars.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/ScopeExit.h"
@@ -31,6 +33,7 @@
 #include "prsystem.h"
 #include "GLContext.h"
 #include "GLContextProvider.h"
+#include "GLLibraryLoader.h"
 #include "GLReadTexImageHelper.h"
 #include "ScopedGLHelpers.h"
 #ifdef MOZ_WIDGET_GTK
@@ -146,12 +149,12 @@ static std::shared_ptr<EglDisplay> GetAndInitDisplay(GLLibraryEGL& egl,
 
 static std::shared_ptr<EglDisplay> GetAndInitWARPDisplay(GLLibraryEGL& egl,
                                                          void* displayType) {
-  const EGLAttrib attrib_list[] = {LOCAL_EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE,
-                                   LOCAL_EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE,
-                                   // Requires:
-                                   LOCAL_EGL_PLATFORM_ANGLE_TYPE_ANGLE,
-                                   LOCAL_EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-                                   LOCAL_EGL_NONE};
+  const EGLAttrib attrib_list[] = {
+      LOCAL_EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE,
+      LOCAL_EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE,
+      // Requires:
+      LOCAL_EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+      LOCAL_EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE, LOCAL_EGL_NONE};
   const EGLDisplay display = egl.fGetPlatformDisplay(
       LOCAL_EGL_PLATFORM_ANGLE_ANGLE, displayType, attrib_list);
 
@@ -216,7 +219,7 @@ static bool IsAccelAngleSupported(nsACString* const out_failureId) {
     // WebRender-enabled build.
     return true;
   }
-  if (!gfxVars::AllowWebglAccelAngle()) {
+  if (!gfx::gfxVars::AllowWebglAccelAngle()) {
     if (out_failureId->IsEmpty()) {
       *out_failureId = "FEATURE_FAILURE_ACCL_ANGLE_NOT_OK"_ns;
     }
@@ -483,7 +486,8 @@ bool GLLibraryEGL::Init(nsACString* const out_failureId) {
   const SymbolLoader pfnLoader(mSymbols.fGetProcAddress);
 
   const auto fnLoadSymbols = [&](const SymLoadStruct* symbols) {
-    if (pfnLoader.LoadSymbols(symbols)) return true;
+    const bool shouldWarn = gfxEnv::GlSpew();
+    if (pfnLoader.LoadSymbols(symbols, shouldWarn)) return true;
 
     ClearSymbols(symbols);
     return false;

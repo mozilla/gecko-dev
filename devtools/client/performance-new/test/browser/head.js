@@ -233,17 +233,21 @@ async function _toggleOpenProfilerPopup(window) {
   info("Toggle open the profiler popup.");
 
   info("> Find the profiler menu button.");
-  const profilerButton = document.getElementById("profiler-button");
-  if (!profilerButton) {
-    throw new Error("Could not find the profiler button in the menu.");
+  const profilerDropmarker = document.getElementById(
+    "profiler-button-dropmarker"
+  );
+  if (!profilerDropmarker) {
+    throw new Error(
+      "Could not find the profiler button dropmarker in the toolbar."
+    );
   }
 
   const popupShown = waitForProfilerPopupEvent("popupshown");
 
   info("> Trigger a click on the profiler button dropmarker.");
-  await EventUtils.synthesizeMouseAtCenter(profilerButton.dropmarker, {});
+  await EventUtils.synthesizeMouseAtCenter(profilerDropmarker, {});
 
-  if (profilerButton.getAttribute("open") !== "true") {
+  if (profilerDropmarker.getAttribute("open") !== "true") {
     throw new Error(
       "This test assumes that the button will have an open=true attribute after clicking it."
     );
@@ -346,7 +350,7 @@ async function checkTabLoadedProfile({
   info("Attempting to see if the selected tab can receive a profile.");
 
   return waitUntil(() => {
-    switch (gBrowser.selectedTab.textContent) {
+    switch (gBrowser.selectedTab.label) {
       case initialTitle:
         logPeriodically(`> Waiting for the profile to be received.`);
         return false;
@@ -354,6 +358,52 @@ async function checkTabLoadedProfile({
         ok(true, "The profile was successfully injected to the page");
         BrowserTestUtils.removeTab(gBrowser.selectedTab);
         return true;
+      case errorTitle:
+        throw new Error(
+          "The fake frontend indicated that there was an error injecting the profile."
+        );
+      default:
+        logPeriodically(`> Waiting for the fake frontend tab to be loaded.`);
+        return false;
+    }
+  });
+}
+
+/**
+ * This function checks the url of a tab so we can assert the frontend's url
+ * with our expected url. This function runs in a loop every
+ * requestAnimationFrame, and checks for a initialTitle. Asserts as soon as it
+ * finds that title. We don't have to look for success title or error title
+ * since we only care about the url.
+ * @param {{
+ *     initialTitle: string,
+ *     successTitle: string,
+ *     errorTitle: string,
+ *     expectedUrl: string
+ *   }}
+ */
+async function waitForTabUrl({
+  initialTitle,
+  successTitle,
+  errorTitle,
+  expectedUrl,
+}) {
+  const logPeriodically = createPeriodicLogger();
+
+  info(`Waiting for the selected tab to have the url "${expectedUrl}".`);
+
+  return waitUntil(() => {
+    switch (gBrowser.selectedTab.label) {
+      case initialTitle:
+      case successTitle:
+        if (gBrowser.currentURI.spec === expectedUrl) {
+          ok(true, `The selected tab has the url ${expectedUrl}`);
+          BrowserTestUtils.removeTab(gBrowser.selectedTab);
+          return true;
+        }
+        throw new Error(
+          `Found a different url on the fake frontend: ${gBrowser.currentURI.spec}`
+        );
       case errorTitle:
         throw new Error(
           "The fake frontend indicated that there was an error injecting the profile."
@@ -376,7 +426,7 @@ async function waitForTabTitle(title) {
   info(`Waiting for the selected tab to have the title "${title}".`);
 
   return waitUntil(() => {
-    if (gBrowser.selectedTab.textContent === title) {
+    if (gBrowser.selectedTab.label === title) {
       ok(true, `The selected tab has the title ${title}`);
       return true;
     }

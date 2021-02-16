@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/PContentParent.h"
 #include "mozilla/dom/ipc/IdType.h"
+#include "mozilla/dom/MessageManagerCallback.h"
 #include "mozilla/dom/MediaSessionBinding.h"
 #include "mozilla/dom/RemoteBrowser.h"
 #include "mozilla/dom/RemoteType.h"
@@ -29,12 +30,11 @@
 #include "mozilla/MemoryReportingProcess.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Variant.h"
 #include "mozilla/UniquePtr.h"
 
+#include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
 #include "nsPluginTags.h"
-#include "nsFrameMessageManager.h"
 #include "nsHashKeys.h"
 #include "nsIAsyncShutdown.h"
 #include "nsIDOMProcessParent.h"
@@ -257,6 +257,12 @@ class ContentParent final
 
   static void BroadcastFontListChanged();
 
+  static void BroadcastThemeUpdate(widget::ThemeChangeKind);
+
+  static void BroadcastMediaCodecsSupportedUpdate(
+      RemoteDecodeIn aLocation,
+      const PDMFactory::MediaCodecsSupported& aSupported);
+
   const nsACString& GetRemoteType() const override;
 
   virtual void DoGetRemoteType(nsACString& aRemoteType,
@@ -312,8 +318,11 @@ class ContentParent final
 
   static void NotifyUpdatedDictionaries();
 
-  static void NotifyUpdatedFonts();
-  static void NotifyRebuildFontList();
+  // Tell content processes the font list has changed. If aFullRebuild is true,
+  // the shared list has been rebuilt and must be freshly mapped by child
+  // processes; if false, existing mappings are still valid but the data has
+  // been updated and so full reflows are in order.
+  static void NotifyUpdatedFonts(bool aFullRebuild);
 
 #if defined(XP_WIN)
   /**
@@ -626,6 +635,17 @@ class ContentParent final
 
   nsresult TransmitPermissionsForPrincipal(nsIPrincipal* aPrincipal);
 
+  // Whenever receiving a Principal we need to validate that Principal case
+  // by case, where we grant individual callsites to customize the checks!
+  enum class ValidatePrincipalOptions {
+    AllowNullPtr,  // Not a NullPrincipal but a nullptr as Principal.
+    AllowSystem,
+    AllowExpanded,
+  };
+  bool ValidatePrincipal(
+      nsIPrincipal* aPrincipal,
+      const EnumSet<ValidatePrincipalOptions>& aOptions = {});
+
   // This function is called in BrowsingContext immediately before IPC call to
   // load a URI. If aURI is a BlobURL, this method transmits all BlobURLs for
   // aPrincipal that were previously not transmitted. This allows for opening a
@@ -657,11 +677,13 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvWindowClose(
       const MaybeDiscarded<BrowsingContext>& aContext, bool aTrustedCaller);
   mozilla::ipc::IPCResult RecvWindowFocus(
-      const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType);
+      const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType,
+      uint64_t aActionId);
   mozilla::ipc::IPCResult RecvWindowBlur(
       const MaybeDiscarded<BrowsingContext>& aContext);
   mozilla::ipc::IPCResult RecvRaiseWindow(
-      const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType);
+      const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType,
+      uint64_t aActionId);
   mozilla::ipc::IPCResult RecvAdjustWindowFocus(
       const MaybeDiscarded<BrowsingContext>& aContext, bool aCheckPermission,
       bool aIsVisible);
@@ -670,21 +692,22 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvSetFocusedBrowsingContext(
       const MaybeDiscarded<BrowsingContext>& aContext);
   mozilla::ipc::IPCResult RecvSetActiveBrowsingContext(
-      const MaybeDiscarded<BrowsingContext>& aContext);
+      const MaybeDiscarded<BrowsingContext>& aContext, uint64_t aActionId);
   mozilla::ipc::IPCResult RecvUnsetActiveBrowsingContext(
-      const MaybeDiscarded<BrowsingContext>& aContext);
+      const MaybeDiscarded<BrowsingContext>& aContext, uint64_t aActionId);
   mozilla::ipc::IPCResult RecvSetFocusedElement(
       const MaybeDiscarded<BrowsingContext>& aContext, bool aNeedsFocus);
   mozilla::ipc::IPCResult RecvFinalizeFocusOuter(
       const MaybeDiscarded<BrowsingContext>& aContext, bool aCanFocus,
       CallerType aCallerType);
+  mozilla::ipc::IPCResult RecvInsertNewFocusActionId(uint64_t aActionId);
   mozilla::ipc::IPCResult RecvBlurToParent(
       const MaybeDiscarded<BrowsingContext>& aFocusedBrowsingContext,
       const MaybeDiscarded<BrowsingContext>& aBrowsingContextToClear,
       const MaybeDiscarded<BrowsingContext>& aAncestorBrowsingContextToFocus,
       bool aIsLeavingDocument, bool aAdjustWidget,
       bool aBrowsingContextToClearHandled,
-      bool aAncestorBrowsingContextToFocusHandled);
+      bool aAncestorBrowsingContextToFocusHandled, uint64_t aActionId);
   mozilla::ipc::IPCResult RecvMaybeExitFullscreen(
       const MaybeDiscarded<BrowsingContext>& aContext);
 
@@ -1021,7 +1044,8 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvSetClipboard(
       const IPCDataTransfer& aDataTransfer, const bool& aIsPrivateData,
       const IPC::Principal& aRequestingPrincipal,
-      const uint32_t& aContentPolicyType, const int32_t& aWhichClipboard);
+      const nsContentPolicyType& aContentPolicyType,
+      const int32_t& aWhichClipboard);
 
   mozilla::ipc::IPCResult RecvGetClipboard(nsTArray<nsCString>&& aTypes,
                                            const int32_t& aWhichClipboard,
@@ -1050,12 +1074,9 @@ class ContentParent final
 
   mozilla::ipc::IPCResult RecvSetURITitle(nsIURI* uri, const nsString& title);
 
-  bool HasNotificationPermission(const IPC::Principal& aPrincipal);
-
   mozilla::ipc::IPCResult RecvShowAlert(nsIAlertNotification* aAlert);
 
-  mozilla::ipc::IPCResult RecvCloseAlert(const nsString& aName,
-                                         const IPC::Principal& aPrincipal);
+  mozilla::ipc::IPCResult RecvCloseAlert(const nsString& aName);
 
   mozilla::ipc::IPCResult RecvDisableNotifications(
       const IPC::Principal& aPrincipal);
@@ -1082,8 +1103,7 @@ class ContentParent final
   // MOZ_CAN_RUN_SCRIPT_BOUNDARY because we don't have MOZ_CAN_RUN_SCRIPT bits
   // in IPC code yet.
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  mozilla::ipc::IPCResult RecvAddGeolocationListener(
-      const IPC::Principal& aPrincipal, const bool& aHighAccuracy);
+  mozilla::ipc::IPCResult RecvAddGeolocationListener(const bool& aHighAccuracy);
   mozilla::ipc::IPCResult RecvRemoveGeolocationListener();
 
   // MOZ_CAN_RUN_SCRIPT_BOUNDARY because we don't have MOZ_CAN_RUN_SCRIPT bits
@@ -1138,9 +1158,8 @@ class ContentParent final
 
   mozilla::ipc::IPCResult RecvDeviceReset();
 
-  mozilla::ipc::IPCResult RecvCopyFavicon(
-      nsIURI* aOldURI, nsIURI* aNewURI, const IPC::Principal& aLoadingPrincipal,
-      const bool& aInPrivateBrowsing);
+  mozilla::ipc::IPCResult RecvCopyFavicon(nsIURI* aOldURI, nsIURI* aNewURI,
+                                          const bool& aInPrivateBrowsing);
 
   virtual void ProcessingError(Result aCode, const char* aMsgName) override;
 
@@ -1204,6 +1223,9 @@ class ContentParent final
   mozilla::ipc::IPCResult RecvSetupFamilyCharMap(
       const uint32_t& aGeneration,
       const mozilla::fontlist::Pointer& aFamilyPtr);
+
+  mozilla::ipc::IPCResult RecvStartCmapLoading(const uint32_t& aGeneration,
+                                               const uint32_t& aStartIndex);
 
   mozilla::ipc::IPCResult RecvGetHyphDict(nsIURI* aURIParams,
                                           base::SharedMemoryHandle* aOutHandle,
@@ -1340,11 +1362,13 @@ class ContentParent final
 
   mozilla::ipc::IPCResult RecvHistoryCommit(
       const MaybeDiscarded<BrowsingContext>& aContext, const uint64_t& aLoadID,
-      const nsID& aChangeID, const uint32_t& aLoadType);
+      const nsID& aChangeID, const uint32_t& aLoadType, const bool& aPersist,
+      const bool& aCloneEntryChildren);
 
   mozilla::ipc::IPCResult RecvHistoryGo(
       const MaybeDiscarded<BrowsingContext>& aContext, int32_t aOffset,
-      uint64_t aHistoryEpoch, HistoryGoResolver&& aResolveRequestedIndex);
+      uint64_t aHistoryEpoch, bool aRequireUserInteraction,
+      HistoryGoResolver&& aResolveRequestedIndex);
 
   mozilla::ipc::IPCResult RecvSessionHistoryUpdate(
       const MaybeDiscarded<BrowsingContext>& aContext, const int32_t& aIndex,
@@ -1401,6 +1425,10 @@ class ContentParent final
 #endif
 
   mozilla::ipc::IPCResult RecvFOGData(ByteBuf&& buf);
+
+  mozilla::ipc::IPCResult RecvSetContainerFeaturePolicy(
+      const MaybeDiscardedBrowsingContext& aContainerContext,
+      FeaturePolicy* aContainerFeaturePolicy);
 
  public:
   void SendGetFilesResponseAndForget(const nsID& aID,
@@ -1634,7 +1662,9 @@ bool IsWebRemoteType(const nsACString& aContentProcessType);
 
 bool IsWebCoopCoepRemoteType(const nsACString& aContentProcessType);
 
-bool IsPriviligedMozillaRemoteType(const nsACString& aContentProcessType);
+bool IsPrivilegedMozillaRemoteType(const nsACString& aContentProcessType);
+
+bool IsExtensionRemoteType(const nsACString& aContentProcessType);
 
 inline nsISupports* ToSupports(mozilla::dom::ContentParent* aContentParent) {
   return static_cast<nsIDOMProcessParent*>(aContentParent);

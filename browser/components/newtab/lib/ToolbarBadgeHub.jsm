@@ -37,6 +37,7 @@ class _ToolbarBadgeHub {
     this._addImpression = null;
     this._blockMessageById = null;
     this._sendTelemetry = null;
+    this._initialized = false;
   }
 
   async init(
@@ -49,6 +50,11 @@ class _ToolbarBadgeHub {
       sendTelemetry,
     }
   ) {
+    if (this._initialized) {
+      return;
+    }
+
+    this._initialized = true;
     this._handleMessageRequest = handleMessageRequest;
     this._blockMessageById = blockMessageById;
     this._unblockMessageById = unblockMessageById;
@@ -285,7 +291,6 @@ class _ToolbarBadgeHub {
     ) {
       this._sendPing({
         message_id: message.id,
-        bucket_id: message.id,
         event,
       });
     }
@@ -294,6 +299,7 @@ class _ToolbarBadgeHub {
   uninit() {
     this._clearBadgeTimeout();
     this.state = {};
+    this._initialized = false;
     notificationsByWindow = new WeakMap();
     Services.prefs.removeObserver(this.prefs.WHATSNEW_TOOLBAR_PANEL, this);
   }

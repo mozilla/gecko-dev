@@ -30,53 +30,53 @@ add_task(async function triggerDefaultActionHandler() {
   // Default handler should be triggered no matter if media session exists or not.
   const kCreateMediaSession = [true, false];
   for (const shouldCreateSession of kCreateMediaSession) {
-    const kActions = ["play", "pause", "stop"];
-    for (const action of kActions) {
-      info(`test for '${action}', shouldCreateSession=${shouldCreateSession}`);
-      info(`open page and start media`);
-      const tab = await createTabAndLoad(PAGE_URL);
-      await playMedia(tab, videoId);
+    info(`open page and start media`);
+    const tab = await createLoadedTabWrapper(PAGE_URL);
+    await playMedia(tab, videoId);
 
-      if (shouldCreateSession) {
-        info(
-          `media has started, so created session should become active session`
-        );
-        await Promise.all([
-          waitUntilActiveMediaSessionChanged(),
-          createMediaSession(tab),
-        ]);
-      }
-
-      if (action == "play") {
-        info(`pause media first in order to test 'play'`);
-        await pauseMedia(tab, videoId);
-
-        info(`press '${action}' should trigger default action handler`);
-        await simulateMediaAction(tab, action);
-
-        info(`default action handler should resume media`);
-        await checkOrWaitUntilMediaPlays(tab, { videoId });
-      } else {
-        info(`press '${action}' should trigger default action handler`);
-        await simulateMediaAction(tab, action);
-
-        info(`default action handler should pause media`);
-        await checkOrWaitUntilMediaPauses(tab, { videoId });
-      }
-
-      info(`remove tab`);
-      await BrowserTestUtils.removeTab(tab);
+    if (shouldCreateSession) {
+      info(
+        `media has started, so created session should become active session`
+      );
+      await Promise.all([
+        waitUntilActiveMediaSessionChanged(),
+        createMediaSession(tab),
+      ]);
     }
+
+    info(`test 'pause' action`);
+    await simulateMediaAction(tab, "pause");
+
+    info(`default action handler should pause media`);
+    await checkOrWaitUntilMediaPauses(tab, { videoId });
+
+    info(`test 'play' action`);
+    await simulateMediaAction(tab, "play");
+
+    info(`default action handler should resume media`);
+    await checkOrWaitUntilMediaPlays(tab, { videoId });
+
+    info(`test 'stop' action`);
+    await simulateMediaAction(tab, "stop");
+
+    info(`default action handler should pause media`);
+    await checkOrWaitUntilMediaPauses(tab, { videoId });
+
+    info(`remove tab`);
+    await tab.close();
   }
 });
 
 add_task(async function triggerNonDefaultHandlerWhenSetCustomizedHandler() {
+  info(`open page and start media`);
+  const tab = await createLoadedTabWrapper(PAGE_URL);
+  await Promise.all([
+    new Promise(r => (tab.controller.onactivated = r)),
+    startMedia(tab, { videoId }),
+  ]);
+
   const kActions = ["play", "pause", "stop"];
   for (const action of kActions) {
-    info(`open page and start media`);
-    const tab = await createTabAndLoad(PAGE_URL);
-    await startMedia(tab, { videoId });
-
     info(`set action handler for '${action}'`);
     await setActionHandler(tab, action);
 
@@ -86,10 +86,10 @@ add_task(async function triggerNonDefaultHandlerWhenSetCustomizedHandler() {
 
     info(`action handler doesn't pause media, media should keep playing`);
     await checkOrWaitUntilMediaPlays(tab, { videoId });
-
-    info(`remove tab`);
-    await BrowserTestUtils.removeTab(tab);
   }
+
+  info(`remove tab`);
+  await tab.close();
 });
 
 add_task(
@@ -99,12 +99,15 @@ add_task(
       const kActions = ["play", "pause", "stop"];
       for (const action of kActions) {
         info(`open page and load iframe`);
-        const tab = await createTabAndLoad(PAGE_URL);
+        const tab = await createLoadedTabWrapper(PAGE_URL);
         const frameId = "iframe";
         await loadIframe(tab, frameId, url);
 
         info(`start media from iframe would make it become active session`);
-        await startMedia(tab, { frameId });
+        await Promise.all([
+          new Promise(r => (tab.controller.onactivated = r)),
+          startMedia(tab, { frameId }),
+        ]);
 
         info(`press '${action}' should trigger iframe's action handler`);
         await setActionHandler(tab, action, frameId);
@@ -145,7 +148,7 @@ add_task(
         }
 
         info(`remove tab`);
-        await BrowserTestUtils.removeTab(tab);
+        await tab.close();
       }
     }
   }
@@ -153,7 +156,7 @@ add_task(
 
 add_task(async function onlyResumeActiveMediaSession() {
   info(`open page and load iframes`);
-  const tab = await createTabAndLoad(PAGE2_URL);
+  const tab = await createLoadedTabWrapper(PAGE2_URL);
   const frame1Id = "frame1";
   const frame2Id = "frame2";
   await loadIframe(tab, frame1Id, CORS_IFRAME_URL);
@@ -186,7 +189,7 @@ add_task(async function onlyResumeActiveMediaSession() {
   await checkOrWaitUntilMediaPlays(tab, { frameId: frame2Id });
 
   info(`remove tab`);
-  await BrowserTestUtils.removeTab(tab);
+  await tab.close();
 });
 
 /**

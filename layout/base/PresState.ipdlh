@@ -4,9 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-using mozilla::void_t from "ipc/IPCMessageUtils.h";
-using nsPoint from "mozilla/GfxMessageUtils.h";
-using refcounted class mozilla::dom::BlobImpl from "mozilla/dom/IPCBlobUtils.h";
+include "mozilla/GfxMessageUtils.h";
+include "mozilla/dom/IPCBlobUtils.h";
+
+using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
+using struct nsPoint from "nsPoint.h";
+using refcounted class mozilla::dom::BlobImpl from "mozilla/dom/BlobImpl.h";
 
 namespace mozilla {
 

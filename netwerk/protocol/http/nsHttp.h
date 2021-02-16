@@ -137,7 +137,7 @@ extern const nsCString kHttp3Versions[];
 #define NS_HTTP_DEFAULT_PORT 80
 #define NS_HTTPS_DEFAULT_PORT 443
 
-#define NS_HTTP_HEADER_SEPS ", \t"
+#define NS_HTTP_HEADER_SEP ','
 
 //-----------------------------------------------------------------------------
 // http atoms...
@@ -379,8 +379,8 @@ nsresult HttpProxyResponseToErrorCode(uint32_t aStatusCode);
 // Tuple<alpn-id, isHttp3>. The first element is the alpn-id and the second one
 // is a boolean to indicate if this alpn-id is for http3. If no supported
 // alpn-id is found, the first element would be a n empty string.
-Tuple<nsCString, bool> SelectAlpnFromAlpnList(const nsACString& aAlpnList,
-                                              bool aNoHttp2, bool aNoHttp3);
+Tuple<nsCString, bool> SelectAlpnFromAlpnList(
+    const nsTArray<nsCString>& aAlpnList, bool aNoHttp2, bool aNoHttp3);
 
 }  // namespace net
 }  // namespace mozilla

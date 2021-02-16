@@ -7,12 +7,16 @@
 #define GPU_CommandEncoder_H_
 
 #include "mozilla/dom/TypedArray.h"
+#include "mozilla/WeakPtr.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 #include "nsWrapperCache.h"
 #include "ObjectModel.h"
 
 namespace mozilla {
 namespace dom {
+struct GPUComputePassDescriptor;
+struct GPUTextureDataLayout;
+class HTMLCanvasElement;
 template <typename T>
 class Sequence;
 class GPUComputePipelineOrGPURenderPipeline;

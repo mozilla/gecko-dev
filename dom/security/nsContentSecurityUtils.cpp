@@ -10,12 +10,14 @@
 
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIContentSecurityPolicy.h"
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIMultiPartChannel.h"
 #include "nsIURI.h"
 #include "nsITransfer.h"
+#include "nsNetUtil.h"
 #include "nsSandboxFlags.h"
 #if defined(XP_WIN)
 #  include "WinUtils.h"
@@ -24,10 +26,12 @@
 
 #include "FramingChecker.h"
 #include "js/Array.h"  // JS::GetArrayLength
+#include "js/ContextOptions.h"
 #include "js/RegExp.h"
 #include "js/RegExpFlags.h"  // JS::RegExpFlags
 #include "mozilla/ExtensionPolicyService.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Preferences.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/StaticPrefs_security.h"
@@ -692,11 +696,11 @@ nsresult ParseCSPAndEnforceFrameAncestorCheck(
   }
 
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
-  nsContentPolicyType contentType = loadInfo->GetExternalContentPolicyType();
+  ExtContentPolicyType contentType = loadInfo->GetExternalContentPolicyType();
   // frame-ancestor check only makes sense for subdocument and object loads,
   // if this is not a load of such type, there is nothing to do here.
-  if (contentType != nsIContentPolicy::TYPE_SUBDOCUMENT &&
-      contentType != nsIContentPolicy::TYPE_OBJECT) {
+  if (contentType != ExtContentPolicy::TYPE_SUBDOCUMENT &&
+      contentType != ExtContentPolicy::TYPE_OBJECT) {
     return NS_OK;
   }
 
@@ -1127,7 +1131,7 @@ long nsContentSecurityUtils::ClassifyDownload(
   nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new mozilla::net::LoadInfo(
       loadingPrincipal, loadInfo->TriggeringPrincipal(), nullptr,
       nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK,
-      nsIContentPolicy::TYPE_SAVEAS_DOWNLOAD);
+      nsIContentPolicy::TYPE_FETCH);
 
   int16_t decission = nsIContentPolicy::ACCEPT;
   nsMixedContentBlocker::ShouldLoad(false,  //  aHadInsecureImageRedirect

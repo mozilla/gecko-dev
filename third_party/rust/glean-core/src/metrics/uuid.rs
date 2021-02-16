@@ -4,6 +4,7 @@
 
 use uuid::Uuid;
 
+use crate::error_recording::{record_error, ErrorType};
 use crate::metrics::Metric;
 use crate::metrics::MetricType;
 use crate::storage::StorageManager;
@@ -43,7 +44,7 @@ impl UuidMetric {
     /// # Arguments
     ///
     /// * `glean` - The Glean instance this metric belongs to.
-    /// * `value` - The UUID to set the metric to.
+    /// * `value` - The [`Uuid`] to set the metric to.
     pub fn set(&self, glean: &Glean, value: Uuid) {
         if !self.should_record(glean) {
             return;
@@ -54,7 +55,29 @@ impl UuidMetric {
         glean.storage().record(glean, &self.meta, &value)
     }
 
-    /// Generates a new random UUID and set the metric to it.
+    /// Sets to the specified value, from a string.
+    ///
+    /// This should only be used from FFI. When calling directly from Rust, it
+    /// is better to use [`set`](UuidMetric::set).
+    ///
+    /// # Arguments
+    ///
+    /// * `glean` - The Glean instance this metric belongs to.
+    /// * `value` - The [`Uuid`] to set the metric to.
+    pub fn set_from_str(&self, glean: &Glean, value: &str) {
+        if !self.should_record(glean) {
+            return;
+        }
+
+        if let Ok(uuid) = uuid::Uuid::parse_str(&value) {
+            self.set(glean, uuid);
+        } else {
+            let msg = format!("Unexpected UUID value '{}'", value);
+            record_error(glean, &self.meta, ErrorType::InvalidValue, msg, None);
+        }
+    }
+
+    /// Generates a new random [`Uuid`'] and sets the metric to it.
     ///
     /// # Arguments
     ///
@@ -80,6 +103,7 @@ impl UuidMetric {
             glean.storage(),
             storage_name,
             &self.meta().identifier(glean),
+            self.meta.lifetime,
         ) {
             Some(Metric::Uuid(uuid)) => Uuid::parse_str(&uuid).ok(),
             _ => None,
@@ -91,14 +115,7 @@ impl UuidMetric {
     /// Gets the currently stored value as a string.
     ///
     /// This doesn't clear the stored value.
-    pub fn test_get_value(&self, glean: &Glean, storage_name: &str) -> Option<String> {
-        match StorageManager.snapshot_metric(
-            glean.storage(),
-            storage_name,
-            &self.meta.identifier(glean),
-        ) {
-            Some(Metric::Uuid(s)) => Some(s),
-            _ => None,
-        }
+    pub fn test_get_value(&self, glean: &Glean, storage_name: &str) -> Option<Uuid> {
+        self.get_value(glean, storage_name)
     }
 }

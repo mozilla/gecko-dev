@@ -4,13 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "nsMemoryReporterManager.h"
+
 #include "nsAtomTable.h"
 #include "nsCOMPtr.h"
 #include "nsCOMArray.h"
 #include "nsPrintfCString.h"
 #include "nsProxyRelease.h"
 #include "nsServiceManagerUtils.h"
-#include "nsMemoryReporterManager.h"
 #include "nsITimer.h"
 #include "nsThreadUtils.h"
 #include "nsPIDOMWindow.h"
@@ -1132,8 +1133,8 @@ class PageFaultsSoftReporter final : public nsIMemoryReporter {
 };
 NS_IMPL_ISUPPORTS(PageFaultsSoftReporter, nsIMemoryReporter)
 
-[[nodiscard]] static nsresult
-    PageFaultsHardDistinguishedAmount(int64_t* aAmount) {
+[[nodiscard]] static nsresult PageFaultsHardDistinguishedAmount(
+    int64_t* aAmount) {
   struct rusage usage;
   int err = getrusage(RUSAGE_SELF, &usage);
   if (err != 0) {

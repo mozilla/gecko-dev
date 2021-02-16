@@ -10,6 +10,7 @@
 // Keep others in (case-insensitive) order:
 #include "gfxDrawable.h"
 
+#include "Layers.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsCSSRendering.h"
 #include "nsDisplayList.h"
@@ -95,7 +96,7 @@ class PreEffectsInkOverflowCollector : public nsLayoutUtils::BoxCallback {
     // continuations are not set correctly while reflowing.
     if (SVGIntegrationUtils::UsingOverflowAffectingEffects(aFrame) &&
         !aInReflow) {
-      nsOverflowAreas* preTransformOverflows =
+      OverflowAreas* preTransformOverflows =
           aFrame->GetProperty(nsIFrame::PreTransformOverflowAreasProperty());
 
       MOZ_ASSERT(!preTransformOverflows,

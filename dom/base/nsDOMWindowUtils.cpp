@@ -10,6 +10,7 @@
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/LayerTransactionChild.h"
 #include "nsPresContext.h"
+#include "nsCaret.h"
 #include "nsContentList.h"
 #include "nsError.h"
 #include "nsQueryContentEventResult.h"
@@ -28,6 +29,7 @@
 #include "mozilla/PendingAnimationTracker.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/SharedStyleSheetCache.h"
+#include "mozilla/InputTaskManager.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIFrame.h"
 #include "mozilla/layers/APZCCallbackHelper.h"
@@ -177,6 +179,37 @@ class OldWindowSize : public LinkedListElement<OldWindowSize> {
   nsWeakPtr mWindowRef;
   nsSize mSize;
 };
+
+/**
+ * Return the layer that all display items of aFrame were assigned to in the
+ * last paint, or nullptr if there was no single layer assigned to all of the
+ * frame's display items (i.e. zero, or more than one).
+ * This function is for testing purposes and not performance sensitive.
+ */
+template <class T>
+T* mozilla::FrameLayerBuilder::GetDebugSingleOldLayerForFrame(
+    nsIFrame* aFrame) {
+  SmallPointerArray<DisplayItemData>& array = aFrame->DisplayItemData();
+
+  Layer* layer = nullptr;
+  for (DisplayItemData* data : array) {
+    DisplayItemData::AssertDisplayItemData(data);
+    if (data->mLayer->GetType() != T::Type()) {
+      continue;
+    }
+    if (layer && layer != data->mLayer) {
+      // More than one layer assigned, bail.
+      return nullptr;
+    }
+    layer = data->mLayer;
+  }
+
+  if (!layer) {
+    return nullptr;
+  }
+
+  return static_cast<T*>(layer);
+}
 
 namespace {
 
@@ -1207,15 +1240,23 @@ nsDOMWindowUtils::NodesFromRect(float aX, float aY, float aTopSize,
                                 float aRightSize, float aBottomSize,
                                 float aLeftSize, bool aIgnoreRootScrollFrame,
                                 bool aFlushLayout, bool aOnlyVisible,
+                                float aVisibleThreshold,
                                 nsINodeList** aReturn) {
   RefPtr<Document> doc = GetDocument();
   NS_ENSURE_STATE(doc);
 
   auto list = MakeRefPtr<nsSimpleContentList>(doc);
 
+  // The visible threshold was omitted or given a zero value (which makes no
+  // sense), so give a reasonable default.
+  if (aVisibleThreshold == 0.0f) {
+    aVisibleThreshold = 1.0f;
+  }
+
   AutoTArray<RefPtr<nsINode>, 8> nodes;
   doc->NodesFromRect(aX, aY, aTopSize, aRightSize, aBottomSize, aLeftSize,
-                     aIgnoreRootScrollFrame, aFlushLayout, aOnlyVisible, nodes);
+                     aIgnoreRootScrollFrame, aFlushLayout, aOnlyVisible,
+                     aVisibleThreshold, nodes);
   list->SetCapacity(nodes.Length());
   for (auto& node : nodes) {
     list->AppendElement(node->AsContent());
@@ -1386,6 +1427,12 @@ nsDOMWindowUtils::GetIsMozAfterPaintPending(bool* aResult) {
   nsPresContext* presContext = GetPresContext();
   if (!presContext) return NS_OK;
   *aResult = presContext->IsDOMPaintEventPending();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::GetIsInputTaskManagerSuspended(bool* aResult) {
+  *aResult = InputTaskManager::Get()->IsSuspended();
   return NS_OK;
 }
 
@@ -1704,7 +1751,7 @@ nsDOMWindowUtils::GetIMEIsOpen(bool* aState) {
 
   // Open state should not be available when IME is not enabled.
   InputContext context = widget->GetInputContext();
-  if (context.mIMEState.mEnabled != IMEState::ENABLED) {
+  if (context.mIMEState.mEnabled != IMEEnabled::Enabled) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -2024,7 +2071,7 @@ nsDOMWindowUtils::SendQueryContentEvent(uint32_t aType, int64_t aOffset,
   nsresult rv = targetWidget->DispatchEvent(&queryEvent, status);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  auto* result = new nsQueryContentEventResult(queryEvent);
+  auto* result = new nsQueryContentEventResult(std::move(queryEvent));
   result->SetEventResult(widget);
   NS_ADDREF(*aResult = result);
   return NS_OK;
@@ -2124,11 +2171,14 @@ nsDOMWindowUtils::GetVisitedDependentComputedStyle(
     ENSURE_SUCCESS(rv, rv.StealNSResult());
   }
 
+  nsAutoCString result;
+
   static_cast<nsComputedDOMStyle*>(decl.get())->SetExposeVisitedStyle(true);
   nsresult rv =
-      decl->GetPropertyValue(NS_ConvertUTF16toUTF8(aPropertyName), aResult);
+      decl->GetPropertyValue(NS_ConvertUTF16toUTF8(aPropertyName), result);
   static_cast<nsComputedDOMStyle*>(decl.get())->SetExposeVisitedStyle(false);
 
+  CopyUTF8toUTF16(result, aResult);
   return rv;
 }
 
@@ -2709,8 +2759,28 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
     return NS_OK;
   }
 
-  CSSRect bounds =
-      nsLayoutUtils::GetBoundingContentRect(element, rootScrollFrame);
+  CSSRect bounds;
+  if (element->IsHTMLElement(nsGkAtoms::input)) {
+    bounds = nsLayoutUtils::GetBoundingContentRect(element, rootScrollFrame);
+  } else {
+    // When focused elment is content editable or <textarea> element,
+    // focused element will have multi-line content.
+    nsIFrame* frame = element->GetPrimaryFrame();
+    if (frame) {
+      RefPtr<nsCaret> caret = frame->PresShell()->GetCaret();
+      if (caret && caret->IsVisible()) {
+        nsRect rect;
+        if (nsIFrame* frame = caret->GetGeometry(&rect)) {
+          bounds = nsLayoutUtils::GetBoundingFrameRect(frame, rootScrollFrame);
+        }
+      }
+    }
+    if (bounds.IsEmpty()) {
+      // Fallback if no caret frame.
+      bounds = nsLayoutUtils::GetBoundingContentRect(element, rootScrollFrame);
+    }
+  }
+
   if (bounds.IsEmpty()) {
     // Do not zoom on empty bounds. Bail out.
     return NS_OK;
@@ -2727,12 +2797,16 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
     }
   }
   if (waitForRefresh) {
-    waitForRefresh =
-        presShell->AddPostRefreshObserver(new OneShotPostRefreshObserver(
-            presShell, [widget = RefPtr<nsIWidget>(widget), presShellId, viewId,
-                        bounds, flags](PresShell*) {
-              widget->ZoomToRect(presShellId, viewId, bounds, flags);
-            }));
+    waitForRefresh = false;
+    if (nsPresContext* presContext = presShell->GetPresContext()) {
+      waitForRefresh = presContext->RegisterOneShotPostRefreshObserver(
+          new OneShotPostRefreshObserver(
+              presShell,
+              [widget = RefPtr<nsIWidget>(widget), presShellId, viewId, bounds,
+               flags](PresShell*, OneShotPostRefreshObserver*) {
+                widget->ZoomToRect(presShellId, viewId, bounds, flags);
+              }));
+    }
   }
   if (!waitForRefresh) {
     widget->ZoomToRect(presShellId, viewId, bounds, flags);
@@ -2755,8 +2829,10 @@ nsDOMWindowUtils::ComputeAnimationDistance(Element* aElement,
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  AnimationValue v1 = AnimationValue::FromString(property, aValue1, aElement);
-  AnimationValue v2 = AnimationValue::FromString(property, aValue2, aElement);
+  AnimationValue v1 = AnimationValue::FromString(
+      property, NS_ConvertUTF16toUTF8(aValue1), aElement);
+  AnimationValue v2 = AnimationValue::FromString(
+      property, NS_ConvertUTF16toUTF8(aValue2), aElement);
   if (v1.IsNull() || v2.IsNull()) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
@@ -2816,8 +2892,10 @@ nsDOMWindowUtils::GetUnanimatedComputedStyle(Element* aElement,
   if (!aElement->GetComposedDoc()) {
     return NS_ERROR_FAILURE;
   }
+  nsAutoCString result;
   Servo_AnimationValue_Serialize(value, propertyID,
-                                 presShell->StyleSet()->RawSet(), &aResult);
+                                 presShell->StyleSet()->RawSet(), &result);
+  CopyUTF8toUTF16(result, aResult);
   return NS_OK;
 }
 
@@ -3390,8 +3468,9 @@ nsDOMWindowUtils::SelectAtPoint(float aX, float aY, uint32_t aSelectBehavior,
   nsPoint relPoint = nsLayoutUtils::GetEventCoordinatesRelativeTo(
       widget, pt, RelativeTo{targetFrame});
 
+  const RefPtr<nsPresContext> pinnedPresContext{GetPresContext()};
   nsresult rv = targetFrame->SelectByTypeAtPoint(
-      GetPresContext(), relPoint, amount, amount, nsIFrame::SELECT_ACCUMULATE);
+      pinnedPresContext, relPoint, amount, amount, nsIFrame::SELECT_ACCUMULATE);
   *_retval = !NS_FAILED(rv);
   return NS_OK;
 }
@@ -4089,7 +4168,7 @@ struct StateTableEntry {
 };
 
 static constexpr StateTableEntry kManuallyManagedStates[] = {
-    {"-moz-autofill", NS_EVENT_STATE_AUTOFILL},
+    {"autofill", NS_EVENT_STATE_AUTOFILL},
     {"-moz-autofill-preview", NS_EVENT_STATE_AUTOFILL_PREVIEW},
     {nullptr, EventStates()},
 };

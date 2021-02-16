@@ -575,6 +575,12 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.twoByteOp(OP2_XADD_EvGv, offset, base, index, scale, srcdest);
   }
 
+  void vpmaddubsw_rr(XMMRegisterID src1, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    threeByteOpSimd("vpmaddubsw", VEX_PD, OP3_PMADDUBSW_VdqWdq, ESCAPE_38, src1,
+                    src0, dst);
+  }
+
   void vpaddb_rr(XMMRegisterID src1, XMMRegisterID src0, XMMRegisterID dst) {
     twoByteOpSimd("vpaddb", VEX_PD, OP2_PADDB_VdqWdq, src1, src0, dst);
   }
@@ -1581,6 +1587,18 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.twoByteOp(OP2_BSF_GvEv, src, dst);
   }
 
+  void lzcntl_rr(RegisterID src, RegisterID dst) {
+    spew("lzcntl     %s, %s", GPReg32Name(src), GPReg32Name(dst));
+    m_formatter.legacySSEPrefix(VEX_SS);
+    m_formatter.twoByteOp(OP2_LZCNT_GvEv, src, dst);
+  }
+
+  void tzcntl_rr(RegisterID src, RegisterID dst) {
+    spew("tzcntl     %s, %s", GPReg32Name(src), GPReg32Name(dst));
+    m_formatter.legacySSEPrefix(VEX_SS);
+    m_formatter.twoByteOp(OP2_TZCNT_GvEv, src, dst);
+  }
+
   void popcntl_rr(RegisterID src, RegisterID dst) {
     spew("popcntl    %s, %s", GPReg32Name(src), GPReg32Name(dst));
     m_formatter.legacySSEPrefix(VEX_SS);
@@ -1796,8 +1814,8 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
-  MOZ_MUST_USE JmpSrc cmpl_im_disp32(int32_t rhs, int32_t offset,
-                                     RegisterID base) {
+  [[nodiscard]] JmpSrc cmpl_im_disp32(int32_t rhs, int32_t offset,
+                                      RegisterID base) {
     spew("cmpl       $0x%x, " MEM_o32b, uint32_t(rhs), ADDR_o32b(offset, base));
     JmpSrc r;
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -1812,7 +1830,7 @@ class BaseAssembler : public GenericAssembler {
     return r;
   }
 
-  MOZ_MUST_USE JmpSrc cmpl_im_disp32(int32_t rhs, const void* addr) {
+  [[nodiscard]] JmpSrc cmpl_im_disp32(int32_t rhs, const void* addr) {
     spew("cmpl       $0x%x, %p", uint32_t(rhs), addr);
     JmpSrc r;
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -2484,7 +2502,7 @@ class BaseAssembler : public GenericAssembler {
 
   // Flow control:
 
-  MOZ_MUST_USE JmpSrc call() {
+  [[nodiscard]] JmpSrc call() {
     m_formatter.oneByteOp(OP_CALL_rel32);
     JmpSrc r = m_formatter.immediateRel32();
     spew("call       .Lfrom%d", r.offset());
@@ -2504,7 +2522,7 @@ class BaseAssembler : public GenericAssembler {
   // Comparison of EAX against a 32-bit immediate. The immediate is patched
   // in as if it were a jump target. The intention is to toggle the first
   // byte of the instruction between a CMP and a JMP to produce a pseudo-NOP.
-  MOZ_MUST_USE JmpSrc cmp_eax() {
+  [[nodiscard]] JmpSrc cmp_eax() {
     m_formatter.oneByteOp(OP_CMP_EAXIv);
     JmpSrc r = m_formatter.immediateRel32();
     spew("cmpl       %%eax, .Lfrom%d", r.offset());
@@ -2526,7 +2544,7 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.immediate32(diff - 5);
     }
   }
-  MOZ_MUST_USE JmpSrc jmp() {
+  [[nodiscard]] JmpSrc jmp() {
     m_formatter.oneByteOp(OP_JMP_rel32);
     JmpSrc r = m_formatter.immediateRel32();
     spew("jmp        .Lfrom%d", r.offset());
@@ -2565,7 +2583,7 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
-  MOZ_MUST_USE JmpSrc jCC(Condition cond) {
+  [[nodiscard]] JmpSrc jCC(Condition cond) {
     m_formatter.twoByteOp(jccRel32(cond));
     JmpSrc r = m_formatter.immediateRel32();
     spew("j%s        .Lfrom%d", CCName(cond), r.offset());
@@ -2666,11 +2684,64 @@ class BaseAssembler : public GenericAssembler {
     twoByteOpImmSimd("vcmpps", VEX_PS, OP2_CMPPS_VpsWps, order, address, src0,
                      dst);
   }
+
+  static constexpr size_t CMPPS_MR_PATCH_OFFSET = 1;
+
+  size_t vcmpeqps_mr(const void* address, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    vcmpps_mr(X86Encoding::ConditionCmp_EQ, address, src0, dst);
+    return CMPPS_MR_PATCH_OFFSET;
+  }
+  size_t vcmpneqps_mr(const void* address, XMMRegisterID src0,
+                      XMMRegisterID dst) {
+    vcmpps_mr(X86Encoding::ConditionCmp_NEQ, address, src0, dst);
+    return CMPPS_MR_PATCH_OFFSET;
+  }
+  size_t vcmpltps_mr(const void* address, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    vcmpps_mr(X86Encoding::ConditionCmp_LT, address, src0, dst);
+    return CMPPS_MR_PATCH_OFFSET;
+  }
+  size_t vcmpleps_mr(const void* address, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    vcmpps_mr(X86Encoding::ConditionCmp_LE, address, src0, dst);
+    return CMPPS_MR_PATCH_OFFSET;
+  }
+
   void vcmppd_rr(uint8_t order, XMMRegisterID src1, XMMRegisterID src0,
                  XMMRegisterID dst) {
     twoByteOpImmSimd("vcmppd", VEX_PD, OP2_CMPPD_VpdWpd, order, src1, src0,
                      dst);
   }
+  void vcmppd_mr(uint8_t order, const void* address, XMMRegisterID src0,
+                 XMMRegisterID dst) {
+    twoByteOpImmSimd("vcmppd", VEX_PD, OP2_CMPPD_VpdWpd, order, address, src0,
+                     dst);
+  }
+
+  static constexpr size_t CMPPD_MR_PATCH_OFFSET = 1;
+
+  size_t vcmpeqpd_mr(const void* address, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    vcmppd_mr(X86Encoding::ConditionCmp_EQ, address, src0, dst);
+    return CMPPD_MR_PATCH_OFFSET;
+  }
+  size_t vcmpneqpd_mr(const void* address, XMMRegisterID src0,
+                      XMMRegisterID dst) {
+    vcmppd_mr(X86Encoding::ConditionCmp_NEQ, address, src0, dst);
+    return CMPPD_MR_PATCH_OFFSET;
+  }
+  size_t vcmpltpd_mr(const void* address, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    vcmppd_mr(X86Encoding::ConditionCmp_LT, address, src0, dst);
+    return CMPPD_MR_PATCH_OFFSET;
+  }
+  size_t vcmplepd_mr(const void* address, XMMRegisterID src0,
+                     XMMRegisterID dst) {
+    vcmppd_mr(X86Encoding::ConditionCmp_LE, address, src0, dst);
+    return CMPPD_MR_PATCH_OFFSET;
+  }
+
   void vrcpps_rr(XMMRegisterID src, XMMRegisterID dst) {
     twoByteOpSimd("vrcpps", VEX_PS, OP2_RCPPS_VpsWps, src, invalid_xmm, dst);
   }
@@ -3913,9 +3984,28 @@ class BaseAssembler : public GenericAssembler {
   void vpunpckldq_mr(const void* addr, XMMRegisterID src0, XMMRegisterID dst) {
     twoByteOpSimd("vpunpckldq", VEX_PD, OP2_PUNPCKLDQ_VdqWdq, addr, src0, dst);
   }
+  void vpunpcklqdq_rr(XMMRegisterID src1, XMMRegisterID src0,
+                      XMMRegisterID dst) {
+    twoByteOpSimd("vpunpcklqdq", VEX_PD, OP2_PUNPCKLQDQ_VdqWdq, src1, src0,
+                  dst);
+  }
+  void vpunpcklqdq_mr(int32_t offset, RegisterID base, XMMRegisterID src0,
+                      XMMRegisterID dst) {
+    twoByteOpSimd("vpunpcklqdq", VEX_PD, OP2_PUNPCKLQDQ_VdqWdq, offset, base,
+                  src0, dst);
+  }
+  void vpunpcklqdq_mr(const void* addr, XMMRegisterID src0, XMMRegisterID dst) {
+    twoByteOpSimd("vpunpcklqdq", VEX_PD, OP2_PUNPCKLQDQ_VdqWdq, addr, src0,
+                  dst);
+  }
   void vpunpckhdq_rr(XMMRegisterID src1, XMMRegisterID src0,
                      XMMRegisterID dst) {
     twoByteOpSimd("vpunpckhdq", VEX_PD, OP2_PUNPCKHDQ_VdqWdq, src1, src0, dst);
+  }
+  void vpunpckhqdq_rr(XMMRegisterID src1, XMMRegisterID src0,
+                      XMMRegisterID dst) {
+    twoByteOpSimd("vpunpckhqdq", VEX_PD, OP2_PUNPCKHQDQ_VdqWdq, src1, src0,
+                  dst);
   }
   void vpunpcklwd_rr(XMMRegisterID src1, XMMRegisterID src0,
                      XMMRegisterID dst) {
@@ -3931,6 +4021,41 @@ class BaseAssembler : public GenericAssembler {
   }
   void vpsubq_rr(XMMRegisterID src1, XMMRegisterID src0, XMMRegisterID dst) {
     twoByteOpSimd("vpsubq", VEX_PD, OP2_PSUBQ_VdqWdq, src1, src0, dst);
+  }
+
+  // BMI instructions:
+
+  void sarxl_rrr(RegisterID src, RegisterID shift, RegisterID dst) {
+    spew("sarxl      %s, %s, %s", GPReg32Name(src), GPReg32Name(shift),
+         GPReg32Name(dst));
+
+    RegisterID rm = src;
+    XMMRegisterID src0 = static_cast<XMMRegisterID>(shift);
+    int reg = dst;
+    m_formatter.threeByteOpVex(VEX_SS /* = F3 */, OP3_SARX_GyEyBy, ESCAPE_38,
+                               rm, src0, reg);
+  }
+
+  void shlxl_rrr(RegisterID src, RegisterID shift, RegisterID dst) {
+    spew("shlxl      %s, %s, %s", GPReg32Name(src), GPReg32Name(shift),
+         GPReg32Name(dst));
+
+    RegisterID rm = src;
+    XMMRegisterID src0 = static_cast<XMMRegisterID>(shift);
+    int reg = dst;
+    m_formatter.threeByteOpVex(VEX_PD /* = 66 */, OP3_SHLX_GyEyBy, ESCAPE_38,
+                               rm, src0, reg);
+  }
+
+  void shrxl_rrr(RegisterID src, RegisterID shift, RegisterID dst) {
+    spew("shrxl      %s, %s, %s", GPReg32Name(src), GPReg32Name(shift),
+         GPReg32Name(dst));
+
+    RegisterID rm = src;
+    XMMRegisterID src0 = static_cast<XMMRegisterID>(shift);
+    int reg = dst;
+    m_formatter.threeByteOpVex(VEX_SD /* = F2 */, OP3_SHRX_GyEyBy, ESCAPE_38,
+                               rm, src0, reg);
   }
 
   // Misc instructions:
@@ -4045,6 +4170,7 @@ class BaseAssembler : public GenericAssembler {
     }
 
     assertValidJmpSrc(from);
+    MOZ_ASSERT(from.trailing() == 0);
 
     const unsigned char* code = m_formatter.data();
     int32_t offset = GetInt32(code + from.offset());
@@ -4091,6 +4217,7 @@ class BaseAssembler : public GenericAssembler {
     }
 
     assertValidJmpSrc(from);
+    MOZ_ASSERT(from.trailing() == 0);
     MOZ_RELEASE_ASSERT(to.offset() == -1 || size_t(to.offset()) <= size());
 
     unsigned char* code = m_formatter.data();
@@ -4112,14 +4239,14 @@ class BaseAssembler : public GenericAssembler {
 
     spew(".set .Lfrom%d, .Llabel%d", from.offset(), to.offset());
     unsigned char* code = m_formatter.data();
-    SetRel32(code + from.offset(), code + to.offset());
+    SetRel32(code + from.offset(), code + to.offset(), from.trailing());
   }
 
   void executableCopy(void* dst) {
     const unsigned char* src = m_formatter.buffer();
     memcpy(dst, src, size());
   }
-  MOZ_MUST_USE bool appendRawCode(const uint8_t* code, size_t numBytes) {
+  [[nodiscard]] bool appendRawCode(const uint8_t* code, size_t numBytes) {
     return m_formatter.append(code, numBytes);
   }
 
@@ -5282,6 +5409,25 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
+
+    void threeByteOpVex64(VexOperandType ty, ThreeByteOpcodeID opcode,
+                          ThreeByteEscape escape, RegisterID rm,
+                          XMMRegisterID src0, int reg) {
+      int r = (reg >> 3), x = 0, b = (rm >> 3);
+      int m = 0, w = 1, v = src0, l = 0;
+      switch (escape) {
+        case ESCAPE_38:
+          m = 2;
+          break;
+        case ESCAPE_3A:
+          m = 3;
+          break;
+        default:
+          MOZ_CRASH("unexpected escape");
+      }
+      threeOpVex(ty, r, x, b, m, w, v, l, opcode);
+      registerModRM(rm, reg);
+    }
 #endif
 
     // Byte-operands:
@@ -5460,7 +5606,7 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.putInt64Unchecked(imm);
     }
 
-    MOZ_ALWAYS_INLINE MOZ_MUST_USE JmpSrc immediateRel32() {
+    [[nodiscard]] MOZ_ALWAYS_INLINE JmpSrc immediateRel32() {
       m_buffer.putIntUnchecked(0);
       return JmpSrc(m_buffer.size());
     }
@@ -5516,7 +5662,7 @@ class BaseAssembler : public GenericAssembler {
       return m_buffer.isAligned(alignment);
     }
 
-    MOZ_MUST_USE bool append(const unsigned char* values, size_t size) {
+    [[nodiscard]] bool append(const unsigned char* values, size_t size) {
       return m_buffer.append(values, size);
     }
 

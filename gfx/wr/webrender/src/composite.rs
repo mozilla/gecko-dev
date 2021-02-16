@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, YuvColorSpace, YuvFormat, ImageRendering, ExternalImageId};
+use api::{ColorF, YuvColorSpace, YuvFormat, ImageRendering, ExternalImageId, ImageBufferKind};
 use api::units::*;
-use crate::batch::{resolve_image, get_buffer_kind};
+use crate::batch::{resolve_image};
 use euclid::Transform3D;
 use crate::gpu_cache::GpuCache;
 use crate::gpu_types::{ZBufferId, ZBufferIdGenerator};
 use crate::internal_types::TextureSource;
 use crate::picture::{ImageDependency, ResolvedSurfaceTexture, TileCacheInstance, TileId, TileSurface};
 use crate::prim_store::DeferredResolve;
-use crate::renderer::ImageBufferKind;
 use crate::resource_cache::{ImageRequest, ResourceCache};
 use crate::util::Preallocator;
 use crate::tile_cache::PictureCacheDebugInfo;
@@ -158,8 +157,12 @@ impl ExternalPlaneDescriptor {
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ResolvedExternalSurfaceIndex(pub usize);
+
+impl ResolvedExternalSurfaceIndex {
+    pub const INVALID: ResolvedExternalSurfaceIndex = ResolvedExternalSurfaceIndex(usize::MAX);
+}
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -349,7 +352,6 @@ pub struct CompositeTileDescriptor {
 #[derive(PartialEq, Clone)]
 pub struct CompositeSurfaceDescriptor {
     pub surface_id: Option<NativeSurfaceId>,
-    pub offset: DevicePoint,
     pub clip_rect: DeviceRect,
     pub transform: CompositorSurfaceTransform,
     // A list of image keys and generations that this compositor surface
@@ -529,7 +531,14 @@ impl CompositeState {
 
             // Accumulate this tile into the overall surface bounds. This is used below
             // to clamp the size of the supplied clip rect to a reasonable value.
-            surface_device_rect = surface_device_rect.union(&device_rect);
+            // NOTE: This clip rect must include the device_valid_rect rather than
+            //       the tile device rect. This ensures that in the case of a picture
+            //       cache slice that is smaller than a single tile, the clip rect in
+            //       the composite descriptor will change if the position of that slice
+            //       is changed. Otherwise, WR may conclude that no composite is needed
+            //       if the tile itself was not invalidated due to changing content.
+            //       See bug #1675414 for more detail.
+            surface_device_rect = surface_device_rect.union(&tile.device_valid_rect);
 
             let descriptor = CompositeTileDescriptor {
                 surface_kind: surface.into(),
@@ -597,11 +606,12 @@ impl CompositeState {
             self.descriptor.surfaces.push(
                 CompositeSurfaceDescriptor {
                     surface_id: tile_cache.native_surface.as_ref().map(|s| s.opaque),
-                    offset: tile_cache.device_position,
                     clip_rect: surface_clip_rect,
-                    transform: CompositorSurfaceTransform::translation(tile_cache.device_position.x,
-                                                                              tile_cache.device_position.y,
-                                                                              0.0),
+                    transform: CompositorSurfaceTransform::translation(
+                        tile_cache.device_position.x,
+                        tile_cache.device_position.y,
+                        0.0,
+                    ),
                     image_dependencies: [ImageDependency::INVALID; 3],
                     image_rendering: ImageRendering::CrispEdges,
                     tile_descriptors: opaque_tile_descriptors,
@@ -612,14 +622,11 @@ impl CompositeState {
         // For each compositor surface that was promoted, build the
         // information required for the compositor to draw it
         for external_surface in &tile_cache.external_surfaces {
+            let clip_rect = external_surface
+                .clip_rect
+                .intersection(&device_clip_rect)
+                .unwrap_or_else(DeviceRect::zero);
 
-            let mut planes = [
-                ExternalPlaneDescriptor::invalid(),
-                ExternalPlaneDescriptor::invalid(),
-                ExternalPlaneDescriptor::invalid(),
-            ];
-
-            // Step through the image keys, and build a plane descriptor for each
             let required_plane_count =
                 match external_surface.dependency {
                     ExternalSurfaceDependency::Yuv { format, .. } => {
@@ -629,7 +636,6 @@ impl CompositeState {
                         1
                     }
                 };
-            let mut valid_plane_count = 0;
 
             let mut image_dependencies = [ImageDependency::INVALID; 3];
 
@@ -643,102 +649,37 @@ impl CompositeState {
                     }
                 };
                 image_dependencies[i] = dependency;
+            }
 
-                let request = ImageRequest {
-                    key: dependency.key,
-                    rendering: external_surface.image_rendering,
-                    tile: None,
-                };
-
-                let cache_item = resolve_image(
-                    request,
+            // Get a new z_id for each compositor surface, to ensure correct ordering
+            // when drawing with the simple (Draw) compositor, and to schedule compositing
+            // of any required updates into the surfaces.
+            let needs_external_surface_update = match self.compositor_kind {
+                CompositorKind::Draw { .. } => true,
+                _ => external_surface.update_params.is_some(),
+            };
+            let external_surface_index = if needs_external_surface_update {
+                let external_surface_index = self.compute_external_surface_dependencies(
+                    &external_surface,
+                    &image_dependencies,
+                    required_plane_count,
                     resource_cache,
                     gpu_cache,
                     deferred_resolves,
                 );
-
-                if cache_item.texture_id != TextureSource::Invalid {
-                    valid_plane_count += 1;
-                    let plane = &mut planes[i];
-                    *plane = ExternalPlaneDescriptor {
-                        texture: cache_item.texture_id,
-                        texture_layer: cache_item.texture_layer,
-                        uv_rect: cache_item.uv_rect.into(),
-                    };
+                if external_surface_index == ResolvedExternalSurfaceIndex::INVALID {
+                    continue;
                 }
-            }
-
-            // Check if there are valid images added for each YUV plane
-            if valid_plane_count < required_plane_count {
-                warn!("Warnings: skip a YUV/RGB compositor surface, found {}/{} valid images",
-                    valid_plane_count,
-                    required_plane_count,
-                );
-                continue;
-            }
-
-            let clip_rect = external_surface
-                .clip_rect
-                .intersection(&device_clip_rect)
-                .unwrap_or_else(DeviceRect::zero);
-
-            // Get a new z_id for each compositor surface, to ensure correct ordering
-            // when drawing with the simple (Draw) compositor.
-
-            let surface = CompositeTileSurface::ExternalSurface {
-                external_surface_index: ResolvedExternalSurfaceIndex(self.external_surfaces.len()),
+                external_surface_index
+            } else {
+                ResolvedExternalSurfaceIndex::INVALID
             };
 
-            // If the external surface descriptor reports that the native surface
-            // needs to be updated, create an update params tuple for the renderer
-            // to use.
-            let update_params = external_surface.update_params.map(|surface_size| {
-                (
-                    external_surface.native_surface_id.expect("bug: no native surface!"),
-                    surface_size
-                )
-            });
-
-            match external_surface.dependency {
-                ExternalSurfaceDependency::Yuv{ color_space, format, rescale, .. } => {
-
-                    let image_buffer_kind = get_buffer_kind(planes[0].texture);
-
-                    self.external_surfaces.push(ResolvedExternalSurface {
-                        color_data: ResolvedExternalSurfaceColorData::Yuv {
-                            image_dependencies,
-                            planes,
-                            color_space,
-                            format,
-                            rescale,
-                        },
-                        image_buffer_kind,
-                        update_params,
-                    });
-                },
-                ExternalSurfaceDependency::Rgb{ flip_y, .. } => {
-
-                    let image_buffer_kind = get_buffer_kind(planes[0].texture);
-
-                    // Only propagate flip_y if the compositor doesn't support transforms,
-                    // since otherwise it'll be handled as part of the transform.
-                    self.external_surfaces.push(ResolvedExternalSurface {
-                        color_data: ResolvedExternalSurfaceColorData::Rgb {
-                            image_dependency: image_dependencies[0],
-                            plane: planes[0],
-                            flip_y: flip_y && !self.compositor_kind.supports_transforms(),
-                        },
-                        image_buffer_kind,
-                        update_params,
-                    });
-                },
-            }
-
             let tile = CompositeTile {
-                surface,
+                surface: CompositeTileSurface::ExternalSurface { external_surface_index },
                 rect: external_surface.surface_rect,
-                valid_rect: external_surface.device_rect.translate(-external_surface.device_rect.origin.to_vector()),
-                dirty_rect: external_surface.device_rect.translate(-external_surface.device_rect.origin.to_vector()),
+                valid_rect: external_surface.surface_rect.translate(-external_surface.surface_rect.origin.to_vector()),
+                dirty_rect: external_surface.surface_rect.translate(-external_surface.surface_rect.origin.to_vector()),
                 clip_rect,
                 transform: Some(external_surface.transform),
                 z_id: external_surface.z_id,
@@ -750,7 +691,6 @@ impl CompositeState {
             self.descriptor.surfaces.push(
                 CompositeSurfaceDescriptor {
                     surface_id: external_surface.native_surface_id,
-                    offset: tile.rect.origin,
                     clip_rect,
                     transform: external_surface.transform,
                     image_dependencies: image_dependencies,
@@ -767,17 +707,117 @@ impl CompositeState {
             self.descriptor.surfaces.push(
                 CompositeSurfaceDescriptor {
                     surface_id: tile_cache.native_surface.as_ref().map(|s| s.alpha),
-                    offset: tile_cache.device_position,
                     clip_rect: surface_clip_rect,
-                    transform: CompositorSurfaceTransform::translation(tile_cache.device_position.x,
-                                                                              tile_cache.device_position.y,
-                                                                              0.0),
+                    transform: CompositorSurfaceTransform::translation(
+                        tile_cache.device_position.x,
+                        tile_cache.device_position.y,
+                        0.0,
+                    ),
                     image_dependencies: [ImageDependency::INVALID; 3],
                     image_rendering: ImageRendering::CrispEdges,
                     tile_descriptors: alpha_tile_descriptors,
                 }
             );
         }
+    }
+
+    fn compute_external_surface_dependencies(
+        &mut self,
+        external_surface: &ExternalSurfaceDescriptor,
+        image_dependencies: &[ImageDependency; 3],
+        required_plane_count: usize,
+        resource_cache: &ResourceCache,
+        gpu_cache: &mut GpuCache,
+        deferred_resolves: &mut Vec<DeferredResolve>,
+    ) -> ResolvedExternalSurfaceIndex {
+        let mut planes = [
+            ExternalPlaneDescriptor::invalid(),
+            ExternalPlaneDescriptor::invalid(),
+            ExternalPlaneDescriptor::invalid(),
+        ];
+
+        let mut valid_plane_count = 0;
+        for i in 0 .. required_plane_count {
+            let request = ImageRequest {
+                key: image_dependencies[i].key,
+                rendering: external_surface.image_rendering,
+                tile: None,
+            };
+
+            let cache_item = resolve_image(
+                request,
+                resource_cache,
+                gpu_cache,
+                deferred_resolves,
+            );
+
+            if cache_item.texture_id != TextureSource::Invalid {
+                valid_plane_count += 1;
+                let plane = &mut planes[i];
+                *plane = ExternalPlaneDescriptor {
+                    texture: cache_item.texture_id,
+                    texture_layer: cache_item.texture_layer,
+                    uv_rect: cache_item.uv_rect.into(),
+                };
+            }
+        }
+
+        // Check if there are valid images added for each YUV plane
+        if valid_plane_count < required_plane_count {
+            warn!("Warnings: skip a YUV/RGB compositor surface, found {}/{} valid images",
+                valid_plane_count,
+                required_plane_count,
+            );
+            return ResolvedExternalSurfaceIndex::INVALID;
+        }
+            
+        let external_surface_index = ResolvedExternalSurfaceIndex(self.external_surfaces.len());
+
+        // If the external surface descriptor reports that the native surface
+        // needs to be updated, create an update params tuple for the renderer
+        // to use.
+        let update_params = external_surface.update_params.map(|surface_size| {
+            (
+                external_surface.native_surface_id.expect("bug: no native surface!"),
+                surface_size
+            )
+        });
+
+        match external_surface.dependency {
+            ExternalSurfaceDependency::Yuv{ color_space, format, rescale, .. } => {
+
+                let image_buffer_kind = planes[0].texture.image_buffer_kind();
+
+                self.external_surfaces.push(ResolvedExternalSurface {
+                    color_data: ResolvedExternalSurfaceColorData::Yuv {
+                        image_dependencies: *image_dependencies,
+                        planes,
+                        color_space,
+                        format,
+                        rescale,
+                    },
+                    image_buffer_kind,
+                    update_params,
+                });
+            },
+            ExternalSurfaceDependency::Rgb{ flip_y, .. } => {
+
+                let image_buffer_kind = planes[0].texture.image_buffer_kind();
+
+                // Only propagate flip_y if the compositor doesn't support transforms,
+                // since otherwise it'll be handled as part of the transform.
+                self.external_surfaces.push(ResolvedExternalSurface {
+                    color_data: ResolvedExternalSurfaceColorData::Rgb {
+                        image_dependency: image_dependencies[0],
+                        plane: planes[0],
+                        flip_y: flip_y && !self.compositor_kind.supports_transforms(),
+                    },
+                    image_buffer_kind,
+                    update_params,
+                });
+            },
+        }
+        external_surface_index
     }
 
     /// Add a tile to the appropriate array, depending on tile properties and compositor mode.
@@ -941,6 +981,7 @@ pub trait Compositor {
     fn invalidate_tile(
         &mut self,
         _id: NativeTileId,
+        _valid_rect: DeviceIntRect
     ) {}
 
     /// Bind this surface such that WR can issue OpenGL commands
@@ -991,9 +1032,12 @@ pub trait Compositor {
     /// native surfaces have been added, thus it is safe to start compositing
     /// valid surfaces. The dirty rects array allows native compositors that
     /// support partial present to skip copying unchanged areas.
+    /// Optionally provides a set of rectangles for the areas known to be
+    /// opaque, this is currently only computed if the caller is SwCompositor.
     fn start_compositing(
         &mut self,
         _dirty_rects: &[DeviceIntRect],
+        _opaque_rects: &[DeviceIntRect],
     ) {}
 
     /// Commit any changes in the compositor tree for this frame. WR calls

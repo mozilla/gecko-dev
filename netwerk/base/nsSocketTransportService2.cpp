@@ -57,8 +57,6 @@ static Atomic<PRThread*, Relaxed> gSocketThread(nullptr);
 #define MAX_TIME_FOR_PR_CLOSE_DURING_SHUTDOWN \
   "network.sts.max_time_for_pr_close_during_shutdown"
 #define POLLABLE_EVENT_TIMEOUT "network.sts.pollable_event_timeout"
-#define ESNI_ENABLED "network.security.esni.enabled"
-#define ESNI_DISABLED_MITM "security.pki.mitm_detected"
 
 #define REPAIR_POLLABLE_EVENT_TIME 10
 
@@ -151,8 +149,6 @@ nsSocketTransportService::nsSocketTransportService()
       mPolling(false)
 #endif
       ,
-      mEsniEnabled(false),
-      mTrustedMitmDetected(false),
       mNotTrustedMitmDetected(false) {
   NS_ASSERTION(NS_IsMainThread(), "wrong thread");
 
@@ -745,8 +741,6 @@ static const char* gCallbackPrefs[] = {
     MAX_TIME_BETWEEN_TWO_POLLS,
     MAX_TIME_FOR_PR_CLOSE_DURING_SHUTDOWN,
     POLLABLE_EVENT_TIMEOUT,
-    ESNI_ENABLED,
-    ESNI_DISABLED_MITM,
     "network.socket.forcePort",
     nullptr,
 };
@@ -822,6 +816,13 @@ nsSocketTransportService::Shutdown(bool aXpcomShutdown) {
 
   if (mShuttingDown) {
     return NS_ERROR_UNEXPECTED;
+  }
+
+  {
+    auto observersCopy = mShutdownObservers;
+    for (auto& observer : observersCopy) {
+      observer->Observe();
+    }
   }
 
   // signal the socket thread to shutdown
@@ -1512,18 +1513,6 @@ nsresult nsSocketTransportService::UpdatePrefs() {
     mPollableEventTimeout = TimeDuration::FromSeconds(pollableEventTimeout);
   }
 
-  bool esniPref = false;
-  rv = Preferences::GetBool(ESNI_ENABLED, &esniPref);
-  if (NS_SUCCEEDED(rv)) {
-    mEsniEnabled = esniPref;
-  }
-
-  bool esniMitmPref = false;
-  rv = Preferences::GetBool(ESNI_DISABLED_MITM, &esniMitmPref);
-  if (NS_SUCCEEDED(rv)) {
-    mTrustedMitmDetected = esniMitmPref;
-  }
-
   nsAutoCString portMappingPref;
   rv = Preferences::GetCString("network.socket.forcePort", portMappingPref);
   if (NS_SUCCEEDED(rv)) {
@@ -1885,6 +1874,20 @@ void nsSocketTransportService::TryRepairPollableEvent() {
   mPollList[0].fd = mPollableEvent ? mPollableEvent->PollableFD() : nullptr;
   mPollList[0].in_flags = PR_POLL_READ | PR_POLL_EXCEPT;
   mPollList[0].out_flags = 0;
+}
+
+NS_IMETHODIMP
+nsSocketTransportService::AddShutdownObserver(
+    nsISTSShutdownObserver* aObserver) {
+  mShutdownObservers.AppendElement(aObserver);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSocketTransportService::RemoveShutdownObserver(
+    nsISTSShutdownObserver* aObserver) {
+  mShutdownObservers.RemoveElement(aObserver);
+  return NS_OK;
 }
 
 }  // namespace net

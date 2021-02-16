@@ -10,6 +10,7 @@ const { addDebuggerToGlobal } = ChromeUtils.import(
   "resource://gre/modules/jsdebugger.jsm",
   {}
 );
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 const { ContentProcessDomain } = ChromeUtils.import(
   "chrome://remote/content/domains/ContentProcessDomain.jsm"
@@ -21,6 +22,12 @@ const { executeSoon } = ChromeUtils.import("chrome://remote/content/Sync.jsm");
 
 // Import the `Debugger` constructor in the current scope
 addDebuggerToGlobal(Cu.getGlobalForObject(this));
+
+const OBSERVER_CONSOLE_API = "console-api-log-event";
+
+const CONSOLE_API_LEVEL_MAP = {
+  warn: "warning",
+};
 
 class SetMap extends Map {
   constructor() {
@@ -61,6 +68,7 @@ class Runtime extends ContentProcessDomain {
 
     this._onContextCreated = this._onContextCreated.bind(this);
     this._onContextDestroyed = this._onContextDestroyed.bind(this);
+
     // TODO Bug 1602083
     this.session.contextObserver.on("context-created", this._onContextCreated);
     this.session.contextObserver.on(
@@ -71,11 +79,13 @@ class Runtime extends ContentProcessDomain {
 
   destructor() {
     this.disable();
+
     this.session.contextObserver.off("context-created", this._onContextCreated);
     this.session.contextObserver.off(
       "context-destroyed",
       this._onContextDestroyed
     );
+
     super.destructor();
   }
 
@@ -84,6 +94,9 @@ class Runtime extends ContentProcessDomain {
   async enable() {
     if (!this.enabled) {
       this.enabled = true;
+
+      Services.console.registerListener(this);
+      Services.obs.addObserver(this, OBSERVER_CONSOLE_API);
 
       // Spin the event loop in order to send the `executionContextCreated` event right
       // after we replied to `enable` request.
@@ -100,6 +113,9 @@ class Runtime extends ContentProcessDomain {
   disable() {
     if (this.enabled) {
       this.enabled = false;
+
+      Services.console.unregisterListener(this);
+      Services.obs.removeObserver(this, OBSERVER_CONSOLE_API);
     }
   }
 
@@ -285,6 +301,29 @@ class Runtime extends ContentProcessDomain {
     return this.__debugger;
   }
 
+  _buildStackTrace(stack) {
+    const callFrames = [];
+
+    while (
+      stack &&
+      stack.source !== "debugger eval code" &&
+      !stack.source.startsWith("chrome://")
+    ) {
+      callFrames.push({
+        functionName: stack.functionDisplayName,
+        scriptId: stack.sourceId,
+        url: stack.source,
+        lineNumber: stack.line,
+        columnNumber: stack.column,
+      });
+      stack = stack.parent || stack.asyncParent;
+    }
+
+    return {
+      callFrames,
+    };
+  }
+
   _getRemoteObject(objectId) {
     for (const ctx of this.contexts.values()) {
       const debuggerObj = ctx.getRemoteObject(objectId);
@@ -346,6 +385,56 @@ class Runtime extends ContentProcessDomain {
       }
     }
     return frameContexts;
+  }
+
+  _emitConsoleAPICalled(payload) {
+    // Filter out messages that aren't coming from a valid inner window, or from
+    // a different browser tab. Also messages of type "time", which are not
+    // getting reported by Chrome.
+    const curBrowserId = this.session.browsingContext.browserId;
+    const win = Services.wm.getCurrentInnerWindowWithId(payload.innerWindowId);
+    if (
+      !win ||
+      BrowsingContext.getFromWindow(win).browserId != curBrowserId ||
+      payload.type === "time"
+    ) {
+      return;
+    }
+
+    const context = this._getDefaultContextForWindow();
+    this.emit("Runtime.consoleAPICalled", {
+      args: payload.arguments.map(arg => context._toRemoteObject(arg)),
+      executionContextId: context?.id || 0,
+      timestamp: payload.timestamp,
+      type: payload.type,
+      stackTrace: this._buildStackTrace(payload.stack),
+    });
+  }
+
+  _emitExceptionThrown(payload) {
+    // Filter out messages that aren't coming from a valid inner window, or from
+    // a different browser tab. Also messages of type "time", which are not
+    // getting reported by Chrome.
+    const curBrowserId = this.session.browsingContext.browserId;
+    const win = Services.wm.getCurrentInnerWindowWithId(payload.innerWindowId);
+    if (!win || BrowsingContext.getFromWindow(win).browserId != curBrowserId) {
+      return;
+    }
+
+    const context = this._getDefaultContextForWindow();
+    this.emit("Runtime.exceptionThrown", {
+      timestamp: payload.timestamp,
+      exceptionDetails: {
+        // Temporary placeholder to return a number.
+        exceptionId: 0,
+        text: payload.text,
+        lineNumber: payload.lineNumber,
+        columnNumber: payload.columnNumber,
+        url: payload.url,
+        stackTrace: this._buildStackTrace(payload.stack),
+        executionContextId: context?.id || undefined,
+      },
+    });
   }
 
   /**
@@ -475,4 +564,58 @@ class Runtime extends ContentProcessDomain {
       }
     }
   }
+
+  // nsIObserver
+
+  /**
+   * Takes a console message belonging to the current window and emits a
+   * "exceptionThrown" event if it's a Javascript error, otherwise a
+   * "consoleAPICalled" event.
+   *
+   * @param {nsIConsoleMessage} message
+   *     Console message.
+   */
+  observe(subject, topic, data) {
+    let entry;
+
+    if (topic == OBSERVER_CONSOLE_API) {
+      const message = subject.wrappedJSObject;
+      entry = fromConsoleAPI(message);
+      this._emitConsoleAPICalled(entry);
+    } else if (subject instanceof Ci.nsIScriptError && subject.hasException) {
+      entry = fromScriptError(subject);
+      this._emitExceptionThrown(entry);
+    }
+  }
+
+  // XPCOM
+
+  get QueryInterface() {
+    return ChromeUtils.generateQI(["nsIConsoleListener"]);
+  }
+}
+
+function fromConsoleAPI(message) {
+  // From sendConsoleAPIMessage (toolkit/modules/Console.jsm)
+  return {
+    arguments: message.arguments,
+    innerWindowId: message.innerID,
+    // TODO: Fetch the stack (Bug 1679981)
+    stack: undefined,
+    timestamp: message.timeStamp,
+    type: CONSOLE_API_LEVEL_MAP[message.level] || message.level,
+  };
+}
+
+function fromScriptError(error) {
+  // From dom/bindings/nsIScriptError.idl
+  return {
+    innerWindowId: error.innerWindowID,
+    columnNumber: error.columnNumber,
+    lineNumber: error.lineNumber,
+    stack: error.stack,
+    text: error.errorMessage,
+    timestamp: error.timeStamp,
+    url: error.sourceName,
+  };
 }

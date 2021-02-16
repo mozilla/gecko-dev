@@ -8,6 +8,7 @@
 #ifndef gc_Nursery_h
 #define gc_Nursery_h
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"
@@ -25,7 +26,6 @@
 #define FOR_EACH_NURSERY_PROFILE_TIME(_)      \
   /* Key                       Header text */ \
   _(Total, "total")                           \
-  _(CancelIonCompilations, "canIon")          \
   _(TraceValues, "mkVals")                    \
   _(TraceCells, "mkClls")                     \
   _(TraceSlots, "mkSlts")                     \
@@ -51,6 +51,7 @@ class JSDependentString;
 
 namespace js {
 
+struct StringStats;
 class AutoLockGCBgAlloc;
 class ObjectElements;
 class PlainObject;
@@ -70,7 +71,6 @@ class GCSchedulingTunables;
 class MinorCollectionTracer;
 class RelocationOverlay;
 class StringRelocationOverlay;
-struct TenureCountCache;
 enum class AllocKind : uint8_t;
 class TenuredCell;
 }  // namespace gc
@@ -81,30 +81,32 @@ class MacroAssembler;
 
 class NurseryDecommitTask : public GCParallelTask {
  public:
-  explicit NurseryDecommitTask(gc::GCRuntime* gc) : GCParallelTask(gc) {}
+  explicit NurseryDecommitTask(gc::GCRuntime* gc);
+  bool reserveSpaceForBytes(size_t nbytes);
+
+  bool isEmpty(const AutoLockHelperThreadState& lock) const;
 
   void queueChunk(NurseryChunk* chunk, const AutoLockHelperThreadState& lock);
-
-  // queueRange can also update the current to-decommit range of the
-  // current chunk.
   void queueRange(size_t newCapacity, NurseryChunk& chunk,
                   const AutoLockHelperThreadState& lock);
 
-  void run(AutoLockHelperThreadState& lock) override;
-  void decommitChunk(gc::Chunk* chunk);
-  void decommitRange(AutoLockHelperThreadState& lock);
-
  private:
-  // Use the next pointers in Chunk::info to form a singly-linked list.
-  MainThreadOrGCTaskData<gc::Chunk*> queue;
+  using NurseryChunkVector = Vector<NurseryChunk*, 0, SystemAllocPolicy>;
+
+  void run(AutoLockHelperThreadState& lock) override;
+
+  NurseryChunkVector& chunksToDecommit() { return chunksToDecommit_.ref(); }
+  const NurseryChunkVector& chunksToDecommit() const {
+    return chunksToDecommit_.ref();
+  }
+
+  MainThreadOrGCTaskData<NurseryChunkVector> chunksToDecommit_;
 
   MainThreadOrGCTaskData<NurseryChunk*> partialChunk;
   MainThreadOrGCTaskData<size_t> partialCapacity;
-
-  gc::Chunk* popChunk(const AutoLockHelperThreadState& lock);
 };
 
-class TenuringTracer : public JSTracer {
+class TenuringTracer final : public GenericTracer {
   friend class Nursery;
   Nursery& nursery_;
 
@@ -125,13 +127,24 @@ class TenuringTracer : public JSTracer {
 
   TenuringTracer(JSRuntime* rt, Nursery* nursery);
 
+  JSObject* onObjectEdge(JSObject* obj) override;
+  JSString* onStringEdge(JSString* str) override;
+  JS::Symbol* onSymbolEdge(JS::Symbol* sym) override;
+  JS::BigInt* onBigIntEdge(JS::BigInt* bi) override;
+  js::BaseScript* onScriptEdge(BaseScript* script) override;
+  js::Shape* onShapeEdge(Shape* shape) override;
+  js::RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
+  js::ObjectGroup* onObjectGroupEdge(ObjectGroup* group) override;
+  js::BaseShape* onBaseShapeEdge(BaseShape* base) override;
+  js::jit::JitCode* onJitCodeEdge(jit::JitCode* code) override;
+  js::Scope* onScopeEdge(Scope* scope) override;
+
  public:
   Nursery& nursery() { return nursery_; }
 
   template <typename T>
   void traverse(T** thingp);
-  template <typename T>
-  void traverse(T* thingp);
+  void traverse(JS::Value* thingp);
 
   // The store buffers need to be able to call these directly.
   void traceObject(JSObject* src);
@@ -180,9 +193,6 @@ class Nursery {
  public:
   static const size_t Alignment = gc::ChunkSize;
   static const size_t ChunkShift = gc::ChunkShift;
-
-  // SubChunkStep is the minimum amount to adjust the nursery's size by.
-  static const size_t SubChunkStep = gc::ArenaSize;
 
   using BufferRelocationOverlay = void*;
   using BufferSet = HashSet<void*, PointerHasher<void*>, SystemAllocPolicy>;
@@ -356,7 +366,7 @@ class Nursery {
   size_t capacity() const { return capacity_; }
   size_t committed() const { return spaceToEnd(allocatedChunkCount()); }
 
-  // Used and free space both include chunk trailers for that part of the
+  // Used and free space both include chunk headers for that part of the
   // nursery.
   //
   // usedSpace() + freeSpace() == capacity()
@@ -406,6 +416,8 @@ class Nursery {
   }
 
   bool shouldCollect() const;
+  bool isNearlyFull() const;
+  bool isUnderused() const;
 
   bool enableProfiling() const { return enableProfiling_; }
 
@@ -422,7 +434,7 @@ class Nursery {
 
   // The amount of space in the mapped nursery available to allocations.
   static const size_t NurseryChunkUsableSize =
-      gc::ChunkSize - gc::ChunkTrailerSize;
+      gc::ChunkSize - sizeof(gc::ChunkBase);
 
   void joinDecommitTask() { decommitTask.join(); }
 
@@ -464,8 +476,7 @@ class Nursery {
 
   // The current nursery capacity measured in bytes. It may grow up to this
   // value without a collection, allocating chunks on demand. This limit may be
-  // changed by maybeResizeNursery() each collection. It does not include chunk
-  // trailers.
+  // changed by maybeResizeNursery() each collection. It includes chunk headers.
   size_t capacity_;
 
   mozilla::TimeDuration timeInChunkAlloc_;
@@ -480,8 +491,8 @@ class Nursery {
   // Whether we will nursery-allocate BigInts.
   bool canAllocateBigInts_;
 
-  // Report ObjectGroups with at least this many instances tenured.
-  int64_t reportTenurings_;
+  // Report how many strings were deduplicated.
+  bool reportDeduplications_;
 
   // Whether and why a collection of this nursery has been requested. This is
   // mutable as it is set by the store buffer, which otherwise cannot modify
@@ -516,13 +527,12 @@ class Nursery {
     size_t nurseryUsedBytes = 0;
     size_t tenuredBytes = 0;
     size_t tenuredCells = 0;
+    mozilla::TimeStamp endTime;
   };
   PreviousGC previousGC;
 
-#ifndef JS_MORE_DETERMINISTIC
-  mozilla::TimeStamp lastResizeTime;
+  bool hasRecentGrowthData;
   double smoothedGrowthFactor;
-#endif
 
   // Calculate the promotion rate of the most recent minor GC.
   // The valid_for_tenuring parameter is used to return whether this
@@ -648,7 +658,7 @@ class Nursery {
 
   // extent is advisory, it will be ignored in sub-chunk and generational zeal
   // modes. It will be clamped to Min(NurseryChunkUsableSize, capacity_).
-  void poisonAndInitCurrentChunk(size_t extent = NurseryChunkUsableSize);
+  void poisonAndInitCurrentChunk(size_t extent = gc::ChunkSize);
 
   void setCurrentEnd();
   void setStartPosition();
@@ -682,17 +692,14 @@ class Nursery {
     size_t tenuredBytes;
     size_t tenuredCells;
   };
-  CollectionResult doCollection(JS::GCReason reason,
-                                gc::TenureCountCache& tenureCounts);
+  CollectionResult doCollection(JS::GCReason reason);
 
-  size_t doPretenuring(JSRuntime* rt, JS::GCReason reason,
-                       const gc::TenureCountCache& tenureCounts,
-                       bool highPromotionRate);
+  void doPretenuring(JSRuntime* rt, JS::GCReason reason,
+                     bool highPromotionRate);
 
   // Move the object at |src| in the Nursery to an already-allocated cell
   // |dst| in Tenured.
-  void collectToFixedPoint(TenuringTracer& trc,
-                           gc::TenureCountCache& tenureCounts);
+  void collectToFixedPoint(TenuringTracer& trc);
 
   // The dependent string chars needs to be relocated if the base which it's
   // using chars from has been deduplicated.
@@ -714,6 +721,10 @@ class Nursery {
   inline void setElementsForwardingPointer(ObjectElements* oldHeader,
                                            ObjectElements* newHeader,
                                            uint32_t capacity);
+
+#ifdef DEBUG
+  bool checkForwardingPointerLocation(void* ptr, bool expectedInside);
+#endif
 
   // Updates pointers to nursery objects that have been tenured and discards
   // pointers to objects that have been freed.
@@ -739,17 +750,19 @@ class Nursery {
   void freeChunksFrom(unsigned firstFreeChunk);
 
   void sendTelemetry(JS::GCReason reason, mozilla::TimeDuration totalTime,
-                     bool wasEmpty, size_t pretenureCount,
-                     double promotionRate);
+                     bool wasEmpty, double promotionRate);
 
   void printCollectionProfile(JS::GCReason reason, double promotionRate);
-  void printTenuringData(const gc::TenureCountCache& tenureCounts);
+  void printDeduplicationData(js::StringStats& prev, js::StringStats& curr);
 
   // Profile recording and printing.
   void maybeClearProfileDurations();
   void startProfile(ProfileKey key);
   void endProfile(ProfileKey key);
   static void printProfileDurations(const ProfileDurations& times);
+
+  mozilla::TimeStamp collectionStartTime() const;
+  mozilla::TimeStamp lastCollectionEndTime() const;
 
   friend class TenuringTracer;
   friend class gc::MinorCollectionTracer;

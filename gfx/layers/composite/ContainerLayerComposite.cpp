@@ -14,18 +14,20 @@
 #include "mozilla/RefPtr.h"      // for RefPtr
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_layers.h"
-#include "mozilla/UniquePtr.h"                      // for UniquePtr
-#include "mozilla/gfx/BaseRect.h"                   // for BaseRect
-#include "mozilla/gfx/Matrix.h"                     // for Matrix4x4
-#include "mozilla/gfx/Point.h"                      // for Point, IntPoint
-#include "mozilla/gfx/Rect.h"                       // for IntRect, Rect
-#include "mozilla/layers/APZSampler.h"              // for APZSampler
+#include "mozilla/UniquePtr.h"          // for UniquePtr
+#include "mozilla/gfx/BaseRect.h"       // for BaseRect
+#include "mozilla/gfx/Matrix.h"         // for Matrix4x4
+#include "mozilla/gfx/Point.h"          // for Point, IntPoint
+#include "mozilla/gfx/Rect.h"           // for IntRect, Rect
+#include "mozilla/layers/APZSampler.h"  // for APZSampler
+#include "mozilla/layers/BSPTree.h"
 #include "mozilla/layers/Compositor.h"              // for Compositor, etc
 #include "mozilla/layers/CompositorBridgeParent.h"  // for CompositorBridgeParent
 #include "mozilla/layers/CompositorTypes.h"  // for DiagnosticFlags::CONTAINER
 #include "mozilla/layers/Effects.h"          // for Effect, EffectChain, etc
 #include "mozilla/layers/TextureHost.h"      // for CompositingRenderTarget
 #include "mozilla/layers/APZUtils.h"         // for AsyncTransform
+#include "mozilla/layers/LayerManagerCompositeUtils.h"
 #include "mozilla/layers/LayerMetricsWrapper.h"  // for LayerMetricsWrapper
 #include "mozilla/layers/LayersHelpers.h"
 #include "mozilla/mozalloc.h"  // for operator delete, etc
@@ -39,10 +41,6 @@
 #include "TextRenderer.h"  // for TextRenderer
 #include <vector>
 #include "GeckoProfiler.h"  // for GeckoProfiler
-
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"  // for LayerTranslationMarkerPayload
-#endif
 
 static mozilla::LazyLogModule sGfxCullLog("gfx.culling");
 #define CULLING_LOG(...) MOZ_LOG(sGfxCullLog, LogLevel::Debug, (__VA_ARGS__))
@@ -103,9 +101,37 @@ static void PrintUniformityInfo(Layer* aLayer) {
   }
 
   Point translation = transform.As2D().GetTranslation();
-  PROFILER_ADD_MARKER_WITH_PAYLOAD("LayerTranslation", GRAPHICS,
-                                   LayerTranslationMarkerPayload,
-                                   (aLayer, translation, TimeStamp::Now()));
+
+  // Contains the translation applied to a 2d layer so we can track the layer
+  // position at each frame.
+  struct LayerTranslationMarker {
+    static constexpr Span<const char> MarkerTypeName() {
+      return MakeStringSpan("LayerTranslation");
+    }
+    static void StreamJSONMarkerData(
+        baseprofiler::SpliceableJSONWriter& aWriter,
+        ProfileBufferRawPointer<layers::Layer> aLayer, gfx::Point aPoint) {
+      const size_t bufferSize = 32;
+      char buffer[bufferSize];
+      SprintfLiteral(buffer, "%p", aLayer.mRawPointer);
+
+      aWriter.StringProperty("layer", buffer);
+      aWriter.IntProperty("x", aPoint.x);
+      aWriter.IntProperty("y", aPoint.y);
+    }
+    static MarkerSchema MarkerTypeDisplay() {
+      using MS = MarkerSchema;
+      MS schema{MS::Location::markerChart, MS::Location::markerTable};
+      schema.AddKeyLabelFormat("layer", "Layer", MS::Format::string);
+      schema.AddKeyLabelFormat("x", "X", MS::Format::integer);
+      schema.AddKeyLabelFormat("y", "Y", MS::Format::integer);
+      return schema;
+    }
+  };
+
+  profiler_add_marker("LayerTranslation", geckoprofiler::category::GRAPHICS, {},
+                      LayerTranslationMarker{},
+                      WrapProfileBufferRawPointer(aLayer), translation);
 #endif
 }
 

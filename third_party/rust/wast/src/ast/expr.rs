@@ -84,7 +84,9 @@ enum If<'a> {
 enum Try<'a> {
     /// Next thing to parse is the `do` block.
     Do(Instruction<'a>),
-    /// Next thing to parse is the `catch` block.
+    /// Next thing to parse is `catch`/`catch_all`, or `unwind`.
+    CatchOrUnwind,
+    /// Next thing to parse is a `catch` block or `catch_all`.
     Catch,
     /// This `try` statement has finished parsing and if anything remains it's a
     /// syntax error.
@@ -195,8 +197,10 @@ impl<'a> ExpressionParser<'a> {
                     Level::Try(Try::Do(_)) => {
                         return Err(parser.error("previous `try` had no `do`"));
                     }
-                    Level::Try(Try::Catch) => {
-                        return Err(parser.error("previous `try` had no `catch`"));
+                    Level::Try(Try::CatchOrUnwind) => {
+                        return Err(
+                            parser.error("previous `try` had no `catch`, `catch_all`, or `unwind`")
+                        );
                     }
                     Level::Try(_) => {
                         self.instrs.push(Instruction::End(None));
@@ -305,7 +309,7 @@ impl<'a> ExpressionParser<'a> {
     /// than an `if` as the syntactic form is:
     ///
     /// ```wat
-    /// (try (do $do) (catch $catch))
+    /// (try (do $do) (catch $event $catch))
     /// ```
     ///
     /// where the `do` and `catch` keywords are mandatory, even for an empty
@@ -328,7 +332,7 @@ impl<'a> ExpressionParser<'a> {
             if parser.parse::<Option<kw::r#do>>()?.is_some() {
                 // The state is advanced here only if the parse succeeds in
                 // order to strictly require the keyword.
-                *i = Try::Catch;
+                *i = Try::CatchOrUnwind;
                 self.stack.push(Level::TryArm);
                 return Ok(true);
             }
@@ -338,15 +342,48 @@ impl<'a> ExpressionParser<'a> {
             return Ok(false);
         }
 
-        // `catch` handled similar to `do`, including requiring the keyword.
-        if let Try::Catch = i {
-            self.instrs.push(Instruction::Catch);
+        // After a try's `do`, there are several possible kinds of handlers.
+        if let Try::CatchOrUnwind = i {
+            // `catch` may be followed by more `catch`s or `catch_all`.
             if parser.parse::<Option<kw::catch>>()?.is_some() {
+                let evt = parser.parse::<ast::Index<'a>>()?;
+                self.instrs.push(Instruction::Catch(evt));
+                *i = Try::Catch;
+                self.stack.push(Level::TryArm);
+                return Ok(true);
+            }
+            // `catch_all` can only come at the end and has no argument.
+            if parser.parse::<Option<kw::catch_all>>()?.is_some() {
+                self.instrs.push(Instruction::CatchAll);
+                *i = Try::End;
+                self.stack.push(Level::TryArm);
+                return Ok(true);
+            }
+            // `unwind` is similar to `catch_all`.
+            if parser.parse::<Option<kw::unwind>>()?.is_some() {
+                self.instrs.push(Instruction::Unwind);
                 *i = Try::End;
                 self.stack.push(Level::TryArm);
                 return Ok(true);
             }
             return Ok(false);
+        }
+
+        if let Try::Catch = i {
+            if parser.parse::<Option<kw::catch>>()?.is_some() {
+                let evt = parser.parse::<ast::Index<'a>>()?;
+                self.instrs.push(Instruction::Catch(evt));
+                *i = Try::Catch;
+                self.stack.push(Level::TryArm);
+                return Ok(true);
+            }
+            if parser.parse::<Option<kw::catch_all>>()?.is_some() {
+                self.instrs.push(Instruction::CatchAll);
+                *i = Try::End;
+                self.stack.push(Level::TryArm);
+                return Ok(true);
+            }
+            return Err(parser.error("unexpected items after `catch`"));
         }
 
         Err(parser.error("too many payloads inside of `(try)`"))
@@ -370,7 +407,6 @@ macro_rules! instructions {
                 $(#[$doc])*
                 $name $(( instructions!(@ty $($arg)*) ))?,
             )*
-
         }
 
         #[allow(non_snake_case)]
@@ -413,15 +449,33 @@ macro_rules! instructions {
                 }
             }
         }
+
+        impl<'a> Instruction<'a> {
+            /// Returns the associated [`MemArg`] if one is available for this
+            /// instruction.
+            #[allow(unused_variables, non_snake_case)]
+            pub fn memarg_mut(&mut self) -> Option<&mut MemArg<'a>> {
+                match self {
+                    $(
+                        Instruction::$name $((instructions!(@memarg_binding a $($arg)*)))? => {
+                            instructions!(@get_memarg a $($($arg)*)?)
+                        }
+                    )*
+                }
+            }
+        }
     );
 
     (@ty MemArg<$amt:tt>) => (MemArg<'a>);
+    (@ty LoadOrStoreLane<$amt:tt>) => (LoadOrStoreLane<'a>);
     (@ty $other:ty) => ($other);
 
     (@first $first:ident $($t:tt)*) => ($first);
 
     (@parse $parser:ident MemArg<$amt:tt>) => (MemArg::parse($parser, $amt));
     (@parse $parser:ident MemArg) => (compile_error!("must specify `MemArg` default"));
+    (@parse $parser:ident LoadOrStoreLane<$amt:tt>) => (LoadOrStoreLane::parse($parser, $amt));
+    (@parse $parser:ident LoadOrStoreLane) => (compile_error!("must specify `LoadOrStoreLane` default"));
     (@parse $parser:ident $other:ty) => ($parser.parse::<$other>());
 
     // simd opcodes prefixed with `0xfd` get a varuint32 encoding for their payload
@@ -430,6 +484,12 @@ macro_rules! instructions {
         <u32 as crate::binary::Encode>::encode(&$simd, $dst);
     });
     (@encode $dst:ident $($bytes:tt)*) => ($dst.extend_from_slice(&[$($bytes)*]););
+
+    (@get_memarg $name:ident MemArg<$amt:tt>) => (Some($name));
+    (@get_memarg $($other:tt)*) => (None);
+
+    (@memarg_binding $name:ident MemArg<$amt:tt>) => ($name);
+    (@memarg_binding $name:ident $other:ty) => (_);
 }
 
 instructions! {
@@ -446,11 +506,11 @@ instructions! {
         BrIf(ast::Index<'a>) : [0x0d] : "br_if",
         BrTable(BrTableIndices<'a>) : [0x0e] : "br_table",
         Return : [0x0f] : "return",
-        Call(ast::Index<'a>) : [0x10] : "call",
+        Call(ast::IndexOrRef<'a, kw::func>) : [0x10] : "call",
         CallIndirect(CallIndirect<'a>) : [0x11] : "call_indirect",
 
         // tail-call proposal
-        ReturnCall(ast::Index<'a>) : [0x12] : "return_call",
+        ReturnCall(ast::IndexOrRef<'a, kw::func>) : [0x12] : "return_call",
         ReturnCallIndirect(CallIndirect<'a>) : [0x13] : "return_call_indirect",
 
         // function-references proposal
@@ -464,8 +524,8 @@ instructions! {
         LocalGet(ast::Index<'a>) : [0x20] : "local.get" | "get_local",
         LocalSet(ast::Index<'a>) : [0x21] : "local.set" | "set_local",
         LocalTee(ast::Index<'a>) : [0x22] : "local.tee" | "tee_local",
-        GlobalGet(ast::Index<'a>) : [0x23] : "global.get" | "get_global",
-        GlobalSet(ast::Index<'a>) : [0x24] : "global.set" | "set_global",
+        GlobalGet(ast::IndexOrRef<'a, kw::global>) : [0x23] : "global.get" | "get_global",
+        GlobalSet(ast::IndexOrRef<'a, kw::global>) : [0x24] : "global.set" | "set_global",
 
         TableGet(TableArg<'a>) : [0x25] : "table.get",
         TableSet(TableArg<'a>) : [0x26] : "table.set",
@@ -511,7 +571,7 @@ instructions! {
         RefNull(HeapType<'a>) : [0xd0] : "ref.null",
         RefIsNull : [0xd1] : "ref.is_null",
         RefExtern(u32) : [0xff] : "ref.extern", // only used in test harness
-        RefFunc(ast::Index<'a>) : [0xd2] : "ref.func",
+        RefFunc(ast::IndexOrRef<'a, kw::func>) : [0xd2] : "ref.func",
 
         // function-references proposal
         RefAsNonNull : [0xd3] : "ref.as_non_null",
@@ -876,10 +936,18 @@ instructions! {
         V128Or : [0xfd, 0x50] : "v128.or",
         V128Xor : [0xfd, 0x51] : "v128.xor",
         V128Bitselect : [0xfd, 0x52] : "v128.bitselect",
+        V128Load8Lane(LoadOrStoreLane<1>) : [0xfd, 0x58] : "v128.load8_lane",
+        V128Load16Lane(LoadOrStoreLane<2>) : [0xfd, 0x59] : "v128.load16_lane",
+        V128Load32Lane(LoadOrStoreLane<4>) : [0xfd, 0x5a] : "v128.load32_lane",
+        V128Load64Lane(LoadOrStoreLane<8>): [0xfd, 0x5b] : "v128.load64_lane",
+        V128Store8Lane(LoadOrStoreLane<1>) : [0xfd, 0x5c] : "v128.store8_lane",
+        V128Store16Lane(LoadOrStoreLane<2>) : [0xfd, 0x5d] : "v128.store16_lane",
+        V128Store32Lane(LoadOrStoreLane<4>) : [0xfd, 0x5e] : "v128.store32_lane",
+        V128Store64Lane(LoadOrStoreLane<8>) : [0xfd, 0x5f] : "v128.store64_lane",
 
         I8x16Abs : [0xfd, 0x60] : "i8x16.abs",
         I8x16Neg : [0xfd, 0x61] : "i8x16.neg",
-        I8x16AnyTrue : [0xfd, 0x62] : "i8x16.any_true",
+        V128AnyTrue : [0xfd, 0x62] : "v128.any_true",
         I8x16AllTrue : [0xfd, 0x63] : "i8x16.all_true",
         I8x16Bitmask : [0xfd, 0x64] : "i8x16.bitmask",
         I8x16NarrowI16x8S : [0xfd, 0x65] : "i8x16.narrow_i16x8_s",
@@ -901,7 +969,6 @@ instructions! {
 
         I16x8Abs : [0xfd, 0x80] : "i16x8.abs",
         I16x8Neg : [0xfd, 0x81] : "i16x8.neg",
-        I16x8AnyTrue : [0xfd, 0x82] : "i16x8.any_true",
         I16x8AllTrue : [0xfd, 0x83] : "i16x8.all_true",
         I16x8Bitmask : [0xfd, 0x84] : "i16x8.bitmask",
         I16x8NarrowI32x4S : [0xfd, 0x85] : "i16x8.narrow_i32x4_s",
@@ -924,17 +991,21 @@ instructions! {
         I16x8MinU : [0xfd, 0x97] : "i16x8.min_u",
         I16x8MaxS : [0xfd, 0x98] : "i16x8.max_s",
         I16x8MaxU : [0xfd, 0x99] : "i16x8.max_u",
+        I16x8ExtMulLowI8x16S : [0xfd, 0x9a] : "i16x8.extmul_low_i8x16_s",
         I16x8AvgrU : [0xfd, 0x9b] : "i16x8.avgr_u",
+        I16x8Q15MulrSatS : [0xfd, 0x9c] : "i16x8.q15mulr_sat_s",
+        I16x8ExtMulHighI8x16S : [0xfd, 0x9d] : "i16x8.extmul_high_i8x16_s",
+        I16x8ExtMulLowI8x16U : [0xfd, 0x9e] : "i16x8.extmul_low_i8x16_u",
+        I16x8ExtMulHighI8x16U : [0xfd, 0x9f] : "i16x8.extmul_high_i8x16_u",
 
         I32x4Abs : [0xfd, 0xa0] : "i32x4.abs",
         I32x4Neg : [0xfd, 0xa1] : "i32x4.neg",
-        I32x4AnyTrue : [0xfd, 0xa2] : "i32x4.any_true",
         I32x4AllTrue : [0xfd, 0xa3] : "i32x4.all_true",
         I32x4Bitmask : [0xfd, 0xa4] : "i32x4.bitmask",
         I32x4WidenLowI16x8S : [0xfd, 0xa7] : "i32x4.widen_low_i16x8_s",
         I32x4WidenHighI16x8S : [0xfd, 0xa8] : "i32x4.widen_high_i16x8_s",
         I32x4WidenLowI16x8U : [0xfd, 0xa9] : "i32x4.widen_low_i16x8_u",
-        I32x4WidenHighI16x8u : [0xfd, 0xaa] : "i32x4.widen_high_i16x8_u",
+        I32x4WidenHighI16x8U : [0xfd, 0xaa] : "i32x4.widen_high_i16x8_u",
         I32x4Shl : [0xfd, 0xab] : "i32x4.shl",
         I32x4ShrS : [0xfd, 0xac] : "i32x4.shr_s",
         I32x4ShrU : [0xfd, 0xad] : "i32x4.shr_u",
@@ -946,14 +1017,27 @@ instructions! {
         I32x4MaxS : [0xfd, 0xb8] : "i32x4.max_s",
         I32x4MaxU : [0xfd, 0xb9] : "i32x4.max_u",
         I32x4DotI16x8S : [0xfd, 0xba] : "i32x4.dot_i16x8_s",
+        I32x4ExtMulLowI16x8S : [0xfd, 0xbb] : "i32x4.extmul_low_i16x8_s",
+        I32x4ExtMulHighI16x8S : [0xfd, 0xbd] : "i32x4.extmul_high_i16x8_s",
+        I32x4ExtMulLowI16x8U : [0xfd, 0xbe] : "i32x4.extmul_low_i16x8_u",
+        I32x4ExtMulHighI16x8U : [0xfd, 0xbf] : "i32x4.extmul_high_i16x8_u",
 
         I64x2Neg : [0xfd, 0xc1] : "i64x2.neg",
         I64x2Shl : [0xfd, 0xcb] : "i64x2.shl",
+        I64x2Bitmask : [0xfd, 0xc4] : "i64x2.bitmask",
+        I64x2WidenLowI32x4S : [0xfd, 0xc7] : "i64x2.widen_low_i32x4_s",
+        I64x2WidenHighI32x4S : [0xfd, 0xc8] : "i64x2.widen_high_i32x4_s",
+        I64x2WidenLowI32x4U : [0xfd, 0xc9] : "i64x2.widen_low_i32x4_u",
+        I64x2WidenHighI32x4U : [0xfd, 0xca] : "i64x2.widen_high_i32x4_u",
         I64x2ShrS : [0xfd, 0xcc] : "i64x2.shr_s",
         I64x2ShrU : [0xfd, 0xcd] : "i64x2.shr_u",
         I64x2Add : [0xfd, 0xce] : "i64x2.add",
         I64x2Sub : [0xfd, 0xd1] : "i64x2.sub",
+        I64x2ExtMulLowI32x4S : [0xfd, 0xd2] : "i64x2.extmul_low_i32x4_s",
+        I64x2ExtMulHighI32x4S : [0xfd, 0xd3] : "i64x2.extmul_high_i32x4_s",
         I64x2Mul : [0xfd, 0xd5] : "i64x2.mul",
+        I64x2ExtMulLowI32x4U : [0xfd, 0xd6] : "i64x2.extmul_low_i32x4_u",
+        I64x2ExtMulHighI32x4U : [0xfd, 0xd7] : "i64x2.extmul_high_i32x4_u",
 
         F32x4Ceil : [0xfd, 0xd8] : "f32x4.ceil",
         F32x4Floor : [0xfd, 0xd9] : "f32x4.floor",
@@ -997,11 +1081,12 @@ instructions! {
         V128Load64Zero(MemArg<8>) : [0xfd, 0xfd] : "v128.load64_zero",
 
         // Exception handling proposal
+        CatchAll : [0x05] : "catch_all", // Reuses the else opcode.
         Try(BlockType<'a>) : [0x06] : "try",
-        Catch : [0x07] : "catch",
+        Catch(ast::Index<'a>) : [0x07] : "catch",
         Throw(ast::Index<'a>) : [0x08] : "throw",
-        Rethrow : [0x09] : "rethrow",
-        BrOnExn(BrOnExn<'a>) : [0x0a] : "br_on_exn",
+        Rethrow(ast::Index<'a>) : [0x09] : "rethrow",
+        Unwind : [0x0a] : "unwind",
     }
 }
 
@@ -1120,7 +1205,7 @@ pub struct MemArg<'a> {
     /// The offset, in bytes of this access.
     pub offset: u32,
     /// The memory index we're accessing
-    pub memory: ast::Index<'a>,
+    pub memory: ast::ItemRef<'a, kw::memory>,
 }
 
 impl<'a> MemArg<'a> {
@@ -1155,8 +1240,8 @@ impl<'a> MemArg<'a> {
             })
         }
         let memory = parser
-            .parse::<Option<_>>()?
-            .unwrap_or(ast::Index::Num(0, parser.prev_span()));
+            .parse::<Option<ast::ItemRef<'a, kw::memory>>>()?
+            .unwrap_or(idx_zero(parser.prev_span(), kw::memory));
         let offset = parse_field("offset", parser)?.unwrap_or(0);
         let align = match parse_field("align", parser)? {
             Some(n) if !n.is_power_of_two() => {
@@ -1173,11 +1258,37 @@ impl<'a> MemArg<'a> {
     }
 }
 
+fn idx_zero<T>(span: ast::Span, mk_kind: fn(ast::Span) -> T) -> ast::ItemRef<'static, T> {
+    ast::ItemRef::Item {
+        kind: mk_kind(span),
+        idx: ast::Index::Num(0, span),
+        exports: Vec::new(),
+    }
+}
+
+/// Extra data associated with the `loadN_lane` and `storeN_lane` instructions.
+#[derive(Debug)]
+pub struct LoadOrStoreLane<'a> {
+    /// The memory argument for this instruction.
+    pub memarg: MemArg<'a>,
+    /// The lane argument for this instruction.
+    pub lane: LaneArg
+}
+
+impl<'a> LoadOrStoreLane<'a> {
+    fn parse(parser: Parser<'a>, default_align: u32) -> Result<Self> {
+        Ok(LoadOrStoreLane {
+            memarg: MemArg::parse(parser, default_align)?,
+            lane: LaneArg::parse(parser)?
+        })
+    }
+}
+
 /// Extra data associated with the `call_indirect` instruction.
 #[derive(Debug)]
 pub struct CallIndirect<'a> {
     /// The table that this call is going to be indexing.
-    pub table: ast::Index<'a>,
+    pub table: ast::ItemRef<'a, kw::table>,
     /// Type type signature that this `call_indirect` instruction is using.
     pub ty: ast::TypeUse<'a, ast::FunctionType<'a>>,
 }
@@ -1185,7 +1296,7 @@ pub struct CallIndirect<'a> {
 impl<'a> Parse<'a> for CallIndirect<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
         let prev_span = parser.prev_span();
-        let mut table: Option<_> = parser.parse()?;
+        let mut table: Option<ast::IndexOrRef<_>> = parser.parse()?;
         let ty = parser.parse::<ast::TypeUse<'a, ast::FunctionTypeNoNames<'a>>>()?;
         // Turns out the official test suite at this time thinks table
         // identifiers comes first but wabt's test suites asserts differently
@@ -1194,7 +1305,7 @@ impl<'a> Parse<'a> for CallIndirect<'a> {
             table = parser.parse()?;
         }
         Ok(CallIndirect {
-            table: table.unwrap_or(ast::Index::Num(0, prev_span)),
+            table: table.map(|i| i.0).unwrap_or(idx_zero(prev_span, kw::table)),
             ty: ty.into(),
         })
     }
@@ -1204,7 +1315,7 @@ impl<'a> Parse<'a> for CallIndirect<'a> {
 #[derive(Debug)]
 pub struct TableInit<'a> {
     /// The index of the table we're copying into.
-    pub table: ast::Index<'a>,
+    pub table: ast::ItemRef<'a, kw::table>,
     /// The index of the element segment we're copying into a table.
     pub elem: ast::Index<'a>,
 }
@@ -1212,11 +1323,13 @@ pub struct TableInit<'a> {
 impl<'a> Parse<'a> for TableInit<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
         let prev_span = parser.prev_span();
-        let table_or_elem = parser.parse()?;
-        let (table, elem) = match parser.parse()? {
-            Some(elem) => (table_or_elem, elem),
-            None => (ast::Index::Num(0, prev_span), table_or_elem),
-        };
+        let (elem, table) =
+            if parser.peek::<ast::ItemRef<kw::table>>() || parser.peek2::<ast::Index>() {
+                let table = parser.parse::<ast::IndexOrRef<_>>()?.0;
+                (parser.parse()?, table)
+            } else {
+                (parser.parse()?, idx_zero(prev_span, kw::table))
+            };
         Ok(TableInit { table, elem })
     }
 }
@@ -1225,18 +1338,19 @@ impl<'a> Parse<'a> for TableInit<'a> {
 #[derive(Debug)]
 pub struct TableCopy<'a> {
     /// The index of the destination table to copy into.
-    pub dst: ast::Index<'a>,
+    pub dst: ast::ItemRef<'a, kw::table>,
     /// The index of the source table to copy from.
-    pub src: ast::Index<'a>,
+    pub src: ast::ItemRef<'a, kw::table>,
 }
 
 impl<'a> Parse<'a> for TableCopy<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
-        let (dst, src) = if let Some(dst) = parser.parse()? {
-            (dst, parser.parse()?)
-        } else {
-            let span = parser.prev_span();
-            (ast::Index::Num(0, span), ast::Index::Num(0, span))
+        let (dst, src) = match parser.parse::<Option<ast::IndexOrRef<_>>>()? {
+            Some(dst) => (dst.0, parser.parse::<ast::IndexOrRef<_>>()?.0),
+            None => (
+                idx_zero(parser.prev_span(), kw::table),
+                idx_zero(parser.prev_span(), kw::table),
+            ),
         };
         Ok(TableCopy { dst, src })
     }
@@ -1246,15 +1360,15 @@ impl<'a> Parse<'a> for TableCopy<'a> {
 #[derive(Debug)]
 pub struct TableArg<'a> {
     /// The index of the table argument.
-    pub dst: ast::Index<'a>,
+    pub dst: ast::ItemRef<'a, kw::table>,
 }
 
 impl<'a> Parse<'a> for TableArg<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
-        let dst = if let Some(dst) = parser.parse()? {
-            dst
+        let dst = if let Some(dst) = parser.parse::<Option<ast::IndexOrRef<_>>>()? {
+            dst.0
         } else {
-            ast::Index::Num(0, parser.prev_span())
+            idx_zero(parser.prev_span(), kw::table)
         };
         Ok(TableArg { dst })
     }
@@ -1264,15 +1378,15 @@ impl<'a> Parse<'a> for TableArg<'a> {
 #[derive(Debug)]
 pub struct MemoryArg<'a> {
     /// The index of the memory space.
-    pub mem: ast::Index<'a>,
+    pub mem: ast::ItemRef<'a, kw::memory>,
 }
 
 impl<'a> Parse<'a> for MemoryArg<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
-        let mem = if let Some(mem) = parser.parse()? {
-            mem
+        let mem = if let Some(mem) = parser.parse::<Option<ast::IndexOrRef<_>>>()? {
+            mem.0
         } else {
-            ast::Index::Num(0, parser.prev_span())
+            idx_zero(parser.prev_span(), kw::memory)
         };
         Ok(MemoryArg { mem })
     }
@@ -1284,15 +1398,16 @@ pub struct MemoryInit<'a> {
     /// The index of the data segment we're copying into memory.
     pub data: ast::Index<'a>,
     /// The index of the memory we're copying into,
-    pub mem: ast::Index<'a>,
+    pub mem: ast::ItemRef<'a, kw::memory>,
 }
 
 impl<'a> Parse<'a> for MemoryInit<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
         let data = parser.parse()?;
         let mem = parser
-            .parse::<Option<_>>()?
-            .unwrap_or(ast::Index::Num(0, parser.prev_span()));
+            .parse::<Option<ast::IndexOrRef<_>>>()?
+            .map(|i| i.0)
+            .unwrap_or(idx_zero(parser.prev_span(), kw::memory));
         Ok(MemoryInit { data, mem })
     }
 }
@@ -1301,19 +1416,19 @@ impl<'a> Parse<'a> for MemoryInit<'a> {
 #[derive(Debug)]
 pub struct MemoryCopy<'a> {
     /// The index of the memory we're copying from.
-    pub src: ast::Index<'a>,
+    pub src: ast::ItemRef<'a, kw::memory>,
     /// The index of the memory we're copying to.
-    pub dst: ast::Index<'a>,
+    pub dst: ast::ItemRef<'a, kw::memory>,
 }
 
 impl<'a> Parse<'a> for MemoryCopy<'a> {
     fn parse(parser: Parser<'a>) -> Result<Self> {
-        let (src, dst) = match parser.parse()? {
-            Some(dst) => (parser.parse()?, dst),
-            None => {
-                let idx = ast::Index::Num(0, parser.prev_span());
-                (idx, idx)
-            }
+        let (src, dst) = match parser.parse::<Option<ast::IndexOrRef<_>>>()? {
+            Some(dst) => (parser.parse::<ast::IndexOrRef<_>>()?.0, dst.0),
+            None => (
+                idx_zero(parser.prev_span(), kw::memory),
+                idx_zero(parser.prev_span(), kw::memory),
+            ),
         };
         Ok(MemoryCopy { src, dst })
     }

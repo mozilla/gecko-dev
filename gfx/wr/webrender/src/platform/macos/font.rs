@@ -19,7 +19,7 @@ use core_graphics::geometry::{CGAffineTransform, CGPoint, CGSize};
 use core_graphics::geometry::{CG_AFFINE_TRANSFORM_IDENTITY, CGRect};
 use core_text::{self, font_descriptor::CTFontDescriptorCreateCopyWithAttributes};
 use core_text::font::{CTFont, CTFontRef};
-use core_text::font_descriptor::CTFontDescriptor;
+use core_text::font_descriptor::{CTFontDescriptor, CTFontSymbolicTraits};
 use core_text::font_descriptor::{kCTFontDefaultOrientation, kCTFontColorGlyphsTrait};
 use euclid::default::Size2D;
 use crate::gamma_lut::{ColorLut, GammaLut};
@@ -41,7 +41,11 @@ enum DescOrFont {
 
 pub struct FontContext {
     desc_or_fonts: FastHashMap<FontKey, DescOrFont>,
-    ct_fonts: FastHashMap<(FontKey, FontSize, Vec<FontVariation>), CTFont>,
+    // Table mapping a sized font key with variations to its instantiated CoreText font.
+    // We also cache the symbolic traits for the given CT font when it is instantiated.
+    // This avoids an expensive bottleneck accessing the symbolic traits every time we
+    // need to rasterize a glyph or access its dimensions.
+    ct_fonts: FastHashMap<(FontKey, FontSize, Vec<FontVariation>), (CTFont, CTFontSymbolicTraits)>,
     #[allow(dead_code)]
     graphics_context: GraphicsContext,
     #[allow(dead_code)]
@@ -103,12 +107,17 @@ fn determine_font_smoothing_mode() -> Option<FontRenderMode> {
     gray_context.set_should_smooth_fonts(false);
     gray_context.set_should_antialias(true);
     gray_context.set_rgb_fill_color(1.0, 1.0, 1.0, 1.0);
-    // Lucida Grande 12 is the default fallback font in Firefox
-    let ct_font = core_text::font::new_from_name("Lucida Grande", 12.).unwrap();
-    let point = CGPoint { x: 0., y: 0. };
-    let glyph = 'X' as CGGlyph;
-    ct_font.draw_glyphs(&[glyph], &[point], smooth_context.clone());
-    ct_font.draw_glyphs(&[glyph], &[point], gray_context.clone());
+
+    // Autorelease pool for CTFont
+    objc::rc::autoreleasepool(|| {
+        // Lucida Grande 12 is the default fallback font in Firefox
+        let ct_font = core_text::font::new_from_name("Lucida Grande", 12.).unwrap();
+        let point = CGPoint { x: 0., y: 0. };
+        let glyph = 'X' as CGGlyph;
+        ct_font.draw_glyphs(&[glyph], &[point], smooth_context.clone());
+        ct_font.draw_glyphs(&[glyph], &[point], gray_context.clone());
+    });
+
     let mut mode = None;
     for (smooth, gray) in smooth_context.data().chunks(4).zip(gray_context.data().chunks(4)) {
         if smooth[0] != smooth[1] || smooth[1] != smooth[2] {
@@ -339,8 +348,7 @@ fn new_ct_font_with_variations(desc_or_font: &DescOrFont, size: f64, variations:
     }
 }
 
-fn is_bitmap_font(ct_font: &CTFont) -> bool {
-    let traits = ct_font.symbolic_traits();
+fn is_bitmap_font(traits: CTFontSymbolicTraits) -> bool {
     (traits & kCTFontColorGlyphsTrait) != 0
 }
 
@@ -417,16 +425,20 @@ impl FontContext {
         font_key: FontKey,
         size: f64,
         variations: &[FontVariation],
-    ) -> Option<CTFont> {
-        match self.ct_fonts.entry((font_key, FontSize::from_f64_px(size), variations.to_vec())) {
-            Entry::Occupied(entry) => Some((*entry.get()).clone()),
-            Entry::Vacant(entry) => {
-                let desc_or_font = self.desc_or_fonts.get(&font_key)?;
-                let ct_font = new_ct_font_with_variations(desc_or_font, size, variations);
-                entry.insert(ct_font.clone());
-                Some(ct_font)
+    ) -> Option<(CTFont, CTFontSymbolicTraits)> {
+        // Interacting with CoreText can create autorelease garbage.
+        objc::rc::autoreleasepool(|| {
+            match self.ct_fonts.entry((font_key, FontSize::from_f64_px(size), variations.to_vec())) {
+                Entry::Occupied(entry) => Some((*entry.get()).clone()),
+                Entry::Vacant(entry) => {
+                    let desc_or_font = self.desc_or_fonts.get(&font_key)?;
+                    let ct_font = new_ct_font_with_variations(desc_or_font, size, variations);
+                    let traits = ct_font.symbolic_traits();
+                    entry.insert((ct_font.clone(), traits));
+                    Some((ct_font, traits))
+                }
             }
-        }
+        })
     }
 
     pub fn get_glyph_index(&mut self, font_key: FontKey, ch: char) -> Option<u32> {
@@ -434,7 +446,7 @@ impl FontContext {
         let mut glyph = 0;
 
         self.get_ct_font(font_key, 16.0, &[])
-            .and_then(|ref ct_font| {
+            .and_then(|(ct_font, _)| {
                 unsafe {
                     let result = ct_font.get_glyphs_for_characters(&character, &mut glyph, 1);
 
@@ -455,9 +467,9 @@ impl FontContext {
         let (x_scale, y_scale) = font.transform.compute_scale().unwrap_or((1.0, 1.0));
         let size = font.size.to_f64_px() * y_scale;
         self.get_ct_font(font.font_key, size, &font.variations)
-            .and_then(|ref ct_font| {
+            .and_then(|(ct_font, traits)| {
                 let glyph = key.index() as CGGlyph;
-                let bitmap = is_bitmap_font(ct_font);
+                let bitmap = is_bitmap_font(traits);
                 let (mut shape, (x_offset, y_offset)) = if bitmap {
                     (FontTransform::identity(), (0.0, 0.0))
                 } else {
@@ -498,7 +510,7 @@ impl FontContext {
                 };
                 let extra_strikes = font.get_extra_strikes(strike_scale);
                 let metrics = get_glyph_metrics(
-                    ct_font,
+                    &ct_font,
                     transform.as_ref(),
                     glyph,
                     x_offset,
@@ -604,10 +616,12 @@ impl FontContext {
     }
 
     pub fn rasterize_glyph(&mut self, font: &FontInstance, key: &GlyphKey) -> GlyphRasterResult {
+        objc::rc::autoreleasepool(|| {
         let (x_scale, y_scale) = font.transform.compute_scale().unwrap_or((1.0, 1.0));
         let size = font.size.to_f64_px() * y_scale;
-        let ct_font = self.get_ct_font(font.font_key, size, &font.variations).ok_or(GlyphRasterError::LoadFailed)?;
-        let glyph_type = if is_bitmap_font(&ct_font) {
+        let (ct_font, traits) =
+            self.get_ct_font(font.font_key, size, &font.variations).ok_or(GlyphRasterError::LoadFailed)?;
+        let glyph_type = if is_bitmap_font(traits) {
             GlyphType::Bitmap
         } else {
             GlyphType::Vector
@@ -846,7 +860,7 @@ impl FontContext {
                 GlyphType::Vector => font.get_glyph_format(),
             },
             bytes: rasterized_pixels,
-        })
+        })})
     }
 }
 

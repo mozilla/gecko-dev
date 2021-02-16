@@ -9,11 +9,12 @@
 
 #include "prmon.h"
 
-#ifdef MOZILLA_INTERNAL_API
+#if defined(MOZILLA_INTERNAL_API) && !defined(DEBUG)
 #  include "GeckoProfiler.h"
-#endif  // MOZILLA_INTERNAL_API
+#endif  // defined( MOZILLA_INTERNAL_API) && !defined(DEBUG)
 
 #include "mozilla/BlockingResourceBase.h"
+#include "nsISupports.h"
 
 //
 // Provides:

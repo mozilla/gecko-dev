@@ -2,8 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
+import six
 import os
 from argparse import Namespace
 from collections import defaultdict
@@ -29,7 +30,7 @@ def get_active_tests(setup_test_harness, parser):
         opts.update(kwargs)
 
         manifest = opts.get("manifestFile")
-        if isinstance(manifest, basestring):
+        if isinstance(manifest, six.string_types):
             md.testRootAbs = os.path.dirname(manifest)
         elif isinstance(manifest, TestManifest):
             md.testRootAbs = manifest.rootdir
@@ -46,7 +47,8 @@ def create_manifest(tmpdir, build_obj):
     def inner(string, name="manifest.ini"):
         manifest = tmpdir.join(name)
         manifest.write(string, ensure=True)
-        path = unicode(manifest)
+        # pylint --py3k: W1612
+        path = six.text_type(manifest)
         return TestManifest(manifests=(path,), strict=False, rootdir=tmpdir.strpath)
 
     return inner

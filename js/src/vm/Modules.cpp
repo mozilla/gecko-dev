@@ -73,6 +73,18 @@ JS_PUBLIC_API void JS::SetModuleDynamicImportHook(
 }
 
 JS_PUBLIC_API bool JS::FinishDynamicModuleImport(
+    JSContext* cx, Handle<JSObject*> evaluationPromise,
+    Handle<Value> referencingPrivate, Handle<JSString*> specifier,
+    Handle<JSObject*> promise) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  cx->check(referencingPrivate, promise);
+
+  return js::FinishDynamicModuleImport(cx, evaluationPromise,
+                                       referencingPrivate, specifier, promise);
+}
+
+JS_PUBLIC_API bool JS::FinishDynamicModuleImport_NoTLA(
     JSContext* cx, JS::DynamicImportStatus status,
     Handle<Value> referencingPrivate, Handle<JSString*> specifier,
     Handle<JSObject*> promise) {
@@ -80,8 +92,8 @@ JS_PUBLIC_API bool JS::FinishDynamicModuleImport(
   CHECK_THREAD(cx);
   cx->check(referencingPrivate, promise);
 
-  return js::FinishDynamicModuleImport(cx, status, referencingPrivate,
-                                       specifier, promise);
+  return js::FinishDynamicModuleImport_NoTLA(cx, status, referencingPrivate,
+                                             specifier, promise);
 }
 
 template <typename Unit>
@@ -126,12 +138,22 @@ JS_PUBLIC_API bool JS::ModuleInstantiate(JSContext* cx,
 }
 
 JS_PUBLIC_API bool JS::ModuleEvaluate(JSContext* cx,
-                                      Handle<JSObject*> moduleArg) {
+                                      Handle<JSObject*> moduleRecord,
+                                      MutableHandle<JS::Value> rval) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
-  cx->releaseCheck(moduleArg);
+  cx->releaseCheck(moduleRecord);
 
-  return ModuleObject::Evaluate(cx, moduleArg.as<ModuleObject>());
+  return ModuleObject::Evaluate(cx, moduleRecord.as<ModuleObject>(), rval);
+}
+
+JS_PUBLIC_API bool JS::ThrowOnModuleEvaluationFailure(
+    JSContext* cx, Handle<JSObject*> evaluationPromise) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  cx->releaseCheck(evaluationPromise);
+
+  return js::OnModuleEvaluationFailure(cx, evaluationPromise);
 }
 
 JS_PUBLIC_API JSObject* JS::GetRequestedModules(JSContext* cx,

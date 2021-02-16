@@ -175,6 +175,26 @@ def fission_filter(task):
 
 
 TEST_VARIANTS = {
+    "a11y-checks": {
+        "description": "{description} with accessibility checks enabled",
+        "suffix": "a11y-checks",
+        "replace": {
+            "run-on-projects": {
+                "by-test-platform": {
+                    "linux.*64(-shippable)?/opt": ["trunk"],
+                    "default": [],
+                },
+            },
+            "tier": 2,
+        },
+        "merge": {
+            "mozharness": {
+                "extra-options": [
+                    "--enable-a11y-checks",
+                ],
+            },
+        },
+    },
     "geckoview-e10s-single": {
         "description": "{description} with single-process e10s",
         "filterfn": gv_e10s_filter,
@@ -286,12 +306,13 @@ TEST_VARIANTS = {
         },
     },
     "webgl-ipc": {
-        # TODO: After November 1st 2020, verify this variant is still needed.
+        # TODO: After 2021-02-01, verify this variant is still needed.
         "description": "{description} with WebGL IPC process enabled",
         "suffix": "gli",
         "replace": {
             "run-on-projects": {
                 "by-test-platform": {
+                    "linux.*-64.*": ["trunk"],
                     "mac.*": ["trunk"],
                     "win.*": ["trunk"],
                     "default": [],
@@ -571,6 +592,8 @@ test_description_schema = Schema(
         Optional("fetches"): {
             text_type: optionally_keyed_by("test-platform", [text_type])
         },
+        # Opt-in to Python 3 support
+        Optional("python-3"): bool,
     }
 )
 
@@ -921,6 +944,7 @@ def set_tier(config, tasks):
                 "macosx1014-64/debug",
                 "macosx1014-64-shippable/opt",
                 "macosx1014-64-devedition/opt",
+                "macosx1014-64-devedition-qr/opt",
                 "macosx1014-64-qr/opt",
                 "macosx1014-64-shippable-qr/opt",
                 "macosx1014-64-qr/debug",
@@ -1047,34 +1071,34 @@ def setup_browsertime(config, tasks):
 
         cd_fetches = {
             "android.*": [
-                "linux64-chromedriver-84",
                 "linux64-chromedriver-85",
                 "linux64-chromedriver-86",
+                "linux64-chromedriver-87",
             ],
             "linux.*": [
-                "linux64-chromedriver-84",
                 "linux64-chromedriver-85",
                 "linux64-chromedriver-86",
+                "linux64-chromedriver-87",
             ],
             "macosx.*": [
-                "mac64-chromedriver-84",
                 "mac64-chromedriver-85",
                 "mac64-chromedriver-86",
+                "mac64-chromedriver-87",
             ],
             "windows.*aarch64.*": [
-                "win32-chromedriver-84",
                 "win32-chromedriver-85",
                 "win32-chromedriver-86",
+                "win32-chromedriver-87",
             ],
             "windows.*-32.*": [
-                "win32-chromedriver-84",
                 "win32-chromedriver-85",
                 "win32-chromedriver-86",
+                "win32-chromedriver-87",
             ],
             "windows.*-64.*": [
-                "win32-chromedriver-84",
                 "win32-chromedriver-85",
                 "win32-chromedriver-86",
+                "win32-chromedriver-87",
             ],
         }
 
@@ -1760,6 +1784,11 @@ def set_worker_type(config, tasks):
                 task["worker-type"] = "t-bitbar-gw-unit-p2"
             else:
                 task["worker-type"] = "t-bitbar-gw-perf-p2"
+        elif test_platform.startswith("android-hw-s7"):
+            if task["suite"] != "raptor":
+                task["worker-type"] = "t-bitbar-gw-unit-s7"
+            else:
+                task["worker-type"] = "t-bitbar-gw-perf-s7"
         elif test_platform.startswith("android-em-7.0-x86"):
             task["worker-type"] = "t-linux-metal"
         elif test_platform.startswith("linux") or test_platform.startswith("android"):

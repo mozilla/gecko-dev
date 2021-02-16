@@ -18,6 +18,7 @@
 #include "imgICache.h"
 #include "imgIContainer.h"
 #include "imgIEncoder.h"
+#include "nsComponentManagerUtils.h"
 #include "nsNetUtil.h"  // for NS_NewBufferedInputStream
 #include "nsStreamUtils.h"
 #include "nsStringStream.h"
@@ -33,6 +34,7 @@
 #include "js/ArrayBuffer.h"
 #include "js/RootingAPI.h"  // JS::{Handle,Rooted}
 #include "js/Value.h"       // JS::Value
+#include "Orientation.h"
 
 using namespace mozilla::gfx;
 

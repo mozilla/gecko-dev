@@ -11,7 +11,7 @@ use neqo_crypto::{init_db, AllowZeroRtt, AntiReplay};
 use neqo_http3::{Error, Http3Server, Http3ServerEvent};
 use neqo_qpack::QpackSettings;
 use neqo_transport::server::Server;
-use neqo_transport::{ConnectionEvent, FixedConnectionIdManager, Output};
+use neqo_transport::{ConnectionEvent, ConnectionParameters, FixedConnectionIdManager, Output};
 use std::env;
 
 use std::cell::RefCell;
@@ -88,7 +88,7 @@ impl HttpServer for Http3TestServer {
                     let default_ret = b"Hello World".to_vec();
                     let default_headers = vec![
                         (String::from(":status"), String::from("200")),
-                        (String::from("Cache-Control"), String::from("no-cache")),
+                        (String::from("cache-control"), String::from("no-cache")),
                         (
                             String::from("content-length"),
                             default_ret.len().to_string(),
@@ -106,7 +106,7 @@ impl HttpServer for Http3TestServer {
                                         &[
                                             (String::from(":status"), String::from("421")),
                                             (
-                                                String::from("Cache-Control"),
+                                                String::from("cache-control"),
                                                 String::from("no-cache"),
                                             ),
                                             (
@@ -143,11 +143,11 @@ impl HttpServer for Http3TestServer {
                                                 &[
                                                     (String::from(":status"), String::from("200")),
                                                     (
-                                                        String::from("Cache-Control"),
+                                                        String::from("cache-control"),
                                                         String::from("no-cache"),
                                                     ),
                                                     (
-                                                        String::from("Content-Type"),
+                                                        String::from("content-type"),
                                                         String::from("application/json"),
                                                     ),
                                                     (
@@ -169,7 +169,7 @@ impl HttpServer for Http3TestServer {
                                         &[
                                             (String::from(":status"), String::from("200")),
                                             (
-                                                String::from("Cache-Control"),
+                                                String::from("cache-control"),
                                                 String::from("no-cache"),
                                             ),
                                         ],
@@ -182,7 +182,7 @@ impl HttpServer for Http3TestServer {
                                         &[
                                             (String::from(":status"), String::from("200")),
                                             (
-                                                String::from("Cache-Control"),
+                                                String::from("cache-control"),
                                                 String::from("no-cache"),
                                             ),
                                         ],
@@ -195,7 +195,7 @@ impl HttpServer for Http3TestServer {
                                         &[
                                             (String::from(":status"), String::from("200")),
                                             (
-                                                String::from("Cache-Control"),
+                                                String::from("cache-control"),
                                                 String::from("no-cache"),
                                             ),
                                             (String::from("content-length"), 4000.to_string()),
@@ -213,7 +213,7 @@ impl HttpServer for Http3TestServer {
                                             &[
                                                 (String::from(":status"), String::from("200")),
                                                 (
-                                                    String::from("Cache-Control"),
+                                                    String::from("cache-control"),
                                                     String::from("no-cache"),
                                                 ),
                                                 (String::from("content-length"), v.to_string()),
@@ -249,7 +249,7 @@ impl HttpServer for Http3TestServer {
                                 .set_response(
                                     &[
                                         (String::from(":status"), String::from("200")),
-                                        (String::from("Cache-Control"), String::from("no-cache")),
+                                        (String::from("cache-control"), String::from("no-cache")),
                                         (String::from("x-data-received-length"), r.to_string()),
                                         (
                                             String::from("content-length"),
@@ -487,6 +487,7 @@ impl ServersRunner {
                     anti_replay,
                     Box::new(AllowZeroRtt {}),
                     cid_mgr,
+                    ConnectionParameters::default(),
                 )
                 .expect("We cannot make a server!"),
             ),

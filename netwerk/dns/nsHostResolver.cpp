@@ -20,6 +20,7 @@
 #include "nsISupportsUtils.h"
 #include "nsIThreadManager.h"
 #include "nsComponentManagerUtils.h"
+#include "nsNetUtil.h"
 #include "nsPrintfCString.h"
 #include "nsXPCOMCIDInternal.h"
 #include "prthread.h"
@@ -295,13 +296,7 @@ AddrHostRecord::AddrHostRecord(const nsHostKey& key)
       addr(nullptr),
       mTRRUsed(false),
       mTRRSuccess(0),
-      mNativeSuccess(0),
-      mNative(false),
-      mNativeUsed(false),
-      onQueue(false),
-      usingAnyThread(false),
-      mGetTtl(false),
-      mResolveAgain(false) {}
+      mNativeSuccess(0) {}
 
 AddrHostRecord::~AddrHostRecord() {
   mCallbacks.clear();
@@ -381,21 +376,21 @@ bool AddrHostRecord::HasUsableResultInternal() const {
 }
 
 // Returns true if the entry can be removed, or false if it should be left.
-// Sets mResolveAgain true for entries being resolved right now.
+// Sets ResolveAgain true for entries being resolved right now.
 bool AddrHostRecord::RemoveOrRefresh(bool aTrrToo) {
   // no need to flush TRRed names, they're not resolved "locally"
   MutexAutoLock lock(addr_info_lock);
   if (addr_info && !aTrrToo && addr_info->IsTRR()) {
     return false;
   }
-  if (mNative) {
-    if (!onQueue) {
+  if (LoadNative()) {
+    if (!onQueue()) {
       // The request has been passed to the OS resolver. The resultant DNS
       // record should be considered stale and not trusted; set a flag to
       // ensure it is called again.
-      mResolveAgain = true;
+      StoreResolveAgain(true);
     }
-    // if Onqueue is true, the host entry is already added to the cache
+    // if onQueue is true, the host entry is already added to the cache
     // but is still pending to get resolved: just leave it in hash.
     return false;
   }
@@ -404,7 +399,7 @@ bool AddrHostRecord::RemoveOrRefresh(bool aTrrToo) {
 }
 
 void AddrHostRecord::ResolveComplete() {
-  if (mNativeUsed) {
+  if (LoadNativeUsed()) {
     if (mNativeSuccess) {
       uint32_t millis = static_cast<uint32_t>(mNativeDuration.ToMilliseconds());
       Telemetry::Accumulate(Telemetry::DNS_NATIVE_LOOKUP_TIME, millis);
@@ -599,6 +594,7 @@ TypeHostRecord::GetServiceModeRecord(bool aNoHttp2, bool aNoHttp3,
 NS_IMETHODIMP
 TypeHostRecord::GetAllRecordsWithEchConfig(
     bool aNoHttp2, bool aNoHttp3, bool* aAllRecordsHaveEchConfig,
+    bool* aAllRecordsInH3ExcludedList,
     nsTArray<RefPtr<nsISVCBRecord>>& aResult) {
   MutexAutoLock lock(mResultsLock);
   if (!mResults.is<TypeRecordHTTPSSVC>()) {
@@ -607,7 +603,8 @@ TypeHostRecord::GetAllRecordsWithEchConfig(
 
   auto& records = mResults.as<TypeRecordHTTPSSVC>();
   GetAllRecordsWithEchConfigInternal(aNoHttp2, aNoHttp3, records,
-                                     aAllRecordsHaveEchConfig, aResult);
+                                     aAllRecordsHaveEchConfig,
+                                     aAllRecordsInH3ExcludedList, aResult);
   return NS_OK;
 }
 
@@ -772,7 +769,7 @@ void nsHostResolver::ClearPendingQueue(
 //
 // This function removes all existing resolved host entries from the hash.
 // Names that are in the pending queues can be left there. Entries in the
-// cache that have 'Resolve' set true but not 'onQueue' are being resolved
+// cache that have 'Resolve' set true but not 'OnQueue' are being resolved
 // right now, so we need to mark them to get re-resolved on completion!
 
 void nsHostResolver::FlushCache(bool aTrrToo) {
@@ -1235,7 +1232,7 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
       // Only A/AAAA records are place in a queue. The queues are for
       // the native resolver, therefore by-type request are never put
       // into a queue.
-      if (addrRec && addrRec->onQueue) {
+      if (addrRec && addrRec->onQueue()) {
         Telemetry::Accumulate(Telemetry::DNS_LOOKUP_METHOD2,
                               METHOD_NETWORK_SHARED);
 
@@ -1245,16 +1242,12 @@ nsresult nsHostResolver::ResolveHost(const nsACString& aHost,
 
         if (IsHighPriority(flags) && !IsHighPriority(rec->flags)) {
           // Move from (low|med) to high.
-          NS_ASSERTION(addrRec->onQueue,
-                       "Moving Host Record Not Currently Queued");
           rec->remove();
           mHighQ.insertBack(rec);
           rec->flags = flags;
           ConditionallyCreateThread(rec);
         } else if (IsMediumPriority(flags) && IsLowPriority(rec->flags)) {
           // Move from low to med.
-          NS_ASSERTION(addrRec->onQueue,
-                       "Moving Host Record Not Currently Queued");
           rec->remove();
           mMediumQ.insertBack(rec);
           rec->flags = flags;
@@ -1379,10 +1372,42 @@ nsresult nsHostResolver::TrrLookup(nsHostRecord* aRec, TRR* pushedTRR) {
 
   MOZ_ASSERT(!rec->mResolving);
 
+  auto hasConnectivity = [this]() -> bool {
+    if (!mNCS) {
+      return true;
+    }
+    nsINetworkConnectivityService::ConnectivityState ipv4 = mNCS->GetIPv4();
+    nsINetworkConnectivityService::ConnectivityState ipv6 = mNCS->GetIPv6();
+
+    if (ipv4 == nsINetworkConnectivityService::OK ||
+        ipv6 == nsINetworkConnectivityService::OK) {
+      return true;
+    }
+
+    if (ipv4 == nsINetworkConnectivityService::UNKNOWN ||
+        ipv6 == nsINetworkConnectivityService::UNKNOWN) {
+      // One of the checks hasn't completed yet. Optimistically assume we'll
+      // have network connectivity.
+      return true;
+    }
+
+    return false;
+  };
+
   nsIRequest::TRRMode reqMode = rec->mEffectiveTRRMode;
   if (rec->mTrrServer.IsEmpty() &&
       (!gTRRService || !gTRRService->Enabled(reqMode))) {
-    rec->RecordReason(nsHostRecord::TRR_NOT_CONFIRMED);
+    if (NS_IsOffline()) {
+      // If we are in the NOT_CONFIRMED state _because_ we lack connectivity,
+      // then we should report that the browser is offline instead.
+      rec->RecordReason(nsHostRecord::TRR_IS_OFFLINE);
+    }
+    if (!hasConnectivity()) {
+      rec->RecordReason(nsHostRecord::TRR_NO_CONNECTIVITY);
+    } else {
+      rec->RecordReason(nsHostRecord::TRR_NOT_CONFIRMED);
+    }
+
     LOG(("TrrLookup:: %s service not enabled\n", rec->host.get()));
     return NS_ERROR_UNKNOWN_HOST;
   }
@@ -1455,9 +1480,8 @@ nsresult nsHostResolver::NativeLookup(nsHostRecord* aRec) {
   }
   mPendingCount++;
 
-  addrRec->mNative = true;
-  addrRec->mNativeUsed = true;
-  addrRec->onQueue = true;
+  addrRec->StoreNative(true);
+  addrRec->StoreNativeUsed(true);
   addrRec->mResolving++;
 
   nsresult rv = ConditionallyCreateThread(rec);
@@ -1569,13 +1593,17 @@ nsresult nsHostResolver::NameLookup(nsHostRecord* rec) {
     return NS_OK;
   }
 
+  // Make sure we reset the reason each time we attempt to do a new lookup
+  // so we don't wronly report the reason for the previous one.
+  rec->mTRRTRRSkippedReason = nsHostRecord::TRR_UNSET;
+
   ComputeEffectiveTRRMode(rec);
 
   if (rec->IsAddrRecord()) {
     RefPtr<AddrHostRecord> addrRec = do_QueryObject(rec);
     MOZ_ASSERT(addrRec);
 
-    addrRec->mNativeUsed = false;
+    addrRec->StoreNativeUsed(false);
     addrRec->mTRRUsed = false;
     addrRec->mNativeSuccess = false;
   }
@@ -1653,7 +1681,6 @@ void nsHostResolver::DeQueue(LinkedList<RefPtr<nsHostRecord>>& aQ,
   MOZ_ASSERT(rec->IsAddrRecord());
   RefPtr<AddrHostRecord> addrRec = do_QueryObject(rec);
   MOZ_ASSERT(addrRec);
-  addrRec->onQueue = false;
   addrRec.forget(aResult);
 }
 
@@ -1672,7 +1699,7 @@ bool nsHostResolver::GetHostToLookup(AddrHostRecord** result) {
     // remove next record from Q; hand over owning reference. Check high, then
     // med, then low
 
-#define SET_GET_TTL(var, val) (var)->mGetTtl = sGetTtlEnabled && (val)
+#define SET_GET_TTL(var, val) (var)->StoreGetTtl(sGetTtlEnabled && (val))
 
     if (!mHighQ.isEmpty()) {
       DeQueue(mHighQ, result);
@@ -1684,7 +1711,7 @@ bool nsHostResolver::GetHostToLookup(AddrHostRecord** result) {
       if (!mMediumQ.isEmpty()) {
         DeQueue(mMediumQ, result);
         mActiveAnyThreadCount++;
-        (*result)->usingAnyThread = true;
+        (*result)->StoreUsingAnyThread(true);
         SET_GET_TTL(*result, true);
         return true;
       }
@@ -1692,7 +1719,7 @@ bool nsHostResolver::GetHostToLookup(AddrHostRecord** result) {
       if (!mLowQ.isEmpty()) {
         DeQueue(mLowQ, result);
         mActiveAnyThreadCount++;
-        (*result)->usingAnyThread = true;
+        (*result)->StoreUsingAnyThread(true);
         SET_GET_TTL(*result, true);
         return true;
       }
@@ -1791,7 +1818,18 @@ static bool different_rrset(AddrInfo* rrset1, AddrInfo* rrset2) {
 }
 
 void nsHostResolver::AddToEvictionQ(nsHostRecord* rec) {
-  MOZ_DIAGNOSTIC_ASSERT(!rec->isInList());
+  if (rec->isInList()) {
+    MOZ_DIAGNOSTIC_ASSERT(!mEvictionQ.contains(rec),
+                          "Already in eviction queue");
+    MOZ_DIAGNOSTIC_ASSERT(!mHighQ.contains(rec), "Already in high queue");
+    MOZ_DIAGNOSTIC_ASSERT(!mMediumQ.contains(rec), "Already in med queue");
+    MOZ_DIAGNOSTIC_ASSERT(!mLowQ.contains(rec), "Already in low queue");
+    MOZ_DIAGNOSTIC_ASSERT(false, "Already on some other queue?");
+
+    // Bug 1678117 - it's not clear why this can happen, but let's fix it
+    // for release users.
+    rec->remove();
+  }
   mEvictionQ.insertBack(rec);
   if (mEvictionQSize < mMaxCacheEntries) {
     mEvictionQSize++;
@@ -1846,10 +1884,10 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookup(
     newRRSet = nullptr;
   }
 
-  if (addrRec->mResolveAgain && (status != NS_ERROR_ABORT) && !trrResult) {
+  if (addrRec->LoadResolveAgain() && (status != NS_ERROR_ABORT) && !trrResult) {
     LOG(("nsHostResolver record %p resolve again due to flushcache\n",
          addrRec.get()));
-    addrRec->mResolveAgain = false;
+    addrRec->StoreResolveAgain(false);
     return LOOKUP_RESOLVEAGAIN;
   }
 
@@ -1901,17 +1939,19 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookup(
       status = NS_ERROR_UNKNOWN_HOST;
     }
   } else {  // native resolve completed
-    if (addrRec->usingAnyThread) {
+    if (addrRec->LoadUsingAnyThread()) {
       mActiveAnyThreadCount--;
-      addrRec->usingAnyThread = false;
+      addrRec->StoreUsingAnyThread(false);
     }
 
-    addrRec->mNative = false;
     addrRec->mNativeSuccess = static_cast<bool>(newRRSet);
     if (addrRec->mNativeSuccess) {
       addrRec->mNativeDuration = TimeStamp::Now() - addrRec->mNativeStart;
     }
   }
+
+  // This should always be cleared when a request is completed.
+  addrRec->StoreNative(false);
 
   // update record fields.  We might have a addrRec->addr_info already if a
   // previous lookup result expired and we're reresolving it or we get
@@ -1989,8 +2029,8 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookup(
       hasNativeResult = true;
     }
   }
-  if (hasNativeResult && !mShutdown && !addrRec->mGetTtl && !rec->mResolving &&
-      sGetTtlEnabled) {
+  if (hasNativeResult && !mShutdown && !addrRec->LoadGetTtl() &&
+      !rec->mResolving && sGetTtlEnabled) {
     LOG(("Issuing second async lookup for TTL for host [%s].",
          addrRec->host.get()));
     addrRec->flags = (addrRec->flags & ~RES_PRIORITY_MEDIUM) | RES_PRIORITY_LOW;
@@ -2150,7 +2190,7 @@ void nsHostResolver::ThreadFunc() {
           rec->host.get()));
 
     TimeStamp startTime = TimeStamp::Now();
-    bool getTtl = rec->mGetTtl;
+    bool getTtl = rec->LoadGetTtl();
     TimeDuration inQueue = startTime - rec->mNativeStart;
     uint32_t ms = static_cast<uint32_t>(inQueue.ToMilliseconds());
     Telemetry::Accumulate(Telemetry::DNS_NATIVE_QUEUING, ms);

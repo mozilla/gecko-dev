@@ -17,6 +17,7 @@
 #include "mozilla/InputTaskManager.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/ThreadEventQueue.h"
@@ -225,7 +226,7 @@ void AssertIsOnMainThread() { MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!"); }
 
 typedef nsTArray<NotNull<RefPtr<nsThread>>> nsThreadArray;
 
-static bool sShutdownComplete;
+static Atomic<bool> sShutdownComplete;
 
 //-----------------------------------------------------------------------------
 

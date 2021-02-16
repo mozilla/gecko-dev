@@ -155,7 +155,7 @@
 // # Await
 //
 // `await` is implemented with the following bytecode sequence:
-// (ignoring TrySkipAwait for now, see "Optimization for await" section)
+// (ignoring CanSkipAwait for now, see "Optimization for await" section)
 //
 // ```
 //   (operand here)                  # VALUE
@@ -257,9 +257,9 @@
 // ```
 //   (operand here)                  # VALUE
 //
-//   TrySkipAwait                    # VALUE_OR_RVAL, CAN_SKIP
-//   Not                             # VALUE_OR_RVAL, !CAN_SKIP
-//   IfEq END                        # VALUE
+//   CanSkipAwait                    # VALUE, CAN_SKIP
+//   MaybeExtractAwaitValue          # VALUE_OR_RVAL, CAN_SKIP
+//   IfNe END                        # VALUE
 //
 //   JumpTarget                      # VALUE
 //   GetAliasedVar ".generator"      # VALUE .generator
@@ -271,8 +271,8 @@
 //   JumpTarget                      # RVAL
 // ```
 //
-// JSOp::TrySkipAwait checks the above conditions. And if the await can be
-// skipped, it jumps over the await code.
+// JSOp::CanSkipAwait checks the above conditions. MaybeExtractAwaitValue will
+// replace Value if it can be skipped, and then the await is jumped over.
 
 namespace js {
 
@@ -311,6 +311,9 @@ class AsyncFunctionGeneratorObject : public AbstractGeneratorObject {
 
   static AsyncFunctionGeneratorObject* create(JSContext* cx,
                                               HandleFunction asyncGen);
+
+  static AsyncFunctionGeneratorObject* create(JSContext* cx,
+                                              HandleModuleObject module);
 
   PromiseObject* promise() {
     return &getFixedSlot(PROMISE_SLOT).toObject().as<PromiseObject>();

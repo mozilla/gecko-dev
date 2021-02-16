@@ -51,7 +51,9 @@
 #include "nsGenericHTMLElement.h"
 #include "nsRange.h"
 #include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
 #include "nsIRunnable.h"
+#include "nsServiceManagerUtils.h"
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsUnicharUtils.h"
@@ -1516,7 +1518,7 @@ nsresult mozInlineSpellChecker::ResumeCheck(
     return NS_ERROR_FAILURE;
   }
 
-  nsAutoString currentDictionary;
+  nsAutoCString currentDictionary;
   rv = mSpellCheck->GetCurrentDictionary(currentDictionary);
   if (NS_FAILED(rv)) {
     // no active dictionary

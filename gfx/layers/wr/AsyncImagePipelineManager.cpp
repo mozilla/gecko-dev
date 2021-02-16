@@ -36,6 +36,7 @@ AsyncImagePipelineManager::AsyncImagePipeline::AsyncImagePipeline()
     : mInitialised(false),
       mIsChanged(false),
       mUseExternalImage(false),
+      mRotation(VideoInfo::Rotation::kDegree_0),
       mFilter(wr::ImageRendering::Auto),
       mMixBlendMode(wr::MixBlendMode::Normal) {}
 
@@ -249,6 +250,8 @@ Maybe<TextureHost::ResourceUpdateOp> AsyncImagePipelineManager::UpdateImageKeys(
                    previousTexture->GetSize() == texture->GetSize() &&
                    previousTexture->GetFormat() == texture->GetFormat() &&
                    previousTexture->NeedsYFlip() == texture->NeedsYFlip() &&
+                   previousTexture->SupportsExternalCompositing() ==
+                       texture->SupportsExternalCompositing() &&
                    aPipeline->mKeys.Length() == numKeys;
 
   if (!canUpdate) {
@@ -730,6 +733,14 @@ wr::Epoch AsyncImagePipelineManager::GetNextImageEpoch() {
   mAsyncImageEpoch.mHandle++;
   return mAsyncImageEpoch;
 }
+
+AsyncImagePipelineManager::WebRenderPipelineInfoHolder::
+    WebRenderPipelineInfoHolder(RefPtr<const wr::WebRenderPipelineInfo>&& aInfo,
+                                ipc::FileDescriptor&& aFenceFd)
+    : mInfo(aInfo), mFenceFd(aFenceFd) {}
+
+AsyncImagePipelineManager::WebRenderPipelineInfoHolder::
+    ~WebRenderPipelineInfoHolder() = default;
 
 }  // namespace layers
 }  // namespace mozilla

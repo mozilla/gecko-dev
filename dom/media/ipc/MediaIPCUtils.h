@@ -9,7 +9,7 @@
 
 #include "DecoderDoctorDiagnostics.h"
 #include "PlatformDecoderModule.h"
-#include "ipc/IPCMessageUtils.h"
+#include "ipc/EnumSerializer.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/GfxMessageUtils.h"
 #include "mozilla/gfx/Rect.h"
@@ -27,7 +27,7 @@ struct ParamTraits<mozilla::VideoInfo> {
     WriteParam(aMsg, aParam.mDisplay);
     WriteParam(aMsg, aParam.mStereoMode);
     WriteParam(aMsg, aParam.mImage);
-    WriteParam(aMsg, aParam.ImageRect());
+    WriteParam(aMsg, aParam.mImageRect);
     WriteParam(aMsg, *aParam.mCodecSpecificConfig);
     WriteParam(aMsg, *aParam.mExtraData);
     WriteParam(aMsg, aParam.mRotation);
@@ -45,7 +45,7 @@ struct ParamTraits<mozilla::VideoInfo> {
         ReadParam(aMsg, aIter, &aResult->mDisplay) &&
         ReadParam(aMsg, aIter, &aResult->mStereoMode) &&
         ReadParam(aMsg, aIter, &aResult->mImage) &&
-        ReadParam(aMsg, aIter, &imageRect) &&
+        ReadParam(aMsg, aIter, &aResult->mImageRect) &&
         ReadParam(aMsg, aIter, aResult->mCodecSpecificConfig.get()) &&
         ReadParam(aMsg, aIter, aResult->mExtraData.get()) &&
         ReadParam(aMsg, aIter, &aResult->mRotation) &&
@@ -53,7 +53,6 @@ struct ParamTraits<mozilla::VideoInfo> {
         ReadParam(aMsg, aIter, &aResult->mColorSpace) &&
         ReadParam(aMsg, aIter, &aResult->mColorRange) &&
         ReadParam(aMsg, aIter, &alphaPresent)) {
-      aResult->SetImageRect(imageRect);
       aResult->SetAlpha(alphaPresent);
       return true;
     }
@@ -175,18 +174,14 @@ struct ParamTraits<mozilla::MediaResult> {
   static void Write(Message* aMsg, const paramType& aParam) {
     WriteParam(aMsg, aParam.Code());
     WriteParam(aMsg, aParam.Message());
-    WriteParam(aMsg, aParam.GPUCrashTimeStamp());
   }
 
   static bool Read(const Message* aMsg, PickleIterator* aIter,
                    paramType* aResult) {
     nsresult result;
     nsCString message;
-    mozilla::TimeStamp timeStamp;
-    if (ReadParam(aMsg, aIter, &result) && ReadParam(aMsg, aIter, &message) &&
-        ReadParam(aMsg, aIter, &timeStamp)) {
+    if (ReadParam(aMsg, aIter, &result) && ReadParam(aMsg, aIter, &message)) {
       *aResult = paramType(result, std::move(message));
-      aResult->SetGPUCrashTimeStamp(timeStamp);
       return true;
     }
     return false;

@@ -8,6 +8,7 @@
 #include "nsThreadUtils.h"
 #include "mozilla/IdleTaskRunner.h"
 #include "mozilla/RefCounted.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/UniquePtr.h"
 
 #include "gtest/gtest.h"
@@ -509,6 +510,15 @@ static void TestNewRunnableMethod(bool aNamed) {
 
     // Read only string. Dereferencing in runnable method to check this works.
     char* message = (char*)"Test message";
+
+    {
+      auto bar = MakeRefPtr<nsBar>();
+
+      NS_DispatchToMainThread(
+          aNamed ? NewRunnableMethod("unused", std::move(bar), &nsBar::DoBar1)
+                 : NewRunnableMethod("nsBar::DoBar1", std::move(bar),
+                                     &nsBar::DoBar1));
+    }
 
     NS_DispatchToMainThread(
         aNamed ? NewRunnableMethod("unused", bar, &nsBar::DoBar1)

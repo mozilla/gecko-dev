@@ -9,10 +9,8 @@
 
 #include "mozilla/dom/indexedDB/IDBResult.h"
 
-#include "js/Array.h"  // JS::GetArrayLength
 #include "js/RootingAPI.h"
-#include "jsapi.h"
-#include "mozilla/ErrorResult.h"
+#include "js/TypeDecls.h"
 #include "nsString.h"
 
 class mozIStorageStatement;

@@ -11,6 +11,8 @@
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/dom/Document.h"
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/JSExecutionManager.h"
 #include "mozilla/dom/WorkerPrivate.h"
 
@@ -42,20 +44,22 @@ JSObject* GetElementCallback(JSContext* aCx, JS::HandleValue aValue) {
     return nullptr;
   }
 
-  nsCOMPtr<Element> domElement = script->GetFetchOptions()->mElement;
-  if (!domElement) {
-    return nullptr;
-  }
-
-  JSObject* globalObject =
-      domElement->OwnerDoc()->GetScopeObject()->GetGlobalJSObject();
-  JSAutoRealm ar(aCx, globalObject);
-
   JS::Rooted<JS::Value> elementValue(aCx);
-  nsresult rv = nsContentUtils::WrapNative(aCx, domElement, &elementValue,
-                                           /* aAllowWrapping = */ true);
-  if (NS_FAILED(rv)) {
-    return nullptr;
+  {
+    nsCOMPtr<Element> domElement = script->GetFetchOptions()->mElement;
+    if (!domElement) {
+      return nullptr;
+    }
+
+    JSObject* globalObject =
+        domElement->OwnerDoc()->GetScopeObject()->GetGlobalJSObject();
+    JSAutoRealm ar(aCx, globalObject);
+
+    nsresult rv = nsContentUtils::WrapNative(aCx, domElement, &elementValue,
+                                             /* aAllowWrapping = */ true);
+    if (NS_FAILED(rv)) {
+      return nullptr;
+    }
   }
   return elementValue.toObjectOrNull();
 }

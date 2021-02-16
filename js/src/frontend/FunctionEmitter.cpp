@@ -7,8 +7,10 @@
 #include "frontend/FunctionEmitter.h"
 
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
+#include "mozilla/Unused.h"
 
 #include "builtin/ModuleObject.h"          // ModuleObject
+#include "frontend/AsyncEmitter.h"         // AsyncEmitter
 #include "frontend/BytecodeEmitter.h"      // BytecodeEmitter
 #include "frontend/FunctionSyntaxKind.h"   // FunctionSyntaxKind
 #include "frontend/ModuleSharedContext.h"  // ModuleSharedContext
@@ -307,14 +309,11 @@ bool FunctionEmitter::emitTopLevelFunction(GCThingIndex index) {
   MOZ_ASSERT(syntaxKind_ == FunctionSyntaxKind::Statement);
   MOZ_ASSERT(bce_->inPrologue());
 
-  if (!bce_->emitGCIndexOp(JSOp::Lambda, index)) {
-    //              [stack] FUN
-    return false;
-  }
-  if (!bce_->emit1(JSOp::DefFun)) {
-    //              [stack]
-    return false;
-  }
+  // NOTE: The `index` is not directly stored as an opcode, but we collect the
+  // range of indices in `BytecodeEmitter::emitDeclarationInstantiation` instead
+  // of discrete indices.
+  mozilla::Unused << index;
+
   return true;
 }
 
@@ -355,6 +354,10 @@ bool FunctionScriptEmitter::prepareForParameters() {
     if (!namedLambdaEmitterScope_->enterNamedLambda(bce_, funbox_)) {
       return false;
     }
+  }
+
+  if (funbox_->needsPromiseResult()) {
+    asyncEmitter_.emplace(bce_);
   }
 
   if (bodyEnd_) {
@@ -400,14 +403,15 @@ bool FunctionScriptEmitter::prepareForParameters() {
     }
   }
 
-  // Parameters can't reuse the reject try-catch block from the function body,
-  // because the body may have pushed an additional var-environment. This
-  // messes up scope resolution for the |.generator| variable, because we'd
-  // need different hops to reach |.generator| depending on whether the error
-  // was thrown from the parameters or the function body.
-  if (funbox_->hasParameterExprs && funbox_->needsPromiseResult()) {
-    if (!emitAsyncFunctionRejectPrologue()) {
-      return false;
+  if (funbox_->needsPromiseResult()) {
+    if (funbox_->hasParameterExprs) {
+      if (!asyncEmitter_->prepareForParamsWithExpression()) {
+        return false;
+      }
+    } else {
+      if (!asyncEmitter_->prepareForParamsWithoutExpression()) {
+        return false;
+      }
     }
   }
 
@@ -422,8 +426,8 @@ bool FunctionScriptEmitter::prepareForBody() {
 
   //                [stack]
 
-  if (rejectTryCatch_) {
-    if (!emitAsyncFunctionRejectEpilogue()) {
+  if (funbox_->needsPromiseResult()) {
+    if (!asyncEmitter_->emitParamsEpilogue()) {
       return false;
     }
   }
@@ -434,7 +438,7 @@ bool FunctionScriptEmitter::prepareForBody() {
   }
 
   if (funbox_->needsPromiseResult()) {
-    if (!emitAsyncFunctionRejectPrologue()) {
+    if (!asyncEmitter_->prepareForBody()) {
       return false;
     }
   }
@@ -451,47 +455,6 @@ bool FunctionScriptEmitter::prepareForBody() {
 #ifdef DEBUG
   state_ = State::Body;
 #endif
-  return true;
-}
-
-bool FunctionScriptEmitter::emitAsyncFunctionRejectPrologue() {
-  rejectTryCatch_.emplace(bce_, TryEmitter::Kind::TryCatch,
-                          TryEmitter::ControlKind::NonSyntactic);
-  return rejectTryCatch_->emitTry();
-}
-
-bool FunctionScriptEmitter::emitAsyncFunctionRejectEpilogue() {
-  if (!rejectTryCatch_->emitCatch()) {
-    //              [stack] EXC
-    return false;
-  }
-
-  if (!bce_->emitGetDotGeneratorInInnermostScope()) {
-    //              [stack] EXC GEN
-    return false;
-  }
-  if (!bce_->emit2(JSOp::AsyncResolve,
-                   uint8_t(AsyncFunctionResolveKind::Reject))) {
-    //              [stack] PROMISE
-    return false;
-  }
-  if (!bce_->emit1(JSOp::SetRval)) {
-    //              [stack]
-    return false;
-  }
-  if (!bce_->emitGetDotGeneratorInInnermostScope()) {
-    //              [stack] GEN
-    return false;
-  }
-  if (!bce_->emitYieldOp(JSOp::FinalYieldRval)) {
-    //              [stack]
-    return false;
-  }
-
-  if (!rejectTryCatch_->emitEnd()) {
-    return false;
-  }
-  rejectTryCatch_.reset();
   return true;
 }
 
@@ -520,7 +483,7 @@ bool FunctionScriptEmitter::emitExtraBodyVarScope() {
   const ParserAtom* name = nullptr;
   for (ParserBindingIter bi(*funbox_->functionScopeBindings(), true); bi;
        bi++) {
-    name = bi.name();
+    name = bce_->compilationState.getParserAtomAt(bce_->cx, bi.name());
 
     // There may not be a var binding of the same name.
     if (!bce_->locationOfNameBoundInScope(name,
@@ -563,58 +526,73 @@ bool FunctionScriptEmitter::emitExtraBodyVarScope() {
 
 bool FunctionScriptEmitter::emitEndBody() {
   MOZ_ASSERT(state_ == State::Body);
-
   //                [stack]
 
   if (funbox_->needsFinalYield()) {
     // If we fall off the end of a generator, do a final yield.
-    bool needsIteratorResult = funbox_->needsIteratorResult();
-    if (needsIteratorResult) {
+    if (funbox_->needsIteratorResult()) {
+      MOZ_ASSERT(!funbox_->needsPromiseResult());
+      // Emit final yield bytecode for generators, for example:
+      // function gen * () { ... }
       if (!bce_->emitPrepareIteratorResult()) {
         //          [stack] RESULT
         return false;
       }
-    }
 
-    if (!bce_->emit1(JSOp::Undefined)) {
-      //            [stack] RESULT? UNDEF
-      return false;
-    }
+      if (!bce_->emit1(JSOp::Undefined)) {
+        //            [stack] RESULT? UNDEF
+        return false;
+      }
 
-    if (needsIteratorResult) {
       if (!bce_->emitFinishIteratorResult(true)) {
         //          [stack] RESULT
         return false;
       }
-    }
 
-    if (funbox_->needsPromiseResult()) {
+      if (!bce_->emit1(JSOp::SetRval)) {
+        //            [stack]
+        return false;
+      }
+
       if (!bce_->emitGetDotGeneratorInInnermostScope()) {
-        //          [stack] RVAL GEN
+        //            [stack] GEN
         return false;
       }
 
-      if (!bce_->emit2(JSOp::AsyncResolve,
-                       uint8_t(AsyncFunctionResolveKind::Fulfill))) {
-        //          [stack] PROMISE
+      // No need to check for finally blocks, etc as in EmitReturn.
+      if (!bce_->emitYieldOp(JSOp::FinalYieldRval)) {
+        //            [stack]
         return false;
       }
-    }
+    } else if (funbox_->needsPromiseResult()) {
+      // Emit final yield bytecode for async functions, for example:
+      // async function deferred() { ... }
+      if (!asyncEmitter_->emitEnd()) {
+        return false;
+      }
+    } else {
+      // Emit final yield bytecode for async generators, for example:
+      // async function asyncgen * () { ... }
+      if (!bce_->emit1(JSOp::Undefined)) {
+        //            [stack] RESULT? UNDEF
+        return false;
+      }
 
-    if (!bce_->emit1(JSOp::SetRval)) {
-      //            [stack]
-      return false;
-    }
+      if (!bce_->emit1(JSOp::SetRval)) {
+        //            [stack]
+        return false;
+      }
 
-    if (!bce_->emitGetDotGeneratorInInnermostScope()) {
-      //            [stack] GEN
-      return false;
-    }
+      if (!bce_->emitGetDotGeneratorInInnermostScope()) {
+        //            [stack] GEN
+        return false;
+      }
 
-    // No need to check for finally blocks, etc as in EmitReturn.
-    if (!bce_->emitYieldOp(JSOp::FinalYieldRval)) {
-      //            [stack]
-      return false;
+      // No need to check for finally blocks, etc as in EmitReturn.
+      if (!bce_->emitYieldOp(JSOp::FinalYieldRval)) {
+        //            [stack]
+        return false;
+      }
     }
   } else {
     // Non-generator functions just return |undefined|. The
@@ -637,12 +615,6 @@ bool FunctionScriptEmitter::emitEndBody() {
   if (funbox_->isDerivedClassConstructor()) {
     if (!bce_->emitCheckDerivedClassConstructorReturn()) {
       //            [stack]
-      return false;
-    }
-  }
-
-  if (rejectTryCatch_) {
-    if (!emitAsyncFunctionRejectEpilogue()) {
       return false;
     }
   }
@@ -701,7 +673,7 @@ bool FunctionScriptEmitter::emitEndBody() {
 bool FunctionScriptEmitter::intoStencil() {
   MOZ_ASSERT(state_ == State::EndBody);
 
-  if (!bce_->intoScriptStencil(&funbox_->functionStencil())) {
+  if (!bce_->intoScriptStencil(funbox_->index())) {
     return false;
   }
 

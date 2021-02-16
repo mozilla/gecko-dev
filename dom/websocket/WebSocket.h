@@ -12,7 +12,6 @@
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/WebSocketBinding.h"  // for BinaryType
 #include "mozilla/DOMEventTargetHelper.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/Mutex.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -28,6 +27,8 @@ class nsIInputStream;
 class nsITransportProvider;
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
 class Blob;
@@ -55,9 +56,7 @@ class WebSocket final : public DOMEventTargetHelper {
   virtual void DisconnectFromOwner() override;
 
   mozilla::Maybe<EventCallbackDebuggerNotificationType>
-  GetDebuggerNotificationType() const override {
-    return mozilla::Some(EventCallbackDebuggerNotificationType::Websocket);
-  }
+  GetDebuggerNotificationType() const override;
 
   // nsWrapperCache
   virtual JSObject* WrapObject(JSContext* cx,

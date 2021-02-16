@@ -34,11 +34,11 @@ JSObject* nsDOMCSSDeclaration::WrapObject(JSContext* aCx,
 NS_IMPL_QUERY_INTERFACE(nsDOMCSSDeclaration, nsICSSDeclaration)
 
 nsresult nsDOMCSSDeclaration::GetPropertyValue(const nsCSSPropertyID aPropID,
-                                               nsAString& aValue) {
+                                               nsACString& aValue) {
   MOZ_ASSERT(aPropID != eCSSProperty_UNKNOWN,
              "Should never pass eCSSProperty_UNKNOWN around");
+  MOZ_ASSERT(aValue.IsEmpty());
 
-  aValue.Truncate();
   if (DeclarationBlock* decl =
           GetOrCreateCSSDeclaration(eOperation_Read, nullptr)) {
     decl->GetPropertyValueByID(aPropID, aValue);
@@ -90,16 +90,15 @@ void nsDOMCSSDeclaration::SetPropertyValue(const nsCSSPropertyID aPropID,
   aRv = ParsePropertyValue(aPropID, aValue, false, aSubjectPrincipal);
 }
 
-void nsDOMCSSDeclaration::GetCssText(nsAString& aCssText) {
-  DeclarationBlock* decl = GetOrCreateCSSDeclaration(eOperation_Read, nullptr);
-  aCssText.Truncate();
+void nsDOMCSSDeclaration::GetCssText(nsACString& aCssText) {
+  MOZ_ASSERT(aCssText.IsEmpty());
 
-  if (decl) {
+  if (auto* decl = GetOrCreateCSSDeclaration(eOperation_Read, nullptr)) {
     decl->ToString(aCssText);
   }
 }
 
-void nsDOMCSSDeclaration::SetCssText(const nsAString& aCssText,
+void nsDOMCSSDeclaration::SetCssText(const nsACString& aCssText,
                                      nsIPrincipal* aSubjectPrincipal,
                                      ErrorResult& aRv) {
   if (IsReadOnly()) {
@@ -164,20 +163,18 @@ void nsDOMCSSDeclaration::IndexedGetter(uint32_t aIndex, bool& aFound,
 
 NS_IMETHODIMP
 nsDOMCSSDeclaration::GetPropertyValue(const nsACString& aPropertyName,
-                                      nsAString& aReturn) {
-  aReturn.Truncate();
-  if (DeclarationBlock* decl =
-          GetOrCreateCSSDeclaration(eOperation_Read, nullptr)) {
+                                      nsACString& aReturn) {
+  MOZ_ASSERT(aReturn.IsEmpty());
+  if (auto* decl = GetOrCreateCSSDeclaration(eOperation_Read, nullptr)) {
     decl->GetPropertyValue(aPropertyName, aReturn);
   }
   return NS_OK;
 }
 
 void nsDOMCSSDeclaration::GetPropertyPriority(const nsACString& aPropertyName,
-                                              nsAString& aPriority) {
+                                              nsACString& aPriority) {
+  MOZ_ASSERT(aPriority.IsEmpty());
   DeclarationBlock* decl = GetOrCreateCSSDeclaration(eOperation_Read, nullptr);
-
-  aPriority.Truncate();
   if (decl && decl->GetPropertyIsImportant(aPropertyName)) {
     aPriority.AssignLiteral("important");
   }
@@ -185,7 +182,7 @@ void nsDOMCSSDeclaration::GetPropertyPriority(const nsACString& aPropertyName,
 
 void nsDOMCSSDeclaration::SetProperty(const nsACString& aPropertyName,
                                       const nsACString& aValue,
-                                      const nsAString& aPriority,
+                                      const nsACString& aPriority,
                                       nsIPrincipal* aSubjectPrincipal,
                                       ErrorResult& aRv) {
   if (IsReadOnly()) {
@@ -224,7 +221,8 @@ void nsDOMCSSDeclaration::SetProperty(const nsACString& aPropertyName,
 }
 
 void nsDOMCSSDeclaration::RemoveProperty(const nsACString& aPropertyName,
-                                         nsAString& aReturn, ErrorResult& aRv) {
+                                         nsACString& aReturn,
+                                         ErrorResult& aRv) {
   if (IsReadOnly()) {
     return;
   }

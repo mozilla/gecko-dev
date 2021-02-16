@@ -19,7 +19,6 @@
 #include "nsIWindowProvider.h"
 #include "nsIDocShell.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsFrameMessageManager.h"
 #include "nsWeakReference.h"
 #include "nsIBrowserChild.h"
 #include "nsITooltipListener.h"
@@ -29,6 +28,8 @@
 #include "mozilla/dom/TabContext.h"
 #include "mozilla/dom/CoalescedMouseData.h"
 #include "mozilla/dom/CoalescedWheelData.h"
+#include "mozilla/dom/MessageManagerCallback.h"
+#include "mozilla/dom/VsyncChild.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventForwards.h"
@@ -41,6 +42,7 @@
 #include "AudioChannelService.h"
 #include "PuppetWidget.h"
 #include "nsDeque.h"
+#include "nsIRemoteTab.h"
 
 class nsBrowserStatusFilter;
 class nsIDOMWindow;
@@ -289,9 +291,9 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvDynamicToolbarOffsetChanged(
       const mozilla::ScreenIntCoord& aOffset);
 
-  mozilla::ipc::IPCResult RecvActivate();
+  mozilla::ipc::IPCResult RecvActivate(uint64_t aActionId);
 
-  mozilla::ipc::IPCResult RecvDeactivate();
+  mozilla::ipc::IPCResult RecvDeactivate(uint64_t aActionId);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvMouseEvent(const nsString& aType, const float& aX,
@@ -303,8 +305,13 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvRealMouseMoveEvent(
       const mozilla::WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
       const uint64_t& aInputBlockId);
-
   mozilla::ipc::IPCResult RecvNormalPriorityRealMouseMoveEvent(
+      const mozilla::WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
+      const uint64_t& aInputBlockId);
+  mozilla::ipc::IPCResult RecvRealMouseMoveEventForTests(
+      const mozilla::WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
+      const uint64_t& aInputBlockId);
+  mozilla::ipc::IPCResult RecvNormalPriorityRealMouseMoveEventForTests(
       const mozilla::WidgetMouseEvent& aEvent, const ScrollableLayerGuid& aGuid,
       const uint64_t& aInputBlockId);
 
@@ -383,8 +390,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvNativeSynthesisResponse(
       const uint64_t& aObserverId, const nsCString& aResponse);
 
-  mozilla::ipc::IPCResult RecvPluginEvent(const WidgetPluginEvent& aEvent);
-
   mozilla::ipc::IPCResult RecvCompositionEvent(
       const mozilla::WidgetCompositionEvent& aEvent);
 
@@ -403,7 +408,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvPasteTransferable(
       const IPCDataTransfer& aDataTransfer, const bool& aIsPrivateData,
-      nsIPrincipal* aRequestingPrincipal, const uint32_t& aContentPolicyType);
+      nsIPrincipal* aRequestingPrincipal,
+      const nsContentPolicyType& aContentPolicyType);
 
   mozilla::ipc::IPCResult RecvActivateFrameEvent(const nsString& aType,
                                                  const bool& aCapture);
@@ -434,6 +440,12 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   PFilePickerChild* AllocPFilePickerChild(const nsString& aTitle,
                                           const int16_t& aMode);
+
+  virtual PVsyncChild* AllocPVsyncChild();
+
+  virtual bool DeallocPVsyncChild(PVsyncChild* aActor);
+
+  RefPtr<VsyncChild> GetVsyncChild();
 
   bool DeallocPFilePickerChild(PFilePickerChild* aActor);
 
@@ -565,8 +577,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   bool IPCOpen() const { return mIPCOpen; }
 
-  bool ParentIsActive() const { return mParentIsActive; }
-
   const mozilla::layers::CompositorOptions& GetCompositorOptions() const;
   bool AsyncPanZoomEnabled() const;
 
@@ -635,9 +645,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   }
 #endif
 
-  void AddPendingDocShellBlocker();
-  void RemovePendingDocShellBlocker();
-
   // The HANDLE object for the widget this BrowserChild in.
   WindowsHandle WidgetNativeData() { return mWidgetNativeData; }
 
@@ -701,8 +708,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   mozilla::ipc::IPCResult RecvDestroy();
 
-  mozilla::ipc::IPCResult RecvSetDocShellIsActive(const bool& aIsActive);
-
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvRenderLayers(
       const bool& aEnabled, const layers::LayersObserverEpoch& aEpoch);
@@ -713,8 +718,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvRequestNotifyAfterRemotePaint();
 
   mozilla::ipc::IPCResult RecvSuppressDisplayport(const bool& aEnabled);
-
-  mozilla::ipc::IPCResult RecvParentActivated(const bool& aActivated);
 
   mozilla::ipc::IPCResult RecvScrollbarPreferenceChanged(ScrollbarPreference);
 
@@ -817,6 +820,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   bool mTriedBrowserInit;
   hal::ScreenOrientation mOrientation;
 
+  RefPtr<VsyncChild> mVsyncChild;
+
   bool mIgnoreKeyPressEvent;
   RefPtr<APZEventState> mAPZEventState;
   SetAllowedTouchBehaviorCallback mSetAllowedTouchBehaviorCallback;
@@ -826,6 +831,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   // Position of client area relative to the outer window
   LayoutDeviceIntPoint mClientOffset;
   // Position of tab, relative to parent widget (typically the window)
+  // NOTE: This value is valuable only for the top level browser.
   LayoutDeviceIntPoint mChromeOffset;
   ScreenIntCoord mDynamicToolbarMaxHeight;
   TabId mUniqueId;
@@ -848,7 +854,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   bool mIsTransparent;
 
   bool mIPCOpen;
-  bool mParentIsActive;
   CSSSize mUnscaledInnerSize;
   bool mDidSetRealShowInfo;
   bool mDidLoadURLInit;

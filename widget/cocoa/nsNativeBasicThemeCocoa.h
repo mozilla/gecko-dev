@@ -23,25 +23,25 @@ class nsNativeBasicThemeCocoa : public nsNativeBasicTheme {
                                   mozilla::LayoutDeviceIntSize* aResult,
                                   bool* aIsOverridable) override;
 
-  void PaintScrollbarThumb(DrawTarget* aDrawTarget, const Rect& aRect,
-                           bool aHorizontal, nsIFrame* aFrame,
-                           const ComputedStyle& aStyle,
+  void PaintScrollbarThumb(DrawTarget* aDrawTarget,
+                           const LayoutDeviceRect& aRect, bool aHorizontal,
+                           nsIFrame* aFrame, const ComputedStyle& aStyle,
                            const EventStates& aElementState,
                            const EventStates& aDocumentState,
-                           uint32_t aDpiRatio) override;
-  void PaintScrollbarTrack(DrawTarget* aDrawTarget, const Rect& aRect,
-                           bool aHorizontal, nsIFrame* aFrame,
-                           const ComputedStyle& aStyle,
+                           DPIRatio aDpiRatio) override;
+  void PaintScrollbarTrack(DrawTarget* aDrawTarget,
+                           const LayoutDeviceRect& aRect, bool aHorizontal,
+                           nsIFrame* aFrame, const ComputedStyle& aStyle,
                            const EventStates& aDocumentState,
-                           uint32_t aDpiRatio, bool aIsRoot) override;
-  void PaintScrollbar(DrawTarget* aDrawTarget, const Rect& aRect,
+                           DPIRatio aDpiRatio, bool aIsRoot) override;
+  void PaintScrollbar(DrawTarget* aDrawTarget, const LayoutDeviceRect& aRect,
                       bool aHorizontal, nsIFrame* aFrame,
                       const ComputedStyle& aStyle,
-                      const EventStates& aDocumentState, uint32_t aDpiRatio,
+                      const EventStates& aDocumentState, DPIRatio aDpiRatio,
                       bool aIsRoot) override;
-  void PaintScrollCorner(DrawTarget* aDrawTarget, const Rect& aRect,
+  void PaintScrollCorner(DrawTarget* aDrawTarget, const LayoutDeviceRect& aRect,
                          nsIFrame* aFrame, const ComputedStyle& aStyle,
-                         const EventStates& aDocumentState, uint32_t aDpiRatio,
+                         const EventStates& aDocumentState, DPIRatio aDpiRatio,
                          bool aIsRoot) override;
 
  protected:

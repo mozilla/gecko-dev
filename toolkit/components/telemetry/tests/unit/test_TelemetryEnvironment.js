@@ -22,6 +22,9 @@ const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
 const { SearchTestUtils } = ChromeUtils.import(
   "resource://testing-common/SearchTestUtils.jsm"
 );
+if (AppConstants.MOZ_GLEAN) {
+  Cu.importGlobalProperties(["Glean"]);
+}
 
 // AttributionCode is only needed for Firefox
 ChromeUtils.defineModuleGetter(
@@ -35,6 +38,8 @@ ChromeUtils.defineModuleGetter(
   "ExtensionTestUtils",
   "resource://testing-common/ExtensionXPCShellUtils.jsm"
 );
+
+SearchTestUtils.init(this);
 
 async function installXPIFromURL(url) {
   let install = await AddonManager.getInstallForURL(url);
@@ -175,6 +180,10 @@ var SysInfo = {
     }
 
     return this._genuine.QueryInterface(Ci.nsIPropertyBag).getProperty(name);
+  },
+
+  getPropertyAsACString(name) {
+    return this.get(name);
   },
 
   getPropertyAsUint32(name) {
@@ -1048,6 +1057,12 @@ add_task(async function setup() {
   registerFakeSysInfo();
   spoofGfxAdapter();
   do_get_profile();
+
+  if (AppConstants.MOZ_GLEAN) {
+    // We need to ensure FOG is initialized, otherwise we will panic trying to get test values.
+    let FOG = Cc["@mozilla.org/toolkit/glean;1"].createInstance(Ci.nsIFOG);
+    FOG.initializeFOG();
+  }
 
   // The system add-on must be installed before AddonManager is started.
   const distroDir = FileUtils.getDir("ProfD", ["sysfeatures", "app0"], true);
@@ -2131,6 +2146,62 @@ add_task(async function test_defaultPrivateSearchEngine() {
   await checkDefaultSearch(true, true);
 });
 
+add_task(async function test_defaultSearchEngine_paramsChanged() {
+  let extension = await SearchTestUtils.installSearchExtension({
+    name: "TestEngine",
+    search_url: "https://www.google.com/fake1",
+  });
+
+  let promise = new Promise(resolve => {
+    TelemetryEnvironment.registerChangeListener(
+      "testWatch_SearchDefault",
+      resolve
+    );
+  });
+  let engine = Services.search.getEngineByName("TestEngine");
+  await Services.search.setDefault(engine);
+  await promise;
+
+  let data = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(data);
+  Assert.deepEqual(data.settings.defaultSearchEngineData, {
+    name: "TestEngine",
+    loadPath: "[other]addEngineWithDetails:example@tests.mozilla.org",
+    origin: "verified",
+    submissionURL: "https://www.google.com/fake1?q=",
+  });
+
+  promise = new Promise(resolve => {
+    TelemetryEnvironment.registerChangeListener(
+      "testWatch_SearchDefault",
+      resolve
+    );
+  });
+
+  engine.wrappedJSObject._updateFromManifest(
+    extension.id,
+    extension.baseURI,
+    SearchTestUtils.createEngineManifest({
+      name: "TestEngine",
+      version: "1.2",
+      search_url: "https://www.google.com/fake2",
+    })
+  );
+
+  await promise;
+
+  data = TelemetryEnvironment.currentEnvironment;
+  checkEnvironmentData(data);
+  Assert.deepEqual(data.settings.defaultSearchEngineData, {
+    name: "TestEngine",
+    loadPath: "[other]addEngineWithDetails:example@tests.mozilla.org",
+    origin: "verified",
+    submissionURL: "https://www.google.com/fake2?q=",
+  });
+
+  await extension.unload();
+});
+
 add_task(
   { skip_if: () => AppConstants.MOZ_APP_NAME == "thunderbird" },
   async function test_delayed_defaultBrowser() {
@@ -2447,6 +2518,21 @@ if (gIsWindows) {
       checkString(data.system.hdd[k].revision);
       checkString(data.system.hdd[k].type);
     }
+    if (AppConstants.MOZ_GLEAN) {
+      if (data.system.hdd.profile.type == "SSD") {
+        Assert.equal(
+          true,
+          Glean.fogValidation.profileDiskIsSsd.testGetValue(),
+          "SSDness should be recorded in Glean"
+        );
+      } else {
+        Assert.equal(
+          false,
+          Glean.fogValidation.profileDiskIsSsd.testGetValue(),
+          "nonSSDness should be recorded in Glean"
+        );
+      }
+    }
   });
 
   add_task(async function test_environmentProcessInfo() {
@@ -2565,6 +2651,36 @@ add_task(
     }
   }
 );
+
+add_task(async function test_normandyTestPrefsGoneAfter91() {
+  const testPrefBool = "app.normandy.test-prefs.bool";
+  const testPrefInteger = "app.normandy.test-prefs.integer";
+  const testPrefString = "app.normandy.test-prefs.string";
+
+  Services.prefs.setBoolPref(testPrefBool, true);
+  Services.prefs.setIntPref(testPrefInteger, 10);
+  Services.prefs.setCharPref(testPrefString, "test-string");
+
+  const data = TelemetryEnvironment.currentEnvironment;
+
+  if (Services.vc.compare(data.build.version, "91") > 0) {
+    Assert.equal(
+      data.settings.userPrefs["app.normandy.test-prefs.bool"],
+      null,
+      "This probe should expire in FX91. bug 1686105 "
+    );
+    Assert.equal(
+      data.settings.userPrefs["app.normandy.test-prefs.integer"],
+      null,
+      "This probe should expire in FX91. bug 1686105 "
+    );
+    Assert.equal(
+      data.settings.userPrefs["app.normandy.test-prefs.string"],
+      null,
+      "This probe should expire in FX91. bug 1686105 "
+    );
+  }
+});
 
 add_task(async function test_environmentShutdown() {
   // Define and reset the test preference.

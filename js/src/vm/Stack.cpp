@@ -6,10 +6,10 @@
 
 #include "vm/Stack-inl.h"
 
-#include "mozilla/ArrayUtils.h"  // mozilla::ArrayLength
-#include "mozilla/Maybe.h"       // mozilla::Maybe
+#include "mozilla/Maybe.h"  // mozilla::Maybe
 
 #include <algorithm>  // std::max
+#include <iterator>   // std::size
 #include <stddef.h>   // size_t
 #include <stdint.h>   // uint8_t, uint32_t
 #include <utility>    // std::move
@@ -34,7 +34,6 @@
 
 using namespace js;
 
-using mozilla::ArrayLength;
 using mozilla::Maybe;
 
 using JS::Value;
@@ -73,8 +72,7 @@ ArrayObject* InterpreterFrame::createRestParameter(JSContext* cx) {
   unsigned nformal = callee().nargs() - 1, nactual = numActualArgs();
   unsigned nrest = (nactual > nformal) ? nactual - nformal : 0;
   Value* restvp = argv() + nformal;
-  return ObjectGroup::newArrayObject(cx, restvp, nrest, GenericObject,
-                                     ObjectGroup::NewArrayKind::UnknownIndex);
+  return NewDenseCopiedArray(cx, nrest, restvp);
 }
 
 static inline void AssertScopeMatchesEnvironment(Scope* scope,
@@ -721,8 +719,8 @@ uint32_t JS::ProfilingFrameIterator::extractStack(Frame* frames,
   const char* labels[64];
   uint32_t depth = entry.callStackAtAddr(cx_->runtime(),
                                          jsJitIter().resumePCinCurrentFrame(),
-                                         labels, ArrayLength(labels));
-  MOZ_ASSERT(depth < ArrayLength(labels));
+                                         labels, std::size(labels));
+  MOZ_ASSERT(depth < std::size(labels));
   for (uint32_t i = 0; i < depth; i++) {
     if (offset + i >= end) {
       return i;

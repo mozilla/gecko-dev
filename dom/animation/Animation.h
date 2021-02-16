@@ -8,47 +8,45 @@
 #define mozilla_dom_Animation_h
 
 #include "X11UndefineNone.h"
-#include "nsWrapperCache.h"
 #include "nsCycleCollectionParticipant.h"
 #include "mozilla/AnimationPerformanceWarning.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EffectCompositor.h"  // For EffectCompositor::CascadeLevel
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/PostRestyleMode.h"
+#include "mozilla/StickyTimeDuration.h"
 #include "mozilla/TimeStamp.h"             // for TimeStamp, TimeDuration
 #include "mozilla/dom/AnimationBinding.h"  // for AnimationPlayState
-#include "mozilla/dom/AnimationEffect.h"
 #include "mozilla/dom/AnimationTimeline.h"
-#include "mozilla/dom/Promise.h"
-#include "nsCSSPropertyID.h"
-#include "nsIGlobalObject.h"
 
 struct JSContext;
 class nsCSSPropertyIDSet;
 class nsIFrame;
+class nsIGlobalObject;
 
 namespace mozilla {
 
 struct AnimationRule;
+class MicroTaskRunnable;
 
 namespace dom {
 
+class AnimationEffect;
 class AsyncFinishNotification;
 class CSSAnimation;
 class CSSTransition;
 class Document;
+class Promise;
 
 class Animation : public DOMEventTargetHelper,
                   public LinkedListElement<Animation> {
  protected:
-  virtual ~Animation() = default;
+  virtual ~Animation();
 
  public:
-  explicit Animation(nsIGlobalObject* aGlobal)
-      : DOMEventTargetHelper(aGlobal), mAnimationIndex(sNextAnimationIndex++) {}
+  explicit Animation(nsIGlobalObject* aGlobal);
 
   // Constructs a copy of |aOther| with a new effect and timeline.
   // This is only intended to be used while making a static clone of a document
@@ -316,10 +314,8 @@ class Animation : public DOMEventTargetHelper,
     return PlayState() == AnimationPlayState::Paused;
   }
 
-  bool HasCurrentEffect() const {
-    return GetEffect() && GetEffect()->IsCurrent();
-  }
-  bool IsInEffect() const { return GetEffect() && GetEffect()->IsInEffect(); }
+  bool HasCurrentEffect() const;
+  bool IsInEffect() const;
 
   bool IsPlaying() const {
     return mPlaybackRate != 0.0 && mTimeline &&
@@ -540,15 +536,7 @@ class Animation : public DOMEventTargetHelper,
   // https://drafts.csswg.org/css-animations-2/#interval-start
   // https://drafts.csswg.org/css-transitions-2/#interval-start
   StickyTimeDuration IntervalStartTime(
-      const StickyTimeDuration& aActiveDuration) const {
-    MOZ_ASSERT(AsCSSTransition() || AsCSSAnimation(),
-               "Should be called for CSS animations or transitions");
-    static constexpr StickyTimeDuration zeroDuration = StickyTimeDuration();
-    return std::max(
-        std::min(StickyTimeDuration(-mEffect->SpecifiedTiming().Delay()),
-                 aActiveDuration),
-        zeroDuration);
-  }
+      const StickyTimeDuration& aActiveDuration) const;
 
   // Later side of the elapsed time range reported in CSS Animations and CSS
   // Transitions events.
@@ -556,15 +544,7 @@ class Animation : public DOMEventTargetHelper,
   // https://drafts.csswg.org/css-animations-2/#interval-end
   // https://drafts.csswg.org/css-transitions-2/#interval-end
   StickyTimeDuration IntervalEndTime(
-      const StickyTimeDuration& aActiveDuration) const {
-    MOZ_ASSERT(AsCSSTransition() || AsCSSAnimation(),
-               "Should be called for CSS animations or transitions");
-
-    static constexpr StickyTimeDuration zeroDuration = StickyTimeDuration();
-    return std::max(std::min((EffectEnd() - mEffect->SpecifiedTiming().Delay()),
-                             aActiveDuration),
-                    zeroDuration);
-  }
+      const StickyTimeDuration& aActiveDuration) const;
 
   TimeStamp GetTimelineCurrentTimeAsTimeStamp() const {
     return mTimeline ? mTimeline->GetCurrentTimeAsTimeStamp() : TimeStamp();

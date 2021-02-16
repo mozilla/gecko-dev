@@ -10,6 +10,7 @@
 author: Jordan Lund
 """
 
+from __future__ import absolute_import
 import json
 import os
 import re
@@ -41,6 +42,7 @@ from mozharness.mozilla.testing.codecoverage import (
 )
 from mozharness.mozilla.testing.testbase import TestingMixin, testing_config_options
 
+PY2 = sys.version_info.major == 2
 SUITE_CATEGORIES = [
     "gtest",
     "cppunittest",
@@ -258,6 +260,26 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     "help": "Run tests in a cross origin iframe.",
                 },
             ],
+            [
+                ["--enable-a11y-checks"],
+                {
+                    "action": "store_true",
+                    "default": False,
+                    "dest": "a11y_checks",
+                    "help": "Run tests with accessibility checks disabled.",
+                },
+            ],
+            [
+                ["--run-failures"],
+                {
+                    "action": "store",
+                    "default": "",
+                    "type": "string",
+                    "dest": "run_failures",
+                    "help": "Run only failures matching keyword. "
+                    "Examples: 'apple_silicon'",
+                },
+            ],
         ]
         + copy.deepcopy(testing_config_options)
         + copy.deepcopy(code_coverage_config_options)
@@ -428,19 +450,28 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         self.register_virtualenv_module(name="mock")
         self.register_virtualenv_module(name="simplejson")
 
-        requirements_files = [
-            os.path.join(
-                dirs["abs_test_install_dir"], "config", "marionette_requirements.txt"
-            )
-        ]
+        marionette_requirements_file = os.path.join(
+            dirs["abs_test_install_dir"], "config", "marionette_requirements.txt"
+        )
+        # marionette_requirements.txt must use the legacy resolver until bug 1684969 is resolved.
+        self.register_virtualenv_module(
+            requirements=[marionette_requirements_file],
+            two_pass=True,
+            legacy_resolver=True,
+        )
 
+        requirements_files = []
         if self._query_specified_suites("mochitest") is not None:
             # mochitest is the only thing that needs this
+            if PY2:
+                wspb_requirements = "websocketprocessbridge_requirements.txt"
+            else:
+                wspb_requirements = "websocketprocessbridge_requirements_3.txt"
             requirements_files.append(
                 os.path.join(
                     dirs["abs_mochitest_dir"],
                     "websocketprocessbridge",
-                    "websocketprocessbridge_requirements.txt",
+                    wspb_requirements,
                 )
             )
 
@@ -573,6 +604,12 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             if c["extra_prefs"]:
                 base_cmd.extend(["--setpref={}".format(p) for p in c["extra_prefs"]])
+
+            if c["a11y_checks"]:
+                base_cmd.append("--enable-a11y-checks")
+
+            if c["run_failures"]:
+                base_cmd.extend(["--run-failures={}".format(c["run_failures"])])
 
             # set pluginsPath
             abs_res_plugins_dir = os.path.join(abs_res_dir, "plugins")
@@ -926,7 +963,9 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         try:
             import psutil
 
-            path = os.path.join(dir, "system-info.log")
+            path = os.path.join(
+                self.query_abs_dirs()["abs_blob_upload_dir"], "system-info.log"
+            )
             with open(path, "w") as f:
                 f.write("System info collected at %s\n\n" % datetime.now())
                 f.write("\nBoot time %s\n" % datetime.fromtimestamp(psutil.boot_time()))

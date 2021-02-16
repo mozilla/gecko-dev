@@ -1049,15 +1049,14 @@ add_old_configure_assignment("FT2_CFLAGS", ft2_info.cflags)
 # The source code lives under ../remote.
 
 
-@depends(target, build_project, milestone)
-def remote_default(target, project, milestone):
+@depends(target, build_project)
+def remote_default(target, project):
     # no support for Android
     if target.os == "Android":
         return False
 
-    # enable on Firefox Nightly channel only
-    # TODO(ato): https://bugzil.la/1544393
-    return project == "browser" and milestone.is_nightly
+    # enable for Firefox Desktop only
+    return project == "browser"
 
 
 option("--enable-cdp", default=remote_default, help="{Enable|Disable} remote agent")
@@ -1521,7 +1520,7 @@ llvm_dlltool = check_prog(
     ("llvm-dlltool",),
     what="llvm-dlltool",
     when=check_for_llvm_dlltool,
-    paths=toolchain_search_path,
+    paths=clang_search_path,
 )
 
 
@@ -2068,7 +2067,7 @@ set_config("MOZ_USING_WASM_SANDBOXING", requires_wasm_sandboxing)
 set_define("MOZ_USING_WASM_SANDBOXING", requires_wasm_sandboxing)
 
 with only_when(requires_wasm_sandboxing & compile_environment):
-    lucetc = check_prog("LUCETC", ["lucetc"], paths=toolchain_search_path)
+    lucetc = check_prog("LUCETC", ["lucetc"], paths=bootstrap_search_path("lucetc"))
 
     option(
         "--with-wasi-sysroot",
@@ -2077,12 +2076,12 @@ with only_when(requires_wasm_sandboxing & compile_environment):
         help="Path to wasi sysroot for wasm sandboxing",
     )
 
-    @depends("--with-wasi-sysroot", mozbuild_state_path)
+    @depends("--with-wasi-sysroot", toolchains_base_dir)
     @imports("os")
-    def wasi_sysroot(wasi_sysroot, mozbuild_state_path):
+    def wasi_sysroot(wasi_sysroot, toolchains_base_dir):
         if not wasi_sysroot:
             sysroot = os.path.join(
-                mozbuild_state_path, "wasi-sysroot", "share", "wasi-sysroot"
+                toolchains_base_dir, "wasi-sysroot", "share", "wasi-sysroot"
             )
             if os.path.isdir(sysroot):
                 return sysroot
@@ -2127,7 +2126,7 @@ with only_when(requires_wasm_sandboxing & compile_environment):
         "_WASM_CC",
         ["clang"],
         input=provided_wasm_cc.program,
-        paths=toolchain_search_path,
+        paths=clang_search_path,
         allow_missing=True,
         what="the C->WASM compiler",
     )
@@ -2146,7 +2145,7 @@ with only_when(requires_wasm_sandboxing & compile_environment):
         "_WASM_CXX",
         ["clang++"],
         input=provided_wasm_cxx.program,
-        paths=toolchain_search_path,
+        paths=clang_search_path,
         allow_missing=True,
         what="the C++->WASM compiler",
     )
@@ -2318,7 +2317,7 @@ check_prog(
     "DUMP_SYMS",
     ["dump_syms"],
     allow_missing=True,
-    paths=toolchain_search_path,
+    paths=bootstrap_search_path("dump_syms"),
     when=compile_environment,
 )
 
@@ -2327,7 +2326,7 @@ check_prog(
     "PDBSTR",
     ["pdbstr.exe"],
     allow_missing=True,
-    paths=toolchain_search_path,
+    paths=bootstrap_search_path("pdbstr", when=compile_environment & target_is_windows),
     when=compile_environment & target_is_windows,
 )
 
@@ -2343,7 +2342,9 @@ def allow_missing_winchecksec(automation, c_compiler):
 check_prog(
     "WINCHECKSEC",
     ["winchecksec.exe", "winchecksec"],
-    paths=toolchain_search_path,
+    paths=bootstrap_search_path(
+        "winchecksec", when=compile_environment & target_is_windows
+    ),
     allow_missing=allow_missing_winchecksec,
     when=compile_environment & target_is_windows,
 )
@@ -2377,17 +2378,6 @@ def forkserver_flag(value, target):
 
 set_config("MOZ_ENABLE_FORKSERVER", forkserver_flag)
 set_define("MOZ_ENABLE_FORKSERVER", forkserver_flag, forkserver_flag)
-
-# new cert storage implementation
-# ==============================================================
-option(
-    "--disable-new-cert-storage",
-    env="MOZ_NEW_CERT_STORAGE",
-    help="{Enable|Disable} new certificate storage",
-)
-
-set_config("MOZ_NEW_CERT_STORAGE", True, when="--enable-new-cert-storage")
-set_define("MOZ_NEW_CERT_STORAGE", True, when="--enable-new-cert-storage")
 
 # Crash Reporter
 # ==============================================================
@@ -2491,3 +2481,16 @@ option(
 )
 
 set_define("MOZ_USE_NATIVE_POPUP_WINDOWS", True, when="MOZ_USE_NATIVE_POPUP_WINDOWS")
+
+
+# Crash reporter options
+# ==============================================================
+@depends(target)
+def oxidized_breakpad(target):
+    if target.kernel == "Linux" and target.os != "Android":
+        return False  # Disabled pending further testing
+    return False
+
+
+set_config("MOZ_OXIDIZED_BREAKPAD", True, when=oxidized_breakpad)
+set_define("MOZ_OXIDIZED_BREAKPAD", True, when=oxidized_breakpad)

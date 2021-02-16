@@ -4,7 +4,7 @@
 
 use crate::ErrorType;
 
-/// A description for the `StringMetric` type.
+/// A description for the [`StringMetric`](crate::metrics::StringMetric) type.
 ///
 /// When changing this trait, make sure all the operations are
 /// implemented in the related type in `../metrics/`.
@@ -17,7 +17,7 @@ pub trait String {
     ///
     /// ## Notes
     ///
-    /// Truncates the value if it is longer than `MAX_STRING_LENGTH` bytes and logs an error.
+    /// Truncates the value if it is longer than `MAX_LENGTH_VALUE` bytes and logs an error.
     fn set<S: Into<std::string::String>>(&self, value: S);
 
     /// **Exported for test purposes.**

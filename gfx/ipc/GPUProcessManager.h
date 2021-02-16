@@ -18,8 +18,10 @@
 #include "mozilla/ipc/Transport.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/webrender/WebRenderTypes.h"
+#include "nsIObserver.h"
 #include "nsThreadUtils.h"
 class nsBaseWidget;
+enum class DeviceResetReason;
 
 namespace mozilla {
 class MemoryReportingProcess;
@@ -36,6 +38,7 @@ class PVideoBridgeParent;
 class RemoteCompositorSession;
 class InProcessCompositorSession;
 class UiCompositorControllerChild;
+class LayerManager;
 }  // namespace layers
 namespace widget {
 class CompositorWidget;
@@ -146,12 +149,15 @@ class GPUProcessManager final : public GPUProcessHost::Listener {
   // Destroy and recreate all of the compositors
   void ResetCompositors();
 
+  // Record the device reset in telemetry / annotate the crash report.
+  static void RecordDeviceReset(DeviceResetReason aReason);
+
   void OnProcessLaunchComplete(GPUProcessHost* aHost) override;
   void OnProcessUnexpectedShutdown(GPUProcessHost* aHost) override;
   void SimulateDeviceReset();
   void DisableWebRender(wr::WebRenderError aError, const nsCString& aMsg);
   void NotifyWebRenderError(wr::WebRenderError aError);
-  void OnInProcessDeviceReset();
+  void OnInProcessDeviceReset(bool aTrackThreshold);
   void OnRemoteProcessDeviceReset(GPUProcessHost* aHost) override;
   void NotifyListenersOnCompositeDeviceReset();
 
@@ -215,6 +221,13 @@ class GPUProcessManager final : public GPUProcessHost::Listener {
 
   void RebuildRemoteSessions();
   void RebuildInProcessSessions();
+
+  // Returns true if we crossed the threshold such that we should disable
+  // acceleration.
+  bool OnDeviceReset(bool aTrackThreshold);
+
+  // Returns true if WebRender was enabled and is now disabled.
+  bool DisableWebRenderConfig(wr::WebRenderError aError, const nsCString& aMsg);
 
   void NotifyDisablingWebRender();
 

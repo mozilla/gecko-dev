@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#define WR_FEATURE_TEXTURE_2D
+
 #include shared,prim_shared
 
 // interpolated UV coordinates to sample.
 varying vec2 vUv;
-// X = layer index to sample, Y = flag to allow perspective interpolation of UV.
-flat varying vec2 vLayerAndPerspective;
+// flag to allow perspective interpolation of UV.
+flat varying float vPerspective;
 flat varying vec4 vUvSampleBounds;
 
 #ifdef WR_VERTEX_SHADER
@@ -81,12 +83,13 @@ void main(void) {
 
     write_clip(
         world_pos,
-        clip_area
+        clip_area,
+        dest_task
     );
 
     gl_Position = uTransform * final_pos;
 
-    vec2 texture_size = vec2(textureSize(sPrevPassColor, 0));
+    vec2 texture_size = vec2(textureSize(sColor0, 0));
     vec2 uv0 = res.uv_rect.p0;
     vec2 uv1 = res.uv_rect.p1;
 
@@ -104,15 +107,43 @@ void main(void) {
     float perspective_interpolate = float(ph.user_data.y);
 
     vUv = uv / texture_size * mix(gl_Position.w, 1.0, perspective_interpolate);
-    vLayerAndPerspective = vec2(res.layer, perspective_interpolate);
+    vPerspective = perspective_interpolate;
 }
 #endif
 
 #ifdef WR_FRAGMENT_SHADER
 void main(void) {
     float alpha = do_clip();
-    float perspective_divisor = mix(gl_FragCoord.w, 1.0, vLayerAndPerspective.y);
+    float perspective_divisor = mix(gl_FragCoord.w, 1.0, vPerspective);
     vec2 uv = clamp(vUv * perspective_divisor, vUvSampleBounds.xy, vUvSampleBounds.zw);
-    write_output(alpha * textureLod(sPrevPassColor, vec3(uv, vLayerAndPerspective.x), 0.0));
+    write_output(alpha * texture(sColor0, uv));
 }
+
+#ifdef SWGL
+void swgl_drawSpanRGBA8() {
+    if (!swgl_isTextureRGBA8(sColor0) || !swgl_isTextureLinear(sColor0)) {
+        return;
+    }
+
+    float perspective_divisor = mix(swgl_forceScalar(gl_FragCoord.w), 1.0, vPerspective);
+
+    vec2 uv = vUv * perspective_divisor;
+
+    if (swgl_allowTextureNearest(sColor0, uv)) {
+        swgl_commitTextureNearestRGBA8(sColor0, uv, vUvSampleBounds, 0);
+        return;
+    }
+
+    uv = swgl_linearQuantize(sColor0, uv);
+    vec2 min_uv = swgl_linearQuantize(sColor0, vUvSampleBounds.xy);
+    vec2 max_uv = swgl_linearQuantize(sColor0, vUvSampleBounds.zw);
+    vec2 step_uv = swgl_linearQuantizeStep(sColor0, swgl_interpStep(vUv)) * perspective_divisor;
+
+    while (swgl_SpanLength > 0) {
+        swgl_commitTextureLinearRGBA8(sColor0, clamp(uv, min_uv, max_uv), 0);
+        uv += step_uv;
+    }
+}
+#endif
+
 #endif

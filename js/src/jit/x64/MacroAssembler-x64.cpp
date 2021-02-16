@@ -35,7 +35,7 @@ void MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest) {
   // PC-relative addressing. Use "jump" label support code, because we need
   // the same PC-relative address patching that jumps use.
   JmpSrc j = masm.vmovsd_ripr(dest.encoding());
-  propagateOOM(dbl->uses.append(CodeOffset(j.offset())));
+  propagateOOM(dbl->uses.append(j));
 }
 
 void MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest) {
@@ -48,7 +48,7 @@ void MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest) {
   }
   // See comment in loadConstantDouble
   JmpSrc j = masm.vmovss_ripr(dest.encoding());
-  propagateOOM(flt->uses.append(CodeOffset(j.offset())));
+  propagateOOM(flt->uses.append(j));
 }
 
 void MacroAssemblerX64::vpRiprOpSimd128(
@@ -60,7 +60,7 @@ void MacroAssemblerX64::vpRiprOpSimd128(
     return;
   }
   JmpSrc j = (masm.*op)(reg.encoding());
-  propagateOOM(val->uses.append(CodeOffset(j.offset())));
+  propagateOOM(val->uses.append(j));
 }
 
 void MacroAssemblerX64::loadConstantSimd128Int(const SimdConstant& v,
@@ -349,12 +349,51 @@ void MacroAssemblerX64::vpcmpgtdSimd128(const SimdConstant& v,
   vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vpcmpgtd_ripr);
 }
 
+void MacroAssemblerX64::vcmpeqpsSimd128(const SimdConstant& v,
+                                        FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmpeqps_ripr);
+}
+
+void MacroAssemblerX64::vcmpneqpsSimd128(const SimdConstant& v,
+                                         FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmpneqps_ripr);
+}
+
+void MacroAssemblerX64::vcmpltpsSimd128(const SimdConstant& v,
+                                        FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmpltps_ripr);
+}
+
+void MacroAssemblerX64::vcmplepsSimd128(const SimdConstant& v,
+                                        FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmpleps_ripr);
+}
+
+void MacroAssemblerX64::vcmpeqpdSimd128(const SimdConstant& v,
+                                        FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmpeqpd_ripr);
+}
+
+void MacroAssemblerX64::vcmpneqpdSimd128(const SimdConstant& v,
+                                         FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmpneqpd_ripr);
+}
+
+void MacroAssemblerX64::vcmpltpdSimd128(const SimdConstant& v,
+                                        FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmpltpd_ripr);
+}
+
+void MacroAssemblerX64::vcmplepdSimd128(const SimdConstant& v,
+                                        FloatRegister src) {
+  vpRiprOpSimd128(v, src, &X86Encoding::BaseAssemblerX64::vcmplepd_ripr);
+}
+
 void MacroAssemblerX64::bindOffsets(
     const MacroAssemblerX86Shared::UsesVector& uses) {
-  for (CodeOffset use : uses) {
+  for (JmpSrc src : uses) {
     JmpDst dst(currentOffset());
-    JmpSrc src(use.offset());
-    // Using linkJump here is safe, as explaind in the comment in
+    // Using linkJump here is safe, as explained in the comment in
     // loadConstantDouble.
     masm.linkJump(src, dst);
   }
@@ -572,6 +611,22 @@ void MacroAssembler::subFromStackPtr(Imm32 imm32) {
   }
 }
 
+void MacroAssemblerX64::convertDoubleToPtr(FloatRegister src, Register dest,
+                                           Label* fail,
+                                           bool negativeZeroCheck) {
+  // Check for -0.0
+  if (negativeZeroCheck) {
+    branchNegativeZero(src, dest, fail);
+  }
+
+  ScratchDoubleScope scratch(asMasm());
+  vcvttsd2sq(src, dest);
+  asMasm().convertInt64ToDouble(Register64(dest), scratch);
+  vucomisd(scratch, src);
+  j(Assembler::Parity, fail);
+  j(Assembler::NotEqual, fail);
+}
+
 //{{{ check_macroassembler_style
 // ===============================================================
 // ABI function calls.
@@ -738,8 +793,9 @@ void MacroAssembler::branchPtrInNurseryChunk(Condition cond, Register ptr,
 
   movePtr(ptr, scratch);
   orPtr(Imm32(gc::ChunkMask), scratch);
-  branch32(cond, Address(scratch, gc::ChunkLocationOffsetFromLastByte),
-           Imm32(int32_t(gc::ChunkLocation::Nursery)), label);
+  branchPtr(InvertCondition(cond),
+            Address(scratch, gc::ChunkStoreBufferOffsetFromLastByte),
+            ImmWord(0), label);
 }
 
 template <typename T>
@@ -755,8 +811,9 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
 
   unboxGCThingForGCBarrier(value, temp);
   orPtr(Imm32(gc::ChunkMask), temp);
-  branch32(cond, Address(temp, gc::ChunkLocationOffsetFromLastByte),
-           Imm32(int32_t(gc::ChunkLocation::Nursery)), label);
+  branchPtr(InvertCondition(cond),
+            Address(temp, gc::ChunkStoreBufferOffsetFromLastByte), ImmWord(0),
+            label);
 
   bind(&done);
 }

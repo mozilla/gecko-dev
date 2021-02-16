@@ -274,11 +274,6 @@ bool IMMHandler::IsComposingOnOurEditor() {
 }
 
 // static
-bool IMMHandler::IsComposingOnPlugin() {
-  return gIMMHandler && gIMMHandler->mIsComposingOnPlugin;
-}
-
-// static
 bool IMMHandler::IsComposingWindow(nsWindow* aWindow) {
   return gIMMHandler && gIMMHandler->mComposingWindow == aWindow;
 }
@@ -382,8 +377,7 @@ IMMHandler::IMMHandler()
     : mComposingWindow(nullptr),
       mCursorPosition(NO_IME_CARET),
       mCompositionStart(0),
-      mIsComposing(false),
-      mIsComposingOnPlugin(false) {
+      mIsComposing(false) {
   MOZ_LOG(gIMMLog, LogLevel::Debug, ("IMMHandler is created"));
 }
 
@@ -493,10 +487,6 @@ void IMMHandler::OnUpdateComposition(nsWindow* aWindow) {
     return;
   }
 
-  if (aWindow->PluginHasFocus()) {
-    return;
-  }
-
   IMEContext context(aWindow);
   gIMMHandler->SetIMERelatedWindowsPos(aWindow, context);
 }
@@ -569,15 +559,6 @@ bool IMMHandler::ProcessMessage(nsWindow* aWindow, UINT msg, WPARAM& wParam,
   // if the new window handle is not focused, probably, we should not start
   // the composition, however, such case should not be, it's just bad scenario.
 
-  // When a plug-in has focus, we should dispatch the IME events to
-  // the plug-in at first.
-  if (aWindow->PluginHasFocus()) {
-    bool ret = false;
-    if (ProcessMessageForPlugin(aWindow, msg, wParam, lParam, ret, aResult)) {
-      return ret;
-    }
-  }
-
   aResult.mResult = 0;
   switch (msg) {
     case WM_INPUTLANGCHANGE:
@@ -612,49 +593,6 @@ bool IMMHandler::ProcessMessage(nsWindow* aWindow, UINT msg, WPARAM& wParam,
     default:
       return false;
   };
-}
-
-// static
-bool IMMHandler::ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
-                                         WPARAM& wParam, LPARAM& lParam,
-                                         bool& aRet, MSGResult& aResult) {
-  aResult.mResult = 0;
-  aResult.mConsumed = false;
-  switch (msg) {
-    case WM_INPUTLANGCHANGEREQUEST:
-    case WM_INPUTLANGCHANGE:
-      aWindow->DispatchPluginEvent(msg, wParam, lParam, false);
-      aRet = ProcessInputLangChangeMessage(aWindow, wParam, lParam, aResult);
-      return true;
-    case WM_IME_CHAR:
-      EnsureHandlerInstance();
-      aRet = gIMMHandler->OnIMECharOnPlugin(aWindow, wParam, lParam, aResult);
-      return true;
-    case WM_IME_SETCONTEXT:
-      aRet = OnIMESetContextOnPlugin(aWindow, wParam, lParam, aResult);
-      return true;
-    case WM_CHAR:
-      if (!gIMMHandler) {
-        return true;
-      }
-      aRet = gIMMHandler->OnCharOnPlugin(aWindow, wParam, lParam, aResult);
-      return true;
-    case WM_IME_COMPOSITIONFULL:
-    case WM_IME_CONTROL:
-    case WM_IME_KEYDOWN:
-    case WM_IME_KEYUP:
-    case WM_IME_SELECT:
-      aResult.mConsumed =
-          aWindow->DispatchPluginEvent(msg, wParam, lParam, false);
-      aRet = true;
-      return true;
-    case WM_IME_REQUEST:
-      // Our plugin implementation is alwasy OOP.  So WM_IME_REQUEST doesn't
-      // allow that parameter is pointer and shouldn't handle into Gecko.
-      aRet = false;
-      return true;
-  }
-  return false;
 }
 
 /****************************************************************************
@@ -980,148 +918,6 @@ bool IMMHandler::OnChar(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
   // a windowless plug-in.
   aResult.mConsumed = true;
   return aResult.mConsumed;
-}
-
-/****************************************************************************
- * message handlers for plug-in
- ****************************************************************************/
-
-void IMMHandler::OnIMEStartCompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                               LPARAM lParam) {
-  MOZ_LOG(gIMMLog, LogLevel::Info,
-          ("OnIMEStartCompositionOnPlugin, hWnd=%08x, mIsComposingOnPlugin=%s",
-           aWindow->GetWindowHandle(), GetBoolName(mIsComposingOnPlugin)));
-  mIsComposingOnPlugin = true;
-  mDispatcher = GetTextEventDispatcherFor(aWindow);
-  mComposingWindow = aWindow;
-  IMEContext context(aWindow);
-  SetIMERelatedWindowsPosOnPlugin(aWindow, context);
-  // On widnowless plugin, we should assume that the focused editor is always
-  // in horizontal writing mode.
-  AdjustCompositionFont(aWindow, context, WritingMode());
-}
-
-void IMMHandler::OnIMECompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                          LPARAM lParam) {
-  MOZ_LOG(
-      gIMMLog, LogLevel::Info,
-      ("OnIMECompositionOnPlugin, hWnd=%08x, lParam=%08x, "
-       "mIsComposingOnPlugin=%s, GCS_RESULTSTR=%s, GCS_COMPSTR=%s, "
-       "GCS_COMPATTR=%s, GCS_COMPCLAUSE=%s, GCS_CURSORPOS=%s",
-       aWindow->GetWindowHandle(), lParam, GetBoolName(mIsComposingOnPlugin),
-       GetBoolName(lParam & GCS_RESULTSTR), GetBoolName(lParam & GCS_COMPSTR),
-       GetBoolName(lParam & GCS_COMPATTR), GetBoolName(lParam & GCS_COMPCLAUSE),
-       GetBoolName(lParam & GCS_CURSORPOS)));
-  // We should end composition if there is a committed string.
-  if (IS_COMMITTING_LPARAM(lParam)) {
-    mIsComposingOnPlugin = false;
-    mComposingWindow = nullptr;
-    mDispatcher = nullptr;
-    return;
-  }
-  // Continue composition if there is still a string being composed.
-  if (IS_COMPOSING_LPARAM(lParam)) {
-    mIsComposingOnPlugin = true;
-    mDispatcher = GetTextEventDispatcherFor(aWindow);
-    mComposingWindow = aWindow;
-    IMEContext context(aWindow);
-    SetIMERelatedWindowsPosOnPlugin(aWindow, context);
-  }
-}
-
-void IMMHandler::OnIMEEndCompositionOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                             LPARAM lParam) {
-  MOZ_LOG(gIMMLog, LogLevel::Info,
-          ("OnIMEEndCompositionOnPlugin, hWnd=%08x, mIsComposingOnPlugin=%s",
-           aWindow->GetWindowHandle(), GetBoolName(mIsComposingOnPlugin)));
-
-  mIsComposingOnPlugin = false;
-  mComposingWindow = nullptr;
-  mDispatcher = nullptr;
-
-  IMEHandler::MaybeDestroyNativeCaret();
-}
-
-bool IMMHandler::OnIMECharOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                   LPARAM lParam, MSGResult& aResult) {
-  MOZ_LOG(gIMMLog, LogLevel::Info,
-          ("OnIMECharOnPlugin, hWnd=%08x, char=%08x, scancode=%08x",
-           aWindow->GetWindowHandle(), wParam, lParam));
-
-  aResult.mConsumed =
-      aWindow->DispatchPluginEvent(WM_IME_CHAR, wParam, lParam, true);
-
-  if (!aResult.mConsumed) {
-    // Record the WM_CHAR messages which are going to be coming.
-    EnsureHandlerInstance();
-    EnqueueIMECharRecords(wParam, lParam);
-  }
-  return true;
-}
-
-// static
-bool IMMHandler::OnIMESetContextOnPlugin(nsWindow* aWindow, WPARAM wParam,
-                                         LPARAM lParam, MSGResult& aResult) {
-  MOZ_LOG(gIMMLog, LogLevel::Info,
-          ("OnIMESetContextOnPlugin, hWnd=%08x, %s, lParam=%08x",
-           aWindow->GetWindowHandle(), wParam ? "Active" : "Deactive", lParam));
-
-  // If the IME context becomes active on a plug-in, we should commit
-  // our composition.  And also we should cancel the composition on new
-  // window.  Note that if IsTopLevelWindowOfComposition(aWindow) returns
-  // true, we should ignore the message here, see the comment in
-  // OnIMESetContext() for the detail.
-  if (wParam && gIMMHandler && !IsTopLevelWindowOfComposition(aWindow)) {
-    if (gIMMHandler->CommitCompositionOnPreviousWindow(aWindow)) {
-      CancelComposition(aWindow);
-    }
-  }
-
-  // Dispatch message to the plug-in.
-  // XXX When a windowless plug-in gets focus, we should send
-  //     WM_IME_SETCONTEXT
-  aWindow->DispatchPluginEvent(WM_IME_SETCONTEXT, wParam, lParam, false);
-
-  // We should send WM_IME_SETCONTEXT to the DefWndProc here.  It shouldn't
-  // be received on ancestor windows, see OnIMESetContext() for the detail.
-  aResult.mResult = ::DefWindowProc(aWindow->GetWindowHandle(),
-                                    WM_IME_SETCONTEXT, wParam, lParam);
-
-  // Don't synchronously dispatch the pending events when we receive
-  // WM_IME_SETCONTEXT because we get it during plugin destruction.
-  // (bug 491848)
-  aResult.mConsumed = true;
-  return true;
-}
-
-bool IMMHandler::OnCharOnPlugin(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
-                                MSGResult& aResult) {
-  NS_WARNING("OnCharOnPlugin");
-  if (mIsComposing) {
-    aWindow->NotifyIME(REQUEST_TO_COMMIT_COMPOSITION);
-    return true;
-  }
-
-  // We should never consume char message on windowless plugin.
-  aResult.mConsumed = false;
-  if (IsIMECharRecordsEmpty()) {
-    return false;
-  }
-
-  WPARAM recWParam;
-  LPARAM recLParam;
-  DequeueIMECharRecords(recWParam, recLParam);
-  MOZ_LOG(gIMMLog, LogLevel::Info,
-          ("OnCharOnPlugin, aWindow=%p, wParam=%08x, lParam=%08x, "
-           "recorded: wParam=%08x, lParam=%08x",
-           aWindow->GetWindowHandle(), wParam, lParam, recWParam, recLParam));
-  // If an unexpected char message comes, we should reset the records,
-  // of course, this shouldn't happen.
-  if (recWParam != wParam || recLParam != lParam) {
-    ResetIMECharRecords();
-  }
-  // WM_CHAR on plug-in is always handled by nsWindow.
-  return false;
 }
 
 /****************************************************************************
@@ -1554,19 +1350,19 @@ bool IMMHandler::HandleQueryCharPosition(nsWindow* aWindow, LPARAM lParam,
 
   pCharPosition->cLineHeight = r.Height();
 
-  WidgetQueryContentEvent editorRect(true, eQueryEditorRect, aWindow);
-  aWindow->InitEvent(editorRect);
-  DispatchEvent(aWindow, editorRect);
-  if (NS_WARN_IF(!editorRect.mSucceeded)) {
+  WidgetQueryContentEvent queryEditorRectEvent(true, eQueryEditorRect, aWindow);
+  aWindow->InitEvent(queryEditorRectEvent);
+  DispatchEvent(aWindow, queryEditorRectEvent);
+  if (NS_WARN_IF(queryEditorRectEvent.Failed())) {
     MOZ_LOG(gIMMLog, LogLevel::Error,
             ("HandleQueryCharPosition, eQueryEditorRect failed"));
     ::GetWindowRect(aWindow->GetWindowHandle(), &pCharPosition->rcDocument);
   } else {
-    LayoutDeviceIntRect editorRectInWindow = editorRect.mReply.mRect;
-    nsWindow* window =
-        editorRect.mReply.mFocusedWidget
-            ? static_cast<nsWindow*>(editorRect.mReply.mFocusedWidget)
-            : aWindow;
+    LayoutDeviceIntRect editorRectInWindow = queryEditorRectEvent.mReply->mRect;
+    nsWindow* window = !!queryEditorRectEvent.mReply->mFocusedWidget
+                           ? static_cast<nsWindow*>(
+                                 queryEditorRectEvent.mReply->mFocusedWidget)
+                           : aWindow;
     LayoutDeviceIntRect editorRectInScreen;
     ResolveIMECaretPos(window, editorRectInWindow, nullptr, editorRectInScreen);
     ::SetRect(&pCharPosition->rcDocument, editorRectInScreen.X(),
@@ -1623,18 +1419,19 @@ bool IMMHandler::HandleDocumentFeed(nsWindow* aWindow, LPARAM lParam,
   }
 
   // Get all contents of the focused editor.
-  WidgetQueryContentEvent textContent(true, eQueryTextContent, aWindow);
-  textContent.InitForQueryTextContent(0, UINT32_MAX);
-  aWindow->InitEvent(textContent, &point);
-  DispatchEvent(aWindow, textContent);
-  if (!textContent.mSucceeded) {
+  WidgetQueryContentEvent queryTextContentEvent(true, eQueryTextContent,
+                                                aWindow);
+  queryTextContentEvent.InitForQueryTextContent(0, UINT32_MAX);
+  aWindow->InitEvent(queryTextContentEvent, &point);
+  DispatchEvent(aWindow, queryTextContentEvent);
+  if (NS_WARN_IF(queryTextContentEvent.Failed())) {
     MOZ_LOG(gIMMLog, LogLevel::Error,
             ("HandleDocumentFeed, FAILED, due to eQueryTextContent failure"));
     return false;
   }
 
-  nsAutoString str(textContent.mReply.mString);
-  if (targetOffset > int32_t(str.Length())) {
+  nsAutoString str(queryTextContentEvent.mReply->DataRef());
+  if (targetOffset > static_cast<int32_t>(str.Length())) {
     MOZ_LOG(gIMMLog, LogLevel::Error,
             ("HandleDocumentFeed, FAILED, due to the caret offset is invalid"));
     return false;
@@ -2037,24 +1834,24 @@ bool IMMHandler::GetCharacterRectOfSelectedTextAt(
   // If there is a caret and retrieving offset is same as the caret offset,
   // we should use the caret rect.
   if (aOffset != caretOffset) {
-    WidgetQueryContentEvent charRect(true, eQueryTextRect, aWindow);
+    WidgetQueryContentEvent queryTextRectEvent(true, eQueryTextRect, aWindow);
     WidgetQueryContentEvent::Options options;
     options.mRelativeToInsertionPoint = true;
-    charRect.InitForQueryTextRect(aOffset, 1, options);
-    aWindow->InitEvent(charRect, &point);
-    DispatchEvent(aWindow, charRect);
-    if (charRect.mSucceeded) {
-      aCharRect = charRect.mReply.mRect;
+    queryTextRectEvent.InitForQueryTextRect(aOffset, 1, options);
+    aWindow->InitEvent(queryTextRectEvent, &point);
+    DispatchEvent(aWindow, queryTextRectEvent);
+    if (queryTextRectEvent.Succeeded()) {
+      aCharRect = queryTextRectEvent.mReply->mRect;
       if (aWritingMode) {
-        *aWritingMode = charRect.GetWritingMode();
+        *aWritingMode = queryTextRectEvent.mReply->WritingModeRef();
       }
-      MOZ_LOG(gIMMLog, LogLevel::Debug,
-              ("GetCharacterRectOfSelectedTextAt, Succeeded, aOffset=%u, "
-               "aCharRect={ x: %ld, y: %ld, width: %ld, height: %ld }, "
-               "charRect.GetWritingMode()=%s",
-               aOffset, aCharRect.X(), aCharRect.Y(), aCharRect.Width(),
-               aCharRect.Height(),
-               GetWritingModeName(charRect.GetWritingMode()).get()));
+      MOZ_LOG(
+          gIMMLog, LogLevel::Debug,
+          ("GetCharacterRectOfSelectedTextAt, Succeeded, aOffset=%u, "
+           "aCharRect={ x: %ld, y: %ld, width: %ld, height: %ld }, "
+           "queryTextRectEvent={ mReply=%s }",
+           aOffset, aCharRect.X(), aCharRect.Y(), aCharRect.Width(),
+           aCharRect.Height(), ToString(queryTextRectEvent.mReply).c_str()));
       return true;
     }
   }
@@ -2067,28 +1864,27 @@ bool IMMHandler::GetCaretRect(nsWindow* aWindow,
                               WritingMode* aWritingMode) {
   LayoutDeviceIntPoint point(0, 0);
 
-  WidgetQueryContentEvent caretRect(true, eQueryCaretRect, aWindow);
+  WidgetQueryContentEvent queryCaretRectEvent(true, eQueryCaretRect, aWindow);
   WidgetQueryContentEvent::Options options;
   options.mRelativeToInsertionPoint = true;
-  caretRect.InitForQueryCaretRect(0, options);
-  aWindow->InitEvent(caretRect, &point);
-  DispatchEvent(aWindow, caretRect);
-  if (!caretRect.mSucceeded) {
+  queryCaretRectEvent.InitForQueryCaretRect(0, options);
+  aWindow->InitEvent(queryCaretRectEvent, &point);
+  DispatchEvent(aWindow, queryCaretRectEvent);
+  if (queryCaretRectEvent.Failed()) {
     MOZ_LOG(gIMMLog, LogLevel::Info,
             ("GetCaretRect, FAILED, due to eQueryCaretRect failure"));
     return false;
   }
-  aCaretRect = caretRect.mReply.mRect;
+  aCaretRect = queryCaretRectEvent.mReply->mRect;
   if (aWritingMode) {
-    *aWritingMode = caretRect.GetWritingMode();
+    *aWritingMode = queryCaretRectEvent.mReply->WritingModeRef();
   }
-  MOZ_LOG(
-      gIMMLog, LogLevel::Info,
-      ("GetCaretRect, SUCCEEDED, "
-       "aCaretRect={ x: %ld, y: %ld, width: %ld, height: %ld }, "
-       "caretRect.GetWritingMode()=%s",
-       aCaretRect.X(), aCaretRect.Y(), aCaretRect.Width(), aCaretRect.Height(),
-       GetWritingModeName(caretRect.GetWritingMode()).get()));
+  MOZ_LOG(gIMMLog, LogLevel::Info,
+          ("GetCaretRect, SUCCEEDED, "
+           "aCaretRect={ x: %ld, y: %ld, width: %ld, height: %ld }, "
+           "queryCaretRectEvent={ mReply=%s }",
+           aCaretRect.X(), aCaretRect.Y(), aCaretRect.Width(),
+           aCaretRect.Height(), ToString(queryCaretRectEvent.mReply).c_str()));
   return true;
 }
 
@@ -2237,61 +2033,6 @@ bool IMMHandler::SetIMERelatedWindowsPos(nsWindow* aWindow,
   return true;
 }
 
-void IMMHandler::SetIMERelatedWindowsPosOnPlugin(nsWindow* aWindow,
-                                                 const IMEContext& aContext) {
-  WidgetQueryContentEvent editorRectEvent(true, eQueryEditorRect, aWindow);
-  aWindow->InitEvent(editorRectEvent);
-  DispatchEvent(aWindow, editorRectEvent);
-  if (!editorRectEvent.mSucceeded) {
-    MOZ_LOG(gIMMLog, LogLevel::Info,
-            ("SetIMERelatedWindowsPosOnPlugin, "
-             "FAILED, due to eQueryEditorRect failure"));
-    return;
-  }
-
-  // Clip the plugin rect by the client rect of the window because composition
-  // window needs to be specified the position in the client area.
-  nsWindow* toplevelWindow = aWindow->GetTopLevelWindow(false);
-  LayoutDeviceIntRect pluginRectInScreen =
-      editorRectEvent.mReply.mRect + toplevelWindow->WidgetToScreenOffset();
-  LayoutDeviceIntRect winRectInScreen = aWindow->GetClientBounds();
-  // composition window cannot be positioned on the edge of client area.
-  winRectInScreen.SizeTo(winRectInScreen.Width() - 1,
-                         winRectInScreen.Height() - 1);
-  LayoutDeviceIntRect clippedPluginRect;
-  clippedPluginRect.MoveTo(
-      std::min(std::max(pluginRectInScreen.X(), winRectInScreen.X()),
-               winRectInScreen.XMost()),
-      std::min(std::max(pluginRectInScreen.Y(), winRectInScreen.Y()),
-               winRectInScreen.YMost()));
-  int32_t xMost = std::min(pluginRectInScreen.XMost(), winRectInScreen.XMost());
-  int32_t yMost = std::min(pluginRectInScreen.YMost(), winRectInScreen.YMost());
-  clippedPluginRect.SizeTo(std::max(0, xMost - clippedPluginRect.X()),
-                           std::max(0, yMost - clippedPluginRect.Y()));
-  clippedPluginRect -= aWindow->WidgetToScreenOffset();
-
-  // Cover the plugin with native caret.  This prevents IME's window and plugin
-  // overlap.  But if a11y modules is handling native caret, we shouldn't touch
-  // it.
-  if (!IMEHandler::IsA11yHandlingNativeCaret()) {
-    IMEHandler::CreateNativeCaret(aWindow, clippedPluginRect);
-  }
-
-  // Set the composition window to bottom-left of the clipped plugin.
-  // As far as we know, there is no IME for RTL language.  Therefore, this code
-  // must not need to take care of RTL environment.
-  COMPOSITIONFORM compForm;
-  compForm.dwStyle = CFS_POINT;
-  compForm.ptCurrentPos.x = clippedPluginRect.BottomLeft().x;
-  compForm.ptCurrentPos.y = clippedPluginRect.BottomLeft().y;
-  if (!::ImmSetCompositionWindow(aContext.get(), &compForm)) {
-    MOZ_LOG(gIMMLog, LogLevel::Info,
-            ("SetIMERelatedWindowsPosOnPlugin, "
-             "FAILED, due to ::ImmSetCompositionWindow() failure"));
-    return;
-  }
-}
-
 void IMMHandler::ResolveIMECaretPos(nsIWidget* aReferenceWidget,
                                     LayoutDeviceIntRect& aCursorRect,
                                     nsIWidget* aNewOriginWidget,
@@ -2423,8 +2164,7 @@ void IMMHandler::AdjustCompositionFont(nsWindow* aWindow,
   logFont.lfClipPrecision = CLIP_DEFAULT_PRECIS;
   logFont.lfPitchAndFamily = DEFAULT_PITCH;
 
-  if (!aWindow->PluginHasFocus() && aWritingMode.IsVertical() &&
-      IsVerticalWritingSupported()) {
+  if (aWritingMode.IsVertical() && IsVerticalWritingSupported()) {
     SetVerticalFontToLogFont(IsJapanist2003Active()
                                  ? sCompositionFontForJapanist2003
                                  : sCompositionFont,
@@ -2561,56 +2301,6 @@ bool IMMHandler::OnKeyDownEvent(nsWindow* aWindow, WPARAM wParam, LPARAM lParam,
   }
 }
 
-// static
-void IMMHandler::SetCandidateWindow(nsWindow* aWindow, CANDIDATEFORM* aForm) {
-  // Hack for ATOK 2011 - 2016 (Japanese IME).  They refer native caret
-  // position at deciding candidate window position.  Note that we cannot
-  // check active IME since TIPs are wrapped and hidden by CUAS.
-  if (aWindow->PluginHasFocus()) {
-    // We cannot retrieve proper character height from plugin.  Therefore,
-    // we should assume that the caret height is always 20px since if less than
-    // this height, candidate window may overlap with composition string when
-    // there is no enough space under composition string to show candidate
-    // window.
-    static const int32_t kCaretHeight = 20;
-    // If a11y module is handling native caret, we shouldn't touch it.
-    // However, it does not work well with Flash Player with IME.  So, we
-    // need to keep overriding caret position here.
-    LayoutDeviceIntRect caretRect(aForm->ptCurrentPos.x,
-                                  aForm->ptCurrentPos.y - kCaretHeight, 1,
-                                  kCaretHeight);
-    IMEHandler::CreateNativeCaret(aWindow, caretRect);
-  }
-  IMEContext context(aWindow);
-  ::ImmSetCandidateWindow(context.get(), aForm);
-}
-
-// staitc
-void IMMHandler::DefaultProcOfPluginEvent(nsWindow* aWindow,
-                                          const NPEvent* aEvent) {
-  switch (aEvent->event) {
-    case WM_IME_STARTCOMPOSITION:
-      EnsureHandlerInstance();
-      gIMMHandler->OnIMEStartCompositionOnPlugin(aWindow, aEvent->wParam,
-                                                 aEvent->lParam);
-      break;
-
-    case WM_IME_COMPOSITION:
-      if (gIMMHandler) {
-        gIMMHandler->OnIMECompositionOnPlugin(aWindow, aEvent->wParam,
-                                              aEvent->lParam);
-      }
-      break;
-
-    case WM_IME_ENDCOMPOSITION:
-      if (gIMMHandler) {
-        gIMMHandler->OnIMEEndCompositionOnPlugin(aWindow, aEvent->wParam,
-                                                 aEvent->lParam);
-      }
-      break;
-  }
-}
-
 /******************************************************************************
  * IMMHandler::Selection
  ******************************************************************************/
@@ -2646,11 +2336,12 @@ bool IMMHandler::Selection::Update(const IMENotification& aIMENotification) {
 bool IMMHandler::Selection::Init(nsWindow* aWindow) {
   Clear();
 
-  WidgetQueryContentEvent selection(true, eQuerySelectedText, aWindow);
+  WidgetQueryContentEvent querySelectedTextEvent(true, eQuerySelectedText,
+                                                 aWindow);
   LayoutDeviceIntPoint point(0, 0);
-  aWindow->InitEvent(selection, &point);
-  DispatchEvent(aWindow, selection);
-  if (NS_WARN_IF(!selection.mSucceeded)) {
+  aWindow->InitEvent(querySelectedTextEvent, &point);
+  DispatchEvent(aWindow, querySelectedTextEvent);
+  if (NS_WARN_IF(querySelectedTextEvent.DidNotFindSelection())) {
     MOZ_LOG(gIMMLog, LogLevel::Error,
             ("Selection::Init, FAILED, due to eQuerySelectedText failure"));
     return false;
@@ -2663,15 +2354,15 @@ bool IMMHandler::Selection::Init(nsWindow* aWindow) {
     return false;
   }
 
-  mOffset = selection.mReply.mOffset;
-  mString = selection.mReply.mString;
-  mWritingMode = selection.GetWritingMode();
+  MOZ_ASSERT(querySelectedTextEvent.mReply->mOffsetAndData.isSome());
+  mOffset = querySelectedTextEvent.mReply->StartOffset();
+  mString = querySelectedTextEvent.mReply->DataRef();
+  mWritingMode = querySelectedTextEvent.mReply->WritingModeRef();
   mIsValid = true;
 
   MOZ_LOG(gIMMLog, LogLevel::Info,
-          ("Selection::Init, selection={ mReply={ mOffset=%u, "
-           "mString.Length()=%u, mWritingMode=%s } }",
-           mOffset, mString.Length(), GetWritingModeName(mWritingMode).get()));
+          ("Selection::Init, querySelectedTextEvent={ mReply=%s }",
+           ToString(querySelectedTextEvent.mReply).c_str()));
 
   if (!IsValid()) {
     MOZ_LOG(gIMMLog, LogLevel::Error,

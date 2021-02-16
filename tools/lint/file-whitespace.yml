@@ -14,6 +14,8 @@ file-whitespace:
         - devtools/client/inspector/rules/test
         - devtools/client/inspector/test
         - devtools/client/shared/test/doc_inline-debugger-statement.html
+        # Excluded because tests were failing unexpectedly
+        - devtools/client/styleeditor/test/sync_with_csp.css
         - devtools/client/webconsole/test/browser/test-message-categories-css-parser.css
         - devtools/shared/webconsole/test/chrome/test_jsterm.html
         - devtools/shared/webconsole/test/chrome/test_object_actor_native_getters.html
@@ -102,12 +104,13 @@ file-whitespace:
         - layout/tables/test/test_bug337124.html
         - layout/tables/crashtests
         - layout/xul/crashtests
-        - layout/xul/grid/crashtests
         - layout/xul/reftest
         - layout/xul/test
         - layout/xul/tree
         - modules/libjar/zipwriter/test/unit/data/test_bug399727.html
         - netwerk/test/crashtests
+        - netwerk/test/mochitests/test1.css
+        - netwerk/test/mochitests/test2.css
         - netwerk/dns/prepare_tlds.py
         - parser/htmlparser/tests
         - parser/html/java/named-character-references.html
@@ -172,6 +175,13 @@ file-whitespace:
         - xpcom/reflect/xptcall/status.html
         - xpcom/tests/test.properties
         - xpcom/tests/unit/data/bug121341.properties
+        # Excluded below files because tests were failing unexpectedly
+        - dom/bindings/test/test_barewordGetsWindow.html
+        - devtools/client/styleeditor/test/sourcemap-css/sourcemaps.css
+        - devtools/client/styleeditor/test/sourcemap-css/contained.css
+        - devtools/client/styleeditor/test/sourcemap-css/test-stylus.css
+        - dom/bindings/test/file_barewordGetsWindow_frame1.html
+        - dom/bindings/test/file_barewordGetsWindow_frame2.html
     extensions:
         - .c
         - .cc

@@ -7,14 +7,8 @@
 %define menuPanelWidth 22.35em
 %define wideMenuPanelWidth 29em
 %define standaloneSubviewWidth 30em
-% XXXgijs This is the ugliest bit of code I think I've ever written for Mozilla.
-% Basically, the 0.1px is there to avoid CSS rounding errors causing buttons to wrap.
-% For gory details, refer to https://bugzilla.mozilla.org/show_bug.cgi?id=963365#c11
-% There's no calc() here (and therefore lots of calc() where this is used) because
-% we don't support nested calc(): https://bugzilla.mozilla.org/show_bug.cgi?id=968761
-%define menuPanelButtonWidth (@menuPanelWidth@ / 3 - 0.1px)
-%define buttonStateHover :not(:is([disabled],[open],:active)):is(:hover,:focus)
-%define menuStateHover :not(:is([disabled],:active))[_moz-menuactive]
+%define buttonStateHover :not([disabled],[open],:active):is(:hover,:focus)
+%define menuStateHover :not([disabled],:active)[_moz-menuactive]
 %define buttonStateActive :not([disabled]):is([open],:hover:active)
 %define menuStateActive :not([disabled])[_moz-menuactive]:active
 %define menuStateMenuActive :not([disabled])[_moz-menuactive]
@@ -32,7 +26,7 @@
 %define appmenuWarningBackgroundColorActiveBrightText hsla(55,100%,50%,.2)
 %define appmenuWarningColorBrightText #F9F9FA
 
-:root:not([uidensity=compact]):not([chromehidden~="toolbar"]) #PanelUI-button {
+:root:not([uidensity=compact], [chromehidden~="toolbar"]) #PanelUI-button {
   margin-inline-start: 3px;
   border-inline-start: 1px solid;
   border-image: linear-gradient(
@@ -44,7 +38,7 @@
   border-image-slice: 1;
 }
 
-:root:not([uidensity=compact]):not([chromehidden~="toolbar"]) #nav-bar[brighttext] > #PanelUI-button {
+:root:not([uidensity=compact], [chromehidden~="toolbar"]) #nav-bar[brighttext] > #PanelUI-button {
   border-image-source: linear-gradient(
     transparent 4px,
     var(--lwt-toolbar-vertical-separator, rgba(255,255,255,.2)) 4px,
@@ -69,6 +63,7 @@
 #PanelUI-menu-button[badge-status="update-available"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
 #PanelUI-menu-button[badge-status="update-downloading"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
 #PanelUI-menu-button[badge-status="update-manual"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
+#PanelUI-menu-button[badge-status="update-other-instance"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
 #PanelUI-menu-button[badge-status="update-restart"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
 #PanelUI-menu-button[badge-status="update-unsupported"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
   border-radius: 50%;
@@ -83,6 +78,7 @@
 #PanelUI-menu-button[badge-status="update-available"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
 #PanelUI-menu-button[badge-status="update-downloading"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
 #PanelUI-menu-button[badge-status="update-manual"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
+#PanelUI-menu-button[badge-status="update-other-instance"] > .toolbarbutton-badge-stack > .toolbarbutton-badge,
 #PanelUI-menu-button[badge-status="update-restart"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
   background: #74BF43 url(chrome://browser/skin/update-badge.svg) no-repeat center;
 }
@@ -94,6 +90,7 @@
 .panel-banner-item[notificationid="update-available"]::after,
 .panel-banner-item[notificationid="update-downloading"]::after,
 .panel-banner-item[notificationid="update-manual"]::after,
+.panel-banner-item[notificationid="update-other-instance"]::after,
 .panel-banner-item[notificationid="update-restart"]::after {
   background: #74BF43 url(chrome://browser/skin/update-badge.svg) no-repeat center;
   border-radius: 50%;
@@ -139,6 +136,14 @@ panelview {
   -moz-box-flex: 1;
   background: var(--arrowpanel-background);
   padding: 0;
+}
+
+/* Prevent a scrollbar from appearing while the animation for transitioning from
+   one view to another runs, which would otherwise happen if the new view has
+   more height than the old one because that would mean that during the
+   animation the height of the multiview will be too short for the new view. */
+panelmultiview[transitioning] > .panel-viewcontainer > .panel-viewstack > panelview > .panel-subview-body {
+  overflow-y: hidden;
 }
 
 /* This section is to anchor all the drop down panels at the same height, shift the
@@ -1204,7 +1209,7 @@ panelview .toolbarbutton-1,
 }
 
 .subviewbutton[type="open-to-new"]::after {
-  content: url(chrome://browser/skin/open-in-new.svg);
+  content: url(chrome://global/skin/icons/open-in-new.svg);
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
   fill-opacity: 0.6;
@@ -1238,6 +1243,10 @@ panelview .toolbarbutton-1,
   -moz-box-orient: horizontal;
   border: 0;
   border-radius: 0;
+}
+
+.toolbaritem-combined-buttons:not([widget-type="button-and-view"]),
+.toolbaritem-menu-buttons {
   margin-inline-end: 8px;
 }
 
@@ -1446,10 +1455,13 @@ toolbarpaletteitem[place="palette"] > #search-container {
   -moz-box-orient: horizontal;
 }
 
-/* In customize mode, extend the buttons *only* in the panel, just to make them not look stupid */
-toolbarpaletteitem[place="menu-panel"] > .toolbaritem-combined-buttons > toolbarbutton {
-  min-width: calc(@menuPanelButtonWidth@ - 1px);
-  max-width: calc(@menuPanelButtonWidth@ - 1px);
+toolbarpaletteitem[place="menu-panel"],
+toolbarpaletteitem[place="menu-panel"] > toolbaritem {
+  -moz-box-flex: 1;
+}
+
+.toolbaritem-combined-buttons[cui-areatype="menu-panel"] > .toolbarbutton-combined-buttons-dropmarker {
+  display: none;
 }
 
 .toolbaritem-combined-buttons@inAnyPanel@ > toolbarbutton:not(.toolbarbutton-1)[disabled] {
@@ -1811,7 +1823,7 @@ toolbarpaletteitem[place="menu-panel"] > .subviewbutton-nav::after {
   list-style-image: url("chrome://browser/skin/reload.svg");
 }
 
-.subviewbutton.download:not([canShow]):not([canRetry]) > .action-button {
+.subviewbutton.download:not([canShow], [canRetry]) > .action-button {
   fill: currentColor;
   fill-opacity: 0.4;
 }

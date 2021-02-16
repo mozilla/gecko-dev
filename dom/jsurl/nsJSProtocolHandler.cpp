@@ -43,6 +43,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/DOMSecurityMonitor.h"
+#include "mozilla/dom/JSExecutionContext.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/PopupBlocker.h"
 #include "nsContentSecurityManager.h"
@@ -54,6 +55,7 @@
 
 using mozilla::IsAscii;
 using mozilla::dom::AutoEntryScript;
+using mozilla::dom::JSExecutionContext;
 
 static NS_DEFINE_CID(kJSURICID, NS_JSURI_CID);
 
@@ -135,15 +137,16 @@ static bool AllowedByCSP(nsIContentSecurityPolicy* aCSP,
   }
 
   bool allowsInlineScript = true;
-  nsresult rv = aCSP->GetAllowsInline(nsIContentPolicy::TYPE_SCRIPT,
-                                      u""_ns,   // aNonce
-                                      true,     // aParserCreated
-                                      nullptr,  // aElement,
-                                      nullptr,  // nsICSPEventListener
-                                      aContentOfPseudoScript,  // aContent
-                                      0,                       // aLineNumber
-                                      0,                       // aColumnNumber
-                                      &allowsInlineScript);
+  nsresult rv =
+      aCSP->GetAllowsInline(nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE,
+                            u""_ns,                  // aNonce
+                            true,                    // aParserCreated
+                            nullptr,                 // aElement,
+                            nullptr,                 // nsICSPEventListener
+                            aContentOfPseudoScript,  // aContent
+                            0,                       // aLineNumber
+                            0,                       // aColumnNumber
+                            &allowsInlineScript);
 
   return (NS_SUCCEEDED(rv) && allowsInlineScript);
 }
@@ -299,7 +302,7 @@ nsresult nsJSThunk::EvaluateScript(
   options.setFileAndLine(mURL.get(), 1);
   options.setIntroductionType("javascriptURL");
   {
-    nsJSUtils::ExecutionContext exec(cx, globalJSObject);
+    JSExecutionContext exec(cx, globalJSObject);
     exec.SetCoerceToString(true);
     exec.Compile(options, NS_ConvertUTF8toUTF16(script));
     rv = exec.ExecScript(&v);
@@ -309,39 +312,40 @@ nsresult nsJSThunk::EvaluateScript(
 
   if (NS_FAILED(rv) || !(v.isString() || v.isUndefined())) {
     return NS_ERROR_MALFORMED_URI;
-  } else if (v.isUndefined()) {
+  }
+  if (v.isUndefined()) {
     return NS_ERROR_DOM_RETVAL_UNDEFINED;
-  } else {
-    MOZ_ASSERT(rv != NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW,
-               "How did we get a non-undefined return value?");
-    nsAutoJSString result;
-    if (!result.init(cx, v)) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
+  }
+  MOZ_ASSERT(rv != NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW,
+             "How did we get a non-undefined return value?");
+  nsAutoJSString result;
+  if (!result.init(cx, v)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
-    char* bytes;
-    uint32_t bytesLen;
-    constexpr auto isoCharset = "windows-1252"_ns;
-    constexpr auto utf8Charset = "UTF-8"_ns;
-    const nsLiteralCString* charset;
-    if (IsISO88591(result)) {
-      // For compatibility, if the result is ISO-8859-1, we use
-      // windows-1252, so that people can compatibly create images
-      // using javascript: URLs.
-      bytes = ToNewCString(result, mozilla::fallible);
-      bytesLen = result.Length();
-      charset = &isoCharset;
-    } else {
-      bytes = ToNewUTF8String(result, &bytesLen);
-      charset = &utf8Charset;
-    }
-    aChannel->SetContentCharset(*charset);
-    if (bytes)
-      rv = NS_NewByteInputStream(getter_AddRefs(mInnerStream),
-                                 mozilla::Span(bytes, bytesLen),
-                                 NS_ASSIGNMENT_ADOPT);
-    else
-      rv = NS_ERROR_OUT_OF_MEMORY;
+  char* bytes;
+  uint32_t bytesLen;
+  constexpr auto isoCharset = "windows-1252"_ns;
+  constexpr auto utf8Charset = "UTF-8"_ns;
+  const nsLiteralCString* charset;
+  if (IsISO88591(result)) {
+    // For compatibility, if the result is ISO-8859-1, we use
+    // windows-1252, so that people can compatibly create images
+    // using javascript: URLs.
+    bytes = ToNewCString(result, mozilla::fallible);
+    bytesLen = result.Length();
+    charset = &isoCharset;
+  } else {
+    bytes = ToNewUTF8String(result, &bytesLen);
+    charset = &utf8Charset;
+  }
+  aChannel->SetContentCharset(*charset);
+  if (bytes) {
+    rv = NS_NewByteInputStream(getter_AddRefs(mInnerStream),
+                               mozilla::Span(bytes, bytesLen),
+                               NS_ASSIGNMENT_ADOPT);
+  } else {
+    rv = NS_ERROR_OUT_OF_MEMORY;
   }
 
   return rv;

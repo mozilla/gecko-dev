@@ -435,7 +435,7 @@ nsresult nsMenuBarX::Paint() {
 // localized) cmd+key shortcut, and belongs to a keyset containing similar
 // objects.  For example "key_selectAll".  Returns a value that can be
 // compared to the first character of [NSEvent charactersIgnoringModifiers]
-// when [NSEvent modifierFlags] == NSCommandKeyMask.
+// when [NSEvent modifierFlags] == NSEventModifierFlagCommand.
 char nsMenuBarX::GetLocalizedAccelKey(const char* shortcutID) {
   if (!sLastGeckoMenuBarPainted) return 0;
 
@@ -917,7 +917,7 @@ static BOOL gMenuItemsExecuteCommands = YES;
       nsCOMPtr<nsIAppStartup> appStartup = mozilla::components::AppStartup::Service();
       if (appStartup) {
         bool userAllowedQuit = true;
-        appStartup->Quit(nsIAppStartup::eAttemptQuit, &userAllowedQuit);
+        appStartup->Quit(nsIAppStartup::eAttemptQuit, 0, &userAllowedQuit);
       }
     }
     return;

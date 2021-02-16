@@ -8,6 +8,7 @@
 
 #include <string.h>  // for memcpy, memset
 
+#include "GeckoProfiler.h"
 #include "GLImages.h"    // for SurfaceTextureImage
 #include "YCbCrUtils.h"  // for YCbCr conversions
 #include "gfx2DGlue.h"
@@ -29,6 +30,7 @@
 #include "mozilla/layers/SharedRGBImage.h"
 #include "mozilla/layers/SharedSurfacesChild.h"  // for SharedSurfacesAnimation
 #include "mozilla/layers/TextureClientRecycleAllocator.h"
+#include "nsProxyRelease.h"
 #include "nsISupportsUtils.h"  // for NS_IF_ADDREF
 
 #ifdef XP_MACOSX
@@ -227,6 +229,24 @@ ImageContainer::~ImageContainer() {
   if (mSharedAnimation) {
     mSharedAnimation->Destroy();
   }
+}
+
+Maybe<SurfaceDescriptor> Image::GetDesc() { return {}; }
+
+Maybe<SurfaceDescriptor> Image::GetDescFromTexClient(
+    TextureClient* const forTc) {
+  RefPtr<TextureClient> tc = forTc;
+  if (!forTc) {
+    tc = GetTextureClient(nullptr);
+  }
+
+  const auto& tcd = tc->GetInternalData();
+
+  SurfaceDescriptor ret;
+  if (!tcd->Serialize(ret)) {
+    return {};
+  }
+  return Some(ret);
 }
 
 RefPtr<PlanarYCbCrImage> ImageContainer::CreatePlanarYCbCrImage() {

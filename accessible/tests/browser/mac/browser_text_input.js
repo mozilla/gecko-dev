@@ -11,13 +11,6 @@ loadScripts(
   { name: "states.js", dir: MOCHITESTS_DIR }
 );
 
-// AXTextStateChangeType enum values
-const AXTextStateChangeTypeEdit = 1;
-
-// AXTextEditType enum values
-const AXTextEditTypeDelete = 1;
-const AXTextEditTypeTyping = 3;
-
 function testValueChangedEventData(
   macIface,
   data,
@@ -64,31 +57,68 @@ function testValueChangedEventData(
   is(str, expectedWordAtLeft);
 }
 
-function matchWebArea(expectedId) {
+// Return true if the first given object a subset of the second
+function isSubset(subset, superset) {
+  if (typeof subset != "object" || typeof superset != "object") {
+    return superset == subset;
+  }
+
+  for (let [prop, val] of Object.entries(subset)) {
+    if (!isSubset(val, superset[prop])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function matchWebArea(expectedId, expectedInfo) {
   return (iface, data) => {
+    if (!data) {
+      return false;
+    }
+
+    let textChangeElemID = data.AXTextChangeElement.getAttributeValue(
+      "AXDOMIdentifier"
+    );
+
     return (
       iface.getAttributeValue("AXRole") == "AXWebArea" &&
-      !!data &&
-      data.AXTextChangeElement.getAttributeValue("AXDOMIdentifier") ==
-        expectedId
+      textChangeElemID == expectedId &&
+      isSubset(expectedInfo, data)
     );
   };
 }
 
-function matchInput(expectedId) {
-  return (iface, data) =>
-    iface.getAttributeValue("AXDOMIdentifier") == expectedId && !!data;
+function matchInput(expectedId, expectedInfo) {
+  return (iface, data) => {
+    if (!data) {
+      return false;
+    }
+
+    return (
+      iface.getAttributeValue("AXDOMIdentifier") == expectedId &&
+      isSubset(expectedInfo, data)
+    );
+  };
 }
 
 async function synthKeyAndTestSelectionChanged(
   synthKey,
   synthEvent,
   expectedId,
-  expectedSelectionString
+  expectedSelectionString,
+  expectedSelectionInfo
 ) {
   let selectionChangedEvents = Promise.all([
-    waitForMacEventWithInfo("AXSelectedTextChanged", matchWebArea(expectedId)),
-    waitForMacEventWithInfo("AXSelectedTextChanged", matchInput(expectedId)),
+    waitForMacEventWithInfo(
+      "AXSelectedTextChanged",
+      matchWebArea(expectedId, expectedSelectionInfo)
+    ),
+    waitForMacEventWithInfo(
+      "AXSelectedTextChanged",
+      matchInput(expectedId, expectedSelectionInfo)
+    ),
   ]);
 
   EventUtils.synthesizeKey(synthKey, synthEvent);
@@ -135,16 +165,42 @@ async function synthKeyAndTestValueChanged(
   expectedWordAtLeft
 ) {
   let valueChangedEvents = Promise.all([
-    waitForMacEventWithInfo(
+    waitForMacEvent(
       "AXSelectedTextChanged",
-      matchWebArea(expectedTextSelectionId)
+      matchWebArea(expectedTextSelectionId, {
+        AXTextStateChangeType: AXTextStateChangeTypeSelectionMove,
+      })
+    ),
+    waitForMacEvent(
+      "AXSelectedTextChanged",
+      matchInput(expectedTextSelectionId, {
+        AXTextStateChangeType: AXTextStateChangeTypeSelectionMove,
+      })
     ),
     waitForMacEventWithInfo(
-      "AXSelectedTextChanged",
-      matchInput(expectedTextSelectionId)
+      "AXValueChanged",
+      matchWebArea(expectedId, {
+        AXTextStateChangeType: AXTextStateChangeTypeEdit,
+        AXTextChangeValues: [
+          {
+            AXTextChangeValue: expectedChangeValue,
+            AXTextEditType: expectedEditType,
+          },
+        ],
+      })
     ),
-    waitForMacEventWithInfo("AXValueChanged", matchWebArea(expectedId)),
-    waitForMacEventWithInfo("AXValueChanged", matchInput(expectedId)),
+    waitForMacEventWithInfo(
+      "AXValueChanged",
+      matchInput(expectedId, {
+        AXTextStateChangeType: AXTextStateChangeTypeEdit,
+        AXTextChangeValues: [
+          {
+            AXTextChangeValue: expectedChangeValue,
+            AXTextEditType: expectedEditType,
+          },
+        ],
+      })
+    ),
   ]);
 
   EventUtils.synthesizeKey(synthKey, synthEvent);
@@ -178,8 +234,18 @@ async function focusIntoInputAndType(accDoc, inputId, innerContainerId) {
       "AXFocusedUIElementChanged",
       iface => iface.getAttributeValue("AXDOMIdentifier") == inputId
     ),
-    waitForMacEventWithInfo("AXSelectedTextChanged", matchWebArea(selectionId)),
-    waitForMacEventWithInfo("AXSelectedTextChanged", matchInput(selectionId)),
+    waitForMacEventWithInfo(
+      "AXSelectedTextChanged",
+      matchWebArea(selectionId, {
+        AXTextStateChangeType: AXTextStateChangeTypeSelectionMove,
+      })
+    ),
+    waitForMacEventWithInfo(
+      "AXSelectedTextChanged",
+      matchInput(selectionId, {
+        AXTextStateChangeType: AXTextStateChangeTypeSelectionMove,
+      })
+    ),
   ]);
   input.setAttributeValue("AXFocused", true);
   await events;
@@ -230,32 +296,74 @@ async function focusIntoInputAndType(accDoc, inputId, innerContainerId) {
   await testTextDelete("d", "worl");
   await testTextDelete("l", "wor");
 
-  await synthKeyAndTestSelectionChanged("KEY_ArrowLeft", null, selectionId, "");
   await synthKeyAndTestSelectionChanged(
     "KEY_ArrowLeft",
-    { shiftKey: true },
+    null,
     selectionId,
-    "o"
+    "",
+    {
+      AXTextStateChangeType: AXTextStateChangeTypeSelectionMove,
+      AXTextSelectionDirection: AXTextSelectionDirectionPrevious,
+      AXTextSelectionGranularity: AXTextSelectionGranularityCharacter,
+    }
   );
   await synthKeyAndTestSelectionChanged(
     "KEY_ArrowLeft",
     { shiftKey: true },
     selectionId,
-    "wo"
+    "o",
+    {
+      AXTextStateChangeType: AXTextStateChangeTypeSelectionExtend,
+      AXTextSelectionDirection: AXTextSelectionDirectionPrevious,
+      AXTextSelectionGranularity: AXTextSelectionGranularityCharacter,
+    }
   );
-  await synthKeyAndTestSelectionChanged("KEY_ArrowLeft", null, selectionId, "");
+  await synthKeyAndTestSelectionChanged(
+    "KEY_ArrowLeft",
+    { shiftKey: true },
+    selectionId,
+    "wo",
+    {
+      AXTextStateChangeType: AXTextStateChangeTypeSelectionExtend,
+      AXTextSelectionDirection: AXTextSelectionDirectionPrevious,
+      AXTextSelectionGranularity: AXTextSelectionGranularityCharacter,
+    }
+  );
+  await synthKeyAndTestSelectionChanged(
+    "KEY_ArrowLeft",
+    null,
+    selectionId,
+    "",
+    { AXTextStateChangeType: AXTextStateChangeTypeSelectionMove }
+  );
   await synthKeyAndTestSelectionChanged(
     "KEY_Home",
     { shiftKey: true },
     selectionId,
-    "hello "
+    "hello ",
+    {
+      AXTextStateChangeType: AXTextStateChangeTypeSelectionExtend,
+      AXTextSelectionDirection: AXTextSelectionDirectionPrevious,
+      AXTextSelectionGranularity: AXTextSelectionGranularityWord,
+    }
   );
-  await synthKeyAndTestSelectionChanged("KEY_ArrowLeft", null, selectionId, "");
+  await synthKeyAndTestSelectionChanged(
+    "KEY_ArrowLeft",
+    null,
+    selectionId,
+    "",
+    { AXTextStateChangeType: AXTextStateChangeTypeSelectionMove }
+  );
   await synthKeyAndTestSelectionChanged(
     "KEY_ArrowRight",
     { shiftKey: true, altKey: true },
     selectionId,
-    "hello"
+    "hello",
+    {
+      AXTextStateChangeType: AXTextStateChangeTypeSelectionExtend,
+      AXTextSelectionDirection: AXTextSelectionDirectionNext,
+      AXTextSelectionGranularity: AXTextSelectionGranularityWord,
+    }
   );
 }
 
@@ -290,3 +398,15 @@ addAccessibleTask(
   },
   { iframe: true }
 );
+
+// Test input that gets role::EDITCOMBOBOX
+addAccessibleTask(`<input type="text" id="box">`, async (browser, accDoc) => {
+  const box = getNativeInterface(accDoc, "box");
+  const editableAncestor = box.getAttributeValue("AXEditableAncestor");
+  is(
+    editableAncestor.getAttributeValue("AXDOMIdentifier"),
+    "box",
+    "Editable ancestor is box itself"
+  );
+  await focusIntoInputAndType(accDoc, "box");
+});

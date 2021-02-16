@@ -9,6 +9,7 @@
 #ifndef mozilla_ReflowOutput_h
 #define mozilla_ReflowOutput_h
 
+#include "mozilla/EnumeratedRange.h"
 #include "mozilla/WritingModes.h"
 #include "nsBoundingMetrics.h"
 #include "nsRect.h"
@@ -17,99 +18,73 @@
 
 namespace mozilla {
 struct ReflowInput;
-}  // namespace mozilla
 
-/**
- * When we store overflow areas as an array of scrollable and visual
- * overflow, we use these indices.
- *
- * eOverflowType_LENGTH is needed (for gcc 4.5.*, at least) to ensure
- * that 2 is a valid value of nsOverflowType for use in
- * NS_FOR_FRAME_OVERFLOW_TYPES.
- */
-enum nsOverflowType { eInkOverflow, eScrollableOverflow, eOverflowType_LENGTH };
+enum class OverflowType : uint8_t { Ink, Scrollable };
+constexpr auto AllOverflowTypes() {
+  return mozilla::MakeInclusiveEnumeratedRange(OverflowType::Ink,
+                                               OverflowType::Scrollable);
+}
 
-#define NS_FOR_FRAME_OVERFLOW_TYPES(var_)                 \
-  for (nsOverflowType var_ = nsOverflowType(0); var_ < 2; \
-       var_ = nsOverflowType(var_ + 1))
-
-struct nsOverflowAreas {
- private:
-  nsRect mRects[2];
-
+struct OverflowAreas {
  public:
-  nsRect& Overflow(size_t aIndex) {
-    NS_ASSERTION(aIndex < 2, "index out of range");
-    return mRects[aIndex];
-  }
-  const nsRect& Overflow(size_t aIndex) const {
-    NS_ASSERTION(aIndex < 2, "index out of range");
-    return mRects[aIndex];
-  }
+  nsRect& InkOverflow() { return mInk; }
+  const nsRect& InkOverflow() const { return mInk; }
 
-  nsRect& InkOverflow() { return mRects[eInkOverflow]; }
-  const nsRect& InkOverflow() const { return mRects[eInkOverflow]; }
+  nsRect& ScrollableOverflow() { return mScrollable; }
+  const nsRect& ScrollableOverflow() const { return mScrollable; }
 
-  nsRect& ScrollableOverflow() { return mRects[eScrollableOverflow]; }
-  const nsRect& ScrollableOverflow() const {
-    return mRects[eScrollableOverflow];
+  nsRect& Overflow(OverflowType aType) {
+    return aType == OverflowType::Ink ? InkOverflow() : ScrollableOverflow();
+  }
+  const nsRect& Overflow(OverflowType aType) const {
+    return aType == OverflowType::Ink ? InkOverflow() : ScrollableOverflow();
   }
 
-  nsOverflowAreas() {
-    // default-initializes to zero due to nsRect's default constructor
-  }
+  OverflowAreas() = default;
 
-  nsOverflowAreas(const nsRect& aInkOverflow,
-                  const nsRect& aScrollableOverflow) {
-    mRects[eInkOverflow] = aInkOverflow;
-    mRects[eScrollableOverflow] = aScrollableOverflow;
-  }
+  OverflowAreas(const nsRect& aInkOverflow, const nsRect& aScrollableOverflow)
+      : mInk(aInkOverflow), mScrollable(aScrollableOverflow) {}
 
-  nsOverflowAreas(const nsOverflowAreas& aOther) { *this = aOther; }
-
-  nsOverflowAreas& operator=(const nsOverflowAreas& aOther) {
-    mRects[0] = aOther.mRects[0];
-    mRects[1] = aOther.mRects[1];
-    return *this;
-  }
-
-  bool operator==(const nsOverflowAreas& aOther) const {
+  bool operator==(const OverflowAreas& aOther) const {
     // Scrollable overflow is a point-set rectangle and ink overflow
     // is a pixel-set rectangle.
     return InkOverflow().IsEqualInterior(aOther.InkOverflow()) &&
            ScrollableOverflow().IsEqualEdges(aOther.ScrollableOverflow());
   }
 
-  bool operator!=(const nsOverflowAreas& aOther) const {
+  bool operator!=(const OverflowAreas& aOther) const {
     return !(*this == aOther);
   }
 
-  nsOverflowAreas operator+(const nsPoint& aPoint) const {
-    nsOverflowAreas result(*this);
+  OverflowAreas operator+(const nsPoint& aPoint) const {
+    OverflowAreas result(*this);
     result += aPoint;
     return result;
   }
 
-  nsOverflowAreas& operator+=(const nsPoint& aPoint) {
-    mRects[0] += aPoint;
-    mRects[1] += aPoint;
+  OverflowAreas& operator+=(const nsPoint& aPoint) {
+    mInk += aPoint;
+    mScrollable += aPoint;
     return *this;
   }
 
-  void Clear() {
-    mRects[0].SetRect(0, 0, 0, 0);
-    mRects[1].SetRect(0, 0, 0, 0);
-  }
+  void Clear() { SetAllTo(nsRect()); }
 
   // Mutates |this| by unioning both overflow areas with |aOther|.
-  void UnionWith(const nsOverflowAreas& aOther);
+  void UnionWith(const OverflowAreas& aOther);
 
   // Mutates |this| by unioning both overflow areas with |aRect|.
   void UnionAllWith(const nsRect& aRect);
 
   // Mutates |this| by setting both overflow areas to |aRect|.
   void SetAllTo(const nsRect& aRect);
+
+ private:
+  nsRect mInk;
+  nsRect mScrollable;
 };
+
+}  // namespace mozilla
 
 /**
  * An nsCollapsingMargin represents a vertical collapsing margin between
@@ -249,7 +224,7 @@ class ReflowOutput {
   // desired size. If there is no content that overflows, then the
   // overflow area is identical to the desired size and should be {0, 0,
   // width, height}.
-  nsOverflowAreas mOverflowAreas;
+  OverflowAreas mOverflowAreas;
 
   nsRect& InkOverflow() { return mOverflowAreas.InkOverflow(); }
   const nsRect& InkOverflow() const { return mOverflowAreas.InkOverflow(); }

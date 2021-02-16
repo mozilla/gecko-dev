@@ -356,15 +356,9 @@ class nsWindow final : public nsWindowBase {
 
   const IMEContext& DefaultIMC() const { return mDefaultIMC; }
 
-  virtual void SetCandidateWindowForPlugin(
-      const mozilla::widget::CandidateWindowPosition& aPosition) override;
-  virtual void DefaultProcOfPluginEvent(
-      const mozilla::WidgetPluginEvent& aEvent) override;
-  virtual void EnableIMEForPlugin(bool aEnable) override;
   virtual nsresult OnWindowedPluginKeyEvent(
       const mozilla::NativeEventData& aKeyEventData,
       nsIKeyEventInPluginCallback* aCallback) override;
-  void DispatchPluginSettingEvents();
 
   void GetCompositorWidgetInitData(
       mozilla::widget::CompositorWidgetInitData* aInitData) override;
@@ -448,12 +442,12 @@ class nsWindow final : public nsWindowBase {
                               LRESULT* aRetValue);
   bool ExternalHandlerProcessMessage(UINT aMessage, WPARAM& aWParam,
                                      LPARAM& aLParam, MSGResult& aResult);
-  bool ProcessMessageForPlugin(MSG aMsg, MSGResult& aResult);
   LRESULT ProcessCharMessage(const MSG& aMsg, bool* aEventDispatched);
   LRESULT ProcessKeyUpMessage(const MSG& aMsg, bool* aEventDispatched);
   LRESULT ProcessKeyDownMessage(const MSG& aMsg, bool* aEventDispatched);
   static bool EventIsInsideWindow(
-      nsWindow* aWindow, Maybe<POINT> aEventPoint = mozilla::Nothing());
+      nsWindow* aWindow,
+      mozilla::Maybe<POINT> aEventPoint = mozilla::Nothing());
   // Convert nsEventStatus value to a windows boolean
   static bool ConvertStatus(nsEventStatus aStatus);
   static void PostSleepWakeNotification(const bool aIsSleepMode);
@@ -462,7 +456,7 @@ class nsWindow final : public nsWindowBase {
   static void UpdateFirstEventTime(DWORD aEventTime);
   void FinishLiveResizing(ResizeState aNewState);
   nsIntPoint GetTouchCoordinates(WPARAM wParam, LPARAM lParam);
-  Maybe<mozilla::PanGestureInput> ConvertTouchToPanGesture(
+  mozilla::Maybe<mozilla::PanGestureInput> ConvertTouchToPanGesture(
       const mozilla::MultiTouchInput& aTouchInput, PTOUCHINPUT aOriginalEvent);
   void DispatchTouchOrPanGestureInput(mozilla::MultiTouchInput& aTouchInput,
                                       PTOUCHINPUT aOSEvent);
@@ -511,9 +505,9 @@ class nsWindow final : public nsWindowBase {
   static void ScheduleHookTimer(HWND aWnd, UINT aMsgId);
   static void RegisterSpecialDropdownHooks();
   static void UnregisterSpecialDropdownHooks();
-  static bool GetPopupsToRollup(nsIRollupListener* aRollupListener,
-                                uint32_t* aPopupsToRollup,
-                                Maybe<POINT> aEventPoint = mozilla::Nothing());
+  static bool GetPopupsToRollup(
+      nsIRollupListener* aRollupListener, uint32_t* aPopupsToRollup,
+      mozilla::Maybe<POINT> aEventPoint = mozilla::Nothing());
   static bool NeedsToHandleNCActivateDelayed(HWND aWnd);
   static bool DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam,
                              LPARAM inLParam, LRESULT* outResult);
@@ -593,7 +587,6 @@ class nsWindow final : public nsWindowBase {
   bool mIsTopWidgetWindow;
   bool mInDtor;
   bool mIsVisible;
-  bool mUnicodeWidget;
   bool mPainting;
   bool mTouchWindow;
   bool mDisplayPanFeedback;

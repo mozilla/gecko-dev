@@ -6,6 +6,7 @@
 
 #include "SharedSurfacesParent.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/layers/SharedSurfacesMemoryReport.h"
@@ -141,13 +142,6 @@ void SharedSurfacesParent::AddSameProcess(const wr::ExternalImageId& aId,
 
   surface->AddConsumer();
   sInstance->mSurfaces.Put(id, std::move(surface));
-}
-
-/* static */
-void SharedSurfacesParent::RemoveSameProcess(const wr::ExternalImageId& aId) {
-  MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(NS_IsMainThread());
-  Release(aId, /* aForCreator */ true);
 }
 
 /* static */

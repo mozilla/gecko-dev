@@ -110,7 +110,7 @@ void ProcessPendingGetURLAppleEvents() {
   bool keepSpinning = true;
   while (keepSpinning) {
     sProcessedGetURLEvent = false;
-    NSEvent* event = [NSApp nextEventMatchingMask:NSAnyEventMask
+    NSEvent* event = [NSApp nextEventMatchingMask:NSEventMaskAny
                                         untilDate:nil
                                            inMode:NSDefaultRunLoopMode
                                           dequeue:YES];
@@ -304,7 +304,7 @@ void ProcessPendingGetURLAppleEvents() {
   nsCOMPtr<nsIAppStartup> appService = do_GetService("@mozilla.org/toolkit/app-startup;1");
   if (appService) {
     bool userAllowedQuit = true;
-    appService->Quit(nsIAppStartup::eForceQuit, &userAllowedQuit);
+    appService->Quit(nsIAppStartup::eForceQuit, 0, &userAllowedQuit);
     if (!userAllowedQuit) {
       return NSTerminateCancel;
     }

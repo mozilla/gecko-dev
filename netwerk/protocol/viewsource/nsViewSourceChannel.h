@@ -11,9 +11,11 @@
 #include "nsCOMPtr.h"
 #include "nsIApplicationCacheChannel.h"
 #include "nsICachingChannel.h"
+#include "nsIChannelEventSink.h"
 #include "nsIFormPOSTActionChannel.h"
 #include "nsIHttpChannel.h"
 #include "nsIHttpChannelInternal.h"
+#include "nsIInterfaceRequestor.h"
 #include "nsIStreamListener.h"
 #include "nsIURI.h"
 #include "nsIViewSourceChannel.h"
@@ -52,10 +54,7 @@ class nsViewSourceChannel final : public nsIViewSourceChannel,
 
   // nsViewSourceChannel methods:
   nsViewSourceChannel()
-      : mIsDocument(false),
-        mOpened(false),
-        mIsSrcdocChannel(false),
-        mReplaceRequest(true) {}
+      : mIsDocument(false), mOpened(false), mIsSrcdocChannel(false) {}
 
   [[nodiscard]] nsresult Init(nsIURI* uri, nsILoadInfo* aLoadInfo);
 
@@ -79,6 +78,10 @@ class nsViewSourceChannel final : public nsIViewSourceChannel,
   // Clones aURI and prefixes it with "view-source:" schema,
   nsresult BuildViewSourceURI(nsIURI* aURI, nsIURI** aResult);
 
+  // Called to update the forwarding channel members after the `mChannel` field
+  // has been changed to reflect the new inner channel.
+  void UpdateChannelInterfaces();
+
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIHttpChannel> mHttpChannel;
@@ -96,7 +99,6 @@ class nsViewSourceChannel final : public nsIViewSourceChannel,
   bool mIsDocument;  // keeps track of the LOAD_DOCUMENT_URI flag
   bool mOpened;
   bool mIsSrcdocChannel;
-  bool mReplaceRequest;
 };
 
 #endif /* nsViewSourceChannel_h___ */

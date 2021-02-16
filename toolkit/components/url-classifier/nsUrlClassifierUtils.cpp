@@ -270,15 +270,30 @@ nsUrlClassifierUtils::GetKeyForURI(nsIURI* uri, nsACString& _retval) {
   rv = innerURI->GetPathQueryRef(path);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // strip out anchors
+  // Strip fragment and query because canonicalization only applies to path
   int32_t ref = path.FindChar('#');
-  if (ref != kNotFound) path.SetLength(ref);
+  if (ref != kNotFound) {
+    path.SetLength(ref);
+  }
+
+  int32_t query = path.FindChar('?');
+  if (query != kNotFound) {
+    path.SetLength(query);
+  }
 
   nsAutoCString temp;
   rv = CanonicalizePath(path, temp);
   NS_ENSURE_SUCCESS(rv, rv);
 
   _retval.Append(temp);
+
+  if (query != kNotFound) {
+    nsAutoCString query;
+    rv = innerURI->GetQuery(query);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    _retval.AppendPrintf("?%s", query.get());
+  }
 
   return NS_OK;
 }
@@ -1081,7 +1096,7 @@ bool nsUrlClassifierUtils::SpecialEncode(const nsACString& url,
 }
 
 bool nsUrlClassifierUtils::ShouldURLEscape(const unsigned char c) const {
-  return c <= 32 || c == '%' || c >= 127;
+  return c <= 32 || c == '%' || c == '#' || c >= 127;
 }
 
 // moztest- tables are built-in created in LookupCache, they contain hardcoded

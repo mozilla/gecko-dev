@@ -14,6 +14,7 @@
 #include "Accessible.h"
 #include "TableAccessible.h"
 #include "TableCellAccessible.h"
+#include "XULTreeAccessible.h"
 #include "Pivot.h"
 #include "Relation.h"
 
@@ -409,7 +410,26 @@ using namespace mozilla::a11y;
 }
 
 - (NSArray*)moxColumns {
-  // Webkit says we shouldn't do anything here
+  if (Accessible* acc = mGeckoAccessible.AsAccessible()) {
+    if (acc->IsContent() && acc->GetContent()->IsXULElement(nsGkAtoms::tree)) {
+      XULTreeAccessible* treeAcc = (XULTreeAccessible*)acc;
+      NSMutableArray* cols = [[NSMutableArray alloc] init];
+      // XUL trees store their columns in a group at the tree's first
+      // child. Here, we iterate over that group to get each column's
+      // native accessible and add it to our col array.
+      Accessible* treeColumns = treeAcc->GetChildAt(0);
+      if (treeColumns) {
+        uint32_t colCount = treeColumns->ChildCount();
+        for (uint32_t i = 0; i < colCount; i++) {
+          Accessible* treeColumnItem = treeColumns->GetChildAt(i);
+          [cols addObject:GetNativeFromGeckoAccessible(treeColumnItem)];
+        }
+        return cols;
+      }
+    }
+  }
+  // Webkit says we shouldn't expose any cols for aria-tree
+  // so we return an empty array here
   return @[];
 }
 
@@ -425,6 +445,10 @@ using namespace mozilla::a11y;
   return selectedRows;
 }
 
+- (NSString*)moxOrientation {
+  return NSAccessibilityVerticalOrientationValue;
+}
+
 @end
 
 @implementation mozOutlineRowAccessible
@@ -437,6 +461,18 @@ using namespace mozilla::a11y;
   return @([self stateWithMask:states::EXPANDED] != 0);
 }
 
+- (void)moxSetDisclosing:(NSNumber*)disclosing {
+  // VoiceOver requires this to be settable, but doesn't
+  // require it actually affect our disclosing state.
+  // We expose the attr as settable with this method
+  // but do nothing to actually set it.
+  return;
+}
+
+- (NSNumber*)moxExpanded {
+  return @([self stateWithMask:states::EXPANDED] != 0);
+}
+
 - (id)moxDisclosedByRow {
   // According to webkit: this attr corresponds to the row
   // that contains this row. It should be the same as the
@@ -445,21 +481,11 @@ using namespace mozilla::a11y;
   // all rows are direct children of the outline; they use
   // relations to expose their heirarchy structure.
 
-  mozAccessible* disclosingRow = nil;
   // first we check the relations to see if we're in a xul tree
   // with weird row semantics
-  if (mGeckoAccessible.IsAccessible()) {
-    Relation rel = mGeckoAccessible.AsAccessible()->RelationByType(
-        RelationType::NODE_CHILD_OF);
-    Accessible* maybeParent = rel.Next();
-    disclosingRow =
-        maybeParent ? GetNativeFromGeckoAccessible(maybeParent) : nil;
-  } else {
-    nsTArray<ProxyAccessible*> accs =
-        mGeckoAccessible.AsProxy()->RelationByType(RelationType::NODE_CHILD_OF);
-    disclosingRow =
-        accs.Length() > 0 ? GetNativeFromGeckoAccessible(accs[0]) : nil;
-  }
+  NSArray<mozAccessible*>* disclosingRows =
+      [self getRelationsByType:RelationType::NODE_CHILD_OF];
+  mozAccessible* disclosingRow = [disclosingRows firstObject];
 
   if (disclosingRow) {
     // if we find a row from our relation check,
@@ -471,6 +497,7 @@ using namespace mozilla::a11y;
 
     return disclosingRow;
   }
+
   mozAccessible* parent = (mozAccessible*)[self moxUnignoredParent];
   // otherwise, its likely we're in an aria tree, so we can use
   // these role and subrole checks
@@ -492,8 +519,9 @@ using namespace mozilla::a11y;
   } else if (ProxyAccessible* proxy = mGeckoAccessible.AsProxy()) {
     groupPos = proxy->GroupPosition();
   }
-
-  return @(groupPos.level);
+  // mac expects 0-indexed levels, but groupPos.level is 1-indexed
+  // so we subtract 1 here for levels above 0
+  return groupPos.level > 0 ? @(groupPos.level - 1) : @(groupPos.level);
 }
 
 - (NSArray*)moxDisclosedRows {
@@ -502,24 +530,10 @@ using namespace mozilla::a11y;
   // xul trees so we have to use relations first and then fall-back
   // to the children filter for non-xul outlines.
 
-  NSMutableArray* disclosedRows = [[NSMutableArray alloc] init];
   // first we check the relations to see if we're in a xul tree
   // with weird row semantics
-  if (mGeckoAccessible.IsAccessible()) {
-    Relation rel = mGeckoAccessible.AsAccessible()->RelationByType(
-        RelationType::NODE_PARENT_OF);
-    Accessible* acc = nullptr;
-    while ((acc = rel.Next())) {
-      [disclosedRows addObject:GetNativeFromGeckoAccessible(acc)];
-    }
-  } else {
-    nsTArray<ProxyAccessible*> accs =
-        mGeckoAccessible.AsProxy()->RelationByType(
-            RelationType::NODE_PARENT_OF);
-    disclosedRows = utils::ConvertToNSArray(accs);
-  }
-
-  if (disclosedRows) {
+  if (NSArray* disclosedRows =
+          [self getRelationsByType:RelationType::NODE_PARENT_OF]) {
     // if we find rows from our relation check, return them here
     return disclosedRows;
   }
@@ -560,6 +574,18 @@ using namespace mozilla::a11y;
   // ul/lu's so we can't strip the first character here.
 
   return nsCocoaUtils::ToNSString(title);
+}
+
+- (void)stateChanged:(uint64_t)state isEnabled:(BOOL)enabled {
+  [super stateChanged:state isEnabled:enabled];
+
+  if (state == states::EXPANDED) {
+    // If the EXPANDED state is updated, fire appropriate events on the
+    // outline row.
+    [self moxPostNotification:(enabled
+                                   ? NSAccessibilityRowExpandedNotification
+                                   : NSAccessibilityRowCollapsedNotification)];
+  }
 }
 
 @end

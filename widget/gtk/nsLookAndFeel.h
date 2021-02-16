@@ -18,16 +18,16 @@ struct _GtkStyle;
 
 class nsLookAndFeel final : public nsXPLookAndFeel {
  public:
-  nsLookAndFeel();
+  explicit nsLookAndFeel(const LookAndFeelCache* aCache);
   virtual ~nsLookAndFeel();
 
   void NativeInit() final;
   void RefreshImpl() override;
+  nsresult NativeGetInt(IntID aID, int32_t& aResult) override;
+  nsresult NativeGetFloat(FloatID aID, float& aResult) override;
   nsresult NativeGetColor(ColorID aID, nscolor& aResult) override;
-  nsresult GetIntImpl(IntID aID, int32_t& aResult) override;
-  nsresult GetFloatImpl(FloatID aID, float& aResult) override;
-  bool GetFontImpl(FontID aID, nsString& aFontName,
-                   gfxFontStyle& aFontStyle) override;
+  bool NativeGetFont(FontID aID, nsString& aFontName,
+                     gfxFontStyle& aFontStyle) override;
 
   char16_t GetPasswordCharacterImpl() override;
   bool GetEchoPasswordImpl() override;
@@ -35,12 +35,17 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   LookAndFeelCache GetCacheImpl() override;
   void SetCacheImpl(const LookAndFeelCache& aCache) override;
 
+  void WithThemeConfiguredForContent(
+      const std::function<void(const LookAndFeelTheme& aTheme)>& aFn) override;
+  static void ConfigureTheme(const LookAndFeelTheme& aTheme);
+
   bool IsCSDAvailable() const { return mCSDAvailable; }
 
   static const nscolor kBlack = NS_RGB(0, 0, 0);
   static const nscolor kWhite = NS_RGB(255, 255, 255);
 
  protected:
+  void DoSetCache(const LookAndFeelCache& aCache);
   bool WidgetUsesImage(WidgetNodeType aNodeType);
   void RecordLookAndFeelSpecificTelemetry() override;
   bool ShouldHonorThemeScrollbarColors();
@@ -116,7 +121,8 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   int32_t mCSDCloseButtonPosition = 0;
 
   void EnsureInit();
-  void ConfigureContentGtkTheme();
+  // Returns whether the current theme or theme variant was changed.
+  bool ConfigureContentGtkTheme();
 
  private:
   nsresult InitCellHighlightColors();

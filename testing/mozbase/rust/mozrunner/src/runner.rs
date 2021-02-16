@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use mozprofile::prefreader::PrefReaderError;
 use mozprofile::profile::Profile;
 use std::collections::HashMap;
@@ -156,16 +160,16 @@ impl RunnerProcess for FirefoxProcess {
     fn kill(&mut self) -> io::Result<process::ExitStatus> {
         match self.try_wait() {
             // child has already exited, reap its exit code
-            Ok(Some(status)) => return Ok(status),
+            Ok(Some(status)) => Ok(status),
 
             // child still running, kill it
             Ok(None) => {
                 debug!("Killing process {}", self.process.id());
                 self.process.kill()?;
-                return self.process.wait();
+                self.process.wait()
             }
 
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 }

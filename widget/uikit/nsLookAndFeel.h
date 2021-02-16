@@ -10,16 +10,16 @@
 
 class nsLookAndFeel final : public nsXPLookAndFeel {
  public:
-  nsLookAndFeel();
+  explicit nsLookAndFeel(const LookAndFeelCache* aCache);
   virtual ~nsLookAndFeel();
 
   void NativeInit() final;
   virtual void RefreshImpl();
-  virtual nsresult NativeGetColor(const ColorID aID, nscolor& aResult);
-  virtual nsresult GetIntImpl(IntID aID, int32_t& aResult);
-  virtual nsresult GetFloatImpl(FloatID aID, float& aResult);
-  bool GetFontImpl(FontID aID, nsString& aFontName,
-                   gfxFontStyle& aFontStyle) override;
+  nsresult NativeGetImpl(IntID aID, int32_t& aResult) override;
+  nsresult NativeGetFloat(FloatID aID, float& aResult) override;
+  nsresult NativeGetColor(const ColorID aID, nscolor& aResult) override;
+  bool NativeGetFont(FontID aID, nsString& aFontName,
+                     gfxFontStyle& aFontStyle) override;
   virtual char16_t GetPasswordCharacterImpl() {
     // unicode value for the bullet character, used for password textfields.
     return 0x2022;

@@ -11,7 +11,6 @@ flat varying vec4 v_uv_bounds;
 
 // Interpolated UV coordinates to sample.
 varying vec2 v_uv;
-flat varying float v_layer;
 
 
 #ifdef WR_FEATURE_GLYPH_TRANSFORM
@@ -223,7 +222,7 @@ void main() {
     vec2 f = (vi.local_pos - glyph_rect.p0) / glyph_rect.size;
 #endif
 
-    write_clip(vi.world_pos, clip_area);
+    write_clip(vi.world_pos, clip_area, task);
 
     switch (color_mode) {
         case COLOR_MODE_ALPHA:
@@ -256,7 +255,6 @@ void main() {
     vec2 st1 = res.uv_rect.zw / texture_size;
 
     v_uv = mix(st0, st1, f);
-    v_layer = res.layer;
     v_uv_bounds = (res.uv_rect + vec4(0.5, 0.5, -0.5, -0.5)) / texture_size.xyxy;
 }
 
@@ -267,7 +265,7 @@ void main() {
 Fragment text_fs(void) {
     Fragment frag;
 
-    vec3 tc = vec3(clamp(v_uv, v_uv_bounds.xy, v_uv_bounds.zw), v_layer);
+    vec2 tc = clamp(v_uv, v_uv_bounds.xy, v_uv_bounds.zw);
     vec4 mask = texture(sColor0, tc);
     mask.rgb = mask.rgb * v_mask_swizzle.x + mask.aaa * v_mask_swizzle.y;
 

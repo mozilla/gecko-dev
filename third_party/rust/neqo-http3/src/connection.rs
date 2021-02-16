@@ -90,7 +90,7 @@ impl Http3Connection {
         Self {
             state: Http3State::Initializing,
             local_qpack_settings,
-            control_stream_local: ControlStreamLocal::default(),
+            control_stream_local: ControlStreamLocal::new(),
             control_stream_remote: ControlStreamRemote::new(),
             new_streams: HashMap::new(),
             qpack_encoder: QPackEncoder::new(local_qpack_settings, true),
@@ -218,11 +218,11 @@ impl Http3Connection {
         if fin {
             self.new_streams.remove(&stream_id);
             Ok(false)
-        } else if let Some(t) = stream_type {
-            self.new_streams.remove(&stream_id);
-            self.decode_new_stream(conn, t, stream_id)
         } else {
-            Ok(false)
+            stream_type.map_or(Ok(false), |t| {
+                self.new_streams.remove(&stream_id);
+                self.decode_new_stream(conn, t, stream_id)
+            })
         }
     }
 
@@ -421,7 +421,7 @@ impl Http3Connection {
     pub fn handle_zero_rtt_rejected(&mut self) -> Res<()> {
         if self.state == Http3State::ZeroRtt {
             self.state = Http3State::Initializing;
-            self.control_stream_local = ControlStreamLocal::default();
+            self.control_stream_local = ControlStreamLocal::new();
             self.control_stream_remote = ControlStreamRemote::new();
             self.new_streams.clear();
             self.qpack_encoder = QPackEncoder::new(self.local_qpack_settings, true);
@@ -488,16 +488,18 @@ impl Http3Connection {
             }
             QPACK_UNI_STREAM_TYPE_ENCODER => {
                 qinfo!([self], "A new remote qpack encoder stream {}", stream_id);
-                self.qpack_decoder
-                    .add_recv_stream(stream_id)
-                    .map_err(|_| Error::HttpStreamCreation)?;
+                Error::map_error(
+                    self.qpack_decoder.add_recv_stream(stream_id),
+                    Error::HttpStreamCreation,
+                )?;
                 Ok(false)
             }
             QPACK_UNI_STREAM_TYPE_DECODER => {
                 qinfo!([self], "A new remote qpack decoder stream {}", stream_id);
-                self.qpack_encoder
-                    .add_recv_stream(stream_id)
-                    .map_err(|_| Error::HttpStreamCreation)?;
+                Error::map_error(
+                    self.qpack_encoder.add_recv_stream(stream_id),
+                    Error::HttpStreamCreation,
+                )?;
                 Ok(false)
             }
             _ => {

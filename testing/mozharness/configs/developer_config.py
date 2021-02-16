@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 """
 This config file can be appended to any other mozharness job
 running under treeherder. The purpose of this config is to
@@ -10,6 +14,7 @@ Using this config file should be accompanied with using
 --test-url and --installer-url where appropiate
 """
 
+from __future__ import absolute_import
 import os
 
 LOCAL_WORKDIR = os.path.expanduser("~/.mozilla/releng")
@@ -33,7 +38,6 @@ config = {
     # Tooltool related
     "tooltool_cache": os.path.join(LOCAL_WORKDIR, "builds/tooltool_cache"),
     "tooltool_cache_path": os.path.join(LOCAL_WORKDIR, "builds/tooltool_cache"),
-    "tooltool_authentication_file": os.path.join(LOCAL_WORKDIR, "relengapi.tok"),
     # VCS tools
     "gittool.py": "http://hg.mozilla.org/build/puppet/raw-file/faaf5abd792e/modules/packages/files/gittool.py",
     # Android related

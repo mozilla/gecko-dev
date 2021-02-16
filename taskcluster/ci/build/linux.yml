@@ -120,6 +120,7 @@ linux64-fuzzing/debug:
             - linux64-clang
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-rust
             - linux64-rust-size
@@ -646,6 +647,49 @@ linux-reproduced/opt:
             - linux64-lucetc
             - wasi-sysroot
 
+linux64-reproduced/opt:
+    description: "Linux64 Reproduced"
+    use-pgo: linux64-shippable/opt
+    shipping-phase: build
+    shipping-product: firefox
+    index:
+        product: firefox
+        job-name: linux64-reproduced-opt
+    treeherder:
+        platform: linux64-shippable/opt
+        symbol: Bpgo(repr)
+    worker-type: b-linux
+    worker:
+        max-run-time: 9000
+        env:
+            PERFHERDER_EXTRA_OPTIONS: repr
+    run:
+        using: mozharness
+        actions: [get-secrets, build]
+        config:
+            - builds/releng_base_firefox.py
+            - builds/releng_base_linux_64_builds.py
+            - taskcluster_nightly.py
+        script: "mozharness/scripts/fx_desktop_build.py"
+        secrets: true
+        tooltool-downloads: public
+        need-xvfb: true
+    # Original comment: Limited to trunk until bug 1596350 is fixed.
+    # Addendum: Do not run on autoland, Bug 1599197
+    run-on-projects: ['mozilla-central', 'comm-central']
+    fetches:
+        toolchain:
+            - linux64-binutils
+            - linux64-clang
+            - linux64-rust
+            - linux64-rust-size
+            - linux64-cbindgen
+            - linux64-dump-syms
+            - linux64-nasm
+            - linux64-node
+            - linux64-lucetc
+            - wasi-sysroot
+
 linux64-asan/opt:
     description: "Linux64 Opt ASAN"
     index:
@@ -678,10 +722,11 @@ linux64-asan/opt:
         toolchain:
             - linux64-binutils
             - linux64-clang
-            - linux64-rust
+            - linux64-rust-nightly
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
@@ -723,6 +768,7 @@ linux64-tsan/opt:
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
@@ -767,6 +813,7 @@ linux64-tsan-fuzzing/opt:
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
@@ -810,10 +857,11 @@ linux64-asan-fuzzing/opt:
         toolchain:
             - linux64-binutils
             - linux64-clang
-            - linux64-rust
+            - linux64-rust-nightly
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
@@ -861,6 +909,7 @@ linux64-asan-fuzzing-ccov/opt:
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
@@ -962,6 +1011,7 @@ linux64-asan-reporter-shippable/opt:
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
@@ -998,10 +1048,11 @@ linux64-asan/debug:
         toolchain:
             - linux64-binutils
             - linux64-clang
-            - linux64-rust
+            - linux64-rust-nightly
             - linux64-rust-size
             - linux64-cbindgen
             - linux64-dump-syms
+            - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node

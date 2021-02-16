@@ -5,33 +5,46 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(05b89d2a-d57c-11ea-82da-3f63399a6f5a)]
-interface nsIGleanCounter : nsISupports
+[scriptable, uuid(d3180fe0-19fa-11eb-8b6f-0800200c9a66)]
+interface nsIGleanBoolean : nsISupports
 {
-  /*
-  * Increases the counter by `amount`.
-  *
-  * @param amount The amount to increase by. Should be positive.
-  */
-  [implicit_jscontext]
-  void add(in uint32_t amount);
+  /**
+   * Set to the specified boolean value.
+   *
+   * @param value the value to set.
+   */
+  void set(in bool value);
 
   /**
    * **Test-only API**
    *
-   * Tests whether a value is stored for the metric.
+   * Gets the currently stored value as a boolean.
    *
    * This function will attempt to await the last parent-process task (if any)
    * writing to the the metric's storage engine before returning a value.
    * This function will not wait for data from child processes.
    *
+   * This doesn't clear the stored value.
    * Parent process only. Panics in child processes.
    *
-   * @param aStorageName the name of the ping to retrieve the metric for.
-   * @return true if metric value exists, otherwise false
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or undefined if there is no value.
    */
-  [implicit_jscontext]
-  bool testHasValue(in ACString aStorageName);
+  jsval testGetValue([optional] in AUTF8String aPingName);
+};
+
+[scriptable, uuid(aa15fd20-1e8a-11eb-9bec-0800200c9a66)]
+interface nsIGleanDatetime : nsISupports
+{
+  /**
+   * Set the datetime to the provided value, or the local now.
+   *
+   * @param aValue The time value in milliseconds since epoch. Defaults to local now.
+   */
+  [optional_argc]
+  void set([optional] in PRTime aValue);
 
   /**
    * **Test-only API**
@@ -45,10 +58,155 @@ interface nsIGleanCounter : nsISupports
    * This doesn't clear the stored value.
    * Parent process only. Panics in child processes.
    *
-   * @return value of the stored metric.
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or undefined if there is no value.
    */
   [implicit_jscontext]
-  long testGetValue(in ACString aStorageName);
+  jsval testGetValue([optional] in AUTF8String aPingName);
+};
+
+[scriptable, uuid(05b89d2a-d57c-11ea-82da-3f63399a6f5a)]
+interface nsIGleanCounter : nsISupports
+{
+  /*
+  * Increases the counter by `amount`.
+  *
+  * @param amount The amount to increase by. Should be positive.
+  */
+  void add(in uint32_t amount);
+
+  /**
+   * **Test-only API**
+   *
+   * Gets the currently stored value as an integer.
+   *
+   * This function will attempt to await the last parent-process task (if any)
+   * writing to the the metric's storage engine before returning a value.
+   * This function will not wait for data from child processes.
+   *
+   * This doesn't clear the stored value.
+   * Parent process only. Panics in child processes.
+   *
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or undefined if there is no value.
+   */
+  jsval testGetValue([optional] in AUTF8String aPingName);
+};
+
+[scriptable, uuid(92e14730-9b5f-45a1-b018-f588d0b964d8)]
+interface nsIGleanTimingDistribution : nsISupports
+{
+  /**
+   * Starts tracking time for the provided metric.
+   *
+   * @returns A unique timer id for the new timer
+   */
+  [implicit_jscontext]
+  jsval start();
+
+  /**
+   * Stops tracking time for the provided metric and timer id.
+   *
+   * Adds a count to the corresponding bucket in the timing distribution.
+   * This will record an error if no `start` was called for this TimerId or
+   * if this TimerId was used to call `cancel`.
+   *
+   * @param aId The TimerId associated with this timing. This allows for
+   *            concurrent timing of events associated with different ids.
+   */
+  void stopAndAccumulate(in uint64_t aId);
+
+  /**
+   * Aborts a previous `start` call. No error is recorded if no `start` was
+   * called. (But then where did you get that id from?)
+   *
+   * @param aId The TimerID whose `start` you wish to abort.
+   */
+  void cancel(in uint64_t aId);
+
+  /**
+   * **Test-only API**
+   *
+   * Gets the currently stored value as a DistributionData.
+   *
+   * This function will attempt to await the last parent-process task (if any)
+   * writing to the the metric's storage engine before returning a value.
+   * This function will not wait for data from child processes.
+   *
+   * This doesn't clear the stored value.
+   * Parent process only. Panics in child processes.
+   *
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or Nothing() if there is no value.
+   */
+  [implicit_jscontext]
+	jsval testGetValue([optional] in ACString aPingName);
+};
+
+[scriptable, uuid(eea5ed46-16ba-46cd-bb1f-504581987fe1)]
+interface nsIGleanMemoryDistribution : nsISupports
+{
+  /*
+   * Accumulates the provided sample in the metric.
+   *
+   * @param aSample The sample to be recorded by the metric. The sample is
+   *                assumed to be in the confgured memory unit of the metric.
+   *
+   * Notes: Values bigger than 1 Terabyte (2^40 bytes) are truncated and an
+   * InvalidValue error is recorded.
+   */
+	void accumulate(in uint64_t aSample);
+
+  /**
+   * **Test-only API**
+   *
+   * Gets the currently stored value as a DistributionData.
+   *
+   * This function will attempt to await the last parent-process task (if any)
+   * writing to the the metric's storage engine before returning a value.
+   * This function will not wait for data from child processes.
+   *
+   * This doesn't clear the stored value.
+   * Parent process only. Panics in child processes.
+   *
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or Nothing() if there is no value.
+   */
+  [implicit_jscontext]
+	jsval testGetValue([optional] in ACString aPingName);
+};
+
+[scriptable, uuid(5223a48b-687d-47ff-a629-fd4a72d1ecfa)]
+interface nsIGleanPing : nsISupports
+{
+  /**
+   * Collect and submit the ping for eventual upload.
+   *
+   * This will collect all stored data to be included in the ping.
+   * Data with lifetime `ping` will then be reset.
+   *
+   * If the ping is configured with `send_if_empty = false`
+   * and the ping currently contains no content,
+   * it will not be queued for upload.
+   * If the ping is configured with `send_if_empty = true`
+   * it will be queued for upload even if empty.
+   *
+   * Pings always contain the `ping_info` and `client_info` sections.
+   * See [ping sections](https://mozilla.github.io/glean/book/user/pings/index.html#ping-sections)
+   * for details.
+   *
+   * @param aReason - Optional. The reason the ping is being submitted.
+   *                  Must match one of the configured `reason_codes`.
+   */
+	void submit([optional] in ACString aReason);
 };
 
 [scriptable, uuid(d84a3555-46f1-48c1-9122-e8e88b069d2b)]
@@ -59,25 +217,7 @@ interface nsIGleanString : nsISupports
   *
   * @param value The string to set the metric to.
   */
-  [implicit_jscontext]
-  void set(in ACString value);
-
-  /**
-   * **Test-only API**
-   *
-   * Tests whether a value is stored for the metric.
-   *
-   * This function will attempt to await the last parent-process task (if any)
-   * writing to the the metric's storage engine before returning a value.
-   * This function will not wait for data from child processes.
-   *
-   * Parent process only. Panics in child processes.
-   *
-   * @param aStorageName the name of the ping to retrieve the metric for.
-   * @return true if metric value exists, otherwise false
-   */
-  [implicit_jscontext]
-  bool testHasValue(in ACString aStorageName);
+  void set(in AUTF8String value);
 
   /**
    * **Test-only API**
@@ -91,10 +231,56 @@ interface nsIGleanString : nsISupports
    * This doesn't clear the stored value.
    * Parent process only. Panics in child processes.
    *
-   * @return value of the stored metric.
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or undefined if there is no value.
    */
   [implicit_jscontext]
-  ACString testGetValue(in ACString aStorageName);
+  jsval testGetValue([optional] in AUTF8String aPingName);
+};
+
+[scriptable, uuid(46751205-2ac7-47dc-91d2-ef4a95ef2af9)]
+interface nsIGleanStringList : nsISupports
+{
+  /**
+   * Adds a new string to the list.
+   *
+   * Truncates the value and logs an error if it is longer than 50 bytes.
+   *
+   * @param value The string to add.
+   */
+  void add(in AUTF8String value);
+
+  /**
+   * Sets to a specific list of strings.
+   *
+   * Truncates the list and logs an error if longer than 20 items.
+   * Truncates any item longer than 50 bytes and logs an error.
+   *
+   * @param value The list of strings to set.
+   */
+  void set(in Array<AUTF8String> value);
+
+  /**
+   * **Test-only API**
+   *
+   * Gets the currently stored value.
+   *
+   * This function will attempt to await the last parent-process task (if any)
+   * writing to the the metric's storage engine before returning a value.
+   * This function will not wait for data from child processes.
+   *
+   * This doesn't clear the stored value.
+   * Parent process only. Panics in child processes.
+   *
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or undefined if there is no value.
+   */
+  [implicit_jscontext]
+  jsval testGetValue([optional] in AUTF8String aPingName);
 };
 
 [scriptable, uuid(2586530c-030f-11eb-93cb-cbf30d25225a)]
@@ -107,7 +293,6 @@ interface nsIGleanTimespan : nsISupports
    * called with no corresponding [stop]): in that case the original
    * start time will be preserved.
    */
-  [implicit_jscontext]
   void start();
 
   /**
@@ -118,25 +303,7 @@ interface nsIGleanTimespan : nsISupports
    * This will record an error if no [start] was called or there is an already
    * existing value.
    */
-  [implicit_jscontext]
   void stop();
-
-  /**
-   * **Test-only API**
-   *
-   * Tests whether a value is stored for the metric.
-   *
-   * This function will attempt to await the last parent-process task (if any)
-   * writing to the the metric's storage engine before returning a value.
-   * This function will not wait for data from child processes.
-   *
-   * Parent process only. Panics in child processes.
-   *
-   * @param aStorageName the name of the ping to retrieve the metric for.
-   * @return true if metric value exists, otherwise false
-   */
-  [implicit_jscontext]
-  bool testHasValue(in ACString aStorageName);
 
   /**
    * **Test-only API**
@@ -150,10 +317,12 @@ interface nsIGleanTimespan : nsISupports
    * This doesn't clear the stored value.
    * Parent process only. Panics in child processes.
    *
-   * @return value of the stored metric.
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or undefined if there is no value.
    */
-  [implicit_jscontext]
-  long long testGetValue(in ACString aStorageName);
+  jsval testGetValue([optional] in AUTF8String aPingName);
 };
 
 [scriptable, uuid(395700e7-06f6-46be-adcc-ea58977fda6d)]
@@ -164,31 +333,12 @@ interface nsIGleanUuid : nsISupports
    *
    * @param aValue The UUID to set the metric to.
    */
-  [implicit_jscontext]
-  void set(in ACString aValue);
+  void set(in AUTF8String aValue);
 
   /**
    * Generate a new random UUID and set the metric to it.
    */
-  [implicit_jscontext]
   void generateAndSet();
-
-  /**
-   * **Test-only API**
-   *
-   * Tests whether a value is stored for the metric.
-   *
-   * This function will attempt to await the last parent-process task (if any)
-   * writing to the the metric's storage engine before returning a value.
-   * This function will not wait for data from child processes.
-   *
-   * Parent process only. Panics in child processes.
-   *
-   * @param aStorageName the name of the ping to retrieve the metric for.
-   * @return true if metric value exists, otherwise false
-   */
-  [implicit_jscontext]
-  bool testHasValue(in ACString aStorageName);
 
   /**
    * **Test-only API**
@@ -202,8 +352,43 @@ interface nsIGleanUuid : nsISupports
    * This doesn't clear the stored value.
    * Parent process only. Panics in child processes.
    *
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
+   * @return value of the stored metric, or undefined if there is no value.
+   */
+  [implicit_jscontext]
+  jsval testGetValue([optional] in AUTF8String aPingName);
+};
+
+[scriptable, uuid(1b01424a-1f55-11eb-92a5-0754f6c3f240)]
+interface nsIGleanEvent : nsISupports
+{
+  /*
+   * Record an event.
+   *
+   * @param aExtra An (optional) map of extra values.
+   */
+  [implicit_jscontext]
+  void record([optional] in jsval aExtra);
+
+  /**
+   * **Test-only API**
+   *
+   * Get a list of currently stored events for this event metric.
+   *
+   * This function will attempt to await the last parent-process task (if any)
+   * writing to the the metric's storage engine before returning a value.
+   * This function will not wait for data from child processes.
+   *
+   * This doesn't clear the stored value.
+   * Parent process only. Panics in child processes.
+   *
+   * @param aPingName The (optional) name of the ping to retrieve the metric
+   *        for. Defaults to the first value in `send_in_pings`.
+   *
    * @return value of the stored metric.
    */
   [implicit_jscontext]
-  ACString testGetValue(in ACString aStorageName);
+  jsval testGetValue([optional] in AUTF8String aPingName);
 };

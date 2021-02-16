@@ -140,10 +140,10 @@ void nsHTTPSOnlyStreamListener::RecordUpgradeTelemetry(nsIRequest* request,
       mozilla::Telemetry::HTTPS_ONLY_MODE_UPGRADE_TIME_MS, category, duration);
 
   bool success = NS_SUCCEEDED(aStatus);
-  nsContentPolicyType externalType = loadInfo->GetExternalContentPolicyType();
+  ExtContentPolicyType externalType = loadInfo->GetExternalContentPolicyType();
   auto typeKey = nsAutoCString("unknown");
 
-  if (externalType == nsIContentPolicy::TYPE_MEDIA) {
+  if (externalType == ExtContentPolicy::TYPE_MEDIA) {
     switch (internalType) {
       case nsIContentPolicy::TYPE_INTERNAL_AUDIO:
       case nsIContentPolicy::TYPE_INTERNAL_TRACK:
@@ -153,74 +153,83 @@ void nsHTTPSOnlyStreamListener::RecordUpgradeTelemetry(nsIRequest* request,
       case nsIContentPolicy::TYPE_INTERNAL_VIDEO:
         typeKey = "video"_ns;
         break;
+
+      default:
+        MOZ_ASSERT_UNREACHABLE();
+        break;
     }
   } else {
     switch (externalType) {
-      case nsIContentPolicy::TYPE_SCRIPT:
+      case ExtContentPolicy::TYPE_SCRIPT:
         typeKey = "script"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_OBJECT:
-      case nsIContentPolicy::TYPE_OBJECT_SUBREQUEST:
+      case ExtContentPolicy::TYPE_OBJECT:
+      case ExtContentPolicy::TYPE_OBJECT_SUBREQUEST:
         typeKey = "object"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_DOCUMENT:
+      case ExtContentPolicy::TYPE_DOCUMENT:
         typeKey = "document"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_SUBDOCUMENT:
+      case ExtContentPolicy::TYPE_SUBDOCUMENT:
         typeKey = "subdocument"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_XMLHTTPREQUEST:
+      case ExtContentPolicy::TYPE_XMLHTTPREQUEST:
         typeKey = "xmlhttprequest"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_IMAGE:
-      case nsIContentPolicy::TYPE_IMAGESET:
+      case ExtContentPolicy::TYPE_IMAGE:
+      case ExtContentPolicy::TYPE_IMAGESET:
         typeKey = "image"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_DTD:
+      case ExtContentPolicy::TYPE_DTD:
         typeKey = "dtd"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_FONT:
+      case ExtContentPolicy::TYPE_FONT:
         typeKey = "font"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_FETCH:
+      case ExtContentPolicy::TYPE_FETCH:
         typeKey = "fetch"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_WEBSOCKET:
+      case ExtContentPolicy::TYPE_WEBSOCKET:
         typeKey = "websocket"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_STYLESHEET:
+      case ExtContentPolicy::TYPE_STYLESHEET:
         typeKey = "stylesheet"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_CSP_REPORT:
+      case ExtContentPolicy::TYPE_CSP_REPORT:
         typeKey = "cspreport"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_WEB_MANIFEST:
+      case ExtContentPolicy::TYPE_WEB_MANIFEST:
         typeKey = "webmanifest"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_PING:
+      case ExtContentPolicy::TYPE_PING:
         typeKey = "ping"_ns;
         break;
 
-      case nsIContentPolicy::TYPE_REFRESH:
-        typeKey = "refresh"_ns;
-        break;
-
-      case nsIContentPolicy::TYPE_XSLT:
+      case ExtContentPolicy::TYPE_XSLT:
         typeKey = "xslt"_ns;
         break;
+
+      case ExtContentPolicy::TYPE_INVALID:
+      case ExtContentPolicy::TYPE_OTHER:
+      case ExtContentPolicy::TYPE_MEDIA:  // already handled above
+      case ExtContentPolicy::TYPE_BEACON:
+      case ExtContentPolicy::TYPE_SAVEAS_DOWNLOAD:
+      case ExtContentPolicy::TYPE_SPECULATIVE:
+        break;
+        // Do not add default: so that compilers can catch the missing case.
     }
   }
 

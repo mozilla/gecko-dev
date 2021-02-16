@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 "use strict";
 
-const { Arg, RetVal, generateActorSpec } = require("devtools/shared/protocol");
+const { RetVal, generateActorSpec } = require("devtools/shared/protocol");
 
 const workerDescriptorSpec = generateActorSpec({
   typeName: "workerDescriptor",
@@ -15,14 +15,6 @@ const workerDescriptorSpec = generateActorSpec({
     },
     detach: {
       request: {},
-      response: RetVal("json"),
-    },
-    // Backwards compatibility for FF82 servers and below.
-    // Can be deleted once FF83 is merged into release.
-    connect: {
-      request: {
-        options: Arg(0, "json"),
-      },
       response: RetVal("json"),
     },
     getTarget: {

@@ -287,16 +287,6 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   nsresult NotifyIME(const IMENotification& aIMENotification) final;
-  [[nodiscard]] virtual nsresult StartPluginIME(
-      const mozilla::WidgetKeyboardEvent& aKeyboardEvent, int32_t aPanelX,
-      int32_t aPanelY, nsString& aCommitted) override {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-  virtual void SetPluginFocused(bool& aFocused) override {}
-  virtual void SetCandidateWindowForPlugin(
-      const mozilla::widget::CandidateWindowPosition& aPosition) override {}
-  virtual void DefaultProcOfPluginEvent(
-      const mozilla::WidgetPluginEvent& aEvent) override {}
   [[nodiscard]] virtual nsresult AttachNativeKeyEvent(
       mozilla::WidgetKeyboardEvent& aEvent) override {
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -624,6 +614,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
    * the APZ controller thread.
    */
   void DispatchPanGestureInput(mozilla::PanGestureInput& aInput);
+  void DispatchPinchGestureInput(mozilla::PinchGestureInput& aInput);
 
 #if defined(XP_WIN)
   void UpdateScrollCapture() override;

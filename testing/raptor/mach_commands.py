@@ -65,6 +65,7 @@ class RaptorRunner(MozbuildObject):
         self.disable_perf_tuning = kwargs["disable_perf_tuning"]
         self.conditioned_profile_scenario = kwargs["conditioned_profile_scenario"]
         self.device_name = kwargs["device_name"]
+        self.enable_marionette_trace = kwargs["enable_marionette_trace"]
 
         if Conditions.is_android(self) or kwargs["app"] in ANDROID_BROWSERS:
             self.binary_path = None
@@ -174,6 +175,7 @@ class RaptorRunner(MozbuildObject):
             "conditioned_profile_scenario": self.conditioned_profile_scenario,
             "is_release_build": self.is_release_build,
             "device_name": self.device_name,
+            "enable_marionette_trace": self.enable_marionette_trace,
         }
 
         sys.path.insert(0, os.path.join(self.topsrcdir, "tools", "browsertime"))
@@ -193,14 +195,51 @@ class RaptorRunner(MozbuildObject):
                 }
             )
 
-            def _browsertime_exists():
-                return os.path.exists(
+            def _should_install():
+                # If browsertime doesn't exist, install it
+                if not os.path.exists(
                     self.config["browsertime_browsertimejs"]
-                ) and os.path.exists(self.config["browsertime_vismet_script"])
+                ) or not os.path.exists(self.config["browsertime_vismet_script"]):
+                    return True
+
+                # Browsertime exists, check if it's outdated
+                with open(
+                    os.path.join(self.topsrcdir, "tools", "browsertime", "package.json")
+                ) as new, open(
+                    os.path.join(
+                        self.topsrcdir,
+                        "tools",
+                        "browsertime",
+                        "node_modules",
+                        "browsertime",
+                        "package.json",
+                    )
+                ) as old:
+                    old_pkg = json.load(old)
+                    new_pkg = json.load(new)
+
+                return not old_pkg["_from"].endswith(
+                    new_pkg["devDependencies"]["browsertime"]
+                )
+
+            def _get_browsertime_version():
+                # Returns the (current commit, version number) used
+                with open(
+                    os.path.join(
+                        self.topsrcdir,
+                        "tools",
+                        "browsertime",
+                        "node_modules",
+                        "browsertime",
+                        "package.json",
+                    )
+                ) as existing:
+                    package = json.load(existing)
+                return package["version"], package["_from"]
 
             # Check if browsertime scripts exist and try to install them if
             # they aren't
-            if not _browsertime_exists():
+            if _should_install():
                 # TODO: Make this "integration" nicer in the near future
                 print("Missing browsertime files...attempting to install")
                 subprocess.check_call(
@@ -211,11 +250,14 @@ class RaptorRunner(MozbuildObject):
                         "--clobber",
                     ]
                 )
-                if not _browsertime_exists():
+                if _should_install():
                     raise Exception(
                         "Failed installation attempt. Cannot find browsertime scripts. "
                         "Run `./mach browsertime --setup --clobber` to set it up."
                     )
+
+            print("Using browsertime version %s from %s" % _get_browsertime_version())
+
         finally:
             sys.path = sys.path[1:]
 
@@ -301,9 +343,16 @@ class MachRaptor(MachCommandBase):
             ):  # Equivalent to 'run_local' = True.
                 return 1
 
-        debug_command = "--debug-command"
-        if debug_command in sys.argv:
-            sys.argv.remove(debug_command)
+        # Remove mach global arguments from sys.argv to prevent them
+        # from being consumed by raptor. Treat any item in sys.argv
+        # occuring before "raptor" as a mach global argument.
+        argv = []
+        in_mach = True
+        for arg in sys.argv:
+            if not in_mach:
+                argv.append(arg)
+            if arg.startswith("raptor"):
+                in_mach = False
 
         raptor = self._spawn(RaptorRunner)
         device = None
@@ -312,7 +361,7 @@ class MachRaptor(MachCommandBase):
             if kwargs["power_test"] and is_android:
                 device = ADBDeviceFactory(verbose=True)
                 disable_charging(device)
-            return raptor.run_test(sys.argv[2:], kwargs)
+            return raptor.run_test(argv, kwargs)
         except BinaryNotFoundException as e:
             self.log(logging.ERROR, "raptor", {"error": str(e)}, "ERROR: {error}")
             self.log(logging.INFO, "raptor", {"help": e.help()}, "{help}")

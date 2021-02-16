@@ -27,11 +27,6 @@ class HTMLEmbedElement final : public nsGenericHTMLElement,
   NS_DECL_ISUPPORTS_INHERITED
   NS_IMPL_FROMNODE_HTML_WITH_TAG(HTMLEmbedElement, embed)
 
-#ifdef XP_MACOSX
-  // EventTarget
-  NS_IMETHOD PostHandleEvent(EventChainPostVisitor& aVisitor) override;
-#endif
-
   bool AllowFullscreen() const {
     // We don't need to check prefixed attributes because Flash does not support
     // them.
@@ -46,7 +41,6 @@ class HTMLEmbedElement final : public nsGenericHTMLElement,
 
   virtual bool IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
                                int32_t* aTabIndex) override;
-  virtual IMEState GetDesiredIMEState() override;
 
   virtual bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                               const nsAString& aValue,

@@ -42,6 +42,14 @@ pub use global::*;
 
 mod global;
 
+/// Command received while blocked from further work.
+enum Blocked {
+    /// Shutdown immediately without processing the queue.
+    Shutdown,
+    /// Unblock and continue with work as normal.
+    Continue,
+}
+
 /// The command a worker should execute.
 enum Command {
     /// A task is a user-defined function to run.
@@ -100,7 +108,7 @@ struct DispatchGuard {
     queue_preinit: Arc<AtomicBool>,
 
     /// Used to unblock the worker thread initially.
-    block_sender: Sender<()>,
+    block_sender: Sender<Blocked>,
 
     /// Sender for the preinit queue.
     preinit_sender: Sender<Command>,
@@ -146,6 +154,18 @@ impl DispatchGuard {
             .expect("Failed to receive message on single-use channel");
     }
 
+    fn kill(&mut self) -> Result<(), DispatchError> {
+        // We immediately stop queueing in the pre-init buffer.
+        let old_val = self.queue_preinit.swap(false, Ordering::SeqCst);
+        if !old_val {
+            return Err(DispatchError::AlreadyFlushed);
+        }
+
+        // Unblock the worker thread exactly once.
+        self.block_sender.send(Blocked::Shutdown)?;
+        Ok(())
+    }
+
     fn flush_init(&mut self) -> Result<(), DispatchError> {
         // We immediately stop queueing in the pre-init buffer.
         let old_val = self.queue_preinit.swap(false, Ordering::SeqCst);
@@ -154,7 +174,7 @@ impl DispatchGuard {
         }
 
         // Unblock the worker thread exactly once.
-        self.block_sender.send(())?;
+        self.block_sender.send(Blocked::Continue)?;
 
         // Single-use channel to communicate with the worker thread.
         let (swap_sender, swap_receiver) = bounded(0);
@@ -193,58 +213,72 @@ impl Dispatcher {
     ///
     /// [`flush_init`]: #method.flush_init
     pub fn new(max_queue_size: usize) -> Self {
-        let (block_sender, block_receiver) = bounded(0);
+        let (block_sender, block_receiver) = bounded(1);
         let (preinit_sender, preinit_receiver) = bounded(max_queue_size);
         let (sender, mut unbounded_receiver) = unbounded();
 
         let queue_preinit = Arc::new(AtomicBool::new(true));
 
-        let worker = thread::spawn(move || {
-            if block_receiver.recv().is_err() {
-                // The other side was disconnected.
-                // There's nothing the worker thread can do.
-                log::error!("The task producer was disconnected. Worker thread will exit.");
-                return;
-            }
-
-            let mut receiver = preinit_receiver;
-            loop {
-                use Command::*;
-
-                match receiver.recv() {
-                    Ok(Shutdown) => {
-                        break;
-                    }
-
-                    Ok(Task(f)) => {
-                        (f)();
-                    }
-
-                    Ok(Swap(swap_done)) => {
-                        // A swap should only occur exactly once.
-                        // This is upheld by `flush_init`, which errors out if the preinit buffer
-                        // was already flushed.
-
-                        // We swap the channels we listen on for new tasks.
-                        // The next iteration will continue with the unbounded queue.
-                        mem::swap(&mut receiver, &mut unbounded_receiver);
-
-                        // The swap command MUST be the last one received on the preinit buffer,
-                        // so by the time we run this we know all preinit tasks were processed.
-                        // We can notify the other side.
-                        swap_done
-                            .send(())
-                            .expect("The caller of `flush_init` has gone missing");
-                    }
-
-                    // Other side was disconnected.
+        let worker = thread::Builder::new()
+            .name("glean.dispatcher".into())
+            .spawn(move || {
+                match block_receiver.recv() {
                     Err(_) => {
+                        // The other side was disconnected.
+                        // There's nothing the worker thread can do.
                         log::error!("The task producer was disconnected. Worker thread will exit.");
                         return;
                     }
+                    Ok(Blocked::Shutdown) => {
+                        // The other side wants us to stop immediately
+                        return;
+                    }
+                    Ok(Blocked::Continue) => {
+                        // Queue is unblocked, processing continues as normal.
+                    }
                 }
-            }
-        });
+
+                let mut receiver = preinit_receiver;
+                loop {
+                    use Command::*;
+
+                    match receiver.recv() {
+                        Ok(Shutdown) => {
+                            break;
+                        }
+
+                        Ok(Task(f)) => {
+                            (f)();
+                        }
+
+                        Ok(Swap(swap_done)) => {
+                            // A swap should only occur exactly once.
+                            // This is upheld by `flush_init`, which errors out if the preinit buffer
+                            // was already flushed.
+
+                            // We swap the channels we listen on for new tasks.
+                            // The next iteration will continue with the unbounded queue.
+                            mem::swap(&mut receiver, &mut unbounded_receiver);
+
+                            // The swap command MUST be the last one received on the preinit buffer,
+                            // so by the time we run this we know all preinit tasks were processed.
+                            // We can notify the other side.
+                            swap_done
+                                .send(())
+                                .expect("The caller of `flush_init` has gone missing");
+                        }
+
+                        // Other side was disconnected.
+                        Err(_) => {
+                            log::error!(
+                                "The task producer was disconnected. Worker thread will exit."
+                            );
+                            return;
+                        }
+                    }
+                }
+            })
+            .expect("Failed to spawn Glean's dispatcher thread");
 
         let guard = DispatchGuard {
             queue_preinit,
@@ -269,7 +303,7 @@ impl Dispatcher {
 
     /// Waits for the worker thread to finish and finishes the dispatch queue.
     ///
-    /// You need to call `try_shutdown` to initiate a shutdown of the queue.
+    /// You need to call `shutdown` to initiate a shutdown of the queue.
     fn join(mut self) -> Result<(), DispatchError> {
         if let Some(worker) = self.worker.take() {
             worker.join().map_err(|_| DispatchError::WorkerPanic)?;

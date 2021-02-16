@@ -128,6 +128,8 @@ struct JSWrapObjectCallbacks {
   JSPreWrapCallback preWrap;
 };
 
+using JSDestroyZoneCallback = void (*)(JSFreeOp*, JS::Zone*);
+
 using JSDestroyCompartmentCallback = void (*)(JSFreeOp*, JS::Compartment*);
 
 using JSSizeOfIncludingThisCompartmentCallback =
@@ -327,6 +329,9 @@ JS_PUBLIC_API void SetHelperThreadTaskCallback(
     bool (*callback)(js::UniquePtr<js::RunnableTask>));
 
 extern JS_PUBLIC_API const char* JS_GetImplementationVersion(void);
+
+extern JS_PUBLIC_API void JS_SetDestroyZoneCallback(
+    JSContext* cx, JSDestroyZoneCallback callback);
 
 extern JS_PUBLIC_API void JS_SetDestroyCompartmentCallback(
     JSContext* cx, JSDestroyCompartmentCallback callback);
@@ -665,21 +670,6 @@ extern JS_PUBLIC_API void SetProfileTimelineRecordingEnabled(bool enabled);
 extern JS_PUBLIC_API bool IsProfileTimelineRecordingEnabled();
 
 }  // namespace JS
-
-/*
- * A replacement for MallocAllocPolicy that allocates in the JS heap and adds no
- * extra behaviours.
- *
- * This is currently used for allocating source buffers for parsing. Since these
- * are temporary and will not be freed by GC, the memory is not tracked by the
- * usual accounting.
- */
-class JS_PUBLIC_API JSMallocAllocPolicy : public js::AllocPolicyBase {
- public:
-  void reportAllocOverflow() const {}
-
-  MOZ_MUST_USE bool checkSimulatedOOM() const { return true; }
-};
 
 /**
  * Set the size of the native stack that should not be exceed. To disable
@@ -2650,7 +2640,6 @@ extern JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
   Register(BASELINE_INTERPRETER_WARMUP_TRIGGER, "blinterp.warmup.trigger") \
   Register(BASELINE_WARMUP_TRIGGER, "baseline.warmup.trigger") \
   Register(ION_NORMAL_WARMUP_TRIGGER, "ion.warmup.trigger") \
-  Register(ION_FULL_WARMUP_TRIGGER, "ion.full.warmup.trigger") \
   Register(ION_GVN_ENABLE, "ion.gvn.enable") \
   Register(ION_FORCE_IC, "ion.forceinlineCaches") \
   Register(ION_ENABLE, "ion.enable") \
@@ -2670,7 +2659,6 @@ extern JS_PUBLIC_API void JS_SetOffthreadIonCompilationEnabled(JSContext* cx,
   Register(SPECTRE_STRING_MITIGATIONS, "spectre.string-mitigations") \
   Register(SPECTRE_VALUE_MASKING, "spectre.value-masking") \
   Register(SPECTRE_JIT_TO_CXX_CALLS, "spectre.jit-to-C++-calls") \
-  Register(WARP_ENABLE, "warp.enable") \
   Register(WASM_FOLD_OFFSETS, "wasm.fold-offsets") \
   Register(WASM_DELAY_TIER2, "wasm.delay-tier2") \
   Register(WASM_JIT_BASELINE, "wasm.baseline") \
@@ -3042,5 +3030,13 @@ namespace js {
 enum class CompletionKind { Normal, Return, Throw };
 
 } /* namespace js */
+
+#ifdef DEBUG
+namespace JS {
+
+extern JS_PUBLIC_API void SetSupportDifferentialTesting(bool value);
+
+}
+#endif /* DEBUG */
 
 #endif /* jsapi_h */

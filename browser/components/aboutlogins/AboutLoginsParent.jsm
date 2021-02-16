@@ -7,6 +7,9 @@
 // _AboutLogins is only exported for testing
 var EXPORTED_SYMBOLS = ["AboutLoginsParent", "_AboutLogins"];
 
+const { setTimeout, clearTimeout } = ChromeUtils.import(
+  "resource://gre/modules/Timer.jsm"
+);
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
@@ -66,7 +69,7 @@ const SHOW_PASSWORD_SYNC_NOTIFICATION_PREF =
 // about:logins will always use the privileged content process,
 // even if it is disabled for other consumers such as about:newtab.
 const EXPECTED_ABOUTLOGINS_REMOTE_TYPE = E10SUtils.PRIVILEGEDABOUT_REMOTE_TYPE;
-
+let _passwordRemaskTimeout;
 const convertSubjectToLogin = subject => {
   subject.QueryInterface(Ci.nsILoginMetaInfo).QueryInterface(Ci.nsILoginInfo);
   const login = LoginHelper.loginToVanillaObject(subject);
@@ -215,14 +218,19 @@ class AboutLoginsParent extends JSWindowActorParent {
           messageText.value,
           captionText.value
         );
-        if (isAuthorized) {
-          const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-          AboutLogins._authExpirationTime = Date.now() + AUTH_TIMEOUT_MS;
-        }
         this.sendAsyncMessage("AboutLogins:MasterPasswordResponse", {
           result: isAuthorized,
           telemetryEvent,
         });
+        if (isAuthorized) {
+          const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+          AboutLogins._authExpirationTime = Date.now() + AUTH_TIMEOUT_MS;
+          const remaskPasswords = () => {
+            this.sendAsyncMessage("AboutLogins:RemaskPassword");
+          };
+          clearTimeout(_passwordRemaskTimeout);
+          _passwordRemaskTimeout = setTimeout(remaskPasswords, AUTH_TIMEOUT_MS);
+        }
         break;
       }
       case "AboutLogins:Subscribe": {
@@ -390,23 +398,11 @@ class AboutLoginsParent extends JSWindowActorParent {
         break;
       }
       case "AboutLogins:ImportPasswords": {
-        let fp = Cc["@mozilla.org/filepicker;1"].createInstance(
-          Ci.nsIFilePicker
-        );
-        async function fpCallback(aResult) {
-          if (aResult != Ci.nsIFilePicker.returnCancel) {
-            await LoginCSVImport.importFromCSV(fp.file.path);
-            Services.telemetry.recordEvent(
-              "pwmgr",
-              "mgmt_menu_item_used",
-              "import_csv_complete"
-            );
-          }
-        }
         let [
           title,
           okButtonLabel,
           csvFilterTitle,
+          tsvFilterTitle,
         ] = await AboutLoginsL10n.formatValues([
           {
             id: "about-logins-import-file-picker-title",
@@ -417,13 +413,50 @@ class AboutLoginsParent extends JSWindowActorParent {
           {
             id: "about-logins-import-file-picker-csv-filter-title",
           },
+          {
+            id: "about-logins-import-file-picker-tsv-filter-title",
+          },
         ]);
+        let { result, path } = await this.openFilePickerDialog(
+          title,
+          okButtonLabel,
+          [
+            {
+              title: csvFilterTitle,
+              extensionPattern: "*.csv",
+            },
+            {
+              title: tsvFilterTitle,
+              extensionPattern: "*.tsv",
+            },
+          ],
+          ownerGlobal
+        );
 
-        fp.init(ownerGlobal, title, Ci.nsIFilePicker.modeOpen);
-        fp.appendFilter(csvFilterTitle, "*.csv");
-        fp.appendFilters(Ci.nsIFilePicker.filterAll);
-        fp.okButtonLabel = okButtonLabel;
-        fp.open(fpCallback);
+        if (result != Ci.nsIFilePicker.returnCancel) {
+          let summary;
+          try {
+            summary = await LoginCSVImport.importFromCSV(path);
+          } catch (e) {
+            Cu.reportError(e);
+            this.sendAsyncMessage(
+              "AboutLogins:ImportPasswordsErrorDialog",
+              e.errorType
+            );
+          }
+          if (summary) {
+            this.sendAsyncMessage("AboutLogins:ImportPasswordsDialog", summary);
+            Services.telemetry.recordEvent(
+              "pwmgr",
+              "mgmt_menu_item_used",
+              "import_csv_complete"
+            );
+          }
+        }
+        break;
+      }
+      case "AboutLogins:RemoveAllLogins": {
+        Services.logins.removeAllUserFacingLogins();
         break;
       }
     }
@@ -442,6 +475,21 @@ class AboutLoginsParent extends JSWindowActorParent {
     }
 
     this.sendAsyncMessage("AboutLogins:ShowLoginItemError", messageObject);
+  }
+
+  async openFilePickerDialog(title, okButtonLabel, appendFilters, ownerGlobal) {
+    return new Promise(resolve => {
+      let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+      fp.init(ownerGlobal, title, Ci.nsIFilePicker.modeOpen);
+      for (const appendFilter of appendFilters) {
+        fp.appendFilter(appendFilter.title, appendFilter.extensionPattern);
+      }
+      fp.appendFilters(Ci.nsIFilePicker.filterAll);
+      fp.okButtonLabel = okButtonLabel;
+      fp.open(async result => {
+        resolve({ result, path: fp.file.path });
+      });
+    });
   }
 }
 
@@ -790,12 +838,14 @@ var AboutLogins = {
     // authenticated. More diagnostics and error states can be handled
     // by other more Sync-specific pages.
     const loggedIn = state.status != UIState.STATUS_NOT_CONFIGURED;
+    const passwordSyncEnabled = state.syncEnabled && PASSWORD_SYNC_ENABLED;
 
     return {
       loggedIn,
       email: state.email,
       avatarURL: state.avatarURL,
       fxAccountsEnabled: FXA_ENABLED,
+      passwordSyncEnabled,
     };
   },
 
@@ -815,6 +865,7 @@ var AboutLogins = {
   onPasswordSyncEnabledPreferenceChange(data, previous, latest) {
     Services.prefs.clearUserPref(SHOW_PASSWORD_SYNC_NOTIFICATION_PREF);
     this.updatePasswordSyncNotificationState(this.getSyncState(), latest);
+    this.messageSubscribers("AboutLogins:SyncState", this.getSyncState());
   },
 };
 var _AboutLogins = AboutLogins;

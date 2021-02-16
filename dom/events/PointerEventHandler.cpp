@@ -11,6 +11,7 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowserParent.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/MouseEventBinding.h"
 
 namespace mozilla {
@@ -121,6 +122,7 @@ void PointerEventHandler::UpdateActivePointerState(WidgetMouseEvent* aEvent,
       sActivePointersIds->Remove(aEvent->pointerId);
       break;
     default:
+      MOZ_ASSERT_UNREACHABLE("event has invalid type");
       break;
   }
 }
@@ -354,22 +356,24 @@ void PointerEventHandler::CheckPointerCaptureState(WidgetPointerEvent* aEvent) {
       captureInfo->mPendingElement == captureInfo->mOverrideElement) {
     return;
   }
-  // cache captureInfo->mPendingElement since it may be changed in the pointer
-  // event listener
-  RefPtr<Element> pendingElement = captureInfo->mPendingElement.get();
-  if (captureInfo->mOverrideElement) {
-    RefPtr<Element> overrideElement = captureInfo->mOverrideElement;
+
+  RefPtr<Element> overrideElement = captureInfo->mOverrideElement;
+  RefPtr<Element> pendingElement = captureInfo->mPendingElement;
+
+  // Update captureInfo before dispatching event since sPointerCaptureList may
+  // be changed in the pointer event listener.
+  captureInfo->mOverrideElement = captureInfo->mPendingElement;
+  if (captureInfo->Empty()) {
+    sPointerCaptureList->Remove(aEvent->pointerId);
+  }
+
+  if (overrideElement) {
     DispatchGotOrLostPointerCaptureEvent(/* aIsGotCapture */ false, aEvent,
                                          overrideElement);
   }
   if (pendingElement) {
     DispatchGotOrLostPointerCaptureEvent(/* aIsGotCapture */ true, aEvent,
                                          pendingElement);
-  }
-
-  captureInfo->mOverrideElement = std::move(pendingElement);
-  if (captureInfo->Empty()) {
-    sPointerCaptureList->Remove(aEvent->pointerId);
   }
 }
 
@@ -688,6 +692,29 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
 }
 
 /* static */
+void PointerEventHandler::NotifyDestroyPresContext(
+    nsPresContext* aPresContext) {
+  // Clean up pointer capture info
+  for (auto iter = sPointerCaptureList->Iter(); !iter.Done(); iter.Next()) {
+    PointerCaptureInfo* data = iter.UserData();
+    MOZ_ASSERT(data, "how could we have a null PointerCaptureInfo here?");
+    if (data->mPendingElement &&
+        data->mPendingElement->GetPresContext(Element::eForComposedDoc) ==
+            aPresContext) {
+      data->mPendingElement = nullptr;
+    }
+    if (data->mOverrideElement &&
+        data->mOverrideElement->GetPresContext(Element::eForComposedDoc) ==
+            aPresContext) {
+      data->mOverrideElement = nullptr;
+    }
+    if (data->Empty()) {
+      iter.Remove();
+    }
+  }
+}
+
+/* static */
 uint16_t PointerEventHandler::GetPointerType(uint32_t aPointerId) {
   PointerInfo* pointerInfo = nullptr;
   if (sActivePointersIds->Get(aPointerId, &pointerInfo) && pointerInfo) {
@@ -711,7 +738,7 @@ void PointerEventHandler::DispatchGotOrLostPointerCaptureEvent(
     Element* aCaptureTarget) {
   Document* targetDoc = aCaptureTarget->OwnerDoc();
   RefPtr<PresShell> presShell = targetDoc->GetPresShell();
-  if (NS_WARN_IF(!presShell)) {
+  if (NS_WARN_IF(!presShell || presShell->IsDestroying())) {
     return;
   }
 

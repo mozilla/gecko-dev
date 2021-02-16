@@ -128,75 +128,6 @@ void CodeGeneratorMIPS64::splitTagForTest(const ValueOperand& value,
   masm.splitTag(value.valueReg(), tag);
 }
 
-void CodeGenerator::visitCompareB(LCompareB* lir) {
-  MCompare* mir = lir->mir();
-
-  const ValueOperand lhs = ToValue(lir, LCompareB::Lhs);
-  const LAllocation* rhs = lir->rhs();
-  const Register output = ToRegister(lir->output());
-
-  MOZ_ASSERT(mir->jsop() == JSOp::StrictEq || mir->jsop() == JSOp::StrictNe);
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-
-  // Load boxed boolean in ScratchRegister.
-  if (rhs->isConstant()) {
-    masm.moveValue(rhs->toConstant()->toJSValue(),
-                   ValueOperand(ScratchRegister));
-  } else {
-    masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchRegister);
-  }
-
-  // Perform the comparison.
-  masm.cmpPtrSet(cond, lhs.valueReg(), ScratchRegister, output);
-}
-
-void CodeGenerator::visitCompareBAndBranch(LCompareBAndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  const ValueOperand lhs = ToValue(lir, LCompareBAndBranch::Lhs);
-  const LAllocation* rhs = lir->rhs();
-
-  MOZ_ASSERT(mir->jsop() == JSOp::StrictEq || mir->jsop() == JSOp::StrictNe);
-
-  // Load boxed boolean in ScratchRegister.
-  if (rhs->isConstant()) {
-    masm.moveValue(rhs->toConstant()->toJSValue(),
-                   ValueOperand(ScratchRegister));
-  } else {
-    masm.boxValue(JSVAL_TYPE_BOOLEAN, ToRegister(rhs), ScratchRegister);
-  }
-
-  // Perform the comparison.
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  emitBranch(lhs.valueReg(), ScratchRegister, cond, lir->ifTrue(),
-             lir->ifFalse());
-}
-
-void CodeGenerator::visitCompareBitwise(LCompareBitwise* lir) {
-  MCompare* mir = lir->mir();
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  const ValueOperand lhs = ToValue(lir, LCompareBitwise::LhsInput);
-  const ValueOperand rhs = ToValue(lir, LCompareBitwise::RhsInput);
-  const Register output = ToRegister(lir->output());
-
-  MOZ_ASSERT(IsEqualityOp(mir->jsop()));
-
-  masm.cmpPtrSet(cond, lhs.valueReg(), rhs.valueReg(), output);
-}
-
-void CodeGenerator::visitCompareBitwiseAndBranch(
-    LCompareBitwiseAndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  const ValueOperand lhs = ToValue(lir, LCompareBitwiseAndBranch::LhsInput);
-  const ValueOperand rhs = ToValue(lir, LCompareBitwiseAndBranch::RhsInput);
-
-  MOZ_ASSERT(mir->jsop() == JSOp::Eq || mir->jsop() == JSOp::StrictEq ||
-             mir->jsop() == JSOp::Ne || mir->jsop() == JSOp::StrictNe);
-
-  emitBranch(lhs.valueReg(), rhs.valueReg(), cond, lir->ifTrue(),
-             lir->ifFalse());
-}
-
 void CodeGenerator::visitCompareI64(LCompareI64* lir) {
   MCompare* mir = lir->mir();
   MOZ_ASSERT(mir->compareType() == MCompare::Compare_Int64 ||
@@ -326,6 +257,40 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   }
 #endif
   masm.bind(&done);
+}
+
+void CodeGeneratorMIPS64::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
+                                        Register divisor, Register output,
+                                        Label* fail) {
+  // Callers handle division by zero and integer overflow.
+
+#ifdef MIPSR6
+  masm.as_ddiv(/* result= */ dividend, dividend, divisor);
+#else
+  masm.as_ddiv(dividend, divisor);
+  masm.as_mflo(dividend);
+#endif
+
+  // Create and return the result.
+  masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+  masm.initializeBigInt(output, dividend);
+}
+
+void CodeGeneratorMIPS64::emitBigIntMod(LBigIntMod* ins, Register dividend,
+                                        Register divisor, Register output,
+                                        Label* fail) {
+  // Callers handle division by zero and integer overflow.
+
+#ifdef MIPSR6
+  masm.as_dmod(/* result= */ dividend, dividend, divisor);
+#else
+  masm.as_ddiv(dividend, divisor);
+  masm.as_mfhi(dividend);
+#endif
+
+  // Create and return the result.
+  masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+  masm.initializeBigInt(output, dividend);
 }
 
 template <typename T>

@@ -15,6 +15,7 @@
 #include "mozilla/layers/CompositableForwarder.h"
 #include "mozilla/layers/ISurfaceAllocator.h"
 #include "mozilla/layers/ImageDataSerializer.h"
+#include "mozilla/layers/TextureForwarder.h"
 
 #ifdef MOZ_WIDGET_GTK
 #  include "gfxPlatformGtk.h"
@@ -190,9 +191,6 @@ BufferTextureData* BufferTextureData::CreateForYCbCr(
       YCbCrDescriptor(aDisplay, aYSize, aYStride, aCbCrSize, aCbCrStride,
                       yOffset, cbOffset, crOffset, aStereoMode, aColorDepth,
                       aYUVColorSpace, aColorRange, hasIntermediateBuffer);
-
-  // extra SIMD padding needed for SWGL
-  bufSize += 16;
 
   return CreateInternal(
       aAllocator ? aAllocator->GetTextureForwarder() : nullptr, descriptor,

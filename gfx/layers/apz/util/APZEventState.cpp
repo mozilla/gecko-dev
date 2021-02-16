@@ -12,6 +12,7 @@
 #include "ActiveElementManager.h"
 #include "TouchManager.h"
 #include "mozilla/BasicEvents.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/PositionedEventTargeting.h"
 #include "mozilla/Preferences.h"
@@ -391,6 +392,10 @@ void APZEventState::ProcessTouchEvent(
     mFirstTouchCancelled = false;
   }
 
+  APZES_LOG("Pointercancel if %d %d %d %d %d\n", sentContentResponse,
+            !isTouchPrevented, aApzResponse == nsEventStatus_eConsumeDoDefault,
+            StaticPrefs::dom_w3c_pointer_events_enabled(),
+            MainThreadAgreesEventsAreConsumableByAPZ());
   if (sentContentResponse && !isTouchPrevented &&
       aApzResponse == nsEventStatus_eConsumeDoDefault &&
       StaticPrefs::dom_w3c_pointer_events_enabled() &&

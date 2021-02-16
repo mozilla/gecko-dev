@@ -15,11 +15,15 @@
 using namespace mozilla::a11y;
 
 @interface MOXSearchInfo ()
-- (NSMutableArray*)getMatchesForRule:(PivotRule&)rule;
+- (NSArray*)getMatchesForRule:(PivotRule&)rule;
+
+- (NSArray<mozAccessible*>*)applyPostFilter:(NSArray<mozAccessible*>*)matches;
 
 - (AccessibleOrProxy)rootGeckoAccessible;
 
 - (AccessibleOrProxy)startGeckoAccessible;
+
+- (BOOL)shouldApplyPostFilter;
 @end
 
 @implementation MOXSearchInfo
@@ -48,6 +52,8 @@ using namespace mozilla::a11y;
   mImmediateDescendantsOnly =
       [[params objectForKey:@"AXImmediateDescendantsOnly"] boolValue];
 
+  mSearchText = [params objectForKey:@"AXSearchText"];
+
   return [super init];
 }
 
@@ -69,9 +75,12 @@ using namespace mozilla::a11y;
   return [self rootGeckoAccessible];
 }
 
-- (NSMutableArray*)getMatchesForRule:(PivotRule&)rule {
-  int resultLimit = mResultLimit;
-  NSMutableArray* matches = [[NSMutableArray alloc] init];
+- (NSArray*)getMatchesForRule:(PivotRule&)rule {
+  // If we will apply a post-filter, don't limit search so we
+  // don't come up short on the final result count.
+  int resultLimit = [self shouldApplyPostFilter] ? -1 : mResultLimit;
+
+  NSMutableArray<mozAccessible*>* matches = [[NSMutableArray alloc] init];
   AccessibleOrProxy geckoRootAcc = [self rootGeckoAccessible];
   AccessibleOrProxy geckoStartAcc = [self startGeckoAccessible];
   Pivot p = Pivot(geckoRootAcc);
@@ -108,7 +117,109 @@ using namespace mozilla::a11y;
     match = mSearchForward ? p.Next(match, rule) : p.Prev(match, rule);
   }
 
-  return matches;
+  return [self applyPostFilter:matches];
+}
+
+- (BOOL)shouldApplyPostFilter {
+  // We currently only support AXSearchText as a post-search filter.
+  return !!mSearchText;
+}
+
+- (NSArray<mozAccessible*>*)applyPostFilter:(NSArray<mozAccessible*>*)matches {
+  if (![self shouldApplyPostFilter]) {
+    return matches;
+  }
+
+  NSMutableArray<mozAccessible*>* postMatches = [[NSMutableArray alloc] init];
+
+  nsString searchText;
+  nsCocoaUtils::GetStringForNSString(mSearchText, searchText);
+
+  __block DocAccessibleParent* ipcDoc = nullptr;
+  __block nsTArray<uint64_t> accIds;
+
+  [matches enumerateObjectsUsingBlock:^(mozAccessible* match, NSUInteger idx,
+                                        BOOL* stop) {
+    AccessibleOrProxy geckoAcc = [match geckoAccessible];
+    if (geckoAcc.IsNull()) {
+      return;
+    }
+
+    switch (geckoAcc.Role()) {
+      case roles::LANDMARK:
+      case roles::COMBOBOX:
+      case roles::LISTITEM:
+      case roles::COMBOBOX_LIST:
+      case roles::MENUBAR:
+      case roles::MENUPOPUP:
+      case roles::DOCUMENT:
+      case roles::APPLICATION:
+        // XXX: These roles either have AXTitle/AXDescription overridden as
+        // empty, or should never be returned in search text results. This
+        // should be integrated into a pivot rule in the future, and possibly
+        // better mapped somewhere.
+        return;
+      default:
+        break;
+    }
+
+    if (geckoAcc.IsAccessible()) {
+      AccessibleWrap* acc =
+          static_cast<AccessibleWrap*>(geckoAcc.AsAccessible());
+      if (acc->ApplyPostFilter(EWhichPostFilter::eContainsText, searchText)) {
+        if (mozAccessible* nativePostMatch =
+                GetNativeFromGeckoAccessible(acc)) {
+          [postMatches addObject:nativePostMatch];
+          if (mResultLimit > 0 &&
+              [postMatches count] >= static_cast<NSUInteger>(mResultLimit)) {
+            // If we reached the result limit, alter the `stop` pointer to YES
+            // to stop iteration.
+            *stop = YES;
+          }
+        }
+      }
+
+      return;
+    }
+
+    ProxyAccessible* proxy = geckoAcc.AsProxy();
+    if (ipcDoc &&
+        ((ipcDoc != proxy->Document()) || (idx + 1 == [matches count]))) {
+      // If the ipcDoc doesn't match the current proxy's doc, we crossed into a
+      // new document. ..or this is the last match. Apply the filter on the list
+      // of the current ipcDoc.
+      nsTArray<uint64_t> matchIds;
+      Unused << ipcDoc->GetPlatformExtension()->SendApplyPostSearchFilter(
+          accIds, mResultLimit, EWhichPostFilter::eContainsText, searchText,
+          &matchIds);
+      for (size_t i = 0; i < matchIds.Length(); i++) {
+        if (ProxyAccessible* postMatch =
+                ipcDoc->GetAccessible(matchIds.ElementAt(i))) {
+          if (mozAccessible* nativePostMatch =
+                  GetNativeFromGeckoAccessible(postMatch)) {
+            [postMatches addObject:nativePostMatch];
+            if (mResultLimit > 0 &&
+                [postMatches count] >= static_cast<NSUInteger>(mResultLimit)) {
+              // If we reached the result limit, alter the `stop` pointer to YES
+              // to stop iteration.
+              *stop = YES;
+              return;
+            }
+          }
+        }
+      }
+
+      ipcDoc = nullptr;
+      accIds.Clear();
+    }
+
+    if (!ipcDoc) {
+      ipcDoc = proxy->Document();
+    }
+    accIds.AppendElement(proxy->ID());
+  }];
+
+  return postMatches;
 }
 
 - (NSArray*)performSearch {
@@ -120,31 +231,23 @@ using namespace mozilla::a11y;
       RotorRule rule =
           mImmediateDescendantsOnly ? RotorRule(geckoRootAcc) : RotorRule();
 
-      if (mSearchForward) {
-        if ([mStartElem isKindOfClass:[MOXWebAreaAccessible class]]) {
-          if (id rootGroup =
-                  [static_cast<MOXWebAreaAccessible*>(mStartElem) rootGroup]) {
-            // Moving forward from web area, rootgroup; if it exists, is next.
-            [matches addObject:rootGroup];
-            if (mResultLimit == 1) {
-              // Found one match, continue in search keys for block.
-              continue;
-            }
+      if ([mStartElem isKindOfClass:[MOXWebAreaAccessible class]]) {
+        if (id rootGroup =
+                [static_cast<MOXWebAreaAccessible*>(mStartElem) rootGroup]) {
+          // Moving forward from web area, rootgroup; if it exists, is next.
+          [matches addObject:rootGroup];
+          if (mResultLimit == 1) {
+            // Found one match, continue in search keys for block.
+            continue;
           }
-        } else if (mImmediateDescendantsOnly && mStartElem != mRoot &&
-                   [mStartElem isKindOfClass:[MOXRootGroup class]]) {
-          // Moving forward from root group. If we don't match descendants,
-          // there is no match. Continue.
-          continue;
         }
-      } else if (!mSearchForward &&
-                 [mStartElem isKindOfClass:[MOXRootGroup class]]) {
-        // Moving backward from root group. Web area is next.
-        [matches addObject:[mStartElem moxParent]];
-        if (mResultLimit == 1) {
-          // Found one match, continue in search keys for block.
-          continue;
-        }
+      }
+
+      if (mImmediateDescendantsOnly && mStartElem != mRoot &&
+          [mStartElem isKindOfClass:[MOXRootGroup class]]) {
+        // Moving forward from root group. If we don't match descendants,
+        // there is no match. Continue.
+        continue;
       }
       [matches addObjectsFromArray:[self getMatchesForRule:rule]];
     }
@@ -323,10 +426,16 @@ using namespace mozilla::a11y;
     }
 
     if ([key isEqualToString:@"AXTextFieldSearchKey"]) {
-      RotorMacRoleRule rule =
-          mImmediateDescendantsOnly
-              ? RotorMacRoleRule(@"AXTextField", geckoRootAcc)
-              : RotorMacRoleRule(@"AXTextField");
+      RotorTextEntryRule rule = mImmediateDescendantsOnly
+                                    ? RotorTextEntryRule(geckoRootAcc)
+                                    : RotorTextEntryRule();
+      [matches addObjectsFromArray:[self getMatchesForRule:rule]];
+    }
+
+    if ([key isEqualToString:@"AXLiveRegionSearchKey"]) {
+      RotorLiveRegionRule rule = mImmediateDescendantsOnly
+                                     ? RotorLiveRegionRule(geckoRootAcc)
+                                     : RotorLiveRegionRule();
       [matches addObjectsFromArray:[self getMatchesForRule:rule]];
     }
   }

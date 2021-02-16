@@ -82,6 +82,8 @@ void MacroAssembler::load32SignExtendToPtr(const Address& src, Register dest) {
 // ===============================================================
 // Logical instructions
 
+void MacroAssembler::notPtr(Register reg) { ma_not(reg, reg); }
+
 void MacroAssembler::andPtr(Register src, Register dest) { ma_and(dest, src); }
 
 void MacroAssembler::andPtr(Imm32 imm, Register dest) { ma_and(dest, imm); }
@@ -359,6 +361,10 @@ void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
   ma_sll(dest, dest, imm);
 }
 
+void MacroAssembler::lshiftPtr(Register src, Register dest) {
+  ma_sll(dest, dest, src);
+}
+
 void MacroAssembler::lshift64(Imm32 imm, Register64 dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   ScratchRegisterScope scratch(*this);
@@ -407,6 +413,10 @@ void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
 void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 32);
   ma_sra(dest, dest, imm);
+}
+
+void MacroAssembler::rshiftPtr(Register src, Register dest) {
+  ma_srl(dest, dest, src);
 }
 
 void MacroAssembler::rshift64(Imm32 imm, Register64 dest) {
@@ -772,6 +782,8 @@ void MacroAssembler::branchTest64(Condition cond, Register64 lhs,
     MOZ_ASSERT(lhs.high == rhs.high);
     as_or(ScratchRegister, lhs.low, lhs.high);
     ma_b(ScratchRegister, ScratchRegister, label, cond);
+  } else if (cond == Assembler::Signed || cond == Assembler::NotSigned) {
+    branchTest32(cond, lhs.high, rhs.high, label);
   } else {
     MOZ_CRASH("Unsupported condition");
   }

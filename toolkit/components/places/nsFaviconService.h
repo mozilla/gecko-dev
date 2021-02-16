@@ -14,6 +14,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/storage.h"
 #include "nsCOMPtr.h"
+#include "nsComponentManagerUtils.h"
 #include "nsDataHashtable.h"
 #include "nsIFaviconService.h"
 #include "nsINamed.h"
@@ -74,11 +75,6 @@ class nsFaviconService final : public nsIFaviconService,
     return gFaviconService;
   }
 
-  /**
-   * Fetch and migrate favicons from an unsupported payload to a supported one.
-   */
-  static void ConvertUnsupportedPayloads(mozIStorageConnection* aDBConn);
-
   // addition to API for strings to prevent excessive parsing of URIs
   nsresult GetFaviconLinkForIconString(const nsCString& aIcon,
                                        nsIURI** aOutput);
@@ -99,17 +95,12 @@ class nsFaviconService final : public nsIFaviconService,
                                mozIStorageStatementCallback* aCallback);
 
   /**
-   * Call to send out favicon changed notifications. Should only be called
-   * when there is data loaded for the favicon.
-   * @param aPageURI
-   *        The URI of the page to notify about.
-   * @param aFaviconURI
-   *        The moz-anno:favicon URI of the icon.
-   * @param aGUID
-   *        The unique ID associated with the page.
+   * Clears the image cache for the given image spec.
+   *
+   * @param aImageURI
+   *        The URI of the image to clear cache for.
    */
-  void SendFaviconNotifications(nsIURI* aPageURI, nsIURI* aFaviconURI,
-                                const nsACString& aGUID);
+  void ClearImageCache(nsIURI* aImageURI);
 
   static mozilla::Atomic<int64_t> sLastInsertedIconId;
   static void StoreLastInsertedId(const nsACString& aTable,

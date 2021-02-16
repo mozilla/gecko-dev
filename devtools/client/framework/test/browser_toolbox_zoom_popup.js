@@ -131,7 +131,12 @@ add_task(async function() {
 async function getButtonAndMenuInfo(toolbox, menuButton) {
   const { doc, topDoc } = toolbox;
   info("Show popup menu with click event.");
-  EventUtils.sendMouseEvent(
+  AccessibilityUtils.setEnv({
+    // Keyboard accessibility is handled on the toolbox toolbar container level.
+    // Users can use arrow keys to navigate between and select tabs.
+    nonNegativeTabIndexRule: false,
+  });
+  await EventUtils.sendMouseEvent(
     {
       type: "click",
       screenX: 1,
@@ -139,6 +144,7 @@ async function getButtonAndMenuInfo(toolbox, menuButton) {
     menuButton,
     doc.defaultView
   );
+  AccessibilityUtils.resetEnv();
 
   let menuPopup;
   let menuType;

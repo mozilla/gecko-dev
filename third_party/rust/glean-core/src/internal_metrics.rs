@@ -8,7 +8,15 @@ use super::{metrics::*, CommonMetricData, Lifetime};
 pub struct CoreMetrics {
     pub client_id: UuidMetric,
     pub first_run_date: DatetimeMetric,
+    pub first_run_hour: DatetimeMetric,
     pub os: StringMetric,
+
+    /// The number of times we encountered an IO error
+    /// when writing a pending ping to disk.
+    ///
+    /// **Note**: Not a _core_ metric, but an error metric,
+    /// placed here for the lack of a more suitable part in the Glean struct.
+    pub io_errors: CounterMetric,
 }
 
 impl CoreMetrics {
@@ -35,11 +43,32 @@ impl CoreMetrics {
                 TimeUnit::Day,
             ),
 
+            first_run_hour: DatetimeMetric::new(
+                CommonMetricData {
+                    name: "first_run_hour".into(),
+                    category: "glean.validation".into(),
+                    send_in_pings: vec!["metrics".into(), "baseline".into()],
+                    lifetime: Lifetime::User,
+                    disabled: false,
+                    dynamic_label: None,
+                },
+                TimeUnit::Hour,
+            ),
+
             os: StringMetric::new(CommonMetricData {
                 name: "os".into(),
                 category: "".into(),
                 send_in_pings: vec!["glean_client_info".into()],
                 lifetime: Lifetime::Application,
+                disabled: false,
+                dynamic_label: None,
+            }),
+
+            io_errors: CounterMetric::new(CommonMetricData {
+                name: "io".into(),
+                category: "glean.error".into(),
+                send_in_pings: vec!["metrics".into()],
+                lifetime: Lifetime::Ping,
                 disabled: false,
                 dynamic_label: None,
             }),

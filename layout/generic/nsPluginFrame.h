@@ -85,9 +85,9 @@ class nsPluginFrame final : public nsIFrame,
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
 
-  virtual nsresult HandleEvent(nsPresContext* aPresContext,
-                               mozilla::WidgetGUIEvent* aEvent,
-                               nsEventStatus* aEventStatus) override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual nsresult HandleEvent(
+      nsPresContext* aPresContext, mozilla::WidgetGUIEvent* aEvent,
+      nsEventStatus* aEventStatus) override;
 
   virtual bool IsFrameOfType(uint32_t aFlags) const override {
     return nsIFrame::IsFrameOfType(
@@ -239,9 +239,6 @@ class nsPluginFrame final : public nsIFrame,
   void GetDesiredSize(nsPresContext* aPresContext,
                       const ReflowInput& aReflowInput,
                       ReflowOutput& aDesiredSize);
-
-  bool IsFocusable(int32_t* aTabIndex = nullptr,
-                   bool aWithMouse = false) override;
 
   // check attributes and optionally CSS to see if we should display anything
   bool IsHidden(bool aCheckVisibilityStyle = true) const;

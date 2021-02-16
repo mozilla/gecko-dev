@@ -30,7 +30,7 @@ were loaded into Firefox processes.
           ... Additional modules (maximum 100)
         ],
         "processes": {
-          <string containing pid, formatted as "0x%x">: {
+          <string containing processType and pid, formatted as `${processType}.0x${pid}">`: {
             // Except for Default (which is remapped to "browser"), one of the process string names specified in xpcom/build/GeckoProcessTypes.h.
             "processType": <string>,
             // Elapsed time since process creation that this object was generated, in seconds.
@@ -59,7 +59,9 @@ were loaded into Firefox processes.
                 // Index of the element in the modules array that contains details about the module that was loaded during this event.
                 "moduleIndex": <int>,
                 // True if the module is included in the executable's Import Directory Table.
-                "isDependent": <bool>
+                "isDependent": <bool>,
+                // The status of DLL load. This corresponds to enum ModuleLoadInfo::Status.
+                "loadStatus": <int>
               },
               ... Additional events (maximum 50)
             ],

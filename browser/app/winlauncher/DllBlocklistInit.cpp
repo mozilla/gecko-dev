@@ -12,6 +12,7 @@
 #include "mozilla/BinarySearch.h"
 #include "mozilla/ImportDir.h"
 #include "mozilla/NativeNt.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/Types.h"
 #include "mozilla/WindowsDllBlocklist.h"
 #include "mozilla/WinHeaderOnlyUtils.h"
@@ -43,12 +44,6 @@ LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
 static LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPInternal(
     const wchar_t* aFullImagePath, nt::CrossExecTransferManager& aTransferMgr,
     const IMAGE_THUNK_DATA* aCachedNtdllThunk) {
-  LauncherVoidResult transferResult =
-      freestanding::gSharedSection.TransferHandle(aTransferMgr);
-  if (transferResult.isErr()) {
-    return transferResult.propagateErr();
-  }
-
   CrossProcessDllInterceptor intcpt(aTransferMgr.RemoteProcess());
   intcpt.Init(L"ntdll.dll");
 
@@ -168,6 +163,14 @@ LauncherVoidResultWithLineInfo InitializeDllBlocklistOOP(
     return RestoreImportDirectory(aFullImagePath, transferMgr);
   }
 
+  // Transfer a readonly handle to the child processes because all information
+  // are already written to the section by the launcher and main process.
+  LauncherVoidResult transferResult =
+      freestanding::gSharedSection.TransferHandle(transferMgr, GENERIC_READ);
+  if (transferResult.isErr()) {
+    return transferResult.propagateErr();
+  }
+
   return InitializeDllBlocklistOOPInternal(aFullImagePath, transferMgr,
                                            aCachedNtdllThunk);
 }
@@ -186,6 +189,15 @@ LauncherVoidResultWithLineInfo InitializeDllBlocklistOOPFromLauncher(
       freestanding::gSharedSection.Init(transferMgr.LocalPEHeaders());
   if (result.isErr()) {
     return result.propagateErr();
+  }
+
+  // Transfer a writable handle to the main process because it needs to append
+  // dependent module paths to the section.
+  LauncherVoidResult transferResult =
+      freestanding::gSharedSection.TransferHandle(transferMgr,
+                                                  GENERIC_READ | GENERIC_WRITE);
+  if (transferResult.isErr()) {
+    return transferResult.propagateErr();
   }
 
   auto clearInstance = MakeScopeExit([]() {

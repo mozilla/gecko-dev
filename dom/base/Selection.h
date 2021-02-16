@@ -21,6 +21,7 @@
 #include "nsRange.h"
 #include "nsTArrayForwardDeclare.h"
 #include "nsThreadUtils.h"
+#include "nsWeakReference.h"
 #include "nsWrapperCache.h"
 
 struct CachedOffsetForFrame;
@@ -32,6 +33,9 @@ struct SelectionDetails;
 struct SelectionCustomColors;
 class nsCopySupport;
 class nsHTMLCopyEncoder;
+class nsPresContext;
+struct nsPoint;
+struct nsRect;
 
 namespace mozilla {
 class AccessibleCaretEventHub;
@@ -856,7 +860,8 @@ class Selection final : public nsSupportsWeakReference,
      */
     Element* GetCommonEditingHost() const;
 
-    void MaybeFocusCommonEditingHost(PresShell* aPresShell) const;
+    MOZ_CAN_RUN_SCRIPT_BOUNDARY void MaybeFocusCommonEditingHost(
+        PresShell* aPresShell) const;
 
     static nsresult SubtractRange(StyledRange& aRange, nsRange& aSubtract,
                                   nsTArray<StyledRange>* aOutput);

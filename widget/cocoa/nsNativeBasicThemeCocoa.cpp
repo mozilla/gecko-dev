@@ -19,7 +19,7 @@ NS_IMETHODIMP
 nsNativeBasicThemeCocoa::GetMinimumWidgetSize(
     nsPresContext* aPresContext, nsIFrame* aFrame, StyleAppearance aAppearance,
     mozilla::LayoutDeviceIntSize* aResult, bool* aIsOverridable) {
-  uint32_t dpiRatio = GetDPIRatio(aFrame);
+  DPIRatio dpiRatio = GetDPIRatio(aFrame);
 
   switch (aAppearance) {
     case StyleAppearance::ScrollbarthumbHorizontal:
@@ -34,7 +34,7 @@ nsNativeBasicThemeCocoa::GetMinimumWidgetSize(
     case StyleAppearance::ScrollbarbuttonRight: {
       *aIsOverridable = false;
       *aResult = ScrollbarDrawingMac::GetMinimumWidgetSize(aAppearance, aFrame,
-                                                           dpiRatio);
+                                                           dpiRatio.scale);
       break;
     }
 
@@ -47,62 +47,63 @@ nsNativeBasicThemeCocoa::GetMinimumWidgetSize(
 }
 
 void nsNativeBasicThemeCocoa::PaintScrollbarThumb(
-    DrawTarget* aDrawTarget, const Rect& aRect, bool aHorizontal,
+    DrawTarget* aDrawTarget, const LayoutDeviceRect& aRect, bool aHorizontal,
     nsIFrame* aFrame, const ComputedStyle& aStyle,
     const EventStates& aElementState, const EventStates& aDocumentState,
-    uint32_t aDpiRatio) {
+    DPIRatio aDpiRatio) {
   ScrollbarParams params =
       ScrollbarDrawingMac::ComputeScrollbarParams(aFrame, aStyle, aHorizontal);
-  if (aDpiRatio >= 2.0f) {
+  auto rect = aRect.ToUnknownRect();
+  if (aDpiRatio.scale >= 2.0f) {
     mozilla::gfx::AutoRestoreTransform autoRestoreTransform(aDrawTarget);
     aDrawTarget->SetTransform(aDrawTarget->GetTransform().PreScale(2.0f, 2.0f));
-    Rect rect = aRect;
     rect.Scale(1.0f / 2.0f);
     ScrollbarDrawingMac::DrawScrollbarThumb(*aDrawTarget, rect, params);
   } else {
-    ScrollbarDrawingMac::DrawScrollbarThumb(*aDrawTarget, aRect, params);
+    ScrollbarDrawingMac::DrawScrollbarThumb(*aDrawTarget, rect, params);
   }
 }
 
 void nsNativeBasicThemeCocoa::PaintScrollbarTrack(
-    DrawTarget* aDrawTarget, const Rect& aRect, bool aHorizontal,
+    DrawTarget* aDrawTarget, const LayoutDeviceRect& aRect, bool aHorizontal,
     nsIFrame* aFrame, const ComputedStyle& aStyle,
-    const EventStates& aDocumentState, uint32_t aDpiRatio, bool aIsRoot) {
+    const EventStates& aDocumentState, DPIRatio aDpiRatio, bool aIsRoot) {
   ScrollbarParams params =
       ScrollbarDrawingMac::ComputeScrollbarParams(aFrame, aStyle, aHorizontal);
-  if (aDpiRatio >= 2.0f) {
+  auto rect = aRect.ToUnknownRect();
+  if (aDpiRatio.scale >= 2.0f) {
     mozilla::gfx::AutoRestoreTransform autoRestoreTransform(aDrawTarget);
     aDrawTarget->SetTransform(aDrawTarget->GetTransform().PreScale(2.0f, 2.0f));
-    Rect rect = aRect;
     rect.Scale(1.0f / 2.0f);
     ScrollbarDrawingMac::DrawScrollbarTrack(*aDrawTarget, rect, params);
   } else {
-    ScrollbarDrawingMac::DrawScrollbarTrack(*aDrawTarget, aRect, params);
+    ScrollbarDrawingMac::DrawScrollbarTrack(*aDrawTarget, rect, params);
   }
 }
 
 void nsNativeBasicThemeCocoa::PaintScrollbar(DrawTarget* aDrawTarget,
-                                             const Rect& aRect,
+                                             const LayoutDeviceRect& aRect,
                                              bool aHorizontal, nsIFrame* aFrame,
                                              const ComputedStyle& aStyle,
                                              const EventStates& aDocumentState,
-                                             uint32_t aDpiRatio, bool aIsRoot) {
+                                             DPIRatio aDpiRatio, bool aIsRoot) {
   // Draw nothing; the scrollbar track is drawn in PaintScrollbarTrack.
 }
 
 void nsNativeBasicThemeCocoa::PaintScrollCorner(
-    DrawTarget* aDrawTarget, const Rect& aRect, nsIFrame* aFrame,
+    DrawTarget* aDrawTarget, const LayoutDeviceRect& aRect, nsIFrame* aFrame,
     const ComputedStyle& aStyle, const EventStates& aDocumentState,
-    uint32_t aDpiRatio, bool aIsRoot) {
+    DPIRatio aDpiRatio, bool aIsRoot) {
   ScrollbarParams params =
       ScrollbarDrawingMac::ComputeScrollbarParams(aFrame, aStyle, false);
-  if (aDpiRatio >= 2.0f) {
+  if (aDpiRatio.scale >= 2.0f) {
     mozilla::gfx::AutoRestoreTransform autoRestoreTransform(aDrawTarget);
     aDrawTarget->SetTransform(aDrawTarget->GetTransform().PreScale(2.0f, 2.0f));
-    Rect rect = aRect;
+    auto rect = aRect.ToUnknownRect();
     rect.Scale(1 / 2.0f);
     ScrollbarDrawingMac::DrawScrollCorner(*aDrawTarget, rect, params);
   } else {
-    ScrollbarDrawingMac::DrawScrollCorner(*aDrawTarget, aRect, params);
+    auto rect = aRect.ToUnknownRect();
+    ScrollbarDrawingMac::DrawScrollCorner(*aDrawTarget, rect, params);
   }
 }

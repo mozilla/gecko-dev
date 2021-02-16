@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{NormalBorder, PremultipliedColorF, Shadow};
+use api::{NormalBorder, PremultipliedColorF, Shadow, RasterSpace};
 use api::units::*;
 use crate::border::create_border_segments;
 use crate::border::NormalBorderAu;
@@ -18,7 +18,8 @@ use crate::prim_store::{
     PrimitiveStore, InternablePrimitive,
 };
 use crate::resource_cache::{ImageRequest, ResourceCache};
-use crate::storage;
+
+use super::storage;
 
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
@@ -173,7 +174,12 @@ impl InternablePrimitive for NormalBorderPrim {
 }
 
 impl CreateShadow for NormalBorderPrim {
-    fn create_shadow(&self, shadow: &Shadow) -> Self {
+    fn create_shadow(
+        &self,
+        shadow: &Shadow,
+        _: bool,
+        _: RasterSpace,
+    ) -> Self {
         let border = self.border.with_color(shadow.color.into());
         NormalBorderPrim {
             border,

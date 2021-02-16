@@ -2,8 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import unicode_literals
-
+from __future__ import absolute_import, unicode_literals
+import six
 import json
 import os
 import sys
@@ -32,7 +32,7 @@ def run_test(context, is_junit, **kwargs):
 
     flavor = kwargs.get("flavor") or "mochitest"
     if flavor not in ALL_FLAVORS:
-        for fname, fobj in ALL_FLAVORS.iteritems():
+        for fname, fobj in six.iteritems(ALL_FLAVORS):
             if flavor in fobj["aliases"]:
                 flavor = fname
                 break
@@ -90,7 +90,8 @@ def run_test(context, is_junit, **kwargs):
         install_subdir = fobj.get("install_subdir", fobj["suite"])
         test_root = os.path.join(context.package_root, "mochitest", install_subdir)
         normalize = partial(context.normalize_test_path, test_root)
-        args.test_paths = map(normalize, args.test_paths)
+        # pylint --py3k: W1636
+        args.test_paths = list(map(normalize, args.test_paths))
 
     import mozinfo
 

@@ -39,7 +39,7 @@ use crate::prim_store::{PrimitiveScratchBuffer, PrimitiveInstance};
 use crate::prim_store::{PrimitiveInstanceKind, PrimTemplateCommonData, PrimitiveStore};
 use crate::prim_store::interned::*;
 use crate::profiler::{self, TransactionProfile};
-use crate::render_task_graph::RenderTaskGraphCounters;
+use crate::render_task_graph::RenderTaskGraphBuilder;
 use crate::renderer::{AsyncPropertySampler, PipelineInfo};
 use crate::resource_cache::ResourceCache;
 #[cfg(feature = "replay")]
@@ -430,6 +430,9 @@ struct Document {
     /// The builder object that prodces frames, kept around to preserve some retained state.
     frame_builder: FrameBuilder,
 
+    /// Allows graphs of render tasks to be created, and then built into an immutable graph output.
+    rg_builder: RenderTaskGraphBuilder,
+
     /// A data structure to allow hit testing against rendered frames. This is updated
     /// every time we produce a fully rendered frame.
     hit_tester: Option<Arc<HitTester>>,
@@ -456,9 +459,6 @@ struct Document {
     /// where we want to recycle the memory each new display list, to avoid constantly
     /// re-allocating and moving memory around.
     scratch: ScratchBuffer,
-    /// Keep track of the size of render task graph to pre-allocate memory up-front
-    /// the next frame.
-    render_task_counters: RenderTaskGraphCounters,
 
     #[cfg(feature = "replay")]
     loaded_scene: Scene,
@@ -506,12 +506,12 @@ impl Document {
             has_built_scene: false,
             data_stores: DataStores::default(),
             scratch: ScratchBuffer::default(),
-            render_task_counters: RenderTaskGraphCounters::new(),
             #[cfg(feature = "replay")]
             loaded_scene: Scene::new(),
             prev_composite_descriptor: CompositeDescriptor::empty(),
             dirty_rects_are_valid: true,
             profile: TransactionProfile::new(),
+            rg_builder: RenderTaskGraphBuilder::new(),
         }
     }
 
@@ -623,6 +623,7 @@ impl Document {
                 &mut self.scene,
                 resource_cache,
                 gpu_cache,
+                &mut self.rg_builder,
                 self.stamp,
                 accumulated_scale_factor,
                 self.view.scene.device_rect.origin,
@@ -630,7 +631,6 @@ impl Document {
                 &self.dynamic_properties,
                 &mut self.data_stores,
                 &mut self.scratch,
-                &mut self.render_task_counters,
                 debug_flags,
                 tile_cache_logger,
                 tile_caches,
@@ -1010,6 +1010,7 @@ impl RenderBackend {
                 txn.frame_ops.take(),
                 txn.notifications.take(),
                 txn.render_frame,
+                None,
                 txn.invalidate_rendered_frame,
                 frame_counter,
                 has_built_scene,
@@ -1066,7 +1067,7 @@ impl RenderBackend {
                     memory_pressure: true,
                 };
                 self.result_tx.send(msg).unwrap();
-                self.notifier.wake_up();
+                self.notifier.wake_up(false);
             }
             ApiMsg::ReportMemory(tx) => {
                 self.report_memory(tx);
@@ -1190,6 +1191,12 @@ impl RenderBackend {
                         self.resource_cache.set_debug_flags(flags);
                         self.gpu_cache.set_debug_flags(flags);
 
+                        let force_invalidation = flags.contains(DebugFlags::FORCE_PICTURE_INVALIDATION);
+                        if self.frame_config.force_invalidation != force_invalidation {
+                            self.frame_config.force_invalidation = force_invalidation;
+                            self.update_frame_builder_config();
+                        }
+
                         // If we're toggling on the GPU cache debug display, we
                         // need to blow away the cache. This is because we only
                         // send allocation/free notifications to the renderer
@@ -1210,7 +1217,7 @@ impl RenderBackend {
                     _ => ResultMsg::DebugCommand(option),
                 };
                 self.result_tx.send(msg).unwrap();
-                self.notifier.wake_up();
+                self.notifier.wake_up(true);
             }
             ApiMsg::UpdateDocuments(transaction_msgs) => {
                 self.prepare_transactions(
@@ -1308,7 +1315,7 @@ impl RenderBackend {
             SceneBuilderResult::DocumentsForDebugger(json) => {
                 let msg = ResultMsg::DebugOutput(DebugOutput::FetchDocuments(json));
                 self.result_tx.send(msg).unwrap();
-                self.notifier.wake_up();
+                self.notifier.wake_up(false);
             }
         }
 
@@ -1347,7 +1354,7 @@ impl RenderBackend {
 
         let mut built_frame = false;
         for mut txn in txns {
-            if txn.generate_frame {
+            if txn.generate_frame.as_bool() {
                 txn.profile.end_time(profiler::API_SEND_TIME);
             }
 
@@ -1358,7 +1365,8 @@ impl RenderBackend {
                 txn.resource_updates.take(),
                 txn.frame_ops.take(),
                 txn.notifications.take(),
-                txn.generate_frame,
+                txn.generate_frame.as_bool(),
+                txn.generate_frame.id(),
                 txn.invalidate_rendered_frame,
                 frame_counter,
                 false
@@ -1395,6 +1403,7 @@ impl RenderBackend {
                     Vec::default(),
                     Vec::default(),
                     false,
+                    None,
                     false,
                     frame_counter,
                     false);
@@ -1414,6 +1423,7 @@ impl RenderBackend {
         mut frame_ops: Vec<FrameMsg>,
         mut notifications: Vec<NotificationRequest>,
         mut render_frame: bool,
+        generated_frame_id: Option<u64>,
         invalidate_rendered_frame: bool,
         frame_counter: &mut u32,
         has_built_scene: bool,
@@ -1430,8 +1440,7 @@ impl RenderBackend {
         // async transforms.
         if requested_frame || has_built_scene {
             if let Some(ref sampler) = self.sampler {
-                frame_ops.append(&mut sampler.sample(document_id,
-                                                     &doc.scene.pipeline_epochs));
+                frame_ops.append(&mut sampler.sample(document_id, generated_frame_id));
             }
         }
 
@@ -1650,6 +1659,9 @@ impl RenderBackend {
         }
 
         (*report) += self.resource_cache.report_memory(op);
+        report.texture_cache_structures = self.resource_cache
+            .texture_cache
+            .report_memory(ops);
 
         // Send a message to report memory on the scene-builder thread, which
         // will add its report to this one and send the result back to the original
@@ -1941,11 +1953,11 @@ impl RenderBackend {
                         has_built_scene: false,
                         data_stores,
                         scratch: ScratchBuffer::default(),
-                        render_task_counters: RenderTaskGraphCounters::new(),
                         loaded_scene: scene.clone(),
                         prev_composite_descriptor: CompositeDescriptor::empty(),
                         dirty_rects_are_valid: false,
                         profile: TransactionProfile::new(),
+                        rg_builder: RenderTaskGraphBuilder::new(),
                     };
                     entry.insert(doc);
                 }

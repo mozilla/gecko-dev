@@ -38,6 +38,7 @@ function getBrowser(panel) {
   browser.setAttribute("type", "content");
   browser.setAttribute("flex", "1");
   browser.setAttribute("disableglobalhistory", "true");
+  browser.setAttribute("messagemanagergroup", "webext-browsers");
   browser.setAttribute("webextension-view-type", panel.viewType);
   browser.setAttribute("context", "contentAreaContextMenu");
   browser.setAttribute("tooltip", "aHTMLTooltip");
@@ -54,13 +55,16 @@ function getBrowser(panel) {
   let readyPromise;
   if (panel.extension.remote) {
     browser.setAttribute("remote", "true");
+    let oa = E10SUtils.predictOriginAttributes({ browser });
     browser.setAttribute(
       "remoteType",
       E10SUtils.getRemoteTypeForURI(
         panel.uri,
         /* remote */ true,
         /* fission */ false,
-        E10SUtils.EXTENSION_REMOTE_TYPE
+        E10SUtils.EXTENSION_REMOTE_TYPE,
+        null,
+        oa
       )
     );
     readyPromise = promiseEvent(browser, "XULFrameLoaderCreated");

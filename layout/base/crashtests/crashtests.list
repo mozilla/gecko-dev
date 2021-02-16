@@ -41,7 +41,7 @@ load 265736-1.html
 load 265736-2.html
 load 265899-1.html
 load 265973-1.html
-asserts(6-12) load 265986-1.html # Bug 512405 , bug 718883
+load 265986-1.html
 load 265999-1.html
 load 266222-1.html
 asserts(1-7) load 266360-1.html # bug 576358
@@ -133,8 +133,6 @@ load 366271-1.html
 load 366967-1.html
 load 367015-1.html
 load 367243-1.html
-load 367498-1.html
-load 367498-2.html
 load 369176-1.html
 load 369547-1.html
 load 369547-2.html
@@ -275,7 +273,6 @@ load 480686-1.html
 load 481806-1.html
 load 483604-1.xhtml
 load 485501-1.html
-load 487544-1.html
 load 488390-1.xhtml
 load 489691.html
 load 490376-1.xhtml
@@ -557,3 +554,5 @@ load 1586600.html
 load 1599518.html
 load 1599532.html
 pref(layout.accessiblecaret.enabled,true) load 1606492.html
+load 1676301-1.html
+pref(apz.mvm.force-enabled,false) pref(dom.meta-viewport.enabled,false) pref(apz.allow_zooming,false) pref(layout.dynamic-toolbar-max-height,100) load 1689371.html

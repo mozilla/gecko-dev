@@ -22,15 +22,16 @@ use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureCont
 use crate::gpu_cache::{GpuCacheHandle, GpuDataRequest};
 use crate::gpu_types::{BrushFlags};
 use crate::internal_types::{FastHashMap, PlaneSplitAnchor};
-use crate::picture::{PicturePrimitive, SliceId, TileCacheLogger, ClusterFlags};
+use crate::picture::{PicturePrimitive, SliceId, TileCacheLogger, ClusterFlags, SurfaceRenderTasks};
 use crate::picture::{PrimitiveList, PrimitiveCluster, SurfaceIndex, TileCacheInstance};
 use crate::prim_store::gradient::{GRADIENT_FP_STOPS, GradientCacheKey, GradientStopKey};
 use crate::prim_store::gradient::LinearGradientPrimitive;
 use crate::prim_store::line_dec::MAX_LINE_DECORATION_RESOLUTION;
 use crate::prim_store::*;
 use crate::render_backend::DataStores;
-use crate::render_task_cache::{RenderTaskCacheKeyKind, RenderTaskCacheEntryHandle, RenderTaskCacheKey, to_cache_size};
-use crate::render_task::RenderTask;
+use crate::render_task_cache::{RenderTaskCacheKeyKind, RenderTaskCacheEntryHandle};
+use crate::render_task_cache::{RenderTaskCacheKey, to_cache_size, RenderTaskParent};
+use crate::render_task::{RenderTaskKind, RenderTask};
 use crate::segment::SegmentBuilder;
 use crate::space::SpaceMapper;
 use crate::texture_cache::TEXTURE_REGION_DIMENSIONS;
@@ -229,7 +230,6 @@ fn prepare_prim_for_render(
             // Restore the dependencies (borrow check dance)
             store.pictures[pic_context_for_children.pic_index.0]
                 .restore_context(
-                    pic_context.surface_index,
                     prim_list,
                     pic_context_for_children,
                     pic_state_for_children,
@@ -275,7 +275,7 @@ fn prepare_prim_for_render(
 
     #[cfg(debug_assertions)]
     {
-        prim_instance.prepared_frame_id = frame_state.render_tasks.frame_id();
+        prim_instance.prepared_frame_id = frame_state.rg_builder.frame_id();
     }
 
     prepare_interned_prim_for_render(
@@ -356,16 +356,20 @@ fn prepare_interned_prim_for_render(
                         kind: RenderTaskCacheKeyKind::LineDecoration(cache_key.clone()),
                     },
                     frame_state.gpu_cache,
-                    frame_state.render_tasks,
+                    frame_state.rg_builder,
                     None,
                     false,
-                    |render_tasks| {
-                        render_tasks.add().init(RenderTask::new_line_decoration(
+                    RenderTaskParent::Surface(pic_context.surface_index),
+                    frame_state.surfaces,
+                    |rg_builder| {
+                        rg_builder.add().init(RenderTask::new_dynamic(
                             task_size,
-                            cache_key.style,
-                            cache_key.orientation,
-                            cache_key.wavy_line_thickness.to_f32_px(),
-                            LayoutSize::from_au(cache_key.size),
+                            RenderTaskKind::new_line_decoration(
+                                cache_key.style,
+                                cache_key.orientation,
+                                cache_key.wavy_line_thickness.to_f32_px(),
+                                LayoutSize::from_au(cache_key.size),
+                            ),
                         ))
                     }
                 ));
@@ -389,10 +393,6 @@ fn prepare_interned_prim_for_render(
             let prim_offset = prim_data.common.prim_rect.origin.to_vector() - run.reference_frame_relative_offset;
 
             let pic = &store.pictures[pic_context.pic_index.0];
-            let raster_space = pic.get_raster_space_for_prim(
-                prim_spatial_node_index,
-                frame_context.spatial_tree
-            );
             let surface = &frame_state.surfaces[pic_context.surface_index.0];
             let prim_info = &prim_instance.vis;
             let root_scaling_factor = match pic.raster_config {
@@ -408,12 +408,10 @@ fn prepare_interned_prim_for_render(
                 &transform.to_transform().with_destination::<_>(),
                 surface,
                 prim_spatial_node_index,
-                raster_space,
                 root_scaling_factor,
                 &pic_context.subpixel_mode,
                 frame_state.resource_cache,
                 frame_state.gpu_cache,
-                frame_state.render_tasks,
                 frame_context.spatial_tree,
                 scratch,
             );
@@ -490,17 +488,21 @@ fn prepare_interned_prim_for_render(
                 handles.push(frame_state.resource_cache.request_render_task(
                     cache_key,
                     frame_state.gpu_cache,
-                    frame_state.render_tasks,
+                    frame_state.rg_builder,
                     None,
                     false,          // TODO(gw): We don't calculate opacity for borders yet!
-                    |render_tasks| {
-                        render_tasks.add().init(RenderTask::new_border_segment(
+                    RenderTaskParent::Surface(pic_context.surface_index),
+                    frame_state.surfaces,
+                    |rg_builder| {
+                        rg_builder.add().init(RenderTask::new_dynamic(
                             cache_size,
-                            build_border_instances(
-                                &segment.cache_key,
-                                cache_size,
-                                &border_data.border,
-                                scale,
+                            RenderTaskKind::new_border_segment(
+                                build_border_instances(
+                                    &segment.cache_key,
+                                    cache_size,
+                                    &border_data.border,
+                                    scale,
+                                )
                             ),
                         ))
                     }
@@ -607,7 +609,11 @@ fn prepare_interned_prim_for_render(
 
             // Update the template this instane references, which may refresh the GPU
             // cache with any shared template data.
-            image_data.update(common_data, frame_state);
+            image_data.update(
+                common_data,
+                pic_context.surface_index,
+                frame_state,
+            );
 
             // common_data.opacity.is_opaque is computed in the above update call.
             is_opaque = common_data.opacity.is_opaque;
@@ -715,8 +721,9 @@ fn prepare_interned_prim_for_render(
                                  stops: &[GradientStopKey],
                                  orientation: LineOrientation,
                                  frame_state: &mut FrameBuildingState,
-                                 gradient: &mut LinearGradientPrimitive)
-                {
+                                 gradient: &mut LinearGradientPrimitive,
+                                 parent_surface_index: SurfaceIndex,
+                ) {
                     // these prints are used to generate documentation examples, so
                     // leaving them in but commented out:
                     //println!("emit_segments call:");
@@ -816,16 +823,20 @@ fn prepare_interned_prim_for_render(
                                             kind: RenderTaskCacheKeyKind::Gradient(cache_key),
                                         },
                                         frame_state.gpu_cache,
-                                        frame_state.render_tasks,
+                                        frame_state.rg_builder,
                                         None,
                                         is_opaque,
-                                        |render_tasks| {
-                                            render_tasks.add().init(RenderTask::new_gradient(
+                                        RenderTaskParent::Surface(parent_surface_index),
+                                        frame_state.surfaces,
+                                        |rg_builder| {
+                                            rg_builder.add().init(RenderTask::new_dynamic(
                                                 task_size,
-                                                segment_stops,
-                                                orientation,
-                                                segment_start_point,
-                                                segment_end_point,
+                                                RenderTaskKind::new_gradient(
+                                                    segment_stops,
+                                                    orientation,
+                                                    segment_start_point,
+                                                    segment_end_point,
+                                                ),
                                             ))
                                         }),
                                     local_rect: local_rect,
@@ -868,7 +879,9 @@ fn prepare_interned_prim_for_render(
                                   &stops,
                                   orientation,
                                   frame_state,
-                                  gradient);
+                                  gradient,
+                                  pic_context.surface_index,
+                    );
                 }
                 else
                 {
@@ -895,7 +908,9 @@ fn prepare_interned_prim_for_render(
                                       &stops,
                                       orientation,
                                       frame_state,
-                                      gradient);
+                                      gradient,
+                                      pic_context.surface_index,
+                        );
 
                         segment_start_point = repeat_end + gradient_offset_base;
                     }
@@ -1097,9 +1112,19 @@ fn prepare_interned_prim_for_render(
 
             // Setup a dependency on the backdrop picture to ensure it is rendered prior to rendering this primitive.
             let backdrop_surface_index = store.pictures[backdrop_pic_index.0].raster_config.as_ref().unwrap().surface_index;
-            if let Some(backdrop_tasks) = frame_state.surfaces[backdrop_surface_index.0].render_tasks {
-                let picture_task_id = frame_state.surfaces[pic_context.surface_index.0].render_tasks.as_ref().unwrap().port;
-                frame_state.render_tasks.add_dependency(picture_task_id, backdrop_tasks.root);
+            if let Some(ref backdrop_tasks) = frame_state.surfaces[backdrop_surface_index.0].render_tasks {
+                // This is untidy / code duplication but matches existing behavior and will be
+                // removed in follow up patches to this bug to rework how backdrop-filter works.
+                let backdrop_task_id = match backdrop_tasks {
+                    SurfaceRenderTasks::Tiled(..) => unreachable!(),
+                    SurfaceRenderTasks::Simple(id) => *id,
+                    SurfaceRenderTasks::Chained { port_task_id, .. } => *port_task_id,
+                };
+
+                frame_state.add_child_render_task(
+                    pic_context.surface_index,
+                    backdrop_task_id,
+                );
             } else {
                 if prim_instance.is_chased() {
                     println!("\tBackdrop primitive culled because backdrop task was not assigned render tasks");
@@ -1484,18 +1509,18 @@ pub fn update_clip_task(
             unadjusted_device_rect,
             device_pixel_scale,
         );
-
-        let clip_task_id = RenderTask::new_mask(
+        let clip_task_id = RenderTaskKind::new_mask(
             device_rect,
             instance.vis.clip_chain.clips_range,
             root_spatial_node_index,
             frame_state.clip_store,
             frame_state.gpu_cache,
             frame_state.resource_cache,
-            frame_state.render_tasks,
+            frame_state.rg_builder,
             &mut data_stores.clip,
             device_pixel_scale,
             frame_context.fb_config,
+            frame_state.surfaces,
         );
         if instance.is_chased() {
             println!("\tcreated task {:?} with device rect {:?}",
@@ -1505,8 +1530,8 @@ pub fn update_clip_task(
         let clip_task_index = ClipTaskIndex(scratch.clip_mask_instances.len() as _);
         scratch.clip_mask_instances.push(ClipMaskKind::Mask(clip_task_id));
         instance.vis.clip_task_index = clip_task_index;
-        frame_state.render_tasks.add_dependency(
-            frame_state.surfaces[pic_context.surface_index.0].render_tasks.unwrap().port,
+        frame_state.add_child_render_task(
+            pic_context.surface_index,
             clip_task_id,
         );
         clip_task_index
@@ -1571,24 +1596,24 @@ pub fn update_brush_segment_clip_task(
 
     let (device_rect, device_pixel_scale) = adjust_mask_scale_for_max_size(device_rect, device_pixel_scale);
 
-    let clip_task_id = RenderTask::new_mask(
+    let clip_task_id = RenderTaskKind::new_mask(
         device_rect,
         clip_chain.clips_range,
         root_spatial_node_index,
         frame_state.clip_store,
         frame_state.gpu_cache,
         frame_state.resource_cache,
-        frame_state.render_tasks,
+        frame_state.rg_builder,
         clip_data_store,
         device_pixel_scale,
         frame_context.fb_config,
+        frame_state.surfaces,
     );
-    let port = frame_state
-        .surfaces[surface_index.0]
-        .render_tasks
-        .unwrap_or_else(|| panic!("bug: no task for surface {:?}", surface_index))
-        .port;
-    frame_state.render_tasks.add_dependency(port, clip_task_id);
+
+    frame_state.add_child_render_task(
+        surface_index,
+        clip_task_id,
+    );
     ClipMaskKind::Mask(clip_task_id)
 }
 

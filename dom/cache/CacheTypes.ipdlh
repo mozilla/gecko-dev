@@ -9,16 +9,20 @@ include IPCStream;
 include ChannelInfo;
 include PBackgroundSharedTypes;
 
-using HeadersGuardEnum from "mozilla/dom/FetchIPCTypes.h";
-using Namespace from "mozilla/dom/cache/IPCUtils.h";
-using OpenMode from "mozilla/dom/cache/IPCUtils.h";
-using ReferrerPolicy from "mozilla/dom/FetchIPCTypes.h";
-using RequestCredentials from "mozilla/dom/FetchIPCTypes.h";
-using RequestMode from "mozilla/dom/FetchIPCTypes.h";
-using RequestCache from "mozilla/dom/FetchIPCTypes.h";
-using RequestRedirect from "mozilla/dom/FetchIPCTypes.h";
-using ResponseType from "mozilla/dom/FetchIPCTypes.h";
-using mozilla::void_t from "ipc/IPCMessageUtils.h";
+include "mozilla/dom/cache/IPCUtils.h";
+include "mozilla/dom/FetchIPCTypes.h";
+
+using HeadersGuardEnum from "mozilla/dom/HeadersBinding.h";
+using Namespace from "mozilla/dom/cache/Types.h";
+using OpenMode from "mozilla/dom/cache/Types.h";
+using ReferrerPolicy from "mozilla/dom/ReferrerPolicyBinding.h";
+using RequestCredentials from "mozilla/dom/RequestBinding.h";
+using RequestMode from "mozilla/dom/RequestBinding.h";
+using RequestCache from "mozilla/dom/RequestBinding.h";
+using RequestRedirect from "mozilla/dom/RequestBinding.h";
+using ResponseType from "mozilla/dom/ResponseBinding.h";
+using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
+using nsContentPolicyType from "nsIContentPolicy.h";
 using struct nsID from "nsID.h";
 using nsILoadInfo::CrossOriginEmbedderPolicy from "nsILoadInfo.h";
 
@@ -60,7 +64,7 @@ struct CacheRequest
   RequestMode mode;
   RequestCredentials credentials;
   CacheReadStream? body;
-  uint32_t contentPolicyType;
+  nsContentPolicyType contentPolicyType;
   RequestCache requestCache;
   RequestRedirect requestRedirect;
   nsString integrity;

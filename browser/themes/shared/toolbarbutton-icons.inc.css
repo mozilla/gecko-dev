@@ -242,7 +242,7 @@ toolbar[brighttext] {
 }
 
 #print-button {
-  list-style-image: url("chrome://browser/skin/print.svg");
+  list-style-image: url("chrome://global/skin/icons/print.svg");
 }
 
 %ifdef XP_MACOSX
@@ -280,39 +280,26 @@ toolbar[brighttext] {
   list-style-image: url("chrome://devtools/skin/images/cloud-recordings.svg");
 }
 
-#profiler-button > .toolbarbutton-icon {
+#profiler-button-button > .toolbarbutton-icon {
   list-style-image: url("chrome://devtools/skin/images/tool-profiler.svg");
 }
 
-#profiler-button:not(.profiler-active) > image {
+#profiler-button-button:not(.profiler-active) > image {
   transform: scaleX(-1);
 }
 
-#profiler-button.profiler-active > image {
+#profiler-button-button.profiler-active > image {
   fill: #0060df;
   fill-opacity: 1;
   background-color: #0060df33;
 }
 
-#profiler-button.profiler-active:hover > image {
+#profiler-button-button.profiler-active:hover > image {
   background-color: #0060df22;
 }
 
-#profiler-button.profiler-paused > image {
+#profiler-button-button.profiler-paused > image {
   opacity: 0.4;
-}
-
-#profiler-button > .toolbarbutton-menu-dropmarker {
-  /* Inherit the fill and fill-opacity values from the toolbarbutton
-     instead of using the values from .toolbarbutton-menu-dropmarker */
-  -moz-context-properties: fill, fill-opacity;
-  fill: inherit;
-  fill-opacity: inherit;
-}
-
-.widget-overflow-list #profiler-button > .toolbarbutton-menu-dropmarker,
-#customization-palette #profiler-button > .toolbarbutton-menu-dropmarker {
-  display: none;
 }
 
 #preferences-button {
@@ -326,6 +313,7 @@ toolbar[brighttext] {
 #PanelUI-menu-button[badge-status="update-available"],
 #PanelUI-menu-button[badge-status="update-downloading"],
 #PanelUI-menu-button[badge-status="update-manual"],
+#PanelUI-menu-button[badge-status="update-other-instance"],
 #PanelUI-menu-button[badge-status="update-restart"] {
   list-style-image: url("chrome://browser/skin/menu-badged.svg");
 }
@@ -352,7 +340,7 @@ toolbar[brighttext] {
 
 #PlacesChevron,
 #nav-bar-overflow-button {
-  list-style-image: url("chrome://browser/skin/chevron.svg");
+  list-style-image: url("chrome://global/skin/icons/chevron.svg");
 }
 
 #nav-bar-overflow-button[animate] > .toolbarbutton-icon {

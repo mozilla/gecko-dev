@@ -57,9 +57,15 @@ class _ToolbarPanelHub {
     );
 
     this.state = {};
+    this._initialized = false;
   }
 
   async init(waitForInitialized, { getMessages, sendTelemetry }) {
+    if (this._initialized) {
+      return;
+    }
+
+    this._initialized = true;
     this._getMessages = getMessages;
     this._sendTelemetry = sendTelemetry;
     // Wait for ASRouter messages to become available in order to know
@@ -78,6 +84,7 @@ class _ToolbarPanelHub {
   }
 
   uninit() {
+    this._initialized = false;
     EveryWindow.unregisterCallback(TOOLBAR_BUTTON_ID);
     EveryWindow.unregisterCallback(APPMENU_BUTTON_ID);
   }
@@ -306,7 +313,7 @@ class _ToolbarPanelHub {
       );
     }
 
-    const wrapperEl = RemoteL10n.createElement(doc, "button");
+    const wrapperEl = RemoteL10n.createElement(doc, "div");
     wrapperEl.doCommand = () => this._dispatchUserAction(win, message);
     wrapperEl.classList.add("whatsNew-message-body");
     messageEl.appendChild(wrapperEl);
@@ -522,7 +529,6 @@ class _ToolbarPanelHub {
     ) {
       this._sendPing({
         message_id: message.id,
-        bucket_id: message.id,
         event,
         event_context: options.value,
       });

@@ -382,10 +382,10 @@ class MOZ_STACK_CLASS NativeKey final {
     MSG GetCharMsg(HWND aWnd) const {
       MSG msg;
       msg.hwnd = aWnd;
-      msg.message =
-          mIsDeadKey && mIsSysKey
-              ? WM_SYSDEADCHAR
-              : mIsDeadKey ? WM_DEADCHAR : mIsSysKey ? WM_SYSCHAR : WM_CHAR;
+      msg.message = mIsDeadKey && mIsSysKey ? WM_SYSDEADCHAR
+                    : mIsDeadKey            ? WM_DEADCHAR
+                    : mIsSysKey             ? WM_SYSCHAR
+                                            : WM_CHAR;
       msg.wParam = static_cast<WPARAM>(mCharCode);
       msg.lParam = static_cast<LPARAM>(mScanCode << 16);
       msg.time = 0;
@@ -722,17 +722,8 @@ class MOZ_STACK_CLASS NativeKey final {
    * Initializes the aKeyEvent with the information stored in the instance.
    */
   nsEventStatus InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
-                             const ModifierKeyState& aModKeyState,
-                             const MSG* aMsgSentToPlugin = nullptr) const;
-  nsEventStatus InitKeyEvent(WidgetKeyboardEvent& aKeyEvent,
-                             const MSG* aMsgSentToPlugin = nullptr) const;
-
-  /**
-   * MaybeInitPluginEventOfKeyEvent() may initialize aKeyEvent::mPluginEvent
-   * with aMsgSentToPlugin if it's necessary.
-   */
-  void MaybeInitPluginEventOfKeyEvent(WidgetKeyboardEvent& aKeyEvent,
-                                      const MSG& aMsgSentToPlugin) const;
+                             const ModifierKeyState& aModKeyState) const;
+  nsEventStatus InitKeyEvent(WidgetKeyboardEvent& aKeyEvent) const;
 
   /**
    * Dispatches a command event for aEventCommand.
@@ -752,14 +743,6 @@ class MOZ_STACK_CLASS NativeKey final {
    * following char messages.
    */
   bool DispatchKeyPressEventsWithoutCharMessage() const;
-
-  /**
-   * MaybeDispatchPluginEventsForRemovedCharMessages() dispatches plugin events
-   * for removed char messages when a windowless plugin has focus.
-   * Returns true if the widget is destroyed or blurred during dispatching a
-   * plugin event.
-   */
-  bool MaybeDispatchPluginEventsForRemovedCharMessages() const;
 
   /**
    * Checkes whether the key event down message is handled without following

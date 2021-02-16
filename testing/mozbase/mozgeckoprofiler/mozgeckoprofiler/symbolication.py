@@ -1,7 +1,7 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 import hashlib
 import os
@@ -82,7 +82,7 @@ class OSXSymbolDumper:
             if actual_breakpad_id != expected_breakpad_id:
                 return None
 
-            with open(output_filename, "w") as f:
+            with open(output_filename, "wb") as f:
                 f.write(stdout)
             return output_filename
 
@@ -116,7 +116,7 @@ class LinuxSymbolDumper:
         if proc.returncode != 0:
             return
 
-        with open(output_filename, "w") as f:
+        with open(output_filename, "wb") as f:
             f.write(stdout)
 
             # Append nm -D output to the file. On Linux, most system libraries
@@ -312,7 +312,7 @@ class ProfileSymbolicator:
         left = 0
         right = len(libs) - 1
         while left <= right:
-            mid = (left + right) / 2
+            mid = (left + right) // 2
             if address >= libs[mid]["end"]:
                 left = mid + 1
             elif address < libs[mid]["start"]:
@@ -330,6 +330,7 @@ class ProfileSymbolicator:
             if lib["start"] not in libs_with_symbols:
                 libs_with_symbols[lib["start"]] = {"library": lib, "symbols": set()}
             libs_with_symbols[lib["start"]]["symbols"].add(address)
+        # pylint: disable=W1656
         return libs_with_symbols.values()
 
     def _resolve_symbols(self, symbols_to_resolve):

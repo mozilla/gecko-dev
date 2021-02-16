@@ -10,19 +10,24 @@
 #include "nsNetCID.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/Preferences.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIBaseWindow.h"
 #include "nsIDocShell.h"
 #include "nsISupportsUtils.h"
 #include "nsIWidget.h"
+#include "nsPIDOMWindow.h"
 #include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
-#include "ipc/IPCMessageUtils.h"
+#include "mozilla/ipc/IPCTypes.h"
 
 NS_IMPL_ISUPPORTS(OSReauthenticator, nsIOSReauthenticator)
 
 extern mozilla::LazyLogModule gCredentialManagerSecretLog;
 
 using mozilla::LogLevel;
+using mozilla::Maybe;
 using mozilla::Preferences;
 using mozilla::WindowsHandle;
 using mozilla::dom::Promise;

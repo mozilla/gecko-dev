@@ -1650,7 +1650,8 @@ def UnionTypes(unionTypes, config):
                     headers.add("mozilla/dom/ToJSValue.h")
                 elif f.isInterface():
                     if f.isSpiderMonkeyInterface():
-                        headers.add("jsfriendapi.h")
+                        headers.add("js/RootingAPI.h")
+                        headers.add("js/Value.h")
                         if f.isReadableStream():
                             headers.add("mozilla/dom/ReadableStream.h")
                         else:
@@ -1765,7 +1766,7 @@ def UnionConversions(unionTypes, config):
                     headers.add("mozilla/dom/ToJSValue.h")
                 elif f.isInterface():
                     if f.isSpiderMonkeyInterface():
-                        headers.add("jsfriendapi.h")
+                        headers.add("js/RootingAPI.h")
                         if f.isReadableStream():
                             headers.add("mozilla/dom/ReadableStream.h")
                         else:
@@ -8540,7 +8541,9 @@ def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False):
             return CGGeneric("nsString"), "ref", None, None, None
         return CGGeneric("DOMString"), "ref", None, None, None
     if returnType.isByteString() or returnType.isUTF8String():
-        return CGGeneric("nsCString"), "ref", None, None, None
+        if isMember:
+            return CGGeneric("nsCString"), "ref", None, None, None
+        return CGGeneric("nsAutoCString"), "ref", None, None, None
     if returnType.isEnum():
         result = CGGeneric(returnType.unroll().inner.identifier.name)
         if returnType.nullable():
@@ -8688,7 +8691,8 @@ class CGCallGenerator(CGThing):
     needsCallerType is a boolean indicating whether the call should receive
     a PrincipalType for the caller.
 
-    isFallible is a boolean indicating whether the call should be fallible.
+    needsErrorResult is a boolean indicating whether the call should be
+    fallible and thus needs ErrorResult parameter.
 
     resultVar: If the returnType is not void, then the result of the call is
     stored in a C++ variable named by resultVar. The caller is responsible for
@@ -8700,7 +8704,7 @@ class CGCallGenerator(CGThing):
 
     def __init__(
         self,
-        isFallible,
+        needsErrorResult,
         needsCallerType,
         isChromeOnly,
         arguments,
@@ -8864,7 +8868,7 @@ class CGCallGenerator(CGThing):
                 args.append(CGGeneric(callerTypeGetterForDescriptor(descriptor)))
 
         canOOM = "canOOM" in extendedAttributes
-        if isFallible:
+        if needsErrorResult:
             args.append(CGGeneric("rv"))
         elif canOOM:
             args.append(CGGeneric("OOMReporter::From(rv)"))
@@ -8917,7 +8921,7 @@ class CGCallGenerator(CGThing):
         call = CGWrapper(call, post=";\n")
         self.cgRoot.append(call)
 
-        if isFallible or canOOM:
+        if needsErrorResult or canOOM:
             self.cgRoot.prepend(CGGeneric("FastErrorResult rv;\n"))
             self.cgRoot.append(
                 CGGeneric(
@@ -9191,7 +9195,7 @@ class CGPerSignatureCall(CGThing):
                 CGGeneric(
                     dedent(
                         """
-                DeprecationWarning(cx, obj, Document::e%s);
+                DeprecationWarning(cx, obj, DeprecatedOperations::e%s);
                 """
                         % deprecated[0]
                     )
@@ -9475,7 +9479,7 @@ class CGPerSignatureCall(CGThing):
             context = '"%s"' % context
             cgThings.append(
                 CGCallGenerator(
-                    self.isFallible(),
+                    self.needsErrorResult(),
                     needsCallerType(idlNode),
                     isChromeOnly(idlNode),
                     self.getArguments(),
@@ -9535,8 +9539,8 @@ class CGPerSignatureCall(CGThing):
     def getArguments(self):
         return [(a, "arg" + str(i)) for i, a in enumerate(self.arguments)]
 
-    def isFallible(self):
-        return "infallible" not in self.extendedAttributes
+    def needsErrorResult(self):
+        return "needsErrorResult" in self.extendedAttributes
 
     def wrap_return_value(self):
         wrapCode = ""
@@ -11081,7 +11085,8 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
                 # We'll use a JSObject. It might make more sense to use remoteType's
                 # RemoteProxy, but it's not easy to construct a type for that from here.
                 remoteType = BuiltinTypes[IDLBuiltinType.Types.object]
-                extendedAttributes.remove("infallible")
+                if "needsErrorResult" not in extendedAttributes:
+                    extendedAttributes.append("needsErrorResult")
             prototypeID, _ = PrototypeIDAndDepth(self.descriptor)
             prefix = (
                 fill(
@@ -11195,7 +11200,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
         nativeName = MakeNativeName(descriptor.binaryNameFor(name))
         _, resultOutParam, _, _, _ = getRetvalDeclarationForType(attr.type, descriptor)
         extendedAttrs = descriptor.getExtendedAttributes(attr, getter=True)
-        canFail = "infallible" not in extendedAttrs or "canOOM" in extendedAttrs
+        canFail = "needsErrorResult" in extendedAttrs or "canOOM" in extendedAttrs
         if resultOutParam or attr.type.nullable() or canFail:
             nativeName = "Get" + nativeName
         return nativeName
@@ -11483,7 +11488,7 @@ class CGSpecializedLenientSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in attrName)
         return dedent(
             """
-            DeprecationWarning(cx, obj, Document::eLenientSetter);
+            DeprecationWarning(cx, obj, DeprecatedOperations::eLenientSetter);
             return true;
             """
         )
@@ -11642,7 +11647,7 @@ class CGMemberJITInfo(CGThing):
             extendedAttrs = self.descriptor.getExtendedAttributes(
                 self.member, getter=True
             )
-            getterinfal = "infallible" in extendedAttrs
+            getterinfal = "needsErrorResult" not in extendedAttrs
 
             # At this point getterinfal is true if our getter either can't throw
             # at all, or can only throw OOM.  In both cases, it's safe to move,
@@ -11748,7 +11753,7 @@ class CGMemberJITInfo(CGThing):
                 # reliably throw would be effectful anyway and the jit doesn't
                 # move effectful things.
                 extendedAttrs = self.descriptor.getExtendedAttributes(self.member)
-                hasInfallibleImpl = "infallible" in extendedAttrs
+                hasInfallibleImpl = "needsErrorResult" not in extendedAttrs
                 # At this point hasInfallibleImpl is true if our method either
                 # can't throw at all, or can only throw OOM.  In both cases, it
                 # may be safe to move, or dead-code-eliminate, the method,
@@ -17959,7 +17964,6 @@ class CGBindingRoot(CGThing):
                 "mozilla/dom/BindingDeclarations.h",
                 "mozilla/dom/Nullable.h",
                 "mozilla/ErrorResult.h",
-                "GeckoProfiler.h",
             ),
             True,
         )
@@ -17994,6 +17998,9 @@ class CGBindingRoot(CGThing):
             for d in descriptors
         )
 
+        # XXX Not sure when we actually need this
+        bindingHeaders["GeckoProfiler.h"] = True
+
         def descriptorHasCrossOriginProperties(desc):
             def hasCrossOriginProperty(m):
                 props = memberProperties(m, desc)
@@ -18011,7 +18018,7 @@ class CGBindingRoot(CGThing):
         bindingDeclareHeaders["jsapi.h"] = any(
             descriptorHasCrossOriginProperties(d) for d in descriptors
         )
-        bindingDeclareHeaders["jspubtd.h"] = not bindingDeclareHeaders["jsapi.h"]
+        bindingDeclareHeaders["js/TypeDecls.h"] = not bindingDeclareHeaders["jsapi.h"]
         bindingDeclareHeaders["js/RootingAPI.h"] = not bindingDeclareHeaders["jsapi.h"]
 
         def descriptorHasIteratorAlias(desc):
@@ -18222,6 +18229,9 @@ class CGBindingRoot(CGThing):
         descriptorsHaveInstrumentedProps = any(
             d.instrumentedProps for d in descriptors if d.concrete
         )
+        descriptorsHaveNeedsMissingPropUseCounters = any(
+            d.needsMissingPropUseCounters for d in descriptors if d.concrete
+        )
 
         bindingHeaders["mozilla/UseCounter.h"] = (
             descriptorsHaveUseCounters or descriptorsHaveInstrumentedProps
@@ -18229,7 +18239,7 @@ class CGBindingRoot(CGThing):
         # Make sure to not overwrite existing pref header bits!
         bindingHeaders[prefHeader(MISSING_PROP_PREF)] = (
             bindingHeaders.get(prefHeader(MISSING_PROP_PREF))
-            or descriptorsHaveInstrumentedProps
+            or descriptorsHaveNeedsMissingPropUseCounters
         )
         bindingHeaders["mozilla/dom/SimpleGlobalObject.h"] = any(
             CGDictionary.dictionarySafeToJSONify(d) for d in dictionaries
@@ -18675,7 +18685,7 @@ class CGNativeMember(ClassMethod):
         if needsCallerType(self.member):
             args.append(Argument("CallerType", "aCallerType"))
         # And the ErrorResult or OOMReporter
-        if "infallible" not in self.extendedAttrs:
+        if "needsErrorResult" in self.extendedAttrs:
             # Use aRv so it won't conflict with local vars named "rv"
             args.append(Argument("ErrorResult&", "aRv"))
         elif "canOOM" in self.extendedAttrs:
@@ -19078,8 +19088,8 @@ class CGBindingImplClass(CGClass):
                         FakeMember(),
                         "Length",
                         (BuiltinTypes[IDLBuiltinType.Types.unsigned_long], []),
-                        {"infallible": True},
-                    )
+                        [],
+                    ),
                 )
         # And if we support named properties we need to be able to
         # enumerate the supported names.
@@ -19095,7 +19105,7 @@ class CGBindingImplClass(CGClass):
                         ),
                         [],
                     ),
-                    {"infallible": True},
+                    [],
                 )
             )
 
@@ -20362,6 +20372,7 @@ class CallbackMember(CGNativeMember):
         spiderMonkeyInterfacesAreStructs=False,
         wrapScope=None,
         canRunScript=False,
+        passJSBitsAsNeeded=False,
     ):
         """
         needThisHandling is True if we need to be able to accept a specified
@@ -20399,8 +20410,8 @@ class CallbackMember(CGNativeMember):
             FakeMember(),
             name,
             (self.retvalType, args),
-            extendedAttrs={},
-            passJSBitsAsNeeded=False,
+            extendedAttrs=["needsErrorResult"],
+            passJSBitsAsNeeded=passJSBitsAsNeeded,
             visibility=visibility,
             spiderMonkeyInterfacesAreStructs=spiderMonkeyInterfacesAreStructs,
             canRunScript=canRunScript,
@@ -20420,12 +20431,12 @@ class CallbackMember(CGNativeMember):
                 """
                 JS::RootedVector<JS::Value> argv(cx);
                 if (!argv.resize(${argCount})) {
-                  // That threw an exception on the JSContext, and our CallSetup will do
-                  // the right thing with that.
+                  $*{failureCode}
                   return${errorReturn};
                 }
                 """,
                 argCount=self.argCountStr,
+                failureCode=self.getArgvDeclFailureCode(),
                 errorReturn=self.getDefaultRetval(),
             )
         else:
@@ -20435,11 +20446,27 @@ class CallbackMember(CGNativeMember):
         doCall = self.getCall()
         returnResult = self.getResultConversion()
 
-        return setupCall + declRval + argvDecl + convertArgs + doCall + returnResult
+        body = declRval + argvDecl + convertArgs + doCall
+        if self.needsScopeBody():
+            body = "{\n" + indent(body) + "}\n"
+        return setupCall + body + returnResult
 
-    def getResultConversion(self, isDefinitelyObject=False):
+    def needsScopeBody(self):
+        return False
+
+    def getArgvDeclFailureCode(self):
+        return dedent(
+            """
+            // That threw an exception on the JSContext, and our CallSetup will do
+            // the right thing with that.
+            """
+        )
+
+    def getResultConversion(
+        self, val="rval", failureCode=None, isDefinitelyObject=False, exceptionCode=None
+    ):
         replacements = {
-            "val": "rval",
+            "val": val,
             "holderName": "rvalHolder",
             "declName": "rvalDecl",
             # We actually want to pass in a null scope object here, because
@@ -20458,8 +20485,9 @@ class CallbackMember(CGNativeMember):
             getJSToNativeConversionInfo(
                 self.retvalType,
                 self.descriptorProvider,
+                failureCode=failureCode,
                 isDefinitelyObject=isDefinitelyObject,
-                exceptionCode=self.exceptionCode,
+                exceptionCode=exceptionCode or self.exceptionCode,
                 isCallbackReturnValue=isCallbackReturnValue,
                 # Allow returning a callback type that
                 # allows non-callable objects.
@@ -21129,7 +21157,14 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
     using CGCallGenerator.
     """
 
-    def __init__(self, descriptor, maplikeOrSetlike, methodName, helperImpl=None):
+    def __init__(
+        self,
+        descriptor,
+        maplikeOrSetlike,
+        methodName,
+        needsValueTypeReturn=False,
+        helperImpl=None,
+    ):
         CGThing.__init__(self)
         # True if this will be the body of a C++ helper function.
         self.helperImpl = helperImpl
@@ -21175,15 +21210,31 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
         # Append the list of setup code CGThings
         self.cgRoot.append(CGList(setupCode))
         # Create the JS API call
+        code = dedent(
+            """
+            if (!JS::${funcName}(${args})) {
+              $*{errorReturn}
+            }
+            """
+        )
+
+        if needsValueTypeReturn:
+            assert self.helperImpl and impl_method_name == "get"
+            code += fill(
+                """
+                if (result.isUndefined()) {
+                  aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+                  return${retval};
+                }
+                """,
+                retval=self.helperImpl.getDefaultRetval(),
+            )
+
         self.cgRoot.append(
             CGWrapper(
                 CGGeneric(
                     fill(
-                        """
-                if (!JS::${funcName}(${args})) {
-                  $*{errorReturn}
-                }
-                """,
+                        code,
                         funcName=funcName,
                         args=", ".join(["cx", "backingObj"] + arguments),
                         errorReturn=self.returnStmt,
@@ -21367,17 +21418,27 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
         """
         assert self.maplikeOrSetlike.isMaplike()
         r = self.appendKeyArgConversion()
-        code = [
-            CGGeneric(
-                dedent(
-                    """
-            JS::Rooted<JS::Value> result(cx);
-            """
+
+        code = []
+        # We don't need to create the result variable because it'll be created elsewhere
+        # for JSObject Get method
+        if not self.helperImpl or not self.helperImpl.handleJSObjectGetHelper():
+            code = [
+                CGGeneric(
+                    dedent(
+                        """
+                        JS::Rooted<JS::Value> result(cx);
+                        """
+                    )
                 )
-            )
-        ]
+            ]
+
         arguments = ["&result"]
-        if self.descriptor.interface.isJSImplemented():
+        callOnGet = []
+        if (
+            self.descriptor.interface.isJSImplemented()
+            and not self.helperImpl  # For C++ MaplikeHelper Get method, we don't notify underlying js implementation
+        ):
             callOnGet = [
                 CGGeneric(
                     dedent(
@@ -21394,8 +21455,6 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
                     )
                 )
             ]
-        else:
-            callOnGet = []
         return self.mergeTuples(r, (code, arguments, callOnGet))
 
     def has(self):
@@ -21468,11 +21527,9 @@ class CGMaplikeOrSetlikeHelperFunctionGenerator(CallbackMember):
         CGMaplikeOrSetlikeMethodGenerator to use
         """
 
-        def __init__(self, descriptor, name, args, code, needsBoolReturn=False):
+        def __init__(self, descriptor, name, args, code, returnType):
             self.code = code
-            CGAbstractMethod.__init__(
-                self, descriptor, name, "bool" if needsBoolReturn else "void", args
-            )
+            CGAbstractMethod.__init__(self, descriptor, name, returnType, args)
 
         def definition_body(self):
             return self.code
@@ -21484,15 +21541,26 @@ class CGMaplikeOrSetlikeHelperFunctionGenerator(CallbackMember):
         name,
         needsKeyArg=False,
         needsValueArg=False,
+        needsValueTypeReturn=False,
         needsBoolReturn=False,
     ):
+        assert not (needsValueTypeReturn and needsBoolReturn)
         args = []
         self.maplikeOrSetlike = maplikeOrSetlike
         self.needsBoolReturn = needsBoolReturn
+        self.needsValueTypeReturn = needsValueTypeReturn
+
+        returnType = (
+            BuiltinTypes[IDLBuiltinType.Types.void]
+            if not self.needsValueTypeReturn
+            else maplikeOrSetlike.valueType
+        )
+
         if needsKeyArg:
             args.append(FakeArgument(maplikeOrSetlike.keyType, None, "aKey"))
         if needsValueArg:
             assert needsKeyArg
+            assert not needsValueTypeReturn
             args.append(FakeArgument(maplikeOrSetlike.valueType, None, "aValue"))
         # Run CallbackMember init function to generate argument conversion code.
         # wrapScope is set to 'obj' when generating maplike or setlike helper
@@ -21500,29 +21568,45 @@ class CGMaplikeOrSetlikeHelperFunctionGenerator(CallbackMember):
         # method.
         CallbackMember.__init__(
             self,
-            [BuiltinTypes[IDLBuiltinType.Types.void], args],
+            [returnType, args],
             name,
             descriptor,
             False,
             wrapScope="obj",
+            passJSBitsAsNeeded=self.handleJSObjectGetHelper(),
         )
+
+        if self.needsValueTypeReturn:
+            finalReturnType = self.returnType
+        elif needsBoolReturn:
+            finalReturnType = "bool"
+        else:
+            finalReturnType = "void"
         # Wrap CallbackMember body code into a CGAbstractMethod to make
         # generation easier.
         self.implMethod = CGMaplikeOrSetlikeHelperFunctionGenerator.HelperFunction(
-            descriptor, name, self.args, self.body, needsBoolReturn
+            descriptor, name, self.args, self.body, finalReturnType
         )
 
     def getCallSetup(self):
-        return dedent(
+        # If handleJSObjectGetHelper is true, it means the caller will provide a JSContext,
+        # so we don't need to create JSContext and enter UnprivilegedJunkScopeOrWorkerGlobal here.
+        code = "MOZ_ASSERT(self);\n"
+        if not self.handleJSObjectGetHelper():
+            code += dedent(
+                """
+                AutoJSAPI jsapi;
+                jsapi.Init();
+                JSContext* cx = jsapi.cx();
+                // It's safe to use UnprivilegedJunkScopeOrWorkerGlobal here because
+                // all we want is to wrap into _some_ scope and then unwrap to find
+                // the reflector, and wrapping has no side-effects.
+                JSAutoRealm tempRealm(cx, UnprivilegedJunkScopeOrWorkerGlobal());
+                """
+            )
+
+        code += dedent(
             """
-            MOZ_ASSERT(self);
-            AutoJSAPI jsapi;
-            jsapi.Init();
-            JSContext* cx = jsapi.cx();
-            // It's safe to use UnprivilegedJunkScopeOrWorkerGlobal here because
-            // all we want is to wrap into _some_ scope and then unwrap to find
-            // the reflector, and wrapping has no side-effects.
-            JSAutoRealm tempRealm(cx, UnprivilegedJunkScopeOrWorkerGlobal());
             JS::Rooted<JS::Value> v(cx);
             if(!ToJSValue(cx, self, &v)) {
               aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -21532,10 +21616,26 @@ class CGMaplikeOrSetlikeHelperFunctionGenerator(CallbackMember):
             // similarly across method generators, it's called obj here.
             JS::Rooted<JSObject*> obj(cx);
             obj = js::UncheckedUnwrap(&v.toObject(), /* stopAtWindowProxy = */ false);
-            JSAutoRealm reflectorRealm(cx, obj);
             """
             % self.getDefaultRetval()
         )
+
+        # For the JSObject Get method, we'd like wrap the inner code in a scope such that
+        # the code can use the same realm. So here we are creating the result variable
+        # outside of the scope.
+        if self.handleJSObjectGetHelper():
+            code += dedent(
+                """
+                JS::Rooted<JS::Value> result(cx);
+                """
+            )
+        else:
+            code += dedent(
+                """
+                JSAutoRealm reflectorRealm(cx, obj);
+                """
+            )
+        return code
 
     def getArgs(self, returnType, argList):
         # We don't need the context or the value. We'll generate those instead.
@@ -21543,14 +21643,53 @@ class CGMaplikeOrSetlikeHelperFunctionGenerator(CallbackMember):
         # Prepend a pointer to the binding object onto the arguments
         return [Argument(self.descriptorProvider.nativeType + "*", "self")] + args
 
+    def needsScopeBody(self):
+        return self.handleJSObjectGetHelper()
+
+    def getArgvDeclFailureCode(self):
+        return "aRv.Throw(NS_ERROR_UNEXPECTED);\n"
+
+    def handleJSObjectGetHelper(self):
+        return self.needsValueTypeReturn and self.maplikeOrSetlike.valueType.isObject()
+
     def getResultConversion(self):
         if self.needsBoolReturn:
             return "return aRetVal;\n"
+        elif self.needsValueTypeReturn:
+            code = ""
+            if self.handleJSObjectGetHelper():
+                code = dedent(
+                    """
+                    if (!JS_WrapValue(cx, &result)) {
+                      aRv.NoteJSContextException(cx);
+                      return;
+                    }
+                    """
+                )
+
+            failureCode = dedent("aRv.Throw(NS_ERROR_UNEXPECTED);\nreturn nullptr;\n")
+
+            exceptionCode = None
+            if self.maplikeOrSetlike.valueType.isPrimitive():
+                exceptionCode = dedent(
+                    "aRv.NoteJSContextException(cx);\nreturn%s;\n"
+                    % self.getDefaultRetval()
+                )
+
+            return code + CallbackMember.getResultConversion(
+                self,
+                "result",
+                failureCode=failureCode,
+                isDefinitelyObject=True,
+                exceptionCode=exceptionCode,
+            )
         return "return;\n"
 
     def getRvalDecl(self):
         if self.needsBoolReturn:
             return "bool aRetVal;\n"
+        elif self.handleJSObjectGetHelper():
+            return "JSAutoRealm reflectorRealm(cx, obj);\n"
         return ""
 
     def getArgcDecl(self):
@@ -21560,6 +21699,8 @@ class CGMaplikeOrSetlikeHelperFunctionGenerator(CallbackMember):
     def getDefaultRetval(self):
         if self.needsBoolReturn:
             return " false"
+        elif self.needsValueTypeReturn:
+            return CallbackMember.getDefaultRetval(self)
         return ""
 
     def getCall(self):
@@ -21567,6 +21708,7 @@ class CGMaplikeOrSetlikeHelperFunctionGenerator(CallbackMember):
             self.descriptorProvider,
             self.maplikeOrSetlike,
             self.name.lower(),
+            self.needsValueTypeReturn,
             helperImpl=self,
         ).define()
 
@@ -21623,6 +21765,15 @@ class CGMaplikeOrSetlikeHelperGenerator(CGNamespace):
                     "Set",
                     needsKeyArg=True,
                     needsValueArg=True,
+                )
+            )
+            self.helpers.append(
+                CGMaplikeOrSetlikeHelperFunctionGenerator(
+                    descriptor,
+                    maplikeOrSetlike,
+                    "Get",
+                    needsKeyArg=True,
+                    needsValueTypeReturn=True,
                 )
             )
         else:
@@ -22277,7 +22428,7 @@ class CGEventGetter(CGNativeMember):
         self.body = self.getMethodBody()
 
     def getArgs(self, returnType, argList):
-        if "infallible" not in self.extendedAttrs:
+        if "needsErrorResult" in self.extendedAttrs:
             raise TypeError("Event code generator does not support [Throws]!")
         if "canOOM" in self.extendedAttrs:
             raise TypeError("Event code generator does not support [CanOOM]!")

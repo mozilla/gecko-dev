@@ -102,24 +102,18 @@ bool nsNSSCertificate::InitFromDER(char* certDER, int derLen) {
   }
 
   mCert.reset(aCert);
-  GetSubjectAltNames();
   return true;
 }
 
 nsNSSCertificate::nsNSSCertificate(CERTCertificate* cert)
-    : mCert(nullptr),
-      mCertType(CERT_TYPE_NOT_YET_INITIALIZED),
-      mSubjectAltNames() {
+    : mCert(nullptr), mCertType(CERT_TYPE_NOT_YET_INITIALIZED) {
   if (cert) {
     mCert.reset(CERT_DupCertificate(cert));
-    GetSubjectAltNames();
   }
 }
 
 nsNSSCertificate::nsNSSCertificate()
-    : mCert(nullptr),
-      mCertType(CERT_TYPE_NOT_YET_INITIALIZED),
-      mSubjectAltNames() {}
+    : mCert(nullptr), mCertType(CERT_TYPE_NOT_YET_INITIALIZED) {}
 
 static uint32_t getCertType(CERTCertificate* cert) {
   nsNSSCertTrust trust(cert->trust);
@@ -150,14 +144,6 @@ nsresult nsNSSCertificate::GetCertType(uint32_t* aCertType) {
     mCertType = getCertType(mCert.get());
   }
   *aCertType = mCertType;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsNSSCertificate::GetIsSelfSigned(bool* aIsSelfSigned) {
-  NS_ENSURE_ARG(aIsSelfSigned);
-
-  *aIsSelfSigned = mCert->isRoot;
   return NS_OK;
 }
 
@@ -243,13 +229,22 @@ nsNSSCertificate::GetKeyUsages(nsAString& text) {
 
 NS_IMETHODIMP
 nsNSSCertificate::GetDbKey(nsACString& aDbKey) {
-  return GetDbKey(mCert, aDbKey);
-}
+  static_assert(sizeof(uint64_t) == 8, "type size consistency check");
+  static_assert(sizeof(uint32_t) == 4, "type size consistency check");
 
-nsresult nsNSSCertificate::GetDbKey(const UniqueCERTCertificate& cert,
-                                    nsACString& aDbKey) {
-  static_assert(sizeof(uint64_t) == 8, "type size sanity check");
-  static_assert(sizeof(uint32_t) == 4, "type size sanity check");
+  pkix::Input certInput;
+  pkix::Result result = certInput.Init(mCert->derCert.data, mCert->derCert.len);
+  if (result != pkix::Result::Success) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  // NB: since we're not building a trust path, the endEntityOrCA parameter is
+  // irrelevant.
+  pkix::BackCert cert(certInput, pkix::EndEntityOrCA::MustBeEndEntity, nullptr);
+  result = cert.Init();
+  if (result != pkix::Result::Success) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
   // The format of the key is the base64 encoding of the following:
   // 4 bytes: {0, 0, 0, 0} (this was intended to be the module ID, but it was
   //                        never implemented)
@@ -262,16 +257,18 @@ nsresult nsNSSCertificate::GetDbKey(const UniqueCERTCertificate& cert,
   nsAutoCString buf;
   const char leadingZeroes[] = {0, 0, 0, 0, 0, 0, 0, 0};
   buf.Append(leadingZeroes, sizeof(leadingZeroes));
-  uint32_t serialNumberLen = htonl(cert->serialNumber.len);
+  uint32_t serialNumberLen = htonl(cert.GetSerialNumber().GetLength());
   buf.Append(BitwiseCast<const char*, const uint32_t*>(&serialNumberLen),
              sizeof(uint32_t));
-  uint32_t issuerLen = htonl(cert->derIssuer.len);
+  uint32_t issuerLen = htonl(cert.GetIssuer().GetLength());
   buf.Append(BitwiseCast<const char*, const uint32_t*>(&issuerLen),
              sizeof(uint32_t));
-  buf.Append(BitwiseCast<char*, unsigned char*>(cert->serialNumber.data),
-             cert->serialNumber.len);
-  buf.Append(BitwiseCast<char*, unsigned char*>(cert->derIssuer.data),
-             cert->derIssuer.len);
+  buf.Append(BitwiseCast<const char*, const unsigned char*>(
+                 cert.GetSerialNumber().UnsafeGetData()),
+             cert.GetSerialNumber().GetLength());
+  buf.Append(BitwiseCast<const char*, const unsigned char*>(
+                 cert.GetIssuer().UnsafeGetData()),
+             cert.GetIssuer().GetLength());
 
   return Base64Encode(buf, aDbKey);
 }
@@ -474,89 +471,6 @@ nsNSSCertificate::GetSubjectName(nsAString& _subjectName) {
   return NS_OK;
 }
 
-// Reads dNSName and iPAddress entries encountered in the subject alternative
-// name extension of the certificate and stores them in mSubjectAltNames.
-void nsNSSCertificate::GetSubjectAltNames() {
-  mSubjectAltNames.clear();
-
-  ScopedAutoSECItem altNameExtension;
-  SECStatus rv = CERT_FindCertExtension(
-      mCert.get(), SEC_OID_X509_SUBJECT_ALT_NAME, &altNameExtension);
-  if (rv != SECSuccess) {
-    return;
-  }
-  UniquePLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
-  if (!arena) {
-    return;
-  }
-  CERTGeneralName* sanNameList(
-      CERT_DecodeAltNameExtension(arena.get(), &altNameExtension));
-  if (!sanNameList) {
-    return;
-  }
-
-  CERTGeneralName* current = sanNameList;
-  do {
-    nsAutoString name;
-    switch (current->type) {
-      case certDNSName: {
-        nsDependentCSubstring nameFromCert(
-            BitwiseCast<char*, unsigned char*>(current->name.other.data),
-            current->name.other.len);
-        // dNSName fields are defined as type IA5String and thus should
-        // be limited to ASCII characters.
-        if (IsAscii(nameFromCert)) {
-          name.Assign(NS_ConvertASCIItoUTF16(nameFromCert));
-          mSubjectAltNames.push_back(name);
-        }
-      } break;
-
-      case certIPAddress: {
-        // According to DNS.h, this includes space for the null-terminator
-        char buf[net::kNetAddrMaxCStrBufSize] = {0};
-        PRNetAddr addr;
-        memset(&addr, 0, sizeof(addr));
-        if (current->name.other.len == 4) {
-          addr.inet.family = PR_AF_INET;
-          memcpy(&addr.inet.ip, current->name.other.data,
-                 current->name.other.len);
-          PR_NetAddrToString(&addr, buf, sizeof(buf));
-          name.AssignASCII(buf);
-        } else if (current->name.other.len == 16) {
-          addr.ipv6.family = PR_AF_INET6;
-          memcpy(&addr.ipv6.ip, current->name.other.data,
-                 current->name.other.len);
-          PR_NetAddrToString(&addr, buf, sizeof(buf));
-          name.AssignASCII(buf);
-        } else {
-          /* invalid IP address */
-        }
-        if (!name.IsEmpty()) {
-          mSubjectAltNames.push_back(name);
-        }
-        break;
-      }
-
-      default:  // all other types of names are ignored
-        break;
-    }
-    current = CERT_GetNextGeneralName(current);
-  } while (current != sanNameList);  // double linked
-}
-
-NS_IMETHODIMP
-nsNSSCertificate::GetSubjectAltNames(nsAString& _subjectAltNames) {
-  _subjectAltNames.Truncate();
-
-  for (auto altName : mSubjectAltNames) {
-    if (!_subjectAltNames.IsEmpty()) {
-      _subjectAltNames.Append(',');
-    }
-    _subjectAltNames.Append(altName);
-  }
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsNSSCertificate::GetIssuerName(nsAString& _issuerName) {
   _issuerName.Truncate();
@@ -651,7 +565,7 @@ nsNSSCertificate::GetSha256SubjectPublicKeyInfoDigest(
   pkix::Input derPublicKey = cert.GetSubjectPublicKeyInfo();
   nsTArray<uint8_t> digestArray;
   nsresult rv = Digest::DigestBuf(SEC_OID_SHA256, derPublicKey.UnsafeGetData(),
-                                 derPublicKey.GetLength(), digestArray);
+                                  derPublicKey.GetLength(), digestArray);
   if (NS_FAILED(rv)) {
     return rv;
   }

@@ -13,8 +13,7 @@ members = [
   "netwerk/test/http3server",
   "security/manager/ssl/osclientcerts",
   "testing/geckodriver",
-  "toolkit/components/updateagent",
-  "toolkit/crashreporter/rust",
+  "toolkit/crashreporter/rust_minidump_writer_linux",
   "toolkit/library/gtest/rust",
   "toolkit/library/rust/",
   "toolkit/mozapps/defaultagent/rust",
@@ -63,27 +62,39 @@ rpath = false
 debug-assertions = false
 panic = "abort"
 
+# Optimize build dependencies, because bindgen and proc macros / style
+# compilation take more to run than to build otherwise.
+[profile.dev.build-override]
+opt-level = 1
+
+[profile.release.build-override]
+opt-level = 1
+
 [patch.crates-io]
+chardetng = { git = "https://github.com/hsivonen/chardetng", rev="fd4ed671ef495af4dcda4c4cba3ef8d426db8af1" }
+chardetng_c = { git = "https://github.com/hsivonen/chardetng_c", rev="ed8a4c6f900a90d4dbc1d64b856e61490a1c3570" }
 libudev-sys = { path = "dom/webauthn/libudev-sys" }
 packed_simd = { git = "https://github.com/hsivonen/packed_simd", rev="0917fe780032a6bbb23d71be545f9c1834128d75" }
-rlbox_lucet_sandbox = { git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/", rev="ed8bac8812e9f335d5fadd0f4ece96981aba88a3" }
-nix = { git = "https://github.com/shravanrn/nix/", branch = "r0.13.1" }
+rlbox_lucet_sandbox = { git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/", rev="f3cace4fb8b53db0849c62af4fa62bade5a620f7" }
+nix = { git = "https://github.com/shravanrn/nix/", rev="4af6c367603869a30fddb5ffb0aba2b9477ba92e" }
 spirv_cross = { git = "https://github.com/kvark/spirv_cross", branch = "wgpu4" }
 # failure's backtrace feature might break our builds, see bug 1608157.
 failure = { git = "https://github.com/badboy/failure", rev = "64af847bc5fdcb6d2438bec8a6030812a80519a5" }
 failure_derive = { git = "https://github.com/badboy/failure", rev = "64af847bc5fdcb6d2438bec8a6030812a80519a5" }
-# This is a hack. Smallvec 1.4/1.5 cause a big performance regression,
-# see bug 1671170.
-#
-# Fortunately all the consumers build fine with 1.3. We can remove this hack
-# once https://github.com/rusqlite/rusqlite/pull/855 and
-# https://github.com/Amanieu/parking_lot/pull/266 have been merged.
-smallvec = { git = "https://github.com/emilio/rust-smallvec", branch = "1.3-as-1.5" }
+minidump_writer_linux = { git = "https://github.com/msirringhaus/minidump_writer_linux.git", rev = "4ea371049a9cca212cc13c19b7952c1c014085c6" }
 
 [patch.crates-io.cranelift-codegen]
-git = "https://github.com/bytecodealliance/wasmtime"
-rev = "e22e2c3722f2fbccd3c8d3230119fa04c332c69c"
+git = "https://github.com/mozilla-spidermonkey/wasmtime"
+rev = "3334d92350da40b90d2529c147db3ea44918b558"
 
 [patch.crates-io.cranelift-wasm]
-git = "https://github.com/bytecodealliance/wasmtime"
-rev = "e22e2c3722f2fbccd3c8d3230119fa04c332c69c"
+git = "https://github.com/mozilla-spidermonkey/wasmtime"
+rev = "3334d92350da40b90d2529c147db3ea44918b558"
+
+# Patch autocfg to hide rustc output. Workaround for https://github.com/cuviper/autocfg/issues/30
+[patch.crates-io.autocfg]
+path = "third_party/rust/autocfg"
+
+[patch.crates-io.autocfg01]
+path = "third_party/rust/autocfg-0.1.6"
+package = "autocfg"

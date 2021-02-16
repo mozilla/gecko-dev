@@ -22,7 +22,6 @@ class ResourceWatcher {
 
   constructor(targetList) {
     this.targetList = targetList;
-    this.descriptorFront = targetList.descriptorFront;
 
     this._onTargetAvailable = this._onTargetAvailable.bind(this);
     this._onTargetDestroyed = this._onTargetDestroyed.bind(this);
@@ -41,8 +40,18 @@ class ResourceWatcher {
     this._cache = [];
     this._listenerCount = new Map();
 
+    // WeakMap used to avoid starting a legacy listener twice for the same
+    // target + resource-type pair. Legacy listener creation can be subject to
+    // race conditions.
+    // Maps a target front to an array of resource types.
+    this._existingLegacyListeners = new WeakMap();
+
     this._notifyWatchers = this._notifyWatchers.bind(this);
     this._throttledNotifyWatchers = throttle(this._notifyWatchers, 100);
+  }
+
+  get watcherFront() {
+    return this.targetList.watcherFront;
   }
 
   /**
@@ -103,27 +112,27 @@ class ResourceWatcher {
       );
     }
 
-    // Cache the Watcher once for all, the first time we call `watch()`.
-    // This `watcher` attribute may be then used in any function of the ResourceWatcher after this.
-    if (!this.watcher) {
-      const supportsWatcher = this.descriptorFront?.traits?.watcher;
-      if (supportsWatcher) {
-        this.watcher = await this.descriptorFront.getWatcher();
-        // Resources watched from the parent process will be emitted on the Watcher Actor.
-        // So that we also have to listen for this event on it, in addition to all targets.
-        this.watcher.on(
-          "resource-available-form",
-          this._onResourceAvailable.bind(this, { watcherFront: this.watcher })
-        );
-        this.watcher.on(
-          "resource-updated-form",
-          this._onResourceUpdated.bind(this, { watcherFront: this.watcher })
-        );
-        this.watcher.on(
-          "resource-destroyed-form",
-          this._onResourceDestroyed.bind(this, { watcherFront: this.watcher })
-        );
-      }
+    // Bug 1675763: Watcher actor is not available in all situations yet.
+    if (!this._listenerRegistered && this.watcherFront) {
+      this._listenerRegistered = true;
+      // Resources watched from the parent process will be emitted on the Watcher Actor.
+      // So that we also have to listen for this event on it, in addition to all targets.
+      this.watcherFront.on(
+        "resource-available-form",
+        this._onResourceAvailable.bind(this, {
+          watcherFront: this.watcherFront,
+        })
+      );
+      this.watcherFront.on(
+        "resource-updated-form",
+        this._onResourceUpdated.bind(this, { watcherFront: this.watcherFront })
+      );
+      this.watcherFront.on(
+        "resource-destroyed-form",
+        this._onResourceDestroyed.bind(this, {
+          watcherFront: this.watcherFront,
+        })
+      );
     }
 
     // First ensuring enabling listening to targets.
@@ -267,7 +276,11 @@ class ResourceWatcher {
       // Watcher actor, we have to unregister and re-register the resource
       // types. This will force calling `Resources.watchResources` on the new top
       // level target.
-      for (const resourceType of this._listenerCount.keys()) {
+      for (const resourceType of Object.values(ResourceWatcher.TYPES)) {
+        // ...which has at least one listener...
+        if (!this._listenerCount.get(resourceType)) {
+          continue;
+        }
         await this._stopListening(resourceType, { bypassListenerCount: true });
         resources.push(resourceType);
       }
@@ -291,9 +304,6 @@ class ResourceWatcher {
         // ...request existing resource and new one to come from this one target
         // *but* only do that for backward compat, where we don't have the watcher API
         // (See bug 1626647)
-        if (this.hasWatcherSupport(resourceType)) {
-          continue;
-        }
         await this._watchResourcesForTarget(targetFront, resourceType);
       }
     }
@@ -327,7 +337,10 @@ class ResourceWatcher {
    * See _onTargetAvailable for arguments, they are the same.
    */
   _onTargetDestroyed({ targetFront }) {
-    //TODO: Is there a point in doing anything?
+    // Clear the map of legacy listeners for this target.
+    this._existingLegacyListeners.set(targetFront, []);
+
+    //TODO: Is there a point in doing anything else?
     //
     // We could remove the available/destroyed event, but as the target is destroyed
     // its listeners will be destroyed anyway.
@@ -370,7 +383,7 @@ class ResourceWatcher {
           resource,
           targetList: this.targetList,
           targetFront,
-          watcher: this.watcher,
+          watcherFront: this.watcherFront,
         });
       }
 
@@ -442,13 +455,6 @@ class ResourceWatcher {
         continue;
       }
 
-      if (watcherFront) {
-        targetFront = await this._getTargetForWatcherResource(existingResource);
-        if (!targetFront) {
-          continue;
-        }
-      }
-
       if (resourceUpdates) {
         Object.assign(existingResource, resourceUpdates);
       }
@@ -479,13 +485,6 @@ class ResourceWatcher {
   async _onResourceDestroyed({ targetFront, watcherFront }, resources) {
     for (const resource of resources) {
       const { resourceType, resourceId } = resource;
-
-      if (watcherFront) {
-        targetFront = await this._getTargetForWatcherResource(resource);
-        if (!targetFront) {
-          continue;
-        }
-      }
 
       let index = -1;
       if (resourceId) {
@@ -598,7 +597,7 @@ class ResourceWatcher {
       );
       return null;
     }
-    return this.watcher.getBrowsingContextTarget(browsingContextID);
+    return this.watcherFront.getBrowsingContextTarget(browsingContextID);
   }
 
   _onWillNavigate(targetFront) {
@@ -612,8 +611,31 @@ class ResourceWatcher {
     );
   }
 
-  hasWatcherSupport(resourceType) {
-    return this.watcher?.traits?.resources?.[resourceType];
+  /**
+   * Tells if the server supports listening to the given resource type
+   * via the watcher actor's watchResources method.
+   *
+   * @return {Boolean} True, if the server supports this type.
+   */
+  hasResourceWatcherSupport(resourceType) {
+    return this.watcherFront?.traits?.resources?.[resourceType];
+  }
+
+  /**
+   * Tells if the server supports listening to the given resource type
+   * via the watcher actor's watchResources method, and that, for a specific
+   * target.
+   *
+   * @return {Boolean} True, if the server supports this type.
+   */
+  _hasResourceWatcherSupportForTarget(resourceType, targetFront) {
+    // First check if the watcher supports this target type.
+    // If it doesn't, no resource type can be listened via the Watcher actor for this target.
+    if (!this.targetList.hasTargetWatcherSupport(targetFront.targetType)) {
+      return false;
+    }
+
+    return this.hasResourceWatcherSupport(resourceType);
   }
 
   /**
@@ -643,9 +665,21 @@ class ResourceWatcher {
 
     // If the server supports the Watcher API and the Watcher supports
     // this resource type, use this API
-    if (this.hasWatcherSupport(resourceType)) {
-      await this.watcher.watchResources([resourceType]);
-      return;
+    if (this.hasResourceWatcherSupport(resourceType)) {
+      await this.watcherFront.watchResources([resourceType]);
+
+      // Bug 1678385: In order to support watching for JS Source resource
+      // for service workers and parent process workers, which aren't supported yet
+      // by the watcher actor, we do not bail out here and allow to execute
+      // the legacy listener for these targets.
+      // Once bug 1608848 is fixed, we can remove this and always return.
+      // If this isn't fixed soon, we may add other resources we want to see
+      // being fetched from these targets.
+      const shouldRunLegacyListeners =
+        resourceType == ResourceWatcher.TYPES.SOURCE;
+      if (!shouldRunLegacyListeners) {
+        return;
+      }
     }
     // Otherwise, fallback on backward compat mode and use LegacyListeners.
 
@@ -674,6 +708,12 @@ class ResourceWatcher {
    * type of resource from a given target.
    */
   _watchResourcesForTarget(targetFront, resourceType) {
+    if (this._hasResourceWatcherSupportForTarget(resourceType, targetFront)) {
+      // This resource / target pair should already be handled by the watcher,
+      // no need to start legacy listeners.
+      return Promise.resolve();
+    }
+
     if (targetFront.isDestroyed()) {
       return Promise.resolve();
     }
@@ -685,6 +725,20 @@ class ResourceWatcher {
     if (!(resourceType in LegacyListeners)) {
       throw new Error(`Missing legacy listener for ${resourceType}`);
     }
+
+    const legacyListeners =
+      this._existingLegacyListeners.get(targetFront) || [];
+    if (legacyListeners.includes(resourceType)) {
+      console.error(
+        `Already started legacy listener for ${resourceType} on ${targetFront.actorID}`
+      );
+      return Promise.resolve();
+    }
+    this._existingLegacyListeners.set(
+      targetFront,
+      legacyListeners.concat(resourceType)
+    );
+
     return LegacyListeners[resourceType]({
       targetList: this.targetList,
       targetFront,
@@ -722,9 +776,17 @@ class ResourceWatcher {
 
     // If the server supports the Watcher API and the Watcher supports
     // this resource type, use this API
-    if (this.hasWatcherSupport(resourceType)) {
-      this.watcher.unwatchResources([resourceType]);
-      return;
+    if (this.hasResourceWatcherSupport(resourceType)) {
+      if (!this.watcherFront.isDestroyed()) {
+        this.watcherFront.unwatchResources([resourceType]);
+      }
+
+      // See comment in `_startListening`
+      const shouldRunLegacyListeners =
+        resourceType == ResourceWatcher.TYPES.SOURCE;
+      if (!shouldRunLegacyListeners) {
+        return;
+      }
     }
     // Otherwise, fallback on backward compat mode and use LegacyListeners.
 
@@ -740,6 +802,10 @@ class ResourceWatcher {
    * Backward compatibility code, reverse of _watchResourcesForTarget.
    */
   _unwatchResourcesForTarget(targetFront, resourceType) {
+    if (this._hasResourceWatcherSupportForTarget(resourceType, targetFront)) {
+      // This resource / target pair should already be handled by the watcher,
+      // no need to stop legacy listeners.
+    }
     // Is there really a point in:
     // - unregistering `onAvailable` RDP event callbacks from target-scoped actors?
     // - calling `stopListeners()` as we are most likely closing the toolbox and destroying everything?
@@ -750,6 +816,15 @@ class ResourceWatcher {
     // We are aware of one case where that might be useful.
     // When a panel is disabled via the options panel, after it has been opened.
     // Would that justify doing this? Is there another usecase?
+
+    // XXX: This is most likely only needed to avoid growing the Map infinitely.
+    // Unless in the "disabled panel" use case mentioned in the comment above,
+    // we should not see the same target actorID again.
+    const listeners = this._existingLegacyListeners.get(targetFront);
+    if (listeners && listeners.includes(resourceType)) {
+      const remainingListeners = listeners.filter(l => l !== resourceType);
+      this._existingLegacyListeners.set(targetFront, remainingListeners);
+    }
   }
 }
 
@@ -843,8 +918,6 @@ const ResourceTransformers = {
     .ERROR_MESSAGE]: require("devtools/shared/resources/transformers/error-messages"),
   [ResourceWatcher.TYPES
     .LOCAL_STORAGE]: require("devtools/shared/resources/transformers/storage-local-storage.js"),
-  [ResourceWatcher.TYPES
-    .ROOT_NODE]: require("devtools/shared/resources/transformers/root-node"),
   [ResourceWatcher.TYPES
     .SESSION_STORAGE]: require("devtools/shared/resources/transformers/storage-session-storage.js"),
   [ResourceWatcher.TYPES

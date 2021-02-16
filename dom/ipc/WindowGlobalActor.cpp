@@ -11,6 +11,7 @@
 #include "mozJSComponentLoader.h"
 #include "mozilla/ContentBlockingAllowList.h"
 #include "mozilla/Logging.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/JSActorService.h"
 #include "mozilla/dom/JSWindowActorParent.h"
 #include "mozilla/dom/JSWindowActorChild.h"
@@ -21,6 +22,7 @@
 #include "mozilla/dom/WindowGlobalParent.h"
 
 #include "nsGlobalWindowInner.h"
+#include "nsNetUtil.h"
 
 namespace mozilla::dom {
 
@@ -64,8 +66,6 @@ WindowGlobalInit WindowGlobalActor::AboutBlankInitializer(
 
   init.principal() = aPrincipal;
   Unused << NS_NewURI(getter_AddRefs(init.documentURI()), "about:blank");
-  ContentBlockingAllowList::ComputePrincipal(
-      aPrincipal, getter_AddRefs(init.contentBlockingAllowListPrincipal()));
 
   return init;
 }
@@ -77,8 +77,6 @@ WindowGlobalInit WindowGlobalActor::WindowInitializer(
                       aWindow->GetOuterWindow()->WindowID());
 
   init.principal() = aWindow->GetPrincipal();
-  init.contentBlockingAllowListPrincipal() =
-      aWindow->GetDocumentContentBlockingAllowListPrincipal();
   init.documentURI() = aWindow->GetDocumentURI();
 
   Document* doc = aWindow->GetDocument();
@@ -140,6 +138,8 @@ WindowGlobalInit WindowGlobalActor::WindowInitializer(
   }
   init.securityInfo() = securityInfo;
 
+  fields.mIsLocalIP = init.principal()->GetIsLocalIpAddress();
+
   // Most data here is specific to the Document, which can change without
   // creating a new WindowGlobal. Anything new added here which fits that
   // description should also be synchronized in
@@ -157,10 +157,12 @@ already_AddRefed<JSActorProtocol> WindowGlobalActor::MatchingJSActorProtocol(
     return nullptr;
   }
 
-  if (!proto->Matches(BrowsingContext(), GetDocumentURI(), GetRemoteType())) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+  if (!proto->Matches(BrowsingContext(), GetDocumentURI(), GetRemoteType(),
+                      aRv)) {
+    MOZ_ASSERT(aRv.Failed());
     return nullptr;
   }
+  MOZ_ASSERT(!aRv.Failed());
   return proto.forget();
 }
 

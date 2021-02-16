@@ -161,8 +161,8 @@ class ProviderHeuristicFallback extends UrlbarProvider {
           UrlbarUtils.RESULT_TYPE.URL,
           UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
           ...UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
-            title: [searchUrl, UrlbarUtils.HIGHLIGHT.TYPED],
-            url: [searchUrl, UrlbarUtils.HIGHLIGHT.TYPED],
+            title: [searchUrl, UrlbarUtils.HIGHLIGHT.NONE],
+            url: [searchUrl, UrlbarUtils.HIGHLIGHT.NONE],
           })
         );
         result.heuristic = true;
@@ -219,8 +219,8 @@ class ProviderHeuristicFallback extends UrlbarProvider {
       UrlbarUtils.RESULT_TYPE.URL,
       UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
       ...UrlbarResult.payloadAndSimpleHighlights(queryContext.tokens, {
-        title: [displayURL, UrlbarUtils.HIGHLIGHT.TYPED],
-        url: [escapedURL, UrlbarUtils.HIGHLIGHT.TYPED],
+        title: [displayURL, UrlbarUtils.HIGHLIGHT.NONE],
+        url: [escapedURL, UrlbarUtils.HIGHLIGHT.NONE],
         icon: iconUri,
       })
     );
@@ -229,10 +229,6 @@ class ProviderHeuristicFallback extends UrlbarProvider {
   }
 
   _searchModeKeywordResult(queryContext) {
-    if (!UrlbarPrefs.get("update2")) {
-      return null;
-    }
-
     if (!queryContext.tokens.length) {
       return null;
     }

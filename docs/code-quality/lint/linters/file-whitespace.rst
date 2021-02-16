@@ -1,8 +1,12 @@
 Trailing whitespaces
 ====================
 
-This linter verifies if a file has unnecessary trailing whitespaces or Windows
-carriage return.
+This linter verifies if a file has:
+
+* unnecessary trailing whitespaces,
+* Windows carriage return,
+* empty lines at the end of file,
+* if file ends with a newline or not
 
 
 Run Locally

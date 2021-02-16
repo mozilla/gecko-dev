@@ -713,7 +713,7 @@ static bool IndexOf(MDefinition* ins, int32_t* res) {
 // Returns False if the elements is not escaped and if it is optimizable by
 // ScalarReplacementOfArray.
 static bool IsElementEscaped(MDefinition* def, uint32_t arraySize) {
-  MOZ_ASSERT(def->isElements() || def->isConvertElementsToDoubles());
+  MOZ_ASSERT(def->isElements());
 
   JitSpewDef(JitSpew_Escape, "Check elements\n", def);
   JitSpewIndent spewIndent(JitSpew_Escape);
@@ -803,14 +803,6 @@ static bool IsElementEscaped(MDefinition* def, uint32_t arraySize) {
         MOZ_ASSERT(access->toArrayLength()->elements() == def);
         break;
 
-      case MDefinition::Opcode::ConvertElementsToDoubles:
-        MOZ_ASSERT(access->toConvertElementsToDoubles()->elements() == def);
-        if (IsElementEscaped(access, arraySize)) {
-          JitSpewDef(JitSpew_Escape, "is indirectly escaped by\n", access);
-          return true;
-        }
-        break;
-
       default:
         JitSpewDef(JitSpew_Escape, "is escaped by\n", access);
         return true;
@@ -821,7 +813,7 @@ static bool IsElementEscaped(MDefinition* def, uint32_t arraySize) {
 }
 
 static inline bool IsOptimizableArrayInstruction(MInstruction* ins) {
-  return ins->isNewArray() || ins->isNewArrayCopyOnWrite();
+  return ins->isNewArray();
 }
 
 // Returns False if the array is not escaped and if it is optimizable by
@@ -831,24 +823,18 @@ static inline bool IsOptimizableArrayInstruction(MInstruction* ins) {
 // changing length, with only access with known constants.
 static bool IsArrayEscaped(MInstruction* ins, MInstruction* newArray) {
   MOZ_ASSERT(ins->type() == MIRType::Object);
-  MOZ_ASSERT(IsOptimizableArrayInstruction(ins) ||
-             ins->isMaybeCopyElementsForWrite());
+  MOZ_ASSERT(IsOptimizableArrayInstruction(ins));
   MOZ_ASSERT(IsOptimizableArrayInstruction(newArray));
 
   JitSpewDef(JitSpew_Escape, "Check array\n", ins);
   JitSpewIndent spewIndent(JitSpew_Escape);
 
-  uint32_t length;
-  if (newArray->isNewArray()) {
-    if (!newArray->toNewArray()->templateObject()) {
-      JitSpew(JitSpew_Escape, "No template object defined.");
-      return true;
-    }
-
-    length = newArray->toNewArray()->length();
-  } else {
-    length = newArray->toNewArrayCopyOnWrite()->templateObject()->length();
+  if (!newArray->toNewArray()->templateObject()) {
+    JitSpew(JitSpew_Escape, "No template object defined.");
+    return true;
   }
+
+  uint32_t length = newArray->toNewArray()->length();
 
   if (length >= 16) {
     JitSpew(JitSpew_Escape, "Array has too many elements");
@@ -879,16 +865,6 @@ static bool IsArrayEscaped(MInstruction* ins, MInstruction* newArray) {
           return true;
         }
 
-        break;
-      }
-
-      case MDefinition::Opcode::MaybeCopyElementsForWrite: {
-        MMaybeCopyElementsForWrite* copied = def->toMaybeCopyElementsForWrite();
-        MOZ_ASSERT(copied->object() == ins);
-        if (IsArrayEscaped(copied, ins)) {
-          JitSpewDef(JitSpew_Escape, "is indirectly escaped by\n", copied);
-          return true;
-        }
         break;
       }
 
@@ -961,8 +937,6 @@ class ArrayMemoryView : public MDefinitionVisitorDefaultNoop {
   void visitSetInitializedLength(MSetInitializedLength* ins);
   void visitInitializedLength(MInitializedLength* ins);
   void visitArrayLength(MArrayLength* ins);
-  void visitMaybeCopyElementsForWrite(MMaybeCopyElementsForWrite* ins);
-  void visitConvertElementsToDoubles(MConvertElementsToDoubles* ins);
 };
 
 const char* ArrayMemoryView::phaseName = "Scalar Replacement of Array";
@@ -989,10 +963,7 @@ MBasicBlock* ArrayMemoryView::startingBlock() { return startBlock_; }
 bool ArrayMemoryView::initStartingState(BlockState** pState) {
   // Uninitialized elements have an "undefined" value.
   undefinedVal_ = MConstant::New(alloc_, UndefinedValue());
-  MConstant* initLength = MConstant::New(
-      alloc_, Int32Value(arr_->isNewArrayCopyOnWrite()
-                             ? arr_->toNewArrayCopyOnWrite()->length()
-                             : 0));
+  MConstant* initLength = MConstant::New(alloc_, Int32Value(0));
   arr_->block()->insertBefore(arr_, undefinedVal_);
   arr_->block()->insertBefore(arr_, initLength);
 
@@ -1237,48 +1208,9 @@ void ArrayMemoryView::visitArrayLength(MArrayLength* ins) {
   discardInstruction(ins, elements);
 }
 
-void ArrayMemoryView::visitMaybeCopyElementsForWrite(
-    MMaybeCopyElementsForWrite* ins) {
-  MOZ_ASSERT(ins->numOperands() == 1);
-  MOZ_ASSERT(ins->type() == MIRType::Object);
-
-  // Skip guards on other objects.
-  if (ins->object() != arr_) {
-    return;
-  }
-
-  // Nothing to do here: RArrayState::recover will copy the elements if
-  // needed.
-
-  // Replace the guard with the array.
-  ins->replaceAllUsesWith(arr_);
-
-  // Remove original instruction.
-  ins->block()->discard(ins);
-}
-
-void ArrayMemoryView::visitConvertElementsToDoubles(
-    MConvertElementsToDoubles* ins) {
-  MOZ_ASSERT(ins->numOperands() == 1);
-  MOZ_ASSERT(ins->type() == MIRType::Elements);
-
-  // Skip other array objects.
-  MDefinition* elements = ins->elements();
-  if (!isArrayStateElements(elements)) {
-    return;
-  }
-
-  // We don't have to do anything else here: MConvertElementsToDoubles just
-  // exists to allow MLoadELement to use masm.loadDouble (without checking
-  // for int32 elements), but since we're using scalar replacement for the
-  // elements that doesn't matter.
-  ins->replaceAllUsesWith(elements);
-
-  // Remove original instruction.
-  ins->block()->discard(ins);
-}
-
 bool ScalarReplacement(MIRGenerator* mir, MIRGraph& graph) {
+  JitSpew(JitSpew_Escape, "Begin (ScalarReplacement)");
+
   EmulateStateOf<ObjectMemoryView> replaceObject(mir, graph);
   EmulateStateOf<ArrayMemoryView> replaceArray(mir, graph);
   bool addedPhi = false;

@@ -65,6 +65,7 @@
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/MiscEvents.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/TouchEvents.h"
 #include "mozilla/TimeStamp.h"
 
@@ -129,6 +130,7 @@
 #include "WidgetUtils.h"
 #include "WinContentSystemParameters.h"
 #include "nsIWidgetListener.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/gfx/2D.h"
@@ -147,6 +149,7 @@
 #include "InputDeviceUtils.h"
 #include "ScreenHelperWin.h"
 #include "mozilla/StaticPrefs_apz.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_layout.h"
 
 #include "nsIGfxInfo.h"
@@ -591,7 +594,6 @@ nsWindow::nsWindow(bool aIsChildWindow)
   mInDtor = false;
   mIsVisible = false;
   mIsTopWidgetWindow = false;
-  mUnicodeWidget = true;
   mDisplayPanFeedback = false;
   mTouchWindow = false;
   mFutureMarginsToUse = false;
@@ -804,8 +806,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   nsWidgetInitData defaultInitData;
   if (!aInitData) aInitData = &defaultInitData;
 
-  mUnicodeWidget = aInitData->mUnicode;
-
   nsIWidget* baseParent =
       aInitData->mWindowType == eWindowType_dialog ||
               aInitData->mWindowType == eWindowType_toplevel ||
@@ -1003,13 +1003,8 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
 
     // Make FAKETRACKPOINTSCROLLABLE use nsWindow::WindowProc, and store the
     // old window procedure in its "user data".
-    WNDPROC oldWndProc;
-    if (mUnicodeWidget)
-      oldWndProc = (WNDPROC)::SetWindowLongPtrW(scrollableWnd, GWLP_WNDPROC,
-                                                (LONG_PTR)nsWindow::WindowProc);
-    else
-      oldWndProc = (WNDPROC)::SetWindowLongPtrA(scrollableWnd, GWLP_WNDPROC,
-                                                (LONG_PTR)nsWindow::WindowProc);
+    WNDPROC oldWndProc = (WNDPROC)::SetWindowLongPtrW(
+        scrollableWnd, GWLP_WNDPROC, (LONG_PTR)nsWindow::WindowProc);
     ::SetWindowLongPtrW(scrollableWnd, GWLP_USERDATA, (LONG_PTR)oldWndProc);
   }
 
@@ -1311,27 +1306,15 @@ void nsWindow::SubclassWindow(BOOL bState) {
       NS_ERROR("Invalid window handle");
     }
 
-    if (mUnicodeWidget) {
-      mPrevWndProc = reinterpret_cast<WNDPROC>(
-          SetWindowLongPtrW(mWnd, GWLP_WNDPROC,
-                            reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
-    } else {
-      mPrevWndProc = reinterpret_cast<WNDPROC>(
-          SetWindowLongPtrA(mWnd, GWLP_WNDPROC,
-                            reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
-    }
+    mPrevWndProc = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(
+        mWnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(nsWindow::WindowProc)));
     NS_ASSERTION(mPrevWndProc, "Null standard window procedure");
     // connect the this pointer to the nsWindow handle
     WinUtils::SetNSWindowBasePtr(mWnd, this);
   } else {
     if (IsWindow(mWnd)) {
-      if (mUnicodeWidget) {
-        SetWindowLongPtrW(mWnd, GWLP_WNDPROC,
-                          reinterpret_cast<LONG_PTR>(mPrevWndProc));
-      } else {
-        SetWindowLongPtrA(mWnd, GWLP_WNDPROC,
-                          reinterpret_cast<LONG_PTR>(mPrevWndProc));
-      }
+      SetWindowLongPtrW(mWnd, GWLP_WNDPROC,
+                        reinterpret_cast<LONG_PTR>(mPrevWndProc));
     }
     WinUtils::SetNSWindowBasePtr(mWnd, nullptr);
     mPrevWndProc = nullptr;
@@ -1594,11 +1577,16 @@ already_AddRefed<SourceSurface> nsWindow::GetFallbackScrollSnapshot(
  **************************************************************/
 
 void nsWindow::Show(bool bState) {
-  if (bState) {
+  if (bState && mIsShowingPreXULSkeletonUI) {
     // The first time we decide to actually show the window is when we decide
     // that we've taken over the window from the skeleton UI, and we should
     // no longer treat resizes / moves specially.
     mIsShowingPreXULSkeletonUI = false;
+    // Initialize the UI state - this would normally happen below, but since
+    // we're actually already showing, we won't hit it in the normal way.
+    ::SendMessageW(mWnd, WM_CHANGEUISTATE,
+                   MAKEWPARAM(UIS_INITIALIZE, UISF_HIDEFOCUS | UISF_HIDEACCEL),
+                   0);
   }
 
   if (mWindowType == eWindowType_popup) {
@@ -2031,7 +2019,11 @@ void nsWindow::Resize(double aWidth, double aHeight, bool aRepaint) {
   }
 
   // Set cached value for lightweight and printing
+  bool wasLocking = mAspectRatio != 0.0;
   mBounds.SizeTo(width, height);
+  if (wasLocking) {
+    LockAspectRatio(true);  // This causes us to refresh the mAspectRatio value
+  }
 
   if (mWnd) {
     // Refer to the comment above a similar check in nsWindow::Move
@@ -4433,25 +4425,6 @@ bool nsWindow::DispatchPluginEvent(UINT aMessage, WPARAM aWParam,
   return ret;
 }
 
-void nsWindow::DispatchPluginSettingEvents() {
-  // Update scroll wheel properties.
-  {
-    LRESULT lresult;
-    MSGResult msgResult(&lresult);
-    MSG msg =
-        WinUtils::InitMSG(WM_SETTINGCHANGE, SPI_SETWHEELSCROLLLINES, 0, mWnd);
-    ProcessMessageForPlugin(msg, msgResult);
-  }
-
-  {
-    LRESULT lresult;
-    MSGResult msgResult(&lresult);
-    MSG msg =
-        WinUtils::InitMSG(WM_SETTINGCHANGE, SPI_SETWHEELSCROLLCHARS, 0, mWnd);
-    ProcessMessageForPlugin(msg, msgResult);
-  }
-}
-
 void nsWindow::DispatchCustomEvent(const nsString& eventName) {
   if (Document* doc = GetDocument()) {
     if (nsPIDOMWindowOuter* win = doc->GetWindow()) {
@@ -4681,8 +4654,8 @@ bool nsWindow::DispatchMouseEvent(EventMessage aEventMessage, WPARAM wParam,
       break;
     case eMouseExitFromWidget:
       event.mExitFrom =
-          Some(IsTopLevelMouseExit(mWnd) ? WidgetMouseEvent::eTopLevel
-                                         : WidgetMouseEvent::eChild);
+          Some(IsTopLevelMouseExit(mWnd) ? WidgetMouseEvent::ePlatformTopLevel
+                                         : WidgetMouseEvent::ePlatformChild);
       break;
     default:
       break;
@@ -5123,75 +5096,6 @@ const char16_t* GetQuitType() {
   return nullptr;
 }
 
-// The main windows message processing method for plugins.
-// The result means whether this method processed the native
-// event for plugin. If false, the native event should be
-// processed by the caller self.
-bool nsWindow::ProcessMessageForPlugin(MSG aMsg, MSGResult& aResult) {
-  aResult.mResult = 0;
-  aResult.mConsumed = true;
-
-  bool eventDispatched = false;
-  switch (aMsg.message) {
-    case WM_CHAR:
-    case WM_SYSCHAR:
-      aResult.mResult = ProcessCharMessage(aMsg, &eventDispatched);
-      break;
-
-    case WM_KEYUP:
-    case WM_SYSKEYUP:
-      aResult.mResult = ProcessKeyUpMessage(aMsg, &eventDispatched);
-      break;
-
-    case WM_KEYDOWN:
-    case WM_SYSKEYDOWN:
-      aResult.mResult = ProcessKeyDownMessage(aMsg, &eventDispatched);
-      break;
-
-    case WM_SETTINGCHANGE: {
-      // If there was a change in scroll wheel settings then shove the new
-      // value into the unused lParam so that the client doesn't need to ask
-      // for it.
-      if ((aMsg.wParam != SPI_SETWHEELSCROLLLINES) &&
-          (aMsg.wParam != SPI_SETWHEELSCROLLCHARS)) {
-        return false;
-      }
-      UINT wheelDelta = 0;
-      UINT getMsg = (aMsg.wParam == SPI_SETWHEELSCROLLLINES)
-                        ? SPI_GETWHEELSCROLLLINES
-                        : SPI_GETWHEELSCROLLCHARS;
-      if (NS_WARN_IF(!::SystemParametersInfo(getMsg, 0, &wheelDelta, 0))) {
-        // Use system default scroll amount, 3, when
-        // SPI_GETWHEELSCROLLLINES/CHARS isn't available.
-        wheelDelta = 3;
-      }
-      aMsg.lParam = wheelDelta;
-      break;
-    }
-
-    case WM_DEADCHAR:
-    case WM_SYSDEADCHAR:
-
-    case WM_CUT:
-    case WM_COPY:
-    case WM_PASTE:
-    case WM_CLEAR:
-    case WM_UNDO:
-      break;
-
-    default:
-      return false;
-  }
-
-  if (!eventDispatched) {
-    aResult.mConsumed = nsWindowBase::DispatchPluginEvent(aMsg);
-  }
-  if (!Destroyed()) {
-    DispatchPendingEvents();
-  }
-  return true;
-}
-
 static void ForceFontUpdate() {
   // update device context font cache
   // Dirty but easiest way:
@@ -5217,13 +5121,6 @@ bool nsWindow::ExternalHandlerProcessMessage(UINT aMessage, WPARAM& aWParam,
   if (MouseScrollHandler::ProcessMessage(this, aMessage, aWParam, aLParam,
                                          aResult)) {
     return true;
-  }
-
-  if (PluginHasFocus()) {
-    MSG nativeMsg = WinUtils::InitMSG(aMessage, aWParam, aLParam, mWnd);
-    if (ProcessMessageForPlugin(nativeMsg, aResult)) {
-      return true;
-    }
   }
 
   return false;
@@ -8599,59 +8496,6 @@ bool nsWindow::WidgetTypeSupportsAcceleration() {
   // shadows.
   return mTransparencyMode != eTransparencyTransparent &&
          !(IsPopup() && DeviceManagerDx::Get()->IsWARP());
-}
-
-void nsWindow::SetCandidateWindowForPlugin(
-    const CandidateWindowPosition& aPosition) {
-  CANDIDATEFORM form;
-  form.dwIndex = 0;
-  if (aPosition.mExcludeRect) {
-    form.dwStyle = CFS_EXCLUDE;
-    form.rcArea.left = aPosition.mRect.X();
-    form.rcArea.top = aPosition.mRect.Y();
-    form.rcArea.right = aPosition.mRect.XMost();
-    form.rcArea.bottom = aPosition.mRect.YMost();
-  } else {
-    form.dwStyle = CFS_CANDIDATEPOS;
-  }
-  form.ptCurrentPos.x = aPosition.mPoint.x;
-  form.ptCurrentPos.y = aPosition.mPoint.y;
-
-  IMEHandler::SetCandidateWindow(this, &form);
-}
-
-void nsWindow::DefaultProcOfPluginEvent(const WidgetPluginEvent& aEvent) {
-  const NPEvent* pPluginEvent =
-      static_cast<const NPEvent*>(aEvent.mPluginEvent);
-
-  if (NS_WARN_IF(!pPluginEvent)) {
-    return;
-  }
-
-  if (!mWnd) {
-    return;
-  }
-
-  // For WM_IME_*COMPOSITION
-  IMEHandler::DefaultProcOfPluginEvent(this, pPluginEvent);
-
-  CallWindowProcW(GetPrevWindowProc(), mWnd, pPluginEvent->event,
-                  pPluginEvent->wParam, pPluginEvent->lParam);
-}
-
-void nsWindow::EnableIMEForPlugin(bool aEnable) {
-  // Current IME state isn't plugin, ignore this call
-  if (NS_WARN_IF(mInputContext.mIMEState.mEnabled != IMEState::PLUGIN)) {
-    return;
-  }
-
-  InputContext inputContext = GetInputContext();
-  if (aEnable) {
-    inputContext.mHTMLInputType.AssignLiteral("text");
-  } else {
-    inputContext.mHTMLInputType.AssignLiteral("password");
-  }
-  SetInputContext(inputContext, InputContextAction());
 }
 
 nsresult nsWindow::OnWindowedPluginKeyEvent(

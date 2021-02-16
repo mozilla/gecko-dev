@@ -54,7 +54,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
       const int32_t& aProxyConnectResponseCode,
       nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
       const bool& aDataToChildProcess, const bool& aRestarted,
-      Maybe<uint32_t>&& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3);
+      const uint32_t& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3);
   mozilla::ipc::IPCResult RecvOnTransportStatus(
       const nsresult& aStatus, const int64_t& aProgress,
       const int64_t& aProgressMax,
@@ -98,7 +98,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
       const int32_t& aProxyConnectResponseCode,
       nsTArray<uint8_t>&& aDataForSniffer, const Maybe<nsCString>& aAltSvcUsed,
       const bool& aDataToChildProcess, const bool& aRestarted,
-      Maybe<uint32_t>&& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3);
+      const uint32_t& aHTTPSSVCReceivedStage, const bool& aSupportsHttp3);
   void DoOnDataAvailable(const nsCString& aData, const uint64_t& aOffset,
                          const uint32_t& aCount);
   void DoOnStopRequest(
@@ -127,6 +127,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   bool mResponseIsComplete;
   int64_t mTransferSize;
   int64_t mRequestSize;
+  bool mIsHttp3Used = false;
   bool mProxyConnectFailed;
   Atomic<bool, ReleaseAcquire> mCanceled;
   Atomic<nsresult, ReleaseAcquire> mStatus;
@@ -136,6 +137,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   bool mOnStartRequestCalled;
   bool mOnStopRequestCalled;
   bool mResolvedByTRR;
+  bool mEchConfigUsed = false;
   int32_t mProxyConnectResponseCode;
   uint64_t mChannelId;
   bool mDataSentToChildProcess;
@@ -154,7 +156,7 @@ class HttpTransactionParent final : public PHttpTransactionParent,
   OnPushCallback mOnPushCallback;
   nsTArray<uint8_t> mDataForSniffer;
   std::function<void()> mCallOnResume;
-  Maybe<uint32_t> mHTTPSSVCReceivedStage;
+  uint32_t mHTTPSSVCReceivedStage;
   RefPtr<nsHttpConnectionInfo> mConnInfo;
   bool mSupportsHTTP3 = false;
 };

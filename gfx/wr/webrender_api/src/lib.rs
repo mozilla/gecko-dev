@@ -199,7 +199,10 @@ pub trait RenderNotifier: Send {
     fn clone(&self) -> Box<dyn RenderNotifier>;
     /// Wake the thread containing the `Renderer` up (after updates have been put
     /// in the renderer's queue).
-    fn wake_up(&self);
+    fn wake_up(
+        &self,
+        composite_needed: bool,
+    );
     /// Notify the thread containing the `Renderer` that a new frame is ready.
     fn new_frame_ready(&self, _: DocumentId, scrolled: bool, composite_needed: bool, render_time_ns: Option<u64>);
     /// A Gecko-specific notification mechanism to get some code executed on the
@@ -552,6 +555,8 @@ bitflags! {
         const TILE_CACHE_LOGGING_DBG   = 1 << 24;
         /// Collect and dump profiler statistics to captures.
         const PROFILER_CAPTURE = (1 as u32) << 25; // need "as u32" until we have cbindgen#556
+        /// Invalidate picture tiles every frames (useful when inspecting GPU work in external tools).
+        const FORCE_PICTURE_INVALIDATION = (1 as u32) << 26;
     }
 }
 
@@ -601,5 +606,51 @@ impl ZoomFactor {
     /// Get the zoom factor as an untyped float.
     pub fn get(self) -> f32 {
         self.0
+    }
+}
+
+/// Crash annotations included in crash reports.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub enum CrashAnnotation {
+    CompileShader = 0,
+}
+
+/// Handler to expose support for annotating crash reports.
+pub trait CrashAnnotator : Send {
+    fn set(&self, annotation: CrashAnnotation, value: &str);
+    fn clear(&self, annotation: CrashAnnotation);
+    fn box_clone(&self) -> Box<dyn CrashAnnotator>;
+}
+
+impl Clone for Box<dyn CrashAnnotator> {
+    fn clone(&self) -> Box<dyn CrashAnnotator> {
+        self.box_clone()
+    }
+}
+
+/// Guard to add a crash annotation at creation, and clear it at destruction.
+pub struct CrashAnnotatorGuard<'a> {
+    annotator: &'a Option<Box<dyn CrashAnnotator>>,
+    annotation: CrashAnnotation,
+}
+
+impl<'a> CrashAnnotatorGuard<'a> {
+    pub fn new(annotator: &'a Option<Box<dyn CrashAnnotator>>, annotation: CrashAnnotation, value: &str) -> Self {
+        if let Some(ref annotator) = annotator {
+            annotator.set(annotation, value);
+        }
+        Self {
+            annotator,
+            annotation,
+        }
+    }
+}
+
+impl<'a> Drop for CrashAnnotatorGuard<'a> {
+    fn drop(&mut self) {
+        if let Some(ref annotator) = self.annotator {
+            annotator.clear(self.annotation);
+        }
     }
 }

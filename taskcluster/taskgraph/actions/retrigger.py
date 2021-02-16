@@ -17,6 +17,8 @@ from .util import (
     fetch_graph_and_labels,
     relativize_datestamps,
     create_task_from_def,
+    get_tasks_with_downstream,
+    rename_browsertime_vismet_task,
 )
 from .registry import register_callback_action
 from taskgraph.util import taskcluster
@@ -57,6 +59,7 @@ def _should_retrigger(task_graph, label):
         {"kind": "decision-task"},
         {"kind": "action-callback"},
         {"kind": "cron-task"},
+        {"action": "backfill-task"},
     ],
 )
 def retrigger_decision_action(parameters, graph_config, input, task_group_id, task_id):
@@ -149,6 +152,10 @@ def retrigger_action(parameters, graph_config, input, task_group_id, task_id):
     task = taskcluster.get_task_definition(task_id)
     label = task["metadata"]["name"]
 
+    force_downstream = "browsertime" in label
+    if "vismet" in label:
+        label = rename_browsertime_vismet_task(label)
+
     with_downstream = " "
     to_run = [label]
 
@@ -159,11 +166,8 @@ def retrigger_action(parameters, graph_config, input, task_group_id, task_id):
         )
         sys.exit(1)
 
-    if input.get("downstream"):
-        to_run = full_task_graph.graph.transitive_closure(
-            set(to_run), reverse=True
-        ).nodes
-        to_run = to_run & set(label_to_taskid.keys())
+    if input.get("downstream") or force_downstream:
+        to_run = get_tasks_with_downstream(to_run, full_task_graph, label_to_taskid)
         with_downstream = " (with downstream) "
 
     times = input.get("times", 1)
@@ -265,17 +269,40 @@ def retrigger_multiple(parameters, graph_config, input, task_group_id, task_id):
 
     suffixes = []
     for i, request in enumerate(input.get("requests", [])):
+
+        def _is_browsertime(label):
+            return "browsertime" in label
+
         times = request.get("times", 1)
         rerun_tasks = [
             label
             for label in request.get("tasks")
             if not _should_retrigger(full_task_graph, label)
+            and not _is_browsertime(label)
         ]
         retrigger_tasks = [
             label
             for label in request.get("tasks")
-            if _should_retrigger(full_task_graph, label)
+            if _should_retrigger(full_task_graph, label) and not _is_browsertime(label)
         ]
+
+        browsertime_tasks = []
+        for label in request.get("tasks"):
+            if not _is_browsertime(label):
+                continue
+            if "vismet" in label:
+                label = rename_browsertime_vismet_task(label)
+            browsertime_tasks.append(label)
+
+        # Browsertime tasks need to have their downstream tasks scheduled as well
+        if len(browsertime_tasks) > 0:
+            retrigger_tasks.extend(
+                list(
+                    get_tasks_with_downstream(
+                        browsertime_tasks, full_task_graph, label_to_taskid
+                    )
+                )
+            )
 
         for label in rerun_tasks:
             # XXX we should not re-run tasks pulled in from other pushes
@@ -297,4 +324,5 @@ def retrigger_multiple(parameters, graph_config, input, task_group_id, task_id):
                 suffix,
             )
 
-    combine_task_graph_files(suffixes)
+    if suffixes:
+        combine_task_graph_files(suffixes)

@@ -10,6 +10,7 @@
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/PWindowGlobalParent.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/WindowGlobalActorsBinding.h"
@@ -42,16 +43,17 @@ using namespace mozilla::ipc;
 static const float kMinPaintScale = 0.05f;
 
 /* static */
-PaintFragment PaintFragment::Record(nsIDocShell* aDocShell,
+PaintFragment PaintFragment::Record(dom::BrowsingContext* aBc,
                                     const Maybe<IntRect>& aRect, float aScale,
                                     nscolor aBackgroundColor,
                                     CrossProcessPaintFlags aFlags) {
-  if (!aDocShell) {
-    PF_LOG("Couldn't find DocShell.\n");
+  nsIDocShell* ds = aBc->GetDocShell();
+  if (!ds) {
+    PF_LOG("Couldn't find docshell.\n");
     return PaintFragment{};
   }
 
-  RefPtr<nsPresContext> presContext = aDocShell->GetPresContext();
+  RefPtr<nsPresContext> presContext = ds->GetPresContext();
   if (!presContext) {
     PF_LOG("Couldn't find PresContext.\n");
     return PaintFragment{};
@@ -60,7 +62,7 @@ PaintFragment PaintFragment::Record(nsIDocShell* aDocShell,
   IntRect rect;
   if (!aRect) {
     nsCOMPtr<nsIWidget> widget =
-        nsContentUtils::WidgetForDocument(aDocShell->GetDocument());
+        nsContentUtils::WidgetForDocument(presContext->Document());
 
     // TODO: Apply some sort of clipping to visible bounds here (Bug 1562720)
     LayoutDeviceIntRect boundsDevice = widget->GetBounds();
@@ -84,11 +86,11 @@ PaintFragment PaintFragment::Record(nsIDocShell* aDocShell,
 
   CPP_LOG(
       "Recording "
-      "[docshell=%p, "
+      "[browsingContext=%p, "
       "rect=(%d, %d) x (%d, %d), "
       "scale=%f, "
       "color=(%u, %u, %u, %u)]\n",
-      aDocShell, rect.x, rect.y, rect.width, rect.height, aScale,
+      aBc, rect.x, rect.y, rect.width, rect.height, aScale,
       NS_GET_R(aBackgroundColor), NS_GET_G(aBackgroundColor),
       NS_GET_B(aBackgroundColor), NS_GET_A(aBackgroundColor));
 
@@ -100,13 +102,8 @@ PaintFragment PaintFragment::Record(nsIDocShell* aDocShell,
     return PaintFragment{};
   }
 
-  bool oldActiveState = aDocShell->GetIsActive();
-  if (!oldActiveState) {
-    aDocShell->SetIsActive(true);
-  }
-
   // Flush any pending notifications
-  nsContentUtils::FlushLayoutForTree(aDocShell->GetWindow());
+  nsContentUtils::FlushLayoutForTree(ds->GetWindow());
 
   // Initialize the recorder
   SurfaceFormat format = SurfaceFormat::B8G8R8A8;
@@ -137,10 +134,6 @@ PaintFragment PaintFragment::Record(nsIDocShell* aDocShell,
     RefPtr<PresShell> presShell = presContext->PresShell();
     Unused << presShell->RenderDocument(r, renderDocFlags, aBackgroundColor,
                                         thebes);
-  }
-
-  if (!oldActiveState) {
-    aDocShell->SetIsActive(false);
   }
 
   if (!recorder->mOutputStream.mValid) {
@@ -221,17 +214,13 @@ bool CrossProcessPaint::Start(dom::WindowGlobalParent* aRoot,
     }
 
     // `BrowsingContext()` cannot be nullptr.
-    nsCOMPtr<nsIDocShell> docShell =
-        childActor->BrowsingContext()->GetDocShell();
-    if (!docShell) {
-      return false;
-    }
+    RefPtr<dom::BrowsingContext> bc = childActor->BrowsingContext();
 
     promise = resolver->Init();
     resolver->mPendingFragments += 1;
     resolver->ReceiveFragment(
-        aRoot, PaintFragment::Record(docShell, rect, aScale, aBackgroundColor,
-                                     aFlags));
+        aRoot,
+        PaintFragment::Record(bc, rect, aScale, aBackgroundColor, aFlags));
   } else {
     promise = resolver->Init();
     resolver->QueuePaint(aRoot, rect, aBackgroundColor, aFlags);

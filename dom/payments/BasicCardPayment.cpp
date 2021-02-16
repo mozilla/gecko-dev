@@ -7,8 +7,8 @@
 #include "BasicCardPayment.h"
 #include "PaymentAddress.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/ErrorResult.h"
 #include "nsArrayUtils.h"
-#include "nsCharSeparatedTokenizer.h"
 #include "nsDataHashtable.h"
 
 namespace mozilla::dom {

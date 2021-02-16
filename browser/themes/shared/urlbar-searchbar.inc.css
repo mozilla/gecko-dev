@@ -473,11 +473,6 @@
   --arrowpanel-background: #fbfbfb;
 }
 
-#pageAction-panel-launchSSB,
-#pageAction-urlbar-launchSSB {
-  list-style-image: url("chrome://browser/skin/install-ssb.svg");
-}
-
 /* URL bar and page action buttons */
 
 #page-action-buttons {
@@ -505,7 +500,7 @@
   height: 30px;
 }
 
-#page-action-buttons > :not([hidden]):not(toolbartabstop) ~ #pageActionSeparator {
+#page-action-buttons > :not([hidden], toolbartabstop) ~ #pageActionSeparator {
   /* Show the separator between the page actions and other elements when at
      least one of the latter is shown. */
   visibility: visible;

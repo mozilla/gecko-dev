@@ -31,6 +31,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Hal.h"
 #include "mozilla/dom/BrowserChild.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/intl/OSPreferences.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
 #include "mozilla/java/GeckoAppShellNatives.h"
@@ -222,7 +223,7 @@ class GeckoThreadSupport final
 
     if (appStartup) {
       bool userAllowedQuit = true;
-      appStartup->Quit(nsIAppStartup::eForceQuit, &userAllowedQuit);
+      appStartup->Quit(nsIAppStartup::eForceQuit, 0, &userAllowedQuit);
     }
   }
 

@@ -1,4 +1,7 @@
 var { FileUtils } = ChromeUtils.import("resource://gre/modules/FileUtils.jsm");
+var { HandlerServiceTestUtils } = ChromeUtils.import(
+  "resource://testing-common/HandlerServiceTestUtils.jsm"
+);
 
 var gMimeSvc = Cc["@mozilla.org/mime;1"].getService(Ci.nsIMIMEService);
 var gHandlerSvc = Cc["@mozilla.org/uriloader/handler-service;1"].getService(
@@ -126,7 +129,7 @@ async function waitForSubDialog(browser, url, state) {
   let eventStr = state ? "dialogopen" : "dialogclose";
 
   let tabDialogBox = gBrowser.getTabDialogBox(browser);
-  let dialogStack = tabDialogBox._dialogManager._dialogStack;
+  let dialogStack = tabDialogBox.getTabDialogManager()._dialogStack;
 
   let checkFn;
 
@@ -195,3 +198,80 @@ async function promiseDownloadFinished(list) {
     });
   });
 }
+
+function setupMailHandler() {
+  let mailHandlerInfo = HandlerServiceTestUtils.getHandlerInfo("mailto");
+  let gOldMailHandlers = [];
+
+  // Remove extant web handlers because they have icons that
+  // we fetch from the web, which isn't allowed in tests.
+  let handlers = mailHandlerInfo.possibleApplicationHandlers;
+  for (let i = handlers.Count() - 1; i >= 0; i--) {
+    try {
+      let handler = handlers.queryElementAt(i, Ci.nsIWebHandlerApp);
+      gOldMailHandlers.push(handler);
+      // If we get here, this is a web handler app. Remove it:
+      handlers.removeElementAt(i);
+    } catch (ex) {}
+  }
+
+  let previousHandling = mailHandlerInfo.alwaysAskBeforeHandling;
+  mailHandlerInfo.alwaysAskBeforeHandling = true;
+
+  // Create a dummy web mail handler so we always know the mailto: protocol.
+  // Without this, the test fails on VMs without a default mailto: handler,
+  // because no dialog is ever shown, as we ignore subframe navigations to
+  // protocols that cannot be handled.
+  let dummy = Cc["@mozilla.org/uriloader/web-handler-app;1"].createInstance(
+    Ci.nsIWebHandlerApp
+  );
+  dummy.name = "Handler 1";
+  dummy.uriTemplate = "https://example.com/first/%s";
+  mailHandlerInfo.possibleApplicationHandlers.appendElement(dummy);
+
+  gHandlerSvc.store(mailHandlerInfo);
+  registerCleanupFunction(() => {
+    // Re-add the original protocol handlers:
+    let mailHandlers = mailHandlerInfo.possibleApplicationHandlers;
+    for (let i = handlers.Count() - 1; i >= 0; i--) {
+      try {
+        // See if this is a web handler. If it is, it'll throw, otherwise,
+        // we will remove it.
+        mailHandlers.queryElementAt(i, Ci.nsIWebHandlerApp);
+        mailHandlers.removeElementAt(i);
+      } catch (ex) {}
+    }
+    for (let h of gOldMailHandlers) {
+      mailHandlers.appendElement(h);
+    }
+    mailHandlerInfo.alwaysAskBeforeHandling = previousHandling;
+    gHandlerSvc.store(mailHandlerInfo);
+  });
+}
+
+let gDownloadDir;
+
+async function setDownloadDir() {
+  let tmpDir = await PathUtils.getTempDir();
+  tmpDir = PathUtils.join(
+    tmpDir,
+    "testsavedir" + Math.floor(Math.random() * 2 ** 32)
+  );
+  // Create this dir if it doesn't exist (ignores existing dirs)
+  await IOUtils.makeDirectory(tmpDir);
+  registerCleanupFunction(async function() {
+    try {
+      await IOUtils.remove(tmpDir, { recursive: true });
+    } catch (e) {
+      Cu.reportError(e);
+    }
+  });
+  Services.prefs.setIntPref("browser.download.folderList", 2);
+  Services.prefs.setCharPref("browser.download.dir", tmpDir);
+  return tmpDir;
+}
+
+add_task(async function test_common_initialize() {
+  gDownloadDir = await setDownloadDir();
+  Services.prefs.setCharPref("browser.download.loglevel", "Debug");
+});

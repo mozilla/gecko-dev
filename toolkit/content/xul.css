@@ -180,7 +180,7 @@ groupbox {
 
 %ifndef MOZ_WIDGET_GTK
 titlebar,
-toolbar:not([nowindowdrag="true"]):not([customizing="true"]) {
+toolbar:not([nowindowdrag="true"], [customizing="true"]) {
   -moz-window-dragging: drag;
 }
 %endif
@@ -278,10 +278,10 @@ tooltip {
       -moz-window-opacity: 0;
       -moz-window-transform: translateY(-70px);
     }
-  }
 
-  panel[type="arrow"][side="bottom"]:not([animate="false"]) {
-    -moz-window-transform: translateY(70px);
+    panel[type="arrow"][side="bottom"]:not([animate="false"]) {
+      -moz-window-transform: translateY(70px);
+    }
   }
 
   /* [animate] is here only so that this rule has greater specificity than the
@@ -332,27 +332,6 @@ tooltip {
 
 panel[type="arrow"][animating] {
   pointer-events: none;
-}
-
-/******** grid **********/
-
-grid {
-  display: -moz-grid;
-}
-
-rows,
-columns {
-  display: -moz-grid-group;
-}
-
-row,
-column {
-  display: -moz-grid-line;
-}
-
-rows,
-column {
-  -moz-box-orient: vertical;
 }
 
 /******** tree ******/

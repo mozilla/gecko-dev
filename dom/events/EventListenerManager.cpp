@@ -19,6 +19,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/dom/AbortSignal.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/EventCallbackDebuggerNotification.h"
 #include "mozilla/dom/Element.h"
@@ -30,6 +31,7 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/TouchEvent.h"
 #include "mozilla/dom/UserActivation.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TimelineConsumers.h"
 #include "mozilla/EventTimelineMarker.h"
 #include "mozilla/TimeStamp.h"
@@ -171,6 +173,9 @@ inline void ImplCycleCollectionTraverse(
     CycleCollectionNoteChild(aCallback, aField.mListener.GetISupports(), aName,
                              aFlags);
   }
+
+  CycleCollectionNoteChild(aCallback, aField.mSignalFollower.get(),
+                           "mSignalFollower", aFlags);
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(EventListenerManager)
@@ -204,11 +209,15 @@ EventListenerManager::GetTargetAsInnerWindow() const {
 void EventListenerManager::AddEventListenerInternal(
     EventListenerHolder aListenerHolder, EventMessage aEventMessage,
     nsAtom* aTypeAtom, const EventListenerFlags& aFlags, bool aHandler,
-    bool aAllEvents) {
+    bool aAllEvents, AbortSignal* aSignal) {
   MOZ_ASSERT((aEventMessage && aTypeAtom) || aAllEvents,  // all-events listener
              "Missing type");
 
   if (!aListenerHolder || mClearingListeners) {
+    return;
+  }
+
+  if (aSignal && aSignal->Aborted()) {
     return;
   }
 
@@ -254,6 +263,11 @@ void EventListenerManager::AddEventListenerInternal(
   }
   listener->mListener = std::move(aListenerHolder);
 
+  if (aSignal) {
+    listener->mSignalFollower = new ListenerSignalFollower(this, listener);
+    listener->mSignalFollower->Follow(aSignal);
+  }
+
   if (aFlags.mInSystemGroup) {
     mMayHaveSystemGroupListeners = true;
   }
@@ -277,7 +291,7 @@ void EventListenerManager::AddEventListenerInternal(
       if (doc &&
           !(aFlags.mInSystemGroup &&
             doc->DontWarnAboutMutationEventsAndAllowSlowDOMMutations())) {
-        doc->WarnOnceAbout(Document::eMutationEvent);
+        doc->WarnOnceAbout(DeprecatedOperations::eMutationEvent);
       }
       // If aEventMessage is eLegacySubtreeModified, we need to listen all
       // mutations. nsContentUtils::HasMutationListeners relies on this.
@@ -386,6 +400,18 @@ void EventListenerManager::AddEventListenerInternal(
   } else if (aTypeAtom == nsGkAtoms::onbeforeinput) {
     if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
       window->SetHasBeforeInputEventListenersForTelemetry();
+    }
+  } else if (aTypeAtom == nsGkAtoms::onoverflow) {
+    if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
+      if (Document* doc = window->GetExtantDoc()) {
+        doc->SetUseCounter(eUseCounter_custom_onoverflow);
+      }
+    }
+  } else if (aTypeAtom == nsGkAtoms::onunderflow) {
+    if (nsPIDOMWindowInner* window = GetInnerWindowForTarget()) {
+      if (Document* doc = window->GetExtantDoc()) {
+        doc->SetUseCounter(eUseCounter_custom_onunderflow);
+      }
     }
   }
 
@@ -686,7 +712,8 @@ void EventListenerManager::MaybeMarkPassive(EventMessage aMessage,
 
 void EventListenerManager::AddEventListenerByType(
     EventListenerHolder aListenerHolder, const nsAString& aType,
-    const EventListenerFlags& aFlags, const Optional<bool>& aPassive) {
+    const EventListenerFlags& aFlags, const Optional<bool>& aPassive,
+    AbortSignal* aSignal) {
   RefPtr<nsAtom> atom;
   EventMessage message =
       GetEventMessageAndAtomForListener(aType, getter_AddRefs(atom));
@@ -698,7 +725,8 @@ void EventListenerManager::AddEventListenerByType(
     MaybeMarkPassive(message, flags);
   }
 
-  AddEventListenerInternal(std::move(aListenerHolder), message, atom, flags);
+  AddEventListenerInternal(std::move(aListenerHolder), message, atom, flags,
+                           false, false, aSignal);
 }
 
 void EventListenerManager::RemoveEventListenerByType(
@@ -813,7 +841,7 @@ nsresult EventListenerManager::SetEventHandler(nsAtom* aName,
     if (csp) {
       bool allowsInlineScript = true;
       rv = csp->GetAllowsInline(
-          nsIContentPolicy::TYPE_SCRIPT,
+          nsIContentSecurityPolicy::SCRIPT_SRC_DIRECTIVE,
           u""_ns,  // aNonce
           true,    // aParserCreated (true because attribute event handler)
           aElement,
@@ -1369,6 +1397,7 @@ void EventListenerManager::AddEventListener(
     bool aWantsUntrusted) {
   EventListenerFlags flags;
   Optional<bool> passive;
+  AbortSignal* signal = nullptr;
   if (aOptions.IsBoolean()) {
     flags.mCapture = aOptions.GetAsBoolean();
   } else {
@@ -1379,10 +1408,15 @@ void EventListenerManager::AddEventListener(
     if (options.mPassive.WasPassed()) {
       passive.Construct(options.mPassive.Value());
     }
+
+    if (options.mSignal.WasPassed()) {
+      signal = options.mSignal.Value();
+    }
   }
+
   flags.mAllowUntrustedEvents = aWantsUntrusted;
   return AddEventListenerByType(std::move(aListenerHolder), aType, flags,
-                                passive);
+                                passive, signal);
 }
 
 void EventListenerManager::RemoveEventListener(
@@ -1786,6 +1820,49 @@ EventListenerManager::GetScriptGlobalAndDocument(Document** aDoc) {
   doc.forget(aDoc);
   nsCOMPtr<nsIScriptGlobalObject> global = do_QueryInterface(win);
   return global.forget();
+}
+
+EventListenerManager::ListenerSignalFollower::ListenerSignalFollower(
+    EventListenerManager* aListenerManager,
+    EventListenerManager::Listener* aListener)
+    : dom::AbortFollower(),
+      mListenerManager(aListenerManager),
+      mListener(aListener->mListener.Clone()),
+      mTypeAtom(aListener->mTypeAtom),
+      mEventMessage(aListener->mEventMessage),
+      mAllEvents(aListener->mAllEvents),
+      mFlags(aListener->mFlags){};
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(EventListenerManager::ListenerSignalFollower)
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(EventListenerManager::ListenerSignalFollower)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(EventListenerManager::ListenerSignalFollower)
+
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(
+    EventListenerManager::ListenerSignalFollower)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mListener)
+  AbortFollower::Traverse(static_cast<AbortFollower*>(tmp), cb);
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
+
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(
+    EventListenerManager::ListenerSignalFollower)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mListener)
+  AbortFollower::Unlink(static_cast<AbortFollower*>(tmp));
+  tmp->mListenerManager = nullptr;
+NS_IMPL_CYCLE_COLLECTION_UNLINK_END
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(
+    EventListenerManager::ListenerSignalFollower)
+  NS_INTERFACE_MAP_ENTRY(nsISupports)
+NS_INTERFACE_MAP_END
+
+void EventListenerManager::ListenerSignalFollower::RunAbortAlgorithm() {
+  if (mListenerManager) {
+    RefPtr<EventListenerManager> elm = mListenerManager;
+    mListenerManager = nullptr;
+    elm->RemoveEventListenerInternal(std::move(mListener), mEventMessage,
+                                     mTypeAtom, mFlags, mAllEvents);
+  }
 }
 
 }  // namespace mozilla

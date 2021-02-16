@@ -20,7 +20,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   CustomizableUITestUtils:
     "resource://testing-common/CustomizableUITestUtils.jsm",
   Region: "resource://gre/modules/Region.jsm",
-  SearchTelemetry: "resource:///modules/SearchTelemetry.jsm",
   SearchTestUtils: "resource://testing-common/SearchTestUtils.jsm",
   UrlbarTestUtils: "resource://testing-common/UrlbarTestUtils.jsm",
   HttpServer: "resource://testing-common/httpd.js",
@@ -55,8 +54,11 @@ add_task(async function setup() {
   let json = await response.json();
   await SearchTestUtils.updateRemoteSettingsConfig(json.data);
 
+  let topsitesAttribution = Services.prefs.getStringPref(
+    "browser.partnerlink.campaign.topsites"
+  );
   gHttpServer = new HttpServer();
-  gHttpServer.registerPathHandler("/", submitHandler);
+  gHttpServer.registerPathHandler(`/cid/${topsitesAttribution}`, submitHandler);
   gHttpServer.start(-1);
 
   await SpecialPowers.pushPrefEnv({
@@ -71,7 +73,7 @@ add_task(async function setup() {
       //
       [
         "browser.partnerlink.attributionURL",
-        `http://localhost:${gHttpServer.identity.primaryPort}/`,
+        `http://localhost:${gHttpServer.identity.primaryPort}/cid/`,
       ],
     ],
   });
@@ -80,11 +82,15 @@ add_task(async function setup() {
 
   // Make sure to restore the engine once we're done.
   registerCleanupFunction(async function() {
+    let settingsWritten = SearchTestUtils.promiseSearchNotification(
+      "write-settings-to-disk-complete"
+    );
     await SearchTestUtils.updateRemoteSettingsConfig();
     await gHttpServer.stop();
     gHttpServer = null;
     await PlacesUtils.history.clear();
     gCUITestUtils.removeSearchBar();
+    await settingsWritten;
   });
 });
 
@@ -305,13 +311,6 @@ add_task(async function test_about_newtab() {
 });
 
 add_task(async function test_urlbar_oneOff_click() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", true],
-      ["browser.urlbar.update2.oneOffsRefresh", true],
-    ],
-  });
-
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     "about:blank"
@@ -352,59 +351,6 @@ add_task(async function test_urlbar_oneOff_click() {
 
   BrowserTestUtils.removeTab(tab);
   gRequests = [];
-
-  await SpecialPowers.popPrefEnv();
-});
-
-add_task(async function test_urlbar_oneOff_click_legacy() {
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.update2", false],
-      ["browser.urlbar.update2.oneOffsRefresh", false],
-    ],
-  });
-
-  let tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "about:blank"
-  );
-
-  info("Type a query.");
-  let promiseLoad = BrowserTestUtils.waitForDocLoadAndStopIt(
-    "https://mochi.test:8888/browser/browser/components/search/test/browser/?search=query&foo=1",
-    tab
-  );
-  await searchInAwesomebar("query");
-  info("Click the first one-off button.");
-  UrlbarTestUtils.getOneOffSearchButtons(window)
-    .getSelectableButtons(false)[0]
-    .click();
-  await promiseLoad;
-
-  await BrowserTestUtils.waitForCondition(
-    () => gRequests.length == 1,
-    "Should have received an attribution submission"
-  );
-  Assert.equal(
-    gRequests[0].getHeader("X-Region"),
-    Region.home,
-    "Should have set the region correctly"
-  );
-  Assert.equal(
-    gRequests[0].getHeader("X-Source"),
-    "searchurl",
-    "Should have set the source correctly"
-  );
-  Assert.equal(
-    gRequests[0].getHeader("X-Target-url"),
-    "https://mochi.test:8888/browser/browser/components/search/test/browser/?foo=1",
-    "Should have set the target url correctly and stripped the search terms"
-  );
-
-  BrowserTestUtils.removeTab(tab);
-  gRequests = [];
-
-  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_searchbar_oneOff_click() {

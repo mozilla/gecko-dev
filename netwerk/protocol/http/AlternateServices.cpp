@@ -8,6 +8,7 @@
 
 #include "AlternateServices.h"
 #include "LoadInfo.h"
+#include "nsComponentManagerUtils.h"
 #include "nsEscape.h"
 #include "nsHttpConnectionInfo.h"
 #include "nsHttpChannel.h"
@@ -754,7 +755,7 @@ class WellKnownChecker {
     uint64_t channelId;
     nsLoadFlags flags;
 
-    nsContentPolicyType contentPolicyType =
+    ExtContentPolicyType contentPolicyType =
         loadInfo->GetExternalContentPolicyType();
 
     if (NS_FAILED(gHttpHandler->NewChannelId(channelId)) ||

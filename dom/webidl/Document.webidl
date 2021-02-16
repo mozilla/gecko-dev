@@ -361,9 +361,9 @@ partial interface Document {
 // http://dev.w3.org/2006/webapi/selectors-api2/#interface-definitions
 partial interface Document {
   [Throws, Pure]
-  Element?  querySelector(DOMString selectors);
+  Element?  querySelector(UTF8String selectors);
   [Throws, Pure]
-  NodeList  querySelectorAll(DOMString selectors);
+  NodeList  querySelectorAll(UTF8String selectors);
 
   //(Not implemented)Element?  find(DOMString selectors, optional (Element or sequence<Node>)? refNodes);
   //(Not implemented)NodeList  findAll(DOMString selectors, optional (Element or sequence<Node>)? refNodes);
@@ -404,10 +404,6 @@ partial interface Document {
   // The cookieJarSettings of this document
   [ChromeOnly]
   readonly attribute nsICookieJarSettings cookieJarSettings;
-
-  // The principal to use for the content blocking allow list
-  [ChromeOnly]
-  readonly attribute Principal? contentBlockingAllowListPrincipal;
 
   // Touch bits
   // XXXbz I can't find the sane spec for this stuff, so just cribbing

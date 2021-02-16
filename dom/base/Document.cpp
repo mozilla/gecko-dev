@@ -8,33 +8,110 @@
  * Base class for all our document implementations.
  */
 
-#include "AudioChannelService.h"
 #include "mozilla/dom/Document.h"
-#include "DocumentInlines.h"
+#include "mozilla/dom/DocumentInlines.h"
+
+#include <inttypes.h>
+#include <stdlib.h>
+#include <string.h>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <initializer_list>
+#include <iterator>
+#include <limits>
+#include <type_traits>
+#include "Attr.h"
+#include "AutoplayPolicy.h"
+#include "ErrorList.h"
+#include "ExpandedPrincipal.h"
+#include "MainThreadUtils.h"
+#include "MobileViewportManager.h"
+#include "NodeUbiReporting.h"
+#include "PLDHashTable.h"
+#include "StorageAccessPermissionRequest.h"
+#include "ThirdPartyUtil.h"
+#include "domstubs.h"
+#include "gfxPlatform.h"
+#include "imgIContainer.h"
+#include "imgLoader.h"
+#include "imgRequestProxy.h"
+#include "js/Value.h"
+#include "jsapi.h"
+#include "mozAutoDocUpdate.h"
+#include "mozIDOMWindow.h"
+#include "mozIThirdPartyUtil.h"
+#include "mozilla/AbstractTimelineMarker.h"
 #include "mozilla/AntiTrackingUtils.h"
+#include "mozilla/ArrayIterator.h"
 #include "mozilla/ArrayUtils.h"
-#include "mozilla/AutoRestore.h"
-#include "mozilla/BinarySearch.h"
+#include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/Base64.h"
+#include "mozilla/BasePrincipal.h"
+#include "mozilla/CSSEnabledState.h"
 #include "mozilla/ContentBlocking.h"
 #include "mozilla/ContentBlockingAllowList.h"
+#include "mozilla/ContentBlockingNotifier.h"
 #include "mozilla/ContentBlockingUserInteraction.h"
-#include "mozilla/CSSEnabledState.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/DocLoadingTimelineMarker.h"
+#include "mozilla/DocumentStyleRootIterator.h"
 #include "mozilla/EditorCommands.h"
-#include "mozilla/EffectSet.h"
-#include "mozilla/EnumSet.h"
+#include "mozilla/Encoding.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventListenerManager.h"
+#include "mozilla/EventQueue.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/ExtensionPolicyService.h"
+#include "mozilla/FullscreenChange.h"
+#include "mozilla/GlobalStyleSheetCache.h"
 #include "mozilla/HTMLEditor.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/IdentifierMapEntry.h"
+#include "mozilla/InputTaskManager.h"
 #include "mozilla/IntegerRange.h"
-#include "mozilla/MemoryReporting.h"
+#include "mozilla/InternalMutationEvent.h"
 #include "mozilla/Likely.h"
-#include "mozilla/LoadInfo.h"
+#include "mozilla/Logging.h"
+#include "mozilla/LookAndFeel.h"
+#include "mozilla/MacroForEach.h"
 #include "mozilla/MediaFeatureChange.h"
+#include "mozilla/MediaManager.h"
+#include "mozilla/MemoryReporting.h"
+#include "mozilla/NullPrincipal.h"
+#include "mozilla/OriginAttributes.h"
+#include "mozilla/OwningNonNull.h"
+#include "mozilla/PendingAnimationTracker.h"
+#include "mozilla/PendingFullscreenEvent.h"
+#include "mozilla/PermissionDelegateHandler.h"
+#include "mozilla/PermissionManager.h"
+#include "mozilla/Preferences.h"
+#include "mozilla/PreloadHashKey.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/PresShellForwards.h"
 #include "mozilla/PresShellInlines.h"
+#include "mozilla/PseudoStyleType.h"
+#include "mozilla/RefCountType.h"
+#include "mozilla/RelativeTo.h"
 #include "mozilla/RestyleManager.h"
+#include "mozilla/ReverseIterator.h"
+#include "mozilla/SMILAnimationController.h"
+#include "mozilla/SMILTimeContainer.h"
+#include "mozilla/ScopeExit.h"
+#include "mozilla/Services.h"
+#include "mozilla/ServoCSSPropList.h"
+#include "mozilla/ServoStyleConsts.h"
+#include "mozilla/ServoStyleSet.h"
+#include "mozilla/ServoTypes.h"
+#include "mozilla/SizeOfState.h"
+#include "mozilla/Span.h"
+#include "mozilla/Sprintf.h"
+#include "mozilla/StaticAnalysisFunctions.h"
 #include "mozilla/StaticPrefs_apz.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_docshell.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_full_screen_api.h"
 #include "mozilla/StaticPrefs_layout.h"
@@ -47,279 +124,293 @@
 #include "mozilla/StaticPresData.h"
 #include "mozilla/StorageAccess.h"
 #include "mozilla/StoragePrincipalHelper.h"
+#include "mozilla/StyleSheet.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/TelemetryHistogramEnums.h"
+#include "mozilla/TelemetryScalarEnums.h"
 #include "mozilla/TextControlElement.h"
 #include "mozilla/TextEditor.h"
+#include "mozilla/TimelineConsumers.h"
+#include "mozilla/TypedEnumBits.h"
 #include "mozilla/URLDecorationStripper.h"
 #include "mozilla/URLExtraData.h"
-#include "mozilla/Base64.h"
-#include "mozilla/BasePrincipal.h"
-#include <algorithm>
-
-#include "mozilla/Logging.h"
-#include "plstr.h"
-#include "mozilla/Sprintf.h"
-
-#include "mozilla/Telemetry.h"
-#include "nsIApplicationCache.h"
-#include "nsIInlineSpellChecker.h"
-#include "nsIInterfaceRequestor.h"
-#include "nsIInterfaceRequestorUtils.h"
-#include "nsILoadContext.h"
-#include "nsITextControlFrame.h"
-#include "nsCommandManager.h"
-#include "nsCommandParams.h"
-#include "nsUnicharUtils.h"
-#include "nsContentList.h"
-#include "nsCSSPseudoElements.h"
-#include "nsIObserver.h"
-#include "nsIBaseWindow.h"
-#include "nsILayoutHistoryState.h"
-#include "nsIXULRuntime.h"
-#include "mozilla/GlobalStyleSheetCache.h"
-#include "mozilla/css/Loader.h"
+#include "mozilla/Unused.h"
 #include "mozilla/css/ImageLoader.h"
-#include "nsDocShell.h"
-#include "nsDocShellLoadTypes.h"
-#include "nsIDocShellTreeItem.h"
-#include "nsCOMArray.h"
-#include "nsQueryObject.h"
-#include "mozilla/Services.h"
-#include "nsScreen.h"
-#include "ChildIterator.h"
-#include "nsSerializationHelper.h"
-#include "nsICertOverrideService.h"
-#include "nsXULElement.h"
-#include "nsIX509Cert.h"
-#include "nsIX509CertValidity.h"
-#include "nsITransportSecurityInfo.h"
-#include "nsINSSErrorsService.h"
-#include "nsISocketProvider.h"
-#include "nsISiteSecurityService.h"
-#include "nsISHEntry.h"
-#include "nsSHistory.h"
-#include "mozilla/PermissionDelegateHandler.h"
-
-#include "mozilla/AsyncEventDispatcher.h"
-#include "mozilla/BasicEvents.h"
-#include "mozilla/EventListenerManager.h"
-#include "mozilla/EventStateManager.h"
-#include "mozilla/FullscreenChange.h"
-#include "mozilla/PendingAnimationTracker.h"
-#include "mozilla/intl/LocaleService.h"
-
-#include "mozilla/dom/Attr.h"
-#include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/css/Loader.h"
+#include "mozilla/css/Rule.h"
+#include "mozilla/css/SheetParsingMode.h"
+#include "mozilla/dom/AnonymousContent.h"
+#include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowsingContext.h"
-#include "mozilla/dom/ContentChild.h"
-#include "mozilla/dom/CSSImportRule.h"
+#include "mozilla/dom/BrowsingContextGroup.h"
+#include "mozilla/dom/CDATASection.h"
 #include "mozilla/dom/CSPDictionariesBinding.h"
+#include "mozilla/dom/CanonicalBrowsingContext.h"
+#include "mozilla/dom/ChromeObserver.h"
+#include "mozilla/dom/ClientInfo.h"
+#include "mozilla/dom/ClientState.h"
+#include "mozilla/dom/Comment.h"
+#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/DOMImplementation.h"
 #include "mozilla/dom/DOMIntersectionObserver.h"
-#include "mozilla/dom/Element.h"
+#include "mozilla/dom/DOMStringList.h"
+#include "mozilla/dom/DocGroup.h"
+#include "mozilla/dom/DocumentBinding.h"
+#include "mozilla/dom/DocumentFragment.h"
+#include "mozilla/dom/DocumentL10n.h"
+#include "mozilla/dom/DocumentTimeline.h"
+#include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/Event.h"
+#include "mozilla/dom/EventListenerBinding.h"
 #include "mozilla/dom/FailedCertSecurityInfoBinding.h"
 #include "mozilla/dom/FeaturePolicy.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
+#include "mozilla/dom/FontFaceSet.h"
+#include "mozilla/dom/FromParser.h"
 #include "mozilla/dom/HTMLAllCollection.h"
-#include "mozilla/dom/HTMLMetaElement.h"
-#include "mozilla/dom/HTMLSharedElement.h"
+#include "mozilla/dom/HTMLBodyElement.h"
+#include "mozilla/dom/HTMLCollectionBinding.h"
 #include "mozilla/dom/HTMLDialogElement.h"
-#include "mozilla/dom/MediaStatusManager.h"
-#include "mozilla/dom/MutationObservers.h"
-#include "mozilla/dom/Navigator.h"
-#include "mozilla/dom/NetErrorInfoBinding.h"
-#include "mozilla/dom/Performance.h"
-#include "mozilla/dom/TreeOrderedArrayInlines.h"
-#include "mozilla/dom/ResizeObserver.h"
-#include "mozilla/dom/ResizeObserverController.h"
-#include "mozilla/dom/ServiceWorkerContainer.h"
-#include "mozilla/dom/ScriptLoader.h"
-#include "mozilla/dom/ShadowIncludingTreeIterator.h"
-#include "mozilla/dom/StyleSheetList.h"
-#include "mozilla/dom/SVGUseElement.h"
-#include "mozilla/dom/UserActivation.h"
-#include "mozilla/net/CookieJarSettings.h"
-#include "nsGenericHTMLElement.h"
-#include "mozilla/dom/CDATASection.h"
-#include "mozilla/dom/ProcessingInstruction.h"
-#include "mozilla/dom/PostMessageEvent.h"
-#include "mozilla/ipc/IdleSchedulerChild.h"
-#include "nsDOMString.h"
-#include "nsLayoutUtils.h"  // for GetFrameForPoint
-#include "nsIFrame.h"
-#include "nsIBrowserChild.h"
-#include "nsImportModule.h"
-
-#include "nsRange.h"
-#include "mozilla/dom/DocumentType.h"
-#include "mozilla/dom/NodeIterator.h"
-#include "mozilla/dom/Promise.h"
-#include "mozilla/dom/PromiseNativeHandler.h"
-#include "mozilla/dom/TreeWalker.h"
-
-#include "mozilla/dom/ServiceWorkerManager.h"
-#include "imgLoader.h"
-
-#include "nsAboutProtocolUtils.h"
-#include "nsCanvasFrame.h"
-#include "nsContentCID.h"
-#include "nsContentSecurityUtils.h"
-#include "nsError.h"
-#include "nsPresContext.h"
-#include "nsThreadUtils.h"
-#include "nsNodeInfoManager.h"
-#include "nsIBrowserUsage.h"
-#include "nsIEditingSession.h"
-#include "nsIFileChannel.h"
-#include "nsIMultiPartChannel.h"
-#include "nsIRefreshURI.h"
-#include "nsIWebNavigation.h"
-#include "nsIScriptError.h"
-#include "nsISimpleEnumerator.h"
-#include "nsIRequestContext.h"
-#include "nsStyleSheetService.h"
-
-#include "nsNetUtil.h"  // for NS_NewURI
-#include "nsIInputStreamChannel.h"
-#include "nsIAuthPrompt.h"
-#include "nsIAuthPrompt2.h"
-
-#include "mozilla/PermissionManager.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIPermission.h"
-#include "nsIPrincipal.h"
-#include "nsIPrivateBrowsingChannel.h"
-#include "ExpandedPrincipal.h"
-#include "mozilla/NullPrincipal.h"
-
-#include "nsPIDOMWindow.h"
-#include "nsFocusManager.h"
-#include "nsICookieService.h"
-
-#include "nsBidiUtils.h"
-
-#include "nsContentCreatorFunctions.h"
-
-#include "nsIScriptContext.h"
-#include "nsHTMLDocument.h"
-#include "nsIRequest.h"
-#include "mozilla/dom/BlobURLProtocolHandler.h"
-
-#include "nsCharsetSource.h"
-#include "nsIParser.h"
-#include "nsIContentSink.h"
-
-#include "mozilla/EventDispatcher.h"
-#include "mozilla/EventStates.h"
-#include "mozilla/InternalMutationEvent.h"
-#include "nsDOMCID.h"
-
-#include "jsapi.h"
-#include "xpcpublic.h"
-#include "nsCCUncollectableMarker.h"
-#include "nsIContentPolicy.h"
-#include "nsContentPolicyUtils.h"
-#include "nsICategoryManager.h"
-#include "nsIDocumentLoaderFactory.h"
-#include "nsIDocumentLoader.h"
-#include "nsIContentViewer.h"
-#include "nsIXMLContentSink.h"
-#include "nsIPrompt.h"
-#include "nsIPropertyBag2.h"
-#include "mozilla/dom/PageTransitionEvent.h"
-#include "mozilla/dom/StyleSheetApplicableStateChangeEvent.h"
-#include "nsJSUtils.h"
-#include "nsFrameLoader.h"
-#include "nsEscape.h"
-#include "nsObjectLoadingContent.h"
-#include "nsHtml5TreeOpExecutor.h"
 #include "mozilla/dom/HTMLFormElement.h"
-#include "mozilla/dom/HTMLLinkElement.h"
-#include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/HTMLImageElement.h"
+#include "mozilla/dom/HTMLInputElement.h"
+#include "mozilla/dom/HTMLLinkElement.h"
+#include "mozilla/dom/HTMLMediaElement.h"
+#include "mozilla/dom/HTMLMetaElement.h"
+#include "mozilla/dom/HTMLSharedElement.h"
 #include "mozilla/dom/HTMLTextAreaElement.h"
-#include "mozilla/dom/MediaSource.h"
-
-#include "mozAutoDocUpdate.h"
-#include "nsGlobalWindow.h"
-#include "mozilla/Encoding.h"
-#include "nsDOMNavigationTiming.h"
-
-#include "mozilla/SMILAnimationController.h"
-#include "imgIContainer.h"
-
-#include "nsRefreshDriver.h"
-
-// FOR CSP (autogenerated by xpidl)
-#include "nsIContentSecurityPolicy.h"
-#include "mozilla/dom/nsCSPContext.h"
-#include "mozilla/dom/nsCSPService.h"
-#include "mozilla/dom/nsCSPUtils.h"
-#include "nsHTMLStyleSheet.h"
-#include "nsHTMLCSSStyleSheet.h"
-#include "mozilla/dom/DOMImplementation.h"
-#include "mozilla/dom/ShadowRoot.h"
-#include "mozilla/dom/Comment.h"
-#include "nsTextNode.h"
+#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/Link.h"
-#include "mozilla/dom/HTMLCollectionBinding.h"
-#include "mozilla/dom/HTMLElementBinding.h"
-#include "nsXULAppAPI.h"
+#include "mozilla/dom/MediaQueryList.h"
+#include "mozilla/dom/MediaSource.h"
+#include "mozilla/dom/MutationObservers.h"
+#include "mozilla/dom/NameSpaceConstants.h"
+#include "mozilla/dom/Navigator.h"
+#include "mozilla/dom/NetErrorInfoBinding.h"
+#include "mozilla/dom/NodeInfo.h"
+#include "mozilla/dom/NodeIterator.h"
+#include "mozilla/dom/PContentChild.h"
+#include "mozilla/dom/PWindowGlobalChild.h"
+#include "mozilla/dom/PageTransitionEvent.h"
+#include "mozilla/dom/PageTransitionEventBinding.h"
+#include "mozilla/dom/Performance.h"
+#include "mozilla/dom/PermissionMessageUtils.h"
+#include "mozilla/dom/PostMessageEvent.h"
+#include "mozilla/dom/ProcessingInstruction.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/dom/PromiseNativeHandler.h"
+#include "mozilla/dom/ResizeObserverController.h"
+#include "mozilla/dom/SVGElement.h"
+#include "mozilla/dom/SVGSVGElement.h"
+#include "mozilla/dom/SVGUseElement.h"
+#include "mozilla/dom/ScriptLoader.h"
+#include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/dom/Selection.h"
+#include "mozilla/dom/ServiceWorkerContainer.h"
+#include "mozilla/dom/ServiceWorkerDescriptor.h"
+#include "mozilla/dom/ServiceWorkerManager.h"
+#include "mozilla/dom/ShadowIncludingTreeIterator.h"
+#include "mozilla/dom/ShadowRoot.h"
+#include "mozilla/dom/StyleSheetApplicableStateChangeEvent.h"
+#include "mozilla/dom/StyleSheetApplicableStateChangeEventBinding.h"
+#include "mozilla/dom/StyleSheetList.h"
+#include "mozilla/dom/TimeoutManager.h"
 #include "mozilla/dom/Touch.h"
 #include "mozilla/dom/TouchEvent.h"
-
-#include "mozilla/Preferences.h"
-
-#include "imgRequestProxy.h"
-#include "nsWrapperCacheInlines.h"
-#include "nsSandboxFlags.h"
-#include "mozilla/dom/AnimatableBinding.h"
-#include "mozilla/dom/AnonymousContent.h"
-#include "mozilla/dom/BindingUtils.h"
-#include "mozilla/dom/ClientInfo.h"
-#include "mozilla/dom/ClientState.h"
-#include "mozilla/dom/DocumentFragment.h"
-#include "mozilla/dom/DocumentTimeline.h"
-#include "mozilla/dom/Event.h"
-#include "mozilla/dom/HTMLBodyElement.h"
-#include "mozilla/dom/HTMLInputElement.h"
-#include "mozilla/dom/ImageTracker.h"
-#include "mozilla/dom/MediaQueryList.h"
-#include "mozilla/dom/NodeFilterBinding.h"
-#include "mozilla/OwningNonNull.h"
-#include "mozilla/dom/BrowserChild.h"
-#include "mozilla/dom/WebComponentsBinding.h"
-#include "mozilla/dom/CustomElementRegistryBinding.h"
-#include "mozilla/dom/CustomElementRegistry.h"
-#include "mozilla/dom/ServiceWorkerDescriptor.h"
-#include "mozilla/dom/TimeoutManager.h"
-#include "mozilla/dom/DocumentL10n.h"
-#include "mozilla/ExtensionPolicyService.h"
-#include "nsIFrame.h"
-#include "nsDOMCaretPosition.h"
-#include "nsViewportInfo.h"
-#include "mozilla/StaticPtr.h"
-#include "nsIHttpChannelInternal.h"
-#include "nsISecurityConsoleMessage.h"
-#include "nsCharSeparatedTokenizer.h"
+#include "mozilla/dom/TreeOrderedArray.h"
+#include "mozilla/dom/TreeOrderedArrayInlines.h"
+#include "mozilla/dom/TreeWalker.h"
+#include "mozilla/dom/URL.h"
+#include "mozilla/dom/UserActivation.h"
+#include "mozilla/dom/WindowBinding.h"
+#include "mozilla/dom/WindowContext.h"
+#include "mozilla/dom/WindowGlobalChild.h"
+#include "mozilla/dom/WindowProxyHolder.h"
 #include "mozilla/dom/XPathEvaluator.h"
-#include "mozilla/dom/XPathNSResolverBinding.h"
-#include "mozilla/dom/XPathResult.h"
-#include "nsIDocumentEncoder.h"
+#include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/dom/nsCSPUtils.h"
+#include "mozilla/extensions/WebExtensionPolicy.h"
+#include "mozilla/fallible.h"
+#include "mozilla/gfx/BaseCoord.h"
+#include "mozilla/gfx/BaseSize.h"
+#include "mozilla/gfx/Coord.h"
+#include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/ScaleFactor.h"
+#include "mozilla/intl/LocaleService.h"
+#include "mozilla/ipc/IdleSchedulerChild.h"
+#include "mozilla/ipc/MessageChannel.h"
+#include "mozilla/net/ChannelEventQueue.h"
+#include "mozilla/net/CookieJarSettings.h"
+#include "mozilla/net/NeckoChannelParams.h"
+#include "mozilla/net/RequestContextService.h"
+#include "nsAboutProtocolUtils.h"
+#include "nsAlgorithm.h"
+#include "nsAttrValue.h"
+#include "nsAttrValueInlines.h"
+#include "nsBaseHashtable.h"
+#include "nsBidiUtils.h"
+#include "nsCRT.h"
+#include "nsCSSPropertyID.h"
+#include "nsCSSProps.h"
+#include "nsCSSPseudoElements.h"
+#include "nsCanvasFrame.h"
+#include "nsCaseTreatment.h"
+#include "nsCharsetSource.h"
+#include "nsCommandManager.h"
+#include "nsCommandParams.h"
+#include "nsComponentManagerUtils.h"
+#include "nsContentCreatorFunctions.h"
+#include "nsContentList.h"
+#include "nsContentPermissionHelper.h"
+#include "nsContentSecurityUtils.h"
+#include "nsContentUtils.h"
+#include "nsCoord.h"
+#include "nsCycleCollectionNoteChild.h"
+#include "nsCycleCollectionTraversalCallback.h"
+#include "nsDOMAttributeMap.h"
+#include "nsDOMCaretPosition.h"
+#include "nsDOMNavigationTiming.h"
+#include "nsDOMString.h"
+#include "nsDeviceContext.h"
+#include "nsDocShell.h"
+#include "nsError.h"
+#include "nsEscape.h"
+#include "nsFocusManager.h"
+#include "nsFrameLoader.h"
+#include "nsFrameLoaderOwner.h"
+#include "nsGenericHTMLElement.h"
+#include "nsGlobalWindowInner.h"
+#include "nsGlobalWindowOuter.h"
+#include "nsHTMLCSSStyleSheet.h"
+#include "nsHTMLDocument.h"
+#include "nsHTMLStyleSheet.h"
+#include "nsHtml5Module.h"
+#include "nsHtml5Parser.h"
+#include "nsHtml5TreeOpExecutor.h"
+#include "nsIApplicationCache.h"
+#include "nsIAsyncShutdown.h"
+#include "nsIAuthPrompt.h"
+#include "nsIAuthPrompt2.h"
+#include "nsIBFCacheEntry.h"
+#include "nsIBaseWindow.h"
+#include "nsIBrowserChild.h"
+#include "nsIBrowserUsage.h"
+#include "nsICSSLoaderObserver.h"
+#include "nsICategoryManager.h"
+#include "nsICertOverrideService.h"
+#include "nsIContent.h"
+#include "nsIContentPolicy.h"
+#include "nsIContentSecurityPolicy.h"
+#include "nsIContentSink.h"
+#include "nsICookieJarSettings.h"
+#include "nsICookieService.h"
+#include "nsIDOMXULCommandDispatcher.h"
+#include "nsIDocShell.h"
+#include "nsIDocShellTreeItem.h"
 #include "nsIDocumentActivity.h"
+#include "nsIDocumentEncoder.h"
+#include "nsIDocumentLoader.h"
+#include "nsIDocumentLoaderFactory.h"
+#include "nsIDocumentObserver.h"
+#include "nsIEditingSession.h"
+#include "nsIEditor.h"
+#include "nsIEffectiveTLDService.h"
+#include "nsIFile.h"
+#include "nsIFileChannel.h"
+#include "nsIFrame.h"
+#include "nsIGlobalObject.h"
+#include "nsIHTMLCollection.h"
+#include "nsIHttpChannel.h"
+#include "nsIHttpChannelInternal.h"
+#include "nsIIOService.h"
+#include "nsIImageLoadingContent.h"
+#include "nsIInlineSpellChecker.h"
+#include "nsIInputStreamChannel.h"
+#include "nsIInterfaceRequestorUtils.h"
+#include "nsILayoutHistoryState.h"
+#include "nsIMultiPartChannel.h"
+#include "nsIMutationObserver.h"
+#include "nsINSSErrorsService.h"
+#include "nsINamed.h"
+#include "nsINodeList.h"
+#include "nsIObjectLoadingContent.h"
+#include "nsIObserverService.h"
+#include "nsIPermission.h"
+#include "nsIPrompt.h"
+#include "nsIPropertyBag2.h"
+#include "nsIReferrerInfo.h"
+#include "nsIRefreshURI.h"
+#include "nsIRequest.h"
+#include "nsIRequestContext.h"
+#include "nsIRunnable.h"
+#include "nsISHEntry.h"
+#include "nsIScriptElement.h"
+#include "nsIScriptError.h"
+#include "nsIScriptGlobalObject.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsISecurityConsoleMessage.h"
+#include "nsISelectionController.h"
+#include "nsISerialEventTarget.h"
+#include "nsISerializable.h"
+#include "nsISimpleEnumerator.h"
+#include "nsISiteSecurityService.h"
+#include "nsISocketProvider.h"
+#include "nsISpeculativeConnect.h"
 #include "nsIStructuredCloneContainer.h"
-#include "mozilla/dom/DOMStringList.h"
-#include "nsWindowSizes.h"
-#include "mozilla/dom/Location.h"
-#include "mozilla/dom/FontFaceSet.h"
-#include "mozilla/ServoStyleSet.h"
-#include "mozilla/StyleSheet.h"
-#include "mozilla/StyleSheetInlines.h"
-#include "mozilla/dom/SVGDocument.h"
-#include "mozilla/dom/SVGSVGElement.h"
-#include "mozilla/dom/DocGroup.h"
-#include "mozilla/dom/ChromeObserver.h"
+#include "nsIThread.h"
+#include "nsITimedChannel.h"
+#include "nsITimer.h"
+#include "nsITransportSecurityInfo.h"
+#include "nsIURIMutator.h"
+#include "nsIVariant.h"
+#include "nsIWeakReference.h"
+#include "nsIWebNavigation.h"
+#include "nsIWidget.h"
+#include "nsIX509Cert.h"
+#include "nsIX509CertValidity.h"
+#include "nsIXMLContentSink.h"
+#include "nsIXULRuntime.h"
+#include "nsImageLoadingContent.h"
+#include "nsImportModule.h"
+#include "nsLanguageAtomService.h"
+#include "nsLayoutUtils.h"
+#include "nsNetCID.h"
+#include "nsNetUtil.h"
+#include "nsNodeInfoManager.h"
+#include "nsObjectLoadingContent.h"
+#include "nsPIDOMWindowInlines.h"
+#include "nsPIWindowRoot.h"
+#include "nsPoint.h"
+#include "nsPointerHashKeys.h"
+#include "nsPresContext.h"
+#include "nsQueryFrame.h"
+#include "nsQueryObject.h"
+#include "nsRange.h"
+#include "nsRect.h"
+#include "nsRefreshDriver.h"
+#include "nsSandboxFlags.h"
+#include "nsSerializationHelper.h"
+#include "nsServiceManagerUtils.h"
+#include "nsStringFlags.h"
+#include "nsStringIterator.h"
+#include "nsStyleSheetService.h"
+#include "nsStyleStruct.h"
+#include "nsTextNode.h"
+#include "nsUnicharUtils.h"
+#include "nsWrapperCache.h"
+#include "nsWrapperCacheInlines.h"
+#include "nsXPCOMCID.h"
+#include "nsXULAppAPI.h"
+#include "prthread.h"
+#include "prtime.h"
+#include "prtypes.h"
+#include "xpcpublic.h"
+
+// XXX Must be included after mozilla/Encoding.h
+#include "encoding_rs.h"
+
 #ifdef MOZ_XUL
 #  include "mozilla/dom/XULBroadcastManager.h"
 #  include "mozilla/dom/XULPersist.h"
@@ -329,34 +420,6 @@
 #  include "nsXULPopupManager.h"
 #  include "nsIDocShellTreeOwner.h"
 #endif
-
-#include "mozilla/DocLoadingTimelineMarker.h"
-
-#include "mozilla/dom/WindowGlobalChild.h"
-
-#include "nsISpeculativeConnect.h"
-
-#include "mozilla/MediaManager.h"
-
-#include "AutoplayPolicy.h"
-#include "nsIURIMutator.h"
-#include "mozilla/DocumentStyleRootIterator.h"
-#include "mozilla/PendingFullscreenEvent.h"
-#include "mozilla/RestyleManager.h"
-#include "mozilla/ClearOnShutdown.h"
-#include "mozilla/ResultExtensions.h"
-#include "nsHTMLTags.h"
-#include "MobileViewportManager.h"
-#include "NodeUbiReporting.h"
-#include "nsICookieService.h"
-#include "mozilla/net/ChannelEventQueue.h"
-#include "mozilla/net/RequestContextService.h"
-#include "StorageAccessPermissionRequest.h"
-#include "mozilla/dom/WindowProxyHolder.h"
-#include "ThirdPartyUtil.h"
-#include "nsHtml5Module.h"
-#include "nsHtml5Parser.h"
-#include "nsTableWrapperFrame.h"
 
 #define XML_DECLARATION_BITS_DECLARATION_EXISTS (1 << 0)
 #define XML_DECLARATION_BITS_ENCODING_EXISTS (1 << 1)
@@ -1715,14 +1778,6 @@ void Document::GetFailedCertSecurityInfo(FailedCertSecurityInfo& aInfo,
   }
   aInfo.mValidNotAfter = DOMTimeStamp(validityResult / PR_USEC_PER_MSEC);
 
-  nsAutoString subjectAltNames;
-  rv = cert->GetSubjectAltNames(subjectAltNames);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    aRv.Throw(rv);
-    return;
-  }
-  aInfo.mSubjectAltNames = subjectAltNames;
-
   nsAutoString issuerCommonName;
   nsAutoString certChainPEMString;
   Sequence<nsString>& certChainStrings = aInfo.mCertChainStrings.Construct();
@@ -1931,11 +1986,39 @@ void Document::AccumulatePageLoadTelemetry() {
     return;
   }
 
+  nsCString http3Key;
+  nsCOMPtr<nsIHttpChannelInternal> httpChannel =
+      do_QueryInterface(GetChannel());
+  if (httpChannel) {
+    uint32_t major;
+    uint32_t minor;
+    if (NS_SUCCEEDED(httpChannel->GetResponseVersion(&major, &minor))) {
+      if (major == 3) {
+        http3Key = "http3"_ns;
+      } else if (major == 2) {
+        bool supportHttp3 = false;
+        if (NS_FAILED(httpChannel->GetSupportsHTTP3(&supportHttp3))) {
+          supportHttp3 = false;
+        }
+        if (supportHttp3) {
+          http3Key = "supports_http3"_ns;
+        }
+      }
+    }
+  }
+
   // First Contentful Paint
   if (TimeStamp firstContentfulPaint =
           GetNavigationTiming()->GetFirstContentfulPaintTimeStamp()) {
     Telemetry::AccumulateTimeDelta(Telemetry::PERF_FIRST_CONTENTFUL_PAINT_MS,
                                    navigationStart, firstContentfulPaint);
+
+    if (!http3Key.IsEmpty()) {
+      Telemetry::AccumulateTimeDelta(
+          Telemetry::HTTP3_PERF_FIRST_CONTENTFUL_PAINT_MS, http3Key,
+          navigationStart, firstContentfulPaint);
+    }
+
     Telemetry::AccumulateTimeDelta(
         Telemetry::PERF_FIRST_CONTENTFUL_PAINT_FROM_RESPONSESTART_MS,
         responseStart, firstContentfulPaint);
@@ -1956,6 +2039,11 @@ void Document::AccumulatePageLoadTelemetry() {
           GetNavigationTiming()->GetLoadEventStartTimeStamp()) {
     Telemetry::AccumulateTimeDelta(Telemetry::PERF_PAGE_LOAD_TIME_MS,
                                    navigationStart, loadEventStart);
+    if (!http3Key.IsEmpty()) {
+      Telemetry::AccumulateTimeDelta(Telemetry::HTTP3_PERF_PAGE_LOAD_TIME_MS,
+                                     http3Key, navigationStart, loadEventStart);
+    }
+
     Telemetry::AccumulateTimeDelta(
         Telemetry::PERF_PAGE_LOAD_TIME_FROM_RESPONSESTART_MS, responseStart,
         loadEventStart);
@@ -3129,7 +3217,6 @@ static void WarnIfSandboxIneffective(nsIDocShell* aDocShell,
   if (aSandboxFlags != SANDBOXED_NONE &&
       !(aSandboxFlags & SANDBOXED_TOPLEVEL_NAVIGATION) &&
       !(aSandboxFlags & SANDBOXED_TOPLEVEL_NAVIGATION_USER_ACTIVATION)) {
-    nsCOMPtr<nsIURI> iframeUri;
     nsContentUtils::ReportToConsole(
         nsIScriptError::warningFlag, "Iframe Sandbox"_ns,
         aDocShell->GetDocument(), nsContentUtils::eSECURITY_PROPERTIES,
@@ -3484,7 +3571,7 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
   // served with a CSP might block internally applied inline styles.
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();
   if (loadInfo->GetExternalContentPolicyType() ==
-      nsIContentPolicy::TYPE_IMAGE) {
+      ExtContentPolicy::TYPE_IMAGE) {
     return NS_OK;
   }
 
@@ -3555,10 +3642,7 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
 
   // ----- if the doc is an addon, apply its CSP.
   if (addonPolicy) {
-    nsAutoString extensionPageCSP;
-    Unused << ExtensionPolicyService::GetSingleton().GetBaseCSP(
-        extensionPageCSP);
-    mCSP->AppendPolicy(extensionPageCSP, false, false);
+    mCSP->AppendPolicy(addonPolicy->BaseCSP(), false, false);
 
     mCSP->AppendPolicy(addonPolicy->ExtensionPageCSP(), false, false);
     // Bug 1548468: Move CSP off ExpandedPrincipal
@@ -3603,6 +3687,10 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
 
   if (needNewNullPrincipal) {
     principal = NullPrincipal::CreateWithInheritedAttributes(principal);
+    // Skip setting the content blocking allowlist principal to NullPrincipal.
+    // The principal is only used to enable/disable trackingprotection via
+    // permission and can be shared with the top level sandboxed site.
+    // See Bug 1654546.
     SetPrincipals(principal, principal);
   }
 
@@ -3611,36 +3699,35 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
 }
 
 already_AddRefed<dom::FeaturePolicy> Document::GetParentFeaturePolicy() {
-  if (!mDocumentContainer) {
+  BrowsingContext* browsingContext = GetBrowsingContext();
+  if (!browsingContext) {
+    return nullptr;
+  }
+  if (!browsingContext->IsContentSubframe()) {
     return nullptr;
   }
 
-  nsPIDOMWindowOuter* containerWindow = mDocumentContainer->GetWindow();
-  if (!containerWindow) {
+  HTMLIFrameElement* iframe =
+      HTMLIFrameElement::FromNodeOrNull(browsingContext->GetEmbedderElement());
+  if (iframe) {
+    return do_AddRef(iframe->FeaturePolicy());
+  }
+
+  if (XRE_IsParentProcess()) {
+    return do_AddRef(browsingContext->Canonical()->GetContainerFeaturePolicy());
+  }
+
+  WindowContext* windowContext = browsingContext->GetCurrentWindowContext();
+  if (!windowContext) {
     return nullptr;
   }
 
-  BrowsingContext* context = containerWindow->GetBrowsingContext();
-  if (!context) {
+  WindowGlobalChild* child = windowContext->GetWindowGlobalChild();
+  if (!child) {
     return nullptr;
   }
 
-  RefPtr<dom::FeaturePolicy> parentPolicy;
-  if (context->IsContentSubframe() && !context->GetParent()->IsInProcess()) {
-    // We are in cross process, so try to get feature policy from
-    // container's BrowsingContext
-    parentPolicy = context->GetFeaturePolicy();
-    return parentPolicy.forget();
-  }
-
-  nsCOMPtr<nsINode> node = containerWindow->GetFrameElementInternal();
-  HTMLIFrameElement* iframe = HTMLIFrameElement::FromNodeOrNull(node);
-  if (!iframe) {
-    return nullptr;
-  }
-
-  parentPolicy = iframe->FeaturePolicy();
-  return parentPolicy.forget();
+  return do_AddRef(child->GetContainerFeaturePolicy());
 }
 
 nsresult Document::InitFeaturePolicy(nsIChannel* aChannel) {
@@ -3902,6 +3989,30 @@ void Document::RemoveFromIdTable(Element* aElement, nsAtom* aId) {
   }
 }
 
+void Document::UpdateReferrerInfoFromMeta(const nsAString& aMetaReferrer,
+                                          bool aPreload) {
+  ReferrerPolicyEnum policy =
+      ReferrerInfo::ReferrerPolicyFromMetaString(aMetaReferrer);
+  // The empty string "" corresponds to no referrer policy, causing a fallback
+  // to a referrer policy defined elsewhere.
+  if (policy == ReferrerPolicy::_empty) {
+    return;
+  }
+
+  MOZ_ASSERT(mReferrerInfo);
+  MOZ_ASSERT(mPreloadReferrerInfo);
+
+  if (aPreload) {
+    mPreloadReferrerInfo =
+        static_cast<mozilla::dom::ReferrerInfo*>((mPreloadReferrerInfo).get())
+            ->CloneWithNewPolicy(policy);
+  } else {
+    mReferrerInfo =
+        static_cast<mozilla::dom::ReferrerInfo*>((mReferrerInfo).get())
+            ->CloneWithNewPolicy(policy);
+  }
+}
+
 void Document::SetPrincipals(nsIPrincipal* aNewPrincipal,
                              nsIPrincipal* aNewPartitionedPrincipal) {
   MOZ_ASSERT(!!aNewPrincipal == !!aNewPartitionedPrincipal);
@@ -3918,9 +4029,6 @@ void Document::SetPrincipals(nsIPrincipal* aNewPrincipal,
   mPartitionedPrincipal = aNewPartitionedPrincipal;
 
   mCSSLoader->RegisterInSheetCache();
-
-  ContentBlockingAllowList::ComputePrincipal(
-      aNewPrincipal, getter_AddRefs(mContentBlockingAllowListPrincipal));
 
 #ifdef DEBUG
   // Validate that the docgroup is set correctly by calling its getter and
@@ -3950,8 +4058,7 @@ void Document::AssertDocGroupMatchesKey() const {
 
     // GetKey() can fail, e.g. after the TLD service has shut down.
     nsresult rv = mozilla::dom::DocGroup::GetKey(
-        NodePrincipal(), GetBrowsingContext()->CrossOriginIsolated(),
-        docGroupKey);
+        NodePrincipal(), CrossOriginIsolated(), docGroupKey);
     if (NS_SUCCEEDED(rv)) {
       MOZ_ASSERT(mDocGroup->MatchesKey(docGroupKey));
     }
@@ -4066,9 +4173,10 @@ bool Document::HasPendingInitialTranslation() {
 DocumentL10n* Document::GetL10n() { return mDocumentL10n; }
 
 bool Document::DocumentSupportsL10n(JSContext* aCx, JSObject* aObject) {
+  JS::Rooted<JSObject*> object(aCx, aObject);
   nsCOMPtr<nsIPrincipal> callerPrincipal =
       nsContentUtils::SubjectPrincipal(aCx);
-  nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
+  nsGlobalWindowInner* win = xpc::WindowOrNull(object);
   bool allowed = false;
   callerPrincipal->IsL10nAllowed(win ? win->GetDocumentURI() : nullptr,
                                  &allowed);
@@ -6033,9 +6141,13 @@ void Document::SetFgColor(const nsAString& aFgColor) {
   }
 }
 
-void Document::CaptureEvents() { WarnOnceAbout(Document::eUseOfCaptureEvents); }
+void Document::CaptureEvents() {
+  WarnOnceAbout(DeprecatedOperations::eUseOfCaptureEvents);
+}
 
-void Document::ReleaseEvents() { WarnOnceAbout(Document::eUseOfReleaseEvents); }
+void Document::ReleaseEvents() {
+  WarnOnceAbout(DeprecatedOperations::eUseOfReleaseEvents);
+}
 
 HTMLAllCollection* Document::All() {
   if (!mAll) {
@@ -6425,6 +6537,12 @@ bool Document::ShouldThrottleFrameRequests() const {
 
   if (!mPresShell) {
     return false;  // Can't do anything smarter.
+  }
+
+  if (!mPresShell->IsActive()) {
+    // The pres shell is not active (we're an invisible OOP iframe or such), so
+    // throttle.
+    return true;
   }
 
   nsIFrame* frame = mPresShell->GetRootFrame();
@@ -6873,14 +6991,24 @@ nsIGlobalObject* Document::GetScopeObject() const {
   return scope;
 }
 
+bool Document::CrossOriginIsolated() const {
+  // For a data document, it doesn't have a browsing context so that we check
+  // the cross-origin-isolated state from its creator's inner window.
+  if (mLoadedAsData) {
+    nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(GetScopeObject());
+
+    return window && window->GetBrowsingContext() &&
+           window->GetBrowsingContext()->CrossOriginIsolated();
+  }
+
+  return GetBrowsingContext() && GetBrowsingContext()->CrossOriginIsolated();
+}
+
 DocGroup* Document::GetDocGroupOrCreate() {
   if (!mDocGroup) {
-    bool crossOriginIsolated = GetBrowsingContext()
-                                   ? GetBrowsingContext()->CrossOriginIsolated()
-                                   : false;
     nsAutoCString docGroupKey;
     nsresult rv = mozilla::dom::DocGroup::GetKey(
-        NodePrincipal(), crossOriginIsolated, docGroupKey);
+        NodePrincipal(), CrossOriginIsolated(), docGroupKey);
     if (NS_SUCCEEDED(rv) && mDocumentContainer) {
       BrowsingContextGroup* group = GetBrowsingContext()->Group();
       if (group) {
@@ -6903,15 +7031,11 @@ void Document::SetScopeObject(nsIGlobalObject* aGlobal) {
     BrowsingContextGroup* browsingContextGroup =
         window->GetBrowsingContextGroup();
 
-    bool crossOriginIsolated = GetBrowsingContext()
-                                   ? GetBrowsingContext()->CrossOriginIsolated()
-                                   : false;
-
     // We should already have the principal, and now that we have been added
     // to a window, we should be able to join a DocGroup!
     nsAutoCString docGroupKey;
     nsresult rv = mozilla::dom::DocGroup::GetKey(
-        NodePrincipal(), crossOriginIsolated, docGroupKey);
+        NodePrincipal(), CrossOriginIsolated(), docGroupKey);
     if (mDocGroup) {
       if (NS_SUCCEEDED(rv)) {
         MOZ_RELEASE_ASSERT(mDocGroup->MatchesKey(docGroupKey));
@@ -6931,19 +7055,11 @@ void Document::SetScopeObject(nsIGlobalObject* aGlobal) {
 }
 
 bool Document::ContainsEMEContent() {
-  bool containsEME = false;
-
-  auto check = [&containsEME](nsISupports* aSupports) {
-    nsCOMPtr<nsIContent> content(do_QueryInterface(aSupports));
-    if (auto* mediaElem = HTMLMediaElement::FromNodeOrNull(content)) {
-      if (mediaElem->GetMediaKeys()) {
-        containsEME = true;
-      }
-    }
-  };
-
-  EnumerateActivityObservers(check);
-  return containsEME;
+  nsPIDOMWindowInner* win = GetInnerWindow();
+  // Note this case is different from checking just media elements in that
+  // it covers when we've created MediaKeys but not associated them with a
+  // media element.
+  return win && win->HasActiveMediaKeysInstance();
 }
 
 bool Document::ContainsMSEContent() {
@@ -6990,19 +7106,11 @@ static void NotifyActivityChanged(nsISupports* aSupports) {
 }
 
 bool Document::IsTopLevelWindowInactive() const {
-  nsCOMPtr<nsIDocShellTreeItem> treeItem = GetDocShell();
-  if (!treeItem) {
-    return false;
+  if (BrowsingContext* bc = GetBrowsingContext()) {
+    return !bc->GetIsActiveBrowserWindow();
   }
 
-  nsCOMPtr<nsIDocShellTreeItem> rootItem;
-  treeItem->GetInProcessRootTreeItem(getter_AddRefs(rootItem));
-  if (!rootItem) {
-    return false;
-  }
-
-  nsCOMPtr<nsPIDOMWindowOuter> domWindow = rootItem->GetWindow();
-  return domWindow && !domWindow->IsActive();
+  return false;
 }
 
 void Document::SetContainer(nsDocShell* aContainer) {
@@ -7150,8 +7258,7 @@ void Document::SetScriptGlobalObject(
   // still test false at this point and no state change will happen) or we're
   // doing the initial document load and don't want to fire the event for this
   // change.
-  dom::VisibilityState oldState = mVisibilityState;
-  mVisibilityState = ComputeVisibilityState();
+  //
   // When the visibility is changed, notify it to observers.
   // Some observers need the notification, for example HTMLMediaElement uses
   // it to update internal media resource allocation.
@@ -7164,9 +7271,7 @@ void Document::SetScriptGlobalObject(
   // not yet necessary. But soon after Document::SetScriptGlobalObject()
   // call, the document becomes not hidden. At the time, MediaDecoder needs
   // to know it and needs to start updating decoding.
-  if (oldState != mVisibilityState) {
-    EnumerateActivityObservers(NotifyActivityChanged);
-  }
+  UpdateVisibilityState(DispatchVisibilityChange::No);
 
   // The global in the template contents owner document should be the same.
   if (mTemplateContentsOwner && mTemplateContentsOwner != this) {
@@ -8293,9 +8398,7 @@ void Document::SetDomain(const nsAString& aDomain, ErrorResult& rv) {
     return;
   }
 
-  if (StaticPrefs::
-          dom_postMessage_sharedArrayBuffer_withCOOP_COEP_AtStartup() &&
-      GetBrowsingContext() && GetBrowsingContext()->CrossOriginIsolated()) {
+  if (CrossOriginIsolated()) {
     WarnOnceAbout(Document::eDocumentSetDomainNotAllowed);
     return;
   }
@@ -8616,7 +8719,7 @@ void Document::DoNotifyPossibleTitleChange() {
 }
 
 already_AddRefed<MediaQueryList> Document::MatchMedia(
-    const nsAString& aMediaQueryList, CallerType aCallerType) {
+    const nsACString& aMediaQueryList, CallerType aCallerType) {
   RefPtr<MediaQueryList> result =
       new MediaQueryList(this, aMediaQueryList, aCallerType);
 
@@ -10604,7 +10707,8 @@ bool Document::CanSavePresentation(nsIRequest* aNewRequest,
 
   // Check our event listener manager for unload/beforeunload listeners.
   nsCOMPtr<EventTarget> piTarget = do_QueryInterface(mScriptGlobalObject);
-  if (piTarget) {
+  if (!StaticPrefs::docshell_shistory_bfcache_allow_unload_listeners() &&
+      piTarget) {
     EventListenerManager* manager = piTarget->GetExistingListenerManager();
     if (manager && manager->HasUnloadListeners()) {
       MOZ_LOG(gPageCacheLog, mozilla::LogLevel::Verbose,
@@ -12643,11 +12747,10 @@ static const char* kDocumentWarnings[] = {
     nullptr};
 #undef DOCUMENT_WARNING
 
-static UseCounter OperationToUseCounter(
-    Document::DeprecatedOperations aOperation) {
+static UseCounter OperationToUseCounter(DeprecatedOperations aOperation) {
   switch (aOperation) {
-#define DEPRECATED_OPERATION(_op) \
-  case Document::e##_op:          \
+#define DEPRECATED_OPERATION(_op)    \
+  case DeprecatedOperations::e##_op: \
     return eUseCounter_##_op;
 #include "nsDeprecatedOperationList.h"
 #undef DEPRECATED_OPERATION
@@ -12657,7 +12760,7 @@ static UseCounter OperationToUseCounter(
 }
 
 bool Document::HasWarnedAbout(DeprecatedOperations aOperation) const {
-  return mDeprecationWarnedAbout[aOperation];
+  return mDeprecationWarnedAbout[static_cast<size_t>(aOperation)];
 }
 
 void Document::WarnOnceAbout(
@@ -12667,7 +12770,7 @@ void Document::WarnOnceAbout(
   if (HasWarnedAbout(aOperation)) {
     return;
   }
-  mDeprecationWarnedAbout[aOperation] = true;
+  mDeprecationWarnedAbout[static_cast<size_t>(aOperation)] = true;
   // Don't count deprecated operations for about pages since those pages
   // are almost in our control, and we always need to remove uses there
   // before we remove the operation itself anyway.
@@ -12677,9 +12780,9 @@ void Document::WarnOnceAbout(
   }
   uint32_t flags =
       asError ? nsIScriptError::errorFlag : nsIScriptError::warningFlag;
-  nsContentUtils::ReportToConsole(flags, "DOM Core"_ns, this,
-                                  nsContentUtils::eDOM_PROPERTIES,
-                                  kDeprecationWarnings[aOperation], aParams);
+  nsContentUtils::ReportToConsole(
+      flags, "DOM Core"_ns, this, nsContentUtils::eDOM_PROPERTIES,
+      kDeprecationWarnings[static_cast<size_t>(aOperation)], aParams);
 }
 
 bool Document::HasWarnedAbout(DocumentWarnings aWarning) const {
@@ -12827,8 +12930,8 @@ already_AddRefed<nsDOMCaretPosition> Document::CaretPositionFromPoint(
 
   nsIFrame* ptFrame = nsLayoutUtils::GetFrameForPoint(
       RelativeTo{rootFrame}, pt,
-      {FrameForPointOption::IgnorePaintSuppression,
-       FrameForPointOption::IgnoreCrossDoc});
+      {{FrameForPointOption::IgnorePaintSuppression,
+        FrameForPointOption::IgnoreCrossDoc}});
   if (!ptFrame) {
     return nullptr;
   }
@@ -14015,14 +14118,12 @@ nsTArray<Element*> Document::GetTopLayer() const {
 
 // Returns true if aDoc is in the focused tab in the active window.
 bool IsInActiveTab(Document* aDoc) {
-  nsCOMPtr<nsIDocShell> docshell = aDoc->GetDocShell();
-  if (!docshell) {
+  BrowsingContext* bc = aDoc->GetBrowsingContext();
+  if (!bc) {
     return false;
   }
 
-  bool isActive = false;
-  docshell->GetIsActive(&isActive);
-  if (!isActive) {
+  if (!bc->IsActive()) {
     return false;
   }
 
@@ -14034,7 +14135,10 @@ bool IsInActiveTab(Document* aDoc) {
   if (XRE_IsParentProcess()) {
     // Keep dom/tests/mochitest/chrome/test_MozDomFullscreen_event.xhtml happy
     // by retaining the old code path for the parent process.
-
+    nsIDocShell* docshell = aDoc->GetDocShell();
+    if (!docshell) {
+      return false;
+    }
     nsCOMPtr<nsIDocShellTreeItem> rootItem;
     docshell->GetInProcessRootTreeItem(getter_AddRefs(rootItem));
     if (!rootItem) {
@@ -14054,17 +14158,7 @@ bool IsInActiveTab(Document* aDoc) {
     return activeWindow == rootWin;
   }
 
-  BrowsingContext* bc = aDoc->GetBrowsingContext();
-  if (!bc) {
-    return false;
-  }
-
-  BrowsingContext* activeBrowsingContext = fm->GetActiveBrowsingContext();
-  if (!activeBrowsingContext) {
-    return false;
-  }
-
-  return activeBrowsingContext == bc->Top();
+  return fm->GetActiveBrowsingContext() == bc->Top();
 }
 
 void Document::RemoteFrameFullscreenChanged(Element* aFrameElement) {
@@ -14515,7 +14609,7 @@ static const char* GetPointerLockError(Element* aElement, Element* aCurrentLock,
   BrowsingContext* bc = ownerDoc->GetBrowsingContext();
   BrowsingContext* topBC = bc ? bc->Top() : nullptr;
   WindowContext* topWC = ownerDoc->GetTopLevelWindowContext();
-  if (!topBC || !topBC->GetIsActive() || !topWC ||
+  if (!topBC || !topBC->IsActive() || !topWC ||
       topWC != topBC->GetCurrentWindowContext()) {
     return "PointerLockDeniedHidden";
   }
@@ -14560,48 +14654,19 @@ static void ChangePointerLockedElement(Element* aElement, Document* aDocument,
   DispatchPointerLockChange(aDocument);
 }
 
-MOZ_CAN_RUN_SCRIPT_BOUNDARY static void StartSetPointerLock(
-    Element* aElement, Document* aDocument, bool aUserInputOrChromeCaller) {
-  const char* error = nullptr;
-  if (!aElement || !aDocument || !aElement->GetComposedDoc()) {
-    error = "PointerLockDeniedNotInDocument";
-  } else if (aElement->GetComposedDoc() != aDocument) {
-    error = "PointerLockDeniedMovedDocument";
-  }
-  if (!error) {
-    nsCOMPtr<Element> pointerLockedElement =
-        do_QueryReferent(EventStateManager::sPointerLockedElement);
-    if (aElement == pointerLockedElement) {
-      DispatchPointerLockChange(aDocument);
-      return;
-    }
-    // Note, we must bypass focus change, so pass true as the last parameter!
-    error = GetPointerLockError(aElement, pointerLockedElement, true);
-    // Another element in the same document is requesting pointer lock,
-    // just grant it without user input check.
-    if (!error && pointerLockedElement) {
-      ChangePointerLockedElement(aElement, aDocument, pointerLockedElement);
-      return;
-    }
-  }
-  // If it is neither user input initiated, nor requested in fullscreen,
-  // it should be rejected.
-  if (!error && !aUserInputOrChromeCaller &&
-      !aDocument->GetUnretargetedFullScreenElement()) {
-    error = "PointerLockDeniedNotInputDriven";
-  }
-  if (!error && !aDocument->SetPointerLock(aElement, StyleCursorKind::None)) {
-    error = "PointerLockDeniedFailedToLock";
-  }
-  if (error) {
-    DispatchPointerLockError(aDocument, error);
-    return;
+MOZ_CAN_RUN_SCRIPT_BOUNDARY static bool StartSetPointerLock(
+    Element* aElement, Document* aDocument) {
+  if (!aDocument->SetPointerLock(aElement, StyleCursorKind::None)) {
+    DispatchPointerLockError(aDocument, "PointerLockDeniedFailedToLock");
+    return false;
   }
 
   ChangePointerLockedElement(aElement, aDocument, nullptr);
   nsContentUtils::DispatchEventOnlyToChrome(
       aDocument, ToSupports(aElement), u"MozDOMPointerLock:Entered"_ns,
       CanBubble::eYes, Cancelable::eNo, /* DefaultAction */ nullptr);
+
+  return true;
 }
 
 class PointerLockRequest final : public Runnable {
@@ -14610,14 +14675,109 @@ class PointerLockRequest final : public Runnable {
       : mozilla::Runnable("PointerLockRequest"),
         mElement(do_GetWeakReference(aElement)),
         mDocument(do_GetWeakReference(aElement->OwnerDoc())),
-        mUserInputOrChromeCaller(aUserInputOrChromeCaller) {
-    MOZ_ASSERT(XRE_IsParentProcess());
-  }
+        mUserInputOrChromeCaller(aUserInputOrChromeCaller) {}
 
   NS_IMETHOD Run() final {
     nsCOMPtr<Element> element = do_QueryReferent(mElement);
     nsCOMPtr<Document> document = do_QueryReferent(mDocument);
-    StartSetPointerLock(element, document, mUserInputOrChromeCaller);
+
+    const char* error = nullptr;
+    if (!element || !document || !element->GetComposedDoc()) {
+      error = "PointerLockDeniedNotInDocument";
+    } else if (element->GetComposedDoc() != document) {
+      error = "PointerLockDeniedMovedDocument";
+    }
+    if (!error) {
+      nsCOMPtr<Element> pointerLockedElement =
+          do_QueryReferent(EventStateManager::sPointerLockedElement);
+      if (element == pointerLockedElement) {
+        DispatchPointerLockChange(document);
+        return NS_OK;
+      }
+      // Note, we must bypass focus change, so pass true as the last parameter!
+      error = GetPointerLockError(element, pointerLockedElement, true);
+      // Another element in the same document is requesting pointer lock,
+      // just grant it without user input check.
+      if (!error && pointerLockedElement) {
+        ChangePointerLockedElement(element, document, pointerLockedElement);
+        return NS_OK;
+      }
+    }
+    // If it is neither user input initiated, nor requested in fullscreen,
+    // it should be rejected.
+    if (!error && !mUserInputOrChromeCaller &&
+        !document->GetUnretargetedFullScreenElement()) {
+      error = "PointerLockDeniedNotInputDriven";
+    }
+
+    if (error) {
+      DispatchPointerLockError(document, error);
+      return NS_OK;
+    }
+
+    if (BrowserChild* browserChild =
+            BrowserChild::GetFrom(document->GetDocShell())) {
+      nsWeakPtr e = do_GetWeakReference(element);
+      nsWeakPtr doc = do_GetWeakReference(element->OwnerDoc());
+      nsWeakPtr bc = do_GetWeakReference(browserChild);
+      browserChild->SendRequestPointerLock(
+          [e, doc, bc](const nsCString& aError) {
+            nsCOMPtr<Document> document = do_QueryReferent(doc);
+            if (!aError.IsEmpty()) {
+              DispatchPointerLockError(document, aError.get());
+              return;
+            }
+
+            const char* error = nullptr;
+            auto autoCleanup = MakeScopeExit([&] {
+              if (error) {
+                DispatchPointerLockError(document, error);
+                // If we are failed to set pointer lock, notify parent to stop
+                // redirect mouse event to this process.
+                if (nsCOMPtr<nsIBrowserChild> browserChild =
+                        do_QueryReferent(bc)) {
+                  static_cast<BrowserChild*>(browserChild.get())
+                      ->SendReleasePointerLock();
+                }
+              }
+            });
+
+            nsCOMPtr<Element> element = do_QueryReferent(e);
+            if (!element || !document || !element->GetComposedDoc()) {
+              error = "PointerLockDeniedNotInDocument";
+              return;
+            }
+
+            if (element->GetComposedDoc() != document) {
+              error = "PointerLockDeniedMovedDocument";
+              return;
+            }
+
+            nsCOMPtr<Element> pointerLockedElement =
+                do_QueryReferent(EventStateManager::sPointerLockedElement);
+            error = GetPointerLockError(element, pointerLockedElement, true);
+            if (error) {
+              return;
+            }
+
+            if (!StartSetPointerLock(element, document)) {
+              error = "PointerLockDeniedFailedToLock";
+              return;
+            }
+          },
+          [doc](mozilla::ipc::ResponseRejectReason) {
+            // IPC layer error
+            nsCOMPtr<Document> document = do_QueryReferent(doc);
+            if (!document) {
+              return;
+            }
+
+            DispatchPointerLockError(document, "PointerLockDeniedFailedToLock");
+          });
+    } else {
+      StartSetPointerLock(element, document);
+    }
+
     return NS_OK;
   };
 
@@ -14645,30 +14805,9 @@ void Document::RequestPointerLock(Element* aElement, CallerType aCallerType) {
 
   bool userInputOrSystemCaller = HasValidTransientUserGestureActivation() ||
                                  aCallerType == CallerType::System;
-  if (BrowserChild* browserChild = BrowserChild::GetFrom(GetDocShell())) {
-    nsWeakPtr e = do_GetWeakReference(aElement);
-    nsWeakPtr doc = do_GetWeakReference(aElement->OwnerDoc());
-    browserChild->SendRequestPointerLock(
-        [e, doc, userInputOrSystemCaller](const nsCString& aError) {
-          nsCOMPtr<Document> document = do_QueryReferent(doc);
-          if (!aError.IsEmpty()) {
-            DispatchPointerLockError(document, aError.get());
-            return;
-          }
-
-          nsCOMPtr<Element> element = do_QueryReferent(e);
-          StartSetPointerLock(element, document, userInputOrSystemCaller);
-        },
-        [doc](mozilla::ipc::ResponseRejectReason) {
-          // IPC layer error
-          nsCOMPtr<Document> document = do_QueryReferent(doc);
-          DispatchPointerLockError(document, "PointerLockDeniedFailedToLock");
-        });
-  } else {
-    nsCOMPtr<nsIRunnable> request =
-        new PointerLockRequest(aElement, userInputOrSystemCaller);
-    Dispatch(TaskCategory::Other, request.forget());
-  }
+  nsCOMPtr<nsIRunnable> request =
+      new PointerLockRequest(aElement, userInputOrSystemCaller);
+  Dispatch(TaskCategory::Other, request.forget());
 }
 
 bool Document::SetPointerLock(Element* aElement, StyleCursorKind aCursorStyle) {
@@ -14750,18 +14889,19 @@ void Document::UnlockPointer(Document* aDoc) {
   asyncDispatcher->RunDOMEventWhenSafe();
 }
 
-void Document::UpdateVisibilityState() {
+void Document::UpdateVisibilityState(DispatchVisibilityChange aDispatchEvent) {
   dom::VisibilityState oldState = mVisibilityState;
   mVisibilityState = ComputeVisibilityState();
   if (oldState != mVisibilityState) {
-    nsContentUtils::DispatchTrustedEvent(this, ToSupports(this),
-                                         u"visibilitychange"_ns,
-                                         CanBubble::eYes, Cancelable::eNo);
+    if (aDispatchEvent == DispatchVisibilityChange::Yes) {
+      nsContentUtils::DispatchTrustedEvent(this, ToSupports(this),
+                                           u"visibilitychange"_ns,
+                                           CanBubble::eYes, Cancelable::eNo);
+    }
     EnumerateActivityObservers(NotifyActivityChanged);
-  }
-
-  if (mVisibilityState == dom::VisibilityState::Visible) {
-    MaybeActiveMediaComponents();
+    if (mVisibilityState == dom::VisibilityState::Visible) {
+      MaybeActiveMediaComponents();
+    }
   }
 }
 
@@ -14782,9 +14922,9 @@ VisibilityState Document::ComputeVisibilityState() const {
 }
 
 void Document::PostVisibilityUpdateEvent() {
-  nsCOMPtr<nsIRunnable> event =
-      NewRunnableMethod("Document::UpdateVisibilityState", this,
-                        &Document::UpdateVisibilityState);
+  nsCOMPtr<nsIRunnable> event = NewRunnableMethod<DispatchVisibilityChange>(
+      "Document::UpdateVisibilityState", this, &Document::UpdateVisibilityState,
+      DispatchVisibilityChange::Yes);
   Dispatch(TaskCategory::Other, event.forget());
 }
 
@@ -15512,7 +15652,9 @@ static CallState MarkDocumentTreeToBeInSyncOperation(
   return CallState::Continue;
 }
 
-nsAutoSyncOperation::nsAutoSyncOperation(Document* aDoc) {
+nsAutoSyncOperation::nsAutoSyncOperation(Document* aDoc,
+                                         SyncOperationBehavior aSyncBehavior)
+    : mSyncBehavior(aSyncBehavior) {
   mMicroTaskLevel = 0;
   CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get();
   if (ccjs) {
@@ -15527,6 +15669,13 @@ nsAutoSyncOperation::nsAutoSyncOperation(Document* aDoc) {
         }
       }
     }
+
+    mBrowsingContext = aDoc->GetBrowsingContext();
+    if (mBrowsingContext &&
+        mSyncBehavior == SyncOperationBehavior::eSuspendInput &&
+        InputTaskManager::CanSuspendInputEvent()) {
+      mBrowsingContext->Group()->IncInputEventSuspensionLevel();
+    }
   }
 }
 
@@ -15540,6 +15689,12 @@ nsAutoSyncOperation::~nsAutoSyncOperation() {
   CycleCollectedJSContext* ccjs = CycleCollectedJSContext::Get();
   if (ccjs) {
     ccjs->SetMicroTaskLevel(mMicroTaskLevel);
+  }
+
+  if (mBrowsingContext &&
+      mSyncBehavior == SyncOperationBehavior::eSuspendInput &&
+      InputTaskManager::CanSuspendInputEvent()) {
+    mBrowsingContext->Group()->DecInputEventSuspensionLevel();
   }
 }
 
@@ -16444,7 +16599,17 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccess(
   //         user for explicit permission. Reject if some rule is not fulfilled.
   if (CookieJarSettings()->GetRejectThirdPartyContexts()) {
     // Only do something special for third-party tracking content.
-    if (StorageDisabledByAntiTracking(this, nullptr)) {
+    uint32_t antiTrackingRejectedReason = 0;
+    if (StorageDisabledByAntiTracking(this, nullptr,
+                                      antiTrackingRejectedReason)) {
+      // If storage is disabled because of a custom cookie permission for the
+      // site, reject.
+      if (antiTrackingRejectedReason ==
+          nsIWebProgressListener::STATE_COOKIES_BLOCKED_BY_PERMISSION) {
+        promise->MaybeRejectWithUndefined();
+        return promise.forget();
+      }
+
       // Note: If this has returned true, the top-level document is guaranteed
       // to not be on the Content Blocking allow list.
       MOZ_ASSERT(!CookieJarSettings()->GetIsOnContentBlockingAllowList());

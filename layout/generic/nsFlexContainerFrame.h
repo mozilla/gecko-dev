@@ -273,8 +273,8 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    * @param aFlexBasis the computed 'flex-basis' for a flex item.
    * @param aMainSize the computed main-size property for a flex item.
    */
-  static bool IsUsedFlexBasisContent(const StyleFlexBasis& aFlexBasis,
-                                     const StyleSize& aMainSize);
+  static bool IsUsedFlexBasisContent(const mozilla::StyleFlexBasis& aFlexBasis,
+                                     const mozilla::StyleSize& aMainSize);
 
   /**
    * Callback for nsIFrame::MarkIntrinsicISizesDirty() on a flex item.
@@ -546,6 +546,8 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    *                            container.
    * @param aContentBoxCrossSize the final content-box cross-size of the flex
    *                             container.
+   * @param aContainerSize this frame's tentative physical border-box size, used
+   *                       only for logical to physical coordinate conversion.
    * @param aAvailableSizeForItems the size of the available space for our
    *                               children to reflow into.
    * @param aBorderPadding the border and padding for this frame (possibly with
@@ -566,7 +568,7 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    */
   std::tuple<nscoord, bool> ReflowChildren(
       const ReflowInput& aReflowInput, const nscoord aContentBoxMainSize,
-      const nscoord aContentBoxCrossSize,
+      const nscoord aContentBoxCrossSize, const nsSize& aContainerSize,
       const mozilla::LogicalSize& aAvailableSizeForItems,
       const mozilla::LogicalMargin& aBorderPadding,
       const nscoord aSumOfPrevInFlowsChildrenBlockSize,

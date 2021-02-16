@@ -85,16 +85,6 @@ void LIRGenerator::visitBox(MBox* box) {
 void LIRGenerator::visitUnbox(MUnbox* unbox) {
   MDefinition* inner = unbox->getOperand(0);
 
-  if (inner->type() == MIRType::ObjectOrNull) {
-    LUnboxObjectOrNull* lir =
-        new (alloc()) LUnboxObjectOrNull(useRegisterAtStart(inner));
-    if (unbox->fallible()) {
-      assignSnapshot(lir, unbox->bailoutKind());
-    }
-    defineReuseInput(lir, unbox, 0);
-    return;
-  }
-
   // An unbox on arm reads in a type tag (either in memory or a register) and
   // a payload. Unlike most instructions consuming a box, we ask for the type
   // second, so that the result can re-use the first input.
@@ -129,11 +119,10 @@ void LIRGenerator::visitUnbox(MUnbox* unbox) {
   defineReuseInput(lir, unbox, 0);
 }
 
-void LIRGenerator::visitReturn(MReturn* ret) {
-  MDefinition* opd = ret->getOperand(0);
+void LIRGenerator::visitReturnImpl(MDefinition* opd, bool isGenerator) {
   MOZ_ASSERT(opd->type() == MIRType::Value);
 
-  LReturn* ins = new (alloc()) LReturn;
+  LReturn* ins = new (alloc()) LReturn(isGenerator);
   ins->setOperand(0, LUse(JSReturnReg_Type));
   ins->setOperand(1, LUse(JSReturnReg_Data));
   fillBoxUses(ins, 0, opd);
@@ -341,7 +330,7 @@ void LIRGeneratorARM::lowerDivI(MDiv* div) {
       LDivPowTwoI* lir =
           new (alloc()) LDivPowTwoI(useRegisterAtStart(div->lhs()), shift);
       if (div->fallible()) {
-        assignSnapshot(lir, BailoutKind::DoubleOutput);
+        assignSnapshot(lir, div->bailoutKind());
       }
       define(lir, div);
       return;
@@ -352,7 +341,7 @@ void LIRGeneratorARM::lowerDivI(MDiv* div) {
     LDivI* lir = new (alloc())
         LDivI(useRegister(div->lhs()), useRegister(div->rhs()), temp());
     if (div->fallible()) {
-      assignSnapshot(lir, BailoutKind::DoubleOutput);
+      assignSnapshot(lir, div->bailoutKind());
     }
     define(lir, div);
     return;
@@ -362,7 +351,7 @@ void LIRGeneratorARM::lowerDivI(MDiv* div) {
                                            useFixedAtStart(div->rhs(), r1));
 
   if (div->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, div->bailoutKind());
   }
 
   defineReturn(lir, div);
@@ -371,7 +360,7 @@ void LIRGeneratorARM::lowerDivI(MDiv* div) {
 void LIRGeneratorARM::lowerMulI(MMul* mul, MDefinition* lhs, MDefinition* rhs) {
   LMulI* lir = new (alloc()) LMulI;
   if (mul->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, mul->bailoutKind());
   }
   lowerForALU(lir, mul, lhs, rhs);
 }
@@ -389,7 +378,7 @@ void LIRGeneratorARM::lowerModI(MMod* mod) {
       LModPowTwoI* lir =
           new (alloc()) LModPowTwoI(useRegister(mod->lhs()), shift);
       if (mod->fallible()) {
-        assignSnapshot(lir, BailoutKind::DoubleOutput);
+        assignSnapshot(lir, mod->bailoutKind());
       }
       define(lir, mod);
       return;
@@ -399,7 +388,7 @@ void LIRGeneratorARM::lowerModI(MMod* mod) {
       LModMaskI* lir = new (alloc())
           LModMaskI(useRegister(mod->lhs()), temp(), temp(), shift + 1);
       if (mod->fallible()) {
-        assignSnapshot(lir, BailoutKind::DoubleOutput);
+        assignSnapshot(lir, mod->bailoutKind());
       }
       define(lir, mod);
       return;
@@ -410,7 +399,7 @@ void LIRGeneratorARM::lowerModI(MMod* mod) {
     LModI* lir =
         new (alloc()) LModI(useRegister(mod->lhs()), useRegister(mod->rhs()));
     if (mod->fallible()) {
-      assignSnapshot(lir, BailoutKind::DoubleOutput);
+      assignSnapshot(lir, mod->bailoutKind());
     }
     define(lir, mod);
     return;
@@ -421,7 +410,7 @@ void LIRGeneratorARM::lowerModI(MMod* mod) {
                               useFixedAtStart(mod->rhs(), r1), tempFixed(r2));
 
   if (mod->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, mod->bailoutKind());
   }
 
   defineReturn(lir, mod);
@@ -510,8 +499,52 @@ void LIRGeneratorARM::lowerPowOfTwoI(MPow* mir) {
   MDefinition* power = mir->power();
 
   auto* lir = new (alloc()) LPowOfTwoI(base, useRegister(power));
-  assignSnapshot(lir, BailoutKind::PrecisionLoss);
+  assignSnapshot(lir, mir->bailoutKind());
   define(lir, mir);
+}
+
+void LIRGeneratorARM::lowerBigIntLsh(MBigIntLsh* ins) {
+  auto* lir = new (alloc()) LBigIntLsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp(), temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGeneratorARM::lowerBigIntRsh(MBigIntRsh* ins) {
+  auto* lir = new (alloc()) LBigIntRsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp(), temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGeneratorARM::lowerBigIntDiv(MBigIntDiv* ins) {
+  LDefinition temp1, temp2;
+  if (HasIDIV()) {
+    temp1 = temp();
+    temp2 = temp();
+  } else {
+    temp1 = tempFixed(r0);
+    temp2 = tempFixed(r1);
+  }
+  auto* lir = new (alloc()) LBigIntDiv(useRegister(ins->lhs()),
+                                       useRegister(ins->rhs()), temp1, temp2);
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGeneratorARM::lowerBigIntMod(MBigIntMod* ins) {
+  LDefinition temp1, temp2;
+  if (HasIDIV()) {
+    temp1 = temp();
+    temp2 = temp();
+  } else {
+    temp1 = tempFixed(r0);
+    temp2 = tempFixed(r1);
+  }
+  auto* lir = new (alloc()) LBigIntMod(useRegister(ins->lhs()),
+                                       useRegister(ins->rhs()), temp1, temp2);
+  define(lir, ins);
+  assignSafepoint(lir, ins);
 }
 
 void LIRGenerator::visitWasmNeg(MWasmNeg* ins) {
@@ -534,7 +567,7 @@ void LIRGeneratorARM::lowerUDiv(MDiv* div) {
     lir->setOperand(0, useRegister(lhs));
     lir->setOperand(1, useRegister(rhs));
     if (div->fallible()) {
-      assignSnapshot(lir, BailoutKind::DoubleOutput);
+      assignSnapshot(lir, div->bailoutKind());
     }
     define(lir, div);
     return;
@@ -544,7 +577,7 @@ void LIRGeneratorARM::lowerUDiv(MDiv* div) {
       LSoftUDivOrMod(useFixedAtStart(lhs, r0), useFixedAtStart(rhs, r1));
 
   if (div->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, div->bailoutKind());
   }
 
   defineReturn(lir, div);
@@ -559,7 +592,7 @@ void LIRGeneratorARM::lowerUMod(MMod* mod) {
     lir->setOperand(0, useRegister(lhs));
     lir->setOperand(1, useRegister(rhs));
     if (mod->fallible()) {
-      assignSnapshot(lir, BailoutKind::DoubleOutput);
+      assignSnapshot(lir, mod->bailoutKind());
     }
     define(lir, mod);
     return;
@@ -569,7 +602,7 @@ void LIRGeneratorARM::lowerUMod(MMod* mod) {
       LSoftUDivOrMod(useFixedAtStart(lhs, r0), useFixedAtStart(rhs, r1));
 
   if (mod->fallible()) {
-    assignSnapshot(lir, BailoutKind::DoubleOutput);
+    assignSnapshot(lir, mod->bailoutKind());
   }
 
   defineReturn(lir, mod);
@@ -1043,4 +1076,46 @@ void LIRGenerator::visitSignExtendInt64(MSignExtendInt64* ins) {
   defineInt64(new (alloc())
                   LSignExtendInt64(useInt64RegisterAtStart(ins->input())),
               ins);
+}
+
+void LIRGenerator::visitWasmBitselectSimd128(MWasmBitselectSimd128* ins) {
+  MOZ_CRASH("bitselect NYI");
+}
+
+void LIRGenerator::visitWasmBinarySimd128(MWasmBinarySimd128* ins) {
+  MOZ_CRASH("binary SIMD NYI");
+}
+
+bool MWasmBinarySimd128::specializeForConstantRhs() {
+  // Probably many we want to do here
+  return false;
+}
+
+void LIRGenerator::visitWasmBinarySimd128WithConstant(
+    MWasmBinarySimd128WithConstant* ins) {
+  MOZ_CRASH("binary SIMD with constant NYI");
+}
+
+void LIRGenerator::visitWasmShiftSimd128(MWasmShiftSimd128* ins) {
+  MOZ_CRASH("shift SIMD NYI");
+}
+
+void LIRGenerator::visitWasmShuffleSimd128(MWasmShuffleSimd128* ins) {
+  MOZ_CRASH("shuffle SIMD NYI");
+}
+
+void LIRGenerator::visitWasmReplaceLaneSimd128(MWasmReplaceLaneSimd128* ins) {
+  MOZ_CRASH("replace-lane SIMD NYI");
+}
+
+void LIRGenerator::visitWasmScalarToSimd128(MWasmScalarToSimd128* ins) {
+  MOZ_CRASH("scalar-to-SIMD NYI");
+}
+
+void LIRGenerator::visitWasmUnarySimd128(MWasmUnarySimd128* ins) {
+  MOZ_CRASH("unary SIMD NYI");
+}
+
+void LIRGenerator::visitWasmReduceSimd128(MWasmReduceSimd128* ins) {
+  MOZ_CRASH("reduce-SIMD NYI");
 }

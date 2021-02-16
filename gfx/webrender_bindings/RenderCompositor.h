@@ -13,6 +13,8 @@
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "Units.h"
 
+#include "GLTypes.h"
+
 namespace mozilla {
 
 namespace gl {
@@ -101,7 +103,7 @@ class RenderCompositor {
 
   layers::SyncObjectHost* GetSyncObject() const { return mSyncObject.get(); }
 
-  virtual bool IsContextLost();
+  virtual GLenum IsContextLost(bool aForce);
 
   virtual bool SupportAsyncScreenshot() { return true; }
 
@@ -134,6 +136,12 @@ class RenderCompositor {
                           const wr::CompositorSurfaceTransform& aTransform,
                           wr::DeviceIntRect aClipRect,
                           wr::ImageRendering aImageRendering) {}
+  // Called in the middle of a frame after all surfaces have been added but
+  // before tiles are updated to signal that early compositing can start
+  virtual void StartCompositing(const wr::DeviceIntRect* aDirtyRects,
+                                size_t aNumDirtyRects,
+                                const wr::DeviceIntRect* aOpaqueRects,
+                                size_t aNumOpaqueRects) {}
   virtual void EnableNativeCompositor(bool aEnable) {}
   virtual void DeInit() {}
   virtual CompositorCapabilities GetCompositorCapabilities() = 0;
@@ -166,6 +174,7 @@ class RenderCompositor {
                              bool* aNeedsYFlip) {
     return false;
   }
+  virtual void MaybeRequestAllowFrameRecording(bool aWillRecord) {}
   virtual bool MaybeRecordFrame(layers::CompositionRecorder& aRecorder) {
     return false;
   }
@@ -181,6 +190,8 @@ class RenderCompositor {
   virtual ipc::FileDescriptor GetAndResetReleaseFence() {
     return ipc::FileDescriptor();
   }
+
+  virtual bool IsPaused() { return false; }
 
  protected:
   // We default this to 2, so that mLatestRenderFrameId.Prev() is always valid.

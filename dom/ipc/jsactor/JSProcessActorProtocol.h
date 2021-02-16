@@ -9,13 +9,14 @@
 
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/JSActorService.h"
-#include "mozilla/ErrorResult.h"
 #include "nsIURI.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsIObserver.h"
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
 struct ProcessActorOptions;
@@ -54,7 +55,7 @@ class JSProcessActorProtocol final : public JSActorProtocol,
 
   void AddObservers();
   void RemoveObservers();
-  bool Matches(const nsACString& aRemoteType);
+  bool Matches(const nsACString& aRemoteType, ErrorResult& aRv);
 
  private:
   explicit JSProcessActorProtocol(const nsACString& aName) : mName(aName) {}

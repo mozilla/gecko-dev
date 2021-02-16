@@ -10,6 +10,7 @@
 
 #include "vm/JSScript-inl.h"
 
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
@@ -33,12 +34,14 @@
 
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/BytecodeEmitter.h"
-#include "frontend/CompilationInfo.h"  // frontend::CompilationStencil
+#include "frontend/CompilationInfo.h"  // frontend::BaseCompilationStencil
 #include "frontend/SharedContext.h"
 #include "frontend/SourceNotes.h"  // SrcNote, SrcNoteType, SrcNoteIterator
 #include "frontend/StencilXdr.h"   // frontend::StencilXdr::SharedData
 #include "gc/FreeOp.h"
 #include "jit/BaselineJIT.h"
+#include "jit/CacheIRHealth.h"
+#include "jit/Invalidation.h"
 #include "jit/Ion.h"
 #include "jit/IonScript.h"
 #include "jit/JitCode.h"
@@ -645,8 +648,17 @@ void js::BaseScript::finalize(JSFreeOp* fop) {
 
   if (warmUpData_.isJitScript()) {
     JSScript* script = this->asJSScript();
+#ifdef JS_CACHEIR_SPEW
+    maybeUpdateWarmUpCount(script);
+#endif
     script->releaseJitScriptOnFinalize(fop);
   }
+
+#ifdef JS_CACHEIR_SPEW
+  if (hasBytecode()) {
+    maybeSpewScriptFinalWarmUpCount(this->asJSScript());
+  }
+#endif
 
   if (data_) {
     // We don't need to triger any barriers here, just free the memory.
@@ -687,6 +699,92 @@ void js::BaseScript::swapData(UniquePtr<PrivateScriptData>& other) {
   }
 
   other.reset(tmp);
+}
+
+js::Scope* js::BaseScript::enclosingScope() const {
+  MOZ_ASSERT(!warmUpData_.isEnclosingScript(),
+             "Enclosing scope is not computed yet");
+
+  if (warmUpData_.isEnclosingScope()) {
+    return warmUpData_.toEnclosingScope();
+  }
+
+  MOZ_ASSERT(data_, "Script doesn't seem to be compiled");
+
+  return gcthings()[js::GCThingIndex::outermostScopeIndex()]
+      .as<Scope>()
+      .enclosing();
+}
+
+size_t JSScript::numAlwaysLiveFixedSlots() const {
+  if (bodyScope()->is<js::FunctionScope>()) {
+    return bodyScope()->as<js::FunctionScope>().nextFrameSlot();
+  }
+  if (bodyScope()->is<js::ModuleScope>()) {
+    return bodyScope()->as<js::ModuleScope>().nextFrameSlot();
+  }
+  return 0;
+}
+
+unsigned JSScript::numArgs() const {
+  if (bodyScope()->is<js::FunctionScope>()) {
+    return bodyScope()->as<js::FunctionScope>().numPositionalFormalParameters();
+  }
+  return 0;
+}
+
+bool JSScript::functionHasParameterExprs() const {
+  // Only functions have parameters.
+  js::Scope* scope = bodyScope();
+  if (!scope->is<js::FunctionScope>()) {
+    return false;
+  }
+  return scope->as<js::FunctionScope>().hasParameterExprs();
+}
+
+js::ModuleObject* JSScript::module() const {
+  if (bodyScope()->is<js::ModuleScope>()) {
+    return bodyScope()->as<js::ModuleScope>().module();
+  }
+  return nullptr;
+}
+
+bool JSScript::isGlobalCode() const {
+  return bodyScope()->is<js::GlobalScope>();
+}
+
+js::VarScope* JSScript::functionExtraBodyVarScope() const {
+  MOZ_ASSERT(functionHasExtraBodyVarScope());
+  for (JS::GCCellPtr gcThing : gcthings()) {
+    if (!gcThing.is<js::Scope>()) {
+      continue;
+    }
+    js::Scope* scope = &gcThing.as<js::Scope>();
+    if (scope->kind() == js::ScopeKind::FunctionBodyVar) {
+      return &scope->as<js::VarScope>();
+    }
+  }
+  MOZ_CRASH("Function extra body var scope not found");
+}
+
+bool JSScript::needsBodyEnvironment() const {
+  for (JS::GCCellPtr gcThing : gcthings()) {
+    if (!gcThing.is<js::Scope>()) {
+      continue;
+    }
+    js::Scope* scope = &gcThing.as<js::Scope>();
+    if (ScopeKindIsInBody(scope->kind()) && scope->hasEnvironment()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool JSScript::isDirectEvalInFunction() const {
+  if (!isForEval()) {
+    return false;
+  }
+  return bodyScope()->hasOnChain(js::ScopeKind::Function);
 }
 
 template <XDRMode mode>
@@ -888,7 +986,6 @@ XDRResult js::XDRImmutableScriptData(XDRState<mode>* xdr,
   MOZ_TRY(xdr->codeUint32(&isd->bodyScopeIndex.index));
   MOZ_TRY(xdr->codeUint32(&isd->numICEntries));
   MOZ_TRY(xdr->codeUint16(&isd->funLength));
-  MOZ_TRY(xdr->codeUint16(&isd->numBytecodeTypeSets));
 
   static_assert(sizeof(jsbytecode) == 1);
   static_assert(sizeof(SrcNote) == 1);
@@ -1094,7 +1191,7 @@ XDRResult js::XDRScript(XDRState<mode>* xdr, HandleScope scriptEnclosingScope,
       ssHolder.get().reset(sourceObject->source());
     }
 
-    MOZ_TRY(ScriptSource::XDR(xdr, options, &ssHolder));
+    MOZ_TRY(ScriptSource::XDR(xdr, options.ptrOr(nullptr), &ssHolder));
 
     if (mode == XDR_DECODE) {
       sourceObject = ScriptSourceObject::create(cx, ssHolder.get().get());
@@ -1255,30 +1352,6 @@ template XDRResult js::XDRLazyScript(XDRState<XDR_ENCODE>*, HandleScope,
 template XDRResult js::XDRLazyScript(XDRState<XDR_DECODE>*, HandleScope,
                                      HandleScriptSourceObject, HandleFunction,
                                      MutableHandle<BaseScript*>);
-
-void JSScript::setDefaultClassConstructorSpan(uint32_t start, uint32_t end,
-                                              unsigned line, unsigned column) {
-  extent_.toStringStart = start;
-  extent_.toStringEnd = end;
-  extent_.sourceStart = start;
-  extent_.sourceEnd = end;
-  extent_.lineno = line;
-  extent_.column = column;
-
-  // Since this script has been changed to point into the user's source, we
-  // can clear its self-hosted flag, allowing Debugger to see it.
-  clearFlag(ImmutableFlags::SelfHosted);
-
-  // Remember this is a default class constructor cloned from a self hosted
-  // script, as it won't have instrumentation and should be ignored on stack
-  // when recording/replaying.
-  setFlag(ImmutableFlags::IsDefaultClassConstructor);
-
-  // Even though the script was cloned from the self-hosted template, we cannot
-  // delazify back to a SelfHostedLazyScript. The script is no longer marked as
-  // SelfHosted either.
-  clearAllowRelazify();
-}
 
 bool JSScript::initScriptCounts(JSContext* cx) {
   MOZ_ASSERT(!hasScriptCounts());
@@ -2717,7 +2790,7 @@ bool ScriptSource::xdrEncodeTopLevel(JSContext* cx, HandleScript script) {
 }
 
 bool ScriptSource::xdrEncodeInitialStencil(
-    JSContext* cx, frontend::CompilationInfo& compilationInfo,
+    JSContext* cx, frontend::CompilationStencil& stencil,
     UniquePtr<XDRIncrementalEncoderBase>& xdrEncoder) {
   // Encoding failures are reported by the xdrFinalizeEncoder function.
   if (containsAsmJS()) {
@@ -2733,7 +2806,7 @@ bool ScriptSource::xdrEncodeInitialStencil(
   AutoIncrementalTimer timer(cx->realm()->timers.xdrEncodingTime);
   auto failureCase = mozilla::MakeScopeExit([&] { xdrEncoder.reset(nullptr); });
 
-  XDRResult res = xdrEncoder->codeStencil(compilationInfo);
+  XDRResult res = xdrEncoder->codeStencil(stencil);
   if (res.isErr()) {
     // On encoding failure, let failureCase destroy encoder and return true
     // to avoid failing any currently executing script.
@@ -2749,14 +2822,14 @@ bool ScriptSource::xdrEncodeInitialStencil(
 }
 
 bool ScriptSource::xdrEncodeStencils(
-    JSContext* cx, frontend::CompilationInfoVector& compilationInfos,
+    JSContext* cx, frontend::CompilationStencilSet& stencilSet,
     UniquePtr<XDRIncrementalEncoderBase>& xdrEncoder) {
-  if (!xdrEncodeInitialStencil(cx, compilationInfos.initial, xdrEncoder)) {
+  if (!xdrEncodeInitialStencil(cx, stencilSet, xdrEncoder)) {
     return false;
   }
 
-  for (auto& delazification : compilationInfos.delazifications) {
-    if (!xdrEncodeFunctionStencilWith(cx, delazification.stencil, xdrEncoder)) {
+  for (auto& delazification : stencilSet.delazifications) {
+    if (!xdrEncodeFunctionStencilWith(cx, delazification, xdrEncoder)) {
       return false;
     }
   }
@@ -2794,14 +2867,14 @@ bool ScriptSource::xdrEncodeFunction(JSContext* cx, HandleFunction fun,
 }
 
 bool ScriptSource::xdrEncodeFunctionStencil(
-    JSContext* cx, frontend::CompilationStencil& stencil) {
+    JSContext* cx, frontend::BaseCompilationStencil& stencil) {
   MOZ_ASSERT(hasEncoder());
   AutoIncrementalTimer timer(cx->realm()->timers.xdrEncodingTime);
   return xdrEncodeFunctionStencilWith(cx, stencil, xdrEncoder_);
 }
 
 bool ScriptSource::xdrEncodeFunctionStencilWith(
-    JSContext* cx, frontend::CompilationStencil& stencil,
+    JSContext* cx, frontend::BaseCompilationStencil& stencil,
     UniquePtr<XDRIncrementalEncoderBase>& xdrEncoder) {
   auto failureCase = mozilla::MakeScopeExit([&] { xdrEncoder.reset(nullptr); });
 
@@ -2828,7 +2901,7 @@ bool ScriptSource::xdrFinalizeEncoder(JSContext* cx,
 
   auto cleanup = mozilla::MakeScopeExit([&] { xdrEncoder_.reset(nullptr); });
 
-  XDRResult res = xdrEncoder_->linearize(buffer);
+  XDRResult res = xdrEncoder_->linearize(buffer, this);
   return res.isOk();
 }
 
@@ -3204,7 +3277,7 @@ static bool MaybeNoteContentParse(JSContext* cx, ScriptSource* ss) {
 template <XDRMode mode>
 /* static */
 XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
-                            const mozilla::Maybe<JS::CompileOptions>& options,
+                            const ReadOnlyCompileOptions* maybeOptions,
                             MutableHandle<ScriptSourceHolder> holder) {
   JSContext* cx = xdr->cx();
   ScriptSource* ss = nullptr;
@@ -3223,7 +3296,7 @@ XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
     // Most CompileOptions fields aren't used by ScriptSourceObject, and those
     // that are (element; elementAttributeName) aren't preserved by XDR. So
     // this can be simple.
-    if (!ss->initFromOptions(cx, *options)) {
+    if (!ss->initFromOptions(cx, *maybeOptions)) {
       return xdr->fail(JS::TranscodeResult_Throw);
     }
   }
@@ -3296,12 +3369,12 @@ XDRResult ScriptSource::XDR(XDRState<mode>* xdr,
 template /* static */
     XDRResult
     ScriptSource::XDR(XDRState<XDR_ENCODE>* xdr,
-                      const mozilla::Maybe<JS::CompileOptions>& options,
+                      const ReadOnlyCompileOptions* maybeOptions,
                       MutableHandle<ScriptSourceHolder> holder);
 template /* static */
     XDRResult
     ScriptSource::XDR(XDRState<XDR_DECODE>* xdr,
-                      const mozilla::Maybe<JS::CompileOptions>& options,
+                      const ReadOnlyCompileOptions* maybeOptions,
                       MutableHandle<ScriptSourceHolder> holder);
 
 // Format and return a cx->pod_malloc'ed URL for a generated script like:
@@ -3700,10 +3773,12 @@ PrivateScriptData* PrivateScriptData::new_(JSContext* cx, uint32_t ngcthings) {
 /* static */
 bool PrivateScriptData::InitFromStencil(
     JSContext* cx, js::HandleScript script,
-    js::frontend::CompilationInfo& compilationInfo,
+    js::frontend::CompilationInput& input,
+    js::frontend::BaseCompilationStencil& stencil,
     js::frontend::CompilationGCOutput& gcOutput,
-    const frontend::ScriptStencil& scriptStencil) {
-  uint32_t ngcthings = scriptStencil.gcThings.size();
+    const js::frontend::ScriptIndex scriptIndex) {
+  js::frontend::ScriptStencil& scriptStencil = stencil.scriptData[scriptIndex];
+  uint32_t ngcthings = scriptStencil.gcThingsLength;
 
   MOZ_ASSERT(ngcthings <= INDEX_LIMIT);
 
@@ -3714,14 +3789,15 @@ bool PrivateScriptData::InitFromStencil(
 
   js::PrivateScriptData* data = script->data_;
   if (ngcthings) {
-    if (!EmitScriptThingsVector(cx, compilationInfo, gcOutput,
-                                scriptStencil.gcThings, data->gcthings())) {
+    if (!EmitScriptThingsVector(cx, input, stencil, gcOutput,
+                                scriptStencil.gcthings(stencil),
+                                data->gcthings())) {
       return false;
     }
   }
 
-  if (scriptStencil.memberInitializers) {
-    script->setMemberInitializers(*scriptStencil.memberInitializers);
+  if (scriptStencil.hasMemberInitializers()) {
+    script->setMemberInitializers(scriptStencil.memberInitializers());
   }
 
   return true;
@@ -3744,7 +3820,7 @@ void PrivateScriptData::trace(JSTracer* trc) {
 /*static*/
 JSScript* JSScript::Create(JSContext* cx, js::HandleObject functionOrGlobal,
                            js::HandleScriptSourceObject sourceObject,
-                           SourceExtent extent,
+                           const SourceExtent& extent,
                            js::ImmutableScriptFlags flags) {
   return static_cast<JSScript*>(
       BaseScript::New(cx, functionOrGlobal, sourceObject, extent, flags));
@@ -3795,10 +3871,10 @@ bool JSScript::createPrivateScriptData(JSContext* cx, HandleScript script,
 
 /* static */
 bool JSScript::fullyInitFromStencil(
-    JSContext* cx, frontend::CompilationInfo& compilationInfo,
+    JSContext* cx, js::frontend::CompilationInput& input,
+    js::frontend::BaseCompilationStencil& stencil,
     frontend::CompilationGCOutput& gcOutput, HandleScript script,
-    const frontend::ScriptStencil& scriptStencil, HandleFunction fun) {
-  ImmutableScriptFlags lazyFlags;
+    const js::frontend::ScriptIndex scriptIndex) {
   MutableScriptFlags lazyMutableFlags;
   RootedScope lazyEnclosingScope(cx);
 
@@ -3823,7 +3899,6 @@ bool JSScript::fullyInitFromStencil(
   // If we are using an existing lazy script, record enough info to be able to
   // rollback on failure.
   if (script->isReadyForDelazification()) {
-    lazyFlags = script->immutableFlags_;
     lazyMutableFlags = script->mutableFlags_;
     lazyEnclosingScope = script->releaseEnclosingScope();
     script->swapData(lazyData.get());
@@ -3834,7 +3909,6 @@ bool JSScript::fullyInitFromStencil(
   // just need to clear bytecode to mark script as incomplete.
   auto rollbackGuard = mozilla::MakeScopeExit([&] {
     if (lazyEnclosingScope) {
-      script->immutableFlags_ = lazyFlags;
       script->mutableFlags_ = lazyMutableFlags;
       script->warmUpData_.initEnclosingScope(lazyEnclosingScope);
       script->swapData(lazyData.get());
@@ -3847,28 +3921,33 @@ bool JSScript::fullyInitFromStencil(
   });
 
   /* The counts of indexed things must be checked during code generation. */
-  MOZ_ASSERT(scriptStencil.gcThings.size() <= INDEX_LIMIT);
+  js::frontend::ScriptStencil& scriptStencil = stencil.scriptData[scriptIndex];
+  MOZ_ASSERT(scriptStencil.gcThingsLength <= INDEX_LIMIT);
 
   // Note: These flags should already be correct when the BaseScript was
   // allocated.
-  MOZ_ASSERT(script->immutableFlags() == scriptStencil.immutableFlags);
+  MOZ_ASSERT_IF(stencil.isInitialStencil(),
+                script->immutableFlags() == stencil.asCompilationStencil()
+                                                .scriptExtra[scriptIndex]
+                                                .immutableFlags);
 
   // Derive initial mutable flags
   script->resetArgsUsageAnalysis();
 
   // Create and initialize PrivateScriptData
-  if (!PrivateScriptData::InitFromStencil(cx, script, compilationInfo, gcOutput,
-                                          scriptStencil)) {
+  if (!PrivateScriptData::InitFromStencil(cx, script, input, stencil, gcOutput,
+                                          scriptIndex)) {
     return false;
   }
 
-  script->initSharedData(scriptStencil.sharedData);
+  script->initSharedData(stencil.sharedData.get(scriptIndex));
 
   // NOTE: JSScript is now constructed and should be linked in.
   rollbackGuard.release();
 
   // Link JSFunction to this JSScript.
-  if (fun) {
+  if (scriptStencil.isFunction()) {
+    JSFunction* fun = gcOutput.functions[scriptIndex];
     if (fun->isIncomplete()) {
       fun->initScript(script);
     } else {
@@ -3900,28 +3979,31 @@ bool JSScript::fullyInitFromStencil(
 }
 
 JSScript* JSScript::fromStencil(JSContext* cx,
-                                frontend::CompilationInfo& compilationInfo,
+                                js::frontend::CompilationInput& input,
+                                js::frontend::CompilationStencil& stencil,
                                 frontend::CompilationGCOutput& gcOutput,
-                                const frontend::ScriptStencil& scriptStencil,
-                                HandleFunction fun) {
-  MOZ_ASSERT(scriptStencil.sharedData,
+                                const js::frontend::ScriptIndex scriptIndex) {
+  js::frontend::ScriptStencil& scriptStencil = stencil.scriptData[scriptIndex];
+  js::frontend::ScriptStencilExtra& scriptExtra =
+      stencil.scriptExtra[scriptIndex];
+  MOZ_ASSERT(scriptStencil.hasSharedData(),
              "Need generated bytecode to use JSScript::fromStencil");
 
   RootedObject functionOrGlobal(cx, cx->global());
-  if (fun) {
-    functionOrGlobal = fun;
+  if (scriptStencil.isFunction()) {
+    functionOrGlobal = gcOutput.functions[scriptIndex];
   }
 
   Rooted<ScriptSourceObject*> sourceObject(cx, gcOutput.sourceObject);
   RootedScript script(
-      cx, Create(cx, functionOrGlobal, sourceObject, scriptStencil.extent,
-                 scriptStencil.immutableFlags));
+      cx, Create(cx, functionOrGlobal, sourceObject, scriptExtra.extent,
+                 scriptExtra.immutableFlags));
   if (!script) {
     return nullptr;
   }
 
-  if (!fullyInitFromStencil(cx, compilationInfo, gcOutput, script,
-                            scriptStencil, fun)) {
+  if (!fullyInitFromStencil(cx, input, stencil, gcOutput, script,
+                            scriptIndex)) {
     return nullptr;
   }
 
@@ -4191,6 +4273,51 @@ JS_FRIEND_API unsigned js::GetScriptLineExtent(JSScript* script) {
   return 1 + maxLineNo - script->lineno();
 }
 
+#ifdef JS_CACHEIR_SPEW
+void js::maybeUpdateWarmUpCount(JSScript* script) {
+  if (script->needsFinalWarmUpCount()) {
+    ScriptFinalWarmUpCountMap* map =
+        script->zone()->scriptFinalWarmUpCountMap.get();
+    // If needsFinalWarmUpCount is true, ScriptFinalWarmUpCountMap must have
+    // already been created and thus must be asserted.
+    MOZ_ASSERT(map);
+    ScriptFinalWarmUpCountMap::Ptr p = map->lookup(script);
+    MOZ_ASSERT(p);
+
+    mozilla::Get<0>(p->value()) += script->jitScript()->warmUpCount();
+  }
+}
+
+void js::maybeSpewScriptFinalWarmUpCount(JSScript* script) {
+  if (script->needsFinalWarmUpCount()) {
+    ScriptFinalWarmUpCountMap* map =
+        script->zone()->scriptFinalWarmUpCountMap.get();
+    // If needsFinalWarmUpCount is true, ScriptFinalWarmUpCountMap must have
+    // already been created and thus must be asserted.
+    MOZ_ASSERT(map);
+    ScriptFinalWarmUpCountMap::Ptr p = map->lookup(script);
+    MOZ_ASSERT(p);
+    uint32_t warmUpCount;
+    const char* scriptName;
+    mozilla::Tie(warmUpCount, scriptName) = p->value();
+
+    JSContext* cx = TlsContext.get();
+    cx->spewer().enableSpewing();
+
+    // In the case that we care about a script's final warmup count but the
+    // spewer is not enabled, AutoSpewChannel automatically sets and unsets
+    // the proper channel for the duration of spewing a health report's warm
+    // up count.
+    AutoSpewChannel channel(cx, SpewChannel::RateMyCacheIR, script);
+    jit::CacheIRHealth cih;
+    cih.spewScriptFinalWarmUpCount(cx, scriptName, script, warmUpCount);
+
+    script->zone()->scriptFinalWarmUpCountMap->remove(script);
+    script->setNeedsFinalWarmUpCount(false);
+  }
+}
+#endif
+
 void js::DescribeScriptedCallerForDirectEval(JSContext* cx, HandleScript script,
                                              jsbytecode* pc, const char** file,
                                              unsigned* linenop,
@@ -4289,9 +4416,6 @@ static JSObject* CloneInnerInterpretedFunction(
   }
 
   MOZ_ASSERT(cloneScript->hasBytecode());
-  if (!JSFunction::setTypeForScriptedFunction(cx, clone)) {
-    return nullptr;
-  }
 
   return clone;
 }
@@ -4419,8 +4543,10 @@ bool PrivateScriptData::Clone(JSContext* cx, HandleScript src, HandleScript dst,
 static JSScript* CopyScriptImpl(JSContext* cx, HandleScript src,
                                 HandleObject functionOrGlobal,
                                 HandleScriptSourceObject sourceObject,
-                                MutableHandle<GCVector<Scope*>> scopes) {
-  if (src->treatAsRunOnce() && !src->isFunction()) {
+                                MutableHandle<GCVector<Scope*>> scopes,
+                                SourceExtent* maybeClassExtent = nullptr) {
+  if (src->treatAsRunOnce()) {
+    MOZ_ASSERT(!src->isFunction());
     JS_ReportErrorASCII(cx, "No cloning toplevel run-once scripts");
     return nullptr;
   }
@@ -4430,19 +4556,40 @@ static JSScript* CopyScriptImpl(JSContext* cx, HandleScript src,
   // Some embeddings are not careful to use ExposeObjectToActiveJS as needed.
   JS::AssertObjectIsNotGray(sourceObject);
 
+  // When cloning is for `MakeDefaultConstructor`, the SourceExtent will be
+  // provided by caller instead of copying from `src`.
+  SourceExtent extent = maybeClassExtent ? *maybeClassExtent : src->extent();
+
   ImmutableScriptFlags flags = src->immutableFlags();
   flags.setFlag(JSScript::ImmutableFlags::HasNonSyntacticScope,
                 scopes[0]->hasOnChain(ScopeKind::NonSyntactic));
 
+  // When this clone is for `MakeDefaultConstructor` we also want to clear the
+  // SelfHosted flag. This is a hack to do it here, but ensures that the flags
+  // are not modified after the JSScript is created.
+  if (maybeClassExtent) {
+    flags.clearFlag(JSScript::ImmutableFlags::SelfHosted);
+  }
+
+  // FunctionFlags and ImmutableScriptFlags should agree on self-hosting status.
+  MOZ_ASSERT_IF(functionOrGlobal->is<JSFunction>(),
+                functionOrGlobal->as<JSFunction>().isSelfHostedBuiltin() ==
+                    flags.hasFlag(JSScript::ImmutableFlags::SelfHosted));
+
   // Create a new JSScript to fill in.
-  RootedScript dst(cx, JSScript::Create(cx, functionOrGlobal, sourceObject,
-                                        src->extent(), flags));
+  RootedScript dst(
+      cx, JSScript::Create(cx, functionOrGlobal, sourceObject, extent, flags));
   if (!dst) {
     return nullptr;
   }
 
   // Reset the mutable flags to request arguments analysis as needed.
   dst->resetArgsUsageAnalysis();
+
+  // Maintain this flag when cloning self-hosted functions.
+  if (src->isInlinableLargeFunction()) {
+    dst->setIsInlinableLargeFunction();
+  }
 
   // Clone the PrivateScriptData into dst
   if (!PrivateScriptData::Clone(cx, src, dst, scopes)) {
@@ -4493,9 +4640,10 @@ JSScript* js::CloneGlobalScript(JSContext* cx, ScopeKind scopeKind,
   return dst;
 }
 
-JSScript* js::CloneScriptIntoFunction(
-    JSContext* cx, HandleScope enclosingScope, HandleFunction fun,
-    HandleScript src, Handle<ScriptSourceObject*> sourceObject) {
+JSScript* js::CloneScriptIntoFunction(JSContext* cx, HandleScope enclosingScope,
+                                      HandleFunction fun, HandleScript src,
+                                      Handle<ScriptSourceObject*> sourceObject,
+                                      SourceExtent* maybeClassExtent) {
   // We are either delazifying a self-hosted lazy function or the function
   // should be in an inactive state.
   MOZ_ASSERT(fun->isIncomplete() || fun->hasSelfHostedLazyScript());
@@ -4529,7 +4677,8 @@ JSScript* js::CloneScriptIntoFunction(
 
   // Save flags in case we need to undo the early mutations.
   const FunctionFlags preservedFlags = fun->flags();
-  RootedScript dst(cx, CopyScriptImpl(cx, src, fun, sourceObject, &scopes));
+  RootedScript dst(cx, CopyScriptImpl(cx, src, fun, sourceObject, &scopes,
+                                      maybeClassExtent));
   if (!dst) {
     fun->setFlags(preservedFlags);
     return nullptr;
@@ -4562,9 +4711,9 @@ void CopySpan(const SourceSpan& source, TargetSpan target) {
 /* static */
 js::UniquePtr<ImmutableScriptData> ImmutableScriptData::new_(
     JSContext* cx, uint32_t mainOffset, uint32_t nfixed, uint32_t nslots,
-    GCThingIndex bodyScopeIndex, uint32_t numICEntries,
-    uint32_t numBytecodeTypeSets, bool isFunction, uint16_t funLength,
-    mozilla::Span<const jsbytecode> code, mozilla::Span<const SrcNote> notes,
+    GCThingIndex bodyScopeIndex, uint32_t numICEntries, bool isFunction,
+    uint16_t funLength, mozilla::Span<const jsbytecode> code,
+    mozilla::Span<const SrcNote> notes,
     mozilla::Span<const uint32_t> resumeOffsets,
     mozilla::Span<const ScopeNote> scopeNotes,
     mozilla::Span<const TryNote> tryNotes) {
@@ -4593,8 +4742,6 @@ js::UniquePtr<ImmutableScriptData> ImmutableScriptData::new_(
   data->nslots = nslots;
   data->bodyScopeIndex = bodyScopeIndex;
   data->numICEntries = numICEntries;
-  data->numBytecodeTypeSets = std::min<uint32_t>(
-      uint32_t(JSScript::MaxBytecodeTypeSets), numBytecodeTypeSets);
 
   if (isFunction) {
     data->funLength = funLength;
@@ -4810,9 +4957,10 @@ void JSScript::argumentsOptimizationFailed(JSContext* cx, HandleScript script) {
 
   // Warp code depends on the NeedsArgsObj flag so invalidate the script
   // (including compilations inlining the script).
-  if (jit::JitOptions.warpBuilder) {
-    AutoEnterAnalysis enter(cx->runtime()->defaultFreeOp(), script->zone());
-    script->zone()->types.addPendingRecompile(cx, script);
+  {
+    jit::RecompileInfoVector invalid;
+    AddPendingInvalidation(invalid, script);
+    Invalidate(cx, invalid);
   }
 
   /*
@@ -4918,31 +5066,20 @@ BaseScript* BaseScript::CreateRawLazy(JSContext* cx, uint32_t ngcthings,
 
 void JSScript::updateJitCodeRaw(JSRuntime* rt) {
   MOZ_ASSERT(rt);
-  uint8_t* jitCodeSkipArgCheck;
   if (hasBaselineScript() && baselineScript()->hasPendingIonCompileTask()) {
     MOZ_ASSERT(!isIonCompilingOffThread());
     setJitCodeRaw(rt->jitRuntime()->lazyLinkStub().value);
-    jitCodeSkipArgCheck = jitCodeRaw();
   } else if (hasIonScript()) {
     jit::IonScript* ion = ionScript();
     setJitCodeRaw(ion->method()->raw());
-    jitCodeSkipArgCheck = jitCodeRaw() + ion->getSkipArgCheckEntryOffset();
   } else if (hasBaselineScript()) {
     setJitCodeRaw(baselineScript()->method()->raw());
-    jitCodeSkipArgCheck = jitCodeRaw();
   } else if (hasJitScript() && js::jit::IsBaselineInterpreterEnabled()) {
     setJitCodeRaw(rt->jitRuntime()->baselineInterpreter().codeRaw());
-    jitCodeSkipArgCheck = jitCodeRaw();
   } else {
     setJitCodeRaw(rt->jitRuntime()->interpreterStub().value);
-    jitCodeSkipArgCheck = jitCodeRaw();
   }
   MOZ_ASSERT(jitCodeRaw());
-  MOZ_ASSERT(jitCodeSkipArgCheck);
-
-  if (hasJitScript()) {
-    jitScript()->jitCodeSkipArgCheck_ = jitCodeSkipArgCheck;
-  }
 }
 
 bool JSScript::hasLoops() {

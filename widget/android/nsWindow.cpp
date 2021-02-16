@@ -34,6 +34,7 @@
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/layers/RenderTrace.h"
+#include "mozilla/widget/AndroidVsync.h"
 #include <algorithm>
 
 using mozilla::Unused;
@@ -100,6 +101,7 @@ using mozilla::gfx::SurfaceFormat;
 #include "mozilla/java/PanZoomControllerNatives.h"
 #include "mozilla/java/SessionAccessibilityWrappers.h"
 #include "ScreenHelperAndroid.h"
+#include "TouchResampler.h"
 
 #include "GeckoProfiler.h"  // For AUTO_PROFILER_LABEL
 #include "nsPrintfCString.h"
@@ -134,12 +136,16 @@ static bool sFailedToCreateGLContext = false;
 static const double SWIPE_MAX_PINCH_DELTA_INCHES = 0.4;
 static const double SWIPE_MIN_DISTANCE_INCHES = 0.6;
 
+static const double kTouchResampleVsyncAdjustMs = 5.0;
+
 static const int32_t INPUT_RESULT_UNHANDLED =
     java::PanZoomController::INPUT_RESULT_UNHANDLED;
 static const int32_t INPUT_RESULT_HANDLED =
     java::PanZoomController::INPUT_RESULT_HANDLED;
 static const int32_t INPUT_RESULT_HANDLED_CONTENT =
     java::PanZoomController::INPUT_RESULT_HANDLED_CONTENT;
+static const int32_t INPUT_RESULT_IGNORED =
+    java::PanZoomController::INPUT_RESULT_IGNORED;
 
 namespace {
 template <class Instance, class Impl>
@@ -178,10 +184,23 @@ using WindowPtr = jni::NativeWeakPtr<GeckoViewSupport>;
  * it separate from GeckoViewSupport.
  */
 class NPZCSupport final
-    : public java::PanZoomController::NativeProvider::Natives<NPZCSupport> {
+    : public java::PanZoomController::NativeProvider::Natives<NPZCSupport>,
+      public AndroidVsync::Observer {
   WindowPtr mWindow;
   java::PanZoomController::NativeProvider::WeakRef mNPZC;
-  int mPreviousButtons;
+
+  // Stores the returnResult of each pending motion event between
+  // HandleMotionEvent and FinishHandlingMotionEvent.
+  std::queue<std::pair<uint64_t, java::GeckoResult::GlobalRef>>
+      mPendingMotionEventReturnResults;
+
+  RefPtr<AndroidVsync> mAndroidVsync;
+  TouchResampler mTouchResampler;
+  int mPreviousButtons = 0;
+  bool mListeningToVsync = false;
+
+  // Only true if mAndroidVsync is non-null and the resampling pref is set.
+  bool mTouchResamplingEnabled = false;
 
   template <typename Lambda>
   class InputEvent final : public nsAppShell::Event {
@@ -244,14 +263,27 @@ class NPZCSupport final
 
   NPZCSupport(WindowPtr aWindow,
               const java::PanZoomController::NativeProvider::LocalRef& aNPZC)
-      : mWindow(aWindow), mNPZC(aNPZC), mPreviousButtons(0) {
+      : mWindow(aWindow), mNPZC(aNPZC) {
 #if defined(DEBUG)
     auto win(mWindow.Access());
     MOZ_ASSERT(!!win);
 #endif  // defined(DEBUG)
+
+    // Use vsync for touch resampling on API level 19 and above.
+    // See gfxAndroidPlatform::CreateHardwareVsyncSource() for comparison.
+    if (AndroidBridge::Bridge() &&
+        AndroidBridge::Bridge()->GetAPIVersion() >= 19) {
+      mAndroidVsync = AndroidVsync::GetInstance();
+    }
   }
 
-  ~NPZCSupport() {}
+  ~NPZCSupport() {
+    if (mListeningToVsync) {
+      MOZ_RELEASE_ASSERT(mAndroidVsync);
+      mAndroidVsync->UnregisterObserver(this, AndroidVsync::INPUT);
+      mListeningToVsync = false;
+    }
+  }
 
   using Base::AttachNative;
   using Base::DisposeNative;
@@ -360,13 +392,8 @@ class NPZCSupport final
         WheelDeltaAdjustmentStrategy::eNone);
 
     APZEventResult result = controller->InputBridge()->ReceiveInputEvent(input);
-    int32_t ret =
-        (result.mHandledResult == Some(APZHandledResult::HandledByRoot))
-            ? INPUT_RESULT_HANDLED
-            : INPUT_RESULT_HANDLED_CONTENT;
-
     if (result.mStatus == nsEventStatus_eConsumeNoDefault) {
-      return ret;
+      return INPUT_RESULT_IGNORED;
     }
 
     PostInputEvent([input, result](nsWindow* window) {
@@ -378,7 +405,9 @@ class NPZCSupport final
       case nsEventStatus_eIgnore:
         return INPUT_RESULT_UNHANDLED;
       case nsEventStatus_eConsumeDoDefault:
-        return ret;
+        return (result.mHandledResult == Some(APZHandledResult::HandledByRoot))
+                   ? INPUT_RESULT_HANDLED
+                   : INPUT_RESULT_HANDLED_CONTENT;
       default:
         MOZ_ASSERT_UNREACHABLE("Unexpected nsEventStatus");
         return INPUT_RESULT_UNHANDLED;
@@ -503,13 +532,8 @@ class NPZCSupport final
         nsWindow::GetEventTimeStamp(aTime), nsWindow::GetModifiers(aMetaState));
 
     APZEventResult result = controller->InputBridge()->ReceiveInputEvent(input);
-    int32_t ret =
-        (result.mHandledResult == Some(APZHandledResult::HandledByRoot))
-            ? INPUT_RESULT_HANDLED
-            : INPUT_RESULT_HANDLED_CONTENT;
-
     if (result.mStatus == nsEventStatus_eConsumeNoDefault) {
-      return ret;
+      return INPUT_RESULT_IGNORED;
     }
 
     PostInputEvent([input, result](nsWindow* window) {
@@ -521,7 +545,9 @@ class NPZCSupport final
       case nsEventStatus_eIgnore:
         return INPUT_RESULT_UNHANDLED;
       case nsEventStatus_eConsumeDoDefault:
-        return ret;
+        return (result.mHandledResult == Some(APZHandledResult::HandledByRoot))
+                   ? INPUT_RESULT_HANDLED
+                   : INPUT_RESULT_HANDLED_CONTENT;
       default:
         MOZ_ASSERT_UNREACHABLE("Unexpected nsEventStatus");
         return INPUT_RESULT_UNHANDLED;
@@ -570,23 +596,6 @@ class NPZCSupport final
     auto returnResult = java::GeckoResult::Ref::From(aResult);
     auto eventData =
         java::PanZoomController::MotionEventData::Ref::From(aEventData);
-    RefPtr<IAPZCTreeManager> controller;
-
-    if (auto window = mWindow.Access()) {
-      nsWindow* gkWindow = window->GetNsWindow();
-      if (gkWindow) {
-        controller = gkWindow->mAPZC;
-      }
-    }
-
-    if (!controller) {
-      if (returnResult) {
-        returnResult->Complete(
-            java::sdk::Integer::ValueOf(INPUT_RESULT_UNHANDLED));
-      }
-      return;
-    }
-
     nsTArray<int32_t> pointerId(eventData->PointerId()->GetElements());
     size_t pointerCount = pointerId.Length();
     MultiTouchInput::MultiTouchType type;
@@ -703,25 +712,101 @@ class NPZCSupport final
       input.mTouches.AppendElement(singleTouchData);
     }
 
-    APZEventResult result = controller->InputBridge()->ReceiveInputEvent(input);
+    if (mAndroidVsync &&
+        eventData->Action() == java::sdk::MotionEvent::ACTION_DOWN) {
+      // Query pref value at the beginning of a touch gesture so that we don't
+      // leave events stuck in the resampler after a pref flip.
+      mTouchResamplingEnabled = StaticPrefs::android_touch_resampling_enabled();
+    }
+
+    if (!mTouchResamplingEnabled) {
+      FinishHandlingMotionEvent(std::move(input),
+                                java::GeckoResult::LocalRef(returnResult));
+      return;
+    }
+
+    uint64_t eventId = mTouchResampler.ProcessEvent(std::move(input));
+    mPendingMotionEventReturnResults.push(
+        {eventId, java::GeckoResult::GlobalRef(returnResult)});
+
+    RegisterOrUnregisterForVsync(mTouchResampler.InTouchingState());
+    ConsumeMotionEventsFromResampler();
+  }
+
+  void RegisterOrUnregisterForVsync(bool aNeedVsync) {
+    MOZ_RELEASE_ASSERT(mAndroidVsync);
+    if (aNeedVsync && !mListeningToVsync) {
+      mAndroidVsync->RegisterObserver(this, AndroidVsync::INPUT);
+    } else if (!aNeedVsync && mListeningToVsync) {
+      mAndroidVsync->UnregisterObserver(this, AndroidVsync::INPUT);
+    }
+    mListeningToVsync = aNeedVsync;
+  }
+
+  void OnVsync(const TimeStamp& aTimeStamp) override {
+    mTouchResampler.NotifyFrame(aTimeStamp - TimeDuration::FromMilliseconds(
+                                                 kTouchResampleVsyncAdjustMs));
+    ConsumeMotionEventsFromResampler();
+  }
+
+  void ConsumeMotionEventsFromResampler() {
+    auto outgoing = mTouchResampler.ConsumeOutgoingEvents();
+    while (!outgoing.empty()) {
+      auto outgoingEvent = std::move(outgoing.front());
+      outgoing.pop();
+      java::GeckoResult::GlobalRef returnResult;
+      if (outgoingEvent.mEventId) {
+        // Look up the GeckoResult for this event.
+        // The outgoing events from the resampler are in the same order as the
+        // original events, and no event IDs are skipped.
+        MOZ_RELEASE_ASSERT(!mPendingMotionEventReturnResults.empty());
+        auto pair = mPendingMotionEventReturnResults.front();
+        mPendingMotionEventReturnResults.pop();
+        MOZ_RELEASE_ASSERT(pair.first == *outgoingEvent.mEventId);
+        returnResult = pair.second;
+      }
+      FinishHandlingMotionEvent(std::move(outgoingEvent.mEvent),
+                                java::GeckoResult::LocalRef(returnResult));
+    }
+  }
+
+  void FinishHandlingMotionEvent(MultiTouchInput&& aInput,
+                                 java::GeckoResult::LocalRef&& aReturnResult) {
+    RefPtr<IAPZCTreeManager> controller;
+
+    if (auto window = mWindow.Access()) {
+      nsWindow* gkWindow = window->GetNsWindow();
+      if (gkWindow) {
+        controller = gkWindow->mAPZC;
+      }
+    }
+
+    if (!controller) {
+      if (aReturnResult) {
+        aReturnResult->Complete(
+            java::sdk::Integer::ValueOf(INPUT_RESULT_UNHANDLED));
+      }
+      return;
+    }
+
+    APZEventResult result =
+        controller->InputBridge()->ReceiveInputEvent(aInput);
     if (result.mStatus == nsEventStatus_eConsumeNoDefault) {
-      if (returnResult) {
-        returnResult->Complete(java::sdk::Integer::ValueOf(
-            (result.mHandledResult == Some(APZHandledResult::HandledByRoot))
-                ? INPUT_RESULT_HANDLED
-                : INPUT_RESULT_HANDLED_CONTENT));
+      if (aReturnResult) {
+        aReturnResult->Complete(
+            java::sdk::Integer::ValueOf(INPUT_RESULT_IGNORED));
       }
       return;
     }
 
     // Dispatch APZ input event on Gecko thread.
-    PostInputEvent([input, result](nsWindow* window) {
-      WidgetTouchEvent touchEvent = input.ToWidgetTouchEvent(window);
+    PostInputEvent([aInput, result](nsWindow* window) {
+      WidgetTouchEvent touchEvent = aInput.ToWidgetTouchEvent(window);
       window->ProcessUntransformedAPZEvent(&touchEvent, result);
       window->DispatchHitTest(touchEvent);
     });
 
-    if (!returnResult) {
+    if (!aReturnResult) {
       // We don't care how APZ handled the event so we're done here.
       return;
     }
@@ -731,16 +816,16 @@ class NPZCSupport final
       // don't need to do any more work.
       switch (result.mStatus) {
         case nsEventStatus_eIgnore:
-          returnResult->Complete(
+          aReturnResult->Complete(
               java::sdk::Integer::ValueOf(INPUT_RESULT_UNHANDLED));
           break;
         case nsEventStatus_eConsumeDoDefault:
-          returnResult->Complete(java::sdk::Integer::ValueOf(
+          aReturnResult->Complete(java::sdk::Integer::ValueOf(
               ConvertAPZHandledResult(result.mHandledResult.value())));
           break;
         default:
           MOZ_ASSERT_UNREACHABLE("Unexpected nsEventStatus");
-          returnResult->Complete(
+          aReturnResult->Complete(
               java::sdk::Integer::ValueOf(INPUT_RESULT_UNHANDLED));
           break;
       }
@@ -750,9 +835,9 @@ class NPZCSupport final
     // Wait to see if APZ handled the event or not...
     controller->AddInputBlockCallback(
         result.mInputBlockId,
-        [returnResult = java::GeckoResult::GlobalRef(returnResult)](
+        [aReturnResult = java::GeckoResult::GlobalRef(aReturnResult)](
             uint64_t aInputBlockId, APZHandledResult aHandledResult) {
-          returnResult->Complete(java::sdk::Integer::ValueOf(
+          aReturnResult->Complete(java::sdk::Integer::ValueOf(
               ConvertAPZHandledResult(aHandledResult)));
         });
   }

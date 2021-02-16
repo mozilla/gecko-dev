@@ -75,11 +75,7 @@ class WebExtensionPolicy final : public nsISupports,
 
   bool CanAccessURI(const URLInfo& aURI, bool aExplicit = false,
                     bool aCheckRestricted = true,
-                    bool aAllowFilePermission = false) const {
-    return (!aCheckRestricted || !IsRestrictedURI(aURI)) && mHostPermissions &&
-           mHostPermissions->Matches(aURI, aExplicit) &&
-           (aURI.Scheme() != nsGkAtoms::file || aAllowFilePermission);
-  }
+                    bool aAllowFilePermission = false) const;
 
   bool IsPathWebAccessible(const nsAString& aPath) const {
     return mWebAccessiblePaths.Matches(aPath);
@@ -103,11 +99,13 @@ class WebExtensionPolicy final : public nsISupports,
   const nsString& Name() const { return mName; }
   void GetName(nsAString& aName) const { aName = mName; }
 
+  uint32_t ManifestVersion() const { return mManifestVersion; }
+
   const nsString& ExtensionPageCSP() const { return mExtensionPageCSP; }
   void GetExtensionPageCSP(nsAString& aCSP) const { aCSP = mExtensionPageCSP; }
 
-  const nsString& ContentScriptCSP() const { return mContentScriptCSP; }
-  void GetContentScriptCSP(nsAString& aCSP) const { aCSP = mContentScriptCSP; }
+  const nsString& BaseCSP() const { return mBaseCSP; }
+  void GetBaseCSP(nsAString& aCSP) const { aCSP = mBaseCSP; }
 
   already_AddRefed<MatchPatternSet> AllowedOrigins() {
     return do_AddRef(mHostPermissions);
@@ -129,10 +127,7 @@ class WebExtensionPolicy final : public nsISupports,
   bool Active() const { return mActive; }
   void SetActive(bool aActive, ErrorResult& aRv);
 
-  bool PrivateBrowsingAllowed() const {
-    return mAllowPrivateBrowsingByDefault ||
-           HasPermission(nsGkAtoms::privateBrowsingAllowedPermission);
-  }
+  bool PrivateBrowsingAllowed() const;
 
   bool CanAccessContext(nsILoadContext* aContext) const;
 
@@ -187,6 +182,7 @@ class WebExtensionPolicy final : public nsISupports,
 
   bool Enable();
   bool Disable();
+  void InitializeBaseCSP();
 
   nsCOMPtr<nsISupports> mParent;
 
@@ -195,8 +191,9 @@ class WebExtensionPolicy final : public nsISupports,
   nsCOMPtr<nsIURI> mBaseURI;
 
   nsString mName;
+  uint32_t mManifestVersion = 2;
   nsString mExtensionPageCSP;
-  nsString mContentScriptCSP;
+  nsString mBaseCSP;
 
   uint64_t mBrowsingContextGroupId = 0;
 

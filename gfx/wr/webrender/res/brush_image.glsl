@@ -221,6 +221,13 @@ void brush_vs(
     v_uv_bounds = vec4(min_uv, max_uv) / texture_size.xyxy;
 #endif
 
+#ifdef WR_FEATURE_REPETITION
+    // Normalize UV to 0..1 scale only if using repetition. Otherwise, leave
+    // UVs unnormalized since we won't compute a modulus without repetition
+    // enabled.
+    v_uv /= (v_uv_bounds.zw - v_uv_bounds.xy);
+#endif
+
 #ifdef WR_FEATURE_ALPHA_PASS
     v_tile_repeat = repeat.xy;
 
@@ -279,19 +286,19 @@ vec2 compute_repeated_uvs(float perspective_divisor) {
     vec2 local_uv = max(v_uv * perspective_divisor, vec2(0.0));
 
     // Handle horizontal and vertical repetitions.
-    vec2 repeated_uv = mod(local_uv, uv_size) + v_uv_bounds.xy;
+    vec2 repeated_uv = fract(local_uv) * uv_size + v_uv_bounds.xy;
 
     // This takes care of the bottom and right inflated parts.
     // We do it after the modulo because the latter wraps around the values exactly on
     // the right and bottom edges, which we do not want.
-    if (local_uv.x >= v_tile_repeat.x * uv_size.x) {
+    if (local_uv.x >= v_tile_repeat.x) {
         repeated_uv.x = v_uv_bounds.z;
     }
-    if (local_uv.y >= v_tile_repeat.y * uv_size.y) {
+    if (local_uv.y >= v_tile_repeat.y) {
         repeated_uv.y = v_uv_bounds.w;
     }
 #else
-    vec2 repeated_uv = mod(v_uv * perspective_divisor, uv_size) + v_uv_bounds.xy;
+    vec2 repeated_uv = fract(v_uv * perspective_divisor) * uv_size + v_uv_bounds.xy;
 #endif
 
     return repeated_uv;
@@ -351,36 +358,32 @@ void swgl_drawSpanRGBA8() {
     float perspective_divisor = mix(swgl_forceScalar(gl_FragCoord.w), 1.0, v_layer_and_perspective.y);
 
     #ifndef WR_FEATURE_REPETITION
-        vec2 uv = swgl_linearQuantize(sColor0, v_uv * perspective_divisor + v_uv_bounds.xy);
+        vec2 uv = v_uv * perspective_divisor + v_uv_bounds.xy;
+
+        #ifndef WR_FEATURE_ANTIALIASING
+        if (swgl_allowTextureNearest(sColor0, uv)) {
+            #ifdef WR_FEATURE_ALPHA_PASS
+            if (v_color != vec4(1.0)) {
+                swgl_commitTextureNearestColorRGBA8(sColor0, uv, v_uv_sample_bounds, v_color, layer);
+                return;
+            }
+            #endif
+            swgl_commitTextureNearestRGBA8(sColor0, uv, v_uv_sample_bounds, layer);
+            return;
+        }
+        #endif
+
+        uv = swgl_linearQuantize(sColor0, uv);
         vec2 min_uv = swgl_linearQuantize(sColor0, v_uv_sample_bounds.xy);
         vec2 max_uv = swgl_linearQuantize(sColor0, v_uv_sample_bounds.zw);
         vec2 step_uv = swgl_linearQuantizeStep(sColor0, swgl_interpStep(v_uv)) * perspective_divisor;
     #endif
 
     #ifdef WR_FEATURE_ALPHA_PASS
-        if (needs_clip()) {
-            while (swgl_SpanLength > 0) {
-                vec4 color = v_color * do_clip();
-                #ifdef WR_FEATURE_ANTIALIASING
-                    color *= init_transform_fs(v_local_pos);
-                    v_local_pos += swgl_interpStep(v_local_pos);
-                #endif
-                #ifdef WR_FEATURE_REPETITION
-                    vec2 repeated_uv = compute_repeated_uvs(perspective_divisor);
-                    vec2 uv = clamp(repeated_uv, v_uv_sample_bounds.xy, v_uv_sample_bounds.zw);
-                    swgl_commitTextureLinearColorRGBA8(sColor0, swgl_linearQuantize(sColor0, uv), color, layer);
-                    v_uv += swgl_interpStep(v_uv);
-                #else
-                    swgl_commitTextureLinearColorRGBA8(sColor0, clamp(uv, min_uv, max_uv), color, layer);
-                    uv += step_uv;
-                #endif
-                vClipMaskUv += swgl_interpStep(vClipMaskUv);
-            }
-            return;
         #ifdef WR_FEATURE_ANTIALIASING
-        } else {
+        {
         #else
-        } else if (v_color != vec4(1.0)) {
+        if (v_color != vec4(1.0)) {
         #endif
             while (swgl_SpanLength > 0) {
                 vec4 color = v_color;

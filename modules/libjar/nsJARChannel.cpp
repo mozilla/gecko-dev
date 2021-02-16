@@ -13,6 +13,7 @@
 #include "nsContentUtils.h"
 #include "nsProxyRelease.h"
 #include "nsContentSecurityManager.h"
+#include "nsComponentManagerUtils.h"
 
 #include "nsIFileURL.h"
 
@@ -499,7 +500,7 @@ nsresult nsJARChannel::CheckPendingEvents() {
 
   nsresult rv;
 
-  auto suspendCount = mPendingEvent.suspendCount;
+  uint32_t suspendCount = mPendingEvent.suspendCount;
   while (suspendCount--) {
     if (NS_WARN_IF(NS_FAILED(rv = mPump->Suspend()))) {
       return rv;
@@ -1008,15 +1009,15 @@ nsJARChannel::OnStartRequest(nsIRequest* req) {
   GetContentType(contentType);
   auto contentPolicyType = mLoadInfo->GetExternalContentPolicyType();
   if (contentType.Equals(APPLICATION_HTTP_INDEX_FORMAT) &&
-      contentPolicyType != nsIContentPolicy::TYPE_DOCUMENT &&
-      contentPolicyType != nsIContentPolicy::TYPE_FETCH) {
+      contentPolicyType != ExtContentPolicy::TYPE_DOCUMENT &&
+      contentPolicyType != ExtContentPolicy::TYPE_FETCH) {
     return NS_ERROR_CORRUPTED_CONTENT;
   }
-  if (contentPolicyType == nsIContentPolicy::TYPE_STYLESHEET &&
+  if (contentPolicyType == ExtContentPolicy::TYPE_STYLESHEET &&
       !contentType.EqualsLiteral(TEXT_CSS)) {
     return NS_ERROR_CORRUPTED_CONTENT;
   }
-  if (contentPolicyType == nsIContentPolicy::TYPE_SCRIPT &&
+  if (contentPolicyType == ExtContentPolicy::TYPE_SCRIPT &&
       !nsContentUtils::IsJavascriptMIMEType(
           NS_ConvertUTF8toUTF16(contentType))) {
     return NS_ERROR_CORRUPTED_CONTENT;
@@ -1051,6 +1052,7 @@ static void RecordEmptyFileEvent(const nsCString& aFileName) {
   // events.
   uint32_t from = findFilenameStart(aFileName);
 
+  Telemetry::SetEventRecordingEnabled("network.jar.channel"_ns, true);
   Telemetry::EventID eventType =
       Telemetry::EventID::NetworkJarChannel_Nodata_Onstop;
   Telemetry::RecordEvent(eventType, mozilla::Some(Substring(aFileName, from)),

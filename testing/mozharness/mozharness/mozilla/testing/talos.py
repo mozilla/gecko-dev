@@ -8,6 +8,8 @@
 run talos tests in a virtualenv
 """
 
+from __future__ import absolute_import
+import six
 import io
 import os
 import sys
@@ -15,7 +17,6 @@ import pprint
 import copy
 import re
 import shutil
-import string
 import subprocess
 import json
 
@@ -347,7 +348,7 @@ class Talos(
                     site_origin_hash = self.make_talos_domain(host)
                     new_url = 'http://%s/%s"' % (
                         site_origin_hash,
-                        string.join(merged, "/"),
+                        "/".join(merged),  # pylint --py3k: W1649
                     )
                     self.info(
                         "Replacing %s with %s in iframe inside %s"
@@ -462,7 +463,7 @@ class Talos(
         kw_options.update(kw)
         # talos expects tests to be in the format (e.g.) 'ts:tp5:tsvg'
         tests = kw_options.get("activeTests")
-        if tests and not isinstance(tests, basestring):
+        if tests and not isinstance(tests, six.string_types):
             tests = ":".join(tests)  # Talos expects this format
             kw_options["activeTests"] = tests
         for key, value in kw_options.items():

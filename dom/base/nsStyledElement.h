@@ -14,11 +14,12 @@
 #define __NS_STYLEDELEMENT_H_
 
 #include "mozilla/Attributes.h"
-#include "nsString.h"
 #include "mozilla/dom/Element.h"
+#include "nsString.h"
 
 namespace mozilla {
 class DeclarationBlock;
+struct MutationClosureData;
 }  // namespace mozilla
 
 // IID for nsStyledElement interface

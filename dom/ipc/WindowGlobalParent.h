@@ -94,7 +94,7 @@ class WindowGlobalParent final : public WindowContext,
 
   // Get this actor's manager if it is not an in-process actor. Returns
   // |nullptr| if the actor has been torn down, or is in-process.
-  already_AddRefed<BrowserParent> GetBrowserParent();
+  BrowserParent* GetBrowserParent();
 
   ContentParent* GetContentParent();
 
@@ -102,10 +102,6 @@ class WindowGlobalParent final : public WindowContext,
   // lifetime of the WindowGlobal object, even to reflect changes in
   // |document.domain|.
   nsIPrincipal* DocumentPrincipal() { return mDocumentPrincipal; }
-
-  nsIPrincipal* ContentBlockingAllowListPrincipal() {
-    return mDocContentBlockingAllowListPrincipal;
-  }
 
   // The BrowsingContext which this WindowGlobal has been loaded into.
   // FIXME: It's quite awkward that this method has a slightly different name
@@ -285,6 +281,7 @@ class WindowGlobalParent final : public WindowContext,
   // NOTE: This document principal doesn't reflect possible |document.domain|
   // mutations which may have been made in the actual document.
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
+  // The principal to use for the content blocking allow list.
   nsCOMPtr<nsIPrincipal> mDocContentBlockingAllowListPrincipal;
   nsCOMPtr<nsIURI> mDocumentURI;
   nsString mDocumentTitle;

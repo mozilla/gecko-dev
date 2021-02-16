@@ -81,7 +81,14 @@ class RemoteCommands(MachCommandBase):
         required=True,
         help="The commit or tag object name to check out.",
     )
-    def vendor_puppeteer(self, repository, commitish):
+    @CommandArgument(
+        "--no-install",
+        dest="install",
+        action="store_false",
+        default=True,
+        help="Do not install the just-pulled Puppeteer package,",
+    )
+    def vendor_puppeteer(self, repository, commitish, install):
         puppeteer_dir = os.path.join(self.remotedir, "test", "puppeteer")
 
         # Preserve our custom mocha reporter
@@ -109,9 +116,12 @@ class RemoteCommands(MachCommandBase):
         except OSError:
             pass
 
-        experimental_dir = os.path.join(puppeteer_dir, "experimental")
-        if os.path.isdir(experimental_dir):
-            shutil.rmtree(experimental_dir)
+        unwanted_dirs = ["experimental", "docs"]
+
+        for dir in unwanted_dirs:
+            dir_path = os.path.join(puppeteer_dir, dir)
+            if os.path.isdir(dir_path):
+                shutil.rmtree(dir_path)
 
         shutil.move(
             os.path.join(self.remotedir, "json-mocha-reporter.js"), puppeteer_dir
@@ -141,6 +151,10 @@ class RemoteCommands(MachCommandBase):
                 encoding="utf-8",
                 allow_unicode=True,
             )
+
+        if install:
+            env = {"PUPPETEER_SKIP_DOWNLOAD": "1"}
+            npm("install", cwd=os.path.join(self.topsrcdir, puppeteer_dir), env=env)
 
 
 def git(*args, **kwargs):
@@ -655,7 +669,7 @@ class PuppeteerTest(MachCommandBase):
         if changed_files and os.path.isdir(lib_dir):
             # clobber lib to force `tsc compile` step
             shutil.rmtree(lib_dir)
-        npm("install", cwd=os.path.join(self.topsrcdir, puppeteer_dir), env=env)
+        npm("ci", cwd=os.path.join(self.topsrcdir, puppeteer_dir), env=env)
 
 
 def exit(code, error=None):

@@ -5,11 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "VRManagerChild.h"
+
 #include "VRLayerChild.h"
 #include "VRManagerParent.h"
 #include "VRThread.h"
 #include "VRDisplayClient.h"
 #include "nsGlobalWindow.h"
+#include "mozilla/ProfilerMarkers.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/layers/CompositorThread.h"  // for CompositorThread
 #include "mozilla/dom/Navigator.h"
@@ -21,6 +23,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/GamepadManager.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/SyncObject.h"
 #include "mozilla/layers/TextureForwarder.h"
 

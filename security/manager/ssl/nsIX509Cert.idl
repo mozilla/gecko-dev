@@ -73,12 +73,6 @@ interface nsIX509Cert : nsISupports {
   readonly attribute AString subjectName;
 
   /**
-   *  The subject alternative names of the certificate.
-   *  It's a comma separated string of subject alt names.
-   */
-  readonly attribute AString subjectAltNames;
-
-  /**
    *  The subject's common name.
    */
   readonly attribute AString commonName;
@@ -172,13 +166,6 @@ interface nsIX509Cert : nsISupports {
    * Type of this certificate
    */
   readonly attribute unsigned long certType;
-
-  /**
-   *  True if the certificate is self-signed. CA issued
-   *  certificates are always self-signed.
-   */
-  [must_use]
-  readonly attribute boolean isSelfSigned;
 
   /**
    * A comma separated list of localized strings representing the contents of

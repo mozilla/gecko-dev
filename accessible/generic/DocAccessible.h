@@ -13,11 +13,11 @@
 
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
-#include "mozilla/dom/Document.h"
 #include "mozilla/UniquePtr.h"
 #include "nsIDocumentObserver.h"
 #include "nsIObserver.h"
 #include "nsITimer.h"
+#include "nsWeakReference.h"
 
 class nsAccessiblePivot;
 
@@ -65,7 +65,7 @@ class DocAccessible : public HyperTextAccessibleWrap,
   virtual void Init();
   virtual void Shutdown() override;
   virtual nsIFrame* GetFrame() const override;
-  virtual nsINode* GetNode() const override { return mDocumentNode; }
+  virtual nsINode* GetNode() const override;
   Document* DocumentNode() const { return mDocumentNode; }
 
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName) const override;
@@ -99,15 +99,12 @@ class DocAccessible : public HyperTextAccessibleWrap,
   /**
    * Return DOM document title.
    */
-  void Title(nsString& aTitle) const { mDocumentNode->GetTitle(aTitle); }
+  void Title(nsString& aTitle) const;
 
   /**
    * Return DOM document mime type.
    */
-  void MimeType(nsAString& aType) const {
-    mDocumentNode->GetContentType(aType);
-  }
-
+  void MimeType(nsAString& aType) const;
   /**
    * Return DOM document type.
    */
@@ -134,20 +131,14 @@ class DocAccessible : public HyperTextAccessibleWrap,
   /**
    * Return the presentation shell's context.
    */
-  nsPresContext* PresContext() const { return mPresShell->GetPresContext(); }
+  nsPresContext* PresContext() const;
 
   /**
    * Return true if associated DOM document was loaded and isn't unloading.
    */
-  bool IsContentLoaded() const {
-    // eDOMLoaded flag check is used for error pages as workaround to make this
-    // method return correct result since error pages do not receive 'pageshow'
-    // event and as consequence Document::IsShowing() returns false.
-    return mDocumentNode && mDocumentNode->IsVisible() &&
-           (mDocumentNode->IsShowing() || HasLoadState(eDOMLoaded));
-  }
+  bool IsContentLoaded() const;
 
-  bool IsHidden() const { return mDocumentNode->Hidden(); }
+  bool IsHidden() const;
 
   /**
    * Document load states.
@@ -239,10 +230,7 @@ class DocAccessible : public HyperTextAccessibleWrap,
    *
    * @return the accessible object
    */
-  Accessible* GetAccessible(nsINode* aNode) const {
-    return aNode == mDocumentNode ? const_cast<DocAccessible*>(this)
-                                  : mNodeToAccessibleMap.Get(aNode);
-  }
+  Accessible* GetAccessible(nsINode* aNode) const;
 
   /**
    * Return an accessible for the given node even if the node is not in

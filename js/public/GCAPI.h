@@ -30,20 +30,6 @@ struct Statistics;
 }  // namespace gcstats
 }  // namespace js
 
-typedef enum JSGCMode {
-  /** Perform only global GCs. */
-  JSGC_MODE_GLOBAL = 0,
-
-  /** Perform per-zone GCs until too much garbage has accumulated. */
-  JSGC_MODE_ZONE = 1,
-
-  /** Collect in short time slices rather than all at once. */
-  JSGC_MODE_INCREMENTAL = 2,
-
-  /** Both of the above. */
-  JSGC_MODE_ZONE_INCREMENTAL = 3,
-} JSGCMode;
-
 /**
  * Kinds of js_GC invocation.
  */
@@ -86,14 +72,21 @@ typedef enum JSGCParamKey {
   JSGC_NUMBER = 4,
 
   /**
-   * Select GC mode.
+   * Whether incremental GC is enabled. If not, GC will always run to
+   * completion.
    *
-   * See: JSGCMode in GCAPI.h
-   * prefs: javascript.options.mem.gc_per_zone and
-   *   javascript.options.mem.gc_incremental.
-   * Default: JSGC_MODE_ZONE_INCREMENTAL
+   * prefs: javascript.options.mem.gc_incremental.
+   * Default: false
    */
-  JSGC_MODE = 6,
+  JSGC_INCREMENTAL_GC_ENABLED = 5,
+
+  /**
+   * Whether per-zone GC is enabled. If not, all zones are collected every time.
+   *
+   * prefs: javascript.options.mem.gc_per_zone
+   * Default: false
+   */
+  JSGC_PER_ZONE_GC_ENABLED = 6,
 
   /** Number of cached empty GC chunks. */
   JSGC_UNUSED_CHUNKS = 7,
@@ -385,6 +378,22 @@ typedef enum JSGCParamKey {
    * nursery.)
    */
   JSGC_PRETENURE_STRING_THRESHOLD = 42,
+
+  /**
+   * If the finalization rate of the tenured strings exceeds this threshold,
+   * string will be allocated in nursery.
+   */
+  JSGC_STOP_PRETENURE_STRING_THRESHOLD = 43,
+
+  /**
+   * A number that is incremented on every major GC slice.
+   */
+  JSGC_MAJOR_GC_NUMBER = 44,
+
+  /**
+   * A number that is incremented on every minor GC.
+   */
+  JSGC_MINOR_GC_NUMBER = 45,
 } JSGCParamKey;
 
 /*
@@ -508,7 +517,7 @@ namespace JS {
   D(DOM_WINDOW_UTILS, FIRST_FIREFOX_REASON) \
   D(COMPONENT_UTILS, 34)                    \
   D(MEM_PRESSURE, 35)                       \
-  D(CC_WAITING, 36)                         \
+  D(CC_FINISHED, 36)                        \
   D(CC_FORCED, 37)                          \
   D(LOAD_END, 38)                           \
   D(UNUSED3, 39)                            \
@@ -573,7 +582,7 @@ extern JS_PUBLIC_API bool InternalGCReason(JS::GCReason reason);
 /**
  * Schedule the given zone to be collected as part of the next GC.
  */
-extern JS_PUBLIC_API void PrepareZoneForGC(Zone* zone);
+extern JS_PUBLIC_API void PrepareZoneForGC(JSContext* cx, Zone* zone);
 
 /**
  * Schedule all zones to be collected in the next GC.
@@ -597,7 +606,7 @@ extern JS_PUBLIC_API bool IsGCScheduled(JSContext* cx);
  * Undoes the effect of the Prepare methods above. The given zone will not be
  * collected in the next GC.
  */
-extern JS_PUBLIC_API void SkipZoneForGC(Zone* zone);
+extern JS_PUBLIC_API void SkipZoneForGC(JSContext* cx, Zone* zone);
 
 /*
  * Non-Incremental GC:
@@ -631,8 +640,7 @@ extern JS_PUBLIC_API void NonIncrementalGC(JSContext* cx,
  * must be met:
  *  - The collection must be run by calling JS::IncrementalGC() rather than
  *    JS_GC().
- *  - The GC mode must have been set to JSGC_MODE_INCREMENTAL or
- *    JSGC_MODE_ZONE_INCREMENTAL with JS_SetGCParameter().
+ *  - The GC parameter JSGC_INCREMENTAL_GC_ENABLED must be true.
  *
  * Note: Even if incremental GC is enabled and working correctly,
  *       non-incremental collections can still happen when low on memory.

@@ -6,6 +6,8 @@
 #ifndef nsDNSPrefetch_h___
 #define nsDNSPrefetch_h___
 
+#include <functional>
+
 #include "nsIWeakReferenceUtils.h"
 #include "nsString.h"
 #include "mozilla/TimeStamp.h"
@@ -29,6 +31,9 @@ class nsDNSPrefetch final : public nsIDNSListener {
   nsDNSPrefetch(nsIURI* aURI, mozilla::OriginAttributes& aOriginAttributes,
                 nsIRequest::TRRMode aTRRMode, nsIDNSListener* aListener,
                 bool storeTiming);
+  // For fetching HTTPS RR.
+  nsDNSPrefetch(nsIURI* aURI, mozilla::OriginAttributes& aOriginAttributes,
+                nsIRequest::TRRMode aTRRMode);
   bool TimingsValid() const {
     return !mStartTimestamp.IsNull() && !mEndTimestamp.IsNull();
   }
@@ -44,13 +49,12 @@ class nsDNSPrefetch final : public nsIDNSListener {
   nsresult PrefetchMedium(bool refreshDNS = false);
   nsresult PrefetchLow(bool refreshDNS = false);
 
-  nsresult FetchHTTPSSVC(bool aRefreshDNS);
-
-  static void PrefChanged(const char* aPref, void* aClosure);
+  nsresult FetchHTTPSSVC(
+      bool aRefreshDNS, bool aPrefetch,
+      std::function<void(nsIDNSHTTPSSVCRecord*)>&& aCallback);
 
  private:
   nsCString mHostname;
-  bool mIsHttps;
   mozilla::OriginAttributes mOriginAttributes;
   bool mStoreTiming;
   nsIRequest::TRRMode mTRRMode;

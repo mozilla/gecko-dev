@@ -499,7 +499,7 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
       NS_ASSERTION(window, "document has no window");
       if (!window) return NS_ERROR_UNEXPECTED;
 
-      nsFocusManager* fm = nsFocusManager::GetFocusManager();
+      RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager();
       if (usesIndependentSelection) {
         /* If a search result is found inside an editable element, we'll focus
          * the element only if focus is in our content window, i.e.
@@ -524,7 +524,7 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
         // We may be inside an editable element, and therefore the selection
         // may be controlled by a different selection controller.  Walk up the
         // chain of parent nodes to see if we find one.
-        nsCOMPtr<nsINode> node = returnRange->GetStartContainer();
+        nsINode* node = returnRange->GetStartContainer();
         while (node) {
           nsCOMPtr<nsIEditor> editor;
           if (RefPtr<HTMLInputElement> input =
@@ -557,7 +557,8 @@ nsresult nsTypeAheadFind::FindItNow(uint32_t aMode, bool aIsLinksOnly,
 
           // Otherwise move focus/caret to editable element
           if (fm) {
-            fm->SetFocus(mFoundEditable, 0);
+            nsCOMPtr<Element> newFocusElement = mFoundEditable;
+            fm->SetFocus(newFocusElement, 0);
           }
           break;
         }
@@ -1173,9 +1174,9 @@ bool nsTypeAheadFind::IsRangeRendered(nsRange* aRange) {
     // Append visible frames to frames array.
     nsLayoutUtils::GetFramesForArea(
         RelativeTo{rootFrame}, r, frames,
-        {FrameForPointOption::IgnorePaintSuppression,
-         FrameForPointOption::IgnoreRootScrollFrame,
-         FrameForPointOption::OnlyVisible});
+        {{FrameForPointOption::IgnorePaintSuppression,
+          FrameForPointOption::IgnoreRootScrollFrame,
+          FrameForPointOption::OnlyVisible}});
 
     // See if any of the frames contain the content. If they do, then the range
     // is visible. We search for the content rather than the original frame,

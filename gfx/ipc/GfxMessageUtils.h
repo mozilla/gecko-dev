@@ -17,13 +17,18 @@
 #include "gfxRect.h"
 #include "gfxTelemetry.h"
 #include "gfxTypes.h"
+#include "ipc/EnumSerializer.h"
+#include "ipc/IPCMessageUtilsSpecializations.h"
 #include "mozilla/gfx/CrossProcessPaint.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/gfx/ScaleFactor.h"
+#include "mozilla/gfx/ScaleFactors2D.h"
 #include "nsRect.h"
 #include "nsRegion.h"
 #include "mozilla/Array.h"
+#include "mozilla/ipc/IPDLParamTraits.h"
 #include "mozilla/ipc/ProtocolUtils.h"
-#include "mozilla/ipc/Shmem.h"
+#include "mozilla/ipc/ShmemMessageUtils.h"
 
 #include <stdint.h>
 

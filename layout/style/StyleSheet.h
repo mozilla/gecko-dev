@@ -14,17 +14,17 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ServoBindingTypes.h"
-#include "mozilla/ServoUtils.h"
+#include "mozilla/ServoTypes.h"
 #include "mozilla/StyleSheetInfo.h"
-#include "mozilla/URLExtraData.h"
 #include "nsICSSLoaderObserver.h"
+#include "nsIPrincipal.h"
 #include "nsWrapperCache.h"
-#include "nsCompatibility.h"
 #include "nsStringFwd.h"
 
+class nsIGlobalObject;
 class nsINode;
 class nsIPrincipal;
-struct RawServoSharedMemoryBuilder;
+struct ServoCssRules;
 class nsIReferrerInfo;
 
 namespace mozilla {
@@ -53,7 +53,6 @@ class CSSRuleList;
 class DocumentOrShadowRoot;
 class MediaList;
 class ShadowRoot;
-class SRIMetadata;
 struct CSSStyleSheetInit;
 }  // namespace dom
 
@@ -344,11 +343,11 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   // version.
   css::Rule* GetDOMOwnerRule() const;
   dom::CSSRuleList* GetCssRules(nsIPrincipal& aSubjectPrincipal, ErrorResult&);
-  uint32_t InsertRule(const nsAString& aRule, uint32_t aIndex,
+  uint32_t InsertRule(const nsACString& aRule, uint32_t aIndex,
                       nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
   void DeleteRule(uint32_t aIndex, nsIPrincipal& aSubjectPrincipal,
                   ErrorResult& aRv);
-  int32_t AddRule(const nsAString& aSelector, const nsAString& aBlock,
+  int32_t AddRule(const nsACString& aSelector, const nsACString& aBlock,
                   const dom::Optional<uint32_t>& aIndex,
                   nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
   already_AddRefed<dom::Promise> Replace(const nsACString& aText, ErrorResult&);
@@ -419,7 +418,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
   void DropStyleSet(ServoStyleSet* aStyleSet);
 
   nsresult DeleteRuleFromGroup(css::GroupRule* aGroup, uint32_t aIndex);
-  nsresult InsertRuleIntoGroup(const nsAString& aRule, css::GroupRule* aGroup,
+  nsresult InsertRuleIntoGroup(const nsACString& aRule, css::GroupRule* aGroup,
                                uint32_t aIndex);
 
   // Find the ID of the owner inner window.
@@ -488,10 +487,10 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
  protected:
   // Internal methods which do not have security check and completeness check.
-  uint32_t InsertRuleInternal(const nsAString& aRule, uint32_t aIndex,
+  uint32_t InsertRuleInternal(const nsACString& aRule, uint32_t aIndex,
                               ErrorResult&);
   void DeleteRuleInternal(uint32_t aIndex, ErrorResult&);
-  nsresult InsertRuleIntoGroupInternal(const nsAString& aRule,
+  nsresult InsertRuleIntoGroupInternal(const nsACString& aRule,
                                        css::GroupRule* aGroup, uint32_t aIndex);
 
   // Common tail routine for the synchronous and asynchronous parsing paths.

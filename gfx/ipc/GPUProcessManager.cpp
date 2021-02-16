@@ -7,6 +7,7 @@
 #include "GPUProcessManager.h"
 
 #include "gfxConfig.h"
+#include "gfxPlatform.h"
 #include "GPUProcessHost.h"
 #include "GPUProcessListener.h"
 #include "mozilla/MemoryReportingProcess.h"
@@ -22,6 +23,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUChild.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/layers/APZCTreeManagerChild.h"
 #include "mozilla/layers/APZInputBridgeChild.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
@@ -442,39 +444,41 @@ void GPUProcessManager::SimulateDeviceReset() {
     }
     OnRemoteProcessDeviceReset(mProcess);
   } else {
-    OnInProcessDeviceReset();
+    OnInProcessDeviceReset(/* aTrackThreshold */ false);
   }
 }
 
-void GPUProcessManager::DisableWebRender(wr::WebRenderError aError,
-                                         const nsCString& aMsg) {
+bool GPUProcessManager::DisableWebRenderConfig(wr::WebRenderError aError,
+                                               const nsCString& aMsg) {
   if (!gfx::gfxVars::UseWebRender()) {
-    return;
+    return false;
   }
   // Disable WebRender
   if (aError == wr::WebRenderError::INITIALIZE) {
-    gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
-        .ForceDisable(gfx::FeatureStatus::Unavailable,
-                      "WebRender initialization failed", aMsg);
+    gfxPlatform::DisableWebRender(gfx::FeatureStatus::Unavailable,
+                                  "WebRender initialization failed", aMsg);
   } else if (aError == wr::WebRenderError::MAKE_CURRENT) {
-    gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
-        .ForceDisable(gfx::FeatureStatus::Unavailable,
-                      "Failed to make render context current",
-                      "FEATURE_FAILURE_WEBRENDER_MAKE_CURRENT"_ns);
+    gfxPlatform::DisableWebRender(gfx::FeatureStatus::Unavailable,
+                                  "Failed to make render context current",
+                                  "FEATURE_FAILURE_WEBRENDER_MAKE_CURRENT"_ns);
   } else if (aError == wr::WebRenderError::RENDER) {
-    gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
-        .ForceDisable(gfx::FeatureStatus::Unavailable,
-                      "Failed to render WebRender",
-                      "FEATURE_FAILURE_WEBRENDER_RENDER"_ns);
+    gfxPlatform::DisableWebRender(gfx::FeatureStatus::Unavailable,
+                                  "Failed to render WebRender",
+                                  "FEATURE_FAILURE_WEBRENDER_RENDER"_ns);
   } else if (aError == wr::WebRenderError::NEW_SURFACE) {
-    gfx::gfxConfig::GetFeature(gfx::Feature::WEBRENDER)
-        .ForceDisable(gfx::FeatureStatus::Unavailable,
-                      "Failed to create new surface",
-                      "FEATURE_FAILURE_WEBRENDER_NEW_SURFACE"_ns);
+    gfxPlatform::DisableWebRender(gfx::FeatureStatus::Unavailable,
+                                  "Failed to create new surface",
+                                  "FEATURE_FAILURE_WEBRENDER_NEW_SURFACE"_ns);
+  } else if (aError == wr::WebRenderError::EXCESSIVE_RESETS) {
+    gfxPlatform::DisableWebRender(
+        gfx::FeatureStatus::Unavailable, "Device resets exceeded threshold",
+        "FEATURE_FAILURE_WEBRENDER_EXCESSIVE_RESETS"_ns);
   } else {
     MOZ_ASSERT_UNREACHABLE("Invalid value");
+    gfxPlatform::DisableWebRender(gfx::FeatureStatus::Unavailable,
+                                  "Unhandled failure reason",
+                                  "FEATURE_FAILURE_WEBRENDER_UNHANDLED"_ns);
   }
-  gfx::gfxVars::SetUseWebRender(false);
   gfx::gfxVars::SetUseWebRenderDCompVideoOverlayWin(false);
 
 #if defined(MOZ_WIDGET_ANDROID)
@@ -494,10 +498,17 @@ void GPUProcessManager::DisableWebRender(wr::WebRenderError aError,
                        "FEATURE_FAILURE_LOST_WEBRENDER"_ns);
 #endif
 
-  if (mProcess) {
-    OnRemoteProcessDeviceReset(mProcess);
-  } else {
-    OnInProcessDeviceReset();
+  return true;
+}
+
+void GPUProcessManager::DisableWebRender(wr::WebRenderError aError,
+                                         const nsCString& aMsg) {
+  if (DisableWebRenderConfig(aError, aMsg)) {
+    if (mProcess) {
+      OnRemoteProcessDeviceReset(mProcess);
+    } else {
+      OnInProcessDeviceReset(/* aTrackThreshold */ false);
+    }
   }
 }
 
@@ -513,26 +524,56 @@ void GPUProcessManager::NotifyWebRenderError(wr::WebRenderError aError) {
   DisableWebRender(aError, nsCString());
 }
 
-void GPUProcessManager::OnInProcessDeviceReset() {
-  RebuildInProcessSessions();
-  NotifyListenersOnCompositeDeviceReset();
+/* static */ void GPUProcessManager::RecordDeviceReset(
+    DeviceResetReason aReason) {
+  if (aReason != DeviceResetReason::FORCED_RESET) {
+    Telemetry::Accumulate(Telemetry::DEVICE_RESET_REASON, uint32_t(aReason));
+  }
+
+  CrashReporter::AnnotateCrashReport(
+      CrashReporter::Annotation::DeviceResetReason, int(aReason));
 }
 
-void GPUProcessManager::OnRemoteProcessDeviceReset(GPUProcessHost* aHost) {
-  // Detect whether the device is resetting too quickly or too much
-  // indicating that we should give up and use software
-  mDeviceResetCount++;
-
+bool GPUProcessManager::OnDeviceReset(bool aTrackThreshold) {
+#ifdef XP_WIN
   // Disable double buffering when device reset happens.
   if (!gfxVars::UseWebRender() && gfxVars::UseDoubleBufferingWithCompositor()) {
     gfxVars::SetUseDoubleBufferingWithCompositor(false);
   }
+#endif
+
+  // Ignore resets for thresholding if requested.
+  if (!aTrackThreshold) {
+    return false;
+  }
+
+  // Detect whether the device is resetting too quickly or too much
+  // indicating that we should give up and use software
+  mDeviceResetCount++;
 
   auto newTime = TimeStamp::Now();
   auto delta = (int32_t)(newTime - mDeviceResetLastTime).ToMilliseconds();
   mDeviceResetLastTime = newTime;
 
-  if (ShouldLimitDeviceResets(mDeviceResetCount, delta)) {
+  // Returns true if we should disable acceleration due to the reset.
+  return ShouldLimitDeviceResets(mDeviceResetCount, delta);
+}
+
+void GPUProcessManager::OnInProcessDeviceReset(bool aTrackThreshold) {
+  if (OnDeviceReset(aTrackThreshold)) {
+    gfxCriticalNoteOnce << "In-process device reset threshold exceeded";
+#ifdef MOZ_WIDGET_GTK
+    // FIXME(aosmond): Should we disable WebRender on other platforms?
+    DisableWebRenderConfig(wr::WebRenderError::EXCESSIVE_RESETS, nsCString());
+#endif
+  }
+
+  RebuildInProcessSessions();
+  NotifyListenersOnCompositeDeviceReset();
+}
+
+void GPUProcessManager::OnRemoteProcessDeviceReset(GPUProcessHost* aHost) {
+  if (OnDeviceReset(/* aTrackThreshold */ true)) {
     DestroyProcess();
     DisableGPUProcess("GPU processed experienced too many device resets");
     HandleProcessLost();

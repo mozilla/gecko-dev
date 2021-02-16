@@ -28,7 +28,6 @@ Please note that some targeting attributes require stricter controls on the tele
 * [sync](#sync)
 * [topFrecentSites](#topfrecentsites)
 * [totalBookmarksCount](#totalbookmarkscount)
-* [trailheadTriplet](#trailheadtriplet)
 * [usesFirefoxSync](#usesfirefoxsync)
 * [isFxAEnabled](#isFxAEnabled)
 * [xpinstallEnabled](#xpinstallEnabled)
@@ -49,7 +48,8 @@ Please note that some targeting attributes require stricter controls on the tele
 * [profileRestartCount](#profilerestartcount)
 * [homePageSettings](#homepagesettings)
 * [newtabSettings](#newtabsettings)
-* [isFissionExperimentEnabled](#isFissionExperimentEnabled)
+* [isFissionExperimentEnabled](#isfissionexperimentenabled)
+* [activeNotifications](#activenotifications)
 
 ## Detailed usage
 
@@ -443,10 +443,6 @@ Total number of bookmarks.
 declare const totalBookmarksCount: number;
 ```
 
-### `trailheadTriplet`
-
-(67.05+ only) Experiment branch for "triplet" study
-
 ### `usesFirefoxSync`
 
 Does the user use Firefox sync?
@@ -825,3 +821,8 @@ Object {
 ### `isFissionExperimentEnabled`
 
 A boolean. `true` if we're running Fission experiment, `false` otherwise.
+
+### `activeNotifications`
+
+True when an infobar style message is displayed or when the awesomebar is
+expanded to show a message (for example onboarding tips).

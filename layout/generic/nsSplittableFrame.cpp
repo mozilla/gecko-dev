@@ -186,14 +186,15 @@ void nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame) {
 
 NS_DECLARE_FRAME_PROPERTY_SMALL_VALUE(ConsumedBSizeProperty, nscoord);
 
-nscoord nsSplittableFrame::CalcAndCacheConsumedBSize(WritingMode aWM) {
+nscoord nsSplittableFrame::CalcAndCacheConsumedBSize() {
   nsIFrame* prev = GetPrevContinuation();
   if (!prev) {
     return 0;
   }
+  const auto wm = GetWritingMode();
   nscoord bSize = 0;
   for (; prev; prev = prev->GetPrevContinuation()) {
-    bSize += prev->ContentSize(aWM).BSize(aWM);
+    bSize += prev->ContentSize(wm).BSize(wm);
     bool found = false;
     nscoord consumed = prev->GetProperty(ConsumedBSizeProperty(), &found);
     if (found) {
@@ -233,10 +234,10 @@ nscoord nsSplittableFrame::GetEffectiveComputedBSize(
   return std::max(0, bSize);
 }
 
-nsIFrame::LogicalSides nsSplittableFrame::GetLogicalSkipSides(
-    const Maybe<SkipSidesDuringReflow>& aDuringReflow) const {
+LogicalSides nsSplittableFrame::GetBlockLevelLogicalSkipSides(
+    bool aAfterReflow) const {
   LogicalSides skip(mWritingMode);
-  if (IsTrueOverflowContainer()) {
+  if (MOZ_UNLIKELY(IsTrueOverflowContainer())) {
     skip |= eLogicalSideBitsBBoth;
     return skip;
   }
@@ -250,49 +251,18 @@ nsIFrame::LogicalSides nsSplittableFrame::GetLogicalSkipSides(
     skip |= eLogicalSideBitsBStart;
   }
 
-  if (aDuringReflow) {
-    nscoord availBSize = aDuringReflow->mReflowInput.AvailableBSize();
-    // We're in the midst of reflow right now, so it's possible that we haven't
-    // created a next-in-flow yet. If our content block-size is going to exceed
-    // our available block-size, though, then we're going to need a
-    // next-in-flow, it just hasn't been created yet.
-    if (NS_UNCONSTRAINEDSIZE != availBSize) {
-      nscoord effectiveBSize = GetEffectiveComputedBSize(
-          aDuringReflow->mReflowInput, aDuringReflow->mConsumedBSize);
-      if (effectiveBSize != NS_UNCONSTRAINEDSIZE &&
-          effectiveBSize > availBSize) {
-        // Our computed block-size is going to exceed our available block-size,
-        // so we're going to need a next-in-flow.
-        skip |= eLogicalSideBitsBEnd;
-      }
-    }
-  } else {
-    nsIFrame* nif = GetNextContinuation();
-    if (nif && !nif->IsTrueOverflowContainer()) {
-      skip |= eLogicalSideBitsBEnd;
-    }
-  }
-
   // Always skip block-end side if we have a *later* sibling across column-span
   // split.
   if (HasColumnSpanSiblings()) {
     skip |= eLogicalSideBitsBEnd;
   }
 
-  return skip;
-}
+  if (aAfterReflow) {
+    nsIFrame* nif = GetNextContinuation();
+    if (nif && !nif->IsTrueOverflowContainer()) {
+      skip |= eLogicalSideBitsBEnd;
+    }
+  }
 
-LogicalSides nsSplittableFrame::PreReflowBlockLevelLogicalSkipSides() const {
-  LogicalSides skip(mWritingMode);
-  if (MOZ_UNLIKELY(IsTrueOverflowContainer())) {
-    skip |= mozilla::eLogicalSideBitsBBoth;
-    return skip;
-  }
-  if (MOZ_LIKELY(StyleBorder()->mBoxDecorationBreak !=
-                 StyleBoxDecorationBreak::Clone) &&
-      GetPrevInFlow()) {
-    skip |= mozilla::eLogicalSideBitsBStart;
-    return skip;
-  }
   return skip;
 }

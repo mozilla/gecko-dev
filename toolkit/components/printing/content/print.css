@@ -24,8 +24,7 @@ body[loading] #print {
 }
 
 .section-block {
-  padding-inline: 16px;
-  margin-block: 16px;
+  margin: 16px;
 }
 
 .section-block .block-label {
@@ -100,13 +99,13 @@ select {
   padding: 0;
 }
 
-select:not([size]):not([multiple])[iconic] {
+select:not([size], [multiple])[iconic] {
   padding-inline-start: 28px;
 }
 
 #printer-picker {
   background-size: auto 12px, 16px;
-  background-image: url("chrome://global/skin/icons/arrow-dropdown-12.svg"), url("chrome://browser/skin/print.svg");
+  background-image: url("chrome://global/skin/icons/arrow-dropdown-12.svg"), url("chrome://global/skin/icons/print.svg");
   background-position: right 3px center, left 8px center;
   width: 100%;
 }
@@ -121,10 +120,6 @@ select:not([size]):not([multiple])[iconic] {
 
 input[type="checkbox"] {
   margin-inline-end: 8px;
-}
-
-input[type="checkbox"]:checked {
-  fill: #3485ff !important;
 }
 
 input[type="radio"] {
@@ -145,12 +140,12 @@ input[type="radio"]:checked {
   fill: #3485ff;
 }
 
-input[type="radio"]:not(:disabled):-moz-focusring,
-input[type="radio"]:not(:disabled):hover {
+input[type="radio"]:enabled:-moz-focusring,
+input[type="radio"]:enabled:hover {
   border-color: var(--in-content-border-focus);
 }
 
-input[type="radio"]:not(:disabled):-moz-focusring {
+input[type="radio"]:enabled:-moz-focusring {
   outline: 2px solid var(--in-content-border-active);
   /* offset outline to align with 1px border-width set for buttons/menulists above. */
   outline-offset: -1px;
@@ -223,7 +218,7 @@ input[type="text"] {
 
 #open-dialog-link::after {
   display: block;
-  content: url(chrome://browser/skin/open-in-new.svg);
+  content: url(chrome://global/skin/icons/open-in-new.svg);
   -moz-context-properties: fill;
   fill: currentColor;
   width: 12px;
@@ -239,6 +234,24 @@ input[type="text"] {
   flex: 0 1 auto;
 }
 
+#print-progress {
+  background-image: url("chrome://global/skin/icons/loading.png");
+  background-repeat: no-repeat;
+  background-size: 16px;
+  background-position: left center;
+  padding-inline-start: 20px;
+}
+
+@media (min-resolution: 1.1dppx) {
+  #print-progress {
+    background-image: url("chrome://global/skin/icons/loading@2x.png");
+  }
+}
+
+#print-progress:dir(rtl) {
+  background-position-x: right;
+}
+
 #button-container {
   display: flex;
   justify-content: center;
@@ -250,25 +263,8 @@ input[type="text"] {
   margin: 0;
 }
 
-.range-group-input {
-  width: 3em;
-  height: max-content;
-  appearance: textfield !important;
-  margin-inline: 5px;
-}
-
-.range-part-label {
-  height: max-content;
-  margin-top: 8px;
-}
-
-.range-group {
-  align-items: center;
-  display: inline-flex;
-}
-
-#range-picker {
-  margin-bottom: 8px;
+#custom-range {
+  margin-top: 4px;
 }
 
 .vertical-margins,
@@ -288,11 +284,6 @@ input[type="text"] {
   margin-top: 2px;
 }
 
-input[type="number"]:invalid {
-  border: 1px solid #D70022;
-  box-shadow: 0 0 0 1px #D70022, 0 0 0 4px rgba(215, 0, 34, 0.3);
-}
-
 .toggle-group #landscape + .toggle-group-label::before {
   content: url("chrome://global/content/landscape.svg");
 }
@@ -301,6 +292,7 @@ input[type="number"]:invalid {
 }
 
 select:invalid,
+input[type="text"]:invalid,
 input[type="number"]:invalid {
   border: 1px solid #D70022;
   box-shadow: 0 0 0 1px #D70022, 0 0 0 4px rgba(215, 0, 34, 0.3);

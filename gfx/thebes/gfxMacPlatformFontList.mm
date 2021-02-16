@@ -61,6 +61,7 @@
 #include "nsCharTraits.h"
 #include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
+#include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsTArray.h"
 
@@ -70,6 +71,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Sprintf.h"
+#include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/gfx/2D.h"
 
@@ -814,7 +816,11 @@ gfxMacPlatformFontList::gfxMacPlatformFontList()
   CheckFamilyList(kBaseFonts, ArrayLength(kBaseFonts));
 
 #ifdef MOZ_BUNDLED_FONTS
-  ActivateBundledFonts();
+  // We activate bundled fonts if the pref is > 0 (on) or < 0 (auto), only an
+  // explicit value of 0 (off) will disable them.
+  if (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() != 0) {
+    ActivateBundledFonts();
+  }
 #endif
 
   nsresult rv;
@@ -978,6 +984,8 @@ nsresult gfxMacPlatformFontList::InitFontListForPlatform() {
 }
 
 void gfxMacPlatformFontList::InitSharedFontListForPlatform() {
+  nsAutoreleasePool localPool;
+
   InitSystemFontNames();
   if (XRE_IsParentProcess()) {
     CFArrayRef familyNames = CTFontManagerCopyAvailableFontFamilyNames();
@@ -1283,7 +1291,7 @@ void gfxMacPlatformFontList::RegisteredFontsChangedNotificationCallback(
   // modify a preference that will trigger reflow everywhere
   fl->ForceGlobalReflow();
 
-  mozilla::dom::ContentParent::NotifyUpdatedFonts();
+  dom::ContentParent::NotifyUpdatedFonts(true);
 }
 
 gfxFontEntry* gfxMacPlatformFontList::PlatformGlobalFontFallback(const uint32_t aCh,
@@ -1499,6 +1507,9 @@ bool gfxMacPlatformFontList::FindAndAddFamilies(mozilla::StyleGenericFontFamily 
 void gfxMacPlatformFontList::LookupSystemFont(LookAndFeel::FontID aSystemFontID,
                                               nsACString& aSystemFontName,
                                               gfxFontStyle& aFontStyle) {
+  // Provide a local pool because we may be called from stylo threads.
+  nsAutoreleasePool localPool;
+
   // code moved here from widget/cocoa/nsLookAndFeel.mm
   NSFont* font = nullptr;
   char* systemFontName = nullptr;
@@ -1555,10 +1566,9 @@ void gfxMacPlatformFontList::LookupSystemFont(LookAndFeel::FontID aSystemFontID,
   aFontStyle.style =
       (traits & NSFontItalicTrait) ? FontSlantStyle::Italic() : FontSlantStyle::Normal();
   aFontStyle.weight = (traits & NSFontBoldTrait) ? FontWeight::Bold() : FontWeight::Normal();
-  aFontStyle.stretch =
-      (traits & NSFontExpandedTrait)
-          ? FontStretch::Expanded()
-          : (traits & NSFontCondensedTrait) ? FontStretch::Condensed() : FontStretch::Normal();
+  aFontStyle.stretch = (traits & NSFontExpandedTrait)    ? FontStretch::Expanded()
+                       : (traits & NSFontCondensedTrait) ? FontStretch::Condensed()
+                                                         : FontStretch::Normal();
   aFontStyle.size = [font pointSize];
   aFontStyle.systemFont = true;
 }

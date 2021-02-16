@@ -5,8 +5,10 @@
 
 #include "Texture.h"
 
+#include "ipc/WebGPUChild.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
+#include "mozilla/dom/WebGPUBinding.h"
 #include "TextureView.h"
 
 namespace mozilla {
@@ -87,7 +89,7 @@ void Texture::Cleanup() {
 
 already_AddRefed<TextureView> Texture::CreateView(
     const dom::GPUTextureViewDescriptor& aDesc) {
-  RawId id = mParent->GetBridge()->TextureCreateView(mId, aDesc);
+  RawId id = mParent->GetBridge()->TextureCreateView(mId, mParent->mId, aDesc);
   RefPtr<TextureView> view = new TextureView(this, id);
   return view.forget();
 }

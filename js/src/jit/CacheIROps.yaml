@@ -74,12 +74,6 @@
 # If there's an argument named 'result', the generated CacheIRWriter method will
 # return a new OperandId of this type.
 
-- name: TypeMonitorResult
-  shared: false
-  transpile: true
-  cost_estimate: 1
-  args:
-
 - name: ReturnFromIC
   shared: false
   transpile: true
@@ -330,7 +324,6 @@
   args:
     str: StringId
     separator: StringId
-    group: GroupField
 
 - name: RegExpPrototypeOptimizableResult
   shared: true
@@ -366,14 +359,14 @@
 
 - name: GuardIsExtensible
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 1
   args:
     obj: ObjId
 
 - name: GuardIsNativeObject
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 1
   args:
     obj: ObjId
@@ -536,16 +529,9 @@
     obj: ObjId
     shape: ShapeField
 
-- name: GuardGroupHasUnanalyzedNewScript
+- name: GuardInt32IsNonNegative
   shared: true
-  transpile: false
-  cost_estimate: 1
-  args:
-    group: GroupField
-
-- name: GuardIndexIsNonNegative
-  shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 1
   args:
     index: Int32Id
@@ -560,7 +546,7 @@
 
 - name: GuardIndexIsValidUpdateOrAdd
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 1
   args:
     obj: ObjId
@@ -568,7 +554,7 @@
 
 - name: GuardIndexGreaterThanDenseInitLength
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 1
   args:
     obj: ObjId
@@ -612,13 +598,6 @@
   transpile: false
   cost_estimate: 1
   args:
-
-- name: GuardObjectGroupNotPretenured
-  shared: true
-  transpile: false
-  cost_estimate: 1
-  args:
-    group: GroupField
 
 - name: GuardFunctionHasJitEntry
   shared: true
@@ -744,7 +723,6 @@
   args:
     obj: ObjId
     name: PropertyNameField
-    handleMissing: BoolImm
 
 - name: MegamorphicLoadSlotByValueResult
   shared: true
@@ -753,7 +731,6 @@
   args:
     obj: ObjId
     id: ValId
-    handleMissing: BoolImm
 
 - name: MegamorphicStoreSlot
   shared: true
@@ -763,7 +740,6 @@
     obj: ObjId
     name: PropertyNameField
     rhs: ValId
-    needsTypeBarrier: BoolImm
 
 - name: MegamorphicSetElement
   shared: false
@@ -845,8 +821,6 @@
     obj: ObjId
     offset: RawInt32Field
     rhs: ValId
-    changeGroup: BoolImm
-    newGroup: GroupField
     newShape: ShapeField
 
 - name: AddAndStoreDynamicSlot
@@ -857,8 +831,6 @@
     obj: ObjId
     offset: RawInt32Field
     rhs: ValId
-    changeGroup: BoolImm
-    newGroup: GroupField
     newShape: ShapeField
 
 - name: AllocateAndStoreDynamicSlot
@@ -869,13 +841,11 @@
     obj: ObjId
     offset: RawInt32Field
     rhs: ValId
-    changeGroup: BoolImm
-    newGroup: GroupField
     newShape: ShapeField
     numNewSlots: RawInt32Field
 
 - name: StoreDenseElement
-  shared: false
+  shared: true
   transpile: true
   cost_estimate: 6
   args:
@@ -884,7 +854,7 @@
     rhs: ValId
 
 - name: StoreDenseElementHole
-  shared: false
+  shared: true
   transpile: true
   cost_estimate: 6
   args:
@@ -894,7 +864,7 @@
     handleAdd: BoolImm
 
 - name: ArrayPush
-  shared: false
+  shared: true
   transpile: true
   cost_estimate: 6
   args:
@@ -1303,6 +1273,13 @@
     input: NumberId
     fun: UnaryMathFunctionImm
 
+- name: ObjectToStringResult
+  shared: true
+  transpile: true
+  cost_estimate: 4
+  args:
+    obj: ObjId
+
 - name: ReflectGetPrototypeOfResult
   shared: false
   transpile: true
@@ -1495,7 +1472,7 @@
 
 - name: CallAddOrUpdateSparseElementHelper
   shared: false
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     obj: ObjId
@@ -1547,6 +1524,14 @@
     flags: CallFlagsImm
     funcExport: RawPointerField
     instance: ObjectField
+
+- name: GuardWasmArg
+  shared: true
+  transpile: true
+  cost_estimate: 2
+  args:
+    arg: ValId
+    type: WasmValTypeImm
 
 - name: CallNativeFunction
   shared: false
@@ -1607,7 +1592,6 @@
   cost_estimate: 0
   custom_writer: true
   args:
-    kind: MetaTwoByteKindImm
     functionObject: ObjectField
     templateObject: ObjectField
 
@@ -1654,7 +1638,7 @@
 
 - name: CallGetSparseElementResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     obj: ObjId
@@ -1678,7 +1662,7 @@
 
 - name: LoadDenseElementHoleExistsResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 2
   args:
     obj: ObjId
@@ -1774,7 +1758,6 @@
   cost_estimate: 1
   args:
     obj: ObjId
-    getter: ObjectField
 
 - name: LoadStringCharResult
   shared: false
@@ -1951,7 +1934,7 @@
 
 - name: CallObjectHasSparseElementResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 4
   args:
     obj: ObjId
@@ -1959,7 +1942,7 @@
 
 - name: CallNativeGetElementResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     obj: ObjId
@@ -2138,7 +2121,7 @@
 
 - name: BigIntAddResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2146,7 +2129,7 @@
 
 - name: BigIntSubResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2154,7 +2137,7 @@
 
 - name: BigIntMulResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2162,7 +2145,7 @@
 
 - name: BigIntDivResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2170,7 +2153,7 @@
 
 - name: BigIntModResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2178,7 +2161,7 @@
 
 - name: BigIntPowResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2242,7 +2225,7 @@
 
 - name: BigIntBitOrResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2250,7 +2233,7 @@
 
 - name: BigIntBitXorResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2258,7 +2241,7 @@
 
 - name: BigIntBitAndResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2266,7 +2249,7 @@
 
 - name: BigIntLeftShiftResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2274,7 +2257,7 @@
 
 - name: BigIntRightShiftResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     lhs: BigIntId
@@ -2282,7 +2265,7 @@
 
 - name: BigIntNotResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     input: BigIntId
@@ -2303,7 +2286,7 @@
 
 - name: BigIntNegationResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     input: BigIntId
@@ -2338,14 +2321,14 @@
 
 - name: BigIntIncResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     input: BigIntId
 
 - name: BigIntDecResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     input: BigIntId
@@ -2478,7 +2461,7 @@
 
 - name: CompareBigIntResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 4
   args:
     op: JSOpImm
@@ -2487,57 +2470,30 @@
 
 - name: CompareBigIntInt32Result
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 3
   args:
     op: JSOpImm
     lhs: BigIntId
     rhs: Int32Id
 
-- name: CompareInt32BigIntResult
-  shared: true
-  transpile: false
-  cost_estimate: 3
-  args:
-    op: JSOpImm
-    lhs: Int32Id
-    rhs: BigIntId
-
 - name: CompareBigIntNumberResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 4
   args:
     op: JSOpImm
     lhs: BigIntId
     rhs: NumberId
 
-- name: CompareNumberBigIntResult
-  shared: true
-  transpile: false
-  cost_estimate: 4
-  args:
-    op: JSOpImm
-    lhs: NumberId
-    rhs: BigIntId
-
 - name: CompareBigIntStringResult
   shared: true
-  transpile: false
+  transpile: true
   cost_estimate: 5
   args:
     op: JSOpImm
     lhs: BigIntId
     rhs: StringId
-
-- name: CompareStringBigIntResult
-  shared: true
-  transpile: false
-  cost_estimate: 5
-  args:
-    op: JSOpImm
-    lhs: StringId
-    rhs: BigIntId
 
 - name: CompareNullUndefinedResult
   shared: true
@@ -2555,6 +2511,29 @@
   args:
     lhs: NumberId
     rhs: NumberId
+
+- name: IndirectTruncateInt32Result
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    val: Int32Id
+
+- name: BigIntAsIntNResult
+  shared: true
+  transpile: true
+  cost_estimate: 5
+  args:
+    bits: Int32Id
+    bigInt: BigIntId
+
+- name: BigIntAsUintNResult
+  shared: true
+  transpile: true
+  cost_estimate: 5
+  args:
+    bits: Int32Id
+    bigInt: BigIntId
 
 - name: CallPrintString
   shared: true

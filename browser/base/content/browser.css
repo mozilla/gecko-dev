@@ -156,7 +156,7 @@ panelview[mainview] > .panel-header {
 }
 
 @supports not -moz-bool-pref("browser.tabs.tabmanager.enabled") {
-  #tabbrowser-tabs:not([overflow="true"]):not([hashiddentabs]) ~ #alltabs-button {
+  #tabbrowser-tabs:not([overflow="true"], [hashiddentabs]) ~ #alltabs-button {
     display: none;
   }
   #tabbrowser-tabs:not([overflow="true"])[using-closing-tabs-spacer] ~ #alltabs-button {
@@ -187,7 +187,7 @@ panelview[mainview] > .panel-header {
   min-width: calc(var(--tab-min-width) + 10px);
 }
 
-.tabbrowser-tab:not([pinned]):not([fadein]) {
+.tabbrowser-tab:not([pinned], [fadein]) {
   max-width: 0.1px;
   min-width: 0.1px;
   visibility: hidden;
@@ -651,8 +651,8 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   }
 }
 
-#urlbar[actionoverride] > #urlbar-input-container > #urlbar-label-box,
-#urlbar:not([actiontype="switchtab"]):not([actiontype="extension"]):not([searchmode]) > #urlbar-input-container > #urlbar-label-box,
+#urlbar[actiontype="switchtab"][actionoverride] > #urlbar-input-container > #urlbar-label-box,
+#urlbar:not([actiontype="switchtab"], [actiontype="extension"], [searchmode]) > #urlbar-input-container > #urlbar-label-box,
 #urlbar:not([actiontype="switchtab"]) > #urlbar-input-container > #urlbar-label-box > #urlbar-label-switchtab,
 #urlbar:not([actiontype="extension"]) > #urlbar-input-container > #urlbar-label-box > #urlbar-label-extension,
 #urlbar[searchmode][breakout-extend] > #urlbar-input-container > #urlbar-label-box,
@@ -876,8 +876,12 @@ menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
 /*  Full Screen UI */
 
 #fullscr-toggler {
+  top: 0;
+  left: 0;
+  right: 0;
   height: 1px;
-  background: black;
+  position: fixed;
+  z-index: 2147483647;
 }
 
 #fullscreen-and-pointerlock-wrapper {
@@ -1078,10 +1082,10 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
       -moz-window-opacity: 0;
       -moz-window-transform: translateY(-70px);
     }
-  }
 
-  #BMB_bookmarksPopup[side="bottom"]:not([animate="false"]) {
-    -moz-window-transform: translateY(70px);
+    #BMB_bookmarksPopup[side="bottom"]:not([animate="false"]) {
+      -moz-window-transform: translateY(70px);
+    }
   }
 
   /* [animate] is here only so that this rule has greater specificity than the
@@ -1404,8 +1408,14 @@ toolbarpaletteitem > toolbaritem {
 }
 
 .printPreviewBrowser {
+  display: none;
   opacity: 1;
   transition: opacity 60ms;
+}
+
+.previewStack[previewtype="primary"] > .printPreviewBrowser[previewtype="primary"],
+.previewStack[previewtype="selection"] > .printPreviewBrowser[previewtype="selection"] {
+  display: block;
 }
 
 .previewStack[rendering=true] > .printPreviewBrowser {
@@ -1416,6 +1426,19 @@ toolbarpaletteitem > toolbaritem {
 .print-pending-label {
   margin-top: 110px;
   font-size: large;
+}
+
+printpreview-pagination {
+  opacity: 0;
+  transition: opacity 100ms 500ms;
+}
+printpreview-pagination:focus-within,
+.previewStack:hover > printpreview-pagination {
+  opacity: 1;
+  transition: opacity 100ms;
+}
+.previewStack[rendering=true] > printpreview-pagination {
+  opacity: 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1440,7 +1463,7 @@ toolbarpaletteitem > toolbaritem {
   }
 }
 
-toolbar[keyNav=true]:not([collapsed=true]):not([customizing=true]) toolbartabstop {
+toolbar[keyNav=true]:not([collapsed=true], [customizing=true]) toolbartabstop {
   -moz-user-focus: normal;
 }
 
@@ -1543,6 +1566,11 @@ toolbar[keyNav=true]:not([collapsed=true]):not([customizing=true]) toolbartabsto
   -moz-box-flex: 1;
   /* Default dialog dimensions */
   width: 66ch;
+}
+
+.content-prompt-dialog > .dialogOverlay {
+  display: grid;
+  place-content: center;
 }
 
 /**

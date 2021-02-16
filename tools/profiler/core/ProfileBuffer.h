@@ -14,6 +14,8 @@
 #include "mozilla/ProfileBufferChunkManagerSingle.h"
 #include "mozilla/ProfileChunkedBuffer.h"
 
+class RunningTimes;
+
 // Class storing most profiling data in a ProfileChunkedBuffer.
 //
 // This class is used as a queue of entries which, after construction, never
@@ -84,9 +86,9 @@ class ProfileBuffer final {
   // |aThreadId| and clone it, patching in the current time as appropriate.
   // Mutate |aLastSample| to point to the newly inserted sample.
   // Returns whether duplication was successful.
-  bool DuplicateLastSample(int aThreadId,
-                           const mozilla::TimeStamp& aProcessStartTime,
-                           mozilla::Maybe<uint64_t>& aLastSample);
+  bool DuplicateLastSample(int aThreadId, double aSampleTimeMs,
+                           mozilla::Maybe<uint64_t>& aLastSample,
+                           const RunningTimes& aRunningTimes);
 
   void DiscardSamplesBeforeTime(double aTime);
 
@@ -116,7 +118,7 @@ class ProfileBuffer final {
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-  void CollectOverheadStats(mozilla::TimeDuration aSamplingTime,
+  void CollectOverheadStats(double aSamplingTimeMs,
                             mozilla::TimeDuration aLocking,
                             mozilla::TimeDuration aCleaning,
                             mozilla::TimeDuration aCounters,
@@ -160,27 +162,24 @@ class ProfileBuffer final {
   uint64_t BufferRangeEnd() const { return mEntries.GetState().mRangeEnd; }
 
  private:
-  // 65536 bytes should be plenty for a single backtrace.
-  static constexpr auto WorkerBufferBytes = mozilla::MakePowerOfTwo32<65536>();
-
   // Single pre-allocated chunk (to avoid spurious mallocs), used when:
-  // - Duplicating sleeping stacks.
+  // - Duplicating sleeping stacks (hence scExpectedMaximumStackSize).
   // - Adding JIT info.
   // - Streaming stacks to JSON.
   // Mutable because it's accessed from non-multithreaded const methods.
   mutable mozilla::ProfileBufferChunkManagerSingle mWorkerChunkManager{
       mozilla::ProfileBufferChunk::Create(
           mozilla::ProfileBufferChunk::SizeofChunkMetadata() +
-          WorkerBufferBytes.Value())};
+          mozilla::ProfileBufferChunkManager::scExpectedMaximumStackSize)};
 
-  double mFirstSamplingTimeNs = 0.0;
-  double mLastSamplingTimeNs = 0.0;
-  ProfilerStats mIntervalsNs;
-  ProfilerStats mOverheadsNs;
-  ProfilerStats mLockingsNs;
-  ProfilerStats mCleaningsNs;
-  ProfilerStats mCountersNs;
-  ProfilerStats mThreadsNs;
+  double mFirstSamplingTimeUs = 0.0;
+  double mLastSamplingTimeUs = 0.0;
+  ProfilerStats mIntervalsUs;
+  ProfilerStats mOverheadsUs;
+  ProfilerStats mLockingsUs;
+  ProfilerStats mCleaningsUs;
+  ProfilerStats mCountersUs;
+  ProfilerStats mThreadsUs;
 };
 
 /**

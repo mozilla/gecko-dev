@@ -7,6 +7,7 @@
 #include "PendingAnimationTracker.h"
 
 #include "mozilla/PresShell.h"
+#include "mozilla/dom/AnimationEffect.h"
 #include "mozilla/dom/AnimationTimeline.h"
 #include "mozilla/dom/Nullable.h"
 #include "nsIFrame.h"
@@ -21,6 +22,9 @@ NS_IMPL_CYCLE_COLLECTION(PendingAnimationTracker, mPlayPendingSet,
 
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(PendingAnimationTracker, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(PendingAnimationTracker, Release)
+
+PendingAnimationTracker::PendingAnimationTracker(dom::Document* aDocument)
+    : mDocument(aDocument) {}
 
 void PendingAnimationTracker::AddPending(dom::Animation& aAnimation,
                                          AnimationSet& aSet) {

@@ -250,8 +250,18 @@ PlacesViewBase.prototype = {
     this._contextMenuShown = aPopup;
     window.updateCommands("places");
 
-    // Add the View menu for the Bookmarks Toolbar if the click originated
-    // from the Bookmarks Toolbar.
+    // Ensure that an existing "Show Other Bookmarks" item is removed before adding it
+    // again. This item should only be added when gBookmarksToolbar2h2020 is true, but
+    // its possible the pref could be toggled off in the same window. This results in
+    // the "Show Other Bookmarks" menu item still being visible even when the pref is
+    // set to false.
+    let existingOtherBookmarksItem = aPopup.querySelector(
+      "#show-other-bookmarks_PersonalToolbar"
+    );
+    existingOtherBookmarksItem?.remove();
+
+    // Add the View menu for the Bookmarks Toolbar and "Show Other Bookmarks" menu item
+    // if the click originated from the Bookmarks Toolbar.
     if (gBookmarksToolbar2h2020) {
       let existingSubmenu = aPopup.querySelector("#toggle_PersonalToolbar");
       existingSubmenu?.remove();
@@ -259,6 +269,21 @@ PlacesViewBase.prototype = {
       if (bookmarksToolbar?.contains(aPopup.triggerNode)) {
         let menu = BookmarkingUI.buildBookmarksToolbarSubmenu(bookmarksToolbar);
         aPopup.appendChild(menu);
+
+        if (
+          aPopup.triggerNode.id === "OtherBookmarks" ||
+          aPopup.triggerNode.id === "PlacesChevron" ||
+          aPopup.triggerNode.id === "PlacesToolbarItems"
+        ) {
+          let otherBookmarksMenuItem = BookmarkingUI.buildShowOtherBookmarksMenuItem();
+
+          if (otherBookmarksMenuItem) {
+            aPopup.insertBefore(
+              otherBookmarksMenuItem,
+              menu.nextElementSibling
+            );
+          }
+        }
       }
     }
 
@@ -551,6 +576,9 @@ PlacesViewBase.prototype = {
     }
   },
 
+  // Opt-out of history details updates, since all the views derived from this
+  // are not showing them.
+  observeHistoryDetails: false,
   nodeHistoryDetailsChanged() {},
   nodeTagsChanged() {},
   nodeDateAddedChanged() {},
@@ -876,8 +904,6 @@ function PlacesToolbar(aPlace) {
     ["_dropIndicator", "PlacesToolbarDropIndicator"],
     ["_chevron", "PlacesChevron"],
     ["_chevronPopup", "PlacesChevronPopup"],
-    ["_otherBookmarks", "OtherBookmarks"],
-    ["_otherBookmarksPopup", "OtherBookmarksPopup"],
   ].forEach(function(elementGlobal) {
     let [name, id] = elementGlobal;
     thisView.__defineGetter__(name, function() {
@@ -893,7 +919,10 @@ function PlacesToolbar(aPlace) {
 
   this._viewElt._placesView = this;
 
-  this._addEventListeners(this._viewElt, this._cbEvents, false);
+  this._dragRoot = BookmarkingUI.toolbar.contains(this._viewElt)
+    ? BookmarkingUI.toolbar
+    : this._viewElt;
+  this._addEventListeners(this._dragRoot, this._cbEvents, false);
   this._addEventListeners(this._rootElt, ["popupshowing", "popuphidden"], true);
   this._addEventListeners(this._rootElt, ["overflow", "underflow"], true);
   this._addEventListeners(window, ["resize", "unload"], false);
@@ -943,7 +972,9 @@ PlacesToolbar.prototype = {
   ]),
 
   uninit: function PT_uninit() {
-    this._removeEventListeners(this._viewElt, this._cbEvents, false);
+    if (this._dragRoot) {
+      this._removeEventListeners(this._dragRoot, this._cbEvents, false);
+    }
     this._removeEventListeners(
       this._rootElt,
       ["popupshowing", "popuphidden"],
@@ -961,7 +992,7 @@ PlacesToolbar.prototype = {
       this._chevron._placesView.uninit();
     }
 
-    if (this._otherBookmarks._placesView) {
+    if (this._otherBookmarks?._placesView) {
       this._otherBookmarks._placesView.uninit();
     }
 
@@ -973,6 +1004,18 @@ PlacesToolbar.prototype = {
 
   get _isAlive() {
     return this._resultNode && this._rootElt;
+  },
+
+  _runBeforeFrameRender(callback) {
+    return new Promise((resolve, reject) => {
+      window.requestAnimationFrame(() => {
+        try {
+          resolve(callback());
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
   },
 
   async _rebuild() {
@@ -995,37 +1038,35 @@ PlacesToolbar.prototype = {
       // calculate a precise number of visible items, thus we guess a size from
       // the first non-separator node (because separators have flexible size).
       let startIndex = 0;
-      let limit = await new Promise(resolve =>
-        window.requestAnimationFrame(() => {
-          if (!this._isAlive) {
-            return resolve(cc);
-          }
+      let limit = await this._runBeforeFrameRender(() => {
+        if (!this._isAlive) {
+          return cc;
+        }
 
-          // Look for the first non-separator node.
-          let elt;
-          while (startIndex < cc) {
-            elt = this._insertNewItem(
-              this._resultNode.getChild(startIndex),
-              this._rootElt
-            );
-            ++startIndex;
-            if (elt.localName != "toolbarseparator") {
-              break;
-            }
+        // Look for the first non-separator node.
+        let elt;
+        while (startIndex < cc) {
+          elt = this._insertNewItem(
+            this._resultNode.getChild(startIndex),
+            this._rootElt
+          );
+          ++startIndex;
+          if (elt.localName != "toolbarseparator") {
+            break;
           }
-          if (!elt) {
-            return resolve(cc);
-          }
+        }
+        if (!elt) {
+          return cc;
+        }
 
-          return window.promiseDocumentFlushed(() => {
-            // We assume a button with just the icon will be more or less a square,
-            // then compensate the measurement error by considering a larger screen
-            // width. Moreover the window could be bigger than the screen.
-            let size = elt.clientHeight || 1; // Sanity fallback.
-            resolve(Math.min(cc, parseInt((window.screen.width * 1.5) / size)));
-          });
-        })
-      );
+        return window.promiseDocumentFlushed(() => {
+          // We assume a button with just the icon will be more or less a square,
+          // then compensate the measurement error by considering a larger screen
+          // width. Moreover the window could be bigger than the screen.
+          let size = elt.clientHeight || 1; // Sanity fallback.
+          return Math.min(cc, parseInt((window.screen.width * 1.5) / size));
+        });
+      });
 
       if (!this._isAlive) {
         return;
@@ -1049,6 +1090,10 @@ PlacesToolbar.prototype = {
       // Otherwise, it will be initialized when the toolbar overflows.
       this._chevronPopup.place = this.place;
     }
+
+    // Rebuild the "Other Bookmarks" folder if it already exists.
+    let otherBookmarks = document.getElementById("OtherBookmarks");
+    otherBookmarks?.remove();
 
     BookmarkingUI.maybeShowOtherBookmarksFolder();
   },
@@ -1309,9 +1354,8 @@ PlacesToolbar.prototype = {
         bubbles: true,
       });
       this._viewElt.dispatchEvent(event);
+      this._updatingNodesVisibility = false;
     });
-
-    this._updatingNodesVisibility = false;
   },
 
   nodeInserted: function PT_nodeInserted(

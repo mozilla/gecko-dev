@@ -311,19 +311,18 @@ inline bool SetNameOperation(JSContext* cx, JSScript* script, jsbytecode* pc,
 }
 
 inline void InitGlobalLexicalOperation(JSContext* cx,
-                                       LexicalEnvironmentObject* lexicalEnvArg,
+                                       LexicalEnvironmentObject* lexicalEnv,
                                        JSScript* script, jsbytecode* pc,
                                        HandleValue value) {
   MOZ_ASSERT_IF(!script->hasNonSyntacticScope(),
-                lexicalEnvArg == &cx->global()->lexicalEnvironment());
+                lexicalEnv == &cx->global()->lexicalEnvironment());
   MOZ_ASSERT(JSOp(*pc) == JSOp::InitGLexical);
-  Rooted<LexicalEnvironmentObject*> lexicalEnv(cx, lexicalEnvArg);
-  RootedShape shape(cx, lexicalEnv->lookup(cx, script->getName(pc)));
+
+  Shape* shape = lexicalEnv->lookup(cx, script->getName(pc));
   MOZ_ASSERT(shape);
   MOZ_ASSERT(IsUninitializedLexical(lexicalEnv->getSlot(shape->slot())));
 
-  // Don't treat the initial assignment to global lexicals as overwrites.
-  lexicalEnv->setSlotWithType(cx, shape, value, /* overwriting = */ false);
+  lexicalEnv->setSlot(shape->slot(), value);
 }
 
 inline bool InitPropertyOperation(JSContext* cx, JSOp op, HandleObject obj,
@@ -412,10 +411,8 @@ static MOZ_ALWAYS_INLINE bool ToPropertyKeyOperation(JSContext* cx,
 static MOZ_ALWAYS_INLINE bool GetObjectElementOperation(
     JSContext* cx, JSOp op, JS::HandleObject obj, JS::HandleValue receiver,
     HandleValue key, MutableHandleValue res) {
-  MOZ_ASSERT(op == JSOp::GetElem || op == JSOp::CallElem ||
-             op == JSOp::GetElemSuper);
-  MOZ_ASSERT_IF(op == JSOp::GetElem || op == JSOp::CallElem,
-                obj == &receiver.toObject());
+  MOZ_ASSERT(op == JSOp::GetElem || op == JSOp::GetElemSuper);
+  MOZ_ASSERT_IF(op == JSOp::GetElem, obj == &receiver.toObject());
 
   do {
     uint32_t index;
@@ -462,10 +459,8 @@ static MOZ_ALWAYS_INLINE bool GetObjectElementOperation(
 }
 
 static MOZ_ALWAYS_INLINE bool GetPrimitiveElementOperation(
-    JSContext* cx, JSOp op, JS::HandleValue receiver, int receiverIndex,
-    HandleValue key, MutableHandleValue res) {
-  MOZ_ASSERT(op == JSOp::GetElem || op == JSOp::CallElem);
-
+    JSContext* cx, JS::HandleValue receiver, int receiverIndex, HandleValue key,
+    MutableHandleValue res) {
   // FIXME: Bug 1234324 We shouldn't be boxing here.
   RootedObject boxed(
       cx, ToObjectFromStackForPropertyAccess(cx, receiver, receiverIndex, key));
@@ -517,17 +512,14 @@ static MOZ_ALWAYS_INLINE bool GetPrimitiveElementOperation(
   return true;
 }
 
-static MOZ_ALWAYS_INLINE bool GetElemOptimizedArguments(
+static MOZ_ALWAYS_INLINE bool MaybeGetElemOptimizedArguments(
     JSContext* cx, AbstractFramePtr frame, MutableHandleValue lref,
-    HandleValue rref, MutableHandleValue res, bool* done) {
-  MOZ_ASSERT(!*done);
-
+    HandleValue rref, MutableHandleValue res) {
   if (IsOptimizedArguments(frame, lref)) {
     if (rref.isInt32()) {
       int32_t i = rref.toInt32();
       if (i >= 0 && uint32_t(i) < frame.numActualArgs()) {
         res.set(frame.unaliasedActual(i));
-        *done = true;
         return true;
       }
     }
@@ -538,14 +530,12 @@ static MOZ_ALWAYS_INLINE bool GetElemOptimizedArguments(
     lref.set(ObjectValue(frame.argsObj()));
   }
 
-  return true;
+  return false;
 }
 
 static MOZ_ALWAYS_INLINE bool GetElementOperationWithStackIndex(
-    JSContext* cx, JSOp op, HandleValue lref, int lrefIndex, HandleValue rref,
+    JSContext* cx, HandleValue lref, int lrefIndex, HandleValue rref,
     MutableHandleValue res) {
-  MOZ_ASSERT(op == JSOp::GetElem || op == JSOp::CallElem);
-
   uint32_t index;
   if (lref.isString() && IsDefinitelyIndex(rref, &index)) {
     JSString* str = lref.toString();
@@ -561,21 +551,21 @@ static MOZ_ALWAYS_INLINE bool GetElementOperationWithStackIndex(
 
   if (lref.isPrimitive()) {
     RootedValue thisv(cx, lref);
-    return GetPrimitiveElementOperation(cx, op, thisv, lrefIndex, rref, res);
+    return GetPrimitiveElementOperation(cx, thisv, lrefIndex, rref, res);
   }
 
   RootedObject obj(cx, &lref.toObject());
   RootedValue thisv(cx, lref);
-  return GetObjectElementOperation(cx, op, obj, thisv, rref, res);
+  return GetObjectElementOperation(cx, JSOp::GetElem, obj, thisv, rref, res);
 }
 
 // Wrapper for callVM from JIT.
-static MOZ_ALWAYS_INLINE bool GetElementOperation(JSContext* cx, JSOp op,
+static MOZ_ALWAYS_INLINE bool GetElementOperation(JSContext* cx,
                                                   HandleValue lref,
                                                   HandleValue rref,
                                                   MutableHandleValue res) {
-  return GetElementOperationWithStackIndex(cx, op, lref, JSDVG_SEARCH_STACK,
-                                           rref, res);
+  return GetElementOperationWithStackIndex(cx, lref, JSDVG_SEARCH_STACK, rref,
+                                           res);
 }
 
 static MOZ_ALWAYS_INLINE JSString* TypeOfOperation(const Value& v,
@@ -632,22 +622,9 @@ static MOZ_ALWAYS_INLINE bool CheckPrivateFieldOperation(JSContext* cx,
   return false;
 }
 
-static MOZ_ALWAYS_INLINE bool InitArrayElemOperation(JSContext* cx,
-                                                     jsbytecode* pc,
-                                                     HandleArrayObject arr,
-                                                     uint32_t index,
-                                                     HandleValue val) {
-  JSOp op = JSOp(*pc);
-  MOZ_ASSERT(op == JSOp::InitElemArray || op == JSOp::InitElemInc);
-
-  // The JITs depend on InitElemArray's index not exceeding the dense element
-  // capacity. Furthermore, the dense elements must have been initialized up to
-  // that index.
-  MOZ_ASSERT_IF(op == JSOp::InitElemArray, index < arr->getDenseCapacity());
-  MOZ_ASSERT_IF(op == JSOp::InitElemArray,
-                index == arr->getDenseInitializedLength());
-
-  if (op == JSOp::InitElemInc && index == INT32_MAX) {
+inline bool InitElemIncOperation(JSContext* cx, HandleArrayObject arr,
+                                 uint32_t index, HandleValue val) {
+  if (index == INT32_MAX) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_SPREAD_TOO_LARGE);
     return false;
@@ -655,22 +632,10 @@ static MOZ_ALWAYS_INLINE bool InitArrayElemOperation(JSContext* cx,
 
   // If val is a hole, do not call DefineDataElement.
   if (val.isMagic(JS_ELEMENTS_HOLE)) {
-    if (op == JSOp::InitElemInc) {
-      // Always call SetLengthProperty even if this is not the last element
-      // initialiser, because this may be followed by a SpreadElement loop,
-      // which will not set the array length if nothing is spread.
-      return SetLengthProperty(cx, arr, index + 1);
-    }
-
-    MOZ_ASSERT(op == JSOp::InitElemArray);
-
-    // The length will have already been set by the earlier JSOp::NewArray;
-    // JSOp::InitElemArray cannot follow SpreadElements. Bump the initialized
-    // length and store the hole value to ensure the index == initLength
-    // invariant holds for later InitArrayElem ops.
-    arr->ensureDenseInitializedLength(cx, index, 1);
-    arr->setDenseElementHole(cx, index);
-    return true;
+    // Always call SetLengthProperty even if this is not the last element
+    // initialiser, because this may be followed by a SpreadElement loop,
+    // which will not set the array length if nothing is spread.
+    return SetLengthProperty(cx, arr, index + 1);
   }
 
   return DefineDataElement(cx, arr, index, val, JSPROP_ENUMERATE);

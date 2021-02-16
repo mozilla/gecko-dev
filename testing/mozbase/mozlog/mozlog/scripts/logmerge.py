@@ -1,3 +1,7 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 from __future__ import absolute_import, print_function
 
 import argparse
@@ -15,6 +19,7 @@ def dump_entry(entry, output):
 
 
 def fill_process_info(event):
+    # pylint: disable=W1633
     event["time"] = int(round(time.time() * 1000))
     event["thread"] = current_thread().name
     event["pid"] = os.getpid()

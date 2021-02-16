@@ -2,11 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
+import six
 import json
 import os
 from argparse import Namespace
-from cStringIO import StringIO
 
 import pytest
 
@@ -40,7 +40,8 @@ def runtests(setup_test_harness, binary, parser, request):
     mochitest_root = runtests.SCRIPT_DIR
     test_root = os.path.join(mochitest_root, "tests", "selftests")
 
-    buf = StringIO()
+    # pylint --py3k: W1648
+    buf = six.StringIO()
     options = vars(parser.parse_args([]))
     options.update(
         {
@@ -78,7 +79,8 @@ def runtests(setup_test_harness, binary, parser, request):
         assert len(tests) > 0
 
         manifest = TestManifest()
-        manifest.tests.extend(map(normalize, tests))
+        # pylint --py3k: W1636
+        manifest.tests.extend(list(map(normalize, tests)))
         options["manifestFile"] = manifest
         options.update(opts)
 

@@ -9,6 +9,7 @@
 #include "gfxContext.h"
 #include "gfxTextRun.h"
 #include "gfxUtils.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/MathAlgorithms.h"
@@ -1533,7 +1534,8 @@ nsresult nsMathMLChar::StretchInternal(
               u"https://developer.mozilla.org/docs/Mozilla/"
               "MathML_Project/Fonts"_ns};
           aForFrame->PresContext()->Document()->WarnOnceAbout(
-              dom::Document::eMathML_DeprecatedStixgeneralOperatorStretching,
+              dom::DeprecatedOperations::
+                  eMathML_DeprecatedStixgeneralOperatorStretching,
               false, params);
         }
         break;

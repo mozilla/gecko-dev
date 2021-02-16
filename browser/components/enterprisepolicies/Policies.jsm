@@ -1484,6 +1484,7 @@ var Policies = {
     onBeforeAddons(manager, param) {
       const allowedPrefixes = [
         "accessibility.",
+        "app.update.",
         "browser.",
         "datareporting.policy.",
         "dom.",
@@ -1512,9 +1513,14 @@ var Policies = {
         "security.osclientcerts.autoload",
         "security.ssl.errorReporting.enabled",
         "security.tls.hello_downgrade_check",
+        "security.tls.version.enable-deprecated",
         "security.warn_submit_secure_to_insecure",
       ];
-      const blockedPrefs = [];
+      const blockedPrefs = [
+        "app.update.channel",
+        "app.update.lastUpdateTime",
+        "app.update.migrated",
+      ];
 
       for (let preference in param) {
         if (blockedPrefs.includes(preference)) {
@@ -1820,8 +1826,9 @@ var Policies = {
                   chrome_settings_overrides: {
                     search_provider: {
                       name: newEngine.Name,
-                      // Policies currently only use this encoding, see bug 1649164.
-                      encoding: "windows-1252",
+                      // If the encoding is not specified or is falsy, the
+                      // search service will fall back to the default encoding.
+                      encoding: newEngine.Encoding,
                       search_url: encodeURI(newEngine.URLTemplate),
                       keyword: newEngine.Alias,
                       search_url_post_params:
@@ -2320,7 +2327,11 @@ function installAddonFromURL(url, extensionID, addon) {
           )} - {url}`
         );
       },
-      onInstallEnded: () => {
+      /* eslint-disable-next-line no-shadow */
+      onInstallEnded: (install, addon) => {
+        if (addon.type == "theme") {
+          addon.enable();
+        }
         install.removeListener(listener);
         log.debug(`Installation succeeded - ${url}`);
       },

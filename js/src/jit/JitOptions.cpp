@@ -75,9 +75,6 @@ DefaultJitOptions::DefaultJitOptions() {
   // RangeAnalysis results.
   SET_DEFAULT(checkRangeAnalysis, false);
 
-  // Toggles whether IonBuilder fallbacks to a call if we fail to inline.
-  SET_DEFAULT(disableInlineBacktracking, false);
-
   // Toggles whether Alignment Mask Analysis is globally disabled.
   SET_DEFAULT(disableAma, false);
 
@@ -117,9 +114,8 @@ DefaultJitOptions::DefaultJitOptions() {
   // Toggles whether sink code motion is globally disabled.
   SET_DEFAULT(disableSink, true);
 
-  // Toggles whether the use of multiple Ion optimization levels is globally
-  // disabled.
-  SET_DEFAULT(disableOptimizationLevels, true);
+  // Toggles whether we verify that we don't recompile with the same CacheIR.
+  SET_DEFAULT(disableBailoutLoopCheck, false);
 
   // Whether the Baseline Interpreter is enabled.
   SET_DEFAULT(baselineInterpreter, true);
@@ -130,8 +126,11 @@ DefaultJitOptions::DefaultJitOptions() {
   // Whether the IonMonkey JIT is enabled.
   SET_DEFAULT(ion, true);
 
-  // Whether Ion uses WarpBuilder as MIR builder.
-  SET_DEFAULT(warpBuilder, true);
+  // Warp compile Async functions
+  SET_DEFAULT(warpAsync, true);
+
+  // Warp compile Generator functions
+  SET_DEFAULT(warpGenerator, true);
 
   // Whether the IonMonkey and Baseline JITs are enabled for Trusted Principals.
   // (Ignored if ion or baselineJit is set to true.)
@@ -140,7 +139,7 @@ DefaultJitOptions::DefaultJitOptions() {
   // Whether the RegExp JIT is enabled.
   SET_DEFAULT(nativeRegExp, true);
 
-  // Whether IonBuilder should prefer IC generation above specialized MIR.
+  // Whether Warp should use ICs instead of transpiling Baseline CacheIR.
   SET_DEFAULT(forceInlineCaches, false);
 
   // Toggles whether large scripts are rejected.
@@ -180,11 +179,6 @@ DefaultJitOptions::DefaultJitOptions() {
   // are compiled with the Ion compiler at OptimizationLevel::Normal.
   // Duplicated in all.js - ensure both match.
   SET_DEFAULT(normalIonWarmUpThreshold, 1500);
-
-  // How many invocations or loop iterations are needed before functions
-  // are compiled with the Ion compiler at OptimizationLevel::Full.
-  // Duplicated in all.js - ensure both match.
-  SET_DEFAULT(fullIonWarmUpThreshold, 100'000);
 
   // How many invocations are needed before regexps are compiled to
   // native code.
@@ -330,7 +324,6 @@ void DefaultJitOptions::setEagerBaselineCompilation() {
 void DefaultJitOptions::setEagerIonCompilation() {
   setEagerBaselineCompilation();
   normalIonWarmUpThreshold = 0;
-  fullIonWarmUpThreshold = 0;
 }
 
 void DefaultJitOptions::setFastWarmUp() {
@@ -339,43 +332,18 @@ void DefaultJitOptions::setFastWarmUp() {
   trialInliningWarmUpThreshold = 14;
   trialInliningInitialWarmUpCount = 12;
   normalIonWarmUpThreshold = 30;
-  fullIonWarmUpThreshold = 65;
 
   inliningEntryThreshold = 2;
   smallFunctionMaxBytecodeLength = 2000;
 }
 
-void DefaultJitOptions::setWarpEnabled(bool enable) {
-  // WarpBuilder doesn't use optimization levels.
-  warpBuilder = enable;
-  disableOptimizationLevels = enable;
-  normalIonWarmUpThreshold = enable ? 1500 : 1000;
-}
-
 void DefaultJitOptions::setNormalIonWarmUpThreshold(uint32_t warmUpThreshold) {
   normalIonWarmUpThreshold = warmUpThreshold;
-
-  if (fullIonWarmUpThreshold < normalIonWarmUpThreshold) {
-    fullIonWarmUpThreshold = normalIonWarmUpThreshold;
-  }
-}
-
-void DefaultJitOptions::setFullIonWarmUpThreshold(uint32_t warmUpThreshold) {
-  fullIonWarmUpThreshold = warmUpThreshold;
-
-  if (normalIonWarmUpThreshold > fullIonWarmUpThreshold) {
-    setNormalIonWarmUpThreshold(fullIonWarmUpThreshold);
-  }
 }
 
 void DefaultJitOptions::resetNormalIonWarmUpThreshold() {
   jit::DefaultJitOptions defaultValues;
   setNormalIonWarmUpThreshold(defaultValues.normalIonWarmUpThreshold);
-}
-
-void DefaultJitOptions::resetFullIonWarmUpThreshold() {
-  jit::DefaultJitOptions defaultValues;
-  setFullIonWarmUpThreshold(defaultValues.fullIonWarmUpThreshold);
 }
 
 }  // namespace jit

@@ -19,7 +19,6 @@ lir_inputs = ["LIR.h", "shared/LIR-shared.h"]
 UNIFIED_SOURCES += [
     "AliasAnalysis.cpp",
     "AlignmentMaskAnalysis.cpp",
-    "AutoDetectInvalidation.cpp",
     "BacktrackingAllocator.cpp",
     "Bailouts.cpp",
     "BaselineBailouts.cpp",
@@ -29,7 +28,6 @@ UNIFIED_SOURCES += [
     "BaselineFrame.cpp",
     "BaselineFrameInfo.cpp",
     "BaselineIC.cpp",
-    "BaselineInspector.cpp",
     "BaselineJIT.cpp",
     "BitSet.cpp",
     "BytecodeAnalysis.cpp",
@@ -48,7 +46,6 @@ UNIFIED_SOURCES += [
     "InstructionReordering.cpp",
     "Ion.cpp",
     "IonAnalysis.cpp",
-    "IonBuilder.cpp",
     "IonCacheIRCompiler.cpp",
     "IonCompileTask.cpp",
     "IonIC.cpp",
@@ -69,7 +66,6 @@ UNIFIED_SOURCES += [
     "LIR.cpp",
     "Lowering.cpp",
     "MacroAssembler.cpp",
-    "MCallOptimize.cpp",
     "MIR.cpp",
     "MIRGraph.cpp",
     "MoveResolver.cpp",
@@ -87,7 +83,6 @@ UNIFIED_SOURCES += [
     "shared/Lowering-shared.cpp",
     "Sink.cpp",
     "Snapshots.cpp",
-    "TIOracle.cpp",
     "TrialInlining.cpp",
     "TypePolicy.cpp",
     "ValueNumbering.cpp",
@@ -263,3 +258,6 @@ GeneratedFile(
     entry_point="generate_cacheirops_header",
     inputs=["CacheIROps.yaml"],
 )
+
+if CONFIG["FUZZING_INTERFACES"] and CONFIG["LIBFUZZER"]:
+    include("/tools/fuzzing/libfuzzer-config.mozbuild")

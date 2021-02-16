@@ -49,12 +49,15 @@ nsPageSequenceFrame* NS_NewPageSequenceFrame(PresShell* aPresShell,
 NS_IMPL_FRAMEARENA_HELPERS(nsPageSequenceFrame)
 
 static const nsPagesPerSheetInfo kSupportedPagesPerSheet[] = {
-    {1, 1, 1},  // Note: we default to this if no match is found.
-    // {2, ... }, // XXXdholbert Coming in bug 1669905.
-    {4, 2, 2},
-    // {6, ... }, // XXXdholbert Coming in bug 1669905.
-    {9, 3, 3},
-    {16, 4, 4},
+    /* Members are: {mNumPages, mLargerNumTracks} */
+    // clang-format off
+    {1, 1},
+    {2, 2},
+    {4, 2},
+    {6, 3},
+    {9, 3},
+    {16, 4},
+    // clang-format on
 };
 
 inline void SanityCheckPagesPerSheetInfo() {
@@ -68,16 +71,12 @@ inline void SanityCheckPagesPerSheetInfo() {
   uint16_t prevInfoPPS = 0;
   for (const auto& info : kSupportedPagesPerSheet) {
     MOZ_ASSERT(info.mNumPages > prevInfoPPS,
-               "page count field should be nonzero & monotonically increase");
-    // The uint32_t cast here is to ensure this assertion is robust even if the
-    // mNumRows * mNumCols multiplication would overflow past the maximum
-    // representable uint16_t value. That overflow would be bad because it
-    // could result in us incorrectly passing this assertion.  We prevent this
-    // problem by doing the operation in 32-bit number space; that way, the
-    // multiplication (of two known-to-be-16-bit values) can't overflow.
-    MOZ_ASSERT(
-        (uint32_t)info.mNumRows * (uint32_t)info.mNumCols == info.mNumPages,
-        "page count should match rows*cols");
+               "page count field should be positive & monotonically increase");
+    MOZ_ASSERT(info.mLargerNumTracks > 0,
+               "page grid has to have a positive number of tracks");
+    MOZ_ASSERT(info.mNumPages % info.mLargerNumTracks == 0,
+               "page count field should be evenly divisible by "
+               "the given track-count");
     prevInfoPPS = info.mNumPages;
   }
 #endif
@@ -232,6 +231,16 @@ nscoord nsPageSequenceFrame::ComputeCenteringMargin(
   return NSToCoordRound(scaledExtraSpace * 0.5 / scale);
 }
 
+uint32_t nsPageSequenceFrame::GetPagesInFirstSheet() const {
+  nsIFrame* firstSheet = mFrames.FirstChild();
+  if (!firstSheet) {
+    return 0;
+  }
+
+  MOZ_DIAGNOSTIC_ASSERT(firstSheet->IsPrintedSheetFrame());
+  return static_cast<PrintedSheetFrame*>(firstSheet)->GetNumPages();
+}
+
 /*
  * Note: we largely position/size out our children (page frames) using
  * \*physical\* x/y/width/height values, because the print preview UI is always
@@ -308,6 +317,14 @@ void nsPageSequenceFrame::Reflow(nsPresContext* aPresContext,
   nscoord maxInflatedSheetWidth = 0;
   nscoord maxInflatedSheetHeight = 0;
 
+  // Determine the app-unit size of each printed sheet. This is normally the
+  // same as the app-unit size of a page, but it might need the components
+  // swapped, depending on what HasOrthogonalSheetsAndPages says.
+  nsSize sheetSize = aPresContext->GetPageSize();
+  if (mPageData->mPrintSettings->HasOrthogonalSheetsAndPages()) {
+    std::swap(sheetSize.width, sheetSize.height);
+  }
+
   // Tile the sheets vertically
   for (nsIFrame* kidFrame : mFrames) {
     // Set the shared data into the page frame before reflow
@@ -319,7 +336,7 @@ void nsPageSequenceFrame::Reflow(nsPresContext* aPresContext,
     // Reflow the sheet
     ReflowInput kidReflowInput(
         aPresContext, aReflowInput, kidFrame,
-        LogicalSize(kidFrame->GetWritingMode(), aPresContext->GetPageSize()));
+        LogicalSize(kidFrame->GetWritingMode(), sheetSize));
     ReflowOutput kidReflowOutput(kidReflowInput);
     nsReflowStatus status;
 
@@ -452,7 +469,7 @@ nsresult nsPageSequenceFrame::StartPrint(nsPresContext* aPresContext,
 }
 
 static void GetPrintCanvasElementsInFrame(
-    nsIFrame* aFrame, nsTArray<RefPtr<HTMLCanvasElement> >* aArr) {
+    nsIFrame* aFrame, nsTArray<RefPtr<HTMLCanvasElement>>* aArr) {
   if (!aFrame) {
     return;
   }
@@ -487,11 +504,31 @@ static void GetPrintCanvasElementsInFrame(
   }
 }
 
-nsIFrame* nsPageSequenceFrame::GetCurrentSheetFrame() {
+// Note: this isn't quite a full tree traversal, since we exclude any
+// nsPageFame children that have the NS_PAGE_SKIPPED_BY_CUSTOM_RANGE state-bit.
+static void GetPrintCanvasElementsInSheet(
+    PrintedSheetFrame* aSheetFrame, nsTArray<RefPtr<HTMLCanvasElement>>* aArr) {
+  MOZ_ASSERT(aSheetFrame, "Caller should've null-checked for us already");
+  for (nsIFrame* child : aSheetFrame->PrincipalChildList()) {
+    // Exclude any pages that are technically children but are skipped by a
+    // custom range; they're not meant to be printed, so we don't want to
+    // waste time rendering their canvas descendants.
+    MOZ_ASSERT(child->IsPageFrame(),
+               "PrintedSheetFrame's children must all be nsPageFrames");
+    auto* pageFrame = static_cast<nsPageFrame*>(child);
+    if (!pageFrame->HasAnyStateBits(NS_PAGE_SKIPPED_BY_CUSTOM_RANGE)) {
+      GetPrintCanvasElementsInFrame(pageFrame, aArr);
+    }
+  }
+}
+
+PrintedSheetFrame* nsPageSequenceFrame::GetCurrentSheetFrame() {
   uint32_t i = 0;
   for (nsIFrame* child : mFrames) {
+    MOZ_ASSERT(child->IsPrintedSheetFrame(),
+               "Our children must all be PrintedSheetFrame");
     if (i == mCurrentSheetIdx) {
-      return child;
+      return static_cast<PrintedSheetFrame*>(child);
     }
     ++i;
   }
@@ -500,7 +537,7 @@ nsIFrame* nsPageSequenceFrame::GetCurrentSheetFrame() {
 
 nsresult nsPageSequenceFrame::PrePrintNextSheet(nsITimerCallback* aCallback,
                                                 bool* aDone) {
-  nsIFrame* currentSheet = GetCurrentSheetFrame();
+  PrintedSheetFrame* currentSheet = GetCurrentSheetFrame();
   if (!currentSheet) {
     *aDone = true;
     return NS_ERROR_FAILURE;
@@ -520,7 +557,7 @@ nsresult nsPageSequenceFrame::PrePrintNextSheet(nsITimerCallback* aCallback,
   // process for all the canvas.
   if (!mCurrentCanvasListSetup) {
     mCurrentCanvasListSetup = true;
-    GetPrintCanvasElementsInFrame(currentSheet, &mCurrentCanvasList);
+    GetPrintCanvasElementsInSheet(currentSheet, &mCurrentCanvasList);
 
     if (!mCurrentCanvasList.IsEmpty()) {
       nsresult rv = NS_OK;
@@ -604,7 +641,7 @@ nsresult nsPageSequenceFrame::PrintNextSheet() {
   // print are 1 and then two (which is different than printing a page range,
   // where the page numbers would have been 2 and then 3)
 
-  nsIFrame* currentSheetFrame = GetCurrentSheetFrame();
+  PrintedSheetFrame* currentSheetFrame = GetCurrentSheetFrame();
   if (!currentSheetFrame) {
     return NS_ERROR_FAILURE;
   }

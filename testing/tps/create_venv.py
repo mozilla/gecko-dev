@@ -11,12 +11,12 @@ all the virtualenv files will show up in e.g. hg status.
 
 from __future__ import absolute_import, print_function
 
+import six
 import optparse
 import os
 import shutil
 import subprocess
 import sys
-import urllib2
 import zipfile
 
 
@@ -55,7 +55,7 @@ else:
 
 def download(url, target):
     """Downloads the specified url to the given target."""
-    response = urllib2.urlopen(url)
+    response = six.moves.urllib.request.urlopen(url)
     with open(target, "wb") as f:
         f.write(response.read())
 
@@ -97,7 +97,7 @@ def update_configfile(source, target, replacements):
 
     with open(source) as config:
         for line in config:
-            for source_string, target_string in replacements.iteritems():
+            for source_string, target_string in six.iteritems(replacements):
                 if target_string:
                     line = line.replace(source_string, target_string)
             lines.append(line)

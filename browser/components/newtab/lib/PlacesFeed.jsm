@@ -68,25 +68,10 @@ class HistoryObserver extends Observer {
     });
   }
 
-  /**
-   * onClearHistory - Called when the user clears their entire history.
-   */
-  onClearHistory() {
-    this.dispatch({ type: at.PLACES_HISTORY_CLEARED });
-  }
-
   // Empty functions to make xpconnect happy
   onBeginUpdateBatch() {}
 
   onEndUpdateBatch() {}
-
-  onTitleChanged() {}
-
-  onFrecencyChanged() {}
-
-  onManyFrecenciesChanged() {}
-
-  onPageChanged() {}
 
   onDeleteVisits() {}
 }
@@ -105,8 +90,6 @@ class BookmarksObserver extends Observer {
 
   onEndUpdateBatch() {}
 
-  onItemVisited() {}
-
   onItemMoved() {}
 
   // Disabled due to performance cost, see Issue 3203 /
@@ -124,7 +107,7 @@ class PlacesObserver extends Observer {
   }
 
   handlePlacesEvent(events) {
-    for (let {
+    for (const {
       itemType,
       source,
       dateAdded,
@@ -135,6 +118,9 @@ class PlacesObserver extends Observer {
       type,
     } of events) {
       switch (type) {
+        case "history-cleared":
+          this.dispatch({ type: at.PLACES_HISTORY_CLEARED });
+          break;
         case "bookmark-added":
           // Skips items that are not bookmarks (like folders), about:* pages or
           // default bookmarks, added when the profile is created.
@@ -200,7 +186,7 @@ class PlacesFeed {
       .getService(Ci.nsINavBookmarksService)
       .addObserver(this.bookmarksObserver, true);
     PlacesUtils.observers.addListener(
-      ["bookmark-added", "bookmark-removed"],
+      ["bookmark-added", "bookmark-removed", "history-cleared"],
       this.placesObserver.handlePlacesEvent
     );
 
@@ -244,7 +230,7 @@ class PlacesFeed {
     PlacesUtils.history.removeObserver(this.historyObserver);
     PlacesUtils.bookmarks.removeObserver(this.bookmarksObserver);
     PlacesUtils.observers.removeListener(
-      ["bookmark-added", "bookmark-removed"],
+      ["bookmark-added", "bookmark-removed", "history-cleared"],
       this.placesObserver.handlePlacesEvent
     );
     Services.obs.removeObserver(this, LINK_BLOCKED_EVENT);
@@ -389,17 +375,39 @@ class PlacesFeed {
     }
   }
 
-  fillSearchTopSiteTerm({ _target, data }) {
+  /**
+   * Sends an attribution request for Top Sites interactions.
+   * @param {object} data
+   *   Attribution paramters from a Top Site.
+   */
+  makeAttributionRequest(data) {
+    let args = Object.assign(
+      {
+        campaignID: Services.prefs.getStringPref(
+          "browser.partnerlink.campaign.topsites"
+        ),
+      },
+      data
+    );
+    PartnerLinkAttribution.makeRequest(args);
+  }
+
+  async fillSearchTopSiteTerm({ _target, data }) {
+    const searchEngine = await Services.search.getEngineByAlias(data.label);
     _target.browser.ownerGlobal.gURLBar.search(data.label, {
+      searchEngine,
       searchModeEntry: "topsites_newtab",
     });
   }
 
-  _getSearchPrefix(isPrivateWindow) {
-    const searchAliases =
-      Services.search[
-        isPrivateWindow ? "defaultPrivateEngine" : "defaultEngine"
-      ].aliases;
+  _getDefaultSearchEngine(isPrivateWindow) {
+    return Services.search[
+      isPrivateWindow ? "defaultPrivateEngine" : "defaultEngine"
+    ];
+  }
+
+  _getSearchPrefix(searchEngine) {
+    const searchAliases = searchEngine.aliases;
     if (searchAliases && searchAliases.length) {
       return `${searchAliases[0]} `;
     }
@@ -407,9 +415,10 @@ class PlacesFeed {
   }
 
   handoffSearchToAwesomebar({ _target, data, meta }) {
-    const searchAlias = this._getSearchPrefix(
+    const searchEngine = this._getDefaultSearchEngine(
       PrivateBrowsingUtils.isBrowserPrivate(_target.browser)
     );
+    const searchAlias = this._getSearchPrefix(searchEngine);
     const urlBar = _target.browser.ownerGlobal.gURLBar;
     let isFirstChange = true;
 
@@ -417,6 +426,7 @@ class PlacesFeed {
       urlBar.setHiddenFocus();
     } else {
       urlBar.search(searchAlias + data.text, {
+        searchEngine,
         searchModeEntry: "handoff",
       });
       isFirstChange = false;
@@ -429,7 +439,10 @@ class PlacesFeed {
       if (isFirstChange) {
         isFirstChange = false;
         urlBar.removeHiddenFocus();
-        urlBar.search(searchAlias, { searchModeEntry: "handoff" });
+        urlBar.search(searchAlias, {
+          searchEngine,
+          searchModeEntry: "handoff",
+        });
         this.store.dispatch(
           ac.OnlyToOneContent({ type: at.HIDE_SEARCH }, meta.fromTarget)
         );
@@ -539,7 +552,7 @@ class PlacesFeed {
         break;
       }
       case at.PARTNER_LINK_ATTRIBUTION:
-        PartnerLinkAttribution.makeRequest(action.data);
+        this.makeAttributionRequest(action.data);
         break;
     }
   }

@@ -945,7 +945,7 @@ already_AddRefed<Promise> AudioContext::Suspend(ErrorResult& aRv) {
     return promise.forget();
   }
 
-  if (mAudioContextState == AudioContextState::Closed || mCloseCalled) {
+  if (mCloseCalled) {
     promise->MaybeRejectWithInvalidStateError(
         "Can't suspend if the control thread state is \"closed\"");
     return promise.forget();
@@ -1016,7 +1016,7 @@ already_AddRefed<Promise> AudioContext::Resume(ErrorResult& aRv) {
     return promise.forget();
   }
 
-  if (mAudioContextState == AudioContextState::Closed || mCloseCalled) {
+  if (mCloseCalled) {
     promise->MaybeRejectWithInvalidStateError(
         "Can't resume if the control thread state is \"closed\"");
     return promise.forget();
@@ -1153,7 +1153,7 @@ already_AddRefed<Promise> AudioContext::Close(ErrorResult& aRv) {
     return promise.forget();
   }
 
-  if (mAudioContextState == AudioContextState::Closed) {
+  if (mCloseCalled) {
     promise->MaybeRejectWithInvalidStateError(
         "Can't close an AudioContext twice");
     return promise.forget();

@@ -76,7 +76,7 @@ impl CustomDistributionMetric {
     ///
     /// ## Notes
     ///
-    /// Discards any negative value in `samples` and report an `ErrorType::InvalidValue`
+    /// Discards any negative value in `samples` and report an [`ErrorType::InvalidValue`]
     /// for each of them.
     pub fn accumulate_samples_signed(&self, glean: &Glean, samples: Vec<i64>) {
         if !self.should_record(glean) {
@@ -162,6 +162,7 @@ impl CustomDistributionMetric {
             glean.storage(),
             storage_name,
             &self.meta.identifier(glean),
+            self.meta.lifetime,
         ) {
             // Boxing the value, in order to return either of the possible buckets
             Some(Metric::CustomDistributionExponential(hist)) => Some(snapshot(&hist)),

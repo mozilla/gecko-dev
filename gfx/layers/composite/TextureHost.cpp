@@ -707,10 +707,10 @@ void BufferTextureHost::PushResourceUpdates(
                     ? &wr::TransactionBuilder::AddExternalImage
                     : &wr::TransactionBuilder::UpdateExternalImage;
 
-  auto imageType =
-      UseExternalTextures() || gfx::gfxVars::UseSoftwareWebRender()
-          ? wr::ExternalImageType::TextureHandle(wr::TextureTarget::Rect)
-          : wr::ExternalImageType::Buffer();
+  auto imageType = UseExternalTextures() || gfx::gfxVars::UseSoftwareWebRender()
+                       ? wr::ExternalImageType::TextureHandle(
+                             wr::ImageBufferKind::TextureRect)
+                       : wr::ExternalImageType::Buffer();
 
   if (GetFormat() != gfx::SurfaceFormat::YUV) {
     MOZ_ASSERT(aImageKeys.length() == 1);
@@ -818,11 +818,14 @@ bool BufferTextureHost::EnsureWrappingTextureSource() {
   if (mFormat == gfx::SurfaceFormat::YUV) {
     mFirstSource = mProvider->CreateDataTextureSourceAroundYCbCr(this);
   } else {
+    uint8_t* data = GetBuffer();
+    if (!data) {
+      return false;
+    }
     RefPtr<gfx::DataSourceSurface> surf =
         gfx::Factory::CreateWrappingDataSourceSurface(
-            GetBuffer(),
-            ImageDataSerializer::ComputeRGBStride(mFormat, mSize.width), mSize,
-            mFormat);
+            data, ImageDataSerializer::ComputeRGBStride(mFormat, mSize.width),
+            mSize, mFormat);
     if (!surf) {
       return false;
     }

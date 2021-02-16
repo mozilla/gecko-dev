@@ -124,27 +124,47 @@ static inline void SpewRange(MDefinition* def) {
       def->range()) {
     JitSpewHeader(JitSpew_Range);
     Fprinter& out = JitSpewPrinter();
+    out.printf("  ");
     def->printName(out);
     out.printf(" has range ");
     def->range()->dump(out);
+    out.printf("\n");
   }
 #endif
 }
 
-static inline void SpewTruncate(MDefinition* def,
-                                MDefinition::TruncateKind kind,
-                                bool shouldClone) {
 #ifdef JS_JITSPEW
+static const char* TruncateKindString(TruncateKind kind) {
+  switch (kind) {
+    case TruncateKind::NoTruncate:
+      return "NoTruncate";
+    case TruncateKind::TruncateAfterBailouts:
+      return "TruncateAfterBailouts";
+    case TruncateKind::IndirectTruncate:
+      return "IndirectTruncate";
+    case TruncateKind::Truncate:
+      return "Truncate";
+    default:
+      MOZ_CRASH("Unknown truncate kind.");
+  }
+}
+
+static inline void SpewTruncate(MDefinition* def, TruncateKind kind,
+                                bool shouldClone) {
   if (JitSpewEnabled(JitSpew_Range)) {
     JitSpewHeader(JitSpew_Range);
     Fprinter& out = JitSpewPrinter();
+    out.printf("  ");
     out.printf("truncating ");
     def->printName(out);
-    out.printf(" (kind: %s, clone: %d)\n",
-               MDefinition::TruncateKindString(kind), shouldClone);
+    out.printf(" (kind: %s, clone: %d)\n", TruncateKindString(kind),
+               shouldClone);
   }
-#endif
 }
+#else
+static inline void SpewTruncate(MDefinition* def, TruncateKind kind,
+                                bool shouldClone) {}
+#endif
 
 TempAllocator& RangeAnalysis::alloc() const { return graph_.alloc(); }
 
@@ -230,14 +250,14 @@ bool RangeAnalysis::addBetaNodes() {
             Range::NewInt32Range(alloc(), JSVAL_INT_MIN, JSVAL_INT_MAX - 1));
         block->insertBefore(*block->begin(), beta);
         replaceDominatedUsesWith(smaller, beta, block);
-        JitSpew(JitSpew_Range, "Adding beta node for smaller %u",
+        JitSpew(JitSpew_Range, "  Adding beta node for smaller %u",
                 smaller->id());
         beta = MBeta::New(
             alloc(), greater,
             Range::NewInt32Range(alloc(), JSVAL_INT_MIN + 1, JSVAL_INT_MAX));
         block->insertBefore(*block->begin(), beta);
         replaceDominatedUsesWith(greater, beta, block);
-        JitSpew(JitSpew_Range, "Adding beta node for greater %u",
+        JitSpew(JitSpew_Range, "  Adding beta node for greater %u",
                 greater->id());
       }
       continue;
@@ -322,8 +342,9 @@ bool RangeAnalysis::addBetaNodes() {
     if (JitSpewEnabled(JitSpew_Range)) {
       JitSpewHeader(JitSpew_Range);
       Fprinter& out = JitSpewPrinter();
-      out.printf("Adding beta node for %u with range ", val->id());
+      out.printf("  Adding beta node for %u with range ", val->id());
       comp.dump(out);
+      out.printf("\n");
     }
 
     if (!alloc().ensureBallast()) {
@@ -347,7 +368,7 @@ bool RangeAnalysis::removeBetaNodes() {
       MDefinition* def = *iter++;
       if (def->isBeta()) {
         MDefinition* op = def->getOperand(0);
-        JitSpew(JitSpew_Range, "Removing beta node %u for %u", def->id(),
+        JitSpew(JitSpew_Range, "  Removing beta node %u for %u", def->id(),
                 op->id());
         def->justReplaceAllUsesWith(op);
         block->discardDef(def);
@@ -1726,10 +1747,6 @@ void MLimitedTruncate::computeRange(TempAllocator& alloc) {
   setRange(output);
 }
 
-void MFilterTypeSet::computeRange(TempAllocator& alloc) {
-  setRange(new (alloc) Range(getOperand(0)));
-}
-
 static Range* GetArrayBufferViewRange(TempAllocator& alloc, Scalar::Type type) {
   switch (type) {
     case Scalar::Uint8Clamped:
@@ -1772,12 +1789,9 @@ void MLoadDataViewElement::computeRange(TempAllocator& alloc) {
 }
 
 void MArrayLength::computeRange(TempAllocator& alloc) {
-  // Array lengths can go up to UINT32_MAX. IonBuilder only creates MArrayLength
-  // nodes when the value is known to be int32 (see the
-  // OBJECT_FLAG_LENGTH_OVERFLOW flag). WarpBuilder does a dynamic check and we
-  // have to return the range pre-bailouts, so use UINT32_MAX for Warp.
-  uint32_t max = JitOptions.warpBuilder ? UINT32_MAX : INT32_MAX;
-  setRange(Range::NewUInt32Range(alloc, 0, max));
+  // Array lengths can go up to UINT32_MAX. We do a dynamic check and we have to
+  // return the range pre-bailouts, so use UINT32_MAX.
+  setRange(Range::NewUInt32Range(alloc, 0, UINT32_MAX));
 }
 
 void MInitializedLength::computeRange(TempAllocator& alloc) {
@@ -1953,7 +1967,7 @@ bool RangeAnalysis::analyzeLoop(MBasicBlock* header) {
     analyzeLoopPhi(iterationBound, *iter);
   }
 
-  if (!mir->compilingWasm()) {
+  if (!mir->compilingWasm() && !mir->outerInfo().hadBoundsCheckBailout()) {
     // Try to hoist any bounds checks from the loop using symbolic bounds.
 
     Vector<MBoundsCheck*, 0, JitAllocPolicy> hoistedChecks(alloc());
@@ -2281,12 +2295,14 @@ bool RangeAnalysis::tryHoistBoundsCheck(MBasicBlock* header,
   MBasicBlock* preLoop = header->loopPredecessor();
   MOZ_ASSERT(!preLoop->isMarked());
 
-  MDefinition* lowerTerm = ConvertLinearSum(alloc(), preLoop, lower->sum);
+  MDefinition* lowerTerm = ConvertLinearSum(alloc(), preLoop, lower->sum,
+                                            BailoutKind::HoistBoundsCheck);
   if (!lowerTerm) {
     return false;
   }
 
-  MDefinition* upperTerm = ConvertLinearSum(alloc(), preLoop, upper->sum);
+  MDefinition* upperTerm = ConvertLinearSum(alloc(), preLoop, upper->sum,
+                                            BailoutKind::HoistBoundsCheck);
   if (!upperTerm) {
     return false;
   }
@@ -2320,6 +2336,7 @@ bool RangeAnalysis::tryHoistBoundsCheck(MBasicBlock* header,
   lowerCheck->setMinimum(lowerConstant);
   lowerCheck->computeRange(alloc());
   lowerCheck->collectRangeInfoPreTrunc();
+  lowerCheck->setBailoutKind(BailoutKind::HoistBoundsCheck);
   preLoop->insertBefore(preLoop->lastIns(), lowerCheck);
 
   // Hoist the loop invariant upper bounds checks.
@@ -2336,6 +2353,7 @@ bool RangeAnalysis::tryHoistBoundsCheck(MBasicBlock* header,
     upperCheck->setMaximum(upperConstant);
     upperCheck->computeRange(alloc());
     upperCheck->collectRangeInfoPreTrunc();
+    upperCheck->setBailoutKind(BailoutKind::HoistBoundsCheck);
     preLoop->insertBefore(preLoop->lastIns(), upperCheck);
   }
 
@@ -2532,7 +2550,7 @@ bool MConstant::needTruncation(TruncateKind kind) {
 }
 
 void MConstant::truncate() {
-  MOZ_ASSERT(needTruncation(Truncate));
+  MOZ_ASSERT(needTruncation(TruncateKind::Truncate));
 
   // Truncate the double to int, since all uses truncates it.
   int32_t res = ToInt32(numberToDouble());
@@ -2555,7 +2573,7 @@ bool MPhi::needTruncation(TruncateKind kind) {
 
 void MPhi::truncate() {
   setResultType(MIRType::Int32);
-  if (truncateKind_ >= IndirectTruncate && range()) {
+  if (truncateKind_ >= TruncateKind::IndirectTruncate && range()) {
     range()->wrapAroundToInt32();
   }
 }
@@ -2570,7 +2588,7 @@ bool MAdd::needTruncation(TruncateKind kind) {
 void MAdd::truncate() {
   MOZ_ASSERT(needTruncation(truncateKind()));
   setSpecialization(MIRType::Int32);
-  if (truncateKind() >= IndirectTruncate && range()) {
+  if (truncateKind() >= TruncateKind::IndirectTruncate && range()) {
     range()->wrapAroundToInt32();
   }
 }
@@ -2585,7 +2603,7 @@ bool MSub::needTruncation(TruncateKind kind) {
 void MSub::truncate() {
   MOZ_ASSERT(needTruncation(truncateKind()));
   setSpecialization(MIRType::Int32);
-  if (truncateKind() >= IndirectTruncate && range()) {
+  if (truncateKind() >= TruncateKind::IndirectTruncate && range()) {
     range()->wrapAroundToInt32();
   }
 }
@@ -2600,7 +2618,7 @@ bool MMul::needTruncation(TruncateKind kind) {
 void MMul::truncate() {
   MOZ_ASSERT(needTruncation(truncateKind()));
   setSpecialization(MIRType::Int32);
-  if (truncateKind() >= IndirectTruncate) {
+  if (truncateKind() >= TruncateKind::IndirectTruncate) {
     setCanBeNegativeZero(false);
     if (range()) {
       range()->wrapAroundToInt32();
@@ -2658,7 +2676,7 @@ void MToDouble::truncate() {
   // We use the return type to flag that this MToDouble should be replaced by
   // a MTruncateToInt32 when modifying the graph.
   setResultType(MIRType::Int32);
-  if (truncateKind() >= IndirectTruncate) {
+  if (truncateKind() >= TruncateKind::IndirectTruncate) {
     if (range()) {
       range()->wrapAroundToInt32();
     }
@@ -2668,7 +2686,7 @@ void MToDouble::truncate() {
 bool MLimitedTruncate::needTruncation(TruncateKind kind) {
   setTruncateKind(kind);
   setResultType(MIRType::Int32);
-  if (kind >= IndirectTruncate && range()) {
+  if (kind >= TruncateKind::IndirectTruncate && range()) {
     range()->wrapAroundToInt32();
   }
   return false;
@@ -2705,86 +2723,86 @@ void MCompare::truncate() {
   truncateOperands_ = true;
 }
 
-MDefinition::TruncateKind MDefinition::operandTruncateKind(size_t index) const {
+TruncateKind MDefinition::operandTruncateKind(size_t index) const {
   // Generic routine: We don't know anything.
-  return NoTruncate;
+  return TruncateKind::NoTruncate;
 }
 
-MDefinition::TruncateKind MPhi::operandTruncateKind(size_t index) const {
+TruncateKind MPhi::operandTruncateKind(size_t index) const {
   // The truncation applied to a phi is effectively applied to the phi's
   // operands.
   return truncateKind_;
 }
 
-MDefinition::TruncateKind MTruncateToInt32::operandTruncateKind(
-    size_t index) const {
+TruncateKind MTruncateToInt32::operandTruncateKind(size_t index) const {
   // This operator is an explicit truncate to int32.
-  return Truncate;
+  return TruncateKind::Truncate;
 }
 
-MDefinition::TruncateKind MBinaryBitwiseInstruction::operandTruncateKind(
+TruncateKind MBinaryBitwiseInstruction::operandTruncateKind(
     size_t index) const {
   // The bitwise operators truncate to int32.
-  return Truncate;
+  return TruncateKind::Truncate;
 }
 
-MDefinition::TruncateKind MLimitedTruncate::operandTruncateKind(
-    size_t index) const {
+TruncateKind MLimitedTruncate::operandTruncateKind(size_t index) const {
   return std::min(truncateKind(), truncateLimit_);
 }
 
-MDefinition::TruncateKind MAdd::operandTruncateKind(size_t index) const {
+TruncateKind MAdd::operandTruncateKind(size_t index) const {
   // This operator is doing some arithmetic. If its result is truncated,
   // it's an indirect truncate for its operands.
-  return std::min(truncateKind(), IndirectTruncate);
+  return std::min(truncateKind(), TruncateKind::IndirectTruncate);
 }
 
-MDefinition::TruncateKind MSub::operandTruncateKind(size_t index) const {
+TruncateKind MSub::operandTruncateKind(size_t index) const {
   // See the comment in MAdd::operandTruncateKind.
-  return std::min(truncateKind(), IndirectTruncate);
+  return std::min(truncateKind(), TruncateKind::IndirectTruncate);
 }
 
-MDefinition::TruncateKind MMul::operandTruncateKind(size_t index) const {
+TruncateKind MMul::operandTruncateKind(size_t index) const {
   // See the comment in MAdd::operandTruncateKind.
-  return std::min(truncateKind(), IndirectTruncate);
+  return std::min(truncateKind(), TruncateKind::IndirectTruncate);
 }
 
-MDefinition::TruncateKind MToDouble::operandTruncateKind(size_t index) const {
+TruncateKind MToDouble::operandTruncateKind(size_t index) const {
   // MToDouble propagates its truncate kind to its operand.
   return truncateKind();
 }
 
-MDefinition::TruncateKind MStoreUnboxedScalar::operandTruncateKind(
+TruncateKind MStoreUnboxedScalar::operandTruncateKind(size_t index) const {
+  // An integer store truncates the stored value.
+  return (index == 2 && isIntegerWrite()) ? TruncateKind::Truncate
+                                          : TruncateKind::NoTruncate;
+}
+
+TruncateKind MStoreDataViewElement::operandTruncateKind(size_t index) const {
+  // An integer store truncates the stored value.
+  return (index == 2 && isIntegerWrite()) ? TruncateKind::Truncate
+                                          : TruncateKind::NoTruncate;
+}
+
+TruncateKind MStoreTypedArrayElementHole::operandTruncateKind(
     size_t index) const {
   // An integer store truncates the stored value.
-  return (index == 2 && isIntegerWrite()) ? Truncate : NoTruncate;
+  return (index == 3 && isIntegerWrite()) ? TruncateKind::Truncate
+                                          : TruncateKind::NoTruncate;
 }
 
-MDefinition::TruncateKind MStoreDataViewElement::operandTruncateKind(
-    size_t index) const {
-  // An integer store truncates the stored value.
-  return (index == 2 && isIntegerWrite()) ? Truncate : NoTruncate;
+TruncateKind MDiv::operandTruncateKind(size_t index) const {
+  return std::min(truncateKind(), TruncateKind::TruncateAfterBailouts);
 }
 
-MDefinition::TruncateKind MStoreTypedArrayElementHole::operandTruncateKind(
-    size_t index) const {
-  // An integer store truncates the stored value.
-  return (index == 3 && isIntegerWrite()) ? Truncate : NoTruncate;
+TruncateKind MMod::operandTruncateKind(size_t index) const {
+  return std::min(truncateKind(), TruncateKind::TruncateAfterBailouts);
 }
 
-MDefinition::TruncateKind MDiv::operandTruncateKind(size_t index) const {
-  return std::min(truncateKind(), TruncateAfterBailouts);
-}
-
-MDefinition::TruncateKind MMod::operandTruncateKind(size_t index) const {
-  return std::min(truncateKind(), TruncateAfterBailouts);
-}
-
-MDefinition::TruncateKind MCompare::operandTruncateKind(size_t index) const {
+TruncateKind MCompare::operandTruncateKind(size_t index) const {
   // If we're doing an int32 comparison on operands which were previously
   // floating-point, convert them!
   MOZ_ASSERT_IF(truncateOperands_, isInt32Comparison());
-  return truncateOperands_ ? TruncateAfterBailouts : NoTruncate;
+  return truncateOperands_ ? TruncateKind::TruncateAfterBailouts
+                           : TruncateKind::NoTruncate;
 }
 
 static bool TruncateTest(TempAllocator& alloc, MTest* test) {
@@ -2896,8 +2914,8 @@ static bool CloneForDeadBranches(TempAllocator& alloc,
 
 // Examine all the users of |candidate| and determine the most aggressive
 // truncate kind that satisfies all of them.
-static MDefinition::TruncateKind ComputeRequestedTruncateKind(
-    MDefinition* candidate, bool* shouldClone) {
+static TruncateKind ComputeRequestedTruncateKind(MDefinition* candidate,
+                                                 bool* shouldClone) {
   bool isCapturedResult =
       false;  // Check if used by a recovered instruction or a resume point.
   bool isObservableResult =
@@ -2905,7 +2923,7 @@ static MDefinition::TruncateKind ComputeRequestedTruncateKind(
   bool isRecoverableResult = true;  // Check if it can safely be reconstructed.
   bool hasUseRemoved = candidate->isUseRemoved();
 
-  MDefinition::TruncateKind kind = MDefinition::Truncate;
+  TruncateKind kind = TruncateKind::Truncate;
   for (MUseIterator use(candidate->usesBegin()); use != candidate->usesEnd();
        use++) {
     if (use->consumer()->isResumePoint()) {
@@ -2930,17 +2948,17 @@ static MDefinition::TruncateKind ComputeRequestedTruncateKind(
       continue;
     }
 
-    MDefinition::TruncateKind consumerKind =
+    TruncateKind consumerKind =
         consumer->operandTruncateKind(consumer->indexOf(*use));
     kind = std::min(kind, consumerKind);
-    if (kind == MDefinition::NoTruncate) {
+    if (kind == TruncateKind::NoTruncate) {
       break;
     }
   }
 
   // We cannot do full trunction on guarded instructions.
   if (candidate->isGuard() || candidate->isGuardRangeBailouts()) {
-    kind = std::min(kind, MDefinition::TruncateAfterBailouts);
+    kind = std::min(kind, TruncateKind::TruncateAfterBailouts);
   }
 
   // If the value naturally produces an int32 value (before bailout checks)
@@ -2957,7 +2975,7 @@ static MDefinition::TruncateKind ComputeRequestedTruncateKind(
   // Note, that if the result can be observed from another frame, then this
   // optimization is not safe.
   bool safeToConvert =
-      kind == MDefinition::Truncate && !hasUseRemoved && !isObservableResult;
+      kind == TruncateKind::Truncate && !hasUseRemoved && !isObservableResult;
 
   // If the candidate instruction appears as operand of a resume point or a
   // recover instruction, and we have to truncate its result, then we might
@@ -2974,19 +2992,19 @@ static MDefinition::TruncateKind ComputeRequestedTruncateKind(
         candidate->canRecoverOnBailout()) {
       *shouldClone = true;
     } else {
-      kind = std::min(kind, MDefinition::TruncateAfterBailouts);
+      kind = std::min(kind, TruncateKind::TruncateAfterBailouts);
     }
   }
 
   return kind;
 }
 
-static MDefinition::TruncateKind ComputeTruncateKind(MDefinition* candidate,
-                                                     bool* shouldClone) {
+static TruncateKind ComputeTruncateKind(MDefinition* candidate,
+                                        bool* shouldClone) {
   // Compare operations might coerce its inputs to int32 if the ranges are
   // correct.  So we do not need to check if all uses are coerced.
   if (candidate->isCompare()) {
-    return MDefinition::TruncateAfterBailouts;
+    return TruncateKind::TruncateAfterBailouts;
   }
 
   // Set truncated flag if range analysis ensure that it has no
@@ -3004,7 +3022,7 @@ static MDefinition::TruncateKind ComputeTruncateKind(MDefinition* candidate,
   }
 
   if (canHaveRoundingErrors) {
-    return MDefinition::NoTruncate;
+    return TruncateKind::NoTruncate;
   }
 
   // Ensure all observable uses are truncated.
@@ -3034,8 +3052,8 @@ static void AdjustTruncatedInputs(TempAllocator& alloc,
                                   MDefinition* truncated) {
   MBasicBlock* block = truncated->block();
   for (size_t i = 0, e = truncated->numOperands(); i < e; i++) {
-    MDefinition::TruncateKind kind = truncated->operandTruncateKind(i);
-    if (kind == MDefinition::NoTruncate) {
+    TruncateKind kind = truncated->operandTruncateKind(i);
+    if (kind == TruncateKind::NoTruncate) {
       continue;
     }
 
@@ -3048,8 +3066,9 @@ static void AdjustTruncatedInputs(TempAllocator& alloc,
       truncated->replaceOperand(i, input->getOperand(0));
     } else {
       MInstruction* op;
-      if (kind == MDefinition::TruncateAfterBailouts) {
+      if (kind == TruncateKind::TruncateAfterBailouts) {
         op = MToNumberInt32::New(alloc, truncated->getOperand(i));
+        op->setBailoutKind(BailoutKind::EagerTruncation);
       } else {
         op = MTruncateToInt32::New(alloc, truncated->getOperand(i));
       }
@@ -3068,6 +3087,34 @@ static void AdjustTruncatedInputs(TempAllocator& alloc,
     truncated->replaceAllUsesWith(truncated->toToDouble()->getOperand(0));
     block->discard(truncated->toToDouble());
   }
+}
+
+bool RangeAnalysis::canTruncate(MDefinition* def, TruncateKind kind) const {
+  if (kind == TruncateKind::NoTruncate) {
+    return false;
+  }
+
+  // Range Analysis is sometimes eager to do optimizations, even if we
+  // are not able to truncate an instruction. In such case, we
+  // speculatively compile the instruction to an int32 instruction
+  // while adding a guard. This is what is implied by
+  // TruncateAfterBailout.
+  //
+  // If a previous compilation was invalidated because a speculative
+  // truncation bailed out, we no longer attempt to make this kind of
+  // eager optimization.
+  if (mir->outerInfo().hadEagerTruncationBailout()) {
+    if (kind == TruncateKind::TruncateAfterBailouts) {
+      return false;
+    }
+    for (uint32_t i = 0; i < def->numOperands(); i++) {
+      if (def->operandTruncateKind(i) <= TruncateKind::TruncateAfterBailouts) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 // Iterate backward on all instruction and attempt to truncate operations for
@@ -3125,27 +3172,10 @@ bool RangeAnalysis::truncate() {
       }
 
       bool shouldClone = false;
-      MDefinition::TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
-      if (kind == MDefinition::NoTruncate) {
-        continue;
-      }
-
-      // Range Analysis is sometimes eager to do optimizations, even if we
-      // are not be able to truncate an instruction. In such case, we
-      // speculatively compile the instruction to an int32 instruction
-      // while adding a guard. This is what is implied by
-      // TruncateAfterBailout.
-      //
-      // If we already experienced an overflow bailout while executing
-      // code within the current JSScript, we no longer attempt to make
-      // this kind of eager optimizations.
-      if (kind <= MDefinition::TruncateAfterBailouts &&
-          block->info().hadOverflowBailout()) {
-        continue;
-      }
+      TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
 
       // Truncate this instruction if possible.
-      if (!iter->needTruncation(kind)) {
+      if (!canTruncate(*iter, kind) || !iter->needTruncation(kind)) {
         continue;
       }
 
@@ -3170,13 +3200,11 @@ bool RangeAnalysis::truncate() {
     for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd());
          iter != end; ++iter) {
       bool shouldClone = false;
-      MDefinition::TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
-      if (kind == MDefinition::NoTruncate) {
-        continue;
-      }
+      TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
 
       // Truncate this phi if possible.
-      if (shouldClone || !iter->needTruncation(kind)) {
+      if (shouldClone || !canTruncate(*iter, kind) ||
+          !iter->needTruncation(kind)) {
         continue;
       }
 
@@ -3209,6 +3237,7 @@ bool RangeAnalysis::truncate() {
 }
 
 bool RangeAnalysis::removeUnnecessaryBitops() {
+  JitSpew(JitSpew_Range, "Begin (removeUnnecessaryBitops)");
   // Note: This operation change the semantic of the program in a way which
   // uniquely works with Int32, Recover Instructions added by the Sink phase
   // expects the MIR Graph to still have a valid flow as-if they were double
@@ -3243,6 +3272,7 @@ void MInArray::collectRangeInfoPreTrunc() {
   Range indexRange(index());
   if (indexRange.isFiniteNonNegative()) {
     needsNegativeIntCheck_ = false;
+    setNotGuard();
   }
 }
 
@@ -3345,7 +3375,7 @@ void MMod::collectRangeInfoPreTrunc() {
 void MToNumberInt32::collectRangeInfoPreTrunc() {
   Range inputRange(input());
   if (!inputRange.canBeNegativeZero()) {
-    canBeNegativeZero_ = false;
+    needsNegativeZeroCheck_ = false;
   }
 }
 

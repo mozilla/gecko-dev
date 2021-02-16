@@ -11,8 +11,10 @@
 #include "frontend/BytecodeCompiler.h"
 #include "frontend/CompilationInfo.h"
 #include "frontend/ErrorReporter.h"
+#include "frontend/ModuleSharedContext.h"
 #include "frontend/NameAnalysisTypes.h"  // DeclaredNameInfo
 #include "frontend/NameCollections.h"
+#include "frontend/ScriptIndex.h"  // ScriptIndex
 #include "frontend/SharedContext.h"
 #include "frontend/UsedNameTracker.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
@@ -350,8 +352,8 @@ class ParseContext : public Nestable<ParseContext> {
  public:
   // All inner functions in this context. Only used when syntax parsing.
   // The Functions (or FunctionCreateionDatas) are traced as part of the
-  // CompilationInfo function vector.
-  Vector<FunctionIndex, 4> innerFunctionIndexesForLazy;
+  // CompilationStencil function vector.
+  Vector<ScriptIndex, 4> innerFunctionIndexesForLazy;
 
   // In a function context, points to a Directive struct that can be updated
   // to reflect new directives encountered in the Directive Prologue that
@@ -483,6 +485,27 @@ class ParseContext : public Nestable<ParseContext> {
   // be at top level.
   bool atTopLevel() { return atBodyLevel() && sc_->isTopLevelContext(); }
 
+  bool atModuleTopLevel() {
+    // True if we are at the topmost level of an entire module.
+    //
+    // For example, this is used to determine if an await statement should
+    // mark a module as an async module during parsing.
+    //
+    // Example module:
+    //   import x from "y";
+    //
+    //   await x.foo(); // mark as Top level await.
+    //
+    //   if (cond) {
+    //     await x.bar(); // mark as Top level await.
+    //   }
+    //
+    //   async function z() {
+    //     await x.baz(); // do not mark as Top level await.
+    //   }
+    return sc_->isModuleContext() && sc_->isTopLevelContext();
+  }
+
   void setSuperScopeNeedsHomeObject() {
     MOZ_ASSERT(sc_->allowSuperProperty());
     superScopeNeedsHomeObject_ = true;
@@ -505,7 +528,8 @@ class ParseContext : public Nestable<ParseContext> {
   }
 
   bool isAsync() const {
-    return sc_->isFunctionBox() && sc_->asFunctionBox()->isAsync();
+    return sc_->isSuspendableContext() &&
+           sc_->asSuspendableContext()->isAsync();
   }
 
   bool isGeneratorOrAsync() const { return isGenerator() || isAsync(); }
@@ -549,6 +573,7 @@ class ParseContext : public Nestable<ParseContext> {
   bool declareFunctionArgumentsObject(const UsedNameTracker& usedNames,
                                       bool canSkipLazyClosedOverBindings);
   bool declareDotGeneratorName();
+  bool declareTopLevelDotGeneratorName();
 
  private:
   MOZ_MUST_USE bool isVarRedeclaredInInnermostScope(

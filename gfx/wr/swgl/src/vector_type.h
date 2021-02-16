@@ -114,7 +114,7 @@ struct VectorType {
     };
   };
 
-  VectorType() : data{0} { }
+  VectorType() : data{0} {}
 
   constexpr VectorType(const VectorType& rhs) : data(rhs.data) {}
   // GCC vector extensions only support broadcasting scalars on arithmetic ops,
@@ -317,6 +317,7 @@ struct VectorType {
 
 #  define xyxy swizzle(0, 1, 0, 1)
 #  define zwzw swizzle(2, 3, 2, 3)
+#  define zwxy swizzle(2, 3, 0, 1)
 #  define zyxw swizzle(2, 1, 0, 3)
 #  define xyzz swizzle(0, 1, 2, 2)
 #  define yzwx swizzle(1, 2, 3, 0)

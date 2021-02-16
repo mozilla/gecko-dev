@@ -41,10 +41,7 @@ add_task(async function() {
   );
 
   store.dispatch(Actions.toggleNetworkDetails());
-  EventUtils.sendMouseEvent(
-    { type: "click" },
-    document.querySelector("#request-tab")
-  );
+  await clickOnSidebarTab(document, "request");
 
   await Promise.all([waitAccordionItems, waitSourceEditor]);
 

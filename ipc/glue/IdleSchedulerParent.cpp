@@ -4,7 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_page_load.h"
 #include "mozilla/Unused.h"
 #include "mozilla/ipc/IdleSchedulerParent.h"
@@ -18,23 +17,21 @@ namespace ipc {
 base::SharedMemory* IdleSchedulerParent::sActiveChildCounter = nullptr;
 std::bitset<NS_IDLE_SCHEDULER_COUNTER_ARRAY_LENGHT>
     IdleSchedulerParent::sInUseChildCounters;
-LinkedList<IdleSchedulerParent> IdleSchedulerParent::sDefault;
 LinkedList<IdleSchedulerParent> IdleSchedulerParent::sWaitingForIdle;
-LinkedList<IdleSchedulerParent> IdleSchedulerParent::sIdle;
-AutoTArray<IdleSchedulerParent*, 8>* IdleSchedulerParent::sPrioritized =
-    nullptr;
-Atomic<int32_t> IdleSchedulerParent::sCPUsForChildProcesses(-1);
+Atomic<int32_t> IdleSchedulerParent::sMaxConcurrentIdleTasksInChildProcesses(
+    -1);
 uint32_t IdleSchedulerParent::sChildProcessesRunningPrioritizedOperation = 0;
+uint32_t IdleSchedulerParent::sChildProcessesAlive = 0;
 nsITimer* IdleSchedulerParent::sStarvationPreventer = nullptr;
 
 IdleSchedulerParent::IdleSchedulerParent() {
-  sDefault.insertBack(this);
+  sChildProcessesAlive++;
 
-  if (sCPUsForChildProcesses == -1) {
+  if (sMaxConcurrentIdleTasksInChildProcesses == -1) {
     // nsISystemInfo can be initialized only on the main thread.
     // While waiting for the real logical core count behave as if there was just
     // one core.
-    sCPUsForChildProcesses = 1;
+    sMaxConcurrentIdleTasksInChildProcesses = 1;
     nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
     nsCOMPtr<nsIRunnable> runnable =
         NS_NewRunnableFunction("cpucount getter", [thread]() {
@@ -44,14 +41,18 @@ IdleSchedulerParent::IdleSchedulerParent() {
           ProcessInfo processInfo = {};
           if (NS_SUCCEEDED(CollectProcessInfo(processInfo)) &&
               processInfo.cpuCount > 1) {
-            sCPUsForChildProcesses = processInfo.cpuCount - 1;
+            // On one and two processor (or hardware thread) systems this will
+            // allow one concurrent idle task.
+            sMaxConcurrentIdleTasksInChildProcesses =
+                std::max(processInfo.cpuCount - 1, 1);
             // We have a new cpu count, reschedule idle scheduler.
             nsCOMPtr<nsIRunnable> runnable =
                 NS_NewRunnableFunction("IdleSchedulerParent::Schedule", []() {
                   if (sActiveChildCounter && sActiveChildCounter->memory()) {
                     static_cast<Atomic<int32_t>*>(sActiveChildCounter->memory())
                         [NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER] =
-                            static_cast<int32_t>(sCPUsForChildProcesses);
+                            static_cast<int32_t>(
+                                sMaxConcurrentIdleTasksInChildProcesses);
                   }
                   IdleSchedulerParent::Schedule(nullptr);
                 });
@@ -84,14 +85,18 @@ IdleSchedulerParent::~IdleSchedulerParent() {
 
   if (isInList()) {
     remove();
-    if (sDefault.isEmpty() && sWaitingForIdle.isEmpty() && sIdle.isEmpty()) {
-      delete sActiveChildCounter;
-      sActiveChildCounter = nullptr;
+  }
 
-      if (sStarvationPreventer) {
-        sStarvationPreventer->Cancel();
-        NS_RELEASE(sStarvationPreventer);
-      }
+  MOZ_ASSERT(sChildProcessesAlive > 0);
+  sChildProcessesAlive--;
+  if (sChildProcessesAlive == 0) {
+    MOZ_ASSERT(sWaitingForIdle.isEmpty());
+    delete sActiveChildCounter;
+    sActiveChildCounter = nullptr;
+
+    if (sStarvationPreventer) {
+      sStarvationPreventer->Cancel();
+      NS_RELEASE(sStarvationPreventer);
     }
   }
 
@@ -100,9 +105,15 @@ IdleSchedulerParent::~IdleSchedulerParent() {
 
 IPCResult IdleSchedulerParent::RecvInitForIdleUse(
     InitForIdleUseResolver&& aResolve) {
+  // This must already be non-zero, if it is zero then the cleanup code for the
+  // shared memory (initialised below) will never run.  The invariant is that if
+  // the shared memory is initialsed, then this is non-zero.
+  MOZ_ASSERT(sChildProcessesAlive > 0);
+
+  MOZ_ASSERT(IsNotDoingIdleTask());
+
   // Create a shared memory object which is shared across all the relevant
-  // processes. Only first 4 bytes of the allocated are used currently to
-  // count activity state of child processes
+  // processes.
   if (!sActiveChildCounter) {
     sActiveChildCounter = new base::SharedMemory();
     size_t shmemSize = NS_IDLE_SCHEDULER_COUNTER_ARRAY_LENGHT * sizeof(int32_t);
@@ -114,7 +125,7 @@ IPCResult IdleSchedulerParent::RecvInitForIdleUse(
       static_cast<Atomic<int32_t>*>(
           sActiveChildCounter
               ->memory())[NS_IDLE_SCHEDULER_INDEX_OF_CPU_COUNTER] =
-          static_cast<int32_t>(sCPUsForChildProcesses);
+          static_cast<int32_t>(sMaxConcurrentIdleTasksInChildProcesses);
     } else {
       delete sActiveChildCounter;
       sActiveChildCounter = nullptr;
@@ -146,10 +157,12 @@ IPCResult IdleSchedulerParent::RecvInitForIdleUse(
 
 IPCResult IdleSchedulerParent::RecvRequestIdleTime(uint64_t aId,
                                                    TimeDuration aBudget) {
+  MOZ_ASSERT(aBudget);
+  MOZ_ASSERT(IsNotDoingIdleTask());
+
   mCurrentRequestId = aId;
   mRequestedIdleBudget = aBudget;
 
-  remove();
   sWaitingForIdle.insertBack(this);
 
   Schedule(this);
@@ -157,11 +170,20 @@ IPCResult IdleSchedulerParent::RecvRequestIdleTime(uint64_t aId,
 }
 
 IPCResult IdleSchedulerParent::RecvIdleTimeUsed(uint64_t aId) {
-  if (mCurrentRequestId == aId) {
-    // Ensure the object is back in the default queue.
+  // The client can either signal that they've used the idle time or they're
+  // canceling the request.  We cannot use a seperate cancel message because it
+  // could arrive after the parent has granted the request.
+  MOZ_ASSERT(IsWaitingForIdle() || IsDoingIdleTask());
+
+  // The parent process will always know the ID of the current request (since
+  // the IPC channel is reliable).  The IDs are provided so that the client can
+  // check them (it's possible for the client to race ahead of the server).
+  MOZ_ASSERT(mCurrentRequestId == aId);
+
+  if (IsWaitingForIdle()) {
     remove();
-    sDefault.insertBack(this);
   }
+  mRequestedIdleBudget = TimeDuration();
   Schedule(nullptr);
   return IPC_OK();
 }
@@ -199,42 +221,52 @@ int32_t IdleSchedulerParent::ActiveCount() {
   return 0;
 }
 
+bool IdleSchedulerParent::HasSpareCycles(int32_t aActiveCount) {
+  // We can run a new task if we have a spare core.  If we're running a
+  // prioritised operation we halve the number of regular spare cores.
+  //
+  // sMaxConcurrentIdleTasksInChildProcesses will always be >0 so on 1 and 2
+  // core systems this will allow 1 idle tasks (0 if running a prioritized
+  // operation).
+  MOZ_ASSERT(sMaxConcurrentIdleTasksInChildProcesses > 0);
+  return sChildProcessesRunningPrioritizedOperation
+             ? sMaxConcurrentIdleTasksInChildProcesses / 2 > aActiveCount
+             : sMaxConcurrentIdleTasksInChildProcesses > aActiveCount;
+}
+
+void IdleSchedulerParent::SendIdleTime() {
+  // We would assert that IsWaiting() except after removing the task from it's
+  // list this will return false.  Instead check IsDoingIdleTask()
+  MOZ_ASSERT(IsDoingIdleTask());
+  Unused << SendIdleTime(mCurrentRequestId, mRequestedIdleBudget);
+}
+
 void IdleSchedulerParent::Schedule(IdleSchedulerParent* aRequester) {
-  if (sWaitingForIdle.isEmpty()) {
-    return;
-  }
+  // Tasks won't update the active count until after they receive their message
+  // and start to run, so make a copy of it here and increment it for every task
+  // we schedule. It will become an estimate of how many tasks will be active
+  // shortly.
+  int32_t activeCount = ActiveCount();
 
-  if (!aRequester || !aRequester->mRunningPrioritizedOperation) {
-    int32_t activeCount = ActiveCount();
-    // Don't bail out so easily if we're running with very few cores.
-    if (sCPUsForChildProcesses > 1 && sCPUsForChildProcesses <= activeCount) {
-      // Too many processes are running, bail out.
-      EnsureStarvationTimer();
-      return;
-    }
-
-    if (sChildProcessesRunningPrioritizedOperation > 0 &&
-        sCPUsForChildProcesses / 2 <= activeCount) {
-      // We're running a prioritized operation and don't have too many spare
-      // cores for idle tasks, bail out.
-      EnsureStarvationTimer();
-      return;
-    }
-  }
-
-  // We can run run an idle task. If the requester is prioritized, just let it
-  // run itself.
-  RefPtr<IdleSchedulerParent> idleRequester;
   if (aRequester && aRequester->mRunningPrioritizedOperation) {
-    aRequester->remove();
-    idleRequester = aRequester;
-  } else {
-    idleRequester = sWaitingForIdle.popFirst();
+    // If the requester is prioritized, just let it run itself.
+    if (aRequester->isInList()) {
+      aRequester->remove();
+    }
+    aRequester->SendIdleTime();
+    activeCount++;
   }
 
-  sIdle.insertBack(idleRequester);
-  Unused << idleRequester->SendIdleTime(idleRequester->mCurrentRequestId,
-                                        idleRequester->mRequestedIdleBudget);
+  while (!sWaitingForIdle.isEmpty() && HasSpareCycles(activeCount)) {
+    // We can run an idle task.
+    RefPtr<IdleSchedulerParent> idleRequester = sWaitingForIdle.popFirst();
+    idleRequester->SendIdleTime();
+    activeCount++;
+  }
+
+  if (!sWaitingForIdle.isEmpty()) {
+    EnsureStarvationTimer();
+  }
 }
 
 void IdleSchedulerParent::EnsureStarvationTimer() {

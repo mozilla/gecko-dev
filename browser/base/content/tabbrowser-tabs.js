@@ -59,9 +59,12 @@
       );
       this._hiddenSoundPlayingTabs = new Set();
 
-      let strId = PrivateBrowsingUtils.isWindowPrivate(window)
-        ? "emptyPrivateTabTitle"
-        : "emptyTabTitle";
+      // Normal tab title is used also in the permanent private browsing mode.
+      let strId =
+        PrivateBrowsingUtils.isWindowPrivate(window) &&
+        !Services.prefs.getBoolPref("browser.privatebrowsing.autostart")
+          ? "emptyPrivateTabTitle"
+          : "emptyTabTitle";
       this.emptyTabTitle = gTabBrowserBundle.GetStringFromName("tabs." + strId);
 
       var tab = this.allTabs[0];
@@ -333,13 +336,10 @@
         case KeyEvent.DOM_VK_SPACE:
           if (visibleTabs[lastFocusedTabIndex].multiselected) {
             gBrowser.removeFromMultiSelectedTabs(
-              visibleTabs[lastFocusedTabIndex],
-              { isLastMultiSelectChange: false }
+              visibleTabs[lastFocusedTabIndex]
             );
           } else {
-            gBrowser.addToMultiSelectedTabs(visibleTabs[lastFocusedTabIndex], {
-              isLastMultiSelectChange: true,
-            });
+            gBrowser.addToMultiSelectedTabs(visibleTabs[lastFocusedTabIndex]);
           }
           break;
         default:

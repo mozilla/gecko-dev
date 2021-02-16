@@ -7,8 +7,12 @@
 
 #include "imgRequest.h"
 #include "Layers.h"  // for LayerManager
+#include "nsIObserverService.h"
 #include "nsRefreshDriver.h"
 #include "nsContentUtils.h"
+#include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/Rect.h"
+#include "mozilla/Services.h"
 #include "mozilla/SizeOfState.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Tuple.h"  // for Tie
@@ -104,9 +108,9 @@ bool ImageResource::GetSpecTruncatedTo1k(nsCString& aSpec) const {
   return false;
 }
 
-void ImageResource::SetCurrentImage(ImageContainer* aContainer,
-                                    SourceSurface* aSurface,
-                                    const Maybe<IntRect>& aDirtyRect) {
+void ImageResource::SetCurrentImage(layers::ImageContainer* aContainer,
+                                    gfx::SourceSurface* aSurface,
+                                    const Maybe<gfx::IntRect>& aDirtyRect) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aContainer);
 
@@ -126,8 +130,8 @@ void ImageResource::SetCurrentImage(ImageContainer* aContainer,
   // so that another object cannot add its own. Similarly the frame ID is
   // only used internally to ensure it is always increasing, and skipping
   // IDs from an individual container's perspective is acceptable.
-  AutoTArray<ImageContainer::NonOwningImage, 1> imageList;
-  imageList.AppendElement(ImageContainer::NonOwningImage(
+  AutoTArray<layers::ImageContainer::NonOwningImage, 1> imageList;
+  imageList.AppendElement(layers::ImageContainer::NonOwningImage(
       image, TimeStamp(), mLastFrameID++, mImageProducerID));
 
   if (aDirtyRect) {
@@ -144,7 +148,7 @@ void ImageResource::SetCurrentImage(ImageContainer* aContainer,
       layers::SharedSurfacesChild::UpdateAnimation(aContainer, aSurface,
                                                    aDirtyRect.ref());
     } else {
-      IntRect dirtyRect(IntPoint(0, 0), aSurface->GetSize());
+      gfx::IntRect dirtyRect(gfx::IntPoint(0, 0), aSurface->GetSize());
       layers::SharedSurfacesChild::UpdateAnimation(aContainer, aSurface,
                                                    dirtyRect);
     }
@@ -152,9 +156,9 @@ void ImageResource::SetCurrentImage(ImageContainer* aContainer,
 }
 
 ImgDrawResult ImageResource::GetImageContainerImpl(
-    LayerManager* aManager, const IntSize& aSize,
+    layers::LayerManager* aManager, const gfx::IntSize& aSize,
     const Maybe<SVGImageContext>& aSVGContext, uint32_t aFlags,
-    ImageContainer** aOutContainer) {
+    layers::ImageContainer** aOutContainer) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aManager);
   MOZ_ASSERT(
@@ -163,7 +167,7 @@ ImgDrawResult ImageResource::GetImageContainerImpl(
       "Unsupported flag passed to GetImageContainer");
 
   ImgDrawResult drawResult;
-  IntSize size;
+  gfx::IntSize size;
   Tie(drawResult, size) = GetImageContainerSize(aManager, aSize, aFlags);
   if (drawResult != ImgDrawResult::SUCCESS) {
     return drawResult;
@@ -187,7 +191,7 @@ ImgDrawResult ImageResource::GetImageContainerImpl(
       // Lack of a container is handled below.
       container = RefPtr<layers::ImageContainer>(entry->mContainer);
       break;
-    } else if (!entry->mContainer) {
+    } else if (entry->mContainer.IsDead()) {
       // Stop tracking if our weak pointer to the image container was freed.
       mImageContainers.RemoveElementAt(i);
     }
@@ -219,8 +223,8 @@ ImgDrawResult ImageResource::GetImageContainerImpl(
   NotifyDrawingObservers();
 #endif
 
-  IntSize bestSize;
-  RefPtr<SourceSurface> surface;
+  gfx::IntSize bestSize;
+  RefPtr<gfx::SourceSurface> surface;
   Tie(drawResult, bestSize, surface) = GetFrameInternal(
       size, aSVGContext, FRAME_CURRENT, aFlags | FLAG_ASYNC_NOTIFY);
 
@@ -280,7 +284,7 @@ ImgDrawResult ImageResource::GetImageContainerImpl(
 
   if (!container) {
     // We need a new ImageContainer, so create one.
-    container = LayerManager::CreateImageContainer();
+    container = layers::LayerManager::CreateImageContainer();
 
     if (i >= 0) {
       entry->mContainer = container;
@@ -296,15 +300,16 @@ ImgDrawResult ImageResource::GetImageContainerImpl(
   return drawResult;
 }
 
-bool ImageResource::UpdateImageContainer(const Maybe<IntRect>& aDirtyRect) {
+bool ImageResource::UpdateImageContainer(
+    const Maybe<gfx::IntRect>& aDirtyRect) {
   MOZ_ASSERT(NS_IsMainThread());
 
   for (int i = mImageContainers.Length() - 1; i >= 0; --i) {
     ImageContainerEntry& entry = mImageContainers[i];
     RefPtr<layers::ImageContainer> container(entry.mContainer);
     if (container) {
-      IntSize bestSize;
-      RefPtr<SourceSurface> surface;
+      gfx::IntSize bestSize;
+      RefPtr<gfx::SourceSurface> surface;
       Tie(entry.mLastDrawResult, bestSize, surface) = GetFrameInternal(
           entry.mSize, entry.mSVGContext, FRAME_CURRENT, entry.mFlags);
 
@@ -315,7 +320,7 @@ bool ImageResource::UpdateImageContainer(const Maybe<IntRect>& aDirtyRect) {
       if (aDirtyRect) {
         SetCurrentImage(container, surface, aDirtyRect);
       } else {
-        IntRect dirtyRect(IntPoint(0, 0), bestSize);
+        gfx::IntRect dirtyRect(gfx::IntPoint(0, 0), bestSize);
         SetCurrentImage(container, surface, Some(dirtyRect));
       }
     } else {
@@ -341,7 +346,7 @@ ImageResource::ImageResource(nsIURI* aURI)
       mInitialized(false),
       mAnimating(false),
       mError(false),
-      mImageProducerID(ImageContainer::AllocateProducerID()),
+      mImageProducerID(layers::ImageContainer::AllocateProducerID()),
       mLastFrameID(0) {}
 
 ImageResource::~ImageResource() {

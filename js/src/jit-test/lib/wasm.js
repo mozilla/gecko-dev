@@ -59,22 +59,9 @@ function wasmCompilationShouldFail(bin, compile_error_regex) {
     }
 }
 
-function typeToCraneliftName(ty) {
-    switch(ty) {
-        case 'externref':
-            return 'ExternRef';
-        case 'funcref':
-            return 'FuncRef';
-        default:
-            return ty.toUpperCase();
-    }
-}
-
 function mismatchError(actual, expect) {
-    let actualCL = typeToCraneliftName(actual);
-    let expectCL = typeToCraneliftName(expect);
     var str = `(type mismatch: expression has type ${actual} but expected ${expect})|` +
-              `(type mismatch: expected Some\\(${expectCL}\\), found Some\\(${actualCL}\\))`;
+              `(type mismatch: expected ${expect}, found ${actual}\)`;
     return RegExp(str);
 }
 
@@ -195,7 +182,10 @@ function wasmFullPassI64(text, expected, maybeImports, ...args) {
 
     let augmentedSrc = _augmentSrc(text, [ { type: 'i64', func: '$run', args, expected } ]);
     let augmentedBinary = wasmTextToBinary(augmentedSrc);
-    new WebAssembly.Instance(new WebAssembly.Module(augmentedBinary), maybeImports).exports.assert_0();
+
+    let module = new WebAssembly.Module(augmentedBinary);
+    let instance = new WebAssembly.Instance(module, maybeImports);
+    assertEq(instance.exports.assert_0(), 1);
 }
 
 function wasmRunWithDebugger(wast, lib, init, done) {
@@ -387,6 +377,9 @@ function fuzzingSafe() {
 
 // Common instantiations of wasm values for dynamic type check testing
 
+let WasmFuncrefValues = [
+    wasmEvalText(`(module (func (export "")))`).exports[''],
+];
 let WasmNonNullEqrefValues = [];
 let WasmEqrefValues = [];
 if (wasmGcEnabled()) {
@@ -411,7 +404,8 @@ let WasmNonEqrefValues = [
     new Number(42),
     new Boolean(true),
     Symbol("status"),
-    () => 1337
+    () => 1337,
+    ...WasmFuncrefValues,
 ];
 let WasmNonNullExternrefValues = [
     ...WasmNonEqrefValues,

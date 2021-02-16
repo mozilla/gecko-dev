@@ -55,7 +55,7 @@ global.loader = {
       "devtools/client/shared/keycodes",
       "devtools/client/shared/sourceeditor/editor",
       "devtools/client/shared/telemetry",
-      "devtools/shared/screenshot/save",
+      "devtools/client/shared/save-screenshot",
       "devtools/client/shared/focus",
     ];
     if (!excluded.includes(path)) {
@@ -107,6 +107,8 @@ global.document.nodePrincipal = {
 const requireHacker = require("require-hacker");
 requireHacker.global_hook("default", (path, module) => {
   const paths = {
+    "acorn/acorn": () => getModule("devtools/shared/acorn/acorn"),
+
     // For Enzyme
     "react-dom": () => getModule("devtools/client/shared/vendor/react-dom"),
     "react-dom/server": () =>
@@ -154,6 +156,10 @@ requireHacker.global_hook("default", (path, module) => {
     };`,
     "devtools/shared/async-storage": () =>
       getModule("devtools/client/webconsole/test/node/fixtures/async-storage"),
+    "devtools/shared/generate-uuid": () =>
+      getModule(
+        "devtools/client/shared/test-helpers/jest-fixtures/generate-uuid"
+      ),
   };
 
   if (paths.hasOwnProperty(path)) {

@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Logging.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/intl/MozLocale.h"
 #include "mozilla/intl/OSPreferences.h"
@@ -302,8 +303,9 @@ gfxPlatformFontList::~gfxPlatformFontList() {
 void gfxPlatformFontList::FontWhitelistPrefChanged(const char* aPref,
                                                    void* aClosure) {
   MOZ_ASSERT(XRE_IsParentProcess());
-  gfxPlatformFontList::PlatformFontList()->UpdateFontList();
-  mozilla::dom::ContentParent::NotifyUpdatedFonts();
+  auto* pfl = gfxPlatformFontList::PlatformFontList();
+  pfl->UpdateFontList(true);
+  dom::ContentParent::NotifyUpdatedFonts(true);
 }
 
 // number of CSS generic font families
@@ -442,8 +444,8 @@ nsresult gfxPlatformFontList::InitFontList() {
   // rebuilding fontlist so clear out font/word caches
   gfxFontCache* fontCache = gfxFontCache::GetCache();
   if (fontCache) {
-    fontCache->AgeAllGenerations();
     fontCache->FlushShapedWordCaches();
+    fontCache->Flush();
   }
 
   gfxPlatform::PurgeSkiaFontCache();
@@ -457,6 +459,9 @@ nsresult gfxPlatformFontList::InitFontList() {
 
   mAliasTable.Clear();
   mLocalNameTable.Clear();
+
+  CancelLoadCmapsTask();
+  mStartedLoadingCmapsFrom = 0xffffffffu;
 
   CancelInitOtherFamilyNamesTask();
   MutexAutoLock lock(mFontFamiliesMutex);
@@ -495,7 +500,7 @@ nsresult gfxPlatformFontList::InitFontList() {
     bool oldSharedList = mSharedFontList != nullptr;
     mSharedFontList.reset(new fontlist::FontList(mFontlistInitCount));
     InitSharedFontListForPlatform();
-    if (mSharedFontList->Initialized()) {
+    if (mSharedFontList && mSharedFontList->Initialized()) {
       if (mLocalNameTable.Count()) {
         SharedFontList()->SetLocalNames(mLocalNameTable);
         mLocalNameTable.Clear();
@@ -509,7 +514,7 @@ nsresult gfxPlatformFontList::InitFontList() {
     if (oldSharedList) {
       if (XRE_IsParentProcess()) {
         // notify all children of the change
-        mozilla::dom::ContentParent::NotifyRebuildFontList();
+        dom::ContentParent::NotifyUpdatedFonts(true);
       }
     }
   }
@@ -540,6 +545,18 @@ nsresult gfxPlatformFontList::InitFontList() {
   return NS_OK;
 }
 
+void gfxPlatformFontList::InitializeCodepointsWithNoFonts() {
+  mCodepointsWithNoFonts.reset();
+  mCodepointsWithNoFonts.SetRange(0, 0x1f);            // C0 controls
+  mCodepointsWithNoFonts.SetRange(0x7f, 0x9f);         // C1 controls
+  mCodepointsWithNoFonts.SetRange(0xE000, 0xF8FF);     // PUA
+  mCodepointsWithNoFonts.SetRange(0xF0000, 0x10FFFD);  // Supplementary PUA
+  mCodepointsWithNoFonts.SetRange(0xfdd0, 0xfdef);     // noncharacters
+  for (unsigned i = 0; i <= 0x100000; i += 0x10000) {
+    mCodepointsWithNoFonts.SetRange(i + 0xfffe, i + 0xffff);  // noncharacters
+  }
+}
+
 void gfxPlatformFontList::SetVisibilityLevel() {
   FontVisibility newLevel;
   if (StaticPrefs::privacy_resistFingerprinting()) {
@@ -554,15 +571,7 @@ void gfxPlatformFontList::SetVisibilityLevel() {
     mVisibilityLevel = newLevel;
     // (Re-)initialize ranges of characters for which system-wide font search
     // should be skipped
-    mCodepointsWithNoFonts.reset();
-    mCodepointsWithNoFonts.SetRange(0, 0x1f);            // C0 controls
-    mCodepointsWithNoFonts.SetRange(0x7f, 0x9f);         // C1 controls
-    mCodepointsWithNoFonts.SetRange(0xE000, 0xF8FF);     // PUA
-    mCodepointsWithNoFonts.SetRange(0xF0000, 0x10FFFD);  // Supplementary PUA
-    mCodepointsWithNoFonts.SetRange(0xfdd0, 0xfdef);     // noncharacters
-    for (unsigned i = 0; i <= 0x100000; i += 0x10000) {
-      mCodepointsWithNoFonts.SetRange(i + 0xfffe, i + 0xffff);  // noncharacters
-    }
+    InitializeCodepointsWithNoFonts();
     // Forget any font family we previously chose for U+FFFD.
     mReplacementCharFallbackFamily = FontFamily();
   }
@@ -570,6 +579,7 @@ void gfxPlatformFontList::SetVisibilityLevel() {
 
 void gfxPlatformFontList::FontListChanged() {
   MOZ_ASSERT(!XRE_IsParentProcess());
+  InitializeCodepointsWithNoFonts();
   if (SharedFontList()) {
     // If we're using a shared local face-name list, this may have changed
     // such that existing font entries held by user font sets are no longer
@@ -611,10 +621,10 @@ class InitOtherFamilyNamesForStylo : public mozilla::Runnable {
 
 #define OTHERNAMES_TIMEOUT 200
 
-void gfxPlatformFontList::InitOtherFamilyNames(
+bool gfxPlatformFontList::InitOtherFamilyNames(
     bool aDeferOtherFamilyNamesLoading) {
   if (mOtherFamilyNamesInitialized) {
-    return;
+    return true;
   }
 
   if (SharedFontList() && !XRE_IsParentProcess()) {
@@ -626,7 +636,7 @@ void gfxPlatformFontList::InitOtherFamilyNames(
       NS_DispatchToMainThread(
           new InitOtherFamilyNamesForStylo(aDeferOtherFamilyNamesLoading));
     }
-    return;
+    return mOtherFamilyNamesInitialized;
   }
 
   // If the font loader delay has been set to zero, we don't defer loading
@@ -646,6 +656,7 @@ void gfxPlatformFontList::InitOtherFamilyNames(
   } else {
     InitOtherFamilyNamesInternal(false);
   }
+  return mOtherFamilyNamesInitialized;
 }
 
 // time limit for loading facename lists (ms)
@@ -798,10 +809,16 @@ void gfxPlatformFontList::LoadBadUnderlineList() {
   mBadUnderlineFamilyNames.Sort();
 }
 
-void gfxPlatformFontList::UpdateFontList() {
+void gfxPlatformFontList::UpdateFontList(bool aFullRebuild) {
   MOZ_ASSERT(NS_IsMainThread());
-  InitFontList();
-  RebuildLocalFonts();
+  if (aFullRebuild) {
+    InitFontList();
+    RebuildLocalFonts();
+  } else {
+    InitializeCodepointsWithNoFonts();
+    mStartedLoadingCmapsFrom = 0xffffffffu;
+    gfxPlatform::ForceGlobalReflow();
+  }
 }
 
 bool gfxPlatformFontList::IsVisibleToCSS(const gfxFontFamily& aFamily) const {
@@ -996,6 +1013,8 @@ gfxFont* gfxPlatformFontList::CommonFontFallback(
       if (!family || !IsVisibleToCSS(*family)) {
         continue;
       }
+      // XXX(jfkthame) Should we fire the async cmap-loader here, or let it
+      // always do a potential sync initialization of the family?
       family->SearchAllFontsForChar(SharedFontList(), &data);
       if (data.mBestMatch) {
         aMatchedFamily = FontFamily(family);
@@ -1074,10 +1093,17 @@ gfxFont* gfxPlatformFontList::GlobalFontFallback(
         if (!IsVisibleToCSS(family)) {
           continue;
         }
-        family.SearchAllFontsForChar(SharedFontList(), &data);
-        if (data.mMatchDistance == 0.0) {
-          // no better style match is possible, so stop searching
-          break;
+        if (!family.IsFullyInitialized() &&
+            StaticPrefs::gfx_font_rendering_fallback_async()) {
+          // Start loading all the missing charmaps; but this is async,
+          // so for now we just continue, ignoring this family.
+          StartCmapLoadingFromFamily(i);
+        } else {
+          family.SearchAllFontsForChar(SharedFontList(), &data);
+          if (data.mMatchDistance == 0.0) {
+            // no better style match is possible, so stop searching
+            break;
+          }
         }
       }
       if (data.mBestMatch) {
@@ -1117,6 +1143,150 @@ gfxFont* gfxPlatformFontList::GlobalFontFallback(
   }
 
   return nullptr;
+}
+
+class StartCmapLoadingRunnable : public mozilla::Runnable {
+ public:
+  explicit StartCmapLoadingRunnable(uint32_t aStartIndex)
+      : Runnable("gfxPlatformFontList::StartCmapLoadingRunnable"),
+        mStartIndex(aStartIndex) {}
+
+  NS_IMETHOD Run() override {
+    auto* pfl = gfxPlatformFontList::PlatformFontList();
+    auto* list = pfl->SharedFontList();
+    if (!list) {
+      return NS_OK;
+    }
+    if (mStartIndex >= list->NumFamilies()) {
+      return NS_OK;
+    }
+    if (XRE_IsParentProcess()) {
+      pfl->StartCmapLoading(list->GetGeneration(), mStartIndex);
+    } else {
+      dom::ContentChild::GetSingleton()->SendStartCmapLoading(
+          list->GetGeneration(), mStartIndex);
+    }
+    return NS_OK;
+  }
+
+ private:
+  uint32_t mStartIndex;
+};
+
+void gfxPlatformFontList::StartCmapLoadingFromFamily(uint32_t aStartIndex) {
+  if (aStartIndex > mStartedLoadingCmapsFrom) {
+    // We already initiated cmap-loading from somewhere earlier in the list;
+    // no need to do it again here.
+    return;
+  }
+  mStartedLoadingCmapsFrom = aStartIndex;
+
+  // If we're already on the main thread, don't bother dispatching a runnable
+  // here to kick off the loading process, just do it directly.
+  if (NS_IsMainThread()) {
+    auto* list = SharedFontList();
+    if (XRE_IsParentProcess()) {
+      StartCmapLoading(list->GetGeneration(), aStartIndex);
+    } else {
+      dom::ContentChild::GetSingleton()->SendStartCmapLoading(
+          list->GetGeneration(), aStartIndex);
+    }
+  } else {
+    NS_DispatchToMainThread(new StartCmapLoadingRunnable(aStartIndex));
+  }
+}
+
+class LoadCmapsRunnable : public CancelableRunnable {
+ public:
+  explicit LoadCmapsRunnable(uint32_t aGeneration, uint32_t aFamilyIndex)
+      : CancelableRunnable("gfxPlatformFontList::LoadCmapsRunnable"),
+        mGeneration(aGeneration),
+        mStartIndex(aFamilyIndex),
+        mIndex(aFamilyIndex) {}
+
+  // Reset the current family index, if the value passed is earlier than our
+  // original starting position. We don't "reset" if it would move the current
+  // position forward, or back into the already-scanned range.
+  // We could optimize further by remembering the current position reached,
+  // and then skipping ahead from the original start, but it doesn't seem worth
+  // extra complexity for a task that usually only happens once, and already-
+  // processed families will be skipped pretty quickly in Run() anyhow.
+  void MaybeResetIndex(uint32_t aFamilyIndex) {
+    if (aFamilyIndex < mStartIndex) {
+      mStartIndex = aFamilyIndex;
+      mIndex = aFamilyIndex;
+    }
+  }
+
+  nsresult Cancel() override {
+    mIsCanceled = true;
+    return NS_OK;
+  }
+
+  NS_IMETHOD Run() override {
+    if (mIsCanceled) {
+      return NS_OK;
+    }
+    auto* pfl = gfxPlatformFontList::PlatformFontList();
+    auto* list = pfl->SharedFontList();
+    MOZ_ASSERT(list);
+    if (!list) {
+      return NS_OK;
+    }
+    if (mGeneration != list->GetGeneration()) {
+      return NS_OK;
+    }
+    uint32_t numFamilies = list->NumFamilies();
+    if (mIndex >= numFamilies) {
+      return NS_OK;
+    }
+    auto* families = list->Families();
+    // Skip any families that are already initialized.
+    while (mIndex < numFamilies && families[mIndex].IsFullyInitialized()) {
+      ++mIndex;
+    }
+    // Fully process one family, and advance index.
+    if (mIndex < numFamilies) {
+      Unused << pfl->InitializeFamily(&families[mIndex], true);
+      ++mIndex;
+    }
+    // If there are more families to initialize, post ourselves back to the
+    // idle queue to handle the next one; otherwise we're finished and we need
+    // to notify content processes to update their rendering.
+    if (mIndex < numFamilies) {
+      RefPtr<CancelableRunnable> task = this;
+      NS_DispatchToMainThreadQueue(task.forget(), EventQueuePriority::Idle);
+    } else {
+      pfl->CancelLoadCmapsTask();
+      pfl->InitializeCodepointsWithNoFonts();
+      dom::ContentParent::NotifyUpdatedFonts(false);
+    }
+    return NS_OK;
+  }
+
+ private:
+  uint32_t mGeneration;
+  uint32_t mStartIndex;
+  uint32_t mIndex;
+  bool mIsCanceled = false;
+};
+
+void gfxPlatformFontList::StartCmapLoading(uint32_t aGeneration,
+                                           uint32_t aStartIndex) {
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  if (aGeneration != SharedFontList()->GetGeneration()) {
+    return;
+  }
+  if (mLoadCmapsRunnable) {
+    // We already have a runnable; just make sure it covers the full range of
+    // families needed.
+    static_cast<LoadCmapsRunnable*>(mLoadCmapsRunnable.get())
+        ->MaybeResetIndex(aStartIndex);
+    return;
+  }
+  mLoadCmapsRunnable = new LoadCmapsRunnable(aGeneration, aStartIndex);
+  RefPtr<CancelableRunnable> task = mLoadCmapsRunnable;
+  NS_DispatchToMainThreadQueue(task.forget(), EventQueuePriority::Idle);
 }
 
 gfxFontFamily* gfxPlatformFontList::CheckFamily(gfxFontFamily* aFamily) {
@@ -1165,16 +1335,15 @@ bool gfxPlatformFontList::FindAndAddFamilies(
             break;
           }
         }
-        nsAutoCString base(Substring(key, 0, index));
-        if (index > 0 && SharedFontList()->FindFamily(base)) {
-          mayDefer = false;
-        } else {
+        if (index <= 0 ||
+            !SharedFontList()->FindFamily(nsAutoCString(key.get(), index))) {
           triggerLoading = false;
         }
       }
       if (triggerLoading) {
-        InitOtherFamilyNames(mayDefer);
-        family = SharedFontList()->FindFamily(key);
+        if (InitOtherFamilyNames(mayDefer)) {
+          family = SharedFontList()->FindFamily(key);
+        }
       }
       if (!family && !mOtherFamilyNamesInitialized &&
           !(aFlags & FindFamiliesFlags::eNoAddToNamesMissedWhenSearching)) {
@@ -2362,14 +2531,11 @@ void gfxPlatformFontList::InitOtherFamilyNamesInternal(
 
     auto list = SharedFontList();
     if (list) {
-      for (auto& f : mozilla::Range<fontlist::Family>(list->Families(),
-                                                      list->NumFamilies())) {
-        ReadFaceNamesForFamily(&f, false);
-        TimeDuration elapsed = TimeStamp::Now() - start;
-        if (elapsed.ToMilliseconds() > OTHERNAMES_TIMEOUT) {
-          timedOut = true;
-          break;
-        }
+      // If the gfxFontInfoLoader task is not yet running, kick it off now so
+      // that it will load remaining names etc as soon as idle time permits.
+      if (mState == stateInitial || mState == stateTimerOnDelay) {
+        StartLoader(0);
+        timedOut = true;
       }
     } else {
       for (auto iter = mFontFamilies.Iter(); !iter.Done(); iter.Next()) {
@@ -2566,17 +2732,17 @@ void gfxPlatformFontList::SetupFamilyCharMap(
   family->SetupFamilyCharMap(list);
 }
 
-void gfxPlatformFontList::InitOtherFamilyNames(uint32_t aGeneration,
+bool gfxPlatformFontList::InitOtherFamilyNames(uint32_t aGeneration,
                                                bool aDefer) {
   auto list = SharedFontList();
   MOZ_ASSERT(list);
   if (!list) {
-    return;
+    return false;
   }
   if (list->GetGeneration() != aGeneration) {
-    return;
+    return false;
   }
-  InitOtherFamilyNames(aDefer);
+  return InitOtherFamilyNames(aDefer);
 }
 
 uint32_t gfxPlatformFontList::GetGeneration() const {

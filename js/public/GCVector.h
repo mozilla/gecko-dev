@@ -9,6 +9,7 @@
 
 #include "mozilla/Vector.h"
 
+#include "js/AllocPolicy.h"
 #include "js/GCPolicyAPI.h"
 #include "js/RootingAPI.h"
 #include "js/TracingAPI.h"
@@ -154,6 +155,24 @@ class GCVector {
     for (auto& elem : vector) {
       GCPolicy<T>::trace(trc, &elem, "vector element");
     }
+  }
+
+  bool traceWeak(JSTracer* trc) {
+    T* src = begin();
+    T* dst = begin();
+    while (src != end()) {
+      if (GCPolicy<T>::traceWeak(trc, src)) {
+        if (src != dst) {
+          *dst = std::move(*src);
+        }
+        dst++;
+      }
+      src++;
+    }
+
+    MOZ_ASSERT(dst <= end());
+    shrinkBy(end() - dst);
+    return !empty();
   }
 
   bool needsSweep() const { return !this->empty(); }

@@ -325,7 +325,7 @@ BigInt::Digit BigInt::digitDiv(Digit high, Digit low, Digit divisor,
           : "=a"(quotient), "=d"(rem)
           // Inputs: put `high` into rdx, `low` into rax, and `divisor` into
           // any register or stack slot.
-          : "d"(high), "a"(low), [ divisor ] "rm"(divisor));
+          : "d"(high), "a"(low), [divisor] "rm"(divisor));
   *remainder = rem;
   return quotient;
 #elif defined(__i386__)
@@ -336,7 +336,7 @@ BigInt::Digit BigInt::digitDiv(Digit high, Digit low, Digit divisor,
           : "=a"(quotient), "=d"(rem)
           // Inputs: put `high` into edx, `low` into eax, and `divisor` into
           // any register or stack slot.
-          : "d"(high), "a"(low), [ divisor ] "rm"(divisor));
+          : "d"(high), "a"(low), [divisor] "rm"(divisor));
   *remainder = rem;
   return quotient;
 #else
@@ -1007,8 +1007,9 @@ inline BigInt* BigInt::absoluteBitwiseOp(JSContext* cx, HandleBigInt x,
   }
 
   if (kind != BitwiseOpKind::SymmetricTrim) {
-    BigInt* source =
-        kind == BitwiseOpKind::AsymmetricFill ? x : xLength == i ? y : x;
+    BigInt* source = kind == BitwiseOpKind::AsymmetricFill ? x
+                     : xLength == i                        ? y
+                                                           : x;
     for (; i < resultLength; i++) {
       result->setDigit(i, source->digit(i));
     }
@@ -2587,7 +2588,11 @@ BigInt* BigInt::asUintN(JSContext* cx, HandleBigInt x, uint64_t bits) {
   if (bits <= 64) {
     uint64_t u64 = toUint64(x);
     uint64_t mask = uint64_t(-1) >> (64 - bits);
-    return createFromUint64(cx, u64 & mask);
+    uint64_t n = u64 & mask;
+    if (u64 == n && x->absFitsInUint64()) {
+      return x;
+    }
+    return createFromUint64(cx, n);
   }
 
   if (bits >= MaxBitLength) {
@@ -2644,7 +2649,11 @@ BigInt* BigInt::asIntN(JSContext* cx, HandleBigInt x, uint64_t bits) {
   }
 
   if (bits == 64) {
-    return createFromInt64(cx, toInt64(x));
+    int64_t n = toInt64(x);
+    if (((n < 0) == x->isNegative()) && x->absFitsInUint64()) {
+      return x;
+    }
+    return createFromInt64(cx, n);
   }
 
   if (bits > MaxBitLength) {

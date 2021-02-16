@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use crate::preferences::{Pref, PrefValue, Preferences};
 use std::borrow::Borrow;
 use std::borrow::Cow;
@@ -301,10 +305,7 @@ impl<'a> PrefTokenizer<'a> {
     }
 
     fn is_space(c: char) -> bool {
-        match c {
-            ' ' | '\t' | '\r' | '\n' => true,
-            _ => false,
-        }
+        matches!(c, ' ' | '\t' | '\r' | '\n')
     }
 
     fn skip_whitespace(&mut self) -> Option<char> {
@@ -775,7 +776,7 @@ pub fn serialize_token<T: Write>(token: &PrefToken, output: &mut T) -> Result<()
             data_buf.reserve(data.len() + 4);
             data_buf.push_str("/*");
             data_buf.push_str(data.borrow());
-            data_buf.push_str("*");
+            data_buf.push('*');
             &*data_buf
         }
         PrefToken::CommentLine(ref data, _) => {
@@ -786,7 +787,7 @@ pub fn serialize_token<T: Write>(token: &PrefToken, output: &mut T) -> Result<()
         }
         PrefToken::CommentBashLine(ref data, _) => {
             data_buf.reserve(data.len() + 1);
-            data_buf.push_str("#");
+            data_buf.push('#');
             data_buf.push_str(data.borrow());
             &*data_buf
         }

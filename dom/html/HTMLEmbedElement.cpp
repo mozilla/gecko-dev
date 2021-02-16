@@ -38,9 +38,6 @@ HTMLEmbedElement::HTMLEmbedElement(
 }
 
 HTMLEmbedElement::~HTMLEmbedElement() {
-#ifdef XP_MACOSX
-  HTMLObjectElement::OnFocusBlurPlugin(this, false);
-#endif
   UnregisterActivityObserver();
   nsImageLoadingContent::Destroy();
 }
@@ -58,16 +55,6 @@ NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(
     imgINotificationObserver, nsIImageLoadingContent, nsIChannelEventSink)
 
 NS_IMPL_ELEMENT_CLONE(HTMLEmbedElement)
-
-#ifdef XP_MACOSX
-
-NS_IMETHODIMP
-HTMLEmbedElement::PostHandleEvent(EventChainPostVisitor& aVisitor) {
-  HTMLObjectElement::HandleFocusBlurPlugin(this, aVisitor.mEvent);
-  return NS_OK;
-}
-
-#endif  // #ifdef XP_MACOSX
 
 void HTMLEmbedElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
   nsImageLoadingContent::AsyncEventRunning(aEvent);
@@ -97,14 +84,6 @@ nsresult HTMLEmbedElement::BindToTree(BindContext& aContext, nsINode& aParent) {
 }
 
 void HTMLEmbedElement::UnbindFromTree(bool aNullParent) {
-#ifdef XP_MACOSX
-  // When a page is reloaded (when an Document's content is removed), the
-  // focused element isn't necessarily sent an eBlur event. See
-  // nsFocusManager::ContentRemoved(). This means that a widget may think it
-  // still contains a focused plugin when it doesn't -- which in turn can
-  // disable text input in the browser window. See bug 1137229.
-  HTMLObjectElement::OnFocusBlurPlugin(this, false);
-#endif
   nsObjectLoadingContent::UnbindFromTree(aNullParent);
   nsGenericHTMLElement::UnbindFromTree(aNullParent);
 }
@@ -163,7 +142,18 @@ nsresult HTMLEmbedElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
 
 bool HTMLEmbedElement::IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
                                        int32_t* aTabIndex) {
-  // Has plugin content: let the plugin decide what to do in terms of
+  // If we have decided that this is a blocked plugin then do not allow focus.
+  if ((Type() == eType_Null) &&
+      (PluginFallbackType() == eFallbackBlockAllPlugins)) {
+    if (aTabIndex) {
+      *aTabIndex = -1;
+    }
+
+    *aIsFocusable = false;
+    return false;
+  }
+
+  // Has non-plugin content: let the plugin decide what to do in terms of
   // internal focus from mouse clicks
   if (aTabIndex) {
     *aTabIndex = TabIndex();
@@ -173,14 +163,6 @@ bool HTMLEmbedElement::IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
 
   // Let the plugin decide, so override.
   return true;
-}
-
-nsIContent::IMEState HTMLEmbedElement::GetDesiredIMEState() {
-  if (Type() == eType_Plugin) {
-    return IMEState(IMEState::PLUGIN);
-  }
-
-  return nsGenericHTMLElement::GetDesiredIMEState();
 }
 
 bool HTMLEmbedElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,

@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 from abc import ABCMeta, abstractmethod
 
@@ -29,10 +29,9 @@ BROWSERTIME_BENCHMARK_OUTPUT_TIMEOUT = (
 )
 
 
+@six.add_metaclass(ABCMeta)
 class Browsertime(Perftest):
     """Abstract base class for Browsertime"""
-
-    __metaclass__ = ABCMeta
 
     @property
     @abstractmethod
@@ -220,12 +219,16 @@ class Browsertime(Perftest):
             ["--browsertime.post_startup_delay", str(self.post_startup_delay)]
         )
 
+        self.results_handler.remove_result_dir_for_test(test)
+
         browsertime_options = [
             "--firefox.profileTemplate",
             str(self.profile.profile),
             "--skipHar",
             "--pageLoadStrategy",
             "none",
+            "--webdriverPageload",
+            "true",
             "--firefox.disableBrowsertimeExtension",
             "true",
             "--pageCompleteCheckStartWait",
@@ -267,6 +270,8 @@ class Browsertime(Perftest):
                     [
                         "--firefox.windowRecorder",
                         "false",
+                        "--xvfbParams.display",
+                        "0",
                     ]
                 )
                 LOG.info(
@@ -318,11 +323,13 @@ class Browsertime(Perftest):
         # bt_timeout will be the overall browsertime cmd/session timeout (seconds)
         # browsertime deals with page cycles internally, so we need to give it a timeout
         # value that includes all page cycles
+        # pylint --py3k W1619
         bt_timeout = int(timeout / 1000) * int(test.get("page_cycles", 1))
 
         # the post-startup-delay is a delay after the browser has started, to let it settle
         # it's handled within browsertime itself by loading a 'preUrl' (about:blank) and having a
         # delay after that ('preURLDelay') as the post-startup-delay, so we must add that in sec
+        # pylint --py3k W1619
         bt_timeout += int(self.post_startup_delay / 1000)
 
         # add some time for browser startup, time for the browsertime measurement code

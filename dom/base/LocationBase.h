@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_LocationBase_h
 #define mozilla_dom_LocationBase_h
 
-#include "mozilla/ErrorResult.h"
+#include "mozilla/AlreadyAddRefed.h"
 #include "nsStringFwd.h"
 
 class nsIDocShell;
@@ -16,6 +16,8 @@ class nsIURI;
 class nsDocShellLoadState;
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 class BrowsingContext;
 

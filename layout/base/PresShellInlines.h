@@ -7,6 +7,7 @@
 #ifndef mozilla_PresShellInlines_h
 #define mozilla_PresShellInlines_h
 
+#include "GeckoProfiler.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
@@ -23,7 +24,7 @@ void PresShell::SetNeedLayoutFlush() {
 
 #ifdef MOZ_GECKO_PROFILER
   if (!mReflowCause) {
-    mReflowCause = profiler_get_backtrace();
+    mReflowCause = profiler_capture_backtrace();
   }
 #endif
 
@@ -40,7 +41,7 @@ void PresShell::SetNeedStyleFlush() {
 
 #ifdef MOZ_GECKO_PROFILER
   if (!mStyleCause) {
-    mStyleCause = profiler_get_backtrace();
+    mStyleCause = profiler_capture_backtrace();
   }
 #endif
 

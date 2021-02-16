@@ -9,6 +9,7 @@
 #include "GLContext.h"
 #include "GLContextEGL.h"
 #include "mozilla/gfx/DeviceManagerDx.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/webrender/RenderD3D11TextureHost.h"
@@ -349,6 +350,13 @@ void DCLayerTree::CreateSurface(wr::NativeSurfaceId aId,
   if (it != mDCSurfaces.end()) {
     // DCSurface already exists.
     return;
+  }
+
+  // Tile size needs to be positive.
+  if (aTileSize.width <= 0 || aTileSize.height <= 0) {
+    gfxCriticalNote << "TileSize is not positive aId: " << wr::AsUint64(aId)
+                    << " aTileSize(" << aTileSize.width << ","
+                    << aTileSize.height << ")";
   }
 
   auto surface =
@@ -791,7 +799,7 @@ bool DCSurfaceVideo::CallVideoProcessorBlt(RenderTextureHost* aTexture) {
     return false;
   }
 
-  RefPtr<ID3D11Texture2D> texture2D = texture->GetD3D11Texture2D();
+  RefPtr<ID3D11Texture2D> texture2D = texture->GetD3D11Texture2DWithGL();
   if (!texture2D) {
     gfxCriticalNote << "Failed to get D3D11Texture2D";
     return false;

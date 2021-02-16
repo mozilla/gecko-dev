@@ -11,6 +11,7 @@
 #include <algorithm>
 
 // Helper classes
+#include "GeckoProfiler.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include "nsWidgetsCID.h"
@@ -49,18 +50,23 @@
 #include "nsFocusManager.h"
 #include "nsContentList.h"
 #include "nsIDOMWindowUtils.h"
+#include "nsServiceManagerUtils.h"
 
 #include "prenv.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/PresShell.h"
 #include "mozilla/Services.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/dom/BarProps.h"
+#include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/BrowserHost.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/LoadURIOptionsBinding.h"
+#include "mozilla/intl/LocaleService.h"
 #include "mozilla/EventDispatcher.h"
 
 #ifdef XP_WIN
@@ -70,6 +76,8 @@
 #ifdef MOZ_NEW_XULSTORE
 #  include "mozilla/XULStore.h"
 #endif
+
+#include "mozilla/dom/DocumentL10n.h"
 
 #ifdef XP_MACOSX
 #  include "nsINativeMenuService.h"
@@ -1798,6 +1806,16 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
     return NS_OK;
   }
 
+  SkeletonUISettings settings;
+
+  settings.screenX = aRect.X();
+  settings.screenY = aRect.Y();
+  settings.width = aRect.Width();
+  settings.height = aRect.Height();
+
+  settings.maximized = mWindow->SizeMode() == nsSizeMode_Maximized;
+  settings.cssToDevPixelScaling = mWindow->GetDefaultScale().scale;
+
   nsCOMPtr<dom::Element> windowElement = GetWindowDOMElement();
   Document* doc = windowElement->GetComposedDoc();
   Element* urlbarEl = doc->GetElementById(u"urlbar"_ns);
@@ -1837,6 +1855,7 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
   CSSPixelSpan urlbar;
   urlbar.start = urlbarX;
   urlbar.end = urlbar.start + urlbarWidth;
+  settings.urlbarSpan = urlbar;
 
   Element* navbar = doc->GetElementById(u"nav-bar"_ns);
 
@@ -1856,6 +1875,19 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
     searchbar.start = 0;
     searchbar.end = 0;
   }
+  settings.searchbarSpan = searchbar;
+
+  nsAutoString bookmarksVisibility;
+  Preferences::GetString("browser.toolbars.bookmarks.visibility",
+                         bookmarksVisibility);
+  settings.bookmarksToolbarShown =
+      bookmarksVisibility.EqualsLiteral("always") ||
+      (Preferences::GetBool("browser.toolbars.bookmarks.2h2020", false) &&
+       bookmarksVisibility.EqualsLiteral("newtab"));
+
+  Element* menubar = doc->GetElementById(u"toolbar-menubar"_ns);
+  menubar->GetAttribute(u"autohide"_ns, attributeValue);
+  settings.menubarShown = attributeValue.EqualsLiteral("false");
 
   ErrorResult err;
   nsCOMPtr<nsIHTMLCollection> toolbarSprings = navbar->GetElementsByTagNameNS(
@@ -1875,15 +1907,14 @@ nsresult AppWindow::MaybeSaveEarlyWindowPersistentValues(
     CSSPixelSpan spring;
     spring.start = springRect->X();
     spring.end = spring.start + springRect->Width();
-    if (!springs.append(spring)) {
+    if (!settings.springs.append(spring)) {
       return NS_ERROR_FAILURE;
     }
   }
 
-  PersistPreXULSkeletonUIValues(
-      aRect.X(), aRect.Y(), aRect.Width(), aRect.Height(),
-      mWindow->SizeMode() == nsSizeMode_Maximized, urlbar, searchbar, springs,
-      mWindow->GetDefaultScale().scale);
+  settings.rtlEnabled = intl::LocaleService::GetInstance()->IsAppLocaleRTL();
+
+  PersistPreXULSkeletonUIValues(settings);
 #endif
 
   return NS_OK;
@@ -2931,7 +2962,7 @@ void AppWindow::WindowActivated() {
       mDocShell ? mDocShell->GetWindow() : nullptr;
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm && window) {
-    fm->WindowRaised(window);
+    fm->WindowRaised(window, nsFocusManager::GenerateFocusActionId());
   }
 
   if (mChromeLoaded) {
@@ -2947,7 +2978,7 @@ void AppWindow::WindowDeactivated() {
       mDocShell ? mDocShell->GetWindow() : nullptr;
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm && window && !fm->IsTestMode()) {
-    fm->WindowLowered(window);
+    fm->WindowLowered(window, nsFocusManager::GenerateFocusActionId());
   }
 }
 
@@ -2981,6 +3012,35 @@ static void LoadNativeMenus(Document* aDoc, nsIWidget* aParentWindow) {
     nms->CreateNativeMenuBar(aParentWindow, nullptr);
   }
 }
+
+class L10nReadyPromiseHandler final : public dom::PromiseNativeHandler {
+ public:
+  NS_DECL_ISUPPORTS
+
+  L10nReadyPromiseHandler(Document* aDoc, nsIWidget* aParentWindow)
+      : mDocument(aDoc), mWindow(aParentWindow) {}
+
+  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+    LoadNativeMenus(mDocument, mWindow);
+  }
+
+  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue) override {
+    // Again, this shouldn't happen, but fallback to loading the menus as is.
+    NS_WARNING(
+        "L10nReadyPromiseHandler rejected - loading fallback native "
+        "menu.");
+    LoadNativeMenus(mDocument, mWindow);
+  }
+
+ private:
+  ~L10nReadyPromiseHandler() = default;
+
+  RefPtr<Document> mDocument;
+  nsCOMPtr<nsIWidget> mWindow;
+};
+
+NS_IMPL_ISUPPORTS0(L10nReadyPromiseHandler)
+
 #endif
 
 class AppWindowTimerCallback final : public nsITimerCallback, public nsINamed {
@@ -3078,7 +3138,22 @@ AppWindow::OnStateChange(nsIWebProgress* aProgress, nsIRequest* aRequest,
   mDocShell->GetContentViewer(getter_AddRefs(cv));
   if (cv) {
     RefPtr<Document> menubarDoc = cv->GetDocument();
-    if (menubarDoc) LoadNativeMenus(menubarDoc, mWindow);
+    if (menubarDoc) {
+      RefPtr<DocumentL10n> l10n = menubarDoc->GetL10n();
+      if (l10n) {
+        // Wait for l10n to be ready so the menus are localized.
+        RefPtr<Promise> promise = l10n->Ready();
+        MOZ_ASSERT(promise);
+        RefPtr<L10nReadyPromiseHandler> handler =
+          new L10nReadyPromiseHandler(menubarDoc, mWindow);
+        promise->AppendNativeHandler(handler);
+      } else {
+        // Something went wrong loading the doc and l10n wasn't created. This
+        // shouldn't really happen, but if it does fallback to trying to load
+        // the menus as is.
+        LoadNativeMenus(menubarDoc, mWindow);
+      }
+    }
   }
 #endif  // USE_NATIVE_MENUS
 

@@ -18,8 +18,8 @@ namespace mozilla {
 namespace dom {
 namespace cache {
 
-nsresult OpenDBConnection(const QuotaInfo& aQuotaInfo, nsIFile* aDBFile,
-                          mozIStorageConnection** aConnOut);
+Result<nsCOMPtr<mozIStorageConnection>, nsresult> OpenDBConnection(
+    const QuotaInfo& aQuotaInfo, nsIFile& aDBFile);
 
 class DBAction : public Action {
  protected:
@@ -43,8 +43,8 @@ class DBAction : public Action {
   void RunOnTarget(SafeRefPtr<Resolver> aResolver, const QuotaInfo& aQuotaInfo,
                    Data* aOptionalData) override;
 
-  nsresult OpenConnection(const QuotaInfo& aQuotaInfo, nsIFile* aQuotaDir,
-                          mozIStorageConnection** aConnOut);
+  Result<nsCOMPtr<mozIStorageConnection>, nsresult> OpenConnection(
+      const QuotaInfo& aQuotaInfo, nsIFile& aDBDir);
 
   const Mode mMode;
 };

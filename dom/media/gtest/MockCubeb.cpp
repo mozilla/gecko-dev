@@ -15,10 +15,14 @@ MockCubebStream::MockCubebStream(cubeb* aContext, cubeb_devid aInputDevice,
                                  cubeb_stream_params* aOutputStreamParams,
                                  cubeb_data_callback aDataCallback,
                                  cubeb_state_callback aStateCallback,
-                                 void* aUserPtr)
+                                 void* aUserPtr, SmartMockCubebStream* aSelf,
+                                 bool aFrozenStart)
     : context(aContext),
       mHasInput(aInputStreamParams),
       mHasOutput(aOutputStreamParams),
+      mSelf(aSelf),
+      mFrozenStartMonitor("MockCubebStream::mFrozenStartMonitor"),
+      mFrozenStart(aFrozenStart),
       mDataCallback(aDataCallback),
       mStateCallback(aStateCallback),
       mUserPtr(aUserPtr),
@@ -42,24 +46,45 @@ MockCubebStream::MockCubebStream(cubeb* aContext, cubeb_devid aInputDevice,
 MockCubebStream::~MockCubebStream() = default;
 
 int MockCubebStream::Start() {
+  mStateCallback(AsCubebStream(), mUserPtr, CUBEB_STATE_STARTED);
   mStreamStop = false;
-  reinterpret_cast<MockCubeb*>(context)->StartStream(this);
-  cubeb_stream* stream = reinterpret_cast<cubeb_stream*>(this);
-  mStateCallback(stream, mUserPtr, CUBEB_STATE_STARTED);
+  MonitorAutoLock lock(mFrozenStartMonitor);
+  if (mFrozenStart) {
+    NS_DispatchBackgroundTask(NS_NewRunnableFunction(
+        "MockCubebStream::WaitForThawBeforeStart",
+        [this, self = RefPtr<SmartMockCubebStream>(mSelf)] {
+          MonitorAutoLock lock(mFrozenStartMonitor);
+          while (mFrozenStart) {
+            mFrozenStartMonitor.Wait();
+          }
+          if (!mStreamStop) {
+            MockCubeb::AsMock(context)->StartStream(mSelf);
+          }
+        }));
+    return CUBEB_OK;
+  }
+  MockCubeb::AsMock(context)->StartStream(this);
   return CUBEB_OK;
 }
 
 int MockCubebStream::Stop() {
-  mStreamStop = true;
   mOutputVerificationEvent.Notify(MakeTuple(
       mAudioVerifier.PreSilenceSamples(), mAudioVerifier.EstimatedFreq(),
       mAudioVerifier.CountDiscontinuities()));
-  int rv = reinterpret_cast<MockCubeb*>(context)->StopStream(this);
+  int rv = MockCubeb::AsMock(context)->StopStream(this);
+  mStreamStop = true;
   if (rv == CUBEB_OK) {
-    cubeb_stream* stream = reinterpret_cast<cubeb_stream*>(this);
-    mStateCallback(stream, mUserPtr, CUBEB_STATE_STOPPED);
+    mStateCallback(AsCubebStream(), mUserPtr, CUBEB_STATE_STOPPED);
   }
   return rv;
+}
+
+cubeb_stream* MockCubebStream::AsCubebStream() {
+  return reinterpret_cast<cubeb_stream*>(this);
+}
+
+MockCubebStream* MockCubebStream::AsMock(cubeb_stream* aStream) {
+  return reinterpret_cast<MockCubebStream*>(aStream);
 }
 
 cubeb_devid MockCubebStream::GetInputDeviceID() const { return mInputDeviceID; }
@@ -72,6 +97,10 @@ uint32_t MockCubebStream::InputChannels() const {
   return mAudioGenerator.mChannels;
 }
 
+uint32_t MockCubebStream::OutputChannels() const {
+  return mOutputParams.channels;
+}
+
 uint32_t MockCubebStream::InputSampleRate() const {
   return mAudioGenerator.mSampleRate;
 }
@@ -80,11 +109,25 @@ uint32_t MockCubebStream::InputFrequency() const {
   return mAudioGenerator.mFrequency;
 }
 
+nsTArray<AudioDataValue>&& MockCubebStream::TakeRecordedOutput() {
+  return std::move(mRecordedOutput);
+}
+
 void MockCubebStream::SetDriftFactor(float aDriftFactor) {
   mDriftFactor = aDriftFactor;
 }
 
 void MockCubebStream::ForceError() { mForceErrorState = true; }
+
+void MockCubebStream::Thaw() {
+  MonitorAutoLock l(mFrozenStartMonitor);
+  mFrozenStart = false;
+  mFrozenStartMonitor.Notify();
+}
+
+void MockCubebStream::SetOutputRecordingEnabled(bool aEnabled) {
+  mOutputRecordingEnabled = aEnabled;
+}
 
 MediaEventSource<uint32_t>& MockCubebStream::FramesProcessedEvent() {
   return mFramesProcessedEvent;
@@ -115,11 +158,14 @@ void MockCubebStream::Process10Ms() {
   if (mInputParams.rate) {
     mAudioGenerator.GenerateInterleaved(mInputBuffer, nrFrames);
   }
-  cubeb_stream* stream = reinterpret_cast<cubeb_stream*>(this);
+  cubeb_stream* stream = AsCubebStream();
   const long outframes =
       mDataCallback(stream, mUserPtr, mHasInput ? mInputBuffer : nullptr,
                     mHasOutput ? mOutputBuffer : nullptr, nrFrames);
 
+  if (mOutputRecordingEnabled && mHasOutput) {
+    mRecordedOutput.AppendElements(mOutputBuffer, outframes * OutputChannels());
+  }
   mAudioVerifier.AppendDataInterleaved(mOutputBuffer, outframes,
                                        NUM_OF_CHANNELS);
 
@@ -137,10 +183,9 @@ void MockCubebStream::Process10Ms() {
     mForceErrorState = false;
     // Let the audio thread (this thread!) run to completion before
     // being released, by joining and releasing on main.
-    NS_DispatchBackgroundTask(NS_NewRunnableFunction(
-        __func__, [cubeb = reinterpret_cast<MockCubeb*>(context), this] {
-          cubeb->StopStream(this);
-        }));
+    NS_DispatchBackgroundTask(
+        NS_NewRunnableFunction(__func__, [cubeb = MockCubeb::AsMock(context),
+                                          this] { cubeb->StopStream(this); }));
     mStateCallback(stream, mUserPtr, CUBEB_STATE_ERROR);
     mErrorForcedEvent.Notify();
     mStreamStop = true;
@@ -153,6 +198,10 @@ MockCubeb::MockCubeb() : ops(&mock_ops) {}
 MockCubeb::~MockCubeb() { MOZ_ASSERT(!mFakeAudioThread); };
 
 cubeb* MockCubeb::AsCubebContext() { return reinterpret_cast<cubeb*>(this); }
+
+MockCubeb* MockCubeb::AsMock(cubeb* aContext) {
+  return reinterpret_cast<MockCubeb*>(aContext);
+}
 
 int MockCubeb::EnumerateDevices(cubeb_device_type aType,
                                 cubeb_device_collection* collection) {
@@ -287,6 +336,23 @@ void MockCubeb::SetSupportDeviceChangeCallback(bool aSupports) {
   mSupportsDeviceCollectionChangedCallback = aSupports;
 }
 
+void MockCubeb::SetStreamStartFreezeEnabled(bool aEnabled) {
+  mStreamStartFreezeEnabled = aEnabled;
+}
+
+auto MockCubeb::ForceAudioThread() -> RefPtr<ForcedAudioThreadPromise> {
+  RefPtr<ForcedAudioThreadPromise> p =
+      mForcedAudioThreadPromise.Ensure(__func__);
+  mForcedAudioThread = true;
+  StartStream(nullptr);
+  return p;
+}
+
+void MockCubeb::UnforceAudioThread() {
+  mForcedAudioThread = false;
+  StopStream(nullptr);
+}
+
 int MockCubeb::StreamInit(cubeb* aContext, cubeb_stream** aStream,
                           cubeb_devid aInputDevice,
                           cubeb_stream_params* aInputStreamParams,
@@ -294,25 +360,28 @@ int MockCubeb::StreamInit(cubeb* aContext, cubeb_stream** aStream,
                           cubeb_stream_params* aOutputStreamParams,
                           cubeb_data_callback aDataCallback,
                           cubeb_state_callback aStateCallback, void* aUserPtr) {
-  MockCubebStream* mockStream = new MockCubebStream(
+  auto mockStream = MakeRefPtr<SmartMockCubebStream>(
       aContext, aInputDevice, aInputStreamParams, aOutputDevice,
-      aOutputStreamParams, aDataCallback, aStateCallback, aUserPtr);
-  *aStream = reinterpret_cast<cubeb_stream*>(mockStream);
+      aOutputStreamParams, aDataCallback, aStateCallback, aUserPtr,
+      mStreamStartFreezeEnabled);
+  *aStream = mockStream->AsCubebStream();
   mStreamInitEvent.Notify(mockStream);
+  // AddRef the stream to keep it alive. StreamDestroy releases it.
+  Unused << mockStream.forget().take();
   return CUBEB_OK;
 }
 
 void MockCubeb::StreamDestroy(cubeb_stream* aStream) {
   mStreamDestroyEvent.Notify();
-  MockCubebStream* mockStream = reinterpret_cast<MockCubebStream*>(aStream);
-  delete mockStream;
+  RefPtr<SmartMockCubebStream> mockStream =
+      dont_AddRef(MockCubebStream::AsMock(aStream)->mSelf);
 }
 
 void MockCubeb::GoFaster() { mFastMode = true; }
 
 void MockCubeb::DontGoFaster() { mFastMode = false; }
 
-MediaEventSource<MockCubebStream*>& MockCubeb::StreamInitEvent() {
+MediaEventSource<RefPtr<SmartMockCubebStream>>& MockCubeb::StreamInitEvent() {
   return mStreamInitEvent;
 }
 
@@ -322,8 +391,13 @@ MediaEventSource<void>& MockCubeb::StreamDestroyEvent() {
 
 void MockCubeb::StartStream(MockCubebStream* aStream) {
   auto streams = mLiveStreams.Lock();
-  MOZ_ASSERT(!streams->Contains(aStream));
-  streams->AppendElement(aStream);
+  MOZ_ASSERT_IF(!aStream, mForcedAudioThread);
+  // Forcing an audio thread must happen before starting streams
+  MOZ_ASSERT_IF(!aStream, streams->IsEmpty());
+  if (aStream) {
+    MOZ_ASSERT(!streams->Contains(aStream->mSelf));
+    streams->AppendElement(aStream->mSelf);
+  }
   if (!mFakeAudioThread) {
     mFakeAudioThread = WrapUnique(new std::thread(ThreadFunction_s, this));
   }
@@ -333,13 +407,14 @@ int MockCubeb::StopStream(MockCubebStream* aStream) {
   UniquePtr<std::thread> audioThread;
   {
     auto streams = mLiveStreams.Lock();
-    if (!streams->Contains(aStream)) {
-      return CUBEB_ERROR;
+    if (aStream) {
+      if (!streams->Contains(aStream->mSelf)) {
+        return CUBEB_ERROR;
+      }
+      streams->RemoveElement(aStream->mSelf);
     }
-    MOZ_ASSERT(streams->Contains(aStream));
-    streams->RemoveElement(aStream);
     MOZ_ASSERT(mFakeAudioThread);
-    if (streams->IsEmpty()) {
+    if (streams->IsEmpty() && !mForcedAudioThread) {
       audioThread = std::move(mFakeAudioThread);
     }
   }
@@ -350,13 +425,17 @@ int MockCubeb::StopStream(MockCubebStream* aStream) {
 }
 
 void MockCubeb::ThreadFunction() {
+  if (mForcedAudioThread) {
+    mForcedAudioThreadPromise.Resolve(MakeRefPtr<AudioThreadAutoUnforcer>(this),
+                                      __func__);
+  }
   while (true) {
     {
       auto streams = mLiveStreams.Lock();
       for (auto& stream : *streams) {
         stream->Process10Ms();
       }
-      if (streams->IsEmpty()) {
+      if (streams->IsEmpty() && !mForcedAudioThread) {
         break;
       }
     }

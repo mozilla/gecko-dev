@@ -2,6 +2,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+#![deny(broken_intra_doc_links)]
 #![deny(missing_docs)]
 
 //! Glean is a modern approach for recording and sending Telemetry data.
@@ -48,6 +49,7 @@ use crate::debug::DebugOptions;
 pub use crate::error::{Error, ErrorKind, Result};
 pub use crate::error_recording::{test_get_num_recorded_errors, ErrorType};
 use crate::event_database::EventDatabase;
+pub use crate::histogram::HistogramType;
 use crate::internal_metrics::{CoreMetrics, DatabaseMetrics};
 use crate::internal_pings::InternalPings;
 use crate::metrics::{Metric, MetricType, PingType};
@@ -95,7 +97,7 @@ pub fn setup_glean(glean: Glean) -> Result<()> {
     // initialized.
     if GLEAN.get().is_none() {
         if GLEAN.set(Mutex::new(glean)).is_err() {
-            log::error!(
+            log::warn!(
                 "Global Glean object is initialized already. This probably happened concurrently."
             )
         }
@@ -233,8 +235,9 @@ impl Glean {
 
     /// Creates and initializes a new Glean object.
     ///
-    /// This will create the necessary directories and files in `data_path`.
-    /// This will also initialize the core metrics.
+    /// This will create the necessary directories and files in
+    /// [`cfg.data_path`](Configuration::data_path). This will also initialize
+    /// the core metrics.
     pub fn new(cfg: Configuration) -> Result<Self> {
         let mut glean = Self::new_for_subprocess(&cfg, false)?;
 
@@ -330,6 +333,7 @@ impl Glean {
             .is_none()
         {
             self.core_metrics.first_run_date.set(self, None);
+            self.core_metrics.first_run_hour.set(self, None);
             // The `first_run_date` field is generated on the very first run
             // and persisted across upload toggling. We can assume that, the only
             // time it is set, that's indeed our "first run".
@@ -411,7 +415,7 @@ impl Glean {
     ///
     /// Should only be called when the state actually changes.
     ///
-    /// The upload_enabled flag is set to true and the core Glean metrics are
+    /// The `upload_enabled` flag is set to true and the core Glean metrics are
     /// recreated.
     fn on_upload_enabled(&mut self) {
         self.upload_enabled = true;
@@ -442,18 +446,20 @@ impl Glean {
         // so that it can't be accessed until this function is done.
         let _lock = self.upload_manager.clear_ping_queue();
 
-        // There is only one metric that we want to survive after clearing all
-        // metrics: first_run_date. Here, we store its value so we can restore
-        // it after clearing the metrics.
+        // There are only two metrics that we want to survive after clearing all
+        // metrics: first_run_date and first_run_hour. Here, we store their values
+        // so we can restore them after clearing the metrics.
         let existing_first_run_date = self
             .core_metrics
             .first_run_date
             .get_value(self, "glean_client_info");
 
+        let existing_first_run_hour = self.core_metrics.first_run_hour.get_value(self, "metrics");
+
         // Clear any pending pings.
         let ping_maker = PingMaker::new();
         if let Err(err) = ping_maker.clear_pending_pings(self.get_data_path()) {
-            log::error!("Error clearing pending pings: {}", err);
+            log::warn!("Error clearing pending pings: {}", err);
         }
 
         // Delete all stored metrics.
@@ -463,7 +469,7 @@ impl Glean {
             data.clear_all()
         }
         if let Err(err) = self.event_data_store.clear_all() {
-            log::error!("Error clearing pending events: {}", err);
+            log::warn!("Error clearing pending events: {}", err);
         }
 
         // This does not clear the experiments store (which isn't managed by the
@@ -490,6 +496,13 @@ impl Glean {
                 self.core_metrics
                     .first_run_date
                     .set(self, Some(existing_first_run_date));
+            }
+
+            // Restore the first_run_hour.
+            if let Some(existing_first_run_hour) = existing_first_run_hour {
+                self.core_metrics
+                    .first_run_hour
+                    .set(self, Some(existing_first_run_hour));
             }
 
             self.upload_enabled = false;
@@ -525,13 +538,16 @@ impl Glean {
     ///
     /// This can be one of:
     ///
-    /// * `Wait` - which means the requester should ask again later;
-    /// * `Upload(PingRequest)` - which means there is a ping to upload. This wraps the actual request object;
-    /// * `Done` - which means requester should stop asking for now.
+    /// * [`Wait`](PingUploadTask::Wait) - which means the requester should ask
+    ///   again later;
+    /// * [`Upload(PingRequest)`](PingUploadTask::Upload) - which means there is
+    ///   a ping to upload. This wraps the actual request object;
+    /// * [`Done`](PingUploadTask::Done) - which means requester should stop
+    ///   asking for now.
     ///
     /// # Returns
     ///
-    /// A [`PingUploadTask`](upload/enum.PingUploadTask.html) representing the next task.
+    /// A [`PingUploadTask`] representing the next task.
     pub fn get_upload_task(&self) -> PingUploadTask {
         self.upload_manager.get_upload_task(self, self.log_pings())
     }
@@ -620,6 +636,7 @@ impl Glean {
                     &content,
                 ) {
                     log::warn!("IO error while writing ping to file: {}", e);
+                    self.core_metrics.io_errors.add(self, 1);
                     return Err(e.into());
                 }
 
@@ -668,9 +685,8 @@ impl Glean {
     ///
     /// # Returns
     ///
-    /// The [`PingType`] of a ping if the given name was registered before, `None` otherwise.
-    ///
-    /// [`PingType`]: metrics/struct.PingType.html
+    /// The [`PingType`] of a ping if the given name was registered before, [`None`]
+    /// otherwise.
     pub fn get_ping_by_name(&self, ping_name: &str) -> Option<&PingType> {
         self.ping_registry.get(ping_name)
     }
@@ -719,9 +735,9 @@ impl Glean {
         metric.set_inactive(&self);
     }
 
-    /// Persists Lifetime::Ping data that might be in memory
-    /// in case `delay_ping_lifetime_io` is set or was set
-    /// at a previous time.
+    /// Persists [`Lifetime::Ping`] data that might be in memory in case
+    /// [`delay_ping_lifetime_io`](Configuration::delay_ping_lifetime_io) is set
+    /// or was set at a previous time.
     ///
     /// If there is no data to persist, this function does nothing.
     pub fn persist_ping_lifetime_data(&self) -> Result<()> {
@@ -737,11 +753,11 @@ impl Glean {
         self.core_metrics.os.set(self, system::OS);
     }
 
-    /// ** This is not meant to be used directly.**
+    /// **This is not meant to be used directly.**
     ///
-    /// Clears all the metrics that have `Lifetime::Application`.
+    /// Clears all the metrics that have [`Lifetime::Application`].
     pub fn clear_application_lifetime_metrics(&self) {
-        log::debug!("Clearing Lifetime::Application metrics");
+        log::trace!("Clearing Lifetime::Application metrics");
         if let Some(data) = self.data_store.as_ref() {
             data.clear_lifetime(Lifetime::Application);
         }
@@ -769,10 +785,10 @@ impl Glean {
         self.debug.debug_view_tag.set(value.into())
     }
 
-    /// Return the value for the debug view tag or `None` if it hasn't been set.
+    /// Return the value for the debug view tag or [`None`] if it hasn't been set.
     ///
-    /// The debug_view_tag may be set from an environment variable (GLEAN_DEBUG_VIEW_TAG)
-    /// or through the `set_debug_view_tag` function.
+    /// The `debug_view_tag` may be set from an environment variable
+    /// (`GLEAN_DEBUG_VIEW_TAG`) or through the [`set_debug_view_tag`] function.
     pub(crate) fn debug_view_tag(&self) -> Option<&String> {
         self.debug.debug_view_tag.get()
     }
@@ -790,10 +806,10 @@ impl Glean {
         self.debug.source_tags.set(value)
     }
 
-    /// Return the value for the source tags or `None` if it hasn't been set.
+    /// Return the value for the source tags or [`None`] if it hasn't been set.
     ///
-    /// The source_tags may be set from an environment variable (GLEAN_SOURCE_TAGS)
-    /// or through the `set_source_tags` function.
+    /// The `source_tags` may be set from an environment variable (`GLEAN_SOURCE_TAGS`)
+    /// or through the [`set_source_tags`] function.
     pub(crate) fn source_tags(&self) -> Option<&Vec<String>> {
         self.debug.source_tags.get()
     }
@@ -812,10 +828,10 @@ impl Glean {
         self.debug.log_pings.set(value)
     }
 
-    /// Return the value for the log pings debug option or `None` if it hasn't been set.
+    /// Return the value for the log pings debug option or [`None`] if it hasn't been set.
     ///
-    /// The log_pings option may be set from an environment variable (GLEAN_LOG_PINGS)
-    /// or through the `set_log_pings` function.
+    /// The `log_pings` option may be set from an environment variable (`GLEAN_LOG_PINGS`)
+    /// or through the [`set_log_pings`] function.
     pub(crate) fn log_pings(&self) -> bool {
         self.debug.log_pings.get().copied().unwrap_or(false)
     }
@@ -831,7 +847,7 @@ impl Glean {
         })
     }
 
-    /// ** This is not meant to be used directly.**
+    /// **This is not meant to be used directly.**
     ///
     /// Sets the value of a "dirty flag" in the permanent storage.
     ///
@@ -850,7 +866,7 @@ impl Glean {
         self.get_dirty_bit_metric().set(self, new_value);
     }
 
-    /// ** This is not meant to be used directly.**
+    /// **This is not meant to be used directly.**
     ///
     /// Checks the stored value of the "dirty flag".
     pub fn is_dirty_flag_set(&self) -> bool {
@@ -859,6 +875,7 @@ impl Glean {
             self.storage(),
             INTERNAL_STORAGE,
             &dirty_bit_metric.meta().identifier(self),
+            dirty_bit_metric.meta().lifetime,
         ) {
             Some(Metric::Boolean(b)) => b,
             _ => false,
@@ -892,7 +909,9 @@ impl Glean {
     /// # Returns
     ///
     /// A JSON string with the following format:
-    /// { 'branch': 'the-branch-name', 'extra': {'key': 'value', ...}}
+    ///
+    ///   `{ 'branch': 'the-branch-name', 'extra': {'key': 'value', ...}}`
+    ///
     /// if the requested experiment is active, `None` otherwise.
     pub fn test_get_experiment_data_as_json(&self, experiment_id: String) -> Option<String> {
         let metric = metrics::ExperimentMetric::new(&self, experiment_id);

@@ -35,7 +35,7 @@
 #  include <sys/prctl.h>
 #endif
 
-static LazyLogModule sEventDispatchAndRunLog("events");
+static mozilla::LazyLogModule sEventDispatchAndRunLog("events");
 #ifdef LOG1
 #  undef LOG1
 #endif
@@ -87,14 +87,22 @@ Runnable::GetName(nsACString& aName) {
 }
 #  endif
 
-NS_IMPL_ISUPPORTS_INHERITED(CancelableRunnable, Runnable, nsICancelableRunnable)
+NS_IMPL_ISUPPORTS_INHERITED(DiscardableRunnable, Runnable,
+                            nsIDiscardableRunnable)
 
-nsresult CancelableRunnable::Cancel() {
-  // Do nothing
-  return NS_OK;
+NS_IMPL_ISUPPORTS_INHERITED(CancelableRunnable, DiscardableRunnable,
+                            nsICancelableRunnable)
+
+void CancelableRunnable::OnDiscard() {
+  // Tasks that implement Cancel() can be safely cleaned up if it turns out
+  // that the task will not run.
+  (void)NS_WARN_IF(NS_FAILED(Cancel()));
 }
 
-NS_IMPL_ISUPPORTS_INHERITED(IdleRunnable, CancelableRunnable, nsIIdleRunnable)
+NS_IMPL_ISUPPORTS_INHERITED(IdleRunnable, DiscardableRunnable, nsIIdleRunnable)
+
+NS_IMPL_ISUPPORTS_INHERITED(CancelableIdleRunnable, CancelableRunnable,
+                            nsIIdleRunnable)
 
 NS_IMPL_ISUPPORTS_INHERITED(PrioritizableRunnable, Runnable,
                             nsIRunnablePriority)
@@ -336,18 +344,36 @@ extern nsresult NS_DispatchToMainThreadQueue(
   return rv;
 }
 
-class IdleRunnableWrapper final : public IdleRunnable {
+class IdleRunnableWrapper final : public Runnable,
+                                  public nsIDiscardableRunnable,
+                                  public nsIIdleRunnable {
  public:
   explicit IdleRunnableWrapper(already_AddRefed<nsIRunnable>&& aEvent)
-      : mRunnable(std::move(aEvent)) {}
+      : Runnable("IdleRunnableWrapper"),
+        mRunnable(std::move(aEvent)),
+        mDiscardable(do_QueryInterface(mRunnable)) {}
+
+  NS_DECL_ISUPPORTS_INHERITED
 
   NS_IMETHOD Run() override {
     if (!mRunnable) {
       return NS_OK;
     }
     CancelTimer();
+    // Don't clear mDiscardable because that would cause QueryInterface to
+    // change behavior during the lifetime of an instance.
     nsCOMPtr<nsIRunnable> runnable = std::move(mRunnable);
     return runnable->Run();
+  }
+
+  // nsIDiscardableRunnable
+  void OnDiscard() override {
+    if (!mRunnable) {
+      // Run() was already called from TimedOut().
+      return;
+    }
+    mDiscardable->OnDiscard();
+    mRunnable = nullptr;
   }
 
   static void TimedOut(nsITimer* aTimer, void* aClosure) {
@@ -392,7 +418,16 @@ class IdleRunnableWrapper final : public IdleRunnable {
 
   nsCOMPtr<nsITimer> mTimer;
   nsCOMPtr<nsIRunnable> mRunnable;
+  nsCOMPtr<nsIDiscardableRunnable> mDiscardable;
 };
+
+NS_IMPL_ADDREF_INHERITED(IdleRunnableWrapper, Runnable)
+NS_IMPL_RELEASE_INHERITED(IdleRunnableWrapper, Runnable)
+
+NS_INTERFACE_MAP_BEGIN(IdleRunnableWrapper)
+  NS_INTERFACE_MAP_ENTRY(nsIIdleRunnable)
+  NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIDiscardableRunnable, mDiscardable)
+NS_INTERFACE_MAP_END_INHERITING(Runnable)
 
 extern nsresult NS_DispatchToThreadQueue(already_AddRefed<nsIRunnable>&& aEvent,
                                          uint32_t aTimeout, nsIThread* aThread,
@@ -674,6 +709,22 @@ LogTaskBase<nsIRunnable>::Run::Run(nsIRunnable* aEvent, bool aWillRunAgain)
   nsAutoCString name;
   named->GetName(name);
   LOG1(("EXEC %p %p [%s]", aEvent, this, name.BeginReading()));
+}
+
+template <>
+LogTaskBase<Task>::Run::Run(Task* aTask, bool aWillRunAgain)
+    : mWillRunAgain(aWillRunAgain) {
+  if (!LOG1_ENABLED()) {
+    return;
+  }
+
+  nsAutoCString name;
+  if (!aTask->GetName(name)) {
+    LOG1(("EXEC %p %p", aTask, this));
+    return;
+  }
+
+  LOG1(("EXEC %p %p [%s]", aTask, this, name.BeginReading()));
 }
 
 template <>

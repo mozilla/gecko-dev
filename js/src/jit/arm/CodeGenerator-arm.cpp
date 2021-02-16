@@ -6,10 +6,11 @@
 
 #include "jit/arm/CodeGenerator-arm.h"
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Maybe.h"
+
+#include <iterator>
 
 #include "jsnum.h"
 
@@ -863,6 +864,89 @@ void CodeGenerator::visitModMaskI(LModMaskI* ins) {
   }
 }
 
+void CodeGeneratorARM::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
+                                     Register divisor, Register output,
+                                     Label* fail) {
+  // Callers handle division by zero and integer overflow.
+
+  if (HasIDIV()) {
+    masm.ma_sdiv(dividend, divisor, /* result= */ dividend);
+
+    // Create and return the result.
+    masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+    masm.initializeBigInt(output, dividend);
+
+    return;
+  }
+
+  // idivmod returns the quotient in r0, and the remainder in r1.
+  MOZ_ASSERT(dividend == r0);
+  MOZ_ASSERT(divisor == r1);
+
+  LiveRegisterSet volatileRegs = liveVolatileRegs(ins);
+  volatileRegs.takeUnchecked(dividend);
+  volatileRegs.takeUnchecked(divisor);
+  volatileRegs.takeUnchecked(output);
+
+  masm.PushRegsInMask(volatileRegs);
+
+  using Fn = int64_t (*)(int, int);
+  masm.setupUnalignedABICall(output);
+  masm.passABIArg(dividend);
+  masm.passABIArg(divisor);
+  masm.callWithABI<Fn, __aeabi_idivmod>(MoveOp::GENERAL,
+                                        CheckUnsafeCallWithABI::DontCheckOther);
+
+  masm.PopRegsInMask(volatileRegs);
+
+  // Create and return the result.
+  masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+  masm.initializeBigInt(output, dividend);
+}
+
+void CodeGeneratorARM::emitBigIntMod(LBigIntMod* ins, Register dividend,
+                                     Register divisor, Register output,
+                                     Label* fail) {
+  // Callers handle division by zero and integer overflow.
+
+  if (HasIDIV()) {
+    {
+      ScratchRegisterScope scratch(masm);
+      masm.ma_smod(dividend, divisor, /* result= */ dividend, scratch);
+    }
+
+    // Create and return the result.
+    masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+    masm.initializeBigInt(output, dividend);
+
+    return;
+  }
+
+  // idivmod returns the quotient in r0, and the remainder in r1.
+  MOZ_ASSERT(dividend == r0);
+  MOZ_ASSERT(divisor == r1);
+
+  LiveRegisterSet volatileRegs = liveVolatileRegs(ins);
+  volatileRegs.takeUnchecked(dividend);
+  volatileRegs.takeUnchecked(divisor);
+  volatileRegs.takeUnchecked(output);
+
+  masm.PushRegsInMask(volatileRegs);
+
+  using Fn = int64_t (*)(int, int);
+  masm.setupUnalignedABICall(output);
+  masm.passABIArg(dividend);
+  masm.passABIArg(divisor);
+  masm.callWithABI<Fn, __aeabi_idivmod>(MoveOp::GENERAL,
+                                        CheckUnsafeCallWithABI::DontCheckOther);
+
+  masm.PopRegsInMask(volatileRegs);
+
+  // Create and return the result.
+  masm.newGCBigInt(output, dividend, fail, bigIntsCanBeInNursery());
+  masm.initializeBigInt(output, divisor);
+}
+
 void CodeGenerator::visitBitNotI(LBitNotI* ins) {
   const LAllocation* input = ins->getOperand(0);
   const LDefinition* dest = ins->getDef(0);
@@ -1222,7 +1306,7 @@ void CodeGenerator::visitWasmBuiltinTruncateFToInt32(
 static const uint32_t FrameSizes[] = {128, 256, 512, 1024};
 
 FrameSizeClass FrameSizeClass::FromDepth(uint32_t frameDepth) {
-  for (uint32_t i = 0; i < mozilla::ArrayLength(FrameSizes); i++) {
+  for (uint32_t i = 0; i < std::size(FrameSizes); i++) {
     if (frameDepth < FrameSizes[i]) {
       return FrameSizeClass(i);
     }
@@ -1232,12 +1316,12 @@ FrameSizeClass FrameSizeClass::FromDepth(uint32_t frameDepth) {
 }
 
 FrameSizeClass FrameSizeClass::ClassLimit() {
-  return FrameSizeClass(mozilla::ArrayLength(FrameSizes));
+  return FrameSizeClass(std::size(FrameSizes));
 }
 
 uint32_t FrameSizeClass::frameSize() const {
   MOZ_ASSERT(class_ != NO_FRAME_SIZE_CLASS_ID);
-  MOZ_ASSERT(class_ < mozilla::ArrayLength(FrameSizes));
+  MOZ_ASSERT(class_ < std::size(FrameSizes));
 
   return FrameSizes[class_];
 }
@@ -1396,96 +1480,6 @@ void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
   masm.compareFloat(lhs, rhs);
   emitBranch(Assembler::ConditionFromDoubleCondition(cond), comp->ifTrue(),
              comp->ifFalse());
-}
-
-void CodeGenerator::visitCompareB(LCompareB* lir) {
-  MCompare* mir = lir->mir();
-
-  const ValueOperand lhs = ToValue(lir, LCompareB::Lhs);
-  const LAllocation* rhs = lir->rhs();
-  const Register output = ToRegister(lir->output());
-
-  MOZ_ASSERT(mir->jsop() == JSOp::StrictEq || mir->jsop() == JSOp::StrictNe);
-
-  Label notBoolean, done;
-  masm.branchTestBoolean(Assembler::NotEqual, lhs, &notBoolean);
-  {
-    if (rhs->isConstant()) {
-      masm.cmp32(lhs.payloadReg(), Imm32(rhs->toConstant()->toBoolean()));
-    } else {
-      masm.cmp32(lhs.payloadReg(), ToRegister(rhs));
-    }
-    masm.emitSet(JSOpToCondition(mir->compareType(), mir->jsop()), output);
-    masm.jump(&done);
-  }
-
-  masm.bind(&notBoolean);
-  { masm.move32(Imm32(mir->jsop() == JSOp::StrictNe), output); }
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitCompareBAndBranch(LCompareBAndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  const ValueOperand lhs = ToValue(lir, LCompareBAndBranch::Lhs);
-  const LAllocation* rhs = lir->rhs();
-
-  MOZ_ASSERT(mir->jsop() == JSOp::StrictEq || mir->jsop() == JSOp::StrictNe);
-
-  Assembler::Condition cond = masm.testBoolean(Assembler::NotEqual, lhs);
-  jumpToBlock((mir->jsop() == JSOp::StrictEq) ? lir->ifFalse() : lir->ifTrue(),
-              cond);
-
-  if (rhs->isConstant()) {
-    masm.cmp32(lhs.payloadReg(), Imm32(rhs->toConstant()->toBoolean()));
-  } else {
-    masm.cmp32(lhs.payloadReg(), ToRegister(rhs));
-  }
-  emitBranch(JSOpToCondition(mir->compareType(), mir->jsop()), lir->ifTrue(),
-             lir->ifFalse());
-}
-
-void CodeGenerator::visitCompareBitwise(LCompareBitwise* lir) {
-  MCompare* mir = lir->mir();
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  const ValueOperand lhs = ToValue(lir, LCompareBitwise::LhsInput);
-  const ValueOperand rhs = ToValue(lir, LCompareBitwise::RhsInput);
-  const Register output = ToRegister(lir->output());
-
-  MOZ_ASSERT(mir->jsop() == JSOp::Eq || mir->jsop() == JSOp::StrictEq ||
-             mir->jsop() == JSOp::Ne || mir->jsop() == JSOp::StrictNe);
-
-  Label notEqual, done;
-  masm.cmp32(lhs.typeReg(), rhs.typeReg());
-  masm.j(Assembler::NotEqual, &notEqual);
-  {
-    masm.cmp32(lhs.payloadReg(), rhs.payloadReg());
-    masm.emitSet(cond, output);
-    masm.jump(&done);
-  }
-  masm.bind(&notEqual);
-  { masm.move32(Imm32(cond == Assembler::NotEqual), output); }
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitCompareBitwiseAndBranch(
-    LCompareBitwiseAndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  const ValueOperand lhs = ToValue(lir, LCompareBitwiseAndBranch::LhsInput);
-  const ValueOperand rhs = ToValue(lir, LCompareBitwiseAndBranch::RhsInput);
-
-  MOZ_ASSERT(mir->jsop() == JSOp::Eq || mir->jsop() == JSOp::StrictEq ||
-             mir->jsop() == JSOp::Ne || mir->jsop() == JSOp::StrictNe);
-
-  MBasicBlock* notEqual =
-      (cond == Assembler::Equal) ? lir->ifFalse() : lir->ifTrue();
-
-  masm.cmp32(lhs.typeReg(), rhs.typeReg());
-  jumpToBlock(notEqual, Assembler::NotEqual);
-  masm.cmp32(lhs.payloadReg(), rhs.payloadReg());
-  emitBranch(cond, lir->ifTrue(), lir->ifFalse());
 }
 
 void CodeGenerator::visitBitAndAndBranch(LBitAndAndBranch* baab) {
@@ -2981,3 +2975,71 @@ void CodeGenerator::visitWasmAtomicExchangeI64(LWasmAtomicExchangeI64* lir) {
 void CodeGenerator::visitNearbyInt(LNearbyInt*) { MOZ_CRASH("NYI"); }
 
 void CodeGenerator::visitNearbyIntF(LNearbyIntF*) { MOZ_CRASH("NYI"); }
+
+void CodeGenerator::visitSimd128(LSimd128* ins) { MOZ_CRASH("No SIMD"); }
+
+void CodeGenerator::visitWasmBitselectSimd128(LWasmBitselectSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmBinarySimd128(LWasmBinarySimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmBinarySimd128WithConstant(
+    LWasmBinarySimd128WithConstant* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmVariableShiftSimd128(
+    LWasmVariableShiftSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmConstantShiftSimd128(
+    LWasmConstantShiftSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmShuffleSimd128(LWasmShuffleSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmPermuteSimd128(LWasmPermuteSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmReplaceLaneSimd128(LWasmReplaceLaneSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmReplaceInt64LaneSimd128(
+    LWasmReplaceInt64LaneSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmScalarToSimd128(LWasmScalarToSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmInt64ToSimd128(LWasmInt64ToSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmUnarySimd128(LWasmUnarySimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmReduceSimd128(LWasmReduceSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmReduceAndBranchSimd128(
+    LWasmReduceAndBranchSimd128* ins) {
+  MOZ_CRASH("No SIMD");
+}
+
+void CodeGenerator::visitWasmReduceSimd128ToInt64(
+    LWasmReduceSimd128ToInt64* ins) {
+  MOZ_CRASH("No SIMD");
+}

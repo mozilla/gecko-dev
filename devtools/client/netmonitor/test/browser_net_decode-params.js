@@ -23,16 +23,13 @@ add_task(async function() {
   const wait = waitUntil(
     () => document.querySelectorAll(".tabpanel-summary-label")[0]
   );
-  EventUtils.sendMouseEvent(
+  await EventUtils.sendMouseEvent(
     { type: "mousedown" },
     document.querySelectorAll(".request-list-item")[0]
   );
   await wait;
 
-  EventUtils.sendMouseEvent(
-    { type: "click" },
-    document.querySelector("#request-tab")
-  );
+  await clickOnSidebarTab(document, "request");
 
   return teardown(monitor);
 });

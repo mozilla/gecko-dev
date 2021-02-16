@@ -13,6 +13,34 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v86
+- Removed deprecated [`ContentDelegate#onExternalResponse(GeckoSession, WebResponseInfo)`].
+  Use [`ContentDelegate#onExternalResponse(GeckoSession, WebResponse)`][82.2] instead.
+  ([bug 1665157]({{bugzilla}}1665157))
+- Added [`WebExtension.DownloadDelegate`][86.1] and  that can be used to
+  implement the WebExtension `downloads` API.
+  ([bug 1656336]({{bugzilla}}1656336))
+- Added [`WebRequest.Builder#body(@Nullable String)`][86.2] which converts a string to direct byte buffer.
+- Removed deprecated `REPLACED_UNSAFE_CONTENT`.
+  ([bug 1667471]({{bugzilla}}1667471))
+- Removed deprecated [`GeckoSession#loadUri`][83.6] variants in favor of
+  [`GeckoSession#load`][83.7]. See docs for [`Loader`][83.8].
+  ([bug 1667471]({{bugzilla}}1667471))
+- Added [`GeckoResult#map`][86.3] to synchronously map a GeckoResult value.
+- Added [`PanZoomController#INPUT_RESULT_IGNORED`][86.4].
+  ([bug 1687430]({{bugzilla}}1687430))
+
+[86.1]: {{javadoc_uri}}/WebExtension.DownloadDelegate.html
+[86.2]: {{javadoc_uri}}/WebRequest.Builder#body-java.lang.String-
+[86.3]: {{javadoc_uri}}/GeckoResult.html#map-org.mozilla.geckoview.GeckoResult.OnValueMapper-
+[86.4]: {{javadoc_uri}}/PanZoomController.html#INPUT_RESULT_IGNORED
+
+## v85
+- Added [`WebExtension.BrowsingDataDelegate`][85.1] that can be used to
+  implement the WebExtension `browsingData` API.
+
+[85.1]: {{javadoc_uri}}/WebExtension.BrowsingDataDelegate.html
+
 ## v84
 - ⚠️  Removed deprecated [`GeckoRuntimeSettings.Builder.useMultiprocess`] and
   [`GeckoRuntimeSettings.getUseMultiprocess`]. Single-process GeckoView is no
@@ -849,4 +877,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport-android.content.Context-android.os.Bundle-java.lang.String-
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 2e4e0b4fb29ca63851687ac1020d9d51589476ce
+[api-version]: 437ce82f72ccd40f18d7b7e6f5c0f7e1f6645c02

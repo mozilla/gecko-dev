@@ -10,6 +10,7 @@
 #include "mozilla/net/ParentChannelWrapper.h"
 #include "mozilla/net/UrlClassifierCommon.h"
 #include "mozilla/StaticPrefs_extensions.h"
+#include "nsCRT.h"
 #include "nsDocShell.h"
 #include "nsIObserverService.h"
 #include "nsIClassifiedChannel.h"
@@ -140,7 +141,7 @@ NS_IMETHODIMP ParentProcessDocumentChannel::AsyncOpen(
   MOZ_ASSERT(docShell);
 
   bool isDocumentLoad = mLoadInfo->GetExternalContentPolicyType() !=
-                        nsIContentPolicy::TYPE_OBJECT;
+                        ExtContentPolicy::TYPE_OBJECT;
 
   mDocumentLoadListener = MakeRefPtr<DocumentLoadListener>(
       docShell->GetBrowsingContext()->Canonical(), isDocumentLoad);

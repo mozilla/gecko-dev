@@ -91,7 +91,7 @@
 }
 
 /* Info box */
-#detailsDeck {
+#detailsPane {
   padding: 5px;
 }
 
@@ -99,4 +99,3 @@
 #clearDownloadsButton > .toolbarbutton-icon {
   display: none;
 }
-

@@ -34,9 +34,6 @@
 // override
 - (void)stateChanged:(uint64_t)state isEnabled:(BOOL)enabled;
 
-// override
-- (BOOL)moxIgnoreWithParent:(mozAccessible*)parent;
-
 @end
 
 @interface mozCheckboxAccessible : mozButtonAccessible
@@ -44,11 +41,17 @@
 // override
 - (id)moxValue;
 
+// override
+- (void)stateChanged:(uint64_t)state isEnabled:(BOOL)enabled;
+
 @end
 
 // Accessible for a radio button
 @interface mozRadioButtonAccessible : mozCheckboxAccessible
-- (id)accessibilityAttributeValue:(NSString*)attribute;
+
+// override
+- (NSArray*)moxLinkedUIElements;
+
 @end
 
 /**

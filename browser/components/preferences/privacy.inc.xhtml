@@ -630,8 +630,10 @@
             preference="browser.urlbar.suggest.bookmark"/>
   <checkbox id="openpageSuggestion" data-l10n-id="addressbar-locbar-openpage-option"
             preference="browser.urlbar.suggest.openpage"/>
-  <checkbox id="topSitesSuggestion" data-l10n-id="addressbar-locbar-topsites-option"
+  <checkbox id="topSitesSuggestion"
             preference="browser.urlbar.suggest.topsites"/>
+  <checkbox id="enginesSuggestion" data-l10n-id="addressbar-locbar-engines-option"
+            preference="browser.urlbar.suggest.engines"/>
   <label id="openSearchEnginePreferences" is="text-link"
          data-l10n-id="addressbar-suggestions-settings"/>
 </groupbox>
@@ -943,22 +945,6 @@
 <!-- Certificates -->
 <groupbox id="certSelection" data-category="panePrivacy" hidden="true">
   <label><html:h2 data-l10n-id="certs-header"/></label>
-  <description id="CertSelectionDesc" control="certSelection" data-l10n-id="certs-personal-label"/>
-
-  <!--
-    The values on these radio buttons may look like l10n issues, but
-    they're not - this preference uses *those strings* as its values.
-    I KID YOU NOT.
-  -->
-  <radiogroup id="certSelection"
-              preftype="string"
-              preference="security.default_personal_cert"
-              aria-labelledby="CertSelectionDesc">
-    <radio data-l10n-id="certs-select-auto-option"
-           value="Select Automatically"/>
-    <radio data-l10n-id="certs-select-ask-option"
-           value="Ask Every Time"/>
-  </radiogroup>
   <hbox align="start">
     <checkbox id="enableOCSP"
               data-l10n-id="certs-enable-ocsp"

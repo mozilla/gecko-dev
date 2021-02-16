@@ -29,6 +29,7 @@ class WavDumper {
       fclose(mFile);
     }
   }
+
   void Open(const char* aBaseName, uint32_t aChannels, uint32_t aRate) {
     using namespace mozilla;
 
@@ -40,7 +41,11 @@ class WavDumper {
 
     char buf[100];
     SprintfLiteral(buf, "%s-%d.wav", aBaseName, ++sDumpedAudioCount);
-    mFile = fopen(buf, "wb");
+    OpenExplicit(buf, aChannels, aRate);
+  }
+
+  void OpenExplicit(const char* aPath, uint32_t aChannels, uint32_t aRate) {
+    mFile = fopen(aPath, "wb");
     if (!mFile) {
       NS_WARNING("Could not open file to DUMP a wav. Is sandboxing disabled?");
       return;
@@ -54,12 +59,12 @@ class WavDumper {
         // data chunk
         0x64, 0x61, 0x74, 0x61, 0xFE, 0xFF, 0xFF, 0x7F};
     AutoTArray<uint8_t, sizeof(riffHeader)> header;
-    ByteWriter<LittleEndian> writer(header);
+    mozilla::ByteWriter<mozilla::LittleEndian> writer(header);
     static const int CHANNEL_OFFSET = 22;
     static const int SAMPLE_RATE_OFFSET = 24;
     static const int BLOCK_ALIGN_OFFSET = 32;
 
-    DebugOnly<bool> rv;
+    mozilla::DebugOnly<bool> rv;
     // Then number of bytes written in each iteration.
     uint32_t written = 0;
     for (size_t i = 0; i != sizeof(riffHeader);) {
@@ -88,7 +93,7 @@ class WavDumper {
       }
       i += written;
     }
-    Unused << fwrite(header.Elements(), header.Length(), 1, mFile);
+    mozilla::Unused << fwrite(header.Elements(), header.Length(), 1, mFile);
   }
 
   template <typename T>
@@ -109,9 +114,10 @@ class WavDumper {
     using namespace mozilla;
 
     AutoTArray<uint8_t, 1024 * 2> buf;
-    ByteWriter<mozilla::LittleEndian> writer(buf);
+    mozilla::ByteWriter<mozilla::LittleEndian> writer(buf);
     for (uint32_t i = 0; i < aSamples; ++i) {
-      DebugOnly<bool> rv = writer.WriteU16(int16_t(aInput[i] * 32767.0f));
+      mozilla::DebugOnly<bool> rv =
+          writer.WriteU16(int16_t(aInput[i] * 32767.0f));
       MOZ_ASSERT(rv);
     }
     mozilla::Unused << fwrite(buf.Elements(), buf.Length(), 1, mFile);

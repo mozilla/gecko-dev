@@ -8,6 +8,7 @@
 #include "nsContentSecurityManager.h"
 #include "nsEscape.h"
 #include "mozilla/SchedulerGroup.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/dom/ChannelInfo.h"
 #include "mozilla/dom/PerformanceStorage.h"
 #include "nsHttpChannel.h"
@@ -55,7 +56,7 @@ void InterceptedHttpChannel::ReleaseListeners() {
   mBodyCallback = nullptr;
   mPump = nullptr;
 
-  MOZ_DIAGNOSTIC_ASSERT(!mIsPending);
+  MOZ_DIAGNOSTIC_ASSERT(!LoadIsPending());
 }
 
 nsresult InterceptedHttpChannel::SetupReplacementChannel(
@@ -92,12 +93,12 @@ void InterceptedHttpChannel::AsyncOpenInternal() {
 
   // We should have pre-set the AsyncOpen time based on the original channel if
   // timings are enabled.
-  if (mTimingEnabled) {
+  if (LoadTimingEnabled()) {
     MOZ_DIAGNOSTIC_ASSERT(!mAsyncOpenTime.IsNull());
   }
 
-  mIsPending = true;
-  mResponseCouldBeSynthesized = true;
+  StoreIsPending(true);
+  StoreResponseCouldBeSynthesized(true);
 
   if (mLoadGroup) {
     mLoadGroup->AddRequest(this, nullptr);
@@ -247,7 +248,7 @@ nsresult InterceptedHttpChannel::RedirectForResponseURL(
   nsCOMPtr<nsILoadInfo> redirectLoadInfo =
       CloneLoadInfoForRedirect(aResponseURI, flags);
 
-  nsContentPolicyType contentPolicyType =
+  ExtContentPolicyType contentPolicyType =
       redirectLoadInfo->GetExternalContentPolicyType();
 
   rv = newChannel->Init(
@@ -274,7 +275,7 @@ nsresult InterceptedHttpChannel::RedirectForResponseURL(
   mRedirectChannel = newChannel;
 
   MOZ_ASSERT(mBodyReader);
-  MOZ_ASSERT(!mApplyConversion);
+  MOZ_ASSERT(!LoadApplyConversion());
   newChannel->SetApplyConversion(false);
 
   rv = gHttpHandler->AsyncOnChannelRedirect(this, mRedirectChannel, flags);
@@ -995,7 +996,7 @@ InterceptedHttpChannel::OnRedirectVerifyCallback(nsresult rv) {
 
   MaybeCallBodyCallback();
 
-  mIsPending = false;
+  StoreIsPending(false);
   // We can only release listeners after the redirected channel really owns
   // mListener. Otherwise, the OnStart/OnStopRequest functions of mListener will
   // not be called.
@@ -1042,7 +1043,7 @@ InterceptedHttpChannel::OnStartRequest(nsIRequest* aRequest) {
     Cancel(mStatus);
   }
 
-  mOnStartRequestCalled = true;
+  StoreOnStartRequestCalled(true);
   if (mListener) {
     return mListener->OnStartRequest(this);
   }
@@ -1065,7 +1066,7 @@ InterceptedHttpChannel::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   // to the ReleaseListeners() call below.
   MaybeCallStatusAndProgress();
 
-  mIsPending = false;
+  StoreIsPending(false);
 
   // Register entry to the PerformanceStorage resource timing
   MaybeReportTimingData();
@@ -1194,22 +1195,6 @@ InterceptedHttpChannel::GetCacheTokenExpirationTime(uint32_t* _retval) {
 
   if (mSynthesizedCacheInfo) {
     return mSynthesizedCacheInfo->GetCacheTokenExpirationTime(_retval);
-  }
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
-NS_IMETHODIMP
-InterceptedHttpChannel::GetCacheTokenCachedCharset(nsACString& _retval) {
-  if (mSynthesizedCacheInfo) {
-    return mSynthesizedCacheInfo->GetCacheTokenCachedCharset(_retval);
-  }
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
-NS_IMETHODIMP
-InterceptedHttpChannel::SetCacheTokenCachedCharset(const nsACString& aCharset) {
-  if (mSynthesizedCacheInfo) {
-    return mSynthesizedCacheInfo->SetCacheTokenCachedCharset(aCharset);
   }
   return NS_ERROR_NOT_AVAILABLE;
 }

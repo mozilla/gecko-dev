@@ -13,7 +13,7 @@
 }
 
 #appMenu-print-button {
-  list-style-image: url(chrome://browser/skin/print.svg);
+  list-style-image: url(chrome://global/skin/icons/print.svg);
 }
 
 #appMenu-library-button {
@@ -176,10 +176,4 @@ toolbarpaletteitem[place="palette"] > #bookmarks-menu-button,
 
 #appMenu-library-downloads-show-button {
   list-style-image: url("chrome://browser/skin/folder.svg");
-}
-
-.panel-subview-body .ssb-uninstall > .toolbarbutton-icon {
-  list-style-image: url("chrome://global/skin/icons/close.svg");
-  -moz-context-properties: fill, fill-opacity;
-  fill-opacity: 0;
 }

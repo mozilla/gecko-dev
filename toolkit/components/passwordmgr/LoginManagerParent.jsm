@@ -315,14 +315,14 @@ class LoginManagerParent extends JSWindowActorParent {
       }
 
       case "PasswordManager:HandleImportable": {
-        const { browserId, type } = data;
+        const { browserId } = data;
 
         // Directly migrate passwords for a single profile.
         const migrator = await MigrationUtils.getMigrator(browserId);
         const profiles = await migrator.getSourceProfiles();
         if (
           profiles.length == 1 &&
-          ExperimentAPI.getFeatureValue("password-autocomplete")
+          ExperimentAPI.getFeatureValue({ featureId: "password-autocomplete" })
             ?.directMigrateSingleProfile
         ) {
           const loginAdded = new Promise(resolve => {
@@ -351,10 +351,6 @@ class LoginManagerParent extends JSWindowActorParent {
             [MigrationUtils.MIGRATION_ENTRYPOINT_PASSWORDS, browserId]
           );
         }
-
-        Services.telemetry.recordEvent("exp_import", "event", type, browserId, {
-          profilesCount: profiles.length + "",
-        });
         break;
       }
 

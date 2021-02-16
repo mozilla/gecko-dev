@@ -150,13 +150,6 @@ class TypedArrayObject : public ArrayBufferViewObject {
     return ArrayBufferObject::maxBufferByteLength();
   }
 
-  /*
-   * Byte length above which created typed arrays will have singleton types.
-   * This only applies to typed arrays created with an existing ArrayBuffer and
-   * when not inlined from Ion.
-   */
-  static constexpr uint32_t SINGLETON_BYTE_LENGTH = 1024 * 1024 * 10;
-
   static bool isOriginalLengthGetter(Native native);
 
   static bool isOriginalByteOffsetGetter(Native native);
@@ -176,11 +169,13 @@ class TypedArrayObject : public ArrayBufferViewObject {
   static bool is(HandleValue v);
 
   static bool set(JSContext* cx, unsigned argc, Value* vp);
+  static bool copyWithin(JSContext* cx, unsigned argc, Value* vp);
 
   bool convertForSideEffect(JSContext* cx, HandleValue v) const;
 
  private:
   static bool set_impl(JSContext* cx, const CallArgs& args);
+  static bool copyWithin_impl(JSContext* cx, const CallArgs& args);
 };
 
 MOZ_MUST_USE bool TypedArray_bufferGetter(JSContext* cx, unsigned argc,
@@ -287,8 +282,8 @@ bool SetTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
  * Implements [[DefineOwnProperty]] for TypedArrays when the property
  * key is a TypedArray index.
  */
-bool DefineTypedArrayElement(JSContext* cx, HandleObject arr, uint64_t index,
-                             Handle<PropertyDescriptor> desc,
+bool DefineTypedArrayElement(JSContext* cx, Handle<TypedArrayObject*> obj,
+                             uint64_t index, Handle<PropertyDescriptor> desc,
                              ObjectOpResult& result);
 
 static inline constexpr unsigned TypedArrayShift(Scalar::Type viewType) {

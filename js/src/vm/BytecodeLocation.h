@@ -9,10 +9,12 @@
 
 #include "frontend/NameAnalysisTypes.h"
 #include "js/TypeDecls.h"
+#include "vm/AsyncFunctionResolveKind.h"
 #include "vm/BuiltinObjectKind.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/CheckIsObjectKind.h"   // CheckIsObjectKind
 #include "vm/FunctionPrefixKind.h"  // FunctionPrefixKind
+#include "vm/GeneratorResumeKind.h"
 #include "vm/StringType.h"
 
 namespace js {
@@ -181,7 +183,6 @@ class BytecodeLocation {
   }
 
   bool opHasIC() const { return BytecodeOpHasIC(getOp()); }
-  bool opHasTypeSet() const { return BytecodeOpHasTypeSet(getOp()); }
 
   bool fallsThrough() const { return BytecodeFallsThrough(getOp()); }
 
@@ -206,6 +207,10 @@ class BytecodeLocation {
   bool isGetPropOp() const { return IsGetPropOp(getOp()); }
 
   bool isSetPropOp() const { return IsSetPropOp(getOp()); }
+
+  AsyncFunctionResolveKind getAsyncFunctionResolveKind() {
+    return AsyncFunctionResolveKind(GET_UINT8(rawBytecode_));
+  }
 
   bool resultIsPopped() const {
     MOZ_ASSERT(StackDefs(rawBytecode_) == 1);
@@ -313,12 +318,20 @@ class BytecodeLocation {
     return GET_INT32(rawBytecode_);
   }
   uint32_t getResumeIndex() const {
-    MOZ_ASSERT(is(JSOp::ResumeIndex));
+    MOZ_ASSERT(is(JSOp::ResumeIndex) || is(JSOp::InitialYield) ||
+               is(JSOp::Yield) || is(JSOp::Await));
     return GET_RESUMEINDEX(rawBytecode_);
   }
   Value getInlineValue() const {
     MOZ_ASSERT(is(JSOp::Double));
     return GET_INLINE_VALUE(rawBytecode_);
+  }
+
+  GeneratorResumeKind resumeKind() { return ResumeKindFromPC(rawBytecode_); }
+
+  ThrowMsgKind throwMsgKind() {
+    MOZ_ASSERT(is(JSOp::ThrowMsg));
+    return static_cast<ThrowMsgKind>(GET_UINT8(rawBytecode_));
   }
 
 #ifdef DEBUG

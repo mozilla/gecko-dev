@@ -20,6 +20,8 @@
 #import <IOKit/IOKitLib.h>
 #import <Cocoa/Cocoa.h>
 
+#include "jsapi.h"
+
 #define NS_CRASHREPORTER_CONTRACTID "@mozilla.org/toolkit/crash-reporter;1"
 
 using namespace mozilla;
@@ -355,6 +357,7 @@ GfxInfo::GetAdapterSubsysID2(nsAString& aAdapterSubsysID) { return NS_ERROR_FAIL
 /* readonly attribute Array<DOMString> displayInfo; */
 NS_IMETHODIMP
 GfxInfo::GetDisplayInfo(nsTArray<nsString>& aDisplayInfo) {
+  nsAutoreleasePool localPool;
   for (NSScreen* screen in [NSScreen screens]) {
     NSRect rect = [screen frame];
     nsString desc;
@@ -368,6 +371,7 @@ GfxInfo::GetDisplayInfo(nsTArray<nsString>& aDisplayInfo) {
 
 NS_IMETHODIMP
 GfxInfo::GetDisplayWidth(nsTArray<uint32_t>& aDisplayWidth) {
+  nsAutoreleasePool localPool;
   for (NSScreen* screen in [NSScreen screens]) {
     NSRect rect = [screen frame];
     aDisplayWidth.AppendElement((uint32_t)rect.size.width);
@@ -377,12 +381,16 @@ GfxInfo::GetDisplayWidth(nsTArray<uint32_t>& aDisplayWidth) {
 
 NS_IMETHODIMP
 GfxInfo::GetDisplayHeight(nsTArray<uint32_t>& aDisplayHeight) {
+  nsAutoreleasePool localPool;
   for (NSScreen* screen in [NSScreen screens]) {
     NSRect rect = [screen frame];
     aDisplayHeight.AppendElement((uint32_t)rect.size.height);
   }
   return NS_OK;
 }
+
+NS_IMETHODIMP
+GfxInfo::GetDrmRenderDevice(nsACString& aDrmRenderDevice) { return NS_ERROR_NOT_IMPLEMENTED; }
 
 /* readonly attribute boolean isGPU2Active; */
 NS_IMETHODIMP
@@ -442,6 +450,9 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
     IMPLEMENT_MAC_DRIVER_BLOCKLIST(OperatingSystem::OSX, DeviceFamily::NvidiaRolloutWebRender,
                                    nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
                                    "FEATURE_ROLLOUT_NVIDIA_MAC");
+    IMPLEMENT_MAC_DRIVER_BLOCKLIST(OperatingSystem::OSX, DeviceFamily::AppleAll,
+                                   nsIGfxInfo::FEATURE_WEBRENDER, nsIGfxInfo::FEATURE_ALLOW_ALWAYS,
+                                   "FEATURE_ROLLOUT_APPLE_SILICON_MAC");
   }
   return *sDriverInfo;
 }
@@ -490,6 +501,7 @@ nsresult GfxInfo::GetFeatureStatusImpl(int32_t aFeature, int32_t* aStatus,
 }
 
 nsresult GfxInfo::FindMonitors(JSContext* aCx, JS::HandleObject aOutArray) {
+  nsAutoreleasePool localPool;
   // Getting the refresh rate is a little hard on OS X. We could use
   // CVDisplayLinkGetNominalOutputVideoRefreshPeriod, but that's a little
   // involved. Ideally we could query it from vsync. For now, we leave it out.

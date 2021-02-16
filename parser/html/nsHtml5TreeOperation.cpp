@@ -6,8 +6,10 @@
 
 #include "nsHtml5TreeOperation.h"
 #include "mozAutoDocUpdate.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/Comment.h"
+#include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/DocumentType.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/LinkStyle.h"
@@ -250,6 +252,26 @@ nsresult nsHtml5TreeOperation::Append(nsIContent* aNode, nsIContent* aParent,
   if (NS_SUCCEEDED(rv)) {
     aNode->SetParserHasNotified();
     MutationObservers::NotifyContentAppended(aParent, aNode);
+  }
+  return rv;
+}
+
+nsresult nsHtml5TreeOperation::Append(nsIContent* aNode, nsIContent* aParent,
+                                      mozilla::dom::FromParser aFromParser,
+                                      nsHtml5DocumentBuilder* aBuilder) {
+  Maybe<nsHtml5AutoPauseUpdate> autoPause;
+  Maybe<dom::AutoCEReaction> autoCEReaction;
+  dom::DocGroup* docGroup = aParent->OwnerDoc()->GetDocGroup();
+  if (docGroup && aFromParser != mozilla::dom::FROM_PARSER_FRAGMENT) {
+    autoCEReaction.emplace(docGroup->CustomElementReactionsStack(), nullptr);
+  }
+  nsresult rv = Append(aNode, aParent, aBuilder);
+  // Pause the parser only when there are reactions to be invoked to avoid
+  // pausing parsing too aggressive.
+  if (autoCEReaction.isSome() && docGroup &&
+      docGroup->CustomElementReactionsStack()
+          ->IsElementQueuePushedForCurrentRecursionDepth()) {
+    autoPause.emplace(aBuilder);
   }
   return rv;
 }
@@ -760,7 +782,8 @@ nsresult nsHtml5TreeOperation::Perform(nsHtml5TreeOpExecutor* aBuilder,
     bool* mStreamEnded;
 
     nsresult operator()(const opAppend& aOperation) {
-      return Append(*(aOperation.mChild), *(aOperation.mParent), mBuilder);
+      return Append(*(aOperation.mChild), *(aOperation.mParent),
+                    aOperation.mFromNetwork, mBuilder);
     }
 
     nsresult operator()(const opDetach& aOperation) {

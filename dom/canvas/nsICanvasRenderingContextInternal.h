@@ -8,13 +8,14 @@
 
 #include <memory>
 
+#include "gfxRect.h"
 #include "mozilla/gfx/2D.h"
 #include "nsISupports.h"
 #include "nsIInputStream.h"
 #include "nsIDocShell.h"
+#include "nsRefreshObservers.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/dom/OffscreenCanvas.h"
-#include "mozilla/PresShell.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/NotNull.h"
@@ -71,12 +72,7 @@ class nsICanvasRenderingContextInternal : public nsISupports,
     AddPostRefreshObserverIfNecessary();
   }
 
-  virtual mozilla::PresShell* GetPresShell() {
-    if (mCanvasElement) {
-      return mCanvasElement->OwnerDoc()->GetPresShell();
-    }
-    return nullptr;
-  }
+  virtual mozilla::PresShell* GetPresShell();
 
   void RemovePostRefreshObserver();
 

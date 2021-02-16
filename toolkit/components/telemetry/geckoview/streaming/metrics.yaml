@@ -25,8 +25,7 @@ geckoview:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1611240#c2
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
+    expires: never
 
   build_id:
     description: >
@@ -43,8 +42,7 @@ geckoview:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1611240#c2
     notification_emails:
       - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
+    expires: never
 
   content_process_lifetime:
     type: timing_distribution
@@ -113,7 +111,7 @@ geckoview:
     notification_emails:
       - geckoview-team@mozilla.com
       - sefeng@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   startup_runtime:
@@ -154,7 +152,7 @@ geckoview:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1589700#c5
     notification_emails:
       - sefeng@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   per_document_site_origins:
@@ -178,7 +176,7 @@ geckoview:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1603185#c13
     notification_emails:
       - barret@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
 gfx:
@@ -219,7 +217,7 @@ gfx:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1604818#c4
     notification_emails:
       - sefeng@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
 gfx.checkerboard:
@@ -510,256 +508,6 @@ gfx.webrender:
       - gfx-telemetry-alerts@mozilla.com
       - jmuizelaar@mozilla.com
     expires: never
-
-gfx.display:
-  count:
-    description: >
-      Amount of displays connected to the device
-    type: quantity
-    unit: Display count
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.display.count
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  primary_width:
-    description: >
-      Width of the primary display, takes device rotation into account.
-    type: quantity
-    unit: Pixels
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.display.primary_width
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  primary_height:
-    description: >
-      Height of the primary display, takes device rotation into account.
-    type: quantity
-    unit: Pixels
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.display.primary_height
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-gfx.adapter.primary:
-  description:
-    description: >
-      Long form description of the Graphics adapter
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.description
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  vendor_id:
-    description: >
-      Graphics adapter vendor identification
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.vendor_id
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  device_id:
-    description: >
-      Graphics adapter device identification
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.device_id
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  subsystem_id:
-    description: >
-      Graphics adapter subsystem identification
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.subsystem_id
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  ram:
-    description: >
-      Graphics adapter dedicated memory
-    type: quantity
-    unit: Megabytes
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.ram
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  driver_files:
-    description: >
-      List of graphics adapter driver files
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.driver_files
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  driver_vendor:
-    description: >
-      Graphics adapter driver vendor identification
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.driver_vendor
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  driver_version:
-    description: >
-      Graphics adapter driver version
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.driver_version
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  driver_date:
-    description: >
-      Graphics adapter driver date
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.adapter.driver_date
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-
-gfx.status:
-  compositor:
-    description: >
-      Name of the graphics compositor in use.
-      Possible values are "opengl, d3d11, client, webrender or basic"
-    type: string
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.compositor
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-  headless:
-    description: >
-      Boolean indicated whether graphics is running in
-      headless (no display) mode
-    type: boolean
-    # Temporary misuse of the user lifetime approved by Glean team
-    # due to limitations in Geckoview streaming telemetry.
-    # DO NOT DUPLICATE unless approved by Glean team.
-    lifetime: user
-    gecko_datapoint: gfx.headless
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
-    notification_emails:
-      - gfx-telemetry-alerts@mozilla.com
-      - ktaeleman@mozilla.com
-    expires: 2021-02-01
-
   sceneswap_time:
     type: timing_distribution
     time_unit: millisecond
@@ -776,7 +524,6 @@ gfx.status:
       - gfx-telemetry-alerts@mozilla.com
       - jmuizelaar@mozilla.com
     expires: never
-
   framebuild_time:
     type: timing_distribution
     time_unit: millisecond
@@ -796,6 +543,255 @@ gfx.status:
       - jmuizelaar@mozilla.com
     expires: never
 
+gfx.display:
+  count:
+    description: >
+      Amount of displays connected to the device
+    type: quantity
+    unit: Display count
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.display.count
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  primary_width:
+    description: >
+      Width of the primary display, takes device rotation into account.
+    type: quantity
+    unit: Pixels
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.display.primary_width
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  primary_height:
+    description: >
+      Height of the primary display, takes device rotation into account.
+    type: quantity
+    unit: Pixels
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.display.primary_height
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+gfx.adapter.primary:
+  description:
+    description: >
+      Long form description of the Graphics adapter
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.description
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  vendor_id:
+    description: >
+      Graphics adapter vendor identification
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.vendor_id
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  device_id:
+    description: >
+      Graphics adapter device identification
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.device_id
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  subsystem_id:
+    description: >
+      Graphics adapter subsystem identification
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.subsystem_id
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  ram:
+    description: >
+      Graphics adapter dedicated memory
+    type: quantity
+    unit: Megabytes
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.ram
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  driver_files:
+    description: >
+      List of graphics adapter driver files
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.driver_files
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: 2022-02-01
+  driver_vendor:
+    description: >
+      Graphics adapter driver vendor identification
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.driver_vendor
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  driver_version:
+    description: >
+      Graphics adapter driver version
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.driver_version
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: never
+  driver_date:
+    description: >
+      Graphics adapter driver date
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.adapter.driver_date
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: 2023-02-01
+
+gfx.status:
+  compositor:
+    description: >
+      Name of the graphics compositor in use.
+      Possible values are "opengl, d3d11, client, webrender or basic"
+    type: string
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.compositor
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: 2022-02-01
+  headless:
+    description: >
+      Boolean indicated whether graphics is running in
+      headless (no display) mode
+    type: boolean
+    # Temporary misuse of the user lifetime approved by Glean team
+    # due to limitations in Geckoview streaming telemetry.
+    # DO NOT DUPLICATE unless approved by Glean team.
+    lifetime: user
+    gecko_datapoint: gfx.headless
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1594145#c4
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+    expires: 2022-02-01
+
+gfx.feature:
+  webrender:
+    type: string
+    description: Whether webrender is enabled or disabled, and why.
+    gecko_datapoint: gfx.feature.webrender
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1687312
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1687312#c5
+    notification_emails:
+      - gfx-telemetry-alerts@mozilla.com
+      - jnicol@mozilla.com
+    expires: never
+
 avif:
   decode_result:
     type: labeled_counter
@@ -808,6 +804,8 @@ avif:
       - out_of_memory
       - pipe_init_error
       - write_buffer_error
+      - alpha_y_sz_mismatch
+      - alpha_y_bpc_mismatch
     gecko_datapoint: AVIF_DECODE_RESULT
     description: >
       Decode result of AVIF image.
@@ -1035,7 +1033,7 @@ performance.pageload:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   load_time_responsestart:
@@ -1051,7 +1049,7 @@ performance.pageload:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   dcl:
@@ -1067,7 +1065,7 @@ performance.pageload:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   dcl_responsestart:
@@ -1083,7 +1081,7 @@ performance.pageload:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   fcp:
@@ -1102,7 +1100,7 @@ performance.pageload:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   fcp_responsestart:
@@ -1121,7 +1119,7 @@ performance.pageload:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   req_anim_frame_callback:
@@ -1137,7 +1135,7 @@ performance.pageload:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
 performance.responsiveness:
@@ -1154,7 +1152,7 @@ performance.responsiveness:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1671729#c7
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
 
@@ -1173,9 +1171,8 @@ performance.time:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1580077#c10
     notification_emails:
-      - hkirschner@mozilla.com
       - vchin@mozilla.com
-      - sphilp@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   dom_interactive:
@@ -1194,6 +1191,7 @@ performance.time:
     notification_emails:
       - hbambas@mozilla.com
       - vgosu@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   dom_content_loaded_start:
@@ -1227,9 +1225,8 @@ performance.time:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1580077#c10
     notification_emails:
-      - hkirschner@mozilla.com
       - vchin@mozilla.com
-      - sphilp@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   dom_complete:
@@ -1248,6 +1245,7 @@ performance.time:
     notification_emails:
       - hbambas@mozilla.com
       - vgosu@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   load_event_start:
@@ -1281,9 +1279,8 @@ performance.time:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1580077#c10
     notification_emails:
-      - hkirschner@mozilla.com
       - vchin@mozilla.com
-      - sphilp@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   load_event_start_preload:
@@ -1381,9 +1378,8 @@ performance.page:
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1580077#c10
     notification_emails:
-      - hkirschner@mozilla.com
       - vchin@mozilla.com
-      - sphilp@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
   total_content_page_load:
@@ -1434,7 +1430,7 @@ performance.interaction:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1580077#c10
     notification_emails:
       - mconley@mozilla.com
-      - dolske@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: never
 
 js:
@@ -1454,7 +1450,7 @@ js:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: 2021-03-18
   delazification_percentage:
     type: custom_distribution
@@ -1473,7 +1469,7 @@ js:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: 2021-03-18
   xdr_encode_percentage:
     type: custom_distribution
@@ -1492,7 +1488,7 @@ js:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: 2021-03-18
   baseline_compile_percentage:
     type: custom_distribution
@@ -1511,7 +1507,7 @@ js:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: 2021-03-18
   bytecode_caching_time:
     type: timing_distribution
@@ -1525,7 +1521,7 @@ js:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1664475#c6
     notification_emails:
       - dpalmeiro@mozilla.com
-      - perfteam@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
     expires: 2021-03-18
 
 javascript.gc:

@@ -596,8 +596,8 @@ bool Module::initSegments(JSContext* cx, HandleWasmInstanceObject instanceObj,
   return true;
 }
 
-static const Import& FindImportForFuncImport(const ImportVector& imports,
-                                             uint32_t funcImportIndex) {
+static const Import& FindImportFunction(const ImportVector& imports,
+                                        uint32_t funcImportIndex) {
   for (const Import& import : imports) {
     if (import.kind != DefinitionKind::Function) {
       continue;
@@ -638,7 +638,7 @@ bool Module::instantiateFunctions(JSContext* cx,
         instance.metadata(otherTier).lookupFuncExport(funcIndex);
 
     if (funcExport.funcType() != metadata(tier).funcImports[i].funcType()) {
-      const Import& import = FindImportForFuncImport(imports_, i);
+      const Import& import = FindImportFunction(imports_, i);
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                JSMSG_WASM_BAD_IMPORT_SIG, import.module.get(),
                                import.field.get());
@@ -758,6 +758,88 @@ bool Module::instantiateMemory(JSContext* cx,
 
   return true;
 }
+
+#ifdef ENABLE_WASM_EXCEPTIONS
+bool Module::instantiateImportedException(
+    JSContext* cx, Handle<WasmExceptionObject*> exnObj,
+    WasmExceptionObjectVector& exnObjs, SharedExceptionTagVector* tags) const {
+  MOZ_ASSERT(exnObj);
+  // The check whether the EventDesc signature matches the exnObj value types
+  // is done by js::wasm::GetImports().
+
+  // Collects the exception tag from the imported exception.
+  ExceptionTag& tag = exnObj->tag();
+
+  if (!tags->append(&tag)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  return true;
+}
+
+bool Module::instantiateLocalException(JSContext* cx, const EventDesc& ed,
+                                       WasmExceptionObjectVector& exnObjs,
+                                       SharedExceptionTagVector* tags,
+                                       uint32_t exnIndex) const {
+  SharedExceptionTag tag;
+  // Extend exnObjs in anticipation of an exported exception object.
+  if (exnObjs.length() <= exnIndex && !exnObjs.resize(exnIndex + 1)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  if (ed.isExport) {
+    // If the exception description is exported, create an export exception
+    // object for it.
+    RootedObject proto(
+        cx, &cx->global()->getPrototype(JSProto_WasmException).toObject());
+    RootedWasmExceptionObject exnObj(
+        cx, WasmExceptionObject::create(cx, ed.type, proto));
+    if (!exnObj) {
+      return false;
+    }
+    // Take the exception tag that was created inside the WasmExceptionObject.
+    tag = &exnObj->tag();
+    // Save the new export exception object.
+    exnObjs[exnIndex] = exnObj;
+  } else {
+    // Create a new tag for every non exported exception.
+    tag = SharedExceptionTag(cx->new_<ExceptionTag>());
+    if (!tag) {
+      return false;
+    }
+    // The exnObj is null if the exception is neither exported nor imported.
+  }
+  // Collect a tag for every exception.
+  if (!tags->emplaceBack(tag)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  return true;
+}
+
+bool Module::instantiateExceptions(JSContext* cx,
+                                   WasmExceptionObjectVector& exnObjs,
+                                   SharedExceptionTagVector* tags) const {
+  uint32_t exnIndex = 0;
+  for (const EventDesc& ed : metadata().events) {
+    if (exnIndex < exnObjs.length()) {
+      Rooted<WasmExceptionObject*> exnObj(cx, exnObjs[exnIndex]);
+      if (!instantiateImportedException(cx, exnObj, exnObjs, tags)) {
+        return false;
+      }
+    } else {
+      if (!instantiateLocalException(cx, ed, exnObjs, tags, exnIndex)) {
+        return false;
+      }
+    }
+    exnIndex++;
+  }
+  return true;
+}
+#endif
 
 bool Module::instantiateImportedTable(JSContext* cx, const TableDesc& td,
                                       Handle<WasmTableObject*> tableObj,
@@ -973,18 +1055,8 @@ SharedCode Module::getDebugEnabledCode() const {
     return nullptr;
   }
 
-  StructTypeVector structTypes;
-  if (!structTypes.resize(code_->structTypes().length())) {
-    return nullptr;
-  }
-  for (uint32_t i = 0; i < code_->structTypes().length(); i++) {
-    if (!structTypes[i].copyFrom(code_->structTypes()[i])) {
-      return nullptr;
-    }
-  }
   MutableCode debugCode =
-      js_new<Code>(std::move(codeTier), metadata(), std::move(jumpTables),
-                   std::move(structTypes));
+      js_new<Code>(std::move(codeTier), metadata(), std::move(jumpTables));
   if (!debugCode || !debugCode->initialize(*debugLinkData_)) {
     return nullptr;
   }
@@ -1063,15 +1135,19 @@ static bool GetGlobalExport(JSContext* cx, HandleWasmInstanceObject instanceObj,
     }
   }
 
-  globalObj->setVal(cx, globalVal);
+  globalObj->val() = globalVal;
   return true;
 }
 
-static bool CreateExportObject(
-    JSContext* cx, HandleWasmInstanceObject instanceObj,
-    const JSFunctionVector& funcImports, const WasmTableObjectVector& tableObjs,
-    HandleWasmMemoryObject memoryObj, const ValVector& globalImportValues,
-    const WasmGlobalObjectVector& globalObjs, const ExportVector& exports) {
+static bool CreateExportObject(JSContext* cx,
+                               HandleWasmInstanceObject instanceObj,
+                               const JSFunctionVector& funcImports,
+                               const WasmTableObjectVector& tableObjs,
+                               HandleWasmMemoryObject memoryObj,
+                               const WasmExceptionObjectVector& exceptionObjs,
+                               const ValVector& globalImportValues,
+                               const WasmGlobalObjectVector& globalObjs,
+                               const ExportVector& exports) {
   const Instance& instance = instanceObj->instance();
   const Metadata& metadata = instance.metadata();
   const GlobalDescVector& globals = metadata.globals;
@@ -1136,6 +1212,12 @@ static bool CreateExportObject(
         }
         break;
       }
+#ifdef ENABLE_WASM_EXCEPTIONS
+      case DefinitionKind::Event: {
+        val = ObjectValue(*exceptionObjs[exp.eventIndex()]);
+        break;
+      }
+#endif
     }
 
     if (!JS_DefinePropertyById(cx, exportObj, id, val, propertyAttr)) {
@@ -1153,198 +1235,10 @@ static bool CreateExportObject(
   return true;
 }
 
-#ifdef ENABLE_WASM_GC
-static bool MakeStructField(JSContext* cx, const ValType& v, bool isMutable,
-                            const char* format, uint32_t fieldNo,
-                            MutableHandleIdVector ids,
-                            MutableHandleValueVector fieldTypeObjs,
-                            Vector<StructFieldProps>* fieldProps) {
-  char buf[20];
-  sprintf(buf, format, fieldNo);
-
-  JSAtom* atom = Atomize(cx, buf, strlen(buf));
-  if (!atom) {
-    return false;
-  }
-  RootedId id(cx, AtomToId(atom));
-
-  StructFieldProps props;
-  props.isMutable = isMutable;
-
-  Rooted<TypeDescr*> t(cx);
-  switch (v.kind()) {
-    case ValType::I32:
-      t = GlobalObject::getOrCreateScalarTypeDescr(cx, cx->global(),
-                                                   Scalar::Int32);
-      break;
-    case ValType::I64:
-      // Align for int64 but allocate only an int32, another int32 allocation
-      // will follow immediately.  JS will see two immutable int32 values but
-      // wasm knows it's a single int64.  See makeStructTypeDescrs(), below.
-      props.alignAsInt64 = true;
-      t = GlobalObject::getOrCreateScalarTypeDescr(cx, cx->global(),
-                                                   Scalar::Int32);
-      break;
-    case ValType::V128:
-      // Align for v128 but allocate only an int32, three more int32 allocations
-      // will follow immediately.  JS will see four immutable int32 values but
-      // wasm knows it's a single v128.  See makeStructTypeDescrs(), below.
-      props.alignAsV128 = true;
-      t = GlobalObject::getOrCreateScalarTypeDescr(cx, cx->global(),
-                                                   Scalar::Int32);
-      break;
-    case ValType::F32:
-      t = GlobalObject::getOrCreateScalarTypeDescr(cx, cx->global(),
-                                                   Scalar::Float32);
-      break;
-    case ValType::F64:
-      t = GlobalObject::getOrCreateScalarTypeDescr(cx, cx->global(),
-                                                   Scalar::Float64);
-      break;
-    case ValType::Ref:
-      switch (v.refTypeKind()) {
-        case RefType::TypeIndex:
-        case RefType::Eq:
-          t = GlobalObject::getOrCreateReferenceTypeDescr(
-              cx, cx->global(), ReferenceType::TYPE_OBJECT);
-          break;
-        case RefType::Func:
-        case RefType::Extern:
-          t = GlobalObject::getOrCreateReferenceTypeDescr(
-              cx, cx->global(), ReferenceType::TYPE_WASM_ANYREF);
-          break;
-      }
-      break;
-  }
-  MOZ_ASSERT(t != nullptr);
-
-  if (!ids.append(id)) {
-    return false;
-  }
-
-  if (!fieldTypeObjs.append(ObjectValue(*t))) {
-    return false;
-  }
-
-  if (!fieldProps->append(props)) {
-    return false;
-  }
-
-  return true;
-}
-#endif
-
-bool Module::makeStructTypeDescrs(
-    JSContext* cx,
-    MutableHandle<StructTypeDescrVector> structTypeDescrs) const {
-  // This method must be a no-op if there are no structs.
-  if (structTypes().length() == 0) {
-    return true;
-  }
-
-#ifndef ENABLE_WASM_GC
-  MOZ_CRASH("Should not have seen any struct types");
-#else
-
-  // Not just any prototype object will do, we must have the actual
-  // StructTypePrototype.
-  RootedObject namespaceObject(
-      cx, GlobalObject::getOrCreateWebAssemblyNamespace(cx, cx->global()));
-  if (!namespaceObject) {
-    return false;
-  }
-
-  RootedNativeObject toModule(cx, &namespaceObject->as<NativeObject>());
-  RootedObject prototype(
-      cx, &toModule->getReservedSlot(WasmNamespaceObject::StructTypePrototype)
-               .toObject());
-
-  for (const StructType& structType : structTypes()) {
-    RootedIdVector ids(cx);
-    RootedValueVector fieldTypeObjs(cx);
-    Vector<StructFieldProps> fieldProps(cx);
-
-    uint32_t k = 0;
-    for (StructField sf : structType.fields_) {
-      const ValType& v = sf.type;
-      if (v.kind() == ValType::I64) {
-        // TypedObjects don't yet have a notion of int64 fields.  Thus
-        // we handle int64 by allocating two adjacent int32 fields, the
-        // first of them aligned as for int64.  We mark these fields as
-        // immutable for JS and render the object non-constructible
-        // from JS.  Wasm however sees one i64 field with appropriate
-        // mutability.
-        sf.isMutable = false;
-
-        if (!MakeStructField(cx, ValType::I64, sf.isMutable, "_%d_low", k, &ids,
-                             &fieldTypeObjs, &fieldProps)) {
-          return false;
-        }
-        if (!MakeStructField(cx, ValType::I32, sf.isMutable, "_%d_high", k++,
-                             &ids, &fieldTypeObjs, &fieldProps)) {
-          return false;
-        }
-      } else if (v.kind() == ValType::V128) {
-        // Ditto v128 fields.  These turn into four adjacent i32 fields, using
-        // the standard xyzw convention.
-        sf.isMutable = false;
-
-        if (!MakeStructField(cx, ValType::V128, sf.isMutable, "_%d_x", k, &ids,
-                             &fieldTypeObjs, &fieldProps)) {
-          return false;
-        }
-        if (!MakeStructField(cx, ValType::I32, sf.isMutable, "_%d_y", k, &ids,
-                             &fieldTypeObjs, &fieldProps)) {
-          return false;
-        }
-        if (!MakeStructField(cx, ValType::I32, sf.isMutable, "_%d_z", k, &ids,
-                             &fieldTypeObjs, &fieldProps)) {
-          return false;
-        }
-        if (!MakeStructField(cx, ValType::I32, sf.isMutable, "_%d_w", k++, &ids,
-                             &fieldTypeObjs, &fieldProps)) {
-          return false;
-        }
-      } else {
-        // TypedObjects don't yet have a sufficient notion of type
-        // constraints on TypedObject properties.  Thus we handle fields
-        // of type (optref T) by marking them as immutable for JS and by
-        // rendering the objects non-constructible from JS.  Wasm
-        // however sees properly-typed (optref T) fields with appropriate
-        // mutability.
-        if (v.isTypeIndex()) {
-          // Validation ensures that v references a struct type here.
-          sf.isMutable = false;
-        }
-
-        if (!MakeStructField(cx, v, sf.isMutable, "_%d", k++, &ids,
-                             &fieldTypeObjs, &fieldProps)) {
-          return false;
-        }
-      }
-    }
-
-    // Types must be opaque, which we ensure here, and sealed, which is true
-    // for every TypedObject.  If they contain fields of type Ref T then we
-    // prevent JS from constructing instances of them.
-
-    Rooted<StructTypeDescr*> structTypeDescr(
-        cx, StructMetaTypeDescr::createFromArrays(cx, prototype, ids,
-                                                  fieldTypeObjs, fieldProps));
-
-    if (!structTypeDescr || !structTypeDescrs.append(structTypeDescr)) {
-      return false;
-    }
-  }
-
-  return true;
-#endif
-}
-
 bool Module::instantiate(JSContext* cx, ImportValues& imports,
                          HandleObject instanceProto,
                          MutableHandleWasmInstanceObject instance) const {
-  MOZ_RELEASE_ASSERT(cx->wasmHaveSignalHandlers);
+  MOZ_RELEASE_ASSERT(cx->wasm().haveSignalHandlers);
 
   if (!instantiateFunctions(cx, imports.funcs)) {
     return false;
@@ -1354,6 +1248,20 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   if (!instantiateMemory(cx, &memory)) {
     return false;
   }
+
+  // Note that the following will extend imports.exceptionObjs with wrappers for
+  // the local (non-imported) exceptions of the module.
+  // The resulting vector is sparse, i.e., it will be null in slots that contain
+  // exceptions that are neither exported or imported.
+  // On the contrary, all the slots of exceptionTags will be filled with
+  // unique tags.
+
+  SharedExceptionTagVector tags;
+#ifdef ENABLE_WASM_EXCEPTIONS
+  if (!instantiateExceptions(cx, imports.exceptionObjs, &tags)) {
+    return false;
+  }
+#endif
 
   // Note that tableObjs is sparse: it will be null in slots that contain
   // tables that are neither exported nor imported.
@@ -1391,24 +1299,18 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
     code = code_;
   }
 
-  // Create type descriptors for any struct types that the module has.
-
-  Rooted<StructTypeDescrVector> structTypeDescrs(cx);
-  if (!makeStructTypeDescrs(cx, &structTypeDescrs)) {
-    return false;
-  }
-
   instance.set(WasmInstanceObject::create(
       cx, code, dataSegments_, elemSegments_, std::move(tlsData), memory,
-      std::move(tables), std::move(structTypeDescrs.get()), imports.funcs,
-      metadata().globals, imports.globalValues, imports.globalObjs,
-      instanceProto, std::move(maybeDebug)));
+      std::move(tags), std::move(tables), imports.funcs, metadata().globals,
+      imports.globalValues, imports.globalObjs, instanceProto,
+      std::move(maybeDebug)));
   if (!instance) {
     return false;
   }
 
   if (!CreateExportObject(cx, instance, imports.funcs, tableObjs.get(), memory,
-                          imports.globalValues, imports.globalObjs, exports_)) {
+                          imports.exceptionObjs, imports.globalValues,
+                          imports.globalObjs, exports_)) {
     return false;
   }
 
@@ -1444,6 +1346,11 @@ bool Module::instantiate(JSContext* cx, ImportValues& imports,
   JSUseCounter useCounter =
       metadata().isAsmJS() ? JSUseCounter::ASMJS : JSUseCounter::WASM;
   cx->runtime()->setUseCounter(instance, useCounter);
+
+  if (metadata().usesDuplicateImports) {
+    cx->runtime()->setUseCounter(instance,
+                                 JSUseCounter::WASM_DUPLICATE_IMPORTS);
+  }
 
   if (cx->options().testWasmAwaitTier2()) {
     testingBlockOnTier2Complete();

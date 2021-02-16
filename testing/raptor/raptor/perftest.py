@@ -6,6 +6,7 @@
 
 from __future__ import absolute_import
 
+import six
 import json
 import os
 import re
@@ -61,11 +62,10 @@ POST_DELAY_DEBUG = 3000
 POST_DELAY_DEFAULT = 30000
 
 
+@six.add_metaclass(ABCMeta)
 class Perftest(object):
     """Abstract base class for perftests that execute via a subharness,
     either Raptor or browsertime."""
-
-    __metaclass__ = ABCMeta
 
     def __init__(
         self,
@@ -205,6 +205,11 @@ class Perftest(object):
                 self.post_startup_delay = min(post_startup_delay, POST_DELAY_DEBUG)
             else:
                 self.post_startup_delay = post_startup_delay
+
+        if self.config["enable_webrender"]:
+            self.config["environment"]["MOZ_WEBRENDER"] = "1"
+        else:
+            self.config["environment"]["MOZ_WEBRENDER"] = "0"
 
         LOG.info("Post startup delay set to %d ms" % self.post_startup_delay)
         LOG.info("main raptor init, config is: %s" % str(self.config))
@@ -408,13 +413,6 @@ class Perftest(object):
     def run_test_teardown(self, test):
         self.check_for_crashes()
 
-        # gecko profiling symbolication
-        if self.config["gecko_profile"]:
-            self.gecko_profiler.symbolicate()
-            # clean up the temp gecko profiling folders
-            LOG.info("cleaning up after gecko profiling")
-            self.gecko_profiler.clean()
-
     def process_results(self, tests, test_names):
         # when running locally output results in build/raptor.json; when running
         # in production output to a local.json to be turned into tc job artifact
@@ -424,7 +422,16 @@ class Perftest(object):
 
         self.config["raptor_json_path"] = raptor_json_path
         self.config["artifact_dir"] = self.artifact_dir
-        return self.results_handler.summarize_and_output(self.config, tests, test_names)
+        res = self.results_handler.summarize_and_output(self.config, tests, test_names)
+
+        # gecko profiling symbolication
+        if self.config["gecko_profile"]:
+            self.gecko_profiler.symbolicate()
+            # clean up the temp gecko profiling folders
+            LOG.info("cleaning up after gecko profiling")
+            self.gecko_profiler.clean()
+
+        return res
 
     @abstractmethod
     def set_browser_test_prefs(self):
@@ -677,6 +684,11 @@ class PerftestAndroid(Perftest):
 
 class PerftestDesktop(Perftest):
     """Mixin class for Desktop-specific Perftest subclasses"""
+
+    def __init__(self, *args, **kwargs):
+        super(PerftestDesktop, self).__init__(*args, **kwargs)
+        if self.config["enable_webrender"]:
+            self.config["environment"]["MOZ_ACCELERATED"] = "1"
 
     def setup_chrome_args(self, test):
         """Sets up chrome/chromium cmd-line arguments.

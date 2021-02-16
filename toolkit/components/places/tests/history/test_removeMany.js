@@ -40,8 +40,6 @@ add_task(async function test_remove_many() {
       onResultCalled: false,
       // `true` once `onDeleteVisits` has been called for this page
       onDeleteVisitsCalled: false,
-      // `true` once `onFrecencyChangedCalled` has been called for this page
-      onFrecencyChangedCalled: false,
       // `true` once `onDeleteURI` has been called for this page
       onDeleteURICalled: false,
     };
@@ -78,35 +76,12 @@ add_task(async function test_remove_many() {
     }
   }
 
+  let onPageRankingChanged = false;
   let observer = {
     onBeginUpdateBatch() {},
     onEndUpdateBatch() {},
     onVisits(aVisits) {
       Assert.ok(false, "Unexpected call to onVisits " + aVisits.length);
-    },
-    onTitleChanged(aURI) {
-      Assert.ok(false, "Unexpected call to onTitleChanged " + aURI.spec);
-    },
-    onClearHistory() {
-      Assert.ok(false, "Unexpected call to onClearHistory");
-    },
-    onPageChanged(aURI) {
-      Assert.ok(false, "Unexpected call to onPageChanged " + aURI.spec);
-    },
-    onFrecencyChanged(aURI) {
-      let origin = pages.find(x => x.uri.spec == aURI.spec);
-      Assert.ok(origin);
-      Assert.ok(
-        origin.hasBookmark,
-        "Observing onFrecencyChanged on a page with a bookmark"
-      );
-      origin.onFrecencyChangedCalled = true;
-    },
-    onManyFrecenciesChanged() {
-      Assert.ok(
-        false,
-        "Observing onManyFrecenciesChanges, this is most likely correct but not covered by this test"
-      );
     },
     onDeleteURI(aURI) {
       let origin = pages.find(x => x.uri.spec == aURI.spec);
@@ -133,6 +108,33 @@ add_task(async function test_remove_many() {
   };
   PlacesUtils.history.addObserver(observer);
 
+  const placesEventListener = events => {
+    for (const event of events) {
+      switch (event.type) {
+        case "page-title-changed": {
+          Assert.ok(
+            false,
+            "Unexpected page-title-changed event happens on " + event.url
+          );
+          break;
+        }
+        case "history-cleared": {
+          Assert.ok(false, "Unexpected history-cleared event happens");
+          break;
+        }
+        case "pages-rank-changed": {
+          onPageRankingChanged = true;
+          break;
+        }
+      }
+    }
+  };
+
+  PlacesObservers.addListener(
+    ["page-title-changed", "history-cleared", "pages-rank-changed"],
+    placesEventListener
+  );
+
   info("Removing the pages and checking the callbacks");
 
   let removed = await PlacesUtils.history.remove(keys, page => {
@@ -148,6 +150,10 @@ add_task(async function test_remove_many() {
   Assert.ok(removed, "Something was removed");
 
   PlacesUtils.history.removeObserver(observer);
+  PlacesObservers.removeListener(
+    ["page-title-changed", "history-cleared", "pages-rank-changed"],
+    placesEventListener
+  );
 
   info("Checking out results");
   // By now the observers should have been called.
@@ -166,16 +172,19 @@ add_task(async function test_remove_many() {
       page.hasBookmark,
       "Page is present only if it also has bookmarks"
     );
-    Assert.equal(
-      page.onFrecencyChangedCalled,
+    Assert.notEqual(
+      page.onDeleteURICalled,
       page.onDeleteVisitsCalled,
-      "onDeleteVisits was called iff onFrecencyChanged was called"
-    );
-    Assert.ok(
-      page.onFrecencyChangedCalled ^ page.onDeleteURICalled,
-      "Either onFrecencyChanged or onDeleteURI was called"
+      "Either only onDeleteVisits or onDeleteVisitsCalled should be called"
     );
   }
+
+  Assert.equal(
+    onPageRankingChanged,
+    pages.some(p => p.onDeleteVisitsCalled) ||
+      pages.some(p => p.onDeleteURICalled),
+    "page-rank-changed was fired if onDeleteVisitsCalled or onDeleteURICalled was called"
+  );
 
   Assert.notEqual(
     visits_in_database(WITNESS_URI),

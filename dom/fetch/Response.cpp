@@ -12,7 +12,9 @@
 #include "nsPIDOMWindow.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/BodyStream.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/FetchBinding.h"
 #include "mozilla/dom/ResponseBinding.h"
 #include "mozilla/dom/Headers.h"
@@ -73,7 +75,6 @@ Response::Response(nsIGlobalObject* aGlobal,
   MOZ_ASSERT(
       aInternalResponse->Headers()->Guard() == HeadersGuardEnum::Immutable ||
       aInternalResponse->Headers()->Guard() == HeadersGuardEnum::Response);
-  SetMimeType();
 
   mozilla::HoldJSObjects(this);
 }
@@ -368,7 +369,6 @@ already_AddRefed<Response> Response::Constructor(
     }
   }
 
-  r->SetMimeType();
   return r.forget();
 }
 

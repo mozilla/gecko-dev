@@ -11,6 +11,7 @@ categories:
     source_doc:
         - browser
         - dom
+        - editor
         - layout
         - gfx
         - devtools
@@ -25,6 +26,7 @@ categories:
         - widget/cocoa
         - code-quality
         - writing-rust-code
+        - tools/profiler
     build_doc:
         - mach
         - tools/try
@@ -33,6 +35,7 @@ categories:
         - tools/moztreedocs
     testing_doc:
         - testing/testing-policy
+        - testing/ci-configs
         - testing/marionette
         - testing/geckodriver
         - web-platform

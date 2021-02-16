@@ -15,6 +15,7 @@
 #include "gc/PublicIterators.h"
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
+#include "jit/Invalidation.h"
 #include "jit/Ion.h"
 #include "jit/JitZone.h"
 #include "vm/Runtime.h"
@@ -33,8 +34,8 @@ using namespace js::gc;
 
 Zone* const Zone::NotOnList = reinterpret_cast<Zone*>(1);
 
-ZoneAllocator::ZoneAllocator(JSRuntime* rt)
-    : JS::shadow::Zone(rt, &rt->gc.marker),
+ZoneAllocator::ZoneAllocator(JSRuntime* rt, Kind kind)
+    : JS::shadow::Zone(rt, &rt->gc.marker, kind),
       gcHeapSize(&rt->gc.heapSize),
       mallocHeapSize(nullptr),
       jitHeapSize(nullptr),
@@ -139,21 +140,23 @@ void ZoneAllocPolicy::decMemory(size_t nbytes) {
                         cx->defaultFreeOp()->isCollecting());
 }
 
-JS::Zone::Zone(JSRuntime* rt)
-    : ZoneAllocator(rt),
+JS::Zone::Zone(JSRuntime* rt, Kind kind)
+    : ZoneAllocator(rt, kind),
       // Note: don't use |this| before initializing helperThreadUse_!
       // ProtectedData checks in CheckZone::check may read this field.
       helperThreadUse_(HelperThreadUse::None),
       helperThreadOwnerContext_(nullptr),
       arenas(this),
-      types(this),
       data(this, nullptr),
-      tenuredStrings(this, 0),
       tenuredBigInts(this, 0),
       nurseryAllocatedStrings(this, 0),
+      markedStrings(this, 0),
+      finalizedStrings(this, 0),
       allocNurseryStrings(this, true),
       allocNurseryBigInts(this, true),
       suppressAllocationMetadataBuilder(this, false),
+      previousGCStringStats(this),
+      stringStats(this),
       uniqueIds_(this),
       tenuredAllocsSinceMinorGC_(0),
       gcWeakMapList_(this),
@@ -187,6 +190,8 @@ JS::Zone::Zone(JSRuntime* rt)
   /* Ensure that there are no vtables to mess us up here. */
   MOZ_ASSERT(reinterpret_cast<JS::shadow::Zone*>(this) ==
              static_cast<JS::shadow::Zone*>(this));
+  MOZ_ASSERT_IF(isAtomsZone(), !rt->unsafeAtomsZone());
+  MOZ_ASSERT_IF(isSelfHostingZone(), !rt->hasInitializedSelfHosting());
 
   // We can't call updateGCStartThresholds until the Zone has been constructed.
   AutoLockGC lock(rt);
@@ -212,25 +217,6 @@ bool Zone::init() {
   return regExps_.ref() && gcWeakKeys().init() && gcNurseryWeakKeys().init();
 }
 
-void Zone::setIsAtomsZone() {
-  MOZ_ASSERT(!isAtomsZone_);
-  MOZ_ASSERT(runtimeFromAnyThread()->isAtomsZone(this));
-  isAtomsZone_ = true;
-  setIsSystemZone();
-}
-
-void Zone::setIsSelfHostingZone() {
-  MOZ_ASSERT(!isSelfHostingZone_);
-  MOZ_ASSERT(runtimeFromAnyThread()->isSelfHostingZone(this));
-  isSelfHostingZone_ = true;
-  setIsSystemZone();
-}
-
-void Zone::setIsSystemZone() {
-  MOZ_ASSERT(!isSystemZone_);
-  isSystemZone_ = true;
-}
-
 void Zone::setNeedsIncrementalBarrier(bool needs) {
   needsIncrementalBarrier_ = needs;
 }
@@ -253,8 +239,6 @@ void Zone::changeGCState(GCState prev, GCState next) {
     needsIncrementalBarrier_ = isGCMarking();
   }
 }
-
-void Zone::beginSweepTypes() { types.beginSweep(); }
 
 template <class Pred>
 static void EraseIf(js::gc::WeakEntryVector& entries, Pred pred) {
@@ -454,6 +438,10 @@ void Zone::discardJitCode(JSFreeOp* fop,
       }
     }
 
+#ifdef JS_CACHEIR_SPEW
+    maybeUpdateWarmUpCount(script);
+#endif
+
     // Warm-up counter for scripts are reset on GC. After discarding code we
     // need to let it warm back up to get information such as which
     // opcodes are setting array holes or accessing getter properties.
@@ -479,10 +467,6 @@ void Zone::discardJitCode(JSFreeOp* fop,
     // stubs because the optimizedStubSpace will be purged below.
     if (discardBaselineCode) {
       jitScript->purgeOptimizedStubs(script);
-
-      // ICs were purged so the script will need to warm back up before it can
-      // be inlined during Ion compilation.
-      jitScript->clearIonCompiledOrInlined();
     }
 
     // Finally, reset the active flag.
@@ -658,12 +642,11 @@ void Zone::purgeAtomCache() {
 }
 
 void Zone::addSizeOfIncludingThis(
-    mozilla::MallocSizeOf mallocSizeOf, JS::CodeSizes* code, size_t* typePool,
-    size_t* regexpZone, size_t* jitZone, size_t* baselineStubsOptimized,
-    size_t* uniqueIdMap, size_t* shapeCaches, size_t* atomsMarkBitmaps,
-    size_t* compartmentObjects, size_t* crossCompartmentWrappersTables,
-    size_t* compartmentsPrivateData, size_t* scriptCountsMapArg) {
-  *typePool += types.typeLifoAlloc().sizeOfExcludingThis(mallocSizeOf);
+    mozilla::MallocSizeOf mallocSizeOf, JS::CodeSizes* code, size_t* regexpZone,
+    size_t* jitZone, size_t* baselineStubsOptimized, size_t* uniqueIdMap,
+    size_t* shapeCaches, size_t* atomsMarkBitmaps, size_t* compartmentObjects,
+    size_t* crossCompartmentWrappersTables, size_t* compartmentsPrivateData,
+    size_t* scriptCountsMapArg) {
   *regexpZone += regExps().sizeOfExcludingThis(mallocSizeOf);
   if (jitZone_) {
     jitZone_->addSizeOfIncludingThis(mallocSizeOf, code, jitZone,
@@ -870,6 +853,19 @@ void Zone::fixupScriptMapsAfterMovingGC(JSTracer* trc) {
     }
   }
 #endif
+
+#ifdef JS_CACHEIR_SPEW
+  if (scriptFinalWarmUpCountMap) {
+    for (ScriptFinalWarmUpCountMap::Enum e(*scriptFinalWarmUpCountMap);
+         !e.empty(); e.popFront()) {
+      BaseScript* script = e.front().key();
+      if (!IsAboutToBeFinalizedUnbarriered(&script) &&
+          script != e.front().key()) {
+        e.rekeyFront(script);
+      }
+    }
+  }
+#endif
 }
 
 #ifdef JSGC_HASH_TABLE_CHECKS
@@ -917,6 +913,18 @@ void Zone::checkScriptMapsAfterMovingGC() {
     }
   }
 #  endif  // MOZ_VTUNE
+
+#  ifdef JS_CACHEIR_SPEW
+  if (scriptFinalWarmUpCountMap) {
+    for (auto r = scriptFinalWarmUpCountMap->all(); !r.empty(); r.popFront()) {
+      BaseScript* script = r.front().key();
+      MOZ_ASSERT(script->zone() == this);
+      CheckGCThingAfterMovingGC(script);
+      auto ptr = scriptFinalWarmUpCountMap->lookup(script);
+      MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
+    }
+  }
+#  endif  // JS_CACHEIR_SPEW
 }
 #endif
 

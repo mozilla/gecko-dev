@@ -43,7 +43,11 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     kUseMapRole,
     eNoValue,
     eNoAction,
+#if defined(XP_MACOSX)
+    eAssertiveLiveAttr,
+#else
     eNoLiveAttr,
+#endif
     eAlert,
     kNoReqStates
   },
@@ -158,7 +162,7 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eTableCell,
     kNoReqStates,
     eARIASelectableIfDefined,
-    eARIAReadonlyOrEditableIfDefined
+    eARIAReadonly
   },
   { // combobox, which consists of text input and popup
     nsGkAtoms::combobox,
@@ -703,7 +707,7 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eSelect | eTable,
     kNoReqStates,
     eARIAMultiSelectable,
-    eARIAReadonlyOrEditable,
+    eARIAReadonly,
     eFocusableUntilDisabled
   },
   { // gridcell
@@ -716,7 +720,7 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eTableCell,
     kNoReqStates,
     eARIASelectable,
-    eARIAReadonlyOrEditableIfDefined
+    eARIAReadonly
   },
   { // group
     nsGkAtoms::group,
@@ -1054,7 +1058,7 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eTableCell,
     kNoReqStates,
     eARIASelectableIfDefined,
-    eARIAReadonlyOrEditableIfDefined
+    eARIAReadonly
   },
   { // scrollbar
     nsGkAtoms::scrollbar,
@@ -1276,7 +1280,7 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eNoLiveAttr,
     eSelect | eTable,
     kNoReqStates,
-    eARIAReadonlyOrEditable,
+    eARIAReadonly,
     eARIAMultiSelectable,
     eFocusableUntilDisabled,
     eARIAOrientation
@@ -1461,6 +1465,11 @@ bool aria::HasDefinedARIAHidden(nsIContent* aContent) {
 
 ////////////////////////////////////////////////////////////////////////////////
 // AttrIterator class
+
+AttrIterator::AttrIterator(nsIContent* aContent)
+    : mElement(dom::Element::FromNode(aContent)), mAttrIdx(0) {
+  mAttrCount = mElement ? mElement->GetAttrCount() : 0;
+}
 
 bool AttrIterator::Next(nsAString& aAttrName, nsAString& aAttrValue) {
   while (mAttrIdx < mAttrCount) {

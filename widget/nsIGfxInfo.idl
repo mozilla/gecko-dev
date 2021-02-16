@@ -77,6 +77,8 @@ interface nsIGfxInfo : nsISupports
 
   readonly attribute boolean isGPU2Active;
 
+  readonly attribute ACString drmRenderDevice;
+
   /**
    * Information about display devices
    */
@@ -294,8 +296,7 @@ interface nsIGfxInfo : nsISupports
   //
   //   [
   //     {
-  //       // Type is one of "d3d11layers", "d3d9video", "glcontext",
-  //       // or "d3d11video".
+  //       // Type is one of "d3d11layers", or "glcontext".
   //       "type":        "<identifier>",
   //
   //       // Preference that must be deleted/reset to retrigger the guard.

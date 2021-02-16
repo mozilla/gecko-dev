@@ -29,8 +29,6 @@ using namespace mozilla;
 
 extern LazyLogModule gPIPNSSLog;
 
-static NS_DEFINE_CID(kCertOverrideCID, NS_CERTOVERRIDE_CID);
-
 // treeArrayElStr
 //
 // structure used to hold map of tree.  Each thread (an organization
@@ -80,51 +78,15 @@ static const PLDHashTableOps gMapOps = {
     PLDHashTable::HashVoidPtrKeyStub, CompareCacheMatchEntry,
     PLDHashTable::MoveEntryStub, CompareCacheClearEntry, CompareCacheInitEntry};
 
-NS_IMPL_ISUPPORTS0(nsCertAddonInfo)
 NS_IMPL_ISUPPORTS(nsCertTreeDispInfo, nsICertTreeItem)
-
-nsCertTreeDispInfo::nsCertTreeDispInfo()
-    : mAddonInfo(nullptr),
-      mTypeOfEntry(direct_db),
-      mPort(-1),
-      mOverrideBits(nsCertOverride::OverrideBits::None),
-      mIsTemporary(true) {}
-
-nsCertTreeDispInfo::nsCertTreeDispInfo(nsCertTreeDispInfo& other) {
-  mAddonInfo = other.mAddonInfo;
-  mTypeOfEntry = other.mTypeOfEntry;
-  mAsciiHost = other.mAsciiHost;
-  mPort = other.mPort;
-  mOverrideBits = other.mOverrideBits;
-  mIsTemporary = other.mIsTemporary;
-  mCert = other.mCert;
-}
 
 nsCertTreeDispInfo::~nsCertTreeDispInfo() = default;
 
 NS_IMETHODIMP
-nsCertTreeDispInfo::GetCert(nsIX509Cert** _cert) {
-  NS_ENSURE_ARG(_cert);
-  if (mCert) {
-    // we may already have the cert for temporary overrides
-    *_cert = mCert;
-    NS_IF_ADDREF(*_cert);
-    return NS_OK;
-  }
-  if (mAddonInfo) {
-    *_cert = mAddonInfo->mCert.get();
-    NS_IF_ADDREF(*_cert);
-  } else {
-    *_cert = nullptr;
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsCertTreeDispInfo::GetHostPort(nsAString& aHostPort) {
-  nsAutoCString hostPort;
-  nsCertOverrideService::GetHostWithPort(mAsciiHost, mPort, hostPort);
-  CopyUTF8toUTF16(hostPort, aHostPort);
+nsCertTreeDispInfo::GetCert(nsIX509Cert** aCert) {
+  NS_ENSURE_ARG(aCert);
+  nsCOMPtr<nsIX509Cert> cert = mCert;
+  cert.forget(aCert);
   return NS_OK;
 }
 
@@ -136,12 +98,6 @@ nsCertTree::nsCertTree()
       mNumRows(0),
       mCompareCache(&gMapOps, sizeof(CompareCacheHashEntryPtr),
                     kInitialCacheLength) {
-  mOverrideService = do_GetService("@mozilla.org/security/certoverride;1");
-  // Might be a different service if someone is overriding the contract
-  nsCOMPtr<nsICertOverrideService> origCertOverride =
-      do_GetService(kCertOverrideCID);
-  mOriginalOverrideService =
-      static_cast<nsCertOverrideService*>(origCertOverride.get());
   mCellText = nullptr;
 }
 
@@ -170,19 +126,11 @@ int32_t nsCertTree::CountOrganizations() {
   uint32_t i, certCount;
   certCount = mDispInfo.Length();
   if (certCount == 0) return 0;
-  nsCOMPtr<nsIX509Cert> orgCert = nullptr;
-  nsCertAddonInfo* addonInfo = mDispInfo.ElementAt(0)->mAddonInfo;
-  if (addonInfo) {
-    orgCert = addonInfo->mCert;
-  }
+  nsCOMPtr<nsIX509Cert> orgCert = mDispInfo.ElementAt(0)->mCert;
   nsCOMPtr<nsIX509Cert> nextCert = nullptr;
   int32_t orgCount = 1;
   for (i = 1; i < certCount; i++) {
-    nextCert = nullptr;
-    addonInfo = mDispInfo.SafeElementAt(i, nullptr)->mAddonInfo;
-    if (addonInfo) {
-      nextCert = addonInfo->mCert;
-    }
+    nextCert = mDispInfo.SafeElementAt(i, nullptr)->mCert;
     // XXX we assume issuer org is always criterion 1
     if (CmpBy(&mCompareCache, orgCert, nextCert, sort_IssuerOrg, sort_None,
               sort_None) != 0) {
@@ -222,12 +170,7 @@ already_AddRefed<nsIX509Cert> nsCertTree::GetCertAtIndex(
       GetDispInfoAtIndex(index, outAbsoluteCertOffset));
   if (!certdi) return nullptr;
 
-  nsCOMPtr<nsIX509Cert> ret;
-  if (certdi->mCert) {
-    ret = certdi->mCert;
-  } else if (certdi->mAddonInfo) {
-    ret = certdi->mAddonInfo->mCert;
-  }
+  nsCOMPtr<nsIX509Cert> ret = certdi->mCert;
   return ret.forget();
 }
 
@@ -264,109 +207,11 @@ nsCertTree::nsCertCompareFunc nsCertTree::GetCompareFuncFromCertType(
     case nsIX509Cert::ANY_CERT:
     case nsIX509Cert::USER_CERT:
       return CmpUserCert;
-    case nsIX509Cert::CA_CERT:
-      return CmpCACert;
     case nsIX509Cert::EMAIL_CERT:
       return CmpEmailCert;
-    case nsIX509Cert::SERVER_CERT:
+    case nsIX509Cert::CA_CERT:
     default:
-      return CmpWebSiteCert;
-  }
-}
-
-struct nsCertAndArrayAndPositionAndCounterAndTracker {
-  RefPtr<nsCertAddonInfo> certai;
-  nsTArray<RefPtr<nsCertTreeDispInfo>>* array;
-  int position;
-  int counter;
-  nsTHashtable<nsCStringHashKey>* tracker;
-};
-
-// Used to enumerate host:port overrides that match a stored
-// certificate, creates and adds a display-info-object to the
-// provided array. Increments insert position and entry counter.
-// We remove the given key from the tracker, which is used to
-// track entries that have not yet been handled.
-// The created display-info references the cert, so make a note
-// of that by incrementing the cert usage counter.
-static void MatchingCertOverridesCallback(
-    const RefPtr<nsCertOverride>& aSettings, void* aUserData) {
-  nsCertAndArrayAndPositionAndCounterAndTracker* cap =
-      (nsCertAndArrayAndPositionAndCounterAndTracker*)aUserData;
-  if (!cap) return;
-
-  nsCertTreeDispInfo* certdi = new nsCertTreeDispInfo;
-  if (certdi) {
-    if (cap->certai) cap->certai->mUsageCount++;
-    certdi->mAddonInfo = cap->certai;
-    certdi->mTypeOfEntry = nsCertTreeDispInfo::host_port_override;
-    certdi->mAsciiHost = aSettings->mAsciiHost;
-    certdi->mPort = aSettings->mPort;
-    certdi->mOverrideBits = aSettings->mOverrideBits;
-    certdi->mIsTemporary = aSettings->mIsTemporary;
-    certdi->mCert = aSettings->mCert;
-    cap->array->InsertElementAt(cap->position, certdi);
-    cap->position++;
-    cap->counter++;
-  }
-
-  // this entry is now associated to a displayed cert, remove
-  // it from the list of remaining entries
-  nsAutoCString hostPort;
-  nsCertOverrideService::GetHostWithPort(aSettings->mAsciiHost,
-                                         aSettings->mPort, hostPort);
-  cap->tracker->RemoveEntry(hostPort);
-}
-
-// Used to collect a list of the (unique) host:port keys
-// for all stored overrides.
-static void CollectAllHostPortOverridesCallback(
-    const RefPtr<nsCertOverride>& aSettings, void* aUserData) {
-  nsTHashtable<nsCStringHashKey>* collectorTable =
-      (nsTHashtable<nsCStringHashKey>*)aUserData;
-  if (!collectorTable) return;
-
-  nsAutoCString hostPort;
-  nsCertOverrideService::GetHostWithPort(aSettings->mAsciiHost,
-                                         aSettings->mPort, hostPort);
-  collectorTable->PutEntry(hostPort);
-}
-
-struct nsArrayAndPositionAndCounterAndTracker {
-  nsTArray<RefPtr<nsCertTreeDispInfo>>* array;
-  int position;
-  int counter;
-  nsTHashtable<nsCStringHashKey>* tracker;
-};
-
-// Used when enumerating the stored host:port overrides where
-// no associated certificate was found in the NSS database.
-static void AddRemaningHostPortOverridesCallback(
-    const RefPtr<nsCertOverride>& aSettings, void* aUserData) {
-  nsArrayAndPositionAndCounterAndTracker* cap =
-      (nsArrayAndPositionAndCounterAndTracker*)aUserData;
-  if (!cap) return;
-
-  nsAutoCString hostPort;
-  nsCertOverrideService::GetHostWithPort(aSettings->mAsciiHost,
-                                         aSettings->mPort, hostPort);
-  if (!cap->tracker->GetEntry(hostPort)) return;
-
-  // This entry is not associated to any stored cert,
-  // so we still need to display it.
-
-  nsCertTreeDispInfo* certdi = new nsCertTreeDispInfo;
-  if (certdi) {
-    certdi->mAddonInfo = nullptr;
-    certdi->mTypeOfEntry = nsCertTreeDispInfo::host_port_override;
-    certdi->mAsciiHost = aSettings->mAsciiHost;
-    certdi->mPort = aSettings->mPort;
-    certdi->mOverrideBits = aSettings->mOverrideBits;
-    certdi->mIsTemporary = aSettings->mIsTemporary;
-    certdi->mCert = aSettings->mCert;
-    cap->array->InsertElementAt(cap->position, certdi);
-    cap->position++;
-    cap->counter++;
+      return CmpCACert;
   }
 }
 
@@ -375,21 +220,15 @@ nsresult nsCertTree::GetCertsByTypeFromCertList(
     nsCertCompareFunc aCertCmpFn, void* aCertCmpFnArg) {
   MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("GetCertsByTypeFromCertList"));
 
-  if (!mOriginalOverrideService) return NS_ERROR_FAILURE;
-
   nsTHashtable<nsCStringHashKey> allHostPortOverrideKeys;
 
   if (aWantedType == nsIX509Cert::SERVER_CERT) {
-    mOriginalOverrideService->EnumerateCertOverrides(
-        nullptr, CollectAllHostPortOverridesCallback, &allHostPortOverrideKeys);
+    return NS_ERROR_INVALID_ARG;
   }
 
   int count = 0;
   for (const auto& cert : aCertList) {
     bool wantThisCert = (aWantedType == nsIX509Cert::ANY_CERT);
-    bool wantThisCertIfNoOverrides = false;
-    bool wantThisCertIfHaveOverrides = false;
-    bool addOverrides = false;
 
     if (!wantThisCert) {
       uint32_t thisCertType;
@@ -397,103 +236,29 @@ nsresult nsCertTree::GetCertsByTypeFromCertList(
       if (NS_FAILED(rv)) {
         return rv;
       }
-
-      // The output from GetCertType is a "guess", which can be wrong.
-      // The guess is based on stored trust flags, but for the host:port
-      // overrides, we are storing certs without any trust flags associated.
-      // So we must check whether the cert really belongs to the
-      // server, email or unknown tab. We will lookup the cert in the override
-      // list to come to the decision.
-      if (aWantedType == nsIX509Cert::SERVER_CERT) {
-        wantThisCertIfHaveOverrides = true;
-      } else if (aWantedType == nsIX509Cert::EMAIL_CERT &&
-                 thisCertType == nsIX509Cert::EMAIL_CERT) {
-        // This cert might have been categorized as an email cert
-        // because it carries an email address. But is it really one?
-        // Our cert categorization is uncertain when it comes to
-        // distinguish between email certs and web site certs.
-        // So, let's see if we have an override for that cert
-        // and if there is, conclude it's really a web site cert.
-        wantThisCertIfNoOverrides = true;
-      } else if (thisCertType == aWantedType) {
+      if (thisCertType == aWantedType) {
         wantThisCert = true;
       }
     }
 
-    if (wantThisCertIfNoOverrides || wantThisCertIfHaveOverrides) {
-      uint32_t ocount = 0;
-      nsresult rv =
-          mOverrideService->IsCertUsedForOverrides(cert,
-                                                   true,  // we want temporaries
-                                                   true,  // we want permanents
-                                                   &ocount);
-      if (wantThisCertIfNoOverrides) {
-        if (NS_FAILED(rv) || ocount == 0) {
-          // no overrides for this cert
-          wantThisCert = true;
-        }
-      }
-
-      if (wantThisCertIfHaveOverrides) {
-        if (NS_SUCCEEDED(rv) && ocount > 0) {
-          // there are overrides for this cert
-          addOverrides = true;
-        }
-      }
-    }
-
-    RefPtr<nsCertAddonInfo> certai(new nsCertAddonInfo);
-    certai->mCert = cert;
-    certai->mUsageCount = 0;
-
-    if (wantThisCert || addOverrides) {
+    if (wantThisCert) {
       int InsertPosition = 0;
       for (; InsertPosition < count; ++InsertPosition) {
         nsCOMPtr<nsIX509Cert> otherCert = nullptr;
         RefPtr<nsCertTreeDispInfo> elem(
             mDispInfo.SafeElementAt(InsertPosition, nullptr));
-        if (elem && elem->mAddonInfo) {
-          otherCert = elem->mAddonInfo->mCert;
+        if (elem) {
+          otherCert = elem->mCert;
         }
         if ((*aCertCmpFn)(aCertCmpFnArg, cert, otherCert) < 0) {
           break;
         }
       }
-      if (wantThisCert) {
-        nsCertTreeDispInfo* certdi = new nsCertTreeDispInfo;
-        certdi->mAddonInfo = certai;
-        certai->mUsageCount++;
-        certdi->mTypeOfEntry = nsCertTreeDispInfo::direct_db;
-        // not necessary: certdi->mAsciiHost.Clear(); certdi->mPort = -1;
-        certdi->mOverrideBits = nsCertOverride::OverrideBits::None;
-        certdi->mIsTemporary = false;
-        mDispInfo.InsertElementAt(InsertPosition, certdi);
-        ++count;
-        ++InsertPosition;
-      }
-      if (addOverrides) {
-        nsCertAndArrayAndPositionAndCounterAndTracker cap;
-        cap.certai = certai;
-        cap.array = &mDispInfo;
-        cap.position = InsertPosition;
-        cap.counter = 0;
-        cap.tracker = &allHostPortOverrideKeys;
-
-        mOriginalOverrideService->EnumerateCertOverrides(
-            cert, MatchingCertOverridesCallback, &cap);
-        count += cap.counter;
-      }
+      nsCertTreeDispInfo* certdi = new nsCertTreeDispInfo(cert);
+      mDispInfo.InsertElementAt(InsertPosition, certdi);
+      ++count;
+      ++InsertPosition;
     }
-  }
-
-  if (aWantedType == nsIX509Cert::SERVER_CERT) {
-    nsArrayAndPositionAndCounterAndTracker cap;
-    cap.array = &mDispInfo;
-    cap.position = 0;
-    cap.counter = 0;
-    cap.tracker = &allHostPortOverrideKeys;
-    mOriginalOverrideService->EnumerateCertOverrides(
-        nullptr, AddRemaningHostPortOverridesCallback, &cap);
   }
 
   return NS_OK;
@@ -522,30 +287,6 @@ nsCertTree::LoadCertsFromCache(const nsTArray<RefPtr<nsIX509Cert>>& aCache,
   return UpdateUIContents();
 }
 
-NS_IMETHODIMP
-nsCertTree::LoadCerts(uint32_t aType) {
-  if (mTreeArray) {
-    FreeCertArray();
-    delete[] mTreeArray;
-    mTreeArray = nullptr;
-    mNumRows = 0;
-  }
-  ClearCompareHash();
-
-  nsCOMPtr<nsIX509CertDB> certdb(do_GetService(NS_X509CERTDB_CONTRACTID));
-  nsTArray<RefPtr<nsIX509Cert>> certList;
-  nsresult rv = certdb->GetCerts(certList);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  rv = GetCertsByTypeFromCertList(
-      certList, aType, GetCompareFuncFromCertType(aType), &mCompareCache);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  return UpdateUIContents();
-}
-
 nsresult nsCertTree::UpdateUIContents() {
   uint32_t count = mDispInfo.Length();
   mNumOrgs = CountOrganizations();
@@ -555,11 +296,7 @@ nsresult nsCertTree::UpdateUIContents() {
 
   if (count) {
     uint32_t j = 0;
-    nsCOMPtr<nsIX509Cert> orgCert = nullptr;
-    nsCertAddonInfo* addonInfo = mDispInfo.ElementAt(j)->mAddonInfo;
-    if (addonInfo) {
-      orgCert = addonInfo->mCert;
-    }
+    nsCOMPtr<nsIX509Cert> orgCert = mDispInfo.ElementAt(j)->mCert;
     for (int32_t i = 0; i < mNumOrgs; i++) {
       nsString& orgNameRef = mTreeArray[i].orgName;
       if (!orgCert) {
@@ -572,21 +309,13 @@ nsresult nsCertTree::UpdateUIContents() {
       mTreeArray[i].certIndex = j;
       mTreeArray[i].numChildren = 1;
       if (++j >= count) break;
-      nsCOMPtr<nsIX509Cert> nextCert = nullptr;
-      nsCertAddonInfo* addonInfo =
-          mDispInfo.SafeElementAt(j, nullptr)->mAddonInfo;
-      if (addonInfo) {
-        nextCert = addonInfo->mCert;
-      }
+      nsCOMPtr<nsIX509Cert> nextCert =
+          mDispInfo.SafeElementAt(j, nullptr)->mCert;
       while (0 == CmpBy(&mCompareCache, orgCert, nextCert, sort_IssuerOrg,
                         sort_None, sort_None)) {
         mTreeArray[i].numChildren++;
         if (++j >= count) break;
-        nextCert = nullptr;
-        addonInfo = mDispInfo.SafeElementAt(j, nullptr)->mAddonInfo;
-        if (addonInfo) {
-          nextCert = addonInfo->mCert;
-        }
+        nextCert = mDispInfo.SafeElementAt(j, nullptr)->mCert;
       }
       orgCert = nextCert;
     }
@@ -622,63 +351,15 @@ nsCertTree::DeleteEntryObject(uint32_t index) {
     if (index < idx + nc) {  // cert is within range of this thread
       int32_t certIndex = cIndex + index - idx;
 
-      bool canRemoveEntry = false;
       RefPtr<nsCertTreeDispInfo> certdi(
           mDispInfo.SafeElementAt(certIndex, nullptr));
-
-      // We will remove the element from the visual tree.
-      // Only if we have a certdi, then we can check for additional actions.
-      nsCOMPtr<nsIX509Cert> cert = nullptr;
       if (certdi) {
-        if (certdi->mAddonInfo) {
-          cert = certdi->mAddonInfo->mCert;
-        }
-        nsCertAddonInfo* addonInfo =
-            certdi->mAddonInfo ? certdi->mAddonInfo.get() : nullptr;
-        if (certdi->mTypeOfEntry == nsCertTreeDispInfo::host_port_override) {
-          mOverrideService->ClearValidityOverride(certdi->mAsciiHost,
-                                                  certdi->mPort);
-          if (addonInfo) {
-            addonInfo->mUsageCount--;
-            if (addonInfo->mUsageCount == 0) {
-              // The certificate stored in the database is no longer
-              // referenced by any other object displayed.
-              // That means we no longer need to keep it around
-              // and really can remove it.
-              canRemoveEntry = true;
-            }
-          }
-        } else {
-          if (addonInfo && addonInfo->mUsageCount > 1) {
-            // user is trying to delete a perm trusted cert,
-            // although there are still overrides stored,
-            // so, we keep the cert, but remove the trust
-
-            UniqueCERTCertificate nsscert(cert->GetCert());
-
-            if (nsscert) {
-              CERTCertTrust trust;
-              memset((void*)&trust, 0, sizeof(trust));
-
-              SECStatus srv =
-                  CERT_DecodeTrustString(&trust, "");  // no override
-              if (srv == SECSuccess) {
-                ChangeCertTrustWithPossibleAuthentication(nsscert, trust,
-                                                          nullptr);
-              }
-            }
-          } else {
-            canRemoveEntry = true;
-          }
-        }
-      }
-
-      mDispInfo.RemoveElementAt(certIndex);
-
-      if (canRemoveEntry) {
+        nsCOMPtr<nsIX509Cert> cert = certdi->mCert;
         RemoveCacheEntry(cert);
         certdb->DeleteCertificate(cert);
       }
+
+      mDispInfo.RemoveElementAt(certIndex);
 
       delete[] mTreeArray;
       mTreeArray = nullptr;
@@ -876,9 +557,6 @@ nsCertTree::GetCellText(int32_t row, nsTreeColumn* col, nsAString& _retval) {
   if (!certdi) return NS_ERROR_FAILURE;
 
   nsCOMPtr<nsIX509Cert> cert = certdi->mCert;
-  if (!cert && certdi->mAddonInfo) {
-    cert = certdi->mAddonInfo->mCert;
-  }
 
   int32_t colIndex = col->Index();
   uint32_t arrayIndex = absoluteCertOffset + colIndex * (mNumRows - mNumOrgs);
@@ -921,19 +599,6 @@ nsCertTree::GetCellText(int32_t row, nsTreeColumn* col, nsAString& _retval) {
     }
   } else if (u"serialnumcol"_ns.Equals(colID) && cert) {
     rv = cert->GetSerialNumber(_retval);
-  } else if (u"sitecol"_ns.Equals(colID)) {
-    if (certdi->mTypeOfEntry == nsCertTreeDispInfo::host_port_override) {
-      nsAutoCString hostPort;
-      nsCertOverrideService::GetHostWithPort(certdi->mAsciiHost, certdi->mPort,
-                                             hostPort);
-      CopyUTF8toUTF16(hostPort, _retval);
-    } else {
-      _retval = u"*"_ns;
-    }
-  } else if (u"lifetimecol"_ns.Equals(colID)) {
-    const char* stringID = (certdi->mIsTemporary) ? "CertExceptionTemporary"
-                                                  : "CertExceptionPermanent";
-    rv = GetPIPNSSBundleString(stringID, _retval);
   } else {
     return NS_ERROR_FAILURE;
   }
@@ -994,38 +659,6 @@ nsCertTree::SetCellText(int32_t row, nsTreeColumn* col,
                         const nsAString& value) {
   return NS_OK;
 }
-
-#ifdef DEBUG_CERT_TREE
-void nsCertTree::dumpMap() {
-  for (int i = 0; i < mNumOrgs; i++) {
-    nsAutoString org(mTreeArray[i].orgName);
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("ORG[%s]", NS_LossyConvertUTF16toASCII(org).get()));
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug, ("OPEN[%d]", mTreeArray[i].open));
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("INDEX[%d]", mTreeArray[i].certIndex));
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("NCHILD[%d]", mTreeArray[i].numChildren));
-  }
-  for (int i = 0; i < mNumRows; i++) {
-    treeArrayEl* el = GetThreadDescAtIndex(i);
-    if (el) {
-      nsAutoString td(el->orgName);
-      MOZ_LOG(
-          gPIPNSSLog, LogLevel::Debug,
-          ("thread desc[%d]: %s", i, NS_LossyConvertUTF16toASCII(td).get()));
-    }
-    nsCOMPtr<nsIX509Cert> ct = GetCertAtIndex(i);
-    if (ct) {
-      char16_t* goo;
-      ct->GetCommonName(&goo);
-      nsAutoString doo(goo);
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("cert [%d]: %s", i, NS_LossyConvertUTF16toASCII(doo).get()));
-    }
-  }
-}
-#endif
 
 //
 // CanDrop
@@ -1177,12 +810,6 @@ int32_t nsCertTree::CmpBy(void* cache, nsIX509Cert* a, nsIX509Cert* b,
 int32_t nsCertTree::CmpCACert(void* cache, nsIX509Cert* a, nsIX509Cert* b) {
   // XXX we assume issuer org is always criterion 1
   return CmpBy(cache, a, b, sort_IssuerOrg, sort_Org, sort_Token);
-}
-
-int32_t nsCertTree::CmpWebSiteCert(void* cache, nsIX509Cert* a,
-                                   nsIX509Cert* b) {
-  // XXX we assume issuer org is always criterion 1
-  return CmpBy(cache, a, b, sort_IssuerOrg, sort_CommonName, sort_None);
 }
 
 int32_t nsCertTree::CmpUserCert(void* cache, nsIX509Cert* a, nsIX509Cert* b) {

@@ -13,6 +13,10 @@
     <link rel="localization" href="browser/branding/brandings.ftl">
     <link rel="localization" href="browser/aboutLogins.ftl">
     <script type="module" src="chrome://browser/content/aboutlogins/components/confirmation-dialog.js"></script>
+    <script type="module" src="chrome://browser/content/aboutlogins/components/remove-logins-dialog.js"></script>
+    <script type="module" src="chrome://browser/content/aboutlogins/components/import-summary-dialog.js"></script>
+    <script type="module" src="chrome://browser/content/aboutlogins/components/import-error-dialog.js"></script>
+    <script type="module" src="chrome://browser/content/aboutlogins/components/generic-dialog.js"></script>
     <script type="module" src="chrome://browser/content/aboutlogins/components/fxaccounts-button.js"></script>
     <script type="module" src="chrome://browser/content/aboutlogins/components/login-filter.js"></script>
     <script type="module" src="chrome://browser/content/aboutlogins/components/login-intro.js"></script>
@@ -37,6 +41,9 @@
     <login-item></login-item>
     <login-intro></login-intro>
     <confirmation-dialog hidden></confirmation-dialog>
+    <remove-logins-dialog hidden></remove-logins-dialog>
+    <import-summary-dialog hidden></import-summary-dialog>
+    <import-error-dialog hidden></import-error-dialog>
     <div id="master-password-required-overlay"></div>
 
     <template id="confirmation-dialog-template">
@@ -57,6 +64,95 @@
             <button class="confirm-button danger-button"></button>
             <button class="cancel-button" data-l10n-id="confirmation-dialog-cancel-button"></button>
           </div>
+        </div>
+      </div>
+    </template>
+
+    <template id="generic-dialog-template">
+      <link rel="stylesheet" href="chrome://browser/content/aboutlogins/components/generic-dialog.css">
+      <div class="overlay">
+        <div class="container" role="dialog" aria-labelledby="title">
+          <slot name="dialog-icon" part="dialog-icon"></slot>
+          <slot name="dialog-title"></slot>
+          <slot name="content"></slot>
+          <slot name="buttons"></slot>
+        </div>
+      </div>
+    </template>
+
+    <template id="import-summary-dialog-template">
+      <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+      <link rel="stylesheet" href="chrome://browser/content/aboutlogins/components/generic-dialog.css">
+      <link rel="stylesheet" href="chrome://browser/content/aboutlogins/components/import-summary-dialog.css">
+      <generic-dialog>
+        <span slot="dialog-title" data-l10n-id="about-logins-import-dialog-title"></span>
+        <img slot="dialog-icon" part="dialog-icon" src="chrome://browser/skin/import.svg"/>
+        <div slot="content">
+          <div class="import-summary">
+            <div class="import-items-added import-items-row" data-l10n-id="about-logins-import-dialog-items-added" data-l10n-args='{"count": 0}'>
+              <span data-l10n-name="count" class="result-count"></span>
+            </div>
+            <div class="import-items-modified import-items-row" data-l10n-id="about-logins-import-dialog-items-modified" data-l10n-args='{"count": 0}'>
+              <span data-l10n-name="count" class="result-count"></span>
+            </div>
+            <div class="import-items-no-change import-items-row" data-l10n-id="about-logins-import-dialog-items-no-change" data-l10n-name="no-change" data-l10n-args='{"count": 0}'>
+              <span data-l10n-name="count" class="result-count"></span>
+              <span data-l10n-name="meta" class="result-meta"></span>
+            </div>
+            <div class="import-items-errors import-items-row" data-l10n-id="about-logins-import-dialog-items-error" data-l10n-args='{"count": 0}'>
+              <span data-l10n-name="count" class="result-count"></span>
+              <span data-l10n-name="meta" class="result-meta"></span>
+            </div>
+          </div>
+        </div>
+        <div slot="buttons">
+          <button class="dismiss-button primary" data-l10n-id="about-logins-import-dialog-done"></button>
+        </div>
+      </generic-dialog>
+    </template>
+
+    <template id="import-error-dialog-template">
+      <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+      <link rel="stylesheet" href="chrome://browser/content/aboutlogins/components/generic-dialog.css">
+      <link rel="stylesheet" href="chrome://browser/content/aboutlogins/components/import-error-dialog.css">
+      <generic-dialog>
+        <span slot="dialog-title" data-l10n-id="about-logins-import-dialog-error-title"></span>
+        <img slot="dialog-icon" part="dialog-icon" src="chrome://browser/skin/warning.svg"/>
+        <div slot="content" class="content">
+          <span class="error-title" data-l10n-id="about-logins-import-dialog-error-unable-to-read-title"></span>
+          <span class="error-description" data-l10n-id="about-logins-import-dialog-error-unable-to-read-description"></span>
+          <span class="no-logins" data-l10n-id="about-logins-import-dialog-error-no-logins-imported"></span>
+          <a href="https://support.mozilla.org/kb/import-login-data-file"
+            data-l10n-id="about-logins-import-dialog-error-learn-more" target="_blank" rel="noreferrer"></a>
+        </div>
+        <div slot="buttons" class="buttons">
+          <button class="dismiss-button" data-l10n-id="about-logins-import-dialog-error-cancel"></button>
+          <button class="try-import-again primary" data-l10n-id="about-logins-import-dialog-error-try-again"></button>
+        </div>
+      </generic-dialog>
+    </template>
+
+    <template id="remove-logins-dialog-template">
+      <link rel="stylesheet" href="chrome://global/skin/in-content/common.css">
+      <link rel="stylesheet" href="chrome://browser/content/aboutlogins/common.css">
+      <link rel="stylesheet" href="chrome://browser/content/aboutlogins/components/remove-logins-dialog.css">
+      <div class="overlay">
+      <div class="container" role="dialog" aria-labelledby="title" aria-describedby="message">
+        <button class="dismiss-button" data-l10n-id="confirmation-dialog-dismiss-button">
+          <img class="dismiss-icon" src="chrome://global/skin/icons/close.svg" draggable="false"/>
+        </button>
+        <div class="content">
+          <img class="warning-icon" src="chrome://global/skin/icons/delete.svg" draggable="false"/>
+          <h1 class="title" id="title"></h1>
+          <p class="message" id="message"></p>
+          <div class="checkbox-wrapper">
+            <input id="confirmation-checkbox" type="checkbox" class="checkbox"></input>
+            <label for="confirmation-checkbox"></label>
+          </div>
+        </div>
+        <div class="buttons">
+          <button class="confirm-button danger-button"></button>
+          <button class="cancel-button" data-l10n-id="confirmation-dialog-cancel-button"></button>
         </div>
       </div>
     </template>
@@ -194,17 +290,23 @@
                 <span class="origin-label field-label" data-l10n-id="login-item-origin-label"></span>
                 <!-- Default text inputs to readonly to reduce jumping of the field
                     size on page load since it always starts readonly. -->
+
                 <input type="url"
-                       name="origin"
-                       required
-                       data-l10n-id="login-item-origin"
-                       dir="auto"
-                       readonly/>
+                      name="origin"
+                      required
+                      data-l10n-id="login-item-origin"
+                      dir="auto"
+                      readonly/>
                 <a class="origin-input" dir="auto" target="_blank" rel="noreferrer" name="origin" href=""></a>
+                <div class="tooltip-container">
+                  <div class="arrow-box">
+                      <p class="tooltip-message" data-l10n-id="login-item-tooltip-message"></p>
+                  </div>
+                </div>
               </label>
             </div>
-            <div class="detail-row">
-              <div class="detail-row-contents">
+            <div class="detail-grid">
+              <div class="detail-row">
                 <label class="detail-cell">
                   <span class="username-label field-label" data-l10n-id="login-item-username-label"></span>
                   <input type="text"
@@ -218,9 +320,7 @@
                   <span class="copy-button-text" data-l10n-id="login-item-copy-username-button-text"></span>
                 </button>
               </div>
-            </div>
-            <div class="detail-row">
-              <div class="detail-row-contents">
+              <div class="detail-row">
                 <label class="detail-cell">
                   <span class="password-label field-label" data-l10n-id="login-item-password-label"></span>
                   <div class="reveal-password-wrapper">
@@ -275,6 +375,7 @@
         <button role="menuitem" class="menuitem-button menuitem-import-browser ghost-button" hidden data-supported-platforms="Win32,MacIntel" data-event-name="AboutLoginsImportFromBrowser" data-l10n-id="about-logins-menu-menuitem-import-from-another-browser"></button>
         <button role="menuitem" class="menuitem-button menuitem-import-file ghost-button" data-event-name="AboutLoginsImportFromFile" data-l10n-id="about-logins-menu-menuitem-import-from-a-file"></button>
         <button role="menuitem" class="menuitem-button menuitem-export ghost-button" data-event-name="AboutLoginsExportPasswordsDialog" data-l10n-id="about-logins-menu-menuitem-export-logins"></button>
+        <button role="menuitem" class="menuitem-button menuitem-remove-all-logins ghost-button" data-event-name="AboutLoginsRemoveAllLoginsDialog" data-l10n-id="about-logins-menu-menuitem-remove-all-logins"></button>
         <hr role="separator" class="menuitem-separator"></hr>
         <button role="menuitem" class="menuitem-button menuitem-preferences ghost-button" data-event-name="AboutLoginsOpenPreferences" data-l10n-id="menu-menuitem-preferences"></button>
         <hr role="separator" class="menuitem-separator"></hr>

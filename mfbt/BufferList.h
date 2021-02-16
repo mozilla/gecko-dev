@@ -7,17 +7,14 @@
 #ifndef mozilla_BufferList_h
 #define mozilla_BufferList_h
 
-#include <string.h>
-
 #include <algorithm>
-#include <type_traits>
-#include <utility>
+#include <cstdint>
+#include <cstring>
 
-#include "mozilla/AllocPolicy.h"
+#include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/ScopeExit.h"
-#include "mozilla/Types.h"
 #include "mozilla/Vector.h"
 
 // BufferList represents a sequence of buffers of data. A BufferList can choose
@@ -276,12 +273,12 @@ class BufferList : private AllocPolicy {
       size_t offset = 0;
 
       MOZ_ASSERT(aTarget.IsIn(aBuffers));
+      MOZ_ASSERT(mSegment <= aTarget.mSegment);
 
       char* data = mData;
-      for (uintptr_t segment = mSegment; segment < aTarget.mSegment;
-           segment++) {
+      for (uintptr_t segment = mSegment; segment < aTarget.mSegment;) {
         offset += aBuffers.mSegments[segment].End() - data;
-        data = aBuffers.mSegments[segment].mData;
+        data = aBuffers.mSegments[++segment].mData;
       }
 
       MOZ_RELEASE_ASSERT(IsIn(aBuffers));

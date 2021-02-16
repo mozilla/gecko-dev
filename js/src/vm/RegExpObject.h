@@ -41,10 +41,6 @@ struct MatchPair;
 class MatchPairs;
 class RegExpStatics;
 
-namespace frontend {
-class TokenStreamAnyChars;
-}
-
 extern RegExpObject* RegExpAlloc(JSContext* cx, NewObjectKind newKind,
                                  HandleObject proto = nullptr);
 
@@ -82,19 +78,8 @@ class RegExpObject : public NativeObject {
                                            JS::RegExpFlags flags,
                                            NewObjectKind newKind);
 
-  template <typename CharT>
-  static RegExpObject* create(JSContext* cx, const CharT* chars, size_t length,
-                              JS::RegExpFlags flags,
-                              frontend::TokenStreamAnyChars& ts,
-                              NewObjectKind kind);
-
   static RegExpObject* create(JSContext* cx, HandleAtom source,
                               JS::RegExpFlags flags, NewObjectKind newKind);
-
-  static RegExpObject* create(JSContext* cx, HandleAtom source,
-                              JS::RegExpFlags flags,
-                              frontend::TokenStreamAnyChars& ts,
-                              NewObjectKind newKind);
 
   /*
    * Compute the initial shape to associate with fresh RegExp objects,
@@ -129,7 +114,7 @@ class RegExpObject : public NativeObject {
     setSlot(LAST_INDEX_SLOT, Int32Value(0));
   }
 
-  JSLinearString* toString(JSContext* cx) const;
+  static JSLinearString* toString(JSContext* cx, Handle<RegExpObject*> obj);
 
   JSAtom* getSource() const {
     return &getSlot(SOURCE_SLOT).toString()->asAtom();
@@ -224,7 +209,7 @@ XDRResult XDRScriptRegExpObject(XDRState<mode>* xdr,
 extern JSObject* CloneScriptRegExpObject(JSContext* cx, RegExpObject& re);
 
 /* Escape all slashes and newlines in the given string. */
-extern JSAtom* EscapeRegExpPattern(JSContext* cx, HandleAtom src);
+extern JSLinearString* EscapeRegExpPattern(JSContext* cx, HandleAtom src);
 
 template <typename CharT>
 extern bool HasRegExpMetaChars(const CharT* chars, size_t length);

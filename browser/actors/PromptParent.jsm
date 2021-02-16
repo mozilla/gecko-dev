@@ -29,6 +29,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "contentPromptSubDialog",
+  "prompts.contentPromptSubDialog",
+  false
+);
+
 /**
  * @typedef {Object} Prompt
  * @property {Function} resolver
@@ -118,13 +125,14 @@ class PromptParent extends JSWindowActorParent {
     switch (message.name) {
       case "Prompt:Open": {
         if (
-          args.modalType === Ci.nsIPrompt.MODAL_TYPE_CONTENT ||
+          (args.modalType === Ci.nsIPrompt.MODAL_TYPE_CONTENT &&
+            !contentPromptSubDialog) ||
           (args.modalType === Ci.nsIPrompt.MODAL_TYPE_TAB &&
             !tabChromePromptSubDialog)
         ) {
           return this.openContentPrompt(args, id);
         }
-        return this.openChromePrompt(args);
+        return this.openPromptWithTabDialogBox(args);
       }
     }
 
@@ -184,26 +192,23 @@ class PromptParent extends JSWindowActorParent {
 
       this.unregisterPrompt(id);
 
-      PromptUtils.fireDialogEvent(window, "DOMModalDialogClosed", browser, {
-        wasPermitUnload: args.inPermitUnload,
-        areLeaving: args.ok,
-      });
+      PromptUtils.fireDialogEvent(
+        window,
+        "DOMModalDialogClosed",
+        browser,
+        this.getClosingEventDetail(args)
+      );
       resolver(args);
       browser.maybeLeaveModalState();
     };
 
     try {
       browser.enterModalState();
-      let eventDetail = {
-        tabPrompt: true,
-        promptPrincipal: args.promptPrincipal,
-        inPermitUnload: args.inPermitUnload,
-      };
       PromptUtils.fireDialogEvent(
         window,
         "DOMWillOpenModalDialog",
         browser,
-        eventDetail
+        this.getOpenEventDetail(args)
       );
 
       args.promptActive = true;
@@ -225,18 +230,19 @@ class PromptParent extends JSWindowActorParent {
   }
 
   /**
-   * Opens a window prompt for a BrowsingContext, and puts the associated
-   * browser in the modal state until the prompt is closed.
+   * Opens either a window prompt or TabDialogBox at the content or tab level
+   * for a BrowsingContext, and puts the associated browser in the modal state
+   * until the prompt is closed.
    *
    * @param {Object} args
    *        The arguments passed up from the BrowsingContext to be passed
-   *        directly to the modal window.
+   *        directly to the modal prompt.
    * @return {Promise}
-   *         Resolves when the window prompt is dismissed.
+   *         Resolves when the modal prompt is dismissed.
    * @resolves {Object}
-   *           The arguments returned from the window prompt.
+   *           The arguments returned from the modal prompt.
    */
-  async openChromePrompt(args) {
+  async openPromptWithTabDialogBox(args) {
     const COMMON_DIALOG = "chrome://global/content/commonDialog.xhtml";
     const SELECT_DIALOG = "chrome://global/content/selectDialog.xhtml";
     let uri = args.promptType == "select" ? SELECT_DIALOG : COMMON_DIALOG;
@@ -264,22 +270,42 @@ class PromptParent extends JSWindowActorParent {
     try {
       if (browser) {
         browser.enterModalState();
-        PromptUtils.fireDialogEvent(win, "DOMWillOpenModalDialog", browser);
+        PromptUtils.fireDialogEvent(
+          win,
+          "DOMWillOpenModalDialog",
+          browser,
+          this.getOpenEventDetail(args)
+        );
       }
 
       args.promptAborted = false;
+      args.openedWithTabDialog = true;
 
       let bag = PromptUtils.objectToPropBag(args);
 
-      if (args.modalType === Services.prompt.MODAL_TYPE_TAB) {
+      if (
+        args.modalType === Services.prompt.MODAL_TYPE_TAB ||
+        args.modalType === Services.prompt.MODAL_TYPE_CONTENT
+      ) {
         if (!browser) {
-          throw new Error("Cannot tab-prompt without a browser!");
+          let modal_type =
+            args.modalType === Services.prompt.MODAL_TYPE_TAB
+              ? "tab"
+              : "content";
+          throw new Error(`Cannot ${modal_type}-prompt without a browser!`);
         }
-        // Tab
+        // Tab or content level prompt
         let dialogBox = win.gBrowser.getTabDialogBox(browser);
-        await dialogBox.open(uri, { features: "resizable=no" }, bag);
+        await dialogBox.open(
+          uri,
+          {
+            features: "resizable=no",
+            modalType: args.modalType,
+          },
+          bag
+        );
       } else {
-        // Window
+        // Window prompt
         Services.ww.openWindow(
           win,
           uri,
@@ -293,9 +319,39 @@ class PromptParent extends JSWindowActorParent {
     } finally {
       if (browser) {
         browser.maybeLeaveModalState();
-        PromptUtils.fireDialogEvent(win, "DOMModalDialogClosed", browser);
+        PromptUtils.fireDialogEvent(
+          win,
+          "DOMModalDialogClosed",
+          browser,
+          this.getClosingEventDetail(args)
+        );
       }
     }
     return args;
+  }
+
+  getClosingEventDetail(args) {
+    let details =
+      args.modalType === Services.prompt.MODAL_TYPE_CONTENT
+        ? {
+            wasPermitUnload: args.inPermitUnload,
+            areLeaving: args.ok,
+          }
+        : null;
+
+    return details;
+  }
+
+  getOpenEventDetail(args) {
+    let details =
+      args.modalType === Services.prompt.MODAL_TYPE_CONTENT
+        ? {
+            inPermitUnload: args.inPermitUnload,
+            promptPrincipal: args.promptPrincipal,
+            tabPrompt: true,
+          }
+        : null;
+
+    return details;
   }
 }

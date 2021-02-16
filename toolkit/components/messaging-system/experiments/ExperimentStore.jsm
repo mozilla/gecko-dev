@@ -14,11 +14,40 @@ const EXPORTED_SYMBOLS = ["ExperimentStore"];
 const { SharedDataMap } = ChromeUtils.import(
   "resource://messaging-system/lib/SharedDataMap.jsm"
 );
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+
+const IS_MAIN_PROCESS =
+  Services.appinfo.processType === Services.appinfo.PROCESS_TYPE_DEFAULT;
+
+const SYNC_DATA_PREF = "messaging-system.syncdatastore.data";
+let tryJSONParse = data => {
+  try {
+    return JSON.parse(data);
+  } catch (e) {}
+
+  return {};
+};
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "syncDataStore",
+  SYNC_DATA_PREF,
+  {},
+  // aOnUpdate
+  (data, prev, latest) => tryJSONParse(latest),
+  // aTransform
+  tryJSONParse
+);
 
 const DEFAULT_STORE_ID = "ExperimentStoreData";
+// Experiment feature configs that should be saved to prefs for
+// fast access on startup.
+const SYNC_ACCESS_FEATURES = ["newtab", "aboutwelcome"];
 
 class ExperimentStore extends SharedDataMap {
-  constructor(sharedDataKey, options) {
+  constructor(sharedDataKey, options = { isParent: IS_MAIN_PROCESS }) {
     super(sharedDataKey || DEFAULT_STORE_ID, options);
   }
 
@@ -85,7 +114,7 @@ class ExperimentStore extends SharedDataMap {
    */
   getAll() {
     if (!this._data) {
-      return [];
+      return Object.values(syncDataStore);
     }
 
     return Object.values(this._data);
@@ -100,7 +129,9 @@ class ExperimentStore extends SharedDataMap {
 
   _emitExperimentUpdates(experiment) {
     this.emit(`update:${experiment.slug}`, experiment);
-    this.emit(`update:${experiment.branch.feature.featureId}`, experiment);
+    if (experiment.branch.feature) {
+      this.emit(`update:${experiment.branch.feature.featureId}`, experiment);
+    }
   }
 
   /**
@@ -108,6 +139,26 @@ class ExperimentStore extends SharedDataMap {
    */
   _emitExperimentExposure(experimentData) {
     this.emit("exposure", experimentData);
+  }
+
+  /**
+   * @param {Enrollment} experiment
+   */
+  _updateSyncStore(experiment) {
+    if (SYNC_ACCESS_FEATURES.includes(experiment.branch.feature?.featureId)) {
+      if (!experiment.active) {
+        // Remove experiments on un-enroll, otherwise nothing to do
+        if (syncDataStore[experiment.slug]) {
+          delete syncDataStore[experiment.slug];
+        }
+      } else {
+        syncDataStore[experiment.slug] = experiment;
+      }
+      Services.prefs.setStringPref(
+        SYNC_DATA_PREF,
+        JSON.stringify(syncDataStore)
+      );
+    }
   }
 
   /**
@@ -122,6 +173,7 @@ class ExperimentStore extends SharedDataMap {
     }
     this.set(experiment.slug, experiment);
     this._emitExperimentUpdates(experiment);
+    this._updateSyncStore(experiment);
   }
 
   /**
@@ -139,5 +191,6 @@ class ExperimentStore extends SharedDataMap {
     const updatedExperiment = { ...oldProperties, ...newProperties };
     this.set(slug, updatedExperiment);
     this._emitExperimentUpdates(updatedExperiment);
+    this._updateSyncStore(updatedExperiment);
   }
 }

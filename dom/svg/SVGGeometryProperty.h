@@ -146,7 +146,8 @@ float ResolveImpl(ComputedStyle const& aStyle, SVGElement* aElement,
 
       if (aspectRatio) {
         // Preserve aspect ratio if it's present.
-        return Other::AspectRatioRelative(aspectRatio).ApplyTo(lengthOther);
+        return Other::AspectRatioRelative(aspectRatio)
+            .ApplyToFloat(lengthOther);
       }
 
       float intrinsicLength = intrinsicImageSize.*Tag::SizeGetter;
@@ -229,7 +230,7 @@ float ResolveWith(const ComputedStyle& aStyle, const SVGElement* aElement) {
 }
 
 template <class Func>
-bool DoForComputedStyle(SVGElement* aElement, Func aFunc) {
+bool DoForComputedStyle(const SVGElement* aElement, Func aFunc) {
   if (const nsIFrame* f = aElement->GetPrimaryFrame()) {
     aFunc(f->Style());
     return true;
@@ -253,17 +254,6 @@ bool DoForComputedStyle(SVGElement* aElement, Func aFunc) {
 template <class... Tags>
 bool ResolveAll(const SVGElement* aElement,
                 details::AlwaysFloat<Tags>*... aRes) {
-  if (nsIFrame const* f = aElement->GetPrimaryFrame()) {
-    SVGGEOMETRYPROPERTY_EVAL_ALL(*aRes =
-                                     ResolveWith<Tags>(*f->Style(), aElement));
-    return true;
-  }
-  return false;
-}
-
-template <class... Tags>
-bool ResolveAllAllowFallback(SVGElement* aElement,
-                             details::AlwaysFloat<Tags>*... aRes) {
   bool res = DoForComputedStyle(aElement, [&](auto const* style) {
     SVGGEOMETRYPROPERTY_EVAL_ALL(*aRes = ResolveWith<Tags>(*style, aElement));
   });

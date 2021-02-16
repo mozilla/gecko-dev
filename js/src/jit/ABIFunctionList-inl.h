@@ -16,6 +16,7 @@
 #include "builtin/Array.h"      // js::ArrayShiftMoveElements
 #include "builtin/MapObject.h"  // js::MapIteratorObject::next,
                                 // js::SetIteratorObject::next
+#include "builtin/Object.h"     // js::ObjectClassToString
 #include "builtin/RegExp.h"     // js::RegExpPrototypeOptimizableRaw,
                                 // js::RegExpInstanceOptimizableRaw
 
@@ -106,7 +107,6 @@ void CallExecutionProgressHook(JSScript* aScript);
   _(js::jit::AllocateFatInlineString)                                 \
   _(js::jit::AllocateString)                                          \
   _(js::jit::AssertValidBigIntPtr)                                    \
-  _(js::jit::AssertValidObjectOrNullPtr)                              \
   _(js::jit::AssertValidObjectPtr)                                    \
   _(js::jit::AssertValidStringPtr)                                    \
   _(js::jit::AssertValidSymbolPtr)                                    \
@@ -123,15 +123,12 @@ void CallExecutionProgressHook(JSScript* aScript);
   _(js::jit::EqualStringsHelperPure)                                  \
   _(js::jit::FinishBailoutToBaseline)                                 \
   _(js::jit::FrameIsDebuggeeCheck)                                    \
-  _(js::jit::GetDynamicNamePure)                                      \
+  _(js::jit::GetContextSensitiveInterpreterStub)                      \
   _(js::jit::GetIndexFromString)                                      \
   _(js::jit::GetInt32FromStringPure)                                  \
-  _(js::jit::GetNativeDataPropertyByValuePure<false>)                 \
-  _(js::jit::GetNativeDataPropertyByValuePure<true>)                  \
-  _(js::jit::GetNativeDataPropertyPure<false>)                        \
-  _(js::jit::GetNativeDataPropertyPure<true>)                         \
+  _(js::jit::GetNativeDataPropertyByValuePure)                        \
+  _(js::jit::GetNativeDataPropertyPure)                               \
   _(js::jit::GlobalHasLiveOnDebuggerStatement)                        \
-  _(js::jit::GroupHasPropertyTypes)                                   \
   _(js::jit::HandleCodeCoverageAtPC)                                  \
   _(js::jit::HandleCodeCoverageAtPrologue)                            \
   _(js::jit::HandleException)                                         \
@@ -151,8 +148,7 @@ void CallExecutionProgressHook(JSScript* aScript);
   _(js::jit::PostWriteElementBarrier<IndexInBounds::Maybe>)           \
   _(js::jit::Printf0)                                                 \
   _(js::jit::Printf1)                                                 \
-  _(js::jit::SetNativeDataPropertyPure<false>)                        \
-  _(js::jit::SetNativeDataPropertyPure<true>)                         \
+  _(js::jit::SetNativeDataPropertyPure)                               \
   _(js::jit::StringFromCharCodeNoGC)                                  \
   _(js::jit::TypeOfObject)                                            \
   _(js::jit::WrapObjectPure)                                          \
@@ -161,6 +157,7 @@ void CallExecutionProgressHook(JSScript* aScript);
   _(js::NativeObject::growSlotsPure)                                  \
   _(js::NumberMod)                                                    \
   _(js::NumberToStringPure)                                           \
+  _(js::ObjectClassToString)                                          \
   _(js::powi)                                                         \
   _(js::ProxyGetProperty)                                             \
   _(js::RegExpInstanceOptimizableRaw)                                 \
@@ -204,7 +201,7 @@ void CallExecutionProgressHook(JSScript* aScript);
   _(void (*)(JSRuntime * rt, Value * vp))
 
 // GCC warns when the signature does not have matching attributes (for example
-// MOZ_MUST_USE). Squelch this warning to avoid a GCC-only footgun.
+// [[nodiscard]]). Squelch this warning to avoid a GCC-only footgun.
 #if MOZ_IS_GCC
 #  pragma GCC diagnostic push
 #  pragma GCC diagnostic ignored "-Wignored-attributes"

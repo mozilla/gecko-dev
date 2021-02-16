@@ -14,6 +14,10 @@ SpecialPowers.pushPrefEnv({
   set: [["dom.require_user_interaction_for_beforeunload", false]],
 });
 
+SpecialPowers.pushPrefEnv({
+  set: [["prompts.contentPromptSubDialog", false]],
+});
+
 const PAGE_URL =
   "data:text/html," +
   encodeURIComponent("<script>(" + pageScript.toSource() + ")();</script>");
@@ -58,10 +62,10 @@ async function openPage(enableDialogs) {
         }, "document-element-inserted");
       });
       // Load the page.
-      await BrowserTestUtils.loadURI(browser, PAGE_URL);
+      BrowserTestUtils.loadURI(browser, PAGE_URL);
       await BrowserTestUtils.browserLoaded(browser);
       // And then navigate away.
-      await BrowserTestUtils.loadURI(browser, "http://example.com/");
+      BrowserTestUtils.loadURI(browser, "http://example.com/");
       await BrowserTestUtils.browserLoaded(browser);
     }
   );

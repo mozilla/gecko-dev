@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use api::{
-    AlphaType, ColorDepth, ColorF, ColorU,
+    AlphaType, ColorDepth, ColorF, ColorU, RasterSpace,
     ImageKey as ApiImageKey, ImageRendering,
     PremultipliedColorF, Shadow, YuvColorSpace, ColorRange, YuvFormat,
 };
@@ -13,6 +13,7 @@ use crate::frame_builder::FrameBuildingState;
 use crate::gpu_cache::{GpuCache, GpuDataRequest};
 use crate::intern::{Internable, InternDebug, Handle as InternHandle};
 use crate::internal_types::{LayoutPrimitiveInfo};
+use crate::picture::SurfaceIndex;
 use crate::prim_store::{
     EdgeAaSegmentMask, PrimitiveInstanceKind,
     PrimitiveOpacity, PrimKey,
@@ -22,7 +23,7 @@ use crate::prim_store::{
 use crate::render_target::RenderTargetKind;
 use crate::render_task::{BlitSource, RenderTask};
 use crate::render_task_cache::{
-    RenderTaskCacheEntryHandle, RenderTaskCacheKey, RenderTaskCacheKeyKind
+    RenderTaskCacheEntryHandle, RenderTaskCacheKey, RenderTaskCacheKeyKind, RenderTaskParent
 };
 use crate::resource_cache::{ImageRequest, ResourceCache};
 use crate::util::pack_as_float;
@@ -145,6 +146,7 @@ impl ImageData {
     pub fn update(
         &mut self,
         common: &mut PrimTemplateCommonData,
+        parent_surface: SurfaceIndex,
         frame_state: &mut FrameBuildingState,
     ) {
         if let Some(mut request) = frame_state.gpu_cache.request(&mut common.gpu_cache_handle) {
@@ -210,17 +212,19 @@ impl ImageData {
                                     kind: RenderTaskCacheKeyKind::Image(image_cache_key),
                                 },
                                 frame_state.gpu_cache,
-                                frame_state.render_tasks,
+                                frame_state.rg_builder,
                                 None,
                                 image_properties.descriptor.is_opaque(),
-                                |render_tasks| {
+                                RenderTaskParent::Surface(parent_surface),
+                                frame_state.surfaces,
+                                |rg_builder| {
                                     // Create a task to blit from the texture cache to
                                     // a normal transient render task surface. This will
                                     // copy only the sub-rect, if specified.
                                     // TODO: figure out if/when we can do a blit instead.
                                     let cache_to_target_task_id = RenderTask::new_scaling_with_padding(
                                         BlitSource::Image { key: image_cache_key },
-                                        render_tasks,
+                                        rg_builder,
                                         target_kind,
                                         *size,
                                         padding,
@@ -229,12 +233,13 @@ impl ImageData {
                                     // Create a task to blit the rect from the child render
                                     // task above back into the right spot in the persistent
                                     // render target cache.
-                                    render_tasks.add().init(RenderTask::new_blit(
+                                    RenderTask::new_blit(
                                         *size,
                                         BlitSource::RenderTask {
                                             task_id: cache_to_target_task_id,
                                         },
-                                    ))
+                                        rg_builder,
+                                    )
                                 }
                             ));
                         }
@@ -322,7 +327,12 @@ impl InternablePrimitive for Image {
 }
 
 impl CreateShadow for Image {
-    fn create_shadow(&self, shadow: &Shadow) -> Self {
+    fn create_shadow(
+        &self,
+        shadow: &Shadow,
+        _: bool,
+        _: RasterSpace,
+    ) -> Self {
         Image {
             tile_spacing: self.tile_spacing,
             stretch_size: self.stretch_size,

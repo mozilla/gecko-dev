@@ -1,11 +1,9 @@
-// |jit-test| --no-warp; --ion-osr=off
-
+// |jit-test| --no-ion; --ion-osr=off
 // Warp lacks Scalar Replacement support (bug 1650233). Re-evaluate after that
 // bug has been fixed.
 
 var max = 40;
 setJitCompilerOption("ion.warmup.trigger", max - 10);
-setJitCompilerOption("ion.full.warmup.trigger", max - 10);
 
 // Prevent the GC from cancelling Ion compilations, when we expect them to succeed
 gczeal(0);

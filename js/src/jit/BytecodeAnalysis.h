@@ -56,7 +56,7 @@ class BytecodeAnalysis {
  public:
   explicit BytecodeAnalysis(TempAllocator& alloc, JSScript* script);
 
-  MOZ_MUST_USE bool init(TempAllocator& alloc);
+  [[nodiscard]] bool init(TempAllocator& alloc);
 
   BytecodeInfo& info(jsbytecode* pc) {
     uint32_t pcOffset = script_->pcToOffset(pc);
@@ -77,7 +77,7 @@ class BytecodeAnalysis {
   void checkWarpSupport(JSOp op);
 };
 
-// Bytecode analysis pass necessary for IonBuilder. The result is cached in
+// Bytecode analysis pass necessary for WarpBuilder. The result is cached in
 // JitScript.
 struct IonBytecodeInfo;
 IonBytecodeInfo AnalyzeBytecodeForIon(JSContext* cx, JSScript* script);

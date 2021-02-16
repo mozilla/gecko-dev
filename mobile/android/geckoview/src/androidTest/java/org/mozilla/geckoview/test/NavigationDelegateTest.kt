@@ -4,6 +4,8 @@
 
 package org.mozilla.geckoview.test
 
+import android.os.SystemClock
+import android.view.KeyEvent
 import android.util.Base64
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -25,7 +27,24 @@ import org.mozilla.geckoview.test.util.UiThreadUtils
 @MediumTest
 class NavigationDelegateTest : BaseSessionTest() {
 
-    fun testLoadErrorWithErrorPage(testUri: String, expectedCategory: Int,
+    // Provides getters for Loader
+    class TestLoader : Loader() {
+        var mUri: String? = null
+        override fun uri(uri: String): TestLoader {
+            mUri = uri
+            super.uri(uri)
+            return this
+        }
+        fun getUri() : String? {
+            return mUri
+        }
+        override fun flags(f: Int): TestLoader {
+            super.flags(f)
+            return this
+        }
+    }
+
+    fun testLoadErrorWithErrorPage(testLoader: TestLoader, expectedCategory: Int,
                                    expectedError: Int,
                                    errorPageUrl: String?) {
         sessionRule.delegateDuringNextWait(
@@ -34,7 +53,8 @@ class NavigationDelegateTest : BaseSessionTest() {
                     override fun onLoadRequest(session: GeckoSession,
                                                request: LoadRequest):
                                                GeckoResult<AllowOrDeny>? {
-                        assertThat("URI should be " + testUri, request.uri, equalTo(testUri))
+                        assertThat("URI should be " + testLoader.getUri(), request.uri,
+                                equalTo(testLoader.getUri()))
                         assertThat("App requested this load", request.isDirectNavigation,
                                 equalTo(true))
                         return null
@@ -42,7 +62,8 @@ class NavigationDelegateTest : BaseSessionTest() {
 
                     @AssertCalled(count = 1, order = [2])
                     override fun onPageStart(session: GeckoSession, url: String) {
-                        assertThat("URI should be " + testUri, url, equalTo(testUri))
+                        assertThat("URI should be " + testLoader.getUri(), url,
+                                equalTo(testLoader.getUri()))
                     }
 
                     @AssertCalled(count = 1, order = [3])
@@ -61,14 +82,14 @@ class NavigationDelegateTest : BaseSessionTest() {
                     }
                 })
 
-        sessionRule.session.loadUri(testUri)
+        sessionRule.session.load(testLoader)
         sessionRule.waitForPageStop()
 
         if (errorPageUrl != null) {
             sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate, Callbacks.NavigationDelegate {
                 @AssertCalled(count = 1, order = [1])
                 override fun onLocationChange(session: GeckoSession, url: String?) {
-                    assertThat("URL should match", url, equalTo(testUri))
+                    assertThat("URL should match", url, equalTo(testLoader.getUri()))
                 }
 
                 @AssertCalled(count = 1, order = [2])
@@ -81,9 +102,14 @@ class NavigationDelegateTest : BaseSessionTest() {
 
     fun testLoadExpectError(testUri: String, expectedCategory: Int,
                             expectedError: Int) {
-        testLoadErrorWithErrorPage(testUri, expectedCategory,
+        testLoadExpectError(TestLoader().uri(testUri), expectedCategory, expectedError)
+    }
+
+    fun testLoadExpectError(testLoader: TestLoader, expectedCategory: Int,
+                            expectedError: Int) {
+        testLoadErrorWithErrorPage(testLoader, expectedCategory,
                 expectedError, createTestUrl(HELLO_HTML_PATH))
-        testLoadErrorWithErrorPage(testUri, expectedCategory,
+        testLoadErrorWithErrorPage(testLoader, expectedCategory,
                 expectedError, null)
     }
 
@@ -156,6 +182,21 @@ class NavigationDelegateTest : BaseSessionTest() {
         testLoadExpectError(UNKNOWN_HOST_URI,
                 WebRequestError.ERROR_CATEGORY_URI,
                 WebRequestError.ERROR_UNKNOWN_HOST)
+    }
+
+    // External loads should not have access to privileged protocols
+    @Test fun loadExternalDenied() {
+        // TODO: Bug 1673954
+        assumeThat(sessionRule.env.isFission, equalTo(false))
+        testLoadExpectError(TestLoader().uri("file:///").flags(LOAD_FLAGS_EXTERNAL),
+                WebRequestError.ERROR_CATEGORY_UNKNOWN,
+                WebRequestError.ERROR_UNKNOWN)
+        testLoadExpectError(TestLoader().uri("resource://gre/").flags(LOAD_FLAGS_EXTERNAL),
+                WebRequestError.ERROR_CATEGORY_UNKNOWN,
+                WebRequestError.ERROR_UNKNOWN)
+        testLoadExpectError(TestLoader().uri("about:about").flags(LOAD_FLAGS_EXTERNAL),
+                WebRequestError.ERROR_CATEGORY_UNKNOWN,
+                WebRequestError.ERROR_UNKNOWN)
     }
 
     @Test fun loadInvalidUri() {
@@ -1332,6 +1373,45 @@ class NavigationDelegateTest : BaseSessionTest() {
 
             @AssertCalled(count = 0)
             override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession>? {
+                return null
+            }
+        })
+    }
+
+    @Test fun onNewSession_submitFormWithTargetBlank() {
+        sessionRule.session.loadTestPath(FORM_BLANK_HTML_PATH)
+        sessionRule.waitForPageStop()
+
+        sessionRule.session.evaluateJS("""
+            document.querySelector('input[type=text]').focus()
+        """)
+        sessionRule.session.waitUntilCalled(GeckoSession.TextInputDelegate::class,
+                                            "restartInput")
+
+        val time = SystemClock.uptimeMillis()
+        val keyEvent = KeyEvent(time, time, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER, 0)
+        sessionRule.session.textInput.onKeyDown(KeyEvent.KEYCODE_ENTER, keyEvent)
+        sessionRule.session.textInput.onKeyUp(KeyEvent.KEYCODE_ENTER,
+                                              KeyEvent.changeAction(keyEvent,
+                                                                    KeyEvent.ACTION_UP))
+
+        sessionRule.session.waitUntilCalled(object : Callbacks.NavigationDelegate {
+            @AssertCalled(count = 1, order = [1])
+            override fun onLoadRequest(session: GeckoSession, request: LoadRequest):
+                                       GeckoResult<AllowOrDeny>? {
+                assertThat("URL should be correct", request.uri,
+                           endsWith("form_blank.html?"))
+                assertThat("Trigger URL should match", request.triggerUri,
+                           endsWith("form_blank.html"))
+                assertThat("Target should be correct", request.target,
+                           equalTo(GeckoSession.NavigationDelegate.TARGET_WINDOW_NEW))
+                return null
+            }
+
+            @AssertCalled(count = 1, order = [2])
+            override fun onNewSession(session: GeckoSession, uri: String):
+                                      GeckoResult<GeckoSession>? {
+                assertThat("URL should be correct", uri, endsWith("form_blank.html?"))
                 return null
             }
         })

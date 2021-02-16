@@ -132,9 +132,8 @@ bool SVGCircleElement::GetGeometryBounds(
 
 already_AddRefed<Path> SVGCircleElement::BuildPath(PathBuilder* aBuilder) {
   float x, y, r;
-  if (!SVGGeometryProperty::ResolveAllAllowFallback<SVGT::Cx, SVGT::Cy,
-                                                    SVGT::R>(this, &x, &y,
-                                                             &r)) {
+  if (!SVGGeometryProperty::ResolveAll<SVGT::Cx, SVGT::Cy, SVGT::R>(this, &x,
+                                                                    &y, &r)) {
     // This function might be called for element in display:none subtree
     // (e.g. getTotalLength), we fall back to use SVG attributes.
     GetAnimatedLengthValues(&x, &y, &r, nullptr);
@@ -151,12 +150,11 @@ already_AddRefed<Path> SVGCircleElement::BuildPath(PathBuilder* aBuilder) {
 
 bool SVGCircleElement::IsLengthChangedViaCSS(const ComputedStyle& aNewStyle,
                                              const ComputedStyle& aOldStyle) {
-  auto *newSVGReset = aNewStyle.StyleSVGReset(),
-       *oldSVGReset = aOldStyle.StyleSVGReset();
+  const auto& newSVGReset = *aNewStyle.StyleSVGReset();
+  const auto& oldSVGReset = *aOldStyle.StyleSVGReset();
 
-  return newSVGReset->mCx != oldSVGReset->mCx ||
-         newSVGReset->mCy != oldSVGReset->mCy ||
-         newSVGReset->mR != oldSVGReset->mR;
+  return newSVGReset.mCx != oldSVGReset.mCx ||
+         newSVGReset.mCy != oldSVGReset.mCy || newSVGReset.mR != oldSVGReset.mR;
 }
 
 nsCSSPropertyID SVGCircleElement::GetCSSPropertyIdForAttrEnum(

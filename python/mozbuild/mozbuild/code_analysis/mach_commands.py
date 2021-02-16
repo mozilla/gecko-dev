@@ -20,6 +20,7 @@ import xml.etree.ElementTree as ET
 import yaml
 
 import six
+from six.moves import input
 
 from mach.decorators import (
     CommandArgument,
@@ -68,7 +69,7 @@ def prompt_bool(prompt, limit=5):
 
     for _ in range(limit):
         try:
-            return strtobool(raw_input(prompt + "[Y/N]\n"))
+            return strtobool(input(prompt + "[Y/N]\n"))
         except ValueError:
             print(
                 "ERROR! Please enter a valid option! Please use any of the following:"
@@ -1224,6 +1225,15 @@ class StaticAnalysis(MachCommandBase):
                 .strip()
             )
 
+            if "MOZ_AUTOMATION" in os.environ:
+                # Only show it in the CI
+                self.log(
+                    logging.INFO,
+                    "static-analysis",
+                    {},
+                    "{} Version = {} ".format(self._clang_format_path, version_info),
+                )
+
         except subprocess.CalledProcessError as e:
             self.log(
                 logging.ERROR,
@@ -2152,6 +2162,7 @@ class StaticAnalysis(MachCommandBase):
 
         max_workers = multiprocessing.cpu_count()
 
+        rc = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = []
             for command in commands:
@@ -2164,6 +2175,11 @@ class StaticAnalysis(MachCommandBase):
                         ensure_exit_code=False,
                     )
                 )
+            for thread in concurrent.futures.as_completed(futures):
+                if thread.result() != 0:
+                    rc = thread.result()
+
+        return rc
 
     @Command(
         "clang-format",
@@ -2389,6 +2405,8 @@ class StaticAnalysis(MachCommandBase):
             clang_output = clang_output[: end.start() - 1]
 
         platform, _ = self.platform
+        re_strip_colors = re.compile(r"\x1b\[[\d;]+m", re.MULTILINE)
+        filtered = re_strip_colors.sub("", clang_output)
         # Starting with clang 8, for the diagnostic messages we have multiple `LF CR`
         # in order to be compatiable with msvc compiler format, and for this
         # we are not interested to match the end of line.
@@ -2403,7 +2421,7 @@ class StaticAnalysis(MachCommandBase):
         regex_header = re.compile(regex_string, re.MULTILINE)
 
         # Sort headers by positions
-        headers = sorted(regex_header.finditer(clang_output), key=lambda h: h.start())
+        headers = sorted(regex_header.finditer(filtered), key=lambda h: h.start())
         issues = []
         for _, header in enumerate(headers):
             header_group = header.groups()

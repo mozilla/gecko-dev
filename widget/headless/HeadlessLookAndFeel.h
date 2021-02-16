@@ -15,20 +15,35 @@ namespace widget {
 
 #if defined(MOZ_WIDGET_GTK)
 
-// Our nsLookAndFeel for GTK relies on APIs that aren't available in headless
-// mode, so we use an implementation with hardcoded values.
+// Our nsLookAndFeel for Gtk relies on APIs that aren't available in headless
+// mode, so for processes that are unable to connect to a display server, we use
+// an implementation with hardcoded values.
+//
+// HeadlessLookAndFeel is used:
+//
+//   * in the parent process, when full headless mode (MOZ_HEADLESS=1) is
+//     enabled
+//   * in content processes, when full headless mode or headless content
+//     mode (security.sandbox.content.headless) is enabled, unless
+//     widget.remote-look-and-feel is also enabled, in which case
+//     RemoteLookAndFeel is used instead.
+//
+// The result of this is that when headless content mode is enabled, content
+// processes use values derived from the parent's nsLookAndFeel (i.e., values
+// derived from Gtk APIs) while still refraining from making any display server
+// connections.
 
 class HeadlessLookAndFeel : public nsXPLookAndFeel {
  public:
-  HeadlessLookAndFeel();
+  explicit HeadlessLookAndFeel(const LookAndFeelCache* aCache);
   virtual ~HeadlessLookAndFeel();
 
-  virtual nsresult NativeGetColor(ColorID aID, nscolor& aResult) override;
   void NativeInit() final{};
-  virtual nsresult GetIntImpl(IntID aID, int32_t& aResult) override;
-  virtual nsresult GetFloatImpl(FloatID aID, float& aResult) override;
-  virtual bool GetFontImpl(FontID aID, nsString& aFontName,
-                           gfxFontStyle& aFontStyle) override;
+  virtual nsresult NativeGetInt(IntID aID, int32_t& aResult) override;
+  virtual nsresult NativeGetFloat(FloatID aID, float& aResult) override;
+  virtual nsresult NativeGetColor(ColorID aID, nscolor& aResult) override;
+  virtual bool NativeGetFont(FontID aID, nsString& aFontName,
+                             gfxFontStyle& aFontStyle) override;
 
   virtual void RefreshImpl() override;
   virtual char16_t GetPasswordCharacterImpl() override;

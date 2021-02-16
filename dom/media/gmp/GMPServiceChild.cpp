@@ -16,9 +16,11 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "nsCOMPtr.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIObserverService.h"
+#include "nsReadableUtils.h"
 #include "nsXPCOMPrivate.h"
 #include "runnable_utils.h"
 
@@ -96,11 +98,10 @@ GeckoMediaPluginServiceChild::~GeckoMediaPluginServiceChild() {
   MOZ_ASSERT(!mServiceChild);
 }
 
-template <typename Func>
 RefPtr<GetGMPContentParentPromise>
-GeckoMediaPluginServiceChild::GetContentParentImpl(
-    GMPCrashHelper* aHelper, const nsCString& aAPI,
-    const nsTArray<nsCString>& aTags, Func aSendLaunchGMPFunc) {
+GeckoMediaPluginServiceChild::GetContentParent(
+    GMPCrashHelper* aHelper, const NodeIdVariant& aNodeIdVariant,
+    const nsCString& aAPI, const nsTArray<nsCString>& aTags) {
   MOZ_ASSERT(mGMPThread->IsOnCurrentThread());
   MOZ_ASSERT(!mShuttingDownOnGMPThread,
              "Should not be called if GMPThread is shutting down!");
@@ -118,7 +119,7 @@ GeckoMediaPluginServiceChild::GetContentParentImpl(
 
   GetServiceChild()->Then(
       thread, __func__,
-      [aSendLaunchGMPFunc, self, api, tags = aTags.Clone(), helper,
+      [nodeIdVariant = aNodeIdVariant, self, api, tags = aTags.Clone(), helper,
        rawHolder](GMPServiceChild* child) {
         UniquePtr<MozPromiseHolder<GetGMPContentParentPromise>> holder(
             rawHolder);
@@ -133,9 +134,10 @@ GeckoMediaPluginServiceChild::GetContentParentImpl(
         ipc::Endpoint<PGMPContentParent> endpoint;
         nsCString errorDescription;
 
-        bool ok = aSendLaunchGMPFunc(child, api, tags, alreadyBridgedTo,
-                                     &pluginId, &otherProcess, &displayName,
-                                     &endpoint, &rv, &errorDescription);
+        bool ok = child->SendLaunchGMP(
+            nodeIdVariant, api, tags, alreadyBridgedTo, &pluginId,
+            &otherProcess, &displayName, &endpoint, &rv, &errorDescription);
+
         if (helper && pluginId) {
           // Note: Even if the launch failed, we need to connect the crash
           // helper so that if the launch failed due to the plugin crashing, we
@@ -190,45 +192,6 @@ GeckoMediaPluginServiceChild::GetContentParentImpl(
   return promise;
 }
 
-RefPtr<GetGMPContentParentPromise>
-GeckoMediaPluginServiceChild::GetContentParent(
-    GMPCrashHelper* aHelper, const nsACString& aNodeIdString,
-    const nsCString& aAPI, const nsTArray<nsCString>& aTags) {
-  return GetContentParentImpl(
-      aHelper, aAPI, aTags,
-      [nodeIdString = nsCString(aNodeIdString)](
-          GMPServiceChild* child, const nsCString& api,
-          const nsTArray<nsCString>& tags,
-          const nsTArray<base::ProcessId>& alreadyBridgedTo, uint32_t* pluginId,
-          base::ProcessId* otherProcess, nsCString* displayName,
-          ipc::Endpoint<PGMPContentParent>* endpoint, nsresult* result,
-          nsCString* errorDescription) {
-        return child->SendLaunchGMP(nodeIdString, api, tags, alreadyBridgedTo,
-                                    pluginId, otherProcess, displayName,
-                                    endpoint, result, errorDescription);
-      });
-}
-
-RefPtr<GetGMPContentParentPromise>
-GeckoMediaPluginServiceChild::GetContentParent(
-    GMPCrashHelper* aHelper, const NodeId& aNodeId, const nsCString& aAPI,
-    const nsTArray<nsCString>& aTags) {
-  return GetContentParentImpl(
-      aHelper, aAPI, aTags,
-      [nodeId = NodeIdData(aNodeId.mOrigin, aNodeId.mTopLevelOrigin,
-                           aNodeId.mGMPName)](
-          GMPServiceChild* child, const nsCString& api,
-          const nsTArray<nsCString>& tags,
-          const nsTArray<base::ProcessId>& alreadyBridgedTo, uint32_t* pluginId,
-          base::ProcessId* otherProcess, nsCString* displayName,
-          ipc::Endpoint<PGMPContentParent>* endpoint, nsresult* result,
-          nsCString* errorDescription) {
-        return child->SendLaunchGMPForNodeId(
-            nodeId, api, tags, alreadyBridgedTo, pluginId, otherProcess,
-            displayName, endpoint, result, errorDescription);
-      });
-}
-
 typedef mozilla::dom::GMPCapabilityData GMPCapabilityData;
 typedef mozilla::dom::GMPAPITags GMPAPITags;
 
@@ -251,18 +214,14 @@ struct GMPCapabilityAndVersion {
     s.AppendLiteral(" version=");
     s.Append(mVersion);
     s.AppendLiteral(" tags=[");
-    nsCString tags;
-    for (const GMPCapability& cap : mCapabilities) {
-      if (!tags.IsEmpty()) {
-        tags.AppendLiteral(" ");
-      }
-      tags.Append(cap.mAPIName);
-      for (const nsCString& tag : cap.mAPITags) {
-        tags.AppendLiteral(":");
-        tags.Append(tag);
-      }
-    }
-    s.Append(tags);
+    StringJoinAppend(s, " "_ns, mCapabilities,
+                     [](auto& tags, const GMPCapability& cap) {
+                       tags.Append(cap.mAPIName);
+                       for (const nsCString& tag : cap.mAPITags) {
+                         tags.AppendLiteral(":");
+                         tags.Append(tag);
+                       }
+                     });
     s.AppendLiteral("]");
     return s;
   }
@@ -275,23 +234,19 @@ struct GMPCapabilityAndVersion {
 StaticMutex sGMPCapabilitiesMutex;
 StaticAutoPtr<nsTArray<GMPCapabilityAndVersion>> sGMPCapabilities;
 
-static nsCString GMPCapabilitiesToString() {
-  nsCString s;
-  for (const GMPCapabilityAndVersion& gmp : *sGMPCapabilities) {
-    if (!s.IsEmpty()) {
-      s.AppendLiteral(", ");
-    }
-    s.Append(gmp.ToString());
-  }
-  return s;
+static auto GMPCapabilitiesToString() {
+  return StringJoin(", "_ns, *sGMPCapabilities,
+                    [](nsACString& dest, const GMPCapabilityAndVersion& gmp) {
+                      dest.Append(gmp.ToString());
+                    });
 }
 
 /* static */
 void GeckoMediaPluginServiceChild::UpdateGMPCapabilities(
     nsTArray<GMPCapabilityData>&& aCapabilities) {
   {
-    // The mutex should unlock before sending the "gmp-changed" observer service
-    // notification.
+    // The mutex should unlock before sending the "gmp-changed" observer
+    // service notification.
     StaticMutexAutoLock lock(sGMPCapabilitiesMutex);
     if (!sGMPCapabilities) {
       sGMPCapabilities = new nsTArray<GMPCapabilityAndVersion>();

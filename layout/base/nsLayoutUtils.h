@@ -12,7 +12,6 @@
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/ReflowOutput.h"
 #include "mozilla/RelativeTo.h"
 #include "mozilla/StaticPrefs_nglayout.h"
 #include "mozilla/SurfaceFromElementResult.h"
@@ -20,18 +19,15 @@
 #include "mozilla/ToString.h"
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/WritingModes.h"
 #include "mozilla/layout/FrameChildList.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
 #include "mozilla/gfx/2D.h"
 
-#include "gfx2DGlue.h"
 #include "gfxPoint.h"
 #include "nsBoundingMetrics.h"
 #include "nsCSSPropertyIDSet.h"
-#include "nsClassHashtable.h"
-#include "nsGkAtoms.h"
 #include "nsThreadUtils.h"
-#include "ImageContainer.h"  // for layers::Image
 #include "Units.h"
 #include "mozilla/layers/LayersTypes.h"
 #include <limits>
@@ -69,7 +65,6 @@ class nsIFrame;
 class nsPIDOMWindowOuter;
 class imgIRequest;
 struct nsStyleFont;
-struct nsOverflowAreas;
 
 namespace mozilla {
 struct AspectRatio;
@@ -81,12 +76,14 @@ class EventListenerManager;
 enum class LayoutFrameType : uint8_t;
 struct IntrinsicSize;
 struct ContainerLayerParameters;
+class ReflowOutput;
 class WritingMode;
 class DisplayItemClip;
 class EffectSet;
 struct ActiveScrolledRoot;
 enum class ScrollOrigin : uint8_t;
 enum class StyleImageOrientation : uint8_t;
+struct OverflowAreas;
 namespace dom {
 class CanvasRenderingContext2D;
 class DOMRectList;
@@ -570,6 +567,14 @@ class nsLayoutUtils {
      * would be undesirable as a 'position:sticky' container for content).
      */
     SCROLLABLE_STOP_AT_PAGE = 0x20,
+    /**
+     * If the SCROLLABLE_FOLLOW_OOF_TO_PLACEHOLDER flag is set, we navigate
+     * from out-of-flow frames to their placeholder frame rather than their
+     * parent frame.
+     * Note, fixed-pos frames are out-of-flow frames, but
+     * SCROLLABLE_FIXEDPOS_FINDS_ROOT takes precedence over this.
+     */
+    SCROLLABLE_FOLLOW_OOF_TO_PLACEHOLDER = 0x40
   };
   /**
    * GetNearestScrollableFrame locates the first ancestor of aFrame
@@ -750,16 +755,32 @@ class nsLayoutUtils {
     OnlyVisible,
   };
 
+  struct FrameForPointOptions {
+    using Bits = mozilla::EnumSet<FrameForPointOption>;
+
+    Bits mBits;
+    // If mBits contains OnlyVisible, what is the opacity threshold which we
+    // consider "opaque enough" to clobber stuff underneath.
+    float mVisibleThreshold;
+
+    FrameForPointOptions(Bits aBits, float aVisibleThreshold)
+        : mBits(aBits), mVisibleThreshold(aVisibleThreshold){};
+
+    MOZ_IMPLICIT FrameForPointOptions(Bits aBits)
+        : FrameForPointOptions(aBits, 1.0f) {}
+
+    FrameForPointOptions() : FrameForPointOptions(Bits()){};
+  };
+
   /**
    * Given aFrame, the root frame of a stacking context, find its descendant
    * frame under the point aPt that receives a mouse event at that location,
    * or nullptr if there is no such frame.
    * @param aPt the point, relative to the frame origin, in either visual
    *            or layout coordinates depending on aRelativeTo.mViewportType
-   * @param aFlags some combination of FrameForPointOption.
    */
   static nsIFrame* GetFrameForPoint(RelativeTo aRelativeTo, nsPoint aPt,
-                                    mozilla::EnumSet<FrameForPointOption> = {});
+                                    const FrameForPointOptions& = {});
 
   /**
    * Given aFrame, the root frame of a stacking context, find all descendant
@@ -768,11 +789,10 @@ class nsLayoutUtils {
    * @param aRect the rect, relative to the frame origin, in either visual
    *              or layout coordinates depending on aRelativeTo.mViewportType
    * @param aOutFrames an array to add all the frames found
-   * @param aFlags some combination of FrameForPointOption.
    */
   static nsresult GetFramesForArea(RelativeTo aRelativeTo, const nsRect& aRect,
                                    nsTArray<nsIFrame*>& aOutFrames,
-                                   mozilla::EnumSet<FrameForPointOption> = {});
+                                   const FrameForPointOptions& = {});
 
   /**
    * Transform aRect relative to aFrame up to the coordinate system of
@@ -861,7 +881,7 @@ class nsLayoutUtils {
    * Gets the scale factors of the transform for aFrame relative to the root
    * frame if this transform is 2D, or the identity scale factors otherwise.
    */
-  static gfxSize GetTransformToAncestorScale(nsIFrame* aFrame);
+  static gfxSize GetTransformToAncestorScale(const nsIFrame* aFrame);
 
   /**
    * Gets the scale factors of the transform for aFrame relative to the root
@@ -1340,7 +1360,7 @@ class nsLayoutUtils {
    * If aFrame is an out of flow frame, return its placeholder, otherwise
    * return its (possibly cross-doc) parent.
    */
-  static nsIFrame* GetParentOrPlaceholderForCrossDoc(nsIFrame* aFrame);
+  static nsIFrame* GetParentOrPlaceholderForCrossDoc(const nsIFrame* aFrame);
 
   /**
    * Returns the frame that would act as the parent of aFrame when
@@ -2304,7 +2324,7 @@ class nsLayoutUtils {
    * kSelectPopupList and kPopupList are always skipped.
    */
   static void UnionChildOverflow(
-      nsIFrame* aFrame, nsOverflowAreas& aOverflowAreas,
+      nsIFrame* aFrame, mozilla::OverflowAreas& aOverflowAreas,
       mozilla::layout::FrameChildListIDs aSkipChildLists =
           mozilla::layout::FrameChildListIDs());
 
@@ -2485,12 +2505,12 @@ class nsLayoutUtils {
    */
   enum class SubtractDynamicToolbar { No, Yes };
   static bool GetContentViewerSize(
-      nsPresContext* aPresContext, LayoutDeviceIntSize& aOutSize,
+      const nsPresContext* aPresContext, LayoutDeviceIntSize& aOutSize,
       SubtractDynamicToolbar = SubtractDynamicToolbar::Yes);
 
  private:
   static bool UpdateCompositionBoundsForRCDRSF(
-      mozilla::ParentLayerRect& aCompBounds, nsPresContext* aPresContext);
+      mozilla::ParentLayerRect& aCompBounds, const nsPresContext* aPresContext);
 
  public:
   /**
@@ -2518,7 +2538,7 @@ class nsLayoutUtils {
    *          mDevPixelsPerCSSPixel set.
    */
   static CSSSize CalculateRootCompositionSize(
-      nsIFrame* aFrame, bool aIsRootContentDocRootScrollFrame,
+      const nsIFrame* aFrame, bool aIsRootContentDocRootScrollFrame,
       const FrameMetrics& aMetrics);
 
   /**
@@ -2528,7 +2548,7 @@ class nsLayoutUtils {
    * scrollable rect as the rect of the root frame.
    */
   static nsRect CalculateScrollableRectForFrame(
-      nsIScrollableFrame* aScrollableFrame, nsIFrame* aRootFrame);
+      const nsIScrollableFrame* aScrollableFrame, const nsIFrame* aRootFrame);
 
   /**
    * Calculate the expanded scrollable rect for a frame. See FrameMetrics.h for
@@ -2644,8 +2664,8 @@ class nsLayoutUtils {
   static bool CanScrollOriginClobberApz(ScrollOrigin aScrollOrigin);
 
   static ScrollMetadata ComputeScrollMetadata(
-      nsIFrame* aForFrame, nsIFrame* aScrollFrame, nsIContent* aContent,
-      const nsIFrame* aReferenceFrame,
+      const nsIFrame* aForFrame, const nsIFrame* aScrollFrame,
+      nsIContent* aContent, const nsIFrame* aReferenceFrame,
       mozilla::layers::LayerManager* aLayerManager, ViewID aScrollParentId,
       const nsSize& aScrollPortSize, const mozilla::Maybe<nsRect>& aClipRect,
       bool aIsRoot,
@@ -2674,7 +2694,7 @@ class nsLayoutUtils {
    *     scrollable content.
    */
   static nsMargin ScrollbarAreaToExcludeFromCompositionBoundsFor(
-      nsIFrame* aScrollFrame);
+      const nsIFrame* aScrollFrame);
 
   /**
    * Looks in the layer subtree rooted at aLayer for a metrics with scroll id
@@ -2712,7 +2732,7 @@ class nsLayoutUtils {
    *
    * @param aSel      Selection to check
    */
-  static nsRect GetSelectionBoundingRect(mozilla::dom::Selection* aSel);
+  static nsRect GetSelectionBoundingRect(const mozilla::dom::Selection* aSel);
 
   /**
    * Calculate the bounding rect of |aContent|, relative to the origin
@@ -2722,6 +2742,12 @@ class nsLayoutUtils {
    */
   static CSSRect GetBoundingContentRect(
       const nsIContent* aContent, const nsIScrollableFrame* aRootScrollFrame);
+
+  /**
+   * Similar to GetBoundingContentRect for nsIFrame.
+   */
+  static CSSRect GetBoundingFrameRect(
+      nsIFrame* aFrame, const nsIScrollableFrame* aRootScrollFrame);
 
   /**
    * Returns the first ancestor who is a float containing block.
@@ -2875,9 +2901,9 @@ class nsLayoutUtils {
   static nsSize ExpandHeightForViewportUnits(nsPresContext* aPresContext,
                                              const nsSize& aSize);
 
-  static CSSSize ExpandHeightForDynamicToolbar(nsPresContext* aPresContext,
-                                               const CSSSize& aSize);
-  static nsSize ExpandHeightForDynamicToolbar(nsPresContext* aPresContext,
+  static CSSSize ExpandHeightForDynamicToolbar(
+      const nsPresContext* aPresContext, const CSSSize& aSize);
+  static nsSize ExpandHeightForDynamicToolbar(const nsPresContext* aPresContext,
                                               const nsSize& aSize);
 
   /**

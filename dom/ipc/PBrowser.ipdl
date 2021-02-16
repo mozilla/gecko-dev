@@ -20,6 +20,7 @@ include protocol PRemoteLazyInputStream;
 include protocol PPaymentRequest;
 include protocol PWindowGlobal;
 include protocol PBrowserBridge;
+include protocol PVsync;
 
 include DOMTypes;
 include NeckoChannelParams;
@@ -32,11 +33,17 @@ include PTabContext;
 include PBackgroundSharedTypes;
 
 include "mozilla/AntiTrackingIPCUtils.h";
+include "mozilla/dom/BindingIPCUtils.h";
+include "mozilla/dom/CSPMessageUtils.h";
+include "mozilla/dom/DocShellMessageUtils.h";
+include "mozilla/dom/PermissionMessageUtils.h";
+include "mozilla/dom/ReferrerInfoUtils.h";
 include "mozilla/dom/TabMessageUtils.h";
 include "mozilla/GfxMessageUtils.h";
 include "mozilla/LayoutMessageUtils.h";
 include "mozilla/layers/LayersMessageUtils.h";
 include "mozilla/ipc/TransportSecurityInfoUtils.h";
+include "mozilla/ipc/URIUtils.h";
 
 using mozilla::gfx::Matrix4x4 from "mozilla/gfx/Matrix.h";
 using mozilla::gfx::MaybeMatrix4x4 from "mozilla/gfx/Matrix.h";
@@ -54,8 +61,8 @@ using mozilla::layers::LayersObserverEpoch from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::MaybeZoomConstraints from "mozilla/layers/ZoomConstraints.h";
 using mozilla::layers::GeckoContentController_TapType from "mozilla/layers/GeckoContentControllerTypes.h";
 using ScrollableLayerGuid::ViewID from "mozilla/layers/ScrollableLayerGuid.h";
-using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
-using mozilla::WindowsHandle from "ipc/IPCMessageUtils.h";
+using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
+using mozilla::WindowsHandle from "mozilla/ipc/IPCTypes.h";
 using class mozilla::WidgetCompositionEvent from "ipc/nsGUIEventIPC.h";
 using struct mozilla::widget::IMENotification from "mozilla/widget/IMEData.h";
 using struct mozilla::widget::IMENotificationRequests from "mozilla/widget/IMEData.h";
@@ -72,7 +79,6 @@ using class mozilla::WidgetDragEvent from "ipc/nsGUIEventIPC.h";
 using struct nsRect from "nsRect.h";
 using class mozilla::WidgetSelectionEvent from "ipc/nsGUIEventIPC.h";
 using class mozilla::WidgetTouchEvent from "ipc/nsGUIEventIPC.h";
-using class mozilla::WidgetPluginEvent from "ipc/nsGUIEventIPC.h";
 using struct mozilla::dom::RemoteDOMEvent from "mozilla/dom/TabMessageTypes.h";
 using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
 using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
@@ -86,9 +92,9 @@ using class mozilla::dom::ipc::StructuredCloneData from "mozilla/dom/ipc/Structu
 using mozilla::EventMessage from "mozilla/EventForwards.h";
 using nsEventStatus from "mozilla/EventForwards.h";
 using mozilla::Modifiers from "mozilla/EventForwards.h";
-using mozilla::widget::CandidateWindowPosition from "ipc/nsGUIEventIPC.h";
+using struct mozilla::widget::CandidateWindowPosition from "ipc/nsGUIEventIPC.h";
 using class mozilla::NativeEventData from "ipc/nsGUIEventIPC.h";
-using mozilla::FontRange from "ipc/nsGUIEventIPC.h";
+using struct mozilla::FontRange from "ipc/nsGUIEventIPC.h";
 using mozilla::a11y::IAccessibleHolder from "mozilla/a11y/IPCTypes.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 using mozilla::dom::EffectsInfo from "mozilla/dom/EffectsInfo.h";
@@ -159,7 +165,11 @@ struct PrintPreviewResultInfo
 {
   uint32_t sheetCount;
   uint32_t totalPageCount;
+  bool isEmpty;
+  // Whether there's a selection in the previewed page, including its subframes.
   bool hasSelection;
+  // Whether there's a selection in the previewed page, excluding its subframes.
+  bool hasSelfSelection;
 };
 
 /**
@@ -184,6 +194,7 @@ nested(upto inside_cpow) sync refcounted protocol PBrowser
     manages PPaymentRequest;
     manages PWindowGlobal;
     manages PBrowserBridge;
+    manages PVsync;
 
 both:
     async AsyncMessage(nsString aMessage, ClonedMessageData aData);
@@ -210,6 +221,11 @@ parent:
     sync PPluginWidget();
 
     async PPaymentRequest();
+
+    /**
+     * Create a new Vsync connection for our associated root widget
+     */
+    async PVsync();
 
     /**
      * Sends an NS_NATIVE_CHILD_OF_SHAREABLE_WINDOW to be adopted by the
@@ -349,38 +365,6 @@ parent:
     nested(inside_cpow) async OnEventNeedingAckHandled(EventMessage message);
 
     /**
-     * Tells chrome to start plugin IME.  If this results in a string getting
-     * committed, the result is in aCommitted (otherwise aCommitted is empty).
-     *
-     * aKeyboardEvent     The event with which plugin IME is to be started
-     * panelX and panelY  Location in screen coordinates of the IME input panel
-     *                    (should be just under the plugin)
-     * aCommitted         The string committed during IME -- otherwise empty
-     */
-    nested(inside_cpow) sync StartPluginIME(WidgetKeyboardEvent aKeyboardEvent,
-                                            int32_t panelX, int32_t panelY)
-        returns (nsString aCommitted);
-
-    /**
-     * Tells chrome (and specifically the appropriate widget) whether or not
-     * a plugin (inside the widget) has the keyboard focus.  Should be sent
-     * when the keyboard focus changes too or from a plugin.
-     *
-     * aFocused  Whether or not a plugin is focused
-     */
-    nested(inside_cpow) async SetPluginFocused(bool aFocused);
-
-    /**
-     * Set IME candidate window by windowless plugin if plugin has focus.
-     */
-    async SetCandidateWindowForPlugin(CandidateWindowPosition aPosition);
-
-    /**
-     * Enable or Disable IME by windowless plugin if plugin has focus.
-     */
-    async EnableIMEForPlugin(bool aEnable);
-
-    /**
      * Notifies the parent process of native key event data received in a
      * plugin process directly.
      *
@@ -389,11 +373,6 @@ parent:
      *                  PluginInstanceChild.
      */
     nested(inside_cpow) async OnWindowedPluginKeyEvent(NativeEventData aKeyEventData);
-
-    /**
-     *  When plugin event isn't consumed, call this
-     */
-    async DefaultProcOfPluginEvent(WidgetPluginEvent aEvent);
 
     /**
      * Request that the parent process move focus to the browser's frame. If
@@ -626,7 +605,7 @@ child:
     /**
      * Parent informs the child to release all pointer capture.
      */
-    async ReleaseAllPointerCapture();
+    prio(input) async ReleaseAllPointerCapture();
 
 parent:
 
@@ -718,9 +697,9 @@ child:
     /**
      * Sending an activate message moves focus to the child.
      */
-    async Activate();
+    async Activate(uint64_t aActionId);
 
-    async Deactivate();
+    async Deactivate(uint64_t aActionId);
 
     async ScrollbarPreferenceChanged(ScrollbarPreference pref);
 
@@ -748,8 +727,6 @@ child:
 
     async DynamicToolbarOffsetChanged(ScreenIntCoord height);
 
-    async ParentActivated(bool aActivated);
-
     async SetKeyboardIndicators(UIStateChangeType showFocusRings);
 
     /**
@@ -775,10 +752,23 @@ child:
     prio(input) async RealMouseMoveEvent(WidgetMouseEvent event,
                                          ScrollableLayerGuid aGuid,
                                          uint64_t aInputBlockId) compress;
-
     async NormalPriorityRealMouseMoveEvent(WidgetMouseEvent event,
                                            ScrollableLayerGuid aGuid,
                                            uint64_t aInputBlockId) compress;
+
+    /**
+     * But don't compress mousemove events for tests since every event is
+     * important for the test since synthesizing various input events may
+     * be faster than what the user operates same things.  If you need to
+     * test the `compress`, send mouse move events with setting `isSyntehsized`
+     * of `aEvent` of `EventUtils#syntehsizeMouse*()`.
+     */
+    prio(input) async RealMouseMoveEventForTests(WidgetMouseEvent event,
+                                                 ScrollableLayerGuid aGuid,
+                                                 uint64_t aInputBlockId);
+    async NormalPriorityRealMouseMoveEventForTests(WidgetMouseEvent event,
+                                                   ScrollableLayerGuid aGuid,
+                                                   uint64_t aInputBlockId);
 
     /**
      * Mouse move events with |reason == eSynthesized| are sent via a separate
@@ -852,8 +842,6 @@ child:
                         uint32_t aDropEffect, nsIPrincipal aPrincipal,
                         nsIContentSecurityPolicy csp);
 
-    async PluginEvent(WidgetPluginEvent aEvent);
-
     prio(input) async CompositionEvent(WidgetCompositionEvent event);
     async NormalPriorityCompositionEvent(WidgetCompositionEvent event);
 
@@ -867,7 +855,7 @@ child:
     async PasteTransferable(IPCDataTransfer aDataTransfer,
                             bool aIsPrivateData,
                             nsIPrincipal aRequestingPrincipal,
-                            uint32_t aContentPolicyType);
+                            nsContentPolicyType aContentPolicyType);
 
     /**
      * Activate event forwarding from client to parent.
@@ -883,16 +871,6 @@ child:
      * parent.
      */
     async Destroy();
-
-    /**
-     * Update the child side docShell active (resource use) state.
-     *
-     * @param aIsActive
-     *        Whether to activate or deactivate the docshell.
-     * @param aPreserveLayers
-     *        Whether layer trees should be preserved for inactive docshells.
-     */
-    async SetDocShellIsActive(bool aIsActive);
 
     /**
      * If aEnabled is true, tells the child to paint and upload layers to

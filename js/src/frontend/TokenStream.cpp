@@ -21,6 +21,7 @@
 #include "mozilla/Utf8.h"
 
 #include <algorithm>
+#include <iterator>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -41,6 +42,7 @@
 #include "js/RegExpFlags.h"           // JS::RegExpFlags
 #include "js/UniquePtr.h"
 #include "util/StringBuffer.h"
+#include "util/Text.h"
 #include "util/Unicode.h"
 #include "vm/FrameIter.h"  // js::{,NonBuiltin}FrameIter
 #include "vm/HelperThreads.h"
@@ -48,7 +50,6 @@
 #include "vm/JSContext.h"
 #include "vm/Realm.h"
 
-using mozilla::ArrayLength;
 using mozilla::AsciiAlphanumericToNumber;
 using mozilla::AssertedCast;
 using mozilla::DecodeOneUtf8CodePoint;
@@ -552,11 +553,10 @@ TokenStreamCharsBase<Unit>::TokenStreamCharsBase(JSContext* cx,
     : TokenStreamCharsShared(cx, pasrerAtoms),
       sourceUnits(units, length, startOffset) {}
 
-template <>
-MOZ_MUST_USE bool TokenStreamCharsBase<char16_t>::
-    fillCharBufferFromSourceNormalizingAsciiLineBreaks(const char16_t* cur,
-                                                       const char16_t* end) {
-  MOZ_ASSERT(this->charBuffer.length() == 0);
+bool FillCharBufferFromSourceNormalizingAsciiLineBreaks(CharBuffer& charBuffer,
+                                                        const char16_t* cur,
+                                                        const char16_t* end) {
+  MOZ_ASSERT(charBuffer.length() == 0);
 
   while (cur < end) {
     char16_t ch = *cur++;
@@ -567,7 +567,7 @@ MOZ_MUST_USE bool TokenStreamCharsBase<char16_t>::
       }
     }
 
-    if (!this->charBuffer.append(ch)) {
+    if (!charBuffer.append(ch)) {
       return false;
     }
   }
@@ -576,11 +576,10 @@ MOZ_MUST_USE bool TokenStreamCharsBase<char16_t>::
   return true;
 }
 
-template <>
-MOZ_MUST_USE bool TokenStreamCharsBase<Utf8Unit>::
-    fillCharBufferFromSourceNormalizingAsciiLineBreaks(const Utf8Unit* cur,
-                                                       const Utf8Unit* end) {
-  MOZ_ASSERT(this->charBuffer.length() == 0);
+bool FillCharBufferFromSourceNormalizingAsciiLineBreaks(CharBuffer& charBuffer,
+                                                        const Utf8Unit* cur,
+                                                        const Utf8Unit* end) {
+  MOZ_ASSERT(charBuffer.length() == 0);
 
   while (cur < end) {
     Utf8Unit unit = *cur++;
@@ -593,7 +592,7 @@ MOZ_MUST_USE bool TokenStreamCharsBase<Utf8Unit>::
         }
       }
 
-      if (!this->charBuffer.append(ch)) {
+      if (!charBuffer.append(ch)) {
         return false;
       }
 
@@ -604,7 +603,7 @@ MOZ_MUST_USE bool TokenStreamCharsBase<Utf8Unit>::
     MOZ_ASSERT(ch.isSome(),
                "provided source text should already have been validated");
 
-    if (!appendCodePointToCharBuffer(ch.value())) {
+    if (!AppendCodePointToCharBuffer(charBuffer, ch.value())) {
       return false;
     }
   }
@@ -1153,7 +1152,7 @@ TokenStreamChars<Utf8Unit, AnyCharsAccess>::badStructurallyValidCodePoint(
       "FFFF");  // including '\0'
   char codePointCharsArray[MaxHexSize];
 
-  char* codePointStr = codePointCharsArray + ArrayLength(codePointCharsArray);
+  char* codePointStr = std::end(codePointCharsArray);
   *--codePointStr = '\0';
 
   // Note that by do-while looping here rather than while-looping, this
@@ -1736,26 +1735,22 @@ bool TokenStreamCharsBase<Unit>::addLineOfContext(ErrorMetadata* err,
     return true;
   }
 
-  // We might have hit an error while processing some source code feature
-  // that's accumulating text into |this->charBuffer| -- e.g. we could be
-  // halfway into a regular expression literal, then encounter invalid UTF-8.
-  // Thus we must clear |this->charBuffer| of prior work.
-  this->charBuffer.clear();
+  CharBuffer lineOfContext(cx);
 
   const Unit* encodedWindow = sourceUnits.codeUnitPtrAt(encodedWindowStart);
-  if (!fillCharBufferFromSourceNormalizingAsciiLineBreaks(
-          encodedWindow, encodedWindow + encodedWindowLength)) {
+  if (!FillCharBufferFromSourceNormalizingAsciiLineBreaks(
+          lineOfContext, encodedWindow, encodedWindow + encodedWindowLength)) {
     return false;
   }
 
-  size_t utf16WindowLength = this->charBuffer.length();
+  size_t utf16WindowLength = lineOfContext.length();
 
   // The windowed string is null-terminated.
-  if (!this->charBuffer.append('\0')) {
+  if (!lineOfContext.append('\0')) {
     return false;
   }
 
-  err->lineOfContext.reset(this->charBuffer.extractOrCopyRawBuffer());
+  err->lineOfContext.reset(lineOfContext.extractOrCopyRawBuffer());
   if (!err->lineOfContext) {
     return false;
   }
@@ -2080,7 +2075,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::getDirective(
                "maintain line-info/flags for EOL");
     this->sourceUnits.consumeKnownCodePoint(peeked);
 
-    if (!appendCodePointToCharBuffer(peeked.codePoint())) {
+    if (!AppendCodePointToCharBuffer(this->charBuffer, peeked.codePoint())) {
       return false;
     }
   } while (true);
@@ -2105,9 +2100,8 @@ bool TokenStreamSpecific<Unit, AnyCharsAccess>::getDisplayURL(
   // developer would like to refer to the source as from the source's actual
   // URL.
 
-  static const char sourceURLDirective[] = " sourceURL=";
-  constexpr uint8_t sourceURLDirectiveLength =
-      ArrayLength(sourceURLDirective) - 1;
+  static constexpr char sourceURLDirective[] = " sourceURL=";
+  constexpr uint8_t sourceURLDirectiveLength = js_strlen(sourceURLDirective);
   return getDirective(isMultiline, shouldWarnDeprecated, sourceURLDirective,
                       sourceURLDirectiveLength, "sourceURL",
                       &anyCharsAccess().displayURL_);
@@ -2119,9 +2113,9 @@ bool TokenStreamSpecific<Unit, AnyCharsAccess>::getSourceMappingURL(
   // Match comments of the form "//# sourceMappingURL=<url>" or
   // "/\* //# sourceMappingURL=<url> *\/"
 
-  static const char sourceMappingURLDirective[] = " sourceMappingURL=";
+  static constexpr char sourceMappingURLDirective[] = " sourceMappingURL=";
   constexpr uint8_t sourceMappingURLDirectiveLength =
-      ArrayLength(sourceMappingURLDirective) - 1;
+      js_strlen(sourceMappingURLDirective);
   return getDirective(isMultiline, shouldWarnDeprecated,
                       sourceMappingURLDirective,
                       sourceMappingURLDirectiveLength, "sourceMappingURL",
@@ -2167,8 +2161,11 @@ MOZ_COLD bool GeneralTokenStreamChars<Unit, AnyCharsAccess>::badToken() {
   return false;
 };
 
-MOZ_MUST_USE bool TokenStreamCharsShared::appendCodePointToCharBuffer(
-    uint32_t codePoint) {
+bool AppendCodePointToCharBuffer(CharBuffer& charBuffer, uint32_t codePoint) {
+  MOZ_ASSERT(codePoint <= unicode::NonBMPMax,
+             "should only be processing code points validly decoded from UTF-8 "
+             "or WTF-16 source text (surrogate code points permitted)");
+
   char16_t units[2];
   unsigned numUnits = 0;
   unicode::UTF16Encode(codePoint, units, &numUnits);
@@ -2231,7 +2228,7 @@ bool TokenStreamSpecific<Unit, AnyCharsAccess>::putIdentInCharBuffer(
       }
     }
 
-    if (!appendCodePointToCharBuffer(codePoint)) {
+    if (!AppendCodePointToCharBuffer(this->charBuffer, codePoint)) {
       return false;
     }
   } while (true);
@@ -2617,7 +2614,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::regexpLiteral(
       return false;
     }
 
-    return this->appendCodePointToCharBuffer(codePoint);
+    return AppendCodePointToCharBuffer(this->charBuffer, codePoint);
   };
 
   auto ReportUnterminatedRegExp = [this](int32_t unit) {
@@ -2741,7 +2738,7 @@ MOZ_MUST_USE bool TokenStreamSpecific<Unit, AnyCharsAccess>::bigIntLiteral(
     if (unit == '_') {
       continue;
     }
-    if (!this->appendCodePointToCharBuffer(unit)) {
+    if (!AppendCodePointToCharBuffer(this->charBuffer, unit)) {
       return false;
     }
   }
@@ -3438,7 +3435,7 @@ bool TokenStreamSpecific<Unit, AnyCharsAccess>::getStringOrTemplateToken(
         MOZ_ASSERT(!IsLineTerminator(cp));
       }
 
-      if (!appendCodePointToCharBuffer(cp)) {
+      if (!AppendCodePointToCharBuffer(this->charBuffer, cp)) {
         return false;
       }
 
@@ -3468,7 +3465,8 @@ bool TokenStreamSpecific<Unit, AnyCharsAccess>::getStringOrTemplateToken(
         // LineContinuation represents no code points, so don't append
         // in this case.
         if (codePoint != '\n') {
-          if (!appendCodePointToCharBuffer(AssertedCast<char32_t>(codePoint))) {
+          if (!AppendCodePointToCharBuffer(this->charBuffer,
+                                           AssertedCast<char32_t>(codePoint))) {
             return false;
           }
         }
@@ -3595,7 +3593,7 @@ bool TokenStreamSpecific<Unit, AnyCharsAccess>::getStringOrTemplateToken(
             }
 
             MOZ_ASSERT(code <= unicode::NonBMPMax);
-            if (!appendCodePointToCharBuffer(code)) {
+            if (!AppendCodePointToCharBuffer(this->charBuffer, code)) {
               return false;
             }
 
@@ -3743,8 +3741,8 @@ bool TokenStreamSpecific<Unit, AnyCharsAccess>::getStringOrTemplateToken(
   MOZ_ASSERT_IF(!parsingTemplate, !templateHead);
 
   TokenKind kind = !parsingTemplate ? TokenKind::String
-                                    : templateHead ? TokenKind::TemplateHead
-                                                   : TokenKind::NoSubsTemplate;
+                   : templateHead   ? TokenKind::TemplateHead
+                                    : TokenKind::NoSubsTemplate;
   newAtomToken(kind, atom, start, modifier, out);
   return true;
 }

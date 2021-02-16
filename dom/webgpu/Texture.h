@@ -6,8 +6,11 @@
 #ifndef GPU_Texture_H_
 #define GPU_Texture_H_
 
+#include "mozilla/WeakPtr.h"
 #include "nsWrapperCache.h"
 #include "ObjectModel.h"
+#include "mozilla/webgpu/WebGPUTypes.h"
+#include "mozilla/WeakPtr.h"
 
 namespace mozilla {
 namespace dom {

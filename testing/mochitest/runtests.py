@@ -6,7 +6,7 @@
 Runs the Mochitest test harness.
 """
 
-from __future__ import with_statement
+from __future__ import absolute_import, division, print_function, with_statement
 import os
 import sys
 
@@ -357,6 +357,7 @@ class MessageLogger(object):
 
         last_timestamp = None
         for buf in dumped_messages:
+            # pylint --py3k W1619
             timestamp = datetime.fromtimestamp(buf["time"] / 1000).strftime("%H:%M:%S")
             if timestamp != last_timestamp:
                 self.logger.info("Buffered messages logged at {}".format(timestamp))
@@ -382,7 +383,18 @@ def call(*args, **kwargs):
     """front-end function to mozprocess.ProcessHandler"""
     # TODO: upstream -> mozprocess
     # https://bugzilla.mozilla.org/show_bug.cgi?id=791383
-    process = mozprocess.ProcessHandler(*args, **kwargs)
+    log = get_proxy_logger("mochitest")
+
+    def on_output(line):
+        log.process_output(
+            process=process.pid,
+            data=line.decode("utf8", "replace"),
+            command=process.commandline,
+        )
+
+    process = mozprocess.ProcessHandlerMixin(
+        *args, processOutputLine=on_output, **kwargs
+    )
     process.run()
     return process.wait()
 
@@ -864,6 +876,7 @@ def findTestMediaDevices(log):
     subprocess.check_call(
         [
             gst,
+            "--no-fault",
             "videotestsrc",
             "pattern=green",
             "num-buffers=1",
@@ -2137,6 +2150,15 @@ toolbar#nav-bar {
             self.log.info("Increasing default timeout to 90 seconds")
             prefs["testing.browserTestHarness.timeout"] = 90
 
+        # tsan builds need even more time
+        if (
+            mozinfo.info["tsan"]
+            and options.flavor == "browser"
+            and options.timeout is None
+        ):
+            self.log.info("Increasing default timeout to 120 seconds")
+            prefs["testing.browserTestHarness.timeout"] = 120
+
         if mozinfo.info["os"] == "win" and mozinfo.info["processor"] == "aarch64":
             extended_timeout = self.DEFAULT_TIMEOUT * 4
             self.log.info(
@@ -2803,6 +2825,7 @@ toolbar#nav-bar {
         # for test manifest parsing.
         mozinfo.update(
             {
+                "a11y_checks": options.a11y_checks,
                 "e10s": options.e10s,
                 "fission": self.extraPrefs.get("fission.autostart", False),
                 "headless": options.headless,
@@ -2816,6 +2839,10 @@ toolbar#nav-bar {
                 "serviceworker_e10s": self.extraPrefs.get(
                     "dom.serviceWorkers.parent_intercept", True
                 ),
+                "sessionHistoryInParent": self.extraPrefs.get(
+                    "fission.sessionHistoryInParent", False
+                )
+                or self.extraPrefs.get("fission.autostart", False),
                 "socketprocess_e10s": self.extraPrefs.get(
                     "network.process.enabled", False
                 ),

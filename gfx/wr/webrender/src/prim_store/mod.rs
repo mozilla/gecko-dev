@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{BorderRadius, ClipMode, ColorF, ColorU};
+use api::{BorderRadius, ClipMode, ColorF, ColorU, RasterSpace};
 use api::{ImageRendering, RepeatMode, PrimitiveFlags};
 use api::{PremultipliedColorF, PropertyBinding, Shadow};
 use api::{PrimitiveKeyKind};
@@ -12,7 +12,7 @@ use malloc_size_of::MallocSizeOf;
 use crate::segment::EdgeAaSegmentMask;
 use crate::border::BorderSegmentCacheKey;
 use crate::clip::{ClipChainId, ClipSet};
-use crate::debug_render::DebugItem;
+use crate::debug_item::DebugItem;
 use crate::scene_building::{CreateShadow, IsVisible};
 use crate::frame_builder::FrameBuildingState;
 use crate::glyph_rasterizer::GlyphKey;
@@ -20,13 +20,6 @@ use crate::gpu_cache::{GpuCacheAddress, GpuCacheHandle, GpuDataRequest};
 use crate::gpu_types::{BrushFlags};
 use crate::intern;
 use crate::picture::PicturePrimitive;
-use crate::prim_store::backdrop::BackdropDataHandle;
-use crate::prim_store::borders::{ImageBorderDataHandle, NormalBorderDataHandle};
-use crate::prim_store::gradient::{LinearGradientPrimitive, LinearGradientDataHandle, RadialGradientDataHandle, ConicGradientDataHandle};
-use crate::prim_store::image::{ImageDataHandle, ImageInstance, YuvImageDataHandle};
-use crate::prim_store::line_dec::LineDecorationDataHandle;
-use crate::prim_store::picture::PictureDataHandle;
-use crate::prim_store::text_run::{TextRunDataHandle, TextRunPrimitive};
 #[cfg(debug_assertions)]
 use crate::render_backend::{FrameId};
 use crate::render_task_graph::RenderTaskId;
@@ -36,7 +29,6 @@ use crate::scene::SceneProperties;
 use std::{hash, ops, u32, usize};
 #[cfg(debug_assertions)]
 use std::sync::atomic::{AtomicUsize, Ordering};
-use crate::storage;
 use crate::util::Recycler;
 use crate::internal_types::LayoutPrimitiveInfo;
 use crate::visibility::PrimitiveVisibility;
@@ -49,6 +41,16 @@ pub mod line_dec;
 pub mod picture;
 pub mod text_run;
 pub mod interned;
+
+mod storage;
+
+use backdrop::BackdropDataHandle;
+use borders::{ImageBorderDataHandle, NormalBorderDataHandle};
+use gradient::{LinearGradientPrimitive, LinearGradientDataHandle, RadialGradientDataHandle, ConicGradientDataHandle};
+use image::{ImageDataHandle, ImageInstance, YuvImageDataHandle};
+use line_dec::LineDecorationDataHandle;
+use picture::PictureDataHandle;
+use text_run::{TextRunDataHandle, TextRunPrimitive};
 
 pub const VECS_PER_SEGMENT: usize = 2;
 
@@ -904,6 +906,8 @@ impl CreateShadow for PrimitiveKeyKind {
     fn create_shadow(
         &self,
         shadow: &Shadow,
+        _: bool,
+        _: RasterSpace,
     ) -> PrimitiveKeyKind {
         match *self {
             PrimitiveKeyKind::Rectangle { .. } => {

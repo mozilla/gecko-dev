@@ -122,8 +122,6 @@
 #define TCP_FAST_OPEN_STALLS_TIMEOUT \
   "network.tcp.tcp_fastopen_http_stalls_timeout"
 
-#define ACCEPT_HEADER_NAVIGATION \
-  "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
 #define ACCEPT_HEADER_STYLE "text/css,*/*;q=0.1"
 #define ACCEPT_HEADER_ALL "*/*"
 
@@ -210,6 +208,14 @@ static nsCString ImageAcceptHeader() {
   return mimeTypes;
 }
 
+static nsCString DocumentAcceptHeader(const nsCString& aImageAcceptHeader) {
+  nsPrintfCString mimeTypes(
+      "text/html,application/xhtml+xml,application/xml;q=0.9,%s;q=0.8",
+      aImageAcceptHeader.get());
+
+  return std::move(mimeTypes);
+}
+
 nsHttpHandler::nsHttpHandler()
     : mHttpVersion(HttpVersion::v1_1),
       mProxyHttpVersion(HttpVersion::v1_1),
@@ -250,6 +256,7 @@ nsHttpHandler::nsHttpHandler()
       mQoSBits(0x00),
       mEnforceAssocReq(false),
       mImageAcceptHeader(ImageAcceptHeader()),
+      mDocumentAcceptHeader(DocumentAcceptHeader(ImageAcceptHeader())),
       mLastUniqueID(NowInSeconds()),
       mSessionStartTime(0),
       mLegacyAppName("Mozilla"),
@@ -300,8 +307,6 @@ nsHttpHandler::nsHttpHandler()
       mEnforceH1Framing(FRAMECHECK_BARELY),
       mDefaultHpackBuffer(4096),
       mBug1563538(true),
-      mBug1563695(true),
-      mBug1556491(true),
       mHttp3Enabled(true),
       mQpackTableSize(4096),
       mHttp3MaxBlockedStreams(10),
@@ -581,6 +586,7 @@ nsresult nsHttpHandler::Init() {
     obsService->AddObserver(this, "intl:app-locales-changed", true);
     obsService->AddObserver(this, "browser-delayed-startup-finished", true);
     obsService->AddObserver(this, "network:captive-portal-connectivity", true);
+    obsService->AddObserver(this, "network:reset-http3-excluded-list", true);
 
     if (!IsNeckoChild()) {
       obsService->AddObserver(
@@ -675,7 +681,7 @@ nsresult nsHttpHandler::InitConnectionMgr() {
 
 nsresult nsHttpHandler::AddStandardRequestHeaders(
     nsHttpRequestHead* request, bool isSecure,
-    nsContentPolicyType aContentPolicyType) {
+    ExtContentPolicyType aContentPolicyType) {
   nsresult rv;
 
   // Add the "User-Agent" header
@@ -688,13 +694,13 @@ nsresult nsHttpHandler::AddStandardRequestHeaders(
   // service worker expects to see it.  The other "default" headers are
   // hidden from service worker interception.
   nsAutoCString accept;
-  if (aContentPolicyType == nsIContentPolicy::TYPE_DOCUMENT ||
-      aContentPolicyType == nsIContentPolicy::TYPE_SUBDOCUMENT) {
-    accept.Assign(ACCEPT_HEADER_NAVIGATION);
-  } else if (aContentPolicyType == nsIContentPolicy::TYPE_IMAGE ||
-             aContentPolicyType == nsIContentPolicy::TYPE_IMAGESET) {
+  if (aContentPolicyType == ExtContentPolicy::TYPE_DOCUMENT ||
+      aContentPolicyType == ExtContentPolicy::TYPE_SUBDOCUMENT) {
+    accept.Assign(mDocumentAcceptHeader);
+  } else if (aContentPolicyType == ExtContentPolicy::TYPE_IMAGE ||
+             aContentPolicyType == ExtContentPolicy::TYPE_IMAGESET) {
     accept.Assign(mImageAcceptHeader);
-  } else if (aContentPolicyType == nsIContentPolicy::TYPE_STYLESHEET) {
+  } else if (aContentPolicyType == ExtContentPolicy::TYPE_STYLESHEET) {
     accept.Assign(ACCEPT_HEADER_STYLE);
   } else {
     accept.Assign(ACCEPT_HEADER_ALL);
@@ -1952,18 +1958,6 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
       mBug1563538 = cVar;
     }
   }
-  if (PREF_CHANGED(HTTP_PREF("spdy.bug1563695"))) {
-    rv = Preferences::GetBool(HTTP_PREF("spdy.bug1563695"), &cVar);
-    if (NS_SUCCEEDED(rv)) {
-      mBug1563695 = cVar;
-    }
-  }
-  if (PREF_CHANGED(HTTP_PREF("spdy.bug1556491"))) {
-    rv = Preferences::GetBool(HTTP_PREF("spdy.bug1556491"), &cVar);
-    if (NS_SUCCEEDED(rv)) {
-      mBug1556491 = cVar;
-    }
-  }
 
   if (PREF_CHANGED(HTTP_PREF("http3.enabled"))) {
     rv = Preferences::GetBool(HTTP_PREF("http3.enabled"), &cVar);
@@ -1987,8 +1981,11 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
     }
   }
 
-  if (PREF_CHANGED("image.http.accept") || PREF_CHANGED("image.avif.enabled") ||
-      PREF_CHANGED("image.webp.enabled")) {
+  const bool imageAcceptPrefChanged = PREF_CHANGED("image.http.accept") ||
+                                      PREF_CHANGED("image.avif.enabled") ||
+                                      PREF_CHANGED("image.webp.enabled");
+
+  if (imageAcceptPrefChanged) {
     nsAutoCString userSetImageAcceptHeader;
 
     if (Preferences::HasUserValue("image.http.accept")) {
@@ -2006,14 +2003,32 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
     }
   }
 
+  if (PREF_CHANGED("network.http.accept") || imageAcceptPrefChanged) {
+    nsAutoCString userSetDocumentAcceptHeader;
+
+    if (Preferences::HasUserValue("network.http.accept")) {
+      rv = Preferences::GetCString("network.http.accept",
+                                   userSetDocumentAcceptHeader);
+      if (NS_FAILED(rv)) {
+        userSetDocumentAcceptHeader.Truncate();
+      }
+    }
+
+    if (userSetDocumentAcceptHeader.IsEmpty()) {
+      mDocumentAcceptHeader.Assign(DocumentAcceptHeader(mImageAcceptHeader));
+    } else {
+      mDocumentAcceptHeader.Assign(userSetDocumentAcceptHeader);
+    }
+  }
+
   if (PREF_CHANGED(HTTP_PREF("http3.alt-svc-mapping-for-testing"))) {
     nsAutoCString altSvcMappings;
     rv = Preferences::GetCString(HTTP_PREF("http3.alt-svc-mapping-for-testing"),
                                  altSvcMappings);
     if (NS_SUCCEEDED(rv)) {
-      nsCCharSeparatedTokenizer tokenizer(altSvcMappings, ',');
-      while (tokenizer.hasMoreTokens()) {
-        nsAutoCString token(tokenizer.nextToken());
+      for (const nsACString& tokenSubstring :
+           nsCCharSeparatedTokenizer(altSvcMappings, ',').ToRange()) {
+        nsAutoCString token{tokenSubstring};
         int32_t index = token.Find(";");
         if (index != kNotFound) {
           auto* map = new nsCString(Substring(token, index + 1));
@@ -2467,6 +2482,9 @@ nsHttpHandler::Observe(nsISupports* subject, const char* topic,
   } else if (!strcmp(topic, "network:captive-portal-connectivity")) {
     nsAutoCString data8 = NS_ConvertUTF16toUTF8(data);
     mThroughCaptivePortal = data8.EqualsLiteral("captive");
+  } else if (!strcmp(topic, "network:reset-http3-excluded-list")) {
+    MutexAutoLock lock(mHttpExclusionLock);
+    mExcludedHttp3Origins.Clear();
   }
 
   return NS_OK;

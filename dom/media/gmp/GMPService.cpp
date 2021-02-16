@@ -5,6 +5,7 @@
 
 #include "GMPService.h"
 
+#include "ChromiumCDMParent.h"
 #include "GMPLog.h"
 #include "GMPParent.h"
 #include "GMPProcessParent.h"
@@ -14,6 +15,7 @@
 #include "GeckoChildProcessHost.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/EventDispatcher.h"
+#include "mozilla/dom/Document.h"
 #include "mozilla/dom/PluginCrashedEvent.h"
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxInfo.h"
@@ -206,7 +208,8 @@ nsresult GeckoMediaPluginService::Init() {
 }
 
 RefPtr<GetCDMParentPromise> GeckoMediaPluginService::GetCDM(
-    const NodeId& aNodeId, nsTArray<nsCString> aTags, GMPCrashHelper* aHelper) {
+    const NodeIdParts& aNodeIdParts, nsTArray<nsCString> aTags,
+    GMPCrashHelper* aHelper) {
   MOZ_ASSERT(mGMPThread->IsOnCurrentThread());
 
   if (mShuttingDownOnGMPThread || aTags.IsEmpty()) {
@@ -222,7 +225,8 @@ RefPtr<GetCDMParentPromise> GeckoMediaPluginService::GetCDM(
   RefPtr<GetCDMParentPromise> promise = rawHolder->Ensure(__func__);
   nsCOMPtr<nsISerialEventTarget> thread(GetGMPThread());
   RefPtr<GMPCrashHelper> helper(aHelper);
-  GetContentParent(aHelper, aNodeId, nsLiteralCString(CHROMIUM_CDM_API), aTags)
+  GetContentParent(aHelper, NodeIdVariant{aNodeIdParts},
+                   nsLiteralCString(CHROMIUM_CDM_API), aTags)
       ->Then(
           thread, __func__,
           [rawHolder, helper](RefPtr<GMPContentParent::CloseBlocker> wrapper) {
@@ -356,8 +360,8 @@ GeckoMediaPluginService::GetDecryptingGMPVideoDecoder(
   GetGMPVideoDecoderCallback* rawCallback = aCallback.release();
   nsCOMPtr<nsISerialEventTarget> thread(GetGMPThread());
   RefPtr<GMPCrashHelper> helper(aHelper);
-  GetContentParent(aHelper, aNodeId, nsLiteralCString(GMP_API_VIDEO_DECODER),
-                   *aTags)
+  GetContentParent(aHelper, NodeIdVariant{nsCString(aNodeId)},
+                   nsLiteralCString(GMP_API_VIDEO_DECODER), *aTags)
       ->Then(
           thread, __func__,
           [rawCallback, helper,
@@ -397,8 +401,8 @@ GeckoMediaPluginService::GetGMPVideoEncoder(
   GetGMPVideoEncoderCallback* rawCallback = aCallback.release();
   nsCOMPtr<nsISerialEventTarget> thread(GetGMPThread());
   RefPtr<GMPCrashHelper> helper(aHelper);
-  GetContentParent(aHelper, aNodeId, nsLiteralCString(GMP_API_VIDEO_ENCODER),
-                   *aTags)
+  GetContentParent(aHelper, NodeIdVariant{nsCString(aNodeId)},
+                   nsLiteralCString(GMP_API_VIDEO_ENCODER), *aTags)
       ->Then(
           thread, __func__,
           [rawCallback,

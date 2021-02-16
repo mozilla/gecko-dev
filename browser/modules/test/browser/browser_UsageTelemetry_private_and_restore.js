@@ -34,7 +34,7 @@ add_task(async function test_privateMode() {
   let privateWin = await BrowserTestUtils.openNewBrowserWindow({
     private: true,
   });
-  await BrowserTestUtils.loadURI(
+  BrowserTestUtils.loadURI(
     privateWin.gBrowser.selectedBrowser,
     "http://example.com/"
   );

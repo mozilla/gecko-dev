@@ -369,6 +369,11 @@ GfxInfo::GetDisplayHeight(nsTArray<uint32_t>& aDisplayHeight) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+GfxInfo::GetDrmRenderDevice(nsACString& aDrmRenderDevice) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 void GfxInfo::AddCrashReportAnnotations() {
   CrashReporter::AnnotateCrashReport(CrashReporter::Annotation::AdapterVendorID,
                                      mGLStrings->Vendor());
@@ -591,8 +596,15 @@ nsresult GfxInfo::GetFeatureStatusImpl(
       // Enable Webrender on all Adreno 6xx devices
       isUnblocked |= gpu.Find("Adreno (TM) 6", /*ignoreCase*/ true) >= 0;
 
-      // Enable Webrender on all Mali-Gxx GPUs
-      isUnblocked |= gpu.Find("Mali-G", /*ignoreCase*/ true) >= 0;
+      // Enable Webrender on all Mali-Gxx GPUs...
+      isUnblocked |= gpu.Find("Mali-G", /*ignoreCase*/ true) >= 0 &&
+                     // Excluding G72 and G76 on Android 11, due to
+                     // bugs 1688705 and 1688017.
+                     !(mSDKVersion == 30 &&
+                       (gpu.Find("Mali-G72", /*ignoreCase*/ true) >= 0 ||
+                        gpu.Find("Mali-G76", /*ignoreCase*/ true) >= 0)) &&
+                     // And excluding G31 due to bug 1689947.
+                     gpu.Find("Mali-G31", /*ignoreCase*/ true) == kNotFound;
 
       if (!isUnblocked) {
         *aStatus = nsIGfxInfo::FEATURE_BLOCKED_DEVICE;

@@ -11,6 +11,8 @@
 #include "VRGPUChild.h"
 #include "VRGPUParent.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/gfx/Logging.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/MemoryReportingProcess.h"
 #include "mozilla/Preferences.h"
 

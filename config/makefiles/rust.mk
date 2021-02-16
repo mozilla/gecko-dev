@@ -53,8 +53,11 @@ ifeq (1,$(MOZ_PARALLEL_BUILD))
 cargo_build_flags += -j1
 endif
 
-# This should also be paired with -Zbuild-std, but that doesn't work yet.
+# We also need to rebuild the rust stdlib so that it's instrumented. Because
+# build-std is still pretty experimental, we need to explicitly request
+# the panic_abort crate for `panic = "abort"` support.
 ifdef MOZ_TSAN
+cargo_build_flags += -Zbuild-std=std,panic_abort
 RUSTFLAGS += -Zsanitizer=thread
 endif
 
@@ -69,11 +72,8 @@ ifndef MOZ_LTO_RUST_CROSS
 ifeq (,$(findstring gkrust_gtest,$(RUST_LIBRARY_FILE)))
 cargo_rustc_flags += -Clto
 endif
-# Versions of rust >= 1.45 need -Cembed-bitcode=yes for all crates when
-# using -Clto.
-ifeq (,$(filter 1.38.% 1.39.% 1.40.% 1.41.% 1.42.% 1.43.% 1.44.%,$(RUSTC_VERSION)))
+# We need -Cembed-bitcode=yes for all crates when using -Clto.
 RUSTFLAGS += -Cembed-bitcode=yes
-endif
 endif
 endif
 endif
@@ -146,6 +146,14 @@ rust_cc_env_name := $(subst -,_,$(RUST_TARGET))
 export CC_$(rust_cc_env_name)=$(filter-out $(CC_BASE_FLAGS),$(CC))
 export CXX_$(rust_cc_env_name)=$(filter-out $(CXX_BASE_FLAGS),$(CXX))
 export AR_$(rust_cc_env_name)=$(AR)
+
+ifeq (WINNT,$(HOST_OS_ARCH))
+HOST_CC_BASE_FLAGS += -DUNICODE
+HOST_CXX_BASE_FLAGS += -DUNICODE
+CC_BASE_FLAGS += -DUNICODE
+CXX_BASE_FLAGS += -DUNICODE
+endif
+
 ifeq (,$(NATIVE_SANITIZERS)$(MOZ_CODE_COVERAGE))
 # -DMOZILLA_CONFIG_H is added to prevent mozilla-config.h from injecting anything
 # in C/C++ compiles from rust. That's not needed in the other branch because the

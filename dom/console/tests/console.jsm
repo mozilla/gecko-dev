@@ -26,13 +26,22 @@ var ConsoleTest = {
       .createInstance({ innerID: "LEVEL", maxLogLevel: "All" })
       .log("Hello world!");
     console
-      .createInstance({ innerID: "LEVEL", maxLogLevelPref: "foo.pref" })
-      .log("Invisible!");
-    console
       .createInstance({
         innerID: "LEVEL",
         maxLogLevelPref: "pref.test.console",
       })
       .log("Hello world!");
+
+    this.c2 = console.createInstance({
+      innerID: "NO PREF",
+      maxLogLevel: "Warn",
+      maxLogLevelPref: "pref.test.console.notset",
+    });
+    this.c2.log("Invisible!");
+    this.c2.warn("Hello world!");
+  },
+
+  go2() {
+    this.c2.log("Hello world!");
   },
 };

@@ -219,8 +219,7 @@ const startupPhases = {
       path: "ProfD:xulstore/data.mdb",
       condition: WIN,
       read: 1,
-      write: 3,
-      fsync: 1,
+      write: 1,
     },
   ],
 
@@ -281,12 +280,6 @@ const startupPhases = {
       condition: WIN,
       stat: 1,
     },
-    {
-      // bug 1546838
-      path: "ProfD:xulstore/data.mdb",
-      condition: WIN,
-      read: 2,
-    },
   ],
 
   // We reach this phase right after showing the first browser window.
@@ -301,12 +294,6 @@ const startupPhases = {
     {
       // bug 1446012
       path: "UpdRootD:updates/0/update.status",
-      condition: WIN,
-      stat: 1,
-    },
-    {
-      // bug 1586808
-      path: "UserPlugins.parent:",
       condition: WIN,
       stat: 1,
     },
@@ -366,7 +353,7 @@ const startupPhases = {
       // bug 1546838
       path: "ProfD:xulstore/data.mdb",
       condition: MAC,
-      write: 3,
+      write: 1,
     },
   ],
 
@@ -565,13 +552,7 @@ const startupPhases = {
   ],
 };
 
-for (let name of [
-  "d3d11layers",
-  "d3d9video",
-  "glcontext",
-  "d3d11video",
-  "wmfvpxvideo",
-]) {
+for (let name of ["d3d11layers", "glcontext", "wmfvpxvideo"]) {
   startupPhases["before first paint"].push({
     path: `ProfD:${name}.guard`,
     ignoreIfUnused: true,

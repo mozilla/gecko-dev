@@ -5,6 +5,7 @@ set -e
 if ! command -v gen-bundle > /dev/null 2>&1; then
     echo "gen-bundle is not installed. Please run:"
     echo "  go get -u github.com/WICG/webpackage/go/bundle/cmd/..."
+    echo '  export PATH=$PATH:$(go env GOPATH)/bin'
     exit 1
 fi
 
@@ -54,3 +55,30 @@ gen-bundle \
   -primaryURL $wpt_test_http_origin/web-bundle/resources/wbn/resource.js \
   -dir path-restriction/ \
   -o wbn/path-restriction.wbn
+
+# Create a bundle, nested-main.wbn, which includes nested-sub.wbn.
+cp -a wbn/subresource.wbn nested/nested-sub.wbn
+gen-bundle \
+  -version b1 \
+  -baseURL $wpt_test_http_origin/web-bundle/resources/wbn/ \
+  -primaryURL $wpt_test_http_origin/web-bundle/resources/wbn/resource.js \
+  -dir nested/ \
+  -o wbn/nested-main.wbn
+
+gen-bundle \
+  -version b1 \
+  -har urn-uuid.har \
+  -primaryURL urn:uuid:020111b3-437a-4c5c-ae07-adb6bbffb720 \
+  -o wbn/urn-uuid.wbn
+
+gen-bundle \
+  -version b1 \
+  -har cross-origin.har \
+  -primaryURL $wpt_test_https_origin/web-bundle/resources/wbn/cors/resource.cors.json \
+  -o wbn/cors/cross-origin.wbn
+
+gen-bundle \
+  -version b1 \
+  -har cross-origin-no-cors.har \
+  -primaryURL $wpt_test_https_origin/web-bundle/resources/wbn/no-cors/resource.cors.json \
+  -o wbn/no-cors/cross-origin.wbn

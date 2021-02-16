@@ -95,14 +95,6 @@ restart-later = Restart Later
 ## Variables:
 ##   $name (String): name of the extension
 
-# This string is shown to notify the user that their home page
-# is being controlled by an extension.
-extension-controlled-homepage-override = An extension, <img data-l10n-name="icon"/> { $name }, is controlling your home page.
-
-# This string is shown to notify the user that their new tab page
-# is being controlled by an extension.
-extension-controlled-new-tab-url = An extension, <img data-l10n-name="icon"/> { $name }, is controlling your New Tab page.
-
 # This string is shown to notify the user that the password manager setting
 # is being controlled by an extension
 extension-controlled-password-saving = An extension, <img data-l10n-name="icon"/> { $name }, is controlling this setting.
@@ -629,6 +621,11 @@ home-prefs-topsites-header =
 home-prefs-topsites-description = The sites you visit most
 home-prefs-topsites-by-option-sponsored =
     .label = Sponsored Top Sites
+home-prefs-shortcuts-header =
+    .label = Shortcuts
+home-prefs-shortcuts-description = Sites you save or visit
+home-prefs-shortcuts-by-option-sponsored =
+    .label = Sponsored shortcuts
 
 ## Variables:
 ##  $provider (String): Name of the corresponding content provider, e.g "Pocket".
@@ -636,6 +633,7 @@ home-prefs-topsites-by-option-sponsored =
 home-prefs-recommended-by-header =
     .label = Recommended by { $provider }
 home-prefs-recommended-by-description-update = Exceptional content from across the web, curated by { $provider }
+home-prefs-recommended-by-description-new = Exceptional content curated by { $provider }, part of the { -brand-product-name } family
 ##
 
 home-prefs-recommended-by-learn-more = How it works
@@ -654,6 +652,10 @@ home-prefs-highlights-option-most-recent-download =
 home-prefs-highlights-option-saved-to-pocket =
     .label = Pages Saved to { -pocket-brand-name }
 
+home-prefs-recent-activity-header =
+    .label = Recent activity
+home-prefs-recent-activity-description = A selection of recent sites and content
+
 # For the "Snippets" feature traditionally on about:home.
 # Alternative translation options: "Small Note" or something that
 # expresses the idea of "a small message, shortened from something else,
@@ -661,6 +663,9 @@ home-prefs-highlights-option-saved-to-pocket =
 home-prefs-snippets-header =
     .label = Snippets
 home-prefs-snippets-description = Updates from { -vendor-short-name } and { -brand-product-name }
+
+home-prefs-snippets-description-new = Tips and news from { -vendor-short-name } and { -brand-product-name }
+
 home-prefs-sections-rows-option =
     .label =
         { $num ->
@@ -1107,9 +1112,16 @@ addressbar-locbar-bookmarks-option =
 addressbar-locbar-openpage-option =
     .label = Open tabs
     .accesskey = O
+# Shortcuts refers to the shortcut tiles on the new tab page, previously known as top sites. Translation should be consistent.
+addressbar-locbar-shortcuts-option =
+    .label = Shortcuts
+    .accesskey = S
 addressbar-locbar-topsites-option =
     .label = Top sites
     .accesskey = T
+addressbar-locbar-engines-option =
+    .label = Search engines
+    .accesskey = a
 
 addressbar-suggestions-settings = Change preferences for search engine suggestions
 
@@ -1312,16 +1324,6 @@ security-block-uncommon-software =
 ## Privacy Section - Certificates
 
 certs-header = Certificates
-
-certs-personal-label = When a server requests your personal certificate
-
-certs-select-auto-option =
-    .label = Select one automatically
-    .accesskey = S
-
-certs-select-ask-option =
-    .label = Ask you every time
-    .accesskey = A
 
 certs-enable-ocsp =
     .label = Query OCSP responder servers to confirm the current validity of certificates

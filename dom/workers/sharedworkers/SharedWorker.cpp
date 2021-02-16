@@ -7,6 +7,7 @@
 #include "SharedWorker.h"
 
 #include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/dom/ClientInfo.h"
 #include "mozilla/dom/Event.h"
@@ -227,6 +228,10 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
   // Let's inform the window about this SharedWorker.
   nsGlobalWindowInner::Cast(window)->StoreSharedWorker(sharedWorker);
   actor->SetParent(sharedWorker);
+
+  if (nsGlobalWindowInner::Cast(window)->IsSuspended()) {
+    sharedWorker->Suspend();
+  }
 
   return sharedWorker.forget();
 }

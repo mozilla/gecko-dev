@@ -82,16 +82,6 @@ void LIRGenerator::visitBox(MBox* box) {
 void LIRGenerator::visitUnbox(MUnbox* unbox) {
   MDefinition* inner = unbox->getOperand(0);
 
-  if (inner->type() == MIRType::ObjectOrNull) {
-    LUnboxObjectOrNull* lir =
-        new (alloc()) LUnboxObjectOrNull(useRegisterAtStart(inner));
-    if (unbox->fallible()) {
-      assignSnapshot(lir, unbox->bailoutKind());
-    }
-    defineReuseInput(lir, unbox, 0);
-    return;
-  }
-
   // An unbox on x86 reads in a type tag (either in memory or a register) and
   // a payload. Unlike most instructions consuming a box, we ask for the type
   // second, so that the result can re-use the first input.
@@ -138,11 +128,10 @@ void LIRGenerator::visitUnbox(MUnbox* unbox) {
   }
 }
 
-void LIRGenerator::visitReturn(MReturn* ret) {
-  MDefinition* opd = ret->getOperand(0);
+void LIRGenerator::visitReturnImpl(MDefinition* opd, bool isGenerator) {
   MOZ_ASSERT(opd->type() == MIRType::Value);
 
-  LReturn* ins = new (alloc()) LReturn;
+  LReturn* ins = new (alloc()) LReturn(isGenerator);
   ins->setOperand(0, LUse(JSReturnReg_Type));
   ins->setOperand(1, LUse(JSReturnReg_Data));
   fillBoxUses(ins, 0, opd);
@@ -646,6 +635,20 @@ void LIRGeneratorX86::lowerUDivI64(MDiv* div) {
 
 void LIRGeneratorX86::lowerUModI64(MMod* mod) {
   MOZ_CRASH("We use MWasmBuiltinModI64 instead.");
+}
+
+void LIRGeneratorX86::lowerBigIntDiv(MBigIntDiv* ins) {
+  auto* lir = new (alloc()) LBigIntDiv(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), tempFixed(eax), temp());
+  defineFixed(lir, ins, LAllocation(AnyRegister(edx)));
+  assignSafepoint(lir, ins);
+}
+
+void LIRGeneratorX86::lowerBigIntMod(MBigIntMod* ins) {
+  auto* lir = new (alloc()) LBigIntMod(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), tempFixed(eax), temp());
+  defineFixed(lir, ins, LAllocation(AnyRegister(edx)));
+  assignSafepoint(lir, ins);
 }
 
 void LIRGenerator::visitSubstr(MSubstr* ins) {

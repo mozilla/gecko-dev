@@ -3,10 +3,10 @@
 
 from __future__ import absolute_import, print_function
 
+import six
 import json
 import time
 import types
-from StringIO import StringIO
 
 import mozunit
 import pytest
@@ -21,7 +21,7 @@ from six import string_types
 def logger():
     logger = StructuredLogger("mochitest_message_logger")
 
-    buf = StringIO()
+    buf = six.StringIO()
     handler = StreamHandler(buf, JSONFormatter())
     logger.add_handler(handler)
     return logger
@@ -77,6 +77,11 @@ def assert_actions(logger):
         actions = [json.loads(l)["action"] for l in lines]
         assert actions == expected
         buf.truncate(0)
+        # Python3 will not reposition the buffer position after
+        # truncate and will extend the buffer with null bytes.
+        # Force the buffer position to the start of the buffer
+        # to prevent null bytes from creeping in.
+        buf.seek(0)
 
     return inner
 

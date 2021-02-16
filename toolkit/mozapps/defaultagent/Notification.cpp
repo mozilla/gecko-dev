@@ -394,9 +394,11 @@ static NotificationActivities ShowNotification(
     return activitiesPerformed;
   }
 
-  WinToast::instance()->setAppName(L"" MOZ_APP_BASENAME);
+  WinToast::instance()->setAppName(L"" MOZ_APP_DISPLAYNAME);
   std::wstring aumiStr = aumi;
   WinToast::instance()->setAppUserModelId(aumiStr);
+  WinToast::instance()->setShortcutPolicy(
+      WinToastLib::WinToast::SHORTCUT_POLICY_REQUIRE_NO_CREATE);
   WinToast::WinToastError error;
   if (!WinToast::instance()->initialize(&error)) {
     LOG_ERROR_MESSAGE(WinToast::strerror(error).c_str());
@@ -640,5 +642,17 @@ std::string GetStringForNotificationAction(NotificationAction action) {
       return std::string("toast-clicked");
     case NotificationAction::NoAction:
       return std::string("no-action");
+  }
+}
+
+void EnsureValidNotificationAction(std::string& actionString) {
+  if (actionString != "dismissed-by-timeout" &&
+      actionString != "dismissed-to-action-center" &&
+      actionString != "dismissed-by-button" &&
+      actionString != "dismissed-by-application-hidden" &&
+      actionString != "remind-me-later" &&
+      actionString != "make-firefox-default-button" &&
+      actionString != "toast-clicked" && actionString != "no-action") {
+    actionString = "no-action";
   }
 }

@@ -404,6 +404,34 @@ for ( let [lhs, rhs, expected] of
     }
 }
 
+// Interleave i64x2s
+for ( let [lhs, rhs, expected] of
+  [[[0], [2], "shuffle -> interleave-low 64x2"],
+   [[1], [3], "shuffle -> interleave-high 64x2"]] ) {
+    for (let swap of [false, true]) {
+        if (swap)
+            [lhs, rhs] = [rhs, lhs];
+        let interleave_pattern = i64ToI2(interleave(lhs, rhs));
+        let ins = wasmCompile(`
+(module
+  (memory (export "mem") 1 1)
+  (func (export "run")
+    (v128.store (i32.const 0) (call $f (v128.load (i32.const 16)) (v128.load (i32.const 32)))))
+  (func $f (param v128) (param v128) (result v128)
+    (i8x16.shuffle ${interleave_pattern.join(' ')} (local.get 0) (local.get 1))))`);
+
+        assertEq(wasmSimdAnalysis(), expected);
+
+        let mem = new Int8Array(ins.exports.mem.buffer);
+        let lhsval = iota(16);
+        let rhsval = iota(16).map(x => x+16);
+        set(mem, 16, lhsval);
+        set(mem, 32, rhsval);
+        ins.exports.run();
+        assertSame(get(mem, 0, 16), interleave_pattern);
+    }
+}
+
 // Interleave i16x8s
 for ( let [lhs, rhs, expected] of
       [[[0, 1, 2, 3], [8, 9, 10, 11], "shuffle -> interleave-low 16x8"],
@@ -721,7 +749,8 @@ for ( let [ty128, ty] of [['i8x16', 'i32'], ['i16x8', 'i32'], ['i32x4', 'i32'],
 
 for ( let [ty128, suffix] of [['i8x16', '_s'], ['i8x16', '_u'], ['i16x8','_s'], ['i16x8','_u'], ['i32x4', '']] ) {
     for ( let op of ['any_true', 'all_true', 'bitmask', `extract_lane${suffix} 0`] ) {
-        wasmCompile(`(module (func (result i32) (${ty128}.${op} (v128.const i64x2 0 0))))`);
+        let operation = op == 'any_true' ? 'v128.any_true' : `${ty128}.${op}`;
+        wasmCompile(`(module (func (result i32) (${operation} (v128.const i64x2 0 0))))`);
         assertEq(wasmSimdAnalysis(), "simd128-to-scalar -> constant folded");
     }
 }
@@ -742,13 +771,13 @@ for ( let [ty128,size] of [['i8x16',1], ['i16x8',2], ['i32x4',4]] ) {
 
     for ( let op of ['any_true', 'all_true', 'bitmask'] ) {
         let folded = op != 'bitmask' || size == 2;
-
+        let operation = op == 'any_true' ? 'v128.any_true' : `${ty128}.${op}`;
         let positive =
             wasmCompile(
                 `(module
                    (memory (export "mem") 1 1)
                    (func $f (param v128) (result i32)
-                       (if (result i32) (${ty128}.${op} (local.get 0))
+                       (if (result i32) (${operation} (local.get 0))
                            (i32.const 42)
                            (i32.const 37)))
                    (func (export "run") (result i32)
@@ -760,7 +789,7 @@ for ( let [ty128,size] of [['i8x16',1], ['i16x8',2], ['i32x4',4]] ) {
                 `(module
                    (memory (export "mem") 1 1)
                    (func $f (param v128) (result i32)
-                       (if (result i32) (i32.eqz (${ty128}.${op} (local.get 0)))
+                       (if (result i32) (i32.eqz (${operation} (local.get 0)))
                            (i32.const 42)
                            (i32.const 37)))
                    (func (export "run") (result i32)
@@ -835,6 +864,11 @@ function interleave(xs, ys) {
 
 function i32ToI8(xs) {
     return xs.map(x => [x*4, x*4+1, x*4+2, x*4+3]).flat();
+}
+
+function i64ToI2(xs) {
+  return xs.map(x => [x*8, x*8+1, x*8+2, x*8+3,
+                      x*8+4, x*8+5, x*8+6, x*8+7]).flat();
 }
 
 function i16ToI8(xs) {

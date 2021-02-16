@@ -11,7 +11,6 @@
 
 #include "ds/LifoAlloc.h"
 #include "frontend/BytecodeCompilation.h"
-#include "frontend/CompilationInfo.h"
 #include "gc/HashUtil.h"
 #include "js/friend/ErrorMessages.h"   // js::GetErrorMessage, JSMSG_*
 #include "js/friend/JSMEnvironment.h"  // JS::NewJSMEnvironment, JS::ExecuteInJSMEnvironment, JS::GetJSMEnvironmentOfScriptedCaller, JS::IsJSMEnvironment
@@ -348,97 +347,6 @@ static bool EvalKernel(JSContext* cx, HandleValue v, EvalType evalType,
   }
 
   return ExecuteKernel(cx, esg.script(), env, newTargetVal,
-                       NullFramePtr() /* evalInFrame */, vp);
-}
-
-bool js::DirectEvalStringFromIon(JSContext* cx, HandleObject env,
-                                 HandleScript callerScript,
-                                 HandleValue newTargetValue, HandleString str,
-                                 jsbytecode* pc, MutableHandleValue vp) {
-  AssertInnerizedEnvironmentChain(cx, *env);
-
-  if (!GlobalObject::isRuntimeCodeGenEnabled(cx, str, cx->global())) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_CSP_BLOCKED_EVAL);
-    return false;
-  }
-
-  // ES5 15.1.2.1 steps 2-8.
-
-  RootedLinearString linearStr(cx, str->ensureLinear(cx));
-  if (!linearStr) {
-    return false;
-  }
-
-  EvalJSONResult ejr = TryEvalJSON(cx, linearStr, vp);
-  if (ejr != EvalJSONResult::NotJSON) {
-    return ejr == EvalJSONResult::Success;
-  }
-
-  EvalScriptGuard esg(cx);
-
-  esg.lookupInEvalCache(linearStr, callerScript, pc);
-
-  if (!esg.foundScript()) {
-    const char* filename;
-    unsigned lineno;
-    bool mutedErrors;
-    uint32_t pcOffset;
-    DescribeScriptedCallerForDirectEval(cx, callerScript, pc, &filename,
-                                        &lineno, &pcOffset, &mutedErrors);
-
-    const char* introducerFilename = filename;
-    if (callerScript->scriptSource()->introducerFilename()) {
-      introducerFilename = callerScript->scriptSource()->introducerFilename();
-    }
-
-    RootedScope enclosing(cx, callerScript->innermostScope(pc));
-
-    CompileOptions options(cx);
-    options.setIsRunOnce(true);
-    options.setNoScriptRval(false);
-    options.setMutedErrors(mutedErrors);
-
-    if (IsStrictEvalPC(pc)) {
-      options.setForceStrictMode();
-    }
-
-    if (introducerFilename) {
-      options.setFileAndLine(filename, 1);
-      options.setIntroductionInfo(introducerFilename, "eval", lineno,
-                                  callerScript, pcOffset);
-    } else {
-      options.setFileAndLine("eval", 1);
-      options.setIntroductionType("eval");
-    }
-    options.setNonSyntacticScope(
-        enclosing->hasOnChain(ScopeKind::NonSyntactic));
-
-    AutoStableStringChars linearChars(cx);
-    if (!linearChars.initTwoByte(cx, linearStr)) {
-      return false;
-    }
-
-    SourceText<char16_t> srcBuf;
-
-    const char16_t* chars = linearChars.twoByteRange().begin().get();
-    SourceOwnership ownership = linearChars.maybeGiveOwnershipToCaller()
-                                    ? SourceOwnership::TakeOwnership
-                                    : SourceOwnership::Borrowed;
-    if (!srcBuf.init(cx, chars, linearStr->length(), ownership)) {
-      return false;
-    }
-
-    JSScript* script =
-        frontend::CompileEvalScript(cx, options, srcBuf, enclosing, env);
-    if (!script) {
-      return false;
-    }
-
-    esg.setNewScript(script);
-  }
-
-  return ExecuteKernel(cx, esg.script(), env, newTargetValue,
                        NullFramePtr() /* evalInFrame */, vp);
 }
 

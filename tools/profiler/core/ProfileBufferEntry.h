@@ -7,9 +7,13 @@
 #ifndef ProfileBufferEntry_h
 #define ProfileBufferEntry_h
 
+#include <cstdint>
+#include <cstdlib>
+#include <functional>
+#include <utility>
 #include "gtest/MozGtestFriend.h"
 #include "js/ProfilingCategory.h"
-#include "js/ProfilingFrameIterator.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/Maybe.h"
@@ -21,6 +25,7 @@
 #include "nsString.h"
 
 class ProfilerCodeAddressService;
+struct JSContext;
 
 class ProfileBufferEntry {
  public:
@@ -373,6 +378,7 @@ class UniqueStacks {
 //       "stack": 0,          /* index into stackTable */
 //       "time": 1,           /* number */
 //       "eventDelay": 2,     /* number */
+//       "ThreadCPUDelta": 3, /* optional number */
 //     },
 //     "data":
 //     [

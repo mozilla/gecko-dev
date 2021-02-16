@@ -150,6 +150,10 @@ class SearchOneOffs {
     // details.  Summary: On Linux, switching between themes can cause a row
     // of buttons to disappear.
     Services.obs.addObserver(this, "lightweight-theme-changed", true);
+
+    // This defaults to false in the Search Bar, subclasses can change their
+    // default in the constructor.
+    this.disableOneOffsHorizontalKeyNavigation = false;
   }
 
   addEventListener(...args) {
@@ -715,13 +719,13 @@ class SearchOneOffs {
    *
    * @param {event} aEvent
    *        The event that triggered the page load.
-   * @param {boolean} aForceNewTab
+   * @param {boolean} [aForceNewTab]
    *        True to force the load in a new tab.
    * @returns {object} An object { where, params }.  `where` is a string:
    *          "current" or "tab".  `params` is an object further describing how
    *          the page should be loaded.
    */
-  _whereToOpen(aEvent, aForceNewTab) {
+  _whereToOpen(aEvent, aForceNewTab = false) {
     let where = "current";
     let params;
     // Open ctrl/cmd clicks on one-off buttons in a new background tab.
@@ -1027,58 +1031,37 @@ class SearchOneOffs {
   }
 
   /**
-   * If the given event is related to the one-offs, this method records
-   * one-off telemetry for it.  this.telemetryOrigin will be appended to the
-   * computed source, so make sure you set that first.
+   * Determines if the target of the event is a one-off button or
+   * context menu on a one-off button.
    *
-   * @param {Event} aEvent
+   * @param {Event} event
    *        An event, like a click on a one-off button.
    * @returns {boolean} True if telemetry was recorded and false if not.
    */
-  maybeRecordTelemetry(aEvent) {
-    if (!aEvent) {
+  eventTargetIsAOneOff(event) {
+    if (!event) {
       return false;
     }
 
-    let source = null;
-    let type = "unknown";
-    let engine = null;
-    let target = aEvent.originalTarget;
+    let target = event.originalTarget;
 
-    if (aEvent instanceof KeyboardEvent) {
-      type = "key";
-      if (this.selectedButton) {
-        source = "oneoff";
-        engine = this.selectedButton.engine;
-      }
-    } else if (aEvent instanceof MouseEvent) {
-      type = "mouse";
-      if (target.classList.contains("searchbar-engine-one-off-item")) {
-        source = "oneoff";
-        engine = target.engine;
-      }
-    } else if (
-      aEvent instanceof this.window.XULCommandEvent &&
+    if (event instanceof KeyboardEvent && this.selectedButton) {
+      return true;
+    }
+    if (
+      event instanceof MouseEvent &&
+      target.classList.contains("searchbar-engine-one-off-item")
+    ) {
+      return true;
+    }
+    if (
+      event instanceof this.window.XULCommandEvent &&
       target.classList.contains("search-one-offs-context-open-in-new-tab")
     ) {
-      source = "oneoff-context";
-      engine = this._contextEngine;
+      return true;
     }
 
-    if (!source) {
-      return false;
-    }
-
-    if (this.telemetryOrigin) {
-      source += "-" + this.telemetryOrigin;
-    }
-
-    this.window.BrowserSearch.recordOneoffSearchInTelemetry(
-      engine,
-      source,
-      type
-    );
-    return true;
+    return false;
   }
 
   _resetAddEngineMenuTimeout() {

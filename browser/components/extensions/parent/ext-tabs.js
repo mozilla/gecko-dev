@@ -48,9 +48,7 @@ XPCOMUtils.defineLazyGetter(this, "strBundle", function() {
   );
 });
 
-var { ExtensionError } = ExtensionUtils;
-
-const TABHIDE_PREFNAME = "extensions.webextensions.tabhide.enabled";
+var { DefaultMap, ExtensionError } = ExtensionUtils;
 
 const TAB_HIDE_CONFIRMED_TYPE = "tabHideNotification";
 
@@ -216,10 +214,10 @@ class TabsUpdateFilterEventManager extends EventManager {
         filter.properties = allProperties;
       }
 
-      function sanitize(extension, changeInfo) {
+      function sanitize(tab, changeInfo) {
         let result = {};
         let nonempty = false;
-        let hasTabs = extension.hasPermission("tabs");
+        const hasTabs = tab.hasTabPermission;
         for (let prop in changeInfo) {
           if (hasTabs || !restricted.has(prop)) {
             nonempty = true;
@@ -266,7 +264,7 @@ class TabsUpdateFilterEventManager extends EventManager {
           return;
         }
 
-        let changeInfo = sanitize(extension, changed);
+        let changeInfo = sanitize(tab, changed);
         if (changeInfo) {
           tabTracker.maybeWaitForTabOpen(nativeTab).then(() => {
             if (!nativeTab.parentNode) {
@@ -419,22 +417,6 @@ class TabsUpdateFilterEventManager extends EventManager {
       name: "tabs.onUpdated",
       register,
     });
-  }
-
-  addListener(callback, filter) {
-    let { extension } = this.context;
-    if (
-      filter &&
-      filter.urls &&
-      !extension.hasPermission("tabs") &&
-      !extension.hasPermission("activeTab")
-    ) {
-      Cu.reportError(
-        'Url filtering in tabs.onUpdated requires "tabs" or "activeTab" permission.'
-      );
-      return false;
-    }
-    return super.addListener(callback, filter);
   }
 }
 
@@ -803,8 +785,29 @@ this.tabs = class extends ExtensionAPI {
         },
 
         async remove(tabIds) {
-          for (let nativeTab of getNativeTabsFromIDArray(tabIds)) {
-            nativeTab.ownerGlobal.gBrowser.removeTab(nativeTab);
+          let nativeTabs = getNativeTabsFromIDArray(tabIds);
+
+          if (nativeTabs.length === 1) {
+            nativeTabs[0].ownerGlobal.gBrowser.removeTab(nativeTabs[0]);
+            return;
+          }
+
+          // Or for multiple tabs, first group them by window
+          let windowTabMap = new DefaultMap(() => []);
+          for (let nativeTab of nativeTabs) {
+            windowTabMap.get(nativeTab.ownerGlobal).push(nativeTab);
+          }
+
+          // Then make one call to removeTabs() for each window, to keep the
+          // count accurate for SessionStore.getLastClosedTabCount().
+          // Note: always pass options to disable animation and the warning
+          // dialogue box, so that way all tabs are actually closed when the
+          // browser.tabs.remove() promise resolves
+          for (let [eachWindow, tabsToClose] of windowTabMap.entries()) {
+            eachWindow.gBrowser.removeTabs(tabsToClose, {
+              animate: false,
+              suppressWarnAboutClosingWindow: true,
+            });
           }
         },
 
@@ -841,9 +844,7 @@ this.tabs = class extends ExtensionAPI {
           if (updateProperties.highlighted !== null) {
             if (updateProperties.highlighted) {
               if (!nativeTab.selected && !nativeTab.multiselected) {
-                tabbrowser.addToMultiSelectedTabs(nativeTab, {
-                  isLastMultiSelectChange: true,
-                });
+                tabbrowser.addToMultiSelectedTabs(nativeTab);
                 // Select the highlighted tab unless active:false is provided.
                 // Note that Chrome selects it even in that case.
                 if (updateProperties.active !== false) {
@@ -852,9 +853,7 @@ this.tabs = class extends ExtensionAPI {
                 }
               }
             } else {
-              tabbrowser.removeFromMultiSelectedTabs(nativeTab, {
-                isLastMultiSelectChange: true,
-              });
+              tabbrowser.removeFromMultiSelectedTabs(nativeTab);
             }
           }
           if (updateProperties.muted !== null) {
@@ -931,14 +930,6 @@ this.tabs = class extends ExtensionAPI {
         },
 
         async query(queryInfo) {
-          if (!extension.hasPermission("tabs")) {
-            if (queryInfo.url !== null || queryInfo.title !== null) {
-              return Promise.reject({
-                message:
-                  'The "tabs" permission is required to use the query API with the "url" or "title" parameters',
-              });
-            }
-          }
           return Array.from(tabManager.query(queryInfo, context), tab =>
             tab.convert()
           );
@@ -1515,12 +1506,6 @@ this.tabs = class extends ExtensionAPI {
         },
 
         show(tabIds) {
-          if (!Services.prefs.getBoolPref(TABHIDE_PREFNAME, false)) {
-            throw new ExtensionError(
-              `tabs.show is currently experimental and must be enabled with the ${TABHIDE_PREFNAME} preference.`
-            );
-          }
-
           for (let tab of getNativeTabsFromIDArray(tabIds)) {
             if (tab.ownerGlobal) {
               tab.ownerGlobal.gBrowser.showTab(tab);
@@ -1529,12 +1514,6 @@ this.tabs = class extends ExtensionAPI {
         },
 
         hide(tabIds) {
-          if (!Services.prefs.getBoolPref(TABHIDE_PREFNAME, false)) {
-            throw new ExtensionError(
-              `tabs.hide is currently experimental and must be enabled with the ${TABHIDE_PREFNAME} preference.`
-            );
-          }
-
           let hidden = [];
           for (let tab of getNativeTabsFromIDArray(tabIds)) {
             if (tab.ownerGlobal && !tab.hidden) {

@@ -289,7 +289,7 @@ impl WindowWrapper {
     #[cfg(feature = "software")]
     fn update_software(&self, dim: DeviceIntSize) {
         if let Some(swgl) = self.software_gl() {
-            swgl.init_default_framebuffer(dim.width, dim.height, 0, std::ptr::null_mut());
+            swgl.init_default_framebuffer(0, 0, dim.width, dim.height, 0, std::ptr::null_mut());
         }
     }
 
@@ -305,15 +305,15 @@ impl WindowWrapper {
 }
 
 #[cfg(feature = "software")]
-fn make_software_context() -> Option<swgl::Context> {
+fn make_software_context() -> swgl::Context {
     let ctx = swgl::Context::create();
     ctx.make_current();
-    Some(ctx)
+    ctx
 }
 
 #[cfg(not(feature = "software"))]
-fn make_software_context() -> Option<swgl::Context> {
-    None
+fn make_software_context() -> swgl::Context {
+    panic!("software feature not enabled")
 }
 
 fn make_window(
@@ -326,7 +326,7 @@ fn make_window(
     software: bool,
 ) -> WindowWrapper {
     let sw_ctx = if software {
-        make_software_context()
+        Some(make_software_context())
     } else {
         None
     };
@@ -436,7 +436,9 @@ fn make_window(
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum NotifierEvent {
-    WakeUp,
+    WakeUp {
+        composite_needed: bool,
+    },
     ShutDown,
 }
 
@@ -452,8 +454,14 @@ impl RenderNotifier for Notifier {
         })
     }
 
-    fn wake_up(&self) {
-        self.tx.send(NotifierEvent::WakeUp).unwrap();
+    fn wake_up(
+        &self,
+        composite_needed: bool,
+    ) {
+        let msg = NotifierEvent::WakeUp {
+            composite_needed,
+        };
+        self.tx.send(msg).unwrap();
     }
 
     fn shut_down(&self) {
@@ -463,11 +471,11 @@ impl RenderNotifier for Notifier {
     fn new_frame_ready(&self,
                        _: DocumentId,
                        _scrolled: bool,
-                       _composite_needed: bool,
+                       composite_needed: bool,
                        _render_time: Option<u64>) {
         // TODO(gw): Refactor wrench so that it can take advantage of cases
         //           where no composite is required when appropriate.
-        self.wake_up();
+        self.wake_up(composite_needed);
     }
 }
 

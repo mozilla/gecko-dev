@@ -133,6 +133,10 @@ bool RenderCompositorANGLE::ShutdownEGLLibraryIfNecessary(nsACString& aError) {
 }
 
 bool RenderCompositorANGLE::Initialize(nsACString& aError) {
+  // TODO(aosmond): This causes us to lose WebRender because it is unable to
+  // distinguish why we failed and retry once the reset is complete. This does
+  // appear to happen in the wild, so we really should try to do something
+  // differently here.
   if (RenderThread::Get()->IsHandlingDeviceReset()) {
     aError.Assign("RcANGLE(waiting device reset)"_ns);
     return false;
@@ -260,7 +264,7 @@ bool RenderCompositorANGLE::CreateSwapChain(nsACString& aError) {
     return false;
   }
 
-  if (!mSwapChain && dxgiFactory2 && IsWin8OrLater()) {
+  if (!mSwapChain && dxgiFactory2) {
     RefPtr<IDXGISwapChain1> swapChain1;
     bool useTripleBuffering = false;
 
@@ -296,10 +300,13 @@ bool RenderCompositorANGLE::CreateSwapChain(nsACString& aError) {
       mSwapChain1 = swapChain1;
       mUseTripleBuffering = useTripleBuffering;
     } else if (gfx::gfxVars::UseWebRenderFlipSequentialWin()) {
-      MOZ_ASSERT(GetCompositorHwnd());
-      aError.Assign(
-          nsPrintfCString("RcANGLE(swap chain hwnd create failed %x)", hr));
-      return false;
+      gfxCriticalNoteOnce << "FLIP_SEQUENTIAL is not supported. Fallback";
+
+      if (mWidget->AsWindows()->GetCompositorHwnd()) {
+        // Destroy compositor window.
+        mWidget->AsWindows()->DestroyCompositorWindow();
+        hwnd = mWidget->AsWindows()->GetHwnd();
+      }
     }
   }
 
@@ -486,7 +493,8 @@ bool RenderCompositorANGLE::BeginFrame() {
   if (RenderThread::Get()->SyncObjectNeeded() && mSyncObject) {
     if (!mSyncObject->Synchronize(/* aFallible */ true)) {
       // It's timeout or other error. Handle the device-reset here.
-      RenderThread::Get()->HandleDeviceReset("SyncObject", /* aNotify */ true);
+      RenderThread::Get()->HandleDeviceReset(
+          "SyncObject", nullptr, LOCAL_GL_UNKNOWN_CONTEXT_RESET_ARB);
       return false;
     }
   }
@@ -523,30 +531,41 @@ RenderedFrameId RenderCompositorANGLE::EndFrame(
       mFullRender = false;
       // If there is no diry rect, we skip SwapChain present.
       if (!aDirtyRects.IsEmpty()) {
+        int rectsCount = 0;
         StackArray<RECT, 1> rects(aDirtyRects.Length());
+
         for (size_t i = 0; i < aDirtyRects.Length(); ++i) {
           const DeviceIntRect& rect = aDirtyRects[i];
           // Clip rect to bufferSize
-          rects[i].left =
-              std::max(0, std::min(rect.origin.x, bufferSize.width));
-          rects[i].top =
-              std::max(0, std::min(rect.origin.y, bufferSize.height));
-          rects[i].right = std::max(
+          int left = std::max(0, std::min(rect.origin.x, bufferSize.width));
+          int top = std::max(0, std::min(rect.origin.y, bufferSize.height));
+          int right = std::max(
               0, std::min(rect.origin.x + rect.size.width, bufferSize.width));
-          rects[i].bottom = std::max(
+          int bottom = std::max(
               0, std::min(rect.origin.y + rect.size.height, bufferSize.height));
+
+          // When rect is not empty, the rect could be passed to Present1().
+          if (left < right && top < bottom) {
+            rects[rectsCount].left = left;
+            rects[rectsCount].top = top;
+            rects[rectsCount].right = right;
+            rects[rectsCount].bottom = bottom;
+            rectsCount++;
+          }
         }
 
-        DXGI_PRESENT_PARAMETERS params;
-        PodZero(&params);
-        params.DirtyRectsCount = aDirtyRects.Length();
-        params.pDirtyRects = rects.data();
+        if (rectsCount > 0) {
+          DXGI_PRESENT_PARAMETERS params;
+          PodZero(&params);
+          params.DirtyRectsCount = rectsCount;
+          params.pDirtyRects = rects.data();
 
-        HRESULT hr;
-        hr = mSwapChain1->Present1(0, 0, &params);
-        if (FAILED(hr) && hr != DXGI_STATUS_OCCLUDED) {
-          gfxCriticalNote << "Present1 failed: " << gfx::hexa(hr);
-          mFullRender = true;
+          HRESULT hr;
+          hr = mSwapChain1->Present1(0, 0, &params);
+          if (FAILED(hr) && hr != DXGI_STATUS_OCCLUDED) {
+            gfxCriticalNote << "Present1 failed: " << gfx::hexa(hr);
+            mFullRender = true;
+          }
         }
       }
     } else {
@@ -725,7 +744,11 @@ LayoutDeviceIntSize RenderCompositorANGLE::GetBufferSize() {
     }
     return mBufferSize.ref();
   } else {
-    return mWidget->GetClientSize();
+    auto size = mWidget->GetClientSize();
+    // This size is used for WR DEBUG_OVERLAY. Its DCTile does not like 0.
+    size.width = std::max(size.width, 1);
+    size.height = std::max(size.height, 1);
+    return size;
   }
 }
 
@@ -805,13 +828,29 @@ RenderedFrameId RenderCompositorANGLE::UpdateFrameId() {
   return frameId;
 }
 
-bool RenderCompositorANGLE::IsContextLost() {
-  // XXX glGetGraphicsResetStatus sometimes did not work for detecting TDR.
-  // Then this function just uses GetDeviceRemovedReason().
-  if (mDevice->GetDeviceRemovedReason() != S_OK) {
-    return true;
+GLenum RenderCompositorANGLE::IsContextLost(bool aForce) {
+  // glGetGraphicsResetStatus does not always work to detect timeout detection
+  // and recovery (TDR). On Windows, ANGLE itself is just relying upon the same
+  // API, so we should not need to check it separately.
+  auto reason = mDevice->GetDeviceRemovedReason();
+  switch (reason) {
+    case S_OK:
+      return LOCAL_GL_NO_ERROR;
+    case DXGI_ERROR_DEVICE_REMOVED:
+    case DXGI_ERROR_DRIVER_INTERNAL_ERROR:
+      NS_WARNING("Device reset due to system / different device");
+      return LOCAL_GL_INNOCENT_CONTEXT_RESET_ARB;
+    case DXGI_ERROR_DEVICE_HUNG:
+    case DXGI_ERROR_DEVICE_RESET:
+    case DXGI_ERROR_INVALID_CALL:
+      gfxCriticalError() << "Device reset due to WR device: "
+                         << gfx::hexa(reason);
+      return LOCAL_GL_GUILTY_CONTEXT_RESET_ARB;
+    default:
+      gfxCriticalError() << "Device reset with WR device unexpected reason: "
+                         << gfx::hexa(reason);
+      return LOCAL_GL_UNKNOWN_CONTEXT_RESET_ARB;
   }
-  return false;
 }
 
 bool RenderCompositorANGLE::UseCompositor() {

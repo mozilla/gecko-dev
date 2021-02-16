@@ -8,18 +8,21 @@
 #define mozilla_dom_IDTracker_h_
 
 #include "mozilla/Attributes.h"
-#include "mozilla/dom/Element.h"
-#include "mozilla/dom/ShadowRoot.h"
-#include "nsAtom.h"
-#include "mozilla/dom/Document.h"
+#include "nsIObserver.h"
 #include "nsThreadUtils.h"
-#include "plstr.h"
 
+class nsAtom;
+class nsIContent;
+class nsINode;
 class nsIURI;
 class nsIReferrerInfo;
 
 namespace mozilla {
 namespace dom {
+
+class Document;
+class DocumentOrShadowRoot;
+class Element;
 
 /**
  * Class to track what element is referenced by a given ID.
@@ -42,9 +45,9 @@ class IDTracker {
  public:
   typedef mozilla::dom::Element Element;
 
-  IDTracker() = default;
+  IDTracker();
 
-  ~IDTracker() { Unlink(); }
+  ~IDTracker();
 
   /**
    * Find which element, if any, is referenced.
@@ -93,7 +96,7 @@ class IDTracker {
    * to call this superclass method to change mElement. This is called
    * at script-runnable time.
    */
-  virtual void ElementChanged(Element* aFrom, Element* aTo) { mElement = aTo; }
+  virtual void ElementChanged(Element* aFrom, Element* aTo);
 
   /**
    * Override this to convert from a single-shot notification to
@@ -126,11 +129,7 @@ class IDTracker {
 
   class ChangeNotification : public mozilla::Runnable, public Notification {
    public:
-    ChangeNotification(IDTracker* aTarget, Element* aFrom, Element* aTo)
-        : mozilla::Runnable("IDTracker::ChangeNotification"),
-          Notification(aTarget),
-          mFrom(aFrom),
-          mTo(aTo) {}
+    ChangeNotification(IDTracker* aTarget, Element* aFrom, Element* aTo);
 
     // We need to actually declare all of nsISupports, because
     // Notification inherits from it but doesn't declare it.
@@ -142,15 +141,11 @@ class IDTracker {
       }
       return NS_OK;
     }
-    virtual void SetTo(Element* aTo) override { mTo = aTo; }
-    virtual void Clear() override {
-      Notification::Clear();
-      mFrom = nullptr;
-      mTo = nullptr;
-    }
+    void SetTo(Element* aTo) override;
+    void Clear() override;
 
    protected:
-    virtual ~ChangeNotification() = default;
+    virtual ~ChangeNotification();
 
     RefPtr<Element> mFrom;
     RefPtr<Element> mTo;
@@ -177,18 +172,7 @@ class IDTracker {
   };
   friend class DocumentLoadNotification;
 
-  DocumentOrShadowRoot* GetWatchDocOrShadowRoot() const {
-    if (!mWatchDocumentOrShadowRoot) {
-      return nullptr;
-    }
-    MOZ_ASSERT(mWatchDocumentOrShadowRoot->IsDocument() ||
-               mWatchDocumentOrShadowRoot->IsShadowRoot());
-    if (ShadowRoot* shadow =
-            ShadowRoot::FromNode(*mWatchDocumentOrShadowRoot)) {
-      return shadow;
-    }
-    return mWatchDocumentOrShadowRoot->AsDocument();
-  }
+  DocumentOrShadowRoot* GetWatchDocOrShadowRoot() const;
 
   RefPtr<nsAtom> mWatchID;
   nsCOMPtr<nsINode>

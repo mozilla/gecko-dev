@@ -14,6 +14,8 @@
 #include "mozilla/dom/VRDisplayBinding.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/Base64.h"
+#include "mozilla/ProfilerMarkers.h"
+#include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "Navigator.h"

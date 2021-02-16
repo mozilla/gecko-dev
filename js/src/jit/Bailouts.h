@@ -8,7 +8,6 @@
 #define jit_Bailouts_h
 
 #include "mozilla/Assertions.h"  // MOZ_ASSERT
-#include "mozilla/Attributes.h"  // MOZ_MUST_USE
 
 #include <stddef.h>  // size_t
 #include <stdint.h>  // uint8_t, uint32_t
@@ -43,7 +42,7 @@ namespace jit {
 //     invalidated while it was on the stack. See "OSI" below. Ion code can be
 //     invalidated for several reasons: when GC evicts Ion code to save memory,
 //     for example, or when assumptions baked into the jitted code are
-//     invalidated by the VM (see callers of IonBuilder::constraints()).
+//     invalidated by the VM.
 //
 // (Some stack inspection can be done without bailing out, including GC stack
 // marking, Error object construction, and Gecko profiler sampling.)
@@ -176,18 +175,18 @@ class BailoutFrameInfo {
   JitActivation* activation() const { return activation_; }
 };
 
-MOZ_MUST_USE bool EnsureHasEnvironmentObjects(JSContext* cx,
-                                              AbstractFramePtr fp);
+[[nodiscard]] bool EnsureHasEnvironmentObjects(JSContext* cx,
+                                               AbstractFramePtr fp);
 
 struct BaselineBailoutInfo;
 
 // Called from a bailout thunk.
-MOZ_MUST_USE bool Bailout(BailoutStack* sp, BaselineBailoutInfo** info);
+[[nodiscard]] bool Bailout(BailoutStack* sp, BaselineBailoutInfo** info);
 
 // Called from the invalidation thunk.
-MOZ_MUST_USE bool InvalidationBailout(InvalidationBailoutStack* sp,
-                                      size_t* frameSizeOut,
-                                      BaselineBailoutInfo** info);
+[[nodiscard]] bool InvalidationBailout(InvalidationBailoutStack* sp,
+                                       size_t* frameSizeOut,
+                                       BaselineBailoutInfo** info);
 
 class ExceptionBailoutInfo {
   size_t frameNo_;
@@ -219,15 +218,12 @@ class ExceptionBailoutInfo {
 };
 
 // Called from the exception handler to enter a catch or finally block.
-MOZ_MUST_USE bool ExceptionHandlerBailout(JSContext* cx,
-                                          const InlineFrameIterator& frame,
-                                          ResumeFromException* rfe,
-                                          const ExceptionBailoutInfo& excInfo);
+[[nodiscard]] bool ExceptionHandlerBailout(JSContext* cx,
+                                           const InlineFrameIterator& frame,
+                                           ResumeFromException* rfe,
+                                           const ExceptionBailoutInfo& excInfo);
 
-MOZ_MUST_USE bool FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg);
-
-void CheckFrequentBailouts(JSContext* cx, JSScript* script,
-                           BailoutKind bailoutKind);
+[[nodiscard]] bool FinishBailoutToBaseline(BaselineBailoutInfo* bailoutInfoArg);
 
 }  // namespace jit
 }  // namespace js

@@ -14,9 +14,11 @@
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/MutationObservers.h"
+#include "mozilla/dom/Promise.h"
 #include "mozilla/AnimationEventDispatcher.h"
 #include "mozilla/AnimationTarget.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DeclarationBlock.h"
 #include "mozilla/Maybe.h"  // For Maybe
 #include "mozilla/StaticPrefs_dom.h"
@@ -78,6 +80,11 @@ class MOZ_RAII AutoMutationBatchForAnimation {
 // Animation interface:
 //
 // ---------------------------------------------------------------------------
+
+Animation::Animation(nsIGlobalObject* aGlobal)
+    : DOMEventTargetHelper(aGlobal), mAnimationIndex(sNextAnimationIndex++) {}
+
+Animation::~Animation() = default;
 
 /* static */
 already_AddRefed<Animation> Animation::ClonePausedAnimation(
@@ -1854,6 +1861,41 @@ void Animation::QueuePlaybackEvent(const nsAString& aName,
 bool Animation::IsRunningOnCompositor() const {
   return mEffect && mEffect->AsKeyframeEffect() &&
          mEffect->AsKeyframeEffect()->IsRunningOnCompositor();
+}
+
+bool Animation::HasCurrentEffect() const {
+  return GetEffect() && GetEffect()->IsCurrent();
+}
+
+bool Animation::IsInEffect() const {
+  return GetEffect() && GetEffect()->IsInEffect();
+}
+
+StickyTimeDuration Animation::IntervalStartTime(
+    const StickyTimeDuration& aActiveDuration) const {
+  MOZ_ASSERT(AsCSSTransition() || AsCSSAnimation(),
+             "Should be called for CSS animations or transitions");
+  static constexpr StickyTimeDuration zeroDuration = StickyTimeDuration();
+  return std::max(
+      std::min(StickyTimeDuration(-mEffect->SpecifiedTiming().Delay()),
+               aActiveDuration),
+      zeroDuration);
+}
+
+// Later side of the elapsed time range reported in CSS Animations and CSS
+// Transitions events.
+//
+// https://drafts.csswg.org/css-animations-2/#interval-end
+// https://drafts.csswg.org/css-transitions-2/#interval-end
+StickyTimeDuration Animation::IntervalEndTime(
+    const StickyTimeDuration& aActiveDuration) const {
+  MOZ_ASSERT(AsCSSTransition() || AsCSSAnimation(),
+             "Should be called for CSS animations or transitions");
+
+  static constexpr StickyTimeDuration zeroDuration = StickyTimeDuration();
+  return std::max(std::min((EffectEnd() - mEffect->SpecifiedTiming().Delay()),
+                           aActiveDuration),
+                  zeroDuration);
 }
 
 }  // namespace mozilla::dom

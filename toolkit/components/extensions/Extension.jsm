@@ -618,10 +618,24 @@ class ExtensionData {
     });
   }
 
+  canCheckSignature() {
+    // ExtensionData instances can't check the signature because it is not yet
+    // available when XPIProvider does use it to load the extension manifest.
+    //
+    // This method will return true for the ExtensionData subclasses (like
+    // the Extension class) to enable the additional validation that would require
+    // the signature to be available (e.g. to check if the extension is allowed to
+    // use a privileged permission).
+    return this.constructor != ExtensionData;
+  }
+
   get restrictSchemes() {
-    // ExtensionData can't check the signature (as it is not yet passed to its constructor
-    // as it is for the Extension class, where this getter is overridden to check both the
-    // signature and the permissions).
+    // mozillaAddons permission is only allowed for privileged addons and
+    // filtered out if the extension isn't privileged.
+    // When the manifest is loaded by an explicit ExtensionData class
+    // instance, the signature data isn't available yet and this helper
+    // would always return false, but it will return true when appropriate
+    // (based on the isPrivileged boolean property) for the Extension class.
     return !this.hasPermission("mozillaAddons");
   }
 
@@ -869,6 +883,7 @@ class ExtensionData {
         this.manifestWarning(error);
       },
       preprocessors: {},
+      manifestVersion: this.manifest.manifest_version,
     };
 
     if (this.fluentL10n || this.localeData) {
@@ -995,6 +1010,18 @@ class ExtensionData {
         } else if (type.api) {
           apiNames.add(type.api);
         } else if (type.invalid) {
+          if (!this.canCheckSignature() && PRIVILEGED_PERMS.has(perm)) {
+            // Do not emit the warning if the invalid permission is a privileged one
+            // and the current instance can't yet check for a valid signature
+            // (see Bug 1675858 and the inline comment inside the canCheckSignature
+            // method for more details).
+            //
+            // This parseManifest method will be called again on the Extension class
+            // instance, which will have the signature available and the invalid
+            // extension permission warnings will be collected and logged if necessary.
+            continue;
+          }
+
           this.manifestWarning(`Invalid extension permission: ${perm}`);
           continue;
         }
@@ -1844,18 +1871,19 @@ class DictionaryBootstrapScope extends BootstrapScope {
   }
 }
 
-class LangpackBootstrapScope {
+class LangpackBootstrapScope extends BootstrapScope {
   install(data, reason) {}
   uninstall(data, reason) {}
+  update(data, reason) {}
 
   startup(data, reason) {
     // eslint-disable-next-line no-use-before-define
     this.langpack = new Langpack(data);
-    return this.langpack.startup();
+    return this.langpack.startup(this.BOOTSTRAP_REASON_TO_STRING_MAP[reason]);
   }
 
   shutdown(data, reason) {
-    this.langpack.shutdown();
+    this.langpack.shutdown(this.BOOTSTRAP_REASON_TO_STRING_MAP[reason]);
     this.langpack = null;
   }
 }
@@ -2009,16 +2037,7 @@ class Extension extends ExtensionData {
     }
   }
 
-  get restrictSchemes() {
-    return !(this.isPrivileged && this.hasPermission("mozillaAddons"));
-  }
-
   // Some helpful properties added elsewhere:
-  /**
-   * An object used to map between extension-visible tab ids and
-   * native Tab object
-   * @property {TabManager} tabManager
-   */
 
   static getBootstrapScope() {
     return new BootstrapScope();
@@ -2164,8 +2183,14 @@ class Extension extends ExtensionData {
     return manifest;
   }
 
+  get manifestVersion() {
+    return this.manifest.manifest_version;
+  }
+
   get extensionPageCSP() {
     const { content_security_policy } = this.manifest;
+    // While only manifest v3 should contain an object,
+    // we'll remain lenient here.
     if (
       content_security_policy &&
       typeof content_security_policy === "object"
@@ -2173,19 +2198,6 @@ class Extension extends ExtensionData {
       return content_security_policy.extension_pages;
     }
     return content_security_policy;
-  }
-
-  get contentScriptCSP() {
-    let { content_security_policy } = this.manifest;
-    if (
-      content_security_policy &&
-      typeof content_security_policy === "object"
-    ) {
-      return (
-        content_security_policy.content_scripts ||
-        content_security_policy.isolated_world
-      );
-    }
   }
 
   get backgroundScripts() {
@@ -2216,8 +2228,8 @@ class Extension extends ExtensionData {
       id: this.id,
       uuid: this.uuid,
       name: this.name,
+      manifestVersion: this.manifestVersion,
       extensionPageCSP: this.extensionPageCSP,
-      contentScriptCSP: this.contentScriptCSP,
       instanceId: this.instanceId,
       resourceURL: this.resourceURL,
       contentScripts: this.contentScripts,

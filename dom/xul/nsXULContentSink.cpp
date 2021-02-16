@@ -49,6 +49,8 @@
 
 static mozilla::LazyLogModule gContentSinkLog("nsXULContentSink");
 
+using namespace mozilla;
+using namespace mozilla::dom;
 //----------------------------------------------------------------------
 
 XULContentSinkImpl::ContextStack::ContextStack() : mTop(nullptr), mDepth(0) {}
@@ -699,6 +701,9 @@ nsresult XULContentSinkImpl::OpenScript(const char16_t** aAttributes,
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
+      // NOTE(emilio): Module scripts don't pass this test, aren't cached yet.
+      // If they become cached, then we need to tweak
+      // PrototypeDocumentContentSink and remove the special cases there.
       if (nsContentUtils::IsJavascriptMIMEType(mimeType)) {
         isJavaScript = true;
 

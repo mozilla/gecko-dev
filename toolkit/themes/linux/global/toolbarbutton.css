@@ -47,7 +47,7 @@ toolbarbutton[disabled="true"] {
   color: GrayText;
 }
 
-toolbarbutton:-moz-lwtheme:not(:hover):not([checked="true"]):not([open="true"]):not([disabled="true"]) {
+toolbarbutton:-moz-lwtheme:not(:hover, [checked="true"], [open="true"], [disabled="true"]) {
   text-shadow: inherit;
 }
 
@@ -56,6 +56,14 @@ toolbarbutton:-moz-lwtheme:not(:hover):not([checked="true"]):not([open="true"]):
 .toolbarbutton-menu-dropmarker {
   appearance: auto;
   -moz-default-appearance: toolbarbutton-dropdown;
+}
+
+.toolbarbutton-combined-buttons-dropmarker {
+  appearance: none;
+  list-style-image: url("chrome://global/skin/icons/arrow-dropdown-12.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+  width: auto;
 }
 
 /* ::::: toolbarbutton badged ::::: */

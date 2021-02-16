@@ -13,31 +13,8 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SearchOneOffs: "resource:///modules/SearchOneOffs.jsm",
   Services: "resource://gre/modules/Services.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
-  UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
 });
-
-// Maps from RESULT_SOURCE values to { restrict } objects.
-const LOCAL_MODES = new Map([
-  [
-    UrlbarUtils.RESULT_SOURCE.BOOKMARKS,
-    {
-      restrict: UrlbarTokenizer.RESTRICT.BOOKMARK,
-    },
-  ],
-  [
-    UrlbarUtils.RESULT_SOURCE.TABS,
-    {
-      restrict: UrlbarTokenizer.RESTRICT.OPENPAGE,
-    },
-  ],
-  [
-    UrlbarUtils.RESULT_SOURCE.HISTORY,
-    {
-      restrict: UrlbarTokenizer.RESTRICT.HISTORY,
-    },
-  ],
-]);
 
 /**
  * The one-off search buttons in the urlbar.
@@ -54,7 +31,8 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
     this.view = view;
     this.input = view.input;
     UrlbarPrefs.addObserver(this);
-    this._setupOneOffsHorizontalKeyNavigation();
+    // Override the SearchOneOffs.jsm value for the Address Bar.
+    this.disableOneOffsHorizontalKeyNavigation = true;
   }
 
   /**
@@ -194,13 +172,8 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
    * @param {object} searchMode
    *   Used by UrlbarInput.setSearchMode to enter search mode. See setSearchMode
    *   documentation for details.
-   * @param {boolean} forceNewTab
-   *   True if the search results page should be loaded in a new tab.
-   *   TODO: We can remove this parameter when the update2 pref is removed. This
-   *   parameter is only used by the one-off context menu, which is removed in
-   *   update2.
    */
-  handleSearchCommand(event, searchMode, forceNewTab = false) {
+  handleSearchCommand(event, searchMode) {
     // The settings button is a special case. Its action should be executed
     // immediately.
     if (
@@ -223,15 +196,14 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
       this.input.value && this.input.getAttribute("pageproxystate") != "valid";
     let engine = Services.search.getEngineByName(searchMode.engineName);
 
-    let { where, params } = this._whereToOpen(event, forceNewTab);
+    let { where, params } = this._whereToOpen(event);
 
     // Some key combinations should execute a search immediately. We handle
     // these here, outside the switch statement.
     if (
-      !this.view.oneOffsRefresh ||
-      (userTypedSearchString &&
-        engine &&
-        (event.shiftKey || where != "current"))
+      userTypedSearchString &&
+      engine &&
+      (event.shiftKey || where != "current")
     ) {
       this.input.handleNavigation({
         event,
@@ -305,6 +277,23 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
   }
 
   /**
+   * Overrides the willHide method in the superclass to account for the local
+   * search mode buttons.
+   *
+   * @returns {boolean}
+   *   True if we will hide the one-offs when they are requested.
+   */
+  async willHide() {
+    // We need to call super.willHide() even when we return false below because
+    // it has the necessary side effect of creating this._engineInfo.
+    let superWillHide = await super.willHide();
+    if (UrlbarUtils.LOCAL_SEARCH_MODES.some(m => UrlbarPrefs.get(m.pref))) {
+      return false;
+    }
+    return superWillHide;
+  }
+
+  /**
    * Called when a pref tracked by UrlbarPrefs changes.
    *
    * @param {string} changedPref
@@ -315,22 +304,10 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
     // Invalidate the engine cache when the local-one-offs-related prefs change
     // so that the one-offs rebuild themselves the next time the view opens.
     if (
-      ["update2", "update2.localOneOffs", "update2.oneOffsRefresh"].includes(
-        changedPref
-      )
+      [...UrlbarUtils.LOCAL_SEARCH_MODES.map(m => m.pref)].includes(changedPref)
     ) {
       this.invalidateCache();
     }
-    this._setupOneOffsHorizontalKeyNavigation();
-  }
-
-  /**
-   * Sets whether LEFT/RIGHT should navigate through one-off buttons.
-   */
-  _setupOneOffsHorizontalKeyNavigation() {
-    this.disableOneOffsHorizontalKeyNavigation =
-      UrlbarPrefs.get("update2") &&
-      UrlbarPrefs.get("update2.disableOneOffsHorizontalKeyNavigation");
   }
 
   /**
@@ -342,11 +319,10 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
   _rebuildEngineList(engines) {
     super._rebuildEngineList(engines);
 
-    if (!this.view.oneOffsRefresh || !UrlbarPrefs.get("update2.localOneOffs")) {
-      return;
-    }
-
-    for (let [source, { restrict }] of LOCAL_MODES) {
+    for (let { source, pref, restrict } of UrlbarUtils.LOCAL_SEARCH_MODES) {
+      if (!UrlbarPrefs.get(pref)) {
+        continue;
+      }
       let name = UrlbarUtils.getResultSourceName(source);
       let button = this.document.createXULElement("button");
       button.id = `urlbar-engine-one-off-item-${name}`;
@@ -367,11 +343,6 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
    *   The click event.
    */
   _on_click(event) {
-    if (!this.view.oneOffsRefresh) {
-      super._on_click(event);
-      return;
-    }
-
     // Ignore right clicks.
     if (event.button == 2) {
       return;
@@ -397,12 +368,7 @@ class UrlbarSearchOneOffs extends SearchOneOffs {
    *   The contextmenu event.
    */
   _on_contextmenu(event) {
-    // Prevent the context menu from appearing when update2 is enabled.
-    if (this.view.oneOffsRefresh) {
-      event.preventDefault();
-      return;
-    }
-
-    super._on_contextmenu(event);
+    // Prevent the context menu from appearing.
+    event.preventDefault();
   }
 }

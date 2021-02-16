@@ -8,6 +8,17 @@
 
 #include "ipc/IPCMessageUtils.h"
 
+#ifdef ACCESSIBILITY
+#  include "mozilla/a11y/DocAccessibleParent.h"
+#  include "mozilla/a11y/Platform.h"
+#  include "mozilla/a11y/ProxyAccessibleBase.h"
+#  include "nsAccessibilityService.h"
+#  if defined(XP_WIN)
+#    include "mozilla/a11y/AccessibleWrap.h"
+#    include "mozilla/a11y/Compatibility.h"
+#    include "mozilla/a11y/nsWinUtils.h"
+#  endif
+#endif
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
@@ -16,7 +27,6 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/FeaturePolicyUtils.h"
 #include "mozilla/dom/HTMLEmbedElement.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "mozilla/dom/Location.h"
@@ -50,6 +60,7 @@
 #include "nsIXULRuntime.h"
 
 #include "nsDocShell.h"
+#include "nsDocShellLoadState.h"
 #include "nsFocusManager.h"
 #include "nsGlobalWindowOuter.h"
 #include "nsIObserverService.h"
@@ -84,6 +95,13 @@ struct ParamTraits<mozilla::dom::DisplayMode>
     : public ContiguousEnumSerializer<mozilla::dom::DisplayMode,
                                       mozilla::dom::DisplayMode::Browser,
                                       mozilla::dom::DisplayMode::EndGuard_> {};
+
+template <>
+struct ParamTraits<mozilla::dom::ExplicitActiveStatus>
+    : public ContiguousEnumSerializer<
+          mozilla::dom::ExplicitActiveStatus,
+          mozilla::dom::ExplicitActiveStatus::None,
+          mozilla::dom::ExplicitActiveStatus::EndGuard_> {};
 
 // Allow serialization and deserialization of TouchEventsOverride over IPC
 template <>
@@ -326,7 +344,19 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
   }
 
   nsContentUtils::GenerateUUIDInPlace(fields.mHistoryID);
-  fields.mIsActive = true;
+  fields.mExplicitActive = [&] {
+    if (parentBC) {
+      // Non-root browsing-contexts inherit their status from its parent.
+      return ExplicitActiveStatus::None;
+    }
+    if (aType == Type::Content) {
+      // Content gets managed by the chrome front-end / embedder element and
+      // starts as inactive.
+      return ExplicitActiveStatus::Inactive;
+    }
+    // Chrome starts as active.
+    return ExplicitActiveStatus::Active;
+  }();
 
   fields.mFullZoom = parentBC ? parentBC->FullZoom() : 1.0f;
   fields.mTextZoom = parentBC ? parentBC->TextZoom() : 1.0f;
@@ -542,6 +572,38 @@ void BrowsingContext::CleanUpDanglingRemoteOuterWindowProxies(
   js::RemapRemoteWindowProxies(aCx, &cb, aOuter);
 }
 
+bool BrowsingContext::IsActive() const {
+  const BrowsingContext* current = this;
+  do {
+    auto explicit_ = current->GetExplicitActive();
+    if (explicit_ != ExplicitActiveStatus::None) {
+      return explicit_ == ExplicitActiveStatus::Active;
+    }
+    if (current->IsCached()) {
+      return false;
+    }
+  } while ((current = current->GetParent()));
+
+  return false;
+}
+
+bool BrowsingContext::GetIsActiveBrowserWindow() {
+  if (!XRE_IsParentProcess()) {
+    return Top()->GetIsActiveBrowserWindowInternal();
+  }
+
+  // chrome:// urls loaded in the parent won't receive
+  // their own activation so we defer to the top chrome
+  // Browsing Context when in the parent process.
+  RefPtr<CanonicalBrowsingContext> chromeTop =
+      Canonical()->TopCrossChromeBoundary();
+  return chromeTop->GetIsActiveBrowserWindowInternal();
+}
+
+void BrowsingContext::SetIsActiveBrowserWindow(bool aActive) {
+  Unused << SetIsActiveBrowserWindowInternal(aActive);
+}
+
 bool BrowsingContext::FullscreenAllowed() const {
   for (auto* current = this; current; current = current->GetParent()) {
     if (!current->GetFullscreenAllowedByOwner()) {
@@ -582,8 +644,12 @@ void BrowsingContext::SetEmbedderElement(Element* aEmbedder) {
     if (XRE_IsParentProcess() && IsTopContent()) {
       nsAutoString messageManagerGroup;
       if (aEmbedder->IsXULElement()) {
-        aEmbedder->GetAttr(kNameSpaceID_None, nsGkAtoms::messagemanagergroup,
-                           messageManagerGroup);
+        aEmbedder->GetAttr(nsGkAtoms::messagemanagergroup, messageManagerGroup);
+        if (!aEmbedder->AttrValueIs(kNameSpaceID_None,
+                                    nsGkAtoms::initiallyactive,
+                                    nsGkAtoms::_false, eIgnoreCase)) {
+          txn.SetExplicitActive(ExplicitActiveStatus::Active);
+        }
       }
       txn.SetMessageManagerGroup(messageManagerGroup);
 
@@ -663,6 +729,11 @@ void BrowsingContext::Attach(bool aFromIPC, ContentParent* aOriginProcess) {
     if (IsTopContent() && !Canonical()->GetWebProgress()) {
       Canonical()->mWebProgress = new BrowsingContextWebProgress();
     }
+  }
+
+  if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
+    obs->NotifyWhenScriptSafe(ToSupports(this), "browsing-context-attached",
+                              nullptr);
   }
 }
 
@@ -793,11 +864,11 @@ void BrowsingContext::PrepareForProcessChange() {
   MOZ_ASSERT(!mWindowProxy);
 }
 
-bool BrowsingContext::IsCached() {
+bool BrowsingContext::IsCached() const {
   return mParentWindow && mParentWindow->IsCached();
 }
 
-bool BrowsingContext::IsTargetable() {
+bool BrowsingContext::IsTargetable() const {
   return !GetClosed() && !mIsDiscarded && !IsCached();
 }
 
@@ -1786,26 +1857,8 @@ nsresult BrowsingContext::InternalLoad(nsDocShellLoadState* aLoadState) {
   MOZ_DIAGNOSTIC_ASSERT(aLoadState->TargetBrowsingContext() == this,
                         "must be targeting this BrowsingContext");
 
-  const auto& sourceBC = aLoadState->SourceBrowsingContext();
-  bool isActive =
-      sourceBC && sourceBC->GetIsActive() && !GetIsActive() &&
-      !Preferences::GetBool("browser.tabs.loadDivertedInBackground", false);
   if (mDocShell) {
-    nsresult rv = nsDocShell::Cast(mDocShell)->InternalLoad(aLoadState);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    // Switch to target tab if we're currently focused window.
-    // Take loadDivertedInBackground into account so the behavior would be
-    // the same as how the tab first opened.
-    nsCOMPtr<nsPIDOMWindowOuter> domWin = GetDOMWindow();
-    if (isActive && domWin) {
-      nsFocusManager::FocusWindow(domWin, CallerType::System);
-    }
-
-    // Else we ran out of memory, or were a popup and got blocked,
-    // or something.
-
-    return rv;
+    return nsDocShell::Cast(mDocShell)->InternalLoad(aLoadState);
   }
 
   // Note: We do this check both here and in `nsDocShell::InternalLoad`, since
@@ -1815,6 +1868,7 @@ nsresult BrowsingContext::InternalLoad(nsDocShellLoadState* aLoadState) {
   // BrowsingContext's sandbox flags.
   MOZ_TRY(CheckSandboxFlags(aLoadState));
 
+  const auto& sourceBC = aLoadState->SourceBrowsingContext();
   if (XRE_IsParentProcess()) {
     ContentParent* cp = Canonical()->GetContentParent();
     if (!cp || !cp->CanSend()) {
@@ -1823,7 +1877,7 @@ nsresult BrowsingContext::InternalLoad(nsDocShellLoadState* aLoadState) {
 
     MOZ_ALWAYS_SUCCEEDS(
         SetCurrentLoadIdentifier(Some(aLoadState->GetLoadIdentifier())));
-    Unused << cp->SendInternalLoad(aLoadState, isActive);
+    Unused << cp->SendInternalLoad(aLoadState);
   } else {
     MOZ_DIAGNOSTIC_ASSERT(sourceBC);
     MOZ_DIAGNOSTIC_ASSERT(sourceBC->Group() == Group());
@@ -1901,15 +1955,148 @@ void BrowsingContext::Close(CallerType aCallerType, ErrorResult& aError) {
   }
 }
 
+/*
+ * Examine the current document state to see if we're in a way that is
+ * typically abused by web designers. The window.open code uses this
+ * routine to determine whether to allow the new window.
+ * Returns a value from the PopupControlState enum.
+ */
+PopupBlocker::PopupControlState BrowsingContext::RevisePopupAbuseLevel(
+    PopupBlocker::PopupControlState aControl) {
+  if (!IsContent()) {
+    return PopupBlocker::openAllowed;
+  }
+
+  PopupBlocker::PopupControlState abuse = aControl;
+  switch (abuse) {
+    case PopupBlocker::openControlled:
+    case PopupBlocker::openBlocked:
+    case PopupBlocker::openOverridden:
+      if (IsPopupAllowed()) {
+        abuse = PopupBlocker::PopupControlState(abuse - 1);
+      }
+      break;
+    case PopupBlocker::openAbused:
+      if (IsPopupAllowed()) {
+        // Skip PopupBlocker::openBlocked
+        abuse = PopupBlocker::openControlled;
+      }
+      break;
+    case PopupBlocker::openAllowed:
+      break;
+    default:
+      NS_WARNING("Strange PopupControlState!");
+  }
+
+  // limit the number of simultaneously open popups
+  if (abuse == PopupBlocker::openAbused || abuse == PopupBlocker::openBlocked ||
+      abuse == PopupBlocker::openControlled) {
+    int32_t popupMax = StaticPrefs::dom_popup_maximum();
+    if (popupMax >= 0 &&
+        PopupBlocker::GetOpenPopupSpamCount() >= (uint32_t)popupMax) {
+      abuse = PopupBlocker::openOverridden;
+    }
+  }
+
+  // If we're currently in-process, attempt to consume transient user gesture
+  // activations.
+  if (RefPtr<Document> doc = GetExtantDocument()) {
+    // HACK: Some pages using bogus library + UA sniffing call window.open()
+    // from a blank iframe, only on Firefox, see bug 1685056.
+    //
+    // This is a hack-around to preserve behavior in that particular and
+    // specific case, by consuming activation on the parent document, so we
+    // don't care about the InProcessParent bits not being fission-safe or what
+    // not.
+    auto ConsumeTransientUserActivationForMultiplePopupBlocking =
+        [&]() -> bool {
+      if (doc->ConsumeTransientUserGestureActivation()) {
+        return true;
+      }
+      if (!doc->IsInitialDocument()) {
+        return false;
+      }
+      Document* parentDoc = doc->GetInProcessParentDocument();
+      if (!parentDoc ||
+          !parentDoc->NodePrincipal()->Equals(doc->NodePrincipal())) {
+        return false;
+      }
+      return parentDoc->ConsumeTransientUserGestureActivation();
+    };
+
+    // If this popup is allowed, let's block any other for this event, forcing
+    // PopupBlocker::openBlocked state.
+    if ((abuse == PopupBlocker::openAllowed ||
+         abuse == PopupBlocker::openControlled) &&
+        StaticPrefs::dom_block_multiple_popups() && !IsPopupAllowed() &&
+        !ConsumeTransientUserActivationForMultiplePopupBlocking()) {
+      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag, "DOM"_ns,
+                                      doc, nsContentUtils::eDOM_PROPERTIES,
+                                      "MultiplePopupsBlockedNoUserActivation");
+      abuse = PopupBlocker::openBlocked;
+    }
+  }
+
+  return abuse;
+}
+
+std::tuple<bool, bool> BrowsingContext::CanFocusCheck(CallerType aCallerType) {
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (!fm) {
+    return {false, false};
+  }
+
+  nsCOMPtr<nsPIDOMWindowInner> caller = do_QueryInterface(GetEntryGlobal());
+  BrowsingContext* callerBC = caller ? caller->GetBrowsingContext() : nullptr;
+  RefPtr<BrowsingContext> openerBC = GetOpener();
+  MOZ_DIAGNOSTIC_ASSERT(!openerBC || openerBC->Group() == Group());
+
+  // Enforce dom.disable_window_flip (for non-chrome), but still allow the
+  // window which opened us to raise us at times when popups are allowed
+  // (bugs 355482 and 369306).
+  bool canFocus = aCallerType == CallerType::System ||
+                  !Preferences::GetBool("dom.disable_window_flip", true);
+  if (!canFocus && openerBC == callerBC) {
+    canFocus = (RevisePopupAbuseLevel(PopupBlocker::GetPopupControlState()) <
+                PopupBlocker::openBlocked);
+  }
+
+  bool isActive = false;
+  if (XRE_IsParentProcess()) {
+    RefPtr<CanonicalBrowsingContext> chromeTop =
+        Canonical()->TopCrossChromeBoundary();
+    nsCOMPtr<nsPIDOMWindowOuter> activeWindow = fm->GetActiveWindow();
+    isActive = (activeWindow == chromeTop->GetDOMWindow());
+  } else {
+    isActive = (fm->GetActiveBrowsingContext() == Top());
+  }
+
+  return {canFocus, isActive};
+}
+
 void BrowsingContext::Focus(CallerType aCallerType, ErrorResult& aError) {
+  // These checks need to happen before the RequestFrameFocus call, which
+  // is why they are done in an untrusted process. If we wanted to enforce
+  // these in the parent, we'd need to do the checks there _also_.
+  // These should be kept in sync with nsGlobalWindowOuter::FocusOuter.
+
+  auto [canFocus, isActive] = CanFocusCheck(aCallerType);
+
+  if (!(canFocus || isActive)) {
+    return;
+  }
+
+  // Permission check passed
+
   if (mEmbedderElement) {
     // Make the activeElement in this process update synchronously.
     nsContentUtils::RequestFrameFocus(*mEmbedderElement, true, aCallerType);
   }
+  uint64_t actionId = nsFocusManager::GenerateFocusActionId();
   if (ContentChild* cc = ContentChild::GetSingleton()) {
-    cc->SendWindowFocus(this, aCallerType);
+    cc->SendWindowFocus(this, aCallerType, actionId);
   } else if (ContentParent* cp = Canonical()->GetContentParent()) {
-    Unused << cp->SendWindowFocus(this, aCallerType);
+    Unused << cp->SendWindowFocus(this, aCallerType, actionId);
   }
 }
 
@@ -2171,11 +2358,49 @@ void BrowsingContext::DidSet(FieldIndex<IDX_GVInaudibleAutoplayRequestStatus>) {
              "browsing context");
 }
 
-void BrowsingContext::DidSet(FieldIndex<IDX_IsActive>, bool aOldValue) {
-  if (!IsTop() || aOldValue == GetIsActive()) {
+void BrowsingContext::DidSet(FieldIndex<IDX_ExplicitActive>,
+                             ExplicitActiveStatus aOldValue) {
+  const bool isActive = IsActive();
+  const bool wasActive = [&] {
+    if (aOldValue != ExplicitActiveStatus::None) {
+      return aOldValue == ExplicitActiveStatus::Active;
+    }
+    return GetParent() && GetParent()->IsActive();
+  }();
+
+  if (isActive == wasActive) {
     return;
   }
-  Group()->UpdateToplevelsSuspendedIfNeeded();
+
+  if (IsTop()) {
+    Group()->UpdateToplevelsSuspendedIfNeeded();
+
+#if defined(XP_WIN) && defined(ACCESSIBILITY)
+    if (XRE_IsParentProcess() && a11y::Compatibility::IsDolphin()) {
+      // update active accessible documents on windows
+      if (BrowserParent* bp = Canonical()->GetBrowserParent()) {
+        if (a11y::DocAccessibleParent* tabDoc =
+                bp->GetTopLevelDocAccessible()) {
+          HWND window = tabDoc->GetEmulatedWindowHandle();
+          MOZ_ASSERT(window);
+          if (window) {
+            if (isActive) {
+              a11y::nsWinUtils::ShowNativeWindow(window);
+            } else {
+              a11y::nsWinUtils::HideNativeWindow(window);
+            }
+          }
+        }
+      }
+    }
+#endif
+  }
+
+  PreOrderWalk([&](BrowsingContext* aContext) {
+    if (nsCOMPtr<nsIDocShell> ds = aContext->GetDocShell()) {
+      nsDocShell::Cast(ds)->ActivenessMaybeChanged();
+    }
+  });
 }
 
 bool BrowsingContext::CanSet(FieldIndex<IDX_HasMainMediaController>,
@@ -2199,7 +2424,7 @@ bool BrowsingContext::InactiveForSuspend() const {
   // media controller. Having a main controller in context means it might be
   // playing media, or waiting media keys to control media (could be not playing
   // anything currently)
-  return !GetIsActive() && !GetHasMainMediaController();
+  return !IsActive() && !GetHasMainMediaController();
 }
 
 bool BrowsingContext::CanSet(
@@ -2288,7 +2513,8 @@ void BrowsingContext::DidSet(FieldIndex<IDX_PlatformOverride>) {
   });
 }
 
-bool BrowsingContext::CheckOnlyOwningProcessCanSet(ContentParent* aSource) {
+bool BrowsingContext::CheckOnlyOwningProcessCanSet(
+    ContentParent* aSource) {
   if (aSource) {
     MOZ_ASSERT(XRE_IsParentProcess());
 
@@ -2304,6 +2530,36 @@ bool BrowsingContext::CheckOnlyOwningProcessCanSet(ContentParent* aSource) {
   }
 
   return true;
+}
+
+bool BrowsingContext::CanSet(FieldIndex<IDX_IsActiveBrowserWindowInternal>,
+                             const bool& aValue, ContentParent* aSource) {
+  // Should only be set in the parent process.
+  return XRE_IsParentProcess() && !aSource && IsTop();
+}
+
+void BrowsingContext::DidSet(FieldIndex<IDX_IsActiveBrowserWindowInternal>,
+                             bool aOldValue) {
+  bool isActivateEvent = GetIsActiveBrowserWindowInternal();
+  // The browser window containing this context has changed
+  // activation state so update window inactive document states
+  // for all in-process documents.
+  PreOrderWalk([isActivateEvent](BrowsingContext* aContext) {
+    if (RefPtr<Document> doc = aContext->GetExtantDocument()) {
+      doc->UpdateDocumentStates(NS_DOCUMENT_STATE_WINDOW_INACTIVE, true);
+
+      if (XRE_IsContentProcess() &&
+          (!aContext->GetParent() || !aContext->GetParent()->IsInProcess())) {
+        // Send the inner window an activate/deactivate event if
+        // the context is the top of a sub-tree of in-process
+        // contexts.
+        nsContentUtils::DispatchEventOnlyToChrome(
+            doc, doc->GetWindow()->GetCurrentInnerWindow(),
+            isActivateEvent ? u"activate"_ns : u"deactivate"_ns,
+            CanBubble::eYes, Cancelable::eYes, nullptr);
+      }
+    }
+  });
 }
 
 bool BrowsingContext::CanSet(FieldIndex<IDX_AllowContentRetargeting>,
@@ -2335,8 +2591,8 @@ bool BrowsingContext::CanSet(FieldIndex<IDX_UseErrorPages>,
   return CheckOnlyEmbedderCanSet(aSource);
 }
 
-mozilla::dom::TouchEventsOverride BrowsingContext::TouchEventsOverride() {
-  BrowsingContext* bc = this;
+mozilla::dom::TouchEventsOverride BrowsingContext::TouchEventsOverride() const {
+  const BrowsingContext* bc = this;
   while (bc) {
     mozilla::dom::TouchEventsOverride tev =
         bc->GetTouchEventsOverrideInternal();
@@ -2352,19 +2608,6 @@ mozilla::dom::TouchEventsOverride BrowsingContext::TouchEventsOverride() {
 
 void BrowsingContext::SetTouchEventsOverride(
     const enum TouchEventsOverride aTouchEventsOverride, ErrorResult& aRv) {
-  // Clear overrides from descendents first.
-  for (BrowsingContext* child : Children()) {
-    child->PreOrderWalk([](BrowsingContext* aContext) {
-      if (aContext->GetTouchEventsOverrideInternal() !=
-          mozilla::dom::TouchEventsOverride::None) {
-        // Ignore failed sets because the override of a discarded
-        // descendent shouldn't matter.
-        Unused << aContext->SetTouchEventsOverrideInternal(
-            mozilla::dom::TouchEventsOverride::None);
-      }
-    });
-  }
-
   SetTouchEventsOverrideInternal(aTouchEventsOverride, aRv);
 }
 
@@ -2812,6 +3055,44 @@ bool BrowsingContext::IsPopupAllowed() {
   return false;
 }
 
+void BrowsingContext::SessionHistoryCommit(
+    const LoadingSessionHistoryInfo& aInfo, uint32_t aLoadType,
+    bool aHadActiveEntry, bool aPersist, bool aCloneEntryChildren) {
+  nsID changeID = {};
+  if (XRE_IsContentProcess()) {
+    RefPtr<ChildSHistory> rootSH = Top()->GetChildSessionHistory();
+    if (rootSH) {
+      if (!aInfo.mLoadIsFromSessionHistory) {
+        // We try to mimic as closely as possible what will happen in
+        // CanonicalBrowsingContext::SessionHistoryCommit. We'll be
+        // incrementing the session history length if we're not replacing,
+        // this is a top-level load or it's not the initial load in an iframe,
+        // and ShouldUpdateSessionHistory(loadType) returns true.
+        // It is possible that this leads to wrong length temporarily, but
+        // so would not having the check for replace.
+        if (!LOAD_TYPE_HAS_FLAGS(
+                aLoadType, nsIWebNavigation::LOAD_FLAGS_REPLACE_HISTORY) &&
+            (IsTop() || aHadActiveEntry) &&
+            ShouldUpdateSessionHistory(aLoadType)) {
+          changeID = rootSH->AddPendingHistoryChange();
+        }
+      } else {
+        // This is a load from session history, so we can update
+        // index and length immediately.
+        rootSH->SetIndexAndLength(aInfo.mRequestedIndex,
+                                  aInfo.mSessionHistoryLength, changeID);
+      }
+    }
+    ContentChild* cc = ContentChild::GetSingleton();
+    mozilla::Unused << cc->SendHistoryCommit(this, aInfo.mLoadId, changeID,
+                                             aLoadType, aPersist,
+                                             aCloneEntryChildren);
+  } else {
+    Canonical()->SessionHistoryCommit(aInfo.mLoadId, changeID, aLoadType,
+                                      aPersist, aCloneEntryChildren);
+  }
+}
+
 void BrowsingContext::SetActiveSessionHistoryEntry(
     const Maybe<nsPoint>& aPreviousScrollPos, SessionHistoryInfo* aInfo,
     uint32_t aLoadType, uint32_t aUpdatedCacheKey) {
@@ -2863,15 +3144,17 @@ void BrowsingContext::RemoveFromSessionHistory() {
 }
 
 void BrowsingContext::HistoryGo(int32_t aOffset, uint64_t aHistoryEpoch,
+                                bool aRequireUserInteraction,
                                 std::function<void(int32_t&&)>&& aResolver) {
   if (XRE_IsContentProcess()) {
     ContentChild::GetSingleton()->SendHistoryGo(
-        this, aOffset, aHistoryEpoch, std::move(aResolver),
+        this, aOffset, aHistoryEpoch, aRequireUserInteraction,
+        std::move(aResolver),
         [](mozilla::ipc::
                ResponseRejectReason) { /* FIXME Is ignoring this fine? */ });
   } else {
     Canonical()->HistoryGo(
-        aOffset, aHistoryEpoch,
+        aOffset, aHistoryEpoch, aRequireUserInteraction,
         Canonical()->GetContentParent()
             ? Some(Canonical()->GetContentParent()->ChildID())
             : Nothing(),

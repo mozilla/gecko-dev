@@ -69,6 +69,12 @@ extern ArrayObject* JS_FASTCALL NewDenseFullyAllocatedArray(
     JSContext* cx, uint32_t length, HandleObject proto = nullptr,
     NewObjectKind newKind = GenericObject);
 
+// Create a dense array with length == 'length', initialized length set to 0,
+// and capacity == 'length' clamped to EagerAllocationMaxLength.
+extern ArrayObject* NewDensePartlyAllocatedArray(
+    JSContext* cx, uint32_t length, HandleObject proto = nullptr,
+    NewObjectKind newKind = GenericObject);
+
 // Create a dense array from the given array values, which must be rooted.
 extern ArrayObject* NewDenseCopiedArray(JSContext* cx, uint32_t length,
                                         const Value* values,
@@ -79,44 +85,8 @@ extern ArrayObject* NewDenseCopiedArray(JSContext* cx, uint32_t length,
 extern ArrayObject* NewDenseFullyAllocatedArrayWithTemplate(
     JSContext* cx, uint32_t length, ArrayObject* templateObject);
 
-// Create a dense array with the same copy-on-write elements as another object.
-extern ArrayObject* NewDenseCopyOnWriteArray(JSContext* cx,
-                                             HandleArrayObject templateObject);
-
-extern ArrayObject* NewFullyAllocatedArrayTryUseGroup(
-    JSContext* cx, HandleObjectGroup group, size_t length,
-    NewObjectKind newKind = GenericObject);
-
-extern ArrayObject* NewPartlyAllocatedArrayTryUseGroup(JSContext* cx,
-                                                       HandleObjectGroup group,
-                                                       size_t length);
-
-extern ArrayObject* NewFullyAllocatedArrayTryReuseGroup(
-    JSContext* cx, HandleObject obj, size_t length,
-    NewObjectKind newKind = GenericObject);
-
-extern ArrayObject* NewPartlyAllocatedArrayTryReuseGroup(JSContext* cx,
-                                                         HandleObject obj,
-                                                         size_t length);
-
-extern ArrayObject* NewFullyAllocatedArrayForCallingAllocationSite(
-    JSContext* cx, size_t length, NewObjectKind newKind = GenericObject);
-
-extern ArrayObject* NewPartlyAllocatedArrayForCallingAllocationSite(
-    JSContext* cx, size_t length, HandleObject proto);
-
-extern ArrayObject* NewCopiedArrayTryUseGroup(
-    JSContext* cx, HandleObjectGroup group, const Value* vp, size_t length,
-    NewObjectKind newKind = GenericObject,
-    ShouldUpdateTypes updateTypes = ShouldUpdateTypes::Update);
-
-extern ArrayObject* NewCopiedArrayForCallingAllocationSite(
-    JSContext* cx, const Value* vp, size_t length,
-    HandleObject proto = nullptr);
-
 extern ArrayObject* NewArrayWithGroup(JSContext* cx, uint32_t length,
-                                      HandleObjectGroup group,
-                                      bool convertDoubleElements);
+                                      HandleObjectGroup group);
 
 extern bool ToLength(JSContext* cx, HandleValue v, uint64_t* out);
 

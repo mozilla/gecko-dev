@@ -5,8 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 include "mozilla/GfxMessageUtils.h";
+include "mozilla/dom/CSPMessageUtils.h";
 include "mozilla/dom/DocShellMessageUtils.h";
+include "mozilla/dom/PermissionMessageUtils.h";
+include "mozilla/dom/PropertyBagUtils.h";
+include "mozilla/dom/ReferrerInfoUtils.h";
 include "mozilla/dom/TabMessageUtils.h";
+include "mozilla/ipc/URIUtils.h";
 include "mozilla/layers/LayersMessageUtils.h";
 
 include IPCBlob;
@@ -14,11 +19,10 @@ include IPCStream;
 include protocol PRemoteLazyInputStream;
 include ProtocolTypes;
 
-using struct mozilla::void_t
-  from "ipc/IPCMessageUtils.h";
+using struct mozilla::void_t from "mozilla/ipc/IPCCore.h";
 
 using moveonly struct mozilla::SerializedStructuredCloneBuffer
-  from "ipc/IPCMessageUtils.h";
+  from "mozilla/ipc/SerializedStructuredCloneBuffer.h";
 
 using class mozilla::dom::LoadingSessionHistoryInfo
   from "mozilla/dom/SessionHistoryEntry.h";
@@ -35,13 +39,13 @@ using nsSizeMode from "nsIWidgetListener.h";
 using ScrollbarPreference from "mozilla/ScrollbarPreferences.h";
 using hal::ScreenOrientation from "mozilla/HalScreenConfiguration.h";
 using mozilla::gfx::SurfaceFormat from "mozilla/gfx/Types.h";
-using refcounted class nsIPrincipal from "mozilla/dom/PermissionMessageUtils.h";
+using refcounted class nsIPrincipal from "nsIPrincipal.h";
 using mozilla::dom::MaybeDiscardedBrowsingContext from "mozilla/dom/BrowsingContext.h";
-using refcounted class nsIURI from "mozilla/ipc/URIUtils.h";
-using refcounted class nsIContentSecurityPolicy from "mozilla/dom/CSPMessageUtils.h";
+using refcounted class nsIURI from "nsIURI.h";
+using refcounted class nsIContentSecurityPolicy from "nsIContentSecurityPolicy.h";
 using refcounted class nsIInputStream from "mozilla/ipc/IPCStreamUtils.h";
-using refcounted class nsIReferrerInfo from "mozilla/dom/ReferrerInfoUtils.h";
-using refcounted class nsIVariant from "mozilla/dom/PropertyBagUtils.h";
+using refcounted class nsIReferrerInfo from "nsIReferrerInfo.h";
+using refcounted class nsIVariant from "nsIVariant.h";
 using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
 using refcounted class mozilla::dom::BrowsingContext from "mozilla/dom/BrowsingContext.h";
 
@@ -382,9 +386,8 @@ struct OwnerShowInfo {
   // TODO(emilio): Margin preferences go here.
   ScrollbarPreference scrollbarPreference;
 
-  // TODO(emilio): I think we should really be able to figure out these from the
+  // TODO(emilio): I think we should really be able to figure this out from the
   // parent process too instead.
-  bool parentWindowIsActive;
   nsSizeMode sizeMode;
 };
 

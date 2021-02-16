@@ -6,6 +6,8 @@
 
 #include "js/MemoryMetrics.h"
 
+#include "mozilla/MathAlgorithms.h"
+
 #include <algorithm>
 
 #include "gc/GC.h"
@@ -184,21 +186,14 @@ struct StatsClosure {
 };
 
 static void DecommittedArenasChunkCallback(JSRuntime* rt, void* data,
-                                           gc::Chunk* chunk,
+                                           gc::TenuredChunk* chunk,
                                            const JS::AutoRequireNoGC& nogc) {
-  // This case is common and fast to check.  Do it first.
-  if (chunk->decommittedArenas.isAllClear()) {
-    return;
+  size_t n = 0;
+  for (uint32_t word : chunk->decommittedArenas.Storage()) {
+    n += mozilla::CountPopulation32(word);
   }
 
-  size_t n = 0;
-  for (size_t i = 0; i < gc::ArenasPerChunk; i++) {
-    if (chunk->decommittedArenas.get(i)) {
-      n += gc::ArenaSize;
-    }
-  }
-  MOZ_ASSERT(n > 0);
-  *static_cast<size_t*>(data) += n;
+  *static_cast<size_t*>(data) += n * gc::ArenaSize;
 }
 
 static void StatsZoneCallback(JSRuntime* rt, void* data, Zone* zone,
@@ -214,9 +209,8 @@ static void StatsZoneCallback(JSRuntime* rt, void* data, Zone* zone,
   rtStats->currZoneStats = &zStats;
 
   zone->addSizeOfIncludingThis(
-      rtStats->mallocSizeOf_, &zStats.code, &zStats.typePool,
-      &zStats.regexpZone, &zStats.jitZone, &zStats.baselineStubsOptimized,
-      &zStats.uniqueIdMap, &zStats.shapeTables,
+      rtStats->mallocSizeOf_, &zStats.code, &zStats.regexpZone, &zStats.jitZone,
+      &zStats.baselineStubsOptimized, &zStats.uniqueIdMap, &zStats.shapeTables,
       &rtStats->runtime.atomsMarkBitmaps, &zStats.compartmentObjects,
       &zStats.crossCompartmentWrappersTables, &zStats.compartmentsPrivateData,
       &zStats.scriptCountsMap);
@@ -237,13 +231,10 @@ static void StatsRealmCallback(JSContext* cx, void* data, Realm* realm,
 
   // Measure the realm object itself, and things hanging off it.
   realm->addSizeOfIncludingThis(
-      rtStats->mallocSizeOf_, &realmStats.typeInferenceAllocationSiteTables,
-      &realmStats.typeInferenceArrayTypeTables,
-      &realmStats.typeInferenceObjectTypeTables, &realmStats.realmObject,
-      &realmStats.realmTables, &realmStats.innerViewsTable,
-      &realmStats.objectMetadataTable, &realmStats.savedStacksSet,
-      &realmStats.varNamesSet, &realmStats.nonSyntacticLexicalScopesTable,
-      &realmStats.jitRealm);
+      rtStats->mallocSizeOf_, &realmStats.realmObject, &realmStats.realmTables,
+      &realmStats.innerViewsTable, &realmStats.objectMetadataTable,
+      &realmStats.savedStacksSet, &realmStats.varNamesSet,
+      &realmStats.nonSyntacticLexicalScopesTable, &realmStats.jitRealm);
 }
 
 static void StatsArenaCallback(JSRuntime* rt, void* data, gc::Arena* arena,
@@ -488,10 +479,7 @@ static void StatsCellCallback(JSRuntime* rt, void* data, JS::GCCellPtr cellptr,
     }
 
     case JS::TraceKind::ObjectGroup: {
-      ObjectGroup* group = &cellptr.as<ObjectGroup>();
       zStats->objectGroupsGCHeap += thingSize;
-      zStats->objectGroupsMallocHeap +=
-          group->sizeOfExcludingThis(rtStats->mallocSizeOf_);
       break;
     }
 
@@ -630,8 +618,10 @@ static bool CollectRuntimeStatsHelper(JSContext* cx, RuntimeStats* rtStats,
   // Finish any ongoing incremental GC that may change the data we're gathering
   // and ensure that we don't do anything that could start another one.
   gc::FinishGC(cx);
-  gc::WaitForBackgroundTasks(cx);
   JS::AutoAssertNoGC nogc(cx);
+
+  // Wait for any background tasks to finish.
+  WaitForAllHelperThreads();
 
   if (!rtStats->realmStatsVector.reserve(rt->numRealms)) {
     return false;
@@ -716,7 +706,7 @@ static bool CollectRuntimeStatsHelper(JSContext* cx, RuntimeStats* rtStats,
   size_t numDirtyChunks =
       (rtStats->gcHeapChunkTotal - rtStats->gcHeapUnusedChunks) / gc::ChunkSize;
   size_t perChunkAdmin =
-      sizeof(gc::Chunk) - (sizeof(gc::Arena) * gc::ArenasPerChunk);
+      sizeof(gc::TenuredChunk) - (sizeof(gc::Arena) * gc::ArenasPerChunk);
   rtStats->gcHeapChunkAdmin = numDirtyChunks * perChunkAdmin;
 
   // |gcHeapUnusedArenas| is the only thing left.  Compute it in terms of

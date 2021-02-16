@@ -38,6 +38,8 @@ class MIRGraph;
 class MPhi;
 class MTest;
 
+enum class TruncateKind;
+
 // An upper bound computed on the number of backedges a loop will take.
 // This count only includes backedges taken while running Ion code: for OSR
 // loops, this will exclude iterations that executed in the interpreter or in
@@ -114,25 +116,28 @@ class RangeAnalysis {
 
  public:
   RangeAnalysis(MIRGenerator* mir, MIRGraph& graph) : mir(mir), graph_(graph) {}
-  MOZ_MUST_USE bool addBetaNodes();
-  MOZ_MUST_USE bool analyze();
-  MOZ_MUST_USE bool addRangeAssertions();
-  MOZ_MUST_USE bool removeBetaNodes();
-  MOZ_MUST_USE bool prepareForUCE(bool* shouldRemoveDeadCode);
-  MOZ_MUST_USE bool tryRemovingGuards();
-  MOZ_MUST_USE bool truncate();
-  MOZ_MUST_USE bool removeUnnecessaryBitops();
+  [[nodiscard]] bool addBetaNodes();
+  [[nodiscard]] bool analyze();
+  [[nodiscard]] bool addRangeAssertions();
+  [[nodiscard]] bool removeBetaNodes();
+  [[nodiscard]] bool prepareForUCE(bool* shouldRemoveDeadCode);
+  [[nodiscard]] bool tryRemovingGuards();
+  [[nodiscard]] bool truncate();
+  [[nodiscard]] bool removeUnnecessaryBitops();
+
+  bool canTruncate(MDefinition* def, TruncateKind kind) const;
 
   // Any iteration bounds discovered for loops in the graph.
   LoopIterationBoundVector loopIterationBounds;
 
  private:
-  MOZ_MUST_USE bool analyzeLoop(MBasicBlock* header);
+  [[nodiscard]] bool analyzeLoop(MBasicBlock* header);
   LoopIterationBound* analyzeLoopIterationCount(MBasicBlock* header,
                                                 MTest* test,
                                                 BranchDirection direction);
   void analyzeLoopPhi(LoopIterationBound* loopBound, MPhi* phi);
-  MOZ_MUST_USE bool tryHoistBoundsCheck(MBasicBlock* header, MBoundsCheck* ins);
+  [[nodiscard]] bool tryHoistBoundsCheck(MBasicBlock* header,
+                                         MBoundsCheck* ins);
 };
 
 class Range : public TempObject {
@@ -457,7 +462,7 @@ class Range : public TempObject {
 
   void dump(GenericPrinter& out) const;
   void dump() const;
-  MOZ_MUST_USE bool update(const Range* other);
+  [[nodiscard]] bool update(const Range* other);
 
   // Unlike the other operations, unionWith is an in-place
   // modification. This is to avoid a bunch of useless extra
@@ -488,7 +493,7 @@ class Range : public TempObject {
   static Range* NaNToZero(TempAllocator& alloc, const Range* op);
   static Range* toIntegerInt32(TempAllocator& alloc, const Range* op);
 
-  static MOZ_MUST_USE bool negativeZeroMul(const Range* lhs, const Range* rhs);
+  [[nodiscard]] static bool negativeZeroMul(const Range* lhs, const Range* rhs);
 
   bool isUnknownInt32() const {
     return isInt32() && lower() == INT32_MIN && upper() == INT32_MAX;

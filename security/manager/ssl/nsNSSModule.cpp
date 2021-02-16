@@ -6,9 +6,6 @@
 
 #include "nsNSSModule.h"
 
-#ifndef MOZ_NEW_CERT_STORAGE
-#  include "CertBlocklist.h"
-#endif
 #include "ContentSignatureVerifier.h"
 #include "NSSErrorsService.h"
 #include "OSKeyStore.h"
@@ -20,7 +17,6 @@
 #include "mozilla/ModuleUtils.h"
 #include "mozilla/SyncRunnable.h"
 #include "nsCURILoader.h"
-#include "nsCertOverrideService.h"
 #include "nsCryptoHash.h"
 #include "nsKeyModule.h"
 #include "nsNSSCertificate.h"
@@ -32,7 +28,6 @@
 #include "nsPKCS11Slot.h"
 #include "nsRandomGenerator.h"
 #include "nsSecureBrowserUI.h"
-#include "nsSiteSecurityService.h"
 #include "nsXULAppAPI.h"
 
 #ifdef MOZ_XUL
@@ -97,20 +92,7 @@ static nsresult Constructor(nsISupports* aOuter, REFNSIID aIID,
 
   if (threadRestriction == ThreadRestriction::MainThreadOnly &&
       !NS_IsMainThread()) {
-    nsCOMPtr<nsIThread> mainThread;
-    nsresult rv = NS_GetMainThread(getter_AddRefs(mainThread));
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    // Forward to the main thread synchronously.
-    mozilla::SyncRunnable::DispatchToThread(
-        mainThread,
-        new SyncRunnable(NS_NewRunnableFunction("psm::Constructor", [&]() {
-          rv = Instantiate<InstanceClass, InitMethod>(aIID, aResult);
-        })));
-
-    return rv;
+    return NS_ERROR_NOT_SAME_THREAD;
   }
 
   return Instantiate<InstanceClass, InitMethod>(aIID, aResult);
@@ -140,16 +122,8 @@ IMPL(nsCryptoHMAC, nullptr, ProcessRestriction::AnyProcess)
 IMPL(nsKeyObject, nullptr, ProcessRestriction::AnyProcess)
 IMPL(nsKeyObjectFactory, nullptr, ProcessRestriction::AnyProcess)
 IMPL(ContentSignatureVerifier, nullptr)
-IMPL(nsCertOverrideService, &nsCertOverrideService::Init,
-     ProcessRestriction::ParentProcessOnly, ThreadRestriction::MainThreadOnly)
 IMPL(nsRandomGenerator, nullptr, ProcessRestriction::AnyProcess)
 IMPL(TransportSecurityInfo, nullptr, ProcessRestriction::AnyProcess)
-IMPL(nsSiteSecurityService, &nsSiteSecurityService::Init,
-     ProcessRestriction::AnyProcess, ThreadRestriction::MainThreadOnly)
-#ifndef MOZ_NEW_CERT_STORAGE
-IMPL(CertBlocklist, &CertBlocklist::Init, ProcessRestriction::ParentProcessOnly,
-     ThreadRestriction::MainThreadOnly)
-#endif
 IMPL(OSKeyStore, nullptr, ProcessRestriction::ParentProcessOnly,
      ThreadRestriction::MainThreadOnly)
 IMPL(OSReauthenticator, nullptr, ProcessRestriction::ParentProcessOnly,

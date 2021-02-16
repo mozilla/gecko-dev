@@ -7,24 +7,21 @@
 #ifndef nsHTMLDNSPrefetch_h___
 #define nsHTMLDNSPrefetch_h___
 
-#include "mozilla/OriginAttributes.h"
 #include "nsCOMPtr.h"
-#include "nsIDNSListener.h"
-#include "nsIObserver.h"
 #include "nsIRequest.h"
-#include "nsIWebProgressListener.h"
 #include "nsString.h"
 #include "nsWeakReference.h"
 
 class nsITimer;
 namespace mozilla {
+
+class OriginAttributes;
+
 namespace dom {
 class Document;
 class Link;
 }  // namespace dom
-}  // namespace mozilla
 
-namespace mozilla {
 namespace net {
 class NeckoParent;
 }  // namespace net
@@ -52,94 +49,36 @@ class nsHTMLDNSPrefetch {
   // sure that you pass a partitioned one. See StoragePrincipalHelper.h to know
   // more.
 
-  static nsresult PrefetchHigh(mozilla::dom::Link* aElement);
-  static nsresult PrefetchMedium(mozilla::dom::Link* aElement);
-  static nsresult PrefetchLow(mozilla::dom::Link* aElement);
-  static nsresult PrefetchLow(
+  enum class Priority {
+    Low,
+    Medium,
+    High,
+  };
+  static nsresult Prefetch(mozilla::dom::Link* aElement, Priority);
+  static nsresult Prefetch(
       const nsAString& host, bool isHttps,
       const mozilla::OriginAttributes& aPartitionedPrincipalOriginAttributes,
-      nsIRequest::TRRMode aTRRMode);
-  static nsresult PrefetchMedium(
+      nsIRequest::TRRMode aTRRMode, Priority);
+  static nsresult CancelPrefetch(
       const nsAString& host, bool isHttps,
       const mozilla::OriginAttributes& aPartitionedPrincipalOriginAttributes,
-      nsIRequest::TRRMode aTRRMode);
-  static nsresult PrefetchHigh(
-      const nsAString& host, bool isHttps,
-      const mozilla::OriginAttributes& aPartitionedPrincipalOriginAttributes,
-      nsIRequest::TRRMode aTRRMode);
-  static nsresult CancelPrefetchLow(
-      const nsAString& host, bool isHttps,
-      const mozilla::OriginAttributes& aPartitionedPrincipalOriginAttributes,
-      nsIRequest::TRRMode aTRRMode, nsresult aReason);
-  static nsresult CancelPrefetchLow(mozilla::dom::Link* aElement,
-                                    nsresult aReason);
+      nsIRequest::TRRMode aTRRMode, Priority, nsresult aReason);
+  static nsresult CancelPrefetch(mozilla::dom::Link* aElement,
+                                 Priority, nsresult aReason);
 
   static void LinkDestroyed(mozilla::dom::Link* aLink);
 
  private:
+  static uint32_t PriorityToDNSServiceFlags(Priority);
+
   static nsresult Prefetch(
       const nsAString& host, bool isHttps,
       const mozilla::OriginAttributes& aPartitionedPrincipalOriginAttributes,
       uint32_t flags);
-  static nsresult Prefetch(mozilla::dom::Link* aElement, uint32_t flags);
   static nsresult CancelPrefetch(
       const nsAString& hostname, bool isHttps,
       const mozilla::OriginAttributes& aPartitionedPrincipalOriginAttributes,
       uint32_t flags, nsresult aReason);
-  static nsresult CancelPrefetch(mozilla::dom::Link* aElement, uint32_t flags,
-                                 nsresult aReason);
-
- public:
-  class nsListener final : public nsIDNSListener {
-    // This class exists to give a safe callback no-op DNSListener
-   public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSIDNSLISTENER
-
-    nsListener() = default;
-
-   private:
-    ~nsListener() = default;
-  };
-
-  class nsDeferrals final : public nsIWebProgressListener,
-                            public nsSupportsWeakReference,
-                            public nsIObserver {
-   public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIWEBPROGRESSLISTENER
-    NS_DECL_NSIOBSERVER
-
-    nsDeferrals();
-
-    void Activate();
-    nsresult Add(uint32_t flags, mozilla::dom::Link* aElement);
-
-    void RemoveUnboundLinks();
-
-   private:
-    ~nsDeferrals();
-    void Flush();
-
-    void SubmitQueue();
-
-    uint16_t mHead;
-    uint16_t mTail;
-    uint32_t mActiveLoaderCount;
-
-    nsCOMPtr<nsITimer> mTimer;
-    bool mTimerArmed;
-    static void Tick(nsITimer* aTimer, void* aClosure);
-
-    static const int sMaxDeferred = 512;  // keep power of 2 for masking
-    static const int sMaxDeferredMask = (sMaxDeferred - 1);
-
-    struct deferred_entry {
-      uint32_t mFlags;
-      // Link implementation clears this raw pointer in its destructor.
-      mozilla::dom::Link* mElement;
-    } mEntries[sMaxDeferred];
-  };
 
   friend class mozilla::net::NeckoParent;
 };

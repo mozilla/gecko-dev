@@ -30,7 +30,11 @@
 #  include "nsIOService.h"
 #endif
 
-class nsIHttpChannel;
+// XXX These includes can be replaced by forward declarations by moving the On*
+// method implementations to the cpp file
+#include "nsIChannel.h"
+#include "nsIHttpChannel.h"
+
 class nsIHttpUpgradeListener;
 class nsIPrefBranch;
 class nsICancelable;
@@ -50,6 +54,7 @@ class EventTokenBucket;
 class Tickler;
 class nsHttpConnection;
 class nsHttpConnectionInfo;
+class HttpBaseChannel;
 class HttpHandlerInitArgs;
 class HttpTransactionShell;
 class AltSvcMapping;
@@ -112,7 +117,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
 
   [[nodiscard]] nsresult AddStandardRequestHeaders(
       nsHttpRequestHead*, bool isSecure,
-      nsContentPolicyType aContentPolicyType);
+      ExtContentPolicyType aContentPolicyType);
   [[nodiscard]] nsresult AddConnectionHeader(nsHttpRequestHead*,
                                              uint32_t capabilities);
   bool IsAcceptableEncoding(const char* encoding, bool isSecure);
@@ -436,6 +441,12 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
     NotifyObservers(chan, NS_HTTP_ON_EXAMINE_CACHED_RESPONSE_TOPIC);
   }
 
+  // Called by the channel when the transaction pump is suspended because of
+  // trying to get credentials asynchronously.
+  void OnTransactionSuspendedDueToAuthentication(nsIHttpChannel* chan) {
+    NotifyObservers(chan, "http-on-transaction-suspended-authentication");
+  }
+
   // Generates the host:port string for use in the Host: header as well as the
   // CONNECT line for proxies. This handles IPv6 literals correctly.
   [[nodiscard]] static nsresult GenerateHostPort(const nsCString& host,
@@ -457,8 +468,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   uint32_t DefaultHpackBuffer() const { return mDefaultHpackBuffer; }
 
   bool Bug1563538() const { return mBug1563538; }
-  bool Bug1563695() const { return mBug1563695; }
-  bool Bug1556491() const { return mBug1556491; }
 
   bool IsHttp3VersionSupported(const nsACString& version);
 
@@ -588,7 +597,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   PRIntervalTime mIdleTimeout;
   PRIntervalTime mSpdyTimeout;
   PRIntervalTime mResponseTimeout;
-  bool mResponseTimeoutEnabled;
+  Atomic<bool, Relaxed> mResponseTimeoutEnabled;
   uint32_t mNetworkChangedTimeout;  // milliseconds
   uint16_t mMaxRequestAttempts;
   uint16_t mMaxRequestDelay;
@@ -634,6 +643,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   bool mEnforceAssocReq;
 
   nsCString mImageAcceptHeader;
+  nsCString mDocumentAcceptHeader;
 
   nsCString mAcceptLanguages;
   nsCString mHttpAcceptEncodings;
@@ -753,8 +763,6 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
 
   // Pref for the whole fix that bug provides
   Atomic<bool, Relaxed> mBug1563538;
-  Atomic<bool, Relaxed> mBug1563695;
-  Atomic<bool, Relaxed> mBug1556491;
 
   Atomic<bool, Relaxed> mHttp3Enabled;
   // Http3 parameters
@@ -780,7 +788,7 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   uint32_t mFastOpenConsecutiveFailureCounter;
   uint32_t mFastOpenStallsLimit;
   uint32_t mFastOpenStallsCounter;
-  uint32_t mFastOpenStallsIdleTime;
+  Atomic<uint32_t, Relaxed> mFastOpenStallsIdleTime;
   uint32_t mFastOpenStallsTimeout;
 
   // If true, the transactions from active tab will be dispatched first.

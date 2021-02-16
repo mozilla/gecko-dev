@@ -10,6 +10,7 @@
 #include "nsXPLookAndFeel.h"
 #include "nsLookAndFeel.h"
 #include "HeadlessLookAndFeel.h"
+#include "RemoteLookAndFeel.h"
 #include "nsContentUtils.h"
 #include "nsCRT.h"
 #include "nsFont.h"
@@ -21,6 +22,7 @@
 #include "mozilla/StaticPrefs_editor.h"
 #include "mozilla/StaticPrefs_findbar.h"
 #include "mozilla/StaticPrefs_ui.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
 #include "mozilla/Telemetry.h"
@@ -254,11 +256,44 @@ nsXPLookAndFeel* nsXPLookAndFeel::GetInstance() {
 
   NS_ENSURE_TRUE(!sShutdown, nullptr);
 
-  if (gfxPlatform::IsHeadless()) {
-    sInstance = new widget::HeadlessLookAndFeel();
-  } else {
-    sInstance = new nsLookAndFeel();
+  // If we're in a content process, then the parent process will have supplied
+  // us with an initial FullLookAndFeel object (for when the RemoteLookAndFeel
+  // is to be used) or an initial LookAndFeelCache object (for regular
+  // LookAndFeel implementations).  We grab this data from the ContentChild,
+  // where it's been temporarily stashed, and initialize our new LookAndFeel
+  // object with it.
+
+  LookAndFeelCache* lnfCache = nullptr;
+  FullLookAndFeel* fullLnf = nullptr;
+  widget::LookAndFeelData* lnfData = nullptr;
+
+  if (auto* cc = mozilla::dom::ContentChild::GetSingleton()) {
+    lnfData = &cc->BorrowLookAndFeelData();
+    switch (lnfData->type()) {
+      case widget::LookAndFeelData::TLookAndFeelCache:
+        lnfCache = &lnfData->get_LookAndFeelCache();
+        break;
+      case widget::LookAndFeelData::TFullLookAndFeel:
+        fullLnf = &lnfData->get_FullLookAndFeel();
+        break;
+      default:
+        MOZ_ASSERT_UNREACHABLE("unexpected LookAndFeelData type");
+    }
   }
+
+  if (fullLnf) {
+    sInstance = new widget::RemoteLookAndFeel(std::move(*fullLnf));
+  } else if (gfxPlatform::IsHeadless()) {
+    sInstance = new widget::HeadlessLookAndFeel(lnfCache);
+  } else {
+    sInstance = new nsLookAndFeel(lnfCache);
+  }
+
+  // This is only ever used once during initialization, and can be cleared now.
+  if (lnfData) {
+    *lnfData = widget::LookAndFeelData{};
+  }
+
   return sInstance;
 }
 
@@ -460,15 +495,6 @@ void nsXPLookAndFeel::Init() {
 
   for (i = 0; i < ArrayLength(sColorPrefs); ++i) {
     InitColorFromPref(i);
-  }
-
-  if (XRE_IsContentProcess()) {
-    mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
-
-    LookAndFeel::SetCache(cc->BorrowLookAndFeelCache());
-    // This is only ever used once during initialization, and can be cleared
-    // now.
-    cc->BorrowLookAndFeelCache() = LookAndFeelCache{};
   }
 }
 
@@ -784,9 +810,9 @@ nscolor nsXPLookAndFeel::GetStandinForNativeColor(ColorID aID) {
 // otherwise we'll return NS_ERROR_NOT_AVAILABLE, in which case, the
 // platform-specific nsLookAndFeel should use its own values instead.
 //
-nsresult nsXPLookAndFeel::GetColorImpl(ColorID aID,
-                                       bool aUseStandinsForNativeColors,
-                                       nscolor& aResult) {
+nsresult nsXPLookAndFeel::GetColorValue(ColorID aID,
+                                        bool aUseStandinsForNativeColors,
+                                        nscolor& aResult) {
   if (!sInitialized) Init();
 
     // define DEBUG_SYSTEM_COLOR_USE if you want to debug system color
@@ -947,28 +973,8 @@ nsresult nsXPLookAndFeel::GetColorImpl(ColorID aID,
   return NS_ERROR_NOT_AVAILABLE;
 }
 
-nsresult nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
+nsresult nsXPLookAndFeel::GetIntValue(IntID aID, int32_t& aResult) {
   if (!sInitialized) Init();
-
-  // Set the default values for these prefs. but allow different platforms
-  // to override them in their nsLookAndFeel if desired.
-  switch (aID) {
-    case IntID::ScrollButtonLeftMouseButtonAction:
-      aResult = 0;
-      return NS_OK;
-    case IntID::ScrollButtonMiddleMouseButtonAction:
-      aResult = 3;
-      return NS_OK;
-    case IntID::ScrollButtonRightMouseButtonAction:
-      aResult = 3;
-      return NS_OK;
-    default:
-      /*
-       * The metrics above are hardcoded platform defaults. All the other
-       * metrics are stored in sIntPrefs and can be changed at runtime.
-       */
-      break;
-  }
 
   for (unsigned int i = 0; i < ArrayLength(sIntPrefs); ++i) {
     if (sIntPrefs[i].isSet && (sIntPrefs[i].id == aID)) {
@@ -977,10 +983,10 @@ nsresult nsXPLookAndFeel::GetIntImpl(IntID aID, int32_t& aResult) {
     }
   }
 
-  return NS_ERROR_NOT_AVAILABLE;
+  return NativeGetInt(aID, aResult);
 }
 
-nsresult nsXPLookAndFeel::GetFloatImpl(FloatID aID, float& aResult) {
+nsresult nsXPLookAndFeel::GetFloatValue(FloatID aID, float& aResult) {
   if (!sInitialized) Init();
 
   for (unsigned int i = 0; i < ArrayLength(sFloatPrefs); ++i) {
@@ -990,7 +996,7 @@ nsresult nsXPLookAndFeel::GetFloatImpl(FloatID aID, float& aResult) {
     }
   }
 
-  return NS_ERROR_NOT_AVAILABLE;
+  return NativeGetFloat(aID, aResult);
 }
 
 void nsXPLookAndFeel::RefreshImpl() {
@@ -1006,6 +1012,11 @@ void nsXPLookAndFeel::RefreshImpl() {
   // Reinit color cache from prefs.
   for (i = 0; i < uint32_t(ColorID::End); ++i) {
     InitColorFromPref(i);
+  }
+
+  // Clear any cached FullLookAndFeel data, which is now invalid.
+  if (XRE_IsParentProcess()) {
+    widget::RemoteLookAndFeel::ClearCachedData();
   }
 }
 
@@ -1029,7 +1040,7 @@ void nsXPLookAndFeel::RecordTelemetry() {
   int32_t i;
   Telemetry::ScalarSet(
       Telemetry::ScalarID::WIDGET_DARK_MODE,
-      NS_SUCCEEDED(GetIntImpl(IntID::SystemUsesDarkTheme, i)) && i != 0);
+      NS_SUCCEEDED(GetIntValue(IntID::SystemUsesDarkTheme, i)) && i != 0);
 
   RecordLookAndFeelSpecificTelemetry();
 }
@@ -1046,28 +1057,28 @@ void LookAndFeel::NotifyChangedAllWindows(widget::ThemeChangeKind aKind) {
 
 // static
 nsresult LookAndFeel::GetColor(ColorID aID, nscolor* aResult) {
-  return nsLookAndFeel::GetInstance()->GetColorImpl(aID, false, *aResult);
+  return nsLookAndFeel::GetInstance()->GetColorValue(aID, false, *aResult);
 }
 
 nsresult LookAndFeel::GetColor(ColorID aID, bool aUseStandinsForNativeColors,
                                nscolor* aResult) {
-  return nsLookAndFeel::GetInstance()->GetColorImpl(
+  return nsLookAndFeel::GetInstance()->GetColorValue(
       aID, aUseStandinsForNativeColors, *aResult);
 }
 
 // static
 nsresult LookAndFeel::GetInt(IntID aID, int32_t* aResult) {
-  return nsLookAndFeel::GetInstance()->GetIntImpl(aID, *aResult);
+  return nsLookAndFeel::GetInstance()->GetIntValue(aID, *aResult);
 }
 
 // static
 nsresult LookAndFeel::GetFloat(FloatID aID, float* aResult) {
-  return nsLookAndFeel::GetInstance()->GetFloatImpl(aID, *aResult);
+  return nsLookAndFeel::GetInstance()->GetFloatValue(aID, *aResult);
 }
 
 // static
 bool LookAndFeel::GetFont(FontID aID, nsString& aName, gfxFontStyle& aStyle) {
-  return nsLookAndFeel::GetInstance()->GetFontImpl(aID, aName, aStyle);
+  return nsLookAndFeel::GetInstance()->GetFontValue(aID, aName, aStyle);
 }
 
 // static
@@ -1106,6 +1117,11 @@ widget::LookAndFeelCache LookAndFeel::GetCache() {
 // static
 void LookAndFeel::SetCache(const widget::LookAndFeelCache& aCache) {
   nsLookAndFeel::GetInstance()->SetCacheImpl(aCache);
+}
+
+// static
+void LookAndFeel::SetData(widget::FullLookAndFeel&& aTables) {
+  nsLookAndFeel::GetInstance()->SetDataImpl(std::move(aTables));
 }
 
 }  // namespace mozilla

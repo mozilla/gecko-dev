@@ -25,15 +25,8 @@ class StyleSheetsFront extends FrontClassWithSpec(styleSheetsSpec) {
     if (this._traits) {
       return this._traits;
     }
-
-    try {
-      // FF81+ getTraits() is supported.
-      const { traits } = await super.getTraits();
-      this._traits = traits;
-    } catch (e) {
-      this._traits = {};
-    }
-
+    const { traits } = await super.getTraits();
+    this._traits = traits;
     return this._traits;
   }
 }

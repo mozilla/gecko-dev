@@ -17,13 +17,13 @@
 
 #include "nsTextFragment.h"
 #include "nsError.h"
-#include "mozilla/dom/Element.h"
 #include "nsCycleCollectionParticipant.h"
 
 #include "mozilla/dom/ShadowRoot.h"
 
 namespace mozilla {
 namespace dom {
+class Element;
 class HTMLSlotElement;
 }  // namespace dom
 }  // namespace mozilla
@@ -105,11 +105,7 @@ class CharacterData : public nsIContent {
 
   void SetTextContentInternal(const nsAString& aTextContent,
                               nsIPrincipal* aSubjectPrincipal,
-                              ErrorResult& aError) final {
-    // Batch possible DOMSubtreeModified events.
-    mozAutoSubtreeModified subtree(OwnerDoc(), nullptr);
-    return SetNodeValue(aTextContent, aError);
-  }
+                              ErrorResult& aError) final;
 
   // Implementation for nsIContent
   nsresult BindToTree(BindContext&, nsINode& aParent) override;
@@ -219,9 +215,7 @@ class CharacterData : public nsIContent {
  protected:
   virtual ~CharacterData();
 
-  Element* GetNameSpaceElement() final {
-    return Element::FromNodeOrNull(GetParentNode());
-  }
+  Element* GetNameSpaceElement() final;
 
   nsresult SetTextInternal(
       uint32_t aOffset, uint32_t aCount, const char16_t* aBuffer,

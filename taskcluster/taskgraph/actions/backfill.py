@@ -8,6 +8,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import logging
+import re
 import sys
 from functools import partial
 
@@ -24,6 +25,8 @@ from .util import (
 )
 
 logger = logging.getLogger(__name__)
+SYMBOL_REGEX = re.compile("^(.*)-[a-z0-9]{11}-bk$")
+GROUP_SYMBOL_REGEX = re.compile("^(.*)-bk$")
 
 
 def input_for_support_action(revision, task, times=1):
@@ -54,9 +57,7 @@ def input_for_support_action(revision, task, times=1):
     name="backfill",
     permission="backfill",
     symbol="Bk",
-    description=(
-        "Given a task schedule it " "on previous pushes in the same project. "
-    ),
+    description=("Given a task schedule it on previous pushes in the same project."),
     order=200,
     context=[{}],  # This will be available for all tasks
     schema={
@@ -89,7 +90,7 @@ def input_for_support_action(revision, task, times=1):
                 "maximum": 10,
                 "title": "Times",
                 "description": (
-                    "The number of times to execute each job " "you are backfilling."
+                    "The number of times to execute each job you are backfilling."
                 ),
             },
         },
@@ -139,31 +140,36 @@ def backfill_action(parameters, graph_config, input, task_group_id, task_id):
         sys.exit(1)
 
 
+def add_backfill_suffix(regex, symbol, suffix):
+    m = regex.match(symbol)
+    if m is None:
+        symbol += suffix
+    return symbol
+
+
 def test_manifests_modifier(task, label, symbol, revision, test_manifests):
     """In the case of test tasks we can modify the test paths they execute."""
     if task.label != label:
         return task
 
-    try:
-        logger.debug("Modifying test_manifests for {}".format(task.label))
-        test_manifests = test_manifests
-        task.attributes["test_manifests"] = test_manifests
-        task.task["payload"]["env"]["MOZHARNESS_TEST_PATHS"] = json.dumps(
-            test_manifests
+    logger.debug("Modifying test_manifests for {}".format(task.label))
+    test_manifests = test_manifests
+    task.attributes["test_manifests"] = test_manifests
+    task.task["payload"]["env"]["MOZHARNESS_TEST_PATHS"] = json.dumps(test_manifests)
+    # The name/label might have been modify in new_label, thus, change it here as well
+    task.task["metadata"]["name"] = task.label
+    th_info = task.task["extra"]["treeherder"]
+    # Use a job symbol of the originating task as defined in the backfill action
+    th_info["symbol"] = add_backfill_suffix(
+        SYMBOL_REGEX, th_info["symbol"], "-{}-bk".format(revision[0:11])
+    )
+    if th_info.get("groupSymbol"):
+        # Group all backfilled tasks together
+        th_info["groupSymbol"] = add_backfill_suffix(
+            GROUP_SYMBOL_REGEX, th_info["groupSymbol"], "-bk"
         )
-        # The name/label might have been modify in new_label, thus, change it here as well
-        task.task["metadata"]["name"] = task.label
-        th_info = task.task["extra"]["treeherder"]
-        # Use a job symbol of the originating task as defined in the backfill action
-        th_info["symbol"] = "{}-{}-bk".format(symbol, revision[0:11])
-        if th_info.get("groupSymbol"):
-            # Group all backfilled tasks together
-            th_info["groupSymbol"] = "{}-bk".format(th_info["groupSymbol"])
-    except KeyError as e:
-        logger.exception(e)
-        logger.warning("The task will be scheduled without intended modifications.")
-    finally:
-        return task
+    task.task["tags"]["action"] = "backfill-task"
+    return task
 
 
 def do_not_modify(task):

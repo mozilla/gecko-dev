@@ -665,9 +665,10 @@ TelemetryImpl::GetMaximalNumberOfConcurrentThreads(uint32_t* ret) {
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetUntrustedModuleLoadEvents(JSContext* cx, Promise** aPromise) {
+TelemetryImpl::GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* cx,
+                                            Promise** aPromise) {
 #if defined(XP_WIN)
-  return Telemetry::GetUntrustedModuleLoadEvents(cx, aPromise);
+  return Telemetry::GetUntrustedModuleLoadEvents(aFlags, cx, aPromise);
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
 #endif
@@ -1514,6 +1515,16 @@ TelemetryImpl::GetFileIOReports(JSContext* cx, JS::MutableHandleValue ret) {
 NS_IMETHODIMP
 TelemetryImpl::MsSinceProcessStart(double* aResult) {
   return Telemetry::Common::MsSinceProcessStart(aResult);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::MsSinceProcessStartIncludingSuspend(double* aResult) {
+  return Telemetry::Common::MsSinceProcessStartIncludingSuspend(aResult);
+}
+
+NS_IMETHODIMP
+TelemetryImpl::MsSinceProcessStartExcludingSuspend(double* aResult) {
+  return Telemetry::Common::MsSinceProcessStartExcludingSuspend(aResult);
 }
 
 NS_IMETHODIMP

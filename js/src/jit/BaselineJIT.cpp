@@ -31,6 +31,7 @@
 
 #include "debugger/DebugAPI-inl.h"
 #include "gc/GC-inl.h"
+#include "jit/JitScript-inl.h"
 #include "jit/MacroAssembler-inl.h"
 #include "vm/BytecodeUtil-inl.h"
 #include "vm/GeckoProfiler-inl.h"
@@ -150,8 +151,6 @@ static JitExecStatus EnterBaseline(JSContext* cx, EnterJitData& data) {
 
     data.osrFrame->clearRunningInJit();
   }
-
-  MOZ_ASSERT(!cx->hasIonReturnOverride());
 
   // Jit callers wrap primitive constructor return, except for derived
   // class constructors, which are forced to do it themselves.

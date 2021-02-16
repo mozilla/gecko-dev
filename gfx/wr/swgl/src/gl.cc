@@ -22,9 +22,41 @@
 #  define debugf(...) printf(__VA_ARGS__)
 #endif
 
+// #define PRINT_TIMINGS
+
 #ifdef _WIN32
 #  define ALWAYS_INLINE __forceinline
 #  define NO_INLINE __declspec(noinline)
+
+// Including Windows.h brings a huge amount of namespace polution so just
+// define a couple of things manually
+typedef int BOOL;
+#  define WINAPI __stdcall
+#  define DECLSPEC_IMPORT __declspec(dllimport)
+#  define WINBASEAPI DECLSPEC_IMPORT
+typedef unsigned long DWORD;
+typedef long LONG;
+typedef __int64 LONGLONG;
+#  define DUMMYSTRUCTNAME
+
+typedef union _LARGE_INTEGER {
+  struct {
+    DWORD LowPart;
+    LONG HighPart;
+  } DUMMYSTRUCTNAME;
+  struct {
+    DWORD LowPart;
+    LONG HighPart;
+  } u;
+  LONGLONG QuadPart;
+} LARGE_INTEGER;
+extern "C" {
+WINBASEAPI BOOL WINAPI
+QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+
+WINBASEAPI BOOL WINAPI QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
+}
+
 #else
 #  define ALWAYS_INLINE __attribute__((always_inline)) inline
 #  define NO_INLINE __attribute__((noinline))
@@ -33,6 +65,8 @@
 #define UNREACHABLE __builtin_unreachable()
 
 #define UNUSED __attribute__((unused))
+
+#define FALLTHROUGH __attribute__((fallthrough))
 
 #ifdef MOZILLA_CLIENT
 #  define IMPLICIT __attribute__((annotate("moz_implicit")))
@@ -47,15 +81,27 @@
 
 using namespace glsl;
 
+typedef ivec2_scalar IntPoint;
+
 struct IntRect {
   int x0;
   int y0;
   int x1;
   int y1;
 
+  IntRect() : x0(0), y0(0), x1(0), y1(0) {}
+  IntRect(int x0, int y0, int x1, int y1) : x0(x0), y0(y0), x1(x1), y1(y1) {}
+  IntRect(IntPoint origin, IntPoint size)
+      : x0(origin.x),
+        y0(origin.y),
+        x1(origin.x + size.x),
+        y1(origin.y + size.y) {}
+
   int width() const { return x1 - x0; }
   int height() const { return y1 - y0; }
   bool is_empty() const { return width() <= 0 || height() <= 0; }
+
+  IntPoint origin() const { return IntPoint(x0, y0); }
 
   bool same_size(const IntRect& o) const {
     return width() == o.width() && height() == o.height();
@@ -71,6 +117,12 @@ struct IntRect {
     x1 = min(x1, o.x1);
     y1 = min(y1, o.y1);
     return *this;
+  }
+
+  IntRect intersection(const IntRect& o) {
+    IntRect result = *this;
+    result.intersect(o);
+    return result;
   }
 
   // Scale from source-space to dest-space, optionally rounding inward
@@ -90,12 +142,19 @@ struct IntRect {
     swap(y0, y1);
   }
 
-  IntRect& offset(int dx, int dy) {
-    x0 += dx;
-    y0 += dy;
-    x1 += dx;
-    y1 += dy;
+  IntRect& offset(const IntPoint& o) {
+    x0 += o.x;
+    y0 += o.y;
+    x1 += o.x;
+    y1 += o.y;
     return *this;
+  }
+
+  IntRect operator+(const IntPoint& o) const {
+    return IntRect(*this).offset(o);
+  }
+  IntRect operator-(const IntPoint& o) const {
+    return IntRect(*this).offset(-o);
   }
 };
 
@@ -496,6 +555,10 @@ struct Texture {
   // locks, we need to disallow modifying or destroying the texture as it may
   // be accessed by other threads where modifications could lead to races.
   int32_t locked = 0;
+  // When used as an attachment of a framebuffer, rendering to the texture
+  // behaves as if it is located at the given offset such that the offset is
+  // subtracted from all transformed vertexes after the viewport is applied.
+  IntPoint offset;
 
   enum FLAGS {
     // If the buffer is internally-allocated by SWGL
@@ -516,7 +579,13 @@ struct Texture {
       flags &= ~flag;
     }
   }
-  void set_should_free(bool val) { set_flag(SHOULD_FREE, val); }
+  void set_should_free(bool val) {
+    // buf must be null before SHOULD_FREE can be safely toggled. Otherwise, we
+    // might accidentally mistakenly realloc an externally allocated buffer as
+    // if it were an internally allocated one.
+    assert(!buf);
+    set_flag(SHOULD_FREE, val);
+  }
   void set_cleared(bool val) { set_flag(CLEARED, val); }
 
   // Delayed-clearing state. When a clear of an FB is requested, we don't
@@ -589,10 +658,20 @@ struct Texture {
       // otherwise change too much...
       size_t max_stride = max(buf_stride, aligned_stride(buf_bpp * min_width));
       size_t size = max_stride * max(height, min_height) * max(depth, 1);
-      if (!buf || size > buf_size) {
+      if ((!buf && size > 0) || size > buf_size) {
         // Allocate with a SIMD register-sized tail of padding at the end so we
         // can safely read or write past the end of the texture with SIMD ops.
-        char* new_buf = (char*)realloc(buf, size + sizeof(Float));
+        // Currently only the flat Z-buffer texture needs this padding due to
+        // full-register loads and stores in check_depth and discard_depth. In
+        // case some code in the future accidentally uses a linear filter on a
+        // texture with less than 2 pixels per row, we also add this padding
+        // just to be safe. All other texture types and use-cases should be
+        // safe to omit padding.
+        size_t padding =
+            internal_format == GL_DEPTH_COMPONENT16 || max(width, min_width) < 2
+                ? sizeof(Float)
+                : 0;
+        char* new_buf = (char*)realloc(buf, size + padding);
         assert(new_buf);
         if (new_buf) {
           // Successfully reallocated the buffer, so go ahead and set it.
@@ -610,8 +689,14 @@ struct Texture {
 
   void cleanup() {
     assert(!locked);  // Locked textures shouldn't be destroyed
-    if (buf && should_free()) {
-      free(buf);
+    if (buf) {
+      // If we need to toggle SHOULD_FREE state, ensure that buf is nulled out,
+      // regardless of whether we internally allocated it. This will prevent us
+      // from wrongly treating buf as having been internally allocated for when
+      // we go to realloc if it actually was externally allocted.
+      if (should_free()) {
+        free(buf);
+      }
       buf = nullptr;
       buf_size = 0;
       buf_bpp = 0;
@@ -623,10 +708,11 @@ struct Texture {
   ~Texture() { cleanup(); }
 
   IntRect bounds() const { return IntRect{0, 0, width, height}; }
+  IntRect offset_bounds() const { return bounds() + offset; }
 
   // Find the valid sampling bounds relative to the requested region
   IntRect sample_bounds(const IntRect& req, bool invertY = false) const {
-    IntRect bb = bounds().intersect(req).offset(-req.x0, -req.y0);
+    IntRect bb = bounds().intersect(req) - req.origin();
     if (invertY) bb.invert_y(req.height());
     return bb;
   }
@@ -679,7 +765,9 @@ struct Program {
 // for GL defines to fully expand
 #define CONCAT_KEY(prefix, x, y, z, w, ...) prefix##x##y##z##w
 #define BLEND_KEY(...) CONCAT_KEY(BLEND_, __VA_ARGS__, 0, 0)
+#define MASK_BLEND_KEY(...) CONCAT_KEY(MASK_BLEND_, __VA_ARGS__, 0, 0)
 #define FOR_EACH_BLEND_KEY(macro)                                              \
+  macro(GL_ONE, GL_ZERO, 0, 0)                                                 \
   macro(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)  \
   macro(GL_ONE, GL_ONE_MINUS_SRC_ALPHA, 0, 0)                                  \
   macro(GL_ZERO, GL_ONE_MINUS_SRC_COLOR, 0, 0)                                 \
@@ -688,17 +776,19 @@ struct Program {
   macro(GL_ZERO, GL_SRC_COLOR, 0, 0)                                           \
   macro(GL_ONE, GL_ONE, 0, 0)                                                  \
   macro(GL_ONE, GL_ONE, GL_ONE, GL_ONE_MINUS_SRC_ALPHA)                        \
-  macro(GL_ONE, GL_ZERO, 0, 0)                                                 \
   macro(GL_ONE_MINUS_DST_ALPHA, GL_ONE, GL_ZERO, GL_ONE)                       \
   macro(GL_CONSTANT_COLOR, GL_ONE_MINUS_SRC_COLOR, 0, 0)                       \
   macro(GL_ONE, GL_ONE_MINUS_SRC1_COLOR, 0, 0)
-// clang-format on
 
 #define DEFINE_BLEND_KEY(...) BLEND_KEY(__VA_ARGS__),
+#define DEFINE_MASK_BLEND_KEY(...) MASK_BLEND_KEY(__VA_ARGS__),
 enum BlendKey : uint8_t {
-  BLEND_KEY_NONE = 0,
   FOR_EACH_BLEND_KEY(DEFINE_BLEND_KEY)
+  FOR_EACH_BLEND_KEY(DEFINE_MASK_BLEND_KEY)
+  BLEND_KEY_NONE = BLEND_KEY(GL_ONE, GL_ZERO),
+  MASK_BLEND_KEY_NONE = MASK_BLEND_KEY(GL_ONE, GL_ZERO)
 };
+// clang-format on
 
 const size_t MAX_TEXTURE_UNITS = 16;
 
@@ -904,8 +994,13 @@ struct Context {
     return textures[texture_units[unit].texture_rectangle_binding];
   }
 
-  IntRect apply_scissor(IntRect bb) const {
-    return scissortest ? bb.intersect(scissor) : bb;
+  IntRect apply_scissor(IntRect bb,
+                        const IntPoint& origin = IntPoint(0, 0)) const {
+    return scissortest ? bb.intersect(scissor - origin) : bb;
+  }
+
+  IntRect apply_scissor(const Texture& t) const {
+    return apply_scissor(t.bounds(), t.offset);
   }
 };
 static Context* ctx = nullptr;
@@ -1168,7 +1263,6 @@ void Enable(GLenum cap) {
   switch (cap) {
     case GL_BLEND:
       ctx->blend = true;
-      blend_key = ctx->blend_key;
       break;
     case GL_DEPTH_TEST:
       ctx->depthtest = true;
@@ -1183,7 +1277,6 @@ void Disable(GLenum cap) {
   switch (cap) {
     case GL_BLEND:
       ctx->blend = false;
-      blend_key = BLEND_KEY_NONE;
       break;
     case GL_DEPTH_TEST:
       ctx->depthtest = false;
@@ -1231,6 +1324,12 @@ void GetIntegerv(GLenum pname, GLint* params) {
       break;
     case GL_NUM_EXTENSIONS:
       params[0] = sizeof(extensions) / sizeof(extensions[0]);
+      break;
+    case GL_MAJOR_VERSION:
+      params[0] = 3;
+      break;
+    case GL_MINOR_VERSION:
+      params[0] = 2;
       break;
     default:
       debugf("unhandled glGetIntegerv parameter %x\n", pname);
@@ -1354,10 +1453,6 @@ void BlendFunc(GLenum srgb, GLenum drgb, GLenum sa, GLenum da) {
       debugf("blendfunc: %x, %x, separate: %x, %x\n", srgb, drgb, sa, da);
       assert(false);
       break;
-  }
-
-  if (ctx->blend) {
-    blend_key = ctx->blend_key;
   }
 }
 
@@ -1541,7 +1636,15 @@ static uint64_t get_time_value() {
 #ifdef __MACH__
   return mach_absolute_time();
 #elif defined(_WIN32)
-  return uint64_t(clock()) * (1000000000ULL / CLOCKS_PER_SEC);
+  LARGE_INTEGER time;
+  static bool have_frequency = false;
+  static LARGE_INTEGER frequency;
+  if (!have_frequency) {
+    QueryPerformanceFrequency(&frequency);
+    have_frequency = true;
+  }
+  QueryPerformanceCounter(&time);
+  return time.QuadPart * 1000000000ULL / frequency.QuadPart;
 #else
   return ({
     struct timespec tp;
@@ -2120,17 +2223,23 @@ GLboolean UnmapBuffer(GLenum target) {
 
 void Uniform1i(GLint location, GLint V0) {
   // debugf("tex: %d\n", (int)ctx->textures.size);
-  vertex_shader->set_uniform_1i(location, V0);
+  if (vertex_shader) {
+    vertex_shader->set_uniform_1i(location, V0);
+  }
 }
 void Uniform4fv(GLint location, GLsizei count, const GLfloat* v) {
   assert(count == 1);
-  vertex_shader->set_uniform_4fv(location, v);
+  if (vertex_shader) {
+    vertex_shader->set_uniform_4fv(location, v);
+  }
 }
 void UniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose,
                       const GLfloat* value) {
   assert(count == 1);
   assert(!transpose);
-  vertex_shader->set_uniform_matrix4fv(location, value);
+  if (vertex_shader) {
+    vertex_shader->set_uniform_matrix4fv(location, value);
+  }
 }
 
 void FramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
@@ -2264,7 +2373,7 @@ static void clear_buffer(Texture& t, T value, int layer, IntRect bb,
 
 template <typename T>
 static inline void clear_buffer(Texture& t, T value, int layer = 0) {
-  IntRect bb = ctx->apply_scissor(t.bounds());
+  IntRect bb = ctx->apply_scissor(t);
   if (bb.width() > 0) {
     clear_buffer<T>(t, value, layer, bb);
   }
@@ -2358,7 +2467,7 @@ static void prepare_texture(Texture& t, const IntRect* skip) {
 }
 
 static inline bool clear_requires_scissor(Texture& t) {
-  return ctx->scissortest && !ctx->scissor.contains(t.bounds());
+  return ctx->scissortest && !ctx->scissor.contains(t.offset_bounds());
 }
 
 // Setup a clear on a texture. This may either force an immediate clear or
@@ -2368,7 +2477,8 @@ static void request_clear(Texture& t, int layer, T value) {
   // If the clear would require a scissor, force clear anything outside
   // the scissor, and then immediately clear anything inside the scissor.
   if (clear_requires_scissor(t)) {
-    force_clear<T>(t, &ctx->scissor);
+    IntRect skip = ctx->scissor - t.offset;
+    force_clear<T>(t, &skip);
     clear_buffer<T>(t, value, layer);
   } else if (t.depth > 1) {
     // Delayed clear is not supported on texture arrays.
@@ -2402,7 +2512,7 @@ static ALWAYS_INLINE void fill_depth_run(DepthRun* dst, size_t n,
 void Texture::fill_depth_runs(uint16_t depth) {
   if (!buf) return;
   assert(cleared());
-  IntRect bb = ctx->apply_scissor(bounds());
+  IntRect bb = ctx->apply_scissor(*this);
   DepthRun* runs = (DepthRun*)sample_ptr(0, bb.y0);
   for (int rows = bb.height(); rows > 0; rows--) {
     if (bb.width() >= width) {
@@ -2423,7 +2533,8 @@ void Texture::fill_depth_runs(uint16_t depth) {
 
 extern "C" {
 
-void InitDefaultFramebuffer(int width, int height, int stride, void* buf) {
+void InitDefaultFramebuffer(int x, int y, int width, int height, int stride,
+                            void* buf) {
   Framebuffer& fb = ctx->framebuffers[0];
   if (!fb.color_attachment) {
     GenTextures(1, &fb.color_attachment);
@@ -2433,12 +2544,14 @@ void InitDefaultFramebuffer(int width, int height, int stride, void* buf) {
   // the underlying storage for the color buffer texture.
   Texture& colortex = ctx->textures[fb.color_attachment];
   set_tex_storage(colortex, GL_RGBA8, width, height, buf, stride);
+  colortex.offset = IntPoint(x, y);
   if (!fb.depth_attachment) {
     GenTextures(1, &fb.depth_attachment);
   }
   // Ensure dimensions of the depth buffer match the color buffer.
   Texture& depthtex = ctx->textures[fb.depth_attachment];
   set_tex_storage(depthtex, GL_DEPTH_COMPONENT16, width, height);
+  depthtex.offset = IntPoint(x, y);
 }
 
 void* GetColorBuffer(GLuint fbo, GLboolean flush, int32_t* width,
@@ -2451,6 +2564,7 @@ void* GetColorBuffer(GLuint fbo, GLboolean flush, int32_t* width,
   if (flush) {
     prepare_texture(colortex);
   }
+  assert(colortex.offset == IntPoint(0, 0));
   *width = colortex.width;
   *height = colortex.height;
   *stride = colortex.stride();
@@ -2544,17 +2658,42 @@ void ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
   prepare_texture(t);
   // debugf("read pixels %d, %d, %d, %d from fb %d with format %x\n", x, y,
   // width, height, ctx->read_framebuffer_binding, t.internal_format);
+  x -= t.offset.x;
+  y -= t.offset.y;
+  assert(x >= 0 && y >= 0);
   assert(x + width <= t.width);
   assert(y + height <= t.height);
   if (internal_format_for_data(format, type) != t.internal_format) {
     debugf("mismatched format for read pixels: %x vs %x\n", t.internal_format,
            internal_format_for_data(format, type));
     assert(false);
+    return;
   }
   // Only support readback conversions that are reversible
   assert(!format_requires_conversion(format, t.internal_format) ||
          bytes_for_internal_format(format) == t.bpp());
-  convert_copy(format, t.internal_format, (uint8_t*)data, width * t.bpp(),
+  uint8_t* dest = (uint8_t*)data;
+  size_t destStride = width * t.bpp();
+  if (y < 0) {
+    dest += -y * destStride;
+    height += y;
+    y = 0;
+  }
+  if (y + height > t.height) {
+    height = t.height - y;
+  }
+  if (x < 0) {
+    dest += -x * t.bpp();
+    width += x;
+    x = 0;
+  }
+  if (x + width > t.width) {
+    width = t.width - x;
+  }
+  if (width <= 0 || height <= 0) {
+    return;
+  }
+  convert_copy(format, t.internal_format, dest, destStride,
                (const uint8_t*)t.sample_ptr(x, y, fb->layer), t.stride(), width,
                height);
 }
@@ -2728,6 +2867,50 @@ static inline WideRGBA8 pack_pixels_RGBA8() {
   return pack_pixels_RGBA8(fragment_shader->gl_FragColor);
 }
 
+// Load a partial span > 0 and < 4 pixels.
+template <typename V, typename P>
+static ALWAYS_INLINE V partial_load_span(const P* src, int span) {
+  return bit_cast<V>(
+      (span >= 2
+           ? combine(unaligned_load<V2<P>>(src),
+                     V2<P>{span > 2 ? unaligned_load<P>(src + 2) : P(0), 0})
+           : V4<P>{unaligned_load<P>(src), 0, 0, 0}));
+}
+
+// Store a partial span > 0 and < 4 pixels.
+template <typename V, typename P>
+static ALWAYS_INLINE void partial_store_span(P* dst, V src, int span) {
+  auto pixels = bit_cast<V4<P>>(src);
+  if (span >= 2) {
+    unaligned_store(dst, lowHalf(pixels));
+    if (span > 2) {
+      unaligned_store(dst + 2, pixels.z);
+    }
+  } else {
+    unaligned_store(dst, pixels.x);
+  }
+}
+
+// Dispatcher that chooses when to load a full or partial span
+template <typename V, typename P>
+static ALWAYS_INLINE V load_span(const P* src, int span) {
+  if (span >= 4) {
+    return unaligned_load<V, P>(src);
+  } else {
+    return partial_load_span<V, P>(src, span);
+  }
+}
+
+// Dispatcher that chooses when to store a full or partial span
+template <typename V, typename P>
+static ALWAYS_INLINE void store_span(P* dst, V src, int span) {
+  if (span >= 4) {
+    unaligned_store<V, P>(dst, src);
+  } else {
+    partial_store_span<V, P>(dst, src, span);
+  }
+}
+
 // (x*y + x) >> 8, cheap approximation of (x*y) / 255
 template <typename T>
 static inline T muldiv255(T x, T y) {
@@ -2756,7 +2939,32 @@ static inline WideRGBA8 alphas(WideRGBA8 c) {
   return SHUFFLE(c, c, 3, 3, 3, 3, 7, 7, 7, 7, 11, 11, 11, 11, 15, 15, 15, 15);
 }
 
-static inline WideRGBA8 blend_pixels_RGBA8(PackedRGBA8 pdst, WideRGBA8 src) {
+// A pointer into the color buffer for the start of the span.
+static void* swgl_SpanBuf = nullptr;
+// A pointer into the clip mask for the start of the span.
+static uint8_t* swgl_ClipMaskBuf = nullptr;
+
+static ALWAYS_INLINE WideR8 expand_clip_mask(uint8_t* buf, WideR8 mask) {
+  return mask;
+}
+static ALWAYS_INLINE WideRGBA8 expand_clip_mask(uint32_t* buf, WideR8 mask) {
+  WideRG8 maskRG = zip(mask, mask);
+  return zip(maskRG, maskRG);
+}
+
+// Loads a chunk of clip masks. The current pointer into the color buffer is
+// used to reconstruct the relative position within the span. From there, the
+// pointer into the clip mask can be generated from the start of the clip mask
+// span.
+template <typename P>
+static ALWAYS_INLINE auto load_clip_mask(P* buf, int span)
+    -> decltype(expand_clip_mask(buf, 0)) {
+  uint8_t* maskBuf = &swgl_ClipMaskBuf[buf - (P*)swgl_SpanBuf];
+  return expand_clip_mask(buf, unpack(load_span<PackedR8>(maskBuf, span)));
+}
+
+static inline WideRGBA8 blend_pixels(uint32_t* buf, PackedRGBA8 pdst,
+                                     WideRGBA8 src, int span = 4) {
   WideRGBA8 dst = unpack(pdst);
   const WideRGBA8 RGB_MASK = {0xFFFF, 0xFFFF, 0xFFFF, 0,      0xFFFF, 0xFFFF,
                               0xFFFF, 0,      0xFFFF, 0xFFFF, 0xFFFF, 0,
@@ -2765,36 +2973,45 @@ static inline WideRGBA8 blend_pixels_RGBA8(PackedRGBA8 pdst, WideRGBA8 src) {
                                 0, 0, 0, 0xFFFF, 0, 0, 0, 0xFFFF};
   const WideRGBA8 ALPHA_OPAQUE = {0, 0, 0, 255, 0, 0, 0, 255,
                                   0, 0, 0, 255, 0, 0, 0, 255};
+
+  // Each blend case is preceded by the MASK_ variant. The MASK_ case first
+  // loads the mask values and multiplies the source value by them. After, it
+  // falls through to the normal blending case using the masked source.
+#define BLEND_CASE_KEY(key)                                     \
+  MASK_##key : src = muldiv255(src, load_clip_mask(buf, span)); \
+  FALLTHROUGH;                                                  \
+  case key
+#define BLEND_CASE(...) BLEND_CASE_KEY(BLEND_KEY(__VA_ARGS__))
+
   switch (blend_key) {
-    case BLEND_KEY_NONE:
+    case BLEND_CASE(GL_ONE, GL_ZERO):
       return src;
-    case BLEND_KEY(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE,
-                   GL_ONE_MINUS_SRC_ALPHA):
+    case BLEND_CASE(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE,
+                    GL_ONE_MINUS_SRC_ALPHA):
       // dst + src.a*(src.rgb1 - dst)
       // use addlow for signed overflow
       return addlow(dst, muldiv255(alphas(src), (src | ALPHA_OPAQUE) - dst));
-    case BLEND_KEY(GL_ONE, GL_ONE_MINUS_SRC_ALPHA):
+    case BLEND_CASE(GL_ONE, GL_ONE_MINUS_SRC_ALPHA):
       return src + dst - muldiv255(dst, alphas(src));
-    case BLEND_KEY(GL_ZERO, GL_ONE_MINUS_SRC_COLOR):
+    case BLEND_CASE(GL_ZERO, GL_ONE_MINUS_SRC_COLOR):
       return dst - muldiv255(dst, src);
-    case BLEND_KEY(GL_ZERO, GL_ONE_MINUS_SRC_COLOR, GL_ZERO, GL_ONE):
+    case BLEND_CASE(GL_ZERO, GL_ONE_MINUS_SRC_COLOR, GL_ZERO, GL_ONE):
       return dst - (muldiv255(dst, src) & RGB_MASK);
-    case BLEND_KEY(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA):
+    case BLEND_CASE(GL_ZERO, GL_ONE_MINUS_SRC_ALPHA):
       return dst - muldiv255(dst, alphas(src));
-    case BLEND_KEY(GL_ZERO, GL_SRC_COLOR):
+    case BLEND_CASE(GL_ZERO, GL_SRC_COLOR):
       return muldiv255(src, dst);
-    case BLEND_KEY(GL_ONE, GL_ONE):
+    case BLEND_CASE(GL_ONE, GL_ONE):
       return src + dst;
-    case BLEND_KEY(GL_ONE, GL_ONE, GL_ONE, GL_ONE_MINUS_SRC_ALPHA):
+    case BLEND_CASE(GL_ONE, GL_ONE, GL_ONE, GL_ONE_MINUS_SRC_ALPHA):
       return src + dst - (muldiv255(dst, src) & ALPHA_MASK);
-    case BLEND_KEY(GL_ONE, GL_ZERO):
-      return src;
-    case BLEND_KEY(GL_ONE_MINUS_DST_ALPHA, GL_ONE, GL_ZERO, GL_ONE):
+    case BLEND_CASE(GL_ONE_MINUS_DST_ALPHA, GL_ONE, GL_ZERO, GL_ONE):
       // src*(1-dst.a) + dst*1 = src - src*dst.a + dst
       return dst + ((src - muldiv255(src, alphas(dst))) & RGB_MASK);
-    case BLEND_KEY(GL_CONSTANT_COLOR, GL_ONE_MINUS_SRC_COLOR):
-      // src*k + (1-src)*dst = src*k + dst - src*dst = dst + src*(k - dst)
-      // use addlow for signed overflow
+    case BLEND_CASE(GL_CONSTANT_COLOR, GL_ONE_MINUS_SRC_COLOR):
+      // src*k + (1-src)*dst = src*k + dst -
+      // src*dst = dst + src*(k - dst) use addlow
+      // for signed overflow
       return addlow(
           dst, muldiv255(src, combine(ctx->blendcolor, ctx->blendcolor) - dst));
     case BLEND_KEY(GL_ONE, GL_ONE_MINUS_SRC1_COLOR): {
@@ -2802,40 +3019,49 @@ static inline WideRGBA8 blend_pixels_RGBA8(PackedRGBA8 pdst, WideRGBA8 src) {
           pack_pixels_RGBA8(fragment_shader->gl_SecondaryFragColor);
       return src + dst - muldiv255(dst, secondary);
     }
+    case MASK_BLEND_KEY(GL_ONE, GL_ONE_MINUS_SRC1_COLOR): {
+      // We must explicitly handle the masked secondary blend case.
+      // The secondary color as well as the source must be multiplied by the
+      // mask.
+      WideRGBA8 mask = load_clip_mask(buf, span);
+      WideRGBA8 secondary =
+          pack_pixels_RGBA8(fragment_shader->gl_SecondaryFragColor);
+      return muldiv255(src, mask) + dst -
+             muldiv255(dst, muldiv255(secondary, mask));
+    }
     default:
       UNREACHABLE;
       // return src;
   }
+
+#undef BLEND_CASE
+#undef BLEND_CASE_KEY
 }
 
-template <bool DISCARD>
-static inline void discard_output(uint32_t* buf, PackedRGBA8 mask) {
-  PackedRGBA8 dst = unaligned_load<PackedRGBA8>(buf);
+template <bool DISCARD, int SPAN>
+static ALWAYS_INLINE void discard_output(uint32_t* buf, PackedRGBA8 mask) {
   WideRGBA8 r = pack_pixels_RGBA8();
-  if (blend_key) r = blend_pixels_RGBA8(dst, r);
+  PackedRGBA8 dst = load_span<PackedRGBA8>(buf, SPAN);
+  if (blend_key) r = blend_pixels(buf, dst, r, SPAN);
   if (DISCARD)
     mask |= bit_cast<PackedRGBA8>(fragment_shader->swgl_IsPixelDiscarded);
-  unaligned_store(buf, (mask & dst) | (~mask & pack(r)));
+  store_span(buf, (mask & dst) | (~mask & pack(r)), SPAN);
 }
 
-template <bool DISCARD>
-static inline void discard_output(uint32_t* buf) {
-  discard_output<DISCARD>(buf, 0);
-}
-
-template <>
-inline void discard_output<false>(uint32_t* buf) {
+template <bool DISCARD, int SPAN>
+static ALWAYS_INLINE void discard_output(uint32_t* buf) {
   WideRGBA8 r = pack_pixels_RGBA8();
-  if (blend_key) r = blend_pixels_RGBA8(unaligned_load<PackedRGBA8>(buf), r);
-  unaligned_store(buf, pack(r));
-}
-
-static inline PackedRGBA8 span_mask_RGBA8(int span) {
-  return bit_cast<PackedRGBA8>(I32(span) < I32{1, 2, 3, 4});
-}
-
-static inline PackedRGBA8 span_mask(uint32_t*, int span) {
-  return span_mask_RGBA8(span);
+  if (DISCARD) {
+    PackedRGBA8 dst = load_span<PackedRGBA8>(buf, SPAN);
+    if (blend_key) r = blend_pixels(buf, dst, r, SPAN);
+    PackedRGBA8 mask =
+        bit_cast<PackedRGBA8>(fragment_shader->swgl_IsPixelDiscarded);
+    store_span(buf, (mask & dst) | (~mask & pack(r)), SPAN);
+  } else {
+    if (blend_key)
+      r = blend_pixels(buf, load_span<PackedRGBA8>(buf, SPAN), r, SPAN);
+    store_span(buf, pack(r), SPAN);
+  }
 }
 
 static inline WideR8 packR8(I32 a) {
@@ -2854,70 +3080,96 @@ static inline WideR8 pack_pixels_R8() {
   return pack_pixels_R8(fragment_shader->gl_FragColor.x);
 }
 
-static inline WideR8 blend_pixels_R8(WideR8 dst, WideR8 src) {
+static inline WideR8 blend_pixels(uint8_t* buf, WideR8 dst, WideR8 src,
+                                  int span = 4) {
+#define BLEND_CASE_KEY(key)                                     \
+  MASK_##key : src = muldiv255(src, load_clip_mask(buf, span)); \
+  FALLTHROUGH;                                                  \
+  case key
+#define BLEND_CASE(...) BLEND_CASE_KEY(BLEND_KEY(__VA_ARGS__))
+
   switch (blend_key) {
-    case BLEND_KEY_NONE:
+    case BLEND_CASE(GL_ONE, GL_ZERO):
       return src;
-    case BLEND_KEY(GL_ZERO, GL_SRC_COLOR):
+    case BLEND_CASE(GL_ZERO, GL_SRC_COLOR):
       return muldiv255(src, dst);
-    case BLEND_KEY(GL_ONE, GL_ONE):
+    case BLEND_CASE(GL_ONE, GL_ONE):
       return src + dst;
-    case BLEND_KEY(GL_ONE, GL_ZERO):
-      return src;
     default:
       UNREACHABLE;
       // return src;
   }
+
+#undef BLEND_CASE
+#undef BLEND_CASE_KEY
 }
 
-template <bool DISCARD>
+template <bool DISCARD, int SPAN>
 static inline void discard_output(uint8_t* buf, WideR8 mask) {
-  WideR8 dst = unpack(unaligned_load<PackedR8>(buf));
   WideR8 r = pack_pixels_R8();
-  if (blend_key) r = blend_pixels_R8(dst, r);
+  WideR8 dst = unpack(load_span<PackedR8>(buf, SPAN));
+  if (blend_key) r = blend_pixels(buf, dst, r, SPAN);
   if (DISCARD) mask |= packR8(fragment_shader->swgl_IsPixelDiscarded);
-  unaligned_store(buf, pack((mask & dst) | (~mask & r)));
+  store_span(buf, pack((mask & dst) | (~mask & r)), SPAN);
 }
 
-template <bool DISCARD>
+template <bool DISCARD, int SPAN>
 static inline void discard_output(uint8_t* buf) {
-  discard_output<DISCARD>(buf, 0);
-}
-
-template <>
-inline void discard_output<false>(uint8_t* buf) {
   WideR8 r = pack_pixels_R8();
-  if (blend_key) r = blend_pixels_R8(unpack(unaligned_load<PackedR8>(buf)), r);
-  unaligned_store(buf, pack(r));
-}
-
-static inline WideR8 span_mask_R8(int span) {
-  return bit_cast<WideR8>(WideR8(span) < WideR8{1, 2, 3, 4});
-}
-
-static inline WideR8 span_mask(uint8_t*, int span) {
-  return span_mask_R8(span);
-}
-
-UNUSED static inline PackedRG8 span_mask_RG8(int span) {
-  return bit_cast<PackedRG8>(I16(span) < I16{1, 2, 3, 4});
+  if (DISCARD) {
+    WideR8 dst = unpack(load_span<PackedR8>(buf, SPAN));
+    if (blend_key) r = blend_pixels(buf, dst, r, SPAN);
+    WideR8 mask = packR8(fragment_shader->swgl_IsPixelDiscarded);
+    store_span(buf, pack((mask & dst) | (~mask & r)), SPAN);
+  } else {
+    if (blend_key)
+      r = blend_pixels(buf, unpack(load_span<PackedR8>(buf, SPAN)), r, SPAN);
+    store_span(buf, pack(r), SPAN);
+  }
 }
 
 template <bool DISCARD, bool W, typename P, typename M>
 static inline void commit_output(P* buf, M mask) {
   fragment_shader->run<W>();
-  discard_output<DISCARD>(buf, mask);
+  discard_output<DISCARD, 4>(buf, mask);
+}
+
+template <bool DISCARD, bool W, typename P, typename M>
+static inline void commit_output(P* buf, M mask, int span) {
+  fragment_shader->run<W>();
+  switch (span) {
+    case 1:
+      discard_output<DISCARD, 1>(buf, mask);
+      break;
+    case 2:
+      discard_output<DISCARD, 2>(buf, mask);
+      break;
+    default:
+      discard_output<DISCARD, 3>(buf, mask);
+      break;
+  }
 }
 
 template <bool DISCARD, bool W, typename P>
 static inline void commit_output(P* buf) {
   fragment_shader->run<W>();
-  discard_output<DISCARD>(buf);
+  discard_output<DISCARD, 4>(buf);
 }
 
 template <bool DISCARD, bool W, typename P>
 static inline void commit_output(P* buf, int span) {
-  commit_output<DISCARD, W>(buf, span_mask(buf, span));
+  fragment_shader->run<W>();
+  switch (span) {
+    case 1:
+      discard_output<DISCARD, 1>(buf);
+      break;
+    case 2:
+      discard_output<DISCARD, 2>(buf);
+      break;
+    default:
+      discard_output<DISCARD, 3>(buf);
+      break;
+  }
 }
 
 template <bool DISCARD, bool W, typename P, typename Z>
@@ -2937,13 +3189,14 @@ template <bool DISCARD, bool W, typename P, typename Z>
 static inline void commit_output(P* buf, Z z, DepthRun* zbuf, int span) {
   ZMask zmask;
   if (check_depth<DISCARD>(z, zbuf, zmask, span)) {
-    commit_output<DISCARD, W>(buf, convert_zmask(zmask, buf));
+    commit_output<DISCARD, W>(buf, convert_zmask(zmask, buf), span);
     if (DISCARD) {
       discard_depth(z, zbuf, zmask);
     }
   }
 }
 
+#include "composite.h"
 #include "swgl_ext.h"
 
 #pragma GCC diagnostic push
@@ -2969,8 +3222,51 @@ struct ClipRect {
   float x1;
   float y1;
 
-  ClipRect(const IntRect& i) : x0(i.x0), y0(i.y0), x1(i.x1), y1(i.y1) {}
-  ClipRect(Texture& t) : ClipRect(ctx->apply_scissor(t.bounds())) {}
+  explicit ClipRect(const IntRect& i)
+      : x0(i.x0), y0(i.y0), x1(i.x1), y1(i.y1) {}
+  explicit ClipRect(const Texture& t) : ClipRect(ctx->apply_scissor(t)) {
+    // If blending is enabled, set blend_key to reflect the resolved blend
+    // state for the currently drawn primitive.
+    if (ctx->blend) {
+      blend_key = ctx->blend_key;
+      // If a clip mask is available, set up blending state to use the clip
+      // mask.
+      if (swgl_ClipMask) {
+        assert(swgl_ClipMask->format == TextureFormat::R8);
+        // Constrain the clip mask bounds to always fall within the clip mask.
+        swgl_ClipMaskBounds.intersect(IntRect{0, 0, int(swgl_ClipMask->width),
+                                              int(swgl_ClipMask->height)});
+        // The clip mask offset is relative to the viewport.
+        swgl_ClipMaskOffset += ctx->viewport.origin() - t.offset;
+        // The clip mask bounds are relative to the clip mask offset.
+        swgl_ClipMaskBounds.offset(swgl_ClipMaskOffset);
+        // Finally, constrain the clip rectangle by the clip mask bounds.
+        intersect(swgl_ClipMaskBounds);
+        // Modify the blend key so that it will use the clip mask while
+        // blending.
+        blend_key = BlendKey(MASK_BLEND_KEY_NONE + blend_key);
+      }
+    } else {
+      blend_key = BLEND_KEY_NONE;
+    }
+  }
+
+  void intersect(const IntRect& c) {
+    x0 = max(x0, float(c.x0));
+    y0 = max(y0, float(c.y0));
+    x1 = min(x1, float(c.x1));
+    y1 = min(y1, float(c.y1));
+  }
+
+  template <typename P>
+  void init_span(int x, int y, P* buf) const {
+    if (blend_key >= MASK_BLEND_KEY_NONE) {
+      swgl_SpanBuf = buf;
+      swgl_ClipMaskBuf = (uint8_t*)swgl_ClipMask->buf +
+                         (y - swgl_ClipMaskOffset.y) * swgl_ClipMask->stride +
+                         (x - swgl_ClipMaskOffset.x);
+    }
+  }
 
   template <typename P>
   bool overlaps(int nump, const P* p) const {
@@ -3037,7 +3333,7 @@ static ALWAYS_INLINE void draw_depth_span(uint16_t z, P* buf,
     // it were a full chunk. Mask off only the part of the chunk we want to
     // use.
     if (span > 0) {
-      commit_output<false, false>(buf, span_mask(buf, span));
+      commit_output<false, false>(buf, span);
       buf += span;
     }
     // Skip past any runs that fail the depth test.
@@ -3356,6 +3652,7 @@ static inline void draw_quad_spans(int nump, Point2D p[4], uint16_t z,
         Interpolants o = left.interp + step * (startx + 0.5f - left.x);
         fragment_shader->init_span(&o, &step);
       }
+      clipRect.init_span(startx, y, buf);
       if (!use_discard) {
         // Fast paths for the case where fragment discard is not used.
         if (depth) {
@@ -3580,6 +3877,7 @@ static inline void draw_perspective_spans(int nump, Point3D* p,
         Interpolants o = left.interp + step * (startx + 0.5f - left.x());
         fragment_shader->init_span<true>(&o, &step);
       }
+      clipRect.init_span(startx, y, buf);
       if (!use_discard) {
         // No discard is used. Common case.
         draw_span<false, true>(buf, depth, span, packDepth);
@@ -3607,53 +3905,124 @@ static inline void draw_perspective_spans(int nump, Point3D* p,
 template <XYZW AXIS>
 static int clip_side(int nump, Point3D* p, Interpolants* interp, Point3D* outP,
                      Interpolants* outInterp) {
+  // Potential mask bits of which side of a plane a coordinate falls on.
+  enum SIDE { POSITIVE = 1, NEGATIVE = 2 };
   int numClip = 0;
   Point3D prev = p[nump - 1];
   Interpolants prevInterp = interp[nump - 1];
   float prevCoord = prev.select(AXIS);
   // Coordinate must satisfy -W <= C <= W. Determine if it is outside, and
-  // if so, remember which side it is outside of.
-  int prevSide = prevCoord < -prev.w ? -1 : (prevCoord > prev.w ? 1 : 0);
+  // if so, remember which side it is outside of. In the special case that W is
+  // negative and |C| < |W|, both -W <= C and C <= W will be false, such that
+  // we must consider the coordinate as falling outside of both plane sides
+  // simultaneously. We test each condition separately and combine them to form
+  // a mask of which plane sides we exceeded. If we neglect to consider both
+  // sides simultaneously, points can erroneously oscillate from one plane side
+  // to the other and exceed the supported maximum number of clip outputs.
+  int prevMask = (prevCoord < -prev.w ? NEGATIVE : 0) |
+                 (prevCoord > prev.w ? POSITIVE : 0);
   // Loop through points, finding edges that cross the planes by evaluating
   // the side at each point.
   for (int i = 0; i < nump; i++) {
     Point3D cur = p[i];
     Interpolants curInterp = interp[i];
     float curCoord = cur.select(AXIS);
-    int curSide = curCoord < -cur.w ? -1 : (curCoord > cur.w ? 1 : 0);
-    // Check if the previous and current end points are on different sides.
-    if (curSide != prevSide) {
+    int curMask =
+        (curCoord < -cur.w ? NEGATIVE : 0) | (curCoord > cur.w ? POSITIVE : 0);
+    // Check if the previous and current end points are on different sides. If
+    // the masks of sides intersect, then we consider them to be on the same
+    // side. So in the case the masks do not intersect, we then consider them
+    // to fall on different sides.
+    if (!(curMask & prevMask)) {
       // One of the edge's end points is outside the plane with the other
       // inside the plane. Find the offset where it crosses the plane and
       // adjust the point and interpolants to there.
-      if (prevSide) {
+      if (prevMask) {
         // Edge that was previously outside crosses inside.
         // Evaluate plane equation for previous and current end-point
         // based on previous side and calculate relative offset.
-        assert(numClip < nump + 2);
+        if (numClip >= nump + 2) {
+          // If for some reason we produced more vertexes than we support, just
+          // bail out.
+          assert(false);
+          return 0;
+        }
+        // The positive plane is assigned the sign 1, and the negative plane is
+        // assigned -1. If the point falls outside both planes, that means W is
+        // negative. To compensate for this, we must interpolate the coordinate
+        // till W=0, at which point we can choose a single plane side for the
+        // coordinate to fall on since W will no longer be negative. To compute
+        // the coordinate where W=0, we compute K = prev.w / (prev.w-cur.w) and
+        // interpolate C = prev.C + K*(cur.C - prev.C). The sign of C will be
+        // the side of the plane we need to consider. Substituting K into the
+        // comparison C < 0, we can then avoid the division in K with a
+        // cross-multiplication.
+        float prevSide =
+            (prevMask & NEGATIVE) && (!(prevMask & POSITIVE) ||
+                                      prevCoord * (cur.w - prev.w) <
+                                          prev.w * (curCoord - prevCoord))
+                ? -1
+                : 1;
         float prevDist = prevCoord - prevSide * prev.w;
         float curDist = curCoord - prevSide * cur.w;
+        // It may happen that after we interpolate by the weight k that due to
+        // floating point rounding we've underestimated the value necessary to
+        // push it over the clipping boundary. Just in case, nudge the mantissa
+        // by a single increment so that we essentially round it up and move it
+        // further inside the clipping boundary. We use nextafter to do this in
+        // a portable fashion.
         float k = prevDist / (prevDist - curDist);
-        outP[numClip] = prev + (cur - prev) * k;
+        Point3D clipped = prev + (cur - prev) * k;
+        if (prevSide * clipped.select(AXIS) > clipped.w) {
+          k = nextafterf(k, 1.0f);
+          clipped = prev + (cur - prev) * k;
+        }
+        outP[numClip] = clipped;
         outInterp[numClip] = prevInterp + (curInterp - prevInterp) * k;
         numClip++;
       }
-      if (curSide) {
+      if (curMask) {
         // Edge that was previously inside crosses outside.
         // Evaluate plane equation for previous and current end-point
         // based on current side and calculate relative offset.
-        assert(numClip < nump + 2);
+        if (numClip >= nump + 2) {
+          assert(false);
+          return 0;
+        }
+        // In the case the coordinate falls on both plane sides, the computation
+        // here is much the same as for prevSide, but since we are going from a
+        // previous W that is positive to current W that is negative, then the
+        // sign of cur.w - prev.w will flip in the equation. The resulting sign
+        // is negated to compensate for this.
+        float curSide =
+            (curMask & POSITIVE) && (!(curMask & NEGATIVE) ||
+                                     prevCoord * (cur.w - prev.w) <
+                                         prev.w * (curCoord - prevCoord))
+                ? 1
+                : -1;
         float prevDist = prevCoord - curSide * prev.w;
         float curDist = curCoord - curSide * cur.w;
+        // Calculate interpolation weight k and the nudge it inside clipping
+        // boundary with nextafter. Note that since we were previously inside
+        // and now crossing outside, we have to flip the nudge direction for
+        // the weight towards 0 instead of 1.
         float k = prevDist / (prevDist - curDist);
-        outP[numClip] = prev + (cur - prev) * k;
+        Point3D clipped = prev + (cur - prev) * k;
+        if (curSide * clipped.select(AXIS) > clipped.w) {
+          k = nextafterf(k, 0.0f);
+          clipped = prev + (cur - prev) * k;
+        }
+        outP[numClip] = clipped;
         outInterp[numClip] = prevInterp + (curInterp - prevInterp) * k;
         numClip++;
       }
     }
-    if (!curSide) {
+    if (!curMask) {
       // The current end point is inside the plane, so output point unmodified.
-      assert(numClip < nump + 2);
+      if (numClip >= nump + 2) {
+        assert(false);
+        return 0;
+      }
       outP[numClip] = cur;
       outInterp[numClip] = curInterp;
       numClip++;
@@ -3661,7 +4030,7 @@ static int clip_side(int nump, Point3D* p, Interpolants* interp, Point3D* outP,
     prev = cur;
     prevInterp = curInterp;
     prevCoord = curCoord;
-    prevSide = curSide;
+    prevMask = curMask;
   }
   return numClip;
 }
@@ -3710,10 +4079,13 @@ static void draw_perspective(int nump, Interpolants interp_outs[4],
   vec3_scalar scale =
       vec3_scalar(ctx->viewport.width(), ctx->viewport.height(), 1) * 0.5f;
   vec3_scalar offset =
-      vec3_scalar(ctx->viewport.x0, ctx->viewport.y0, 0.0f) + scale;
+      make_vec3(make_vec2(ctx->viewport.origin() - colortex.offset), 0.0f) +
+      scale;
   if (test_none(pos.z <= -pos.w || pos.z >= pos.w)) {
     // No points cross the near or far planes, so no clipping required.
-    // Just divide coords by W and convert to viewport.
+    // Just divide coords by W and convert to viewport. We assume the W
+    // coordinate is non-zero and the reciprocal is finite since it would
+    // otherwise fail the test_none condition.
     Float w = 1.0f / pos.w;
     vec3 screen = pos.sel(X, Y, Z) * w * scale + offset;
     Point3D p[4] = {{screen.x.x, screen.y.x, screen.z.x, w.x},
@@ -3769,6 +4141,11 @@ static void draw_perspective(int nump, Interpolants interp_outs[4],
     // Divide coords by W and convert to viewport.
     for (int i = 0; i < nump; i++) {
       float w = 1.0f / p_clip[i].w;
+      // If the W coord is essentially zero, small enough that division would
+      // result in Inf/NaN, then just set the reciprocal itself to zero so that
+      // the coordinates becomes zeroed out, as the only valid point that
+      // satisfies -W <= X/Y/Z <= W is all zeroes.
+      if (!isfinite(w)) w = 0.0f;
       p_clip[i] = Point3D(p_clip[i].sel(X, Y, Z) * w * scale + offset, w);
     }
     draw_perspective_clipped(nump, p_clip, interp_clip, colortex, layer,
@@ -3782,6 +4159,7 @@ static void draw_quad(int nump, Texture& colortex, int layer,
   // Reserve space for 6 sets of interpolants, in case we need to clip against
   // near and far planes in the perspective case.
   Interpolants interp_outs[4];
+  swgl_ClipMask = nullptr;
   vertex_shader->run_primitive((char*)interp_outs, sizeof(Interpolants));
   vec4 pos = vertex_shader->gl_Position;
   // Check if any vertex W is different from another. If so, use perspective.
@@ -3793,9 +4171,14 @@ static void draw_quad(int nump, Texture& colortex, int layer,
   // Convert output of vertex shader to screen space.
   // Divide coords by W and convert to viewport.
   float w = 1.0f / pos.w.x;
+  // If the W coord is essentially zero, small enough that division would
+  // result in Inf/NaN, then just set the reciprocal itself to zero so that
+  // the coordinates becomes zeroed out, as the only valid point that
+  // satisfies -W <= X/Y/Z <= W is all zeroes.
+  if (!isfinite(w)) w = 0.0f;
   vec2 screen = (pos.sel(X, Y) * w + 1) * 0.5f *
                     vec2_scalar(ctx->viewport.width(), ctx->viewport.height()) +
-                vec2_scalar(ctx->viewport.x0, ctx->viewport.y0);
+                make_vec2(ctx->viewport.origin() - colortex.offset);
   Point2D p[4] = {{screen.x.x, screen.y.x},
                   {screen.x.y, screen.y.y},
                   {screen.x.z, screen.y.z},
@@ -3926,7 +4309,8 @@ extern "C" {
 
 void DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
                            GLintptr offset, GLsizei instancecount) {
-  if (offset < 0 || count <= 0 || instancecount <= 0) {
+  if (offset < 0 || count <= 0 || instancecount <= 0 || !vertex_shader ||
+      !fragment_shader) {
     return;
   }
 
@@ -3943,6 +4327,7 @@ void DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
     assert(depthtex.internal_format == GL_DEPTH_COMPONENT16);
     assert(colortex.width == depthtex.width &&
            colortex.height == depthtex.height);
+    assert(colortex.offset == depthtex.offset);
   }
 
   // debugf("current_vertex_array %d\n", ctx->current_vertex_array);
@@ -3953,8 +4338,8 @@ void DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
     v.validate();
   }
 
-#ifndef NDEBUG
-  // uint64_t start = get_time_value();
+#ifdef PRINT_TIMINGS
+  uint64_t start = get_time_value();
 #endif
 
   ctx->shaded_rows = 0;
@@ -4006,30 +4391,31 @@ void DrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
     q.value += ctx->shaded_pixels;
   }
 
-#ifndef NDEBUG
-  // uint64_t end = get_time_value();
-  // debugf("draw(%d): %fms for %d pixels in %d rows (avg %f pixels/row, %f
-  // ns/pixel)\n", instancecount, double(end - start)/(1000.*1000.),
-  // ctx->shaded_pixels, ctx->shaded_rows,
-  // double(ctx->shaded_pixels)/ctx->shaded_rows, double(end -
-  // start)/max(ctx->shaded_pixels, 1));
+#ifdef PRINT_TIMINGS
+  uint64_t end = get_time_value();
+  printf(
+      "%7.3fms draw(%s, %d): %d pixels in %d rows (avg %f pixels/row, "
+      "%fns/pixel)\n",
+      double(end - start) / (1000. * 1000.),
+      ctx->programs[ctx->current_program].impl->get_name(), instancecount,
+      ctx->shaded_pixels, ctx->shaded_rows,
+      double(ctx->shaded_pixels) / ctx->shaded_rows,
+      double(end - start) / max(ctx->shaded_pixels, 1));
 #endif
 }
 
-void Finish() {}
+void Finish() {
+#ifdef PRINT_TIMINGS
+  printf("Finish\n");
+#endif
+}
 
 void MakeCurrent(Context* c) {
   if (ctx == c) {
     return;
   }
   ctx = c;
-  if (ctx) {
-    setup_program(ctx->current_program);
-    blend_key = ctx->blend ? ctx->blend_key : BLEND_KEY_NONE;
-  } else {
-    setup_program(0);
-    blend_key = BLEND_KEY_NONE;
-  }
+  setup_program(ctx ? ctx->current_program : 0);
 }
 
 Context* CreateContext() { return new Context; }
@@ -4057,5 +4443,3 @@ void DestroyContext(Context* c) {
 }
 
 }  // extern "C"
-
-#include "composite.h"

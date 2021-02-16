@@ -22,6 +22,8 @@ include protocol PRemoteDecoderManager;
 include protocol PSandboxTesting;
 #endif
 
+include "mozilla/layers/LayersMessageUtils.h";
+
 using base::ProcessId from "base/process.h";
 using mozilla::dom::NativeThreadId from "mozilla/dom/NativeThreadId.h";
 using mozilla::Telemetry::HistogramAccumulation from "mozilla/TelemetryComms.h";
@@ -33,6 +35,7 @@ using mozilla::Telemetry::DiscardedData from "mozilla/TelemetryComms.h";
 using mozilla::gfx::Feature from "gfxFeature.h";
 using mozilla::gfx::Fallback from "gfxFallback.h";
 using mozilla::layers::LayersId from "mozilla/layers/LayersTypes.h";
+using mozilla::PDMFactory::MediaCodecsSupported from "PDMFactory.h";
 
 namespace mozilla {
 namespace gfx {
@@ -152,6 +155,10 @@ child:
   async UsedFallback(Fallback aFallback, nsCString message);
 
   async BHRThreadHang(HangDetails aDetails);
+
+  // Update the cached list of codec supported following a check in the
+  // GPU parent.
+  async UpdateMediaCodecsSupported(MediaCodecsSupported aSupported);
 };
 
 } // namespace gfx

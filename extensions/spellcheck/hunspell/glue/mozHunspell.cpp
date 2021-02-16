@@ -70,9 +70,11 @@
 #include "mozInlineSpellChecker.h"
 #include <stdlib.h>
 #include "nsIPrefBranch.h"
+#include "nsIPrefService.h"
 #include "nsNetUtil.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/Components.h"
+#include "mozilla/Services.h"
 
 using mozilla::dom::ContentParent;
 using namespace mozilla;
@@ -135,8 +137,8 @@ mozHunspell::~mozHunspell() {
 }
 
 NS_IMETHODIMP
-mozHunspell::GetDictionary(nsAString& aDictionary) {
-  aDictionary = mDictionary;
+mozHunspell::GetDictionary(nsACString& aDictionary) {
+  CopyUTF16toUTF8(mDictionary, aDictionary);
   return NS_OK;
 }
 
@@ -145,7 +147,7 @@ mozHunspell::GetDictionary(nsAString& aDictionary) {
  * dictionaries converter
  */
 NS_IMETHODIMP
-mozHunspell::SetDictionary(const nsAString& aDictionary) {
+mozHunspell::SetDictionary(const nsACString& aDictionary) {
   if (aDictionary.IsEmpty()) {
     delete mHunspell;
     mHunspell = nullptr;
@@ -157,7 +159,8 @@ mozHunspell::SetDictionary(const nsAString& aDictionary) {
     return NS_OK;
   }
 
-  nsIURI* affFile = mDictionaries.GetWeak(aDictionary);
+  NS_ConvertUTF8toUTF16 dict(aDictionary);
+  nsIURI* affFile = mDictionaries.GetWeak(dict);
   if (!affFile) {
     return NS_ERROR_FILE_NOT_FOUND;
   }
@@ -182,7 +185,7 @@ mozHunspell::SetDictionary(const nsAString& aDictionary) {
   // valid mHunspell instance which needs cleaned up.
   delete mHunspell;
 
-  mDictionary = aDictionary;
+  mDictionary = dict;
   mAffixFileName = affFileName;
 
   RegisterHunspellCallbacks(
@@ -216,10 +219,10 @@ NS_IMETHODIMP mozHunspell::SetPersonalDictionary(
 }
 
 NS_IMETHODIMP mozHunspell::GetDictionaryList(
-    nsTArray<nsString>& aDictionaries) {
+    nsTArray<nsCString>& aDictionaries) {
   MOZ_ASSERT(aDictionaries.IsEmpty());
   for (auto iter = mDictionaries.Iter(); !iter.Done(); iter.Next()) {
-    aDictionaries.AppendElement(iter.Key());
+    aDictionaries.AppendElement(NS_ConvertUTF16toUTF8(iter.Key()));
   }
 
   return NS_OK;
@@ -297,14 +300,14 @@ void mozHunspell::DictionariesChanged(bool aNotifyChildProcesses) {
   // Check if the current dictionary is still available.
   // If not, try to replace it with another dictionary of the same language.
   if (!mDictionary.IsEmpty()) {
-    nsresult rv = SetDictionary(mDictionary);
+    nsresult rv = SetDictionary(NS_ConvertUTF16toUTF8(mDictionary));
     if (NS_SUCCEEDED(rv)) return;
   }
 
   // If the current dictionary has gone, and we don't have a good replacement,
   // set no current dictionary.
   if (!mDictionary.IsEmpty()) {
-    SetDictionary(u""_ns);
+    SetDictionary(EmptyCString());
   }
 }
 

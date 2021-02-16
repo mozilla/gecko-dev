@@ -20,13 +20,13 @@ from .protocol import (BaseProtocolPart,
                        Protocol,
                        SelectorProtocolPart,
                        ClickProtocolPart,
+                       CookiesProtocolPart,
                        SendKeysProtocolPart,
                        ActionSequenceProtocolPart,
                        TestDriverProtocolPart,
                        GenerateTestReportProtocolPart,
                        SetPermissionProtocolPart,
                        VirtualAuthenticatorProtocolPart)
-from ..testrunner import Stop
 
 import webdriver as client
 from webdriver import error
@@ -190,6 +190,15 @@ class WebDriverClickProtocolPart(ClickProtocolPart):
         return element.click()
 
 
+class WebDriverCookiesProtocolPart(CookiesProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def delete_all_cookies(self):
+        self.logger.info("Deleting all cookies")
+        return self.webdriver.send_session_command("DELETE", "cookie")
+
+
 class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
@@ -288,6 +297,7 @@ class WebDriverProtocol(Protocol):
                   WebDriverTestharnessProtocolPart,
                   WebDriverSelectorProtocolPart,
                   WebDriverClickProtocolPart,
+                  WebDriverCookiesProtocolPart,
                   WebDriverSendKeysProtocolPart,
                   WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart,
@@ -344,8 +354,9 @@ class WebDriverRun(TimedRunner):
         try:
             self.protocol.base.set_timeout(self.timeout + self.extra_timeout)
         except client.UnknownErrorException:
-            self.logger.error("Lost WebDriver connection")
-            return Stop
+            msg = "Lost WebDriver connection"
+            self.logger.error(msg)
+            return ("INTERNAL-ERROR", msg)
 
     def run_func(self):
         try:

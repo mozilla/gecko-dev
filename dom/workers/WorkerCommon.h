@@ -7,9 +7,7 @@
 #ifndef mozilla_dom_workers_WorkerCommon_h
 #define mozilla_dom_workers_WorkerCommon_h
 
-#include "jsapi.h"
-#include "mozilla/Attributes.h"
-#include "mozilla/dom/ServiceWorkerDescriptor.h"
+#include "js/TypeDecls.h"
 
 class nsPIDOMWindowInner;
 

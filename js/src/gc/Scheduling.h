@@ -108,9 +108,9 @@
  *  Correctness reasons:
  *
  *   3) Do a GC now because correctness depends on some GC property. For
- *      example, CC_WAITING is where the embedding requires the mark bits
- *      to be set correct. Also, EVICT_NURSERY where we need to work on the
- *      tenured heap.
+ *      example, CC_FORCED is where the embedding requires the mark bits to be
+ *      set correctly. Also, EVICT_NURSERY where we need to work on the tenured
+ *      heap.
  *
  *   4) Do a GC because we are shutting down: e.g. SHUTDOWN_CC or DESTROY_*.
  *
@@ -318,6 +318,7 @@
 #include "js/HeapAPI.h"
 #include "js/SliceBudget.h"
 #include "threading/ProtectedData.h"
+#include "util/DifferentialTesting.h"
 
 namespace js {
 
@@ -391,8 +392,11 @@ static const uint32_t MaxEmptyChunkCount = 30;
 /* JSGC_SLICE_TIME_BUDGET_MS */
 static const int64_t DefaultTimeBudgetMS = SliceBudget::UnlimitedTimeBudget;
 
-/* JSGC_MODE */
-static const JSGCMode Mode = JSGC_MODE_ZONE_INCREMENTAL;
+/* JSGC_INCREMENTAL_ENABLED */
+static const bool IncrementalGCEnabled = false;
+
+/* JSGC_PER_ZONE_GC_ENABLED */
+static const bool PerZoneGCEnabled = false;
 
 /* JSGC_COMPACTING_ENABLED */
 static const bool CompactingEnabled = true;
@@ -414,6 +418,9 @@ static const double PretenureGroupThreshold = 3000;
 
 /* JSGC_PRETENURE_STRING_THRESHOLD */
 static const double PretenureStringThreshold = 0.55;
+
+/* JSGC_STOP_PRETENURE_STRING_THRESHOLD */
+static const double StopPretenureStringThreshold = 0.9;
 
 /* JSGC_MIN_LAST_DITCH_GC_PERIOD */
 static const auto MinLastDitchGCPeriod = 60;  // in seconds
@@ -562,6 +569,14 @@ class GCSchedulingTunables {
   MainThreadData<double> pretenureStringThreshold_;
 
   /*
+   * JSGC_STOP_PRETENURE_STRING_THRESHOLD
+   *
+   * If the finalization rate of the tenured strings exceeds this threshold,
+   * string will be allocated in nursery.
+   */
+  MainThreadData<double> stopPretenureStringThreshold_;
+
+  /*
    * JSGC_MIN_LAST_DITCH_GC_PERIOD
    *
    * Last ditch GC is skipped if allocation failure occurs less than this many
@@ -624,6 +639,9 @@ class GCSchedulingTunables {
   double pretenureThreshold() const { return pretenureThreshold_; }
   uint32_t pretenureGroupThreshold() const { return pretenureGroupThreshold_; }
   double pretenureStringThreshold() const { return pretenureStringThreshold_; }
+  double stopPretenureStringThreshold() const {
+    return stopPretenureStringThreshold_;
+  }
 
   mozilla::TimeDuration minLastDitchGCPeriod() const {
     return minLastDitchGCPeriod_;
@@ -669,11 +687,13 @@ class GCSchedulingState {
   void updateHighFrequencyMode(const mozilla::TimeStamp& lastGCTime,
                                const mozilla::TimeStamp& currentTime,
                                const GCSchedulingTunables& tunables) {
-#ifndef JS_MORE_DETERMINISTIC
+    if (js::SupportDifferentialTesting()) {
+      return;
+    }
+
     inHighFrequencyGCMode_ =
         !lastGCTime.IsNull() &&
         lastGCTime + tunables.highFrequencyThreshold() > currentTime;
-#endif
   }
 };
 

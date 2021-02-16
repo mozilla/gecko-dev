@@ -62,6 +62,19 @@ DocAccessible* DocManager::GetDocAccessible(Document* aDocument) {
   return CreateDocOrRootAccessible(aDocument);
 }
 
+DocAccessible* DocManager::GetDocAccessible(const PresShell* aPresShell) {
+  if (!aPresShell) {
+    return nullptr;
+  }
+
+  DocAccessible* doc = aPresShell->GetDocAccessible();
+  if (doc) {
+    return doc;
+  }
+
+  return GetDocAccessible(aPresShell->GetDocument());
+}
+
 Accessible* DocManager::FindAccessibleInCache(nsINode* aNode) const {
   for (auto iter = mDocAccessibleCache.ConstIter(); !iter.Done(); iter.Next()) {
     DocAccessible* docAccessible = iter.UserData();
@@ -540,4 +553,10 @@ void DocManager::RemoteDocAdded(DocAccessibleParent* aDoc) {
              "How did we already have the doc!");
   sRemoteDocuments->AppendElement(aDoc);
   ProxyCreated(aDoc, Interfaces::DOCUMENT | Interfaces::HYPERTEXT);
+}
+
+DocAccessible* mozilla::a11y::GetExistingDocAccessible(
+    const dom::Document* aDocument) {
+  PresShell* presShell = aDocument->GetPresShell();
+  return presShell ? presShell->GetDocAccessible() : nullptr;
 }

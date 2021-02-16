@@ -5,7 +5,7 @@
 # ***** END LICENSE BLOCK *****
 
 """module for http authentication operations"""
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import getpass
 import os
@@ -36,6 +36,7 @@ def get_credentials():
             os.remove(CREDENTIALS_PATH)
     else:
         try:
+            # pylint: disable=W1609
             input_method = raw_input
         except NameError:
             input_method = input

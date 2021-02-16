@@ -624,12 +624,10 @@ struct ZoneStats {
   MACRO(Other, GCHeapAdmin, gcHeapArenaAdmin)              \
   MACRO(Other, GCHeapUsed, jitCodesGCHeap)                 \
   MACRO(Other, GCHeapUsed, objectGroupsGCHeap)             \
-  MACRO(Other, MallocHeap, objectGroupsMallocHeap)         \
   MACRO(Other, GCHeapUsed, scopesGCHeap)                   \
   MACRO(Other, MallocHeap, scopesMallocHeap)               \
   MACRO(Other, GCHeapUsed, regExpSharedsGCHeap)            \
   MACRO(Other, MallocHeap, regExpSharedsMallocHeap)        \
-  MACRO(Other, MallocHeap, typePool)                       \
   MACRO(Other, MallocHeap, regexpZone)                     \
   MACRO(Other, MallocHeap, jitZone)                        \
   MACRO(Other, MallocHeap, baselineStubsOptimized)         \
@@ -712,24 +710,21 @@ struct RealmStats {
   // actually guaranteed. But for Servo, at least, it's a moot point because
   // it doesn't provide an ObjectPrivateVisitor so the value will always be
   // zero.
-#define FOR_EACH_SIZE(MACRO)                                  \
-  MACRO(Private, MallocHeap, objectsPrivate)                  \
-  MACRO(Other, GCHeapUsed, scriptsGCHeap)                     \
-  MACRO(Other, MallocHeap, scriptsMallocHeapData)             \
-  MACRO(Other, MallocHeap, baselineData)                      \
-  MACRO(Other, MallocHeap, baselineStubsFallback)             \
-  MACRO(Other, MallocHeap, ionData)                           \
-  MACRO(Other, MallocHeap, jitScripts)                        \
-  MACRO(Other, MallocHeap, typeInferenceAllocationSiteTables) \
-  MACRO(Other, MallocHeap, typeInferenceArrayTypeTables)      \
-  MACRO(Other, MallocHeap, typeInferenceObjectTypeTables)     \
-  MACRO(Other, MallocHeap, realmObject)                       \
-  MACRO(Other, MallocHeap, realmTables)                       \
-  MACRO(Other, MallocHeap, innerViewsTable)                   \
-  MACRO(Other, MallocHeap, objectMetadataTable)               \
-  MACRO(Other, MallocHeap, savedStacksSet)                    \
-  MACRO(Other, MallocHeap, varNamesSet)                       \
-  MACRO(Other, MallocHeap, nonSyntacticLexicalScopesTable)    \
+#define FOR_EACH_SIZE(MACRO)                               \
+  MACRO(Private, MallocHeap, objectsPrivate)               \
+  MACRO(Other, GCHeapUsed, scriptsGCHeap)                  \
+  MACRO(Other, MallocHeap, scriptsMallocHeapData)          \
+  MACRO(Other, MallocHeap, baselineData)                   \
+  MACRO(Other, MallocHeap, baselineStubsFallback)          \
+  MACRO(Other, MallocHeap, ionData)                        \
+  MACRO(Other, MallocHeap, jitScripts)                     \
+  MACRO(Other, MallocHeap, realmObject)                    \
+  MACRO(Other, MallocHeap, realmTables)                    \
+  MACRO(Other, MallocHeap, innerViewsTable)                \
+  MACRO(Other, MallocHeap, objectMetadataTable)            \
+  MACRO(Other, MallocHeap, savedStacksSet)                 \
+  MACRO(Other, MallocHeap, varNamesSet)                    \
+  MACRO(Other, MallocHeap, nonSyntacticLexicalScopesTable) \
   MACRO(Other, MallocHeap, jitRealm)
 
   RealmStats() = default;

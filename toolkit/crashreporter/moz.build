@@ -43,11 +43,6 @@ if CONFIG["MOZ_CRASHREPORTER"]:
             "google-breakpad/src/common/mac",
             "google-breakpad/src/processor",
         ]
-        if not CONFIG["DUMP_SYMS"]:
-            DIRS += [
-                "google-breakpad/src/tools/mac/dump_syms",
-                "rust",
-            ]
 
     elif CONFIG["OS_ARCH"] == "Linux":
         DIRS += [
@@ -57,11 +52,9 @@ if CONFIG["MOZ_CRASHREPORTER"]:
             "google-breakpad/src/common/linux",
             "google-breakpad/src/processor",
         ]
-        if not CONFIG["DUMP_SYMS"] and CONFIG["HOST_OS_ARCH"] == "Linux":
-            DIRS += [
-                "google-breakpad/src/tools/linux/dump_syms",
-                "rust",
-            ]
+
+        if CONFIG["MOZ_OXIDIZED_BREAKPAD"]:
+            DIRS += ["rust_minidump_writer_linux"]
 
     DIRS += [
         "client",
@@ -125,7 +118,7 @@ if CONFIG["MOZ_CRASHREPORTER"]:
     include("/toolkit/crashreporter/crashreporter.mozbuild")
 
     if CONFIG["CC_TYPE"] in ("clang", "gcc"):
-        CXXFLAGS += ["-Wno-shadow"]
+        CXXFLAGS += ["-Wno-shadow", "-Wno-error=stack-protector"]
 else:
     UNIFIED_SOURCES += [
         "nsDummyExceptionHandler.cpp",

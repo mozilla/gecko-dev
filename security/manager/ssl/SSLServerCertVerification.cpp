@@ -114,7 +114,6 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Unused.h"
-#include "mozilla/net/DNS.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentUtils.h"
 #include "nsICertOverrideService.h"
@@ -513,202 +512,6 @@ static SECStatus BlockServerCertChangeForSpdy(
   return SECFailure;
 }
 
-void AccumulateSubjectCommonNameTelemetry(const char* commonName,
-                                          bool commonNameInSubjectAltNames) {
-  if (!commonName) {
-    // 1 means no common name present
-    Telemetry::Accumulate(Telemetry::BR_9_2_2_SUBJECT_COMMON_NAME, 1);
-  } else if (!commonNameInSubjectAltNames) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("BR telemetry: common name '%s' not in subject alt. names "
-             "(or the subject alt. names extension is not present)\n",
-             commonName));
-    // 2 means the common name is not present in subject alt names
-    Telemetry::Accumulate(Telemetry::BR_9_2_2_SUBJECT_COMMON_NAME, 2);
-  } else {
-    // 0 means the common name is present in subject alt names
-    Telemetry::Accumulate(Telemetry::BR_9_2_2_SUBJECT_COMMON_NAME, 0);
-  }
-}
-
-// Returns true if and only if commonName ends with altName (minus its leading
-// "*"). altName has already been checked to be of the form "*.<something>".
-// commonName may be NULL.
-static bool TryMatchingWildcardSubjectAltName(const char* commonName,
-                                              const nsACString& altName) {
-  return commonName &&
-         StringEndsWith(nsDependentCString(commonName), Substring(altName, 1));
-}
-
-// Gathers telemetry on Baseline Requirements 9.2.1 (Subject Alternative
-// Names Extension) and 9.2.2 (Subject Common Name Field).
-// Specifically:
-//  - whether or not the subject common name field is present
-//  - whether or not the subject alternative names extension is present
-//  - if there is a malformed entry in the subject alt. names extension
-//  - if there is an entry in the subject alt. names extension corresponding
-//    to the subject common name
-// Telemetry is only gathered for certificates that chain to a trusted root
-// in Mozilla's Root CA program.
-// certList consists of a validated certificate chain. The end-entity
-// certificate is first and the root (trust anchor) is last.
-void GatherBaselineRequirementsTelemetry(const UniqueCERTCertList& certList) {
-  CERTCertListNode* endEntityNode = CERT_LIST_HEAD(certList);
-  CERTCertListNode* rootNode = CERT_LIST_TAIL(certList);
-  MOZ_ASSERT(!(CERT_LIST_END(endEntityNode, certList) ||
-               CERT_LIST_END(rootNode, certList)));
-  if (CERT_LIST_END(endEntityNode, certList) ||
-      CERT_LIST_END(rootNode, certList)) {
-    return;
-  }
-  CERTCertificate* cert = endEntityNode->cert;
-  MOZ_ASSERT(cert);
-  if (!cert) {
-    return;
-  }
-  UniquePORTString commonName(CERT_GetCommonName(&cert->subject));
-  // This only applies to certificates issued by authorities in our root
-  // program.
-  CERTCertificate* rootCert = rootNode->cert;
-  MOZ_ASSERT(rootCert);
-  if (!rootCert) {
-    return;
-  }
-  bool isBuiltIn = false;
-  Result result = IsCertBuiltInRoot(rootCert, isBuiltIn);
-  if (result != Success || !isBuiltIn) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("BR telemetry: root certificate for '%s' is not a built-in root "
-             "(or IsCertBuiltInRoot failed)\n",
-             commonName.get()));
-    return;
-  }
-  ScopedAutoSECItem altNameExtension;
-  SECStatus rv = CERT_FindCertExtension(cert, SEC_OID_X509_SUBJECT_ALT_NAME,
-                                        &altNameExtension);
-  if (rv != SECSuccess) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("BR telemetry: no subject alt names extension for '%s'\n",
-             commonName.get()));
-    // 1 means there is no subject alt names extension
-    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 1);
-    AccumulateSubjectCommonNameTelemetry(commonName.get(), false);
-    return;
-  }
-
-  UniquePLArenaPool arena(PORT_NewArena(DER_DEFAULT_CHUNKSIZE));
-  CERTGeneralName* subjectAltNames =
-      CERT_DecodeAltNameExtension(arena.get(), &altNameExtension);
-  if (!subjectAltNames) {
-    MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-            ("BR telemetry: could not decode subject alt names for '%s'\n",
-             commonName.get()));
-    // 2 means the subject alt names extension could not be decoded
-    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 2);
-    AccumulateSubjectCommonNameTelemetry(commonName.get(), false);
-    return;
-  }
-
-  CERTGeneralName* currentName = subjectAltNames;
-  bool commonNameInSubjectAltNames = false;
-  bool nonDNSNameOrIPAddressPresent = false;
-  bool malformedDNSNameOrIPAddressPresent = false;
-  bool nonFQDNPresent = false;
-  do {
-    nsAutoCString altName;
-    if (currentName->type == certDNSName) {
-      altName.Assign(
-          BitwiseCast<char*, unsigned char*>(currentName->name.other.data),
-          currentName->name.other.len);
-      nsDependentCString altNameWithoutWildcard(altName, 0);
-      if (StringBeginsWith(altNameWithoutWildcard, "*."_ns)) {
-        altNameWithoutWildcard.Rebind(altName, 2);
-        commonNameInSubjectAltNames |=
-            TryMatchingWildcardSubjectAltName(commonName.get(), altName);
-      }
-      // net_IsValidHostName appears to return true for valid IP addresses,
-      // which would be invalid for a DNS name.
-      // Note that the net_IsValidHostName check will catch things like
-      // "a.*.example.com".
-      if (!net_IsValidHostName(altNameWithoutWildcard) ||
-          net_IsValidIPv4Addr(altName) || net_IsValidIPv6Addr(altName)) {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-                ("BR telemetry: DNSName '%s' not valid (for '%s')\n",
-                 altName.get(), commonName.get()));
-        malformedDNSNameOrIPAddressPresent = true;
-      }
-      if (!altName.Contains('.')) {
-        nonFQDNPresent = true;
-      }
-    } else if (currentName->type == certIPAddress) {
-      // According to DNS.h, this includes space for the null-terminator
-      char buf[net::kNetAddrMaxCStrBufSize] = {0};
-      PRNetAddr addr;
-      memset(&addr, 0, sizeof(addr));
-      if (currentName->name.other.len == 4) {
-        addr.inet.family = PR_AF_INET;
-        memcpy(&addr.inet.ip, currentName->name.other.data,
-               currentName->name.other.len);
-        if (PR_NetAddrToString(&addr, buf, sizeof(buf) - 1) != PR_SUCCESS) {
-          MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-                  ("BR telemetry: IPAddress (v4) not valid (for '%s')\n",
-                   commonName.get()));
-          malformedDNSNameOrIPAddressPresent = true;
-        } else {
-          altName.Assign(buf);
-        }
-      } else if (currentName->name.other.len == 16) {
-        addr.inet.family = PR_AF_INET6;
-        memcpy(&addr.ipv6.ip, currentName->name.other.data,
-               currentName->name.other.len);
-        if (PR_NetAddrToString(&addr, buf, sizeof(buf) - 1) != PR_SUCCESS) {
-          MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-                  ("BR telemetry: IPAddress (v6) not valid (for '%s')\n",
-                   commonName.get()));
-          malformedDNSNameOrIPAddressPresent = true;
-        } else {
-          altName.Assign(buf);
-        }
-      } else {
-        MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-                ("BR telemetry: IPAddress not valid (for '%s')\n",
-                 commonName.get()));
-        malformedDNSNameOrIPAddressPresent = true;
-      }
-    } else {
-      MOZ_LOG(gPIPNSSLog, LogLevel::Debug,
-              ("BR telemetry: non-DNSName, non-IPAddress present for '%s'\n",
-               commonName.get()));
-      nonDNSNameOrIPAddressPresent = true;
-    }
-    if (commonName && altName.Equals(commonName.get())) {
-      commonNameInSubjectAltNames = true;
-    }
-    currentName = CERT_GetNextGeneralName(currentName);
-  } while (currentName && currentName != subjectAltNames);
-
-  if (nonDNSNameOrIPAddressPresent) {
-    // 3 means there's an entry that isn't an ip address or dns name
-    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 3);
-  }
-  if (malformedDNSNameOrIPAddressPresent) {
-    // 4 means there's a malformed ip address or dns name entry
-    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 4);
-  }
-  if (nonFQDNPresent) {
-    // 5 means there's a DNS name entry with a non-fully-qualified domain name
-    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 5);
-  }
-  if (!nonDNSNameOrIPAddressPresent && !malformedDNSNameOrIPAddressPresent &&
-      !nonFQDNPresent) {
-    // 0 means the extension is acceptable
-    Telemetry::Accumulate(Telemetry::BR_9_2_1_SUBJECT_ALT_NAMES, 0);
-  }
-
-  AccumulateSubjectCommonNameTelemetry(commonName.get(),
-                                       commonNameInSubjectAltNames);
-}
-
 // Gather telemetry on whether the end-entity cert for a server has the
 // required TLS Server Authentication EKU, or any others
 void GatherEKUTelemetry(const UniqueCERTCertList& certList) {
@@ -814,7 +617,6 @@ void GatherRootCATelemetry(const UniqueCERTCertList& certList) {
 // There are various things that we want to measure about certificate
 // chains that we accept.  This is a single entry point for all of them.
 void GatherSuccessfulValidationTelemetry(const UniqueCERTCertList& certList) {
-  GatherBaselineRequirementsTelemetry(certList);
   GatherEKUTelemetry(certList);
   GatherRootCATelemetry(certList);
 }
@@ -952,11 +754,10 @@ static void CollectCertTelemetry(
     const PinningTelemetryInfo& aPinningTelemetryInfo,
     const UniqueCERTCertList& aBuiltCertChain,
     const CertificateTransparencyInfo& aCertificateTransparencyInfo,
-    const CRLiteTelemetryInfo& aCRLiteTelemetryInfo) {
-  uint32_t evStatus = (aCertVerificationResult != Success)
-                          ? 0  // 0 = Failure
-                          : (aEvOidPolicy == SEC_OID_UNKNOWN) ? 1   // 1 = DV
-                                                              : 2;  // 2 = EV
+    const CRLiteLookupResult& aCRLiteLookupResult) {
+  uint32_t evStatus = (aCertVerificationResult != Success) ? 0  // 0 = Failure
+                      : (aEvOidPolicy == SEC_OID_UNKNOWN)  ? 1  // 1 = DV
+                                                           : 2;  // 2 = EV
   Telemetry::Accumulate(Telemetry::CERT_EV_STATUS, evStatus);
 
   if (aOcspStaplingStatus != CertVerifier::OCSP_STAPLING_NEVER_CHECKED) {
@@ -992,7 +793,7 @@ static void CollectCertTelemetry(
         /*isEV*/ aEvOidPolicy != SEC_OID_UNKNOWN, aCertificateTransparencyInfo);
   }
 
-  switch (aCRLiteTelemetryInfo.mLookupResult) {
+  switch (aCRLiteLookupResult) {
     case CRLiteLookupResult::FilterNotAvailable:
       Telemetry::AccumulateCategorical(
           Telemetry::LABELS_CRLITE_RESULT::FilterNotAvailable);
@@ -1026,19 +827,6 @@ static void CollectCertTelemetry(
     default:
       MOZ_ASSERT_UNREACHABLE("Unhandled CRLiteLookupResult value?");
       break;
-  }
-
-  if (aCRLiteTelemetryInfo.mCRLiteFasterThanOCSPMillis.isSome()) {
-    Telemetry::Accumulate(
-        Telemetry::CRLITE_FASTER_THAN_OCSP_MS,
-        static_cast<uint32_t>(
-            *aCRLiteTelemetryInfo.mCRLiteFasterThanOCSPMillis));
-  }
-  if (aCRLiteTelemetryInfo.mOCSPFasterThanCRLiteMillis.isSome()) {
-    Telemetry::Accumulate(
-        Telemetry::OCSP_FASTER_THAN_CRLITE_MS,
-        static_cast<uint32_t>(
-            *aCRLiteTelemetryInfo.mOCSPFasterThanCRLiteMillis));
   }
 }
 
@@ -1098,7 +886,7 @@ Result AuthCertificate(
   KeySizeStatus keySizeStatus = KeySizeStatus::NeverChecked;
   SHA1ModeResult sha1ModeResult = SHA1ModeResult::NeverChecked;
   PinningTelemetryInfo pinningTelemetryInfo;
-  CRLiteTelemetryInfo crliteTelemetryInfo;
+  CRLiteLookupResult crliteTelemetryInfo;
 
   nsTArray<nsTArray<uint8_t>> peerCertsBytes;
   // Don't include the end-entity certificate.
@@ -1232,11 +1020,10 @@ PRErrorCode AuthCertificateParseResults(
       ("[0x%" PRIx64 "] Certificate error was not overridden\n", aPtrForLog));
 
   // pick the error code to report by priority
-  return errorCodeTrust
-             ? errorCodeTrust
-             : errorCodeMismatch
-                   ? errorCodeMismatch
-                   : errorCodeTime ? errorCodeTime : aDefaultErrorCodeToReport;
+  return errorCodeTrust      ? errorCodeTrust
+         : errorCodeMismatch ? errorCodeMismatch
+         : errorCodeTime     ? errorCodeTime
+                             : aDefaultErrorCodeToReport;
 }
 
 }  // unnamed namespace
@@ -1355,7 +1142,7 @@ SSLServerCertVerificationJob::Run() {
 //  checks and calls SSLServerCertVerificationJob::Dispatch.
 SECStatus AuthCertificateHookInternal(
     TransportSecurityInfo* infoObject, const void* aPtrForLogging,
-    const UniqueCERTCertificate& serverCert,
+    const UniqueCERTCertificate& serverCert, const nsACString& hostName,
     nsTArray<nsTArray<uint8_t>>&& peerCertChain,
     Maybe<nsTArray<uint8_t>>& stapledOCSPResponse,
     Maybe<nsTArray<uint8_t>>& sctsFromTLSExtension,
@@ -1398,10 +1185,10 @@ SECStatus AuthCertificateHookInternal(
 
   if (XRE_IsSocketProcess()) {
     return RemoteProcessCertVerification(
-        serverCert, std::move(peerCertChain), infoObject->GetHostName(),
-        infoObject->GetPort(), infoObject->GetOriginAttributes(),
-        stapledOCSPResponse, sctsFromTLSExtension, dcInfo, providerFlags,
-        certVerifierFlags, resultTask);
+        serverCert, std::move(peerCertChain), hostName, infoObject->GetPort(),
+        infoObject->GetOriginAttributes(), stapledOCSPResponse,
+        sctsFromTLSExtension, dcInfo, providerFlags, certVerifierFlags,
+        resultTask);
   }
 
   // We *must* do certificate verification on a background thread because
@@ -1409,11 +1196,10 @@ SECStatus AuthCertificateHookInternal(
   // and we *want* to do certificate verification on a background thread
   // because of the performance benefits of doing so.
   return SSLServerCertVerificationJob::Dispatch(
-      addr, infoObject, serverCert, std::move(peerCertChain),
-      infoObject->GetHostName(), infoObject->GetPort(),
-      infoObject->GetOriginAttributes(), stapledOCSPResponse,
-      sctsFromTLSExtension, dcInfo, providerFlags, Now(), PR_Now(),
-      certVerifierFlags, resultTask);
+      addr, infoObject, serverCert, std::move(peerCertChain), hostName,
+      infoObject->GetPort(), infoObject->GetOriginAttributes(),
+      stapledOCSPResponse, sctsFromTLSExtension, dcInfo, providerFlags, Now(),
+      PR_Now(), certVerifierFlags, resultTask);
 }
 
 // Extracts whatever information we need out of fd (using SSL_*) and passes it
@@ -1501,11 +1287,24 @@ SECStatus AuthCertificateHook(void* arg, PRFileDesc* fd, PRBool checkSig,
                                            channelPreInfo.authKeyBits));
   }
 
+  // If we configured an ECHConfig and NSS returned the public name
+  // for verification, ECH was rejected. Proceed, verifying to the
+  // public name. The result determines how NSS will fail (i.e. with
+  // any provided retry_configs if successful). See draft-ietf-tls-esni-08.
+  nsCString echConfig;
+  nsresult nsrv = socketInfo->GetEchConfig(echConfig);
+  bool verifyToEchPublicName =
+      NS_SUCCEEDED(nsrv) && echConfig.Length() && channelPreInfo.echPublicName;
+
+  const nsCString echPublicName(channelPreInfo.echPublicName);
+  const nsACString& hostname =
+      verifyToEchPublicName ? echPublicName : socketInfo->GetHostName();
   socketInfo->SetCertVerificationWaiting();
-  return AuthCertificateHookInternal(socketInfo, static_cast<const void*>(fd),
-                                     serverCert, std::move(peerCertsBytes),
-                                     stapledOCSPResponse, sctsFromTLSExtension,
-                                     dcInfo, providerFlags, certVerifierFlags);
+  rv = AuthCertificateHookInternal(
+      socketInfo, static_cast<const void*>(fd), serverCert, hostname,
+      std::move(peerCertsBytes), stapledOCSPResponse, sctsFromTLSExtension,
+      dcInfo, providerFlags, certVerifierFlags);
+  return rv;
 }
 
 // Takes information needed for cert verification, does some consistency
@@ -1550,10 +1349,10 @@ SECStatus AuthCertificateHookWithInfo(
   // for Delegated Credentials.
   Maybe<DelegatedCredentialInfo> dcInfo;
 
-  return AuthCertificateHookInternal(infoObject, aPtrForLogging, cert,
-                                     std::move(peerCertChain),
-                                     stapledOCSPResponse, sctsFromTLSExtension,
-                                     dcInfo, providerFlags, certVerifierFlags);
+  return AuthCertificateHookInternal(
+      infoObject, aPtrForLogging, cert, infoObject->GetHostName(),
+      std::move(peerCertChain), stapledOCSPResponse, sctsFromTLSExtension,
+      dcInfo, providerFlags, certVerifierFlags);
 }
 
 NS_IMPL_ISUPPORTS_INHERITED0(SSLServerCertVerificationResult, Runnable)

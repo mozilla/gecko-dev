@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include "nsIForm.h"
 #include "mozilla/dom/Document.h"
+#include "nsComponentManagerUtils.h"
 #include "nsGkAtoms.h"
 #include "nsIFormControl.h"
 #include "nsError.h"
@@ -387,9 +388,12 @@ nsresult FSMultipartFormData::AddNameValuePair(const nsAString& aName,
   nsresult rv = EncodeVal(aValue, encodedVal, false);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  valueStr.Adopt(nsLinebreakConverter::ConvertLineBreaks(
+  int32_t convertedBufLength = 0;
+  char* convertedBuf = nsLinebreakConverter::ConvertLineBreaks(
       encodedVal.get(), nsLinebreakConverter::eLinebreakAny,
-      nsLinebreakConverter::eLinebreakNet));
+      nsLinebreakConverter::eLinebreakNet, encodedVal.Length(),
+      &convertedBufLength);
+  valueStr.Adopt(convertedBuf, convertedBufLength);
 
   nsAutoCString nameStr;
   rv = EncodeVal(aName, nameStr, true);
@@ -449,10 +453,13 @@ nsresult FSMultipartFormData::AddNameBlobOrNullPair(const nsAString& aName,
       contentType16.AssignLiteral("application/octet-stream");
     }
 
-    contentType.Adopt(nsLinebreakConverter::ConvertLineBreaks(
-        NS_ConvertUTF16toUTF8(contentType16).get(),
-        nsLinebreakConverter::eLinebreakAny,
-        nsLinebreakConverter::eLinebreakSpace));
+    NS_ConvertUTF16toUTF8 contentType8(contentType16);
+    int32_t convertedBufLength = 0;
+    char* convertedBuf = nsLinebreakConverter::ConvertLineBreaks(
+        contentType8.get(), nsLinebreakConverter::eLinebreakAny,
+        nsLinebreakConverter::eLinebreakSpace, contentType8.Length(),
+        &convertedBufLength);
+    contentType.Adopt(convertedBuf, convertedBufLength);
 
     // Get input stream
     aBlob->CreateInputStream(getter_AddRefs(fileStream), error);
@@ -680,9 +687,14 @@ nsresult FSTextPlain::GetEncodedSubmission(nsIURI* aURI,
     // encoded, but that how text/plain is specced.
     nsCString cbody;
     EncodeVal(mBody, cbody, false);
-    cbody.Adopt(nsLinebreakConverter::ConvertLineBreaks(
+
+    int32_t convertedBufLength = 0;
+    char* convertedBuf = nsLinebreakConverter::ConvertLineBreaks(
         cbody.get(), nsLinebreakConverter::eLinebreakAny,
-        nsLinebreakConverter::eLinebreakNet));
+        nsLinebreakConverter::eLinebreakNet, cbody.Length(),
+        &convertedBufLength);
+    cbody.Adopt(convertedBuf, convertedBufLength);
+
     nsCOMPtr<nsIInputStream> bodyStream;
     rv = NS_NewCStringInputStream(getter_AddRefs(bodyStream), std::move(cbody));
     if (!bodyStream) {
@@ -705,6 +717,17 @@ nsresult FSTextPlain::GetEncodedSubmission(nsIURI* aURI,
 }  // anonymous namespace
 
 // --------------------------------------------------------------------------
+
+HTMLFormSubmission::HTMLFormSubmission(
+    nsIURI* aActionURL, const nsAString& aTarget,
+    mozilla::NotNull<const mozilla::Encoding*> aEncoding, Element* aSubmitter)
+    : mActionURL(aActionURL),
+      mTarget(aTarget),
+      mEncoding(aEncoding),
+      mSubmitter(aSubmitter),
+      mInitiatedFromUserInput(UserActivation::IsHandlingUserInput()) {
+  MOZ_COUNT_CTOR(HTMLFormSubmission);
+}
 
 EncodingFormSubmission::EncodingFormSubmission(
     nsIURI* aActionURL, const nsAString& aTarget,
@@ -734,9 +757,12 @@ nsresult EncodingFormSubmission::EncodeVal(const nsAString& aStr,
   }
 
   if (aHeaderEncode) {
-    aOut.Adopt(nsLinebreakConverter::ConvertLineBreaks(
+    int32_t convertedBufLength = 0;
+    char* convertedBuf = nsLinebreakConverter::ConvertLineBreaks(
         aOut.get(), nsLinebreakConverter::eLinebreakAny,
-        nsLinebreakConverter::eLinebreakSpace));
+        nsLinebreakConverter::eLinebreakSpace, aOut.Length(),
+        &convertedBufLength);
+    aOut.Adopt(convertedBuf, convertedBufLength);
     aOut.ReplaceSubstring("\""_ns, "\\\""_ns);
   }
 

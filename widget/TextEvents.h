@@ -11,15 +11,16 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/CheckedInt.h"
-#include "mozilla/dom/DataTransfer.h"
-#include "mozilla/dom/StaticRange.h"
 #include "mozilla/EventForwards.h"  // for KeyNameIndex, temporarily
 #include "mozilla/FontRange.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/TextRange.h"
 #include "mozilla/WritingModes.h"
+#include "mozilla/dom/DataTransfer.h"
 #include "mozilla/dom/KeyboardEventBinding.h"
+#include "mozilla/dom/StaticRange.h"
+#include "mozilla/widget/IMEData.h"
 #include "nsCOMPtr.h"
 #include "nsISelectionListener.h"
 #include "nsITransferable.h"
@@ -136,13 +137,7 @@ class WidgetKeyboardEvent : public WidgetInputEvent {
         mCharCode(0),
         mPseudoCharCode(0),
         mLocation(eKeyLocationStandard),
-        mUniqueId(0)
-#ifdef XP_MACOSX
-        ,
-        mNativeModifierFlags(0),
-        mNativeKeyCode(0)
-#endif  // #ifdef XP_MACOSX
-        ,
+        mUniqueId(0),
         mKeyNameIndex(KEY_NAME_INDEX_Unidentified),
         mCodeNameIndex(CODE_NAME_INDEX_UNKNOWN),
         mIsRepeat(false),
@@ -152,8 +147,7 @@ class WidgetKeyboardEvent : public WidgetInputEvent {
         mUseLegacyKeyCodeAndCharCodeValues(false),
         mEditCommandsForSingleLineEditorInitialized(false),
         mEditCommandsForMultiLineEditorInitialized(false),
-        mEditCommandsForRichTextEditorInitialized(false) {
-  }
+        mEditCommandsForRichTextEditorInitialized(false) {}
 
  public:
   virtual WidgetKeyboardEvent* AsKeyboardEvent() override { return this; }
@@ -167,13 +161,7 @@ class WidgetKeyboardEvent : public WidgetInputEvent {
         mCharCode(0),
         mPseudoCharCode(0),
         mLocation(eKeyLocationStandard),
-        mUniqueId(0)
-#ifdef XP_MACOSX
-        ,
-        mNativeModifierFlags(0),
-        mNativeKeyCode(0)
-#endif  // #ifdef XP_MACOSX
-        ,
+        mUniqueId(0),
         mKeyNameIndex(KEY_NAME_INDEX_Unidentified),
         mCodeNameIndex(CODE_NAME_INDEX_UNKNOWN),
         mIsRepeat(false),
@@ -384,16 +372,8 @@ class WidgetKeyboardEvent : public WidgetInputEvent {
   // CODE_NAME_INDEX_USE_STRING.
   nsString mCodeValue;
 
-#ifdef XP_MACOSX
-  // Values given by a native NSEvent, for use with Cocoa NPAPI plugins.
-  nsString mNativeCharacters;
-  nsString mNativeCharactersIgnoringModifiers;
-  // If this is non-empty, create a text event for plugins instead of a
-  // keyboard event.
-  nsString mPluginTextEventString;
-#endif  // #ifdef XP_MACOSX
-
-  // OS-specific native event can optionally be preserved
+  // OS-specific native event can optionally be preserved.
+  // This is used to retrieve editing shortcut keys in the environment.
   void* mNativeKeyEvent;
   // A DOM keyCode value or 0.  If a keypress event whose mCharCode is 0, this
   // should be 0.
@@ -412,12 +392,6 @@ class WidgetKeyboardEvent : public WidgetInputEvent {
   // Unique id associated with a keydown / keypress event. It's ok if this wraps
   // over long periods.
   uint32_t mUniqueId;
-
-#ifdef XP_MACOSX
-  // Values given by a native NSEvent, for use with Cocoa NPAPI plugins.
-  uint32_t mNativeModifierFlags;
-  uint16_t mNativeKeyCode;
-#endif  // #ifdef XP_MACOSX
 
   // DOM KeyboardEvent.key
   KeyNameIndex mKeyNameIndex;
@@ -702,14 +676,6 @@ class WidgetKeyboardEvent : public WidgetInputEvent {
     // is destroyed.
     mNativeKeyEvent = nullptr;
     mUniqueId = aEvent.mUniqueId;
-#ifdef XP_MACOSX
-    mNativeKeyCode = aEvent.mNativeKeyCode;
-    mNativeModifierFlags = aEvent.mNativeModifierFlags;
-    mNativeCharacters.Assign(aEvent.mNativeCharacters);
-    mNativeCharactersIgnoringModifiers.Assign(
-        aEvent.mNativeCharactersIgnoringModifiers);
-    mPluginTextEventString.Assign(aEvent.mPluginTextEventString);
-#endif
     mIsSynthesizedByTIP = aEvent.mIsSynthesizedByTIP;
     mMaybeSkippableInRemoteProcess = aEvent.mMaybeSkippableInRemoteProcess;
     mUseLegacyKeyCodeAndCharCodeValues =
@@ -911,8 +877,7 @@ class WidgetQueryContentEvent : public WidgetGUIEvent {
   friend class dom::PBrowserChild;
 
   WidgetQueryContentEvent()
-      : mSucceeded(false),
-        mUseNativeLineBreak(true),
+      : mUseNativeLineBreak(true),
         mWithFontRanges(false),
         mNeedsToFlushLayout(true) {
     MOZ_CRASH("WidgetQueryContentEvent is created without proper arguments");
@@ -926,7 +891,6 @@ class WidgetQueryContentEvent : public WidgetGUIEvent {
   WidgetQueryContentEvent(bool aIsTrusted, EventMessage aMessage,
                           nsIWidget* aWidget)
       : WidgetGUIEvent(aIsTrusted, aMessage, aWidget, eQueryContentEventClass),
-        mSucceeded(false),
         mUseNativeLineBreak(true),
         mWithFontRanges(false),
         mNeedsToFlushLayout(true) {}
@@ -936,7 +900,6 @@ class WidgetQueryContentEvent : public WidgetGUIEvent {
       : WidgetGUIEvent(aOtherEvent.IsTrusted(), aMessage,
                        const_cast<nsIWidget*>(aOtherEvent.mWidget.get()),
                        eQueryContentEventClass),
-        mSucceeded(false),
         mUseNativeLineBreak(aOtherEvent.mUseNativeLineBreak),
         mWithFontRanges(false),
         mNeedsToFlushLayout(aOtherEvent.mNeedsToFlushLayout) {}
@@ -1019,28 +982,59 @@ class WidgetQueryContentEvent : public WidgetGUIEvent {
   bool NeedsToFlushLayout() const { return mNeedsToFlushLayout; }
 
   void RequestFontRanges() {
-    NS_ASSERTION(mMessage == eQueryTextContent, "not querying text content");
+    MOZ_ASSERT(mMessage == eQueryTextContent);
     mWithFontRanges = true;
   }
 
-  uint32_t GetSelectionStart(void) const {
-    NS_ASSERTION(mMessage == eQuerySelectedText, "not querying selection");
-    return mReply.mOffset + (mReply.mReversed ? mReply.mString.Length() : 0);
+  bool Succeeded() const {
+    if (mReply.isNothing()) {
+      return false;
+    }
+    switch (mMessage) {
+      case eQuerySelectedText:
+        return mReply->mOffsetAndData.isSome() ||
+               mInput.mSelectionType != SelectionType::eNormal;
+      case eQueryTextContent:
+      case eQueryTextRect:
+      case eQueryCaretRect:
+        return mReply->mOffsetAndData.isSome();
+      default:
+        return true;
+    }
   }
 
-  uint32_t GetSelectionEnd(void) const {
-    NS_ASSERTION(mMessage == eQuerySelectedText, "not querying selection");
-    return mReply.mOffset + (mReply.mReversed ? 0 : mReply.mString.Length());
+  bool Failed() const { return !Succeeded(); }
+
+  bool FoundSelection() const {
+    MOZ_ASSERT(mMessage == eQuerySelectedText);
+    return Succeeded() && mReply->mOffsetAndData.isSome();
   }
 
-  mozilla::WritingMode GetWritingMode(void) const {
-    NS_ASSERTION(mMessage == eQuerySelectedText ||
-                     mMessage == eQueryCaretRect || mMessage == eQueryTextRect,
-                 "not querying selection or text rect");
-    return mReply.mWritingMode;
+  bool FoundChar() const {
+    MOZ_ASSERT(mMessage == eQueryCharacterAtPoint);
+    return Succeeded() && mReply->mOffsetAndData.isSome();
   }
 
-  bool mSucceeded;
+  bool FoundTentativeCaretOffset() const {
+    MOZ_ASSERT(mMessage == eQueryCharacterAtPoint);
+    return Succeeded() && mReply->mTentativeCaretOffset.isSome();
+  }
+
+  bool DidNotFindSelection() const {
+    MOZ_ASSERT(mMessage == eQuerySelectedText);
+    return Failed() || mReply->mOffsetAndData.isNothing();
+  }
+
+  bool DidNotFindChar() const {
+    MOZ_ASSERT(mMessage == eQueryCharacterAtPoint);
+    return Failed() || mReply->mOffsetAndData.isNothing();
+  }
+
+  bool DidNotFindTentativeCaretOffset() const {
+    MOZ_ASSERT(mMessage == eQueryCharacterAtPoint);
+    return Failed() || mReply->mTentativeCaretOffset.isNothing();
+  }
+
   bool mUseNativeLineBreak;
   bool mWithFontRanges;
   bool mNeedsToFlushLayout;
@@ -1092,8 +1086,7 @@ class WidgetQueryContentEvent : public WidgetGUIEvent {
         return true;
       }
       // Otherwise, we don't allow too large offset.
-      CheckedInt<uint32_t> absOffset =
-          CheckedInt<uint32_t>(mOffset) + aInsertionPointOffset;
+      CheckedInt<uint32_t> absOffset(mOffset + aInsertionPointOffset);
       if (NS_WARN_IF(!absOffset.isValid())) {
         mOffset = UINT32_MAX;
         return false;
@@ -1104,12 +1097,12 @@ class WidgetQueryContentEvent : public WidgetGUIEvent {
   } mInput;
 
   struct Reply final {
+    EventMessage const mEventMessage;
     void* mContentsRoot;
-    uint32_t mOffset;
+    Maybe<OffsetAndData<uint32_t>> mOffsetAndData;
     // mTentativeCaretOffset is used by only eQueryCharacterAtPoint.
     // This is the offset where caret would be if user clicked at the mRefPoint.
-    uint32_t mTentativeCaretOffset;
-    nsString mString;
+    Maybe<uint32_t> mTentativeCaretOffset;
     // mRect is used by eQueryTextRect, eQueryCaretRect, eQueryCharacterAtPoint
     // and eQueryEditorRect. The coordinates is system coordinates relative to
     // the top level widget of mFocusedWidget.  E.g., if a <xul:panel> which
@@ -1133,17 +1126,136 @@ class WidgetQueryContentEvent : public WidgetGUIEvent {
     // true if DOM element under mouse belongs to widget
     bool mWidgetIsHit;
 
-    Reply()
-        : mContentsRoot(nullptr),
-          mOffset(NOT_FOUND),
-          mTentativeCaretOffset(NOT_FOUND),
+    Reply() = delete;
+    explicit Reply(EventMessage aEventMessage)
+        : mEventMessage(aEventMessage),
+          mContentsRoot(nullptr),
           mFocusedWidget(nullptr),
           mReversed(false),
           mHasSelection(false),
           mWidgetIsHit(false) {}
-  } mReply;
 
-  enum { NOT_FOUND = UINT32_MAX };
+    // Don't allow to copy/move because of `mEventMessage`.
+    Reply(const Reply& aOther) = delete;
+    Reply(Reply&& aOther) = delete;
+    Reply& operator=(const Reply& aOther) = delete;
+    Reply& operator=(Reply&& aOther) = delete;
+
+    MOZ_NEVER_INLINE_DEBUG uint32_t StartOffset() const {
+      MOZ_ASSERT(mOffsetAndData.isSome());
+      return mOffsetAndData->StartOffset();
+    }
+    MOZ_NEVER_INLINE_DEBUG uint32_t EndOffset() const {
+      MOZ_ASSERT(mOffsetAndData.isSome());
+      return mOffsetAndData->EndOffset();
+    }
+    MOZ_NEVER_INLINE_DEBUG uint32_t DataLength() const {
+      MOZ_ASSERT(mOffsetAndData.isSome() ||
+                 mEventMessage == eQuerySelectedText);
+      return mOffsetAndData.isSome() ? mOffsetAndData->Length() : 0;
+    }
+    MOZ_NEVER_INLINE_DEBUG uint32_t SelectionStartOffset() const {
+      MOZ_ASSERT(mEventMessage == eQuerySelectedText);
+      MOZ_ASSERT(mOffsetAndData.isSome());
+      return StartOffset() + (mReversed ? DataLength() : 0);
+    }
+
+    MOZ_NEVER_INLINE_DEBUG uint32_t SelectionEndOffset() const {
+      MOZ_ASSERT(mEventMessage == eQuerySelectedText);
+      MOZ_ASSERT(mOffsetAndData.isSome());
+      return StartOffset() + (mReversed ? 0 : DataLength());
+    }
+
+    const WritingMode& WritingModeRef() const {
+      MOZ_ASSERT(mEventMessage == eQuerySelectedText ||
+                 mEventMessage == eQueryCaretRect ||
+                 mEventMessage == eQueryTextRect);
+      MOZ_ASSERT(mOffsetAndData.isSome() ||
+                 mEventMessage == eQuerySelectedText);
+      return mWritingMode;
+    }
+
+    MOZ_NEVER_INLINE_DEBUG const nsString& DataRef() const {
+      MOZ_ASSERT(mOffsetAndData.isSome() ||
+                 mEventMessage == eQuerySelectedText);
+      return mOffsetAndData.isSome() ? mOffsetAndData->DataRef()
+                                     : EmptyString();
+    }
+    MOZ_NEVER_INLINE_DEBUG bool IsDataEmpty() const {
+      MOZ_ASSERT(mOffsetAndData.isSome() ||
+                 mEventMessage == eQuerySelectedText);
+      return mOffsetAndData.isSome() ? mOffsetAndData->IsDataEmpty() : true;
+    }
+    MOZ_NEVER_INLINE_DEBUG bool IsOffsetInRange(uint32_t aOffset) const {
+      MOZ_ASSERT(mOffsetAndData.isSome() ||
+                 mEventMessage == eQuerySelectedText);
+      return mOffsetAndData.isSome() ? mOffsetAndData->IsOffsetInRange(aOffset)
+                                     : false;
+    }
+    MOZ_NEVER_INLINE_DEBUG bool IsOffsetInRangeOrEndOffset(
+        uint32_t aOffset) const {
+      MOZ_ASSERT(mOffsetAndData.isSome() ||
+                 mEventMessage == eQuerySelectedText);
+      return mOffsetAndData.isSome()
+                 ? mOffsetAndData->IsOffsetInRangeOrEndOffset(aOffset)
+                 : false;
+    }
+    MOZ_NEVER_INLINE_DEBUG void TruncateData(uint32_t aLength = 0) {
+      MOZ_ASSERT(mOffsetAndData.isSome());
+      mOffsetAndData->TruncateData(aLength);
+    }
+
+    friend std::ostream& operator<<(std::ostream& aStream,
+                                    const Reply& aReply) {
+      aStream << "{ ";
+      if (aReply.mEventMessage == eQuerySelectedText ||
+          aReply.mEventMessage == eQueryTextContent ||
+          aReply.mEventMessage == eQueryTextRect ||
+          aReply.mEventMessage == eQueryCaretRect ||
+          aReply.mEventMessage == eQueryCharacterAtPoint) {
+        aStream << "mOffsetAndData=" << ToString(aReply.mOffsetAndData).c_str()
+                << ", ";
+        if (aReply.mEventMessage == eQueryCharacterAtPoint) {
+          aStream << "mTentativeCaretOffset="
+                  << ToString(aReply.mTentativeCaretOffset).c_str() << ", ";
+        }
+      }
+      aStream << "mHasSelection=" << (aReply.mHasSelection ? "true" : "false");
+      if (aReply.mHasSelection) {
+        if (aReply.mEventMessage == eQuerySelectedText) {
+          aStream << ", mReversed=" << (aReply.mReversed ? "true" : "false");
+        }
+        if (aReply.mEventMessage == eQuerySelectionAsTransferable) {
+          aStream << ", mTransferable=0x" << aReply.mTransferable;
+        }
+      }
+      if (aReply.mEventMessage == eQuerySelectedText ||
+          aReply.mEventMessage == eQueryTextRect ||
+          aReply.mEventMessage == eQueryCaretRect) {
+        aStream << ", mWritingMode=" << ToString(aReply.mWritingMode).c_str();
+      }
+      aStream << ", mContentsRoot=0x" << aReply.mContentsRoot
+              << ", mFocusedWidget=0x" << aReply.mFocusedWidget;
+      if (aReply.mEventMessage == eQueryTextContent) {
+        aStream << ", mFontRanges={ Length()=" << aReply.mFontRanges.Length()
+                << " }";
+      } else if (aReply.mEventMessage == eQueryTextRect ||
+                 aReply.mEventMessage == eQueryCaretRect ||
+                 aReply.mEventMessage == eQueryCharacterAtPoint) {
+        aStream << ", mRect=" << ToString(aReply.mRect).c_str();
+      } else if (aReply.mEventMessage == eQueryTextRectArray) {
+        aStream << ", mRectArray={ Length()=" << aReply.mRectArray.Length()
+                << " }";
+      } else if (aReply.mEventMessage == eQueryDOMWidgetHittest) {
+        aStream << ", mWidgetIsHit="
+                << (aReply.mWidgetIsHit ? "true" : "false");
+      }
+      return aStream << " }";
+    }
+  };
+
+  void EmplaceReply() { mReply.emplace(mMessage); }
+  Maybe<Reply> mReply;
 
   // values of mComputedScrollAction
   enum { SCROLL_ACTION_NONE, SCROLL_ACTION_LINE, SCROLL_ACTION_PAGE };

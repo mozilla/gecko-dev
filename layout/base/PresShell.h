@@ -13,7 +13,6 @@
 
 #include <stdio.h>  // for FILE definition
 #include "FrameMetrics.h"
-#include "GeckoProfiler.h"
 #include "TouchManager.h"
 #include "Units.h"
 #include "Visibility.h"
@@ -25,6 +24,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
+#include "mozilla/dom/DocumentBinding.h"
 #include "mozilla/layers/FocusTarget.h"
 #include "mozilla/layout/LayoutTelemetryTools.h"
 #include "mozilla/widget/ThemeChangeKind.h"
@@ -95,6 +95,10 @@ class GeckoMVMContext;
 class OverflowChangedTracker;
 class StyleSheet;
 
+#ifdef MOZ_GECKO_PROFILER
+class ProfileChunkedBuffer;
+#endif
+
 #ifdef ACCESSIBILITY
 namespace a11y {
 class DocAccessible;
@@ -102,6 +106,7 @@ class DocAccessible;
 #endif
 
 namespace dom {
+class BrowserParent;
 class Element;
 class Event;
 class HTMLSlotElement;
@@ -114,6 +119,7 @@ class SourceSurface;
 
 namespace layers {
 class LayerManager;
+struct LayersId;
 }  // namespace layers
 
 namespace layout {
@@ -170,6 +176,13 @@ class PresShell final : public nsStubDocumentObserver,
    */
   static nsIContent* GetCapturingContent() {
     return sCapturingContentInfo.mContent;
+  }
+
+  /**
+   */
+  static dom::BrowserParent* GetCapturingRemoteTarget() {
+    MOZ_ASSERT(XRE_IsParentProcess());
+    return sCapturingContentInfo.mRemoteTarget;
   }
 
   /**
@@ -931,7 +944,7 @@ class PresShell final : public nsStubDocumentObserver,
   }
 
   float GetResolution() const { return mResolution.valueOr(1.0); }
-  float GetCumulativeResolution();
+  float GetCumulativeResolution() const;
 
   /**
    * Accessors for a flag that tracks whether the most recent change to
@@ -1139,7 +1152,11 @@ class PresShell final : public nsStubDocumentObserver,
                              FlushType aFlushType);
 
   bool AddPostRefreshObserver(nsAPostRefreshObserver* aObserver);
+  bool AddPostRefreshObserver(mozilla::OneShotPostRefreshObserver* aObserver) =
+      delete;
   bool RemovePostRefreshObserver(nsAPostRefreshObserver* aObserver);
+  bool RemovePostRefreshObserver(
+      mozilla::OneShotPostRefreshObserver* aObserver) = delete;
 
   // Represents an update to the visual scroll offset that will be sent to APZ.
   // The update type is used to determine priority compared to other scroll
@@ -1306,8 +1323,10 @@ class PresShell final : public nsStubDocumentObserver,
   NS_IMETHOD PhysicalMove(int16_t aDirection, int16_t aAmount,
                           bool aExtend) override;
   NS_IMETHOD CharacterMove(bool aForward, bool aExtend) override;
-  NS_IMETHOD WordMove(bool aForward, bool aExtend) override;
-  NS_IMETHOD LineMove(bool aForward, bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD WordMove(bool aForward,
+                                                  bool aExtend) override;
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHOD LineMove(bool aForward,
+                                                  bool aExtend) override;
   NS_IMETHOD IntraLineMove(bool aForward, bool aExtend) override;
   MOZ_CAN_RUN_SCRIPT
   NS_IMETHOD PageMove(bool aForward, bool aExtend) override;
@@ -1315,8 +1334,8 @@ class PresShell final : public nsStubDocumentObserver,
   NS_IMETHOD ScrollLine(bool aForward) override;
   NS_IMETHOD ScrollCharacter(bool aRight) override;
   NS_IMETHOD CompleteScroll(bool aForward) override;
-  NS_IMETHOD CompleteMove(bool aForward, bool aExtend) override;
-  NS_IMETHOD SelectAll() override;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD CompleteMove(bool aForward,
+                                             bool aExtend) override;
   NS_IMETHOD CheckVisibility(nsINode* node, int16_t startOffset,
                              int16_t EndOffset, bool* _retval) override;
   nsresult CheckVisibilityContent(nsIContent* aNode, int16_t aStartOffset,
@@ -1637,7 +1656,8 @@ class PresShell final : public nsStubDocumentObserver,
    * but capturing is held more strongly (i.e., calls to SetCapturingContent()
    * won't unlock unless CaptureFlags::PointerLock is set again).
    */
-  static void SetCapturingContent(nsIContent* aContent, CaptureFlags aFlags);
+  static void SetCapturingContent(nsIContent* aContent, CaptureFlags aFlags,
+                                  WidgetEvent* aEvent = nullptr);
 
   /**
    * Alias for SetCapturingContent(nullptr, CaptureFlags::None) for making
@@ -1645,6 +1665,13 @@ class PresShell final : public nsStubDocumentObserver,
    */
   static void ReleaseCapturingContent() {
     PresShell::SetCapturingContent(nullptr, CaptureFlags::None);
+  }
+
+  static void ReleaseCapturingRemoteTarget(dom::BrowserParent* aBrowserParent) {
+    MOZ_ASSERT(XRE_IsParentProcess());
+    if (sCapturingContentInfo.mRemoteTarget == aBrowserParent) {
+      sCapturingContentInfo.mRemoteTarget = nullptr;
+    }
   }
 
   // Called at the end of nsLayoutUtils::PaintFrame() if we were painting to
@@ -1861,7 +1888,7 @@ class PresShell final : public nsStubDocumentObserver,
   // Utility method to restore the root scrollframe state
   void RestoreRootScrollPosition();
 
-  void MaybeReleaseCapturingContent();
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void MaybeReleaseCapturingContent();
 
   class DelayedEvent {
    public:
@@ -2861,8 +2888,8 @@ class PresShell final : public nsStubDocumentObserver,
   // These two fields capture call stacks of any changes that require a restyle
   // or a reflow. Only the first change per restyle / reflow is recorded (the
   // one that caused a call to SetNeedStyleFlush() / SetNeedLayoutFlush()).
-  UniqueProfilerBacktrace mStyleCause;
-  UniqueProfilerBacktrace mReflowCause;
+  UniquePtr<ProfileChunkedBuffer> mStyleCause;
+  UniquePtr<ProfileChunkedBuffer> mReflowCause;
 #endif
 
   nsTArray<UniquePtr<DelayedEvent>> mDelayedEvents;
@@ -3118,13 +3145,15 @@ class PresShell final : public nsStubDocumentObserver,
 
   struct CapturingContentInfo final {
     CapturingContentInfo()
-        : mAllowed(false),
+        : mRemoteTarget(nullptr),
+          mAllowed(false),
           mPointerLock(false),
           mRetargetToElement(false),
           mPreventDrag(false) {}
 
     // capture should only be allowed during a mousedown event
     StaticRefPtr<nsIContent> mContent;
+    dom::BrowserParent* mRemoteTarget;
     bool mAllowed;
     bool mPointerLock;
     bool mRetargetToElement;

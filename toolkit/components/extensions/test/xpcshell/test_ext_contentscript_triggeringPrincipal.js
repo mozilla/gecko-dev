@@ -25,6 +25,12 @@ Services.prefs.setIntPref(
   4096
 );
 
+// Do not trunacate the blocked-uri in CSP reports for frame navigations.
+Services.prefs.setBoolPref(
+  "security.csp.truncate_blocked_uri_for_frame_navigations",
+  false
+);
+
 // ExtensionContent.jsm needs to know when it's running from xpcshell,
 // to use the right timeout for content scripts executed at document_idle.
 ExtensionTestUtils.mockAppInfo();
@@ -39,7 +45,6 @@ var gContentSecurityPolicy = null;
 
 const BASE_URL = `http://example.com`;
 const CSP_REPORT_PATH = "/csp-report.sjs";
-const CSP_REPORT_URL = `http://csplog.example.net/csp-report.sjs`;
 
 /**
  * Registers a static HTML document with the given content at the given
@@ -831,6 +836,8 @@ function computeBaseURLs(tests, expectedSources, forbiddenSources = {}) {
 
   function* iterSources(test, sources) {
     for (let [source, attrs] of Object.entries(sources)) {
+      // if a source defines attributes (e.g. liveSrc in PAGE_SOURCES etc.) then all
+      // attributes in the source must be matched by the test (see const TEST).
       if (Object.keys(attrs).every(attr => attrs[attr] === test[attr])) {
         yield `${BASE_URL}/${test.src}?source=${source}`;
       }
@@ -1083,6 +1090,9 @@ const TESTS = [
   },
   // TODO: <frame> element, which requires a frameset document.
   {
+    // the blocked-uri for frame-navigations is the pre-path URI. For the
+    // purpose of this test we do not strip the blocked-uri by setting the
+    // preference 'truncate_blocked_uri_for_frame_navigations'
     element: ["iframe", {}],
     src: "iframe.html",
   },
@@ -1320,24 +1330,7 @@ add_task(async function test_contentscript_csp() {
  * content page.
  */
 add_task(async function test_extension_contentscript_csp() {
-  Services.prefs.setBoolPref("extensions.content_script_csp.enabled", true);
-  Services.prefs.setBoolPref(
-    "extensions.content_script_csp.report_only",
-    false
-  );
-
-  // Add reporting to base and default CSP as this cannot be done via manifest.
-  let baseCSP = Services.prefs.getStringPref(
-    "extensions.webextensions.base-content-security-policy"
-  );
-  Services.prefs.setStringPref(
-    "extensions.webextensions.base-content-security-policy",
-    `${baseCSP} report-uri ${CSP_REPORT_URL};`
-  );
-  Services.prefs.setStringPref(
-    "extensions.webextensions.default-content-security-policy",
-    `script-src 'self' 'report-sample'; object-src 'self' 'report-sample'; report-uri ${CSP_REPORT_URL};`
-  );
+  Services.prefs.setBoolPref("extensions.manifestV3.enabled", true);
 
   // TODO bug 1408193: We currently don't get the full set of CSP reports when
   // running in network scheduling chaos mode. It's not entirely clear why.
@@ -1346,7 +1339,14 @@ add_task(async function test_extension_contentscript_csp() {
 
   gContentSecurityPolicy = `default-src 'none' 'report-sample'; script-src 'nonce-deadbeef' 'unsafe-eval' 'report-sample'; report-uri ${CSP_REPORT_PATH};`;
 
-  let extension = ExtensionTestUtils.loadExtension(EXTENSION_DATA);
+  let data = {
+    ...EXTENSION_DATA,
+    manifest: {
+      ...EXTENSION_DATA.manifest,
+      manifest_version: 3,
+    },
+  };
+  let extension = ExtensionTestUtils.loadExtension(data);
   await extension.startup();
 
   let urlsPromise = extension.awaitMessage("css-sources").then(msg => {
@@ -1369,4 +1369,5 @@ add_task(async function test_extension_contentscript_csp() {
 
   await extension.unload();
   await contentPage.close();
+  Services.prefs.clearUserPref("extensions.manifestV3.enabled");
 });

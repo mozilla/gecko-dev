@@ -145,6 +145,7 @@ class ProcessedModuleLoadEvent final {
   uintptr_t mBaseAddress;
   RefPtr<ModuleRecord> mModule;
   bool mIsDependent;
+  uint32_t mLoadStatus;  // corresponding to enum ModuleLoadInfo::Status
 
   ProcessedModuleLoadEvent(const ProcessedModuleLoadEvent&) = delete;
   ProcessedModuleLoadEvent& operator=(const ProcessedModuleLoadEvent&) = delete;
@@ -189,6 +190,7 @@ class UntrustedModulesData final {
   void AddNewLoads(const ModulesMap& aModulesMap,
                    Vector<ProcessedModuleLoadEvent>&& aEvents,
                    Vector<Telemetry::ProcessedStack>&& aStacks);
+  void Merge(UntrustedModulesData&& aNewData);
 
   void Swap(UntrustedModulesData& aOther);
 
@@ -514,6 +516,7 @@ struct ParamTraits<mozilla::UntrustedModulesData> {
     WriteParam(aMsg, aParam.mRequestedDllName);
     WriteParam(aMsg, aParam.mBaseAddress);
     WriteParam(aMsg, aParam.mIsDependent);
+    WriteParam(aMsg, aParam.mLoadStatus);
 
     // We don't write the ModuleRecord directly; we write its key into the
     // UntrustedModulesData::mModules hash table.
@@ -552,6 +555,10 @@ struct ParamTraits<mozilla::UntrustedModulesData> {
     }
 
     if (!ReadParam(aMsg, aIter, &aResult->mIsDependent)) {
+      return false;
+    }
+
+    if (!ReadParam(aMsg, aIter, &aResult->mLoadStatus)) {
       return false;
     }
 

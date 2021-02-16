@@ -38,7 +38,9 @@
 #include "mozilla/RemoteDecoderManagerChild.h"
 #include "mozilla/RemoteLazyInputStreamChild.h"
 #include "mozilla/SchedulerGroup.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/SharedStyleSheetCache.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_fission.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -47,6 +49,8 @@
 #include "mozilla/WebBrowserPersistDocumentChild.h"
 #include "mozilla/devtools/HeapSnapshotTempFileHelperChild.h"
 #include "mozilla/docshell/OfflineCacheUpdateChild.h"
+#include "mozilla/dom/AutoSuppressEventHandlingAndSuspend.h"
+#include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/BrowserBridgeHost.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/BrowsingContextGroup.h"
@@ -86,6 +90,7 @@
 #include "mozilla/hal_sandbox/PHalChild.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/ipc/BackgroundChild.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/FileDescriptorSetChild.h"
 #include "mozilla/ipc/FileDescriptorUtils.h"
 #include "mozilla/ipc/GeckoChildProcessHost.h"
@@ -106,6 +111,7 @@
 #include "mozilla/net/NeckoChild.h"
 #include "mozilla/plugins/PluginInstanceParent.h"
 #include "mozilla/plugins/PluginModuleParent.h"
+#include "mozilla/widget/RemoteLookAndFeel.h"
 #include "mozilla/widget/ScreenManager.h"
 #include "mozilla/widget/WidgetMessageUtils.h"
 #include "nsBaseDragService.h"
@@ -597,7 +603,7 @@ NS_INTERFACE_MAP_END
 
 mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
     XPCOMInitData&& aXPCOMInit, const StructuredCloneData& aInitialData,
-    LookAndFeelCache&& aLookAndFeelCache,
+    LookAndFeelData&& aLookAndFeelData,
     nsTArray<SystemFontListEntry>&& aFontList,
     const Maybe<SharedMemoryHandle>& aSharedUASheetHandle,
     const uintptr_t& aSharedUASheetAddress,
@@ -606,7 +612,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
     return IPC_OK();
   }
 
-  mLookAndFeelCache = std::move(aLookAndFeelCache);
+  mLookAndFeelData = std::move(aLookAndFeelData);
   mFontList = std::move(aFontList);
   mSharedFontListBlocks = std::move(aSharedFontListBlocks);
 #ifdef XP_WIN
@@ -1142,15 +1148,6 @@ nsresult ContentChild::ProvideWindowCommon(
   // we're going to need to return from this function, So we spin a nested event
   // loop until they get back to us.
 
-  // Prevent the docshell from becoming active while the nested event loop is
-  // spinning.
-  newChild->AddPendingDocShellBlocker();
-  auto removePendingDocShellBlocker = MakeScopeExit([&] {
-    if (newChild) {
-      newChild->RemovePendingDocShellBlocker();
-    }
-  });
-
   {
     // Suppress event handling for all contexts in our BrowsingContextGroup so
     // that event handlers cannot target our new window while it's still being
@@ -1326,7 +1323,6 @@ void ContentChild::InitXPCOM(
 
   DataStorage::SetCachedStorageEntries(aXPCOMInit.dataStorage());
 
-  PDMFactory::SetSupported(aXPCOMInit.codecsSupported());
   // Initialize the RemoteDecoderManager thread and its associated PBackground
   // channel.
   RemoteDecoderManagerChild::Init();
@@ -1755,7 +1751,8 @@ mozilla::ipc::IPCResult ContentChild::RecvConstructBrowser(
   return IPC_OK();
 }
 
-void ContentChild::GetAvailableDictionaries(nsTArray<nsString>& aDictionaries) {
+void ContentChild::GetAvailableDictionaries(
+    nsTArray<nsCString>& aDictionaries) {
   aDictionaries = mAvailableDictionaries.Clone();
 }
 
@@ -2290,8 +2287,17 @@ mozilla::ipc::IPCResult ContentChild::RecvNotifyVisited(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvThemeChanged(
-    LookAndFeelCache&& aLookAndFeelCache, widget::ThemeChangeKind aKind) {
-  LookAndFeel::SetCache(aLookAndFeelCache);
+    LookAndFeelData&& aLookAndFeelData, widget::ThemeChangeKind aKind) {
+  switch (aLookAndFeelData.type()) {
+    case LookAndFeelData::TLookAndFeelCache:
+      LookAndFeel::SetCache(aLookAndFeelData.get_LookAndFeelCache());
+      break;
+    case LookAndFeelData::TFullLookAndFeel:
+      LookAndFeel::SetData(std::move(aLookAndFeelData.get_FullLookAndFeel()));
+      break;
+    default:
+      MOZ_ASSERT(false, "unreachable");
+  }
   LookAndFeel::NotifyChangedAllWindows(aKind);
   return IPC_OK();
 }
@@ -2392,7 +2398,7 @@ mozilla::ipc::IPCResult ContentChild::RecvGeolocationError(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvUpdateDictionaryList(
-    nsTArray<nsString>&& aDictionaries) {
+    nsTArray<nsCString>&& aDictionaries) {
   mAvailableDictionaries = std::move(aDictionaries);
   mozInlineSpellChecker::UpdateCanEnableInlineSpellChecking();
   return IPC_OK();
@@ -2401,12 +2407,13 @@ mozilla::ipc::IPCResult ContentChild::RecvUpdateDictionaryList(
 mozilla::ipc::IPCResult ContentChild::RecvUpdateFontList(
     nsTArray<SystemFontListEntry>&& aFontList) {
   mFontList = std::move(aFontList);
-  gfxPlatform::GetPlatform()->UpdateFontList();
+  gfxPlatform::GetPlatform()->UpdateFontList(true);
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvRebuildFontList() {
-  gfxPlatform::GetPlatform()->UpdateFontList();
+mozilla::ipc::IPCResult ContentChild::RecvRebuildFontList(
+    const bool& aFullRebuild) {
+  gfxPlatform::GetPlatform()->UpdateFontList(aFullRebuild);
   return IPC_OK();
 }
 
@@ -3719,7 +3726,8 @@ mozilla::ipc::IPCResult ContentChild::RecvWindowClose(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvWindowFocus(
-    const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType) {
+    const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType,
+    uint64_t aActionId) {
   if (aContext.IsNullOrDiscarded()) {
     MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
             ("ChildIPC: Trying to send a message to dead or detached context"));
@@ -3733,7 +3741,7 @@ mozilla::ipc::IPCResult ContentChild::RecvWindowFocus(
         ("ChildIPC: Trying to send a message to a context without a window"));
     return IPC_OK();
   }
-  nsGlobalWindowOuter::Cast(window)->FocusOuter(aCallerType);
+  nsGlobalWindowOuter::Cast(window)->FocusOuter(aCallerType, aActionId);
   return IPC_OK();
 }
 
@@ -3757,7 +3765,8 @@ mozilla::ipc::IPCResult ContentChild::RecvWindowBlur(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvRaiseWindow(
-    const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType) {
+    const MaybeDiscarded<BrowsingContext>& aContext, CallerType aCallerType,
+    uint64_t aActionId) {
   if (aContext.IsNullOrDiscarded()) {
     MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
             ("ChildIPC: Trying to send a message to dead or detached context"));
@@ -3774,7 +3783,7 @@ mozilla::ipc::IPCResult ContentChild::RecvRaiseWindow(
 
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm) {
-    fm->RaiseWindow(window, aCallerType);
+    fm->RaiseWindow(window, aCallerType, aActionId);
   }
   return IPC_OK();
 }
@@ -3834,7 +3843,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetFocusedBrowsingContext(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvSetActiveBrowsingContext(
-    const MaybeDiscarded<BrowsingContext>& aContext) {
+    const MaybeDiscarded<BrowsingContext>& aContext, uint64_t aActionId) {
   if (aContext.IsNullOrDiscarded()) {
     MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
             ("ChildIPC: Trying to send a message to dead or detached context"));
@@ -3861,7 +3870,7 @@ mozilla::ipc::IPCResult ContentChild::RecvAbortOrientationPendingPromises(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvUnsetActiveBrowsingContext(
-    const MaybeDiscarded<BrowsingContext>& aContext) {
+    const MaybeDiscarded<BrowsingContext>& aContext, uint64_t aActionId) {
   if (aContext.IsNullOrDiscarded()) {
     MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
             ("ChildIPC: Trying to send a message to dead or detached context"));
@@ -3915,7 +3924,7 @@ mozilla::ipc::IPCResult ContentChild::RecvBlurToChild(
     const MaybeDiscarded<BrowsingContext>& aFocusedBrowsingContext,
     const MaybeDiscarded<BrowsingContext>& aBrowsingContextToClear,
     const MaybeDiscarded<BrowsingContext>& aAncestorBrowsingContextToFocus,
-    bool aIsLeavingDocument, bool aAdjustWidget) {
+    bool aIsLeavingDocument, bool aAdjustWidget, uint64_t aActionId) {
   if (aFocusedBrowsingContext.IsNullOrDiscarded()) {
     MOZ_LOG(BrowsingContext::GetLog(), LogLevel::Debug,
             ("ChildIPC: Trying to send a message to dead or detached context"));
@@ -3932,7 +3941,7 @@ mozilla::ipc::IPCResult ContentChild::RecvBlurToChild(
   nsFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm) {
     fm->BlurFromOtherProcess(aFocusedBrowsingContext.get(), toClear, toFocus,
-                             aIsLeavingDocument, aAdjustWidget);
+                             aIsLeavingDocument, aAdjustWidget, aActionId);
   }
   return IPC_OK();
 }
@@ -3950,6 +3959,16 @@ mozilla::ipc::IPCResult ContentChild::RecvSetupFocusedAndActive(
       fm->SetFocusedBrowsingContextFromOtherProcess(
           aFocusedBrowsingContext.get());
     }
+  }
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult ContentChild::RecvReviseActiveBrowsingContext(
+    const MaybeDiscarded<BrowsingContext>& aActiveBrowsingContext,
+    uint64_t aActionId) {
+  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  if (fm && !aActiveBrowsingContext.IsNullOrDiscarded()) {
+    fm->ReviseActiveBrowsingContext(aActiveBrowsingContext.get(), aActionId);
   }
   return IPC_OK();
 }
@@ -4149,7 +4168,7 @@ mozilla::ipc::IPCResult ContentChild::RecvLoadURI(
 }
 
 mozilla::ipc::IPCResult ContentChild::RecvInternalLoad(
-    nsDocShellLoadState* aLoadState, bool aTakeFocus) {
+    nsDocShellLoadState* aLoadState) {
   if (!aLoadState->Target().IsEmpty() ||
       aLoadState->TargetBrowsingContext().IsNull()) {
     return IPC_FAIL(this, "must already be retargeted");
@@ -4160,12 +4179,6 @@ mozilla::ipc::IPCResult ContentChild::RecvInternalLoad(
   BrowsingContext* context = aLoadState->TargetBrowsingContext().get();
 
   context->InternalLoad(aLoadState);
-
-  if (aTakeFocus) {
-    if (nsCOMPtr<nsPIDOMWindowOuter> domWin = context->GetDOMWindow()) {
-      nsFocusManager::FocusWindow(domWin, CallerType::System);
-    }
-  }
 
 #ifdef MOZ_CRASHREPORTER
   if (CrashReporter::GetEnabled()) {
@@ -4436,6 +4449,14 @@ IPCResult ContentChild::RecvFlushFOGData(FlushFOGDataResolver&& aResolver) {
 #ifdef MOZ_GLEAN
   glean::FlushFOGData(std::move(aResolver));
 #endif
+  return IPC_OK();
+}
+
+IPCResult ContentChild::RecvUpdateMediaCodecsSupported(
+    RemoteDecodeIn aLocation,
+    const PDMFactory::MediaCodecsSupported& aSupported) {
+  RemoteDecoderManagerChild::SetSupported(aLocation, aSupported);
+
   return IPC_OK();
 }
 

@@ -25,11 +25,13 @@
 #include "GMPVideoHost.h"
 #include "mozilla/Algorithm.h"
 #include "mozilla/ipc/CrashReporterClient.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/TextUtils.h"
 #include "nsDebugImpl.h"
 #include "nsExceptionHandler.h"
 #include "nsIFile.h"
+#include "nsReadableUtils.h"
 #include "nsXULAppAPI.h"
 #include "prio.h"
 #ifdef XP_WIN
@@ -472,16 +474,10 @@ GMPChild::MakeCDMHostVerificationPaths() {
   return paths;
 }
 
-static nsCString ToCString(
-    const nsTArray<std::pair<nsCString, nsCString>>& aPairs) {
-  nsCString result;
-  for (const auto& p : aPairs) {
-    if (!result.IsEmpty()) {
-      result.AppendLiteral(",");
-    }
-    result.Append(nsPrintfCString("(%s,%s)", p.first.get(), p.second.get()));
-  }
-  return result;
+static auto ToCString(const nsTArray<std::pair<nsCString, nsCString>>& aPairs) {
+  return StringJoin(","_ns, aPairs, [](nsACString& dest, const auto& p) {
+    dest.AppendPrintf("(%s,%s)", p.first.get(), p.second.get());
+  });
 }
 
 mozilla::ipc::IPCResult GMPChild::AnswerStartPlugin(const nsString& aAdapter) {

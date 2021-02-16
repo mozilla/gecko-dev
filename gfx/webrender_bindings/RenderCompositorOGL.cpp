@@ -9,6 +9,8 @@
 #include "GLContext.h"
 #include "GLContextEGL.h"
 #include "GLContextProvider.h"
+#include "mozilla/gfx/gfxVars.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/webrender/RenderThread.h"
 #include "mozilla/widget/CompositorWidget.h"
 
@@ -104,13 +106,13 @@ CompositorCapabilities RenderCompositorOGL::GetCompositorCapabilities() {
 }
 
 uint32_t RenderCompositorOGL::GetMaxPartialPresentRects() {
-  return mIsEGL ? gfx::gfxVars::WebRenderMaxPartialPresentRects() : 0;
+  return gfx::gfxVars::WebRenderMaxPartialPresentRects();
 }
 
 bool RenderCompositorOGL::RequestFullRender() { return false; }
 
 bool RenderCompositorOGL::UsePartialPresent() {
-  return mIsEGL && gfx::gfxVars::WebRenderMaxPartialPresentRects() > 0;
+  return gfx::gfxVars::WebRenderMaxPartialPresentRects() > 0;
 }
 
 bool RenderCompositorOGL::ShouldDrawPreviousPartialPresentRegions() {
@@ -118,10 +120,11 @@ bool RenderCompositorOGL::ShouldDrawPreviousPartialPresentRegions() {
 }
 
 size_t RenderCompositorOGL::GetBufferAge() const {
-  if (mIsEGL) {
-    return gl::GLContextEGL::Cast(gl())->GetBufferAge();
+  if (!StaticPrefs::
+          gfx_webrender_allow_partial_present_buffer_age_AtStartup()) {
+    return 0;
   }
-  return 0;
+  return gl()->GetBufferAge();
 }
 
 }  // namespace wr

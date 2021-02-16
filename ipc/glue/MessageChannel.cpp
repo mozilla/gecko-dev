@@ -11,6 +11,7 @@
 
 #include <utility>
 
+#include "CrashAnnotations.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DebugOnly.h"
@@ -18,6 +19,7 @@
 #include "mozilla/Mutex.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Sprintf.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtrExtensions.h"
@@ -28,17 +30,18 @@
 #include "nsContentUtils.h"
 #include "nsDataHashtable.h"
 #include "nsDebug.h"
+#include "nsExceptionHandler.h"
 #include "nsIMemoryReporter.h"
 #include "nsISupportsImpl.h"
 #include "nsPrintfCString.h"
 
+#ifdef OS_WIN
+#  include "mozilla/gfx/Logging.h"
+#endif
+
 #ifdef MOZ_TASK_TRACER
 #  include "GeckoTaskTracer.h"
 using namespace mozilla::tasktracer;
-#endif
-
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
 #endif
 
 // Undo the damage done by mozzconf.h
@@ -157,9 +160,9 @@ class MessageChannel::InterruptFrame {
   InterruptFrame(Direction direction, const Message* msg)
       : mMessageName(msg->name()),
         mMessageRoutingId(msg->routing_id()),
-        mMesageSemantics(msg->is_interrupt()
-                             ? INTR_SEMS
-                             : msg->is_sync() ? SYNC_SEMS : ASYNC_SEMS),
+        mMesageSemantics(msg->is_interrupt() ? INTR_SEMS
+                         : msg->is_sync()    ? SYNC_SEMS
+                                             : ASYNC_SEMS),
         mDirection(direction),
         mMoved(false) {
     MOZ_RELEASE_ASSERT(mMessageName);
@@ -203,9 +206,9 @@ class MessageChannel::InterruptFrame {
                 const char** name) const {
     *id = mMessageRoutingId;
     *dir = (IN_MESSAGE == mDirection) ? "in" : "out";
-    *sems = (INTR_SEMS == mMesageSemantics)
-                ? "intr"
-                : (SYNC_SEMS == mMesageSemantics) ? "sync" : "async";
+    *sems = (INTR_SEMS == mMesageSemantics)   ? "intr"
+            : (SYNC_SEMS == mMesageSemantics) ? "sync"
+                                              : "async";
     *name = mMessageName;
   }
 
@@ -2789,12 +2792,16 @@ void MessageChannel::AddProfilerMarker(const IPC::Message& aMessage,
 #ifdef MOZ_GECKO_PROFILER
   if (profiler_feature_active(ProfilerFeature::IPCMessages)) {
     int32_t pid = mListener->OtherPidMaybeInvalid();
-    if (pid != kInvalidProcessId) {
-      PROFILER_ADD_MARKER_WITH_PAYLOAD(
-          "IPC", IPC, IPCMarkerPayload,
-          (pid, aMessage.seqno(), aMessage.type(), mSide, aDirection,
-           MessagePhase::Endpoint, aMessage.is_sync(),
-           TimeStamp::NowUnfuzzed()));
+    // Only record markers for IPCs with a valid pid.
+    // And if one of the profiler mutexes is locked on this thread, don't record
+    // markers, because we don't want to expose profiler IPCs due to the
+    // profiler itself, and also to avoid possible re-entrancy issues.
+    if (pid != kInvalidProcessId && !profiler_is_locked_on_current_thread()) {
+      // The current timestamp must be given to the `IPCMarker` payload.
+      const TimeStamp now = TimeStamp::NowUnfuzzed();
+      PROFILER_MARKER("IPC", IPC, MarkerTiming::InstantAt(now), IPCMarker, now,
+                      now, pid, aMessage.seqno(), aMessage.type(), mSide,
+                      aDirection, MessagePhase::Endpoint, aMessage.is_sync());
     }
   }
 #endif

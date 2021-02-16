@@ -151,6 +151,8 @@ class CompositorD3D11 : public Compositor {
 
   SyncObjectHost* GetSyncObject();
 
+  void UseForSoftwareWebRender() { mUseForSoftwareWebRender = true; }
+
  private:
   enum Severity {
     Recoverable,
@@ -252,11 +254,16 @@ class CompositorD3D11 : public Compositor {
   mutable RefPtr<CompositingRenderTargetD3D11> mWindowRTCopy;
 
   RefPtr<ID3D11Query> mQuery;
+  RefPtr<ID3D11Query> mRecycledQuery;
 
   RefPtr<DeviceAttachmentsD3D11> mAttachments;
   UniquePtr<DiagnosticsD3D11> mDiagnostics;
 
   LayoutDeviceIntSize mSize;
+
+  // The size that we passed to ResizeBuffers to set
+  // the swapchain buffer size.
+  LayoutDeviceIntSize mBufferSize;
 
   HWND mHwnd;
 
@@ -276,6 +283,8 @@ class CompositorD3D11 : public Compositor {
   bool mVerifyBuffersFailed;
   bool mUseMutexOnPresent;
   bool mAllowFrameRecording;
+
+  bool mUseForSoftwareWebRender;
 };
 
 namespace TexSlot {

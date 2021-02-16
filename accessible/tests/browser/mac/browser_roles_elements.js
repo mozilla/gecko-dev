@@ -73,11 +73,20 @@ addAccessibleTask(
   <div id="timer" role="timer"></div>
   <div id="tooltip" role="tooltip"></div>
 
+  <!-- text entries -->
+  <div id="textbox_multiline" role="textbox" aria-multiline="true"></div>
+  <div id="textbox_singleline" role="textbox" aria-multiline="false"></div>
+  <textarea id="textArea"></textarea>
+  <input id="textInput">
+
   <!-- True HTML5 search box -->
   <input type="search" id="htmlSearch" />
 
   <!-- A button morphed into a toggle via ARIA -->
   <button id="toggle" aria-pressed="false"></button>
+
+  <!-- A button with a 'banana' role description -->
+  <button id="banana" aria-roledescription="banana"></button>
 
   <!-- Other elements -->
   <del id="deletion">Deleted text</del>
@@ -172,11 +181,20 @@ addAccessibleTask(
     testRoleAndSubRole(accDoc, "timer", null, "AXApplicationTimer");
     testRoleAndSubRole(accDoc, "tooltip", "AXGroup", "AXUserInterfaceTooltip");
 
+    // Text boxes
+    testRoleAndSubRole(accDoc, "textbox_multiline", "AXTextArea");
+    testRoleAndSubRole(accDoc, "textbox_singleline", "AXTextArea");
+    testRoleAndSubRole(accDoc, "textArea", "AXTextArea");
+    testRoleAndSubRole(accDoc, "textInput", "AXTextField");
+
     // True HTML5 search field
     testRoleAndSubRole(accDoc, "htmlSearch", "AXTextField", "AXSearchField");
 
     // A button morphed into a toggle by ARIA
     testRoleAndSubRole(accDoc, "toggle", "AXCheckBox", "AXToggle");
+
+    // A banana button
+    testRoleAndSubRole(accDoc, "banana", "AXButton", null, "banana");
 
     // Other elements
     testRoleAndSubRole(accDoc, "deletion", "AXGroup", "AXDeleteStyleGroup");

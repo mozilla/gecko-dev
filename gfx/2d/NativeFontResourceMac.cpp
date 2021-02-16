@@ -53,7 +53,7 @@ class NativeFontResourceMacReporter final : public nsIMemoryReporter {
         subPath.AppendPrintf("<anonymized-%p>", this);
       } else {
         if (i.second.Length()) {
-          subPath.AppendLiteral("family=");
+          subPath.AppendLiteral("psname=");
           subPath.Append(i.second);
         } else {
           subPath.AppendPrintf("Unknown(%d)", unknownFontIndex);
@@ -83,6 +83,9 @@ void NativeFontResourceMac::RegisterMemoryReporter() {
 already_AddRefed<NativeFontResourceMac> NativeFontResourceMac::Create(
     uint8_t* aFontData, uint32_t aDataLength) {
   uint8_t* fontData = (uint8_t*)malloc(aDataLength);
+  if (!fontData) {
+    return nullptr;
+  }
   memcpy(fontData, aFontData, aDataLength);
   CFAllocatorContext context = {0,       fontData, nullptr, nullptr,
                                 nullptr, nullptr,  nullptr, FontDataDeallocate,
@@ -95,9 +98,17 @@ already_AddRefed<NativeFontResourceMac> NativeFontResourceMac::Create(
   // we'll later release this CFDataRef.
   CFDataRef data = CFDataCreateWithBytesNoCopy(kCFAllocatorDefault, fontData,
                                                aDataLength, allocator);
+  if (!data) {
+    free(fontData);
+    return nullptr;
+  }
 
   CTFontDescriptorRef ctFontDesc =
       CTFontManagerCreateFontDescriptorFromData(data);
+  if (!ctFontDesc) {
+    CFRelease(data);
+    return nullptr;
+  }
 
   // creating the CGFontRef via the CTFont avoids the data being held alive
   // in a cache.

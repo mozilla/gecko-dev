@@ -8,13 +8,15 @@
 #define mozilla_dom_AbortController_h
 
 #include "mozilla/dom/BindingDeclarations.h"
-#include "mozilla/ErrorResult.h"
+#include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 
 class nsIGlobalObject;
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
 class AbortSignal;

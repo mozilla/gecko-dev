@@ -93,10 +93,6 @@
 #include "nsStringBuffer.h"
 #include "nsWrapperCache.h"
 
-#ifdef MOZ_GECKO_PROFILER
-#  include "ProfilerMarkerPayload.h"
-#endif
-
 #if defined(XP_MACOSX)
 #  include "nsMacUtilsImpl.h"
 #endif
@@ -121,7 +117,7 @@ struct DeferredFinalizeFunctionHolder {
   void* data;
 };
 
-class IncrementalFinalizeRunnable : public CancelableRunnable {
+class IncrementalFinalizeRunnable : public DiscardableRunnable {
   typedef AutoTArray<DeferredFinalizeFunctionHolder, 16> DeferredFinalizeArray;
   typedef CycleCollectedJSRuntime::DeferredFinalizerTable
       DeferredFinalizerTable;
@@ -700,6 +696,8 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
 #ifdef MOZ_JS_DEV_ERROR_INTERCEPTOR
   JS_SetErrorInterceptorCallback(mJSRuntime, &mErrorInterceptor);
 #endif  // MOZ_JS_DEV_ERROR_INTERCEPTOR
+
+  JS_SetDestroyZoneCallback(aCx, OnZoneDestroyed);
 }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -734,11 +732,14 @@ void CycleCollectedJSRuntime::Shutdown(JSContext* cx) {
 #ifdef DEBUG
   mShutdownCalled = true;
 #endif
+
+  JS_SetDestroyZoneCallback(cx, nullptr);
 }
 
 CycleCollectedJSRuntime::~CycleCollectedJSRuntime() {
   MOZ_COUNT_DTOR(CycleCollectedJSRuntime);
   MOZ_ASSERT(!mDeferredFinalizerTable.Count());
+  MOZ_ASSERT(!mFinalizeRunnable);
   MOZ_ASSERT(mShutdownCalled);
 }
 
@@ -996,15 +997,65 @@ void CycleCollectedJSRuntime::GCSliceCallback(JSContext* aContext,
 #ifdef MOZ_GECKO_PROFILER
   if (profiler_thread_is_being_profiled()) {
     if (aProgress == JS::GC_CYCLE_END) {
-      PROFILER_ADD_MARKER_WITH_PAYLOAD(
-          "GCMajor", GCCC, GCMajorMarkerPayload,
-          (aDesc.startTime(aContext), aDesc.endTime(aContext),
-           aDesc.formatJSONProfiler(aContext)));
+      struct GCMajorMarker {
+        static constexpr mozilla::Span<const char> MarkerTypeName() {
+          return mozilla::MakeStringSpan("GCMajor");
+        }
+        static void StreamJSONMarkerData(
+            mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
+            const mozilla::ProfilerString8View& aTimingJSON) {
+          if (aTimingJSON.Length() != 0) {
+            aWriter.SplicedJSONProperty("timings", aTimingJSON);
+          } else {
+            aWriter.NullProperty("timings");
+          }
+        }
+        static mozilla::MarkerSchema MarkerTypeDisplay() {
+          using MS = mozilla::MarkerSchema;
+          MS schema{MS::Location::markerChart, MS::Location::markerTable,
+                    MS::Location::timelineMemory};
+          // No display instructions here, there is special handling in the
+          // front-end.
+          return schema;
+        }
+      };
+
+      profiler_add_marker("GCMajor", baseprofiler::category::GCCC,
+                          MarkerTiming::Interval(aDesc.startTime(aContext),
+                                                 aDesc.endTime(aContext)),
+                          GCMajorMarker{},
+                          ProfilerString8View::WrapNullTerminatedString(
+                              aDesc.formatJSONProfiler(aContext).get()));
     } else if (aProgress == JS::GC_SLICE_END) {
-      PROFILER_ADD_MARKER_WITH_PAYLOAD(
-          "GCSlice", GCCC, GCSliceMarkerPayload,
-          (aDesc.lastSliceStart(aContext), aDesc.lastSliceEnd(aContext),
-           aDesc.sliceToJSONProfiler(aContext)));
+      struct GCSliceMarker {
+        static constexpr mozilla::Span<const char> MarkerTypeName() {
+          return mozilla::MakeStringSpan("GCSlice");
+        }
+        static void StreamJSONMarkerData(
+            mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
+            const mozilla::ProfilerString8View& aTimingJSON) {
+          if (aTimingJSON.Length() != 0) {
+            aWriter.SplicedJSONProperty("timings", aTimingJSON);
+          } else {
+            aWriter.NullProperty("timings");
+          }
+        }
+        static mozilla::MarkerSchema MarkerTypeDisplay() {
+          using MS = mozilla::MarkerSchema;
+          MS schema{MS::Location::markerChart, MS::Location::markerTable,
+                    MS::Location::timelineMemory};
+          // No display instructions here, there is special handling in the
+          // front-end.
+          return schema;
+        }
+      };
+
+      profiler_add_marker("GCSlice", baseprofiler::category::GCCC,
+                          MarkerTiming::Interval(aDesc.lastSliceStart(aContext),
+                                                 aDesc.lastSliceEnd(aContext)),
+                          GCSliceMarker{},
+                          ProfilerString8View::WrapNullTerminatedString(
+                              aDesc.sliceToJSONProfiler(aContext).get()));
     }
   }
 #endif
@@ -1083,10 +1134,35 @@ void CycleCollectedJSRuntime::GCNurseryCollectionCallback(
 #ifdef MOZ_GECKO_PROFILER
   else if (aProgress == JS::GCNurseryProgress::GC_NURSERY_COLLECTION_END &&
            profiler_thread_is_being_profiled()) {
-    PROFILER_ADD_MARKER_WITH_PAYLOAD(
-        "GCMinor", GCCC, GCMinorMarkerPayload,
-        (self->mLatestNurseryCollectionStart, TimeStamp::Now(),
-         JS::MinorGcToJSON(aContext)));
+    struct GCMinorMarker {
+      static constexpr mozilla::Span<const char> MarkerTypeName() {
+        return mozilla::MakeStringSpan("GCMinor");
+      }
+      static void StreamJSONMarkerData(
+          mozilla::baseprofiler::SpliceableJSONWriter& aWriter,
+          const mozilla::ProfilerString8View& aTimingJSON) {
+        if (aTimingJSON.Length() != 0) {
+          aWriter.SplicedJSONProperty("nursery", aTimingJSON);
+        } else {
+          aWriter.NullProperty("nursery");
+        }
+      }
+      static mozilla::MarkerSchema MarkerTypeDisplay() {
+        using MS = mozilla::MarkerSchema;
+        MS schema{MS::Location::markerChart, MS::Location::markerTable,
+                  MS::Location::timelineMemory};
+        // No display instructions here, there is special handling in the
+        // front-end.
+        return schema;
+      }
+    };
+
+    profiler_add_marker(
+        "GCMinor", baseprofiler::category::GCCC,
+        MarkerTiming::IntervalUntilNowFrom(self->mLatestNurseryCollectionStart),
+        GCMinorMarker{},
+        ProfilerString8View::WrapNullTerminatedString(
+            JS::MinorGcToJSON(aContext).get()));
   }
 #endif
 
@@ -1493,7 +1569,7 @@ void CycleCollectedJSRuntime::DumpJSHeap(FILE* aFile) {
 
 IncrementalFinalizeRunnable::IncrementalFinalizeRunnable(
     CycleCollectedJSRuntime* aRt, DeferredFinalizerTable& aFinalizers)
-    : CancelableRunnable("IncrementalFinalizeRunnable"),
+    : DiscardableRunnable("IncrementalFinalizeRunnable"),
       mRuntime(aRt),
       mFinalizeFunctionToRun(0),
       mReleasing(false) {
@@ -1508,10 +1584,12 @@ IncrementalFinalizeRunnable::IncrementalFinalizeRunnable(
 
     iter.Remove();
   }
+  MOZ_ASSERT(mDeferredFinalizeFunctions.Length());
 }
 
 IncrementalFinalizeRunnable::~IncrementalFinalizeRunnable() {
-  MOZ_ASSERT(this != mRuntime->mFinalizeRunnable);
+  MOZ_ASSERT(!mDeferredFinalizeFunctions.Length());
+  MOZ_ASSERT(!mRuntime);
 }
 
 void IncrementalFinalizeRunnable::ReleaseNow(bool aLimited) {
@@ -1520,6 +1598,9 @@ void IncrementalFinalizeRunnable::ReleaseNow(bool aLimited) {
     return;
   }
   {
+    AUTO_PROFILER_LABEL("IncrementalFinalizeRunnable::ReleaseNow",
+                        GCCC_Finalize);
+
     mozilla::AutoRestore<bool> ar(mReleasing);
     mReleasing = true;
     MOZ_ASSERT(mDeferredFinalizeFunctions.Length() != 0,
@@ -1563,21 +1644,22 @@ void IncrementalFinalizeRunnable::ReleaseNow(bool aLimited) {
   if (mFinalizeFunctionToRun == mDeferredFinalizeFunctions.Length()) {
     MOZ_ASSERT(mRuntime->mFinalizeRunnable == this);
     mDeferredFinalizeFunctions.Clear();
+    CycleCollectedJSRuntime* runtime = mRuntime;
+    mRuntime = nullptr;
     // NB: This may delete this!
-    mRuntime->mFinalizeRunnable = nullptr;
+    runtime->mFinalizeRunnable = nullptr;
   }
 }
 
 NS_IMETHODIMP
 IncrementalFinalizeRunnable::Run() {
-  AUTO_PROFILER_LABEL("IncrementalFinalizeRunnable::Run", GCCC);
-
-  if (mRuntime->mFinalizeRunnable != this) {
+  if (!mDeferredFinalizeFunctions.Length()) {
     /* These items were already processed synchronously in JSGC_END. */
-    MOZ_ASSERT(!mDeferredFinalizeFunctions.Length());
+    MOZ_ASSERT(!mRuntime);
     return NS_OK;
   }
 
+  MOZ_ASSERT(mRuntime->mFinalizeRunnable == this);
   TimeStamp start = TimeStamp::Now();
   ReleaseNow(true);
 
@@ -1586,6 +1668,8 @@ IncrementalFinalizeRunnable::Run() {
     if (NS_FAILED(rv)) {
       ReleaseNow(false);
     }
+  } else {
+    MOZ_ASSERT(!mRuntime);
   }
 
   uint32_t duration = (uint32_t)((TimeStamp::Now() - start).ToMilliseconds());
@@ -1730,10 +1814,19 @@ void CycleCollectedJSRuntime::PrepareWaitingZonesForGC() {
     JS::PrepareForFullGC(cx);
   } else {
     for (auto iter = mZonesWaitingForGC.Iter(); !iter.Done(); iter.Next()) {
-      JS::PrepareZoneForGC(iter.Get()->GetKey());
+      JS::PrepareZoneForGC(cx, iter.Get()->GetKey());
     }
     mZonesWaitingForGC.Clear();
   }
+}
+
+/* static */
+void CycleCollectedJSRuntime::OnZoneDestroyed(JSFreeOp* aFop, JS::Zone* aZone) {
+  // Remove the zone from the set of zones waiting for GC, if present. This can
+  // happen if a zone is added to the set during an incremental GC in which it
+  // is later destroyed.
+  CycleCollectedJSRuntime* runtime = Get();
+  runtime->mZonesWaitingForGC.RemoveEntry(aZone);
 }
 
 void CycleCollectedJSRuntime::EnvironmentPreparer::invoke(

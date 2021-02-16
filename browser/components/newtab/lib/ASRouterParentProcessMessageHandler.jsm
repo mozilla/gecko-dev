@@ -30,7 +30,7 @@ class ASRouterParentProcessMessageHandler {
 
   handleCFRAction({ type, data }, browser) {
     switch (type) {
-      case msg.AS_ROUTER_TELEMETRY_USER_EVENT:
+      case msg.INFOBAR_TELEMETRY:
       case msg.TOOLBAR_BADGE_TELEMETRY:
       case msg.TOOLBAR_PANEL_TELEMETRY:
       case msg.MOMENTS_PAGE_TELEMETRY:
@@ -45,6 +45,11 @@ class ASRouterParentProcessMessageHandler {
 
   handleMessage(name, data, { id: tabId, browser } = { browser: null }) {
     switch (name) {
+      case msg.AS_ROUTER_TELEMETRY_USER_EVENT:
+        return this.handleTelemetry({
+          type: msg.AS_ROUTER_TELEMETRY_USER_EVENT,
+          data,
+        });
       case msg.BLOCK_MESSAGE_BY_ID: {
         // Block the message but don't dismiss it in case the action taken has
         // another state that needs to be visible

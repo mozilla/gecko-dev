@@ -53,26 +53,6 @@ this.LoginHelper = {
     this.updateSignonPrefs();
     Services.telemetry.setEventRecordingEnabled("pwmgr", true);
     Services.telemetry.setEventRecordingEnabled("form_autocomplete", true);
-
-    // Enable experiment event recording when the specific experiment is active.
-    const setImportRecording = exp =>
-      Services.telemetry.setEventRecordingEnabled("exp_import", exp?.active);
-    let ExperimentAPI;
-    try {
-      ({ ExperimentAPI } = ChromeUtils.import(
-        "resource://messaging-system/experiments/ExperimentAPI.jsm"
-      ));
-    } catch (ex) {
-      // Some platforms like android/geckoview don't support experiments yet.
-    }
-    if (ExperimentAPI) {
-      const slug = "password-autocomplete-wizardless";
-      ExperimentAPI.on("update", { slug }, (event, experiment) =>
-        setImportRecording(experiment)
-      );
-    } else {
-      setImportRecording();
-    }
   },
 
   updateSignonPrefs() {
@@ -992,6 +972,7 @@ this.LoginHelper = {
    * @returns {nsILoginInfo[]} the newly added logins, filtered if no login was added.
    */
   async maybeImportLogins(loginDatas) {
+    let summary = [];
     let loginsToAdd = [];
     let loginMap = new Map();
     for (let rawLoginData of loginDatas) {
@@ -999,6 +980,18 @@ this.LoginHelper = {
       let loginData = ChromeUtils.shallowClone(rawLoginData);
       loginData.origin = this.getLoginOrigin(loginData.origin);
       if (!loginData.origin) {
+        summary.push({
+          result: "error_invalid_origin",
+          login: { ...loginData },
+        });
+        continue;
+      }
+
+      if (!loginData.password) {
+        summary.push({
+          result: "error_invalid_password",
+          login: { ...loginData },
+        });
         continue;
       }
 
@@ -1029,8 +1022,21 @@ this.LoginHelper = {
           // Use a property bag rather than an nsILoginInfo so we don't clobber
           // properties that the import source doesn't provide.
           let propBag = this.newPropertyBag(loginData);
-          Services.logins.modifyLogin(existingLogin, propBag);
-          // Updated a login so we're done.
+          if (
+            loginData.username !== existingLogin.username ||
+            loginData.password !== existingLogin.password ||
+            loginData.httpRealm !== existingLogin.httpRealm ||
+            loginData.formActionOrigin !== existingLogin.formActionOrigin ||
+            `${loginData.timeCreated}` !== `${existingLogin.timeCreated}` ||
+            `${loginData.timePasswordChanged}` !==
+              `${existingLogin.timePasswordChanged}`
+          ) {
+            summary.push({ result: "modified", login: { ...existingLogin } });
+            Services.logins.modifyLogin(existingLogin, propBag);
+            // Updated a login so we're done.
+          } else {
+            summary.push({ result: "no_change", login: { ...existingLogin } });
+          }
           continue;
         }
       }
@@ -1062,6 +1068,10 @@ this.LoginHelper = {
         // out from the bulk APIs below us.
         this.checkLoginValues(login);
       } catch (e) {
+        summary.push({
+          result: "error",
+          login: { ...loginData },
+        });
         Cu.reportError(e);
         continue;
       }
@@ -1074,6 +1084,7 @@ this.LoginHelper = {
         loginMap.set(login.origin, newLogins);
       } else {
         if (newLogins.some(l => login.matches(l, false /* ignorePassword */))) {
+          summary.push({ result: "no_change", login });
           continue;
         }
         let foundMatchingNewLogin = false;
@@ -1094,6 +1105,7 @@ this.LoginHelper = {
         }
 
         if (foundMatchingNewLogin) {
+          summary.push({ result: "no_change", login });
           continue;
         }
       }
@@ -1110,6 +1122,7 @@ this.LoginHelper = {
       if (
         existingLogins.some(l => login.matches(l, false /* ignorePassword */))
       ) {
+        summary.push({ result: "no_change", login });
         continue;
       }
       // Now check for a login with the same username, where it may be that we have an
@@ -1133,22 +1146,26 @@ this.LoginHelper = {
               "timePasswordChanged",
               login.timePasswordChanged
             );
+            summary.push({ result: "modified", login: { ...existingLogin } });
             Services.logins.modifyLogin(existingLogin, propBag);
           }
         }
       }
       // if the new login is an update or is older than an exiting login, don't add it.
       if (foundMatchingLogin) {
+        summary.push({ result: "no_change", login: { login } });
         continue;
       }
-
       newLogins.push(login);
       loginsToAdd.push(login);
     }
-    if (!loginsToAdd.length) {
-      return [];
+    if (loginsToAdd.length) {
+      let addedLogins = await Services.logins.addLogins(loginsToAdd);
+      for (let addedLogin of addedLogins) {
+        summary.push({ result: "added", login: { ...addedLogin } });
+      }
     }
-    return Services.logins.addLogins(loginsToAdd);
+    return summary;
   },
 
   /**

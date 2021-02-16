@@ -22,6 +22,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/gfx/Filters.h"
 #include "mozilla/gfx/Helpers.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/PatternHelpers.h"
 #include "mozilla/ISVGDisplayableFrame.h"
 #include "mozilla/StaticPrefs_gfx.h"
@@ -70,7 +71,7 @@ void FilterInstance::PaintFilteredFrame(nsIFrame* aFilteredFrame,
       UserSpaceMetricsForFrame(aFilteredFrame);
 
   gfxContextMatrixAutoSaveRestore autoSR(aCtx);
-  gfxSize scaleFactors = aCtx->CurrentMatrixDouble().ScaleFactors(true);
+  gfxSize scaleFactors = aCtx->CurrentMatrixDouble().ScaleFactors();
   if (scaleFactors.IsEmpty()) {
     return;
   }
@@ -509,7 +510,7 @@ bool FilterInstance::ComputeTargetBBoxInFilterSpace() {
 
 bool FilterInstance::ComputeUserSpaceToFilterSpaceScale() {
   if (mTargetFrame) {
-    mUserSpaceToFilterSpaceScale = mPaintTransform.ScaleFactors(true);
+    mUserSpaceToFilterSpaceScale = mPaintTransform.ScaleFactors();
     if (mUserSpaceToFilterSpaceScale.width <= 0.0f ||
         mUserSpaceToFilterSpaceScale.height <= 0.0f) {
       // Nothing should be rendered.

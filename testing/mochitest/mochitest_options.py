@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from __future__ import absolute_import, print_function
+import six
 from abc import ABCMeta, abstractmethod, abstractproperty
 from argparse import ArgumentParser, SUPPRESS
 from distutils.util import strtobool
@@ -108,9 +110,8 @@ def get_default_valgrind_suppression_files():
     return rv
 
 
+@six.add_metaclass(ABCMeta)
 class ArgumentContainer:
-    __metaclass__ = ABCMeta
-
     @abstractproperty
     def args(self):
         pass
@@ -550,6 +551,15 @@ class MochitestArguments(ArgumentContainer):
                 "default": True,
                 "dest": "e10s",
                 "help": "Run tests with electrolysis preferences and test filtering disabled.",
+            },
+        ],
+        [
+            ["--enable-a11y-checks"],
+            {
+                "action": "store_true",
+                "default": False,
+                "dest": "a11y_checks",
+                "help": "Run tests with accessibility checks disabled.",
             },
         ],
         [

@@ -1,4 +1,5 @@
 #include "mozilla/Preferences.h"
+#include "mozilla/SpinEventLoopUntil.h"
 
 #include "nsCOMPtr.h"
 #include "nsNetCID.h"
@@ -10,6 +11,7 @@
 #include "nsNetUtil.h"
 #include "NullPrincipal.h"
 #include "nsCycleCollector.h"
+#include "nsIChannel.h"
 #include "nsSandboxFlags.h"
 
 #include "nsFtpProtocolHandler.h"

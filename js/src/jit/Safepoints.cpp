@@ -38,18 +38,21 @@ void SafepointWriter::writeOsiCallPointOffset(uint32_t osiCallPointOffset) {
   stream_.writeUnsigned(osiCallPointOffset);
 }
 
-static void WriteRegisterMask(CompactBufferWriter& stream, uint32_t bits) {
+static void WriteRegisterMask(CompactBufferWriter& stream,
+                              PackedRegisterMask bits) {
   if (sizeof(PackedRegisterMask) == 1) {
     stream.writeByte(bits);
   } else {
+    MOZ_ASSERT(sizeof(PackedRegisterMask) <= 4);
     stream.writeUnsigned(bits);
   }
 }
 
-static int32_t ReadRegisterMask(CompactBufferReader& stream) {
+static PackedRegisterMask ReadRegisterMask(CompactBufferReader& stream) {
   if (sizeof(PackedRegisterMask) == 1) {
     return stream.readByte();
   }
+  MOZ_ASSERT(sizeof(PackedRegisterMask) <= 4);
   return stream.readUnsigned();
 }
 
@@ -105,11 +108,10 @@ void SafepointWriter::writeGcRegs(LSafepoint* safepoint) {
 #ifdef JS_JITSPEW
   if (JitSpewEnabled(JitSpew_Safepoints)) {
     for (GeneralRegisterForwardIterator iter(spilledGpr); iter.more(); ++iter) {
-      const char* type = gc.has(*iter)
-                             ? "gc"
-                             : slots.has(*iter)
-                                   ? "slots"
-                                   : valueRegs.has(*iter) ? "value" : "any";
+      const char* type = gc.has(*iter)          ? "gc"
+                         : slots.has(*iter)     ? "slots"
+                         : valueRegs.has(*iter) ? "value"
+                                                : "any";
       JitSpew(JitSpew_Safepoints, "    %s reg: %s", type, (*iter).name());
     }
     for (FloatRegisterForwardIterator iter(spilledFloat); iter.more(); ++iter) {

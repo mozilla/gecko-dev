@@ -8,7 +8,6 @@
 
 #include "mozilla/EndianUtils.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/ScopeExit.h"
 
 #include <algorithm>
 #include <string.h>
@@ -79,8 +78,10 @@ void js::DestroyTraceLoggerThreadState() {
 }
 
 #ifdef DEBUG
-bool js::CurrentThreadOwnsTraceLoggerThreadStateLock() {
-  return traceLoggerState && traceLoggerState->lock.ownedByCurrentThread();
+void js::AssertCurrentThreadOwnsTraceLoggerThreadStateLock() {
+  if (traceLoggerState) {
+    traceLoggerState->lock.assertOwnedByCurrentThread();
+  }
 }
 #endif
 
@@ -221,7 +222,6 @@ void TraceLoggerThreadState::enableIonLogging() {
   enabledTextIds[TraceLogger_RegisterAllocation] = true;
   enabledTextIds[TraceLogger_GenerateCode] = true;
   enabledTextIds[TraceLogger_Scripts] = true;
-  enabledTextIds[TraceLogger_IonBuilderRestartLoop] = true;
 }
 
 void TraceLoggerThreadState::enableFrontendLogging() {
@@ -1154,7 +1154,7 @@ bool TraceLoggerThreadState::init() {
           "                 EdgeCaseAnalysis, EliminateRedundantChecks,\n"
           "                 AddKeepAliveInstructions, GenerateLIR, "
           "RegisterAllocation,\n"
-          "                 GenerateCode, Scripts, IonBuilderRestartLoop\n"
+          "                 GenerateCode, Scripts\n"
           "\n"
           "  VMSpecific     Output the specific name of the VM call\n"
           "\n"

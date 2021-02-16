@@ -7,6 +7,7 @@
 #include "WebRenderCommandBuilder.h"
 
 #include "BasicLayers.h"
+#include "Layers.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EffectCompositor.h"
@@ -1058,7 +1059,7 @@ static bool IsItemProbablyActive(
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const mozilla::layers::StackingContextHelper& aSc,
     mozilla::layers::RenderRootStateManager* aManager,
-    nsDisplayListBuilder* aDisplayListBuilder, bool aParentActive = true);
+    nsDisplayListBuilder* aDisplayListBuilder, bool aSiblingActive);
 
 static bool HasActiveChildren(const nsDisplayList& aList,
                               mozilla::wr::DisplayListBuilder& aBuilder,
@@ -1087,7 +1088,8 @@ static bool IsItemProbablyActive(
     mozilla::wr::IpcResourceUpdateQueue& aResources,
     const mozilla::layers::StackingContextHelper& aSc,
     mozilla::layers::RenderRootStateManager* aManager,
-    nsDisplayListBuilder* aDisplayListBuilder, bool aParentActive) {
+    nsDisplayListBuilder* aDisplayListBuilder,
+    bool aHasActivePrecedingSibling) {
   switch (aItem->GetType()) {
     case DisplayItemType::TYPE_TRANSFORM: {
       nsDisplayTransform* transformItem =
@@ -1114,15 +1116,17 @@ static bool IsItemProbablyActive(
       return true;
     }
     case DisplayItemType::TYPE_SVG_GEOMETRY: {
-      auto* svgItem = static_cast<DisplaySVGGeometry*>(aItem);
-      return svgItem->ShouldBeActive(aBuilder, aResources, aSc, aManager,
-                                     aDisplayListBuilder);
+      if (StaticPrefs::gfx_webrender_svg_images()) {
+        auto* svgItem = static_cast<DisplaySVGGeometry*>(aItem);
+        return svgItem->ShouldBeActive(aBuilder, aResources, aSc, aManager,
+                                       aDisplayListBuilder);
+      }
+      return false;
     }
     case DisplayItemType::TYPE_BLEND_MODE: {
       /* BLEND_MODE needs to be active if it might have a previous sibling
-       * that is active. We use the activeness of the parent as a rough
-       * proxy for this situation. */
-      return aParentActive ||
+       * that is active so that it's able to blend with that content. */
+      return aHasActivePrecedingSibling ||
              HasActiveChildren(*aItem->GetChildren(), aBuilder, aResources, aSc,
                                aManager, aDisplayListBuilder);
     }
@@ -1160,9 +1164,12 @@ void Grouper::ConstructGroups(nsDisplayListBuilder* aDisplayListBuilder,
   nsDisplayItem* startOfCurrentGroup = item;
   RenderRootStateManager* manager =
       aCommandBuilder->mManager->GetRenderRootStateManager();
+  // We need to track whether we have active siblings for mixed blend mode.
+  bool encounteredActiveItem = false;
   while (item) {
     if (IsItemProbablyActive(item, aBuilder, aResources, aSc, manager,
-                             mDisplayListBuilder)) {
+                             mDisplayListBuilder, encounteredActiveItem)) {
+      encounteredActiveItem = true;
       // We're going to be starting a new group.
       RefPtr<WebRenderGroupData> groupData =
           aCommandBuilder->CreateOrRecycleWebRenderUserData<WebRenderGroupData>(
@@ -1339,10 +1346,10 @@ void Grouper::ConstructItemInsideInactive(
 
 /* This is just a copy of nsRect::ScaleToOutsidePixels with an offset added in.
  * The offset is applied just before the rounding. It's in the scaled space. */
-static mozilla::gfx::IntRect ScaleToOutsidePixelsOffset(
+static mozilla::LayerIntRect ScaleToOutsidePixelsOffset(
     nsRect aRect, float aXScale, float aYScale, nscoord aAppUnitsPerPixel,
     LayerPoint aOffset) {
-  mozilla::gfx::IntRect rect;
+  mozilla::LayerIntRect rect;
   rect.SetNonEmptyBox(
       NSToIntFloor(NSAppUnitsToFloatPixels(aRect.x, float(aAppUnitsPerPixel)) *
                        aXScale +
@@ -1431,17 +1438,16 @@ void WebRenderCommandBuilder::DoGroupingForDisplayList(
   // allocating much larger textures than necessary in webrender.
   //
   // Don't bother fixing this unless we run into this in the real world, though.
-  auto layerBounds = LayerIntRect::FromUnknownRect(
+  auto layerBounds =
       ScaleToOutsidePixelsOffset(groupBounds, scale.width, scale.height,
-                                 appUnitsPerDevPixel, residualOffset));
+                                 appUnitsPerDevPixel, residualOffset);
 
   const nsRect& untransformedPaintRect =
       aWrappingItem->GetUntransformedPaintRect();
 
-  auto visibleRect = LayerIntRect::FromUnknownRect(
-                         ScaleToOutsidePixelsOffset(
-                             untransformedPaintRect, scale.width, scale.height,
-                             appUnitsPerDevPixel, residualOffset))
+  auto visibleRect = ScaleToOutsidePixelsOffset(
+                         untransformedPaintRect, scale.width, scale.height,
+                         appUnitsPerDevPixel, residualOffset)
                          .Intersect(layerBounds);
 
   GP("LayerBounds: %d %d %d %d\n", layerBounds.x, layerBounds.y,
@@ -1553,7 +1559,7 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
   AUTO_PROFILER_LABEL_CATEGORY_PAIR(GRAPHICS_WRDisplayList);
 
   StackingContextHelper sc;
-  aScrollData = WebRenderScrollData(mManager);
+  aScrollData = WebRenderScrollData(mManager, aDisplayListBuilder);
   MOZ_ASSERT(mLayerScrollData.empty());
   mClipManager.BeginBuild(mManager, aBuilder);
   mBuilderDumpIndex = 0;
@@ -1625,7 +1631,7 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
 
 bool WebRenderCommandBuilder::ShouldDumpDisplayList(
     nsDisplayListBuilder* aBuilder) {
-  return aBuilder != nullptr && aBuilder->IsInActiveDocShell() &&
+  return aBuilder && aBuilder->IsInActiveDocShell() &&
          ((XRE_IsParentProcess() &&
            StaticPrefs::gfx_webrender_dl_dump_parent()) ||
           (XRE_IsContentProcess() &&
@@ -1945,8 +1951,6 @@ bool BuildLayer(nsDisplayItem* aItem, BlobItemData* aData,
   RefPtr<Layer> root = aItem->AsPaintedDisplayItem()->BuildLayer(
       aDisplayListBuilder, blm, param);
 
-  aDisplayListBuilder->NotifyAndClearScrollFrames();
-
   if (root) {
     blm->SetRoot(root);
     layerBuilder->WillEndTransaction();
@@ -1988,8 +1992,6 @@ static bool PaintByLayer(nsDisplayItem* aItem,
   ContainerLayerParameters param(aScale.width, aScale.height);
   RefPtr<Layer> root = aItem->AsPaintedDisplayItem()->BuildLayer(
       aDisplayListBuilder, aManager, param);
-
-  aDisplayListBuilder->NotifyAndClearScrollFrames();
 
   if (root) {
     aManager->SetRoot(root);
@@ -2195,14 +2197,12 @@ WebRenderCommandBuilder::GenerateFallbackData(
                           appUnitsPerDevPixel, residualOffset))
                       .Intersect(dtRect);
   } else {
-    dtRect = LayerIntRect::FromUnknownRect(
-        ScaleToOutsidePixelsOffset(paintBounds, scale.width, scale.height,
-                                   appUnitsPerDevPixel, residualOffset));
+    dtRect = ScaleToOutsidePixelsOffset(paintBounds, scale.width, scale.height,
+                                        appUnitsPerDevPixel, residualOffset);
 
-    visibleRect = LayerIntRect::FromUnknownRect(
-                      ScaleToOutsidePixelsOffset(
-                          aItem->GetBuildingRect(), scale.width, scale.height,
-                          appUnitsPerDevPixel, residualOffset))
+    visibleRect = ScaleToOutsidePixelsOffset(
+                      aItem->GetBuildingRect(), scale.width, scale.height,
+                      appUnitsPerDevPixel, residualOffset)
                       .Intersect(dtRect);
   }
 

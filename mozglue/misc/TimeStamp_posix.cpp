@@ -51,6 +51,7 @@
 
 #include "mozilla/Sprintf.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/Uptime.h"
 #include <pthread.h>
 
 // Estimate of the smallest duration of time we can measure.

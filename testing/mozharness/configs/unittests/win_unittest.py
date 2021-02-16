@@ -1,3 +1,8 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+from __future__ import absolute_import
 import os
 import platform
 import sys
@@ -9,6 +14,10 @@ INSTALLER_PATH = os.path.join(ABS_WORK_DIR, "installer.zip")
 NODEJS_PATH = None
 if "MOZ_FETCHES_DIR" in os.environ:
     NODEJS_PATH = os.path.join(os.environ["MOZ_FETCHES_DIR"], "node/node.exe")
+
+PYWIN32 = "pypiwin32==219"
+if sys.version_info > (3, 0):
+    PYWIN32 = "pywin32==300"
 
 XPCSHELL_NAME = "xpcshell.exe"
 EXE_SUFFIX = ".exe"
@@ -34,7 +43,7 @@ config = {
     "installer_path": INSTALLER_PATH,
     "binary_path": BINARY_PATH,
     "xpcshell_name": XPCSHELL_NAME,
-    "virtualenv_modules": ["pypiwin32", "six==1.13.0", "vcversioner==2.16.0.0"],
+    "virtualenv_modules": [PYWIN32, "six==1.13.0", "vcversioner==2.16.0.0"],
     "virtualenv_path": "venv",
     "exe_suffix": EXE_SUFFIX,
     "run_file_names": {

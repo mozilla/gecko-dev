@@ -24,11 +24,12 @@ mod qlog;
 mod qpack_send_buf;
 pub mod reader;
 mod static_table;
-pub mod stats;
+mod stats;
 mod table;
 
 pub use decoder::QPackDecoder;
 pub use encoder::QPackEncoder;
+pub use stats::Stats;
 
 pub type Header = (String, String);
 type Res<T> = Result<T, Error>;
@@ -77,6 +78,18 @@ impl Error {
             // These are all internal errors.
             _ => 3,
         }
+    }
+
+    /// # Errors
+    ///   Any error is mapped to the indicated type.
+    fn map_error<R>(r: Result<R, Self>, err: Self) -> Result<R, Self> {
+        Ok(r.map_err(|e| {
+            if matches!(e, Self::ClosedCriticalStream) {
+                e
+            } else {
+                err
+            }
+        })?)
     }
 }
 

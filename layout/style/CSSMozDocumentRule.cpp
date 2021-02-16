@@ -6,8 +6,11 @@
 
 #include "mozilla/dom/CSSMozDocumentRule.h"
 #include "mozilla/dom/CSSMozDocumentRuleBinding.h"
+
+#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/ServoBindings.h"
 #include "nsContentUtils.h"
+#include "nsHTMLDocument.h"
 
 namespace mozilla {
 namespace dom {
@@ -67,6 +70,12 @@ bool CSSMozDocumentRule::Match(const Document* aDoc, nsIURI* aDocURI,
       return nsContentUtils::IsPatternMatching(spec, regex, aDoc)
           .valueOr(false);
     }
+    case DocumentMatchingFunction::PlainTextDocument:
+      return aDoc->IsHTMLOrXHTML() && aDoc->AsHTMLDocument()->IsPlainText();
+    case DocumentMatchingFunction::UnobservableDocument: {
+      const BrowsingContext* bc = aDoc->GetBrowsingContext();
+      return bc && bc->IsTop() && !bc->HasOpener();
+    }
   }
   MOZ_ASSERT_UNREACHABLE("Unknown matching function");
   return false;
@@ -99,11 +108,11 @@ void CSSMozDocumentRule::List(FILE* out, int32_t aIndent) const {
 }
 #endif
 
-void CSSMozDocumentRule::GetConditionText(nsAString& aConditionText) {
+void CSSMozDocumentRule::GetConditionText(nsACString& aConditionText) {
   Servo_MozDocumentRule_GetConditionText(mRawRule, &aConditionText);
 }
 
-void CSSMozDocumentRule::SetConditionText(const nsAString& aConditionText,
+void CSSMozDocumentRule::SetConditionText(const nsACString& aConditionText,
                                           ErrorResult& aRv) {
   if (IsReadOnly()) {
     return;
@@ -113,7 +122,7 @@ void CSSMozDocumentRule::SetConditionText(const nsAString& aConditionText,
 }
 
 /* virtual */
-void CSSMozDocumentRule::GetCssText(nsAString& aCssText) const {
+void CSSMozDocumentRule::GetCssText(nsACString& aCssText) const {
   Servo_MozDocumentRule_GetCssText(mRawRule, &aCssText);
 }
 

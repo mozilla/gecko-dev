@@ -80,8 +80,11 @@ nsClientAuthRememberService::ForgetRememberedDecision(const nsACString& key) {
   mClientAuthRememberList->Remove(PromiseFlatCString(key),
                                   mozilla::DataStorage_Persistent);
 
-  nsNSSComponent::ClearSSLExternalAndInternalSessionCacheNative();
-  return NS_OK;
+  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(NS_NSSCOMPONENT_CID));
+  if (!nssComponent) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  return nssComponent->ClearSSLExternalAndInternalSessionCache();
 }
 
 NS_IMETHODIMP
@@ -105,8 +108,11 @@ nsClientAuthRememberService::GetDecisions(
 NS_IMETHODIMP
 nsClientAuthRememberService::ClearRememberedDecisions() {
   mClientAuthRememberList->Clear();
-  nsNSSComponent::ClearSSLExternalAndInternalSessionCacheNative();
-  return NS_OK;
+  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(NS_NSSCOMPONENT_CID));
+  if (!nssComponent) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  return nssComponent->ClearSSLExternalAndInternalSessionCache();
 }
 
 NS_IMETHODIMP
@@ -133,7 +139,22 @@ nsClientAuthRememberService::DeleteDecisionsByHost(
       }
     }
   }
-  nsNSSComponent::ClearSSLExternalAndInternalSessionCacheNative();
+  nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(NS_NSSCOMPONENT_CID));
+  if (!nssComponent) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  return nssComponent->ClearSSLExternalAndInternalSessionCache();
+}
+
+static nsresult GetCertSha256Fingerprint(CERTCertificate* aNssCert,
+                                         nsCString& aResult) {
+  nsCOMPtr<nsIX509Cert> cert(nsNSSCertificate::Create(aNssCert));
+  nsAutoString fpStrUTF16;
+  nsresult rv = cert->GetSha256Fingerprint(fpStrUTF16);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  aResult.Assign(NS_ConvertUTF16toUTF8(fpStrUTF16));
   return NS_OK;
 }
 
@@ -149,7 +170,7 @@ nsClientAuthRememberService::RememberDecision(
   }
 
   nsAutoCString fpStr;
-  nsresult rv = GetCertFingerprintByOidTag(aServerCert, SEC_OID_SHA256, fpStr);
+  nsresult rv = GetCertSha256Fingerprint(aServerCert, fpStr);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -180,10 +201,11 @@ nsClientAuthRememberService::HasRememberedDecision(
   *aRetVal = false;
   aCertDBKey.Truncate();
 
-  nsresult rv;
   nsAutoCString fpStr;
-  rv = GetCertFingerprintByOidTag(aCert, SEC_OID_SHA256, fpStr);
-  if (NS_FAILED(rv)) return rv;
+  nsresult rv = GetCertSha256Fingerprint(aCert, fpStr);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
   nsAutoCString entryKey;
   GetEntryKey(aHostName, aOriginAttributes, fpStr, entryKey);

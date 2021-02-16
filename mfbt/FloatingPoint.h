@@ -17,9 +17,9 @@
 #include "mozilla/Types.h"
 
 #include <algorithm>
+#include <climits>
 #include <limits>
 #include <stdint.h>
-#include <type_traits>
 
 namespace mozilla {
 

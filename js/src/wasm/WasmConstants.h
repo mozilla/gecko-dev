@@ -39,6 +39,9 @@ enum class SectionId {
   Code = 10,
   Data = 11,
   DataCount = 12,
+#ifdef ENABLE_WASM_EXCEPTIONS
+  Event = 13,
+#endif
   GcFeatureOptIn = 42  // Arbitrary, but fits in 7 bits
 };
 
@@ -102,7 +105,7 @@ static constexpr TypeCode AbstractReferenceTypeCode = TypeCode::ExternRef;
 
 static constexpr TypeCode AbstractReferenceTypeIndexCode = TypeCode::Ref;
 
-enum class FuncTypeIdDescKind { None, Immediate, Global };
+enum class TypeIdDescKind { None, Immediate, Global };
 
 // A wasm::Trap represents a wasm-defined trap that can occur during execution
 // which triggers a WebAssembly.RuntimeError. Generated code may jump to a Trap
@@ -153,7 +156,10 @@ enum class DefinitionKind {
   Function = 0x00,
   Table = 0x01,
   Memory = 0x02,
-  Global = 0x03
+  Global = 0x03,
+#ifdef ENABLE_WASM_EXCEPTIONS
+  Event = 0x04,
+#endif
 };
 
 enum class GlobalTypeImmediate { IsMutable = 0x1, AllowedMask = 0x1 };
@@ -184,6 +190,12 @@ enum class ElemSegmentPayload : uint32_t {
   ElemExpression = 0x4,
 };
 
+#ifdef ENABLE_WASM_EXCEPTIONS
+enum class EventKind {
+  Exception = 0x0,
+};
+#endif
+
 enum class Op {
   // Control flow operators
   Unreachable = 0x00,
@@ -192,6 +204,11 @@ enum class Op {
   Loop = 0x03,
   If = 0x04,
   Else = 0x05,
+#ifdef ENABLE_WASM_EXCEPTIONS
+  Try = 0x06,
+  Catch = 0x07,
+  Throw = 0x08,
+#endif
   End = 0x0b,
   Br = 0x0c,
   BrIf = 0x0d,
@@ -683,7 +700,37 @@ enum class SimdOp {
   F32x4ConvertUI32x4 = 0xfb,
   V128Load32Zero = 0xfc,
   V128Load64Zero = 0xfd,
-  // Unused = 0xfe and up
+// Unused = 0xfe and up
+
+// Mozilla extensions, highly experimental and platform-specific
+#ifdef ENABLE_WASM_SIMD_WORMHOLE
+  // The wormhole is a mechanism for injecting experimental, possibly
+  // platform-dependent, opcodes into the generated code.  A wormhole op is
+  // expressed as a two-operation SIMD shuffle op with the pattern <31, 0, 30,
+  // 2, 29, 4, 28, 6, 27, 8, 26, 10, 25, 12, 24, X> where X is the opcode,
+  // 0..31, from the set below.  If an operation uses no operands, the operands
+  // to the shuffle opcode should be const 0.  If an operation uses one operand,
+  // the operands to the shuffle opcode should both be that operand.
+  //
+  // The wormhole must be enabled by a flag and is only supported by ion on x64,
+  // baseline must be disabled.
+  //
+  // The benefit of this mechanism is that it allows experimental opcodes to be
+  // used without updating other tools (compilers, linkers, optimizers).
+  //
+  // These opcodes can be rearranged but the X values associated with them must
+  // remain fixed.
+
+  // X=0, selftest opcode.  No operands.  The result is an 8x16 hex value:
+  // DEADD00DCAFEBABE.
+  MozWHSELFTEST = 0x200,
+
+  // X=1, Intel SSE3 PMADDUBSW instruction. Two operands.
+  MozWHPMADDUBSW = 0x201,
+
+  // X=2, Intel SSE2 PMADDWD instruction. Two operands.
+  MozWHPMADDWD = 0x202,
+#endif
 
   Limit
 };
@@ -870,6 +917,10 @@ enum class FieldFlags { Mutable = 0x01, AllowedMask = 0x01 };
 // requires the size of linear memory to always be a multiple of 64KiB.
 
 static const unsigned PageSize = 64 * 1024;
+static const unsigned PageBits = 16;
+static_assert(PageSize == (1u << PageBits));
+
+static const unsigned PageMask = ((1u << PageBits) - 1);
 
 // These limits are agreed upon with other engines for consistency.
 
@@ -879,6 +930,10 @@ static const unsigned MaxTables = 100000;
 static const unsigned MaxImports = 100000;
 static const unsigned MaxExports = 100000;
 static const unsigned MaxGlobals = 1000000;
+#ifdef ENABLE_WASM_EXCEPTIONS
+static const unsigned MaxEvents =
+    1000000;  // TODO: get this into the shared limits spec
+#endif
 static const unsigned MaxDataSegments = 100000;
 static const unsigned MaxDataSegmentLengthPages = 16384;
 static const unsigned MaxElemSegments = 10000000;

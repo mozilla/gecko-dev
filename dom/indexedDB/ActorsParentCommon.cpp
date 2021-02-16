@@ -65,8 +65,6 @@ using mozilla::ipc::IsOnBackgroundThread;
 
 namespace {
 
-bool TokenizerIgnoreNothing(char16_t /* aChar */) { return false; }
-
 constexpr StructuredCloneFileBase::FileType ToStructuredCloneFileType(
     const char16_t aTag) {
   switch (aTag) {
@@ -415,20 +413,20 @@ GetStructuredCloneReadInfoFromExternalBlob(uint64_t aIntData,
     const nsCOMPtr<nsIFile> nativeFile = file.FileInfo().GetFileForFileInfo();
     IDB_TRY(OkIf(nativeFile), Err(NS_ERROR_FAILURE));
 
-    // XXX NS_NewLocalFileInputStream does not follow the convention to place
-    // its output parameter last (it has optional parameters which makes that
-    // problematic), so we can't use ToResultInvoke, nor
-    // IDB_TRY_UNWRAP/IDB_TRY_INSPECT.
-    nsCOMPtr<nsIInputStream> fileInputStream;
-    IDB_TRY(NS_NewLocalFileInputStream(getter_AddRefs(fileInputStream),
-                                       nativeFile));
+    IDB_TRY_INSPECT(
+        const auto& fileInputStream,
+        NS_NewLocalFileInputStream(nativeFile)
+            .andThen([aMaybeKey](auto fileInputStream)
+                         -> Result<nsCOMPtr<nsIInputStream>, nsresult> {
+              if (aMaybeKey) {
+                return nsCOMPtr<nsIInputStream>{MakeRefPtr<
+                    quota::DecryptingInputStream<IndexedDBCipherStrategy>>(
+                    WrapNotNull(std::move(fileInputStream)),
+                    kEncryptedStreamBlockSize, *aMaybeKey)};
+              }
 
-    if (aMaybeKey) {
-      fileInputStream =
-          MakeRefPtr<quota::DecryptingInputStream<IndexedDBCipherStrategy>>(
-              WrapNotNull(std::move(fileInputStream)),
-              kEncryptedStreamBlockSize, *aMaybeKey);
-    }
+              return fileInputStream;
+            }));
 
     IDB_TRY(SnappyUncompressStructuredCloneData(*fileInputStream, data));
   }
@@ -695,12 +693,10 @@ DeserializeStructuredCloneFiles(const FileManager& aFileManager,
                                 const nsAString& aText) {
   MOZ_ASSERT(!IsOnBackgroundThread());
 
-  nsCharSeparatedTokenizerTemplate<TokenizerIgnoreNothing> tokenizer(aText,
-                                                                     ' ');
-
   nsTArray<StructuredCloneFileParent> result;
-  while (tokenizer.hasMoreTokens()) {
-    const auto& token = tokenizer.nextToken();
+  for (const auto& token :
+       nsCharSeparatedTokenizerTemplate<NS_TokenizerIgnoreNothing>(aText, ' ')
+           .ToRange()) {
     MOZ_ASSERT(!token.IsEmpty());
 
     IDB_TRY_UNWRAP(auto structuredCloneFile,

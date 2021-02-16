@@ -9,15 +9,16 @@
 
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/JSActorService.h"
-#include "mozilla/ErrorResult.h"
+#include "mozilla/extensions/MatchPattern.h"
 #include "nsIURI.h"
 #include "nsString.h"
 #include "nsTArray.h"
 #include "nsIObserver.h"
 #include "nsIDOMEventListener.h"
-#include "mozilla/extensions/WebExtensionContentScript.h"
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
 struct WindowActorOptions;
@@ -70,7 +71,7 @@ class JSWindowActorProtocol final : public JSActorProtocol,
   void AddObservers();
   void RemoveObservers();
   bool Matches(BrowsingContext* aBrowsingContext, nsIURI* aURI,
-               const nsACString& aRemoteType);
+               const nsACString& aRemoteType, ErrorResult& aRv);
 
  private:
   explicit JSWindowActorProtocol(const nsACString& aName) : mName(aName) {}

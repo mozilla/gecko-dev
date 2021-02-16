@@ -420,7 +420,7 @@ JSObject* ErrorObject::createConstructor(JSContext* cx, JSProtoKey key) {
     ctor =
         NewFunctionWithProto(cx, native, nargs, FunctionFlags::NATIVE_CTOR,
                              nullptr, ClassName(key, cx), proto,
-                             gc::AllocKind::FUNCTION_EXTENDED, SingletonObject);
+                             gc::AllocKind::FUNCTION_EXTENDED, TenuredObject);
   }
 
   if (!ctor) {
@@ -468,10 +468,9 @@ bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
   // present in some error objects -- |Error.prototype|, |new Error("f")|,
   // |new Error("")| -- but not in others -- |new Error(undefined)|,
   // |new Error()|.
-  RootedShape messageShape(cx);
   if (message) {
-    messageShape = NativeObject::addDataProperty(cx, obj, cx->names().message,
-                                                 MESSAGE_SLOT, 0);
+    Shape* messageShape = NativeObject::addDataProperty(
+        cx, obj, cx->names().message, MESSAGE_SLOT, 0);
     if (!messageShape) {
       return false;
     }
@@ -498,7 +497,7 @@ bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
   obj->initReservedSlot(LINENUMBER_SLOT, Int32Value(lineNumber));
   obj->initReservedSlot(COLUMNNUMBER_SLOT, Int32Value(columnNumber));
   if (message) {
-    obj->setSlotWithType(cx, messageShape, StringValue(message));
+    obj->initSlot(MESSAGE_SLOT, StringValue(message));
   }
   obj->initReservedSlot(SOURCEID_SLOT, Int32Value(sourceId));
   obj->initReservedSlot(TIME_WARP_SLOT, Int32Value(warpTarget));

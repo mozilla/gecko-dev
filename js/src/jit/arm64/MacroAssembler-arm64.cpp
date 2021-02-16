@@ -23,6 +23,20 @@
 namespace js {
 namespace jit {
 
+enum class Width { _32 = 32, _64 = 64 };
+
+static inline ARMRegister X(Register r) { return ARMRegister(r, 64); }
+
+static inline ARMRegister X(MacroAssembler& masm, RegisterOrSP r) {
+  return masm.toARMRegister(r, 64);
+}
+
+static inline ARMRegister W(Register r) { return ARMRegister(r, 32); }
+
+static inline ARMRegister R(Register r, Width w) {
+  return ARMRegister(r, unsigned(w));
+}
+
 void MacroAssemblerCompat::boxValue(JSValueType type, Register src,
                                     Register dest) {
 #ifdef DEBUG
@@ -86,7 +100,7 @@ const vixl::MacroAssembler& MacroAssemblerCompat::asVIXL() const {
 }
 
 void MacroAssemblerCompat::mov(CodeLabel* label, Register dest) {
-  BufferOffset bo = movePatchablePtr(ImmPtr(/* placeholder */ nullptr), dest);
+  BufferOffset bo = movePatchablePtr(ImmWord(/* placeholder */ 0), dest);
   label->patchAt()->bind(bo.getOffset());
   label->setLinkMode(CodeLabel::MoveImmediate);
 }
@@ -332,33 +346,42 @@ static inline ARMFPRegister SelectFPReg(AnyRegister any, Register64 sixtyfour,
 
 void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
                                         Register memoryBase_, Register ptr_,
-                                        Register ptrScratch_,
                                         AnyRegister outany, Register64 out64) {
   uint32_t offset = access.offset();
-  MOZ_ASSERT(offset < wasm::MaxOffsetGuardLimit);
-
-  // Not yet supported: not used by baseline compiler
-  MOZ_ASSERT(!access.isSplatSimd128Load());
-  MOZ_ASSERT(!access.isWidenSimd128Load());
-
-  MOZ_ASSERT(ptr_ == ptrScratch_);
+  MOZ_ASSERT(offset < asMasm().wasmMaxOffsetGuardLimit());
 
   ARMRegister memoryBase(memoryBase_, 64);
   ARMRegister ptr(ptr_, 64);
   if (offset) {
-    Add(ptr, ptr, Operand(offset));
+    vixl::UseScratchRegisterScope temps(this);
+    ARMRegister scratch = temps.AcquireX();
+    Add(scratch, ptr, Operand(offset));
+    MemOperand srcAddr(memoryBase, scratch);
+    wasmLoadImpl(access, srcAddr, outany, out64);
+  } else {
+    MemOperand srcAddr(memoryBase, ptr);
+    wasmLoadImpl(access, srcAddr, outany, out64);
   }
+}
+
+void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
+                                        MemOperand srcAddr, AnyRegister outany,
+                                        Register64 out64) {
+  // Not yet supported: not used by baseline compiler
+  MOZ_ASSERT(!access.isSplatSimd128Load());
+  MOZ_ASSERT(!access.isWidenSimd128Load());
 
   asMasm().memoryBarrierBefore(access.sync());
 
-  // Reg+Reg addressing is directly encodable in one Load instruction, hence
-  // the AutoForbidPoolsAndNops will ensure that the access metadata is emitted
-  // at the address of the Load.
-  MemOperand srcAddr(memoryBase, ptr);
-
   {
+    // Reg+Reg addressing is directly encodable in one Load instruction, hence
+    // the AutoForbidPoolsAndNops will ensure that the access metadata is
+    // emitted at the address of the Load.  The AutoForbidPoolsAndNops will
+    // assert if we emit more than one instruction.
+
     AutoForbidPoolsAndNops afp(this,
                                /* max number of instructions in scope = */ 1);
+
     append(access, asMasm().currentOffset());
     switch (access.type()) {
       case Scalar::Int8:
@@ -410,29 +433,38 @@ void MacroAssemblerCompat::wasmLoadImpl(const wasm::MemoryAccessDesc& access,
 
 void MacroAssemblerCompat::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
                                          AnyRegister valany, Register64 val64,
-                                         Register memoryBase_, Register ptr_,
-                                         Register ptrScratch_) {
+                                         Register memoryBase_, Register ptr_) {
   uint32_t offset = access.offset();
-  MOZ_ASSERT(offset < wasm::MaxOffsetGuardLimit);
-
-  MOZ_ASSERT(ptr_ == ptrScratch_);
+  MOZ_ASSERT(offset < asMasm().wasmMaxOffsetGuardLimit());
 
   ARMRegister memoryBase(memoryBase_, 64);
   ARMRegister ptr(ptr_, 64);
   if (offset) {
-    Add(ptr, ptr, Operand(offset));
+    vixl::UseScratchRegisterScope temps(this);
+    ARMRegister scratch = temps.AcquireX();
+    Add(scratch, ptr, Operand(offset));
+    MemOperand destAddr(memoryBase, scratch);
+    wasmStoreImpl(access, destAddr, valany, val64);
+  } else {
+    MemOperand destAddr(memoryBase, ptr);
+    wasmStoreImpl(access, destAddr, valany, val64);
   }
+}
 
+void MacroAssemblerCompat::wasmStoreImpl(const wasm::MemoryAccessDesc& access,
+                                         MemOperand dstAddr, AnyRegister valany,
+                                         Register64 val64) {
   asMasm().memoryBarrierBefore(access.sync());
 
-  // Reg+Reg addressing is directly encodable in one Store instruction, hence
-  // the AutoForbidPoolsAndNops will ensure that the access metadata is emitted
-  // at the address of the Store.
-  MemOperand dstAddr(memoryBase, ptr);
-
   {
+    // Reg+Reg addressing is directly encodable in one Store instruction, hence
+    // the AutoForbidPoolsAndNops will ensure that the access metadata is
+    // emitted at the address of the Store.  The AutoForbidPoolsAndNops will
+    // assert if we emit more than one instruction.
+
     AutoForbidPoolsAndNops afp(this,
                                /* max number of instructions in scope = */ 1);
+
     append(access, asMasm().currentOffset());
     switch (access.type()) {
       case Scalar::Int8:
@@ -1297,8 +1329,9 @@ void MacroAssembler::branchPtrInNurseryChunk(Condition cond, Register ptr,
 
   movePtr(ptr, temp);
   orPtr(Imm32(gc::ChunkMask), temp);
-  branch32(cond, Address(temp, gc::ChunkLocationOffsetFromLastByte),
-           Imm32(int32_t(gc::ChunkLocation::Nursery)), label);
+  branchPtr(InvertCondition(cond),
+            Address(temp, gc::ChunkStoreBufferOffsetFromLastByte), ImmWord(0),
+            label);
 }
 
 void MacroAssembler::branchValueIsNurseryCell(Condition cond,
@@ -1327,8 +1360,9 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
 
   unboxGCThingForGCBarrier(value, temp);
   orPtr(Imm32(gc::ChunkMask), temp);
-  branch32(cond, Address(temp, gc::ChunkLocationOffsetFromLastByte),
-           Imm32(int32_t(gc::ChunkLocation::Nursery)), label);
+  branchPtr(InvertCondition(cond),
+            Address(temp, gc::ChunkStoreBufferOffsetFromLastByte), ImmWord(0),
+            label);
 
   bind(&done);
 }
@@ -1677,28 +1711,26 @@ void MacroAssembler::oolWasmTruncateCheckF64ToI64(FloatRegister input,
 
 void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
                               Register memoryBase, Register ptr,
-                              Register ptrScratch, AnyRegister output) {
-  wasmLoadImpl(access, memoryBase, ptr, ptrScratch, output,
-               Register64::Invalid());
+                              AnyRegister output) {
+  wasmLoadImpl(access, memoryBase, ptr, output, Register64::Invalid());
 }
 
 void MacroAssembler::wasmLoadI64(const wasm::MemoryAccessDesc& access,
                                  Register memoryBase, Register ptr,
-                                 Register ptrScratch, Register64 output) {
-  wasmLoadImpl(access, memoryBase, ptr, ptrScratch, AnyRegister(), output);
+                                 Register64 output) {
+  wasmLoadImpl(access, memoryBase, ptr, AnyRegister(), output);
 }
 
 void MacroAssembler::wasmStore(const wasm::MemoryAccessDesc& access,
                                AnyRegister value, Register memoryBase,
-                               Register ptr, Register ptrScratch) {
-  wasmStoreImpl(access, value, Register64::Invalid(), memoryBase, ptr,
-                ptrScratch);
+                               Register ptr) {
+  wasmStoreImpl(access, value, Register64::Invalid(), memoryBase, ptr);
 }
 
 void MacroAssembler::wasmStoreI64(const wasm::MemoryAccessDesc& access,
                                   Register64 value, Register memoryBase,
-                                  Register ptr, Register ptrScratch) {
-  wasmStoreImpl(access, AnyRegister(), value, memoryBase, ptr, ptrScratch);
+                                  Register ptr) {
+  wasmStoreImpl(access, AnyRegister(), value, memoryBase, ptr);
 }
 
 void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
@@ -1752,20 +1784,6 @@ void MacroAssembler::convertInt64ToFloat32(Register64 src, FloatRegister dest) {
 
 // The computed MemOperand must be Reg+0 because the load/store exclusive
 // instructions only take a single pointer register.
-
-enum class Width { _32 = 32, _64 = 64 };
-
-static inline ARMRegister X(Register r) { return ARMRegister(r, 64); }
-
-static inline ARMRegister X(MacroAssembler& masm, RegisterOrSP r) {
-  return masm.toARMRegister(r, 64);
-}
-
-static inline ARMRegister W(Register r) { return ARMRegister(r, 32); }
-
-static inline ARMRegister R(Register r, Width w) {
-  return ARMRegister(r, unsigned(w));
-}
 
 static MemOperand ComputePointerForAtomic(MacroAssembler& masm,
                                           const Address& address,
@@ -2203,6 +2221,14 @@ void MacroAssembler::wasmAtomicFetchOp64(const wasm::MemoryAccessDesc& access,
                                          Register64 output) {
   AtomicFetchOp<true>(*this, &access, Scalar::Int64, Width::_64, access.sync(),
                       op, mem, value.reg, temp.reg, output.reg);
+}
+
+void MacroAssembler::wasmAtomicEffectOp64(const wasm::MemoryAccessDesc& access,
+                                          AtomicOp op, Register64 value,
+                                          const BaseIndex& mem,
+                                          Register64 temp) {
+  AtomicFetchOp<false>(*this, &access, Scalar::Int64, Width::_64, access.sync(),
+                       op, mem, value.reg, temp.reg, temp.reg);
 }
 
 // ========================================================================
@@ -2670,6 +2696,21 @@ void MacroAssembler::copySignDouble(FloatRegister lhs, FloatRegister rhs,
   negateDouble(scratch);
 
   moveDouble(lhs, output);
+
+  bit(ARMFPRegister(output.encoding(), vixl::VectorFormat::kFormat8B),
+      ARMFPRegister(rhs.encoding(), vixl::VectorFormat::kFormat8B),
+      ARMFPRegister(scratch.encoding(), vixl::VectorFormat::kFormat8B));
+}
+
+void MacroAssembler::copySignFloat32(FloatRegister lhs, FloatRegister rhs,
+                                     FloatRegister output) {
+  ScratchFloat32Scope scratch(*this);
+
+  // Float with only the sign bit set (= negative zero).
+  loadConstantFloat32(0, scratch);
+  negateFloat(scratch);
+
+  moveFloat32(lhs, output);
 
   bit(ARMFPRegister(output.encoding(), vixl::VectorFormat::kFormat8B),
       ARMFPRegister(rhs.encoding(), vixl::VectorFormat::kFormat8B),

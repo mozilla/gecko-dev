@@ -12,6 +12,7 @@
 #include "mozilla/Atomics.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSContext.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ResultExtensions.h"
@@ -850,5 +851,52 @@ Promise::PromiseState Promise::State() const {
   return PromiseState::Pending;
 }
 
+void Promise::SetSettledPromiseIsHandled() {
+  AutoAllowLegacyScriptExecution exemption;
+  AutoEntryScript aes(mGlobal, "Set settled promise handled");
+  JSContext* cx = aes.cx();
+  JS::RootedObject promiseObj(cx, mPromiseObj);
+  JS::SetSettledPromiseIsHandled(cx, promiseObj);
+}
+
 }  // namespace dom
 }  // namespace mozilla
+
+extern "C" {
+
+// These functions are used in the implementation of ffi bindings for
+// dom::Promise from Rust.
+
+void DomPromise_AddRef(mozilla::dom::Promise* aPromise) {
+  MOZ_ASSERT(aPromise);
+  aPromise->AddRef();
+}
+
+void DomPromise_Release(mozilla::dom::Promise* aPromise) {
+  MOZ_ASSERT(aPromise);
+  aPromise->Release();
+}
+
+#define DOM_PROMISE_FUNC_WITH_VARIANT(name, func)                         \
+  void name(mozilla::dom::Promise* aPromise, nsIVariant* aVariant) {      \
+    MOZ_ASSERT(aPromise);                                                 \
+    MOZ_ASSERT(aVariant);                                                 \
+    mozilla::dom::AutoEntryScript aes(aPromise->GetGlobalObject(),        \
+                                      "Promise resolution or rejection"); \
+    JSContext* cx = aes.cx();                                             \
+                                                                          \
+    JS::Rooted<JS::Value> val(cx);                                        \
+    nsresult rv = NS_OK;                                                  \
+    if (!XPCVariant::VariantDataToJS(cx, aVariant, &rv, &val)) {          \
+      aPromise->MaybeRejectWithTypeError(                                 \
+          "Failed to convert nsIVariant to JS");                          \
+      return;                                                             \
+    }                                                                     \
+    aPromise->func(val);                                                  \
+  }
+
+DOM_PROMISE_FUNC_WITH_VARIANT(DomPromise_RejectWithVariant, MaybeReject)
+DOM_PROMISE_FUNC_WITH_VARIANT(DomPromise_ResolveWithVariant, MaybeResolve)
+
+#undef DOM_PROMISE_FUNC_WITH_VARIANT
+}

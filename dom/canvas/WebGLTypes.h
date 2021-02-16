@@ -12,14 +12,19 @@
 #include <vector>
 
 #include "GLDefs.h"
+#include "ImageContainer.h"
 #include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Range.h"
 #include "mozilla/RefCounted.h"
+#include "mozilla/ResultVariant.h"
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/BuildConstants.h"
 #include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/Rect.h"
 #include "mozilla/ipc/Shmem.h"
+#include "mozilla/layers/LayersSurfaces.h"
 #include "gfxTypes.h"
 
 #include "nsTArray.h"
@@ -294,6 +299,8 @@ class UniqueBuffer {
 namespace webgl {
 struct FormatUsageInfo;
 
+static constexpr GLenum kErrorPerfWarning = 0x10001;
+
 struct SampleableInfo final {
   const char* incompleteReason = nullptr;
   uint32_t levels = 0;
@@ -441,12 +448,12 @@ struct avec2 {
   }
 };
 
-template<typename T>
+template <typename T>
 avec2<T> MinExtents(const avec2<T>& a, const avec2<T>& b) {
   return {std::min(a.x, b.x), std::min(a.y, b.y)};
 }
 
-template<typename T>
+template <typename T>
 avec2<T> MaxExtents(const avec2<T>& a, const avec2<T>& b) {
   return {std::max(a.x, b.x), std::max(a.y, b.y)};
 }
@@ -532,11 +539,16 @@ struct ReadPixelsDesc final {
   PixelPackState packState;
 };
 
-class ExtensionBits final {
+// -
+
+template <typename E>
+class EnumMask {
+ public:
   uint64_t mBits = 0;
 
+ private:
   struct BitRef final {
-    ExtensionBits& bits;
+    EnumMask& bits;
     const uint64_t mask;
 
     explicit operator bool() const { return bits.mBits & mask; }
@@ -551,14 +563,16 @@ class ExtensionBits final {
     }
   };
 
-  uint64_t Mask(const WebGLExtensionID i) const {
+  uint64_t Mask(const E i) const {
     return uint64_t{1} << static_cast<uint64_t>(i);
   }
 
  public:
-  BitRef operator[](const WebGLExtensionID i) { return {*this, Mask(i)}; }
-  bool operator[](const WebGLExtensionID i) const { return mBits & Mask(i); }
+  BitRef operator[](const E i) { return {*this, Mask(i)}; }
+  bool operator[](const E i) const { return mBits & Mask(i); }
 };
+
+class ExtensionBits : public EnumMask<WebGLExtensionID> {};
 
 // -
 
@@ -618,6 +632,7 @@ struct InitContextResult final {
   std::string error;
   WebGLContextOptions options;
   webgl::Limits limits;
+  EnumMask<layers::SurfaceDescriptor::Type> uploadableSdTypes;
 };
 
 // -
@@ -966,9 +981,8 @@ struct WebGLPixelStore final {
   void Apply(gl::GLContext&, bool isWebgl2, const uvec3& uploadSize) const;
   bool AssertCurrent(gl::GLContext&, bool isWebgl2) const;
 
-  WebGLPixelStore ForUseWith(
-      const GLenum target, const uvec3& uploadSize,
-      const Maybe<gfx::IntSize>& structuredSrcSize) const {
+  WebGLPixelStore ForUseWith(const GLenum target, const uvec3& uploadSize,
+                             const Maybe<uvec2>& structuredSrcSize) const {
     auto ret = *this;
 
     if (!IsTexTarget3D(target)) {
@@ -977,7 +991,7 @@ struct WebGLPixelStore final {
     }
 
     if (structuredSrcSize) {
-      ret.mUnpackRowLength = structuredSrcSize->width;
+      ret.mUnpackRowLength = structuredSrcSize->x;
     }
 
     if (!ret.mUnpackRowLength) {
@@ -1039,8 +1053,11 @@ struct TexUnpackBlobDesc final {
 
   Maybe<RawBuffer<>> cpuData;
   Maybe<uint64_t> pboOffset;
+
+  uvec2 imageSize;
   RefPtr<layers::Image> image;
-  RefPtr<gfx::DataSourceSurface> surf;
+  Maybe<layers::SurfaceDescriptor> sd;
+  RefPtr<gfx::DataSourceSurface> dataSurf;
 
   WebGLPixelStore unpacking;
 

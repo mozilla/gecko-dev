@@ -522,8 +522,7 @@ void nsTableCellFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   BuildDisplayListForChild(aBuilder, kid, aLists);
 }
 
-nsIFrame::LogicalSides nsTableCellFrame::GetLogicalSkipSides(
-    const Maybe<SkipSidesDuringReflow>&) const {
+LogicalSides nsTableCellFrame::GetLogicalSkipSides() const {
   LogicalSides skip(mWritingMode);
   if (MOZ_UNLIKELY(StyleBorder()->mBoxDecorationBreak ==
                    StyleBoxDecorationBreak::Clone)) {
@@ -627,7 +626,7 @@ void nsTableCellFrame::BlockDirAlignChild(WritingMode aWM, nscoord aMaxAscent) {
   }
 }
 
-bool nsTableCellFrame::ComputeCustomOverflow(nsOverflowAreas& aOverflowAreas) {
+bool nsTableCellFrame::ComputeCustomOverflow(OverflowAreas& aOverflowAreas) {
   nsRect bounds(nsPoint(0, 0), GetSize());
   bounds.Inflate(GetBorderOverflow());
 

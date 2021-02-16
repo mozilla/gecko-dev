@@ -7,6 +7,7 @@
 #include "nsSocketTransport2.h"
 
 #include "mozilla/Attributes.h"
+#include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"
 #include "nsIOService.h"
 #include "nsStreamUtils.h"
@@ -34,6 +35,7 @@
 #include "nsIDNSRecord.h"
 #include "nsIDNSByTypeRecord.h"
 #include "nsICancelable.h"
+#include "NetworkDataCountLayer.h"
 #include "QuicSocketControl.h"
 #include "TCPFastOpenLayer.h"
 #include <algorithm>
@@ -710,10 +712,7 @@ nsSocketTransport::nsSocketTransport()
       mInputClosed(true),
       mOutputClosed(true),
       mResolving(false),
-      mDNSLookupStatus(NS_OK),
-      mDNSARequestFinished(0),
-      mEsniQueried(false),
-      mEsniUsed(false),
+      mEchConfigUsed(false),
       mResolvedByTRR(false),
       mNetAddrIsSet(false),
       mSelfAddrIsSet(false),
@@ -1028,8 +1027,25 @@ nsresult nsSocketTransport::ResolveHost() {
     }
   }
 
-  nsCOMPtr<nsIDNSService> dns = do_GetService(kDNSServiceCID, &rv);
-  if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIDNSService> dns = nullptr;
+  auto initTask = [&dns]() { dns = do_GetService(kDNSServiceCID); };
+  if (!NS_IsMainThread()) {
+    // Forward to the main thread synchronously.
+    RefPtr<nsIThread> mainThread = do_GetMainThread();
+    if (!mainThread) {
+      return NS_ERROR_FAILURE;
+    }
+
+    SyncRunnable::DispatchToThread(
+        mainThread,
+        new SyncRunnable(NS_NewRunnableFunction(
+            "nsSocketTransport::ResolveHost->GetDNSService", initTask)));
+  } else {
+    initTask();
+  }
+  if (!dns) {
+    return NS_ERROR_FAILURE;
+  }
 
   mResolving = true;
 
@@ -1072,38 +1088,6 @@ nsresult nsSocketTransport::ResolveHost() {
       dns->AsyncResolveNative(SocketHost(), nsIDNSService::RESOLVE_TYPE_DEFAULT,
                               dnsFlags, nullptr, this, mSocketTransportService,
                               mOriginAttributes, getter_AddRefs(mDNSRequest));
-  mEsniQueried = false;
-  // NOTE: If we already have echConfig, we don't try ESNI.
-  if (mSocketTransportService->IsEsniEnabled() && NS_SUCCEEDED(rv) &&
-      !(mConnectionFlags & (DONT_TRY_ESNI_OR_ECH | BE_CONSERVATIVE)) &&
-      mEchConfig.IsEmpty()) {
-    bool isSSL = false;
-    for (unsigned int i = 0; i < mTypes.Length(); ++i) {
-      if (mTypes[i].EqualsLiteral("ssl")) {
-        isSSL = true;
-        break;
-      }
-    }
-    if (isSSL) {
-      SOCKET_LOG((" look for esni txt record"));
-      nsAutoCString esniHost;
-      esniHost.Append("_esni.");
-      // This might end up being the SocketHost
-      // see https://github.com/ekr/draft-rescorla-tls-esni/issues/61
-      esniHost.Append(SocketHost());
-      rv = dns->AsyncResolveNative(esniHost, nsIDNSService::RESOLVE_TYPE_TXT,
-                                   dnsFlags, nullptr, this,
-                                   mSocketTransportService, mOriginAttributes,
-                                   getter_AddRefs(mDNSTxtRequest));
-      if (NS_FAILED(rv)) {
-        SOCKET_LOG(("  dns request by type failed."));
-        mDNSTxtRequest = nullptr;
-        rv = NS_OK;
-      } else {
-        mEsniQueried = true;
-      }
-    }
-  }
 
   if (NS_SUCCEEDED(rv)) {
     SOCKET_LOG(("  advancing to STATE_RESOLVING\n"));
@@ -1564,19 +1548,13 @@ nsresult nsSocketTransport::InitiateSocket() {
   nsCOMPtr<nsISSLSocketControl> secCtrl = do_QueryInterface(mSecInfo);
   if (secCtrl) {
     if (!mEchConfig.IsEmpty() &&
-        !(mConnectionFlags & (DONT_TRY_ESNI_OR_ECH | BE_CONSERVATIVE))) {
+        !(mConnectionFlags & (DONT_TRY_ECH | BE_CONSERVATIVE))) {
       SOCKET_LOG(("nsSocketTransport::InitiateSocket set echconfig."));
       rv = secCtrl->SetEchConfig(mEchConfig);
       if (NS_FAILED(rv)) {
         return rv;
       }
-    } else if (!mDNSRecordTxt.IsEmpty() && !mUsingQuic) {
-      SOCKET_LOG(("nsSocketTransport::InitiateSocket set esni keys."));
-      rv = secCtrl->SetEsniTxt(mDNSRecordTxt);
-      if (NS_FAILED(rv)) {
-        return rv;
-      }
-      mEsniUsed = true;
+      mEchConfigUsed = true;
     }
   }
 
@@ -1608,6 +1586,16 @@ nsresult nsSocketTransport::InitiateSocket() {
       SOCKET_LOG(
           ("nsSocketTransport::InitiateSocket TCP Fast Open "
            "started [this=%p]\n",
+           this));
+    }
+  }
+
+  if (Telemetry::CanRecordPrereleaseData() ||
+      Telemetry::CanRecordReleaseData()) {
+    if (NS_FAILED(AttachNetworkDataCountLayer(fd))) {
+      SOCKET_LOG(
+          ("nsSocketTransport::InitiateSocket "
+           "AttachNetworkDataCountLayer failed [this=%p]\n",
            this));
     }
   }
@@ -1784,6 +1772,15 @@ bool nsSocketTransport::RecoverFromError() {
   if (mNetAddrIsSet && mNetAddr.raw.family == AF_LOCAL) return false;
 #endif
 
+  if ((mConnectionFlags & nsSocketTransport::USE_IP_HINT_ADDRESS) &&
+      mCondition == NS_ERROR_UNKNOWN_HOST &&
+      (mState == MSG_DNS_LOOKUP_COMPLETE || mState == MSG_ENSURE_CONNECT)) {
+    SOCKET_LOG(("  try again without USE_IP_HINT_ADDRESS"));
+    mConnectionFlags &= ~nsSocketTransport::USE_IP_HINT_ADDRESS;
+    mState = STATE_CLOSED;
+    return NS_SUCCEEDED(PostEvent(MSG_ENSURE_CONNECT, NS_OK));
+  }
+
   // can only recover from errors in these states
   if (mState != STATE_RESOLVING && mState != STATE_CONNECTING) {
     SOCKET_LOG(("  not in a recoverable state"));
@@ -1915,13 +1912,18 @@ bool nsSocketTransport::RecoverFromError() {
               mNetAddr.inet6.ip.u64[1] == 0))) {
           SOCKET_LOG(("  TRR returned 0.0.0.0 and there are no other IPs"));
         } else if (trrEnabled) {
-          // Drop state to closed.  This will trigger a new round of
-          // DNS resolving. Bypass the cache this time since the
-          // cached data came from TRR and failed already!
-          SOCKET_LOG(("  failed to connect with TRR enabled, try w/o\n"));
-          mState = STATE_CLOSED;
-          mConnectionFlags |= DISABLE_TRR | BYPASS_CACHE | REFRESH_CACHE;
-          tryAgain = true;
+          uint32_t trrMode = 0;
+          mDNSRecord->GetEffectiveTRRMode(&trrMode);
+          // If current trr mode is trr only, we should not retry.
+          if (trrMode != 3) {
+            // Drop state to closed.  This will trigger a new round of
+            // DNS resolving. Bypass the cache this time since the
+            // cached data came from TRR and failed already!
+            SOCKET_LOG(("  failed to connect with TRR enabled, try w/o\n"));
+            mState = STATE_CLOSED;
+            mConnectionFlags |= DISABLE_TRR | BYPASS_CACHE | REFRESH_CACHE;
+            tryAgain = true;
+          }
         }
       }
     }
@@ -2191,14 +2193,13 @@ void nsSocketTransport::OnSocketEvent(uint32_t type, nsresult status,
       break;
 
     case MSG_DNS_LOOKUP_COMPLETE:
-      if (mDNSRequest ||
-          mDNSTxtRequest) {  // only send this if we actually resolved anything
+      if (mDNSRequest) {  // only send this if we actually resolved anything
         SendStatus(NS_NET_STATUS_RESOLVED_HOST);
       }
 
       SOCKET_LOG(("  MSG_DNS_LOOKUP_COMPLETE\n"));
       mDNSRequest = nullptr;
-      mDNSTxtRequest = nullptr;
+
       if (mDNSRecord) {
         mDNSRecord->GetNextAddr(SocketPort(), &mNetAddr);
         mDNSRecord->IsTRR(&mResolvedByTRR);
@@ -2469,11 +2470,6 @@ void nsSocketTransport::OnSocketDetached(PRFileDesc* fd) {
     if (mDNSRequest) {
       mDNSRequest->Cancel(NS_ERROR_ABORT);
       mDNSRequest = nullptr;
-    }
-
-    if (mDNSTxtRequest) {
-      mDNSTxtRequest->Cancel(NS_ERROR_ABORT);
-      mDNSTxtRequest = nullptr;
     }
 
     //
@@ -3000,65 +2996,21 @@ nsSocketTransport::OnLookupComplete(nsICancelable* request, nsIDNSRecord* rec,
               ".",
               this, static_cast<uint32_t>(status)));
 
-  if (request == mDNSTxtRequest) {
-    if (NS_SUCCEEDED(status)) {
-      nsCOMPtr<nsIDNSTXTRecord> txtResponse = do_QueryInterface(rec);
-      txtResponse->GetRecordsAsOneString(mDNSRecordTxt);
-      mDNSRecordTxt.Trim(" ");
-    }
-    Telemetry::Accumulate(Telemetry::ESNI_KEYS_RECORDS_FOUND,
-                          NS_SUCCEEDED(status));
-    // flag host lookup complete for the benefit of the ResolveHost method.
-    if (!mDNSRequest) {
-      mResolving = false;
-      MOZ_ASSERT(mDNSARequestFinished);
-      Telemetry::Accumulate(
-          Telemetry::ESNI_KEYS_RECORD_FETCH_DELAYS,
-          PR_IntervalToMilliseconds(PR_IntervalNow() - mDNSARequestFinished));
-
-      nsresult rv =
-          PostEvent(MSG_DNS_LOOKUP_COMPLETE, mDNSLookupStatus, nullptr);
-
-      // if posting a message fails, then we should assume that the socket
-      // transport has been shutdown.  this should never happen!  if it does
-      // it means that the socket transport service was shutdown before the
-      // DNS service.
-      if (NS_FAILED(rv)) {
-        NS_WARNING("unable to post DNS lookup complete message");
-      }
-    } else {
-      mDNSTxtRequest = nullptr;
-    }
-    return NS_OK;
-  }
-
-  if (NS_FAILED(status) && mDNSTxtRequest) {
-    mDNSTxtRequest->Cancel(NS_ERROR_ABORT);
-  } else if (NS_SUCCEEDED(status)) {
+  if (NS_SUCCEEDED(status)) {
     mDNSRecord = do_QueryInterface(rec);
     MOZ_ASSERT(mDNSRecord);
   }
 
   // flag host lookup complete for the benefit of the ResolveHost method.
-  if (!mDNSTxtRequest) {
-    if (mEsniQueried) {
-      Telemetry::Accumulate(Telemetry::ESNI_KEYS_RECORD_FETCH_DELAYS, 0);
-    }
-    mResolving = false;
-    nsresult rv = PostEvent(MSG_DNS_LOOKUP_COMPLETE, status, nullptr);
+  mResolving = false;
+  nsresult rv = PostEvent(MSG_DNS_LOOKUP_COMPLETE, status, nullptr);
 
-    // if posting a message fails, then we should assume that the socket
-    // transport has been shutdown.  this should never happen!  if it does
-    // it means that the socket transport service was shutdown before the
-    // DNS service.
-    if (NS_FAILED(rv)) {
-      NS_WARNING("unable to post DNS lookup complete message");
-    }
-  } else {
-    mDNSLookupStatus =
-        status;  // remember the status to send it when esni lookup is ready.
-    mDNSRequest = nullptr;
-    mDNSARequestFinished = PR_IntervalNow();
+  // if posting a message fails, then we should assume that the socket
+  // transport has been shutdown.  this should never happen!  if it does
+  // it means that the socket transport service was shutdown before the
+  // DNS service.
+  if (NS_FAILED(rv)) {
+    NS_WARNING("unable to post DNS lookup complete message");
   }
 
   return NS_OK;
@@ -3127,8 +3079,12 @@ nsSocketTransport::SetConnectionFlags(uint32_t value) {
       ("nsSocketTransport::SetConnectionFlags %p flags=%u", this, value));
 
   mConnectionFlags = value;
-  mIsPrivate = value & nsISocketTransport::NO_PERMANENT_STORAGE;
+  return NS_OK;
+}
 
+NS_IMETHODIMP
+nsSocketTransport::SetIsPrivate(bool aIsPrivate) {
+  mIsPrivate = aIsPrivate;
   return NS_OK;
 }
 
@@ -3633,8 +3589,8 @@ nsSocketTransport::GetResetIPFamilyPreference(bool* aReset) {
 }
 
 NS_IMETHODIMP
-nsSocketTransport::GetEsniUsed(bool* aEsniUsed) {
-  *aEsniUsed = mEsniUsed;
+nsSocketTransport::GetEchConfigUsed(bool* aEchConfigUsed) {
+  *aEchConfigUsed = mEchConfigUsed;
   return NS_OK;
 }
 

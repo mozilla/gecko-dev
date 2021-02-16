@@ -14,7 +14,6 @@
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_network.h"
-#include "nsCharSeparatedTokenizer.h"
 #include "nsCRT.h"
 #include "nsContentUtils.h"
 #include "nsHttpRequestHead.h"
@@ -1003,16 +1002,12 @@ nsresult HttpProxyResponseToErrorCode(uint32_t aStatusCode) {
   return rv;
 }
 
-Tuple<nsCString, bool> SelectAlpnFromAlpnList(const nsACString& aAlpnList,
-                                              bool aNoHttp2, bool aNoHttp3) {
+Tuple<nsCString, bool> SelectAlpnFromAlpnList(
+    const nsTArray<nsCString>& aAlpnList, bool aNoHttp2, bool aNoHttp3) {
   nsCString h3Value;
   nsCString h2Value;
   nsCString h1Value;
-  // aAlpnList is a list of alpn-id and use comma as a delimiter.
-  nsCCharSeparatedTokenizer tokenizer(aAlpnList, ',');
-  nsAutoCString npnStr;
-  while (tokenizer.hasMoreTokens()) {
-    const nsACString& npnToken(tokenizer.nextToken());
+  for (const auto& npnToken : aAlpnList) {
     bool isHttp3 = gHttpHandler->IsHttp3VersionSupported(npnToken);
     if (isHttp3 && h3Value.IsEmpty()) {
       h3Value.Assign(npnToken);

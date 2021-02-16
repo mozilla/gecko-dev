@@ -28,6 +28,7 @@ const styleSheetSpec = generateActorSpec({
       type: "styleApplied",
       kind: Arg(0, "number"),
       styleSheet: Arg(1, "stylesheet"),
+      cause: Arg(2, "nullable:string"),
     },
     "media-rules-changed": {
       type: "mediaRulesChanged",
@@ -36,11 +37,10 @@ const styleSheetSpec = generateActorSpec({
   },
 
   methods: {
-    // Backward-compatibility: remove when FF81 hits release.
-    toggleDisabled: {
-      response: { disabled: RetVal("boolean") },
-    },
-    // Backward-compatibility: remove when FF81 hits release.
+    // This is only called from StyleSheetFront#guessIndentation, which is only called
+    // from RuleRewriter#getDefaultIndentation when the rule's parent stylesheet isn't
+    // a resource. Once we support StyleSheet resource everywhere, this method can be
+    // removed (See Bug 1672090 for more information).
     getText: {
       response: {
         text: RetVal("longstring"),
@@ -50,13 +50,6 @@ const styleSheetSpec = generateActorSpec({
       request: {},
       response: {
         mediaRules: RetVal("nullable:array:mediarule"),
-      },
-    },
-    // Backward-compatibility: remove when FF81 hits release.
-    update: {
-      request: {
-        text: Arg(0, "string"),
-        transition: Arg(1, "boolean"),
       },
     },
   },

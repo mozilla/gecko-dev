@@ -4,8 +4,6 @@ The Activity Stream system add-on sends various types of pings to the backend (H
 - a `health` ping that reports whether or not a user has a custom about:home or about:newtab page
 - a `session` ping that describes the ending of an Activity Stream session (a new tab is closed or refreshed), and
 - an `event` ping that records specific data about individual user interactions while interacting with Activity Stream
-- a `performance` ping that records specific performance related events
-- an `undesired` ping that records data about bad app states and missing data
 - an `impression_stats` ping that records data about Pocket impressions and user interactions
 
 Schema definitions/validations that can be used for tests can be found in `system-addon/test/schemas/pings.js`.
@@ -78,58 +76,10 @@ Schema definitions/validations that can be used for tests can be found in `syste
 }
 ```
 
-## Example Activity Stream `performance` Log
-
-```js
-{
-  "action": "activity_stream_performance_event",
-  "addon_version": "20180710100040",
-  "client_id": "374dc4d8-0cb2-4ac5-a3cf-c5a9bc3c602e",
-  "event": "previewCacheHit",
-  "event_id": "45f1912165ca4dfdb5c1c2337dbdc58f",
-  "locale": "en-US",
-  "page": "unknown", // all session-specific perf events should be part of the session perf object
-  "receive_at": 1457396660000,
-  "source": "TOP_FRECENT_SITES",
-  "value": 1,
-  "user_prefs": 7,
-
-  // These fields are generated on the server
-  "ip": "10.192.171.13",
-  "ua": "python-requests/2.9.1",
-  "receive_at": 1457396660000,
-  "date": "2016-03-07"
-}
-```
-
-## Example Activity Stream `undesired event` Log
-
-```js
-{
-  "action": "activity_stream_undesired_event",
-  "addon_version": "20180710100040",
-  "client_id": "26288a14-5cc4-d14f-ae0a-bb01ef45be9c",
-  "event": "MISSING_IMAGE",
-  "locale": "en-US",
-  "page": ["about:newtab" | "about:home" | "about:welcome" | "unknown"]
-  "source": "HIGHLIGHTS",
-  "value": 0,
-  "user_prefs": 7,
-
-  // These fields are generated on the server
-  "ip": "10.192.171.13",
-  "ua": "python-requests/2.9.1",
-  "receive_at": 1457396660000,
-  "date": "2016-03-07"
-}
-```
 ## Example Activity Stream `impression_stats` Logs
 
 ```js
 {
-  "action": "activity_stream_impression_stats",
-  "client_id": "n/a",
-  "session_id": "n/a",
   "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
   "addon_version": "20180710100040",
   "locale": "en-US",
@@ -142,9 +92,6 @@ Schema definitions/validations that can be used for tests can be found in `syste
 
 ```js
 {
-  "action": "activity_stream_impression_stats",
-  "client_id": "n/a",
-  "session_id": "n/a",
   "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
   "addon_version": "20180710100040",
   "locale": "en-US",
@@ -158,30 +105,6 @@ Schema definitions/validations that can be used for tests can be found in `syste
 
   // A 0-based index to record which tile in the "tiles" list that the user just interacted with.
   "click|block|pocket": 0
-}
-```
-
-## Example Discovery Stream `SPOCS Fill` log
-
-```js
-{
-  // both "client_id" and "session_id" are set to "n/a" in this ping.
-  "client_id": "n/a",
-  "session_id": "n/a",
-  "impression_id": "{005deed0-e3e4-4c02-a041-17405fd703f6}",
-  "addon_version": "20180710100040",
-  "locale": "en-US",
-  "version": "68",
-  "release_channel": "release",
-  "spoc_fills": [
-    {"id": 10000, displayed: 0, reason: "frequency_cap", full_recalc: 1},
-    {"id": 10001, displayed: 0, reason: "blocked_by_user", full_recalc: 1},
-    {"id": 10002, displayed: 0, reason: "below_min_score", full_recalc: 1},
-    {"id": 10003, displayed: 0, reason: "flight_duplicate", full_recalc: 1},
-    {"id": 10004, displayed: 0, reason: "probability_selection", full_recalc: 0},
-    {"id": 10004, displayed: 0, reason: "out_of_position", full_recalc: 0},
-    {"id": 10005, displayed: 1, reason: "n/a", full_recalc: 0}
-  ]
 }
 ```
 
@@ -208,7 +131,7 @@ Schema definitions/validations that can be used for tests can be found in `syste
 +============================+======================================================================================================================================================+==================+
 | ``action_position``        | [Optional] The index of the element in the ``source`` that was clicked.                                                                              | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
-| ``action``                 | [Required] Either ``activity_stream_event``, ``activity_stream_session``, or ``activity_stream_performance``.                                        | :one:            |
+| ``action``                 | [Required] Either ``activity_stream_event`` or ``activity_stream_session``.                                                                          | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
 | ``addon_version``          | [Required] Firefox build ID, i.e. ``Services.appinfo.appBuildID``.                                                                                   | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
@@ -222,8 +145,6 @@ Schema definitions/validations that can be used for tests can be found in `syste
 | ``date``                   | [Auto populated by Onyx] The date in YYYY-MM-DD format.                                                                                              | :three:          |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
 | ``shield_id``              | [Optional] DEPRECATED: use `experiments` instead. The unique identifier for a specific experiment.                                                   | :one:            |
-+----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
-| ``event_id``               | [Required] An identifier shared by multiple performance pings that describe an entire request flow.                                                  | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
 | ``event``                  | [Required] The type of event. Any user defined string ("click", "share", "delete", "more\_items")                                                    | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
@@ -266,9 +187,6 @@ Schema definitions/validations that can be used for tests can be found in `syste
 | ``unload_reason``          | [Required] The reason the Activity Stream page lost focus.                                                                                           | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
 | ``url``                    | [Optional] The URL of the recommendation shown in one of the highlights spots, if any.                                                               | :one:            |
-+----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
-| ``value`` (performance)    | [Required] An integer that represents the measured performance value. Can store counts, times in milliseconds, and should always be a positive       |                  |
-|                            |  integer.                                                                                                                                            | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
 | ``value`` (event)          | [Optional] An object with keys "icon\_type" and "card\_type" to record the extra information for event ping                                          | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
@@ -343,7 +261,21 @@ Schema definitions/validations that can be used for tests can be found in `syste
 |                            | `Example: {"experiment_1": {"branch": "control"}, "experiment_2": {"branch": "treatment"}}`. This deprecates the `shield_id` used in Activity Stream |                  |
 |                            | and Messaging System.                                                                                                                                |                  |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
-| `browser_session_id`       | [Optional] The unique identifier for a browser session, retrieved from TelemetrySession                                                              | :one:            |
+| ``browser_session_id``     | [Optional] The unique identifier for a browser session, retrieved from TelemetrySession                                                              | :one:            |
++----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
+| ``attribution.source``     | [Optional] Referring partner domain, when install happens via a known partner                                                                        | :one:            |
++----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
+| ``attribution.medium``     | [Optional] Category of the source, such as 'organic' for a search engine                                                                             | :one:            |
++----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
+| ``attribution.campaign``   | [Optional] Identifier of the particular campaign that led to the download of the product                                                             | :one:            |
++----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
+| ``attribution.content``    | [Optional] Identifier to indicate the particular link within a campaign                                                                              | :one:            |
++----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
+| ``attribution.experiment`` | [Optional] Funnel experiment identifier, see bug 1567339                                                                                             | :one:            |
++----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
+| ``attribution.variantion`` | [Optional] Funnel experiment variant identifier, see bug 1567339                                                                                     | :one:            |
++----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
+| ``attribution.ua``         | [Optional] Derived user agent, see bug 1595063                                                                                                       | :one:            |
 +----------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------+------------------+
 ```
 

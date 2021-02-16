@@ -27,6 +27,7 @@
 #include "js/Utility.h"
 #include "js/Value.h"
 #include "vm/BytecodeFormatFlags.h"  // JOF_*
+#include "vm/GeneratorResumeKind.h"
 #include "vm/Opcodes.h"
 #include "vm/SharedStencil.h"  // js::GCThingIndex
 #include "vm/ThrowMsgKind.h"   // ThrowMsgKind, ThrowCondition
@@ -536,9 +537,7 @@ inline bool IsCheckSloppyOp(JSOp op) {
 
 inline bool IsAtomOp(JSOp op) { return JOF_OPTYPE(op) == JOF_ATOM; }
 
-inline bool IsGetPropOp(JSOp op) {
-  return op == JSOp::Length || op == JSOp::GetProp || op == JSOp::CallProp;
-}
+inline bool IsGetPropOp(JSOp op) { return op == JSOp::GetProp; }
 
 inline bool IsGetPropPC(const jsbytecode* pc) { return IsGetPropOp(JSOp(*pc)); }
 
@@ -563,9 +562,7 @@ inline bool IsSetPropOp(JSOp op) {
 
 inline bool IsSetPropPC(const jsbytecode* pc) { return IsSetPropOp(JSOp(*pc)); }
 
-inline bool IsGetElemOp(JSOp op) {
-  return op == JSOp::GetElem || op == JSOp::CallElem;
-}
+inline bool IsGetElemOp(JSOp op) { return op == JSOp::GetElem; }
 
 inline bool IsGetElemPC(const jsbytecode* pc) { return IsGetElemOp(JSOp(*pc)); }
 
@@ -619,10 +616,6 @@ static inline int32_t GetBytecodeInteger(jsbytecode* pc) {
 }
 
 inline bool BytecodeOpHasIC(JSOp op) { return CodeSpec(op).format & JOF_IC; }
-
-inline bool BytecodeOpHasTypeSet(JSOp op) {
-  return CodeSpec(op).format & JOF_TYPESET;
-}
 
 inline void GetCheckPrivateFieldOperands(jsbytecode* pc,
                                          ThrowCondition* throwCondition,
@@ -695,6 +688,16 @@ class PCCounts {
 
 static inline jsbytecode* GetNextPc(jsbytecode* pc) {
   return pc + GetBytecodeLength(pc);
+}
+
+inline GeneratorResumeKind IntToResumeKind(int32_t value) {
+  MOZ_ASSERT(uint32_t(value) <= uint32_t(GeneratorResumeKind::Return));
+  return static_cast<GeneratorResumeKind>(value);
+}
+
+inline GeneratorResumeKind ResumeKindFromPC(jsbytecode* pc) {
+  MOZ_ASSERT(JSOp(*pc) == JSOp::ResumeKind);
+  return IntToResumeKind(GET_UINT8(pc));
 }
 
 #if defined(DEBUG) || defined(JS_JITSPEW)

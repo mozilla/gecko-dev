@@ -12,21 +12,13 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyGlobalGetters(this, ["XMLHttpRequest"]);
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "FormHistory",
-  "resource://gre/modules/FormHistory.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "PrivateBrowsingUtils",
-  "resource://gre/modules/PrivateBrowsingUtils.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "SearchSuggestionController",
-  "resource://gre/modules/SearchSuggestionController.jsm"
-);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.jsm",
+  FormHistory: "resource://gre/modules/FormHistory.jsm",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
+  SearchSuggestionController:
+    "resource://gre/modules/SearchSuggestionController.jsm",
+});
 
 const MAX_LOCAL_SUGGESTIONS = 3;
 const MAX_SUGGESTIONS = 6;
@@ -155,6 +147,7 @@ let ContentSearch = {
       return this._destroyedPromise;
     }
 
+    Services.prefs.removeObserver("browser.search.hiddenOneOffs", this);
     Services.obs.removeObserver(this, "browser-search-engine-modified");
     Services.obs.removeObserver(this, "browser-search-service");
     Services.obs.removeObserver(this, "shutdown-leaks-before-check");
@@ -250,7 +243,7 @@ let ContentSearch = {
       };
       win.openTrustedLinkIn(submission.uri.spec, where, params);
     }
-    win.BrowserSearch.recordSearchInTelemetry(engine, data.healthReportKey, {
+    BrowserSearchTelemetry.recordSearch(browser, engine, data.healthReportKey, {
       selection: data.selection,
       url: submission.uri,
     });
@@ -314,7 +307,12 @@ let ContentSearch = {
     } catch (err) {
       return false;
     }
-    if (isPrivate || !entry) {
+    if (
+      isPrivate ||
+      !entry ||
+      entry.value.length >
+        SearchSuggestionController.SEARCH_HISTORY_MAX_VALUE_LENGTH
+    ) {
       return false;
     }
     let browserData = this._suggestionDataForBrowser(browser, true);

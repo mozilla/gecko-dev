@@ -538,9 +538,7 @@ class WarpScriptSnapshot
 };
 
 // Captures information from previous bailouts to prevent bailout/recompile
-// loops. This mostly exists for compatibility with IonBuilder and the MIR
-// backend.
-// TODO: overhaul bailout tracking once IonBuilder is gone.
+// loops.
 class WarpBailoutInfo {
   // True if any script in the compilation has the failedBoundsCheck flag. In
   // this case mark bounds checks as non-movable to prevent hoisting them in
@@ -579,10 +577,21 @@ class WarpSnapshot : public TempObject {
   using NurseryObjectVector = Vector<JSObject*, 0, JitAllocPolicy>;
   NurseryObjectVector nurseryObjects_;
 
+#ifdef JS_CACHEIR_SPEW
+  bool needsFinalWarmUpCount_ = false;
+#endif
+
+#ifdef DEBUG
+  // A hash of the stub pointers and entry counts for each of the ICs
+  // in this snapshot.
+  mozilla::HashNumber icHash_ = 0;
+#endif
+
  public:
   explicit WarpSnapshot(JSContext* cx, TempAllocator& alloc,
                         WarpScriptSnapshotList&& scriptSnapshots,
-                        const WarpBailoutInfo& bailoutInfo);
+                        const WarpBailoutInfo& bailoutInfo,
+                        bool recordWarmUpCount);
 
   WarpScriptSnapshot* rootScript() { return scriptSnapshots_.getFirst(); }
   const WarpScriptSnapshotList& scripts() const { return scriptSnapshots_; }
@@ -599,9 +608,18 @@ class WarpSnapshot : public TempObject {
   NurseryObjectVector& nurseryObjects() { return nurseryObjects_; }
   const NurseryObjectVector& nurseryObjects() const { return nurseryObjects_; }
 
+#ifdef DEBUG
+  mozilla::HashNumber icHash() const { return icHash_; }
+  void setICHash(mozilla::HashNumber hash) { icHash_ = hash; }
+#endif
+
 #ifdef JS_JITSPEW
   void dump() const;
   void dump(GenericPrinter& out) const;
+#endif
+
+#ifdef JS_CACHEIR_SPEW
+  bool needsFinalWarmUpCount() const { return needsFinalWarmUpCount_; }
 #endif
 };
 

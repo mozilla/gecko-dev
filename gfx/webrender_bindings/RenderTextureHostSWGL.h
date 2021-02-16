@@ -7,6 +7,7 @@
 #ifndef MOZILLA_GFX_RENDERTEXTUREHOSTSWGL_H
 #define MOZILLA_GFX_RENDERTEXTUREHOSTSWGL_H
 
+#include "GLTypes.h"
 #include "RenderTextureHost.h"
 
 namespace mozilla {
@@ -56,6 +57,14 @@ class RenderTextureHostSWGL : public RenderTextureHost {
   // composition is done.
   bool LockSWGLCompositeSurface(void* aContext,
                                 wr::WrSWGLCompositeSurfaceInfo* aInfo);
+
+  size_t Bytes() override {
+    size_t bytes = 0;
+    for (auto& plane : mPlanes) {
+      bytes += plane.mStride * plane.mSize.height;
+    }
+    return bytes;
+  }
 
  protected:
   bool mLocked = false;

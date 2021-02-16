@@ -65,9 +65,19 @@ void MacroAssembler::xor32(Register src, Register dest) { xorl(src, dest); }
 
 void MacroAssembler::xor32(Imm32 imm, Register dest) { xorl(imm, dest); }
 
+void MacroAssembler::xor32(Imm32 imm, const Address& dest) {
+  xorl(imm, Operand(dest));
+}
+
+void MacroAssembler::xor32(const Address& src, Register dest) {
+  xorl(Operand(src), dest);
+}
+
 void MacroAssembler::clz32(Register src, Register dest, bool knownNotZero) {
-  // On very recent chips (Haswell and newer?) there is actually an
-  // LZCNT instruction that does all of this.
+  if (AssemblerX86Shared::HasLZCNT()) {
+    lzcntl(src, dest);
+    return;
+  }
 
   bsrl(src, dest);
   if (!knownNotZero) {
@@ -81,6 +91,11 @@ void MacroAssembler::clz32(Register src, Register dest, bool knownNotZero) {
 }
 
 void MacroAssembler::ctz32(Register src, Register dest, bool knownNotZero) {
+  if (AssemblerX86Shared::HasBMI1()) {
+    tzcntl(src, dest);
+    return;
+  }
+
   bsfl(src, dest);
   if (!knownNotZero) {
     Label nonzero;
@@ -323,11 +338,19 @@ void MacroAssembler::rotateRight(Register count, Register input,
 // Shift instructions
 
 void MacroAssembler::lshift32(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    shlxl(srcDest, shift, srcDest);
+    return;
+  }
   MOZ_ASSERT(shift == ecx);
   shll_cl(srcDest);
 }
 
 void MacroAssembler::flexibleLshift32(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    shlxl(srcDest, shift, srcDest);
+    return;
+  }
   if (shift == ecx) {
     shll_cl(srcDest);
   } else {
@@ -339,11 +362,19 @@ void MacroAssembler::flexibleLshift32(Register shift, Register srcDest) {
 }
 
 void MacroAssembler::rshift32(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    shrxl(srcDest, shift, srcDest);
+    return;
+  }
   MOZ_ASSERT(shift == ecx);
   shrl_cl(srcDest);
 }
 
 void MacroAssembler::flexibleRshift32(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    shrxl(srcDest, shift, srcDest);
+    return;
+  }
   if (shift == ecx) {
     shrl_cl(srcDest);
   } else {
@@ -355,12 +386,20 @@ void MacroAssembler::flexibleRshift32(Register shift, Register srcDest) {
 }
 
 void MacroAssembler::rshift32Arithmetic(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    sarxl(srcDest, shift, srcDest);
+    return;
+  }
   MOZ_ASSERT(shift == ecx);
   sarl_cl(srcDest);
 }
 
 void MacroAssembler::flexibleRshift32Arithmetic(Register shift,
                                                 Register srcDest) {
+  if (HasBMI2()) {
+    sarxl(srcDest, shift, srcDest);
+    return;
+  }
   if (shift == ecx) {
     sarl_cl(srcDest);
   } else {
@@ -580,6 +619,26 @@ void MacroAssembler::branchRshift32(Condition cond, T src, Register dest,
 void MacroAssembler::branchNeg32(Condition cond, Register reg, Label* label) {
   MOZ_ASSERT(cond == Overflow);
   neg32(reg);
+  j(cond, label);
+}
+
+template <typename T>
+void MacroAssembler::branchAddPtr(Condition cond, T src, Register dest,
+                                  Label* label) {
+  addPtr(src, dest);
+  j(cond, label);
+}
+
+template <typename T>
+void MacroAssembler::branchSubPtr(Condition cond, T src, Register dest,
+                                  Label* label) {
+  subPtr(src, dest);
+  j(cond, label);
+}
+
+void MacroAssembler::branchMulPtr(Condition cond, Register src, Register dest,
+                                  Label* label) {
+  mulPtr(src, dest);
   j(cond, label);
 }
 
@@ -1240,6 +1299,11 @@ void MacroAssembler::interleaveHighInt32x4(FloatRegister rhs,
   vpunpckhdq(rhs, lhsDest, lhsDest);
 }
 
+void MacroAssembler::interleaveHighInt64x2(FloatRegister rhs,
+                                           FloatRegister lhsDest) {
+  vpunpckhqdq(rhs, lhsDest, lhsDest);
+}
+
 void MacroAssembler::interleaveHighInt8x16(FloatRegister rhs,
                                            FloatRegister lhsDest) {
   vpunpckhbw(rhs, lhsDest, lhsDest);
@@ -1253,6 +1317,11 @@ void MacroAssembler::interleaveLowInt16x8(FloatRegister rhs,
 void MacroAssembler::interleaveLowInt32x4(FloatRegister rhs,
                                           FloatRegister lhsDest) {
   vpunpckldq(rhs, lhsDest, lhsDest);
+}
+
+void MacroAssembler::interleaveLowInt64x2(FloatRegister rhs,
+                                          FloatRegister lhsDest) {
+  vpunpcklqdq(rhs, lhsDest, lhsDest);
 }
 
 void MacroAssembler::interleaveLowInt8x16(FloatRegister rhs,
@@ -2075,7 +2144,9 @@ void MacroAssembler::unsignedCompareInt32x4(Assembler::Condition cond,
 void MacroAssembler::compareFloat32x4(Assembler::Condition cond,
                                       FloatRegister rhs,
                                       FloatRegister lhsDest) {
-  // There's a hack in the assembler to allow operands to be reversed like this.
+  // Code in the SIMD implementation allows operands to be reversed like this,
+  // this benefits the baseline compiler.  Ion takes care of the reversing
+  // itself and never generates GT/GE.
   if (cond == Assembler::GreaterThan) {
     MacroAssemblerX86Shared::compareFloat32x4(rhs, Operand(lhsDest),
                                               Assembler::LessThan, lhsDest);
@@ -2088,10 +2159,20 @@ void MacroAssembler::compareFloat32x4(Assembler::Condition cond,
   }
 }
 
+void MacroAssembler::compareFloat32x4(Assembler::Condition cond,
+                                      const SimdConstant& rhs,
+                                      FloatRegister lhsDest) {
+  MOZ_ASSERT(cond != Assembler::Condition::GreaterThan &&
+             cond != Assembler::Condition::GreaterThanOrEqual);
+  MacroAssemblerX86Shared::compareFloat32x4(cond, rhs, lhsDest);
+}
+
 void MacroAssembler::compareFloat64x2(Assembler::Condition cond,
                                       FloatRegister rhs,
                                       FloatRegister lhsDest) {
-  // There's a hack in the assembler to allow operands to be reversed like this.
+  // Code in the SIMD implementation allows operands to be reversed like this,
+  // this benefits the baseline compiler.  Ion takes care of the reversing
+  // itself and never generates GT/GE.
   if (cond == Assembler::GreaterThan) {
     MacroAssemblerX86Shared::compareFloat64x2(rhs, Operand(lhsDest),
                                               Assembler::LessThan, lhsDest);
@@ -2102,6 +2183,14 @@ void MacroAssembler::compareFloat64x2(Assembler::Condition cond,
     MacroAssemblerX86Shared::compareFloat64x2(lhsDest, Operand(rhs), cond,
                                               lhsDest);
   }
+}
+
+void MacroAssembler::compareFloat64x2(Assembler::Condition cond,
+                                      const SimdConstant& rhs,
+                                      FloatRegister lhsDest) {
+  MOZ_ASSERT(cond != Assembler::Condition::GreaterThan &&
+             cond != Assembler::Condition::GreaterThanOrEqual);
+  MacroAssemblerX86Shared::compareFloat64x2(cond, rhs, lhsDest);
 }
 
 // Load.  See comments above regarding integer operation.

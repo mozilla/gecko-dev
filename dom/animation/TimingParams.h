@@ -7,6 +7,7 @@
 #ifndef mozilla_TimingParams_h
 #define mozilla_TimingParams_h
 
+#include "X11UndefineNone.h"
 #include "nsPrintfCString.h"
 #include "nsStringFwd.h"
 #include "nsPrintfCString.h"
@@ -118,7 +119,7 @@ struct TimingParams {
     }
   }
 
-  static Maybe<ComputedTimingFunction> ParseEasing(const nsAString& aEasing,
+  static Maybe<ComputedTimingFunction> ParseEasing(const nsACString& aEasing,
                                                    ErrorResult& aRv);
 
   static StickyTimeDuration CalcActiveDuration(

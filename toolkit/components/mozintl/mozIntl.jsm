@@ -12,21 +12,10 @@ const osPrefs = Cc["@mozilla.org/intl/ospreferences;1"].getService(
 );
 
 /**
- * RegExp used to parse a BCP47 language tag (ex: en-US, sr-Cyrl-RU etc.)
+ * RegExp used to parse variant subtags from a BCP47 language tag.
+ * For example: ca-valencia
  */
-const languageTagMatch = /^([a-z]{2,3}|[a-z]{4}|[a-z]{5,8})(?:[-_]([a-z]{4}))?(?:[-_]([A-Z]{2}|[0-9]{3}))?((?:[-_](?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*)(?:[-_][a-wy-z0-9](?:[-_][a-z0-9]{2,8})+)*(?:[-_]x(?:[-_][a-z0-9]{1,8})+)?$/i;
-
-/**
- * This helper function retrives currently used app locales, allowing
- * all mozIntl APIs to use the current regional prefs locales unless
- * called with explicitly listed locales.
- */
-function getLocales(locales) {
-  if (!locales) {
-    return Services.locale.regionalPrefsLocales;
-  }
-  return locales;
-}
+const variantSubtagsMatch = /(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))+$/;
 
 function getDateTimePatternStyle(option) {
   switch (option) {
@@ -656,24 +645,6 @@ const availableLocaleDisplayNames = {
   ]),
 };
 
-class MozNumberFormat extends Intl.NumberFormat {
-  constructor(locales, options, ...args) {
-    super(getLocales(locales), options, ...args);
-  }
-}
-
-class MozCollator extends Intl.Collator {
-  constructor(locales, options, ...args) {
-    super(getLocales(locales), options, ...args);
-  }
-}
-
-class MozPluralRules extends Intl.PluralRules {
-  constructor(locales, options, ...args) {
-    super(getLocales(locales), options, ...args);
-  }
-}
-
 class MozRelativeTimeFormat extends Intl.RelativeTimeFormat {
   constructor(locales, options = {}, ...args) {
     // If someone is asking for MozRelativeTimeFormat, it's likely they'll want
@@ -681,7 +652,7 @@ class MozRelativeTimeFormat extends Intl.RelativeTimeFormat {
     if (options.numeric === undefined) {
       options.numeric = "auto";
     }
-    super(getLocales(locales), options, ...args);
+    super(locales, options, ...args);
   }
 
   formatBestUnit(date, { now = new Date() } = {}) {
@@ -757,9 +728,11 @@ class MozRelativeTimeFormat extends Intl.RelativeTimeFormat {
 }
 
 class MozIntl {
-  NumberFormat = MozNumberFormat;
-  Collator = MozCollator;
-  PluralRules = MozPluralRules;
+  Collator = Intl.Collator;
+  ListFormat = Intl.ListFormat;
+  Locale = Intl.Locale;
+  NumberFormat = Intl.NumberFormat;
+  PluralRules = Intl.PluralRules;
   RelativeTimeFormat = MozRelativeTimeFormat;
 
   constructor() {
@@ -777,7 +750,7 @@ class MozIntl {
       mozIntlHelper.addGetCalendarInfo(this._cache);
     }
 
-    return this._cache.getCalendarInfo(getLocales(locales), ...args);
+    return this._cache.getCalendarInfo(locales, ...args);
   }
 
   getDisplayNames(locales, ...args) {
@@ -785,7 +758,7 @@ class MozIntl {
       mozIntlHelper.addGetDisplayNames(this._cache);
     }
 
-    return this._cache.getDisplayNames(getLocales(locales), ...args);
+    return this._cache.getDisplayNames(locales, ...args);
   }
 
   getLocaleInfo(locales, ...args) {
@@ -793,7 +766,7 @@ class MozIntl {
       mozIntlHelper.addGetLocaleInfo(this._cache);
     }
 
-    return this._cache.getLocaleInfo(getLocales(locales), ...args);
+    return this._cache.getLocaleInfo(locales, ...args);
   }
 
   getAvailableLocaleDisplayNames(type) {
@@ -871,21 +844,21 @@ class MozIntl {
       if (typeof localeCode !== "string") {
         throw new TypeError("All locale codes must be strings.");
       }
-      // Get the display name for this dictionary.
-      // XXX: To be replaced with Intl.Locale once it lands - bug 1433303.
-      const match = localeCode.match(languageTagMatch);
 
-      if (match === null) {
+      let locale;
+      try {
+        locale = new Intl.Locale(localeCode.replaceAll("_", "-"));
+      } catch {
         return localeCode;
       }
 
-      const [
-        ,
-        /* languageTag */ languageSubtag,
-        scriptSubtag,
-        regionSubtag,
-        variantSubtags,
-      ] = match;
+      const {
+        language: languageSubtag,
+        script: scriptSubtag,
+        region: regionSubtag,
+      } = locale;
+
+      const variantSubtags = locale.baseName.match(variantSubtagsMatch);
 
       const displayName = [
         this.getLanguageDisplayNames(locales, [languageSubtag])[0],
@@ -902,7 +875,7 @@ class MozIntl {
       }
 
       if (variantSubtags) {
-        displayName.push(...variantSubtags.substr(1).split(/[-_]/)); // Collapse multiple variants.
+        displayName.push(...variantSubtags[0].substr(1).split("-")); // Collapse multiple variants.
       }
 
       let modifiers;
@@ -927,9 +900,7 @@ class MozIntl {
 
       class MozDateTimeFormat extends DateTimeFormat {
         constructor(locales, options, ...args) {
-          let resolvedLocales = DateTimeFormat.supportedLocalesOf(
-            getLocales(locales)
-          );
+          let resolvedLocales = DateTimeFormat.supportedLocalesOf(locales);
           if (options) {
             if (options.dateStyle || options.timeStyle) {
               options.pattern = osPrefs.getDateTimePattern(

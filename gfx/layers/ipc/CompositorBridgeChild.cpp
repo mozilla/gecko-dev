@@ -28,6 +28,7 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/ipc/Endpoint.h"
 #include "mozilla/webgpu/WebGPUChild.h"
 #include "mozilla/mozalloc.h"  // for operator new, etc
 #include "mozilla/Telemetry.h"
@@ -41,6 +42,7 @@
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/Unused.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/SpinEventLoopUntil.h"
 #include "nsThreadUtils.h"
 #if defined(XP_WIN)
 #  include "WinUtils.h"
@@ -1091,7 +1093,8 @@ bool CompositorBridgeChild::DeallocPAPZCTreeManagerChild(
 void CompositorBridgeChild::WillEndTransaction() { ResetShmemCounter(); }
 
 PWebRenderBridgeChild* CompositorBridgeChild::AllocPWebRenderBridgeChild(
-    const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize&) {
+    const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize&,
+    const WindowKind&) {
   WebRenderBridgeChild* child = new WebRenderBridgeChild(aPipelineId);
   child->AddIPDLReference();
   return child;

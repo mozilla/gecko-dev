@@ -131,6 +131,10 @@ export class _Search extends React.PureComponent {
       .filter(v => v)
       .join(" ");
 
+    const isNewNewtabExperienceEnabled = this.props.Prefs.values[
+      "newNewtabExperience.enabled"
+    ];
+
     return (
       <div className={wrapperClassName}>
         {this.props.showLogo && (
@@ -143,7 +147,11 @@ export class _Search extends React.PureComponent {
           <div className="search-inner-wrapper">
             <input
               id="newtab-search-text"
-              data-l10n-id="newtab-search-box-search-the-web-input"
+              data-l10n-id={
+                isNewNewtabExperienceEnabled
+                  ? "newtab-search-box-input"
+                  : "newtab-search-box-search-the-web-input"
+              }
               maxLength="256"
               ref={this.onInputMount}
               type="search"
@@ -160,14 +168,22 @@ export class _Search extends React.PureComponent {
           <div className="search-inner-wrapper">
             <button
               className="search-handoff-button"
-              data-l10n-id="newtab-search-box-search-the-web-input"
+              data-l10n-id={
+                isNewNewtabExperienceEnabled
+                  ? "newtab-search-box-input"
+                  : "newtab-search-box-search-the-web-input"
+              }
               ref={this.onSearchHandoffButtonMount}
               onClick={this.onSearchHandoffClick}
               tabIndex="-1"
             >
               <div
                 className="fake-textbox"
-                data-l10n-id="newtab-search-box-search-the-web-text"
+                data-l10n-id={
+                  isNewNewtabExperienceEnabled
+                    ? "newtab-search-box-text"
+                    : "newtab-search-box-search-the-web-text"
+                }
               />
               <input
                 type="search"
@@ -187,4 +203,6 @@ export class _Search extends React.PureComponent {
   }
 }
 
-export const Search = connect()(_Search);
+export const Search = connect(state => ({
+  Prefs: state.Prefs,
+}))(_Search);

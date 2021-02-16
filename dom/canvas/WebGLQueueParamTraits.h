@@ -8,6 +8,7 @@
 
 #include <type_traits>
 
+#include "ipc/EnumSerializer.h"
 #include "mozilla/dom/ProducerConsumerQueue.h"
 #include "TexUnpackBlob.h"
 #include "WebGLContext.h"
@@ -67,6 +68,8 @@ struct IsTriviallySerializable<webgl::VertAttribPointerDesc> : std::true_type {
 };
 template <>
 struct IsTriviallySerializable<webgl::ReadPixelsDesc> : std::true_type {};
+template <>
+struct IsTriviallySerializable<layers::SurfaceDescriptor> : std::true_type {};
 
 template <typename T>
 struct QueueParamTraits<RawBuffer<T>> {

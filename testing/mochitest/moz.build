@@ -46,6 +46,7 @@ FINAL_TARGET_FILES.content.static += [
 FINAL_TARGET_FILES.content.tests.SimpleTest += [
     "../../docshell/test/chrome/docshell_helpers.js",
     "../modules/StructuredLog.jsm",
+    "tests/SimpleTest/AccessibilityUtils.js",
     "tests/SimpleTest/EventUtils.js",
     "tests/SimpleTest/ExtensionTestUtils.js",
     "tests/SimpleTest/iframe-between-tests.html",
@@ -82,7 +83,6 @@ MOCHITEST_CHROME_MANIFESTS += [
 BROWSER_CHROME_MANIFESTS += ["baselinecoverage/browser_chrome/browser.ini"]
 
 TEST_HARNESS_FILES.testing.mochitest += [
-    "/build/mobile/remoteautomation.py",
     "/build/pgo/server-locations.txt",
     "/build/valgrind/cross-architecture.sup",
     "/build/valgrind/i386-pc-linux-gnu.sup",
@@ -201,6 +201,7 @@ TEST_HARNESS_FILES.testing.mochitest.iceserver += [
 TEST_HARNESS_FILES.testing.mochitest.websocketprocessbridge += [
     "/testing/tools/websocketprocessbridge/websocketprocessbridge.py",
     "/testing/tools/websocketprocessbridge/websocketprocessbridge_requirements.txt",
+    "/testing/tools/websocketprocessbridge/websocketprocessbridge_requirements_3.txt",
 ]
 
 with Files("**"):

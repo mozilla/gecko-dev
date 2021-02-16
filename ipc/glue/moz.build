@@ -21,6 +21,7 @@ EXPORTS.mozilla.ipc += [
     "CrashReporterHost.h",
     "CrossProcessMutex.h",
     "CrossProcessSemaphore.h",
+    "Endpoint.h",
     "EnvironmentMap.h",
     "FileDescriptor.h",
     "FileDescriptorSetChild.h",
@@ -31,21 +32,27 @@ EXPORTS.mozilla.ipc += [
     "IdleSchedulerParent.h",
     "InputStreamUtils.h",
     "IOThreadChild.h",
+    "IPCCore.h",
     "IPCStreamAlloc.h",
     "IPCStreamDestination.h",
     "IPCStreamSource.h",
     "IPCStreamUtils.h",
+    "IPCTypes.h",
     "IPDLParamTraits.h",
     "LibrarySandboxPreload.h",
     "MessageChannel.h",
     "MessageLink.h",
     "Neutering.h",
     "ProcessChild.h",
+    "ProtocolMessageUtils.h",
     "ProtocolUtils.h",
+    "ProtocolUtilsFwd.h",
     "ScopedXREEmbed.h",
+    "SerializedStructuredCloneBuffer.h",
     "SharedMemory.h",
     "SharedMemoryBasic.h",
     "Shmem.h",
+    "ShmemMessageUtils.h",
     "TaintingIPCUtils.h",
     "TaskFactory.h",
     "Transport.h",
@@ -136,7 +143,9 @@ if CONFIG["OS_ARCH"] != "WINNT":
     ]
 
 EXPORTS.ipc += [
+    "EnumSerializer.h",
     "IPCMessageUtils.h",
+    "IPCMessageUtilsSpecializations.h",
 ]
 
 UNIFIED_SOURCES += [

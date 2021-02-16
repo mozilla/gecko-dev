@@ -8,9 +8,8 @@
 #define mozilla_dom_JSActor_h
 
 #include "js/TypeDecls.h"
-#include "ipc/IPCMessageUtils.h"
+#include "ipc/EnumSerializer.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDataHashtable.h"
@@ -20,7 +19,13 @@ class nsIGlobalObject;
 class nsQueryJSActor;
 
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
+
+namespace ipc {
+class StructuredCloneData;
+}
 
 class JSActorManager;
 class JSActorMessageMeta;
@@ -81,6 +86,8 @@ class JSActor : public nsISupports, public nsWrapperCache {
   void SetName(const nsACString& aName);
 
   bool CanSend() const { return mCanSend; }
+
+  void ThrowStateErrorForGetter(const char* aName, ErrorResult& aRv) const;
 
   void StartDestroy();
   void AfterDestroy();

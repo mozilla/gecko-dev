@@ -1,11 +1,7 @@
 # Sets:
 #    MOZ_AUTOMATION flags
 #    SOCORRO_SYMBOL_UPLOAD_TOKEN_FILE - shouldn't be used?
-#    TOOLTOOL_DIR
-#    DUMP_SYMS - isn't used.
 . "$topsrcdir/build/mozconfig.win-common"
-
-unset DUMP_SYMS
 
 # Sets:
 #  build/mozconfig.common
@@ -17,10 +13,6 @@ unset DUMP_SYMS
 #    --enable-js-shell
 #  build/mozconfig.automation
 #    MOZ_AUTOMATION_ flags
-#  build/mozconfig.rust
-#    TOOLTOOL_DIR
-#    RUSTC
-#    CARGO
 . "$topsrcdir/browser/config/mozconfigs/common"
 
 export MOZ_PACKAGE_JSSHELL=1
@@ -30,7 +22,6 @@ ac_add_options --target=i686-w64-mingw32
 ac_add_options --with-toolchain-prefix=i686-w64-mingw32-
 
 ac_add_options --disable-warnings-as-errors
-MOZ_COPY_PDBS=1
 mk_add_options "export WIDL_TIME_OVERRIDE=0"
 
 # This replicates Tor's configuration
@@ -47,11 +38,7 @@ HOST_CC="$MOZ_FETCHES_DIR/clang/bin/clang"
 HOST_CXX="$MOZ_FETCHES_DIR/clang/bin/clang++"
 CC="$MOZ_FETCHES_DIR/clang/bin/i686-w64-mingw32-clang"
 CXX="$MOZ_FETCHES_DIR/clang/bin/i686-w64-mingw32-clang++"
-ac_add_options --with-clang-path="$CC"
-ac_add_options --with-libclang-path="$MOZ_FETCHES_DIR/clang/lib"
 CXXFLAGS="-fms-extensions"
-AR=llvm-ar
-RANLIB=llvm-ranlib
 CFLAGS="$CFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
 CXXFLAGS="$CXXFLAGS -fcrash-diagnostics-dir=${UPLOAD_PATH}"
 

@@ -9,6 +9,7 @@ const {
   EVALUATE_EXPRESSION,
   SET_TERMINAL_INPUT,
   SET_TERMINAL_EAGER_RESULT,
+  EDITOR_PRETTY_PRINT,
 } = require("devtools/client/webconsole/constants");
 const { getAllPrefs } = require("devtools/client/webconsole/selectors/prefs");
 const {
@@ -25,7 +26,7 @@ loader.lazyServiceGetter(
 loader.lazyRequireGetter(
   this,
   "saveScreenshot",
-  "devtools/shared/screenshot/save"
+  "devtools/client/shared/save-screenshot"
 );
 loader.lazyRequireGetter(
   this,
@@ -110,13 +111,7 @@ function evaluateExpression(expression, from = "input") {
       })
       .then(onSettled, onSettled);
 
-    // Before Firefox 77, the response did not have a `startTime` property, so we're using
-    // the `resultID`, which does contain the server time at which the evaluation started
-    // (its shape is `${timestamp}-${someId}`).
-    const serverConsoleCommandTimestamp =
-      response.startTime ||
-      (response.resultID && Number(response.resultID.replace(/\-\d*$/, ""))) ||
-      null;
+    const serverConsoleCommandTimestamp = response.startTime;
 
     // In case of remote debugging, it might happen that the debuggee page does not have
     // the exact same clock time as the client. This could cause some ordering issues
@@ -172,9 +167,18 @@ function onExpressionEvaluated(response) {
 }
 
 function handleHelperResult(response) {
+  // eslint-disable-next-line complexity
   return async ({ dispatch, hud, toolbox, webConsoleUI }) => {
     const { result, helperResult } = response;
     const helperHasRawOutput = !!helperResult?.rawOutput;
+    const hasNetworkResourceWatcherSupport = hud.resourceWatcher.hasResourceWatcherSupport(
+      hud.resourceWatcher.TYPES.NETWORK_EVENT
+    );
+    let networkFront = null;
+    // @backward-compat { version 86 } default network events watcher support
+    if (hasNetworkResourceWatcherSupport) {
+      networkFront = await hud.resourceWatcher.watcherFront.getNetworkParentActor();
+    }
 
     if (helperResult?.type) {
       switch (helperResult.type) {
@@ -217,7 +221,14 @@ function handleHelperResult(response) {
           break;
         case "blockURL":
           const blockURL = helperResult.args.url;
-
+          // The console actor isn't able to block the request as the console actor runs in the content
+          // process, while the request has to be blocked from the parent process.
+          // Then, calling the Netmonitor action will only update the visual state of the Netmonitor,
+          // but we also have to block the request via the NetworkParentActor.
+          // @backward-compat { version 86 } default network events watcher support
+          if (hasNetworkResourceWatcherSupport && networkFront) {
+            await networkFront.blockRequest({ url: blockURL });
+          }
           toolbox
             .getPanel("netmonitor")
             ?.panelWin.store.dispatch(
@@ -238,6 +249,10 @@ function handleHelperResult(response) {
           break;
         case "unblockURL":
           const unblockURL = helperResult.args.url;
+          // @backward-compat { version 86 } see related comments in block url above
+          if (hasNetworkResourceWatcherSupport && networkFront) {
+            await networkFront.unblockRequest({ url: unblockURL });
+          }
           toolbox
             .getPanel("netmonitor")
             ?.panelWin.store.dispatch(
@@ -364,10 +379,17 @@ function getEagerEvaluationResult(response) {
   return result;
 }
 
+function prettyPrintEditor() {
+  return {
+    type: EDITOR_PRETTY_PRINT,
+  };
+}
+
 module.exports = {
   evaluateExpression,
   focusInput,
   setInputValue,
   terminalInputChanged,
   updateInstantEvaluationResultForCurrentExpression,
+  prettyPrintEditor,
 };

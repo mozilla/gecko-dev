@@ -8,6 +8,7 @@
 #define MOZILLA_GFX_RENDERTEXTUREHOST_H
 
 #include "GLConsts.h"
+#include "GLTypes.h"
 #include "nsISupportsImpl.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/layers/LayersSurfaces.h"
@@ -68,6 +69,8 @@ class RenderTextureHost {
   // Returns true when RenderTextureHost needs SyncObjectHost::Synchronize()
   // call, before its usage.
   virtual bool SyncObjectNeeded() { return false; }
+
+  virtual size_t Bytes() = 0;
 
   virtual RenderDXGITextureHost* AsRenderDXGITextureHost() { return nullptr; }
   virtual RenderDXGIYCbCrTextureHost* AsRenderDXGIYCbCrTextureHost() {

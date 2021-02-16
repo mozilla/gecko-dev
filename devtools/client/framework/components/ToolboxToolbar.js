@@ -213,6 +213,10 @@ class ToolboxToolbar extends Component {
         return this.renderFrameButton(command);
       }
 
+      if (id === "command-button-errorcount") {
+        return this.renderErrorIcon(command);
+      }
+
       return button({
         id,
         title: description,
@@ -238,7 +242,7 @@ class ToolboxToolbar extends Component {
         children.push(this.renderSeparator());
         // For the end group we add a separator *before* the RDM button if it
         // exists, but only if it is not the only button.
-      } else if (rdmIndex !== -1 && visibleButtons.length > 1) {
+      } else if (rdmIndex !== -1 && renderedButtons.length > 1) {
         children.splice(children.length - 1, 0, this.renderSeparator());
       }
     }
@@ -275,6 +279,35 @@ class ToolboxToolbar extends Component {
         },
       },
       this.createFrameList
+    );
+  }
+
+  renderErrorIcon(command) {
+    let { errorCount, id } = command;
+
+    if (!errorCount) {
+      return null;
+    }
+
+    if (errorCount > 99) {
+      errorCount = "99+";
+    }
+
+    return button(
+      {
+        id,
+        className: "devtools-tabbar-button command-button toolbox-error",
+        onClick: () => {
+          if (this.props.currentToolId !== "webconsole") {
+            this.props.toolbox.openSplitConsole();
+          }
+        },
+        title:
+          this.props.currentToolId !== "webconsole"
+            ? this.props.L10N.getStr("toolbox.errorCountButton.tooltip")
+            : null,
+      },
+      errorCount
     );
   }
 

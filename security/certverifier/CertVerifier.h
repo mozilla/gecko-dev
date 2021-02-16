@@ -67,18 +67,6 @@ enum class SHA1ModeResult {
   Failed = 5,
 };
 
-// Whether or not we are enforcing one of our CA distrust policies. For context,
-// see Bug 1437754 and Bug 1409257.
-enum DistrustedCAPolicy : uint32_t {
-  Permit = 0b0000,
-  DistrustSymantecRoots = 0b0001,
-  DistrustSymantecRootsRegardlessOfDate = 0b0010,
-};
-
-// Bitmask by nsNSSComponent to check for wholly-invalid values; be sure to
-// update this to account for new entries in DistrustedCAPolicy.
-const uint32_t DistrustedCAPolicyMaxAllowedValueMask = 0b0011;
-
 enum class CRLiteMode {
   Disabled = 0,
   TelemetryOnly = 1,
@@ -151,21 +139,6 @@ enum class CRLiteLookupResult {
   CertRevokedByStash = 7,
 };
 
-class CRLiteTelemetryInfo {
- public:
-  CRLiteTelemetryInfo() : mLookupResult(CRLiteLookupResult::NeverChecked) {}
-
-  void Reset() {
-    mLookupResult = CRLiteLookupResult::NeverChecked;
-    mCRLiteFasterThanOCSPMillis.reset();
-    mOCSPFasterThanCRLiteMillis.reset();
-  }
-
-  CRLiteLookupResult mLookupResult;
-  Maybe<double> mCRLiteFasterThanOCSPMillis;
-  Maybe<double> mOCSPFasterThanCRLiteMillis;
-};
-
 class NSSCertDBTrustDomain;
 
 class CertVerifier {
@@ -206,7 +179,7 @@ class CertVerifier {
       /*optional out*/ SHA1ModeResult* sha1ModeResult = nullptr,
       /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
       /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr,
-      /*optional out*/ CRLiteTelemetryInfo* crliteInfo = nullptr);
+      /*optional out*/ CRLiteLookupResult* crliteLookupResult = nullptr);
 
   mozilla::pkix::Result VerifySSLServerCert(
       const UniqueCERTCertificate& peerCert, mozilla::pkix::Time time,
@@ -228,7 +201,7 @@ class CertVerifier {
       /*optional out*/ SHA1ModeResult* sha1ModeResult = nullptr,
       /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
       /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr,
-      /*optional out*/ CRLiteTelemetryInfo* crliteInfo = nullptr,
+      /*optional out*/ CRLiteLookupResult* crliteLookupResult = nullptr,
       /*optional out*/ bool* isBuiltCertChainRootBuiltInRoot = nullptr);
 
   enum PinningMode {
@@ -263,8 +236,7 @@ class CertVerifier {
                uint32_t certShortLifetimeInDays, PinningMode pinningMode,
                SHA1Mode sha1Mode, BRNameMatchingPolicy::Mode nameMatchingMode,
                NetscapeStepUpPolicy netscapeStepUpPolicy,
-               CertificateTransparencyMode ctMode,
-               DistrustedCAPolicy distrustedCAPolicy, CRLiteMode crliteMode,
+               CertificateTransparencyMode ctMode, CRLiteMode crliteMode,
                uint64_t crliteCTMergeDelaySeconds,
                const Vector<EnterpriseCert>& thirdPartyCerts);
   ~CertVerifier();
@@ -281,7 +253,6 @@ class CertVerifier {
   const BRNameMatchingPolicy::Mode mNameMatchingMode;
   const NetscapeStepUpPolicy mNetscapeStepUpPolicy;
   const CertificateTransparencyMode mCTMode;
-  const DistrustedCAPolicy mDistrustedCAPolicy;
   const CRLiteMode mCRLiteMode;
   const uint64_t mCRLiteCTMergeDelaySeconds;
 

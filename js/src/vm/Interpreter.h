@@ -20,6 +20,7 @@
 
 namespace js {
 
+class WithScope;
 class EnvironmentIter;
 class PlainObject;
 
@@ -504,9 +505,6 @@ bool ThrowOperation(JSContext* cx, HandleValue v);
 bool GetProperty(JSContext* cx, HandleValue value, HandlePropertyName name,
                  MutableHandleValue vp);
 
-bool GetValueProperty(JSContext* cx, HandleValue value, HandlePropertyName name,
-                      MutableHandleValue vp);
-
 JSObject* Lambda(JSContext* cx, HandleFunction fun, HandleObject parent);
 
 JSObject* LambdaArrow(JSContext* cx, HandleFunction fun, HandleObject parent,
@@ -518,12 +516,6 @@ bool SetObjectElement(JSContext* cx, HandleObject obj, HandleValue index,
 bool SetObjectElementWithReceiver(JSContext* cx, HandleObject obj,
                                   HandleValue index, HandleValue value,
                                   HandleValue receiver, bool strict);
-bool SetObjectElement(JSContext* cx, HandleObject obj, HandleValue index,
-                      HandleValue value, HandleValue receiver, bool strict,
-                      HandleScript script, jsbytecode* pc);
-
-bool InitElementArray(JSContext* cx, jsbytecode* pc, HandleArrayObject arr,
-                      uint32_t index, HandleValue value);
 
 bool AddValues(JSContext* cx, MutableHandleValue lhs, MutableHandleValue rhs,
                MutableHandleValue res);
@@ -587,15 +579,6 @@ bool DelElemOperation(JSContext* cx, HandleValue val, HandleValue index,
 
 JSObject* BindVarOperation(JSContext* cx, JSObject* envChain);
 
-bool DefVarOperation(JSContext* cx, HandleObject envChain, HandleScript script,
-                     jsbytecode* pc);
-
-bool DefLexicalOperation(JSContext* cx, HandleObject envChain,
-                         HandleScript script, jsbytecode* pc);
-
-bool DefFunOperation(JSContext* cx, HandleScript script, HandleObject envChain,
-                     HandleFunction funArg);
-
 JSObject* SingletonObjectLiteralOperation(JSContext* cx, HandleScript script,
                                           jsbytecode* pc);
 
@@ -642,15 +625,8 @@ JSObject* NewObjectOperationWithTemplate(JSContext* cx,
                                          HandleObject templateObject);
 JSObject* CreateThisWithTemplate(JSContext* cx, HandleObject templateObject);
 
-ArrayObject* NewArrayOperation(JSContext* cx, HandleScript script,
-                               jsbytecode* pc, uint32_t length,
+ArrayObject* NewArrayOperation(JSContext* cx, uint32_t length,
                                NewObjectKind newKind = GenericObject);
-
-ArrayObject* NewArrayOperationWithTemplate(JSContext* cx,
-                                           HandleObject templateObject);
-
-ArrayObject* NewArrayCopyOnWriteOperation(JSContext* cx, HandleScript script,
-                                          jsbytecode* pc);
 
 MOZ_MUST_USE bool GetImportOperation(JSContext* cx, HandleObject envChain,
                                      HandleScript script, jsbytecode* pc,
@@ -670,7 +646,7 @@ void ReportInNotObjectError(JSContext* cx, HandleValue lref, int lindex,
 
 // The parser only reports redeclarations that occurs within a single
 // script. Due to the extensibility of the global lexical scope, we also check
-// for redeclarations during runtime in JSOp::Def{Var,Let,Const}.
+// for redeclarations during runtime in JSOp::GlobalOrEvalDeclInstantation.
 void ReportRuntimeRedeclaration(JSContext* cx, HandlePropertyName name,
                                 const char* redeclKind);
 

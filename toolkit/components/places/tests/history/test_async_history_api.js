@@ -31,7 +31,7 @@ function VisitInfo(aTransitionType, aVisitTime) {
   this.visitDate = aVisitTime || Date.now() * 1000;
 }
 
-function promiseUpdatePlaces(aPlaces, aOptions, aBatchFrecencyNotifications) {
+function promiseUpdatePlaces(aPlaces, aOptions = {}) {
   return new Promise((resolve, reject) => {
     asyncHistory.updatePlaces(
       aPlaces,
@@ -54,40 +54,51 @@ function promiseUpdatePlaces(aPlaces, aOptions, aBatchFrecencyNotifications) {
           },
         },
         aOptions
-      ),
-      aBatchFrecencyNotifications
+      )
     );
   });
 }
 
 /**
  * Listens for a title change notification, and calls aCallback when it gets it.
- *
- * @param aURI
- *        The URI of the page we expect a notification for.
- * @param aExpectedTitle
- *        The expected title of the URI we expect a notification for.
- * @param aCallback
- *        The method to call when we have gotten the proper notification about
- *        the title changing.
  */
-function TitleChangedObserver(aURI, aExpectedTitle, aCallback) {
-  this.uri = aURI;
-  this.expectedTitle = aExpectedTitle;
-  this.callback = aCallback;
-}
-TitleChangedObserver.prototype = {
-  __proto__: NavHistoryObserver.prototype,
-  onTitleChanged(aURI, aTitle, aGUID) {
-    info("onTitleChanged(" + aURI.spec + ", " + aTitle + ", " + aGUID + ")");
-    if (!this.uri.equals(aURI)) {
+class TitleChangedObserver {
+  /**
+   * Constructor.
+   *
+   * @param aURI
+   *        The URI of the page we expect a notification for.
+   * @param aExpectedTitle
+   *        The expected title of the URI we expect a notification for.
+   * @param aCallback
+   *        The method to call when we have gotten the proper notification about
+   *        the title changing.
+   */
+  constructor(aURI, aExpectedTitle, aCallback) {
+    this.uri = aURI;
+    this.expectedTitle = aExpectedTitle;
+    this.callback = aCallback;
+    this.handlePlacesEvent = this.handlePlacesEvent.bind(this);
+    PlacesObservers.addListener(["page-title-changed"], this.handlePlacesEvent);
+  }
+
+  handlePlacesEvent(aEvents) {
+    info("'page-title-changed'!!!");
+    Assert.equal(aEvents.length, 1, "Right number of title changed notified");
+    Assert.equal(aEvents[0].type, "page-title-changed");
+    if (this.uri.spec !== aEvents[0].url) {
       return;
     }
-    Assert.equal(aTitle, this.expectedTitle);
-    do_check_guid_for_uri(aURI, aGUID);
+    Assert.equal(aEvents[0].title, this.expectedTitle);
+    do_check_guid_for_uri(this.uri, aEvents[0].pageGuid);
     this.callback();
-  },
-};
+
+    PlacesObservers.removeListener(
+      ["page-title-changed"],
+      this.handlePlacesEvent
+    );
+  }
+}
 
 /**
  * Listens for a visit notification, and calls aCallback when it gets it.
@@ -947,15 +958,10 @@ add_task(async function test_title_change_notifies() {
   };
   Assert.equal(false, await PlacesUtils.history.hasVisits(place.uri));
 
-  let silentObserver = new TitleChangedObserver(
-    place.uri,
-    "DO NOT WANT",
-    function() {
-      do_throw("unexpected callback!");
-    }
-  );
+  new TitleChangedObserver(place.uri, "DO NOT WANT", function() {
+    do_throw("unexpected callback!");
+  });
 
-  PlacesUtils.history.addObserver(silentObserver);
   let placesResult = await promiseUpdatePlaces(place);
   if (placesResult.errors.length) {
     do_throw("Unexpected error.");
@@ -981,13 +987,10 @@ add_task(async function test_title_change_notifies() {
             place.title
         );
         if (expectedNotification) {
-          PlacesUtils.history.removeObserver(silentObserver);
-          PlacesUtils.history.removeObserver(titleChangeObserver);
           resolve();
         }
       }
     );
-    PlacesUtils.history.addObserver(titleChangeObserver);
   });
 
   let visitPromise = new Promise(resolve => {
@@ -1143,24 +1146,15 @@ add_task(async function test_omit_frecency_notifications() {
       visits: [new VisitInfo(TRANSITION_TYPED)],
     },
   ];
-  let promiseFrecenciesChanged = new Promise(resolve => {
-    let frecencyObserverCheck = {
-      onFrecencyChanged() {
-        ok(
-          false,
-          "Should not fire frecencyChanged because we explicitly asked not to do so."
-        );
-      },
-      onManyFrecenciesChanged() {
-        ok(true, "Should fire many frecencies changed notification instead.");
-        PlacesUtils.history.removeObserver(frecencyObserverCheck);
-        resolve();
-      },
-    };
-    PlacesUtils.history.addObserver(frecencyObserverCheck);
-  });
-  await promiseUpdatePlaces(places, {}, true);
-  await promiseFrecenciesChanged;
+
+  const promiseRankingChanged = PlacesTestUtils.waitForNotification(
+    "pages-rank-changed",
+    () => true,
+    "places"
+  );
+
+  await promiseUpdatePlaces(places);
+  await promiseRankingChanged;
 });
 
 add_task(async function test_ignore_errors() {

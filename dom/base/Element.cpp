@@ -10,140 +10,128 @@
  * utility methods for subclasses, and so forth.
  */
 
+#include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
 
-#include "AnimationCommon.h"
+#include <inttypes.h>
+#include <initializer_list>
+#include <new>
+#include "DOMIntersectionObserver.h"
+#include "DOMMatrix.h"
 #include "ExpandedPrincipal.h"
+#include "PresShellInlines.h"
+#include "jsapi.h"
+#include "mozAutoDocUpdate.h"
+#include "mozilla/AnimationComparator.h"
+#include "mozilla/AnimationTarget.h"
+#include "mozilla/AsyncEventDispatcher.h"
+#include "mozilla/CORSMode.h"
+#include "mozilla/ComputedStyle.h"
+#include "mozilla/ContentEvents.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/DeclarationBlock.h"
+#include "mozilla/EffectCompositor.h"
+#include "mozilla/EffectSet.h"
+#include "mozilla/ErrorResult.h"
+#include "mozilla/EventDispatcher.h"
+#include "mozilla/EventListenerManager.h"
+#include "mozilla/EventStateManager.h"
+#include "mozilla/EventStates.h"
+#include "mozilla/FloatingPoint.h"
+#include "mozilla/FullscreenChange.h"
+#include "mozilla/InternalMutationEvent.h"
+#include "mozilla/Likely.h"
+#include "mozilla/LinkedList.h"
+#include "mozilla/LookAndFeel.h"
+#include "mozilla/MouseEvents.h"
+#include "mozilla/NotNull.h"
+#include "mozilla/PresShell.h"
+#include "mozilla/PresShellForwards.h"
+#include "mozilla/ReflowOutput.h"
+#include "mozilla/RelativeTo.h"
+#include "mozilla/ScrollOrigin.h"
+#include "mozilla/ScrollTypes.h"
+#include "mozilla/ServoStyleConsts.h"
+#include "mozilla/ServoStyleConstsInlines.h"
+#include "mozilla/SizeOfState.h"
+#include "mozilla/StaticAnalysisFunctions.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/StaticPrefs_full_screen_api.h"
+#include "mozilla/TextControlElement.h"
+#include "mozilla/TextEvents.h"
+#include "mozilla/TypedEnumBits.h"
+#include "mozilla/Unused.h"
+#include "mozilla/dom/AnimatableBinding.h"
 #include "mozilla/dom/Animation.h"
 #include "mozilla/dom/Attr.h"
 #include "mozilla/dom/BindContext.h"
-#include "mozilla/dom/Flex.h"
-#include "mozilla/dom/Grid.h"
-#include "mozilla/dom/Link.h"
-#include "mozilla/dom/MutationObservers.h"
-#include "mozilla/dom/ScriptLoader.h"
-#include "mozilla/dom/Text.h"
-#include "mozilla/dom/nsCSPContext.h"
-#include "mozilla/gfx/Matrix.h"
-#include "nsAtom.h"
-#include "nsDocShell.h"
-#include "nsDOMAttributeMap.h"
-#include "nsIContentInlines.h"
-#include "mozilla/dom/NodeInfo.h"
+#include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/CustomElementRegistry.h"
+#include "mozilla/dom/DOMRect.h"
+#include "mozilla/dom/DirectionalityUtils.h"
+#include "mozilla/dom/Document.h"
+#include "mozilla/dom/DocumentFragment.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimeline.h"
-#include "nsFlexContainerFrame.h"
-#include "nsFocusManager.h"
-#include "nsIScriptGlobalObject.h"
-#include "nsContainerFrame.h"
-#include "nsIAnonymousContentCreator.h"
-#include "nsPresContext.h"
-#include "nsStyleConsts.h"
-#include "nsString.h"
-#include "nsUnicharUtils.h"
-#include "nsDOMCID.h"
-#include "nsDOMCSSAttrDeclaration.h"
-#include "nsNameSpaceManager.h"
-#include "nsContentList.h"
-#include "nsVariant.h"
-#include "nsDOMTokenList.h"
-#include "nsError.h"
-#include "nsDOMString.h"
-#include "mozilla/dom/AnimatableBinding.h"
-#include "mozilla/dom/FeaturePolicyUtils.h"
+#include "mozilla/dom/ElementBinding.h"
+#include "mozilla/dom/ElementInlines.h"
+#include "mozilla/dom/Flex.h"
+#include "mozilla/dom/FromParser.h"
+#include "mozilla/dom/Grid.h"
 #include "mozilla/dom/HTMLDivElement.h"
 #include "mozilla/dom/HTMLParagraphElement.h"
 #include "mozilla/dom/HTMLPreElement.h"
 #include "mozilla/dom/HTMLSpanElement.h"
 #include "mozilla/dom/HTMLTableCellElement.h"
 #include "mozilla/dom/KeyframeAnimationOptionsBinding.h"
-#include "mozilla/dom/MutationEventBinding.h"
-#include "mozilla/AnimationComparator.h"
-#include "mozilla/AsyncEventDispatcher.h"
-#include "mozilla/ContentEvents.h"
-#include "mozilla/DeclarationBlock.h"
-#include "mozilla/EffectSet.h"
-#include "mozilla/EventDispatcher.h"
-#include "mozilla/EventListenerManager.h"
-#include "mozilla/EventStateManager.h"
-#include "mozilla/EventStates.h"
-#include "mozilla/FullscreenChange.h"
-#include "mozilla/InternalMutationEvent.h"
-#include "mozilla/MouseEvents.h"
-#include "mozilla/PresShell.h"
-#include "mozilla/RestyleManager.h"
-#include "mozilla/ScrollTypes.h"
-#include "mozilla/SizeOfState.h"
-#include "mozilla/TextControlElement.h"
-#include "mozilla/TextEditor.h"
-#include "mozilla/TextEvents.h"
-#include "mozilla/dom/DirectionalityUtils.h"
-#include "mozilla/dom/Document.h"
-#include "mozilla/dom/DocumentInlines.h"
-#include "nsAttrValueOrString.h"
-#include "nsAttrValueInlines.h"
-#include "nsCSSPseudoElements.h"
-#include "nsWindowSizes.h"
-#ifdef MOZ_XUL
-#  include "nsXULElement.h"
-#endif /* MOZ_XUL */
-#include "SVGElement.h"
-#include "nsFrameSelection.h"
-#ifdef DEBUG
-#  include "nsRange.h"
-#endif
-
-#include "nsPIDOMWindow.h"
-#include "mozilla/dom/DOMRect.h"
-#include "nsLayoutUtils.h"
-#include "nsGkAtoms.h"
-#include "ChildIterator.h"
-
-#include "nsIWidget.h"
-
-#include "nsNodeInfoManager.h"
-#include "nsGenericHTMLElement.h"
-#include "nsContentCreatorFunctions.h"
-#include "nsView.h"
-#include "nsViewManager.h"
-#include "nsIScrollableFrame.h"
-#include "nsTextNode.h"
-
-#include "nsCycleCollectionParticipant.h"
-#include "nsCCUncollectableMarker.h"
-
-#include "mozAutoDocUpdate.h"
-
-#include "nsDOMMutationObserver.h"
-#include "nsWrapperCacheInlines.h"
-#include "xpcpublic.h"
-#include "nsIScriptError.h"
-#include "mozilla/Telemetry.h"
-
-#include "mozilla/CORSMode.h"
-#include "mozilla/dom/ShadowRoot.h"
-#include "mozilla/dom/NodeListBinding.h"
-
-#include "nsStyledElement.h"
-#include "nsITextControlFrame.h"
-#include "nsISupportsImpl.h"
-#include "mozilla/dom/CSSPseudoElement.h"
-#include "mozilla/dom/DocumentFragment.h"
-#include "mozilla/dom/ElementBinding.h"
-#include "mozilla/dom/KeyframeEffectBinding.h"
 #include "mozilla/dom/KeyframeEffect.h"
 #include "mozilla/dom/MouseEventBinding.h"
+#include "mozilla/dom/MutationEventBinding.h"
+#include "mozilla/dom/MutationObservers.h"
+#include "mozilla/dom/NodeInfo.h"
+#include "mozilla/dom/PointerEventHandler.h"
+#include "mozilla/dom/Promise.h"
+#include "mozilla/dom/SVGElement.h"
+#include "mozilla/dom/ScriptLoader.h"
+#include "mozilla/dom/ShadowRoot.h"
+#include "mozilla/dom/Text.h"
 #include "mozilla/dom/WindowBinding.h"
-#include "mozilla/dom/VRDisplay.h"
-#include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/Preferences.h"
-#include "nsComputedDOMStyle.h"
+#include "mozilla/dom/nsCSPContext.h"
+#include "mozilla/gfx/BasePoint.h"
+#include "mozilla/gfx/BaseRect.h"
+#include "mozilla/gfx/BaseSize.h"
+#include "mozilla/gfx/Matrix.h"
+#include "nsAtom.h"
+#include "nsAttrName.h"
+#include "nsAttrValueInlines.h"
+#include "nsAttrValueOrString.h"
+#include "nsBaseHashtable.h"
+#include "nsBlockFrame.h"
+#include "nsCOMPtr.h"
+#include "nsContentUtils.h"
+#include "nsCSSPseudoElements.h"
+#include "nsCompatibility.h"
+#include "nsContainerFrame.h"
+#include "nsContentList.h"
+#include "nsContentListDeclarations.h"
+#include "nsCoord.h"
+#include "nsDOMAttributeMap.h"
+#include "nsDOMCSSAttrDeclaration.h"
+#include "nsDOMMutationObserver.h"
+#include "nsDOMString.h"
 #include "nsDOMStringMap.h"
-#include "DOMIntersectionObserver.h"
-
+#include "nsDOMTokenList.h"
+#include "nsDocShell.h"
+#include "nsError.h"
+#include "nsFlexContainerFrame.h"
+#include "nsFocusManager.h"
+#include "nsFrameState.h"
+#include "nsGenericHTMLElement.h"
+#include "nsGkAtoms.h"
+#include "nsGridContainerFrame.h"
+#include "nsIAutoCompletePopup.h"
+#include "nsIBrowser.h"
+#include "nsIContentInlines.h"
 #include "nsIDOMXULButtonElement.h"
 #include "nsIDOMXULContainerElement.h"
 #include "nsIDOMXULControlElement.h"
@@ -151,16 +139,49 @@
 #include "nsIDOMXULMultSelectCntrlEl.h"
 #include "nsIDOMXULRadioGroupElement.h"
 #include "nsIDOMXULRelatedElement.h"
-#include "nsIDOMXULMultSelectCntrlEl.h"
 #include "nsIDOMXULSelectCntrlEl.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
-#include "nsIBrowser.h"
-#include "nsIAutoCompletePopup.h"
-
+#include "nsIDocShell.h"
+#include "nsIFocusManager.h"
+#include "nsIFrame.h"
+#include "nsIGlobalObject.h"
+#include "nsIIOService.h"
+#include "nsIInterfaceRequestor.h"
+#include "nsIMemoryReporter.h"
+#include "nsIPrincipal.h"
+#include "nsIScriptError.h"
+#include "nsIScrollableFrame.h"
 #include "nsISpeculativeConnect.h"
-#include "nsBlockFrame.h"
+#include "nsISupports.h"
+#include "nsISupportsUtils.h"
+#include "nsIURI.h"
+#include "nsLayoutUtils.h"
+#include "nsLineBox.h"
+#include "nsNameSpaceManager.h"
+#include "nsNodeInfoManager.h"
+#include "nsPIDOMWindow.h"
+#include "nsPoint.h"
+#include "nsPresContext.h"
+#include "nsQueryFrame.h"
+#include "nsRefPtrHashtable.h"
+#include "nsSize.h"
+#include "nsString.h"
+#include "nsStyleConsts.h"
+#include "nsStyleStruct.h"
+#include "nsStyledElement.h"
+#include "nsTArray.h"
+#include "nsTextNode.h"
+#include "nsThreadUtils.h"
+#include "nsViewManager.h"
+#include "nsWindowSizes.h"
 
-#include "DOMMatrix.h"
+#ifdef MOZ_XUL
+#  include "nsXULElement.h"
+#endif /* MOZ_XUL */
+
+#ifdef DEBUG
+#  include "nsRange.h"
+#endif
 
 #ifdef ACCESSIBILITY
 #  include "nsAccessibilityService.h"
@@ -232,6 +253,68 @@ nsIFrame* nsIContent::GetPrimaryFrame(mozilla::FlushType aType) {
 }
 
 namespace mozilla::dom {
+
+nsDOMAttributeMap* Element::Attributes() {
+  nsDOMSlots* slots = DOMSlots();
+  if (!slots->mAttributeMap) {
+    slots->mAttributeMap = new nsDOMAttributeMap(this);
+  }
+
+  return slots->mAttributeMap;
+}
+
+void Element::SetPointerCapture(int32_t aPointerId, ErrorResult& aError) {
+  if (nsContentUtils::ShouldResistFingerprinting(GetComposedDoc()) &&
+      aPointerId != PointerEventHandler::GetSpoofedPointerIdForRFP()) {
+    aError.ThrowNotFoundError("Invalid pointer id");
+    return;
+  }
+  const PointerInfo* pointerInfo =
+      PointerEventHandler::GetPointerInfo(aPointerId);
+  if (!pointerInfo) {
+    aError.ThrowNotFoundError("Invalid pointer id");
+    return;
+  }
+  if (!IsInComposedDoc()) {
+    aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
+  }
+  if (OwnerDoc()->GetPointerLockElement()) {
+    // Throw an exception 'InvalidStateError' while the page has a locked
+    // element.
+    aError.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
+  }
+  if (!pointerInfo->mActiveState ||
+      pointerInfo->mActiveDocument != OwnerDoc()) {
+    return;
+  }
+  PointerEventHandler::RequestPointerCaptureById(aPointerId, this);
+}
+
+void Element::ReleasePointerCapture(int32_t aPointerId, ErrorResult& aError) {
+  if (nsContentUtils::ShouldResistFingerprinting(GetComposedDoc()) &&
+      aPointerId != PointerEventHandler::GetSpoofedPointerIdForRFP()) {
+    aError.ThrowNotFoundError("Invalid pointer id");
+    return;
+  }
+  if (!PointerEventHandler::GetPointerInfo(aPointerId)) {
+    aError.ThrowNotFoundError("Invalid pointer id");
+    return;
+  }
+  if (HasPointerCapture(aPointerId)) {
+    PointerEventHandler::ReleasePointerCaptureById(aPointerId);
+  }
+}
+
+bool Element::HasPointerCapture(long aPointerId) {
+  PointerCaptureInfo* pointerCaptureInfo =
+      PointerEventHandler::GetPointerCaptureInfo(aPointerId);
+  if (pointerCaptureInfo && pointerCaptureInfo->mPendingElement == this) {
+    return true;
+  }
+  return false;
+}
 
 const nsAttrValue* Element::GetSVGAnimatedClass() const {
   MOZ_ASSERT(MayHaveClass() && IsSVGElement(), "Unexpected call");
@@ -356,7 +439,7 @@ int32_t Element::TabIndex() {
 
 void Element::Focus(const FocusOptions& aOptions, CallerType aCallerType,
                     ErrorResult& aError) {
-  nsFocusManager* fm = nsFocusManager::GetFocusManager();
+  RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager();
   if (!fm) {
     return;
   }
@@ -817,7 +900,7 @@ static nsSize GetScrollRectSizeForOverflowVisibleFrame(nsIFrame* aFrame) {
   }
 
   nsRect paddingRect = aFrame->GetPaddingRectRelativeToSelf();
-  nsOverflowAreas overflowAreas(paddingRect, paddingRect);
+  OverflowAreas overflowAreas(paddingRect, paddingRect);
   // Add the scrollable overflow areas of children (if any) to the paddingRect.
   // It's important to start with the paddingRect, otherwise if there are no
   // children the overflow rect will be 0,0,0,0 which will force the point 0,0
@@ -1556,7 +1639,7 @@ void Element::GetElementsWithGrid(nsTArray<RefPtr<Element>>& aElements) {
 
 bool Element::HasVisibleScrollbars() {
   nsIScrollableFrame* scrollFrame = GetScrollFrame();
-  return scrollFrame && scrollFrame->GetScrollbarVisibility();
+  return scrollFrame && (!scrollFrame->GetScrollbarVisibility().isEmpty());
 }
 
 nsresult Element::BindToTree(BindContext& aContext, nsINode& aParent) {
@@ -1623,7 +1706,8 @@ nsresult Element::BindToTree(BindContext& aContext, nsINode& aParent) {
     // connected.
     if (CustomElementData* data = GetCustomElementData()) {
       if (data->mState == CustomElementData::State::eCustom) {
-        nsContentUtils::EnqueueLifecycleCallback(Document::eConnected, this);
+        nsContentUtils::EnqueueLifecycleCallback(
+            ElementCallbackType::eConnected, this);
       } else {
         // Step 7.7.2.2 https://dom.spec.whatwg.org/#concept-node-insert
         nsContentUtils::TryToUpgradeElement(this);
@@ -1857,7 +1941,8 @@ void Element::UnbindFromTree(bool aNullParent) {
     CustomElementData* data = GetCustomElementData();
     if (data) {
       if (data->mState == CustomElementData::State::eCustom) {
-        nsContentUtils::EnqueueLifecycleCallback(Document::eDisconnected, this);
+        nsContentUtils::EnqueueLifecycleCallback(
+            ElementCallbackType::eDisconnected, this);
       } else {
         // Remove an unresolved custom element that is a candidate for upgrade
         // when a custom element is disconnected.
@@ -1889,6 +1974,11 @@ void Element::UnbindFromTree(bool aNullParent) {
 
   MOZ_ASSERT(!HasAnyOfFlags(kAllServoDescendantBits));
   MOZ_ASSERT(!document || document->GetServoRestyleRoot() != this);
+}
+
+UniquePtr<SMILAttr> Element::GetAnimatedAttr(int32_t aNamespaceID,
+                                             nsAtom* aName) {
+  return nullptr;
 }
 
 nsDOMCSSAttributeDeclaration* Element::SMILOverrideStyle() {
@@ -2407,7 +2497,8 @@ nsresult Element::SetAttrAndNotify(
                                     (ns.IsEmpty() ? VoidString() : ns)};
 
       nsContentUtils::EnqueueLifecycleCallback(
-          Document::eAttributeChanged, this, &args, nullptr, definition);
+          ElementCallbackType::eAttributeChanged, this, &args, nullptr,
+          definition);
     }
   }
 
@@ -2589,7 +2680,8 @@ nsresult Element::OnAttrSetButNotChanged(int32_t aNamespaceID, nsAtom* aName,
                                     (ns.IsEmpty() ? VoidString() : ns)};
 
       nsContentUtils::EnqueueLifecycleCallback(
-          Document::eAttributeChanged, this, &args, nullptr, definition);
+          ElementCallbackType::eAttributeChanged, this, &args, nullptr,
+          definition);
     }
   }
 
@@ -2701,7 +2793,8 @@ nsresult Element::UnsetAttr(int32_t aNameSpaceID, nsAtom* aName, bool aNotify) {
           VoidString(), (ns.IsEmpty() ? VoidString() : ns)};
 
       nsContentUtils::EnqueueLifecycleCallback(
-          Document::eAttributeChanged, this, &args, nullptr, definition);
+          ElementCallbackType::eAttributeChanged, this, &args, nullptr,
+          definition);
     }
   }
 
@@ -2952,7 +3045,7 @@ nsresult Element::PostHandleEventForLinks(EventChainPostVisitor& aVisitor) {
         aVisitor.mEvent->mFlags.mMultipleActionsPrevented = true;
 
         if (IsInComposedDoc()) {
-          if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
+          if (RefPtr<nsFocusManager> fm = nsFocusManager::GetFocusManager()) {
             RefPtr<Element> kungFuDeathGrip(this);
             fm->SetFocus(kungFuDeathGrip, nsIFocusManager::FLAG_BYMOUSE |
                                               nsIFocusManager::FLAG_NOSCROLL);
@@ -3077,10 +3170,34 @@ nsresult Element::CopyInnerTo(Element* aDst, ReparseAttributes aReparse) {
     }
   }
 
+  dom::NodeInfo* dstNodeInfo = aDst->NodeInfo();
+  if (CustomElementData* data = GetCustomElementData()) {
+    // The cloned node may be a custom element that may require
+    // enqueing upgrade reaction.
+    if (nsAtom* typeAtom = data->GetCustomElementType()) {
+      aDst->SetCustomElementData(new CustomElementData(typeAtom));
+      MOZ_ASSERT(dstNodeInfo->NameAtom()->Equals(dstNodeInfo->LocalName()));
+      CustomElementDefinition* definition =
+          nsContentUtils::LookupCustomElementDefinition(
+              dstNodeInfo->GetDocument(), dstNodeInfo->NameAtom(),
+              dstNodeInfo->NamespaceID(), typeAtom);
+      if (definition) {
+        nsContentUtils::EnqueueUpgradeReaction(aDst, definition);
+      }
+    }
+  }
+
+  if (dstNodeInfo->GetDocument()->IsStaticDocument()) {
+    // Propagate :defined state to the static clone.
+    if (State().HasState(NS_EVENT_STATE_DEFINED)) {
+      aDst->SetDefined(true);
+    }
+  }
+
   return NS_OK;
 }
 
-Element* Element::Closest(const nsAString& aSelector, ErrorResult& aResult) {
+Element* Element::Closest(const nsACString& aSelector, ErrorResult& aResult) {
   const RawServoSelectorList* list = ParseSelectorList(aSelector, aResult);
   if (!list) {
     return nullptr;
@@ -3089,11 +3206,12 @@ Element* Element::Closest(const nsAString& aSelector, ErrorResult& aResult) {
   return const_cast<Element*>(Servo_SelectorList_Closest(this, list));
 }
 
-bool Element::Matches(const nsAString& aSelector, ErrorResult& aResult) {
+bool Element::Matches(const nsACString& aSelector, ErrorResult& aResult) {
   const RawServoSelectorList* list = ParseSelectorList(aSelector, aResult);
   if (!list) {
     return false;
   }
+
   return Servo_SelectorList_Matches(this, list);
 }
 
@@ -4027,6 +4145,17 @@ already_AddRefed<nsIAutoCompletePopup> Element::AsAutoCompletePopup() {
   nsCOMPtr<nsIAutoCompletePopup> value;
   GetCustomInterface(getter_AddRefs(value));
   return value.forget();
+}
+
+nsPresContext* Element::GetPresContext(PresContextFor aFor) {
+  // Get the document
+  Document* doc =
+      (aFor == eForComposedDoc) ? GetComposedDoc() : GetUncomposedDoc();
+  if (doc) {
+    return doc->GetPresContext();
+  }
+
+  return nullptr;
 }
 
 MOZ_DEFINE_MALLOC_SIZE_OF(ServoElementMallocSizeOf)

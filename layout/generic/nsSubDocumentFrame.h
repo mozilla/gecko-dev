@@ -7,10 +7,8 @@
 #ifndef NSSUBDOCUMENTFRAME_H_
 #define NSSUBDOCUMENTFRAME_H_
 
-#include "Layers.h"
 #include "LayerState.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/layers/WebRenderScrollData.h"
 #include "nsDisplayList.h"
 #include "nsAtomicContainerFrame.h"
 #include "nsIReflowCallback.h"
@@ -20,6 +18,14 @@
 namespace mozilla {
 class PresShell;
 }  // namespace mozilla
+
+namespace mozilla::layers {
+class Layer;
+class RefLayer;
+class RenderRootStateManager;
+class WebRenderLayerScrollData;
+class WebRenderScrollData;
+}  // namespace mozilla::layers
 
 /******************************************************************************
  * nsSubDocumentFrame
@@ -129,9 +135,7 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
 
   void ClearDisplayItems();
 
-  void SubdocumentIntrinsicSizeOrRatioChanged(
-      const mozilla::Maybe<mozilla::IntrinsicSize>& aIntrinsicSize,
-      const mozilla::Maybe<mozilla::AspectRatio>& aIntrinsicRatio);
+  void SubdocumentIntrinsicSizeOrRatioChanged();
 
  protected:
   friend class AsyncFrameInit;
@@ -164,12 +168,6 @@ class nsSubDocumentFrame final : public nsAtomicContainerFrame,
 
   nsView* mOuterView;
   nsView* mInnerView;
-
-  // The intrinsic size and aspect ratio from a child SVG document that
-  // we should use.  These are only set when we are an <object> or <embed>
-  // and the inner document is SVG.
-  mozilla::Maybe<mozilla::IntrinsicSize> mSubdocumentIntrinsicSize;
-  mozilla::Maybe<mozilla::AspectRatio> mSubdocumentIntrinsicRatio;
 
   bool mIsInline;
   bool mPostedReflowCallback;

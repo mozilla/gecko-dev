@@ -6,7 +6,13 @@
 
 #include "QuotaCommon.h"
 
+#include "mozIStorageConnection.h"
+#include "mozIStorageStatement.h"
+#include "mozilla/ErrorNames.h"
 #include "mozilla/Logging.h"
+#include "mozilla/Telemetry.h"
+#include "mozilla/TelemetryComms.h"
+#include "mozilla/TelemetryEventEnums.h"
 #include "mozilla/TextUtils.h"
 #include "nsIConsoleService.h"
 #include "nsIFile.h"
@@ -25,6 +31,8 @@
 #endif
 
 namespace mozilla::dom::quota {
+
+using namespace mozilla::Telemetry;
 
 namespace {
 
@@ -106,23 +114,21 @@ void CacheUseDOSDevicePathSyntaxPrefValue() {
 #endif
 
 Result<nsCOMPtr<nsIFile>, nsresult> QM_NewLocalFile(const nsAString& aPath) {
-  nsCOMPtr<nsIFile> file;
-  nsresult rv =
-      NS_NewLocalFile(aPath, /* aFollowLinks */ false, getter_AddRefs(file));
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    QM_WARNING("Failed to construct a file for path (%s)",
-               NS_ConvertUTF16toUTF8(aPath).get());
-    return Err(rv);
-  }
+  QM_TRY_UNWRAP(auto file,
+                ToResultInvoke<nsCOMPtr<nsIFile>>(NS_NewLocalFile, aPath,
+                                                  /* aFollowLinks */ false),
+                QM_PROPAGATE, [&aPath](const nsresult rv) {
+                  QM_WARNING("Failed to construct a file for path (%s)",
+                             NS_ConvertUTF16toUTF8(aPath).get());
+                });
 
 #ifdef XP_WIN
   MOZ_ASSERT(gUseDOSDevicePathSyntax != -1);
 
   if (gUseDOSDevicePathSyntax) {
-    nsCOMPtr<nsILocalFileWin> winFile = do_QueryInterface(file, &rv);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return Err(rv);
-    }
+    QM_TRY_INSPECT(const auto& winFile,
+                   ToResultGet<nsCOMPtr<nsILocalFileWin>>(
+                       MOZ_SELECT_OVERLOAD(do_QueryInterface), file));
 
     MOZ_ASSERT(winFile);
     winFile->SetUseDOSDevicePathSyntax(true);
@@ -157,8 +163,80 @@ Result<nsCOMPtr<nsIFile>, nsresult> CloneFileAndAppend(
   return resultFile;
 }
 
+Result<nsIFileKind, nsresult> GetDirEntryKind(nsIFile& aFile) {
+  QM_TRY_RETURN(
+      MOZ_TO_RESULT_INVOKE(aFile, IsDirectory)
+          .map([](const bool isDirectory) {
+            return isDirectory ? nsIFileKind::ExistsAsDirectory
+                               : nsIFileKind::ExistsAsFile;
+          })
+          .orElse([](const nsresult rv) -> Result<nsIFileKind, nsresult> {
+            if (rv == NS_ERROR_FILE_NOT_FOUND ||
+                rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST) {
+              return nsIFileKind::DoesNotExist;
+            }
+
+            return Err(rv);
+          }));
+}
+
+Result<nsCOMPtr<mozIStorageStatement>, nsresult> CreateStatement(
+    mozIStorageConnection& aConnection, const nsACString& aStatementString) {
+  QM_TRY_RETURN(MOZ_TO_RESULT_INVOKE_TYPED(nsCOMPtr<mozIStorageStatement>,
+                                           aConnection, CreateStatement,
+                                           aStatementString));
+}
+
+template <SingleStepResult ResultHandling>
+Result<SingleStepSuccessType<ResultHandling>, nsresult> ExecuteSingleStep(
+    nsCOMPtr<mozIStorageStatement>&& aStatement) {
+  QM_TRY_INSPECT(const bool& hasResult,
+                 MOZ_TO_RESULT_INVOKE(aStatement, ExecuteStep));
+
+  if constexpr (ResultHandling == SingleStepResult::AssertHasResult) {
+    MOZ_ASSERT(hasResult);
+    (void)hasResult;
+
+    return WrapNotNullUnchecked(std::move(aStatement));
+  } else {
+    return hasResult ? std::move(aStatement) : nullptr;
+  }
+}
+
+template Result<SingleStepSuccessType<SingleStepResult::AssertHasResult>,
+                nsresult>
+ExecuteSingleStep<SingleStepResult::AssertHasResult>(
+    nsCOMPtr<mozIStorageStatement>&&);
+
+template Result<SingleStepSuccessType<SingleStepResult::ReturnNullIfNoResult>,
+                nsresult>
+ExecuteSingleStep<SingleStepResult::ReturnNullIfNoResult>(
+    nsCOMPtr<mozIStorageStatement>&&);
+
+template <SingleStepResult ResultHandling>
+Result<SingleStepSuccessType<ResultHandling>, nsresult>
+CreateAndExecuteSingleStepStatement(mozIStorageConnection& aConnection,
+                                    const nsACString& aStatementString) {
+  QM_TRY_UNWRAP(auto stmt, MOZ_TO_RESULT_INVOKE_TYPED(
+                               nsCOMPtr<mozIStorageStatement>, aConnection,
+                               CreateStatement, aStatementString));
+
+  return ExecuteSingleStep<ResultHandling>(std::move(stmt));
+}
+
+template Result<SingleStepSuccessType<SingleStepResult::AssertHasResult>,
+                nsresult>
+CreateAndExecuteSingleStepStatement<SingleStepResult::AssertHasResult>(
+    mozIStorageConnection& aConnection, const nsACString& aStatementString);
+
+template Result<SingleStepSuccessType<SingleStepResult::ReturnNullIfNoResult>,
+                nsresult>
+CreateAndExecuteSingleStepStatement<SingleStepResult::ReturnNullIfNoResult>(
+    mozIStorageConnection& aConnection, const nsACString& aStatementString);
+
 #ifdef QM_ENABLE_SCOPED_LOG_EXTRA_INFO
 MOZ_THREAD_LOCAL(const nsACString*) ScopedLogExtraInfo::sQueryValue;
+MOZ_THREAD_LOCAL(const nsACString*) ScopedLogExtraInfo::sContextValue;
 
 /* static */
 auto ScopedLogExtraInfo::FindSlot(const char* aTag) {
@@ -166,6 +244,10 @@ auto ScopedLogExtraInfo::FindSlot(const char* aTag) {
 
   if (aTag == kTagQuery) {
     return &sQueryValue;
+  }
+
+  if (aTag == kTagContext) {
+    return &sContextValue;
   }
 
   MOZ_CRASH("Unknown tag!");
@@ -199,12 +281,17 @@ ScopedLogExtraInfo::GetExtraInfoMap() {
     if (sQueryValue.get()) {
       map.emplace(kTagQuery, sQueryValue.get());
     }
+
+    if (sContextValue.get()) {
+      map.emplace(kTagContext, sContextValue.get());
+    }
   }
   return map;
 }
 
 /* static */ void ScopedLogExtraInfo::Initialize() {
   MOZ_ALWAYS_TRUE(sQueryValue.init());
+  MOZ_ALWAYS_TRUE(sContextValue.init());
 }
 
 void ScopedLogExtraInfo::AddInfo() {
@@ -217,8 +304,24 @@ void ScopedLogExtraInfo::AddInfo() {
 #endif
 
 void LogError(const nsLiteralCString& aModule, const nsACString& aExpr,
-              const nsACString& aSourceFile, int32_t aSourceLine) {
+              const nsACString& aSourceFile, int32_t aSourceLine,
+              Maybe<nsresult> aRv) {
   nsAutoCString extraInfosString;
+
+  nsAutoCString rvName;
+  if (aRv) {
+    if (NS_ERROR_GET_MODULE(*aRv) == NS_ERROR_MODULE_WIN32) {
+      // XXX We could also try to get the Win32 error name here.
+      rvName = nsPrintfCString("WIN32(0x%" PRIX16 ")", NS_ERROR_GET_CODE(*aRv));
+    } else {
+      rvName = mozilla::GetStaticErrorName(*aRv);
+    }
+    extraInfosString.AppendPrintf(
+        " failed with "
+        "result 0x%" PRIX32 "%s%s%s",
+        static_cast<uint32_t>(*aRv), !rvName.IsEmpty() ? " (" : "",
+        !rvName.IsEmpty() ? rvName.get() : "", !rvName.IsEmpty() ? ")" : "");
+  }
 
 #ifdef QM_ENABLE_SCOPED_LOG_EXTRA_INFO
   const auto& extraInfos = ScopedLogExtraInfo::GetExtraInfoMap();
@@ -252,6 +355,39 @@ void LogError(const nsLiteralCString& aModule, const nsACString& aExpr,
 
     console->LogStringMessage(message.get());
   }
+
+#  ifdef QM_ENABLE_SCOPED_LOG_EXTRA_INFO
+  if (const auto contextIt = extraInfos.find(ScopedLogExtraInfo::kTagContext);
+      contextIt != extraInfos.cend()) {
+    // For now, we don't include aExpr in the telemetry event. It might help to
+    // match locations across versions, but they might be large.
+    auto extra = Some([&] {
+      auto res = CopyableTArray<EventExtraEntry>{};
+      res.SetCapacity(5);
+      res.AppendElement(EventExtraEntry{"module"_ns, aModule});
+      res.AppendElement(EventExtraEntry{"source_file"_ns,
+                                        nsCString(GetLeafName(aSourceFile))});
+      res.AppendElement(
+          EventExtraEntry{"source_line"_ns, IntToCString(aSourceLine)});
+      res.AppendElement(EventExtraEntry{
+          "context"_ns, nsPromiseFlatCString{*contextIt->second}});
+
+      if (!rvName.IsEmpty()) {
+        res.AppendElement(EventExtraEntry{"result"_ns, nsCString{rvName}});
+      }
+
+      static Atomic<int32_t> sSequenceNumber{0};
+
+      res.AppendElement(
+          EventExtraEntry{"seq"_ns, IntToCString(++sSequenceNumber)});
+
+      return res;
+    }());
+
+    Telemetry::RecordEvent(Telemetry::EventID::DomQuotaTry_Error_Step,
+                           Nothing(), extra);
+  }
+#  endif
 #endif
 }
 

@@ -484,15 +484,6 @@ void ArrayBufferObject::detach(JSContext* cx,
   MOZ_ASSERT(!buffer->isPreparedForAsmJS());
   MOZ_ASSERT(!buffer->hasTypedObjectViews());
 
-  auto NoteViewBufferWasDetached = [&cx](ArrayBufferViewObject* view) {
-    MOZ_ASSERT(!view->isSharedMemory());
-
-    view->notifyBufferDetached();
-
-    // Notify compiled jit code that the base pointer has moved.
-    MarkObjectStateChange(cx, view);
-  };
-
   // Update all views of the buffer to account for the buffer having been
   // detached, and clear the buffer's data and list of views.
   //
@@ -503,12 +494,12 @@ void ArrayBufferObject::detach(JSContext* cx,
           innerViews.maybeViewsUnbarriered(buffer)) {
     for (size_t i = 0; i < views->length(); i++) {
       JSObject* view = (*views)[i];
-      NoteViewBufferWasDetached(&view->as<ArrayBufferViewObject>());
+      view->as<ArrayBufferViewObject>().notifyBufferDetached();
     }
     innerViews.removeViews(buffer);
   }
   if (JSObject* view = buffer->firstView()) {
-    NoteViewBufferWasDetached(&view->as<ArrayBufferViewObject>());
+    view->as<ArrayBufferViewObject>().notifyBufferDetached();
     buffer->setFirstView(nullptr);
   }
 
@@ -830,7 +821,7 @@ bool js::CreateWasmBuffer(JSContext* cx, wasm::MemoryKind memKind,
                           const wasm::Limits& memory,
                           MutableHandleArrayBufferObjectMaybeShared buffer) {
   MOZ_ASSERT(memory.initial % wasm::PageSize == 0);
-  MOZ_RELEASE_ASSERT(cx->wasmHaveSignalHandlers);
+  MOZ_RELEASE_ASSERT(cx->wasm().haveSignalHandlers);
   MOZ_RELEASE_ASSERT(memory.initial <=
                      ArrayBufferObject::maxBufferByteLength());
 
@@ -1497,9 +1488,9 @@ void ArrayBufferObject::finalize(JSFreeOp* fop, JSObject* obj) {
 
 /* static */
 void ArrayBufferObject::copyData(Handle<ArrayBufferObject*> toBuffer,
-                                 uint32_t toIndex,
+                                 size_t toIndex,
                                  Handle<ArrayBufferObject*> fromBuffer,
-                                 uint32_t fromIndex, uint32_t count) {
+                                 size_t fromIndex, size_t count) {
   MOZ_ASSERT(toBuffer->byteLength().get() >= count);
   MOZ_ASSERT(toBuffer->byteLength().get() >= toIndex + count);
   MOZ_ASSERT(fromBuffer->byteLength().get() >= fromIndex);

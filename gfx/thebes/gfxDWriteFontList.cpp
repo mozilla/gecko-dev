@@ -15,7 +15,9 @@
 #include "nsCharSeparatedTokenizer.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Sprintf.h"
+#include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/WindowsVersion.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsAppDirectoryServiceDefs.h"
@@ -1272,11 +1274,10 @@ void gfxDWriteFontList::GetFacesInitDataForFamily(
                      << aFamily->Key().AsString(SharedFontList()).get();
         continue;
       }
-      SlantStyleRange slant(dwstyle == DWRITE_FONT_STYLE_NORMAL
-                                ? FontSlantStyle::Normal()
-                                : dwstyle == DWRITE_FONT_STYLE_ITALIC
-                                      ? FontSlantStyle::Italic()
-                                      : FontSlantStyle::Oblique());
+      SlantStyleRange slant(
+          dwstyle == DWRITE_FONT_STYLE_NORMAL   ? FontSlantStyle::Normal()
+          : dwstyle == DWRITE_FONT_STYLE_ITALIC ? FontSlantStyle::Italic()
+                                                : FontSlantStyle::Oblique());
       aFaces.AppendElement(fontlist::Face::InitData{
           name, uint16_t(i), false, weight, stretch, slant, charmap});
     }
@@ -1475,6 +1476,7 @@ void gfxDWriteFontList::InitSharedFontListForPlatform() {
   if (FAILED(hr)) {
     Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
                           uint32_t(errGDIInterop));
+    mSharedFontList.reset(nullptr);
     return;
   }
 
@@ -1483,10 +1485,17 @@ void gfxDWriteFontList::InitSharedFontListForPlatform() {
   if (!mSystemFonts) {
     Telemetry::Accumulate(Telemetry::DWRITEFONT_INIT_PROBLEM,
                           uint32_t(errSystemFontCollection));
+    mSharedFontList.reset(nullptr);
     return;
   }
 #ifdef MOZ_BUNDLED_FONTS
-  mBundledFonts = CreateBundledFontsCollection(factory);
+  // If the bundled-fonts pref is < 0 (auto), we skip the bundled fonts on
+  // Windows 8.1 or later, where Segoe UI Emoji is available.
+  if (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() > 0 ||
+      (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() < 0 &&
+       !IsWin8Point1OrLater())) {
+    mBundledFonts = CreateBundledFontsCollection(factory);
+  }
 #endif
 
   if (XRE_IsParentProcess()) {
@@ -1496,9 +1505,8 @@ void gfxDWriteFontList::InitSharedFontListForPlatform() {
         "gfx.font_rendering.cleartype_params.force_gdi_classic_for_families",
         classicFamilies);
     if (NS_SUCCEEDED(rv)) {
-      nsCCharSeparatedTokenizer tokenizer(classicFamilies, ',');
-      while (tokenizer.hasMoreTokens()) {
-        nsAutoCString name(tokenizer.nextToken());
+      for (auto name :
+           nsCCharSeparatedTokenizer(classicFamilies, ',').ToRange()) {
         BuildKeyNameFromFontName(name);
         forceClassicFams.AppendElement(name);
       }
@@ -1569,7 +1577,13 @@ nsresult gfxDWriteFontList::InitFontListForPlatform() {
   // Get bundled fonts before the system collection, so that in the case of
   // duplicate names, we have recorded the family as bundled (and therefore
   // available regardless of visibility settings).
-  mBundledFonts = CreateBundledFontsCollection(factory);
+  // If the bundled-fonts pref is < 0 (auto), we skip the bundled fonts on
+  // Windows 8.1 or later, where Segoe UI Emoji is available.
+  if (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() > 0 ||
+      (StaticPrefs::gfx_bundled_fonts_activate_AtStartup() < 0 &&
+       !IsWin8Point1OrLater())) {
+    mBundledFonts = CreateBundledFontsCollection(factory);
+  }
   if (mBundledFonts) {
     GetFontsFromCollection(mBundledFonts);
   }
@@ -1854,10 +1868,14 @@ nsresult gfxDWriteFontList::GetFontSubstitutes() {
     RemoveCharsetFromFontSubstitute(actualFontName);
     BuildKeyNameFromFontName(actualFontName);
     if (SharedFontList()) {
-      if (SharedFontList()->FindFamily(substituteName)) {
+      // Font substitutions are recorded for the canonical family names; we
+      // don't need FindFamily to consider localized aliases when searching.
+      if (SharedFontList()->FindFamily(substituteName,
+                                       /*aPrimaryNameOnly*/ true)) {
         continue;
       }
-      if (SharedFontList()->FindFamily(actualFontName)) {
+      if (SharedFontList()->FindFamily(actualFontName,
+                                       /*aPrimaryNameOnly*/ true)) {
         mSubstitutions.Put(substituteName, new nsCString(actualFontName));
       } else if (mSubstitutions.Get(actualFontName)) {
         mSubstitutions.Put(substituteName,
@@ -1897,12 +1915,16 @@ void gfxDWriteFontList::GetDirectWriteSubstitutes() {
     nsAutoCString substituteName(sub.aliasName);
     BuildKeyNameFromFontName(substituteName);
     if (SharedFontList()) {
-      if (SharedFontList()->FindFamily(substituteName)) {
+      // We don't need FindFamily to consider localized aliases when searching
+      // for the DirectWrite substitutes, we know the canonical names.
+      if (SharedFontList()->FindFamily(substituteName,
+                                       /*aPrimaryNameOnly*/ true)) {
         continue;
       }
       nsAutoCString actualFontName(sub.actualName);
       BuildKeyNameFromFontName(actualFontName);
-      if (SharedFontList()->FindFamily(actualFontName)) {
+      if (SharedFontList()->FindFamily(actualFontName,
+                                       /*aPrimaryNameOnly*/ true)) {
         mSubstitutions.Put(substituteName, new nsCString(actualFontName));
       } else {
         mNonExistingFonts.AppendElement(substituteName);

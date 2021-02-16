@@ -10,7 +10,9 @@ ac_add_options --enable-valgrind
 . $topsrcdir/build/unix/mozconfig.asan
 ac_add_options --disable-elf-hack
 
-export DUMP_SYMS="${MOZ_FETCHES_DIR}/dump_syms/dump_syms"
+# Enable ASan for rust code. This is done for specific build tasks rather than
+# globally in mozconfig.asan because it requires an unstable -Z flag.
+export RUSTFLAGS="$RUSTFLAGS -Zsanitizer=address"
 
 # Piggybacking UBSan for now since only a small subset of checks are enabled.
 # A new build can be created when appropriate.

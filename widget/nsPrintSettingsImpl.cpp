@@ -10,6 +10,7 @@
 #include "nsPaper.h"
 #include "nsReadableUtils.h"
 #include "nsIPrintSession.h"
+#include "mozilla/DebugOnly.h"
 #include "mozilla/RefPtr.h"
 
 #define DEFAULT_MARGIN_WIDTH 0.5
@@ -686,6 +687,8 @@ nsPrintSettings::GetEffectivePageSize(double* aWidth, double* aHeight) {
     *aWidth = NS_INCHES_TO_TWIPS(float(mPaperWidth));
     *aHeight = NS_INCHES_TO_TWIPS(float(mPaperHeight));
   } else {
+    MOZ_ASSERT(mPaperSizeUnit == kPaperSizeMillimeters,
+               "unexpected paper size unit");
     *aWidth = NS_MILLIMETERS_TO_TWIPS(float(mPaperWidth));
     *aHeight = NS_MILLIMETERS_TO_TWIPS(float(mPaperHeight));
   }
@@ -695,6 +698,32 @@ nsPrintSettings::GetEffectivePageSize(double* aWidth, double* aHeight) {
     *aHeight = temp;
   }
   return NS_OK;
+}
+
+bool nsPrintSettings::HasOrthogonalSheetsAndPages() {
+  return mNumPagesPerSheet == 2 || mNumPagesPerSheet == 6;
+}
+
+void nsPrintSettings::GetEffectiveSheetSize(double* aWidth, double* aHeight) {
+  mozilla::DebugOnly<nsresult> rv = GetEffectivePageSize(aWidth, aHeight);
+
+  // Our GetEffectivePageSize impls only return NS_OK, so this should hold:
+  MOZ_ASSERT(NS_SUCCEEDED(rv), "Uh oh, GetEffectivePageSize failed");
+
+  if (HasOrthogonalSheetsAndPages()) {
+    std::swap(*aWidth, *aHeight);
+  }
+}
+
+int32_t nsPrintSettings::GetSheetOrientation() {
+  if (HasOrthogonalSheetsAndPages()) {
+    // Sheet orientation is rotated with respect to the page orientation.
+    return kLandscapeOrientation == mOrientation ? kPortraitOrientation
+                                                 : kLandscapeOrientation;
+  }
+
+  // Sheet orientation is the same as the page orientation.
+  return mOrientation;
 }
 
 NS_IMETHODIMP

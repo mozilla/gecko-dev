@@ -323,6 +323,19 @@ nsresult LookupHelper::ConstructAnswer(LookupArgument* aArgument) {
   return NS_OK;
 }
 
+static void CStringToHexString(const nsACString& aIn, nsAString& aOut) {
+  static const char* const lut = "0123456789ABCDEF";
+
+  size_t len = aIn.Length();
+
+  aOut.SetCapacity(2 * len);
+  for (size_t i = 0; i < aIn.Length(); ++i) {
+    const char c = static_cast<char>(aIn[i]);
+    aOut.Append(lut[(c >> 4) & 0x0F]);
+    aOut.Append(lut[c & 15]);
+  }
+}
+
 nsresult LookupHelper::ConstructHTTPSRRAnswer(LookupArgument* aArgument) {
   nsCOMPtr<nsIDNSHTTPSSVCRecord> httpsRecord =
       do_QueryInterface(aArgument->mRecord);
@@ -363,9 +376,15 @@ nsresult LookupHelper::ConstructHTTPSRRAnswer(LookupArgument* aArgument) {
             nextRecord->mAlpn.Construct();
             nextRecord->mAlpn.Value().mType = type;
             nsCOMPtr<nsISVCParamAlpn> alpnParam = do_QueryInterface(value);
-            nsCString alpnStr;
-            Unused << alpnParam->GetAlpn(alpnStr);
-            CopyASCIItoUTF16(alpnStr, nextRecord->mAlpn.Value().mAlpn);
+            nsTArray<nsCString> alpn;
+            Unused << alpnParam->GetAlpn(alpn);
+            nsAutoCString alpnStr;
+            for (const auto& str : alpn) {
+              alpnStr.Append(str);
+              alpnStr.Append(',');
+            }
+            CopyASCIItoUTF16(Span(alpnStr.BeginReading(), alpnStr.Length() - 1),
+                             nextRecord->mAlpn.Value().mAlpn);
             break;
           }
           case SvcParamKeyNoDefaultAlpn: {
@@ -433,8 +452,19 @@ nsresult LookupHelper::ConstructHTTPSRRAnswer(LookupArgument* aArgument) {
                 do_QueryInterface(value);
             nsCString echConfigStr;
             Unused << echConfigParam->GetEchconfig(echConfigStr);
-            CopyASCIItoUTF16(echConfigStr,
-                             nextRecord->mEchConfig.Value().mEchConfig);
+            CStringToHexString(echConfigStr,
+                               nextRecord->mEchConfig.Value().mEchConfig);
+            break;
+          }
+          case SvcParamKeyODoHConfig: {
+            nextRecord->mODoHConfig.Construct();
+            nextRecord->mODoHConfig.Value().mType = type;
+            nsCOMPtr<nsISVCParamODoHConfig> ODoHConfigParam =
+                do_QueryInterface(value);
+            nsCString ODoHConfigStr;
+            Unused << ODoHConfigParam->GetODoHConfig(ODoHConfigStr);
+            CStringToHexString(ODoHConfigStr,
+                               nextRecord->mODoHConfig.Value().mODoHConfig);
             break;
           }
           default:

@@ -778,12 +778,18 @@ bool MarkPagesUnusedSoft(void* region, size_t length) {
 #if defined(XP_WIN)
   return VirtualAlloc(region, length, MEM_RESET,
                       DWORD(PageAccess::ReadWrite)) == region;
-#elif defined(XP_DARWIN)
-  return madvise(region, length, MADV_FREE_REUSABLE) == 0;
-#elif defined(XP_SOLARIS)
-  return posix_madvise(region, length, POSIX_MADV_DONTNEED) == 0;
 #else
-  return madvise(region, length, MADV_DONTNEED) == 0;
+  int status;
+  do {
+#  if defined(XP_DARWIN)
+    status = madvise(region, length, MADV_FREE_REUSABLE);
+#  elif defined(XP_SOLARIS)
+    status = posix_madvise(region, length, POSIX_MADV_DONTNEED);
+#  else
+    status = madvise(region, length, MADV_DONTNEED);
+#  endif
+  } while (status == -1 && errno == EAGAIN);
+  return status == 0;
 #endif
 }
 
@@ -805,6 +811,11 @@ bool MarkPagesUnusedHard(void* region, size_t length) {
 
 void MarkPagesInUseSoft(void* region, size_t length) {
   CheckDecommit(region, length);
+
+#if defined(XP_DARWIN)
+  while (madvise(region, length, MADV_FREE_REUSE) == -1 && errno == EAGAIN) {
+  }
+#endif
 
   MOZ_MAKE_MEM_UNDEFINED(region, length);
 }

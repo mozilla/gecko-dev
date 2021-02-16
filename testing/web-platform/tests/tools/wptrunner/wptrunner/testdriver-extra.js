@@ -34,7 +34,7 @@
         } else if (data.type === "testdriver-complete") {
             const cmd_id = data.cmd_id;
             const [on_success, on_failure] = pending.get(cmd_id);
-            pending.clear(cmd_id);
+            pending.delete(cmd_id);
             const resolver = data.status === "success" ? on_success : on_failure;
             resolver(data);
             if (is_test_context) {
@@ -167,6 +167,10 @@
         const selector = get_selector(element);
         const context = get_context(element);
         return create_action("click", {selector, context});
+    };
+
+    window.test_driver_internal.delete_all_cookies = function(context=null) {
+        return create_action("delete_all_cookies", {context});
     };
 
     window.test_driver_internal.send_keys = function(element, keys) {

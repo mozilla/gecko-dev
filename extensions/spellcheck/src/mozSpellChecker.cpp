@@ -113,7 +113,7 @@ nsresult mozSpellChecker::NextMisspelledWord(nsAString& aWord,
   return NS_OK;
 }
 
-RefPtr<CheckWordPromise> mozSpellChecker::CheckWords(
+RefPtr<mozilla::CheckWordPromise> mozSpellChecker::CheckWords(
     const nsTArray<nsString>& aWords) {
   if (XRE_IsContentProcess()) {
     return mEngine->CheckWords(aWords);
@@ -125,11 +125,12 @@ RefPtr<CheckWordPromise> mozSpellChecker::CheckWords(
     bool misspelled;
     nsresult rv = CheckWord(word, &misspelled, nullptr);
     if (NS_WARN_IF(NS_FAILED(rv))) {
-      return CheckWordPromise::CreateAndReject(rv, __func__);
+      return mozilla::CheckWordPromise::CreateAndReject(rv, __func__);
     }
     misspells.AppendElement(misspelled);
   }
-  return CheckWordPromise::CreateAndResolve(std::move(misspells), __func__);
+  return mozilla::CheckWordPromise::CreateAndResolve(std::move(misspells),
+                                                     __func__);
 }
 
 nsresult mozSpellChecker::CheckWord(const nsAString& aWord, bool* aIsMisspelled,
@@ -302,7 +303,7 @@ nsresult mozSpellChecker::GetPersonalDictionary(nsTArray<nsString>* aWordList) {
 }
 
 nsresult mozSpellChecker::GetDictionaryList(
-    nsTArray<nsString>* aDictionaryList) {
+    nsTArray<nsCString>* aDictionaryList) {
   MOZ_ASSERT(aDictionaryList->IsEmpty());
   if (XRE_IsContentProcess()) {
     ContentChild* child = ContentChild::GetSingleton();
@@ -313,7 +314,7 @@ nsresult mozSpellChecker::GetDictionaryList(
   nsresult rv;
 
   // For catching duplicates
-  nsTHashtable<nsStringHashKey> dictionaries;
+  nsTHashtable<nsCStringHashKey> dictionaries;
 
   nsCOMArray<mozISpellCheckingEngine> spellCheckingEngines;
   rv = GetEngineList(&spellCheckingEngines);
@@ -322,7 +323,7 @@ nsresult mozSpellChecker::GetDictionaryList(
   for (int32_t i = 0; i < spellCheckingEngines.Count(); i++) {
     nsCOMPtr<mozISpellCheckingEngine> engine = spellCheckingEngines[i];
 
-    nsTArray<nsString> dictNames;
+    nsTArray<nsCString> dictNames;
     engine->GetDictionaryList(dictNames);
     for (auto& dictName : dictNames) {
       // Skip duplicate dictionaries. Only take the first one
@@ -337,7 +338,7 @@ nsresult mozSpellChecker::GetDictionaryList(
   return NS_OK;
 }
 
-nsresult mozSpellChecker::GetCurrentDictionary(nsAString& aDictionary) {
+nsresult mozSpellChecker::GetCurrentDictionary(nsACString& aDictionary) {
   if (XRE_IsContentProcess()) {
     aDictionary = mCurrentDictionary;
     return NS_OK;
@@ -351,9 +352,9 @@ nsresult mozSpellChecker::GetCurrentDictionary(nsAString& aDictionary) {
   return mSpellCheckingEngine->GetDictionary(aDictionary);
 }
 
-nsresult mozSpellChecker::SetCurrentDictionary(const nsAString& aDictionary) {
+nsresult mozSpellChecker::SetCurrentDictionary(const nsACString& aDictionary) {
   if (XRE_IsContentProcess()) {
-    nsString wrappedDict = nsString(aDictionary);
+    nsCString wrappedDict = nsCString(aDictionary);
     bool isSuccess;
     mEngine->SendSetDictionary(wrappedDict, &isSuccess);
     if (!isSuccess) {
@@ -404,7 +405,7 @@ nsresult mozSpellChecker::SetCurrentDictionary(const nsAString& aDictionary) {
 }
 
 RefPtr<GenericPromise> mozSpellChecker::SetCurrentDictionaryFromList(
-    const nsTArray<nsString>& aList) {
+    const nsTArray<nsCString>& aList) {
   if (aList.IsEmpty()) {
     return GenericPromise::CreateAndReject(NS_ERROR_INVALID_ARG, __func__);
   }

@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, print_function, unicode_literals
 
 import json
 import os
@@ -90,7 +90,7 @@ PY3 = sys.version_info[0] == 3
 if PY3:
     text_type = str
 else:
-    text_type = unicode  # noqa
+    text_type = unicode  # noqa pylint: disable=W1612
 
 
 def ancestors(path, depth=0):

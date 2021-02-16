@@ -25,7 +25,7 @@ function getIdentityIcon() {
 
 function checkIdentityPopup(icon) {
   gIdentityHandler.refreshIdentityPopup();
-  is(getIdentityIcon(), `url("chrome://browser/skin/${icon}")`);
+  is(getIdentityIcon(), `url("chrome://global/skin/icons/${icon}")`);
   is(getConnectionState(), "secure-cert-user-overridden");
   isnot(
     getPopupContentVerifier().style.display,
@@ -52,7 +52,7 @@ add_task(async function() {
   checkIdentityPopup("connection-mixed-active-loaded.svg");
 
   // check that a warning is shown even without mixed content
-  await BrowserTestUtils.loadURI(
+  BrowserTestUtils.loadURI(
     gBrowser.selectedBrowser,
     "https://self-signed.example.com"
   );

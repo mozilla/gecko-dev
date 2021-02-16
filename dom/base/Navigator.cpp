@@ -335,10 +335,8 @@ void Navigator::GetAcceptLanguages(nsTArray<nsString>& aLanguages) {
   Preferences::GetLocalizedString("intl.accept_languages", acceptLang);
 
   // Split values on commas.
-  nsCharSeparatedTokenizer langTokenizer(acceptLang, ',');
-  while (langTokenizer.hasMoreTokens()) {
-    nsDependentSubstring lang = langTokenizer.nextToken();
-
+  for (nsDependentSubstring lang :
+       nsCharSeparatedTokenizer(acceptLang, ',').ToRange()) {
     // Replace "_" with "-" to avoid POSIX/Windows "en_US" notation.
     // NOTE: we should probably rely on the pref being set correctly.
     if (lang.Length() > 2 && lang[2] == char16_t('_')) {
@@ -349,12 +347,10 @@ void Navigator::GetAcceptLanguages(nsTArray<nsString>& aLanguages) {
     // only uppercase 2-letter country codes, not "zh-Hant", "de-DE-x-goethe".
     // NOTE: we should probably rely on the pref being set correctly.
     if (lang.Length() > 2) {
-      nsCharSeparatedTokenizer localeTokenizer(lang, '-');
       int32_t pos = 0;
       bool first = true;
-      while (localeTokenizer.hasMoreTokens()) {
-        const nsAString& code = localeTokenizer.nextToken();
-
+      for (const nsAString& code :
+           nsCharSeparatedTokenizer(lang, '-').ToRange()) {
         if (code.Length() == 2 && !first) {
           nsAutoString upper(code);
           ToUpperCase(upper);
@@ -1275,40 +1271,45 @@ void Navigator::MozGetUserMedia(const MediaStreamConstraints& aConstraints,
                                 CallerType aCallerType, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (!mWindow || !mWindow->GetOuterWindow() ||
-      mWindow->GetOuterWindow()->GetCurrentInnerWindow() != mWindow) {
-    aRv.Throw(NS_ERROR_NOT_AVAILABLE);
+  if (!mWindow || !mWindow->IsFullyActive()) {
+    aRv.ThrowInvalidStateError("The document is not fully active.");
     return;
   }
-
+  RefPtr<MediaManager::StreamPromise> sp;
+  if (!MediaManager::IsOn(aConstraints.mVideo) &&
+      !MediaManager::IsOn(aConstraints.mAudio)) {
+    sp = MediaManager::StreamPromise::CreateAndReject(
+        MakeRefPtr<MediaMgrError>(MediaMgrError::Name::TypeError,
+                                  "audio and/or video is required"),
+        __func__);
+  } else {
+    sp = MediaManager::Get()->GetUserMedia(mWindow, aConstraints, aCallerType);
+  }
   RefPtr<NavigatorUserMediaSuccessCallback> onsuccess(&aOnSuccess);
   RefPtr<NavigatorUserMediaErrorCallback> onerror(&aOnError);
 
   nsWeakPtr weakWindow = nsWeakPtr(do_GetWeakReference(mWindow));
-
-  MediaManager::Get()
-      ->GetUserMedia(mWindow, aConstraints, aCallerType)
-      ->Then(
-          GetMainThreadSerialEventTarget(), __func__,
-          [weakWindow, onsuccess = std::move(onsuccess)](
-              const RefPtr<DOMMediaStream>& aStream) MOZ_CAN_RUN_SCRIPT {
-            nsCOMPtr<nsPIDOMWindowInner> window = do_QueryReferent(weakWindow);
-            if (!window || !window->GetOuterWindow() ||
-                window->GetOuterWindow()->GetCurrentInnerWindow() != window) {
-              return;  // Leave Promise pending after navigation by design.
-            }
-            MediaManager::CallOnSuccess(*onsuccess, *aStream);
-          },
-          [weakWindow, onerror = std::move(onerror)](
-              const RefPtr<MediaMgrError>& aError) MOZ_CAN_RUN_SCRIPT {
-            nsCOMPtr<nsPIDOMWindowInner> window = do_QueryReferent(weakWindow);
-            if (!window || !window->GetOuterWindow() ||
-                window->GetOuterWindow()->GetCurrentInnerWindow() != window) {
-              return;  // Leave Promise pending after navigation by design.
-            }
-            auto error = MakeRefPtr<MediaStreamError>(window, *aError);
-            MediaManager::CallOnError(*onerror, *error);
-          });
+  sp->Then(
+      GetMainThreadSerialEventTarget(), __func__,
+      [weakWindow, onsuccess = std::move(onsuccess)](
+          const RefPtr<DOMMediaStream>& aStream) MOZ_CAN_RUN_SCRIPT {
+        nsCOMPtr<nsPIDOMWindowInner> window = do_QueryReferent(weakWindow);
+        if (!window || !window->GetOuterWindow() ||
+            window->GetOuterWindow()->GetCurrentInnerWindow() != window) {
+          return;  // Leave Promise pending after navigation by design.
+        }
+        MediaManager::CallOnSuccess(*onsuccess, *aStream);
+      },
+      [weakWindow, onerror = std::move(onerror)](
+          const RefPtr<MediaMgrError>& aError) MOZ_CAN_RUN_SCRIPT {
+        nsCOMPtr<nsPIDOMWindowInner> window = do_QueryReferent(weakWindow);
+        if (!window || !window->GetOuterWindow() ||
+            window->GetOuterWindow()->GetCurrentInnerWindow() != window) {
+          return;  // Leave Promise pending after navigation by design.
+        }
+        auto error = MakeRefPtr<MediaStreamError>(window, *aError);
+        MediaManager::CallOnError(*onerror, *error);
+      });
 }
 
 void Navigator::MozGetUserMediaDevices(

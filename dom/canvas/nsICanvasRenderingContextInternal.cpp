@@ -5,6 +5,8 @@
 
 #include "nsICanvasRenderingContextInternal.h"
 
+#include "mozilla/dom/Document.h"
+#include "mozilla/PresShell.h"
 #include "nsRefreshDriver.h"
 
 nsICanvasRenderingContextInternal::nsICanvasRenderingContextInternal()
@@ -13,6 +15,13 @@ nsICanvasRenderingContextInternal::nsICanvasRenderingContextInternal()
 
 nsICanvasRenderingContextInternal::~nsICanvasRenderingContextInternal() =
     default;
+
+mozilla::PresShell* nsICanvasRenderingContextInternal::GetPresShell() {
+  if (mCanvasElement) {
+    return mCanvasElement->OwnerDoc()->GetPresShell();
+  }
+  return nullptr;
+}
 
 void nsICanvasRenderingContextInternal::RemovePostRefreshObserver() {
   if (mRefreshDriver) {

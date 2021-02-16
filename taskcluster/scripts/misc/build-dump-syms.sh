@@ -35,13 +35,14 @@ Linux)
         export PATH="$MOZ_FETCHES_DIR/cctools/bin:$PATH"
         export RUSTFLAGS="-C linker=$GECKO_PATH/taskcluster/scripts/misc/osx-cross-linker"
         export CC="$MOZ_FETCHES_DIR/clang/bin/clang"
-        export TARGET_CC="$MOZ_FETCHES_DIR/clang/bin/clang -isysroot $MOZ_FETCHES_DIR/MacOSX10.11.sdk"
-        export TARGET_CXX="$MOZ_FETCHES_DIR/clang/bin/clang++ -isysroot $MOZ_FETCHES_DIR/MacOSX10.11.sdk -stdlib=libc++"
+        export TARGET_CC="$MOZ_FETCHES_DIR/clang/bin/clang -isysroot $MOZ_FETCHES_DIR/MacOSX10.12.sdk"
+        export TARGET_CXX="$MOZ_FETCHES_DIR/clang/bin/clang++ -isysroot $MOZ_FETCHES_DIR/MacOSX10.12.sdk -stdlib=libc++"
         cargo build --verbose --release --target $TARGET
     else
         export RUSTFLAGS=-Clinker=clang++
         export CC=clang
         export CXX=clang++
+        export CXXFLAGS=-D_GLIBCXX_USE_CXX11_ABI=0
         export PATH="$MOZ_FETCHES_DIR/clang/bin:$MOZ_FETCHES_DIR/binutils/bin:$PATH"
         cargo build --verbose --release --features "vendored-openssl"
     fi

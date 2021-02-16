@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { MESSAGE_TYPE_HASH as msg } from "common/ActorConstants.jsm";
-import { actionCreators as ac, actionTypes as at } from "common/Actions.jsm";
+import { actionTypes as at } from "common/Actions.jsm";
 import { ASRouterUtils } from "./asrouter-utils";
 import { generateBundles } from "./rich-text-strings";
 import { ImpressionsWrapper } from "./components/ImpressionsWrapper/ImpressionsWrapper";
@@ -12,9 +12,7 @@ import { NEWTAB_DARK_THEME } from "content-src/lib/constants";
 import React from "react";
 import ReactDOM from "react-dom";
 import { SnippetsTemplates } from "./templates/template-manifest";
-import { FirstRun } from "./templates/FirstRun/FirstRun";
 
-const TEMPLATES_ABOVE_PAGE = ["extended_triplets"];
 const TEMPLATES_BELOW_SEARCH = ["simple_below_search_snippet"];
 
 // Note: nextProps/prevProps refer to props passed to <ImpressionsWrapper />, not <ASRouterUISurface />
@@ -40,9 +38,6 @@ export class ASRouterUISurface extends React.PureComponent {
 
     this.state = { message: {} };
     if (props.document) {
-      this.headerPortal = props.document.getElementById(
-        "header-asrouter-container"
-      );
       this.footerPortal = props.document.getElementById(
         "footer-asrouter-container"
       );
@@ -51,7 +46,7 @@ export class ASRouterUISurface extends React.PureComponent {
 
   async fetchFlowParams(params = {}) {
     let result = {};
-    const { fxaEndpoint, dispatch } = this.props;
+    const { fxaEndpoint } = this.props;
     if (!fxaEndpoint) {
       const err =
         "Tried to fetch flow params before fxaEndpoint pref was ready";
@@ -70,24 +65,9 @@ export class ASRouterUISurface extends React.PureComponent {
         result = { deviceId, flowId, flowBeginTime };
       } else {
         console.error("Non-200 response", response); // eslint-disable-line no-console
-        dispatch(
-          ac.OnlyToMain({
-            type: at.TELEMETRY_UNDESIRED_EVENT,
-            data: {
-              event: "FXA_METRICS_FETCH_ERROR",
-              value: response.status,
-            },
-          })
-        );
       }
     } catch (error) {
       console.error(error); // eslint-disable-line no-console
-      dispatch(
-        ac.OnlyToMain({
-          type: at.TELEMETRY_UNDESIRED_EVENT,
-          data: { event: "FXA_METRICS_ERROR" },
-        })
-      );
     }
     return result;
   }
@@ -95,9 +75,11 @@ export class ASRouterUISurface extends React.PureComponent {
   sendUserActionTelemetry(extraProps = {}) {
     const { message } = this.state;
     const eventType = `${message.provider}_user_event`;
+    const source = extraProps.id;
+    delete extraProps.id;
     ASRouterUtils.sendTelemetry({
+      source,
       message_id: message.id,
-      source: extraProps.id,
       action: eventType,
       ...extraProps,
     });
@@ -169,16 +151,6 @@ export class ASRouterUISurface extends React.PureComponent {
   }
 
   clearMessage(id) {
-    // Request new set of dynamic triplet cards when click on a card CTA clear
-    // message and 'id' matches one of the cards in message bundle
-    if (
-      this.state.message &&
-      this.state.message.bundle &&
-      this.state.message.bundle.find(card => card.id === id)
-    ) {
-      this.requestMessage();
-    }
-
     if (id === this.state.message.id) {
       this.setState({ message: {} });
     }
@@ -323,44 +295,12 @@ export class ASRouterUISurface extends React.PureComponent {
     );
   }
 
-  renderFirstRun() {
-    const { message } = this.state;
-    if (TEMPLATES_ABOVE_PAGE.includes(message.template)) {
-      return (
-        <ImpressionsWrapper
-          id="FIRST_RUN"
-          message={this.state.message}
-          sendImpression={this.sendImpression}
-          shouldSendImpressionOnUpdate={shouldSendImpressionOnUpdate}
-          // This helps with testing
-          document={this.props.document}
-        >
-          <FirstRun
-            document={this.props.document}
-            message={message}
-            sendUserActionTelemetry={this.sendUserActionTelemetry}
-            executeAction={ASRouterUtils.executeAction}
-            onBlockById={ASRouterUtils.blockById}
-            onDismiss={this.onDismiss}
-            fxaEndpoint={this.props.fxaEndpoint}
-            appUpdateChannel={this.props.appUpdateChannel}
-            fetchFlowParams={this.fetchFlowParams}
-          />
-        </ImpressionsWrapper>
-      );
-    }
-    return null;
-  }
-
   render() {
     const { message } = this.state;
     if (!message.id) {
       return null;
     }
     const shouldRenderBelowSearch = TEMPLATES_BELOW_SEARCH.includes(
-      message.template
-    );
-    const shouldRenderInHeader = TEMPLATES_ABOVE_PAGE.includes(
       message.template
     );
 
@@ -370,15 +310,14 @@ export class ASRouterUISurface extends React.PureComponent {
         {this.renderSnippets()}
       </div>
     ) : (
-      // For onboarding, regular snippets etc. we should render
-      // everything in our footer container.
+      // For regular snippets etc. we should render everything in our footer
+      // container.
       ReactDOM.createPortal(
         <>
           {this.renderPreviewBanner()}
-          {this.renderFirstRun()}
           {this.renderSnippets()}
         </>,
-        shouldRenderInHeader ? this.headerPortal : this.footerPortal
+        this.footerPortal
       )
     );
   }

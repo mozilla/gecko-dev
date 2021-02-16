@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <iterator>
 
 #include "irregexp/RegExpTypes.h"
 #include "irregexp/util/FlagsShim.h"
@@ -33,6 +34,7 @@
 #include "js/RegExpFlags.h"
 #include "js/Value.h"
 #include "threading/ExclusiveData.h"
+#include "util/DifferentialTesting.h"
 #include "vm/JSContext.h"
 #include "vm/MutexIDs.h"
 #include "vm/NativeObject.h"
@@ -96,7 +98,7 @@ static constexpr inline T Max(T t1, T t2) {
 #  define V8PRIuPTRDIFF "tu"
 #endif
 
-#define arraysize mozilla::ArrayLength
+#define arraysize std::size
 
 // Explicitly declare the assignment operator as deleted.
 #define DISALLOW_ASSIGN(TypeName) TypeName& operator=(const TypeName&) = delete
@@ -1094,14 +1096,12 @@ class StackLimitCheck {
   // Use this to check for stack-overflows in C++ code.
   bool HasOverflowed() {
     bool overflowed = !js::CheckRecursionLimitDontReport(cx_);
-#ifdef JS_MORE_DETERMINISTIC
-    if (overflowed) {
+    if (overflowed && js::SupportDifferentialTesting()) {
       // We don't report overrecursion here, but we throw an exception later
       // and this still affects differential testing. Mimic ReportOverRecursed
       // (the fuzzers check for this particular string).
       fprintf(stderr, "ReportOverRecursed called\n");
     }
-#endif
     return overflowed;
   }
 

@@ -36,7 +36,9 @@ class MOZ_RAII ModuleLoadFrame final {
    * This static method is called by the NtMapViewOfSection hook.
    */
   static void NotifySectionMap(nt::AllocatedUnicodeString&& aSectionName,
-                               const void* aMapBaseAddr, NTSTATUS aMapNtStatus);
+                               const void* aMapBaseAddr, NTSTATUS aMapNtStatus,
+                               ModuleLoadInfo::Status aLoadStatus);
+  static bool ExistsTopFrame();
 
   /**
    * Called by the LdrLoadDll hook to indicate the status of the load and for
@@ -54,11 +56,13 @@ class MOZ_RAII ModuleLoadFrame final {
    * Called by OnBareSectionMap to construct a frame for a bare load.
    */
   ModuleLoadFrame(nt::AllocatedUnicodeString&& aSectionName,
-                  const void* aMapBaseAddr, NTSTATUS aNtStatus);
+                  const void* aMapBaseAddr, NTSTATUS aNtStatus,
+                  ModuleLoadInfo::Status aLoadStatus);
 
   void SetLSPSubstitutionRequired(PCUNICODE_STRING aLeafName);
   void OnSectionMap(nt::AllocatedUnicodeString&& aSectionName,
-                    const void* aMapBaseAddr, NTSTATUS aMapNtStatus);
+                    const void* aMapBaseAddr, NTSTATUS aMapNtStatus,
+                    ModuleLoadInfo::Status aLoadStatus);
 
   /**
    * A "bare" section mapping is one that was mapped without the code passing
@@ -66,7 +70,8 @@ class MOZ_RAII ModuleLoadFrame final {
    * that condition.
    */
   static void OnBareSectionMap(nt::AllocatedUnicodeString&& aSectionName,
-                               const void* aMapBaseAddr, NTSTATUS aMapNtStatus);
+                               const void* aMapBaseAddr, NTSTATUS aMapNtStatus,
+                               ModuleLoadInfo::Status aLoadStatus);
 
  private:
   // Link to the previous frame

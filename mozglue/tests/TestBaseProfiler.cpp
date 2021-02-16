@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <atomic>
 #include <iostream>
+#include <random>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -574,7 +575,7 @@ static void TestChunkManagerSingle() {
 
   // Release the first chunk.
   chunk->MarkDone();
-  cm.ReleaseChunks(std::move(chunk));
+  cm.ReleaseChunk(std::move(chunk));
   MOZ_RELEASE_ASSERT(!chunk, "chunk UniquePtr should have been moved-from");
 
   // Request after release.
@@ -733,6 +734,10 @@ static void TestChunkManagerWithLocalLimit() {
   extantReleasedChunks = cm.GetExtantReleasedChunks();
   MOZ_RELEASE_ASSERT(!extantReleasedChunks, "Unexpected released chunk(s)");
 
+  // Verify that ReleaseChunk accepts zero chunks.
+  cm.ReleaseChunk(nullptr);
+  MOZ_RELEASE_ASSERT(!extantReleasedChunks, "Unexpected released chunk(s)");
+
   // For this test, we need to be able to get at least 2 chunks without hitting
   // the limit. (If this failed, it wouldn't necessary be a problem with
   // ProfileBufferChunkManagerWithLocalLimit, fiddle with constants at the top
@@ -776,7 +781,7 @@ static void TestChunkManagerWithLocalLimit() {
     // Mark previous chunk done and release it.
     WaitUntilTimeStampChanges();  // Force "done" timestamp to change.
     chunk->MarkDone();
-    cm.ReleaseChunks(std::move(chunk));
+    cm.ReleaseChunk(std::move(chunk));
 
     // And cycle to the new chunk.
     chunk = std::move(newChunk);
@@ -839,6 +844,69 @@ static void TestChunkManagerWithLocalLimit() {
   WaitUntilTimeStampChanges();  // Force "done" timestamp to change.
   chunk->MarkDone();
   cm.ForgetUnreleasedChunks();
+
+  // Special testing of the release algorithm, to make sure released chunks get
+  // sorted.
+  constexpr unsigned RandomReleaseChunkLoop = 100;
+  // Build a vector of chunks, and mark them "done", ready to be released.
+  Vector<UniquePtr<ProfileBufferChunk>> chunksToRelease;
+  MOZ_RELEASE_ASSERT(chunksToRelease.reserve(RandomReleaseChunkLoop));
+  Vector<TimeStamp> chunksTimeStamps;
+  MOZ_RELEASE_ASSERT(chunksTimeStamps.reserve(RandomReleaseChunkLoop));
+  for (unsigned i = 0; i < RandomReleaseChunkLoop; ++i) {
+    UniquePtr<ProfileBufferChunk> chunk = cm.GetChunk();
+    MOZ_RELEASE_ASSERT(chunk);
+    Unused << chunk->ReserveInitialBlockAsTail(0);
+    chunk->MarkDone();
+    MOZ_RELEASE_ASSERT(!chunk->ChunkHeader().mDoneTimeStamp.IsNull());
+    chunksTimeStamps.infallibleEmplaceBack(chunk->ChunkHeader().mDoneTimeStamp);
+    chunksToRelease.infallibleEmplaceBack(std::move(chunk));
+    if (i % 10 == 0) {
+      // "Done" timestamps should *usually* increase, let's make extra sure some
+      // timestamps are actually different.
+      WaitUntilTimeStampChanges();
+    }
+  }
+  // Shuffle the list.
+  std::random_device randomDevice;
+  std::mt19937 generator(randomDevice());
+  std::shuffle(chunksToRelease.begin(), chunksToRelease.end(), generator);
+  // And release chunks one by one, checking that the list of released chunks
+  // is always sorted.
+  printf("TestChunkManagerWithLocalLimit - Shuffle test timestamps:");
+  for (unsigned i = 0; i < RandomReleaseChunkLoop; ++i) {
+    printf(" %f", (chunksToRelease[i]->ChunkHeader().mDoneTimeStamp -
+                   TimeStamp::ProcessCreation())
+                      .ToMicroseconds());
+    cm.ReleaseChunk(std::move(chunksToRelease[i]));
+    cm.PeekExtantReleasedChunks([i](const ProfileBufferChunk* releasedChunks) {
+      MOZ_RELEASE_ASSERT(releasedChunks);
+      unsigned releasedChunkCount = 1;
+      for (;;) {
+        const ProfileBufferChunk* nextChunk = releasedChunks->GetNext();
+        if (!nextChunk) {
+          break;
+        }
+        ++releasedChunkCount;
+        MOZ_RELEASE_ASSERT(releasedChunks->ChunkHeader().mDoneTimeStamp <=
+                           nextChunk->ChunkHeader().mDoneTimeStamp);
+        releasedChunks = nextChunk;
+      }
+      MOZ_RELEASE_ASSERT(releasedChunkCount == i + 1);
+    });
+  }
+  printf("\n");
+  // Finally, the whole list of released chunks should have the exact same
+  // timestamps as the initial list of "done" chunks.
+  extantReleasedChunks = cm.GetExtantReleasedChunks();
+  for (unsigned i = 0; i < RandomReleaseChunkLoop; ++i) {
+    MOZ_RELEASE_ASSERT(extantReleasedChunks, "Not enough released chunks");
+    MOZ_RELEASE_ASSERT(extantReleasedChunks->ChunkHeader().mDoneTimeStamp ==
+                       chunksTimeStamps[i]);
+    Unused << std::exchange(extantReleasedChunks,
+                            extantReleasedChunks->ReleaseNext());
+  }
+  MOZ_RELEASE_ASSERT(!extantReleasedChunks, "Too many released chunks");
 
 #  ifdef DEBUG
   cm.DeregisteredFrom(chunkManagerRegisterer);
@@ -1253,10 +1321,10 @@ static void TestControlledChunkManagerWithLocalLimit() {
     chunk->MarkDone();
     const auto doneTimeStamp = chunk->ChunkHeader().mDoneTimeStamp;
     const auto bufferBytes = chunk->BufferBytes();
-    cm.ReleaseChunks(std::move(chunk));
+    cm.ReleaseChunk(std::move(chunk));
 
     MOZ_RELEASE_ASSERT(updateCount == 1,
-                       "ReleaseChunks() should have triggered an update");
+                       "ReleaseChunk() should have triggered an update");
     MOZ_RELEASE_ASSERT(!update.IsFinal());
     MOZ_RELEASE_ASSERT(!update.IsNotUpdate());
     MOZ_RELEASE_ASSERT(update.UnreleasedBytes() ==
@@ -1313,6 +1381,17 @@ static void TestControlledChunkManagerWithLocalLimit() {
   printf("TestControlledChunkManagerWithLocalLimit done\n");
 }
 
+#  define VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(                         \
+      aProfileChunkedBuffer, aStart, aEnd, aPushed, aCleared, aFailed)        \
+    {                                                                         \
+      ProfileChunkedBuffer::State state = (aProfileChunkedBuffer).GetState(); \
+      MOZ_RELEASE_ASSERT(state.mRangeStart == (aStart));                      \
+      MOZ_RELEASE_ASSERT(state.mRangeEnd == (aEnd));                          \
+      MOZ_RELEASE_ASSERT(state.mPushedBlockCount == (aPushed));               \
+      MOZ_RELEASE_ASSERT(state.mClearedBlockCount == (aCleared));             \
+      MOZ_RELEASE_ASSERT(state.mFailedPutBytes == (aFailed));                 \
+    }
+
 static void TestChunkedBuffer() {
   printf("TestChunkedBuffer...\n");
 
@@ -1325,6 +1404,8 @@ static void TestChunkedBuffer() {
 
   MOZ_RELEASE_ASSERT(cb.BufferLength().isNothing());
 
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
+
   int result = 0;
   result = cb.ReserveAndPut(
       []() {
@@ -1333,20 +1414,25 @@ static void TestChunkedBuffer() {
       },
       [](Maybe<ProfileBufferEntryWriter>& aEW) { return aEW ? 2 : 3; });
   MOZ_RELEASE_ASSERT(result == 3);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
 
   result = 0;
   result = cb.Put(
       1, [](Maybe<ProfileBufferEntryWriter>& aEW) { return aEW ? 1 : 2; });
   MOZ_RELEASE_ASSERT(result == 2);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
 
   blockIndex = cb.PutFrom(&result, 1);
   MOZ_RELEASE_ASSERT(!blockIndex);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
 
   blockIndex = cb.PutObjects(123, result, "hello");
   MOZ_RELEASE_ASSERT(!blockIndex);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
 
   blockIndex = cb.PutObject(123);
   MOZ_RELEASE_ASSERT(!blockIndex);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
 
   auto chunks = cb.GetAllChunks();
   static_assert(std::is_same_v<decltype(chunks), UniquePtr<ProfileBufferChunk>>,
@@ -1380,6 +1466,7 @@ static void TestChunkedBuffer() {
   constexpr ProfileChunkedBuffer::Length chunkMinSize = 128;
   ProfileBufferChunkManagerWithLocalLimit cm(bufferMaxSize, chunkMinSize);
   cb.SetChunkManager(cm);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
 
   // Let the chunk manager fulfill the initial request for an extra chunk.
   cm.FulfillChunkRequests();
@@ -1387,6 +1474,7 @@ static void TestChunkedBuffer() {
   MOZ_RELEASE_ASSERT(cm.MaxTotalSize() == bufferMaxSize);
   MOZ_RELEASE_ASSERT(cb.BufferLength().isSome());
   MOZ_RELEASE_ASSERT(*cb.BufferLength() == bufferMaxSize);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1, 1, 0, 0, 0);
 
   // Write an int with the main `ReserveAndPut` function.
   const int test = 123;
@@ -1408,6 +1496,8 @@ static void TestChunkedBuffer() {
   MOZ_RELEASE_ASSERT(ran);
   MOZ_RELEASE_ASSERT(success);
   MOZ_RELEASE_ASSERT(blockIndex.ConvertToProfileBufferIndex() == 1);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cb, 1, 1 + ULEB128Size(sizeof(test)) + sizeof(test), 1, 0, 0);
 
   ran = false;
   result = 0;
@@ -1504,6 +1594,10 @@ static void TestChunkedBuffer() {
   MOZ_RELEASE_ASSERT(result == 6);
   MOZ_RELEASE_ASSERT(read == 1);
 
+  // No changes after reads.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cb, 1, 1 + ULEB128Size(sizeof(test)) + sizeof(test), 1, 0, 0);
+
   // Steal the underlying ProfileBufferChunks from the ProfileChunkedBuffer.
   chunks = cb.GetAllChunks();
   MOZ_RELEASE_ASSERT(!!chunks, "Expected at least one chunk");
@@ -1514,6 +1608,10 @@ static void TestChunkedBuffer() {
   MOZ_RELEASE_ASSERT(chunks->RangeStart() == 1);
   MOZ_RELEASE_ASSERT(chunks->OffsetFirstBlock() == 0);
   MOZ_RELEASE_ASSERT(chunks->OffsetPastLastBlock() == 1 + sizeof(test));
+
+  // GetAllChunks() should have advanced the index one full chunk forward.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1 + chunkActualSize,
+                                             1 + chunkActualSize, 1, 0, 0);
 
   // Nothing more to read from the now-empty ProfileChunkedBuffer.
   cb.ReadEach([](ProfileBufferEntryReader&) { MOZ_RELEASE_ASSERT(false); });
@@ -1541,6 +1639,10 @@ static void TestChunkedBuffer() {
       });
   MOZ_RELEASE_ASSERT(read == 1);
 
+  // No changes after reads.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, 1 + chunkActualSize,
+                                             1 + chunkActualSize, 1, 0, 0);
+
   // Write lots of numbers (by memcpy), which should trigger Chunk destructions.
   ProfileBufferBlockIndex firstBlockIndex;
   MOZ_RELEASE_ASSERT(!firstBlockIndex);
@@ -1557,6 +1659,17 @@ static void TestChunkedBuffer() {
     MOZ_RELEASE_ASSERT(blockIndex > lastBlockIndex);
     lastBlockIndex = blockIndex;
   }
+
+  ProfileChunkedBuffer::State stateAfterPuts = cb.GetState();
+  ProfileBufferIndex startAfterPuts = stateAfterPuts.mRangeStart;
+  MOZ_RELEASE_ASSERT(startAfterPuts > 1 + chunkActualSize);
+  ProfileBufferIndex endAfterPuts = stateAfterPuts.mRangeEnd;
+  MOZ_RELEASE_ASSERT(endAfterPuts > startAfterPuts);
+  uint64_t pushedAfterPuts = stateAfterPuts.mPushedBlockCount;
+  MOZ_RELEASE_ASSERT(pushedAfterPuts > 0);
+  uint64_t clearedAfterPuts = stateAfterPuts.mClearedBlockCount;
+  MOZ_RELEASE_ASSERT(clearedAfterPuts > 0);
+  MOZ_RELEASE_ASSERT(stateAfterPuts.mFailedPutBytes == 0);
 
   // Read extant numbers, which should at least follow each other.
   read = 0;
@@ -1630,6 +1743,10 @@ static void TestChunkedBuffer() {
   } while (blockIndex);
   MOZ_RELEASE_ASSERT(read > 1);
 
+  // No changes after reads.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cb, startAfterPuts, endAfterPuts, pushedAfterPuts, clearedAfterPuts, 0);
+
 #  ifdef DEBUG
   // cb.Dump();
 #  endif
@@ -1639,6 +1756,15 @@ static void TestChunkedBuffer() {
 #  ifdef DEBUG
   // cb.Dump();
 #  endif
+
+  ProfileChunkedBuffer::State stateAfterClear = cb.GetState();
+  ProfileBufferIndex startAfterClear = stateAfterClear.mRangeStart;
+  MOZ_RELEASE_ASSERT(startAfterClear > startAfterPuts);
+  ProfileBufferIndex endAfterClear = stateAfterClear.mRangeEnd;
+  MOZ_RELEASE_ASSERT(endAfterClear == startAfterClear);
+  MOZ_RELEASE_ASSERT(stateAfterClear.mPushedBlockCount == 0);
+  MOZ_RELEASE_ASSERT(stateAfterClear.mClearedBlockCount == 0);
+  MOZ_RELEASE_ASSERT(stateAfterClear.mFailedPutBytes == 0);
 
   // Start writer threads.
   constexpr int ThreadCount = 32;
@@ -1679,8 +1805,26 @@ static void TestChunkedBuffer() {
   // cb.Dump();
 #  endif
 
+  ProfileChunkedBuffer::State stateAfterMTPuts = cb.GetState();
+  ProfileBufferIndex startAfterMTPuts = stateAfterMTPuts.mRangeStart;
+  MOZ_RELEASE_ASSERT(startAfterMTPuts > startAfterClear);
+  ProfileBufferIndex endAfterMTPuts = stateAfterMTPuts.mRangeEnd;
+  MOZ_RELEASE_ASSERT(endAfterMTPuts > startAfterMTPuts);
+  MOZ_RELEASE_ASSERT(stateAfterMTPuts.mPushedBlockCount > 0);
+  MOZ_RELEASE_ASSERT(stateAfterMTPuts.mClearedBlockCount > 0);
+  MOZ_RELEASE_ASSERT(stateAfterMTPuts.mFailedPutBytes == 0);
+
   // Reset to out-of-session.
   cb.ResetChunkManager();
+
+  ProfileChunkedBuffer::State stateAfterReset = cb.GetState();
+  ProfileBufferIndex startAfterReset = stateAfterReset.mRangeStart;
+  MOZ_RELEASE_ASSERT(startAfterReset == endAfterMTPuts);
+  ProfileBufferIndex endAfterReset = stateAfterReset.mRangeEnd;
+  MOZ_RELEASE_ASSERT(endAfterReset == startAfterReset);
+  MOZ_RELEASE_ASSERT(stateAfterReset.mPushedBlockCount == 0);
+  MOZ_RELEASE_ASSERT(stateAfterReset.mClearedBlockCount == 0);
+  MOZ_RELEASE_ASSERT(stateAfterReset.mFailedPutBytes == 0);
 
   success = cb.ReserveAndPut(
       []() {
@@ -1689,30 +1833,46 @@ static void TestChunkedBuffer() {
       },
       [](Maybe<ProfileBufferEntryWriter>& aEW) { return !!aEW; });
   MOZ_RELEASE_ASSERT(!success);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   success =
       cb.Put(1, [](Maybe<ProfileBufferEntryWriter>& aEW) { return !!aEW; });
   MOZ_RELEASE_ASSERT(!success);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   blockIndex = cb.PutFrom(&success, 1);
   MOZ_RELEASE_ASSERT(!blockIndex);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   blockIndex = cb.PutObjects(123, success, "hello");
   MOZ_RELEASE_ASSERT(!blockIndex);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   blockIndex = cb.PutObject(123);
   MOZ_RELEASE_ASSERT(!blockIndex);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   chunks = cb.GetAllChunks();
   MOZ_RELEASE_ASSERT(!chunks, "Expected no chunks when out-of-session");
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   cb.ReadEach([](ProfileBufferEntryReader&) { MOZ_RELEASE_ASSERT(false); });
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   success = cb.ReadAt(nullptr, [](Maybe<ProfileBufferEntryReader>&& er) {
     MOZ_RELEASE_ASSERT(er.isNothing());
     return true;
   });
   MOZ_RELEASE_ASSERT(success);
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cb, startAfterReset, endAfterReset,
+                                             0, 0, 0);
 
   printf("TestChunkedBuffer done\n");
 }
@@ -1730,44 +1890,66 @@ static void TestChunkedBufferSingle() {
       MakeUnique<ProfileBufferChunkManagerSingle>(chunkMinSize));
 
   MOZ_RELEASE_ASSERT(cbSingle.BufferLength().isSome());
-  MOZ_RELEASE_ASSERT(*cbSingle.BufferLength() >= chunkMinSize);
+  const ProfileChunkedBuffer::Length bufferBytes = *cbSingle.BufferLength();
+  MOZ_RELEASE_ASSERT(bufferBytes >= chunkMinSize);
 
-  // Write lots of numbers (as objects), which should trigger the release of our
-  // single Chunk.
-  size_t firstIndexToFail = 0;
-  ProfileBufferBlockIndex lastBlockIndex;
-  for (size_t i = 1; i < 3 * chunkMinSize / (1 + sizeof(int)); ++i) {
-    ProfileBufferBlockIndex blockIndex = cbSingle.PutObject(i);
-    if (blockIndex) {
-      MOZ_RELEASE_ASSERT(
-          firstIndexToFail == 0,
-          "We should successfully write after we have failed once");
-      lastBlockIndex = blockIndex;
-    } else if (firstIndexToFail == 0) {
-      firstIndexToFail = i;
-    }
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cbSingle, 1, 1, 0, 0, 0);
+
+  // We will write this many blocks to fill the chunk.
+  constexpr size_t testBlocks = 4;
+  const ProfileChunkedBuffer::Length blockBytes = bufferBytes / testBlocks;
+  MOZ_RELEASE_ASSERT(ULEB128Size(blockBytes) == 1,
+                     "This test assumes block sizes are small enough so that "
+                     "their ULEB128-encoded size is 1 byte");
+  const ProfileChunkedBuffer::Length entryBytes =
+      blockBytes - ULEB128Size(blockBytes);
+
+  // First buffer-filling test: Try to write a too-big entry at the end of the
+  // chunk.
+
+  // Write all but one block.
+  for (size_t i = 0; i < testBlocks - 1; ++i) {
+    cbSingle.Put(entryBytes, [&](Maybe<ProfileBufferEntryWriter>& aEW) {
+      MOZ_RELEASE_ASSERT(aEW.isSome());
+      while (aEW->RemainingBytes() > 0) {
+        **aEW = '0' + i;
+        ++(*aEW);
+      }
+    });
+    VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+        cbSingle, 1, 1 + blockBytes * (i + 1), i + 1, 0, 0);
   }
-  MOZ_RELEASE_ASSERT(firstIndexToFail != 0,
-                     "There should be at least one failure");
-  MOZ_RELEASE_ASSERT(firstIndexToFail != 1, "We shouldn't fail from the start");
-  MOZ_RELEASE_ASSERT(!!lastBlockIndex, "We shouldn't fail from the start");
 
-  // Read extant numbers, which should go from 1 to firstIndexToFail-1.
+  // Write the last block so that it's too big (by 1 byte) to fit in the chunk,
+  // this should fail.
+  const ProfileChunkedBuffer::Length remainingBytesForLastBlock =
+      bufferBytes - blockBytes * (testBlocks - 1);
+  MOZ_RELEASE_ASSERT(ULEB128Size(remainingBytesForLastBlock) == 1,
+                     "This test assumes block sizes are small enough so that "
+                     "their ULEB128-encoded size is 1 byte");
+  const ProfileChunkedBuffer::Length entryToFitRemainingBytes =
+      remainingBytesForLastBlock - ULEB128Size(remainingBytesForLastBlock);
+  cbSingle.Put(entryToFitRemainingBytes + 1,
+               [&](Maybe<ProfileBufferEntryWriter>& aEW) {
+                 MOZ_RELEASE_ASSERT(aEW.isNothing());
+               });
+  // The buffer state should not have changed, apart from the failed bytes.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cbSingle, 1, 1 + blockBytes * (testBlocks - 1), testBlocks - 1, 0,
+      remainingBytesForLastBlock + 1);
+
   size_t read = 0;
-  cbSingle.ReadEach(
-      [&](ProfileBufferEntryReader& er, ProfileBufferBlockIndex blockIndex) {
-        ++read;
-        MOZ_RELEASE_ASSERT(er.RemainingBytes() == sizeof(size_t));
-        const auto value = er.ReadObject<size_t>();
-        MOZ_RELEASE_ASSERT(value == read);
-        MOZ_RELEASE_ASSERT(er.RemainingBytes() == 0);
-        MOZ_RELEASE_ASSERT(blockIndex <= lastBlockIndex,
-                           "Unexpected block index past the last written one");
-      });
-  MOZ_RELEASE_ASSERT(read == firstIndexToFail - 1,
-                     "We should have read up to before the first failure");
+  cbSingle.ReadEach([&](ProfileBufferEntryReader& aER) {
+    MOZ_RELEASE_ASSERT(aER.RemainingBytes() == entryBytes);
+    while (aER.RemainingBytes() > 0) {
+      MOZ_RELEASE_ASSERT(*aER == '0' + read);
+      ++aER;
+    }
+    ++read;
+  });
+  MOZ_RELEASE_ASSERT(read == testBlocks - 1);
 
-  // Test AppendContent:
+  // ~Interlude~ Test AppendContent:
   // Create another ProfileChunkedBuffer that will use a
   // ProfileBufferChunkManagerWithLocalLimit, which will give away
   // ProfileBufferChunks that can contain 128 bytes, using up to 1KB of memory
@@ -1780,29 +1962,144 @@ static void TestChunkedBufferSingle() {
   // It should start empty.
   cbTarget.ReadEach(
       [](ProfileBufferEntryReader&) { MOZ_RELEASE_ASSERT(false); });
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cbTarget, 1, 1, 0, 0, 0);
 
   // Copy the contents from cbSingle to cbTarget.
   cbTarget.AppendContents(cbSingle);
 
   // And verify that we now have the same contents in cbTarget.
   read = 0;
-  cbTarget.ReadEach(
-      [&](ProfileBufferEntryReader& er, ProfileBufferBlockIndex blockIndex) {
-        ++read;
-        MOZ_RELEASE_ASSERT(er.RemainingBytes() == sizeof(size_t));
-        const auto value = er.ReadObject<size_t>();
-        MOZ_RELEASE_ASSERT(value == read);
-        MOZ_RELEASE_ASSERT(er.RemainingBytes() == 0);
-        MOZ_RELEASE_ASSERT(blockIndex <= lastBlockIndex,
-                           "Unexpected block index past the last written one");
-      });
-  MOZ_RELEASE_ASSERT(read == firstIndexToFail - 1,
-                     "We should have read up to before the first failure");
+  cbTarget.ReadEach([&](ProfileBufferEntryReader& aER) {
+    MOZ_RELEASE_ASSERT(aER.RemainingBytes() == entryBytes);
+    while (aER.RemainingBytes() > 0) {
+      MOZ_RELEASE_ASSERT(*aER == '0' + read);
+      ++aER;
+    }
+    ++read;
+  });
+  MOZ_RELEASE_ASSERT(read == testBlocks - 1);
+  // The state should be the same as the source.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cbTarget, 1, 1 + blockBytes * (testBlocks - 1), testBlocks - 1, 0, 0);
 
 #  ifdef DEBUG
   // cbSingle.Dump();
   // cbTarget.Dump();
 #  endif
+
+  // Because we failed to write a too-big chunk above, the chunk was marked
+  // full, so that entries should be consistently rejected from now on.
+  cbSingle.Put(1, [&](Maybe<ProfileBufferEntryWriter>& aEW) {
+    MOZ_RELEASE_ASSERT(aEW.isNothing());
+  });
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cbSingle, 1, 1 + blockBytes * ((testBlocks - 1)), testBlocks - 1, 0,
+      remainingBytesForLastBlock + 1 + ULEB128Size(1u) + 1);
+
+  // Clear the buffer before the next test.
+
+  cbSingle.Clear();
+  // Clear() should move the index to the next chunk range -- even if it's
+  // really reusing the same chunk.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cbSingle, 1 + bufferBytes,
+                                             1 + bufferBytes, 0, 0, 0);
+  cbSingle.ReadEach(
+      [&](ProfileBufferEntryReader& aER) { MOZ_RELEASE_ASSERT(false); });
+
+  // Second buffer-filling test: Try to write a final entry that just fits at
+  // the end of the chunk.
+
+  // Write all but one block.
+  for (size_t i = 0; i < testBlocks - 1; ++i) {
+    cbSingle.Put(entryBytes, [&](Maybe<ProfileBufferEntryWriter>& aEW) {
+      MOZ_RELEASE_ASSERT(aEW.isSome());
+      while (aEW->RemainingBytes() > 0) {
+        **aEW = 'a' + i;
+        ++(*aEW);
+      }
+    });
+    VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+        cbSingle, 1 + bufferBytes, 1 + bufferBytes + blockBytes * (i + 1),
+        i + 1, 0, 0);
+  }
+
+  read = 0;
+  cbSingle.ReadEach([&](ProfileBufferEntryReader& aER) {
+    MOZ_RELEASE_ASSERT(aER.RemainingBytes() == entryBytes);
+    while (aER.RemainingBytes() > 0) {
+      MOZ_RELEASE_ASSERT(*aER == 'a' + read);
+      ++aER;
+    }
+    ++read;
+  });
+  MOZ_RELEASE_ASSERT(read == testBlocks - 1);
+
+  // Write the last block so that it fits exactly in the chunk.
+  cbSingle.Put(entryToFitRemainingBytes,
+               [&](Maybe<ProfileBufferEntryWriter>& aEW) {
+                 MOZ_RELEASE_ASSERT(aEW.isSome());
+                 while (aEW->RemainingBytes() > 0) {
+                   **aEW = 'a' + (testBlocks - 1);
+                   ++(*aEW);
+                 }
+               });
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cbSingle, 1 + bufferBytes, 1 + bufferBytes + blockBytes * testBlocks,
+      testBlocks, 0, 0);
+
+  read = 0;
+  cbSingle.ReadEach([&](ProfileBufferEntryReader& aER) {
+    MOZ_RELEASE_ASSERT(
+        aER.RemainingBytes() ==
+        ((read < testBlocks) ? entryBytes : entryToFitRemainingBytes));
+    while (aER.RemainingBytes() > 0) {
+      MOZ_RELEASE_ASSERT(*aER == 'a' + read);
+      ++aER;
+    }
+    ++read;
+  });
+  MOZ_RELEASE_ASSERT(read == testBlocks);
+
+  // Because the single chunk has been filled, it shouldn't be possible to write
+  // more entries.
+  cbSingle.Put(1, [&](Maybe<ProfileBufferEntryWriter>& aEW) {
+    MOZ_RELEASE_ASSERT(aEW.isNothing());
+  });
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cbSingle, 1 + bufferBytes, 1 + bufferBytes + blockBytes * testBlocks,
+      testBlocks, 0, ULEB128Size(1u) + 1);
+
+  cbSingle.Clear();
+  // Clear() should move the index to the next chunk range -- even if it's
+  // really reusing the same chunk.
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(cbSingle, 1 + bufferBytes * 2,
+                                             1 + bufferBytes * 2, 0, 0, 0);
+  cbSingle.ReadEach(
+      [&](ProfileBufferEntryReader& aER) { MOZ_RELEASE_ASSERT(false); });
+
+  // Clear() recycles the released chunk, so we should be able to record new
+  // entries.
+  cbSingle.Put(entryBytes, [&](Maybe<ProfileBufferEntryWriter>& aEW) {
+    MOZ_RELEASE_ASSERT(aEW.isSome());
+    while (aEW->RemainingBytes() > 0) {
+      **aEW = 'x';
+      ++(*aEW);
+    }
+  });
+  VERIFY_PCB_START_END_PUSHED_CLEARED_FAILED(
+      cbSingle, 1 + bufferBytes * 2,
+      1 + bufferBytes * 2 + ULEB128Size(entryBytes) + entryBytes, 1, 0, 0);
+  read = 0;
+  cbSingle.ReadEach([&](ProfileBufferEntryReader& aER) {
+    MOZ_RELEASE_ASSERT(read == 0);
+    MOZ_RELEASE_ASSERT(aER.RemainingBytes() == entryBytes);
+    while (aER.RemainingBytes() > 0) {
+      MOZ_RELEASE_ASSERT(*aER == 'x');
+      ++aER;
+    }
+    ++read;
+  });
+  MOZ_RELEASE_ASSERT(read == 1);
 
   printf("TestChunkedBufferSingle done\n");
 }
@@ -3014,126 +3311,152 @@ void TestLiteralEmptyStringView() {
   printf("TestLiteralEmptyStringView done\n");
 }
 
+template <typename CHAR>
 void TestProfilerStringView() {
-  printf("TestProfilerStringView...\n");
+  if constexpr (std::is_same_v<CHAR, char>) {
+    printf("TestProfilerStringView<char>...\n");
+  } else if constexpr (std::is_same_v<CHAR, char16_t>) {
+    printf("TestProfilerStringView<char16_t>...\n");
+  } else {
+    MOZ_RELEASE_ASSERT(false,
+                       "TestProfilerStringView only handles char and char16_t");
+  }
 
   // Used to verify implicit constructions, as this will normally be used in
   // function parameters.
-  auto BS8V = [](mozilla::ProfilerString8View&& aBS8V) {
-    return std::move(aBS8V);
+  auto BSV = [](mozilla::ProfilerStringView<CHAR>&& aBSV) {
+    return std::move(aBSV);
+  };
+
+  // These look like string literals, as expected by some string constructors.
+  const CHAR empty[0 + 1] = {CHAR('\0')};
+  const CHAR hi[2 + 1] = {
+      CHAR('h'),
+      CHAR('i'),
+      CHAR('\0'),
   };
 
   // Literal empty string.
-  MOZ_RELEASE_ASSERT(BS8V("").Data());
-  MOZ_RELEASE_ASSERT(BS8V("").Data()[0] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V("").Length() == 0);
-  MOZ_RELEASE_ASSERT(BS8V("").IsLiteral());
-  MOZ_RELEASE_ASSERT(!BS8V("").IsReference());
+  MOZ_RELEASE_ASSERT(BSV(empty).Data());
+  MOZ_RELEASE_ASSERT(BSV(empty).Data()[0] == CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(empty).Length() == 0);
+  MOZ_RELEASE_ASSERT(BSV(empty).IsLiteral());
+  MOZ_RELEASE_ASSERT(!BSV(empty).IsReference());
 
   // Literal non-empty string.
-  MOZ_RELEASE_ASSERT(BS8V("hi").Data());
-  MOZ_RELEASE_ASSERT(BS8V("hi").Data()[0] == 'h');
-  MOZ_RELEASE_ASSERT(BS8V("hi").Data()[1] == 'i');
-  MOZ_RELEASE_ASSERT(BS8V("hi").Data()[2] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V("hi").Length() == 2);
-  MOZ_RELEASE_ASSERT(BS8V("hi").IsLiteral());
-  MOZ_RELEASE_ASSERT(!BS8V("hi").IsReference());
+  MOZ_RELEASE_ASSERT(BSV(hi).Data());
+  MOZ_RELEASE_ASSERT(BSV(hi).Data()[0] == CHAR('h'));
+  MOZ_RELEASE_ASSERT(BSV(hi).Data()[1] == CHAR('i'));
+  MOZ_RELEASE_ASSERT(BSV(hi).Data()[2] == CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(hi).Length() == 2);
+  MOZ_RELEASE_ASSERT(BSV(hi).IsLiteral());
+  MOZ_RELEASE_ASSERT(!BSV(hi).IsReference());
 
   // std::string_view to a literal empty string.
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("")).Data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("")).Data()[0] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("")).Length() == 0);
-  MOZ_RELEASE_ASSERT(!BS8V(std::string_view("")).IsLiteral());
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("")).IsReference());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(empty)).Data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(empty)).Data()[0] ==
+                     CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(empty)).Length() == 0);
+  MOZ_RELEASE_ASSERT(!BSV(std::basic_string_view<CHAR>(empty)).IsLiteral());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(empty)).IsReference());
 
   // std::string_view to a literal non-empty string.
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("hi")).Data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("hi")).Data()[0] == 'h');
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("hi")).Data()[1] == 'i');
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("hi")).Data()[2] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("hi")).Length() == 2);
-  MOZ_RELEASE_ASSERT(!BS8V(std::string_view("hi")).IsLiteral());
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view("hi")).IsReference());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(hi)).Data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(hi)).Data()[0] ==
+                     CHAR('h'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(hi)).Data()[1] ==
+                     CHAR('i'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(hi)).Data()[2] ==
+                     CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(hi)).Length() == 2);
+  MOZ_RELEASE_ASSERT(!BSV(std::basic_string_view<CHAR>(hi)).IsLiteral());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>(hi)).IsReference());
 
   // Default std::string_view points at nullptr, ProfilerStringView converts it
   // to the literal empty string.
-  MOZ_RELEASE_ASSERT(!std::string_view().data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view()).Data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view()).Data()[0] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view()).Length() == 0);
-  MOZ_RELEASE_ASSERT(BS8V(std::string_view()).IsLiteral());
-  MOZ_RELEASE_ASSERT(!BS8V(std::string_view()).IsReference());
+  MOZ_RELEASE_ASSERT(!std::basic_string_view<CHAR>().data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>()).Data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>()).Data()[0] ==
+                     CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>()).Length() == 0);
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string_view<CHAR>()).IsLiteral());
+  MOZ_RELEASE_ASSERT(!BSV(std::basic_string_view<CHAR>()).IsReference());
 
   // std::string to a literal empty string.
-  MOZ_RELEASE_ASSERT(BS8V(std::string("")).Data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string("")).Data()[0] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(std::string("")).Length() == 0);
-  MOZ_RELEASE_ASSERT(!BS8V(std::string("")).IsLiteral());
-  MOZ_RELEASE_ASSERT(BS8V(std::string("")).IsReference());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(empty)).Data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(empty)).Data()[0] ==
+                     CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(empty)).Length() == 0);
+  MOZ_RELEASE_ASSERT(!BSV(std::basic_string<CHAR>(empty)).IsLiteral());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(empty)).IsReference());
 
   // std::string to a literal non-empty string.
-  MOZ_RELEASE_ASSERT(BS8V(std::string("hi")).Data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string("hi")).Data()[0] == 'h');
-  MOZ_RELEASE_ASSERT(BS8V(std::string("hi")).Data()[1] == 'i');
-  MOZ_RELEASE_ASSERT(BS8V(std::string("hi")).Data()[2] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(std::string("hi")).Length() == 2);
-  MOZ_RELEASE_ASSERT(!BS8V(std::string("hi")).IsLiteral());
-  MOZ_RELEASE_ASSERT(BS8V(std::string("hi")).IsReference());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(hi)).Data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(hi)).Data()[0] == CHAR('h'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(hi)).Data()[1] == CHAR('i'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(hi)).Data()[2] == CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(hi)).Length() == 2);
+  MOZ_RELEASE_ASSERT(!BSV(std::basic_string<CHAR>(hi)).IsLiteral());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>(hi)).IsReference());
 
-  // Default std::string_view contains an empty null-terminated string.
-  MOZ_RELEASE_ASSERT(std::string().data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string()).Data());
-  MOZ_RELEASE_ASSERT(BS8V(std::string()).Data()[0] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(std::string()).Length() == 0);
-  MOZ_RELEASE_ASSERT(!BS8V(std::string()).IsLiteral());
-  MOZ_RELEASE_ASSERT(BS8V(std::string()).IsReference());
+  // Default std::string contains an empty null-terminated string.
+  MOZ_RELEASE_ASSERT(std::basic_string<CHAR>().data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>()).Data());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>()).Data()[0] == CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>()).Length() == 0);
+  MOZ_RELEASE_ASSERT(!BSV(std::basic_string<CHAR>()).IsLiteral());
+  MOZ_RELEASE_ASSERT(BSV(std::basic_string<CHAR>()).IsReference());
 
-  class FakeNsCString {
+  // Class that quacks like nsTString (with Data(), Length(), IsLiteral()), to
+  // check that ProfilerStringView can read from them.
+  class FakeNsTString {
    public:
-    FakeNsCString(const char* aData, size_t aLength, bool aIsLiteral)
+    FakeNsTString(const CHAR* aData, size_t aLength, bool aIsLiteral)
         : mData(aData), mLength(aLength), mIsLiteral(aIsLiteral) {}
 
-    const char* Data() const { return mData; }
+    const CHAR* Data() const { return mData; }
     size_t Length() const { return mLength; }
     bool IsLiteral() const { return mIsLiteral; }
 
    private:
-    const char* mData;
+    const CHAR* mData;
     size_t mLength;
     bool mIsLiteral;
   };
 
-  // FakeNsCString to nullptr.
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString(nullptr, 0, true)).Data());
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString(nullptr, 0, true)).Data()[0] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString(nullptr, 0, true)).Length() == 0);
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString(nullptr, 0, true)).IsLiteral());
-  MOZ_RELEASE_ASSERT(!BS8V(FakeNsCString(nullptr, 0, true)).IsReference());
+  // FakeNsTString to nullptr.
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(nullptr, 0, true)).Data());
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(nullptr, 0, true)).Data()[0] ==
+                     CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(nullptr, 0, true)).Length() == 0);
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(nullptr, 0, true)).IsLiteral());
+  MOZ_RELEASE_ASSERT(!BSV(FakeNsTString(nullptr, 0, true)).IsReference());
 
-  // FakeNsCString to a literal empty string.
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("", 0, true)).Data());
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("", 0, true)).Data()[0] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("", 0, true)).Length() == 0);
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("", 0, true)).IsLiteral());
-  MOZ_RELEASE_ASSERT(!BS8V(FakeNsCString("", 0, true)).IsReference());
+  // FakeNsTString to a literal empty string.
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(empty, 0, true)).Data());
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(empty, 0, true)).Data()[0] ==
+                     CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(empty, 0, true)).Length() == 0);
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(empty, 0, true)).IsLiteral());
+  MOZ_RELEASE_ASSERT(!BSV(FakeNsTString(empty, 0, true)).IsReference());
 
-  // FakeNsCString to a literal non-empty string.
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, true)).Data());
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, true)).Data()[0] == 'h');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, true)).Data()[1] == 'i');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, true)).Data()[2] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, true)).Length() == 2);
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, true)).IsLiteral());
-  MOZ_RELEASE_ASSERT(!BS8V(FakeNsCString("hi", 2, true)).IsReference());
+  // FakeNsTString to a literal non-empty string.
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, true)).Data());
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, true)).Data()[0] == CHAR('h'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, true)).Data()[1] == CHAR('i'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, true)).Data()[2] == CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, true)).Length() == 2);
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, true)).IsLiteral());
+  MOZ_RELEASE_ASSERT(!BSV(FakeNsTString(hi, 2, true)).IsReference());
 
-  // FakeNsCString to a non-literal non-empty string.
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, false)).Data());
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, false)).Data()[0] == 'h');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, false)).Data()[1] == 'i');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, false)).Data()[2] == '\0');
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, false)).Length() == 2);
-  MOZ_RELEASE_ASSERT(!BS8V(FakeNsCString("hi", 2, false)).IsLiteral());
-  MOZ_RELEASE_ASSERT(BS8V(FakeNsCString("hi", 2, false)).IsReference());
+  // FakeNsTString to a non-literal non-empty string.
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, false)).Data());
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, false)).Data()[0] == CHAR('h'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, false)).Data()[1] == CHAR('i'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, false)).Data()[2] == CHAR('\0'));
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, false)).Length() == 2);
+  MOZ_RELEASE_ASSERT(!BSV(FakeNsTString(hi, 2, false)).IsLiteral());
+  MOZ_RELEASE_ASSERT(BSV(FakeNsTString(hi, 2, false)).IsReference());
 
   // Serialization and deserialization (with ownership).
   constexpr size_t bufferMaxSize = 1024;
@@ -3142,69 +3465,73 @@ void TestProfilerStringView() {
   ProfileChunkedBuffer cb(ProfileChunkedBuffer::ThreadSafety::WithMutex, cm);
 
   // Literal string, serialized as raw pointer.
-  MOZ_RELEASE_ASSERT(cb.PutObject(BS8V("hi")));
+  MOZ_RELEASE_ASSERT(cb.PutObject(BSV(hi)));
   {
     unsigned read = 0;
-    ProfilerString8View outerBS8V;
+    ProfilerStringView<CHAR> outerBSV;
     cb.ReadEach([&](ProfileBufferEntryReader& aER) {
       ++read;
-      auto bs8v = aER.ReadObject<ProfilerString8View>();
-      MOZ_RELEASE_ASSERT(bs8v.Data());
-      MOZ_RELEASE_ASSERT(bs8v.Data()[0] == 'h');
-      MOZ_RELEASE_ASSERT(bs8v.Data()[1] == 'i');
-      MOZ_RELEASE_ASSERT(bs8v.Data()[2] == '\0');
-      MOZ_RELEASE_ASSERT(bs8v.Length() == 2);
-      MOZ_RELEASE_ASSERT(bs8v.IsLiteral());
-      MOZ_RELEASE_ASSERT(!bs8v.IsReference());
-      outerBS8V = std::move(bs8v);
+      auto bsv = aER.ReadObject<ProfilerStringView<CHAR>>();
+      MOZ_RELEASE_ASSERT(bsv.Data());
+      MOZ_RELEASE_ASSERT(bsv.Data()[0] == CHAR('h'));
+      MOZ_RELEASE_ASSERT(bsv.Data()[1] == CHAR('i'));
+      MOZ_RELEASE_ASSERT(bsv.Data()[2] == CHAR('\0'));
+      MOZ_RELEASE_ASSERT(bsv.Length() == 2);
+      MOZ_RELEASE_ASSERT(bsv.IsLiteral());
+      MOZ_RELEASE_ASSERT(!bsv.IsReference());
+      outerBSV = std::move(bsv);
     });
     MOZ_RELEASE_ASSERT(read == 1);
-    MOZ_RELEASE_ASSERT(outerBS8V.Data());
-    MOZ_RELEASE_ASSERT(outerBS8V.Data()[0] == 'h');
-    MOZ_RELEASE_ASSERT(outerBS8V.Data()[1] == 'i');
-    MOZ_RELEASE_ASSERT(outerBS8V.Data()[2] == '\0');
-    MOZ_RELEASE_ASSERT(outerBS8V.Length() == 2);
-    MOZ_RELEASE_ASSERT(outerBS8V.IsLiteral());
-    MOZ_RELEASE_ASSERT(!outerBS8V.IsReference());
+    MOZ_RELEASE_ASSERT(outerBSV.Data());
+    MOZ_RELEASE_ASSERT(outerBSV.Data()[0] == CHAR('h'));
+    MOZ_RELEASE_ASSERT(outerBSV.Data()[1] == CHAR('i'));
+    MOZ_RELEASE_ASSERT(outerBSV.Data()[2] == CHAR('\0'));
+    MOZ_RELEASE_ASSERT(outerBSV.Length() == 2);
+    MOZ_RELEASE_ASSERT(outerBSV.IsLiteral());
+    MOZ_RELEASE_ASSERT(!outerBSV.IsReference());
   }
 
   cb.Clear();
 
   // Non-literal string, content is serialized.
-  std::string hiString("hi");
-  MOZ_RELEASE_ASSERT(cb.PutObject(BS8V(hiString)));
+  std::basic_string<CHAR> hiString(hi);
+  MOZ_RELEASE_ASSERT(cb.PutObject(BSV(hiString)));
   {
     unsigned read = 0;
-    ProfilerString8View outerBS8V;
+    ProfilerStringView<CHAR> outerBSV;
     cb.ReadEach([&](ProfileBufferEntryReader& aER) {
       ++read;
-      auto bs8v = aER.ReadObject<ProfilerString8View>();
-      MOZ_RELEASE_ASSERT(bs8v.Data());
-      MOZ_RELEASE_ASSERT(bs8v.Data() != hiString.data());
-      MOZ_RELEASE_ASSERT(bs8v.Data()[0] == 'h');
-      MOZ_RELEASE_ASSERT(bs8v.Data()[1] == 'i');
-      MOZ_RELEASE_ASSERT(bs8v.Data()[2] == '\0');
-      MOZ_RELEASE_ASSERT(bs8v.Length() == 2);
+      auto bsv = aER.ReadObject<ProfilerStringView<CHAR>>();
+      MOZ_RELEASE_ASSERT(bsv.Data());
+      MOZ_RELEASE_ASSERT(bsv.Data() != hiString.data());
+      MOZ_RELEASE_ASSERT(bsv.Data()[0] == CHAR('h'));
+      MOZ_RELEASE_ASSERT(bsv.Data()[1] == CHAR('i'));
+      MOZ_RELEASE_ASSERT(bsv.Data()[2] == CHAR('\0'));
+      MOZ_RELEASE_ASSERT(bsv.Length() == 2);
       // Special ownership case, neither a literal nor a reference!
-      MOZ_RELEASE_ASSERT(!bs8v.IsLiteral());
-      MOZ_RELEASE_ASSERT(!bs8v.IsReference());
+      MOZ_RELEASE_ASSERT(!bsv.IsLiteral());
+      MOZ_RELEASE_ASSERT(!bsv.IsReference());
       // Test move of ownership.
-      outerBS8V = std::move(bs8v);
+      outerBSV = std::move(bsv);
       // NOLINTNEXTLINE(bugprone-use-after-move, clang-analyzer-cplusplus.Move)
-      MOZ_RELEASE_ASSERT(bs8v.Length() == 0);
+      MOZ_RELEASE_ASSERT(bsv.Length() == 0);
     });
     MOZ_RELEASE_ASSERT(read == 1);
-    MOZ_RELEASE_ASSERT(outerBS8V.Data());
-    MOZ_RELEASE_ASSERT(outerBS8V.Data() != hiString.data());
-    MOZ_RELEASE_ASSERT(outerBS8V.Data()[0] == 'h');
-    MOZ_RELEASE_ASSERT(outerBS8V.Data()[1] == 'i');
-    MOZ_RELEASE_ASSERT(outerBS8V.Data()[2] == '\0');
-    MOZ_RELEASE_ASSERT(outerBS8V.Length() == 2);
-    MOZ_RELEASE_ASSERT(!outerBS8V.IsLiteral());
-    MOZ_RELEASE_ASSERT(!outerBS8V.IsReference());
+    MOZ_RELEASE_ASSERT(outerBSV.Data());
+    MOZ_RELEASE_ASSERT(outerBSV.Data() != hiString.data());
+    MOZ_RELEASE_ASSERT(outerBSV.Data()[0] == CHAR('h'));
+    MOZ_RELEASE_ASSERT(outerBSV.Data()[1] == CHAR('i'));
+    MOZ_RELEASE_ASSERT(outerBSV.Data()[2] == CHAR('\0'));
+    MOZ_RELEASE_ASSERT(outerBSV.Length() == 2);
+    MOZ_RELEASE_ASSERT(!outerBSV.IsLiteral());
+    MOZ_RELEASE_ASSERT(!outerBSV.IsReference());
   }
 
-  printf("TestProfilerStringView done\n");
+  if constexpr (std::is_same_v<CHAR, char>) {
+    printf("TestProfilerStringView<char> done\n");
+  } else if constexpr (std::is_same_v<CHAR, char16_t>) {
+    printf("TestProfilerStringView<char16_t> done\n");
+  }
 }
 
 void TestProfilerDependencies() {
@@ -3224,7 +3551,8 @@ void TestProfilerDependencies() {
   TestBlocksRingBufferThreading();
   TestBlocksRingBufferSerialization();
   TestLiteralEmptyStringView();
-  TestProfilerStringView();
+  TestProfilerStringView<char>();
+  TestProfilerStringView<char16_t>();
 }
 
 // Increase the depth, to a maximum (to avoid too-deep recursion).
@@ -3440,33 +3768,12 @@ void TestProfiler() {
         mozilla::baseprofiler::markers::Tracing{}, "category"));
 
     MOZ_RELEASE_ASSERT(baseprofiler::AddMarker(
-        "mark", mozilla::baseprofiler::category::OTHER, {},
-        mozilla::baseprofiler::markers::UserTimingMark{}, "mark name"));
-
-    MOZ_RELEASE_ASSERT(baseprofiler::AddMarker(
-        "measure", mozilla::baseprofiler::category::OTHER, {},
-        mozilla::baseprofiler::markers::UserTimingMeasure{}, "measure name",
-        Some(ProfilerString8View("start")), Some(ProfilerString8View("end"))));
-
-    MOZ_RELEASE_ASSERT(
-        baseprofiler::AddMarker("hang", mozilla::baseprofiler::category::OTHER,
-                                {}, mozilla::baseprofiler::markers::Hang{}));
-
-    MOZ_RELEASE_ASSERT(baseprofiler::AddMarker(
-        "longtask", mozilla::baseprofiler::category::OTHER, {},
-        mozilla::baseprofiler::markers::LongTask{}));
-
-    MOZ_RELEASE_ASSERT(baseprofiler::AddMarker(
         "text", mozilla::baseprofiler::category::OTHER, {},
-        mozilla::baseprofiler::markers::Text{}, "text text"));
-
-    MOZ_RELEASE_ASSERT(baseprofiler::AddMarker(
-        "log", mozilla::baseprofiler::category::OTHER, {},
-        mozilla::baseprofiler::markers::Log{}, "module", "text"));
+        mozilla::baseprofiler::markers::TextMarker{}, "text text"));
 
     MOZ_RELEASE_ASSERT(baseprofiler::AddMarker(
         "media sample", mozilla::baseprofiler::category::OTHER, {},
-        mozilla::baseprofiler::markers::MediaSample{}, 123, 456));
+        mozilla::baseprofiler::markers::MediaSampleMarker{}, 123, 456));
 
     printf("Sleep 1s...\n");
     {
@@ -3487,28 +3794,28 @@ void TestProfiler() {
            (static_cast<unsigned long long>(info->mRangeEnd) -
             static_cast<unsigned long long>(info->mRangeStart)) *
                9);
-    printf("Stats:         min(ns) .. mean(ns) .. max(ns)  [count]\n");
+    printf("Stats:         min(us) .. mean(us) .. max(us)  [count]\n");
     printf("- Intervals:   %7.1f .. %7.1f  .. %7.1f  [%u]\n",
-           info->mIntervalsNs.min,
-           info->mIntervalsNs.sum / info->mIntervalsNs.n,
-           info->mIntervalsNs.max, info->mIntervalsNs.n);
+           info->mIntervalsUs.min,
+           info->mIntervalsUs.sum / info->mIntervalsUs.n,
+           info->mIntervalsUs.max, info->mIntervalsUs.n);
     printf("- Overheads:   %7.1f .. %7.1f  .. %7.1f  [%u]\n",
-           info->mOverheadsNs.min,
-           info->mOverheadsNs.sum / info->mOverheadsNs.n,
-           info->mOverheadsNs.max, info->mOverheadsNs.n);
+           info->mOverheadsUs.min,
+           info->mOverheadsUs.sum / info->mOverheadsUs.n,
+           info->mOverheadsUs.max, info->mOverheadsUs.n);
     printf("  - Locking:   %7.1f .. %7.1f  .. %7.1f  [%u]\n",
-           info->mLockingsNs.min, info->mLockingsNs.sum / info->mLockingsNs.n,
-           info->mLockingsNs.max, info->mLockingsNs.n);
+           info->mLockingsUs.min, info->mLockingsUs.sum / info->mLockingsUs.n,
+           info->mLockingsUs.max, info->mLockingsUs.n);
     printf("  - Clearning: %7.1f .. %7.1f  .. %7.1f  [%u]\n",
-           info->mCleaningsNs.min,
-           info->mCleaningsNs.sum / info->mCleaningsNs.n,
-           info->mCleaningsNs.max, info->mCleaningsNs.n);
+           info->mCleaningsUs.min,
+           info->mCleaningsUs.sum / info->mCleaningsUs.n,
+           info->mCleaningsUs.max, info->mCleaningsUs.n);
     printf("  - Counters:  %7.1f .. %7.1f  .. %7.1f  [%u]\n",
-           info->mCountersNs.min, info->mCountersNs.sum / info->mCountersNs.n,
-           info->mCountersNs.max, info->mCountersNs.n);
+           info->mCountersUs.min, info->mCountersUs.sum / info->mCountersUs.n,
+           info->mCountersUs.max, info->mCountersUs.n);
     printf("  - Threads:   %7.1f .. %7.1f  .. %7.1f  [%u]\n",
-           info->mThreadsNs.min, info->mThreadsNs.sum / info->mThreadsNs.n,
-           info->mThreadsNs.max, info->mThreadsNs.n);
+           info->mThreadsUs.min, info->mThreadsUs.sum / info->mThreadsUs.n,
+           info->mThreadsUs.max, info->mThreadsUs.n);
 
     printf("baseprofiler_get_profile()...\n");
     UniquePtr<char[]> profile = baseprofiler::profiler_get_profile();
@@ -3522,16 +3829,7 @@ void TestProfiler() {
     MOZ_RELEASE_ASSERT(profileSV.find("\"markerSchema\": [") != svnpos);
     MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"Text\",") != svnpos);
     MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"tracing\",") != svnpos);
-    MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"UserTimingMark\",") !=
-                       svnpos);
-    MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"UserTimingMeasure\",") !=
-                       svnpos);
-    MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"BHR-detected hang\",") !=
-                       svnpos);
-    MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"Log\",") != svnpos);
     MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"MediaSample\",") != svnpos);
-    MOZ_RELEASE_ASSERT(profileSV.find("\"name\": \"MainThreadLongTask\",") !=
-                       svnpos);
     MOZ_RELEASE_ASSERT(profileSV.find("\"display\": [") != svnpos);
     MOZ_RELEASE_ASSERT(profileSV.find("\"marker-chart\"") != svnpos);
     MOZ_RELEASE_ASSERT(profileSV.find("\"marker-table\"") != svnpos);
@@ -4035,36 +4333,12 @@ void TestPredefinedMarkers() {
       mozilla::baseprofiler::markers::Tracing{}, "category"));
 
   MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
-      buffer, std::string_view("mark"), mozilla::baseprofiler::category::OTHER,
-      {}, mozilla::baseprofiler::markers::UserTimingMark{}, "mark name"));
-
-  MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
-      buffer, std::string_view("measure"),
-      mozilla::baseprofiler::category::OTHER, {},
-      mozilla::baseprofiler::markers::UserTimingMeasure{}, "measure name ",
-      mozilla::Some(mozilla::ProfilerString8View(" start ")),
-      mozilla::Some(mozilla::ProfilerString8View("end"))));
-
-  MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
-      buffer, std::string_view("hang"), mozilla::baseprofiler::category::OTHER,
-      {}, mozilla::baseprofiler::markers::Hang{}));
-
-  MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
-      buffer, std::string_view("long task"),
-      mozilla::baseprofiler::category::OTHER, {},
-      mozilla::baseprofiler::markers::LongTask{}));
-
-  MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
       buffer, std::string_view("text"), mozilla::baseprofiler::category::OTHER,
-      {}, mozilla::baseprofiler::markers::Text{}, "text text"));
-
-  MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
-      buffer, std::string_view("log"), mozilla::baseprofiler::category::OTHER,
-      {}, mozilla::baseprofiler::markers::Log{}, "module", "text"));
+      {}, mozilla::baseprofiler::markers::TextMarker{}, "text text"));
 
   MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
       buffer, std::string_view("media"), mozilla::baseprofiler::category::OTHER,
-      {}, mozilla::baseprofiler::markers::MediaSample{}, 123, 456));
+      {}, mozilla::baseprofiler::markers::MediaSampleMarker{}, 123, 456));
 
 #  ifdef DEBUG
   buffer.Dump();

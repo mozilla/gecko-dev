@@ -178,8 +178,6 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
         // expected support of font-stretch at CSS Fonts Level 4.
         fontWeightLevel4:
           CSS.supports("font-weight: 1") && CSS.supports("font-stretch: 100%"),
-        // Introduced in Firefox 80.
-        getAttributesInOwnerDocument: true,
       },
     };
   },
@@ -756,7 +754,6 @@ var PageStyleActor = protocol.ActorClassWithSpec(pageStyleSpec, {
       case ":-moz-range-progress":
       case ":-moz-range-thumb":
       case ":-moz-range-track":
-      case ":-moz-focus-outer":
         return node.nodeName == "INPUT" && node.type == "range";
       default:
         throw Error("Unhandled pseudo-element " + pseudo);

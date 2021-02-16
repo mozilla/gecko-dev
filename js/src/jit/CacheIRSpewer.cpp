@@ -97,9 +97,6 @@ class MOZ_RAII CacheIROpsJitSpewer {
   void spewScalarTypeImm(const char* name, Scalar::Type type) {
     out_.printf("%s Scalar::Type(%u)", name, unsigned(type));
   }
-  void spewMetaTwoByteKindImm(const char* name, MetaTwoByteKind kind) {
-    out_.printf("%s MetaTwoByteKind(%u)", name, unsigned(kind));
-  }
   void spewUnaryMathFunctionImm(const char* name, UnaryMathFunction fun) {
     const char* funName = GetUnaryMathFunctionName(fun);
     out_.printf("%s UnaryMathFunction::%s", name, funName);
@@ -112,6 +109,9 @@ class MOZ_RAII CacheIROpsJitSpewer {
   }
   void spewGuardClassKindImm(const char* name, GuardClassKind kind) {
     out_.printf("%s GuardClassKind(%u)", name, unsigned(kind));
+  }
+  void spewWasmValTypeImm(const char* name, wasm::ValType::Kind kind) {
+    out_.printf("%s WasmValTypeKind(%u)", name, unsigned(kind));
   }
 
  public:
@@ -232,9 +232,6 @@ class MOZ_RAII CacheIROpsJSONSpewer {
   void spewScalarTypeImm(const char* name, Scalar::Type type) {
     spewArgImpl(name, "Imm", unsigned(type));
   }
-  void spewMetaTwoByteKindImm(const char* name, MetaTwoByteKind kind) {
-    spewArgImpl(name, "Imm", unsigned(kind));
-  }
   void spewUnaryMathFunctionImm(const char* name, UnaryMathFunction fun) {
     const char* funName = GetUnaryMathFunctionName(fun);
     spewArgImpl(name, "MathFunction", funName);
@@ -246,6 +243,9 @@ class MOZ_RAII CacheIROpsJSONSpewer {
     spewArgImpl(name, "Word", uintptr_t(native));
   }
   void spewGuardClassKindImm(const char* name, GuardClassKind kind) {
+    spewArgImpl(name, "Imm", unsigned(kind));
+  }
+  void spewWasmValTypeImm(const char* name, wasm::ValType::Kind kind) {
     spewArgImpl(name, "Imm", unsigned(kind));
   }
 
@@ -424,8 +424,6 @@ void CacheIRSpewer::valueProperty(const char* name, const Value& v) {
                      nobj->getDenseInitializedLength());
           j.property("denseCapacity", nobj->getDenseCapacity());
           j.property("denseElementsAreSealed", nobj->denseElementsAreSealed());
-          j.property("denseElementsAreCopyOnWrite",
-                     nobj->denseElementsAreCopyOnWrite());
           j.property("denseElementsAreFrozen", nobj->denseElementsAreFrozen());
         }
         j.endObject();

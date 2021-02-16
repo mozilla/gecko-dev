@@ -7,28 +7,24 @@
 #ifndef GFX_IMAGECONTAINER_H
 #define GFX_IMAGECONTAINER_H
 
-#include <stdint.h>     // for uint32_t, uint8_t, uint64_t
-#include <sys/types.h>  // for int32_t
-#include "gfxTypes.h"
-#include "ImageTypes.h"              // for ImageFormat, etc
+#include <stdint.h>      // for int32_t, uint32_t, uint8_t, uint64_t
+#include "ImageTypes.h"  // for ImageFormat, etc
+#include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"      // for MOZ_ASSERT_HELPER2
 #include "mozilla/Mutex.h"           // for Mutex
 #include "mozilla/RecursiveMutex.h"  // for RecursiveMutex, etc
 #include "mozilla/ThreadSafeWeakPtr.h"
-#include "mozilla/TimeStamp.h"           // for TimeStamp
-#include "mozilla/gfx/Point.h"           // For IntSize
+#include "mozilla/TimeStamp.h"  // for TimeStamp
+#include "mozilla/gfx/Point.h"  // For IntSize
+#include "mozilla/gfx/Rect.h"
 #include "mozilla/gfx/Types.h"           // For ColorDepth
 #include "mozilla/layers/LayersTypes.h"  // for LayersBackend, etc
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/mozalloc.h"  // for operator delete, etc
-#include "nsCOMPtr.h"          // for already_AddRefed
 #include "nsDebug.h"           // for NS_ASSERTION
 #include "nsISupportsImpl.h"   // for Image::Release, etc
-#include "nsRect.h"            // for mozilla::gfx::IntRect
 #include "nsTArray.h"          // for nsTArray
 #include "mozilla/Atomics.h"
-#include "mozilla/WeakPtr.h"
-#include "nsThreadUtils.h"
 #include "mozilla/gfx/2D.h"
 #include "nsDataHashtable.h"
 #include "mozilla/EnumeratedArray.h"
@@ -53,6 +49,7 @@ class ImageContainer;
 class ImageContainerChild;
 class SharedPlanarYCbCrImage;
 class SharedSurfacesAnimation;
+class SurfaceDescriptor;
 class PlanarYCbCrImage;
 class TextureClient;
 class TextureClientRecycleAllocator;
@@ -148,7 +145,12 @@ class Image {
 
   virtual NVImage* AsNVImage() { return nullptr; }
 
+  virtual Maybe<SurfaceDescriptor> GetDesc();
+
  protected:
+  Maybe<SurfaceDescriptor> GetDescFromTexClient(
+      TextureClient* tcOverride = nullptr);
+
   Image(void* aImplData, ImageFormat aFormat)
       : mImplData(aImplData), mSerial(++sSerialCounter), mFormat(aFormat) {}
 
@@ -665,6 +667,16 @@ struct PlanarYCbCrData {
   gfx::IntRect GetPictureRect() const {
     return gfx::IntRect(mPicX, mPicY, mPicSize.width, mPicSize.height);
   }
+};
+
+// This type is currently only used for AVIF and therefore makes some
+// AVIF-specific assumptions (e.g., Alpha's bpc and stride is equal to Y's one)
+struct PlanarYCbCrAData : PlanarYCbCrData {
+  uint8_t* mAlphaChannel = nullptr;
+  gfx::IntSize mAlphaSize = gfx::IntSize(0, 0);
+  bool mPremultipliedAlpha = false;
+
+  bool hasAlpha() { return mAlphaChannel; }
 };
 
 /****** Image subtypes for the different formats ******/

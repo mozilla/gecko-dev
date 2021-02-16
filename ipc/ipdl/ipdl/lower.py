@@ -1658,6 +1658,11 @@ class _GenerateProtocolCode(ipdl.ast.Visitor):
                     for h in self.cppIncludeHeaders
                 ]
                 + [Whitespace.NL]
+                + [
+                    CppDirective("include", '"%s"' % filename)
+                    for filename in ipdl.builtin.CppIncludes
+                ]
+                + [Whitespace.NL]
             )
         )
 
@@ -3540,11 +3545,6 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             + setToIncludes(self.externalIncludes)
         )
 
-        cppheaders = [
-            CppDirective("include", '"%s"' % filename)
-            for filename in ipdl.builtin.CppIncludes
-        ]
-
         cf.addthings(
             (
                 [Whitespace.NL]
@@ -3553,7 +3553,10 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                     for inc in self.protocolCxxIncludes
                 ]
                 + [Whitespace.NL]
-                + cppheaders
+                + [
+                    CppDirective("include", '"%s"' % filename)
+                    for filename in ipdl.builtin.CppIncludes
+                ]
                 + [Whitespace.NL]
             )
         )
@@ -3588,7 +3591,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             self.nonForwardDeclaredHeaders.add(using.header)
 
     def visitCxxInclude(self, inc):
-        self.nonForwardDeclaredHeaders.add(inc.file)
+        self.externalIncludes.add(inc.file)
 
     def visitInclude(self, inc):
         ip = inc.tu.protocol

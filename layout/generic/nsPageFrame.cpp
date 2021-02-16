@@ -279,7 +279,7 @@ nscoord nsPageFrame::GetXPosition(gfxContext& aRenderingContext,
 }
 
 // Draw a header or footer
-// @param aRenderingContext - rendering content ot draw into
+// @param aRenderingContext - rendering content to draw into
 // @param aHeaderFooter - indicates whether it is a header or footer
 // @param aStrLeft - string for the left header or footer; can be empty
 // @param aStrCenter - string for the center header or footer; can be empty
@@ -522,7 +522,7 @@ static void PaintMarginGuides(nsIFrame* aFrame, DrawTarget* aDrawTarget,
   // Then reset rect, apply the left/right margins, and draw vertical guides
   // extending the full height of the page.
   rect = nsRect(aPt, aFrame->GetSize());
-  rect.Deflate(nsMargin(0, margin.left, 0, margin.right));
+  rect.Deflate(nsMargin(0, margin.right, 0, margin.left));
   r = NSRectToRect(rect, appUnitsPerDevPx);
   aDrawTarget->StrokeLine(r.TopLeft(), r.BottomLeft(), pattern, stroke,
                           options);
@@ -551,12 +551,13 @@ static nsTArray<PageAndOffset> GetPreviousPagesWithOverflow(
 
   nsPageContentFrame* pageCF = aPage;
   // The collective height of all prev-continuations we've traversed so far:
-  nscoord offsetToCurrentPageTop = 0;
+  nscoord offsetToCurrentPageBStart = 0;
+  const auto wm = pageCF->GetWritingMode();
   while ((pageCF = GetPreviousPageContentFrame(pageCF))) {
-    offsetToCurrentPageTop += pageCF->GetSize().Height();
+    offsetToCurrentPageBStart += pageCF->BSize(wm);
 
     if (pageCF->HasOverflowAreas()) {
-      pages.EmplaceBack(pageCF, offsetToCurrentPageTop);
+      pages.EmplaceBack(pageCF, offsetToCurrentPageBStart);
     }
   }
 
@@ -570,28 +571,34 @@ static void BuildPreviousPageOverflow(nsDisplayListBuilder* aBuilder,
   const auto previousPagesAndOffsets =
       GetPreviousPagesWithOverflow(aCurrentPageCF);
 
+  const auto wm = aCurrentPageCF->GetWritingMode();
   for (const PageAndOffset& pair : Reversed(previousPagesAndOffsets)) {
     auto* prevPageCF = pair.first;
-    const nscoord offsetToCurrentPageTop = pair.second;
-    const auto inkOverflow = prevPageCF->InkOverflowRectRelativeToSelf();
-    const auto remainingOverflow = inkOverflow.YMost() - offsetToCurrentPageTop;
-
+    const nscoord offsetToCurrentPageBStart = pair.second;
+    // Only scrollable overflow create new pages, not ink overflow.
+    const LogicalRect scrollableOverflow(
+        wm, prevPageCF->ScrollableOverflowRectRelativeToSelf(),
+        prevPageCF->GetSize());
+    const auto remainingOverflow =
+        scrollableOverflow.BEnd(wm) - offsetToCurrentPageBStart;
     if (remainingOverflow <= 0) {
       continue;
     }
 
     // This rect represents the piece of prevPageCF's overflow that ends up on
     // the current pageContentFrame (in prevPageCF's coordinate system).
-    nsRect overflowRect = inkOverflow;
-    overflowRect.y = offsetToCurrentPageTop;
-    overflowRect.height =
-        std::min(remainingOverflow, prevPageCF->GetSize().Height());
+    // Note that we use InkOverflow here since this is for painting.
+    LogicalRect overflowRect(wm, prevPageCF->InkOverflowRectRelativeToSelf(),
+                             prevPageCF->GetSize());
+    overflowRect.BStart(wm) = offsetToCurrentPageBStart;
+    overflowRect.BSize(wm) = std::min(remainingOverflow, prevPageCF->BSize(wm));
 
     {
       // Convert the overflowRect to the coordinate system of aPageFrame, and
       // set it as the visible rect for display list building.
       const nsRect visibleRect =
-          overflowRect + prevPageCF->GetOffsetTo(aPageFrame);
+          overflowRect.GetPhysicalRect(wm, aPageFrame->GetSize()) +
+          prevPageCF->GetOffsetTo(aPageFrame);
       nsDisplayListBuilder::AutoBuildingDisplayList buildingForChild(
           aBuilder, aPageFrame, visibleRect, visibleRect);
 
@@ -599,12 +606,14 @@ static void BuildPreviousPageOverflow(nsDisplayListBuilder* aBuilder,
       // frame tree, building a display list for the previous page yields
       // display items that are outside of the current page bounds.
       // To fix that, an additional reference frame offset is added, which
-      // shifts the display items down as if the current and previous page were
-      // one long page in the same coordinate system.
-      const nsPoint pageOffset = aCurrentPageCF->GetOffsetTo(prevPageCF);
-      const nsPoint additionalOffset(pageOffset.X(),
-                                     pageOffset.Y() - offsetToCurrentPageTop);
-      buildingForChild.SetAdditionalOffset(additionalOffset);
+      // shifts the display items down (block axis) as if the current and
+      // previous page were one long page in the same coordinate system.
+      const nsSize containerSize = aPageFrame->GetSize();
+      LogicalPoint pageOffset(wm, aCurrentPageCF->GetOffsetTo(prevPageCF),
+                              containerSize);
+      pageOffset.B(wm) -= offsetToCurrentPageBStart;
+      buildingForChild.SetAdditionalOffset(
+          pageOffset.GetPhysicalPoint(wm, containerSize));
 
       aPageFrame->BuildDisplayListForChild(aBuilder, prevPageCF, aLists);
     }
@@ -660,9 +669,10 @@ void nsPageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
       BuildPreviousPageOverflow(aBuilder, this, currentPageCF, set);
     }
 
-    // Set the visible rect to ink overflow rect of the child nsPageContentFrame
-    // in parent nsPageFrame coordinate space.
-    const nsRect childOverflowRect = child->InkOverflowRectRelativeToSelf();
+    // Set the visible rect to scrollable overflow rect of the child
+    // nsPageContentFrame in parent nsPageFrame coordinate space.
+    const nsRect childOverflowRect =
+        child->ScrollableOverflowRectRelativeToSelf();
     const nsRect visibleRect = childOverflowRect + child->GetOffsetTo(this);
 
     nsDisplayListBuilder::AutoBuildingDisplayList buildingForChild(

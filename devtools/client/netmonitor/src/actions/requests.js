@@ -122,11 +122,13 @@ function sendCustomRequest(connector, requestId = null) {
       data.body = request.requestPostData.postData.text;
     }
 
-    connector.sendHTTPRequest(data, response => {
-      return dispatch({
-        type: SEND_CUSTOM_REQUEST,
-        id: response.eventActor.actor,
-      });
+    // @backward-compat { version 85 } Introduced `channelId` to eventually
+    // replace `actor`.
+    const { channelId, actor } = await connector.sendHTTPRequest(data);
+
+    dispatch({
+      type: SEND_CUSTOM_REQUEST,
+      id: channelId || actor,
     });
   };
 }

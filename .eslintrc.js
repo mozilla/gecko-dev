@@ -172,7 +172,6 @@ module.exports = {
         "no-redeclare": "off",
         "no-shadow": "off",
         "no-throw-literal": "off",
-        "no-unused-vars": "off",
       },
     },
     {
@@ -319,22 +318,6 @@ module.exports = {
     },
     {
       files: [
-        "dom/l10n/tests/mochitest/document_l10n/non-system-principal/test.html",
-        "dom/payments/test/test_basiccard.html",
-        "dom/payments/test/test_bug1478740.html",
-        "dom/payments/test/test_canMakePayment.html",
-        "dom/payments/test/test_closePayment.html",
-        "dom/payments/test/test_showPayment.html",
-        "dom/tests/browser/browser_persist_cookies.js",
-        "dom/tests/browser/browser_persist_mixed_content_image.js",
-        "netwerk/test/unit/test_http2-proxy.js",
-      ],
-      rules: {
-        "no-async-promise-executor": "off",
-      },
-    },
-    {
-      files: [
         "testing/mochitest/browser-harness.xhtml",
         "testing/mochitest/chrome/test_chromeGetTestFile.xhtml",
         "testing/mochitest/chrome/test_sanityEventUtils.xhtml",
@@ -455,16 +438,6 @@ module.exports = {
         "dom/ipc/test.xhtml",
         "dom/ipc/tests/test_process_error.xhtml",
         "dom/notification/test/chrome/test_notification_system_principal.xhtml",
-        "dom/plugins/test/mochitest/test_busy_hang.xhtml",
-        "dom/plugins/test/mochitest/test_convertpoint.xhtml",
-        "dom/plugins/test/mochitest/test_crash_notify.xhtml",
-        "dom/plugins/test/mochitest/test_crash_notify_no_report.xhtml",
-        "dom/plugins/test/mochitest/test_crash_submit.xhtml",
-        "dom/plugins/test/mochitest/test_hang_submit.xhtml",
-        "dom/plugins/test/mochitest/test_hangui.xhtml",
-        "dom/plugins/test/mochitest/test_idle_hang.xhtml",
-        "dom/plugins/test/mochitest/test_xulbrowser_plugin_visibility.xhtml",
-        "dom/plugins/test/mochitest/xulbrowser_plugin_visibility.xhtml",
         "dom/security/test/general/test_bug1277803.xhtml",
         "dom/serviceworkers/test/test_serviceworkerinfo.xhtml",
         "dom/serviceworkers/test/test_serviceworkermanager.xhtml",

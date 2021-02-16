@@ -27,6 +27,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   TelemetrySession: "resource://gre/modules/TelemetrySession.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -420,9 +421,6 @@ const TargetingGetters = {
   get isFxAEnabled() {
     return isFxAEnabled;
   },
-  get trailheadTriplet() {
-    return ASRouterPreferences.trailheadTriplet;
-  },
   get sync() {
     return {
       desktopDevices: clientsDevicesDesktop,
@@ -461,7 +459,7 @@ const TargetingGetters = {
     return new Promise(resolve => {
       // Note: calling init ensures this code is only executed after Search has been initialized
       Services.search
-        .getDefaultEngines()
+        .getAppProvidedEngines()
         .then(engines => {
           resolve({
             current: Services.search.defaultEngine.identifier,
@@ -639,6 +637,19 @@ const TargetingGetters = {
       Ci.nsIXULRuntime.eExperimentStatusTreatment
     );
   },
+  get activeNotifications() {
+    let window = BrowserWindowTracker.getTopWindow();
+
+    if (
+      window.gURLBar.view.isOpen ||
+      window.gHighPriorityNotificationBox.currentNotification ||
+      window.gBrowser.getNotificationBox().currentNotification
+    ) {
+      return true;
+    }
+
+    return false;
+  },
 };
 
 this.ASRouterTargeting = {
@@ -662,6 +673,10 @@ this.ASRouterTargeting = {
       (candidateMessageTrigger.params &&
         trigger.param.host &&
         candidateMessageTrigger.params.includes(trigger.param.host)) ||
+      (candidateMessageTrigger.params &&
+        trigger.param.type &&
+        candidateMessageTrigger.params.filter(t => t === trigger.param.type)
+          .length) ||
       (candidateMessageTrigger.params &&
         trigger.param.type &&
         candidateMessageTrigger.params.filter(

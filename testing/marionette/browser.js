@@ -94,6 +94,10 @@ class MobileTabBrowser {
     });
     this.window.document.dispatchEvent(event);
   }
+
+  get selectedBrowser() {
+    return this.selectedTab.linkedBrowser;
+  }
 }
 
 /**
@@ -157,8 +161,6 @@ browser.Context = class {
     // In Firefox this is <xul:tabbrowser> (not <xul:browser>!)
     // and MobileTabBrowser in GeckoView.
     this.tabBrowser = browser.getTabBrowser(this.window);
-
-    this.knownFrames = [];
 
     // Used to set curFrameId upon new session
     this.newSession = true;
@@ -462,79 +464,26 @@ browser.Context = class {
    * if it is not already assigned, and if a) we already have a session
    * or b) we're starting a new session and it is the right start frame.
    *
-   * @param {string} uid
-   *     Frame uid for use by Marionette.
    * @param {xul:browser} target
    *     The <xul:browser> that was the target of the originating message.
    */
-  register(uid, target) {
-    if (this.tabBrowser) {
-      // If we're setting up a new session on Firefox, we only process the
-      // registration for this frame if it belongs to the current tab.
-      if (!this.tab) {
-        this.switchToTab();
-      }
-
-      if (target === this.contentBrowser) {
-        this.updateIdForBrowser(this.contentBrowser, uid);
-      }
+  register(target) {
+    if (!this.tabBrowser) {
+      return;
     }
 
-    // used to delete sessions
-    this.knownFrames.push(uid);
-  }
-};
-
-/**
- * The window storage is used to save browsing context ids mapped to weak
- * references of Window objects.
- *
- * Usage:
- *
- *     let wins = new browser.Windows();
- *     wins.set(browser.browsingContext.id, window);
- *
- *     ...
- *
- *     let win = wins.get(browser.browsingContext.id);
- *
- */
-browser.Windows = class extends Map {
-  /**
-   * Save a weak reference to the Window object.
-   *
-   * @param {string} id
-   *     Browsing context id.
-   * @param {Window} win
-   *     Window object to save.
-   *
-   * @return {browser.Windows}
-   *     Instance of self.
-   */
-  set(id, win) {
-    let wref = Cu.getWeakReference(win);
-    super.set(id, wref);
-    return this;
-  }
-
-  /**
-   * Get the window object stored by provided |id|.
-   *
-   * @param {string} id
-   *     Browsing context id.
-   *
-   * @return {Window}
-   *     Saved window object.
-   *
-   * @throws {RangeError}
-   *     If |id| is not in the store.
-   */
-  get(id) {
-    let wref = super.get(id);
-    if (!wref) {
-      throw new RangeError();
+    // If we're setting up a new session on Firefox, we only process the
+    // registration for this frame if it belongs to the current tab.
+    if (!this.tab) {
+      this.switchToTab();
     }
-    return wref.get();
+
+    if (target === this.contentBrowser) {
+      // Note that browsing contexts can be swapped during navigation in which
+      // case this id would no longer match the target. See Bug 1680479.
+      const uid = target.browsingContext.id;
+      this.updateIdForBrowser(this.contentBrowser, uid);
+    }
   }
 };
 

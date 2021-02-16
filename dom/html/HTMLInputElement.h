@@ -117,6 +117,8 @@ class HTMLInputElement final : public TextControlElement,
   using nsGenericHTMLFormElementWithState::GetForm;
   using nsGenericHTMLFormElementWithState::GetFormAction;
   using nsIConstraintValidation::GetValidationMessage;
+  using ValueSetterOption = TextControlState::ValueSetterOption;
+  using ValueSetterOptions = TextControlState::ValueSetterOptions;
 
   enum class FromClone { no, yes };
 
@@ -670,7 +672,7 @@ class HTMLInputElement final : public TextControlElement,
 
   already_AddRefed<nsINodeList> GetLabels();
 
-  void Select();
+  MOZ_CAN_RUN_SCRIPT void Select();
 
   Nullable<uint32_t> GetSelectionStart(ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT void SetSelectionStart(const Nullable<uint32_t>& aValue,
@@ -914,15 +916,14 @@ class HTMLInputElement final : public TextControlElement,
    * @param aValue      String to set.
    * @param aOldValue   Previous value before setting aValue.
                         If previous value is unknown, aOldValue can be nullptr.
-   * @param aFlags      See TextControlState::SetValueFlags.
+   * @param aOptions    See TextControlState::ValueSetterOption.
    */
-  MOZ_CAN_RUN_SCRIPT
-  nsresult SetValueInternal(const nsAString& aValue, const nsAString* aOldValue,
-                            uint32_t aFlags);
-
-  MOZ_CAN_RUN_SCRIPT
-  nsresult SetValueInternal(const nsAString& aValue, uint32_t aFlags) {
-    return SetValueInternal(aValue, nullptr, aFlags);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  SetValueInternal(const nsAString& aValue, const nsAString* aOldValue,
+                   const ValueSetterOptions& aOptions);
+  MOZ_CAN_RUN_SCRIPT nsresult SetValueInternal(
+      const nsAString& aValue, const ValueSetterOptions& aOptions) {
+    return SetValueInternal(aValue, nullptr, aOptions);
   }
 
   // Generic getter for the value that doesn't do experimental control type
@@ -965,9 +966,9 @@ class HTMLInputElement final : public TextControlElement,
   virtual void ResultForDialogSubmit(nsAString& aResult) override;
 
   /**
-   * Dispatch a select event. Returns true if the event was not cancelled.
+   * Dispatch a select event.
    */
-  bool DispatchSelectEvent(nsPresContext* aPresContext);
+  void DispatchSelectEvent(nsPresContext* aPresContext);
 
   void SelectAll(nsPresContext* aPresContext);
   bool IsImage() const {
@@ -1396,15 +1397,6 @@ class HTMLInputElement final : public TextControlElement,
   enum FilePickerType { FILE_PICKER_FILE, FILE_PICKER_DIRECTORY };
   nsresult InitFilePicker(FilePickerType aType);
   nsresult InitColorPicker();
-
-  /**
-   * Use this function before trying to open a picker.
-   * It checks if the page is allowed to open a new pop-up.
-   * If it returns true, you should not create the picker.
-   *
-   * @return true if popup should be blocked, false otherwise
-   */
-  bool IsPopupBlocked() const;
 
   GetFilesHelper* GetOrCreateGetFilesHelper(bool aRecursiveFlag,
                                             ErrorResult& aRv);

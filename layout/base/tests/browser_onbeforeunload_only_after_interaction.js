@@ -14,6 +14,10 @@ SpecialPowers.pushPrefEnv({
   set: [["dom.require_user_interaction_for_beforeunload", true]],
 });
 
+SpecialPowers.pushPrefEnv({
+  set: [["prompts.contentPromptSubDialog", false]],
+});
+
 const PAGE_URL =
   "data:text/html," +
   encodeURIComponent("<script>(" + pageScript.toSource() + ")();</script>");
@@ -45,7 +49,7 @@ async function openPage(shouldClick) {
     { gBrowser, url: "about:blank" },
     async function(browser) {
       // Load the page.
-      await BrowserTestUtils.loadURI(browser, PAGE_URL);
+      BrowserTestUtils.loadURI(browser, PAGE_URL);
       await BrowserTestUtils.browserLoaded(browser);
 
       if (shouldClick) {
@@ -64,7 +68,7 @@ async function openPage(shouldClick) {
         "Click should update document interactivity state"
       );
       // And then navigate away.
-      await BrowserTestUtils.loadURI(browser, "http://example.com/");
+      BrowserTestUtils.loadURI(browser, "http://example.com/");
       await BrowserTestUtils.browserLoaded(browser);
     }
   );

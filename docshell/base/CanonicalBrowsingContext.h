@@ -21,12 +21,15 @@
 #include "nsISecureBrowserUI.h"
 
 class nsISHistory;
+class nsIWidget;
 class nsSHistory;
 class nsBrowserStatusFilter;
 class nsSecureBrowserUI;
 class CallerWillNotifyHistoryIndexAndLengthChanges;
 
 namespace mozilla {
+enum class CallState;
+
 namespace net {
 class DocumentLoadListener;
 }
@@ -34,6 +37,7 @@ class DocumentLoadListener;
 namespace dom {
 
 class BrowserParent;
+class FeaturePolicy;
 struct LoadURIOptions;
 class MediaController;
 struct LoadingSessionHistoryInfo;
@@ -102,6 +106,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   already_AddRefed<CanonicalBrowsingContext> GetParentCrossChromeBoundary();
 
+  already_AddRefed<CanonicalBrowsingContext> TopCrossChromeBoundary();
   Nullable<WindowProxyHolder> GetTopChromeWindow();
 
   nsISHistory* GetSessionHistory();
@@ -113,8 +118,16 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   UniquePtr<LoadingSessionHistoryInfo> ReplaceLoadingSessionHistoryEntryForLoad(
       LoadingSessionHistoryInfo* aInfo, nsIChannel* aChannel);
 
+  // Call the given callback on all top-level descendant BrowsingContexts.
+  // Return Callstate::Stop from the callback to stop calling
+  // further children.
+  void CallOnAllTopDescendants(
+      const std::function<mozilla::CallState(CanonicalBrowsingContext*)>&
+          aCallback);
+
   void SessionHistoryCommit(uint64_t aLoadId, const nsID& aChangeID,
-                            uint32_t aLoadType);
+                            uint32_t aLoadType, bool aPersist,
+                            bool aCloneEntryChildren);
 
   // Calls the session history listeners' OnHistoryReload, storing the result in
   // aCanReload. If aCanReload is set to true and we have an active or a loading
@@ -140,6 +153,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void RemoveFromSessionHistory();
 
   void HistoryGo(int32_t aIndex, uint64_t aHistoryEpoch,
+                 bool aRequireUserInteraction,
                  Maybe<ContentParentId> aContentId,
                  std::function<void(int32_t&&)>&& aResolver);
 
@@ -183,6 +197,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
                  const Optional<int32_t>& aCancelContentJSEpoch);
   void Reload(uint32_t aReloadFlags);
   void Stop(uint32_t aStopFlags);
+
+  BrowserParent* GetBrowserParent() const;
 
   // Internal method to change which process a BrowsingContext is being loaded
   // in. The returned promise will resolve when the process switch is completed.
@@ -247,6 +263,11 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void HistoryCommitIndexAndLength();
 
   void ResetScalingZoom();
+
+  void SetContainerFeaturePolicy(FeaturePolicy* aContainerFeaturePolicy);
+  FeaturePolicy* GetContainerFeaturePolicy() const {
+    return mContainerFeaturePolicy;
+  }
 
  protected:
   // Called when the browsing context is being discarded.
@@ -324,6 +345,12 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   uint64_t mCrossGroupOpenerId = 0;
 
+  // This function will make the top window context reset its
+  // "SHEntryHasUserInteraction" cache that prevents documents from repeatedly
+  // setting user interaction on SH entries. Should be called anytime SH
+  // entries are added or replaced.
+  void ResetSHEntryHasUserInteractionCache();
+
   // The current remoteness change which is in a pending state.
   RefPtr<PendingRemotenessChange> mPendingRemotenessChange;
 
@@ -346,6 +373,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   RefPtr<nsSecureBrowserUI> mSecureBrowserUI;
   RefPtr<BrowsingContextWebProgress> mWebProgress;
   RefPtr<nsBrowserStatusFilter> mStatusFilter;
+
+  RefPtr<FeaturePolicy> mContainerFeaturePolicy;
 };
 
 }  // namespace dom

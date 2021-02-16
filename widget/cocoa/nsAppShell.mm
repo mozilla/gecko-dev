@@ -23,7 +23,6 @@
 #include "nsThreadUtils.h"
 #include "nsServiceManagerUtils.h"
 #include "nsObjCExceptions.h"
-#include "nsCocoaFeatures.h"
 #include "nsCocoaUtils.h"
 #include "nsChildView.h"
 #include "nsToolkit.h"
@@ -133,7 +132,7 @@ static bool gAppShellMethodsSwizzled = false;
 
   mozilla::BackgroundHangMonitor().NotifyActivity();
 
-  if ([anEvent type] == NSApplicationDefined && [anEvent subtype] == kEventSubtypeTrace) {
+  if ([anEvent type] == NSEventTypeApplicationDefined && [anEvent subtype] == kEventSubtypeTrace) {
     mozilla::SignalTracerThread();
     return;
   }
@@ -271,10 +270,6 @@ static void RemoveScreenWakeLockListener() {
   }
 }
 
-// An undocumented CoreGraphics framework method, present in the same form
-// since at least OS X 10.5.
-extern "C" CGError CGSSetDebugOptions(int options);
-
 // Init
 //
 // Loads the nib (see bug 316076c21) and sets up the CFRunLoopSource used to
@@ -354,20 +349,6 @@ nsresult nsAppShell::Init() {
     gAppShellMethodsSwizzled = true;
   }
 
-  // The bug that this works around was introduced in OS X 10.10.0
-  // and fixed in OS X 10.10.2. Order these version checks so as
-  // few as possible will actually end up running.
-  if (nsCocoaFeatures::macOSVersionMinor() == 10 && nsCocoaFeatures::macOSVersionBugFix() < 2 &&
-      nsCocoaFeatures::macOSVersionMajor() == 10) {
-    // Explicitly turn off CGEvent logging.  This works around bug 1092855.
-    // If there are already CGEvents in the log, turning off logging also
-    // causes those events to be written to disk.  But at this point no
-    // CGEvents have yet been processed.  CGEvents are events (usually
-    // input events) pulled from the WindowServer.  An option of 0x80000008
-    // turns on CGEvent logging.
-    CGSSetDebugOptions(0x80000007);
-  }
-
 #if !defined(RELEASE_OR_BETA) || defined(DEBUG)
   if (Preferences::GetBool("security.sandbox.mac.track.violations", false)) {
     nsSandboxViolationSink::Start();
@@ -412,7 +393,7 @@ void nsAppShell::ProcessGeckoEvents(void* aInfo) {
     // destroyed).  Setting windowNumber to '0' seems to work fine -- this
     // seems to prevent the OS from ever trying to associate our bogus event
     // with a particular NSWindow object.
-    [NSApp postEvent:[NSEvent otherEventWithType:NSApplicationDefined
+    [NSApp postEvent:[NSEvent otherEventWithType:NSEventTypeApplicationDefined
                                         location:NSMakePoint(0, 0)
                                    modifierFlags:0
                                        timestamp:0
@@ -433,7 +414,7 @@ void nsAppShell::ProcessGeckoEvents(void* aInfo) {
   }
 
   // Still needed to avoid crashes on quit in most Mochitests.
-  [NSApp postEvent:[NSEvent otherEventWithType:NSApplicationDefined
+  [NSApp postEvent:[NSEvent otherEventWithType:NSEventTypeApplicationDefined
                                       location:NSMakePoint(0, 0)
                                  modifierFlags:0
                                      timestamp:0
@@ -596,7 +577,7 @@ bool nsAppShell::ProcessNextNativeEvent(bool aMayWait) {
     if (aMayWait) {
       currentMode = [currentRunLoop currentMode];
       if (!currentMode) currentMode = NSDefaultRunLoopMode;
-      NSEvent* nextEvent = [NSApp nextEventMatchingMask:NSAnyEventMask
+      NSEvent* nextEvent = [NSApp nextEventMatchingMask:NSEventMaskAny
                                               untilDate:waitUntil
                                                  inMode:currentMode
                                                 dequeue:YES];
@@ -617,8 +598,9 @@ bool nsAppShell::ProcessNextNativeEvent(bool aMayWait) {
       EventAttributes attrs = GetEventAttributes(currentEvent);
       UInt32 eventKind = GetEventKind(currentEvent);
       UInt32 eventClass = GetEventClass(currentEvent);
-      bool osCocoaEvent = ((eventClass == 'appl') || (eventClass == kEventClassAppleEvent) ||
-                           ((eventClass == 'cgs ') && (eventKind != NSApplicationDefined)));
+      bool osCocoaEvent =
+          ((eventClass == 'appl') || (eventClass == kEventClassAppleEvent) ||
+           ((eventClass == 'cgs ') && (eventKind != NSEventTypeApplicationDefined)));
       // If attrs is kEventAttributeUserEvent or kEventAttributeMonitored
       // (i.e. a user input event), we shouldn't process it here while
       // aMayWait is false.  Likewise if currentEvent will eventually be
@@ -871,7 +853,7 @@ nsAppShell::AfterProcessNextEvent(nsIThreadInternal* aThread, bool aEventWasProc
   NSEvent* currentEvent = [NSApp currentEvent];
   if (currentEvent) {
     TextInputHandler::sLastModifierState =
-        [currentEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;
+        [currentEvent modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
   }
 
   nsCOMPtr<nsIObserverService> observerService = services::GetObserverService();

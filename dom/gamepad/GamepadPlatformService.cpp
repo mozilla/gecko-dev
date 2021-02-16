@@ -28,33 +28,44 @@ StaticRefPtr<GamepadPlatformService> gGamepadPlatformServiceSingleton;
 
 }  // namespace
 
-GamepadPlatformService::MonitoringState::~MonitoringState() {
-  AssertIsOnBackgroundThread();
-  MOZ_RELEASE_ASSERT(mObservers.IsEmpty());
+// static
+GamepadMonitoringState& GamepadMonitoringState::GetSingleton() {
+  static GamepadMonitoringState sInstance{};
+  return sInstance;
 }
 
-void GamepadPlatformService::MonitoringState::AddObserver(
-    WeakPtr<GamepadTestChannelParent> aParent) {
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aParent);
-  MOZ_ASSERT(!mObservers.Contains(aParent));
-  mObservers.AppendElement(std::move(aParent));
-}
-
-void GamepadPlatformService::MonitoringState::RemoveObserver(
-    GamepadTestChannelParent* aParent) {
+void GamepadMonitoringState::AddObserver(GamepadTestChannelParent* aParent) {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aParent);
-  MOZ_ASSERT(mObservers.Contains(aParent));
-  mObservers.RemoveElement(aParent);
+  MOZ_ALWAYS_TRUE(mObservers.append(aParent));
 }
 
-bool GamepadPlatformService::MonitoringState::IsMonitoring() const {
+void GamepadMonitoringState::RemoveObserver(GamepadTestChannelParent* aParent) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aParent);
+
+  WeakPtr<GamepadTestChannelParent>* observer = nullptr;
+
+  for (auto& item : mObservers) {
+    if (item == aParent) {
+      observer = &item;
+    }
+  }
+
+  MOZ_ASSERT(
+      observer,
+      "Attempted to remove a GamepadTestChannelParent that was never added");
+
+  std::swap(*observer, mObservers.back());
+  mObservers.popBack();
+}
+
+bool GamepadMonitoringState::IsMonitoring() const {
   AssertIsOnBackgroundThread();
   return mIsMonitoring;
 }
 
-void GamepadPlatformService::MonitoringState::Set(bool aIsMonitoring) {
+void GamepadMonitoringState::Set(bool aIsMonitoring) {
   AssertIsOnBackgroundThread();
 
   if (mIsMonitoring != aIsMonitoring) {
@@ -69,7 +80,8 @@ void GamepadPlatformService::MonitoringState::Set(bool aIsMonitoring) {
 }
 
 GamepadPlatformService::GamepadPlatformService()
-    : mGamepadIndex(0), mMutex("mozilla::dom::GamepadPlatformService") {}
+    : mNextGamepadHandleValue(1),
+      mMutex("mozilla::dom::GamepadPlatformService") {}
 
 GamepadPlatformService::~GamepadPlatformService() { Cleanup(); }
 
@@ -91,7 +103,7 @@ GamepadPlatformService::GetParentService() {
 }
 
 template <class T>
-void GamepadPlatformService::NotifyGamepadChange(uint32_t aIndex,
+void GamepadPlatformService::NotifyGamepadChange(GamepadHandle aHandle,
                                                  const T& aInfo) {
   // This method is called by monitor populated in
   // platform-dependent backends
@@ -99,7 +111,7 @@ void GamepadPlatformService::NotifyGamepadChange(uint32_t aIndex,
   MOZ_ASSERT(!NS_IsMainThread());
 
   GamepadChangeEventBody body(aInfo);
-  GamepadChangeEvent e(aIndex, GamepadServiceType::Standard, body);
+  GamepadChangeEvent e(aHandle, body);
 
   // mChannelParents may be accessed by background thread in the
   // same time, we use mutex to prevent possible race condtion
@@ -110,7 +122,7 @@ void GamepadPlatformService::NotifyGamepadChange(uint32_t aIndex,
   }
 }
 
-uint32_t GamepadPlatformService::AddGamepad(
+GamepadHandle GamepadPlatformService::AddGamepad(
     const char* aID, GamepadMappingType aMapping, GamepadHand aHand,
     uint32_t aNumButtons, uint32_t aNumAxes, uint32_t aHaptics,
     uint32_t aNumLightIndicator, uint32_t aNumTouchEvents) {
@@ -119,101 +131,104 @@ uint32_t GamepadPlatformService::AddGamepad(
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
 
-  uint32_t index = ++mGamepadIndex;
+  GamepadHandle gamepadHandle{mNextGamepadHandleValue++,
+                              GamepadHandleKind::GamepadPlatformManager};
 
   // Only VR controllers has displayID, we give 0 to the general gamepads.
   GamepadAdded a(NS_ConvertUTF8toUTF16(nsDependentCString(aID)), aMapping,
                  aHand, 0, aNumButtons, aNumAxes, aHaptics, aNumLightIndicator,
                  aNumTouchEvents);
 
-  mGamepadAdded.emplace(index, a);
-  NotifyGamepadChange<GamepadAdded>(index, a);
-  return index;
+  mGamepadAdded.emplace(gamepadHandle, a);
+  NotifyGamepadChange<GamepadAdded>(gamepadHandle, a);
+  return gamepadHandle;
 }
 
-void GamepadPlatformService::RemoveGamepad(uint32_t aIndex) {
+void GamepadPlatformService::RemoveGamepad(GamepadHandle aHandle) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   GamepadRemoved a;
-  NotifyGamepadChange<GamepadRemoved>(aIndex, a);
-  mGamepadAdded.erase(aIndex);
+  NotifyGamepadChange<GamepadRemoved>(aHandle, a);
+  mGamepadAdded.erase(aHandle);
 }
 
-void GamepadPlatformService::NewButtonEvent(uint32_t aIndex, uint32_t aButton,
-                                            bool aPressed, bool aTouched,
-                                            double aValue) {
+void GamepadPlatformService::NewButtonEvent(GamepadHandle aHandle,
+                                            uint32_t aButton, bool aPressed,
+                                            bool aTouched, double aValue) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   GamepadButtonInformation a(aButton, aValue, aPressed, aTouched);
-  NotifyGamepadChange<GamepadButtonInformation>(aIndex, a);
+  NotifyGamepadChange<GamepadButtonInformation>(aHandle, a);
 }
 
-void GamepadPlatformService::NewButtonEvent(uint32_t aIndex, uint32_t aButton,
-                                            bool aPressed, double aValue) {
+void GamepadPlatformService::NewButtonEvent(GamepadHandle aHandle,
+                                            uint32_t aButton, bool aPressed,
+                                            double aValue) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   // When only a digital button is available the value will be synthesized.
-  NewButtonEvent(aIndex, aButton, aPressed, aPressed, aValue);
+  NewButtonEvent(aHandle, aButton, aPressed, aPressed, aValue);
 }
 
-void GamepadPlatformService::NewButtonEvent(uint32_t aIndex, uint32_t aButton,
-                                            bool aPressed, bool aTouched) {
+void GamepadPlatformService::NewButtonEvent(GamepadHandle aHandle,
+                                            uint32_t aButton, bool aPressed,
+                                            bool aTouched) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   // When only a digital button is available the value will be synthesized.
-  NewButtonEvent(aIndex, aButton, aPressed, aTouched, aPressed ? 1.0L : 0.0L);
+  NewButtonEvent(aHandle, aButton, aPressed, aTouched, aPressed ? 1.0L : 0.0L);
 }
 
-void GamepadPlatformService::NewButtonEvent(uint32_t aIndex, uint32_t aButton,
-                                            bool aPressed) {
+void GamepadPlatformService::NewButtonEvent(GamepadHandle aHandle,
+                                            uint32_t aButton, bool aPressed) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   // When only a digital button is available the value will be synthesized.
-  NewButtonEvent(aIndex, aButton, aPressed, aPressed, aPressed ? 1.0L : 0.0L);
+  NewButtonEvent(aHandle, aButton, aPressed, aPressed, aPressed ? 1.0L : 0.0L);
 }
 
-void GamepadPlatformService::NewAxisMoveEvent(uint32_t aIndex, uint32_t aAxis,
-                                              double aValue) {
+void GamepadPlatformService::NewAxisMoveEvent(GamepadHandle aHandle,
+                                              uint32_t aAxis, double aValue) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   GamepadAxisInformation a(aAxis, aValue);
-  NotifyGamepadChange<GamepadAxisInformation>(aIndex, a);
+  NotifyGamepadChange<GamepadAxisInformation>(aHandle, a);
 }
 
 void GamepadPlatformService::NewLightIndicatorTypeEvent(
-    uint32_t aIndex, uint32_t aLight, GamepadLightIndicatorType aType) {
+    GamepadHandle aHandle, uint32_t aLight, GamepadLightIndicatorType aType) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   GamepadLightIndicatorTypeInformation a(aLight, aType);
-  NotifyGamepadChange<GamepadLightIndicatorTypeInformation>(aIndex, a);
+  NotifyGamepadChange<GamepadLightIndicatorTypeInformation>(aHandle, a);
 }
 
-void GamepadPlatformService::NewPoseEvent(uint32_t aIndex,
+void GamepadPlatformService::NewPoseEvent(GamepadHandle aHandle,
                                           const GamepadPoseState& aState) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
   GamepadPoseInformation a(aState);
-  NotifyGamepadChange<GamepadPoseInformation>(aIndex, a);
+  NotifyGamepadChange<GamepadPoseInformation>(aHandle, a);
 }
 
 void GamepadPlatformService::NewMultiTouchEvent(
-    uint32_t aIndex, uint32_t aTouchArrayIndex,
+    GamepadHandle aHandle, uint32_t aTouchArrayIndex,
     const GamepadTouchState& aState) {
   // This method is called by monitor thread populated in
   // platform-dependent backends
@@ -221,7 +236,7 @@ void GamepadPlatformService::NewMultiTouchEvent(
   MOZ_ASSERT(!NS_IsMainThread());
 
   GamepadTouchInformation a(aTouchArrayIndex, aState);
-  NotifyGamepadChange<GamepadTouchInformation>(aIndex, a);
+  NotifyGamepadChange<GamepadTouchInformation>(aHandle, a);
 }
 
 void GamepadPlatformService::ResetGamepadIndexes() {
@@ -229,7 +244,7 @@ void GamepadPlatformService::ResetGamepadIndexes() {
   // platform-dependent backends
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!NS_IsMainThread());
-  mGamepadIndex = 0;
+  mNextGamepadHandleValue = 1;
 }
 
 void GamepadPlatformService::AddChannelParent(
@@ -250,7 +265,7 @@ void GamepadPlatformService::AddChannelParent(
     if (mChannelParents.Length() > 1) {
       for (const auto& evt : mGamepadAdded) {
         GamepadChangeEventBody body(evt.second);
-        GamepadChangeEvent e(evt.first, GamepadServiceType::Standard, body);
+        GamepadChangeEvent e(evt.first, body);
         aParent->DispatchUpdateEvent(e);
       }
     }
@@ -258,7 +273,7 @@ void GamepadPlatformService::AddChannelParent(
 
   StartGamepadMonitoring();
 
-  mMonitoringState.Set(true);
+  GamepadMonitoringState::GetSingleton().Set(true);
 }
 
 void GamepadPlatformService::RemoveChannelParent(
@@ -278,7 +293,7 @@ void GamepadPlatformService::RemoveChannelParent(
     }
   }
 
-  mMonitoringState.Set(false);
+  GamepadMonitoringState::GetSingleton().Set(false);
 
   StopGamepadMonitoring();
   ResetGamepadIndexes();

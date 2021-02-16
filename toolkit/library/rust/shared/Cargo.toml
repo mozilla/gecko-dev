@@ -9,7 +9,7 @@ description = "Shared Rust code for libxul"
 geckoservo = { path = "../../../../servo/ports/geckolib" }
 kvstore = { path = "../../../components/kvstore" }
 lmdb-rkv-sys = { version = "0.11", features = ["mdb_idl_logn_9"] }
-mp4parse_capi = { git = "https://github.com/mozilla/mp4parse-rust", rev = "f7c35a30ff25521bebe64c19d3f306569ecb5385" }
+mp4parse_capi = { git = "https://github.com/mozilla/mp4parse-rust", rev = "3d9efdc868ce8c5767cea28708fa6512c0ab6d17" }
 nserror = { path = "../../../../xpcom/rust/nserror" }
 nsstring = { path = "../../../../xpcom/rust/nsstring" }
 netwerk_helper = { path = "../../../../netwerk/base/rust-helper" }
@@ -19,7 +19,7 @@ static_prefs = { path = "../../../../modules/libpref/init/static_prefs" }
 profiler_helper = { path = "../../../../tools/profiler/rust-helper", optional = true }
 mozurl = { path = "../../../../netwerk/base/mozurl" }
 webrender_bindings = { path = "../../../../gfx/webrender_bindings", optional = true }
-cubeb-coreaudio = { git = "https://github.com/ChunMinChang/cubeb-coreaudio-rs", rev = "87667052a5ffaf47fbeac4ae67f1ecdefa8d7b09", optional = true }
+cubeb-coreaudio = { git = "https://github.com/ChunMinChang/cubeb-coreaudio-rs", rev = "1e1222d6213e28eabd7f4302d00765ae1153a31e", optional = true }
 cubeb-pulse = { git = "https://github.com/djg/cubeb-pulse-rs", rev="bf31534d08b2c16fb5e4c5834944ae3271efbd63", optional = true, features=["pulse-dlopen"] }
 cubeb-sys = { version = "0.8", optional = true, features=["gecko-in-tree"] }
 encoding_glue = { path = "../../../../intl/encoding_glue" }
@@ -35,7 +35,7 @@ log = {version = "0.4", features = ["release_max_level_info"]}
 cose-c = { version = "0.1.5" }
 jsrust_shared = { path = "../../../../js/src/rust/shared" }
 cascade_bloom_filter = { path = "../../../components/cascade_bloom_filter" }
-cert_storage = { path = "../../../../security/manager/ssl/cert_storage", optional = true }
+cert_storage = { path = "../../../../security/manager/ssl/cert_storage" }
 bitsdownload = { path = "../../../components/bitsdownload", optional = true }
 storage = { path = "../../../../storage/rust" }
 bookmark_sync = { path = "../../../components/places/bookmark_sync", optional = true }
@@ -55,6 +55,7 @@ unic-langid = { version = "0.9", features = ["likelysubtags"] }
 unic-langid-ffi = { path = "../../../../intl/locale/rust/unic-langid-ffi" }
 fluent-langneg = { version = "0.13", features = ["cldr"] }
 fluent-langneg-ffi = { path = "../../../../intl/locale/rust/fluent-langneg-ffi" }
+rust_minidump_writer_linux = { path = "../../../crashreporter/rust_minidump_writer_linux", optional = true }
 
 # Note: `modern_sqlite` means rusqlite's bindings file be for a sqlite with
 # version less than or equal to what we link to. This isn't a problem because we
@@ -62,13 +63,13 @@ fluent-langneg-ffi = { path = "../../../../intl/locale/rust/fluent-langneg-ffi" 
 # changing this version.
 rusqlite = { version = "0.24.1", features = ["modern_sqlite", "in_gecko"] }
 
-fluent = { version = "0.13.1", features = ["fluent-pseudo"] }
+fluent = { version = "0.14.1", features = ["fluent-pseudo"] }
 fluent-ffi = { path = "../../../../intl/l10n/rust/fluent-ffi" }
 firefox-accounts-bridge = { path = "../../../../services/fxaccounts/rust-bridge/firefox-accounts-bridge", optional=true }
 l10nregistry-ffi = { path = "../../../../intl/l10n/rust/l10nregistry-ffi" }
 
 processtools = { path = "../../../components/processtools" }
-qcms = { path = "../../../../gfx/qcms" }
+qcms = { path = "../../../../gfx/qcms", features = ["c_bindings"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 viaduct = { git = "https://github.com/mozilla/application-services", rev = "8a576fbe79199fa8664f64285524017f74ebcc5f"}
@@ -98,7 +99,6 @@ smoosh = ["jsrust_shared/smoosh"]
 gecko_profiler = ["profiler_helper", "geckoservo/gecko_profiler"]
 gecko_profiler_parse_elf = ["profiler_helper/parse_elf"]
 new_xulstore = ["xulstore"]
-new_cert_storage = ["cert_storage"]
 libfuzzer = []
 webrtc = ["mdns_service"]
 wasm_library_sandboxing = ["rlbox_lucet_sandbox"]
@@ -107,6 +107,7 @@ remote_agent = ["remote"]
 glean = ["fog_control"]
 glean_with_gecko = ["fog_control/with_gecko"]
 rust_fxa_client = ["firefox-accounts-bridge"]
+oxidized_breakpad = ["rust_minidump_writer_linux"]
 with_dbus = ["audio_thread_priority/with_dbus"]
 thread_sanitizer = ["xpcom/thread_sanitizer"]
 

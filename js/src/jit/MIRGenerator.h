@@ -48,7 +48,7 @@ class MIRGenerator final {
 
   TempAllocator& alloc() { return *alloc_; }
   MIRGraph& graph() { return *graph_; }
-  MOZ_MUST_USE bool ensureBallast() { return alloc().ensureBallast(); }
+  [[nodiscard]] bool ensureBallast() { return alloc().ensureBallast(); }
   const JitRuntime* jitRuntime() const { return runtime->jitRuntime(); }
   const CompileInfo& outerInfo() const { return *outerInfo_; }
   const OptimizationInfo& optimizationInfo() const {
@@ -79,9 +79,9 @@ class MIRGenerator final {
                                                     va_list ap)
       MOZ_FORMAT_PRINTF(3, 0);
 
-  // Collect the evaluation result of phases after IonBuilder, such that
+  // Collect the evaluation result of phases after WarpOracle, such that
   // off-thread compilation can report what error got encountered.
-  void setOffThreadStatus(AbortReasonOr<Ok> result) {
+  void setOffThreadStatus(AbortReasonOr<Ok>&& result) {
     MOZ_ASSERT(offThreadStatus_.isOk());
     offThreadStatus_ = std::move(result);
   }
@@ -89,7 +89,7 @@ class MIRGenerator final {
     return offThreadStatus_;
   }
 
-  MOZ_MUST_USE bool instrumentedProfiling() {
+  [[nodiscard]] bool instrumentedProfiling() {
     if (!instrumentedProfilingIsCached_) {
       instrumentedProfiling_ = runtime->geckoProfiler().enabled();
       instrumentedProfilingIsCached_ = true;
@@ -104,9 +104,6 @@ class MIRGenerator final {
   bool stringsCanBeInNursery() const { return stringsCanBeInNursery_; }
 
   bool bigIntsCanBeInNursery() const { return bigIntsCanBeInNursery_; }
-
-  bool safeForMinorGC() const { return safeForMinorGC_; }
-  void setNotSafeForMinorGC() { safeForMinorGC_ = false; }
 
   // Whether the main thread is trying to cancel this build.
   bool shouldCancel(const char* why) { return cancelBuild_; }
@@ -151,7 +148,6 @@ class MIRGenerator final {
 
   bool instrumentedProfiling_;
   bool instrumentedProfilingIsCached_;
-  bool safeForMinorGC_;
   bool stringsCanBeInNursery_;
   bool bigIntsCanBeInNursery_;
 

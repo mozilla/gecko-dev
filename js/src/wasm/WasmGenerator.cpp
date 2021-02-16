@@ -92,7 +92,7 @@ ModuleGenerator::ModuleGenerator(const CompileArgs& args,
       metadataTier_(nullptr),
       lifo_(GENERATOR_LIFO_DEFAULT_CHUNK_SIZE),
       masmAlloc_(&lifo_),
-      masm_(masmAlloc_, /* limitedSize= */ false),
+      masm_(masmAlloc_, *moduleEnv, /* limitedSize= */ false),
       debugTrapCodeOffset_(),
       lastPatchedCallSite_(0),
       startOfUnpatchedCallsites_(0),
@@ -215,7 +215,7 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata,
   // elements will be initialized by the time module generation is finished.
 
   if (!metadataTier_->funcToCodeRange.appendN(BAD_CODE_RANGE,
-                                              moduleEnv_->funcTypes.length())) {
+                                              moduleEnv_->funcs.length())) {
     return false;
   }
 
@@ -257,7 +257,7 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata,
     moduleEnv_->funcImportGlobalDataOffsets[i] = globalDataOffset;
 
     FuncType copy;
-    if (!copy.clone(*moduleEnv_->funcTypes[i])) {
+    if (!copy.clone(*moduleEnv_->funcs[i].type)) {
       return false;
     }
     if (!metadataTier_->funcImports.emplaceBack(std::move(copy),
@@ -274,31 +274,56 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata,
   }
 
   if (!isAsmJS()) {
-    for (TypeDef& td : moduleEnv_->types) {
-      if (!td.isFuncType()) {
-        continue;
-      }
+    // Copy type definitions to metadata that are required at runtime,
+    // allocating global data so that codegen can find the type id's at
+    // runtime.
+    for (uint32_t typeIndex = 0; typeIndex < moduleEnv_->types.length();
+         typeIndex++) {
+      const TypeDef& typeDef = moduleEnv_->types[typeIndex];
+      TypeIdDesc& typeId = moduleEnv_->typeIds[typeIndex];
 
-      FuncTypeWithId& funcType = td.funcType();
-      if (FuncTypeIdDesc::isGlobal(funcType)) {
+      if (TypeIdDesc::isGlobal(typeDef)) {
         uint32_t globalDataOffset;
         if (!allocateGlobalBytes(sizeof(void*), sizeof(void*),
                                  &globalDataOffset)) {
           return false;
         }
 
-        funcType.id = FuncTypeIdDesc::global(funcType, globalDataOffset);
+        typeId = TypeIdDesc::global(typeDef, globalDataOffset);
 
-        FuncType copy;
-        if (!copy.clone(funcType)) {
+        TypeDef copy;
+        if (!copy.clone(typeDef)) {
           return false;
         }
 
-        if (!metadata_->funcTypeIds.emplaceBack(std::move(copy), funcType.id)) {
+        if (!metadata_->types.emplaceBack(std::move(copy), typeId)) {
           return false;
         }
       } else {
-        funcType.id = FuncTypeIdDesc::immediate(funcType);
+        typeId = TypeIdDesc::immediate(typeDef);
+      }
+    }
+
+    // If we allow type indices, then we need to rewrite the index space to
+    // account for types that are omitted from metadata, such as function
+    // types that fit in an immediate.
+    if (moduleEnv_->functionReferencesEnabled()) {
+      // Do a linear pass to create a map from src index to dest index.
+      RenumberMap map;
+      for (uint32_t srcIndex = 0, destIndex = 0;
+           srcIndex < moduleEnv_->types.length(); srcIndex++) {
+        const TypeDef& typeDef = moduleEnv_->types[srcIndex];
+        if (!TypeIdDesc::isGlobal(typeDef)) {
+          continue;
+        }
+        if (!map.put(srcIndex, destIndex++)) {
+          return false;
+        }
+      }
+
+      // Apply the map
+      for (TypeDefWithId& typeDef : metadata_->types) {
+        typeDef.renumber(map);
       }
     }
   }
@@ -414,7 +439,7 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata,
 
   for (const ExportedFunc& funcIndex : exportedFuncs) {
     FuncType funcType;
-    if (!funcType.clone(*moduleEnv_->funcTypes[funcIndex.index()])) {
+    if (!funcType.clone(*moduleEnv_->funcs[funcIndex.index()].type)) {
       return false;
     }
     metadataTier_->funcExports.infallibleEmplaceBack(
@@ -1125,31 +1150,35 @@ SharedMetadata ModuleGenerator::finishMetadata(const Bytes& bytecode) {
   metadata_->startFuncIndex = moduleEnv_->startFuncIndex;
   metadata_->tables = std::move(moduleEnv_->tables);
   metadata_->globals = std::move(moduleEnv_->globals);
+#ifdef ENABLE_WASM_EXCEPTIONS
+  metadata_->events = std::move(moduleEnv_->events);
+#endif
   metadata_->nameCustomSectionIndex = moduleEnv_->nameCustomSectionIndex;
   metadata_->moduleName = moduleEnv_->moduleName;
   metadata_->funcNames = std::move(moduleEnv_->funcNames);
   metadata_->omitsBoundsChecks = moduleEnv_->hugeMemoryEnabled();
   metadata_->v128Enabled = moduleEnv_->v128Enabled();
+  metadata_->usesDuplicateImports = moduleEnv_->usesDuplicateImports;
 
   // Copy over additional debug information.
 
   if (compilerEnv_->debugEnabled()) {
     metadata_->debugEnabled = true;
 
-    const size_t numFuncTypes = moduleEnv_->funcTypes.length();
-    if (!metadata_->debugFuncArgTypes.resize(numFuncTypes)) {
+    const size_t numFuncs = moduleEnv_->funcs.length();
+    if (!metadata_->debugFuncArgTypes.resize(numFuncs)) {
       return nullptr;
     }
-    if (!metadata_->debugFuncReturnTypes.resize(numFuncTypes)) {
+    if (!metadata_->debugFuncReturnTypes.resize(numFuncs)) {
       return nullptr;
     }
-    for (size_t i = 0; i < numFuncTypes; i++) {
+    for (size_t i = 0; i < numFuncs; i++) {
       if (!metadata_->debugFuncArgTypes[i].appendAll(
-              moduleEnv_->funcTypes[i]->args())) {
+              moduleEnv_->funcs[i].type->args())) {
         return nullptr;
       }
       if (!metadata_->debugFuncReturnTypes[i].appendAll(
-              moduleEnv_->funcTypes[i]->results())) {
+              moduleEnv_->funcs[i].type->results())) {
         return nullptr;
       }
     }
@@ -1238,16 +1267,8 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
-  StructTypeVector structTypes;
-  for (TypeDef& td : moduleEnv_->types) {
-    if (td.isStructType() && !structTypes.append(std::move(td.structType()))) {
-      return nullptr;
-    }
-  }
-
   MutableCode code =
-      js_new<Code>(std::move(codeTier), *metadata, std::move(jumpTables),
-                   std::move(structTypes));
+      js_new<Code>(std::move(codeTier), *metadata, std::move(jumpTables));
   if (!code || !code->initialize(*linkData_)) {
     return nullptr;
   }

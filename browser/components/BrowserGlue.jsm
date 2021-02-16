@@ -16,59 +16,100 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
-ChromeUtils.defineModuleGetter(
-  this,
-  "ASRouterDefaultConfig",
-  "resource://activity-stream/lib/ASRouterDefaultConfig.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "ASRouterNewTabHook",
-  "resource://activity-stream/lib/ASRouterNewTabHook.jsm"
-);
-ChromeUtils.defineModuleGetter(
-  this,
-  "ActorManagerParent",
-  "resource://gre/modules/ActorManagerParent.jsm"
-);
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "AboutNewTab",
-  "resource:///modules/AboutNewTab.jsm"
-);
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AboutNewTab: "resource:///modules/AboutNewTab.jsm",
+  ActorManagerParent: "resource://gre/modules/ActorManagerParent.jsm",
+  AddonManager: "resource://gre/modules/AddonManager.jsm",
+  AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.jsm",
+  ASRouterDefaultConfig:
+    "resource://activity-stream/lib/ASRouterDefaultConfig.jsm",
+  ASRouterNewTabHook: "resource://activity-stream/lib/ASRouterNewTabHook.jsm",
+  ASRouter: "resource://activity-stream/lib/ASRouter.jsm",
+  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
+  Blocklist: "resource://gre/modules/Blocklist.jsm",
+  BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.jsm",
+  BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.jsm",
+  BrowserSearchTelemetry: "resource:///modules/BrowserSearchTelemetry.jsm",
+  BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.jsm",
+  BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
+  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
+  ContextualIdentityService:
+    "resource://gre/modules/ContextualIdentityService.jsm",
+  Corroborate: "resource://gre/modules/Corroborate.jsm",
+  DeferredTask: "resource://gre/modules/DeferredTask.jsm",
+  Discovery: "resource:///modules/Discovery.jsm",
+  DoHController: "resource:///modules/DoHController.jsm",
+  DownloadsViewableInternally:
+    "resource:///modules/DownloadsViewableInternally.jsm",
+  E10SUtils: "resource://gre/modules/E10SUtils.jsm",
+  ExtensionsUI: "resource:///modules/ExtensionsUI.jsm",
+  ExperimentAPI: "resource://messaging-system/experiments/ExperimentAPI.jsm",
+  FeatureGate: "resource://featuregates/FeatureGate.jsm",
+  FirefoxMonitor: "resource:///modules/FirefoxMonitor.jsm",
+  FxAccounts: "resource://gre/modules/FxAccounts.jsm",
+  HomePage: "resource:///modules/HomePage.jsm",
+  Integration: "resource://gre/modules/Integration.jsm",
+  Log: "resource://gre/modules/Log.jsm",
+  LoginBreaches: "resource:///modules/LoginBreaches.jsm",
+  NetUtil: "resource://gre/modules/NetUtil.jsm",
+  NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
+  Normandy: "resource://normandy/Normandy.jsm",
+  OS: "resource://gre/modules/osfile.jsm",
+  OsEnvironment: "resource://gre/modules/OsEnvironment.jsm",
+  PageActions: "resource:///modules/PageActions.jsm",
+  PageThumbs: "resource://gre/modules/PageThumbs.jsm",
+  PdfJs: "resource://pdf.js/PdfJs.jsm",
+  PermissionUI: "resource:///modules/PermissionUI.jsm",
+  PlacesBackups: "resource://gre/modules/PlacesBackups.jsm",
+  PlacesDBUtils: "resource://gre/modules/PlacesDBUtils.jsm",
+  PlacesUIUtils: "resource:///modules/PlacesUIUtils.jsm",
+  PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
+  PluralForm: "resource://gre/modules/PluralForm.jsm",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
+  ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.jsm",
+  PublicSuffixList: "resource://gre/modules/netwerk-dns/PublicSuffixList.jsm",
+  RemoteSettings: "resource://services-settings/remote-settings.js",
+  RemoteSecuritySettings:
+    "resource://gre/modules/psm/RemoteSecuritySettings.jsm",
+  RFPHelper: "resource://gre/modules/RFPHelper.jsm",
+  SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
+  Sanitizer: "resource:///modules/Sanitizer.jsm",
+  SaveToPocket: "chrome://pocket/content/SaveToPocket.jsm",
+  SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.jsm",
+  SessionStartup: "resource:///modules/sessionstore/SessionStartup.jsm",
+  SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
+  TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
+  TabUnloader: "resource:///modules/TabUnloader.jsm",
+  TelemetryUtils: "resource://gre/modules/TelemetryUtils.jsm",
+  TRRRacer: "resource:///modules/TRRPerformance.jsm",
+  UIState: "resource://services-sync/UIState.jsm",
+  WebChannel: "resource://gre/modules/WebChannel.jsm",
+  WindowsRegistry: "resource://gre/modules/WindowsRegistry.jsm",
+});
 
-ChromeUtils.defineModuleGetter(
-  this,
-  "E10SUtils",
-  "resource://gre/modules/E10SUtils.jsm"
-);
+// eslint-disable-next-line no-unused-vars
+XPCOMUtils.defineLazyModuleGetters(this, {
+  AboutLoginsParent: "resource:///modules/AboutLoginsParent.jsm",
+  PluginManager: "resource:///actors/PluginParent.jsm",
+});
 
-ChromeUtils.defineModuleGetter(this, "Log", "resource://gre/modules/Log.jsm");
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "NetUtil",
-  "resource://gre/modules/NetUtil.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "DeferredTask",
-  "resource://gre/modules/DeferredTask.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "FeatureGate",
-  "resource://featuregates/FeatureGate.jsm"
-);
-
-ChromeUtils.defineModuleGetter(
-  this,
-  "PlacesUIUtils",
-  "resource:///modules/PlacesUIUtils.jsm"
-);
+// Modules requiring an initialization method call.
+let initializedModules = {};
+[
+  [
+    "ContentPrefServiceParent",
+    "resource://gre/modules/ContentPrefServiceParent.jsm",
+    "alwaysInit",
+  ],
+  ["UpdateListener", "resource://gre/modules/UpdateListener.jsm", "init"],
+].forEach(([name, resource, init]) => {
+  XPCOMUtils.defineLazyGetter(this, name, () => {
+    ChromeUtils.import(resource, initializedModules);
+    initializedModules[name][init]();
+    return initializedModules[name];
+  });
+});
 
 XPCOMUtils.defineLazyServiceGetter(
   this,
@@ -82,8 +123,8 @@ const PREF_PDFJS_ISDEFAULT_CACHE_STATE = "pdfjs.enabledCache.state";
 /**
  * Fission-compatible JSProcess implementations.
  * Each actor options object takes the form of a ProcessActorOptions dictionary.
- * Detailed documentation of these options is in dom/docs/Fission.rst,
- * available at https://firefox-source-docs.mozilla.org/dom/Fission.html#jsprocessactor
+ * Detailed documentation of these options is in dom/docs/ipc/jsactors.rst,
+ * available at https://firefox-source-docs.mozilla.org/dom/ipc/jsactors.html
  */
 let JSPROCESSACTORS = {
   // Miscellaneous stuff that needs to be initialized per process.
@@ -133,8 +174,8 @@ let JSPROCESSACTORS = {
 
 /**
  * Fission-compatible JSWindowActor implementations.
- * Detailed documentation of these is in dom/docs/Fission.rst,
- * available at https://firefox-source-docs.mozilla.org/dom/Fission.html#jswindowactor
+ * Detailed documentation of these options is in dom/docs/ipc/jsactors.rst,
+ * available at https://firefox-source-docs.mozilla.org/dom/ipc/jsactors.html
  */
 let JSWINDOWACTORS = {
   AboutLogins: {
@@ -155,6 +196,7 @@ let JSWINDOWACTORS = {
         AboutLoginsOpenPreferences: { wantUntrusted: true },
         AboutLoginsOpenSite: { wantUntrusted: true },
         AboutLoginsRecordTelemetryEvent: { wantUntrusted: true },
+        AboutLoginsRemoveAllLogins: { wantUntrusted: true },
         AboutLoginsSortChanged: { wantUntrusted: true },
         AboutLoginsSyncEnable: { wantUntrusted: true },
         AboutLoginsSyncOptions: { wantUntrusted: true },
@@ -193,8 +235,12 @@ let JSWINDOWACTORS = {
       },
     },
     // The wildcard on about:newtab is for the ?endpoint query parameter
-    // that is used for snippets debugging.
-    matches: ["about:home", "about:welcome", "about:newtab*"],
+    // that is used for snippets debugging. The wildcard for about:home
+    // is similar, and also allows for falling back to loading the
+    // about:home document dynamically if an attempt is made to load
+    // about:home?jscache from the AboutHomeStartupCache as a top-level
+    // load.
+    matches: ["about:home*", "about:welcome", "about:newtab*"],
     remoteTypes: ["privilegedabout"],
   },
 
@@ -359,17 +405,18 @@ let JSWINDOWACTORS = {
     },
     child: {
       moduleURI: "resource:///actors/ContentSearchChild.jsm",
-      matches: [
-        "about:home",
-        "about:newtab",
-        "about:welcome",
-        "about:privatebrowsing",
-        "chrome://mochitests/content/*",
-      ],
       events: {
         ContentSearchClient: { capture: true, wantUntrusted: true },
       },
     },
+    matches: [
+      "about:home",
+      "about:welcome",
+      "about:newtab",
+      "about:privatebrowsing",
+      "about:test-about-content-search-ui",
+    ],
+    remoteTypes: ["privilegedabout"],
   },
 
   ContextMenu: {
@@ -594,12 +641,12 @@ let JSWINDOWACTORS = {
     enablePreference: "accessibility.blockautorefresh",
   },
 
-  SearchTelemetry: {
+  SearchSERPTelemetry: {
     parent: {
-      moduleURI: "resource:///actors/SearchTelemetryParent.jsm",
+      moduleURI: "resource:///actors/SearchSERPTelemetryParent.jsm",
     },
     child: {
-      moduleURI: "resource:///actors/SearchTelemetryChild.jsm",
+      moduleURI: "resource:///actors/SearchSERPTelemetryChild.jsm",
       events: {
         DOMContentLoaded: {},
         pageshow: { mozSystemGroup: true },
@@ -642,17 +689,6 @@ let JSWINDOWACTORS = {
   SwitchDocumentDirection: {
     child: {
       moduleURI: "resource:///actors/SwitchDocumentDirectionChild.jsm",
-    },
-
-    allFrames: true,
-  },
-
-  SiteSpecificBrowser: {
-    parent: {
-      moduleURI: "resource:///actors/SiteSpecificBrowserParent.jsm",
-    },
-    child: {
-      moduleURI: "resource:///actors/SiteSpecificBrowserChild.jsm",
     },
 
     allFrames: true,
@@ -794,93 +830,6 @@ XPCOMUtils.defineLazyGetter(
   () => Cc["@mozilla.org/weave/service;1"].getService().wrappedJSObject
 );
 
-// lazy module getters
-
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AddonManager: "resource://gre/modules/AddonManager.jsm",
-  AppMenuNotifications: "resource://gre/modules/AppMenuNotifications.jsm",
-  AsyncShutdown: "resource://gre/modules/AsyncShutdown.jsm",
-  Blocklist: "resource://gre/modules/Blocklist.jsm",
-  BookmarkHTMLUtils: "resource://gre/modules/BookmarkHTMLUtils.jsm",
-  BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.jsm",
-  BrowserUsageTelemetry: "resource:///modules/BrowserUsageTelemetry.jsm",
-  BrowserUtils: "resource://gre/modules/BrowserUtils.jsm",
-  BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
-  ContextualIdentityService:
-    "resource://gre/modules/ContextualIdentityService.jsm",
-  Corroborate: "resource://gre/modules/Corroborate.jsm",
-  Discovery: "resource:///modules/Discovery.jsm",
-  DoHController: "resource:///modules/DoHController.jsm",
-  DownloadsViewableInternally:
-    "resource:///modules/DownloadsViewableInternally.jsm",
-  ExtensionsUI: "resource:///modules/ExtensionsUI.jsm",
-  FirefoxMonitor: "resource:///modules/FirefoxMonitor.jsm",
-  FxAccounts: "resource://gre/modules/FxAccounts.jsm",
-  HomePage: "resource:///modules/HomePage.jsm",
-  Integration: "resource://gre/modules/Integration.jsm",
-  LoginBreaches: "resource:///modules/LoginBreaches.jsm",
-  NewTabUtils: "resource://gre/modules/NewTabUtils.jsm",
-  Normandy: "resource://normandy/Normandy.jsm",
-  ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
-  OS: "resource://gre/modules/osfile.jsm",
-  OsEnvironment: "resource://gre/modules/OsEnvironment.jsm",
-  PageActions: "resource:///modules/PageActions.jsm",
-  PageThumbs: "resource://gre/modules/PageThumbs.jsm",
-  PdfJs: "resource://pdf.js/PdfJs.jsm",
-  PermissionUI: "resource:///modules/PermissionUI.jsm",
-  PlacesBackups: "resource://gre/modules/PlacesBackups.jsm",
-  PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
-  PluralForm: "resource://gre/modules/PluralForm.jsm",
-  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.jsm",
-  ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.jsm",
-  PublicSuffixList: "resource://gre/modules/netwerk-dns/PublicSuffixList.jsm",
-  RemoteSettings: "resource://services-settings/remote-settings.js",
-  RemoteSecuritySettings:
-    "resource://gre/modules/psm/RemoteSecuritySettings.jsm",
-  RFPHelper: "resource://gre/modules/RFPHelper.jsm",
-  SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
-  Sanitizer: "resource:///modules/Sanitizer.jsm",
-  SaveToPocket: "chrome://pocket/content/SaveToPocket.jsm",
-  SearchTelemetry: "resource:///modules/SearchTelemetry.jsm",
-  SessionStartup: "resource:///modules/sessionstore/SessionStartup.jsm",
-  SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
-  TabCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
-  TabUnloader: "resource:///modules/TabUnloader.jsm",
-  TRRRacer: "resource:///modules/TRRPerformance.jsm",
-  UIState: "resource://services-sync/UIState.jsm",
-  WebChannel: "resource://gre/modules/WebChannel.jsm",
-  WindowsRegistry: "resource://gre/modules/WindowsRegistry.jsm",
-});
-
-// eslint-disable-next-line no-unused-vars
-XPCOMUtils.defineLazyModuleGetters(this, {
-  AboutLoginsParent: "resource:///modules/AboutLoginsParent.jsm",
-  AsyncPrefs: "resource://gre/modules/AsyncPrefs.jsm",
-  PluginManager: "resource:///actors/PluginParent.jsm",
-});
-
-/**
- * IF YOU ADD OR REMOVE FROM THIS LIST, PLEASE UPDATE THE LIST ABOVE AS WELL.
- * XXX Bug 1325373 is for making eslint detect these automatically.
- */
-
-let initializedModules = {};
-
-[
-  [
-    "ContentPrefServiceParent",
-    "resource://gre/modules/ContentPrefServiceParent.jsm",
-    "alwaysInit",
-  ],
-  ["UpdateListener", "resource://gre/modules/UpdateListener.jsm", "init"],
-].forEach(([name, resource, init]) => {
-  XPCOMUtils.defineLazyGetter(this, name, () => {
-    ChromeUtils.import(resource, initializedModules);
-    initializedModules[name][init]();
-    return initializedModules[name];
-  });
-});
-
 if (AppConstants.MOZ_CRASHREPORTER) {
   XPCOMUtils.defineLazyModuleGetters(this, {
     UnsubmittedCrashHandler: "resource:///modules/ContentCrashHandlers.jsm",
@@ -914,6 +863,7 @@ const listeners = {
     "update-downloaded": ["UpdateListener"],
     "update-available": ["UpdateListener"],
     "update-error": ["UpdateListener"],
+    "update-swap": ["UpdateListener"],
     "gmp-plugin-crash": ["PluginManager"],
     "plugin-crashed": ["PluginManager"],
   },
@@ -1134,14 +1084,6 @@ BrowserGlue.prototype = {
           if (this._placesBrowserInitComplete) {
             Services.obs.notifyObservers(null, "places-browser-init-complete");
           }
-        } else if (data == "migrateMatchBucketsPrefForUI66") {
-          this._migrateMatchBucketsPrefForUI66().then(() => {
-            Services.obs.notifyObservers(
-              null,
-              "browser-glue-test",
-              "migrateMatchBucketsPrefForUI66-done"
-            );
-          });
         } else if (data == "add-breaches-sync-handler") {
           this._addBreachesSyncHandler();
         }
@@ -1185,7 +1127,11 @@ BrowserGlue.prototype = {
           Cu.reportError(ex);
         }
         let win = BrowserWindowTracker.getTopWindow();
-        win.BrowserSearch.recordSearchInTelemetry(engine, "urlbar");
+        BrowserSearchTelemetry.recordSearch(
+          win.gBrowser.selectedBrowser,
+          engine,
+          "urlbar"
+        );
         break;
       case "browser-search-engine-modified":
         // Ensure we cleanup the hiddenOneOffs pref when removing
@@ -1230,9 +1176,6 @@ BrowserGlue.prototype = {
         DownloadsViewableInternally.register();
 
         break;
-      case "shield-init-complete":
-        this._shieldInitComplete = true;
-        break;
     }
   },
 
@@ -1269,7 +1212,6 @@ BrowserGlue.prototype = {
     os.addObserver(this, "xpi-signature-changed");
     os.addObserver(this, "sync-ui-state:update");
     os.addObserver(this, "handlersvc-store-initialized");
-    os.addObserver(this, "shield-init-complete");
 
     ActorManagerParent.addJSProcessActors(JSPROCESSACTORS);
     ActorManagerParent.addJSWindowActors(JSWINDOWACTORS);
@@ -1343,7 +1285,6 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "flash-plugin-hang");
     os.removeObserver(this, "xpi-signature-changed");
     os.removeObserver(this, "sync-ui-state:update");
-    os.removeObserver(this, "shield-init-complete");
 
     Services.prefs.removeObserver(
       "privacy.trackingprotection",
@@ -1911,11 +1852,12 @@ BrowserGlue.prototype = {
 
     this._collectFirstPartyIsolationTelemetry();
 
-    if (!this._placesTelemetryGathered) {
-      Cc["@mozilla.org/places/categoriesStarter;1"]
-        .getService(Ci.nsIObserver)
-        .observe(null, "gather-places-telemetry", null);
+    if (!this._placesTelemetryGathered && TelemetryUtils.isTelemetryEnabled) {
       this._placesTelemetryGathered = true;
+      // Collect Places telemetry on the first idle.
+      Services.tm.idleDispatchToMainThread(() => {
+        PlacesDBUtils.telemetry();
+      });
     }
 
     // Set the default favicon size for UI views that use the page-icon protocol.
@@ -2170,7 +2112,7 @@ BrowserGlue.prototype = {
     }
 
     BrowserUsageTelemetry.uninit();
-    SearchTelemetry.uninit();
+    SearchSERPTelemetry.uninit();
     PageThumbs.uninit();
     NewTabUtils.uninit();
 
@@ -2365,7 +2307,7 @@ BrowserGlue.prototype = {
     this._windowsWereRestored = true;
 
     BrowserUsageTelemetry.init();
-    SearchTelemetry.init();
+    SearchSERPTelemetry.init();
 
     ExtensionsUI.init();
 
@@ -2475,6 +2417,14 @@ BrowserGlue.prototype = {
         task: async () => {
           await ContextualIdentityService.load();
           Discovery.update();
+        },
+      },
+
+      {
+        task: () => {
+          // We postponed loading bookmarks toolbar content until startup
+          // has finished, so we can start loading it now:
+          PlacesUIUtils.unblockToolbars();
         },
       },
 
@@ -2695,6 +2645,12 @@ BrowserGlue.prototype = {
       {
         task: () => {
           ASRouterNewTabHook.createInstance(ASRouterDefaultConfig());
+        },
+      },
+
+      {
+        task: () => {
+          PlacesUIUtils.ensureBookmarkToolbarTelemetryListening();
         },
       },
 
@@ -3350,132 +3306,6 @@ BrowserGlue.prototype = {
 
     let xulStore = Services.xulStore;
 
-    if (currentUIVersion < 52) {
-      // Keep old devtools log persistence behavior after splitting netmonitor and
-      // webconsole prefs (bug 1307881).
-      if (Services.prefs.getBoolPref("devtools.webconsole.persistlog", false)) {
-        Services.prefs.setBoolPref("devtools.netmonitor.persistlog", true);
-      }
-    }
-
-    // Update user customizations that will interfere with the Safe Browsing V2
-    // to V4 migration (bug 1395419).
-    if (currentUIVersion < 53) {
-      const MALWARE_PREF = "urlclassifier.malwareTable";
-      if (Services.prefs.prefHasUserValue(MALWARE_PREF)) {
-        let malwareList = Services.prefs.getCharPref(MALWARE_PREF);
-        if (malwareList.includes("goog-malware-shavar")) {
-          malwareList.replace("goog-malware-shavar", "goog-malware-proto");
-          Services.prefs.setCharPref(MALWARE_PREF, malwareList);
-        }
-      }
-    }
-
-    if (currentUIVersion < 55) {
-      Services.prefs.clearUserPref("browser.customizemode.tip0.shown");
-    }
-
-    if (currentUIVersion < 56) {
-      // Prior to the end of the Firefox 57 cycle, the sidebarcommand being present
-      // or not was the only thing that distinguished whether the sidebar was open.
-      // Now, the sidebarcommand always indicates the last opened sidebar, and we
-      // correctly persist the checked attribute to indicate whether or not the
-      // sidebar was open. We should set the checked attribute in case it wasn't:
-      if (xulStore.getValue(BROWSER_DOCURL, "sidebar-box", "sidebarcommand")) {
-        xulStore.setValue(BROWSER_DOCURL, "sidebar-box", "checked", "true");
-      }
-    }
-
-    if (currentUIVersion < 58) {
-      // With Firefox 57, we are doing a one time reset of the geo prefs due to bug 1413652
-      Services.prefs.clearUserPref("browser.search.countryCode");
-      Services.prefs.clearUserPref("browser.search.region");
-      Services.prefs.clearUserPref("browser.search.isUS");
-    }
-
-    if (currentUIVersion < 59) {
-      let searchInitializedPromise = new Promise(resolve => {
-        if (Services.search.isInitialized) {
-          resolve();
-        }
-        const SEARCH_SERVICE_TOPIC = "browser-search-service";
-        Services.obs.addObserver(function observer(subject, topic, data) {
-          if (data != "init-complete") {
-            return;
-          }
-          Services.obs.removeObserver(observer, SEARCH_SERVICE_TOPIC);
-          resolve();
-        }, SEARCH_SERVICE_TOPIC);
-      });
-      searchInitializedPromise.then(() => {
-        let currentEngine = Services.search.defaultEngine.wrappedJSObject;
-        // Only reset the current engine if it wasn't set by a WebExtension
-        // and it is not one of the default engines.
-        // If the original default is not a default, the user has a weird
-        // configuration probably involving langpacks, it's not worth
-        // attempting to reset their settings.
-        if (
-          currentEngine._extensionID ||
-          currentEngine.isAppProvided ||
-          !Services.search.originalDefaultEngine.isAppProvided
-        ) {
-          return;
-        }
-
-        if (!currentEngine._loadPath.startsWith("[https]")) {
-          Services.search.resetToOriginalDefaultEngine();
-        }
-      });
-
-      // Migrate the old requested locales prefs to use the new model
-      const SELECTED_LOCALE_PREF = "general.useragent.locale";
-      const MATCHOS_LOCALE_PREF = "intl.locale.matchOS";
-
-      if (
-        Services.prefs.prefHasUserValue(MATCHOS_LOCALE_PREF) ||
-        Services.prefs.prefHasUserValue(SELECTED_LOCALE_PREF)
-      ) {
-        if (Services.prefs.getBoolPref(MATCHOS_LOCALE_PREF, false)) {
-          Services.locale.requestedLocales = [];
-        } else {
-          let locale = Services.prefs.getComplexValue(
-            SELECTED_LOCALE_PREF,
-            Ci.nsIPrefLocalizedString
-          );
-          if (locale) {
-            try {
-              Services.locale.requestedLocales = [locale.data];
-            } catch (e) {
-              /* Don't panic if the value is not a valid locale code. */
-            }
-          }
-        }
-        Services.prefs.clearUserPref(SELECTED_LOCALE_PREF);
-        Services.prefs.clearUserPref(MATCHOS_LOCALE_PREF);
-      }
-    }
-
-    if (currentUIVersion < 61) {
-      // Remove persisted toolbarset from navigator toolbox
-      xulStore.removeValue(BROWSER_DOCURL, "navigator-toolbox", "toolbarset");
-    }
-
-    if (currentUIVersion < 62) {
-      // Remove iconsize and mode from all the toolbars
-      let toolbars = [
-        "navigator-toolbox",
-        "nav-bar",
-        "PersonalToolbar",
-        "TabsToolbar",
-        "toolbar-menubar",
-      ];
-      for (let resourceName of ["mode", "iconsize"]) {
-        for (let toolbarId of toolbars) {
-          xulStore.removeValue(BROWSER_DOCURL, toolbarId, resourceName);
-        }
-      }
-    }
-
     if (currentUIVersion < 64) {
       OS.File.remove(
         OS.Path.join(OS.Constants.Path.profileDir, "directoryLinks.json"),
@@ -3514,12 +3344,6 @@ BrowserGlue.prototype = {
           }
         }
       });
-    }
-
-    if (currentUIVersion < 66) {
-      // Set whether search suggestions or history/bookmarks results come first
-      // in the urlbar results, and uninstall a related Shield study.
-      this._migrateMatchBucketsPrefForUI66();
     }
 
     if (currentUIVersion < 67) {
@@ -4010,108 +3834,44 @@ BrowserGlue.prototype = {
   },
 
   _maybeShowDefaultBrowserPrompt() {
-    DefaultBrowserCheck.willCheckDefaultBrowser(/* isStartupCheck */ true).then(
-      async willPrompt => {
-        let { DefaultBrowserNotification } = ChromeUtils.import(
-          "resource:///actors/AboutNewTabParent.jsm",
-          {}
+    Promise.all([
+      DefaultBrowserCheck.willCheckDefaultBrowser(/* isStartupCheck */ true),
+      ExperimentAPI.ready,
+    ]).then(async ([willPrompt]) => {
+      let { DefaultBrowserNotification } = ChromeUtils.import(
+        "resource:///actors/AboutNewTabParent.jsm",
+        {}
+      );
+      let isFeatureEnabled = false;
+      try {
+        isFeatureEnabled = ExperimentAPI.getExperiment({
+          featureId: "infobar",
+          sendExposurePing: false,
+        })?.branch.feature.enabled;
+      } catch (e) {}
+      if (willPrompt) {
+        // Prevent the related notification from appearing and
+        // show the modal prompt.
+        DefaultBrowserNotification.notifyModalDisplayed();
+      }
+      // If no experiment go ahead with default experience
+      if (willPrompt && !isFeatureEnabled) {
+        let win = BrowserWindowTracker.getTopWindow();
+        DefaultBrowserCheck.prompt(win);
+      }
+      // If in experiment notify ASRouter to dispatch message
+      if (isFeatureEnabled) {
+        ASRouter.waitForInitialized.then(() =>
+          ASRouter.sendTriggerMessage({
+            browser: BrowserWindowTracker.getTopWindow()?.gBrowser
+              .selectedBrowser,
+            // triggerId and triggerContext
+            id: "defaultBrowserCheck",
+            context: { willShowDefaultPrompt: willPrompt },
+          })
         );
-        if (willPrompt) {
-          // Prevent the related notification from appearing and
-          // show the modal prompt.
-          DefaultBrowserNotification.notifyModalDisplayed();
-          let win = BrowserWindowTracker.getTopWindow();
-          DefaultBrowserCheck.prompt(win);
-        }
       }
-    );
-  },
-
-  async _migrateMatchBucketsPrefForUI66() {
-    // This does two related things.
-    //
-    // (1) Profiles created on or after Firefox 57's release date were eligible
-    // for a Shield study that changed the browser.urlbar.matchBuckets pref in
-    // order to show search suggestions above history/bookmarks in the urlbar
-    // popup.  This uninstalls that study.  (It's actually slightly more
-    // complex.  The study set the pref to several possible values, but the
-    // overwhelming number of profiles in the study got search suggestions
-    // first, followed by history/bookmarks.)
-    //
-    // (2) This also ensures that (a) new users see search suggestions above
-    // history/bookmarks, thereby effectively making the study permanent, and
-    // (b) old users (including those in the study) continue to see whatever
-    // they were seeing before.  This works together with UnifiedComplete.js.
-    // By default, the browser.urlbar.matchBuckets pref does not exist, and
-    // UnifiedComplete.js internally hardcodes a default value for it.  Before
-    // Firefox 60, the hardcoded default was to show history/bookmarks first.
-    // After 60, it's to show search suggestions first.
-
-    // Wait for Shield init to complete.
-    await new Promise(resolve => {
-      if (this._shieldInitComplete) {
-        resolve();
-        return;
-      }
-      let topic = "shield-init-complete";
-      Services.obs.addObserver(function obs() {
-        Services.obs.removeObserver(obs, topic);
-        resolve();
-      }, topic);
     });
-
-    // Now get the pref's value.  If the study is active, the value will have
-    // just been set (on the default branch) as part of Shield's init.  The pref
-    // should not exist otherwise (normally).
-    let prefName = "browser.urlbar.matchBuckets";
-    let prefValue = Services.prefs.getCharPref(prefName, "");
-
-    // Get the study (aka experiment).  It may not be installed.
-    let experiment = null;
-    let experimentName = "pref-flip-search-composition-57-release-1413565";
-    let { PreferenceExperiments } = ChromeUtils.import(
-      "resource://normandy/lib/PreferenceExperiments.jsm"
-    );
-    try {
-      experiment = await PreferenceExperiments.get(experimentName);
-    } catch (e) {}
-
-    // Uninstall the study, resetting the pref to its state before the study.
-    if (experiment && !experiment.expired) {
-      await PreferenceExperiments.stop(experimentName, {
-        resetValue: true,
-        reason: "external:search-ui-migration",
-      });
-    }
-
-    // At this point, normally the pref should not exist.  If it does, then it
-    // either has a user value, or something unexpectedly set its value on the
-    // default branch.  Either way, preserve that value.
-    if (Services.prefs.getCharPref(prefName, "")) {
-      return;
-    }
-
-    // The new default is "suggestion:4,general:5" (show search suggestions
-    // before history/bookmarks), but we implement that by leaving the pref
-    // undefined, and UnifiedComplete.js hardcodes that value internally.  So if
-    // the pref was "suggestion:4,general:5" (modulo whitespace), we're done.
-    if (prefValue) {
-      let buckets = PlacesUtils.convertMatchBucketsStringToArray(prefValue);
-      if (
-        ObjectUtils.deepEqual(buckets, [
-          ["suggestion", 4],
-          ["general", 5],
-        ])
-      ) {
-        return;
-      }
-    }
-
-    // Set the pref on the user branch.  If the pref had a value, then preserve
-    // it.  Otherwise, set the previous default value, which was to show history
-    // and bookmarks before search suggestions.
-    prefValue = prefValue || "general:5,suggestion:Infinity";
-    Services.prefs.setCharPref(prefName, prefValue);
   },
 
   /**
@@ -4455,6 +4215,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.socialtracking.enabled": null,
         "privacy.trackingprotection.fingerprinting.enabled": null,
         "privacy.trackingprotection.cryptomining.enabled": null,
+        "privacy.annotate_channels.strict_list.enabled": null,
       },
       standard: {
         "network.cookie.cookieBehavior": null,
@@ -4463,6 +4224,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.socialtracking.enabled": null,
         "privacy.trackingprotection.fingerprinting.enabled": null,
         "privacy.trackingprotection.cryptomining.enabled": null,
+        "privacy.annotate_channels.strict_list.enabled": null,
       },
     };
     let type = "strict";
@@ -4519,6 +4281,16 @@ var ContentBlockingCategoriesPrefs = {
         case "-stp":
           this.CATEGORY_PREFS[type][
             "privacy.trackingprotection.socialtracking.enabled"
+          ] = false;
+          break;
+        case "lvl2":
+          this.CATEGORY_PREFS[type][
+            "privacy.annotate_channels.strict_list.enabled"
+          ] = true;
+          break;
+        case "-lvl2":
+          this.CATEGORY_PREFS[type][
+            "privacy.annotate_channels.strict_list.enabled"
           ] = false;
           break;
         case "cookieBehavior0":
@@ -4900,10 +4672,10 @@ var DefaultBrowserCheck = {
         "browser.shell.didSkipDefaultBrowserCheckOnFirstRun"
       );
 
-    const usePromptLimit = !AppConstants.RELEASE_OR_BETA;
-    let promptCount = usePromptLimit
-      ? Services.prefs.getIntPref("browser.shell.defaultBrowserCheckCount")
-      : 0;
+    let promptCount = Services.prefs.getIntPref(
+      "browser.shell.defaultBrowserCheckCount",
+      0
+    );
 
     // If SessionStartup's state is not initialized, checking sessionType will set
     // its internal state to "do not restore".
@@ -4939,9 +4711,7 @@ var DefaultBrowserCheck = {
           );
         }
         willPrompt = false;
-      }
-
-      if (usePromptLimit) {
+      } else {
         promptCount++;
         if (isStartupCheck) {
           Services.prefs.setIntPref(
@@ -4949,7 +4719,7 @@ var DefaultBrowserCheck = {
             promptCount
           );
         }
-        if (promptCount > 3) {
+        if (!AppConstants.RELEASE_OR_BETA && promptCount > 3) {
           willPrompt = false;
         }
       }
@@ -5118,6 +4888,11 @@ var AboutHomeStartupCache = {
   // messages as a signal that it's likely time to refresh the cache.
   CACHE_DEBOUNCE_RATE_MS: 5000,
 
+  // This is how long we'll block the AsyncShutdown while waiting for
+  // the cache to write. If we fail to write within that time, we will
+  // allow the shutdown to proceed.
+  SHUTDOWN_CACHE_WRITE_TIMEOUT_MS: 1000,
+
   // The following values are as possible values for the
   // browser.startup.abouthome_cache_result scalar. Keep these in sync with the
   // scalar definition in Scalars.yaml. See setDeferredResult for more
@@ -5159,6 +4934,7 @@ var AboutHomeStartupCache = {
   _initted: false,
   _hasWrittenThisSession: false,
   _finalized: false,
+  _firstPrivilegedProcessCreated: false,
 
   init() {
     if (this._initted) {
@@ -5204,6 +4980,10 @@ var AboutHomeStartupCache = {
     Services.obs.addObserver(this, "process-type-set");
     Services.obs.addObserver(this, "ipc:content-shutdown");
     Services.obs.addObserver(this, "intl:app-locales-changed");
+
+    this.log.trace("Constructing pipes.");
+    this._pagePipe = this.makePipe();
+    this._scriptPipe = this.makePipe();
 
     this._cacheEntryPromise = new Promise(resolve => {
       this._cacheEntryResolver = resolve;
@@ -5279,9 +5059,12 @@ var AboutHomeStartupCache = {
       this.log = null;
     }
 
+    this._procManager = null;
+    this._procManagerID = null;
     this._appender = null;
     this._cacheDeferred = null;
     this._finalized = false;
+    this._firstPrivilegedProcessCreated = false;
   },
 
   _aboutHomeURI: null,
@@ -5305,13 +5088,18 @@ var AboutHomeStartupCache = {
    * never written during the session, one is generated and written
    * before the async function resolves.
    *
+   * @param withTimeout (boolean)
+   *   Whether or not the timeout mechanism should be used. Defaults
+   *   to true.
    * @returns Promise
-   * @resolves undefined
+   * @resolves boolean
    *   If a cache has never been written, or a cache write is in
-   *   progress, resolves when the cache has been written. Otherwise,
-   *   resolves immediately.
+   *   progress, resolves true when the cache has been written. Also
+   *   resolves to true if a cache didn't need to be written.
+   *
+   *   Resolves to false if a cache write unexpectedly timed out.
    */
-  async onShutdown() {
+  async onShutdown(withTimeout = true) {
     // If we never wrote this session, arm the task so that the next
     // step can finalize.
     if (!this._hasWrittenThisSession) {
@@ -5327,8 +5115,41 @@ var AboutHomeStartupCache = {
     if (this._cacheTask.isArmed) {
       this.log.trace("Finalizing cache task on shutdown");
       this._finalized = true;
-      await this._cacheTask.finalize();
+
+      // To avoid hanging shutdowns, we'll ensure that we wait a maximum of
+      // SHUTDOWN_CACHE_WRITE_TIMEOUT_MS millseconds before giving up.
+      let { setTimeout, clearTimeout } = ChromeUtils.import(
+        "resource://gre/modules/Timer.jsm"
+      );
+
+      const TIMED_OUT = Symbol();
+      let timeoutID = 0;
+
+      let timeoutPromise = new Promise(resolve => {
+        timeoutID = setTimeout(
+          () => resolve(TIMED_OUT),
+          this.SHUTDOWN_CACHE_WRITE_TIMEOUT_MS
+        );
+      });
+
+      let promises = [this._cacheTask.finalize()];
+      if (withTimeout) {
+        this.log.trace("Using timeout mechanism.");
+        promises.push(timeoutPromise);
+      } else {
+        this.log.trace("Skipping timeout mechanism.");
+      }
+
+      let result = await Promise.race(promises);
+      this.log.trace("Done blocking shutdown.");
+      clearTimeout(timeoutID);
+      if (result === TIMED_OUT) {
+        this.log.error("Timed out getting cache streams. Skipping cache task.");
+        return false;
+      }
     }
+    this.log.trace("onShutdown is exiting");
+    return true;
   },
 
   /**
@@ -5342,16 +5163,21 @@ var AboutHomeStartupCache = {
   async cacheNow() {
     this.log.trace("Caching now.");
     this._cacheProgress = "Getting cache streams";
+
     let { pageInputStream, scriptInputStream } = await this.requestCache();
 
     if (!pageInputStream || !scriptInputStream) {
+      this.log.trace("Failed to get cache streams.");
       this._cacheProgress = "Failed to get streams";
       return;
     }
 
+    this.log.trace("Got cache streams.");
+
     this._cacheProgress = "Writing to cache";
 
     try {
+      this.log.trace("Populating cache.");
       await this.populateCache(pageInputStream, scriptInputStream);
     } catch (e) {
       this._cacheProgress = "Failed to populate cache";
@@ -5416,20 +5242,6 @@ var AboutHomeStartupCache = {
     return pipe;
   },
 
-  /**
-   * Constructs and caches two nsIPipe instances - one for the about:home
-   * page, and one for its hydration script. If these nsIPipe instances
-   * already exist, this function does nothing.
-   */
-  makePipes() {
-    if (this._pagePipe && this._scriptPipe) {
-      return;
-    }
-    this.log.trace("Constructing pipes.");
-    this._pagePipe = this.makePipe();
-    this._scriptPipe = this.makePipe();
-  },
-
   get pagePipe() {
     return this._pagePipe;
   },
@@ -5447,13 +5259,8 @@ var AboutHomeStartupCache = {
    * In the event that the nsICacheEntry doesn't contain anything usable,
    * the nsInputStreams on the nsIPipe's are closed.
    */
-  maybeConnectToPipes() {
-    if (!this._cacheEntry) {
-      this.log.trace(
-        "Not connecting to pipes yet - the cache entry isn't available yet"
-      );
-      return;
-    }
+  connectToPipes() {
+    this.log.trace(`Connecting nsICacheEntry to pipes.`);
 
     // If the cache doesn't yet exist, we'll know because the version metadata
     // won't exist yet.
@@ -5532,47 +5339,7 @@ var AboutHomeStartupCache = {
     }
 
     this.setDeferredResult(this.CACHE_RESULT_SCALARS.VALID_AND_USED);
-    this.log.trace("Streams connected to pipes. Dropping references to pipes.");
-    this._pagePipe = null;
-    this._scriptPipe = null;
-  },
-
-  /**
-   * Sends down the nsIPipe's to a recently created "privileged about
-   * content process".
-   *
-   * @param aProcManager (ContentProcessMessageManager)
-   *   The message manager for the newly created "privileged about
-   *   content process".
-   * @param aProcessParent
-   *   The nsIDOMProcessParent for the tab.
-   */
-  sendCacheInputStreams(aProcManager, aProcessParent) {
-    if (aProcManager.remoteType != E10SUtils.PRIVILEGEDABOUT_REMOTE_TYPE) {
-      throw new Error(
-        "Cannot send about:home cache to a non-privileged content process."
-      );
-    }
-    // Construct the nsIPipe's if they haven't been made already, which
-    // can occur if the nsICacheEntry hasn't been retrieved yet.
-    this.makePipes();
-    this.log.info("Sending input streams down to content process.");
-    let actor = aProcessParent.getActor("BrowserProcess");
-    actor.sendAsyncMessage(this.SEND_STREAMS_MESSAGE, {
-      pageInputStream: this.pagePipe.inputStream,
-      scriptInputStream: this.scriptPipe.inputStream,
-    });
-
-    // We might have the nsICacheEntry already, so we can connect it
-    // to the pipes immediately. Otherwise, we'll wait until the cache
-    // entry has been retrieved.
-    if (this._cacheEntry) {
-      this.log.trace(
-        "The cache entry is already available. Connecting to pipes " +
-          "immediately."
-      );
-      this.maybeConnectToPipes();
-    }
+    this.log.trace("Streams connected to pipes.");
   },
 
   /**
@@ -5667,6 +5434,8 @@ var AboutHomeStartupCache = {
         );
       });
     });
+
+    this.log.trace("populateCache has finished.");
   },
 
   /**
@@ -5716,15 +5485,36 @@ var AboutHomeStartupCache = {
    */
   onContentProcessCreated(childID, procManager, processParent) {
     if (procManager.remoteType == E10SUtils.PRIVILEGEDABOUT_REMOTE_TYPE) {
+      if (this._finalized) {
+        this.log.trace(
+          "Ignoring privileged about content process launch after finalization."
+        );
+        return;
+      }
+
+      if (this._firstPrivilegedProcessCreated) {
+        this.log.trace(
+          "Ignoring non-first privileged about content processes."
+        );
+        return;
+      }
+
       this.log.trace(
-        `A privileged about content process is launching with ID ${childID}.` +
-          "Sending it the cache input streams."
+        `A privileged about content process is launching with ID ${childID}.`
       );
-      this.sendCacheInputStreams(procManager, processParent);
+
+      this.log.info("Sending input streams down to content process.");
+      let actor = processParent.getActor("BrowserProcess");
+      actor.sendAsyncMessage(this.SEND_STREAMS_MESSAGE, {
+        pageInputStream: this.pagePipe.inputStream,
+        scriptInputStream: this.scriptPipe.inputStream,
+      });
+
       procManager.addMessageListener(this.CACHE_RESPONSE_MESSAGE, this);
       procManager.addMessageListener(this.CACHE_USAGE_RESULT_MESSAGE, this);
       this._procManager = procManager;
       this._procManagerID = childID;
+      this._firstPrivilegedProcessCreated = true;
     }
   },
 
@@ -5738,7 +5528,9 @@ var AboutHomeStartupCache = {
    *   ipc:content-shutdown.
    */
   onContentProcessShutdown(childID) {
+    this.log.info(`Content process shutdown: ${childID}`);
     if (this._procManagerID == childID) {
+      this.log.info("It was the current privileged about process.");
       if (this._cacheDeferred) {
         this.log.error(
           "A privileged about content process shut down while cache streams " +
@@ -5938,9 +5730,7 @@ var AboutHomeStartupCache = {
     this.log.trace("Cache entry is available.");
 
     this._cacheEntry = aEntry;
-    this.makePipes();
-    this.maybeConnectToPipes();
-
+    this.connectToPipes();
     this._cacheEntryResolver(this._cacheEntry);
   },
 };

@@ -47,11 +47,9 @@ function do_test() {
     "-webkit-repeating-radial-gradient",
     "-moz-repeating-radial-gradient",
     "-webkit-gradient",
+    "conic-gradient",
+    "repeating-conic-gradient",
   ];
-
-  if (SpecialPowers.getBoolPref("layout.css.conic-gradient.enabled")) {
-    allGradients.push("conic-gradient", "repeating-conic-gradient");
-  }
 
   // test a property with keywords and colors
   var prop = "color";
@@ -66,6 +64,10 @@ function do_test() {
       "repeat-x", "repeat-y", "space", "round", "fixed", "scroll", "local", "center", "top", "bottom", "left", "right",
       "border-box", "padding-box", "content-box", "text", "contain",
       "cover", "none", "-moz-element", "-moz-image-rect", "url", ...allGradients ];
+
+  if(SpecialPowers.getBoolPref("layout.css.image-set.enabled")) {
+    expected.push("image-set");
+  }
 
   if(SpecialPowers.getBoolPref("layout.css.cross-fade.enabled")) {
     expected.push("cross-fade");
@@ -147,6 +149,10 @@ function do_test() {
   var expected = [ "auto", "inherit", "revert", "initial", "unset", "repeat", "stretch",
                    "-moz-element", "-moz-image-rect", "url", ...allGradients,
                    "fill", "none", "round", "space" ];
+
+  if(SpecialPowers.getBoolPref("layout.css.image-set.enabled")) {
+    expected.push("image-set");
+  }
 
   if(SpecialPowers.getBoolPref("layout.css.cross-fade.enabled")) {
     expected.push("cross-fade");

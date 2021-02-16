@@ -10,7 +10,6 @@
 #include "js/TypeDecls.h"
 #include "mozilla/AppUnits.h"
 #include "mozilla/Attributes.h"
-#include "mozilla/ErrorResult.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/WritingModes.h"
 #include "mozilla/dom/DOMRect.h"
@@ -22,7 +21,12 @@
 #include "nsTArray.h"
 #include "nsWrapperCache.h"
 
+// XXX Avoid including this here by moving function bodies to the cpp file
+#include "nsPIDOMWindow.h"
+
 namespace mozilla {
+class ErrorResult;
+
 namespace dom {
 
 class Element;

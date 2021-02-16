@@ -135,12 +135,15 @@ struct ModuleEnvironment {
   MemoryUsage memoryUsage;
   uint64_t minMemoryLength;
   Maybe<uint64_t> maxMemoryLength;
-  uint32_t numStructTypes;
-  TypeDefVector types;
-  FuncTypeWithIdPtrVector funcTypes;
-  Uint32Vector funcTypeIndices;
+  TypeContext types;
+  TypeIdDescVector typeIds;
+  FuncDescVector funcs;
   Uint32Vector funcImportGlobalDataOffsets;
+
   GlobalDescVector globals;
+#ifdef ENABLE_WASM_EXCEPTIONS
+  EventDescVector events;
+#endif
   TableDescVector tables;
   Uint32Vector asmJSSigToTableIndex;
   ImportVector imports;
@@ -149,6 +152,7 @@ struct ModuleEnvironment {
   ElemSegmentVector elemSegments;
   MaybeSectionRange codeSection;
   SparseBitmap validForRefFunc;
+  bool usesDuplicateImports;
 
   // Fields decoded as part of the wasm module tail:
   DataSegmentEnvVector dataSegments;
@@ -163,14 +167,15 @@ struct ModuleEnvironment {
         features(features),
         memoryUsage(MemoryUsage::None),
         minMemoryLength(0),
-        numStructTypes(0) {}
+        types(features, TypeDefVector()),
+        usesDuplicateImports(false) {}
 
   size_t numTables() const { return tables.length(); }
   size_t numTypes() const { return types.length(); }
-  size_t numFuncs() const { return funcTypes.length(); }
+  size_t numFuncs() const { return funcs.length(); }
   size_t numFuncImports() const { return funcImportGlobalDataOffsets.length(); }
   size_t numFuncDefs() const {
-    return funcTypes.length() - funcImportGlobalDataOffsets.length();
+    return funcs.length() - funcImportGlobalDataOffsets.length();
   }
   Shareable sharedMemoryEnabled() const { return features.sharedMemory; }
   bool refTypesEnabled() const { return features.refTypes; }
@@ -179,6 +184,7 @@ struct ModuleEnvironment {
   bool multiValueEnabled() const { return features.multiValue; }
   bool v128Enabled() const { return features.v128; }
   bool hugeMemoryEnabled() const { return !isAsmJS() && features.hugeMemory; }
+  bool exceptionsEnabled() const { return features.exceptions; }
   bool usesMemory() const { return memoryUsage != MemoryUsage::None; }
   bool usesSharedMemory() const { return memoryUsage == MemoryUsage::Shared; }
   bool isAsmJS() const { return kind == ModuleKind::AsmJS; }
@@ -188,52 +194,6 @@ struct ModuleEnvironment {
   }
   bool funcIsImport(uint32_t funcIndex) const {
     return funcIndex < funcImportGlobalDataOffsets.length();
-  }
-  bool isRefSubtypeOf(RefType one, RefType two) const {
-    // Anything's a subtype of itself.
-    if (one == two) {
-      return true;
-    }
-#ifdef ENABLE_WASM_FUNCTION_REFERENCES
-    if (functionReferencesEnabled()) {
-      // A subtype must have the same nullability as the supertype or the
-      // supertype must be nullable.
-      if (!(one.isNullable() == two.isNullable() || two.isNullable())) {
-        return false;
-      }
-
-      // Non type-index reftypes are subtypes if they are equal
-      if (!one.isTypeIndex() && !two.isTypeIndex() &&
-          one.kind() == two.kind()) {
-        return true;
-      }
-
-#  ifdef ENABLE_WASM_GC
-      // gc can only be enabled if function-references is enabled
-      if (gcTypesEnabled()) {
-        // Structs are subtypes of EqRef.
-        if (isStructType(one) && two.isEq()) {
-          return true;
-        }
-        // Struct One is a subtype of struct Two if Two is a prefix of One.
-        if (isStructType(one) && isStructType(two)) {
-          return isStructPrefixOf(two, one);
-        }
-      }
-#  endif
-      return false;
-    }
-#endif
-    return false;
-  }
-  bool isStructType(ValType t) const {
-    return t.isTypeIndex() && types[t.refType().typeIndex()].isStructType();
-  }
-
- private:
-  bool isStructPrefixOf(ValType a, ValType b) const {
-    const StructType& other = types[a.refType().typeIndex()].structType();
-    return types[b.refType().typeIndex()].structType().hasPrefix(other);
   }
 };
 
@@ -286,12 +246,12 @@ class Encoder {
   Bytes& bytes_;
 
   template <class T>
-  MOZ_MUST_USE bool write(const T& v) {
+  [[nodiscard]] bool write(const T& v) {
     return bytes_.append(reinterpret_cast<const uint8_t*>(&v), sizeof(T));
   }
 
   template <typename UInt>
-  MOZ_MUST_USE bool writeVarU(UInt i) {
+  [[nodiscard]] bool writeVarU(UInt i) {
     do {
       uint8_t byte = i & 0x7f;
       i >>= 7;
@@ -306,7 +266,7 @@ class Encoder {
   }
 
   template <typename SInt>
-  MOZ_MUST_USE bool writeVarS(SInt i) {
+  [[nodiscard]] bool writeVarS(SInt i) {
     bool done;
     do {
       uint8_t byte = i & 0x7f;
@@ -365,22 +325,22 @@ class Encoder {
   // Fixed-size encoding operations simply copy the literal bytes (without
   // attempting to align).
 
-  MOZ_MUST_USE bool writeFixedU7(uint8_t i) {
+  [[nodiscard]] bool writeFixedU7(uint8_t i) {
     MOZ_ASSERT(i <= uint8_t(INT8_MAX));
     return writeFixedU8(i);
   }
-  MOZ_MUST_USE bool writeFixedU8(uint8_t i) { return write<uint8_t>(i); }
-  MOZ_MUST_USE bool writeFixedU32(uint32_t i) { return write<uint32_t>(i); }
-  MOZ_MUST_USE bool writeFixedF32(float f) { return write<float>(f); }
-  MOZ_MUST_USE bool writeFixedF64(double d) { return write<double>(d); }
+  [[nodiscard]] bool writeFixedU8(uint8_t i) { return write<uint8_t>(i); }
+  [[nodiscard]] bool writeFixedU32(uint32_t i) { return write<uint32_t>(i); }
+  [[nodiscard]] bool writeFixedF32(float f) { return write<float>(f); }
+  [[nodiscard]] bool writeFixedF64(double d) { return write<double>(d); }
 
   // Variable-length encodings that all use LEB128.
 
-  MOZ_MUST_USE bool writeVarU32(uint32_t i) { return writeVarU<uint32_t>(i); }
-  MOZ_MUST_USE bool writeVarS32(int32_t i) { return writeVarS<int32_t>(i); }
-  MOZ_MUST_USE bool writeVarU64(uint64_t i) { return writeVarU<uint64_t>(i); }
-  MOZ_MUST_USE bool writeVarS64(int64_t i) { return writeVarS<int64_t>(i); }
-  MOZ_MUST_USE bool writeValType(ValType type) {
+  [[nodiscard]] bool writeVarU32(uint32_t i) { return writeVarU<uint32_t>(i); }
+  [[nodiscard]] bool writeVarS32(int32_t i) { return writeVarS<int32_t>(i); }
+  [[nodiscard]] bool writeVarU64(uint64_t i) { return writeVarU<uint64_t>(i); }
+  [[nodiscard]] bool writeVarS64(int64_t i) { return writeVarS<int64_t>(i); }
+  [[nodiscard]] bool writeValType(ValType type) {
     static_assert(size_t(TypeCode::Limit) <= UINT8_MAX, "fits");
     if (type.isTypeIndex()) {
       return writeFixedU8(uint8_t(TypeCode::NullableRef)) &&
@@ -390,7 +350,7 @@ class Encoder {
     MOZ_ASSERT(size_t(tc) < size_t(TypeCode::Limit));
     return writeFixedU8(uint8_t(tc));
   }
-  MOZ_MUST_USE bool writeOp(Opcode opcode) {
+  [[nodiscard]] bool writeOp(Opcode opcode) {
     // The Opcode constructor has asserted that `opcode` is meaningful, so no
     // further correctness checking is necessary here.
     uint32_t bits = opcode.bits();
@@ -405,7 +365,7 @@ class Encoder {
 
   // Fixed-length encodings that allow back-patching.
 
-  MOZ_MUST_USE bool writePatchableFixedU7(size_t* offset) {
+  [[nodiscard]] bool writePatchableFixedU7(size_t* offset) {
     *offset = bytes_.length();
     return writeFixedU8(UINT8_MAX);
   }
@@ -415,7 +375,7 @@ class Encoder {
 
   // Variable-length encodings that allow back-patching.
 
-  MOZ_MUST_USE bool writePatchableVarU32(size_t* offset) {
+  [[nodiscard]] bool writePatchableVarU32(size_t* offset) {
     *offset = bytes_.length();
     return writeVarU32(UINT32_MAX);
   }
@@ -426,7 +386,7 @@ class Encoder {
   // Byte ranges start with an LEB128 length followed by an arbitrary sequence
   // of bytes. When used for strings, bytes are to be interpreted as utf8.
 
-  MOZ_MUST_USE bool writeBytes(const void* bytes, uint32_t numBytes) {
+  [[nodiscard]] bool writeBytes(const void* bytes, uint32_t numBytes) {
     return writeVarU32(numBytes) &&
            bytes_.append(reinterpret_cast<const uint8_t*>(bytes), numBytes);
   }
@@ -437,7 +397,7 @@ class Encoder {
   // end while the size's varU32 must be stored at the beginning. Immediately
   // after the section length is the string id of the section.
 
-  MOZ_MUST_USE bool startSection(SectionId id, size_t* offset) {
+  [[nodiscard]] bool startSection(SectionId id, size_t* offset) {
     MOZ_ASSERT(uint32_t(id) < 128);
     return writeVarU32(uint32_t(id)) && writePatchableVarU32(offset);
   }
@@ -461,7 +421,7 @@ class Decoder {
   bool resilientMode_;
 
   template <class T>
-  MOZ_MUST_USE bool read(T* out) {
+  [[nodiscard]] bool read(T* out) {
     if (bytesRemain() < sizeof(T)) {
       return false;
     }
@@ -487,7 +447,7 @@ class Decoder {
   }
 
   template <typename UInt>
-  MOZ_MUST_USE bool readVarU(UInt* out) {
+  [[nodiscard]] bool readVarU(UInt* out) {
     DebugOnly<const uint8_t*> before = cur_;
     const unsigned numBits = sizeof(UInt) * CHAR_BIT;
     const unsigned remainderBits = numBits % 7;
@@ -516,7 +476,7 @@ class Decoder {
   }
 
   template <typename SInt>
-  MOZ_MUST_USE bool readVarS(SInt* out) {
+  [[nodiscard]] bool readVarS(SInt* out) {
     using UInt = std::make_unsigned_t<SInt>;
     const unsigned numBits = sizeof(SInt) * CHAR_BIT;
     const unsigned remainderBits = numBits % 7;
@@ -619,12 +579,12 @@ class Decoder {
   // Fixed-size encoding operations simply copy the literal bytes (without
   // attempting to align).
 
-  MOZ_MUST_USE bool readFixedU8(uint8_t* i) { return read<uint8_t>(i); }
-  MOZ_MUST_USE bool readFixedU32(uint32_t* u) { return read<uint32_t>(u); }
-  MOZ_MUST_USE bool readFixedF32(float* f) { return read<float>(f); }
-  MOZ_MUST_USE bool readFixedF64(double* d) { return read<double>(d); }
+  [[nodiscard]] bool readFixedU8(uint8_t* i) { return read<uint8_t>(i); }
+  [[nodiscard]] bool readFixedU32(uint32_t* u) { return read<uint32_t>(u); }
+  [[nodiscard]] bool readFixedF32(float* f) { return read<float>(f); }
+  [[nodiscard]] bool readFixedF64(double* d) { return read<double>(d); }
 #ifdef ENABLE_WASM_SIMD
-  MOZ_MUST_USE bool readFixedV128(V128* d) {
+  [[nodiscard]] bool readFixedV128(V128* d) {
     for (unsigned i = 0; i < 16; i++) {
       if (!read<uint8_t>(d->bytes + i)) {
         return false;
@@ -636,16 +596,16 @@ class Decoder {
 
   // Variable-length encodings that all use LEB128.
 
-  MOZ_MUST_USE bool readVarU32(uint32_t* out) {
+  [[nodiscard]] bool readVarU32(uint32_t* out) {
     return readVarU<uint32_t>(out);
   }
-  MOZ_MUST_USE bool readVarS32(int32_t* out) { return readVarS<int32_t>(out); }
-  MOZ_MUST_USE bool readVarU64(uint64_t* out) {
+  [[nodiscard]] bool readVarS32(int32_t* out) { return readVarS<int32_t>(out); }
+  [[nodiscard]] bool readVarU64(uint64_t* out) {
     return readVarU<uint64_t>(out);
   }
-  MOZ_MUST_USE bool readVarS64(int64_t* out) { return readVarS<int64_t>(out); }
+  [[nodiscard]] bool readVarS64(int64_t* out) { return readVarS<int64_t>(out); }
 
-  MOZ_MUST_USE ValType uncheckedReadValType() {
+  [[nodiscard]] ValType uncheckedReadValType() {
     uint8_t code = uncheckedReadFixedU8();
     switch (code) {
       case uint8_t(TypeCode::FuncRef):
@@ -670,8 +630,8 @@ class Decoder {
         return ValType::fromNonRefTypeCode(TypeCode(code));
     }
   }
-  MOZ_MUST_USE bool readValType(uint32_t numTypes, const FeatureArgs& features,
-                                ValType* type) {
+  [[nodiscard]] bool readValType(uint32_t numTypes, const FeatureArgs& features,
+                                 ValType* type) {
     static_assert(uint8_t(TypeCode::Limit) <= UINT8_MAX, "fits");
     uint8_t code;
     if (!readFixedU8(&code)) {
@@ -728,8 +688,8 @@ class Decoder {
         return fail("bad type");
     }
   }
-  MOZ_MUST_USE bool readValType(const TypeDefVector& types,
-                                const FeatureArgs& features, ValType* type) {
+  [[nodiscard]] bool readValType(const TypeContext& types,
+                                 const FeatureArgs& features, ValType* type) {
     if (!readValType(types.length(), features, type)) {
       return false;
     }
@@ -739,8 +699,9 @@ class Decoder {
     }
     return true;
   }
-  MOZ_MUST_USE bool readHeapType(uint32_t numTypes, const FeatureArgs& features,
-                                 bool nullable, RefType* type) {
+  [[nodiscard]] bool readHeapType(uint32_t numTypes,
+                                  const FeatureArgs& features, bool nullable,
+                                  RefType* type) {
     uint8_t nextByte;
     if (!peekByte(&nextByte)) {
       return fail("expected heap type code");
@@ -782,9 +743,9 @@ class Decoder {
 #endif
     return fail("invalid heap type");
   }
-  MOZ_MUST_USE bool readHeapType(const TypeDefVector& types,
-                                 const FeatureArgs& features, bool nullable,
-                                 RefType* type) {
+  [[nodiscard]] bool readHeapType(const TypeContext& types,
+                                  const FeatureArgs& features, bool nullable,
+                                  RefType* type) {
     if (!readHeapType(types.length(), features, nullable, type)) {
       return false;
     }
@@ -794,8 +755,8 @@ class Decoder {
     }
     return true;
   }
-  MOZ_MUST_USE bool readRefType(uint32_t numTypes, const FeatureArgs& features,
-                                RefType* type) {
+  [[nodiscard]] bool readRefType(uint32_t numTypes, const FeatureArgs& features,
+                                 RefType* type) {
     ValType valType;
     if (!readValType(numTypes, features, &valType)) {
       return false;
@@ -806,8 +767,8 @@ class Decoder {
     *type = valType.refType();
     return true;
   }
-  MOZ_MUST_USE bool readRefType(const TypeDefVector& types,
-                                const FeatureArgs& features, RefType* type) {
+  [[nodiscard]] bool readRefType(const TypeContext& types,
+                                 const FeatureArgs& features, RefType* type) {
     ValType valType;
     if (!readValType(types, features, &valType)) {
       return false;
@@ -818,9 +779,9 @@ class Decoder {
     *type = valType.refType();
     return true;
   }
-  MOZ_MUST_USE bool validateTypeIndex(const TypeDefVector& types,
-                                      const FeatureArgs& features,
-                                      RefType type) {
+  [[nodiscard]] bool validateTypeIndex(const TypeContext& types,
+                                       const FeatureArgs& features,
+                                       RefType type) {
     MOZ_ASSERT(type.isTypeIndex());
 
     if (features.gcTypes && types[type.typeIndex()].isStructType()) {
@@ -828,7 +789,7 @@ class Decoder {
     }
     return fail("type index references an invalid type");
   }
-  MOZ_MUST_USE bool readOp(OpBytes* op) {
+  [[nodiscard]] bool readOp(OpBytes* op) {
     static_assert(size_t(Op::Limit) == 256, "fits");
     uint8_t u8;
     if (!readFixedU8(&u8)) {
@@ -846,8 +807,8 @@ class Decoder {
 
   // See writeBytes comment.
 
-  MOZ_MUST_USE bool readBytes(uint32_t numBytes,
-                              const uint8_t** bytes = nullptr) {
+  [[nodiscard]] bool readBytes(uint32_t numBytes,
+                               const uint8_t** bytes = nullptr) {
     if (bytes) {
       *bytes = cur_;
     }
@@ -860,26 +821,26 @@ class Decoder {
 
   // See "section" description in Encoder.
 
-  MOZ_MUST_USE bool readSectionHeader(uint8_t* id, SectionRange* range);
+  [[nodiscard]] bool readSectionHeader(uint8_t* id, SectionRange* range);
 
-  MOZ_MUST_USE bool startSection(SectionId id, ModuleEnvironment* env,
-                                 MaybeSectionRange* range,
-                                 const char* sectionName);
-  MOZ_MUST_USE bool finishSection(const SectionRange& range,
+  [[nodiscard]] bool startSection(SectionId id, ModuleEnvironment* env,
+                                  MaybeSectionRange* range,
                                   const char* sectionName);
+  [[nodiscard]] bool finishSection(const SectionRange& range,
+                                   const char* sectionName);
 
   // Custom sections do not cause validation errors unless the error is in
   // the section header itself.
 
-  MOZ_MUST_USE bool startCustomSection(const char* expected,
-                                       size_t expectedLength,
-                                       ModuleEnvironment* env,
-                                       MaybeSectionRange* range);
+  [[nodiscard]] bool startCustomSection(const char* expected,
+                                        size_t expectedLength,
+                                        ModuleEnvironment* env,
+                                        MaybeSectionRange* range);
 
   template <size_t NameSizeWith0>
-  MOZ_MUST_USE bool startCustomSection(const char (&name)[NameSizeWith0],
-                                       ModuleEnvironment* env,
-                                       MaybeSectionRange* range) {
+  [[nodiscard]] bool startCustomSection(const char (&name)[NameSizeWith0],
+                                        ModuleEnvironment* env,
+                                        MaybeSectionRange* range) {
     MOZ_ASSERT(name[NameSizeWith0 - 1] == '\0');
     return startCustomSection(name, NameSizeWith0 - 1, env, range);
   }
@@ -887,14 +848,14 @@ class Decoder {
   void finishCustomSection(const char* name, const SectionRange& range);
   void skipAndFinishCustomSection(const SectionRange& range);
 
-  MOZ_MUST_USE bool skipCustomSection(ModuleEnvironment* env);
+  [[nodiscard]] bool skipCustomSection(ModuleEnvironment* env);
 
   // The Name section has its own optional subsections.
 
-  MOZ_MUST_USE bool startNameSubsection(NameType nameType,
-                                        Maybe<uint32_t>* endOffset);
-  MOZ_MUST_USE bool finishNameSubsection(uint32_t endOffset);
-  MOZ_MUST_USE bool skipNameSubsection();
+  [[nodiscard]] bool startNameSubsection(NameType nameType,
+                                         Maybe<uint32_t>* endOffset);
+  [[nodiscard]] bool finishNameSubsection(uint32_t endOffset);
+  [[nodiscard]] bool skipNameSubsection();
 
   // The infallible "unchecked" decoding functions can be used when we are
   // sure that the bytes are well-formed (by construction or due to previous
@@ -945,19 +906,19 @@ class Decoder {
 // The local entries are part of function bodies and thus serialized by both
 // wasm and asm.js and decoded as part of both validation and compilation.
 
-MOZ_MUST_USE bool EncodeLocalEntries(Encoder& d, const ValTypeVector& locals);
+[[nodiscard]] bool EncodeLocalEntries(Encoder& d, const ValTypeVector& locals);
 
 // This performs no validation; the local entries must already have been
 // validated by an earlier pass.
 
-MOZ_MUST_USE bool DecodeValidatedLocalEntries(Decoder& d,
-                                              ValTypeVector* locals);
+[[nodiscard]] bool DecodeValidatedLocalEntries(Decoder& d,
+                                               ValTypeVector* locals);
 
 // This validates the entries.
 
-MOZ_MUST_USE bool DecodeLocalEntries(Decoder& d, const TypeDefVector& types,
-                                     const FeatureArgs& features,
-                                     ValTypeVector* locals);
+[[nodiscard]] bool DecodeLocalEntries(Decoder& d, const TypeContext& types,
+                                      const FeatureArgs& features,
+                                      ValTypeVector* locals);
 
 // Returns whether the given [begin, end) prefix of a module's bytecode starts a
 // code section and, if so, returns the SectionRange of that code section.
@@ -966,8 +927,8 @@ MOZ_MUST_USE bool DecodeLocalEntries(Decoder& d, const TypeDefVector& types,
 // code section is not present. Such modules can be valid so the caller must
 // handle this special case.
 
-MOZ_MUST_USE bool StartsCodeSection(const uint8_t* begin, const uint8_t* end,
-                                    SectionRange* range);
+[[nodiscard]] bool StartsCodeSection(const uint8_t* begin, const uint8_t* end,
+                                     SectionRange* range);
 
 // Calling DecodeModuleEnvironment decodes all sections up to the code section
 // and performs full validation of all those sections. The client must then
@@ -975,13 +936,13 @@ MOZ_MUST_USE bool StartsCodeSection(const uint8_t* begin, const uint8_t* end,
 // and finally call DecodeModuleTail to decode all remaining sections after the
 // code section (again, performing full validation).
 
-MOZ_MUST_USE bool DecodeModuleEnvironment(Decoder& d, ModuleEnvironment* env);
+[[nodiscard]] bool DecodeModuleEnvironment(Decoder& d, ModuleEnvironment* env);
 
-MOZ_MUST_USE bool ValidateFunctionBody(const ModuleEnvironment& env,
-                                       uint32_t funcIndex, uint32_t bodySize,
-                                       Decoder& d);
+[[nodiscard]] bool ValidateFunctionBody(const ModuleEnvironment& env,
+                                        uint32_t funcIndex, uint32_t bodySize,
+                                        Decoder& d);
 
-MOZ_MUST_USE bool DecodeModuleTail(Decoder& d, ModuleEnvironment* env);
+[[nodiscard]] bool DecodeModuleTail(Decoder& d, ModuleEnvironment* env);
 
 void ConvertMemoryPagesToBytes(Limits* memory);
 
@@ -990,8 +951,8 @@ void ConvertMemoryPagesToBytes(Limits* memory);
 //  - if *error is null, the caller should report out-of-memory
 //  - otherwise, there was a legitimate error described by *error
 
-MOZ_MUST_USE bool Validate(JSContext* cx, const ShareableBytes& bytecode,
-                           UniqueChars* error);
+[[nodiscard]] bool Validate(JSContext* cx, const ShareableBytes& bytecode,
+                            UniqueChars* error);
 
 }  // namespace wasm
 }  // namespace js

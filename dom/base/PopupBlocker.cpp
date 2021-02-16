@@ -27,10 +27,6 @@ static uint32_t sPopupStatePusherCount = 0;
 
 static TimeStamp sLastAllowedExternalProtocolIFrameTimeStamp;
 
-// This token is by default set to false. When a popup/filePicker is shown, it
-// is set to true.
-static bool sUnusedPopupToken = false;
-
 static uint32_t sOpenPopupSpamCount = 0;
 
 void PopupAllowedEventsChanged() {
@@ -118,21 +114,6 @@ PopupBlocker::GetPopupControlState() {
 }
 
 /* static */
-bool PopupBlocker::CanShowPopupByPermission(nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(aPrincipal);
-  uint32_t permit = GetPopupPermission(aPrincipal);
-
-  if (permit == nsIPermissionManager::ALLOW_ACTION) {
-    return true;
-  }
-  if (permit == nsIPermissionManager::DENY_ACTION) {
-    return false;
-  }
-
-  return !StaticPrefs::dom_disable_open_during_load();
-}
-
-/* static */
 uint32_t PopupBlocker::GetPopupPermission(nsIPrincipal* aPrincipal) {
   uint32_t permit = nsIPermissionManager::UNKNOWN_ACTION;
   nsCOMPtr<nsIPermissionManager> permissionManager =
@@ -147,34 +128,12 @@ uint32_t PopupBlocker::GetPopupPermission(nsIPrincipal* aPrincipal) {
 }
 
 /* static */
-bool PopupBlocker::TryUsePopupOpeningToken(nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(sPopupStatePusherCount);
-
-  if (!sUnusedPopupToken) {
-    sUnusedPopupToken = true;
-    return true;
-  }
-
-  if (aPrincipal && aPrincipal->IsSystemPrincipal()) {
-    return true;
-  }
-
-  return false;
-}
-
-/* static */
-bool PopupBlocker::IsPopupOpeningTokenUnused() { return sUnusedPopupToken; }
-
-/* static */
 void PopupBlocker::PopupStatePusherCreated() { ++sPopupStatePusherCount; }
 
 /* static */
 void PopupBlocker::PopupStatePusherDestroyed() {
   MOZ_ASSERT(sPopupStatePusherCount);
-
-  if (!--sPopupStatePusherCount) {
-    sUnusedPopupToken = false;
-  }
+  --sPopupStatePusherCount;
 }
 
 // static
@@ -364,7 +323,8 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
       break;
     case ePointerEventClass:
       if (aEvent->IsTrusted() &&
-          aEvent->AsPointerEvent()->mButton == MouseButton::ePrimary) {
+          (aEvent->AsPointerEvent()->mButton == MouseButton::ePrimary ||
+           aEvent->AsPointerEvent()->mButton == MouseButton::eMiddle)) {
         switch (aEvent->mMessage) {
           case ePointerUp:
             if (PopupAllowedForEvent("pointerup")) {
@@ -431,6 +391,10 @@ void PopupBlocker::Shutdown() {
 
 /* static */
 bool PopupBlocker::ConsumeTimerTokenForExternalProtocolIframe() {
+  if (!StaticPrefs::dom_delay_block_external_protocol_in_iframes_enabled()) {
+    return false;
+  }
+
   TimeStamp now = TimeStamp::Now();
 
   if (sLastAllowedExternalProtocolIFrameTimeStamp.IsNull()) {
@@ -439,7 +403,7 @@ bool PopupBlocker::ConsumeTimerTokenForExternalProtocolIframe() {
   }
 
   if ((now - sLastAllowedExternalProtocolIFrameTimeStamp).ToSeconds() <
-      (StaticPrefs::dom_delay_block_external_protocol_in_iframes())) {
+      StaticPrefs::dom_delay_block_external_protocol_in_iframes()) {
     return false;
   }
 

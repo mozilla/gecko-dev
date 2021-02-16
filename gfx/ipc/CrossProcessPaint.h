@@ -9,16 +9,18 @@
 #include "nsISupportsImpl.h"
 
 #include "mozilla/dom/ipc/IdType.h"
-#include "mozilla/dom/Promise.h"
-#include "mozilla/dom/DOMRect.h"
-#include "mozilla/gfx/2D.h"
-#include "mozilla/Maybe.h"
+#include "mozilla/gfx/Point.h"
+#include "mozilla/gfx/RecordedEvent.h"
+#include "mozilla/gfx/Rect.h"
+#include "mozilla/MozPromise.h"
 #include "mozilla/ipc/ByteBuf.h"
+#include "nsColor.h"
 #include "nsDataHashtable.h"
 #include "nsHashKeys.h"
 #include "nsRefPtrHashtable.h"
 #include "nsTHashtable.h"
-#include "mozilla/gfx/RecordedEvent.h"
+
+class nsIDocShell;
 
 namespace IPC {
 template <typename T>
@@ -28,6 +30,8 @@ struct ParamTraits;
 namespace mozilla {
 
 namespace dom {
+class DOMRect;
+class Promise;
 class WindowGlobalParent;
 }  // namespace dom
 
@@ -52,9 +56,9 @@ class PaintFragment final {
 
   /**
    * Creates a paint fragment by recording the draw commands and dependent tabs
-   * for an nsIDocShell.
+   * for a BrowsingContext.
    *
-   * @param aDocShell The document shell to record.
+   * @param aBrowsingContext The frame to record.
    * @param aRect The rectangle relative to the viewport to use. If no
    *   rectangle is specified, then the whole viewport will be used.
    * @param aScale The coordinate scale to use. The size of the resolved
@@ -65,7 +69,7 @@ class PaintFragment final {
    * @return A paint fragment. The paint fragment may be `empty` if rendering
    *         was unable to be accomplished for some reason.
    */
-  static PaintFragment Record(nsIDocShell* aDocShell,
+  static PaintFragment Record(dom::BrowsingContext* aBc,
                               const Maybe<IntRect>& aRect, float aScale,
                               nscolor aBackgroundColor,
                               CrossProcessPaintFlags aFlags);

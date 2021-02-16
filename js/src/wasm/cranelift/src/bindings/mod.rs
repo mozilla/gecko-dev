@@ -25,7 +25,9 @@ use cranelift_codegen::ir::immediates::{Ieee32, Ieee64};
 use cranelift_codegen::ir::{self, InstBuilder, SourceLoc};
 use cranelift_codegen::isa;
 
-use cranelift_wasm::{wasmparser, FuncIndex, GlobalIndex, SignatureIndex, TableIndex, WasmResult};
+use cranelift_wasm::{
+    wasmparser, FuncIndex, GlobalIndex, SignatureIndex, TableIndex, TypeIndex, WasmResult,
+};
 
 use crate::compile;
 use crate::utils::BasicError;
@@ -39,8 +41,8 @@ pub use self::low_level::CraneliftFuncCompileInput as FuncCompileInput;
 pub use self::low_level::CraneliftMetadataEntry as MetadataEntry;
 pub use self::low_level::CraneliftModuleEnvironment as LowLevelModuleEnvironment;
 pub use self::low_level::CraneliftStaticEnvironment as StaticEnvironment;
-pub use self::low_level::FuncTypeIdDescKind;
 pub use self::low_level::Trap;
+pub use self::low_level::TypeIdDescKind;
 
 mod low_level;
 
@@ -53,6 +55,7 @@ fn typecode_to_type(type_code: TypeCode) -> WasmResult<Option<ir::Type>> {
         TypeCode::I64 => Ok(Some(ir::types::I64)),
         TypeCode::F32 => Ok(Some(ir::types::F32)),
         TypeCode::F64 => Ok(Some(ir::types::F64)),
+        TypeCode::V128 => Ok(Some(ir::types::I8X16)),
         TypeCode::FuncRef => Ok(Some(REF_TYPE)),
         TypeCode::ExternRef => Ok(Some(REF_TYPE)),
         TypeCode::BlockVoid => Ok(None),
@@ -91,15 +94,23 @@ impl GlobalDesc {
         unsafe { low_level::global_isIndirect(self.0) }
     }
 
-    /// Insert an instruction at `pos` that materialized the constant value.
+    /// Insert an instruction at `pos` that materializes the constant value.
     pub fn emit_constant(self, pos: &mut FuncCursor) -> WasmResult<ir::Value> {
         unsafe {
             let v = low_level::global_constantValue(self.0);
             match v.t {
-                TypeCode::I32 => Ok(pos.ins().iconst(ir::types::I32, i64::from(v.u.i32))),
-                TypeCode::I64 => Ok(pos.ins().iconst(ir::types::I64, v.u.i64)),
-                TypeCode::F32 => Ok(pos.ins().f32const(Ieee32::with_bits(v.u.i32 as u32))),
-                TypeCode::F64 => Ok(pos.ins().f64const(Ieee64::with_bits(v.u.i64 as u64))),
+                TypeCode::I32 => Ok(pos.ins().iconst(ir::types::I32, i64::from(v.u.i32_))),
+                TypeCode::I64 => Ok(pos.ins().iconst(ir::types::I64, v.u.i64_)),
+                TypeCode::F32 => Ok(pos.ins().f32const(Ieee32::with_bits(v.u.i32_ as u32))),
+                TypeCode::F64 => Ok(pos.ins().f64const(Ieee64::with_bits(v.u.i64_ as u64))),
+                TypeCode::V128 => {
+                    let c = pos
+                        .func
+                        .dfg
+                        .constants
+                        .insert(ir::ConstantData::from(&v.u.v128 as &[u8]));
+                    Ok(pos.ins().vconst(ir::types::I8X16, c))
+                }
                 TypeCode::NullableRef | TypeCode::ExternRef | TypeCode::FuncRef => {
                     assert!(v.u.r as usize == 0);
                     Ok(pos.ins().null(REF_TYPE))
@@ -145,15 +156,15 @@ impl TableDesc {
 }
 
 #[derive(Clone)]
-pub struct FuncTypeWithId {
-    ptr: *const low_level::FuncTypeWithId,
+pub struct FuncType {
+    ptr: *const low_level::FuncType,
     args: Vec<TypeCode>,
     results: Vec<TypeCode>,
 }
 
-impl FuncTypeWithId {
-    /// Creates a new FuncTypeWithId, caching all the values it requires.
-    pub(crate) fn new(ptr: *const low_level::FuncTypeWithId) -> Self {
+impl FuncType {
+    /// Creates a new FuncType, caching all the values it requires.
+    pub(crate) fn new(ptr: *const low_level::FuncType) -> Self {
         let num_args = unsafe { low_level::funcType_numArgs(ptr) };
         let args = unsafe { slice::from_raw_parts(low_level::funcType_args(ptr), num_args) };
         let args = args
@@ -172,7 +183,25 @@ impl FuncTypeWithId {
         Self { ptr, args, results }
     }
 
-    pub(crate) fn id_kind(&self) -> FuncTypeIdDescKind {
+    pub(crate) fn args(&self) -> &[TypeCode] {
+        &self.args
+    }
+    pub(crate) fn results(&self) -> &[TypeCode] {
+        &self.results
+    }
+}
+
+#[derive(Clone)]
+pub struct TypeIdDesc {
+    ptr: *const low_level::TypeIdDesc,
+}
+
+impl TypeIdDesc {
+    pub(crate) fn new(ptr: *const low_level::TypeIdDesc) -> Self {
+        Self { ptr }
+    }
+
+    pub(crate) fn id_kind(&self) -> TypeIdDescKind {
         unsafe { low_level::funcType_idKind(self.ptr) }
     }
     pub(crate) fn id_immediate(&self) -> usize {
@@ -180,12 +209,6 @@ impl FuncTypeWithId {
     }
     pub(crate) fn id_tls_offset(&self) -> usize {
         unsafe { low_level::funcType_idTlsOffset(self.ptr) }
-    }
-    pub(crate) fn args(&self) -> &[TypeCode] {
-        &self.args
-    }
-    pub(crate) fn results(&self) -> &[TypeCode] {
-        &self.results
     }
 }
 
@@ -195,6 +218,7 @@ fn typecode_to_parser_type(ty: TypeCode) -> wasmparser::Type {
         TypeCode::I64 => wasmparser::Type::I64,
         TypeCode::F32 => wasmparser::Type::F32,
         TypeCode::F64 => wasmparser::Type::F64,
+        TypeCode::V128 => wasmparser::Type::V128,
         TypeCode::FuncRef => wasmparser::Type::FuncRef,
         TypeCode::ExternRef => wasmparser::Type::ExternRef,
         TypeCode::BlockVoid => wasmparser::Type::EmptyBlockType,
@@ -202,7 +226,7 @@ fn typecode_to_parser_type(ty: TypeCode) -> wasmparser::Type {
     }
 }
 
-impl wasmparser::WasmFuncType for FuncTypeWithId {
+impl wasmparser::WasmFuncType for FuncType {
     fn len_inputs(&self) -> usize {
         self.args.len()
     }
@@ -225,13 +249,13 @@ impl wasmparser::WasmFuncType for FuncTypeWithId {
 
 pub struct ModuleEnvironment<'a> {
     env: &'a CraneliftModuleEnvironment,
-    /// The `WasmModuleResources` trait requires us to return a borrow to a `FuncTypeWithId`, so we
+    /// The `WasmModuleResources` trait requires us to return a borrow to a `FuncType`, so we
     /// eagerly construct these.
-    types: Vec<FuncTypeWithId>,
-    /// Similar to `types`, we need to have a persistently-stored `FuncTypeWithId` to return. The
+    types: Vec<FuncType>,
+    /// Similar to `types`, we need to have a persistently-stored `FuncType` to return. The
     /// types in `func_sigs` are a subset of those in `types`, but we don't want to have to
     /// maintain an index from function to signature ID, so we store these directly.
-    func_sigs: Vec<FuncTypeWithId>,
+    func_sigs: Vec<FuncType>,
 }
 
 impl<'a> ModuleEnvironment<'a> {
@@ -239,13 +263,13 @@ impl<'a> ModuleEnvironment<'a> {
         let num_types = unsafe { low_level::env_num_types(env) };
         let mut types = Vec::with_capacity(num_types);
         for i in 0..num_types {
-            let t = FuncTypeWithId::new(unsafe { low_level::env_signature(env, i) });
+            let t = FuncType::new(unsafe { low_level::env_signature(env, i) });
             types.push(t);
         }
         let num_func_sigs = unsafe { low_level::env_num_funcs(env) };
         let mut func_sigs = Vec::with_capacity(num_func_sigs);
         for i in 0..num_func_sigs {
-            let t = FuncTypeWithId::new(unsafe { low_level::env_func_sig(env, i) });
+            let t = FuncType::new(unsafe { low_level::env_func_sig(env, i) });
             func_sigs.push(t);
         }
         Self {
@@ -266,13 +290,13 @@ impl<'a> ModuleEnvironment<'a> {
     pub fn num_types(&self) -> usize {
         self.types.len()
     }
-    pub fn type_(&self, index: usize) -> FuncTypeWithId {
+    pub fn type_(&self, index: usize) -> FuncType {
         self.types[index].clone()
     }
     pub fn num_func_sigs(&self) -> usize {
         self.func_sigs.len()
     }
-    pub fn func_sig(&self, func_index: FuncIndex) -> FuncTypeWithId {
+    pub fn func_sig(&self, func_index: FuncIndex) -> FuncType {
         self.func_sigs[func_index.index()].clone()
     }
     pub fn func_sig_index(&self, func_index: FuncIndex) -> SignatureIndex {
@@ -284,8 +308,21 @@ impl<'a> ModuleEnvironment<'a> {
     pub fn func_is_import(&self, func_index: FuncIndex) -> bool {
         unsafe { low_level::env_func_is_import(self.env, func_index.index()) }
     }
-    pub fn signature(&self, sig_index: SignatureIndex) -> FuncTypeWithId {
-        FuncTypeWithId::new(unsafe { low_level::env_signature(self.env, sig_index.index()) })
+    pub fn signature(&self, type_index: TypeIndex) -> FuncType {
+        // This function takes `TypeIndex` rather than the `SignatureIndex` that one
+        // might expect.  Why?  https://github.com/bytecodealliance/wasmtime/pull/2115
+        // introduces two new types to the type section as viewed by Cranelift.  This is
+        // in support of the module linking proposal.  So now a type index (for
+        // Cranelift) can refer to a func, module, or instance type.  When the type index
+        // refers to a func type, it can also be used to get the signature index which
+        // can be used to get the ir::Signature for that func type.  For us, Cranelift is
+        // only used with function types so we can just assume type index and signature
+        // index are 1:1.  If and when we come to support the module linking proposal,
+        // this will need to be revisited.
+        FuncType::new(unsafe { low_level::env_signature(self.env, type_index.index()) })
+    }
+    pub fn signature_id(&self, type_index: TypeIndex) -> TypeIdDesc {
+        TypeIdDesc::new(unsafe { low_level::env_signature_id(self.env, type_index.index()) })
     }
     pub fn table(&self, table_index: TableIndex) -> TableDesc {
         TableDesc(unsafe { low_level::env_table(self.env, table_index.index()) })
@@ -307,7 +344,7 @@ impl<'a> ModuleEnvironment<'a> {
 }
 
 impl<'module> wasmparser::WasmModuleResources for ModuleEnvironment<'module> {
-    type FuncType = FuncTypeWithId;
+    type FuncType = FuncType;
     fn table_at(&self, at: u32) -> Option<wasmparser::TableType> {
         if (at as usize) < self.num_tables() {
             let desc = TableDesc(unsafe { low_level::env_table(self.env, at as usize) });

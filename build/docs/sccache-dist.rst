@@ -49,7 +49,7 @@ must read::
   ``~/.mozbuild/clang-dist-toolchain.tar.xz`` and
   ``~/.mozbuild/rustc-dist-toolchain.tar.xz``. This is an example of the paths
   that should be added to your client config to specify toolchains to build on
-  macOS, located at ``~/Library/Preferences/Mozilla.sccache/config``::
+  macOS, located at ``~/Library/Application Support/Mozilla.sccache/config``::
 
     [[dist.toolchains]]
     type = "path_override"
@@ -89,12 +89,12 @@ must read::
 * Compiling from a Windows client is supported but hasn't seen as much testing
   as other platforms. The following example mozconfig can be used as a guide::
 
-    ac_add_options CCACHE=/path/to/home/.mozbuild/sccache/sccache.exe
+    ac_add_options CCACHE="C:/Users/<USER>/.mozbuild/sccache/sccache.exe"
 
-    export CC="/path/to/home/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
-    export CXX="/path/to/home/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
-    export HOST_CC="/path/to/home/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
-    export HOST_CXX="/path/to/home/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
+    export CC="C:/Users/<USER>/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
+    export CXX="C:/Users/<USER>/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
+    export HOST_CC="C:/Users/<USER>/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
+    export HOST_CXX="C:/Users/<USER>/.mozbuild/clang/bin/clang-cl.exe --driver-mode=cl"
 
   The client config should be located at
   ``~/AppData/Roaming/Mozilla/sccache/config/config``, and as on macOS custom
@@ -126,7 +126,7 @@ must read::
     export HOST_CXXFLAGS="--target=x86_64-apple-darwin16.0.0"
 
     # Specify the macOS SDK to use
-    ac_add_options --with-macos-sdk=/path/to/MacOSX-SDKs/MacOSX10.11.sdk
+    ac_add_options --with-macos-sdk=/path/to/MacOSX-SDKs/MacOSX10.12.sdk
 
   You can get the right macOS SDK by downloading an old version of XCode from
   `developer.apple.com <https://developer.apple.com>`_ and unpacking the SDK
@@ -135,7 +135,7 @@ must read::
 * When attempting to get your client running, the output of ``sccache -s`` should
   be consulted to confirm compilations are being distributed. To receive helpful
   logging from the local daemon in case they aren't, run
-  ``SCCACHE_NO_DAEMON=1 SCCACHE_LOG=sccache=trace path/to/sccache --start-server``
+  ``SCCACHE_NO_DAEMON=1 SCCACHE_START_SERVER=1 SCCACHE_LOG=sccache=trace path/to/sccache``
   in a terminal window separate from your build prior to building. *NOTE* use
   ``RUST_LOG`` instead of ``SCCACHE_LOG`` if your build of ``sccache`` does not
   include `pull request 822

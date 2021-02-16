@@ -7,6 +7,7 @@
 #include "mozilla/dom/JSActor.h"
 #include "mozilla/dom/JSActorBinding.h"
 
+#include "chrome/common/ipc_channel.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/FunctionRef.h"
 #include "mozilla/dom/ClonedErrorHolder.h"
@@ -18,8 +19,10 @@
 #include "mozilla/dom/PWindowGlobal.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/RootedDictionary.h"
+#include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "js/Promise.h"
 #include "xpcprivate.h"
+#include "nsFrameMessageManager.h"
 #include "nsICrashReporter.h"
 
 namespace mozilla::dom {
@@ -146,6 +149,18 @@ bool JSActor::AllowMessage(const JSActorMessageMeta& aMetadata,
 void JSActor::SetName(const nsACString& aName) {
   MOZ_ASSERT(mName.IsEmpty(), "Cannot set name twice!");
   mName = aName;
+}
+
+void JSActor::ThrowStateErrorForGetter(const char* aName,
+                                       ErrorResult& aRv) const {
+  if (mName.IsEmpty()) {
+    aRv.ThrowInvalidStateError(nsPrintfCString(
+        "Cannot access property '%s' before actor is initialized", aName));
+  } else {
+    aRv.ThrowInvalidStateError(nsPrintfCString(
+        "Cannot access property '%s' after actor '%s' has been destroyed",
+        aName, mName.get()));
+  }
 }
 
 static Maybe<ipc::StructuredCloneData> TryClone(JSContext* aCx,

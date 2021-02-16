@@ -124,34 +124,32 @@ class ProfileBuffer final {
   uint64_t BufferRangeEnd() const { return mEntries.GetState().mRangeEnd; }
 
  private:
-  // 65536 bytes should be plenty for a single backtrace.
-  static constexpr auto WorkerBufferBytes = MakePowerOfTwo32<65536>();
-
   // Single pre-allocated chunk (to avoid spurious mallocs), used when:
-  // - Duplicating sleeping stacks.
+  // - Duplicating sleeping stacks (hence scExpectedMaximumStackSize).
   // - Adding JIT info.
   // - Streaming stacks to JSON.
   // Mutable because it's accessed from non-multithreaded const methods.
   mutable ProfileBufferChunkManagerSingle mWorkerChunkManager{
-      ProfileBufferChunk::Create(ProfileBufferChunk::SizeofChunkMetadata() +
-                                 WorkerBufferBytes.Value())};
+      ProfileBufferChunk::Create(
+          ProfileBufferChunk::SizeofChunkMetadata() +
+          ProfileBufferChunkManager::scExpectedMaximumStackSize)};
 
-  // Time from launch (ns) when first sampling was recorded.
-  double mFirstSamplingTimeNs = 0.0;
-  // Time from launch (ns) when last sampling was recorded.
-  double mLastSamplingTimeNs = 0.0;
-  // Sampling stats: Interval (ns) between successive samplings.
-  ProfilerStats mIntervalsNs;
-  // Sampling stats: Total duration (ns) of each sampling. (Split detail below.)
-  ProfilerStats mOverheadsNs;
-  // Sampling stats: Time (ns) to acquire the lock before sampling.
-  ProfilerStats mLockingsNs;
-  // Sampling stats: Time (ns) to discard expired data.
-  ProfilerStats mCleaningsNs;
-  // Sampling stats: Time (ns) to collect counter data.
-  ProfilerStats mCountersNs;
-  // Sampling stats: Time (ns) to sample thread stacks.
-  ProfilerStats mThreadsNs;
+  // Time from launch (us) when first sampling was recorded.
+  double mFirstSamplingTimeUs = 0.0;
+  // Time from launch (us) when last sampling was recorded.
+  double mLastSamplingTimeUs = 0.0;
+  // Sampling stats: Interval (us) between successive samplings.
+  ProfilerStats mIntervalsUs;
+  // Sampling stats: Total duration (us) of each sampling. (Split detail below.)
+  ProfilerStats mOverheadsUs;
+  // Sampling stats: Time (us) to acquire the lock before sampling.
+  ProfilerStats mLockingsUs;
+  // Sampling stats: Time (us) to discard expired data.
+  ProfilerStats mCleaningsUs;
+  // Sampling stats: Time (us) to collect counter data.
+  ProfilerStats mCountersUs;
+  // Sampling stats: Time (us) to sample thread stacks.
+  ProfilerStats mThreadsUs;
 };
 
 /**

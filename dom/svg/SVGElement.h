@@ -20,6 +20,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/gfx/MatrixFwd.h"
 #include "mozilla/UniquePtr.h"
+#include "nsCSSPropertyID.h"
 #include "nsChangeHint.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsError.h"
@@ -521,7 +522,6 @@ class SVGElement : public SVGElementBase  // nsIContent
         : mEnums(aEnums), mEnumInfo(aEnumInfo), mEnumCount(aEnumCount) {}
 
     void Reset(uint8_t aAttrEnum);
-    void SetUnknownValue(uint8_t aAttrEnum);
   };
 
   struct NumberListInfo {

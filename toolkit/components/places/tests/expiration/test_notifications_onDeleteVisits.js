@@ -114,15 +114,12 @@ add_task(async function test_notifications_onDeleteVisits() {
     let historyObserver = {
       onBeginUpdateBatch: function PEX_onBeginUpdateBatch() {},
       onEndUpdateBatch: function PEX_onEndUpdateBatch() {},
-      onClearHistory() {},
-      onTitleChanged() {},
       onDeleteURI(aURI, aGUID, aReason) {
         // Check this uri was not bookmarked.
         Assert.equal(currentTest.bookmarks.indexOf(aURI.spec), -1);
         do_check_valid_places_guid(aGUID);
         Assert.equal(aReason, Ci.nsINavHistoryObserver.REASON_EXPIRED);
       },
-      onPageChanged() {},
       onDeleteVisits(aURI, aPartialRemoval, aGUID, aReason) {
         currentTest.receivedNotifications++;
         do_check_guid_for_uri(aURI, aGUID);

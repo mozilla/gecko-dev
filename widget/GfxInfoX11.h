@@ -50,6 +50,7 @@ class GfxInfo final : public GfxInfoBase {
   NS_IMETHOD GetDisplayInfo(nsTArray<nsString>& aDisplayInfo) override;
   NS_IMETHOD GetDisplayWidth(nsTArray<uint32_t>& aDisplayWidth) override;
   NS_IMETHOD GetDisplayHeight(nsTArray<uint32_t>& aDisplayHeight) override;
+  NS_IMETHOD GetDrmRenderDevice(nsACString& aDrmRenderDevice) override;
   using GfxInfoBase::GetFeatureStatus;
   using GfxInfoBase::GetFeatureSuggestedDriverVersion;
 
@@ -89,6 +90,11 @@ class GfxInfo final : public GfxInfoBase {
   nsCString mOSRelease;
   nsAutoCStringN<16> mDesktopEnvironment;
 
+  nsCString mSecondaryVendorId;
+  nsCString mSecondaryDeviceId;
+
+  nsCString mDrmRenderDevice;
+
   struct ScreenInfo {
     uint32_t mWidth;
     uint32_t mHeight;
@@ -103,6 +109,8 @@ class GfxInfo final : public GfxInfoBase {
   bool mIsWayland;
   bool mIsWaylandDRM;
   bool mIsXWayland;
+  bool mHasMultipleGPUs;
+  bool mGlxTestError;
 
   void AddCrashReportAnnotations();
 };

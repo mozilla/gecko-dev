@@ -18,6 +18,7 @@
 #include "nsFontMetrics.h"
 #include "nsReadableUtils.h"
 #include "nsCOMPtr.h"
+#include "nsCRT.h"
 #include "nsGkAtoms.h"
 #include "nsPresContext.h"
 #include "gfxContext.h"
@@ -945,7 +946,7 @@ nsTextBoxFrame::DoXULLayout(nsBoxLayoutState& aBoxLayoutState) {
   // extend beyond that.
   nsRect visualBounds;
   visualBounds.UnionRect(scrollBounds, textRect);
-  nsOverflowAreas overflow(visualBounds, scrollBounds);
+  OverflowAreas overflow(visualBounds, scrollBounds);
 
   if (textStyle->HasTextShadow()) {
     // text-shadow extends our visual but not scrollable bounds

@@ -23,6 +23,8 @@
 
   --toolbarseparator-color: var(--lwt-toolbar-vertical-separator, rgba(0,0,0,.3));
 
+  --bookmark-block-padding: 4px;
+
   /* This default value of --toolbarbutton-height is defined to prevent
      CSS errors for an invalid variable. The value should not get used,
      as a more specific value should be set when the value will be used. */
@@ -31,10 +33,12 @@
 
 :root[uidensity=compact] {
   --toolbarbutton-outer-padding: 1px;
+  --bookmark-block-padding: 1px;
 }
 
 :root[uidensity=touch] {
   --toolbarbutton-inner-padding: 9px;
+  --bookmark-block-padding: 7px;
 }
 
 /* We use :-moz-lwtheme-* for toolbarbuttons that aren't inside a toolbar, and
@@ -77,11 +81,21 @@ toolbar[brighttext] {
   width: 16px;
 }
 
+.toolbarbutton-combined-buttons-dropmarker > .toolbarbutton-icon {
+  width: 12px;
+}
+
 #TabsToolbar .toolbarbutton-1,
 #tabbrowser-arrowscrollbox::part(scrollbutton-up),
 #tabbrowser-arrowscrollbox::part(scrollbutton-down) {
   margin: 0 0 var(--tabs-navbar-shadow-size) !important;
 }
+
+@supports -moz-bool-pref("browser.proton.tabs.enabled") {
+#TabsToolbar .toolbarbutton-1 {
+  margin-block: var(--proton-tab-block-margin) !important;
+}
+} /*** END proton ***/
 
 #tabbrowser-arrowscrollbox::part(scrollbutton-up),
 #tabbrowser-arrowscrollbox::part(scrollbutton-down) {
@@ -130,11 +144,36 @@ toolbar .toolbarbutton-1 > .toolbarbutton-badge-stack {
   border-radius: var(--toolbarbutton-border-radius);
 }
 
+@supports -moz-bool-pref("browser.proton.tabs.enabled") {
+#TabsToolbar .toolbarbutton-1 > .toolbarbutton-icon,
+#TabsToolbar .toolbarbutton-1 > .toolbarbutton-text,
+#TabsToolbar .toolbarbutton-1 > .toolbarbutton-badge-stack {
+  border-radius: var(--proton-tab-radius);
+}
+} /*** END proton ***/
+
 toolbar .toolbarbutton-1 > .toolbarbutton-icon {
   /* horizontal padding + actual icon width */
   width: calc(2 * var(--toolbarbutton-inner-padding) + 16px);
   height: calc(2 * var(--toolbarbutton-inner-padding) + 16px);
 }
+
+toolbar .toolbarbutton-combined-buttons-dropmarker > .toolbarbutton-icon {
+  /* same height as regular buttons, but narrower, and for a 12x12 image */
+  padding-inline: 2px;
+  padding-block: calc(var(--toolbarbutton-inner-padding) + (16px - 12px) / 2);
+  width: calc(2 * 2px + 12px);
+}
+
+@supports -moz-bool-pref("browser.proton.tabs.enabled") {
+#TabsToolbar .toolbarbutton-1 > .toolbarbutton-icon,
+#TabsToolbar .toolbarbutton-1 > .toolbarbutton-badge-stack {
+  min-height: var(--tab-min-height);
+  /* Increase the vertical padding to account for the taller button
+    and not stretch the icon. */
+  padding-block: calc((var(--tab-min-height) - 16px) / 2);
+}
+} /*** END proton ***/
 
 toolbar .toolbarbutton-1 > .toolbarbutton-text {
   padding-top: var(--toolbarbutton-vertical-text-padding);
@@ -171,21 +210,21 @@ toolbar[brighttext] .toolbaritem-combined-buttons > separator {
   opacity: .3;
 }
 
-#PersonalToolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:active):hover,
+#PersonalToolbar .toolbarbutton-1:not([disabled=true], [checked], [open], :active):hover,
 #tabbrowser-arrowscrollbox:not([scrolledtostart=true])::part(scrollbutton-up):hover,
 #tabbrowser-arrowscrollbox:not([scrolledtoend=true])::part(scrollbutton-down):hover,
-.findbar-button:not(:is([checked="true"],[disabled="true"])):hover,
-toolbarbutton.bookmark-item:not(.subviewbutton):hover:not([disabled="true"]):not([open]),
-toolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:active):hover > .toolbarbutton-icon,
-toolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:active):hover > .toolbarbutton-text,
-toolbar .toolbarbutton-1:not([disabled=true]):not([checked]):not([open]):not(:active):hover > .toolbarbutton-badge-stack {
+.findbar-button:not([checked="true"],[disabled="true"]):hover,
+toolbarbutton.bookmark-item:not(.subviewbutton, [disabled=true], [open]):hover,
+toolbar .toolbarbutton-1:not([disabled=true], [checked], [open], :active):hover > .toolbarbutton-icon,
+toolbar .toolbarbutton-1:not([disabled=true], [checked], [open], :active):hover > .toolbarbutton-text,
+toolbar .toolbarbutton-1:not([disabled=true], [checked], [open], :active):hover > .toolbarbutton-badge-stack {
   background-color: var(--toolbarbutton-hover-background);
   color: inherit;
 }
 
 #PersonalToolbar .toolbarbutton-1:not([disabled=true]):is([open],[checked],:hover:active),
 .findbar-button:not([disabled=true]):is([checked="true"],:hover:active),
-toolbarbutton.bookmark-item:not(.subviewbutton):hover:active:not([disabled="true"]),
+toolbarbutton.bookmark-item:hover:active:not(.subviewbutton, [disabled="true"]),
 toolbarbutton.bookmark-item[open="true"],
 toolbar .toolbarbutton-1:not([disabled=true]):is([open],[checked],:hover:active) > .toolbarbutton-icon,
 toolbar .toolbarbutton-1:not([disabled=true]):is([open],[checked],:hover:active) > .toolbarbutton-text,
@@ -289,7 +328,7 @@ toolbar .toolbarbutton-1:-moz-focusring {
   padding: 10px;
 }
 
-:root:not([uidensity=compact]) #back-button:not([disabled]):not([open]):hover > .toolbarbutton-icon {
+:root:not([uidensity=compact]) #back-button:not([disabled], [open]):hover > .toolbarbutton-icon {
   background-color: var(--backbutton-hover-background) !important;
   box-shadow: 0 1px 6px hsla(0,0%,0%,.1);
   border-color: hsla(240,5%,5%,.35);
@@ -318,7 +357,7 @@ toolbar .toolbarbutton-1:-moz-focusring {
 #personal-toolbar-empty-description,
 toolbarbutton.bookmark-item:not(.subviewbutton) {
   margin: 0 2px;
-  padding: 4px;
+  padding: var(--bookmark-block-padding) 4px;
 }
 
 toolbarbutton.bookmark-item:not(.subviewbutton) {
@@ -328,11 +367,14 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
 
 :root[uidensity=compact] toolbarbutton.bookmark-item:not(.subviewbutton) {
   margin-inline: 1px;
-  padding-block: 1px;
 }
 
-:root[uidensity=touch] toolbarbutton.bookmark-item:not(.subviewbutton) {
-  padding-block: 7px;
+/**
+ * Ensure that the description is always at least as big as a bookmarks item,
+ * where its icon is 16px (which may be more than inline text height);
+ */
+#personal-toolbar-empty-description {
+  min-height: calc(16px + 2 * var(--bookmark-block-padding));
 }
 
 #bookmarks-toolbar-placeholder {
@@ -393,7 +435,7 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
 }
 
 /* When adjacent to the bookmarks items, give the bookmarks items a leading separator. */
-#PersonalToolbar > #wrapper-import-button + #wrapper-personal-bookmarks,
+#PersonalToolbar > #wrapper-import-button + #wrapper-personal-bookmarks > #personal-bookmarks,
 #PersonalToolbar > #import-button + #personal-bookmarks,
 #PlacesToolbarItems > toolbarseparator::before {
   border-inline-start: 1px solid;
@@ -406,13 +448,22 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
 }
 
 @media (min-resolution: 2dppx) {
-  #PersonalToolbar > #wrapper-import-button + #wrapper-personal-bookmarks,
+  #PersonalToolbar > #wrapper-import-button + #wrapper-personal-bookmarks > #personal-bookmarks,
   #PersonalToolbar > #import-button + #personal-bookmarks,
   #PlacesToolbarItems > toolbarseparator::before {
     border-inline-start-width: 0.5px;
   }
 }
 
+/* Add spacing around the separator between the import button and the bookmark
+ * items, such that it matches spacing around bookmark separators. */
+#PersonalToolbar > #wrapper-import-button + #wrapper-personal-bookmarks > #personal-bookmarks,
+#PersonalToolbar > #import-button + #personal-bookmarks {
+  /* space before the separator (added to 2px margin on the import button) */
+  margin-inline-start: 2px;
+  /* space after (same as `padding-inline` for separators above) */
+  padding-inline-start: 4px;
+}
 
 /* The bookmarks toolbar is smaller than the other toolbars, so we
  * need to override the badge position to not be cut off. */

@@ -5,7 +5,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "DocAccessible.h"
+#include "DocAccessibleWrap.h"
 #include "nsObjCExceptions.h"
 #include "nsCocoaUtils.h"
 
@@ -30,7 +30,37 @@ using namespace mozilla;
 using namespace mozilla::a11y;
 
 AccessibleWrap::AccessibleWrap(nsIContent* aContent, DocAccessible* aDoc)
-    : Accessible(aContent, aDoc), mNativeObject(nil), mNativeInited(false) {}
+    : Accessible(aContent, aDoc), mNativeObject(nil), mNativeInited(false) {
+  if (aContent && aContent->IsElement() && aDoc) {
+    // Check if this accessible is a live region and queue it
+    // it for dispatching an event after it has been inserted.
+    DocAccessibleWrap* doc = static_cast<DocAccessibleWrap*>(aDoc);
+    static const dom::Element::AttrValuesArray sLiveRegionValues[] = {
+        nsGkAtoms::OFF, nsGkAtoms::polite, nsGkAtoms::assertive, nullptr};
+    int32_t attrValue = aContent->AsElement()->FindAttrValueIn(
+        kNameSpaceID_None, nsGkAtoms::aria_live, sLiveRegionValues,
+        eIgnoreCase);
+    if (attrValue == 0) {
+      // aria-live is "off", do nothing.
+    } else if (attrValue > 0) {
+      // aria-live attribute is polite or assertive. It's live!
+      doc->QueueNewLiveRegion(this);
+    } else if (const nsRoleMapEntry* roleMap =
+                   aria::GetRoleMap(aContent->AsElement())) {
+      // aria role defines it as a live region. It's live!
+      if (roleMap->liveAttRule == ePoliteLiveAttr ||
+          roleMap->liveAttRule == eAssertiveLiveAttr) {
+        doc->QueueNewLiveRegion(this);
+      }
+    } else if (nsStaticAtom* value = GetAccService()->MarkupAttribute(
+                   aContent, nsGkAtoms::live)) {
+      // HTML element defines it as a live region. It's live!
+      if (value == nsGkAtoms::polite || value == nsGkAtoms::assertive) {
+        doc->QueueNewLiveRegion(this);
+      }
+    }
+  }
+}
 
 AccessibleWrap::~AccessibleWrap() {}
 
@@ -41,17 +71,10 @@ mozAccessible* AccessibleWrap::GetNativeObject() {
     // We don't creat OSX accessibles for xul tooltips, defunct accessibles,
     // <br> (whitespace) elements, or pruned children.
     //
-    // We also don't create a native object if we're child of a "flat"
-    // accessible; for example, on OS X buttons shouldn't have any children,
-    // because that makes the OS confused.
-    //
     // To maintain a scripting environment where the XPCOM accessible hierarchy
     // look the same on all platforms, we still let the C++ objects be created
     // though.
-    Accessible* parent = Parent();
-    bool mustBePruned = parent && nsAccUtils::MustPrune(parent);
-    if (!IsXULTooltip() && !IsDefunct() && !mustBePruned &&
-        Role() != roles::WHITESPACE) {
+    if (!IsXULTooltip() && !IsDefunct() && Role() != roles::WHITESPACE) {
       mNativeObject = [[GetNativeType() alloc] initWithAccessible:this];
     }
   }
@@ -120,11 +143,17 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
   nsresult rv = Accessible::HandleAccEvent(aEvent);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  uint32_t eventType = aEvent->GetEventType();
+
+  if (eventType == nsIAccessibleEvent::EVENT_SHOW) {
+    DocAccessibleWrap* doc = static_cast<DocAccessibleWrap*>(Document());
+    doc->ProcessNewLiveRegions();
+  }
+
   if (IPCAccessibilityActive()) {
     return NS_OK;
   }
 
-  uint32_t eventType = aEvent->GetEventType();
   Accessible* eventTarget = nullptr;
 
   switch (eventType) {
@@ -187,18 +216,26 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
 
     case nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED: {
       AccCaretMoveEvent* event = downcast_accEvent(aEvent);
+      int32_t caretOffset = event->GetCaretOffset();
+      MOXTextMarkerDelegate* delegate =
+          [MOXTextMarkerDelegate getOrCreateForDoc:aEvent->Document()];
+      [delegate setCaretOffset:eventTarget at:caretOffset];
       if (event->IsSelectionCollapsed()) {
         // If the selection is collapsed, invalidate our text selection cache.
-        MOXTextMarkerDelegate* delegate =
-            [MOXTextMarkerDelegate getOrCreateForDoc:aEvent->Document()];
-        int32_t caretOffset = event->GetCaretOffset();
         [delegate setSelectionFrom:eventTarget
                                 at:caretOffset
                                 to:eventTarget
                                 at:caretOffset];
       }
 
-      [nativeAcc handleAccessibleEvent:eventType];
+      if (mozTextAccessible* textAcc = static_cast<mozTextAccessible*>(
+              [nativeAcc moxEditableAncestor])) {
+        [textAcc
+            handleAccessibleEvent:nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED];
+      } else {
+        [nativeAcc
+            handleAccessibleEvent:nsIAccessibleEvent::EVENT_TEXT_CARET_MOVED];
+      }
       break;
     }
 
@@ -222,6 +259,9 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
     case nsIAccessibleEvent::EVENT_SELECTION:
     case nsIAccessibleEvent::EVENT_SELECTION_ADD:
     case nsIAccessibleEvent::EVENT_SELECTION_REMOVE:
+    case nsIAccessibleEvent::EVENT_LIVE_REGION_ADDED:
+    case nsIAccessibleEvent::EVENT_LIVE_REGION_REMOVED:
+    case nsIAccessibleEvent::EVENT_NAME_CHANGE:
       [nativeAcc handleAccessibleEvent:eventType];
       break;
 
@@ -232,6 +272,16 @@ nsresult AccessibleWrap::HandleAccEvent(AccEvent* aEvent) {
   return NS_OK;
 
   NS_OBJC_END_TRY_ABORT_BLOCK_NSRESULT;
+}
+
+bool AccessibleWrap::ApplyPostFilter(const EWhichPostFilter& aSearchKey,
+                                     const nsString& aSearchText) {
+  // We currently only support the eContainsText post filter.
+  MOZ_ASSERT(aSearchKey == EWhichPostFilter::eContainsText,
+             "Only search text supported");
+  nsAutoString name;
+  Name(name);
+  return name.Find(aSearchText, true) != kNotFound;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -270,6 +320,7 @@ Class a11y::GetTypeFromRole(roles::Role aRole) {
     case roles::ENTRY:
     case roles::CAPTION:
     case roles::ACCEL_LABEL:
+    case roles::EDITCOMBOBOX:
     case roles::PASSWORD_TEXT:
       // normal textfield (static or editable)
       return [mozTextAccessible class];
@@ -292,6 +343,10 @@ Class a11y::GetTypeFromRole(roles::Role aRole) {
 
     case roles::OPTION: {
       return [mozOptionAccessible class];
+    }
+
+    case roles::RICH_OPTION: {
+      return [mozSelectableChildAccessible class];
     }
 
     case roles::COMBOBOX_LIST:

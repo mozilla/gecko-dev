@@ -7,6 +7,7 @@
 #include "nsFrameLoaderOwner.h"
 #include "nsFrameLoader.h"
 #include "nsFocusManager.h"
+#include "nsNetUtil.h"
 #include "nsSubDocumentFrame.h"
 #include "nsQueryObject.h"
 #include "mozilla/AsyncEventDispatcher.h"
@@ -151,14 +152,6 @@ void nsFrameLoaderOwner::ChangeRemotenessCommon(
     }
   }
 
-  // If we're switching process for an in progress load, then suppress
-  // progress events from the new BrowserParent to prevent duplicate
-  // events for the new initial about:blank and the new 'start' event.
-  if (aSwitchingInProgressLoad && mFrameLoader->GetBrowserParent()) {
-    mFrameLoader->GetBrowserParent()
-        ->SuspendProgressEventsUntilAfterNextLoadStarts();
-  }
-
   // Now that we've got a new FrameLoader, we need to reset our
   // nsSubDocumentFrame to use the new FrameLoader.
   if (nsSubDocumentFrame* ourFrame = do_QueryFrame(owner->GetPrimaryFrame())) {
@@ -169,7 +162,8 @@ void nsFrameLoaderOwner::ChangeRemotenessCommon(
   // we need to update that state for the new BrowserParent too.
   if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
     if (fm->GetFocusedElement() == owner) {
-      fm->ActivateRemoteFrameIfNeeded(*owner);
+      fm->ActivateRemoteFrameIfNeeded(*owner,
+                                      nsFocusManager::GenerateFocusActionId());
     }
   }
 

@@ -14,6 +14,7 @@
 #include "nsWaylandDisplay.h"
 #include "nsWindow.h"
 #include "WindowSurface.h"
+#include "mozilla/Mutex.h"
 
 #define BACK_BUFFER_NUM 3
 
@@ -54,7 +55,6 @@ class WindowBackBuffer {
   void Attach(wl_surface* aSurface);
   void Detach(wl_buffer* aBuffer);
   bool IsAttached() { return mAttached; }
-  void SetAttached() { mAttached = true; };
 
   void Clear();
   bool Create(int aWidth, int aHeight);
@@ -74,16 +74,25 @@ class WindowBackBuffer {
   }
   static gfx::SurfaceFormat GetSurfaceFormat() { return mFormat; }
 
+#ifdef MOZ_LOGGING
+  void DumpToFile(const char* aHint);
+#endif
+
   RefPtr<nsWaylandDisplay> GetWaylandDisplay();
 
  private:
-  void ReleaseShmSurface();
+  void ReleaseWLBuffer();
 
   static gfx::SurfaceFormat mFormat;
   WindowSurfaceWayland* mWindowSurfaceWayland;
 
   // WaylandShmPool provides actual shared memory we draw into
   WaylandShmPool mShmPool;
+
+#ifdef MOZ_LOGGING
+  static int mDumpSerial;
+  static char* mDumpDir;
+#endif
 
   // wl_buffer is a wayland object that encapsulates the shared memory
   // and passes it to wayland compositor by wl_surface object.
@@ -96,22 +105,16 @@ class WindowBackBuffer {
 
 class WindowImageSurface {
  public:
-  static void Draw(gfx::SourceSurface* aSurface, gfx::DrawTarget* aDest,
-                   const LayoutDeviceIntRegion& aRegion);
-
-  void Draw(gfx::DrawTarget* aDest,
-            LayoutDeviceIntRegion& aWaylandBufferDamage);
-
-  WindowImageSurface(gfxImageSurface* aImageSurface,
+  void DrawToTarget(gfx::DrawTarget* aDest,
+                    LayoutDeviceIntRegion& aWaylandBufferDamage);
+  WindowImageSurface(gfx::DataSourceSurface* aImageSurface,
                      const LayoutDeviceIntRegion& aUpdateRegion);
-
   bool OverlapsSurface(class WindowImageSurface& aBottomSurface);
 
   const LayoutDeviceIntRegion* GetUpdateRegion() { return &mUpdateRegion; };
 
  private:
-  RefPtr<gfx::SourceSurface> mSurface;
-  RefPtr<gfxImageSurface> mImageSurface;
+  RefPtr<gfx::DataSourceSurface> mImageSurface;
   const LayoutDeviceIntRegion mUpdateRegion;
 };
 
@@ -131,7 +134,7 @@ class WindowSurfaceWayland : public WindowSurface {
   // If we fail (wayland compositor is busy,
   // wl_surface is not created yet) we queue the painting
   // and we send it to wayland compositor in FrameCallbackHandler()/
-  // CommitWaylandBuffer().
+  // FlushPendingCommits().
   already_AddRefed<gfx::DrawTarget> Lock(
       const LayoutDeviceIntRegion& aRegion) override;
   void Commit(const LayoutDeviceIntRegion& aInvalidRegion) final;
@@ -145,7 +148,7 @@ class WindowSurfaceWayland : public WindowSurface {
   // called from other routines but can be used to explicitly flush
   // all drawings as we do when wl_buffer is released
   // (see WindowBackBufferShm::Detach() for instance).
-  void CommitWaylandBuffer();
+  void FlushPendingCommits();
 
   RefPtr<nsWaylandDisplay> GetWaylandDisplay() { return mWaylandDisplay; };
 
@@ -163,8 +166,7 @@ class WindowSurfaceWayland : public WindowSurface {
   } RenderingCacheMode;
 
  private:
-  WindowBackBuffer* GetWaylandBufferWithSwitch();
-  WindowBackBuffer* GetWaylandBufferRecent();
+  WindowBackBuffer* GetWaylandBuffer();
   WindowBackBuffer* SetNewWaylandBuffer();
   WindowBackBuffer* CreateWaylandBuffer(int aWidth, int aHeight);
   WindowBackBuffer* WaylandBufferFindAvailable(int aWidth, int aHeight);
@@ -180,6 +182,8 @@ class WindowSurfaceWayland : public WindowSurface {
 
   void DrawDelayedImageCommits(gfx::DrawTarget* aDrawTarget,
                                LayoutDeviceIntRegion& aWaylandBufferDamage);
+  // Return true if we need to sync Wayland events after this call.
+  bool FlushPendingCommitsLocked();
 
   // TODO: Do we need to hold a reference to nsWindow object?
   nsWindow* mWindow;
@@ -221,7 +225,7 @@ class WindowSurfaceWayland : public WindowSurface {
   // holds all cached drawings.
   // mDelayedImageCommits can be drawn by FrameCallbackHandler()
   // or when WaylandBuffer is detached.
-  RefPtr<gfxImageSurface> mImageSurface;
+  RefPtr<gfx::DataSourceSurface> mImageSurface;
   AutoTArray<WindowImageSurface, 30> mDelayedImageCommits;
 
   int64_t mLastCommitTime;
@@ -244,7 +248,7 @@ class WindowSurfaceWayland : public WindowSurface {
   // is rendering into it (i.e. between WindowSurfaceWayland::Lock() /
   // WindowSurfaceWayland::Commit()).
   // Thus we use mBufferCommitAllowed to disable commit by
-  // CommitWaylandBuffer().
+  // FlushPendingCommits().
   bool mBufferCommitAllowed;
 
   // We need to clear WaylandBuffer when entire transparent window is repainted.
@@ -255,7 +259,8 @@ class WindowSurfaceWayland : public WindowSurface {
   // Avoid any rendering artifacts for significant performance penality.
   bool mSmoothRendering;
 
-  bool mIsMainThread;
+  gint mSurfaceReadyTimerID;
+  mozilla::Mutex mSurfaceLock;
 };
 
 }  // namespace widget

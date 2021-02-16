@@ -5,8 +5,9 @@
 # some parts of this originally taken from /testing/talos/talos/output.py
 
 """output raptor test results"""
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, division, print_function
 
+import six
 import filters
 
 import json
@@ -18,10 +19,9 @@ from logger.logger import RaptorLogger
 LOG = RaptorLogger(component="perftest-output")
 
 
+@six.add_metaclass(ABCMeta)
 class PerftestOutput(object):
     """Abstract base class to handle output of perftest results"""
-
-    __metaclass__ = ABCMeta
 
     def __init__(self, results, supporting_data, subtest_alert_on):
         """
@@ -334,6 +334,7 @@ class PerftestOutput(object):
                 )
 
             results = results[9::10]
+            # pylint --py3k W1619
             score = 60 * 1000 / filters.geometric_mean(results) / correctionFactor
             return score
 
@@ -379,6 +380,7 @@ class PerftestOutput(object):
                     "StyleBench requires 380 entries, found: %s instead" % len(results)
                 )
             results = results[75::76]
+            # pylint --py3k W1619
             return 60 * 1000 / filters.geometric_mean(results) / correctionFactor
 
         if testname.startswith(("raptor-kraken", "raptor-sunspider")):
@@ -389,6 +391,7 @@ class PerftestOutput(object):
             return filters.mean(_filter(vals, "Geometric Mean"))
 
         if testname.startswith("raptor-assorted-dom"):
+            # pylint: disable=W1633
             return round(filters.geometric_mean(_filter(vals)), 2)
 
         if testname.startswith("raptor-wasm-misc"):
@@ -400,6 +403,7 @@ class PerftestOutput(object):
             return filters.mean(_filter(vals, "first-interactive"))
 
         if testname.startswith("raptor-youtube-playback"):
+            # pylint: disable=W1633
             return round(filters.mean(_filter(vals)), 2)
 
         if testname.startswith("supporting_data"):
@@ -429,8 +433,10 @@ class PerftestOutput(object):
             raise NotImplementedError("Unit %s not suported" % unit)
 
         if len(vals) > 1:
+            # pylint: disable=W1633
             return round(filters.geometric_mean(_filter(vals)), 2)
 
+        # pylint: disable=W1633
         return round(filters.mean(_filter(vals)), 2)
 
     def parseSpeedometerOutput(self, test):
@@ -456,7 +462,7 @@ class PerftestOutput(object):
         for page_cycle in data:
             for sub, replicates in page_cycle[0].items():
                 # for each pagecycle, build a list of subtests and append all related replicates
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -465,11 +471,12 @@ class PerftestOutput(object):
                         "name": sub,
                         "replicates": [],
                     }
+                # pylint: disable=W1633
                 _subtests[sub]["replicates"].extend([round(x, 3) for x in replicates])
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.median(_subtests[name]["replicates"])
@@ -563,7 +570,7 @@ class PerftestOutput(object):
         for page_cycle in data:
             for sub, replicates in page_cycle[0].items():
                 # for each pagecycle, build a list of subtests and append all related replicates
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -572,14 +579,18 @@ class PerftestOutput(object):
                         "name": sub,
                         "replicates": [],
                     }
-                _subtests[sub]["replicates"].extend([round(x, 3) for x in replicates])
+                # pylint: disable=W1633
+                _subtests[sub]["replicates"].extend(
+                    [float(round(x, 3)) for x in replicates]
+                )
 
         vals = []
         for name, test in _subtests.items():
             test["value"] = filters.mean(test["replicates"])
             vals.append([test["value"], name])
 
-        return _subtests.values(), sorted(vals, reverse=True)
+        # pylint W1656
+        return list(_subtests.values()), sorted(vals, reverse=True)
 
     def parseYoutubePlaybackPerformanceOutput(self, test):
         """Parse the metrics for the Youtube playback performance test.
@@ -612,7 +623,7 @@ class PerftestOutput(object):
             lower_is_better=test["subtest_lower_is_better"],
         ):
             # build a list of subtests and append all related replicates
-            if name not in _subtests.keys():
+            if name not in _subtests:
                 # subtest not added yet, first pagecycle, so add new one
                 _subtests[name] = {
                     "name": name,
@@ -631,7 +642,7 @@ class PerftestOutput(object):
 
         failed_tests = []
         for pagecycle in data:
-            for _sub, _value in pagecycle[0].iteritems():
+            for _sub, _value in six.iteritems(pagecycle[0]):
                 if _value["decodedFrames"] == 0:
                     failed_tests.append(
                         "%s test Failed. decodedFrames %s droppedFrames %s."
@@ -674,11 +685,12 @@ class PerftestOutput(object):
             )
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
+            # pylint: disable=W1633
             _subtests[name]["value"] = round(
-                filters.median(_subtests[name]["replicates"]), 2
+                float(filters.median(_subtests[name]["replicates"])), 2
             )
             subtests.append(_subtests[name])
             # only include dropped_frames values, without the %_dropped_frames values
@@ -711,7 +723,7 @@ class PerftestOutput(object):
             for item in data:
                 # for each pagecycle, build a list of subtests and append all related replicates
                 sub = item["benchmark"]
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -724,7 +736,7 @@ class PerftestOutput(object):
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.median(_subtests[name]["replicates"])
@@ -1039,7 +1051,7 @@ class RaptorOutput(PerftestOutput):
         for page_cycle in data:
             for sub, replicates in page_cycle[0].items():
                 # for each pagecycle, build a list of subtests and append all related replicates
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -1048,11 +1060,14 @@ class RaptorOutput(PerftestOutput):
                         "name": sub,
                         "replicates": [],
                     }
-                _subtests[sub]["replicates"].extend([round(x, 3) for x in replicates])
+                # pylint: disable=W1633
+                _subtests[sub]["replicates"].extend(
+                    [float(round(x, 3)) for x in replicates]
+                )
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.mean(_subtests[name]["replicates"])
@@ -1078,7 +1093,7 @@ class RaptorOutput(PerftestOutput):
             for item in page_cycle[0]:
                 # for each pagecycle, build a list of subtests and append all related replicates
                 sub = item["name"]
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -1091,7 +1106,7 @@ class RaptorOutput(PerftestOutput):
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.median(_subtests[name]["replicates"])
@@ -1119,7 +1134,7 @@ class RaptorOutput(PerftestOutput):
             for item in page_cycle[0]:
                 # for each pagecycle, build a list of subtests and append all related replicates
                 sub = item["name"]
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -1132,7 +1147,7 @@ class RaptorOutput(PerftestOutput):
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.median(_subtests[name]["replicates"])
@@ -1168,7 +1183,7 @@ class RaptorOutput(PerftestOutput):
                 # for each pagecycle, build a list of subtests and append all related replicates
                 sub = item["name"]
                 replicates = [item["duration"]]
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -1177,11 +1192,14 @@ class RaptorOutput(PerftestOutput):
                         "name": sub,
                         "replicates": [],
                     }
-                _subtests[sub]["replicates"].extend([round(x, 3) for x in replicates])
+                # pylint: disable=W1633
+                _subtests[sub]["replicates"].extend(
+                    [float(round(x, 3)) for x in replicates]
+                )
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.median(_subtests[name]["replicates"])
@@ -1221,9 +1239,10 @@ class RaptorOutput(PerftestOutput):
             page_cycle_results = page_cycle[0]
 
             # TODO: this assumes a single suite is run
-            suite = page_cycle_results.keys()[0]
+            suite = list(page_cycle_results)[0]
             for sub in page_cycle_results[suite].keys():
                 try:
+                    # pylint: disable=W1633
                     replicate = round(
                         float(page_cycle_results[suite][sub]["frameLength"]["average"]),
                         3,
@@ -1233,7 +1252,7 @@ class RaptorOutput(PerftestOutput):
                         "[{}][{}] : {} - {}".format(suite, sub, e.__class__.__name__, e)
                     )
 
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -1246,7 +1265,7 @@ class RaptorOutput(PerftestOutput):
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.median(_subtests[name]["replicates"])
@@ -1261,7 +1280,7 @@ class RaptorOutput(PerftestOutput):
         for page_cycle in data:
             for sub, replicates in page_cycle[0].items():
                 # for each pagecycle, build a list of subtests and append all related replicates
-                if sub not in _subtests.keys():
+                if sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[sub] = {
                         "unit": test["subtest_unit"],
@@ -1270,12 +1289,15 @@ class RaptorOutput(PerftestOutput):
                         "name": sub,
                         "replicates": [],
                     }
-                _subtests[sub]["replicates"].extend([round(x, 3) for x in replicates])
+                # pylint: disable=W1633
+                _subtests[sub]["replicates"].extend(
+                    [float(round(x, 3)) for x in replicates]
+                )
 
         subtests = []
         vals = []
 
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
             _subtests[name]["value"] = filters.mean(_subtests[name]["replicates"])
@@ -1304,7 +1326,7 @@ class RaptorOutput(PerftestOutput):
         for pagecycle in data:
             for _sub, _value in pagecycle[0].items():
                 # build a list of subtests and append all related replicates
-                if _sub not in _subtests.keys():
+                if _sub not in _subtests:
                     # subtest not added yet, first pagecycle, so add new one
                     _subtests[_sub] = {
                         "unit": test["subtest_unit"],
@@ -1317,11 +1339,12 @@ class RaptorOutput(PerftestOutput):
 
         vals = []
         subtests = []
-        names = _subtests.keys()
+        names = list(_subtests)
         names.sort(reverse=True)
         for name in names:
-            _subtests[name]["value"] = round(
-                filters.median(_subtests[name]["replicates"]), 2
+            # pylint: disable=W1633
+            _subtests[name]["value"] = float(
+                round(filters.median(_subtests[name]["replicates"]), 2)
             )
             subtests.append(_subtests[name])
             # only use the 'total's to compute the overall result
@@ -1529,6 +1552,7 @@ class BrowsertimeOutput(PerftestOutput):
                     subtest["replicates"].extend(replicates)
 
             elif "benchmark" in test["type"]:
+                subtests = None
                 if "speedometer" in test["name"]:
                     subtests, vals = self.parseSpeedometerOutput(test)
                 if "ares6" in test["name"]:
@@ -1539,6 +1563,9 @@ class BrowsertimeOutput(PerftestOutput):
                     subtests, vals = self.parseYoutubePlaybackPerformanceOutput(test)
                 if "unity-webgl" in test["name"]:
                     subtests, vals = self.parseUnityWebGLOutput(test)
+
+                if subtests is None:
+                    raise Exception("No benchmark metrics found in browsertime results")
 
                 suite["subtests"] = subtests
                 # summarize results for both benchmark type tests

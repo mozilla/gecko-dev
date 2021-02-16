@@ -68,96 +68,6 @@ void CodeGeneratorMIPS::splitTagForTest(const ValueOperand& value,
   MOZ_ASSERT(value.typeReg() == tag);
 }
 
-void CodeGenerator::visitCompareB(LCompareB* lir) {
-  MCompare* mir = lir->mir();
-
-  const ValueOperand lhs = ToValue(lir, LCompareB::Lhs);
-  const LAllocation* rhs = lir->rhs();
-  const Register output = ToRegister(lir->output());
-
-  MOZ_ASSERT(mir->jsop() == JSOp::StrictEq || mir->jsop() == JSOp::StrictNe);
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-
-  Label notBoolean, done;
-  masm.branchTestBoolean(Assembler::NotEqual, lhs, &notBoolean);
-  {
-    if (rhs->isConstant()) {
-      masm.cmp32Set(cond, lhs.payloadReg(),
-                    Imm32(rhs->toConstant()->toBoolean()), output);
-    } else {
-      masm.cmp32Set(cond, lhs.payloadReg(), ToRegister(rhs), output);
-    }
-    masm.jump(&done);
-  }
-
-  masm.bind(&notBoolean);
-  { masm.move32(Imm32(mir->jsop() == JSOp::StrictNe), output); }
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitCompareBAndBranch(LCompareBAndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  const ValueOperand lhs = ToValue(lir, LCompareBAndBranch::Lhs);
-  const LAllocation* rhs = lir->rhs();
-
-  MOZ_ASSERT(mir->jsop() == JSOp::StrictEq || mir->jsop() == JSOp::StrictNe);
-
-  MBasicBlock* mirNotBoolean =
-      (mir->jsop() == JSOp::StrictEq) ? lir->ifFalse() : lir->ifTrue();
-  branchToBlock(lhs.typeReg(), ImmType(JSVAL_TYPE_BOOLEAN), mirNotBoolean,
-                Assembler::NotEqual);
-
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  if (rhs->isConstant()) {
-    emitBranch(lhs.payloadReg(), Imm32(rhs->toConstant()->toBoolean()), cond,
-               lir->ifTrue(), lir->ifFalse());
-  } else {
-    emitBranch(lhs.payloadReg(), ToRegister(rhs), cond, lir->ifTrue(),
-               lir->ifFalse());
-  }
-}
-
-void CodeGenerator::visitCompareBitwise(LCompareBitwise* lir) {
-  MCompare* mir = lir->mir();
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  const ValueOperand lhs = ToValue(lir, LCompareBitwise::LhsInput);
-  const ValueOperand rhs = ToValue(lir, LCompareBitwise::RhsInput);
-  const Register output = ToRegister(lir->output());
-
-  MOZ_ASSERT(IsEqualityOp(mir->jsop()));
-
-  Label notEqual, done;
-  masm.ma_b(lhs.typeReg(), rhs.typeReg(), &notEqual, Assembler::NotEqual,
-            ShortJump);
-  {
-    masm.cmp32Set(cond, lhs.payloadReg(), rhs.payloadReg(), output);
-    masm.ma_b(&done, ShortJump);
-  }
-  masm.bind(&notEqual);
-  { masm.move32(Imm32(cond == Assembler::NotEqual), output); }
-
-  masm.bind(&done);
-}
-
-void CodeGenerator::visitCompareBitwiseAndBranch(
-    LCompareBitwiseAndBranch* lir) {
-  MCompare* mir = lir->cmpMir();
-  Assembler::Condition cond = JSOpToCondition(mir->compareType(), mir->jsop());
-  const ValueOperand lhs = ToValue(lir, LCompareBitwiseAndBranch::LhsInput);
-  const ValueOperand rhs = ToValue(lir, LCompareBitwiseAndBranch::RhsInput);
-
-  MOZ_ASSERT(mir->jsop() == JSOp::Eq || mir->jsop() == JSOp::StrictEq ||
-             mir->jsop() == JSOp::Ne || mir->jsop() == JSOp::StrictNe);
-
-  MBasicBlock* notEqual =
-      (cond == Assembler::Equal) ? lir->ifFalse() : lir->ifTrue();
-
-  branchToBlock(lhs.typeReg(), rhs.typeReg(), notEqual, Assembler::NotEqual);
-  emitBranch(lhs.payloadReg(), rhs.payloadReg(), cond, lir->ifTrue(),
-             lir->ifFalse());
-}
-
 void CodeGenerator::visitCompareI64(LCompareI64* lir) {
   MCompare* mir = lir->mir();
   MOZ_ASSERT(mir->compareType() == MCompare::Compare_Int64 ||
@@ -286,6 +196,40 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   } else {
     masm.callWithABI(lir->bytecodeOffset(), wasm::SymbolicAddress::UDivI64);
   }
+}
+
+void CodeGeneratorMIPS::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
+                                      Register divisor, Register output,
+                                      Label* fail) {
+  // Callers handle division by zero and integer overflow.
+
+#ifdef MIPSR6
+  masm.as_div(/* result= */ dividend, dividend, divisor);
+#else
+  masm.as_div(dividend, divisor);
+  masm.as_mflo(dividend);
+#endif
+
+  // Create and return the result.
+  masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+  masm.initializeBigInt(output, dividend);
+}
+
+void CodeGeneratorMIPS::emitBigIntMod(LBigIntMod* ins, Register dividend,
+                                      Register divisor, Register output,
+                                      Label* fail) {
+  // Callers handle division by zero and integer overflow.
+
+#ifdef MIPSR6
+  masm.as_mod(/* result= */ dividend, dividend, divisor);
+#else
+  masm.as_div(dividend, divisor);
+  masm.as_mfhi(dividend);
+#endif
+
+  // Create and return the result.
+  masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+  masm.initializeBigInt(output, dividend);
 }
 
 template <typename T>

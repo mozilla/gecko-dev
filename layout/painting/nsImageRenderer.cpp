@@ -50,8 +50,8 @@ nsSize CSSSizeOrRatio::ComputeConcreteSize() const {
 nsImageRenderer::nsImageRenderer(nsIFrame* aForFrame, const StyleImage* aImage,
                                  uint32_t aFlags)
     : mForFrame(aForFrame),
-      mImage(aImage),
-      mType(aImage->tag),
+      mImage(&aImage->FinalImage()),
+      mType(mImage->tag),
       mImageContainer(nullptr),
       mGradientData(nullptr),
       mPaintServerFrame(nullptr),
@@ -67,112 +67,70 @@ nsImageRenderer::~nsImageRenderer() {
   recordreplay::UnregisterThing(this);
 }
 
-static bool ShouldTreatAsCompleteDueToSyncDecode(const StyleImage* aImage,
-                                                 uint32_t aFlags) {
-  if (!(aFlags & nsImageRenderer::FLAG_SYNC_DECODE_IMAGES)) {
-    return false;
-  }
-
-  imgRequestProxy* req = aImage->GetImageRequest();
-  if (!req) {
-    return false;
-  }
-
-  uint32_t status = 0;
-  if (NS_FAILED(req->GetImageStatus(&status))) {
-    return false;
-  }
-
-  if (status & imgIRequest::STATUS_ERROR) {
-    // The image is "complete" since it's a corrupt image. If we created an
-    // imgIContainer at all, return true.
-    nsCOMPtr<imgIContainer> image;
-    req->GetImage(getter_AddRefs(image));
-    return bool(image);
-  }
-
-  if (!(status & imgIRequest::STATUS_LOAD_COMPLETE)) {
-    // We must have loaded all of the image's data and the size must be
-    // available, or else sync decoding won't be able to decode the image.
-    return false;
-  }
-
-  return true;
-}
-
-static const char* GetStyleImageType(const StyleImage* aImage) {
-  if (aImage->IsNone()) {
-    return "None";
-  }
-  if (aImage->IsUrl()) {
-    return "Url";
-  }
-  if (aImage->IsGradient()) {
-    return "Gradient";
-  }
-  if (aImage->IsRect()) {
-    return "Rect";
-  }
-  if (aImage->IsElement()) {
-    return "Element";
-  }
-  return "Unknown";
-}
-
 bool nsImageRenderer::PrepareImage() {
-  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage %d %s",
-                                   recordreplay::ThingIndex(this), GetStyleImageType(mImage));
-
-  if (mImage->IsNone() ||
-      (mImage->IsImageRequestType() && !mImage->GetImageRequest())) {
-    // mImage->GetImageRequest() could be null here if the StyleImage refused
-    // to load a same-document URL, or the url was invalid, for example.
+  if (mImage->IsNone()) {
     mPrepareResult = ImgDrawResult::BAD_IMAGE;
     return false;
   }
 
-  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1");
+  const bool isImageRequest = mImage->IsImageRequestType();
+  MOZ_ASSERT_IF(!isImageRequest, !mImage->GetImageRequest());
+  imgRequestProxy* request = nullptr;
+  if (isImageRequest) {
+    request = mImage->GetImageRequest();
+    if (!request) {
+      // request could be null here if the StyleImage refused
+      // to load a same-document URL, or the url was invalid, for example.
+      mPrepareResult = ImgDrawResult::BAD_IMAGE;
+      return false;
+    }
+  }
 
   if (!mImage->IsComplete()) {
-    recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.1");
+    MOZ_DIAGNOSTIC_ASSERT(isImageRequest);
 
     // Make sure the image is actually decoding.
-    bool frameComplete = mImage->StartDecoding();
+    bool frameComplete =
+        request->StartDecodingWithResult(imgIContainer::FLAG_ASYNC_NOTIFY);
 
     recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.2 %d %d %d",
                                      frameComplete, mFlags, mImage->IsImageRequestType());
 
     // Boost the loading priority since we know we want to draw the image.
-    if ((mFlags & nsImageRenderer::FLAG_PAINTING_TO_WINDOW) &&
-        mImage->IsImageRequestType()) {
-      MOZ_ASSERT(mImage->GetImageRequest(),
-                 "must have image data, since we checked above");
-      mImage->GetImageRequest()->BoostPriority(imgIRequest::CATEGORY_DISPLAY);
+    if (mFlags & nsImageRenderer::FLAG_PAINTING_TO_WINDOW) {
+      request->BoostPriority(imgIRequest::CATEGORY_DISPLAY);
     }
 
     recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.3");
 
     // Check again to see if we finished.
     // We cannot prepare the image for rendering if it is not fully loaded.
-    // Special case: If we requested a sync decode and the image has loaded,
-    // push on through because the Draw() will do a sync decode then.
-    if (!(frameComplete || mImage->IsComplete()) &&
-        !ShouldTreatAsCompleteDueToSyncDecode(mImage, mFlags)) {
-      mPrepareResult = ImgDrawResult::NOT_READY;
-      return false;
+    if (!frameComplete && !mImage->IsComplete()) {
+      uint32_t imageStatus = 0;
+      request->GetImageStatus(&imageStatus);
+      if (imageStatus & imgIRequest::STATUS_ERROR) {
+        mPrepareResult = ImgDrawResult::BAD_IMAGE;
+        return false;
+      }
+
+      // Special case: If not errored, and we requested a sync decode, and the
+      // image has loaded, push on through because the Draw() will do a sync
+      // decode then.
+      const bool syncDecodeWillComplete =
+          (mFlags & FLAG_SYNC_DECODE_IMAGES) &&
+          (imageStatus & imgIRequest::STATUS_LOAD_COMPLETE);
+      if (!syncDecodeWillComplete) {
+        mPrepareResult = ImgDrawResult::NOT_READY;
+        return false;
+      }
     }
 
     recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #1.4");
   }
 
-  recordreplay::RecordReplayAssert("nsImageRenderer::PrepareImage #2");
-
-  if (mImage->IsImageRequestType()) {
-    MOZ_ASSERT(mImage->GetImageRequest(),
-               "must have image data, since we checked above");
+  if (isImageRequest) {
     nsCOMPtr<imgIContainer> srcImage;
-    DebugOnly<nsresult> rv =
-        mImage->GetImageRequest()->GetImage(getter_AddRefs(srcImage));
+    DebugOnly<nsresult> rv = request->GetImage(getter_AddRefs(srcImage));
     MOZ_ASSERT(NS_SUCCEEDED(rv) && srcImage,
                "If GetImage() is failing, mImage->IsComplete() "
                "should have returned false");
@@ -308,11 +266,13 @@ CSSSizeOrRatio nsImageRenderer::ComputeIntrinsicSize() {
       }
       break;
     }
+    case StyleImage::Tag::ImageSet:
+      MOZ_FALLTHROUGH_ASSERT("image-set should be resolved already");
+    // Bug 546052 cross-fade not yet implemented.
+    case StyleImage::Tag::CrossFade:
     // Per <http://dev.w3.org/csswg/css3-images/#gradients>, gradients have no
     // intrinsic dimensions.
     case StyleImage::Tag::Gradient:
-    // Bug 546052 cross-fade not yet implemented.
-    case StyleImage::Tag::CrossFade:
     case StyleImage::Tag::None:
       break;
   }
@@ -562,6 +522,8 @@ ImgDrawResult nsImageRenderer::Draw(nsPresContext* aPresContext,
           aOpacity);
       break;
     }
+    case StyleImage::Tag::ImageSet:
+      MOZ_FALLTHROUGH_ASSERT("image-set should be resolved already");
     // See bug 546052 - cross-fade implementation still being worked
     // on.
     case StyleImage::Tag::CrossFade:

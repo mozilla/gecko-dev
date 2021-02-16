@@ -9,7 +9,6 @@
 
 #include "mozilla/PermissionDelegateHandler.h"
 #include "mozilla/Span.h"
-#include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/MaybeDiscarded.h"
 #include "mozilla/dom/SyncedContext.h"
 #include "mozilla/dom/UserActivation.h"
@@ -25,8 +24,10 @@ class LogModule;
 
 namespace dom {
 
+class WindowGlobalChild;
 class WindowGlobalParent;
 class WindowGlobalInit;
+class BrowsingContext;
 class BrowsingContextGroup;
 
 #define MOZ_EACH_WC_FIELD(FIELD)                                       \
@@ -78,7 +79,10 @@ class BrowsingContextGroup;
         PermissionDelegateHandler::DelegatedPermissionList)            \
   FIELD(DelegatedExactHostMatchPermissions,                            \
         PermissionDelegateHandler::DelegatedPermissionList)            \
-  FIELD(HasReportedShadowDOMUsage, bool)
+  FIELD(HasReportedShadowDOMUsage, bool)                               \
+  /* Whether the principal of this window is for a local               \
+   * IP address */                                                     \
+  FIELD(IsLocalIP, bool)
 
 class WindowContext : public nsISupports, public nsWrapperCache {
   MOZ_DECL_SYNCED_CONTEXT(WindowContext, MOZ_EACH_WC_FIELD)
@@ -103,14 +107,20 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
   bool HasBeforeUnload() const { return GetHasBeforeUnload(); }
 
+  bool IsLocalIP() const { return GetIsLocalIP(); }
+
   nsGlobalWindowInner* GetInnerWindow() const;
   Document* GetDocument() const;
   Document* GetExtantDoc() const;
+
+  WindowGlobalChild* GetWindowGlobalChild() const;
 
   // Get the parent WindowContext of this WindowContext, taking the BFCache into
   // account. This will not cross chrome/content <browser> boundaries.
   WindowContext* GetParentWindowContext();
   WindowContext* TopWindowContext();
+
+  bool SameOriginWithTop() const;
 
   bool IsTop() const;
 
@@ -249,7 +259,12 @@ class WindowContext : public nsISupports, public nsWrapperCache {
     return true;
   }
 
+  bool CanSet(FieldIndex<IDX_IsLocalIP>, const bool& aValue,
+              ContentParent* aSource);
+
   void DidSet(FieldIndex<IDX_HasReportedShadowDOMUsage>, bool aOldValue);
+
+  void DidSet(FieldIndex<IDX_SHEntryHasUserInteraction>, bool aOldValue);
 
   // Overload `DidSet` to get notifications for a particular field being set.
   //

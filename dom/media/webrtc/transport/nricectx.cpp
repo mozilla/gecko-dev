@@ -420,7 +420,10 @@ int NrIceCtx::msg_recvd(void* obj, nr_ice_peer_ctx* pctx,
 void NrIceCtx::trickle_cb(void* arg, nr_ice_ctx* ice_ctx,
                           nr_ice_media_stream* stream, int component_id,
                           nr_ice_candidate* candidate) {
-  MOZ_ASSERT(!stream->obsolete);
+  if (stream->obsolete) {
+    // Stream was probably just marked obsolete, resulting in this callback
+    return;
+  }
   // Get the ICE ctx
   NrIceCtx* ctx = static_cast<NrIceCtx*>(arg);
   RefPtr<NrIceMediaStream> s = ctx->FindStream(stream);
@@ -605,6 +608,8 @@ bool NrIceCtx::Initialize() {
         TestNat::ToNatBehavior(config_.mNatSimulatorConfig->mMappingType.get());
     test_nat->block_udp_ = config_.mNatSimulatorConfig->mBlockUdp;
     test_nat->block_tcp_ = config_.mNatSimulatorConfig->mBlockTcp;
+    test_nat->error_code_for_drop_ =
+        config_.mNatSimulatorConfig->mErrorCodeForDrop;
     test_nat->enabled_ = true;
     SetNat(test_nat);
   }

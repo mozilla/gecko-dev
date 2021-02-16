@@ -250,7 +250,8 @@ class PluginInstanceParent : public PPluginInstanceParent {
 
   void GetSrcAttribute(nsACString& aOutput) const { aOutput = mSrcAttribute; }
 
-  mozilla::ipc::IPCResult AnswerPluginFocusChange(const bool& gotFocus);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult AnswerPluginFocusChange(
+      const bool& gotFocus);
 
   nsresult AsyncSetWindow(NPWindow* window);
   nsresult GetImageContainer(mozilla::layers::ImageContainer** aContainer);
@@ -280,10 +281,7 @@ class PluginInstanceParent : public PPluginInstanceParent {
   mozilla::ipc::IPCResult RecvGetCompositionString(const uint32_t& aIndex,
                                                    nsTArray<uint8_t>* aBuffer,
                                                    int32_t* aLength);
-  mozilla::ipc::IPCResult RecvSetCandidateWindow(
-      const mozilla::widget::CandidateWindowPosition& aPosition);
   mozilla::ipc::IPCResult RecvRequestCommitOrCancel(const bool& aCommitted);
-  mozilla::ipc::IPCResult RecvEnableIME(const bool& aEnable);
 
   // for reserved shortcut key handling with windowed plugin on Windows
   nsresult HandledWindowedPluginKeyEvent(

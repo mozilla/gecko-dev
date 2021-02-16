@@ -4,26 +4,17 @@
 
 #include "nsTouchBar.h"
 
+#include <objc/runtime.h>
+
 #include "mozilla/MacStringHelpers.h"
 #include "nsArrayUtils.h"
+#include "nsCocoaUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIArray.h"
 #include "nsTouchBarInputIcon.h"
+#include "nsWidgetsCID.h"
 
 @implementation nsTouchBar
-
-static const NSTouchBarItemIdentifier BaseIdentifier = @"com.mozilla.firefox.touchbar";
-
-// Non-JS scrubber implemention for the Share Scrubber,
-// since it is defined by an Apple API.
-static NSTouchBarItemIdentifier ShareScrubberIdentifier =
-    [TouchBarInput nativeIdentifierWithType:@"scrubber" withKey:@"share"];
-
-// The search popover needs to show/hide depending on if the Urlbar is focused
-// when it is created. We keep track of its identifier to accomodate this
-// special handling.
-static NSTouchBarItemIdentifier SearchPopoverIdentifier =
-    [TouchBarInput nativeIdentifierWithType:@"popover" withKey:@"search-popover"];
 
 // Used to tie action strings to buttons.
 static char sIdentifierAssociationKey;
@@ -59,7 +50,8 @@ static const uint32_t kInputIconSize = 16;
     if (!aInputs) {
       // This customization identifier is how users' custom layouts are saved by macOS.
       // If this changes, all users' layouts would be reset to the default layout.
-      self.customizationIdentifier = [BaseIdentifier stringByAppendingPathExtension:@"defaultbar"];
+      self.customizationIdentifier =
+          [kTouchBarBaseIdentifier stringByAppendingPathExtension:@"defaultbar"];
       nsCOMPtr<nsIArray> allItems;
 
       nsresult rv = mTouchBarHelper->GetAllItems(getter_AddRefs(allItems));
@@ -108,7 +100,7 @@ static const uint32_t kInputIconSize = 16;
         [TouchBarInput nativeIdentifierWithType:@"button" withKey:@"reload"],
         [TouchBarInput nativeIdentifierWithType:@"mainButton" withKey:@"open-location"],
         [TouchBarInput nativeIdentifierWithType:@"button" withKey:@"new-tab"],
-        ShareScrubberIdentifier, SearchPopoverIdentifier
+        [TouchBarInput shareScrubberIdentifier], [TouchBarInput searchPopoverIdentifier]
       ];
       self.defaultItemIdentifiers = [defaultItemIdentifiers copy];
     } else {
@@ -163,7 +155,7 @@ static const uint32_t kInputIconSize = 16;
 
   if ([input baseType] == TouchBarInputBaseType::kScrubber) {
     // We check the identifier rather than the baseType here as a special case.
-    if (![aIdentifier isEqualToString:ShareScrubberIdentifier]) {
+    if (![aIdentifier isEqualToString:[TouchBarInput shareScrubberIdentifier]]) {
       // We're only supporting the Share scrubber for now.
       return nil;
     }
@@ -380,7 +372,7 @@ static const uint32_t kInputIconSize = 16;
   }
 
   // Special handling to show/hide the search popover if the Urlbar is focused.
-  if ([[input nativeIdentifier] isEqualToString:SearchPopoverIdentifier]) {
+  if ([[input nativeIdentifier] isEqualToString:[TouchBarInput searchPopoverIdentifier]]) {
     // We can reach this code during window shutdown. We only want to toggle
     // showPopover if we are in a normal running state.
     if (!mTouchBarHelper) {

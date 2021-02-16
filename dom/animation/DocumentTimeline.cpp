@@ -5,7 +5,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "DocumentTimeline.h"
-#include "mozilla/ScopeExit.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/DocumentTimelineBinding.h"
 #include "AnimationUtils.h"
@@ -40,6 +39,26 @@ NS_INTERFACE_MAP_END_INHERITING(AnimationTimeline)
 
 NS_IMPL_ADDREF_INHERITED(DocumentTimeline, AnimationTimeline)
 NS_IMPL_RELEASE_INHERITED(DocumentTimeline, AnimationTimeline)
+
+DocumentTimeline::DocumentTimeline(Document* aDocument,
+                                   const TimeDuration& aOriginTime)
+    : AnimationTimeline(aDocument->GetParentObject()),
+      mDocument(aDocument),
+      mIsObservingRefreshDriver(false),
+      mOriginTime(aOriginTime) {
+  if (mDocument) {
+    mDocument->Timelines().insertBack(this);
+  }
+}
+
+DocumentTimeline::~DocumentTimeline() {
+  MOZ_ASSERT(!mIsObservingRefreshDriver,
+             "Timeline should have disassociated"
+             " from the refresh driver before being destroyed");
+  if (isInList()) {
+    remove();
+  }
+}
 
 JSObject* DocumentTimeline::WrapObject(JSContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {

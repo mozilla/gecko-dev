@@ -4,7 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
@@ -209,13 +208,13 @@ bool JSRuntime::init(JSContext* cx, uint32_t maxbytes) {
     return false;
   }
 
-  UniquePtr<Zone> atomsZone = MakeUnique<Zone>(this);
+  UniquePtr<Zone> atomsZone = MakeUnique<Zone>(this, Zone::AtomsZone);
   if (!atomsZone || !atomsZone->init()) {
     return false;
   }
 
+  MOZ_ASSERT(atomsZone->isAtomsZone());
   gc.atomsZone = atomsZone.release();
-  gc.atomsZone->setIsAtomsZone();
 
   // The garbage collector depends on everything before this point being
   // initialized.
@@ -396,9 +395,9 @@ void JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
   }
 
   if (jitRuntime_) {
-    // Sizes of the IonBuilders we are holding for lazy linking
-    for (auto builder : jitRuntime_->ionLazyLinkList(this)) {
-      rtSizes->jitLazyLink += builder->sizeOfExcludingThis(mallocSizeOf);
+    // Sizes of the IonCompileTasks we are holding for lazy linking
+    for (auto* task : jitRuntime_->ionLazyLinkList(this)) {
+      rtSizes->jitLazyLink += task->sizeOfExcludingThis(mallocSizeOf);
     }
   }
 
@@ -577,10 +576,6 @@ JSFreeOp::JSFreeOp(JSRuntime* maybeRuntime, bool isDefault)
 }
 
 JSFreeOp::~JSFreeOp() {
-  for (size_t i = 0; i < freeLaterList.length(); i++) {
-    freeUntracked(freeLaterList[i]);
-  }
-
   if (!jitPoisonRanges.empty()) {
     jit::ExecutableAllocator::poisonCode(runtime(), jitPoisonRanges);
   }

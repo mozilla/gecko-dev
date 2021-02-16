@@ -60,7 +60,7 @@ interface nsISVCParam : nsISupports {
 
 [scriptable, uuid(0dc58309-4d67-4fc4-a4e3-38dbde9d9f4c)]
 interface nsISVCParamAlpn : nsISupports {
-  readonly attribute ACString alpn;
+  readonly attribute Array<ACString> alpn;
 };
 
 [scriptable, uuid(b3ed89c3-2ae6-4c92-8176-b76bc2437fcb)]
@@ -87,6 +87,11 @@ interface nsISVCParamIPv6Hint : nsISupports {
   readonly attribute Array<nsINetAddr> ipv6Hint;
 };
 
+[scriptable, uuid(bdcef040-452e-11eb-b378-0242ac130002)]
+interface nsISVCParamODoHConfig : nsISupports {
+  readonly attribute ACString ODoHConfig;
+};
+
 [scriptable, builtinclass, uuid(a4da5645-2160-4439-bd11-540a2d26c989)]
 interface nsISVCBRecord : nsISupports {
   readonly attribute uint16_t priority;
@@ -94,6 +99,7 @@ interface nsISVCBRecord : nsISupports {
   [noscript, nostdcall, notxpcom] readonly attribute MaybePort port;
   [noscript, nostdcall, notxpcom] readonly attribute MaybeAlpnTuple alpn;
   readonly attribute ACString echConfig;
+  readonly attribute ACString ODoHConfig;
   readonly attribute bool hasIPHintAddress;
   readonly attribute Array<nsISVCParam> values;
 };
@@ -115,5 +121,6 @@ interface nsIDNSHTTPSSVCRecord : nsISupports
 
   Array<nsISVCBRecord> GetAllRecordsWithEchConfig(in boolean aNoHttp2,
                                                   in boolean aNoHttp3,
-                                                  out boolean aAllRecordsHaveEchConfig);
+                                                  out boolean aAllRecordsHaveEchConfig,
+                                                  out boolean aAllRecordsInH3ExcludedList);
 };

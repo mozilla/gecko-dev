@@ -106,6 +106,17 @@ const PanelUI = {
       }
     );
 
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "protonAppMenuEnabled",
+      "browser.proton.appmenu.enabled",
+      false
+    );
+
+    if (this.protonAppMenuEnabled) {
+      this.multiView.setAttribute("mainViewId", "appMenu-protonMainView");
+    }
+
     window.addEventListener("activate", this);
     CustomizableUI.addListener(this);
 
@@ -569,6 +580,25 @@ const PanelUI = {
       );
     }
 
+    // When these prefs are made the default, add this data-l10n-id directly to browser.xhtml.
+    if (
+      Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.customizationMenu.enabled"
+      ) ||
+      Services.prefs.getBoolPref(
+        "browser.newtabpage.activity-stream.newNewtabExperience.enabled"
+      )
+    ) {
+      this.libraryRecentHighlights.previousElementSibling.setAttribute(
+        "data-l10n-id",
+        "library-recent-activity-title"
+      );
+    } else {
+      this.libraryRecentHighlights.previousElementSibling.removeAttribute(
+        "data-l10n-id"
+      );
+    }
+
     // Make the elements invisible synchronously, before the view is shown.
     this.makeLibraryRecentHighlightsInvisible();
 
@@ -776,7 +806,7 @@ const PanelUI = {
 
     let helpMenu = document.getElementById("menu_HelpPopup");
     let items = this.getElementsByTagName("vbox")[0];
-    let attrs = ["command", "oncommand", "onclick", "label", "key", "disabled"];
+    let attrs = ["command", "oncommand", "onclick", "key", "disabled"];
 
     // Remove all buttons from the view
     while (items.firstChild) {
@@ -800,6 +830,12 @@ const PanelUI = {
         }
         button.setAttribute(attrName, node.getAttribute(attrName));
       }
+
+      // We have AppMenu-specific strings for the Help menu. By convention,
+      // their localization IDs are set on "appmenu-data-l10n-id" attributes.
+      let l10nId = node.getAttribute("appmenu-data-l10n-id");
+      button.setAttribute("data-l10n-id", l10nId);
+
       if (node.id) {
         button.id = "appMenu_" + node.id;
       }
@@ -960,7 +996,12 @@ const PanelUI = {
 
   get mainView() {
     if (!this._mainView) {
-      this._mainView = PanelMultiView.getViewNode(document, "appMenu-mainView");
+      this._mainView = PanelMultiView.getViewNode(
+        document,
+        this.protonAppMenuEnabled
+          ? "appMenu-protonMainView"
+          : "appMenu-mainView"
+      );
     }
     return this._mainView;
   },
@@ -1103,18 +1144,20 @@ const PanelUI = {
   _addedShortcuts: false,
   _formatPrintButtonShortcuts() {
     let printButton = this.mainView.querySelector("#appMenu-print-button");
-    if (
-      !Services.prefs.getBoolPref("print.tab_modal.enabled") &&
-      AppConstants.platform !== "macosx"
-    ) {
-      printButton.removeAttribute("shortcut");
-    } else if (!printButton.hasAttribute("shortcut")) {
-      printButton.setAttribute(
-        "shortcut",
-        ShortcutUtils.prettifyShortcut(
-          document.getElementById(printButton.getAttribute("key"))
-        )
-      );
+    if (printButton) {
+      if (
+        !Services.prefs.getBoolPref("print.tab_modal.enabled") &&
+        AppConstants.platform !== "macosx"
+      ) {
+        printButton.removeAttribute("shortcut");
+      } else if (!printButton.hasAttribute("shortcut")) {
+        printButton.setAttribute(
+          "shortcut",
+          ShortcutUtils.prettifyShortcut(
+            document.getElementById(printButton.getAttribute("key"))
+          )
+        );
+      }
     }
   },
   _ensureShortcutsShown(view = this.mainView) {

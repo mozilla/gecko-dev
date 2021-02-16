@@ -14,9 +14,11 @@
 
 #include "nsCollationCID.h"
 #include "nsCOMPtr.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIContent.h"
 #include "nsICollation.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/Element.h"
 #include "nsXULContentUtils.h"
 #include "nsLayoutCID.h"
 #include "nsString.h"
@@ -57,7 +59,7 @@ nsICollation* nsXULContentUtils::GetCollation() {
 
 nsresult nsXULContentUtils::FindChildByTag(nsIContent* aElement,
                                            int32_t aNameSpaceID, nsAtom* aTag,
-                                           Element** aResult) {
+                                           mozilla::dom::Element** aResult) {
   for (nsIContent* child = aElement->GetFirstChild(); child;
        child = child->GetNextSibling()) {
     if (child->IsElement() && child->NodeInfo()->Equals(aTag, aNameSpaceID)) {

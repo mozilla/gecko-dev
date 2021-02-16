@@ -15,6 +15,7 @@
 #include "mozilla/RangedPtr.h"
 #include "mozilla/Unused.h"
 
+#include <iterator>
 #include <string.h>
 
 #include "jstypes.h"
@@ -38,8 +39,6 @@
 
 using namespace js;
 
-using mozilla::ArrayEnd;
-using mozilla::ArrayLength;
 using mozilla::Maybe;
 using mozilla::Nothing;
 using mozilla::RangedPtr;
@@ -290,13 +289,13 @@ bool JSRuntime::initializeAtoms(JSContext* cx) {
 
   ImmutablePropertyNamePtr* names =
       reinterpret_cast<ImmutablePropertyNamePtr*>(commonNames.ref());
-  for (size_t i = 0; i < ArrayLength(cachedNames); i++, names++) {
-    JSAtom* atom =
-        Atomize(cx, cachedNames[i].str, cachedNames[i].length, PinAtom);
+  for (const auto& cachedName : cachedNames) {
+    JSAtom* atom = Atomize(cx, cachedName.str, cachedName.length, PinAtom);
     if (!atom) {
       return false;
     }
     names->init(atom->asPropertyName());
+    names++;
   }
   MOZ_ASSERT(uintptr_t(names) == uintptr_t(commonNames + 1));
 
@@ -1175,7 +1174,7 @@ bool js::IndexToIdSlow(JSContext* cx, uint32_t index, MutableHandleId idp) {
   MOZ_ASSERT(index > JSID_INT_MAX);
 
   char16_t buf[UINT32_CHAR_BUFFER_LENGTH];
-  RangedPtr<char16_t> end(ArrayEnd(buf), buf, ArrayEnd(buf));
+  RangedPtr<char16_t> end(std::end(buf), buf, std::end(buf));
   RangedPtr<char16_t> start = BackfillIndexInCharBuffer(index, end);
 
   JSAtom* atom = AtomizeChars(cx, start.get(), end - start);
@@ -1406,7 +1405,7 @@ XDRResult js::XDRAtomData(XDRState<mode>* xdr, MutableHandleAtom atomp) {
     if (length) {
       const uint8_t* ptr;
       size_t nbyte = length * sizeof(Latin1Char);
-      MOZ_TRY(xdr->peekData(&ptr, nbyte));
+      MOZ_TRY(xdr->readData(&ptr, nbyte));
       chars = reinterpret_cast<const Latin1Char*>(ptr);
     }
     atom = AtomizeChars(cx, chars, length);
@@ -1414,7 +1413,7 @@ XDRResult js::XDRAtomData(XDRState<mode>* xdr, MutableHandleAtom atomp) {
     const uint8_t* twoByteCharsLE = nullptr;
     if (length) {
       size_t nbyte = length * sizeof(char16_t);
-      MOZ_TRY(xdr->peekData(&twoByteCharsLE, nbyte));
+      MOZ_TRY(xdr->readData(&twoByteCharsLE, nbyte));
     }
     atom = AtomizeLittleEndianTwoByteChars(cx, twoByteCharsLE, length);
   }

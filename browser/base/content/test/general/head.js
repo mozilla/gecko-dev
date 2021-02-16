@@ -377,7 +377,7 @@ function promiseOnBookmarkItemAdded(aExpectedURI) {
 
 async function loadBadCertPage(url) {
   let loaded = BrowserTestUtils.waitForErrorPage(gBrowser.selectedBrowser);
-  await BrowserTestUtils.loadURI(gBrowser.selectedBrowser, url);
+  BrowserTestUtils.loadURI(gBrowser.selectedBrowser, url);
   await loaded;
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function() {
@@ -401,6 +401,7 @@ async function promiseStylesheetsLoaded(tab, styleSheetCount) {
 
   await TestUtils.waitForCondition(() => {
     let menu = styleMenu._pageStyleSheets.get(permanentKey);
+    info(`waiting for sheets: ${menu && menu.filteredStyleSheets.length}`);
     return menu && menu.filteredStyleSheets.length >= styleSheetCount;
   }, "waiting for style sheets to load");
 }

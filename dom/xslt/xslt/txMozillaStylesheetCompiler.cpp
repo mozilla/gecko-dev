@@ -15,6 +15,7 @@
 #include "nsContentPolicyUtils.h"
 #include "nsIStreamConverterService.h"
 #include "nsSyncLoadService.h"
+#include "nsIHttpChannel.h"
 #include "nsIURI.h"
 #include "nsIPrincipal.h"
 #include "nsIWindowWatcher.h"
@@ -28,6 +29,7 @@
 #include "txStylesheetCompiler.h"
 #include "txXMLUtils.h"
 #include "nsAttrName.h"
+#include "nsComponentManagerUtils.h"
 #include "nsIScriptError.h"
 #include "nsError.h"
 #include "mozilla/Attributes.h"
@@ -555,7 +557,8 @@ nsresult txSyncCompileObserver::loadURI(const nsAString& aUri,
   if (mProcessor) {
     source = mProcessor->GetSourceContentModel();
   }
-  dom::nsAutoSyncOperation sync(source ? source->OwnerDoc() : nullptr);
+  dom::nsAutoSyncOperation sync(source ? source->OwnerDoc() : nullptr,
+                                dom::SyncOperationBehavior::eSuspendInput);
   nsCOMPtr<Document> document;
 
   rv = nsSyncLoadService::LoadDocument(

@@ -15,13 +15,9 @@
 #include "vm/HelperThreadTask.h"
 
 namespace js {
-
-class CompilerConstraintList;
-
 namespace jit {
 
 class CodeGenerator;
-class MRootList;
 class WarpSnapshot;
 
 // IonCompileTask represents a single off-thread Ion compilation task.
@@ -35,33 +31,19 @@ class IonCompileTask final : public HelperThreadTask,
   // performed by FinishOffThreadTask().
   CodeGenerator* backgroundCodegen_ = nullptr;
 
-  CompilerConstraintList* constraints_ = nullptr;
-  MRootList* rootList_ = nullptr;
   WarpSnapshot* snapshot_ = nullptr;
 
-  // script->hasIonScript() at the start of the compilation. Used to avoid
-  // calling hasIonScript() from background compilation threads.
-  bool scriptHasIonScript_;
-
  public:
-  explicit IonCompileTask(MIRGenerator& mirGen, bool scriptHasIonScript,
-                          CompilerConstraintList* constraints,
-                          WarpSnapshot* snapshot);
+  explicit IonCompileTask(MIRGenerator& mirGen, WarpSnapshot* snapshot);
 
   JSScript* script() { return mirGen_.outerInfo().script(); }
   MIRGenerator& mirGen() { return mirGen_; }
   TempAllocator& alloc() { return mirGen_.alloc(); }
-  bool scriptHasIonScript() const { return scriptHasIonScript_; }
-  CompilerConstraintList* constraints() { return constraints_; }
   WarpSnapshot* snapshot() { return snapshot_; }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
   void trace(JSTracer* trc);
 
-  void setRootList(MRootList& rootList) {
-    MOZ_ASSERT(!rootList_);
-    rootList_ = &rootList;
-  }
   CodeGenerator* backgroundCodegen() const { return backgroundCodegen_; }
   void setBackgroundCodegen(CodeGenerator* codegen) {
     backgroundCodegen_ = codegen;
@@ -88,8 +70,6 @@ void AttachFinishedCompilations(JSContext* cx);
 void FinishOffThreadTask(JSRuntime* runtime, IonCompileTask* task,
                          const AutoLockHelperThreadState& lock);
 void FreeIonCompileTask(IonCompileTask* task);
-
-MOZ_MUST_USE bool CreateMIRRootList(IonCompileTask& task);
 
 }  // namespace jit
 }  // namespace js

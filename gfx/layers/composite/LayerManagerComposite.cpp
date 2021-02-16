@@ -12,12 +12,13 @@
 #include "CompositableHost.h"         // for CompositableHost
 #include "ContainerLayerComposite.h"  // for ContainerLayerComposite, etc
 #include "Diagnostics.h"
-#include "FPSCounter.h"                    // for FPSState, FPSCounter
-#include "FrameMetrics.h"                  // for FrameMetrics
-#include "GeckoProfiler.h"                 // for profiler_*
-#include "ImageLayerComposite.h"           // for ImageLayerComposite
-#include "Layers.h"                        // for Layer, ContainerLayer, etc
-#include "LayerScope.h"                    // for LayerScope Tool
+#include "FPSCounter.h"           // for FPSState, FPSCounter
+#include "FrameMetrics.h"         // for FrameMetrics
+#include "GeckoProfiler.h"        // for profiler_*
+#include "ImageLayerComposite.h"  // for ImageLayerComposite
+#include "Layers.h"               // for Layer, ContainerLayer, etc
+#include "LayerScope.h"           // for LayerScope Tool
+#include "LayerTreeInvalidation.h"
 #include "protobuf/LayerScopePacket.pb.h"  // for protobuf (LayerScope)
 #include "PaintedLayerComposite.h"         // for PaintedLayerComposite
 #include "TiledContentHost.h"
@@ -46,9 +47,11 @@
 #include "mozilla/layers/Effects.h"              // for Effect, EffectChain, etc
 #include "mozilla/layers/LayerMetricsWrapper.h"  // for LayerMetricsWrapper
 #include "mozilla/layers/LayersTypes.h"          // for etc
-#include "mozilla/widget/CompositorWidget.h"     // for WidgetRenderingContext
-#include "ipc/CompositorBench.h"                 // for CompositorBench
-#include "ipc/ShadowLayerUtils.h"
+#include "mozilla/layers/NativeLayer.h"
+#include "mozilla/layers/UiCompositorControllerParent.h"
+#include "mozilla/widget/CompositorWidget.h"  // for WidgetRenderingContext
+#include "ipc/CompositorBench.h"              // for CompositorBench
+#include "ipc/SurfaceDescriptor.h"
 #include "mozilla/mozalloc.h"  // for operator new, etc
 #include "nsAppRunner.h"
 #include "mozilla/RefPtr.h"   // for nsRefPtr
@@ -88,21 +91,6 @@ class ImageLayer;
 
 using namespace mozilla::gfx;
 using namespace mozilla::gl;
-
-class WindowLMC : public profiler_screenshots::Window {
- public:
-  explicit WindowLMC(Compositor* aCompositor) : mCompositor(aCompositor) {}
-
-  already_AddRefed<profiler_screenshots::RenderSource> GetWindowContents(
-      const IntSize& aWindowSize) override;
-  already_AddRefed<profiler_screenshots::DownscaleTarget> CreateDownscaleTarget(
-      const IntSize& aSize) override;
-  already_AddRefed<profiler_screenshots::AsyncReadbackBuffer>
-  CreateAsyncReadbackBuffer(const IntSize& aSize) override;
-
- protected:
-  Compositor* mCompositor;
-};
 
 static LayerComposite* ToLayerComposite(Layer* aLayer) {
   return static_cast<LayerComposite*>(aLayer->ImplData());
@@ -558,6 +546,10 @@ void LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
   mInTransaction = false;
   mRenderStartTime = TimeStamp::Now();
 
+  // Ensure we read unlock textures, even if we end up
+  // not compositing this frame.
+  TextureSourceProvider::AutoReadUnlockTextures unlock(mCompositor);
+
   if (!mIsCompositorReady) {
     return;
   }
@@ -591,6 +583,8 @@ void LayerManagerComposite::EndTransaction(const TimeStamp& aTimeStamp,
   MOZ_LAYERS_LOG(("]----- EndTransaction"));
 #endif
 }
+
+void LayerManagerComposite::SetRoot(Layer* aLayer) { mRoot = aLayer; }
 
 void LayerManagerComposite::UpdateAndRender() {
   mCompositionOpportunityId = mCompositionOpportunityId.Next();
@@ -1302,7 +1296,7 @@ bool LayerManagerComposite::Render(const nsIntRegion& aInvalidRegion,
 
   RecordFrame();
 
-  PayloadPresented();
+  PayloadPresented(TimeStamp::Now());
 
   // Our payload has now been presented.
   mPayload.Clear();
@@ -1766,7 +1760,7 @@ class AsyncReadbackBufferLMC
 };
 
 already_AddRefed<profiler_screenshots::RenderSource>
-WindowLMC::GetWindowContents(const IntSize& aWindowSize) {
+WindowLMC::GetWindowContents(const gfx::IntSize& aWindowSize) {
   RefPtr<CompositingRenderTarget> rt = mCompositor->GetWindowRenderTarget();
   if (!rt) {
     return nullptr;
@@ -1775,14 +1769,14 @@ WindowLMC::GetWindowContents(const IntSize& aWindowSize) {
 }
 
 already_AddRefed<profiler_screenshots::DownscaleTarget>
-WindowLMC::CreateDownscaleTarget(const IntSize& aSize) {
+WindowLMC::CreateDownscaleTarget(const gfx::IntSize& aSize) {
   RefPtr<CompositingRenderTarget> rt =
       mCompositor->CreateRenderTarget(IntRect({}, aSize), INIT_MODE_NONE);
   return MakeAndAddRef<DownscaleTargetLMC>(rt, mCompositor);
 }
 
 already_AddRefed<profiler_screenshots::AsyncReadbackBuffer>
-WindowLMC::CreateAsyncReadbackBuffer(const IntSize& aSize) {
+WindowLMC::CreateAsyncReadbackBuffer(const gfx::IntSize& aSize) {
   RefPtr<AsyncReadbackBuffer> carb =
       mCompositor->CreateAsyncReadbackBuffer(aSize);
   if (!carb) {

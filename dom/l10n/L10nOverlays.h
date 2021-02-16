@@ -7,12 +7,16 @@
 #ifndef mozilla_dom_l10n_L10nOverlays_h
 #define mozilla_dom_l10n_L10nOverlays_h
 
-#include "mozilla/dom/Element.h"
 #include "mozilla/dom/L10nOverlaysBinding.h"
 #include "mozilla/dom/LocalizationBinding.h"
 
+class nsINode;
+
 namespace mozilla {
 namespace dom {
+
+class DocumentFragment;
+class Element;
 
 class L10nOverlays {
  public:

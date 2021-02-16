@@ -8,7 +8,9 @@
 
 #include "FormControlAccessible.h"
 #include "HyperTextAccessibleWrap.h"
+#include "mozilla/dom/Element.h"
 #include "nsAccUtils.h"
+#include "nsIPersistentProperties2.h"
 #include "Relation.h"
 
 namespace mozilla {
@@ -114,7 +116,7 @@ class HTMLTextFieldAccessible : public HyperTextAccessibleWrap {
       return el;
     }
     // XUL search-textbox custom element
-    return Elm()->Closest(u"search-textbox"_ns, IgnoreErrors());
+    return Elm()->Closest("search-textbox"_ns, IgnoreErrors());
   }
 };
 

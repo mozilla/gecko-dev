@@ -21,6 +21,7 @@
 #include "mozilla/ServoBindingTypes.h"
 #include "mozilla/ServoUtils.h"
 #include "mozilla/ShadowParts.h"
+#include "mozilla/SVGAttrValueWrapper.h"
 #include "mozilla/DeclarationBlock.h"
 #include "mozilla/dom/CSSRuleBinding.h"
 #include "nsContentUtils.h"
@@ -561,7 +562,9 @@ void nsAttrValue::ToString(nsAString& aResult) const {
       aResult.Truncate();
       MiscContainer* container = GetMiscContainer();
       if (DeclarationBlock* decl = container->mValue.mCSSDeclaration) {
-        decl->ToString(aResult);
+        nsAutoCString result;
+        decl->ToString(result);
+        CopyUTF8toUTF16(result, aResult);
       }
 
       // This can be reached during parallel selector matching with attribute

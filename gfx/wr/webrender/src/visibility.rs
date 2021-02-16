@@ -27,7 +27,6 @@ use crate::prim_store::{ClipTaskIndex, PictureIndex, PrimitiveInstanceKind};
 use crate::prim_store::{PrimitiveStore, PrimitiveInstance};
 use crate::prim_store::image::VisibleImageTile;
 use crate::render_backend::{DataStores, ScratchBuffer};
-use crate::render_task_graph::RenderTaskGraph;
 use crate::resource_cache::{ResourceCache, ImageProperties, ImageRequest};
 use crate::scene::SceneProperties;
 use crate::space::{SpaceMapper, SpaceSnapper};
@@ -52,7 +51,6 @@ pub struct FrameVisibilityState<'a> {
     pub tile_cache: Option<Box<TileCacheInstance>>,
     pub data_stores: &'a mut DataStores,
     pub clip_chain_stack: ClipChainStack,
-    pub render_tasks: &'a mut RenderTaskGraph,
     pub composite_state: &'a mut CompositeState,
     /// A stack of currently active off-screen surfaces during the
     /// visibility frame traversal.
@@ -428,6 +426,7 @@ pub fn update_primitive_visibility(
                 frame_state.clip_store.set_active_clips(
                     prim_instance.clip_set.local_clip_rect,
                     cluster.spatial_node_index,
+                    map_local_to_surface.ref_spatial_node_index,
                     frame_state.clip_chain_stack.current_clips_array(),
                     &frame_context.spatial_tree,
                     &frame_state.data_stores.clip,
