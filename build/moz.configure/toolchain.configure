@@ -1881,7 +1881,7 @@ def frame_pointer_flags(compiler):
         )
     return namespace(
         enable=["-fno-omit-frame-pointer", "-funwind-tables"],
-        disable=["-fomit-frame-pointer", "-funwind-tables"],
+        disable=["-fno-omit-frame-pointer", "-funwind-tables"],
     )
 
 

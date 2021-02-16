@@ -53,6 +53,7 @@ AbstractGeneratorObject* AbstractGeneratorObject::create(
     return nullptr;
   }
 
+  genObj->setSlot(ID_SLOT, NumberValue(cx->runtime()->nextGeneratorId++));
   genObj->setStackStorage(*stack);
 
   // Note: This assumes that a Warp frame cannot be the target of
@@ -81,6 +82,8 @@ JSObject* AbstractGeneratorObject::createFromFrame(JSContext* cx,
   if (!genObj) {
     return nullptr;
   }
+
+  genObj->setSlot(ID_SLOT, NumberValue(cx->runtime()->nextGeneratorId++));
 
   if (!DebugAPI::onNewGenerator(cx, frame, genObj)) {
     return nullptr;

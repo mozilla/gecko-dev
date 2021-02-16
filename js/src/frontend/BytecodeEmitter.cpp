@@ -136,8 +136,9 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent,
                                  EmitterMode emitterMode)
     : BytecodeEmitter(parent, sc, stencil, compilationState, emitterMode) {
   parser = handle;
-  //instrumentationKinds = parser->options().instrumentationKinds;
-  instrumentationKinds = RealmInstrumentation::getInstrumentationKinds(cx->global());
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    instrumentationKinds = RealmInstrumentation::getInstrumentationKinds(cx->global());
+  }
 }
 
 BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent,
@@ -148,8 +149,9 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter* parent,
     : BytecodeEmitter(parent, sc, stencil, compilationState, emitterMode) {
   ep_.emplace(parser);
   this->parser = ep_.ptr();
-  //instrumentationKinds = this->parser->options().instrumentationKinds;
-  instrumentationKinds = RealmInstrumentation::getInstrumentationKinds(cx->global());
+  if (mozilla::recordreplay::IsRecordingOrReplaying()) {
+    instrumentationKinds = RealmInstrumentation::getInstrumentationKinds(cx->global());
+  }
 }
 
 void BytecodeEmitter::initFromBodyPosition(TokenPos bodyPosition) {
