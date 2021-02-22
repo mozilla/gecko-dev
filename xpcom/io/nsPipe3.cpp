@@ -664,18 +664,22 @@ void nsPipe::AdvanceReadCursor(nsPipeReadState& aReadState,
         !ReadSegmentBeingWritten(aReadState)) {
       // Advance the segment position.  If we have read any segments from the
       // advance buffer then we can potentially notify blocked writers.
+      recordreplay::RecordReplayAssert("nsPipe::AdvanceReadCursor #1");
       if (AdvanceReadSegment(aReadState, mon) == SegmentAdvanceBufferRead &&
           mOutput.OnOutputWritable(events) == NotifyMonitor) {
         mon.NotifyAll();
       }
     }
 
+    recordreplay::RecordReplayAssert("nsPipe::AdvanceReadCursor #2");
     ReleaseReadSegment(aReadState, events);
   }
 }
 
 SegmentChangeResult nsPipe::AdvanceReadSegment(
     nsPipeReadState& aReadState, const ReentrantMonitorAutoEnter& ev) {
+  recordreplay::RecordReplayAssert("nsPipe::AdvanceReadSegment Start");
+
   // Calculate how many segments are buffered for this stream to start.
   uint32_t startBufferSegments = GetBufferSegmentCount(aReadState, ev);
 
@@ -704,6 +708,7 @@ SegmentChangeResult nsPipe::AdvanceReadSegment(
     }
 
     // done with this segment
+    recordreplay::RecordReplayAssert("nsPipe::AdvanceReadSegment #1");
     mBuffer.DeleteFirstSegment();
     LOG(("III deleting first segment\n"));
   }
