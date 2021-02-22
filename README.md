@@ -63,3 +63,13 @@ Tips for debugging:
 * If there is a line like `*** AUS:SVC readStatusFile - status: failed: 23, path: /path/to/update.status`, this is produced by the C++ updater which can be found in `UpdateThreadFunc` in `updater.cpp`. Building a local browser with instrumentation is likely needed to investigate.
 
 10. Run live test harness and make sure crash rate is acceptable.
+
+
+### Miscelleneous
+
+Speeding up oh-my-zsh
+
+```
+git config --add oh-my-zsh.hide-status 1
+git config --add oh-my-zsh.hide-dirty 1
+```

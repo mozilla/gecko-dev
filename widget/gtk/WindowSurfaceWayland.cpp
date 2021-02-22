@@ -159,9 +159,10 @@ handle to wayland compositor by WindowBackBuffer/WindowSurfaceWayland
 #define BUFFER_BPP 4
 gfx::SurfaceFormat WindowBackBuffer::mFormat = gfx::SurfaceFormat::B8G8R8A8;
 
-int WindowBackBuffer::mDumpSerial =
-    PR_GetEnv("MOZ_WAYLAND_DUMP_WL_BUFFERS") ? 1 : 0;
-char* WindowBackBuffer::mDumpDir = PR_GetEnv("MOZ_WAYLAND_DUMP_DIR");
+// Removed PR_GetEnv calls here as they cause nspr to be initialized
+// before the record/replay driver can attach.
+int WindowBackBuffer::mDumpSerial = 0;
+char* WindowBackBuffer::mDumpDir = nullptr;
 
 RefPtr<nsWaylandDisplay> WindowBackBuffer::GetWaylandDisplay() {
   return mWindowSurfaceWayland->GetWaylandDisplay();
