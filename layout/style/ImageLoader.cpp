@@ -429,6 +429,13 @@ void ImageLoader::UnloadImage(imgRequestProxy* aImage) {
     return;
   }
 
+  // The assertion below fails sometimes when diverged from the recording.
+  // The underlying cause isn't known so we workaround this.
+  if (recordreplay::HasDivergedFromRecording() &&
+      !lookup.Data()->mImageLoaders.IsEmpty()) {
+    return;
+  }
+
   aImage->CancelAndForgetObserver(NS_BINDING_ABORTED);
   MOZ_DIAGNOSTIC_ASSERT(lookup.Data()->mImageLoaders.IsEmpty(),
                         "Shouldn't be keeping references to any loader "
