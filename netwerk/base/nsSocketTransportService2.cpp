@@ -311,6 +311,13 @@ nsSocketTransportService::Dispatch(already_AddRefed<nsIRunnable> event,
   nsCOMPtr<nsIRunnable> event_ref(event);
   SOCKET_LOG(("STS dispatch [%p]\n", event_ref.get()));
 
+  // After diverging from the recording we don't want to attempt communication
+  // over sockets. Getting the thread below could hang if another thread
+  // is waiting for the main thread to perform a recorded behavior.
+  if (mozilla::recordreplay::HasDivergedFromRecording()) {
+    return NS_OK;
+  }
+
   nsCOMPtr<nsIThread> thread = GetThreadSafely();
   nsresult rv;
   rv = thread ? thread->Dispatch(event_ref.forget(), flags)
