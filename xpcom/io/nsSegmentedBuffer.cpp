@@ -134,6 +134,13 @@ void nsSegmentedBuffer::FreeOMT(std::function<void()>&& aTask) {
     return;
   }
 
+  // The point where mFreeOMT is cleared seems to race and doesn't replay
+  // at a consistent point, so we avoid using mFreeOMT when recording/replaying.
+  if (recordreplay::IsRecordingOrReplaying()) {
+    aTask();
+    return;
+  }
+
   if (mFreeOMT) {
     // There is a runnable pending which will handle this object
     if (mFreeOMT->AddTask(std::move(aTask)) > 1) {
