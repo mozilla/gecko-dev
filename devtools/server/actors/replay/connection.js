@@ -16,6 +16,10 @@ const { setTimeout } = Components.utils.import(
 
 const { EventEmitter } = ChromeUtils.import("resource://gre/modules/EventEmitter.jsm");
 
+const { CryptoUtils } = ChromeUtils.import(
+  "resource://services-crypto/utils.js"
+);
+
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUpdater: "resource:///modules/AppUpdater.jsm",
 });
@@ -91,21 +95,6 @@ function sendCommand(method, params = {}) {
 // Resolve hooks for promises waiting on a recording to be created.
 const gRecordingCreateWaiters = [];
 
-function hashString(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
-  }
-  return hash;
-}
-
-function getResourceInfo(url, text) {
-  return {
-    url,
-    checksum: hashString(text).toString(),
-  };
-}
-
 function isAuthenticationEnabled() {
   // Authentication is controlled by a preference but can be disabled by an
   // environment variable.
@@ -118,40 +107,6 @@ function isAuthenticationEnabled() {
 
 function isRunningTest() {
   return !!getenv("RECORD_REPLAY_TEST_SCRIPT");
-}
-
-async function addRecordingResource(recordingId, url) {
-  try {
-    const response = await fetch(url);
-    if (response.status < 200 || response.status >= 300) {
-      console.error("Error fetching recording resource", url, response);
-      return null;
-    }
-    const text = await response.text();
-
-    // If the sourcemap is a data: url, there is no reason for us to upload it as
-    // an explicit resource because the URL will be parsed for the content.
-    if (url.startsWith("data:")) {
-      return text;
-    }
-
-    const resource = getResourceInfo(url, text);
-
-    const { known } = await sendCommand("Internal.hasResource", { resource });
-    if (!known) {
-      await sendCommand("Internal.addResource", { resource, contents: text });
-    }
-
-    await sendCommand("Internal.addRecordingResource", {
-      recordingId,
-      resource,
-    });
-
-    return text;
-  } catch (e) {
-    console.error("Exception fetching recording resource", url, e);
-    return null;
-  }
 }
 
 const SEEN_MANAGERS = new WeakSet();
@@ -181,8 +136,8 @@ class Recording extends EventEmitter {
     return this._pmm.osPid;
   }
 
-  _onNewSourcemap({ recordingId, url, sourceMapURL }) {
-    this._resourceUploads.push(uploadAllSourcemapAssets(recordingId, url, sourceMapURL));
+  _onNewSourcemap(params) {
+    this._resourceUploads.push(uploadAllSourcemapAssets(params));
   }
 
   async _onFinished(data) {
@@ -212,28 +167,218 @@ class Recording extends EventEmitter {
   }
 }
 
-async function uploadAllSourcemapAssets(recordingId, url, sourceMapURL) {
-  let resolvedSourceMapURL;
-  try {
-    resolvedSourceMapURL = new URL(sourceMapURL, url).href;
-  } catch (e) {
-    resolvedSourceMapURL = sourceMapURL;
+function uploadSourceMap(
+  recordingId,
+  mapText,
+  baseURL,
+  { targetContentHash, targetURLHash, targetMapURLHash }
+) {
+  return withUploadedResource(mapText, async (resource) => {
+    const result = await sendCommand("Recording.addSourceMap", {
+      recordingId,
+      resource,
+      baseURL,
+      targetContentHash,
+      targetURLHash,
+      targetMapURLHash,
+    })
+    return result.id;
+  });
+}
+
+async function uploadAllSourcemapAssets({
+  recordingId,
+  targetURLHash,
+  targetContentHash,
+  targetMapURLHash,
+  sourceMapURL,
+  sourceMapBaseURL
+}) {
+  const result = await fetchText(sourceMapURL);
+  if (!result) {
+    return;
+  }
+  const mapText = result.text;
+
+  const { sources } =
+    collectUnresolvedSourceMapResources(mapText, sourceMapURL, sourceMapBaseURL);
+
+  let mapUploadFailed = false;
+  let mapIdPromise;
+  function ensureMapUploading() {
+    if (!mapIdPromise) {
+      mapIdPromise = uploadSourceMap(recordingId, mapText, sourceMapBaseURL, {
+        targetContentHash,
+        targetURLHash,
+        targetMapURLHash
+      });
+      mapIdPromise.catch(() => {
+        mapUploadFailed = true;
+      });
+    }
+    return mapIdPromise;
   }
 
-  const text = await addRecordingResource(recordingId, resolvedSourceMapURL);
-  if (text) {
-    // Look for sources which are not inlined into the map, and add them as
-    // additional recording resources.
-    const { sources = [], sourcesContent = [], sourceRoot = "" } = JSON.parse(
-      text
-    );
-    await Promise.all(Array.from({ length: sources.length }, async (_, i) => {
-      if (!sourcesContent[i]) {
-        const sourceURL = computeSourceURL(url, sourceRoot, sources[i]);
-        await addRecordingResource(recordingId, sourceURL);
+  await Promise.all([
+    // For data URLs, we don't want to start uploading the map by default
+    // because for most data: URLs, the inline sources will contain
+    // everything needed for debugging, and the server can resolve
+    // data: URLs itself without needing resources to be uploaded.
+    // If the data: map _does_ need to be uploaded, that will be handled
+    // once that is detected by the sources.
+    sourceMapURL.startsWith("data:") ? undefined : ensureMapUploading(),
+    Promise.all(sources.map(async ({ offset, url }) => {
+      const result = await fetchText(url);
+      if (!result || mapUploadFailed) {
+        return;
       }
-    }));
+
+      await Promise.all([
+        // Once we know there are original sources that we can upload, we want
+        // ensure that the map is uploading, if it wasn't already.
+        ensureMapUploading(),
+        withUploadedResource(result.text, async (resource) => {
+          let parentId;
+          try {
+            parentId = await ensureMapUploading();
+          } catch (err) {
+            // The error will be handled above, but if it fails,
+            // that we don't bother seeing the failure that should
+            // trigger a retry of this.
+            return;
+          }
+
+          await sendCommand("Recording.addOriginalSource", {
+            recordingId,
+            resource,
+            parentId,
+            parentOffset: offset,
+          });
+        })
+      ]);
+    })),
+  ]);
+}
+
+function collectUnresolvedSourceMapResources(mapText, mapURL, mapBaseURL) {
+  let obj;
+  try {
+    obj = JSON.parse(mapText);
+    if (typeof obj !== "object" || !obj) {
+      return {
+        sources: [],
+      };
+    }
+  } catch (err) {
+    console.error("Exception parsing sourcemap JSON", mapURL);
+    return {
+      sources: [],
+    };
   }
+
+  function logError(msg) {
+    console.error(msg, mapURL, map, sourceOffset, sectionOffset);
+  }
+
+  const unresolvedSources = [];
+  let sourceOffset = 0;
+
+  if (obj.version !== 3) {
+    logError("Invalid sourcemap version");
+    return;
+  }
+
+  if (obj.sources != null) {
+    const { sourceRoot, sources, sourcesContent } = obj;
+
+    if (Array.isArray(sources)) {
+      for (let i = 0; i < sources.length; i++) {
+        const offset = sourceOffset++;
+
+        if (
+          !Array.isArray(sourcesContent) ||
+          typeof sourcesContent[i] !== "string"
+        ) {
+          let url = sources[i];
+          if (typeof sourceRoot === "string" && sourceRoot) {
+            url = sourceRoot.replace(/\/?/, "/") + url;
+          }
+          let sourceURL;
+          try {
+            sourceURL = new URL(url, mapBaseURL).toString();
+          } catch {
+            logError("Unable to compute original source URL: " + url);
+            continue;
+          }
+
+          unresolvedSources.push({
+            offset,
+            url: sourceURL,
+          });
+        }
+      }
+    } else {
+      logError("Invalid sourcemap source list");
+    }
+  }
+
+  return {
+    sources: unresolvedSources,
+  };
+}
+
+async function fetchText(url) {
+  try {
+    const response = await fetch(url);
+    if (response.status < 200 || response.status >= 300) {
+      console.error("Error fetching recording resource", url, response);
+      return null;
+    }
+
+    return {
+      url,
+      text: await response.text(),
+    };
+  } catch (e) {
+    console.error("Exception fetching recording resource", url, e);
+    return null;
+  }
+}
+
+async function uploadResource(text) {
+  const hash = "sha256:" + CryptoUtils.sha256(text);
+  const { token } = await sendCommand("Resource.token", { hash });
+  let resource = {
+    token,
+    saltedHash: "sha256:" + CryptoUtils.sha256(token + text)
+  };
+
+  const { exists } = await sendCommand("Resource.exists", { resource });
+  if (!exists) {
+    ({ resource } = await sendCommand("Resource.create", { content: text }));
+  }
+  return resource;
+}
+
+const RETRY_COUNT = 3;
+
+async function withUploadedResource(text, callback) {
+  for (let i = 0; i < RETRY_COUNT - 1; i++) {
+    try {
+      return await callback(await uploadResource(text));
+    } catch (err) {
+      // If the connection dies, we want to retry, and if it died and
+      // reconnected while something else was going on, the token will
+      // likely have been invalidated, so we want to retry in that case too.
+      if (err instanceof CommandError && (err.code === -1 || err.code === 39) ) {
+        console.error("Resource Upload failed, retrying", err);
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  return callback(await uploadResource(text));
 }
 
 function getLoggedInUserAuthId() {
@@ -248,13 +393,6 @@ function getLoggedInUserAuthId() {
 
   const user = JSON.parse(userPref);
   return user == "" ? "" : user.sub;
-}
-
-function computeSourceURL(url, root, path) {
-  if (root != "") {
-    path = root + (root.endsWith("/") ? "" : "/") + path;
-  }
-  return new URL(path, url).href;
 }
 
 const gResultWaiters = new Map();

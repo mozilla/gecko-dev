@@ -1788,7 +1788,7 @@ function reloadAndStopRecordingTab(gBrowser) {
 function getBrowserForPid(pid) {
   for (const window of Services.wm.getEnumerator("navigator:browser")) {
     for (const tab of window.gBrowser.tabs) {
-      const { remoteTab } = tab.linkedBrowser.frameLoader;
+      const { remoteTab } = tab.linkedBrowser.frameLoader || {};
       if (remoteTab && remoteTab.osPid === pid) {
         return tab.linkedBrowser;
       }
