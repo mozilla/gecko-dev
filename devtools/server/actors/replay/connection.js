@@ -60,8 +60,8 @@ function onMessage(evt) {
         updateStatusCallback(connectionStatus);
       }
       break;
-    case "commandResult":
-      onCommandResult(evt.data.id, evt.data.result);
+    case "commandResponse":
+      onCommandResponse(evt.data.msg);
       break;
   }
 }
@@ -260,13 +260,27 @@ function computeSourceURL(url, root, path) {
 const gResultWaiters = new Map();
 
 function waitForCommandResult(id) {
-  return new Promise((resolve) => gResultWaiters.set(id, resolve));
+  return new Promise((resolve, reject) => gResultWaiters.set(id, { resolve, reject }));
 }
 
-function onCommandResult(id, result) {
+function onCommandResponse(msg) {
+  const { id } = msg;
   if (gResultWaiters.has(id)) {
-    gResultWaiters.get(id)(result);
+    const { resolve, reject } = gResultWaiters.get(id);
     gResultWaiters.delete(id);
+
+    if (msg.error) {
+      reject(new CommandError(msg.error.message, msg.error.code));
+    } else {
+      resolve(msg.result);
+    }
+  }
+}
+
+class CommandError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.code = code;
   }
 }
 

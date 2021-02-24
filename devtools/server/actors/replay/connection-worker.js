@@ -36,6 +36,7 @@ function UploadSocket(address) {
   this.open = false;
   this.pending = [];
   this.closed = false;
+  this.inProgress = new Set();
 
   this.initialize();
 }
@@ -45,13 +46,13 @@ UploadSocket.prototype = {
     this.socket = new WebSocket(this.address);
     this.socket.onopen = makeInfallible(() => this.onOpen());
     this.socket.onclose = makeInfallible(() => this.onClose());
-    this.socket.onmessage = makeInfallible(onServerMessage);
+    this.socket.onmessage = makeInfallible(onServerMessage, this);
     this.socket.onerror = makeInfallible(() => this.onError());
   },
 
   onOpen() {
     this.open = true;
-    this.pending.forEach((msg) => doSend(this.socket, msg));
+    this.pending.forEach(cb => cb());
     this.pending.length = 0;
 
     updateStatus("");
@@ -59,6 +60,22 @@ UploadSocket.prototype = {
 
   onClose() {
     if (!this.closed) {
+      const ids = Array.from(this.inProgress);
+      this.inProgress.clear();
+      for (const id of ids) {
+        postMessage({
+          kind: "commandResponse",
+          msg: {
+            id,
+            error: {
+              code: -1,
+              message: "Connection Lost",
+            },
+          },
+        });
+      }
+
+      this.open = false;
       updateStatus("cloudReconnecting.label");
       setTimeout(() => this.initialize(), 3000);
     }
@@ -72,9 +89,13 @@ UploadSocket.prototype = {
 
   send(msg) {
     if (this.open) {
+      this.inProgress.add(msg.id);
       doSend(this.socket, msg);
     } else {
-      this.pending.push(msg);
+      this.pending.push(() => {
+        this.inProgress.add(msg.id);
+        doSend(this.socket, msg);
+      });
     }
   },
 
@@ -101,11 +122,11 @@ function updateStatus(status) {
 
 function onServerMessage(evt) {
   const data = JSON.parse(evt.data);
-  if (data.error) {
-    dump(`ServerError ${JSON.stringify(data)}\n`);
-  } else {
-    postMessage({ kind: "commandResult", id: data.id, result: data.result });
+
+  if (data.id) {
+    this.inProgress.delete(data.id);
   }
+  postMessage({ kind: "commandResponse", msg: data });
 }
 
 const doSend = makeInfallible((socket, msg) => socket.send(msg));
