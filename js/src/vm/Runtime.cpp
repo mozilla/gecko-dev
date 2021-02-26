@@ -962,7 +962,7 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
     // int32 vs. double representations might not be consistent between
     // recording and replaying, due to different JIT behaviors, so we normalize
     // to a double. Include both the numeric value and the raw bits to make
-    // things easier to work with but also catch differences in the least
+    // assertion text easier to read but also catch differences in the least
     // significant bits of the double.
     double d = value.toNumber();
     Value v = DoubleValue(d);
