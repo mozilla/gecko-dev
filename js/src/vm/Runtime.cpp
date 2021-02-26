@@ -958,6 +958,15 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
     mozilla::recordreplay::RecordReplayAssert("JSValue %s Symbol", buf);
   } else if (value.isBigInt()) {
     mozilla::recordreplay::RecordReplayAssert("JSValue %s BigInt", buf);
+  } else if (value.isNumber()) {
+    // int32 vs. double representations might not be consistent between
+    // recording and replaying, due to different JIT behaviors, so we normalize
+    // to a double. Include both the numeric value and the raw bits to make
+    // things easier to work with but also catch differences in the least
+    // significant bits of the double.
+    double d = value.toNumber();
+    Value v = DoubleValue(d);
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s Number %.2f %llu", buf, d, v.asRawBits());
   } else {
     // int32 vs. double representations might not be consistent between
     // recording and replaying, due to different JIT behaviors.
