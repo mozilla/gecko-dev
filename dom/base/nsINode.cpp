@@ -1040,7 +1040,9 @@ uint16_t nsINode::CompareDocumentPosition(nsINode& aOtherNode,
   const nsINode* top1 = parents1.ElementAt(--pos1);
   const nsINode* top2 = parents2.ElementAt(--pos2);
   if (top1 != top2) {
-    return top1 < top2
+    // Pointer values differ when replaying, so force this comparison
+    // to produce the same value.
+    return recordreplay::RecordReplayValue("CompareDocumentPosition", top1 < top2)
                ? (Node_Binding::DOCUMENT_POSITION_PRECEDING |
                   Node_Binding::DOCUMENT_POSITION_DISCONNECTED |
                   Node_Binding::DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC)
