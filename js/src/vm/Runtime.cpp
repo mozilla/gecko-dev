@@ -968,10 +968,7 @@ bool js::RecordReplayAssertValue(JSContext* cx, HandlePropertyName name, HandleV
     Value v = DoubleValue(d);
     mozilla::recordreplay::RecordReplayAssert("JSValue %s Number %.2f %llu", buf, d, v.asRawBits());
   } else {
-    // int32 vs. double representations might not be consistent between
-    // recording and replaying, due to different JIT behaviors.
-    Value v = value.isInt32() ? DoubleValue(value.toInt32()) : value;
-    mozilla::recordreplay::RecordReplayAssert("JSValue %s Primitive %llu", buf, v.asRawBits());
+    mozilla::recordreplay::RecordReplayAssert("JSValue %s Primitive %llu", buf, value.asRawBits());
   }
 
   return true;
