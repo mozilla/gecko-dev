@@ -2335,12 +2335,15 @@ void nsNativeThemeCocoa::DrawNativeTitlebar(CGContextRef aContext, CGRect aTitle
 }
 
 static void RenderResizer(CGContextRef cgContext, const HIRect& aRenderRect, void* aData) {
+  recordreplay::RecordReplayAssert("RenderResizer");
   HIThemeGrowBoxDrawInfo* drawInfo = (HIThemeGrowBoxDrawInfo*)aData;
   HIThemeDrawGrowBox(&CGPointZero, drawInfo, cgContext, kHIThemeOrientationNormal);
 }
 
 void nsNativeThemeCocoa::DrawResizer(CGContextRef cgContext, const HIRect& aRect, bool aIsRTL) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
+
+  recordreplay::RecordReplayAssert("DrawResizer");
 
   HIThemeGrowBoxDrawInfo drawInfo;
   drawInfo.version = 0;
@@ -2787,6 +2790,8 @@ nsNativeThemeCocoa::DrawWidgetBackground(gfxContext* aContext, nsIFrame* aFrame,
                                          const nsRect& aDirtyRect) {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK_NSRESULT;
 
+  recordreplay::RecordReplayAssert("nsNativeThemeCocoa::DrawWidgetBackground");
+
   Maybe<WidgetInfo> widgetInfo = ComputeWidgetInfo(aFrame, aAppearance, aRect);
 
   if (!widgetInfo) {
@@ -2825,6 +2830,8 @@ void nsNativeThemeCocoa::RenderWidget(const WidgetInfo& aWidgetInfo, DrawTarget&
   aDrawTarget.SetTransform(aDrawTarget.GetTransform().PreScale(aScale, aScale));
 
   const Widget widget = aWidgetInfo.Widget();
+
+  recordreplay::RecordReplayAssert("nsNativeThemeCocoa::RenderWidget %d", (int)widget);
 
   // Some widgets render using DrawTarget, and some using CGContext.
   switch (widget) {
