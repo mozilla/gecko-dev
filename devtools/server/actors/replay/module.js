@@ -31,6 +31,10 @@ if (isRecordingOrReplaying) {
 
 const log = RecordReplayControl.log;
 
+const { CryptoUtils } = ChromeUtils.import(
+  "resource://services-crypto/utils.js"
+);
+
 const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 
 const { getCurrentZoom } = require("devtools/shared/layout/utils");
@@ -188,6 +192,77 @@ class ArrayMap {
 // Main Logic
 ///////////////////////////////////////////////////////////////////////////////
 
+const gSourceMapData = new WeakMap();
+
+function setSourceMap(window, object, objectURL, objectText, url) {
+  if (!Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
+    return;
+  }
+  const recordingId = RecordReplayControl.recordingId();
+  if (!recordingId || !url) {
+    return;
+  }
+
+  let sourceBaseURL;
+  if (typeof objectURL === "string" && isValidBaseURL(objectURL)) {
+    sourceBaseURL = objectURL;
+  } else if (window?.location?.href && isValidBaseURL(window?.location?.href)) {
+    sourceBaseURL = window.location.href;
+  }
+
+  let sourceMapURL
+  try {
+    sourceMapURL = new URL(url, sourceBaseURL).toString();
+  } catch (err) {
+    log("Failed to process sourcemap url: " + err.message);
+    return;
+  }
+
+  // If the map was a data: URL or something along those lines, we want
+  // to resolve paths in the map relative to the overall base.
+  const sourceMapBaseURL =
+    isValidBaseURL(sourceMapURL) ? sourceMapURL : sourceBaseURL;
+
+  gSourceMapData.set(object, {
+    url: sourceMapURL,
+    baseUrl: sourceMapBaseURL
+  });
+
+  Services.cpmm.sendAsyncMessage("RecordReplayGeneratedSourceWithSourceMap", {
+    recordingId,
+    sourceMapURL,
+    sourceMapBaseURL,
+
+    // Do an exact match on this map's URL, so that even if the content is not
+    // available or if it has no URL, we can still make a best-effort match
+    // for the map. This won't be specific enough on its own if the page
+    // was loaded multiple times with different maps, but that's all we can do.
+    targetMapURLHash: makeAPIHash(sourceMapURL),
+
+    // Attempt to be more specific by matching on the script's URL and content.
+    targetContentHash: typeof objectText === "string" ? makeAPIHash(objectText) : undefined,
+    targetURLHash: typeof objectURL === "string" ? makeAPIHash(objectURL) : undefined,
+  });
+}
+
+function makeAPIHash(content) {
+  assert(typeof content === "string");
+  return "sha256:" + CryptoUtils.sha256(content);
+}
+
+function isValidBaseURL(url) {
+  try {
+    new URL("", url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getSourceMapData(object) {
+  return gSourceMapData.get(object);
+}
+
 const gNewGlobalHooks = [];
 gDebugger.onNewGlobalObject = (global) => {
   try {
@@ -247,19 +322,10 @@ gDebugger.onNewScript = (script) => {
 
   gGeckoSources.set(script.source.id, script.source);
 
-  if (
-    script.source.sourceMapURL &&
-    Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
-  ) {
-    const recordingId = RecordReplayControl.recordingId();
-    if (recordingId) {
-      const { url, sourceMapURL } = script.source;
-      Services.cpmm.sendAsyncMessage("RecordReplayGeneratedSourceWithSourceMap", {
-        recordingId,
-        url,
-        sourceMapURL,
-      });
-    }
+  const sourceURL = getDebuggerSourceURL(script.source);
+
+  if (script.source.text !== "[wasm]") {
+    setSourceMap(getWindow(), script.source, sourceURL, script.source.text, script.source.sourceMapURL);
   }
 
   let kind = "scriptSource";
@@ -267,7 +333,7 @@ gDebugger.onNewScript = (script) => {
     kind = "inlineScript";
   }
 
-  RecordReplayControl.onNewSource(id, kind, getDebuggerSourceURL(script.source));
+  RecordReplayControl.onNewSource(id, kind, sourceURL);
 
   function addScript(script) {
     const id = gScripts.add(script);
@@ -321,25 +387,28 @@ getWindow().docShell.chromeEventHandler.addEventListener(
 getWindow().docShell.chromeEventHandler.addEventListener(
   "StyleSheetApplicableStateChanged",
   ({ stylesheet }) => {
-    if (
-      stylesheet.sourceMapURL &&
-      Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")
-    ) {
-      const recordingId = RecordReplayControl.recordingId();
-      if (recordingId) {
-        Services.cpmm.sendAsyncMessage(
-          "RecordReplayGeneratedSourceWithSourceMap",
-          {
-            recordingId,
-            url: stylesheet.href,
-            sourceMapURL: stylesheet.sourceMapURL,
-          }
-        );
-      }
-    }
+    setSourceMap(getStylesheetWindow(stylesheet), stylesheet, stylesheet.href, undefined, stylesheet.sourceMapURL);
   },
   true
 );
+
+// This logic is mostly copied from actors/style-sheet.js
+function getStylesheetWindow(stylesheet) {
+  while (stylesheet.parentStyleSheet) {
+    stylesheet = stylesheet.parentStyleSheet;
+  }
+
+  if (stylesheet.ownerNode) {
+    const document =
+      stylesheet.ownerNode.nodetype === Node.DOCUMENT_NODE
+        ? stylesheet.ownerNode
+        : stylesheet.ownerNode.ownerDocument;
+    if (document.defaultView) {
+      return document.defaultView;
+    }
+  }
+  return getWindow();
+}
 
 const { DebuggerNotificationObserver } = Cu.getGlobalForObject(
   require("resource://devtools/shared/Loader.jsm")
@@ -783,8 +852,7 @@ function Target_getStepOffsets({ functionId }) {
 
 function Target_getSourceMapURL({ sourceId }) {
   const source = protocolSourceIdToSource(sourceId);
-  const url = source.sourceMapURL;
-  return url ? { url } : {};
+  return getSourceMapData(source) || {};
 }
 
 function Debugger_getSourceContents({ sourceId }) {
@@ -1788,8 +1856,7 @@ function CSS_getComputedStyle({ node }) {
 
 function Target_getSheetSourceMapURL({ sheet }) {
   const sheetObj = getObjectFromId(sheet).unsafeDereference();
-  const url = sheetObj.sourceMapURL || undefined;
-  return { url };
+  return getSourceMapData(sheetObj) || {};
 }
 
 function Target_topFrameLocation() {
