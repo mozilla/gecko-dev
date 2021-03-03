@@ -137,27 +137,33 @@ class Recording extends EventEmitter {
   }
 
   _onNewSourcemap(params) {
-    this._resourceUploads.push(uploadAllSourcemapAssets(params));
+    this._resourceUploads.push(uploadAllSourcemapAssets(params).catch(err => {
+      console.error("Exception while processing sourcemap", err, params);
+    }));
   }
 
   async _onFinished(data) {
     this.emit("finished");
 
-    await Promise.all([
-      sendCommand("Internal.setRecordingMetadata", {
+    try {
+      await sendCommand("Internal.setRecordingMetadata", {
         authId: getLoggedInUserAuthId(),
         recordingData: data,
-      }),
+      });
+    } catch (err) {
+      console.error("Exception while setting recording metadata", err);
+      let message;
+      if (err instanceof CommandError) {
+        message = ": " + err.message;
+      }
+      this._onUnusable({ why: "failed to set recording metadata" + message });
+      return;
+    }
 
-      // Ensure that all sourcemap resources have been sent to the server before
-      // we consider the recording saved, so that we don't risk creating a
-      // recording session without all the maps available.
-      // NOTE: Since we only do this here, recordings that become unusable
-      // will never be cleaned up and will leak. We don't currently have
-      // an easy way to know the ID of unusable recordings, so we accept
-      // the leak as a minor issue.
-      Promise.allSettled(this._resourceUploads),
-    ]);
+    // Ensure that all sourcemap resources have been sent to the server before
+    // we consider the recording saved, so that we don't risk creating a
+    // recording session without all the maps available.
+    await Promise.all(this._resourceUploads);
 
     this.emit("saved", data);
   }
