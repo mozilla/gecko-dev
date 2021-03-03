@@ -118,9 +118,9 @@ function countScriptFrames() {
 // Utilities
 ///////////////////////////////////////////////////////////////////////////////
 
-function assert(v) {
+function assert(v, msg = "") {
   if (!v) {
-    log(`Error: Assertion failed ${Error().stack}`);
+    log(`Error: Assertion failed ${msg} ${Error().stack}`);
     throw new Error("Assertion failed!");
   }
 }
@@ -757,11 +757,15 @@ function forMatchingBreakpointPositions(source, begin, end, callback) {
 }
 
 function protocolSourceIdToSource(sourceId) {
-  return gSources.getObject(Number(sourceId));
+  const source = gSources.getObject(Number(sourceId));
+  assert(source, "source is unknown: " + sourceId);
+  return source;
 }
 
 function sourceToProtocolSourceId(source) {
-  return String(gSources.getId(source));
+  const id = gSources.getId(source);
+  assert(id > 0, "source is unknown");
+  return String(id);
 }
 
 function Debugger_getPossibleBreakpoints({ sourceId, begin, end }) {
@@ -788,11 +792,15 @@ function Debugger_getPossibleBreakpoints({ sourceId, begin, end }) {
 }
 
 function functionIdToScript(functionId) {
-  return gScripts.getObject(Number(functionId));
+  const script = gScripts.getObject(Number(functionId));
+  assert(script, "script is unknown: " + functionId);
+  return script;
 }
 
 function scriptToFunctionId(script) {
-  return String(gScripts.getId(script));
+  const id = gScripts.getId(script);
+  assert(id > 0, "script is unknown");
+  return String(id);
 }
 
 function Target_convertFunctionOffsetToLocation({ functionId, offset }) {
@@ -1020,6 +1028,12 @@ function getFunctionLocation(obj) {
   if (!script && obj.isBoundFunction) {
     script = obj.boundTargetFunction.script;
   }
+  if (script && gScripts.getId(script) === 0) {
+    // sourceToProtocolSourceId will throw for unknown sources, so if
+    // something tries to get the location of an unknown script, we
+    // should bail.
+    script = null;
+  }
   if (script) {
     return {
       sourceId: sourceToProtocolSourceId(script.source),
@@ -1064,7 +1078,9 @@ function createProtocolFrame(frameId, frame) {
   let functionLocation;
   if (frame.type == "call") {
     functionName = getFunctionName(frame.callee);
-    functionLocation = [getFunctionLocation(frame.callee)];
+    const location = getFunctionLocation(frame.callee);
+    assert(location, "unknown frame callee location");
+    functionLocation = [location];
   }
 
   const scopeChain = getScopeChain(frame);
