@@ -49,7 +49,7 @@ nsInputStreamPump::nsInputStreamPump()
       mRetargeting(false),
       mAsyncStreamIsBuffered(false),
       mOffMainThread(!NS_IsMainThread()),
-      mMutex("nsInputStreamPump") {}
+      mMutex("nsInputStreamPump", /* aOrdered */ true) {}
 
 nsresult nsInputStreamPump::Create(nsInputStreamPump** result,
                                    nsIInputStream* stream, uint32_t segsize,
