@@ -415,7 +415,7 @@ static bool Method_OnNewSource(JSContext* aCx, unsigned aArgc, Value* aVp) {
         const char* recordingId = GetRecordingId();
         fprintf(file, "%s\n", recordingId);
         fclose(file);
-        fprintf(stderr, "Found content %s, saving recording ID %s", urlRaw, recordingId);
+        fprintf(stderr, "Found content %s, saving recording ID %s\n", urlRaw, recordingId);
       } else {
         fprintf(stderr, "Error: Could not open %s for adding recording ID", env);
       }
