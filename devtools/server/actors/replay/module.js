@@ -194,7 +194,13 @@ class ArrayMap {
 
 const gSourceMapData = new WeakMap();
 
-function setSourceMap(window, object, objectURL, objectText, url) {
+function setSourceMap({
+  window,
+  object,
+  objectURL,
+  objectText,
+  objectMapURL: url
+}) {
   if (!Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
     return;
   }
@@ -325,7 +331,13 @@ gDebugger.onNewScript = (script) => {
   const sourceURL = getDebuggerSourceURL(script.source);
 
   if (script.source.text !== "[wasm]") {
-    setSourceMap(getWindow(), script.source, sourceURL, script.source.text, script.source.sourceMapURL);
+    setSourceMap({
+      window: getWindow(),
+      object: script.source,
+      objectURL: sourceURL,
+      objectText: script.source.text,
+      objectMapURL: script.source.sourceMapURL,
+    });
   }
 
   let kind = "scriptSource";
@@ -387,7 +399,13 @@ getWindow().docShell.chromeEventHandler.addEventListener(
 getWindow().docShell.chromeEventHandler.addEventListener(
   "StyleSheetApplicableStateChanged",
   ({ stylesheet }) => {
-    setSourceMap(getStylesheetWindow(stylesheet), stylesheet, stylesheet.href, undefined, stylesheet.sourceMapURL);
+    setSourceMap({
+      window: getStylesheetWindow(stylesheet),
+      object: stylesheet,
+      objectURL: stylesheet.href,
+      objectText: undefined,
+      objectMapURL: stylesheet.sourceMapURL,
+    });
   },
   true
 );
