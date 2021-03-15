@@ -319,33 +319,7 @@ gDebugger.onNewScript = (script) => {
 
   gSourceRoots.add(script.source, script);
 
-  if (gSources.getId(script.source)) {
-    return;
-  }
-
-  gSources.add(script.source);
-  const id = sourceToProtocolSourceId(script.source);
-
-  gGeckoSources.set(script.source.id, script.source);
-
-  const sourceURL = getDebuggerSourceURL(script.source);
-
-  if (script.source.text !== "[wasm]") {
-    setSourceMap({
-      window: getWindow(),
-      object: script.source,
-      objectURL: sourceURL,
-      objectText: script.source.text,
-      objectMapURL: script.source.sourceMapURL,
-    });
-  }
-
-  let kind = "scriptSource";
-  if (script.source.introductionType === "inlineScript") {
-    kind = "inlineScript";
-  }
-
-  RecordReplayControl.onNewSource(id, kind, sourceURL);
+  registerSource(script.source);
 
   function addScript(script) {
     const id = gScripts.add(script);
@@ -358,6 +332,36 @@ gDebugger.onNewScript = (script) => {
     script.getChildScripts().forEach(ignoreScript);
   }
 };
+
+function registerSource(source) {
+  if (gSources.getId(source)) {
+    return;
+  }
+  gSources.add(source);
+
+  const id = sourceToProtocolSourceId(source);
+
+  gGeckoSources.set(source.id, source);
+
+  const sourceURL = getDebuggerSourceURL(source);
+
+  if (source.text !== "[wasm]") {
+    setSourceMap({
+      window: getWindow(),
+      object: source,
+      objectURL: sourceURL,
+      objectText: source.text,
+      objectMapURL: source.sourceMapURL,
+    });
+  }
+
+  let kind = "scriptSource";
+  if (source.introductionType === "inlineScript") {
+    kind = "inlineScript";
+  }
+
+  RecordReplayControl.onNewSource(id, kind, sourceURL);
+}
 
 const gHtmlContent = new Map();
 
