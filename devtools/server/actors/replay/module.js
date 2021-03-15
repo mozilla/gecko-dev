@@ -195,7 +195,13 @@ class ArrayMap {
 
 const gSourceMapData = new WeakMap();
 
-function setSourceMap(window, object, objectURL, objectText, url) {
+function setSourceMap({
+  window,
+  object,
+  objectURL,
+  objectText,
+  objectMapURL: url
+}) {
   if (!Services.prefs.getBoolPref("devtools.recordreplay.uploadSourceMaps")) {
     return;
   }
@@ -314,27 +320,7 @@ gDebugger.onNewScript = (script) => {
 
   gSourceRoots.add(script.source, script);
 
-  if (gSources.getId(script.source)) {
-    return;
-  }
-
-  gSources.add(script.source);
-  const id = sourceToProtocolSourceId(script.source);
-
-  gGeckoSources.set(script.source.id, script.source);
-
-  const sourceURL = getDebuggerSourceURL(script.source);
-
-  if (script.source.text !== "[wasm]") {
-    setSourceMap(getWindow(), script.source, sourceURL, script.source.text, script.source.sourceMapURL);
-  }
-
-  let kind = "scriptSource";
-  if (script.source.introductionType === "inlineScript") {
-    kind = "inlineScript";
-  }
-
-  RecordReplayControl.onNewSource(id, kind, sourceURL);
+  registerSource(script.source);
 
   function addScript(script) {
     const id = gScripts.add(script);
@@ -347,6 +333,42 @@ gDebugger.onNewScript = (script) => {
     script.getChildScripts().forEach(ignoreScript);
   }
 };
+
+function registerSource(source) {
+  if (gSources.getId(source)) {
+    return;
+  }
+  gSources.add(source);
+
+  const id = sourceToProtocolSourceId(source);
+
+  gGeckoSources.set(source.id, source);
+
+  const window = getWindow();
+  let sourceURL = getDebuggerSourceURL(source);
+  if (!sourceURL && source.displayURL) {
+    try {
+      sourceURL = new URL(source.displayURL, window?.location?.href).toString();
+    } catch {}
+  }
+
+  if (source.text !== "[wasm]") {
+    setSourceMap({
+      window,
+      object: source,
+      objectURL: sourceURL,
+      objectText: source.text,
+      objectMapURL: source.sourceMapURL,
+    });
+  }
+
+  let kind = "scriptSource";
+  if (source.introductionType === "inlineScript") {
+    kind = "inlineScript";
+  }
+
+  RecordReplayControl.onNewSource(id, kind, sourceURL);
+}
 
 const gHtmlContent = new Map();
 
@@ -388,7 +410,13 @@ getWindow().docShell.chromeEventHandler.addEventListener(
 getWindow().docShell.chromeEventHandler.addEventListener(
   "StyleSheetApplicableStateChanged",
   ({ stylesheet }) => {
-    setSourceMap(getStylesheetWindow(stylesheet), stylesheet, stylesheet.href, undefined, stylesheet.sourceMapURL);
+    setSourceMap({
+      window: getStylesheetWindow(stylesheet),
+      object: stylesheet,
+      objectURL: stylesheet.href,
+      objectText: undefined,
+      objectMapURL: stylesheet.sourceMapURL,
+    });
   },
   true
 );
