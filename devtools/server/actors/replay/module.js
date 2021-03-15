@@ -343,11 +343,17 @@ function registerSource(source) {
 
   gGeckoSources.set(source.id, source);
 
-  const sourceURL = getDebuggerSourceURL(source);
+  const window = getWindow();
+  let sourceURL = getDebuggerSourceURL(source);
+  if (!sourceURL && source.displayURL) {
+    try {
+      sourceURL = new URL(source.displayURL, window?.location?.href).toString();
+    } catch {}
+  }
 
   if (source.text !== "[wasm]") {
     setSourceMap({
-      window: getWindow(),
+      window,
       object: source,
       objectURL: sourceURL,
       objectText: source.text,
