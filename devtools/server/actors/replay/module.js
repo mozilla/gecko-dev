@@ -430,7 +430,7 @@ let gReactDevtoolsInitialized = false;
 gNewGlobalHooks.push(dbgWindow => {
   if (!gReactDevtoolsInitialized) {
     gReactDevtoolsInitialized = true;
-    initReactDevtools(dbgWindow);
+    initReactDevtools(dbgWindow, RecordReplayControl);
   }
 });
 

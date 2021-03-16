@@ -2,9 +2,6 @@
 
 'use strict';
 
-let backendDisconnected = false;
-let backendInitialized = false;
-
 let window;
 
 function sayHelloToBackend() {
@@ -17,67 +14,23 @@ function sayHelloToBackend() {
   );
 }
 
-function handleMessageFromDevtools(message) {
-  window.postMessage(
-    {
-      source: 'react-devtools-content-script',
-      payload: message,
-    },
-    '*',
-  );
-}
-
-function handleMessageFromPage(evt) {
-  if (
-    evt.source === window &&
-    evt.data &&
-    evt.data.source === 'react-devtools-bridge'
-  ) {
-    backendInitialized = true;
-
-    port.postMessage(evt.data.payload);
-  }
-}
-
-function handleDisconnect() {
-  backendDisconnected = true;
-
-  window.removeEventListener('message', handleMessageFromPage);
-
-  window.postMessage(
-    {
-      source: 'react-devtools-content-script',
-      payload: {
-        type: 'event',
-        event: 'shutdown',
-      },
-    },
-    '*',
-  );
-}
-
-// proxy from main page to devtools (via the background page)
-/*
-const port = chrome.runtime.connect({
-  name: 'content-script',
-});
-port.onMessage.addListener(handleMessageFromDevtools);
-port.onDisconnect.addListener(handleDisconnect);
-*/
-const port = null;
-
-function initialize(dbgWindow) {
+function initialize(dbgWindow, RecordReplayControl) {
   window = dbgWindow.unsafeDereference();
+
+  window.wrappedJSObject.__RECORD_REPLAY_REACT_DEVTOOLS_SEND_BRIDGE__ =
+    (event, payload) => {
+      RecordReplayControl.onAnnotation(
+        "react-devtools-bridge",
+        JSON.stringify({ event, payload })
+      );
+    };
 
   const { installHook } = require("devtools/server/actors/replay/react-devtools/hook");
   dbgWindow.executeInGlobal(`(${installHook}(window))`);
 
-  const {
-    initialize: initBackend,
-  } = require("devtools/server/actors/replay/react-devtools/react_devtools_backend");
-  initBackend(window);
+  const { reactDevtoolsBackend } = require("devtools/server/actors/replay/react-devtools/react_devtools_backend");
+  dbgWindow.executeInGlobal(`(${reactDevtoolsBackend}(window))`);
 
-  window.addEventListener('message', handleMessageFromPage);
   sayHelloToBackend();
 }
 

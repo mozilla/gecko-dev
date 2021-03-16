@@ -594,6 +594,24 @@ static bool Method_OnConsoleMessage(JSContext* aCx, unsigned aArgc, Value* aVp) 
   return true;
 }
 
+static bool Method_OnAnnotation(JSContext* aCx, unsigned aArgc, Value* aVp) {
+  CallArgs args = CallArgsFromVp(aArgc, aVp);
+
+  if (!args.get(0).isString() || !args.get(1).isString()) {
+    JS_ReportErrorASCII(aCx, "Bad parameters");
+    return false;
+  }
+
+  nsAutoCString kind, contents;
+  ConvertJSStringToCString(aCx, args.get(0).toString(), kind);
+  ConvertJSStringToCString(aCx, args.get(1).toString(), contents);
+
+  PrintLog("OnAnnotation %s %s", kind.get(), contents.get());
+
+  args.rval().setUndefined();
+  return true;
+}
+
 static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("log", Method_Log, 1, 0),
   JS_FN("annotate", Method_Annotate, 1, 0),
@@ -606,6 +624,7 @@ static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("onDebuggerStatement", Method_OnDebuggerStatement, 0, 0),
   JS_FN("onEvent", Method_OnEvent, 2, 0),
   JS_FN("onConsoleMessage", Method_OnConsoleMessage, 1, 0),
+  JS_FN("onAnnotation", Method_OnAnnotation, 2, 0),
   JS_FN("recordingId", Method_RecordingId, 0, 0),
   JS_FS_END
 };
