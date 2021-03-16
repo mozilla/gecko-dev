@@ -40,6 +40,10 @@ const { require } = ChromeUtils.import("resource://devtools/shared/Loader.jsm");
 const { getCurrentZoom } = require("devtools/shared/layout/utils");
 const { getDebuggerSourceURL } = require("devtools/server/actors/utils/source-url");
 
+const {
+  initialize: initReactDevtools,
+} = require("devtools/server/actors/replay/react-devtools/contentScript");
+
 let gWindow;
 function getWindow() {
   if (!gWindow) {
@@ -420,6 +424,15 @@ getWindow().docShell.chromeEventHandler.addEventListener(
   },
   true
 );
+
+let gReactDevtoolsInitialized = false;
+
+gNewGlobalHooks.push(dbgWindow => {
+  if (!gReactDevtoolsInitialized) {
+    gReactDevtoolsInitialized = true;
+    initReactDevtools(dbgWindow);
+  }
+});
 
 // This logic is mostly copied from actors/style-sheet.js
 function getStylesheetWindow(stylesheet) {

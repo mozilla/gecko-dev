@@ -1,0 +1,5 @@
+DevToolsModules(
+    "contentScript.js",
+    "hook.js",
+    "react_devtools_backend.js",
+)
