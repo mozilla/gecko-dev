@@ -1174,7 +1174,6 @@ function createProtocolObject(objectId, level) {
   }
 
   const className = obj.class;
-  RecordReplayControl.annotate(`CreateProtocolObject ${objectId} ${className} ${level}`);
   let preview;
   if (level != "none") {
     preview = new ProtocolObjectPreview(obj, level).fill();
@@ -1293,11 +1292,9 @@ ProtocolObjectPreview.prototype = {
       return;
     }
     try {
-      RecordReplayControl.annotate(`PreviewCallGetter ${name} ${this.numItems}`);
       const value = createProtocolValueRaw(this.raw[name]);
       this.getterValues.set(name, { name, ...value });
     } catch (e) {
-      RecordReplayControl.annotate(`PreviewCallGetter Exception ${e}`);
       this.numItems--;
     }
   },
@@ -1342,9 +1339,7 @@ ProtocolObjectPreview.prototype = {
 
     if (this.level != "noProperties") {
       // Add "own" properties of the object.
-      RecordReplayControl.annotate(`PreviewStartGetNames`);
       const names = propertyNames(this.obj);
-      RecordReplayControl.annotate(`PreviewGetNames ${names.length}`);
       for (const name of names) {
         try {
           const desc = this.obj.getOwnPropertyDescriptor(name);
@@ -1419,8 +1414,6 @@ ProtocolObjectPreview.prototype = {
 
 function previewMap() {
   const entries = Cu.waiveXrays(Map.prototype.entries.call(this.raw));
-  RecordReplayControl.annotate(`PreviewMapEntries ${entries}.length`);
-
   for (const [k, v] of entries) {
     this.addContainerEntryRaw(v, k, true);
     if (this.overflow) {
@@ -1433,8 +1426,6 @@ function previewMap() {
 
 function previewWeakMap() {
   const keys = ChromeUtils.nondeterministicGetWeakMapKeys(this.raw);
-  RecordReplayControl.annotate(`PreviewWeakMapEntries ${keys}.length`);
-
   this.extra.containerEntryCount = keys.length;
 
   for (const k of keys) {
@@ -1448,8 +1439,6 @@ function previewWeakMap() {
 
 function previewSet() {
   const values = Cu.waiveXrays(Set.prototype.values.call(this.raw));
-  RecordReplayControl.annotate(`PreviewSetEntries ${values}.length`);
-
   for (const v of values) {
     this.addContainerEntryRaw(v);
     if (this.overflow) {
@@ -1462,8 +1451,6 @@ function previewSet() {
 
 function previewWeakSet() {
   const keys = ChromeUtils.nondeterministicGetWeakSetKeys(this.raw);
-  RecordReplayControl.annotate(`PreviewWeakSetEntries ${keys}.length`);
-
   this.extra.containerEntryCount = keys.length;
 
   for (const k of keys) {

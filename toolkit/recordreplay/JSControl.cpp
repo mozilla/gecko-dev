@@ -42,7 +42,6 @@ static void (*gOnEvent)(const char* aEvent, bool aBefore);
 static void (*gOnConsoleMessage)(int aTimeWarpTarget);
 static size_t (*gNewTimeWarpTarget)();
 static size_t (*gElapsedTimeMs)();
-static void (*gAddAnnotation)(const char* aText);
 static char* (*gGetUnusableRecordingReason)();
 
 // Callback used when the recording driver is sending us a command to look up
@@ -70,7 +69,6 @@ void InitializeJS() {
   LoadSymbol("RecordReplayOnConsoleMessage", gOnConsoleMessage);
   LoadSymbol("RecordReplayNewBookmark", gNewTimeWarpTarget);
   LoadSymbol("RecordReplayElapsedTimeMs", gElapsedTimeMs);
-  LoadSymbol("RecordReplayAddAnnotation", gAddAnnotation);
   LoadSymbol("RecordReplayGetUnusableRecordingReason", gGetUnusableRecordingReason);
 
   gSetDefaultCommandCallback(CommandCallback);
@@ -341,25 +339,6 @@ static bool Method_Log(JSContext* aCx, unsigned aArgc, Value* aVp) {
   return true;
 }
 
-static bool Method_Annotate(JSContext* aCx, unsigned aArgc, Value* aVp) {
-  CallArgs args = CallArgsFromVp(aArgc, aVp);
-
-  RootedString str(aCx, ToString(aCx, args.get(0)));
-  if (!str) {
-    return false;
-  }
-
-  JS::UniqueChars cstr = JS_EncodeStringToLatin1(aCx, str);
-  if (!cstr) {
-    return false;
-  }
-
-  gAddAnnotation(cstr.get());
-
-  args.rval().setUndefined();
-  return true;
-}
-
 // Return whether aURL is an interesting source and the recording should be
 // remembered if all content processes are being recorded.
 static bool IsInterestingSource(const char* aURL) {
@@ -617,7 +596,6 @@ static bool Method_OnAnnotation(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
 static const JSFunctionSpec gRecordReplayMethods[] = {
   JS_FN("log", Method_Log, 1, 0),
-  JS_FN("annotate", Method_Annotate, 1, 0),
   JS_FN("onNewSource", Method_OnNewSource, 3, 0),
   JS_FN("areThreadEventsDisallowed", Method_AreThreadEventsDisallowed, 0, 0),
   JS_FN("shouldUpdateProgressCounter", Method_ShouldUpdateProgressCounter, 1, 0),
