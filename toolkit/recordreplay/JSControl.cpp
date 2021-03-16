@@ -151,7 +151,10 @@ MOZ_EXPORT bool RecordReplayInterface_ShouldUpdateProgressCounter(
     const char* aURL) {
   // Progress counters are only updated for scripts which are exposed to the
   // debugger.
-  return aURL && strncmp(aURL, "resource:", 9) && strncmp(aURL, "chrome:", 7);
+  return aURL
+      && strncmp(aURL, "resource:", 9)
+      && strncmp(aURL, "chrome:", 7)
+      && strcmp(aURL, "debugger eval code");
 }
 
 }  // extern "C"
