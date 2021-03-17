@@ -40,6 +40,7 @@ static void (*gOnExceptionUnwind)();
 static void (*gOnDebuggerStatement)();
 static void (*gOnEvent)(const char* aEvent, bool aBefore);
 static void (*gOnConsoleMessage)(int aTimeWarpTarget);
+static void (*gOnAnnotation)(const char* aKind, const char* aContents);
 static size_t (*gNewTimeWarpTarget)();
 static size_t (*gElapsedTimeMs)();
 static char* (*gGetUnusableRecordingReason)();
@@ -67,6 +68,7 @@ void InitializeJS() {
   LoadSymbol("RecordReplayOnDebuggerStatement", gOnDebuggerStatement);
   LoadSymbol("RecordReplayOnEvent", gOnEvent);
   LoadSymbol("RecordReplayOnConsoleMessage", gOnConsoleMessage);
+  LoadSymbol("RecordReplayOnAnnotation", gOnAnnotation);
   LoadSymbol("RecordReplayNewBookmark", gNewTimeWarpTarget);
   LoadSymbol("RecordReplayElapsedTimeMs", gElapsedTimeMs);
   LoadSymbol("RecordReplayGetUnusableRecordingReason", gGetUnusableRecordingReason);
@@ -588,7 +590,7 @@ static bool Method_OnAnnotation(JSContext* aCx, unsigned aArgc, Value* aVp) {
   ConvertJSStringToCString(aCx, args.get(0).toString(), kind);
   ConvertJSStringToCString(aCx, args.get(1).toString(), contents);
 
-  PrintLog("OnAnnotation %s %s", kind.get(), contents.get());
+  gOnAnnotation(kind.get(), contents.get());
 
   args.rval().setUndefined();
   return true;
