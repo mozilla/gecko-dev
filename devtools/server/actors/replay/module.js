@@ -588,7 +588,13 @@ gNewGlobalHooks.push((global) => {
 });
 
 function SetScanningScripts(value) {
-  gAllGlobals.forEach((g) => g.setInstrumentationActive(value));
+  gAllGlobals.forEach((g) => {
+    try {
+      g.setInstrumentationActive(value);
+    } catch (e) {
+      log(`Error: Exception setting instrumentation ${e}`);
+    }
+  });
 }
 
 ///////////////////////////////////////////////////////////////////////////////
