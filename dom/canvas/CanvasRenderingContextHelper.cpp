@@ -172,7 +172,6 @@ already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetContext(
 
   if (contextType == CanvasContextType::WebGL1 &&
       recordreplay::IsRecordingOrReplaying()) {
-    aRv.Throw(NS_ERROR_FAILURE);
     return nullptr;
   }
 
