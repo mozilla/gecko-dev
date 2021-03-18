@@ -23,34 +23,51 @@ After building React, this is modified from the generated file `packages/react-d
  /******/ (function(modules) { // webpackBootstrap
  /******/ 	// The module cache
  /******/ 	var installedModules = {};
-@@ -10469,7 +10471,7 @@
+@@ -9738,6 +9740,18 @@
+     bridge.send('isSynchronousXHRSupported', Object(utils["g" /* isSynchronousXHRSupported */])());
+     setupHighlighter(bridge, this);
+     TraceUpdates_initialize(this);
++
++    // Hook for sending messages via record/replay evaluations.
++    window.__RECORD_REPLAY_REACT_DEVTOOLS_SEND_MESSAGE__ = (inEvent, inData) => {
++      let rv;
++      this._bridge = {
++        send(event, data) {
++          rv = { event, data };
++        }
++      };
++      this[inEvent](inData);
++      return rv;
++    };
+   }
+ 
+   get rendererInterfaces() {
+@@ -10469,7 +10483,7 @@
  // This is to avoid issues like: https://github.com/facebook/react-devtools/issues/1039
  
  function welcome(event) {
 -  if (event.source !== window || event.data.source !== 'react-devtools-content-script') {
-+  if (/*event.source !== window ||*/ event.data.source !== 'react-devtools-content-script') {
++  if (event.data.source !== 'react-devtools-content-script') {
      return;
    }
  
-@@ -10511,6 +10513,9 @@
+@@ -10511,13 +10525,8 @@
      },
  
      send(event, payload, transferable) {
+-      window.postMessage({
+-        source: 'react-devtools-bridge',
+-        payload: {
+-          event,
+-          payload
+-        }
+-      }, '*', transferable);
 +      // Synchronously notify the record/replay driver.
 +      window.__RECORD_REPLAY_REACT_DEVTOOLS_SEND_BRIDGE__(event, payload);
-+      /*
-       window.postMessage({
-         source: 'react-devtools-bridge',
-         payload: {
-@@ -10518,6 +10523,7 @@
-           payload
-         }
-       }, '*', transferable);
-+      */
      }
  
    });
-@@ -14460,3 +14466,7 @@
+@@ -14460,3 +14469,7 @@
  
  /***/ })
  /******/ ]);

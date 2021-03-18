@@ -9740,6 +9740,18 @@ class agent_Agent extends events["a" /* default */] {
     bridge.send('isSynchronousXHRSupported', Object(utils["g" /* isSynchronousXHRSupported */])());
     setupHighlighter(bridge, this);
     TraceUpdates_initialize(this);
+
+    // Hook for sending messages via record/replay evaluations.
+    window.__RECORD_REPLAY_REACT_DEVTOOLS_SEND_MESSAGE__ = (inEvent, inData) => {
+      let rv;
+      this._bridge = {
+        send(event, data) {
+          rv = { event, data };
+        }
+      };
+      this[inEvent](inData);
+      return rv;
+    };
   }
 
   get rendererInterfaces() {
@@ -10471,7 +10483,7 @@ if (true) {
 // This is to avoid issues like: https://github.com/facebook/react-devtools/issues/1039
 
 function welcome(event) {
-  if (/*event.source !== window ||*/ event.data.source !== 'react-devtools-content-script') {
+  if (event.data.source !== 'react-devtools-content-script') {
     return;
   }
 
@@ -10515,15 +10527,6 @@ function setup(hook) {
     send(event, payload, transferable) {
       // Synchronously notify the record/replay driver.
       window.__RECORD_REPLAY_REACT_DEVTOOLS_SEND_BRIDGE__(event, payload);
-      /*
-      window.postMessage({
-        source: 'react-devtools-bridge',
-        payload: {
-          event,
-          payload
-        }
-      }, '*', transferable);
-      */
     }
 
   });
