@@ -179,10 +179,15 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
       const OpUseTexture& op = aDetail.get_OpUseTexture();
 
       AutoTArray<CompositableHost::TimedTexture, 4> textures;
+      bool missingTexture = false;
       for (auto& timedTexture : op.textures()) {
         CompositableHost::TimedTexture* t = textures.AppendElement();
         if (recordreplay::IsRecordingOrReplaying()) {
           t->mTexture = recordreplay::CreateTextureHost(timedTexture.textureChild());
+          if (!t->mTexture) {
+            missingTexture = true;
+            break;
+          }
         } else {
           t->mTexture = TextureHost::AsTextureHost(timedTexture.textureParent());
         }
@@ -191,9 +196,12 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
         t->mPictureRect = timedTexture.picture();
         t->mFrameID = timedTexture.frameID();
         t->mProducerID = timedTexture.producerID();
-        if (timedTexture.readLocked()) {
+        if (timedTexture.readLocked() && t->mTexture) {
           t->mTexture->SetReadLocked();
         }
+      }
+      if (missingTexture) {
+        break;
       }
       if (textures.Length() > 0) {
         aCompositable->UseTextureHost(textures);
@@ -222,6 +230,9 @@ bool CompositableParentManager::ReceiveCompositableUpdate(
       if (recordreplay::IsRecordingOrReplaying()) {
         texOnBlack = recordreplay::CreateTextureHost(op.textureOnBlackChild());
         texOnWhite = recordreplay::CreateTextureHost(op.textureOnWhiteChild());
+        if (!texOnBlack || !texOnWhite) {
+          break;
+        }
       } else {
         texOnBlack = TextureHost::AsTextureHost(op.textureOnBlackParent());
         texOnWhite = TextureHost::AsTextureHost(op.textureOnWhiteParent());

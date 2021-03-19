@@ -1209,6 +1209,10 @@ bool TextureClient::InitIPDLActor(KnowsCompositor* aKnowsCompositor) {
     LockActor();
   }
 
+  if (recordreplay::IsRecordingOrReplaying()) {
+    recordreplay::RegisterTextureChild(mActor, mData, desc, GetFlags());
+  }
+
   return mActor->IPCOpen();
 }
 

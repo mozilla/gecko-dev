@@ -226,7 +226,10 @@ TextureHost* CreateTextureHost(PTextureChild* aChild) {
   }
 
   auto iter = gTextureInfo.find(aChild);
-  MOZ_RELEASE_ASSERT(iter != gTextureInfo.end());
+  if (iter == gTextureInfo.end()) {
+    PrintLog("Error: CreateTextureHost unknown TextureChild %p", aChild);
+    return nullptr;
+  }
   const TextureInfo& info = iter->second;
   MemoryTextureHost* rv = new MemoryTextureHost(info.mBuffer, info.mDesc, info.mFlags);
 
