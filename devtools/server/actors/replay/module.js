@@ -1911,7 +1911,10 @@ function Target_getSheetSourceMapURL({ sheet }) {
 }
 
 function Target_topFrameLocation() {
-  const frame = gDebugger.getNewestFrame();
+  let frame = gDebugger.getNewestFrame();
+  while (frame && !considerScript(frame.script)) {
+    frame = frame.older;
+  }
   if (!frame) {
     return {};
   }
