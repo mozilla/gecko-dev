@@ -1467,6 +1467,27 @@ function previewWeakSet() {
   }
 }
 
+function previewPromise() {
+  let state;
+  let value;
+
+  switch (this.obj.promiseState) {
+    case "fulfilled":
+      state = "fulfilled";
+      value = createProtocolValue(this.obj.promiseValue);
+      break;
+    case "rejected":
+      state = "rejected";
+      value = createProtocolValue(this.obj.promiseReason);
+      break;
+    default:
+      state = "pending";
+      break;
+  }
+
+  this.extra.promiseState = { state, value };
+}
+
 function previewRegExp() {
   this.extra.regexpString = this.raw.toString();
 }
@@ -1515,6 +1536,7 @@ const CustomPreviewers = {
   WeakMap: [previewWeakMap],
   Set: ["size", previewSet],
   WeakSet: [previewWeakSet],
+  Promise: [previewPromise],
   RegExp: ["global", "source", previewRegExp],
   Date: [previewDate],
   Error: ErrorProperties,
