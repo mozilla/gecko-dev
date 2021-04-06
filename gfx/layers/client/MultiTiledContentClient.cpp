@@ -134,6 +134,12 @@ void ClientMultiTiledLayerBuffer::PaintThebes(
 void ClientMultiTiledLayerBuffer::MaybeSyncTextures(
     const nsIntRegion& aPaintRegion, const TilesPlacement& aNewTiles,
     const IntSize& aScaledTileSize) {
+  if (recordreplay::HasDivergedFromRecording()) {
+    // Avoid trying to sync texture data with the parent after diverging from
+    // the recording, because system calls we do below didn't happen when
+    // originally recording.
+    return;
+  }
   if (mManager->AsShadowForwarder()->SupportsTextureDirectMapping()) {
     AutoTArray<uint64_t, 10> syncTextureSerials;
     SurfaceMode mode;

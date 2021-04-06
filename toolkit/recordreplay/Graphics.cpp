@@ -23,6 +23,8 @@
 
 using namespace mozilla::layers;
 
+namespace mozilla { extern void RecordReplayTickRefreshDriver(); }
+
 namespace mozilla::recordreplay {
 
 static void (*gOnPaint)();
@@ -103,7 +105,7 @@ TimeStamp CompositeTime() {
 }
 
 void OnPaint() {
-  if (!HasCheckpoint()) {
+  if (!HasCheckpoint() || HasDivergedFromRecording()) {
     return;
   }
 
@@ -247,12 +249,19 @@ static char* PaintCallback(const char* aMimeType, int aJPEGQuality) {
     return nullptr;
   }
 
+  // When diverged from the recording we need to generate graphics reflecting
+  // the current DOM. Tick the refresh drivers to update layers to reflect
+  // that current state.
+  if (recordreplay::HasDivergedFromRecording()) {
+    RecordReplayTickRefreshDriver();
+  }
+
   MOZ_RELEASE_ASSERT(!gFetchedDrawTarget);
 
   AutoDisallowThreadEvents disallow;
   gCompositorBridge->CompositeToTarget(VsyncId(), nullptr, nullptr);
 
-  if (!gFetchedDrawTarget) {
+  if (!gFetchedDrawTarget && !recordreplay::HasDivergedFromRecording()) {
     return nullptr;
   }
   gFetchedDrawTarget = false;

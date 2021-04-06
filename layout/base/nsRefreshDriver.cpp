@@ -186,7 +186,13 @@ namespace mozilla {
  */
 class RefreshDriverTimer {
  public:
-  RefreshDriverTimer() = default;
+  static RefreshDriverTimer* gInstance;
+
+  RefreshDriverTimer() {
+    if (!gInstance) {
+      gInstance = this;
+    }
+  }
 
   NS_INLINE_DECL_REFCOUNTING(RefreshDriverTimer)
 
@@ -290,8 +296,15 @@ class RefreshDriverTimer {
     return nullptr;
   }
 
+  void RecordReplayTick() {
+    Tick();
+  }
+
  protected:
   virtual ~RefreshDriverTimer() {
+    if (gInstance == this) {
+      gInstance = nullptr;
+    }
     MOZ_ASSERT(
         mContentRefreshDrivers.Length() == 0,
         "Should have removed all content refresh drivers from here by now!");
@@ -381,6 +394,16 @@ class RefreshDriverTimer {
     timer->Tick();
   }
 };
+
+RefreshDriverTimer* RefreshDriverTimer::gInstance;
+
+// When recording/replaying we need to be able to force ticks of the refresh
+// driver in order to paint the current graphics.
+void RecordReplayTickRefreshDriver() {
+  if (RefreshDriverTimer::gInstance) {
+    RefreshDriverTimer::gInstance->RecordReplayTick();
+  }
+}
 
 /*
  * A RefreshDriverTimer that uses a nsITimer as the underlying timer.  Note that
