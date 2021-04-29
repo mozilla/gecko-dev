@@ -384,12 +384,31 @@ MOZ_EXPORT int RecordReplayInterface_InternalCreateOrderedLock(const char* aName
   return gCreateOrderedLock(aName);
 }
 
+int RecordReplayCreateOrderedLock(const char* aName) {
+  if (gCreateOrderedLock) {
+    return gCreateOrderedLock(aName);
+  }
+  return 0;
+}
+
 MOZ_EXPORT void RecordReplayInterface_InternalOrderedLock(int aLock) {
   gOrderedLock(aLock);
 }
 
+void RecordReplayOrderedLock(int aLock) {
+  if (gOrderedLock) {
+    gOrderedLock(aLock);
+  }
+}
+
 MOZ_EXPORT void RecordReplayInterface_InternalOrderedUnlock(int aLock) {
   gOrderedUnlock(aLock);
+}
+
+void RecordReplayOrderedUnlock(int aLock) {
+  if (gOrderedUnlock) {
+    gOrderedUnlock(aLock);
+  }
 }
 
 MOZ_EXPORT void RecordReplayInterface_InternalAddOrderedPthreadMutex(const char* aName,

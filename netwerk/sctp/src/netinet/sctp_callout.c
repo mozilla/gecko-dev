@@ -192,6 +192,12 @@ sctp_timeout(void *arg SCTP_UNUSED)
 #if defined(__Userspace__)
 #define TIMEOUT_INTERVAL 10
 
+static int gTimerThreadOrderedLockId;
+
+extern int RecordReplayCreateOrderedLock(const char* aName);
+extern void RecordReplayOrderedLock(int id);
+extern void RecordReplayOrderedUnlock(int id);
+
 void *
 user_sctp_timer_iterate(void *arg)
 {
@@ -208,9 +214,12 @@ user_sctp_timer_iterate(void *arg)
 			amount = remaining;
 		} while (nanosleep(&amount, &remaining) == -1);
 #endif
+    RecordReplayOrderedLock(gTimerThreadOrderedLockId);
 		if (atomic_cmpset_int(&SCTP_BASE_VAR(timer_thread_should_exit), 1, 1)) {
+      RecordReplayOrderedUnlock(gTimerThreadOrderedLockId);
 			break;
 		}
+    RecordReplayOrderedUnlock(gTimerThreadOrderedLockId);
 		sctp_handle_tick(sctp_msecs_to_ticks(TIMEOUT_INTERVAL));
 	}
 	return (NULL);
@@ -225,6 +234,10 @@ sctp_start_timer_thread(void)
 	 */
 	int rc;
 
+  if (!gTimerThreadOrderedLockId) {
+    gTimerThreadOrderedLockId = RecordReplayCreateOrderedLock("sctp_timer_thread");
+  }
+
 	rc = sctp_userspace_thread_create(&SCTP_BASE_VAR(timer_thread), user_sctp_timer_iterate);
 	if (rc) {
 		SCTP_PRINTF("ERROR; return code from sctp_thread_create() is %d\n", rc);
@@ -236,7 +249,9 @@ sctp_start_timer_thread(void)
 void
 sctp_stop_timer_thread(void)
 {
+  RecordReplayOrderedLock(gTimerThreadOrderedLockId);
 	atomic_cmpset_int(&SCTP_BASE_VAR(timer_thread_should_exit), 0, 1);
+  RecordReplayOrderedUnlock(gTimerThreadOrderedLockId);
 	if (SCTP_BASE_VAR(timer_thread_started)) {
 #if defined(_WIN32)
 		WaitForSingleObject(SCTP_BASE_VAR(timer_thread), INFINITE);
