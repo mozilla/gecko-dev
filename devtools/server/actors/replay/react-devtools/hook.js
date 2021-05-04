@@ -282,6 +282,13 @@ function installHook(target) {
     }
   }
 
+  function onPostCommitFiberRoot(rendererID, root) {
+    const rendererInterface = rendererInterfaces.get(rendererID);
+    if (rendererInterface != null) {
+      rendererInterface.handlePostCommitFiberRoot(root);
+    }
+  }
+
   // TODO: More meaningful names for "rendererInterfaces" and "renderers".
   const fiberRoots = {};
   const rendererInterfaces = new Map();
@@ -310,6 +317,7 @@ function installHook(target) {
     checkDCE,
     onCommitFiberUnmount,
     onCommitFiberRoot,
+    onPostCommitFiberRoot,
   };
 
   Object.defineProperty(
