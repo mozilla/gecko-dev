@@ -83,7 +83,7 @@ function reactDevtoolsBackend(window) {
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 18);
+/******/ 	return __webpack_require__(__webpack_require__.s = 20);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -109,11 +109,11 @@ __webpack_require__.d(__webpack_exports__, "b", function() { return /* binding *
 
 // UNUSED EXPORTS: alphaSortKeys, utfDecodeString, getSavedComponentFilters, saveComponentFilters, getAppendComponentStack, setAppendComponentStack, getBreakOnConsoleErrors, setBreakOnConsoleErrors, getShowInlineWarningsAndErrors, setShowInlineWarningsAndErrors, separateDisplayNameAndHOCs, shallowDiffers
 
-// EXTERNAL MODULE: /Users/bhackett/react/node_modules/lru-cache/index.js
-var lru_cache = __webpack_require__(15);
+// EXTERNAL MODULE: /home/marvin/Misc/projects/replay/react/node_modules/lru-cache/index.js
+var lru_cache = __webpack_require__(17);
 var lru_cache_default = /*#__PURE__*/__webpack_require__.n(lru_cache);
 
-// EXTERNAL MODULE: /Users/bhackett/react/build/node_modules/react-is/index.js
+// EXTERNAL MODULE: /home/marvin/Misc/projects/replay/react/build/node_modules/react-is/index.js
 var react_is = __webpack_require__(6);
 
 // CONCATENATED MODULE: ../shared/ReactSymbols.js
@@ -391,7 +391,7 @@ function printOperationsArray(operations) {
         break;
 
       default:
-        throw Error(`Unsupported Bridge operation ${operation}`);
+        throw Error(`Unsupported Bridge operation "${operation}"`);
     }
   }
 
@@ -710,7 +710,9 @@ function getDisplayNameForReactElement(element) {
       return 'SuspenseList';
 
     default:
-      const type = element.type;
+      const {
+        type
+      } = element;
 
       if (typeof type === 'string') {
         return type;
@@ -1013,6 +1015,7 @@ const ComponentFilterHOC = 4;
 /* unused harmony export PROFILER_EXPORT_VERSION */
 /* unused harmony export CHANGE_LOG_URL */
 /* unused harmony export UNSUPPORTED_VERSION_URL */
+/* unused harmony export REACT_DEVTOOLS_WORKPLACE_URL */
 /* unused harmony export COMFORTABLE_LINE_HEIGHT */
 /* unused harmony export COMPACT_LINE_HEIGHT */
 /**
@@ -1039,9 +1042,10 @@ const LOCAL_STORAGE_SHOULD_BREAK_ON_CONSOLE_ERRORS = 'React::DevTools::breakOnCo
 const LOCAL_STORAGE_SHOULD_PATCH_CONSOLE_KEY = 'React::DevTools::appendComponentStack';
 const LOCAL_STORAGE_SHOW_INLINE_WARNINGS_AND_ERRORS_KEY = 'React::DevTools::showInlineWarningsAndErrors';
 const LOCAL_STORAGE_TRACE_UPDATES_ENABLED_KEY = 'React::DevTools::traceUpdatesEnabled';
-const PROFILER_EXPORT_VERSION = 4;
+const PROFILER_EXPORT_VERSION = 5;
 const CHANGE_LOG_URL = 'https://github.com/facebook/react/blob/master/packages/react-devtools/CHANGELOG.md';
-const UNSUPPORTED_VERSION_URL = 'https://reactjs.org/blog/2019/08/15/new-react-devtools.html#how-do-i-get-the-old-version-back'; // HACK
+const UNSUPPORTED_VERSION_URL = 'https://reactjs.org/blog/2019/08/15/new-react-devtools.html#how-do-i-get-the-old-version-back';
+const REACT_DEVTOOLS_WORKPLACE_URL = 'https://fburl.com/react-devtools-workplace-group'; // HACK
 //
 // Extracting during build time avoids a temporarily invalid state for the inline target.
 // Sometimes the inline target is rendered before root styles are applied,
@@ -1053,7 +1057,7 @@ let COMPACT_LINE_HEIGHT;
 
 try {
   // $FlowFixMe
-  const rawStyleString = __webpack_require__(20).default;
+  const rawStyleString = __webpack_require__(22).default;
 
   const extractVar = varName => {
     const regExp = new RegExp(`${varName}: ([0-9]+)`);
@@ -1167,18 +1171,14 @@ const SUSPENSE_LIST_SYMBOL_STRING = 'Symbol(react.suspense_list)';
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "c", function() { return copyWithDelete; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "d", function() { return copyWithRename; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "e", function() { return copyWithSet; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return getEffectDurations; });
 /* unused harmony export serializeToString */
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "f", function() { return format; });
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "g", function() { return isSynchronousXHRSupported; });
-/* harmony import */ var clipboard_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(16);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "h", function() { return isSynchronousXHRSupported; });
+/* harmony import */ var clipboard_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(18);
 /* harmony import */ var clipboard_js__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(clipboard_js__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _hydration__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(8);
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
+/* harmony import */ var shared_isArray__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(9);
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -1187,6 +1187,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  *
  * 
  */
+
 
 
 function cleanForBridge(data, isPathAllowed, path = []) {
@@ -1206,7 +1207,9 @@ function cleanForBridge(data, isPathAllowed, path = []) {
 function copyToClipboard(value) {
   const safeToCopy = serializeToString(value);
   const text = safeToCopy === undefined ? 'undefined' : safeToCopy;
-  const clipboardCopyText = window.__REACT_DEVTOOLS_GLOBAL_HOOK__.clipboardCopyText; // On Firefox navigator.clipboard.writeText has to be called from
+  const {
+    clipboardCopyText
+  } = window.__REACT_DEVTOOLS_GLOBAL_HOOK__; // On Firefox navigator.clipboard.writeText has to be called from
   // the content script js code (because it requires the clipboardWrite
   // permission to be allowed out of a "user handling" callback),
   // clipboardCopyText is an helper injected into the page from.
@@ -1220,10 +1223,11 @@ function copyToClipboard(value) {
 }
 function copyWithDelete(obj, path, index = 0) {
   const key = path[index];
-  const updated = Array.isArray(obj) ? obj.slice() : _objectSpread({}, obj);
+  const updated = Object(shared_isArray__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(obj) ? obj.slice() : { ...obj
+  };
 
   if (index + 1 === path.length) {
-    if (Array.isArray(updated)) {
+    if (Object(shared_isArray__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(updated)) {
       updated.splice(key, 1);
     } else {
       delete updated[key];
@@ -1239,14 +1243,15 @@ function copyWithDelete(obj, path, index = 0) {
 
 function copyWithRename(obj, oldPath, newPath, index = 0) {
   const oldKey = oldPath[index];
-  const updated = Array.isArray(obj) ? obj.slice() : _objectSpread({}, obj);
+  const updated = Object(shared_isArray__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(obj) ? obj.slice() : { ...obj
+  };
 
   if (index + 1 === oldPath.length) {
     const newKey = newPath[index]; // $FlowFixMe number or string is fine here
 
     updated[newKey] = updated[oldKey];
 
-    if (Array.isArray(updated)) {
+    if (Object(shared_isArray__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(updated)) {
       updated.splice(oldKey, 1);
     } else {
       delete updated[oldKey];
@@ -1264,10 +1269,32 @@ function copyWithSet(obj, path, value, index = 0) {
   }
 
   const key = path[index];
-  const updated = Array.isArray(obj) ? obj.slice() : _objectSpread({}, obj); // $FlowFixMe number or string is fine here
+  const updated = Object(shared_isArray__WEBPACK_IMPORTED_MODULE_2__[/* default */ "a"])(obj) ? obj.slice() : { ...obj
+  }; // $FlowFixMe number or string is fine here
 
   updated[key] = copyWithSet(obj[key], path, value, index + 1);
   return updated;
+}
+function getEffectDurations(root) {
+  // Profiling durations are only available for certain builds.
+  // If available, they'll be stored on the HostRoot.
+  let effectDuration = null;
+  let passiveEffectDuration = null;
+  const hostRoot = root.current;
+
+  if (hostRoot != null) {
+    const stateNode = hostRoot.stateNode;
+
+    if (stateNode != null) {
+      effectDuration = stateNode.effectDuration != null ? stateNode.effectDuration : null;
+      passiveEffectDuration = stateNode.passiveEffectDuration != null ? stateNode.passiveEffectDuration : null;
+    }
+  }
+
+  return {
+    effectDuration,
+    passiveEffectDuration
+  };
 }
 function serializeToString(data) {
   const cache = new Set(); // Use a custom replacer function to protect against circular references.
@@ -1404,7 +1431,7 @@ function sessionStorageSetItem(key, value) {
 
 
 if (true) {
-  module.exports = __webpack_require__(24);
+  module.exports = __webpack_require__(26);
 } else {}
 
 /***/ }),
@@ -1518,12 +1545,6 @@ module.exports = shouldUseNative() ? Object.assign : function (target, source) {
 /* unused harmony export fillInPath */
 /* unused harmony export hydrate */
 /* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(0);
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -1695,16 +1716,12 @@ function dehydrate(data, cleaned, unserializable, path, isPathAllowed, level = 0
           preview_short: Object(_utils__WEBPACK_IMPORTED_MODULE_0__[/* formatDataForPreview */ "b"])(data, false),
           preview_long: Object(_utils__WEBPACK_IMPORTED_MODULE_0__[/* formatDataForPreview */ "b"])(data, true),
           name: !data.constructor || data.constructor.name === 'Object' ? '' : data.constructor.name
-        };
+        }; // TRICKY
+        // Don't use [...spread] syntax for this purpose.
+        // This project uses @babel/plugin-transform-spread in "loose" mode which only works with Array values.
+        // Other types (e.g. typed arrays, Sets) will not spread correctly.
 
-        if (typeof data[Symbol.iterator]) {
-          // TRICKY
-          // Don't use [...spread] syntax for this purpose.
-          // This project uses @babel/plugin-transform-spread in "loose" mode which only works with Array values.
-          // Other types (e.g. typed arrays, Sets) will not spread correctly.
-          Array.from(data).forEach((item, i) => unserializableValue[i] = dehydrate(item, cleaned, unserializable, path.concat([i]), isPathAllowed, isPathAllowedCheck ? 1 : level + 1));
-        }
-
+        Array.from(data).forEach((item, i) => unserializableValue[i] = dehydrate(item, cleaned, unserializable, path.concat([i]), isPathAllowed, isPathAllowedCheck ? 1 : level + 1));
         unserializable.push(path);
         return unserializableValue;
       }
@@ -1845,9 +1862,8 @@ function hydrate(object, cleaned, unserializable) {
     }
 
     const node = parent[last];
-
-    const replacement = _objectSpread({}, node);
-
+    const replacement = { ...node
+    };
     upgradeUnserializable(replacement, node);
     parent[last] = replacement;
   });
@@ -1912,27 +1928,6 @@ function upgradeUnserializable(destination, source) {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-
-// EXPORTS
-__webpack_require__.d(__webpack_exports__, "b", function() { return /* binding */ registerRenderer; });
-__webpack_require__.d(__webpack_exports__, "a", function() { return /* binding */ patch; });
-__webpack_require__.d(__webpack_exports__, "c", function() { return /* binding */ unpatch; });
-
-// UNUSED EXPORTS: isStringComponentStack, dangerous_setTargetConsoleForTesting
-
-// EXTERNAL MODULE: ../react-devtools-shared/src/backend/renderer.js + 1 modules
-var backend_renderer = __webpack_require__(13);
-
-// EXTERNAL MODULE: ../react-devtools-shared/src/backend/ReactSymbols.js
-var ReactSymbols = __webpack_require__(3);
-
-// CONCATENATED MODULE: ../shared/ConsolePatchingDev.js
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -1941,6 +1936,45 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  *
  * 
  */
+const isArrayImpl = Array.isArray; // eslint-disable-next-line no-redeclare
+
+function isArray(a) {
+  return isArrayImpl(a);
+}
+
+/* harmony default export */ __webpack_exports__["a"] = (isArray);
+
+/***/ }),
+/* 10 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, "b", function() { return /* binding */ registerRenderer; });
+__webpack_require__.d(__webpack_exports__, "a", function() { return /* binding */ patch; });
+__webpack_require__.d(__webpack_exports__, "c", function() { return /* binding */ unpatch; });
+
+// UNUSED EXPORTS: isStringComponentStack, dangerous_setTargetConsoleForTesting
+
+// EXTERNAL MODULE: ../react-devtools-shared/src/backend/renderer.js + 2 modules
+var backend_renderer = __webpack_require__(14);
+
+// EXTERNAL MODULE: ../react-devtools-shared/src/backend/ReactSymbols.js
+var ReactSymbols = __webpack_require__(3);
+
+// CONCATENATED MODULE: ../react-devtools-shared/src/backend/DevToolsConsolePatching.js
+/**
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * 
+ */
+// This is a DevTools fork of shared/ConsolePatchingDev.
+// The shared console patching code is DEV-only.
+// We can't use it since DevTools only ships production builds.
 // Helpers to patch console.logs to avoid logging during side-effect free
 // replaying on render function. This currently only patches the object
 // lazily which won't cover if the log function was extracted eagerly.
@@ -1958,80 +1992,76 @@ function disabledLog() {}
 
 disabledLog.__reactDisabledLog = true;
 function disableLogs() {
-  if (true) {
-    if (disabledDepth === 0) {
-      /* eslint-disable react-internal/no-production-logging */
-      prevLog = console.log;
-      prevInfo = console.info;
-      prevWarn = console.warn;
-      prevError = console.error;
-      prevGroup = console.group;
-      prevGroupCollapsed = console.groupCollapsed;
-      prevGroupEnd = console.groupEnd; // https://github.com/facebook/react/issues/19099
+  if (disabledDepth === 0) {
+    /* eslint-disable react-internal/no-production-logging */
+    prevLog = console.log;
+    prevInfo = console.info;
+    prevWarn = console.warn;
+    prevError = console.error;
+    prevGroup = console.group;
+    prevGroupCollapsed = console.groupCollapsed;
+    prevGroupEnd = console.groupEnd; // https://github.com/facebook/react/issues/19099
 
-      const props = {
-        configurable: true,
-        enumerable: true,
-        value: disabledLog,
-        writable: true
-      }; // $FlowFixMe Flow thinks console is immutable.
+    const props = {
+      configurable: true,
+      enumerable: true,
+      value: disabledLog,
+      writable: true
+    }; // $FlowFixMe Flow thinks console is immutable.
 
-      Object.defineProperties(console, {
-        info: props,
-        log: props,
-        warn: props,
-        error: props,
-        group: props,
-        groupCollapsed: props,
-        groupEnd: props
-      });
-      /* eslint-enable react-internal/no-production-logging */
-    }
-
-    disabledDepth++;
+    Object.defineProperties(console, {
+      info: props,
+      log: props,
+      warn: props,
+      error: props,
+      group: props,
+      groupCollapsed: props,
+      groupEnd: props
+    });
+    /* eslint-enable react-internal/no-production-logging */
   }
+
+  disabledDepth++;
 }
 function reenableLogs() {
-  if (true) {
-    disabledDepth--;
+  disabledDepth--;
 
-    if (disabledDepth === 0) {
-      /* eslint-disable react-internal/no-production-logging */
-      const props = {
-        configurable: true,
-        enumerable: true,
-        writable: true
-      }; // $FlowFixMe Flow thinks console is immutable.
+  if (disabledDepth === 0) {
+    /* eslint-disable react-internal/no-production-logging */
+    const props = {
+      configurable: true,
+      enumerable: true,
+      writable: true
+    }; // $FlowFixMe Flow thinks console is immutable.
 
-      Object.defineProperties(console, {
-        log: _objectSpread(_objectSpread({}, props), {}, {
-          value: prevLog
-        }),
-        info: _objectSpread(_objectSpread({}, props), {}, {
-          value: prevInfo
-        }),
-        warn: _objectSpread(_objectSpread({}, props), {}, {
-          value: prevWarn
-        }),
-        error: _objectSpread(_objectSpread({}, props), {}, {
-          value: prevError
-        }),
-        group: _objectSpread(_objectSpread({}, props), {}, {
-          value: prevGroup
-        }),
-        groupCollapsed: _objectSpread(_objectSpread({}, props), {}, {
-          value: prevGroupCollapsed
-        }),
-        groupEnd: _objectSpread(_objectSpread({}, props), {}, {
-          value: prevGroupEnd
-        })
-      });
-      /* eslint-enable react-internal/no-production-logging */
-    }
+    Object.defineProperties(console, {
+      log: { ...props,
+        value: prevLog
+      },
+      info: { ...props,
+        value: prevInfo
+      },
+      warn: { ...props,
+        value: prevWarn
+      },
+      error: { ...props,
+        value: prevError
+      },
+      group: { ...props,
+        value: prevGroup
+      },
+      groupCollapsed: { ...props,
+        value: prevGroupCollapsed
+      },
+      groupEnd: { ...props,
+        value: prevGroupEnd
+      }
+    });
+    /* eslint-enable react-internal/no-production-logging */
+  }
 
-    if (disabledDepth < 0) {
-      console.error('disabledDepth fell below zero. ' + 'This is a bug in React. Please file an issue.');
-    }
+  if (disabledDepth < 0) {
+    console.error('disabledDepth fell below zero. ' + 'This is a bug in React. Please file an issue.');
   }
 }
 // CONCATENATED MODULE: ../react-devtools-shared/src/backend/DevToolsComponentStackFrame.js
@@ -2047,8 +2077,8 @@ function reenableLogs() {
 // This fork enables DevTools to use the same "native" component stack format,
 // while still maintaining support for multiple renderer versions
 // (which use different values for ReactTypeOfWork).
- // These methods are safe to import from shared;
-// there is no React-specific logic here.
+ // The shared console patching code is DEV-only.
+// We can't use it since DevTools only ships production builds.
 
 
 let prefix;
@@ -2106,13 +2136,13 @@ function describeNativeComponentFrame(fn, construct, currentDispatcherRef) {
     // This should throw.
     if (construct) {
       // Something should be setting the props in the constructor.
-      const Fake = function Fake() {
+      const Fake = function () {
         throw Error();
       }; // $FlowFixMe
 
 
       Object.defineProperty(Fake.prototype, 'props', {
-        set: function set() {
+        set: function () {
           // We use a throwing setter instead of frozen or non-writable props
           // because that won't throw in a non-strict mode function.
           throw Error();
@@ -2302,15 +2332,17 @@ function describeUnknownElementTypeFrameInDEV(type, source, ownerFn, currentDisp
 
 
 function describeFiber(workTagMap, workInProgress, currentDispatcherRef) {
-  const HostComponent = workTagMap.HostComponent,
-        LazyComponent = workTagMap.LazyComponent,
-        SuspenseComponent = workTagMap.SuspenseComponent,
-        SuspenseListComponent = workTagMap.SuspenseListComponent,
-        FunctionComponent = workTagMap.FunctionComponent,
-        IndeterminateComponent = workTagMap.IndeterminateComponent,
-        SimpleMemoComponent = workTagMap.SimpleMemoComponent,
-        ForwardRef = workTagMap.ForwardRef,
-        ClassComponent = workTagMap.ClassComponent;
+  const {
+    HostComponent,
+    LazyComponent,
+    SuspenseComponent,
+    SuspenseListComponent,
+    FunctionComponent,
+    IndeterminateComponent,
+    SimpleMemoComponent,
+    ForwardRef,
+    ClassComponent
+  } = workTagMap;
   const owner =  true ? workInProgress._debugOwner ? workInProgress._debugOwner.type : null : undefined;
   const source =  true ? workInProgress._debugSource : undefined;
 
@@ -2359,12 +2391,6 @@ function getStackByFiberInDevAndProd(workTagMap, workInProgress, currentDispatch
   }
 }
 // CONCATENATED MODULE: ../react-devtools-shared/src/backend/console.js
-function _createForOfIteratorHelper(o, allowArrayLike) { var it; if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it.return != null) it.return(); } finally { if (didErr) throw err; } } }; }
-
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
-
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
-
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -2407,10 +2433,12 @@ function dangerous_setTargetConsoleForTesting(targetConsoleForTesting) {
 // Injecting them separately allows the console to easily be patched or un-patched later (at runtime).
 
 function registerRenderer(renderer, onErrorOrWarning) {
-  const currentDispatcherRef = renderer.currentDispatcherRef,
-        getCurrentFiber = renderer.getCurrentFiber,
-        findFiberByHostInstance = renderer.findFiberByHostInstance,
-        version = renderer.version; // Ignore React v15 and older because they don't expose a component stack anyway.
+  const {
+    currentDispatcherRef,
+    getCurrentFiber,
+    findFiberByHostInstance,
+    version
+  } = renderer; // Ignore React v15 and older because they don't expose a component stack anyway.
 
   if (typeof findFiberByHostInstance !== 'function') {
     return;
@@ -2419,9 +2447,9 @@ function registerRenderer(renderer, onErrorOrWarning) {
 
 
   if (currentDispatcherRef != null && typeof getCurrentFiber === 'function') {
-    const _getInternalReactCons = Object(backend_renderer["b" /* getInternalReactConstants */])(version),
-          ReactTypeOfWork = _getInternalReactCons.ReactTypeOfWork;
-
+    const {
+      ReactTypeOfWork
+    } = Object(backend_renderer["b" /* getInternalReactConstants */])(version);
     injectedRenderers.set(renderer, {
       currentDispatcherRef,
       getCurrentFiber,
@@ -2473,7 +2501,7 @@ function patch({
 
         if (consoleSettingsRef.appendComponentStack) {
           const lastArg = args.length > 0 ? args[args.length - 1] : null;
-          const alreadyHasComponentStack = lastArg !== null && isStringComponentStack(lastArg); // If we are ever called with a string that already has a component stack,
+          const alreadyHasComponentStack = typeof lastArg === 'string' && isStringComponentStack(lastArg); // If we are ever called with a string that already has a component stack,
           // e.g. a React error/warning, don't append a second stack.
 
           shouldAppendWarningStack = !alreadyHasComponentStack;
@@ -2485,46 +2513,37 @@ function patch({
           // Search for the first renderer that has a current Fiber.
           // We don't handle the edge case of stacks for more than one (e.g. interleaved renderers?)
           // eslint-disable-next-line no-for-of-loops/no-for-of-loops
-          var _iterator = _createForOfIteratorHelper(injectedRenderers.values()),
-              _step;
+          for (const {
+            currentDispatcherRef,
+            getCurrentFiber,
+            onErrorOrWarning,
+            workTagMap
+          } of injectedRenderers.values()) {
+            const current = getCurrentFiber();
 
-          try {
-            for (_iterator.s(); !(_step = _iterator.n()).done;) {
-              const _step$value = _step.value,
-                    currentDispatcherRef = _step$value.currentDispatcherRef,
-                    getCurrentFiber = _step$value.getCurrentFiber,
-                    onErrorOrWarning = _step$value.onErrorOrWarning,
-                    workTagMap = _step$value.workTagMap;
-              const current = getCurrentFiber();
-
-              if (current != null) {
-                try {
-                  if (shouldShowInlineWarningsAndErrors) {
-                    // patch() is called by two places: (1) the hook and (2) the renderer backend.
-                    // The backend is what impliments a message queue, so it's the only one that injects onErrorOrWarning.
-                    if (typeof onErrorOrWarning === 'function') {
-                      onErrorOrWarning(current, method, // Copy args before we mutate them (e.g. adding the component stack)
-                      args.slice());
-                    }
+            if (current != null) {
+              try {
+                if (shouldShowInlineWarningsAndErrors) {
+                  // patch() is called by two places: (1) the hook and (2) the renderer backend.
+                  // The backend is what impliments a message queue, so it's the only one that injects onErrorOrWarning.
+                  if (typeof onErrorOrWarning === 'function') {
+                    onErrorOrWarning(current, method, // Copy args before we mutate them (e.g. adding the component stack)
+                    args.slice());
                   }
-
-                  if (shouldAppendWarningStack) {
-                    const componentStack = getStackByFiberInDevAndProd(workTagMap, current, currentDispatcherRef);
-
-                    if (componentStack !== '') {
-                      args.push(componentStack);
-                    }
-                  }
-                } catch (error) {// Don't let a DevTools or React internal error interfere with logging.
-                } finally {
-                  break;
                 }
+
+                if (shouldAppendWarningStack) {
+                  const componentStack = getStackByFiberInDevAndProd(workTagMap, current, currentDispatcherRef);
+
+                  if (componentStack !== '') {
+                    args.push(componentStack);
+                  }
+                }
+              } catch (error) {// Don't let a DevTools or React internal error interfere with logging.
+              } finally {
+                break;
               }
             }
-          } catch (err) {
-            _iterator.e(err);
-          } finally {
-            _iterator.f();
           }
         }
 
@@ -2556,7 +2575,7 @@ function unpatch() {
 }
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(process) {exports = module.exports = SemVer;
@@ -2564,13 +2583,13 @@ var debug;
 /* istanbul ignore next */
 
 if (typeof process === 'object' && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG)) {
-  debug = function debug() {
+  debug = function () {
     var args = Array.prototype.slice.call(arguments, 0);
     args.unshift('SEMVER');
     console.log.apply(console, args);
   };
 } else {
-  debug = function debug() {};
+  debug = function () {};
 } // Note: this is the semver.org version of the spec that it implements
 // Not necessarily the package version of this code.
 
@@ -4108,10 +4127,10 @@ function coerce(version, options) {
 
   return parse(match[2] + '.' + (match[3] || '0') + '.' + (match[4] || '0'), options);
 }
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(21)))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(23)))
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -4197,7 +4216,7 @@ class EventEmitter {
 }
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global) {/**
@@ -4272,7 +4291,7 @@ var nativeMax = Math.max,
  * // => Logs the number of milliseconds it took for the deferred invocation.
  */
 
-var now = function now() {
+var now = function () {
   return root.Date.now();
 };
 /**
@@ -4652,10 +4671,10 @@ function toNumber(value) {
 }
 
 module.exports = throttle;
-/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(19)))
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(21)))
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -4665,7 +4684,7 @@ __webpack_require__.d(__webpack_exports__, "b", function() { return /* binding *
 __webpack_require__.d(__webpack_exports__, "a", function() { return /* binding */ attach; });
 
 // EXTERNAL MODULE: ../react-devtools-shared/node_modules/semver/semver.js
-var semver = __webpack_require__(10);
+var semver = __webpack_require__(11);
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/types.js
 var types = __webpack_require__(1);
@@ -4682,15 +4701,39 @@ var backend_utils = __webpack_require__(4);
 // EXTERNAL MODULE: ../react-devtools-shared/src/constants.js
 var constants = __webpack_require__(2);
 
-// EXTERNAL MODULE: /Users/bhackett/react/build/node_modules/react-debug-tools/index.js
-var react_debug_tools = __webpack_require__(17);
+// EXTERNAL MODULE: /home/marvin/Misc/projects/replay/react/build/node_modules/react-debug-tools/index.js
+var react_debug_tools = __webpack_require__(19);
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/backend/console.js + 3 modules
-var backend_console = __webpack_require__(9);
+var backend_console = __webpack_require__(10);
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/backend/ReactSymbols.js
 var ReactSymbols = __webpack_require__(3);
 
+// CONCATENATED MODULE: ../react-devtools-shared/src/config/DevToolsFeatureFlags.extension-oss.js
+/**
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * 
+ */
+
+/************************************************************************
+ * This file is forked between different DevTools implementations.
+ * It should never be imported directly!
+ * It should always be imported from "react-devtools-feature-flags".
+ ************************************************************************/
+const enableProfilerChangedHookIndices = false;
+const isInternalFacebookBuild = false;
+/************************************************************************
+ * Do not edit the code below.
+ * It ensures this fork exports the same types as the default flags file.
+ ************************************************************************/
+
+// eslint-disable-next-line no-unused-expressions
+null;
 // CONCATENATED MODULE: ../shared/objectIs.js
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
@@ -4712,27 +4755,10 @@ function is(x, y) {
 
 const objectIs = typeof Object.is === 'function' ? Object.is : is;
 /* harmony default export */ var shared_objectIs = (objectIs);
+// EXTERNAL MODULE: ../shared/isArray.js
+var isArray = __webpack_require__(9);
+
 // CONCATENATED MODULE: ../react-devtools-shared/src/backend/renderer.js
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-function _slicedToArray(arr, i) { return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest(); }
-
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-
-function _iterableToArrayLimit(arr, i) { if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return; var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"] != null) _i["return"](); } finally { if (_d) throw _e; } } return _arr; }
-
-function _arrayWithHoles(arr) { if (Array.isArray(arr)) return arr; }
-
-function _createForOfIteratorHelper(o, allowArrayLike) { var it; if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e2) { throw _e2; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e3) { didErr = true; err = _e3; }, f: function f() { try { if (!normalCompletion && it.return != null) it.return(); } finally { if (didErr) throw err; } } }; }
-
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
-
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
-
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -4741,6 +4767,8 @@ function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len 
  *
  * 
  */
+
+
 
 
 
@@ -4774,7 +4802,7 @@ function getInternalReactConstants(version) {
   // but 16.9 is the first version to report priority level to DevTools,
   // so we can avoid checking for earlier versions and support pre-16.9 canary releases in the process.
 
-  const ReactPriorityLevels = {
+  let ReactPriorityLevels = {
     ImmediatePriority: 99,
     UserBlockingPriority: 98,
     NormalPriority: 97,
@@ -4782,6 +4810,18 @@ function getInternalReactConstants(version) {
     IdlePriority: 95,
     NoPriority: 90
   };
+
+  if (Object(semver["gt"])(version, '17.0.2')) {
+    ReactPriorityLevels = {
+      ImmediatePriority: 1,
+      UserBlockingPriority: 2,
+      NormalPriority: 3,
+      LowPriority: 4,
+      IdlePriority: 5,
+      NoPriority: 0
+    };
+  }
+
   let ReactTypeOfWork = null; // **********************************************************
   // The section below is copied from files in React repo.
   // Keep it in sync, and add version guards if it changes.
@@ -4995,26 +5035,28 @@ function getInternalReactConstants(version) {
     return typeof symbolOrNumber === 'symbol' ? symbolOrNumber.toString() : symbolOrNumber;
   }
 
-  const _ReactTypeOfWork = ReactTypeOfWork,
-        CacheComponent = _ReactTypeOfWork.CacheComponent,
-        ClassComponent = _ReactTypeOfWork.ClassComponent,
-        IncompleteClassComponent = _ReactTypeOfWork.IncompleteClassComponent,
-        FunctionComponent = _ReactTypeOfWork.FunctionComponent,
-        IndeterminateComponent = _ReactTypeOfWork.IndeterminateComponent,
-        ForwardRef = _ReactTypeOfWork.ForwardRef,
-        HostRoot = _ReactTypeOfWork.HostRoot,
-        HostComponent = _ReactTypeOfWork.HostComponent,
-        HostPortal = _ReactTypeOfWork.HostPortal,
-        HostText = _ReactTypeOfWork.HostText,
-        Fragment = _ReactTypeOfWork.Fragment,
-        LazyComponent = _ReactTypeOfWork.LazyComponent,
-        LegacyHiddenComponent = _ReactTypeOfWork.LegacyHiddenComponent,
-        MemoComponent = _ReactTypeOfWork.MemoComponent,
-        OffscreenComponent = _ReactTypeOfWork.OffscreenComponent,
-        ScopeComponent = _ReactTypeOfWork.ScopeComponent,
-        SimpleMemoComponent = _ReactTypeOfWork.SimpleMemoComponent,
-        SuspenseComponent = _ReactTypeOfWork.SuspenseComponent,
-        SuspenseListComponent = _ReactTypeOfWork.SuspenseListComponent;
+  const {
+    CacheComponent,
+    ClassComponent,
+    IncompleteClassComponent,
+    FunctionComponent,
+    IndeterminateComponent,
+    ForwardRef,
+    HostRoot,
+    HostComponent,
+    HostPortal,
+    HostText,
+    Fragment,
+    LazyComponent,
+    LegacyHiddenComponent,
+    MemoComponent,
+    OffscreenComponent,
+    Profiler,
+    ScopeComponent,
+    SimpleMemoComponent,
+    SuspenseComponent,
+    SuspenseListComponent
+  } = ReactTypeOfWork;
 
   function resolveFiberType(type) {
     const typeSymbol = getTypeSymbol(type);
@@ -5036,8 +5078,10 @@ function getInternalReactConstants(version) {
 
 
   function getDisplayNameForFiber(fiber) {
-    const type = fiber.type,
-          tag = fiber.tag;
+    const {
+      type,
+      tag
+    } = fiber;
     let resolvedType = type;
 
     if (typeof type === 'object' && type !== null) {
@@ -5098,6 +5142,9 @@ function getInternalReactConstants(version) {
       case SuspenseListComponent:
         return 'SuspenseList';
 
+      case Profiler:
+        return 'Profiler';
+
       default:
         const typeSymbol = getTypeSymbol(type);
 
@@ -5155,49 +5202,62 @@ function getInternalReactConstants(version) {
   };
 }
 function attach(hook, rendererID, renderer, global) {
-  const _getInternalReactCons = getInternalReactConstants(renderer.version),
-        getDisplayNameForFiber = _getInternalReactCons.getDisplayNameForFiber,
-        getTypeSymbol = _getInternalReactCons.getTypeSymbol,
-        ReactPriorityLevels = _getInternalReactCons.ReactPriorityLevels,
-        ReactTypeOfWork = _getInternalReactCons.ReactTypeOfWork,
-        ReactTypeOfSideEffect = _getInternalReactCons.ReactTypeOfSideEffect;
-
-  const Incomplete = ReactTypeOfSideEffect.Incomplete,
-        NoFlags = ReactTypeOfSideEffect.NoFlags,
-        PerformedWork = ReactTypeOfSideEffect.PerformedWork,
-        Placement = ReactTypeOfSideEffect.Placement;
-  const CacheComponent = ReactTypeOfWork.CacheComponent,
-        ClassComponent = ReactTypeOfWork.ClassComponent,
-        ContextConsumer = ReactTypeOfWork.ContextConsumer,
-        DehydratedSuspenseComponent = ReactTypeOfWork.DehydratedSuspenseComponent,
-        ForwardRef = ReactTypeOfWork.ForwardRef,
-        Fragment = ReactTypeOfWork.Fragment,
-        FunctionComponent = ReactTypeOfWork.FunctionComponent,
-        HostRoot = ReactTypeOfWork.HostRoot,
-        HostPortal = ReactTypeOfWork.HostPortal,
-        HostComponent = ReactTypeOfWork.HostComponent,
-        HostText = ReactTypeOfWork.HostText,
-        IncompleteClassComponent = ReactTypeOfWork.IncompleteClassComponent,
-        IndeterminateComponent = ReactTypeOfWork.IndeterminateComponent,
-        MemoComponent = ReactTypeOfWork.MemoComponent,
-        OffscreenComponent = ReactTypeOfWork.OffscreenComponent,
-        SimpleMemoComponent = ReactTypeOfWork.SimpleMemoComponent,
-        SuspenseComponent = ReactTypeOfWork.SuspenseComponent,
-        SuspenseListComponent = ReactTypeOfWork.SuspenseListComponent;
-  const ImmediatePriority = ReactPriorityLevels.ImmediatePriority,
-        UserBlockingPriority = ReactPriorityLevels.UserBlockingPriority,
-        NormalPriority = ReactPriorityLevels.NormalPriority,
-        LowPriority = ReactPriorityLevels.LowPriority,
-        IdlePriority = ReactPriorityLevels.IdlePriority,
-        NoPriority = ReactPriorityLevels.NoPriority;
-  const overrideHookState = renderer.overrideHookState,
-        overrideHookStateDeletePath = renderer.overrideHookStateDeletePath,
-        overrideHookStateRenamePath = renderer.overrideHookStateRenamePath,
-        overrideProps = renderer.overrideProps,
-        overridePropsDeletePath = renderer.overridePropsDeletePath,
-        overridePropsRenamePath = renderer.overridePropsRenamePath,
-        setSuspenseHandler = renderer.setSuspenseHandler,
-        scheduleUpdate = renderer.scheduleUpdate;
+  // Newer versions of the reconciler package also specific reconciler version.
+  // If that version number is present, use it.
+  // Third party renderer versions may not match the reconciler version,
+  // and the latter is what's important in terms of tags and symbols.
+  const version = renderer.reconcilerVersion || renderer.version;
+  const {
+    getDisplayNameForFiber,
+    getTypeSymbol,
+    ReactPriorityLevels,
+    ReactTypeOfWork,
+    ReactTypeOfSideEffect
+  } = getInternalReactConstants(version);
+  const {
+    Incomplete,
+    NoFlags,
+    PerformedWork,
+    Placement
+  } = ReactTypeOfSideEffect;
+  const {
+    CacheComponent,
+    ClassComponent,
+    ContextConsumer,
+    DehydratedSuspenseComponent,
+    ForwardRef,
+    Fragment,
+    FunctionComponent,
+    HostRoot,
+    HostPortal,
+    HostComponent,
+    HostText,
+    IncompleteClassComponent,
+    IndeterminateComponent,
+    MemoComponent,
+    OffscreenComponent,
+    SimpleMemoComponent,
+    SuspenseComponent,
+    SuspenseListComponent
+  } = ReactTypeOfWork;
+  const {
+    ImmediatePriority,
+    UserBlockingPriority,
+    NormalPriority,
+    LowPriority,
+    IdlePriority,
+    NoPriority
+  } = ReactPriorityLevels;
+  const {
+    overrideHookState,
+    overrideHookStateDeletePath,
+    overrideHookStateRenamePath,
+    overrideProps,
+    overridePropsDeletePath,
+    overridePropsRenamePath,
+    setSuspenseHandler,
+    scheduleUpdate
+  } = renderer;
   const supportsTogglingSuspense = typeof setSuspenseHandler === 'function' && typeof scheduleUpdate === 'function'; // Set of Fibers (IDs) with recently changed number of error/warning messages.
 
   const fibersWithChangedErrorOrWarningCounts = new Set(); // Mapping of fiber IDs to error/warning messages and counts.
@@ -5207,35 +5267,15 @@ function attach(hook, rendererID, renderer, global) {
 
   function clearErrorsAndWarnings() {
     // eslint-disable-next-line no-for-of-loops/no-for-of-loops
-    var _iterator = _createForOfIteratorHelper(fiberToErrorsMap.keys()),
-        _step;
+    for (const id of fiberToErrorsMap.keys()) {
+      fibersWithChangedErrorOrWarningCounts.add(id);
+      updateMostRecentlyInspectedElementIfNecessary(id);
+    } // eslint-disable-next-line no-for-of-loops/no-for-of-loops
 
-    try {
-      for (_iterator.s(); !(_step = _iterator.n()).done;) {
-        const id = _step.value;
-        fibersWithChangedErrorOrWarningCounts.add(id);
-        updateMostRecentlyInspectedElementIfNecessary(id);
-      } // eslint-disable-next-line no-for-of-loops/no-for-of-loops
 
-    } catch (err) {
-      _iterator.e(err);
-    } finally {
-      _iterator.f();
-    }
-
-    var _iterator2 = _createForOfIteratorHelper(fiberToWarningsMap.keys()),
-        _step2;
-
-    try {
-      for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-        const id = _step2.value;
-        fibersWithChangedErrorOrWarningCounts.add(id);
-        updateMostRecentlyInspectedElementIfNecessary(id);
-      }
-    } catch (err) {
-      _iterator2.e(err);
-    } finally {
-      _iterator2.f();
+    for (const id of fiberToWarningsMap.keys()) {
+      fibersWithChangedErrorOrWarningCounts.add(id);
+      updateMostRecentlyInspectedElementIfNecessary(id);
     }
 
     fiberToErrorsMap.clear();
@@ -5440,9 +5480,11 @@ function attach(hook, rendererID, renderer, global) {
 
 
   function shouldFilterFiber(fiber) {
-    const _debugSource = fiber._debugSource,
-          tag = fiber.tag,
-          type = fiber.type;
+    const {
+      _debugSource,
+      tag,
+      type
+    } = fiber;
 
     switch (tag) {
       case DehydratedSuspenseComponent:
@@ -5491,43 +5533,23 @@ function attach(hook, rendererID, renderer, global) {
 
       if (displayName != null) {
         // eslint-disable-next-line no-for-of-loops/no-for-of-loops
-        var _iterator3 = _createForOfIteratorHelper(hideElementsWithDisplayNames),
-            _step3;
-
-        try {
-          for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-            const displayNameRegExp = _step3.value;
-
-            if (displayNameRegExp.test(displayName)) {
-              return true;
-            }
+        for (const displayNameRegExp of hideElementsWithDisplayNames) {
+          if (displayNameRegExp.test(displayName)) {
+            return true;
           }
-        } catch (err) {
-          _iterator3.e(err);
-        } finally {
-          _iterator3.f();
         }
       }
     }
 
     if (_debugSource != null && hideElementsWithPaths.size > 0) {
-      const fileName = _debugSource.fileName; // eslint-disable-next-line no-for-of-loops/no-for-of-loops
+      const {
+        fileName
+      } = _debugSource; // eslint-disable-next-line no-for-of-loops/no-for-of-loops
 
-      var _iterator4 = _createForOfIteratorHelper(hideElementsWithPaths),
-          _step4;
-
-      try {
-        for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-          const pathRegExp = _step4.value;
-
-          if (pathRegExp.test(fileName)) {
-            return true;
-          }
+      for (const pathRegExp of hideElementsWithPaths) {
+        if (pathRegExp.test(fileName)) {
+          return true;
         }
-      } catch (err) {
-        _iterator4.e(err);
-      } finally {
-        _iterator4.f();
       }
     }
 
@@ -5536,8 +5558,10 @@ function attach(hook, rendererID, renderer, global) {
 
 
   function getElementTypeForFiber(fiber) {
-    const type = fiber.type,
-          tag = fiber.tag;
+    const {
+      type,
+      tag
+    } = fiber;
 
     switch (tag) {
       case ClassComponent:
@@ -5613,7 +5637,9 @@ function attach(hook, rendererID, renderer, global) {
       return fiber;
     }
 
-    const alternate = fiber.alternate;
+    const {
+      alternate
+    } = fiber;
 
     if (alternate != null && primaryFibers.has(alternate)) {
       return alternate;
@@ -5662,13 +5688,23 @@ function attach(hook, rendererID, renderer, global) {
             state: null
           };
         } else {
-          return {
+          const data = {
             context: getContextChangedKeys(nextFiber),
-            didHooksChange: didHooksChange(prevFiber.memoizedState, nextFiber.memoizedState),
+            didHooksChange: false,
             isFirstMount: false,
             props: getChangedKeys(prevFiber.memoizedProps, nextFiber.memoizedProps),
             state: getChangedKeys(prevFiber.memoizedState, nextFiber.memoizedState)
-          };
+          }; // Only traverse the hooks list once, depending on what info we're returning.
+
+          if (enableProfilerChangedHookIndices) {
+            const indices = getChangedHooksIndices(prevFiber.memoizedState, nextFiber.memoizedState);
+            data.hooks = indices;
+            data.didHooksChange = indices !== null && indices.length > 0;
+          } else {
+            data.didHooksChange = didHooksChange(prevFiber.memoizedState, nextFiber.memoizedState);
+          }
+
+          return data;
         }
 
       default:
@@ -5749,13 +5785,8 @@ function attach(hook, rendererID, renderer, global) {
             return null;
           }
 
-          const _prevContexts = _slicedToArray(prevContexts, 2),
-                prevLegacyContext = _prevContexts[0],
-                prevModernContext = _prevContexts[1];
-
-          const _nextContexts = _slicedToArray(nextContexts, 2),
-                nextLegacyContext = _nextContexts[0],
-                nextModernContext = _nextContexts[1];
+          const [prevLegacyContext, prevModernContext] = prevContexts;
+          const [nextLegacyContext, nextModernContext] = nextContexts;
 
           if (nextLegacyContext !== NO_CONTEXT) {
             return getChangedKeys(prevLegacyContext, nextLegacyContext);
@@ -5790,7 +5821,7 @@ function attach(hook, rendererID, renderer, global) {
   }
 
   function isEffect(memoizedState) {
-    return memoizedState !== null && typeof memoizedState === 'object' && memoizedState.hasOwnProperty('tag') && memoizedState.hasOwnProperty('create') && memoizedState.hasOwnProperty('destroy') && memoizedState.hasOwnProperty('deps') && (memoizedState.deps === null || Array.isArray(memoizedState.deps)) && memoizedState.hasOwnProperty('next');
+    return memoizedState !== null && typeof memoizedState === 'object' && memoizedState.hasOwnProperty('tag') && memoizedState.hasOwnProperty('create') && memoizedState.hasOwnProperty('destroy') && memoizedState.hasOwnProperty('deps') && (memoizedState.deps === null || Object(isArray["a" /* default */])(memoizedState.deps)) && memoizedState.hasOwnProperty('next');
   }
 
   function didHookChange(prev, next) {
@@ -5824,6 +5855,33 @@ function attach(hook, rendererID, renderer, global) {
     return false;
   }
 
+  function getChangedHooksIndices(prev, next) {
+    if (enableProfilerChangedHookIndices) {
+      if (prev == null || next == null) {
+        return null;
+      }
+
+      const indices = [];
+      let index = 0;
+
+      if (next.hasOwnProperty('baseState') && next.hasOwnProperty('memoizedState') && next.hasOwnProperty('next') && next.hasOwnProperty('queue')) {
+        while (next !== null) {
+          if (didHookChange(prev, next)) {
+            indices.push(index);
+          }
+
+          next = next.next;
+          prev = prev.next;
+          index++;
+        }
+      }
+
+      return indices;
+    }
+
+    return null;
+  }
+
   function getChangedKeys(prev, next) {
     if (prev == null || next == null) {
       return null;
@@ -5837,21 +5895,10 @@ function attach(hook, rendererID, renderer, global) {
     const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
     const changedKeys = []; // eslint-disable-next-line no-for-of-loops/no-for-of-loops
 
-    var _iterator5 = _createForOfIteratorHelper(keys),
-        _step5;
-
-    try {
-      for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-        const key = _step5.value;
-
-        if (prev[key] !== next[key]) {
-          changedKeys.push(key);
-        }
+    for (const key of keys) {
+      if (prev[key] !== next[key]) {
+        changedKeys.push(key);
       }
-    } catch (err) {
-      _iterator5.e(err);
-    } finally {
-      _iterator5.f();
     }
 
     return changedKeys;
@@ -6143,10 +6190,14 @@ function attach(hook, rendererID, renderer, global) {
         }
       }
     } else {
-      const key = fiber.key;
+      const {
+        key
+      } = fiber;
       const displayName = getDisplayNameForFiber(fiber);
       const elementType = getElementTypeForFiber(fiber);
-      const _debugOwner = fiber._debugOwner;
+      const {
+        _debugOwner
+      } = fiber;
       const ownerID = _debugOwner != null ? getFiberID(getPrimaryFiber(_debugOwner)) : 0;
       const parentID = parentFiber ? getFiberID(getPrimaryFiber(parentFiber)) : 0;
       const displayNameStringID = getStringID(displayName); // This check is a guard to handle a React element that has been modified
@@ -6226,75 +6277,78 @@ function attach(hook, rendererID, renderer, global) {
     }
   }
 
-  function mountFiberRecursively(fiber, parentFiber, traverseSiblings, traceNearestHostComponentUpdate) {
-    if (constants["n" /* __DEBUG__ */]) {
-      debug('mountFiberRecursively()', fiber, parentFiber);
-    } // If we have the tree selection from previous reload, try to match this Fiber.
-    // Also remember whether to do the same for siblings.
+  function mountFiberRecursively(firstChild, parentFiber, traverseSiblings, traceNearestHostComponentUpdate) {
+    // Iterate over siblings rather than recursing.
+    // This reduces the chance of stack overflow for wide trees (e.g. lists with many items).
+    let fiber = firstChild;
+
+    while (fiber !== null) {
+      if (constants["n" /* __DEBUG__ */]) {
+        debug('mountFiberRecursively()', fiber, parentFiber);
+      } // If we have the tree selection from previous reload, try to match this Fiber.
+      // Also remember whether to do the same for siblings.
 
 
-    const mightSiblingsBeOnTrackedPath = updateTrackedPathStateBeforeMount(fiber);
-    const shouldIncludeInTree = !shouldFilterFiber(fiber);
+      const mightSiblingsBeOnTrackedPath = updateTrackedPathStateBeforeMount(fiber);
+      const shouldIncludeInTree = !shouldFilterFiber(fiber);
 
-    if (shouldIncludeInTree) {
-      recordMount(fiber, parentFiber);
-    }
+      if (shouldIncludeInTree) {
+        recordMount(fiber, parentFiber);
+      }
 
-    if (traceUpdatesEnabled) {
-      if (traceNearestHostComponentUpdate) {
-        const elementType = getElementTypeForFiber(fiber); // If an ancestor updated, we should mark the nearest host nodes for highlighting.
+      if (traceUpdatesEnabled) {
+        if (traceNearestHostComponentUpdate) {
+          const elementType = getElementTypeForFiber(fiber); // If an ancestor updated, we should mark the nearest host nodes for highlighting.
 
-        if (elementType === types["i" /* ElementTypeHostComponent */]) {
-          traceUpdatesForNodes.add(fiber.stateNode);
-          traceNearestHostComponentUpdate = false;
-        }
-      } // We intentionally do not re-enable the traceNearestHostComponentUpdate flag in this branch,
-      // because we don't want to highlight every host node inside of a newly mounted subtree.
+          if (elementType === types["i" /* ElementTypeHostComponent */]) {
+            traceUpdatesForNodes.add(fiber.stateNode);
+            traceNearestHostComponentUpdate = false;
+          }
+        } // We intentionally do not re-enable the traceNearestHostComponentUpdate flag in this branch,
+        // because we don't want to highlight every host node inside of a newly mounted subtree.
 
-    }
+      }
 
-    const isSuspense = fiber.tag === ReactTypeOfWork.SuspenseComponent;
+      const isSuspense = fiber.tag === ReactTypeOfWork.SuspenseComponent;
 
-    if (isSuspense) {
-      const isTimedOut = fiber.memoizedState !== null;
+      if (isSuspense) {
+        const isTimedOut = fiber.memoizedState !== null;
 
-      if (isTimedOut) {
-        // Special case: if Suspense mounts in a timed-out state,
-        // get the fallback child from the inner fragment and mount
-        // it as if it was our own child. Updates handle this too.
-        const primaryChildFragment = fiber.child;
-        const fallbackChildFragment = primaryChildFragment ? primaryChildFragment.sibling : null;
-        const fallbackChild = fallbackChildFragment ? fallbackChildFragment.child : null;
+        if (isTimedOut) {
+          // Special case: if Suspense mounts in a timed-out state,
+          // get the fallback child from the inner fragment and mount
+          // it as if it was our own child. Updates handle this too.
+          const primaryChildFragment = fiber.child;
+          const fallbackChildFragment = primaryChildFragment ? primaryChildFragment.sibling : null;
+          const fallbackChild = fallbackChildFragment ? fallbackChildFragment.child : null;
 
-        if (fallbackChild !== null) {
-          mountFiberRecursively(fallbackChild, shouldIncludeInTree ? fiber : parentFiber, true, traceNearestHostComponentUpdate);
+          if (fallbackChild !== null) {
+            mountFiberRecursively(fallbackChild, shouldIncludeInTree ? fiber : parentFiber, true, traceNearestHostComponentUpdate);
+          }
+        } else {
+          let primaryChild = null;
+          const areSuspenseChildrenConditionallyWrapped = OffscreenComponent === -1;
+
+          if (areSuspenseChildrenConditionallyWrapped) {
+            primaryChild = fiber.child;
+          } else if (fiber.child !== null) {
+            primaryChild = fiber.child.child;
+          }
+
+          if (primaryChild !== null) {
+            mountFiberRecursively(primaryChild, shouldIncludeInTree ? fiber : parentFiber, true, traceNearestHostComponentUpdate);
+          }
         }
       } else {
-        let primaryChild = null;
-        const areSuspenseChildrenConditionallyWrapped = OffscreenComponent === -1;
-
-        if (areSuspenseChildrenConditionallyWrapped) {
-          primaryChild = fiber.child;
-        } else if (fiber.child !== null) {
-          primaryChild = fiber.child.child;
+        if (fiber.child !== null) {
+          mountFiberRecursively(fiber.child, shouldIncludeInTree ? fiber : parentFiber, true, traceNearestHostComponentUpdate);
         }
-
-        if (primaryChild !== null) {
-          mountFiberRecursively(primaryChild, shouldIncludeInTree ? fiber : parentFiber, true, traceNearestHostComponentUpdate);
-        }
-      }
-    } else {
-      if (fiber.child !== null) {
-        mountFiberRecursively(fiber.child, shouldIncludeInTree ? fiber : parentFiber, true, traceNearestHostComponentUpdate);
-      }
-    } // We're exiting this Fiber now, and entering its siblings.
-    // If we have selection to restore, we might need to re-activate tracking.
+      } // We're exiting this Fiber now, and entering its siblings.
+      // If we have selection to restore, we might need to re-activate tracking.
 
 
-    updateTrackedPathStateAfterMount(mightSiblingsBeOnTrackedPath);
-
-    if (traverseSiblings && fiber.sibling !== null) {
-      mountFiberRecursively(fiber.sibling, parentFiber, true, traceNearestHostComponentUpdate);
+      updateTrackedPathStateAfterMount(mightSiblingsBeOnTrackedPath);
+      fiber = traverseSiblings ? fiber.sibling : null;
     }
   } // We use this to simulate unmounting for Suspense trees
   // when we switch from primary to fallback.
@@ -6331,12 +6385,16 @@ function attach(hook, rendererID, renderer, global) {
 
   function recordProfilingDurations(fiber) {
     const id = getFiberID(getPrimaryFiber(fiber));
-    const actualDuration = fiber.actualDuration,
-          treeBaseDuration = fiber.treeBaseDuration;
+    const {
+      actualDuration,
+      treeBaseDuration
+    } = fiber;
     idToTreeBaseDurationMap.set(id, treeBaseDuration || 0);
 
     if (isProfiling) {
-      const alternate = fiber.alternate; // It's important to update treeBaseDuration even if the current Fiber did not render,
+      const {
+        alternate
+      } = fiber; // It's important to update treeBaseDuration even if the current Fiber did not render,
       // because it's possible that one of its descendants did.
 
       if (alternate == null || treeBaseDuration !== alternate.treeBaseDuration) {
@@ -6634,6 +6692,19 @@ function attach(hook, rendererID, renderer, global) {
   function cleanup() {// We don't patch any methods so there is no cleanup.
   }
 
+  function rootSupportsProfiling(root) {
+    if (root.memoizedInteractions != null) {
+      // v16 builds include this field for the scheduler/tracing API.
+      return true;
+    } else if (root.current != null && root.current.hasOwnProperty('treeBaseDuration')) {
+      // The scheduler/tracing API was removed in v17 though
+      // so we need to check a non-root Fiber.
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   function flushInitialOperations() {
     const localPendingOperationsQueue = pendingOperationsQueue;
     pendingOperationsQueue = null;
@@ -6654,21 +6725,20 @@ function attach(hook, rendererID, renderer, global) {
 
       hook.getFiberRoots(rendererID).forEach(root => {
         currentRootID = getFiberID(getPrimaryFiber(root.current));
-        setRootPseudoKey(currentRootID, root.current); // Checking root.memoizedInteractions handles multi-renderer edge-case-
-        // where some v16 renderers support profiling and others don't.
+        setRootPseudoKey(currentRootID, root.current); // Handle multi-renderer edge-case where only some v16 renderers support profiling.
 
-        if (isProfiling && root.memoizedInteractions != null) {
-          // If profiling is active, store commit time and duration, and the current interactions.
+        if (isProfiling && rootSupportsProfiling(root)) {
+          // If profiling is active, store commit time and duration.
           // The frontend may request this information after profiling has stopped.
           currentCommitProfilingMetadata = {
             changeDescriptions: recordChangeDescriptions ? new Map() : null,
             durations: [],
             commitTime: getCurrentTime() - profilingStartTime,
-            interactions: Array.from(root.memoizedInteractions).map(interaction => _objectSpread(_objectSpread({}, interaction), {}, {
-              timestamp: interaction.timestamp - profilingStartTime
-            })),
             maxActualDuration: 0,
-            priorityLevel: null
+            priorityLevel: null,
+            updaters: getUpdatersList(root),
+            effectDuration: null,
+            passiveEffectDuration: null
           };
         }
 
@@ -6679,11 +6749,28 @@ function attach(hook, rendererID, renderer, global) {
     }
   }
 
+  function getUpdatersList(root) {
+    return root.memoizedUpdaters != null ? Array.from(root.memoizedUpdaters).map(fiberToSerializedElement) : null;
+  }
+
   function handleCommitFiberUnmount(fiber) {
     // This is not recursive.
     // We can't traverse fibers after unmounting so instead
     // we rely on React telling us about each unmount.
     recordUnmount(fiber, false);
+  }
+
+  function handlePostCommitFiberRoot(root) {
+    if (isProfiling && rootSupportsProfiling(root)) {
+      if (currentCommitProfilingMetadata !== null) {
+        const {
+          effectDuration,
+          passiveEffectDuration
+        } = Object(backend_utils["g" /* getEffectDurations */])(root);
+        currentCommitProfilingMetadata.effectDuration = effectDuration;
+        currentCommitProfilingMetadata.passiveEffectDuration = passiveEffectDuration;
+      }
+    }
   }
 
   function handleCommitFiberRoot(root, priorityLevel) {
@@ -6698,24 +6785,25 @@ function attach(hook, rendererID, renderer, global) {
 
     if (traceUpdatesEnabled) {
       traceUpdatesForNodes.clear();
-    } // Checking root.memoizedInteractions handles multi-renderer edge-case-
-    // where some v16 renderers support profiling and others don't.
+    } // Handle multi-renderer edge-case where only some v16 renderers support profiling.
 
 
-    const isProfilingSupported = root.memoizedInteractions != null;
+    const isProfilingSupported = rootSupportsProfiling(root);
 
     if (isProfiling && isProfilingSupported) {
-      // If profiling is active, store commit time and duration, and the current interactions.
+      // If profiling is active, store commit time and duration.
       // The frontend may request this information after profiling has stopped.
       currentCommitProfilingMetadata = {
         changeDescriptions: recordChangeDescriptions ? new Map() : null,
         durations: [],
         commitTime: getCurrentTime() - profilingStartTime,
-        interactions: Array.from(root.memoizedInteractions).map(interaction => _objectSpread(_objectSpread({}, interaction), {}, {
-          timestamp: interaction.timestamp - profilingStartTime
-        })),
         maxActualDuration: 0,
-        priorityLevel: priorityLevel == null ? null : formatPriorityLevel(priorityLevel)
+        priorityLevel: priorityLevel == null ? null : formatPriorityLevel(priorityLevel),
+        updaters: getUpdatersList(root),
+        // Initialize to null; if new enough React version is running,
+        // these values will be read during separate handlePostCommitFiberRoot() call.
+        effectDuration: null,
+        passiveEffectDuration: null
       };
     }
 
@@ -7108,9 +7196,11 @@ function attach(hook, rendererID, renderer, global) {
       return;
     }
 
-    const elementType = fiber.elementType,
-          tag = fiber.tag,
-          type = fiber.type;
+    const {
+      elementType,
+      tag,
+      type
+    } = fiber;
 
     switch (tag) {
       case ClassComponent:
@@ -7135,6 +7225,15 @@ function attach(hook, rendererID, renderer, global) {
     }
   }
 
+  function fiberToSerializedElement(fiber) {
+    return {
+      displayName: getDisplayNameForFiber(fiber) || 'Anonymous',
+      id: getFiberID(getPrimaryFiber(fiber)),
+      key: fiber.key,
+      type: getElementTypeForFiber(fiber)
+    };
+  }
+
   function getOwnersList(id) {
     const fiber = findCurrentFiberUsingSlowPathById(id);
 
@@ -7142,22 +7241,16 @@ function attach(hook, rendererID, renderer, global) {
       return null;
     }
 
-    const _debugOwner = fiber._debugOwner;
-    const owners = [{
-      displayName: getDisplayNameForFiber(fiber) || 'Anonymous',
-      id,
-      type: getElementTypeForFiber(fiber)
-    }];
+    const {
+      _debugOwner
+    } = fiber;
+    const owners = [fiberToSerializedElement(fiber)];
 
     if (_debugOwner) {
       let owner = _debugOwner;
 
       while (owner !== null) {
-        owners.unshift({
-          displayName: getDisplayNameForFiber(owner) || 'Anonymous',
-          id: getFiberID(getPrimaryFiber(owner)),
-          type: getElementTypeForFiber(owner)
-        });
+        owners.unshift(fiberToSerializedElement(owner));
         owner = owner._debugOwner || null;
       }
     }
@@ -7194,15 +7287,17 @@ function attach(hook, rendererID, renderer, global) {
       return null;
     }
 
-    const _debugOwner = fiber._debugOwner,
-          _debugSource = fiber._debugSource,
-          stateNode = fiber.stateNode,
-          key = fiber.key,
-          memoizedProps = fiber.memoizedProps,
-          memoizedState = fiber.memoizedState,
-          dependencies = fiber.dependencies,
-          tag = fiber.tag,
-          type = fiber.type;
+    const {
+      _debugOwner,
+      _debugSource,
+      stateNode,
+      key,
+      memoizedProps,
+      memoizedState,
+      dependencies,
+      tag,
+      type
+    } = fiber;
     const elementType = getElementTypeForFiber(fiber);
     const usesHooks = (tag === FunctionComponent || tag === SimpleMemoComponent || tag === ForwardRef) && (!!memoizedState || !!dependencies); // TODO Show custom UI for Cache like we do for Suspense
     // For now, just hide state data entirely since it's not meant to be inspected.
@@ -7271,11 +7366,7 @@ function attach(hook, rendererID, renderer, global) {
       let owner = _debugOwner;
 
       while (owner !== null) {
-        owners.push({
-          displayName: getDisplayNameForFiber(owner) || 'Anonymous',
-          id: getFiberID(getPrimaryFiber(owner)),
-          type: getElementTypeForFiber(owner)
-        });
+        owners.push(fiberToSerializedElement(owner));
         owner = owner._debugOwner || null;
       }
     }
@@ -7429,9 +7520,11 @@ function attach(hook, rendererID, renderer, global) {
   }
 
   function updateSelectedElement(inspectedElement) {
-    const hooks = inspectedElement.hooks,
-          id = inspectedElement.id,
-          props = inspectedElement.props;
+    const {
+      hooks,
+      id,
+      props
+    } = inspectedElement;
     const fiber = idToFiberMap.get(id);
 
     if (fiber == null) {
@@ -7439,10 +7532,12 @@ function attach(hook, rendererID, renderer, global) {
       return;
     }
 
-    const elementType = fiber.elementType,
-          stateNode = fiber.stateNode,
-          tag = fiber.tag,
-          type = fiber.type;
+    const {
+      elementType,
+      stateNode,
+      tag,
+      type
+    } = fiber;
 
     switch (tag) {
       case ClassComponent:
@@ -7553,8 +7648,8 @@ function attach(hook, rendererID, renderer, global) {
     // This will enable us to send patches without re-inspecting if hydrated paths are requested.
     // (Reducing how often we shallow-render is a better DX for function components that use hooks.)
 
-    const cleanedInspectedElement = _objectSpread({}, mostRecentlyInspectedElement);
-
+    const cleanedInspectedElement = { ...mostRecentlyInspectedElement
+    };
     cleanedInspectedElement.context = Object(backend_utils["a" /* cleanForBridge */])(cleanedInspectedElement.context, createIsPathAllowed('context', null));
     cleanedInspectedElement.hooks = Object(backend_utils["a" /* cleanForBridge */])(cleanedInspectedElement.hooks, createIsPathAllowed('hooks', 'hooks'));
     cleanedInspectedElement.props = Object(backend_utils["a" /* cleanForBridge */])(cleanedInspectedElement.props, createIsPathAllowed('props', null));
@@ -7820,8 +7915,6 @@ function attach(hook, rendererID, renderer, global) {
     rootToCommitProfilingMetadataMap.forEach((commitProfilingMetadata, rootID) => {
       const commitData = [];
       const initialTreeBaseDurations = [];
-      const allInteractions = new Map();
-      const interactionCommits = new Map();
       const displayName = displayNamesByRootID !== null && displayNamesByRootID.get(rootID) || 'Unknown';
 
       if (initialTreeBaseDurationsMap != null) {
@@ -7835,27 +7928,16 @@ function attach(hook, rendererID, renderer, global) {
       }
 
       commitProfilingMetadata.forEach((commitProfilingData, commitIndex) => {
-        const changeDescriptions = commitProfilingData.changeDescriptions,
-              durations = commitProfilingData.durations,
-              interactions = commitProfilingData.interactions,
-              maxActualDuration = commitProfilingData.maxActualDuration,
-              priorityLevel = commitProfilingData.priorityLevel,
-              commitTime = commitProfilingData.commitTime;
-        const interactionIDs = [];
-        interactions.forEach(interaction => {
-          if (!allInteractions.has(interaction.id)) {
-            allInteractions.set(interaction.id, interaction);
-          }
-
-          interactionIDs.push(interaction.id);
-          const commitIndices = interactionCommits.get(interaction.id);
-
-          if (commitIndices != null) {
-            commitIndices.push(commitIndex);
-          } else {
-            interactionCommits.set(interaction.id, [commitIndex]);
-          }
-        });
+        const {
+          changeDescriptions,
+          durations,
+          effectDuration,
+          maxActualDuration,
+          passiveEffectDuration,
+          priorityLevel,
+          commitTime,
+          updaters
+        } = commitProfilingData;
         const fiberActualDurations = [];
         const fiberSelfDurations = [];
 
@@ -7868,19 +7950,19 @@ function attach(hook, rendererID, renderer, global) {
         commitData.push({
           changeDescriptions: changeDescriptions !== null ? Array.from(changeDescriptions.entries()) : null,
           duration: maxActualDuration,
+          effectDuration,
           fiberActualDurations,
           fiberSelfDurations,
-          interactionIDs,
+          passiveEffectDuration,
           priorityLevel,
-          timestamp: commitTime
+          timestamp: commitTime,
+          updaters
         });
       });
       dataForRoots.push({
         commitData,
         displayName,
         initialTreeBaseDurations,
-        interactionCommits: Array.from(interactionCommits.entries()),
-        interactions: Array.from(allInteractions.entries()),
         rootID
       });
     });
@@ -8118,7 +8200,9 @@ function attach(hook, rendererID, renderer, global) {
   }
 
   function getPathFrame(fiber) {
-    const key = fiber.key;
+    const {
+      key
+    } = fiber;
     let displayName = getDisplayNameForFiber(fiber);
     const index = fiber.index;
 
@@ -8250,6 +8334,7 @@ function attach(hook, rendererID, renderer, global) {
     getProfilingData,
     handleCommitFiberRoot,
     handleCommitFiberUnmount,
+    handlePostCommitFiberRoot,
     inspectElement,
     logElementToConsole,
     prepareViewAttributeSource,
@@ -8268,7 +8353,7 @@ function attach(hook, rendererID, renderer, global) {
 }
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -8279,10 +8364,10 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, "default", function() { return /* binding */ agent_Agent; });
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/events.js
-var events = __webpack_require__(11);
+var events = __webpack_require__(12);
 
-// EXTERNAL MODULE: /Users/bhackett/react/node_modules/lodash.throttle/index.js
-var lodash_throttle = __webpack_require__(12);
+// EXTERNAL MODULE: /home/marvin/Misc/projects/replay/react/node_modules/lodash.throttle/index.js
+var lodash_throttle = __webpack_require__(13);
 var lodash_throttle_default = /*#__PURE__*/__webpack_require__.n(lodash_throttle);
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/constants.js
@@ -8291,7 +8376,7 @@ var constants = __webpack_require__(2);
 // EXTERNAL MODULE: ../react-devtools-shared/src/storage.js
 var storage = __webpack_require__(5);
 
-// CONCATENATED MODULE: /Users/bhackett/react/node_modules/memoize-one/esm/index.js
+// CONCATENATED MODULE: /home/marvin/Misc/projects/replay/react/node_modules/memoize-one/esm/index.js
 var simpleIsEqual = function simpleIsEqual(a, b) {
   return a === b;
 };
@@ -8325,7 +8410,7 @@ var simpleIsEqual = function simpleIsEqual(a, b) {
 
   return result;
 });
-// EXTERNAL MODULE: /Users/bhackett/react/node_modules/object-assign/index.js
+// EXTERNAL MODULE: /home/marvin/Misc/projects/replay/react/node_modules/object-assign/index.js
 var object_assign = __webpack_require__(7);
 var object_assign_default = /*#__PURE__*/__webpack_require__.n(object_assign);
 
@@ -8443,12 +8528,6 @@ function getElementDimensions(domElement) {
   };
 }
 // CONCATENATED MODULE: ../react-devtools-shared/src/backend/views/Highlighter/Overlay.js
-function _createForOfIteratorHelper(o, allowArrayLike) { var it; if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) { if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") { if (it) o = it; var i = 0; var F = function F() {}; return { s: F, n: function n() { if (i >= o.length) return { done: true }; return { done: false, value: o[i++] }; }, e: function e(_e) { throw _e; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var normalCompletion = true, didErr = false, err; return { s: function s() { it = o[Symbol.iterator](); }, n: function n() { var step = it.next(); normalCompletion = step.done; return step; }, e: function e(_e2) { didErr = true; err = _e2; }, f: function f() { try { if (!normalCompletion && it.return != null) it.return(); } finally { if (didErr) throw err; } } }; }
-
-function _unsupportedIterableToArray(o, minLen) { if (!o) return; if (typeof o === "string") return _arrayLikeToArray(o, minLen); var n = Object.prototype.toString.call(o).slice(8, -1); if (n === "Object" && o.constructor) n = o.constructor.name; if (n === "Map" || n === "Set") return Array.from(o); if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen); }
-
-function _arrayLikeToArray(arr, len) { if (len == null || len > arr.length) len = arr.length; for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i]; return arr2; }
-
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -8632,23 +8711,13 @@ class Overlay_Overlay {
       if (hook != null && hook.rendererInterfaces != null) {
         let ownerName = null; // eslint-disable-next-line no-for-of-loops/no-for-of-loops
 
-        var _iterator = _createForOfIteratorHelper(hook.rendererInterfaces.values()),
-            _step;
+        for (const rendererInterface of hook.rendererInterfaces.values()) {
+          const id = rendererInterface.getFiberIDForNative(node, true);
 
-        try {
-          for (_iterator.s(); !(_step = _iterator.n()).done;) {
-            const rendererInterface = _step.value;
-            const id = rendererInterface.getFiberIDForNative(node, true);
-
-            if (id !== null) {
-              ownerName = rendererInterface.getDisplayNameForFiberID(id, true);
-              break;
-            }
+          if (id !== null) {
+            ownerName = rendererInterface.getDisplayNameForFiberID(id, true);
+            break;
           }
-        } catch (err) {
-          _iterator.e(err);
-        } finally {
-          _iterator.f();
         }
 
         if (ownerName) {
@@ -8987,10 +9056,12 @@ function draw(nodeToData) {
 }
 
 function drawBorder(context, rect, color) {
-  const height = rect.height,
-        left = rect.left,
-        top = rect.top,
-        width = rect.width; // outline
+  const {
+    height,
+    left,
+    top,
+    width
+  } = rect; // outline
 
   context.lineWidth = 1;
   context.strokeStyle = OUTLINE_COLOR;
@@ -9146,7 +9217,10 @@ function measureNode(node) {
   return getNestedBoundingClientRect(node, currentWindow);
 }
 // EXTERNAL MODULE: ../react-devtools-shared/src/backend/console.js + 3 modules
-var backend_console = __webpack_require__(9);
+var backend_console = __webpack_require__(10);
+
+// EXTERNAL MODULE: ../react-devtools-shared/src/bridge.js
+var src_bridge = __webpack_require__(16);
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/backend/utils.js
 var utils = __webpack_require__(4);
@@ -9162,6 +9236,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  *
  * 
  */
+
 
 
 
@@ -9259,6 +9334,10 @@ class agent_Agent extends events["a" /* default */] {
       } else {
         renderer.deletePath(type, id, hookID, path);
       }
+    });
+
+    _defineProperty(this, "getBridgeProtocol", () => {
+      this._bridge.send('bridgeProtocol', src_bridge["currentBridgeProtocol"]);
     });
 
     _defineProperty(this, "getProfilingData", ({
@@ -9696,6 +9775,7 @@ class agent_Agent extends events["a" /* default */] {
     bridge.addListener('clearWarningsForFiberID', this.clearWarningsForFiberID);
     bridge.addListener('copyElementPath', this.copyElementPath);
     bridge.addListener('deletePath', this.deletePath);
+    bridge.addListener('getBridgeProtocol', this.getBridgeProtocol);
     bridge.addListener('getProfilingData', this.getProfilingData);
     bridge.addListener('getProfilingStatus', this.getProfilingStatus);
     bridge.addListener('getOwnersList', this.getOwnersList);
@@ -9737,7 +9817,7 @@ class agent_Agent extends events["a" /* default */] {
     } catch (error) {}
 
     bridge.send('isBackendStorageAPISupported', isBackendStorageAPISupported);
-    bridge.send('isSynchronousXHRSupported', Object(utils["g" /* isSynchronousXHRSupported */])());
+    bridge.send('isSynchronousXHRSupported', Object(utils["h" /* isSynchronousXHRSupported */])());
     setupHighlighter(bridge, this);
     TraceUpdates_initialize(this);
 
@@ -9823,13 +9903,227 @@ class agent_Agent extends events["a" /* default */] {
 }
 
 /***/ }),
-/* 15 */
+/* 16 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "BRIDGE_PROTOCOL", function() { return BRIDGE_PROTOCOL; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "currentBridgeProtocol", function() { return currentBridgeProtocol; });
+/* harmony import */ var _events__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(12);
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+/**
+ * Copyright (c) Facebook, Inc. and its affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * 
+ */
+
+const BATCH_DURATION = 100; // This message specifies the version of the DevTools protocol currently supported by the backend,
+// as well as the earliest NPM version (e.g. "4.13.0") that protocol is supported by on the frontend.
+// This enables an older frontend to display an upgrade message to users for a newer, unsupported backend.
+
+// Bump protocol version whenever a backwards breaking change is made
+// in the messages sent between BackendBridge and FrontendBridge.
+// This mapping is embedded in both frontend and backend builds.
+//
+// The backend protocol will always be the latest entry in the BRIDGE_PROTOCOL array.
+//
+// When an older frontend connects to a newer backend,
+// the backend can send the minNpmVersion and the frontend can display an NPM upgrade prompt.
+//
+// When a newer frontend connects with an older protocol version,
+// the frontend can use the embedded minNpmVersion/maxNpmVersion values to display a downgrade prompt.
+const BRIDGE_PROTOCOL = [// This version technically never existed,
+// but a backwards breaking change was added in 4.11,
+// so the safest guess to downgrade the frontend would be to version 4.10.
+{
+  version: 0,
+  minNpmVersion: '<4.11.0',
+  maxNpmVersion: '<4.11.0'
+}, {
+  version: 1,
+  minNpmVersion: '4.13.0',
+  maxNpmVersion: null
+}];
+const currentBridgeProtocol = BRIDGE_PROTOCOL[BRIDGE_PROTOCOL.length - 1];
+
+class Bridge extends _events__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"] {
+  constructor(wall) {
+    super();
+
+    _defineProperty(this, "_isShutdown", false);
+
+    _defineProperty(this, "_messageQueue", []);
+
+    _defineProperty(this, "_timeoutID", null);
+
+    _defineProperty(this, "_wallUnlisten", null);
+
+    _defineProperty(this, "_flush", () => {
+      // This method is used after the bridge is marked as destroyed in shutdown sequence,
+      // so we do not bail out if the bridge marked as destroyed.
+      // It is a private method that the bridge ensures is only called at the right times.
+      if (this._timeoutID !== null) {
+        clearTimeout(this._timeoutID);
+        this._timeoutID = null;
+      }
+
+      if (this._messageQueue.length) {
+        for (let i = 0; i < this._messageQueue.length; i += 2) {
+          this._wall.send(this._messageQueue[i], ...this._messageQueue[i + 1]);
+        }
+
+        this._messageQueue.length = 0; // Check again for queued messages in BATCH_DURATION ms. This will keep
+        // flushing in a loop as long as messages continue to be added. Once no
+        // more are, the timer expires.
+
+        this._timeoutID = setTimeout(this._flush, BATCH_DURATION);
+      }
+    });
+
+    _defineProperty(this, "overrideValueAtPath", ({
+      id,
+      path,
+      rendererID,
+      type,
+      value
+    }) => {
+      switch (type) {
+        case 'context':
+          this.send('overrideContext', {
+            id,
+            path,
+            rendererID,
+            wasForwarded: true,
+            value
+          });
+          break;
+
+        case 'hooks':
+          this.send('overrideHookState', {
+            id,
+            path,
+            rendererID,
+            wasForwarded: true,
+            value
+          });
+          break;
+
+        case 'props':
+          this.send('overrideProps', {
+            id,
+            path,
+            rendererID,
+            wasForwarded: true,
+            value
+          });
+          break;
+
+        case 'state':
+          this.send('overrideState', {
+            id,
+            path,
+            rendererID,
+            wasForwarded: true,
+            value
+          });
+          break;
+      }
+    });
+
+    this._wall = wall;
+    this._wallUnlisten = wall.listen(message => {
+      this.emit(message.event, message.payload);
+    }) || null; // Temporarily support older standalone front-ends sending commands to newer embedded backends.
+    // We do this because React Native embeds the React DevTools backend,
+    // but cannot control which version of the frontend users use.
+
+    this.addListener('overrideValueAtPath', this.overrideValueAtPath);
+  } // Listening directly to the wall isn't advised.
+  // It can be used to listen for legacy (v3) messages (since they use a different format).
+
+
+  get wall() {
+    return this._wall;
+  }
+
+  send(event, ...payload) {
+    if (this._isShutdown) {
+      console.warn(`Cannot send message "${event}" through a Bridge that has been shutdown.`);
+      return;
+    } // When we receive a message:
+    // - we add it to our queue of messages to be sent
+    // - if there hasn't been a message recently, we set a timer for 0 ms in
+    //   the future, allowing all messages created in the same tick to be sent
+    //   together
+    // - if there *has* been a message flushed in the last BATCH_DURATION ms
+    //   (or we're waiting for our setTimeout-0 to fire), then _timeoutID will
+    //   be set, and we'll simply add to the queue and wait for that
+
+
+    this._messageQueue.push(event, payload);
+
+    if (!this._timeoutID) {
+      this._timeoutID = setTimeout(this._flush, 0);
+    }
+  }
+
+  shutdown() {
+    if (this._isShutdown) {
+      console.warn('Bridge was already shutdown.');
+      return;
+    } // Queue the shutdown outgoing message for subscribers.
+
+
+    this.send('shutdown'); // Mark this bridge as destroyed, i.e. disable its public API.
+
+    this._isShutdown = true; // Disable the API inherited from EventEmitter that can add more listeners and send more messages.
+    // $FlowFixMe This property is not writable.
+
+    this.addListener = function () {}; // $FlowFixMe This property is not writable.
+
+
+    this.emit = function () {}; // NOTE: There's also EventEmitter API like `on` and `prependListener` that we didn't add to our Flow type of EventEmitter.
+    // Unsubscribe this bridge incoming message listeners to be sure, and so they don't have to do that.
+
+
+    this.removeAllListeners(); // Stop accepting and emitting incoming messages from the wall.
+
+    const wallUnlisten = this._wallUnlisten;
+
+    if (wallUnlisten) {
+      wallUnlisten();
+    } // Synchronously flush all queued outgoing messages.
+    // At this step the subscribers' code may run in this call stack.
+
+
+    do {
+      this._flush();
+    } while (this._messageQueue.length); // Make sure once again that there is no dangling timer.
+
+
+    if (this._timeoutID !== null) {
+      clearTimeout(this._timeoutID);
+      this._timeoutID = null;
+    }
+  }
+
+}
+
+/* harmony default export */ __webpack_exports__["default"] = (Bridge);
+
+/***/ }),
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
  // A linked list to keep track of recently-used-ness
 
-const Yallist = __webpack_require__(22);
+const Yallist = __webpack_require__(24);
 
 const MAX = Symbol('max');
 const LENGTH = Symbol('length');
@@ -10149,7 +10443,7 @@ const forEachStep = (self, fn, node, thisp) => {
 module.exports = LRUCache;
 
 /***/ }),
-/* 16 */
+/* 18 */
 /***/ (function(module, exports, __webpack_require__) {
 
 //  Import support https://stackoverflow.com/questions/13673346/supporting-both-commonjs-and-amd
@@ -10463,24 +10757,25 @@ module.exports = LRUCache;
 });
 
 /***/ }),
-/* 17 */
+/* 19 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 if (true) {
-  module.exports = __webpack_require__(25);
+  module.exports = __webpack_require__(27);
 } else {}
 
 /***/ }),
-/* 18 */
+/* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 // Do not use imports or top-level requires here!
 // Running module factories is intentionally delayed until we know the hook exists.
 // This is to avoid issues like: https://github.com/facebook/react-devtools/issues/1039
+
 
 function welcome(event) {
   if (event.data.source !== 'react-devtools-content-script') {
@@ -10499,14 +10794,15 @@ function setup(hook) {
     return;
   }
 
-  const Agent = __webpack_require__(14).default;
+  const Agent = __webpack_require__(15).default;
 
-  const Bridge = __webpack_require__(30).default;
+  const Bridge = __webpack_require__(16).default;
 
-  const _require = __webpack_require__(31),
-        initBackend = _require.initBackend;
+  const {
+    initBackend
+  } = __webpack_require__(32);
 
-  const setupNativeStyleEditor = __webpack_require__(32).default;
+  const setupNativeStyleEditor = __webpack_require__(33).default;
 
   const bridge = new Bridge({
     listen(fn) {
@@ -10547,7 +10843,7 @@ function setup(hook) {
 }
 
 /***/ }),
-/* 19 */
+/* 21 */
 /***/ (function(module, exports) {
 
 var g; // This works in non-strict mode
@@ -10570,15 +10866,15 @@ try {
 module.exports = g;
 
 /***/ }),
-/* 20 */
+/* 22 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony default export */ __webpack_exports__["default"] = (":root {\n  /**\n   * IMPORTANT: When new theme variables are added below– also add them to SettingsContext updateThemeVariables()\n   */\n\n  /* Light theme */\n  --light-color-attribute-name: #ef6632;\n  --light-color-attribute-name-not-editable: #23272f;\n  --light-color-attribute-name-inverted: rgba(255, 255, 255, 0.7);\n  --light-color-attribute-value: #1a1aa6;\n  --light-color-attribute-value-inverted: #ffffff;\n  --light-color-attribute-editable-value: #1a1aa6;\n  --light-color-background: #ffffff;\n  --light-color-background-hover: rgba(0, 136, 250, 0.1);\n  --light-color-background-inactive: #e5e5e5;\n  --light-color-background-invalid: #fff0f0;\n  --light-color-background-selected: #0088fa;\n  --light-color-button-background: #ffffff;\n  --light-color-button-background-focus: #ededed;\n  --light-color-button: #5f6673;\n  --light-color-button-disabled: #cfd1d5;\n  --light-color-button-active: #0088fa;\n  --light-color-button-focus: #23272f;\n  --light-color-button-hover: #23272f;\n  --light-color-border: #eeeeee;\n  --light-color-commit-did-not-render-fill: #cfd1d5;\n  --light-color-commit-did-not-render-fill-text: #000000;\n  --light-color-commit-did-not-render-pattern: #cfd1d5;\n  --light-color-commit-did-not-render-pattern-text: #333333;\n  --light-color-commit-gradient-0: #37afa9;\n  --light-color-commit-gradient-1: #63b19e;\n  --light-color-commit-gradient-2: #80b393;\n  --light-color-commit-gradient-3: #97b488;\n  --light-color-commit-gradient-4: #abb67d;\n  --light-color-commit-gradient-5: #beb771;\n  --light-color-commit-gradient-6: #cfb965;\n  --light-color-commit-gradient-7: #dfba57;\n  --light-color-commit-gradient-8: #efbb49;\n  --light-color-commit-gradient-9: #febc38;\n  --light-color-commit-gradient-text: #000000;\n  --light-color-component-name: #6a51b2;\n  --light-color-component-name-inverted: #ffffff;\n  --light-color-component-badge-background: rgba(0, 0, 0, 0.1);\n  --light-color-component-badge-background-inverted: rgba(255, 255, 255, 0.25);\n  --light-color-component-badge-count: #777d88;\n  --light-color-component-badge-count-inverted: rgba(255, 255, 255, 0.7);\n  --light-color-console-error-badge-text: #ffffff;\n  --light-color-console-error-background: #fff0f0;\n  --light-color-console-error-border: #ffd6d6;\n  --light-color-console-error-icon: #eb3941;\n  --light-color-console-error-text: #fe2e31;\n  --light-color-console-warning-badge-text: #000000;\n  --light-color-console-warning-background: #fffbe5;\n  --light-color-console-warning-border: #fff5c1;\n  --light-color-console-warning-icon: #f4bd00;\n  --light-color-console-warning-text: #64460c;\n  --light-color-context-background: rgba(0,0,0,.9);\n  --light-color-context-background-hover: rgba(255, 255, 255, 0.1);\n  --light-color-context-background-selected: #178fb9;\n  --light-color-context-border: #3d424a;\n  --light-color-context-text: #ffffff;\n  --light-color-context-text-selected: #ffffff;\n  --light-color-dim: #777d88;\n  --light-color-dimmer: #cfd1d5;\n  --light-color-dimmest: #eff0f1;\n  --light-color-error-background: hsl(0, 100%, 97%);\n  --light-color-error-border: hsl(0, 100%, 92%);\n  --light-color-error-text: #ff0000;\n  --light-color-expand-collapse-toggle: #777d88;\n  --light-color-link: #0000ff;\n  --light-color-modal-background: rgba(255, 255, 255, 0.75);\n  --light-color-record-active: #fc3a4b;\n  --light-color-record-hover: #3578e5;\n  --light-color-record-inactive: #0088fa;\n  --light-color-scroll-thumb: #c2c2c2;\n  --light-color-scroll-track: #fafafa;\n  --light-color-search-match: yellow;\n  --light-color-search-match-current: #f7923b;\n  --light-color-selected-tree-highlight-active: rgba(0, 136, 250, 0.1);\n  --light-color-selected-tree-highlight-inactive: rgba(0, 0, 0, 0.05);\n  --light-color-shadow: rgba(0, 0, 0, 0.25);\n  --light-color-tab-selected-border: #0088fa;\n  --light-color-text: #000000;\n  --light-color-text-invalid: #ff0000;\n  --light-color-text-selected: #ffffff;\n  --light-color-toggle-background-invalid: #fc3a4b;\n  --light-color-toggle-background-on: #0088fa;\n  --light-color-toggle-background-off: #cfd1d5;\n  --light-color-toggle-text: #ffffff;\n  --light-color-tooltip-background: rgba(0, 0, 0, 0.9);\n  --light-color-tooltip-text: #ffffff;\n\n  /* Dark theme */\n  --dark-color-attribute-name: #9d87d2;\n  --dark-color-attribute-name-not-editable: #ededed;\n  --dark-color-attribute-name-inverted: #282828;\n  --dark-color-attribute-value: #cedae0;\n  --dark-color-attribute-value-inverted: #ffffff;\n  --dark-color-attribute-editable-value: yellow;\n  --dark-color-background: #282c34;\n  --dark-color-background-hover: rgba(255, 255, 255, 0.1);\n  --dark-color-background-inactive: #3d424a;\n  --dark-color-background-invalid: #5c0000;\n  --dark-color-background-selected: #178fb9;\n  --dark-color-button-background: #282c34;\n  --dark-color-button-background-focus: #3d424a;\n  --dark-color-button: #afb3b9;\n  --dark-color-button-active: #61dafb;\n  --dark-color-button-disabled: #4f5766;\n  --dark-color-button-focus: #a2e9fc;\n  --dark-color-button-hover: #ededed;\n  --dark-color-border: #3d424a;\n  --dark-color-commit-did-not-render-fill: #777d88;\n  --dark-color-commit-did-not-render-fill-text: #000000;\n  --dark-color-commit-did-not-render-pattern: #666c77;\n  --dark-color-commit-did-not-render-pattern-text: #ffffff;\n  --dark-color-commit-gradient-0: #37afa9;\n  --dark-color-commit-gradient-1: #63b19e;\n  --dark-color-commit-gradient-2: #80b393;\n  --dark-color-commit-gradient-3: #97b488;\n  --dark-color-commit-gradient-4: #abb67d;\n  --dark-color-commit-gradient-5: #beb771;\n  --dark-color-commit-gradient-6: #cfb965;\n  --dark-color-commit-gradient-7: #dfba57;\n  --dark-color-commit-gradient-8: #efbb49;\n  --dark-color-commit-gradient-9: #febc38;\n  --dark-color-commit-gradient-text: #000000;\n  --dark-color-component-name: #61dafb;\n  --dark-color-component-name-inverted: #282828;\n  --dark-color-component-badge-background: rgba(255, 255, 255, 0.25);\n  --dark-color-component-badge-background-inverted: rgba(0, 0, 0, 0.25);\n  --dark-color-component-badge-count: #8f949d;\n  --dark-color-component-badge-count-inverted: rgba(255, 255, 255, 0.7);\n  --dark-color-console-error-badge-text: #000000;\n  --dark-color-console-error-background: #290000;\n  --dark-color-console-error-border: #5c0000;\n  --dark-color-console-error-icon: #eb3941;\n  --dark-color-console-error-text: #fc7f7f;\n  --dark-color-console-warning-badge-text: #000000;\n  --dark-color-console-warning-background: #332b00;\n  --dark-color-console-warning-border: #665500;\n  --dark-color-console-warning-icon: #f4bd00;\n  --dark-color-console-warning-text: #f5f2ed;\n  --dark-color-context-background: rgba(255,255,255,.9);\n  --dark-color-context-background-hover: rgba(0, 136, 250, 0.1);\n  --dark-color-context-background-selected: #0088fa;\n  --dark-color-context-border: #eeeeee;\n  --dark-color-context-text: #000000;\n  --dark-color-context-text-selected: #ffffff;\n  --dark-color-dim: #8f949d;\n  --dark-color-dimmer: #777d88;\n  --dark-color-dimmest: #4f5766;\n  --dark-color-error-background: #200;\n  --dark-color-error-border: #900;\n  --dark-color-error-text: #f55;\n  --dark-color-expand-collapse-toggle: #8f949d;\n  --dark-color-link: #61dafb;\n  --dark-color-modal-background: rgba(0, 0, 0, 0.75);\n  --dark-color-record-active: #fc3a4b;\n  --dark-color-record-hover: #a2e9fc;\n  --dark-color-record-inactive: #61dafb;\n  --dark-color-scroll-thumb: #afb3b9;\n  --dark-color-scroll-track: #313640;\n  --dark-color-search-match: yellow;\n  --dark-color-search-match-current: #f7923b;\n  --dark-color-selected-tree-highlight-active: rgba(23, 143, 185, 0.15);\n  --dark-color-selected-tree-highlight-inactive: rgba(255, 255, 255, 0.05);\n  --dark-color-shadow: rgba(0, 0, 0, 0.5);\n  --dark-color-tab-selected-border: #178fb9;\n  --dark-color-text: #ffffff;\n  --dark-color-text-invalid: #ff8080;\n  --dark-color-text-selected: #ffffff;\n  --dark-color-toggle-background-invalid: #fc3a4b;\n  --dark-color-toggle-background-on: #178fb9;\n  --dark-color-toggle-background-off: #777d88;\n  --dark-color-toggle-text: #ffffff;\n  --dark-color-tooltip-background: rgba(255, 255, 255, 0.9);\n  --dark-color-tooltip-text: #000000;\n\n  /* Font smoothing */\n  --light-font-smoothing: auto;\n  --dark-font-smoothing: antialiased;\n  --font-smoothing: auto;\n\n  /* Compact density */\n  --compact-font-size-monospace-small: 9px;\n  --compact-font-size-monospace-normal: 11px;\n  --compact-font-size-monospace-large: 15px;\n  --compact-font-size-sans-small: 10px;\n  --compact-font-size-sans-normal: 12px;\n  --compact-font-size-sans-large: 14px;\n  --compact-line-height-data: 18px;\n  --compact-root-font-size: 16px;\n\n  /* Comfortable density */\n  --comfortable-font-size-monospace-small: 10px;\n  --comfortable-font-size-monospace-normal: 13px;\n  --comfortable-font-size-monospace-large: 17px;\n  --comfortable-font-size-sans-small: 12px;\n  --comfortable-font-size-sans-normal: 14px;\n  --comfortable-font-size-sans-large: 16px;\n  --comfortable-line-height-data: 22px;\n  --comfortable-root-font-size: 20px;\n\n  /* GitHub.com system fonts */\n  --font-family-monospace: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo,\n    Courier, monospace;\n  --font-family-sans: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica,\n    Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;\n\n  /* Constant values shared between JS and CSS */\n  --interaction-commit-size: 10px;\n  --interaction-label-width: 200px;\n}\n");
+/* harmony default export */ __webpack_exports__["default"] = (":root {\n  /**\n   * IMPORTANT: When new theme variables are added below– also add them to SettingsContext updateThemeVariables()\n   */\n\n  /* Light theme */\n  --light-color-attribute-name: #ef6632;\n  --light-color-attribute-name-not-editable: #23272f;\n  --light-color-attribute-name-inverted: rgba(255, 255, 255, 0.7);\n  --light-color-attribute-value: #1a1aa6;\n  --light-color-attribute-value-inverted: #ffffff;\n  --light-color-attribute-editable-value: #1a1aa6;\n  --light-color-background: #ffffff;\n  --light-color-background-hover: rgba(0, 136, 250, 0.1);\n  --light-color-background-inactive: #e5e5e5;\n  --light-color-background-invalid: #fff0f0;\n  --light-color-background-selected: #0088fa;\n  --light-color-button-background: #ffffff;\n  --light-color-button-background-focus: #ededed;\n  --light-color-button: #5f6673;\n  --light-color-button-disabled: #cfd1d5;\n  --light-color-button-active: #0088fa;\n  --light-color-button-focus: #23272f;\n  --light-color-button-hover: #23272f;\n  --light-color-border: #eeeeee;\n  --light-color-commit-did-not-render-fill: #cfd1d5;\n  --light-color-commit-did-not-render-fill-text: #000000;\n  --light-color-commit-did-not-render-pattern: #cfd1d5;\n  --light-color-commit-did-not-render-pattern-text: #333333;\n  --light-color-commit-gradient-0: #37afa9;\n  --light-color-commit-gradient-1: #63b19e;\n  --light-color-commit-gradient-2: #80b393;\n  --light-color-commit-gradient-3: #97b488;\n  --light-color-commit-gradient-4: #abb67d;\n  --light-color-commit-gradient-5: #beb771;\n  --light-color-commit-gradient-6: #cfb965;\n  --light-color-commit-gradient-7: #dfba57;\n  --light-color-commit-gradient-8: #efbb49;\n  --light-color-commit-gradient-9: #febc38;\n  --light-color-commit-gradient-text: #000000;\n  --light-color-component-name: #6a51b2;\n  --light-color-component-name-inverted: #ffffff;\n  --light-color-component-badge-background: rgba(0, 0, 0, 0.1);\n  --light-color-component-badge-background-inverted: rgba(255, 255, 255, 0.25);\n  --light-color-component-badge-count: #777d88;\n  --light-color-component-badge-count-inverted: rgba(255, 255, 255, 0.7);\n  --light-color-console-error-badge-text: #ffffff;\n  --light-color-console-error-background: #fff0f0;\n  --light-color-console-error-border: #ffd6d6;\n  --light-color-console-error-icon: #eb3941;\n  --light-color-console-error-text: #fe2e31;\n  --light-color-console-warning-badge-text: #000000;\n  --light-color-console-warning-background: #fffbe5;\n  --light-color-console-warning-border: #fff5c1;\n  --light-color-console-warning-icon: #f4bd00;\n  --light-color-console-warning-text: #64460c;\n  --light-color-context-background: rgba(0,0,0,.9);\n  --light-color-context-background-hover: rgba(255, 255, 255, 0.1);\n  --light-color-context-background-selected: #178fb9;\n  --light-color-context-border: #3d424a;\n  --light-color-context-text: #ffffff;\n  --light-color-context-text-selected: #ffffff;\n  --light-color-dim: #777d88;\n  --light-color-dimmer: #cfd1d5;\n  --light-color-dimmest: #eff0f1;\n  --light-color-error-background: hsl(0, 100%, 97%);\n  --light-color-error-border: hsl(0, 100%, 92%);\n  --light-color-error-text: #ff0000;\n  --light-color-expand-collapse-toggle: #777d88;\n  --light-color-link: #0000ff;\n  --light-color-modal-background: rgba(255, 255, 255, 0.75);\n  --light-color-bridge-version-npm-background: #eff0f1;\n  --light-color-bridge-version-npm-text: #000000;\n  --light-color-bridge-version-number: #0088fa;\n  --light-color-primitive-hook-badge-background: #e5e5e5;\n  --light-color-primitive-hook-badge-text: #5f6673;\n  --light-color-record-active: #fc3a4b;\n  --light-color-record-hover: #3578e5;\n  --light-color-record-inactive: #0088fa;\n  --light-color-scroll-thumb: #c2c2c2;\n  --light-color-scroll-track: #fafafa;\n  --light-color-search-match: yellow;\n  --light-color-search-match-current: #f7923b;\n  --light-color-selected-tree-highlight-active: rgba(0, 136, 250, 0.1);\n  --light-color-selected-tree-highlight-inactive: rgba(0, 0, 0, 0.05);\n  --light-color-shadow: rgba(0, 0, 0, 0.25);\n  --light-color-tab-selected-border: #0088fa;\n  --light-color-text: #000000;\n  --light-color-text-invalid: #ff0000;\n  --light-color-text-selected: #ffffff;\n  --light-color-toggle-background-invalid: #fc3a4b;\n  --light-color-toggle-background-on: #0088fa;\n  --light-color-toggle-background-off: #cfd1d5;\n  --light-color-toggle-text: #ffffff;\n  --light-color-tooltip-background: rgba(0, 0, 0, 0.9);\n  --light-color-tooltip-text: #ffffff;\n\n  /* Dark theme */\n  --dark-color-attribute-name: #9d87d2;\n  --dark-color-attribute-name-not-editable: #ededed;\n  --dark-color-attribute-name-inverted: #282828;\n  --dark-color-attribute-value: #cedae0;\n  --dark-color-attribute-value-inverted: #ffffff;\n  --dark-color-attribute-editable-value: yellow;\n  --dark-color-background: #282c34;\n  --dark-color-background-hover: rgba(255, 255, 255, 0.1);\n  --dark-color-background-inactive: #3d424a;\n  --dark-color-background-invalid: #5c0000;\n  --dark-color-background-selected: #178fb9;\n  --dark-color-button-background: #282c34;\n  --dark-color-button-background-focus: #3d424a;\n  --dark-color-button: #afb3b9;\n  --dark-color-button-active: #61dafb;\n  --dark-color-button-disabled: #4f5766;\n  --dark-color-button-focus: #a2e9fc;\n  --dark-color-button-hover: #ededed;\n  --dark-color-border: #3d424a;\n  --dark-color-commit-did-not-render-fill: #777d88;\n  --dark-color-commit-did-not-render-fill-text: #000000;\n  --dark-color-commit-did-not-render-pattern: #666c77;\n  --dark-color-commit-did-not-render-pattern-text: #ffffff;\n  --dark-color-commit-gradient-0: #37afa9;\n  --dark-color-commit-gradient-1: #63b19e;\n  --dark-color-commit-gradient-2: #80b393;\n  --dark-color-commit-gradient-3: #97b488;\n  --dark-color-commit-gradient-4: #abb67d;\n  --dark-color-commit-gradient-5: #beb771;\n  --dark-color-commit-gradient-6: #cfb965;\n  --dark-color-commit-gradient-7: #dfba57;\n  --dark-color-commit-gradient-8: #efbb49;\n  --dark-color-commit-gradient-9: #febc38;\n  --dark-color-commit-gradient-text: #000000;\n  --dark-color-component-name: #61dafb;\n  --dark-color-component-name-inverted: #282828;\n  --dark-color-component-badge-background: rgba(255, 255, 255, 0.25);\n  --dark-color-component-badge-background-inverted: rgba(0, 0, 0, 0.25);\n  --dark-color-component-badge-count: #8f949d;\n  --dark-color-component-badge-count-inverted: rgba(255, 255, 255, 0.7);\n  --dark-color-console-error-badge-text: #000000;\n  --dark-color-console-error-background: #290000;\n  --dark-color-console-error-border: #5c0000;\n  --dark-color-console-error-icon: #eb3941;\n  --dark-color-console-error-text: #fc7f7f;\n  --dark-color-console-warning-badge-text: #000000;\n  --dark-color-console-warning-background: #332b00;\n  --dark-color-console-warning-border: #665500;\n  --dark-color-console-warning-icon: #f4bd00;\n  --dark-color-console-warning-text: #f5f2ed;\n  --dark-color-context-background: rgba(255,255,255,.9);\n  --dark-color-context-background-hover: rgba(0, 136, 250, 0.1);\n  --dark-color-context-background-selected: #0088fa;\n  --dark-color-context-border: #eeeeee;\n  --dark-color-context-text: #000000;\n  --dark-color-context-text-selected: #ffffff;\n  --dark-color-dim: #8f949d;\n  --dark-color-dimmer: #777d88;\n  --dark-color-dimmest: #4f5766;\n  --dark-color-error-background: #200;\n  --dark-color-error-border: #900;\n  --dark-color-error-text: #f55;\n  --dark-color-expand-collapse-toggle: #8f949d;\n  --dark-color-link: #61dafb;\n  --dark-color-modal-background: rgba(0, 0, 0, 0.75);\n  --dark-color-bridge-version-npm-background: rgba(0, 0, 0, 0.25);\n  --dark-color-bridge-version-npm-text: #ffffff;\n  --dark-color-bridge-version-number: yellow;\n  --dark-color-primitive-hook-badge-background: rgba(0, 0, 0, 0.25);\n  --dark-color-primitive-hook-badge-text: rgba(255, 255, 255, 0.7);\n  --dark-color-record-active: #fc3a4b;\n  --dark-color-record-hover: #a2e9fc;\n  --dark-color-record-inactive: #61dafb;\n  --dark-color-scroll-thumb: #afb3b9;\n  --dark-color-scroll-track: #313640;\n  --dark-color-search-match: yellow;\n  --dark-color-search-match-current: #f7923b;\n  --dark-color-selected-tree-highlight-active: rgba(23, 143, 185, 0.15);\n  --dark-color-selected-tree-highlight-inactive: rgba(255, 255, 255, 0.05);\n  --dark-color-shadow: rgba(0, 0, 0, 0.5);\n  --dark-color-tab-selected-border: #178fb9;\n  --dark-color-text: #ffffff;\n  --dark-color-text-invalid: #ff8080;\n  --dark-color-text-selected: #ffffff;\n  --dark-color-toggle-background-invalid: #fc3a4b;\n  --dark-color-toggle-background-on: #178fb9;\n  --dark-color-toggle-background-off: #777d88;\n  --dark-color-toggle-text: #ffffff;\n  --dark-color-tooltip-background: rgba(255, 255, 255, 0.9);\n  --dark-color-tooltip-text: #000000;\n\n  /* Font smoothing */\n  --light-font-smoothing: auto;\n  --dark-font-smoothing: antialiased;\n  --font-smoothing: auto;\n\n  /* Compact density */\n  --compact-font-size-monospace-small: 9px;\n  --compact-font-size-monospace-normal: 11px;\n  --compact-font-size-monospace-large: 15px;\n  --compact-font-size-sans-small: 10px;\n  --compact-font-size-sans-normal: 12px;\n  --compact-font-size-sans-large: 14px;\n  --compact-line-height-data: 18px;\n  --compact-root-font-size: 16px;\n\n  /* Comfortable density */\n  --comfortable-font-size-monospace-small: 10px;\n  --comfortable-font-size-monospace-normal: 13px;\n  --comfortable-font-size-monospace-large: 17px;\n  --comfortable-font-size-sans-small: 12px;\n  --comfortable-font-size-sans-normal: 14px;\n  --comfortable-font-size-sans-large: 16px;\n  --comfortable-line-height-data: 22px;\n  --comfortable-root-font-size: 20px;\n\n  /* GitHub.com system fonts */\n  --font-family-monospace: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo,\n    Courier, monospace;\n  --font-family-sans: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica,\n    Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;\n}\n");
 
 /***/ }),
-/* 21 */
+/* 23 */
 /***/ (function(module, exports) {
 
 // shim for using process in browser
@@ -10791,7 +11087,7 @@ process.umask = function () {
 };
 
 /***/ }),
-/* 22 */
+/* 24 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11276,48 +11572,26 @@ function Node(value, prev, next, list) {
 
 try {
   // add if support for Symbol.iterator is present
-  __webpack_require__(23)(Yallist);
+  __webpack_require__(25)(Yallist);
 } catch (er) {}
 
 /***/ }),
-/* 23 */
+/* 25 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 module.exports = function (Yallist) {
-  Yallist.prototype[Symbol.iterator] = /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-    var walker;
-    return regeneratorRuntime.wrap(function _callee$(_context) {
-      while (1) switch (_context.prev = _context.next) {
-        case 0:
-          walker = this.head;
-
-        case 1:
-          if (!walker) {
-            _context.next = 7;
-            break;
-          }
-
-          _context.next = 4;
-          return walker.value;
-
-        case 4:
-          walker = walker.next;
-          _context.next = 1;
-          break;
-
-        case 7:
-        case "end":
-          return _context.stop();
-      }
-    }, _callee, this);
-  });
+  Yallist.prototype[Symbol.iterator] = function* () {
+    for (let walker = this.head; walker; walker = walker.next) {
+      yield walker.value;
+    }
+  };
 };
 
 /***/ }),
-/* 24 */
+/* 26 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11491,7 +11765,7 @@ exports.unstable_isSuspenseList = function (a) {
 };
 
 /***/ }),
-/* 25 */
+/* 27 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -11506,7 +11780,7 @@ exports.unstable_isSuspenseList = function (a) {
 
 
 var g = __webpack_require__(7),
-    h = __webpack_require__(26);
+    h = __webpack_require__(28);
 
 function n(a) {
   for (var b = "https://reactjs.org/docs/error-decoder.html?invariant=" + a, c = 1; c < arguments.length; c++) b += "&args[]=" + encodeURIComponent(arguments[c]);
@@ -11514,7 +11788,7 @@ function n(a) {
   return "Minified React error #" + a + "; visit " + b + " for the full message or use the non-minified dev environment for full errors and additional helpful warnings.";
 }
 
-var v = __webpack_require__(28).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
+var v = __webpack_require__(30).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
     w = 60128;
 
 if ("function" === typeof Symbol && Symbol.for) {
@@ -11565,13 +11839,13 @@ function E() {
 }
 
 var C = {
-  getCacheForType: function getCacheForType() {
+  getCacheForType: function () {
     throw Error(n(248));
   },
-  readContext: function readContext(a) {
+  readContext: function (a) {
     return a._currentValue;
   },
-  useCacheRefresh: function useCacheRefresh() {
+  useCacheRefresh: function () {
     var a = E();
     y.push({
       primitive: "CacheRefresh",
@@ -11580,7 +11854,7 @@ var C = {
     });
     return function () {};
   },
-  useCallback: function useCallback(a) {
+  useCallback: function (a) {
     var b = E();
     y.push({
       primitive: "Callback",
@@ -11589,7 +11863,7 @@ var C = {
     });
     return a;
   },
-  useContext: function useContext(a) {
+  useContext: function (a) {
     y.push({
       primitive: "Context",
       stackError: Error(),
@@ -11597,7 +11871,7 @@ var C = {
     });
     return a._currentValue;
   },
-  useEffect: function useEffect(a) {
+  useEffect: function (a) {
     E();
     y.push({
       primitive: "Effect",
@@ -11605,7 +11879,7 @@ var C = {
       value: a
     });
   },
-  useImperativeHandle: function useImperativeHandle(a) {
+  useImperativeHandle: function (a) {
     E();
     var b = void 0;
     null !== a && "object" === typeof a && (b = a.current);
@@ -11615,14 +11889,14 @@ var C = {
       value: b
     });
   },
-  useDebugValue: function useDebugValue(a, b) {
+  useDebugValue: function (a, b) {
     y.push({
       primitive: "DebugValue",
       stackError: Error(),
       value: "function" === typeof b ? b(a) : a
     });
   },
-  useLayoutEffect: function useLayoutEffect(a) {
+  useLayoutEffect: function (a) {
     E();
     y.push({
       primitive: "LayoutEffect",
@@ -11630,7 +11904,7 @@ var C = {
       value: a
     });
   },
-  useMemo: function useMemo(a) {
+  useMemo: function (a) {
     var b = E();
     a = null !== b ? b.memoizedState[0] : a();
     y.push({
@@ -11640,7 +11914,7 @@ var C = {
     });
     return a;
   },
-  useReducer: function useReducer(a, b, c) {
+  useReducer: function (a, b, c) {
     a = E();
     b = null !== a ? a.memoizedState : void 0 !== c ? c(b) : b;
     y.push({
@@ -11650,7 +11924,7 @@ var C = {
     });
     return [b, function () {}];
   },
-  useRef: function useRef(a) {
+  useRef: function (a) {
     var b = E();
     a = null !== b ? b.memoizedState : {
       current: a
@@ -11662,7 +11936,7 @@ var C = {
     });
     return a;
   },
-  useState: function useState(a) {
+  useState: function (a) {
     var b = E();
     a = null !== b ? b.memoizedState : "function" === typeof a ? a() : a;
     y.push({
@@ -11672,7 +11946,7 @@ var C = {
     });
     return [a, function () {}];
   },
-  useTransition: function useTransition() {
+  useTransition: function () {
     E();
     E();
     y.push({
@@ -11682,7 +11956,7 @@ var C = {
     });
     return [function () {}, !1];
   },
-  useMutableSource: function useMutableSource(a, b) {
+  useMutableSource: function (a, b) {
     E();
     E();
     E();
@@ -11695,7 +11969,7 @@ var C = {
     });
     return a;
   },
-  useDeferredValue: function useDeferredValue(a) {
+  useDeferredValue: function (a) {
     E();
     E();
     y.push({
@@ -11705,7 +11979,7 @@ var C = {
     });
     return a;
   },
-  useOpaqueIdentifier: function useOpaqueIdentifier() {
+  useOpaqueIdentifier: function () {
     var a = E();
     A && 0 === A.mode && E();
     (a = null === a ? void 0 : a.memoizedState) && a.$$typeof === w && (a = void 0);
@@ -11906,7 +12180,7 @@ exports.inspectHooksOfFiber = function (a, b) {
 };
 
 /***/ }),
-/* 26 */
+/* 28 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root, factory) {
@@ -11915,7 +12189,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   /* istanbul ignore next */
 
   if (true) {
-    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(27)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
+    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(29)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory),
 				__WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ?
 				(__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
@@ -12094,7 +12368,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 });
 
 /***/ }),
-/* 27 */
+/* 29 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function (root, factory) {
@@ -12142,20 +12416,20 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
   }
 
   StackFrame.prototype = {
-    getArgs: function getArgs() {
+    getArgs: function () {
       return this.args;
     },
-    setArgs: function setArgs(v) {
+    setArgs: function (v) {
       if (Object.prototype.toString.call(v) !== '[object Array]') {
         throw new TypeError('Args must be an Array');
       }
 
       this.args = v;
     },
-    getEvalOrigin: function getEvalOrigin() {
+    getEvalOrigin: function () {
       return this.evalOrigin;
     },
-    setEvalOrigin: function setEvalOrigin(v) {
+    setEvalOrigin: function (v) {
       if (v instanceof StackFrame) {
         this.evalOrigin = v;
       } else if (v instanceof Object) {
@@ -12164,7 +12438,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
         throw new TypeError('Eval Origin must be an Object or StackFrame');
       }
     },
-    toString: function toString() {
+    toString: function () {
       var fileName = this.getFileName() || '';
       var lineNumber = this.getLineNumber() || '';
       var columnNumber = this.getColumnNumber() || '';
@@ -12247,18 +12521,18 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_
 });
 
 /***/ }),
-/* 28 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
 if (true) {
-  module.exports = __webpack_require__(29);
+  module.exports = __webpack_require__(31);
 } else {}
 
 /***/ }),
-/* 29 */
+/* 31 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -12324,12 +12598,12 @@ function z(a) {
 }
 
 var A = {
-  isMounted: function isMounted() {
+  isMounted: function () {
     return !1;
   },
-  enqueueForceUpdate: function enqueueForceUpdate() {},
-  enqueueReplaceState: function enqueueReplaceState() {},
-  enqueueSetState: function enqueueSetState() {}
+  enqueueForceUpdate: function () {},
+  enqueueReplaceState: function () {},
+  enqueueSetState: function () {}
 },
     B = {};
 
@@ -12506,24 +12780,24 @@ var R = {
 };
 exports.Children = {
   map: P,
-  forEach: function forEach(a, b, c) {
+  forEach: function (a, b, c) {
     P(a, function () {
       b.apply(this, arguments);
     }, c);
   },
-  count: function count(a) {
+  count: function (a) {
     var b = 0;
     P(a, function () {
       b++;
     });
     return b;
   },
-  toArray: function toArray(a) {
+  toArray: function (a) {
     return P(a, function (a) {
       return a;
     }) || [];
   },
-  only: function only(a) {
+  only: function (a) {
     if (!L(a)) throw Error(z(143));
     return a;
   }
@@ -12710,192 +12984,7 @@ exports.useState = function (a) {
 exports.version = "17.0.2";
 
 /***/ }),
-/* 30 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-__webpack_require__.r(__webpack_exports__);
-/* harmony import */ var _events__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(11);
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-/**
- * Copyright (c) Facebook, Inc. and its affiliates.
- *
- * This source code is licensed under the MIT license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * 
- */
-
-const BATCH_DURATION = 100;
-
-class Bridge extends _events__WEBPACK_IMPORTED_MODULE_0__[/* default */ "a"] {
-  constructor(wall) {
-    super();
-
-    _defineProperty(this, "_isShutdown", false);
-
-    _defineProperty(this, "_messageQueue", []);
-
-    _defineProperty(this, "_timeoutID", null);
-
-    _defineProperty(this, "_wallUnlisten", null);
-
-    _defineProperty(this, "_flush", () => {
-      // This method is used after the bridge is marked as destroyed in shutdown sequence,
-      // so we do not bail out if the bridge marked as destroyed.
-      // It is a private method that the bridge ensures is only called at the right times.
-      if (this._timeoutID !== null) {
-        clearTimeout(this._timeoutID);
-        this._timeoutID = null;
-      }
-
-      if (this._messageQueue.length) {
-        for (let i = 0; i < this._messageQueue.length; i += 2) {
-          this._wall.send(this._messageQueue[i], ...this._messageQueue[i + 1]);
-        }
-
-        this._messageQueue.length = 0; // Check again for queued messages in BATCH_DURATION ms. This will keep
-        // flushing in a loop as long as messages continue to be added. Once no
-        // more are, the timer expires.
-
-        this._timeoutID = setTimeout(this._flush, BATCH_DURATION);
-      }
-    });
-
-    _defineProperty(this, "overrideValueAtPath", ({
-      id,
-      path,
-      rendererID,
-      type,
-      value
-    }) => {
-      switch (type) {
-        case 'context':
-          this.send('overrideContext', {
-            id,
-            path,
-            rendererID,
-            wasForwarded: true,
-            value
-          });
-          break;
-
-        case 'hooks':
-          this.send('overrideHookState', {
-            id,
-            path,
-            rendererID,
-            wasForwarded: true,
-            value
-          });
-          break;
-
-        case 'props':
-          this.send('overrideProps', {
-            id,
-            path,
-            rendererID,
-            wasForwarded: true,
-            value
-          });
-          break;
-
-        case 'state':
-          this.send('overrideState', {
-            id,
-            path,
-            rendererID,
-            wasForwarded: true,
-            value
-          });
-          break;
-      }
-    });
-
-    this._wall = wall;
-    this._wallUnlisten = wall.listen(message => {
-      this.emit(message.event, message.payload);
-    }) || null; // Temporarily support older standalone front-ends sending commands to newer embedded backends.
-    // We do this because React Native embeds the React DevTools backend,
-    // but cannot control which version of the frontend users use.
-
-    this.addListener('overrideValueAtPath', this.overrideValueAtPath);
-  } // Listening directly to the wall isn't advised.
-  // It can be used to listen for legacy (v3) messages (since they use a different format).
-
-
-  get wall() {
-    return this._wall;
-  }
-
-  send(event, ...payload) {
-    if (this._isShutdown) {
-      console.warn(`Cannot send message "${event}" through a Bridge that has been shutdown.`);
-      return;
-    } // When we receive a message:
-    // - we add it to our queue of messages to be sent
-    // - if there hasn't been a message recently, we set a timer for 0 ms in
-    //   the future, allowing all messages created in the same tick to be sent
-    //   together
-    // - if there *has* been a message flushed in the last BATCH_DURATION ms
-    //   (or we're waiting for our setTimeout-0 to fire), then _timeoutID will
-    //   be set, and we'll simply add to the queue and wait for that
-
-
-    this._messageQueue.push(event, payload);
-
-    if (!this._timeoutID) {
-      this._timeoutID = setTimeout(this._flush, 0);
-    }
-  }
-
-  shutdown() {
-    if (this._isShutdown) {
-      console.warn('Bridge was already shutdown.');
-      return;
-    } // Queue the shutdown outgoing message for subscribers.
-
-
-    this.send('shutdown'); // Mark this bridge as destroyed, i.e. disable its public API.
-
-    this._isShutdown = true; // Disable the API inherited from EventEmitter that can add more listeners and send more messages.
-    // $FlowFixMe This property is not writable.
-
-    this.addListener = function () {}; // $FlowFixMe This property is not writable.
-
-
-    this.emit = function () {}; // NOTE: There's also EventEmitter API like `on` and `prependListener` that we didn't add to our Flow type of EventEmitter.
-    // Unsubscribe this bridge incoming message listeners to be sure, and so they don't have to do that.
-
-
-    this.removeAllListeners(); // Stop accepting and emitting incoming messages from the wall.
-
-    const wallUnlisten = this._wallUnlisten;
-
-    if (wallUnlisten) {
-      wallUnlisten();
-    } // Synchronously flush all queued outgoing messages.
-    // At this step the subscribers' code may run in this call stack.
-
-
-    do {
-      this._flush();
-    } while (this._messageQueue.length); // Make sure once again that there is no dangling timer.
-
-
-    if (this._timeoutID !== null) {
-      clearTimeout(this._timeoutID);
-      this._timeoutID = null;
-    }
-  }
-
-}
-
-/* harmony default export */ __webpack_exports__["default"] = (Bridge);
-
-/***/ }),
-/* 31 */
+/* 32 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -12906,10 +12995,10 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, "initBackend", function() { return /* binding */ initBackend; });
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/backend/agent.js + 7 modules
-var backend_agent = __webpack_require__(14);
+var backend_agent = __webpack_require__(15);
 
-// EXTERNAL MODULE: ../react-devtools-shared/src/backend/renderer.js + 1 modules
-var backend_renderer = __webpack_require__(13);
+// EXTERNAL MODULE: ../react-devtools-shared/src/backend/renderer.js + 2 modules
+var backend_renderer = __webpack_require__(14);
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/types.js
 var types = __webpack_require__(1);
@@ -12963,12 +13052,6 @@ function forceUpdate(instance) {
   }
 }
 // CONCATENATED MODULE: ../react-devtools-shared/src/backend/legacy/renderer.js
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
 /**
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
@@ -13310,11 +13393,10 @@ function attach(hook, rendererID, renderer, global) {
       pushOperation(hasOwnerMetadata ? 1 : 0);
     } else {
       const type = getElementType(internalInstance);
-
-      const _getData = getData(internalInstance),
-            displayName = _getData.displayName,
-            key = _getData.key;
-
+      const {
+        displayName,
+        key
+      } = getData(internalInstance);
       const ownerID = internalInstance._currentElement != null && internalInstance._currentElement._owner != null ? getID(internalInstance._currentElement._owner) : 0;
       const displayNameStringID = getStringID(displayName);
       const keyStringID = getStringID(key);
@@ -13635,10 +13717,10 @@ function attach(hook, rendererID, renderer, global) {
       return null;
     }
 
-    const _getData2 = getData(internalInstance),
-          displayName = _getData2.displayName,
-          key = _getData2.key;
-
+    const {
+      displayName,
+      key
+    } = getData(internalInstance);
     const type = getElementType(internalInstance);
     let context = null;
     let owners = null;
@@ -13659,6 +13741,7 @@ function attach(hook, rendererID, renderer, global) {
           owners.push({
             displayName: getData(owner).displayName || 'Unknown',
             id: getID(owner),
+            key: element.key,
             type: getElementType(owner)
           });
 
@@ -13801,9 +13884,9 @@ function attach(hook, rendererID, renderer, global) {
 
           case 'props':
             const element = internalInstance._currentElement;
-            internalInstance._currentElement = _objectSpread(_objectSpread({}, element), {}, {
+            internalInstance._currentElement = { ...element,
               props: Object(backend_utils["c" /* copyWithDelete */])(element.props, path)
-            });
+            };
             forceUpdate(publicInstance);
             break;
 
@@ -13834,9 +13917,9 @@ function attach(hook, rendererID, renderer, global) {
 
           case 'props':
             const element = internalInstance._currentElement;
-            internalInstance._currentElement = _objectSpread(_objectSpread({}, element), {}, {
+            internalInstance._currentElement = { ...element,
               props: Object(backend_utils["d" /* copyWithRename */])(element.props, oldPath, newPath)
-            });
+            };
             forceUpdate(publicInstance);
             break;
 
@@ -13867,9 +13950,9 @@ function attach(hook, rendererID, renderer, global) {
 
           case 'props':
             const element = internalInstance._currentElement;
-            internalInstance._currentElement = _objectSpread(_objectSpread({}, element), {}, {
+            internalInstance._currentElement = { ...element,
               props: Object(backend_utils["e" /* copyWithSet */])(element.props, path, value)
-            });
+            };
             forceUpdate(publicInstance);
             break;
 
@@ -13893,6 +13976,10 @@ function attach(hook, rendererID, renderer, global) {
 
   const handleCommitFiberUnmount = () => {
     throw new Error('handleCommitFiberUnmount not supported by this renderer');
+  };
+
+  const handlePostCommitFiberRoot = () => {
+    throw new Error('handlePostCommitFiberRoot not supported by this renderer');
   };
 
   const overrideSuspense = () => {
@@ -13959,6 +14046,7 @@ function attach(hook, rendererID, renderer, global) {
     getProfilingData,
     handleCommitFiberRoot,
     handleCommitFiberUnmount,
+    handlePostCommitFiberRoot,
     inspectElement,
     logElementToConsole,
     overrideSuspense,
@@ -14070,7 +14158,7 @@ function initBackend(hook, agent, global) {
 }
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -14081,7 +14169,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, "default", function() { return /* binding */ setupNativeStyleEditor; });
 
 // EXTERNAL MODULE: ../react-devtools-shared/src/backend/agent.js + 7 modules
-var backend_agent = __webpack_require__(14);
+var backend_agent = __webpack_require__(15);
 
 // CONCATENATED MODULE: ../react-devtools-shared/src/backend/NativeStyleEditor/resolveBoxStyle.js
 /**
@@ -14113,8 +14201,7 @@ function resolveBoxStyle(prefix, style) {
 
   if (styleForAll != null) {
     // eslint-disable-next-line no-for-of-loops/no-for-of-loops
-    for (var _i = 0, _Object$keys = Object.keys(result); _i < _Object$keys.length; _i++) {
-      const key = _Object$keys[_i];
+    for (const key of Object.keys(result)) {
       result[key] = styleForAll;
     }
 
@@ -14248,8 +14335,10 @@ function measureStyle(agent, bridge, resolveNativeStyle, id, rendererID) {
     return;
   }
 
-  const instance = data.instance,
-        style = data.style;
+  const {
+    instance,
+    style
+  } = data;
   let resolvedStyle = resolveNativeStyle(style); // If it's a host component we edited before, amend styles.
 
   const styleOverrides = componentIDToStyleOverrides.get(id);
@@ -14319,8 +14408,10 @@ function renameStyle(agent, id, rendererID, oldName, newName, value) {
     return;
   }
 
-  const instance = data.instance,
-        style = data.style;
+  const {
+    instance,
+    style
+  } = data;
   const newStyle = newName ? {
     [oldName]: undefined,
     [newName]: value
@@ -14413,8 +14504,10 @@ function setStyle(agent, id, rendererID, name, value) {
     return;
   }
 
-  const instance = data.instance,
-        style = data.style;
+  const {
+    instance,
+    style
+  } = data;
   const newStyle = {
     [name]: value
   }; // TODO It would be nice if the renderer interface abstracted this away somehow.
