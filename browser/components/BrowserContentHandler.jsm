@@ -238,12 +238,16 @@ function openBrowserWindow(
       Ci.nsIToolkitProfileService
     );
     if (isStartup && pService.createdAlternateProfile) {
-      let url = NEWINSTALL_PAGE;
-      if (Array.isArray(urlOrUrlList)) {
-        urlOrUrlList.unshift(url);
-      } else {
-        urlOrUrlList = [url, urlOrUrlList];
-      }
+      // Suppress showing about:newinstall for profiles for Replay which
+      // may be installed next to other versions of Firefox and _should_
+      // use a new profile
+
+      // let url = NEWINSTALL_PAGE;
+      // if (Array.isArray(urlOrUrlList)) {
+      //   urlOrUrlList.unshift(url);
+      // } else {
+      //   urlOrUrlList = [url, urlOrUrlList];
+      // }
     }
 
     if (Array.isArray(urlOrUrlList)) {
@@ -654,7 +658,11 @@ nsBrowserContentHandler.prototype = {
             // Override the welcome page to explain why the user has a new
             // profile. nsBrowserGlue.css will be responsible for showing the
             // modal dialog.
-            overridePage = NEWINSTALL_PAGE;
+
+            // Suppress showing about:newinstall for profiles for Replay which
+            // may be installed next to other versions of Firefox and _should_
+            // use a new profile
+            // overridePage = NEWINSTALL_PAGE;
             break;
           case OVERRIDE_NEW_PROFILE:
             // New profile.
