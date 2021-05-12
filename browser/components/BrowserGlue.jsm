@@ -2375,7 +2375,9 @@ BrowserGlue.prototype = {
       Ci.nsIToolkitProfileService
     );
     if (pService.createdAlternateProfile) {
-      this._showNewInstallModal();
+      // Suppress showing modal for profiles for Replay which may be installed
+      // next to other versions of Firefox and _should_ use a new profile
+      // this._showNewInstallModal();
     }
 
     FirefoxMonitor.init();
