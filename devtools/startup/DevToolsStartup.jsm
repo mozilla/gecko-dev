@@ -1886,6 +1886,8 @@ Services.obs.addObserver(
   "recordreplay-recording-started"
 );
 
+Services.ppmm.loadProcessScript("resource://devtools/server/actors/replay/globals.js", true);
+
 function getViewURL() {
   let viewHost = "https://replay.io";
 
