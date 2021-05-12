@@ -11,6 +11,7 @@ DIRS += [
 DevToolsModules(
     'connection-worker.js',
     'connection.js',
+    'globals.js',
     'module.js',
 )
 
