@@ -1832,13 +1832,6 @@ function onRecordingStarted(recording) {
     urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL };
 
     clearRecordingState();
-
-    // The recording has finished, so we need to navigate somewhere or else
-    // the user will be shown the tab-crash page while we wait for the recording
-    // to finish saving.
-    getBrowser().loadURI(`${getViewURL()}?loading=true`, urlLoadOpts);
-
-    recordReplayLog(`WaitForSavedRecording`);
   });
   recording.on("saved", function(name, data) {
     const recordingId = data.id;

@@ -121,6 +121,8 @@ class Recording extends EventEmitter {
     this._pmm = pmm;
     this._resourceUploads = [];
 
+    this._recordingResourcesUpload = null;
+
     this._pmm.addMessageListener("RecordReplayGeneratedSourceWithSourceMap", {
       receiveMessage: msg => this._onNewSourcemap(msg.data),
     });
@@ -136,16 +138,60 @@ class Recording extends EventEmitter {
     return this._pmm.osPid;
   }
 
+  _lockRecording(recordingId) {
+    if (this._recordingResourcesUpload) {
+      return;
+    }
+
+    this._recordingResourcesUpload = sendCommand("Internal.beginRecordingResourceUpload", {
+      recordingId: recordingId,
+    }).then(
+      params => params.key,
+      err => {
+        console.error("Failed to tell the server about in-progress resource uploading", err);
+        // We don't re-throw here because we can at worst let the resources upload
+        // might still succeed in the background, it'll just be a race and the sourcemaps
+        // may not apply until the user creates a second debugging session.
+        return null;
+      },
+    );
+  }
+
+  _unlockRecording() {
+    if (!this._recordingResourcesUpload) {
+      return;
+    }
+
+    this._recordingResourcesUpload
+      .then(key => {
+        if (!key) {
+          return;
+        }
+
+        return sendCommand("Internal.endRecordingResourceUpload", { key });
+      })
+      .catch(err => {
+        console.error("Exception while unlocking", err);
+      });
+  }
+
   _onNewSourcemap(params) {
+    this._lockRecording(params.recordingId);
+
     this._resourceUploads.push(uploadAllSourcemapAssets(params).catch(err => {
       console.error("Exception while processing sourcemap", err, params);
     }));
   }
 
   async _onFinished(data) {
-    this.emit("finished");
-
     try {
+      this.emit("finished");
+
+      // If we locked the recording because of sourcemaps, we should wait
+      // that the lock to be initialized before emitting the event so that
+      // we don't risk racing lock creation with session creation.
+      await this._recordingResourcesUpload;
+
       await sendCommand("Internal.setRecordingMetadata", {
         authId: getLoggedInUserAuthId(),
         recordingData: data,
@@ -160,15 +206,21 @@ class Recording extends EventEmitter {
       return;
     }
 
-    // Ensure that all sourcemap resources have been sent to the server before
-    // we consider the recording saved, so that we don't risk creating a
-    // recording session without all the maps available.
-    await Promise.all(this._resourceUploads);
+    try {
+      this.emit("saved", data);
 
-    this.emit("saved", data);
+      // Ensure that all sourcemap resources have been sent to the server before
+      // we consider the recording saved, so that we don't risk creating a
+      // recording session without all the maps available.
+      await Promise.all(this._resourceUploads);
+    } finally {
+      this._unlockRecording();
+    }
   }
 
   _onUnusable(data) {
+    this._unlockRecording();
+
     this.emit("unusable", data);
   }
 }
