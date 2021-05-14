@@ -1832,13 +1832,7 @@ function onRecordingStarted(recording) {
     urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL };
 
     clearRecordingState();
-
-    // The recording has finished, so we need to navigate somewhere or else
-    // the user will be shown the tab-crash page while we wait for the recording
-    // to finish saving.
-    getBrowser().loadURI(`${getViewURL()}?loading=true`, urlLoadOpts);
-
-    recordReplayLog(`WaitForSavedRecording`);
+    getBrowser().loadURI(oldURL, urlLoadOpts);
   });
   recording.on("saved", function(name, data) {
     const recordingId = data.id;
@@ -1877,7 +1871,12 @@ function onRecordingStarted(recording) {
       extra += `&test=1`;
     }
 
-    getBrowser().loadURI(`${getViewURL()}?id=${recordingId}${extra}`, urlLoadOpts);
+    const tabbrowser = getBrowser().getTabBrowser();
+    const tab = tabbrowser.addTab(
+      `${getViewURL()}?id=${recordingId}${extra}`,
+      { triggeringPrincipal }
+    );
+    tabbrowser.selectedTab = tab;
   });
 }
 
