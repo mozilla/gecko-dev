@@ -1832,6 +1832,7 @@ function onRecordingStarted(recording) {
     urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL };
 
     clearRecordingState();
+    getBrowser().loadURI(oldURL, urlLoadOpts);
   });
   recording.on("saved", function(name, data) {
     const recordingId = data.id;
@@ -1870,7 +1871,12 @@ function onRecordingStarted(recording) {
       extra += `&test=1`;
     }
 
-    getBrowser().loadURI(`${getViewURL()}?id=${recordingId}${extra}`, urlLoadOpts);
+    const tabbrowser = getBrowser().getTabBrowser();
+    const tab = tabbrowser.addTab(
+      `${getViewURL()}?id=${recordingId}${extra}`,
+      { triggeringPrincipal }
+    );
+    tabbrowser.selectedTab = tab;
   });
 }
 
