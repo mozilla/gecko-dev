@@ -51,8 +51,9 @@ var gSearchResultsPane = {
       // Initialize other panes in an idle callback.
       window.requestIdleCallback(() => this.initializeCategories());
     }
+    // [REPLAY] Redirect support links to replay docs
     let helpUrl =
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
+      Services.urlFormatter.formatURLPref("replay.support.baseURL") +
       "preferences";
     let helpContainer = document.getElementById("need-help");
     helpContainer.querySelector("a").href = helpUrl;

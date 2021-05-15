@@ -18,6 +18,9 @@ pref("app.update.url.manual", "https://replay.io");
 // supplied in the "An update is available" page of the update wizard.
 pref("app.update.url.details", "https://replay.io");
 
+// Adding a trailing # to support appending targeted help from "Learn more" links
+pref('replay.support.baseURL', 'https://www.notion.so/Replay-Docs-56758667f53a4d51b7c6fc7a641adb02#');
+
 // The number of days a binary is permitted to be old
 // without checking for an update.  This assumes that
 // app.update.checkInstallTime is true.

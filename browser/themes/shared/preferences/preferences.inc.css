@@ -1156,3 +1156,7 @@ richlistitem .text-link:hover {
 .featureGateDescription {
   margin-inline-start: 28px;
 }
+
+.replay-hidden {
+  display: none;
+}
