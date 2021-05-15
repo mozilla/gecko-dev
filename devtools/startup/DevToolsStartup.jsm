@@ -1827,14 +1827,13 @@ function onRecordingStarted(recording) {
     const { why } = data;
     getBrowser().loadURI(`about:replay?error=${why}`, { triggeringPrincipal });
   });
-  recording.on("finished", function() {
+  recording.on("finished", function(name, data) {
     oldURL = getBrowser().currentURI.spec;
     urlLoadOpts = { triggeringPrincipal, oldRecordedURL: oldURL };
 
     clearRecordingState();
     getBrowser().loadURI(oldURL, urlLoadOpts);
-  });
-  recording.on("saved", function(name, data) {
+
     const recordingId = data.id;
 
     // When the submitTestRecordings pref is set we don't load the viewer,

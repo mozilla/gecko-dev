@@ -185,7 +185,7 @@ class Recording extends EventEmitter {
 
   async _onFinished(data) {
     try {
-      this.emit("finished");
+      this.emit("finished", data);
 
       // If we locked the recording because of sourcemaps, we should wait
       // that the lock to be initialized before emitting the event so that
@@ -207,8 +207,6 @@ class Recording extends EventEmitter {
     }
 
     try {
-      this.emit("saved", data);
-
       // Ensure that all sourcemap resources have been sent to the server before
       // we consider the recording saved, so that we don't risk creating a
       // recording session without all the maps available.
