@@ -114,7 +114,7 @@ function init_all() {
   Preferences.forceEnableInstantApply();
 
   register_module("paneGeneral", gMainPane);
-  register_module("paneHome", gHomePane);
+  // register_module("paneHome", gHomePane);
   register_module("paneSearch", gSearchPane);
   register_module("panePrivacy", gPrivacyPane);
   register_module("paneContainers", gContainersPane);
@@ -157,8 +157,9 @@ function init_all() {
 
   gotoPref().then(() => {
     let helpButton = document.getElementById("helpButton");
+    // [REPLAY] Redirect support links to replay docs
     let helpUrl =
-      Services.urlFormatter.formatURLPref("app.support.baseURL") +
+      Services.urlFormatter.formatURLPref("replay.support.baseURL") +
       "preferences";
     helpButton.setAttribute("href", helpUrl);
 
