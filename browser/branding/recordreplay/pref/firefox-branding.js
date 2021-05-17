@@ -4,6 +4,8 @@
 
 // This file contains branding-specific prefs.
 
+pref("extensions.activeThemeID", "firefox-alpenglow@mozilla.org");
+
 pref("startup.homepage_override_url", "");
 pref("startup.homepage_welcome_url", "");
 pref("startup.homepage_welcome_url.additional", "");
