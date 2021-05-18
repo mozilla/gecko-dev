@@ -125,7 +125,7 @@ if (
   makeConstant("EXPERIMENTS_ENABLED", false);
 }
 
-makeConstant("DEFAULT_THEME_ID", "default-theme@mozilla.org");
+makeConstant("DEFAULT_THEME_ID", "firefox-alpenglow@mozilla.org");
 
 // SCOPES_SIDELOAD is a bitflag for what scopes we will load new extensions from when we scan the directories.
 // If a build allows sideloading, or we're in automation, we'll also allow use of the preference.
