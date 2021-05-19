@@ -1871,9 +1871,10 @@ function onRecordingStarted(recording) {
     }
 
     const tabbrowser = getBrowser().getTabBrowser();
+    const currentTabIndex = tabbrowser.visibleTabs.indexOf(tabbrowser.selectedTab);
     const tab = tabbrowser.addTab(
       `${getViewURL()}?id=${recordingId}${extra}`,
-      { triggeringPrincipal }
+      { triggeringPrincipal, index: currentTabIndex === -1 ? undefined : currentTabIndex + 1}
     );
     tabbrowser.selectedTab = tab;
   });
