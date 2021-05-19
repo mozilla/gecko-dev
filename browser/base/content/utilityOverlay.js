@@ -1139,7 +1139,7 @@ function makeURLAbsolute(aBase, aUrl) {
 }
 
 function getHelpLinkURL(aHelpTopic) {
-  var url = Services.urlFormatter.formatURLPref("app.support.baseURL");
+  var url = Services.urlFormatter.formatURLPref("replay.support.baseURL");
   return url + aHelpTopic;
 }
 
