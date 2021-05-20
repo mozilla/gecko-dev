@@ -820,6 +820,9 @@ pref("devtools.recordreplay.uploadSourceMaps", true);
 // Set this to submit recordings to the test server instead of replaying them.
 pref("devtools.recordreplay.submitTestRecordings", false);
 
+// Set this to record all tabs and add an explicit "save" button to the UI.
+pref("devtools.recordreplay.alwaysRecord", false);
+
 // Preferences for the new performance panel. Note that some preferences are duplicated
 // with a ".remote" postfix. This is because we have one set of preference for local
 // profiling, and a second set for remote profiling.

@@ -1765,11 +1765,25 @@ void ContentParent::MaybeAsyncSendShutDownMessage() {
       &ContentParent::ShutDownProcess, SEND_SHUTDOWN_MESSAGE));
 }
 
+static inline bool TestEnv(const char* env) {
+  const char* value = getenv(env);
+  return value && value[0];
+}
+
 /* static */ bool ContentParent::RecordAllContentProcesses() {
   // When this env var is set, all content processes are recorded in case they
   // load any interesting content.
-  const char* env = getenv("RECORD_ALL_CONTENT");
-  return env && env[0];
+  if (TestEnv("RECORD_ALL_CONTENT")) {
+    return true;
+  }
+
+  // When this preference is set, all content processes are recorded, but will
+  // only be finished if the user explicitly saves them.
+  if (Preferences::GetBool("devtools.recordreplay.alwaysRecord")) {
+    return true;
+  }
+
+  return false;
 }
 
 void ContentParent::ShutDownProcess(ShutDownMethod aMethod) {
@@ -1782,7 +1796,7 @@ void ContentParent::ShutDownProcess(ShutDownMethod aMethod) {
   // finish uploading. We don't do this when users have to manually stop
   // recording, as there isn't an expectation that unfinished recordings will
   // finish uploading in that case.
-  if (IsRecording() && RecordAllContentProcesses()) {
+  if (IsRecording() && TestEnv("RECORD_ALL_CONTENT")) {
     bool retval;
     FinishRecording(&retval);
   }
