@@ -47,6 +47,11 @@ git = "https://github.com/mozilla-spidermonkey/jsparagus"
 replace-with = "vendored-sources"
 rev = "d5d8c00ebd3281d12e0be5dfddbb69f791f836f1"
 
+[source."https://github.com/makotokato/authenticator-rs"]
+git = "https://github.com/makotokato/authenticator-rs"
+replace-with = "vendored-sources"
+rev = "eed8919d50559f4959e2d7d2af7b4d48869b5366"
+
 [source."https://github.com/kvark/spirv_cross"]
 branch = "wgpu5"
 git = "https://github.com/kvark/spirv_cross"
