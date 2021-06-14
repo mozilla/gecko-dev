@@ -6,17 +6,20 @@
     .set NFPREGS,8
 
     .text
-    .globl  _NS_InvokeByIndex
-    .type   _NS_InvokeByIndex, @function
+    .globl  NS_InvokeByIndex
+    .type   NS_InvokeByIndex, @function
 /*
- * _NS_InvokeByIndex(nsISupports* that, uint32_t methodIndex,
- *                   uint32_t paramCount, nsXPTCVariant* params)
+ * NS_InvokeByIndex(nsISupports* that, uint32_t methodIndex,
+ *                  uint32_t paramCount, nsXPTCVariant* params)
  */
-_NS_InvokeByIndex:
+NS_InvokeByIndex:
+    .cfi_startproc
     addi    sp, sp, -32
+    .cfi_adjust_cfa_offset 32
     sd      s0, 0(sp)
     sd      s1, 8(sp)
-    sd      ra, 16(sp)
+    sd      s2, 16(sp)
+    sd      ra, 24(sp)
 
     mv      s0, a0 
     mv      s1, a1 
@@ -57,16 +60,19 @@ _NS_InvokeByIndex:
     fld     fa6, 112(s0)
     fld     fa7, 120(s0)
 
-    ld      t0, (s0)
-    slli    t1, s1, 3
-    add     t0, t0, t1
-    ld      t0, [t0]
-    call    t0
+    ld      s0, (s0)
+    slli    s1, s1, 3
+    add     s0, s0, s1
+    ld      s0, [s0]
+    call    s0
 
     mv      sp, s2
     ld      s0, 0(sp)
     ld      s1, 8(sp)
+    ld      s2, 8(sp)
+    ld      ra, 24(sp)
     addi    sp, sp, 32
     ret
-    .size   _NS_InvokeByIndex, .-_NS_InvokeByIndex
+    .cfi_endproc
+    .size   NS_InvokeByIndex, .-NS_InvokeByIndex
     .section        .note.GNU-stack,"",@progbits

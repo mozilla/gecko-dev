@@ -3,6 +3,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#if defined(__riscv_float_abi_soft)
+#  error "Not support soft float ABI"
+#endif
+
 #include "xptcprivate.h"
 
 extern "C" nsresult ATTRIBUTE_USED PrepareAndDispatch(nsXPTCStubBase* self,
@@ -113,14 +117,15 @@ extern "C" nsresult ATTRIBUTE_USED PrepareAndDispatch(nsXPTCStubBase* self,
 }
 
 // Load t0 with the constant 'n' and branch to SharedStub().
-#define STUB_ENTRY(n)                                               \
-  __asm__(                                                          \
-      ".text\n\t"                                                   \
-      ".if "#n" < 10 \n\t"                                          \
+// clang-format off
+#define STUB_ENTRY(n)                                                               \
+  __asm__(                                                                          \
+      ".text\n\t"                                                                   \
+      ".if "#n" < 10 \n\t"                                                          \
       ".globl  _ZN14nsXPTCStubBase5Stub"#n"Ev \n\t"                                 \
-      ".hidden _ZN14nsXPTCStubBase5Stub" #n "Ev \n\t"               \
-      ".type   _ZN14nsXPTCStubBase5Stub" #n "Ev,@function \n\n"     \
-      "_ZN14nsXPTCStubBase5Stub"#n"Ev: \n\t"                        \
+      ".hidden _ZN14nsXPTCStubBase5Stub"#n"Ev \n\t"                                 \
+      ".type   _ZN14nsXPTCStubBase5Stub"#n"Ev,@function \n\n"                       \
+      "_ZN14nsXPTCStubBase5Stub"#n"Ev: \n\t"                                        \
       ".elseif "#n" < 100 \n\t"                                                     \
       ".globl  _ZN14nsXPTCStubBase6Stub"#n"Ev \n\t"                                 \
       ".hidden _ZN14nsXPTCStubBase6Stub"#n"Ev \n\t"                                 \
@@ -144,6 +149,7 @@ extern "C" nsresult ATTRIBUTE_USED PrepareAndDispatch(nsXPTCStubBase* self,
       ".size   _ZN14nsXPTCStubBase7Stub"#n"Ev,.-_ZN14nsXPTCStubBase7Stub"#n"Ev\n\t" \
       ".endif"                                                                      \
 );
+// clang-format on
 
 #define SENTINEL_ENTRY(n)                        \
   nsresult nsXPTCStubBase::Sentinel##n() {       \

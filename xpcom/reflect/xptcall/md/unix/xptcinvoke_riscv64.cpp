@@ -4,6 +4,10 @@
 
 // Platform specific code to invoke XPCOM methods on native objects
 
+#if defined(__riscv_float_abi_soft)
+#  error "Not support soft float ABI"
+#endif
+
 #include "xptcprivate.h"
 
 extern "C" void invoke_copy_to_stack(uint64_t* gpregs, double* fpregs,

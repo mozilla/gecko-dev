@@ -37,7 +37,7 @@ SharedStub:
     mv      a3, sp
     addi    a4, sp, 64
 
-    call    _PrepareAndDispatch
+    call    PrepareAndDispatch
 
     addi    sp, sp, 8*(NGPREGS+NFPREGS)+16
     .cfi_adjust_cfa_offset -8*(NGPREGS+NFPREGS)-16
