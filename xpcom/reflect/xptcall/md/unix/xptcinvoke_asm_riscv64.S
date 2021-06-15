@@ -16,62 +16,77 @@ NS_InvokeByIndex:
     .cfi_startproc
     addi    sp, sp, -32
     .cfi_adjust_cfa_offset 32
-    sd      s0, 0(sp)
+    sd      s0, 16(sp)
+    .cfi_rel_offset s0, 16
     sd      s1, 8(sp)
-    sd      s2, 16(sp)
+    .cfi_rel_offset s1, 8
+    sd      s2, 0(sp)
+    .cfi_rel_offset s0, 0
     sd      ra, 24(sp)
+    .cfi_rel_offset ra, 24
 
     mv      s0, a0 
     mv      s1, a1 
     mv      s2, sp 
-    mv      a4, sp
+    .cfi_def_cfa_register s2
 
-    # 16-bytes alignment
-    addiw   a0, a0, 1
+    /* 16-bytes alignment */
+    addiw   a0, a2, 1
     andi    a0, a0, -2
     slli    a0, a0, 3
     sub     sp, sp, a0
+    mv      a4, sp
 
     addi    sp, sp, -8*(NGPREGS+NFPREGS)
     mv      a0, sp
     addi    a1, sp, 8*NGPREGS
 
-    # extern "C" void invoke_copy_to_stack(uint64_t* gpregs, double* fpregs,
-    #                                 uint32_t paramCount, nsXPTCVariant* s,
-    #                                 uint64_t* d) {
+    /*
+     *  void invoke_copy_to_stack(uint64_t* gpregs, double* fpregs,
+     *                           uint32_t paramCount, nsXPTCVariant* s,
+     *                           uint64_t* d);
+     */
 
     call    invoke_copy_to_stack
+
+    ld      a0, 0(sp)
+    ld      a1, 8(sp)
+    ld      a2, 16(sp)
+    ld      a3, 24(sp)
+    ld      a4, 32(sp)
+    ld      a5, 40(sp)
+    ld      a6, 48(sp)
+    ld      a7, 56(sp)
+
+    fld     fa0, 64(sp)
+    fld     fa1, 72(sp)
+    fld     fa2, 80(sp)
+    fld     fa3, 88(sp)
+    fld     fa4, 96(sp)
+    fld     fa5, 104(sp)
+    fld     fa6, 112(sp)
+    fld     fa7, 120(sp)
+
     addi    sp, sp, 8*(NGPREGS+NFPREGS)
 
-    ld      a1, 8(s0)
-    ld      a2, 16(s0)
-    ld      a3, 24(s0)
-    ld      a4, 32(s0)
-    ld      a5, 40(s0)
-    ld      a6, 48(s0)
-    ld      a7, 56(s0)
-
-    fld     fa0, 64(s0)
-    fld     fa1, 72(s0)
-    fld     fa2, 80(s0)
-    fld     fa3, 88(s0)
-    fld     fa4, 96(s0)
-    fld     fa5, 104(s0)
-    fld     fa6, 112(s0)
-    fld     fa7, 120(s0)
-
-    ld      s0, (s0)
-    slli    s1, s1, 3
+    ld      s0, 0(s0)
+    slliw   s1, s1, 3
     add     s0, s0, s1
-    ld      s0, [s0]
-    call    s0
+    ld      t0, 0(s0)
+    jalr    t0
 
     mv      sp, s2
-    ld      s0, 0(sp)
+    .cfi_def_cfa_register sp
+    ld      s0, 16(sp)
+    .cfi_restore s0
     ld      s1, 8(sp)
-    ld      s2, 8(sp)
+    .cfi_restore s1
+    ld      s2, 0(sp)
+    .cfi_restore s2
     ld      ra, 24(sp)
+    .cfi_restore ra
     addi    sp, sp, 32
+    .cfi_adjust_cfa_offset -32
     ret
     .cfi_endproc
     .size   NS_InvokeByIndex, .-NS_InvokeByIndex

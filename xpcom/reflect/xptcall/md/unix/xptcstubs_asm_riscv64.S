@@ -29,16 +29,26 @@ SharedStub:
     fsd     fa4, 96(sp)
     fsd     fa5, 104(sp)
     fsd     fa6, 112(sp)
-    fsd     fa7, 128(sp)
+    fsd     fa7, 120(sp)
+    sd      ra, 136(sp)
+    .cfi_rel_offset ra, 136
 
     # methodIndex passed from stub
     mv      a1, t0
-    addi    a2, sp, 8*(NGPREGS+NFPREGS)+16+8
+    addi    a2, sp, 8*(NGPREGS+NFPREGS)+16
     mv      a3, sp
-    addi    a4, sp, 64
+    addi    a4, sp, 8*NGPREGS
+
+    # nsresult PrepareAndDispatch(nsXPTCStubBase* self,
+    #                             uint32_t methodIndex,
+    #                             uint64_t* args,
+    #                             uint64_t* gpregs,
+    #                             double* fpregs);
 
     call    PrepareAndDispatch
 
+    ld      ra, 136(sp)
+    .cfi_restore ra
     addi    sp, sp, 8*(NGPREGS+NFPREGS)+16
     .cfi_adjust_cfa_offset -8*(NGPREGS+NFPREGS)-16
     ret
