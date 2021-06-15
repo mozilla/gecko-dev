@@ -171,6 +171,9 @@
 #define ARCH_CPU_ARM_FAMILY 1
 #define ARCH_CPU_ARM64 1
 #define ARCH_CPU_64_BITS 1
+#elif defined(__riscv) && __riscv_xlen == 32
+#define ARCH_CPU_RISCV 1
+#define ARCH_CPU_32_BITS 1
 #elif defined(__riscv) && __riscv_xlen == 64
 #define ARCH_CPU_RISCV 1
 #define ARCH_CPU_64_BITS 1
