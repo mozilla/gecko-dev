@@ -16,9 +16,9 @@ extern "C" void invoke_copy_to_stack(uint64_t* gpregs, double* fpregs,
   static const uint32_t GPR_COUNT = 8;
   static const uint32_t FPR_COUNT = 8;
 
-  uint32_t nr_gpr = 0;
+  uint32_t nr_gpr = 1;  // skip one GPR register for "this"
   uint32_t nr_fpr = 0;
-  uint64_t value;
+  uint64_t value = 0;
 
   for (uint32_t i = 0; i < paramCount; i++, s++) {
     if (s->IsIndirect()) {

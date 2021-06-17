@@ -49,7 +49,9 @@ NS_InvokeByIndex:
 
     call    invoke_copy_to_stack
 
-    ld      a0, 0(sp)
+    /* this */
+    mv      a0, s0
+
     ld      a1, 8(sp)
     ld      a2, 16(sp)
     ld      a3, 24(sp)
