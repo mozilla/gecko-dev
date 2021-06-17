@@ -6,13 +6,13 @@
     .set NFPREGS,8
 
     .text
-    .globl  NS_InvokeByIndex
-    .type   NS_InvokeByIndex, @function
+    .globl  _NS_InvokeByIndex
+    .type   _NS_InvokeByIndex, @function
 /*
  * NS_InvokeByIndex(nsISupports* that, uint32_t methodIndex,
  *                  uint32_t paramCount, nsXPTCVariant* params)
  */
-NS_InvokeByIndex:
+_NS_InvokeByIndex:
     .cfi_startproc
     addi    sp, sp, -32
     .cfi_adjust_cfa_offset 32
@@ -21,14 +21,14 @@ NS_InvokeByIndex:
     sd      s1, 8(sp)
     .cfi_rel_offset s1, 8
     sd      s2, 0(sp)
-    .cfi_rel_offset s0, 0
+    .cfi_rel_offset s2, 0
     sd      ra, 24(sp)
     .cfi_rel_offset ra, 24
 
-    mv      s0, a0 
-    mv      s1, a1 
-    mv      s2, sp 
-    .cfi_def_cfa_register s2
+    mv      s2, a0
+    mv      s1, a1
+    mv      s0, sp
+    .cfi_def_cfa_register s0
 
     /* 16-bytes alignment */
     addiw   a0, a2, 1
@@ -49,8 +49,8 @@ NS_InvokeByIndex:
 
     call    invoke_copy_to_stack
 
-    /* this */
-    mv      a0, s0
+    /* 1st argument is this */
+    mv      a0, s2
 
     ld      a1, 8(sp)
     ld      a2, 16(sp)
@@ -71,13 +71,13 @@ NS_InvokeByIndex:
 
     addi    sp, sp, 8*(NGPREGS+NFPREGS)
 
-    ld      s0, 0(s0)
+    ld      s2, 0(s2)
     slliw   s1, s1, 3
-    add     s0, s0, s1
-    ld      t0, 0(s0)
+    add     s2, s2, s1
+    ld      t0, 0(s2)
     jalr    t0
 
-    mv      sp, s2
+    mv      sp, s0
     .cfi_def_cfa_register sp
     ld      s0, 16(sp)
     .cfi_restore s0
@@ -91,5 +91,5 @@ NS_InvokeByIndex:
     .cfi_adjust_cfa_offset -32
     ret
     .cfi_endproc
-    .size   NS_InvokeByIndex, .-NS_InvokeByIndex
-    .section        .note.GNU-stack,"",@progbits
+    .size   _NS_InvokeByIndex, . -_NS_InvokeByIndex
+    .section .note.GNU-stack, "", @progbits
