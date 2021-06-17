@@ -51,7 +51,6 @@ pub struct Slice {
 }
 
 // invalidation reason CSS colors
-static CSS_FRACTIONAL_OFFSET: &str       = "fill:#4040c0;fill-opacity:0.1;";
 static CSS_BACKGROUND_COLOR: &str        = "fill:#10c070;fill-opacity:0.1;";
 static CSS_SURFACE_OPACITY_CHANNEL: &str = "fill:#c040c0;fill-opacity:0.1;";
 static CSS_NO_TEXTURE: &str              = "fill:#c04040;fill-opacity:0.1;";
@@ -104,7 +103,6 @@ fn tile_to_svg(key: TileOffset,
 
     let tile_fill =
         match tile.invalidation_reason {
-            Some(InvalidationReason::FractionalOffset { .. }) => CSS_FRACTIONAL_OFFSET.to_string(),
             Some(InvalidationReason::BackgroundColor { .. }) => CSS_BACKGROUND_COLOR.to_string(),
             Some(InvalidationReason::SurfaceOpacityChanged { .. }) => CSS_SURFACE_OPACITY_CHANNEL.to_string(),
             Some(InvalidationReason::NoTexture) => CSS_NO_TEXTURE.to_string(),
@@ -150,11 +148,6 @@ fn tile_to_svg(key: TileOffset,
         // go through most reasons individually so we can print something nicer than
         // the default debug formatting of old and new:
         match reason {
-            InvalidationReason::FractionalOffset { old, new } => {
-                invalidation_report.push_str(
-                    &format!("<b>FractionalOffset</b> changed from ({},{}) to ({},{})",
-                             old.x, old.y, new.x, new.y));
-            },
             InvalidationReason::BackgroundColor { old, new } => {
                 fn to_str(c: &Option<ColorF>) -> String {
                     if let Some(c) = c {
@@ -275,17 +268,17 @@ fn tile_to_svg(key: TileOffset,
     }
 
     svg += &format!(r#"<rect x="{}" y="{}" width="{}" height="{}" style="{}" ></rect>"#,
-            tile.rect.origin.x    * svg_settings.scale + svg_settings.x,
-            tile.rect.origin.y    * svg_settings.scale + svg_settings.y,
-            tile.rect.size.width  * svg_settings.scale,
-            tile.rect.size.height * svg_settings.scale,
+            tile.rect.min.x    * svg_settings.scale + svg_settings.x,
+            tile.rect.min.y    * svg_settings.scale + svg_settings.y,
+            tile.rect.width()  * svg_settings.scale,
+            tile.rect.height() * svg_settings.scale,
             tile_style);
 
     svg += &format!("\n\n<g class=\"svg_quadtree\">\n{}</g>\n",
                    tile_node_to_svg(&tile.root, &slice.transform, svg_settings));
 
-    let right  = (tile.rect.origin.x + tile.rect.size.width) as i32;
-    let bottom = (tile.rect.origin.y + tile.rect.size.height) as i32;
+    let right  = tile.rect.max.x as i32;
+    let bottom = tile.rect.max.y as i32;
 
     *svg_width  = if right  > *svg_width  { right  } else { *svg_width  };
     *svg_height = if bottom > *svg_height { bottom } else { *svg_height };
@@ -296,7 +289,7 @@ fn tile_to_svg(key: TileOffset,
 
 
     let rect_visual_id = Rect {
-        origin: tile.rect.origin,
+        origin: tile.rect.min,
         size: PictureSize::new(1.0, 1.0)
     };
     let rect_visual_id_world = slice.transform.outer_transformed_rect(&rect_visual_id).unwrap();
@@ -344,10 +337,10 @@ fn tile_to_svg(key: TileOffset,
     // nearly invisible, all we want is the toolip really
     let style = "style=\"fill-opacity:0.001;";
     svg += &format!("<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" {}{}\" >{}<\u{2f}rect>",
-                    tile.rect.origin.x    * svg_settings.scale + svg_settings.x,
-                    tile.rect.origin.y    * svg_settings.scale + svg_settings.y,
-                    tile.rect.size.width  * svg_settings.scale,
-                    tile.rect.size.height * svg_settings.scale,
+                    tile.rect.min.x    * svg_settings.scale + svg_settings.x,
+                    tile.rect.min.y    * svg_settings.scale + svg_settings.y,
+                    tile.rect.width()  * svg_settings.scale,
+                    tile.rect.height() * svg_settings.scale,
                     style,
                     tile_stroke,
                     title);

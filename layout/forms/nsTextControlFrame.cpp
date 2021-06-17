@@ -876,12 +876,9 @@ nsresult nsTextControlFrame::SetSelectionInternal(
     direction = (aDirection == eBackward) ? eDirPrevious : eDirNext;
   }
 
-  ErrorResult error;
-  selection->SetStartAndEndInLimiter(*aStartNode, aStartOffset, *aEndNode,
-                                     aEndOffset, error);
-  MOZ_TRY(error.StealNSResult());
-
-  selection->SetDirection(direction);
+  MOZ_TRY(selection->SetStartAndEndInLimiter(*aStartNode, aStartOffset,
+                                             *aEndNode, aEndOffset, direction,
+                                             nsISelectionListener::JS_REASON));
   return NS_OK;
 }
 
@@ -910,37 +907,15 @@ nsresult nsTextControlFrame::SelectAllOrCollapseToEndOfText(bool aSelect) {
     return rv;
   }
 
-  nsCOMPtr<nsINode> rootNode;
-  rootNode = mRootNode;
-
+  RefPtr<nsINode> rootNode = mRootNode;
   NS_ENSURE_TRUE(rootNode, NS_ERROR_FAILURE);
 
-  int32_t numChildren = mRootNode->GetChildCount();
+  RefPtr<Text> text = Text::FromNodeOrNull(rootNode->GetFirstChild());
+  MOZ_ASSERT(text);
 
-  if (numChildren > 0) {
-    // We never want to place the selection after the last
-    // br under the root node!
-    nsIContent* child = mRootNode->GetLastChild();
-    if (child) {
-      if (child->IsHTMLElement(nsGkAtoms::br)) {
-        child = child->GetPreviousSibling();
-        --numChildren;
-      } else if (child->IsText() && !child->Length()) {
-        // Editor won't remove text node when empty value.
-        --numChildren;
-      }
-    }
-    if (!aSelect && numChildren) {
-      child = child->GetPreviousSibling();
-      if (child && child->IsText()) {
-        rootNode = child;
-        numChildren = child->AsText()->TextDataLength();
-      }
-    }
-  }
+  uint32_t length = text->Length();
 
-  rv = SetSelectionInternal(rootNode, aSelect ? 0 : numChildren, rootNode,
-                            numChildren);
+  rv = SetSelectionInternal(text, aSelect ? 0 : length, text, length);
   NS_ENSURE_SUCCESS(rv, rv);
 
   ScrollSelectionIntoViewAsync();
@@ -1185,8 +1160,9 @@ void nsTextControlFrame::SetInitialChildList(ChildListID aListID,
 nsresult nsTextControlFrame::UpdateValueDisplay(bool aNotify,
                                                 bool aBeforeEditorInit,
                                                 const nsAString* aValue) {
-  if (!IsSingleLineTextControl())  // textareas don't use this
+  if (!IsSingleLineTextControl()) {  // textareas don't use this
     return NS_OK;
+  }
 
   MOZ_ASSERT(mRootNode, "Must have a div content\n");
   MOZ_ASSERT(!mEditorHasBeenInitialized,
@@ -1221,16 +1197,6 @@ nsresult nsTextControlFrame::UpdateValueDisplay(bool aNotify,
     value = *aValue;
   } else {
     textControlElement->GetTextEditorValue(value, true);
-  }
-
-  // Update the display of the placeholder value and preview text if needed.
-  // We don't need to do this if we're about to initialize the editor, since
-  // EnsureEditorInitialized takes care of this.
-  if (aBeforeEditorInit && value.IsEmpty()) {
-    if (nsIContent* node = mRootNode->GetFirstChild()) {
-      mRootNode->RemoveChildNode(node, true);
-    }
-    return NS_OK;
   }
 
   return textContent->SetText(value, aNotify);

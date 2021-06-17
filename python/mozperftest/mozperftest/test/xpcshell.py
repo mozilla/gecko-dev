@@ -14,6 +14,10 @@ class XPCShellTestError(Exception):
     pass
 
 
+class NoPerfMetricsError(Exception):
+    pass
+
+
 class XPCShellData:
     def open_data(self, data):
         return {
@@ -113,9 +117,11 @@ class XPCShell(Layer):
         if not plugins.exists():
             plugins = Path(self.distdir, "plugins")
         kwargs["pluginsPath"] = str(plugins)
-        modules = binary.parent / "modules"
+
+        modules = Path(self.topobjdir, "_tests", "modules")
         if not modules.exists():
-            modules = Path(self.topobjdir, "_tests", "modules")
+            modules = binary.parent / "modules"
+
         kwargs["testingModulesDir"] = str(modules)
         kwargs["utility_path"] = self.bindir
         kwargs["manifest"] = str(manifest)
@@ -145,6 +151,12 @@ class XPCShell(Layer):
         for m in self.metrics:
             for key, val in m.items():
                 results[key].append(val)
+
+        if len(results.items()) == 0:
+            raise NoPerfMetricsError(
+                "No perftest results were found in the xpcshell test. Results must be "
+                'reported using:\n info("perfMetrics", { metricName: metricValue });'
+            )
 
         metadata.add_result(
             {

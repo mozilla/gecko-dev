@@ -557,10 +557,6 @@ var SessionStoreInternal = {
   // For each <browser> element, records the current epoch.
   _browserEpochs: new WeakMap(),
 
-  // For each <browser> element that's being restored, this records the latest
-  // restoreHistory() promise.
-  _historyRestorePromises: new WeakMap(),
-
   // Any browsers that fires the oop-browser-crashed event gets stored in
   // here - that way we know which browsers to ignore messages from (until
   // they get restored).
@@ -996,7 +992,7 @@ var SessionStoreInternal = {
             aSubject.isContent &&
             aSubject.embedderElement
           ) {
-            this.addSHistoryListener(aSubject.embedderElement, aSubject);
+            this.addSHistoryListener(aSubject.embedderElement, aSubject, true);
           }
         }
         break;
@@ -1019,27 +1015,55 @@ var SessionStoreInternal = {
 
   // Add a new SessionHistory listener to the provided browsing context and save
   // a reference to that listener in the _browserSHistoryListener map.
-  addSHistoryListener(aBrowser, aBrowsingContext) {
+  addSHistoryListener(aBrowser, aBrowsingContext, aCollectImmediately = false) {
     class SHistoryListener {
-      constructor(browser, browsingContext) {
-        this._browserId = browsingContext.browserId;
+      constructor() {
+        this._browserId = aBrowsingContext.browserId;
+        this._permanentKey = aBrowser.permanentKey;
         this._fromIndex = kNoIndex;
-        this._permanentKey = browser.permanentKey;
       }
       uninstall() {
         let bc = BrowsingContext.getCurrentTopByBrowserId(this._browserId);
-        if (bc?.sessionHistory) {
-          bc.sessionHistory.removeSHistoryListener(this);
-        }
+        bc?.sessionHistory?.removeSHistoryListener(this);
         SessionStoreInternal._browserSHistoryListener.delete(
           this._permanentKey
         );
       }
-      reset() {
+      collect(
+        browser,
+        browsingContext,
+        { immediate = true, collectFull = true, writeToCache = false }
+      ) {
+        if (!immediate) {
+          // Queue a tab state update on the |browser.sessionstore.interval|
+          // timer. We'll eventually call this again with |immediate=true|.
+          browser.frameLoader?.requestSHistoryUpdate();
+          return null;
+        }
+
+        // Don't bother doing anything if we haven't actually seen any history
+        // changes.
+        if (!collectFull && this._fromIndex === kNoIndex) {
+          return null;
+        }
+
+        let fromIndex = collectFull ? -1 : this._fromIndex;
         this._fromIndex = kNoIndex;
-      }
-      didCollect() {
-        return this._fromIndex !== kNoIndex;
+
+        let historychange = SessionHistory.collectFromParent(
+          browsingContext.currentURI?.spec,
+          true, // Bug 1704574
+          browsingContext.sessionHistory,
+          fromIndex
+        );
+
+        if (writeToCache) {
+          SessionStoreInternal.onTabStateUpdate(browser, {
+            data: { historychange },
+          });
+        }
+
+        return historychange;
       }
       collectFrom(index) {
         if (this._fromIndex <= index) {
@@ -1054,19 +1078,11 @@ var SessionStoreInternal = {
           return;
         }
 
-        let browser = BrowsingContext.getCurrentTopByBrowserId(this._browserId)
-          ?.embedderElement;
-
-        if (!browser) {
-          // The browser has gone away.
-          return;
+        let bc = BrowsingContext.getCurrentTopByBrowserId(this._browserId);
+        if (bc?.embedderElement) {
+          this._fromIndex = index;
+          this.collect(bc.embedderElement, bc, { immediate: false });
         }
-
-        if (!this.didCollect()) {
-          browser.frameLoader?.requestSHistoryUpdate(/* aImmediately */ false);
-        }
-
-        this._fromIndex = index;
       }
       OnHistoryNewEntry(newURI, oldIndex) {
         // We use oldIndex - 1 to collect the current entry as well. This makes
@@ -1098,22 +1114,28 @@ var SessionStoreInternal = {
     }
 
     let sessionHistory = aBrowsingContext.sessionHistory;
-    if (
-      aBrowser &&
-      aBrowser.permanentKey &&
-      !this._browserSHistoryListener.has(aBrowser.permanentKey) &&
-      sessionHistory
-    ) {
-      let listener = new SHistoryListener(aBrowser, aBrowsingContext);
-      sessionHistory.addSHistoryListener(listener);
-      this._browserSHistoryListener.set(aBrowser.permanentKey, listener);
 
-      // Immediately collect data if we start with a non-empty SHistory.
+    if (!aBrowser || !aBrowser.permanentKey || !sessionHistory) {
+      return null;
+    }
+
+    // XXX: Maybe investigate unregistering the previous listener?
+    if (this._browserSHistoryListener.has(aBrowser.permanentKey)) {
+      return null;
+    }
+
+    let listener = new SHistoryListener();
+    sessionHistory.addSHistoryListener(listener);
+    this._browserSHistoryListener.set(aBrowser.permanentKey, listener);
+
+    if (aCollectImmediately) {
       let uri = aBrowsingContext.currentURI?.spec;
       if (uri !== "about:blank" || sessionHistory.count !== 0) {
-        aBrowser.frameLoader?.requestSHistoryUpdate(/* aImmediately */ true);
+        listener.collect(aBrowser, aBrowsingContext, { writeToCache: true });
       }
     }
+
+    return listener;
   },
 
   /**
@@ -1314,39 +1336,26 @@ var SessionStoreInternal = {
       return;
     }
 
+    if (aBrowsingContext.isReplaced) {
+      return;
+    }
+
     if (
       Services.appinfo.sessionHistoryInParent &&
       aBrowsingContext === aBrowsingContext.top &&
       aBrowsingContext.sessionHistory
     ) {
-      if (!this._browserSHistoryListener.has(aBrowser.permanentKey)) {
+      let listener =
+        this._browserSHistoryListener.get(aBrowser.permanentKey) ??
         this.addSHistoryListener(aBrowser, aBrowsingContext);
-      }
-      let listener = this._browserSHistoryListener.get(aBrowser.permanentKey);
-      if (!listener) {
-        throw new Error("failed to create SHistoryListener");
-      }
 
-      let needsFullCollect = !!aData.sHistoryNeeded;
-      if (needsFullCollect || listener.didCollect()) {
-        // If |needsFullCollect| we need to collect all session history entries,
-        // because with SHIP this indicates that we either saw 'DOMTitleChanged'
-        // in mozilla::dom::TabListener::HandleEvent or 'OnDocument{Start,End}'
-        // was called on mozilla::dom::ContentSessionStore, and both need a full
-        // collect.
-        let fromIndex = -1;
-        if (listener.didCollect() && !needsFullCollect) {
-          fromIndex = listener._fromIndex;
-        }
+      let historychange = listener.collect(aBrowser, aBrowsingContext, {
+        collectFull: !!aData.sHistoryNeeded,
+        writeToCache: false,
+      });
 
-        aData.data.historychange = SessionHistory.collectFromParent(
-          aBrowsingContext.currentURI?.spec,
-          true, // Bug 1704574
-          aBrowsingContext.sessionHistory,
-          fromIndex
-        );
-
-        listener.reset();
+      if (historychange) {
+        aData.data.historychange = historychange;
       }
     }
 
@@ -4669,10 +4678,11 @@ var SessionStoreInternal = {
 
     this.markTabAsRestoring(aTab);
 
+    let isRemotenessUpdate = aOptions.isRemotenessUpdate;
+    let explicitlyUpdateRemoteness = !Services.appinfo.sessionHistoryInParent;
     // If we aren't already updating the browser's remoteness, check if it's
     // necessary.
-    let isRemotenessUpdate = aOptions.isRemotenessUpdate;
-    if (!isRemotenessUpdate) {
+    if (explicitlyUpdateRemoteness && !isRemotenessUpdate) {
       isRemotenessUpdate = tabbrowser.updateBrowserRemotenessByURL(
         browser,
         uri
@@ -5669,7 +5679,6 @@ var SessionStoreInternal = {
           .uninstall();
       }
       browser.browsingContext.clearRestoreState();
-      this._historyRestorePromises.delete(browser.permanentKey);
     }
 
     aTab.removeAttribute("pending");
@@ -5746,6 +5755,9 @@ var SessionStoreInternal = {
    */
   resetEpoch(browser) {
     this._browserEpochs.delete(browser.permanentKey);
+    if (browser && browser.frameLoader) {
+      browser.frameLoader.requestEpochUpdate(0);
+    }
   },
 
   /**
@@ -5881,37 +5893,17 @@ var SessionStoreInternal = {
     let uri = data.tabData?.entries[data.tabData.index - 1]?.url;
     let disallow = data.tabData?.disallow;
 
-    // If this restore requires a remoteness change, we'll make two calls to
-    // this function with the same browser element (this will be cleared up in
-    // bug 1709136). Tracking the latest promise ensures that we're only
-    // proceeding after the second call.
     let promise = SessionStoreUtils.restoreDocShellState(
       browser.browsingContext,
       uri,
       disallow
     );
-    this._historyRestorePromises.set(browser.permanentKey, promise);
 
     promise
       .then(() => {
-        if (
-          this._historyRestorePromises.get(browser.permanentKey) === promise
-        ) {
-          this._historyRestorePromises.delete(browser.permanentKey);
-          this._restoreHistoryComplete(browser, data);
-        }
+        this._restoreHistoryComplete(browser, data);
       })
-      .catch(() => {
-        // We'll generally only arrive here for the pre-remoteness-flip promise.
-        // This is expected, since after going through a remoteness change, the
-        // browser's associated WindowGlobal actor is destroyed, and the promise
-        // is rejected.
-        if (
-          this._historyRestorePromises.get(browser.permanentKey) === promise
-        ) {
-          console.error("Rejected active restore promise");
-        }
-      });
+      .catch(() => {});
 
     this._shistoryToRestore.set(browser.permanentKey, data);
 
@@ -5958,7 +5950,7 @@ var SessionStoreInternal = {
     let tabData = data.tabData || {};
     let uri = null;
     let loadFlags = null;
-    let promises = [this._historyRestorePromises.get(browser.permanentKey)];
+    let promises = [];
 
     if (tabData.userTypedValue && tabData.userTypedClear) {
       uri = tabData.userTypedValue;

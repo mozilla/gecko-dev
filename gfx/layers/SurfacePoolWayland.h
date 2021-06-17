@@ -15,11 +15,35 @@
 namespace mozilla::layers {
 
 using gfx::DrawTarget;
+using gfx::IntPoint;
 using gfx::IntRegion;
 using gfx::IntSize;
+using gfx::Rect;
 using gl::GLContext;
 using widget::nsWaylandDisplay;
 using widget::WaylandShmBuffer;
+
+typedef void (*CallbackFunc)(void* aData, uint32_t aTime);
+
+class CallbackMultiplexHelper {
+ public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CallbackMultiplexHelper);
+
+  explicit CallbackMultiplexHelper(CallbackFunc aCallbackFunc,
+                                   void* aCallbackData);
+
+  void Callback(uint32_t aTime);
+  bool IsActive() { return mActive; }
+
+ private:
+  ~CallbackMultiplexHelper() = default;
+
+  void RunCallback(uint32_t aTime);
+
+  bool mActive = true;
+  CallbackFunc mCallbackFunc = nullptr;
+  void* mCallbackData = nullptr;
+};
 
 class NativeSurfaceWayland {
  public:
@@ -35,16 +59,37 @@ class NativeSurfaceWayland {
   virtual void NotifySurfaceReady(){};
   virtual void DestroyGLResources(){};
 
-  struct wl_surface* mWlSurface = nullptr;
-  struct wl_subsurface* mWlSubsurface = nullptr;
-  struct wp_viewport* mViewport = nullptr;
+  void CreateSubsurface(wl_surface* aParentSurface);
+  void ClearSubsurface();
+  bool HasSubsurface() { return !!mWlSubsurface; }
+
+  void SetPosition(int aX, int aY);
+  void SetViewportSourceRect(const Rect aSourceRect);
+  void SetViewportDestinationSize(int aWidth, int aHeight);
+
+  void RequestFrameCallback(
+      const RefPtr<CallbackMultiplexHelper>& aMultiplexHelper);
+  static void FrameCallbackHandler(void* aData, wl_callback* aCallback,
+                                   uint32_t aTime);
+
+  wl_surface* mWlSurface = nullptr;
+  wl_subsurface* mWlSubsurface = nullptr;
 
  protected:
   explicit NativeSurfaceWayland(
       const RefPtr<nsWaylandDisplay>& aWaylandDisplay);
   virtual ~NativeSurfaceWayland();
 
+  void FrameCallbackHandler(wl_callback* aCallback, uint32_t aTime);
+
+  Mutex mMutex;
   RefPtr<nsWaylandDisplay> mWaylandDisplay;
+  wp_viewport* mViewport = nullptr;
+  IntPoint mPosition = IntPoint(0, 0);
+  Rect mViewportSourceRect = Rect(-1, -1, -1, -1);
+  IntSize mViewportDestinationSize = IntSize(-1, -1);
+  nsTArray<RefPtr<CallbackMultiplexHelper>> mCallbackMultiplexHelpers;
+  bool mCallbackRequested = false;
 };
 
 class NativeSurfaceWaylandEGL final : public NativeSurfaceWayland {
@@ -63,7 +108,7 @@ class NativeSurfaceWaylandEGL final : public NativeSurfaceWayland {
   ~NativeSurfaceWaylandEGL();
 
   GLContext* mGL = nullptr;
-  struct wl_egl_window* mEGLWindow = nullptr;
+  wl_egl_window* mEGLWindow = nullptr;
   EGLSurface mEGLSurface = nullptr;
 };
 

@@ -19,8 +19,12 @@
 #include "unicode/unum.h"
 #include "unicode/unumberformatter.h"
 
+struct UPluralRules;
+
 namespace mozilla {
 namespace intl {
+
+struct PluralRulesOptions;
 
 /**
  * Configure NumberFormat options.
@@ -159,7 +163,7 @@ enum class NumberPartType {
 // part's end.
 using NumberPart = std::pair<NumberPartType, size_t>;
 
-using NumberPartVector = mozilla::Vector<NumberPart, 8 * sizeof(NumberPart)>;
+using NumberPartVector = mozilla::Vector<NumberPart, 8>;
 
 /**
  * According to http://userguide.icu-project.org/design, as long as we constrain
@@ -339,6 +343,23 @@ class NumberFormat final {
     return formatResult<typename B::CharType, B>(buffer);
   }
 
+  /**
+   * Formats the number and selects the keyword by using a provided
+   * UPluralRules object.
+   *
+   * https://tc39.es/ecma402/#sec-intl.pluralrules.prototype.select
+   *
+   * TODO(1713917) This is necessary because both PluralRules and
+   * NumberFormat have a shared dependency on the raw UFormattedNumber
+   * type. Once we transition to using ICU4X, the FFI calls should no
+   * longer require such shared dependencies. At that time, this
+   * functionality should be removed from NumberFormat and invoked
+   * solely from PluralRules.
+   */
+  Result<int32_t, NumberFormat::FormatError> selectFormatted(
+      double number, char16_t* keyword, int32_t keywordSize,
+      UPluralRules* pluralRules) const;
+
  private:
   UNumberFormatter* mNumberFormatter = nullptr;
   UFormattedNumber* mFormattedNumber = nullptr;
@@ -376,7 +397,7 @@ class NumberFormat final {
       } else {
         // ICU provides APIs which accept a buffer, but they just copy from an
         // internal buffer behind the scenes anyway.
-        if (!buffer.allocate(result.size())) {
+        if (!buffer.reserve(result.size())) {
           return Err(FormatError::OutOfMemory);
         }
         PodCopy(static_cast<char16_t*>(buffer.data()), result.data(),

@@ -51,6 +51,13 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
 
   TextEditor();
 
+  static TextEditor* GetFrom(nsIEditor* aEditor) {
+    return aEditor ? aEditor->GetAsTextEditor() : nullptr;
+  }
+  static const TextEditor* GetFrom(const nsIEditor* aEditor) {
+    return aEditor ? aEditor->GetAsTextEditor() : nullptr;
+  }
+
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSINAMED
 
@@ -70,10 +77,9 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
   using EditorBase::CanPaste;
 
   // Overrides of EditorBase
-  MOZ_CAN_RUN_SCRIPT virtual nsresult Init(Document& aDoc, Element* aRoot,
-                                           nsISelectionController* aSelCon,
-                                           uint32_t aFlags,
-                                           const nsAString& aValue) override;
+  MOZ_CAN_RUN_SCRIPT virtual nsresult Init(
+      Document& aDoc, Element* aRoot, nsISelectionController* aSelCon,
+      uint32_t aFlags, const nsAString& aInitialValue) override;
 
   bool IsEmpty() const override;
 
@@ -401,13 +407,6 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
   SetTextWithoutTransaction(const nsAString& aValue);
 
   /**
-   * EnsurePaddingBRElementInMultilineEditor() creates a padding `<br>` element
-   * at end of multiline text editor.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  EnsurePaddingBRElementInMultilineEditor();
-
-  /**
    * EnsureCaretNotAtEndOfTextNode() collapses selection at the padding `<br>`
    * element (i.e., container becomes the anonymous `<div>` element) if
    * `Selection` is at end of the text node.
@@ -446,13 +445,6 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
 
  protected:  // Shouldn't be used by friend classes
   virtual ~TextEditor();
-
-  /**
-   * InitEditorContentAndSelection() may insert a padding `<br>` element for
-   * if it's required in the anonymous `<div>` element and collapse selection
-   * at the end if there is no selection ranges.
-   */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InitEditorContentAndSelection();
 
   /**
    * CanEchoPasswordNow() returns true if currently we can echo password.
@@ -513,11 +505,21 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
 }  // namespace mozilla
 
 mozilla::TextEditor* nsIEditor::AsTextEditor() {
+  MOZ_DIAGNOSTIC_ASSERT(IsTextEditor());
   return static_cast<mozilla::TextEditor*>(this);
 }
 
 const mozilla::TextEditor* nsIEditor::AsTextEditor() const {
+  MOZ_DIAGNOSTIC_ASSERT(IsTextEditor());
   return static_cast<const mozilla::TextEditor*>(this);
+}
+
+mozilla::TextEditor* nsIEditor::GetAsTextEditor() {
+  return AsEditorBase()->IsTextEditor() ? AsTextEditor() : nullptr;
+}
+
+const mozilla::TextEditor* nsIEditor::GetAsTextEditor() const {
+  return AsEditorBase()->IsTextEditor() ? AsTextEditor() : nullptr;
 }
 
 #endif  // #ifndef mozilla_TextEditor_h

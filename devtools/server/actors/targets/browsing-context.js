@@ -554,11 +554,14 @@ const browsingContextTargetPrototype = {
     );
     assert(this.actorID, "Actor should have an actorID.");
 
+    const innerWindowId = this.window ? getInnerId(this.window) : null;
+
     const response = {
       actor: this.actorID,
       browsingContextID: this.browsingContextID,
       // True for targets created by JSWindowActors, see constructor JSDoc.
       followWindowGlobalLifeCycle: this.followWindowGlobalLifeCycle,
+      innerWindowId,
       isTopLevelTarget: this.isTopLevelTarget,
       traits: {
         // @backward-compat { version 64 } Exposes a new trait to help identify
@@ -1087,7 +1090,6 @@ const browsingContextTargetPrototype = {
     return {
       threadActor: this.threadActor.actorID,
       cacheDisabled: this._getCacheDisabled(),
-      javascriptEnabled: this._getJavascriptEnabled(),
       traits: this.traits,
     };
   },
@@ -1275,14 +1277,6 @@ const browsingContextTargetPrototype = {
       // propagated through the browsing context tree via the platform.
       return;
     }
-
-    if (
-      typeof options.javascriptEnabled !== "undefined" &&
-      options.javascriptEnabled !== this._getJavascriptEnabled()
-    ) {
-      this._setJavascriptEnabled(options.javascriptEnabled);
-      reload = true;
-    }
     if (
       typeof options.cacheDisabled !== "undefined" &&
       options.cacheDisabled !== this._getCacheDisabled()
@@ -1317,7 +1311,6 @@ const browsingContextTargetPrototype = {
    * state when closing the toolbox.
    */
   _restoreTargetConfiguration() {
-    this._restoreJavascript();
     this._setCacheDisabled(false);
     this._setPaintFlashingEnabled(false);
 
@@ -1334,39 +1327,6 @@ const browsingContextTargetPrototype = {
     const disable = Ci.nsIRequest.LOAD_BYPASS_CACHE;
 
     this.docShell.defaultLoadFlags = disabled ? disable : enable;
-  },
-
-  /**
-   * Disable or enable JS via docShell.
-   */
-  _wasJavascriptEnabled: null,
-  _setJavascriptEnabled(allow) {
-    if (this._wasJavascriptEnabled === null) {
-      this._wasJavascriptEnabled = this.docShell.allowJavascript;
-    }
-    this.docShell.allowJavascript = allow;
-  },
-
-  /**
-   * Restore JS state, before the actor modified it.
-   */
-  _restoreJavascript() {
-    if (this._wasJavascriptEnabled !== null) {
-      this._setJavascriptEnabled(this._wasJavascriptEnabled);
-      this._wasJavascriptEnabled = null;
-    }
-  },
-
-  /**
-   * Return JS allowed status.
-   */
-  _getJavascriptEnabled() {
-    if (!this.docShell) {
-      // The browsing context is already closed.
-      return null;
-    }
-
-    return this.docShell.allowJavascript;
   },
 
   /**
@@ -1459,9 +1419,16 @@ const browsingContextTargetPrototype = {
       this._updateChildDocShells();
     }
 
+    // If this follows WindowGlobal lifecycle, a new Target actor will be spawn for the top level
+    // target document. Only notify about in-process iframes.
+    // Note that OOP iframes won't emit window-ready and will also have their dedicated target.
+    if (this.followWindowGlobalLifeCycle && isTopLevel) {
+      return;
+    }
+
     this.emit("window-ready", {
-      window: window,
-      isTopLevel: isTopLevel,
+      window,
+      isTopLevel,
       isBFCache,
       id: getWindowID(window),
       isFrameSwitching,
@@ -1469,11 +1436,20 @@ const browsingContextTargetPrototype = {
   },
 
   _windowDestroyed(window, id = null, isFrozen = false) {
+    const isTopLevel = window == this.window;
+
+    // If this follows WindowGlobal lifecycle, this target will be destroyed, alongside its top level document.
+    // Only notify about in-process iframes.
+    // Note that OOP iframes won't emit window-ready and will also have their dedicated target.
+    if (this.followWindowGlobalLifeCycle && isTopLevel) {
+      return;
+    }
+
     this.emit("window-destroyed", {
-      window: window,
-      isTopLevel: window == this.window,
+      window,
+      isTopLevel,
       id: id || getWindowID(window),
-      isFrozen: isFrozen,
+      isFrozen,
     });
   },
 

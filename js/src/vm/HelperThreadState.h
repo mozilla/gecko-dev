@@ -99,8 +99,6 @@ class GlobalHelperThreadState {
   typedef Vector<PromiseHelperTask*, 0, SystemAllocPolicy>
       PromiseHelperTaskVector;
   typedef Vector<JSContext*, 0, SystemAllocPolicy> ContextVector;
-  using HelperThreadVector =
-      Vector<UniquePtr<HelperThread>, 0, SystemAllocPolicy>;
 
   // Count of running task by each threadType.
   mozilla::EnumeratedArray<ThreadType, ThreadType::THREAD_TYPE_MAX, size_t>
@@ -112,9 +110,6 @@ class GlobalHelperThreadState {
 
  private:
   // The lists below are all protected by |lock|.
-
-  // List of available helper threads.
-  HelperThreadVector threads_;
 
   // Ion compilation worklist and finished jobs.
   IonCompileTaskVector ionWorklist_, ionFinishedList_;
@@ -161,14 +156,18 @@ class GlobalHelperThreadState {
   // This is used to get the HelperThreadTask that are currently running.
   HelperThreadTaskVector helperTasks_;
 
-  // Callback to dispatch a task using an external thread pool. Set by
+  // Callback to dispatch a task to a thread pool. Set by
   // JS::SetHelperThreadTaskCallback. If this is not set the internal thread
   // pool is used.
   JS::HelperThreadTaskCallback dispatchTaskCallback = nullptr;
 
+  // The number of tasks dispatched to the thread pool that have not started
+  // running yet.
+  size_t tasksPending_ = 0;
+
   bool isInitialized_ = false;
 
-  bool useInternalThreadPool_;
+  bool useInternalThreadPool_ = true;
 
   ParseTask* removeFinishedParseTask(JSContext* cx, ParseTaskKind kind,
                                      JS::OffThreadToken* token);
@@ -191,23 +190,15 @@ class GlobalHelperThreadState {
     return isInitialized_;
   }
 
-  HelperThreadVector& threads(const AutoLockHelperThreadState& lock) {
-    return threads_;
-  }
-  const HelperThreadVector& threads(
-      const AutoLockHelperThreadState& lock) const {
-    return threads_;
-  }
-
   [[nodiscard]] bool ensureInitialized();
   [[nodiscard]] bool ensureThreadCount(size_t count,
-                                       const AutoLockHelperThreadState& lock);
-  void finish();
-  void finishThreads();
+                                       AutoLockHelperThreadState& lock);
+  void finish(AutoLockHelperThreadState& lock);
+  void finishThreads(AutoLockHelperThreadState& lock);
 
   void setCpuCount(size_t count);
 
-  void setExternalTaskCallback(JS::HelperThreadTaskCallback callback,
+  void setDispatchTaskCallback(JS::HelperThreadTaskCallback callback,
                                size_t threadCount);
 
   [[nodiscard]] bool ensureContextList(size_t count,
@@ -219,30 +210,20 @@ class GlobalHelperThreadState {
   void assertIsLockedByCurrentThread() const;
 #endif
 
-  enum CondVar {
-    // For notifying threads waiting for work that they may be able to make
-    // progress, ie, a work item has been completed by a helper thread and
-    // the thread that created the work item can now consume it.
-    CONSUMER,
-
-    // For notifying helper threads doing the work that they may be able to
-    // make progress, ie, a work item has been enqueued and an idle helper
-    // thread may pick up up the work item and perform it.
-    PRODUCER,
-  };
-
-  void wait(AutoLockHelperThreadState& locked, CondVar which,
+  void wait(AutoLockHelperThreadState& locked,
             mozilla::TimeDuration timeout = mozilla::TimeDuration::Forever());
-  void notifyAll(CondVar which, const AutoLockHelperThreadState&);
+  void notifyAll(const AutoLockHelperThreadState&);
 
-  bool useInternalThreadPool(const AutoLockHelperThreadState& locked);
+  bool useInternalThreadPool(const AutoLockHelperThreadState& lock) const {
+    return useInternalThreadPool_;
+  }
 
   bool isTerminating(const AutoLockHelperThreadState& locked) const {
     return terminating_;
   }
 
  private:
-  void notifyOne(CondVar which, const AutoLockHelperThreadState&);
+  void notifyOne(const AutoLockHelperThreadState&);
 
  public:
   // Helper method for removing items from the vectors below while iterating
@@ -338,6 +319,19 @@ class GlobalHelperThreadState {
     return helperTasks_;
   }
 
+  bool canStartWasmCompile(const AutoLockHelperThreadState& lock,
+                           wasm::CompileMode mode);
+
+  bool canStartWasmTier1CompileTask(const AutoLockHelperThreadState& lock);
+  bool canStartWasmTier2CompileTask(const AutoLockHelperThreadState& lock);
+  bool canStartWasmTier2GeneratorTask(const AutoLockHelperThreadState& lock);
+  bool canStartPromiseHelperTask(const AutoLockHelperThreadState& lock);
+  bool canStartIonCompileTask(const AutoLockHelperThreadState& lock);
+  bool canStartIonFreeTask(const AutoLockHelperThreadState& lock);
+  bool canStartParseTask(const AutoLockHelperThreadState& lock);
+  bool canStartCompressionTask(const AutoLockHelperThreadState& lock);
+  bool canStartGCParallelTask(const AutoLockHelperThreadState& lock);
+
   HelperThreadTask* maybeGetWasmCompile(const AutoLockHelperThreadState& lock,
                                         wasm::CompileMode mode);
 
@@ -402,9 +396,9 @@ class GlobalHelperThreadState {
       JSContext* cx, JS::OffThreadToken* token);
 
   bool hasActiveThreads(const AutoLockHelperThreadState&);
-  bool hasQueuedTasks(const AutoLockHelperThreadState& locked);
-  void waitForAllThreads();
-  void waitForAllThreadsLocked(AutoLockHelperThreadState&);
+  bool canStartTasks(const AutoLockHelperThreadState& locked);
+  void waitForAllTasks();
+  void waitForAllTasksLocked(AutoLockHelperThreadState&);
 
   bool checkTaskThreadLimit(ThreadType threadType, size_t maxThreads,
                             bool isMaster,
@@ -418,22 +412,13 @@ class GlobalHelperThreadState {
   void triggerFreeUnusedMemory();
 
  private:
-  /* Condvars for threads waiting/notifying each other. */
+  // Condition variable for notifiying the main thread that a helper task has
+  // completed some work.
   js::ConditionVariable consumerWakeup;
-  js::ConditionVariable producerWakeup;
-
-  js::ConditionVariable& whichWakeup(CondVar which) {
-    switch (which) {
-      case CONSUMER:
-        return consumerWakeup;
-      case PRODUCER:
-        return producerWakeup;
-      default:
-        MOZ_CRASH("Invalid CondVar in |whichWakeup|");
-    }
-  }
 
   void dispatch(const AutoLockHelperThreadState& locked);
+
+  void runTask(HelperThreadTask* task, AutoLockHelperThreadState& lock);
 
  public:
   bool submitTask(wasm::UniqueTier2GeneratorTask task);
@@ -449,6 +434,7 @@ class GlobalHelperThreadState {
   bool submitTask(PromiseHelperTask* task);
   bool submitTask(GCParallelTask* task,
                   const AutoLockHelperThreadState& locked);
+  void runOneTask(AutoLockHelperThreadState& lock);
   void runTaskLocked(HelperThreadTask* task, AutoLockHelperThreadState& lock);
 
   using Selector = HelperThreadTask* (
@@ -465,43 +451,6 @@ static inline GlobalHelperThreadState& HelperThreadState() {
   MOZ_ASSERT(gHelperThreadState);
   return *gHelperThreadState;
 }
-
-/* Individual helper thread, one allocated per core. */
-class HelperThread {
-  Thread thread;
-
-  /*
-   * The profiling thread for this helper thread, which can be used to push
-   * and pop label frames.
-   * This field being non-null indicates that this thread has been registered
-   * and needs to be unregistered at shutdown.
-   */
-  ProfilingStack* profilingStack = nullptr;
-
- public:
-  HelperThread();
-  [[nodiscard]] bool init();
-
-  ThreadId threadId() { return thread.get_id(); }
-
-  void join();
-
-  static void ThreadMain(void* arg);
-  void threadLoop();
-
-  void ensureRegisteredWithProfiler();
-  void unregisterWithProfilerIfNeeded();
-
- private:
-  struct AutoProfilerLabel {
-    AutoProfilerLabel(HelperThread* helperThread, const char* label,
-                      JS::ProfilingCategoryPair categoryPair);
-    ~AutoProfilerLabel();
-
-   private:
-    ProfilingStack* profilingStack;
-  };
-};
 
 class MOZ_RAII AutoSetHelperThreadContext {
   JSContext* cx;

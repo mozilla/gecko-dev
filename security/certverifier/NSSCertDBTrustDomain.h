@@ -128,8 +128,7 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
       SECTrustType certDBTrustType, OCSPFetching ocspFetching,
       OCSPCache& ocspCache, void* pinArg, mozilla::TimeDuration ocspTimeoutSoft,
       mozilla::TimeDuration ocspTimeoutHard, uint32_t certShortLifetimeInDays,
-      CertVerifier::PinningMode pinningMode, unsigned int minRSABits,
-      ValidityCheckingMode validityCheckingMode,
+      unsigned int minRSABits, ValidityCheckingMode validityCheckingMode,
       CertVerifier::SHA1Mode sha1Mode,
       NetscapeStepUpPolicy netscapeStepUpPolicy, CRLiteMode crliteMode,
       uint64_t crliteCTMergeDelaySeconds,
@@ -139,7 +138,6 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
       const Maybe<nsTArray<nsTArray<uint8_t>>>& extraCertificates,
       /*out*/ UniqueCERTCertList& builtChain,
       /*optional*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
-      /*optional*/ CRLiteLookupResult* crliteLookupResult = nullptr,
       /*optional*/ const char* hostname = nullptr);
 
   virtual Result FindIssuer(mozilla::pkix::Input encodedIssuerName,
@@ -248,7 +246,6 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
   const mozilla::TimeDuration mOCSPTimeoutSoft;
   const mozilla::TimeDuration mOCSPTimeoutHard;
   const uint32_t mCertShortLifetimeInDays;
-  CertVerifier::PinningMode mPinningMode;
   const unsigned int mMinRSABits;
   ValidityCheckingMode mValidityCheckingMode;
   CertVerifier::SHA1Mode mSHA1Mode;
@@ -263,7 +260,6 @@ class NSSCertDBTrustDomain : public mozilla::pkix::TrustDomain {
   const Maybe<nsTArray<nsTArray<uint8_t>>>& mExtraCertificates;  // non-owning
   UniqueCERTCertList& mBuiltChain;                               // non-owning
   PinningTelemetryInfo* mPinningTelemetryInfo;
-  CRLiteLookupResult* mCRLiteLookupResult;
   const char* mHostname;  // non-owning - only used for pinning checks
   nsCOMPtr<nsICertStorage> mCertStorage;
   CertVerifier::OCSPStaplingStatus mOCSPStaplingStatus;

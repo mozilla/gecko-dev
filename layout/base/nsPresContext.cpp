@@ -1688,7 +1688,7 @@ void nsPresContext::SetPrintSettings(nsIPrintSettings* aPrintSettings) {
     return;
   }
 
-  // set the presentation context to the value in the print settings
+  // Set the presentation context to the value in the print settings.
   mDrawColorBackground = mPrintSettings->GetPrintBGColors();
   mDrawImageBackground = mPrintSettings->GetPrintBGImages();
 
@@ -2570,7 +2570,7 @@ void nsPresContext::SetVisibleArea(const nsRect& r) {
       AdjustSizeForViewportUnits();
     }
     // Visible area does not affect media queries when paginated.
-    if (!IsPaginated()) {
+    if (!IsRootPaginatedDocument()) {
       MediaFeatureValuesChanged(
           {mozilla::MediaFeatureChangeReason::ViewportChange},
           MediaFeatureChangePropagation::JustThisDocument);

@@ -268,8 +268,8 @@
 #include "GMPServiceChild.h"
 #include "GfxInfoBase.h"
 #include "MMPrinter.h"
-#include "ProcessUtils.h"
-#include "URIUtils.h"
+#include "mozilla/ipc/ProcessUtils.h"
+#include "mozilla/ipc/URIUtils.h"
 #include "VRManagerChild.h"
 #include "gfxPlatform.h"
 #include "gfxPlatformFontList.h"
@@ -2643,17 +2643,6 @@ void ContentChild::PreallocInit() {
 // for telemetry.
 const nsACString& ContentChild::GetRemoteType() const { return mRemoteType; }
 
-mozilla::ipc::IPCResult ContentChild::RecvInitServiceWorkers(
-    const ServiceWorkerConfiguration& aConfig) {
-  RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
-  if (!swm) {
-    // browser shutdown began
-    return IPC_OK();
-  }
-  swm->LoadRegistrations(aConfig.serviceWorkerRegistrations());
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvInitBlobURLs(
     nsTArray<BlobURLRegistrationData>&& aRegistrations) {
   for (uint32_t i = 0; i < aRegistrations.Length(); ++i) {
@@ -4764,8 +4753,18 @@ OpenBSDUnveilPaths(const nsACString& uPath, const nsACString& pledgePath) {
   if (disabled) {
     warnx("%s: disabled", PromiseFlatCString(uPath).get());
   } else {
-    if (unveil(PromiseFlatCString(pledgePath).get(), "r") == -1) {
-      err(1, "unveil(%s, r) failed", PromiseFlatCString(pledgePath).get());
+    struct stat st;
+
+    // Only unveil the pledgePath file if it's not already unveiled, otherwise
+    // some containing directory will lose visibility.
+    if (stat(PromiseFlatCString(pledgePath).get(), &st) == -1) {
+      if (errno == ENOENT) {
+        if (unveil(PromiseFlatCString(pledgePath).get(), "r") == -1) {
+          err(1, "unveil(%s, r) failed", PromiseFlatCString(pledgePath).get());
+        }
+      } else {
+        err(1, "stat(%s)", PromiseFlatCString(pledgePath).get());
+      }
     }
   }
 
@@ -4796,6 +4795,16 @@ bool StartOpenBSDSandbox(GeckoProcessType type) {
     case GeckoProcessType_GPU:
       OpenBSDFindPledgeUnveilFilePath("pledge.gpu", pledgeFile);
       OpenBSDFindPledgeUnveilFilePath("unveil.gpu", unveilFile);
+      break;
+
+    case GeckoProcessType_Socket:
+      OpenBSDFindPledgeUnveilFilePath("pledge.socket", pledgeFile);
+      OpenBSDFindPledgeUnveilFilePath("unveil.socket", unveilFile);
+      break;
+
+    case GeckoProcessType_RDD:
+      OpenBSDFindPledgeUnveilFilePath("pledge.rdd", pledgeFile);
+      OpenBSDFindPledgeUnveilFilePath("unveil.rdd", unveilFile);
       break;
 
     default:

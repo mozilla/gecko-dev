@@ -910,6 +910,10 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
 
   JS::SetLargeArrayBuffersEnabled(
       StaticPrefs::javascript_options_large_arraybuffers_DoNotUseDirectly());
+
+  JS::SetSiteBasedPretenuringEnabled(
+      StaticPrefs::
+          javascript_options_site_based_pretenuring_DoNotUseDirectly());
 }
 
 static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
@@ -1189,8 +1193,10 @@ static bool CreateSelfHostedSharedMemory(JSContext* aCx,
 }
 
 nsresult XPCJSContext::Initialize() {
-  size_t threadCount = TaskController::GetPoolThreadCount();
-  SetHelperThreadTaskCallback(&DispatchOffThreadTask, threadCount);
+  if (StaticPrefs::javascript_options_external_thread_pool_DoNotUseDirectly()) {
+    size_t threadCount = TaskController::GetPoolThreadCount();
+    SetHelperThreadTaskCallback(&DispatchOffThreadTask, threadCount);
+  }
 
   nsresult rv =
       CycleCollectedJSContext::Initialize(nullptr, JS::DefaultHeapMaxBytes);

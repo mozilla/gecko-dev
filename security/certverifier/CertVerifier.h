@@ -133,17 +133,6 @@ class DelegatedCredentialInfo {
   uint32_t authKeyBits;
 };
 
-enum class CRLiteLookupResult {
-  NeverChecked = 0,
-  FilterNotAvailable = 1,
-  IssuerNotEnrolled = 2,
-  CertificateTooNew = 3,
-  CertificateValid = 4,
-  CertificateRevoked = 5,
-  LibraryFailure = 6,
-  CertRevokedByStash = 7,
-};
-
 class NSSCertDBTrustDomain;
 
 class CertVerifier {
@@ -183,8 +172,7 @@ class CertVerifier {
       /*optional out*/ KeySizeStatus* keySizeStatus = nullptr,
       /*optional out*/ SHA1ModeResult* sha1ModeResult = nullptr,
       /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
-      /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr,
-      /*optional out*/ CRLiteLookupResult* crliteLookupResult = nullptr);
+      /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr);
 
   mozilla::pkix::Result VerifySSLServerCert(
       const UniqueCERTCertificate& peerCert, mozilla::pkix::Time time,
@@ -205,15 +193,7 @@ class CertVerifier {
       /*optional out*/ SHA1ModeResult* sha1ModeResult = nullptr,
       /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo = nullptr,
       /*optional out*/ CertificateTransparencyInfo* ctInfo = nullptr,
-      /*optional out*/ CRLiteLookupResult* crliteLookupResult = nullptr,
       /*optional out*/ bool* isBuiltCertChainRootBuiltInRoot = nullptr);
-
-  enum PinningMode {
-    pinningDisabled = 0,
-    pinningAllowUserCAMITM = 1,
-    pinningStrict = 2,
-    pinningEnforceTestMode = 3
-  };
 
   enum class SHA1Mode {
     Allowed = 0,
@@ -237,8 +217,8 @@ class CertVerifier {
   CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,
                mozilla::TimeDuration ocspTimeoutSoft,
                mozilla::TimeDuration ocspTimeoutHard,
-               uint32_t certShortLifetimeInDays, PinningMode pinningMode,
-               SHA1Mode sha1Mode, BRNameMatchingPolicy::Mode nameMatchingMode,
+               uint32_t certShortLifetimeInDays, SHA1Mode sha1Mode,
+               BRNameMatchingPolicy::Mode nameMatchingMode,
                NetscapeStepUpPolicy netscapeStepUpPolicy,
                CertificateTransparencyMode ctMode, CRLiteMode crliteMode,
                uint64_t crliteCTMergeDelaySeconds,
@@ -252,7 +232,6 @@ class CertVerifier {
   const mozilla::TimeDuration mOCSPTimeoutSoft;
   const mozilla::TimeDuration mOCSPTimeoutHard;
   const uint32_t mCertShortLifetimeInDays;
-  const PinningMode mPinningMode;
   const SHA1Mode mSHA1Mode;
   const BRNameMatchingPolicy::Mode mNameMatchingMode;
   const NetscapeStepUpPolicy mNetscapeStepUpPolicy;
@@ -289,9 +268,9 @@ class CertVerifier {
 };
 
 mozilla::pkix::Result IsCertBuiltInRoot(CERTCertificate* cert, bool& result);
-mozilla::pkix::Result CertListContainsExpectedKeys(
-    const CERTCertList* certList, const char* hostname,
-    mozilla::pkix::Time time, CertVerifier::PinningMode pinningMode);
+mozilla::pkix::Result CertListContainsExpectedKeys(const CERTCertList* certList,
+                                                   const char* hostname,
+                                                   mozilla::pkix::Time time);
 
 }  // namespace psm
 }  // namespace mozilla

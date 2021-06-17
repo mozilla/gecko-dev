@@ -185,14 +185,14 @@ HTMLEditor::~HTMLEditor() {
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLEditor)
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLEditor, TextEditor)
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLEditor, EditorBase)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTypeInState)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mComposerCommandsUpdater)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mChangedRangeForTopLevelEditSubAction)
   tmp->HideAnonymousEditingUIs();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLEditor, TextEditor)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLEditor, EditorBase)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTypeInState)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mComposerCommandsUpdater)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mChangedRangeForTopLevelEditSubAction)
@@ -234,7 +234,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(HTMLEditor)
   NS_INTERFACE_MAP_ENTRY(nsITableEditor)
   NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
   NS_INTERFACE_MAP_ENTRY(nsIEditorMailSupport)
-NS_INTERFACE_MAP_END_INHERITING(TextEditor)
+NS_INTERFACE_MAP_END_INHERITING(EditorBase)
 
 nsresult HTMLEditor::Init(Document& aDoc, Element* aRoot,
                           nsISelectionController* aSelCon, uint32_t aFlags,
@@ -618,13 +618,13 @@ void HTMLEditor::RemoveEventListeners() {
     return;
   }
 
-  TextEditor::RemoveEventListeners();
+  EditorBase::RemoveEventListeners();
 }
 
 NS_IMETHODIMP HTMLEditor::SetFlags(uint32_t aFlags) {
-  nsresult rv = TextEditor::SetFlags(aFlags);
+  nsresult rv = EditorBase::SetFlags(aFlags);
   if (NS_FAILED(rv)) {
-    NS_WARNING("TextEditor::SetFlags() failed");
+    NS_WARNING("EditorBase::SetFlags() failed");
     return rv;
   }
 
@@ -899,7 +899,7 @@ nsresult HTMLEditor::HandleKeyPressEvent(WidgetKeyboardEvent* aKeyboardEvent) {
     case NS_VK_TAB: {
       if (IsPlaintextEditor()) {
         // If this works as plain text editor, e.g., mail editor for plain
-        // text, should be handled with common logic with TextEditor.
+        // text, should be handled with common logic with EditorBase.
         nsresult rv = EditorBase::HandleKeyPressEvent(aKeyboardEvent);
         NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                              "EditorBase::HandleKeyPressEvent() failed");
@@ -3277,7 +3277,7 @@ nsresult HTMLEditor::ReplaceTextWithTransaction(
   }
   NS_WARNING_ASSERTION(
       !ignoredError.Failed(),
-      "TextEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
+      "HTMLEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
 
   // FYI: Create the insertion point before changing the DOM tree because
   //      the point may become invalid offset after that.
@@ -4148,7 +4148,7 @@ already_AddRefed<nsIContent> HTMLEditor::SplitNodeWithTransaction(
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                          "RangeUpdater::SelAdjSplitNode() failed, but ignored");
   }
-  if (AsHTMLEditor() && newLeftContent) {
+  if (newLeftContent) {
     TopLevelEditSubActionDataRef().DidSplitContent(
         *this, *aStartOfRightNode.GetContainerAsContent(), *newLeftContent);
   }
@@ -4326,8 +4326,6 @@ void HTMLEditor::DoSplitNode(const EditorDOMPoint& aStartOfRightNode,
     Text* rightAsText = aStartOfRightNode.GetContainerAsText();
     Text* leftAsText = aNewLeftNode.GetAsText();
     if (rightAsText && leftAsText) {
-      MOZ_DIAGNOSTIC_ASSERT(AsHTMLEditor(),
-                            "Text node in TextEditor shouldn't be split");
       // Fix right node
       nsAutoString leftText;
       IgnoredErrorResult ignoredError;
@@ -4487,7 +4485,7 @@ nsresult HTMLEditor::JoinNodesWithTransaction(nsINode& aLeftNode,
   }
   NS_WARNING_ASSERTION(
       !ignoredError.Failed(),
-      "TextEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
+      "HTMLEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
 
   // Remember some values; later used for saved selection updating.
   // Find the offset between the nodes to be joined.
@@ -4495,10 +4493,8 @@ nsresult HTMLEditor::JoinNodesWithTransaction(nsINode& aLeftNode,
   // Find the number of children of the lefthand node
   uint32_t oldLeftNodeLen = aLeftNode.Length();
 
-  if (AsHTMLEditor()) {
-    TopLevelEditSubActionDataRef().WillJoinContents(
-        *this, *aLeftNode.AsContent(), *aRightNode.AsContent());
-  }
+  TopLevelEditSubActionDataRef().WillJoinContents(*this, *aLeftNode.AsContent(),
+                                                  *aRightNode.AsContent());
 
   RefPtr<JoinNodeTransaction> transaction = JoinNodeTransaction::MaybeCreate(
       *this, *aLeftNode.AsContent(), *aRightNode.AsContent());
@@ -4520,10 +4516,8 @@ nsresult HTMLEditor::JoinNodesWithTransaction(nsINode& aLeftNode,
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                        "RangeUpdater::SelAdjJoinNodes() failed, but ignored");
 
-  if (AsHTMLEditor()) {
-    TopLevelEditSubActionDataRef().DidJoinContents(
-        *this, *aLeftNode.AsContent(), *aRightNode.AsContent());
-  }
+  TopLevelEditSubActionDataRef().DidJoinContents(*this, *aLeftNode.AsContent(),
+                                                 *aRightNode.AsContent());
 
   if (mInlineSpellChecker) {
     RefPtr<mozInlineSpellChecker> spellChecker = mInlineSpellChecker;
@@ -4551,7 +4545,6 @@ nsresult HTMLEditor::JoinNodesWithTransaction(nsINode& aLeftNode,
 nsresult HTMLEditor::DoJoinNodes(nsIContent& aContentToKeep,
                                  nsIContent& aContentToJoin) {
   MOZ_ASSERT(IsEditActionDataAvailable());
-  MOZ_DIAGNOSTIC_ASSERT(AsHTMLEditor());
 
   uint32_t firstNodeLength = aContentToJoin.Length();
 
@@ -4831,7 +4824,6 @@ already_AddRefed<Element> HTMLEditor::DeleteSelectionAndCreateElement(
 
 nsresult HTMLEditor::DeleteSelectionAndPrepareToCreateNode() {
   MOZ_ASSERT(IsEditActionDataAvailable());
-  MOZ_ASSERT(IsHTMLEditor());  // TODO: Move this method to `HTMLEditor`
 
   if (NS_WARN_IF(!SelectionRef().GetAnchorFocusRange())) {
     return NS_OK;

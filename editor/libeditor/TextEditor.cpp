@@ -112,7 +112,6 @@ NS_INTERFACE_MAP_END_INHERITING(EditorBase)
 nsresult TextEditor::Init(Document& aDoc, Element* aRoot,
                           nsISelectionController* aSelCon, uint32_t aFlags,
                           const nsAString& aInitialValue) {
-  MOZ_ASSERT(!AsHTMLEditor());
   MOZ_ASSERT(!mInitSucceeded,
              "TextEditor::Init() called again without calling PreDestroy()?");
 
@@ -136,8 +135,8 @@ nsresult TextEditor::Init(Document& aDoc, Element* aRoot,
 
   rv = InitEditorContentAndSelection();
   if (NS_FAILED(rv)) {
-    NS_WARNING("TextEditor::InitEditorContentAndSelection() failed");
-    // XXX Sholdn't we expose `NS_ERROR_EDITOR_DESTROYED` even though this
+    NS_WARNING("EditorBase::InitEditorContentAndSelection() failed");
+    // XXX Shouldn't we expose `NS_ERROR_EDITOR_DESTROYED` even though this
     //     is a public method?
     mInitSucceeded = false;
     return EditorBase::ToGenericNSResult(rv);
@@ -255,7 +254,6 @@ nsresult TextEditor::SetTextAsAction(
     AllowBeforeInputEventCancelable aAllowBeforeInputEventCancelable,
     nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(aString.FindChar(nsCRT::CR) == kNotFound);
-  MOZ_ASSERT(!AsHTMLEditor());
 
   AutoEditActionDataSetter editActionData(*this, EditAction::eSetText,
                                           aPrincipal);
@@ -311,34 +309,9 @@ nsresult TextEditor::SetTextAsSubAction(const nsAString& aString) {
     // shouldn't receive such selectionchange before the first mutation.
     AutoUpdateViewBatch preventSelectionChangeEvent(*this);
 
-    RefPtr<Element> rootElement = GetRoot();
-    if (NS_WARN_IF(!rootElement)) {
-      return NS_ERROR_FAILURE;
-    }
-
-    // We want to select trailing `<br>` element to remove all nodes to replace
-    // all, but TextEditor::SelectEntireDocument() doesn't select such `<br>`
-    // elements.
     // XXX We should make ReplaceSelectionAsSubAction() take range.  Then,
     //     we can saving the expensive cost of modifying `Selection` here.
-    nsresult rv;
-    if (IsEmpty()) {
-      rv = SelectionRef().CollapseInLimiter(rootElement, 0);
-      NS_WARNING_ASSERTION(
-          NS_SUCCEEDED(rv),
-          "Selection::CollapseInLimiter() failed, but ignored");
-    } else {
-      // XXX Oh, we shouldn't select padding `<br>` element for empty last
-      //     line here since we will need to recreate it in multiline
-      //     text editor.
-      ErrorResult error;
-      SelectionRef().SelectAllChildren(*rootElement, error);
-      NS_WARNING_ASSERTION(
-          !error.Failed(),
-          "Selection::SelectAllChildren() failed, but ignored");
-      rv = error.StealNSResult();
-    }
-    if (NS_SUCCEEDED(rv)) {
+    if (NS_SUCCEEDED(SelectEntireDocument())) {
       DebugOnly<nsresult> rvIgnored = ReplaceSelectionAsSubAction(aString);
       NS_WARNING_ASSERTION(
           NS_SUCCEEDED(rvIgnored),
@@ -368,10 +341,11 @@ bool TextEditor::IsEmpty() const {
     return true;  // Don't warn it, this is possible, e.g., 997805.html
   }
 
+  MOZ_ASSERT(anonymousDivElement->GetFirstChild() &&
+             anonymousDivElement->GetFirstChild()->IsText());
+
   // Only when there is non-empty text node, we are not empty.
-  return !anonymousDivElement->GetFirstChild() ||
-         !anonymousDivElement->GetFirstChild()->IsText() ||
-         !anonymousDivElement->GetFirstChild()->Length();
+  return !anonymousDivElement->GetFirstChild()->Length();
 }
 
 NS_IMETHODIMP TextEditor::GetTextLength(int32_t* aCount) {
@@ -446,7 +420,6 @@ nsresult TextEditor::PasteAsQuotationAsAction(int32_t aClipboardType,
                                               nsIPrincipal* aPrincipal) {
   MOZ_ASSERT(aClipboardType == nsIClipboard::kGlobalClipboard ||
              aClipboardType == nsIClipboard::kSelectionClipboard);
-  MOZ_ASSERT(IsTextEditor());
 
   AutoEditActionDataSetter editActionData(*this, EditAction::ePasteAsQuotation,
                                           aPrincipal);
@@ -584,7 +557,6 @@ nsresult TextEditor::InsertWithQuotationsAsSubAction(
 
 nsresult TextEditor::SelectEntireDocument() {
   MOZ_ASSERT(IsEditActionDataAvailable());
-  MOZ_ASSERT(!AsHTMLEditor());
 
   if (NS_WARN_IF(!mInitSucceeded)) {
     return NS_ERROR_NOT_INITIALIZED;
@@ -595,46 +567,15 @@ nsresult TextEditor::SelectEntireDocument() {
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  // If we're empty, don't select all children because that would select the
-  // padding <br> element for empty editor.
-  if (IsEmpty()) {
-    nsresult rv = SelectionRef().CollapseInLimiter(anonymousDivElement, 0);
-    NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "Selection::CollapseInLimiter() failed");
-    return rv;
-  }
+  RefPtr<Text> text =
+      Text::FromNodeOrNull(anonymousDivElement->GetFirstChild());
+  MOZ_ASSERT(text);
 
-  // XXX We just need to select all of first text node (if there is).
-  //     Why do we do this kind of complicated things?
+  MOZ_TRY(SelectionRef().SetStartAndEndInLimiter(
+      *text, 0, *text, text->TextDataLength(), eDirNext,
+      nsISelectionListener::SELECTALL_REASON));
 
-  // Don't select the trailing BR node if we have one
-  nsCOMPtr<nsIContent> childNode;
-  nsresult rv =
-      EditorBase::GetEndChildNode(SelectionRef(), getter_AddRefs(childNode));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::GetEndChildNode() failed");
-    return rv;
-  }
-  if (childNode) {
-    childNode = childNode->GetPreviousSibling();
-  }
-
-  if (childNode &&
-      EditorUtils::IsPaddingBRElementForEmptyLastLine(*childNode)) {
-    ErrorResult error;
-    SelectionRef().SetStartAndEndInLimiter(
-        RawRangeBoundary(anonymousDivElement, 0u), EditorRawDOMPoint(childNode),
-        error);
-    NS_WARNING_ASSERTION(!error.Failed(),
-                         "Selection::SetStartAndEndInLimiter() failed");
-    return error.StealNSResult();
-  }
-
-  ErrorResult error;
-  SelectionRef().SelectAllChildren(*anonymousDivElement, error);
-  NS_WARNING_ASSERTION(!error.Failed(),
-                       "Selection::SelectAllChildren() failed");
-  return error.StealNSResult();
+  return NS_OK;
 }
 
 EventTarget* TextEditor::GetDOMEventTarget() const { return mEventTarget; }
@@ -684,7 +625,6 @@ nsresult TextEditor::RemoveAttributeOrEquivalent(Element* aElement,
 
 nsresult TextEditor::EnsurePaddingBRElementForEmptyEditor() {
   MOZ_ASSERT(IsEditActionDataAvailable());
-  MOZ_ASSERT(!AsHTMLEditor());
 
   // If there is padding <br> element for empty editor, we have no work to do.
   if (mPaddingBRElementForEmptyEditor) {
@@ -763,7 +703,7 @@ nsresult TextEditor::SetUnmaskRangeInternal(uint32_t aStart, uint32_t aLength,
     return NS_ERROR_NOT_INITIALIZED;
   }
   Text* text = Text::FromNodeOrNull(rootElement->GetFirstChild());
-  if (!text) {
+  if (!text || !text->Length()) {
     // There is no anonymous text node in the editor.
     return aStart > 0 && aStart != UINT32_MAX ? NS_ERROR_INVALID_ARG : NS_OK;
   }

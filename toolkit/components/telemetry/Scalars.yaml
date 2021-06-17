@@ -1166,38 +1166,6 @@ security:
       - 'fennec'
     record_in_processes:
       - main
-  intermediate_preloading_num_preloaded:
-    bug_numbers:
-      - 1519273
-      - 1553550
-      - 1678206
-    description: >
-      Number of intermediate certificates pre-loaded.
-    expires: "92"
-    kind: uint
-    notification_emails:
-      - seceng-telemetry@mozilla.com
-      - dkeeler@mozilla.com
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
-  intermediate_preloading_num_pending:
-    bug_numbers:
-      - 1519273
-      - 1553550
-      - 1678206
-    description: >
-      Number of intermediate certificates pending pre-load.
-    expires: "92"
-    kind: uint
-    notification_emails:
-      - seceng-telemetry@mozilla.com
-      - dkeeler@mozilla.com
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
   https_only_mode_enabled:
     bug_numbers:
       - 1620244
@@ -1796,6 +1764,23 @@ os.environment:
     operating_systems:
       - windows
 
+  is_kept_in_dock:
+    bug_numbers:
+      - 1715348
+    description: Whether this app was kept in macOS Dock on startup
+    expires: "97"
+    kind: boolean
+    notification_emails:
+      - elee@mozilla.com
+      - shong@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - firefox
+    record_in_processes:
+      - main
+    operating_systems:
+      - mac
+
   is_taskbar_pinned:
     bug_numbers:
       - 1685213
@@ -2176,6 +2161,21 @@ dom.contentprocess:
     products:
       - 'firefox'
       - 'fennec'
+    record_in_processes:
+      - 'main'
+  buildID_mismatch_false_positive:
+    bug_numbers:
+      - 1651133
+    description: >
+      The number of times a process crashed early but we could verify it was not
+      because of buildID mismatch between the parent and the content processes.
+    expires: "95"
+    kind: uint
+    notification_emails:
+      - alissy@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
     record_in_processes:
       - 'main'
   os_priority_lowered:

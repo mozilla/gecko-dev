@@ -19,6 +19,8 @@ namespace mozilla::intl {
 
 enum class DateTimeStyle { Full, Long, Medium, Short, None };
 
+class Calendar;
+
 /**
  * This component is a Mozilla-focused API for the date formatting provided by
  * ICU. The methods internally call out to ICU4C. This is responsible for and
@@ -151,7 +153,40 @@ class DateTimeFormat final {
     }
   };
 
+  /**
+   * Copies the pattern for the current DateTimeFormat to a buffer.
+   */
+  template <typename B>
+  ICUResult GetPattern(B& aBuffer) const {
+    return FillBufferWithICUCall(
+        aBuffer, [&](UChar* target, int32_t length, UErrorCode* status) {
+          return udat_toPattern(mDateFormat, /* localized*/ false, target,
+                                length, status);
+        });
+  }
+
+  /**
+   * Set the start time of the Gregorian calendar. This is useful for
+   * ensuring the consistent use of a proleptic Gregorian calendar for ECMA-402.
+   * https://en.wikipedia.org/wiki/Proleptic_Gregorian_calendar
+   */
+  void SetStartTimeIfGregorian(double aTime);
+
   ~DateTimeFormat();
+
+  /**
+   * TODO(Bug 1686965) - Temporarily get the underlying ICU object while
+   * migrating to the unified API. This should be removed when completing the
+   * migration.
+   */
+  UDateFormat* UnsafeGetUDateFormat() const { return mDateFormat; }
+
+  /**
+   * Clones the Calendar from a DateTimeFormat, and sets its time with the
+   * relative milliseconds since 1 January 1970, UTC.
+   */
+  Result<UniquePtr<Calendar>, InternalError> CloneCalendar(
+      double aUnixEpoch) const;
 
  private:
   explicit DateTimeFormat(UDateFormat* aDateFormat);

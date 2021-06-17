@@ -153,9 +153,9 @@ template EditorDOMPoint HTMLEditor::GetCurrentHardLineEndPoint(
 nsresult HTMLEditor::InitEditorContentAndSelection() {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
-  nsresult rv = TextEditor::InitEditorContentAndSelection();
+  nsresult rv = EditorBase::InitEditorContentAndSelection();
   if (NS_FAILED(rv)) {
-    NS_WARNING("TextEditor::InitEditorContentAndSelection() failed");
+    NS_WARNING("EditorBase::InitEditorContentAndSelection() failed");
     return rv;
   }
 
@@ -5806,8 +5806,7 @@ already_AddRefed<nsRange> HTMLEditor::CreateRangeIncludingAdjuscentWhiteSpaces(
       MOZ_ALWAYS_TRUE(startPoint.RewindOffset());
     }
   }
-  if (!IsDescendantOfEditorRoot(
-          EditorBase::GetNodeAtRangeOffsetPoint(startPoint))) {
+  if (!IsDescendantOfEditorRoot(startPoint.GetChildOrContainerIfDataNode())) {
     return nullptr;
   }
   EditorRawDOMPoint endPoint(endRef);
@@ -5821,8 +5820,7 @@ already_AddRefed<nsRange> HTMLEditor::CreateRangeIncludingAdjuscentWhiteSpaces(
   }
   EditorRawDOMPoint lastRawPoint(endPoint);
   lastRawPoint.RewindOffset();  // XXX Fail if it's start of the container
-  if (!IsDescendantOfEditorRoot(
-          EditorBase::GetNodeAtRangeOffsetPoint(lastRawPoint))) {
+  if (!IsDescendantOfEditorRoot(lastRawPoint.GetChildOrContainerIfDataNode())) {
     return nullptr;
   }
 
@@ -5869,8 +5867,7 @@ already_AddRefed<nsRange> HTMLEditor::CreateRangeExtendedToHardLineStartAndEnd(
   // XXX GetCurrentHardLineStartPoint() may return point of editing
   //     host.  Perhaps, we should change it and stop checking it here
   //     since this check may be expensive.
-  if (!IsDescendantOfEditorRoot(
-          EditorBase::GetNodeAtRangeOffsetPoint(startPoint))) {
+  if (!IsDescendantOfEditorRoot(startPoint.GetChildOrContainerIfDataNode())) {
     return nullptr;
   }
   EditorDOMPoint endPoint = GetCurrentHardLineEndPoint(endRef);
@@ -5879,8 +5876,7 @@ already_AddRefed<nsRange> HTMLEditor::CreateRangeExtendedToHardLineStartAndEnd(
   // XXX GetCurrentHardLineEndPoint() may return point of editing host.
   //     Perhaps, we should change it and stop checking it here since this
   //     check may be expensive.
-  if (!IsDescendantOfEditorRoot(
-          EditorBase::GetNodeAtRangeOffsetPoint(lastRawPoint))) {
+  if (!IsDescendantOfEditorRoot(lastRawPoint.GetChildOrContainerIfDataNode())) {
     return nullptr;
   }
 
@@ -8062,7 +8058,7 @@ nsresult HTMLEditor::AdjustCaretPositionAndEnsurePaddingBRElement(
       if (point.GetContainer() == bodyOrDocumentElement) {
         // Our root node is completely empty. Don't add a <br> here.
         // AfterEditInner() will add one for us when it calls
-        // TextEditor::MaybeCreatePaddingBRElementForEmptyEditor().
+        // EditorBase::MaybeCreatePaddingBRElementForEmptyEditor().
         // XXX This kind of dependency between methods makes us spaghetti.
         //     Let's handle it here later.
         // XXX This looks odd check.  If active editing host is not a

@@ -4,19 +4,22 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 EXPORTS.mozilla.intl = [
+    "src/Calendar.h",
     "src/DateTimeFormat.h",
+    "src/DateTimePatternGenerator.h",
     "src/ICU4CGlue.h",
     "src/NumberFormat.h",
-    # Bug 1704509: Remove NumberFormatterSkeleton.h from public API once we have
-    # an unified PluralRules implementation.
-    "src/NumberFormatterSkeleton.h",
+    "src/PluralRules.h",
 ]
 
 UNIFIED_SOURCES += [
+    "src/Calendar.cpp",
     "src/DateTimeFormat.cpp",
+    "src/DateTimePatternGenerator.cpp",
     "src/NumberFormat.cpp",
     "src/NumberFormatFields.cpp",
     "src/NumberFormatterSkeleton.cpp",
+    "src/PluralRules.cpp",
 ]
 
 if not CONFIG["JS_STANDALONE"]:

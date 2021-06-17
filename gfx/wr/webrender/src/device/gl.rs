@@ -1097,6 +1097,7 @@ pub struct Device {
     // debug
     inside_frame: bool,
     crash_annotator: Option<Box<dyn CrashAnnotator>>,
+    annotate_draw_call_crashes: bool,
 
     // resources
     resource_override_path: Option<PathBuf>,
@@ -1666,12 +1667,12 @@ impl Device {
         // from a non-zero offset within a PBO to fail. See bug 1603783.
         let supports_nonzero_pbo_offsets = !is_macos;
 
-        let is_mali = renderer_name.starts_with("Mali");
-
         // On Mali-Gxx and Txxx there is a driver bug when rendering partial updates to
         // offscreen render targets, so we must ensure we render to the entire target.
         // See bug 1663355.
-        let supports_render_target_partial_update = !is_mali;
+        let is_mali_g = renderer_name.starts_with("Mali-G");
+        let is_mali_t = renderer_name.starts_with("Mali-T");
+        let supports_render_target_partial_update = !is_mali_g && !is_mali_t;
 
         let supports_shader_storage_object = match gl.get_type() {
             // see https://www.g-truc.net/post-0734.html
@@ -1691,8 +1692,6 @@ impl Device {
 
         let supports_image_external_essl3 = supports_extension(&extensions, "GL_OES_EGL_image_external_essl3");
 
-        let is_mali_g = renderer_name.starts_with("Mali-G");
-
         let mut requires_batched_texture_uploads = None;
         if is_software_webrender {
             // No benefit to batching texture uploads with swgl.
@@ -1706,7 +1705,6 @@ impl Device {
         // On Mali-Txxx devices we have observed crashes during draw calls when rendering
         // to an alpha target immediately after using glClear to clear regions of it.
         // Using a shader to clear the regions avoids the crash. See bug 1638593.
-        let is_mali_t = renderer_name.starts_with("Mali-T");
         let supports_alpha_target_clears = !is_mali_t;
 
         // On Linux we we have seen uploads to R8 format textures result in
@@ -1728,6 +1726,7 @@ impl Device {
             gl,
             base_gl: None,
             crash_annotator,
+            annotate_draw_call_crashes: false,
             resource_override_path,
             use_optimized_shaders,
             upload_method,
@@ -3446,11 +3445,15 @@ impl Device {
         #[cfg(debug_assertions)]
         debug_assert!(self.shader_is_ready);
 
-        let _guard = CrashAnnotatorGuard::new(
-            &self.crash_annotator,
-            CrashAnnotation::DrawShader,
-            &self.bound_program_name,
-        );
+        let _guard = if self.annotate_draw_call_crashes {
+            Some(CrashAnnotatorGuard::new(
+                &self.crash_annotator,
+                CrashAnnotation::DrawShader,
+                &self.bound_program_name,
+            ))
+        } else {
+            None
+        };
 
         self.gl.draw_elements(
             gl::TRIANGLES,
@@ -3465,11 +3468,15 @@ impl Device {
         #[cfg(debug_assertions)]
         debug_assert!(self.shader_is_ready);
 
-        let _guard = CrashAnnotatorGuard::new(
-            &self.crash_annotator,
-            CrashAnnotation::DrawShader,
-            &self.bound_program_name,
-        );
+        let _guard = if self.annotate_draw_call_crashes {
+            Some(CrashAnnotatorGuard::new(
+                &self.crash_annotator,
+                CrashAnnotation::DrawShader,
+                &self.bound_program_name,
+            ))
+        } else {
+            None
+        };
 
         self.gl.draw_elements(
             gl::TRIANGLES,
@@ -3484,11 +3491,15 @@ impl Device {
         #[cfg(debug_assertions)]
         debug_assert!(self.shader_is_ready);
 
-        let _guard = CrashAnnotatorGuard::new(
-            &self.crash_annotator,
-            CrashAnnotation::DrawShader,
-            &self.bound_program_name,
-        );
+        let _guard = if self.annotate_draw_call_crashes {
+            Some(CrashAnnotatorGuard::new(
+                &self.crash_annotator,
+                CrashAnnotation::DrawShader,
+                &self.bound_program_name,
+            ))
+        } else {
+            None
+        };
 
         self.gl.draw_arrays(gl::POINTS, first_vertex, vertex_count);
     }
@@ -3498,11 +3509,15 @@ impl Device {
         #[cfg(debug_assertions)]
         debug_assert!(self.shader_is_ready);
 
-        let _guard = CrashAnnotatorGuard::new(
-            &self.crash_annotator,
-            CrashAnnotation::DrawShader,
-            &self.bound_program_name,
-        );
+        let _guard = if self.annotate_draw_call_crashes {
+            Some(CrashAnnotatorGuard::new(
+                &self.crash_annotator,
+                CrashAnnotation::DrawShader,
+                &self.bound_program_name,
+            ))
+        } else {
+            None
+        };
 
         self.gl.draw_arrays(gl::LINES, first_vertex, vertex_count);
     }
@@ -3512,11 +3527,15 @@ impl Device {
         #[cfg(debug_assertions)]
         debug_assert!(self.shader_is_ready);
 
-        let _guard = CrashAnnotatorGuard::new(
-            &self.crash_annotator,
-            CrashAnnotation::DrawShader,
-            &self.bound_program_name,
-        );
+        let _guard = if self.annotate_draw_call_crashes {
+            Some(CrashAnnotatorGuard::new(
+                &self.crash_annotator,
+                CrashAnnotation::DrawShader,
+                &self.bound_program_name,
+            ))
+        } else {
+            None
+        };
 
         self.gl.draw_elements(
             gl::TRIANGLES,
@@ -3531,11 +3550,15 @@ impl Device {
         #[cfg(debug_assertions)]
         debug_assert!(self.shader_is_ready);
 
-        let _guard = CrashAnnotatorGuard::new(
-            &self.crash_annotator,
-            CrashAnnotation::DrawShader,
-            &self.bound_program_name,
-        );
+        let _guard = if self.annotate_draw_call_crashes {
+            Some(CrashAnnotatorGuard::new(
+                &self.crash_annotator,
+                CrashAnnotation::DrawShader,
+                &self.bound_program_name,
+            ))
+        } else {
+            None
+        };
 
         self.gl.draw_elements_instanced(
             gl::TRIANGLES,
@@ -3933,9 +3956,8 @@ impl Device {
     /// Generates a memory report for the resources managed by the device layer.
     pub fn report_memory(&self, size_op_funs: &MallocSizeOfOps, swgl: *mut c_void) -> MemoryReport {
         let mut report = MemoryReport::default();
-        for dim in self.depth_targets.keys() {
-            report.depth_target_textures += depth_target_size_in_bytes(dim);
-        }
+        report.depth_target_textures += self.depth_targets_memory();
+
         #[cfg(feature = "sw_compositor")]
         if !swgl.is_null() {
             report.swgl += swgl::Context::from(swgl).report_memory(size_op_funs.size_of_op);
@@ -3944,6 +3966,15 @@ impl Device {
         let _ = size_op_funs;
         let _ = swgl;
         report
+    }
+
+    pub fn depth_targets_memory(&self) -> usize {
+        let mut total = 0;
+        for dim in self.depth_targets.keys() {
+            total += depth_target_size_in_bytes(dim);
+        }
+
+        total
     }
 }
 

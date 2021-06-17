@@ -37,16 +37,11 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/UniquePtr.h"
+// Put DNSLogging.h at the end to avoid LOG being overwritten by other headers.
+#include "DNSLogging.h"
 
 namespace mozilla {
 namespace net {
-
-#undef LOG
-#undef LOG_ENABLED
-extern mozilla::LazyLogModule gHostResolverLog;
-#define LOG(args) MOZ_LOG(gHostResolverLog, mozilla::LogLevel::Debug, args)
-#define LOG_ENABLED() \
-  MOZ_LOG_TEST(mozilla::net::gHostResolverLog, mozilla::LogLevel::Debug)
 
 NS_IMPL_ISUPPORTS(TRR, nsIHttpPushListener, nsIInterfaceRequestor,
                   nsIStreamListener, nsIRunnable, nsITimerCallback)
@@ -81,10 +76,7 @@ TRR::TRR(AHostResolver* aResolver, nsHostRecord* aRec, nsCString& aHost,
 
 // used on push
 TRR::TRR(AHostResolver* aResolver, bool aPB)
-    : mozilla::Runnable("TRR"),
-      mHostResolver(aResolver),
-      mType(TRRTYPE_A),
-      mPB(aPB) {
+    : mozilla::Runnable("TRR"), mHostResolver(aResolver), mPB(aPB) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess() || XRE_IsSocketProcess(),
                         "TRR must be in parent or socket process");
 }
@@ -1029,8 +1021,5 @@ void TRR::Cancel(nsresult aStatus) {
 
 bool TRR::UseDefaultServer() { return !mRec || mRec->mTrrServer.IsEmpty(); }
 
-#undef LOG
-
-// namespace
 }  // namespace net
 }  // namespace mozilla

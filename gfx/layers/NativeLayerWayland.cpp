@@ -69,7 +69,6 @@ void NativeLayerRootWayland::AppendLayer(NativeLayer* aLayer) {
   MOZ_RELEASE_ASSERT(layerWayland);
 
   mSublayers.AppendElement(layerWayland);
-  layerWayland->SetBackingScale(mBackingScale);
 }
 
 void NativeLayerRootWayland::RemoveLayer(NativeLayer* aLayer) {
@@ -89,19 +88,15 @@ bool NativeLayerRootWayland::EnsureShowLayer(
   }
 
   RefPtr<NativeSurfaceWayland> nativeSurface = aLayer->mNativeSurface;
-  if (!nativeSurface->mWlSubsurface) {
-    wl_surface* wlSurface = moz_container_wayland_surface_lock(mContainer);
-    if (!wlSurface) {
+  if (!nativeSurface->HasSubsurface()) {
+    wl_surface* containerSurface =
+        moz_container_wayland_surface_lock(mContainer);
+    if (!containerSurface) {
       return false;
     }
 
-    wl_subcompositor* subcompositor =
-        widget::WaylandDisplayGet()->GetSubcompositor();
-
-    nativeSurface->mWlSubsurface = wl_subcompositor_get_subsurface(
-        subcompositor, nativeSurface->mWlSurface, wlSurface);
-
-    moz_container_wayland_surface_unlock(mContainer, &wlSurface);
+    nativeSurface->CreateSubsurface(containerSurface);
+    moz_container_wayland_surface_unlock(mContainer, &containerSurface);
   }
 
   aLayer->mIsShown = true;
@@ -116,11 +111,9 @@ void NativeLayerRootWayland::EnsureHideLayer(
 
   RefPtr<NativeSurfaceWayland> nativeSurface = aLayer->mNativeSurface;
 
-  wl_subsurface_set_position(nativeSurface->mWlSubsurface, 20, 20);
-  wp_viewport_set_source(nativeSurface->mViewport, wl_fixed_from_int(0),
-                         wl_fixed_from_int(0), wl_fixed_from_int(1),
-                         wl_fixed_from_int(1));
-  wp_viewport_set_destination(nativeSurface->mViewport, 1, 1);
+  nativeSurface->SetPosition(20, 20);
+  nativeSurface->SetViewportSourceRect(Rect(0, 0, 1, 1));
+  nativeSurface->SetViewportDestinationSize(1, 1);
   wl_surface_commit(nativeSurface->mWlSurface);
 
   wl_surface* wlSurface = moz_container_wayland_surface_lock(mContainer);
@@ -134,8 +127,7 @@ void NativeLayerRootWayland::EnsureHideLayer(
 
 void NativeLayerRootWayland::UnmapLayer(
     const RefPtr<NativeLayerWayland>& aLayer) {
-  RefPtr<NativeSurfaceWayland> nativeSurface = aLayer->mNativeSurface;
-  g_clear_pointer(&nativeSurface->mWlSubsurface, wl_subsurface_destroy);
+  aLayer->mNativeSurface->ClearSubsurface();
   aLayer->mIsShown = false;
 }
 
@@ -154,21 +146,11 @@ void NativeLayerRootWayland::SetLayers(
   for (const RefPtr<NativeLayer>& layer : aLayers) {
     RefPtr<NativeLayerWayland> layerWayland = layer->AsNativeLayerWayland();
     MOZ_RELEASE_ASSERT(layerWayland);
-    layerWayland->SetBackingScale(mBackingScale);
     newSublayers.AppendElement(std::move(layerWayland));
   }
 
-  if (newSublayers != mSublayers) {
-    for (const RefPtr<NativeLayerWayland>& layer : mSublayers) {
-      if (!newSublayers.Contains(layer)) {
-        EnsureHideLayer(layer);
-      }
-    }
-    mSublayers = std::move(newSublayers);
-  }
-
-  wl_surface* previousSurface = nullptr;
-  for (const RefPtr<NativeLayerWayland>& layer : mSublayers) {
+  nsTArray<RefPtr<NativeLayerWayland>> newVisibleSublayers(aLayers.Length());
+  for (const RefPtr<NativeLayerWayland>& layer : newSublayers) {
     RefPtr<NativeSurfaceWayland> nativeSurface = layer->mNativeSurface;
 
     Rect surfaceRectClipped =
@@ -201,18 +183,18 @@ void NativeLayerRootWayland::SetLayers(
       if (!EnsureShowLayer(layer)) {
         continue;
       }
+      newVisibleSublayers.AppendElement(layer);
     } else {
       EnsureHideLayer(layer);
       continue;
     }
 
     double scale = moz_container_wayland_get_scale(mContainer);
-    wl_subsurface_set_position(nativeSurface->mWlSubsurface,
-                               floor(surfaceRectClipped.x / scale),
+    nativeSurface->SetPosition(floor(surfaceRectClipped.x / scale),
                                floor(surfaceRectClipped.y / scale));
-    wp_viewport_set_destination(nativeSurface->mViewport,
-                                ceil(surfaceRectClipped.width / scale),
-                                ceil(surfaceRectClipped.height / scale));
+    nativeSurface->SetViewportDestinationSize(
+        ceil(surfaceRectClipped.width / scale),
+        ceil(surfaceRectClipped.height / scale));
 
     Rect bufferClip = Rect(surfaceRectClipped.x - absPosition.x,
                            surfaceRectClipped.y - absPosition.y,
@@ -223,23 +205,33 @@ void NativeLayerRootWayland::SetLayers(
     bufferClip.width /= scaleX;
     bufferClip.height /= scaleY;
 
-    wp_viewport_set_source(nativeSurface->mViewport,
-                           wl_fixed_from_double(bufferClip.x),
-                           wl_fixed_from_double(bufferClip.y),
-                           wl_fixed_from_double(bufferClip.width),
-                           wl_fixed_from_double(bufferClip.height));
+    nativeSurface->SetViewportSourceRect(bufferClip);
+  }
 
-    if (previousSurface) {
-      wl_subsurface_place_above(nativeSurface->mWlSubsurface, previousSurface);
-      previousSurface = nativeSurface->mWlSurface;
-    } else {
-      wl_surface* wlSurface = moz_container_wayland_surface_lock(mContainer);
-      if (wlSurface) {
-        wl_subsurface_place_above(nativeSurface->mWlSubsurface, wlSurface);
-        moz_container_wayland_surface_unlock(mContainer, &wlSurface);
+  if (newVisibleSublayers != mSublayers) {
+    for (const RefPtr<NativeLayerWayland>& layer : mSublayers) {
+      if (!newVisibleSublayers.Contains(layer)) {
+        EnsureHideLayer(layer);
       }
-      previousSurface = nativeSurface->mWlSurface;
     }
+
+    wl_surface* previousSurface = nullptr;
+    for (const RefPtr<NativeLayerWayland>& layer : newVisibleSublayers) {
+      RefPtr<NativeSurfaceWayland> nativeSurface = layer->mNativeSurface;
+      if (previousSurface) {
+        wl_subsurface_place_above(nativeSurface->mWlSubsurface,
+                                  previousSurface);
+        previousSurface = nativeSurface->mWlSurface;
+      } else {
+        wl_surface* wlSurface = moz_container_wayland_surface_lock(mContainer);
+        if (wlSurface) {
+          wl_subsurface_place_above(nativeSurface->mWlSubsurface, wlSurface);
+          moz_container_wayland_surface_unlock(mContainer, &wlSurface);
+        }
+        previousSurface = nativeSurface->mWlSurface;
+      }
+    }
+    mSublayers = std::move(newVisibleSublayers);
   }
 
   nsCOMPtr<nsIRunnable> updateLayersRunnable = NewRunnableMethod<>(
@@ -325,6 +317,9 @@ void NativeLayerRootWayland::UpdateLayersOnMainThread() {
         wl_region_destroy(region);
         wl_surface_commit(layerSurface);
       }
+      if (mCallbackMultiplexHelper && mCallbackMultiplexHelper->IsActive()) {
+        layer->mNativeSurface->RequestFrameCallback(mCallbackMultiplexHelper);
+      }
       mSublayersOnMainThread.AppendElement(layer);
     }
   }
@@ -342,18 +337,23 @@ void NativeLayerRootWayland::UpdateLayersOnMainThread() {
   }
 }
 
-void NativeLayerRootWayland::SetBackingScale(float aBackingScale) {
+void NativeLayerRootWayland::RequestFrameCallback(CallbackFunc aCallbackFunc,
+                                                  void* aCallbackData) {
   MutexAutoLock lock(mMutex);
 
-  mBackingScale = aBackingScale;
-  for (const RefPtr<NativeLayerWayland>& layer : mSublayers) {
-    layer->SetBackingScale(aBackingScale);
+  mCallbackMultiplexHelper =
+      new CallbackMultiplexHelper(aCallbackFunc, aCallbackData);
+
+  for (const RefPtr<NativeLayerWayland>& layer : mSublayersOnMainThread) {
+    layer->mNativeSurface->RequestFrameCallback(mCallbackMultiplexHelper);
   }
-}
 
-float NativeLayerRootWayland::BackingScale() {
-  MutexAutoLock lock(mMutex);
-  return mBackingScale;
+  wl_surface* wlSurface = moz_container_wayland_surface_lock(mContainer);
+  if (wlSurface) {
+    wl_surface_commit(wlSurface);
+    wl_display_flush(widget::WaylandDisplayGet()->GetDisplay());
+    moz_container_wayland_surface_unlock(mContainer, &wlSurface);
+  }
 }
 
 bool NativeLayerRootWayland::CommitToScreen() {
@@ -487,14 +487,6 @@ Matrix4x4 NativeLayerWayland::GetTransform() {
 IntRect NativeLayerWayland::GetRect() {
   MutexAutoLock lock(mMutex);
   return IntRect(mPosition, mSize);
-}
-
-void NativeLayerWayland::SetBackingScale(float aBackingScale) {
-  MutexAutoLock lock(mMutex);
-
-  if (aBackingScale != mBackingScale) {
-    mBackingScale = aBackingScale;
-  }
 }
 
 bool NativeLayerWayland::IsOpaque() {

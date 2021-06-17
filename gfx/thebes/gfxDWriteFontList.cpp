@@ -84,10 +84,7 @@ static bool GetEnglishOrFirstName(nsACString& aName,
   UINT32 englishIdx = 0;
   BOOL exists;
   HRESULT hr = aStrings->FindLocaleName(L"en-us", &englishIdx, &exists);
-  if (FAILED(hr)) {
-    return false;
-  }
-  if (!exists) {
+  if (FAILED(hr) || !exists) {
     // Use 0 index if english is not found.
     englishIdx = 0;
   }
@@ -1147,6 +1144,7 @@ void gfxDWriteFontList::AppendFamiliesFromCollection(
     RefPtr<IDWriteLocalizedStrings> localizedNames;
     HRESULT hr = family->GetFamilyNames(getter_AddRefs(localizedNames));
     if (FAILED(hr)) {
+      gfxWarning() << "Failed to get names for font-family " << i;
       continue;
     }
 
@@ -1180,6 +1178,7 @@ void gfxDWriteFontList::AppendFamiliesFromCollection(
       // en-US family name.
       nsAutoCString name;
       if (!GetNameAsUtf8(name, localizedNames, 0)) {
+        gfxWarning() << "GetNameAsUtf8 failed for index 0 in font-family " << i;
         continue;
       }
       addFamily(name);
@@ -1189,16 +1188,17 @@ void gfxDWriteFontList::AppendFamiliesFromCollection(
       for (unsigned index = 0; index < count; ++index) {
         nsAutoCString name;
         if (!GetNameAsUtf8(name, localizedNames, index)) {
+          gfxWarning() << "GetNameAsUtf8 failed for index " << index
+                       << " in font-family " << i;
           continue;
         }
         if (!names.Contains(name)) {
           if (sysLocIndex == -1) {
             WCHAR buf[32];
-            if (FAILED(localizedNames->GetLocaleName(index, buf, 32))) {
-              continue;
-            }
-            if (loc16.Equals(buf)) {
-              sysLocIndex = names.Length();
+            if (SUCCEEDED(localizedNames->GetLocaleName(index, buf, 32))) {
+              if (loc16.Equals(buf)) {
+                sysLocIndex = names.Length();
+              }
             }
           }
           names.AppendElement(name);
@@ -1487,7 +1487,7 @@ void gfxDWriteFontList::InitSharedFontListForPlatform() {
       "gfx.font_rendering.cleartype_params.force_gdi_classic_max_size",
       mForceGDIClassicMaxFontSize);
 
-  mFontSubstitutes.Clear();
+  mSubstitutions.Clear();
   mNonExistingFonts.Clear();
 
   RefPtr<IDWriteFactory> factory = Factory::GetDWriteFactory();
@@ -1894,11 +1894,15 @@ nsresult gfxDWriteFontList::GetFontSubstitutes() {
     RemoveCharsetFromFontSubstitute(actualFontName);
     BuildKeyNameFromFontName(actualFontName);
     if (SharedFontList()) {
-      // Font substitutions are recorded for the canonical family names; we
-      // don't need FindFamily to consider localized aliases when searching.
-      if (SharedFontList()->FindFamily(substituteName,
-                                       /*aPrimaryNameOnly*/ true)) {
-        continue;
+      // Skip substitution if the original font is available, unless the option
+      // to apply substitutions unconditionally is enabled.
+      if (!StaticPrefs::gfx_windows_font_substitutes_always_AtStartup()) {
+        // Font substitutions are recorded for the canonical family names; we
+        // don't need FindFamily to consider localized aliases when searching.
+        if (SharedFontList()->FindFamily(substituteName,
+                                         /*aPrimaryNameOnly*/ true)) {
+          continue;
+        }
       }
       if (SharedFontList()->FindFamily(actualFontName,
                                        /*aPrimaryNameOnly*/ true)) {
@@ -1943,11 +1947,15 @@ void gfxDWriteFontList::GetDirectWriteSubstitutes() {
     nsAutoCString substituteName(sub.aliasName);
     BuildKeyNameFromFontName(substituteName);
     if (SharedFontList()) {
-      // We don't need FindFamily to consider localized aliases when searching
-      // for the DirectWrite substitutes, we know the canonical names.
-      if (SharedFontList()->FindFamily(substituteName,
-                                       /*aPrimaryNameOnly*/ true)) {
-        continue;
+      // Skip substitution if the original font is available, unless the option
+      // to apply substitutions unconditionally is enabled.
+      if (!StaticPrefs::gfx_windows_font_substitutes_always_AtStartup()) {
+        // We don't need FindFamily to consider localized aliases when searching
+        // for the DirectWrite substitutes, we know the canonical names.
+        if (SharedFontList()->FindFamily(substituteName,
+                                         /*aPrimaryNameOnly*/ true)) {
+          continue;
+        }
       }
       nsAutoCString actualFontName(sub.actualName);
       BuildKeyNameFromFontName(actualFontName);

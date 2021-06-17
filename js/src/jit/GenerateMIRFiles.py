@@ -98,9 +98,26 @@ mir_base_class = [
 ]
 
 
+gc_pointer_types = [
+    "JSObject*",
+    "NativeObject*",
+    "JSFunction*",
+    "BaseScript*",
+    "PropertyName*",
+    "Shape*",
+    "GetterSetter*",
+    "JSAtom*",
+    "ClassBodyScope*",
+    "NamedLambdaObject*",
+    "RegExpObject*",
+    "JSScript*",
+]
+
+
 def gen_mir_class(
     name,
     operands,
+    arguments,
     no_type_policy,
     result,
     guard,
@@ -169,12 +186,28 @@ def gen_mir_class(
         assert type_policy
         type_policy = ", " + type_policy
     code = "class {} : public {}{} {{\\\n".format(class_name, base_class, type_policy)
+
+    # Arguments to class constructor that require accessors.
+    mir_args = []
+    if arguments:
+        for arg_name in arguments:
+            arg_type_sig = arguments[arg_name]
+            mir_args.append(arg_type_sig + " " + arg_name)
+            if arg_type_sig in gc_pointer_types:
+                code += "  CompilerGCPointer<" + arg_type_sig + ">"
+            else:
+                code += "  " + arg_type_sig
+            code += " " + arg_name + "_;\\\n"
+
     code += "  explicit {}({}) : {}(classOpcode{})".format(
         class_name,
-        ", ".join(mir_operands),
+        ", ".join(mir_operands + mir_args),
         base_class,
         "".join(mir_base_class_operands),
     )
+    if arguments:
+        for arg_name in arguments:
+            code += ", " + arg_name + "_(" + arg_name + ")"
     code += " {\\\n"
     if guard:
         code += "    setGuard();\\\n"
@@ -182,7 +215,12 @@ def gen_mir_class(
         code += "    setMovable();\\\n"
     if result:
         code += "    setResultType(MIRType::{});\\\n".format(result)
-    code += "  }}\\\n public:\\\n  INSTRUCTION_HEADER({})\\\n".format(name)
+    code += "  }\\\n public:\\\n"
+    if arguments:
+        for arg_name in arguments:
+            code += "  " + arguments[arg_name] + " " + arg_name + "() const { "
+            code += "return " + arg_name + "_; }\\\n"
+    code += "  INSTRUCTION_HEADER({})\\\n".format(name)
     code += "  TRIVIAL_NEW_WRAPPERS\\\n"
     if named_operands:
         code += "  NAMED_OPERANDS({})\\\n".format(", ".join(named_operands))
@@ -226,6 +264,25 @@ def gen_mir_class(
     return code
 
 
+def gen_non_gc_pointer_type_assertions(seen_types):
+    """Generates a list of static assertions used to ensure that all argument
+    types seen are not derived from gc::Cell, ensuring that gc pointer arguments
+    are added to the gc_pointer_types list.
+    """
+    assertions = []
+
+    for seen_type in seen_types:
+        assertions.append(
+            "static_assert(!std::is_base_of_v<gc::Cell, " + seen_type.strip("*") + ">, "
+            '"Ensure that '
+            + seen_type.strip("*")
+            + ' is added to the gc_pointer_types list in GenerateMIRFiles.py."'
+            ");"
+        )
+
+    return assertions
+
+
 def generate_mir_header(c_out, yaml_path):
     """Generate MIROpsGenerated.h from MIROps.yaml. The generated file
     has a list of MIR ops and boilerplate for MIR op definitions.
@@ -239,6 +296,9 @@ def generate_mir_header(c_out, yaml_path):
     # Generated MIR op class definitions.
     mir_op_classes = []
 
+    # Unique and non gc pointer types seen for arguments to the MIR constructor.
+    seen_non_gc_pointer_argument_types = set()
+
     for op in data:
         name = op["name"]
 
@@ -250,6 +310,9 @@ def generate_mir_header(c_out, yaml_path):
         if gen_boilerplate:
             operands = op.get("operands", None)
             assert operands is None or isinstance(operands, OrderedDict)
+
+            arguments = op.get("arguments", None)
+            assert arguments is None or isinstance(arguments, OrderedDict)
 
             no_type_policy = op.get("type_policy", None)
             assert no_type_policy is None or no_type_policy == "none"
@@ -291,6 +354,7 @@ def generate_mir_header(c_out, yaml_path):
             code = gen_mir_class(
                 name,
                 operands,
+                arguments,
                 no_type_policy,
                 result,
                 guard,
@@ -305,12 +369,24 @@ def generate_mir_header(c_out, yaml_path):
             )
             mir_op_classes.append(code)
 
+            if arguments:
+                for argument in arguments:
+                    arg_type = arguments[argument]
+                    if arg_type not in gc_pointer_types:
+                        seen_non_gc_pointer_argument_types.add(arg_type)
+
     contents = "#define MIR_OPCODE_LIST(_)\\\n"
     contents += "\\\n".join(ops_items)
     contents += "\n\n"
 
     contents += "#define MIR_OPCODE_CLASS_GENERATED \\\n"
     contents += "\\\n".join(mir_op_classes)
+    contents += "\n\n"
+
+    contents += "#define NON_GC_POINTER_TYPE_ASSERTIONS_GENERATED \\\n"
+    contents += "\\\n".join(
+        gen_non_gc_pointer_type_assertions(seen_non_gc_pointer_argument_types)
+    )
     contents += "\n\n"
 
     generate_header(c_out, "jit_MIROpsGenerated_h", contents)

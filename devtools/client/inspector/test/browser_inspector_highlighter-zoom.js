@@ -26,7 +26,7 @@ add_task(async function() {
 
   for (const level of TEST_LEVELS) {
     info(`Zoom to level ${level}`);
-    await testActor.zoomPageTo(level, false);
+    setContentPageZoomLevel(level);
 
     info("Highlight the test node");
     await inspector.highlighters.showHighlighterTypeForNode(
@@ -37,12 +37,24 @@ add_task(async function() {
     const isVisible = await testActor.isHighlighting();
     ok(isVisible, `The highlighter is visible at zoom level ${level}`);
 
-    await testActor.isNodeCorrectlyHighlighted("div", is);
+    await isNodeCorrectlyHighlighted(testActor, "div");
 
     info("Check that the highlighter root wrapper node was scaled down");
 
     const style = await getElementsNodeStyle(testActor);
-    const { width, height } = await testActor.getWindowDimensions();
+
+    const { width, height } = await SpecialPowers.spawn(
+      gBrowser.selectedBrowser,
+      [],
+      () => {
+        const { require } = ChromeUtils.import(
+          "resource://devtools/shared/Loader.jsm"
+        );
+        const { getWindowDimensions } = require("devtools/shared/layout/utils");
+        return getWindowDimensions(content);
+      }
+    );
+
     is(
       style,
       expectedStyle(width, height, level),

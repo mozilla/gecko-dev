@@ -8,16 +8,7 @@
 // A helper actor for inspector and markupview tests.
 const { Ci, Cc } = require("chrome");
 const Services = require("Services");
-const {
-  getRect,
-  getAdjustedQuads,
-  getWindowDimensions,
-} = require("devtools/shared/layout/utils");
-const {
-  isAgentStylesheet,
-  getCSSStyleRules,
-} = require("devtools/shared/inspector/css-logic");
-const InspectorUtils = require("InspectorUtils");
+const { getRect, getAdjustedQuads } = require("devtools/shared/layout/utils");
 
 // Set up a dummy environment so that EventUtils works. We need to be careful to
 // pass a window object into each EventUtils method we call rather than having
@@ -65,6 +56,10 @@ function getHighlighterCanvasFrameHelper(conn, actorID) {
 var testSpec = protocol.generateActorSpec({
   typeName: "test",
 
+  events: {
+    "highlighter-updated": {},
+  },
+
   methods: {
     getHighlighterAttribute: {
       request: {
@@ -101,66 +96,11 @@ var testSpec = protocol.generateActorSpec({
       },
       response: {},
     },
-    waitForEventOnNode: {
+    registerOneTimeHighlighterUpdate: {
       request: {
-        eventName: Arg(0, "string"),
-        selector: Arg(1, "nullable:string"),
+        actorID: Arg(0, "string"),
       },
       response: {},
-    },
-    changeZoomLevel: {
-      request: {
-        level: Arg(0, "string"),
-        actorID: Arg(1, "string"),
-      },
-      response: {},
-    },
-    getAllAdjustedQuads: {
-      request: {
-        selector: Arg(0, "string"),
-      },
-      response: {
-        value: RetVal("json"),
-      },
-    },
-    scrollIntoView: {
-      request: {
-        args: Arg(0, "string"),
-      },
-      response: {},
-    },
-    hasPseudoClassLock: {
-      request: {
-        selector: Arg(0, "string"),
-        pseudo: Arg(1, "string"),
-      },
-      response: {
-        value: RetVal("boolean"),
-      },
-    },
-    getBoundingClientRect: {
-      request: {
-        selector: Arg(0, "string"),
-      },
-      response: {
-        value: RetVal("json"),
-      },
-    },
-    reloadFrame: {
-      request: {
-        selector: Arg(0, "string"),
-      },
-      response: {},
-    },
-    scrollWindow: {
-      request: {
-        x: Arg(0, "number"),
-        y: Arg(1, "number"),
-        relative: Arg(2, "nullable:boolean"),
-      },
-      response: {
-        value: RetVal("json"),
-      },
     },
     getNodeRect: {
       request: {
@@ -175,20 +115,6 @@ var testSpec = protocol.generateActorSpec({
         parentSelector: Arg(0, "string"),
         childNodeIndex: Arg(1, "number"),
       },
-      response: {
-        value: RetVal("json"),
-      },
-    },
-    getStyleSheetsInfoForNode: {
-      request: {
-        selector: Arg(0, "string"),
-      },
-      response: {
-        value: RetVal("json"),
-      },
-    },
-    getWindowDimensions: {
-      request: {},
       response: {
         value: RetVal("json"),
       },
@@ -360,150 +286,18 @@ var TestActor = protocol.ActorClassWithSpec(testSpec, {
   },
 
   /**
-   * Wait for a specific event on a node matching the provided selector.
-   * @param {String} eventName The name of the event to listen to
-   * @param {String} selector Optional:  css selector of the node which should
-   *        trigger the event. If ommitted, target will be the content window
-   */
-  waitForEventOnNode: function(eventName, selector) {
-    return new Promise(resolve => {
-      const node = selector ? this._querySelector(selector) : this.content;
-      node.addEventListener(
-        eventName,
-        function() {
-          resolve();
-        },
-        { once: true }
-      );
-    });
-  },
-
-  /**
-   * Change the zoom level of the page.
-   * Optionally subscribe to the box-model highlighter's update event and waiting
-   * for it to refresh before responding.
-   * @param {Number} level The new zoom level
-   * @param {String} actorID Optional. The highlighter actor ID
-   */
-  changeZoomLevel: function(level, actorID) {
-    dumpn("Zooming page to " + level);
-    return new Promise(resolve => {
-      if (actorID) {
-        const actor = this.conn.getActor(actorID);
-        const { _highlighter: h } = actor;
-        h.once("updated", resolve);
-      } else {
-        resolve();
-      }
-
-      const bc = this.content.docShell.browsingContext;
-      bc.fullZoom = level;
-    });
-  },
-
-  /**
-   * Get all box-model regions' adjusted boxquads for the given element
-   * @param {String} selector The node selector to target a given element
-   * @return {Object} An object with each property being a box-model region, each
-   * of them being an object with the p1/p2/p3/p4 properties
-   */
-  getAllAdjustedQuads: function(selector) {
-    const regions = {};
-    const node = this._querySelector(selector);
-    for (const boxType of ["content", "padding", "border", "margin"]) {
-      regions[boxType] = getAdjustedQuads(this.content, node, boxType);
-    }
-
-    return regions;
-  },
-
-  /**
-   * Scroll an element into view.
-   * @param {String} selector The selector for the node to scroll into view.
-   */
-  scrollIntoView: function(selector) {
-    const node = this._querySelector(selector);
-    node.scrollIntoView();
-  },
-
-  /**
-   * Check that an element currently has a pseudo-class lock.
-   * @param {String} selector The node selector to get the pseudo-class from
-   * @param {String} pseudo The pseudoclass to check for
-   * @return {Boolean}
-   */
-  hasPseudoClassLock: function(selector, pseudo) {
-    const node = this._querySelector(selector);
-    return InspectorUtils.hasPseudoClassLock(node, pseudo);
-  },
-
-  /**
-   * Get the bounding rect for a given DOM node once.
-   * @param {String} selector selector identifier to select the DOM node
-   * @return {json} the bounding rect info
-   */
-  getBoundingClientRect: function(selector) {
-    const node = this._querySelector(selector);
-    const rect = node.getBoundingClientRect();
-    // DOMRect can't be stringified directly, so return a simple object instead.
-    return {
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-      top: rect.top,
-      right: rect.right,
-      bottom: rect.bottom,
-      left: rect.left,
-    };
-  },
-
-  /**
-   * Reload an iframe and wait for its load event.
-   * @param {String} selector The node selector
-   */
-  reloadFrame: function(selector) {
-    return new Promise(resolve => {
-      const node = this._querySelector(selector);
-
-      const onLoad = function() {
-        node.removeEventListener("load", onLoad);
-        resolve();
-      };
-      node.addEventListener("load", onLoad);
-
-      node.contentWindow.location.reload();
-    });
-  },
-
-  /**
-   * Scrolls the window to a particular set of coordinates in the document, or
-   * by the given amount if `relative` is set to `true`.
+   * Register a one-time "updated" event listener.
+   * The method does not wait for the "updated" event itself so the response can be sent
+   * back and the client would know the event listener is properly set.
+   * A separate event, "highlighter-updated", will be emitted when the highlighter updates.
    *
-   * @param {Number} x
-   * @param {Number} y
-   * @param {Boolean} relative
-   *
-   * @return {Object} An object with x / y properties, representing the number
-   * of pixels that the document has been scrolled horizontally and vertically.
+   * @param {String} actorID The highlighter actor ID
    */
-  scrollWindow: function(x, y, relative) {
-    if (isNaN(x) || isNaN(y)) {
-      return {};
-    }
+  registerOneTimeHighlighterUpdate(actorID) {
+    const { _highlighter } = this.conn.getActor(actorID);
+    _highlighter.once("updated").then(() => this.emit("highlighter-updated"));
 
-    return new Promise(resolve => {
-      this.content.addEventListener(
-        "scroll",
-        function(event) {
-          const data = { x: this.content.scrollX, y: this.content.scrollY };
-          resolve(data);
-        },
-        { once: true }
-      );
-
-      this.content[relative ? "scrollBy" : "scrollTo"](x, y);
-    });
+    // Return directly so the client knows the event listener is set
   },
 
   async getNodeRect(selector) {
@@ -515,42 +309,6 @@ var TestActor = protocol.ActorClassWithSpec(testSpec, {
     const parentNode = this._querySelector(parentSelector);
     const node = parentNode.childNodes[childNodeIndex];
     return getAdjustedQuads(this.content, node)[0].bounds;
-  },
-
-  /**
-   * Get information about the stylesheets which have CSS rules that apply to a given DOM
-   * element, identified by a selector.
-   * @param {String} selector The CSS selector to get the node (can be an array
-   * of selectors to get elements in an iframe).
-   * @return {Array} A list of stylesheet objects, each having the following properties:
-   * - {String} href.
-   * - {Boolean} isContentSheet.
-   */
-  getStyleSheetsInfoForNode: function(selector) {
-    const node = this._querySelector(selector);
-    const domRules = getCSSStyleRules(node);
-
-    const sheets = [];
-
-    for (let i = 0, n = domRules.length; i < n; i++) {
-      const sheet = domRules[i].parentStyleSheet;
-      sheets.push({
-        href: sheet.href,
-        isContentSheet: !isAgentStylesheet(sheet),
-      });
-    }
-
-    return sheets;
-  },
-
-  /**
-   * Returns the window's dimensions for the `window` given.
-   *
-   * @return {Object} An object with `width` and `height` properties, representing the
-   * number of pixels for the document's size.
-   */
-  getWindowDimensions: function() {
-    return getWindowDimensions(this.content);
   },
 
   /**
@@ -667,17 +425,6 @@ class TestFront extends protocol.FrontClassWithSpec(testSpec) {
       : this._highlighter;
   }
 
-  /**
-   * Zoom the current page to a given level.
-   * @param {Number} level The new zoom level.
-   * @param {String} actorID Optional. The highlighter actor ID.
-   * @return {Promise} The returned promise will only resolve when the
-   * highlighter has updated to the new zoom level.
-   */
-  zoomPageTo(level, actorID = this.highlighter.actorID) {
-    return this.changeZoomLevel(level, actorID);
-  }
-
   /* eslint-disable max-len */
   changeHighlightedNodeWaitForUpdate(name, value, highlighter) {
     /* eslint-enable max-len */
@@ -727,41 +474,10 @@ class TestFront extends protocol.FrontClassWithSpec(testSpec) {
   }
 
   /**
-   * Assert that the box-model highlighter's current position corresponds to the
-   * given node boxquads.
-   * @param {String} selector The node selector to get the boxQuads from
-   * @param {Function} is assertion function to call for equality checks
-   * @param {String} prefix An optional prefix for logging information to the
-   * console.
-   */
-  async isNodeCorrectlyHighlighted(selector, is, prefix = "") {
-    prefix += (prefix ? " " : "") + selector + " ";
-
-    const boxModel = await this._getBoxModelStatus();
-    const regions = await this.getAllAdjustedQuads(selector);
-
-    for (const boxType of ["content", "padding", "border", "margin"]) {
-      const [quad] = regions[boxType];
-      for (const point in boxModel[boxType].points) {
-        is(
-          boxModel[boxType].points[point].x,
-          quad[point].x,
-          prefix + boxType + " point " + point + " x coordinate is correct"
-        );
-        is(
-          boxModel[boxType].points[point].y,
-          quad[point].y,
-          prefix + boxType + " point " + point + " y coordinate is correct"
-        );
-      }
-    }
-  }
-
-  /**
    * Get the current rect of the border region of the box-model highlighter
    */
   async getSimpleBorderRect() {
-    const { border } = await this._getBoxModelStatus();
+    const { border } = await this.getBoxModelStatus();
     const { p1, p2, p4 } = border.points;
 
     return {
@@ -776,7 +492,7 @@ class TestFront extends protocol.FrontClassWithSpec(testSpec) {
    * Get the current positions and visibility of the various box-model highlighter
    * elements.
    */
-  async _getBoxModelStatus() {
+  async getBoxModelStatus() {
     const isVisible = await this.isHighlighting();
 
     const ret = {
@@ -827,7 +543,7 @@ class TestFront extends protocol.FrontClassWithSpec(testSpec) {
    * @return {Boolean}
    */
   async isNodeRectHighlighted({ left, top, width, height }) {
-    const { visible, border } = await this._getBoxModelStatus();
+    const { visible, border } = await this.getBoxModelStatus();
     let points = border.points;
     if (!visible) {
       return false;

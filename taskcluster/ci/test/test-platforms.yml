@@ -107,6 +107,7 @@ linux1804-64-qr/opt:
         - linux1804-qr-tests
         - mochitest-webgpu
         - web-platform-tests
+        - web-platform-tests-wdspec-headless
         - talos
         - raptor-firefox
         - browsertime
@@ -118,6 +119,7 @@ linux1804-64-shippable-qr/opt:
         - linux1804-qr-tests
         - mochitest-webgpu
         - web-platform-tests
+        - web-platform-tests-wdspec-headless
         - talos
         - talos-profiling
         - raptor-firefox
@@ -134,6 +136,8 @@ linux1804-64-asan-qr/opt:
     build-platform: linux64-asan/opt
     test-sets:
         - linux-qr-smoketests
+        - web-platform-tests
+        - web-platform-tests-wdspec-headless
 
 linux1804-64-ccov/opt:
     build-platform: linux64-ccov/opt
@@ -143,6 +147,16 @@ linux1804-64-ccov/opt:
         - web-platform-tests
         - ccov-code-coverage-tests
         - mochitest-webgpu
+
+linux1804-64-ccov-qr/opt:
+    build-platform: linux64-ccov/opt
+    test-sets:
+        - linux1804-ccov-qr-tests
+
+linux1804-64-devedition-qr/opt:
+    build-platform: linux64-devedition/opt
+    test-sets:
+        - linux1804-devedition-qr-tests
 
 ##
 # Windows platforms (matching /windows.*/)

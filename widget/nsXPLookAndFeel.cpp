@@ -318,6 +318,10 @@ static const char sColorPrefs[][41] = {
 static_assert(ArrayLength(sColorPrefs) == size_t(LookAndFeel::ColorID::End),
               "Should have a pref for each color value");
 
+const char* nsXPLookAndFeel::GetColorPrefName(ColorID aId) {
+  return sColorPrefs[size_t(aId)];
+}
+
 bool nsXPLookAndFeel::sInitialized = false;
 
 nsXPLookAndFeel* nsXPLookAndFeel::sInstance = nullptr;
@@ -421,7 +425,6 @@ void nsXPLookAndFeel::OnPrefChanged(const char* aPref, void* aClosure) {
 static constexpr nsLiteralCString kMediaQueryPrefs[] = {
     "browser.display.windows.native_menus"_ns,
     "browser.proton.enabled"_ns,
-    "browser.proton.modals.enabled"_ns,
     "browser.proton.places-tooltip.enabled"_ns,
     "browser.theme.toolbar-theme"_ns,
 };
@@ -946,7 +949,9 @@ static bool ShouldRespectGlobalToolbarThemeAppearanceForChromeDoc() {
   // the browser.theme.toolbar-theme pref.
   // However, if widget.macos.support-dark-appearance is false, we need to
   // pretend everything's Light and not follow the toolbar theme.
-  return mozilla::StaticPrefs::widget_macos_support_dark_appearance();
+  return StaticPrefs::widget_macos_support_dark_appearance();
+#elif defined(MOZ_WIDGET_GTK)
+  return StaticPrefs::widget_gtk_follow_firefox_theme();
 #else
   return false;
 #endif
@@ -955,9 +960,6 @@ static bool ShouldRespectGlobalToolbarThemeAppearanceForChromeDoc() {
 LookAndFeel::ColorScheme LookAndFeel::ColorSchemeForDocument(
     const dom::Document& aDoc) {
   if (nsContentUtils::IsChromeDoc(&aDoc)) {
-    if (ShouldRespectSystemColorSchemeForChromeDoc()) {
-      return SystemColorScheme();
-    }
     if (ShouldRespectGlobalToolbarThemeAppearanceForChromeDoc()) {
       switch (StaticPrefs::browser_theme_toolbar_theme()) {
         case 0:  // Dark
@@ -969,6 +971,9 @@ LookAndFeel::ColorScheme LookAndFeel::ColorSchemeForDocument(
         default:
           break;
       }
+    }
+    if (ShouldRespectSystemColorSchemeForChromeDoc()) {
+      return SystemColorScheme();
     }
   }
   return LookAndFeel::ColorScheme::Light;
@@ -1028,12 +1033,17 @@ static bool ColorIsCSSAccessible(LookAndFeel::ColorID aId) {
   return true;
 }
 
-Maybe<nscolor> LookAndFeel::GetColor(ColorID aId, const dom::Document& aDoc) {
-  const bool useStandins =
+LookAndFeel::UseStandins LookAndFeel::ShouldUseStandins(
+    const dom::Document& aDoc, ColorID aId) {
+  return UseStandins(
       ShouldUseStandinsForNativeColorForNonNativeTheme(aDoc, aId) ||
       (nsContentUtils::UseStandinsForNativeColors() &&
-       !nsContentUtils::IsChromeDoc(&aDoc) && ColorIsCSSAccessible(aId));
-  return GetColor(aId, ColorSchemeForDocument(aDoc), UseStandins(useStandins));
+       !nsContentUtils::IsChromeDoc(&aDoc) && ColorIsCSSAccessible(aId)));
+}
+
+Maybe<nscolor> LookAndFeel::GetColor(ColorID aId, const dom::Document& aDoc) {
+  return GetColor(aId, ColorSchemeForDocument(aDoc),
+                  ShouldUseStandins(aDoc, aId));
 }
 
 Maybe<nscolor> LookAndFeel::GetColor(ColorID aId, const nsIFrame* aFrame) {

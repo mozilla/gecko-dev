@@ -41,8 +41,11 @@
 #include "vm/NativeObject.h"
 #include "wasm/WasmBuiltins.h"
 #include "wasm/WasmConstants.h"
+#include "wasm/WasmInitExpr.h"
+#include "wasm/WasmPages.h"
 #include "wasm/WasmSerialize.h"
 #include "wasm/WasmShareable.h"
+#include "wasm/WasmTlsData.h"
 #include "wasm/WasmTypeDecls.h"
 #include "wasm/WasmTypeDef.h"
 #include "wasm/WasmUtility.h"
@@ -76,84 +79,6 @@ class Memory;
 class Module;
 class Instance;
 class Table;
-
-// Bit set as the lowest bit of a frame pointer, used in two different mutually
-// exclusive situations:
-// - either it's a low bit tag in a FramePointer value read from the
-// Frame::callerFP of an inner wasm frame. This indicates the previous call
-// frame has been set up by a JIT caller that directly called into a wasm
-// function's body. This is only stored in Frame::callerFP for a wasm frame
-// called from JIT code, and thus it can not appear in a JitActivation's
-// exitFP.
-// - or it's the low big tag set when exiting wasm code in JitActivation's
-// exitFP.
-
-constexpr uintptr_t ExitOrJitEntryFPTag = 0x1;
-
-// The Opcode compactly and safely represents the primary opcode plus any
-// extension, with convenient predicates and accessors.
-
-class Opcode {
-  uint32_t bits_;
-
- public:
-  MOZ_IMPLICIT Opcode(Op op) : bits_(uint32_t(op)) {
-    static_assert(size_t(Op::Limit) == 256, "fits");
-    MOZ_ASSERT(size_t(op) < size_t(Op::Limit));
-  }
-  MOZ_IMPLICIT Opcode(MiscOp op)
-      : bits_((uint32_t(op) << 8) | uint32_t(Op::MiscPrefix)) {
-    static_assert(size_t(MiscOp::Limit) <= 0xFFFFFF, "fits");
-    MOZ_ASSERT(size_t(op) < size_t(MiscOp::Limit));
-  }
-  MOZ_IMPLICIT Opcode(ThreadOp op)
-      : bits_((uint32_t(op) << 8) | uint32_t(Op::ThreadPrefix)) {
-    static_assert(size_t(ThreadOp::Limit) <= 0xFFFFFF, "fits");
-    MOZ_ASSERT(size_t(op) < size_t(ThreadOp::Limit));
-  }
-  MOZ_IMPLICIT Opcode(MozOp op)
-      : bits_((uint32_t(op) << 8) | uint32_t(Op::MozPrefix)) {
-    static_assert(size_t(MozOp::Limit) <= 0xFFFFFF, "fits");
-    MOZ_ASSERT(size_t(op) < size_t(MozOp::Limit));
-  }
-  MOZ_IMPLICIT Opcode(SimdOp op)
-      : bits_((uint32_t(op) << 8) | uint32_t(Op::SimdPrefix)) {
-    static_assert(size_t(SimdOp::Limit) <= 0xFFFFFF, "fits");
-    MOZ_ASSERT(size_t(op) < size_t(SimdOp::Limit));
-  }
-
-  bool isOp() const { return bits_ < uint32_t(Op::FirstPrefix); }
-  bool isMisc() const { return (bits_ & 255) == uint32_t(Op::MiscPrefix); }
-  bool isThread() const { return (bits_ & 255) == uint32_t(Op::ThreadPrefix); }
-  bool isMoz() const { return (bits_ & 255) == uint32_t(Op::MozPrefix); }
-  bool isSimd() const { return (bits_ & 255) == uint32_t(Op::SimdPrefix); }
-
-  Op asOp() const {
-    MOZ_ASSERT(isOp());
-    return Op(bits_);
-  }
-  MiscOp asMisc() const {
-    MOZ_ASSERT(isMisc());
-    return MiscOp(bits_ >> 8);
-  }
-  ThreadOp asThread() const {
-    MOZ_ASSERT(isThread());
-    return ThreadOp(bits_ >> 8);
-  }
-  MozOp asMoz() const {
-    MOZ_ASSERT(isMoz());
-    return MozOp(bits_ >> 8);
-  }
-  SimdOp asSimd() const {
-    MOZ_ASSERT(isSimd());
-    return SimdOp(bits_ >> 8);
-  }
-
-  uint32_t bits() const { return bits_; }
-
-  bool operator==(const Opcode& that) const { return bits_ == that.bits_; }
-  bool operator!=(const Opcode& that) const { return bits_ != that.bits_; }
-};
 
 // Exception tags are used to uniquely identify exceptions. They are stored
 // in a vector in Instances and used by both WebAssembly.Exception for import
@@ -540,68 +465,6 @@ class BlockType {
   }
 
   bool operator!=(BlockType rhs) const { return !(*this == rhs); }
-};
-
-enum class InitExprKind {
-  None,
-  Literal,
-  Variable,
-};
-
-// A InitExpr describes a deferred initializer expression, used to initialize
-// a global or a table element offset. Such expressions are created during
-// decoding and actually executed on module instantiation.
-
-class InitExpr {
-  InitExprKind kind_;
-  // The bytecode for this constant expression if this is not a literal.
-  Bytes bytecode_;
-  // The value if this is a literal.
-  LitVal literal_;
-  // The value type of this constant expression in either case.
-  ValType type_;
-
- public:
-  InitExpr() : kind_(InitExprKind::None) {}
-
-  explicit InitExpr(LitVal literal)
-      : kind_(InitExprKind::Literal),
-        literal_(literal),
-        type_(literal.type()) {}
-
-  // Decode and validate a constant expression given at the current
-  // position of the decoder. Upon failure, the decoder contains the failure
-  // message or else the failure was an OOM.
-  static bool decodeAndValidate(Decoder& d, ModuleEnvironment* env,
-                                ValType expected, InitExpr* expr);
-
-  // Evaluate the constant expresssion with the given context. This may only
-  // fail due to an OOM, as all InitExpr's are required to have been validated.
-  bool evaluate(JSContext* cx, const ValVector& globalImportValues,
-                HandleWasmInstanceObject instanceObj,
-                MutableHandleVal result) const;
-
-  bool isLiteral() const { return kind_ == InitExprKind::Literal; }
-
-  // Gets the result of this expression if it was determined to be a literal.
-  LitVal literal() const {
-    MOZ_ASSERT(isLiteral());
-    return literal_;
-  }
-
-  // Get the type of the resulting value of this expression.
-  ValType type() const { return type_; }
-
-  // Allow moving, but not implicit copying
-  InitExpr(const InitExpr&) = delete;
-  InitExpr& operator=(const InitExpr&) = delete;
-  InitExpr(InitExpr&&) = default;
-  InitExpr& operator=(InitExpr&&) = default;
-
-  // Allow explicit cloning
-  [[nodiscard]] bool clone(const InitExpr& src);
-
-  WASM_DECLARE_SERIALIZABLE(InitExpr)
 };
 
 // CacheableChars is used to cacheably store UniqueChars.
@@ -1470,6 +1333,63 @@ struct Limits {
       : initial(initial), maximum(maximum), shared(shared) {}
 };
 
+// Memories can be 32-bit (indices are 32 bits and the max is 4GB) or 64-bit
+// (indices are 64 bits and the max is XXX).
+
+enum class MemoryKind { Memory32, Memory64 };
+
+// MemoryDesc describes a memory.
+
+struct MemoryDesc {
+  MemoryKind kind;
+  Limits limits;
+
+  bool isShared() const { return limits.shared == Shareable::True; }
+
+  // Whether a backing store for this memory may move when grown.
+  bool canMovingGrow() const { return limits.maximum.isNothing(); }
+
+  // Whether the bounds check limit (see the doc comment in
+  // ArrayBufferObject.cpp regarding linear memory structure) can ever be
+  // larger than 32-bits.
+  bool boundsCheckLimitIs32Bits() const {
+    return limits.maximum.isSome() &&
+           limits.maximum.value() < (0x100000000 / PageSize);
+  }
+
+  // The initial length of this memory in pages.
+  Pages initialPages() const { return Pages(limits.initial); }
+
+  // The maximum length of this memory in pages.
+  Maybe<Pages> maximumPages() const {
+    return limits.maximum.map([](uint64_t x) { return Pages(x); });
+  }
+
+  // The initial length of this memory in bytes. Only valid for memory32.
+  uint64_t initialLength32() const {
+    MOZ_ASSERT(kind == MemoryKind::Memory32);
+    // See static_assert after MemoryDesc for why this is safe.
+    return limits.initial * PageSize;
+  }
+
+  // The maximum length of this memory in bytes. Only valid for memory32.
+  Maybe<uint64_t> maximumLength32() const {
+    MOZ_ASSERT(kind == MemoryKind::Memory32);
+    if (limits.maximum) {
+      // See static_assert after MemoryDesc for why this is safe.
+      return Some(*limits.maximum * PageSize);
+    }
+    return Nothing();
+  }
+
+  MemoryDesc() = default;
+  MemoryDesc(MemoryKind kind, Limits limits) : kind(kind), limits(limits) {}
+};
+
+// We don't need to worry about overflow with a Memory32 field when
+// using a uint64_t.
+static_assert(MaxMemory32LimitField <= UINT64_MAX / PageSize);
+
 // TableDesc describes a table as well as the offset of the table's base pointer
 // in global memory.
 //
@@ -1501,154 +1421,6 @@ struct TableDesc {
 };
 
 using TableDescVector = Vector<TableDesc, 0, SystemAllocPolicy>;
-
-// TLS data for a single module instance.
-//
-// Every WebAssembly function expects to be passed a hidden TLS pointer argument
-// in WasmTlsReg. The TLS pointer argument points to a TlsData struct.
-// Compiled functions expect that the TLS pointer does not change for the
-// lifetime of the thread.
-//
-// There is a TlsData per module instance per thread, so inter-module calls need
-// to pass the TLS pointer appropriate for the callee module.
-//
-// After the TlsData struct follows the module's declared TLS variables.
-
-struct TlsData {
-  // Pointer to the base of the default memory (or null if there is none).
-  uint8_t* memoryBase;
-
-  // Bounds check limit in bytes (or zero if there is no memory).  This is
-  // 64-bits on 64-bit systems so as to allow for heap lengths up to and beyond
-  // 4GB, and 32-bits on 32-bit systems, where heaps are limited to 2GB.
-  //
-  // On 64-bit systems, the upper bits of this value will be zero and 32-bit
-  // bounds checks can be used under the following circumstances:
-  //
-  // - The heap is for asm.js; asm.js heaps are limited to 2GB
-  // - The max size of the heap is encoded in the module and is less than 4GB
-  // - Cranelift is present in the system; Cranelift-compatible heaps are
-  //   limited to 4GB-128K
-  //
-  // All our jits require little-endian byte order, so the address of the 32-bit
-  // heap limit is the same as the address of the 64-bit heap limit: the address
-  // of this member.
-  uintptr_t boundsCheckLimit;
-
-  // Pointer to the Instance that contains this TLS data.
-  Instance* instance;
-
-  // Equal to instance->realm_.
-  JS::Realm* realm;
-
-  // The containing JSContext.
-  JSContext* cx;
-
-  // The class_ of WasmValueBox, this is a per-process value.
-  const JSClass* valueBoxClass;
-
-  // Usually equal to cx->stackLimitForJitCode(JS::StackForUntrustedScript),
-  // but can be racily set to trigger immediate trap as an opportunity to
-  // CheckForInterrupt without an additional branch.
-  Atomic<uintptr_t, mozilla::Relaxed> stackLimit;
-
-  // Set to 1 when wasm should call CheckForInterrupt.
-  Atomic<uint32_t, mozilla::Relaxed> interrupt;
-
-  uint8_t* addressOfNeedsIncrementalBarrier;
-
-  // Methods to set, test and clear the above two fields. Both interrupt
-  // fields are Relaxed and so no consistency/ordering can be assumed.
-  void setInterrupt();
-  bool isInterrupted() const;
-  void resetInterrupt(JSContext* cx);
-
-  // Pointer that should be freed (due to padding before the TlsData).
-  void* allocatedBase;
-
-  // When compiling with tiering, the jumpTable has one entry for each
-  // baseline-compiled function.
-  void** jumpTable;
-
-  // The globalArea must be the last field.  Globals for the module start here
-  // and are inline in this structure.  16-byte alignment is required for SIMD
-  // data.
-  MOZ_ALIGNED_DECL(16, char globalArea);
-};
-
-static const size_t TlsDataAlign = 16;  // = Simd128DataSize
-static_assert(offsetof(TlsData, globalArea) % TlsDataAlign == 0, "aligned");
-
-struct TlsDataDeleter {
-  void operator()(TlsData* tlsData) { js_free(tlsData->allocatedBase); }
-};
-
-using UniqueTlsData = UniquePtr<TlsData, TlsDataDeleter>;
-
-extern UniqueTlsData CreateTlsData(uint32_t globalDataLength);
-
-// ExportArg holds the unboxed operands to the wasm entry trampoline which can
-// be called through an ExportFuncPtr.
-
-struct ExportArg {
-  uint64_t lo;
-  uint64_t hi;
-};
-
-using ExportFuncPtr = int32_t (*)(ExportArg*, TlsData*);
-
-// FuncImportTls describes the region of wasm global memory allocated in the
-// instance's thread-local storage for a function import. This is accessed
-// directly from JIT code and mutated by Instance as exits become optimized and
-// deoptimized.
-
-struct FuncImportTls {
-  // The code to call at an import site: a wasm callee, a thunk into C++, or a
-  // thunk into JIT code.
-  void* code;
-
-  // The callee's TlsData pointer, which must be loaded to WasmTlsReg (along
-  // with any pinned registers) before calling 'code'.
-  TlsData* tls;
-
-  // The callee function's realm.
-  JS::Realm* realm;
-
-  // A GC pointer which keeps the callee alive and is used to recover import
-  // values for lazy table initialization.
-  GCPtrFunction fun;
-  static_assert(sizeof(GCPtrFunction) == sizeof(void*), "for JIT access");
-};
-
-// TableTls describes the region of wasm global memory allocated in the
-// instance's thread-local storage which is accessed directly from JIT code
-// to bounds-check and index the table.
-
-struct TableTls {
-  // Length of the table in number of elements (not bytes).
-  uint32_t length;
-
-  // Pointer to the array of elements (which can have various representations).
-  // For tables of anyref this is null.
-  void* functionBase;
-};
-
-// Table element for TableRepr::Func which carries both the code pointer and
-// a tls pointer (and thus anything reachable through the tls, including the
-// instance).
-
-struct FunctionTableElem {
-  // The code to call when calling this element. The table ABI is the system
-  // ABI with the additional ABI requirements that:
-  //  - WasmTlsReg and any pinned registers have been loaded appropriately
-  //  - if this is a heterogeneous table that requires a signature check,
-  //    WasmTableCallSigReg holds the signature id.
-  void* code;
-
-  // The pointer to the callee's instance's TlsData. This must be loaded into
-  // WasmTlsReg before calling 'code'.
-  TlsData* tls;
-};
 
 // CalleeDesc describes how to compile one of the variety of asm.js/wasm calls.
 // This is hoisted into WasmTypes.h for sharing between Ion and Baseline.
@@ -1766,11 +1538,6 @@ class CalleeDesc {
   }
 };
 
-// Memories can be 32-bit (indices are 32 bits and the max is 4GB) or 64-bit
-// (indices are 64 bits and the max is XXX).
-
-enum class MemoryKind { Memory32, Memory64 };
-
 // Because ARM has a fixed-width instruction encoding, ARM can only express a
 // limited subset of immediates (in a single instruction).
 
@@ -1841,13 +1608,13 @@ static const size_t MinOffsetGuardLimit = OffsetGuardLimit;
 
 extern bool IsValidBoundsCheckImmediate(uint32_t i);
 
-// For a given WebAssembly/asm.js max size, return the number of bytes to
+// For a given WebAssembly/asm.js max pages, return the number of bytes to
 // map which will necessarily be a multiple of the system page size and greater
-// than maxSize. For a returned mappedSize:
+// than maxPages in bytes. For a returned mappedSize:
 //   boundsCheckLimit = mappedSize - GuardSize
 //   IsValidBoundsCheckImmediate(boundsCheckLimit)
 
-extern size_t ComputeMappedSize(uint64_t maxSize);
+extern size_t ComputeMappedSize(Pages maxPages);
 
 // The following thresholds were derived from a microbenchmark. If we begin to
 // ship this optimization for more platforms, we will need to extend this list.
@@ -1865,297 +1632,6 @@ static const uint32_t MaxInlineMemoryFillLength = 0;
 
 static_assert(MaxInlineMemoryCopyLength < MinOffsetGuardLimit, "precondition");
 static_assert(MaxInlineMemoryFillLength < MinOffsetGuardLimit, "precondition");
-
-// wasm::Frame represents the bytes pushed by the call instruction and the
-// fixed prologue generated by wasm::GenerateCallablePrologue.
-//
-// Across all architectures it is assumed that, before the call instruction, the
-// stack pointer is WasmStackAlignment-aligned. Thus after the prologue, and
-// before the function has made its stack reservation, the stack alignment is
-// sizeof(Frame) % WasmStackAlignment.
-//
-// During MacroAssembler code generation, the bytes pushed after the wasm::Frame
-// are counted by masm.framePushed. Thus, the stack alignment at any point in
-// time is (sizeof(wasm::Frame) + masm.framePushed) % WasmStackAlignment.
-
-class Frame {
-  // See GenerateCallableEpilogue for why this must be
-  // the first field of wasm::Frame (in a downward-growing stack).
-  // It's either the caller's Frame*, for wasm callers, or the JIT caller frame
-  // plus a tag otherwise.
-  uint8_t* callerFP_;
-
-  // The return address pushed by the call (in the case of ARM/MIPS the return
-  // address is pushed by the first instruction of the prologue).
-  void* returnAddress_;
-
- public:
-  static constexpr uint32_t callerFPOffset() {
-    return offsetof(Frame, callerFP_);
-  }
-  static constexpr uint32_t returnAddressOffset() {
-    return offsetof(Frame, returnAddress_);
-  }
-
-  uint8_t* returnAddress() const {
-    return reinterpret_cast<uint8_t*>(returnAddress_);
-  }
-
-  void** addressOfReturnAddress() {
-    return reinterpret_cast<void**>(&returnAddress_);
-  }
-
-  uint8_t* rawCaller() const { return callerFP_; }
-
-  Frame* wasmCaller() const {
-    MOZ_ASSERT(!callerIsExitOrJitEntryFP());
-    return reinterpret_cast<Frame*>(callerFP_);
-  }
-
-  bool callerIsExitOrJitEntryFP() const {
-    return isExitOrJitEntryFP(callerFP_);
-  }
-
-  uint8_t* jitEntryCaller() const { return toJitEntryCaller(callerFP_); }
-
-  static const Frame* fromUntaggedWasmExitFP(const void* savedFP) {
-    MOZ_ASSERT(!isExitOrJitEntryFP(savedFP));
-    return reinterpret_cast<const Frame*>(savedFP);
-  }
-
-  static bool isExitOrJitEntryFP(const void* fp) {
-    return reinterpret_cast<uintptr_t>(fp) & ExitOrJitEntryFPTag;
-  }
-
-  static uint8_t* toJitEntryCaller(const void* fp) {
-    MOZ_ASSERT(isExitOrJitEntryFP(fp));
-    return reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(fp) &
-                                      ~ExitOrJitEntryFPTag);
-  }
-
-  static uint8_t* addExitOrJitEntryFPTag(const Frame* fp) {
-    MOZ_ASSERT(!isExitOrJitEntryFP(fp));
-    return reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(fp) |
-                                      ExitOrJitEntryFPTag);
-  }
-};
-
-static_assert(!std::is_polymorphic_v<Frame>, "Frame doesn't need a vtable.");
-static_assert(sizeof(Frame) == 2 * sizeof(void*),
-              "Frame is a two pointer structure");
-
-class FrameWithTls : public Frame {
-  TlsData* calleeTls_;
-  TlsData* callerTls_;
-
- public:
-  TlsData* calleeTls() { return calleeTls_; }
-  TlsData* callerTls() { return callerTls_; }
-
-  constexpr static uint32_t sizeWithoutFrame() {
-    return sizeof(wasm::FrameWithTls) - sizeof(wasm::Frame);
-  }
-
-  constexpr static uint32_t calleeTLSOffset() {
-    return offsetof(FrameWithTls, calleeTls_) - sizeof(wasm::Frame);
-  }
-
-  constexpr static uint32_t callerTLSOffset() {
-    return offsetof(FrameWithTls, callerTls_) - sizeof(wasm::Frame);
-  }
-};
-
-static_assert(FrameWithTls::calleeTLSOffset() == 0u,
-              "Callee tls stored right above the return address.");
-static_assert(FrameWithTls::callerTLSOffset() == sizeof(void*),
-              "Caller tls stored right above the callee tls.");
-
-static_assert(FrameWithTls::sizeWithoutFrame() == 2 * sizeof(void*),
-              "There are only two additional slots");
-
-#if defined(JS_CODEGEN_ARM64)
-static_assert(sizeof(Frame) % 16 == 0, "frame is aligned");
-#endif
-
-// A DebugFrame is a Frame with additional fields that are added after the
-// normal function prologue by the baseline compiler. If a Module is compiled
-// with debugging enabled, then all its code creates DebugFrames on the stack
-// instead of just Frames. These extra fields are used by the Debugger API.
-
-class DebugFrame {
-  // The register results field.  Initialized only during the baseline
-  // compiler's return sequence to allow the debugger to inspect and
-  // modify the return values of a frame being debugged.
-  union SpilledRegisterResult {
-   private:
-    int32_t i32_;
-    int64_t i64_;
-    intptr_t ref_;
-    AnyRef anyref_;
-    float f32_;
-    double f64_;
-#ifdef ENABLE_WASM_SIMD
-    V128 v128_;
-#endif
-#ifdef DEBUG
-    // Should we add a new value representation, this will remind us to update
-    // SpilledRegisterResult.
-    static inline void assertAllValueTypesHandled(ValType type) {
-      switch (type.kind()) {
-        case ValType::I32:
-        case ValType::I64:
-        case ValType::F32:
-        case ValType::F64:
-        case ValType::V128:
-        case ValType::Rtt:
-          return;
-        case ValType::Ref:
-          switch (type.refTypeKind()) {
-            case RefType::Func:
-            case RefType::Extern:
-            case RefType::Eq:
-            case RefType::TypeIndex:
-              return;
-          }
-      }
-    }
-#endif
-  };
-  SpilledRegisterResult registerResults_[MaxRegisterResults];
-
-  // The returnValue() method returns a HandleValue pointing to this field.
-  js::Value cachedReturnJSValue_;
-
-  // If the function returns multiple results, this field is initialized
-  // to a pointer to the stack results.
-  void* stackResultsPointer_;
-
-  // The function index of this frame. Technically, this could be derived
-  // given a PC into this frame (which could lookup the CodeRange which has
-  // the function index), but this isn't always readily available.
-  uint32_t funcIndex_;
-
-  // Flags whose meaning are described below.
-  union Flags {
-    struct {
-      uint32_t observing : 1;
-      uint32_t isDebuggee : 1;
-      uint32_t prevUpToDate : 1;
-      uint32_t hasCachedSavedFrame : 1;
-      uint32_t hasCachedReturnJSValue : 1;
-      uint32_t hasSpilledRefRegisterResult : MaxRegisterResults;
-    };
-    uint32_t allFlags;
-  } flags_;
-
-  // Avoid -Wunused-private-field warnings.
- protected:
-#if defined(JS_CODEGEN_MIPS32) || defined(JS_CODEGEN_ARM) || \
-    defined(JS_CODEGEN_X86) || defined(__wasi__)
-  // See alignmentStaticAsserts().  For MIPS32, ARM32 and X86 DebugFrame is only
-  // 4-byte aligned, so we add another word to get up to 8-byte
-  // alignment.
-  uint32_t padding_;
-#endif
-#if defined(ENABLE_WASM_SIMD) && defined(JS_CODEGEN_ARM64)
-  uint64_t padding_;
-#endif
-
- private:
-  // The Frame goes at the end since the stack grows down.
-  Frame frame_;
-
- public:
-  static DebugFrame* from(Frame* fp);
-  Frame& frame() { return frame_; }
-  uint32_t funcIndex() const { return funcIndex_; }
-  Instance* instance() const;
-  GlobalObject* global() const;
-  bool hasGlobal(const GlobalObject* global) const;
-  JSObject* environmentChain() const;
-  bool getLocal(uint32_t localIndex, MutableHandleValue vp);
-
-  // The return value must be written from the unboxed representation in the
-  // results union into cachedReturnJSValue_ by updateReturnJSValue() before
-  // returnValue() can return a Handle to it.
-
-  bool hasCachedReturnJSValue() const { return flags_.hasCachedReturnJSValue; }
-  [[nodiscard]] bool updateReturnJSValue(JSContext* cx);
-  HandleValue returnValue() const;
-  void clearReturnJSValue();
-
-  // Once the debugger observes a frame, it must be notified via
-  // onLeaveFrame() before the frame is popped. Calling observe() ensures the
-  // leave frame traps are enabled. Both methods are idempotent so the caller
-  // doesn't have to worry about calling them more than once.
-
-  void observe(JSContext* cx);
-  void leave(JSContext* cx);
-
-  // The 'isDebugge' bit is initialized to false and set by the WebAssembly
-  // runtime right before a frame is exposed to the debugger, as required by
-  // the Debugger API. The bit is then used for Debugger-internal purposes
-  // afterwards.
-
-  bool isDebuggee() const { return flags_.isDebuggee; }
-  void setIsDebuggee() { flags_.isDebuggee = true; }
-  void unsetIsDebuggee() { flags_.isDebuggee = false; }
-
-  // These are opaque boolean flags used by the debugger to implement
-  // AbstractFramePtr. They are initialized to false and not otherwise read or
-  // written by wasm code or runtime.
-
-  bool prevUpToDate() const { return flags_.prevUpToDate; }
-  void setPrevUpToDate() { flags_.prevUpToDate = true; }
-  void unsetPrevUpToDate() { flags_.prevUpToDate = false; }
-
-  bool hasCachedSavedFrame() const { return flags_.hasCachedSavedFrame; }
-  void setHasCachedSavedFrame() { flags_.hasCachedSavedFrame = true; }
-  void clearHasCachedSavedFrame() { flags_.hasCachedSavedFrame = false; }
-
-  bool hasSpilledRegisterRefResult(size_t n) const {
-    uint32_t mask = hasSpilledRegisterRefResultBitMask(n);
-    return (flags_.allFlags & mask) != 0;
-  }
-
-  // DebugFrame is accessed directly by JIT code.
-
-  static constexpr size_t offsetOfRegisterResults() {
-    return offsetof(DebugFrame, registerResults_);
-  }
-  static constexpr size_t offsetOfRegisterResult(size_t n) {
-    MOZ_ASSERT(n < MaxRegisterResults);
-    return offsetOfRegisterResults() + n * sizeof(SpilledRegisterResult);
-  }
-  static constexpr size_t offsetOfCachedReturnJSValue() {
-    return offsetof(DebugFrame, cachedReturnJSValue_);
-  }
-  static constexpr size_t offsetOfStackResultsPointer() {
-    return offsetof(DebugFrame, stackResultsPointer_);
-  }
-  static constexpr size_t offsetOfFlags() {
-    return offsetof(DebugFrame, flags_);
-  }
-  static constexpr uint32_t hasSpilledRegisterRefResultBitMask(size_t n) {
-    MOZ_ASSERT(n < MaxRegisterResults);
-    union Flags flags = {.allFlags = 0};
-    flags.hasSpilledRefRegisterResult = 1 << n;
-    MOZ_ASSERT(flags.allFlags != 0);
-    return flags.allFlags;
-  }
-  static constexpr size_t offsetOfFuncIndex() {
-    return offsetof(DebugFrame, funcIndex_);
-  }
-  static constexpr size_t offsetOfFrame() {
-    return offsetof(DebugFrame, frame_);
-  }
-
-  // DebugFrames are aligned to 8-byte aligned, allowing them to be placed in
-  // an AbstractFramePtr.
-
-  static const unsigned Alignment = 8;
-  static void alignmentStaticAsserts();
-};
 
 // Verbose logging support.
 

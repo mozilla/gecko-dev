@@ -88,8 +88,7 @@ void CertificateTransparencyInfo::Reset() {
 CertVerifier::CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,
                            mozilla::TimeDuration ocspTimeoutSoft,
                            mozilla::TimeDuration ocspTimeoutHard,
-                           uint32_t certShortLifetimeInDays,
-                           PinningMode pinningMode, SHA1Mode sha1Mode,
+                           uint32_t certShortLifetimeInDays, SHA1Mode sha1Mode,
                            BRNameMatchingPolicy::Mode nameMatchingMode,
                            NetscapeStepUpPolicy netscapeStepUpPolicy,
                            CertificateTransparencyMode ctMode,
@@ -101,7 +100,6 @@ CertVerifier::CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,
       mOCSPTimeoutSoft(ocspTimeoutSoft),
       mOCSPTimeoutHard(ocspTimeoutHard),
       mCertShortLifetimeInDays(certShortLifetimeInDays),
-      mPinningMode(pinningMode),
       mSHA1Mode(sha1Mode),
       mNameMatchingMode(nameMatchingMode),
       mNetscapeStepUpPolicy(netscapeStepUpPolicy),
@@ -479,8 +477,7 @@ Result CertVerifier::VerifyCert(
     /*optional out*/ KeySizeStatus* keySizeStatus,
     /*optional out*/ SHA1ModeResult* sha1ModeResult,
     /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo,
-    /*optional out*/ CertificateTransparencyInfo* ctInfo,
-    /*optional out*/ CRLiteLookupResult* crliteLookupResult) {
+    /*optional out*/ CertificateTransparencyInfo* ctInfo) {
   MOZ_LOG(gCertVerifierLog, LogLevel::Debug, ("Top of VerifyCert\n"));
 
   MOZ_ASSERT(cert);
@@ -565,9 +562,9 @@ Result CertVerifier::VerifyCert(
       // just use trustEmail as it is the closest alternative.
       NSSCertDBTrustDomain trustDomain(
           trustEmail, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
-          mOCSPTimeoutHard, mCertShortLifetimeInDays, pinningDisabled,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          SHA1Mode::Allowed, NetscapeStepUpPolicy::NeverMatch, mCRLiteMode,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, SHA1Mode::Allowed,
+          NetscapeStepUpPolicy::NeverMatch, mCRLiteMode,
           mCRLiteCTMergeDelaySeconds, originAttributes, mThirdPartyRootInputs,
           mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
           nullptr);
@@ -635,18 +632,15 @@ Result CertVerifier::VerifyCert(
         if (pinningTelemetryInfo) {
           pinningTelemetryInfo->Reset();
         }
-        if (crliteLookupResult) {
-          *crliteLookupResult = CRLiteLookupResult::NeverChecked;
-        }
 
         NSSCertDBTrustDomain trustDomain(
             trustSSL, evOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
-            mOCSPTimeoutHard, mCertShortLifetimeInDays, mPinningMode,
-            MIN_RSA_BITS, ValidityCheckingMode::CheckForEV,
-            sha1ModeConfigurations[i], mNetscapeStepUpPolicy, mCRLiteMode,
-            mCRLiteCTMergeDelaySeconds, originAttributes, mThirdPartyRootInputs,
+            mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS,
+            ValidityCheckingMode::CheckForEV, sha1ModeConfigurations[i],
+            mNetscapeStepUpPolicy, mCRLiteMode, mCRLiteCTMergeDelaySeconds,
+            originAttributes, mThirdPartyRootInputs,
             mThirdPartyIntermediateInputs, extraCertificates, builtChain,
-            pinningTelemetryInfo, crliteLookupResult, hostname);
+            pinningTelemetryInfo, hostname);
         rv = BuildCertChainForOneKeyUsage(
             trustDomain, certDER, time,
             KeyUsage::digitalSignature,  // (EC)DHE
@@ -720,19 +714,15 @@ Result CertVerifier::VerifyCert(
           if (pinningTelemetryInfo) {
             pinningTelemetryInfo->Reset();
           }
-          if (crliteLookupResult) {
-            *crliteLookupResult = CRLiteLookupResult::NeverChecked;
-          }
 
           NSSCertDBTrustDomain trustDomain(
               trustSSL, defaultOCSPFetching, mOCSPCache, pinArg,
               mOCSPTimeoutSoft, mOCSPTimeoutHard, mCertShortLifetimeInDays,
-              mPinningMode, keySizeOptions[i],
-              ValidityCheckingMode::CheckingOff, sha1ModeConfigurations[j],
-              mNetscapeStepUpPolicy, mCRLiteMode, mCRLiteCTMergeDelaySeconds,
-              originAttributes, mThirdPartyRootInputs,
-              mThirdPartyIntermediateInputs, extraCertificates, builtChain,
-              pinningTelemetryInfo, crliteLookupResult, hostname);
+              keySizeOptions[i], ValidityCheckingMode::CheckingOff,
+              sha1ModeConfigurations[j], mNetscapeStepUpPolicy, mCRLiteMode,
+              mCRLiteCTMergeDelaySeconds, originAttributes,
+              mThirdPartyRootInputs, mThirdPartyIntermediateInputs,
+              extraCertificates, builtChain, pinningTelemetryInfo, hostname);
           rv = BuildCertChainForOneKeyUsage(
               trustDomain, certDER, time,
               KeyUsage::digitalSignature,  //(EC)DHE
@@ -797,10 +787,10 @@ Result CertVerifier::VerifyCert(
     case certificateUsageSSLCA: {
       NSSCertDBTrustDomain trustDomain(
           trustSSL, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
-          mOCSPTimeoutHard, mCertShortLifetimeInDays, pinningDisabled,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          SHA1Mode::Allowed, mNetscapeStepUpPolicy, mCRLiteMode,
-          mCRLiteCTMergeDelaySeconds, originAttributes, mThirdPartyRootInputs,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, SHA1Mode::Allowed,
+          mNetscapeStepUpPolicy, mCRLiteMode, mCRLiteCTMergeDelaySeconds,
+          originAttributes, mThirdPartyRootInputs,
           mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
           nullptr);
       rv = BuildCertChain(trustDomain, certDER, time, EndEntityOrCA::MustBeCA,
@@ -812,9 +802,9 @@ Result CertVerifier::VerifyCert(
     case certificateUsageEmailSigner: {
       NSSCertDBTrustDomain trustDomain(
           trustEmail, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
-          mOCSPTimeoutHard, mCertShortLifetimeInDays, pinningDisabled,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          SHA1Mode::Allowed, NetscapeStepUpPolicy::NeverMatch, mCRLiteMode,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, SHA1Mode::Allowed,
+          NetscapeStepUpPolicy::NeverMatch, mCRLiteMode,
           mCRLiteCTMergeDelaySeconds, originAttributes, mThirdPartyRootInputs,
           mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
           nullptr);
@@ -837,9 +827,9 @@ Result CertVerifier::VerifyCert(
       // based on the result of the verification(s).
       NSSCertDBTrustDomain trustDomain(
           trustEmail, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
-          mOCSPTimeoutHard, mCertShortLifetimeInDays, pinningDisabled,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          SHA1Mode::Allowed, NetscapeStepUpPolicy::NeverMatch, mCRLiteMode,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, SHA1Mode::Allowed,
+          NetscapeStepUpPolicy::NeverMatch, mCRLiteMode,
           mCRLiteCTMergeDelaySeconds, originAttributes, mThirdPartyRootInputs,
           mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
           nullptr);
@@ -911,7 +901,6 @@ Result CertVerifier::VerifySSLServerCert(
     /*optional out*/ SHA1ModeResult* sha1ModeResult,
     /*optional out*/ PinningTelemetryInfo* pinningTelemetryInfo,
     /*optional out*/ CertificateTransparencyInfo* ctInfo,
-    /*optional out*/ CRLiteLookupResult* crliteLookupResult,
     /*optional out*/ bool* isBuiltCertChainRootBuiltInRoot) {
   MOZ_ASSERT(peerCert);
   // XXX: MOZ_ASSERT(pinarg);
@@ -931,12 +920,12 @@ Result CertVerifier::VerifySSLServerCert(
 
   // CreateCertErrorRunnable assumes that CheckCertHostname is only called
   // if VerifyCert succeeded.
-  Result rv = VerifyCert(peerCert.get(), certificateUsageSSLServer, time,
-                         pinarg, PromiseFlatCString(hostname).get(), builtChain,
-                         flags, extraCertificates, stapledOCSPResponse,
-                         sctsFromTLS, originAttributes, evStatus,
-                         ocspStaplingStatus, keySizeStatus, sha1ModeResult,
-                         pinningTelemetryInfo, ctInfo, crliteLookupResult);
+  Result rv =
+      VerifyCert(peerCert.get(), certificateUsageSSLServer, time, pinarg,
+                 PromiseFlatCString(hostname).get(), builtChain, flags,
+                 extraCertificates, stapledOCSPResponse, sctsFromTLS,
+                 originAttributes, evStatus, ocspStaplingStatus, keySizeStatus,
+                 sha1ModeResult, pinningTelemetryInfo, ctInfo);
   if (rv != Success) {
     if (rv == Result::ERROR_UNKNOWN_ISSUER &&
         CertIsSelfSigned(peerCert, pinarg)) {

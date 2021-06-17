@@ -13,6 +13,8 @@ const TEST_URL4 = "https://example.com/browser/browser/components";
 
 add_task(async function setup() {
   sinon.spy(Interactions, "_updateDatabase");
+  Interactions.reset();
+  disableIdleService();
 
   registerCleanupFunction(() => {
     sinon.restore();
@@ -37,13 +39,20 @@ async function assertDatabaseValues(expected) {
       Assert.equal(
         actual.totalViewTime,
         expected[i].exactTotalViewTime,
-        "Should have kept the exact time."
+        "Should have kept the exact time"
       );
     } else {
       Assert.greater(
         actual.totalViewTime,
         expected[i].totalViewTime,
-        "Should have stored the interaction time."
+        "Should have stored the interaction time"
+      );
+    }
+    if (expected[i].maxViewTime) {
+      Assert.less(
+        actual.totalViewTime,
+        expected[i].maxViewTime,
+        "Should have recorded an interaction below the maximum expected"
       );
     }
   }
@@ -110,7 +119,11 @@ add_task(async function test_interactions_background_tab() {
   BrowserTestUtils.removeTab(tab2);
 
   // This is checking a non-action, so let the event queue clear to try and
-  // detect any unexpected database writes.
+  // detect any unexpected database writes. We wait for a few ticks to
+  // make it more likely. however if this fails it may show up as an
+  // intermittent.
+  await TestUtils.waitForTick();
+  await TestUtils.waitForTick();
   await TestUtils.waitForTick();
 
   Assert.equal(
@@ -383,4 +396,51 @@ add_task(async function test_interactions_private_browsing() {
 
   BrowserTestUtils.removeTab(tabInOriginalWindow);
   await BrowserTestUtils.closeWindow(privateWin);
+});
+
+add_task(async function test_interactions_idle() {
+  sinon.reset();
+
+  let lastViewTime;
+
+  await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
+    Interactions._pageViewStartTime = Cu.now() - 10000;
+
+    Interactions.observe(null, "idle", "");
+
+    await assertDatabaseValues([
+      {
+        url: TEST_URL,
+        totalViewTime: 10000,
+      },
+    ]);
+    lastViewTime = Interactions._updateDatabase.args[0][0].totalViewTime;
+
+    Interactions._pageViewStartTime = Cu.now() - 20000;
+
+    Interactions.observe(null, "active", "");
+
+    await assertDatabaseValues([
+      {
+        url: TEST_URL,
+        exactTotalViewTime: lastViewTime,
+      },
+    ]);
+
+    Interactions._pageViewStartTime = Cu.now() - 30000;
+  });
+
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      // Note: this should be `exactTotalViewTime: lastViewTime`, but
+      // apply updates to the same object.
+      totalViewTime: lastViewTime + 30000,
+    },
+    {
+      url: TEST_URL,
+      totalViewTime: lastViewTime + 30000,
+      maxViewTime: lastViewTime + 30000 + 10000,
+    },
+  ]);
 });

@@ -867,7 +867,7 @@ exports.CSS_PROPERTIES = {
   "-moz-tab-size": {
     "isInherited": true,
     "subproperties": [
-      "-moz-tab-size"
+      "tab-size"
     ],
     "supports": [],
     "values": [
@@ -2951,7 +2951,7 @@ exports.CSS_PROPERTIES = {
       "text-emphasis-style",
       "text-emphasis-position",
       "text-emphasis-color",
-      "-moz-tab-size",
+      "tab-size",
       "line-break",
       "-webkit-text-fill-color",
       "-webkit-text-stroke-color",
@@ -2988,10 +2988,6 @@ exports.CSS_PROPERTIES = {
       "outline-color",
       "outline-style",
       "outline-width",
-      "-moz-outline-radius-topleft",
-      "-moz-outline-radius-topright",
-      "-moz-outline-radius-bottomright",
-      "-moz-outline-radius-bottomleft",
       "outline-offset",
       "size",
       "padding-top",
@@ -3068,6 +3064,7 @@ exports.CSS_PROPERTIES = {
       "rx",
       "ry",
       "r",
+      "d",
       "table-layout",
       "text-overflow",
       "text-decoration-line",
@@ -5789,6 +5786,21 @@ exports.CSS_PROPERTIES = {
       "unset"
     ]
   },
+  "d": {
+    "isInherited": false,
+    "subproperties": [
+      "d"
+    ],
+    "supports": [],
+    "values": [
+      "inherit",
+      "initial",
+      "none",
+      "path",
+      "revert",
+      "unset"
+    ]
+  },
   "direction": {
     "isInherited": true,
     "subproperties": [
@@ -6320,6 +6332,9 @@ exports.CSS_PROPERTIES = {
     ],
     "supports": [],
     "values": [
+      "cap",
+      "ch",
+      "ic",
       "inherit",
       "initial",
       "none",
@@ -9930,6 +9945,19 @@ exports.CSS_PROPERTIES = {
       "unset"
     ]
   },
+  "tab-size": {
+    "isInherited": true,
+    "subproperties": [
+      "tab-size"
+    ],
+    "supports": [],
+    "values": [
+      "inherit",
+      "initial",
+      "revert",
+      "unset"
+    ]
+  },
   "table-layout": {
     "isInherited": false,
     "subproperties": [
@@ -10996,6 +11024,10 @@ exports.PREFERENCES = [
     "layout.css.backdrop-filter.enabled"
   ],
   [
+    "d",
+    "layout.css.d-property.enabled"
+  ],
+  [
     "font-variation-settings",
     "layout.css.font-variations.enabled"
   ],
@@ -11036,22 +11068,6 @@ exports.PREFERENCES = [
     "layout.css.motion-path.enabled"
   ],
   [
-    "-moz-outline-radius-bottomleft",
-    "layout.css.moz-outline-radius.enabled"
-  ],
-  [
-    "-moz-outline-radius-bottomright",
-    "layout.css.moz-outline-radius.enabled"
-  ],
-  [
-    "-moz-outline-radius-topleft",
-    "layout.css.moz-outline-radius.enabled"
-  ],
-  [
-    "-moz-outline-radius-topright",
-    "layout.css.moz-outline-radius.enabled"
-  ],
-  [
     "overflow-clip-box",
     "layout.css.overflow-clip-box.enabled"
   ],
@@ -11066,10 +11082,6 @@ exports.PREFERENCES = [
   [
     "zoom",
     "layout.css.zoom-transform-hack.enabled"
-  ],
-  [
-    "-moz-outline-radius",
-    "layout.css.moz-outline-radius.enabled"
   ],
   [
     "-moz-transition-duration",

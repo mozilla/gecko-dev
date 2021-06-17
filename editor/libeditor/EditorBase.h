@@ -159,9 +159,6 @@ class EditorBase : public nsIEditor,
    */
   EditorBase();
 
-  bool IsTextEditor() const { return !mIsHTMLEditorClass; }
-  bool IsHTMLEditor() const { return mIsHTMLEditorClass; }
-
   /**
    * Init is to tell the implementation of nsIEditor to begin its services
    * @param aDoc          The dom document interface being observed
@@ -1952,17 +1949,6 @@ class EditorBase : public nsIEditor,
    */
   bool ShouldHandleIMEComposition() const;
 
-  /**
-   * GetNodeAtRangeOffsetPoint() returns the node at this position in a range,
-   * assuming that the container is the node itself if it's a text node, or
-   * the node's parent otherwise.
-   */
-  static nsIContent* GetNodeAtRangeOffsetPoint(nsINode* aContainer,
-                                               int32_t aOffset) {
-    return GetNodeAtRangeOffsetPoint(RawRangeBoundary(aContainer, aOffset));
-  }
-  static nsIContent* GetNodeAtRangeOffsetPoint(const RawRangeBoundary& aPoint);
-
   static EditorRawDOMPoint GetStartPoint(const Selection& aSelection);
   static EditorRawDOMPoint GetEndPoint(const Selection& aSelection);
 
@@ -2254,6 +2240,15 @@ class EditorBase : public nsIEditor,
     return mIsHTMLEditorClass ? EditorType::HTML : EditorType::Text;
   }
 
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult EnsureEmptyTextFirstChild();
+
+  /**
+   * InitEditorContentAndSelection() may insert a padding `<br>` element for
+   * if it's required in the anonymous `<div>` element or `<body>` element and
+   * collapse selection at the end if there is no selection ranges.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InitEditorContentAndSelection();
+
   int32_t WrapWidth() const { return mWrapColumn; }
 
   /**
@@ -2322,6 +2317,13 @@ class EditorBase : public nsIEditor,
   already_AddRefed<nsIDocumentEncoder> GetAndInitDocEncoder(
       const nsAString& aFormatType, uint32_t aDocumentEncoderFlags,
       const nsACString& aCharset) const;
+
+  /**
+   * EnsurePaddingBRElementInMultilineEditor() creates a padding `<br>` element
+   * at end of multiline text editor.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  EnsurePaddingBRElementInMultilineEditor();
 
   /**
    * SelectAllInternal() should be used instead of SelectAll() in editor
@@ -2927,6 +2929,14 @@ class EditorBase : public nsIEditor,
 };
 
 }  // namespace mozilla
+
+bool nsIEditor::IsTextEditor() const {
+  return !AsEditorBase()->mIsHTMLEditorClass;
+}
+
+bool nsIEditor::IsHTMLEditor() const {
+  return AsEditorBase()->mIsHTMLEditorClass;
+}
 
 mozilla::EditorBase* nsIEditor::AsEditorBase() {
   return static_cast<mozilla::EditorBase*>(this);

@@ -582,8 +582,9 @@ parent:
 child:
     async NativeSynthesisResponse(uint64_t aObserverId, nsCString aResponse);
     async UpdateEpoch(uint32_t aEpoch);
-    async UpdateSHistory(bool aImmediately);
-    async CloneDocumentTreeIntoSelf(MaybeDiscardedBrowsingContext aBc);
+    async UpdateSHistory();
+    async CloneDocumentTreeIntoSelf(MaybeDiscardedBrowsingContext aBc, PrintData aPrintData);
+    async UpdateRemotePrintSettings(PrintData aPrintData);
 
     /**
      * Parent informs the child to release all pointer capture.

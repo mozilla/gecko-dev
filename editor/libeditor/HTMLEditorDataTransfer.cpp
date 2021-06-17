@@ -1862,7 +1862,7 @@ nsresult HTMLEditor::InsertFromTransferable(nsITransferable* aTransferable,
 }
 
 static void GetStringFromDataTransfer(const DataTransfer* aDataTransfer,
-                                      const nsAString& aType, int32_t aIndex,
+                                      const nsAString& aType, uint32_t aIndex,
                                       nsString& aOutputString) {
   nsCOMPtr<nsIVariant> variant;
   DebugOnly<nsresult> rvIgnored = aDataTransfer->GetDataAtNoSecurityCheck(
@@ -1879,14 +1879,14 @@ static void GetStringFromDataTransfer(const DataTransfer* aDataTransfer,
 }
 
 nsresult HTMLEditor::InsertFromDataTransfer(const DataTransfer* aDataTransfer,
-                                            int32_t aIndex,
+                                            uint32_t aIndex,
                                             Document* aSourceDoc,
                                             const EditorDOMPoint& aDroppedAt,
                                             bool aDoDeleteSelection) {
   MOZ_ASSERT(GetEditAction() == EditAction::eDrop ||
              GetEditAction() == EditAction::ePaste);
   MOZ_ASSERT(mPlaceholderBatch,
-             "TextEditor::InsertFromDataTransfer() should be called by "
+             "HTMLEditor::InsertFromDataTransfer() should be called by "
              "HandleDropEvent() or paste action and there should've already "
              "been placeholder transaction");
   MOZ_ASSERT_IF(GetEditAction() == EditAction::eDrop, aDroppedAt.IsSet());

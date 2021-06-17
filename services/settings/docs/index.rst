@@ -165,7 +165,7 @@ The provided helper will:
 
     The ``fallbackToDump`` option activates a fallback to a dump that has been
     packaged with the client, when other ways to load the attachment have failed.
-    See :ref:`_services/packaging-attachments` for more information.
+    See :ref:`services/packaging-attachments <services/packaging-attachments>` for more information.
 
 .. note::
 
@@ -248,6 +248,8 @@ The synchronization process consists in pulling the recent changes, merging them
 
 .. Source of diagram
 .. https://mermaid-js.github.io/mermaid-live-editor/
+.. When using this tool, please remove xlink prefix from attributes in the resulting SVG file.
+.. See bug 1481470.
 ..
 .. graph TD
 ..     0[Sync] --> pull;

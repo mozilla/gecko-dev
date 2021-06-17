@@ -270,8 +270,14 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvResumeLoad(const uint64_t& aPendingSwitchID,
                                          const ParentShowInfo&);
 
-  mozilla::ipc::IPCResult RecvCloneDocumentTreeIntoSelf(
-      const MaybeDiscarded<BrowsingContext>& aSourceBC);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult
+  RecvCloneDocumentTreeIntoSelf(
+      const MaybeDiscarded<BrowsingContext>& aSourceBC,
+      const embedding::PrintData& aPrintData);
+
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  mozilla::ipc::IPCResult RecvUpdateRemotePrintSettings(
+      const embedding::PrintData& aPrintData);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvShow(const ParentShowInfo&, const OwnerShowInfo&);
@@ -391,7 +397,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   mozilla::ipc::IPCResult RecvUpdateEpoch(const uint32_t& aEpoch);
 
-  mozilla::ipc::IPCResult RecvUpdateSHistory(const bool& aImmediately);
+  mozilla::ipc::IPCResult RecvUpdateSHistory();
 
   mozilla::ipc::IPCResult RecvNativeSynthesisResponse(
       const uint64_t& aObserverId, const nsCString& aResponse);
@@ -649,7 +655,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   // Returns the portion of the visible rect of this remote document in the
   // top browser window coordinate system.  This is the result of being clipped
   // by all ancestor viewports.
-  mozilla::ScreenRect GetTopLevelViewportVisibleRectInBrowserCoords() const;
+  Maybe<ScreenRect> GetTopLevelViewportVisibleRectInBrowserCoords() const;
 
   // Similar to above GetTopLevelViewportVisibleRectInBrowserCoords(), but in
   // this out-of-process document's coordinate system.
@@ -837,6 +843,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   bool mDidLoadURLInit;
 
   bool mSkipKeyPress;
+  bool mDidSetEffectsInfo;
 
   // Store the end time of the handling of the last repeated keydown/keypress
   // event so that in case event handling takes time, some repeated events can
@@ -900,6 +907,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   int32_t mCancelContentJSEpoch;
 
   Maybe<LayoutDeviceToLayoutDeviceMatrix4x4> mChildToParentConversionMatrix;
+  // When mChildToParentConversionMatrix is Nothing() this value is invalid.
   ScreenRect mTopLevelViewportVisibleRectInBrowserCoords;
 
 #ifdef XP_WIN

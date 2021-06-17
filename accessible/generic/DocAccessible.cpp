@@ -6,6 +6,7 @@
 
 #include "LocalAccessible-inl.h"
 #include "AccIterator.h"
+#include "AccAttributes.h"
 #include "DocAccessible-inl.h"
 #include "DocAccessibleChild.h"
 #include "HTMLImageMapAccessible.h"
@@ -31,7 +32,6 @@
 #include "nsIFrame.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsImageFrame.h"
-#include "nsIPersistentProperties2.h"
 #include "nsViewManager.h"
 #include "nsIScrollableFrame.h"
 #include "nsUnicharUtils.h"
@@ -41,11 +41,11 @@
 #include "nsTHashSet.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/EditorBase.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_accessibility.h"
-#include "mozilla/TextEditor.h"
 #include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/DocumentType.h"
@@ -239,8 +239,8 @@ uint64_t DocAccessible::NativeState() const {
     state |= states::INVISIBLE | states::OFFSCREEN;
   }
 
-  RefPtr<TextEditor> textEditor = GetEditor();
-  state |= textEditor ? states::EDITABLE : states::READONLY;
+  RefPtr<EditorBase> editorBase = GetEditor();
+  state |= editorBase ? states::EDITABLE : states::READONLY;
 
   return state;
 }
@@ -261,9 +261,8 @@ void DocAccessible::ApplyARIAState(uint64_t* aState) const {
   if (mParent) mParent->ApplyARIAState(aState);
 }
 
-already_AddRefed<nsIPersistentProperties> DocAccessible::Attributes() {
-  nsCOMPtr<nsIPersistentProperties> attributes =
-      HyperTextAccessibleWrap::Attributes();
+already_AddRefed<AccAttributes> DocAccessible::Attributes() {
+  RefPtr<AccAttributes> attributes = HyperTextAccessibleWrap::Attributes();
 
   // No attributes if document is not attached to the tree or if it's a root
   // document.
@@ -271,9 +270,10 @@ already_AddRefed<nsIPersistentProperties> DocAccessible::Attributes() {
 
   // Override ARIA object attributes from outerdoc.
   aria::AttrIterator attribIter(mParent->GetContent());
-  nsAutoString name, value, unused;
-  while (attribIter.Next(name, value)) {
-    attributes->SetStringProperty(NS_ConvertUTF16toUTF8(name), value, unused);
+  while (attribIter.Next()) {
+    nsAutoString value;
+    attribIter.AttrValue(value);
+    attributes->SetAttribute(attribIter.AttrName(), value);
   }
 
   return attributes.forget();
@@ -295,7 +295,7 @@ void DocAccessible::TakeFocus() const {
 }
 
 // HyperTextAccessible method
-already_AddRefed<TextEditor> DocAccessible::GetEditor() const {
+already_AddRefed<EditorBase> DocAccessible::GetEditor() const {
   // Check if document is editable (designMode="on" case). Otherwise check if
   // the html:body (for HTML document case) or document element is editable.
   if (!mDocumentNode->HasFlag(NODE_IS_EDITABLE) &&
@@ -1379,18 +1379,9 @@ LocalAccessible* DocAccessible::GetAccessibleOrDescendant(
 
   acc = GetContainerAccessible(aNode);
   if (acc) {
-    // We access the `mChildren` array directly so that we don't access
-    // lazily created children in places like `XULTreeAccessible` and
-    // `XULTreeGridAccessible`.
-    uint32_t childCnt = acc->mChildren.Length();
-    for (uint32_t idx = 0; idx < childCnt; idx++) {
-      LocalAccessible* child = acc->mChildren.ElementAt(idx);
-      for (nsIContent* elm = child->GetContent();
-           elm && elm != acc->GetContent();
-           elm = elm->GetFlattenedTreeParent()) {
-        if (elm == aNode) return child;
-      }
-    }
+    TreeWalker walker(acc, aNode->AsContent(),
+                      TreeWalker::eWalkCache | TreeWalker::eScoped);
+    return walker.Next();
   }
 
   return nullptr;

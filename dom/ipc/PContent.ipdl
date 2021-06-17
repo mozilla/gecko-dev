@@ -49,11 +49,11 @@ include DOMTypes;
 include WindowGlobalTypes;
 include IPCBlob;
 include IPCStream;
+include PPrintingTypes;
 include PTabContext;
 include ProtocolTypes;
 include PBackgroundSharedTypes;
 include PContentPermission;
-include ServiceWorkerConfiguration;
 include GraphicsMessages;
 include MemoryReportTypes;
 include ClientIPCTypes;
@@ -483,7 +483,11 @@ parent:
     // Guess we'll see how we end up triggering the actual print, for preview
     // this should be enough...
     async CloneDocumentTreeInto(MaybeDiscardedBrowsingContext aSourceBc,
-                                MaybeDiscardedBrowsingContext aTargetBc);
+                                MaybeDiscardedBrowsingContext aTargetBc,
+                                PrintData aPrintData);
+
+    async UpdateRemotePrintSettings(MaybeDiscardedBrowsingContext aBc,
+                                    PrintData aPrintData);
 
     async PExtensions();
 
@@ -690,11 +694,6 @@ child:
      * Send the remote type associated with the content process.
      */
     async RemoteType(nsCString aRemoteType);
-
-    /**
-     * Send ServiceWorkerRegistrationData to child process.
-     */
-    async InitServiceWorkers(ServiceWorkerConfiguration aConfig);
 
     /**
      * Send BlobURLRegistrationData to child process.
@@ -1004,7 +1003,7 @@ parent:
 
     async InitCrashReporter(NativeThreadId tid);
 
-    sync IsSecureURI(uint32_t aType, nsIURI aURI, uint32_t aFlags,
+    sync IsSecureURI(nsIURI aURI, uint32_t aFlags,
                      OriginAttributes aOriginAttributes)
         returns (bool isSecureURI);
 

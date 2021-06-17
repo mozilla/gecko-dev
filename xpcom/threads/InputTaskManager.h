@@ -50,8 +50,7 @@ class InputTaskManager : public TaskManager {
 
   bool IsSuspended(const MutexAutoLock& aProofOfLock) override {
     MOZ_ASSERT(NS_IsMainThread());
-    return mInputQueueState == STATE_DISABLED ||
-           mInputQueueState == STATE_SUSPEND || mSuspensionLevel > 0;
+    return mInputQueueState == STATE_SUSPEND || mSuspensionLevel > 0;
   }
 
   bool IsSuspended() {
@@ -99,14 +98,14 @@ class InputTaskManager : public TaskManager {
 
     void WillRunVsync();
 
-    // Gets called when a input task is finished to run; If the current
+    // Gets called when a input task is going to run; If the current
     // input vsync state is `HasPendingVsync`, determines whether we
     // should continue running input tasks or leave the `HasPendingVsync` state
     // based on
     //    1. Whether we still have time to process input tasks
     //    2. Whether we have processed the max number of tasks that
     //    we should process.
-    void DidRunTask();
+    void WillRunTask();
 
    private:
     // Used to represents the relationship between Input and Vsync.

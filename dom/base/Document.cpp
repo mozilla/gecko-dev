@@ -57,6 +57,7 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/DocLoadingTimelineMarker.h"
 #include "mozilla/DocumentStyleRootIterator.h"
+#include "mozilla/EditorBase.h"
 #include "mozilla/EditorCommands.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/ErrorResult.h"
@@ -340,6 +341,7 @@
 #include "nsIPermission.h"
 #include "nsIPrompt.h"
 #include "nsIPropertyBag2.h"
+#include "nsIPublicKeyPinningService.h"
 #include "nsIReferrerInfo.h"
 #include "nsIRefreshURI.h"
 #include "nsIRequest.h"
@@ -1889,23 +1891,22 @@ void Document::GetFailedCertSecurityInfo(FailedCertSecurityInfo& aInfo,
   if (XRE_IsContentProcess()) {
     ContentChild* cc = ContentChild::GetSingleton();
     MOZ_ASSERT(cc);
-    cc->SendIsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI, flags, attrs,
-                        &aInfo.mHasHSTS);
-    cc->SendIsSecureURI(nsISiteSecurityService::STATIC_PINNING, aURI, flags,
-                        attrs, &aInfo.mHasHPKP);
+    cc->SendIsSecureURI(aURI, flags, attrs, &aInfo.mHasHSTS);
   } else {
     nsCOMPtr<nsISiteSecurityService> sss =
         do_GetService(NS_SSSERVICE_CONTRACTID);
     if (NS_WARN_IF(!sss)) {
       return;
     }
-    Unused << NS_WARN_IF(NS_FAILED(
-        sss->IsSecureURI(nsISiteSecurityService::HEADER_HSTS, aURI, flags,
-                         attrs, nullptr, nullptr, &aInfo.mHasHSTS)));
-    Unused << NS_WARN_IF(NS_FAILED(
-        sss->IsSecureURI(nsISiteSecurityService::STATIC_PINNING, aURI, flags,
-                         attrs, nullptr, nullptr, &aInfo.mHasHPKP)));
+    Unused << NS_WARN_IF(NS_FAILED(sss->IsSecureURI(aURI, flags, attrs, nullptr,
+                                                    nullptr, &aInfo.mHasHSTS)));
   }
+  nsCOMPtr<nsIPublicKeyPinningService> pkps =
+      do_GetService(NS_PKPSERVICE_CONTRACTID);
+  if (NS_WARN_IF(!pkps)) {
+    return;
+  }
+  Unused << NS_WARN_IF(NS_FAILED(pkps->HostHasPins(aURI, &aInfo.mHasHPKP)));
 }
 
 bool Document::AllowDeprecatedTls() {
@@ -5074,7 +5075,7 @@ Document::AutoEditorCommandTarget::AutoEditorCommandTarget(
   mHTMLEditor = nullptr;
 }
 
-TextEditor* Document::AutoEditorCommandTarget::GetTargetEditor() const {
+EditorBase* Document::AutoEditorCommandTarget::GetTargetEditor() const {
   using CommandOnTextEditor = InternalCommandData::CommandOnTextEditor;
   switch (mCommandData.mCommandOnTextEditor) {
     case CommandOnTextEditor::Enabled:
@@ -5095,7 +5096,7 @@ bool Document::AutoEditorCommandTarget::IsEditable(Document* aDocument) const {
     // we're editable.
     doc->FlushPendingNotifications(FlushType::Frames);
   }
-  TextEditor* targetEditor = GetTargetEditor();
+  EditorBase* targetEditor = GetTargetEditor();
   if (targetEditor && targetEditor->IsTextEditor()) {
     // FYI: When `disabled` attribute is set, `TextEditor` treats it as
     //      "readonly" too.
@@ -5105,7 +5106,7 @@ bool Document::AutoEditorCommandTarget::IsEditable(Document* aDocument) const {
 }
 
 bool Document::AutoEditorCommandTarget::IsCommandEnabled() const {
-  TextEditor* targetEditor = GetTargetEditor();
+  EditorBase* targetEditor = GetTargetEditor();
   if (!targetEditor) {
     return false;
   }
@@ -5118,7 +5119,7 @@ nsresult Document::AutoEditorCommandTarget::DoCommand(
     nsIPrincipal* aPrincipal) const {
   MOZ_ASSERT(!DoNothing());
   MOZ_ASSERT(mEditorCommand);
-  TextEditor* targetEditor = GetTargetEditor();
+  EditorBase* targetEditor = GetTargetEditor();
   if (!targetEditor) {
     return NS_SUCCESS_DOM_NO_OPERATION;
   }
@@ -5133,7 +5134,7 @@ nsresult Document::AutoEditorCommandTarget::DoCommandParam(
     const ParamType& aParam, nsIPrincipal* aPrincipal) const {
   MOZ_ASSERT(!DoNothing());
   MOZ_ASSERT(mEditorCommand);
-  TextEditor* targetEditor = GetTargetEditor();
+  EditorBase* targetEditor = GetTargetEditor();
   if (!targetEditor) {
     return NS_SUCCESS_DOM_NO_OPERATION;
   }
@@ -5146,7 +5147,7 @@ nsresult Document::AutoEditorCommandTarget::DoCommandParam(
 nsresult Document::AutoEditorCommandTarget::GetCommandStateParams(
     nsCommandParams& aParams) const {
   MOZ_ASSERT(mEditorCommand);
-  TextEditor* targetEditor = GetTargetEditor();
+  EditorBase* targetEditor = GetTargetEditor();
   if (!targetEditor) {
     return NS_OK;
   }
@@ -5732,8 +5733,7 @@ nsresult Document::TurnEditingOff() {
   if (nsFocusManager* fm = nsFocusManager::GetFocusManager()) {
     if (RefPtr<TextControlElement> textControlElement =
             TextControlElement::FromNodeOrNull(fm->GetFocusedElement())) {
-      RefPtr<TextEditor> textEditor = textControlElement->GetTextEditor();
-      if (textEditor) {
+      if (RefPtr<TextEditor> textEditor = textControlElement->GetTextEditor()) {
         textEditor->ReinitializeSelection(*textControlElement);
       }
     }
@@ -12832,7 +12832,7 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
 
 already_AddRefed<Document> Document::CreateStaticClone(
     nsIDocShell* aCloneContainer, nsIContentViewer* aViewer,
-    bool* aOutHasInProcessPrintCallbacks) {
+    nsIPrintSettings* aPrintSettings, bool* aOutHasInProcessPrintCallbacks) {
   MOZ_ASSERT(!mCreatingStaticClone);
   MOZ_ASSERT(!GetProperty(nsGkAtoms::adoptedsheetclones));
   MOZ_DIAGNOSTIC_ASSERT(aViewer);
@@ -12926,7 +12926,7 @@ already_AddRefed<Document> Document::CreateStaticClone(
     clone.mElement->SetFrameLoader(frameLoader);
 
     nsresult rv = frameLoader->FinishStaticClone(
-        clone.mStaticCloneOf, aOutHasInProcessPrintCallbacks);
+        clone.mStaticCloneOf, aPrintSettings, aOutHasInProcessPrintCallbacks);
     Unused << NS_WARN_IF(NS_FAILED(rv));
   }
 

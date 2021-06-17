@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <utility>
 
-#include "BackgroundChild.h"
 #include "BrowserParent.h"
 #include "ClientLayerManager.h"
 #include "ContentChild.h"
@@ -81,6 +80,7 @@
 #include "mozilla/gfx/CrossProcessPaint.h"
 #include "mozilla/gfx/Matrix.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 #include "mozilla/ipc/URIUtils.h"
@@ -331,6 +331,7 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
       mDidSetRealShowInfo(false),
       mDidLoadURLInit(false),
       mSkipKeyPress(false),
+      mDidSetEffectsInfo(false),
       mLayersObserverEpoch{1},
 #if defined(XP_WIN) && defined(ACCESSIBILITY)
       mNativeWindowHandle(0),
@@ -400,7 +401,7 @@ BrowserChild::Observe(nsISupports* aSubject, const char* aTopic,
       nsCOMPtr<Document> subject(do_QueryInterface(aSubject));
       nsCOMPtr<Document> doc(GetTopLevelDocument());
 
-      if (subject == doc && doc->IsTopLevelContentDocument()) {
+      if (subject == doc) {
         RefPtr<PresShell> presShell = doc->GetPresShell();
         if (presShell) {
           presShell->SetIsFirstPaint(true);
@@ -1043,7 +1044,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvResumeLoad(
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvCloneDocumentTreeIntoSelf(
-    const MaybeDiscarded<BrowsingContext>& aSourceBC) {
+    const MaybeDiscarded<BrowsingContext>& aSourceBC,
+    const embedding::PrintData& aPrintData) {
+#ifdef NS_PRINTING
   if (NS_WARN_IF(aSourceBC.IsNullOrDiscarded())) {
     return IPC_OK();
   }
@@ -1063,28 +1066,79 @@ mozilla::ipc::IPCResult BrowserChild::RecvCloneDocumentTreeIntoSelf(
     return IPC_OK();
   }
 
+  nsCOMPtr<nsIPrintSettingsService> printSettingsSvc =
+      do_GetService("@mozilla.org/gfx/printsettings-service;1");
+  if (NS_WARN_IF(!printSettingsSvc)) {
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsIPrintSettings> printSettings;
+  nsresult rv =
+      printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IPC_OK();
+  }
+
+  printSettingsSvc->DeserializeToPrintSettings(aPrintData, printSettings);
+
   RefPtr<Document> clone;
   {
     AutoPrintEventDispatcher dispatcher(*sourceDocument);
     nsAutoScriptBlocker scriptBlocker;
     bool hasInProcessCallbacks = false;
-    clone = sourceDocument->CreateStaticClone(ourDocShell, cv,
+    clone = sourceDocument->CreateStaticClone(ourDocShell, cv, printSettings,
                                               &hasInProcessCallbacks);
     if (NS_WARN_IF(!clone)) {
       return IPC_OK();
     }
   }
 
-  // Since the clone document is not parsed-created, we need to initialize
-  // layout manually. This is usually done in ReflowPrintObject for non-remote
-  // documents.
-  if (RefPtr<PresShell> ps = clone->GetPresShell()) {
-    if (!ps->DidInitialize()) {
-      nsresult rv = ps->Initialize();
-      Unused << NS_WARN_IF(NS_FAILED(rv));
-    }
+  rv = cv->SetPrintSettingsForSubdocument(printSettings);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IPC_OK();
+  }
+#endif
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult BrowserChild::RecvUpdateRemotePrintSettings(
+    const embedding::PrintData& aPrintData) {
+#ifdef NS_PRINTING
+  nsCOMPtr<nsIDocShell> ourDocShell = do_GetInterface(WebNavigation());
+  if (NS_WARN_IF(!ourDocShell)) {
+    return IPC_OK();
   }
 
+  RefPtr<Document> doc = ourDocShell->GetExtantDocument();
+  if (NS_WARN_IF(!doc) || NS_WARN_IF(!doc->IsStaticDocument())) {
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsIContentViewer> cv;
+  ourDocShell->GetContentViewer(getter_AddRefs(cv));
+  if (NS_WARN_IF(!cv)) {
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsIPrintSettingsService> printSettingsSvc =
+      do_GetService("@mozilla.org/gfx/printsettings-service;1");
+  if (NS_WARN_IF(!printSettingsSvc)) {
+    return IPC_OK();
+  }
+
+  nsCOMPtr<nsIPrintSettings> printSettings;
+  nsresult rv =
+      printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IPC_OK();
+  }
+
+  printSettingsSvc->DeserializeToPrintSettings(aPrintData, printSettings);
+  rv = cv->SetPrintSettingsForSubdocument(printSettings);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return IPC_OK();
+  }
+#endif
   return IPC_OK();
 }
 
@@ -1536,8 +1590,12 @@ BrowserChild::GetChildToParentConversionMatrix() const {
   return LayoutDeviceToLayoutDeviceMatrix4x4::Translation(offset);
 }
 
-ScreenRect BrowserChild::GetTopLevelViewportVisibleRectInBrowserCoords() const {
-  return mTopLevelViewportVisibleRectInBrowserCoords;
+Maybe<ScreenRect> BrowserChild::GetTopLevelViewportVisibleRectInBrowserCoords()
+    const {
+  if (!mChildToParentConversionMatrix) {
+    return Nothing();
+  }
+  return Some(mTopLevelViewportVisibleRectInBrowserCoords);
 }
 
 void BrowserChild::FlushAllCoalescedMouseData() {
@@ -1813,12 +1871,14 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealTouchEvent(
   MOZ_LOG(sApzChildLog, LogLevel::Debug,
           ("Receiving touch event of type %d\n", aEvent.mMessage));
 
-  if (aEvent.mMessage == eTouchEnd || aEvent.mMessage == eTouchStart) {
-    ProcessPendingColaescedTouchData();
-  }
+  if (StaticPrefs::dom_events_coalesce_touchmove()) {
+    if (aEvent.mMessage == eTouchEnd || aEvent.mMessage == eTouchStart) {
+      ProcessPendingColaescedTouchData();
+    }
 
-  if (aEvent.mMessage != eTouchMove) {
-    sConsecutiveTouchMoveCount = 0;
+    if (aEvent.mMessage != eTouchMove) {
+      sConsecutiveTouchMoveCount = 0;
+    }
   }
 
   WidgetTouchEvent localEvent(aEvent);
@@ -1873,32 +1933,37 @@ mozilla::ipc::IPCResult BrowserChild::RecvNormalPriorityRealTouchEvent(
 mozilla::ipc::IPCResult BrowserChild::RecvRealTouchMoveEvent(
     const WidgetTouchEvent& aEvent, const ScrollableLayerGuid& aGuid,
     const uint64_t& aInputBlockId, const nsEventStatus& aApzResponse) {
-  ++sConsecutiveTouchMoveCount;
-
   // Only start to coalesce the second touchmove to ensure the first
   // touchmove isn't overridden by the second one.
-  if (StaticPrefs::dom_events_coalesce_touchmove() &&
-      mCoalescedTouchMoveEventFlusher && sConsecutiveTouchMoveCount > 1) {
-    MOZ_ASSERT(aEvent.mMessage == eTouchMove);
-    if (mCoalescedTouchData.IsEmpty() ||
-        mCoalescedTouchData.CanCoalesce(aEvent, aGuid, aInputBlockId,
-                                        aApzResponse)) {
-      mCoalescedTouchData.Coalesce(aEvent, aGuid, aInputBlockId, aApzResponse);
-    } else {
-      UniquePtr<WidgetTouchEvent> touchMoveEvent =
-          mCoalescedTouchData.TakeCoalescedEvent();
+  if (StaticPrefs::dom_events_coalesce_touchmove()) {
+    ++sConsecutiveTouchMoveCount;
+    if (mCoalescedTouchMoveEventFlusher && sConsecutiveTouchMoveCount > 1) {
+      MOZ_ASSERT(aEvent.mMessage == eTouchMove);
+      if (mCoalescedTouchData.IsEmpty() ||
+          mCoalescedTouchData.CanCoalesce(aEvent, aGuid, aInputBlockId,
+                                          aApzResponse)) {
+        mCoalescedTouchData.Coalesce(aEvent, aGuid, aInputBlockId,
+                                     aApzResponse);
+      } else {
+        UniquePtr<WidgetTouchEvent> touchMoveEvent =
+            mCoalescedTouchData.TakeCoalescedEvent();
 
-      mCoalescedTouchData.Coalesce(aEvent, aGuid, aInputBlockId, aApzResponse);
+        mCoalescedTouchData.Coalesce(aEvent, aGuid, aInputBlockId,
+                                     aApzResponse);
 
-      if (!RecvRealTouchEvent(*touchMoveEvent,
-                              mCoalescedTouchData.GetScrollableLayerGuid(),
-                              mCoalescedTouchData.GetInputBlockId(),
-                              mCoalescedTouchData.GetApzResponse())) {
-        return IPC_FAIL_NO_REASON(this);
+        if (!RecvRealTouchEvent(*touchMoveEvent,
+                                mCoalescedTouchData.GetScrollableLayerGuid(),
+                                mCoalescedTouchData.GetInputBlockId(),
+                                mCoalescedTouchData.GetApzResponse())) {
+          return IPC_FAIL_NO_REASON(this);
+        }
       }
+      mCoalescedTouchMoveEventFlusher->StartObserver();
+      return IPC_OK();
     }
-    mCoalescedTouchMoveEventFlusher->StartObserver();
-  } else if (!RecvRealTouchEvent(aEvent, aGuid, aInputBlockId, aApzResponse)) {
+  }
+
+  if (!RecvRealTouchEvent(aEvent, aGuid, aInputBlockId, aApzResponse)) {
     return IPC_FAIL_NO_REASON(this);
   }
   return IPC_OK();
@@ -1986,10 +2051,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateEpoch(const uint32_t& aEpoch) {
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvUpdateSHistory(
-    const bool& aImmediately) {
+mozilla::ipc::IPCResult BrowserChild::RecvUpdateSHistory() {
   if (mSessionStoreListener) {
-    mSessionStoreListener->UpdateSHistoryChanges(aImmediately);
+    mSessionStoreListener->UpdateSHistoryChanges();
   }
   return IPC_OK();
 }
@@ -2842,6 +2906,8 @@ void BrowserChild::InitAPZState() {
 }
 
 IPCResult BrowserChild::RecvUpdateEffects(const EffectsInfo& aEffects) {
+  mDidSetEffectsInfo = true;
+
   bool needInvalidate = false;
   if (mEffectsInfo.IsVisible() && aEffects.IsVisible() &&
       mEffectsInfo != aEffects) {
@@ -3321,7 +3387,7 @@ Maybe<nsRect> BrowserChild::GetVisibleRect() const {
     return Nothing();
   }
 
-  return Some(mEffectsInfo.mVisibleRect);
+  return mDidSetEffectsInfo ? Some(mEffectsInfo.mVisibleRect) : Nothing();
 }
 
 Maybe<LayoutDeviceRect>

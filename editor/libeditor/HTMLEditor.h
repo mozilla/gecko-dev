@@ -9,10 +9,10 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/ComposerCommandsUpdater.h"
 #include "mozilla/CSSEditUtils.h"
+#include "mozilla/EditorBase.h"
 #include "mozilla/EditorUtils.h"
 #include "mozilla/ManualNAC.h"
 #include "mozilla/Result.h"
-#include "mozilla/TextEditor.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/Element.h"
@@ -85,7 +85,7 @@ enum class ParagraphSeparator { div, p, br };
  * The HTML editor implementation.<br>
  * Use to edit HTML document represented as a DOM tree.
  */
-class HTMLEditor final : public TextEditor,
+class HTMLEditor final : public EditorBase,
                          public nsIHTMLEditor,
                          public nsIHTMLObjectResizer,
                          public nsIHTMLAbsPosEditor,
@@ -105,7 +105,7 @@ class HTMLEditor final : public TextEditor,
    ****************************************************************************/
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLEditor, TextEditor)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLEditor, EditorBase)
 
   // nsStubMutationObserver overrides
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -135,15 +135,18 @@ class HTMLEditor final : public TextEditor,
 
   HTMLEditor();
 
-  static HTMLEditor* GetFrom(EditorBase* aEditorBase) {
-    return aEditorBase ? aEditorBase->AsHTMLEditor() : nullptr;
+  static HTMLEditor* GetFrom(nsIEditor* aEditor) {
+    return aEditor ? aEditor->GetAsHTMLEditor() : nullptr;
+  }
+  static const HTMLEditor* GetFrom(const nsIEditor* aEditor) {
+    return aEditor ? aEditor->GetAsHTMLEditor() : nullptr;
   }
 
   MOZ_CAN_RUN_SCRIPT virtual void PreDestroy(bool aDestroyingFrames) override;
 
   bool GetReturnInParagraphCreatesNewParagraph();
 
-  // TextEditor overrides
+  // EditorBase overrides
   MOZ_CAN_RUN_SCRIPT virtual nsresult Init(Document& aDoc, Element* aRoot,
                                            nsISelectionController* aSelCon,
                                            uint32_t aFlags,
@@ -206,7 +209,7 @@ class HTMLEditor final : public TextEditor,
   MOZ_CAN_RUN_SCRIPT NS_IMETHOD Paste(int32_t aClipboardType) final {
     const nsresult rv = HTMLEditor::PasteAsAction(aClipboardType, true);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                         "TextEditor::PasteAsAction() failed");
+                         "HTMLEditor::PasteAsAction() failed");
     return rv;
   }
 
@@ -3340,7 +3343,7 @@ class HTMLEditor final : public TextEditor,
 
   /**
    * This sets background on the appropriate container element (table, cell,)
-   * or calls into nsTextEditor to set the page background.
+   * or calls to set the page background.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   SetCSSBackgroundColorWithTransaction(const nsAString& aColor);
@@ -3756,10 +3759,10 @@ class HTMLEditor final : public TextEditor,
    *
    * @param aIndex index of aDataTransfer's item to insert.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult
-  InsertFromDataTransfer(const dom::DataTransfer* aDataTransfer, int32_t aIndex,
-                         Document* aSourceDoc, const EditorDOMPoint& aDroppedAt,
-                         bool aDoDeleteSelection);
+  MOZ_CAN_RUN_SCRIPT nsresult InsertFromDataTransfer(
+      const dom::DataTransfer* aDataTransfer, uint32_t aIndex,
+      Document* aSourceDoc, const EditorDOMPoint& aDroppedAt,
+      bool aDoDeleteSelection);
 
   static bool HavePrivateHTMLFlavor(nsIClipboard* clipboard);
 
@@ -4397,7 +4400,6 @@ class HTMLEditor final : public TextEditor,
   friend class ParagraphStateAtSelection;
   friend class SlurpBlobEventListener;
   friend class SplitNodeTransaction;
-  friend class TextEditor;
   friend class WhiteSpaceVisibilityKeeper;
   friend class WSRunScanner;
   friend class WSScanResult;
@@ -4534,15 +4536,21 @@ class MOZ_STACK_CLASS ParagraphStateAtSelection final {
 }  // namespace mozilla
 
 mozilla::HTMLEditor* nsIEditor::AsHTMLEditor() {
-  return static_cast<mozilla::EditorBase*>(this)->IsHTMLEditor()
-             ? static_cast<mozilla::HTMLEditor*>(this)
-             : nullptr;
+  MOZ_DIAGNOSTIC_ASSERT(IsHTMLEditor());
+  return static_cast<mozilla::HTMLEditor*>(this);
 }
 
 const mozilla::HTMLEditor* nsIEditor::AsHTMLEditor() const {
-  return static_cast<const mozilla::EditorBase*>(this)->IsHTMLEditor()
-             ? static_cast<const mozilla::HTMLEditor*>(this)
-             : nullptr;
+  MOZ_DIAGNOSTIC_ASSERT(IsHTMLEditor());
+  return static_cast<const mozilla::HTMLEditor*>(this);
+}
+
+mozilla::HTMLEditor* nsIEditor::GetAsHTMLEditor() {
+  return AsEditorBase()->IsHTMLEditor() ? AsHTMLEditor() : nullptr;
+}
+
+const mozilla::HTMLEditor* nsIEditor::GetAsHTMLEditor() const {
+  return AsEditorBase()->IsHTMLEditor() ? AsHTMLEditor() : nullptr;
 }
 
 #endif  // #ifndef mozilla_HTMLEditor_h

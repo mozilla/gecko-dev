@@ -153,9 +153,11 @@ class nsFrameLoader final : public nsStubMutationObserver,
   // created for the cloned iframe, and `FinishStaticClone` will be called on
   // it, which will clone the inner document of the source nsFrameLoader.
   nsresult FinishStaticClone(nsFrameLoader* aStaticCloneOf,
+                             nsIPrintSettings* aPrintSettings,
                              bool* aOutHasInProcessPrintCallbacks);
 
-  nsresult DoRemoteStaticClone(nsFrameLoader* aStaticCloneOf);
+  nsresult DoRemoteStaticClone(nsFrameLoader* aStaticCloneOf,
+                               nsIPrintSettings* aPrintSettings);
 
   // WebIDL methods
 
@@ -222,7 +224,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
 
   void RequestEpochUpdate(uint32_t aEpoch);
 
-  void RequestSHistoryUpdate(bool aImmediately = false);
+  void RequestSHistoryUpdate();
 
   already_AddRefed<Promise> PrintPreview(nsIPrintSettings* aPrintSettings,
                                          BrowsingContext* aSourceBC,

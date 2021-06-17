@@ -1937,6 +1937,7 @@ BrowserGlue.prototype = {
 
     BrowserUsageTelemetry.uninit();
     SearchSERPTelemetry.uninit();
+    Interactions.uninit();
     PageThumbs.uninit();
     NewTabUtils.uninit();
 
@@ -2375,6 +2376,23 @@ BrowserGlue.prototype = {
               temp
             );
             temp.WinTaskbarJumpList.startup();
+          }
+        },
+      },
+
+      // Report macOS Dock status
+      {
+        condition: AppConstants.platform == "macosx",
+        task: () => {
+          try {
+            Services.telemetry.scalarSet(
+              "os.environment.is_kept_in_dock",
+              Cc["@mozilla.org/widget/macdocksupport;1"].getService(
+                Ci.nsIMacDockSupport
+              ).isAppInDock
+            );
+          } catch (ex) {
+            Cu.reportError(ex);
           }
         },
       },
@@ -5028,7 +5046,7 @@ var AboutHomeStartupCache = {
 
     this.setDeferredResult(this.CACHE_RESULT_SCALARS.UNSET);
 
-    this._enabled = Services.prefs.getBoolPref(this.ENABLED_PREF, false);
+    this._enabled = NimbusFeatures.abouthomecache.isEnabled();
 
     if (!this._enabled) {
       this.recordResult(this.CACHE_RESULT_SCALARS.DISABLED);

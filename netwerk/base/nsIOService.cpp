@@ -161,6 +161,8 @@ int16_t gBadPortList[] = {
     587,    // smtp (outgoing)
     601,    // syslog-conn
     636,    // ldap+ssl
+    989,    // ftps-data
+    990,    // ftps
     993,    // imap+ssl
     995,    // pop3+ssl
     1719,   // h323gatestat
@@ -196,26 +198,9 @@ uint32_t nsIOService::gDefaultSegmentCount = 24;
 ////////////////////////////////////////////////////////////////////////////////
 
 nsIOService::nsIOService()
-    : mOffline(true),
-      mOfflineForProfileChange(false),
-      mManageLinkStatus(false),
-      mConnectivity(true),
-      mSettingOffline(false),
-      mSetOfflineValue(false),
-      mSocketProcessLaunchComplete(false),
-      mShutdown(false),
-      mHttpHandlerAlreadyShutingDown(false),
-      mNetworkLinkServiceInitialized(false),
-      mChannelEventSinks(NS_CHANNEL_EVENT_SINK_CATEGORY),
-      mMutex("nsIOService::mMutex"),
-      mTotalRequests(0),
-      mCacheWon(0),
-      mNetWon(0),
-      mLastOfflineStateChange(PR_IntervalNow()),
+    : mLastOfflineStateChange(PR_IntervalNow()),
       mLastConnectivityChange(PR_IntervalNow()),
-      mLastNetworkLinkChange(PR_IntervalNow()),
-      mNetTearingDownStarted(0),
-      mSocketProcess(nullptr) {}
+      mLastNetworkLinkChange(PR_IntervalNow()) {}
 
 static const char* gCallbackPrefs[] = {
     PORT_PREF_PREFIX,
@@ -258,7 +243,6 @@ static const char* gCallbackSecurityPrefs[] = {
     "security.ssl.enable_ocsp_stapling",
     "security.ssl.enable_ocsp_must_staple",
     "security.pki.certificate_transparency.mode",
-    "security.cert_pinning.enforcement_level",
     "security.pki.name_matching_mode",
     nullptr,
 };
@@ -405,7 +389,6 @@ void nsIOService::OnTLSPrefChange(const char* aPref, void* aSelf) {
   } else if (pref.EqualsLiteral("security.ssl.enable_ocsp_stapling") ||
              pref.EqualsLiteral("security.ssl.enable_ocsp_must_staple") ||
              pref.EqualsLiteral("security.pki.certificate_transparency.mode") ||
-             pref.EqualsLiteral("security.cert_pinning.enforcement_level") ||
              pref.EqualsLiteral("security.pki.name_matching_mode")) {
     SetValidationOptionsCommon();
   }

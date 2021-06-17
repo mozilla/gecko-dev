@@ -615,6 +615,10 @@ function isFissionEnabled() {
   return SpecialPowers.useRemoteSubframes;
 }
 
+function isServerTargetSwitchingEnabled() {
+  return Services.prefs.getBoolPref("devtools.target-switching.server.enabled");
+}
+
 /**
  * Open the inspector in a tab with given URL.
  * @param {string} url  The URL to open.
@@ -1595,4 +1599,13 @@ function scrollContentPageNodeIntoView(browsingContext, selector) {
     const node = content.wrappedJSObject.document.querySelector(innerSelector);
     node.scrollIntoView();
   });
+}
+
+/**
+ * Change the zoom level of the selected page.
+ *
+ * @param {Number} zoomLevel
+ */
+function setContentPageZoomLevel(zoomLevel) {
+  gBrowser.selectedBrowser.fullZoom = zoomLevel;
 }

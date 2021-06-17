@@ -17,15 +17,15 @@ add_task(async function() {
   const { testActor } = inspector;
 
   await testZoomSize(testActor, helper);
-  await testGeometryBox(testActor, helper);
-  await testStrokeBox(testActor, helper);
+  await testGeometryBox(helper);
+  await testStrokeBox(helper);
 
   await helper.finalize();
 });
 
 async function testZoomSize(testActor, helper) {
   await helper.show("#polygon", { mode: "cssClipPath" });
-  const quads = await testActor.getAllAdjustedQuads("#polygon");
+  const quads = await getAllAdjustedQuadsForContentPageElement("#polygon");
   const { top, left, width, height } = quads.border[0].bounds;
   const expectedStyle = `top:${top}px;left:${left}px;width:${width}px;height:${height}px;`;
 
@@ -33,7 +33,13 @@ async function testZoomSize(testActor, helper) {
   // It should always match the element being highlighted.
   for (const zoom of TEST_LEVELS) {
     info(`Setting zoom level to ${zoom}.`);
-    await testActor.zoomPageTo(zoom, helper.actorID);
+
+    const onHighlighterUpdated = testActor.once("highlighter-updated");
+    // we need to await here to ensure the event listener was registered.
+    await testActor.registerOneTimeHighlighterUpdate(helper.actorID);
+
+    setContentPageZoomLevel(zoom);
+    await onHighlighterUpdated;
     const style = await helper.getElementAttribute(
       "shapes-shape-container",
       "style"
@@ -45,12 +51,13 @@ async function testZoomSize(testActor, helper) {
       `Highlighter has correct quads at zoom level ${zoom}`
     );
   }
+  // reset zoom
+  setContentPageZoomLevel(1);
 }
 
-async function testGeometryBox(testActor, helper) {
-  await testActor.zoomPageTo(1, helper.actorID);
+async function testGeometryBox(helper) {
   await helper.show("#ellipse", { mode: "cssClipPath" });
-  let quads = await testActor.getAllAdjustedQuads("#ellipse");
+  let quads = await getAllAdjustedQuadsForContentPageElement("#ellipse");
   const {
     top: cTop,
     left: cLeft,
@@ -66,7 +73,9 @@ async function testGeometryBox(testActor, helper) {
   is(style, expectedStyle, "Highlighter has correct quads for content-box");
 
   await helper.show("#ellipse-padding-box", { mode: "cssClipPath" });
-  quads = await testActor.getAllAdjustedQuads("#ellipse-padding-box");
+  quads = await getAllAdjustedQuadsForContentPageElement(
+    "#ellipse-padding-box"
+  );
   const {
     top: pTop,
     left: pLeft,
@@ -79,11 +88,11 @@ async function testGeometryBox(testActor, helper) {
   is(style, expectedStyle, "Highlighter has correct quads for padding-box");
 }
 
-async function testStrokeBox(testActor, helper) {
+async function testStrokeBox(helper) {
   // #rect has a stroke and doesn't have the clip-path option stroke-box,
   // so we must adjust the quads to reflect the object bounding box.
   await helper.show("#rect", { mode: "cssClipPath" });
-  const quads = await testActor.getAllAdjustedQuads("#rect");
+  const quads = await getAllAdjustedQuadsForContentPageElement("#rect");
   const { top, left, width, height } = quads.border[0].bounds;
   const { highlightedNode } = helper;
   const computedStyle = await highlightedNode.getComputedStyle();
