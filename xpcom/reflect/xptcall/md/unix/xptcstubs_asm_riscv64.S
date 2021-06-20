@@ -2,8 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-    .set NGPREGS,8
-    .set NFPREGS,8
+    .set NGPREGS, 8
+    .set NFPREGS, 8
 
     .text
     .globl SharedStub
@@ -12,6 +12,7 @@
 
 SharedStub:
     .cfi_startproc
+    mv      t1, sp
     addi    sp, sp, -8*(NGPREGS+NFPREGS)-16
     .cfi_adjust_cfa_offset 8*(NGPREGS+NFPREGS)+16
     sd      a0, 0(sp)
@@ -33,17 +34,11 @@ SharedStub:
     sd      ra, 136(sp)
     .cfi_rel_offset ra, 136
 
-    # methodIndex passed from stub
+    /* methodIndex is passed from stub */
     mv      a1, t0
-    addi    a2, sp, 8*(NGPREGS+NFPREGS)+16
+    mv      a2, t1
     mv      a3, sp
     addi    a4, sp, 8*NGPREGS
-
-    # nsresult PrepareAndDispatch(nsXPTCStubBase* self,
-    #                             uint32_t methodIndex,
-    #                             uint64_t* args,
-    #                             uint64_t* gpregs,
-    #                             double* fpregs);
 
     call    PrepareAndDispatch
 

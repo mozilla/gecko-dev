@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-    .set NGPREGS,8
-    .set NFPREGS,8
+    .set NGPREGS, 8
+    .set NFPREGS, 8
 
     .text
     .globl  _NS_InvokeByIndex
     .type   _NS_InvokeByIndex, @function
 /*
- * NS_InvokeByIndex(nsISupports* that, uint32_t methodIndex,
- *                  uint32_t paramCount, nsXPTCVariant* params)
+ * _NS_InvokeByIndex(nsISupports* that, uint32_t methodIndex,
+ *                   uint32_t paramCount, nsXPTCVariant* params)
  */
 _NS_InvokeByIndex:
     .cfi_startproc
@@ -40,12 +40,6 @@ _NS_InvokeByIndex:
     addi    sp, sp, -8*(NGPREGS+NFPREGS)
     mv      a0, sp
     addi    a1, sp, 8*NGPREGS
-
-    /*
-     *  void invoke_copy_to_stack(uint64_t* gpregs, double* fpregs,
-     *                           uint32_t paramCount, nsXPTCVariant* s,
-     *                           uint64_t* d);
-     */
 
     call    invoke_copy_to_stack
 
@@ -91,5 +85,5 @@ _NS_InvokeByIndex:
     .cfi_adjust_cfa_offset -32
     ret
     .cfi_endproc
-    .size   _NS_InvokeByIndex, . -_NS_InvokeByIndex
+    .size   _NS_InvokeByIndex, . - _NS_InvokeByIndex
     .section .note.GNU-stack, "", @progbits
