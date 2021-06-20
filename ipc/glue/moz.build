@@ -207,10 +207,14 @@ LOCAL_INCLUDES += [
     "/dom/indexedDB",
     "/dom/storage",
     "/netwerk/base",
-    "/third_party/libwebrtc",
-    "/third_party/libwebrtc/webrtc",
     "/xpcom/build",
 ]
+
+if CONFIG["MOZ_WEBRTC"]:
+    LOCAL_INCLUDES += [
+        "/third_party/libwebrtc",
+        "/third_party/libwebrtc/webrtc",
+    ]
 
 IPDL_SOURCES = [
     "InputStreamParams.ipdlh",

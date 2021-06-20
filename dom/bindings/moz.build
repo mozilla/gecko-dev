@@ -94,11 +94,15 @@ LOCAL_INCLUDES += [
     "/layout/xul/tree",
     "/media/webrtc/",
     "/netwerk/base/",
-    "/third_party/libwebrtc",
-    "/third_party/libwebrtc/webrtc",
 ]
 
 LOCAL_INCLUDES += ["/third_party/msgpack/include"]
+
+if CONFIG["MOZ_WEBRTC"]:
+    LOCAL_INCLUDES += [
+        "/third_party/libwebrtc",
+        "/third_party/libwebrtc/webrtc",
+    ]
 
 DEFINES["GOOGLE_PROTOBUF_NO_RTTI"] = True
 DEFINES["GOOGLE_PROTOBUF_NO_STATIC_INITIALIZER"] = True
