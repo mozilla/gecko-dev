@@ -91,13 +91,49 @@ struct MOZ_STACK_CLASS SavedRange final {
   RefPtr<Selection> mSelection;
   nsCOMPtr<nsINode> mStartContainer;
   nsCOMPtr<nsINode> mEndContainer;
-  int32_t mStartOffset = 0;
-  int32_t mEndOffset = 0;
+  uint32_t mStartOffset = 0;
+  uint32_t mEndOffset = 0;
 };
+
+/******************************************************************************
+ * HTMLEditor::AutoSelectionRestorer
+ *****************************************************************************/
+
+HTMLEditor::AutoSelectionRestorer::AutoSelectionRestorer(
+    HTMLEditor& aHTMLEditor)
+    : mHTMLEditor(nullptr) {
+  if (aHTMLEditor.ArePreservingSelection()) {
+    // We already have initialized mParentData::mSavedSelection, so this must
+    // be nested call.
+    return;
+  }
+  MOZ_ASSERT(aHTMLEditor.IsEditActionDataAvailable());
+  mHTMLEditor = &aHTMLEditor;
+  mHTMLEditor->PreserveSelectionAcrossActions();
+}
+
+HTMLEditor::AutoSelectionRestorer::~AutoSelectionRestorer() {
+  if (!mHTMLEditor || !mHTMLEditor->ArePreservingSelection()) {
+    return;
+  }
+  DebugOnly<nsresult> rvIgnored = mHTMLEditor->RestorePreservedSelection();
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "EditorBase::RestorePreservedSelection() failed, but ignored");
+}
+
+void HTMLEditor::AutoSelectionRestorer::Abort() {
+  if (mHTMLEditor) {
+    mHTMLEditor->StopPreservingSelection();
+  }
+}
+
+/******************************************************************************
+ * HTMLEditor
+ *****************************************************************************/
 
 HTMLEditor::HTMLEditor()
     : mCRInParagraphCreatesParagraph(false),
-      mCSSAware(false),
       mIsObjectResizingEnabled(
           StaticPrefs::editor_resizing_enabled_by_default()),
       mIsResizing(false),
@@ -189,6 +225,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLEditor, EditorBase)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTypeInState)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mComposerCommandsUpdater)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mChangedRangeForTopLevelEditSubAction)
+  NS_IMPL_CYCLE_COLLECTION_UNLINK(mPaddingBRElementForEmptyEditor)
   tmp->HideAnonymousEditingUIs();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
@@ -196,6 +233,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLEditor, EditorBase)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTypeInState)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mComposerCommandsUpdater)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mChangedRangeForTopLevelEditSubAction)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPaddingBRElementForEmptyEditor)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTopLeftHandle)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mTopHandle)
@@ -236,21 +274,22 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(HTMLEditor)
   NS_INTERFACE_MAP_ENTRY(nsIEditorMailSupport)
 NS_INTERFACE_MAP_END_INHERITING(EditorBase)
 
-nsresult HTMLEditor::Init(Document& aDoc, Element* aRoot,
-                          nsISelectionController* aSelCon, uint32_t aFlags,
-                          const nsAString& aInitialValue) {
+nsresult HTMLEditor::Init(Document& aDocument, uint32_t aFlags) {
   MOZ_ASSERT(!mInitSucceeded,
              "HTMLEditor::Init() called again without calling PreDestroy()?");
-  MOZ_ASSERT(aInitialValue.IsEmpty(), "Non-empty initial values not supported");
 
-  nsresult rv = EditorBase::Init(aDoc, aRoot, nullptr, aFlags, aInitialValue);
+  RefPtr<PresShell> presShell = aDocument.GetPresShell();
+  if (NS_WARN_IF(!presShell)) {
+    return NS_ERROR_FAILURE;
+  }
+  nsresult rv = InitInternal(aDocument, nullptr, *presShell, aFlags);
   if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::Init() failed");
+    NS_WARNING("EditorBase::InitInternal() failed");
     return rv;
   }
 
   // Init mutation observer
-  aDoc.AddMutationObserverUnlessExists(this);
+  aDocument.AddMutationObserverUnlessExists(this);
 
   if (!mRootElement) {
     UpdateRootElement();
@@ -276,7 +315,7 @@ nsresult HTMLEditor::Init(Document& aDoc, Element* aRoot,
   if (NS_WARN_IF(!document)) {
     return NS_ERROR_FAILURE;
   }
-  if (!IsPlaintextEditor() && !IsInteractionAllowed()) {
+  if (!IsInPlaintextMode() && !IsInteractionAllowed()) {
     mDisabledLinkHandling = true;
     mOldLinkHandlingEnabled = document->LinkHandlingEnabled();
     document->SetLinkHandlingEnabled(false);
@@ -317,7 +356,19 @@ nsresult HTMLEditor::Init(Document& aDoc, Element* aRoot,
   return NS_OK;
 }
 
-void HTMLEditor::PreDestroy(bool aDestroyingFrames) {
+nsresult HTMLEditor::PostCreate() {
+  AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  nsresult rv = PostCreateInternal();
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "EditorBase::PostCreatInternal() failed");
+  return rv;
+}
+
+void HTMLEditor::PreDestroy() {
   if (mDidPreDestroy) {
     return;
   }
@@ -357,7 +408,9 @@ void HTMLEditor::PreDestroy(bool aDestroyingFrames) {
     HideAnonymousEditingUIs();
   }
 
-  EditorBase::PreDestroy(aDestroyingFrames);
+  mPaddingBRElementForEmptyEditor = nullptr;
+
+  PreDestroyInternal();
 }
 
 NS_IMETHODIMP HTMLEditor::GetDocumentCharacterSet(nsACString& aCharacterSet) {
@@ -621,21 +674,6 @@ void HTMLEditor::RemoveEventListeners() {
   EditorBase::RemoveEventListeners();
 }
 
-NS_IMETHODIMP HTMLEditor::SetFlags(uint32_t aFlags) {
-  nsresult rv = EditorBase::SetFlags(aFlags);
-  if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::SetFlags() failed");
-    return rv;
-  }
-
-  // Sets mCSSAware to correspond to aFlags. This toggles whether CSS is
-  // used to style elements in the editor. Note that the editor is only CSS
-  // aware by default in Composer and in the mail editor.
-  mCSSAware = !NoCSS() && !IsMailEditor();
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP HTMLEditor::BeginningOfDocument() {
   AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
   if (NS_WARN_IF(!editActionData.CanHandle())) {
@@ -827,6 +865,39 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
   return rv;
 }
 
+bool HTMLEditor::ArePreservingSelection() const {
+  return IsEditActionDataAvailable() && !SavedSelectionRef().IsEmpty();
+}
+
+void HTMLEditor::PreserveSelectionAcrossActions() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  SavedSelectionRef().SaveSelection(SelectionRef());
+  RangeUpdaterRef().RegisterSelectionState(SavedSelectionRef());
+}
+
+nsresult HTMLEditor::RestorePreservedSelection() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  if (SavedSelectionRef().IsEmpty()) {
+    return NS_ERROR_FAILURE;
+  }
+  DebugOnly<nsresult> rvIgnored =
+      SavedSelectionRef().RestoreSelection(SelectionRef());
+  NS_WARNING_ASSERTION(
+      NS_SUCCEEDED(rvIgnored),
+      "SelectionState::RestoreSelection() failed, but ignored");
+  StopPreservingSelection();
+  return NS_OK;
+}
+
+void HTMLEditor::StopPreservingSelection() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  RangeUpdaterRef().DropSelectionState(SavedSelectionRef());
+  SavedSelectionRef().Clear();
+}
+
 void HTMLEditor::PreHandleMouseDown(const MouseEvent& aMouseDownEvent) {
   if (mTypeInState) {
     // mTypeInState will be notified of selection change even if aMouseDownEvent
@@ -897,24 +968,31 @@ nsresult HTMLEditor::HandleKeyPressEvent(WidgetKeyboardEvent* aKeyboardEvent) {
       return rv;
     }
     case NS_VK_TAB: {
-      if (IsPlaintextEditor()) {
-        // If this works as plain text editor, e.g., mail editor for plain
-        // text, should be handled with common logic with EditorBase.
-        nsresult rv = EditorBase::HandleKeyPressEvent(aKeyboardEvent);
-        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                             "EditorBase::HandleKeyPressEvent() failed");
-        return rv;
-      }
-
-      // If we're a `contenteditable` element or in `designMode`, "Tab" key
-      // be used only for focus navigation.
+      // Basically, "Tab" key be used only for focus navigation.
+      // FYI: In web apps, this is always true.
       if (IsTabbable()) {
         return NS_OK;
       }
 
+      // If we're in the plaintext mode, and not tabbable editor, let's
+      // insert a horizontal tabulation.
+      if (IsInPlaintextMode()) {
+        if (aKeyboardEvent->IsShift() || aKeyboardEvent->IsControl() ||
+            aKeyboardEvent->IsAlt() || aKeyboardEvent->IsMeta() ||
+            aKeyboardEvent->IsOS()) {
+          return NS_OK;
+        }
+
+        // else we insert the tab straight through
+        aKeyboardEvent->PreventDefault();
+        nsresult rv = OnInputText(u"\t"_ns);
+        NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                             "EditorBase::OnInputText(\\t) failed");
+        return rv;
+      }
+
       // Otherwise, e.g., we're an embedding editor in chrome, we can handle
       // "Tab" key as an input.
-
       if (aKeyboardEvent->IsControl() || aKeyboardEvent->IsAlt() ||
           aKeyboardEvent->IsMeta() || aKeyboardEvent->IsOS()) {
         return NS_OK;
@@ -1036,8 +1114,6 @@ NS_IMETHODIMP HTMLEditor::UpdateBaseURL() {
 }
 
 NS_IMETHODIMP HTMLEditor::InsertLineBreak() {
-  MOZ_ASSERT(!IsSingleLineEditor());
-
   // XPCOM method's InsertLineBreak() should insert paragraph separator in
   // HTMLEditor.
   AutoEditActionDataSetter editActionData(
@@ -1927,23 +2003,6 @@ nsresult HTMLEditor::SelectContentInternal(nsIContent& aContentToSelect) {
   return error.StealNSResult();
 }
 
-MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
-HTMLEditor::SetCaretAfterElement(Element* aElement) {
-  if (NS_WARN_IF(!aElement)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  AutoEditActionDataSetter editActionData(*this, EditAction::eNotEditing);
-  if (NS_WARN_IF(!editActionData.CanHandle())) {
-    return NS_ERROR_NOT_INITIALIZED;
-  }
-
-  nsresult rv = CollapseSelectionAfter(*aElement);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "HTMLEditor::CollapseSelectionAfter() failed");
-  return rv;
-}
-
 nsresult HTMLEditor::CollapseSelectionAfter(Element& aElement) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
@@ -1963,6 +2022,49 @@ nsresult HTMLEditor::CollapseSelectionAfter(Element& aElement) {
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::CollapseSelectionTo() failed");
   return rv;
+}
+
+nsresult HTMLEditor::AppendContentToSelectionAsRange(nsIContent& aContent) {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  EditorRawDOMPoint atContent(&aContent);
+  if (NS_WARN_IF(!atContent.IsSet())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  RefPtr<nsRange> range = nsRange::Create(
+      atContent.ToRawRangeBoundary(),
+      atContent.NextPoint().ToRawRangeBoundary(), IgnoreErrors());
+  if (NS_WARN_IF(!range)) {
+    NS_WARNING("nsRange::Create() failed");
+    return NS_ERROR_FAILURE;
+  }
+
+  ErrorResult error;
+  SelectionRef().AddRangeAndSelectFramesAndNotifyListeners(*range, error);
+  if (NS_WARN_IF(Destroyed())) {
+    if (error.Failed()) {
+      error.SuppressException();
+    }
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(!error.Failed(), "Failed to add range to Selection");
+  return error.StealNSResult();
+}
+
+nsresult HTMLEditor::ClearSelection() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  ErrorResult error;
+  SelectionRef().RemoveAllRanges(error);
+  if (NS_WARN_IF(Destroyed())) {
+    if (error.Failed()) {
+      error.SuppressException();
+    }
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(!error.Failed(), "Selection::RemoveAllRanges() failed");
+  return error.StealNSResult();
 }
 
 nsresult HTMLEditor::SetParagraphFormatAsAction(
@@ -4412,20 +4514,26 @@ void HTMLEditor::DoSplitNode(const EditorDOMPoint& aStartOfRightNode,
 
     // Split the selection into existing node and new node.
     if (range.mStartContainer == aStartOfRightNode.GetContainer()) {
-      if (static_cast<uint32_t>(range.mStartOffset) <
-          aStartOfRightNode.Offset()) {
+      if (range.mStartOffset < aStartOfRightNode.Offset()) {
         range.mStartContainer = &aNewLeftNode;
-      } else {
+      } else if (range.mStartOffset >= aStartOfRightNode.Offset()) {
         range.mStartOffset -= aStartOfRightNode.Offset();
+      } else {
+        NS_WARNING(
+            "The stored start offset was smaller than the right node offset");
+        range.mStartOffset = 0;
       }
     }
 
     if (range.mEndContainer == aStartOfRightNode.GetContainer()) {
-      if (static_cast<uint32_t>(range.mEndOffset) <
-          aStartOfRightNode.Offset()) {
+      if (range.mEndOffset < aStartOfRightNode.Offset()) {
         range.mEndContainer = &aNewLeftNode;
-      } else {
+      } else if (range.mEndOffset >= aStartOfRightNode.Offset()) {
         range.mEndOffset -= aStartOfRightNode.Offset();
+      } else {
+        NS_WARNING(
+            "The stored end offset was smaller than the right node offset");
+        range.mEndOffset = 0;
       }
     }
 
@@ -4490,6 +4598,9 @@ nsresult HTMLEditor::JoinNodesWithTransaction(nsINode& aLeftNode,
   // Remember some values; later used for saved selection updating.
   // Find the offset between the nodes to be joined.
   int32_t offset = parent->ComputeIndexOf(&aRightNode);
+  if (NS_WARN_IF(offset < 0)) {
+    return NS_ERROR_FAILURE;
+  }
   // Find the number of children of the lefthand node
   uint32_t oldLeftNodeLen = aLeftNode.Length();
 
@@ -4510,9 +4621,9 @@ nsresult HTMLEditor::JoinNodesWithTransaction(nsINode& aLeftNode,
 
   // XXX Some other transactions manage range updater by themselves.
   //     Why doesn't JoinNodeTransaction do it?
-  DebugOnly<nsresult> rvIgnored =
-      RangeUpdaterRef().SelAdjJoinNodes(aLeftNode, aRightNode, *parent, offset,
-                                        static_cast<int32_t>(oldLeftNodeLen));
+  DebugOnly<nsresult> rvIgnored = RangeUpdaterRef().SelAdjJoinNodes(
+      aLeftNode, aRightNode, *parent, AssertedCast<uint32_t>(offset),
+      oldLeftNodeLen);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                        "RangeUpdater::SelAdjJoinNodes() failed, but ignored");
 
@@ -4526,7 +4637,8 @@ nsresult HTMLEditor::JoinNodesWithTransaction(nsINode& aLeftNode,
 
   if (mTextServicesDocument && NS_SUCCEEDED(rv)) {
     RefPtr<TextServicesDocument> textServicesDocument = mTextServicesDocument;
-    textServicesDocument->DidJoinNodes(aLeftNode, aRightNode);
+    textServicesDocument->DidJoinNodes(*aLeftNode.AsContent(),
+                                       *aRightNode.AsContent());
   }
 
   if (!mActionListeners.IsEmpty()) {
@@ -4583,15 +4695,14 @@ nsresult HTMLEditor::DoJoinNodes(nsIContent& aContentToKeep,
       // adjustment logic at end of this method.
       if (range.mStartContainer) {
         if (range.mStartContainer == atNodeToKeep.GetContainer() &&
-            atNodeToJoin.Offset() < static_cast<uint32_t>(range.mStartOffset) &&
-            static_cast<uint32_t>(range.mStartOffset) <=
-                atNodeToKeep.Offset()) {
+            atNodeToJoin.Offset() < range.mStartOffset &&
+            range.mStartOffset <= atNodeToKeep.Offset()) {
           range.mStartContainer = &aContentToJoin;
           range.mStartOffset = firstNodeLength;
         }
         if (range.mEndContainer == atNodeToKeep.GetContainer() &&
-            atNodeToJoin.Offset() < static_cast<uint32_t>(range.mEndOffset) &&
-            static_cast<uint32_t>(range.mEndOffset) <= atNodeToKeep.Offset()) {
+            atNodeToJoin.Offset() < range.mEndOffset &&
+            range.mEndOffset <= atNodeToKeep.Offset()) {
           range.mEndContainer = &aContentToJoin;
           range.mEndOffset = firstNodeLength;
         }
@@ -4722,8 +4833,8 @@ nsresult HTMLEditor::DoJoinNodes(nsIContent& aContentToKeep,
 
   if (allowedTransactionsToChangeSelection) {
     // Editor wants us to set selection at join point.
-    DebugOnly<nsresult> rvIgnored = SelectionRef().CollapseInLimiter(
-        &aContentToKeep, AssertedCast<int32_t>(firstNodeLength));
+    DebugOnly<nsresult> rvIgnored =
+        SelectionRef().CollapseInLimiter(&aContentToKeep, firstNodeLength);
     if (NS_WARN_IF(Destroyed())) {
       return NS_ERROR_EDITOR_DESTROYED;
     }
@@ -5095,20 +5206,7 @@ NS_IMETHODIMP HTMLEditor::SetIsCSSEnabled(bool aIsCSSPrefChecked) {
   }
 
   mCSSEditUtils->SetCSSEnabled(aIsCSSPrefChecked);
-
-  // Disable the eEditorNoCSSMask flag if we're enabling StyleWithCSS.
-  uint32_t flags = mFlags;
-  if (aIsCSSPrefChecked) {
-    // Turn off NoCSS as we're enabling CSS
-    flags &= ~eEditorNoCSSMask;
-  } else {
-    // Turn on NoCSS, as we're disabling CSS.
-    flags |= eEditorNoCSSMask;
-  }
-
-  nsresult rv = SetFlags(flags);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv), "HTMLEditor::SetFlags() failed");
-  return rv;
+  return NS_OK;
 }
 
 // Set the block background color
@@ -5123,7 +5221,7 @@ nsresult HTMLEditor::SetCSSBackgroundColorWithTransaction(
   CommitComposition();
 
   // XXX Shouldn't we do this before calling `CommitComposition()`?
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     return NS_OK;
   }
 

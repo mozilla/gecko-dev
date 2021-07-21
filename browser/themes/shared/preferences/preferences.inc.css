@@ -405,8 +405,9 @@ checkbox {
   margin-inline-end: 8px !important;
 }
 
-.actionsMenu:focus-visible {
-  outline-offset: -2px;
+/* Increase the specifity to override common.inc.css */
+richlistitem[selected] .actionsMenu:focus-visible {
+  outline-offset: -3px;
 }
 
 /* Home Pane */
@@ -595,7 +596,6 @@ checkbox {
   }
 }
 
-
 .dialogBox[resizable="true"] {
   resize: both;
   overflow: hidden;
@@ -608,16 +608,6 @@ checkbox {
   padding: 6px 4px;
   border-bottom: 1px solid var(--in-content-border-color);
 }
-
-@media not (-moz-proton) {
-.dialogBox {
-  border-radius: 3.5px;
-}
-.dialogTitleBar {
-  padding: 3.5px 0;
-  background-color: var(--in-content-dialog-header-background);
-}
-} /*** END !proton ***/
 
 .dialogTitle {
   font-size: .9em;
@@ -1049,16 +1039,6 @@ menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .me
 #no-results-message > label {
   margin: 2px 0;
   line-height: 30px;
-}
-
-.no-results-image-container {
-  margin-top: 64px;
-}
-
-.no-results-image {
-  list-style-image: url("chrome://browser/skin/preferences/no-search-results.svg");
-  width: 380px;
-  height: 293px;
 }
 
 #no-results-message[query*=🔥🦊] {

@@ -29,6 +29,7 @@
 #include "mozilla/dom/BrowsingContextGroup.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
+#include "mozilla/Telemetry.h"
 #include "nsIDOMChromeWindow.h"
 #include "nsIPrompt.h"
 #include "nsIScriptObjectPrincipal.h"
@@ -1024,22 +1025,21 @@ nsresult nsWindowWatcher::OpenWindowInternal(
 
   RefPtr<nsGlobalWindowOuter> win(
       nsGlobalWindowOuter::Cast(newBC->GetDOMWindow()));
-  if (win) {
-    if (windowIsNew) {
 #ifdef DEBUG
-      // Assert that we're not loading things right now.  If we are, when
-      // that load completes it will clobber whatever principals we set up
-      // on this new window!
-      nsCOMPtr<nsIChannel> chan;
-      newDocShell->GetDocumentChannel(getter_AddRefs(chan));
-      MOZ_ASSERT(!chan, "Why is there a document channel?");
-#endif
+  if (win && windowIsNew) {
+    // Assert that we're not loading things right now.  If we are, when
+    // that load completes it will clobber whatever principals we set up
+    // on this new window!
+    nsCOMPtr<nsIChannel> chan;
+    newDocShell->GetDocumentChannel(getter_AddRefs(chan));
+    MOZ_ASSERT(!chan, "Why is there a document channel?");
 
-      if (RefPtr<Document> doc = win->GetExtantDoc()) {
-        doc->SetIsInitialDocument(true);
-      }
+    if (RefPtr<Document> doc = win->GetExtantDoc()) {
+      MOZ_ASSERT(doc->IsInitialDocument(),
+                 "New window's document should be an initial document");
     }
   }
+#endif
 
   MOZ_ASSERT(win || !windowIsNew, "New windows are always created in-process");
 
@@ -1773,41 +1773,74 @@ uint32_t nsWindowWatcher::EnsureFlagsSafeForContent(uint32_t aChromeFlags,
   return aChromeFlags;
 }
 
+// Determine if we should open a new popup instead of a new tab.
+//
+// Also collect a telemetry how the popup/tab is requested, to help creating a
+// proposal for standardizing window.open's `features` parameter.
+//
+//  * NoPopup_{Empty, Other}
+//    (expected) Both current behavior and proposed behavior opens a non-popup
+//  * Popup_Width
+//    (expected) Both current behavior and proposed behavior opens a popup
+//  * Popup_{Location, Menubar, Resizable, Scrollbars, Status}
+//    (unexpected) Current behavior opens a popup, and proposed behavior opens
+//    a non-popup
+//
 // static
 bool nsWindowWatcher::ShouldOpenPopup(const WindowFeatures& aFeatures,
                                       const SizeSpec& aSizeSpec) {
   if (aFeatures.IsEmpty()) {
+    AccumulateCategorical(
+        mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::NoPopup_Empty);
     return false;
   }
+
+  // Follow Safari's behavior that opens a popup when width is specified.
+  // This also follows current proposal.
+  if (aSizeSpec.WidthSpecified()) {
+    AccumulateCategorical(
+        mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::Popup_Width);
+    return true;
+  }
+
+  // Remaining conditions excluding the last non-popup don't follow the
+  // current proposal.
 
   // Follow Google Chrome's behavior that opens a popup depending on
   // the following features.
   if (!aFeatures.GetBoolWithDefault("location", false) &&
       !aFeatures.GetBoolWithDefault("toolbar", false)) {
+    AccumulateCategorical(
+        mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::Popup_Location);
     return true;
   }
 
   if (!aFeatures.GetBoolWithDefault("menubar", false)) {
+    AccumulateCategorical(
+        mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::Popup_Menubar);
     return true;
   }
 
   if (!aFeatures.GetBoolWithDefault("resizable", true)) {
+    AccumulateCategorical(
+        mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::Popup_Resizable);
     return true;
   }
 
   if (!aFeatures.GetBoolWithDefault("scrollbars", false)) {
+    AccumulateCategorical(
+        mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::Popup_Scrollbars);
     return true;
   }
 
   if (!aFeatures.GetBoolWithDefault("status", false)) {
+    AccumulateCategorical(
+        mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::Popup_Status);
     return true;
   }
 
-  // Follow Safari's behavior that opens a popup when width is specified.
-  if (aSizeSpec.WidthSpecified()) {
-    return true;
-  }
-
+  AccumulateCategorical(
+      mozilla::Telemetry::LABELS_WINDOW_OPEN_TYPE::NoPopup_Other);
   return false;
 }
 

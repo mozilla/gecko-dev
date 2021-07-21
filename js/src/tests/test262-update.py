@@ -24,8 +24,12 @@ UNSUPPORTED_FEATURES = set(
         "tail-call-optimization",
         "Intl.DateTimeFormat-quarter",
         "Intl.Segmenter",
+        "Intl.Locale-info",
         "Atomics.waitAsync",
         "legacy-regexp",
+        "import-assertions",
+        "resizable-arraybuffer",
+        "Temporal",
     ]
 )
 FEATURE_CHECK_NEEDED = {
@@ -33,17 +37,11 @@ FEATURE_CHECK_NEEDED = {
     "FinalizationRegistry": "!this.hasOwnProperty('FinalizationRegistry')",
     "SharedArrayBuffer": "!this.hasOwnProperty('SharedArrayBuffer')",
     "WeakRef": "!this.hasOwnProperty('WeakRef')",
-    "Array.prototype.at": "!Array.prototype.at",
-    "String.prototype.at": "!String.prototype.at",
-    "TypedArray.prototype.at": "!Int32Array.prototype.at",
 }
-RELEASE_OR_BETA = set(
-    [
-        "Intl.DateTimeFormat-formatRange",
-    ]
-)
+RELEASE_OR_BETA = set([])
 SHELL_OPTIONS = {
     "top-level-await": "--enable-top-level-await",
+    "class-static-block": "--enable-class-static-blocks",
 }
 
 

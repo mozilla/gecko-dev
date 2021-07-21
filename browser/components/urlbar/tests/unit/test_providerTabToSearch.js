@@ -79,8 +79,8 @@ add_task(async function basic() {
   await cleanupPlaces();
 });
 
-// Tests that tab-to-search results aren't shown when the typed string matches
-// an engine domain but there is no autofill.
+// Tests that tab-to-search results are shown when the typed string matches an
+// engine domain even when there is no autofill.
 add_task(async function noAutofill() {
   // Note we are not adding any history visits.
   let context = createContext("examp", { isPrivate: false });
@@ -92,6 +92,16 @@ add_task(async function noAutofill() {
         engineIconUri: Services.search.defaultEngine.iconURI?.spec,
         heuristic: true,
         providerName: "HeuristicFallback",
+      }),
+      makeSearchResult(context, {
+        engineName: testEngine.name,
+        engineIconUri: UrlbarUtils.ICON.SEARCH_GLASS,
+        uri: UrlbarUtils.stripPublicSuffixFromHost(
+          testEngine.getResultDomain()
+        ),
+        providesSearchMode: true,
+        query: "",
+        providerName: "TabToSearch",
       }),
     ],
   });
@@ -272,7 +282,7 @@ add_task(async function conflictingEngines() {
       makeVisitResult(context, {
         uri: "https://foobar.com/",
         title: "test visit for https://foobar.com/",
-        providerName: "UnifiedComplete",
+        providerName: "Places",
       }),
     ],
   });
@@ -412,7 +422,7 @@ add_task(async function test_publicSuffix() {
       makeVisitResult(context, {
         uri: "https://test.mytest.it/",
         title: "test visit for https://test.mytest.it/",
-        providerName: "UnifiedComplete",
+        providerName: "Places",
       }),
     ],
   });

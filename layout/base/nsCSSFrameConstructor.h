@@ -380,6 +380,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
     IsAnonymousContentCreatorContent,
     // The item will be the rendered legend of a <fieldset>.
     IsForRenderedLegend,
+    // This will be an outside ::marker.
+    IsForOutsideMarker,
   };
 
   using ItemFlags = mozilla::EnumSet<ItemFlag>;
@@ -392,6 +394,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   void AddFrameConstructionItems(nsFrameConstructorState& aState,
                                  nsIContent* aContent,
                                  bool aSuppressWhiteSpaceOptimizations,
+                                 const ComputedStyle& aParentStyle,
                                  const InsertionPoint& aInsertion,
                                  FrameConstructionItemList& aItems,
                                  ItemFlags = {});
@@ -402,16 +405,6 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   bool ShouldCreateItemsForChild(nsFrameConstructorState& aState,
                                  nsIContent* aContent,
                                  nsContainerFrame* aParentFrame);
-
-  // Helper method for AddFrameConstructionItems etc.
-  // Make sure ShouldCreateItemsForChild() returned true before calling this.
-  void DoAddFrameConstructionItems(nsFrameConstructorState& aState,
-                                   nsIContent* aContent,
-                                   ComputedStyle* aComputedStyle,
-                                   bool aSuppressWhiteSpaceOptimizations,
-                                   nsContainerFrame* aParentFrame,
-                                   FrameConstructionItemList& aItems,
-                                   ItemFlags = {});
 
   // Construct the frames for the document element.  This can return null if the
   // document element is display:none, or if it's an SVG element that's not
@@ -481,7 +474,8 @@ class nsCSSFrameConstructor final : public nsFrameManager {
                                   nsContainerFrame* aParentFrame,
                                   Element& aOriginatingElement, ComputedStyle&,
                                   PseudoStyleType aPseudoElement,
-                                  FrameConstructionItemList& aItems);
+                                  FrameConstructionItemList& aItems,
+                                  ItemFlags aExtraFlags = {});
 
   // This method is called by ContentAppended() and ContentRangeInserted() when
   // appending flowed frames to a parent's principal child list. It handles the
@@ -1364,6 +1358,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   // If aPossibleTextContent is a text node and doesn't have a frame, append a
   // frame construction item for it to aItems.
   void AddTextItemIfNeeded(nsFrameConstructorState& aState,
+                           const ComputedStyle& aParentStyle,
                            const InsertionPoint& aInsertion,
                            nsIContent* aPossibleTextContent,
                            FrameConstructionItemList& aItems);
@@ -1894,7 +1889,7 @@ class nsCSSFrameConstructor final : public nsFrameManager {
   nsFirstLetterFrame* CreateFloatingLetterFrame(
       nsFrameConstructorState& aState, mozilla::dom::Text* aTextContent,
       nsIFrame* aTextFrame, nsContainerFrame* aParentFrame,
-      ComputedStyle* aParentComputedStyle, ComputedStyle* aComputedStyle,
+      ComputedStyle* aParentStyle, ComputedStyle* aComputedStyle,
       nsFrameList& aResult);
 
   void CreateLetterFrame(nsContainerFrame* aBlockFrame,

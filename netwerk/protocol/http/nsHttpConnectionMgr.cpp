@@ -751,13 +751,28 @@ void nsHttpConnectionMgr::UpdateCoalescingForNewConn(
   HttpConnectionBase* existingConn =
       FindCoalescableConnection(ent, true, false, false);
   if (existingConn) {
-    // Prefer http3 connection.
+    // Prefer http3 connection, but allow an HTTP/2 connection if it is used for
+    // WebSocket.
     if (newConn->UsingHttp3() && existingConn->UsingSpdy()) {
-      LOG(
-          ("UpdateCoalescingForNewConn() found existing active H2 conn that "
-           "could have served newConn, but new connection is H3, therefore "
-           "close the H2 conncetion"));
-      existingConn->DontReuse();
+      RefPtr<nsHttpConnection> connTCP = do_QueryObject(existingConn);
+      if (connTCP && !connTCP->IsForWebSocket()) {
+        LOG(
+            ("UpdateCoalescingForNewConn() found existing active H2 conn that "
+             "could have served newConn, but new connection is H3, therefore "
+             "close the H2 conncetion"));
+        existingConn->DontReuse();
+      }
+    } else if (existingConn->UsingHttp3() && newConn->UsingSpdy()) {
+      RefPtr<nsHttpConnection> connTCP = do_QueryObject(newConn);
+      if (connTCP && !connTCP->IsForWebSocket()) {
+        LOG(
+            ("UpdateCoalescingForNewConn() found existing active conn that "
+             "could have served newConn graceful close of newConn=%p to "
+             "migrate to existingConn %p\n",
+             newConn, existingConn));
+        newConn->DontReuse();
+        return;
+      }
     } else {
       LOG(
           ("UpdateCoalescingForNewConn() found existing active conn that could "
@@ -1368,7 +1383,7 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
 
   // Don't dispatch if this transaction is waiting for HTTPS RR.
   // Note that this is only used in test currently.
-  if (caps & NS_HTTP_WAIT_HTTPSSVC_RESULT) {
+  if (caps & NS_HTTP_FORCE_WAIT_HTTP_RR) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -3442,12 +3457,11 @@ void nsHttpConnectionMgr::MoveToWildCardConnEntry(
   ent->MoveConnection(proxyConn, wcEnt);
 }
 
-bool nsHttpConnectionMgr::MoveTransToNewConnEntry(
-    nsHttpTransaction* aTrans, nsHttpConnectionInfo* aNewCI) {
+bool nsHttpConnectionMgr::RemoveTransFromConnEntry(nsHttpTransaction* aTrans) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  LOG(("nsHttpConnectionMgr::MoveTransToNewConnEntry: trans=%p aNewCI=%s",
-       aTrans, aNewCI->HashKey().get()));
+  LOG(("nsHttpConnectionMgr::RemoveTransFromConnEntry: trans=%p ci=%s", aTrans,
+       aTrans->ConnectionInfo()->HashKey().get()));
 
   // Step 1: Get the transaction's connection entry.
   ConnectionEntry* entry = mCT.GetWeak(aTrans->ConnectionInfo()->HashKey());
@@ -3456,14 +3470,7 @@ bool nsHttpConnectionMgr::MoveTransToNewConnEntry(
   }
 
   // Step 2: Try to find the undispatched transaction.
-  if (!entry->RemoveTransFromPendingQ(aTrans)) {
-    return false;
-  }
-
-  // Step 3: Add the transaction.
-  aTrans->UpdateConnectionInfo(aNewCI);
-  Unused << ProcessNewTransaction(aTrans);
-  return true;
+  return entry->RemoveTransFromPendingQ(aTrans);
 }
 
 void nsHttpConnectionMgr::IncreaseNumDnsAndConnectSockets() {

@@ -862,12 +862,10 @@ nsresult Selection::AddRangesForUserSelectableNodes(
   *aOutIndex = int32_t(mStyledRanges.Length()) - 1;
 
   Document* doc = GetDocument();
-  bool selectEventsEnabled = StaticPrefs::dom_select_events_enabled() ||
-                             (doc && doc->NodePrincipal()->IsSystemPrincipal());
 
   if (aDispatchSelectstartEvent == DispatchSelectstartEvent::Maybe &&
-      mSelectionType == SelectionType::eNormal && selectEventsEnabled &&
-      IsCollapsed() && !IsBlockingSelectionChangeEvents()) {
+      mSelectionType == SelectionType::eNormal && IsCollapsed() &&
+      !IsBlockingSelectionChangeEvents()) {
     // We consider a selection to be starting if we are currently collapsed,
     // and the selection is becoming uncollapsed, and this is caused by a
     // user initiated event.
@@ -886,7 +884,9 @@ nsresult Selection::AddRangesForUserSelectableNodes(
       // pref, disabled by default.
       // See https://github.com/w3c/selection-api/issues/53.
       const bool executeDefaultAction = MaybeDispatchSelectstartEvent(
-          *aRange, StaticPrefs::dom_select_events_textcontrols_enabled(), doc);
+          *aRange,
+          StaticPrefs::dom_select_events_textcontrols_selectstart_enabled(),
+          doc);
 
       if (!executeDefaultAction) {
         return NS_OK;

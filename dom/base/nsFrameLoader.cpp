@@ -1561,10 +1561,8 @@ nsresult nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  RefPtr<nsDocShell> ourDocshell =
-      static_cast<nsDocShell*>(GetExistingDocShell());
-  RefPtr<nsDocShell> otherDocshell =
-      static_cast<nsDocShell*>(aOther->GetExistingDocShell());
+  RefPtr<nsDocShell> ourDocshell = GetExistingDocShell();
+  RefPtr<nsDocShell> otherDocshell = aOther->GetExistingDocShell();
   if (!ourDocshell || !otherDocshell) {
     // How odd
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -2475,6 +2473,25 @@ void nsFrameLoader::SendIsUnderHiddenEmbedderElement(
   }
 }
 
+void nsFrameLoader::PropagateIsUnderHiddenEmbedderElement(
+    bool aIsUnderHiddenEmbedderElement) {
+  bool isUnderHiddenEmbedderElement = true;
+  if (Document* ownerDoc = GetOwnerDoc()) {
+    if (PresShell* presShell = ownerDoc->GetPresShell()) {
+      isUnderHiddenEmbedderElement = presShell->IsUnderHiddenEmbedderElement();
+    }
+  }
+
+  isUnderHiddenEmbedderElement |= aIsUnderHiddenEmbedderElement;
+  if (nsDocShell* docShell = GetExistingDocShell()) {
+    if (PresShell* presShell = docShell->GetPresShell()) {
+      presShell->SetIsUnderHiddenEmbedderElement(isUnderHiddenEmbedderElement);
+    }
+  } else {
+    SendIsUnderHiddenEmbedderElement(isUnderHiddenEmbedderElement);
+  }
+}
+
 void nsFrameLoader::UpdateBaseWindowPositionAndSize(
     nsSubDocumentFrame* aIFrame) {
   nsCOMPtr<nsIBaseWindow> baseWindow = GetDocShell(IgnoreErrors());
@@ -3243,17 +3260,19 @@ void nsFrameLoader::RequestFinalTabStateFlush() {
     return;
   }
 
-  RefPtr<WindowGlobalParent> wgp =
-      context->Canonical()->GetCurrentWindowGlobal();
+  RefPtr<CanonicalBrowsingContext> canonical = context->Canonical();
+  RefPtr<WindowGlobalParent> wgp = canonical->GetCurrentWindowGlobal();
   RefPtr<Element> embedder = context->GetEmbedderElement();
 
   if (mSessionStoreListener) {
     context->FlushSessionStore();
     mSessionStoreListener->ForceFlushFromParent();
+
+    canonical->ClearPermanentKey();
     if (wgp) {
       wgp->NotifySessionStoreUpdatesComplete(embedder);
     }
-    // No async ipc call is involved in parent only case
+
     return;
   }
 
@@ -3266,11 +3285,15 @@ void nsFrameLoader::RequestFinalTabStateFlush() {
   });
 
   FlushPromise::All(GetCurrentSerialEventTarget(), flushPromises)
-      ->Then(GetCurrentSerialEventTarget(), __func__, [wgp, embedder]() {
-        if (wgp) {
-          wgp->NotifySessionStoreUpdatesComplete(embedder);
-        }
-      });
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [canonical = RefPtr{canonical}, wgp, embedder]() {
+               if (canonical) {
+                 canonical->ClearPermanentKey();
+               }
+               if (wgp) {
+                 wgp->NotifySessionStoreUpdatesComplete(embedder);
+               }
+             });
 }
 
 void nsFrameLoader::RequestEpochUpdate(uint32_t aEpoch) {
@@ -3365,7 +3388,7 @@ already_AddRefed<Promise> nsFrameLoader::PrintPreview(
     sourceWindow =
         nsGlobalWindowOuter::Cast(aSourceBrowsingContext->GetDOMWindow());
   } else {
-    auto* ourDocshell = static_cast<nsDocShell*>(GetExistingDocShell());
+    nsDocShell* ourDocshell = GetExistingDocShell();
     if (NS_WARN_IF(!ourDocshell)) {
       promise->MaybeRejectWithNotSupportedError("No print preview docShell");
       return promise.forget();

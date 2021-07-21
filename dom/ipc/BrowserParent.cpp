@@ -222,7 +222,7 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
       mMarkedDestroying(false),
       mIsDestroyed(false),
       mRemoteTargetSetsCursor(false),
-      mPreserveLayers(false),
+      mIsPreservingLayers(false),
       mRenderLayers(true),
       mHasLayers(false),
       mHasPresented(false),
@@ -1215,7 +1215,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvPDocAccessibleConstructor(
 #  ifdef XP_WIN
     MOZ_ASSERT(aDocCOMProxy.IsNull());
     if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-      a11y::WrapperFor(doc)->GetMsaa()->SetID(aMsaaID);
+      a11y::MsaaAccessible::GetFrom(doc)->SetID(aMsaaID);
     }
     if (a11y::nsWinUtils::IsWindowEmulationStarted()) {
       doc->SetEmulatedWindowHandle(parentDoc->GetEmulatedWindowHandle());
@@ -1242,11 +1242,11 @@ mozilla::ipc::IPCResult BrowserParent::RecvPDocAccessibleConstructor(
     a11y::ProxyCreated(doc);
 #  ifdef XP_WIN
     if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-      // This *must* be called after ProxyCreated because WrapperFor will fail
-      // before that.
-      a11y::AccessibleWrap* wrapper = a11y::WrapperFor(doc);
-      MOZ_ASSERT(wrapper);
-      wrapper->GetMsaa()->SetID(aMsaaID);
+      // This *must* be called after ProxyCreated because
+      // MsaaAccessible::GetFrom will fail before that.
+      a11y::MsaaAccessible* msaa = a11y::MsaaAccessible::GetFrom(doc);
+      MOZ_ASSERT(msaa);
+      msaa->SetID(aMsaaID);
     }
 #  endif
     // It's possible the embedder accessible hasn't been set yet; e.g.
@@ -1279,7 +1279,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvPDocAccessibleConstructor(
     if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
       doc->MaybeInitWindowEmulation();
     } else {
-      a11y::WrapperFor(doc)->GetMsaa()->SetID(aMsaaID);
+      a11y::MsaaAccessible::GetFrom(doc)->SetID(aMsaaID);
       MOZ_ASSERT(!aDocCOMProxy.IsNull());
 
       RefPtr<IAccessible> proxy(aDocCOMProxy.Get());
@@ -2713,8 +2713,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnStateChange(
       Unused << browser->SetIsNavigating(aStateChangeData->isNavigating());
       Unused << browser->SetMayEnableCharacterEncodingMenu(
           aStateChangeData->mayEnableCharacterEncodingMenu());
-      Unused << browser->SetCharsetAutodetected(
-          aStateChangeData->charsetAutodetected());
       Unused << browser->UpdateForStateChange(aStateChangeData->charset(),
                                               aStateChangeData->documentURI(),
                                               aStateChangeData->contentType());
@@ -2783,7 +2781,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
       Unused << browser->UpdateForLocationChange(
           aLocation, aLocationChangeData->charset(),
           aLocationChangeData->mayEnableCharacterEncodingMenu(),
-          aLocationChangeData->charsetAutodetected(),
           aLocationChangeData->documentURI(), aLocationChangeData->title(),
           aLocationChangeData->contentPrincipal(),
           aLocationChangeData->contentPartitionedPrincipal(),
@@ -2953,18 +2950,26 @@ mozilla::ipc::IPCResult BrowserParent::RecvSessionStoreUpdate(
 
   nsCOMPtr<nsISessionStoreFunctions> funcs =
       do_ImportModule("resource://gre/modules/SessionStoreFunctions.jsm");
-  NS_ENSURE_TRUE(funcs, IPC_OK());
+  if (!funcs) {
+    return IPC_OK();
+  }
+
   nsCOMPtr<nsIXPConnectWrappedJS> wrapped = do_QueryInterface(funcs);
   AutoJSAPI jsapi;
-  MOZ_ALWAYS_TRUE(jsapi.Init(wrapped->GetJSObjectGlobal()));
-  JS::Rooted<JS::Value> dataVal(jsapi.cx());
-  bool ok = ToJSValue(jsapi.cx(), data, &dataVal);
-  NS_ENSURE_TRUE(ok, IPC_OK());
+  if (!jsapi.Init(wrapped->GetJSObjectGlobal())) {
+    return IPC_OK();
+  }
 
-  nsresult rv = funcs->UpdateSessionStore(
-      mFrameElement, mBrowsingContext, aEpoch, aNeedCollectSHistory, dataVal);
+  JS::Rooted<JS::Value> update(jsapi.cx());
+  if (!ToJSValue(jsapi.cx(), data, &update)) {
+    return IPC_OK();
+  }
 
-  NS_ENSURE_SUCCESS(rv, IPC_OK());
+  JS::RootedValue key(jsapi.cx(),
+                      mBrowsingContext->Canonical()->Top()->PermanentKey());
+
+  Unused << funcs->UpdateSessionStore(mFrameElement, mBrowsingContext, key,
+                                      aEpoch, aNeedCollectSHistory, update);
 
   return IPC_OK();
 }
@@ -3372,7 +3377,7 @@ bool BrowserParent::GetRenderLayers() { return mRenderLayers; }
 
 void BrowserParent::SetRenderLayers(bool aEnabled) {
   if (aEnabled == mRenderLayers) {
-    if (aEnabled && mHasLayers && mPreserveLayers) {
+    if (aEnabled && mHasLayers && mIsPreservingLayers) {
       // RenderLayers might be called when we've been preserving layers,
       // and already had layers uploaded. In that case, the MozLayerTreeReady
       // event will not naturally arrive, which can confuse the front-end
@@ -3391,7 +3396,7 @@ void BrowserParent::SetRenderLayers(bool aEnabled) {
 
   // Preserve layers means that attempts to stop rendering layers
   // will be ignored.
-  if (!aEnabled && mPreserveLayers) {
+  if (!aEnabled && mIsPreservingLayers) {
     return;
   }
 
@@ -3415,7 +3420,11 @@ void BrowserParent::SetRenderLayersInternal(bool aEnabled) {
 }
 
 void BrowserParent::PreserveLayers(bool aPreserveLayers) {
-  mPreserveLayers = aPreserveLayers;
+  if (mIsPreservingLayers == aPreserveLayers) {
+    return;
+  }
+  mIsPreservingLayers = aPreserveLayers;
+  Unused << SendPreserveLayers(aPreserveLayers);
 }
 
 void BrowserParent::NotifyResolutionChanged() {

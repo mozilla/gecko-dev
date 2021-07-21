@@ -35,6 +35,7 @@
 #if !JS_HAS_INTL_API
 #  include "js/LocaleSensitive.h"
 #endif
+#include "js/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
 #include "js/StableStringChars.h"
 #include "js/UniquePtr.h"
@@ -3876,12 +3877,10 @@ Shape* StringObject::assignInitialShape(JSContext* cx,
                                         Handle<StringObject*> obj) {
   MOZ_ASSERT(obj->empty());
 
-  uint32_t slot;
-  if (!NativeObject::addProperty(cx, obj, cx->names().length, LENGTH_SLOT, {},
-                                 &slot)) {
+  if (!NativeObject::addPropertyInReservedSlot(cx, obj, cx->names().length,
+                                               LENGTH_SLOT, {})) {
     return nullptr;
   }
-  MOZ_ASSERT(slot == LENGTH_SLOT);
 
   return obj->shape();
 }

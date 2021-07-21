@@ -208,7 +208,6 @@ function calculateOverhead(interval, bufferSize, features) {
     features.includes("stackwalk") && periodicSampling ? 0.05 : 0;
   const overheadFromJavaScript =
     features.includes("js") && periodicSampling ? 0.05 : 0;
-  const overheadFromTaskTracer = features.includes("tasktracer") ? 0.05 : 0;
   const overheadFromJSTracer = features.includes("jstracer") ? 0.05 : 0;
   const overheadFromJSAllocations = features.includes("jsallocations")
     ? 0.05
@@ -222,7 +221,6 @@ function calculateOverhead(interval, bufferSize, features) {
       overheadFromBuffersize +
       overheadFromStackwalk +
       overheadFromJavaScript +
-      overheadFromTaskTracer +
       overheadFromJSTracer +
       overheadFromJSAllocations +
       overheadFromNativeAllocations,
@@ -373,14 +371,6 @@ const featureDescriptions = [
     title: "Disable parallel traversal in styling.",
   },
   {
-    name: "TaskTracer",
-    value: "tasktracer",
-    title: "Enable TaskTracer",
-    experimental: true,
-    disabledReason:
-      "TaskTracer requires a custom build with the environment variable MOZ_TASK_TRACER set.",
-  },
-  {
     name: "Screenshots",
     value: "screenshots",
     title: "Record screenshots of all browser windows.",
@@ -417,6 +407,15 @@ const featureDescriptions = [
     name: "Audio Callback Tracing",
     value: "audiocallbacktracing",
     title: "Trace real-time audio callbacks.",
+  },
+  {
+    name: "No Timer Resolution Change",
+    value: "notimerresolutionchange",
+    title:
+      "Do not enhance the timer resolution for sampling intervals < 10ms, to " +
+      "avoid affecting timer-sensitive code. Warning: Sampling interval may " +
+      "increase in some processes.",
+    disabledReason: "Windows only.",
   },
 ];
 

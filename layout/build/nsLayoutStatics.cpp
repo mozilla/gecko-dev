@@ -101,7 +101,6 @@
 #include "MediaDecoder.h"
 #include "mozilla/ClearSiteData.h"
 #include "mozilla/EditorController.h"
-#include "mozilla/Fuzzyfox.h"
 #include "mozilla/HTMLEditorController.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StaticPresData.h"
@@ -176,7 +175,6 @@ nsresult nsLayoutStatics::Initialize() {
 
   nsCellMap::Init();
 
-  mozilla::SharedFontList::Initialize();
   StaticPresData::Init();
   nsCSSRendering::Init();
   css::ImageLoader::Init();
@@ -275,8 +273,6 @@ nsresult nsLayoutStatics::Initialize() {
     // fully initialized.
     mozilla::dom::RemoteWorkerService::Initialize();
   }
-
-  mozilla::Fuzzyfox::Start();
 
   ClearSiteData::Initialize();
 
@@ -378,7 +374,6 @@ void nsLayoutStatics::Shutdown() {
   HTMLInputElement::DestroyUploadLastDir();
 
   nsLayoutUtils::Shutdown();
-  mozilla::SharedFontList::Shutdown();
 
   nsHyphenationManager::Shutdown();
   nsDOMMutationObserver::Shutdown();

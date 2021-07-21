@@ -117,8 +117,8 @@ require("devtools/client/framework/devtools-browser");
  * Observer code to register the test actor in every DevTools server which
  * starts registering its own actors.
  *
- * We require immediately the test actor file, because it will force to load and
- * register the front and the spec for TestActor. Normally specs and fronts are
+ * We require immediately the highlighter test actor file, because it will force to load and
+ * register the front and the spec for HighlighterTestActor. Normally specs and fronts are
  * in separate files registered in specs/index.js. But here to simplify the
  * setup everything is in the same file and we force to load it here.
  *
@@ -129,25 +129,25 @@ require("devtools/client/framework/devtools-browser");
  * alive until the test ends.
  *
  * To avoid leaks, the observer needs to be removed at the end of each test.
- * The test cleanup will send the async message "remove-devtools-testactor-observer",
+ * The test cleanup will send the async message "remove-devtools-highlightertestactor-observer",
  * we listen to this message to cleanup the observer.
  */
-function testActorBootstrap() {
-  const TEST_ACTOR_URL =
-    "chrome://mochitests/content/browser/devtools/client/shared/test/test-actor.js";
+function highlighterTestActorBootstrap() {
+  const HIGHLIGHTER_TEST_ACTOR_URL =
+    "chrome://mochitests/content/browser/devtools/client/shared/test/highlighter-test-actor.js";
 
   const { require: _require } = ChromeUtils.import(
     "resource://devtools/shared/Loader.jsm"
   );
-  _require(TEST_ACTOR_URL);
+  _require(HIGHLIGHTER_TEST_ACTOR_URL);
 
   const Services = _require("Services");
 
   const actorRegistryObserver = subject => {
     const actorRegistry = subject.wrappedJSObject;
-    actorRegistry.registerModule(TEST_ACTOR_URL, {
-      prefix: "test",
-      constructor: "TestActor",
+    actorRegistry.registerModule(HIGHLIGHTER_TEST_ACTOR_URL, {
+      prefix: "highlighterTest",
+      constructor: "HighlighterTestActor",
       type: { target: true },
     });
   };
@@ -172,44 +172,55 @@ function testActorBootstrap() {
   );
 }
 
-const testActorBootstrapScript = "data:,(" + testActorBootstrap + ")()";
+const highlighterTestActorBootstrapScript =
+  "data:,(" + highlighterTestActorBootstrap + ")()";
 Services.ppmm.loadProcessScript(
-  testActorBootstrapScript,
+  highlighterTestActorBootstrapScript,
   // Load this script in all processes (created or to be created)
   true
 );
 
 registerCleanupFunction(() => {
   Services.ppmm.broadcastAsyncMessage("remove-devtools-testactor-observer");
-  Services.ppmm.removeDelayedProcessScript(testActorBootstrapScript);
+  Services.ppmm.removeDelayedProcessScript(highlighterTestActorBootstrapScript);
 });
 
-// Spawn an instance of the test actor for the given toolbox
-async function getTestActor(toolbox) {
+/**
+ * Spawn an instance of the highlighter test actor for the given toolbox
+ *
+ * @param {Toolbox} toolbox
+ * @returns {HighlighterTestFront}
+ */
+async function getHighlighterTestFront(toolbox) {
   // Loading the Inspector panel in order to overwrite the TestActor getter for the
   // highlighter instance with a method that points to the currently visible
   // Box Model Highlighter managed by the Inspector panel.
   const inspector = await toolbox.loadTool("inspector");
-  const testActor = await toolbox.target.getFront("test");
+  const highlighterTestFront = await toolbox.target.getFront("highlighterTest");
   // Override the highligher getter with a method to return the active box model
   // highlighter. Adaptation for multi-process scenarios where there can be multiple
   // highlighters, one per process.
-  testActor.highlighter = () => {
+  highlighterTestFront.highlighter = () => {
     return inspector.highlighters.getActiveHighlighter("BoxModelHighlighter");
   };
-  return testActor;
+  return highlighterTestFront;
 }
 
-// Sometimes, we need the test actor before opening or without a toolbox then just
-// create a front for the given `tab`
-async function getTestActorWithoutToolbox(tab) {
+/**
+ * Spawn an instance of the highlighter test actor for the given tab, when we need the
+ * highlighter test front before opening or without a toolbox.
+ *
+ * @param {Tab} tab
+ * @returns {HighlighterTestFront}
+ */
+async function getHighlighterTestFrontWithoutToolbox(tab) {
   const commands = await CommandsFactory.forTab(tab);
   // Initialize the TargetCommands which require some async stuff to be done
   // before being fully ready. This will define the `targetCommand.targetFront` attribute.
   await commands.targetCommand.startListening();
 
   const targetFront = commands.targetCommand.targetFront;
-  return targetFront.getFront("test");
+  return targetFront.getFront("highlighterTest");
 }
 
 // All test are asynchronous
@@ -467,8 +478,20 @@ async function navigateTo(uri, { isErrorPage = false } = {}) {
   const onTargetSwitched = toolbox.commands.targetCommand.once(
     "switched-target"
   );
-  // Otherwise, if we don't switch target, it is safe to wait for navigate event.
-  const onNavigate = target.once("navigate");
+  // Otherwise, if we don't switch target, it is safe to wait for the dom-complete
+  // DOCUMENT_EVENT resource (or dom-loading if we're navigating to an error page, where
+  // dom-complete won't be emitted).
+  const documentEventName = isErrorPage ? "dom-loading" : "dom-complete";
+  const {
+    onResource: onTopLevelDomEvent,
+  } = await toolbox.commands.resourceCommand.waitForNextResource(
+    toolbox.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+    {
+      ignoreExistingResources: true,
+      predicate: resource =>
+        resource.targetFront.isTopLevel && resource.name === documentEventName,
+    }
+  );
 
   // If the current top-level target follows the window global lifecycle, a
   // target switch will occur regardless of process changes.
@@ -539,9 +562,9 @@ async function navigateTo(uri, { isErrorPage = false } = {}) {
     await onTargetSwitched;
     info(`→ switched-target emitted`);
   } else {
-    info(`Waiting for target 'navigate' event…`);
-    await onNavigate;
-    info(`→ 'navigate' emitted`);
+    info(`Waiting for '${documentEventName}' resource…`);
+    await onTopLevelDomEvent;
+    info(`→ 'dom-complete' resource emitted`);
   }
 }
 
@@ -624,12 +647,14 @@ function isServerTargetSwitchingEnabled() {
  * @param {string} url  The URL to open.
  * @param {String} hostType Optional hostType, as defined in Toolbox.HostType
  * @return A promise that is resolved once the tab and inspector have loaded
- *         with an object: { tab, toolbox, inspector }.
+ *         with an object: { tab, toolbox, inspector, highlighterTestFront }.
  */
 var openInspectorForURL = async function(url, hostType) {
   const tab = await addTab(url);
-  const { inspector, toolbox, testActor } = await openInspector(hostType);
-  return { tab, inspector, toolbox, testActor };
+  const { inspector, toolbox, highlighterTestFront } = await openInspector(
+    hostType
+  );
+  return { tab, inspector, toolbox, highlighterTestFront };
 };
 
 async function getActiveInspector() {
@@ -1204,46 +1229,6 @@ function getCurrentTestFilePath() {
 }
 
 /**
- * Wait for a single resource of the provided resourceType.
- *
- * @param {ResourceCommand} resourceCommand
- *        The ResourceCommand instance that should emit the expected resource.
- * @param {String} resourceType
- *        One of ResourceCommand.TYPES, type of the expected resource.
- * @param {Object} additional options
- *        - {Boolean} ignoreExistingResources: ignore existing resources or not.
- *        - {Function} predicate: if provided, will wait until a resource makes
- *          predicate(resource) return true.
- * @return {Object}
- *         - resource {Object} the resource itself
- *         - targetFront {TargetFront} the target which owns the resource
- */
-function waitForNextResource(
-  resourceCommand,
-  resourceType,
-  { ignoreExistingResources = false, predicate } = {}
-) {
-  // If no predicate was provided, convert to boolean to avoid resolving for
-  // empty `resources` arrays.
-  predicate = predicate || (resource => !!resource);
-
-  return new Promise(resolve => {
-    const onAvailable = resources => {
-      const matchingResource = resources.find(resource => predicate(resource));
-      if (matchingResource) {
-        resolve(matchingResource);
-        resourceCommand.unwatchResources([resourceType], { onAvailable });
-      }
-    };
-
-    resourceCommand.watchResources([resourceType], {
-      ignoreExistingResources,
-      onAvailable,
-    });
-  });
-}
-
-/**
  * Unregister all registered service workers.
  *
  * @param {DevToolsClient} client
@@ -1608,4 +1593,30 @@ function scrollContentPageNodeIntoView(browsingContext, selector) {
  */
 function setContentPageZoomLevel(zoomLevel) {
   gBrowser.selectedBrowser.fullZoom = zoomLevel;
+}
+
+/**
+ * Wait for the next DOCUMENT_EVENT dom-complete resource on a top-level target
+ *
+ * @param {Object} commands
+ * @return {Promise<Object>}
+ *         Return a promise which resolves once we fully settle the resource listener.
+ *         You should await for its resolution before doing the action which may fire
+ *         your resource.
+ *         This promise will resolve with an object containing a `onDomCompleteResource` property,
+ *         which is also a promise, that will resolve once a "top-level" DOCUMENT_EVENT dom-complete
+ *         is received.
+ */
+async function waitForNextTopLevelDomCompleteResource(commands) {
+  const {
+    onResource: onDomCompleteResource,
+  } = await commands.resourceCommand.waitForNextResource(
+    commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+    {
+      ignoreExistingResources: true,
+      predicate: resource =>
+        resource.name === "dom-complete" && resource.targetFront.isTopLevel,
+    }
+  );
+  return { onDomCompleteResource };
 }

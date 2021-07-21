@@ -25,13 +25,13 @@ sm-package-linux64/opt:
         toolchain:
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
             - linux64-rust
             - linux64-gcc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-plain-linux64/debug:
     description: "Spidermonkey Plain"
@@ -46,12 +46,12 @@ sm-plain-linux64/debug:
         toolchain:
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
             - linux64-rust
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-plain-linux64/opt:
     description: "Spidermonkey Plain"
@@ -66,13 +66,13 @@ sm-plain-linux64/opt:
         toolchain:
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
             - linux64-rust
             - linux64-gcc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-smoosh-linux64/debug:
     description: "Spidermonkey SmooshMonkey"
@@ -90,11 +90,29 @@ sm-smoosh-linux64/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
+    when:
+        files-changed:
+            - 'third_party/rust/jsparagus/**'
+            - 'js/src/frontend/Frontend2.cpp'
+            - 'js/src/frontend/Frontend2.h'
+            - 'js/src/frontend/SourceNotes.h'
+            - 'js/src/frontend/smoosh/**'
+            - 'js/public/Symbol.h'
+            - 'js/src/vm/AsyncFunctionResolveKind.h'
+            - 'js/src/vm/BytecodeFormatFlags.h'
+            - 'js/src/vm/CheckIsObjectKind.h'
+            - 'js/src/vm/FunctionFlags.h'
+            - 'js/src/vm/FunctionPrefixKind.h'
+            - 'js/src/vm/GeneratorAndAsyncKind.h'
+            - 'js/src/vm/GeneratorResumeKind.h'
+            - 'js/src/vm/Opcodes.h'
+            - 'js/src/vm/ThrowMsgKind.h'
+            - 'js/src/vm/StencilEnums.h'
 
 sm-smoosh-linux64/opt:
     description: "Spidermonkey SmooshMonkey"
@@ -112,11 +130,29 @@ sm-smoosh-linux64/opt:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
+    when:
+        files-changed:
+            - 'third_party/rust/jsparagus/**'
+            - 'js/src/frontend/Frontend2.cpp'
+            - 'js/src/frontend/Frontend2.h'
+            - 'js/src/frontend/SourceNotes.h'
+            - 'js/src/frontend/smoosh/**'
+            - 'js/public/Symbol.h'
+            - 'js/src/vm/AsyncFunctionResolveKind.h'
+            - 'js/src/vm/BytecodeFormatFlags.h'
+            - 'js/src/vm/CheckIsObjectKind.h'
+            - 'js/src/vm/FunctionFlags.h'
+            - 'js/src/vm/FunctionPrefixKind.h'
+            - 'js/src/vm/GeneratorAndAsyncKind.h'
+            - 'js/src/vm/GeneratorResumeKind.h'
+            - 'js/src/vm/Opcodes.h'
+            - 'js/src/vm/ThrowMsgKind.h'
+            - 'js/src/vm/StencilEnums.h'
 
 sm-nojit-linux64/opt:
     description: "Spidermonkey no JIT"
@@ -132,11 +168,11 @@ sm-nojit-linux64/opt:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-plain-linux32/debug:
     description: "Spidermonkey Plain"
@@ -153,11 +189,12 @@ sm-plain-linux32/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
 
 sm-arm-sim-linux32/debug:
     description: "Spidermonkey ARM sim"
@@ -173,11 +210,12 @@ sm-arm-sim-linux32/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
 
 sm-arm64-sim-linux64/debug:
     description: "Spidermonkey ARM64 sim"
@@ -196,11 +234,11 @@ sm-arm64-sim-linux64/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-arm64-sim-cranelift-linux64/debug:
     description: "Spidermonkey ARM64 sim with Cranelift Wasm backend"
@@ -218,14 +256,13 @@ sm-arm64-sim-cranelift-linux64/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
     routes:
         - "notify.email.jseward@mozilla.com.on-failed"
-        - "notify.email.lhansen@mozilla.com.on-failed"
 
 sm-asan-linux64/opt:
     description: "Spidermonkey Address Sanitizer"
@@ -244,11 +281,11 @@ sm-asan-linux64/opt:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-compacting-linux64/debug:
     description: "Spidermonkey Compacting"
@@ -264,11 +301,30 @@ sm-compacting-linux64/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
+
+sm-linux64-wasi/opt:
+    description: "Spidermonkey WASI opt build"
+    index:
+        job-name: sm-linux64-wasi-opt
+    treeherder:
+        platform: linux64/opt
+        symbol: SM(wasi)
+        tier: 2
+    run:
+        spidermonkey-variant: wasi
+    fetches:
+        toolchain:
+            - linux64-clang
+            - linux64-rust
+            - linux64-cbindgen
+            - linux64-dump_syms
+            - sysroot-x86_64-linux-gnu
+            - wasi-sysroot-12
 
 sm-msan-linux64/opt:
     description: "Spidermonkey Memory Sanitizer"
@@ -290,11 +346,11 @@ sm-msan-linux64/opt:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-tsan-linux64/opt:
     description: "Spidermonkey Thread Sanitizer"
@@ -313,12 +369,12 @@ sm-tsan-linux64/opt:
             - linux64-clang
             - linux64-gcc
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
             - linux64-rust-dev
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-rootanalysis-linux64/debug:
     description: "Spidermonkey Root Analysis"
@@ -334,11 +390,11 @@ sm-rootanalysis-linux64/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-nonunified-linux64/debug:
     description: "Spidermonkey Non-Unified Debug"
@@ -354,11 +410,11 @@ sm-nonunified-linux64/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-fuzzing-linux64/opt:
     description: "Spidermonkey Fuzzing"
@@ -377,11 +433,11 @@ sm-fuzzing-linux64/opt:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-fuzzilli-linux64/debug:
     description: "Spidermonkey Fuzzilli debug"
@@ -400,7 +456,7 @@ sm-fuzzilli-linux64/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
 
 sm-gdb-linux64/debug:
     description: "Spidermonkey GDB Pretty-printers"
@@ -420,8 +476,8 @@ sm-gdb-linux64/debug:
             - linux64-gcc
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-breakpad-injector
             - linux64-minidump-stackwalk
             - linux64-llvm-symbolizer
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu

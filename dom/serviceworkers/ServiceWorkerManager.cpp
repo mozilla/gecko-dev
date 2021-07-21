@@ -396,6 +396,11 @@ struct ServiceWorkerManager::RegistrationDataPerPrincipal final {
 
   // Map scopes to scheduled update timers.
   nsInterfaceHashtable<nsCStringHashKey, nsITimer> mUpdateTimers;
+
+  // The number of times we have done a quota usage check for this origin for
+  // mitigation purposes.  See the docs on nsIServiceWorkerRegistrationInfo,
+  // where this value is exposed.
+  int32_t mQuotaUsageCheckCount = 0;
 };
 
 //////////////////////////
@@ -719,21 +724,25 @@ ServiceWorkerManager::RegisterForTest(nsIPrincipal* aPrincipal,
     outer->MaybeRejectWithAbortError(
         "registerForTest only allowed when dom.serviceWorkers.testing.enabled "
         "is true");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
   if (aPrincipal == nullptr) {
     outer->MaybeRejectWithAbortError("Missing principal");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
   if (aScriptURL.IsEmpty()) {
     outer->MaybeRejectWithAbortError("Missing script url");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
   if (aScopeURL.IsEmpty()) {
     outer->MaybeRejectWithAbortError("Missing scope url");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
@@ -744,6 +753,7 @@ ServiceWorkerManager::RegisterForTest(nsIPrincipal* aPrincipal,
 
   if (!clientInfo.isSome()) {
     outer->MaybeRejectWithUnknownError("Error creating clientInfo");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
@@ -1532,6 +1542,25 @@ void ServiceWorkerManager::StoreRegistration(
     return;
   }
 
+  // Do not store a registration for addons that are not installed, not enabled
+  // or installed temporarily.
+  //
+  // If the dom.serviceWorkers.testing.persistTemporaryInstalledAddons is set
+  // to true, the registration for a temporary installed addon will still be
+  // persisted (only meant to be used to make it easier to test some particular
+  // scenario with a temporary installed addon which doesn't need to be signed
+  // to be installed on release channel builds).
+  if (aPrincipal->SchemeIs("moz-extension")) {
+    RefPtr<extensions::WebExtensionPolicy> addonPolicy =
+        BasePrincipal::Cast(aPrincipal)->AddonPolicy();
+    if (!addonPolicy || !addonPolicy->Active() ||
+        (addonPolicy->TemporarilyInstalled() &&
+         !StaticPrefs::
+             dom_serviceWorkers_testing_persistTemporarilyInstalledAddons())) {
+      return;
+    }
+  }
+
   ServiceWorkerRegistrationData data;
   nsresult rv = PopulateRegistrationData(aPrincipal, aRegistration, data);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1886,7 +1915,7 @@ class ContinueDispatchFetchEventRunnable : public Runnable {
   void HandleError() {
     MOZ_ASSERT(NS_IsMainThread());
     NS_WARNING("Unexpected error while dispatching fetch event!");
-    nsresult rv = mChannel->ResetInterception();
+    nsresult rv = mChannel->ResetInterception(false);
     if (NS_FAILED(rv)) {
       NS_WARNING("Failed to resume intercepted network request");
       mChannel->CancelInterception(rv);
@@ -2230,6 +2259,22 @@ nsresult ServiceWorkerManager::GetClientRegistration(
   return NS_OK;
 }
 
+int32_t ServiceWorkerManager::GetPrincipalQuotaUsageCheckCount(
+    nsIPrincipal* aPrincipal) {
+  nsAutoCString scopeKey;
+  nsresult rv = PrincipalToScopeKey(aPrincipal, scopeKey);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return -1;
+  }
+
+  RegistrationDataPerPrincipal* data;
+  if (!mRegistrationInfos.Get(scopeKey, &data)) {
+    return -1;
+  }
+
+  return data->mQuotaUsageCheckCount;
+}
+
 void ServiceWorkerManager::SoftUpdate(const OriginAttributes& aOriginAttributes,
                                       const nsACString& aScope) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -2551,6 +2596,7 @@ ServiceWorkerManager::RegisterForAddonPrincipal(nsIPrincipal* aPrincipal,
   if (!enabled) {
     outer->MaybeRejectWithNotAllowedError(
         "Disabled. extensions.backgroundServiceWorker.enabled is false");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
@@ -2558,6 +2604,7 @@ ServiceWorkerManager::RegisterForAddonPrincipal(nsIPrincipal* aPrincipal,
   auto* addonPolicy = BasePrincipal::Cast(aPrincipal)->AddonPolicy();
   if (!addonPolicy) {
     outer->MaybeRejectWithNotAllowedError("Not an extension principal");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
@@ -2567,6 +2614,7 @@ ServiceWorkerManager::RegisterForAddonPrincipal(nsIPrincipal* aPrincipal,
     scope.Assign(NS_ConvertUTF16toUTF8(result.unwrap()));
   } else {
     outer->MaybeRejectWithUnknownError("Unable to resolve addon scope URL");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
@@ -2575,6 +2623,7 @@ ServiceWorkerManager::RegisterForAddonPrincipal(nsIPrincipal* aPrincipal,
 
   if (scriptURL.IsEmpty()) {
     outer->MaybeRejectWithNotFoundError("Missing background worker script url");
+    outer.forget(aPromise);
     return NS_OK;
   }
 
@@ -2583,6 +2632,7 @@ ServiceWorkerManager::RegisterForAddonPrincipal(nsIPrincipal* aPrincipal,
 
   if (!clientInfo.isSome()) {
     outer->MaybeRejectWithUnknownError("Error creating clientInfo");
+    outer.forget(aPromise);
     return NS_OK;
   }
 

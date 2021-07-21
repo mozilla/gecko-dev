@@ -16,12 +16,14 @@ const { XPCOMUtils } = ChromeUtils.import(
 XPCOMUtils.defineLazyModuleGetters(this, {
   assert: "chrome://remote/content/marionette/assert.js",
   element: "chrome://remote/content/marionette/element.js",
-  error: "chrome://remote/content/marionette/error.js",
-  Log: "chrome://remote/content/marionette/log.js",
+  error: "chrome://remote/content/shared/webdriver/Errors.jsm",
+  Log: "chrome://remote/content/shared/Log.jsm",
   WebElement: "chrome://remote/content/marionette/element.js",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
+XPCOMUtils.defineLazyGetter(this, "logger", () =>
+  Log.get(Log.TYPES.MARIONETTE)
+);
 
 const ARGUMENTS = "__webDriverArguments";
 const CALLBACK = "__webDriverCallback";

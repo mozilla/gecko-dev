@@ -128,6 +128,14 @@ class ResourceCommand {
       );
     }
 
+    for (const type of resources) {
+      if (!this._isValidResourceType(type)) {
+        throw new Error(
+          `ResourceCommand.watchResources invoked with an unknown type: "${type}"`
+        );
+      }
+    }
+
     // Pending watchers are used in unwatchResources to remove watchers which
     // are not fully registered yet. Store `onAvailable` which is the unique key
     // for a watcher, as well as the resources array, so that unwatchResources
@@ -219,6 +227,14 @@ class ResourceCommand {
       );
     }
 
+    for (const type of resources) {
+      if (!this._isValidResourceType(type)) {
+        throw new Error(
+          `ResourceCommand.unwatchResources invoked with an unknown type: "${type}"`
+        );
+      }
+    }
+
     // Unregister the callbacks from the watchers registries.
     // Check _watchers for the fully initialized watchers, as well as
     // `_pendingWatchers` for new watchers still being created by `watchResources`
@@ -255,6 +271,47 @@ class ResourceCommand {
     if (this._listenedResources.size == 0) {
       this._unwatchAllTargets();
     }
+  }
+
+  /**
+   * Wait for a single resource of the provided resourceType.
+   *
+   * @param {String} resourceType
+   *        One of ResourceCommand.TYPES, type of the expected resource.
+   * @param {Object} additional options
+   *        - {Boolean} ignoreExistingResources: ignore existing resources or not.
+   *        - {Function} predicate: if provided, will wait until a resource makes
+   *          predicate(resource) return true.
+   * @return {Promise<Object>}
+   *         Return a promise which resolves once we fully settle the resource listener.
+   *         You should await for its resolution before doing the action which may fire
+   *         your resource.
+   *         This promise will expose an object with `onResource` attribute,
+   *         itself being a promise, which will resolve once a matching resource is received.
+   */
+  async waitForNextResource(
+    resourceType,
+    { ignoreExistingResources = false, predicate } = {}
+  ) {
+    // If no predicate was provided, convert to boolean to avoid resolving for
+    // empty `resources` arrays.
+    predicate = predicate || (resource => !!resource);
+
+    let resolve;
+    const promise = new Promise(r => (resolve = r));
+    const onAvailable = async resources => {
+      const matchingResource = resources.find(resource => predicate(resource));
+      if (matchingResource) {
+        this.unwatchResources([resourceType], { onAvailable });
+        resolve(matchingResource);
+      }
+    };
+
+    await this.watchResources([resourceType], {
+      ignoreExistingResources,
+      onAvailable,
+    });
+    return { onResource: promise };
   }
 
   /**
@@ -445,15 +502,25 @@ class ResourceCommand {
   }
 
   _shouldRestartListenerOnTargetSwitching(resourceType) {
-    if (!this.targetCommand.isServerTargetSwitchingEnabled()) {
-      // For top-level targets created from the client we should always restart
+    // Note that we aren't using isServerTargetSwitchingEnabled, nor checking the
+    // server side target switching preference as we may have server side targets
+    // even when this is false/disabled.
+    // This will happen for bfcache navigations, even with server side targets disabled.
+    // `followWindowGlobalLifeCycle` will be false for the first top level target
+    // and only become true when doing a bfcache navigation.
+    // (only server side targets follow the WindowGlobal lifecycle)
+    // When server side targets are enabled, this will always be true.
+    const isServerSideTarget = this.targetCommand.targetFront.targetForm
+      .followWindowGlobalLifeCycle;
+    if (isServerSideTarget) {
+      // For top-level targets created from the server, only restart legacy
       // listeners.
-      return true;
+      return !this.hasResourceCommandSupport(resourceType);
     }
 
-    // For top-level targets created from the server, only restart legacy
+    // For top-level targets created from the client we should always restart
     // listeners.
-    return !this.hasResourceCommandSupport(resourceType);
+    return true;
   }
 
   /**
@@ -497,6 +564,7 @@ class ResourceCommand {
    */
   async _onResourceAvailable({ targetFront, watcherFront }, resources) {
     let includesDocumentEventWillNavigate = false;
+    let includesDocumentEventDomLoading = false;
     for (let resource of resources) {
       const { resourceType } = resource;
 
@@ -535,14 +603,29 @@ class ResourceCommand {
         this._onWillNavigate(resource.targetFront);
       }
 
+      if (
+        resourceType == ResourceCommand.TYPES.DOCUMENT_EVENT &&
+        resource.name == "dom-loading" &&
+        resource.targetFront.isTopLevel
+      ) {
+        includesDocumentEventDomLoading = true;
+      }
+
       this._queueResourceEvent("available", resourceType, resource);
 
       this._cache.push(resource);
     }
-    // If we receive the DOCUMENT_EVENT for will-navigate,
-    // flush immediately the resources in order to notify about the navigation sooner than later.
+
+    // If we receive the DOCUMENT_EVENT for:
+    // - will-navigate
+    // - dom-loading + we're using the service worker legacy listener
+    // then flush immediately the resources to notify about the navigation sooner than later.
     // (this is especially useful for tests, even if they should probably avoid depending on this...)
-    if (includesDocumentEventWillNavigate) {
+    if (
+      includesDocumentEventWillNavigate ||
+      (includesDocumentEventDomLoading &&
+        !this.targetCommand.hasTargetWatcherSupport("service_worker"))
+    ) {
       this._notifyWatchers();
     } else {
       this._throttledNotifyWatchers();
@@ -770,7 +853,7 @@ class ResourceCommand {
     // In such case, if the browser toolbox fission pref is disabled, we don't want to use watchers
     // (even if traits on the server are enabled).
     if (
-      this.targetCommand.targetFront.isParentProcess &&
+      this.targetCommand.descriptorFront.isParentProcessDescriptor &&
       !Services.prefs.getBoolPref(BROWSERTOOLBOX_FISSION_ENABLED, false)
     ) {
       return false;
@@ -794,6 +877,10 @@ class ResourceCommand {
     }
 
     return this.hasResourceCommandSupport(resourceType);
+  }
+
+  _isValidResourceType(type) {
+    return this.ALL_TYPES.includes(type);
   }
 
   /**
@@ -1038,6 +1125,9 @@ ResourceCommand.TYPES = ResourceCommand.prototype.TYPES = {
   THREAD_STATE: "thread-state",
   SERVER_SENT_EVENT: "server-sent-event",
 };
+ResourceCommand.ALL_TYPES = ResourceCommand.prototype.ALL_TYPES = Object.values(
+  ResourceCommand.TYPES
+);
 module.exports = ResourceCommand;
 
 // Backward compat code for each type of resource.

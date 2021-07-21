@@ -66,8 +66,8 @@ job-defaults:
                     - linux64-clang
                     - linux64-gcc
                     - linux64-rust
-                    - linux64-dump-syms
-                    - linux64-sysroot
+                    - linux64-dump_syms
+                    - sysroot-x86_64-linux-gnu
 
 jobs-from:
     - linux.yml

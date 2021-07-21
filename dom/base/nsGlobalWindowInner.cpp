@@ -30,6 +30,7 @@
 #include "js/ComparisonOperators.h"
 #include "js/CompileOptions.h"
 #include "js/Id.h"
+#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
 #include "js/PropertyDescriptor.h"
 #include "js/RealmOptions.h"
 #include "js/RootingAPI.h"
@@ -116,6 +117,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/dom/External.h"
 #include "mozilla/dom/Fetch.h"
 #include "mozilla/dom/Gamepad.h"
 #include "mozilla/dom/GamepadHandle.h"
@@ -315,10 +317,6 @@
 #  include "nsIWebBrowserPrint.h"
 #endif
 
-#ifdef HAVE_SIDEBAR
-#  include "mozilla/dom/ExternalBinding.h"
-#endif
-
 #ifdef MOZ_WEBSPEECH
 #  include "mozilla/dom/SpeechSynthesis.h"
 #endif
@@ -405,14 +403,6 @@ static nsGlobalWindowOuter* GetOuterWindowForForwarding(
 #define DOM_TOUCH_LISTENER_ADDED "dom-touch-listener-added"
 #define MEMORY_PRESSURE_OBSERVER_TOPIC "memory-pressure"
 #define PERMISSION_CHANGED_TOPIC "perm-changed"
-
-// Amount of time allowed between alert/prompt/confirm before enabling
-// the stop dialog checkbox.
-#define DEFAULT_SUCCESSIVE_DIALOG_TIME_LIMIT 3  // 3 sec
-
-// Maximum number of successive dialogs before we prompt users to disable
-// dialogs for this window.
-#define MAX_SUCCESSIVE_DIALOG_COUNT 5
 
 static LazyLogModule gDOMLeakPRLogInner("DOMLeakInner");
 extern mozilla::LazyLogModule gTimeoutLog;
@@ -937,8 +927,6 @@ nsGlobalWindowInner::nsGlobalWindowInner(nsGlobalWindowOuter* aOuterWindow,
       mFocusMethod(0),
       mIdleRequestCallbackCounter(1),
       mIdleRequestExecutor(nullptr),
-      mDialogAbuseCount(0),
-      mAreDialogsEnabled(true),
       mObservingRefresh(false),
       mIteratingDocumentFlushedResolvers(false),
       mCanSkipCCGeneration(0) {
@@ -1289,7 +1277,10 @@ void nsGlobalWindowInner::FreeInnerObjects() {
   mExternal = nullptr;
   mInstallTrigger = nullptr;
 
-  mLocalStorage = nullptr;
+  if (mLocalStorage) {
+    mLocalStorage->Disconnect();
+    mLocalStorage = nullptr;
+  }
   mSessionStorage = nullptr;
   mPerformance = nullptr;
 
@@ -1516,7 +1507,10 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHistory)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCustomElements)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSharedWorkers)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mLocalStorage)
+  if (tmp->mLocalStorage) {
+    tmp->mLocalStorage->Disconnect();
+    NS_IMPL_CYCLE_COLLECTION_UNLINK(mLocalStorage)
+  }
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStorage)
   if (tmp->mApplicationCache) {
     static_cast<nsDOMOfflineResourceList*>(tmp->mApplicationCache.get())
@@ -2042,32 +2036,6 @@ void nsGlobalWindowInner::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
   }
 
   aVisitor.SetParentTarget(GetParentTarget(), true);
-}
-
-bool nsGlobalWindowInner::DialogsAreBeingAbused() {
-  NS_ASSERTION(GetInProcessScriptableTopInternal() &&
-                   GetInProcessScriptableTopInternal()
-                           ->GetCurrentInnerWindowInternal() == this,
-               "DialogsAreBeingAbused called with invalid window");
-
-  if (mLastDialogQuitTime.IsNull() || nsContentUtils::IsCallerChrome()) {
-    return false;
-  }
-
-  TimeDuration dialogInterval(TimeStamp::Now() - mLastDialogQuitTime);
-  if (dialogInterval.ToSeconds() <
-      Preferences::GetInt("dom.successive_dialog_time_limit",
-                          DEFAULT_SUCCESSIVE_DIALOG_TIME_LIMIT)) {
-    mDialogAbuseCount++;
-
-    return PopupBlocker::GetPopupControlState() > PopupBlocker::openAllowed ||
-           mDialogAbuseCount > MAX_SUCCESSIVE_DIALOG_COUNT;
-  }
-
-  // Reset the abuse counter
-  mDialogAbuseCount = 0;
-
-  return false;
 }
 
 void nsGlobalWindowInner::FireFrameLoadEvent() {
@@ -7068,8 +7036,9 @@ bool nsGlobalWindowInner::TryToObserveRefresh() {
     return false;
   }
 
+  mObservingRefresh = true;
   auto observer = MakeRefPtr<ManagedPostRefreshObserver>(
-      pc->PresShell(), [win = RefPtr{this}](bool aWasCanceled) {
+      pc, [win = RefPtr{this}](bool aWasCanceled) {
         if (win->MaybeCallDocumentFlushedResolvers(
                 /* aUntilExhaustion = */ aWasCanceled)) {
           return ManagedPostRefreshObserver::Unregister::No;
@@ -7077,7 +7046,7 @@ bool nsGlobalWindowInner::TryToObserveRefresh() {
         win->mObservingRefresh = false;
         return ManagedPostRefreshObserver::Unregister::Yes;
       });
-  mObservingRefresh = pc->RegisterManagedPostRefreshObserver(observer.get());
+  pc->RegisterManagedPostRefreshObserver(observer.get());
   return mObservingRefresh;
 }
 
@@ -7263,25 +7232,15 @@ bool nsGlobalWindowInner::IsSecureContext() const {
 }
 
 External* nsGlobalWindowInner::GetExternal(ErrorResult& aRv) {
-#ifdef HAVE_SIDEBAR
   if (!mExternal) {
-    mExternal = ConstructJSImplementation<External>("@mozilla.org/sidebar;1",
-                                                    this, aRv);
-    if (aRv.Failed()) {
-      return nullptr;
-    }
+    mExternal = new dom::External(ToSupports(this));
   }
 
-  return static_cast<External*>(mExternal.get());
-#else
-  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return nullptr;
-#endif
+  return mExternal;
 }
 
 void nsGlobalWindowInner::GetSidebar(OwningExternalOrWindowProxy& aResult,
                                      ErrorResult& aRv) {
-#ifdef HAVE_SIDEBAR
   // First check for a named frame named "sidebar"
   RefPtr<BrowsingContext> domWindow = GetChildWindow(u"sidebar"_ns);
   if (domWindow) {
@@ -7293,9 +7252,6 @@ void nsGlobalWindowInner::GetSidebar(OwningExternalOrWindowProxy& aResult,
   if (external) {
     aResult.SetAsExternal() = external;
   }
-#else
-  aRv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-#endif
 }
 
 void nsGlobalWindowInner::ClearDocumentDependentSlots(JSContext* aCx) {

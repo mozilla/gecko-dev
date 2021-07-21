@@ -712,6 +712,10 @@ class SpecialPowersChild extends JSWindowActorChild {
     return Cr;
   }
 
+  get isHeadless() {
+    return Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo).isHeadless;
+  }
+
   get addProfilerMarker() {
     return ChromeUtils.addProfilerMarker;
   }
@@ -893,18 +897,46 @@ class SpecialPowersChild extends JSWindowActorChild {
   }
 
   async pushPrefEnv(inPrefs, callback = null) {
-    await this.sendQuery("PushPrefEnv", inPrefs).then(callback);
-    await this.promiseTimeout(0);
+    let { requiresRefresh } = await this.sendQuery("PushPrefEnv", inPrefs);
+    if (callback) {
+      await callback();
+    }
+    if (requiresRefresh) {
+      await this._promiseEarlyRefresh();
+    }
   }
 
   async popPrefEnv(callback = null) {
-    await this.sendQuery("PopPrefEnv").then(callback);
-    await this.promiseTimeout(0);
+    let { popped, requiresRefresh } = await this.sendQuery("PopPrefEnv");
+    if (callback) {
+      await callback(popped);
+    }
+    if (requiresRefresh) {
+      await this._promiseEarlyRefresh();
+    }
   }
 
   async flushPrefEnv(callback = null) {
-    await this.sendQuery("FlushPrefEnv").then(callback);
-    await this.promiseTimeout(0);
+    let { requiresRefresh } = await this.sendQuery("FlushPrefEnv");
+    if (callback) {
+      await callback();
+    }
+    if (requiresRefresh) {
+      await this._promiseEarlyRefresh();
+    }
+  }
+
+  _promiseEarlyRefresh() {
+    return new Promise(r => {
+      // for mochitest-browser
+      if (typeof this.chromeWindow != "undefined") {
+        this.chromeWindow.requestAnimationFrame(r);
+      }
+      // for mochitest-plain
+      else {
+        this.contentWindow.requestAnimationFrame(r);
+      }
+    });
   }
 
   _addObserverProxy(notification) {

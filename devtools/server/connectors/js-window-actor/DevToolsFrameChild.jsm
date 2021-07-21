@@ -42,22 +42,23 @@ function shouldNotifyWindowGlobal(
     windowGlobal.innerWindowId
   );
 
-  // For some unknown reason, the print preview of PDFs generates an about:blank
-  // document, which, on the parent process, has windowGlobal.documentURI.spec
-  // set to the pdf's URL. So that Frame target helper accepts this WindowGlobal
-  // and instantiates a target for it.
-  // Which is great as this is a valuable document to debug.
-  // But in the content process, this ends up being an about:blank document, and
-  // hasLoadedNonBlankURI is always false. Nonetheless, this isn't a real empty
-  // about:blank. We end up loading resource://pdf.js/web/viewer.html.
-  // But `window.location` is set to about:blank, while `document.documentURI`
-  // is set to the pretty printed PDF...
-  // So we end up checking the documentURI in order to see if that's a special
-  // not-really-blank about:blank document!
-  if (
-    !window.docShell.hasLoadedNonBlankURI &&
-    window.document?.documentURI === "about:blank"
-  ) {
+  // By default, before loading the actual document (even an about:blank document),
+  // we do load immediately "the initial about:blank document".
+  // This is expected by the spec. Typically when creating a new BrowsingContext/DocShell/iframe,
+  // we would have such transient initial document.
+  // `Document.isInitialDocument` helps identifying this transcient document, which
+  // we want to ignore as it would instantiate a very short lived target which
+  // confuses many tests and triggers race conditions by spamming many targets.
+  //
+  // We also ignore some other transient empty documents created while using `window.open()`
+  // When using this API with cross process loads, we may create up to three documents/WindowGlobals.
+  // We get a first initial about:blank document, and a second document created
+  // for moving the document in the right principal.
+  // The third document will be the actual document we expect to debug.
+  // The second document is an implementation artifact which ideally wouldn't exist
+  // and isn't expected by the spec.
+  // Note that `window.print` and print preview are using `window.open` and are going throught this.
+  if (window.document.isInitialDocument) {
     return false;
   }
 
@@ -322,11 +323,14 @@ class DevToolsFrameChild extends JSWindowActorChild {
     // Create the actual target actor.
     const targetActor = new FrameTargetActor(connection, {
       docShell: this.docShell,
+      // All targets created from the server side, via Watcher actor and DevToolsFrame JSWindow actor pair are:
+      // - not emitting frame-update events, used to update the iframe dropdown. This should probably be revisited.
+      // (see bug 1719156)
+      // - following WindowGlobal lifecycle. i.e. will be destroyed on any type of navigation/reload.
+      // Note that if devtools.target-switching.server.enabled is false, the top level target
+      // won't be created via the codepath. Except if we have a bfcache-in-parent navigation.
       doNotFireFrameUpdates: true,
-      // Only toggle this flag ON when the target-switching pref is true for the top level target.
-      // Otherwise it is always true for iframe targets.
-      followWindowGlobalLifeCycle:
-        !isTopLevelTarget || this.isServerTargetSwitchingEnabled,
+      followWindowGlobalLifeCycle: true,
       isTopLevelTarget,
     });
     targetActor.manage(targetActor);
@@ -383,9 +387,12 @@ class DevToolsFrameChild extends JSWindowActorChild {
   }
 
   receiveMessage(message) {
-    // All messages but "packet" one pass `browserId` and are expected
-    // to match shouldNotifyWindowGlobal result.
-    if (message.name != "DevToolsFrameParent:packet") {
+    // When debugging only a given tab, all messages but "packet" one pass `browserId`
+    // and are expected to match shouldNotifyWindowGlobal result.
+    if (
+      message.data.browserId &&
+      message.name != "DevToolsFrameParent:packet"
+    ) {
       const { browserId } = message.data;
       // Re-check here, just to ensure that both parent and content processes agree
       // on what should or should not be watched.
@@ -396,7 +403,7 @@ class DevToolsFrameChild extends JSWindowActorChild {
         })
       ) {
         throw new Error(
-          "Mismatch between DevToolsFrameParent and DevToolsFrameChild  " +
+          "Mismatch between DevToolsFrameParent and DevToolsFrameChild " +
             (this.manager.browsingContext.browserId == browserId
               ? "window global shouldn't be notified (shouldNotifyWindowGlobal mismatch)"
               : `expected browsing context with browserId ${browserId}, but got ${this.manager.browsingContext.browserId}`)
@@ -498,62 +505,82 @@ class DevToolsFrameChild extends JSWindowActorChild {
       return;
     }
 
+    // Also handle bfcache navigation with new targets when server side target switching is enabled,
+    // even if bfcacheinParent is false. That's because when isServerTargetSwitchingEnabled=true,
+    // targets follow WindowGlobal lifecycle and won't emit navigate event, nor debug the page
+    // restored from the bfcache
+    const shouldHandleBfCacheEvents =
+      this.isBfcacheInParentEnabled || this.isServerTargetSwitchingEnabled;
+
     // DOMWindowCreated is registered from FrameWatcher via `ActorManagerParent.addJSWindowActors`
     // as a DOM event to be listened to and so is fired by JS Window Actor code platform code.
     if (type == "DOMWindowCreated") {
       this.instantiate();
-    } else if (
-      this.isBfcacheInParentEnabled &&
-      type == "pageshow" &&
-      persisted
-    ) {
-      // If persisted=true, this is a BFCache navigation.
-      // With Fission enabled, BFCache navigation will spawn a new DocShell
-      // in the same process:
-      // * the previous page won't be destroyed, its JSWindowActor will stay alive (didDestroy won't be called)
-      //   and a pagehide with persisted=true will be emitted on it.
-      // * the new page page won't emit any DOMWindowCreated, but instead a pageshow with persisted=true
-      //   will be emitted.
-      this.instantiate({ forceOverridingFirstTarget: true });
+      return;
     }
-    if (this.isBfcacheInParentEnabled && type == "pagehide" && persisted) {
-      this.didDestroy();
 
-      // We might navigate away for the first top level target,
-      // which isn't using JSWindowActor (it still uses messages manager and is created by the client, via TabDescriptor.getTarget).
-      // We have to unregister it from the TargetActorRegistry, otherwise,
-      // if we navigate back to it, the next DOMWindowCreated won't create a new target for it.
-      const { sharedData } = Services.cpmm;
-      const watchedDataByWatcherActor = sharedData.get(SHARED_DATA_KEY_NAME);
-      if (!watchedDataByWatcherActor) {
-        throw new Error(
-          "Request to instantiate the target(s) for the BrowsingContext, but `sharedData` is empty about watched targets"
-        );
+    if (type === "pageshow" && persisted) {
+      this.sendAsyncMessage("DevToolsFrameChild:bf-cache-navigation-pageshow");
+
+      if (shouldHandleBfCacheEvents) {
+        // If persisted=true, this is a BFCache navigation.
+        // With Fission enabled, BFCache navigation will spawn a new DocShell
+        // in the same process:
+        // * the previous page won't be destroyed, its JSWindowActor will stay alive (didDestroy won't be called)
+        //   and a pagehide with persisted=true will be emitted on it.
+        // * the new page page won't emit any DOMWindowCreated, but instead a pageshow with persisted=true
+        //   will be emitted.
+        this.instantiate({ forceOverridingFirstTarget: true });
       }
 
-      const actors = [];
-      for (const [watcherActorID, watchedData] of watchedDataByWatcherActor) {
-        const { browserId } = watchedData;
-        const existingTarget = this._getTargetActorForWatcherActorID(
-          watcherActorID,
-          browserId
-        );
+      return;
+    }
 
-        if (!existingTarget) {
-          continue;
+    if (type === "pagehide" && persisted) {
+      this.sendAsyncMessage("DevToolsFrameChild:bf-cache-navigation-pagehide");
+
+      if (shouldHandleBfCacheEvents) {
+        // We might navigate away for the first top level target,
+        // which isn't using JSWindowActor (it still uses messages manager and is created by the client, via TabDescriptor.getTarget).
+        // We have to unregister it from the TargetActorRegistry, otherwise,
+        // if we navigate back to it, the next DOMWindowCreated won't create a new target for it.
+        const { sharedData } = Services.cpmm;
+        const watchedDataByWatcherActor = sharedData.get(SHARED_DATA_KEY_NAME);
+        if (!watchedDataByWatcherActor) {
+          throw new Error(
+            "Request to instantiate the target(s) for the BrowsingContext, but `sharedData` is empty about watched targets"
+          );
         }
-        if (existingTarget.window.document != target) {
-          throw new Error("Existing target actor is for a distinct document");
+
+        const actors = [];
+        for (const [watcherActorID, watchedData] of watchedDataByWatcherActor) {
+          const { browserId } = watchedData;
+          const existingTarget = this._getTargetActorForWatcherActorID(
+            watcherActorID,
+            browserId
+          );
+
+          if (!existingTarget) {
+            continue;
+          }
+          if (existingTarget.window.document != target) {
+            throw new Error("Existing target actor is for a distinct document");
+          }
+          actors.push({ watcherActorID, form: existingTarget.form() });
+          existingTarget.destroy();
         }
-        actors.push({ watcherActorID, form: existingTarget.form() });
-        existingTarget.destroy();
+        // The most important is to unregister the actor from TargetActorRegistry,
+        // so that it is no longer present in the list when new DOMWindowCreated fires.
+        // This will also help notify the client that the target has been destroyed.
+        // And if we navigate back to this target, the client will receive the same target actor ID,
+        // so that it is really important to destroy it correctly on both server and client.
+        this.sendAsyncMessage("DevToolsFrameChild:destroy", { actors });
+
+        // Completely clear this JSWindow Actor.
+        // Do this after having called _getTargetActorForWatcherActorID,
+        // as it would clear the registered target actors.
+        this.didDestroy();
       }
-      // The most important is to unregister the actor from TargetActorRegistry,
-      // so that it is no longer present in the list when new DOMWindowCreated fires.
-      // This will also help notify the client that the target has been destroyed.
-      // And if we navigate back to this target, the client will receive the same target actor ID,
-      // so that it is really important to destroy it correctly on both server and client.
-      this.sendAsyncMessage("DevToolsFrameChild:destroy", { actors });
     }
   }
 

@@ -37,7 +37,7 @@ class GPUParent final : public PGPUParent {
   static bool MaybeFlushMemory();
 
   bool Init(base::ProcessId aParentPid, const char* aParentBuildID,
-            MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel);
+            mozilla::ipc::ScopedPort aPort);
   void NotifyDeviceReset();
 
   already_AddRefed<PAPZInputBridgeParent> AllocPAPZInputBridgeParent(
@@ -102,9 +102,7 @@ class GPUParent final : public PGPUParent {
  private:
   const TimeStamp mLaunchTime;
   RefPtr<VsyncBridgeParent> mVsyncBridge;
-#ifdef MOZ_GECKO_PROFILER
   RefPtr<ChildProfilerController> mProfilerController;
-#endif
   AsyncBlockers mShutdownBlockers;
 };
 

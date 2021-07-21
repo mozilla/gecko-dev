@@ -28,6 +28,7 @@
 #include "AltDataOutputStreamChild.h"
 #include "CookieServiceChild.h"
 #include "HttpBackgroundChannelChild.h"
+#include "NetworkMarker.h"
 #include "nsCOMPtr.h"
 #include "nsContentPolicyUtils.h"
 #include "nsDOMNavigationTiming.h"
@@ -63,10 +64,6 @@
 #include "nsCORSListenerProxy.h"
 #include "ClassifierDummyChannel.h"
 #include "nsIOService.h"
-
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracer.h"
-#endif
 
 #include <functional>
 
@@ -868,7 +865,6 @@ void HttpChannelChild::OnStopRequest(
   mCacheReadStart = aTiming.cacheReadStart();
   mCacheReadEnd = aTiming.cacheReadEnd();
 
-#ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -881,10 +877,9 @@ void HttpChannelChild::OnStopRequest(
     profiler_add_network_marker(
         mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_STOP,
         mLastStatusReported, TimeStamp::Now(), mTransferSize, kCacheUnknown,
-        mLoadInfo->GetInnerWindowID(), &mTransactionTimings, nullptr,
-        std::move(mSource), Some(nsDependentCString(contentType.get())));
+        mLoadInfo->GetInnerWindowID(), &mTransactionTimings, std::move(mSource),
+        Some(nsDependentCString(contentType.get())));
   }
-#endif
 
   TimeDuration channelCompletionDuration = TimeStamp::Now() - mAsyncOpenTime;
   if (mIsFromCache) {
@@ -1358,7 +1353,6 @@ void HttpChannelChild::Redirect1Begin(
 
   ResourceTimingStructArgsToTimingsStruct(timing, mTransactionTimings);
 
-#ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -1369,9 +1363,9 @@ void HttpChannelChild::Redirect1Begin(
         mURI, requestMethod, mPriority, mChannelId,
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         0, kCacheUnknown, mLoadInfo->GetInnerWindowID(), &mTransactionTimings,
-        uri, std::move(mSource), Some(nsDependentCString(contentType.get())));
+        std::move(mSource), Some(nsDependentCString(contentType.get())), uri,
+        redirectFlags, channelId);
   }
-#endif
 
   if (!securityInfoSerialization.IsEmpty()) {
     rv = NS_DeserializeObject(securityInfoSerialization,
@@ -1676,7 +1670,6 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener* aListener) {
    */
 
   mLastStatusReported = TimeStamp::Now();
-#ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -1684,9 +1677,8 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener* aListener) {
     profiler_add_network_marker(
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
-        mLoadInfo->GetInnerWindowID(), nullptr, nullptr);
+        mLoadInfo->GetInnerWindowID());
   }
-#endif
   StoreIsPending(true);
   StoreWasOpened(true);
   mListener = aListener;
@@ -1975,16 +1967,6 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
     mAsyncOpenTime = TimeStamp::Now();
   }
 
-#ifdef MOZ_TASK_TRACER
-  if (tasktracer::IsStartLogging()) {
-    nsCOMPtr<nsIURI> uri;
-    GetURI(getter_AddRefs(uri));
-    nsAutoCString urispec;
-    uri->GetSpec(urispec);
-    tasktracer::AddLabel("HttpChannelChild::AsyncOpen %s", urispec.get());
-  }
-#endif
-
   // Port checked in parent, but duplicate here so we can return with error
   // immediately
   rv = NS_CheckPortSafety(mURI);
@@ -2013,7 +1995,6 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
   gHttpHandler->OnOpeningRequest(this);
 
   mLastStatusReported = TimeStamp::Now();
-#ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -2021,9 +2002,8 @@ nsresult HttpChannelChild::AsyncOpenInternal(nsIStreamListener* aListener) {
     profiler_add_network_marker(
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, kCacheUnknown,
-        mLoadInfo->GetInnerWindowID(), nullptr, nullptr);
+        mLoadInfo->GetInnerWindowID());
   }
-#endif
   StoreIsPending(true);
   StoreWasOpened(true);
   mListener = listener;

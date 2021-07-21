@@ -25,7 +25,7 @@ class RDDParent final : public PRDDParent {
   AsyncBlockers& AsyncShutdownService() { return mShutdownBlockers; }
 
   bool Init(base::ProcessId aParentPid, const char* aParentBuildID,
-            MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel);
+            mozilla::ipc::ScopedPort aPort);
 
   mozilla::ipc::IPCResult RecvInit(nsTArray<GfxVarUpdate>&& vars,
                                    const Maybe<ipc::FileDescriptor>& aBrokerFd,
@@ -49,13 +49,15 @@ class RDDParent final : public PRDDParent {
   mozilla::ipc::IPCResult RecvPreferenceUpdate(const Pref& pref);
   mozilla::ipc::IPCResult RecvUpdateVar(const GfxVarUpdate& pref);
 
+#if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
+  mozilla::ipc::IPCResult RecvInitSandboxTesting(
+      Endpoint<PSandboxTestingChild>&& aEndpoint);
+#endif
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
  private:
   const TimeStamp mLaunchTime;
-#ifdef MOZ_GECKO_PROFILER
   RefPtr<ChildProfilerController> mProfilerController;
-#endif
   AsyncBlockers mShutdownBlockers;
 };
 

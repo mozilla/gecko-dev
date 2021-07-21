@@ -404,14 +404,6 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  Maybe<PrincipalInfo> sandboxedLoadingPrincipalInfo;
-  if (aLoadInfo->GetLoadingSandboxed()) {
-    sandboxedLoadingPrincipalInfo.emplace();
-    rv = PrincipalToPrincipalInfo(aLoadInfo->GetSandboxedLoadingPrincipal(),
-                                  sandboxedLoadingPrincipalInfo.ptr());
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
   Maybe<PrincipalInfo> topLevelPrincipalInfo;
   if (nsIPrincipal* topLevenPrin = aLoadInfo->GetTopLevelPrincipal()) {
     topLevelPrincipalInfo.emplace();
@@ -503,8 +495,8 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
 
   *aOptionalLoadInfoArgs = Some(LoadInfoArgs(
       loadingPrincipalInfo, triggeringPrincipalInfo, principalToInheritInfo,
-      sandboxedLoadingPrincipalInfo, topLevelPrincipalInfo,
-      topLevelStorageAreaPrincipalInfo, optionalResultPrincipalURI,
+      topLevelPrincipalInfo, topLevelStorageAreaPrincipalInfo,
+      optionalResultPrincipalURI, aLoadInfo->GetSandboxedNullPrincipalID(),
       aLoadInfo->GetSecurityFlags(), aLoadInfo->GetSandboxFlags(),
       aLoadInfo->GetTriggeringSandboxFlags(),
       aLoadInfo->InternalContentPolicyType(),
@@ -540,10 +532,10 @@ nsresult LoadInfoToLoadInfoArgs(nsILoadInfo* aLoadInfo,
       aLoadInfo->GetIsInDevToolsContext(), aLoadInfo->GetParserCreatedScript(),
       aLoadInfo->GetIsFromProcessingFrameAttributes(),
       aLoadInfo->GetIsMediaRequest(), aLoadInfo->GetIsMediaInitialRequest(),
-      cookieJarSettingsArgs, aLoadInfo->GetRequestBlockingReason(),
-      maybeCspToInheritInfo, aLoadInfo->GetHasStoragePermission(),
-      aLoadInfo->GetIsMetaRefresh(), aLoadInfo->GetLoadingEmbedderPolicy(),
-      unstrippedURI));
+      aLoadInfo->GetIsFromObjectOrEmbed(), cookieJarSettingsArgs,
+      aLoadInfo->GetRequestBlockingReason(), maybeCspToInheritInfo,
+      aLoadInfo->GetHasStoragePermission(), aLoadInfo->GetIsMetaRefresh(),
+      aLoadInfo->GetLoadingEmbedderPolicy(), unstrippedURI));
 
   return NS_OK;
 }
@@ -634,16 +626,6 @@ nsresult LoadInfoArgsToLoadInfo(
   }
   if (!principalToInherit && loadInfoArgs.principalToInheritInfo().isSome()) {
     principalToInherit = flattenedPrincipalToInherit;
-  }
-
-  nsCOMPtr<nsIPrincipal> sandboxedLoadingPrincipal;
-  if (loadInfoArgs.sandboxedLoadingPrincipalInfo().isSome()) {
-    auto sandboxedLoadingPrincipalOrErr = PrincipalInfoToPrincipal(
-        loadInfoArgs.sandboxedLoadingPrincipalInfo().ref());
-    if (NS_WARN_IF(sandboxedLoadingPrincipalOrErr.isErr())) {
-      return sandboxedLoadingPrincipalOrErr.unwrapErr();
-    }
-    sandboxedLoadingPrincipal = sandboxedLoadingPrincipalOrErr.unwrap();
   }
 
   nsresult rv = NS_OK;
@@ -762,10 +744,10 @@ nsresult LoadInfoArgsToLoadInfo(
 
   RefPtr<mozilla::net::LoadInfo> loadInfo = new mozilla::net::LoadInfo(
       loadingPrincipal, triggeringPrincipal, principalToInherit,
-      sandboxedLoadingPrincipal, topLevelPrincipal,
-      topLevelStorageAreaPrincipal, resultPrincipalURI, cookieJarSettings,
-      cspToInherit, clientInfo, reservedClientInfo, initialClientInfo,
-      controller, loadInfoArgs.securityFlags(), loadInfoArgs.sandboxFlags(),
+      topLevelPrincipal, topLevelStorageAreaPrincipal, resultPrincipalURI,
+      cookieJarSettings, cspToInherit, loadInfoArgs.sandboxedNullPrincipalID(),
+      clientInfo, reservedClientInfo, initialClientInfo, controller,
+      loadInfoArgs.securityFlags(), loadInfoArgs.sandboxFlags(),
       loadInfoArgs.triggeringSandboxFlags(), loadInfoArgs.contentPolicyType(),
       static_cast<LoadTainting>(loadInfoArgs.tainting()),
       loadInfoArgs.blockAllMixedContent(),
@@ -812,6 +794,10 @@ nsresult LoadInfoArgsToLoadInfo(
     if (loadInfoArgs.isMediaInitialRequest()) {
       loadInfo->SetIsMediaInitialRequest(true);
     }
+  }
+
+  if (loadInfoArgs.isFromObjectOrEmbed()) {
+    loadInfo->SetIsFromObjectOrEmbed(true);
   }
 
   loadInfo.forget(outLoadInfo);

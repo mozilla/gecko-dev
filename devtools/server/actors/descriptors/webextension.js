@@ -82,7 +82,9 @@ const WebExtensionDescriptorActor = protocol.ActorClassWithSpec(
         manifestURL: policy && policy.getURL("manifest.json"),
         name: this.addon.name,
         temporarilyInstalled: this.addon.temporarilyInstalled,
-        traits: {},
+        traits: {
+          supportsReloadDescriptor: true,
+        },
         url: this.addon.sourceURI ? this.addon.sourceURI.spec : undefined,
         warnings: ExtensionParent.DebugUtils.getExtensionManifestWarnings(
           this.addonId
@@ -139,6 +141,17 @@ const WebExtensionDescriptorActor = protocol.ActorClassWithSpec(
       this._mm.addMessageListener("debug:webext_child_exit", this._onChildExit);
 
       return this._form;
+    },
+
+    /**
+     * Note that reloadDescriptor is the common API name for descriptors
+     * which support to be reloaded, while WebExtensionDescriptorActor::reload
+     * is a legacy API which is for instance used from web-ext.
+     *
+     * bypassCache has no impact for addon reloads.
+     */
+    reloadDescriptor({ bypassCache }) {
+      return this.reload();
     },
 
     /** WebExtension Actor Methods **/

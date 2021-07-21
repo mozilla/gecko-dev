@@ -297,13 +297,21 @@ async function addTestTailSuggestionsEngine(suggestionsFn = null) {
 
 async function addOpenPages(uri, count = 1, userContextId = 0) {
   for (let i = 0; i < count; i++) {
-    await UrlbarProviderOpenTabs.registerOpenTab(uri.spec, userContextId);
+    await UrlbarProviderOpenTabs.registerOpenTab(
+      uri.spec,
+      userContextId,
+      false
+    );
   }
 }
 
 async function removeOpenPages(aUri, aCount = 1, aUserContextId = 0) {
   for (let i = 0; i < aCount; i++) {
-    await UrlbarProviderOpenTabs.unregisterOpenTab(aUri.spec, aUserContextId);
+    await UrlbarProviderOpenTabs.unregisterOpenTab(
+      aUri.spec,
+      aUserContextId,
+      false
+    );
   }
 }
 
@@ -524,7 +532,7 @@ function makeKeywordSearchResult(
       url: [uri, UrlbarUtils.HIGHLIGHT.TYPED],
       keyword: [keyword, UrlbarUtils.HIGHLIGHT.TYPED],
       input: [queryContext.searchString, UrlbarUtils.HIGHLIGHT.TYPED],
-      postData,
+      postData: postData || null,
       icon: typeof iconUri != "undefined" ? iconUri : `page-icon:${uri}`,
     })
   );

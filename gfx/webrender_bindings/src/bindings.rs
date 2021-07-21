@@ -37,14 +37,12 @@ use rayon;
 use tracy_rs::register_thread_with_profiler;
 use webrender::sw_compositor::SwCompositor;
 use webrender::{
-    api::units::*,
-    api::*,
-    render_api::*,
-    set_profiler_hooks, AsyncPropertySampler, AsyncScreenshotHandle, Compositor, CompositorCapabilities,
-    CompositorConfig, CompositorSurfaceTransform, DebugFlags, Device, MappableCompositor, MappedTileInfo,
-    NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor, PipelineInfo, ProfilerHooks,
-    RecordedFrameHandle, Renderer, RendererOptions, RendererStats, SWGLCompositeSurfaceInfo, SceneBuilderHooks,
-    ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig, UploadMethod, ONE_TIME_USAGE_HINT,
+    api::units::*, api::*, render_api::*, set_profiler_hooks, AsyncPropertySampler, AsyncScreenshotHandle, Compositor,
+    CompositorCapabilities, CompositorConfig, CompositorSurfaceTransform, DebugFlags, Device, MappableCompositor,
+    MappedTileInfo, NativeSurfaceId, NativeSurfaceInfo, NativeTileId, PartialPresentCompositor, PipelineInfo,
+    ProfilerHooks, RecordedFrameHandle, Renderer, RendererOptions, RendererStats, SWGLCompositeSurfaceInfo,
+    SceneBuilderHooks, ShaderPrecacheFlags, Shaders, SharedShaders, TextureCacheConfig, UploadMethod,
+    ONE_TIME_USAGE_HINT,
 };
 use wr_malloc_size_of::MallocSizeOfOps;
 
@@ -112,28 +110,6 @@ type WrYuvColorSpace = YuvColorSpace;
 type WrColorDepth = ColorDepth;
 /// cbindgen:field-names=[mNamespace, mHandle]
 type WrColorRange = ColorRange;
-
-#[repr(C)]
-pub struct WrSpaceAndClip {
-    space: WrSpatialId,
-    clip: WrClipId,
-}
-
-impl WrSpaceAndClip {
-    fn from_webrender(sac: SpaceAndClipInfo) -> Self {
-        WrSpaceAndClip {
-            space: WrSpatialId { id: sac.spatial_id.0 },
-            clip: WrClipId::from_webrender(sac.clip_id),
-        }
-    }
-
-    fn to_webrender(&self, pipeline_id: WrPipelineId) -> SpaceAndClipInfo {
-        SpaceAndClipInfo {
-            spatial_id: self.space.to_webrender(pipeline_id),
-            clip_id: self.clip.to_webrender(pipeline_id),
-        }
-    }
-}
 
 #[inline]
 fn clip_chain_id_to_webrender(id: u64, pipeline_id: WrPipelineId) -> ClipId {
@@ -610,7 +586,7 @@ impl CrashAnnotator for MozCrashAnnotator {
 
 #[no_mangle]
 pub extern "C" fn wr_renderer_set_clear_color(renderer: &mut Renderer, color: ColorF) {
-    renderer.set_clear_color(Some(color));
+    renderer.set_clear_color(color);
 }
 
 #[no_mangle]
@@ -783,7 +759,11 @@ pub unsafe extern "C" fn wr_renderer_delete(renderer: *mut Renderer) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wr_renderer_accumulate_memory_report(renderer: &mut Renderer, report: &mut MemoryReport, swgl: *mut c_void) {
+pub unsafe extern "C" fn wr_renderer_accumulate_memory_report(
+    renderer: &mut Renderer,
+    report: &mut MemoryReport,
+    swgl: *mut c_void,
+) {
     *report += renderer.report_memory(swgl);
 }
 
@@ -1236,6 +1216,7 @@ extern "C" {
     );
     fn wr_compositor_start_compositing(
         compositor: *mut c_void,
+        clear_color: ColorF,
         dirty_rects: *const DeviceIntRect,
         num_dirty_rects: usize,
         opaque_rects: *const DeviceIntRect,
@@ -1351,10 +1332,11 @@ impl Compositor for WrCompositor {
         }
     }
 
-    fn start_compositing(&mut self, dirty_rects: &[DeviceIntRect], opaque_rects: &[DeviceIntRect]) {
+    fn start_compositing(&mut self, clear_color: ColorF, dirty_rects: &[DeviceIntRect], opaque_rects: &[DeviceIntRect]) {
         unsafe {
             wr_compositor_start_compositing(
                 self.0,
+                clear_color,
                 dirty_rects.as_ptr(),
                 dirty_rects.len(),
                 opaque_rects.as_ptr(),
@@ -1633,7 +1615,7 @@ pub extern "C" fn wr_window_new(
         scene_builder_hooks: Some(Box::new(APZCallbacks::new(window_id))),
         sampler: Some(Box::new(SamplerCallback::new(window_id))),
         max_internal_texture_size: Some(8192), // We want to tile if larger than this
-        clear_color: Some(color),
+        clear_color: color,
         precache_flags,
         namespace_alloc_by_client: true,
         // SWGL doesn't support the GL_ALWAYS depth comparison function used by
@@ -2633,51 +2615,6 @@ pub extern "C" fn wr_dp_define_clipchain(
 }
 
 #[no_mangle]
-pub extern "C" fn wr_dp_define_clip_with_parent_clip(
-    state: &mut WrState,
-    parent: &WrSpaceAndClip,
-    clip_rect: LayoutRect,
-    complex: *const ComplexClipRegion,
-    complex_count: usize,
-) -> WrClipId {
-    wr_dp_define_clip_impl(
-        &mut state.frame_builder,
-        parent.to_webrender(state.pipeline_id),
-        clip_rect,
-        unsafe { make_slice(complex, complex_count) },
-    )
-}
-
-#[no_mangle]
-pub extern "C" fn wr_dp_define_clip_with_parent_clip_chain(
-    state: &mut WrState,
-    parent: &WrSpaceAndClipChain,
-    clip_rect: LayoutRect,
-    complex: *const ComplexClipRegion,
-    complex_count: usize,
-) -> WrClipId {
-    wr_dp_define_clip_impl(
-        &mut state.frame_builder,
-        parent.to_webrender(state.pipeline_id),
-        clip_rect,
-        unsafe { make_slice(complex, complex_count) },
-    )
-}
-
-fn wr_dp_define_clip_impl(
-    frame_builder: &mut WebRenderFrameBuilder,
-    parent: SpaceAndClipInfo,
-    clip_rect: LayoutRect,
-    complex_regions: &[ComplexClipRegion],
-) -> WrClipId {
-    debug_assert!(unsafe { is_in_main_thread() });
-    let clip_id = frame_builder
-        .dl_builder
-        .define_clip(&parent, clip_rect, complex_regions.iter().cloned());
-    WrClipId::from_webrender(clip_id)
-}
-
-#[no_mangle]
 pub extern "C" fn wr_dp_define_image_mask_clip_with_parent_clip_chain(
     state: &mut WrState,
     parent: &WrSpaceAndClipChain,
@@ -2701,6 +2638,26 @@ pub extern "C" fn wr_dp_define_image_mask_clip_with_parent_clip_chain(
 }
 
 #[no_mangle]
+pub extern "C" fn wr_dp_define_rounded_rect_clip(
+    state: &mut WrState,
+    space: WrSpatialId,
+    complex: ComplexClipRegion,
+) -> WrClipId {
+    debug_assert!(unsafe { is_in_main_thread() });
+
+    let space_and_clip = SpaceAndClipInfo {
+        spatial_id: space.to_webrender(state.pipeline_id),
+        clip_id: ClipId::root(state.pipeline_id),
+    };
+
+    let clip_id = state
+        .frame_builder
+        .dl_builder
+        .define_clip_rounded_rect(&space_and_clip, complex);
+    WrClipId::from_webrender(clip_id)
+}
+
+#[no_mangle]
 pub extern "C" fn wr_dp_define_rounded_rect_clip_with_parent_clip_chain(
     state: &mut WrState,
     parent: &WrSpaceAndClipChain,
@@ -2712,6 +2669,26 @@ pub extern "C" fn wr_dp_define_rounded_rect_clip_with_parent_clip_chain(
         .frame_builder
         .dl_builder
         .define_clip_rounded_rect(&parent.to_webrender(state.pipeline_id), complex);
+    WrClipId::from_webrender(clip_id)
+}
+
+#[no_mangle]
+pub extern "C" fn wr_dp_define_rect_clip(
+    state: &mut WrState,
+    space: WrSpatialId,
+    clip_rect: LayoutRect,
+) -> WrClipId {
+    debug_assert!(unsafe { is_in_main_thread() });
+
+    let space_and_clip = SpaceAndClipInfo {
+        spatial_id: space.to_webrender(state.pipeline_id),
+        clip_id: ClipId::root(state.pipeline_id),
+    };
+
+    let clip_id = state
+        .frame_builder
+        .dl_builder
+        .define_clip_rect(&space_and_clip, clip_rect);
     WrClipId::from_webrender(clip_id)
 }
 
@@ -2765,15 +2742,15 @@ pub extern "C" fn wr_dp_define_sticky_frame(
 pub extern "C" fn wr_dp_define_scroll_layer(
     state: &mut WrState,
     external_scroll_id: u64,
-    parent: &WrSpaceAndClip,
+    parent: &WrSpatialId,
     content_rect: LayoutRect,
     clip_rect: LayoutRect,
     scroll_offset: LayoutPoint,
-) -> WrSpaceAndClip {
+) -> WrSpatialId {
     assert!(unsafe { is_in_main_thread() });
 
     let space_and_clip = state.frame_builder.dl_builder.define_scroll_frame(
-        &parent.to_webrender(state.pipeline_id),
+        parent.to_webrender(state.pipeline_id),
         ExternalScrollId(external_scroll_id, state.pipeline_id),
         content_rect,
         clip_rect,
@@ -2783,7 +2760,7 @@ pub extern "C" fn wr_dp_define_scroll_layer(
         scroll_offset.to_vector(),
     );
 
-    WrSpaceAndClip::from_webrender(space_and_clip)
+    WrSpatialId::from_webrender(space_and_clip)
 }
 
 #[no_mangle]
@@ -2900,35 +2877,12 @@ pub extern "C" fn wr_dp_push_rect_with_animation(
 }
 
 #[no_mangle]
-pub extern "C" fn wr_dp_push_rect_with_parent_clip(
-    state: &mut WrState,
-    rect: LayoutRect,
-    clip_rect: LayoutRect,
-    is_backface_visible: bool,
-    parent: &WrSpaceAndClip,
-    color: ColorF,
-) {
-    debug_assert!(unsafe { !is_in_render_thread() });
-
-    let space_and_clip = parent.to_webrender(state.pipeline_id);
-
-    let prim_info = CommonItemProperties {
-        clip_rect,
-        clip_id: space_and_clip.clip_id,
-        spatial_id: space_and_clip.spatial_id,
-        flags: prim_flags(is_backface_visible, /* prefer_compositor_surface */ false),
-    };
-
-    state.frame_builder.dl_builder.push_rect(&prim_info, rect, color);
-}
-
-#[no_mangle]
-pub extern "C" fn wr_dp_push_backdrop_filter_with_parent_clip(
+pub extern "C" fn wr_dp_push_backdrop_filter(
     state: &mut WrState,
     rect: LayoutRect,
     clip: LayoutRect,
     is_backface_visible: bool,
-    parent: &WrSpaceAndClip,
+    parent: &WrSpaceAndClipChain,
     filters: *const FilterOp,
     filter_count: usize,
     filter_datas: *const WrFilterData,
@@ -3917,6 +3871,12 @@ pub struct WrSpatialId {
 impl WrSpatialId {
     fn to_webrender(&self, pipeline_id: WrPipelineId) -> SpatialId {
         SpatialId::new(self.id, pipeline_id)
+    }
+
+    fn from_webrender(id: SpatialId) -> Self {
+        WrSpatialId {
+            id: id.0,
+        }
     }
 }
 

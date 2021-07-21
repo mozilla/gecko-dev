@@ -31,13 +31,6 @@ ChromeUtils.defineModuleGetter(
   "resource://gre/modules/ProcessType.jsm"
 );
 
-function showThirdPartyModules() {
-  return (
-    AppConstants.platform == "win" &&
-    Services.prefs.getBoolPref("browser.enableAboutThirdParty")
-  );
-}
-
 window.addEventListener("load", function onload(event) {
   try {
     window.removeEventListener("load", onload);
@@ -48,9 +41,16 @@ window.addEventListener("load", function onload(event) {
     });
     populateActionBox();
     setupEventListeners();
-    if (showThirdPartyModules()) {
-      $("third-party-modules").hidden = false;
-      $("third-party-modules-table").hidden = false;
+
+    let hasWinPackageId = false;
+    try {
+      hasWinPackageId = Services.sysinfo.getProperty("hasWinPackageId");
+    } catch (_ex) {
+      // The hasWinPackageId property doesn't exist; assume it would be false.
+    }
+    if (hasWinPackageId) {
+      $("update-dir-row").hidden = true;
+      $("update-history-row").hidden = true;
     }
   } catch (e) {
     Cu.reportError(
@@ -92,6 +92,11 @@ var snapshotFormatters = {
     $("application-box").textContent = data.name;
     $("useragent-box").textContent = data.userAgent;
     $("os-box").textContent = data.osVersion;
+    if (data.osTheme) {
+      $("os-theme-box").textContent = data.osTheme;
+    } else {
+      $("os-theme-row").hidden = true;
+    }
     if (AppConstants.platform == "macosx") {
       $("rosetta-box").textContent = data.rosetta;
     }
@@ -149,6 +154,7 @@ var snapshotFormatters = {
       enabledByUserPref: "fission-status-enabled-by-user-pref",
       disabledByUserPref: "fission-status-disabled-by-user-pref",
       disabledByE10sOther: "fission-status-disabled-by-e10s-other",
+      enabledByRollout: "fission-status-enabled-by-rollout",
     };
 
     let statusTextId = STATUS_STRINGS[data.fissionDecisionStatus];
@@ -1173,193 +1179,6 @@ var snapshotFormatters = {
     $("intl-osprefs-regionalprefs").textContent = JSON.stringify(
       data.osPrefs.regionalPrefsLocales
     );
-  },
-
-  thirdPartyModules(aData) {
-    if (!showThirdPartyModules()) {
-      return;
-    }
-
-    if (!aData || !aData.length) {
-      $("third-party-modules-no-data").hidden = false;
-      return;
-    }
-
-    const createElementWithLabel = (tag, label) =>
-      label
-        ? $.new(tag, label)
-        : $.new(tag, "", "", {
-            "data-l10n-id": "support-third-party-modules-no-value",
-          });
-    const createLoadStatusElement = (tag, status) => {
-      const labelLoadStatus = [
-        "support-third-party-modules-status-loaded",
-        "support-third-party-modules-status-blocked",
-        "support-third-party-modules-status-redirected",
-      ];
-      return status >= 0 && status < labelLoadStatus.length
-        ? $.new(tag, "", "", { "data-l10n-id": labelLoadStatus[status] })
-        : $.new(tag, status);
-    };
-
-    const iconUp = "chrome://global/skin/icons/arrow-up-12.svg";
-    const iconDown = "chrome://global/skin/icons/arrow-dropdown-12.svg";
-    const iconFolder = "chrome://global/skin/icons/folder.svg";
-    const iconUnsigned = "chrome://global/skin/icons/security-broken.svg";
-    const outerTHead = $("third-party-modules-thead");
-    const outerTBody = $("third-party-modules-tbody");
-
-    outerTBody.addEventListener("click", event => {
-      const btnOpenDir = event.target.closest("button");
-      if (!btnOpenDir || !btnOpenDir.fileObj) {
-        return;
-      }
-      btnOpenDir.fileObj.reveal();
-    });
-
-    for (const module of aData) {
-      const btnOpenDir = $.new(
-        "button",
-        [
-          $.new("img", "", "third-party-svg-common", {
-            src: iconFolder,
-            "data-l10n-id": "support-third-party-modules-folder-icon",
-          }),
-        ],
-        "third-party-button third-party-button-open-dir",
-        {
-          "data-l10n-id": "support-third-party-modules-button-open",
-        }
-      );
-      btnOpenDir.fileObj = module.dllFile;
-
-      const innerTBody = $.new("tbody", [], null);
-      for (const event of module.events) {
-        innerTBody.appendChild(
-          $.new("tr", [
-            $.new("td", event.processIdAndType),
-            createElementWithLabel("td", event.threadName),
-            $.new("td", event.baseAddress),
-            $.new("td", event.processUptimeMS),
-            // loadDurationMS can be empty (not zero) when a module is loaded
-            // very early in the process.  processUptimeMS always has a value.
-            createElementWithLabel("td", event.loadDurationMS),
-            createLoadStatusElement("td", event.loadStatus),
-          ])
-        );
-      }
-
-      const detailRow = $.new(
-        "tr",
-        [
-          $.new(
-            "td",
-            [
-              $.new("table", [
-                $.new("thead", [
-                  $.new("th", "", "", {
-                    "data-l10n-id": "support-third-party-modules-process",
-                  }),
-                  $.new("th", "", "", {
-                    "data-l10n-id": "support-third-party-modules-thread",
-                  }),
-                  $.new("th", "", "", {
-                    "data-l10n-id": "support-third-party-modules-base",
-                  }),
-                  $.new("th", "", "", {
-                    "data-l10n-id": "support-third-party-modules-uptime",
-                  }),
-                  $.new("th", "", "", {
-                    "data-l10n-id": "support-third-party-modules-duration",
-                  }),
-                  $.new("th", "", "", {
-                    "data-l10n-id": "support-third-party-modules-status",
-                  }),
-                ]),
-                innerTBody,
-              ]),
-            ],
-            "",
-            { colspan: outerTHead.children.length + 1 }
-          ),
-        ],
-        "",
-        { hidden: true }
-      );
-
-      const imgUpDown = $.new("img", "", "third-party-svg-common", {
-        src: iconDown,
-        "data-l10n-id": "support-third-party-modules-down-icon",
-      });
-      const btnExpandCollapse = $.new(
-        "button",
-        [imgUpDown],
-        "third-party-button",
-        {
-          "data-l10n-id": "support-third-party-modules-expand",
-        }
-      );
-      btnExpandCollapse.addEventListener("click", () => {
-        if (detailRow.hidden) {
-          detailRow.hidden = false;
-          imgUpDown.src = iconUp;
-          document.l10n.setAttributes(
-            imgUpDown,
-            "support-third-party-modules-up-icon"
-          );
-          document.l10n.setAttributes(
-            btnExpandCollapse,
-            "support-third-party-modules-collapse"
-          );
-        } else {
-          detailRow.hidden = true;
-          imgUpDown.src = iconDown;
-          document.l10n.setAttributes(
-            imgUpDown,
-            "support-third-party-modules-down-icon"
-          );
-          document.l10n.setAttributes(
-            btnExpandCollapse,
-            "support-third-party-modules-expand"
-          );
-        }
-      });
-
-      const vendorInfoCell = $.new("td", [
-        createElementWithLabel("span", module.signedBy || module.companyName),
-      ]);
-      if (!module.signedBy) {
-        vendorInfoCell.prepend(
-          $.new(
-            "img",
-            "",
-            "third-party-svg-common third-party-image-unsigned",
-            {
-              src: iconUnsigned,
-              "data-l10n-id": "support-third-party-modules-unsigned-icon",
-            }
-          )
-        );
-      }
-
-      outerTBody.appendChild(
-        $.new("tr", [
-          $.new("td", [
-            document.createTextNode(module.dllFile.leafName),
-            btnOpenDir,
-          ]),
-          createElementWithLabel("td", module.fileVersion),
-          vendorInfoCell,
-          $.new(
-            "td",
-            module.events.length,
-            "third-party-modules-column-occurrence"
-          ),
-          $.new("td", [btnExpandCollapse], "third-party-modules-column-expand"),
-        ])
-      );
-      outerTBody.appendChild(detailRow);
-    }
   },
 
   normandy(data) {

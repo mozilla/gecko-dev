@@ -17,6 +17,7 @@
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/DisplayPortUtils.h"
+#include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/Selection.h"
@@ -987,23 +988,23 @@ static void AddAndRemoveImageAssociations(
   });
 }
 
-void nsIFrame::AddDisplayItem(nsDisplayItemBase* aItem) {
+void nsIFrame::AddDisplayItem(nsDisplayItem* aItem) {
   MOZ_DIAGNOSTIC_ASSERT(!mDisplayItems.Contains(aItem));
   mDisplayItems.AppendElement(aItem);
 }
 
-bool nsIFrame::RemoveDisplayItem(nsDisplayItemBase* aItem) {
+bool nsIFrame::RemoveDisplayItem(nsDisplayItem* aItem) {
   return mDisplayItems.RemoveElement(aItem);
 }
 
 bool nsIFrame::HasDisplayItems() { return !mDisplayItems.IsEmpty(); }
 
-bool nsIFrame::HasDisplayItem(nsDisplayItemBase* aItem) {
+bool nsIFrame::HasDisplayItem(nsDisplayItem* aItem) {
   return mDisplayItems.Contains(aItem);
 }
 
 bool nsIFrame::HasDisplayItem(uint32_t aKey) {
-  for (nsDisplayItemBase* i : mDisplayItems) {
+  for (nsDisplayItem* i : mDisplayItems) {
     if (i->GetPerFrameKey() == aKey) {
       return true;
     }
@@ -1013,7 +1014,7 @@ bool nsIFrame::HasDisplayItem(uint32_t aKey) {
 
 template <typename Condition>
 static void DiscardDisplayItems(nsIFrame* aFrame, Condition aCondition) {
-  for (nsDisplayItemBase* i : aFrame->DisplayItems()) {
+  for (nsDisplayItem* i : aFrame->DisplayItems()) {
     // Only discard items that are invalidated by this frame, as we're only
     // guaranteed to rebuild those items. Table background items are created by
     // the relevant table part, but have the cell frame as the primary frame,
@@ -1025,8 +1026,8 @@ static void DiscardDisplayItems(nsIFrame* aFrame, Condition aCondition) {
 }
 
 static void DiscardOldItems(nsIFrame* aFrame) {
-  DiscardDisplayItems(
-      aFrame, [](nsDisplayItemBase* aItem) { return aItem->IsOldItem(); });
+  DiscardDisplayItems(aFrame,
+                      [](nsDisplayItem* aItem) { return aItem->IsOldItem(); });
 }
 
 void nsIFrame::RemoveDisplayItemDataForDeletion() {
@@ -1048,7 +1049,7 @@ void nsIFrame::RemoveDisplayItemDataForDeletion() {
 
   FrameLayerBuilder::RemoveFrameFromLayerManager(this);
 
-  for (nsDisplayItemBase* i : DisplayItems()) {
+  for (nsDisplayItem* i : DisplayItems()) {
     if (i->GetDependentFrame() == this && !i->HasDeletedFrame()) {
       i->Frame()->MarkNeedsDisplayItemRebuild();
     }
@@ -1136,7 +1137,7 @@ void nsIFrame::MarkNeedsDisplayItemRebuild() {
 
   // Hopefully this is cheap, but we could use a frame state bit to note
   // the presence of dependencies to speed it up.
-  for (nsDisplayItemBase* i : DisplayItems()) {
+  for (nsDisplayItem* i : DisplayItems()) {
     if (i->HasDeletedFrame() || i->Frame() == this) {
       // Ignore the items with deleted frames, and the items with |this| as
       // the primary frame.
@@ -1805,12 +1806,11 @@ bool nsIFrame::HasPerspective(const nsStyleDisplay* aStyleDisplay) const {
   if (!IsTransformed()) {
     return false;
   }
-  nsIFrame* containingBlock =
-      GetContainingBlock(SKIP_SCROLLED_FRAME, aStyleDisplay);
-  if (!containingBlock) {
+  nsIFrame* parent = GetClosestFlattenedTreeAncestorPrimaryFrame();
+  if (!parent) {
     return false;
   }
-  return containingBlock->ChildrenHavePerspective();
+  return parent->ChildrenHavePerspective();
 }
 
 nsRect nsIFrame::GetContentRectRelativeToSelf() const {
@@ -2776,7 +2776,7 @@ static void DisplayDebugBorders(nsDisplayListBuilder* aBuilder,
 
 static bool IsScrollFrameActive(nsDisplayListBuilder* aBuilder,
                                 nsIScrollableFrame* aScrollableFrame) {
-  return aScrollableFrame && aScrollableFrame->IsScrollingActive(aBuilder);
+  return aScrollableFrame && aScrollableFrame->IsScrollingActive();
 }
 
 /**
@@ -3802,7 +3802,7 @@ static nsDisplayItem* WrapInWrapList(nsDisplayListBuilder* aBuilder,
   // on which items we build, so we need to ensure that we don't transition
   // to/from a wrap list without invalidating correctly.
   bool needsWrapList =
-      item->GetAbove() || item->Frame() != aFrame || item->GetChildren();
+      aList->Count() > 1 || item->Frame() != aFrame || item->GetChildren();
 
   // If we have an explicit container item (that can't change without an
   // invalidation) or we're doing a full build and don't need a wrap list, then
@@ -4579,34 +4579,8 @@ nsIFrame::HandlePress(nsPresContext* aPresContext, WidgetGUIEvent* aEvent,
     return NS_OK;
   }
 
-  // We often get out of sync state issues with mousedown events that
-  // get interrupted by alerts/dialogs.
-  // Check with the ESM to see if we should process this one
-  if (!aPresContext->EventStateManager()->EventStatusOK(aEvent)) return NS_OK;
-
-  mozilla::PresShell* presShell = aPresContext->GetPresShell();
-  if (!presShell) {
-    return NS_ERROR_FAILURE;
-  }
-
-  WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
-
-  if (!mouseEvent->IsAlt()) {
-    for (nsIContent* content = mContent; content;
-         content = content->GetFlattenedTreeParent()) {
-      if (nsContentUtils::ContentIsDraggable(content) &&
-          !content->IsEditable()) {
-        // coordinate stuff is the fix for bug #55921
-        if ((mRect - GetPosition())
-                .Contains(nsLayoutUtils::GetEventCoordinatesRelativeTo(
-                    mouseEvent, RelativeTo{this}))) {
-          return NS_OK;
-        }
-      }
-    }
-  }
-
-  return MoveCaretToEventPoint(aPresContext, mouseEvent, aEventStatus);
+  return MoveCaretToEventPoint(aPresContext, aEvent->AsMouseEvent(),
+                               aEventStatus);
 }
 
 nsresult nsIFrame::MoveCaretToEventPoint(nsPresContext* aPresContext,
@@ -4618,22 +4592,44 @@ nsresult nsIFrame::MoveCaretToEventPoint(nsPresContext* aPresContext,
   MOZ_ASSERT(aMouseEvent->mButton == MouseButton::ePrimary ||
              aMouseEvent->mButton == MouseButton::eMiddle);
   MOZ_ASSERT(aEventStatus);
+  MOZ_ASSERT(nsEventStatus_eConsumeNoDefault != *aEventStatus);
 
   mozilla::PresShell* presShell = aPresContext->GetPresShell();
   if (!presShell) {
     return NS_ERROR_FAILURE;
   }
 
-  // if we are in Navigator and the click is in a draggable node, we don't want
+  // We often get out of sync state issues with mousedown events that
+  // get interrupted by alerts/dialogs.
+  // Check with the ESM to see if we should process this one
+  if (!aPresContext->EventStateManager()->EventStatusOK(aMouseEvent)) {
+    return NS_OK;
+  }
+
+  if (!aMouseEvent->IsAlt()) {
+    for (nsIContent* content = mContent; content;
+         content = content->GetFlattenedTreeParent()) {
+      if (nsContentUtils::ContentIsDraggable(content) &&
+          !content->IsEditable()) {
+        // coordinate stuff is the fix for bug #55921
+        if ((mRect - GetPosition())
+                .Contains(nsLayoutUtils::GetEventCoordinatesRelativeTo(
+                    aMouseEvent, RelativeTo{this}))) {
+          return NS_OK;
+        }
+      }
+    }
+  }
+
+  // If we are in Navigator and the click is in a draggable node, we don't want
   // to start selection because we don't want to interfere with a potential
   // drag of said node and steal all its glory.
-  int16_t isEditor = presShell->GetSelectionFlags();
-  // weaaak. only the editor can display frame selection not just text and
-  // images
-  isEditor = isEditor == nsISelectionDisplay::DISPLAY_ALL;
+  const bool isEditor =
+      presShell->GetSelectionFlags() == nsISelectionDisplay::DISPLAY_ALL;
 
-  // Don't do something if it's moddle button down event.
-  bool isPrimaryButtonDown = aMouseEvent->mButton == MouseButton::ePrimary;
+  // Don't do something if it's middle button down event.
+  const bool isPrimaryButtonDown =
+      aMouseEvent->mButton == MouseButton::ePrimary;
 
   // check whether style allows selection
   // if not, don't tell selection the mouse event even occurred.
@@ -4769,6 +4765,16 @@ nsresult nsIFrame::MoveCaretToEventPoint(nsPresContext* aPresContext,
     // If "Shift" and "Ctrl" are both pressed, "Shift" is given precedence. This
     // mimics the old behaviour.
     if (aMouseEvent->IsShift()) {
+      // If clicked in a link when focused content is editable, we should
+      // collapse selection in the link for compatibility with Blink.
+      if (isEditor) {
+        nsCOMPtr<nsIURI> uri;
+        for (Element* element : mContent->InclusiveAncestorsOfType<Element>()) {
+          if (element->IsLink(getter_AddRefs(uri))) {
+            return nsFrameSelection::FocusMode::kCollapseToNewPoint;
+          }
+        }
+      }
       return nsFrameSelection::FocusMode::kExtendSelection;
     }
 
@@ -7013,7 +7019,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
     // The offset from a zoomed content root to its parent (e.g. from
     // a canvas frame to a scroll frame) is in layout coordinates, so
     // apply it before applying any layout-to-visual transform.
-    *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
+    *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrameInProcess(this);
     nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
     /* Combine the raw transform with a translation to our parent. */
     result.PostTranslate(NSAppUnitsToFloatPixels(delta.x, scaleFactor),
@@ -7083,7 +7089,7 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
     }
   }
 
-  *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
+  *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrameInProcess(this);
 
   /* Otherwise, we're not transformed.  In that case, we'll walk up the frame
    * tree until we either hit the root frame or something that may be
@@ -7108,7 +7114,8 @@ Matrix4x4Flagged nsIFrame::GetTransformMatrix(ViewportType aViewportType,
   while (*aOutAncestor != aStopAtAncestor.mFrame &&
          !shouldStopAt(current, *aOutAncestor, aFlags)) {
     /* If no parent, stop iterating.  Otherwise, update the ancestor. */
-    nsIFrame* parent = nsLayoutUtils::GetCrossDocParentFrame(*aOutAncestor);
+    nsIFrame* parent =
+        nsLayoutUtils::GetCrossDocParentFrameInProcess(*aOutAncestor);
     if (!parent) break;
 
     current = *aOutAncestor;
@@ -9806,7 +9813,7 @@ bool nsIFrame::FinishAndStoreOverflow(OverflowAreas& aOverflowAreas,
     SVGObserverUtils::InvalidateDirectRenderingObservers(this);
     if (IsBlockFrameOrSubclass() &&
         TextOverflow::CanHaveOverflowMarkers(this)) {
-      DiscardDisplayItems(this, [](nsDisplayItemBase* aItem) {
+      DiscardDisplayItems(this, [](nsDisplayItem* aItem) {
         return aItem->GetType() == DisplayItemType::TYPE_TEXT_OVERFLOW;
       });
       SchedulePaint(PAINT_DEFAULT);
@@ -9834,8 +9841,9 @@ void nsIFrame::RecomputePerspectiveChildrenOverflow(
           boundsOverflow.SetAllTo(bounds);
           child->FinishAndStoreOverflow(boundsOverflow, bounds.Size());
         }
-      } else if (child->GetContainingBlock(SKIP_SCROLLED_FRAME) ==
-                 aStartFrame) {
+      } else if (child->GetContent() == aStartFrame->GetContent() ||
+                 child->GetClosestFlattenedTreeAncestorPrimaryFrame() ==
+                     aStartFrame) {
         // If a frame is using perspective, then the size used to compute
         // perspective-origin is the size of the frame belonging to its parent
         // style. We must find any descendant frames using our size

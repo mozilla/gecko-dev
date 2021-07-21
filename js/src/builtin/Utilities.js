@@ -113,7 +113,7 @@ function SpeciesConstructor(obj, defaultConstructor) {
         ThrowTypeError(JSMSG_OBJECT_REQUIRED, "object's 'constructor' property");
 
     // Steps 5.
-    var s = ctor[std_species];
+    var s = ctor[GetBuiltinSymbol("species")];
 
     // Step 6.
     if (s === undefined || s === null)
@@ -189,7 +189,7 @@ function CopyDataProperties(target, source, excludedItems) {
         if (!hasOwn(key, excludedItems) &&
             callFunction(std_Object_propertyIsEnumerable, from, key))
         {
-            _DefineDataProperty(target, key, from[key]);
+            DefineDataProperty(target, key, from[key]);
         }
     }
 
@@ -225,7 +225,7 @@ function CopyDataPropertiesUnfiltered(target, source) {
         // We abbreviate this by calling propertyIsEnumerable which is faster
         // and returns false for not defined properties.
         if (callFunction(std_Object_propertyIsEnumerable, from, key))
-            _DefineDataProperty(target, key, from[key]);
+            DefineDataProperty(target, key, from[key]);
     }
 
     // Step 7 (Return).

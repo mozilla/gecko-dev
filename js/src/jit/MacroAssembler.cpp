@@ -315,8 +315,9 @@ void MacroAssembler::nurseryAllocateObject(Register result, Register temp,
   // only happens for baseline code.
   if (allocSite.is<Register>()) {
     Register site = allocSite.as<Register>();
-    branch32(Assembler::Equal, Address(site, gc::AllocSite::offsetOfState()),
-             Imm32(int32_t(gc::AllocSite::State::LongLived)), fail);
+    branchTestPtr(Assembler::NonZero,
+                  Address(site, gc::AllocSite::offsetOfScriptAndState()),
+                  Imm32(gc::AllocSite::LONG_LIVED_BIT), fail);
   }
 
   // No explicit check for nursery.isEnabled() is needed, as the comparison
@@ -4517,7 +4518,8 @@ static void LoadNativeIterator(MacroAssembler& masm, Register obj,
 #endif
 
   // Load NativeIterator object.
-  masm.loadObjPrivate(obj, PropertyIteratorObject::NUM_FIXED_SLOTS, dest);
+  Address slotAddr(obj, PropertyIteratorObject::offsetOfIteratorSlot());
+  masm.loadPrivate(slotAddr, dest);
 }
 
 void MacroAssembler::iteratorMore(Register obj, ValueOperand output,

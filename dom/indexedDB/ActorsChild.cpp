@@ -21,8 +21,9 @@
 #include "IndexedDatabase.h"
 #include "IndexedDatabaseInlines.h"
 #include "IndexedDBCommon.h"
-#include "js/Array.h"  // JS::NewArrayObject, JS::SetArrayLength
-#include "js/Date.h"   // JS::NewDateObject, JS::TimeClip
+#include "js/Array.h"               // JS::NewArrayObject, JS::SetArrayLength
+#include "js/Date.h"                // JS::NewDateObject, JS::TimeClip
+#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
 #include <mozIRemoteLazyInputStream.h>
 #include "mozilla/ArrayAlgorithm.h"
 #include "mozilla/BasicEvents.h"
@@ -78,16 +79,6 @@ namespace mozilla {
 using ipc::PrincipalInfo;
 
 namespace dom::indexedDB {
-
-namespace {
-
-/*******************************************************************************
- * Constants
- ******************************************************************************/
-
-const uint32_t kFileCopyBufferSize = 32768;
-
-}  // namespace
 
 /*******************************************************************************
  * ThreadLocal

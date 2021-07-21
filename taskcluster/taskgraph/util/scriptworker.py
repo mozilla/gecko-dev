@@ -65,8 +65,10 @@ SIGNING_SCOPE_ALIAS_TO_PROJECT = [
                 "mozilla-beta",
                 "mozilla-release",
                 "mozilla-esr78",
+                "mozilla-esr91",
                 "comm-beta",
                 "comm-esr78",
+                "comm-esr91",
             ]
         ),
     ],
@@ -116,8 +118,10 @@ BEETMOVER_SCOPE_ALIAS_TO_PROJECT = [
                 "mozilla-beta",
                 "mozilla-release",
                 "mozilla-esr78",
+                "mozilla-esr91",
                 "comm-beta",
                 "comm-esr78",
+                "comm-esr91",
             ]
         ),
     ],
@@ -179,6 +183,7 @@ BALROG_SCOPE_ALIAS_TO_PROJECT = [
             [
                 "mozilla-release",
                 "comm-esr78",
+                "comm-esr91",
             ]
         ),
     ],
@@ -187,6 +192,14 @@ BALROG_SCOPE_ALIAS_TO_PROJECT = [
         set(
             [
                 "mozilla-esr78",
+            ]
+        ),
+    ],
+    [
+        "esr91",
+        set(
+            [
+                "mozilla-esr91",
             ]
         ),
     ],
@@ -200,6 +213,7 @@ BALROG_SERVER_SCOPES = {
     "beta": "balrog:server:beta",
     "release": "balrog:server:release",
     "esr78": "balrog:server:esr",
+    "esr91": "balrog:server:esr",
     "default": "balrog:server:dep",
 }
 
@@ -306,12 +320,6 @@ def get_phase_from_target_method(config, alias_to_tasks_map, alias_to_phase_map)
         ):
             return alias_to_phase_map[alias]
     return alias_to_phase_map["default"]
-
-
-@with_scope_prefix
-def get_balrog_action_scope(config, action="submit"):
-    assert action in BALROG_ACTIONS
-    return "balrog:action:{}".format(action)
 
 
 get_signing_cert_scope = functools.partial(

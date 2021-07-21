@@ -62,6 +62,7 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["css"] += [
     "injections/css/bug1707795-office365-sheets-overscroll-disable.css",
     "injections/css/bug1712833-buskocchi.desuca.co.jp-fix-map-height.css",
     "injections/css/bug1712843-snaptik.app-fix-text-input-alignment.css",
+    "injections/css/bug1719870-lcbo.com-table-clearfix.css",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
@@ -74,20 +75,28 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["injections"]["js"] += [
     "injections/js/bug1610358-pcloud.com-appVersion-change.js",
     "injections/js/bug1631811-datastudio.google.com-indexedDB.js",
     "injections/js/bug1711082-m.aliexpress.com-undisable-search.js",
+    "injections/js/bug1714612-www.rfi.it-outertext.js",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [
     "shims/adsafeprotected-ima.js",
+    "shims/apstag.js",
     "shims/bmauth.js",
+    "shims/chartbeat.js",
     "shims/eluminate.js",
     "shims/empty-script.js",
+    "shims/empty-shim.txt",
     "shims/facebook-sdk.js",
     "shims/facebook.svg",
     "shims/google-analytics-and-tag-manager.js",
     "shims/google-analytics-ecommerce-plugin.js",
     "shims/google-analytics-legacy.js",
+    "shims/google-ima.js",
     "shims/google-publisher-tags.js",
+    "shims/google-safeframe.html",
+    "shims/iaspet.js",
     "shims/live-test-shim.js",
+    "shims/moat.js",
     "shims/mochitest-shim-1.js",
     "shims/mochitest-shim-2.js",
     "shims/mochitest-shim-3.js",
@@ -95,6 +104,9 @@ FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["shims"] += [
     "shims/rambler-authenticator.js",
     "shims/rich-relevance.js",
     "shims/tracking-pixel.png",
+    "shims/vast2.xml",
+    "shims/vast3.xml",
+    "shims/vmad.xml",
 ]
 
 FINAL_TARGET_FILES.features["webcompat@mozilla.org"]["lib"] += [

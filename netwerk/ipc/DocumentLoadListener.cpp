@@ -1715,6 +1715,12 @@ bool DocumentLoadListener::MaybeTriggerProcessSwitch(
       options.mReplaceBrowsingContext = true;
       options.mActiveSessionHistoryEntry =
           browsingContext->GetActiveSessionHistoryEntry();
+      // We only reset the window name for content.
+      mLoadingSessionHistoryInfo->mForceMaybeResetName.emplace(
+          StaticPrefs::privacy_window_name_update_enabled() &&
+          browsingContext->IsContent() &&
+          (!currentPrincipal ||
+           !currentPrincipal->EqualsConsideringDomain(resultPrincipal)));
     }
   }
 
@@ -1912,14 +1918,7 @@ DocumentLoadListener::RedirectToRealChannel(
           CreateAndReject(ipc::ResponseRejectReason::SendError, __func__);
     }
 
-    auto triggeringPrincipalOrErr =
-        PrincipalInfoToPrincipal(loadInfo.ref().triggeringPrincipalInfo());
-
-    if (triggeringPrincipalOrErr.isOk()) {
-      nsCOMPtr<nsIPrincipal> triggeringPrincipal =
-          triggeringPrincipalOrErr.unwrap();
-      cp->TransmitBlobDataIfBlobURL(args.uri(), triggeringPrincipal);
-    }
+    cp->TransmitBlobDataIfBlobURL(args.uri());
 
     return cp->SendCrossProcessRedirect(args,
                                         std::move(aStreamFilterEndpoints));

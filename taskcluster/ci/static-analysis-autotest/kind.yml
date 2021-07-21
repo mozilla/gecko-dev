@@ -66,7 +66,7 @@ jobs:
                 - linux64-nasm
                 - linux64-node
                 - linux64-lucetc
-                - linux64-sysroot
+                - sysroot-x86_64-linux-gnu
                 - wasi-sysroot
 
     win64-st-autotest/debug:
@@ -99,5 +99,5 @@ jobs:
                 - win64-clang-tidy
                 - win64-nasm
                 - win64-node
-                - win64-dump-syms
+                - win64-dump_syms
                 - win64-winchecksec

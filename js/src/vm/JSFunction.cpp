@@ -35,6 +35,7 @@
 #include "gc/Policy.h"
 #include "jit/InlinableNatives.h"
 #include "jit/Ion.h"
+#include "js/CallAndConstruct.h"  // JS::IsCallable
 #include "js/CallNonGenericMethod.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
@@ -2277,7 +2278,7 @@ static JSAtom* NameToFunctionName(JSContext* cx, HandleValue name,
 JSAtom* js::IdToFunctionName(
     JSContext* cx, HandleId id,
     FunctionPrefixKind prefixKind /* = FunctionPrefixKind::None */) {
-  MOZ_ASSERT(JSID_IS_STRING(id) || JSID_IS_SYMBOL(id) || JSID_IS_INT(id));
+  MOZ_ASSERT(id.isString() || id.isSymbol() || id.isInt());
 
   // No prefix fastpath.
   if (id.isAtom() && prefixKind == FunctionPrefixKind::None) {
@@ -2287,8 +2288,8 @@ JSAtom* js::IdToFunctionName(
   // Step 3 (implicit).
 
   // Step 4.
-  if (JSID_IS_SYMBOL(id)) {
-    return SymbolToFunctionName(cx, JSID_TO_SYMBOL(id), prefixKind);
+  if (id.isSymbol()) {
+    return SymbolToFunctionName(cx, id.toSymbol(), prefixKind);
   }
 
   // Step 5.

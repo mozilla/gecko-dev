@@ -49,9 +49,15 @@ with Files("libwebrtc/**"):
 with Files("pipewire/**"):
     BUG_COMPONENT = ("Core", "WebRTC")
 
+with Files('rlbox_wasm2c_sandbox/**'):
+    BUG_COMPONENT = ('Firefox Build System', 'General')
+
+with Files('wasm2c/**'):
+    BUG_COMPONENT = ('Firefox Build System', 'General')
+
 with Files('WinToast/**'):
     BUG_COMPONENT = ('Toolkit', 'General')
 
 with Files('libsrtp/**'):
-    BUG_COMPONENT = ('Core', 'WeebRTC: Network')
+    BUG_COMPONENT = ('Core', 'WebRTC: Networking')
 

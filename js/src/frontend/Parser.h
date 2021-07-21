@@ -233,7 +233,8 @@ enum class PropertyType {
 enum AwaitHandling : uint8_t {
   AwaitIsName,
   AwaitIsKeyword,
-  AwaitIsModuleKeyword
+  AwaitIsModuleKeyword,
+  AwaitIsDisallowed
 };
 
 template <class ParseHandler, typename Unit>
@@ -309,7 +310,11 @@ class MOZ_STACK_CLASS ParserBase : public ParserSharedBase,
   bool inParametersOfAsyncFunction_ : 1;
 
  public:
-  bool awaitIsKeyword() const { return awaitHandling_ != AwaitIsName; }
+  bool awaitIsKeyword() const {
+    return awaitHandling_ == AwaitIsKeyword ||
+           awaitHandling_ == AwaitIsModuleKeyword;
+  }
+  bool awaitIsDisallowed() const { return awaitHandling_ == AwaitIsDisallowed; }
 
   bool inParametersOfAsyncFunction() const {
     return inParametersOfAsyncFunction_;
@@ -698,6 +703,7 @@ class MOZ_STACK_CLASS GeneralParser : public PerHandlerParser<ParseHandler> {
   using Base::PredictUninvoked;
 
   using Base::alloc_;
+  using Base::awaitIsDisallowed;
   using Base::awaitIsKeyword;
   using Base::inParametersOfAsyncFunction;
   using Base::parseGoal;
@@ -996,8 +1002,7 @@ class MOZ_STACK_CLASS GeneralParser : public PerHandlerParser<ParseHandler> {
       Directives inheritedDirectives, Directives* newDirectives);
 
   inline bool skipLazyInnerFunction(FunctionNodeType funNode,
-                                    uint32_t toStringStart,
-                                    FunctionSyntaxKind kind, bool tryAnnexB);
+                                    uint32_t toStringStart, bool tryAnnexB);
 
   void setFunctionStartAtPosition(FunctionBox* funbox, TokenPos pos) const;
   void setFunctionStartAtCurrentToken(FunctionBox* funbox) const;
@@ -1595,7 +1600,7 @@ class MOZ_STACK_CLASS Parser<SyntaxParseHandler, Unit> final
       Directives inheritedDirectives, Directives* newDirectives);
 
   bool skipLazyInnerFunction(FunctionNodeType funNode, uint32_t toStringStart,
-                             FunctionSyntaxKind kind, bool tryAnnexB);
+                             bool tryAnnexB);
 
   bool asmJS(ListNodeType list);
 
@@ -1743,7 +1748,7 @@ class MOZ_STACK_CLASS Parser<FullParseHandler, Unit> final
       SyntaxParser* syntaxParser);
 
   bool skipLazyInnerFunction(FunctionNodeType funNode, uint32_t toStringStart,
-                             FunctionSyntaxKind kind, bool tryAnnexB);
+                             bool tryAnnexB);
 
   // Functions present only in Parser<FullParseHandler, Unit>.
 

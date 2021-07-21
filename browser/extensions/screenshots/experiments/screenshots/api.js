@@ -6,7 +6,7 @@
 
 "use strict";
 
-const TOPIC = "menuitem-screenshot";
+const TOPIC = "menuitem-screenshot-extension";
 
 this.screenshots = class extends ExtensionAPI {
   getAPI(context) {
@@ -35,9 +35,9 @@ this.screenshots = class extends ExtensionAPI {
           isHistoryEnabled() {
             return Services.prefs.getBoolPref("places.history.enabled", true);
           },
-          setIcon: isActive => {
+          setIcon: (isActive, windowId) => {
             Services.obs.notifyObservers(
-              null,
+              Services.wm.getOuterWindowWithId(windowId),
               "toggle-screenshot-disable",
               isActive
             );

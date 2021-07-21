@@ -53,9 +53,7 @@
 #  include "mozilla/Sandbox.h"
 #endif
 
-#ifdef MOZ_GECKO_PROFILER
-#  include "ChildProfilerController.h"
-#endif
+#include "ChildProfilerController.h"
 
 #ifdef MOZ_WEBRTC
 #  include "mozilla/net/WebrtcTCPSocketChild.h"
@@ -98,12 +96,12 @@ void CGSShutdownServerConnections();
 #endif
 
 bool SocketProcessChild::Init(base::ProcessId aParentPid,
-                              const char* aParentBuildID, MessageLoop* aIOLoop,
-                              UniquePtr<IPC::Channel> aChannel) {
+                              const char* aParentBuildID,
+                              mozilla::ipc::ScopedPort aPort) {
   if (NS_WARN_IF(NS_FAILED(nsThreadManager::get().Init()))) {
     return false;
   }
-  if (NS_WARN_IF(!Open(std::move(aChannel), aParentPid, aIOLoop))) {
+  if (NS_WARN_IF(!Open(std::move(aPort), aParentPid))) {
     return false;
   }
   // This must be sent before any IPDL message, which may hit sentinel
@@ -160,12 +158,10 @@ void SocketProcessChild::ActorDestroy(ActorDestroyReason aWhy) {
     ProcessChild::QuickExit();
   }
 
-#ifdef MOZ_GECKO_PROFILER
   if (mProfilerController) {
     mProfilerController->Shutdown();
     mProfilerController = nullptr;
   }
-#endif
 
   CrashReporterClient::DestroySingleton();
   XRE_ShutdownChildProcess();
@@ -267,10 +263,8 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvInitSocketProcessBridgeParent(
 
 mozilla::ipc::IPCResult SocketProcessChild::RecvInitProfiler(
     Endpoint<PProfilerChild>&& aEndpoint) {
-#ifdef MOZ_GECKO_PROFILER
   mProfilerController =
       mozilla::ChildProfilerController::Create(std::move(aEndpoint));
-#endif
   return IPC_OK();
 }
 

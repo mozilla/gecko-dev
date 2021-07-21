@@ -36,6 +36,7 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/RemoteWebProgressRequest.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/MathAlgorithms.h"
@@ -928,8 +929,9 @@ static void LogEntry(nsISHEntry* aEntry, int32_t aIndex, int32_t aTotal,
   }
 
   nsCOMPtr<nsIURI> uri = aEntry->GetURI();
-  nsAutoString title;
+  nsAutoString title, name;
   aEntry->GetTitle(title);
+  aEntry->GetName(name);
 
   SHEntrySharedParentState* shared;
   if (mozilla::SessionHistoryInParent()) {
@@ -961,6 +963,9 @@ static void LogEntry(nsISHEntry* aEntry, int32_t aIndex, int32_t aTotal,
   MOZ_LOG(gSHLog, LogLevel::Debug,
           (" %s%s  Title = %s\n", prefix.get(), childCount > 0 ? "|" : " ",
            NS_LossyConvertUTF16toASCII(title).get()));
+  MOZ_LOG(gSHLog, LogLevel::Debug,
+          (" %s%s  Name = %s\n", prefix.get(), childCount > 0 ? "|" : " ",
+           NS_LossyConvertUTF16toASCII(name).get()));
 
   nsCOMPtr<nsISHEntry> prevChild;
   for (int32_t i = 0; i < childCount; ++i) {
@@ -1194,6 +1199,27 @@ static void FinishRestore(CanonicalBrowsingContext* aBrowsingContext,
   nsCOMPtr<nsFrameLoaderOwner> frameLoaderOwner =
       do_QueryInterface(aBrowsingContext->GetEmbedderElement());
   if (frameLoaderOwner && aFrameLoader->GetMaybePendingBrowsingContext()) {
+    // Synthesize a STATE_START WebProgress state change event from here
+    // in order to ensure emitting it on the BrowsingContext we navigate *from*
+    // instead of the BrowsingContext we navigate *to*.
+    // This will fire before and the next one will be ignored by
+    // BrowsingContextWebProgress:
+    // https://searchfox.org/mozilla-central/rev/77f0b36028b2368e342c982ea47609040b399d89/docshell/base/BrowsingContextWebProgress.cpp#196-203
+    nsCOMPtr<nsIURI> nextURI = aEntry->GetURI();
+    nsCOMPtr<nsIURI> nextOriginalURI = aEntry->GetOriginalURI();
+    nsCOMPtr<nsIRequest> request = MakeAndAddRef<RemoteWebProgressRequest>(
+        nextURI, nextOriginalURI ? nextOriginalURI : nextURI,
+        ""_ns /* aMatchedList */);
+    BrowsingContextWebProgress* webProgress =
+        aBrowsingContext->GetWebProgress();
+    webProgress->OnStateChange(webProgress, request,
+                               nsIWebProgressListener::STATE_START |
+                                   nsIWebProgressListener::STATE_IS_DOCUMENT |
+                                   nsIWebProgressListener::STATE_IS_REQUEST |
+                                   nsIWebProgressListener::STATE_IS_WINDOW |
+                                   nsIWebProgressListener::STATE_IS_NETWORK,
+                               NS_OK);
+
     RefPtr<CanonicalBrowsingContext> loadingBC =
         aFrameLoader->GetMaybePendingBrowsingContext()->Canonical();
     RefPtr<nsFrameLoader> currentFrameLoader =
@@ -1252,7 +1278,8 @@ void nsSHistory::LoadURIOrBFCache(LoadEntryResult& aLoadEntry) {
     MOZ_ASSERT(she);
     RefPtr<nsFrameLoader> frameLoader = she->GetFrameLoader();
     if (frameLoader &&
-        (!currentShe || she->SharedInfo() != currentShe->SharedInfo())) {
+        (!currentShe || (she->SharedInfo() != currentShe->SharedInfo() &&
+                         !currentShe->GetFrameLoader()))) {
       bool canSave = (!currentShe || currentShe->GetSaveLayoutStateFlag()) &&
                      canonicalBC->AllowedInBFCache(Nothing());
 

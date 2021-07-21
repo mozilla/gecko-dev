@@ -93,7 +93,7 @@ var gBuiltInInputs = {
   },
   Reload: {
     title: "reload",
-    image: "chrome://browser/skin/reload.svg",
+    image: "chrome://global/skin/icons/reload.svg",
     type: kInputTypes.BUTTON,
     callback: () => execCommand("Browser:Reload"),
   },
@@ -120,7 +120,7 @@ var gBuiltInInputs = {
   },
   NewTab: {
     title: "new-tab",
-    image: "chrome://global/skin/icons/add.svg",
+    image: "chrome://global/skin/icons/plus.svg",
     type: kInputTypes.BUTTON,
     callback: () => execCommand("cmd_newNavigatorTabNoEvent"),
   },

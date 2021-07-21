@@ -38,6 +38,7 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Vector.h"
 #include "mozilla/WindowsDpiAwareness.h"
+#include "mozilla/WindowsProcessMitigations.h"
 #include "mozilla/gfx/2D.h"
 
 /**
@@ -144,10 +145,15 @@ class WinUtils {
   static EnableNonClientDpiScalingProc sEnableNonClientDpiScaling;
   static GetSystemMetricsForDpiProc sGetSystemMetricsForDpi;
 
+  // Set on Initialize().
+  static bool sHasPackageIdentity;
+
  public:
   class AutoSystemDpiAware {
    public:
     AutoSystemDpiAware() {
+      MOZ_DIAGNOSTIC_ASSERT(!IsWin32kLockedDown());
+
       if (sSetThreadDpiAwarenessContext) {
         mPrevContext =
             sSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
@@ -214,6 +220,8 @@ class WinUtils {
    *         if aHdc is null
    */
   static gfx::MarginDouble GetUnwriteableMarginsForDeviceInInches(HDC aHdc);
+
+  static bool HasPackageIdentity() { return sHasPackageIdentity; }
 
   /**
    * Logging helpers that dump output to prlog module 'Widget', console, and

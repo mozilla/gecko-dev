@@ -985,7 +985,9 @@ def skia_includes(skia):
 
 set_config("SKIA_INCLUDES", skia_includes)
 
-option("--with-system-webp", help="Use system libwebp (located with pkgconfig)")
+system_lib_option(
+    "--with-system-webp", help="Use system libwebp (located with pkgconfig)"
+)
 
 system_webp = pkg_check_modules(
     "MOZ_WEBP", "libwebp >= 1.0.2 libwebpdemux >= 1.0.2", when="--with-system-webp"
@@ -1288,6 +1290,24 @@ def proxy_bypass_protection(_):
 set_config("MOZ_PROXY_BYPASS_PROTECTION", proxy_bypass_protection)
 set_define("MOZ_PROXY_BYPASS_PROTECTION", proxy_bypass_protection)
 
+# Proxy direct failover
+# ==============================================================
+
+option(
+    "--disable-proxy-direct-failover",
+    help="Disable direct failover for system requests",
+)
+
+
+@depends_if("--disable-proxy-direct-failover")
+def proxy_direct_failover(value):
+    if value:
+        return True
+
+
+set_config("MOZ_PROXY_DIRECT_FAILOVER", proxy_direct_failover)
+set_define("MOZ_PROXY_DIRECT_FAILOVER", proxy_direct_failover)
+
 # MIDL
 # ==============================================================
 
@@ -1400,12 +1420,17 @@ set_config("ACCESSIBILITY", accessibility)
 set_define("ACCESSIBILITY", accessibility)
 add_old_configure_assignment("ACCESSIBILITY", accessibility)
 
+
 # Addon signing
 # ==============================================================
+@depends(milestone)
+def require_signing(milestone):
+    return milestone.is_release_or_beta and not milestone.is_esr
+
 
 option(
     env="MOZ_REQUIRE_SIGNING",
-    default=milestone.is_release_or_beta,
+    default=require_signing,
     help="Enforce that add-ons are signed by the trusted root",
 )
 
@@ -1431,31 +1456,17 @@ def unsigned_addon_scopes(scopes):
 set_config("MOZ_UNSIGNED_APP_SCOPE", unsigned_addon_scopes.app)
 set_config("MOZ_UNSIGNED_SYSTEM_SCOPE", unsigned_addon_scopes.system)
 
+
 # Addon sideloading
 # ==============================================================
-
-
-@depends(update_channel)
-def addon_sideload_allowed_default(update_channel):
-    if update_channel == "esr":
-        return True
-
-
 option(
     "--allow-addon-sideload",
-    default=addon_sideload_allowed_default,
+    default=milestone.is_esr,
     help="Addon sideloading is allowed",
 )
 
 
-@depends("--allow-addon-sideload")
-def addon_sideload_allowed(value):
-    allowed = bool(value)
-    if allowed:
-        return True
-
-
-set_config("MOZ_ALLOW_ADDON_SIDELOAD", addon_sideload_allowed)
+set_config("MOZ_ALLOW_ADDON_SIDELOAD", True, when="--allow-addon-sideload")
 
 # WebExtensions API WebIDL bindings
 # ==============================================================
@@ -1592,14 +1603,6 @@ set_define(
     depends_if("--enable-bundled-fonts", when=allow_bundled_fonts)(lambda _: True),
 )
 
-# TaskTracer
-# ==============================================================
-
-option("--enable-tasktracer", help="Enable TaskTracer")
-
-set_define("MOZ_TASK_TRACER", depends_if("--enable-tasktracer")(lambda _: True))
-set_config("MOZ_TASK_TRACER", depends_if("--enable-tasktracer")(lambda _: True))
-
 # Reflow counting
 # ==============================================================
 
@@ -1657,7 +1660,9 @@ with only_when(compile_environment):
 # ===
 
 with only_when(compile_environment):
-    option("--with-system-libvpx", help="Use system libvpx (located with pkgconfig)")
+    system_lib_option(
+        "--with-system-libvpx", help="Use system libvpx (located with pkgconfig)"
+    )
 
     with only_when("--with-system-libvpx"):
         vpx = pkg_check_modules("MOZ_LIBVPX", "vpx >= 1.8.0")
@@ -1739,7 +1744,7 @@ with only_when(compile_environment):
 # ====
 
 with only_when(compile_environment):
-    option(
+    system_lib_option(
         "--with-system-jpeg",
         nargs="?",
         help="Use system libjpeg (installed at given prefix)",
@@ -2094,7 +2099,24 @@ set_config("MOZ_USING_WASM_SANDBOXING", requires_wasm_sandboxing)
 set_define("MOZ_USING_WASM_SANDBOXING", requires_wasm_sandboxing)
 
 with only_when(requires_wasm_sandboxing & compile_environment):
-    lucetc = check_prog("LUCETC", ["lucetc"], bootstrap="lucetc")
+    option(env="LUCETC", nargs=1, help="Location of the lucet compiler")
+
+    @depends("LUCETC")
+    def lucetc(value):
+        return value
+
+    # Allow setting LUCETC to an explicit empty value to force building
+    # with wasm2c.
+    @depends("LUCETC")
+    def lucetc_not_empty(lucetc):
+        if lucetc.origin != "default" and not lucetc:
+            return False
+        return True
+
+    lucetc = check_prog(
+        "LUCETC", ["lucetc"], input=lucetc, bootstrap="lucetc", when=lucetc_not_empty
+    )
+    set_define("LUCETC_WASM_SANDBOXING", True, when=lucetc)
 
     option(
         "--with-wasi-sysroot",
@@ -2309,20 +2331,6 @@ def glean_android(target):
 
 set_config("MOZ_GLEAN_ANDROID", True, when=glean_android)
 set_define("MOZ_GLEAN_ANDROID", True, when=glean_android)
-
-
-# New Firefox Accounts client implemented in Rust
-# ===============================================
-
-
-@depends(milestone, target)
-def rust_fxa_client(milestone, target):
-    if milestone.is_nightly and target.os != "Android":
-        return True
-
-
-set_config("MOZ_RUST_FXA_CLIENT", True, when=rust_fxa_client)
-set_define("MOZ_RUST_FXA_CLIENT", True, when=rust_fxa_client)
 
 
 # dump_syms

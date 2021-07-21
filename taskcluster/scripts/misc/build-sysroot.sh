@@ -7,10 +7,17 @@ arch=$1
 shift
 SNAPSHOT=20210208T213147Z
 
+sysroot=$(basename $TOOLCHAIN_ARTIFACT)
+sysroot=${sysroot%%.*}
+
 case "$arch" in
 i386|amd64)
   dist=jessie
-  gcc_version=4.9
+  if [ -n "$PACKAGES_TASKS" ]; then
+    gcc_version=7
+  else
+    gcc_version=4.9
+  fi
   ;;
 arm64)
   dist=buster
@@ -40,18 +47,23 @@ packages="
   $*
 "
 
-# --skip=check/qemu works around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=981709
 # --keyring=... works around https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=981710
 # For a sysroot, we don't need everything. Essentially only libraries and headers, as
 # well as pkgconfig files. We exclude debug info files and valgrind files that are not
 # useful to build.
-mmdebstrap \
+queue_base="$TASKCLUSTER_ROOT_URL/api/queue/v1"
+(
+  echo "deb http://snapshot.debian.org/archive/debian/$SNAPSHOT $dist main"
+  for task in $PACKAGES_TASKS; do
+    echo "deb [trusted=yes] $queue_base/task/$task/artifacts/public/build/ apt/"
+  done
+) | mmdebstrap \
   --architectures=$arch \
   --variant=extract \
   --include=$(echo $packages | tr ' ' ,) \
   $dist \
-  sysroot \
-  http://snapshot.debian.org/archive/debian/$SNAPSHOT/ \
+  $sysroot \
+  - \
   --dpkgopt=path-exclude="*" \
   --dpkgopt=path-include="/lib/*" \
   --dpkgopt=path-include="/lib32/*" \
@@ -62,18 +74,17 @@ mmdebstrap \
   --dpkgopt=path-exclude="/usr/lib/valgrind/*" \
   --dpkgopt=path-include="/usr/share/pkgconfig/*" \
   --keyring=/usr/share/keyrings/debian-archive-removed-keys.gpg \
-  --skip=check/qemu \
   -v
 
 # Adjust symbolic links to link into the sysroot instead of absolute
 # paths that end up pointing at the host system.
-find sysroot -type l | while read l; do
+find $sysroot -type l | while read l; do
   t=$(readlink $l)
   case "$t" in
   /*)
-    # We have a path in the form "sysroot/a/b/c/d" and we want ../../..,
+    # We have a path in the form "$sysroot/a/b/c/d" and we want ../../..,
     # which is how we get from d to the root of the sysroot. For that,
-    # we start from the directory containing d ("sysroot/a/b/c"), remove
+    # we start from the directory containing d ("$sysroot/a/b/c"), remove
     # all non-slash characters, leaving is with "///", replace each slash
     # with "../", which gives us "../../../", and then we remove the last
     # slash.
@@ -83,7 +94,7 @@ find sysroot -type l | while read l; do
   esac
 done
 
-tar caf sysroot.tar.zst sysroot
+tar caf $sysroot.tar.zst $sysroot
 
 mkdir -p "$UPLOAD_DIR"
-mv "sysroot.tar.zst" "$UPLOAD_DIR"
+mv "$sysroot.tar.zst" "$UPLOAD_DIR"

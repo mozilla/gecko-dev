@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 %endif
 
-@media (-moz-proton) {
 #notification-popup-box {
   height: calc(var(--urlbar-min-height) - 2px /* border */ - 2 * var(--urlbar-container-padding));
   -moz-context-properties: fill, fill-opacity;
@@ -20,7 +19,6 @@
 #notification-popup-box[open] {
   background-color: hsla(0,0%,70%,.3);
 }
-} /*** END proton ***/
 
 .popup-notification-icon,
 .permission-popup-permission-icon {
@@ -34,13 +32,6 @@
   outline: var(--toolbarbutton-focus-outline);
   outline-offset: calc(var(--urlbar-icon-padding) - 2px);
 }
-
-@media not (-moz-proton) {
-.blocked-permission-icon:-moz-focusring,
-.notification-anchor-icon:-moz-focusring {
-  outline-offset: 4px;
-}
-} /*** END !proton ***/
 
 /* This class can be used alone or in combination with the class defining the
    type of icon displayed. This rule must be defined before the others in order
@@ -143,7 +134,7 @@
 
 .popup-notification-icon[popupid="indexedDB-permissions-prompt"],
 .indexedDB-icon {
-  list-style-image: url(chrome://browser/skin/notification-icons/indexedDB.svg);
+  list-style-image: url(chrome://browser/skin/notification-icons/persistent-storage.svg);
 }
 
 .popup-notification-icon[popupid="password"],
@@ -206,16 +197,16 @@
 #canvas-notification-icon,
 .popup-notification-icon[popupid="canvas-permissions-prompt"],
 .canvas-icon {
-  list-style-image: url(chrome://browser/skin/notification-icons/canvas.svg);
+  list-style-image: url(chrome://browser/skin/canvas.svg);
 }
 
 .canvas-icon.blocked-permission-icon {
-  list-style-image: url(chrome://browser/skin/notification-icons/canvas-blocked.svg);
+  list-style-image: url(chrome://browser/skin/canvas-blocked.svg);
 }
 
 #webauthn-notification-icon,
 .popup-notification-icon[popupid^="webauthn-prompt-"] {
-  list-style-image: url(chrome://browser/skin/notification-icons/webauthn.svg);
+  list-style-image: url(chrome://browser/skin/fingerprint.svg);
 }
 
 #permission-popup-menulist {
@@ -264,14 +255,6 @@
   font-size: 0.75em;
 }
 
-@media not (-moz-proton) {
-#notification-popup-box {
-  padding: 5px 0;
-  margin: -5px 0;
-  padding-inline-end: 5px;
-}
-} /** END not Proton **/
-
 #webRTC-previewWarningBox:-moz-locale-dir(rtl) {
   background-position: calc(100% - .75em) .75em;
 }
@@ -293,18 +276,6 @@
  */
 #blocked-permissions-container > .popup-icon {
   transform: translateY(2px);
-}
-
-.popup-subitem {
-  width: 16px;
-  height: 16px;
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-  fill-opacity: 0.6;
-}
-
-.popup-subitem:-moz-locale-dir(rtl) {
-  transform: scaleX(-1);
 }
 
 #permission-popup-menulist,
@@ -353,7 +324,7 @@
 }
 
 .popup-notification-icon[popupid="addon-install-confirmation"] {
-  list-style-image: url(chrome://browser/content/extension.svg);
+  list-style-image: url(chrome://mozapps/skin/extensions/extension.svg);
 }
 
 #addon-install-confirmation-notification[warning] .popup-notification-icon[popupid="addon-install-confirmation"] {

@@ -193,11 +193,12 @@ def moz_fetches_dir(value):
         return value[0]
 
 
-@depends(host, milestone.is_nightly, "MOZ_AUTOMATION")
-def bootstrap_default(host, is_nightly, automation):
+@depends(vcs_checkout_type, milestone.is_nightly, "MOZ_AUTOMATION")
+def bootstrap_default(vcs_checkout_type, is_nightly, automation):
     if automation:
         return False
-    if host.os == "OSX" and is_nightly:
+    # We only enable if building off a VCS checkout of central.
+    if is_nightly and vcs_checkout_type:
         return True
 
 
@@ -246,48 +247,28 @@ def original_path():
     return environ["PATH"].split(os.pathsep)
 
 
-@template
-def bootstrap_toolchain_tasks(host_or_target):
-    @depends(host_or_target, when="--enable-bootstrap")
-    @imports("os")
-    @imports(_from="mozbuild.toolchains", _import="toolchain_task_definitions")
-    @imports(_from="__builtin__", _import="Exception")
-    def bootstrap_toolchain_tasks(host_or_target):
-        prefix = {
-            ("x86", "GNU", "Linux"): "linux32",
-            ("x86_64", "GNU", "Linux"): "linux64",
-            ("aarch64", "GNU", "Linux"): "linux64-aarch64",
-            ("x86_64", "OSX", "Darwin"): "macosx64",
-            ("aarch64", "OSX", "Darwin"): "macosx64-aarch64",
-            ("x86_64", "WINNT", "WINNT"): "win64",
-        }.get((host_or_target.cpu, host_or_target.os, host_or_target.kernel))
-        if prefix:
-            try:
-                return namespace(prefix=prefix, tasks=toolchain_task_definitions())
-            except Exception:
-                return None
-
-    return bootstrap_toolchain_tasks
-
-
-host_bootstrap_toolchain_tasks = bootstrap_toolchain_tasks(host)
-target_bootstrap_toolchain_tasks = bootstrap_toolchain_tasks(target)
+@depends(host, when="--enable-bootstrap")
+@imports("os")
+@imports(_from="mozbuild.toolchains", _import="toolchain_task_definitions")
+@imports(_from="__builtin__", _import="Exception")
+def bootstrap_toolchain_tasks(host):
+    prefix = {
+        ("x86_64", "GNU", "Linux"): "linux64",
+        ("x86_64", "OSX", "Darwin"): "macosx64",
+        ("aarch64", "OSX", "Darwin"): "macosx64-aarch64",
+        ("x86_64", "WINNT", "WINNT"): "win64",
+    }.get((host.cpu, host.os, host.kernel))
+    try:
+        return namespace(prefix=prefix, tasks=toolchain_task_definitions())
+    except Exception:
+        return None
 
 
 @template
 def bootstrap_path(path, **kwargs):
     when = kwargs.pop("when", None)
-    context = kwargs.pop("context", host)
     if kwargs:
-        configure_error(
-            "bootstrap_path only takes `when` or `context` as keyword arguments"
-        )
-
-    path_parts = path.split("/")
-    bootstrap_toolchain_tasks = {
-        host: host_bootstrap_toolchain_tasks,
-        target: target_bootstrap_toolchain_tasks,
-    }[context]
+        configure_error("bootstrap_path only takes `when` as a keyword argument")
 
     @depends(
         "--enable-bootstrap",
@@ -295,6 +276,7 @@ def bootstrap_path(path, **kwargs):
         bootstrap_toolchain_tasks,
         shell,
         check_build_environment,
+        dependable(path),
         when=when,
     )
     @imports("os")
@@ -302,19 +284,27 @@ def bootstrap_path(path, **kwargs):
     @imports(_from="mozbuild.util", _import="ensureParentDir")
     @imports(_from="__builtin__", _import="open")
     @imports(_from="__builtin__", _import="Exception")
-    def bootstrap_path(bootstrap, toolchains_base_dir, tasks, shell, build_env):
+    def bootstrap_path(bootstrap, toolchains_base_dir, tasks, shell, build_env, path):
+        path_parts = path.split("/")
+
         def try_bootstrap(exists):
             if not tasks:
                 return False
-            label = "toolchain-{}-{}".format(
-                tasks.prefix, path_parts[0].replace("_", "-")
-            )
-            task = tasks.tasks.get(label)
+            prefixes = [""]
+            if tasks.prefix:
+                prefixes.insert(0, "{}-".format(tasks.prefix))
+            for prefix in prefixes:
+                label = "toolchain-{}{}".format(prefix, path_parts[0])
+                task = tasks.tasks.get(label)
+                if task:
+                    break
+            log.debug("Trying to bootstrap %s", label)
             if not task:
                 return False
             task_index = task.optimization.get("index-search")
             if not task_index:
                 return False
+            log.debug("Resolved %s to %s", label, task_index[0])
             task_index = task_index[0].split(".")[-1]
             artifact = task.attributes["toolchain-artifact"]
             # `mach artifact toolchain` doesn't support authentication for
@@ -1163,7 +1153,6 @@ def config_status_deps(build_env, build_project):
             os.path.join(topsrcdir, "build", "common_virtualenv_packages.txt"),
             os.path.join(topsrcdir, "build", "mach_virtualenv_packages.txt"),
             os.path.join(topsrcdir, "python", "mozbuild", "mozbuild", "virtualenv.py"),
-            os.path.join(topsrcdir, "testing", "mozbase", "packages.txt"),
             os.path.join(topsrcdir, "aclocal.m4"),
             os.path.join(topsrcdir, "old-configure.in"),
             os.path.join(topsrcdir, "js", "src", "aclocal.m4"),

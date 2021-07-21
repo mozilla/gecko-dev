@@ -76,9 +76,7 @@
 
 #  include "skia/include/ports/SkTypeface_cairo.h"
 #endif
-#ifdef MOZ_GECKO_PROFILER
-#  include "ChildProfilerController.h"
-#endif
+#include "ChildProfilerController.h"
 #include "nsAppRunner.h"
 
 #if defined(MOZ_SANDBOX) && defined(MOZ_DEBUG) && defined(ENABLE_TESTS)
@@ -140,7 +138,7 @@ GPUParent* GPUParent::GetSingleton() {
 }
 
 bool GPUParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
-                     MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel) {
+                     mozilla::ipc::ScopedPort aPort) {
   // Initialize the thread manager before starting IPC. Otherwise, messages
   // may be posted to the main thread and we won't be able to process them.
   if (NS_WARN_IF(NS_FAILED(nsThreadManager::get().Init()))) {
@@ -148,7 +146,7 @@ bool GPUParent::Init(base::ProcessId aParentPid, const char* aParentBuildID,
   }
 
   // Now it's safe to start IPC.
-  if (NS_WARN_IF(!Open(std::move(aChannel), aParentPid, aIOLoop))) {
+  if (NS_WARN_IF(!Open(std::move(aPort), aParentPid))) {
     return false;
   }
 
@@ -415,9 +413,7 @@ mozilla::ipc::IPCResult GPUParent::RecvInitUiCompositorController(
 
 mozilla::ipc::IPCResult GPUParent::RecvInitProfiler(
     Endpoint<PProfilerChild>&& aEndpoint) {
-#ifdef MOZ_GECKO_PROFILER
   mProfilerController = ChildProfilerController::Create(std::move(aEndpoint));
-#endif
   return IPC_OK();
 }
 
@@ -621,12 +617,10 @@ void GPUParent::ActorDestroy(ActorDestroyReason aWhy) {
         wmf::MFShutdown();
 #endif
 
-#ifdef MOZ_GECKO_PROFILER
         if (mProfilerController) {
           mProfilerController->Shutdown();
           mProfilerController = nullptr;
         }
-#endif
 
         if (mVsyncBridge) {
           mVsyncBridge->Shutdown();

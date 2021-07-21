@@ -132,22 +132,6 @@ def ensure_unicode(value, encoding="utf-8"):
     return value
 
 
-def ensure_subprocess_env(env, encoding="utf-8"):
-    """Ensure the environment is in the correct format for the `subprocess`
-    module.
-
-    This will convert all keys and values to bytes on Python 2, and text on
-    Python 3.
-
-    Args:
-        env (dict): Environment to ensure.
-        encoding (str): Encoding to use when converting to/from bytes/text
-                        (default: utf-8).
-    """
-    ensure = ensure_bytes if sys.version_info[0] < 3 else ensure_unicode
-    return {ensure(k, encoding): ensure(v, encoding) for k, v in six.iteritems(env)}
-
-
 """ Control-C handling """
 gotSIGINT = False
 
@@ -315,7 +299,6 @@ class XPCShellTestThread(Thread):
             for i in range(len(cmd)):
                 cmd[i] = six.ensure_str(cmd[i])
 
-        env = ensure_subprocess_env(env)
         if HAVE_PSUTIL:
             popen_func = psutil.Popen
         else:
@@ -974,7 +957,7 @@ class XPCShellTestThread(Thread):
 
 class XPCShellTests(object):
     def __init__(self, log=None):
-        """ Initializes node status and logger. """
+        """Initializes node status and logger."""
         self.log = log
         self.harness_timeout = HARNESS_TIMEOUT
         self.nodeProc = {}
@@ -1205,9 +1188,9 @@ class XPCShellTests(object):
         # Don't override the user's choice here.  See bug 1049688.
         self.env.setdefault("MOZ_DISABLE_NONLOCAL_CONNECTIONS", "1")
         if self.mozInfo.get("topsrcdir") is not None:
-            self.env["MOZ_DEVELOPER_REPO_DIR"] = self.mozInfo["topsrcdir"].encode()
+            self.env["MOZ_DEVELOPER_REPO_DIR"] = self.mozInfo["topsrcdir"]
         if self.mozInfo.get("topobjdir") is not None:
-            self.env["MOZ_DEVELOPER_OBJ_DIR"] = self.mozInfo["topobjdir"].encode()
+            self.env["MOZ_DEVELOPER_OBJ_DIR"] = self.mozInfo["topobjdir"]
 
         # Disable the content process sandbox for the xpcshell tests. They
         # currently attempt to do things like bind() sockets, which is not
@@ -1344,7 +1327,6 @@ class XPCShellTests(object):
             try:
                 # We pipe stdin to node because the server will exit when its
                 # stdin reaches EOF
-                self.env = ensure_subprocess_env(self.env)
                 process = Popen(
                     [nodeBin, serverJs],
                     stdin=PIPE,
@@ -1434,7 +1416,6 @@ class XPCShellTests(object):
             self.log.info("Using %s" % (dbPath))
             # We pipe stdin to the server because it will exit when its stdin
             # reaches EOF
-            self.env = ensure_subprocess_env(self.env)
             process = Popen(
                 [http3ServerPath, dbPath],
                 stdin=PIPE,
@@ -1451,14 +1432,17 @@ class XPCShellTests(object):
             msg = process.stdout.readline()
             if "server listening" in msg:
                 searchObj = re.search(
-                    r"HTTP3 server listening on ports ([0-9]+), ([0-9]+) and ([0-9]+)",
+                    r"HTTP3 server listening on ports ([0-9]+), ([0-9]+), ([0-9]+) and ([0-9]+)."
+                    " EchConfig is @([\x00-\x7F]+)@",
                     msg,
                     0,
                 )
                 if searchObj:
                     self.env["MOZHTTP3_PORT"] = searchObj.group(1)
                     self.env["MOZHTTP3_PORT_FAILED"] = searchObj.group(2)
-                    self.env["MOZHTTP3_PORT_NO_RESPONSE"] = searchObj.group(3)
+                    self.env["MOZHTTP3_PORT_ECH"] = searchObj.group(3)
+                    self.env["MOZHTTP3_PORT_NO_RESPONSE"] = searchObj.group(4)
+                    self.env["MOZHTTP3_ECH"] = searchObj.group(5)
         except OSError as e:
             # This occurs if the subprocess couldn't be started
             self.log.error("Could not run the http3 server: %s" % (str(e)))

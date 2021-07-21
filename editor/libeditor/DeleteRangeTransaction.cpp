@@ -175,20 +175,54 @@ nsresult DeleteRangeTransaction::CreateTxnsToDeleteBetween(
   // see what kind of node we have
   if (Text* textNode = Text::FromNode(aStart.Container())) {
     // if the node is a chardata node, then delete chardata content
-    int32_t numToDel;
+    uint32_t textLengthToDelete;
     if (aStart == aEnd) {
-      numToDel = 1;
+      textLengthToDelete = 1;
     } else {
-      numToDel = *aEnd.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets) -
-                 *aStart.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets);
-      MOZ_DIAGNOSTIC_ASSERT(numToDel > 0);
+      textLengthToDelete =
+          *aEnd.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets) -
+          *aStart.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets);
+      MOZ_DIAGNOSTIC_ASSERT(textLengthToDelete > 0);
     }
 
     RefPtr<DeleteTextTransaction> deleteTextTransaction =
         DeleteTextTransaction::MaybeCreate(
             *mEditorBase, *textNode,
             *aStart.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets),
-            numToDel);
+            textLengthToDelete);
+    // If the text node isn't editable, it should be never undone/redone.
+    // So, the transaction shouldn't be recorded.
+    if (!deleteTextTransaction) {
+      NS_WARNING("DeleteTextTransaction::MaybeCreate() failed");
+      return NS_ERROR_FAILURE;
+    }
+    DebugOnly<nsresult> rvIgnored = AppendChild(deleteTextTransaction);
+    NS_WARNING_ASSERTION(
+        NS_SUCCEEDED(rvIgnored),
+        "DeleteRangeTransaction::AppendChild() failed, but ignored");
+    return NS_OK;
+  }
+
+  if (mEditorBase->IsTextEditor()) {
+    // XXX(krosylight): We only want to delete anything within the text node in
+    // TextEditor, but there are things that still try deleting the text node
+    // itself (bug 1716714).  Do this until we are 100% sure nothing does so.
+    MOZ_ASSERT(aStart.Container() == mEditorBase->GetRoot() &&
+               aEnd.Container() == mEditorBase->GetRoot());
+    MOZ_ASSERT(
+        aStart.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets).value() ==
+        0);
+    MOZ_ASSERT(
+        aEnd.Offset(RawRangeBoundary::OffsetFilter::kValidOffsets).value() ==
+        mEditorBase->GetRoot()->Length());
+
+    RefPtr<Text> textNode =
+        Text::FromNodeOrNull(aStart.Container()->GetFirstChild());
+    MOZ_ASSERT(textNode);
+
+    RefPtr<DeleteTextTransaction> deleteTextTransaction =
+        DeleteTextTransaction::MaybeCreate(*mEditorBase, *textNode, 0,
+                                           textNode->TextDataLength());
     // If the text node isn't editable, it should be never undone/redone.
     // So, the transaction shouldn't be recorded.
     if (!deleteTextTransaction) {

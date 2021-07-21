@@ -1,46 +1,33 @@
 // META: global=window,dedicatedworker
 
 function makeI420_4x2() {
-  const yData = new Uint8Array([
-      1, 2, 3, 4,
+  const data = new Uint8Array([
+      1, 2, 3, 4,  // y
       5, 6, 7, 8,
+      9, 10,       // u
+      11, 12,      // v
   ]);
-  const uData = new Uint8Array([
-      9, 10,
-  ]);
-  const vData = new Uint8Array([
-      11, 12,
-  ]);
-  const planes = [
-      {data: yData, stride: 4},
-      {data: uData, stride: 2},
-      {data: vData, stride: 2},
-  ];
   const init = {
       format: 'I420',
       timestamp: 0,
       codedWidth: 4,
       codedHeight: 2,
   };
-  return new VideoFrame(planes, init);
+  return new VideoFrame(data, init);
 }
 
 function makeRGBA_2x2() {
-  const rgbaData = new Uint8Array([
-      1, 2, 3, 4,     5, 6, 7, 8,
-      9, 10, 11, 12,  13, 14, 15, 16,
+  const data = new Uint8Array([
+      1,2,3,4,    5,6,7,8,
+      9,10,11,12, 13,14,15,16,
   ]);
-  const planes = [
-      {data: rgbaData, stride: 8},
-  ];
   const init = {
-      format: 'ABGR',
+      format: 'RGBA',
       timestamp: 0,
       codedWidth: 2,
       codedHeight: 2,
   };
-  // TODO(sandersd): Should be RGBA but the IDL is reversed right now.
-  return new VideoFrame(planes, init);
+  return new VideoFrame(data, init);
 }
 
 function assert_buffer_equals(actual, expected) {
@@ -60,6 +47,16 @@ function assert_layout_equals(actual, expected) {
     assert_object_equals(actual[i], expected[i], 'plane ' + i + ' layout');
   }
 }
+
+promise_test(async t => {
+  const frame = makeI420_4x2();
+  frame.close();
+
+  assert_equals(frame.allocationSize(), 0, 'allocationSize()');
+
+  let data = new Uint8Array(12);
+  await promise_rejects_dom(t, 'InvalidStateError', frame.copyTo(data), 'copyTo()');
+}, 'Test closed frame.');
 
 promise_test(async t => {
   const frame = makeI420_4x2();
@@ -87,8 +84,8 @@ promise_test(async t => {
       {offset: 0, stride: 8},
   ];
   const expectedData = new Uint8Array([
-      1, 2, 3, 4,     5, 6, 7, 8,
-      9, 10, 11, 12,  13, 14, 15, 16
+      1,2,3,4,    5,6,7,8,
+      9,10,11,12, 13,14,15,16,
   ]);
   assert_equals(frame.allocationSize(), expectedData.length, 'allocationSize()');
   const data = new Uint8Array(expectedData.length);
@@ -100,7 +97,7 @@ promise_test(async t => {
 promise_test(async t => {
   const frame = makeI420_4x2();
   const data = new Uint8Array(11);
-  await promise_rejects_dom(t, 'ConstraintError', frame.copyTo(data));
+  await promise_rejects_js(t, TypeError, frame.copyTo(data));
 }, 'Test undersized buffer.');
 
 promise_test(async t => {
@@ -108,9 +105,9 @@ promise_test(async t => {
   const options = {
     layout: [{offset: 0, stride: 4}],
   };
-  assert_throws_dom('ConstraintError', () => frame.allocationSize(options));
+  assert_throws_js(TypeError, () => frame.allocationSize(options));
   const data = new Uint8Array(12);
-  await promise_rejects_dom(t, 'ConstraintError', frame.copyTo(data, options));
+  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
 }, 'Test incorrect plane count.');
 
 promise_test(async t => {
@@ -169,9 +166,9 @@ promise_test(async t => {
           {offset: 10, stride: 2},
       ],
   };
-  assert_throws_dom('ConstraintError', () => frame.allocationSize(options));
+  assert_throws_js(TypeError, () => frame.allocationSize(options));
   const data = new Uint8Array(12);
-  await promise_rejects_dom(t, 'ConstraintError', frame.copyTo(data, options));
+  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
 }, 'Test invalid stride.');
 
 promise_test(async t => {
@@ -183,9 +180,9 @@ promise_test(async t => {
           {offset: 2 ** 32 - 2, stride: 2},
       ],
   };
-  assert_throws_dom('ConstraintError', () => frame.allocationSize(options));
+  assert_throws_js(TypeError, () => frame.allocationSize(options));
   const data = new Uint8Array(12);
-  await promise_rejects_dom(t, 'ConstraintError', frame.copyTo(data, options));
+  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
 }, 'Test address overflow.');
 
 promise_test(async t => {
@@ -213,27 +210,27 @@ promise_test(async t => {
 promise_test(async t => {
   const frame = makeI420_4x2();
   const options = {
-      rect: {left: 0, top: 0, width: 4, height: 0},
+      rect: {x: 0, y: 0, width: 4, height: 0},
   };
-  assert_throws_dom('ConstraintError', () => frame.allocationSize(options));
+  assert_throws_js(TypeError, () => frame.allocationSize(options));
   const data = new Uint8Array(12);
-  await promise_rejects_dom(t, 'ConstraintError', frame.copyTo(data, options));
+  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
 }, 'Test empty rect.');
 
 promise_test(async t => {
   const frame = makeI420_4x2();
   const options = {
-      rect: {left: 0, top: 0, width: 4, height: 1},
+      rect: {x: 0, y: 0, width: 4, height: 1},
   };
-  assert_throws_dom('ConstraintError', () => frame.allocationSize(options));
+  assert_throws_js(TypeError, () => frame.allocationSize(options));
   const data = new Uint8Array(12);
-  await promise_rejects_dom(t, 'ConstraintError', frame.copyTo(data, options));
+  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
 }, 'Test unaligned rect.');
 
 promise_test(async t => {
   const frame = makeI420_4x2();
   const options = {
-      rect: {left: 2, top: 0, width: 2, height: 2},
+      rect: {x: 2, y: 0, width: 2, height: 2},
   };
   const expectedLayout = [
       {offset: 0, stride: 2},
@@ -256,9 +253,9 @@ promise_test(async t => {
 promise_test(async t => {
   const frame = makeI420_4x2();
   const options = {
-      rect: {left: 0, top: 0, width: 4, height: 4},
+      rect: {x: 0, y: 0, width: 4, height: 4},
   };
-  assert_throws_dom('ConstraintError', () => frame.allocationSize(options));
+  assert_throws_js(TypeError, () => frame.allocationSize(options));
   const data = new Uint8Array(12);
-  await promise_rejects_dom(t, 'ConstraintError', frame.copyTo(data, options));
+  await promise_rejects_js(t, TypeError, frame.copyTo(data, options));
 }, 'Test invalid rect.');

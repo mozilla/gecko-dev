@@ -319,6 +319,9 @@ const SNAPSHOT_SCHEMA = {
           required: true,
           type: "string",
         },
+        osTheme: {
+          type: "string",
+        },
         rosetta: {
           required: false,
           type: "boolean",
@@ -1122,12 +1125,6 @@ const SNAPSHOT_SCHEMA = {
           type: "string",
         },
       },
-    },
-    thirdPartyModules: {
-      required:
-        AppConstants.platform == "win" &&
-        Services.prefs.getBoolPref("browser.enableAboutThirdParty"),
-      type: "array",
     },
     normandy: {
       type: "object",

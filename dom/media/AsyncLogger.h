@@ -120,17 +120,15 @@ class AsyncLogger {
             NowInUs(), getpid(),
             std::hash<std::thread::id>{}(std::this_thread::get_id()), aComment);
       } else {
-#ifdef MOZ_GECKO_PROFILER
         auto* msg = new MPSCQueue<TracePayload>::Message();
         msg->data.mTID = profiler_current_thread_id();
         msg->data.mPhase = aPhase;
-        msg->data.mTimestamp = TimeStamp::NowUnfuzzed();
+        msg->data.mTimestamp = TimeStamp::Now();
         msg->data.mDurationUs = 0;  // unused, duration is end - begin
         size_t len = std::min(strlen(aName), ArrayLength(msg->data.mName));
         memcpy(msg->data.mName, aName, len);
         msg->data.mName[len] = 0;
         mMessageQueueProfiler.Push(msg);
-#endif
       }
     }
   }
@@ -150,18 +148,16 @@ class AsyncLogger {
             std::hash<std::thread::id>{}(std::this_thread::get_id()), aFrames,
             aSampleRate);
       } else {
-#ifdef MOZ_GECKO_PROFILER
         auto* msg = new MPSCQueue<TracePayload>::Message();
         msg->data.mTID = profiler_current_thread_id();
         msg->data.mPhase = TracingPhase::COMPLETE;
-        msg->data.mTimestamp = TimeStamp::NowUnfuzzed();
+        msg->data.mTimestamp = TimeStamp::Now();
         msg->data.mDurationUs =
             (static_cast<double>(aFrames) / aSampleRate) * 1e6;
         size_t len = std::min(strlen(aName), ArrayLength(msg->data.mName));
         memcpy(msg->data.mName, aName, len);
         msg->data.mName[len] = 0;
         mMessageQueueProfiler.Push(msg);
-#endif
       }
     }
   }
@@ -176,11 +172,8 @@ class AsyncLogger {
 
   bool Enabled() {
     return (mMode == AsyncLoggerOutputMode::MOZLOG &&
-            MOZ_LOG_TEST(mLogModule, mozilla::LogLevel::Verbose))
-#ifdef MOZ_GECKO_PROFILER
-           || (mMode == AsyncLoggerOutputMode::PROFILER && profiler_is_active())
-#endif
-        ;
+            MOZ_LOG_TEST(mLogModule, mozilla::LogLevel::Verbose)) ||
+           (mMode == AsyncLoggerOutputMode::PROFILER && profiler_is_active());
   }
 
  private:
@@ -195,7 +188,6 @@ class AsyncLogger {
                     ("%s", message.mPayload));
           }
         }
-#ifdef MOZ_GECKO_PROFILER
         {
           struct BudgetMarker {
             static constexpr Span<const char> MarkerTypeName() {
@@ -235,7 +227,6 @@ class AsyncLogger {
             }
           }
         }
-#endif
         Sleep();
       }
       PROFILER_UNREGISTER_THREAD();
@@ -245,8 +236,8 @@ class AsyncLogger {
   }
 
   uint64_t NowInUs() {
-    static TimeStamp base = TimeStamp::NowUnfuzzed();
-    return (TimeStamp::NowUnfuzzed() - base).ToMicroseconds();
+    static TimeStamp base = TimeStamp::Now();
+    return (TimeStamp::Now() - base).ToMicroseconds();
   }
 
   void Sleep() { std::this_thread::sleep_for(std::chrono::milliseconds(10)); }
@@ -254,9 +245,7 @@ class AsyncLogger {
   std::unique_ptr<std::thread> mThread;
   mozilla::LazyLogModule mLogModule;
   MPSCQueue<TextPayload> mMessageQueueLog;
-#ifdef MOZ_GECKO_PROFILER
   MPSCQueue<TracePayload> mMessageQueueProfiler;
-#endif
   std::atomic<bool> mRunning;
   std::atomic<AsyncLoggerOutputMode> mMode;
 };

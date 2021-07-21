@@ -13,7 +13,6 @@ const {
 
 types.addDictType("browsingContextTarget.attach", {
   threadActor: "number",
-  cacheDisabled: "boolean",
   javascriptEnabled: "nullable:boolean",
   traits: "json",
 });
@@ -38,6 +37,12 @@ types.addDictType("browsingContextTarget.workers", {
   workers: "array:workerDescriptor",
 });
 
+// @backward-compat { version 91 }
+//                  BrowsingContextTarget reload should no longer be used within
+//                  DevTools. Remove this comment when version 91 hits release.
+// @backward-compat { legacy }
+//                  reload is preserved for third party tools. See Bug 1717837.
+//                  DevTools should use Descriptor::reloadDescriptor instead.
 types.addDictType("browsingContextTarget.reload", {
   force: "boolean",
 });
@@ -80,6 +85,13 @@ const browsingContextTargetSpecPrototype = {
       request: {},
       response: {},
     },
+    // @backward-compat { version 91 }
+    //                  BrowsingContextTarget reload should no longer be used within
+    //                  DevTools. Remove this comment when version 91 hits release.
+    // @backward-compat { legacy }
+    //                  reload is preserved for third party tools. See Bug 1717837.
+    //                  DevTools should use Descriptor::reloadDescriptor instead.
+
     reload: {
       request: {
         options: Option(0, "browsingContextTarget.reload"),

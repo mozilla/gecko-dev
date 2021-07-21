@@ -19,10 +19,13 @@
 #include "xpcprivate.h"
 
 #include "jsapi.h"
+#include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
 #include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength
 #include "js/friend/WindowProxy.h"      // js::IsWindowProxy
 #include "js/friend/XrayJitInfo.h"      // JS::XrayJitInfo
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
+#include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
+#include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
@@ -664,6 +667,13 @@ bool JSXrayTraits::resolveOwnProperty(
         return true;
       }
 
+#if defined(NIGHTLY_BUILD)
+      // The optional .cause property can have any value.
+      if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_CAUSE)) {
+        return getOwnPropertyFromWrapperIfSafe(cx, wrapper, id, desc);
+      }
+#endif
+
       if (key == JSProto_AggregateError &&
           id == GetJSIDByIndex(cx, XPCJSContext::IDX_ERRORS)) {
         return getOwnPropertyFromWrapperIfSafe(cx, wrapper, id, desc);
@@ -835,7 +845,7 @@ bool JSXrayTraits::defineProperty(
 
 static bool MaybeAppend(jsid id, unsigned flags, MutableHandleIdVector props) {
   MOZ_ASSERT(!(flags & JSITER_SYMBOLSONLY));
-  if (!(flags & JSITER_SYMBOLS) && JSID_IS_SYMBOL(id)) {
+  if (!(flags & JSITER_SYMBOLS) && id.isSymbol()) {
     return true;
   }
   return props.append(id);

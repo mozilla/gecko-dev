@@ -4,7 +4,6 @@
 
 %include ../../shared/customizableui/panelUI.inc.css
 
-@media (-moz-proton) {
 panel[type="arrow"][side="top"],
 panel[type="arrow"][side="bottom"] {
   margin-inline: -16px;
@@ -24,27 +23,7 @@ panel[type="arrow"][side="right"] {
 #customizationui-widget-panel[viewId="PanelUI-profiler"][type="arrow"][side="right"] {
   margin-block: -8px;
 }
-} /** END Proton **/
 
-.restoreallitem > .toolbarbutton-icon {
-  display: none;
-}
-
-@media not (-moz-proton) {
-.subviewbutton {
-  padding-inline-start: 18px;
-}
-
-.subviewbutton.download {
-  padding-inline-start: 14px;
-}
-
-.PanelUI-subView menuseparator {
-  padding: 0 !important;
-}
-} /** END not Proton **/
-
-@media (-moz-proton) {
 #downloadsPanel,
 #widget-overflow,
 #appMenu-popup,
@@ -58,7 +37,6 @@ panel[type="arrow"][side="right"] {
 #BMB_bookmarksPopup {
   margin-top: -4px; /* Overrides value from panelUI.inc.css */
 }
-} /** END Proton **/
 
 panelmultiview .toolbaritem-combined-buttons > spacer.before-label {
   width: 42px; /* 18px toolbarbutton padding + 16px icon + 8px label padding start */
@@ -87,18 +65,12 @@ panelmultiview .toolbaritem-combined-buttons > spacer.before-label {
   display: none;
 }
 
-#BMB_bookmarksPopup menupopup[placespopup=true]:-moz-lwtheme {
-  appearance: none;
-  background: transparent;
+#BMB_bookmarksPopup .subviewbutton > .menu-iconic-left {
+  margin-inline-end: 3px;
 }
 
-#BMB_bookmarksPopup menupopup[placespopup=true]:-moz-lwtheme::part(innerbox) {
-  background: var(--arrowpanel-background);
-  border-radius: var(--arrowpanel-border-radius);
-  box-shadow: 0 0 0 1px var(--arrowpanel-border-color);
-  color: var(--arrowpanel-color);
-  border: none;
-  margin: 1px;
+#BMB_bookmarksPopup .subviewbutton > .menu-iconic-text {
+  padding-inline-start: 0;
 }
 
 /* Override OSX-specific toolkit styles for the bookmarks panel */

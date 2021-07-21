@@ -183,17 +183,17 @@ inline uint32_t GetArrayIndexFromId(JS::Handle<jsid> id) {
   // really needed?  I guess it is because StringIsArrayIndex is out of line...
   // as of now, use id.get() instead of id otherwise operands mismatch error
   // occurs.
-  if (MOZ_LIKELY(JSID_IS_INT(id))) {
-    return JSID_TO_INT(id);
+  if (MOZ_LIKELY(id.isInt())) {
+    return id.toInt();
   }
   if (MOZ_LIKELY(id.get() == s_length_id)) {
     return UINT32_MAX;
   }
-  if (MOZ_UNLIKELY(!JSID_IS_ATOM(id))) {
+  if (MOZ_UNLIKELY(!id.isAtom())) {
     return UINT32_MAX;
   }
 
-  JSLinearString* str = JS::AtomToLinearString(JSID_TO_ATOM(id));
+  JSLinearString* str = JS::AtomToLinearString(id.toAtom());
   if (MOZ_UNLIKELY(JS::GetLinearStringLength(str) == 0)) {
     return UINT32_MAX;
   }

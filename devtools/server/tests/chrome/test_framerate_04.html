@@ -21,7 +21,7 @@ window.onload = async function() {
 
   const TICK = 1000;
   const url = document.getElementById("testContent").href;
-  const { target, doc } = await attachURL(url);
+  const { commands, target, doc } = await attachURL(url);
   const contentWin = doc.defaultView;
   const front = await target.getFront("framerate");
 
@@ -30,14 +30,24 @@ window.onload = async function() {
   const firstBatch = await front.getPendingTicks();
   await waitFor(TICK);
 
-  const onWillNavigate = target.once("will-navigate");
+  const { resourceCommand } = commands;
+  const { onResource: onWillNavigate } = await resourceCommand
+  .waitForNextResource(
+    resourceCommand.TYPES.DOCUMENT_EVENT,
+    {
+      ignoreExistingResources: true,
+      predicate(resource) {
+        return resource.name == "will-navigate";
+      },
+    }
+  );
   contentWin.location.reload();
   await onWillNavigate;
 
   await waitFor(TICK);
   const secondBatch = await front.stopRecording();
   await onRecordingStopped(firstBatch, secondBatch);
-  target.destroy();
+  commands.destroy();
   SimpleTest.finish();
 };
 

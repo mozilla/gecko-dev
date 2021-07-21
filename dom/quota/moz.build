@@ -41,6 +41,8 @@ EXPORTS.mozilla.dom.quota += [
     "EncryptingOutputStream.h",
     "EncryptingOutputStream_impl.h",
     "FileStreams.h",
+    "FirstInitializationAttempts.h",
+    "FirstInitializationAttemptsImpl.h",
     "InitializationTypes.h",
     "IPCStreamCipherStrategy.h",
     "MemoryOutputStream.h",
@@ -51,6 +53,7 @@ EXPORTS.mozilla.dom.quota += [
     "QuotaManager.h",
     "QuotaManagerService.h",
     "QuotaObject.h",
+    "ScopedLogExtraInfo.h",
     "SerializationHelpers.h",
     "UsageInfo.h",
 ]
@@ -68,6 +71,7 @@ UNIFIED_SOURCES += [
     "DirectoryLockImpl.cpp",
     "EncryptingOutputStream.cpp",
     "FileStreams.cpp",
+    "InitializationTypes.cpp",
     "MemoryOutputStream.cpp",
     "nsIndexedDBProtocolHandler.cpp",
     "NSSCipherStrategy.cpp",
@@ -77,6 +81,7 @@ UNIFIED_SOURCES += [
     "QuotaManagerService.cpp",
     "QuotaRequests.cpp",
     "QuotaResults.cpp",
+    "ScopedLogExtraInfo.cpp",
     "StorageManager.cpp",
 ]
 

@@ -1,0 +1,424 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+"use strict";
+
+var EXPORTED_SYMBOLS = ["Snapshots"];
+
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
+);
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  PlacesUtils: "resource://gre/modules/PlacesUtils.jsm",
+  Services: "resource://gre/modules/Services.jsm",
+});
+
+/**
+ * @typedef {object} SnapshotCriteria
+ *   A set of tests to check if a set of interactions are a snapshot.
+ * @property {string} property
+ *   The property to check.
+ * @property {string} aggregator
+ *   An aggregator to apply ("sum", "avg", "max", "min").
+ * @property {number} cutoff
+ *   The value to compare against.
+ * @property {?number} interactionCount
+ *   The maximum number of interactions to consider.
+ * @property {?number} interactionRecency
+ *   The maximum age of interactions to consider, in milliseconds.
+ */
+
+XPCOMUtils.defineLazyGetter(this, "logConsole", function() {
+  return console.createInstance({
+    prefix: "SnapshotsManager",
+    maxLogLevel: Services.prefs.getBoolPref(
+      "browser.places.interactions.log",
+      false
+    )
+      ? "Debug"
+      : "Warn",
+  });
+});
+
+const DEFAULT_CRITERIA = [
+  {
+    property: "total_view_time",
+    aggregator: "max",
+    cutoff: 30000,
+  },
+  {
+    property: "total_view_time",
+    aggregator: "sum",
+    cutoff: 120000,
+    interactionCount: 5,
+  },
+  {
+    property: "key_presses",
+    aggregator: "sum",
+    cutoff: 250,
+    interactionCount: 10,
+  },
+];
+
+/**
+ * This is an array of criteria that would make a page a snapshot. Each element is a SnapshotCriteria.
+ * A page is a snapshot if any of the criteria apply.
+ */
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "snapshotCriteria",
+  "browser.places.interactions.snapshotCriteria",
+  JSON.stringify(DEFAULT_CRITERIA)
+);
+
+/**
+ * @typedef {object} Snapshot
+ *   A snapshot summarises a collection of interactions.
+ * @property {string} url
+ *   The associated URL.
+ * @property {Date} createdAt
+ *   The date/time the snapshot was created.
+ * @property {Date} removedAt
+ *   The date/time the snapshot was deleted.
+ * @property {Date} firstInteractionAt
+ *   The date/time of the first interaction with the snapshot.
+ * @property {Date} lastInteractionAt
+ *   The date/time of the last interaction with the snapshot.
+ * @property {Interactions.DOCUMENT_TYPE} documentType
+ *   The document type of the snapshot.
+ * @property {boolean} userPersisted
+ *   True if the user created or persisted the snapshot in some way.
+ */
+
+/**
+ * Handles storing and retrieving of Snapshots in the Places database.
+ *
+ * Notifications of updates are sent via the observer service:
+ * - places-snapshots-added, data: JSON encoded array of urls
+ *     Sent when a new snapshot is added
+ * - places-snapshots-deleted, data: JSON encoded array of urls
+ *     Sent when a snapshot is removed.
+ */
+const Snapshots = new (class Snapshots {
+  #notify(topic, urls) {
+    Services.obs.notifyObservers(null, topic, JSON.stringify(urls));
+  }
+
+  /**
+   * Adds a new snapshot.
+   *
+   * If the snapshot already exists, and this is a user-persisted addition,
+   * then the userPersisted flag will be set, and the removed_at flag will be
+   * cleared.
+   *
+   * @param {object} details
+   * @param {string} details.url
+   *   The url associated with the snapshot.
+   * @param {boolean} [details.userPersisted]
+   *   True if the user created or persisted the snapshot in some way, defaults to
+   *   false.
+   */
+  async add({ url, userPersisted = false }) {
+    if (!url) {
+      throw new Error("Missing url parameter to Snapshots.add()");
+    }
+
+    let added = await PlacesUtils.withConnectionWrapper(
+      "Snapshots: add",
+      async db => {
+        let now = Date.now();
+
+        let rows = await db.executeCached(
+          `
+        INSERT INTO moz_places_metadata_snapshots
+          (place_id, first_interaction_at, last_interaction_at, document_type, created_at, user_persisted)
+        SELECT place_id, min(created_at), max(created_at),
+               first_value(document_type) OVER (PARTITION BY place_id ORDER BY created_at DESC),
+               :createdAt, :userPersisted
+        FROM moz_places_metadata
+        WHERE place_id = (SELECT id FROM moz_places WHERE url_hash = hash(:url) AND url = :url)
+        ON CONFLICT DO UPDATE SET user_persisted = :userPersisted, removed_at = NULL WHERE :userPersisted = 1
+        RETURNING created_at
+      `,
+          { createdAt: now, url, userPersisted }
+        );
+
+        // If the url did not exist in moz_places then rows will be empty.
+        return !!rows.length;
+      }
+    );
+
+    if (added) {
+      this.#notify("places-snapshots-added", [url]);
+    }
+  }
+
+  /**
+   * Deletes a snapshot, creating a tombstone. Note, the caller is expected
+   * to take account of the userPersisted value for a Snapshot when appropriate.
+   *
+   * @param {string} url
+   *   The url of the snapshot to delete.
+   */
+  async delete(url) {
+    await PlacesUtils.withConnectionWrapper("Snapshots: delete", async db => {
+      await db.executeCached(
+        `
+        UPDATE moz_places_metadata_snapshots
+          SET removed_at = :removedAt
+        WHERE place_id = (SELECT id FROM moz_places WHERE url_hash = hash(:url) AND url = :url)
+      `,
+        { removedAt: Date.now(), url }
+      );
+    });
+
+    this.#notify("places-snapshots-deleted", [url]);
+  }
+
+  /**
+   * Gets the details for a particular snapshot based on the url.
+   *
+   * @param {string} url
+   *   The url of the snapshot to obtain.
+   * @param {boolean} [includeTombstones]
+   *   Whether to include tombstones in the snapshots to obtain.
+   * @returns {?Snapshot}
+   */
+  async get(url, includeTombstones = false) {
+    let db = await PlacesUtils.promiseDBConnection();
+    let extraWhereCondition = "";
+
+    if (!includeTombstones) {
+      extraWhereCondition = " AND removed_at IS NULL";
+    }
+
+    let rows = await db.executeCached(
+      `
+      SELECT h.url AS url, created_at, removed_at, document_type,
+             first_interaction_at, last_interaction_at,
+             user_persisted FROM moz_places_metadata_snapshots s
+      JOIN moz_places h ON h.id = s.place_id
+      WHERE h.url_hash = hash(:url) AND h.url = :url
+       ${extraWhereCondition}
+    `,
+      { url }
+    );
+
+    if (!rows.length) {
+      return null;
+    }
+
+    return this.#translateRow(rows[0]);
+  }
+
+  /**
+   * Queries the current snapshots in the database.
+   *
+   * @param {object} [options]
+   * @param {number} [options.limit]
+   *   A numerical limit to the number of snapshots to retrieve, defaults to 100.
+   * @param {boolean} [options.includeTombstones]
+   *   Whether to include tombstones in the snapshots to obtain.
+   * @returns {Snapshot[]}
+   *   Returns snapshots in order of descending last interaction time.
+   */
+  async query({ limit = 100, includeTombstones = false } = {}) {
+    let db = await PlacesUtils.promiseDBConnection();
+
+    let whereStatement = "";
+
+    if (!includeTombstones) {
+      whereStatement = " WHERE removed_at IS NULL";
+    }
+
+    let rows = await db.executeCached(
+      `
+      SELECT h.url AS url, created_at, removed_at, document_type,
+             first_interaction_at, last_interaction_at,
+             user_persisted FROM moz_places_metadata_snapshots s
+      JOIN moz_places h ON h.id = s.place_id
+      ${whereStatement}
+      ORDER BY last_interaction_at DESC
+      LIMIT :limit
+    `,
+      { limit }
+    );
+
+    return rows.map(row => this.#translateRow(row));
+  }
+
+  /**
+   * Translates a database row to a Snapshot.
+   *
+   * @param {object} row
+   *   The database row to translate.
+   * @returns {Snapshot}
+   */
+  #translateRow(row) {
+    return {
+      url: row.getResultByName("url"),
+      createdAt: this.#toDate(row.getResultByName("created_at")),
+      removedAt: this.#toDate(row.getResultByName("removed_at")),
+      firstInteractionAt: this.#toDate(
+        row.getResultByName("first_interaction_at")
+      ),
+      lastInteractionAt: this.#toDate(
+        row.getResultByName("last_interaction_at")
+      ),
+      documentType: row.getResultByName("document_type"),
+      userPersisted: !!row.getResultByName("user_persisted"),
+    };
+  }
+
+  /**
+   * Translates a date value from the database.
+   *
+   * @param {number} value
+   *   The date in milliseconds from the epoch.
+   * @returns {Date?}
+   */
+  #toDate(value) {
+    if (value) {
+      return new Date(value);
+    }
+    return null;
+  }
+
+  /**
+   * Adds snapshots for any pages where the gathered metadata meets a set of
+   * criteria.
+   *
+   * @param {string[]} urls
+   *  The list of pages to check, if undefined all pages are checked.
+   */
+  async updateSnapshots(urls = undefined) {
+    if (urls !== undefined && !urls.length) {
+      return;
+    }
+
+    logConsole.debug(
+      `Updating ${urls ? urls.length : "all"} potential snapshots`
+    );
+
+    let model;
+    try {
+      model = JSON.parse(snapshotCriteria);
+
+      if (!model.length) {
+        logConsole.debug(`No model provided, falling back to default`);
+        model = DEFAULT_CRITERIA;
+      }
+    } catch (e) {
+      logConsole.error(
+        "Invalid snapshot criteria, falling back to default.",
+        e
+      );
+      model = DEFAULT_CRITERIA;
+    }
+
+    let insertedUrls = await PlacesUtils.withConnectionWrapper(
+      "Snapshots.jsm::updateSnapshots",
+      async db => {
+        let bindings = {};
+
+        let urlFilter = "";
+        if (urls !== undefined) {
+          let urlMatches = [];
+
+          urls.forEach((url, idx) => {
+            bindings[`url${idx}`] = url;
+            urlMatches.push(
+              `(url_hash = hash(:url${idx}) AND url = :url${idx})`
+            );
+          });
+
+          urlFilter = `WHERE ${urlMatches.join(" OR ")}`;
+        }
+
+        let modelQueries = [];
+        model.forEach((criteria, idx) => {
+          let wheres = [];
+
+          if (criteria.interactionCount) {
+            wheres.push(`row <= :count${idx}`);
+            bindings[`count${idx}`] = criteria.interactionCount;
+          }
+
+          if (criteria.interactionRecency) {
+            wheres.push(`created_at >= :recency${idx}`);
+            bindings[`recency${idx}`] = Date.now() - criteria.interactionCount;
+          }
+
+          let where = wheres.length ? `WHERE ${wheres.join(" AND ")}` : "";
+
+          modelQueries.push(
+            `
+            SELECT
+                place_id,
+                min(created_at) AS first_interaction_at,
+                max(created_at) AS last_interaction_at,
+                doc_type,
+                :createdAt
+              FROM metadata
+              ${where}
+              GROUP BY place_id
+              HAVING ${criteria.aggregator}(${criteria.property}) >= :cutoff${idx}
+            `
+          );
+          bindings[`cutoff${idx}`] = criteria.cutoff;
+        });
+
+        let query = `
+          WITH metadata AS (
+            SELECT
+                moz_places_metadata.*,
+                row_number() OVER (PARTITION BY place_id ORDER BY created_at DESC) AS row,
+                first_value(document_type) OVER (PARTITION BY place_id ORDER BY created_at DESC) AS doc_type
+              FROM moz_places_metadata JOIN moz_places ON moz_places_metadata.place_id = moz_places.id
+              ${urlFilter}
+          )
+          INSERT OR IGNORE INTO moz_places_metadata_snapshots
+            (place_id, first_interaction_at, last_interaction_at, document_type, created_at)
+          ${modelQueries.join(" UNION ")}
+          RETURNING (SELECT url FROM moz_places WHERE id=place_id) AS url, created_at
+          `;
+
+        let now = Date.now();
+
+        let results = await db.execute(query, {
+          ...bindings,
+          createdAt: now,
+        });
+
+        let newUrls = [];
+        for (let row of results) {
+          // If created_at differs from the passed value then this snapshot already existed.
+          if (row.getResultByName("created_at") == now) {
+            newUrls.push(row.getResultByName("url"));
+          }
+        }
+
+        return newUrls;
+      }
+    );
+
+    if (insertedUrls.length) {
+      logConsole.debug(`Inserted ${insertedUrls.length} snapshots.`);
+      this.#notify("places-snapshots-added", insertedUrls);
+    }
+  }
+
+  /**
+   * Completely clears the store. This exists for testing purposes.
+   */
+  async reset() {
+    await PlacesUtils.withConnectionWrapper(
+      "Snapshots.jsm::reset",
+      async db => {
+        await db.executeCached(`DELETE FROM moz_places_metadata_snapshots`);
+      }
+    );
+  }
+})();

@@ -5,15 +5,14 @@
 job-defaults:
     worker-type: b-linux
     worker:
-        # For now we need to keep GCC built on debian 8 because we need
-        # its headers and libraries to be compatible, as we reship them in
-        # clang.
-        docker-image: {in-tree: deb8-toolchain-build}
         max-run-time: 3600
     run:
         resources:
             - 'build/unix/build-gcc/build-gcc.sh'
         toolchain-artifact: public/build/gcc.tar.xz
+    fetches:
+        toolchain:
+            - linux64-toolchain-sysroot
 
 linux64-gcc-7:
     description: "GCC 7 toolchain build"
@@ -24,7 +23,6 @@ linux64-gcc-7:
         toolchain-alias: linux64-gcc
     fetches:
         fetch:
-            - binutils-2.31.1
             - gcc-7.5.0
             - gmp-6.1.0
             - isl-0.16.1
@@ -39,7 +37,6 @@ linux64-gcc-8:
         script: build-gcc-linux.sh
     fetches:
         fetch:
-            - binutils-2.31.1
             - gcc-8.5.0
             - gmp-6.1.0
             - isl-0.16.1
@@ -54,7 +51,6 @@ linux64-gcc-9:
         script: build-gcc-linux.sh
     fetches:
         fetch:
-            - binutils-2.31.1
             - gcc-9.3.0
             - gmp-6.1.0
             - isl-0.16.1
@@ -69,7 +65,6 @@ linux64-gcc-11:
         script: build-gcc-linux.sh
     fetches:
         fetch:
-            - binutils-2.31.1
             - gcc-11.1.0
             - gmp-6.1.0
             - isl-0.16.1
@@ -89,7 +84,6 @@ linux64-gcc-sixgill:
         toolchain-artifact: public/build/sixgill.tar.xz
     fetches:
         fetch:
-            - binutils-2.31.1
             - gcc-9.3.0
             - gmp-6.1.0
             - isl-0.16.1

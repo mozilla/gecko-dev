@@ -564,7 +564,11 @@ void UntrustedModulesProcessor::ProcessModuleLoadQueue() {
       // To prevent mProcessedModuleLoads from exceeding |kMaxEvents|,
       // we process the first items in the mUnprocessedModuleLoads,
       // leaving the the remaining events for the next time.
-      const size_t capacity = newDataLength - UntrustedModulesData::kMaxEvents;
+      const size_t capacity = UntrustedModulesData::kMaxEvents >
+                                      mProcessedModuleLoads.mEvents.length()
+                                  ? (UntrustedModulesData::kMaxEvents -
+                                     mProcessedModuleLoads.mEvents.length())
+                                  : 0;
       auto moveRangeBegin = mUnprocessedModuleLoads.begin();
       auto moveRangeEnd = moveRangeBegin + capacity;
       Unused << loadsToProcess.moveAppend(moveRangeBegin, moveRangeEnd);

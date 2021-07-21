@@ -15,10 +15,11 @@ use std::time::Instant;
 use neqo_common::{hex, hex_snip_middle, qdebug, qinfo, qtrace, Encoder, Role};
 
 use neqo_crypto::{
-    hkdf, hp::HpKey, Aead, Agent, AntiReplay, Cipher, Epoch, HandshakeState, Record, RecordList,
-    ResumptionToken, SymKey, ZeroRttChecker, TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384,
-    TLS_CHACHA20_POLY1305_SHA256, TLS_CT_HANDSHAKE, TLS_EPOCH_APPLICATION_DATA,
-    TLS_EPOCH_HANDSHAKE, TLS_EPOCH_INITIAL, TLS_EPOCH_ZERO_RTT, TLS_VERSION_1_3,
+    hkdf, hp::HpKey, Aead, Agent, AntiReplay, Cipher, Epoch, Error as CryptoError, HandshakeState,
+    PrivateKey, PublicKey, Record, RecordList, ResumptionToken, SymKey, ZeroRttChecker,
+    TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384, TLS_CHACHA20_POLY1305_SHA256, TLS_CT_HANDSHAKE,
+    TLS_EPOCH_APPLICATION_DATA, TLS_EPOCH_HANDSHAKE, TLS_EPOCH_INITIAL, TLS_EPOCH_ZERO_RTT,
+    TLS_VERSION_1_3,
 };
 
 use crate::packet::{PacketBuilder, PacketNumber, QuicVersion};
@@ -76,9 +77,7 @@ impl Crypto {
         }
         let extension = match version {
             QuicVersion::Version1 => 0x39,
-            QuicVersion::Draft27
-            | QuicVersion::Draft28
-            | QuicVersion::Draft29
+            QuicVersion::Draft29
             | QuicVersion::Draft30
             | QuicVersion::Draft31
             | QuicVersion::Draft32 => 0xffa5,
@@ -108,6 +107,35 @@ impl Crypto {
         }
     }
 
+    pub fn server_enable_ech(
+        &mut self,
+        config: u8,
+        public_name: &str,
+        sk: &PrivateKey,
+        pk: &PublicKey,
+    ) -> Res<()> {
+        if let Agent::Server(s) = &mut self.tls {
+            s.enable_ech(config, public_name, sk, pk)?;
+            Ok(())
+        } else {
+            panic!("not a client");
+        }
+    }
+
+    pub fn client_enable_ech(&mut self, ech_config_list: impl AsRef<[u8]>) -> Res<()> {
+        if let Agent::Client(c) = &mut self.tls {
+            c.enable_ech(ech_config_list)?;
+            Ok(())
+        } else {
+            panic!("not a client");
+        }
+    }
+
+    /// Get the active ECH configuration, which is empty if ECH is disabled.
+    pub fn ech_config(&self) -> &[u8] {
+        self.tls.ech_config()
+    }
+
     pub fn handshake(
         &mut self,
         now: Instant,
@@ -134,8 +162,9 @@ impl Crypto {
                 self.buffer_records(output)?;
                 Ok(self.tls.state())
             }
+            Err(CryptoError::EchRetry(v)) => Err(Error::EchRetry(v)),
             Err(e) => {
-                qinfo!("Handshake failed");
+                qinfo!("Handshake failed {:?}", e);
                 Err(match self.tls.alert() {
                     Some(a) => Error::CryptoAlert(*a),
                     _ => Error::CryptoError(e),
@@ -387,10 +416,6 @@ impl CryptoDxState {
             0x38, 0x76, 0x2c, 0xf7, 0xf5, 0x59, 0x34, 0xb3, 0x4d, 0x17, 0x9a, 0xe6, 0xa4, 0xc8,
             0x0c, 0xad, 0xcc, 0xbb, 0x7f, 0x0a,
         ];
-        const INITIAL_SALT_27: &[u8] = &[
-            0xc3, 0xee, 0xf7, 0x12, 0xc7, 0x2e, 0xbb, 0x5a, 0x11, 0xa7, 0xd2, 0x43, 0x2b, 0xb4,
-            0x63, 0x65, 0xbe, 0xf9, 0xf5, 0x02,
-        ];
         const INITIAL_SALT_29_32: &[u8] = &[
             0xaf, 0xbf, 0xec, 0x28, 0x99, 0x93, 0xd2, 0x4c, 0x9e, 0x97, 0x86, 0xf1, 0x9c, 0x61,
             0x11, 0xe0, 0x43, 0x90, 0xa8, 0x99,
@@ -398,7 +423,6 @@ impl CryptoDxState {
         qtrace!("new_initial for {:?}", quic_version);
         let salt = match quic_version {
             QuicVersion::Version1 => INITIAL_SALT_V1,
-            QuicVersion::Draft27 | QuicVersion::Draft28 => INITIAL_SALT_27,
             QuicVersion::Draft29
             | QuicVersion::Draft30
             | QuicVersion::Draft31

@@ -468,7 +468,6 @@
                 data-l10n-id="forms-primary-pw-use"
                 class="tail-with-learn-more"/>
       <label id="primaryPasswordLearnMoreLink" class="learnMore" is="text-link"
-             flex="1"
              data-l10n-id="forms-primary-pw-learn-more-link"/>
       <spacer flex="1"/>
       <!-- Please don't remove the wrapping hbox/vbox/box for these elements. It's used to properly compute the search tooltip position. -->
@@ -484,6 +483,19 @@
                  data-l10n-id="forms-primary-pw-former-name"
                  data-l10n-attrs="hidden"
                  flex="1"/>
+#ifdef XP_WIN
+    <hbox align="center">
+      <checkbox data-l10n-id="forms-windows-sso"
+                preference="network.http.windows-sso.enabled"
+                class="tail-with-learn-more"/>
+      <label id="windowsSSOLearnMoreLink" class="learnMore" is="text-link"
+             flex="1"
+             data-l10n-id="forms-windows-sso-learn-more-link"/>
+    </hbox>
+    <description class="indent tip-caption"
+           data-l10n-id="forms-windows-sso-desc"/>
+
+#endif
   </vbox>
   <!--
     Those two strings are meant to be invisible and will be used exclusively to provide
@@ -780,7 +792,8 @@
       <button id="popupPolicyButton"
               is="highlightable-button"
               class="accessory-button"
-              data-l10n-id="permissions-block-popups-exceptions"
+              data-l10n-id="permissions-block-popups-exceptions-button"
+              data-l10n-attrs="searchkeywords"
               search-l10n-ids="
                 permissions-address,
                 permissions-exceptions-popup-window.title,
@@ -1003,15 +1016,17 @@
                value="disabled"/>
       </radiogroup>
       </vbox>
-      <vbox align="end">
-        <button id="httpsOnlyExceptionButton" is="highlightable-button" class="accessory-button" disabled="true"
-          data-l10n-id="sitedata-cookies-exceptions" search-l10n-ids="
-                        permissions-address,
-                        permissions-allow.label,
-                        permissions-remove.label,
-                        permissions-remove-all.label,
-                        permissions-exceptions-https-only-desc,
-                      " />
+      <vbox>
+        <hbox>
+          <button id="httpsOnlyExceptionButton" is="highlightable-button" class="accessory-button" disabled="true"
+            data-l10n-id="sitedata-cookies-exceptions" search-l10n-ids="
+                          permissions-address,
+                          permissions-allow.label,
+                          permissions-remove.label,
+                          permissions-remove-all.label,
+                          permissions-exceptions-https-only-desc,
+                        " />
+        </hbox>
       </vbox>
     </hbox>
   </vbox>

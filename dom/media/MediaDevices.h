@@ -15,8 +15,15 @@
 #include "nsID.h"
 #include "nsISupports.h"
 #include "nsITimer.h"
+#include "nsTHashSet.h"
+
+class AudioDeviceInfo;
 
 namespace mozilla {
+
+template <typename ResolveValueT, typename RejectValueT, bool IsExclusive>
+class MozPromise;
+
 namespace dom {
 
 class Promise;
@@ -34,8 +41,9 @@ struct AudioOutputOptions;
 
 class MediaDevices final : public DOMEventTargetHelper {
  public:
-  explicit MediaDevices(nsPIDOMWindowInner* aWindow)
-      : DOMEventTargetHelper(aWindow) {}
+  using SinkInfoPromise = MozPromise<RefPtr<AudioDeviceInfo>, nsresult, true>;
+
+  explicit MediaDevices(nsPIDOMWindowInner* aWindow);
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOM_MEDIADEVICES_IMPLEMENTATION_IID)
@@ -61,6 +69,14 @@ class MediaDevices final : public DOMEventTargetHelper {
       const AudioOutputOptions& aOptions, CallerType aCallerType,
       ErrorResult& aRv);
 
+  // Get the sink that corresponds to the given device id.
+  // The returned promise will be resolved with the device
+  // information if the aDeviceId matches a device that would be exposed by
+  // enumerateDevices().
+  // The promise will be rejected with NS_ERROR_NOT_AVAILABLE if aDeviceId
+  // does not match any exposed device.
+  RefPtr<SinkInfoPromise> GetSinkDevice(const nsString& aDeviceId);
+
   // Called when MediaManager encountered a change in its device lists.
   void OnDeviceChange();
 
@@ -78,11 +94,14 @@ class MediaDevices final : public DOMEventTargetHelper {
   class GumRejecter;
 
   virtual ~MediaDevices();
+
+  nsTHashSet<nsString> mExplicitlyGrantedAudioOutputIds;
   nsCOMPtr<nsITimer> mFuzzTimer;
 
   // Connect/Disconnect on main thread only
   MediaEventListener mDeviceChangeListener;
   bool mIsDeviceChangeListenerSetUp = false;
+  bool mCanExposeMicrophoneInfo = false;
 
   void RecordAccessTelemetry(const UseCounter counter) const;
 };

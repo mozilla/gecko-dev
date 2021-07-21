@@ -307,22 +307,26 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
     // types that fit in an immediate.
     if (moduleEnv_->functionReferencesEnabled()) {
       // Do a linear pass to create a map from src index to dest index.
-      RenumberMap map;
+      RenumberVector renumbering;
+      if (!renumbering.reserve(moduleEnv_->types.length())) {
+        return false;
+      }
       for (uint32_t srcIndex = 0, destIndex = 0;
            srcIndex < moduleEnv_->types.length(); srcIndex++) {
         const TypeDef& typeDef = moduleEnv_->types[srcIndex];
         if (!TypeIdDesc::isGlobal(typeDef)) {
+          renumbering.infallibleAppend(UINT32_MAX);
           continue;
         }
-        if (!map.put(srcIndex, destIndex++)) {
-          return false;
-        }
+        MOZ_ASSERT(renumbering.length() == srcIndex);
+        renumbering.infallibleAppend(destIndex++);
       }
 
-      // Apply the map
+      // Apply the renumbering
       for (TypeDefWithId& typeDef : metadata_->types) {
-        typeDef.renumber(map);
+        typeDef.renumber(renumbering);
       }
+      metadata_->typesRenumbering = std::move(renumbering);
     }
   }
 
@@ -949,7 +953,7 @@ bool ModuleGenerator::finishCodegen() {
 }
 
 bool ModuleGenerator::finishMetadataTier() {
-  // The stack maps aren't yet sorted.  Do so now, since we'll need to
+  // The stackmaps aren't yet sorted.  Do so now, since we'll need to
   // binary-search them at GC time.
   metadataTier_->stackMaps.sort();
 
@@ -959,7 +963,7 @@ bool ModuleGenerator::finishMetadataTier() {
 #endif
 
 #ifdef DEBUG
-  // Check that the stack map contains no duplicates, since that could lead to
+  // Check that the stackmap contains no duplicates, since that could lead to
   // ambiguities about stack slot pointerness.
   uint8_t* previousNextInsnAddr = nullptr;
   for (size_t i = 0; i < metadataTier_->stackMaps.length(); i++) {
@@ -1076,11 +1080,11 @@ UniqueCodeTier ModuleGenerator::finishCodeTier() {
   metadataTier_->stackMaps.offsetBy(uintptr_t(segment->base()));
 
 #ifdef DEBUG
-  // Check that each stack map is associated with a plausible instruction.
+  // Check that each stackmap is associated with a plausible instruction.
   for (size_t i = 0; i < metadataTier_->stackMaps.length(); i++) {
     MOZ_ASSERT(IsValidStackMapKey(compilerEnv_->debugEnabled(),
                                   metadataTier_->stackMaps.get(i).nextInsnAddr),
-               "wasm stack map does not reference a valid insn");
+               "wasm stackmap does not reference a valid insn");
   }
 #endif
 

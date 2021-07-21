@@ -176,7 +176,14 @@ pref("app.update.langpack.enabled", true);
   // out of the background update feature via Normandy.  (The per-installation
   // pref allows profiles beyond the default profile to enable and disable the
   // background update feature manually.)
-#if defined(NIGHTLY_BUILD) && defined(XP_WIN)
+  //
+  // This preprocessor if statement is a bit ugly because the preprocessor does
+  // not currently support using parentheses for grouping. If it did, this could
+  // be more cleanly expressed as
+  // (defined(EARLY_BETA_OR_EARLIER) || defined(MOZ_DEV_EDITION)) && defined(XP_WIN)
+  // Since it does not, however, we must rely on the order of operations that it
+  // implements, which evaluates && operations before || operations
+#if defined(EARLY_BETA_OR_EARLIER) && defined(XP_WIN) || defined(MOZ_DEV_EDITION) && defined(XP_WIN)
   pref("app.update.background.scheduling.enabled", true);
   pref("app.update.background.experimental", true);
 #else
@@ -263,6 +270,12 @@ pref("browser.shell.mostRecentDateSetAsDefault", "");
 pref("browser.shell.skipDefaultBrowserCheckOnFirstRun", true);
 pref("browser.shell.didSkipDefaultBrowserCheckOnFirstRun", false);
 pref("browser.shell.defaultBrowserCheckCount", 0);
+#if defined(XP_WIN)
+// Attempt to set the default browser on Windows 10 using the UserChoice registry keys,
+// before falling back to launching the modern Settings dialog.
+pref("browser.shell.setDefaultBrowserUserChoice", true);
+#endif
+
 
 // 0 = blank, 1 = home (browser.startup.homepage), 2 = last visited page, 3 = resume previous browser session
 // The behavior of option 3 is detailed at: http://wiki.mozilla.org/Session_Restore
@@ -522,6 +535,8 @@ pref("browser.privatebrowsing.promoEnabled", true);
 pref("browser.privatebrowsing.promoTitle", "");
 pref("browser.privatebrowsing.promoLinkText", "");
 pref("browser.privatebrowsing.promoLinkUrl", "");
+pref("browser.privatebrowsing.infoTitleEnabled", true);
+pref("browser.privatebrowsing.promoTitleEnabled", true);
 
 pref("browser.sessionhistory.max_entries", 50);
 
@@ -1063,13 +1078,9 @@ pref("places.frecency.defaultVisitBonus", 0);
 pref("places.frecency.unvisitedBookmarkBonus", 140);
 pref("places.frecency.unvisitedTypedBonus", 200);
 
-#ifdef NIGHTLY_BUILD
-  // Clear data by base domain (including partitioned storage) when the user
-  // selects "Forget About This Site".
-  pref("places.forgetThisSite.clearByBaseDomain", true);
-#else
-  pref("places.forgetThisSite.clearByBaseDomain", false);
-#endif
+// Clear data by base domain (including partitioned storage) when the user
+// selects "Forget About This Site".
+pref("places.forgetThisSite.clearByBaseDomain", true);
 
 // Controls behavior of the "Add Exception" dialog launched from SSL error pages
 // 0 - don't pre-populate anything
@@ -1363,8 +1374,6 @@ pref("services.sync.prefs.sync.privacy.clearOnShutdown.offlineApps", true);
 pref("services.sync.prefs.sync.privacy.clearOnShutdown.sessions", true);
 pref("services.sync.prefs.sync.privacy.clearOnShutdown.siteSettings", true);
 pref("services.sync.prefs.sync.privacy.donottrackheader.enabled", true);
-pref("services.sync.prefs.sync.privacy.fuzzyfox.enabled", false);
-pref("services.sync.prefs.sync.privacy.fuzzyfox.clockgrainus", false);
 pref("services.sync.prefs.sync.privacy.sanitize.sanitizeOnShutdown", true);
 pref("services.sync.prefs.sync.privacy.trackingprotection.enabled", true);
 pref("services.sync.prefs.sync.privacy.trackingprotection.cryptomining.enabled", true);
@@ -1407,7 +1416,7 @@ pref("prompts.defaultModalType", 3);
 
 pref("browser.topsites.useRemoteSetting", true);
 // Fetch sponsored Top Sites from Mozilla Tiles Service (Contile)
-pref("browser.topsites.contile.enabled", false);
+pref("browser.topsites.contile.enabled", true);
 pref("browser.topsites.contile.endpoint", "https://contile.services.mozilla.com/v1/tiles");
 
 // The base URL for the Quick Suggest anonymizing proxy. To make a request to
@@ -2032,16 +2041,8 @@ pref("browser.suppress_first_window_animation", true);
 // Preference that allows individual users to disable Screenshots.
 pref("extensions.screenshots.disabled", false);
 
-// DoH Rollout: whether to enable automatic performance-based TRR-selection.
-// This pref is controlled by a Normandy rollout so we don't overload providers.
-pref("doh-rollout.trr-selection.enabled", false);
-
-// DoH Rollout: whether to enable automatic steering to provider endpoints.
-// This pref is also controlled by a Normandy rollout.
-pref("doh-rollout.provider-steering.enabled", true);
-
-// DoH Rollout: provider details for automatic steering.
-pref("doh-rollout.provider-steering.provider-list", "[{ \"name\": \"comcast\", \"canonicalName\": \"doh-discovery.xfinity.com\", \"uri\": \"https://doh.xfinity.com/dns-query\" }]");
+// Preference that determines whether Screenshots is opened as a dedicated browser component
+pref("screenshots.browser.component.enabled", false);
 
 // DoH Rollout: whether to clear the mode value at shutdown.
 pref("doh-rollout.clearModeOnShutdown", false);

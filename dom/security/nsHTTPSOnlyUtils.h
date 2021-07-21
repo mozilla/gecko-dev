@@ -63,12 +63,23 @@ class nsHTTPSOnlyUtils {
    * https-only upgrades to https and the website answers with a meta-refresh
    * to downgrade to same-origin http version. Similarly this method breaks
    * the endless cycle for JS based redirects and 302 based redirects.
+   * Note this function is also used when we got an HTTPS RR for the website.
    * @param  aURI      nsIURI of request
    * @param  aLoadInfo nsILoadInfo of request
+   * @param  aOptions an options object indicating if the function
+   *                  should be consulted for https-only or https-first mode or
+   *                  the case that an HTTPS RR is presented.
    * @return           true if an endless loop is detected
    */
-  static bool IsUpgradeDowngradeEndlessLoop(nsIURI* aURI,
-                                            nsILoadInfo* aLoadInfo);
+  enum class UpgradeDowngradeEndlessLoopOptions {
+    EnforceForHTTPSOnlyMode,
+    EnforceForHTTPSFirstMode,
+    EnforceForHTTPSRR,
+  };
+  static bool IsUpgradeDowngradeEndlessLoop(
+      nsIURI* aURI, nsILoadInfo* aLoadInfo,
+      const mozilla::EnumSet<UpgradeDowngradeEndlessLoopOptions>& aOptions =
+          {});
 
   /**
    * Determines if a request should get upgraded because of the HTTPS-First
@@ -151,6 +162,13 @@ class nsHTTPSOnlyUtils {
   static bool IsEqualURIExceptSchemeAndRef(nsIURI* aHTTPSSchemeURI,
                                            nsIURI* aOtherURI,
                                            nsILoadInfo* aLoadInfo);
+
+  /**
+   * Checks a top-level load, if it is exempt by HTTPS-First/ Only
+   * clear exemption flag.
+   * @param aLoadInfo nsILoadInfo of the request
+   */
+  static void PotentiallyClearExemptFlag(nsILoadInfo* aLoadInfo);
 
  private:
   /**

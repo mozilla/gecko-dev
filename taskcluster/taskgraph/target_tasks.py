@@ -7,13 +7,16 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import copy
+import os
 import re
 
 import six
+from redo import retry
 from taskgraph import try_option_syntax
 from taskgraph.parameters import Parameters
 from taskgraph.util.attributes import match_run_on_projects, match_run_on_hg_branches
 from taskgraph.util.platforms import platform_family
+from taskgraph.util.taskcluster import find_task_id
 
 _target_task_methods = {}
 
@@ -30,7 +33,7 @@ UNCOMMON_TRY_TASK_LABELS = [
     r"android-hw",
     # Windows tasks
     r"windows10-64-ref-hw",
-    r"windows10-aarch64",
+    r"windows10-aarch64-qr",
     # Linux tasks
     r"linux-",  # hide all linux32 tasks by default - bug 1599197
     r"linux1804-32",  # hide linux32 tests - bug 1599197
@@ -55,6 +58,17 @@ def _target_task(name):
 def get_method(method):
     """Get a target_task_method to pass to a TaskGraphGenerator."""
     return _target_task_methods[method]
+
+
+def index_exists(index_path, reason=""):
+    print(f"Looking for existing index {index_path} {reason}...")
+    try:
+        task_id = find_task_id(index_path)
+        print(f"Index {index_path} exists: taskId {task_id}")
+        return True
+    except KeyError:
+        print(f"Index {index_path} doesn't exist.")
+        return False
 
 
 def filter_out_shipping_phase(task, parameters):
@@ -540,7 +554,7 @@ def target_tasks_mozilla_release(full_task_graph, parameters, graph_config):
 @_target_task("mozilla_esr78_tasks")
 def target_tasks_mozilla_esr78(full_task_graph, parameters, graph_config):
     """Select the set of tasks required for a promotable beta or release build
-    of desktop, plus android CI. The candidates build process involves a pipeline
+    of desktop, without android CI. The candidates build process involves a pipeline
     of builds and signing, but does not include beetmover or balrog jobs."""
 
     def filter(task):
@@ -560,6 +574,30 @@ def target_tasks_mozilla_esr78(full_task_graph, parameters, graph_config):
 
         # Don't run QuantumRender tests on esr78.
         if test_platform and "-qr/" in test_platform:
+            return False
+
+        return True
+
+    return [l for l, t in six.iteritems(full_task_graph.tasks) if filter(t)]
+
+
+@_target_task("mozilla_esr91_tasks")
+def target_tasks_mozilla_esr91(full_task_graph, parameters, graph_config):
+    """Select the set of tasks required for a promotable beta or release build
+    of desktop, without android CI. The candidates build process involves a pipeline
+    of builds and signing, but does not include beetmover or balrog jobs."""
+
+    def filter(task):
+        if not filter_release_tasks(task, parameters):
+            return False
+
+        if not standard_filter(task, parameters):
+            return False
+
+        platform = task.attributes.get("build_platform")
+
+        # Android is not built on esr91.
+        if platform and "android" in platform:
             return False
 
         return True
@@ -908,6 +946,19 @@ def target_tasks_daily_releases(full_task_graph, parameters, graph_config):
 def target_tasks_nightly_desktop(full_task_graph, parameters, graph_config):
     """Select the set of tasks required for a nightly build of linux, mac,
     windows."""
+    index_path = (
+        f"{graph_config['trust-domain']}.v2.{parameters['project']}.revision."
+        f"{parameters['head_rev']}.taskgraph.decision-nightly-desktop"
+    )
+    if os.environ.get("MOZ_AUTOMATION") and retry(
+        index_exists,
+        args=(index_path,),
+        kwargs={
+            "reason": "to avoid triggering multiple nightlies off the same revision",
+        },
+    ):
+        return []
+
     # Tasks that aren't platform specific
     release_filter = make_desktop_nightly_filter({None})
     release_tasks = [
@@ -953,11 +1004,20 @@ def target_tasks_coverity_full(full_task_graph, parameters, graph_config):
     return ["source-test-coverity-coverity-full-analysis"]
 
 
-# Run build linux64-plain-clang-trunk/opt on mozilla-central/release
-@_target_task("linux64_bp_clang_trunk")
-def target_tasks_build_linux64_clang_trunk(full_task_graph, parameters, graph_config):
-    """Select tasks required to run the build of linux64 build plain with clang trunk"""
-    return ["build-linux64-plain-clang-trunk/opt"]
+# Run build linux64-plain-clang-trunk/opt on mozilla-central/beta with perf tests
+@_target_task("linux64_clang_trunk_perf")
+def target_tasks_build_linux64_clang_trunk_perf(
+    full_task_graph, parameters, graph_config
+):
+    """Select tasks required to run perf test on linux64 build with clang trunk"""
+
+    # Only keep tasks generated from platform `linux1804-64-clang-trunk/opt`
+    def filter(task_label):
+        if "linux1804-64-clang-trunk/opt" in task_label:
+            return True
+        return False
+
+    return [l for l, t in six.iteritems(full_task_graph.tasks) if filter(t.label)]
 
 
 # Run Updatebot's cron job 4 times daily.
@@ -1075,6 +1135,7 @@ def target_tasks_release_simulation(full_task_graph, parameters, graph_config):
         "beta": "mozilla-beta",
         "release": "mozilla-release",
         "esr78": "mozilla-esr78",
+        "esr91": "mozilla-esr91",
     }
     target_project = project_by_release.get(parameters["release_type"])
     if target_project is None:
@@ -1154,6 +1215,36 @@ def target_tasks_raptor_tp6m(full_task_graph, parameters, graph_config):
     return [l for l, t in six.iteritems(full_task_graph.tasks) if filter(t)]
 
 
+@_target_task("perftest_s7")
+def target_tasks_perftest_s7(full_task_graph, parameters, graph_config):
+    """
+    Select tasks required for running raptor page-load tests on geckoview against S7
+    """
+
+    def filter(task):
+        build_platform = task.attributes.get("build_platform", "")
+        test_platform = task.attributes.get("test_platform", "")
+        attributes = task.attributes
+
+        if build_platform and "android" not in build_platform:
+            return False
+        if attributes.get("unittest_suite") != "raptor":
+            return False
+        try_name = attributes.get("raptor_try_name")
+        if "s7" in test_platform and "-qr" in test_platform:
+            if "geckoview" in try_name and (
+                "unity-webgl" in try_name
+                or "speedometer" in try_name
+                or "tp6m-essential" in try_name
+            ):
+                if "power" in try_name:
+                    return False
+                else:
+                    return True
+
+    return [l for l, t in six.iteritems(full_task_graph.tasks) if filter(t)]
+
+
 @_target_task("condprof")
 def target_tasks_condprof(full_task_graph, parameters, graph_config):
     """
@@ -1198,3 +1289,13 @@ def target_tasks_perftest_autoland(full_task_graph, parameters, graph_config):
             test_name in name for test_name in ["view"]
         ):
             yield name
+
+
+@_target_task("l10n-cross-channel")
+def target_tasks_l10n_cross_channel(full_task_graph, parameters, graph_config):
+    """Select the set of tasks required to run l10n cross-channel."""
+
+    def filter(task):
+        return task.kind in ["l10n-cross-channel"]
+
+    return [l for l, t in six.iteritems(full_task_graph.tasks) if filter(t)]

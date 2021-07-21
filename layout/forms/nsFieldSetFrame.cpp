@@ -95,6 +95,8 @@ nsIFrame* nsFieldSetFrame::GetLegend() const {
   return nullptr;
 }
 
+namespace mozilla {
+
 class nsDisplayFieldSetBorder final : public nsPaintedDisplayItem {
  public:
   nsDisplayFieldSetBorder(nsDisplayListBuilder* aBuilder,
@@ -197,8 +199,8 @@ bool nsDisplayFieldSetBorder::CreateWebRenderCommands(
       region.mode = wr::ClipMode::ClipOut;
       region.radii = wr::EmptyBorderRadius();
 
-      auto rect_clip = aBuilder.DefineRectClip(layoutRect);
-      auto complex_clip = aBuilder.DefineRoundedRectClip(region);
+      auto rect_clip = aBuilder.DefineRectClip(Nothing(), layoutRect);
+      auto complex_clip = aBuilder.DefineRoundedRectClip(Nothing(), region);
       auto clipChain =
           aBuilder.DefineClipChain({rect_clip, complex_clip}, true);
       clipOut.emplace(aBuilder, clipChain);
@@ -217,6 +219,8 @@ bool nsDisplayFieldSetBorder::CreateWebRenderCommands(
   nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, drawResult);
   return true;
 };
+
+}  // namespace mozilla
 
 void nsFieldSetFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                        const nsDisplayListSet& aLists) {

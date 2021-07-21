@@ -109,6 +109,10 @@ const GeckoViewStorageController = {
         this.clearHostData(aData.host, aData.flags, aCallback);
         break;
       }
+      case "GeckoView:ClearBaseDomainData": {
+        this.clearBaseDomainData(aData.baseDomain, aData.flags, aCallback);
+        break;
+      }
       case "GeckoView:GetAllPermissions": {
         const rawPerms = Services.perms.all;
         const permissions = rawPerms.map(p => {
@@ -146,9 +150,13 @@ const GeckoViewStorageController = {
       }
       case "GeckoView:SetPermission": {
         const principal = E10SUtils.deserializePrincipal(aData.principal);
+        let key = aData.perm;
+        if (key == "storage-access") {
+          key = "3rdPartyStorage^" + aData.thirdPartyOrigin;
+        }
         Services.perms.addFromPrincipal(
           principal,
-          aData.perm,
+          key,
           aData.newValue,
           Ci.nsIPermissionManager.EXPIRE_NEVER
         );
@@ -206,6 +214,19 @@ const GeckoViewStorageController = {
     new Promise(resolve => {
       Services.clearData.deleteDataFromHost(
         aHost,
+        /* isUserRequest */ true,
+        convertFlags(aFlags),
+        resolve
+      );
+    }).then(resultFlags => {
+      aCallback.onSuccess();
+    });
+  },
+
+  clearBaseDomainData(aBaseDomain, aFlags, aCallback) {
+    new Promise(resolve => {
+      Services.clearData.deleteDataFromBaseDomain(
+        aBaseDomain,
         /* isUserRequest */ true,
         convertFlags(aFlags),
         resolve

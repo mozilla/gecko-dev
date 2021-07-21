@@ -6,8 +6,13 @@
 const { RemoteSettings } = ChromeUtils.import(
   "resource://services-settings/remote-settings.js"
 );
-const { ExperimentFeature, NimbusFeatures, ExperimentAPI } = ChromeUtils.import(
-  "resource://nimbus/ExperimentAPI.jsm"
+const {
+  _ExperimentFeature: ExperimentFeature,
+  NimbusFeatures,
+  ExperimentAPI,
+} = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
+const { ExperimentManager } = ChromeUtils.import(
+  "resource://nimbus/lib/ExperimentManager.jsm"
 );
 const {
   RemoteDefaultsLoader,
@@ -34,12 +39,26 @@ const REMOTE_CONFIGURATION_AW = {
       variables: { remoteValue: 24 },
       enabled: false,
       targeting: "false",
+      bucketConfig: {
+        namespace: "nimbus-test-utils",
+        randomizationUnit: "normandy_id",
+        start: 0,
+        count: 1000,
+        total: 1000,
+      },
     },
     {
       slug: "b",
       variables: { remoteValue: 42 },
       enabled: true,
       targeting: "true",
+      bucketConfig: {
+        namespace: "nimbus-test-utils",
+        randomizationUnit: "normandy_id",
+        start: 0,
+        count: 1000,
+        total: 1000,
+      },
     },
   ],
 };
@@ -52,18 +71,39 @@ const REMOTE_CONFIGURATION_NEWTAB = {
       variables: { remoteValue: 1 },
       enabled: false,
       targeting: "false",
+      bucketConfig: {
+        namespace: "nimbus-test-utils",
+        randomizationUnit: "normandy_id",
+        start: 0,
+        count: 1000,
+        total: 1000,
+      },
     },
     {
       slug: "b",
       variables: { remoteValue: 3 },
       enabled: true,
       targeting: "true",
+      bucketConfig: {
+        namespace: "nimbus-test-utils",
+        randomizationUnit: "normandy_id",
+        start: 0,
+        count: 1000,
+        total: 1000,
+      },
     },
     {
       slug: "c",
       variables: { remoteValue: 2 },
       enabled: false,
       targeting: "false",
+      bucketConfig: {
+        namespace: "nimbus-test-utils",
+        randomizationUnit: "normandy_id",
+        start: 0,
+        count: 1000,
+        total: 1000,
+      },
     },
   ],
 };
@@ -101,6 +141,8 @@ add_task(async function test_remote_fetch_and_ready() {
     TelemetryEnvironment,
     "setExperimentInactive"
   );
+  ExperimentAPI._store._deleteForTests("aboutwelcome");
+  ExperimentAPI._store._deleteForTests("newtab");
 
   featureInstance.onUpdate(stub);
 
@@ -268,8 +310,6 @@ add_task(async function test_remote_fetch_on_updateRecipes() {
 // Test that awaiting `feature.ready()` resolves even when there is no remote
 // data
 add_task(async function test_remote_fetch_no_data_syncRemoteBefore() {
-  // Reset the nonPersistentStore where remote defaults are stored
-  ExperimentAPI._store._nonPersistentStore = {};
   const sandbox = sinon.createSandbox();
   const featureInstance = NimbusFeatures.aboutwelcome;
   const featureFoo = new ExperimentFeature("foo", {
@@ -293,6 +333,7 @@ add_task(async function test_remote_fetch_no_data_syncRemoteBefore() {
 
   ExperimentAPI._store.off("remote-defaults-finalized", stub);
   ExperimentAPI._store._deleteForTests("aboutwelcome");
+  ExperimentAPI._store._deleteForTests("newtab");
   ExperimentAPI._store._deleteForTests("foo");
   // The Promise for remote defaults has been resolved so we need
   // clean state for the next run
@@ -304,8 +345,6 @@ add_task(async function test_remote_fetch_no_data_syncRemoteBefore() {
 // Test that awaiting `feature.ready()` resolves even when there is no remote
 // data
 add_task(async function test_remote_fetch_no_data_noWaitRemoteLoad() {
-  // Reset the nonPersistentStore where remote defaults are stored
-  ExperimentAPI._store._nonPersistentStore = {};
   const featureInstance = NimbusFeatures.aboutwelcome;
   const featureFoo = new ExperimentFeature("foo", {
     foo: { description: "mochitests" },
@@ -557,4 +596,92 @@ add_task(async function remote_defaults_active_remote_defaults() {
   Assert.ok(fooFeature.isEnabled(), "Targeting should match");
   ExperimentAPI._store._deleteForTests("foo");
   ExperimentAPI._store._deleteForTests("bar");
+});
+
+add_task(async function test_remote_defaults_bucketConfig() {
+  const sandbox = sinon.createSandbox();
+  let finalizeRemoteConfigsSpy = sandbox.spy(
+    ExperimentAPI._store,
+    "finalizeRemoteConfigs"
+  );
+  let isInBucketAllocationStub = sandbox
+    .stub(ExperimentManager, "isInBucketAllocation")
+    .resolves(false);
+  let evaluateJexlStub = sandbox
+    .stub(RemoteSettingsExperimentLoader, "evaluateJexl")
+    .resolves(true);
+  let rsClient = await setup();
+
+  await RemoteDefaultsLoader.syncRemoteDefaults("mochitest");
+
+  Assert.equal(
+    isInBucketAllocationStub.callCount,
+    5,
+    "Bucket allocation is checked"
+  );
+  Assert.equal(
+    evaluateJexlStub.callCount,
+    0,
+    "We skip targeting if bucket allocation fails"
+  );
+  Assert.equal(
+    finalizeRemoteConfigsSpy.called,
+    true,
+    "Finally no configs match"
+  );
+  Assert.deepEqual(
+    finalizeRemoteConfigsSpy.firstCall.args[0],
+    [],
+    "No configs matched because of bucket allocation"
+  );
+
+  sandbox.restore();
+  await rsClient.db.clear();
+});
+
+add_task(async function test_remote_defaults_no_bucketConfig() {
+  const sandbox = sinon.createSandbox();
+  const remoteConfigNoBucket = {
+    id: "aboutwelcome",
+    description: "about:welcome",
+    configurations: [
+      {
+        slug: "a",
+        variables: { remoteValue: 24 },
+        enabled: false,
+        targeting: "false",
+      },
+      {
+        slug: "b",
+        variables: { remoteValue: 42 },
+        enabled: true,
+        targeting: "true",
+      },
+    ],
+  };
+  let finalizeRemoteConfigsStub = sandbox.stub(
+    ExperimentAPI._store,
+    "finalizeRemoteConfigs"
+  );
+  let isInBucketAllocationStub = sandbox
+    .stub(ExperimentManager, "isInBucketAllocation")
+    .resolves(false);
+  let evaluateJexlStub = sandbox.spy(
+    RemoteSettingsExperimentLoader,
+    "evaluateJexl"
+  );
+  let rsClient = await setup([remoteConfigNoBucket]);
+
+  await RemoteDefaultsLoader.syncRemoteDefaults("mochitest");
+
+  Assert.ok(isInBucketAllocationStub.notCalled, "No bucket config to call");
+  Assert.equal(evaluateJexlStub.callCount, 2, "Called for two remote configs");
+  Assert.deepEqual(
+    finalizeRemoteConfigsStub.firstCall.args[0],
+    ["aboutwelcome"],
+    "Match the config with targeting set to `true`"
+  );
+
+  sandbox.restore();
+  await rsClient.db.clear();
 });

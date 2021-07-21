@@ -104,7 +104,8 @@ class TargetCommand extends EventEmitter {
       service_worker: new LegacyServiceWorkersWatcher(
         this,
         this._onTargetAvailable,
-        this._onTargetDestroyed
+        this._onTargetDestroyed,
+        this.commands
       ),
     };
 
@@ -321,7 +322,7 @@ class TargetCommand extends EventEmitter {
     // In such case, if the browser toolbox fission pref is disabled, we don't want to use watchers
     // (even if traits on the server are enabled).
     if (
-      this.descriptorFront.isParent &&
+      this.descriptorFront.isParentProcessDescriptor &&
       !Services.prefs.getBoolPref(BROWSERTOOLBOX_FISSION_ENABLED, false)
     ) {
       return false;
@@ -437,7 +438,7 @@ class TargetCommand extends EventEmitter {
 
     if (this.descriptorFront.isLocalTab) {
       types = [TargetCommand.TYPES.FRAME];
-    } else if (this.targetFront.isParentProcess) {
+    } else if (this.descriptorFront.isParentProcessDescriptor) {
       const fissionBrowserToolboxEnabled = Services.prefs.getBoolPref(
         BROWSERTOOLBOX_FISSION_ENABLED
       );
@@ -473,7 +474,11 @@ class TargetCommand extends EventEmitter {
    *        but still unregister listeners set via Legacy Listeners.
    */
   stopListening({ onlyLegacy = false } = {}) {
-    if (this._watchingDocumentEvent) {
+    // As DOCUMENT_EVENT isn't using legacy listener,
+    // there is no need to stop and restart it in case of target switching.
+    // (We typically set onlyLegacy=true when we stop and restart legacy listeners
+    // during a target switch)
+    if (this._watchingDocumentEvent && !onlyLegacy) {
       this.commands.resourceCommand.unwatchResources(
         [this.commands.resourceCommand.TYPES.DOCUMENT_EVENT],
         {
@@ -577,6 +582,14 @@ class TargetCommand extends EventEmitter {
       );
     }
 
+    for (const type of types) {
+      if (!this._isValidTargetType(type)) {
+        throw new Error(
+          `TargetCommand.watchTargets invoked with an unknown type: "${type}"`
+        );
+      }
+    }
+
     // Notify about already existing target of these types
     const targetFronts = [...this._targets].filter(targetFront =>
       types.includes(targetFront.targetType)
@@ -650,6 +663,12 @@ class TargetCommand extends EventEmitter {
     }
 
     for (const type of types) {
+      if (!this._isValidTargetType(type)) {
+        throw new Error(
+          `TargetCommand.unwatchTargets invoked with an unknown type: "${type}"`
+        );
+      }
+
       this._createListeners.off(type, onAvailable);
       if (onDestroy) {
         this._destroyListeners.off(type, onDestroy);
@@ -693,6 +712,12 @@ class TargetCommand extends EventEmitter {
     const fronts = [];
     const targets = this.getAllTargets(targetTypes);
     for (const target of targets) {
+      // For still-attaching worker targets, the threadFront may not yet be available,
+      // whereas TargetMixin.getFront will throw if the actorID isn't available in targetForm.
+      if (frontType == "thread" && !target.targetForm.threadActor) {
+        continue;
+      }
+
       const front = await target.getFront(frontType);
       fronts.push(front);
     }
@@ -744,36 +769,51 @@ class TargetCommand extends EventEmitter {
    *        If true, the reload will be forced to bypass any cache.
    */
   async reloadTopLevelTarget(bypassCache = false) {
+    // @backward-compat { version 91 }
+    //                  BrowsingContextTargetActor.reload was moved to descriptors.
+    //                  After release 91 is on the release channel, we can check
+    //                  this.descriptorFront.traits.supportsReloadDescriptor
+    //                  instead.
     if (!this.targetFront.isBrowsingContext) {
       throw new Error(
-        "The top level target isn't a BrowsingContext and don't support being reloaded"
+        "The top level target isn't a BrowsingContext and doesn't support being reloaded"
       );
     }
 
     // Wait for the next DOCUMENT_EVENT's dom-complete event
-    let resolve = null;
-    const onReloaded = new Promise(r => (resolve = r));
-    const { resourceCommand } = this.commands;
-    const { DOCUMENT_EVENT } = resourceCommand.TYPES;
-    const onAvailable = resources => {
-      if (resources.find(resource => resource.name == "dom-complete")) {
-        resourceCommand.unwatchResources([DOCUMENT_EVENT], { onAvailable });
-        resolve();
+    // Wait for waitForNextResource completion before reloading, otherwise we might miss the dom-complete event.
+    // This can happen if `ResourceCommand.watchResources` made by `waitForNextResource` is still pending
+    // while the reload already started and finished loading the document early.
+    const {
+      onResource: onReloaded,
+    } = await this.commands.resourceCommand.waitForNextResource(
+      this.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+      {
+        ignoreExistingResources: true,
+        predicate(resource) {
+          return resource.name == "dom-complete";
+        },
       }
-    };
-    // Wait for watchResources completion before reloading, otherwise we might miss the dom-complete event
-    // if watchResources is still pending while the reload already started and finished loading the document early.
-    await resourceCommand.watchResources([DOCUMENT_EVENT], {
-      onAvailable,
-      ignoreExistingResources: true,
-    });
+    );
 
+    // @backward-compat { version 91 }
+    //                  BrowsingContextTargetActor.reload was moved to descriptors.
+    if (this.descriptorFront.traits.supportsReloadDescriptor) {
+      await this.descriptorFront.reloadDescriptor({ bypassCache });
+    } else {
+      await this._legacyTargetActorReload(bypassCache);
+    }
+
+    await onReloaded;
+  }
+
+  async _legacyTargetActorReload(force) {
     const { targetFront } = this;
     try {
       // Arguments of reload are a bit convoluted.
       // We expect an dictionary object, which only support one attribute
       // called "force" which force bypassing the caches.
-      await targetFront.reload({ options: { force: bypassCache } });
+      await targetFront.reload({ options: { force } });
     } catch (e) {
       // If the target follows the window global lifecycle, the reload request
       // will fail, and we should swallow the error. Re-throw it otherwise.
@@ -781,8 +821,6 @@ class TargetCommand extends EventEmitter {
         throw e;
       }
     }
-
-    await onReloaded;
   }
 
   /**
@@ -811,6 +849,10 @@ class TargetCommand extends EventEmitter {
       return this.descriptorFront.isServerTargetSwitchingEnabled();
     }
     return false;
+  }
+
+  _isValidTargetType(type) {
+    return this.ALL_TYPES.includes(type);
   }
 
   destroy() {

@@ -45,8 +45,9 @@
  * matched items can be inserted into the merged list in any order.
  */
 
-using namespace mozilla;
 using mozilla::dom::Document;
+
+namespace mozilla {
 
 void RetainedDisplayListData::AddModifiedFrame(nsIFrame* aFrame) {
   MOZ_ASSERT(!aFrame->IsFrameModified());
@@ -74,7 +75,7 @@ RetainedDisplayListData* GetOrSetRetainedDisplayListData(nsIFrame* aRootFrame) {
 }
 
 static void MarkFramesWithItemsAndImagesModified(nsDisplayList* aList) {
-  for (nsDisplayItem* i = aList->GetBottom(); i != nullptr; i = i->GetAbove()) {
+  for (nsDisplayItem* i : *aList) {
     if (!i->HasDeletedFrame() && i->CanBeReused() &&
         !i->Frame()->IsFrameModified()) {
       // If we have existing cached geometry for this item, then check that for
@@ -598,7 +599,7 @@ class MergeState {
     // the same item.
     uint32_t outerKey = mOuterItem ? mOuterItem->GetPerFrameKey() : 0;
     nsIFrame* frame = aItem->Frame();
-    for (nsDisplayItemBase* i : frame->DisplayItems()) {
+    for (nsDisplayItem* i : frame->DisplayItems()) {
       if (i != aItem && i->Frame() == frame &&
           i->GetPerFrameKey() == aItem->GetPerFrameKey()) {
         if (i->GetOldListIndex(mOldList, outerKey, aOutIndex)) {
@@ -629,7 +630,7 @@ class MergeState {
     aItem->NotifyUsed(mBuilder->Builder());
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-    for (nsDisplayItemBase* i : aItem->Frame()->DisplayItems()) {
+    for (nsDisplayItem* i : aItem->Frame()->DisplayItems()) {
       if (i->Frame() == aItem->Frame() &&
           i->GetPerFrameKey() == aItem->GetPerFrameKey()) {
         MOZ_DIAGNOSTIC_ASSERT(!i->IsMergedItem());
@@ -758,8 +759,7 @@ class MergeState {
 
 #ifdef DEBUG
 void VerifyNotModified(nsDisplayList* aList) {
-  for (nsDisplayItem* item = aList->GetBottom(); item;
-       item = item->GetAbove()) {
+  for (nsDisplayItem* item : *aList) {
     MOZ_ASSERT(!AnyContentAncestorModified(item->FrameForInvalidation()));
 
     if (item->GetChildren()) {
@@ -915,7 +915,7 @@ static void GetModifiedAndFramesWithProps(
 #endif
 
 static nsDisplayItem* GetFirstDisplayItemWithChildren(nsIFrame* aFrame) {
-  for (nsDisplayItemBase* i : aFrame->DisplayItems()) {
+  for (nsDisplayItem* i : aFrame->DisplayItems()) {
     if (i->HasChildren()) {
       return static_cast<nsDisplayItem*>(i);
     }
@@ -1480,3 +1480,5 @@ PartialUpdateResult RetainedDisplayListBuilder::AttemptPartialUpdate(
   mBuilder.LeavePresShell(mBuilder.RootReferenceFrame(), List());
   return result;
 }
+
+}  // namespace mozilla

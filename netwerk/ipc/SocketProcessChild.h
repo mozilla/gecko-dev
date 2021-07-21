@@ -35,7 +35,7 @@ class SocketProcessChild final
   static SocketProcessChild* GetSingleton();
 
   bool Init(base::ProcessId aParentPid, const char* aParentBuildID,
-            MessageLoop* aIOLoop, UniquePtr<IPC::Channel> aChannel);
+            mozilla::ipc::ScopedPort aPort);
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 
@@ -151,9 +151,7 @@ class SocketProcessChild final
   nsRefPtrHashtable<nsUint32HashKey, SocketProcessBridgeParent>
       mSocketProcessBridgeParentMap;
 
-#ifdef MOZ_GECKO_PROFILER
   RefPtr<ChildProfilerController> mProfilerController;
-#endif
 
   bool mShuttingDown{false};
   // Protect the table below.

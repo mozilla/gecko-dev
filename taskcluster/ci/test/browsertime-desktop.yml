@@ -16,9 +16,9 @@ job-defaults:
     limit-platforms:
         by-app:
             chrome:
-                - .*shippable(?!-qr).*
+                - .*shippable.*
             chromium:
-                - .*shippable(?!-qr).*
+                - .*shippable.*
             default: []
     test-manifest-loader: null  # don't load tests in the taskgraph
     tier: 3
@@ -52,9 +52,9 @@ browsertime-tp6:
         limit-platforms:
             by-app:
                 chrome:
-                    - .*shippable(?!-qr).*
+                    - .*shippable.*
                 chromium:
-                    - .*shippable(?!-qr).*
+                    - .*shippable.*
                 default: []
         max-run-time: 4000
         mozharness:
@@ -90,18 +90,16 @@ browsertime-tp6:
         run-visual-metrics: true
         treeherder-symbol: Btime(tp6)
     raptor-subtests:
-        - [bing-search, bing]
         - buzzfeed
-        - cnn
         - ebay
         - espn
         - expedia
         - [facebook, fb]
-        - fandom
         - [google-docs, gdocs]
+        - [google-mail, gmail]
         - [google-search, gsearch]
         - imdb
-        - instagram
+        - imgur
         - linkedin
         - microsoft
         - netflix
@@ -111,9 +109,9 @@ browsertime-tp6:
         - paypal
         - pinterest
         - reddit
+        - tumblr
+        - twitch
         - wikia
-        - wikipedia
-        - yahoo-mail
         - youtube
     tier:
         by-variant:
@@ -127,12 +125,14 @@ browsertime-tp6-essential:
     <<: *tp6-defaults
     raptor-subtests:
         - amazon
-        - [google-mail, gmail]
+        - [bing-search, bing]
+        - cnn
+        - fandom
         - [google-slides, gslides]
-        - imgur
-        - tumblr
-        - twitch
+        - instagram
         - twitter
+        - wikipedia
+        - yahoo-mail
     run-on-projects:
         by-variant:
             fission:
@@ -150,10 +150,21 @@ browsertime-tp6-essential:
                             macosx1100.*shippable.*: [mozilla-central, mozilla-beta]
                             default: []
                     default: []
-    tier:
+    variants:
         by-app:
-            firefox: 1
-            default: 3
+            firefox:
+                by-test-platform:
+                    windows10-64.*shippable-qr/.*: [fission, noqr]
+                    (?!windows10-64).*shippable-qr/.*: [fission]
+                    default: []
+            default: []
+    tier:
+        by-test-platform:
+            linux1804-64-clang-trunk/opt: 2
+            default:
+                by-app:
+                    firefox: 1
+                    default: 3
 
 browsertime-benchmark:
     description: Raptor (browsertime) Benchmark tests
@@ -177,11 +188,13 @@ browsertime-benchmark:
                 by-app:
                     firefox:
                         by-subtest:
-                            motionmark-animometer: 1
+                            motionmark-animometer:
+                                by-test-platform:
+                                    linux1804-64-clang-trunk/opt: 2
+                                    default: 1
                             unity-webgl: 3
                             default:
                                 by-test-platform:
-                                    windows10-64-ref-hw-2017/opt: 2
                                     windows10-64-ccov.*/.*: 3
                                     linux64-ccov.*/.*: 3
                                     default: 2
@@ -325,6 +338,49 @@ browsertime-benchmark-wasm:
         fetch:
             - wasm-misc
 
+browsertime-youtube-playback:
+    description: Browsertime YouTube Playback on Firefox
+    raptor-subtests:
+        by-app:
+            firefox:
+                - [youtube-playback-av1-sfr, ytp-av1-sfr]
+                - [youtube-playback-h264-sfr, ytp-h264-sfr]
+                - [youtube-playback-hfr, ytp-hfr]
+                - [youtube-playback-vp9-sfr, ytp-vp9-sfr]
+                - [youtube-playback-widevine-hfr, ytp-widevine-hfr]
+                - [youtube-playback-widevine-h264-sfr, ytp-widevine-h264-sfr]
+                - [youtube-playback-widevine-vp9-sfr, ytp-widevine-vp9-sfr]
+    apps: [firefox]
+    treeherder-symbol: Btime()
+    run-on-projects:
+        by-variant:
+            fission:
+                by-test-platform:
+                    windows.*-32.*: []
+                    default: [mozilla-central]
+            default:
+                by-test-platform:
+                    (linux|windows.*64|macos)(.*shippable).*: [mozilla-central]
+                    windows.*-32.*/opt: []
+                    default: []
+    tier: 2
+    limit-platforms:
+        by-subtest:
+            youtube-playback-av1-sfr:
+                - windows10-64-ref-hw-2017/opt
+                - macosx1015-64-shippable-qr/opt
+            # Bug 1718630
+            youtube-playback.*widevine.*:
+                - (linux|macos).*/opt
+            default: []
+    max-run-time:
+        by-subtest:
+            youtube-playback-hfr: 3600
+            default:
+                by-test-platform:
+                    windows10-aarch64/opt: 3600
+                    default: 2700
+
 browsertime-tp6-live:
     <<: *tp6-defaults
     description: Raptor (browsertime) tp6 on live-sites
@@ -401,7 +457,8 @@ browsertime-tp6-profiling:
             fission: []
             default:
                 by-test-platform:
-                    linux.*shippable[^-qr].*: [mozilla-central]
+                    (linux|windows|macosx1015)(?!.*-qr).*: []
+                    (linux|windows|macosx1015).*shippable-qr.*: [mozilla-central]
                     default: []
     tier:
         by-variant:
@@ -448,6 +505,7 @@ browsertime-first-install:
                     default: [mozilla-central]
             default:
                 by-test-platform:
+                    (linux|windows|macos)(?!.*-qr).*: []
                     linux.*shippable.*: [autoland, mozilla-central]
                     macos.*shippable-qr.*: [autoland, mozilla-central]
                     windows10-64.*shippable.*: [autoland, mozilla-central]

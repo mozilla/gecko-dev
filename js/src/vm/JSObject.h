@@ -104,7 +104,6 @@ class JSObject
 #endif
 
  private:
-  friend class js::DictionaryShapeLink;
   friend class js::GCMarker;
   friend class js::GlobalObject;
   friend class js::NewObjectCache;
@@ -165,10 +164,7 @@ class JSObject
     return reinterpret_cast<JSObject*>(p - JSObject::offsetOfShape());
   }
 
-  enum GenerateShape { GENERATE_NONE, GENERATE_SHAPE };
-
-  static bool setFlag(JSContext* cx, JS::HandleObject obj, js::ObjectFlag flag,
-                      GenerateShape generateShape = GENERATE_NONE);
+  static bool setFlag(JSContext* cx, JS::HandleObject obj, js::ObjectFlag flag);
 
   bool hasFlag(js::ObjectFlag flag) const {
     return shape()->hasObjectFlag(flag);
@@ -196,7 +192,7 @@ class JSObject
     return hasFlag(js::ObjectFlag::IsUsedAsPrototype);
   }
   static bool setIsUsedAsPrototype(JSContext* cx, JS::HandleObject obj) {
-    return setFlag(cx, obj, js::ObjectFlag::IsUsedAsPrototype, GENERATE_SHAPE);
+    return setFlag(cx, obj, js::ObjectFlag::IsUsedAsPrototype);
   }
 
   inline bool isBoundFunction() const;
@@ -231,17 +227,30 @@ class JSObject
   // exist on the scope chain) are kept.
   inline bool isUnqualifiedVarObj() const;
 
-  // An object with an "uncacheable proto" is a prototype object that either had
-  // its own proto mutated or it was on the proto chain of an object that had
-  // its proto mutated. This is used to opt-out of the shape teleporting
-  // optimization. See: ReshapeForProtoMutation, ProtoChainSupportsTeleporting.
-  inline bool hasUncacheableProto() const;
-  static bool setUncacheableProto(JSContext* cx, JS::HandleObject obj) {
+  // Once the "invalidated teleporting" flag is set for an object, it is never
+  // cleared and it may cause the JITs to insert additional guards when
+  // accessing properties on this object. While the flag remains clear, the
+  // shape teleporting optimization can be used to avoid those extra checks.
+  //
+  // The flag is set on the object if either:
+  //
+  // * Its own proto was mutated or it was on the proto chain of an object that
+  //   had its proto mutated.
+  //
+  // * It was on the proto chain of an object that started shadowing a property
+  //   on this object.
+  //
+  // See:
+  // - ReshapeForProtoMutation
+  // - ReshapeForShadowedProp
+  // - ProtoChainSupportsTeleporting
+  inline bool hasInvalidatedTeleporting() const;
+  static bool setInvalidatedTeleporting(JSContext* cx, JS::HandleObject obj) {
     MOZ_ASSERT(obj->isUsedAsPrototype());
     MOZ_ASSERT(obj->hasStaticPrototype(),
-               "uncacheability as a concept is only applicable to static "
+               "teleporting as a concept is only applicable to static "
                "(not dynamically-computed) prototypes");
-    return setFlag(cx, obj, js::ObjectFlag::UncacheableProto, GENERATE_SHAPE);
+    return setFlag(cx, obj, js::ObjectFlag::InvalidatedTeleporting);
   }
 
   /*

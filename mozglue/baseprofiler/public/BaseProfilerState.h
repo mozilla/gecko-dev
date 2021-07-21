@@ -26,6 +26,17 @@
 
 #  define AUTO_PROFILER_STATS(name)
 
+namespace mozilla {
+
+namespace baseprofiler {
+
+inline int profiler_main_thread_id() { return 0; }
+
+inline bool profiler_is_active() { return false; }
+
+}  // namespace baseprofiler
+}  // namespace mozilla
+
 #else  // !MOZ_GECKO_PROFILER
 
 #  include "mozilla/Atomics.h"
@@ -68,7 +79,7 @@ class StaticBaseProfilerStats {
 
   void AddDurationFrom(TimeStamp aStart) {
     DurationNs duration = static_cast<DurationNs>(
-        (TimeStamp::NowUnfuzzed() - aStart).ToMicroseconds() * 1000 + 0.5);
+        (TimeStamp::Now() - aStart).ToMicroseconds() * 1000 + 0.5);
     mSumDurationsNs += duration;
     ++mNumberDurations;
     // Update mLongestDurationNs if this one is longer.
@@ -102,7 +113,7 @@ class StaticBaseProfilerStats {
 class MOZ_RAII AutoProfilerStats {
  public:
   explicit AutoProfilerStats(StaticBaseProfilerStats& aStats)
-      : mStats(aStats), mStart(TimeStamp::NowUnfuzzed()) {}
+      : mStats(aStats), mStart(TimeStamp::Now()) {}
 
   ~AutoProfilerStats() { mStats.AddDurationFrom(mStart); }
 
@@ -166,34 +177,35 @@ class MOZ_RAII AutoProfilerStats {
     MACRO(9, "stackwalk", StackWalk,                                           \
           "Walk the C++ stack, not available on all platforms")                \
                                                                                \
-    MACRO(10, "tasktracer", TaskTracer,                                        \
-          "Start profiling with feature TaskTracer")                           \
+    MACRO(10, "threads", Threads, "Profile the registered secondary threads")  \
                                                                                \
-    MACRO(11, "threads", Threads, "Profile the registered secondary threads")  \
+    MACRO(11, "jstracer", JSTracer, "Enable tracing of the JavaScript engine") \
                                                                                \
-    MACRO(12, "jstracer", JSTracer, "Enable tracing of the JavaScript engine") \
-                                                                               \
-    MACRO(13, "jsallocations", JSAllocations,                                  \
+    MACRO(12, "jsallocations", JSAllocations,                                  \
           "Have the JavaScript engine track allocations")                      \
                                                                                \
-    MACRO(14, "nostacksampling", NoStackSampling,                              \
+    MACRO(13, "nostacksampling", NoStackSampling,                              \
           "Disable all stack sampling: Cancels \"js\", \"leaf\", "             \
           "\"stackwalk\" and labels")                                          \
                                                                                \
-    MACRO(15, "preferencereads", PreferenceReads,                              \
+    MACRO(14, "preferencereads", PreferenceReads,                              \
           "Track when preferences are read")                                   \
                                                                                \
-    MACRO(16, "nativeallocations", NativeAllocations,                          \
+    MACRO(15, "nativeallocations", NativeAllocations,                          \
           "Collect the stacks from a smaller subset of all native "            \
           "allocations, biasing towards collecting larger allocations")        \
                                                                                \
-    MACRO(17, "ipcmessages", IPCMessages,                                      \
+    MACRO(16, "ipcmessages", IPCMessages,                                      \
           "Have the IPC layer track cross-process messages")                   \
                                                                                \
-    MACRO(18, "audiocallbacktracing", AudioCallbackTracing,                    \
+    MACRO(17, "audiocallbacktracing", AudioCallbackTracing,                    \
           "Audio callback tracing")                                            \
                                                                                \
-    MACRO(19, "cpu", CPUUtilization, "CPU utilization")
+    MACRO(18, "cpu", CPUUtilization, "CPU utilization")                        \
+                                                                               \
+    MACRO(19, "notimerresolutionchange", NoTimerResolutionChange,              \
+          "Do not adjust the timer resolution for fast sampling, so that "     \
+          "other Firefox timers do not get affected")
 
 struct ProfilerFeature {
 #  define DECLARE(n_, str_, Name_, desc_)                     \

@@ -11,8 +11,8 @@ use crate::qpack_send_buf::QpackData;
 use crate::reader::ReceiverConnWrapper;
 use crate::stats::Stats;
 use crate::table::HeaderTable;
-use crate::{Error, Header, QpackSettings, Res};
-use neqo_common::qdebug;
+use crate::{Error, QpackSettings, Res};
+use neqo_common::{qdebug, Header};
 use neqo_transport::Connection;
 use std::convert::TryFrom;
 
@@ -26,7 +26,6 @@ pub struct QPackDecoder {
     max_entries: u64,
     send_buf: QpackData,
     local_stream_id: Option<u64>,
-    remote_stream_id: Option<u64>,
     max_table_size: u64,
     max_blocked_streams: usize,
     blocked_streams: Vec<(u64, u64)>, //stream_id and requested inserts count.
@@ -48,7 +47,6 @@ impl QPackDecoder {
             max_entries: qpack_settings.max_table_size_decoder >> 5,
             send_buf,
             local_stream_id: None,
-            remote_stream_id: None,
             max_table_size: qpack_settings.max_table_size_decoder,
             max_blocked_streams: usize::try_from(qpack_settings.max_blocked_streams).unwrap(),
             blocked_streams: Vec::new(),
@@ -236,14 +234,6 @@ impl QPackDecoder {
         }
     }
 
-    #[must_use]
-    pub fn is_recv_stream(&self, stream_id: u64) -> bool {
-        match self.remote_stream_id {
-            Some(id) => id == stream_id,
-            None => false,
-        }
-    }
-
     /// # Panics
     /// When a stream has already been added.
     pub fn add_send_stream(&mut self, stream_id: u64) {
@@ -253,25 +243,9 @@ impl QPackDecoder {
         self.local_stream_id = Some(stream_id);
     }
 
-    /// # Errors
-    /// May return `WrongStreamCount` if HTTP/3 has received multiple encoder streams.
-    pub fn add_recv_stream(&mut self, stream_id: u64) -> Res<()> {
-        if self.remote_stream_id.is_some() {
-            Err(Error::WrongStreamCount)
-        } else {
-            self.remote_stream_id = Some(stream_id);
-            Ok(())
-        }
-    }
-
     #[must_use]
     pub fn local_stream_id(&self) -> Option<u64> {
         self.local_stream_id
-    }
-
-    #[must_use]
-    pub fn remote_stream_id(&self) -> Option<u64> {
-        self.remote_stream_id
     }
 
     #[must_use]
@@ -300,6 +274,7 @@ mod tests {
     use crate::QpackSettings;
     use neqo_transport::StreamType;
     use std::convert::TryInto;
+    use std::mem;
     use test_fixture::now;
 
     struct TestDecoder {
@@ -337,9 +312,10 @@ mod tests {
     fn recv_instruction(decoder: &mut TestDecoder, encoder_instruction: &[u8], res: &Res<()>) {
         let _ = decoder
             .peer_conn
-            .stream_send(decoder.recv_stream_id, encoder_instruction);
+            .stream_send(decoder.recv_stream_id, encoder_instruction)
+            .unwrap();
         let out = decoder.peer_conn.process(None, now());
-        let _ = decoder.conn.process(out.dgram(), now());
+        mem::drop(decoder.conn.process(out.dgram(), now()));
         assert_eq!(
             decoder
                 .decoder
@@ -351,13 +327,13 @@ mod tests {
     fn send_instructions_and_check(decoder: &mut TestDecoder, decoder_instruction: &[u8]) {
         decoder.decoder.send(&mut decoder.conn).unwrap();
         let out = decoder.conn.process(None, now());
-        let _ = decoder.peer_conn.process(out.dgram(), now());
+        mem::drop(decoder.peer_conn.process(out.dgram(), now()));
         let mut buf = [0_u8; 100];
         let (amount, fin) = decoder
             .peer_conn
             .stream_recv(decoder.send_stream_id, &mut buf)
             .unwrap();
-        assert_eq!(fin, false);
+        assert!(!fin);
         assert_eq!(&buf[..amount], decoder_instruction);
     }
 
@@ -491,8 +467,8 @@ mod tests {
         //    a header block.
         // 4. Now it sends only a header ack and an increment instruction with increment==1.
         let headers = vec![
-            (String::from("my-headera"), String::from("my-valuea")),
-            (String::from("my-headerb"), String::from("my-valueb")),
+            Header::new("my-headera", "my-valuea"),
+            Header::new("my-headerb", "my-valueb"),
         ];
         let header_block = &[0x03, 0x81, 0x10, 0x11];
         let first_encoder_inst = &[
@@ -528,8 +504,8 @@ mod tests {
         //    a header block.
         // 4. Now it sends only a header ack.
         let headers = vec![
-            (String::from("my-headera"), String::from("my-valuea")),
-            (String::from("my-headerb"), String::from("my-valueb")),
+            Header::new("my-headera", "my-valuea"),
+            Header::new("my-headerb", "my-valueb"),
         ];
         let header_block = &[0x03, 0x81, 0x10, 0x11];
         let first_encoder_inst = &[
@@ -561,8 +537,8 @@ mod tests {
         // Send two instructions to insert values into the dynamic table and then send a header
         // that references them both. The result should be only a header acknowledgement.
         let headers = vec![
-            (String::from("my-headera"), String::from("my-valuea")),
-            (String::from("my-headerb"), String::from("my-valueb")),
+            Header::new("my-headera", "my-valuea"),
+            Header::new("my-headerb", "my-valueb"),
         ];
         let header_block = &[0x03, 0x81, 0x10, 0x11];
         let encoder_inst = &[
@@ -587,7 +563,7 @@ mod tests {
         // Send two instructions to insert values into the dynamic table and then send a header
         // that references only the first. The result should be a header acknowledgement and a
         // increment instruction.
-        let headers = vec![(String::from("my-headera"), String::from("my-valuea"))];
+        let headers = vec![Header::new("my-headera", "my-valuea")];
         let header_block = &[0x02, 0x80, 0x10];
         let encoder_inst = &[
             0x4a, 0x6d, 0x79, 0x2d, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x61, 0x09, 0x6d, 0x79,
@@ -611,13 +587,13 @@ mod tests {
         let test_cases: [TestElement; 6] = [
             // test a header with ref to static - encode_indexed
             TestElement {
-                headers: vec![(String::from(":method"), String::from("GET"))],
+                headers: vec![Header::new(":method", "GET")],
                 header_block: &[0x00, 0x00, 0xd1],
                 encoder_inst: &[],
             },
             // test encode_literal_with_name_ref
             TestElement {
-                headers: vec![(String::from(":path"), String::from("/somewhere"))],
+                headers: vec![Header::new(":path", "/somewhere")],
                 header_block: &[
                     0x00, 0x00, 0x51, 0x0a, 0x2f, 0x73, 0x6f, 0x6d, 0x65, 0x77, 0x68, 0x65, 0x72,
                     0x65,
@@ -626,7 +602,7 @@ mod tests {
             },
             // test adding a new header and encode_post_base_index, also test fix_header_block_prefix
             TestElement {
-                headers: vec![(String::from("my-header"), String::from("my-value"))],
+                headers: vec![Header::new("my-header", "my-value")],
                 header_block: &[0x02, 0x80, 0x10],
                 encoder_inst: &[
                     0x49, 0x6d, 0x79, 0x2d, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x08, 0x6d, 0x79,
@@ -635,13 +611,13 @@ mod tests {
             },
             // test encode_indexed with a ref to dynamic table.
             TestElement {
-                headers: vec![(String::from("my-header"), String::from("my-value"))],
+                headers: vec![Header::new("my-header", "my-value")],
                 header_block: &[0x02, 0x00, 0x80],
                 encoder_inst: &[],
             },
             // test encode_literal_with_name_ref.
             TestElement {
-                headers: vec![(String::from("my-header"), String::from("my-value2"))],
+                headers: vec![Header::new("my-header", "my-value2")],
                 header_block: &[
                     0x02, 0x00, 0x40, 0x09, 0x6d, 0x79, 0x2d, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x32,
                 ],
@@ -650,10 +626,10 @@ mod tests {
             // test multiple headers
             TestElement {
                 headers: vec![
-                    (String::from(":method"), String::from("GET")),
-                    (String::from(":path"), String::from("/somewhere")),
-                    (String::from(":authority"), String::from("example.com")),
-                    (String::from(":scheme"), String::from("https")),
+                    Header::new(":method", "GET"),
+                    Header::new(":path", "/somewhere"),
+                    Header::new(":authority", "example.com"),
+                    Header::new(":scheme", "https"),
                 ],
                 header_block: &[
                     0x00, 0x01, 0xd1, 0x51, 0x0a, 0x2f, 0x73, 0x6f, 0x6d, 0x65, 0x77, 0x68, 0x65,
@@ -691,13 +667,13 @@ mod tests {
         let test_cases: [TestElement; 6] = [
             // test a header with ref to static - encode_indexed
             TestElement {
-                headers: vec![(String::from(":method"), String::from("GET"))],
+                headers: vec![Header::new(":method", "GET")],
                 header_block: &[0x00, 0x00, 0xd1],
                 encoder_inst: &[],
             },
             // test encode_literal_with_name_ref
             TestElement {
-                headers: vec![(String::from(":path"), String::from("/somewhere"))],
+                headers: vec![Header::new(":path", "/somewhere")],
                 header_block: &[
                     0x00, 0x00, 0x51, 0x87, 0x61, 0x07, 0xa4, 0xbe, 0x27, 0x2d, 0x85,
                 ],
@@ -705,7 +681,7 @@ mod tests {
             },
             // test adding a new header and encode_post_base_index, also test fix_header_block_prefix
             TestElement {
-                headers: vec![(String::from("my-header"), String::from("my-value"))],
+                headers: vec![Header::new("my-header", "my-value")],
                 header_block: &[0x02, 0x80, 0x10],
                 encoder_inst: &[
                     0x67, 0xa7, 0xd2, 0xd3, 0x94, 0x72, 0x16, 0xcf, 0x86, 0xa7, 0xd2, 0xdd, 0xc7,
@@ -714,13 +690,13 @@ mod tests {
             },
             // test encode_indexed with a ref to dynamic table.
             TestElement {
-                headers: vec![(String::from("my-header"), String::from("my-value"))],
+                headers: vec![Header::new("my-header", "my-value")],
                 header_block: &[0x02, 0x00, 0x80],
                 encoder_inst: &[],
             },
             // test encode_literal_with_name_ref.
             TestElement {
-                headers: vec![(String::from("my-header"), String::from("my-value2"))],
+                headers: vec![Header::new("my-header", "my-value2")],
                 header_block: &[
                     0x02, 0x00, 0x40, 0x87, 0xa7, 0xd2, 0xdd, 0xc7, 0x45, 0xa5, 0x17,
                 ],
@@ -729,10 +705,10 @@ mod tests {
             // test multiple headers
             TestElement {
                 headers: vec![
-                    (String::from(":method"), String::from("GET")),
-                    (String::from(":path"), String::from("/somewhere")),
-                    (String::from(":authority"), String::from("example.com")),
-                    (String::from(":scheme"), String::from("https")),
+                    Header::new(":method", "GET"),
+                    Header::new(":path", "/somewhere"),
+                    Header::new(":authority", "example.com"),
+                    Header::new(":scheme", "https"),
                 ],
                 header_block: &[
                     0x00, 0x01, 0xd1, 0x51, 0x87, 0x61, 0x07, 0xa4, 0xbe, 0x27, 0x2d, 0x85, 0x50,
@@ -779,8 +755,8 @@ mod tests {
         // to 2. Then send a header that references only one of them which shouldn't increase
         // number of acked inserts.
         let headers = vec![
-            (String::from("my-headera"), String::from("my-valuea")),
-            (String::from("my-headerb"), String::from("my-valueb")),
+            Header::new("my-headera", "my-valuea"),
+            Header::new("my-headerb", "my-valueb"),
         ];
 
         let mut decoder = connect();
@@ -791,7 +767,7 @@ mod tests {
 
         decode_headers(&mut decoder, HEADER_BLOCK_1, &headers, 0);
 
-        let headers = vec![(String::from("my-headera"), String::from("my-valuea"))];
+        let headers = vec![Header::new("my-headera", "my-valuea")];
 
         decode_headers(&mut decoder, HEADER_BLOCK_2, &headers, 0);
     }
@@ -810,8 +786,8 @@ mod tests {
         const HEADER_BLOCK: &[u8] = &[0x03, 0x03, 0x83, 0x84];
 
         let headers = vec![
-            (String::from("my-headerb"), String::from("my-valueb")),
-            (String::from("my-headera"), String::from("my-valuea")),
+            Header::new("my-headerb", "my-valueb"),
+            Header::new("my-headera", "my-valuea"),
         ];
 
         let mut decoder = connect();

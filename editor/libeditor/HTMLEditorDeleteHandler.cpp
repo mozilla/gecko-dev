@@ -1100,9 +1100,7 @@ EditActionResult HTMLEditor::HandleDeleteSelection(
   // CreateStyleForInsertText()
   TopLevelEditSubActionDataRef().mDidDeleteSelection = true;
 
-  // If there is only padding `<br>` element for empty editor, cancel the
-  // operation.
-  if (mPaddingBRElementForEmptyEditor) {
+  if (IsEmpty()) {
     return EditActionCanceled();
   }
 
@@ -1400,9 +1398,7 @@ EditActionResult HTMLEditor::AutoDeleteRangesHandler::Run(
   mOriginalDirectionAndAmount = aDirectionAndAmount;
   mOriginalStripWrappers = aStripWrappers;
 
-  // If there is only padding `<br>` element for empty editor, cancel the
-  // operation.
-  if (aHTMLEditor.mPaddingBRElementForEmptyEditor) {
+  if (aHTMLEditor.IsEmpty()) {
     return EditActionCanceled();
   }
 
@@ -2908,7 +2904,7 @@ HTMLEditor::AutoDeleteRangesHandler::ComputeRangesToDeleteNonCollapsedRanges(
     }
   }
 
-  if (!aHTMLEditor.IsPlaintextEditor()) {
+  if (!aHTMLEditor.IsInPlaintextMode()) {
     EditorDOMRange firstRange(aRangesToDelete.FirstRangeRef());
     EditorDOMRange extendedRange =
         WSRunScanner::GetRangeContainingInvisibleWhiteSpacesAtRangeBoundaries(
@@ -3001,7 +2997,7 @@ HTMLEditor::AutoDeleteRangesHandler::HandleDeleteNonCollapsedRanges(
 
   // Figure out if the endpoints are in nodes that can be merged.  Adjust
   // surrounding white-space in preparation to delete selection.
-  if (!aHTMLEditor.IsPlaintextEditor()) {
+  if (!aHTMLEditor.IsInPlaintextMode()) {
     AutoTransactionsConserveSelection dontChangeMySelection(aHTMLEditor);
     AutoTrackDOMRange firstRangeTracker(aHTMLEditor.RangeUpdaterRef(),
                                         &aRangesToDelete.FirstRangeRef());

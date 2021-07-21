@@ -33,6 +33,7 @@
 #include "vm/BigIntType.h"
 #include "vm/GeneratorObject.h"
 #include "vm/GetterSetter.h"
+#include "vm/PropMap.h"
 #include "vm/RegExpShared.h"
 #include "vm/Scope.h"  // GetScopeDataTrailingNames
 #include "vm/Shape.h"
@@ -1071,6 +1072,10 @@ void GCMarker::traverse(Shape* thing) {
   scanChildren(thing);
 }
 template <>
+void GCMarker::traverse(PropMap* thing) {
+  scanChildren(thing);
+}
+template <>
 void GCMarker::traverse(js::Scope* thing) {
   scanChildren(thing);
 }
@@ -1229,31 +1234,21 @@ void BaseScript::traceChildren(JSTracer* trc) {
 
 void Shape::traceChildren(JSTracer* trc) {
   TraceCellHeaderEdge(trc, this, "base");
-  TraceEdge(trc, &propidRef(), "propid");
-  if (parent) {
-    TraceEdge(trc, &parent, "parent");
-  }
-  cache_.trace(trc);
+  TraceNullableEdge(trc, &propMap_, "propertymap");
 }
+
 inline void js::GCMarker::eagerlyMarkChildren(Shape* shape) {
   MOZ_ASSERT(shape->isMarked(markColor()));
 
-  do {
-    BaseShape* base = shape->base();
-    checkTraversedEdge(shape, base);
-    if (mark(base)) {
-      base->traceChildren(this);
-    }
+  BaseShape* base = shape->base();
+  checkTraversedEdge(shape, base);
+  if (mark(base)) {
+    base->traceChildren(this);
+  }
 
-    markAndTraverseEdge(shape, shape->propidRef().get());
-
-    // Special case: if a shape has a shape table then all its pointers
-    // must point to this shape or an anscestor.  Since these pointers will
-    // be traced by this loop they do not need to be traced here as well.
-    MOZ_ASSERT(shape->canSkipMarkingShapeCache());
-
-    shape = shape->previous();
-  } while (shape && mark(shape));
+  if (PropMap* map = shape->propMap()) {
+    markAndTraverseEdge(shape, map);
+  }
 }
 
 void JSString::traceChildren(JSTracer* trc) {
@@ -1530,6 +1525,61 @@ void GetterSetter::traceChildren(JSTracer* trc) {
   if (setter()) {
     TraceEdge(trc, &setter_, "gettersetter_setter");
   }
+}
+
+void PropMap::traceChildren(JSTracer* trc) {
+  if (hasPrevious()) {
+    TraceEdge(trc, &asLinked()->data_.previous, "propmap_previous");
+  }
+
+  if (isShared()) {
+    SharedPropMap::TreeData& treeData = asShared()->treeDataRef();
+    if (SharedPropMap* parent = treeData.parent.maybeMap()) {
+      TraceManuallyBarrieredEdge(trc, &parent, "propmap_parent");
+      if (parent != treeData.parent.map()) {
+        treeData.setParent(parent, treeData.parent.index());
+      }
+    }
+  }
+
+  for (uint32_t i = 0; i < PropMap::Capacity; i++) {
+    if (hasKey(i)) {
+      TraceEdge(trc, &keys_[i], "propmap_key");
+    }
+  }
+
+  if (canHaveTable() && asLinked()->hasTable()) {
+    asLinked()->data_.table->trace(trc);
+  }
+}
+
+void js::GCMarker::eagerlyMarkChildren(PropMap* map) {
+  MOZ_ASSERT(map->isMarkedAny());
+  do {
+    for (uint32_t i = 0; i < PropMap::Capacity; i++) {
+      if (map->hasKey(i)) {
+        markAndTraverseEdge(map, map->getKey(i));
+      }
+    }
+
+    if (map->canHaveTable()) {
+      // Special case: if a map has a table then all its pointers must point to
+      // this map or an ancestor. Since these pointers will be traced by this
+      // loop they do not need to be traced here as well.
+      MOZ_ASSERT(map->asLinked()->canSkipMarkingTable());
+    }
+
+    if (map->isDictionary()) {
+      map = map->asDictionary()->previous();
+    } else {
+      // For shared maps follow the |parent| link and not the |previous| link.
+      // They're different when a map had a branch that wasn't at the end of the
+      // map, but in this case they must have the same |previous| map. This is
+      // asserted in SharedPropMap::addChild. In other words, marking all
+      // |parent| maps will also mark all |previous| maps.
+      map = map->asShared()->treeDataRef().parent.maybeMap();
+    }
+  } while (map && mark(map));
 }
 
 void JS::BigInt::traceChildren(JSTracer* trc) {}
@@ -2738,6 +2788,7 @@ js::BaseShape* TenuringTracer::onBaseShapeEdge(BaseShape* base) { return base; }
 js::GetterSetter* TenuringTracer::onGetterSetterEdge(GetterSetter* gs) {
   return gs;
 }
+js::PropMap* TenuringTracer::onPropMapEdge(PropMap* map) { return map; }
 js::jit::JitCode* TenuringTracer::onJitCodeEdge(jit::JitCode* code) {
   return code;
 }
@@ -3759,6 +3810,7 @@ BaseShape* SweepingTracer::onBaseShapeEdge(BaseShape* base) {
 GetterSetter* SweepingTracer::onGetterSetterEdge(GetterSetter* gs) {
   return onEdge(gs);
 }
+PropMap* SweepingTracer::onPropMapEdge(PropMap* map) { return onEdge(map); }
 jit::JitCode* SweepingTracer::onJitCodeEdge(jit::JitCode* jit) {
   return onEdge(jit);
 }
@@ -4066,6 +4118,10 @@ BaseShape* BarrierTracer::onBaseShapeEdge(BaseShape* base) {
 GetterSetter* BarrierTracer::onGetterSetterEdge(GetterSetter* gs) {
   PreWriteBarrier(gs);
   return gs;
+}
+PropMap* BarrierTracer::onPropMapEdge(PropMap* map) {
+  PreWriteBarrier(map);
+  return map;
 }
 Scope* BarrierTracer::onScopeEdge(Scope* scope) {
   PreWriteBarrier(scope);

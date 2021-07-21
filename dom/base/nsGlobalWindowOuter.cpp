@@ -79,8 +79,10 @@
 #include "nsJSUtils.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/CallAndConstruct.h"    // JS::Call
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
 #include "js/friend/WindowProxy.h"  // js::IsWindowProxy, js::SetWindowProxy
+#include "js/PropertyAndElement.h"  // JS_DefineObject, JS_GetProperty
 #include "js/PropertySpec.h"
 #include "js/Wrapper.h"
 #include "nsLayoutUtils.h"
@@ -251,10 +253,6 @@
 #include "mozilla/dom/WebIDLGlobalNameHash.h"
 #include "mozilla/dom/Worklet.h"
 #include "AccessCheck.h"
-
-#ifdef HAVE_SIDEBAR
-#  include "mozilla/dom/ExternalBinding.h"
-#endif
 
 #ifdef MOZ_WEBSPEECH
 #  include "mozilla/dom/SpeechSynthesis.h"
@@ -640,7 +638,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
 
   // Step 3.
   if (isSameOrigin) {
-    if (StaticPrefs::dom_missing_prop_counters_enabled() && JSID_IS_ATOM(id)) {
+    if (StaticPrefs::dom_missing_prop_counters_enabled() && id.isAtom()) {
       Window_Binding::CountMaybeMissingProperty(proxy, id);
     }
 
@@ -955,7 +953,7 @@ bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
     return true;
   }
 
-  if (StaticPrefs::dom_missing_prop_counters_enabled() && JSID_IS_ATOM(id)) {
+  if (StaticPrefs::dom_missing_prop_counters_enabled() && id.isAtom()) {
     Window_Binding::CountMaybeMissingProperty(proxy, id);
   }
 
@@ -1793,10 +1791,12 @@ void nsGlobalWindowOuter::SetInitialPrincipalToSubject(
   // the new window finishes navigating and gets a real storage principal.
   nsDocShell::Cast(GetDocShell())
       ->CreateAboutBlankContentViewer(newWindowPrincipal, newWindowPrincipal,
-                                      aCSP, nullptr, aCOEP);
+                                      aCSP, nullptr,
+                                      /* aIsInitialDocument */ true, aCOEP);
 
   if (mDoc) {
-    mDoc->SetIsInitialDocument(true);
+    MOZ_ASSERT(mDoc->IsInitialDocument(),
+               "document should be initial document");
   }
 
   RefPtr<PresShell> presShell = GetDocShell()->GetPresShell();
@@ -2333,7 +2333,8 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
 
     // Set scriptability based on the state of the WindowContext.
     WindowContext* wc = mInnerWindow->GetWindowContext();
-    bool allow = wc ? wc->CanExecuteScripts() : mBrowsingContext->CanExecuteScripts();
+    bool allow =
+        wc ? wc->CanExecuteScripts() : mBrowsingContext->CanExecuteScripts();
     xpc::Scriptability::Get(GetWrapperPreserveColor())
         .SetWindowAllowsScript(allow);
 
@@ -2782,33 +2783,18 @@ bool nsGlobalWindowOuter::ShouldPromptToBlockDialogs() {
     return false;  // non-scripted caller.
   }
 
-  nsGlobalWindowOuter* topWindowOuter = GetInProcessScriptableTopInternal();
-  if (!topWindowOuter) {
-    NS_ASSERTION(!mDocShell,
-                 "ShouldPromptToBlockDialogs() called without a top window?");
+  BrowsingContextGroup* group = GetBrowsingContextGroup();
+  if (!group) {
     return true;
   }
 
-  nsGlobalWindowInner* topWindow =
-      topWindowOuter->GetCurrentInnerWindowInternal();
-  if (!topWindow) {
-    return true;
-  }
-
-  return topWindow->DialogsAreBeingAbused();
+  return group->DialogsAreBeingAbused();
 }
 
 bool nsGlobalWindowOuter::AreDialogsEnabled() {
-  nsGlobalWindowOuter* topWindowOuter = GetInProcessScriptableTopInternal();
-  if (!topWindowOuter) {
-    NS_ERROR("AreDialogsEnabled() called without a top window?");
-    return false;
-  }
-
-  // TODO: Warn if no top window?
-  nsGlobalWindowInner* topWindow =
-      topWindowOuter->GetCurrentInnerWindowInternal();
-  if (!topWindow) {
+  BrowsingContextGroup* group = mBrowsingContext->Group();
+  if (!group) {
+    NS_ERROR("AreDialogsEnabled() called without a browsing context group?");
     return false;
   }
 
@@ -2834,7 +2820,7 @@ bool nsGlobalWindowOuter::AreDialogsEnabled() {
     return false;
   }
 
-  return topWindow->mAreDialogsEnabled;
+  return group->GetAreDialogsEnabled();
 }
 
 bool nsGlobalWindowOuter::ConfirmDialogIfNeeded() {
@@ -2867,32 +2853,26 @@ bool nsGlobalWindowOuter::ConfirmDialogIfNeeded() {
 }
 
 void nsGlobalWindowOuter::DisableDialogs() {
-  nsGlobalWindowOuter* topWindowOuter = GetInProcessScriptableTopInternal();
-  if (!topWindowOuter) {
-    NS_ERROR("DisableDialogs() called without a top window?");
+  BrowsingContextGroup* group = mBrowsingContext->Group();
+  if (!group) {
+    NS_ERROR("DisableDialogs() called without a browsing context group?");
     return;
   }
 
-  nsGlobalWindowInner* topWindow =
-      topWindowOuter->GetCurrentInnerWindowInternal();
-  // TODO: Warn if no top window?
-  if (topWindow) {
-    topWindow->mAreDialogsEnabled = false;
+  if (group) {
+    group->SetAreDialogsEnabled(false);
   }
 }
 
 void nsGlobalWindowOuter::EnableDialogs() {
-  nsGlobalWindowOuter* topWindowOuter = GetInProcessScriptableTopInternal();
-  if (!topWindowOuter) {
-    NS_ERROR("EnableDialogs() called without a top window?");
+  BrowsingContextGroup* group = mBrowsingContext->Group();
+  if (!group) {
+    NS_ERROR("EnableDialogs() called without a browsing context group?");
     return;
   }
 
-  // TODO: Warn if no top window?
-  nsGlobalWindowInner* topWindow =
-      topWindowOuter->GetCurrentInnerWindowInternal();
-  if (topWindow) {
-    topWindow->mAreDialogsEnabled = true;
+  if (group) {
+    group->SetAreDialogsEnabled(true);
   }
 }
 
@@ -4972,7 +4952,9 @@ bool nsGlobalWindowOuter::AlertOrConfirm(bool aAlert, const nsAString& aMessage,
                  : prompt->ConfirmCheck(title.get(), final.get(), label.get(),
                                         &disallowDialog, &result);
 
-    if (disallowDialog) DisableDialogs();
+    if (disallowDialog) {
+      DisableDialogs();
+    }
   } else {
     aError = aAlert ? prompt->Alert(title.get(), final.get())
                     : prompt->Confirm(title.get(), final.get(), &result);
@@ -5321,6 +5303,8 @@ Nullable<WindowProxyHolder> nsGlobalWindowOuter::Print(
     MOZ_DIAGNOSTIC_ASSERT(cv);
   } else {
     if (aDocShellToCloneInto) {
+      // Ensure the content viewer is created if needed.
+      Unused << aDocShellToCloneInto->GetDocument();
       bc = aDocShellToCloneInto->GetBrowsingContext();
     } else {
       AutoNoJSAPI nojsapi;
@@ -6447,8 +6431,8 @@ void nsGlobalWindowOuter::LeaveModalState() {
   }
 
   // Remember the time of the last dialog quit.
-  if (inner) {
-    inner->mLastDialogQuitTime = TimeStamp::Now();
+  if (auto* bcg = GetBrowsingContextGroup()) {
+    bcg->SetLastDialogQuitTime(TimeStamp::Now());
   }
 
   if (mModalStateDepth == 0) {
@@ -7554,46 +7538,53 @@ void nsGlobalWindowOuter::MaybeResetWindowName(Document* aNewDocument) {
     return;
   }
 
-  // We only reset the window name for the top-level content as well as storing
-  // in session entries.
-  if (!GetBrowsingContext()->IsTopContent()) {
+  const LoadingSessionHistoryInfo* info =
+      nsDocShell::Cast(mDocShell)->GetLoadingSessionHistoryInfo();
+  if (!info || info->mForceMaybeResetName.isNothing()) {
+    // We only reset the window name for the top-level content as well as
+    // storing in session entries.
+    if (!GetBrowsingContext()->IsTopContent()) {
+      return;
+    }
+
+    // Following implements https://html.spec.whatwg.org/#history-traversal:
+    // Step 4.2. Check if the loading document has a different origin than the
+    // previous document.
+
+    // We don't need to do anything if we haven't loaded a non-initial document.
+    if (!GetBrowsingContext()->GetHasLoadedNonInitialDocument()) {
+      return;
+    }
+
+    // If we have an existing document, directly check the document prinicpals
+    // with the new document to know if it is cross-origin.
+    //
+    // Note that there will be an issue of initial document handling in Fission
+    // when running the WPT unset_context_name-1.html. In the test, the first
+    // about:blank page would be loaded with the principal of the testing domain
+    // in Fission and the window.name will be set there. Then, The window.name
+    // won't be reset after navigating to the testing page because the principal
+    // is the same. But, it won't be the case for non-Fission mode that the
+    // first about:blank will be loaded with a null principal and the
+    // window.name will be reset when loading the test page.
+    if (mDoc && mDoc->NodePrincipal()->EqualsConsideringDomain(
+                    aNewDocument->NodePrincipal())) {
+      return;
+    }
+
+    // If we don't have an existing document, and if it's not the initial
+    // about:blank, we could be loading a document because of the
+    // process-switching. In this case, this should be a cross-origin
+    // navigation.
+  } else if (!info->mForceMaybeResetName.ref()) {
     return;
   }
 
-  // Following implements https://html.spec.whatwg.org/#history-traversal:
-  // Step 4.2. Check if the loading document has a different origin than the
-  // previous document.
-
-  // We don't need to do anything if we haven't loaded a non-initial document.
-  if (!GetBrowsingContext()->GetHasLoadedNonInitialDocument()) {
-    return;
-  }
-
-  // If we have an existing doucment, directly check the document prinicpals
-  // with the new document to know if it is cross-origin.
-  //
-  // Note that there will be an issue of initial document handling in Fission
-  // when running the WPT unset_context_name-1.html. In the test, the first
-  // about:blank page would be loaded with the principal of the testing domain
-  // in Fission and the window.name will be set there. Then, The window.name
-  // won't be reset after navigating to the testing page because the principal
-  // is the same. But, it won't be the case for non-Fission mode that the first
-  // about:blank will be loaded with a null principal and the window.name will
-  // be reset when loading the test page.
-  if (mDoc && mDoc->NodePrincipal()->EqualsConsideringDomain(
-                  aNewDocument->NodePrincipal())) {
-    return;
-  }
-
-  // If we don't have an existing document, and if it's not the initial
-  // about:blank, we could be loading a document because of the
-  // process-switching. In this case, this should be a cross-origin navigation.
-
-  // Step 4.2.1 Store the window.name into all session history entries that have
-  // the same origin as the privious document.
+  // Step 4.2.2 Store the window.name into all session history entries that have
+  // the same origin as the previous document.
   nsDocShell::Cast(mDocShell)->StoreWindowNameToSHEntries();
 
-  // Step 4.2.2 Clear the window.name if the browsing context is the top-level
+  // Step 4.2.3 Clear the window.name if the browsing context is the top-level
   // content and doesn't have an opener.
 
   // We need to reset the window name in case of a cross-origin navigation,
@@ -7607,31 +7598,25 @@ void nsGlobalWindowOuter::MaybeResetWindowName(Document* aNewDocument) {
 }
 
 nsGlobalWindowOuter::TemporarilyDisableDialogs::TemporarilyDisableDialogs(
-    nsGlobalWindowOuter* aWindow)
-    : mSavedDialogsEnabled(false) {
-  MOZ_ASSERT(aWindow);
-  nsGlobalWindowOuter* topWindowOuter =
-      aWindow->GetInProcessScriptableTopInternal();
-  if (!topWindowOuter) {
+    BrowsingContext* aBC) {
+  BrowsingContextGroup* group = aBC->Group();
+  if (!group) {
     NS_ERROR(
-        "nsGlobalWindowOuter::TemporarilyDisableDialogs used without a top "
-        "window?");
+        "nsGlobalWindowOuter::TemporarilyDisableDialogs called without a "
+        "browsing context group?");
     return;
   }
 
-  // TODO: Warn if no top window?
-  nsGlobalWindowInner* topWindow =
-      topWindowOuter->GetCurrentInnerWindowInternal();
-  if (topWindow) {
-    mTopWindow = topWindow;
-    mSavedDialogsEnabled = mTopWindow->mAreDialogsEnabled;
-    mTopWindow->mAreDialogsEnabled = false;
+  if (group) {
+    mGroup = group;
+    mSavedDialogsEnabled = group->GetAreDialogsEnabled();
+    group->SetAreDialogsEnabled(false);
   }
 }
 
 nsGlobalWindowOuter::TemporarilyDisableDialogs::~TemporarilyDisableDialogs() {
-  if (mTopWindow) {
-    mTopWindow->mAreDialogsEnabled = mSavedDialogsEnabled;
+  if (mGroup) {
+    mGroup->SetAreDialogsEnabled(mSavedDialogsEnabled);
   }
 }
 

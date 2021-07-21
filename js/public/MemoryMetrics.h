@@ -229,13 +229,11 @@ struct ClassInfo {
 };
 
 struct ShapeInfo {
-#define FOR_EACH_SIZE(MACRO)                           \
-  MACRO(Other, GCHeapUsed, shapesGCHeapTree)           \
-  MACRO(Other, GCHeapUsed, shapesGCHeapDict)           \
-  MACRO(Other, GCHeapUsed, shapesGCHeapBase)           \
-  MACRO(Other, MallocHeap, shapesMallocHeapTreeTables) \
-  MACRO(Other, MallocHeap, shapesMallocHeapDictTables) \
-  MACRO(Other, MallocHeap, shapesMallocHeapTreeChildren)
+#define FOR_EACH_SIZE(MACRO)                   \
+  MACRO(Other, GCHeapUsed, shapesGCHeapShared) \
+  MACRO(Other, GCHeapUsed, shapesGCHeapDict)   \
+  MACRO(Other, GCHeapUsed, shapesGCHeapBase)   \
+  MACRO(Other, MallocHeap, shapesMallocHeapCache)
 
   ShapeInfo() = default;
 
@@ -552,6 +550,7 @@ struct UnusedGCThingSizes {
   MACRO(Other, GCHeapUnused, shape)        \
   MACRO(Other, GCHeapUnused, baseShape)    \
   MACRO(Other, GCHeapUnused, getterSetter) \
+  MACRO(Other, GCHeapUnused, propMap)      \
   MACRO(Other, GCHeapUnused, string)       \
   MACRO(Other, GCHeapUnused, symbol)       \
   MACRO(Other, GCHeapUnused, bigInt)       \
@@ -587,6 +586,9 @@ struct UnusedGCThingSizes {
         break;
       case JS::TraceKind::GetterSetter:
         getterSetter += n;
+        break;
+      case JS::TraceKind::PropMap:
+        propMap += n;
         break;
       case JS::TraceKind::JitCode:
         jitcode += n;
@@ -633,6 +635,11 @@ struct ZoneStats {
   MACRO(Other, GCHeapAdmin, gcHeapArenaAdmin)              \
   MACRO(Other, GCHeapUsed, jitCodesGCHeap)                 \
   MACRO(Other, GCHeapUsed, getterSettersGCHeap)            \
+  MACRO(Other, GCHeapUsed, compactPropMapsGCHeap)          \
+  MACRO(Other, GCHeapUsed, normalPropMapsGCHeap)           \
+  MACRO(Other, GCHeapUsed, dictPropMapsGCHeap)             \
+  MACRO(Other, MallocHeap, propMapChildren)                \
+  MACRO(Other, MallocHeap, propMapTables)                  \
   MACRO(Other, GCHeapUsed, scopesGCHeap)                   \
   MACRO(Other, MallocHeap, scopesMallocHeap)               \
   MACRO(Other, GCHeapUsed, regExpSharedsGCHeap)            \
@@ -641,6 +648,7 @@ struct ZoneStats {
   MACRO(Other, MallocHeap, jitZone)                        \
   MACRO(Other, MallocHeap, baselineStubsOptimized)         \
   MACRO(Other, MallocHeap, uniqueIdMap)                    \
+  MACRO(Other, MallocHeap, initialPropMapTable)            \
   MACRO(Other, MallocHeap, shapeTables)                    \
   MACRO(Other, MallocHeap, compartmentObjects)             \
   MACRO(Other, MallocHeap, crossCompartmentWrappersTables) \

@@ -73,7 +73,7 @@ use crate::glyph_rasterizer::{GlyphFormat, GlyphRasterizer};
 use crate::gpu_cache::{GpuCacheUpdate, GpuCacheUpdateList};
 use crate::gpu_cache::{GpuCacheDebugChunk, GpuCacheDebugCmd};
 use crate::gpu_types::{PrimitiveInstanceData, ScalingInstance, SvgFilterInstance};
-use crate::gpu_types::{BlurInstance, ClearInstance, CompositeInstance, ZBufferId};
+use crate::gpu_types::{BlurInstance, ClearInstance, CompositeInstance, ZBufferId, CompositorTransform};
 use crate::internal_types::{TextureSource, ResourceCacheError, TextureCacheCategory};
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::internal_types::DebugOutput;
@@ -771,7 +771,7 @@ pub struct Renderer {
 
     max_recorded_profiles: usize,
 
-    clear_color: Option<ColorF>,
+    clear_color: ColorF,
     enable_clear_scissor: bool,
     enable_advanced_blend_barriers: bool,
     clear_caches_with_quads: bool,
@@ -1167,7 +1167,7 @@ impl Renderer {
             gpu_supports_render_target_partial_update: device.get_capabilities().supports_render_target_partial_update,
             external_images_require_copy: !device.get_capabilities().supports_image_external_essl3,
             batch_lookback_count: RendererOptions::BATCH_LOOKBACK_COUNT,
-            background_color: options.clear_color,
+            background_color: Some(options.clear_color),
             compositor_kind,
             tile_size_override: None,
             max_depth_ids: device.max_depth_ids(),
@@ -1264,6 +1264,12 @@ impl Renderer {
         picture_tile_size.width = picture_tile_size.width.max(128).min(4096);
         picture_tile_size.height = picture_tile_size.height.max(128).min(4096);
 
+        let picture_texture_filter = if options.low_quality_pinch_zoom {
+            TextureFilter::Linear
+        } else {
+            TextureFilter::Nearest
+        };
+
         let rb_scene_tx = scene_tx.clone();
         let rb_font_instances = font_instances.clone();
         let enable_multithreading = options.enable_multithreading;
@@ -1278,6 +1284,7 @@ impl Renderer {
                 color_cache_formats,
                 swizzle_settings,
                 &texture_cache_config,
+                picture_texture_filter,
             );
 
             let glyph_cache = GlyphCache::new();
@@ -1437,7 +1444,7 @@ impl Renderer {
         self.device.required_pbo_stride().num_bytes(format).get()
     }
 
-    pub fn set_clear_color(&mut self, color: Option<ColorF>) {
+    pub fn set_clear_color(&mut self, color: ColorF) {
         self.clear_color = color;
     }
 
@@ -1733,9 +1740,13 @@ impl Renderer {
 
     /// Update the state of any debug / profiler overlays. This is currently only needed
     /// when running with the native compositor enabled.
-    fn update_debug_overlay(&mut self, framebuffer_size: DeviceIntSize) {
+    fn update_debug_overlay(
+        &mut self,
+        framebuffer_size: DeviceIntSize,
+        has_debug_items: bool,
+    ) {
         // If any of the following debug flags are set, something will be drawn on the debug overlay.
-        self.debug_overlay_state.is_enabled = self.debug_flags.intersects(
+        self.debug_overlay_state.is_enabled = has_debug_items || self.debug_flags.intersects(
             DebugFlags::PROFILER_DBG |
             DebugFlags::RENDER_TARGET_DBG |
             DebugFlags::TEXTURE_CACHE_DBG |
@@ -1929,7 +1940,7 @@ impl Renderer {
 
             // Update the state of the debug overlay surface, ensuring that
             // the compositor mode has a suitable surface to draw to, if required.
-            self.update_debug_overlay(device_size);
+            self.update_debug_overlay(device_size, !active_doc.frame.debug_items.is_empty());
         }
 
         let frame = &mut active_doc.frame;
@@ -2968,7 +2979,7 @@ impl Renderer {
 
             let ( textures, instance ) = match surface.color_data {
                 ResolvedExternalSurfaceColorData::Yuv{
-                        ref planes, color_space, format, rescale, .. } => {
+                        ref planes, color_space, format, channel_bit_depth, .. } => {
 
                     // Bind an appropriate YUV shader for the texture format kind
                     self.shaders
@@ -3002,20 +3013,21 @@ impl Renderer {
                     ];
 
                     let instance = CompositeInstance::new_yuv(
-                        surface_rect.to_f32(),
+                        surface_rect.cast_unit().to_f32(),
                         surface_rect.to_f32(),
                         // z-id is not relevant when updating a native compositor surface.
                         // TODO(gw): Support compositor surfaces without z-buffer, for memory / perf win here.
                         ZBufferId(0),
                         color_space,
                         format,
-                        rescale,
+                        channel_bit_depth,
                         uv_rects,
+                        CompositorTransform::identity(),
                     );
 
                     ( textures, instance )
                 },
-                ResolvedExternalSurfaceColorData::Rgb{ ref plane, flip_y, .. } => {
+                ResolvedExternalSurfaceColorData::Rgb{ ref plane, .. } => {
                     self.shaders
                         .borrow_mut()
                         .get_composite_shader(
@@ -3030,18 +3042,14 @@ impl Renderer {
                         );
 
                     let textures = BatchTextures::composite_rgb(plane.texture);
-                    let mut uv_rect = self.texture_resolver.get_uv_rect(&textures.input.colors[0], plane.uv_rect);
-                    if flip_y {
-                        let y = uv_rect.uv0.y;
-                        uv_rect.uv0.y = uv_rect.uv1.y;
-                        uv_rect.uv1.y = y;
-                    }
+                    let uv_rect = self.texture_resolver.get_uv_rect(&textures.input.colors[0], plane.uv_rect);
                     let instance = CompositeInstance::new_rgb(
-                        surface_rect.to_f32(),
+                        surface_rect.cast_unit().to_f32(),
                         surface_rect.to_f32(),
                         PremultipliedColorF::WHITE,
                         ZBufferId(0),
                         uv_rect,
+                        CompositorTransform::identity(),
                     );
 
                     ( textures, instance )
@@ -3099,7 +3107,8 @@ impl Renderer {
             let tile = &composite_state.tiles[item.key];
 
             let clip_rect = item.rectangle;
-            let tile_rect = composite_state.get_device_rect(&tile.local_rect, tile.transform_index);
+            let tile_rect = tile.local_rect;
+            let transform = composite_state.get_device_transform(tile.transform_index).into();
 
             // Work out the draw params based on the tile surface
             let (instance, textures, shader_params) = match tile.surface {
@@ -3111,6 +3120,7 @@ impl Renderer {
                         clip_rect,
                         color.premultiplied(),
                         tile.z_id,
+                        transform,
                     );
                     let features = instance.get_rgb_features();
                     (
@@ -3125,6 +3135,7 @@ impl Renderer {
                         clip_rect,
                         PremultipliedColorF::WHITE,
                         tile.z_id,
+                        transform,
                     );
                     let features = instance.get_rgb_features();
                     (
@@ -3142,7 +3153,7 @@ impl Renderer {
                     let surface = &external_surfaces[external_surface_index.0];
 
                     match surface.color_data {
-                        ResolvedExternalSurfaceColorData::Yuv{ ref planes, color_space, format, rescale, .. } => {
+                        ResolvedExternalSurfaceColorData::Yuv{ ref planes, color_space, format, channel_bit_depth, .. } => {
                             let textures = BatchTextures::composite_yuv(
                                 planes[0].texture,
                                 planes[1].texture,
@@ -3167,8 +3178,9 @@ impl Renderer {
                                     tile.z_id,
                                     color_space,
                                     format,
-                                    rescale,
+                                    channel_bit_depth,
                                     uv_rects,
+                                    transform,
                                 ),
                                 textures,
                                 (
@@ -3179,20 +3191,15 @@ impl Renderer {
                                 ),
                             )
                         },
-                        ResolvedExternalSurfaceColorData::Rgb{ ref plane, flip_y, .. } => {
-
-                            let mut uv_rect = self.texture_resolver.get_uv_rect(&plane.texture, plane.uv_rect);
-                            if flip_y {
-                                let y = uv_rect.uv0.y;
-                                uv_rect.uv0.y = uv_rect.uv1.y;
-                                uv_rect.uv1.y = y;
-                            }
+                        ResolvedExternalSurfaceColorData::Rgb { ref plane, .. } => {
+                            let uv_rect = self.texture_resolver.get_uv_rect(&plane.texture, plane.uv_rect);
                             let instance = CompositeInstance::new_rgb(
                                 tile_rect,
                                 clip_rect,
                                 PremultipliedColorF::WHITE,
                                 tile.z_id,
                                 uv_rect,
+                                transform,
                             );
                             let features = instance.get_rgb_features();
                             (
@@ -3216,6 +3223,7 @@ impl Renderer {
                         clip_rect,
                         PremultipliedColorF::BLACK,
                         tile.z_id,
+                        transform,
                     );
                     let features = instance.get_rgb_features();
                     (
@@ -3353,7 +3361,7 @@ impl Renderer {
         }
 
         // Clear the framebuffer
-        let clear_color = self.clear_color.map(|color| color.to_array());
+        let clear_color = Some(self.clear_color.to_array());
 
         match partial_present_mode {
             Some(PartialPresentMode::Single { dirty_rect }) => {
@@ -4461,6 +4469,7 @@ impl Renderer {
             // composition as surfaces are updated.
             if device_size.is_some() {
                 frame.composite_state.composite_native(
+                    self.clear_color,
                     &results.dirty_rects,
                     &mut **compositor,
                 );
@@ -4824,7 +4833,7 @@ impl Renderer {
         let textures = self.texture_resolver
             .texture_cache_map
             .values()
-            .filter(|item| { item.texture.is_render_target() })
+            .filter(|item| item.category == TextureCacheCategory::RenderTarget)
             .map(|item| &item.texture)
             .collect::<Vec<&Texture>>();
 
@@ -4933,8 +4942,12 @@ impl Renderer {
             None => return,
         };
 
-        let textures =
-            self.texture_resolver.texture_cache_map.values().map(|item| &item.texture).collect::<Vec<&Texture>>();
+        let textures = self.texture_resolver
+            .texture_cache_map
+            .values()
+            .filter(|item| item.category == TextureCacheCategory::Atlas)
+            .map(|item| &item.texture)
+            .collect::<Vec<&Texture>>();
 
         fn select_color(texture: &Texture) -> [f32; 4] {
             if texture.flags().contains(TextureFlags::IS_SHARED_TEXTURE_CACHE) {
@@ -4970,7 +4983,7 @@ impl Renderer {
         let fb_height = device_size.height;
         let surface_origin_is_top_left = draw_target.surface_origin_is_top_left();
 
-        let num_textures = textures.iter().filter(|t| t.flags().contains(TextureFlags::IS_SHARED_TEXTURE_CACHE)).count() as i32;
+        let num_textures = textures.len() as i32;
 
         if num_textures * (size + spacing) > fb_width {
             let factor = fb_width as f32 / (num_textures * (size + spacing)) as f32;
@@ -4993,9 +5006,6 @@ impl Renderer {
 
         let mut i = 0;
         for texture in textures.iter() {
-            if !texture.flags().contains(TextureFlags::IS_SHARED_TEXTURE_CACHE) {
-                continue;
-            }
             let dimensions = texture.get_dimensions();
             let src_rect = FramebufferIntRect::from_size(
                 FramebufferIntSize::new(dimensions.width as i32, dimensions.height as i32),
@@ -5359,7 +5369,7 @@ pub struct RendererOptions {
     pub enable_subpixel_aa: bool,
     /// Enable sub-pixel anti-aliasing if it requires a slow implementation.
     pub force_subpixel_aa: bool,
-    pub clear_color: Option<ColorF>,
+    pub clear_color: ColorF,
     pub enable_clear_scissor: bool,
     pub max_internal_texture_size: Option<i32>,
     pub image_tiling_threshold: i32,
@@ -5452,7 +5462,7 @@ impl Default for RendererOptions {
             precache_flags: ShaderPrecacheFlags::empty(),
             enable_subpixel_aa: false,
             force_subpixel_aa: false,
-            clear_color: Some(ColorF::new(1.0, 1.0, 1.0, 1.0)),
+            clear_color: ColorF::new(1.0, 1.0, 1.0, 1.0),
             enable_clear_scissor: true,
             max_internal_texture_size: None,
             image_tiling_threshold: 4096,
@@ -6016,6 +6026,7 @@ impl CompositeState {
     /// cache tiles to the OS compositor
     fn composite_native(
         &self,
+        clear_color: ColorF,
         dirty_rects: &[DeviceIntRect],
         compositor: &mut dyn Compositor,
     ) {
@@ -6030,7 +6041,7 @@ impl CompositeState {
                 surface.image_rendering,
             );
         }
-        compositor.start_compositing(dirty_rects, &[]);
+        compositor.start_compositing(clear_color, dirty_rects, &[]);
     }
 }
 

@@ -13,6 +13,65 @@ function assertWasmThrowsExn(thunk) {
   assertEq(thrown, true, "missing exception");
 }
 
+// Test that handler-less trys don't catch anything.
+assertWasmThrowsExn(() =>
+  wasmEvalText(
+    `(module
+       (type (func (param)))
+       (event $exn (type 0))
+       (func (export "f")
+         try (throw $exn) end))`
+  ).exports.f()
+);
+
+assertWasmThrowsExn(() =>
+  wasmEvalText(
+    `(module
+       (type (func (param)))
+       (event $exn (type 0))
+       (func $g (throw $exn))
+       (func (export "f")
+         try (call $g) end)
+)`
+  ).exports.f()
+);
+
+assertWasmThrowsExn(() =>
+  wasmEvalText(
+    `(module
+       (type (func (param)))
+       (event $exn (type 0))
+       (func (export "f")
+         try try (throw $exn) end end))`
+  ).exports.f()
+);
+
+assertWasmThrowsExn(() =>
+  wasmEvalText(
+    `(module
+       (event $exn (param))
+       (func (export "f")
+         try
+           try
+             throw $exn
+           delegate 0
+         end))`
+  ).exports.f()
+);
+
+assertWasmThrowsExn(() =>
+  wasmEvalText(
+    `(module
+       (event $exn (param))
+       (func (export "f")
+         try
+           try
+             throw $exn
+           delegate 1
+         end))`
+  ).exports.f()
+);
+
 // Test throwing simple empty exceptions to JS.
 assertWasmThrowsExn(() =>
   wasmEvalText(
@@ -240,18 +299,5 @@ assertWasmThrowsExn(() =>
            end
            i32.const 0
          delegate 0))`
-  ).exports.f()
-);
-
-// Test unwind rethrowing on exit.
-assertWasmThrowsExn(() =>
-  wasmEvalText(
-    `(module
-       (event $exn (param))
-       (func (export "f") (result i32)
-         try (result i32)
-           throw $exn
-         unwind
-         end))`
   ).exports.f()
 );

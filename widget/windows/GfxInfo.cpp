@@ -9,6 +9,7 @@
 #include "GfxDriverInfo.h"
 #include "gfxWindowsPlatform.h"
 #include "jsapi.h"
+#include "js/PropertyAndElement.h"  // JS_SetElement, JS_SetProperty
 #include "nsExceptionHandler.h"
 #include "nsPrintfCString.h"
 #include "nsUnicharUtils.h"
@@ -1727,6 +1728,15 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
                                 nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
                                 DRIVER_BUILD_ID_LESS_THAN_OR_EQUAL, 1749,
                                 "FEATURE_FAILURE_INTEL_W7_D3D9_LAYERS");
+
+    /* Bug 1717519/1717911: Crashes while drawing with swgl.
+     * Reproducible but not investigated yet.*/
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
+        OperatingSystem::Windows, DeviceFamily::IntelAll,
+        nsIGfxInfo::FEATURE_DIRECT3D_11_LAYERS,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
+        V(8, 15, 10, 2125), V(8, 15, 10, 2141), "FEATURE_FAILURE_BUG_1717911",
+        "Intel driver > 8.15.10.2141");
 
 #if defined(_M_X64)
     if (DetectBrokenAVX()) {

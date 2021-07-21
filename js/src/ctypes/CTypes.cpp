@@ -41,10 +41,12 @@
 #include "jit/AtomicOperations.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{IsArrayBufferObject,GetArrayBufferData,GetArrayBuffer{ByteLength,Data}}
+#include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
 #include "js/experimental/TypedData.h"  // JS_GetArrayBufferView{Type,Data}, JS_GetTypedArrayByteLength, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
 #include "js/Object.h"  // JS::GetPrivate, JS::GetReservedSlot, JS::SetPrivate
+#include "js/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctions, JS_DefineProperties, JS_DefineProperty, JS_DefinePropertyById, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
 #include "js/PropertySpec.h"
 #include "js/SharedArrayBuffer.h"  // JS::{GetSharedArrayBuffer{ByteLength,Data},IsSharedArrayBufferObject}
 #include "js/StableStringChars.h"
@@ -5651,7 +5653,7 @@ bool ArrayType::Getter(JSContext* cx, HandleObject obj, HandleId idval,
   size_t length = GetLength(typeObj);
   bool ok = jsidToSize(cx, idval, true, &index);
   int32_t dummy;
-  if (!ok && JSID_IS_SYMBOL(idval)) {
+  if (!ok && idval.isSymbol()) {
     return true;
   }
   bool dummy2;
@@ -5698,7 +5700,7 @@ bool ArrayType::Setter(JSContext* cx, HandleObject obj, HandleId idval,
   size_t length = GetLength(typeObj);
   bool ok = jsidToSize(cx, idval, true, &index);
   int32_t dummy;
-  if (!ok && JSID_IS_SYMBOL(idval)) {
+  if (!ok && idval.isSymbol()) {
     return true;
   }
   bool dummy2;

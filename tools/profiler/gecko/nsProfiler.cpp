@@ -14,6 +14,7 @@
 #include "ProfilerParent.h"
 #include "js/Array.h"  // JS::NewArrayObject
 #include "js/JSON.h"
+#include "js/PropertyAndElement.h"  // JS_SetElement
 #include "js/Value.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/SchedulerGroup.h"
@@ -836,11 +837,6 @@ void nsProfiler::GatheredOOPProfile(const nsACString& aProfile) {
   }
 }
 
-void nsProfiler::ReceiveShutdownProfile(const nsCString& aProfile) {
-  MOZ_RELEASE_ASSERT(NS_IsMainThread());
-  profiler_received_exit_profile(aProfile);
-}
-
 RefPtr<nsProfiler::GatheringPromise> nsProfiler::StartGathering(
     double aSinceTime) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
@@ -869,7 +865,7 @@ RefPtr<nsProfiler::GatheringPromise> nsProfiler::StartGathering(
 
   mWriter.emplace();
 
-  TimeStamp streamingStart = TimeStamp::NowUnfuzzed();
+  TimeStamp streamingStart = TimeStamp::Now();
 
   UniquePtr<ProfilerCodeAddressService> service =
       profiler_code_address_service_for_presymbolication();
@@ -911,7 +907,7 @@ RefPtr<nsProfiler::GatheringPromise> nsProfiler::StartGathering(
     // We want a reasonable timeout value while waiting for child profiles.
     // We know how long the parent process took to serialize its profile:
     const uint32_t parentTimeMs = static_cast<uint32_t>(
-        (TimeStamp::NowUnfuzzed() - streamingStart).ToMilliseconds());
+        (TimeStamp::Now() - streamingStart).ToMilliseconds());
     // We will multiply this by the number of children, to cover the worst case
     // where all processes take the same time, but because they are working in
     // parallel on a potential single CPU, they all finish around the same later

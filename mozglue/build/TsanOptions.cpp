@@ -198,6 +198,11 @@ extern "C" const char* __tsan_default_suppressions() {
          // The rest of these suppressions are miscellaneous issues in gecko
          // that should be investigated and ideally fixed.
 
+         // Bug 1671574 - Permanent
+         // The StartupCache thread intentionally races with the main thread to
+         // trigger OS-level paging. It is never joined with the main thread.
+         "thread:StartupCache\n"
+
          // Bug 1601600
          "race:SkARGB32_Blitter\n"
          "race:SkARGB32_Shader_Blitter\n"
@@ -276,10 +281,6 @@ extern "C" const char* __tsan_default_suppressions() {
          // Bug 1683417
          "race:DataChannelConnection::SetSignals\n"
          "race:DataChannelConnection::SetReady\n"
-
-         // Bug 1683404
-         "race:nsTimerImpl::Shutdown\n"
-         "race:nsTimerImpl::CancelImpl\n"
 
          // Bug 1682951
          "race:storage::Connection::Release\n"

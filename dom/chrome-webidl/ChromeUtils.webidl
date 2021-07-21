@@ -55,6 +55,11 @@ dictionary ProfilerMarkerOptions {
   unsigned long long innerWindowId = 0;
 };
 
+dictionary InteractionData {
+  unsigned long interactionCount = 0;
+  unsigned long interactionTimeInMilliseconds = 0;
+};
+
 /**
  * A collection of static utility methods that are only exposed to system code.
  * This is exposed in all the system globals where we can expose stuff by
@@ -271,6 +276,19 @@ partial namespace ChromeUtils {
   createOriginAttributesFromOrigin(DOMString origin);
 
   /**
+   * Returns an OriginAttributesDictionary with values from the origin |suffix|
+   * and unspecified attributes added and assigned default values.
+   *
+   * @param suffix            The origin suffix to create from.
+   * @returns                 An OriginAttributesDictionary with values from
+   *                          the origin suffix and unspecified attributes
+   *                          added and assigned default values.
+   */
+  [Throws]
+  OriginAttributesDictionary
+  CreateOriginAttributesFromOriginSuffix(DOMString suffix);
+
+  /**
    * Returns an OriginAttributesDictionary that is a copy of |originAttrs| with
    * unspecified attributes added and assigned default values.
    *
@@ -288,6 +306,15 @@ partial namespace ChromeUtils {
   boolean
   isOriginAttributesEqual(optional OriginAttributesDictionary aA = {},
                           optional OriginAttributesDictionary aB = {});
+
+  /**
+   * Returns the base domain portion of a given partitionKey.
+   * Returns the empty string for an empty partitionKey.
+   * Throws for invalid partition keys.
+   */
+  [Throws]
+  DOMString
+  getBaseDomainFromPartitionKey(DOMString partitionKey);
 
   /**
    * Loads and compiles the script at the given URL and returns an object
@@ -535,6 +562,16 @@ partial namespace ChromeUtils {
    */
   [Throws, ChromeOnly]
   sequence<nsIDOMProcessParent> getAllDOMProcesses();
+
+  /**
+   * Returns a record of user interaction data. Currently only typing,
+   * but will include scrolling and potentially other metrics.
+   *
+   * Valid keys: "Typing"
+   */
+  [Throws, ChromeOnly]
+  record<DOMString, InteractionData> consumeInteractionData();
+  
 };
 
 /*
@@ -766,7 +803,15 @@ dictionary OriginAttributesPatternDictionary {
   unsigned long privateBrowsingId;
   DOMString firstPartyDomain;
   DOMString geckoViewSessionContextId;
+  // partitionKey takes precedence over partitionKeyPattern.
   DOMString partitionKey;
+  PartitionKeyPatternDictionary partitionKeyPattern;
+};
+
+dictionary PartitionKeyPatternDictionary {
+  DOMString scheme;
+  DOMString baseDomain;
+  long port;
 };
 
 dictionary CompileScriptOptionsDictionary {

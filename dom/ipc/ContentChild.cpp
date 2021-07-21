@@ -134,9 +134,7 @@
 #  include "mozilla/Omnijar.h"
 #endif
 
-#ifdef MOZ_GECKO_PROFILER
-#  include "ChildProfilerController.h"
-#endif
+#include "ChildProfilerController.h"
 
 #if defined(MOZ_SANDBOX)
 #  include "mozilla/SandboxSettings.h"
@@ -310,6 +308,54 @@ using namespace mozilla::layout;
 using namespace mozilla::net;
 using namespace mozilla::widget;
 using mozilla::loader::PScriptCacheChild;
+
+namespace geckoprofiler::markers {
+struct ProcessPriorityChange {
+  static constexpr Span<const char> MarkerTypeName() {
+    return MakeStringSpan("ProcessPriorityChange");
+  }
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   const ProfilerString8View& aPreviousPriority,
+                                   const ProfilerString8View& aNewPriority) {
+    aWriter.StringProperty("Before", aPreviousPriority);
+    aWriter.StringProperty("After", aNewPriority);
+  }
+  static MarkerSchema MarkerTypeDisplay() {
+    using MS = MarkerSchema;
+    MS schema{MS::Location::markerChart, MS::Location::markerTable};
+    schema.AddKeyFormat("Before", MS::Format::string);
+    schema.AddKeyFormat("After", MS::Format::string);
+    schema.AddStaticLabelValue("Note",
+                               "This is a notification of the priority change "
+                               "that was done by the parent process");
+    schema.SetAllLabels(
+        "priority: {marker.data.Before} -> {marker.data.After}");
+    return schema;
+  }
+};
+
+struct ProcessPriority {
+  static constexpr Span<const char> MarkerTypeName() {
+    return MakeStringSpan("ProcessPriority");
+  }
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   const ProfilerString8View& aPriority,
+                                   const ProfilingState& aProfilingState) {
+    aWriter.StringProperty("Priority", aPriority);
+    aWriter.StringProperty("Marker cause",
+                           ProfilerString8View::WrapNullTerminatedString(
+                               ProfilingStateToString(aProfilingState)));
+  }
+  static MarkerSchema MarkerTypeDisplay() {
+    using MS = MarkerSchema;
+    MS schema{MS::Location::markerChart, MS::Location::markerTable};
+    schema.AddKeyFormat("Priority", MS::Format::string);
+    schema.AddKeyFormat("Marker cause", MS::Format::string);
+    schema.SetAllLabels("priority: {marker.data.Priority}");
+    return schema;
+  }
+};
+}  // namespace geckoprofiler::markers
 
 namespace mozilla {
 
@@ -574,6 +620,23 @@ ContentChild::ContentChild()
   // multiprocess mode!
   nsDebugImpl::SetMultiprocessMode("Child");
 
+  // Our static analysis doesn't allow capturing ref-counted pointers in
+  // lambdas, so we need to hide it in a uintptr_t. This is safe because this
+  // lambda will be destroyed in ~ContentChild().
+  uintptr_t self = reinterpret_cast<uintptr_t>(this);
+  profiler_add_state_change_callback(
+      AllProfilingStates(),
+      [self](ProfilingState aProfilingState) {
+        const ContentChild* selfPtr =
+            reinterpret_cast<const ContentChild*>(self);
+        PROFILER_MARKER("Process Priority", OTHER,
+                        mozilla::MarkerThreadId::MainThread(), ProcessPriority,
+                        ProfilerString8View::WrapNullTerminatedString(
+                            ProcessPriorityToString(selfPtr->mProcessPriority)),
+                        aProfilingState);
+      },
+      self);
+
   // When ContentChild is created, the observer service does not even exist.
   // When ContentChild::RecvSetXPCOMProcessAttributes is called (the first
   // IPDL call made on this object), shutdown may have already happened. Thus
@@ -593,6 +656,8 @@ ContentChild::ContentChild()
 #endif
 
 ContentChild::~ContentChild() {
+  profiler_remove_state_change_callback(reinterpret_cast<uintptr_t>(this));
+
 #ifndef NS_FREE_PERMANENT_DATA
   MOZ_CRASH("Content Child shouldn't be destroyed.");
 #endif
@@ -643,9 +708,8 @@ class nsGtkNativeInitRunnable : public Runnable {
   }
 };
 
-bool ContentChild::Init(MessageLoop* aIOLoop, base::ProcessId aParentPid,
-                        const char* aParentBuildID,
-                        UniquePtr<IPC::Channel> aChannel, uint64_t aChildID,
+bool ContentChild::Init(base::ProcessId aParentPid, const char* aParentBuildID,
+                        mozilla::ipc::ScopedPort aPort, uint64_t aChildID,
                         bool aIsForBrowser) {
 #ifdef MOZ_WIDGET_GTK
   // When running X11 only build we need to pass a display down
@@ -699,7 +763,7 @@ bool ContentChild::Init(MessageLoop* aIOLoop, base::ProcessId aParentPid,
     return false;
   }
 
-  if (!Open(std::move(aChannel), aParentPid, aIOLoop)) {
+  if (!Open(std::move(aPort), aParentPid)) {
     return false;
   }
   sSingleton = this;
@@ -781,13 +845,11 @@ void ContentChild::SetProcessName(const nsACString& aName,
   }
 
   mProcessName = aName;
-#ifdef MOZ_GECKO_PROFILER
   if (aETLDplus1) {
     profiler_set_process_name(mProcessName, aETLDplus1);
   } else {
     profiler_set_process_name(mProcessName);
   }
-#endif
   mozilla::ipc::SetThisProcessName(PromiseFlatCString(mProcessName).get());
 }
 
@@ -1317,8 +1379,6 @@ void ContentChild::InitXPCOM(
 
   GfxInfoBase::SetFeatureStatus(std::move(aXPCOMInit.gfxFeatureStatus()));
 
-  DataStorage::SetCachedStorageEntries(aXPCOMInit.dataStorage());
-
   // Initialize the RemoteDecoderManager thread and its associated PBackground
   // channel.
   RemoteDecoderManagerChild::Init();
@@ -1405,9 +1465,7 @@ mozilla::ipc::IPCResult ContentChild::RecvInitGMPService(
 
 mozilla::ipc::IPCResult ContentChild::RecvInitProfiler(
     Endpoint<PProfilerChild>&& aEndpoint) {
-#ifdef MOZ_GECKO_PROFILER
   mProfilerController = ChildProfilerController::Create(std::move(aEndpoint));
-#endif
   return IPC_OK();
 }
 
@@ -1597,7 +1655,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetProcessSandbox(
 #if defined(MOZ_SANDBOX)
 
 #  ifdef MOZ_USING_WASM_SANDBOXING
-  mozilla::ipc::PreloadSandboxedDynamicLibraries();
+  mozilla::ipc::PreloadSandboxedDynamicLibrary();
 #  endif
 
   bool sandboxEnabled = true;
@@ -1680,6 +1738,13 @@ mozilla::ipc::IPCResult ContentChild::RecvConstructBrowser(
       BrowsingContext::Get(aWindowInit.context().mBrowsingContextId);
   if (!browsingContext || browsingContext->IsDiscarded()) {
     return IPC_FAIL(this, "Null or discarded initial BrowsingContext");
+  }
+
+  if (!aWindowInit.isInitialDocument() ||
+      !NS_IsAboutBlank(aWindowInit.documentURI())) {
+    return IPC_FAIL(this,
+                    "Logic in CreateContentViewerForActor currently requires "
+                    "actors to be initial about:blank documents");
   }
 
   // We'll happily accept any kind of IPCTabContext here; we don't need to
@@ -2191,34 +2256,6 @@ mozilla::ipc::IPCResult ContentChild::RecvCollectPerfStatsJSON(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvDataStoragePut(
-    const nsString& aFilename, const DataStorageItem& aItem) {
-  RefPtr<DataStorage> storage = DataStorage::GetFromRawFileName(aFilename);
-  if (storage) {
-    storage->Put(aItem.key(), aItem.value(), aItem.type());
-  }
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentChild::RecvDataStorageRemove(
-    const nsString& aFilename, const nsCString& aKey,
-    const DataStorageType& aType) {
-  RefPtr<DataStorage> storage = DataStorage::GetFromRawFileName(aFilename);
-  if (storage) {
-    storage->Remove(aKey, aType);
-  }
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult ContentChild::RecvDataStorageClear(
-    const nsString& aFilename) {
-  RefPtr<DataStorage> storage = DataStorage::GetFromRawFileName(aFilename);
-  if (storage) {
-    storage->Clear();
-  }
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult ContentChild::RecvNotifyAlertsObserver(
     const nsCString& aType, const nsString& aData) {
   nsTArray<nsCOMPtr<nsIObserver>> observersToNotify;
@@ -2700,6 +2737,14 @@ mozilla::ipc::IPCResult ContentChild::RecvNotifyProcessPriorityChanged(
   RefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
   props->SetPropertyAsInt32(u"priority"_ns, static_cast<int32_t>(aPriority));
 
+  PROFILER_MARKER("Process Priority", OTHER,
+                  mozilla::MarkerThreadId::MainThread(), ProcessPriorityChange,
+                  ProfilerString8View::WrapNullTerminatedString(
+                      ProcessPriorityToString(mProcessPriority)),
+                  ProfilerString8View::WrapNullTerminatedString(
+                      ProcessPriorityToString(aPriority)));
+  mProcessPriority = aPriority;
+
   os->NotifyObservers(static_cast<nsIPropertyBag2*>(props),
                       "ipc:process-priority-changed", nullptr);
   return IPC_OK();
@@ -2925,7 +2970,6 @@ void ContentChild::ShutdownInternal() {
 
   GetIPCChannel()->SetAbortOnError(false);
 
-#ifdef MOZ_GECKO_PROFILER
   if (mProfilerController) {
     const bool isProfiling = profiler_is_active();
     CrashReporter::AnnotateCrashReport(
@@ -2954,7 +2998,6 @@ void ContentChild::ShutdownInternal() {
                     ? "Profiling - SendShutdownProfile (failed)"_ns
                     : "Not profiling - SendShutdownProfile (failed)"_ns));
   }
-#endif
 
   // Start a timer that will insure we quickly exit after a reasonable
   // period of time. Prevents shutdown hangs after our connection to the
@@ -4318,6 +4361,13 @@ mozilla::ipc::IPCResult ContentChild::RecvDecoderSupportedMimeTypes(
 #ifdef MOZ_WIDGET_ANDROID
   AndroidDecoderModule::SetSupportedMimeTypes(std::move(aSupportedTypes));
 #endif
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult ContentChild::RecvInitNextGenLocalStorageEnabled(
+    const bool& aEnabled) {
+  mozilla::dom::RecvInitNextGenLocalStorageEnabled(aEnabled);
+
   return IPC_OK();
 }
 

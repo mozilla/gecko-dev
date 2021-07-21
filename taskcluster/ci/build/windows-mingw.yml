@@ -34,7 +34,7 @@ win32-mingwclang/opt:
             - builds/releng_base_windows_32_mingw_builds.py
             - builds/releng_sub_windows_configs/32_mingwclang.py
         mozconfig-variant: mingwclang
-    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    run-on-projects: ['mozilla-central', 'mozilla-esr78', 'mozilla-esr91']
     use-sccache: true
     fetches:
         toolchain:
@@ -48,7 +48,8 @@ win32-mingwclang/opt:
             - linux64-clang-mingw-x86
             - linux64-mingw32-nsis
             - linux64-mingw-fxc2-x86
-            - linux64-dump-syms
+            - linux64-dump_syms
+            - sysroot-x86_64-linux-gnu
 
 win32-mingwclang/debug:
     description: "Win32 MinGW-Clang Debug"
@@ -69,7 +70,7 @@ win32-mingwclang/debug:
             - builds/releng_base_windows_32_mingw_builds.py
             - builds/releng_sub_windows_configs/32_mingwclang.py
         mozconfig-variant: mingwclang-debug
-    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    run-on-projects: ['mozilla-central', 'mozilla-esr78', 'mozilla-esr91']
     use-sccache: true
     fetches:
         toolchain:
@@ -83,7 +84,8 @@ win32-mingwclang/debug:
             - linux64-clang-mingw-x86
             - linux64-mingw32-nsis
             - linux64-mingw-fxc2-x86
-            - linux64-dump-syms
+            - linux64-dump_syms
+            - sysroot-x86_64-linux-gnu
 
 win64-mingwclang/opt:
     description: "Win64 MinGW-Clang Opt"
@@ -104,7 +106,7 @@ win64-mingwclang/opt:
             - builds/releng_base_windows_64_mingw_builds.py
             - builds/releng_sub_windows_configs/64_mingwclang.py
         mozconfig-variant: mingwclang
-    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    run-on-projects: ['mozilla-central', 'mozilla-esr78', 'mozilla-esr91']
     use-sccache: true
     fetches:
         toolchain:
@@ -118,7 +120,8 @@ win64-mingwclang/opt:
             - linux64-clang-mingw-x64
             - linux64-mingw32-nsis
             - linux64-mingw-fxc2-x86
-            - linux64-dump-syms
+            - linux64-dump_syms
+            - sysroot-x86_64-linux-gnu
 
 win64-mingwclang/debug:
     description: "Win64 MinGW-Clang Debug"
@@ -139,7 +142,7 @@ win64-mingwclang/debug:
             - builds/releng_base_windows_64_mingw_builds.py
             - builds/releng_sub_windows_configs/64_mingwclang.py
         mozconfig-variant: mingwclang-debug
-    run-on-projects: ['mozilla-central', 'mozilla-esr78']
+    run-on-projects: ['mozilla-central', 'mozilla-esr78', 'mozilla-esr91']
     use-sccache: true
     fetches:
         toolchain:
@@ -153,4 +156,5 @@ win64-mingwclang/debug:
             - linux64-clang-mingw-x64
             - linux64-mingw32-nsis
             - linux64-mingw-fxc2-x86
-            - linux64-dump-syms
+            - linux64-dump_syms
+            - sysroot-x86_64-linux-gnu

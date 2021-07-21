@@ -18,6 +18,9 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { AppConstants } = ChromeUtils.import(
+  "resource://gre/modules/AppConstants.jsm"
+);
 
 ChromeUtils.defineModuleGetter(
   this,
@@ -587,7 +590,7 @@ var FormAutofillContent = {
         // If the `guid` is null, we're filling a new form.
         // In that case, all not-null fields are manually filled.
         extra.fields_not_auto = Array.from(handler.form.elements)
-          .filter(element => !!element.value.trim().length)
+          .filter(element => !!element.value?.trim().length)
           .length.toString();
       }
 
@@ -696,9 +699,11 @@ var FormAutofillContent = {
         "updateActiveElement: checking if empty field is cc-*: ",
         this.activeFieldDetail?.fieldName
       );
-      // This restricts popups to credit card fields and may need adjustment
-      // when enabling address support for the GeckoView backend.
-      if (this.activeFieldDetail?.fieldName?.startsWith("cc-")) {
+
+      if (
+        this.activeFieldDetail?.fieldName?.startsWith("cc-") ||
+        AppConstants.platform === "android"
+      ) {
         if (Services.cpmm.sharedData.get("FormAutofill:enabled")) {
           this.debug("updateActiveElement: opening pop up");
           formFillController.showPopup();

@@ -95,12 +95,6 @@ using GetCurrentThreadStackLimitsFn = void(WINAPI*)(PULONG_PTR LowLimit,
 #  include "nsXULAppAPI.h"
 #endif
 
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracer.h"
-#  include "TracedTaskCommon.h"
-using namespace mozilla::tasktracer;
-#endif
-
 using namespace mozilla;
 
 extern void InitThreadLocalVariables();
@@ -380,7 +374,6 @@ void nsThread::ThreadFunc(void* aArg) {
 
   mozilla::IOInterposer::RegisterCurrentThread();
 
-#ifdef MOZ_GECKO_PROFILER
   // This must come after the call to nsThreadManager::RegisterCurrentThread(),
   // because that call is needed to properly set up this thread as an nsThread,
   // which profiler_register_thread() requires. See bug 1347007.
@@ -388,7 +381,6 @@ void nsThread::ThreadFunc(void* aArg) {
   if (registerWithProfiler) {
     PROFILER_REGISTER_THREAD(initData->name.BeginReading());
   }
-#endif  // MOZ_GECKO_PROFILER
 
   {
     // Scope for MessageLoop.
@@ -424,12 +416,10 @@ void nsThread::ThreadFunc(void* aArg) {
   // Inform the threadmanager that this thread is going away
   nsThreadManager::get().UnregisterCurrentThread(*self);
 
-#ifdef MOZ_GECKO_PROFILER
   // The thread should only unregister itself if it was registered above.
   if (registerWithProfiler) {
     PROFILER_UNREGISTER_THREAD();
   }
-#endif  // MOZ_GECKO_PROFILER
 
   // Dispatch shutdown ACK
   NotNull<nsThreadShutdownContext*> context =
@@ -445,10 +435,6 @@ void nsThread::ThreadFunc(void* aArg) {
 
   // Release any observer of the thread here.
   self->SetObserver(nullptr);
-
-#ifdef MOZ_TASK_TRACER
-  FreeTraceInfo();
-#endif
 
   // The PRThread will be deleted in PR_JoinThread(), so clear references.
   self->mThread = nullptr;
@@ -1327,6 +1313,8 @@ void nsThread::SetScriptObserver(
   mScriptObserver = aScriptObserver;
 }
 
+void NS_DispatchMemoryPressure();
+
 void nsThread::DoMainThreadSpecificProcessing() const {
   MOZ_ASSERT(mIsMainThread);
 
@@ -1334,23 +1322,7 @@ void nsThread::DoMainThreadSpecificProcessing() const {
 
   // Fire a memory pressure notification, if one is pending.
   if (!ShuttingDown()) {
-    MemoryPressureState mpPending = NS_GetPendingMemoryPressure();
-    if (mpPending != MemPressure_None) {
-      nsCOMPtr<nsIObserverService> os = services::GetObserverService();
-
-      if (os) {
-        if (mpPending == MemPressure_Stopping) {
-          os->NotifyObservers(nullptr, "memory-pressure-stop", nullptr);
-        } else {
-          os->NotifyObservers(nullptr, "memory-pressure",
-                              mpPending == MemPressure_New
-                                  ? u"low-memory"
-                                  : u"low-memory-ongoing");
-        }
-      } else {
-        NS_WARNING("Can't get observer service!");
-      }
-    }
+    NS_DispatchMemoryPressure();
   }
 }
 
@@ -1500,7 +1472,6 @@ void PerformanceCounterState::MaybeReportAccumulatedTime(TimeStamp aNow) {
     }
     mLastLongTaskEnd = aNow;
 
-#ifdef MOZ_GECKO_PROFILER
     if (profiler_thread_is_being_profiled()) {
       struct LongTaskMarker {
         static constexpr Span<const char> MarkerTypeName() {
@@ -1525,7 +1496,6 @@ void PerformanceCounterState::MaybeReportAccumulatedTime(TimeStamp aNow) {
                           MarkerTiming::Interval(mCurrentTimeSliceStart, aNow),
                           LongTaskMarker{});
     }
-#endif
   }
 }
 

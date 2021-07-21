@@ -104,7 +104,7 @@ mozilla-unified).
 Would you like to run a few configuration steps to ensure Git is
 optimally configured?"""
 
-DEBIAN_DISTROS = ("debian", "ubuntu", "linuxmint", "elementary", "neon", "pop")
+DEBIAN_DISTROS = ("debian", "ubuntu", "linuxmint", "elementary", "neon", "pop", "kali")
 
 ADD_GIT_CINNABAR_PATH = """
 To add git-cinnabar to the PATH, edit your shell initialization script, which
@@ -164,7 +164,7 @@ class Bootstrapper(object):
                 full_distribution_name=False
             )
 
-            if dist_id in ("centos", "fedora"):
+            if dist_id in ("centos", "fedora", "rocky"):
                 cls = CentOSFedoraBootstrapper
                 args["distro"] = dist_id
             elif dist_id in DEBIAN_DISTROS:
@@ -227,6 +227,13 @@ class Bootstrapper(object):
         self.instance = cls(**args)
 
     def create_state_dir(self):
+        # Global build system and mach state is stored in a central directory. By
+        # default, this is ~/.mozbuild. However, it can be defined via an
+        # environment variable. We detect first run (by lack of this directory
+        # existing) and notify the user that it will be created. The logic for
+        # creation is much simpler for the "advanced" environment variable use
+        # case. For default behavior, we educate users and give them an opportunity
+        # to react.
         state_dir = get_state_dir()
 
         if not os.path.exists(state_dir):
@@ -263,9 +270,7 @@ class Bootstrapper(object):
             self.instance.ensure_clang_static_analysis_package(state_dir, checkout_root)
             self.instance.ensure_nasm_packages(state_dir, checkout_root)
             self.instance.ensure_sccache_packages(state_dir, checkout_root)
-            self.instance.ensure_lucetc_packages(state_dir, checkout_root)
             self.instance.ensure_wasi_sysroot_packages(state_dir, checkout_root)
-            self.instance.ensure_dump_syms_packages(state_dir, checkout_root)
 
     def check_code_submission(self, checkout_root):
         if self.instance.no_interactive or which("moz-phab"):
@@ -289,7 +294,7 @@ class Bootstrapper(object):
                 applications = {
                     key: value
                     for key, value in applications.items()
-                    if "artifact_mode" not in value
+                    if "artifact_mode" not in value and "mobile_android" not in value
                 }
                 print(
                     'Note: M1 Macs don\'t support "Artifact Mode", so '
@@ -306,9 +311,9 @@ class Bootstrapper(object):
             choices += ["  {}".format(label) for label in labels[1:]]
             prompt = APPLICATION_CHOICE % "\n".join(choices)
             prompt_choice = self.instance.prompt_int(
-                prompt=prompt, low=1, high=len(APPLICATIONS)
+                prompt=prompt, low=1, high=len(applications)
             )
-            name, application = list(APPLICATIONS.items())[prompt_choice - 1]
+            name, application = list(applications.items())[prompt_choice - 1]
         elif self.choice in APPLICATIONS.keys():
             name, application = self.choice, APPLICATIONS[self.choice]
         elif self.choice in APPLICATIONS.values():
@@ -326,10 +331,6 @@ class Bootstrapper(object):
         self.instance.artifact_mode = "artifact_mode" in application
 
         self.instance.warn_if_pythonpath_is_set()
-
-        # This doesn't affect any system state and we'd like to bail out as soon
-        # as possible if this check fails.
-        self.instance.ensure_python_modern()
 
         state_dir = self.create_state_dir()
         self.instance.state_dir = state_dir

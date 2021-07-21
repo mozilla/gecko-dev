@@ -221,6 +221,14 @@ pref("general.config.obscure_value", 13); // for MCD .cfg files
 pref("general.warnOnAboutConfig", true);
 #endif
 
+// Whether middle button click with a modifier key starts to autoscroll or
+// does nothing.
+pref("general.autoscroll.prevent_to_start.shiftKey", true); // Shift
+pref("general.autoscroll.prevent_to_start.ctrlKey", false); // Control
+pref("general.autoscroll.prevent_to_start.altKey", false);  // Alt
+pref("general.autoscroll.prevent_to_start.metaKey", false); // Command on macOS
+pref("general.autoscroll.prevent_to_start.osKey", false);   // Windows key on Windows or Super key on Linux
+
 // maximum number of dated backups to keep at any time
 pref("browser.bookmarks.max_backups",       5);
 
@@ -327,6 +335,11 @@ pref("pdfjs.renderInteractiveForms", true);
 
 // Enable JavaScript support in the PDF viewer.
 pref("pdfjs.enableScripting", true);
+
+// Enable XFA form support in the PDF viewer.
+#ifdef EARLY_BETA_OR_EARLIER
+pref("pdfjs.enableXfa", true);
+#endif
 
 // Disable support for MathML
 pref("mathml.disabled",    false);
@@ -1854,9 +1867,6 @@ pref("network.http.tailing.delay-max", 6000);
 // Total limit we delay tailed requests since a page load beginning.
 pref("network.http.tailing.total-max", 45000);
 
-// Enable or disable the whole fix from bug 1563538
-pref("network.http.spdy.bug1563538", true);
-
 pref("network.proxy.http",                  "");
 pref("network.proxy.http_port",             0);
 pref("network.proxy.ssl",                   "");
@@ -2225,7 +2235,7 @@ pref("middlemouse.scrollbarPosition", false);
 // Clipboard only supports text/plain
 pref("clipboard.plainTextOnly", false);
 
-#if defined(XP_WIN) || defined(MOZ_WIDGET_GTK)
+#if defined(XP_WIN) || defined(XP_MACOSX) || defined(MOZ_WIDGET_GTK)
   // Setting false you can disable 4th button and/or 5th button of your mouse.
   // 4th button is typically mapped to "Back" and 5th button is typically mapped
   // to "Forward" button.
@@ -3707,9 +3717,6 @@ pref("network.psl.onUpdate_notify", false);
 #else
   // Use MLS on Nightly and early Beta.
   pref("geo.provider.network.url", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
-  // On Nightly and early Beta, make duplicate location services requests
-  // to google so we can compare results.
-  pref("geo.provider.network.compare.url", "https://www.googleapis.com/geolocation/v1/geolocate?key=%GOOGLE_LOCATION_SERVICE_API_KEY%");
 #endif
 
 // Timeout to wait before sending the location request.
@@ -3929,11 +3936,7 @@ pref("network.connectivity-service.IPv6.url", "http://detectportal.firefox.com/s
 // DNS Trusted Recursive Resolver
 // 0 - default off, 1 - reserved/off, 2 - TRR first, 3 - TRR only, 4 - reserved/off, 5 off by choice
 pref("network.trr.mode", 0);
-// DNS-over-HTTP service to use, must be HTTPS://
-pref("network.trr.uri", "https://mozilla.cloudflare-dns.com/dns-query");
-// List of DNS-over-HTTP resolver service providers. This pref populates the
-// drop-down list in the Network Settings dialog box in about:preferences.
-pref("network.trr.resolvers", "[{ \"name\": \"Cloudflare\", \"url\": \"https://mozilla.cloudflare-dns.com/dns-query\" },{ \"name\": \"NextDNS\", \"url\": \"https://firefox.dns.nextdns.io/\" }]");
+pref("network.trr.uri", "");
 // credentials to pass to DOH end-point
 pref("network.trr.credentials", "");
 pref("network.trr.custom_uri", "");
@@ -4444,9 +4447,6 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   // Port to start Marionette server on.
   pref("marionette.port", 2828);
 
-  // Sets recommended automation preferences when Marionette is started.
-  pref("marionette.prefs.recommended", true);
-
   // Defines the protocols that will be active for the Remote Agent.
   // 1: WebDriver BiDi
   // 2: CDP (Chrome DevTools Protocol)
@@ -4471,6 +4471,10 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   // Certain log messages that are known to be long are truncated. This
   // preference causes them to not be truncated.
   pref("remote.log.truncate", true);
+
+  // Sets recommended automation preferences when Remote Agent or Marionette is
+  // started.
+  pref("remote.prefs.recommended", true);
 #endif
 
 // Enable the JSON View tool (an inspector for application/json documents).
@@ -4573,11 +4577,6 @@ pref("browser.privatebrowsing.autostart", false);
 //preferred external application for a protocol. If a site doesn't have
 // permission we will show a prompt.
 pref("security.external_protocol_requires_permission", true);
-
-// Whether about:support shows a section "Third-Party Modules" or not
-#ifdef XP_WIN
-  pref("browser.enableAboutThirdParty", false);
-#endif
 
 // Preferences for the form autofill toolkit component.
 // The truthy values of "extensions.formautofill.available" are "on" and "detect",

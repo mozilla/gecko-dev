@@ -822,17 +822,6 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   }
 }
 
-@media not (-moz-proton) {
-@media (max-width: 550px) {
-  #urlbar-container {
-    min-width: calc(225px + 24px + 2 * var(--toolbarbutton-inner-padding));
-  }
-  #nav-bar[downloadsbuttonshown] #urlbar-container {
-    min-width: 225px;
-  }
-}
-} /*** END !proton ***/
-
 /* Flexible spacer sizing (gets overridden in the navbar) */
 toolbarpaletteitem[place=toolbar][id^=wrapper-customizableui-special-spring],
 toolbarspring {
@@ -926,8 +915,8 @@ menupopup[emptyplacesresult="true"] > .hide-if-empty-places-result {
 #fullscreen-and-pointerlock-wrapper {
   position: fixed;
   z-index: 2147483647 !important;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   top: 0;
   pointer-events: none;
 }
@@ -1068,12 +1057,11 @@ toolbarpaletteitem[place="palette"] > #downloads-button[indicator] > .toolbarbut
   display: none;
 }
 
-/* Give this menupopup an arrow panel styling */
-#BMB_bookmarksPopup {
+/* Give these menupopups an arrow panel styling */
+#BMB_bookmarksPopup,
+#PlacesToolbar menupopup {
   background: transparent;
   border: none;
-  /* The popup inherits -moz-image-region from the button, must reset it */
-  -moz-image-region: auto;
 }
 
 #BMB_bookmarksPopup,
@@ -1431,8 +1419,9 @@ toolbarpaletteitem:not([place="palette"]) > #stop-reload-button {
   transition: opacity 60ms;
 }
 
-.previewStack[previewtype="primary"] > .printPreviewBrowser[previewtype="primary"],
-.previewStack[previewtype="selection"] > .printPreviewBrowser[previewtype="selection"] {
+.previewStack[previewtype="source"] > .printPreviewBrowser[previewtype="source"],
+.previewStack[previewtype="selection"] > .printPreviewBrowser[previewtype="selection"],
+.previewStack[previewtype="simplified"] > .printPreviewBrowser[previewtype="simplified"] {
   display: block;
 }
 
@@ -1451,11 +1440,11 @@ printpreview-pagination {
   transition: opacity 100ms 500ms;
 }
 printpreview-pagination:focus-within,
-.previewStack:hover > printpreview-pagination {
+.previewStack:hover printpreview-pagination {
   opacity: 1;
   transition: opacity 100ms;
 }
-.previewStack[rendering=true] > printpreview-pagination {
+.previewStack[rendering=true] printpreview-pagination {
   opacity: 0;
 }
 

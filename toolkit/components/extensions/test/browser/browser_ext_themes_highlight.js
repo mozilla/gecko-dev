@@ -8,7 +8,9 @@ const { CustomizableUITestUtils } = ChromeUtils.import(
 let gCUITestUtils = new CustomizableUITestUtils(window);
 add_task(async function setup() {
   await gCUITestUtils.addSearchBar();
+  await gFindBarPromise;
   registerCleanupFunction(() => {
+    gFindBar.close();
     gCUITestUtils.removeSearchBar();
   });
 });
@@ -26,24 +28,25 @@ add_task(async function test_support_selection() {
       },
     },
   });
-
   await extension.startup();
 
   let fields = [
     gURLBar.inputField,
     document.querySelector("#searchbar .searchbar-textbox"),
+    document.querySelector(".findbar-textbox"),
   ].filter(field => {
     let bounds = field.getBoundingClientRect();
     return bounds.width > 0 && bounds.height > 0;
   });
 
-  Assert.equal(fields.length, 2, "Should be testing two elements");
+  Assert.equal(fields.length, 3, "Should be testing three elements");
 
   info(
     `Checking background colors and colors for ${fields.length} toolbar input fields.`
   );
   for (let field of fields) {
     info(`Testing ${field.id || field.className}`);
+    field.focus();
     Assert.equal(
       window.getComputedStyle(field, "::selection").backgroundColor,
       hexToCSS(HIGHLIGHT_COLOR),

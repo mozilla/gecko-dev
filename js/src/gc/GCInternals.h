@@ -12,6 +12,7 @@
 #define gc_GCInternals_h
 
 #include "mozilla/Maybe.h"
+#include "mozilla/TimeStamp.h"
 
 #include "gc/GC.h"
 #include "vm/JSContext.h"
@@ -240,6 +241,7 @@ struct MovingTracer final : public GenericTracer {
   js::BaseScript* onScriptEdge(js::BaseScript* script) override;
   BaseShape* onBaseShapeEdge(BaseShape* base) override;
   GetterSetter* onGetterSetterEdge(GetterSetter* gs) override;
+  PropMap* onPropMapEdge(PropMap* map) override;
   Scope* onScopeEdge(Scope* scope) override;
   RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
   BigInt* onBigIntEdge(BigInt* bi) override;
@@ -262,6 +264,7 @@ struct SweepingTracer final : public GenericTracer {
   js::BaseScript* onScriptEdge(js::BaseScript* script) override;
   BaseShape* onBaseShapeEdge(BaseShape* base) override;
   GetterSetter* onGetterSetterEdge(js::GetterSetter* gs) override;
+  PropMap* onPropMapEdge(PropMap* map) override;
   jit::JitCode* onJitCodeEdge(jit::JitCode* jit) override;
   Scope* onScopeEdge(Scope* scope) override;
   RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
@@ -288,6 +291,13 @@ inline bool IsShutdownReason(JS::GCReason reason) {
 }
 
 TenuredCell* AllocateCellInGC(JS::Zone* zone, AllocKind thingKind);
+
+void ReadProfileEnv(const char* envName, const char* helpText, bool* enableOut,
+                    bool* workersOut, mozilla::TimeDuration* thresholdOut);
+
+bool ShouldPrintProfile(JSRuntime* runtime, bool enable, bool workers,
+                        mozilla::TimeDuration threshold,
+                        mozilla::TimeDuration duration);
 
 } /* namespace gc */
 } /* namespace js */

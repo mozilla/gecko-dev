@@ -75,31 +75,6 @@ function testValidateDecode() {
     /expected event index/
   );
 
-  // Try blocks must have a second branch after the main body.
-  wasmInvalid(
-    moduleWithSections([
-      sigSection([emptyType]),
-      declSection([0]),
-      eventSection([{ type: 0 }]),
-      bodySection([
-        funcBody({
-          locals: [],
-          body: [
-            TryCode,
-            I32Code,
-            I32ConstCode,
-            0x01,
-            // Missing instruction here.
-            EndCode,
-            DropCode,
-            ReturnCode,
-          ],
-        }),
-      ]),
-    ]),
-    /try without catch or unwind not allowed/
-  );
-
   // Rethrow must have a depth argument.
   wasmInvalid(
     moduleWithSections([
@@ -244,6 +219,27 @@ function testValidateTryCatch() {
   wasmValid(valid1);
   wasmInvalid(invalid1, /unused values not explicitly dropped/);
   wasmValid(valid2);
+
+  // Test handler-less try blocks.
+  wasmValidateText(
+    `(module (func try end))`
+  );
+
+  wasmValidateText(
+    `(module (func (result i32) try (result i32) (i32.const 1) end))`
+  );
+
+  wasmValidateText(
+    `(module
+       (func (result i32)
+         try (result i32) (i32.const 1) (br 0) end))`
+  );
+
+  wasmFailValidateText(
+    `(module
+       (func try (result i32) end))`,
+    /popping value from empty stack/
+  );
 }
 
 function testValidateCatch() {
@@ -528,6 +524,11 @@ function testValidateRethrow() {
   );
 
   wasmFailValidateText(
+    `(module (func try rethrow 0 end))`,
+    /rethrow target was not a catch block/
+  );
+
+  wasmFailValidateText(
     `(module (func try rethrow 0 catch_all end))`,
     /rethrow target was not a catch block/
   );
@@ -641,66 +642,6 @@ function testValidateDelegate() {
   );
 }
 
-function testValidateUnwind() {
-  wasmValidateText(
-    `(module
-       (event $exn (param))
-       (func (local i32)
-         try
-           throw $exn
-         unwind
-           i32.const 1
-           local.set 0
-        end))`
-  );
-
-  wasmValidateText(
-    `(module
-       (event $exn (param))
-       (func (result i32)
-         try (result i32)
-           i32.const 1
-           br 0
-         unwind
-           i32.const 2
-           br 0
-         end))`
-  );
-
-  wasmFailValidateText(
-    `(module
-       (event $exn (param))
-       (func (export "f")
-         try (result i32)
-           (i32.const 1)
-         unwind
-         end))`,
-    /unused values not explicitly dropped by end of block/
-  );
-
-  wasmFailValidateText(
-    `(module
-       (event $exn (param))
-       (func (local i32)
-         try
-           throw $exn
-         unwind
-           (i32.const 1)
-         end))`,
-    /unused values not explicitly dropped by end of block/
-  );
-
-  wasmFailValidateText(
-    `(module (func unwind))`,
-    /unwind can only be used within a try/
-  );
-
-  wasmFailValidateText(
-    `(module (func try unwind rethrow 0 end))`,
-    /rethrow target was not a catch block/
-  );
-}
-
 testValidateDecode();
 testValidateThrow();
 testValidateTryCatch();
@@ -709,4 +650,3 @@ testValidateCatchAll();
 testValidateExnPayload();
 testValidateRethrow();
 testValidateDelegate();
-testValidateUnwind();

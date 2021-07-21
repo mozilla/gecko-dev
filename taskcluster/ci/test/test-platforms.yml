@@ -20,18 +20,18 @@
 # Linux platforms (matching /linux.*/)
 # Linux1804-64 uses Ubuntu 18.04 and is run on docker
 
-linux1804-32/debug:
+linux1804-32-qr/debug:
     build-platform: linux/debug
     test-sets:
         - linux32-gtest
 
-linux1804-32/opt:
+linux1804-32-qr/opt:
     build-platform: linux/opt
     test-sets:
         - linux32-tests
         - linux32-gtest
 
-linux1804-32-shippable/opt:
+linux1804-32-shippable-qr/opt:
     build-platform: linux-shippable/opt
     test-sets:
         - linux32-tests
@@ -47,7 +47,6 @@ linux1804-64/opt:
         - mochitest-headless
         - mochitest-webgpu
         - web-platform-tests
-        - web-platform-tests-backlog
         - web-platform-tests-wdspec-headless
         - talos
         - linux-talos-flex
@@ -71,14 +70,12 @@ linux1804-64-shippable/opt:
         - mochitest-headless
         - mochitest-webgpu
         - web-platform-tests
-        - web-platform-tests-backlog
         - web-platform-tests-wdspec-headless
         - talos
         - linux-talos-flex
         - raptor-chrome
         - raptor-firefox
         - browsertime
-        - talos-profiling
 
 linux1804-64-devedition/opt:
     build-platform: linux64-devedition/opt
@@ -107,6 +104,7 @@ linux1804-64-qr/opt:
         - linux1804-qr-tests
         - mochitest-webgpu
         - web-platform-tests
+        - web-platform-tests-backlog
         - web-platform-tests-wdspec-headless
         - talos
         - raptor-firefox
@@ -119,11 +117,13 @@ linux1804-64-shippable-qr/opt:
         - linux1804-qr-tests
         - mochitest-webgpu
         - web-platform-tests
+        - web-platform-tests-backlog
         - web-platform-tests-wdspec-headless
         - talos
         - talos-profiling
         - raptor-firefox
         - browsertime
+        - browsertime-profiling
 
 linux1804-64-qr/debug:
     build-platform: linux64/debug
@@ -158,44 +158,27 @@ linux1804-64-devedition-qr/opt:
     test-sets:
         - linux1804-devedition-qr-tests
 
+linux1804-64-clang-trunk/opt:
+    build-platform: linux64-plain-clang-trunk/opt
+    test-sets:
+        - awsy
+        - browsertime
+
 ##
 # Windows platforms (matching /windows.*/)
 
 # win32
-windows7-32/opt:
+windows7-32-qr/opt:
     build-platform: win32/opt
     test-sets:
         - windows-7-tests
 
-windows7-32-shippable/opt:
+windows7-32-shippable-qr/opt:
     build-platform: win32-shippable/opt
     test-sets:
         - windows-7-tests
 
-# win7 qr builds for try purposes
-windows7-32-qr/opt:
-    build-platform: win32/opt
-    test-sets:
-        - windows7-qr-tests
-
-# win10-32 qr builds for try purposes
-windows10-32-qr/debug:
-    build-platform: win32/debug
-    test-sets:
-        - web-platform-tests
-        - windows32-qr-tests
-        - mochitest-webgpu
-        - windows7-qr-tests
-
-windows10-32-qr/opt:
-    build-platform: win32/opt
-    test-sets:
-        - awsy
-        - web-platform-tests
-        - windows-talos
-        - windows32-qr-tests
-
-windows10-32-shippable/opt:
+windows10-32-shippable-qr/opt:
     build-platform: win32-shippable/opt
     test-sets:
         - awsy
@@ -208,7 +191,7 @@ windows10-32-shippable/opt:
         - windows32-tests
         - windows-talos
 
-windows10-32/opt:
+windows10-32-qr/opt:
     build-platform: win32/opt
     test-sets:
         - awsy
@@ -220,7 +203,7 @@ windows10-32/opt:
         - windows32-tests
         - windows-talos
 
-windows10-32/debug:
+windows10-32-qr/debug:
     build-platform: win32/debug
     test-sets:
         - web-platform-tests
@@ -240,15 +223,21 @@ windows10-64-ccov-qr/opt:
         - ccov-code-coverage-tests
         - mochitest-webgpu
 
-windows10-64/debug:
+windows10-64/opt:
+    build-platform: win64/opt
+    test-sets:
+        - xpcshell
+
+windows10-64-qr/debug:
     build-platform: win64/debug
     test-sets:
         - mochitest-webgpu
         - windows-tests
         - windows10-tests
         - web-platform-tests
+        - web-platform-tests-wdspec-headless
 
-windows10-64/opt:
+windows10-64-qr/opt:
     build-platform: win64/opt
     test-sets:
         - awsy
@@ -263,7 +252,7 @@ windows10-64/opt:
         - mochitest-webgpu
         - web-platform-tests-wdspec-headless
 
-windows10-aarch64/opt:
+windows10-aarch64-qr/opt:
     build-platform: win64-aarch64-shippable/opt
     test-sets:
         - windows-aarch64-tests
@@ -275,7 +264,7 @@ windows10-64-ref-hw-2017/opt:
         - browsertime
         - talos-ref-hw
 
-windows10-64-shippable/opt:
+windows10-64-shippable-qr/opt:
     build-platform: win64-shippable/opt
     test-sets:
         - awsy
@@ -289,10 +278,9 @@ windows10-64-shippable/opt:
         - raptor-chrome
         - raptor-firefox
         - browsertime
-        - talos-profiling
         - mochitest-webgpu
 
-windows10-64-devedition/opt:
+windows10-64-devedition-qr/opt:
     build-platform: win64-devedition/opt
     test-sets:
         - desktop-screenshot-capture
@@ -301,60 +289,29 @@ windows10-64-devedition/opt:
         - web-platform-tests
         - mochitest-webgpu
 
-windows10-64-asan/opt:
+windows10-64-asan-qr/opt:
     build-platform: win64-asan/opt
     test-sets:
         - windows-tests
         - windows10-tests
         - mochitest-webgpu
 
-# QR builds just run a subset right now.
-windows10-64-qr/debug:
-    build-platform: win64/debug
-    test-sets:
-        - mochitest-webgpu
-        - windows-qr-tests
-        - web-platform-tests
-        - web-platform-tests-wdspec-headless
-
-windows10-64-qr/opt:
-    build-platform: win64/opt
-    test-sets:
-        - awsy
-        - windows-qr-tests
-        - windows-talos
-        - raptor-firefox
-        - browsertime
-        - web-platform-tests
-
-windows10-64-shippable-qr/opt:
-    build-platform: win64-shippable/opt
-    test-sets:
-        - awsy
-        - windows-qr-tests
-        - windows-talos
-        - talos-profiling
-        - raptor-firefox
-        - browsertime
-        - web-platform-tests
-        - mochitest-webgpu
-
-windows10-64-mingwclang/debug:
+windows10-64-mingwclang-qr/debug:
     build-platform: win64-mingwclang/debug
     test-sets:
         - mingwclang-tests-debug
 
-windows10-64-mingwclang/opt:
+windows10-64-mingwclang-qr/opt:
     build-platform: win64-mingwclang/opt
     test-sets:
         - mingwclang-tests-opt
 
-windows10-32-mingwclang/debug:
+windows10-32-mingwclang-qr/debug:
     build-platform: win32-mingwclang/debug
     test-sets:
         - mingwclang-win32-tests-debug
 
-windows10-32-mingwclang/opt:
+windows10-32-mingwclang-qr/opt:
     build-platform: win32-mingwclang/opt
     test-sets:
         - mingwclang-tests-opt
@@ -396,6 +353,7 @@ macosx1015-64-shippable-qr/opt:
     test-sets:
         - awsy
         - browsertime
+        - browsertime-profiling
         - desktop-screenshot-capture
         - macosx1015-64-qr-tests
         - macosx64-talos
@@ -560,6 +518,7 @@ android-hw-p2-8-0-android-aarch64-shippable-qr/opt:
     test-sets:
         - android-hw-aarch64-qr
         - android-hw-browsertime
+        - android-hw-browsertime-profiling
         - android-hw-aarch64-raptor-cpu-memory
         - android-hw-aarch64-raptor-cpu-memory-power
 
@@ -588,3 +547,35 @@ android-hw-p2-8-0-android-aarch64/debug:
     build-platform: android-aarch64/debug
     test-sets:
         - android-hw-aarch64-debug-unittests
+
+# android-hw-s7-8-0 Samsung Galaxy S7 Android 8.0
+
+android-hw-s7-8-0-android-aarch64-shippable/opt:
+    build-platform: android-aarch64-shippable/opt
+    test-sets:
+        - android-hw-browsertime
+
+android-hw-s7-8-0-arm7-api-16/opt:
+    build-platform: android-api-16/opt
+    test-sets:
+        - android-hw-browsertime
+
+android-hw-s7-8-0-arm7-api-16-shippable/opt:
+    build-platform: android-api-16-shippable/opt
+    test-sets:
+        - android-hw-browsertime
+
+android-hw-s7-8-0-android-aarch64-qr/opt:
+    build-platform: android-aarch64/opt
+    test-sets:
+        - android-hw-browsertime
+
+android-hw-s7-8-0-android-aarch64-shippable-qr/opt:
+    build-platform: android-aarch64-shippable/opt
+    test-sets:
+        - android-hw-browsertime
+
+android-hw-s7-8-0-android-aarch64/opt:
+    build-platform: android-aarch64/opt
+    test-sets:
+        - android-hw-browsertime

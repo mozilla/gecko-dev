@@ -14,7 +14,6 @@
 #include "mozilla/a11y/RemoteAccessible.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/mscom/Utils.h"
-#include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPtr.h"
 #include "nsXULAppAPI.h"
 #include "Units.h"
@@ -64,8 +63,9 @@ class AccessibleWrap : public LocalAccessible {
 
   static void InvalidateHandlers();
 
-  bool DispatchTextChangeToHandler(bool aIsInsert, const nsString& aText,
-                                   int32_t aStart, uint32_t aLen);
+  static bool DispatchTextChangeToHandler(Accessible* aAcc, bool aIsInsert,
+                                          const nsString& aText, int32_t aStart,
+                                          uint32_t aLen);
 
  protected:
   virtual ~AccessibleWrap() = default;
@@ -96,11 +96,6 @@ class AccessibleWrap : public LocalAccessible {
 
   static StaticAutoPtr<nsTArray<HandlerControllerData>> sHandlerControllers;
 };
-
-static inline AccessibleWrap* WrapperFor(const RemoteAccessible* aProxy) {
-  MOZ_ASSERT(!StaticPrefs::accessibility_cache_enabled_AtStartup());
-  return reinterpret_cast<AccessibleWrap*>(aProxy->GetWrapper());
-}
 
 }  // namespace a11y
 }  // namespace mozilla

@@ -96,9 +96,6 @@ loader.lazyGetter(this, "certDecoder", () => {
   return { parse, pemToDER };
 });
 
-// The cache used in the `nsIURL` function.
-const gNSURLStore = new Map();
-
 // "Lax", "Strict" and "None" are special values of the SameSite cookie
 // attribute that should not be translated.
 const COOKIE_SAMESITE = {
@@ -558,6 +555,9 @@ var NetworkHelper = {
    * @param object httpActivity
    *        The httpActivity object for the request with at least members
    *        { private, hostname }.
+   * @param Map decodedCertificateCache
+   *        A Map of certificate fingerprints to decoded certificates, to avoid
+   *        repeatedly decoding previously-seen certificates.
    *
    * @return object
    *         Returns an object containing following members:
@@ -581,7 +581,11 @@ var NetworkHelper = {
    *            - weaknessReasons: list of reasons that cause the request to be
    *                               considered weak. See getReasonsForWeakness.
    */
-  parseSecurityInfo: async function(securityInfo, httpActivity) {
+  parseSecurityInfo: async function(
+    securityInfo,
+    httpActivity,
+    decodedCertificateCache
+  ) {
     const info = {
       state: "insecure",
     };
@@ -675,7 +679,10 @@ var NetworkHelper = {
       );
 
       // Certificate.
-      info.cert = await this.parseCertificateInfo(securityInfo.serverCert);
+      info.cert = await this.parseCertificateInfo(
+        securityInfo.serverCert,
+        decodedCertificateCache
+      );
 
       // Certificate transparency status.
       info.certificateTransparency = securityInfo.certificateTransparencyStatus;
@@ -726,6 +733,9 @@ var NetworkHelper = {
    *
    * @param nsIX509Cert cert
    *        The certificate to extract the information from.
+   * @param Map decodedCertificateCache
+   *        A Map of certificate fingerprints to decoded certificates, to avoid
+   *        repeatedly decoding previously-seen certificates.
    * @return object
    *         An object with following format:
    *           {
@@ -735,7 +745,7 @@ var NetworkHelper = {
    *             fingerprint: { sha1, sha256 }
    *           }
    */
-  parseCertificateInfo: async function(cert) {
+  parseCertificateInfo: async function(cert, decodedCertificateCache) {
     function getDNComponent(dn, componentType) {
       for (const [type, value] of dn.entries) {
         if (type == componentType) {
@@ -747,9 +757,14 @@ var NetworkHelper = {
 
     const info = {};
     if (cert) {
-      const parsedCert = await certDecoder.parse(
-        certDecoder.pemToDER(cert.getBase64DERString())
-      );
+      const certHash = cert.sha256Fingerprint;
+      let parsedCert = decodedCertificateCache.get(certHash);
+      if (!parsedCert) {
+        parsedCert = await certDecoder.parse(
+          certDecoder.pemToDER(cert.getBase64DERString())
+        );
+        decodedCertificateCache.set(certHash, parsedCert);
+      }
       info.subject = {
         commonName: getDNComponent(parsedCert.subject, "Common Name"),
         organization: getDNComponent(parsedCert.subject, "Organization"),
@@ -886,19 +901,6 @@ var NetworkHelper = {
       });
 
     return paramsArray;
-  },
-
-  /**
-   * Helper for getting an nsIURL instance out of a string.
-   */
-  nsIURL: function(url, store = gNSURLStore) {
-    if (store.has(url)) {
-      return store.get(url);
-    }
-
-    const uri = Services.io.newURI(url).QueryInterface(Ci.nsIURL);
-    store.set(url, uri);
-    return uri;
   },
 };
 

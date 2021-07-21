@@ -97,9 +97,10 @@ void RenderCompositorD3D11SWGL::HandleExternalImage(
     if (host->GetFormat() == SurfaceFormat::NV12 ||
         host->GetFormat() == SurfaceFormat::P010 ||
         host->GetFormat() == SurfaceFormat::P016) {
+      const auto yuv = FromYUVRangedColorSpace(host->GetYUVColorSpace());
       texturedEffect =
-          new EffectNV12(layer, host->GetYUVColorSpace(), host->GetColorRange(),
-                         host->GetColorDepth(), aFrameSurface.mFilter);
+          new EffectNV12(layer, yuv.space, yuv.range, host->GetColorDepth(),
+                         aFrameSurface.mFilter);
     } else {
       MOZ_ASSERT(host->GetFormat() == SurfaceFormat::B8G8R8X8 ||
                  host->GetFormat() == SurfaceFormat::B8G8R8A8);
@@ -122,9 +123,10 @@ void RenderCompositorD3D11SWGL::HandleExternalImage(
         GetDevice(), SurfaceFormat::A8, host->GetD3D11Texture2D(2));
     u->SetNextSibling(v);
 
+    const auto yuv = FromYUVRangedColorSpace(host->GetYUVColorSpace());
     texturedEffect =
-        new EffectYCbCr(layer, host->GetYUVColorSpace(), host->GetColorRange(),
-                        host->GetColorDepth(), aFrameSurface.mFilter);
+        new EffectYCbCr(layer, yuv.space, yuv.range, host->GetColorDepth(),
+                        aFrameSurface.mFilter);
     size = host->GetSize(0);
     host->LockInternal();
   }
@@ -229,6 +231,17 @@ bool RenderCompositorD3D11SWGL::TileD3D11::Map(wr::DeviceIntRect aDirtyRect,
 
     *aData = map.mData + aValidRect.min.y * map.mStride + aValidRect.min.x * 4;
     *aStride = map.mStride;
+    // Ensure our mapped data is accessible by writing to the beginning and end
+    // of the dirty region. See bug 171519
+    uint32_t* probeData = (uint32_t*)map.mData +
+                          aDirtyRect.min.y * (map.mStride / 4) +
+                          aDirtyRect.min.x;
+    *probeData = 0;
+    uint32_t* probeDataEnd = (uint32_t*)map.mData +
+                             (aDirtyRect.max.y - 1) * (map.mStride / 4) +
+                             (aDirtyRect.max.x - 1);
+    *probeDataEnd = 0;
+
     mValidRect = gfx::Rect(aValidRect.min.x, aValidRect.min.y,
                            aValidRect.width(), aValidRect.height());
     return true;
@@ -284,9 +297,10 @@ bool RenderCompositorD3D11SWGL::TileD3D11::Map(wr::DeviceIntRect aDirtyRect,
       }
       hr = context->Map(mRenderCompositor->mCurrentStagingTexture, 0,
                         D3D11_MAP_READ_WRITE, 0, &mappedSubresource);
+      MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
     }
   }
-  MOZ_ASSERT(SUCCEEDED(hr));
+  MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
 
   // aData is expected to contain a pointer to the first pixel within the valid
   // rect, so take the mapped resource's data (which covers the full tile size)
@@ -294,6 +308,18 @@ bool RenderCompositorD3D11SWGL::TileD3D11::Map(wr::DeviceIntRect aDirtyRect,
   *aData = (uint8_t*)mappedSubresource.pData +
            aValidRect.min.y * mappedSubresource.RowPitch + aValidRect.min.x * 4;
   *aStride = mappedSubresource.RowPitch;
+
+  // Ensure our mapped data is accessible by writing to the beginning and end
+  // of the dirty region. See bug 171519
+  uint32_t* probeData = (uint32_t*)mappedSubresource.pData +
+                        aDirtyRect.min.y * (mappedSubresource.RowPitch / 4) +
+                        aDirtyRect.min.x;
+  *probeData = 0;
+  uint32_t* probeDataEnd =
+      (uint32_t*)mappedSubresource.pData +
+      (aDirtyRect.max.y - 1) * (mappedSubresource.RowPitch / 4) +
+      (aDirtyRect.max.x - 1);
+  *probeDataEnd = 0;
 
   // Store the new valid rect, so that we can composite only those pixels
   mValidRect = gfx::Rect(aValidRect.min.x, aValidRect.min.y, aValidRect.width(),

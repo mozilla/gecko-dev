@@ -11,6 +11,7 @@
 #include "gc/Policy.h"
 #include "js/GCHashTable.h"
 #include "js/GCVector.h"
+#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty, JS_SetProperty
 #include "js/RootingAPI.h"
 
 #include "jsapi-tests/tests.h"
@@ -154,7 +155,7 @@ BEGIN_TEST(testGCRootedHashMap) {
     buffer[0] = 'a' + i;
     buffer[1] = '\0';
     CHECK(JS_SetProperty(cx, obj, buffer, val));
-    CHECK(map.putNew(obj->as<NativeObject>().lastProperty(), obj));
+    CHECK(map.putNew(obj->shape(), obj));
   }
 
   JS_GC(cx);
@@ -162,7 +163,7 @@ BEGIN_TEST(testGCRootedHashMap) {
 
   for (auto r = map.all(); !r.empty(); r.popFront()) {
     RootedObject obj(cx, r.front().value());
-    CHECK(obj->as<NativeObject>().lastProperty() == r.front().key());
+    CHECK(obj->shape() == r.front().key());
   }
 
   return true;
@@ -184,7 +185,7 @@ BEGIN_TEST_WITH_ATTRIBUTES(testUnrootedGCHashMap, JS_EXPECT_HAZARDS) {
     buffer[0] = 'a' + i;
     buffer[1] = '\0';
     CHECK(JS_SetProperty(cx, obj, buffer, val));
-    CHECK(map.putNew(obj->as<NativeObject>().lastProperty(), obj));
+    CHECK(map.putNew(obj->shape(), obj));
   }
 
   JS_GC(cx);
@@ -220,7 +221,7 @@ static bool FillMyHashMap(JSContext* cx, MutableHandle<MyHashMap> map) {
     if (!JS_SetProperty(cx, obj, buffer, val)) {
       return false;
     }
-    if (!map.putNew(obj->as<NativeObject>().lastProperty(), obj)) {
+    if (!map.putNew(obj->shape(), obj)) {
       return false;
     }
   }
@@ -230,7 +231,7 @@ static bool FillMyHashMap(JSContext* cx, MutableHandle<MyHashMap> map) {
 static bool CheckMyHashMap(JSContext* cx, Handle<MyHashMap> map) {
   for (auto r = map.all(); !r.empty(); r.popFront()) {
     RootedObject obj(cx, r.front().value());
-    if (obj->as<NativeObject>().lastProperty() != r.front().key()) {
+    if (obj->shape() != r.front().key()) {
       return false;
     }
   }
@@ -265,7 +266,7 @@ BEGIN_TEST(testGCRootedVector) {
     buffer[0] = 'a' + i;
     buffer[1] = '\0';
     CHECK(JS_SetProperty(cx, obj, buffer, val));
-    CHECK(shapes.append(obj->as<NativeObject>().lastProperty()));
+    CHECK(shapes.append(obj->shape()));
   }
 
   JS_GC(cx);
@@ -335,7 +336,7 @@ BEGIN_TEST(testTraceableFifo) {
     buffer[0] = 'a' + i;
     buffer[1] = '\0';
     CHECK(JS_SetProperty(cx, obj, buffer, val));
-    CHECK(shapes.pushBack(obj->as<NativeObject>().lastProperty()));
+    CHECK(shapes.pushBack(obj->shape()));
   }
 
   CHECK(shapes.length() == 10);
@@ -373,7 +374,7 @@ static bool FillVector(JSContext* cx, MutableHandle<ShapeVec> shapes) {
     if (!JS_SetProperty(cx, obj, buffer, val)) {
       return false;
     }
-    if (!shapes.append(obj->as<NativeObject>().lastProperty())) {
+    if (!shapes.append(obj->shape())) {
       return false;
     }
   }

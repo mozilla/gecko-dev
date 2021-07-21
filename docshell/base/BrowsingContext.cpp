@@ -693,6 +693,10 @@ void BrowsingContext::SetEmbedderElement(Element* aEmbedder) {
     MOZ_ALWAYS_SUCCEEDS(txn.Commit(this));
   }
 
+  if (XRE_IsParentProcess() && IsTopContent()) {
+    Canonical()->MaybeSetPermanentKey(aEmbedder);
+  }
+
   mEmbedderElement = aEmbedder;
 
   if (mEmbedderElement) {
@@ -794,6 +798,10 @@ void BrowsingContext::Attach(bool aFromIPC, ContentParent* aOriginProcess) {
   if (nsCOMPtr<nsIObserverService> obs = services::GetObserverService()) {
     obs->NotifyWhenScriptSafe(ToSupports(this), "browsing-context-attached",
                               nullptr);
+  }
+
+  if (XRE_IsParentProcess()) {
+    Canonical()->CanonicalAttach();
   }
 }
 
@@ -1584,6 +1592,10 @@ NS_IMETHODIMP BrowsingContext::SetPrivateBrowsing(bool aPrivateBrowsing) {
     if (IsContent()) {
       mOriginAttributes.SyncAttributesWithPrivateBrowsing(aPrivateBrowsing);
     }
+
+    if (XRE_IsParentProcess()) {
+      Canonical()->AdjustPrivateBrowsingCount(aPrivateBrowsing);
+    }
   }
   AssertOriginAttributesMatchPrivateBrowsing();
 
@@ -1956,8 +1968,7 @@ nsresult BrowsingContext::LoadURI(nsDocShellLoadState* aLoadState,
         aLoadState->SetChannelInitialized(true);
       }
 
-      cp->TransmitBlobDataIfBlobURL(aLoadState->URI(),
-                                    aLoadState->TriggeringPrincipal());
+      cp->TransmitBlobDataIfBlobURL(aLoadState->URI());
 
       // Setup a confirmation callback once the content process receives this
       // load. Normally we'd expect a PDocumentChannel actor to have been
@@ -2635,7 +2646,8 @@ void BrowsingContext::DidSet(FieldIndex<IDX_HasMainMediaController>,
 auto BrowsingContext::CanSet(FieldIndex<IDX_AllowJavascript>, bool aValue,
                              ContentParent* aSource) -> CanSetResult {
   if (mozilla::SessionHistoryInParent()) {
-    return XRE_IsParentProcess() && !aSource ? CanSetResult::Allow : CanSetResult::Deny;
+    return XRE_IsParentProcess() && !aSource ? CanSetResult::Allow
+                                             : CanSetResult::Deny;
   }
 
   // Without Session History in Parent, session restore code still needs to set
@@ -2646,7 +2658,6 @@ auto BrowsingContext::CanSet(FieldIndex<IDX_AllowJavascript>, bool aValue,
 void BrowsingContext::DidSet(FieldIndex<IDX_AllowJavascript>, bool aOldValue) {
   RecomputeCanExecuteScripts();
 }
-
 
 void BrowsingContext::RecomputeCanExecuteScripts() {
   const bool old = mCanExecuteScripts;
@@ -3260,6 +3271,17 @@ void BrowsingContext::AddDeprioritizedLoadRunner(nsIRunnable* aRunner) {
   NS_DispatchToCurrentThreadQueue(
       runner.forget(), StaticPrefs::page_load_deprioritization_period(),
       EventQueuePriority::Idle);
+}
+
+bool BrowsingContext::GetOffsetPath(nsTArray<uint32_t>& aPath) const {
+  for (const BrowsingContext* current = this; current && current->GetParent();
+       current = current->GetParent()) {
+    if (current->CreatedDynamically()) {
+      return false;
+    }
+    aPath.AppendElement(current->ChildOffset());
+  }
+  return true;
 }
 
 void BrowsingContext::GetHistoryID(JSContext* aCx,

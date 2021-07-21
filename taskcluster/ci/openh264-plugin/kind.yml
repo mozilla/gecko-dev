@@ -47,9 +47,9 @@ jobs:
             toolchain:
                 - linux64-binutils
                 - linux64-clang
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - linux64-nasm
-                - linux32-sysroot
+                - sysroot-i686-linux-gnu
     linux64/opt:
         attributes:
             build_platform: linux64
@@ -72,9 +72,9 @@ jobs:
             toolchain:
                 - linux64-binutils
                 - linux64-clang
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - linux64-nasm
-                - linux64-sysroot
+                - sysroot-x86_64-linux-gnu
     macosx64/opt:
         attributes:
             build_platform: macosx64
@@ -97,7 +97,7 @@ jobs:
             toolchain:
                 - linux64-cctools-port
                 - linux64-clang
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - linux64-nasm
                 - macosx64-sdk-10.11
     macosx64-aarch64/opt:
@@ -122,7 +122,7 @@ jobs:
             toolchain:
                 - linux64-cctools-port
                 - linux64-clang
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - macosx64-sdk-11.0
     win32/opt:
         attributes:
@@ -146,7 +146,7 @@ jobs:
         fetches:
             toolchain:
                 - win64-clang
-                - win64-dump-syms
+                - win64-dump_syms
                 - win64-nasm
     win64/opt:
         attributes:
@@ -170,7 +170,7 @@ jobs:
         fetches:
             toolchain:
                 - win64-clang
-                - win64-dump-syms
+                - win64-dump_syms
                 - win64-nasm
     win64-aarch64/opt:
         attributes:
@@ -194,4 +194,4 @@ jobs:
         fetches:
             toolchain:
                 - win64-clang
-                - win64-dump-syms
+                - win64-dump_syms

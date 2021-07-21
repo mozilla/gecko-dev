@@ -50,9 +50,6 @@
 // Function stubs for when MOZ_GECKO_PROFILER is not defined.
 
 namespace mozilla {
-// This won't be used, it's just there to allow the empty definition of
-// `profiler_capture_backtrace`.
-class ProfileChunkedBuffer {};
 
 namespace baseprofiler {
 // This won't be used, it's just there to allow the empty definition of
@@ -75,6 +72,11 @@ static inline bool profiler_capture_backtrace_into(
 static inline UniquePtr<ProfileChunkedBuffer> profiler_capture_backtrace() {
   return nullptr;
 }
+
+static inline void profiler_init(void* stackTop) {}
+
+static inline void profiler_shutdown() {}
+
 }  // namespace baseprofiler
 }  // namespace mozilla
 

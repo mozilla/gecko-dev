@@ -84,6 +84,7 @@ RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::Decode(
 
 RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessError(
     HRESULT aError, const char* aReason) {
+  MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
   if (!mRecordedError) {
     SendTelemetry(aError);
     mRecordedError = true;
@@ -107,6 +108,7 @@ RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessError(
 
 RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessDecode(
     MediaRawData* aSample) {
+  MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
   DecodedData results;
   HRESULT hr = mMFTManager->Input(aSample);
   if (hr == MF_E_NOTACCEPTING) {
@@ -120,6 +122,19 @@ RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessDecode(
   if (FAILED(hr)) {
     NS_WARNING("MFTManager rejected sample");
     return ProcessError(hr, "MFTManager::Input");
+  }
+
+  // MFT decoder sometime will return incorrect first output to us, which always
+  // has 0 timestamp, even if the input we gave to MFT has timestamp that is way
+  // later than 0. In order to distinguish that incorrect output with the real
+  // first frame, we set the seek threshold to the first sample time that will
+  // help us ignore any output time that is earlier than the first input time.
+  // Only does that when manager doesn't have seek threshold, because we don't
+  // want to mess up the seeking triggered from the higher level of media stack.
+  if (!mHasGuardedAgainstIncorrectFirstSample &&
+      !mMFTManager->HasSeekThreshold()) {
+    mHasGuardedAgainstIncorrectFirstSample = true;
+    mMFTManager->SetSeekThreshold(aSample->mTime);
   }
 
   if (!mLastTime || aSample->mTime > *mLastTime) {
@@ -140,6 +155,7 @@ RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessDecode(
 
 HRESULT
 WMFMediaDataDecoder::ProcessOutput(DecodedData& aResults) {
+  MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
   RefPtr<MediaData> output;
   HRESULT hr = S_OK;
   while (SUCCEEDED(hr = mMFTManager->Output(mLastStreamOffset, output))) {
@@ -154,12 +170,14 @@ WMFMediaDataDecoder::ProcessOutput(DecodedData& aResults) {
 }
 
 RefPtr<MediaDataDecoder::FlushPromise> WMFMediaDataDecoder::ProcessFlush() {
+  MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
   if (mMFTManager) {
     mMFTManager->Flush();
   }
   mDrainStatus = DrainStatus::DRAINED;
   mSamplesCount = 0;
   mLastTime.reset();
+  mHasGuardedAgainstIncorrectFirstSample = false;
   return FlushPromise::CreateAndResolve(true, __func__);
 }
 
@@ -171,6 +189,7 @@ RefPtr<MediaDataDecoder::FlushPromise> WMFMediaDataDecoder::Flush() {
 }
 
 RefPtr<MediaDataDecoder::DecodePromise> WMFMediaDataDecoder::ProcessDrain() {
+  MOZ_ASSERT(mTaskQueue->IsCurrentThreadIn());
   if (!mMFTManager || mDrainStatus == DrainStatus::DRAINED) {
     return DecodePromise::CreateAndResolve(DecodedData(), __func__);
   }
@@ -246,6 +265,7 @@ void WMFMediaDataDecoder::SetSeekThreshold(const media::TimeUnit& aTime) {
   RefPtr<WMFMediaDataDecoder> self = this;
   nsCOMPtr<nsIRunnable> runnable = NS_NewRunnableFunction(
       "WMFMediaDataDecoder::SetSeekThreshold", [self, aTime]() {
+        MOZ_ASSERT(self->mTaskQueue->IsCurrentThreadIn());
         media::TimeUnit threshold = aTime;
         self->mMFTManager->SetSeekThreshold(threshold);
       });

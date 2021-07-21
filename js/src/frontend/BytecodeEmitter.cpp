@@ -72,6 +72,7 @@
 #include "vm/JSFunction.h"          // JSFunction,
 #include "vm/JSScript.h"  // JSScript, ScriptSourceObject, MemberInitializers, BaseScript
 #include "vm/Opcodes.h"        // JSOp, JSOpLength_*
+#include "vm/PropMap.h"        // SharedPropMap::MaxPropsForNonDictionary
 #include "vm/Scope.h"          // GetScopeDataTrailingNames
 #include "vm/SharedStencil.h"  // ScopeNote
 #include "vm/ThrowMsgKind.h"   // ThrowMsgKind
@@ -3988,7 +3989,7 @@ bool BytecodeEmitter::emitDestructuringOpsObject(ListNode* pattern,
 
 static bool IsDestructuringRestExclusionSetObjLiteralCompatible(
     ListNode* pattern) {
-  int32_t propCount = 0;
+  uint32_t propCount = 0;
   for (ParseNode* member : pattern->contents()) {
     if (member->isKind(ParseNodeKind::Spread)) {
       MOZ_ASSERT(!member->pn_next, "unexpected trailing element after spread");
@@ -4015,7 +4016,7 @@ static bool IsDestructuringRestExclusionSetObjLiteralCompatible(
     return false;
   }
 
-  if (propCount >= PropertyTree::MAX_HEIGHT) {
+  if (propCount > SharedPropMap::MaxPropsForNonDictionary) {
     // JSOp::NewObject cannot accept dictionary-mode objects.
     return false;
   }
@@ -7628,6 +7629,47 @@ bool BytecodeEmitter::emitSelfHostedGetBuiltinPrototype(BinaryNode* callNode) {
       callNode, /* isConstructor = */ false);
 }
 
+JS::SymbolCode ParserAtomToSymbolCode(TaggedParserAtomIndex atom) {
+  // NOTE: This is a linear search, but the set of entries is quite small and
+  // this is only used for initial self-hosted parse.
+#define MATCH_WELL_KNOWN_SYMBOL(NAME)                     \
+  if (atom == TaggedParserAtomIndex::WellKnown::NAME()) { \
+    return JS::SymbolCode::NAME;                          \
+  }
+  JS_FOR_EACH_WELL_KNOWN_SYMBOL(MATCH_WELL_KNOWN_SYMBOL)
+#undef MATCH_WELL_KNOWN_SYMBOL
+
+  return JS::SymbolCode::Limit;
+}
+
+bool BytecodeEmitter::emitSelfHostedGetBuiltinSymbol(BinaryNode* callNode) {
+  ListNode* argsList = &callNode->right()->as<ListNode>();
+
+  if (argsList->count() != 1) {
+    reportNeedMoreArgsError(callNode, "GetBuiltinSymbol", "1", "", argsList);
+    return false;
+  }
+
+  ParseNode* argNode = argsList->head();
+
+  if (!argNode->isKind(ParseNodeKind::StringExpr)) {
+    reportError(callNode, JSMSG_UNEXPECTED_TYPE, "built-in name",
+                "not a string constant");
+    return false;
+  }
+
+  auto name = argNode->as<NameNode>().atom();
+
+  JS::SymbolCode code = ParserAtomToSymbolCode(name);
+  if (code == JS::SymbolCode::Limit) {
+    reportError(callNode, JSMSG_UNEXPECTED_TYPE, "built-in name",
+                "not a valid built-in");
+    return false;
+  }
+
+  return emit2(JSOp::Symbol, uint8_t(code));
+}
+
 #ifdef DEBUG
 bool BytecodeEmitter::checkSelfHostedExpectedTopLevel(BinaryNode* callNode,
                                                       ParseNode* node) {
@@ -7661,7 +7703,7 @@ bool BytecodeEmitter::emitSelfHostedSetIsInlinableLargeFunction(
   ListNode* argsList = &callNode->right()->as<ListNode>();
 
   if (argsList->count() != 1) {
-    reportNeedMoreArgsError(callNode, "_SetIsInlinableLargeFunction", "1", "",
+    reportNeedMoreArgsError(callNode, "SetIsInlinableLargeFunction", "1", "",
                             argsList);
     return false;
   }
@@ -7683,7 +7725,7 @@ bool BytecodeEmitter::emitSelfHostedSetCanonicalName(BinaryNode* callNode) {
   ListNode* argsList = &callNode->right()->as<ListNode>();
 
   if (argsList->count() != 2) {
-    reportNeedMoreArgsError(callNode, "_SetCanonicalName", "2", "s", argsList);
+    reportNeedMoreArgsError(callNode, "SetCanonicalName", "2", "s", argsList);
     return false;
   }
 
@@ -8213,6 +8255,9 @@ bool BytecodeEmitter::emitCallOrNew(
     }
     if (calleeName == TaggedParserAtomIndex::WellKnown::GetBuiltinPrototype()) {
       return emitSelfHostedGetBuiltinPrototype(callNode);
+    }
+    if (calleeName == TaggedParserAtomIndex::WellKnown::GetBuiltinSymbol()) {
+      return emitSelfHostedGetBuiltinSymbol(callNode);
     }
     if (calleeName ==
         TaggedParserAtomIndex::WellKnown::SetIsInlinableLargeFunction()) {
@@ -8868,7 +8913,7 @@ void BytecodeEmitter::isPropertyListObjLiteralCompatible(ListNode* obj,
                                                          bool* withoutValues) {
   bool keysOK = true;
   bool valuesOK = true;
-  int propCount = 0;
+  uint32_t propCount = 0;
 
   for (ParseNode* propdef : obj->contents()) {
     if (!propdef->is<BinaryNode>()) {
@@ -8923,7 +8968,7 @@ void BytecodeEmitter::isPropertyListObjLiteralCompatible(ListNode* obj,
     }
   }
 
-  if (propCount >= PropertyTree::MAX_HEIGHT) {
+  if (propCount > SharedPropMap::MaxPropsForNonDictionary) {
     // JSOp::NewObject cannot accept dictionary-mode objects.
     keysOK = false;
   }

@@ -550,8 +550,11 @@ class ServerProc(object):
                 logger.critical(traceback.format_exc())
                 raise
 
-    def stop(self, timeout=None):
-        self.stop_flag.set()
+    def request_shutdown(self):
+        if self.is_alive():
+            self.stop_flag.set()
+
+    def wait(self, timeout=None):
         self.proc.join(timeout)
 
     def is_alive(self):
@@ -595,7 +598,8 @@ def check_subdomains(logger, config, routes, mp_context, log_handlers):
             logger.critical("Failed probing domain {}. {}".format(domain, EDIT_HOSTS_HELP))
             sys.exit(1)
 
-    wrapper.stop()
+    wrapper.request_shutdown()
+    wrapper.wait()
 
 
 def make_hosts_file(config, host):
@@ -633,12 +637,19 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
         for port in ports:
             if port is None:
                 continue
-            init_func = {"http": start_http_server,
-                         "https": start_https_server,
-                         "h2": start_http2_server,
-                         "ws": start_ws_server,
-                         "wss": start_wss_server,
-                         "quic-transport": start_quic_transport_server}[scheme]
+
+            init_func = {
+                "http": start_http_server,
+                "http-private": start_http_server,
+                "http-public": start_http_server,
+                "https": start_https_server,
+                "https-private": start_https_server,
+                "https-public": start_https_server,
+                "h2": start_http2_server,
+                "ws": start_ws_server,
+                "wss": start_wss_server,
+                "quic-transport": start_quic_transport_server,
+            }[scheme]
 
             server_proc = ServerProc(mp_context, scheme=scheme)
             server_proc.start(init_func, host, port, paths, routes, bind_address,
@@ -901,7 +912,11 @@ class ConfigBuilder(config.ConfigBuilder):
         "server_host": None,
         "ports": {
             "http": [8000, "auto"],
+            "http-private": ["auto"],
+            "http-public": ["auto"],
             "https": [8443, 8444],
+            "https-private": ["auto"],
+            "https-public": ["auto"],
             "ws": ["auto"],
             "wss": ["auto"],
         },
@@ -1118,14 +1133,15 @@ def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, log_handl
 
             failed_subproc = 0
             for server in iter_servers(servers):
-                subproc = server.proc
-                if subproc.is_alive():
-                    logger.info('Status of subprocess "%s": running', subproc.name)
-                    server.stop(timeout=1)
+                logger.info('Status of subprocess "%s": running', server.proc.name)
+                server.request_shutdown()
 
+            for server in iter_servers(servers):
+                server.wait(timeout=1)
                 if server.proc.exitcode == 0:
-                    logger.info('Status of subprocess "%s": exited correctly', subproc.name)
+                    logger.info('Status of subprocess "%s": exited correctly', server.proc.name)
                 else:
+                    subproc = server.proc
                     logger.warning('Status of subprocess "%s": failed. Exit with non-zero status: %d',
                                    subproc.name, subproc.exitcode)
                     failed_subproc += 1

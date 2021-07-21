@@ -206,7 +206,9 @@ class MOZ_RAII AutoRestoreEditorState final {
   MOZ_CAN_RUN_SCRIPT explicit AutoRestoreEditorState(TextEditor* aTextEditor)
       : mTextEditor(aTextEditor),
         mSavedFlags(mTextEditor->Flags()),
-        mSavedMaxLength(mTextEditor->MaxTextLength()) {
+        mSavedMaxLength(mTextEditor->MaxTextLength()),
+        mSavedEchoingPasswordPrevented(
+            mTextEditor->EchoingPasswordPrevented()) {
     MOZ_ASSERT(mTextEditor);
 
     // EditorBase::SetFlags() is a virtual method.  Even though it does nothing
@@ -214,16 +216,19 @@ class MOZ_RAII AutoRestoreEditorState final {
     // appearing the method in profile.  So, this class should check if it's
     // necessary to call.
     uint32_t flags = mSavedFlags;
-    flags &= ~(nsIEditor::eEditorReadonlyMask);
-    flags |= nsIEditor::eEditorDontEchoPassword;
+    flags &= ~nsIEditor::eEditorReadonlyMask;
     if (mSavedFlags != flags) {
       // It's aTextEditor and whose lifetime must be guaranteed by the caller.
       MOZ_KnownLive(mTextEditor)->SetFlags(flags);
     }
+    mTextEditor->PreventToEchoPassword();
     mTextEditor->SetMaxTextLength(-1);
   }
 
   MOZ_CAN_RUN_SCRIPT ~AutoRestoreEditorState() {
+    if (!mSavedEchoingPasswordPrevented) {
+      mTextEditor->AllowToEchoPassword();
+    }
     mTextEditor->SetMaxTextLength(mSavedMaxLength);
     // mTextEditor's lifetime must be guaranteed by owner of the instance
     // since the constructor is marked as `MOZ_CAN_RUN_SCRIPT` and this is
@@ -235,6 +240,7 @@ class MOZ_RAII AutoRestoreEditorState final {
   TextEditor* mTextEditor;
   uint32_t mSavedFlags;
   int32_t mSavedMaxLength;
+  bool mSavedEchoingPasswordPrevented;
 };
 
 /*****************************************************************************
@@ -1647,9 +1653,11 @@ nsresult TextControlState::BindToFrame(nsTextControlFrame* aFrame) {
 
 struct MOZ_STACK_CLASS PreDestroyer {
   void Init(TextEditor* aTextEditor) { mTextEditor = aTextEditor; }
-  MOZ_CAN_RUN_SCRIPT ~PreDestroyer() {
+  ~PreDestroyer() {
     if (mTextEditor) {
-      MOZ_KnownLive(mTextEditor)->PreDestroy(true);
+      // In this case, we don't need to restore the unmasked range of password
+      // editor.
+      UniquePtr<PasswordMaskData> passwordMaskData = mTextEditor->PreDestroy();
     }
   }
   void Swap(RefPtr<TextEditor>& aTextEditor) {
@@ -1707,16 +1715,12 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
     editorFlags |= nsIEditor::eEditorPasswordMask;
   }
 
-  // All nsTextControlFrames are widgets
-  editorFlags |= nsIEditor::eEditorWidgetMask;
-
   // Spell check is diabled at creation time. It is enabled once
   // the editor comes into focus.
   editorFlags |= nsIEditor::eEditorSkipSpellCheck;
 
   bool shouldInitializeEditor = false;
   RefPtr<TextEditor> newTextEditor;  // the editor that we might create
-  nsresult rv = NS_OK;
   PreDestroyer preDestroyer;
   if (!mTextEditor) {
     shouldInitializeEditor = true;
@@ -1727,7 +1731,7 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
 
     // Make sure we clear out the non-breaking space before we initialize the
     // editor
-    rv = mBoundFrame->UpdateValueDisplay(true, true);
+    nsresult rv = mBoundFrame->UpdateValueDisplay(true, true);
     if (NS_FAILED(rv)) {
       NS_WARNING("nsTextControlFrame::UpdateValueDisplay() failed");
       return rv;
@@ -1735,7 +1739,8 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
   } else {
     if (aValue || !mEditorInitialized) {
       // Set the correct value in the root node
-      rv = mBoundFrame->UpdateValueDisplay(true, !mEditorInitialized, aValue);
+      nsresult rv =
+          mBoundFrame->UpdateValueDisplay(true, !mEditorInitialized, aValue);
       if (NS_FAILED(rv)) {
         NS_WARNING("nsTextControlFrame::UpdateValueDisplay() failed");
         return rv;
@@ -1781,10 +1786,24 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
     // already does the relevant security checks.
     AutoNoJSAPI nojsapi;
 
-    RefPtr<Element> rootElement = GetRootNode();
-    RefPtr<TextInputSelectionController> selectionController = mSelCon;
-    rv = newTextEditor->Init(*doc, rootElement, selectionController,
-                             editorFlags, defaultValue);
+    RefPtr<Element> anonymousDivElement = GetRootNode();
+    if (NS_WARN_IF(!anonymousDivElement) || NS_WARN_IF(!mSelCon)) {
+      return NS_ERROR_FAILURE;
+    }
+    OwningNonNull<TextInputSelectionController> selectionController(*mSelCon);
+    UniquePtr<PasswordMaskData> passwordMaskData;
+    if (editorFlags & nsIEditor::eEditorPasswordMask) {
+      if (mPasswordMaskData) {
+        passwordMaskData = std::move(mPasswordMaskData);
+      } else {
+        passwordMaskData = MakeUnique<PasswordMaskData>();
+      }
+    } else {
+      mPasswordMaskData = nullptr;
+    }
+    nsresult rv =
+        newTextEditor->Init(*doc, *anonymousDivElement, selectionController,
+                            editorFlags, std::move(passwordMaskData));
     if (NS_FAILED(rv)) {
       NS_WARNING("TextEditor::Init() failed");
       return rv;
@@ -1793,11 +1812,12 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
 
   // Initialize the controller for the editor
 
+  nsresult rv = NS_OK;
   if (!SuppressEventHandlers(presContext)) {
     nsCOMPtr<nsIControllers> controllers;
     if (HTMLInputElement* inputElement =
             HTMLInputElement::FromNodeOrNull(mTextCtrlElement)) {
-      rv = inputElement->GetControllers(getter_AddRefs(controllers));
+      nsresult rv = inputElement->GetControllers(getter_AddRefs(controllers));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
@@ -1808,13 +1828,16 @@ nsresult TextControlState::PrepareEditor(const nsAString* aValue) {
         return NS_ERROR_FAILURE;
       }
 
-      rv = textAreaElement->GetControllers(getter_AddRefs(controllers));
+      nsresult rv =
+          textAreaElement->GetControllers(getter_AddRefs(controllers));
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
     }
 
     if (controllers) {
+      // XXX Oddly, nsresult value is overwritten in the following loop, and
+      //     only the last result or `found` decides the value.
       uint32_t numControllers;
       bool found = false;
       rv = controllers->GetControllerCount(&numControllers);
@@ -2081,9 +2104,9 @@ void TextControlState::SetSelectionRange(
   // XXX(krosylight): Shouldn't it fire before select event?
   // Currently Gecko and Blink both fire selectionchange after select.
   if (IsSelectionCached() &&
-      StaticPrefs::dom_select_events_textcontrols_enabled()) {
+      StaticPrefs::dom_select_events_textcontrols_selectionchange_enabled()) {
     asyncDispatcher = new AsyncEventDispatcher(
-        mTextCtrlElement, eSelectionChange, CanBubble::eNo);
+        mTextCtrlElement, eSelectionChange, CanBubble::eYes);
     asyncDispatcher->PostDOMEvent();
   }
 }
@@ -2323,8 +2346,10 @@ void TextControlState::DestroyEditor() {
     //      changes the DOM tree or selection so that it's safe to call
     //      PreDestroy() here even while we're handling actions with
     //      mTextEditor.
+    MOZ_ASSERT(!mPasswordMaskData);
     RefPtr<TextEditor> textEditor = mTextEditor;
-    textEditor->PreDestroy(true);
+    mPasswordMaskData = textEditor->PreDestroy();
+    MOZ_ASSERT_IF(mPasswordMaskData, !mPasswordMaskData->mTimer);
     mEditorInitialized = false;
   }
 }
@@ -2557,6 +2582,17 @@ bool TextControlState::SetValue(const nsAString& aValue,
     // GetValue doesn't return current text frame's content during committing.
     // So we cannot trust this old value
     aOldValue = nullptr;
+  }
+
+  if (mPasswordMaskData) {
+    if (mHandlingState &&
+        mHandlingState->Is(TextControlAction::UnbindFromFrame)) {
+      // If we're called by UnbindFromFrame, we shouldn't reset unmasked range.
+    } else {
+      // Otherwise, we should mask the new password, even if it's same value
+      // since the same value may be one for different web app's.
+      mPasswordMaskData->Reset();
+    }
   }
 
   const bool wasHandlingSetValue =

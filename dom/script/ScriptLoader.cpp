@@ -21,6 +21,7 @@
 #include "js/MemoryFunctions.h"
 #include "js/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
 #include "js/OffThreadScriptCompilation.h"
+#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
 #include "js/Realm.h"
 #include "js/SourceText.h"
 #include "js/Utility.h"
@@ -118,8 +119,8 @@ NS_IMPL_ISUPPORTS(AsyncCompileShutdownObserver, nsIObserver)
 
 void AsyncCompileShutdownObserver::OnShutdown() {
   if (mScriptLoader) {
-    mScriptLoader->Shutdown();
-    Unregister();
+    mScriptLoader->Destroy();
+    MOZ_ASSERT(!mScriptLoader);
   }
 }
 
@@ -211,7 +212,8 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTION(ScriptLoader, mNonAsyncExternalScriptInsertedRequests,
                          mLoadingAsyncRequests, mLoadedAsyncRequests,
-                         mDeferRequests, mXSLTRequests, mDynamicImportRequests,
+                         mOffThreadCompilingRequests, mDeferRequests,
+                         mXSLTRequests, mDynamicImportRequests,
                          mParserBlockingRequest, mBytecodeEncodingQueue,
                          mPreloads, mPendingChildLoaders, mFetchedModules,
                          mFetchingModules)
@@ -875,6 +877,10 @@ static nsresult ResolveRequestedModules(ModuleLoadRequest* aRequest,
 void ScriptLoader::StartFetchingModuleDependencies(
     ModuleLoadRequest* aRequest) {
   LOG(("ScriptLoadRequest (%p): Start fetching module dependencies", aRequest));
+
+  if (aRequest->IsCanceled()) {
+    return;
+  }
 
   MOZ_ASSERT(aRequest->mModuleScript);
   MOZ_ASSERT(!aRequest->mModuleScript->HasParseError());
@@ -1944,6 +1950,13 @@ bool ScriptLoader::ProcessExternalScript(nsIScriptElement* aElement,
     request->SetScriptMode(aElement->GetScriptDeferred(),
                            aElement->GetScriptAsync(), false);
 
+    // The request will be added to another list or set as
+    // mParserBlockingRequest below.
+    if (request->mInCompilingList) {
+      mOffThreadCompilingRequests.Remove(request);
+      request->mInCompilingList = false;
+    }
+
     AccumulateCategorical(LABELS_DOM_SCRIPT_PRELOAD_RESULT::Used);
   } else {
     // No usable preload found.
@@ -2305,11 +2318,6 @@ class NotifyOffThreadScriptLoadCompletedRunnable : public Runnable {
 
 } /* anonymous namespace */
 
-void ScriptLoader::Shutdown() {
-  CancelScriptLoadRequests();
-  GiveUpBytecodeEncoding();
-}
-
 void ScriptLoader::CancelScriptLoadRequests() {
   // Cancel all requests that have not been executed.
   if (mParserBlockingRequest) {
@@ -2350,13 +2358,24 @@ void ScriptLoader::CancelScriptLoadRequests() {
   for (size_t i = 0; i < mPreloads.Length(); i++) {
     mPreloads[i].mRequest->Cancel();
   }
+
+  mOffThreadCompilingRequests.CancelRequestsAndClear();
 }
 
 nsresult ScriptLoader::ProcessOffThreadRequest(ScriptLoadRequest* aRequest) {
   MOZ_ASSERT(aRequest->mProgress == ScriptLoadRequest::Progress::eCompiling);
   MOZ_ASSERT(!aRequest->mWasCompiledOMT);
 
+  if (aRequest->IsCanceled()) {
+    return NS_OK;
+  }
+
   aRequest->mWasCompiledOMT = true;
+
+  if (aRequest->mInCompilingList) {
+    mOffThreadCompilingRequests.Remove(aRequest);
+    aRequest->mInCompilingList = false;
+  }
 
   if (aRequest->IsModuleRequest()) {
     MOZ_ASSERT(aRequest->mOffThreadToken);
@@ -2416,7 +2435,6 @@ NotifyOffThreadScriptLoadCompletedRunnable::
 
 static void GetProfilerLabelForRequest(ScriptLoadRequest* aRequest,
                                        nsACString& aOutString) {
-#ifdef MOZ_GECKO_PROFILER
   if (!profiler_is_active()) {
     aOutString.Append("<script> element");
     return;
@@ -2452,9 +2470,6 @@ static void GetProfilerLabelForRequest(ScriptLoadRequest* aRequest,
     aOutString.Append(url);
     aOutString.Append("\">");
   }
-#else
-  aOutString.Append("<script> element");
-#endif
 }
 
 NS_IMETHODIMP
@@ -2468,7 +2483,6 @@ NotifyOffThreadScriptLoadCompletedRunnable::Run() {
   // Runnable pointer should have been cleared in the offthread callback.
   MOZ_ASSERT(!request->mRunnable);
 
-#ifdef MOZ_GECKO_PROFILER
   if (profiler_is_active()) {
     ProfilerString8View scriptSourceString;
     if (request->IsTextSource()) {
@@ -2486,7 +2500,6 @@ NotifyOffThreadScriptLoadCompletedRunnable::Run() {
                                request->mOffThreadParseStopTime),
         profilerLabelString);
   }
-#endif
 
   RefPtr<ScriptLoader> loader = std::move(mLoader);
 
@@ -2504,10 +2517,7 @@ static void OffThreadScriptLoaderCallback(JS::OffThreadToken* aToken,
       static_cast<NotifyOffThreadScriptLoadCompletedRunnable*>(aCallbackData));
   MOZ_ASSERT(aRunnable.get() == aRunnable->GetScriptLoadRequest()->mRunnable);
 
-#ifdef MOZ_GECKO_PROFILER
-  aRunnable->GetScriptLoadRequest()->mOffThreadParseStopTime =
-      TimeStamp::NowUnfuzzed();
-#endif
+  aRunnable->GetScriptLoadRequest()->mOffThreadParseStopTime = TimeStamp::Now();
 
   LogRunnable::Run run(aRunnable);
 
@@ -2583,9 +2593,7 @@ nsresult ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest,
   // OffThreadScriptLoaderCallback were we will emulate run.
   LogRunnable::LogDispatch(runnable);
 
-#ifdef MOZ_GECKO_PROFILER
-  aRequest->mOffThreadParseStartTime = TimeStamp::NowUnfuzzed();
-#endif
+  aRequest->mOffThreadParseStartTime = TimeStamp::Now();
 
   // Save the runnable so it can be properly cleared during cancellation.
   aRequest->mRunnable = runnable.get();
@@ -2622,6 +2630,10 @@ nsresult ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest,
     nsresult rv = GetScriptSource(cx, aRequest, &maybeSource);
     NS_ENSURE_SUCCESS(rv, rv);
 
+    if (StaticPrefs::dom_script_loader_full_parse()) {
+      options.setForceFullParse();
+    }
+
     aRequest->mOffThreadToken =
         maybeSource.constructed<SourceText<char16_t>>()
             ? JS::CompileOffThread(
@@ -2641,6 +2653,17 @@ nsresult ScriptLoader::AttemptAsyncScriptCompile(ScriptLoadRequest* aRequest,
   // Once the compilation is finished, an event would be added to the event loop
   // to call ScriptLoader::ProcessOffThreadRequest with the same request.
   aRequest->mProgress = ScriptLoadRequest::Progress::eCompiling;
+
+  // Requests that are not tracked elsewhere are added to a list while they are
+  // being compiled off-thread, so we can cancel the compilation later if
+  // necessary.
+  //
+  // Non-top-level modules not tracked because these are cancelled from their
+  // importing module.
+  if (aRequest->IsTopLevel() && !aRequest->isInList()) {
+    mOffThreadCompilingRequests.AppendElement(aRequest);
+    aRequest->mInCompilingList = true;
+  }
 
   *aCouldCompileOut = true;
   Unused << runnable.forget();
@@ -3131,10 +3154,8 @@ nsresult ScriptLoader::EvaluateScript(ScriptLoadRequest* aRequest) {
     globalObject = scriptGlobal;
   }
 
-#ifdef MOZ_GECKO_PROFILER
   nsCOMPtr<nsPIDOMWindowOuter> window = mDocument->GetWindow();
   nsIDocShell* docShell = window ? window->GetDocShell() : nullptr;
-#endif
   nsAutoCString profilerLabelString;
   GetProfilerLabelForRequest(aRequest, profilerLabelString);
 
@@ -3404,12 +3425,12 @@ void ScriptLoader::LoadEventFired() {
 }
 
 void ScriptLoader::Destroy() {
-  // Off thread compilations will be canceled in ProcessRequest after the inner
-  // window is removed in Document::Destroy()
   if (mShutdownObserver) {
     mShutdownObserver->Unregister();
     mShutdownObserver = nullptr;
   }
+
+  CancelScriptLoadRequests();
   GiveUpBytecodeEncoding();
 }
 
@@ -3610,6 +3631,7 @@ bool ScriptLoader::HasPendingRequests() {
          !mNonAsyncExternalScriptInsertedRequests.isEmpty() ||
          !mDeferRequests.isEmpty() || !mDynamicImportRequests.isEmpty() ||
          !mPendingChildLoaders.IsEmpty();
+  // mOffThreadCompilingRequests are already being processed.
 }
 
 void ScriptLoader::ProcessPendingRequestsAsync() {
@@ -4312,11 +4334,11 @@ void ScriptLoader::ParsingComplete(bool aTerminated) {
   if (!aTerminated) {
     return;
   }
-  mDeferRequests.Clear();
-  mLoadingAsyncRequests.Clear();
-  mLoadedAsyncRequests.Clear();
-  mNonAsyncExternalScriptInsertedRequests.Clear();
-  mXSLTRequests.Clear();
+  mDeferRequests.CancelRequestsAndClear();
+  mLoadingAsyncRequests.CancelRequestsAndClear();
+  mLoadedAsyncRequests.CancelRequestsAndClear();
+  mNonAsyncExternalScriptInsertedRequests.CancelRequestsAndClear();
+  mXSLTRequests.CancelRequestsAndClear();
 
   for (ScriptLoadRequest* req = mDynamicImportRequests.getFirst(); req;
        req = req->getNext()) {
@@ -4326,7 +4348,7 @@ void ScriptLoader::ParsingComplete(bool aTerminated) {
     // from mDynamicImportRequests.
     FinishDynamicImportAndReject(req->AsModuleRequest(), NS_ERROR_ABORT);
   }
-  mDynamicImportRequests.Clear();
+  mDynamicImportRequests.CancelRequestsAndClear();
 
   if (mParserBlockingRequest) {
     mParserBlockingRequest->Cancel();
@@ -4410,6 +4432,7 @@ void ScriptLoader::PreloadURI(nsIURI* aURI, const nsAString& aCharset,
 void ScriptLoader::AddDeferRequest(ScriptLoadRequest* aRequest) {
   MOZ_ASSERT(aRequest->IsDeferredScript());
   MOZ_ASSERT(!aRequest->mInDeferList && !aRequest->mInAsyncList);
+  MOZ_ASSERT(!aRequest->mInCompilingList);
 
   aRequest->mInDeferList = true;
   mDeferRequests.AppendElement(aRequest);
@@ -4424,6 +4447,7 @@ void ScriptLoader::AddDeferRequest(ScriptLoadRequest* aRequest) {
 void ScriptLoader::AddAsyncRequest(ScriptLoadRequest* aRequest) {
   MOZ_ASSERT(aRequest->IsAsyncScript());
   MOZ_ASSERT(!aRequest->mInDeferList && !aRequest->mInAsyncList);
+  MOZ_ASSERT(!aRequest->mInCompilingList);
 
   aRequest->mInAsyncList = true;
   if (aRequest->IsReadyToRun()) {

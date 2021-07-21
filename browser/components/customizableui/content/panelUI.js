@@ -95,17 +95,6 @@ const PanelUI = {
       window.addEventListener("MozDOMFullscreen:Exited", this);
     }
 
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "protonAppMenuEnabled",
-      "browser.proton.enabled",
-      false
-    );
-
-    if (this.protonAppMenuEnabled) {
-      this.multiView.setAttribute("mainViewId", "appMenu-protonMainView");
-    }
-
     window.addEventListener("activate", this);
     CustomizableUI.addListener(this);
 
@@ -192,9 +181,6 @@ const PanelUI = {
     this.menuButton.removeEventListener("mousedown", this);
     this.menuButton.removeEventListener("keypress", this);
     CustomizableUI.removeListener(this);
-    if (this.libraryView) {
-      this.libraryView.removeEventListener("ViewShowing", this);
-    }
     if (this.whatsNewPanel) {
       this.whatsNewPanel.removeEventListener("ViewShowing", this);
     }
@@ -334,8 +320,6 @@ const PanelUI = {
       case "ViewShowing":
         if (aEvent.target == this.whatsNewPanel) {
           this.onWhatsNewPanelShowing();
-        } else if (aEvent.target == this.libraryView) {
-          this.onLibraryShowing(this.libraryView);
         }
         break;
     }
@@ -467,7 +451,6 @@ const PanelUI = {
       return;
     }
 
-    this.ensureLibraryInitialized(viewNode);
     this.ensureWhatsNewInitialized(viewNode);
     this.ensurePanicViewInitialized(viewNode);
 
@@ -492,11 +475,6 @@ const PanelUI = {
       document
         .getElementById(CustomizableUI.AREA_NAVBAR)
         .appendChild(tempPanel);
-      // If the view has a footer, set a convenience class on the panel.
-      tempPanel.classList.toggle(
-        "cui-widget-panelWithFooter",
-        viewNode.querySelector(".panel-subview-footer")
-      );
 
       let multiView = document.createXULElement("panelmultiview");
       multiView.setAttribute("id", "customizationui-widget-multiview");
@@ -547,24 +525,6 @@ const PanelUI = {
   },
 
   /**
-   * Sets up the event listener for when the Library view is shown.
-   *
-   * @param {panelview} viewNode The library view.
-   */
-  ensureLibraryInitialized(viewNode) {
-    if (viewNode.id != "appMenu-libraryView" || viewNode._initialized) {
-      return;
-    }
-
-    if (!this.libraryView) {
-      this.libraryView = viewNode;
-    }
-
-    viewNode._initialized = true;
-    viewNode.addEventListener("ViewShowing", this);
-  },
-
-  /**
    * Sets up the event listener for when the What's New panel is shown.
    *
    * @param {panelview} panelView The What's New panelview.
@@ -609,19 +569,6 @@ const PanelUI = {
       document,
       "PanelUI-whatsNew-message-container"
     );
-  },
-
-  onLibraryShowing(libraryPanel) {
-    // While we support this panel for both Proton and non-Proton versions
-    // of the AppMenu, we only want to show icons for the non-Proton
-    // version. When Proton ships and we remove the non-Proton variant,
-    // we can remove the subviewbutton-iconic classes from the markup.
-    if (PanelUI.protonAppMenuEnabled) {
-      let toolbarbuttons = libraryPanel.querySelectorAll("toolbarbutton");
-      for (let toolbarbutton of toolbarbuttons) {
-        toolbarbutton.classList.remove("subviewbutton-iconic");
-      }
-    }
   },
 
   /**
@@ -733,14 +680,6 @@ const PanelUI = {
       }
 
       button.classList.add("subviewbutton");
-
-      // While we support this panel for both Proton and non-Proton versions
-      // of the AppMenu, we only want to show icons for the non-Proton
-      // version. When Proton ships and we remove the non-Proton variant,
-      // we can remove the subviewbutton-iconic classes.
-      if (!PanelUI.protonAppMenuEnabled) {
-        button.classList.add("subviewbutton-iconic");
-      }
       fragment.appendChild(button);
     }
 
@@ -889,9 +828,7 @@ const PanelUI = {
     if (!this._mainView) {
       this._mainView = PanelMultiView.getViewNode(
         document,
-        this.protonAppMenuEnabled
-          ? "appMenu-protonMainView"
-          : "appMenu-mainView"
+        "appMenu-protonMainView"
       );
     }
     return this._mainView;
@@ -899,12 +836,9 @@ const PanelUI = {
 
   get addonNotificationContainer() {
     if (!this._addonNotificationContainer) {
-      let bannerID = this.protonAppMenuEnabled
-        ? "appMenu-proton-addon-banners"
-        : "appMenu-addon-banners";
       this._addonNotificationContainer = PanelMultiView.getViewNode(
         document,
-        bannerID
+        "appMenu-proton-addon-banners"
       );
     }
 

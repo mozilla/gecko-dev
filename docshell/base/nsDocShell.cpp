@@ -273,9 +273,6 @@ static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 // Number of documents currently loading
 static int32_t gNumberOfDocumentsLoading = 0;
 
-// Global count of docshells with the private attribute set
-static uint32_t gNumberOfPrivateDocShells = 0;
-
 static mozilla::LazyLogModule gCharsetMenuLog("CharsetMenu");
 
 #define LOGCHARSETMENU(args) \
@@ -304,33 +301,6 @@ static void FavorPerformanceHint(bool aPerfOverStarvation) {
         aPerfOverStarvation,
         Preferences::GetUint("docshell.event_starvation_delay_hint",
                              NS_EVENT_STARVATION_DELAY_HINT));
-  }
-}
-
-static void IncreasePrivateDocShellCount() {
-  gNumberOfPrivateDocShells++;
-  if (gNumberOfPrivateDocShells > 1 || !XRE_IsContentProcess()) {
-    return;
-  }
-
-  mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
-  cc->SendPrivateDocShellsExist(true);
-}
-
-static void DecreasePrivateDocShellCount() {
-  MOZ_ASSERT(gNumberOfPrivateDocShells > 0);
-  gNumberOfPrivateDocShells--;
-  if (!gNumberOfPrivateDocShells) {
-    if (XRE_IsContentProcess()) {
-      dom::ContentChild* cc = dom::ContentChild::GetSingleton();
-      cc->SendPrivateDocShellsExist(false);
-      return;
-    }
-
-    nsCOMPtr<nsIObserverService> obsvc = services::GetObserverService();
-    if (obsvc) {
-      obsvc->NotifyObservers(nullptr, "last-pb-context-exited", nullptr);
-    }
   }
 }
 
@@ -370,7 +340,6 @@ nsDocShell::nsDocShell(BrowsingContext* aBrowsingContext,
     : nsDocLoader(true),
       mContentWindowID(aContentWindowID),
       mBrowsingContext(aBrowsingContext),
-      mForcedCharset(nullptr),
       mParentCharset(nullptr),
       mTreeOwner(nullptr),
       mScrollbarPref(ScrollbarPreference::Auto),
@@ -412,7 +381,6 @@ nsDocShell::nsDocShell(BrowsingContext* aBrowsingContext,
       mIsBeingDestroyed(false),
       mIsExecutingOnLoadHandler(false),
       mSavingOldViewer(false),
-      mAffectPrivateSessionLifetime(true),
       mInvisible(false),
       mHasLoadedNonBlankURI(false),
       mBlankTiming(false),
@@ -1527,7 +1495,7 @@ nsDocShell::GetCharset(nsACString& aCharset) {
 }
 
 NS_IMETHODIMP
-nsDocShell::GatherCharsetMenuTelemetry() {
+nsDocShell::ForceEncodingDetection() {
   nsCOMPtr<nsIContentViewer> viewer;
   GetContentViewer(getter_AddRefs(viewer));
   if (!viewer) {
@@ -1539,15 +1507,11 @@ nsDocShell::GatherCharsetMenuTelemetry() {
     return NS_OK;
   }
 
-  if (mForcedAutodetection) {
-    LOGCHARSETMENU(("ENCODING_OVERRIDE_USED_AUTOMATIC"));
-    Telemetry::ScalarSet(Telemetry::ScalarID::ENCODING_OVERRIDE_USED_AUTOMATIC,
-                         true);
-  } else {
-    LOGCHARSETMENU(("ENCODING_OVERRIDE_USED_MANUAL"));
-    Telemetry::ScalarSet(Telemetry::ScalarID::ENCODING_OVERRIDE_USED_MANUAL,
-                         true);
-  }
+  mForcedAutodetection = true;
+
+  LOGCHARSETMENU(("ENCODING_OVERRIDE_USED_AUTOMATIC"));
+  Telemetry::ScalarSet(Telemetry::ScalarID::ENCODING_OVERRIDE_USED_AUTOMATIC,
+                       true);
 
   nsIURI* url = doc->GetOriginalURI();
   bool isFileURL = url && SchemeIsFile(url);
@@ -1560,28 +1524,6 @@ nsDocShell::GatherCharsetMenuTelemetry() {
       LOGCHARSETMENU(("AutoOverridden"));
       Telemetry::AccumulateCategorical(
           Telemetry::LABELS_ENCODING_OVERRIDE_SITUATION_2::AutoOverridden);
-      break;
-    case kCharsetFromUserForced:
-    case kCharsetFromUserForcedJapaneseAutoDetection:
-      LOGCHARSETMENU(("ManuallyOverridden"));
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ENCODING_OVERRIDE_SITUATION_2::ManuallyOverridden);
-      break;
-    case kCharsetFromTopLevelDomain:
-      if (encoding == WINDOWS_1252_ENCODING) {
-        LOGCHARSETMENU(("UnlabeledInLk"));
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_ENCODING_OVERRIDE_SITUATION_2::UnlabeledInLk);
-      } else {
-        LOGCHARSETMENU(("UnlabeledJp"));
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_ENCODING_OVERRIDE_SITUATION_2::UnlabeledJp);
-      }
-      break;
-    case kCharsetFromFinalJapaneseAutoDetection:
-      LOGCHARSETMENU(("UnlabeledJp"));
-      Telemetry::AccumulateCategorical(
-          Telemetry::LABELS_ENCODING_OVERRIDE_SITUATION_2::UnlabeledJp);
       break;
     case kCharsetFromInitialAutoDetectionASCII:
       // Deliberately no final version
@@ -1654,31 +1596,6 @@ nsDocShell::GatherCharsetMenuTelemetry() {
           Telemetry::LABELS_ENCODING_OVERRIDE_SITUATION_2::Bug);
       break;
   }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::SetCharset(const nsACString& aCharset) {
-  mForcedAutodetection = false;
-  if (aCharset.IsEmpty()) {
-    mForcedCharset = nullptr;
-    return NS_OK;
-  }
-  if (aCharset.EqualsLiteral("_autodetect_all")) {
-    mForcedCharset = WINDOWS_1252_ENCODING;
-    mForcedAutodetection = true;
-    return NS_OK;
-  }
-  const Encoding* encoding = Encoding::ForLabel(aCharset);
-  if (!encoding) {
-    // Reject unknown labels
-    return NS_ERROR_INVALID_ARG;
-  }
-  if (!encoding->IsAsciiCompatible() && encoding != ISO_2022_JP_ENCODING) {
-    // Reject XSS hazards
-    return NS_ERROR_INVALID_ARG;
-  }
-  mForcedCharset = encoding;
   return NS_OK;
 }
 
@@ -1769,14 +1686,6 @@ nsDocShell::GetUsePrivateBrowsing(bool* aUsePrivateBrowsing) {
 void nsDocShell::NotifyPrivateBrowsingChanged() {
   MOZ_ASSERT(!mIsBeingDestroyed);
 
-  if (mAffectPrivateSessionLifetime) {
-    if (UsePrivateBrowsing()) {
-      IncreasePrivateDocShellCount();
-    } else {
-      DecreasePrivateDocShellCount();
-    }
-  }
-
   nsTObserverArray<nsWeakPtr>::ForwardIterator iter(mPrivacyObservers);
   while (iter.HasMore()) {
     nsWeakPtr ref = iter.GetNext();
@@ -1827,35 +1736,6 @@ nsDocShell::GetUseRemoteSubframes(bool* aUseRemoteSubframes) {
 NS_IMETHODIMP
 nsDocShell::SetRemoteSubframes(bool aUseRemoteSubframes) {
   return mBrowsingContext->SetRemoteSubframes(aUseRemoteSubframes);
-}
-
-NS_IMETHODIMP
-nsDocShell::SetAffectPrivateSessionLifetime(bool aAffectLifetime) {
-  MOZ_ASSERT(!mIsBeingDestroyed);
-
-  bool change = aAffectLifetime != mAffectPrivateSessionLifetime;
-  if (change && UsePrivateBrowsing()) {
-    if (aAffectLifetime) {
-      IncreasePrivateDocShellCount();
-    } else {
-      DecreasePrivateDocShellCount();
-    }
-  }
-  mAffectPrivateSessionLifetime = aAffectLifetime;
-
-  for (auto* child : mChildList.ForwardRange()) {
-    nsCOMPtr<nsIDocShell> shell = do_QueryObject(child);
-    if (shell) {
-      shell->SetAffectPrivateSessionLifetime(aAffectLifetime);
-    }
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetAffectPrivateSessionLifetime(bool* aAffectLifetime) {
-  *aAffectLifetime = mAffectPrivateSessionLifetime;
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -2039,30 +1919,6 @@ nsDocShell::GetMayEnableCharacterEncodingMenu(
   }
 
   *aMayEnableCharacterEncodingMenu = true;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocShell::GetCharsetAutodetected(bool* aCharsetAutodetected) {
-  *aCharsetAutodetected = false;
-  if (!mContentViewer) {
-    return NS_OK;
-  }
-  Document* doc = mContentViewer->GetDocument();
-  if (!doc) {
-    return NS_OK;
-  }
-  int32_t source = doc->GetDocumentCharacterSetSource();
-
-  if ((source >= kCharsetFromInitialAutoDetectionASCII &&
-       source <= kCharsetFromFinalAutoDetectionFile) ||
-      source == kCharsetFromUserForcedJapaneseAutoDetection ||
-      source == kCharsetFromPendingUserForcedAutoDetection ||
-      source == kCharsetFromInitialUserForcedAutoDetection ||
-      source == kCharsetFromFinalUserForcedAutoDetection) {
-    *aCharsetAutodetected = true;
-  }
-
   return NS_OK;
 }
 
@@ -2677,8 +2533,6 @@ nsresult nsDocShell::SetDocLoaderParent(nsDocLoader* aParent) {
       value = false;
     }
     SetAllowDNSPrefetch(mAllowDNSPrefetch && value);
-    SetAffectPrivateSessionLifetime(
-        parentAsDocShell->GetAffectPrivateSessionLifetime());
 
     // We don't need to inherit metaViewportOverride, because the viewport
     // is only relevant for the outermost nsDocShell, not for any iframes
@@ -4589,7 +4443,7 @@ nsDocShell::Destroy() {
     GetSessionHistory()->EvictLocalContentViewers();
   }
 
-  if (mWillChangeProcess) {
+  if (mWillChangeProcess && !mBrowsingContext->IsDiscarded()) {
     mBrowsingContext->PrepareForProcessChange();
   }
 
@@ -4602,10 +4456,6 @@ nsDocShell::Destroy() {
   // Cancel any timers that were set for this docshell; this is needed
   // to break the cycle between us and the timers.
   CancelRefreshURITimers();
-
-  if (UsePrivateBrowsing() && mAffectPrivateSessionLifetime) {
-    DecreasePrivateDocShellCount();
-  }
 
   return NS_OK;
 }
@@ -4871,9 +4721,9 @@ nsDocShell::GetVisibility(bool* aVisibility) {
 }
 
 void nsDocShell::ActivenessMaybeChanged() {
-  bool isActive = mBrowsingContext->IsActive();
+  const bool isActive = mBrowsingContext->IsActive();
   if (RefPtr<PresShell> presShell = GetPresShell()) {
-    presShell->SetIsActive(isActive);
+    presShell->ActivenessMaybeChanged();
   }
 
   // Tell the window about it
@@ -6578,17 +6428,17 @@ nsresult nsDocShell::EnsureContentViewer() {
   }
 
   nsresult rv = CreateAboutBlankContentViewer(
-      principal, partitionedPrincipal, cspToInheritForAboutBlank, baseURI);
+      principal, partitionedPrincipal, cspToInheritForAboutBlank, baseURI,
+      /* aIsInitialDocument */ true);
 
   NS_ENSURE_STATE(mContentViewer);
 
   if (NS_SUCCEEDED(rv)) {
     RefPtr<Document> doc(GetDocument());
-    NS_ASSERTION(doc,
-                 "Should have doc if CreateAboutBlankContentViewer "
-                 "succeeded!");
-
-    doc->SetIsInitialDocument(true);
+    MOZ_ASSERT(doc,
+               "Should have doc if CreateAboutBlankContentViewer "
+               "succeeded!");
+    MOZ_ASSERT(doc->IsInitialDocument(), "Document should be initial document");
 
     // Documents created using EnsureContentViewer may be transient
     // placeholders created by framescripts before content has a
@@ -6605,7 +6455,7 @@ nsresult nsDocShell::EnsureContentViewer() {
 
 nsresult nsDocShell::CreateAboutBlankContentViewer(
     nsIPrincipal* aPrincipal, nsIPrincipal* aPartitionedPrincipal,
-    nsIContentSecurityPolicy* aCSP, nsIURI* aBaseURI,
+    nsIContentSecurityPolicy* aCSP, nsIURI* aBaseURI, bool aIsInitialDocument,
     const Maybe<nsILoadInfo::CrossOriginEmbedderPolicy>& aCOEP,
     bool aTryToSaveOldPresentation, bool aCheckPermitUnload,
     WindowGlobalChild* aActor) {
@@ -6624,7 +6474,8 @@ nsresult nsDocShell::CreateAboutBlankContentViewer(
     return NS_ERROR_FAILURE;
   }
 
-  if (!mBrowsingContext->AncestorsAreCurrent()) {
+  if (!mBrowsingContext->AncestorsAreCurrent() ||
+      mBrowsingContext->IsInBFCache()) {
     mBrowsingContext->RemoveRootFromBFCacheSync();
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -6742,6 +6593,8 @@ nsresult nsDocShell::CreateAboutBlankContentViewer(
         blankDoc->SetCsp(cspToInherit);
       }
 
+      blankDoc->SetIsInitialDocument(aIsInitialDocument);
+
       blankDoc->SetEmbedderPolicy(aCOEP);
 
       // Hack: set the base URI manually, since this document never
@@ -6789,7 +6642,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
                                           nsIPrincipal* aPartitionedPrincipal,
                                           nsIContentSecurityPolicy* aCSP) {
   return CreateAboutBlankContentViewer(aPrincipal, aPartitionedPrincipal, aCSP,
-                                       nullptr);
+                                       nullptr, /* aIsInitialDocument */ false);
 }
 
 nsresult nsDocShell::CreateContentViewerForActor(
@@ -6797,13 +6650,16 @@ nsresult nsDocShell::CreateContentViewerForActor(
   MOZ_ASSERT(aWindowActor);
 
   // FIXME: WindowGlobalChild should provide the PartitionedPrincipal.
+  // FIXME: We may want to support non-initial documents here.
   nsresult rv = CreateAboutBlankContentViewer(
       aWindowActor->DocumentPrincipal(), aWindowActor->DocumentPrincipal(),
       /* aCsp */ nullptr,
       /* aBaseURI */ nullptr,
+      /* aIsInitialDocument */ true,
       /* aCOEP */ Nothing(),
       /* aTryToSaveOldPresentation */ true,
       /* aCheckPermitUnload */ true, aWindowActor);
+#ifdef DEBUG
   if (NS_SUCCEEDED(rv)) {
     RefPtr<Document> doc(GetDocument());
     MOZ_ASSERT(
@@ -6811,10 +6667,10 @@ nsresult nsDocShell::CreateContentViewerForActor(
         "Should have a document if CreateAboutBlankContentViewer succeeded");
     MOZ_ASSERT(doc->GetOwnerGlobal() == aWindowActor->GetWindowGlobal(),
                "New document should be in the same global as our actor");
-
-    // FIXME: We may want to support non-initial documents here.
-    doc->SetIsInitialDocument(true);
+    MOZ_ASSERT(doc->IsInitialDocument(),
+               "New document should be an initial document");
   }
+#endif
 
   return rv;
 }
@@ -7778,7 +7634,8 @@ nsresult nsDocShell::CreateContentViewer(const nsACString& aContentType,
     return NS_ERROR_DOCSHELL_DYING;
   }
 
-  if (!mBrowsingContext->AncestorsAreCurrent()) {
+  if (!mBrowsingContext->AncestorsAreCurrent() ||
+      mBrowsingContext->IsInBFCache()) {
     mBrowsingContext->RemoveRootFromBFCacheSync();
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -7980,13 +7837,13 @@ nsresult nsDocShell::CreateContentViewer(const nsACString& aContentType,
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (!parentSite.Equals(thisSite)) {
-#ifdef MOZ_GECKO_PROFILER
-        nsCOMPtr<nsIURI> prinURI;
-        BasePrincipal::Cast(thisPrincipal)->GetURI(getter_AddRefs(prinURI));
-        nsPrintfCString marker("Iframe loaded in background: %s",
-                               prinURI->GetSpecOrDefault().get());
-        PROFILER_MARKER_TEXT("Background Iframe", DOM, {}, marker);
-#endif
+        if (profiler_can_accept_markers()) {
+          nsCOMPtr<nsIURI> prinURI;
+          BasePrincipal::Cast(thisPrincipal)->GetURI(getter_AddRefs(prinURI));
+          nsPrintfCString marker("Iframe loaded in background: %s",
+                                 prinURI->GetSpecOrDefault().get());
+          PROFILER_MARKER_TEXT("Background Iframe", DOM, {}, marker);
+        }
         SetBackgroundLoadIframe();
       }
     }
@@ -8140,7 +7997,7 @@ nsresult nsDocShell::SetupNewViewer(nsIContentViewer* aNewViewer,
   }
 
   nscolor bgcolor = NS_RGBA(0, 0, 0, 0);
-  bool isActive = false;
+  bool isUnderHiddenEmbedderElement = false;
   // Ensure that the content viewer is destroyed *after* the GC - bug 71515
   nsCOMPtr<nsIContentViewer> contentViewer = mContentViewer;
   if (contentViewer) {
@@ -8152,7 +8009,7 @@ nsresult nsDocShell::SetupNewViewer(nsIContentViewer* aNewViewer,
     // presentation shell, so we can use it for the next document.
     if (PresShell* presShell = contentViewer->GetPresShell()) {
       bgcolor = presShell->GetCanvasBackground();
-      isActive = presShell->IsActive();
+      isUnderHiddenEmbedderElement = presShell->IsUnderHiddenEmbedderElement();
     }
 
     contentViewer->Close(mSavingOldViewer ? mOSHE.get() : nullptr);
@@ -8197,8 +8054,9 @@ nsresult nsDocShell::SetupNewViewer(nsIContentViewer* aNewViewer,
   // pres shell. This improves page load continuity.
   if (RefPtr<PresShell> presShell = mContentViewer->GetPresShell()) {
     presShell->SetCanvasBackground(bgcolor);
-    if (isActive) {
-      presShell->SetIsActive(isActive);
+    presShell->ActivenessMaybeChanged();
+    if (isUnderHiddenEmbedderElement) {
+      presShell->SetIsUnderHiddenEmbedderElement(isUnderHiddenEmbedderElement);
     }
   }
 
@@ -9333,7 +9191,8 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     }
 
     // clear the decks to prevent context bleed-through (bug 298255)
-    rv = CreateAboutBlankContentViewer(nullptr, nullptr, nullptr, nullptr);
+    rv = CreateAboutBlankContentViewer(nullptr, nullptr, nullptr, nullptr,
+                                       /* aIsInitialDocument */ false);
     if (NS_FAILED(rv)) {
       return NS_ERROR_FAILURE;
     }
@@ -11866,7 +11725,7 @@ nsresult nsDocShell::LoadHistoryEntry(nsDocShellLoadState* aLoadState,
     rv = CreateAboutBlankContentViewer(
         aLoadState->PrincipalToInherit(),
         aLoadState->PartitionedPrincipalToInherit(), nullptr, nullptr,
-        Nothing(), !aReloadingActiveEntry);
+        /* aIsInitialDocument */ false, Nothing(), !aReloadingActiveEntry);
 
     if (NS_FAILED(rv)) {
       // The creation of the intermittent about:blank content

@@ -61,6 +61,18 @@ add_task(async function doTests() {
       }
     });
 
+    let awaitPageShow = BrowserTestUtils.waitForContentEvent(
+      browser,
+      "pageshow"
+    );
+    browser.goBack();
+    await awaitPageShow;
+
+    // Check the window.name.
+    await SpecialPowers.spawn(browser, [], () => {
+      is(content.name, "Test", "The window.name is correct.");
+    });
+
     BrowserTestUtils.removeTab(tab);
   }
 });

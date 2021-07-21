@@ -370,23 +370,15 @@ nsFrameSelection::nsFrameSelection(PresShell* aPresShell, nsIContent* aLimiter,
   // This should only ever be initialized on the main thread, so we are OK here.
   MOZ_ASSERT(NS_IsMainThread());
 
+  int8_t index = GetIndexFromSelectionType(SelectionType::eNormal);
+
   mAccessibleCaretEnabled = aAccessibleCaretEnabled;
   if (mAccessibleCaretEnabled) {
-    int8_t index = GetIndexFromSelectionType(SelectionType::eNormal);
     mDomSelections[index]->MaybeNotifyAccessibleCaretEventHub(aPresShell);
   }
 
-  bool plaintextControl = (aLimiter != nullptr);
-  bool initSelectEvents =
-      plaintextControl ? StaticPrefs::dom_select_events_textcontrols_enabled()
-                       : StaticPrefs::dom_select_events_enabled();
-
-  Document* doc = aPresShell->GetDocument();
-  if (initSelectEvents || (doc && doc->NodePrincipal()->IsSystemPrincipal())) {
-    int8_t index = GetIndexFromSelectionType(SelectionType::eNormal);
-    if (mDomSelections[index]) {
-      mDomSelections[index]->EnableSelectionChangeEvent();
-    }
+  if (mDomSelections[index]) {
+    mDomSelections[index]->EnableSelectionChangeEvent();
   }
 }
 
@@ -769,7 +761,7 @@ nsresult nsFrameSelection::MoveCaret(nsDirection aDirection,
     const nsRange* anchorFocusRange = sel->GetAnchorFocusRange();
     if (anchorFocusRange) {
       RefPtr<nsINode> node;
-      int32_t offset;
+      uint32_t offset;
       if (visualMovement && nsBidiPresUtils::IsReversedDirectionFrame(frame)) {
         direction = nsDirection(1 - direction);
       }

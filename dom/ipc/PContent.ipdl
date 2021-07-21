@@ -67,7 +67,6 @@ include LookAndFeelTypes;
 include protocol PSandboxTesting;
 #endif
 
-include "ipc/DataStorageIPCUtils.h";
 include "ipc/MediaControlIPC.h";
 include "mozilla/AntiTrackingIPCUtils.h";
 include "mozilla/GfxMessageUtils.h";
@@ -340,7 +339,6 @@ struct XPCOMInitData
     GfxVarUpdate[] gfxNonDefaultVarUpdates;
     ContentDeviceData contentDeviceData;
     GfxInfoFeatureStatus[] gfxFeatureStatus;
-    DataStorageEntry[] dataStorage;
     nsCString[] appLocales;
     nsCString[] requestedLocales;
     DynamicScalarDefinition[] dynamicScalarDefs;
@@ -615,10 +613,6 @@ child:
     async UpdatePerfStatsCollectionMask(uint64_t aMask);
     async CollectPerfStatsJSON() returns (nsCString aStats);
 
-    async DataStoragePut(nsString aFilename, DataStorageItem aItem);
-    async DataStorageRemove(nsString aFilename, nsCString aKey, DataStorageType aType);
-    async DataStorageClear(nsString aFilename);
-
     async NotifyAlertsObserver(nsCString topic, nsString data);
 
     async GeolocationUpdate(nsIDOMGeoPosition aPosition);
@@ -634,8 +628,10 @@ child:
      * should globally reflow everything to pick up new character coverage etc.
      * If aFullRebuild is true, child processes must discard and recreate
      * their mappings to the shmem blocks, as those are no longer valid.
+     * This message has raised priority so that it will take precedence over
+     * vsync messages to the child.
      */
-    async RebuildFontList(bool aFulLRebuild);
+    [Priority=mediumhigh] async RebuildFontList(bool aFulLRebuild);
 
     /**
      * The shared font list has been modified, potentially adding matches
@@ -968,6 +964,11 @@ child:
   // Send the list of the supported mimetypes in the given process. GeckoView-specific
   async DecoderSupportedMimeTypes(nsCString[] supportedTypes);
 
+  // Used to initialize the global variable in content processes with the
+  // latched value in the parent process. See dom/LocalStorageCommon.h for more
+  // details.
+  async InitNextGenLocalStorageEnabled(bool enabled);
+
 parent:
 
     async SynchronizeLayoutHistoryState(MaybeDiscardedBrowsingContext aContext,
@@ -1157,9 +1158,6 @@ parent:
 
     sync GetIconForExtension(nsCString aFileExt, uint32_t aIconSize)
         returns (uint8_t[] bits);
-
-    // Notify the parent of the presence or absence of private docshells
-    async PrivateDocShellsExist(bool aExist);
 
     // Tell the parent that the child has gone idle for the first time.
     async FirstIdle();
@@ -1834,6 +1832,11 @@ child:
 parent:
     async SetContainerFeaturePolicy(MaybeDiscardedBrowsingContext aContainerContext,
                                     FeaturePolicy aContainerFeaturePolicy);
+
+    // Obtain an icon from the system widget toolkit, in nsIconDecoder
+    // format.  Not supported (or needed) on all platforms; see the
+    // implementation in ContentParent::RecvGetSystemIcon for details.
+    async GetSystemIcon(nsIURI aURI) returns (nsresult aResult, ByteBuf? aData);
 };
 
 }

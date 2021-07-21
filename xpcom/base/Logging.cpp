@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+#include "base/process_util.h"
+#include "GeckoProfiler.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/LateWriteChecks.h"
@@ -21,7 +23,9 @@
 #include "nsClassHashtable.h"
 #include "nsDebug.h"
 #include "nsDebugImpl.h"
+#include "nsPrintfCString.h"
 #include "NSPRLogModulesParser.h"
+#include "nsXULAppAPI.h"
 #include "LogCommandLineHandler.h"
 
 #include "prenv.h"
@@ -595,7 +599,6 @@ class LogModuleManager {
       charsWritten = strlen(buffToWrite);
     }
 
-#ifdef MOZ_GECKO_PROFILER
     if (mAddProfilerMarker && profiler_can_accept_markers()) {
       struct LogMarker {
         static constexpr Span<const char> MarkerTypeName() {
@@ -625,7 +628,6 @@ class LogModuleManager {
           LogMarker{}, ProfilerString8View::WrapNullTerminatedString(aName),
           ProfilerString8View::WrapNullTerminatedString(buffToWrite));
     }
-#endif
 
     // Determine if a newline needs to be appended to the message.
     const char* newline = "";
@@ -676,7 +678,7 @@ class LogModuleManager {
         // XXX is there a reasonable way to convert one to the other?  this is
         // bad
         PRTime prnow = PR_Now();
-        TimeStamp tmnow = TimeStamp::NowUnfuzzed();
+        TimeStamp tmnow = TimeStamp::Now();
         TimeDuration duration = tmnow - *aStart;
         PRTime prstart = prnow - duration.ToMicroseconds();
 
@@ -870,9 +872,10 @@ extern "C" {
 // log modules.
 void ExternMozLog(const char* aModule, mozilla::LogLevel aLevel,
                   const char* aMsg) {
-  MOZ_ASSERT(sLogModuleManager != nullptr);
+  MOZ_ASSERT(mozilla::sLogModuleManager != nullptr);
 
-  LogModule* m = sLogModuleManager->CreateOrGetModule(aModule);
+  mozilla::LogModule* m =
+      mozilla::sLogModuleManager->CreateOrGetModule(aModule);
   if (MOZ_LOG_TEST(m, aLevel)) {
     mozilla::detail::log_print(m, aLevel, "%s", aMsg);
   }

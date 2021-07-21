@@ -6,6 +6,9 @@
 #ifndef mozilla_TextServicesDocument_h
 #define mozilla_TextServicesDocument_h
 
+#include "mozilla/EditorDOMPoint.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIEditActionListener.h"
@@ -50,25 +53,165 @@ class TextServicesDocument final : public nsIEditActionListener {
     eNext,
   };
 
+  class OffsetEntryArray final : public nsTArray<UniquePtr<OffsetEntry>> {
+   public:
+    /**
+     * Init() initializes this array with aFilteredIter.
+     *
+     * @param[in]  aIterRange   Can be nullptr.
+     * @param[out] aAllTextInBlock
+     *                          Returns all text in the block.
+     */
+    Result<IteratorStatus, nsresult> Init(
+        FilteredContentIterator& aFilteredIter, IteratorStatus aIteratorStatus,
+        nsRange* aIterRange, nsAString* aAllTextInBlock = nullptr);
+
+    /**
+     * Returns index of first `OffsetEntry` which manages aTextNode.
+     */
+    Maybe<size_t> FirstIndexOf(const dom::Text& aTextNode) const;
+
+    /**
+     * FindWordRange() returns a word range starting from aStartPointToScan
+     * in aAllTextInBlock.
+     */
+    Result<EditorDOMRangeInTexts, nsresult> FindWordRange(
+        nsAString& aAllTextInBlock, const EditorRawDOMPoint& aStartPointToScan);
+
+    /**
+     * SplitElementAt() splits an `OffsetEntry` at aIndex if aOffsetInTextNode
+     * is middle of the range in the text node.
+     *
+     * @param aIndex    Index of the entry which you want to split.
+     * @param aOffsetInTextNode
+     *                  Offset in the text node.  I.e., the offset should be
+     *                  greater than 0 and less than `mLength`.
+     */
+    nsresult SplitElementAt(size_t aIndex, uint32_t aOffsetInTextNode);
+
+    /**
+     * Remove all `OffsetEntry` elements whose `mIsValid` is set to false.
+     */
+    void RemoveInvalidElements();
+
+    /**
+     * Called when non-collapsed selection will be deleted.
+     */
+    nsresult WillDeleteSelection();
+
+    /**
+     * Called when non-collapsed selection is deleteded.
+     */
+    OffsetEntry* DidDeleteSelection();
+
+    /**
+     * Called when aInsertedText is inserted.
+     */
+    MOZ_CAN_RUN_SCRIPT nsresult DidInsertText(dom::Selection* aSelection,
+                                              const nsAString& aInsertedString);
+
+    /**
+     * Called when selection range will be applied to the DOM Selection.
+     */
+    Result<EditorRawDOMRangeInTexts, nsresult> WillSetSelection(
+        uint32_t aOffsetInTextInBlock, uint32_t aLength);
+
+    class Selection final {
+     public:
+      size_t StartIndex() const {
+        MOZ_ASSERT(IsIndexesSet());
+        return *mStartIndex;
+      }
+      size_t EndIndex() const {
+        MOZ_ASSERT(IsIndexesSet());
+        return *mEndIndex;
+      }
+
+      uint32_t StartOffsetInTextInBlock() const {
+        MOZ_ASSERT(IsSet());
+        return *mStartOffsetInTextInBlock;
+      }
+      uint32_t EndOffsetInTextInBlock() const {
+        MOZ_ASSERT(IsSet());
+        return *mEndOffsetInTextInBlock;
+      }
+      uint32_t LengthInTextInBlock() const {
+        MOZ_ASSERT(IsSet());
+        return *mEndOffsetInTextInBlock - *mStartOffsetInTextInBlock;
+      }
+
+      bool IsCollapsed() {
+        return !IsSet() || (IsInSameElement() && StartOffsetInTextInBlock() ==
+                                                     EndOffsetInTextInBlock());
+      }
+
+      bool IsIndexesSet() const {
+        return mStartIndex.isSome() && mEndIndex.isSome();
+      }
+      bool IsSet() const {
+        return IsIndexesSet() && mStartOffsetInTextInBlock.isSome() &&
+               mEndOffsetInTextInBlock.isSome();
+      }
+      bool IsInSameElement() const {
+        return IsIndexesSet() && StartIndex() == EndIndex();
+      }
+
+      void Reset() {
+        mStartIndex.reset();
+        mEndIndex.reset();
+        mStartOffsetInTextInBlock.reset();
+        mEndOffsetInTextInBlock.reset();
+      }
+      void SetIndex(size_t aIndex) { mEndIndex = mStartIndex = Some(aIndex); }
+      void Set(size_t aIndex, uint32_t aOffsetInTextInBlock) {
+        mEndIndex = mStartIndex = Some(aIndex);
+        mStartOffsetInTextInBlock = mEndOffsetInTextInBlock =
+            Some(aOffsetInTextInBlock);
+      }
+      void SetIndexes(size_t aStartIndex, size_t aEndIndex) {
+        mStartIndex = Some(aStartIndex);
+        mEndIndex = Some(aEndIndex);
+      }
+      void Set(size_t aStartIndex, size_t aEndIndex,
+               uint32_t aStartOffsetInTextInBlock,
+               uint32_t aEndOffsetInTextInBlock) {
+        mStartIndex = Some(aStartIndex);
+        mEndIndex = Some(aEndIndex);
+        mStartOffsetInTextInBlock = Some(aStartOffsetInTextInBlock);
+        mEndOffsetInTextInBlock = Some(aEndOffsetInTextInBlock);
+      }
+
+      void CollapseToStart() {
+        MOZ_ASSERT(mStartIndex.isSome());
+        MOZ_ASSERT(mStartOffsetInTextInBlock.isSome());
+        mEndIndex = mStartIndex;
+        mEndOffsetInTextInBlock = mStartOffsetInTextInBlock;
+      }
+
+     private:
+      Maybe<size_t> mStartIndex;
+      Maybe<size_t> mEndIndex;
+      // Selected start and end offset in all text in a block element.
+      Maybe<uint32_t> mStartOffsetInTextInBlock;
+      Maybe<uint32_t> mEndOffsetInTextInBlock;
+    };
+    Selection mSelection;
+  };
+
   RefPtr<dom::Document> mDocument;
   nsCOMPtr<nsISelectionController> mSelCon;
   RefPtr<EditorBase> mEditorBase;
   RefPtr<FilteredContentIterator> mFilteredIter;
   nsCOMPtr<nsIContent> mPrevTextBlock;
   nsCOMPtr<nsIContent> mNextTextBlock;
-  nsTArray<OffsetEntry*> mOffsetTable;
+  OffsetEntryArray mOffsetTable;
   RefPtr<nsRange> mExtent;
+
   uint32_t mTxtSvcFilterType;
-
-  int32_t mSelStartIndex;
-  int32_t mSelStartOffset;
-  int32_t mSelEndIndex;
-  int32_t mSelEndOffset;
-
   IteratorStatus mIteratorStatus;
 
  protected:
-  virtual ~TextServicesDocument();
+  virtual ~TextServicesDocument() = default;
 
  public:
   TextServicesDocument();
@@ -154,7 +297,7 @@ class TextServicesDocument final : public nsIEditActionListener {
    */
   MOZ_CAN_RUN_SCRIPT
   nsresult LastSelectedBlock(BlockSelectionStatus* aSelStatus,
-                             int32_t* aSelOffset, int32_t* aSelLength);
+                             uint32_t* aSelOffset, uint32_t* aSelLength);
 
   /**
    * Tells the document to point to the text block before the current one.
@@ -192,8 +335,7 @@ class TextServicesDocument final : public nsIEditActionListener {
    *                            GetCurrentTextBlock().
    * @param aLength             Number of characters selected.
    */
-  MOZ_CAN_RUN_SCRIPT
-  nsresult SetSelection(int32_t aOffset, int32_t aLength);
+  MOZ_CAN_RUN_SCRIPT nsresult SetSelection(uint32_t aOffset, uint32_t aLength);
 
   /**
    * Scrolls the document so that the current selection is visible.
@@ -228,18 +370,19 @@ class TextServicesDocument final : public nsIEditActionListener {
    * spell checker of the editor, edit actions will be notified via
    * nsIEditActionListener (slow path, though).
    */
-  void DidDeleteNode(nsINode* aChild);
-  void DidJoinNodes(nsINode& aLeftNode, nsINode& aRightNode);
+  void DidDeleteContent(const nsIContent& aChildContent);
+  void DidJoinNodes(const nsIContent& aLeftContent,
+                    const nsIContent& aRightContent);
 
+ private:
   // TODO: We should get rid of this method since `aAbstractRange` has
   //       enough simple API to get them.
   static nsresult GetRangeEndPoints(const dom::AbstractRange* aAbstractRange,
                                     nsINode** aStartContainer,
-                                    int32_t* aStartOffset,
+                                    uint32_t* aStartOffset,
                                     nsINode** aEndContainer,
-                                    int32_t* aEndOffset);
+                                    uint32_t* aEndOffset);
 
- private:
   nsresult CreateFilteredContentIterator(
       const dom::AbstractRange* aAbstractRange,
       FilteredContentIterator** aFilteredIter);
@@ -268,49 +411,23 @@ class TextServicesDocument final : public nsIEditActionListener {
   nsresult GetFirstTextNodeInPrevBlock(nsIContent** aContent);
   nsresult GetFirstTextNodeInNextBlock(nsIContent** aContent);
 
-  static bool IsBlockNode(nsIContent* aContent);
-  static bool IsTextNode(nsIContent* aContent);
-
   static bool DidSkip(FilteredContentIterator* aFilteredIter);
   static void ClearDidSkip(FilteredContentIterator* aFilteredIter);
 
-  static bool HasSameBlockNodeParent(nsIContent* aContent1,
-                                     nsIContent* aContent2);
+  static bool HasSameBlockNodeParent(dom::Text& aTextNode1,
+                                     dom::Text& aTextNode2);
 
-  MOZ_CAN_RUN_SCRIPT
-  nsresult SetSelectionInternal(int32_t aOffset, int32_t aLength,
-                                bool aDoUpdate);
-  MOZ_CAN_RUN_SCRIPT
-  nsresult GetSelection(BlockSelectionStatus* aSelStatus, int32_t* aSelOffset,
-                        int32_t* aSelLength);
-  MOZ_CAN_RUN_SCRIPT
-  nsresult GetCollapsedSelection(BlockSelectionStatus* aSelStatus,
-                                 int32_t* aSelOffset, int32_t* aSelLength);
+  MOZ_CAN_RUN_SCRIPT nsresult SetSelectionInternal(uint32_t aOffset,
+                                                   uint32_t aLength,
+                                                   bool aDoUpdate);
+  MOZ_CAN_RUN_SCRIPT nsresult GetSelection(BlockSelectionStatus* aSelStatus,
+                                           uint32_t* aSelOffset,
+                                           uint32_t* aSelLength);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  GetCollapsedSelection(BlockSelectionStatus* aSelStatus, uint32_t* aSelOffset,
+                        uint32_t* aSelLength);
   nsresult GetUncollapsedSelection(BlockSelectionStatus* aSelStatus,
-                                   int32_t* aSelOffset, int32_t* aSelLength);
-
-  bool SelectionIsCollapsed();
-  bool SelectionIsValid();
-
-  static nsresult CreateOffsetTable(nsTArray<OffsetEntry*>* aOffsetTable,
-                                    FilteredContentIterator* aFilteredIter,
-                                    IteratorStatus* aIteratorStatus,
-                                    nsRange* aIterRange, nsAString* aStr);
-  static nsresult ClearOffsetTable(nsTArray<OffsetEntry*>* aOffsetTable);
-
-  static nsresult NodeHasOffsetEntry(nsTArray<OffsetEntry*>* aOffsetTable,
-                                     nsINode* aNode, bool* aHasEntry,
-                                     int32_t* aEntryIndex);
-
-  nsresult RemoveInvalidOffsetEntries();
-  nsresult SplitOffsetEntry(int32_t aTableIndex, int32_t aOffsetIntoEntry);
-
-  static nsresult FindWordBounds(nsTArray<OffsetEntry*>* aOffsetTable,
-                                 nsString* aBlockStr, nsINode* aNode,
-                                 int32_t aNodeOffset, nsINode** aWordStartNode,
-                                 int32_t* aWordStartOffset,
-                                 nsINode** aWordEndNode,
-                                 int32_t* aWordEndOffset);
+                                   uint32_t* aSelOffset, uint32_t* aSelLength);
 };
 
 }  // namespace mozilla

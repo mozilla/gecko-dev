@@ -24,7 +24,7 @@
   :root {
     /* --tabpanel-background-color matches $in-content-page-background in newtab
        (browser/components/newtab/content-src/styles/_variables.scss) */
-    --tabpanel-background-color: #2A2A2E;
+    --tabpanel-background-color: #2B2A33;
   }
 }
 
@@ -690,13 +690,13 @@
 
 #tabs-newtab-button,
 #TabsToolbar #new-tab-button {
-  list-style-image: url(chrome://global/skin/icons/add.svg);
+  list-style-image: url(chrome://global/skin/icons/plus.svg);
 }
 
 /* All tabs button and menupopup */
 
 #alltabs-button {
-  list-style-image: url(chrome://global/skin/icons/arrow-dropdown-16.svg);
+  list-style-image: url(chrome://global/skin/icons/arrow-down.svg);
 }
 
 #tabbrowser-tabs[hiddensoundplaying] ~ #alltabs-button > .toolbarbutton-badge-stack > .toolbarbutton-badge {

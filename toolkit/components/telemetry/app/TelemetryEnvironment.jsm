@@ -255,8 +255,7 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["browser.search.widget.inNavBar", { what: RECORD_DEFAULTPREF_VALUE }],
   ["browser.startup.homepage", { what: RECORD_PREF_STATE }],
   ["browser.startup.page", { what: RECORD_PREF_VALUE }],
-  ["browser.touchmode.auto", { what: RECORD_PREF_VALUE }],
-  ["browser.uidensity", { what: RECORD_PREF_VALUE }],
+  ["browser.urlbar.showSearchSuggestionsFirst", { what: RECORD_PREF_VALUE }],
   ["browser.urlbar.suggest.searches", { what: RECORD_PREF_VALUE }],
   ["devtools.chrome.enabled", { what: RECORD_PREF_VALUE }],
   ["devtools.debugger.enabled", { what: RECORD_PREF_VALUE }],
@@ -306,6 +305,7 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["layers.prefer-d3d9", { what: RECORD_PREF_VALUE }],
   ["layers.prefer-opengl", { what: RECORD_PREF_VALUE }],
   ["layout.css.devPixelsPerPx", { what: RECORD_PREF_VALUE }],
+  ["network.http.windows-sso.enabled", { what: RECORD_PREF_VALUE }],
   ["network.proxy.autoconfig_url", { what: RECORD_PREF_STATE }],
   ["network.proxy.http", { what: RECORD_PREF_STATE }],
   ["network.proxy.ssl", { what: RECORD_PREF_STATE }],
@@ -313,7 +313,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["pdfjs.disabled", { what: RECORD_PREF_VALUE }],
   ["places.history.enabled", { what: RECORD_PREF_VALUE }],
   ["plugins.show_infobar", { what: RECORD_PREF_VALUE }],
-  ["privacy.fuzzyfox.enabled", { what: RECORD_PREF_VALUE }],
   ["privacy.firstparty.isolate", { what: RECORD_PREF_VALUE }],
   ["privacy.resistFingerprinting", { what: RECORD_PREF_VALUE }],
   ["privacy.trackingprotection.enabled", { what: RECORD_PREF_VALUE }],
@@ -2033,6 +2032,7 @@ EnvironmentCache.prototype = {
       hdd: this._getHDDData(),
       gfx: this._getGFXData(),
       appleModelId: getSysinfoProperty("appleModelId", null),
+      hasWinPackageId: getSysinfoProperty("hasWinPackageId", null),
     };
 
     if (AppConstants.platform === "win") {

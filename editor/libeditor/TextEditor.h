@@ -7,6 +7,9 @@
 #define mozilla_TextEditor_h
 
 #include "mozilla/EditorBase.h"
+#include "mozilla/TextControlState.h"
+#include "mozilla/UniquePtr.h"
+
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsINamed.h"
@@ -34,7 +37,9 @@ class Selection;
  * The text editor implementation.
  * Use to edit text document represented as a DOM tree.
  */
-class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
+class TextEditor final : public EditorBase,
+                         public nsITimerCallback,
+                         public nsINamed {
  public:
   /****************************************************************************
    * NOTE: DO NOT MAKE YOUR NEW METHODS PUBLIC IF they are called by other
@@ -51,6 +56,44 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
 
   TextEditor();
 
+  /**
+   * Note that TextEditor::Init() shouldn't cause running script synchronously.
+   * So, `MOZ_CAN_RUN_SCRIPT_BOUNDARY` is safe here.
+   *
+   * @param aDocument   The document which aAnonymousDivElement belongs to.
+   * @param aAnonymousDivElement
+   *                    The root editable element for this editor.
+   * @param aSelectionController
+   *                    The selection controller for independent selections
+   *                    in the `<input>` or `<textarea>` element.
+   * @param aFlags      Some of nsIEditor::eEditor*Mask flags.
+   * @param aPasswordMaskData
+   *                    Set to an instance only when aFlags includes
+   *                    `nsIEditor::eEditorPasswordMask`.  Otherwise, must be
+   *                    `nullptr`.
+   */
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult
+  Init(Document& aDocument, Element& aAnonymousDivElement,
+       nsISelectionController& aSelectionController, uint32_t aFlags,
+       UniquePtr<PasswordMaskData>&& aPasswordMaskData);
+
+  /**
+   * PostCreate() should be called after Init, and is the time that the editor
+   * tells its documentStateObservers that the document has been created.
+   * Note that TextEditor::PostCreate() shouldn't cause running script
+   * synchronously. So, `MOZ_CAN_RUN_SCRIPT_BOUNDARY` is safe here.
+   */
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult PostCreate();
+
+  /**
+   * PreDestroy() is called before the editor goes away, and gives the editor a
+   * chance to tell its documentStateObservers that the document is going away.
+   * Note that TextEditor::PreDestroy() shouldn't cause running script
+   * synchronously. So, `MOZ_CAN_RUN_SCRIPT_BOUNDARY` is safe here.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT_BOUNDARY UniquePtr<PasswordMaskData>
+  PreDestroy();
+
   static TextEditor* GetFrom(nsIEditor* aEditor) {
     return aEditor ? aEditor->GetAsTextEditor() : nullptr;
   }
@@ -62,8 +105,8 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
   NS_DECL_NSINAMED
 
   // Overrides of nsIEditor
-  NS_IMETHOD GetTextLength(int32_t* aCount) override;
-  MOZ_CAN_RUN_SCRIPT NS_IMETHOD Paste(int32_t aClipboardType) override {
+  NS_IMETHOD GetTextLength(uint32_t* aCount) final;
+  MOZ_CAN_RUN_SCRIPT NS_IMETHOD Paste(int32_t aClipboardType) final {
     const nsresult rv = TextEditor::PasteAsAction(aClipboardType, true);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "HTMLEditor::PasteAsAction() failed");
@@ -77,32 +120,27 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
   using EditorBase::CanPaste;
 
   // Overrides of EditorBase
-  MOZ_CAN_RUN_SCRIPT virtual nsresult Init(
-      Document& aDoc, Element* aRoot, nsISelectionController* aSelCon,
-      uint32_t aFlags, const nsAString& aInitialValue) override;
+  bool IsEmpty() const final;
 
-  bool IsEmpty() const override;
+  bool CanPaste(int32_t aClipboardType) const final;
 
-  bool CanPaste(int32_t aClipboardType) const override;
+  MOZ_CAN_RUN_SCRIPT nsresult PasteTransferableAsAction(
+      nsITransferable* aTransferable, nsIPrincipal* aPrincipal = nullptr) final;
+
+  bool CanPasteTransferable(nsITransferable* aTransferable) final;
 
   MOZ_CAN_RUN_SCRIPT nsresult
-  PasteTransferableAsAction(nsITransferable* aTransferable,
-                            nsIPrincipal* aPrincipal = nullptr) override;
+  HandleKeyPressEvent(WidgetKeyboardEvent* aKeyboardEvent) final;
 
-  virtual bool CanPasteTransferable(nsITransferable* aTransferable) override;
-
-  MOZ_CAN_RUN_SCRIPT virtual nsresult HandleKeyPressEvent(
-      WidgetKeyboardEvent* aKeyboardEvent) override;
-
-  virtual dom::EventTarget* GetDOMEventTarget() const override;
+  dom::EventTarget* GetDOMEventTarget() const final;
 
   MOZ_CAN_RUN_SCRIPT nsresult
   PasteAsAction(int32_t aClipboardType, bool aDispatchPasteEvent,
-                nsIPrincipal* aPrincipal = nullptr) override;
+                nsIPrincipal* aPrincipal = nullptr) final;
 
   MOZ_CAN_RUN_SCRIPT nsresult
   PasteAsQuotationAsAction(int32_t aClipboardType, bool aDispatchPasteEvent,
-                           nsIPrincipal* aPrincipal = nullptr) override;
+                           nsIPrincipal* aPrincipal = nullptr) final;
 
   /**
    * The maximum number of characters allowed.
@@ -129,7 +167,7 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
       nsIPrincipal* aPrincipal = nullptr);
 
   MOZ_CAN_RUN_SCRIPT nsresult
-  InsertLineBreakAsAction(nsIPrincipal* aPrincipal = nullptr) override;
+  InsertLineBreakAsAction(nsIPrincipal* aPrincipal = nullptr) final;
 
   /**
    * ComputeTextValue() computes plaintext value of this editor.  This may be
@@ -157,21 +195,21 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
    * editor.  They return whether there is unmasked range or not and range
    * start and length.
    */
-  bool IsAllMasked() const {
+  MOZ_ALWAYS_INLINE bool IsAllMasked() const {
     MOZ_ASSERT(IsPasswordEditor());
-    return mUnmaskedStart == UINT32_MAX && mUnmaskedLength == 0;
+    return !mPasswordMaskData || mPasswordMaskData->IsAllMasked();
   }
-  uint32_t UnmaskedStart() const {
+  MOZ_ALWAYS_INLINE uint32_t UnmaskedStart() const {
     MOZ_ASSERT(IsPasswordEditor());
-    return mUnmaskedStart;
+    return mPasswordMaskData ? mPasswordMaskData->mUnmaskedStart : UINT32_MAX;
   }
-  uint32_t UnmaskedLength() const {
+  MOZ_ALWAYS_INLINE uint32_t UnmaskedLength() const {
     MOZ_ASSERT(IsPasswordEditor());
-    return mUnmaskedLength;
+    return mPasswordMaskData ? mPasswordMaskData->mUnmaskedLength : 0;
   }
-  uint32_t UnmaskedEnd() const {
+  MOZ_ALWAYS_INLINE uint32_t UnmaskedEnd() const {
     MOZ_ASSERT(IsPasswordEditor());
-    return mUnmaskedStart + mUnmaskedLength;
+    return mPasswordMaskData ? mPasswordMaskData->UnmaskedEnd() : UINT32_MAX;
   }
 
   /**
@@ -181,7 +219,7 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
    */
   bool IsMaskingPassword() const {
     MOZ_ASSERT(IsPasswordEditor());
-    return mIsMaskingPassword;
+    return mPasswordMaskData && mPasswordMaskData->mIsMaskingPassword;
   }
 
   /**
@@ -189,6 +227,24 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
    * fields.
    */
   static char16_t PasswordMask();
+
+  /**
+   * If you want to prevent to echo password temporarily, use the following
+   * methods.
+   */
+  bool EchoingPasswordPrevented() const {
+    return mPasswordMaskData && mPasswordMaskData->mEchoingPasswordPrevented;
+  }
+  void PreventToEchoPassword() {
+    if (mPasswordMaskData) {
+      mPasswordMaskData->mEchoingPasswordPrevented = true;
+    }
+  }
+  void AllowToEchoPassword() {
+    if (mPasswordMaskData) {
+      mPasswordMaskData->mEchoingPasswordPrevented = false;
+    }
+  }
 
  protected:  // May be called by friends.
   /****************************************************************************
@@ -199,12 +255,11 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
    ****************************************************************************/
 
   // Overrides of EditorBase
-  MOZ_CAN_RUN_SCRIPT virtual nsresult RemoveAttributeOrEquivalent(
-      Element* aElement, nsAtom* aAttribute,
-      bool aSuppressTransaction) override;
-  MOZ_CAN_RUN_SCRIPT virtual nsresult SetAttributeOrEquivalent(
+  MOZ_CAN_RUN_SCRIPT nsresult RemoveAttributeOrEquivalent(
+      Element* aElement, nsAtom* aAttribute, bool aSuppressTransaction) final;
+  MOZ_CAN_RUN_SCRIPT nsresult SetAttributeOrEquivalent(
       Element* aElement, nsAtom* aAttribute, const nsAString& aValue,
-      bool aSuppressTransaction) override;
+      bool aSuppressTransaction) final;
   using EditorBase::RemoveAttributeOrEquivalent;
   using EditorBase::SetAttributeOrEquivalent;
 
@@ -275,6 +330,9 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
    * After this is called, TextEditor starts masking password automatically.
    */
   MOZ_CAN_RUN_SCRIPT_BOUNDARY nsresult MaskAllCharacters() {
+    if (!mPasswordMaskData) {
+      return NS_OK;  // Already we don't have masked range data.
+    }
     return SetUnmaskRangeInternal(UINT32_MAX, 0, 0, false, true);
   }
 
@@ -359,12 +417,12 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
   void HandleNewLinesInStringForSingleLineEditor(nsString& aString) const;
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT EditActionResult HandleInsertText(
-      EditSubAction aEditSubAction, const nsAString& aInsertionString) override;
+      EditSubAction aEditSubAction, const nsAString& aInsertionString) final;
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertDroppedDataTransferAsAction(
       AutoEditActionDataSetter& aEditActionData,
       dom::DataTransfer& aDataTransfer, const EditorDOMPoint& aDroppedAt,
-      dom::Document* aSrcDocument) override;
+      dom::Document* aSrcDocument) final;
 
   /**
    * HandleDeleteSelectionInternal() is a helper method of
@@ -386,7 +444,7 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT EditActionResult
   HandleDeleteSelection(nsIEditor::EDirection aDirectionAndAmount,
-                        nsIEditor::EStripWrappers aStripWrappers) override;
+                        nsIEditor::EStripWrappers aStripWrappers) final;
 
   /**
    * ComputeValueFromTextNodeAndBRElement() tries to compute "value" of
@@ -414,19 +472,11 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult EnsureCaretNotAtEndOfTextNode();
 
  protected:  // Called by helper classes.
-  MOZ_CAN_RUN_SCRIPT virtual void OnStartToHandleTopLevelEditSubAction(
+  MOZ_CAN_RUN_SCRIPT void OnStartToHandleTopLevelEditSubAction(
       EditSubAction aTopLevelEditSubAction,
       nsIEditor::EDirection aDirectionOfTopLevelEditSubAction,
-      ErrorResult& aRv) override;
-  MOZ_CAN_RUN_SCRIPT virtual nsresult OnEndHandlingTopLevelEditSubAction()
-      override;
-
-  /**
-   * EnsurePaddingBRElementForEmptyEditor() creates padding <br> element for
-   * empty editor or changes padding <br> element for empty last line to for
-   * empty editor when we're empty.
-   */
-  MOZ_CAN_RUN_SCRIPT nsresult EnsurePaddingBRElementForEmptyEditor();
+      ErrorResult& aRv) final;
+  MOZ_CAN_RUN_SCRIPT nsresult OnEndHandlingTopLevelEditSubAction() final;
 
   /**
    * HandleInlineSpellCheckAfterEdit() does spell-check after handling top level
@@ -456,17 +506,17 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
   /**
    * Make the given selection span the entire document.
    */
-  MOZ_CAN_RUN_SCRIPT virtual nsresult SelectEntireDocument() override;
+  MOZ_CAN_RUN_SCRIPT nsresult SelectEntireDocument() final;
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  InsertWithQuotationsAsSubAction(const nsAString& aQuotedText) override;
+  InsertWithQuotationsAsSubAction(const nsAString& aQuotedText) final;
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   InsertTextFromTransferable(nsITransferable* transferable);
 
   bool IsCopyToClipboardAllowedInternal() const final;
 
-  virtual already_AddRefed<Element> GetInputEventTargetElement() const override;
+  already_AddRefed<Element> GetInputEventTargetElement() const final;
 
   /**
    * See SetUnmaskRange() and SetUnmaskRangeAndNotify() for the detail.
@@ -480,22 +530,14 @@ class TextEditor : public EditorBase, public nsITimerCallback, public nsINamed {
                                                      bool aNotify,
                                                      bool aForceStartMasking);
 
+  MOZ_ALWAYS_INLINE bool HasAutoMaskingTimer() const {
+    return mPasswordMaskData && mPasswordMaskData->mTimer;
+  }
+
  protected:
-  // Timer to mask unmasked characters automatically.  Used only when it's
-  // a password field.
-  nsCOMPtr<nsITimer> mMaskTimer;
+  UniquePtr<PasswordMaskData> mPasswordMaskData;
 
-  int32_t mMaxTextLength;
-
-  // Unmasked character range.  Used only when it's a password field.
-  // If mUnmaskedLength is 0, it means there is no unmasked characters.
-  uint32_t mUnmaskedStart;
-  uint32_t mUnmaskedLength;
-
-  // Set to true if all characters are masked or waiting notification from
-  // `mMaskTimer`.  Otherwise, i.e., part of or all of password is unmasked
-  // without setting `mMaskTimer`, set to false.
-  bool mIsMaskingPassword;
+  int32_t mMaxTextLength = -1;
 
   friend class DeleteNodeTransaction;
   friend class EditorBase;

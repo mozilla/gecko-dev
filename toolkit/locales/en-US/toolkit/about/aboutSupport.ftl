@@ -58,12 +58,14 @@ app-basics-enabled-plugins = Enabled Plugins
 app-basics-build-config = Build Configuration
 app-basics-user-agent = User Agent
 app-basics-os = OS
+app-basics-os-theme = OS Theme
 # Rosetta is Apple's translation process to run apps containing x86_64
 # instructions on Apple Silicon. This should remain in English.
 app-basics-rosetta = Rosetta Translated
 app-basics-memory-use = Memory Use
 app-basics-performance = Performance
 app-basics-service-workers = Registered Service Workers
+app-basics-third-party = Third-party Modules
 app-basics-profiles = Profiles
 app-basics-launcher-process-status = Launcher Process
 app-basics-multi-process-support = Multiprocess Windows
@@ -183,37 +185,6 @@ remote-debugging-accepting-connections = Accepting Connections
 remote-debugging-url = URL
 
 ##
-
-support-third-party-modules-title = Third-Party Modules
-support-third-party-modules-module = Module File
-support-third-party-modules-version = File Version
-support-third-party-modules-vendor = Vendor Info
-support-third-party-modules-occurrence = Occurrence
-support-third-party-modules-process = Process Type & ID
-support-third-party-modules-thread = Thread
-support-third-party-modules-base = Imagebase Address
-support-third-party-modules-uptime = Process Uptime (ms)
-support-third-party-modules-duration = Loading Duration (ms)
-support-third-party-modules-status = Status
-support-third-party-modules-status-loaded = Loaded
-support-third-party-modules-status-blocked = Blocked
-support-third-party-modules-status-redirected = Redirected
-support-third-party-modules-empty = No third-party modules were loaded.
-support-third-party-modules-no-value = (No value)
-support-third-party-modules-button-open =
-    .title = Open file location…
-support-third-party-modules-expand =
-    .title = Show detailed information
-support-third-party-modules-collapse =
-    .title = Collapse detailed information
-support-third-party-modules-unsigned-icon =
-    .title = This module is not signed
-support-third-party-modules-folder-icon =
-    .title = Open file location…
-support-third-party-modules-down-icon =
-    .title = Show detailed information
-support-third-party-modules-up-icon =
-    .title = Collapse detailed information
 
 # Variables
 # $days (Integer) - Number of days of crashes to log
@@ -378,6 +349,7 @@ fission-status-disabled-by-default = Disabled by default
 fission-status-enabled-by-user-pref = Enabled by user
 fission-status-disabled-by-user-pref = Disabled by user
 fission-status-disabled-by-e10s-other = E10s disabled
+fission-status-enabled-by-rollout = Enabled by phased rollout
 
 async-pan-zoom = Asynchronous Pan/Zoom
 apz-none = none

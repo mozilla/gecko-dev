@@ -12,41 +12,11 @@
 #include "gc/Barrier.h"
 #include "js/GCHashTable.h"
 #include "vm/PropertyKey.h"
+#include "vm/PropMap.h"
 #include "vm/Shape.h"
 #include "vm/TaggedProto.h"
 
 namespace js {
-
-class PropertyTree {
-  friend class ::JSFunction;
-
-#ifdef DEBUG
-  JS::Zone* zone_;
-#endif
-
-  bool insertChild(JSContext* cx, Shape* parent, Shape* child);
-
-  PropertyTree();
-
- public:
-  /*
-   * Use a lower limit for objects that are accessed using SETELEM (o[x] = y).
-   * These objects are likely used as hashmaps and dictionary mode is more
-   * efficient in this case.
-   */
-  enum { MAX_HEIGHT = 512, MAX_HEIGHT_WITH_ELEMENTS_ACCESS = 128 };
-
-  explicit PropertyTree(JS::Zone* zone)
-#ifdef DEBUG
-      : zone_(zone)
-#endif
-  {
-  }
-
-  MOZ_ALWAYS_INLINE Shape* inlinedGetChild(JSContext* cx, Shape* parent,
-                                           JS::Handle<StackShape> childSpec);
-  Shape* getChild(JSContext* cx, Shape* parent, JS::Handle<StackShape> child);
-};
 
 // Hash policy for the per-zone baseShapes set.
 struct BaseShapeHasher {
@@ -71,6 +41,29 @@ struct BaseShapeHasher {
 };
 using BaseShapeSet = JS::WeakCache<
     JS::GCHashSet<WeakHeapPtr<BaseShape*>, BaseShapeHasher, SystemAllocPolicy>>;
+
+// Hash policy for the per-zone initialPropMaps set, mapping property key + info
+// to a shared property map.
+struct InitialPropMapHasher {
+  struct Lookup {
+    PropertyKey key;
+    PropertyInfo prop;
+
+    Lookup(PropertyKey key, PropertyInfo prop) : key(key), prop(prop) {}
+  };
+  static HashNumber hash(const Lookup& lookup) {
+    HashNumber hash = HashPropertyKey(lookup.key);
+    return mozilla::AddToHash(hash, lookup.prop.toRaw());
+  }
+  static bool match(const WeakHeapPtr<SharedPropMap*>& key,
+                    const Lookup& lookup) {
+    const SharedPropMap* map = key.unbarrieredGet();
+    return map->matchProperty(0, lookup.key, lookup.prop);
+  }
+};
+using InitialPropMapSet =
+    JS::WeakCache<JS::GCHashSet<WeakHeapPtr<SharedPropMap*>,
+                                InitialPropMapHasher, SystemAllocPolicy>>;
 
 // Hash policy for the per-zone initialShapes set storing initial shapes for
 // objects in the zone.
@@ -110,21 +103,70 @@ struct InitialShapeHasher {
 using InitialShapeSet = JS::WeakCache<
     JS::GCHashSet<WeakHeapPtr<Shape*>, InitialShapeHasher, SystemAllocPolicy>>;
 
-// Per-Zone information about Shapes and BaseShapes.
-struct ShapeZone {
-  // Shared Shape property tree.
-  PropertyTree propertyTree;
+// Hash policy for the per-zone propMapShapes set storing shared shapes with
+// shared property maps.
+struct PropMapShapeHasher {
+  struct Lookup {
+    BaseShape* base;
+    SharedPropMap* map;
+    uint32_t mapLength;
+    uint32_t nfixed;
+    ObjectFlags objectFlags;
 
+    Lookup(BaseShape* base, uint32_t nfixed, SharedPropMap* map,
+           uint32_t mapLength, ObjectFlags objectFlags)
+        : base(base),
+          map(map),
+          mapLength(mapLength),
+          nfixed(nfixed),
+          objectFlags(objectFlags) {}
+  };
+
+  static HashNumber hash(const Lookup& lookup) {
+    return mozilla::HashGeneric(lookup.base, lookup.map, lookup.mapLength,
+                                lookup.nfixed, lookup.objectFlags.toRaw());
+  }
+  static bool match(const WeakHeapPtr<Shape*>& key, const Lookup& lookup) {
+    const Shape* shape = key.unbarrieredGet();
+    return lookup.base == shape->base() &&
+           lookup.nfixed == shape->numFixedSlots() &&
+           lookup.map == shape->propMap() &&
+           lookup.mapLength == shape->propMapLength() &&
+           lookup.objectFlags == shape->objectFlags();
+  }
+  static void rekey(WeakHeapPtr<Shape*>& k, const WeakHeapPtr<Shape*>& newKey) {
+    k = newKey;
+  }
+};
+using PropMapShapeSet = JS::WeakCache<
+    JS::GCHashSet<WeakHeapPtr<Shape*>, PropMapShapeHasher, SystemAllocPolicy>>;
+
+struct ShapeZone {
   // Set of all base shapes in the Zone.
   BaseShapeSet baseShapes;
+
+  // Set used to look up a shared property map based on the first property's
+  // PropertyKey and PropertyInfo.
+  InitialPropMapSet initialPropMaps;
 
   // Set of initial shapes in the Zone.
   InitialShapeSet initialShapes;
 
+  // Set of SharedPropMapShapes in the Zone.
+  PropMapShapeSet propMapShapes;
+
+  using ShapeWithCacheVector = js::Vector<js::Shape*, 0, js::SystemAllocPolicy>;
+  ShapeWithCacheVector shapesWithCache;
+
   explicit ShapeZone(Zone* zone);
 
-  void clearTables();
-  size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf);
+  void clearTables(JSFreeOp* fop);
+  void purgeShapeCaches(JSFreeOp* fop);
+
+  void addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
+                              size_t* initialPropMapTable, size_t* shapeTables);
+
+  void fixupPropMapShapeTableAfterMovingGC();
 
 #ifdef JSGC_HASH_TABLE_CHECKS
   void checkTablesAfterMovingGC();

@@ -31,12 +31,6 @@ namespace dom {
 
 class Element;
 
-}  // namespace dom
-}  // namespace mozilla
-
-namespace mozilla {
-namespace dom {
-
 // For the internal implementation in ResizeObserver. Normally, this is owned by
 // ResizeObserver.
 class ResizeObservation final : public LinkedListElement<ResizeObservation> {
@@ -44,15 +38,8 @@ class ResizeObservation final : public LinkedListElement<ResizeObservation> {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(ResizeObservation)
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(ResizeObservation)
 
-  ResizeObservation(Element& aTarget, ResizeObserverBoxOptions aBox,
-                    const WritingMode aWM)
-      : mTarget(&aTarget),
-        mObservedBox(aBox),
-        // This starts us with a 0,0 last-reported-size:
-        mLastReportedSize(aWM),
-        mLastReportedWM(aWM) {
-    MOZ_ASSERT(mTarget, "Need a non-null target element");
-  }
+  ResizeObservation(Element&, ResizeObserver&, ResizeObserverBoxOptions,
+                    WritingMode);
 
   Element* Target() const { return mTarget; }
 
@@ -69,10 +56,16 @@ class ResizeObservation final : public LinkedListElement<ResizeObservation> {
    */
   void UpdateLastReportedSize(const nsSize& aSize);
 
+  enum class RemoveFromObserver : bool { No, Yes };
+  void Unlink(RemoveFromObserver);
+
  protected:
-  ~ResizeObservation() = default;
+  ~ResizeObservation() { Unlink(RemoveFromObserver::No); };
 
   nsCOMPtr<Element> mTarget;
+
+  // Weak, observer always outlives us.
+  ResizeObserver* mObserver;
 
   const ResizeObserverBoxOptions mObservedBox;
 
@@ -151,7 +144,7 @@ class ResizeObserver final : public nsISupports, public nsWrapperCache {
   MOZ_CAN_RUN_SCRIPT uint32_t BroadcastActiveObservations();
 
  protected:
-  ~ResizeObserver() { mObservationList.clear(); }
+  ~ResizeObserver() { Disconnect(); }
 
   nsCOMPtr<nsPIDOMWindowInner> mOwner;
   // The window's document at the time of ResizeObserver creation.
@@ -214,8 +207,8 @@ class ResizeObserverEntry final : public nsISupports, public nsWrapperCache {
    * Returns target's logical border-box size and content-box size as
    * ResizeObserverSize.
    */
-  ResizeObserverSize* BorderBoxSize() const { return mBorderBoxSize; }
-  ResizeObserverSize* ContentBoxSize() const { return mContentBoxSize; }
+  void GetBorderBoxSize(nsTArray<RefPtr<ResizeObserverSize>>& aRetVal) const;
+  void GetContentBoxSize(nsTArray<RefPtr<ResizeObserverSize>>& aRetVal) const;
 
  private:
   ~ResizeObserverEntry() = default;

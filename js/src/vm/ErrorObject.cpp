@@ -10,6 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/DebugOnly.h"
+#include "mozilla/Maybe.h"
 
 #include <utility>
 
@@ -220,12 +221,35 @@ static ErrorObject* CreateErrorObject(JSContext* cx, const CallArgs& args,
     }
   }
 
+  // Don't interpret the two parameters following the message parameter as the
+  // non-standard fileName and lineNumber arguments when we have an options
+  // object argument.
+  bool hasOptions = args.get(messageArg + 1).isObject();
+
+  Rooted<mozilla::Maybe<Value>> cause(cx, mozilla::Nothing());
+  if (hasOptions) {
+    RootedObject options(cx, &args[messageArg + 1].toObject());
+
+    bool hasCause = false;
+    if (!HasProperty(cx, options, cx->names().cause, &hasCause)) {
+      return nullptr;
+    }
+
+    if (hasCause) {
+      RootedValue causeValue(cx);
+      if (!GetProperty(cx, options, options, cx->names().cause, &causeValue)) {
+        return nullptr;
+      }
+      cause = mozilla::Some(causeValue.get());
+    }
+  }
+
   // Find the scripted caller, but only ones we're allowed to know about.
   NonBuiltinFrameIter iter(cx, cx->realm()->principals());
 
   RootedString fileName(cx);
   uint32_t sourceId = 0;
-  if (args.length() > messageArg + 1) {
+  if (!hasOptions && args.length() > messageArg + 1) {
     fileName = ToString<CanGC>(cx, args[messageArg + 1]);
   } else {
     fileName = cx->runtime()->emptyString;
@@ -243,7 +267,7 @@ static ErrorObject* CreateErrorObject(JSContext* cx, const CallArgs& args,
   }
 
   uint32_t lineNumber, columnNumber = 0;
-  if (args.length() > messageArg + 2) {
+  if (!hasOptions && args.length() > messageArg + 2) {
     if (!ToUint32(cx, args[messageArg + 2], &lineNumber)) {
       return nullptr;
     }
@@ -258,7 +282,7 @@ static ErrorObject* CreateErrorObject(JSContext* cx, const CallArgs& args,
   }
 
   return ErrorObject::create(cx, exnType, stack, fileName, sourceId, lineNumber,
-                             columnNumber, nullptr, message, proto);
+                             columnNumber, nullptr, message, cause, proto);
 }
 
 static bool Error(JSContext* cx, unsigned argc, Value* vp) {
@@ -432,24 +456,20 @@ Shape* js::ErrorObject::assignInitialShape(JSContext* cx,
   constexpr PropertyFlags propFlags = {PropertyFlag::Configurable,
                                        PropertyFlag::Writable};
 
-  uint32_t slot;
-  if (!NativeObject::addProperty(cx, obj, cx->names().fileName, FILENAME_SLOT,
-                                 propFlags, &slot)) {
+  if (!NativeObject::addPropertyInReservedSlot(cx, obj, cx->names().fileName,
+                                               FILENAME_SLOT, propFlags)) {
     return nullptr;
   }
-  MOZ_ASSERT(slot == FILENAME_SLOT);
 
-  if (!NativeObject::addProperty(cx, obj, cx->names().lineNumber,
-                                 LINENUMBER_SLOT, propFlags, &slot)) {
+  if (!NativeObject::addPropertyInReservedSlot(cx, obj, cx->names().lineNumber,
+                                               LINENUMBER_SLOT, propFlags)) {
     return nullptr;
   }
-  MOZ_ASSERT(slot == LINENUMBER_SLOT);
 
-  if (!NativeObject::addProperty(cx, obj, cx->names().columnNumber,
-                                 COLUMNNUMBER_SLOT, propFlags, &slot)) {
+  if (!NativeObject::addPropertyInReservedSlot(
+          cx, obj, cx->names().columnNumber, COLUMNNUMBER_SLOT, propFlags)) {
     return nullptr;
   }
-  MOZ_ASSERT(slot == COLUMNNUMBER_SLOT);
 
   return obj->shape();
 }
@@ -459,14 +479,16 @@ bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
                            JSExnType type, UniquePtr<JSErrorReport> errorReport,
                            HandleString fileName, HandleObject stack,
                            uint32_t sourceId, uint32_t lineNumber,
-                           uint32_t columnNumber, HandleString message) {
+                           uint32_t columnNumber, HandleString message,
+                           Handle<mozilla::Maybe<JS::Value>> cause) {
+  MOZ_ASSERT(JSEXN_ERR <= type && type < JSEXN_ERROR_LIMIT);
   AssertObjectIsSavedFrameOrWrapper(cx, stack);
   cx->check(obj, stack);
 
   // Null out early in case of error, for exn_finalize's sake.
   obj->initReservedSlot(ERROR_REPORT_SLOT, PrivateValue(nullptr));
 
-  if (!EmptyShape::ensureInitialCustomShape<ErrorObject>(cx, obj)) {
+  if (!SharedShape::ensureInitialCustomShape<ErrorObject>(cx, obj)) {
     return false;
   }
 
@@ -477,12 +499,22 @@ bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
   if (message) {
     constexpr PropertyFlags propFlags = {PropertyFlag::Configurable,
                                          PropertyFlag::Writable};
-    uint32_t slot;
-    if (!NativeObject::addProperty(cx, obj, cx->names().message, MESSAGE_SLOT,
-                                   propFlags, &slot)) {
+    if (!NativeObject::addPropertyInReservedSlot(cx, obj, cx->names().message,
+                                                 MESSAGE_SLOT, propFlags)) {
       return false;
     }
-    MOZ_ASSERT(slot == MESSAGE_SLOT);
+  }
+
+  // Similar to the .message property, .cause is present only in some error
+  // objects -- |new Error("f", {cause: cause})| -- but not in other --
+  // |Error.prototype|, |new Error()|, |new Error("f")|.
+  if (cause.isSome()) {
+    constexpr PropertyFlags propFlags = {PropertyFlag::Configurable,
+                                         PropertyFlag::Writable};
+    if (!NativeObject::addPropertyInReservedSlot(cx, obj, cx->names().cause,
+                                                 CAUSE_SLOT, propFlags)) {
+      return false;
+    }
   }
 
   MOZ_ASSERT(obj->lookupPure(NameToId(cx->names().fileName))->slot() ==
@@ -494,18 +526,23 @@ bool js::ErrorObject::init(JSContext* cx, Handle<ErrorObject*> obj,
   MOZ_ASSERT_IF(
       message,
       obj->lookupPure(NameToId(cx->names().message))->slot() == MESSAGE_SLOT);
-
-  MOZ_ASSERT(JSEXN_ERR <= type && type < JSEXN_LIMIT);
+  MOZ_ASSERT_IF(
+      cause.isSome(),
+      obj->lookupPure(NameToId(cx->names().cause))->slot() == CAUSE_SLOT);
 
   JSErrorReport* report = errorReport.release();
-  obj->initReservedSlot(EXNTYPE_SLOT, Int32Value(type));
   obj->initReservedSlot(STACK_SLOT, ObjectOrNullValue(stack));
   obj->setReservedSlot(ERROR_REPORT_SLOT, PrivateValue(report));
   obj->initReservedSlot(FILENAME_SLOT, StringValue(fileName));
   obj->initReservedSlot(LINENUMBER_SLOT, Int32Value(lineNumber));
   obj->initReservedSlot(COLUMNNUMBER_SLOT, Int32Value(columnNumber));
   if (message) {
-    obj->initSlot(MESSAGE_SLOT, StringValue(message));
+    obj->initReservedSlot(MESSAGE_SLOT, StringValue(message));
+  }
+  if (cause.isSome()) {
+    obj->initReservedSlot(CAUSE_SLOT, *cause.get());
+  } else {
+    obj->initReservedSlot(CAUSE_SLOT, MagicValue(JS_ERROR_WITHOUT_CAUSE));
   }
   obj->initReservedSlot(SOURCEID_SLOT, Int32Value(sourceId));
   if (obj->mightBeWasmTrap()) {
@@ -523,6 +560,7 @@ ErrorObject* js::ErrorObject::create(JSContext* cx, JSExnType errorType,
                                      uint32_t columnNumber,
                                      UniquePtr<JSErrorReport> report,
                                      HandleString message,
+                                     Handle<mozilla::Maybe<JS::Value>> cause,
                                      HandleObject protoArg /* = nullptr */) {
   AssertObjectIsSavedFrameOrWrapper(cx, stack);
 
@@ -546,7 +584,8 @@ ErrorObject* js::ErrorObject::create(JSContext* cx, JSExnType errorType,
   }
 
   if (!ErrorObject::init(cx, errObject, errorType, std::move(report), fileName,
-                         stack, sourceId, lineNumber, columnNumber, message)) {
+                         stack, sourceId, lineNumber, columnNumber, message,
+                         cause)) {
     return nullptr;
   }
 

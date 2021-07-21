@@ -28,6 +28,7 @@
 #include "FramingChecker.h"
 #include "js/Array.h"  // JS::GetArrayLength
 #include "js/ContextOptions.h"
+#include "js/PropertyAndElement.h"  // JS_GetElement
 #include "js/RegExp.h"
 #include "js/RegExpFlags.h"  // JS::RegExpFlags
 #include "mozilla/ExtensionPolicyService.h"
@@ -963,7 +964,8 @@ void nsContentSecurityUtils::AssertAboutPageHasCSP(Document* aDocument) {
                  StringBeginsWith(aboutSpec, "about:logins"_ns) ||
                  StringBeginsWith(aboutSpec, "about:home"_ns) ||
                  StringBeginsWith(aboutSpec, "about:welcome"_ns) ||
-                 StringBeginsWith(aboutSpec, "about:devtools"_ns),
+                 StringBeginsWith(aboutSpec, "about:devtools"_ns) ||
+                 StringBeginsWith(aboutSpec, "about:pocket-saved"_ns),
              "about: page must not contain a CSP including a web scheme");
 
   if (aDocument->IsExtensionPage()) {

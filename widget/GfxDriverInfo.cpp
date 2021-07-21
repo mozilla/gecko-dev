@@ -479,7 +479,9 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_RANGE(0x06c0, INT32_MAX);
       break;
     case DeviceFamily::IntelRolloutWebRender:
-#ifdef EARLY_BETA_OR_EARLIER
+      // Disable WebRender on these devices for now
+      // to match what's going out into release
+#if 0
       // gen4.5 - G45
       APPEND_DEVICE(0x2e22);
 
@@ -496,6 +498,8 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
 
       [[fallthrough]];
     case DeviceFamily::IntelModernRolloutWebRender:
+      // Temporarily disable WebRender on gen6 to get more sw-wr+D3D11 testing
+#ifndef NIGHTLY_BUILD
       // sandybridge gen6 gt1
       APPEND_DEVICE(0x0102);
       APPEND_DEVICE(0x0106);
@@ -506,6 +510,7 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       APPEND_DEVICE(0x0116);
       APPEND_DEVICE(0x0122);
       APPEND_DEVICE(0x0126);
+#endif
 
       // ivybridge gen7 baytrail
       APPEND_DEVICE(0x0f30);

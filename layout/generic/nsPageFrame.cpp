@@ -49,12 +49,13 @@ nsPageFrame::~nsPageFrame() = default;
 
 nsReflowStatus nsPageFrame::ReflowPageContent(
     nsPresContext* aPresContext, const ReflowInput& aPageReflowInput) {
+  nsIFrame* const frame = PageContentFrame();
   // XXX Pay attention to the page's border and padding...
   //
   // Reflow our ::-moz-page-content frame, allowing it only to be as big as we
   // are (minus margins).
-  nsIFrame* const frame = PageContentFrame();
-  nsSize maxSize = aPresContext->GetPageSize();
+  nsSize maxSize = ComputePageSize();
+
   float scale = aPresContext->GetPageScale();
   // When the reflow size is NS_UNCONSTRAINEDSIZE it means we are reflowing
   // a single page to print selection. So this means we want to use
@@ -475,8 +476,8 @@ static std::tuple<uint32_t, uint32_t> GetRowAndColFromIdx(uint32_t aIdxOnSheet,
 }
 
 // Helper for BuildDisplayList:
-static gfx::Matrix4x4 ComputePagesPerSheetTransform(const nsIFrame* aFrame,
-                                                    float aAppUnitsPerPixel) {
+static gfx::Matrix4x4 ComputePagesPerSheetAndPageSizeTransform(
+    const nsIFrame* aFrame, float aAppUnitsPerPixel) {
   MOZ_ASSERT(aFrame->IsPageFrame());
   auto* pageFrame = static_cast<const nsPageFrame*>(aFrame);
 
@@ -487,10 +488,31 @@ static gfx::Matrix4x4 ComputePagesPerSheetTransform(const nsIFrame* aFrame,
   uint32_t rowIdx = 0;
   uint32_t colIdx = 0;
 
+  // Compute scaling due to a possible mismatch in the paper size we are
+  // printing to (from the pres context) and the specified page size when the
+  // content uses "@page {size: ...}" to specify a page size for the content.
+  const nsSize actualPaperSize = pageFrame->PresContext()->GetPageSize();
+  const nsSize contentPageSize = pageFrame->ComputePageSize();
+  {
+    nscoord contentPageHeight = contentPageSize.height;
+    // Scale down if the target is too wide.
+    if (contentPageSize.width > actualPaperSize.width) {
+      scale *= float(actualPaperSize.width) / float(contentPageSize.width);
+      contentPageHeight = NSToCoordRound(contentPageHeight * scale);
+    }
+    // Scale down if the target is too tall.
+    if (contentPageHeight > actualPaperSize.height) {
+      scale *= float(actualPaperSize.height) / float(contentPageHeight);
+    }
+  }
+  MOZ_ASSERT(
+      scale <= 1.0f,
+      "Page-size mismatches should only have caused us to scale down, not up.");
+
   if (nsSharedPageData* pd = pageFrame->GetSharedPageData()) {
     const auto* ppsInfo = pd->PagesPerSheetInfo();
     if (ppsInfo->mNumPages > 1) {
-      scale = pd->mPagesPerSheetScale;
+      scale *= pd->mPagesPerSheetScale;
       gridOrigin = pd->mPagesPerSheetGridOrigin;
       std::tie(rowIdx, colIdx) = GetRowAndColFromIdx(pageFrame->IndexOnSheet(),
                                                      pd->mPagesPerSheetNumCols);
@@ -501,10 +523,12 @@ static gfx::Matrix4x4 ComputePagesPerSheetTransform(const nsIFrame* aFrame,
   auto transform = gfx::Matrix4x4::Scaling(scale, scale, 1);
 
   // Draw the page at an offset, to get it in its pages-per-sheet "cell":
-  nsSize pageSize = pageFrame->PresContext()->GetPageSize();
   transform.PreTranslate(
-      NSAppUnitsToFloatPixels(colIdx * pageSize.width, aAppUnitsPerPixel),
-      NSAppUnitsToFloatPixels(rowIdx * pageSize.height, aAppUnitsPerPixel), 0);
+      NSAppUnitsToFloatPixels(colIdx * contentPageSize.width,
+                              aAppUnitsPerPixel),
+      NSAppUnitsToFloatPixels(rowIdx * contentPageSize.height,
+                              aAppUnitsPerPixel),
+      0);
 
   // Also add the grid origin as an offset (so that we're not drawing into the
   // sheet's unwritable area). Note that this is a PostTranslate operation
@@ -517,10 +541,10 @@ static gfx::Matrix4x4 ComputePagesPerSheetTransform(const nsIFrame* aFrame,
 }
 
 nsIFrame::ComputeTransformFunction nsPageFrame::GetTransformGetter() const {
-  return ComputePagesPerSheetTransform;
+  return ComputePagesPerSheetAndPageSizeTransform;
 }
 
-nsPageContentFrame* nsPageFrame::PageContentFrame() {
+nsPageContentFrame* nsPageFrame::PageContentFrame() const {
   nsIFrame* const frame = mFrames.FirstChild();
   MOZ_ASSERT(frame, "pageFrame must have one child");
   MOZ_ASSERT(frame->IsPageContentFrame(),
@@ -528,9 +552,39 @@ nsPageContentFrame* nsPageFrame::PageContentFrame() {
   return static_cast<nsPageContentFrame*>(frame);
 }
 
+nsSize nsPageFrame::ComputePageSize() const {
+  const nsPageContentFrame* const pcf = PageContentFrame();
+  nsSize size = PresContext()->GetPageSize();
+
+  // Compute the expected page-size.
+  const nsStylePage* const stylePage = pcf->StylePage();
+  const StylePageSize& pageSize = stylePage->mSize;
+
+  if (pageSize.IsSize()) {
+    // Use the specified size
+    return nsSize{pageSize.AsSize().width.ToAppUnits(),
+                  pageSize.AsSize().height.ToAppUnits()};
+  }
+  if (pageSize.IsOrientation()) {
+    // Ensure the correct orientation is applied.
+    if (pageSize.AsOrientation() == StyleOrientation::Portrait) {
+      if (size.width > size.height) {
+        std::swap(size.width, size.height);
+      }
+    } else {
+      MOZ_ASSERT(pageSize.AsOrientation() == StyleOrientation::Landscape);
+      if (size.width < size.height) {
+        std::swap(size.width, size.height);
+      }
+    }
+  } else {
+    MOZ_ASSERT(pageSize.IsAuto(), "Impossible page-size value?");
+  }
+  return size;
+}
+
 void nsPageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                    const nsDisplayListSet& aLists) {
-  nsPresContext* pc = PresContext();
   nsDisplayList content;
   nsDisplayListSet set(&content, &content, &content, &content, &content,
                        &content);
@@ -538,7 +592,20 @@ void nsPageFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
     clipState.Clear();
 
+    // We need to extend the building rect to include the specified page size,
+    // in case it is larger than the physical page size. In that case the
+    // nsPageFrame will be the size of the physical page, but the child
+    // nsPageContentFrame will be the larger specified page size.
+    // The more correct way to do this would be to fully reverse the result of
+    // ComputePagesPerSheetAndPageSizeTransform to handle this scaling, but
+    // this should have the same result and is easier.
+    const nsRect pageContentRect({0, 0}, ComputePageSize());
+    nsDisplayListBuilder::AutoBuildingDisplayList buildingForPageContentFrame(
+        aBuilder, this, pageContentRect, pageContentRect);
+
     nsContainerFrame::BuildDisplayList(aBuilder, set);
+
+    nsPresContext* const pc = PresContext();
     if (pc->IsRootPaginatedDocument()) {
       content.AppendNewToTop<nsDisplayHeaderFooter>(aBuilder, this);
 
@@ -578,7 +645,7 @@ void nsPageFrame::PaintHeaderFooter(gfxContext& aRenderingContext, nsPoint aPt,
                                     bool aDisableSubpixelAA) {
   nsPresContext* pc = PresContext();
 
-  nsRect rect(aPt, mRect.Size());
+  nsRect rect(aPt, ComputePageSize());
   aRenderingContext.SetColor(sRGBColor::OpaqueBlack());
 
   DrawTargetAutoDisableSubpixelAntialiasing disable(

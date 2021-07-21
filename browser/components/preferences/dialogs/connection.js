@@ -7,6 +7,12 @@
 /* import-globals-from ../../../../toolkit/content/preferencesBindings.js */
 /* import-globals-from ../extensionControlled.js */
 
+ChromeUtils.defineModuleGetter(
+  this,
+  "DoHConfigController",
+  "resource:///modules/DoHConfig.jsm"
+);
+
 document
   .getElementById("ConnectionsDialog")
   .addEventListener("dialoghelp", window.top.openPrefsHelp);
@@ -33,12 +39,14 @@ Preferences.addAll([
   { id: "network.proxy.backup.ssl_port", type: "int" },
   { id: "network.trr.mode", type: "int" },
   { id: "network.trr.uri", type: "string" },
-  { id: "network.trr.resolvers", type: "string" },
   { id: "network.trr.custom_uri", type: "string" },
-  { id: "doh-rollout.enabled", type: "bool" },
   { id: "doh-rollout.disable-heuristics", type: "bool" },
   { id: "doh-rollout.skipHeuristicsCheck", type: "bool" },
 ]);
+
+const DoHConfigObserver = () => {
+  gConnectionsDialog.initDnsOverHttpsUI();
+};
 
 window.addEventListener(
   "DOMContentLoaded",
@@ -56,9 +64,20 @@ window.addEventListener(
       gConnectionsDialog.updateDnsOverHttpsUI();
     });
 
-    Preferences.get("network.trr.resolvers").on("change", () => {
-      gConnectionsDialog.initDnsOverHttpsUI();
-    });
+    Services.obs.addObserver(
+      DoHConfigObserver,
+      DoHConfigController.kConfigUpdateTopic
+    );
+    window.addEventListener(
+      "unload",
+      e => {
+        Services.obs.removeObserver(
+          DoHConfigObserver,
+          DoHConfigController.kConfigUpdateTopic
+        );
+      },
+      { once: true }
+    );
 
     // XXX: We can't init the DNS-over-HTTPs UI until the onsyncfrompreference for network.trr.mode
     //      has been called. The uiReady promise will be resolved after the first call to
@@ -100,20 +119,32 @@ var gConnectionsDialog = {
     let dnsOverHttpsResolverChoice = document.getElementById(
       "networkDnsOverHttpsResolverChoices"
     ).value;
+    let writeURIandMode = uri => {
+      Services.prefs.setStringPref("network.trr.uri", uri);
+      // When writing the URI, also write the mode. This is needed in addition
+      // to the mode reacting in realtime to the checkbox state because of the
+      // case when the checkbox was ticked due to the rollout being enabled at
+      // the time of clicking "Accept".
+      Services.prefs.setIntPref(
+        "network.trr.mode",
+        this.writeDnsOverHttpsMode()
+      );
+    };
+    // We treat clicking "Accept" as a user choice, and set both the TRR
+    // URI and mode here. This will cause DoHController to permanently
+    // disable heuristics and the values at the time of accept will persist.
+    // This includes the case when no changes were made.
     if (dnsOverHttpsResolverChoice == "custom") {
       let customValue = document
         .getElementById("networkCustomDnsOverHttpsInput")
         .value.trim();
       if (customValue) {
-        Services.prefs.setStringPref("network.trr.uri", customValue);
+        writeURIandMode(customValue);
       } else {
-        Services.prefs.clearUserPref("network.trr.uri");
+        writeURIandMode(DoHConfigController.currentConfig.fallbackProviderURI);
       }
     } else {
-      Services.prefs.setStringPref(
-        "network.trr.uri",
-        dnsOverHttpsResolverChoice
-      );
+      writeURIandMode(dnsOverHttpsResolverChoice);
     }
 
     var proxyTypePref = Preferences.get("network.proxy.type");
@@ -399,30 +430,14 @@ var gConnectionsDialog = {
   },
 
   get dnsOverHttpsResolvers() {
-    let rawValue = Preferences.get("network.trr.resolvers", "").value;
+    let providers = DoHConfigController.currentConfig.providerList;
     // if there's no default, we'll hold its position with an empty string
-    let defaultURI = Preferences.get("network.trr.uri", "").defaultValue;
-    let providers = [];
-    if (rawValue) {
-      try {
-        providers = JSON.parse(rawValue);
-      } catch (ex) {
-        Cu.reportError(
-          `Bad JSON data in pref network.trr.resolvers: ${rawValue}`
-        );
-      }
-    }
-    if (!Array.isArray(providers)) {
-      Cu.reportError(
-        `Expected a JSON array in network.trr.resolvers: ${rawValue}`
-      );
-      providers = [];
-    }
-    let defaultIndex = providers.findIndex(p => p.url == defaultURI);
+    let defaultURI = DoHConfigController.currentConfig.fallbackProviderURI;
+    let defaultIndex = providers.findIndex(p => p.uri == defaultURI);
     if (defaultIndex == -1 && defaultURI) {
       // the default value for the pref isn't included in the resolvers list
       // so we'll make a stub for it. Without an id, we'll have to use the url as the label
-      providers.unshift({ url: defaultURI });
+      providers.unshift({ uri: defaultURI });
     }
     return providers;
   },
@@ -440,7 +455,7 @@ var gConnectionsDialog = {
       return trrPref.value == 2 || trrPref.value == 3;
     }
 
-    let rolloutEnabled = Preferences.get("doh-rollout.enabled").value;
+    let rolloutEnabled = DoHConfigController.currentConfig.enabled;
     let heuristicsDisabled =
       Preferences.get("doh-rollout.disable-heuristics").value ||
       Preferences.get("doh-rollout.skipHeuristicsCheck").value;
@@ -491,7 +506,7 @@ var gConnectionsDialog = {
         if (
           currentURI &&
           !customURI &&
-          !resolvers.find(r => r.url == currentURI)
+          !resolvers.find(r => r.uri == currentURI)
         ) {
           Services.prefs.setStringPref("network.trr.custom_uri", currentURI);
         }
@@ -536,24 +551,24 @@ var gConnectionsDialog = {
 
   initDnsOverHttpsUI() {
     let resolvers = this.dnsOverHttpsResolvers;
-    let defaultURI = Preferences.get("network.trr.uri").defaultValue;
+    let defaultURI = DoHConfigController.currentConfig.fallbackProviderURI;
     let currentURI = Preferences.get("network.trr.uri").value;
     let menu = document.getElementById("networkDnsOverHttpsResolverChoices");
 
     // populate the DNS-Over-HTTPs resolver list
     menu.removeAllItems();
     for (let resolver of resolvers) {
-      let item = menu.appendItem(undefined, resolver.url);
-      if (resolver.url == defaultURI) {
+      let item = menu.appendItem(undefined, resolver.uri);
+      if (resolver.uri == defaultURI) {
         document.l10n.setAttributes(
           item,
           "connection-dns-over-https-url-item-default",
           {
-            name: resolver.name || resolver.url,
+            name: resolver.UIName || resolver.uri,
           }
         );
       } else {
-        item.label = resolver.name || resolver.url;
+        item.label = resolver.UIName || resolver.uri;
       }
     }
     let lastItem = menu.appendItem(undefined, "custom");
@@ -564,7 +579,7 @@ var gConnectionsDialog = {
 
     // set initial selection in the resolver provider picker
     let selectedIndex = currentURI
-      ? resolvers.findIndex(r => r.url == currentURI)
+      ? resolvers.findIndex(r => r.uri == currentURI)
       : 0;
     if (selectedIndex == -1) {
       // select the last "Custom" item

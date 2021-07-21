@@ -267,7 +267,7 @@ class ResultType {
     InvalidKind = Tagged::PointerKind2,
   };
 
-  ResultType(Kind kind, uint32_t imm) : tagged_(Tagged::Kind(kind), imm) {}
+  ResultType(Kind kind, uintptr_t imm) : tagged_(Tagged::Kind(kind), imm) {}
   explicit ResultType(const ValTypeVector* ptr)
       : tagged_(Tagged::Kind(VectorKind), ptr) {}
 
@@ -286,7 +286,7 @@ class ResultType {
  public:
   ResultType() : tagged_(Tagged::Kind(InvalidKind), nullptr) {}
 
-  static ResultType Empty() { return ResultType(EmptyKind, uint32_t(0)); }
+  static ResultType Empty() { return ResultType(EmptyKind, uintptr_t(0)); }
   static ResultType Single(ValType vt) {
     return ResultType(SingleKind, vt.bitsUnsafe());
   }
@@ -329,6 +329,9 @@ class ResultType {
         MOZ_CRASH("bad resulttype");
     }
   }
+
+  // Polyfill the Span API, which is polyfilling the std library
+  size_t size() const { return length(); }
 
   ValType operator[](size_t i) const {
     switch (kind()) {
@@ -380,7 +383,7 @@ class BlockType {
     FuncResultsKind = Tagged::PointerKind2
   };
 
-  BlockType(Kind kind, uint32_t imm) : tagged_(Tagged::Kind(kind), imm) {}
+  BlockType(Kind kind, uintptr_t imm) : tagged_(Tagged::Kind(kind), imm) {}
   BlockType(Kind kind, const FuncType& type)
       : tagged_(Tagged::Kind(kind), &type) {}
 
@@ -398,7 +401,7 @@ class BlockType {
                 PackedTypeCode::invalid().bits()) {}
 
   static BlockType VoidToVoid() {
-    return BlockType(VoidToVoidKind, uint32_t(0));
+    return BlockType(VoidToVoidKind, uintptr_t(0));
   }
   static BlockType VoidToSingle(ValType vt) {
     return BlockType(VoidToSingleKind, vt.bitsUnsafe());
@@ -835,73 +838,6 @@ struct Name {
 
 using NameVector = Vector<Name, 0, SystemAllocPolicy>;
 
-// TypeIdDesc describes the runtime representation of a TypeDef suitable for
-// type equality checks. The kind of representation depends on whether the type
-// is a function or a struct. This will likely be simplified in the future once
-// mutually recursives types are able to be collected.
-//
-// For functions, a FuncType is allocated and stored in a process-wide hash
-// table, so that pointer equality implies structural equality. As an
-// optimization for the 99% case where the FuncType has a small number of
-// parameters, the FuncType is bit-packed into a uint32 immediate value so that
-// integer equality implies structural equality. Both cases can be handled with
-// a single comparison by always setting the LSB for the immediates
-// (the LSB is necessarily 0 for allocated FuncType pointers due to alignment).
-//
-// TODO: Write description for StructTypes once it is well formed.
-
-class TypeIdDesc {
- public:
-  static const uintptr_t ImmediateBit = 0x1;
-
- private:
-  TypeIdDescKind kind_;
-  size_t bits_;
-
-  TypeIdDesc(TypeIdDescKind kind, size_t bits) : kind_(kind), bits_(bits) {}
-
- public:
-  TypeIdDescKind kind() const { return kind_; }
-  static bool isGlobal(const TypeDef& type);
-
-  TypeIdDesc() : kind_(TypeIdDescKind::None), bits_(0) {}
-  static TypeIdDesc global(const TypeDef& type, uint32_t globalDataOffset);
-  static TypeIdDesc immediate(const TypeDef& type);
-
-  bool isGlobal() const { return kind_ == TypeIdDescKind::Global; }
-
-  size_t immediate() const {
-    MOZ_ASSERT(kind_ == TypeIdDescKind::Immediate);
-    return bits_;
-  }
-  uint32_t globalDataOffset() const {
-    MOZ_ASSERT(kind_ == TypeIdDescKind::Global);
-    return bits_;
-  }
-};
-
-using TypeIdDescVector = Vector<TypeIdDesc, 0, SystemAllocPolicy>;
-
-// TypeDefWithId pairs a FuncType with TypeIdDesc, describing either how to
-// compile code that compares this signature's id or, at instantiation what
-// signature ids to allocate in the global hash and where to put them.
-
-struct TypeDefWithId : public TypeDef {
-  TypeIdDesc id;
-
-  TypeDefWithId() = default;
-  explicit TypeDefWithId(TypeDef&& typeDef)
-      : TypeDef(std::move(typeDef)), id() {}
-  TypeDefWithId(TypeDef&& typeDef, TypeIdDesc id)
-      : TypeDef(std::move(typeDef)), id(id) {}
-
-  WASM_DECLARE_SERIALIZABLE(TypeDefWithId)
-};
-
-using TypeDefWithIdVector = Vector<TypeDefWithId, 0, SystemAllocPolicy>;
-using TypeDefWithIdPtrVector =
-    Vector<const TypeDefWithId*, 0, SystemAllocPolicy>;
-
 // A wrapper around the bytecode offset of a wasm instruction within a whole
 // module, used for trap offsets or call offsets. These offsets should refer to
 // the first byte of the instruction that triggered the trap / did the call and
@@ -1317,9 +1253,22 @@ struct WasmTryNote {
 
 WASM_DECLARE_POD_VECTOR(WasmTryNote, WasmTryNoteVector)
 
+// The kind of limits to decode or convert from JS.
+
+enum class LimitsKind {
+  Memory,
+  Table,
+};
+
 // Represents the resizable limits of memories and tables.
 
 struct Limits {
+  // `indexType` will always be I32 for tables, but may be I64 for memories
+  // when memory64 is enabled.
+  IndexType indexType;
+
+  // The initial and maximum limit. The unit is pages for memories and elements
+  // for tables.
   uint64_t initial;
   Maybe<uint64_t> maximum;
 
@@ -1330,18 +1279,12 @@ struct Limits {
   Limits() = default;
   explicit Limits(uint64_t initial, const Maybe<uint64_t>& maximum = Nothing(),
                   Shareable shared = Shareable::False)
-      : initial(initial), maximum(maximum), shared(shared) {}
+      : indexType(IndexType::I32), initial(initial), maximum(maximum), shared(shared) {}
 };
-
-// Memories can be 32-bit (indices are 32 bits and the max is 4GB) or 64-bit
-// (indices are 64 bits and the max is XXX).
-
-enum class MemoryKind { Memory32, Memory64 };
 
 // MemoryDesc describes a memory.
 
 struct MemoryDesc {
-  MemoryKind kind;
   Limits limits;
 
   bool isShared() const { return limits.shared == Shareable::True; }
@@ -1357,6 +1300,8 @@ struct MemoryDesc {
            limits.maximum.value() < (0x100000000 / PageSize);
   }
 
+  IndexType indexType() const { return limits.indexType; }
+
   // The initial length of this memory in pages.
   Pages initialPages() const { return Pages(limits.initial); }
 
@@ -1367,23 +1312,13 @@ struct MemoryDesc {
 
   // The initial length of this memory in bytes. Only valid for memory32.
   uint64_t initialLength32() const {
-    MOZ_ASSERT(kind == MemoryKind::Memory32);
+    MOZ_ASSERT(indexType() == IndexType::I32);
     // See static_assert after MemoryDesc for why this is safe.
     return limits.initial * PageSize;
   }
 
-  // The maximum length of this memory in bytes. Only valid for memory32.
-  Maybe<uint64_t> maximumLength32() const {
-    MOZ_ASSERT(kind == MemoryKind::Memory32);
-    if (limits.maximum) {
-      // See static_assert after MemoryDesc for why this is safe.
-      return Some(*limits.maximum * PageSize);
-    }
-    return Nothing();
-  }
-
   MemoryDesc() = default;
-  MemoryDesc(MemoryKind kind, Limits limits) : kind(kind), limits(limits) {}
+  explicit MemoryDesc(Limits limits) : limits(limits) {}
 };
 
 // We don't need to worry about overflow with a Memory32 field when

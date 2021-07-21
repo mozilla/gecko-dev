@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{ColorF, YuvColorSpace, YuvFormat, ImageRendering, ExternalImageId, ImageBufferKind};
+use api::{ColorF, YuvRangedColorSpace, YuvFormat, ImageRendering, ExternalImageId, ImageBufferKind};
 use api::units::*;
 use api::ColorDepth;
 use crate::image_source::resolve_image;
@@ -155,13 +155,12 @@ pub fn tile_kind(surface: &CompositeTileSurface, is_opaque: bool) -> TileKind {
 pub enum ExternalSurfaceDependency {
     Yuv {
         image_dependencies: [ImageDependency; 3],
-        color_space: YuvColorSpace,
+        color_space: YuvRangedColorSpace,
         format: YuvFormat,
-        rescale: f32,
+        channel_bit_depth: u32,
     },
     Rgb {
         image_dependency: ImageDependency,
-        flip_y: bool,
     },
 }
 
@@ -221,14 +220,13 @@ pub enum ResolvedExternalSurfaceColorData {
         // YUV specific information
         image_dependencies: [ImageDependency; 3],
         planes: [ExternalPlaneDescriptor; 3],
-        color_space: YuvColorSpace,
+        color_space: YuvRangedColorSpace,
         format: YuvFormat,
-        rescale: f32,
+        channel_bit_depth: u32,
     },
     Rgb {
         image_dependency: ImageDependency,
         plane: ExternalPlaneDescriptor,
-        flip_y: bool,
     },
 }
 
@@ -344,15 +342,6 @@ impl CompositorKind {
         match self {
             CompositorKind::Draw { .. } => 0,
             CompositorKind::Native { capabilities, .. } => capabilities.virtual_surface_size,
-        }
-    }
-
-    // We currently only support transforms for Native compositors,
-    // bug 1655639 is filed for adding support to Draw.
-    pub fn supports_transforms(&self) -> bool {
-        match self {
-            CompositorKind::Draw { .. } => false,
-            CompositorKind::Native { .. } => true,
         }
     }
 
@@ -527,6 +516,8 @@ pub struct CompositeState {
     pub picture_cache_debug: PictureCacheDebugInfo,
     /// List of registered transforms used by picture cache or external surfaces
     pub transforms: Vec<CompositorTransform>,
+    /// Whether we have low quality pinch zoom enabled
+    low_quality_pinch_zoom: bool,
 }
 
 impl CompositeState {
@@ -536,6 +527,7 @@ impl CompositeState {
         compositor_kind: CompositorKind,
         max_depth_ids: i32,
         dirty_rects_are_valid: bool,
+        low_quality_pinch_zoom: bool,
     ) -> Self {
         CompositeState {
             tiles: Vec::new(),
@@ -547,6 +539,7 @@ impl CompositeState {
             external_surfaces: Vec::new(),
             picture_cache_debug: PictureCacheDebugInfo::new(),
             transforms: Vec::new(),
+            low_quality_pinch_zoom,
         }
     }
 
@@ -599,13 +592,22 @@ impl CompositeState {
             .unwrap_or_else(DeviceRect::zero)
     }
 
-    /// Get the surface -> device compositor transform as a 4x4 matrix
+    /// Get the local -> device compositor transform
+    pub fn get_device_transform(
+        &self,
+        transform_index: CompositorTransformIndex,
+    ) -> ScaleOffset {
+        let transform = &self.transforms[transform_index.0];
+        transform.local_to_device
+    }
+
+    /// Get the surface -> device compositor transform
     pub fn get_compositor_transform(
         &self,
         transform_index: CompositorTransformIndex,
-    ) -> CompositorSurfaceTransform {
+    ) -> ScaleOffset {
         let transform = &self.transforms[transform_index.0];
-        transform.surface_to_device.to_transform()
+        transform.surface_to_device
     }
 
     /// Register an occluder during picture cache updates that can be
@@ -629,7 +631,13 @@ impl CompositeState {
         gpu_cache: &mut GpuCache,
         deferred_resolves: &mut Vec<DeferredResolve>,
     ) {
-        let slice_transform = self.get_compositor_transform(tile_cache.transform_index);
+        let slice_transform = self.get_compositor_transform(tile_cache.transform_index).to_transform();
+
+        let image_rendering = if self.low_quality_pinch_zoom {
+            ImageRendering::Auto
+        } else {
+            ImageRendering::CrispEdges
+        };
 
         for sub_slice in &tile_cache.sub_slices {
             let mut surface_device_rect = DeviceRect::zero();
@@ -671,7 +679,7 @@ impl CompositeState {
                         clip_rect: surface_clip_rect,
                         transform: slice_transform,
                         image_dependencies: [ImageDependency::INVALID; 3],
-                        image_rendering: ImageRendering::CrispEdges,
+                        image_rendering,
                         tile_descriptors: sub_slice.opaque_tile_descriptors.clone(),
                     }
                 );
@@ -685,7 +693,7 @@ impl CompositeState {
                         clip_rect: surface_clip_rect,
                         transform: slice_transform,
                         image_dependencies: [ImageDependency::INVALID; 3],
-                        image_rendering: ImageRendering::CrispEdges,
+                        image_rendering,
                         tile_descriptors: sub_slice.alpha_tile_descriptors.clone(),
                     }
                 );
@@ -770,7 +778,7 @@ impl CompositeState {
                     CompositeSurfaceDescriptor {
                         surface_id: external_surface.native_surface_id,
                         clip_rect,
-                        transform: self.get_compositor_transform(external_surface.transform_index),
+                        transform: self.get_compositor_transform(external_surface.transform_index).to_transform(),
                         image_dependencies: image_dependencies,
                         image_rendering: external_surface.image_rendering,
                         tile_descriptors: Vec::new(),
@@ -844,7 +852,7 @@ impl CompositeState {
         });
 
         match external_surface.dependency {
-            ExternalSurfaceDependency::Yuv{ color_space, format, rescale, .. } => {
+            ExternalSurfaceDependency::Yuv{ color_space, format, channel_bit_depth, .. } => {
 
                 let image_buffer_kind = planes[0].texture.image_buffer_kind();
 
@@ -854,23 +862,19 @@ impl CompositeState {
                         planes,
                         color_space,
                         format,
-                        rescale,
-                    },
+                        channel_bit_depth,
+                        },
                     image_buffer_kind,
                     update_params,
                 });
             },
-            ExternalSurfaceDependency::Rgb{ flip_y, .. } => {
-
+            ExternalSurfaceDependency::Rgb { .. } => {
                 let image_buffer_kind = planes[0].texture.image_buffer_kind();
 
-                // Only propagate flip_y if the compositor doesn't support transforms,
-                // since otherwise it'll be handled as part of the transform.
                 self.external_surfaces.push(ResolvedExternalSurface {
                     color_data: ResolvedExternalSurfaceColorData::Rgb {
                         image_dependency: image_dependencies[0],
                         plane: planes[0],
-                        flip_y: flip_y && !self.compositor_kind.supports_transforms(),
                     },
                     image_buffer_kind,
                     update_params,
@@ -1096,6 +1100,7 @@ pub trait Compositor {
     /// opaque, this is currently only computed if the caller is SwCompositor.
     fn start_compositing(
         &mut self,
+        _clear_color: ColorF,
         _dirty_rects: &[DeviceIntRect],
         _opaque_rects: &[DeviceIntRect],
     ) {}
@@ -1134,7 +1139,7 @@ pub struct SWGLCompositeSurfaceInfo {
     /// Textures for planes of the surface, or 0 if not applicable.
     pub textures: [u32; 3],
     /// Color space of surface if using a YUV format.
-    pub color_space: YuvColorSpace,
+    pub color_space: YuvRangedColorSpace,
     /// Color depth of surface if using a YUV format.
     pub color_depth: ColorDepth,
     /// The actual source surface size before transformation.

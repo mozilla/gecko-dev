@@ -74,16 +74,18 @@ void Assign_WrVecU8(wr::WrVecU8& aVec, mozilla::ipc::ByteBuf&& aOther) {
   aOther.mCapacity = 0;
 }
 
-WrSpaceAndClip RootScrollNode() {
-  WrSpaceAndClip sac;
-  sac.clip = wr_root_clip_id();
-  sac.space = wr_root_scroll_node_id();
-  return sac;
-}
+WrSpatialId RootScrollNode() { return wr_root_scroll_node_id(); }
 
 WrSpaceAndClipChain RootScrollNodeWithChain() {
   WrSpaceAndClipChain sacc;
   sacc.clip_chain = wr::ROOT_CLIP_CHAIN;
+  sacc.space = wr_root_scroll_node_id();
+  return sacc;
+}
+
+WrSpaceAndClipChain InvalidScrollNodeWithChain() {
+  WrSpaceAndClipChain sacc;
+  sacc.clip_chain = std::numeric_limits<uint64_t>::max();
   sacc.space = wr_root_scroll_node_id();
   return sacc;
 }

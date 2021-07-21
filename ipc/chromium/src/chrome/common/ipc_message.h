@@ -11,12 +11,12 @@
 
 #include "base/basictypes.h"
 #include "base/pickle.h"
+#include "mojo/core/ports/user_message.h"
+#include "mojo/core/ports/port_ref.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TimeStamp.h"
-
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracer.h"
-#endif
+#include "mozilla/ipc/ScopedPort.h"
+#include "nsTArray.h"
 
 #ifdef FUZZING
 #  include "mozilla/ipc/Faulty.h"
@@ -48,8 +48,10 @@ class Faulty;
 #endif
 struct LogData;
 
-class Message : public Pickle {
+class Message : public mojo::core::ports::UserMessage, public Pickle {
  public:
+  static const TypeInfo kUserMessageTypeInfo;
+
   typedef uint32_t msgid_t;
 
   enum NestedLevel {
@@ -105,9 +107,6 @@ class Message : public Pickle {
       COMPRESS_BIT = 0x0200,
       COMPRESSALL_BIT = 0x0400,
       CONSTRUCTOR_BIT = 0x0800,
-#ifdef MOZ_TASK_TRACER
-      TASKTRACER_BIT = 0x1000,
-#endif
     };
 
    public:
@@ -149,19 +148,11 @@ class Message : public Pickle {
 
     bool IsReplyError() const { return (mFlags & REPLY_ERROR_BIT) != 0; }
 
-#ifdef MOZ_TASK_TRACER
-    bool IsTaskTracer() const { return (mFlags & TASKTRACER_BIT) != 0; }
-#endif
-
    private:
     void SetSync() { mFlags |= SYNC_BIT; }
     void SetInterrupt() { mFlags |= INTERRUPT_BIT; }
     void SetReply() { mFlags |= REPLY_BIT; }
     void SetReplyError() { mFlags |= REPLY_ERROR_BIT; }
-
-#ifdef MOZ_TASK_TRACER
-    void SetTaskTracer() { mFlags |= TASKTRACER_BIT; }
-#endif
 
     uint32_t mFlags;
   };
@@ -185,8 +176,6 @@ class Message : public Pickle {
   Message(Message&& other);
   Message& operator=(const Message& other) = delete;
   Message& operator=(Message&& other);
-
-  void CopyFrom(const Message& other);
 
   // Helper method for the common case (default segmentCapacity, recording
   // the write latency of messages) of IPDL message creation.  This helps
@@ -290,29 +279,25 @@ class Message : public Pickle {
   // We should not be sending messages that are smaller than our header size.
   void AssertAsLargeAsHeader() const;
 
+  // UserMessage implementation
+  size_t GetSizeIfSerialized() const override { return size(); }
+  bool WillBeRoutedExternally(mojo::core::ports::UserMessageEvent&) override;
+
+  void WriteFooter(const void* data, uint32_t data_len);
+  [[nodiscard]] bool ReadFooter(void* buffer, uint32_t buffer_len,
+                                bool truncate);
+  uint32_t FooterSize() const;
+
   // Used for async messages with no parameters.
   static void Log(const Message* msg, std::wstring* l) {}
 
-  static int HeaderSizeFromData(const char* range_start,
-                                const char* range_end) {
-#ifdef MOZ_TASK_TRACER
-    return ((static_cast<unsigned int>(range_end - range_start) >=
-             sizeof(Header)) &&
-            (reinterpret_cast<const Header*>(range_start)
-                 ->flags.IsTaskTracer()))
-               ? sizeof(HeaderTaskTracer)
-               : sizeof(Header);
-#else
-    return sizeof(Header);
-#endif
-  }
+  static int HeaderSize() { return sizeof(Header); }
 
   // Figure out how big the message starting at range_start is. Returns 0 if
   // there's no enough data to determine (i.e., if [range_start, range_end) does
   // not contain enough of the message header to know the size).
   static uint32_t MessageSize(const char* range_start, const char* range_end) {
-    return Pickle::MessageSize(HeaderSizeFromData(range_start, range_end),
-                               range_start, range_end);
+    return Pickle::MessageSize(HeaderSize(), range_start, range_end);
   }
 
 #if defined(OS_POSIX)
@@ -332,6 +317,20 @@ class Message : public Pickle {
 #  endif
 #endif
 
+  void WritePort(mozilla::ipc::ScopedPort port);
+
+  // This method consumes the port from the message, preventing the message's
+  // destructor from destroying the port and meaning that future attempts to
+  // read this port will instead produce an invalid port.
+  //
+  // WARNING: This method is marked as `const` so it can be called when
+  // deserializing the message, but will mutate the message.
+  bool ConsumePort(PickleIterator* iter, mozilla::ipc::ScopedPort* port) const;
+
+  // Called when loading an IPC message to attach ports which were recieved form
+  // IPC. Must only be called when there are no ports on this IPC::Message.
+  void SetAttachedPorts(nsTArray<mozilla::ipc::ScopedPort> ports);
+
   friend class Channel;
   friend class MessageReplyDeserializer;
   friend class SyncMessage;
@@ -339,19 +338,6 @@ class Message : public Pickle {
   friend class mozilla::ipc::Faulty;
 #endif
   friend class mozilla::ipc::MiniTransceiver;
-
-#ifdef MOZ_TASK_TRACER
-  void TaskTracerDispatch();
-  class AutoTaskTracerRun : public mozilla::tasktracer::AutoSaveCurTraceInfo {
-    Message& mMsg;
-    uint64_t mTaskId;
-    uint64_t mSourceEventId;
-
-   public:
-    explicit AutoTaskTracerRun(Message& aMsg);
-    ~AutoTaskTracerRun();
-  };
-#endif
 
 #if !defined(OS_MACOSX)
  protected:
@@ -379,38 +365,12 @@ class Message : public Pickle {
     uint32_t interrupt_local_stack_depth;
     // Sequence number
     int32_t seqno;
+    // Offset of the message's footer in the payload, or -1 if invalid.
+    int32_t footer_offset;
   };
 
-#ifdef MOZ_TASK_TRACER
-  /**
-   * The type is used as headers of Messages only if TaskTracer is
-   * enabled, or type |Header| would be used instead.
-   */
-  struct HeaderTaskTracer : public Header {
-    uint64_t task_id;
-    uint64_t source_event_id;
-    uint64_t parent_task_id;
-    mozilla::tasktracer::SourceEventType source_event_type;
-  };
-#endif
-
-#ifdef MOZ_TASK_TRACER
-  bool UseTaskTracerHeader() const {
-    return sizeof(HeaderTaskTracer) == (size() - payload_size());
-  }
-
-  Header* header() {
-    return UseTaskTracerHeader() ? headerT<HeaderTaskTracer>()
-                                 : headerT<Header>();
-  }
-  const Header* header() const {
-    return UseTaskTracerHeader() ? headerT<HeaderTaskTracer>()
-                                 : headerT<Header>();
-  }
-#else
   Header* header() { return headerT<Header>(); }
   const Header* header() const { return headerT<Header>(); }
-#endif
 
 #if defined(OS_POSIX)
   // The set of file descriptors associated with this message.
@@ -427,6 +387,12 @@ class Message : public Pickle {
     return file_descriptor_set_.get();
   }
 #endif
+
+  // The set of mojo ports which are attached to this message.
+  //
+  // Mutable, as this array can be mutated during `ConsumePort` when
+  // deserializing a message.
+  mutable nsTArray<mozilla::ipc::ScopedPort> attached_ports_;
 
   mozilla::TimeStamp create_time_;
 };

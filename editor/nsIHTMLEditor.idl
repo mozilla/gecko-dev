@@ -47,9 +47,9 @@ interface nsIHTMLEditor : nsISupports
                          in AString aValue);
 
   /**
-   * getInlineProperty() gets aggregate properties of the current selection.
-   * All object in the current selection are scanned and their attributes are
-   * represented in a list of Property object.
+   * getInlinePropertyWithAttrValue() gets aggregate properties of the current
+   * selection.  All object in the current selection are scanned and their
+   * attributes are represented in a list of Property object.
    *
    * @param aProperty   the property to get on the selection
    * @param aAttribute  the attribute of the property, if applicable.
@@ -66,14 +66,6 @@ interface nsIHTMLEditor : nsISupports
    * @param aAll        [OUT] PR_TRUE if all of the text nodes in the
    *                          selection have the property
    */
-  [can_run_script]
-  void getInlineProperty(in AString aProperty,
-                         in AString aAttribute,
-                         in AString aValue,
-                         out boolean aFirst,
-                         out boolean aAny,
-                         out boolean aAll);
-
   [can_run_script]
   AString getInlinePropertyWithAttrValue(in AString aProperty,
                                          in AString aAttribute,
@@ -115,14 +107,6 @@ interface nsIHTMLEditor : nsISupports
    */
   [can_run_script]
   void insertHTML(in AString aInputString);
-
-
-  /**
-    * Paste the text in the OS clipboard at the cursor position, replacing
-    * the selected text (if any), but strip out any HTML styles and formatting
-    */
-  [can_run_script]
-  void pasteNoFormatting(in long aSelectionType);
 
   /**
    *  Rebuild the entire document from source HTML
@@ -169,20 +153,6 @@ interface nsIHTMLEditor : nsISupports
     */
   [can_run_script]
   void selectElement(in Element aElement);
-
-  /**
-    * Create a collapsed selection just after aElement
-    *
-    * XXX could we parameterize SelectElement(before/select/after>?
-    *
-    * The selection is set to parent-of-aElement with an
-    *   offset 1 greater than aElement's offset
-    *   but it enforces the HTML 4.0 DTD "CanContain" rules, so it should
-    *   be useful for other elements.
-    *
-    * @param aElement  An element in the document
-    */
-  void setCaretAfterElement(in Element aElement);
 
   /**
    * getParagraphState returns what block tag paragraph format is in

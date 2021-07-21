@@ -113,11 +113,6 @@ class nsISelectionController;
 class nsBoxLayoutState;
 class nsBoxLayout;
 class nsILineIterator;
-class nsDisplayItem;
-class nsDisplayItemBase;
-class nsDisplayListBuilder;
-class nsDisplayListSet;
-class nsDisplayList;
 class gfxSkipChars;
 class gfxSkipCharsIterator;
 class gfxContext;
@@ -137,6 +132,12 @@ namespace mozilla {
 
 enum class PseudoStyleType : uint8_t;
 enum class TableSelectionMode : uint32_t;
+
+class nsDisplayItem;
+class nsDisplayList;
+class nsDisplayListBuilder;
+class nsDisplayListSet;
+
 class EventStates;
 class ServoRestyleState;
 class DisplayItemData;
@@ -620,6 +621,11 @@ class nsIFrame : public nsQueryFrame {
   using Visibility = mozilla::Visibility;
   using LengthPercentage = mozilla::LengthPercentage;
 
+  using nsDisplayItem = mozilla::nsDisplayItem;
+  using nsDisplayList = mozilla::nsDisplayList;
+  using nsDisplayListSet = mozilla::nsDisplayListSet;
+  using nsDisplayListBuilder = mozilla::nsDisplayListBuilder;
+
   typedef mozilla::ComputedStyle ComputedStyle;
   typedef mozilla::FrameProperties FrameProperties;
   typedef mozilla::layers::Layer Layer;
@@ -635,7 +641,7 @@ class nsIFrame : public nsQueryFrame {
   typedef mozilla::LogicalSides LogicalSides;
   typedef mozilla::SmallPointerArray<mozilla::DisplayItemData>
       DisplayItemDataArray;
-  typedef mozilla::SmallPointerArray<nsDisplayItemBase> DisplayItemArray;
+  typedef mozilla::SmallPointerArray<nsDisplayItem> DisplayItemArray;
 
   typedef nsQueryFrame::ClassID ClassID;
 
@@ -4868,11 +4874,11 @@ class nsIFrame : public nsQueryFrame {
   DisplayItemArray& DisplayItems() { return mDisplayItems; }
   const DisplayItemArray& DisplayItems() const { return mDisplayItems; }
 
-  void AddDisplayItem(nsDisplayItemBase* aItem);
-  bool RemoveDisplayItem(nsDisplayItemBase* aItem);
+  void AddDisplayItem(nsDisplayItem* aItem);
+  bool RemoveDisplayItem(nsDisplayItem* aItem);
   void RemoveDisplayItemDataForDeletion();
   bool HasDisplayItems();
-  bool HasDisplayItem(nsDisplayItemBase* aItem);
+  bool HasDisplayItem(nsDisplayItem* aItem);
   bool HasDisplayItem(uint32_t aKey);
 
   static void PrintDisplayList(nsDisplayListBuilder* aBuilder,

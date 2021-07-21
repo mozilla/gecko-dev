@@ -27,6 +27,7 @@ UNIFIED_SOURCES += [
     "TestInputStreamLengthHelper.cpp",
     "TestLogCommandLineHandler.cpp",
     "TestLogging.cpp",
+    "TestMemoryPressure.cpp",
     "TestMoveString.cpp",
     "TestMozPromise.cpp",
     "TestMruCache.cpp",
@@ -102,6 +103,7 @@ if (
 
 if CONFIG["OS_TARGET"] == "WINNT":
     UNIFIED_SOURCES += [
+        "TestAvailableMemoryWatcherWin.cpp",
         "TestFileNTFSSpecialPaths.cpp",
         "TestFilePreferencesWin.cpp",
     ]

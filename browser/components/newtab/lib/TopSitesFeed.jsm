@@ -320,6 +320,7 @@ this.TopSitesFeed = class TopSitesFeed {
 
     // Read defaults from contile.
     const contileEnabled = Services.prefs.getBoolPref(CONTILE_ENABLED_PREF);
+    let hasContileTiles = false;
     if (contileEnabled) {
       let sponsoredPosition = 1;
       for (let site of this._contile.sites) {
@@ -336,13 +337,24 @@ this.TopSitesFeed = class TopSitesFeed {
           sponsored_impression_url: site.impression_url,
           sponsored_tile_id: site.id,
         };
+        if (site.image_url && site.image_size >= MIN_FAVICON_SIZE) {
+          // Only use the image from Contile if it's hi-res, otherwise, fallback
+          // to the built-in favicons.
+          link.favicon = site.image_url;
+          link.faviconSize = site.image_size;
+        }
         DEFAULT_TOP_SITES.push(link);
       }
+      hasContileTiles = sponsoredPosition > 1;
     }
 
     // Read defaults from remote settings.
     this._useRemoteSetting = true;
     let remoteSettingData = await this._getRemoteConfig();
+
+    const sponsoredBlocklist = JSON.parse(
+      Services.prefs.getStringPref(TOP_SITES_BLOCKED_SPONSORS_PREF, "[]")
+    );
 
     for (let siteData of remoteSettingData) {
       let hostname = shortURL(siteData);
@@ -351,6 +363,14 @@ this.TopSitesFeed = class TopSitesFeed {
       if (
         contileEnabled &&
         DEFAULT_TOP_SITES.findIndex(site => site.hostname === hostname) > -1
+      ) {
+        continue;
+      }
+      // Also drop those sponsored sites that were blocked by the user before
+      // with the same hostname.
+      if (
+        siteData.sponsored_position &&
+        sponsoredBlocklist.includes(hostname)
       ) {
         continue;
       }
@@ -369,7 +389,7 @@ this.TopSitesFeed = class TopSitesFeed {
       if (siteData.search_shortcut) {
         link = await this.topSiteToSearchTopSite(link);
       } else if (siteData.sponsored_position) {
-        if (contileEnabled) {
+        if (contileEnabled && hasContileTiles) {
           continue;
         }
         const {

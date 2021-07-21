@@ -13,6 +13,7 @@
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/StackLimits.h"    // js::AutoCheckRecursionLimit
 #include "js/friend/WindowProxy.h"    // js::IsWindow, js::IsWindowProxy
+#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_HasProperty, JS_HasPropertyById
 #include "vm/ArgumentsObject.h"
 #include "vm/AsyncFunction.h"
 #include "vm/BytecodeIterator.h"
@@ -421,7 +422,7 @@ ModuleEnvironmentObject* ModuleEnvironmentObject::create(
   for (ShapePropertyIter<NoGC> iter(env->shape()); !iter.done(); iter++) {
     MOZ_ASSERT(!iter->configurable());
   }
-  MOZ_ASSERT(env->lastProperty()->hasObjectFlag(ObjectFlag::NotExtensible));
+  MOZ_ASSERT(env->hasFlag(ObjectFlag::NotExtensible));
   MOZ_ASSERT(!env->inDictionaryMode());
 #endif
 
@@ -992,8 +993,7 @@ BlockLexicalEnvironmentObject::createHollowForDebug(
     }
   }
 
-  if (!JSObject::setFlag(cx, env, ObjectFlag::NotExtensible,
-                         JSObject::GENERATE_SHAPE)) {
+  if (!JSObject::setFlag(cx, env, ObjectFlag::NotExtensible)) {
     return nullptr;
   }
 

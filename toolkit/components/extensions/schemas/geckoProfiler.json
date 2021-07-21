@@ -31,7 +31,6 @@
           "screenshots",
           "seqstyle",
           "stackwalk",
-          "tasktracer",
           "threads",
           "jstracer",
           "jsallocations",
@@ -43,7 +42,8 @@
           "fileioall",
           "noiostacks",
           "audiocallbacktracing",
-          "cpu"
+          "cpu",
+          "notimerresolutionchange"
         ]
       },
       {

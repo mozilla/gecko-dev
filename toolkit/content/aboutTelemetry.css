@@ -90,7 +90,7 @@ body {
 }
 
 .dropdown {
-  background-image: url(chrome://global/skin/icons/arrow-dropdown-16.svg);
+  background-image: url(chrome://global/skin/icons/arrow-down.svg);
   background-position: right 8px center;
   background-repeat: no-repeat;
   -moz-context-properties: fill;
@@ -175,12 +175,6 @@ section:not(.active) {
 #no-search-results-text {
   font-size: 17px;
   margin-bottom: 2em;
-}
-
-.no-search-results-image {
-  background-image: url("chrome://browser/skin/preferences/no-search-results.svg");
-  width: 380px;
-  height: 293px;
 }
 
 .hidden {

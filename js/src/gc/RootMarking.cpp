@@ -230,14 +230,6 @@ inline void JS::RootingContext::traceGCRooterList(JSTracer* trc,
   }
 }
 
-void StackShape::trace(JSTracer* trc) {
-  if (base) {
-    TraceRoot(trc, &base, "StackShape base");
-  }
-
-  TraceRoot(trc, (jsid*)&propid, "StackShape id");
-}
-
 void PropertyDescriptor::trace(JSTracer* trc) {
   TraceRoot(trc, &value_, "Descriptor::value");
   if (getter_) {
@@ -504,6 +496,10 @@ class BufferGrayRootsTracer final : public GenericTracer {
     return nullptr;
   }
   js::GetterSetter* onGetterSetterEdge(js::GetterSetter* gs) override {
+    unsupportedEdge();
+    return nullptr;
+  }
+  js::PropMap* onPropMapEdge(js::PropMap* map) override {
     unsupportedEdge();
     return nullptr;
   }

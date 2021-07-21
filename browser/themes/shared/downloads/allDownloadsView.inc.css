@@ -77,7 +77,7 @@
 
 .downloadButton > .button-box {
   appearance: none;
-  padding: 8px !important;
+  padding: 8px;
   border-radius: 4px;
 }
 
@@ -116,7 +116,7 @@
 }
 
 .downloadIconRetry > .button-box > .button-icon {
-  list-style-image: url("chrome://browser/skin/reload.svg");
+  list-style-image: url("chrome://global/skin/icons/reload.svg");
 }
 
 /*** Progressmeter ***/

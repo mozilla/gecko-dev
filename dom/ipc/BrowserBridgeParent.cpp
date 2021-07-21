@@ -129,9 +129,11 @@ BrowserParent* BrowserBridgeParent::Manager() {
 
 void BrowserBridgeParent::Destroy() {
   if (mBrowserParent) {
+#ifdef ACCESSIBILITY
     if (mEmbedderAccessibleDoc && !mEmbedderAccessibleDoc->IsShutdown()) {
       mEmbedderAccessibleDoc->RemovePendingOOPChildDoc(this);
     }
+#endif
     mBrowserParent->Destroy();
     mBrowserParent->SetBrowserBridgeParent(nullptr);
     mBrowserParent = nullptr;
@@ -169,6 +171,12 @@ IPCResult BrowserBridgeParent::RecvUpdateDimensions(
 
 IPCResult BrowserBridgeParent::RecvUpdateEffects(const EffectsInfo& aEffects) {
   Unused << mBrowserParent->SendUpdateEffects(aEffects);
+  return IPC_OK();
+}
+
+IPCResult BrowserBridgeParent::RecvUpdateRemotePrintSettings(
+    const embedding::PrintData& aPrintData) {
+  Unused << mBrowserParent->SendUpdateRemotePrintSettings(aPrintData);
   return IPC_OK();
 }
 

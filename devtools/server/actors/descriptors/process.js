@@ -69,7 +69,9 @@ const ProcessDescriptorActor = ActorClassWithSpec(processDescriptorSpec, {
       // and so ParentProcessTargetActor doesn't make sense as it inherits from
       // BrowsingContextTargetActor. So instead use ContentProcessTargetActor, which
       // matches xpcshell needs.
-      targetActor = new ContentProcessTargetActor(this.conn);
+      targetActor = new ContentProcessTargetActor(this.conn, {
+        isXpcShellTarget: true,
+      });
     } else {
       // Create the target actor for the parent process, which is in the same process
       // as this target. Because we are in the same process, we have a true actor that
@@ -161,8 +163,26 @@ const ProcessDescriptorActor = ActorClassWithSpec(processDescriptorSpec, {
       traits: {
         // Supports the Watcher actor. Can be removed as part of Bug 1680280.
         watcher: true,
+        // ParentProcessTargetActor can be reloaded.
+        supportsReloadDescriptor: this.isParent,
       },
     };
+  },
+
+  async reloadDescriptor({ bypassCache }) {
+    if (!this.isParent) {
+      throw new Error(
+        "reloadDescriptor is not available for content process descriptors"
+      );
+    }
+
+    // For parent process debugging, we only reload the current top level
+    // browser window.
+    this._browsingContextTargetActor.browsingContext.reload(
+      bypassCache
+        ? Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE
+        : Ci.nsIWebNavigation.LOAD_FLAGS_NONE
+    );
   },
 
   destroy() {

@@ -100,6 +100,7 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
   if (wormholeOverride) {
     features.v128 = true;
   }
+  features.intrinsics = options.intrinsics;
 
   return features;
 }
@@ -493,7 +494,6 @@ static bool TieringBeneficial(uint32_t codeSize) {
   if (cpuCount == 1) {
     return false;
   }
-
 
   // Compute the max number of threads available to do actual background
   // compilation work.

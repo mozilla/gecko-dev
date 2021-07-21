@@ -429,10 +429,14 @@ struct CoTaskMemFreePolicy {
 SetThreadDpiAwarenessContextProc WinUtils::sSetThreadDpiAwarenessContext = NULL;
 EnableNonClientDpiScalingProc WinUtils::sEnableNonClientDpiScaling = NULL;
 GetSystemMetricsForDpiProc WinUtils::sGetSystemMetricsForDpi = NULL;
+bool WinUtils::sHasPackageIdentity = false;
 
 /* static */
 void WinUtils::Initialize() {
-  if (IsWin10OrLater()) {
+  // Dpi-Awareness is not supported with Win32k Lockdown enabled, so we don't
+  // initialize DPI-related members and assert later that nothing accidently
+  // uses these static members
+  if (IsWin10OrLater() && !IsWin32kLockedDown()) {
     HMODULE user32Dll = ::GetModuleHandleW(L"user32");
     if (user32Dll) {
       auto getThreadDpiAwarenessContext =
@@ -458,12 +462,32 @@ void WinUtils::Initialize() {
           user32Dll, "GetSystemMetricsForDpi");
     }
   }
+
+  if (IsWin8OrLater()) {
+    HMODULE kernel32Dll = ::GetModuleHandleW(L"kernel32");
+    if (kernel32Dll) {
+      typedef LONG(WINAPI * GetCurrentPackageIdProc)(UINT32*, BYTE*);
+      GetCurrentPackageIdProc pGetCurrentPackageId =
+          (GetCurrentPackageIdProc)::GetProcAddress(kernel32Dll,
+                                                    "GetCurrentPackageId");
+
+      // If there was any package identity to retrieve, we get
+      // ERROR_INSUFFICIENT_BUFFER. If there had been no package identity it
+      // would instead return APPMODEL_ERROR_NO_PACKAGE.
+      UINT32 packageNameSize = 0;
+      sHasPackageIdentity = pGetCurrentPackageId &&
+                            (pGetCurrentPackageId(&packageNameSize, nullptr) ==
+                             ERROR_INSUFFICIENT_BUFFER);
+    }
+  }
 }
 
 // static
 LRESULT WINAPI WinUtils::NonClientDpiScalingDefWindowProcW(HWND hWnd, UINT msg,
                                                            WPARAM wParam,
                                                            LPARAM lParam) {
+  MOZ_DIAGNOSTIC_ASSERT(!IsWin32kLockedDown());
+
   // NOTE: this function was copied out into the body of the pre-XUL skeleton
   // UI window proc (PreXULSkeletonUI.cpp). If this function changes at any
   // point, we should probably factor this out and use it from both locations.
@@ -662,11 +686,13 @@ WinUtils::MonitorFromRect(const gfx::Rect& rect) {
 
 /* static */
 bool WinUtils::HasSystemMetricsForDpi() {
+  MOZ_DIAGNOSTIC_ASSERT(!IsWin32kLockedDown());
   return (sGetSystemMetricsForDpi != NULL);
 }
 
 /* static */
 int WinUtils::GetSystemMetricsForDpi(int nIndex, UINT dpi) {
+  MOZ_DIAGNOSTIC_ASSERT(!IsWin32kLockedDown());
   if (HasSystemMetricsForDpi()) {
     return sGetSystemMetricsForDpi(nIndex, dpi);
   } else {

@@ -136,6 +136,7 @@ class TenuringTracer final : public GenericTracer {
   js::RegExpShared* onRegExpSharedEdge(RegExpShared* shared) override;
   js::BaseShape* onBaseShapeEdge(BaseShape* base) override;
   js::GetterSetter* onGetterSetterEdge(GetterSetter* gs) override;
+  js::PropMap* onPropMapEdge(PropMap* map) override;
   js::jit::JitCode* onJitCodeEdge(jit::JitCode* code) override;
   js::Scope* onScopeEdge(Scope* scope) override;
 
@@ -489,8 +490,9 @@ class Nursery {
   mozilla::TimeDuration timeInChunkAlloc_;
 
   // Report minor collections taking at least this long, if enabled.
-  mozilla::TimeDuration profileThreshold_;
   bool enableProfiling_;
+  bool profileWorkers_;
+  mozilla::TimeDuration profileThreshold_;
 
   // Whether we will nursery-allocate strings.
   bool canAllocateStrings_;

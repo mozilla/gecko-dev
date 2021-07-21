@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use api::{AlphaType, PremultipliedColorF, YuvFormat, YuvColorSpace};
+use api::{AlphaType, PremultipliedColorF, YuvFormat, YuvRangedColorSpace};
 use api::units::*;
 use crate::composite::CompositeFeatures;
 use crate::segment::EdgeAaSegmentMask;
@@ -15,7 +15,7 @@ use crate::renderer::ShaderColorMode;
 use std::i32;
 use crate::util::{TransformedRectKind, MatrixHelpers};
 use crate::glyph_rasterizer::SubpixelDirection;
-use crate::util::pack_as_float;
+use crate::util::{ScaleOffset, pack_as_float};
 
 // Contains type that must exactly match the same structures declared in GLSL.
 
@@ -236,14 +236,46 @@ const UV_TYPE_NORMALIZED: u32 = 0;
 /// Specifies that an RGB CompositeInstance's UV coordinates are not normalized.
 const UV_TYPE_UNNORMALIZED: u32 = 1;
 
+/// A GPU-friendly representation of the `ScaleOffset` type
+#[derive(Clone, Debug)]
+#[repr(C)]
+pub struct CompositorTransform {
+    pub sx: f32,
+    pub sy: f32,
+    pub tx: f32,
+    pub ty: f32,
+}
+
+impl CompositorTransform {
+    pub fn identity() -> Self {
+        CompositorTransform {
+            sx: 1.0,
+            sy: 1.0,
+            tx: 0.0,
+            ty: 0.0,
+        }
+    }
+}
+
+impl From<ScaleOffset> for CompositorTransform {
+    fn from(scale_offset: ScaleOffset) -> Self {
+        CompositorTransform {
+            sx: scale_offset.scale.x,
+            sy: scale_offset.scale.y,
+            tx: scale_offset.offset.x,
+            ty: scale_offset.offset.y,
+        }
+    }
+}
+
 /// Vertex format for picture cache composite shader.
 /// When editing the members, update desc::COMPOSITE
 /// so its list of instance_attributes matches:
 #[derive(Clone, Debug)]
 #[repr(C)]
 pub struct CompositeInstance {
-    // Device space destination rectangle of surface
-    rect: DeviceRect,
+    // Picture space destination rectangle of surface
+    rect: PictureRect,
     // Device space destination clip rect for this surface
     clip_rect: DeviceRect,
     // Color for solid color tiles, white otherwise
@@ -254,18 +286,22 @@ pub struct CompositeInstance {
     color_space_or_uv_type: f32, // YuvColorSpace for YUV;
                                  // UV coordinate space for RGB
     yuv_format: f32,            // YuvFormat
-    yuv_rescale: f32,
+    yuv_channel_bit_depth: f32,
 
     // UV rectangles (pixel space) for color / yuv texture planes
     uv_rects: [TexelRect; 3],
+
+    // A 2d scale + offset transform for the rect
+    transform: CompositorTransform,
 }
 
 impl CompositeInstance {
     pub fn new(
-        rect: DeviceRect,
+        rect: PictureRect,
         clip_rect: DeviceRect,
         color: PremultipliedColorF,
         z_id: ZBufferId,
+        transform: CompositorTransform,
     ) -> Self {
         let uv = TexelRect::new(0.0, 0.0, 1.0, 1.0);
         CompositeInstance {
@@ -275,17 +311,19 @@ impl CompositeInstance {
             z_id: z_id.0 as f32,
             color_space_or_uv_type: pack_as_float(UV_TYPE_NORMALIZED),
             yuv_format: 0.0,
-            yuv_rescale: 0.0,
+            yuv_channel_bit_depth: 0.0,
             uv_rects: [uv, uv, uv],
+            transform,
         }
     }
 
     pub fn new_rgb(
-        rect: DeviceRect,
+        rect: PictureRect,
         clip_rect: DeviceRect,
         color: PremultipliedColorF,
         z_id: ZBufferId,
         uv_rect: TexelRect,
+        transform: CompositorTransform,
     ) -> Self {
         CompositeInstance {
             rect,
@@ -294,19 +332,21 @@ impl CompositeInstance {
             z_id: z_id.0 as f32,
             color_space_or_uv_type: pack_as_float(UV_TYPE_UNNORMALIZED),
             yuv_format: 0.0,
-            yuv_rescale: 0.0,
+            yuv_channel_bit_depth: 0.0,
             uv_rects: [uv_rect, uv_rect, uv_rect],
+            transform,
         }
     }
 
     pub fn new_yuv(
-        rect: DeviceRect,
+        rect: PictureRect,
         clip_rect: DeviceRect,
         z_id: ZBufferId,
-        yuv_color_space: YuvColorSpace,
+        yuv_color_space: YuvRangedColorSpace,
         yuv_format: YuvFormat,
-        yuv_rescale: f32,
+        yuv_channel_bit_depth: u32,
         uv_rects: [TexelRect; 3],
+        transform: CompositorTransform,
     ) -> Self {
         CompositeInstance {
             rect,
@@ -315,8 +355,9 @@ impl CompositeInstance {
             z_id: z_id.0 as f32,
             color_space_or_uv_type: pack_as_float(yuv_color_space as u32),
             yuv_format: pack_as_float(yuv_format as u32),
-            yuv_rescale,
+            yuv_channel_bit_depth: pack_as_float(yuv_channel_bit_depth),
             uv_rects,
+            transform,
         }
     }
 

@@ -64,9 +64,8 @@ MOZ_MAYBE_UNUSED static void SleepMilli(unsigned aMilliseconds) {
 }
 
 MOZ_MAYBE_UNUSED static void WaitUntilTimeStampChanges(
-    const mozilla::TimeStamp& aTimeStampToCompare =
-        mozilla::TimeStamp::NowUnfuzzed()) {
-  while (aTimeStampToCompare == mozilla::TimeStamp::NowUnfuzzed()) {
+    const mozilla::TimeStamp& aTimeStampToCompare = mozilla::TimeStamp::Now()) {
+  while (aTimeStampToCompare == mozilla::TimeStamp::Now()) {
     SleepMilli(1);
   }
 }
@@ -1010,8 +1009,7 @@ static void TestControlledChunkManagerUpdate() {
   MOZ_RELEASE_ASSERT(!update1.IsFinal());
 
   auto CreateBiggerChunkAfter = [](const ProfileBufferChunk& aChunkToBeat) {
-    while (TimeStamp::NowUnfuzzed() <=
-           aChunkToBeat.ChunkHeader().mDoneTimeStamp) {
+    while (TimeStamp::Now() <= aChunkToBeat.ChunkHeader().mDoneTimeStamp) {
       ::SleepMilli(1);
     }
     auto chunk = ProfileBufferChunk::Create(aChunkToBeat.BufferBytes() * 2);
@@ -1312,8 +1310,8 @@ static void TestControlledChunkManagerWithLocalLimit() {
 
     // Make sure the "Done" timestamp below cannot be the same as from the
     // previous loop.
-    const TimeStamp now = TimeStamp::NowUnfuzzed();
-    while (TimeStamp::NowUnfuzzed() == now) {
+    const TimeStamp now = TimeStamp::Now();
+    while (TimeStamp::Now() == now) {
       ::SleepMilli(1);
     }
 
@@ -3580,7 +3578,7 @@ MOZ_NEVER_INLINE unsigned long long Fibonacci(unsigned long long n) {
   if (DEPTH < 5 && sStopFibonacci) {
     return 1'000'000'000;
   }
-  TimeStamp start = TimeStamp::NowUnfuzzed();
+  TimeStamp start = TimeStamp::Now();
   static constexpr size_t MAX_MARKER_DEPTH = 10;
   unsigned long long f2 = Fibonacci<NextDepth(DEPTH)>(n - 2);
   if (DEPTH == 0) {
@@ -4271,14 +4269,14 @@ void TestUserMarker() {
       mozilla::MarkerThreadId(123), MarkerTypeTestMinimal{},
       std::string("ThreadId(123)")));
 
-  auto start = mozilla::TimeStamp::NowUnfuzzed();
+  auto start = mozilla::TimeStamp::Now();
 
   MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
       buffer, "test2", mozilla::baseprofiler::category::OTHER_Profiling,
       mozilla::MarkerTiming::InstantAt(start), MarkerTypeTestMinimal{},
       std::string("InstantAt(start)")));
 
-  auto then = mozilla::TimeStamp::NowUnfuzzed();
+  auto then = mozilla::TimeStamp::Now();
 
   MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
       buffer, "test2", mozilla::baseprofiler::category::OTHER_Profiling,
@@ -4379,16 +4377,13 @@ void TestProfiler() {
 #  endif  // AUTO_BASE_PROFILER_INIT
   AUTO_BASE_PROFILER_INIT;
 
-  // This wouldn't build if the macro did output its arguments.
 #  ifndef AUTO_BASE_PROFILER_MARKER_TEXT
 #    error AUTO_BASE_PROFILER_MARKER_TEXT not #defined
 #  endif  // AUTO_BASE_PROFILER_MARKER_TEXT
-  AUTO_BASE_PROFILER_MARKER_TEXT(catch, catch, catch, catch);
 
 #  ifndef AUTO_BASE_PROFILER_LABEL
 #    error AUTO_BASE_PROFILER_LABEL not #defined
 #  endif  // AUTO_BASE_PROFILER_LABEL
-  AUTO_BASE_PROFILER_LABEL(catch, catch);
 
 #  ifndef AUTO_BASE_PROFILER_THREAD_SLEEP
 #    error AUTO_BASE_PROFILER_THREAD_SLEEP not #defined
@@ -4398,23 +4393,19 @@ void TestProfiler() {
 #  ifndef BASE_PROFILER_MARKER_UNTYPED
 #    error BASE_PROFILER_MARKER_UNTYPED not #defined
 #  endif  // BASE_PROFILER_MARKER_UNTYPED
-  BASE_PROFILER_MARKER_UNTYPED(catch, catch);
-  BASE_PROFILER_MARKER_UNTYPED(catch, catch, catch);
 
 #  ifndef BASE_PROFILER_MARKER
 #    error BASE_PROFILER_MARKER not #defined
 #  endif  // BASE_PROFILER_MARKER
-  BASE_PROFILER_MARKER(catch, catch, catch, catch);
-  BASE_PROFILER_MARKER(catch, catch, catch, catch, catch);
 
 #  ifndef BASE_PROFILER_MARKER_TEXT
 #    error BASE_PROFILER_MARKER_TEXT not #defined
 #  endif  // BASE_PROFILER_MARKER_TEXT
-  BASE_PROFILER_MARKER_TEXT(catch, catch, catch, catch);
 
   MOZ_RELEASE_ASSERT(!mozilla::baseprofiler::profiler_get_backtrace(),
                      "profiler_get_backtrace should return nullptr");
-  mozilla::ProfileChunkedBuffer buffer;
+  mozilla::ProfileChunkedBuffer buffer(
+      mozilla::ProfileChunkedBuffer::ThreadSafety::WithoutMutex);
   MOZ_RELEASE_ASSERT(!mozilla::baseprofiler::profiler_capture_backtrace_into(
                          buffer, mozilla::StackCaptureOptions::Full),
                      "profiler_capture_backtrace_into should return false");

@@ -126,7 +126,9 @@ inline js::NurseryChunk* js::NurseryChunk::fromChunk(TenuredChunk* chunk) {
 }
 
 js::NurseryDecommitTask::NurseryDecommitTask(gc::GCRuntime* gc)
-    : GCParallelTask(gc) {}
+    : GCParallelTask(gc, gcstats::PhaseKind::NONE) {
+  // This can occur outside GCs so doesn't have a stats phase.
+}
 
 bool js::NurseryDecommitTask::isEmpty(
     const AutoLockHelperThreadState& lock) const {
@@ -188,8 +190,8 @@ js::Nursery::Nursery(GCRuntime* gc)
       currentChunk_(0),
       capacity_(0),
       timeInChunkAlloc_(0),
-      profileThreshold_(0),
       enableProfiling_(false),
+      profileThreshold_(0),
       canAllocateStrings_(true),
       canAllocateBigInts_(true),
       reportDeduplications_(false),
@@ -233,14 +235,9 @@ static bool GetBoolEnvVar(const char* name, const char* helpMessage) {
 }
 
 bool js::Nursery::init(AutoLockGCBgAlloc& lock) {
-  const char* profileEnv =
-      GetEnvVar("JS_GC_PROFILE_NURSERY",
-                "JS_GC_PROFILE_NURSERY=N\n"
-                "\tReport minor GC's taking at least N microseconds.\n");
-  if (profileEnv) {
-    enableProfiling_ = true;
-    profileThreshold_ = TimeDuration::FromMicroseconds(atoi(profileEnv));
-  }
+  ReadProfileEnv("JS_GC_PROFILE_NURSERY",
+                 "Report minor GCs taking at least N microseconds.\n",
+                 &enableProfiling_, &profileWorkers_, &profileThreshold_);
 
   reportDeduplications_ = GetBoolEnvVar(
       "JS_GC_REPORT_STATS",
@@ -890,21 +887,22 @@ void js::Nursery::printCollectionProfile(JS::GCReason reason,
 
   TimeDuration ts = collectionStartTime() - stats().creationTime();
 
-  fprintf(stderr, "MinorGC: %12p %10.6f %-20.20s %4.1f%% %5zu %5zu %6" PRIu32,
-          runtime(), ts.ToSeconds(), JS::ExplainGCReason(reason),
-          promotionRate * 100, previousGC.nurseryCapacity / 1024,
-          capacity() / 1024,
-          stats().getStat(gcstats::STAT_STRINGS_DEDUPLICATED));
+  fprintf(
+      stderr, "MinorGC: %6zu %14p %10.6f %-20.20s %5.1f%% %6zu %6zu %6" PRIu32,
+      size_t(getpid()), runtime(), ts.ToSeconds(), JS::ExplainGCReason(reason),
+      promotionRate * 100, previousGC.nurseryCapacity / 1024, capacity() / 1024,
+      stats().getStat(gcstats::STAT_STRINGS_DEDUPLICATED));
 
   printProfileDurations(profileDurations_);
 }
 
 // static
 void js::Nursery::printProfileHeader() {
-  fprintf(stderr,
-          "MinorGC: Runtime      Timestamp  Reason               PRate OldSz "
-          "NewSz  Dedup");
-#define PRINT_HEADER(name, text) fprintf(stderr, " %6s", text);
+  fprintf(
+      stderr,
+      "MinorGC: PID    Runtime        Timestamp  Reason               PRate  "
+      "OldSz  NewSz  Dedup ");
+#define PRINT_HEADER(name, text) fprintf(stderr, " %-6.6s", text);
   FOR_EACH_NURSERY_PROFILE_TIME(PRINT_HEADER)
 #undef PRINT_HEADER
   fprintf(stderr, "\n");
@@ -921,9 +919,10 @@ void js::Nursery::printProfileDurations(const ProfileDurations& times) {
 void js::Nursery::printTotalProfileTimes() {
   if (enableProfiling_) {
     fprintf(stderr,
-            "MinorGC TOTALS: %7" PRIu64
-            " collections:                          %16" PRIu64,
-            gc->stringStats.deduplicatedStrings, gc->minorGCCount());
+            "MinorGC: %6zu %14p TOTALS: %7" PRIu64
+            " collections:               %16" PRIu64,
+            size_t(getpid()), runtime(), gc->stringStats.deduplicatedStrings,
+            gc->minorGCCount());
     printProfileDurations(totalDurations_);
   }
 }
@@ -1139,7 +1138,8 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
   stats().setStat(
       gcstats::STAT_STRINGS_DEDUPLICATED,
       currStats.deduplicatedStrings - prevStats.deduplicatedStrings);
-  if (enableProfiling_ && totalTime >= profileThreshold_) {
+  if (ShouldPrintProfile(runtime(), enableProfiling_, profileWorkers_,
+                         profileThreshold_, totalTime)) {
     printCollectionProfile(reason, promotionRate);
   }
 

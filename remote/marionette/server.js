@@ -6,27 +6,26 @@
 
 const EXPORTED_SYMBOLS = ["TCPConnection", "TCPListener"];
 
-const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  OS: "resource://gre/modules/osfile.jsm",
-
   assert: "chrome://remote/content/marionette/assert.js",
   Command: "chrome://remote/content/marionette/message.js",
   DebuggerTransport: "chrome://remote/content/marionette/transport.js",
-  error: "chrome://remote/content/marionette/error.js",
+  error: "chrome://remote/content/shared/webdriver/Errors.jsm",
   GeckoDriver: "chrome://remote/content/marionette/driver.js",
-  Log: "chrome://remote/content/marionette/log.js",
+  Log: "chrome://remote/content/shared/Log.jsm",
   MarionettePrefs: "chrome://remote/content/marionette/prefs.js",
   Message: "chrome://remote/content/marionette/message.js",
   Response: "chrome://remote/content/marionette/message.js",
   WebElement: "chrome://remote/content/marionette/element.js",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
+XPCOMUtils.defineLazyGetter(this, "logger", () =>
+  Log.get(Log.TYPES.MARIONETTE)
+);
 XPCOMUtils.defineLazyGetter(this, "ServerSocket", () => {
   return Components.Constructor(
     "@mozilla.org/network/server-socket;1",

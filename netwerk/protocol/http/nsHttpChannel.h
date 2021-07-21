@@ -7,7 +7,6 @@
 #ifndef nsHttpChannel_h__
 #define nsHttpChannel_h__
 
-#include "DelayHttpChannelQueue.h"
 #include "HttpBaseChannel.h"
 #include "nsTArray.h"
 #include "nsICachingChannel.h"
@@ -583,10 +582,8 @@ class nsHttpChannel final : public HttpBaseChannel,
   // Timestamp of the time the channel was suspended.
   mozilla::TimeStamp mSuspendTimestamp;
   mozilla::TimeStamp mOnCacheEntryCheckTimestamp;
-#ifdef MOZ_GECKO_PROFILER
   // For the profiler markers
   mozilla::TimeStamp mLastStatusReported;
-#endif
   // Total time the channel spent suspended. This value is reported to
   // telemetry in nsHttpChannel::OnStartRequest().
   uint32_t mSuspendTotalTime{0};

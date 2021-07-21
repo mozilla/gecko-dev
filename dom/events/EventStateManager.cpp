@@ -4,12 +4,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "EventStateManager.h"
+
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EditorBase.h"
 #include "mozilla/EventDispatcher.h"
 #include "mozilla/EventForwards.h"
-#include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/IMEStateManager.h"
@@ -21,6 +22,7 @@
 #include "mozilla/ScopeExit.h"
 #include "mozilla/ScrollTypes.h"
 #include "mozilla/TextComposition.h"
+#include "mozilla/TextControlElement.h"
 #include "mozilla/TextEditor.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
@@ -112,6 +114,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/HTMLLabelElement.h"
+#include "mozilla/dom/Record.h"
 #include "mozilla/dom/Selection.h"
 
 #include "mozilla/Preferences.h"
@@ -137,6 +140,10 @@ static nsITimerCallback* gUserInteractionTimerCallback = nullptr;
 static const double kCursorLoadingTimeout = 1000;  // ms
 static AutoWeakFrame gLastCursorSourceFrame;
 static TimeStamp gLastCursorUpdateTime;
+static TimeStamp gTypingStartTime;
+static TimeStamp gTypingEndTime;
+static int32_t gTypingInteractionKeyPresses = 0;
+static dom::InteractionData gTypingInteraction = {};
 
 static inline int32_t RoundDown(double aDouble) {
   return (aDouble > 0) ? static_cast<int32_t>(floor(aDouble))
@@ -249,6 +256,7 @@ EventStateManager::EventStateManager()
       mRClickCount(0),
       mShouldAlwaysUseLineDeltas(false),
       mShouldAlwaysUseLineDeltasInitialized(false),
+      mGestureDownInTextControl(false),
       mInTouchDrag(false),
       m_haveShutdown(false) {
   if (sESMInstanceCount == 0) {
@@ -468,6 +476,41 @@ static bool IsKeyboardEventUserActivity(WidgetEvent* aEvent) {
       return false;
     default:
       return true;
+  }
+}
+
+static void OnTypingInteractionEnded() {
+  // We don't consider a single keystroke to be typing.
+  if (gTypingInteractionKeyPresses > 1) {
+    gTypingInteraction.mInteractionCount += gTypingInteractionKeyPresses;
+    gTypingInteraction.mInteractionTimeInMilliseconds += static_cast<uint32_t>(
+        (gTypingEndTime - gTypingStartTime).ToMilliseconds());
+  }
+
+  gTypingInteractionKeyPresses = 0;
+  gTypingStartTime = TimeStamp();
+  gTypingEndTime = TimeStamp();
+}
+
+static void HandleKeyUpInteraction(WidgetKeyboardEvent* aKeyEvent) {
+  if (IsKeyboardEventUserActivity(aKeyEvent)) {
+    TimeStamp now = TimeStamp::Now();
+    if (gTypingEndTime.IsNull()) {
+      gTypingEndTime = now;
+    }
+    TimeDuration delay = now - gTypingEndTime;
+    // Has it been too long since the last keystroke to be considered typing?
+    if (gTypingInteractionKeyPresses > 0 &&
+        delay >
+            TimeDuration::FromMilliseconds(
+                StaticPrefs::browser_places_interactions_typing_timeout_ms())) {
+      OnTypingInteractionEnded();
+    }
+    gTypingInteractionKeyPresses++;
+    if (gTypingStartTime.IsNull()) {
+      gTypingStartTime = now;
+    }
+    gTypingEndTime = now;
   }
 }
 
@@ -1094,6 +1137,7 @@ bool EventStateManager::LookForAccessKeyAndExecute(
     AppendUCS4ToUTF16(ch, accessKey);
     for (count = 1; count <= length; ++count) {
       // mAccessKeys always stores Element instances.
+      MOZ_DIAGNOSTIC_ASSERT(length == mAccessKeys.Count());
       element = mAccessKeys[(start + count) % length];
       if (IsAccessKeyTarget(element, accessKey)) {
         if (!aExecute) {
@@ -1470,7 +1514,11 @@ void EventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
       return;
     }
     case eKeyboardEventClass: {
-      remote->SendRealKeyEvent(*aEvent->AsKeyboardEvent());
+      auto* keyboardEvent = aEvent->AsKeyboardEvent();
+      if (aEvent->mMessage == eKeyUp) {
+        HandleKeyUpInteraction(keyboardEvent);
+      }
+      remote->SendRealKeyEvent(*keyboardEvent);
       return;
     }
     case eWheelEventClass: {
@@ -1835,6 +1883,10 @@ void EventStateManager::BeginTrackingRemoteDragGesture(
     nsIContent* aContent, RemoteDragStartData* aDragStartData) {
   mGestureDownContent = aContent;
   mGestureDownFrameOwner = aContent;
+  mGestureDownInTextControl =
+      aContent && aContent->IsInNativeAnonymousSubtree() &&
+      TextControlElement::FromNodeOrNull(
+          aContent->GetClosestNativeAnonymousSubtreeRootParent());
   mGestureDownDragStartData = aDragStartData;
 }
 
@@ -1847,6 +1899,7 @@ void EventStateManager::BeginTrackingRemoteDragGesture(
 void EventStateManager::StopTrackingDragGesture(bool aClearInChildProcesses) {
   mGestureDownContent = nullptr;
   mGestureDownFrameOwner = nullptr;
+  mGestureDownInTextControl = false;
   mGestureDownDragStartData = nullptr;
 
   // If a content process starts a drag but the mouse is released before the
@@ -5369,6 +5422,17 @@ nsresult EventStateManager::HandleMiddleClickPaste(
   return NS_OK;
 }
 
+void EventStateManager::ConsumeInteractionData(
+    Record<nsString, dom::InteractionData>& aInteractions) {
+  OnTypingInteractionEnded();
+
+  aInteractions.Entries().Clear();
+  auto newEntry = aInteractions.Entries().AppendElement();
+  newEntry->mKey = u"Typing"_ns;
+  newEntry->mValue = gTypingInteraction;
+  gTypingInteraction = {};
+}
+
 nsIFrame* EventStateManager::GetEventTarget() {
   PresShell* presShell;
   if (mCurrentTarget || !mPresContext ||
@@ -5730,6 +5794,38 @@ void EventStateManager::ContentRemoved(Document* aDocument,
   for (const auto& entry : mPointersEnterLeaveHelper) {
     ResetLastOverForContent(entry.GetKey(), entry.GetData(), aContent);
   }
+}
+
+void EventStateManager::TextControlRootWillBeRemoved(
+    TextControlElement& aTextControlElement) {
+  if (!mGestureDownInTextControl || !mGestureDownFrameOwner ||
+      !mGestureDownFrameOwner->IsInNativeAnonymousSubtree()) {
+    return;
+  }
+  // If we track gesture to start drag in aTextControlElement, we should keep
+  // tracking it with aTextContrlElement itself for now because this may be
+  // caused by reframing aTextControlElement which may not be intended by the
+  // user.
+  if (&aTextControlElement ==
+      mGestureDownFrameOwner->GetClosestNativeAnonymousSubtreeRootParent()) {
+    mGestureDownFrameOwner = &aTextControlElement;
+  }
+}
+
+void EventStateManager::TextControlRootAdded(
+    Element& aAnonymousDivElement, TextControlElement& aTextControlElement) {
+  if (!mGestureDownInTextControl ||
+      mGestureDownFrameOwner != &aTextControlElement) {
+    return;
+  }
+  // If we track gesture to start drag in aTextControlElement, but the frame
+  // owner is the text control element itself, the anonymous nodes in it are
+  // recreated by a reframe.  If so, we should keep tracking it with the
+  // recreated native anonymous node.
+  mGestureDownFrameOwner =
+      aAnonymousDivElement.GetFirstChild()
+          ? aAnonymousDivElement.GetFirstChild()
+          : static_cast<nsIContent*>(&aAnonymousDivElement);
 }
 
 bool EventStateManager::EventStatusOK(WidgetGUIEvent* aEvent) {

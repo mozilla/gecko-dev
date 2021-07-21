@@ -10,8 +10,6 @@
 
 #include "ChildIterator.h"
 #include "ErrorReporter.h"
-#include "GeckoProfiler.h"
-#include "gfxFontFamilyList.h"
 #include "gfxFontFeatures.h"
 #include "gfxTextRun.h"
 #include "imgLoader.h"
@@ -53,6 +51,7 @@
 #include "mozilla/Keyframe.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ProfilerLabels.h"
 #include "mozilla/ServoElementSnapshot.h"
 #include "mozilla/ShadowParts.h"
 #include "mozilla/StaticPresData.h"
@@ -129,10 +128,6 @@ bool Gecko_IsSignificantChild(const nsINode* aNode,
 
 const nsINode* Gecko_GetLastChild(const nsINode* aNode) {
   return aNode->GetLastChild();
-}
-
-const nsINode* Gecko_GetPreviousSibling(const nsINode* aNode) {
-  return aNode->GetPreviousSibling();
 }
 
 const nsINode* Gecko_GetFlattenedTreeParentNode(const nsINode* aNode) {
@@ -416,8 +411,7 @@ StyleSheet* Gecko_StyleSheet_Clone(const StyleSheet* aSheet,
   MOZ_ASSERT(aSheet->GetParentSheet(), "Should only be used for @import");
   MOZ_ASSERT(aNewParentSheet, "Wat");
 
-  RefPtr<StyleSheet> newSheet =
-      aSheet->Clone(nullptr, nullptr, nullptr, nullptr);
+  RefPtr<StyleSheet> newSheet = aSheet->Clone(nullptr, nullptr);
 
   // NOTE(emilio): This code runs in the StylesheetInner constructor, which
   // means that the inner pointer of `aNewParentSheet` still points to the old
@@ -973,42 +967,6 @@ void Gecko_AddRefAtom(nsAtom* aAtom) { NS_ADDREF(aAtom); }
 
 void Gecko_ReleaseAtom(nsAtom* aAtom) { NS_RELEASE(aAtom); }
 
-void Gecko_nsTArray_FontFamilyName_AppendNamed(
-    nsTArray<FontFamilyName>* aNames, nsAtom* aName,
-    StyleFontFamilyNameSyntax aSyntax) {
-  aNames->AppendElement(FontFamilyName(aName, aSyntax));
-}
-
-void Gecko_nsTArray_FontFamilyName_AppendGeneric(
-    nsTArray<FontFamilyName>* aNames, StyleGenericFontFamily aType) {
-  aNames->AppendElement(FontFamilyName(aType));
-}
-
-SharedFontList* Gecko_SharedFontList_Create() {
-  RefPtr<SharedFontList> fontlist = new SharedFontList();
-  return fontlist.forget().take();
-}
-
-MOZ_DEFINE_MALLOC_SIZE_OF(GeckoSharedFontListMallocSizeOf)
-
-size_t Gecko_SharedFontList_SizeOfIncludingThisIfUnshared(
-    SharedFontList* aFontlist) {
-  MOZ_ASSERT(NS_IsMainThread());
-  return aFontlist->SizeOfIncludingThisIfUnshared(
-      GeckoSharedFontListMallocSizeOf);
-}
-
-size_t Gecko_SharedFontList_SizeOfIncludingThis(SharedFontList* aFontlist) {
-  MOZ_ASSERT(NS_IsMainThread());
-  return aFontlist->SizeOfIncludingThis(GeckoSharedFontListMallocSizeOf);
-}
-
-NS_IMPL_THREADSAFE_FFI_REFCOUNTING(SharedFontList, SharedFontList);
-
-void Gecko_CopyFontFamilyFrom(nsFont* dst, const nsFont* src) {
-  dst->fontlist = src->fontlist;
-}
-
 void Gecko_nsFont_InitSystem(nsFont* aDest, StyleSystemFont aFontId,
                              const nsStyleFont* aFont,
                              const Document* aDocument) {
@@ -1033,7 +991,7 @@ StyleGenericFontFamily Gecko_nsStyleFont_ComputeDefaultFontType(
     nsAtom* aLanguage) {
   const nsFont* defaultFont =
       ThreadSafeGetDefaultFontHelper(*aDoc, aLanguage, aGenericId);
-  return defaultFont->fontlist.GetDefaultFontType();
+  return defaultFont->family.families.fallback;
 }
 
 gfxFontFeatureValueSet* Gecko_ConstructFontFeatureValueSet() {
@@ -1362,15 +1320,6 @@ void Gecko_nsStyleFont_CopyLangFrom(nsStyleFont* aFont,
   aFont->mLanguage = aSource->mLanguage;
 }
 
-void Gecko_nsStyleFont_PrioritizeUserFonts(
-    nsStyleFont* aFont, StyleGenericFontFamily aDefaultGeneric) {
-  MOZ_ASSERT(!StaticPrefs::browser_display_use_document_fonts());
-  MOZ_ASSERT(aDefaultGeneric != StyleGenericFontFamily::None);
-  if (!aFont->mFont.fontlist.PrioritizeFirstGeneric()) {
-    aFont->mFont.fontlist.PrependGeneric(aDefaultGeneric);
-  }
-}
-
 Length Gecko_nsStyleFont_ComputeMinSize(const nsStyleFont* aFont,
                                         const Document* aDocument) {
   // Don't change font-size:0, since that would un-hide hidden text,
@@ -1609,7 +1558,6 @@ void Gecko_AddPropertyToSet(nsCSSPropertyIDSet* aPropertySet,
     ptr->~nsStyle##name();                                             \
   }
 
-#ifdef MOZ_GECKO_PROFILER
 void Gecko_Construct_AutoProfilerLabel(AutoProfilerLabel* aAutoLabel,
                                        JS::ProfilingCategoryPair aCatPair) {
   new (aAutoLabel) AutoProfilerLabel(
@@ -1621,7 +1569,6 @@ void Gecko_Construct_AutoProfilerLabel(AutoProfilerLabel* aAutoLabel,
 void Gecko_Destroy_AutoProfilerLabel(AutoProfilerLabel* aAutoLabel) {
   aAutoLabel->~AutoProfilerLabel();
 }
-#endif
 
 bool Gecko_DocumentRule_UseForPresentation(
     const Document* aDocument, const nsACString* aPattern,
@@ -1790,4 +1737,77 @@ nsAtom** Gecko_Element_ExportedParts(const nsAttrValue* aValue,
   static_assert(sizeof(RefPtr<nsAtom>) == sizeof(nsAtom*));
   static_assert(alignof(RefPtr<nsAtom>) == alignof(nsAtom*));
   return reinterpret_cast<nsAtom**>(parts->Elements());
+}
+
+bool StyleSingleFontFamily::IsNamedFamily(const nsAString& aFamilyName) const {
+  if (!IsFamilyName()) {
+    return false;
+  }
+  nsDependentAtomString name(AsFamilyName().name.AsAtom());
+  return name.Equals(aFamilyName, nsCaseInsensitiveStringComparator);
+}
+
+StyleSingleFontFamily StyleSingleFontFamily::Parse(
+    const nsACString& aFamilyOrGenericName) {
+  // should only be passed a single font - not entirely correct, a family
+  // *could* have a comma in it but in practice never does so
+  // for debug purposes this is fine
+  NS_ASSERTION(aFamilyOrGenericName.FindChar(',') == -1,
+               "Convert method should only be passed a single family name");
+
+  auto genericType = Servo_GenericFontFamily_Parse(&aFamilyOrGenericName);
+  if (genericType != StyleGenericFontFamily::None) {
+    return Generic(genericType);
+  }
+  return FamilyName({StyleAtom(NS_Atomize(aFamilyOrGenericName)),
+                     StyleFontFamilyNameSyntax::Identifiers});
+}
+
+void StyleSingleFontFamily::AppendToString(nsACString& aName,
+                                           bool aQuote) const {
+  if (IsFamilyName()) {
+    const auto& name = AsFamilyName();
+    bool quote = aQuote && name.syntax == StyleFontFamilyNameSyntax::Quoted;
+    if (quote) {
+      aName.Append('"');
+    }
+    aName.Append(nsAtomCString(name.name.AsAtom()));
+    if (quote) {
+      aName.Append('"');
+    }
+    return;
+  }
+
+  switch (AsGeneric()) {
+    case StyleGenericFontFamily::None:
+    case StyleGenericFontFamily::MozEmoji:
+      MOZ_FALLTHROUGH_ASSERT("Should never appear in a font-family name!");
+    case StyleGenericFontFamily::Serif:
+      return aName.AppendLiteral("serif");
+    case StyleGenericFontFamily::SansSerif:
+      return aName.AppendLiteral("sans-serif");
+    case StyleGenericFontFamily::Monospace:
+      return aName.AppendLiteral("monospace");
+    case StyleGenericFontFamily::Cursive:
+      return aName.AppendLiteral("cursive");
+    case StyleGenericFontFamily::Fantasy:
+      return aName.AppendLiteral("fantasy");
+  }
+  MOZ_ASSERT_UNREACHABLE("Unknown generic font-family!");
+  return aName.AppendLiteral("serif");
+}
+
+StyleFontFamilyList StyleFontFamilyList::WithNames(
+    nsTArray<StyleSingleFontFamily>&& aNames) {
+  StyleFontFamilyList list;
+  Servo_FontFamilyList_WithNames(&aNames, &list);
+  return list;
+}
+
+StyleFontFamilyList StyleFontFamilyList::WithOneUnquotedFamily(
+    const nsACString& aName) {
+  AutoTArray<StyleSingleFontFamily, 1> names;
+  names.AppendElement(StyleSingleFontFamily::FamilyName(
+      {StyleAtom(NS_Atomize(aName)), StyleFontFamilyNameSyntax::Identifiers}));
+  return WithNames(std::move(names));
 }

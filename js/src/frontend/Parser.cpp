@@ -199,10 +199,10 @@ PerHandlerParser<ParseHandler>::PerHandlerParser(
     CompilationState& compilationState, void* internalSyntaxParser)
     : ParserBase(cx, options, foldConstants, compilationState),
       handler_(cx, compilationState.allocScope.alloc(),
-               compilationState.input.lazy),
+               compilationState.input.lazyOuterScript()),
       internalSyntaxParser_(internalSyntaxParser) {
   MOZ_ASSERT(compilationState.isInitialStencil() ==
-             !compilationState.input.lazy);
+             compilationState.input.isInitialStencil());
 }
 
 template <class ParseHandler, typename Unit>
@@ -2900,8 +2900,7 @@ bool GeneralParser<ParseHandler, Unit>::functionArguments(
 
 template <typename Unit>
 bool Parser<FullParseHandler, Unit>::skipLazyInnerFunction(
-    FunctionNode* funNode, uint32_t toStringStart, FunctionSyntaxKind kind,
-    bool tryAnnexB) {
+    FunctionNode* funNode, uint32_t toStringStart, bool tryAnnexB) {
   // When a lazily-parsed function is called, we only fully parse (and emit)
   // that function, not any of its nested children. The initial syntax-only
   // parse recorded the free variables of nested functions and their extents,
@@ -2966,16 +2965,14 @@ bool Parser<FullParseHandler, Unit>::skipLazyInnerFunction(
 
 template <typename Unit>
 bool Parser<SyntaxParseHandler, Unit>::skipLazyInnerFunction(
-    FunctionNodeType funNode, uint32_t toStringStart, FunctionSyntaxKind kind,
-    bool tryAnnexB) {
+    FunctionNodeType funNode, uint32_t toStringStart, bool tryAnnexB) {
   MOZ_CRASH("Cannot skip lazy inner functions when syntax parsing");
 }
 
 template <class ParseHandler, typename Unit>
 bool GeneralParser<ParseHandler, Unit>::skipLazyInnerFunction(
-    FunctionNodeType funNode, uint32_t toStringStart, FunctionSyntaxKind kind,
-    bool tryAnnexB) {
-  return asFinalParser()->skipLazyInnerFunction(funNode, toStringStart, kind,
+    FunctionNodeType funNode, uint32_t toStringStart, bool tryAnnexB) {
+  return asFinalParser()->skipLazyInnerFunction(funNode, toStringStart,
                                                 tryAnnexB);
 }
 
@@ -3076,7 +3073,7 @@ GeneralParser<ParseHandler, Unit>::functionDefinition(
   // functions, which are also lazy. Instead, their free variables and source
   // extents are recorded and may be skipped.
   if (handler_.canSkipLazyInnerFunctions()) {
-    if (!skipLazyInnerFunction(funNode, toStringStart, kind, tryAnnexB)) {
+    if (!skipLazyInnerFunction(funNode, toStringStart, tryAnnexB)) {
       return null();
     }
 
@@ -3527,8 +3524,9 @@ bool GeneralParser<ParseHandler, Unit>::functionFormalParametersAndBody(
   // function bodies are parsed with different yield/await settings.
   {
     AwaitHandling awaitHandling =
-        (funbox->isAsync() ||
-         (kind == FunctionSyntaxKind::Arrow && awaitIsKeyword()))
+        kind == FunctionSyntaxKind::StaticClassBlock ? AwaitIsDisallowed
+        : (funbox->isAsync() ||
+           (kind == FunctionSyntaxKind::Arrow && awaitIsKeyword()))
             ? AwaitIsKeyword
             : AwaitIsName;
     AutoAwaitIsKeyword<ParseHandler, Unit> awaitIsKeyword(this, awaitHandling);
@@ -8105,7 +8103,6 @@ GeneralParser<ParseHandler, Unit>::synthesizeConstructor(
   // extents are recorded and may be skipped.
   if (handler_.canSkipLazyInnerFunctions()) {
     if (!skipLazyInnerFunction(funNode, synthesizedBodyPos.begin,
-                               functionSyntaxKind,
                                /* tryAnnexB = */ false)) {
       return null();
     }
@@ -8390,6 +8387,8 @@ GeneralParser<ParseHandler, Unit>::staticClassBlock(
   FunctionFlags flags =
       InitialFunctionFlags(syntaxKind, generatorKind, asyncKind, isSelfHosting);
 
+  AutoAwaitIsKeyword awaitIsKeyword(this, AwaitHandling::AwaitIsDisallowed);
+
   // Create the function node for the static class body.
   FunctionNodeType funNode = handler_.newFunction(syntaxKind, pos());
   if (!funNode) {
@@ -8432,9 +8431,9 @@ GeneralParser<ParseHandler, Unit>::staticClassBlock(
   // .staticInitializers is noted as used.
   classInitializedMembers.staticFields++;
 
-  LexicalScopeNodeType body = functionBody(
-      InHandling::InAllowed, YieldHandling::YieldIsKeyword,
-      FunctionSyntaxKind::Method, FunctionBodyType::StatementListBody);
+  LexicalScopeNodeType body =
+      functionBody(InHandling::InAllowed, YieldHandling::YieldIsKeyword,
+                   syntaxKind, FunctionBodyType::StatementListBody);
   if (!body) {
     return null();
   }
@@ -10753,7 +10752,7 @@ bool GeneralParser<ParseHandler, Unit>::checkLabelOrIdentifierReference(
       return true;
     }
     if (tt == TokenKind::Await) {
-      if (awaitIsKeyword()) {
+      if (awaitIsKeyword() || awaitIsDisallowed()) {
         errorAt(offset, JSMSG_RESERVED_ID, "await");
         return false;
       }

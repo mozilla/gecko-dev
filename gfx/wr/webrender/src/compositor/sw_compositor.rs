@@ -11,8 +11,8 @@ use std::sync::atomic::{AtomicBool, AtomicI8, AtomicIsize, AtomicPtr, AtomicU32,
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use std::thread;
 use crate::{
-    api::units::*, api::ColorDepth, api::ExternalImageId, api::ImageRendering, api::YuvColorSpace, Compositor,
-    CompositorCapabilities, CompositorSurfaceTransform, NativeSurfaceId, NativeSurfaceInfo, NativeTileId,
+    api::units::*, api::ColorDepth, api::ColorF, api::ExternalImageId, api::ImageRendering, api::YuvRangedColorSpace,
+    Compositor, CompositorCapabilities, CompositorSurfaceTransform, NativeSurfaceId, NativeSurfaceInfo, NativeTileId,
     profiler, MappableCompositor, SWGLCompositeSurfaceInfo,
 };
 
@@ -178,7 +178,7 @@ enum SwCompositeSource {
         swgl::LockedResource,
         swgl::LockedResource,
         swgl::LockedResource,
-        YuvColorSpace,
+        YuvRangedColorSpace,
         ColorDepth,
     ),
 }
@@ -242,10 +242,13 @@ impl SwCompositeJob {
             }
             SwCompositeSource::YUV(ref y, ref u, ref v, color_space, color_depth) => {
                 let swgl_color_space = match color_space {
-                    YuvColorSpace::Rec601 => swgl::YUVColorSpace::Rec601,
-                    YuvColorSpace::Rec709 => swgl::YUVColorSpace::Rec709,
-                    YuvColorSpace::Rec2020 => swgl::YUVColorSpace::Rec2020,
-                    YuvColorSpace::Identity => swgl::YUVColorSpace::Identity,
+                    YuvRangedColorSpace::Rec601Narrow => swgl::YuvRangedColorSpace::Rec601Narrow,
+                    YuvRangedColorSpace::Rec601Full => swgl::YuvRangedColorSpace::Rec601Full,
+                    YuvRangedColorSpace::Rec709Narrow => swgl::YuvRangedColorSpace::Rec709Narrow,
+                    YuvRangedColorSpace::Rec709Full => swgl::YuvRangedColorSpace::Rec709Full,
+                    YuvRangedColorSpace::Rec2020Narrow => swgl::YuvRangedColorSpace::Rec2020Narrow,
+                    YuvRangedColorSpace::Rec2020Full => swgl::YuvRangedColorSpace::Rec2020Full,
+                    YuvRangedColorSpace::GbrIdentity => swgl::YuvRangedColorSpace::GbrIdentity,
                 };
                 self.locked_dst.composite_yuv(
                     y,
@@ -1004,7 +1007,7 @@ impl SwCompositor {
                 let mut info = SWGLCompositeSurfaceInfo {
                     yuv_planes: 0,
                     textures: [0; 3],
-                    color_space: YuvColorSpace::Identity,
+                    color_space: YuvRangedColorSpace::GbrIdentity,
                     color_depth: ColorDepth::Color8,
                     size: DeviceIntSize::zero(),
                 };
@@ -1365,7 +1368,7 @@ impl Compositor for SwCompositor {
     /// frame will not have overlap dependencies assigned and so must instead
     /// be added to the late_surfaces queue to be processed at the end of the
     /// frame.
-    fn start_compositing(&mut self, dirty_rects: &[DeviceIntRect], _opaque_rects: &[DeviceIntRect]) {
+    fn start_compositing(&mut self, clear_color: ColorF, dirty_rects: &[DeviceIntRect], _opaque_rects: &[DeviceIntRect]) {
         // Opaque rects are currently only computed here, not by WR itself, so we
         // ignore the passed parameter and forward our own version onto the native
         // compositor.
@@ -1384,7 +1387,7 @@ impl Compositor for SwCompositor {
             }
         }
 
-        self.compositor.start_compositing(dirty_rects, &opaque_rects);
+        self.compositor.start_compositing(clear_color, dirty_rects, &opaque_rects);
 
         if let Some(dirty_rect) = dirty_rects
             .iter()

@@ -272,8 +272,6 @@ OpKind wasm::Classify(OpBytes op) {
       WASM_EXN_OP(OpKind::CatchAll);
     case Op::Delegate:
       WASM_EXN_OP(OpKind::Delegate);
-    case Op::Unwind:
-      WASM_EXN_OP(OpKind::Unwind);
     case Op::Throw:
       WASM_EXN_OP(OpKind::Throw);
     case Op::Rethrow:
@@ -297,6 +295,8 @@ OpKind wasm::Classify(OpBytes op) {
       WASM_FUNCTION_REFERENCES_OP(OpKind::BrOnNull);
     case Op::RefEq:
       WASM_GC_OP(OpKind::Comparison);
+    case Op::IntrinsicPrefix:
+      return OpKind::Intrinsic;
     case Op::GcPrefix: {
       switch (GcOp(op.b1)) {
         case GcOp::Limit:

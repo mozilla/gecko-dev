@@ -185,12 +185,11 @@ class LoadInfo final : public nsILoadInfo {
   // Please note that aRedirectChain uses swapElements.
   LoadInfo(
       nsIPrincipal* aLoadingPrincipal, nsIPrincipal* aTriggeringPrincipal,
-      nsIPrincipal* aPrincipalToInherit,
-      nsIPrincipal* aSandboxedLoadingPrincipal,
-      nsIPrincipal* aTopLevelPrincipal,
+      nsIPrincipal* aPrincipalToInherit, nsIPrincipal* aTopLevelPrincipal,
       nsIPrincipal* aTopLevelStorageAreaPrincipal, nsIURI* aResultPrincipalURI,
       nsICookieJarSettings* aCookieJarSettings,
       nsIContentSecurityPolicy* aCspToInherit,
+      const nsID& aSandboxedNullPrincipalID,
       const Maybe<mozilla::dom::ClientInfo>& aClientInfo,
       const Maybe<mozilla::dom::ClientInfo>& aReservedClientInfo,
       const Maybe<mozilla::dom::ClientInfo>& aInitialClientInfo,
@@ -261,13 +260,13 @@ class LoadInfo final : public nsILoadInfo {
   nsCOMPtr<nsIPrincipal> mLoadingPrincipal;
   nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
   nsCOMPtr<nsIPrincipal> mPrincipalToInherit;
-  nsCOMPtr<nsIPrincipal> mSandboxedLoadingPrincipal;
   nsCOMPtr<nsIPrincipal> mTopLevelPrincipal;
   nsCOMPtr<nsIPrincipal> mTopLevelStorageAreaPrincipal;
   nsCOMPtr<nsIURI> mResultPrincipalURI;
   nsCOMPtr<nsICSPEventListener> mCSPEventListener;
   nsCOMPtr<nsICookieJarSettings> mCookieJarSettings;
   nsCOMPtr<nsIContentSecurityPolicy> mCspToInherit;
+  nsID mSandboxedNullPrincipalID;
 
   Maybe<mozilla::dom::ClientInfo> mClientInfo;
   UniquePtr<mozilla::dom::ClientSource> mReservedClientSource;
@@ -334,6 +333,9 @@ class LoadInfo final : public nsILoadInfo {
   // See nsILoadInfo.isMediaRequest and nsILoadInfo.isMediaInitialRequest.
   bool mIsMediaRequest = false;
   bool mIsMediaInitialRequest = false;
+
+  // See nsILoadInfo.isFromObjectOrEmbed
+  bool mIsFromObjectOrEmbed = false;
 
   // The cross origin embedder policy that the loading need to respect.
   // If the value is nsILoadInfo::EMBEDDER_POLICY_REQUIRE_CORP, CORP checking

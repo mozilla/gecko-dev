@@ -170,6 +170,9 @@ enum class BailoutKind : uint8_t {
   // We returned to a stack frame after invalidating its IonScript.
   OnStackInvalidation,
 
+  // We have executed code that should be unreachable, and need to assert.
+  Unreachable,
+
   Limit
 };
 
@@ -209,6 +212,8 @@ inline const char* BailoutKindString(BailoutKind kind) {
       return "IonExceptionDebugMode";
     case BailoutKind::OnStackInvalidation:
       return "OnStackInvalidation";
+    case BailoutKind::Unreachable:
+      return "Unreachable";
 
     case BailoutKind::Limit:
       break;
@@ -864,6 +869,9 @@ enum ABIFunctionType : uint32_t {
   Args_Int32_GeneralInt32Int32Int32Int32Int32 = detail::MakeABIFunctionType(
       ArgType_Int32, {ArgType_General, ArgType_Int32, ArgType_Int32,
                       ArgType_Int32, ArgType_Int32, ArgType_Int32}),
+  Args_Int32_GeneralInt32Int32Int32Int32General = detail::MakeABIFunctionType(
+      ArgType_Int32, {ArgType_General, ArgType_Int32, ArgType_Int32,
+                      ArgType_Int32, ArgType_Int32, ArgType_General}),
   Args_Int32_GeneralInt32Int32Int32General = detail::MakeABIFunctionType(
       ArgType_Int32, {ArgType_General, ArgType_Int32, ArgType_Int32,
                       ArgType_Int32, ArgType_General}),

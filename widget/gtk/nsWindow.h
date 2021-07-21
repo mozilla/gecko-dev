@@ -38,6 +38,7 @@
 #  include <gdk/gdkwayland.h>
 #  include "base/thread.h"
 #  include "WaylandVsyncSource.h"
+#  include "nsClipboardWayland.h"
 #endif
 
 #ifdef MOZ_LOGGING
@@ -57,6 +58,9 @@ extern mozilla::LazyLogModule gWidgetPopupLog;
 #  define LOGDRAG(args) MOZ_LOG(gWidgetDragLog, mozilla::LogLevel::Debug, args)
 #  define LOG_POPUP(args) \
     MOZ_LOG(gWidgetPopupLog, mozilla::LogLevel::Debug, args)
+#  define LOG_ENABLED()                                         \
+    (MOZ_LOG_TEST(gWidgetPopupLog, mozilla::LogLevel::Debug) || \
+     MOZ_LOG_TEST(gWidgetLog, mozilla::LogLevel::Debug))
 
 #else
 
@@ -64,19 +68,18 @@ extern mozilla::LazyLogModule gWidgetPopupLog;
 #  define LOGW(args)
 #  define LOGDRAG(args)
 #  define LOG_POPUP(args)
+#  define LOG_ENABLED() false
 
 #endif /* MOZ_LOGGING */
 
 #ifdef MOZ_WAYLAND
-class nsWaylandDragContext;
-
 gboolean WindowDragMotionHandler(GtkWidget* aWidget,
                                  GdkDragContext* aDragContext,
-                                 nsWaylandDragContext* aWaylandDragContext,
-                                 gint aX, gint aY, guint aTime);
+                                 RefPtr<DataOffer> aDataOffer, gint aX, gint aY,
+                                 guint aTime);
 gboolean WindowDragDropHandler(GtkWidget* aWidget, GdkDragContext* aDragContext,
-                               nsWaylandDragContext* aWaylandDragContext,
-                               gint aX, gint aY, guint aTime);
+                               RefPtr<DataOffer> aDataOffer, gint aX, gint aY,
+                               guint aTime);
 void WindowDragLeaveHandler(GtkWidget* aWidget);
 #endif
 
@@ -446,6 +449,7 @@ class nsWindow final : public nsBaseWidget {
   bool mWindowScaleFactorChanged;
   int mWindowScaleFactor;
   bool mCompositedScreen;
+  bool mIsAccelerated;
 
  private:
   void UpdateAlpha(mozilla::gfx::SourceSurface* aSourceSurface,
@@ -633,12 +637,13 @@ class nsWindow final : public nsBaseWidget {
   void WaylandPopupHierarchyHideTemporary();
   void WaylandPopupHierarchyShowTemporaryHidden();
   void WaylandPopupHierarchyCalculatePositions();
+  bool IsTooltipWithNegativeRelativePositionRemoved();
   bool IsInPopupHierarchy();
   void AddWindowToPopupHierarchy();
   void UpdateWaylandPopupHierarchy();
   void WaylandPopupHierarchyHideByLayout(
       nsTArray<nsIWidget*>* aLayoutWidgetHierarchy);
-  void WaylandPopupHierarchyMarkByLayout(
+  void WaylandPopupHierarchyValidateByLayout(
       nsTArray<nsIWidget*>* aLayoutWidgetHierarchy);
   void CloseAllPopupsBeforeRemotePopup();
   void WaylandPopupHideClosedPopups();
@@ -690,6 +695,12 @@ class nsWindow final : public nsBaseWidget {
    */
   bool mPopupTrackInHierarchy;
   bool mPopupTrackInHierarchyConfigured;
+
+  /* On X11 Gtk tends to ignore window position requests when gtk_window
+   * is hidden. Save the position requests at mPopupPosition and apply
+   * when the widget is shown.
+   */
+  bool mHiddenPopupPositioned;
 
   /*  mPopupPosition is the original popup position from layout,
    *  set by nsWindow::Move() or nsWindow::Resize().

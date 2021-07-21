@@ -225,7 +225,7 @@ inline Span<const T> StyleArcSlice<T>::AsSpan() const {
 template <typename T>
 inline bool StyleArcSlice<T>::operator==(const StyleArcSlice& aOther) const {
   ASSERT_CANARY
-  return AsSpan() == aOther.AsSpan();
+  return _0.ptr == aOther._0.ptr || AsSpan() == aOther.AsSpan();
 }
 
 template <typename T>
@@ -234,7 +234,7 @@ inline bool StyleArcSlice<T>::operator!=(const StyleArcSlice& aOther) const {
 }
 
 template <typename T>
-inline StyleArcSlice<T>::~StyleArcSlice() {
+inline void StyleArcSlice<T>::Release() {
   ASSERT_CANARY
   if (MOZ_LIKELY(!_0.ptr->DecrementRef())) {
     return;
@@ -243,6 +243,37 @@ inline StyleArcSlice<T>::~StyleArcSlice() {
     elem.~T();
   }
   free(_0.ptr);  // Drop the allocation now.
+}
+
+template <typename T>
+inline StyleArcSlice<T>::~StyleArcSlice() {
+  Release();
+}
+
+template <typename T>
+inline StyleArcSlice<T>& StyleArcSlice<T>::operator=(StyleArcSlice&& aOther) {
+  ASSERT_CANARY
+  std::swap(_0.ptr, aOther._0.ptr);
+  ASSERT_CANARY
+  return *this;
+}
+
+template <typename T>
+inline StyleArcSlice<T>& StyleArcSlice<T>::operator=(
+    const StyleArcSlice& aOther) {
+  ASSERT_CANARY
+
+  if (_0.ptr == aOther._0.ptr) {
+    return *this;
+  }
+
+  Release();
+
+  _0.ptr = aOther._0.ptr;
+  _0.ptr->IncrementRef();
+
+  ASSERT_CANARY
+  return *this;
 }
 
 #undef ASSERT_CANARY
@@ -1013,6 +1044,18 @@ inline AspectRatio StyleAspectRatio::ToLayoutRatio() const {
   return HasRatio() ? ratio.AsRatio().ToLayoutRatio(auto_ ? UseBoxSizing::No
                                                           : UseBoxSizing::Yes)
                     : AspectRatio();
+}
+
+inline bool StyleFontFamilyList::ContainsFallback() const {
+  if (fallback == StyleGenericFontFamily::None) {
+    return false;
+  }
+  for (const auto& family : list.AsSpan()) {
+    if (family.IsGeneric() && family.AsGeneric() == fallback) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace mozilla

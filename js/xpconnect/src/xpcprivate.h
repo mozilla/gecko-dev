@@ -96,6 +96,7 @@
 #include "js/HashTable.h"
 #include "js/GCHashTable.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate
+#include "js/PropertyAndElement.h"  // JS_DefineProperty
 #include "js/TracingAPI.h"
 #include "js/WeakMapPtr.h"
 #include "PLDHashTable.h"
@@ -387,6 +388,7 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
     IDX_COLUMNNUMBER,
     IDX_STACK,
     IDX_MESSAGE,
+    IDX_CAUSE,
     IDX_ERRORS,
     IDX_LASTINDEX,
     IDX_THEN,
@@ -1408,7 +1410,7 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
 
   static XPCWrappedNative* Get(JSObject* obj) {
     MOZ_ASSERT(IS_WN_REFLECTOR(obj));
-    return (XPCWrappedNative*)JS::GetPrivate(obj);
+    return JS::GetObjectISupports<XPCWrappedNative>(obj);
   }
 
  private:
@@ -2241,6 +2243,7 @@ struct GlobalProperties {
   bool URL : 1;
   bool URLSearchParams : 1;
   bool XMLHttpRequest : 1;
+  bool WebSocket : 1;
   bool XMLSerializer : 1;
 
   // Ad-hoc property names we implement.

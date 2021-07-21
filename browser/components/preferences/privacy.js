@@ -210,6 +210,9 @@ Preferences.addAll([
   // HTTPS-Only
   { id: "dom.security.https_only_mode", type: "bool" },
   { id: "dom.security.https_only_mode_pbm", type: "bool" },
+
+  // Windows SSO
+  { id: "network.http.windows-sso.enabled", type: "bool" },
 ]);
 
 // Study opt out
@@ -417,15 +420,6 @@ var gPrivacyPane = {
     });
   },
 
-  /**
-   * Initialize autocomplete to ensure prefs are in sync.
-   */
-  _initAutocomplete() {
-    Cc["@mozilla.org/autocomplete/search;1?name=unifiedcomplete"].getService(
-      Ci.mozIPlacesAutoComplete
-    );
-  },
-
   syncFromHttpsOnlyPref() {
     let httpsOnlyOnPref = Services.prefs.getBoolPref(
       "dom.security.https_only_mode"
@@ -501,7 +495,6 @@ var gPrivacyPane = {
     this.updateHistoryModePane();
     this.updatePrivacyMicroControls();
     this.initAutoStartPrivateBrowsingReverter();
-    this._initAutocomplete();
 
     /* Initialize Content Blocking */
     this.initContentBlocking();
@@ -767,6 +760,15 @@ var gPrivacyPane = {
     document
       .getElementById("notificationPermissionsLearnMore")
       .setAttribute("href", notificationInfoURL);
+
+    if (AppConstants.platform == "win") {
+      let windowsSSOURL =
+        Services.urlFormatter.formatURLPref("app.support.baseURL") +
+        "windows-sso";
+      document
+        .getElementById("windowsSSOLearnMoreLink")
+        .setAttribute("href", windowsSSOURL);
+    }
 
     if (AppConstants.MOZ_DATA_REPORTING) {
       this.initDataCollection();

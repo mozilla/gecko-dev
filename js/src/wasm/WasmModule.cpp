@@ -24,6 +24,7 @@
 #include "js/BuildId.h"                 // JS::BuildIdCharVector
 #include "js/experimental/TypedData.h"  // JS_NewUint8Array
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
+#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "threading/LockGuard.h"
 #include "vm/HelperThreadState.h"  // Tier2GeneratorTask
 #include "vm/PlainObject.h"        // js::PlainObject
@@ -704,16 +705,21 @@ bool Module::instantiateMemory(JSContext* cx,
   }
 
   MemoryDesc desc = *metadata().memory;
-  MOZ_ASSERT(desc.kind == MemoryKind::Memory32);
-
   if (memory) {
     MOZ_ASSERT_IF(metadata().isAsmJS(), memory->buffer().isPreparedForAsmJS());
     MOZ_ASSERT_IF(!metadata().isAsmJS(), memory->buffer().isWasm());
 
+    if (memory->indexType() != desc.indexType()) {
+      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                               JSMSG_WASM_BAD_IMP_INDEX,
+                               ToString(memory->indexType()));
+      return false;
+    }
+
     if (!CheckLimits(cx, desc.initialPages(), desc.maximumPages(),
-                     /* defaultMax */ MaxMemory32Pages(),
+                     /* defaultMax */ MaxMemoryPages(),
                      /* actualLength */
-                     memory->volatilePages(), memory->maxPages(),
+                     memory->volatilePages(), memory->sourceMaxPages(),
                      metadata().isAsmJS(), "Memory")) {
       return false;
     }
@@ -724,7 +730,7 @@ bool Module::instantiateMemory(JSContext* cx,
   } else {
     MOZ_ASSERT(!metadata().isAsmJS());
 
-    if (desc.initialPages() > MaxMemory32Pages()) {
+    if (desc.initialPages() > MaxMemoryPages()) {
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                JSMSG_WASM_MEM_IMP_LIMIT);
       return false;

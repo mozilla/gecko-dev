@@ -17,10 +17,12 @@
 #include "nsCycleCollector.h"
 #include "jsfriendapi.h"
 #include "js/Array.h"  // JS::IsArrayObject
+#include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionName, JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
 #include "js/ContextOptions.h"
 #include "js/friend/WindowProxy.h"  // js::ToWindowProxyIfWindow
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
+#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "js/SavedFrameAPI.h"
 #include "js/StructuredClone.h"
 #include "mozilla/AppShutdown.h"
@@ -2072,9 +2074,7 @@ NS_IMETHODIMP
 nsXPCComponents_Utils::ExitIfInAutomation() {
   NS_ENSURE_TRUE(xpc::IsInAutomation(), NS_ERROR_FAILURE);
 
-#ifdef MOZ_GECKO_PROFILER
   profiler_shutdown(IsFastShutdown::Yes);
-#endif
 
   mozilla::AppShutdown::DoImmediateExit();
   return NS_OK;

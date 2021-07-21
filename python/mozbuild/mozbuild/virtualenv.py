@@ -8,6 +8,7 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import argparse
+import json
 import os
 import platform
 import shutil
@@ -37,24 +38,6 @@ here = os.path.abspath(os.path.dirname(__file__))
 # We can't import six.ensure_binary() or six.ensure_text() because this module
 # has to run stand-alone.  Instead we'll implement an abbreviated version of the
 # checks it does.
-
-
-def ensure_binary(s, encoding="utf-8"):
-    if isinstance(s, str):
-        return s.encode(encoding, errors="strict")
-    elif isinstance(s, bytes):
-        return s
-    else:
-        raise TypeError("not expecting type '%s'" % type(s))
-
-
-def ensure_text(s, encoding="utf-8"):
-    if isinstance(s, bytes):
-        return s.decode(encoding, errors="strict")
-    elif isinstance(s, str):
-        return s
-    else:
-        raise TypeError("not expecting type '%s'" % type(s))
 
 
 class VirtualenvHelper(object):
@@ -196,8 +179,25 @@ class VirtualenvManager(VirtualenvHelper):
         if (python != self.python_path) and (hexversion != orig_version):
             return False
 
+        packages = self.packages()
+        pypi_packages = [package for action, package in packages if action == "pypi"]
+        if pypi_packages:
+            pip_json = self._run_pip(
+                ["list", "--format", "json"], capture_output=True
+            ).stdout
+            installed_packages = json.loads(pip_json)
+            installed_packages = {
+                package["name"]: package["version"] for package in installed_packages
+            }
+            for pypi_package in pypi_packages:
+                name, version = pypi_package.split("==")
+                if installed_packages.get(name, None) != version:
+                    return False
+
         # recursively check sub packages.txt files
-        submanifests = [i[1] for i in self.packages() if i[0] == "packages.txt"]
+        submanifests = [
+            package for action, package in packages if action == "packages.txt"
+        ]
         for submanifest in submanifests:
             submanifest = os.path.join(self.topsrcdir, submanifest)
             submanager = VirtualenvManager(
@@ -222,11 +222,6 @@ class VirtualenvManager(VirtualenvHelper):
         return self.build(python)
 
     def _log_process_output(self, *args, **kwargs):
-        env = kwargs.pop("env", None) or os.environ.copy()
-        # PYTHONEXECUTABLE can mess up the creation of virtualenvs when set.
-        env.pop("PYTHONEXECUTABLE", None)
-        kwargs["env"] = ensure_subprocess_env(env)
-
         if hasattr(self.log_handle, "fileno"):
             return subprocess.call(
                 *args, stdout=self.log_handle, stderr=subprocess.STDOUT, **kwargs
@@ -277,8 +272,7 @@ class VirtualenvManager(VirtualenvHelper):
 
     def packages(self):
         with open(self.manifest_path, "r") as fh:
-            packages = [line.rstrip().split(":") for line in fh]
-        return packages
+            return [line.rstrip().split(":", maxsplit=1) for line in fh]
 
     def populate(self):
         """Populate the virtualenv.
@@ -287,20 +281,19 @@ class VirtualenvManager(VirtualenvHelper):
         specifies the action. The remaining fields are arguments to that
         action. The following actions are supported:
 
-        filename.pth -- Adds the path given as argument to filename.pth under
+        pth -- Adds the path given as argument to "mach.pth" under
             the virtualenv site packages directory.
+
+        pypi -- Fetch the package, plus dependencies, from PyPI.
 
         thunderbird -- This denotes the action as to only occur for Thunderbird
             checkouts. The initial "thunderbird" field is stripped, then the
             remaining line is processed like normal. e.g.
-            "thunderbird:comms.pth:python/foo"
+            "thunderbird:pth:python/foo"
 
         packages.txt -- Denotes that the specified path is a child manifest. It
             will be read and processed as if its contents were concatenated
             into the manifest being read.
-
-        set-variable -- Set the given environment variable; e.g.
-            `set-variable FOO=1`.
 
         Note that the Python interpreter running this function should be the
         one from the virtualenv. If it is the system Python or if the
@@ -309,15 +302,15 @@ class VirtualenvManager(VirtualenvHelper):
         """
         import distutils.sysconfig
 
-        is_thunderbird = os.path.exists(os.path.join(self.topsrcdir, "comm"))
-        packages = self.packages()
+        thunderbird_dir = os.path.join(self.topsrcdir, "comm")
+        is_thunderbird = os.path.exists(thunderbird_dir) and bool(
+            os.listdir(thunderbird_dir)
+        )
         python_lib = distutils.sysconfig.get_python_lib()
 
-        def handle_package(package):
-            if package[0] == "packages.txt":
-                assert len(package) == 2
-
-                src = os.path.join(self.topsrcdir, package[1])
+        def handle_package(action, package):
+            if action == "packages.txt":
+                src = os.path.join(self.topsrcdir, package)
                 assert os.path.isfile(src), "'%s' does not exist" % src
                 submanager = VirtualenvManager(
                     self.topsrcdir,
@@ -327,25 +320,30 @@ class VirtualenvManager(VirtualenvHelper):
                     populate_local_paths=self.populate_local_paths,
                 )
                 submanager.populate()
-            elif package[0].endswith(".pth"):
-                assert len(package) == 2
-
+            elif action == "pth":
                 if not self.populate_local_paths:
                     return
 
-                path = os.path.join(self.topsrcdir, package[1])
+                path = os.path.join(self.topsrcdir, package)
 
-                with open(os.path.join(python_lib, package[0]), "a") as f:
+                with open(os.path.join(python_lib, "mach.pth"), "a") as f:
                     # This path is relative to the .pth file.  Using a
                     # relative path allows the srcdir/objdir combination
                     # to be moved around (as long as the paths relative to
                     # each other remain the same).
                     f.write("%s\n" % os.path.relpath(path, python_lib))
-            elif package[0] == "thunderbird":
+            elif action == "thunderbird":
                 if is_thunderbird:
-                    handle_package(package[1:])
+                    handle_package(*package.split(":", maxsplit=1))
+            elif action == "pypi":
+                if len(package.split("==")) != 2:
+                    raise Exception(
+                        "Expected pypi package version to be pinned in the "
+                        'format "package==version", found "{}"'.format(package)
+                    )
+                self.install_pip_package(package)
             else:
-                raise Exception("Unknown action: %s" % package[0])
+                raise Exception("Unknown action: %s" % action)
 
         # We always target the OS X deployment target that Python itself was
         # built with, regardless of what's in the current environment. If we
@@ -384,8 +382,8 @@ class VirtualenvManager(VirtualenvHelper):
                 old_env_variables[k] = os.environ[k]
                 del os.environ[k]
 
-            for package in packages:
-                handle_package(package)
+            for current_action, current_package in self.packages():
+                handle_package(current_action, current_package)
 
         finally:
             os.environ.pop("MACOSX_DEPLOYMENT_TARGET", None)
@@ -410,7 +408,6 @@ class VirtualenvManager(VirtualenvHelper):
         try:
             env = os.environ.copy()
             env.setdefault("ARCHFLAGS", get_archflags())
-            env = ensure_subprocess_env(env)
             output = subprocess.check_output(
                 program,
                 cwd=directory,
@@ -477,11 +474,6 @@ class VirtualenvManager(VirtualenvHelper):
         """
 
         exec(open(self.activate_path).read(), dict(__file__=self.activate_path))
-        # Activating the virtualenv can make `os.environ` a little janky under
-        # Python 2.
-        env = ensure_subprocess_env(os.environ)
-        os.environ.clear()
-        os.environ.update(env)
 
     def install_pip_package(self, package, vendored=False):
         """Install a package via pip.
@@ -543,7 +535,7 @@ class VirtualenvManager(VirtualenvHelper):
                 package = wheel_file
 
             args.append(package)
-            return self._run_pip(args)
+            return self._run_pip(args, stderr=subprocess.STDOUT)
 
     def install_pip_requirements(
         self, path, require_hashes=True, quiet=False, vendored=False
@@ -572,7 +564,7 @@ class VirtualenvManager(VirtualenvHelper):
         if vendored:
             args.extend(["--no-deps", "--no-index"])
 
-        return self._run_pip(args)
+        return self._run_pip(args, stderr=subprocess.STDOUT)
 
     def _disable_pip_outdated_warning(self):
         """Disables the pip outdated warning by changing pip's 'installer'
@@ -623,10 +615,11 @@ class VirtualenvManager(VirtualenvHelper):
         with open(os.path.join(site_packages, pip_dist_info, "INSTALLER"), "w") as file:
             file.write("mach")
 
-    def _run_pip(self, args):
+    def _run_pip(self, args, **kwargs):
+        kwargs.setdefault("check", True)
+
         env = os.environ.copy()
         env.setdefault("ARCHFLAGS", get_archflags())
-        env = ensure_subprocess_env(env)
 
         # It's tempting to call pip natively via pip.main(). However,
         # the current Python interpreter may not be the virtualenv python.
@@ -636,12 +629,8 @@ class VirtualenvManager(VirtualenvHelper):
         # It /might/ be possible to cheat and set sys.executable to
         # self.python_path. However, this seems more risk than it's worth.
         pip = os.path.join(self.bin_path, "pip")
-        subprocess.check_call(
-            [pip] + args,
-            stderr=subprocess.STDOUT,
-            cwd=self.topsrcdir,
-            env=env,
-            universal_newlines=True,
+        return subprocess.run(
+            [pip] + args, cwd=self.topsrcdir, env=env, universal_newlines=True, **kwargs
         )
 
 
@@ -674,35 +663,6 @@ def verify_python_version(log_handle):
             log_handle.write(UPGRADE_OTHER)
 
         sys.exit(1)
-
-
-def ensure_subprocess_env(env, encoding="utf-8"):
-    """Ensure the environment is in the correct format for the `subprocess`
-    module.
-
-    This method uses the method with same name from mozbuild.utils as
-    virtualenv.py must be a standalone module.
-
-    This will convert all keys and values to bytes on Python 2, and text on
-    Python 3.
-
-    Args:
-        env (dict): Environment to ensure.
-        encoding (str): Encoding to use when converting to/from bytes/text
-                        (default: utf-8).
-    """
-    ensure = ensure_text
-
-    try:
-        return {
-            ensure(k, encoding=encoding): ensure(v, encoding=encoding)
-            for k, v in env.iteritems()
-        }
-    except AttributeError:
-        return {
-            ensure(k, encoding=encoding): ensure(v, encoding=encoding)
-            for k, v in env.items()
-        }
 
 
 if __name__ == "__main__":

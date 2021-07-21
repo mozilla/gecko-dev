@@ -7,6 +7,7 @@
 #placesToolbar {
   appearance: auto;
   -moz-default-appearance: menubar;
+  color: -moz-menubartext;
 }
 
 @media (-moz-menubar-drag) {
@@ -80,7 +81,7 @@
   display: -moz-box;
   width: 12px;
   height: 12px;
-  content: url("chrome://global/skin/icons/arrow-dropdown-12.svg");
+  content: url("chrome://global/skin/icons/arrow-down-12.svg");
   -moz-context-properties: fill;
   fill: currentColor;
 }

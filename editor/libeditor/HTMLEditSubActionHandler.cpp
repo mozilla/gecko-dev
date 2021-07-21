@@ -768,6 +768,132 @@ nsresult HTMLEditor::EnsureCaretNotAfterPaddingBRElement() {
   return rv;
 }
 
+nsresult HTMLEditor::MaybeCreatePaddingBRElementForEmptyEditor() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  if (mPaddingBRElementForEmptyEditor) {
+    return NS_OK;
+  }
+
+  IgnoredErrorResult ignoredError;
+  AutoEditSubActionNotifier startToHandleEditSubAction(
+      *this, EditSubAction::eCreatePaddingBRElementForEmptyEditor,
+      nsIEditor::eNone, ignoredError);
+  if (NS_WARN_IF(ignoredError.ErrorCodeIs(NS_ERROR_EDITOR_DESTROYED))) {
+    return ignoredError.StealNSResult();
+  }
+  NS_WARNING_ASSERTION(
+      !ignoredError.Failed(),
+      "TextEditor::OnStartToHandleTopLevelEditSubAction() failed, but ignored");
+  ignoredError.SuppressException();
+
+  RefPtr<Element> rootElement = GetRoot();
+  if (!rootElement) {
+    return NS_OK;
+  }
+
+  // Now we've got the body element. Iterate over the body element's children,
+  // looking for editable content. If no editable content is found, insert the
+  // padding <br> element.
+  EditorType editorType = GetEditorType();
+  bool isRootEditable =
+      EditorUtils::IsEditableContent(*rootElement, editorType);
+  for (nsIContent* rootChild = rootElement->GetFirstChild(); rootChild;
+       rootChild = rootChild->GetNextSibling()) {
+    if (EditorUtils::IsPaddingBRElementForEmptyEditor(*rootChild) ||
+        !isRootEditable ||
+        EditorUtils::IsEditableContent(*rootChild, editorType) ||
+        HTMLEditUtils::IsBlockElement(*rootChild)) {
+      return NS_OK;
+    }
+  }
+
+  // Skip adding the padding <br> element for empty editor if body
+  // is read-only.
+  if (IsHTMLEditor() && !HTMLEditUtils::IsSimplyEditableNode(*rootElement)) {
+    return NS_OK;
+  }
+
+  // Create a br.
+  RefPtr<Element> newBRElement = CreateHTMLContent(nsGkAtoms::br);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  if (NS_WARN_IF(!newBRElement)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mPaddingBRElementForEmptyEditor =
+      static_cast<HTMLBRElement*>(newBRElement.get());
+
+  // Give it a special attribute.
+  newBRElement->SetFlags(NS_PADDING_FOR_EMPTY_EDITOR);
+
+  // Put the node in the document.
+  nsresult rv =
+      InsertNodeWithTransaction(*newBRElement, EditorDOMPoint(rootElement, 0));
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  if (NS_FAILED(rv)) {
+    NS_WARNING("EditorBase::InsertNodeWithTransaction() failed");
+    return rv;
+  }
+
+  // Set selection.
+  SelectionRef().CollapseInLimiter(EditorRawDOMPoint(rootElement, 0),
+                                   ignoredError);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(!ignoredError.Failed(),
+                       "Selection::CollapseInLimiter() failed, but ignored");
+  return NS_OK;
+}
+
+nsresult HTMLEditor::EnsureNoPaddingBRElementForEmptyEditor() {
+  MOZ_ASSERT(IsEditActionDataAvailable());
+
+  if (!mPaddingBRElementForEmptyEditor) {
+    return NS_OK;
+  }
+
+  // If we're an HTML editor, a mutation event listener may recreate padding
+  // <br> element for empty editor again during the call of
+  // DeleteNodeWithTransaction().  So, move it first.
+  RefPtr<HTMLBRElement> paddingBRElement(
+      std::move(mPaddingBRElementForEmptyEditor));
+  nsresult rv = DeleteNodeWithTransaction(*paddingBRElement);
+  if (NS_WARN_IF(Destroyed())) {
+    return NS_ERROR_EDITOR_DESTROYED;
+  }
+  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                       "EditorBase::DeleteNodeWithTransaction() failed");
+  return rv;
+}
+
+nsresult HTMLEditor::ReflectPaddingBRElementForEmptyEditor() {
+  if (NS_WARN_IF(!mRootElement)) {
+    NS_WARNING("Failed to handle padding BR element due to no root element");
+    return NS_ERROR_FAILURE;
+  }
+  // The idea here is to see if the magic empty node has suddenly reappeared. If
+  // it has, set our state so we remember it. There is a tradeoff between doing
+  // here and at redo, or doing it everywhere else that might care.  Since undo
+  // and redo are relatively rare, it makes sense to take the (small)
+  // performance hit here.
+  nsIContent* firstLeafChild = HTMLEditUtils::GetFirstLeafContent(
+      *mRootElement, {LeafNodeType::OnlyLeafNode});
+  if (firstLeafChild &&
+      EditorUtils::IsPaddingBRElementForEmptyEditor(*firstLeafChild)) {
+    mPaddingBRElementForEmptyEditor =
+        static_cast<HTMLBRElement*>(firstLeafChild);
+  } else {
+    mPaddingBRElementForEmptyEditor = nullptr;
+  }
+  return NS_OK;
+}
+
 nsresult HTMLEditor::PrepareInlineStylesForCaret() {
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
   MOZ_ASSERT(SelectionRef().IsCollapsed());
@@ -885,12 +1011,24 @@ EditActionResult HTMLEditor::HandleInsertText(
   }
   MOZ_ASSERT(pointToInsert.IsSetAndValid());
 
-  // dont put text in places that can't have it
-  if (!pointToInsert.IsInTextNode() &&
-      !HTMLEditUtils::CanNodeContain(*pointToInsert.GetContainer(),
-                                     *nsGkAtoms::textTagName)) {
-    NS_WARNING("Selection start container couldn't have text nodes");
-    return EditActionHandled(NS_ERROR_FAILURE);
+  // If the point is not in an element which can contain text nodes, climb up
+  // the DOM tree.
+  if (!pointToInsert.IsInTextNode()) {
+    Element* editingHost = GetActiveEditingHost(GetDocument()->IsXMLDocument()
+                                                    ? LimitInBodyElement::No
+                                                    : LimitInBodyElement::Yes);
+    if (NS_WARN_IF(!editingHost)) {
+      return EditActionHandled(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    }
+    while (!HTMLEditUtils::CanNodeContain(*pointToInsert.GetContainer(),
+                                          *nsGkAtoms::textTagName)) {
+      if (NS_WARN_IF(pointToInsert.GetContainer() == editingHost) ||
+          NS_WARN_IF(!pointToInsert.GetContainerParentAsContent())) {
+        NS_WARNING("Selection start point couldn't have text nodes");
+        return EditActionHandled(NS_ERROR_FAILURE);
+      }
+      pointToInsert.Set(pointToInsert.ContainerAsContent());
+    }
   }
 
   if (aEditSubAction == EditSubAction::eInsertTextComingFromIME) {
@@ -968,9 +1106,9 @@ EditActionResult HTMLEditor::HandleInsertText(
     // for efficiency, break out the pre case separately.  This is because
     // its a lot cheaper to search the input string for only newlines than
     // it is to search for both tabs and newlines.
-    if (isPRE || IsPlaintextEditor()) {
+    if (isPRE || IsInPlaintextMode()) {
       while (pos != -1 &&
-             pos < static_cast<int32_t>(aInsertionString.Length())) {
+             pos < AssertedCast<int32_t>(aInsertionString.Length())) {
         int32_t oldPos = pos;
         int32_t subStrLen;
         pos = aInsertionString.FindChar(nsCRT::LF, oldPos);
@@ -1037,7 +1175,7 @@ EditActionResult HTMLEditor::HandleInsertText(
       char specialChars[] = {TAB, nsCRT::LF, 0};
       nsAutoString insertionString(aInsertionString);  // For FindCharInSet().
       while (pos != -1 &&
-             pos < static_cast<int32_t>(insertionString.Length())) {
+             pos < AssertedCast<int32_t>(insertionString.Length())) {
         int32_t oldPos = pos;
         int32_t subStrLen;
         pos = insertionString.FindCharInSet(specialChars, oldPos);
@@ -1478,7 +1616,7 @@ nsresult HTMLEditor::InsertBRElement(const EditorDOMPoint& aPointToBreak) {
 
   // First, insert a <br> element.
   RefPtr<Element> brElement;
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     Result<RefPtr<Element>, nsresult> resultOfInsertingBRElement =
         InsertBRElementWithTransaction(aPointToBreak);
     if (resultOfInsertingBRElement.isErr()) {
@@ -4684,7 +4822,7 @@ nsresult HTMLEditor::CreateStyleForInsertText(
                                                  : HTMLEditor::FontSize::decr;
       for (int32_t j = 0; j < DeprecatedAbs(relFontSize); j++) {
         nsresult rv =
-            RelativeFontChangeOnTextNode(dir, *newEmptyTextNode, 0, -1);
+            RelativeFontChangeOnTextNode(dir, *newEmptyTextNode, 0, UINT32_MAX);
         if (NS_WARN_IF(Destroyed())) {
           return NS_ERROR_EDITOR_DESTROYED;
         }
@@ -5634,7 +5772,7 @@ EditorDOMPoint HTMLEditor::GetCurrentHardLineEndPoint(
       nextEditableContent->GetAsText()->GetData(textContent);
       int32_t newlinePos = textContent.FindChar(nsCRT::LF);
       if (newlinePos >= 0) {
-        if (static_cast<uint32_t>(newlinePos) + 1 == textContent.Length()) {
+        if (AssertedCast<uint32_t>(newlinePos) + 1 == textContent.Length()) {
           // No need for special processing if the newline is at the end.
           break;
         }
@@ -6349,7 +6487,7 @@ void HTMLEditor::MakeTransitionList(
 
 nsresult HTMLEditor::HandleInsertParagraphInHeadingElement(Element& aHeader,
                                                            nsINode& aNode,
-                                                           int32_t aOffset) {
+                                                           uint32_t aOffset) {
   MOZ_ASSERT(IsTopLevelEditSubActionDataAvailable());
 
   // Remember where the header is
@@ -6431,7 +6569,8 @@ nsresult HTMLEditor::HandleInsertParagraphInHeadingElement(Element& aHeader,
       // Create a paragraph
       nsStaticAtom& paraAtom = DefaultParagraphSeparatorTagName();
       // We want a wrapper element even if we separate with <br>
-      EditorDOMPoint nextToHeader(headerParent, offset + 1);
+      EditorDOMPoint nextToHeader(headerParent,
+                                  AssertedCast<uint32_t>(offset + 1));
       Result<RefPtr<Element>, nsresult> maybeNewParagraphElement =
           CreateNodeWithTransaction(&paraAtom == nsGkAtoms::br
                                         ? *nsGkAtoms::p
@@ -6689,7 +6828,7 @@ nsresult HTMLEditor::SplitParagraph(
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   nsCOMPtr<nsINode> selNode = aStartOfRightNode.GetContainer();
-  int32_t selOffset = aStartOfRightNode.Offset();
+  uint32_t selOffset = aStartOfRightNode.Offset();
   nsresult rv = WhiteSpaceVisibilityKeeper::PrepareToSplitAcrossBlocks(
       *this, address_of(selNode), &selOffset);
   if (NS_WARN_IF(Destroyed())) {
@@ -6797,7 +6936,7 @@ nsresult HTMLEditor::SplitParagraph(
 
 nsresult HTMLEditor::HandleInsertParagraphInListItemElement(Element& aListItem,
                                                             nsINode& aNode,
-                                                            int32_t aOffset) {
+                                                            uint32_t aOffset) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(HTMLEditUtils::IsListItem(&aListItem));
 
@@ -6950,7 +7089,7 @@ nsresult HTMLEditor::HandleInsertParagraphInListItemElement(Element& aListItem,
                                                      : nsGkAtoms::dt;
           MOZ_DIAGNOSTIC_ASSERT(itemOffset != -1);
           EditorDOMPoint atNextListItem(list, aListItem.GetNextSibling(),
-                                        itemOffset + 1);
+                                        AssertedCast<uint32_t>(itemOffset + 1));
           Result<RefPtr<Element>, nsresult> maybeNewListItemElement =
               CreateNodeWithTransaction(
                   MOZ_KnownLive(*nextDefinitionListItemTagName),
@@ -7674,7 +7813,7 @@ nsresult HTMLEditor::JoinNearestEditableNodesWithTransaction(
 
 Element* HTMLEditor::GetMostAncestorMailCiteElement(nsINode& aNode) const {
   Element* mailCiteElement = nullptr;
-  bool isPlaintextEditor = IsPlaintextEditor();
+  const bool isPlaintextEditor = IsInPlaintextMode();
   for (nsINode* node = &aNode; node; node = node->GetParentNode()) {
     if ((isPlaintextEditor && node->IsHTMLElement(nsGkAtoms::pre)) ||
         HTMLEditUtils::IsMailCite(node)) {

@@ -74,8 +74,9 @@ void RenderCompositorLayersSWGL::CancelFrame() {
 }
 
 void RenderCompositorLayersSWGL::StartCompositing(
-    const wr::DeviceIntRect* aDirtyRects, size_t aNumDirtyRects,
-    const wr::DeviceIntRect* aOpaqueRects, size_t aNumOpaqueRects) {
+    wr::ColorF aClearColor, const wr::DeviceIntRect* aDirtyRects,
+    size_t aNumDirtyRects, const wr::DeviceIntRect* aOpaqueRects,
+    size_t aNumOpaqueRects) {
   MOZ_RELEASE_ASSERT(!mCompositingStarted);
 
   if (!mInFrame || aNumDirtyRects == 0) {
@@ -100,6 +101,10 @@ void RenderCompositorLayersSWGL::StartCompositing(
     opaque.OrWith(
         gfx::IntRect(rect.min.x, rect.min.y, rect.width(), rect.height()));
   }
+
+  mCompositor->SetClearColor(gfx::DeviceColor(aClearColor.r, aClearColor.g,
+                                              aClearColor.b, aClearColor.a));
+
   if (!mCompositor->BeginFrameForWindow(dirty, Nothing(), bounds, opaque)) {
     return;
   }
@@ -127,10 +132,12 @@ void RenderCompositorLayersSWGL::CompositorEndFrame() {
                             it->first.mY * surface->mTileSize.height);
       gfx::Rect drawRect = it->second->mValidRect + tileOffset;
 
-      RefPtr<TexturedEffect> texturedEffect = CreateTexturedEffect(
-          surface->mIsOpaque ? gfx::SurfaceFormat::B8G8R8X8
-                             : gfx::SurfaceFormat::B8G8R8A8,
-          it->second->GetTextureSource(), frameSurface.mFilter, true);
+      RefPtr<TexturedEffect> texturedEffect =
+          new EffectRGB(it->second->GetTextureSource(),
+                        /* aPremultiplied */ true, frameSurface.mFilter);
+      if (surface->mIsOpaque) {
+        texturedEffect->mPremultipliedCopy = true;
+      }
 
       texturedEffect->mTextureCoords =
           gfx::Rect(it->second->mValidRect.x / surface->mTileSize.width,

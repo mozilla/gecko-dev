@@ -17,8 +17,6 @@ const { AppConstants } = ChromeUtils.import(
   "resource://gre/modules/AppConstants.jsm"
 );
 
-Cu.importGlobalProperties(["Glean"]);
-
 XPCOMUtils.defineLazyModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.jsm",
   ActorManagerParent: "resource://gre/modules/ActorManagerParent.jsm",
@@ -48,7 +46,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
   ExtensionsUI: "resource:///modules/ExtensionsUI.jsm",
   FeatureGate: "resource://featuregates/FeatureGate.jsm",
-  FirefoxMonitor: "resource:///modules/FirefoxMonitor.jsm",
   FxAccounts: "resource://gre/modules/FxAccounts.jsm",
   HomePage: "resource:///modules/HomePage.jsm",
   Integration: "resource://gre/modules/Integration.jsm",
@@ -80,6 +77,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
   Sanitizer: "resource:///modules/Sanitizer.jsm",
   SaveToPocket: "chrome://pocket/content/SaveToPocket.jsm",
+  ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.jsm",
   SearchSERPTelemetry: "resource:///modules/SearchSERPTelemetry.jsm",
   SessionStartup: "resource:///modules/sessionstore/SessionStartup.jsm",
   SessionStore: "resource:///modules/sessionstore/SessionStore.jsm",
@@ -243,7 +241,7 @@ let JSWINDOWACTORS = {
       moduleURI: "resource:///actors/AboutPluginsChild.jsm",
 
       events: {
-        DOMWindowCreated: { capture: true },
+        DOMDocElementInserted: { capture: true },
       },
     },
 
@@ -258,7 +256,7 @@ let JSWINDOWACTORS = {
       moduleURI: "resource:///actors/AboutPocketChild.jsm",
 
       events: {
-        DOMWindowCreated: { capture: true },
+        DOMDocElementInserted: { capture: true },
       },
     },
 
@@ -277,7 +275,7 @@ let JSWINDOWACTORS = {
       moduleURI: "resource:///actors/AboutPrivateBrowsingChild.jsm",
 
       events: {
-        DOMWindowCreated: { capture: true },
+        DOMDocElementInserted: { capture: true },
       },
     },
 
@@ -292,7 +290,7 @@ let JSWINDOWACTORS = {
       moduleURI: "resource:///actors/AboutProtectionsChild.jsm",
 
       events: {
-        DOMWindowCreated: { capture: true },
+        DOMDocElementInserted: { capture: true },
       },
     },
 
@@ -322,7 +320,7 @@ let JSWINDOWACTORS = {
       moduleURI: "resource:///actors/AboutTabCrashedChild.jsm",
 
       events: {
-        DOMWindowCreated: { capture: true },
+        DOMDocElementInserted: { capture: true },
       },
     },
 
@@ -338,7 +336,7 @@ let JSWINDOWACTORS = {
       events: {
         // This is added so the actor instantiates immediately and makes
         // methods available to the page js on load.
-        DOMWindowCreated: {},
+        DOMDocElementInserted: {},
       },
     },
     matches: ["about:welcome"],
@@ -372,7 +370,7 @@ let JSWINDOWACTORS = {
       moduleURI: "resource:///actors/BrowserTabChild.jsm",
 
       events: {
-        DOMWindowCreated: {},
+        DOMDocElementInserted: {},
         MozAfterPaint: {},
       },
     },
@@ -559,7 +557,7 @@ let JSWINDOWACTORS = {
     child: {
       moduleURI: "resource:///actors/NetErrorChild.jsm",
       events: {
-        DOMWindowCreated: {},
+        DOMDocElementInserted: {},
         click: {},
       },
     },
@@ -695,7 +693,7 @@ let JSWINDOWACTORS = {
       events: {
         // This is added so the actor instantiates immediately and makes
         // methods available to the page js on load.
-        DOMWindowCreated: {},
+        DOMDocElementInserted: {},
       },
     },
     matches: ["about:home*", "about:newtab*", "about:welcome*"],
@@ -1062,7 +1060,6 @@ BrowserGlue.prototype = {
         }
         break;
       case "fxaccounts:commands:open-uri":
-      case "weave:engine:clients:display-uris":
         this._onDisplaySyncURIs(subject);
         break;
       case "session-save":
@@ -1218,7 +1215,6 @@ BrowserGlue.prototype = {
     os.addObserver(this, "fxaccounts:verify_login");
     os.addObserver(this, "fxaccounts:device_disconnected");
     os.addObserver(this, "fxaccounts:commands:open-uri");
-    os.addObserver(this, "weave:engine:clients:display-uris");
     os.addObserver(this, "session-save");
     os.addObserver(this, "places-init-complete");
     os.addObserver(this, "distribution-customization-complete");
@@ -1272,7 +1268,6 @@ BrowserGlue.prototype = {
     os.removeObserver(this, "fxaccounts:verify_login");
     os.removeObserver(this, "fxaccounts:device_disconnected");
     os.removeObserver(this, "fxaccounts:commands:open-uri");
-    os.removeObserver(this, "weave:engine:clients:display-uris");
     os.removeObserver(this, "session-save");
     if (this._bookmarksBackupIdleTime) {
       this._userIdleService.removeIdleObserver(
@@ -1983,6 +1978,16 @@ BrowserGlue.prototype = {
   _monitorTranslationsPref() {
     const PREF = "extensions.translations.disabled";
     const ID = "firefox-translations@mozilla.org";
+    const oldID = "firefox-infobar-ui-bergamot-browser-extension@browser.mt";
+
+    // First, try to uninstall the old extension, if exists.
+    (async () => {
+      let addon = await AddonManager.getAddonByID(oldID);
+      if (addon) {
+        addon.uninstall().catch(Cu.reportError);
+      }
+    })();
+
     const _checkTranslationsPref = async () => {
       let addon = await AddonManager.getAddonByID(ID);
       let disabled = Services.prefs.getBoolPref(PREF, false);
@@ -1995,7 +2000,7 @@ BrowserGlue.prototype = {
         addon =
           (await AddonManager.maybeInstallBuiltinAddon(
             ID,
-            "0.4.0",
+            "0.4.3",
             "resource://builtin-addons/translations/"
           )) || addon;
         await addon.enable();
@@ -2207,8 +2212,6 @@ BrowserGlue.prototype = {
     if (AppConstants.NIGHTLY_BUILD) {
       this._monitorTranslationsPref();
     }
-
-    FirefoxMonitor.init();
   },
 
   /**
@@ -2405,6 +2408,16 @@ BrowserGlue.prototype = {
 
       {
         task: () => {
+          if (
+            Services.prefs.getBoolPref("screenshots.browser.component.enabled")
+          ) {
+            ScreenshotsUtils.initialize();
+          }
+        },
+      },
+
+      {
+        task: () => {
           UrlbarQuickSuggest.maybeShowOnboardingDialog();
         },
       },
@@ -2453,6 +2466,16 @@ BrowserGlue.prototype = {
       {
         task: () => {
           TabUnloader.init();
+        },
+      },
+
+      {
+        task: () => {
+          // Init the url query stripping list.
+          let urlQueryStrippingListService = Cc[
+            "@mozilla.org/query-stripping-list-service;1"
+          ].getService(Ci.nsIURLQueryStrippingListService);
+          urlQueryStrippingListService.init();
         },
       },
 
@@ -2552,12 +2575,6 @@ BrowserGlue.prototype = {
           if (!disabledForTesting) {
             BackgroundUpdate.maybeScheduleBackgroundUpdateTask();
           }
-        },
-      },
-
-      {
-        task: () => {
-          this._collectProtonTelemetry();
         },
       },
 
@@ -3209,7 +3226,7 @@ BrowserGlue.prototype = {
   _migrateUI: function BG__migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 112;
+    const UI_VERSION = 116;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -3824,21 +3841,15 @@ BrowserGlue.prototype = {
       }
     }
 
-    if (currentUIVersion < 110) {
-      // Update Urlbar result buckets to add support for
-      // RESULT_GROUP.INPUT_HISTORY.
-      UrlbarPrefs.migrateResultBuckets();
-    }
-
-    if (currentUIVersion < 111) {
-      // Update Urlbar result buckets to add support for
-      // RESULT_GROUP.REMOTE_TABS.
-      UrlbarPrefs.migrateResultBuckets();
-    }
-
-    if (currentUIVersion < 112) {
-      // Update Urlbar result buckets to add support for
-      // RESULT_GROUP.ABOUT_PAGES.
+    if (currentUIVersion < 116) {
+      // Update urlbar result groups for the following changes:
+      // 110 (bug 1662167): Add INPUT_HISTORY group
+      // 111 (bug 1677126): Add REMOTE_TABS group
+      // 112 (bug 1712352): Add ABOUT_PAGES group
+      // 113 (bug 1714409): Add HEURISTIC_ENGINE_ALIAS group
+      // 114 (bug 1662172): Add HEURISTIC_BOOKMARK_KEYWORD group
+      // 115 (bug 1713322): Move TAIL_SUGGESTION group and rename properties
+      // 116 (bug 1717509): Remove HEURISTIC_UNIFIED_COMPLETE group
       UrlbarPrefs.migrateResultBuckets();
     }
 
@@ -3871,15 +3882,18 @@ BrowserGlue.prototype = {
       if (lastVersion === dialogVersion) {
         return "already-shown";
       }
+
+      // Check the default branch as enterprise policies can set prefs there.
+      const defaultPrefs = Services.prefs.getDefaultBranch("");
       if (
-        !Services.prefs.getBoolPref(
+        !defaultPrefs.getBoolPref(
           "browser.messaging-system.whatsNewPanel.enabled",
           true
         )
       ) {
         return "no-whatsNew";
       }
-      if (!Services.prefs.getBoolPref("browser.aboutwelcome.enabled", true)) {
+      if (!defaultPrefs.getBoolPref("browser.aboutwelcome.enabled", true)) {
         return "no-welcome";
       }
       if (!Services.policies.isAllowed("postUpdateCustomPage")) {
@@ -4249,14 +4263,6 @@ BrowserGlue.prototype = {
       badge.classList.remove("feature-callout");
       AppMenuNotifications.removeNotification("fxa-needs-authentication");
     }
-  },
-
-  _collectProtonTelemetry() {
-    let protonEnabled = Services.prefs.getBoolPref(
-      "browser.proton.enabled",
-      true
-    );
-    Glean.browserUi.protonEnabled.set(protonEnabled);
   },
 
   QueryInterface: ChromeUtils.generateQI([

@@ -41,12 +41,12 @@ linux64/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-plain/opt:
@@ -84,8 +84,8 @@ linux64-plain/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
-            - linux64-sysroot
+            - linux64-dump_syms
+            - sysroot-x86_64-linux-gnu
     optimization:
         skip-unless-expanded: null
 
@@ -125,12 +125,12 @@ linux64-gcc/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-plain-clang-trunk/opt:
@@ -147,6 +147,7 @@ linux64-plain-clang-trunk/opt:
         docker-image: {in-tree: debian10-amd64-build}
         max-run-time: 5400
         env:
+            MOZ_AUTOMATION_PACKAGE_TESTS: "1"
             PERFHERDER_EXTRA_OPTIONS: plain-clang-trunk
     run:
         using: mozharness
@@ -168,8 +169,9 @@ linux64-plain-clang-trunk/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-toolchain-sysroot
+            - sysroot-x86_64-linux-gnu
     optimization:
         skip-unless-expanded: null
 
@@ -208,7 +210,7 @@ linux64-fuzzing/debug:
             - linux64-binutils
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-rust
@@ -216,7 +218,7 @@ linux64-fuzzing/debug:
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-expanded: null
@@ -256,7 +258,7 @@ linux64-fuzzing-noopt/debug:
             - linux64-binutils
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-rust
@@ -264,7 +266,7 @@ linux64-fuzzing-noopt/debug:
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-expanded: null
@@ -306,14 +308,14 @@ linux64/debug:
             - linux64-binutils
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-rust
             - linux64-rust-size
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64/codeql-cpp:
@@ -354,18 +356,18 @@ linux64/codeql-cpp:
     run-on-projects: []
     fetches:
         fetch:
-            - codeql-2.0.3
+            - codeql-2.5.7
         toolchain:
             - linux64-binutils
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-rust
             - linux64-rust-size
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     notifications:
         subject: '{task[shipping-product]} {release_config[version]} build{release_config[build_number]}/{config[params][project]} linux64 codeql-cpp status'
@@ -413,8 +415,8 @@ linux64-plain/debug:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
-            - linux64-sysroot
+            - linux64-dump_syms
+            - sysroot-x86_64-linux-gnu
     optimization:
         skip-unless-expanded: null
 
@@ -464,11 +466,11 @@ linux64-devedition/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux/opt:
@@ -497,7 +499,7 @@ linux/opt:
         secrets: true
         tooltool-downloads: public
         need-xvfb: true
-    run-on-projects: ['mozilla-beta', 'mozilla-release', 'mozilla-esr78']
+    run-on-projects: ['mozilla-beta', 'mozilla-release', 'mozilla-esr78', 'mozilla-esr91']
     use-sccache: true
     fetches:
         toolchain:
@@ -506,12 +508,13 @@ linux/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux/debug:
@@ -550,12 +553,13 @@ linux/debug:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux-rusttests/opt:
@@ -592,12 +596,13 @@ linux-rusttests/opt:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         test-inclusive: [rusttests]
@@ -636,12 +641,13 @@ linux-rusttests/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         test-inclusive: [rusttests]
@@ -688,11 +694,12 @@ linux-devedition/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux-shippable/opt:
@@ -734,11 +741,12 @@ linux-shippable/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux-reproduced/opt:
@@ -778,11 +786,12 @@ linux-reproduced/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-reproduced/opt:
@@ -822,11 +831,11 @@ linux64-reproduced/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-asan/opt:
@@ -864,13 +873,13 @@ linux64-asan/opt:
             - linux64-rust-dev
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-tsan/opt:
@@ -908,13 +917,13 @@ linux64-tsan/opt:
             - linux64-rust-dev
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-tsan-fuzzing/opt:
@@ -954,13 +963,13 @@ linux64-tsan-fuzzing/opt:
             - linux64-rust-dev
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-expanded: null
@@ -1003,13 +1012,13 @@ linux64-asan-fuzzing/noopt:
             - linux64-rust-dev
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-expanded: null
@@ -1052,13 +1061,13 @@ linux64-asan-fuzzing/opt:
             - linux64-rust-dev
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-expanded: null
@@ -1097,21 +1106,18 @@ linux64-asan-fuzzing-ccov/opt:
     fetches:
         toolchain:
             - linux64-binutils
-            # For linux64-ccov only, start using the clang-12 toolchains ahead
-            # of general builds, due to bug 1692817. This can be reverted once
-            # clang-12 becomes the default (bug 1696917).
-            - linux64-clang-12
+            - linux64-clang
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
-            - wasi-sysroot-12
+            - sysroot-x86_64-linux-gnu
+            - wasi-sysroot
 
 linux64-fuzzing-ccov/opt:
     description: "Linux64 Fuzzing Opt w/ Coverage"
@@ -1143,12 +1149,9 @@ linux64-fuzzing-ccov/opt:
     fetches:
         toolchain:
             - linux64-binutils
-            # For linux64-ccov only, start using the clang-12 toolchains ahead
-            # of general builds, due to bug 1692817. This can be reverted once
-            # clang-12 becomes the default (bug 1696917).
-            - linux64-clang-12
+            - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-rust
             - linux64-rust-size
@@ -1156,8 +1159,8 @@ linux64-fuzzing-ccov/opt:
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
-            - wasi-sysroot-12
+            - sysroot-x86_64-linux-gnu
+            - wasi-sysroot
     optimization:
         skip-unless-expanded: null
 
@@ -1208,12 +1211,12 @@ linux64-asan-reporter-shippable/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-asan/debug:
@@ -1250,13 +1253,13 @@ linux64-asan/debug:
             - linux64-rust-dev
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-llvm-symbolizer
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-expanded: null
@@ -1304,11 +1307,11 @@ linux64-shippable/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-noopt/debug:
@@ -1347,12 +1350,12 @@ linux64-noopt/debug:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-rusttests/opt:
@@ -1389,12 +1392,12 @@ linux64-rusttests/opt:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         test-inclusive: [rusttests]
@@ -1433,12 +1436,12 @@ linux64-rusttests/debug:
             - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         test-inclusive: [rusttests]
@@ -1479,20 +1482,17 @@ linux64-ccov/opt:
     fetches:
         toolchain:
             - linux64-binutils
-            # For linux64-ccov only, start using the clang-12 toolchains ahead
-            # of general builds, due to bug 1692817. This can be reverted once
-            # clang-12 becomes the default (bug 1696917).
-            - linux64-clang-12
+            - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-grcov
             - linux64-lucetc
-            - linux64-sysroot
-            - wasi-sysroot-12
+            - sysroot-x86_64-linux-gnu
+            - wasi-sysroot
 
 linux64-ccov/debug:
     description: "Linux64-CCov Debug"
@@ -1525,20 +1525,17 @@ linux64-ccov/debug:
     fetches:
         toolchain:
             - linux64-binutils
-            # For linux64-ccov only, start using the clang-12 toolchains ahead
-            # of general builds, due to bug 1692817. This can be reverted once
-            # clang-12 becomes the default (bug 1696917).
-            - linux64-clang-12
+            - linux64-clang
             - linux64-rust
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-grcov
             - linux64-lucetc
-            - linux64-sysroot
-            - wasi-sysroot-12
+            - sysroot-x86_64-linux-gnu
+            - wasi-sysroot
 
 linux64-add-on-devel/opt:
     description: "Linux64 add-on-devel"
@@ -1573,12 +1570,12 @@ linux64-add-on-devel/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-aarch64/opt:
@@ -1617,11 +1614,12 @@ linux64-aarch64/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-node
             - linux64-lucetc
-            - linux64-aarch64-sysroot
+            - sysroot-aarch64-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-expanded: null
@@ -1635,8 +1633,8 @@ linux-gcp/debug:
         enable-full-crashsymbols: true
     treeherder:
         platform: linux32/debug
-        symbol: Bg
-        tier: 3
+        symbol: B-gcp
+        tier: 2
     worker-type: b-linux-gcp
     worker:
         max-run-time: 5400
@@ -1663,12 +1661,13 @@ linux-gcp/debug:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-backstop: null
@@ -1682,8 +1681,8 @@ linux-gcp/opt:
         enable-full-crashsymbols: true
     treeherder:
         platform: linux32/opt
-        symbol: Bg
-        tier: 3
+        symbol: B-gcp
+        tier: 2
     worker-type: b-linux-gcp
     worker:
         max-run-time: 7200
@@ -1708,12 +1707,13 @@ linux-gcp/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux32-sysroot
+            - sysroot-i686-linux-gnu
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
 
 linux64-gcp/debug:
@@ -1725,8 +1725,8 @@ linux64-gcp/debug:
         enable-full-crashsymbols: true
     treeherder:
         platform: linux64/debug
-        symbol: Bg
-        tier: 3
+        symbol: B-gcp
+        tier: 2
     worker-type: b-linux-gcp
     worker:
         max-run-time: 5400
@@ -1750,14 +1750,14 @@ linux64-gcp/debug:
             - linux64-binutils
             - linux64-clang
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-rust
             - linux64-rust-size
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot
     optimization:
         skip-unless-backstop: null
@@ -1771,8 +1771,8 @@ linux64-gcp/opt:
         enable-full-crashsymbols: true
     treeherder:
         platform: linux64/opt
-        symbol: Bg
-        tier: 3
+        symbol: B-gcp
+        tier: 2
     worker-type: b-linux-gcp
     worker:
         max-run-time: 7200
@@ -1797,10 +1797,10 @@ linux64-gcp/opt:
             - linux64-rust
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-sccache
             - linux64-nasm
             - linux64-node
             - linux64-lucetc
-            - linux64-sysroot
+            - sysroot-x86_64-linux-gnu
             - wasi-sysroot

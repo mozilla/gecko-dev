@@ -8,7 +8,7 @@ job-defaults:
         tooltool-downloads: internal
     fetches:
         toolchain:
-            - win64-dump-syms
+            - win64-dump_syms
             - win64-pdbstr
 
 win32/debug:
@@ -56,10 +56,11 @@ win32/debug:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -109,10 +110,11 @@ win32/opt:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -162,10 +164,11 @@ win64/debug:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -215,10 +218,11 @@ win64-fuzzing/debug:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -314,10 +318,11 @@ win64/opt:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -421,10 +426,11 @@ win32-shippable/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -477,10 +483,11 @@ win64-shippable/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -527,10 +534,11 @@ win32-add-on-devel/opt:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -577,10 +585,11 @@ win64-add-on-devel/opt:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -627,10 +636,11 @@ win64-noopt/debug:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -677,10 +687,11 @@ win32-noopt/debug:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -944,10 +955,11 @@ win64-asan/debug:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
             - win64-llvm-symbolizer
         fetch:
             - nsis-3.01-win
@@ -998,10 +1010,11 @@ win64-asan/opt:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
             - win64-llvm-symbolizer
         fetch:
             - nsis-3.01-win
@@ -1061,10 +1074,11 @@ win64-asan-reporter-shippable/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
             - win64-llvm-symbolizer
         fetch:
             - nsis-3.01-win
@@ -1111,10 +1125,11 @@ win64-asan-fuzzing/opt:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
             - win64-llvm-symbolizer
         fetch:
             - nsis-3.01-win
@@ -1181,10 +1196,11 @@ win32-devedition/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -1238,10 +1254,11 @@ win64-devedition/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -1290,10 +1307,11 @@ win64-aarch64/debug:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -1350,10 +1368,11 @@ win64-aarch64/opt:
             - linux64-node
             - linux64-cbindgen
             - linux64-sccache
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -1554,10 +1573,11 @@ win64-aarch64-shippable-no-eme/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win
@@ -1715,10 +1735,11 @@ win64-aarch64-devedition-no-eme/opt:
             - linux64-nasm
             - linux64-node
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-wine
             - linux64-liblowercase
             - linux64-winchecksec
+            - sysroot-x86_64-linux-gnu
         fetch:
             - nsis-3.01-win
             - upx-3.95-win

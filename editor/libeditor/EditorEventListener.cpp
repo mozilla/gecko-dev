@@ -572,7 +572,7 @@ nsresult EditorEventListener::KeyUp(const WidgetKeyboardEvent* aKeyboardEvent) {
   RefPtr<EditorBase> editorBase(mEditorBase);
   if ((aKeyboardEvent->mKeyCode == NS_VK_SHIFT ||
        aKeyboardEvent->mKeyCode == NS_VK_CONTROL) &&
-      mShouldSwitchTextDirection && editorBase->IsPlaintextEditor()) {
+      mShouldSwitchTextDirection && editorBase->IsInPlaintextMode()) {
     editorBase->SwitchTextDirectionTo(mSwitchToRTL
                                           ? EditorBase::TextDirection::eRTL
                                           : EditorBase::TextDirection::eLTR);
@@ -831,7 +831,7 @@ nsresult EditorEventListener::DragOverOrDrop(DragEvent* aDragEvent) {
   int32_t dropOffset = -1;
   nsCOMPtr<nsIContent> dropParentContent =
       aDragEvent->GetRangeParentContentAndOffset(&dropOffset);
-  if (NS_WARN_IF(!dropParentContent)) {
+  if (NS_WARN_IF(!dropParentContent) || NS_WARN_IF(dropOffset < 0)) {
     return NS_ERROR_FAILURE;
   }
   if (DetachedFromEditor()) {
@@ -974,7 +974,7 @@ bool EditorEventListener::DragEventHasSupportingData(
   return dataTransfer->HasType(NS_LITERAL_STRING_FROM_CSTRING(kTextMime)) ||
          dataTransfer->HasType(
              NS_LITERAL_STRING_FROM_CSTRING(kMozTextInternal)) ||
-         (!mEditorBase->IsPlaintextEditor() &&
+         (!mEditorBase->IsInPlaintextMode() &&
           (dataTransfer->HasType(NS_LITERAL_STRING_FROM_CSTRING(kHTMLMime)) ||
            dataTransfer->HasType(NS_LITERAL_STRING_FROM_CSTRING(kFileMime))));
 }
@@ -1032,7 +1032,8 @@ bool EditorEventListener::CanInsertAtDropPosition(DragEvent* aDragEvent) {
   int32_t dropOffset = -1;
   nsCOMPtr<nsIContent> dropParentContent =
       aDragEvent->GetRangeParentContentAndOffset(&dropOffset);
-  if (!dropParentContent || NS_WARN_IF(DetachedFromEditor())) {
+  if (!dropParentContent || NS_WARN_IF(dropOffset < 0) ||
+      NS_WARN_IF(DetachedFromEditor())) {
     return false;
   }
 

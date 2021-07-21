@@ -25,6 +25,7 @@
 #include "ds/Sort.h"
 #include "gc/FreeOp.h"
 #include "gc/Marking.h"
+#include "js/CallAndConstruct.h"      // JS::IsCallable
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
 #include "js/Proxy.h"
@@ -129,7 +130,7 @@ static inline bool Enumerate(JSContext* cx, HandleObject pobj, jsid id,
   // the caller specifically asks for them. A caller can also filter out
   // non-symbols by asking for JSITER_SYMBOLSONLY. PrivateName symbols are
   // skipped unless JSITER_PRIVATE is passed.
-  if (JSID_IS_SYMBOL(id)) {
+  if (id.isSymbol()) {
     if (!(flags & JSITER_SYMBOLS)) {
       return true;
     }
@@ -277,7 +278,7 @@ static bool EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj,
     for (ShapePropertyIter<NoGC> iter(pobj->shape()); !iter.done(); iter++) {
       jsid id = iter->key();
 
-      if (JSID_IS_SYMBOL(id)) {
+      if (id.isSymbol()) {
         symbolsFound = true;
         continue;
       }
@@ -304,7 +305,7 @@ static bool EnumerateNativeProperties(JSContext* cx, HandleNativeObject pobj,
     size_t initialLength = props.length();
     for (ShapePropertyIter<NoGC> iter(pobj->shape()); !iter.done(); iter++) {
       jsid id = iter->key();
-      if (JSID_IS_SYMBOL(id)) {
+      if (id.isSymbol()) {
         if (!Enumerate<CheckForDuplicates>(cx, pobj, id, iter->enumerable(),
                                            flags, visited, props)) {
           return false;
@@ -412,10 +413,10 @@ struct SortComparatorIds {
     }
 
     RootedString astr(cx), bstr(cx);
-    if (JSID_IS_SYMBOL(a)) {
-      MOZ_ASSERT(JSID_IS_SYMBOL(b));
-      JS::SymbolCode ca = JSID_TO_SYMBOL(a)->code();
-      JS::SymbolCode cb = JSID_TO_SYMBOL(b)->code();
+    if (a.isSymbol()) {
+      MOZ_ASSERT(b.isSymbol());
+      JS::SymbolCode ca = a.toSymbol()->code();
+      JS::SymbolCode cb = b.toSymbol()->code();
       if (ca != cb) {
         *lessOrEqualp = uint32_t(ca) <= uint32_t(cb);
         return true;
@@ -423,8 +424,8 @@ struct SortComparatorIds {
       MOZ_ASSERT(ca == JS::SymbolCode::PrivateNameSymbol ||
                  ca == JS::SymbolCode::InSymbolRegistry ||
                  ca == JS::SymbolCode::UniqueSymbol);
-      astr = JSID_TO_SYMBOL(a)->description();
-      bstr = JSID_TO_SYMBOL(b)->description();
+      astr = a.toSymbol()->description();
+      bstr = b.toSymbol()->description();
       if (!astr || !bstr) {
         *lessOrEqualp = !astr;
         return true;
@@ -579,9 +580,9 @@ static inline void RegisterEnumerator(ObjectRealm& realm, NativeIterator* ni) {
 
 static PropertyIteratorObject* NewPropertyIteratorObject(JSContext* cx) {
   const JSClass* clasp = &PropertyIteratorObject::class_;
-  RootedShape shape(cx, EmptyShape::getInitialShape(cx, clasp, cx->realm(),
-                                                    TaggedProto(nullptr),
-                                                    ITERATOR_FINALIZE_KIND));
+  RootedShape shape(cx, SharedShape::getInitialShape(cx, clasp, cx->realm(),
+                                                     TaggedProto(nullptr),
+                                                     ITERATOR_FINALIZE_KIND));
   if (!shape) {
     return nullptr;
   }
@@ -597,8 +598,6 @@ static PropertyIteratorObject* NewPropertyIteratorObject(JSContext* cx) {
   // CodeGenerator::visitIteratorStartO assumes the iterator object is not
   // inside the nursery when deciding whether a barrier is necessary.
   MOZ_ASSERT(!js::gc::IsInsideNursery(res));
-
-  MOZ_ASSERT(res->numFixedSlots() == PropertyIteratorObject::NUM_FIXED_SLOTS);
   return res;
 }
 
@@ -715,7 +714,7 @@ NativeIterator::NativeIterator(JSContext* cx,
   //       because it has GCPtr fields whose barriers have already fired; the
   //       store buffer has pointers to them. Only the GC can free `this` (via
   //       PropertyIteratorObject::finalize).
-  propIter->setNativeIterator(this);
+  propIter->initNativeIterator(this);
 
   // The GC asserts on finalization that `this->allocationSize()` matches the
   // `nbytes` passed to `AddCellMemory`. So once these lines run, we must make
@@ -734,7 +733,8 @@ NativeIterator::NativeIterator(JSContext* cx,
 #endif
     HashNumber shapesHash = 0;
     do {
-      Shape* shape = pobj->as<NativeObject>().lastProperty();
+      MOZ_ASSERT(pobj->is<NativeObject>());
+      Shape* shape = pobj->shape();
       new (shapesEnd_) GCPtrShape(shape);
       shapesEnd_++;
 #ifdef DEBUG
@@ -806,7 +806,8 @@ static MOZ_ALWAYS_INLINE PropertyIteratorObject* LookupInIteratorCache(
       return nullptr;
     }
 
-    Shape* shape = pobj->as<NativeObject>().lastProperty();
+    MOZ_ASSERT(pobj->is<NativeObject>());
+    Shape* shape = pobj->shape();
     shapesHash = mozilla::AddToHash(shapesHash, HashIteratorShape(shape));
 
     if (MOZ_UNLIKELY(!shapes.append(shape))) {
@@ -1079,7 +1080,7 @@ PlainObject* Realm::createIterResultTemplateObject(
 
 size_t PropertyIteratorObject::sizeOfMisc(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  return mallocSizeOf(getPrivate());
+  return mallocSizeOf(getNativeIterator());
 }
 
 void PropertyIteratorObject::trace(JSTracer* trc, JSObject* obj) {
@@ -1111,7 +1112,8 @@ const JSClassOps PropertyIteratorObject::classOps_ = {
 };
 
 const JSClass PropertyIteratorObject::class_ = {
-    "Iterator", JSCLASS_HAS_PRIVATE | JSCLASS_BACKGROUND_FINALIZE,
+    "Iterator",
+    JSCLASS_HAS_RESERVED_SLOTS(SlotCount) | JSCLASS_BACKGROUND_FINALIZE,
     &PropertyIteratorObject::classOps_};
 
 static const JSClass ArrayIteratorPrototypeClass = {"Array Iterator", 0};
@@ -1483,7 +1485,7 @@ bool js::SuppressDeletedProperty(JSContext* cx, HandleObject obj, jsid id) {
     return true;
   }
 
-  if (JSID_IS_SYMBOL(id)) {
+  if (id.isSymbol()) {
     return true;
   }
 

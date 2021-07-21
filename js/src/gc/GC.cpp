@@ -203,6 +203,7 @@
 #include <algorithm>
 #include <initializer_list>
 #include <iterator>
+#include <stdlib.h>
 #include <string.h>
 #include <utility>
 #if !defined(XP_WIN) && !defined(__wasi__)
@@ -231,9 +232,10 @@
 #include "jit/JitRealm.h"
 #include "jit/JitRuntime.h"
 #include "jit/JitZone.h"
-#include "jit/MacroAssembler.h"  // js::jit::CodeAlignment
-#include "js/HeapAPI.h"          // JS::GCCellPtr
-#include "js/Object.h"           // JS::GetClass
+#include "jit/MacroAssembler.h"     // js::jit::CodeAlignment
+#include "js/HeapAPI.h"             // JS::GCCellPtr
+#include "js/Object.h"              // JS::GetClass
+#include "js/PropertyAndElement.h"  // JS_DefineProperty
 #include "js/SliceBudget.h"
 #include "proxy/DeadObjectProxy.h"
 #include "util/DifferentialTesting.h"
@@ -248,6 +250,7 @@
 #include "vm/JSObject.h"
 #include "vm/JSScript.h"
 #include "vm/Printer.h"
+#include "vm/PropMap.h"
 #include "vm/ProxyObject.h"
 #include "vm/Realm.h"
 #include "vm/Shape.h"
@@ -266,6 +269,7 @@
 #include "vm/GeckoProfiler-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/JSScript-inl.h"
+#include "vm/PropMap-inl.h"
 #include "vm/Stack-inl.h"
 #include "vm/StringType-inl.h"
 
@@ -400,7 +404,9 @@ static constexpr FinalizePhase BackgroundFinalizePhases[] = {
       AllocKind::EXTERNAL_STRING, AllocKind::FAT_INLINE_ATOM, AllocKind::ATOM,
       AllocKind::SYMBOL, AllocKind::BIGINT}},
     {gcstats::PhaseKind::SWEEP_SHAPE,
-     {AllocKind::SHAPE, AllocKind::BASE_SHAPE, AllocKind::GETTER_SETTER}}};
+     {AllocKind::SHAPE, AllocKind::BASE_SHAPE, AllocKind::GETTER_SETTER,
+      AllocKind::COMPACT_PROP_MAP, AllocKind::NORMAL_PROP_MAP,
+      AllocKind::DICT_PROP_MAP}}};
 
 void Arena::unmarkAll() {
   MarkBitmapWord* arenaBits = chunk()->markBits.arenaBits(this);
@@ -1202,6 +1208,86 @@ GCRuntime::GCRuntime(JSRuntime* rt)
   marker.setIncrementalGCEnabled(incrementalGCEnabled);
 }
 
+using CharRange = mozilla::Range<const char>;
+using CharRangeVector = Vector<CharRange, 0, SystemAllocPolicy>;
+
+static bool SplitStringBy(CharRange text, char delimiter,
+                          CharRangeVector* result) {
+  auto start = text.begin();
+  for (auto ptr = start; ptr != text.end(); ptr++) {
+    if (*ptr == delimiter) {
+      if (!result->emplaceBack(start, ptr)) {
+        return false;
+      }
+      start = ptr + 1;
+    }
+  }
+
+  return result->emplaceBack(start, text.end());
+}
+
+static bool ParseTimeDuration(CharRange text, TimeDuration* durationOut) {
+  const char* str = text.begin().get();
+  char* end;
+  *durationOut = TimeDuration::FromMilliseconds(strtol(str, &end, 10));
+  return str != end && end == text.end().get();
+}
+
+static void PrintProfileHelpAndExit(const char* envName, const char* helpText) {
+  fprintf(stderr, "%s=N[,(main|all)]\n", envName);
+  fprintf(stderr, "%s", helpText);
+  exit(0);
+}
+
+void js::gc::ReadProfileEnv(const char* envName, const char* helpText,
+                            bool* enableOut, bool* workersOut,
+                            TimeDuration* thresholdOut) {
+  *enableOut = false;
+  *workersOut = false;
+  *thresholdOut = TimeDuration();
+
+  const char* env = getenv(envName);
+  if (!env) {
+    return;
+  }
+
+  if (strcmp(env, "help") == 0) {
+    PrintProfileHelpAndExit(envName, helpText);
+  }
+
+  CharRangeVector parts;
+  auto text = CharRange(env, strlen(env));
+  if (!SplitStringBy(text, ',', &parts)) {
+    MOZ_CRASH("OOM parsing environment variable");
+  }
+
+  if (parts.length() == 0 || parts.length() > 2) {
+    PrintProfileHelpAndExit(envName, helpText);
+  }
+
+  *enableOut = true;
+
+  if (!ParseTimeDuration(parts[0], thresholdOut)) {
+    PrintProfileHelpAndExit(envName, helpText);
+  }
+
+  if (parts.length() == 2) {
+    const char* threads = parts[1].begin().get();
+    if (strcmp(threads, "all") == 0) {
+      *workersOut = true;
+    } else if (strcmp(threads, "main") != 0) {
+      PrintProfileHelpAndExit(envName, helpText);
+    }
+  }
+}
+
+bool js::gc::ShouldPrintProfile(JSRuntime* runtime, bool enable,
+                                bool profileWorkers, TimeDuration threshold,
+                                TimeDuration duration) {
+  return enable && (runtime->isMainRuntime() || profileWorkers) &&
+         duration >= threshold;
+}
+
 #ifdef JS_GC_ZEAL
 
 void GCRuntime::getZealBits(uint32_t* zealBits, uint32_t* frequency,
@@ -1254,7 +1340,8 @@ const char gc::ZealModeHelpText[] =
     "    22: (YieldBeforeSweepingNonObjects) Incremental GC in two slices that "
     "yields\n"
     "        before sweeping non-object GC things\n"
-    "    23: (YieldBeforeSweepingShapeTrees) Incremental GC in two slices that "
+    "    23: (YieldBeforeSweepingPropMapTrees) Incremental GC in two slices "
+    "that "
     "yields\n"
     "        before sweeping shape trees\n"
     "    24: (CheckWeakMapMarking) Check weak map marking invariants after "
@@ -1273,7 +1360,7 @@ static const mozilla::EnumSet<ZealMode> IncrementalSliceZealModes = {
     ZealMode::YieldBeforeSweepingCaches,
     ZealMode::YieldBeforeSweepingObjects,
     ZealMode::YieldBeforeSweepingNonObjects,
-    ZealMode::YieldBeforeSweepingShapeTrees};
+    ZealMode::YieldBeforeSweepingPropMapTrees};
 
 void GCRuntime::setZeal(uint8_t zeal, uint32_t frequency) {
   MOZ_ASSERT(zeal <= unsigned(ZealMode::Limit));
@@ -1348,9 +1435,6 @@ void GCRuntime::unsetZeal(uint8_t zeal) {
 
 void GCRuntime::setNextScheduled(uint32_t count) { nextScheduled = count; }
 
-using CharRange = mozilla::Range<const char>;
-using CharRangeVector = Vector<CharRange, 0, SystemAllocPolicy>;
-
 static bool ParseZealModeName(CharRange text, uint32_t* modeOut) {
   struct ModeInfo {
     const char* name;
@@ -1388,21 +1472,6 @@ static bool ParseZealModeNumericParam(CharRange text, uint32_t* paramOut) {
 
   *paramOut = atoi(text.begin().get());
   return true;
-}
-
-static bool SplitStringBy(CharRange text, char delimiter,
-                          CharRangeVector* result) {
-  auto start = text.begin();
-  for (auto ptr = start; ptr != text.end(); ptr++) {
-    if (*ptr == delimiter) {
-      if (!result->emplaceBack(start, ptr)) {
-        return false;
-      }
-      start = ptr + 1;
-    }
-  }
-
-  return result->emplaceBack(start, text.end());
 }
 
 static bool PrintZealHelpAndFail() {
@@ -2456,6 +2525,7 @@ BaseShape* MovingTracer::onBaseShapeEdge(BaseShape* base) {
 GetterSetter* MovingTracer::onGetterSetterEdge(GetterSetter* gs) {
   return onEdge(gs);
 }
+PropMap* MovingTracer::onPropMapEdge(js::PropMap* map) { return onEdge(map); }
 Scope* MovingTracer::onScopeEdge(Scope* scope) { return onEdge(scope); }
 RegExpShared* MovingTracer::onRegExpSharedEdge(RegExpShared* shared) {
   return onEdge(shared);
@@ -2527,7 +2597,8 @@ static bool CanUpdateKindInBackground(AllocKind kind) {
   // kinds for which this might not be safe:
   //  - we assume JSObjects that are foreground finalized are not safe to
   //    update in parallel
-  //  - updating a shape touches child shapes in fixupShapeTreeAfterMovingGC()
+  //  - updating a SharedPropMap touches child maps in
+  //    SharedPropMap::fixupAfterMovingGC
   return js::gc::IsBackgroundFinalized(kind) && !IsShapeAllocKind(kind) &&
          kind != AllocKind::BASE_SHAPE;
 }
@@ -2743,10 +2814,17 @@ void GCRuntime::updateCellPointers(Zone* zone, AllocKinds kinds) {
 // Since we want to minimize the number of phases, arrange kinds into three
 // arbitrary phases.
 
-static constexpr AllocKinds UpdatePhaseOne{
-    AllocKind::SCRIPT, AllocKind::BASE_SHAPE,   AllocKind::SHAPE,
-    AllocKind::STRING, AllocKind::JITCODE,      AllocKind::REGEXP_SHARED,
-    AllocKind::SCOPE,  AllocKind::GETTER_SETTER};
+static constexpr AllocKinds UpdatePhaseOne{AllocKind::SCRIPT,
+                                           AllocKind::BASE_SHAPE,
+                                           AllocKind::SHAPE,
+                                           AllocKind::STRING,
+                                           AllocKind::JITCODE,
+                                           AllocKind::REGEXP_SHARED,
+                                           AllocKind::SCOPE,
+                                           AllocKind::GETTER_SETTER,
+                                           AllocKind::COMPACT_PROP_MAP,
+                                           AllocKind::NORMAL_PROP_MAP,
+                                           AllocKind::DICT_PROP_MAP};
 
 // UpdatePhaseTwo is typed object descriptor objects.
 
@@ -2805,6 +2883,7 @@ void GCRuntime::updateZonePointersToRelocatedCells(Zone* zone) {
 
   zone->externalStringCache().purge();
   zone->functionToStringCache().purge();
+  zone->shapeZone().purgeShapeCaches(rt->defaultFreeOp());
   rt->caches().stringToAtomCache.purge();
 
   // Iterate through all cells that can contain relocatable pointers to update
@@ -3016,7 +3095,8 @@ ArenaLists::ArenaLists(Zone* zone)
       arenasToSweep_(),
       incrementalSweptArenaKind(zone, AllocKind::LIMIT),
       incrementalSweptArenas(zone),
-      gcShapeArenasToUpdate(zone, nullptr),
+      gcCompactPropMapArenasToUpdate(zone, nullptr),
+      gcNormalPropMapArenasToUpdate(zone, nullptr),
       savedEmptyArenas(zone, nullptr) {
   for (auto i : AllAllocKinds()) {
     concurrentUse(i) = ConcurrentUse::None;
@@ -3152,7 +3232,8 @@ Arena* ArenaLists::takeSweptEmptyArenas() {
 }
 
 void ArenaLists::queueForegroundThingsForSweep() {
-  gcShapeArenasToUpdate = arenasToSweep(AllocKind::SHAPE);
+  gcCompactPropMapArenasToUpdate = arenasToSweep(AllocKind::COMPACT_PROP_MAP);
+  gcNormalPropMapArenasToUpdate = arenasToSweep(AllocKind::NORMAL_PROP_MAP);
 }
 
 void ArenaLists::checkGCStateNotInUse() {
@@ -3178,13 +3259,19 @@ void ArenaLists::checkSweepStateNotInUse() {
 #endif
 }
 
-void ArenaLists::checkNoArenasToUpdate() { MOZ_ASSERT(!gcShapeArenasToUpdate); }
+void ArenaLists::checkNoArenasToUpdate() {
+  MOZ_ASSERT(!gcCompactPropMapArenasToUpdate);
+  MOZ_ASSERT(!gcNormalPropMapArenasToUpdate);
+}
 
 void ArenaLists::checkNoArenasToUpdateForKind(AllocKind kind) {
 #ifdef DEBUG
   switch (kind) {
-    case AllocKind::SHAPE:
-      MOZ_ASSERT(!gcShapeArenasToUpdate);
+    case AllocKind::COMPACT_PROP_MAP:
+      MOZ_ASSERT(!gcCompactPropMapArenasToUpdate);
+      break;
+    case AllocKind::NORMAL_PROP_MAP:
+      MOZ_ASSERT(!gcNormalPropMapArenasToUpdate);
       break;
     default:
       break;
@@ -3494,6 +3581,9 @@ void GCRuntime::startDecommit() {
   decommitTask.runFromMainThread();
 }
 
+BackgroundDecommitTask::BackgroundDecommitTask(GCRuntime* gc)
+    : GCParallelTask(gc, gcstats::PhaseKind::DECOMMIT) {}
+
 void js::gc::BackgroundDecommitTask::run(AutoLockHelperThreadState& lock) {
   {
     AutoUnlockHelperThreadState unlock(lock);
@@ -3662,6 +3752,9 @@ void GCRuntime::queueZonesAndStartBackgroundSweep(ZoneList& zones) {
   }
 }
 
+BackgroundSweepTask::BackgroundSweepTask(GCRuntime* gc)
+    : GCParallelTask(gc, gcstats::PhaseKind::SWEEP) {}
+
 void BackgroundSweepTask::run(AutoLockHelperThreadState& lock) {
   AutoTraceLog logSweeping(TraceLoggerForCurrentThread(),
                            TraceLogger_GCSweeping);
@@ -3725,6 +3818,11 @@ void GCRuntime::queueBuffersForFreeAfterMinorGC(Nursery::BufferSet& buffers) {
 void GCRuntime::startBackgroundFree() {
   AutoLockHelperThreadState lock;
   freeTask.startOrRunIfIdle(lock);
+}
+
+BackgroundFreeTask::BackgroundFreeTask(GCRuntime* gc)
+    : GCParallelTask(gc, gcstats::PhaseKind::NONE) {
+  // This can occur outside GCs so doesn't have a stats phase.
 }
 
 void BackgroundFreeTask::run(AutoLockHelperThreadState& lock) {
@@ -3935,17 +4033,16 @@ class MOZ_RAII AutoRunParallelTask : public GCParallelTask {
   using TaskFunc = JS_MEMBER_FN_PTR_TYPE(GCRuntime, void);
 
   TaskFunc func_;
-  gcstats::PhaseKind phase_;
   AutoLockHelperThreadState& lock_;
 
  public:
   AutoRunParallelTask(GCRuntime* gc, TaskFunc func, gcstats::PhaseKind phase,
                       AutoLockHelperThreadState& lock)
-      : GCParallelTask(gc), func_(func), phase_(phase), lock_(lock) {
-    gc->startTask(*this, phase_, lock_);
+      : GCParallelTask(gc, phase), func_(func), lock_(lock) {
+    gc->startTask(*this, lock_);
   }
 
-  ~AutoRunParallelTask() { gc->joinTask(*this, phase_, lock_); }
+  ~AutoRunParallelTask() { gc->joinTask(*this, lock_); }
 
   void run(AutoLockHelperThreadState& lock) override {
     AutoUnlockHelperThreadState unlock(lock);
@@ -3982,6 +4079,7 @@ void GCRuntime::purgeRuntime() {
     zone->purgeAtomCache();
     zone->externalStringCache().purge();
     zone->functionToStringCache().purge();
+    zone->shapeZone().purgeShapeCaches(rt->defaultFreeOp());
   }
 
   JSContext* cx = rt->mainContextFromOwnThread();
@@ -4280,15 +4378,25 @@ void GCRuntime::relazifyFunctionsForShrinkingGC() {
   }
 }
 
-void GCRuntime::purgeShapeCachesForShrinkingGC() {
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::PURGE_SHAPE_CACHES);
+void GCRuntime::purgePropMapTablesForShrinkingGC() {
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::PURGE_PROP_MAP_TABLES);
   for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-    if (!canRelocateZone(zone) || zone->keepShapeCaches()) {
+    if (!canRelocateZone(zone) || zone->keepPropMapTables()) {
       continue;
     }
-    for (auto shape = zone->cellIterUnsafe<Shape>(); !shape.done();
-         shape.next()) {
-      shape->maybePurgeCache(rt->defaultFreeOp());
+
+    // Note: CompactPropMaps never have a table.
+    for (auto map = zone->cellIterUnsafe<NormalPropMap>(); !map.done();
+         map.next()) {
+      if (map->asLinked()->hasTable()) {
+        map->asLinked()->purgeTable(rt->defaultFreeOp());
+      }
+    }
+    for (auto map = zone->cellIterUnsafe<DictionaryPropMap>(); !map.done();
+         map.next()) {
+      if (map->asLinked()->hasTable()) {
+        map->asLinked()->purgeTable(rt->defaultFreeOp());
+      }
     }
   }
 }
@@ -4353,6 +4461,9 @@ bool GCRuntime::beginPreparePhase(JS::GCReason reason, AutoGCSession& session) {
 
   return true;
 }
+
+BackgroundUnmarkTask::BackgroundUnmarkTask(GCRuntime* gc)
+    : GCParallelTask(gc, gcstats::PhaseKind::UNMARK) {}
 
 void BackgroundUnmarkTask::initZones() {
   MOZ_ASSERT(isIdle());
@@ -4498,7 +4609,7 @@ void GCRuntime::endPreparePhase(JS::GCReason reason) {
      */
     if (gcOptions == JS::GCOptions::Shrink) {
       relazifyFunctionsForShrinkingGC();
-      purgeShapeCachesForShrinkingGC();
+      purgePropMapTablesForShrinkingGC();
       purgeSourceURLsForShrinkingGC();
     }
 
@@ -4929,7 +5040,7 @@ void GCRuntime::getNextSweepGroup() {
   }
 
   if (abortSweepAfterCurrentGroup) {
-    joinTask(markTask, gcstats::PhaseKind::SWEEP_MARK);
+    markTask.join();
 
     // Abort collection of subsequent sweep groups.
     for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
@@ -5330,7 +5441,9 @@ class ImmediateSweepWeakCacheTask : public GCParallelTask {
  public:
   ImmediateSweepWeakCacheTask(GCRuntime* gc, Zone* zone,
                               JS::detail::WeakCacheBase& wc)
-      : GCParallelTask(gc), zone(zone), cache(wc) {}
+      : GCParallelTask(gc, gcstats::PhaseKind::SWEEP_WEAK_CACHES),
+        zone(zone),
+        cache(wc) {}
 
   ImmediateSweepWeakCacheTask(ImmediateSweepWeakCacheTask&& other)
       : GCParallelTask(std::move(other)),
@@ -5438,46 +5551,22 @@ void GCRuntime::sweepFinalizationRegistriesOnMainThread() {
   }
 }
 
-void GCRuntime::startTask(GCParallelTask& task, gcstats::PhaseKind phase,
+void GCRuntime::startTask(GCParallelTask& task,
                           AutoLockHelperThreadState& lock) {
   if (!CanUseExtraThreads()) {
     AutoUnlockHelperThreadState unlock(lock);
     task.runFromMainThread();
-    stats().recordParallelPhase(phase, task.duration());
+    stats().recordParallelPhase(task.phaseKind, task.duration());
     return;
   }
 
   task.startWithLockHeld(lock);
 }
 
-void GCRuntime::joinTask(GCParallelTask& task, gcstats::PhaseKind phase,
+void GCRuntime::joinTask(GCParallelTask& task,
                          AutoLockHelperThreadState& lock) {
-  // This is similar to GCParallelTask::joinWithLockHeld but handles recording
-  // execution and wait time.
-
-  if (task.isIdle(lock)) {
-    return;
-  }
-
-  if (task.isDispatched(lock)) {
-    // If the task was dispatched but has not yet started then cancel the task
-    // and run it from the main thread. This stops us from blocking here when
-    // the helper threads are busy with other tasks.
-    task.cancelDispatchedTask(lock);
-    AutoUnlockHelperThreadState unlock(lock);
-    task.runFromMainThread();
-  } else {
-    // Otherwise wait for the task to complete.
-    gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::JOIN_PARALLEL_TASKS);
-    task.joinRunningOrFinishedTask(lock);
-  }
-
-  stats().recordParallelPhase(phase, task.duration());
-}
-
-void GCRuntime::joinTask(GCParallelTask& task, gcstats::PhaseKind phase) {
-  AutoLockHelperThreadState lock;
-  joinTask(task, phase, lock);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::JOIN_PARALLEL_TASKS);
+  task.joinWithLockHeld(lock);
 }
 
 void GCRuntime::sweepDebuggerOnMainThread(JSFreeOp* fop) {
@@ -5701,7 +5790,7 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JSFreeOp* fop,
     if (canSweepWeakCachesOffThread) {
       weakCachesToSweep.ref().emplace(currentSweepGroup);
       for (auto& task : sweepCacheTasks) {
-        startTask(task, PhaseKind::SWEEP_WEAK_CACHES, lock);
+        startTask(task, lock);
       }
     }
 
@@ -5716,7 +5805,7 @@ IncrementalProgress GCRuntime::beginSweepingSweepGroup(JSFreeOp* fop,
     }
 
     for (auto& task : sweepCacheTasks) {
-      joinTask(task, PhaseKind::SWEEP_WEAK_CACHES, lock);
+      joinTask(task, lock);
     }
   }
 
@@ -5915,6 +6004,10 @@ bool ArenaLists::foregroundFinalize(JSFreeOp* fop, AllocKind thingKind,
   return true;
 }
 
+BackgroundMarkTask::BackgroundMarkTask(GCRuntime* gc)
+    : GCParallelTask(gc, gcstats::PhaseKind::SWEEP_MARK),
+      budget(SliceBudget::unlimited()) {}
+
 void js::gc::BackgroundMarkTask::run(AutoLockHelperThreadState& lock) {
   AutoUnlockHelperThreadState unlock(lock);
 
@@ -5929,7 +6022,7 @@ IncrementalProgress GCRuntime::joinBackgroundMarkTask() {
     return Finished;
   }
 
-  joinTask(markTask, gcstats::PhaseKind::SWEEP_MARK, lock);
+  joinTask(markTask, lock);
 
   IncrementalProgress result = sweepMarkResult;
   sweepMarkResult = Finished;
@@ -5959,9 +6052,10 @@ void GCRuntime::drainMarkStack() {
   MOZ_RELEASE_ASSERT(marker.markUntilBudgetExhausted(unlimited));
 }
 
-static void SweepThing(JSFreeOp* fop, Shape* shape) {
-  if (!shape->isMarkedAny()) {
-    shape->sweep(fop);
+template <typename T>
+static void SweepThing(JSFreeOp* fop, T* thing) {
+  if (!thing->isMarkedAny()) {
+    thing->sweep(fop);
   }
 }
 
@@ -6133,15 +6227,20 @@ IncrementalProgress GCRuntime::finalizeAllocKind(JSFreeOp* fop,
   return Finished;
 }
 
-IncrementalProgress GCRuntime::sweepShapeTree(JSFreeOp* fop,
-                                              SliceBudget& budget) {
-  // Remove dead shapes from the shape tree, but don't finalize them yet.
+IncrementalProgress GCRuntime::sweepPropMapTree(JSFreeOp* fop,
+                                                SliceBudget& budget) {
+  // Remove dead SharedPropMaps from the tree, but don't finalize them yet.
 
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_SHAPE);
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_PROP_MAP);
 
   ArenaLists& al = sweepZone->arenas;
 
-  if (!SweepArenaList<Shape>(fop, &al.gcShapeArenasToUpdate.ref(), budget)) {
+  if (!SweepArenaList<CompactPropMap>(
+          fop, &al.gcCompactPropMapArenasToUpdate.ref(), budget)) {
+    return NotFinished;
+  }
+  if (!SweepArenaList<NormalPropMap>(
+          fop, &al.gcNormalPropMapArenasToUpdate.ref(), budget)) {
     return NotFinished;
   }
 
@@ -6443,8 +6542,8 @@ bool GCRuntime::initSweepActions() {
                        ForEachAllocKind(ForegroundNonObjectFinalizePhase.kinds,
                                         &sweepAllocKind.ref(),
                                         Call(&GCRuntime::finalizeAllocKind)),
-                       MaybeYield(ZealMode::YieldBeforeSweepingShapeTrees),
-                       Call(&GCRuntime::sweepShapeTree))),
+                       MaybeYield(ZealMode::YieldBeforeSweepingPropMapTrees),
+                       Call(&GCRuntime::sweepPropMapTree))),
           Call(&GCRuntime::endSweepingSweepGroup)));
 
   return sweepActions != nullptr;
@@ -7067,7 +7166,8 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
 
       incrementalState = State::Mark;
 
-      if (useZeal && hasZealMode(ZealMode::YieldBeforeMarking) && isIncremental) {
+      if (useZeal && hasZealMode(ZealMode::YieldBeforeMarking) &&
+          isIncremental) {
         break;
       }
 
@@ -8601,11 +8701,19 @@ void GCRuntime::checkHashTablesAfterMovingGC() {
     zone->checkAllCrossCompartmentWrappersAfterMovingGC();
     zone->checkScriptMapsAfterMovingGC();
 
+    // Note: CompactPropMaps never have a table.
     JS::AutoCheckCannotGC nogc;
-    for (auto shape = zone->cellIterUnsafe<Shape>(); !shape.done();
-         shape.next()) {
-      ShapeCachePtr p = shape->getCache(nogc);
-      p.checkAfterMovingGC();
+    for (auto map = zone->cellIterUnsafe<NormalPropMap>(); !map.done();
+         map.next()) {
+      if (PropMapTable* table = map->asLinked()->maybeTable(nogc)) {
+        table->checkAfterMovingGC();
+      }
+    }
+    for (auto map = zone->cellIterUnsafe<DictionaryPropMap>(); !map.done();
+         map.next()) {
+      if (PropMapTable* table = map->asLinked()->maybeTable(nogc)) {
+        table->checkAfterMovingGC();
+      }
     }
   }
 
@@ -9280,6 +9388,9 @@ js::BaseShape* js::gc::ClearEdgesTracer::onBaseShapeEdge(js::BaseShape* base) {
 js::GetterSetter* js::gc::ClearEdgesTracer::onGetterSetterEdge(
     js::GetterSetter* gs) {
   return onEdge(gs);
+}
+js::PropMap* js::gc::ClearEdgesTracer::onPropMapEdge(js::PropMap* map) {
+  return onEdge(map);
 }
 js::jit::JitCode* js::gc::ClearEdgesTracer::onJitCodeEdge(
     js::jit::JitCode* code) {

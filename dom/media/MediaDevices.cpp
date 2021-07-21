@@ -4,6 +4,7 @@
 
 #include "mozilla/dom/MediaDevices.h"
 
+#include "AudioDeviceInfo.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/MediaStreamBinding.h"
 #include "mozilla/dom/MediaDeviceInfo.h"
@@ -22,6 +23,11 @@
 #define DEVICECHANGE_HOLD_TIME_IN_MS 1000
 
 namespace mozilla::dom {
+
+using DeviceEnumerationType = MediaManager::DeviceEnumerationType;
+
+MediaDevices::MediaDevices(nsPIDOMWindowInner* aWindow)
+    : DOMEventTargetHelper(aWindow) {}
 
 MediaDevices::~MediaDevices() {
   MOZ_ASSERT(NS_IsMainThread());
@@ -71,14 +77,22 @@ already_AddRefed<Promise> MediaDevices::GetUserMedia(
     p->MaybeRejectWithInvalidStateError("The document is not fully active.");
     return p.forget();
   }
+  const OwningBooleanOrMediaTrackConstraints& audio = aConstraints.mAudio;
+  bool isMicrophone =
+      audio.IsBoolean()
+          ? audio.GetAsBoolean()
+          : !audio.GetAsMediaTrackConstraints().mMediaSource.WasPassed();
   RefPtr<MediaDevices> self(this);
   MediaManager::Get()
       ->GetUserMedia(owner, aConstraints, aCallerType)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [this, self, p](RefPtr<DOMMediaStream>&& aStream) {
+          [this, self, p, isMicrophone](RefPtr<DOMMediaStream>&& aStream) {
             if (!GetWindowIfCurrent()) {
               return;  // Leave Promise pending after navigation by design.
+            }
+            if (isMicrophone) {
+              mCanExposeMicrophoneInfo = true;
             }
             p->MaybeResolve(std::move(aStream));
           },
@@ -128,17 +142,39 @@ already_AddRefed<Promise> MediaDevices::EnumerateDevices(CallerType aCallerType,
                 aDevices->Length() == 0 ||
                 MediaManager::Get()->IsActivelyCapturingOrHasAPermission(
                     windowId);
+            nsTHashSet<nsString> exposedMicrophoneGroupIds;
             for (auto& device : *aDevices) {
-              MOZ_ASSERT(device->mKind == dom::MediaDeviceKind::Audioinput ||
-                         device->mKind == dom::MediaDeviceKind::Videoinput ||
-                         device->mKind == dom::MediaDeviceKind::Audiooutput);
-              // Include name only if page currently has a gUM stream active
-              // or persistent permissions (audio or video) have been granted
               nsString label;
-              if (allowLabel ||
-                  Preferences::GetBool("media.navigator.permission.disabled",
-                                       false)) {
-                label = device->mName;
+              MOZ_ASSERT(device->mKind < MediaDeviceKind::EndGuard_);
+              switch (device->mKind) {
+                case MediaDeviceKind::Audioinput:
+                  if (mCanExposeMicrophoneInfo) {
+                    exposedMicrophoneGroupIds.Insert(device->mGroupID);
+                  }
+                  [[fallthrough]];
+                case MediaDeviceKind::Videoinput:
+                  // Include name only if page currently has a gUM stream
+                  // active or persistent permissions (audio or video) have
+                  // been granted.  See bug 1528042 for using
+                  // mCanExposeMicrophoneInfo.
+                  if (allowLabel ||
+                      Preferences::GetBool(
+                          "media.navigator.permission.disabled", false)) {
+                    label = device->mName;
+                  }
+                  break;
+                case MediaDeviceKind::Audiooutput:
+                  if (!mExplicitlyGrantedAudioOutputIds.Contains(device->mID) &&
+                      // Assumes aDevices order has microphones before speakers.
+                      !exposedMicrophoneGroupIds.Contains(device->mGroupID)) {
+                    continue;
+                  }
+                  label = device->mName;
+                  break;
+                case MediaDeviceKind::EndGuard_:
+                  break;
+                  // Avoid `default:` so that `-Wswitch` catches missing
+                  // enumerators at compile time.
               }
               infos.AppendElement(MakeRefPtr<MediaDeviceInfo>(
                   device->mID, device->mKind, label, device->mGroupID));
@@ -316,6 +352,7 @@ already_AddRefed<Promise> MediaDevices::SelectAudioOutput(
               return;  // Leave Promise pending after navigation by design.
             }
             MOZ_ASSERT(aDevice->mKind == dom::MediaDeviceKind::Audiooutput);
+            mExplicitlyGrantedAudioOutputIds.Insert(aDevice->mID);
             p->MaybeResolve(
                 MakeRefPtr<MediaDeviceInfo>(aDevice->mID, aDevice->mKind,
                                             aDevice->mName, aDevice->mGroupID));
@@ -328,6 +365,109 @@ already_AddRefed<Promise> MediaDevices::SelectAudioOutput(
             error->Reject(p);
           });
   return p.forget();
+}
+
+static RefPtr<AudioDeviceInfo> CopyWithNullDeviceId(
+    AudioDeviceInfo* aDeviceInfo) {
+  MOZ_ASSERT(aDeviceInfo->Preferred());
+
+  nsString vendor;
+  aDeviceInfo->GetVendor(vendor);
+  uint16_t type;
+  aDeviceInfo->GetType(&type);
+  uint16_t state;
+  aDeviceInfo->GetState(&state);
+  uint16_t pref;
+  aDeviceInfo->GetPreferred(&pref);
+  uint16_t supportedFormat;
+  aDeviceInfo->GetSupportedFormat(&supportedFormat);
+  uint16_t defaultFormat;
+  aDeviceInfo->GetDefaultFormat(&defaultFormat);
+  uint32_t maxChannels;
+  aDeviceInfo->GetMaxChannels(&maxChannels);
+  uint32_t defaultRate;
+  aDeviceInfo->GetDefaultRate(&defaultRate);
+  uint32_t maxRate;
+  aDeviceInfo->GetMaxRate(&maxRate);
+  uint32_t minRate;
+  aDeviceInfo->GetMinRate(&minRate);
+  uint32_t maxLatency;
+  aDeviceInfo->GetMaxLatency(&maxLatency);
+  uint32_t minLatency;
+  aDeviceInfo->GetMinLatency(&minLatency);
+
+  return MakeRefPtr<AudioDeviceInfo>(
+      nullptr, aDeviceInfo->Name(), aDeviceInfo->GroupID(), vendor, type, state,
+      pref, supportedFormat, defaultFormat, maxChannels, defaultRate, maxRate,
+      minRate, maxLatency, minLatency);
+}
+
+RefPtr<MediaDevices::SinkInfoPromise> MediaDevices::GetSinkDevice(
+    const nsString& aDeviceId) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  bool isExposed = aDeviceId.IsEmpty() ||
+                   mExplicitlyGrantedAudioOutputIds.Contains(aDeviceId);
+  // If the device id is not exposed, then check microphone groupIds.
+  MediaSourceEnum audioInputType = isExposed || !mCanExposeMicrophoneInfo
+                                       ? MediaSourceEnum::Other
+                                       : MediaSourceEnum::Microphone;
+
+  auto devices = MakeRefPtr<MediaManager::MediaDeviceSetRefCnt>();
+  return MediaManager::Get()
+      ->EnumerateDevicesImpl(GetOwner(), MediaSourceEnum::Other, audioInputType,
+                             MediaSinkEnum::Speaker,
+                             DeviceEnumerationType::Normal,
+                             DeviceEnumerationType::Normal, true, devices)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [aDeviceId, isExposed, devices](bool) mutable {
+            RefPtr<AudioDeviceInfo> outputInfo;
+            nsString groupId;
+            // Check for a matching device.
+            for (const RefPtr<MediaDevice>& device : *devices) {
+              if (device->mKind != dom::MediaDeviceKind::Audiooutput) {
+                continue;
+              }
+              if (aDeviceId.IsEmpty()) {
+                if (device->mSinkInfo->Preferred()) {
+                  outputInfo = CopyWithNullDeviceId(device->mSinkInfo);
+                  break;
+                }
+              } else if (aDeviceId.Equals(device->mID)) {
+                outputInfo = device->mSinkInfo;
+                groupId = device->mGroupID;
+                break;
+              }
+            }
+            if (outputInfo && !isExposed) {
+              // Check microphone groups.
+              MOZ_ASSERT(!groupId.IsEmpty());
+              for (const RefPtr<MediaDevice>& device : *devices) {
+                if (device->mKind != dom::MediaDeviceKind::Audioinput) {
+                  continue;
+                }
+                if (groupId.Equals(device->mGroupID)) {
+                  isExposed = true;
+                  break;
+                }
+              }
+            }
+            /* If sinkId is not the empty string and does not match any audio
+             * output device identified by the result that would be provided
+             * by enumerateDevices(), reject p with a new DOMException whose
+             * name is NotFoundError and abort these substeps. */
+            if (!outputInfo || !isExposed) {
+              return SinkInfoPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE,
+                                                      __func__);
+            }
+            return SinkInfoPromise::CreateAndResolve(outputInfo, __func__);
+          },
+          // aRejectMethod =
+          [](RefPtr<MediaMgrError>&& aError) {
+            return SinkInfoPromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE,
+                                                    __func__);
+          });
 }
 
 NS_IMPL_ADDREF_INHERITED(MediaDevices, DOMEventTargetHelper)

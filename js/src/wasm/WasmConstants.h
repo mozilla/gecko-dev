@@ -44,7 +44,6 @@ enum class SectionId {
 #ifdef ENABLE_WASM_EXCEPTIONS
   Event = 13,
 #endif
-  GcFeatureOptIn = 42  // Arbitrary, but fits in 7 bits
 };
 
 // WebAssembly type encodings are all single-byte negative SLEB128s, hence:
@@ -82,8 +81,9 @@ enum class TypeCode {
   // Type constructor for non-nullable reference types.
   Ref = 0x6b,  // SLEB128(-0x15)
 
-  // Type constructor for rtt types.
-  Rtt = 0x69,  // SLEB128(-0x17)
+  // Type constructors for rtt types.
+  RttWithDepth = 0x69,  // SLEB128(-0x17)
+  Rtt = 0x68,           // SLEB128(-0x18)
 
   // Type constructor for function types
   Func = 0x60,  // SLEB128(-0x20)
@@ -115,6 +115,11 @@ static constexpr TypeCode AbstractReferenceTypeCode = TypeCode::ExternRef;
 // is encoded with 'Ref' or 'NullableRef'.
 
 static constexpr TypeCode AbstractReferenceTypeIndexCode = TypeCode::Ref;
+
+// A type code used to represent (rtt depth? typeindex) whether or not the type
+// is encoded with 'Rtt' or 'RttWithDepth'.
+
+static constexpr TypeCode AbstractRttCode = TypeCode::Rtt;
 
 enum class TypeIdDescKind { None, Immediate, Global };
 
@@ -177,13 +182,22 @@ enum class DefinitionKind {
 
 enum class GlobalTypeImmediate { IsMutable = 0x1, AllowedMask = 0x1 };
 
-enum class MemoryTableFlags {
+enum class LimitsFlags {
   Default = 0x0,
   HasMaximum = 0x1,
   IsShared = 0x2,
+  IsI64 = 0x4,
 };
 
-enum class MemoryMasks { AllowUnshared = 0x1, AllowShared = 0x3 };
+enum class LimitsMask {
+  Table = uint8_t(LimitsFlags::HasMaximum),
+#ifdef ENABLE_WASM_MEMORY64
+  Memory = uint8_t(LimitsFlags::HasMaximum) | uint8_t(LimitsFlags::IsShared) |
+           uint8_t(LimitsFlags::IsI64),
+#else
+  Memory = uint8_t(LimitsFlags::HasMaximum) | uint8_t(LimitsFlags::IsShared),
+#endif
+};
 
 enum class DataSegmentKind {
   Active = 0x00,
@@ -222,7 +236,6 @@ enum class Op {
   Catch = 0x07,
   Throw = 0x08,
   Rethrow = 0x09,
-  Unwind = 0x0a,
 #endif
   End = 0x0b,
   Br = 0x0c,
@@ -437,7 +450,8 @@ enum class Op {
   // GC (experimental)
   RefEq = 0xd5,
 
-  FirstPrefix = 0xfb,
+  FirstPrefix = 0xfa,
+  IntrinsicPrefix = 0xfa,
   GcPrefix = 0xfb,
   MiscPrefix = 0xfc,
   SimdPrefix = 0xfd,
@@ -924,6 +938,21 @@ enum class ThreadOp {
   Limit
 };
 
+enum class IntrinsicOp {
+  // ------------------------------------------------------------------------
+  // These operators are emitted internally when compiling intrinsic modules
+  // and are rejected by wasm validation.  They are prefixed by
+  // IntrinsicPrefix.
+
+  // i8vecmul(dest: i32, src1: i32, src2: i32, len: i32)
+  //  Performs pairwise multiplication of two i8 vectors of 'len' specified at
+  //  'src1' and 'src2'. Output is written to 'dest'. This is used as a
+  //  basic self-test for intrinsics.
+  I8VecMul = 0x0,
+
+  Limit
+};
+
 enum class MozOp {
   // ------------------------------------------------------------------------
   // These operators are emitted internally when compiling asm.js and are
@@ -1002,19 +1031,11 @@ static const unsigned PageMask = ((1u << PageBits) - 1);
 // These limits are agreed upon with other engines for consistency.
 
 static const unsigned MaxTypes = 1000000;
-#ifdef JS_64BIT
-static const unsigned MaxTypeIndex = 1000000;
-#else
-static const unsigned MaxTypeIndex = 15000;
-#endif
-static const unsigned MaxRttDepth = 127;
 static const unsigned MaxFuncs = 1000000;
 static const unsigned MaxTables = 100000;
 static const unsigned MaxImports = 100000;
 static const unsigned MaxExports = 100000;
 static const unsigned MaxGlobals = 1000000;
-static const unsigned MaxEvents =
-    1000000;  // TODO: get this into the shared limits spec
 static const unsigned MaxDataSegments = 100000;
 static const unsigned MaxDataSegmentLengthPages = 16384;
 static const unsigned MaxElemSegments = 10000000;
@@ -1025,10 +1046,26 @@ static const unsigned MaxLocals = 50000;
 static const unsigned MaxParams = 1000;
 static const unsigned MaxResults = 1000;
 static const unsigned MaxStructFields = 1000;
-static const unsigned MaxMemory32LimitField = 65536;
+static const uint64_t MaxMemory32LimitField = uint64_t(1) << 16;
+static const uint64_t MaxMemory64LimitField = uint64_t(1) << 48;
 static const unsigned MaxStringBytes = 100000;
 static const unsigned MaxModuleBytes = 1024 * 1024 * 1024;
 static const unsigned MaxFunctionBytes = 7654321;
+
+// These limits pertain to our WebAssembly implementation only, but may make
+// sense to get into the shared limits spec eventually.
+
+// See PackedTypeCode for exact bits available for these fields depending on
+// platform
+#ifdef JS_64BIT
+static const unsigned MaxTypeIndex = 1000000;
+static const unsigned MaxRttDepth = 1000;
+#else
+static const unsigned MaxTypeIndex = 15000;
+static const unsigned MaxRttDepth = 100;
+#endif
+
+static const unsigned MaxEvents = 1000000;
 
 // These limits pertain to our WebAssembly implementation only.
 
@@ -1045,6 +1082,10 @@ static const unsigned MaxRegisterResults = 1;
 // on the format restrict it further to the largest pseudo-ARM-immediate.
 // See IsValidAsmJSHeapLength().
 static const uint64_t MaxAsmJSHeapLength = 0x7f000000;
+
+// A magic value of rtt depth to signify that it was not specified.
+
+static const uint32_t RttDepthNone = MaxRttDepth + 1;
 
 // A magic value of the FramePointer to indicate after a return to the entry
 // stub that an exception has been caught and that we should throw.

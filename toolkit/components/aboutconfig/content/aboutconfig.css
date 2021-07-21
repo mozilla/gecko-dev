@@ -228,11 +228,11 @@ td.cell-value > form > input[type="number"] {
 }
 
 .button-add {
-  background-image: url("chrome://global/skin/icons/add.svg");
+  background-image: url("chrome://global/skin/icons/plus.svg");
 }
 
 .button-save {
-  background-image: url("chrome://global/skin/icons/success.svg");
+  background-image: url("chrome://global/skin/icons/check.svg");
 }
 
 .button-edit {

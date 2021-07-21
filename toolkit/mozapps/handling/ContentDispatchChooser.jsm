@@ -82,6 +82,7 @@ let ContentDispatchChooserTelemetry = {
     pcast: "PODCAST",
     podcast: "PODCAST",
     podcasts: "PODCAST",
+    "roblox-player": "ROBLOX",
     search: "SEARCH",
     "search-ms": "SEARCH",
     sip: "SIP",
@@ -541,7 +542,7 @@ class nsContentDispatchChooser {
           keepOpenSameOriginNav: true,
         },
         aDialogArgs
-      );
+      ).closedPromise;
     }
 
     // If we don't have a BrowsingContext, we need to show a standalone window.

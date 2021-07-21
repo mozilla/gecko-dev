@@ -82,6 +82,7 @@
 #include "mozilla/GlobalStyleSheetCache.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StaticPrefs_layout.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/StaticPrefs_zoom.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/StyleSheetInlines.h"
@@ -346,19 +347,57 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsPresContext)
   tmp->Destroy();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-// Set to true when LookAndFeelChanged needs to be called.  This is used
-// because the look and feel is a service, so there's no need to notify it from
-// more than one prescontext.
-static bool sLookAndFeelChanged;
-
 // Set to true when ThemeChanged needs to be called on mTheme.  This is used
 // because mTheme is a service, so there's no need to notify it from more than
 // one prescontext.
-static bool sThemeChanged;
+static bool sPendingThemeChange = false;
+static widget::ThemeChangeKind sPendingThemeChangeKind{0};
 
 bool nsPresContext::IsChrome() const {
   return Document()->IsInChromeDocShell();
 }
+
+static void HandleGlobalThemeChange() {
+  if (!sPendingThemeChange) {
+    MOZ_ASSERT(uint8_t(sPendingThemeChangeKind) == 0);
+    return;
+  }
+  sPendingThemeChange = false;
+  auto kind =
+      std::exchange(sPendingThemeChangeKind, widget::ThemeChangeKind(0));
+
+  // Tell the theme that it changed, so it can flush any handles to stale theme
+  // data.
+  //
+  // We can use the *DoNotUseDirectly functions directly here, because we want
+  // to notify all possible themes in a given process (but just once).
+  if (XRE_IsParentProcess() ||
+      !StaticPrefs::widget_non_native_theme_enabled()) {
+    if (nsCOMPtr<nsITheme> theme = do_GetNativeThemeDoNotUseDirectly()) {
+      theme->ThemeChanged();
+    }
+  }
+  if (nsCOMPtr<nsITheme> theme = do_GetBasicNativeThemeDoNotUseDirectly()) {
+    theme->ThemeChanged();
+  }
+
+  // Clear all cached LookAndFeel colors.
+  LookAndFeel::Refresh();
+
+  // Reset default background and foreground colors for the document since they
+  // may be using system colors.
+  PreferenceSheet::Refresh();
+
+  // Vector images (SVG) may be using theme colors so we discard all cached
+  // surfaces. (We could add a vector image only version of DiscardAll, but
+  // in bug 940625 we decided theme changes are rare enough not to bother.)
+  image::SurfaceCacheUtils::DiscardAll();
+
+  if (XRE_IsParentProcess()) {
+    ContentParent::BroadcastThemeUpdate(kind);
+  }
+}
+
 
 void nsPresContext::GetUserPreferences() {
   if (!GetPresShell()) {
@@ -577,6 +616,9 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
   // be the one to cause the reconstruction of the pref style sheet.
   GlobalStyleSheetCache::InvalidatePreferenceSheets();
   PreferenceSheet::Refresh();
+  // Same, this just frees a bunch of memory.
+  StaticPresData::Get()->InvalidateFontPrefs();
+  Document()->SetMayNeedFontPrefsUpdate();
   DispatchPrefChangedRunnableIfNeeded();
 
   if (prefName.EqualsLiteral("nglayout.debug.paint_flashing") ||
@@ -586,18 +628,34 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
   }
 }
 
+struct WeakRunnableMethod : Runnable {
+  using Method = void (nsPresContext::*)();
+
+  WeakRunnableMethod(const char* aName, nsPresContext* aPc, Method aMethod)
+      : Runnable(aName), mPresContext(aPc), mMethod(aMethod) {}
+
+  NS_IMETHOD Run() override {
+    if (nsPresContext* pc = mPresContext.get()) {
+      (pc->*mMethod)();
+    }
+    return NS_OK;
+  }
+
+ private:
+  WeakPtr<nsPresContext> mPresContext;
+  Method mMethod;
+};
+
 void nsPresContext::DispatchPrefChangedRunnableIfNeeded() {
   if (mPostedPrefChangedRunnable) {
     return;
   }
 
-  nsCOMPtr<nsIRunnable> runnable =
-      NewRunnableMethod("nsPresContext::UpdateAfterPreferencesChanged", this,
-                        &nsPresContext::UpdateAfterPreferencesChanged);
-  nsresult rv = Document()->Dispatch(TaskCategory::Other, runnable.forget());
-  if (NS_SUCCEEDED(rv)) {
-    mPostedPrefChangedRunnable = true;
-  }
+  nsCOMPtr<nsIRunnable> runnable = new WeakRunnableMethod(
+      "nsPresContext::UpdateAfterPreferencesChanged", this,
+      &nsPresContext::UpdateAfterPreferencesChanged);
+  RefreshDriver()->AddEarlyRunner(runnable);
+  mPostedPrefChangedRunnable = true;
 }
 
 void nsPresContext::UpdateAfterPreferencesChanged() {
@@ -611,8 +669,6 @@ void nsPresContext::UpdateAfterPreferencesChanged() {
     // suspect we should move this check somewhere else.
     return;
   }
-
-  StaticPresData::Get()->InvalidateFontPrefs();
 
   // Initialize our state from the user preferences
   GetUserPreferences();
@@ -740,6 +796,9 @@ void nsPresContext::AttachPresShell(mozilla::PresShell* aPresShell) {
   MOZ_ASSERT(doc);
   // Have to update PresContext's mDocument before calling any other methods.
   mDocument = doc;
+
+  HandleGlobalThemeChange();
+
   // Initialize our state from the user preferences, now that we
   // have a presshell, and hence a document.
   GetUserPreferences();
@@ -1355,52 +1414,29 @@ void nsPresContext::ThemeChanged(widget::ThemeChangeKind aKind) {
   PROFILER_MARKER_TEXT("ThemeChanged", LAYOUT, MarkerStack::Capture(), ""_ns);
 
   mPendingThemeChangeKind |= unsigned(aKind);
+  sPendingThemeChangeKind |= aKind;
 
   if (!mPendingThemeChanged) {
-    sLookAndFeelChanged = true;
-    sThemeChanged = true;
-
     nsCOMPtr<nsIRunnable> ev =
-        NewRunnableMethod("nsPresContext::ThemeChangedInternal", this,
-                          &nsPresContext::ThemeChangedInternal);
-    nsresult rv = Document()->Dispatch(TaskCategory::Other, ev.forget());
-    if (NS_SUCCEEDED(rv)) {
-      mPendingThemeChanged = true;
-    }
+        new WeakRunnableMethod("nsPresContext::ThemeChangedInternal", this,
+                               &nsPresContext::ThemeChangedInternal);
+    RefreshDriver()->AddEarlyRunner(ev);
+    mPendingThemeChanged = true;
   }
+
+  sPendingThemeChange = true;
+  sPendingThemeChangeKind |= aKind;
 }
 
 void nsPresContext::ThemeChangedInternal() {
+  MOZ_ASSERT(mPendingThemeChanged);
+
   mPendingThemeChanged = false;
 
   const auto kind = widget::ThemeChangeKind(mPendingThemeChangeKind);
   mPendingThemeChangeKind = 0;
 
-  // Tell the theme that it changed, so it can flush any handles to stale theme
-  // data.
-  if (mTheme && sThemeChanged) {
-    mTheme->ThemeChanged();
-    sThemeChanged = false;
-  }
-
-  if (sLookAndFeelChanged) {
-    // Clear all cached LookAndFeel colors.
-    LookAndFeel::Refresh();
-    sLookAndFeelChanged = false;
-
-    // Vector images (SVG) may be using theme colors so we discard all cached
-    // surfaces. (We could add a vector image only version of DiscardAll, but
-    // in bug 940625 we decided theme changes are rare enough not to bother.)
-    image::SurfaceCacheUtils::DiscardAll();
-
-    if (XRE_IsParentProcess()) {
-      ContentParent::BroadcastThemeUpdate(kind);
-    }
-  }
-
-  // Reset default background and foreground colors for the document since they
-  // may be using system colors.
-  PreferenceSheet::Refresh();
+  HandleGlobalThemeChange();
 
   // Changes to system metrics and other look and feel values can change media
   // queries on them.
@@ -1499,16 +1535,23 @@ void nsPresContext::ContentLanguageChanged() {
                                RestyleHint::RecascadeSubtree());
 }
 
-bool nsPresContext::RegisterManagedPostRefreshObserver(
-    mozilla::ManagedPostRefreshObserver* aObserver) {
+void nsPresContext::RegisterManagedPostRefreshObserver(
+    ManagedPostRefreshObserver* aObserver) {
+  if (MOZ_UNLIKELY(!mPresShell)) {
+    // If we're detached from our pres shell already, refuse to keep observer
+    // around, as that'd create a cycle.
+    RefPtr<ManagedPostRefreshObserver> obs = aObserver;
+    obs->Cancel();
+    return;
+  }
+
   RefreshDriver()->AddPostRefreshObserver(
       static_cast<nsAPostRefreshObserver*>(aObserver));
   mManagedPostRefreshObservers.AppendElement(aObserver);
-  return true;
 }
 
 void nsPresContext::UnregisterManagedPostRefreshObserver(
-    mozilla::ManagedPostRefreshObserver* aObserver) {
+    ManagedPostRefreshObserver* aObserver) {
   RefreshDriver()->RemovePostRefreshObserver(
       static_cast<nsAPostRefreshObserver*>(aObserver));
   DebugOnly<bool> removed =

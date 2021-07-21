@@ -227,6 +227,8 @@ nsresult nsSliderFrame::AttributeChanged(int32_t aNameSpaceID,
   return rv;
 }
 
+namespace mozilla {
+
 // Draw any tick marks that show the position of find in page results.
 class nsDisplaySliderMarks final : public nsPaintedDisplayItem {
  public:
@@ -354,6 +356,8 @@ void nsDisplaySliderMarks::Paint(nsDisplayListBuilder* aBuilder,
                                  gfxContext* aCtx) {
   PaintMarks(aBuilder, nullptr, aCtx);
 }
+
+}  // namespace mozilla
 
 void nsSliderFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                      const nsDisplayListSet& aLists) {
@@ -1140,15 +1144,16 @@ void nsSliderFrame::StartAPZDrag(WidgetGUIEvent* aEvent) {
   if (waitForRefresh) {
     waitForRefresh = false;
     if (nsPresContext* presContext = presShell->GetPresContext()) {
-      waitForRefresh = presContext->RegisterManagedPostRefreshObserver(
+      presContext->RegisterManagedPostRefreshObserver(
           new ManagedPostRefreshObserver(
-              presShell, [widget = RefPtr<nsIWidget>(widget),
-                          dragMetrics](bool aWasCanceled) {
+              presContext, [widget = RefPtr<nsIWidget>(widget),
+                            dragMetrics](bool aWasCanceled) {
                 if (!aWasCanceled) {
                   widget->StartAsyncScrollbarDrag(dragMetrics);
                 }
                 return ManagedPostRefreshObserver::Unregister::Yes;
               }));
+      waitForRefresh = true;
     }
   }
   if (!waitForRefresh) {

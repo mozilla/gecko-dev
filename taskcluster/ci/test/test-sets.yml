@@ -29,8 +29,14 @@ web-platform-tests-backlog:
 web-platform-tests-wdspec-headless:
     - web-platform-tests-wdspec-headless
 
+mochitest-devtools-chrome:
+    - mochitest-devtools-chrome
+
 mochitest-webgpu:
     - mochitest-webgpu
+
+xpcshell:
+    - xpcshell
 
 talos:
     - talos-bcv
@@ -103,9 +109,12 @@ browsertime:
     - browsertime-tp6-live-sheriffed
     - browsertime-benchmark
     - browsertime-benchmark-wasm
-    - browsertime-tp6-profiling
+    - browsertime-youtube-playback
     - browsertime-custom
     - browsertime-first-install
+
+browsertime-profiling:
+    - browsertime-tp6-profiling
 
 browsertime-high-priority:
     - browsertime-benchmark
@@ -247,33 +256,6 @@ linux-talos-flex:
 
 # Windows
 
-windows-qr-tests:
-    - crashtest
-    - marionette
-    - mochitest-chrome-gpu
-    - mochitest-browser-chrome
-    - mochitest-plain
-    - mochitest-plain-gpu
-    - mochitest-media
-    - mochitest-webgl1-core
-    - mochitest-webgl1-ext
-    - mochitest-webgl2-core
-    - reftest
-    - test-verify
-
-windows7-qr-tests:
-    - mochitest-browser-chrome
-    - reftest
-
-windows32-qr-tests:
-    - crashtest
-    - marionette
-    - mochitest-chrome-gpu
-    - mochitest-plain
-    - mochitest-plain-gpu
-    - mochitest-media
-    - test-verify
-
 windows-7-tests:
     - mochitest-browser-chrome
     - mochitest-webgpu
@@ -314,6 +296,7 @@ windows-tests:
     - mochitest-browser-chrome
     - mochitest-chrome
     - mochitest-chrome-gpu
+    - mochitest-devtools-chrome
     - mochitest-media
     - mochitest-plain
     - mochitest-plain-gpu
@@ -336,7 +319,6 @@ windows10-tests:
     - mochitest-webgl1-ext
     - mochitest-webgl2-core
     - mochitest-webgl2-ext
-    - mochitest-devtools-chrome
 
 mingwclang-tests-debug:
     - cppunit
@@ -570,10 +552,12 @@ android-hw-browsertime:
     - browsertime-tp6m
     - browsertime-tp6m-essential
     - browsertime-tp6m-live
-    - browsertime-tp6m-profiling
     - browsertime-speedometer-mobile
     - browsertime-youtube-playback-mobile
     - browsertime-unity-webgl-mobile
+
+android-hw-browsertime-profiling:
+    - browsertime-tp6m-profiling
 
 linux-tsan-tests:
     - crashtest

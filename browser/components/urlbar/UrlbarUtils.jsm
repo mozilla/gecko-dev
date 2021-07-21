@@ -55,15 +55,18 @@ var UrlbarUtils = {
     GENERAL: "general",
     FORM_HISTORY: "formHistory",
     HEURISTIC_AUTOFILL: "heuristicAutofill",
+    HEURISTIC_ENGINE_ALIAS: "heuristicEngineAlias",
     HEURISTIC_EXTENSION: "heuristicExtension",
     HEURISTIC_FALLBACK: "heuristicFallback",
+    HEURISTIC_BOOKMARK_KEYWORD: "heuristicBookmarkKeyword",
     HEURISTIC_OMNIBOX: "heuristicOmnibox",
+    HEURISTIC_PRELOADED: "heuristicPreloaded",
     HEURISTIC_SEARCH_TIP: "heuristicSearchTip",
     HEURISTIC_TEST: "heuristicTest",
     HEURISTIC_TOKEN_ALIAS_ENGINE: "heuristicTokenAliasEngine",
-    HEURISTIC_UNIFIED_COMPLETE: "heuristicUnifiedComplete",
     INPUT_HISTORY: "inputHistory",
     OMNIBOX: "extension",
+    PRELOADED: "preloaded",
     REMOTE_SUGGESTION: "remoteSuggestion",
     REMOTE_TAB: "remoteTab",
     SUGGESTED_INDEX: "suggestedIndex",
@@ -179,12 +182,11 @@ var UrlbarUtils = {
     SUGGESTED: 2,
   },
 
-  // UnifiedComplete's autocomplete results store their titles and tags together
-  // in their comments.  This separator is used to separate them.  When we
-  // rewrite UnifiedComplete for quantumbar, we should stop using this old hack
-  // and store titles and tags separately.  It's important that this be a
-  // character that no title would ever have.  We use \x1F, the non-printable
-  // unit separator.
+  // UrlbarProviderPlaces's autocomplete results store their titles and tags
+  // together in their comments.  This separator is used to separate them.
+  // After bug 1717511, we should stop using this old hack and store titles and
+  // tags separately.  It's important that this be a character that no title
+  // would ever have.  We use \x1F, the non-printable unit separator.
   TITLE_TAGS_SEPARATOR: "\x1F",
 
   // Regex matching single word hosts with an optional port; no spaces, auth or
@@ -215,6 +217,7 @@ var UrlbarUtils = {
     "about:",
     "http:",
     "https:",
+    "ftp:",
   ],
 
   // Search mode objects corresponding to the local shortcuts in the view, in
@@ -496,16 +499,20 @@ var UrlbarUtils = {
     }
     if (result.heuristic) {
       switch (result.providerName) {
+        case "AliasEngines":
+          return UrlbarUtils.RESULT_GROUP.HEURISTIC_ENGINE_ALIAS;
         case "Autofill":
           return UrlbarUtils.RESULT_GROUP.HEURISTIC_AUTOFILL;
+        case "BookmarkKeywords":
+          return UrlbarUtils.RESULT_GROUP.HEURISTIC_BOOKMARK_KEYWORD;
         case "HeuristicFallback":
           return UrlbarUtils.RESULT_GROUP.HEURISTIC_FALLBACK;
         case "Omnibox":
           return UrlbarUtils.RESULT_GROUP.HEURISTIC_OMNIBOX;
+        case "PreloadedSites":
+          return UrlbarUtils.RESULT_GROUP.HEURISTIC_PRELOADED;
         case "TokenAliasEngines":
           return UrlbarUtils.RESULT_GROUP.HEURISTIC_TOKEN_ALIAS_ENGINE;
-        case "UnifiedComplete":
-          return UrlbarUtils.RESULT_GROUP.HEURISTIC_UNIFIED_COMPLETE;
         case "UrlbarProviderSearchTips":
           return UrlbarUtils.RESULT_GROUP.HEURISTIC_SEARCH_TIP;
         default:
@@ -525,10 +532,12 @@ var UrlbarUtils = {
     }
 
     switch (result.providerName) {
-      case "InputHistory":
-        return UrlbarUtils.RESULT_GROUP.INPUT_HISTORY;
       case "AboutPages":
         return UrlbarUtils.RESULT_GROUP.ABOUT_PAGES;
+      case "InputHistory":
+        return UrlbarUtils.RESULT_GROUP.INPUT_HISTORY;
+      case "PreloadedSites":
+        return UrlbarUtils.RESULT_GROUP.PRELOADED;
       default:
         break;
     }
@@ -752,6 +761,8 @@ var UrlbarUtils = {
    *        Whether to trim a trailing `?`.
    * @param {boolean} options.trimEmptyHash
    *        Whether to trim a trailing `#`.
+   * @param {boolean} options.trimTrailingDot
+   *        Whether to trim a trailing '.'.
    * @returns {array} [modified, prefix, suffix]
    *          modified: {string} The modified spec.
    *          prefix: {string} The parts stripped from the prefix, if any.
@@ -782,6 +793,10 @@ var UrlbarUtils = {
     if (options.trimSlash && spec.endsWith("/")) {
       spec = spec.slice(0, -1);
       suffix = "/" + suffix;
+    }
+    if (options.trimTrailingDot && spec.endsWith(".")) {
+      spec = spec.slice(0, -1);
+      suffix = "." + suffix;
     }
     return [spec, prefix, suffix];
   },
@@ -949,7 +964,7 @@ var UrlbarUtils = {
         "usercontextid"
       ),
       allowSearchSuggestions: false,
-      providers: ["UnifiedComplete", "HeuristicFallback"],
+      providers: ["AliasEngines", "BookmarkKeywords", "HeuristicFallback"],
     };
     if (window.gURLBar.searchMode) {
       let searchMode = window.gURLBar.searchMode;

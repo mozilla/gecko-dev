@@ -779,16 +779,16 @@ function handleRequest(req, res) {
   // for use with test_http3.js
   else if (u.pathname === "/http3-test") {
     res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Alt-Svc", "h3-27=" + req.headers["x-altsvc"]);
+    res.setHeader("Alt-Svc", "h3-29=" + req.headers["x-altsvc"]);
   }
   // for use with test_http3.js
   else if (u.pathname === "/http3-test2") {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader(
       "Alt-Svc",
-      "h2=foo2.example.com:8000,h3-27=" +
+      "h2=foo2.example.com:8000,h3-29=" +
         req.headers["x-altsvc"] +
-        ",h3-29=foo2.example.com:8443"
+        ",h3-30=foo2.example.com:8443"
     );
   }
   // for use with test_trr.js
@@ -1251,6 +1251,17 @@ function handleRequest(req, res) {
     res.write(rContent);
     res.end("");
     return;
+  } else if (u.pathname === "/websocket") {
+    res.setHeader("Upgrade", "websocket");
+    res.setHeader("Connection", "Upgrade");
+    var wshash = crypto.createHash("sha1");
+    wshash.update(req.headers["sec-websocket-key"]);
+    wshash.update("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
+    let key = wshash.digest("base64");
+    res.setHeader("Sec-WebSocket-Accept", key);
+    res.writeHead(101);
+    res.end("something....");
+    return;
   }
   // for use with test_dns_by_type_resolve.js
   else if (u.pathname === "/txt-dns-push") {
@@ -1656,6 +1667,14 @@ function handleRequest(req, res) {
         "metric3; dur=789.11; desc=description2, metric4; dur=1112.13; desc=description3",
     });
     res.end();
+    return;
+  } else if (u.pathname === "/redirect_to_http") {
+    res.setHeader(
+      "Location",
+      `http://test.httpsrr.redirect.com:${u.query.port}/redirect_to_http`
+    );
+    res.writeHead(307);
+    res.end("");
     return;
   }
 

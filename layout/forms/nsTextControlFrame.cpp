@@ -32,8 +32,10 @@
 #include "nsILayoutHistoryState.h"
 
 #include "nsFocusManager.h"
+#include "mozilla/EventStateManager.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/PresState.h"
+#include "mozilla/TextEditor.h"
 #include "nsAttrValueInlines.h"
 #include "mozilla/dom/Selection.h"
 #include "nsContentUtils.h"
@@ -147,6 +149,30 @@ void nsTextControlFrame::DestroyFrom(nsIFrame* aDestructRoot,
   if (mMutationObserver) {
     mRootNode->RemoveMutationObserver(mMutationObserver);
     mMutationObserver = nullptr;
+  }
+
+  // If there is a drag session, user may be dragging selection in removing
+  // text node in the text control.  If so, we should set source node to the
+  // text control because another text node may be recreated soon if the text
+  // control is just reframed.
+  if (nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession()) {
+    if (dragSession->IsDraggingTextInTextControl() && mRootNode &&
+        mRootNode->GetFirstChild()) {
+      nsCOMPtr<nsINode> sourceNode;
+      if (NS_SUCCEEDED(
+              dragSession->GetSourceNode(getter_AddRefs(sourceNode))) &&
+          mRootNode->Contains(sourceNode)) {
+        MOZ_ASSERT(sourceNode->IsText());
+        dragSession->UpdateSource(textControlElement, nullptr);
+      }
+    }
+  }
+  // Otherwise, EventStateManager may track gesture to start drag with native
+  // anonymous nodes in the text control element.
+  else if (textControlElement->GetPresContext(Element::eForComposedDoc)) {
+    textControlElement->GetPresContext(Element::eForComposedDoc)
+        ->EventStateManager()
+        ->TextControlRootWillBeRemoved(*textControlElement);
   }
 
   // If we're a subclass like nsNumberControlFrame, then it owns the root of the
@@ -444,6 +470,20 @@ bool nsTextControlFrame::ShouldInitializeEagerly() const {
   if (auto* htmlElement = nsGenericHTMLElement::FromNode(mContent)) {
     if (htmlElement->Spellcheck()) {
       return true;
+    }
+  }
+
+  // If text in the editor is being dragged, we need the editor to create
+  // new source node for the drag session (TextEditor creates the text node
+  // in the anonymous <div> element.
+  if (nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession()) {
+    if (dragSession->IsDraggingTextInTextControl()) {
+      nsCOMPtr<nsINode> sourceNode;
+      if (NS_SUCCEEDED(
+              dragSession->GetSourceNode(getter_AddRefs(sourceNode))) &&
+          sourceNode == textControlElement) {
+        return true;
+      }
     }
   }
 
@@ -1290,6 +1330,47 @@ nsTextControlFrame::EditorInitializer::Run() {
   // bug 682684.
   if (!mFrame) {
     return NS_ERROR_FAILURE;
+  }
+
+  // If there is a drag session which is for dragging text in a text control
+  // and its source node is the text control element, we're being reframed.
+  // In this case we should restore the source node of the drag session to
+  // new text node because it's required for dispatching `dragend` event.
+  if (nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession()) {
+    if (dragSession->IsDraggingTextInTextControl()) {
+      nsCOMPtr<nsINode> sourceNode;
+      if (NS_SUCCEEDED(
+              dragSession->GetSourceNode(getter_AddRefs(sourceNode))) &&
+          mFrame->GetContent() == sourceNode) {
+        if (TextControlElement* textControlElement =
+                TextControlElement::FromNode(mFrame->GetContent())) {
+          if (TextEditor* textEditor =
+                  textControlElement->GetTextEditorWithoutCreation()) {
+            if (Element* anonymousDivElement = textEditor->GetRoot()) {
+              if (anonymousDivElement && anonymousDivElement->GetFirstChild()) {
+                MOZ_ASSERT(anonymousDivElement->GetFirstChild()->IsText());
+                dragSession->UpdateSource(anonymousDivElement->GetFirstChild(),
+                                          textEditor->GetSelection());
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // Otherwise, EventStateManager may be tracking gesture to start a drag.
+  else if (TextControlElement* textControlElement =
+               TextControlElement::FromNode(mFrame->GetContent())) {
+    if (nsPresContext* presContext =
+            textControlElement->GetPresContext(Element::eForComposedDoc)) {
+      if (TextEditor* textEditor =
+              textControlElement->GetTextEditorWithoutCreation()) {
+        if (Element* anonymousDivElement = textEditor->GetRoot()) {
+          presContext->EventStateManager()->TextControlRootAdded(
+              *anonymousDivElement, *textControlElement);
+        }
+      }
+    }
   }
 
   mFrame->FinishedInitializer();

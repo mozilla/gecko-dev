@@ -22,7 +22,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 
   AppInfo: "chrome://remote/content/marionette/appinfo.js",
   assert: "chrome://remote/content/marionette/assert.js",
-  error: "chrome://remote/content/marionette/error.js",
+  error: "chrome://remote/content/shared/webdriver/Errors.jsm",
   pprint: "chrome://remote/content/marionette/format.js",
   RemoteAgent: "chrome://remote/content/components/RemoteAgent.jsm",
 });
@@ -433,6 +433,7 @@ class Capabilities extends Map {
       ["timeouts", new Timeouts()],
       ["strictFileInteractability", false],
       ["unhandledPromptBehavior", UnhandledPromptBehavior.DismissAndNotify],
+      ["webSocketUrl", null],
 
       // proprietary
       ["moz:accessibilityChecks", false],
@@ -440,7 +441,9 @@ class Capabilities extends Map {
       [
         "moz:debuggerAddress",
         // With bug 1715481 fixed always use the Remote Agent instance
-        RemoteAgent.cdp ? remoteAgent.debuggerAddress : null,
+        RemoteAgent.listening && RemoteAgent.cdp
+          ? remoteAgent.debuggerAddress
+          : null,
       ],
       [
         "moz:headless",
@@ -570,9 +573,14 @@ class Capabilities extends Map {
           break;
 
         case "webSocketUrl":
-          throw new error.InvalidArgumentError(
-            "webSocketURL is not supported yet"
-          );
+          assert.boolean(v, pprint`Expected ${k} to be boolean, got ${v}`);
+
+          if (!v) {
+            throw new error.InvalidArgumentError(
+              pprint`Expected ${k} to be true, got ${v}`
+            );
+          }
+          break;
 
         case "moz:accessibilityChecks":
           assert.boolean(v, pprint`Expected ${k} to be boolean, got ${v}`);

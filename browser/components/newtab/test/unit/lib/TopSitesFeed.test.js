@@ -30,6 +30,7 @@ const SHOWN_ON_NEWTAB_PREF = "feeds.topsites";
 const SHOW_SPONSORED_PREF = "showSponsoredTopSites";
 const CONTILE_ENABLED_PREF = "browser.topsites.contile.enabled";
 const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
+const REMOTE_SETTING_DEFAULTS_PREF = "browser.topsites.useRemoteSetting";
 
 function FakeTippyTopProvider() {}
 FakeTippyTopProvider.prototype = {
@@ -2142,6 +2143,114 @@ describe("Top Sites Feed", () => {
 
       assert.ok(!fetched);
       assert.ok(!feed._contile.sites.length);
+    });
+  });
+
+  describe("#_readDefaults", () => {
+    beforeEach(() => {
+      // Turn on sponsored TopSites for testing
+      feed.store.state.Prefs.values[SHOW_SPONSORED_PREF] = true;
+      fetchStub = sandbox.stub();
+      globals.set("fetch", fetchStub);
+      fetchStub.resolves({ ok: true, status: 204 });
+      sandbox
+        .stub(global.Services.prefs, "getBoolPref")
+        .withArgs(REMOTE_SETTING_DEFAULTS_PREF)
+        .returns(true);
+
+      sandbox
+        .stub(global.Services.prefs, "getStringPref")
+        .withArgs(TOP_SITES_BLOCKED_SPONSORS_PREF)
+        .returns(`["foo","bar"]`);
+      sandbox.stub(global.Services.prefs, "prefIsLocked").returns(false);
+    });
+    afterEach(() => {
+      sandbox.restore();
+    });
+
+    it("should filter all blocked sponsored tiles from RemoteSettings when Contile is disabled", async () => {
+      sandbox.stub(feed, "_getRemoteConfig").resolves([
+        { url: "https://foo.com", title: "foo", sponsored_position: 1 },
+        { url: "https://bar.com", title: "bar", sponsored_position: 2 },
+        { url: "https://test.com", title: "test", sponsored_position: 3 },
+      ]);
+      global.Services.prefs.getStringPref
+        .withArgs(CONTILE_ENABLED_PREF)
+        .returns(false);
+
+      await feed._readDefaults();
+
+      assert.equal(DEFAULT_TOP_SITES.length, 1);
+      assert.equal(DEFAULT_TOP_SITES[0].label, "test");
+    });
+
+    it("should also filter all blocked sponsored tiles from RemoteSettings when Contile is enabled", async () => {
+      sandbox.stub(feed, "_getRemoteConfig").resolves([
+        { url: "https://foo.com", title: "foo", sponsored_position: 1 },
+        { url: "https://bar.com", title: "bar", sponsored_position: 2 },
+        { url: "https://test.com", title: "test", sponsored_position: 3 },
+      ]);
+      global.Services.prefs.getBoolPref
+        .withArgs(CONTILE_ENABLED_PREF)
+        .returns(true);
+
+      await feed._readDefaults();
+
+      assert.equal(DEFAULT_TOP_SITES.length, 1);
+      assert.equal(DEFAULT_TOP_SITES[0].label, "test");
+    });
+
+    it("should not filter non-sponsored tiles from RemoteSettings", async () => {
+      sandbox.stub(feed, "_getRemoteConfig").resolves([
+        { url: "https://foo.com", title: "foo", sponsored_position: 1 },
+        { url: "https://bar.com", title: "bar", sponsored_position: 2 },
+        { url: "https://foo.com", title: "foo" },
+      ]);
+
+      await feed._readDefaults();
+
+      assert.equal(DEFAULT_TOP_SITES.length, 1);
+      assert.equal(DEFAULT_TOP_SITES[0].label, "foo");
+    });
+
+    it("should take the image from Contile if it's a hi-res one", async () => {
+      global.Services.prefs.getBoolPref
+        .withArgs(CONTILE_ENABLED_PREF)
+        .returns(true);
+      sandbox.stub(feed, "_getRemoteConfig").resolves([]);
+
+      sandbox.stub(feed._contile, "sites").get(() => [
+        {
+          url: "https://test.com",
+          image_url: "https://images.test.com/test-com.png",
+          image_size: 192,
+          click_url: "https://www.test-click.com",
+          impression_url: "https://www.test-impression.com",
+          name: "test",
+        },
+        {
+          url: "https://test1.com",
+          image_url: "https://images.test1.com/test1-com.png",
+          image_size: 32,
+          click_url: "https://www.test1-click.com",
+          impression_url: "https://www.test1-impression.com",
+          name: "test1",
+        },
+      ]);
+
+      await feed._readDefaults();
+
+      const [site1, site2] = DEFAULT_TOP_SITES;
+      assert.propertyVal(
+        site1,
+        "favicon",
+        "https://images.test.com/test-com.png"
+      );
+      assert.propertyVal(site1, "faviconSize", 192);
+
+      // Should not be taken as it's not hi-res
+      assert.isUndefined(site2.favicon);
+      assert.isUndefined(site2.faviconSize);
     });
   });
 });

@@ -16,7 +16,17 @@ add_task(async function() {
   // This preference helps destroying the content process when we close the tab
   await pushPref("dom.ipc.keepProcessesAlive.web", 1);
 
-  info("Test with bfcache in parent DISABLED");
+  info("### Test with client side target switching");
+  await pushPref("devtools.target-switching.server.enabled", false);
+  await bfcacheTest();
+
+  info("### Test with server side target switching");
+  await pushPref("devtools.target-switching.server.enabled", true);
+  await bfcacheTest();
+});
+
+async function bfcacheTest() {
+  info("## Test with bfcache in parent DISABLED");
   await pushPref("fission.bfcacheInParent", false);
   await testTopLevelNavigations(false);
   await testIframeNavigations(false);
@@ -25,15 +35,15 @@ add_task(async function() {
   // so only test it if both settings are enabled.
   // (it looks like sessionHistoryInParent is enabled by default when fission is enabled)
   if (Services.appinfo.sessionHistoryInParent) {
-    info("Test with bfcache in parent ENABLED");
+    info("## Test with bfcache in parent ENABLED");
     await pushPref("fission.bfcacheInParent", true);
     await testTopLevelNavigations(true);
     await testIframeNavigations(true);
   }
-});
+}
 
 async function testTopLevelNavigations(bfcacheInParent) {
-  info(" ### Test TOP LEVEL navigations");
+  info(" # Test TOP LEVEL navigations");
   // Create a TargetCommand for a given test tab
   const tab = await addTab(TEST_COM_URL);
   const commands = await CommandsFactory.forTab(tab);
@@ -53,13 +63,43 @@ async function testTopLevelNavigations(bfcacheInParent) {
     ok(targetFront.isTopLevel, "all targets of this test are top level");
     targets.push(targetFront);
   };
-  await targetCommand.watchTargets([TYPES.FRAME], onAvailable);
+  const destroyedTargets = [];
+  const onDestroyed = async ({ targetFront }) => {
+    is(
+      targetFront.targetType,
+      TYPES.FRAME,
+      "We are only notified about frame targets"
+    );
+    ok(targetFront.isTopLevel, "all targets of this test are top level");
+    destroyedTargets.push(targetFront);
+  };
+
+  await targetCommand.watchTargets([TYPES.FRAME], onAvailable, onDestroyed);
   is(targets.length, 1, "retrieved only the top level target");
   is(targets[0], targetCommand.targetFront, "the target is the top level one");
+  is(
+    destroyedTargets.length,
+    0,
+    "We get no destruction when calling watchTargets"
+  );
+  if (!isServerTargetSwitchingEnabled()) {
+    ok(
+      !targets[0].targetForm.followWindowGlobalLifeCycle,
+      "the first client side target still follows docshell lifecycle, when server target switching isn't enabled"
+    );
+  } else {
+    ok(
+      targets[0].targetForm.followWindowGlobalLifeCycle,
+      "the first server side target follows the WindowGlobal lifecycle, when server target switching is enabled"
+    );
+  }
 
   // Navigate to the same page with query params
   info("Load the second page");
-  let onNavigate = bfcacheInParent ? null : targets[0].once("navigate");
+  let onDomComplete = bfcacheInParent
+    ? null
+    : (await waitForNextTopLevelDomCompleteResource(commands))
+        .onDomCompleteResource;
   const secondPageUrl = TEST_COM_URL + "?second-load";
   const previousBrowsingContextID = gBrowser.selectedBrowser.browsingContext.id;
   ok(
@@ -89,7 +129,7 @@ async function testTopLevelNavigations(bfcacheInParent) {
     );
   }
 
-  if (bfcacheInParent) {
+  if (bfcacheInParent || isServerTargetSwitchingEnabled()) {
     // When server side target switching is enabled, same-origin navigations also spawn a new top level target
     await waitFor(
       () => targets.length == 2,
@@ -109,19 +149,35 @@ async function testTopLevelNavigations(bfcacheInParent) {
       gBrowser.selectedBrowser.outerWindowID,
       "the second target is for the second page"
     );
+    if (!isServerTargetSwitchingEnabled()) {
+      ok(
+        !targets[1].targetForm.followWindowGlobalLifeCycle,
+        "the new client side target still follows docshell lifecycle"
+      );
+    } else {
+      ok(
+        targets[1].targetForm.followWindowGlobalLifeCycle,
+        "the new server side target follows the WindowGlobal lifecycle"
+      );
+    }
     ok(targets[0].isDestroyed(), "the first target is destroyed");
+    is(destroyedTargets.length, 1, "We get one target being destroyed...");
+    is(destroyedTargets[0], targets[0], "...and that's the first one");
   } else {
-    info("Wait for 'navigate'");
-    await onNavigate;
+    info("Wait for 'dom-complete' resource");
+    await onDomComplete;
   }
 
   // Go back to the first page, this should be a bfcache navigation, and,
   // we should get a new target
   info("Go back to the first page");
-  onNavigate = bfcacheInParent ? null : targets[0].once("navigate");
+  onDomComplete = bfcacheInParent
+    ? null
+    : (await waitForNextTopLevelDomCompleteResource(commands))
+        .onDomCompleteResource;
   gBrowser.selectedBrowser.goBack();
 
-  if (bfcacheInParent) {
+  if (bfcacheInParent || isServerTargetSwitchingEnabled()) {
     await waitFor(
       () => targets.length == 3,
       "wait for the next top level target"
@@ -133,22 +189,35 @@ async function testTopLevelNavigations(bfcacheInParent) {
     );
     // Here as this is revived from cache, the url should always be correct
     is(targets[2].url, TEST_COM_URL, "the third target is for the first url");
+    ok(
+      targets[2].targetForm.followWindowGlobalLifeCycle,
+      "the third target for bfcache navigations is following the WindowGlobal lifecycle"
+    );
     ok(targets[1].isDestroyed(), "the second target is destroyed");
+    is(
+      destroyedTargets.length,
+      2,
+      "We get one additional target being destroyed..."
+    );
+    is(destroyedTargets[1], targets[1], "...and that's the second one");
 
     // Attach and wait for full attach in order to having breaking any pending requests
     // when navigating to another page and switching to new process and target.
     await targets[2].attachAndInitThread(targetCommand);
     await waitForAllTargetsToBeAttached(targetCommand);
   } else {
-    info("Wait for 'navigate'");
-    await onNavigate;
+    info("Wait for 'dom-complete' resource");
+    await onDomComplete;
   }
 
   // Go forward and resurect the second page, this should also be a bfcache navigation, and,
   // get a new target.
   info("Go forward to the second page");
 
-  onNavigate = bfcacheInParent ? null : targets[0].once("navigate");
+  onDomComplete = bfcacheInParent
+    ? null
+    : (await waitForNextTopLevelDomCompleteResource(commands))
+        .onDomCompleteResource;
 
   // When a new target will be created, we need to wait until it's fully processed
   // to avoid pending promises.
@@ -171,7 +240,7 @@ async function testTopLevelNavigations(bfcacheInParent) {
 
   gBrowser.selectedBrowser.goForward();
 
-  if (bfcacheInParent) {
+  if (bfcacheInParent || isServerTargetSwitchingEnabled()) {
     await waitFor(
       () => targets.length == 4,
       "wait for the next top level target"
@@ -183,7 +252,17 @@ async function testTopLevelNavigations(bfcacheInParent) {
     );
     // Same here, as the document is revived from the cache, the url should always be correct
     is(targets[3].url, secondPageUrl, "the 4th target is for the second url");
+    ok(
+      targets[3].targetForm.followWindowGlobalLifeCycle,
+      "the 4th target for bfcache navigations is following the WindowGlobal lifecycle"
+    );
     ok(targets[2].isDestroyed(), "the third target is destroyed");
+    is(
+      destroyedTargets.length,
+      3,
+      "We get one additional target being destroyed..."
+    );
+    is(destroyedTargets[2], targets[2], "...and that's the third one");
 
     // Attach and wait for full attach in order to having breaking any pending requests
     // when navigating to another page and switching to new process and target.
@@ -191,8 +270,8 @@ async function testTopLevelNavigations(bfcacheInParent) {
     await waitForAllTargetsToBeAttached(targetCommand);
     await onNewTargetProcessed;
   } else {
-    info("Wait for 'navigate'");
-    await onNavigate;
+    info("Wait for 'dom-complete' resource");
+    await onDomComplete;
   }
 
   await waitForAllTargetsToBeAttached(targetCommand);
@@ -205,7 +284,7 @@ async function testTopLevelNavigations(bfcacheInParent) {
 }
 
 async function testIframeNavigations() {
-  info(" ### Test IFRAME navigations");
+  info(" # Test IFRAME navigations");
   // Create a TargetCommand for a given test tab
   const tab = await addTab(
     `http://example.org/document-builder.sjs?html=<iframe src="${TEST_COM_URL}"></iframe>`

@@ -151,13 +151,8 @@ JS_FOR_EACH_PUBLIC_GC_POINTER_TYPE(DECLARE_IS_HEAP_CONSTRUCTIBLE_TYPE)
 JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(DECLARE_IS_HEAP_CONSTRUCTIBLE_TYPE)
 #undef DECLARE_IS_HEAP_CONSTRUCTIBLE_TYPE
 
-template <typename T, typename Wrapper>
-class PersistentRootedBase : public MutableWrappedPtrOperations<T, Wrapper> {};
-
 namespace gc {
 struct Cell;
-template <typename T>
-struct PersistentRootedMarker;
 } /* namespace gc */
 
 // Important: Return a reference so passing a Rooted<T>, etc. to
@@ -940,6 +935,13 @@ template <>
 struct MapTypeToRootKind<detail::RootListEntry*> {
   static const RootKind kind = RootKind::Traceable;
 };
+
+// Workaround MSVC issue where GCPolicy is needed even though this dummy type is
+// never instantiated. Ideally, RootListEntry is removed in the future and an
+// appropriate class hierarchy for the Rooted<T> types.
+template <>
+struct GCPolicy<detail::RootListEntry*>
+    : public IgnoreGCPolicy<detail::RootListEntry*> {};
 
 using RootedListHeads =
     mozilla::EnumeratedArray<RootKind, RootKind::Limit,

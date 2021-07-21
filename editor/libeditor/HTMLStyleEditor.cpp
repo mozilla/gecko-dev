@@ -216,7 +216,7 @@ nsresult HTMLEditor::SetInlinePropertyInternal(
   }
 
   // XXX Shouldn't we return before calling `CommitComposition()`?
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     return NS_OK;
   }
 
@@ -1536,7 +1536,7 @@ nsresult HTMLEditor::GetInlinePropertyBase(nsAtom& aHTMLProperty,
     nsAutoString firstValue, theValue;
 
     nsCOMPtr<nsINode> endNode = range->GetEndContainer();
-    int32_t endOffset = range->EndOffset();
+    uint32_t endOffset = range->EndOffset();
 
     PostContentIterator postOrderIter;
     DebugOnly<nsresult> rvIgnored = postOrderIter.Init(range);
@@ -1652,20 +1652,6 @@ nsresult HTMLEditor::GetInlinePropertyBase(nsAtom& aHTMLProperty,
     *aAll = false;
   }
   return NS_OK;
-}
-
-NS_IMETHODIMP HTMLEditor::GetInlineProperty(const nsAString& aHTMLProperty,
-                                            const nsAString& aAttribute,
-                                            const nsAString& aValue,
-                                            bool* aFirst, bool* aAny,
-                                            bool* aAll) {
-  RefPtr<nsAtom> property = NS_Atomize(aHTMLProperty);
-  nsStaticAtom* attribute = EditorUtils::GetAttributeAtom(aAttribute);
-  nsresult rv = GetInlineProperty(property, MOZ_KnownLive(attribute), aValue,
-                                  aFirst, aAny, aAll);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "HTMLEditor::GetInlineProperty() failed");
-  return rv;
 }
 
 nsresult HTMLEditor::GetInlineProperty(nsAtom* aHTMLProperty,
@@ -1898,7 +1884,7 @@ nsresult HTMLEditor::RemoveInlinePropertyInternal(
   }
 
   // XXX Shouldn't we quit before calling `CommitComposition()`?
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     return NS_OK;
   }
 
@@ -2379,8 +2365,8 @@ nsresult HTMLEditor::RelativeFontChange(FontSize aDir) {
 
 nsresult HTMLEditor::RelativeFontChangeOnTextNode(FontSize aDir,
                                                   Text& aTextNode,
-                                                  int32_t aStartOffset,
-                                                  int32_t aEndOffset) {
+                                                  uint32_t aStartOffset,
+                                                  uint32_t aEndOffset) {
   // Don't need to do anything if no characters actually selected
   if (aStartOffset == aEndOffset) {
     return NS_OK;
@@ -2392,10 +2378,7 @@ nsresult HTMLEditor::RelativeFontChangeOnTextNode(FontSize aDir,
     return NS_OK;
   }
 
-  // -1 is a magic value meaning to the end of node
-  if (aEndOffset == -1) {
-    aEndOffset = aTextNode.Length();
-  }
+  aEndOffset = std::min(aTextNode.Length(), aEndOffset);
 
   // Make the range an independent node.
   nsCOMPtr<nsIContent> textNodeForTheRange = &aTextNode;

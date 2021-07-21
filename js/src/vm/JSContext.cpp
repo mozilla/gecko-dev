@@ -28,6 +28,7 @@
 #  include <processthreadsapi.h>
 #endif  // XP_WIN
 
+#include "jsapi.h"  // JS_SetNativeStackQuota
 #include "jsexn.h"
 #include "jspubtd.h"
 #include "jstypes.h"
@@ -39,11 +40,13 @@
 #include "jit/Ion.h"
 #include "jit/PcScriptCache.h"
 #include "jit/Simulator.h"
+#include "js/CallAndConstruct.h"  // JS::Call
 #include "js/CharacterEncoding.h"
 #include "js/ContextOptions.h"        // JS::ContextOptions
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/StackLimits.h"    // js::ReportOverRecursed
 #include "js/Printf.h"
+#include "js/PropertyAndElement.h"  // JS_GetProperty
 #include "util/DiagnosticAssertions.h"
 #include "util/DifferentialTesting.h"
 #include "util/DoubleToString.h"
@@ -154,6 +157,21 @@ bool JSContext::init(ContextKind kind) {
   return true;
 }
 
+static void InitDefaultStackQuota(JSContext* cx) {
+  // Initialize stack quota to a reasonable default. Embedders can override this
+  // by calling JS_SetNativeStackQuota.
+  //
+  // NOTE: Firefox overrides these values. For the main thread this happens in
+  // XPCJSContext::Initialize.
+
+#if defined(MOZ_ASAN) || (defined(DEBUG) && !defined(XP_WIN))
+  static constexpr size_t MaxStackSize = 2 * 128 * sizeof(size_t) * 1024;
+#else
+  static constexpr size_t MaxStackSize = 128 * sizeof(size_t) * 1024;
+#endif
+  JS_SetNativeStackQuota(cx, MaxStackSize);
+}
+
 JSContext* js::NewContext(uint32_t maxBytes, JSRuntime* parentRuntime) {
   AutoNoteSingleThreadedRegion anstr;
 
@@ -188,11 +206,20 @@ JSContext* js::NewContext(uint32_t maxBytes, JSRuntime* parentRuntime) {
     return nullptr;
   }
 
+  // Initialize stack quota last because simulators rely on the JSRuntime having
+  // been initialized.
+  if (cx->isMainThreadContext()) {
+    InitDefaultStackQuota(cx);
+  }
+
   return cx;
 }
 
 void js::DestroyContext(JSContext* cx) {
   JS_AbortIfWrongThread(cx);
+
+  MOZ_ASSERT(!cx->realm(), "Shouldn't destroy context with active realm");
+  MOZ_ASSERT(!cx->activation(), "Shouldn't destroy context with activations");
 
   cx->checkNoGCRooters();
 

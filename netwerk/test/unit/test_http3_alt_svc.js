@@ -52,10 +52,21 @@ function run_test() {
   run_next_test();
 }
 
+function createPrincipal(url) {
+  var ssm = Services.scriptSecurityManager;
+  try {
+    return ssm.createContentPrincipal(Services.io.newURI(url), {});
+  } catch (e) {
+    return null;
+  }
+}
+
 function makeChan(uri) {
   let chan = NetUtil.newChannel({
     uri,
-    loadUsingSystemPrincipal: true,
+    loadingPrincipal: createPrincipal(uri),
+    securityFlags: Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT,
+    contentPolicyType: Ci.nsIContentPolicy.TYPE_DOCUMENT,
   }).QueryInterface(Ci.nsIHttpChannel);
   chan.loadFlags = Ci.nsIChannel.LOAD_INITIAL_DOCUMENT_URI;
   return chan;
@@ -89,7 +100,7 @@ WaitForHttp3Listener.prototype = {
       try {
         httpVersion = request.protocolVersion;
       } catch (e) {}
-      Assert.equal(httpVersion, "h3-27");
+      Assert.equal(httpVersion, "h3-29");
       run_next_test();
     } else {
       dump("poll later for alt svc mapping\n");
@@ -114,7 +125,7 @@ function doTest(uri, expectedRoute, altSvc) {
 }
 
 // Test Alt-Svc for http3.
-// H2 server returns alt-svc=h2=foo2.example.com:8000,h3-27=:h3port,h3-29=foo2.example.com:8443
+// H2 server returns alt-svc=h2=foo2.example.com:8000,h3-29=:h3port,h3-30=foo2.example.com:8443
 function test_https_alt_svc() {
   dump("test_https_alt_svc()\n");
   do_test_pending();

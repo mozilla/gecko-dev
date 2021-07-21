@@ -117,15 +117,6 @@ async function checkDialog(
       );
     }
 
-    // Work around https://bugzilla.mozilla.org/show_bug.cgi?id=1699844 by
-    // waiting before closing this prompt:
-    await (async function() {
-      let rAFCount = 3;
-      while (rAFCount--) {
-        await new Promise(requestAnimationFrame);
-      }
-    })();
-
     // Close the prompt again.
     await PromptTestUtils.handlePrompt(dialog);
     // The alert in the content process was sync, we need to make sure it gets
@@ -150,6 +141,11 @@ add_task(async function test_check_prompt_origin_display() {
   await checkAlert("data:text/html,<body>", {
     l10nId: "common-dialog-title-null",
   });
+
+  let homeDir = Services.dirsvc.get("Home", Ci.nsIFile);
+  let fileURI = Services.io.newFileURI(homeDir).spec;
+  await checkAlert(fileURI, { value: "file://" });
+
   await checkAlert(
     "about:config",
     { l10nId: "common-dialog-title-system" },

@@ -23,78 +23,9 @@ const sentenceFragments = [
 const longSentence =
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas ut purus a libero cursus scelerisque. In hac habitasse platea dictumst. Quisque posuere ante sed consequat volutpat.";
 
-// Reduce the end-of-typing threshold to improve test speed
-const TYPING_INTERACTION_TIMEOUT = 50;
-// A delay that's long enough to trigger the end of typing timeout
-const POST_TYPING_DELAY = TYPING_INTERACTION_TIMEOUT + 50;
-const defaultTypingTimeout = Interactions._getTypingTimeout();
-
-function reduceTypingTimeoutForTests(timeout) {
-  Interactions._setTypingTimeout(timeout);
-}
-
-function resetTypingTimeout() {
-  Interactions._setTypingTimeout(defaultTypingTimeout);
-}
-
-add_task(async function setup() {
-  sinon.spy(Interactions, "_updateDatabase");
-  Interactions.reset();
-  disableIdleService();
-
-  reduceTypingTimeoutForTests(TYPING_INTERACTION_TIMEOUT);
-
-  registerCleanupFunction(() => {
-    sinon.restore();
-    resetTypingTimeout();
-  });
-});
-
-async function assertDatabaseValues(expected) {
-  await BrowserTestUtils.waitForCondition(
-    () => Interactions._updateDatabase.callCount == expected.length,
-    `Should have saved to the database Interactions._updateDatabase.callCount: ${Interactions._updateDatabase.callCount},
-     expected.length: ${expected.length}`
-  );
-
-  let args = Interactions._updateDatabase.args;
-  for (let i = 0; i < expected.length; i++) {
-    let actual = args[i][0];
-    Assert.equal(
-      actual.url,
-      expected[i].url,
-      "Should have saved the interaction into the database"
-    );
-
-    if (expected[i].keypresses) {
-      Assert.equal(
-        actual.keypresses,
-        expected[i].keypresses,
-        "Should have saved the keypresses into the database"
-      );
-    }
-
-    if (expected[i].exactTypingTime) {
-      Assert.equal(
-        actual.typingTime,
-        expected[i].exactTypingTime,
-        "Should have stored the exact typing time."
-      );
-    } else if (expected[i].typingTimeIsGreaterThan) {
-      Assert.greater(
-        actual.typingTime,
-        expected[i].typingTimeIsGreaterThan,
-        "Should have stored at least this amount of typing time."
-      );
-    } else if (expected[i].typingTimeIsLessThan) {
-      Assert.less(
-        actual.typingTime,
-        expected[i].typingTimeIsLessThan,
-        "Should have stored less than this amount of typing time."
-      );
-    }
-  }
-}
+// A delay that's long enough to trigger the end of typing timeout.
+// Note that the typing timeout has been reduced for the tests.
+const POST_TYPING_DELAY = 100;
 
 async function sendTextToInput(browser, text) {
   await SpecialPowers.spawn(browser, [], function() {
@@ -104,10 +35,11 @@ async function sendTextToInput(browser, text) {
     input.focus();
   });
   await EventUtils.sendString(text);
+  await TestUtils.waitForTick();
 }
 
 add_task(async function test_load_and_navigate_away_no_keypresses() {
-  sinon.reset();
+  await Interactions.reset();
   await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
     BrowserTestUtils.loadURI(browser, TEST_URL2);
     await BrowserTestUtils.browserLoaded(browser, false, TEST_URL2);
@@ -139,7 +71,7 @@ add_task(async function test_load_and_navigate_away_no_keypresses() {
 });
 
 add_task(async function test_load_type_and_navigate_away() {
-  sinon.reset();
+  await Interactions.reset();
 
   await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
     await sendTextToInput(browser, sentence);
@@ -174,7 +106,7 @@ add_task(async function test_load_type_and_navigate_away() {
 });
 
 add_task(async function test_no_typing_close_tab() {
-  sinon.reset();
+  await Interactions.reset();
   await BrowserTestUtils.withNewTab(TEST_URL, async browser => {});
 
   await assertDatabaseValues([
@@ -187,7 +119,7 @@ add_task(async function test_no_typing_close_tab() {
 });
 
 add_task(async function test_typing_close_tab() {
-  sinon.reset();
+  await Interactions.reset();
 
   await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
     await sendTextToInput(browser, sentence);
@@ -203,7 +135,7 @@ add_task(async function test_typing_close_tab() {
 });
 
 add_task(async function test_single_key_typing_and_delay() {
-  sinon.reset();
+  await Interactions.reset();
   await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
     // Single keystrokes with a delay between each, are not considered typing
     const text = ["T", "h", "e"];
@@ -228,8 +160,9 @@ add_task(async function test_single_key_typing_and_delay() {
 });
 
 add_task(async function test_double_key_typing_and_delay() {
-  sinon.reset();
+  await Interactions.reset();
 
+  // Test three 2-key typing bursts.
   const text = ["Ab", "cd", "ef"];
 
   const testStartTime = Cu.now();
@@ -244,6 +177,7 @@ add_task(async function test_double_key_typing_and_delay() {
     }
   });
 
+  // All keys should be recorded
   await assertDatabaseValues([
     {
       url: TEST_URL,
@@ -251,14 +185,13 @@ add_task(async function test_double_key_typing_and_delay() {
         (accumulator, current) => accumulator + current.length,
         0
       ),
-      typingTimeIsGreaterThan: 0,
       typingTimeIsLessThan: Cu.now() - testStartTime,
     },
   ]);
 });
 
 add_task(async function test_typing_and_delay() {
-  sinon.reset();
+  await Interactions.reset();
 
   const testStartTime = Cu.now();
 
@@ -286,7 +219,7 @@ add_task(async function test_typing_and_delay() {
 });
 
 add_task(async function test_typing_and_reload() {
-  sinon.reset();
+  await Interactions.reset();
 
   const testStartTime = Cu.now();
 
@@ -331,7 +264,7 @@ add_task(async function test_typing_and_reload() {
 });
 
 add_task(async function test_switch_tabs_no_typing() {
-  sinon.reset();
+  await Interactions.reset();
 
   let tab1 = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
@@ -358,7 +291,7 @@ add_task(async function test_switch_tabs_no_typing() {
 });
 
 add_task(async function test_typing_switch_tabs() {
-  sinon.reset();
+  await Interactions.reset();
 
   let tab1 = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
@@ -382,7 +315,7 @@ add_task(async function test_typing_switch_tabs() {
     },
   ]);
 
-  const tab1TyingTime = Interactions._updateDatabase.args[0][0].typingTime;
+  const tab1TyingTime = await getDatabaseValue(TEST_URL, "typingTime");
 
   info("Switch back to first tab");
   await BrowserTestUtils.switchTab(gBrowser, tab1);
@@ -397,12 +330,25 @@ add_task(async function test_typing_switch_tabs() {
     {
       url: TEST_URL3,
       keypresses: 0,
-      typingTimeIsGreaterThan: 0,
+      exactTypingTime: 0,
     },
   ]);
 
   info("Switch back to the second tab");
   await BrowserTestUtils.switchTab(gBrowser, tab2);
+
+  await assertDatabaseValues([
+    {
+      url: TEST_URL,
+      keypresses: sentence.length,
+      exactTypingTime: tab1TyingTime,
+    },
+    {
+      url: TEST_URL3,
+      keypresses: 0,
+      exactTypingTime: 0,
+    },
+  ]);
 
   // Typing into the second tab
   await SpecialPowers.spawn(tab2.linkedBrowser, [], function() {
@@ -410,6 +356,7 @@ add_task(async function test_typing_switch_tabs() {
     input.focus();
   });
   await EventUtils.sendString(longSentence);
+  await TestUtils.waitForTick();
 
   info("Switch back to first tab");
   await BrowserTestUtils.switchTab(gBrowser, tab1);
@@ -420,16 +367,6 @@ add_task(async function test_typing_switch_tabs() {
       url: TEST_URL,
       keypresses: sentence.length,
       exactTypingTime: tab1TyingTime,
-    },
-    {
-      url: TEST_URL3,
-      keypresses: 0,
-      typingTimeIsGreaterThan: 0,
-    },
-    {
-      url: TEST_URL,
-      keypresses: 0,
-      typingTimeIsGreaterThan: 0,
     },
     {
       url: TEST_URL3,

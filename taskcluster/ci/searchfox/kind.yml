@@ -56,9 +56,9 @@ jobs:
                 - linux64-node
                 - linux64-rust
                 - linux64-cbindgen
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - linux64-lucetc
-                - linux64-sysroot
+                - sysroot-x86_64-linux-gnu
                 - wasi-sysroot
 
     macosx64-searchfox/debug:
@@ -97,9 +97,10 @@ jobs:
                 - linux64-node
                 - linux64-rust-macos
                 - linux64-cbindgen
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - linux64-lucetc
                 - macosx64-sdk-10.12
+                - sysroot-x86_64-linux-gnu
                 - wasi-sysroot
 
     win64-searchfox/debug:
@@ -144,10 +145,11 @@ jobs:
                 - linux64-node
                 - linux64-cbindgen
                 - linux64-sccache
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - linux64-wine
                 - linux64-liblowercase
                 - linux64-winchecksec
+                - sysroot-x86_64-linux-gnu
             fetch:
                 - nsis-3.01-win
                 - upx-3.95-win
@@ -187,7 +189,8 @@ jobs:
                 - linux64-rust-android
                 - linux64-rust-size
                 - linux64-cbindgen
-                - linux64-dump-syms
+                - linux64-dump_syms
                 - linux64-sccache
                 - linux64-nasm
                 - linux64-node
+                - sysroot-x86_64-linux-gnu

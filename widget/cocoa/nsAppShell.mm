@@ -33,6 +33,7 @@
 #include "mozilla/Hal.h"
 #include "mozilla/widget/ScreenManager.h"
 #include "HeadlessScreenHelper.h"
+#include "MOZMenuOpeningCoordinator.h"
 #include "pratom.h"
 #if !defined(RELEASE_OR_BETA) || defined(DEBUG)
 #  include "nsSandboxViolationSink.h"
@@ -283,7 +284,6 @@ void nsAppShell::OnRunLoopActivityChanged(CFRunLoopActivity aActivity) {
     mozilla::BackgroundHangMonitor().NotifyWait();
   }
 
-#ifdef MOZ_GECKO_PROFILER
   // When the event loop is in its waiting state, we would like the profiler to know that the thread
   // is idle. The usual way to notify the profiler of idleness would be to place a profiler label
   // frame with the IDLE category on the stack, for the duration of the function that does the
@@ -311,7 +311,6 @@ void nsAppShell::OnRunLoopActivityChanged(CFRunLoopActivity aActivity) {
       mProfilingStackOwnerWhileWaiting = nullptr;
     }
   }
-#endif
 }
 
 // Init
@@ -602,6 +601,14 @@ bool nsAppShell::ProcessNextNativeEvent(bool aMayWait) {
   NSString* currentMode = nil;
 
   if (mTerminated) return false;
+
+  // Do not call -[NSApplication nextEventMatchingMask:...] when we're trying to close a native
+  // menu. Doing so could confuse the NSMenu's closing mechanism. Instead, we try to unwind the
+  // stack as quickly as possible and return to the parent event loop. At that point, native events
+  // will be processed.
+  if (MOZMenuOpeningCoordinator.needToUnwindForMenuClosing) {
+    return false;
+  }
 
   bool wasRunningEventLoop = mRunningEventLoop;
   mRunningEventLoop = aMayWait;

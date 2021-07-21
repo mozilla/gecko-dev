@@ -40,15 +40,16 @@
 
 #ifdef JS_HAS_INTL_API
 #  include "builtin/intl/CommonFunctions.h"
+#  include "builtin/intl/SharedIntlData.h"
 #endif
-#include "builtin/ModuleObject.h"
 #include "builtin/Promise.h"
 #include "builtin/SelfHostingDefines.h"
+#include "builtin/TestingUtility.h"  // js::ParseCompileOptions
 #ifdef DEBUG
 #  include "frontend/TokenStream.h"
 #endif
-#include "frontend/BytecodeCompilation.h"
-#include "frontend/CompilationStencil.h"  // frontend::CompilationStencil
+#include "frontend/BytecodeCompilation.h"  // frontend::CanLazilyParse
+#include "frontend/CompilationStencil.h"   // frontend::CompilationStencil
 #include "gc/Allocator.h"
 #include "gc/Zone.h"
 #include "jit/BaselineJIT.h"
@@ -61,13 +62,16 @@
 #include "jit/TrialInlining.h"
 #include "js/Array.h"        // JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{DetachArrayBuffer,GetArrayBufferLengthAndData,NewArrayBufferWithContents}
+#include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable, JS::IsConstructor, JS_CallFunction
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
 #include "js/Date.h"
 #include "js/Debug.h"
-#include "js/experimental/CodeCoverage.h"  // js::GetCodeCoverageSummary
-#include "js/experimental/TypedData.h"     // JS_GetObjectAsUint8Array
+#include "js/experimental/CodeCoverage.h"      // js::GetCodeCoverageSummary
+#include "js/experimental/JSStencil.h"         // JS::Stencil
+#include "js/experimental/PCCountProfiling.h"  // JS::{Start,Stop}PCCountProfiling, JS::PurgePCCounts, JS::GetPCCountScript{Count,Summary,Contents}
+#include "js/experimental/TypedData.h"         // JS_GetObjectAsUint8Array
 #include "js/friend/DumpFunctions.h"  // js::Dump{Backtrace,Heap,Object}, JS::FormatStackDump, js::IgnoreNurseryObjects
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/WindowProxy.h"    // js::ToWindowProxyIfWindow
@@ -75,6 +79,7 @@
 #include "js/LocaleSensitive.h"
 #include "js/OffThreadScriptCompilation.h"  // js::UseOffThreadParseGlobal
 #include "js/Printf.h"
+#include "js/PropertyAndElement.h"  // JS_DefineProperties, JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetElement, JS_SetProperty
 #include "js/PropertySpec.h"
 #include "js/RegExpFlags.h"  // JS::RegExpFlag, JS::RegExpFlags
 #include "js/SourceText.h"
@@ -113,12 +118,14 @@
 #include "vm/SavedStacks.h"
 #include "vm/ScopeKind.h"
 #include "vm/Stack.h"
+#include "vm/StencilObject.h"  // StencilObject, StencilXDRBufferObject
 #include "vm/StringType.h"
 #include "vm/TraceLogging.h"
 #include "wasm/AsmJS.h"
 #include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmCraneliftCompile.h"
 #include "wasm/WasmInstance.h"
+#include "wasm/WasmIntrinsic.h"
 #include "wasm/WasmIonCompile.h"
 #include "wasm/WasmJS.h"
 #include "wasm/WasmModule.h"
@@ -1938,6 +1945,23 @@ static bool WasmHasTier2CompilationCompleted(JSContext* cx, unsigned argc,
 
 static bool WasmLoadedFromCache(JSContext* cx, unsigned argc, Value* vp) {
   return WasmReturnFlag(cx, argc, vp, Flag::Deserialized);
+}
+
+static bool WasmIntrinsicI8VecMul(JSContext* cx, unsigned argc, Value* vp) {
+  if (!wasm::HasSupport(cx)) {
+    JS_ReportErrorASCII(cx, "wasm support unavailable");
+    return false;
+  }
+
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  RootedWasmModuleObject module(cx);
+  if (!wasm::CompileIntrinsicModule(cx, wasm::IntrinsicOp::I8VecMul, &module)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  args.rval().set(ObjectValue(*module.get()));
+  return true;
 }
 
 static bool LargeArrayBufferEnabled(JSContext* cx, unsigned argc, Value* vp) {
@@ -4621,21 +4645,25 @@ class ShapeSnapshot {
   GCVector<HeapPtr<Value>, 8> slots_;
 
   struct PropertySnapshot {
-    HeapPtr<Shape*> propShape;
+    HeapPtr<PropMap*> propMap;
+    uint32_t propMapIndex;
     HeapPtr<PropertyKey> key;
     PropertyInfo prop;
 
-    explicit PropertySnapshot(Shape* shape)
-        : propShape(shape),
-          key(propShape->propertyInfoWithKey().key()),
-          prop(propShape->propertyInfo()) {}
+    explicit PropertySnapshot(PropMap* map, uint32_t index)
+        : propMap(map),
+          propMapIndex(index),
+          key(map->getKey(index)),
+          prop(map->getPropertyInfo(index)) {}
+
     void trace(JSTracer* trc) {
-      TraceEdge(trc, &propShape, "propShape");
+      TraceEdge(trc, &propMap, "propMap");
       TraceEdge(trc, &key, "key");
     }
+
     bool operator==(const PropertySnapshot& other) const {
-      return propShape == other.propShape && key == other.key &&
-             prop == other.prop;
+      return propMap == other.propMap && propMapIndex == other.propMapIndex &&
+             key == other.key && prop == other.prop;
     }
     bool operator!=(const PropertySnapshot& other) const {
       return !operator==(other);
@@ -4726,12 +4754,23 @@ bool ShapeSnapshot::init(JSObject* obj) {
     }
 
     // Snapshot property information.
-    Shape* propShape = shape_;
-    while (!propShape->isEmptyShape()) {
-      if (!properties_.append(PropertySnapshot(propShape))) {
-        return false;
+    if (uint32_t len = nobj->shape()->propMapLength(); len > 0) {
+      PropMap* map = nobj->shape()->propMap();
+      while (true) {
+        for (uint32_t i = 0; i < len; i++) {
+          if (!map->hasKey(i)) {
+            continue;
+          }
+          if (!properties_.append(PropertySnapshot(map, i))) {
+            return false;
+          }
+        }
+        if (!map->hasPrevious()) {
+          break;
+        }
+        map = map->asLinked()->previous();
+        len = PropMap::Capacity;
       }
-      propShape = propShape->previous();
     }
   }
 
@@ -4750,26 +4789,28 @@ void ShapeSnapshot::checkSelf(JSContext* cx) const {
   // Assertions based on a single snapshot.
 
   // Non-dictionary shapes must not be mutated.
-  if (!shape_->inDictionary()) {
+  if (!shape_->isDictionary()) {
     MOZ_RELEASE_ASSERT(shape_->base() == baseShape_);
     MOZ_RELEASE_ASSERT(shape_->objectFlags() == objectFlags_);
   }
 
   for (const PropertySnapshot& propSnapshot : properties_) {
-    Shape* propShape = propSnapshot.propShape;
+    PropMap* propMap = propSnapshot.propMap;
+    uint32_t propMapIndex = propSnapshot.propMapIndex;
     PropertyInfo prop = propSnapshot.prop;
 
-    // Skip if the Shape no longer matches the snapshotted data. This can
+    // Skip if the map no longer matches the snapshotted data. This can
     // only happen for non-configurable dictionary properties.
-    if (PropertySnapshot(propShape) != propSnapshot) {
-      MOZ_RELEASE_ASSERT(propShape->inDictionary());
+    if (PropertySnapshot(propMap, propMapIndex) != propSnapshot) {
+      MOZ_RELEASE_ASSERT(propMap->isDictionary());
       MOZ_RELEASE_ASSERT(prop.configurable());
       continue;
     }
 
     // Ensure ObjectFlags depending on property information are set if needed.
     ObjectFlags expectedFlags = GetObjectFlagsForNewProperty(
-        shape_, propSnapshot.key, prop.flags(), cx);
+        shape_->getObjectClass(), shape_->objectFlags(), propSnapshot.key,
+        prop.flags(), cx);
     MOZ_RELEASE_ASSERT(expectedFlags == objectFlags_);
 
     // Accessors must have a PrivateGCThingValue(GetterSetter*) slot value.
@@ -5041,6 +5082,19 @@ static bool SharedAddress(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 #endif
+
+static bool HasInvalidatedTeleporting(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (args.length() != 1 || !args[0].isObject()) {
+    RootedObject callee(cx, &args.callee());
+    ReportUsageErrorASCII(cx, callee, "Expected single object argument");
+    return false;
+  }
+
+  args.rval().setBoolean(args[0].toObject().hasInvalidatedTeleporting());
+  return true;
+}
 
 static bool DumpBacktrace(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -5872,10 +5926,10 @@ static bool GetStringRepresentation(JSContext* cx, unsigned argc, Value* vp) {
 
 #endif
 
-static bool CompileStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
+static bool CompileToStencil(JSContext* cx, uint32_t argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  if (!args.requireAtLeast(cx, "compileStencilXDR", 1)) {
+  if (!args.requireAtLeast(cx, "compileToStencil", 1)) {
     return false;
   }
 
@@ -5883,10 +5937,6 @@ static bool CompileStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   if (!src) {
     return false;
   }
-
-  /* TODO: Retrieve these from an optional `config` object. */
-  const char* filename = "compileStencilXDR-DATA.js";
-  uint32_t lineno = 1;
 
   /* Linearize the string to obtain a char16_t* range. */
   AutoStableStringChars linearChars(cx);
@@ -5899,13 +5949,141 @@ static bool CompileStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
     return false;
   }
 
-  /* Compile the script text to stencil. */
   CompileOptions options(cx);
-  options.setFileAndLine(filename, lineno);
+  UniqueChars fileNameBytes;
+  if (args.length() == 2) {
+    if (!args[1].isObject()) {
+      JS_ReportErrorASCII(
+          cx, "compileToStencil: The 2nd argument must be an object");
+      return false;
+    }
 
-  /* TODO: StencilXDR - Add option to select between full and syntax parse. */
-  options.setForceFullParse();
+    RootedObject opts(cx, &args[1].toObject());
 
+    if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
+      return false;
+    }
+  }
+
+  RefPtr<JS::Stencil> stencil =
+      JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
+  if (!stencil) {
+    return false;
+  }
+
+  Rooted<js::StencilObject*> stencilObj(
+      cx, js::StencilObject::create(cx, std::move(stencil)));
+  if (!stencilObj) {
+    return false;
+  }
+
+  args.rval().setObject(*stencilObj);
+  return true;
+}
+
+static bool EvalStencil(JSContext* cx, uint32_t argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "evalStencil", 1)) {
+    return false;
+  }
+
+  /* Prepare the input byte array. */
+  if (!args[0].isObject() || !args[0].toObject().is<js::StencilObject>()) {
+    JS_ReportErrorASCII(cx, "evalStencil: Stencil object expected");
+    return false;
+  }
+  Rooted<js::StencilObject*> stencilObj(
+      cx, &args[0].toObject().as<js::StencilObject>());
+
+  CompileOptions options(cx);
+  UniqueChars fileNameBytes;
+  if (args.length() == 2) {
+    if (!args[1].isObject()) {
+      JS_ReportErrorASCII(cx,
+                          "evalStencil: The 2nd argument must be an object");
+      return false;
+    }
+
+    RootedObject opts(cx, &args[1].toObject());
+
+    if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
+      return false;
+    }
+  }
+
+  if (stencilObj->stencil()->canLazilyParse !=
+      frontend::CanLazilyParse(options)) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_STENCIL_OPTIONS_MISMATCH);
+    return false;
+  }
+
+  /* Prepare the CompilationStencil for decoding. */
+  Rooted<frontend::CompilationInput> input(cx,
+                                           frontend::CompilationInput(options));
+  if (!input.get().initForGlobal(cx)) {
+    return false;
+  }
+
+  /* Instantiate the stencil. */
+  Rooted<frontend::CompilationGCOutput> output(cx);
+  if (!frontend::CompilationStencil::instantiateStencils(
+          cx, input.get(), *stencilObj->stencil(), output.get())) {
+    return false;
+  }
+
+  /* Obtain the JSScript and evaluate it. */
+  RootedScript script(cx, output.get().script);
+  RootedValue retVal(cx);
+  if (!JS_ExecuteScript(cx, script, &retVal)) {
+    return false;
+  }
+
+  args.rval().set(retVal);
+  return true;
+}
+
+static bool CompileToStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (!args.requireAtLeast(cx, "compileToStencilXDR", 1)) {
+    return false;
+  }
+
+  RootedString src(cx, ToString<CanGC>(cx, args[0]));
+  if (!src) {
+    return false;
+  }
+
+  /* Linearize the string to obtain a char16_t* range. */
+  AutoStableStringChars linearChars(cx);
+  if (!linearChars.initTwoByte(cx, src)) {
+    return false;
+  }
+  JS::SourceText<char16_t> srcBuf;
+  if (!srcBuf.init(cx, linearChars.twoByteChars(), src->length(),
+                   JS::SourceOwnership::Borrowed)) {
+    return false;
+  }
+
+  CompileOptions options(cx);
+  UniqueChars fileNameBytes;
+  if (args.length() == 2) {
+    if (!args[1].isObject()) {
+      JS_ReportErrorASCII(
+          cx, "compileToStencilXDR: The 2nd argument must be an object");
+      return false;
+    }
+
+    RootedObject opts(cx, &args[1].toObject());
+
+    if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
+      return false;
+    }
+  }
+
+  /* Compile the script text to stencil. */
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
   auto stencil = frontend::CompileGlobalScriptToExtensibleStencil(
@@ -5923,20 +6101,14 @@ static bool CompileStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
     }
   }
 
-  /* Dump the bytes into a javascript ArrayBuffer and return a UInt8Array. */
-  RootedObject arrayBuf(cx, JS::NewArrayBuffer(cx, xdrBytes.length()));
-  if (!arrayBuf) {
+  Rooted<StencilXDRBufferObject*> xdrObj(
+      cx,
+      StencilXDRBufferObject::create(cx, xdrBytes.begin(), xdrBytes.length()));
+  if (!xdrObj) {
     return false;
   }
 
-  {
-    JS::AutoAssertNoGC nogc;
-    bool isSharedMemory = false;
-    uint8_t* data = JS::GetArrayBufferData(arrayBuf, &isSharedMemory, nogc);
-    std::copy(xdrBytes.begin(), xdrBytes.end(), data);
-  }
-
-  args.rval().setObject(*arrayBuf);
+  args.rval().setObject(*xdrObj);
   return true;
 }
 
@@ -5948,20 +6120,31 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   }
 
   /* Prepare the input byte array. */
-  if (!args[0].isObject() || !args[0].toObject().is<ArrayBufferObject>()) {
-    JS_ReportErrorASCII(cx, "evalStencilXDR: ArrayBuffer expected");
+  if (!args[0].isObject() || !args[0].toObject().is<StencilXDRBufferObject>()) {
+    JS_ReportErrorASCII(cx, "evalStencilXDR: stencil XDR object expected");
     return false;
   }
-  RootedArrayBufferObject src(cx, &args[0].toObject().as<ArrayBufferObject>());
+  Rooted<StencilXDRBufferObject*> xdrObj(
+      cx, &args[0].toObject().as<StencilXDRBufferObject>());
+  MOZ_ASSERT(xdrObj->hasBuffer());
 
-  const char* filename = "compileStencilXDR-DATA.js";
-  uint32_t lineno = 1;
+  CompileOptions options(cx);
+  UniqueChars fileNameBytes;
+  if (args.length() == 2) {
+    if (!args[1].isObject()) {
+      JS_ReportErrorASCII(cx,
+                          "evalStencilXDR: The 2nd argument must be an object");
+      return false;
+    }
+
+    RootedObject opts(cx, &args[1].toObject());
+
+    if (!js::ParseCompileOptions(cx, options, opts, &fileNameBytes)) {
+      return false;
+    }
+  }
 
   /* Prepare the CompilationStencil for decoding. */
-  CompileOptions options(cx);
-  options.setFileAndLine(filename, lineno);
-  options.setForceFullParse();
-
   Rooted<frontend::CompilationInput> input(cx,
                                            frontend::CompilationInput(options));
   if (!input.get().initForGlobal(cx)) {
@@ -5970,7 +6153,7 @@ static bool EvalStencilXDR(JSContext* cx, uint32_t argc, Value* vp) {
   frontend::CompilationStencil stencil(nullptr);
 
   /* Deserialize the stencil from XDR. */
-  JS::TranscodeRange xdrRange(src->dataPointer(), src->byteLength());
+  JS::TranscodeRange xdrRange(xdrObj->buffer(), xdrObj->bufferLength());
   bool succeeded = false;
   if (!stencil.deserializeStencils(cx, input.get(), xdrRange, &succeeded)) {
     return false;
@@ -6344,100 +6527,6 @@ static bool SetRNGState(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 #endif
-
-static ModuleEnvironmentObject* GetModuleEnvironment(
-    JSContext* cx, HandleModuleObject module) {
-  // Use the initial environment so that tests can check bindings exists
-  // before they have been instantiated.
-  RootedModuleEnvironmentObject env(cx, &module->initialEnvironment());
-  MOZ_ASSERT(env);
-  return env;
-}
-
-static bool GetModuleEnvironmentNames(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  if (args.length() != 1) {
-    JS_ReportErrorASCII(cx, "Wrong number of arguments");
-    return false;
-  }
-
-  if (!args[0].isObject() || !args[0].toObject().is<ModuleObject>()) {
-    JS_ReportErrorASCII(cx, "First argument should be a ModuleObject");
-    return false;
-  }
-
-  RootedModuleObject module(cx, &args[0].toObject().as<ModuleObject>());
-  if (module->hadEvaluationError()) {
-    JS_ReportErrorASCII(cx, "Module environment unavailable");
-    return false;
-  }
-
-  RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, module));
-  Rooted<IdVector> ids(cx, IdVector(cx));
-  if (!JS_Enumerate(cx, env, &ids)) {
-    return false;
-  }
-
-  // The "*namespace*" binding is a detail of current implementation so hide
-  // it to give stable results in tests.
-  ids.eraseIfEqual(NameToId(cx->names().starNamespaceStar));
-
-  uint32_t length = ids.length();
-  RootedArrayObject array(cx, NewDenseFullyAllocatedArray(cx, length));
-  if (!array) {
-    return false;
-  }
-
-  array->setDenseInitializedLength(length);
-  for (uint32_t i = 0; i < length; i++) {
-    array->initDenseElement(i, StringValue(JSID_TO_STRING(ids[i])));
-  }
-
-  args.rval().setObject(*array);
-  return true;
-}
-
-static bool GetModuleEnvironmentValue(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  if (args.length() != 2) {
-    JS_ReportErrorASCII(cx, "Wrong number of arguments");
-    return false;
-  }
-
-  if (!args[0].isObject() || !args[0].toObject().is<ModuleObject>()) {
-    JS_ReportErrorASCII(cx, "First argument should be a ModuleObject");
-    return false;
-  }
-
-  if (!args[1].isString()) {
-    JS_ReportErrorASCII(cx, "Second argument should be a string");
-    return false;
-  }
-
-  RootedModuleObject module(cx, &args[0].toObject().as<ModuleObject>());
-  if (module->hadEvaluationError()) {
-    JS_ReportErrorASCII(cx, "Module environment unavailable");
-    return false;
-  }
-
-  RootedModuleEnvironmentObject env(cx, GetModuleEnvironment(cx, module));
-  RootedString name(cx, args[1].toString());
-  RootedId id(cx);
-  if (!JS_StringToId(cx, name, &id)) {
-    return false;
-  }
-
-  if (!GetProperty(cx, env, env, id, args.rval())) {
-    return false;
-  }
-
-  if (args.rval().isMagic(JS_UNINITIALIZED_LEXICAL)) {
-    ReportRuntimeLexicalError(cx, JSMSG_UNINITIALIZED_LEXICAL, id);
-    return false;
-  }
-
-  return true;
-}
 
 static bool GetTimeZone(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -7177,6 +7266,64 @@ static bool GetICUOptions(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
+static bool GetAvailableLocalesOf(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  RootedObject callee(cx, &args.callee());
+
+  if (!args.requireAtLeast(cx, "getAvailableLocalesOf", 1)) {
+    return false;
+  }
+
+  HandleValue arg = args[0];
+  if (!arg.isString()) {
+    ReportUsageErrorASCII(cx, callee, "First argument must be a string");
+    return false;
+  }
+
+  ArrayObject* result;
+#ifdef JS_HAS_INTL_API
+  using SupportedLocaleKind = js::intl::SharedIntlData::SupportedLocaleKind;
+
+  SupportedLocaleKind kind;
+  {
+    JSLinearString* typeStr = arg.toString()->ensureLinear(cx);
+    if (!typeStr) {
+      return false;
+    }
+
+    if (StringEqualsLiteral(typeStr, "Collator")) {
+      kind = SupportedLocaleKind::Collator;
+    } else if (StringEqualsLiteral(typeStr, "DateTimeFormat")) {
+      kind = SupportedLocaleKind::DateTimeFormat;
+    } else if (StringEqualsLiteral(typeStr, "DisplayNames")) {
+      kind = SupportedLocaleKind::DisplayNames;
+    } else if (StringEqualsLiteral(typeStr, "ListFormat")) {
+      kind = SupportedLocaleKind::ListFormat;
+    } else if (StringEqualsLiteral(typeStr, "NumberFormat")) {
+      kind = SupportedLocaleKind::NumberFormat;
+    } else if (StringEqualsLiteral(typeStr, "PluralRules")) {
+      kind = SupportedLocaleKind::PluralRules;
+    } else if (StringEqualsLiteral(typeStr, "RelativeTimeFormat")) {
+      kind = SupportedLocaleKind::RelativeTimeFormat;
+    } else {
+      ReportUsageErrorASCII(cx, callee, "Unsupported Intl constructor name");
+      return false;
+    }
+  }
+
+  intl::SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
+  result = sharedIntlData.availableLocalesOf(cx, kind);
+#else
+  result = NewDenseEmptyArray(cx);
+#endif
+  if (!result) {
+    return false;
+  }
+
+  args.rval().setObject(*result);
+  return true;
+}
+
 static bool IsSmallFunction(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   RootedObject callee(cx, &args.callee());
@@ -7210,7 +7357,7 @@ static bool IsSmallFunction(JSContext* cx, unsigned argc, Value* vp) {
 static bool PCCountProfiling_Start(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  js::StartPCCountProfiling(cx);
+  JS::StartPCCountProfiling(cx);
 
   args.rval().setUndefined();
   return true;
@@ -7219,7 +7366,7 @@ static bool PCCountProfiling_Start(JSContext* cx, unsigned argc, Value* vp) {
 static bool PCCountProfiling_Stop(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  js::StopPCCountProfiling(cx);
+  JS::StopPCCountProfiling(cx);
 
   args.rval().setUndefined();
   return true;
@@ -7228,7 +7375,7 @@ static bool PCCountProfiling_Stop(JSContext* cx, unsigned argc, Value* vp) {
 static bool PCCountProfiling_Purge(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  js::PurgePCCounts(cx);
+  JS::PurgePCCounts(cx);
 
   args.rval().setUndefined();
   return true;
@@ -7238,7 +7385,7 @@ static bool PCCountProfiling_ScriptCount(JSContext* cx, unsigned argc,
                                          Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  size_t length = js::GetPCCountScriptCount(cx);
+  size_t length = JS::GetPCCountScriptCount(cx);
 
   args.rval().setNumber(double(length));
   return true;
@@ -7256,7 +7403,7 @@ static bool PCCountProfiling_ScriptSummary(JSContext* cx, unsigned argc,
     return false;
   }
 
-  JSString* str = js::GetPCCountScriptSummary(cx, index);
+  JSString* str = JS::GetPCCountScriptSummary(cx, index);
   if (!str) {
     return false;
   }
@@ -7277,7 +7424,7 @@ static bool PCCountProfiling_ScriptContents(JSContext* cx, unsigned argc,
     return false;
   }
 
-  JSString* str = js::GetPCCountScriptContents(cx, index);
+  JSString* str = JS::GetPCCountScriptContents(cx, index);
   if (!str) {
     return false;
   }
@@ -7819,6 +7966,10 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE)
 "  Returns a boolean indicating whether a given module was deserialized directly from a\n"
 "  cache (as opposed to compiled from bytecode)."),
 
+    JS_FN_HELP("wasmIntrinsicI8VecMul", WasmIntrinsicI8VecMul, 0, 0,
+"wasmIntrinsicI8VecMul()",
+"  Returns a module that implements an i8 vector pairwise multiplication intrinsic."),
+
     JS_FN_HELP("largeArrayBufferEnabled", LargeArrayBufferEnabled, 0, 0,
 "largeArrayBufferEnabled()",
 "  Returns true if array buffers larger than 2GB can be allocated."),
@@ -8007,6 +8158,10 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE)
 "  Return the address of the shared storage of a SharedArrayBuffer."),
 #endif
 
+    JS_FN_HELP("hasInvalidatedTeleporting", HasInvalidatedTeleporting, 1, 0,
+"hasInvalidatedTeleporting(obj)",
+"  Return true if the shape teleporting optimization has been disabled for |obj|."),
+
     JS_FN_HELP("evalReturningScope", EvalReturningScope, 1, 0,
 "evalReturningScope(scriptStr, [global])",
 "  Evaluate the script in a new scope and return the scope.\n"
@@ -8124,14 +8279,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE)
 "  Set this compartment's RNG state.\n"),
 #endif
 
-    JS_FN_HELP("getModuleEnvironmentNames", GetModuleEnvironmentNames, 1, 0,
-"getModuleEnvironmentNames(module)",
-"  Get the list of a module environment's bound names for a specified module.\n"),
-
-    JS_FN_HELP("getModuleEnvironmentValue", GetModuleEnvironmentValue, 2, 0,
-"getModuleEnvironmentValue(module, name)",
-"  Get the value of a bound name in a module environment.\n"),
-
 #if defined(FUZZING) && defined(__AFL_COMPILER)
     JS_FN_HELP("aflloop", AflLoop, 1, 0,
 "aflloop(max_cnt)",
@@ -8221,7 +8368,6 @@ JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE)
 "sequence of ECMAScript execution completes. This is used for testing\n"
 "WeakRefs.\n"),
 
-
   JS_FN_HELP("numberToDouble", NumberToDouble, 1, 0,
 "numberToDouble(number)",
 "  Return the input number as double-typed number."),
@@ -8236,9 +8382,34 @@ JS_FN_HELP("getICUOptions", GetICUOptions, 0, 0,
 "    timezone: the ICU default time zone, e.g. 'America/Los_Angeles'\n"
 "    host-timezone: the host time zone, e.g. 'America/Los_Angeles'"),
 
+JS_FN_HELP("getAvailableLocalesOf", GetAvailableLocalesOf, 0, 0,
+"getAvailableLocalesOf(name)",
+"  Return an array of all available locales for the given Intl constuctor."),
+
 JS_FN_HELP("isSmallFunction", IsSmallFunction, 1, 0,
 "isSmallFunction(fun)",
 "  Returns true if a scripted function is small enough to be inlinable."),
+
+    JS_FN_HELP("compileToStencil", CompileToStencil, 1, 0,
+"compileToStencil(string)",
+"  Parses the given string argument as js script, returns the stencil"
+"  for it."),
+
+    JS_FN_HELP("evalStencil", EvalStencil, 1, 0,
+"compileStencil(stencil)",
+"  Instantiates the given stencil, and evaluates the top-level script it"
+"  defines."),
+
+    JS_FN_HELP("compileToStencilXDR", CompileToStencilXDR, 1, 0,
+"compileToStencilXDR(string)",
+"  Parses the given string argument as js script, produces the stencil"
+"  for it, XDR-encodes the stencil, and returns an object that contains the"
+"  XDR buffer."),
+
+    JS_FN_HELP("evalStencilXDR", EvalStencilXDR, 1, 0,
+"evalStencilXDR(stencilXDR)",
+"  Reads the given stencil XDR object, and evaluates the top-level script it"
+"  defines."),
 
     JS_FS_HELP_END
 };
@@ -8261,16 +8432,6 @@ JS_FN_HELP("setDefaultLocale", SetDefaultLocale, 1, 0,
 "  Set the runtime default locale to the given value.\n"
 "  An empty string or undefined resets the runtime locale to its default value.\n"
 "  NOTE: The input string is not fully validated, it must be a valid BCP-47 language tag."),
-
-    JS_FN_HELP("compileStencilXDR", CompileStencilXDR, 1, 0,
-"compileStencilXDR(string)",
-"  Parses the given string argument as js script, produces the stencil"
-"  for it, XDR-encodes the stencil, and returns an ArrayBuf of the contents."),
-
-    JS_FN_HELP("evalStencilXDR", EvalStencilXDR, 1, 0,
-"evalStencilXDR(arrayBuf)",
-"  Reads the given buffer as an XDR-encoded stencil, and evaluates the"
-"  top-level script it defines."),
 
     JS_FS_HELP_END
 };

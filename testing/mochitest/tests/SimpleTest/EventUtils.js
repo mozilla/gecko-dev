@@ -156,6 +156,60 @@ function _EU_getPlatform() {
 }
 
 /**
+ * promiseElementReadyForUserInput() dispatches mousemove events to aElement
+ * and waits one of them for a while.  Then, returns "resolved" state when it's
+ * successfully received.  Otherwise, if it couldn't receive mousemove event on
+ * it, this throws an exception.  So, aElement must be an element which is
+ * assumed non-collapsed visible element in the window.
+ *
+ * This is useful if you need to synthesize mouse events via the main process
+ * but your test cannot check whether the element is now in APZ to deliver
+ * a user input event.
+ */
+async function promiseElementReadyForUserInput(
+  aElement,
+  aWindow = window,
+  aLogFunc = null
+) {
+  if (typeof aElement == "string") {
+    aElement = aWindow.document.getElementById(aElement);
+  }
+
+  function waitForMouseMoveForHittest() {
+    return new Promise(resolve => {
+      let timeout;
+      const onHit = () => {
+        if (aLogFunc) {
+          aLogFunc("mousemove received");
+        }
+        aWindow.clearInterval(timeout);
+        resolve(true);
+      };
+      aElement.addEventListener("mousemove", onHit, {
+        capture: true,
+        once: true,
+      });
+      synthesizeMouseAtCenter(aElement, { type: "mousemove" }, aWindow);
+      timeout = aWindow.setInterval(() => {
+        if (aLogFunc) {
+          aLogFunc("mousemove not received in this 300ms");
+        }
+        aElement.removeEventListener("mousemove", onHit, {
+          capture: true,
+        });
+        resolve(false);
+      }, 300);
+    });
+  }
+  for (let i = 0; i < 20; i++) {
+    if (await waitForMouseMoveForHittest()) {
+      return Promise.resolve();
+    }
+  }
+  throw new Error("The element or the window did not become interactive");
+}
+
+/**
  * Send a mouse event to the node aTarget (aTarget can be an id, or an
  * actual node) . The "event" passed in to aEvent is just a JavaScript
  * object with the properties set that the real mouse event object should
@@ -2948,6 +3002,9 @@ function _computeSrcElementFromSrcSelection(aSrcSelection) {
  *          destWindow:   The window for dispatching event on destElement,
  *                        defaults to the current window object
  *          expectCancelDragStart:  Set to true if the test cancels "dragstart"
+ *          expectSrcElementDisconnected:
+ *                        Set to true if srcElement will be disconnected and
+ *                        "dragend" event won't be fired.
  *          logFunc:      Set function which takes one argument if you need
  *                        to log rect of target.  E.g., `console.log`.
  *        }
@@ -2969,6 +3026,7 @@ async function synthesizePlainDragAndDrop(aParams) {
     srcWindow = window,
     destWindow = window,
     expectCancelDragStart = false,
+    expectSrcElementDisconnected = false,
     logFunc,
   } = aParams;
   // Don't modify given dragEvent object because we modify dragEvent below and
@@ -3037,15 +3095,45 @@ async function synthesizePlainDragAndDrop(aParams) {
 
     await new Promise(r => setTimeout(r, 0));
 
-    synthesizeMouse(
-      srcElement,
-      srcX,
-      srcY,
-      { type: "mousedown", id },
-      srcWindow
-    );
-    if (logFunc) {
-      logFunc(`mousedown at ${srcX}, ${srcY}`);
+    let mouseDownEvent;
+    function onMouseDown(aEvent) {
+      mouseDownEvent = aEvent;
+      if (logFunc) {
+        logFunc(`"${aEvent.type}" event is fired`);
+      }
+      if (
+        !srcElement.contains(
+          _EU_maybeUnwrap(_EU_maybeWrap(aEvent).composedTarget)
+        )
+      ) {
+        // If srcX and srcY does not point in one of rects in srcElement,
+        // "mousedown" target is not in srcElement.  Such case must not
+        // be expected by this API users so that we should throw an exception
+        // for making debugging easier.
+        throw new Error(
+          'event target of "mousedown" is not srcElement nor its descendant'
+        );
+      }
+    }
+    try {
+      srcWindow.addEventListener("mousedown", onMouseDown, { capture: true });
+      synthesizeMouse(
+        srcElement,
+        srcX,
+        srcY,
+        { type: "mousedown", id },
+        srcWindow
+      );
+      if (logFunc) {
+        logFunc(`mousedown at ${srcX}, ${srcY}`);
+      }
+      if (!mouseDownEvent) {
+        throw new Error('"mousedown" event is not fired');
+      }
+    } finally {
+      srcWindow.removeEventListener("mousedown", onMouseDown, {
+        capture: true,
+      });
     }
 
     let dragStartEvent;
@@ -3062,7 +3150,7 @@ async function synthesizePlainDragAndDrop(aParams) {
         // If srcX and srcY does not point in one of rects in srcElement,
         // "dragstart" target is not in srcElement.  Such case must not
         // be expected by this API users so that we should throw an exception
-        // for making debug easier.
+        // for making debugging easier.
         throw new Error(
           'event target of "dragstart" is not srcElement nor its descendant'
         );
@@ -3287,6 +3375,7 @@ async function synthesizePlainDragAndDrop(aParams) {
     await new Promise(r => setTimeout(r, 0));
 
     if (ds.getCurrentSession()) {
+      const sourceNode = ds.sourceNode;
       let dragEndEvent;
       function onDragEnd(aEvent) {
         dragEndEvent = aEvent;
@@ -3302,14 +3391,25 @@ async function synthesizePlainDragAndDrop(aParams) {
             'event target of "dragend" is not srcElement nor its descendant'
           );
         }
+        if (expectSrcElementDisconnected) {
+          throw new Error(
+            `"dragend" event shouldn't be fired when the source node is disconnected (the source node is ${
+              sourceNode?.isConnected ? "connected" : "null or disconnected"
+            })`
+          );
+        }
       }
       srcWindow.addEventListener("dragend", onDragEnd, { capture: true });
       try {
         ds.endDragSession(true, _parseModifiers(dragEvent));
-        if (!dragEndEvent) {
+        if (!expectSrcElementDisconnected && !dragEndEvent) {
           // eslint-disable-next-line no-unsafe-finally
           throw new Error(
-            '"dragend" event is not fired by nsIDragService.endDragSession()'
+            `"dragend" event is not fired by nsIDragService.endDragSession()${
+              ds.sourceNode && !ds.sourceNode.isConnected
+                ? "(sourceNode was disconnected)"
+                : ""
+            }`
           );
         }
       } finally {

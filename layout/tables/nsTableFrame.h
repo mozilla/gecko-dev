@@ -16,6 +16,7 @@
 #include "TableArea.h"
 
 struct BCPaintBorderAction;
+struct BCPropertyData;
 class nsTableCellFrame;
 class nsTableCellMap;
 class nsTableColFrame;
@@ -23,17 +24,17 @@ class nsTableRowGroupFrame;
 class nsTableRowFrame;
 class nsTableColGroupFrame;
 class nsITableLayoutStrategy;
+
 namespace mozilla {
+
 class LogicalMargin;
 class PresShell;
 class WritingMode;
 struct TableReflowInput;
+
 namespace layers {
 class StackingContextHelper;
 }
-}  // namespace mozilla
-
-struct BCPropertyData;
 
 class nsDisplayTableItem : public nsPaintedDisplayItem {
  public:
@@ -111,6 +112,8 @@ class nsDisplayTableBackgroundSet {
   nsRect mDirtyRect;
 };
 
+}  // namespace mozilla
+
 /* ========================================================================== */
 
 enum nsTableColType {
@@ -159,8 +162,6 @@ class nsTableFrame : public nsContainerFrame {
   virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
                     nsIFrame* aPrevInFlow) override;
 
-  static float GetTwipsToPixels(nsPresContext* aPresContext);
-
   // Return true if aParentReflowInput.frame or any of its ancestors within
   // the containing table have non-auto bsize. (e.g. pct or fixed bsize)
   static bool AncestorsHaveStyleBSize(const ReflowInput& aParentReflowInput);
@@ -185,8 +186,6 @@ class nsTableFrame : public nsContainerFrame {
   // Unregister a positioned table part with its nsTableFrame.
   static void UnregisterPositionedTablePart(nsIFrame* aFrame,
                                             nsIFrame* aDestructRoot);
-
-  nsPoint GetFirstSectionOrigin(const ReflowInput& aReflowInput) const;
 
   /*
    * Notification that rowspan or colspan has changed for content inside a

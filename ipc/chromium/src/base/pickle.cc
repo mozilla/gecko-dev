@@ -26,14 +26,7 @@
 static_assert(MOZ_ALIGNOF(Pickle::memberAlignmentType) >= MOZ_ALIGNOF(uint32_t),
               "Insufficient alignment");
 
-#ifndef MOZ_TASK_TRACER
 static const uint32_t kHeaderSegmentCapacity = 64;
-#else
-// TaskTracer would add extra fields to the header to carry task ID and
-// other information.
-// \see class Message::HeaderTaskTracer
-static const uint32_t kHeaderSegmentCapacity = 128;
-#endif
 
 static const uint32_t kDefaultSegmentCapacity = 4096;
 
@@ -436,6 +429,14 @@ bool Pickle::ReadBytesInto(PickleIterator* iter, void* data,
   return iter->iter_.AdvanceAcrossSegments(buffers_, AlignInt(length) - length);
 }
 
+bool Pickle::IgnoreBytes(PickleIterator* iter, uint32_t length) const {
+  if (AlignInt(length) < length) {
+    return false;
+  }
+
+  return iter->iter_.AdvanceAcrossSegments(buffers_, AlignInt(length));
+}
+
 #ifdef MOZ_PICKLE_SENTINEL_CHECKING
 MOZ_NEVER_INLINE
 bool Pickle::ReadSentinel(PickleIterator* iter, uint32_t sentinel) const {
@@ -455,7 +456,8 @@ bool Pickle::WriteSentinel(uint32_t sentinel) { return WriteUInt32(sentinel); }
 #endif
 
 void Pickle::EndRead(PickleIterator& iter, uint32_t ipcMsgType) const {
-  DCHECK(iter.iter_.Done());
+  // FIXME: Deal with the footer somehow...
+  // DCHECK(iter.iter_.Done());
 
   if (NS_IsMainThread() && ipcMsgType != 0) {
     uint32_t latencyMs =
@@ -467,6 +469,11 @@ void Pickle::EndRead(PickleIterator& iter, uint32_t ipcMsgType) const {
           latencyMs);
     }
   }
+}
+
+void Pickle::Truncate(PickleIterator* iter) {
+  size_t dropped = buffers_.Truncate(iter->iter_);
+  header_->payload_size -= dropped;
 }
 
 void Pickle::BeginWrite(uint32_t length, uint32_t alignment) {

@@ -121,13 +121,6 @@ class OSXBootstrapperLight(BaseBootstrapper):
 
 
 class OSXBootstrapper(BaseBootstrapper):
-
-    INSTALL_PYTHON_GUIDANCE = (
-        "See https://firefox-source-docs.mozilla.org/setup/macos_build.html "
-        "for guidance on how to prepare your system to build Firefox. Perhaps "
-        "you need to update Xcode, or install Python using brew?"
-    )
-
     def __init__(self, version, **kwargs):
         BaseBootstrapper.__init__(self, **kwargs)
 
@@ -335,13 +328,6 @@ class OSXBootstrapper(BaseBootstrapper):
 
         self.install_toolchain_artifact(
             state_dir, checkout_root, minidump_stackwalk.MACOS_MINIDUMP_STACKWALK
-        )
-
-    def ensure_dump_syms_packages(self, state_dir, checkout_root):
-        from mozboot import dump_syms
-
-        self.install_toolchain_artifact(
-            state_dir, checkout_root, dump_syms.MACOS_DUMP_SYMS
         )
 
     def install_homebrew(self):

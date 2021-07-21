@@ -139,7 +139,7 @@
   min-width: 20px;
   max-height: 20px;
   max-width: 20px;
-  list-style-image: url("chrome://global/skin/icons/arrow-dropdown-12.svg");
+  list-style-image: url("chrome://global/skin/icons/arrow-down-12.svg");
   background-color: transparent;
   padding: 3px;
 }
@@ -155,10 +155,6 @@
 
 .arrowhead.up {
   list-style-image: url("chrome://global/skin/icons/arrow-up-12.svg");
-}
-
-.arrowhead > .button-box {
-  padding: 0 !important;
 }
 
 .content-blocking-category.expanded:not(.selected) .reload-tabs {
@@ -198,7 +194,7 @@
   max-height: 30px;
   min-height: 30px;
   padding: 0 20px;
-  list-style-image: url("chrome://browser/skin/reload.svg");
+  list-style-image: url("chrome://global/skin/icons/reload.svg");
   align-self: center;
 }
 

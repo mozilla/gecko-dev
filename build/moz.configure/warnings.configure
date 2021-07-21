@@ -40,20 +40,17 @@ add_gcc_warning("-Wall")
 # catch implicit truncation of enum values assigned to smaller bit fields
 check_and_add_gcc_warning("-Wbitfield-enum-conversion")
 
+# catches deprecated implicit capture of `this` in lambdas.
+check_and_add_gcc_warning("-Wdeprecated-this-capture", cxx_compiler)
+
 # catches bugs, e.g. "if (c); foo();", few false positives
 add_gcc_warning("-Wempty-body")
 
+# catches mismatched printf integer sizes.
+check_and_add_gcc_warning("-Wformat-type-confusion")
+
 # catches return types with qualifiers like const
 add_gcc_warning("-Wignored-qualifiers")
-
-# function declaration hides virtual function from base class.
-# Don't enable for GCC, since it's more strict than clang,
-# and the additional cases it covers are not valuable.
-add_gcc_warning(
-    "-Woverloaded-virtual",
-    cxx_compiler,
-    when=depends(cxx_compiler)(lambda c: c.type != "gcc"),
-)
 
 # catches pointer arithmetic using NULL or sizeof(void)
 add_gcc_warning("-Wpointer-arith")
@@ -61,18 +58,21 @@ add_gcc_warning("-Wpointer-arith")
 # catch modifying constructor parameter that shadows member variable
 check_and_add_gcc_warning("-Wshadow-field-in-constructor-modified")
 
+# catches lambda variables shadowing function variables.
+check_and_add_gcc_warning("-Wshadow-uncaptured-local", cxx_compiler)
+
 # catches comparing signed/unsigned ints
 add_gcc_warning("-Wsign-compare")
 
 # catches overflow bugs, few false positives
 add_gcc_warning("-Wtype-limits")
 
+# This can be triggered by certain patterns used deliberately in portable code
+check_and_add_gcc_warning("-Wno-error=tautological-type-limit-compare")
+
 # catches some dead code
 add_gcc_warning("-Wunreachable-code")
 check_and_add_gcc_warning("-Wunreachable-code-return")
-
-# catches treating string literals as non-const
-add_gcc_warning("-Wwrite-strings", cxx_compiler)
 
 # turned on by -Wall, but we use offsetof on non-POD types frequently
 add_gcc_warning("-Wno-invalid-offsetof", cxx_compiler)
@@ -102,12 +102,11 @@ check_and_add_gcc_warning("-Wcomma", cxx_compiler)
 # catches duplicated conditions in if-else-if chains
 check_and_add_gcc_warning("-Wduplicated-cond")
 
+# catches expessions mixing different enum types deprecated in C++20
+check_and_add_gcc_warning("-Wenum-compare-conditional")
+
 # catches unintentional switch case fallthroughs
 check_and_add_gcc_warning("-Wimplicit-fallthrough", cxx_compiler)
-
-# catches unused variable/function declarations
-check_and_add_gcc_warning("-Wunused-function", cxx_compiler)
-check_and_add_gcc_warning("-Wunused-variable", cxx_compiler)
 
 # catches expressions used as a null pointer constant
 # XXX: at the time of writing, the version of clang used on the OS X test
@@ -123,13 +122,6 @@ check_and_add_gcc_warning(
 
 # catches string literals used in boolean expressions
 check_and_add_gcc_warning("-Wstring-conversion")
-
-# catches comparisons that are always true or false
-check_and_add_gcc_warning("-Wtautological-overlap-compare")
-check_and_add_gcc_warning("-Wtautological-unsigned-enum-zero-compare")
-check_and_add_gcc_warning("-Wtautological-unsigned-zero-compare")
-# This can be triggered by certain patterns used deliberately in portable code
-check_and_add_gcc_warning("-Wno-error=tautological-type-limit-compare")
 
 # we inline 'new' and 'delete' in mozalloc
 check_and_add_gcc_warning("-Wno-inline-new-delete", cxx_compiler)

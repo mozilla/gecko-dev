@@ -13,6 +13,11 @@
 #ifndef ProfilerState_h
 #define ProfilerState_h
 
+#include <mozilla/DefineEnum.h>
+#include <mozilla/EnumSet.h>
+
+#include <functional>
+
 //---------------------------------------------------------------------------
 // Profiler features
 //---------------------------------------------------------------------------
@@ -51,34 +56,35 @@
   MACRO(9, "stackwalk", StackWalk,                                           \
         "Walk the C++ stack, not available on all platforms")                \
                                                                              \
-  MACRO(10, "tasktracer", TaskTracer,                                        \
-        "Start profiling with feature TaskTracer")                           \
+  MACRO(10, "threads", Threads, "Profile the registered secondary threads")  \
                                                                              \
-  MACRO(11, "threads", Threads, "Profile the registered secondary threads")  \
+  MACRO(11, "jstracer", JSTracer, "Enable tracing of the JavaScript engine") \
                                                                              \
-  MACRO(12, "jstracer", JSTracer, "Enable tracing of the JavaScript engine") \
-                                                                             \
-  MACRO(13, "jsallocations", JSAllocations,                                  \
+  MACRO(12, "jsallocations", JSAllocations,                                  \
         "Have the JavaScript engine track allocations")                      \
                                                                              \
-  MACRO(14, "nostacksampling", NoStackSampling,                              \
+  MACRO(13, "nostacksampling", NoStackSampling,                              \
         "Disable all stack sampling: Cancels \"js\", \"leaf\", "             \
         "\"stackwalk\" and labels")                                          \
                                                                              \
-  MACRO(15, "preferencereads", PreferenceReads,                              \
+  MACRO(14, "preferencereads", PreferenceReads,                              \
         "Track when preferences are read")                                   \
                                                                              \
-  MACRO(16, "nativeallocations", NativeAllocations,                          \
+  MACRO(15, "nativeallocations", NativeAllocations,                          \
         "Collect the stacks from a smaller subset of all native "            \
         "allocations, biasing towards collecting larger allocations")        \
                                                                              \
-  MACRO(17, "ipcmessages", IPCMessages,                                      \
+  MACRO(16, "ipcmessages", IPCMessages,                                      \
         "Have the IPC layer track cross-process messages")                   \
                                                                              \
-  MACRO(18, "audiocallbacktracing", AudioCallbackTracing,                    \
+  MACRO(17, "audiocallbacktracing", AudioCallbackTracing,                    \
         "Audio callback tracing")                                            \
                                                                              \
-  MACRO(19, "cpu", CPUUtilization, "CPU utilization")
+  MACRO(18, "cpu", CPUUtilization, "CPU utilization")                        \
+                                                                             \
+  MACRO(19, "notimerresolutionchange", NoTimerResolutionChange,              \
+        "Do not adjust the timer resolution for sampling, so that other "    \
+        "Firefox timers do not get affected")
 
 struct ProfilerFeature {
 #define DECLARE(n_, str_, Name_, desc_)                     \
@@ -99,6 +105,61 @@ struct ProfilerFeature {
 #undef DECLARE
 };
 
+// clang-format off
+MOZ_DEFINE_ENUM_CLASS(ProfilingState,(
+  // A callback will be invoked ...
+  AlreadyActive,     // if the profiler is active when the callback is added.
+  RemovingCallback,  // when the callback is removed.
+  Started,           // after the profiler has started.
+  Pausing,           // before the profiler is paused.
+  Resumed,           // after the profiler has resumed.
+  GeneratingProfile, // before a profile is created.
+  Stopping,          // before the profiler stops (unless restarting afterward).
+  ShuttingDown       // before the profiler is shut down.
+));
+// clang-format on
+
+inline static const char* ProfilingStateToString(
+    ProfilingState aProfilingState) {
+  switch (aProfilingState) {
+    case ProfilingState::AlreadyActive:
+      return "Profiler already active";
+    case ProfilingState::RemovingCallback:
+      return "Callback being removed";
+    case ProfilingState::Started:
+      return "Profiler started";
+    case ProfilingState::Pausing:
+      return "Profiler pausing";
+    case ProfilingState::Resumed:
+      return "Profiler resumed";
+    case ProfilingState::GeneratingProfile:
+      return "Generating profile";
+    case ProfilingState::Stopping:
+      return "Profiler stopping";
+    case ProfilingState::ShuttingDown:
+      return "Profiler shutting down";
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected ProfilingState enum value");
+      return "?";
+  }
+}
+
+using ProfilingStateSet = mozilla::EnumSet<ProfilingState>;
+
+constexpr ProfilingStateSet AllProfilingStates() {
+  ProfilingStateSet set;
+  using Value = std::underlying_type_t<ProfilingState>;
+  for (Value stateValue = 0;
+       stateValue <= static_cast<Value>(kHighestProfilingState); ++stateValue) {
+    set += static_cast<ProfilingState>(stateValue);
+  }
+  return set;
+}
+
+// Type of callbacks to be invoked at certain state changes.
+// It must NOT call profiler_add/remove_state_change_callback().
+using ProfilingStateChangeCallback = std::function<void(ProfilingState)>;
+
 #ifndef MOZ_GECKO_PROFILER
 
 inline bool profiler_is_active() { return false; }
@@ -107,6 +168,13 @@ inline bool profiler_thread_is_being_profiled() { return false; }
 inline bool profiler_is_active_and_thread_is_registered() { return false; }
 inline bool profiler_feature_active(uint32_t aFeature) { return false; }
 inline bool profiler_is_locked_on_current_thread() { return false; }
+inline int profiler_current_thread_id() { return 0; }
+inline void profiler_add_state_change_callback(
+    ProfilingStateSet aProfilingStateSet,
+    ProfilingStateChangeCallback&& aCallback, uintptr_t aUniqueIdentifier = 0) {
+}
+inline void profiler_remove_state_change_callback(uintptr_t aUniqueIdentifier) {
+}
 
 #else  // !MOZ_GECKO_PROFILER
 
@@ -316,6 +384,17 @@ inline bool profiler_is_main_thread() {
 // functions while the same of a different profiler mutex is locked, which could
 // deadlock.
 bool profiler_is_locked_on_current_thread();
+
+// Install a callback to be invoked at any of the given profiling state changes.
+// An optional non-zero identifier may be given, to allow later removal of the
+// callback, the caller is responsible for making sure it's really unique (e.g.,
+// by using a pointer to an object it owns.)
+void profiler_add_state_change_callback(
+    ProfilingStateSet aProfilingStateSet,
+    ProfilingStateChangeCallback&& aCallback, uintptr_t aUniqueIdentifier = 0);
+
+// Remove the callback with the given non-zero identifier.
+void profiler_remove_state_change_callback(uintptr_t aUniqueIdentifier);
 
 #endif  // MOZ_GECKO_PROFILER
 

@@ -27,6 +27,11 @@
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/ProfilerState.h"
 
+enum class IsFastShutdown {
+  No,
+  Yes,
+};
+
 #ifndef MOZ_GECKO_PROFILER
 
 #  include "mozilla/UniquePtr.h"
@@ -81,6 +86,27 @@ profiler_capture_backtrace() {
   return nullptr;
 }
 
+static inline void profiler_init(void* stackTop) {}
+
+static inline void profiler_shutdown(
+    IsFastShutdown aIsFastShutdown = IsFastShutdown::No) {}
+
+static inline void profiler_set_process_name(
+    const nsACString& aProcessName, const nsACString* aETLDplus1 = nullptr) {}
+
+static inline void profiler_received_exit_profile(
+    const nsCString& aExitProfile) {}
+
+static inline void profiler_register_page(uint64_t aTabID,
+                                          uint64_t aInnerWindowID,
+                                          const nsCString& aUrl,
+                                          uint64_t aEmbedderInnerWindowID) {}
+static inline void profiler_unregister_page(uint64_t aRegisteredInnerWindowID) {
+}
+
+static inline void GetProfilerEnvVarsForChildProcess(
+    std::function<void(const char* key, const char* value)>&& aSetEnv) {}
+
 #else  // !MOZ_GECKO_PROFILER
 
 #  include "js/ProfilingStack.h"
@@ -104,20 +130,12 @@ class ProfilerBacktrace;
 class ProfilerCodeAddressService;
 struct JSContext;
 
-namespace JS {
-struct RecordAllocationInfo;
-}
-
 namespace mozilla {
 class ProfileBufferControlledChunkManager;
 class ProfileChunkedBuffer;
 namespace baseprofiler {
 class SpliceableJSONWriter;
 }  // namespace baseprofiler
-namespace net {
-struct TimingStruct;
-enum CacheDisposition : uint8_t;
-}  // namespace net
 }  // namespace mozilla
 class nsIURI;
 
@@ -172,11 +190,6 @@ void profiler_init_threadmanager();
 #  define AUTO_PROFILER_INIT mozilla::AutoProfilerInit PROFILER_RAII
 // Call this after the nsThreadManager is Init()ed
 #  define AUTO_PROFILER_INIT2 mozilla::AutoProfilerInit2 PROFILER_RAII
-
-enum class IsFastShutdown {
-  No,
-  Yes,
-};
 
 // Clean up the profiler module, stopping it if required. This function may
 // also save a shutdown profile if requested. No profiler calls should happen
@@ -471,37 +484,6 @@ struct ProfilerBufferInfo {
 mozilla::Maybe<ProfilerBufferInfo> profiler_get_buffer_info();
 
 //---------------------------------------------------------------------------
-// Put profiling data into the profiler (markers)
-//---------------------------------------------------------------------------
-
-void profiler_add_js_marker(const char* aMarkerName, const char* aMarkerText);
-void profiler_add_js_allocation_marker(JS::RecordAllocationInfo&& info);
-
-// Returns true or or false depending on whether the marker was actually added
-// or not.
-bool profiler_add_native_allocation_marker(int64_t aSize,
-                                           uintptr_t aMemoryAddress);
-
-enum class NetworkLoadType { LOAD_START, LOAD_STOP, LOAD_REDIRECT };
-
-void profiler_add_network_marker(
-    nsIURI* aURI, const nsACString& aRequestMethod, int32_t aPriority,
-    uint64_t aChannelId, NetworkLoadType aType, mozilla::TimeStamp aStart,
-    mozilla::TimeStamp aEnd, int64_t aCount,
-    mozilla::net::CacheDisposition aCacheDisposition, uint64_t aInnerWindowID,
-    const mozilla::net::TimingStruct* aTimings = nullptr,
-    nsIURI* aRedirectURI = nullptr,
-    mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource = nullptr,
-    const mozilla::Maybe<nsDependentCString>& aContentType =
-        mozilla::Nothing());
-
-enum TracingKind {
-  TRACING_EVENT,
-  TRACING_INTERVAL_START,
-  TRACING_INTERVAL_END,
-};
-
-//---------------------------------------------------------------------------
 // Output profiles
 //---------------------------------------------------------------------------
 
@@ -509,6 +491,9 @@ enum TracingKind {
 // detailed name which may include private info (eTLD+1 in fission)
 void profiler_set_process_name(const nsACString& aProcessName,
                                const nsACString* aETLDplus1 = nullptr);
+
+// Record an exit profile from a child process.
+void profiler_received_exit_profile(const nsCString& aExitProfile);
 
 // Get the profile encoded as a JSON string. A no-op (returning nullptr) if the
 // profiler is inactive.

@@ -46,6 +46,7 @@
 #include "nsEscape.h"
 #include "nsGlobalWindowOuter.h"
 #include "nsHttpChannel.h"
+#include "nsHTTPCompressConv.h"
 #include "nsHttpHandler.h"
 #include "nsICacheInfoChannel.h"
 #include "nsICachingChannel.h"
@@ -1242,21 +1243,11 @@ HttpBaseChannel::DoApplyContentConversions(nsIStreamListener* aNextListener,
     }
 
     if (gHttpHandler->IsAcceptableEncoding(val, mURI->SchemeIs("https"))) {
-      nsCOMPtr<nsIStreamConverterService> serv;
-      rv = gHttpHandler->GetStreamConverterService(getter_AddRefs(serv));
-
-      // we won't fail to load the page just because we couldn't load the
-      // stream converter service.. carry on..
-      if (NS_FAILED(rv)) {
-        if (val) LOG(("Unknown content encoding '%s', ignoring\n", val));
-        continue;
-      }
-
-      nsCOMPtr<nsIStreamListener> converter;
+      RefPtr<nsHTTPCompressConv> converter = new nsHTTPCompressConv();
       nsAutoCString from(val);
       ToLowerCase(from);
-      rv = serv->AsyncConvertData(from.get(), "uncompressed", nextListener,
-                                  aCtxt, getter_AddRefs(converter));
+      rv = converter->AsyncConvertData(from.get(), "uncompressed", nextListener,
+                                       aCtxt);
       if (NS_FAILED(rv)) {
         LOG(("Unexpected failure of AsyncConvertData %s\n", val));
         return rv;
@@ -2800,32 +2791,43 @@ bool HttpBaseChannel::EnsureOpaqueResponseIsAllowed() {
     return true;
   }
 
-  // Check if it's cross-origin without CORS.
-  const bool isPrivateWin =
-      mLoadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
-  bool isSameOrigin = false;
-  principal->IsSameOrigin(mURI, isPrivateWin, &isSameOrigin);
-  if (isSameOrigin) {
+  // Check if the response is a opaque response, which means requestMode should
+  // be RequestMode::No_cors and responseType should be ResponseType::Opaque.
+  nsContentPolicyType contentPolicy = mLoadInfo->InternalContentPolicyType();
+  // Skip the RequestMode would be RequestMode::Navigate
+  if (contentPolicy == nsIContentPolicy::TYPE_DOCUMENT ||
+      contentPolicy == nsIContentPolicy::TYPE_SUBDOCUMENT ||
+      contentPolicy == nsIContentPolicy::TYPE_INTERNAL_FRAME ||
+      contentPolicy == nsIContentPolicy::TYPE_INTERNAL_IFRAME ||
+      // Skip the RequestMode would be RequestMode::Same_origin
+      contentPolicy == nsIContentPolicy::TYPE_INTERNAL_WORKER ||
+      contentPolicy == nsIContentPolicy::TYPE_INTERNAL_SHARED_WORKER) {
     return true;
   }
 
-  nsAutoCString corsOrigin;
-  nsresult rv = mResponseHead->GetHeader(
-      nsHttp::ResolveAtom("Access-Control-Allow-Origin"_ns), corsOrigin);
-  if (NS_SUCCEEDED(rv)) {
-    if (corsOrigin.Equals("*")) {
-      return true;
-    }
+  uint32_t securityMode = mLoadInfo->GetSecurityMode();
+  // Skip when RequestMode would not be RequestMode::no_cors
+  if (securityMode !=
+          nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_INHERITS_SEC_CONTEXT &&
+      securityMode != nsILoadInfo::SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL) {
+    return true;
+  }
 
-    nsCOMPtr<nsIURI> corsOriginURI;
-    rv = NS_NewURI(getter_AddRefs(corsOriginURI), corsOrigin);
-    if (NS_SUCCEEDED(rv)) {
-      bool isSameOrigin = false;
-      principal->IsSameOrigin(corsOriginURI, isPrivateWin, &isSameOrigin);
-      if (isSameOrigin) {
-        return true;
-      }
-    }
+  // Only continue when ResponseType would be ResponseType::Opaque
+  if (mLoadInfo->GetTainting() != mozilla::LoadTainting::Opaque) {
+    return true;
+  }
+
+  // Exclude object/embed element loading
+  auto extContentPolicyType = mLoadInfo->GetExternalContentPolicyType();
+  if (extContentPolicyType == ExtContentPolicy::TYPE_OBJECT ||
+      extContentPolicyType == ExtContentPolicy::TYPE_OBJECT_SUBREQUEST) {
+    return true;
+  }
+
+  // Ignore the request from object or embed elements
+  if (mLoadInfo->GetIsFromObjectOrEmbed()) {
+    return true;
   }
 
   InitiateORBTelemetry();
@@ -3759,8 +3761,15 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
       mLoadInfo->GetExternalContentPolicyType();
   if (contentPolicyType == ExtContentPolicy::TYPE_DOCUMENT ||
       contentPolicyType == ExtContentPolicy::TYPE_SUBDOCUMENT) {
+    // Reset PrincipalToInherit to a null principal. We'll credit the the
+    // redirecting resource's result principal as the new principal's precursor.
+    // This means that a data: URI will end up loading in a process based on the
+    // redirected-from URI.
+    nsCOMPtr<nsIPrincipal> redirectPrincipal;
+    nsContentUtils::GetSecurityManager()->GetChannelResultPrincipal(
+        this, getter_AddRefs(redirectPrincipal));
     nsCOMPtr<nsIPrincipal> nullPrincipalToInherit =
-        NullPrincipal::CreateWithoutOriginAttributes();
+        NullPrincipal::CreateWithInheritedAttributes(redirectPrincipal);
     newLoadInfo->SetPrincipalToInherit(nullPrincipalToInherit);
   }
 
@@ -3822,6 +3831,12 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
   bool isInternalRedirect =
       (aRedirectFlags & (nsIChannelEventSink::REDIRECT_INTERNAL |
                          nsIChannelEventSink::REDIRECT_STS_UPGRADE));
+
+  // Reset our sandboxed null principal ID when cloning loadInfo for an
+  // externally visible redirect.
+  if (!isInternalRedirect) {
+    newLoadInfo->ResetSandboxedNullPrincipalID();
+  }
 
   nsCString remoteAddress;
   Unused << GetRemoteAddress(remoteAddress);
@@ -5313,8 +5328,13 @@ nsresult HttpBaseChannel::CheckRedirectLimit(uint32_t aRedirectFlags) const {
   // in case https-only mode is enabled which upgrades top-level requests to
   // https and the page answers with a redirect (meta, 302, win.location, ...)
   // then this method can break the cycle which causes the https-only exception
-  // page to appear.
-  if (nsHTTPSOnlyUtils::IsUpgradeDowngradeEndlessLoop(mURI, mLoadInfo)) {
+  // page to appear. Note that https-first mode breaks upgrade downgrade endless
+  // loops within ShouldUpgradeHTTPSFirstRequest because https-first does not
+  // display an exception page but needs a soft fallback/downgrade.
+  if (nsHTTPSOnlyUtils::IsUpgradeDowngradeEndlessLoop(
+          mURI, mLoadInfo,
+          {nsHTTPSOnlyUtils::UpgradeDowngradeEndlessLoopOptions::
+               EnforceForHTTPSOnlyMode})) {
     LOG(("upgrade downgrade redirect loop!\n"));
     return NS_ERROR_REDIRECT_LOOP;
   }
@@ -5547,7 +5567,7 @@ void HttpBaseChannel::MaybeFlushConsoleReports() {
 void HttpBaseChannel::DoDiagnosticAssertWhenOnStopNotCalledOnDestroy() {}
 
 NS_IMETHODIMP HttpBaseChannel::SetWaitForHTTPSSVCRecord() {
-  mCaps |= NS_HTTP_WAIT_HTTPSSVC_RESULT;
+  mCaps |= NS_HTTP_FORCE_WAIT_HTTP_RR;
   return NS_OK;
 }
 

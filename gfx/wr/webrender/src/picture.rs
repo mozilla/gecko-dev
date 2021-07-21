@@ -97,7 +97,7 @@
 use api::{MixBlendMode, PremultipliedColorF, FilterPrimitiveKind};
 use api::{PropertyBinding, PropertyBindingId, FilterPrimitive};
 use api::{DebugFlags, ImageKey, ColorF, ColorU, PrimitiveFlags};
-use api::{ImageRendering, ColorDepth, YuvColorSpace, YuvFormat, AlphaType};
+use api::{ImageRendering, ColorDepth, YuvRangedColorSpace, YuvFormat, AlphaType};
 use api::units::*;
 use crate::batch::BatchFilter;
 use crate::box_shadow::BLUR_SAMPLE_SCALE;
@@ -2318,13 +2318,13 @@ pub struct TileCacheInstance {
     surface_to_device: ScaleOffset,
     /// The current raster scale for tiles in this cache
     current_raster_scale: f32,
+    /// Depth of off-screen surfaces that are currently pushed during dependency updates
+    current_surface_traversal_depth: usize,
 }
 
 enum SurfacePromotionResult {
     Failed,
-    Success {
-        flip_y: bool,
-    }
+    Success,
 }
 
 impl TileCacheInstance {
@@ -2377,6 +2377,7 @@ impl TileCacheInstance {
             local_to_surface: ScaleOffset::identity(),
             invalidate_all_tiles: true,
             current_raster_scale: 1.0,
+            current_surface_traversal_depth: 0,
         }
     }
 
@@ -2624,38 +2625,26 @@ impl TileCacheInstance {
             self.tile_size_override = frame_context.config.tile_size_override;
         }
 
-        // To maintain current behavior, the surface to device transform is just
-        // the translation, with scale forced to 1.0. This ensures that the scale
-        // is applied during tile rendering below, for maximum quality. Follow up
-        // patches will adjust this to enable some or all of the scale to be applied
-        // during the surface to device transform.
-        let mut surface_to_device = get_relative_scale_offset(
+        // Get the complete scale-offset from local space to device space
+        let local_to_device = get_relative_scale_offset(
             self.spatial_node_index,
             ROOT_SPATIAL_NODE_INDEX,
             frame_context.spatial_tree,
         );
 
-        let local_to_surface = if frame_context.config.low_quality_pinch_zoom {
-            // Rasterize surfaces with the selected scale, and create a compositor
-            // surface transform that takes that local scale into account.
-            let local_to_surface = ScaleOffset::from_scale(
-                Vector2D::new(self.current_raster_scale, self.current_raster_scale)
-            );
+        // Get the compositor transform, which depends on pinch-zoom mode
+        let mut surface_to_device = local_to_device;
 
-            surface_to_device = surface_to_device.accumulate(&local_to_surface.inverse());
-
-            local_to_surface
+        if frame_context.config.low_quality_pinch_zoom {
+            surface_to_device.scale.x /= self.current_raster_scale;
+            surface_to_device.scale.y /= self.current_raster_scale;
         } else {
-            surface_to_device.scale = Vector2D::new(1.0, 1.0);
+            surface_to_device.scale.x = 1.0;
+            surface_to_device.scale.y = 1.0;
+        }
 
-            let local_to_surface = get_relative_scale_offset(
-                self.spatial_node_index,
-                ROOT_SPATIAL_NODE_INDEX,
-                frame_context.spatial_tree,
-            ).accumulate(&surface_to_device.inverse());
-
-            local_to_surface
-        };
+        // Use that compositor transform to calculate a relative local to surface
+        let local_to_surface = local_to_device.accumulate(&surface_to_device.inverse());
 
         const EPSILON: f32 = 0.001;
         let compositor_translation_changed =
@@ -2962,9 +2951,7 @@ impl TileCacheInstance {
             return SurfacePromotionResult::Failed;
         }
 
-        SurfacePromotionResult::Success {
-            flip_y: transform.m22 < 0.0,
-        }
+        SurfacePromotionResult::Success
     }
 
     fn setup_compositor_surfaces_yuv(
@@ -2983,7 +2970,7 @@ impl TileCacheInstance {
         gpu_cache: &mut GpuCache,
         image_rendering: ImageRendering,
         color_depth: ColorDepth,
-        color_space: YuvColorSpace,
+        color_space: YuvRangedColorSpace,
         format: YuvFormat,
     ) -> bool {
         for &key in api_keys {
@@ -3011,7 +2998,7 @@ impl TileCacheInstance {
                 image_dependencies: *image_dependencies,
                 color_space,
                 format,
-                rescale: color_depth.rescaling_factor(),
+                channel_bit_depth: color_depth.bit_depth(),
             },
             api_keys,
             resource_cache,
@@ -3036,7 +3023,6 @@ impl TileCacheInstance {
         composite_state: &mut CompositeState,
         gpu_cache: &mut GpuCache,
         image_rendering: ImageRendering,
-        flip_y: bool,
     ) -> bool {
         let mut api_keys = [ImageKey::DUMMY; 3];
         api_keys[0] = api_key;
@@ -3068,7 +3054,6 @@ impl TileCacheInstance {
             frame_context,
             ExternalSurfaceDependency::Rgb {
                 image_dependency,
-                flip_y,
             },
             &api_keys,
             resource_cache,
@@ -3140,11 +3125,8 @@ impl TileCacheInstance {
 
         let normalized_prim_to_device = prim_offset.accumulate(&local_prim_to_device);
 
-        let (local_to_surface, surface_to_device) = if composite_state.compositor_kind.supports_transforms() {
-            (ScaleOffset::identity(), normalized_prim_to_device)
-        } else {
-            (normalized_prim_to_device, ScaleOffset::identity())
-        };
+        let local_to_surface = ScaleOffset::identity();
+        let surface_to_device = normalized_prim_to_device;
 
         let compositor_transform_index = composite_state.register_transform(
             local_to_surface,
@@ -3295,6 +3277,55 @@ impl TileCacheInstance {
         });
 
         true
+    }
+
+    /// Push an estimated rect for an off-screen surface during dependency updates. This is
+    /// a workaround / hack that allows the picture cache code to know when it should be
+    /// processing primitive dependencies as a single atomic unit. In future, we aim to remove
+    /// this hack by having the primitive dependencies stored _within_ each owning picture.
+    /// This is part of the work required to support child picture caching anyway!
+    pub fn push_surface(
+        &mut self,
+        estimated_local_rect: LayoutRect,
+        surface_spatial_node_index: SpatialNodeIndex,
+        spatial_tree: &SpatialTree,
+    ) {
+        // Only need to evaluate sub-slice regions if we have compositor surfaces present
+        if self.current_surface_traversal_depth == 0 && self.sub_slices.len() > 1 {
+            let map_local_to_surface = SpaceMapper::new_with_target(
+                self.spatial_node_index,
+                surface_spatial_node_index,
+                self.local_rect,
+                spatial_tree,
+            );
+
+            if let Some(pic_rect) = map_local_to_surface.map(&estimated_local_rect) {
+                // Find the first sub-slice we can add this primitive to (we want to add
+                // prims to the primary surface if possible, so they get subpixel AA).
+                for sub_slice in &mut self.sub_slices {
+                    let mut intersects_prohibited_region = false;
+
+                    for surface in &mut sub_slice.compositor_surfaces {
+                        if pic_rect.intersects(&surface.prohibited_rect) {
+                            surface.prohibited_rect = surface.prohibited_rect.union(&pic_rect);
+
+                            intersects_prohibited_region = true;
+                        }
+                    }
+
+                    if !intersects_prohibited_region {
+                        break;
+                    }
+                }
+            }
+        }
+
+        self.current_surface_traversal_depth += 1;
+    }
+
+    /// Pop an off-screen surface off the stack during dependency updates
+    pub fn pop_surface(&mut self) {
+        self.current_surface_traversal_depth -= 1;
     }
 
     /// Update the dependencies for each tile for a given primitive instance.
@@ -3473,7 +3504,6 @@ impl TileCacheInstance {
                 let image_data = &image_key.kind;
 
                 let mut promote_to_surface = false;
-                let mut promote_with_flip_y = false;
                 match self.can_promote_to_surface(image_key.common.flags,
                                                   prim_clip_chain,
                                                   prim_spatial_node_index,
@@ -3482,9 +3512,8 @@ impl TileCacheInstance {
                                                   frame_context) {
                     SurfacePromotionResult::Failed => {
                     }
-                    SurfacePromotionResult::Success{flip_y} => {
+                    SurfacePromotionResult::Success => {
                         promote_to_surface = true;
-                        promote_with_flip_y = flip_y;
                     }
                 }
 
@@ -3529,7 +3558,6 @@ impl TileCacheInstance {
                         composite_state,
                         gpu_cache,
                         image_data.image_rendering,
-                        promote_with_flip_y,
                     );
                 }
 
@@ -3555,7 +3583,7 @@ impl TileCacheInstance {
                                             sub_slice_index,
                                             frame_context) {
                     SurfacePromotionResult::Failed => false,
-                    SurfacePromotionResult::Success{flip_y} => !flip_y,
+                    SurfacePromotionResult::Success => true,
                 };
 
                 // TODO(gw): When we support RGBA images for external surfaces, we also
@@ -3592,7 +3620,7 @@ impl TileCacheInstance {
                         gpu_cache,
                         prim_data.kind.image_rendering,
                         prim_data.kind.color_depth,
-                        prim_data.kind.color_space,
+                        prim_data.kind.color_space.with_range(prim_data.kind.color_range),
                         prim_data.kind.format,
                     );
                 }
@@ -3839,26 +3867,10 @@ impl TileCacheInstance {
         frame_context: &FrameVisibilityContext,
         frame_state: &mut FrameVisibilityState,
     ) {
+        assert!(self.current_surface_traversal_depth == 0);
+
         self.dirty_region.reset(self.spatial_node_index);
         self.subpixel_mode = self.calculate_subpixel_mode();
-
-        // We only update the raster scale if we're in high quality zoom mode, or there is no
-        // pinch-zoom active. This means that in low quality pinch-zoom, we retain the initial
-        // scale factor until the zoom ends, then select a high quality zoom factor for the next
-        // frame to be drawn.
-        let update_raster_scale =
-            !frame_context.config.low_quality_pinch_zoom ||
-            !frame_context.spatial_tree.spatial_nodes[self.spatial_node_index.0 as usize].is_ancestor_or_self_zooming;
-
-        if update_raster_scale {
-            let surface_to_device = get_relative_scale_offset(
-                self.spatial_node_index,
-                ROOT_SPATIAL_NODE_INDEX,
-                frame_context.spatial_tree,
-            );
-
-            self.current_raster_scale = surface_to_device.scale.x;
-        }
 
         self.transform_index = frame_state.composite_state.register_transform(
             self.local_to_surface,
@@ -6227,7 +6239,26 @@ impl PicturePrimitive {
             // rasterization root should be established.
             let establishes_raster_root = match composite_mode {
                 PictureCompositeMode::TileCache { slice_id } => {
-                    let tile_cache = &tile_caches[&slice_id];
+                    let tile_cache = tile_caches.get_mut(&slice_id).unwrap();
+
+                    // We only update the raster scale if we're in high quality zoom mode, or there is no
+                    // pinch-zoom active. This means that in low quality pinch-zoom, we retain the initial
+                    // scale factor until the zoom ends, then select a high quality zoom factor for the next
+                    // frame to be drawn.
+                    let update_raster_scale =
+                        !frame_context.fb_config.low_quality_pinch_zoom ||
+                        !frame_context.spatial_tree.spatial_nodes[tile_cache.spatial_node_index.0 as usize].is_ancestor_or_self_zooming;
+
+                    if update_raster_scale {
+                        // Get the complete scale-offset from local space to device space
+                        let local_to_device = get_relative_scale_offset(
+                            tile_cache.spatial_node_index,
+                            ROOT_SPATIAL_NODE_INDEX,
+                            frame_context.spatial_tree,
+                        );
+
+                        tile_cache.current_raster_scale = local_to_device.scale.x;
+                    }
 
                     // We may need to minify when zooming out picture cache tiles
                     min_scale = 0.0;

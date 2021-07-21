@@ -31,6 +31,8 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/gfx/2D.h"
 #include "WindowsDefaultBrowser.h"
+#include "WindowsUserChoice.h"
+#include "nsLocalFile.h"
 
 #include <windows.h>
 #include <shellapi.h>
@@ -143,7 +145,6 @@ nsresult LaunchHelper(nsAutoString& aPath) {
 static bool IsPathDefaultForClass(
     const RefPtr<IApplicationAssociationRegistration>& pAAR, wchar_t* exePath,
     LPCWSTR aClassName) {
-  // Make sure the Prog ID matches what we have
   LPWSTR registeredApp;
   bool isProtocol = *aClassName != L'.';
   ASSOCIATIONTYPE queryType = isProtocol ? AT_URLPROTOCOL : AT_FILEEXTENSION;
@@ -153,37 +154,30 @@ static bool IsPathDefaultForClass(
     return false;
   }
 
-  LPCWSTR progID = isProtocol ? L"FirefoxURL" : L"FirefoxHTML";
-  bool isDefault = !wcsnicmp(registeredApp, progID, wcslen(progID));
-
   nsAutoString regAppName(registeredApp);
   CoTaskMemFree(registeredApp);
 
-  if (isDefault) {
-    // Make sure the application path for this progID is this installation.
-    regAppName.AppendLiteral("\\shell\\open\\command");
-    HKEY theKey;
-    nsresult rv = OpenKeyForReading(HKEY_CLASSES_ROOT, regAppName, &theKey);
-    if (NS_FAILED(rv)) {
-      return false;
-    }
-
-    wchar_t cmdFromReg[MAX_BUF] = L"";
-    DWORD len = sizeof(cmdFromReg);
-    DWORD res = ::RegQueryValueExW(theKey, nullptr, nullptr, nullptr,
-                                   (LPBYTE)cmdFromReg, &len);
-    ::RegCloseKey(theKey);
-    if (REG_FAILED(res)) {
-      return false;
-    }
-
-    wchar_t fullCmd[MAX_BUF] = L"";
-    _snwprintf(fullCmd, MAX_BUF, L"\"%s\" -osint -url \"%%1\"", exePath);
-
-    isDefault = _wcsicmp(fullCmd, cmdFromReg) == 0;
+  // Make sure the application path for this progID is this installation.
+  regAppName.AppendLiteral("\\shell\\open\\command");
+  HKEY theKey;
+  nsresult rv = OpenKeyForReading(HKEY_CLASSES_ROOT, regAppName, &theKey);
+  if (NS_FAILED(rv)) {
+    return false;
   }
 
-  return isDefault;
+  wchar_t cmdFromReg[MAX_BUF] = L"";
+  DWORD len = sizeof(cmdFromReg);
+  DWORD res = ::RegQueryValueExW(theKey, nullptr, nullptr, nullptr,
+                                 (LPBYTE)cmdFromReg, &len);
+  ::RegCloseKey(theKey);
+  if (REG_FAILED(res)) {
+    return false;
+  }
+
+  nsAutoString pathFromReg(cmdFromReg);
+  nsLocalFile::CleanupCmdHandlerPath(pathFromReg);
+
+  return _wcsicmp(exePath, pathFromReg.Data()) == 0;
 }
 
 NS_IMETHODIMP
@@ -229,6 +223,39 @@ nsresult nsWindowsShellService::LaunchControlPanelDefaultsSelectionUI() {
 
 nsresult nsWindowsShellService::LaunchControlPanelDefaultPrograms() {
   return ::LaunchControlPanelDefaultPrograms() ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsWindowsShellService::CheckAllProgIDsExist(bool* aResult) {
+  *aResult = false;
+  nsAutoString aumid;
+  if (!mozilla::widget::WinTaskbar::GetAppUserModelID(aumid)) {
+    return NS_OK;
+  }
+  *aResult =
+      CheckProgIDExists(FormatProgID(L"FirefoxURL", aumid.get()).get()) &&
+      CheckProgIDExists(FormatProgID(L"FirefoxHTML", aumid.get()).get());
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindowsShellService::CheckBrowserUserChoiceHashes(bool* aResult) {
+  *aResult = ::CheckBrowserUserChoiceHashes();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindowsShellService::CanSetDefaultBrowserUserChoice(bool* aResult) {
+  *aResult = false;
+// If the WDBA is not available, this could never succeed.
+#ifdef MOZ_DEFAULT_BROWSER_AGENT
+  bool progIDsExist = false;
+  bool hashOk = false;
+  *aResult = NS_SUCCEEDED(CheckAllProgIDsExist(&progIDsExist)) &&
+             progIDsExist &&
+             NS_SUCCEEDED(CheckBrowserUserChoiceHashes(&hashOk)) && hashOk;
+#endif
+  return NS_OK;
 }
 
 nsresult nsWindowsShellService::LaunchModernSettingsDialogDefaultApps() {
@@ -279,16 +306,23 @@ nsresult nsWindowsShellService::LaunchHTTPHandlerPane() {
 NS_IMETHODIMP
 nsWindowsShellService::SetDefaultBrowser(bool aClaimAllTypes,
                                          bool aForAllUsers) {
-  nsAutoString appHelperPath;
-  if (NS_FAILED(GetHelperPath(appHelperPath))) return NS_ERROR_FAILURE;
+  // If running from within a package, don't attempt to set default with
+  // the helper, as it will not work and will only confuse our package's
+  // virtualized registry.
+  nsresult rv = NS_OK;
+  if (!widget::WinUtils::HasPackageIdentity()) {
+    nsAutoString appHelperPath;
+    if (NS_FAILED(GetHelperPath(appHelperPath))) return NS_ERROR_FAILURE;
 
-  if (aForAllUsers) {
-    appHelperPath.AppendLiteral(" /SetAsDefaultAppGlobal");
-  } else {
-    appHelperPath.AppendLiteral(" /SetAsDefaultAppUser");
+    if (aForAllUsers) {
+      appHelperPath.AppendLiteral(" /SetAsDefaultAppGlobal");
+    } else {
+      appHelperPath.AppendLiteral(" /SetAsDefaultAppUser");
+    }
+
+    rv = LaunchHelper(appHelperPath);
   }
 
-  nsresult rv = LaunchHelper(appHelperPath);
   if (NS_SUCCEEDED(rv) && IsWin8OrLater()) {
     if (aClaimAllTypes) {
       if (IsWin10OrLater()) {

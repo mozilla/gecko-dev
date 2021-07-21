@@ -27,10 +27,8 @@
 }
 
 /* Make the contrast stronger in dark mode */
-@media (-moz-proton) {
 :root[lwt-toolbar-field-focus-brighttext] .search-panel-header > label {
   opacity: 1;
-}
 }
 
 /**
@@ -51,20 +49,6 @@
   border-top: none !important;
   padding-inline: 8px;
 }
-
-@media not (-moz-proton) {
-.search-panel-header {
-  padding-block: 3px;
-}
-
-.search-panel-current-engine {
-  border-bottom: 1px solid var(--panel-separator-color);
-}
-
-.search-panel-tree:not([collapsed=true]) ~ .search-one-offs {
-  border-top: 1px solid var(--panel-separator-color);
-}
-} /*** END !proton ***/
 
 .search-panel-one-offs:not([hidden]),
 .search-panel-one-offs-container {
@@ -92,13 +76,6 @@
   border-radius: var(--toolbarbutton-border-radius);
 }
 
-@media not (-moz-proton) {
-.searchbar-engine-one-off-item {
-  border-radius: 0;
-  min-width: 48px;
-}
-} /*** END !proton ***/
-
 /* We don't handle `:active` because it doesn't work on the search or settings
    buttons due to event.preventDefault() in SearchOneOffs._on_mousedown(). */
 .searchbar-engine-one-off-item:not([selected]):hover {
@@ -111,17 +88,12 @@
   color: var(--autocomplete-popup-highlight-color);
 }
 
-.searchbar-engine-one-off-item > .button-box {
-  padding: 0;
-}
-
 .searchbar-engine-one-off-item > .button-box > .button-text {
   display: none;
 }
 
 .searchbar-engine-one-off-item > .button-box > .button-icon {
-  margin-inline-start: 0;
-  margin-inline-end: 0;
+  margin-inline: 0;
   width: 16px;
   height: 16px;
 }
@@ -135,11 +107,9 @@
   padding: 1px 3px;
 }
 
-@media (-moz-proton) {
 .search-panel-tree > .autocomplete-richlistitem:hover {
   background-color: var(--autocomplete-popup-hover-background);
 }
-} /*** END proton ***/
 
 .search-panel-tree > .autocomplete-richlistitem > .ac-type-icon {
   display: -moz-box;
@@ -171,12 +141,6 @@
 .search-panel-tree[collapsed=true] + .searchbar-separator {
   display: none;
 }
-
-@media not (-moz-proton) {
-.searchbar-separator {
-  display: none;
-}
-} /*** END !proton ***/
 
 .search-setting-button {
   max-height: 32px;

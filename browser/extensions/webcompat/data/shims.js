@@ -104,17 +104,8 @@ const AVAILABLE_SHIMS = [
     name: "Ad Safe Protected Google IMA Adapter",
     bug: "1508639",
     file: "adsafeprotected-ima.js",
-    matches: [
-      "*://cdn.adsafeprotected.com/iasPET.1.js",
-      "*://static.adsafeprotected.com/vans-adapter-google-ima.js",
-    ],
-    needsShimHelpers: ["optIn"],
+    matches: ["*://static.adsafeprotected.com/vans-adapter-google-ima.js"],
     onlyIfBlockedByETP: true,
-    unblocksOnOptIn: [
-      "*://pubads.g.doubleclick.net/gampad/ads*",
-      "*://cdn.adsafeprotected.com/iasPET.1.js",
-      "*://static.adsafeprotected.com/vans-adapter-google-ima.js",
-    ],
   },
   {
     id: "AdsByGoogle",
@@ -126,12 +117,73 @@ const AVAILABLE_SHIMS = [
     onlyIfBlockedByETP: true,
   },
   {
+    id: "AmazonTAM",
+    platform: "all",
+    name: "Amazon Transparent Ad Marketplace",
+    bug: "1713698",
+    file: "apstag.js",
+    matches: ["*://c.amazon-adsystem.com/aax2/apstag.js"],
+  },
+  {
     id: "BmAuth",
     platform: "all",
     name: "BmAuth by 9c9media",
     bug: "1486337",
     file: "bmauth.js",
     matches: ["*://auth.9c9media.ca/auth/main.js"],
+    onlyIfBlockedByETP: true,
+  },
+  {
+    id: "Chartbeat",
+    platform: "all",
+    name: "Chartbeat",
+    bug: "1713699",
+    file: "chartbeat.js",
+    matches: [
+      "*://static.chartbeat.com/js/chartbeat.js",
+      "*://static.chartbeat.com/js/chartbeat_video.js",
+    ],
+    onlyIfBlockedByETP: true,
+  },
+  {
+    id: "Doubleclick",
+    platform: "all",
+    name: "Doubleclick",
+    bug: "1713693",
+    matches: [
+      {
+        patterns: [
+          "*://securepubads.g.doubleclick.net/gampad/*ad-blk*",
+          "*://pubads.g.doubleclick.net/gampad/*ad-blk*",
+        ],
+        target: "empty-shim.txt",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+      {
+        patterns: [
+          "*://securepubads.g.doubleclick.net/gampad/*xml_vmap1*",
+          "*://pubads.g.doubleclick.net/gampad/*xml_vmap1*",
+        ],
+        target: "vmad.xml",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+      {
+        patterns: [
+          "*://securepubads.g.doubleclick.net/gampad/*xml_vmap2*",
+          "*://pubads.g.doubleclick.net/gampad/*xml_vmap2*",
+        ],
+        target: "vast2.xml",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+      {
+        patterns: [
+          "*://securepubads.g.doubleclick.net/gampad/*ad*",
+          "*://pubads.g.doubleclick.net/gampad/*ad*",
+        ],
+        target: "vast3.xml",
+        types: ["image", "imageset", "xmlhttprequest"],
+      },
+    ],
     onlyIfBlockedByETP: true,
   },
   {
@@ -214,10 +266,22 @@ const AVAILABLE_SHIMS = [
     onlyIfBlockedByETP: true,
   },
   {
+    id: "GoogleIMA",
+    platform: "all",
+    name: "Google Interactive Media Ads",
+    bug: "1713690",
+    file: "google-ima.js",
+    matches: [
+      "*://s0.2mdn.net/instream/html5/ima3.js",
+      "*://imasdk.googleapis.com/js/sdkloader/ima3.js",
+    ],
+    onlyIfBlockedByETP: true,
+  },
+  {
     id: "GooglePublisherTags",
     platform: "all",
     name: "Google Publisher Tags",
-    bug: "1600538",
+    bug: "1713685",
     file: "google-publisher-tags.js",
     matches: [
       "*://www.googletagservices.com/tag/js/gpt.js",
@@ -227,16 +291,43 @@ const AVAILABLE_SHIMS = [
     onlyIfBlockedByETP: true,
   },
   {
-    id: "IMA3",
+    id: "Google SafeFrame",
     platform: "all",
-    name: "IMA3",
-    bug: "1487373",
-    file: "empty-script.js",
-    onlyIfBlockedByETP: true,
+    name: "Google SafeFrame",
+    bug: "1713691",
     matches: [
-      "*://s0.2mdn.net/instream/html5/ima3.js",
-      "*://imasdk.googleapis.com/js/sdkloader/ima3.js",
+      {
+        patterns: [
+          "*://tpc.googlesyndication.com/safeframe/*/html/container.html",
+          "*://*.safeframe.googlesyndication.com/safeframe/*/html/container.html",
+        ],
+        target: "google-safeframe.html",
+        types: ["sub_frame"],
+      },
     ],
+    onlyIfBlockedByETP: true,
+  },
+  {
+    id: "IASPET",
+    platform: "all",
+    name: "Integral Ad Science PET",
+    bug: "1713701",
+    file: "iaspet.js",
+    matches: ["*://cdn.adsafeprotected.com/iasPET.1.js"],
+  },
+  {
+    id: "Moat",
+    platform: "all",
+    name: "Moat",
+    bug: "1713704",
+    file: "moat.js",
+    matches: [
+      "*://*.moatads.com/*/moatad.js*",
+      "*://*.moatads.com/*/moatapi.js*",
+      "*://*.moatads.com/*/moatheader.js*",
+      "*://*.moatads.com/*/yi.js*",
+    ],
+    onlyIfBlockedByETP: true,
   },
   {
     id: "Rambler",

@@ -52,6 +52,9 @@ bool RenderCompositorNative::BeginFrame() {
 
   gfx::IntSize bufferSize = GetBufferSize().ToUnknownSize();
   if (!ShouldUseNativeCompositor()) {
+    if (bufferSize.IsEmpty()) {
+      return false;
+    }
     if (mNativeLayerForEntireWindow &&
         mNativeLayerForEntireWindow->GetSize() != bufferSize) {
       mNativeLayerRoot->RemoveLayer(mNativeLayerForEntireWindow);
@@ -216,7 +219,7 @@ void RenderCompositorNative::CompositorBeginFrame() {
   mAddedLayers.Clear();
   mAddedTilePixelCount = 0;
   mAddedClippedPixelCount = 0;
-  mBeginFrameTimeStamp = TimeStamp::NowUnfuzzed();
+  mBeginFrameTimeStamp = TimeStamp::Now();
   mSurfacePoolHandle->OnBeginFrame();
 }
 

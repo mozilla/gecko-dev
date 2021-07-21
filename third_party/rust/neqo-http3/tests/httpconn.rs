@@ -8,7 +8,10 @@
 
 use neqo_common::{event::Provider, Datagram};
 use neqo_crypto::AuthenticationStatus;
-use neqo_http3::{Http3Client, Http3ClientEvent, Http3Server, Http3ServerEvent, Http3State};
+use neqo_http3::{
+    Header, Http3Client, Http3ClientEvent, Http3Server, Http3ServerEvent, Http3State,
+};
+use std::mem;
 use test_fixture::*;
 
 const RESPONSE_DATA: &[u8] = &[0x61, 0x62, 0x63];
@@ -25,18 +28,18 @@ fn process_server_events(server: &mut Http3Server) {
             assert_eq!(
                 headers,
                 vec![
-                    (String::from(":method"), String::from("GET")),
-                    (String::from(":scheme"), String::from("https")),
-                    (String::from(":authority"), String::from("something.com")),
-                    (String::from(":path"), String::from("/"))
+                    Header::new(":method", "GET"),
+                    Header::new(":scheme", "https"),
+                    Header::new(":authority", "something.com"),
+                    Header::new(":path", "/")
                 ]
             );
-            assert_eq!(fin, true);
+            assert!(fin);
             request
                 .set_response(
                     &[
-                        (String::from(":status"), String::from("200")),
-                        (String::from("content-length"), String::from("3")),
+                        Header::new(":status", "200"),
+                        Header::new("content-length", "3"),
                     ],
                     RESPONSE_DATA,
                 )
@@ -44,7 +47,7 @@ fn process_server_events(server: &mut Http3Server) {
             request_found = true;
         }
     }
-    assert_eq!(request_found, true);
+    assert!(request_found);
 }
 
 fn process_client_events(conn: &mut Http3Client) {
@@ -56,17 +59,17 @@ fn process_client_events(conn: &mut Http3Client) {
                 assert_eq!(
                     headers,
                     vec![
-                        (String::from(":status"), String::from("200")),
-                        (String::from("content-length"), String::from("3")),
+                        Header::new(":status", "200"),
+                        Header::new("content-length", "3"),
                     ]
                 );
-                assert_eq!(fin, false);
+                assert!(!fin);
                 response_header_found = true;
             }
             Http3ClientEvent::DataReadable { stream_id } => {
                 let mut buf = [0u8; 100];
                 let (amount, fin) = conn.read_response_data(now(), stream_id, &mut buf).unwrap();
-                assert_eq!(fin, true);
+                assert!(fin);
                 assert_eq!(amount, RESPONSE_DATA.len());
                 assert_eq!(&buf[..RESPONSE_DATA.len()], RESPONSE_DATA);
                 response_data_found = true;
@@ -74,8 +77,8 @@ fn process_client_events(conn: &mut Http3Client) {
             _ => {}
         }
     }
-    assert_eq!(response_header_found, true);
-    assert_eq!(response_data_found, true)
+    assert!(response_header_found);
+    assert!(response_data_found);
 }
 
 fn connect() -> (Http3Client, Http3Server, Option<Datagram>) {
@@ -86,7 +89,7 @@ fn connect() -> (Http3Client, Http3Server, Option<Datagram>) {
     let out = hconn_c.process(None, now()); // Initial
     let out = hconn_s.process(out.dgram(), now()); // Initial + Handshake
     let out = hconn_c.process(out.dgram(), now()); // ACK
-    let _ = hconn_s.process(out.dgram(), now()); //consume ACK
+    mem::drop(hconn_s.process(out.dgram(), now())); //consume ACK
     let authentication_needed = |e| matches!(e, Http3ClientEvent::AuthenticationNeeded);
     assert!(hconn_c.events().any(authentication_needed));
     hconn_c.authenticated(AuthenticationStatus::Ok, now());
@@ -95,9 +98,9 @@ fn connect() -> (Http3Client, Http3Server, Option<Datagram>) {
     let out = hconn_s.process(out.dgram(), now()); // Handshake
     let out = hconn_c.process(out.dgram(), now());
     let out = hconn_s.process(out.dgram(), now());
-    // assert_eq!(hconn_s.settings_received, true);
+    // assert!(hconn_s.settings_received);
     let out = hconn_c.process(out.dgram(), now());
-    // assert_eq!(hconn_c.settings_received, true);
+    // assert!(hconn_c.settings_received);
 
     (hconn_c, hconn_s, out.dgram())
 }
@@ -120,13 +123,13 @@ fn test_fetch() {
     let out = hconn_c.process(dgram, now());
     eprintln!("-----server");
     let out = hconn_s.process(out.dgram(), now());
-    let _ = hconn_c.process(out.dgram(), now());
+    mem::drop(hconn_c.process(out.dgram(), now()));
     process_server_events(&mut hconn_s);
     let out = hconn_s.process(None, now());
 
     eprintln!("-----client");
-    let _ = hconn_c.process(out.dgram(), now());
+    mem::drop(hconn_c.process(out.dgram(), now()));
     let out = hconn_s.process(None, now());
-    let _ = hconn_c.process(out.dgram(), now());
+    mem::drop(hconn_c.process(out.dgram(), now()));
     process_client_events(&mut hconn_c);
 }

@@ -14,7 +14,11 @@ function test() {
   // GPU process might not run depending on the platform, so we need it to be
   // the last one of the list to allow the remainingTests logic below to work
   // as expected.
-  var processTypes = ["tab", "socket", "gpu"];
+  //
+  // Skip GPU tests for now because they don't actually run anything and they
+  // trigger some shutdown hang on Windows
+  // FIXME: Bug XXX
+  var processTypes = ["tab", "socket", "rdd", "gmplugin", "gpu"];
 
   // A callback called after each test-result.
   let sandboxTestResult = (subject, topic, data) => {

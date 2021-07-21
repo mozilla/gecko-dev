@@ -12,6 +12,8 @@
 #include "base/basictypes.h"
 #include "build/build_config.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/WeakPtr.h"
+#include "chrome/common/ipc_message.h"
 
 #ifdef OS_WIN
 #  include <string>
@@ -39,9 +41,12 @@ class Channel {
 #endif
 
   // Implemented by consumers of a Channel to receive messages.
-  class Listener {
+  //
+  // All listeners will only be called on the IO thread, and must be destroyed
+  // on the IO thread.
+  class Listener : public mozilla::SupportsWeakPtr {
    public:
-    virtual ~Listener() {}
+    virtual ~Listener() = default;
 
     // Called when a message is received.
     virtual void OnMessageReceived(Message&& message) = 0;
@@ -120,6 +125,10 @@ class Channel {
   // If you Send() a message on a Close()'d channel, we delete the message
   // immediately.
   bool Send(mozilla::UniquePtr<Message> message);
+
+  // The PID which this channel has been opened with. This will be
+  // `-1` until `OnChannelConnected` has been called.
+  int32_t OtherPid() const;
 
   // Unsound_IsClosed() and Unsound_NumQueuedMessages() are safe to call from
   // any thread, but the value returned may be out of date, because we don't

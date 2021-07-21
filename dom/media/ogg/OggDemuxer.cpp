@@ -85,6 +85,7 @@ OggDemuxer::nsAutoOggSyncState::~nsAutoOggSyncState() {
 rlbox_sandbox_ogg* OggDemuxer::CreateSandbox() {
   rlbox_sandbox_ogg* sandbox = new rlbox_sandbox_ogg();
 #ifdef MOZ_WASM_SANDBOXING_OGG
+#  ifdef LUCETC_WASM_SANDBOXING
   // Firefox preloads the library externally to ensure we won't be stopped
   // by the content sandbox
   const bool external_loads_exist = true;
@@ -92,8 +93,11 @@ rlbox_sandbox_ogg* OggDemuxer::CreateSandbox() {
   // fails as the I/O redirection involves querying meta-data of file
   // descriptors. This querying fails in some environments.
   const bool allow_stdio = false;
-  sandbox->create_sandbox(mozilla::ipc::GetSandboxedOggPath().get(),
+  sandbox->create_sandbox(mozilla::ipc::GetSandboxedRLBoxPath().get(),
                           external_loads_exist, allow_stdio);
+#  else
+  sandbox->create_sandbox(mozilla::ipc::GetSandboxedRLBoxPath().get());
+#  endif
 #else
   sandbox->create_sandbox();
 #endif
@@ -171,24 +175,6 @@ OggDemuxer::~OggDemuxer() {
   MOZ_COUNT_DTOR(OggDemuxer);
   Reset(TrackInfo::kAudioTrack);
   Reset(TrackInfo::kVideoTrack);
-  if (HasAudio() || HasVideo()) {
-    // If we were able to initialize our decoders, report whether we encountered
-    // a chained stream or not.
-    bool isChained = mIsChained;
-    void* ptr = this;
-    nsCOMPtr<nsIRunnable> task = NS_NewRunnableFunction(
-        "OggDemuxer::~OggDemuxer", [ptr, isChained]() -> void {
-          // We can't use OGG_DEBUG here because it implicitly refers to `this`,
-          // which we can't capture in this runnable.
-          MOZ_LOG(gMediaDemuxerLog, mozilla::LogLevel::Debug,
-                  ("OggDemuxer(%p)::%s: Reporting telemetry "
-                   "MEDIA_OGG_LOADED_IS_CHAINED=%d",
-                   ptr, __func__, isChained));
-          Telemetry::Accumulate(
-              Telemetry::HistogramID::MEDIA_OGG_LOADED_IS_CHAINED, isChained);
-        });
-    SchedulerGroup::Dispatch(TaskCategory::Other, task.forget());
-  }
 }
 
 void OggDemuxer::SetChainingEvents(TimedMetadataEventProducer* aMetadataEvent,

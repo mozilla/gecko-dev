@@ -213,9 +213,6 @@ function Tester(aTests, structuredLogger, aCallback) {
   this.TestUtils = ChromeUtils.import(
     "resource://testing-common/TestUtils.jsm"
   ).TestUtils;
-  this.Promise = ChromeUtils.import(
-    "resource://gre/modules/Promise.jsm"
-  ).Promise;
   this.PromiseTestUtils = ChromeUtils.import(
     "resource://testing-common/PromiseTestUtils.jsm"
   ).PromiseTestUtils;
@@ -648,11 +645,6 @@ Tester.prototype = {
           }
         }
       }, this);
-
-      // Clear document.popupNode.  The test could have set it to a custom value
-      // for its own purposes, nulling it out it will go back to the default
-      // behavior of returning the last opened popup.
-      document.popupNode = null;
 
       // eslint-disable-next-line no-undef
       await new Promise(resolve => SpecialPowers.flushPrefEnv(resolve));

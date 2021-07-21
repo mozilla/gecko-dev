@@ -70,7 +70,6 @@ if CONFIG["MOZ_PLACES"]:
         "PlacesUtils.jsm",
         "SyncedBookmarksMirror.jsm",
         "TaggingService.jsm",
-        "UnifiedComplete.jsm",
     ]
 
     XPCOM_MANIFESTS += [
@@ -86,5 +85,3 @@ with Files("**"):
 
 if CONFIG["CC_TYPE"] in ("clang", "gcc"):
     CXXFLAGS += ["-Wno-error=shadow"]
-
-JAR_MANIFESTS += ["jar.mn"]

@@ -154,6 +154,10 @@ void nsWaylandDisplay::SetPointerConstraints(
   mPointerConstraints = aPointerConstraints;
 }
 
+void nsWaylandDisplay::SetDmabuf(zwp_linux_dmabuf_v1* aDmabuf) {
+  mDmabuf = aDmabuf;
+}
+
 static void global_registry_handler(void* data, wl_registry* registry,
                                     uint32_t id, const char* interface,
                                     uint32_t version) {
@@ -227,6 +231,11 @@ static void global_registry_handler(void* data, wl_registry* registry,
         registry, id, &wp_viewporter_interface, 1);
     wl_proxy_set_queue((struct wl_proxy*)viewporter, display->GetEventQueue());
     display->SetViewporter(viewporter);
+  } else if (strcmp(interface, "zwp_linux_dmabuf_v1") == 0 && version > 2) {
+    auto* dmabuf = WaylandRegistryBind<zwp_linux_dmabuf_v1>(
+        registry, id, &zwp_linux_dmabuf_v1_interface, 3);
+    wl_proxy_set_queue((struct wl_proxy*)dmabuf, display->GetEventQueue());
+    display->SetDmabuf(dmabuf);
   }
 }
 
@@ -315,7 +324,7 @@ bool nsWaylandDisplay::Matches(wl_display* aDisplay) {
   return mThreadId == PR_GetCurrentThread() && aDisplay == mDisplay;
 }
 
-nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay, bool aLighWrapper)
+nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
     : mThreadId(PR_GetCurrentThread()),
       mDisplay(aDisplay),
       mEventQueue(nullptr),
@@ -329,34 +338,26 @@ nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay, bool aLighWrapper)
       mIdleInhibitManager(nullptr),
       mRelativePointerManager(nullptr),
       mPointerConstraints(nullptr),
-      mRegistry(nullptr),
       mViewporter(nullptr),
+      mDmabuf(nullptr),
       mExplicitSync(false) {
-  if (!aLighWrapper) {
-    mRegistry = wl_display_get_registry(mDisplay);
-    wl_registry_add_listener(mRegistry, &registry_listener, this);
-  }
-
+  wl_registry *registry = wl_display_get_registry(mDisplay);
+  wl_registry_add_listener(registry, &registry_listener, this);
   if (!NS_IsMainThread()) {
     mEventQueue = wl_display_create_queue(mDisplay);
-    wl_proxy_set_queue((struct wl_proxy*)mRegistry, mEventQueue);
+    wl_proxy_set_queue((struct wl_proxy*)registry, mEventQueue);
   }
-
-  if (!aLighWrapper) {
-    if (mEventQueue) {
-      wl_display_roundtrip_queue(mDisplay, mEventQueue);
-      wl_display_roundtrip_queue(mDisplay, mEventQueue);
-    } else {
-      wl_display_roundtrip(mDisplay);
-      wl_display_roundtrip(mDisplay);
-    }
+  if (mEventQueue) {
+    wl_display_roundtrip_queue(mDisplay, mEventQueue);
+    wl_display_roundtrip_queue(mDisplay, mEventQueue);
+  } else {
+    wl_display_roundtrip(mDisplay);
+    wl_display_roundtrip(mDisplay);
   }
+  wl_registry_destroy(registry);
 }
 
 nsWaylandDisplay::~nsWaylandDisplay() {
-  wl_registry_destroy(mRegistry);
-  mRegistry = nullptr;
-
   if (mEventQueue) {
     wl_event_queue_destroy(mEventQueue);
     mEventQueue = nullptr;

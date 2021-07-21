@@ -76,9 +76,6 @@
 SimpleTest.waitForExplicitFinish();
 SimpleTest.expectAssertions(0, 34);
 
-const kStrictKeyPressEvents =
-  SpecialPowers.getBoolPref("dom.keyboardevent.keypress.dispatch_non_printable_keys_only_system_group_in_content");
-
 const kIsMac = (navigator.platform.indexOf("Mac") == 0);
 const kIsWin = (navigator.platform.indexOf("Win") == 0);
 
@@ -206,47 +203,22 @@ const kTests = [
     },
     todoMismatch: [],
   },
-  { description: "WidgetKeyboardEvent (keypress of 'c' key with Accel)",
-    targetID: "input-text", eventType: "keypress",
-    dispatchEvent() {
-      document.getElementById(this.targetID).value = "";
-      document.getElementById(this.targetID).focus();
-      synthesizeNativeKey(KEYBOARD_LAYOUT_EN_US, kIsWin ? WIN_VK_C : MAC_VK_ANSI_C,
-                          { accelKey: true }, kIsWin ? "\u0003" : "c", "c");
-
-      // On Windows, synthesizeNativeKey will also fire keyup for accelKey
-      // (control key on Windows). We have to wait for it to prevent the key
-      // event break the next test case.
-      let waitKeyCode = _EU_isWin(window) ? KeyboardEvent.DOM_VK_CONTROL :
-                                            KeyboardEvent.DOM_VK_C;
-      observeKeyUpOnContent(waitKeyCode, runNextTest);
-      return true;
-    },
-    canRun() {
-      return !kStrictKeyPressEvents && (kIsMac || kIsWin);
-    },
-    todoMismatch: [],
-  },
   { description: "WidgetKeyboardEvent (keyup during composition)",
     targetID: "input-text", eventType: "keyup",
     dispatchEvent() {
-      setAndObserveCompositionPref(true, () => {
-        document.getElementById(this.targetID).value = "";
-        document.getElementById(this.targetID).focus();
-        synthesizeCompositionChange({ "composition":
-          { "string": "\u306D",
-            "clauses":
-            [
-              { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE },
-            ],
-          },
-          "caret": { "start": 1, "length": 0 },
-          "key": { key: "a" },
-        });
-        synthesizeComposition({ type: "compositioncommitasis", key: {} });
-        setAndObserveCompositionPref(null, runNextTest);
+      document.getElementById(this.targetID).value = "";
+      document.getElementById(this.targetID).focus();
+      synthesizeCompositionChange({ "composition":
+        { "string": "\u306D",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE },
+          ],
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": { key: "a" },
       });
-      return true;
+      synthesizeComposition({ type: "compositioncommitasis", key: {} });
     },
     canRun() {
       return true;
@@ -256,24 +228,20 @@ const kTests = [
   { description: "WidgetKeyboardEvent (keydown during composition)",
     targetID: "input-text", eventType: "keydown",
     dispatchEvent() {
-      setAndObserveCompositionPref(true, () => {
-        document.getElementById(this.targetID).value = "";
-        document.getElementById(this.targetID).focus();
-        synthesizeCompositionChange({ "composition":
-          { "string": "\u306D",
-            "clauses":
-            [
-              { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE },
-            ],
-          },
-          "caret": { "start": 1, "length": 0 },
-          "key": {},
-        });
-        synthesizeComposition({ type: "compositioncommitasis",
-          key: { key: "KEY_Enter" } });
-        setAndObserveCompositionPref(null, runNextTest);
+      document.getElementById(this.targetID).value = "";
+      document.getElementById(this.targetID).focus();
+      synthesizeCompositionChange({ "composition":
+        { "string": "\u306D",
+          "clauses":
+          [
+            { "length": 1, "attr": COMPOSITION_ATTR_RAW_CLAUSE },
+          ],
+        },
+        "caret": { "start": 1, "length": 0 },
+        "key": {},
       });
-      return true;
+      synthesizeComposition({ type: "compositioncommitasis",
+        key: { key: "KEY_Enter" } });
     },
     canRun() {
       return true;
@@ -646,24 +614,6 @@ const kTests = [
     todoMismatch: [],
   },
 ];
-
-/**
- * Sets or clears dom.keyboardevent.dispatch_during_composition and calls the
- * given callback when the change is observed.
- *
- * @param aValue
- *        Pass null to clear the pref.  Otherwise pass a bool.
- * @param aCallback
- *        Called when the pref change is observed.
- */
-function setAndObserveCompositionPref(aValue, aCallback) {
-  let pref = "dom.keyboardevent.dispatch_during_composition";
-  if (aValue === null) {
-    SpecialPowers.pushPrefEnv({"clear": [[pref]]}, aCallback);
-  } else {
-    SpecialPowers.pushPrefEnv({"set": [[pref, aValue]]}, aCallback);
-  }
-}
 
 function doTest(aTest) {
   if (!aTest.canRun()) {

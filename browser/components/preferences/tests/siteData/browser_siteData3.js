@@ -45,10 +45,10 @@ add_task(async function test_exclusions() {
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });
 
-// Test grouping and listing sites across scheme, port and origin attributes by host
+// Test grouping and listing sites across scheme, port and origin attributes by base domain.
 add_task(async function test_grouping() {
   let quotaUsage = 7000000;
-  await addTestData([
+  let testData = [
     {
       usage: quotaUsage,
       origin: "https://account.xyz.com^userContextId=1",
@@ -73,7 +73,26 @@ add_task(async function test_grouping() {
       cookies: 1,
       persisted: false,
     },
-  ]);
+    {
+      usage: quotaUsage,
+      origin: "http://search.xyz.com",
+      cookies: 3,
+      persisted: false,
+    },
+    {
+      usage: quotaUsage,
+      origin: "http://advanced.search.xyz.com",
+      cookies: 3,
+      persisted: true,
+    },
+    {
+      usage: quotaUsage,
+      origin: "http://xyz.com",
+      cookies: 1,
+      persisted: false,
+    },
+  ];
+  await addTestData(testData);
 
   let updatedPromise = promiseSiteDataManagerSitesUpdated();
   await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
@@ -92,12 +111,13 @@ add_task(async function test_grouping() {
 
   let columns = siteItems[0].querySelectorAll(".item-box > label");
 
-  let expected = "account.xyz.com";
+  let expected = "xyz.com";
   is(columns[0].value, expected, "Should group and list sites by host");
 
+  let cookieCount = testData.reduce((count, { cookies }) => count + cookies, 0);
   is(
     columns[1].value,
-    "5",
+    cookieCount.toString(),
     "Should group cookies across scheme, port and origin attributes"
   );
 
@@ -129,25 +149,28 @@ add_task(async function test_grouping() {
 add_task(async function test_sorting() {
   let testData = [
     {
-      baseDomain: "xyz.com",
       usage: 1024,
       origin: "https://account.xyz.com",
       cookies: 6,
       persisted: true,
     },
     {
-      baseDomain: "foo.com",
       usage: 1024 * 2,
       origin: "https://books.foo.com",
       cookies: 0,
       persisted: false,
     },
     {
-      baseDomain: "bar.com",
       usage: 1024 * 3,
       origin: "http://cinema.bar.com",
       cookies: 3,
       persisted: true,
+    },
+    {
+      usage: 1024 * 3,
+      origin: "http://vod.bar.com",
+      cookies: 2,
+      persisted: false,
     },
   ];
 
@@ -175,7 +198,7 @@ add_task(async function test_sorting() {
   // Test default sorting by usage, descending.
   Assert.deepEqual(
     getHostOrder(),
-    ["cinema.bar.com", "books.foo.com", "account.xyz.com"],
+    ["bar.com", "foo.com", "xyz.com"],
     "Has sorted descending by usage"
   );
 
@@ -183,13 +206,13 @@ add_task(async function test_sorting() {
   usageCol.click();
   Assert.deepEqual(
     getHostOrder(),
-    ["account.xyz.com", "books.foo.com", "cinema.bar.com"],
+    ["xyz.com", "foo.com", "bar.com"],
     "Has sorted ascending by usage"
   );
   usageCol.click();
   Assert.deepEqual(
     getHostOrder(),
-    ["cinema.bar.com", "books.foo.com", "account.xyz.com"],
+    ["bar.com", "foo.com", "xyz.com"],
     "Has sorted descending by usage"
   );
 
@@ -197,13 +220,13 @@ add_task(async function test_sorting() {
   hostCol.click();
   Assert.deepEqual(
     getHostOrder(),
-    ["cinema.bar.com", "books.foo.com", "account.xyz.com"],
+    ["bar.com", "foo.com", "xyz.com"],
     "Has sorted ascending by base domain"
   );
   hostCol.click();
   Assert.deepEqual(
     getHostOrder(),
-    ["account.xyz.com", "books.foo.com", "cinema.bar.com"],
+    ["xyz.com", "foo.com", "bar.com"],
     "Has sorted descending by base domain"
   );
 
@@ -211,16 +234,94 @@ add_task(async function test_sorting() {
   cookiesCol.click();
   Assert.deepEqual(
     getHostOrder(),
-    ["books.foo.com", "cinema.bar.com", "account.xyz.com"],
+    ["foo.com", "bar.com", "xyz.com"],
     "Has sorted ascending by cookies"
   );
   cookiesCol.click();
   Assert.deepEqual(
     getHostOrder(),
-    ["account.xyz.com", "cinema.bar.com", "books.foo.com"],
+    ["xyz.com", "bar.com", "foo.com"],
     "Has sorted descending by cookies"
   );
 
+  await SiteDataTestUtils.clear();
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+// Test single entry removal
+add_task(async function test_single_entry_removal() {
+  let testData = await addTestData([
+    {
+      usage: 1024,
+      origin: "https://xyz.com",
+      cookies: 6,
+      persisted: true,
+    },
+    {
+      usage: 1024 * 3,
+      origin: "http://bar.com",
+      cookies: 2,
+      persisted: false,
+    },
+  ]);
+
+  let updatePromise = promiseSiteDataManagerSitesUpdated();
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
+  await updatePromise;
+  await openSiteDataSettingsDialog();
+
+  let dialog = content.gSubDialog._topDialog;
+  let dialogFrame = dialog._frame;
+  let frameDoc = dialogFrame.contentDocument;
+
+  let sitesList = frameDoc.getElementById("sitesList");
+  let host = testData[0];
+  let site = sitesList.querySelector(`richlistitem[host="${host}"]`);
+  sitesList.addItemToSelection(site);
+  frameDoc.getElementById("removeSelected").doCommand();
+  let saveChangesButton = frameDoc.querySelector("dialog").getButton("accept");
+  let dialogOpened = BrowserTestUtils.promiseAlertDialogOpen(
+    null,
+    REMOVE_DIALOG_URL
+  );
+  setTimeout(() => saveChangesButton.doCommand(), 0);
+  let dialogWin = await dialogOpened;
+  let rootElement = dialogWin.document.getElementById(
+    "SiteDataRemoveSelectedDialog"
+  );
+  is(rootElement.classList.length, 1, "There should only be one class set");
+  is(
+    rootElement.classList[0],
+    "single-entry",
+    "The only class set should be single-entry (to hide the list)"
+  );
+  let description = dialogWin.document.getElementById("removing-description");
+  is(
+    description.getAttribute("data-l10n-id"),
+    "site-data-removing-single-desc",
+    "The description for single site should be selected"
+  );
+
+  let removalList = dialogWin.document.getElementById("removalList");
+  is(
+    BrowserTestUtils.is_visible(removalList),
+    false,
+    "The removal list should be invisible"
+  );
+  let removeButton = dialogWin.document
+    .querySelector("dialog")
+    .getButton("accept");
+  let dialogClosed = BrowserTestUtils.waitForEvent(dialogWin, "unload");
+  updatePromise = promiseSiteDataManagerSitesUpdated();
+  removeButton.doCommand();
+  await dialogClosed;
+  await updatePromise;
+  await openSiteDataSettingsDialog();
+
+  dialog = content.gSubDialog._topDialog;
+  dialogFrame = dialog._frame;
+  frameDoc = dialogFrame.contentDocument;
+  assertSitesListed(frameDoc, testData.slice(1));
   await SiteDataTestUtils.clear();
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
 });

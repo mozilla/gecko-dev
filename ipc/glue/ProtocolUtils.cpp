@@ -639,11 +639,9 @@ void IToplevelProtocol::SetOtherProcessId(base::ProcessId aOtherPid) {
   mOtherPid = aOtherPid;
 }
 
-bool IToplevelProtocol::Open(UniquePtr<Transport> aTransport,
-                             base::ProcessId aOtherPid, MessageLoop* aThread,
-                             mozilla::ipc::Side aSide) {
+bool IToplevelProtocol::Open(ScopedPort aPort, base::ProcessId aOtherPid) {
   SetOtherProcessId(aOtherPid);
-  return GetIPCChannel()->Open(std::move(aTransport), aThread, aSide);
+  return GetIPCChannel()->Open(std::move(aPort), mSide);
 }
 
 bool IToplevelProtocol::Open(MessageChannel* aChannel,

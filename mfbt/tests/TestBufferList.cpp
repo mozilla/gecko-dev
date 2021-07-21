@@ -299,6 +299,8 @@ int main(void) {
   MOZ_RELEASE_ASSERT(success);
   MOZ_RELEASE_ASSERT(bl11.Size() == 16);
   MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(iter.AdvanceAcrossSegments(bl10, 0));
+  MOZ_RELEASE_ASSERT(iter.Done());
   iter = bl11.Iter();
   MOZ_RELEASE_ASSERT(bl11.ReadBytes(iter, data, 16));
   MOZ_RELEASE_ASSERT(memcmp(data, "abcdefgh12345678", 16) == 0);
@@ -366,6 +368,68 @@ int main(void) {
   MOZ_RELEASE_ASSERT(bl12.RangeLength(iter, iter1) == 6);
   MOZ_RELEASE_ASSERT(iter1.AdvanceAcrossSegments(bl12, 1));
   MOZ_RELEASE_ASSERT(iter1.Done());
+
+  BufferList bl13(0, 0, 8);
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("abcdefgh", 8));
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("12345678", 8));
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("ABCDEFGH", 8));
+  MOZ_RELEASE_ASSERT(bl13.Size() == 24);
+
+  // At segment border
+  iter = bl13.Iter();
+  MOZ_RELEASE_ASSERT(iter.AdvanceAcrossSegments(bl13, 8));
+  MOZ_RELEASE_ASSERT(bl13.Truncate(iter) == 16);
+  MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(bl13.Size() == 8);
+
+  // Restore state
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("12345678", 8));
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("ABCDEFGH", 8));
+  MOZ_RELEASE_ASSERT(bl13.Size() == 24);
+
+  // Before segment border
+  iter = bl13.Iter();
+  MOZ_RELEASE_ASSERT(iter.AdvanceAcrossSegments(bl13, 7));
+  MOZ_RELEASE_ASSERT(bl13.Truncate(iter) == 17);
+  MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(bl13.Size() == 7);
+
+  // Restore state
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("h", 1));
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("12345678", 8));
+  MOZ_ALWAYS_TRUE(bl13.WriteBytes("ABCDEFGH", 8));
+  MOZ_RELEASE_ASSERT(bl13.Size() == 24);
+
+  // In last segment
+  iter = bl13.Iter();
+  MOZ_RELEASE_ASSERT(iter.AdvanceAcrossSegments(bl13, 20));
+  MOZ_RELEASE_ASSERT(bl13.Truncate(iter) == 4);
+  MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(bl13.Size() == 20);
+
+  // No-op truncate
+  MOZ_RELEASE_ASSERT(bl13.Truncate(iter) == 0);
+  MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(bl13.Size() == 20);
+
+  // No-op truncate with fresh iterator
+  iter = bl13.Iter();
+  MOZ_RELEASE_ASSERT(iter.AdvanceAcrossSegments(bl13, 20));
+  MOZ_RELEASE_ASSERT(bl13.Truncate(iter) == 0);
+  MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(bl13.Size() == 20);
+
+  // Truncate at start of buffer
+  iter = bl13.Iter();
+  MOZ_RELEASE_ASSERT(bl13.Truncate(iter) == 20);
+  MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(bl13.Size() == 0);
+
+  // No-op truncate at start of buffer
+  iter = bl13.Iter();
+  MOZ_RELEASE_ASSERT(bl13.Truncate(iter) == 0);
+  MOZ_RELEASE_ASSERT(iter.Done());
+  MOZ_RELEASE_ASSERT(bl13.Size() == 0);
 
   return 0;
 }

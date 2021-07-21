@@ -66,6 +66,14 @@ void SandboxTestingChild::Bind(Endpoint<PSandboxTestingChild>&& aEndpoint) {
     RunTestsContent(this);
   }
 
+  if (XRE_IsRDDProcess()) {
+    RunTestsRDD(this);
+  }
+
+  if (XRE_IsGMPluginProcess()) {
+    RunTestsGMPlugin(this);
+  }
+
   if (XRE_IsSocketProcess()) {
     RunTestsSocket(this);
   }
@@ -96,12 +104,26 @@ bool SandboxTestingChild::RecvShutDown() {
   return true;
 }
 
+void SandboxTestingChild::ReportNoTests() {
+  SendReportTestResults("dummy_test"_ns, /* shouldSucceed */ true,
+                        /* didSucceed */ true,
+                        "The test framework fails if there are no cases."_ns);
+}
+
 #ifdef XP_UNIX
 template <typename F>
 void SandboxTestingChild::ErrnoTest(const nsCString& aName, bool aExpectSuccess,
                                     F&& aFunction) {
   int status = aFunction() >= 0 ? 0 : errno;
   PosixTest(aName, aExpectSuccess, status);
+}
+
+template <typename F>
+void SandboxTestingChild::ErrnoValueTest(const nsCString& aName,
+                                         bool aExpectEquals, int aExpectedErrno,
+                                         F&& aFunction) {
+  int status = aFunction() >= 0 ? 0 : errno;
+  PosixTest(aName, aExpectEquals, status == aExpectedErrno);
 }
 
 void SandboxTestingChild::PosixTest(const nsCString& aName, bool aExpectSuccess,
@@ -111,7 +133,8 @@ void SandboxTestingChild::PosixTest(const nsCString& aName, bool aExpectSuccess,
   if (succeeded) {
     message = "Succeeded"_ns;
   } else {
-    message.AppendPrintf("Error: %s", strerror(aStatus));
+    message = "Error: "_ns;
+    message += strerror(aStatus);
   }
 
   SendReportTestResults(aName, aExpectSuccess, succeeded, message);

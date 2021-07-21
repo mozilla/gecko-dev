@@ -53,6 +53,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  this,
+  "SCREENSHOT_BROWSER_COMPONENT",
+  "screenshots.browser.component.enabled",
+  false
+);
+
 function setAttributes(aNode, aAttrs) {
   let doc = aNode.ownerDocument;
   for (let [name, value] of Object.entries(aAttrs)) {
@@ -116,17 +123,6 @@ const CustomizableWidgets = [
       let panelview = event.target;
       let document = panelview.ownerDocument;
       let window = document.defaultView;
-
-      // While we support this panel for both Proton and non-Proton versions
-      // of the AppMenu, we only want to show icons for the non-Proton
-      // version. When Proton ships and we remove the non-Proton variant,
-      // we can remove the subviewbutton-iconic classes from the markup.
-      if (window.PanelUI.protonAppMenuEnabled) {
-        let toolbarbuttons = panelview.querySelectorAll("toolbarbutton");
-        for (let toolbarbutton of toolbarbuttons) {
-          toolbarbutton.classList.remove("subviewbutton-iconic");
-        }
-      }
 
       PanelMultiView.getViewNode(
         document,
@@ -199,14 +195,15 @@ const CustomizableWidgets = [
       let panelview = event.target;
       let document = event.target.ownerDocument;
       let window = document.defaultView;
-      let viewType =
-        panelview.id == this.recentlyClosedTabsPanel ? "Tabs" : "Windows";
 
       this._panelMenuView.clearAllContents(panelview);
 
-      let utils = RecentlyClosedTabsAndWindowsMenuUtils;
-      let method = `get${viewType}Fragment`;
-      let fragment = utils[method](window, "toolbarbutton", true);
+      let getFragment =
+        panelview.id == this.recentlyClosedTabsPanel
+          ? RecentlyClosedTabsAndWindowsMenuUtils.getTabsFragment
+          : RecentlyClosedTabsAndWindowsMenuUtils.getWindowsFragment;
+
+      let fragment = getFragment(window, "toolbarbutton", true);
       let elementCount = fragment.childElementCount;
       this._panelMenuView._setEmptyPopupStatus(panelview, !elementCount);
       if (!elementCount) {
@@ -224,10 +221,7 @@ const CustomizableWidgets = [
         element.classList.add("subviewbutton");
         if (element.classList.contains("restoreallitem")) {
           footer = element;
-          element.classList.add(
-            "subviewbutton-iconic",
-            "panel-subview-footer-button"
-          );
+          element.classList.add("panel-subview-footer-button");
         } else {
           element.classList.add("subviewbutton-iconic", "bookmark-item");
         }
@@ -439,7 +433,7 @@ const CustomizableWidgets = [
     id: "characterencoding-button",
     l10nId: "repair-text-encoding-button",
     onCommand(aEvent) {
-      aEvent.view.BrowserSetForcedCharacterSet("_autodetect_all");
+      aEvent.view.BrowserForceEncodingDetection();
     },
   },
   {
@@ -462,18 +456,6 @@ if (Services.prefs.getBoolPref("identity.fxaccounts.enabled")) {
     onViewShowing(aEvent) {
       let panelview = aEvent.target;
       let doc = panelview.ownerDocument;
-      let window = doc.defaultView;
-
-      // While we support this panel for both Proton and non-Proton versions
-      // of the AppMenu, we only want to show icons for the non-Proton
-      // version. When Proton ships and we remove the non-Proton variant,
-      // we can remove the subviewbutton-iconic classes from the markup.
-      if (window.PanelUI.protonAppMenuEnabled) {
-        let toolbarbuttons = panelview.querySelectorAll("toolbarbutton");
-        for (let toolbarbutton of toolbarbuttons) {
-          toolbarbutton.classList.remove("subviewbutton-iconic");
-        }
-      }
 
       let syncNowBtn = panelview.querySelector(".syncnow-label");
       let l10nId = syncNowBtn.getAttribute(
@@ -502,20 +484,33 @@ if (!screenshotsDisabled) {
     id: "screenshot-button",
     l10nId: "screenshot-toolbarbutton",
     onCommand(aEvent) {
-      Services.obs.notifyObservers(null, "menuitem-screenshot");
+      if (SCREENSHOT_BROWSER_COMPONENT) {
+        Services.obs.notifyObservers(
+          aEvent.currentTarget.ownerGlobal,
+          "menuitem-screenshot"
+        );
+      } else {
+        Services.obs.notifyObservers(null, "menuitem-screenshot-extension");
+      }
     },
     onCreated(aNode) {
-      this.screenshotNode = aNode;
-      this.screenshotNode.ownerGlobal.MozXULElement.insertFTLIfNeeded(
+      aNode.ownerGlobal.MozXULElement.insertFTLIfNeeded(
         "browser/screenshots.ftl"
       );
       Services.obs.addObserver(this, "toggle-screenshot-disable");
     },
     observe(subj, topic, data) {
+      let document = subj.document;
+      let button = document.getElementById("screenshot-button");
+
+      if (!button) {
+        return;
+      }
+
       if (data == "true") {
-        this.screenshotNode.setAttribute("disabled", "true");
+        button.setAttribute("disabled", "true");
       } else {
-        this.screenshotNode.removeAttribute("disabled");
+        button.removeAttribute("disabled");
       }
     },
   });

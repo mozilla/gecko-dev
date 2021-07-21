@@ -32,11 +32,12 @@ class nsIScrollPositionListener;
 class nsIFrame;
 class nsPresContext;
 class nsIContent;
-class nsDisplayListBuilder;
 
 namespace mozilla {
 struct ContainerLayerParameters;
 class DisplayItemClip;
+class nsDisplayListBuilder;
+
 namespace layers {
 struct ScrollMetadata;
 class Layer;
@@ -379,14 +380,13 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * This basically means that we should allocate resources in the
    * expectation that scrolling is going to happen.
    */
-  virtual bool IsScrollingActive(nsDisplayListBuilder* aBuilder) = 0;
+  virtual bool IsScrollingActive() = 0;
 
   /**
    * The same as IsScrollingActive but minimal display ports are not considered
    * active.
    */
-  virtual bool IsScrollingActiveNotMinimalDisplayPort(
-      nsDisplayListBuilder* aBuilder) = 0;
+  virtual bool IsScrollingActiveNotMinimalDisplayPort() = 0;
 
   /**
    * Returns true if this scroll frame might be scrolled
@@ -394,11 +394,6 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    */
   virtual bool IsMaybeAsynchronouslyScrolled() = 0;
 
-  /**
-   * Same as the above except doesn't take into account will-change budget,
-   * which means that it can be called during display list building.
-   */
-  virtual bool IsMaybeScrollingActive() const = 0;
   /**
    * Call this when the layer(s) induced by active scrolling are being
    * completely redrawn.
@@ -544,7 +539,7 @@ class nsIScrollableFrame : public nsIScrollbarMediator {
    * aSetBase is only allowed to be false if there has been a call with it
    * set to true before on the same paint.
    */
-  virtual bool DecideScrollableLayer(nsDisplayListBuilder* aBuilder,
+  virtual bool DecideScrollableLayer(mozilla::nsDisplayListBuilder* aBuilder,
                                      nsRect* aVisibleRect, nsRect* aDirtyRect,
                                      bool aSetBase) = 0;
 

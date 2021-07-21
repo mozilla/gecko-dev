@@ -3,7 +3,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
-/* global XPCNativeWrapper */
 
 const EXPORTED_SYMBOLS = ["GeckoDriver"];
 
@@ -21,18 +20,20 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   atom: "chrome://remote/content/marionette/atom.js",
   browser: "chrome://remote/content/marionette/browser.js",
   capture: "chrome://remote/content/marionette/capture.js",
+  clearActionInputState:
+    "chrome://remote/content/marionette/actors/MarionetteCommandsChild.jsm",
   clearElementIdCache:
     "chrome://remote/content/marionette/actors/MarionetteCommandsParent.jsm",
   Context: "chrome://remote/content/marionette/browser.js",
   cookie: "chrome://remote/content/marionette/cookie.js",
   DebounceCallback: "chrome://remote/content/marionette/sync.js",
   element: "chrome://remote/content/marionette/element.js",
-  error: "chrome://remote/content/marionette/error.js",
+  error: "chrome://remote/content/shared/webdriver/Errors.jsm",
   getMarionetteCommandsActorProxy:
     "chrome://remote/content/marionette/actors/MarionetteCommandsParent.jsm",
   IdlePromise: "chrome://remote/content/marionette/sync.js",
   l10n: "chrome://remote/content/marionette/l10n.js",
-  Log: "chrome://remote/content/marionette/log.js",
+  Log: "chrome://remote/content/shared/Log.jsm",
   MarionettePrefs: "chrome://remote/content/marionette/prefs.js",
   modal: "chrome://remote/content/marionette/modal.js",
   navigate: "chrome://remote/content/marionette/navigate.js",
@@ -45,6 +46,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
     "chrome://remote/content/marionette/actors/MarionetteCommandsParent.jsm",
   registerEventsActor:
     "chrome://remote/content/marionette/actors/MarionetteEventsParent.jsm",
+  RemoteAgent: "chrome://remote/content/components/RemoteAgent.jsm",
   TimedPromise: "chrome://remote/content/marionette/sync.js",
   Timeouts: "chrome://remote/content/shared/webdriver/Capabilities.jsm",
   UnhandledPromptBehavior:
@@ -58,11 +60,13 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   WebDriverSession: "chrome://remote/content/shared/webdriver/Session.jsm",
   WebElement: "chrome://remote/content/marionette/element.js",
   WebElementEventTarget: "chrome://remote/content/marionette/dom.js",
-  windowManager: "chrome://remote/content/marionette/window-manager.js",
+  windowManager: "chrome://remote/content/shared/WindowManager.jsm",
   WindowState: "chrome://remote/content/marionette/browser.js",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
+XPCOMUtils.defineLazyGetter(this, "logger", () =>
+  Log.get(Log.TYPES.MARIONETTE)
+);
 XPCOMUtils.defineLazyGlobalGetters(this, ["URL"]);
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -81,8 +85,6 @@ const SUPPORTED_STRATEGIES = new Set([
 // Timeout used to abort fullscreen, maximize, and minimize
 // commands if no window manager is present.
 const TIMEOUT_NO_WINDOW_MANAGER = 5000;
-
-const globalMessageManager = Services.mm;
 
 /**
  * The Marionette WebDriver services provides a standard conforming
@@ -109,7 +111,7 @@ this.GeckoDriver = function(server) {
   this._server = server;
 
   // WebDriver Session
-  this.currentSession = null;
+  this._currentSession = null;
 
   this.browsers = {};
 
@@ -137,6 +139,19 @@ Object.defineProperty(GeckoDriver.prototype, "context", {
 
   set(context) {
     this._context = Context.fromString(context);
+  },
+});
+
+/**
+ * The current WebDriver Session.
+ */
+Object.defineProperty(GeckoDriver.prototype, "currentSession", {
+  get() {
+    if (RemoteAgent.webDriverBiDi) {
+      return RemoteAgent.webDriverBiDi.session;
+    }
+
+    return this._currentSession;
   },
 });
 
@@ -376,100 +391,10 @@ GeckoDriver.prototype.registerBrowser = function(browserElement) {
 /**
  * Create a new WebDriver session.
  *
- * It is expected that the caller performs the necessary checks on
- * the requested capabilities to be WebDriver conforming.  The WebDriver
- * service offered by Marionette does not match or negotiate capabilities
- * beyond type- and bounds checks.
- *
- * <h3>Capabilities</h3>
- *
- * <dl>
- *  <dt><code>pageLoadStrategy</code> (string)
- *  <dd>The page load strategy to use for the current session.  Must be
- *   one of "<tt>none</tt>", "<tt>eager</tt>", and "<tt>normal</tt>".
- *
- *  <dt><code>acceptInsecureCerts</code> (boolean)
- *  <dd>Indicates whether untrusted and self-signed TLS certificates
- *   are implicitly trusted on navigation for the duration of the session.
- *
- *  <dt><code>timeouts</code> (Timeouts object)
- *  <dd>Describes the timeouts imposed on certian session operations.
- *
- *  <dt><code>proxy</code> (Proxy object)
- *  <dd>Defines the proxy configuration.
- *
- *  <dt><code>moz:accessibilityChecks</code> (boolean)
- *  <dd>Run a11y checks when clicking elements.
- *
- *  <dt><code>moz:useNonSpecCompliantPointerOrigin</code> (boolean)
- *  <dd>Use the not WebDriver conforming calculation of the pointer origin
- *   when the origin is an element, and the element center point is used.
- *
- *  <dt><code>moz:webdriverClick</code> (boolean)
- *  <dd>Use a WebDriver conforming <i>WebDriver::ElementClick</i>.
- * </dl>
- *
- * <h4>Timeouts object</h4>
- *
- * <dl>
- *  <dt><code>script</code> (number)
- *  <dd>Determines when to interrupt a script that is being evaluates.
- *
- *  <dt><code>pageLoad</code> (number)
- *  <dd>Provides the timeout limit used to interrupt navigation of the
- *   browsing context.
- *
- *  <dt><code>implicit</code> (number)
- *  <dd>Gives the timeout of when to abort when locating an element.
- * </dl>
- *
- * <h4>Proxy object</h4>
- *
- * <dl>
- *  <dt><code>proxyType</code> (string)
- *  <dd>Indicates the type of proxy configuration.  Must be one
- *   of "<tt>pac</tt>", "<tt>direct</tt>", "<tt>autodetect</tt>",
- *   "<tt>system</tt>", or "<tt>manual</tt>".
- *
- *  <dt><code>proxyAutoconfigUrl</code> (string)
- *  <dd>Defines the URL for a proxy auto-config file if
- *   <code>proxyType</code> is equal to "<tt>pac</tt>".
- *
- *  <dt><code>httpProxy</code> (string)
- *  <dd>Defines the proxy host for HTTP traffic when the
- *   <code>proxyType</code> is "<tt>manual</tt>".
- *
- *  <dt><code>noProxy</code> (string)
- *  <dd>Lists the adress for which the proxy should be bypassed when
- *   the <code>proxyType</code> is "<tt>manual</tt>".  Must be a JSON
- *   List containing any number of any of domains, IPv4 addresses, or IPv6
- *   addresses.
- *
- *  <dt><code>sslProxy</code> (string)
- *  <dd>Defines the proxy host for encrypted TLS traffic when the
- *   <code>proxyType</code> is "<tt>manual</tt>".
- *
- *  <dt><code>socksProxy</code> (string)
- *  <dd>Defines the proxy host for a SOCKS proxy traffic when the
- *   <code>proxyType</code> is "<tt>manual</tt>".
- *
- *  <dt><code>socksVersion</code> (string)
- *  <dd>Defines the SOCKS proxy version when the <code>proxyType</code> is
- *   "<tt>manual</tt>".  It must be any integer between 0 and 255
- *   inclusive.
- * </dl>
- *
- * <h3>Example</h3>
- *
- * Input:
- *
- * <pre><code>
- *     {"capabilities": {"acceptInsecureCerts": true}}
- * </code></pre>
- *
- * @param {Object.<string, *>=} capabilities
- *     JSON Object containing any of the recognised capabilities listed
- *     above.
+ * @param {Object} cmd
+ * @param {Object.<string, *>=} cmd.parameters
+ *     JSON Object containing any of the recognised capabilities as listed
+ *     on the `WebDriverSession` class.
  *
  * @return {Object}
  *     Session ID and capabilities offered by the WebDriver service.
@@ -482,107 +407,70 @@ GeckoDriver.prototype.newSession = async function(cmd) {
     throw new error.SessionNotCreatedError("Maximum number of active sessions");
   }
 
-  this.currentSession = new WebDriverSession(cmd.parameters);
+  const { parameters: capabilities } = cmd;
 
-  registerCommandsActor();
-  registerEventsActor();
+  try {
+    const win = await windowManager.waitForInitialApplicationWindow();
 
-  // Wait until the initial application window has been loaded
-  await new TimedPromise(
-    resolve => {
-      const waitForWindow = () => {
-        let windowTypes;
-        if (AppInfo.isThunderbird) {
-          windowTypes = ["mail:3pane"];
-        } else {
-          // We assume that an app either has GeckoView windows, or
-          // Firefox/Fennec windows, but not both.
-          windowTypes = ["navigator:browser", "navigator:geckoview"];
-        }
-
-        let win;
-        for (const windowType of windowTypes) {
-          win = Services.wm.getMostRecentWindow(windowType);
-          if (win) {
-            break;
-          }
-        }
-
-        if (!win) {
-          // if the window isn't even created, just poll wait for it
-          let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(
-            Ci.nsITimer
-          );
-          checkTimer.initWithCallback(
-            waitForWindow,
-            100,
-            Ci.nsITimer.TYPE_ONE_SHOT
-          );
-        } else if (win.document.readyState != "complete") {
-          // otherwise, wait for it to be fully loaded before proceeding
-          let listener = ev => {
-            // ensure that we proceed, on the top level document load event
-            // (not an iframe one...)
-            if (ev.target != win.document) {
-              return;
-            }
-            win.removeEventListener("load", listener);
-            waitForWindow();
-          };
-          win.addEventListener("load", listener, true);
-        } else {
-          if (MarionettePrefs.clickToStart) {
-            Services.prompt.alert(
-              win,
-              "",
-              "Click to start execution of marionette tests"
-            );
-          }
-          this.addBrowser(win);
-          this.mainFrame = win;
-          resolve();
-        }
-      };
-
-      waitForWindow();
-    },
-    {
-      throws: error.SessionNotCreatedError,
-      errorMessage: "No applicable application windows found",
+    if (MarionettePrefs.clickToStart) {
+      Services.prompt.alert(
+        win,
+        "",
+        "Click to start execution of marionette tests"
+      );
     }
-  );
 
-  for (let win of windowManager.windows) {
-    const tabBrowser = browser.getTabBrowser(win);
+    this.addBrowser(win);
+    this.mainFrame = win;
 
-    if (tabBrowser) {
-      for (const tab of tabBrowser.tabs) {
-        const contentBrowser = browser.getBrowserForTab(tab);
-        this.registerBrowser(contentBrowser);
+    // If the WebDriver BiDi protocol is active always use the Remote Agent
+    // to handle the WebDriver session. If it's not the case then Marionette
+    // itself needs to handle it, and has to nullify the "webSocketUrl"
+    // capability.
+    if (RemoteAgent.webDriverBiDi) {
+      RemoteAgent.webDriverBiDi.createSession(capabilities);
+    } else {
+      this._currentSession = new WebDriverSession(capabilities);
+      this._currentSession.capabilities.delete("webSocketUrl");
+    }
+
+    registerCommandsActor();
+    registerEventsActor();
+
+    for (let win of windowManager.windows) {
+      const tabBrowser = browser.getTabBrowser(win);
+
+      if (tabBrowser) {
+        for (const tab of tabBrowser.tabs) {
+          const contentBrowser = browser.getBrowserForTab(tab);
+          this.registerBrowser(contentBrowser);
+        }
       }
+
+      this.registerListenersForWindow(win);
     }
 
-    this.registerListenersForWindow(win);
+    if (this.mainFrame) {
+      this.currentSession.chromeBrowsingContext = this.mainFrame.browsingContext;
+      this.mainFrame.focus();
+    }
+
+    if (this.curBrowser.tab) {
+      this.currentSession.contentBrowsingContext = this.curBrowser.contentBrowser.browsingContext;
+      this.curBrowser.contentBrowser.focus();
+    }
+
+    // Setup observer for modal dialogs
+    this.dialogObserver = new modal.DialogObserver(() => this.curBrowser);
+    this.dialogObserver.add(this.handleModalDialog.bind(this));
+
+    // Check if there is already an open dialog for the selected browser window.
+    this.dialog = modal.findModalDialogs(this.curBrowser);
+
+    Services.obs.addObserver(this, "browser-delayed-startup-finished");
+  } catch (e) {
+    throw new error.SessionNotCreatedError(e);
   }
-
-  if (this.mainFrame) {
-    this.currentSession.chromeBrowsingContext = this.mainFrame.browsingContext;
-    this.mainFrame.focus();
-  }
-
-  if (this.curBrowser.tab) {
-    this.currentSession.contentBrowsingContext = this.curBrowser.contentBrowser.browsingContext;
-    this.curBrowser.contentBrowser.focus();
-  }
-
-  // Setup observer for modal dialogs
-  this.dialogObserver = new modal.DialogObserver(() => this.curBrowser);
-  this.dialogObserver.add(this.handleModalDialog.bind(this));
-
-  // Check if there is already an open dialog for the selected browser window.
-  this.dialog = modal.findModalDialogs(this.curBrowser);
-
-  Services.obs.addObserver(this, "browser-delayed-startup-finished");
 
   return {
     sessionId: this.currentSession.id,
@@ -1433,6 +1321,7 @@ GeckoDriver.prototype.setTimeouts = function(cmd) {
     this.currentSession.timeouts.toJSON(),
     cmd.parameters
   );
+
   this.currentSession.timeouts = Timeouts.fromJSON(merged);
 };
 
@@ -2245,6 +2134,7 @@ GeckoDriver.prototype.deleteSession = function() {
 
   Services.obs.removeObserver(this, "browser-delayed-startup-finished");
 
+  clearActionInputState();
   clearElementIdCache();
 
   // Always unregister actors after all other observers
@@ -2252,8 +2142,12 @@ GeckoDriver.prototype.deleteSession = function() {
   unregisterCommandsActor();
   unregisterEventsActor();
 
-  this.currentSession.destroy();
-  this.currentSession = null;
+  if (RemoteAgent.webDriverBiDi) {
+    RemoteAgent.webDriverBiDi.deleteSession();
+  } else {
+    this.currentSession.destroy();
+    this._currentSession = null;
+  }
 };
 
 /**

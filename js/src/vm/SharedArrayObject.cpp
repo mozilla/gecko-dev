@@ -46,10 +46,12 @@ static size_t SharedArrayMappedSize(size_t length) {
   return SharedArrayAccessibleSize(length) + gc::SystemPageSize();
 }
 
-// `wasmMaxPages` must always be something for wasm and nothing for other
-// users.
+// `wasmSourceMaxPages` must always be something for wasm and nothing for
+// other users.
 SharedArrayRawBuffer* SharedArrayRawBuffer::AllocateInternal(
-    size_t length, const Maybe<wasm::Pages>& wasmMaxPages,
+    wasm::IndexType wasmIndexType, size_t length,
+    const Maybe<wasm::Pages>& wasmClampedMaxPages,
+    const Maybe<wasm::Pages>& wasmSourceMaxPages,
     const Maybe<size_t>& wasmMappedSize) {
   MOZ_RELEASE_ASSERT(length <= ArrayBufferObject::maxBufferByteLength());
 
@@ -58,12 +60,12 @@ SharedArrayRawBuffer* SharedArrayRawBuffer::AllocateInternal(
     return nullptr;
   }
 
-  bool preparedForWasm = wasmMaxPages.isSome();
+  bool preparedForWasm = wasmClampedMaxPages.isSome();
   size_t computedMappedSize;
   if (preparedForWasm) {
     computedMappedSize = wasmMappedSize.isSome()
                              ? *wasmMappedSize
-                             : wasm::ComputeMappedSize(*wasmMaxPages);
+                             : wasm::ComputeMappedSize(*wasmClampedMaxPages);
   } else {
     MOZ_ASSERT(wasmMappedSize.isNothing());
     computedMappedSize = accessibleSize;
@@ -80,31 +82,38 @@ SharedArrayRawBuffer* SharedArrayRawBuffer::AllocateInternal(
 
   uint8_t* buffer = reinterpret_cast<uint8_t*>(p) + gc::SystemPageSize();
   uint8_t* base = buffer - sizeof(SharedArrayRawBuffer);
-  SharedArrayRawBuffer* rawbuf = new (base)
-      SharedArrayRawBuffer(buffer, length, wasmMaxPages.valueOr(Pages(0)),
-                           computedMappedSize, preparedForWasm);
+  SharedArrayRawBuffer* rawbuf = new (base) SharedArrayRawBuffer(
+      wasmIndexType, buffer, length, wasmClampedMaxPages.valueOr(Pages(0)),
+      wasmSourceMaxPages.valueOr(Pages(0)), computedMappedSize,
+      preparedForWasm);
   MOZ_ASSERT(rawbuf->length_ == length);  // Deallocation needs this
   return rawbuf;
 }
 
 SharedArrayRawBuffer* SharedArrayRawBuffer::Allocate(size_t length) {
-  return SharedArrayRawBuffer::AllocateInternal(length, Nothing(), Nothing());
+  return SharedArrayRawBuffer::AllocateInternal(
+      wasm::IndexType::I32, length, Nothing(), Nothing(), Nothing());
 }
 
 SharedArrayRawBuffer* SharedArrayRawBuffer::AllocateWasm(
-    Pages initialPages, const mozilla::Maybe<wasm::Pages>& maxPages,
+    wasm::IndexType indexType, Pages initialPages, wasm::Pages clampedMaxPages,
+    const mozilla::Maybe<wasm::Pages>& sourceMaxPages,
     const mozilla::Maybe<size_t>& mappedSize) {
   // Prior code has asserted that initial pages is within our implementation
   // limits (wasm::MaxMemory32Pages) and we can assume it is a valid size_t.
   MOZ_ASSERT(initialPages.hasByteLength());
   size_t length = initialPages.byteLength();
-  return SharedArrayRawBuffer::AllocateInternal(length, maxPages, mappedSize);
+  return SharedArrayRawBuffer::AllocateInternal(
+      indexType, length, Some(clampedMaxPages), sourceMaxPages, mappedSize);
 }
 
 void SharedArrayRawBuffer::tryGrowMaxPagesInPlace(Pages deltaMaxPages) {
-  Pages newMaxPages = wasmMaxPages_;
+  Pages newMaxPages = wasmClampedMaxPages_;
   DebugOnly<bool> valid = newMaxPages.checkedIncrement(deltaMaxPages);
+  // Caller must ensure increment does not overflow or increase over the
+  // specified maximum pages.
   MOZ_ASSERT(valid);
+  MOZ_ASSERT(newMaxPages <= wasmSourceMaxPages_);
 
   size_t newMappedSize = wasm::ComputeMappedSize(newMaxPages);
   MOZ_ASSERT(mappedSize_ <= newMappedSize);
@@ -117,19 +126,23 @@ void SharedArrayRawBuffer::tryGrowMaxPagesInPlace(Pages deltaMaxPages) {
   }
 
   mappedSize_ = newMappedSize;
-  wasmMaxPages_ = newMaxPages;
+  wasmClampedMaxPages_ = newMaxPages;
 }
 
 bool SharedArrayRawBuffer::wasmGrowToPagesInPlace(const Lock&,
                                                   wasm::Pages newPages) {
-  // The caller must verify that the new page size won't overflow when
-  // converted to a byte length.
-  size_t newLength = newPages.byteLength();
-
-  // Note, caller must guard on the limit appropriate to the memory type
-  if (newLength > ArrayBufferObject::maxBufferByteLength()) {
+  // Check that the new pages is within our allowable range. This will
+  // simultaneously check against the maximum specified in source and our
+  // implementation limits.
+  if (newPages > wasmClampedMaxPages_) {
     return false;
   }
+  MOZ_ASSERT(newPages <= wasm::MaxMemoryPages() &&
+             newPages.byteLength() < ArrayBufferObject::maxBufferByteLength());
+
+  // We have checked against the clamped maximum and so we know we can convert
+  // to byte lengths now.
+  size_t newLength = newPages.byteLength();
 
   MOZ_ASSERT(newLength >= length_);
 

@@ -114,6 +114,7 @@ const char* const XPCJSRuntime::mStrings[] = {
     "columnNumber",     // IDX_COLUMNNUMBER
     "stack",            // IDX_STACK
     "message",          // IDX_MESSAGE
+    "cause",            // IDX_CAUSE
     "errors",           // IDX_ERRORS
     "lastIndex",        // IDX_LASTINDEX
     "then",             // IDX_THEN
@@ -223,9 +224,7 @@ RealmPrivate::RealmPrivate(JS::Realm* realm) : scriptability(realm) {
 void RealmPrivate::Init(HandleObject aGlobal, const SiteIdentifier& aSite) {
   MOZ_ASSERT(aGlobal);
   DebugOnly<const JSClass*> clasp = JS::GetClass(aGlobal);
-  MOZ_ASSERT(clasp->flags &
-                 (JSCLASS_PRIVATE_IS_NSISUPPORTS | JSCLASS_HAS_PRIVATE) ||
-             dom::IsDOMClass(clasp));
+  MOZ_ASSERT(clasp->slot0IsISupports() || dom::IsDOMClass(clasp));
 
   Realm* realm = GetObjectRealmOrNull(aGlobal);
 
@@ -1392,6 +1391,9 @@ static void ReportZoneStats(const JS::ZoneStats& zStats,
   ZRREPORT_BYTES(pathPrefix + "unique-id-map"_ns, zStats.uniqueIdMap,
                  "Address-independent cell identities.");
 
+  ZRREPORT_BYTES(pathPrefix + "propmap-tables"_ns, zStats.initialPropMapTable,
+                 "Tables storing property map information.");
+
   ZRREPORT_BYTES(pathPrefix + "shape-tables"_ns, zStats.shapeTables,
                  "Tables storing shape information.");
 
@@ -1416,6 +1418,24 @@ static void ReportZoneStats(const JS::ZoneStats& zStats,
   ZRREPORT_GC_BYTES(pathPrefix + "getter-setters-gc-heap"_ns,
                     zStats.getterSettersGCHeap,
                     "Information for getter/setter properties.");
+
+  ZRREPORT_GC_BYTES(pathPrefix + "property-maps/gc-heap/compact"_ns,
+                    zStats.compactPropMapsGCHeap,
+                    "Information about object properties.");
+
+  ZRREPORT_GC_BYTES(pathPrefix + "property-maps/gc-heap/normal"_ns,
+                    zStats.normalPropMapsGCHeap,
+                    "Information about object properties.");
+
+  ZRREPORT_GC_BYTES(pathPrefix + "property-maps/gc-heap/dict"_ns,
+                    zStats.dictPropMapsGCHeap,
+                    "Information about dictionary mode object properties.");
+
+  ZRREPORT_BYTES(pathPrefix + "property-maps/malloc-heap/children"_ns,
+                 zStats.propMapChildren, "Tables for PropMap children.");
+
+  ZRREPORT_BYTES(pathPrefix + "property-maps/malloc-heap/tables"_ns,
+                 zStats.propMapTables, "HashTables for PropMaps.");
 
   ZRREPORT_GC_BYTES(pathPrefix + "scopes/gc-heap"_ns, zStats.scopesGCHeap,
                     "Scope information for scripts.");
@@ -1588,9 +1608,9 @@ static void ReportZoneStats(const JS::ZoneStats& zStats,
   }
 
   const JS::ShapeInfo& shapeInfo = zStats.shapeInfo;
-  if (shapeInfo.shapesGCHeapTree > 0) {
-    REPORT_GC_BYTES(pathPrefix + "shapes/gc-heap/tree"_ns,
-                    shapeInfo.shapesGCHeapTree, "Shapes in a property tree.");
+  if (shapeInfo.shapesGCHeapShared > 0) {
+    REPORT_GC_BYTES(pathPrefix + "shapes/gc-heap/shared"_ns,
+                    shapeInfo.shapesGCHeapShared, "Shared shapes.");
   }
 
   if (shapeInfo.shapesGCHeapDict > 0) {
@@ -1604,22 +1624,10 @@ static void ReportZoneStats(const JS::ZoneStats& zStats,
                     "Base shapes, which collate data common to many shapes.");
   }
 
-  if (shapeInfo.shapesMallocHeapTreeTables > 0) {
-    REPORT_BYTES(pathPrefix + "shapes/malloc-heap/tree-tables"_ns, KIND_HEAP,
-                 shapeInfo.shapesMallocHeapTreeTables,
-                 "Property tables of shapes in a property tree.");
-  }
-
-  if (shapeInfo.shapesMallocHeapDictTables > 0) {
-    REPORT_BYTES(pathPrefix + "shapes/malloc-heap/dict-tables"_ns, KIND_HEAP,
-                 shapeInfo.shapesMallocHeapDictTables,
-                 "Property tables of shapes in dictionary mode.");
-  }
-
-  if (shapeInfo.shapesMallocHeapTreeChildren > 0) {
-    REPORT_BYTES(pathPrefix + "shapes/malloc-heap/tree-children"_ns, KIND_HEAP,
-                 shapeInfo.shapesMallocHeapTreeChildren,
-                 "Sets of shape children in a property tree.");
+  if (shapeInfo.shapesMallocHeapCache > 0) {
+    REPORT_BYTES(pathPrefix + "shapes/malloc-heap/shape-cache"_ns, KIND_HEAP,
+                 shapeInfo.shapesMallocHeapCache,
+                 "Shape cache hash set for adding properties.");
   }
 
   if (sundriesGCHeap > 0) {
@@ -2364,6 +2372,12 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
       KIND_OTHER, rtStats.zTotals.unusedGCThings.getterSetter,
       "Unused getter-setter cells within non-empty arenas.");
 
+  REPORT_BYTES(
+      nsLiteralCString(
+          "js-main-runtime-gc-heap-committed/unused/gc-things/property-maps"),
+      KIND_OTHER, rtStats.zTotals.unusedGCThings.propMap,
+      "Unused property map cells within non-empty arenas.");
+
   REPORT_BYTES(nsLiteralCString(
                    "js-main-runtime-gc-heap-committed/unused/gc-things/scopes"),
                KIND_OTHER, rtStats.zTotals.unusedGCThings.scope,
@@ -2415,7 +2429,7 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
   MREPORT_BYTES(nsLiteralCString(
                     "js-main-runtime-gc-heap-committed/used/gc-things/shapes"),
                 KIND_OTHER,
-                rtStats.zTotals.shapeInfo.shapesGCHeapTree +
+                rtStats.zTotals.shapeInfo.shapesGCHeapShared +
                     rtStats.zTotals.shapeInfo.shapesGCHeapDict,
                 "Used shape cells.");
 
@@ -2430,6 +2444,15 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
           "js-main-runtime-gc-heap-committed/used/gc-things/getter-setters"),
       KIND_OTHER, rtStats.zTotals.getterSettersGCHeap,
       "Used getter/setter cells.");
+
+  MREPORT_BYTES(
+      nsLiteralCString(
+          "js-main-runtime-gc-heap-committed/used/gc-things/property-maps"),
+      KIND_OTHER,
+      rtStats.zTotals.dictPropMapsGCHeap +
+          rtStats.zTotals.compactPropMapsGCHeap +
+          rtStats.zTotals.normalPropMapsGCHeap,
+      "Used property map cells.");
 
   MREPORT_BYTES(nsLiteralCString(
                     "js-main-runtime-gc-heap-committed/used/gc-things/scopes"),
@@ -2627,6 +2650,15 @@ static void AccumulateTelemetryCallback(int id, uint32_t sample,
       break;
     case JS_TELEMETRY_GC_EFFECTIVENESS:
       Telemetry::Accumulate(Telemetry::GC_EFFECTIVENESS, sample);
+      break;
+    case JS_TELEMETRY_DESERIALIZE_BYTES:
+      Telemetry::Accumulate(Telemetry::DESERIALIZE_BYTES, sample);
+      break;
+    case JS_TELEMETRY_DESERIALIZE_ITEMS:
+      Telemetry::Accumulate(Telemetry::DESERIALIZE_ITEMS, sample);
+      break;
+    case JS_TELEMETRY_DESERIALIZE_US:
+      Telemetry::Accumulate(Telemetry::DESERIALIZE_US, sample);
       break;
     default:
       // Some telemetry only exists in the JS Shell, and are not reported here.

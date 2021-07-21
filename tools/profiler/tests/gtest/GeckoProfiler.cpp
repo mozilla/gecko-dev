@@ -12,6 +12,7 @@
 #include "GeckoProfiler.h"
 #include "mozilla/ProfilerMarkerTypes.h"
 #include "mozilla/ProfilerMarkers.h"
+#include "NetworkMarker.h"
 #include "platform.h"
 #include "ProfileBuffer.h"
 
@@ -21,10 +22,13 @@
 #include "json/json.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BlocksRingBuffer.h"
+#include "mozilla/DataMutex.h"
 #include "mozilla/ProfileBufferEntrySerializationGeckoExtensions.h"
 #include "mozilla/ProfileJSONWriter.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/net/HttpBaseChannel.h"
+#include "nsIChannelEventSink.h"
 #include "nsIThread.h"
 #include "nsThreadUtils.h"
 
@@ -799,14 +803,14 @@ TEST(GeckoProfiler, Markers)
       ::geckoprofiler::markers::NoPayload{}));
 
   // Used in markers below.
-  TimeStamp ts1 = TimeStamp::NowUnfuzzed();
+  TimeStamp ts1 = TimeStamp::Now();
 
   // Sleep briefly to ensure a sample is taken and the pending markers are
   // processed.
   PR_Sleep(PR_MillisecondsToInterval(500));
 
   // Used in markers below.
-  TimeStamp ts2 = TimeStamp::NowUnfuzzed();
+  TimeStamp ts2 = TimeStamp::Now();
   // ts1 and ts2 should be different thanks to the sleep.
   EXPECT_NE(ts1, ts2);
 
@@ -922,7 +926,7 @@ TEST(GeckoProfiler, Markers)
       /* const nsACString& aRequestMethod */ "GET"_ns,
       /* int32_t aPriority */ 34,
       /* uint64_t aChannelId */ 1,
-      /* NetworkLoadType aType */ NetworkLoadType::LOAD_START,
+      /* NetworkLoadType aType */ net::NetworkLoadType::LOAD_START,
       /* mozilla::TimeStamp aStart */ ts1,
       /* mozilla::TimeStamp aEnd */ ts2,
       /* int64_t aCount */ 56,
@@ -930,18 +934,20 @@ TEST(GeckoProfiler, Markers)
       net::kCacheHit,
       /* uint64_t aInnerWindowID */ 78
       /* const mozilla::net::TimingStruct* aTimings = nullptr */
-      /* nsIURI* aRedirectURI = nullptr */
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
-         mozilla::Nothing() */);
+         mozilla::Nothing() */
+      /* nsIURI* aRedirectURI = nullptr */
+      /* uint64_t aRedirectChannelId = 0 */
+  );
 
   profiler_add_network_marker(
       /* nsIURI* aURI */ uri,
       /* const nsACString& aRequestMethod */ "GET"_ns,
       /* int32_t aPriority */ 34,
-      /* uint64_t aChannelId */ 12,
-      /* NetworkLoadType aType */ NetworkLoadType::LOAD_STOP,
+      /* uint64_t aChannelId */ 2,
+      /* NetworkLoadType aType */ net::NetworkLoadType::LOAD_STOP,
       /* mozilla::TimeStamp aStart */ ts1,
       /* mozilla::TimeStamp aEnd */ ts2,
       /* int64_t aCount */ 56,
@@ -949,13 +955,14 @@ TEST(GeckoProfiler, Markers)
       net::kCacheUnresolved,
       /* uint64_t aInnerWindowID */ 78,
       /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
-      /* nsIURI* aRedirectURI = nullptr */ nullptr,
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
       nullptr,
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
          mozilla::Nothing() */
-      Some(nsDependentCString("text/html")));
+      Some(nsDependentCString("text/html")),
+      /* nsIURI* aRedirectURI = nullptr */ nullptr,
+      /* uint64_t aRedirectChannelId = 0 */ 0);
 
   nsCOMPtr<nsIURI> redirectURI;
   ASSERT_TRUE(NS_SUCCEEDED(
@@ -964,8 +971,8 @@ TEST(GeckoProfiler, Markers)
       /* nsIURI* aURI */ uri,
       /* const nsACString& aRequestMethod */ "GET"_ns,
       /* int32_t aPriority */ 34,
-      /* uint64_t aChannelId */ 123,
-      /* NetworkLoadType aType */ NetworkLoadType::LOAD_REDIRECT,
+      /* uint64_t aChannelId */ 3,
+      /* NetworkLoadType aType */ net::NetworkLoadType::LOAD_REDIRECT,
       /* mozilla::TimeStamp aStart */ ts1,
       /* mozilla::TimeStamp aEnd */ ts2,
       /* int64_t aCount */ 56,
@@ -973,11 +980,87 @@ TEST(GeckoProfiler, Markers)
       net::kCacheUnresolved,
       /* uint64_t aInnerWindowID */ 78,
       /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
-      /* nsIURI* aRedirectURI = nullptr */ redirectURI
       /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
          nullptr */
+      nullptr,
       /* const mozilla::Maybe<nsDependentCString>& aContentType =
-         mozilla::Nothing() */);
+         mozilla::Nothing() */
+      mozilla::Nothing(),
+      /* nsIURI* aRedirectURI = nullptr */ redirectURI,
+      /* uint32_t aRedirectFlags = 0 */
+      nsIChannelEventSink::REDIRECT_TEMPORARY,
+      /* uint64_t aRedirectChannelId = 0 */ 103);
+
+  profiler_add_network_marker(
+      /* nsIURI* aURI */ uri,
+      /* const nsACString& aRequestMethod */ "GET"_ns,
+      /* int32_t aPriority */ 34,
+      /* uint64_t aChannelId */ 4,
+      /* NetworkLoadType aType */ net::NetworkLoadType::LOAD_REDIRECT,
+      /* mozilla::TimeStamp aStart */ ts1,
+      /* mozilla::TimeStamp aEnd */ ts2,
+      /* int64_t aCount */ 56,
+      /* mozilla::net::CacheDisposition aCacheDisposition */
+      net::kCacheUnresolved,
+      /* uint64_t aInnerWindowID */ 78,
+      /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
+      /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
+         nullptr */
+      nullptr,
+      /* const mozilla::Maybe<nsDependentCString>& aContentType =
+         mozilla::Nothing() */
+      mozilla::Nothing(),
+      /* nsIURI* aRedirectURI = nullptr */ redirectURI,
+      /* uint32_t aRedirectFlags = 0 */
+      nsIChannelEventSink::REDIRECT_PERMANENT,
+      /* uint64_t aRedirectChannelId = 0 */ 104);
+
+  profiler_add_network_marker(
+      /* nsIURI* aURI */ uri,
+      /* const nsACString& aRequestMethod */ "GET"_ns,
+      /* int32_t aPriority */ 34,
+      /* uint64_t aChannelId */ 5,
+      /* NetworkLoadType aType */ net::NetworkLoadType::LOAD_REDIRECT,
+      /* mozilla::TimeStamp aStart */ ts1,
+      /* mozilla::TimeStamp aEnd */ ts2,
+      /* int64_t aCount */ 56,
+      /* mozilla::net::CacheDisposition aCacheDisposition */
+      net::kCacheUnresolved,
+      /* uint64_t aInnerWindowID */ 78,
+      /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
+      /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
+         nullptr */
+      nullptr,
+      /* const mozilla::Maybe<nsDependentCString>& aContentType =
+         mozilla::Nothing() */
+      mozilla::Nothing(),
+      /* nsIURI* aRedirectURI = nullptr */ redirectURI,
+      /* uint32_t aRedirectFlags = 0 */ nsIChannelEventSink::REDIRECT_INTERNAL,
+      /* uint64_t aRedirectChannelId = 0 */ 105);
+
+  profiler_add_network_marker(
+      /* nsIURI* aURI */ uri,
+      /* const nsACString& aRequestMethod */ "GET"_ns,
+      /* int32_t aPriority */ 34,
+      /* uint64_t aChannelId */ 6,
+      /* NetworkLoadType aType */ net::NetworkLoadType::LOAD_REDIRECT,
+      /* mozilla::TimeStamp aStart */ ts1,
+      /* mozilla::TimeStamp aEnd */ ts2,
+      /* int64_t aCount */ 56,
+      /* mozilla::net::CacheDisposition aCacheDisposition */
+      net::kCacheUnresolved,
+      /* uint64_t aInnerWindowID */ 78,
+      /* const mozilla::net::TimingStruct* aTimings = nullptr */ nullptr,
+      /* mozilla::UniquePtr<mozilla::ProfileChunkedBuffer> aSource =
+         nullptr */
+      nullptr,
+      /* const mozilla::Maybe<nsDependentCString>& aContentType =
+         mozilla::Nothing() */
+      mozilla::Nothing(),
+      /* nsIURI* aRedirectURI = nullptr */ redirectURI,
+      /* uint32_t aRedirectFlags = 0 */ nsIChannelEventSink::REDIRECT_INTERNAL |
+          nsIChannelEventSink::REDIRECT_STS_UPGRADE,
+      /* uint64_t aRedirectChannelId = 0 */ 106);
 
   MOZ_RELEASE_ASSERT(profiler_add_marker(
       "Text in main thread with stack", geckoprofiler::category::OTHER,
@@ -1058,7 +1141,11 @@ TEST(GeckoProfiler, Markers)
     S_SpecialMarker,
     S_NetworkMarkerPayload_start,
     S_NetworkMarkerPayload_stop,
-    S_NetworkMarkerPayload_redirect,
+    S_NetworkMarkerPayload_redirect_temporary,
+    S_NetworkMarkerPayload_redirect_permanent,
+    S_NetworkMarkerPayload_redirect_internal,
+    S_NetworkMarkerPayload_redirect_internal_sts,
+
     S_TextWithStack,
     S_TextToMTWithStack,
     S_RegThread_TextToMTWithStack,
@@ -1348,30 +1435,36 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_EQ_JSON(payload["count"], Int64, 56);
                   EXPECT_EQ_JSON(payload["cache"], String, "Hit");
                   EXPECT_TRUE(payload["RedirectURI"].isNull());
+                  EXPECT_TRUE(payload["redirectType"].isNull());
+                  EXPECT_TRUE(payload["isHttpToHttpsRedirect"].isNull());
+                  EXPECT_TRUE(payload["redirectId"].isNull());
                   EXPECT_TRUE(payload["contentType"].isNull());
 
-                } else if (nameString == "Load 12: http://mozilla.org/") {
+                } else if (nameString == "Load 2: http://mozilla.org/") {
                   EXPECT_EQ(state, S_NetworkMarkerPayload_stop);
                   state = State(S_NetworkMarkerPayload_stop + 1);
                   EXPECT_EQ(typeString, "Network");
                   EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
                   EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
-                  EXPECT_EQ_JSON(payload["id"], Int64, 12);
+                  EXPECT_EQ_JSON(payload["id"], Int64, 2);
                   EXPECT_EQ_JSON(payload["URI"], String, "http://mozilla.org/");
                   EXPECT_EQ_JSON(payload["requestMethod"], String, "GET");
                   EXPECT_EQ_JSON(payload["pri"], Int64, 34);
                   EXPECT_EQ_JSON(payload["count"], Int64, 56);
                   EXPECT_EQ_JSON(payload["cache"], String, "Unresolved");
                   EXPECT_TRUE(payload["RedirectURI"].isNull());
+                  EXPECT_TRUE(payload["redirectType"].isNull());
+                  EXPECT_TRUE(payload["isHttpToHttpsRedirect"].isNull());
+                  EXPECT_TRUE(payload["redirectId"].isNull());
                   EXPECT_EQ_JSON(payload["contentType"], String, "text/html");
 
-                } else if (nameString == "Load 123: http://mozilla.org/") {
-                  EXPECT_EQ(state, S_NetworkMarkerPayload_redirect);
-                  state = State(S_NetworkMarkerPayload_redirect + 1);
+                } else if (nameString == "Load 3: http://mozilla.org/") {
+                  EXPECT_EQ(state, S_NetworkMarkerPayload_redirect_temporary);
+                  state = State(S_NetworkMarkerPayload_redirect_temporary + 1);
                   EXPECT_EQ(typeString, "Network");
                   EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
                   EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
-                  EXPECT_EQ_JSON(payload["id"], Int64, 123);
+                  EXPECT_EQ_JSON(payload["id"], Int64, 3);
                   EXPECT_EQ_JSON(payload["URI"], String, "http://mozilla.org/");
                   EXPECT_EQ_JSON(payload["requestMethod"], String, "GET");
                   EXPECT_EQ_JSON(payload["pri"], Int64, 34);
@@ -1379,6 +1472,68 @@ TEST(GeckoProfiler, Markers)
                   EXPECT_EQ_JSON(payload["cache"], String, "Unresolved");
                   EXPECT_EQ_JSON(payload["RedirectURI"], String,
                                  "http://example.com/");
+                  EXPECT_EQ_JSON(payload["redirectType"], String, "Temporary");
+                  EXPECT_EQ_JSON(payload["isHttpToHttpsRedirect"], Bool, false);
+                  EXPECT_EQ_JSON(payload["redirectId"], Int64, 103);
+                  EXPECT_TRUE(payload["contentType"].isNull());
+
+                } else if (nameString == "Load 4: http://mozilla.org/") {
+                  EXPECT_EQ(state, S_NetworkMarkerPayload_redirect_permanent);
+                  state = State(S_NetworkMarkerPayload_redirect_permanent + 1);
+                  EXPECT_EQ(typeString, "Network");
+                  EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                  EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                  EXPECT_EQ_JSON(payload["id"], Int64, 4);
+                  EXPECT_EQ_JSON(payload["URI"], String, "http://mozilla.org/");
+                  EXPECT_EQ_JSON(payload["requestMethod"], String, "GET");
+                  EXPECT_EQ_JSON(payload["pri"], Int64, 34);
+                  EXPECT_EQ_JSON(payload["count"], Int64, 56);
+                  EXPECT_EQ_JSON(payload["cache"], String, "Unresolved");
+                  EXPECT_EQ_JSON(payload["RedirectURI"], String,
+                                 "http://example.com/");
+                  EXPECT_EQ_JSON(payload["redirectType"], String, "Permanent");
+                  EXPECT_EQ_JSON(payload["isHttpToHttpsRedirect"], Bool, false);
+                  EXPECT_EQ_JSON(payload["redirectId"], Int64, 104);
+                  EXPECT_TRUE(payload["contentType"].isNull());
+
+                } else if (nameString == "Load 5: http://mozilla.org/") {
+                  EXPECT_EQ(state, S_NetworkMarkerPayload_redirect_internal);
+                  state = State(S_NetworkMarkerPayload_redirect_internal + 1);
+                  EXPECT_EQ(typeString, "Network");
+                  EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                  EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                  EXPECT_EQ_JSON(payload["id"], Int64, 5);
+                  EXPECT_EQ_JSON(payload["URI"], String, "http://mozilla.org/");
+                  EXPECT_EQ_JSON(payload["requestMethod"], String, "GET");
+                  EXPECT_EQ_JSON(payload["pri"], Int64, 34);
+                  EXPECT_EQ_JSON(payload["count"], Int64, 56);
+                  EXPECT_EQ_JSON(payload["cache"], String, "Unresolved");
+                  EXPECT_EQ_JSON(payload["RedirectURI"], String,
+                                 "http://example.com/");
+                  EXPECT_EQ_JSON(payload["redirectType"], String, "Internal");
+                  EXPECT_EQ_JSON(payload["isHttpToHttpsRedirect"], Bool, false);
+                  EXPECT_EQ_JSON(payload["redirectId"], Int64, 105);
+                  EXPECT_TRUE(payload["contentType"].isNull());
+
+                } else if (nameString == "Load 6: http://mozilla.org/") {
+                  EXPECT_EQ(state,
+                            S_NetworkMarkerPayload_redirect_internal_sts);
+                  state =
+                      State(S_NetworkMarkerPayload_redirect_internal_sts + 1);
+                  EXPECT_EQ(typeString, "Network");
+                  EXPECT_EQ_JSON(payload["startTime"], Double, ts1Double);
+                  EXPECT_EQ_JSON(payload["endTime"], Double, ts2Double);
+                  EXPECT_EQ_JSON(payload["id"], Int64, 6);
+                  EXPECT_EQ_JSON(payload["URI"], String, "http://mozilla.org/");
+                  EXPECT_EQ_JSON(payload["requestMethod"], String, "GET");
+                  EXPECT_EQ_JSON(payload["pri"], Int64, 34);
+                  EXPECT_EQ_JSON(payload["count"], Int64, 56);
+                  EXPECT_EQ_JSON(payload["cache"], String, "Unresolved");
+                  EXPECT_EQ_JSON(payload["RedirectURI"], String,
+                                 "http://example.com/");
+                  EXPECT_EQ_JSON(payload["redirectType"], String, "Internal");
+                  EXPECT_EQ_JSON(payload["isHttpToHttpsRedirect"], Bool, true);
+                  EXPECT_EQ_JSON(payload["redirectId"], Int64, 106);
                   EXPECT_TRUE(payload["contentType"].isNull());
 
                 } else if (nameString == "Text in main thread with stack") {
@@ -2132,6 +2287,106 @@ TEST(GeckoProfiler, PostSamplingCallback)
       [&](SamplingState) { ASSERT_TRUE(false); }));
 }
 
+TEST(GeckoProfiler, ProfilingStateCallback)
+{
+  const char* filters[] = {"GeckoMain"};
+
+  ASSERT_TRUE(!profiler_is_active());
+
+  struct ProfilingStateAndId {
+    ProfilingState mProfilingState;
+    int mId;
+  };
+  DataMutex<Vector<ProfilingStateAndId>> states{"Profiling states"};
+  auto CreateCallback = [&states](int id) {
+    return [id, &states](ProfilingState aProfilingState) {
+      auto lockedStates = states.Lock();
+      ASSERT_TRUE(
+          lockedStates->append(ProfilingStateAndId{aProfilingState, id}));
+    };
+  };
+  auto CheckStatesIsEmpty = [&states]() {
+    auto lockedStates = states.Lock();
+    EXPECT_TRUE(lockedStates->empty());
+  };
+  auto CheckStatesOnlyContains = [&states](ProfilingState aProfilingState,
+                                           int aId) {
+    auto lockedStates = states.Lock();
+    EXPECT_EQ(lockedStates->length(), 1u);
+    if (lockedStates->length() >= 1u) {
+      EXPECT_EQ((*lockedStates)[0].mProfilingState, aProfilingState);
+      EXPECT_EQ((*lockedStates)[0].mId, aId);
+    }
+    lockedStates->clear();
+  };
+
+  profiler_add_state_change_callback(AllProfilingStates(), CreateCallback(1),
+                                     1);
+  // This is in case of error, and it also exercises the (allowed) removal of
+  // unknown callback ids.
+  auto cleanup1 = mozilla::MakeScopeExit(
+      []() { profiler_remove_state_change_callback(1); });
+  CheckStatesIsEmpty();
+
+  profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                 ProfilerFeature::StackWalk, filters, MOZ_ARRAY_LENGTH(filters),
+                 0);
+
+  CheckStatesOnlyContains(ProfilingState::Started, 1);
+
+  profiler_add_state_change_callback(AllProfilingStates(), CreateCallback(2),
+                                     2);
+  // This is in case of error, and it also exercises the (allowed) removal of
+  // unknown callback ids.
+  auto cleanup2 = mozilla::MakeScopeExit(
+      []() { profiler_remove_state_change_callback(2); });
+  CheckStatesOnlyContains(ProfilingState::AlreadyActive, 2);
+
+  profiler_remove_state_change_callback(2);
+  CheckStatesOnlyContains(ProfilingState::RemovingCallback, 2);
+  // Note: The actual removal is effectively tested below, by not seeing any
+  // more invocations of the 2nd callback.
+
+  ASSERT_EQ(WaitForSamplingState(), SamplingState::SamplingCompleted);
+  UniquePtr<char[]> profileCompleted = profiler_get_profile();
+  CheckStatesOnlyContains(ProfilingState::GeneratingProfile, 1);
+  JSONOutputCheck(profileCompleted.get(), [](const Json::Value& aRoot) {});
+
+  profiler_pause();
+  CheckStatesOnlyContains(ProfilingState::Pausing, 1);
+  UniquePtr<char[]> profilePaused = profiler_get_profile();
+  CheckStatesOnlyContains(ProfilingState::GeneratingProfile, 1);
+  JSONOutputCheck(profilePaused.get(), [](const Json::Value& aRoot) {});
+
+  profiler_resume();
+  CheckStatesOnlyContains(ProfilingState::Resumed, 1);
+  ASSERT_EQ(WaitForSamplingState(), SamplingState::SamplingCompleted);
+  UniquePtr<char[]> profileResumed = profiler_get_profile();
+  CheckStatesOnlyContains(ProfilingState::GeneratingProfile, 1);
+  JSONOutputCheck(profileResumed.get(), [](const Json::Value& aRoot) {});
+
+  // This effectively stops the profiler before restarting it, but
+  // ProfilingState::Stopping is not notified. See `profiler_start` for details.
+  profiler_start(PROFILER_DEFAULT_ENTRIES, PROFILER_DEFAULT_INTERVAL,
+                 ProfilerFeature::StackWalk | ProfilerFeature::NoStackSampling,
+                 filters, MOZ_ARRAY_LENGTH(filters), 0);
+  CheckStatesOnlyContains(ProfilingState::Started, 1);
+  ASSERT_EQ(WaitForSamplingState(), SamplingState::NoStackSamplingCompleted);
+  UniquePtr<char[]> profileNoStacks = profiler_get_profile();
+  CheckStatesOnlyContains(ProfilingState::GeneratingProfile, 1);
+  JSONOutputCheck(profileNoStacks.get(), [](const Json::Value& aRoot) {});
+
+  profiler_stop();
+  CheckStatesOnlyContains(ProfilingState::Stopping, 1);
+  ASSERT_TRUE(!profiler_is_active());
+
+  profiler_remove_state_change_callback(1);
+  CheckStatesOnlyContains(ProfilingState::RemovingCallback, 1);
+
+  // Note: ProfilingState::ShuttingDown cannot be tested here, and the profiler
+  // can only be shut down once per process.
+}
+
 TEST(GeckoProfiler, BaseProfilerHandOff)
 {
   const char* filters[] = {"GeckoMain"};
@@ -2294,7 +2549,13 @@ TEST(GeckoProfiler, CPUUsage)
             std::set<uint64_t> stackLeaves;  // To count distinct leaves.
             unsigned threadCPUDeltaCount = 0;
             GET_JSON(data, samples["data"], Array);
-            EXPECT_GE(data.size(), scMinSamplings);
+            if (testWithNoStackSampling) {
+              // When not sampling stacks, the first sampling loop will have no
+              // running times, so it won't output anything.
+              EXPECT_GE(data.size(), scMinSamplings - 1);
+            } else {
+              EXPECT_GE(data.size(), scMinSamplings);
+            }
             for (const Json::Value& sample : data) {
               ASSERT_TRUE(sample.isArray());
               if (sample.isValidIndex(stackIndex)) {

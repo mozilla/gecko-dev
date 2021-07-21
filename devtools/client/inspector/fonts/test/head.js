@@ -17,30 +17,55 @@ registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
 });
 
+var nodeConstants = require("devtools/shared/dom-node-constants");
+
 /**
  * The font-inspector doesn't participate in the inspector's update mechanism
  * (i.e. it doesn't call inspector.updating() when updating), so simply calling
  * the default selectNode isn't enough to guaranty that the panel has finished
  * updating. We also need to wait for the fontinspector-updated event.
+ *
+ * @param {String|NodeFront} selector
+ * @param {InspectorPanel} inspector
+ *        The instance of InspectorPanel currently loaded in the toolbox.
+ * @param {String} reason
+ *        Defaults to "test" which instructs the inspector not to highlight the
+ *        node upon selection.
  */
 var _selectNode = selectNode;
 selectNode = async function(node, inspector, reason) {
-  const onInspectorUpdated = inspector.once("fontinspector-updated");
+  // Ensure node is a NodeFront and not a selector (which is also accepted as
+  // an argument to selectNode).
+  node = await getNodeFront(node, inspector);
+
+  // The FontInspector will fallback to the parent node when a text node is
+  // selected.
+  const isTextNode = node.nodeType == nodeConstants.TEXT_NODE;
+  const expectedNode = isTextNode ? node.parentNode() : node;
+
   const onEditorUpdated = inspector.once("fonteditor-updated");
+  const onFontInspectorUpdated = new Promise(resolve => {
+    inspector.on("fontinspector-updated", function onUpdated(eventNode) {
+      if (eventNode === expectedNode) {
+        inspector.off("fontinspector-updated", onUpdated);
+        resolve();
+      }
+    });
+  });
   await _selectNode(node, inspector, reason);
 
   // Wait for both the font inspector and font editor before proceeding.
-  await Promise.all([onInspectorUpdated, onEditorUpdated]);
+  await Promise.all([onFontInspectorUpdated, onEditorUpdated]);
 };
 
 /**
  * Adds a new tab with the given URL, opens the inspector and selects the
  * font-inspector tab.
- * @return {Promise} resolves to a {toolbox, inspector, view} object
+ * @return {Promise} resolves to a {tab, toolbox, inspector, view} object
  */
 var openFontInspectorForURL = async function(url) {
   const tab = await addTab(url);
-  const { toolbox, inspector, testActor } = await openInspector();
+  const { toolbox, inspector } = await openInspector();
 
   // Call selectNode again here to force a fontinspector update since we don't
   // know if the fontinspector-updated event has been sent while the inspector
@@ -49,7 +74,6 @@ var openFontInspectorForURL = async function(url) {
 
   return {
     tab,
-    testActor,
     toolbox,
     inspector,
     view: inspector.getPanel("fontinspector"),

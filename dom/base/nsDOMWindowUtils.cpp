@@ -49,7 +49,8 @@
 #include "nsCharsetSource.h"
 #include "nsJSEnvironment.h"
 #include "nsJSUtils.h"
-#include "js/Object.h"  // JS::GetClass
+#include "js/experimental/PCCountProfiling.h"  // JS::{Start,Stop}PCCountProfiling, JS::PurgePCCounts, JS::GetPCCountScript{Count,Summary,Contents}
+#include "js/Object.h"                         // JS::GetClass
 
 #include "mozilla/ChaosMode.h"
 #include "mozilla/CheckedInt.h"
@@ -128,6 +129,7 @@
 #include "mozilla/DisplayPortUtils.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/ViewportUtils.h"
+#include "mozilla/dom/BrowsingContextGroup.h"
 
 #ifdef XP_WIN
 #  undef GetClassName
@@ -362,8 +364,11 @@ nsDOMWindowUtils::GetDocCharsetIsForced(bool* aIsForced) {
   *aIsForced = false;
 
   Document* doc = GetDocument();
-  *aIsForced =
-      doc && doc->GetDocumentCharacterSetSource() >= kCharsetFromUserForced;
+  if (doc) {
+    auto source = doc->GetDocumentCharacterSetSource();
+    *aIsForced = source == kCharsetFromInitialUserForcedAutoDetection ||
+                 source == kCharsetFromFinalUserForcedAutoDetection;
+  }
   return NS_OK;
 }
 
@@ -2994,6 +2999,15 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
     return false;
   }();
 
+  // The content may be inside a scrollable subframe inside a non-scrollable
+  // root content document. In this scenario, we want to ensure that the
+  // main-thread side knows to scroll the content into view before we get
+  // the bounding content rect and ask APZ to adjust the visual viewport.
+  presShell->ScrollContentIntoView(
+      element, ScrollAxis(kScrollMinimum, WhenToScroll::IfNotVisible),
+      ScrollAxis(kScrollMinimum, WhenToScroll::IfNotVisible),
+      ScrollFlags::ScrollOverflowHidden);
+
   if (shouldSkip) {
     return NS_OK;
   }
@@ -3018,15 +3032,6 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
   } else {
     flags |= layers::ONLY_ZOOM_TO_DEFAULT_SCALE;
   }
-
-  // The content may be inside a scrollable subframe inside a non-scrollable
-  // root content document. In this scenario, we want to ensure that the
-  // main-thread side knows to scroll the content into view before we get
-  // the bounding content rect and ask APZ to adjust the visual viewport.
-  presShell->ScrollContentIntoView(
-      element, ScrollAxis(kScrollMinimum, WhenToScroll::IfNotVisible),
-      ScrollAxis(kScrollMinimum, WhenToScroll::IfNotVisible),
-      ScrollFlags::ScrollOverflowHidden);
 
   nsIScrollableFrame* rootScrollFrame =
       presShell->GetRootScrollFrameAsScrollable();
@@ -3074,10 +3079,11 @@ nsDOMWindowUtils::ZoomToFocusedInput() {
   if (waitForRefresh) {
     waitForRefresh = false;
     if (nsPresContext* presContext = presShell->GetPresContext()) {
-      waitForRefresh = presContext->RegisterManagedPostRefreshObserver(
+      waitForRefresh = true;
+      presContext->RegisterManagedPostRefreshObserver(
           new ManagedPostRefreshObserver(
-              presShell, [widget = RefPtr<nsIWidget>(widget), presShellId,
-                          viewId, bounds, flags](bool aWasCanceled) {
+              presContext, [widget = RefPtr<nsIWidget>(widget), presShellId,
+                            viewId, bounds, flags](bool aWasCanceled) {
                 if (!aWasCanceled) {
                   widget->ZoomToRect(presShellId, viewId, bounds, flags);
                 }
@@ -3392,6 +3398,17 @@ nsDOMWindowUtils::AreDialogsEnabled(bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsDOMWindowUtils::ResetDialogAbuseState() {
+  nsCOMPtr<nsPIDOMWindowOuter> window = do_QueryReferent(mWindow);
+  NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
+
+  nsGlobalWindowOuter::Cast(window)
+      ->GetBrowsingContextGroup()
+      ->ResetDialogAbuseState();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, JSContext* aCx,
                             int64_t* _retval) {
   if (aFile.isPrimitive()) {
@@ -3496,32 +3513,32 @@ nsDOMWindowUtils::FlushPendingFileDeletions() {
 
 NS_IMETHODIMP
 nsDOMWindowUtils::StartPCCountProfiling(JSContext* cx) {
-  js::StartPCCountProfiling(cx);
+  JS::StartPCCountProfiling(cx);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMWindowUtils::StopPCCountProfiling(JSContext* cx) {
-  js::StopPCCountProfiling(cx);
+  JS::StopPCCountProfiling(cx);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMWindowUtils::PurgePCCounts(JSContext* cx) {
-  js::PurgePCCounts(cx);
+  JS::PurgePCCounts(cx);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetPCCountScriptCount(JSContext* cx, int32_t* result) {
-  *result = js::GetPCCountScriptCount(cx);
+  *result = JS::GetPCCountScriptCount(cx);
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetPCCountScriptSummary(int32_t script, JSContext* cx,
                                           nsAString& result) {
-  JSString* text = js::GetPCCountScriptSummary(cx, script);
+  JSString* text = JS::GetPCCountScriptSummary(cx, script);
   if (!text) return NS_ERROR_FAILURE;
 
   if (!AssignJSString(cx, result, text)) return NS_ERROR_FAILURE;
@@ -3532,7 +3549,7 @@ nsDOMWindowUtils::GetPCCountScriptSummary(int32_t script, JSContext* cx,
 NS_IMETHODIMP
 nsDOMWindowUtils::GetPCCountScriptContents(int32_t script, JSContext* cx,
                                            nsAString& result) {
-  JSString* text = js::GetPCCountScriptContents(cx, script);
+  JSString* text = JS::GetPCCountScriptContents(cx, script);
   if (!text) return NS_ERROR_FAILURE;
 
   if (!AssignJSString(cx, result, text)) return NS_ERROR_FAILURE;

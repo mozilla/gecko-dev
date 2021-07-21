@@ -15,7 +15,6 @@
                      hidden="true"/>
       <toolbaritem id="appMenu-fxa-status"
                    class="sync-ui-item"
-                   defaultlabel="&fxa.menu.signin.label;"
                    flex="1">
         <image id="appMenu-fxa-avatar"/>
         <toolbarbutton id="appMenu-fxa-label"
@@ -362,22 +361,22 @@
     <vbox class="panel-subview-body">
       <toolbarbutton id="appMenuRecentlyClosedTabs"
                      data-l10n-id="appmenu-recently-closed-tabs"
-                     class="subviewbutton subviewbutton-iconic subviewbutton-nav"
+                     class="subviewbutton subviewbutton-nav"
                      closemenu="none"
                      oncommand="PanelUI.showSubView('appMenu-library-recentlyClosedTabs', this)"/>
       <toolbarbutton id="appMenuRecentlyClosedWindows"
                      data-l10n-id="appmenu-recently-closed-windows"
-                     class="subviewbutton subviewbutton-iconic subviewbutton-nav"
+                     class="subviewbutton subviewbutton-nav"
                      closemenu="none"
                      oncommand="PanelUI.showSubView('appMenu-library-recentlyClosedWindows', this)"/>
       <toolbarbutton id="appMenuRestoreSession"
                      data-l10n-id="appmenu-restore-session"
-                     class="subviewbutton subviewbutton-iconic"
+                     class="subviewbutton"
                      command="Browser:RestoreLastSession"/>
       <toolbarseparator/>
       <toolbarbutton id="appMenuClearRecentHistory"
                      data-l10n-id="appmenu-clear-history"
-                     class="subviewbutton subviewbutton-iconic"
+                     class="subviewbutton"
                      command="Tools:Sanitize"/>
       <toolbarseparator/>
       <html:h2 id="panelMenu_recentHistory" class="subview-subheader" data-l10n-id="appmenu-recent-history-subheader"></html:h2>
@@ -393,7 +392,7 @@
     </vbox>
     <toolbarseparator/>
     <toolbarbutton id="PanelUI-historyMore"
-                   class="subviewbutton subviewbutton-iconic panel-subview-footer-button"
+                   class="subviewbutton panel-subview-footer-button"
                    data-l10n-id="appmenu-manage-history"
                    oncommand="PlacesCommandHook.showPlacesOrganizer('History'); CustomizableUI.hidePanelForNode(this);"/>
   </panelview>
@@ -416,15 +415,15 @@
   <panelview id="PanelUI-bookmarks" flex="1" class="PanelUI-subView">
     <vbox class="panel-subview-body">
       <toolbarbutton id="panelMenuBookmarkThisPage"
-                     class="subviewbutton subviewbutton-iconic"
+                     class="subviewbutton"
                      command="Browser:AddBookmarkAs"
                      onclick="PanelUI.hide();"/>
       <toolbarbutton id="panelMenu_searchBookmarks"
                      data-l10n-id="bookmarks-search"
-                     class="subviewbutton subviewbutton-iconic"
+                     class="subviewbutton"
                      oncommand="PlacesCommandHook.searchBookmarks(); PanelUI.hide();"/>
       <toolbarbutton id="panelMenu_viewBookmarksToolbar"
-                     class="subviewbutton subviewbutton-iconic"
+                     class="subviewbutton"
                      data-l10n-id="bookmarks-tools-toolbar-visibility-panel"
                      data-l10n-args='{ "isVisible": false }'
                      oncommand="BookmarkingUI.toggleBookmarksToolbar('bookmark-tools');"/>
@@ -445,7 +444,7 @@
     <toolbarseparator/>
     <toolbarbutton id="panelMenu_showAllBookmarks"
                    data-l10n-id="bookmarks-manage-bookmarks"
-                   class="subviewbutton subviewbutton-iconic panel-subview-footer-button"
+                   class="subviewbutton panel-subview-footer-button"
                    command="Browser:ShowAllBookmarks"
                    onclick="PanelUI.hide();"/>
   </panelview>
@@ -547,16 +546,6 @@
     </vbox>
   </panelview>
 
-  <panelview id="PanelUI-characterEncodingView" flex="1">
-    <vbox class="panel-subview-body">
-      <vbox id="PanelUI-characterEncodingView-pinned"
-            class="PanelUI-characterEncodingView-list"/>
-      <toolbarseparator/>
-      <vbox id="PanelUI-characterEncodingView-charsets"
-            class="PanelUI-characterEncodingView-list"/>
-    </vbox>
-  </panelview>
-
   <panelview id="PanelUI-panicView" flex="1"
              descriptionheightworkaround="true">
     <vbox class="panel-subview-body">
@@ -595,11 +584,6 @@
                      class="subviewbutton subviewbutton-iconic"
                      data-l10n-id="appmenu-taskmanager"
                      oncommand="switchToTabHavingURI('about:performance', true)"/>
-      <toolbarbutton id="appMenu-characterencoding-button"
-                     class="subviewbutton subviewbutton-nav"
-                     label="&charsetMenu2.label;"
-                     closemenu="none"
-                     oncommand="PanelUI.showSubView('PanelUI-characterEncodingView', this)"/>
       <toolbarbutton id="appMenu-workoffline-button"
                      class="subviewbutton"
                      data-l10n-id="more-menu-go-offline"
@@ -627,6 +611,14 @@
     </vbox>
   </panelview>
 
+  <panelview id="PanelUI-developer-tools" flex="1" class="PanelUI-subview">
+    <vbox id="PanelUI-developer-tools-view"
+          class="panel-subview-body"
+          role="group">
+      <!-- Developer Tools menu items are inserted here -->
+    </vbox>
+  </panelview>
+
   <panelview id="PanelUI-savetopocket" flex="1" class="PanelUI-subView">
     <vbox class="PanelUI-savetopocket-container">
     </vbox>
@@ -641,7 +633,7 @@
         <vbox id="PanelUI-remotetabs-buttons">
           <toolbarbutton id="PanelUI-remotetabs-syncnow"
                          align="center"
-                         class="subviewbutton subviewbutton-iconic"
+                         class="subviewbutton"
                          oncommand="gSync.doSync();"
                          onmouseover="gSync.refreshSyncButtonsTooltip();"
                          closemenu="none">
@@ -655,7 +647,7 @@
             </hbox>
           </toolbarbutton>
           <toolbarbutton id="PanelUI-remotetabs-view-managedevices"
-                         class="subviewbutton subviewbutton-iconic"
+                         class="subviewbutton"
                          data-l10n-id="remote-tabs-manage-account"
                          oncommand="gSync.openDevicesManagementPage('syncedtabs-menupanel');">
                          <observes element="sidebar-box" attribute="positionend"/>
@@ -771,7 +763,6 @@
                      align="center"
                      class="subviewbutton"
                      oncommand="gSync.clickFxAMenuHeaderButton(this);">
-        <image role="presentation" id="fxa-menu-avatar"/>
         <vbox flex="1">
           <label id="fxa-menu-header-title"
                  crop="end"
@@ -784,7 +775,7 @@
       </toolbarbutton>
       <toolbarbutton id="PanelUI-fxa-menu-syncnow-button"
                      align="center"
-                     class="subviewbutton subviewbutton-iconic"
+                     class="subviewbutton"
                      oncommand="gSync.doSyncFromFxaMenu(this);"
                      onmouseover="gSync.refreshSyncButtonsTooltip();"
                      closemenu="none">
@@ -799,27 +790,27 @@
         </hbox>
       </toolbarbutton>
       <toolbarbutton id="PanelUI-fxa-menu-setup-sync-button"
-                      class="subviewbutton subviewbutton-iconic"
+                      class="subviewbutton"
                       data-l10n-id="appmenu-fxa-setup-sync"
                       oncommand="gSync.openPrefsFromFxaMenu('sync_settings', this);"/>
       <!-- The `Connect Another Device` button is disabled by default until the user logs into Sync. -->
       <toolbarbutton id="PanelUI-fxa-menu-connect-device-button"
-                      class="subviewbutton subviewbutton-iconic"
+                      class="subviewbutton"
                       data-l10n-id="fxa-menu-connect-another-device"
                       disabled="true"
                       oncommand="gSync.openConnectAnotherDeviceFromFxaMenu(this);"/>
       <toolbarbutton id="PanelUI-fxa-menu-sendtab-button"
-                      class="subviewbutton subviewbutton-nav subviewbutton-iconic"
+                      class="subviewbutton subviewbutton-nav"
                       closemenu="none"
                       oncommand="gSync.showSendToDeviceViewFromFxaMenu(this);"/>
       <toolbarbutton id="PanelUI-fxa-menu-sync-prefs-button"
-                      class="subviewbutton subviewbutton-iconic"
+                      class="subviewbutton"
                       data-l10n-id="fxa-menu-sync-settings"
                       hidden="true"
                       oncommand="gSync.openPrefsFromFxaMenu('sync_settings', this);"/>
       <toolbarseparator id="PanelUI-sign-out-separator"/>
       <toolbarbutton id="PanelUI-fxa-menu-account-signout-button"
-              class="subviewbutton subviewbutton-iconic"
+              class="subviewbutton"
               data-l10n-id="fxa-menu-sign-out"
               oncommand="gSync.disconnect();"/>
       <toolbarseparator id="PanelUI-remote-tabs-separator"/>
@@ -876,17 +867,17 @@
   <panelview id="appMenu-libraryView" class="PanelUI-subView">
     <vbox class="panel-subview-body">
       <toolbarbutton id="appMenu-library-bookmarks-button"
-                     class="subviewbutton subviewbutton-iconic subviewbutton-nav"
+                     class="subviewbutton subviewbutton-nav"
                      data-l10n-id="library-bookmarks-menu"
                      closemenu="none"
                      oncommand="BookmarkingUI.showSubView(this);"/>
       <toolbarbutton id="appMenu-library-history-button"
-                     class="subviewbutton subviewbutton-iconic subviewbutton-nav"
+                     class="subviewbutton subviewbutton-nav"
                      label="&historyMenu.label;"
                      closemenu="none"
                      oncommand="PanelUI.showSubView('PanelUI-history', this)"/>
       <toolbarbutton id="appMenu-library-downloads-button"
-                     class="subviewbutton subviewbutton-iconic"
+                     class="subviewbutton"
                      label="&libraryDownloads.label;"
                      oncommand="DownloadsPanel.showDownloadsHistory();"/>
     </vbox>

@@ -348,14 +348,26 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
     policy->AddPath(rdonly, "/proc/modules");
   }
 
-  // Allow access to XDG_CONFIG_PATH and XDG_CONFIG_DIRS
-  if (const auto xdgConfigPath = PR_GetEnv("XDG_CONFIG_PATH")) {
-    policy->AddDir(rdonly, xdgConfigPath);
+  // XDG directories might be non existent according to specs:
+  // https://specifications.freedesktop.org/basedir-spec/0.8/ar01s04.html
+  //
+  // > If, when attempting to write a file, the destination directory is
+  // > non-existent an attempt should be made to create it with permission 0700.
+  //
+  // For that we use AddPath(, SandboxBroker::Policy::AddCondition::AddAlways).
+  //
+  // Allow access to XDG_CONFIG_HOME and XDG_CONFIG_DIRS
+  nsAutoCString xdgConfigHome(PR_GetEnv("XDG_CONFIG_HOME"));
+  if (!xdgConfigHome.IsEmpty()) {  // AddPath will fail on empty strings
+    policy->AddPath(rdonly, xdgConfigHome.get(),
+                    SandboxBroker::Policy::AddCondition::AddAlways);
   }
-
   nsAutoCString xdgConfigDirs(PR_GetEnv("XDG_CONFIG_DIRS"));
   for (const auto& path : xdgConfigDirs.Split(':')) {
-    policy->AddDir(rdonly, PromiseFlatCString(path).get());
+    if (!path.IsEmpty()) {  // AddPath will fail on empty strings
+      policy->AddPath(rdonly, PromiseFlatCString(path).get(),
+                      SandboxBroker::Policy::AddCondition::AddAlways);
+    }
   }
 
   // Allow fonts subdir in XDG_DATA_HOME
@@ -363,7 +375,8 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   if (!xdgDataHome.IsEmpty()) {
     nsAutoCString fontPath(xdgDataHome);
     fontPath.Append("/fonts");
-    policy->AddDir(rdonly, PromiseFlatCString(fontPath).get());
+    policy->AddPath(rdonly, PromiseFlatCString(fontPath).get(),
+                    SandboxBroker::Policy::AddCondition::AddAlways);
   }
 
   // Any font subdirs in XDG_DATA_DIRS
@@ -371,13 +384,14 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
   for (const auto& path : xdgDataDirs.Split(':')) {
     nsAutoCString fontPath(path);
     fontPath.Append("/fonts");
-    policy->AddDir(rdonly, PromiseFlatCString(fontPath).get());
+    policy->AddPath(rdonly, PromiseFlatCString(fontPath).get(),
+                    SandboxBroker::Policy::AddCondition::AddAlways);
   }
 
   // Extra configuration/cache dirs in the homedir that we want to allow read
   // access to.
   mozilla::Array<const char*, 4> extraConfDirs = {
-      ".config",  // Fallback if XDG_CONFIG_PATH isn't set
+      ".config",  // Fallback if XDG_CONFIG_HOME isn't set
       ".themes",
       ".fonts",
       ".cache/fontconfig",
@@ -392,7 +406,7 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
     for (const auto& dir : extraConfDirs) {
       rv = homeDir->Clone(getter_AddRefs(confDir));
       if (NS_SUCCEEDED(rv)) {
-        rv = confDir->AppendNative(nsDependentCString(dir));
+        rv = confDir->AppendRelativeNativePath(nsDependentCString(dir));
         if (NS_SUCCEEDED(rv)) {
           nsAutoCString tmpPath;
           rv = confDir->GetNativePath(tmpPath);
@@ -509,13 +523,19 @@ void SandboxBrokerPolicyFactory::InitContentPolicy() {
     policy->AddPath(SandboxBroker::MAY_CONNECT, bumblebeeSocket);
 
 #if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
-    // Allow local X11 connections, for Primus and VirtualGL to contact
-    // the secondary X server. No exception for Wayland.
-    if (mozilla::widget::GdkIsX11Display()) {
+    // Allow local X11 connections, for several purposes:
+    //
+    // * for content processes to use WebGL when the browser is in headless
+    //   mode, by opening the X display if/when needed
+    //
+    // * if Primus or VirtualGL is used, to contact the secondary X server
+    static const bool kIsX11 =
+        !mozilla::widget::GdkIsWaylandDisplay() && PR_GetEnv("DISPLAY");
+    if (kIsX11) {
       policy->AddPrefix(SandboxBroker::MAY_CONNECT, "/tmp/.X11-unix/X");
-    }
-    if (const auto xauth = PR_GetEnv("XAUTHORITY")) {
-      policy->AddPath(rdonly, xauth);
+      if (auto* const xauth = PR_GetEnv("XAUTHORITY")) {
+        policy->AddPath(rdonly, xauth);
+      }
     }
 #endif
   }

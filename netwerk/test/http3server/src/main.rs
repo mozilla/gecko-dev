@@ -6,8 +6,8 @@
 
 #![deny(warnings)]
 
-use neqo_common::{event::Provider, qdebug, qinfo, qtrace, Datagram};
-use neqo_crypto::{init_db, AllowZeroRtt, AntiReplay};
+use neqo_common::{event::Provider, qdebug, qinfo, qtrace, Datagram, Header};
+use neqo_crypto::{generate_ech_keys, init_db, AllowZeroRtt, AntiReplay};
 use neqo_http3::{ClientRequestStream, Error, Http3Server, Http3ServerEvent};
 use neqo_qpack::QpackSettings;
 use neqo_transport::server::Server;
@@ -26,17 +26,21 @@ use core::fmt::Display;
 use mio::net::UdpSocket;
 use mio::{Events, Poll, PollOpt, Ready, Token};
 use mio_extras::timer::{Builder, Timeout, Timer};
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::net::SocketAddr;
 
+extern crate base64;
+
 const MAX_TABLE_SIZE: u64 = 65536;
 const MAX_BLOCKED_STREAMS: u16 = 10;
-const PROTOCOLS: &[&str] = &["h3-27", "h3"];
+const PROTOCOLS: &[&str] = &["h3-29", "h3"];
 const TIMER_TOKEN: Token = Token(0xffff);
+const ECH_CONFIG_ID: u8 = 7;
+const ECH_PUBLIC_NAME: &str = "public.example";
 
 const HTTP_RESPONSE_WITH_WRONG_FRAME: &[u8] = &[
     0x01, 0x06, 0x00, 0x00, 0xd9, 0x54, 0x01, 0x37, // headers
@@ -93,38 +97,30 @@ impl HttpServer for Http3TestServer {
                     // UnknownDecoder code.
                     let default_ret = b"Hello World".to_vec();
                     let default_headers = vec![
-                        (String::from(":status"), String::from("200")),
-                        (String::from("cache-control"), String::from("no-cache")),
-                        (
-                            String::from("content-length"),
-                            default_ret.len().to_string(),
-                        ),
-                        (
-                            String::from("x-http3-conn-hash"),
+                        Header::new(":status", "200"),
+                        Header::new("cache-control", "no-cache"),
+                        Header::new("content-length", default_ret.len().to_string()),
+                        Header::new(
+                            "x-http3-conn-hash",
                             self.current_connection_hash.to_string(),
                         ),
                     ];
 
-                    let path_hdr = headers.iter().find(|(k, _)| k == ":path");
+                    let path_hdr = headers.iter().find(|&h| h.name() == ":path");
                     match path_hdr {
-                        Some((_, path)) if !path.is_empty() => {
+                        Some(ph) if !ph.value().is_empty() => {
+                            let path = ph.value();
                             qtrace!("Serve request {}", path);
                             if path == "/Response421" {
                                 let response_body = b"0123456789".to_vec();
                                 request
                                     .set_response(
                                         &[
-                                            (String::from(":status"), String::from("421")),
-                                            (
-                                                String::from("cache-control"),
-                                                String::from("no-cache"),
-                                            ),
-                                            (
-                                                String::from("content-type"),
-                                                String::from("text/plain"),
-                                            ),
-                                            (
-                                                String::from("content-length"),
+                                            Header::new(":status", "421"),
+                                            Header::new("cache-control", "no-cache"),
+                                            Header::new("content-type", "text/plain"),
+                                            Header::new(
+                                                "content-length",
                                                 response_body.len().to_string(),
                                             ),
                                         ],
@@ -146,26 +142,20 @@ impl HttpServer for Http3TestServer {
                                     .stream_reset(Error::HttpRequestRejected.code())
                                     .unwrap();
                             } else if path == "/.well-known/http-opportunistic" {
-                                let host_hdr = headers.iter().find(|(k, _)| k == ":authority");
+                                let host_hdr = headers.iter().find(|&h| h.name() == ":authority");
                                 match host_hdr {
-                                    Some((_, host)) if !host.is_empty() => {
+                                    Some(host) if !host.value().is_empty() => {
                                         let mut content = b"[\"http://".to_vec();
-                                        content.extend(host.as_bytes());
+                                        content.extend(host.value().as_bytes());
                                         content.extend(b"\"]".to_vec());
                                         request
                                             .set_response(
                                                 &[
-                                                    (String::from(":status"), String::from("200")),
-                                                    (
-                                                        String::from("cache-control"),
-                                                        String::from("no-cache"),
-                                                    ),
-                                                    (
-                                                        String::from("content-type"),
-                                                        String::from("application/json"),
-                                                    ),
-                                                    (
-                                                        String::from("content-length"),
+                                                    Header::new(":status", "200"),
+                                                    Header::new("cache-control", "no-cache"),
+                                                    Header::new("content-type", "application/json"),
+                                                    Header::new(
+                                                        "content-length",
                                                         content.len().to_string(),
                                                     ),
                                                 ],
@@ -181,11 +171,8 @@ impl HttpServer for Http3TestServer {
                                 request
                                     .set_response(
                                         &[
-                                            (String::from(":status"), String::from("200")),
-                                            (
-                                                String::from("cache-control"),
-                                                String::from("no-cache"),
-                                            ),
+                                            Header::new(":status", "200"),
+                                            Header::new("cache-control", "no-cache"),
                                         ],
                                         &[],
                                     )
@@ -194,11 +181,8 @@ impl HttpServer for Http3TestServer {
                                 request
                                     .set_response(
                                         &[
-                                            (String::from(":status"), String::from("200")),
-                                            (
-                                                String::from("cache-control"),
-                                                String::from("no-cache"),
-                                            ),
+                                            Header::new(":status", "200"),
+                                            Header::new("cache-control", "no-cache"),
                                         ],
                                         &vec![b'a'; 4000],
                                     )
@@ -207,16 +191,10 @@ impl HttpServer for Http3TestServer {
                                 request
                                     .set_response(
                                         &[
-                                            (String::from(":status"), String::from("200")),
-                                            (
-                                                String::from("cache-control"),
-                                                String::from("no-cache"),
-                                            ),
-                                            (
-                                                String::from("content-type"),
-                                                String::from("text/plain"),
-                                            ),
-                                            (String::from("content-length"), 4000.to_string()),
+                                            Header::new(":status", "200"),
+                                            Header::new("cache-control", "no-cache"),
+                                            Header::new("content-type", "text/plain"),
+                                            Header::new("content-length", 4000.to_string()),
                                         ],
                                         &vec![b'a'; 8000],
                                     )
@@ -229,16 +207,10 @@ impl HttpServer for Http3TestServer {
                                     Ok(v) => request
                                         .set_response(
                                             &[
-                                                (String::from(":status"), String::from("200")),
-                                                (
-                                                    String::from("cache-control"),
-                                                    String::from("no-cache"),
-                                                ),
-                                                (
-                                                    String::from("content-type"),
-                                                    String::from("text/plain"),
-                                                ),
-                                                (String::from("content-length"), v.to_string()),
+                                                Header::new(":status", "200"),
+                                                Header::new("cache-control", "no-cache"),
+                                                Header::new("content-type", "text/plain"),
+                                                Header::new("content-length", v.to_string()),
                                             ],
                                             &vec![b'a'; v],
                                         )
@@ -270,11 +242,11 @@ impl HttpServer for Http3TestServer {
                             request
                                 .set_response(
                                     &[
-                                        (String::from(":status"), String::from("200")),
-                                        (String::from("cache-control"), String::from("no-cache")),
-                                        (String::from("x-data-received-length"), r.to_string()),
-                                        (
-                                            String::from("content-length"),
+                                        Header::new(":status", "200"),
+                                        Header::new("cache-control", "no-cache"),
+                                        Header::new("x-data-received-length", r.to_string()),
+                                        Header::new(
+                                            "content-length",
                                             default_ret.len().to_string(),
                                         ),
                                     ],
@@ -284,10 +256,7 @@ impl HttpServer for Http3TestServer {
                         }
                     }
                 }
-                Http3ServerEvent::StateChange {
-                    conn,
-                    state,
-                } => {
+                Http3ServerEvent::StateChange { conn, state } => {
                     if matches!(state, neqo_http3::Http3State::Connected) {
                         let mut h = DefaultHasher::new();
                         conn.hash(&mut h);
@@ -418,6 +387,7 @@ enum ServerType {
     Http3,
     Http3Fail,
     Http3NoResponse,
+    Http3Ech,
 }
 
 struct ServersRunner {
@@ -427,6 +397,7 @@ struct ServersRunner {
     servers: HashMap<SocketAddr, (Box<dyn HttpServer>, Option<Timeout>)>,
     timer: Timer<usize>,
     active_servers: HashSet<usize>,
+    ech_config: Vec<u8>,
 }
 
 impl ServersRunner {
@@ -440,18 +411,23 @@ impl ServersRunner {
                 .tick_duration(Duration::from_millis(1))
                 .build::<usize>(),
             active_servers: HashSet::new(),
+            ech_config: Vec::new(),
         })
     }
 
     pub fn init(&mut self) {
         self.add_new_socket(0, ServerType::Http3);
         self.add_new_socket(1, ServerType::Http3Fail);
-        self.add_new_socket(3, ServerType::Http3NoResponse);
+        self.add_new_socket(2, ServerType::Http3Ech);
+        self.add_new_socket(4, ServerType::Http3NoResponse);
+
         println!(
-            "HTTP3 server listening on ports {}, {} and {}",
+            "HTTP3 server listening on ports {}, {}, {} and {}. EchConfig is @{}@",
             self.hosts[0].port(),
             self.hosts[1].port(),
-            self.hosts[2].port()
+            self.hosts[2].port(),
+            self.hosts[3].port(),
+            base64::encode(&self.ech_config)
         );
         self.poll
             .register(&self.timer, TIMER_TOKEN, Ready::readable(), PollOpt::edge())
@@ -489,12 +465,12 @@ impl ServersRunner {
             .unwrap();
 
         self.sockets.push(socket);
-        self.servers
-            .insert(local_addr, (self.create_server(server_type), None));
+        let server = self.create_server(server_type);
+        self.servers.insert(local_addr, (server, None));
         local_addr.port()
     }
 
-    fn create_server(&self, server_type: ServerType) -> Box<dyn HttpServer> {
+    fn create_server(&mut self, server_type: ServerType) -> Box<dyn HttpServer> {
         let anti_replay = AntiReplay::new(Instant::now(), Duration::from_secs(10), 7, 14)
             .expect("unable to setup anti-replay");
         let cid_mgr = Rc::new(RefCell::new(RandomConnectionIdGenerator::new(10)));
@@ -529,6 +505,31 @@ impl ServersRunner {
                 .expect("We cannot make a server!"),
             ),
             ServerType::Http3NoResponse => Box::new(NonRespondingServer::default()),
+            ServerType::Http3Ech => {
+                let mut server = Box::new(Http3TestServer::new(
+                    Http3Server::new(
+                        Instant::now(),
+                        &[" HTTP2 Test Cert"],
+                        PROTOCOLS,
+                        anti_replay,
+                        cid_mgr,
+                        QpackSettings {
+                            max_table_size_encoder: MAX_TABLE_SIZE,
+                            max_table_size_decoder: MAX_TABLE_SIZE,
+                            max_blocked_streams: MAX_BLOCKED_STREAMS,
+                        },
+                        None,
+                    )
+                    .expect("We cannot make a server!"),
+                ));
+                let ref mut unboxed_server = (*server).server;
+                let (sk, pk) = generate_ech_keys().unwrap();
+                unboxed_server
+                    .enable_ech(ECH_CONFIG_ID, ECH_PUBLIC_NAME, &sk, &pk)
+                    .expect("unable to enable ech");
+                self.ech_config = Vec::from(unboxed_server.ech_config());
+                server
+            }
         }
     }
 

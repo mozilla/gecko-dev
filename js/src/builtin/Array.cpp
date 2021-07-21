@@ -23,6 +23,7 @@
 #include "ds/Sort.h"
 #include "gc/Allocator.h"
 #include "jit/InlinableNatives.h"
+#include "js/CallAndConstruct.h"  // JS::Construct, JS::IsCallable, JS::IsConstructor
 #include "js/Class.h"
 #include "js/Conversions.h"
 #include "js/experimental/JitInfo.h"  // JSJitGetterOp, JSJitInfo
@@ -3725,7 +3726,7 @@ static JSObject* CreateArrayPrototype(JSContext* cx, JSProtoKey key) {
     return nullptr;
   }
 
-  RootedShape shape(cx, EmptyShape::getInitialShape(
+  RootedShape shape(cx, SharedShape::getInitialShape(
                             cx, &ArrayObject::class_, cx->realm(),
                             TaggedProto(proto), gc::AllocKind::OBJECT0));
   if (!shape) {
@@ -3869,7 +3870,7 @@ static MOZ_ALWAYS_INLINE ArrayObject* NewArray(JSContext* cx, uint32_t length,
    * Get a shape with zero fixed slots, regardless of the size class.
    * See JSObject::createArray.
    */
-  RootedShape shape(cx, EmptyShape::getInitialShape(
+  RootedShape shape(cx, SharedShape::getInitialShape(
                             cx, &ArrayObject::class_, cx->realm(),
                             TaggedProto(proto), gc::AllocKind::OBJECT0));
   if (!shape) {
@@ -3886,12 +3887,12 @@ static MOZ_ALWAYS_INLINE ArrayObject* NewArray(JSContext* cx, uint32_t length,
     return nullptr;
   }
 
-  if (shape->isEmptyShape()) {
+  if (arr->empty()) {
     if (!AddLengthProperty(cx, arr)) {
       return nullptr;
     }
-    shape = arr->lastProperty();
-    EmptyShape::insertInitialShape(cx, shape);
+    shape = arr->shape();
+    SharedShape::insertInitialShape(cx, shape);
     if (proto == cx->global()->maybeGetArrayPrototype()) {
       cx->global()->setArrayShape(shape);
     }
@@ -3970,7 +3971,7 @@ ArrayObject* js::NewDenseFullyAllocatedArrayWithTemplate(
   MOZ_ASSERT(CanChangeToBackgroundAllocKind(allocKind, &ArrayObject::class_));
   allocKind = ForegroundToBackgroundAllocKind(allocKind);
 
-  RootedShape shape(cx, templateObject->lastProperty());
+  RootedShape shape(cx, templateObject->shape());
 
   gc::InitialHeap heap = GetInitialHeap(GenericObject, &ArrayObject::class_);
   Rooted<ArrayObject*> arr(
@@ -4094,17 +4095,17 @@ void js::ArraySpeciesLookup::initialize(JSContext* cx) {
   // are in the tenured heap.
   MOZ_ASSERT(!IsInsideNursery(arrayProto));
   MOZ_ASSERT(!IsInsideNursery(arrayCtor));
-  MOZ_ASSERT(!IsInsideNursery(arrayCtor->lastProperty()));
+  MOZ_ASSERT(!IsInsideNursery(arrayCtor->shape()));
   MOZ_ASSERT(!IsInsideNursery(speciesFun));
-  MOZ_ASSERT(!IsInsideNursery(arrayProto->lastProperty()));
+  MOZ_ASSERT(!IsInsideNursery(arrayProto->shape()));
 
   state_ = State::Initialized;
   arrayProto_ = arrayProto;
   arrayConstructor_ = arrayCtor;
-  arrayConstructorShape_ = arrayCtor->lastProperty();
+  arrayConstructorShape_ = arrayCtor->shape();
   arraySpeciesGetterSlot_ = speciesGetterSlot;
   canonicalSpeciesFunc_ = speciesFun;
-  arrayProtoShape_ = arrayProto->lastProperty();
+  arrayProtoShape_ = arrayProto->shape();
   arrayProtoConstructorSlot_ = ctorProp->slot();
 }
 
@@ -4118,7 +4119,7 @@ bool js::ArraySpeciesLookup::isArrayStateStillSane() {
   MOZ_ASSERT(state_ == State::Initialized);
 
   // Ensure that Array.prototype still has the expected shape.
-  if (arrayProto_->lastProperty() != arrayProtoShape_) {
+  if (arrayProto_->shape() != arrayProtoShape_) {
     return false;
   }
 
@@ -4130,7 +4131,7 @@ bool js::ArraySpeciesLookup::isArrayStateStillSane() {
   }
 
   // Ensure that Array still has the expected shape.
-  if (arrayConstructor_->lastProperty() != arrayConstructorShape_) {
+  if (arrayConstructor_->shape() != arrayConstructorShape_) {
     return false;
   }
 

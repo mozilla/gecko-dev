@@ -189,11 +189,13 @@ nsClipboard::SetData(nsITransferable* aTransferable, nsIClipboardOwner* aOwner,
   GtkClipboard* gtkClipboard =
       gtk_clipboard_get(GetSelectionAtom(aWhichClipboard));
 
-  gint numTargets;
+  gint numTargets = 0;
   GtkTargetEntry* gtkTargets =
       gtk_target_table_new_from_list(list, &numTargets);
-  if (!gtkTargets) {
-    LOGCLIP(("    gtk_clipboard_set_with_data() failed!\n"));
+  if (!gtkTargets || numTargets == 0) {
+    LOGCLIP(
+        ("    gtk_target_table_new_from_list() failed or empty list of "
+         "targets!\n"));
     // Clear references to the any old data and let GTK know that it is no
     // longer available.
     EmptyClipboard(aWhichClipboard);
@@ -789,56 +791,55 @@ bool ConvertHTMLtoUCS2(const char* data, int32_t dataLength, nsCString& charset,
            outUnicodeLen * sizeof(char16_t));
     (*unicodeData)[outUnicodeLen] = '\0';
     return true;
-  } else if (charset.EqualsLiteral("UNKNOWN")) {
+  }
+  if (charset.EqualsLiteral("UNKNOWN")) {
     outUnicodeLen = 0;
     return false;
-  } else {
-    // app which use "text/html" to copy&paste
-    // get the decoder
-    auto encoding = Encoding::ForLabelNoReplacement(charset);
-    if (!encoding) {
-      LOGCLIP(("ConvertHTMLtoUCS2: get unicode decoder error\n"));
-      outUnicodeLen = 0;
-      return false;
-    }
-
-    auto dataSpan = Span(data, dataLength);
-    // Remove kHTMLMarkupPrefix again, it won't necessarily cause any
-    // issues, but might confuse other users.
-    const size_t prefixLen = ArrayLength(kHTMLMarkupPrefix) - 1;
-    if (dataSpan.Length() >= prefixLen &&
-        Substring(data, prefixLen).EqualsLiteral(kHTMLMarkupPrefix)) {
-      dataSpan = dataSpan.From(prefixLen);
-    }
-
-    auto decoder = encoding->NewDecoder();
-    CheckedInt<size_t> needed =
-        decoder->MaxUTF16BufferLength(dataSpan.Length());
-    if (!needed.isValid() || needed.value() > INT32_MAX) {
-      outUnicodeLen = 0;
-      return false;
-    }
-
-    outUnicodeLen = 0;
-    if (needed.value()) {
-      *unicodeData = reinterpret_cast<char16_t*>(
-          moz_xmalloc((needed.value() + 1) * sizeof(char16_t)));
-      uint32_t result;
-      size_t read;
-      size_t written;
-      bool hadErrors;
-      Tie(result, read, written, hadErrors) = decoder->DecodeToUTF16(
-          AsBytes(dataSpan), Span(*unicodeData, needed.value()), true);
-      MOZ_ASSERT(result == kInputEmpty);
-      MOZ_ASSERT(read == size_t(dataSpan.Length()));
-      MOZ_ASSERT(written <= needed.value());
-      Unused << hadErrors;
-      outUnicodeLen = written;
-      // null terminate.
-      (*unicodeData)[outUnicodeLen] = '\0';
-      return true;
-    }  // if valid length
   }
+  // app which use "text/html" to copy&paste
+  // get the decoder
+  auto encoding = Encoding::ForLabelNoReplacement(charset);
+  if (!encoding) {
+    LOGCLIP(("ConvertHTMLtoUCS2: get unicode decoder error\n"));
+    outUnicodeLen = 0;
+    return false;
+  }
+
+  auto dataSpan = Span(data, dataLength);
+  // Remove kHTMLMarkupPrefix again, it won't necessarily cause any
+  // issues, but might confuse other users.
+  const size_t prefixLen = ArrayLength(kHTMLMarkupPrefix) - 1;
+  if (dataSpan.Length() >= prefixLen &&
+      Substring(data, prefixLen).EqualsLiteral(kHTMLMarkupPrefix)) {
+    dataSpan = dataSpan.From(prefixLen);
+  }
+
+  auto decoder = encoding->NewDecoder();
+  CheckedInt<size_t> needed = decoder->MaxUTF16BufferLength(dataSpan.Length());
+  if (!needed.isValid() || needed.value() > INT32_MAX) {
+    outUnicodeLen = 0;
+    return false;
+  }
+
+  outUnicodeLen = 0;
+  if (needed.value()) {
+    *unicodeData = reinterpret_cast<char16_t*>(
+        moz_xmalloc((needed.value() + 1) * sizeof(char16_t)));
+    uint32_t result;
+    size_t read;
+    size_t written;
+    bool hadErrors;
+    Tie(result, read, written, hadErrors) = decoder->DecodeToUTF16(
+        AsBytes(dataSpan), Span(*unicodeData, needed.value()), true);
+    MOZ_ASSERT(result == kInputEmpty);
+    MOZ_ASSERT(read == size_t(dataSpan.Length()));
+    MOZ_ASSERT(written <= needed.value());
+    Unused << hadErrors;
+    outUnicodeLen = written;
+    // null terminate.
+    (*unicodeData)[outUnicodeLen] = '\0';
+    return true;
+  }  // if valid length
   return false;
 }
 

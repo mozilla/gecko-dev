@@ -48,6 +48,7 @@ class NullPrincipal final : public BasePrincipal {
   NS_IMETHOD SetDomain(nsIURI* aDomain) override;
   NS_IMETHOD GetBaseDomain(nsACString& aBaseDomain) override;
   NS_IMETHOD GetAddonId(nsAString& aAddonId) override;
+  NS_IMETHOD GetPrecursorPrincipal(nsIPrincipal** aPrecursor) override;
 
   static already_AddRefed<NullPrincipal> CreateWithInheritedAttributes(
       nsIPrincipal* aInheritFrom);
@@ -65,6 +66,16 @@ class NullPrincipal final : public BasePrincipal {
       const OriginAttributes& aOriginAttributes, nsIURI* aURI = nullptr);
 
   static already_AddRefed<NullPrincipal> CreateWithoutOriginAttributes();
+
+  // Generates a new unique `moz-nullprincipal:` URI. If `aPrecursor` is
+  // specified, it will be included in the generated URI as the null principal's
+  // precursor.
+  //
+  // The `aPrincipalID` attribute is used to force the creation of a
+  // deterministic NullPrincipal in situations where that is required. Avoid
+  // using this parameter unless absolutely necessary.
+  static already_AddRefed<nsIURI> CreateURI(nsIPrincipal* aPrecursor = nullptr,
+                                            const nsID* aPrincipalID = nullptr);
 
   virtual nsresult GetScriptLocation(nsACString& aStr) override;
 
@@ -107,13 +118,13 @@ class NullPrincipal final : public BasePrincipal {
   FRIEND_TEST(OriginAttributes, NullPrincipal);
 
   // If aIsFirstParty is true, this NullPrincipal will be initialized based on
-  // the aOriginAttributes with FirstPartyDomain set to a unique value.
-  // This value is generated from mURI.path, with ".mozilla" appended at the
-  // end. aURI is used for testing purpose to assign specific UUID rather than
-  // random generated one.
+  // the aOriginAttributes with FirstPartyDomain set to a unique value.  This
+  // value is generated from mURI.filePath, with ".mozilla" appended at the end.
+  // aURI is used for testing purpose to assign a specific UUID rather than a
+  // randomly generated one.
   static already_AddRefed<NullPrincipal> CreateInternal(
       const OriginAttributes& aOriginAttributes, bool aIsFirstParty,
-      nsIURI* aURI = nullptr);
+      nsIURI* aURI = nullptr, nsIPrincipal* aPrecursor = nullptr);
 };
 
 }  // namespace mozilla

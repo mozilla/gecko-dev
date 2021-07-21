@@ -139,9 +139,12 @@ class TestEnvironment(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.process_interrupts()
 
-        for scheme, servers in self.servers.items():
-            for port, server in servers:
-                server.stop()
+        for servers in self.servers.values():
+            for _, server in servers:
+                server.request_shutdown()
+        for servers in self.servers.values():
+            for _, server in servers:
+                server.wait()
         for cm in self.env_extras_cms:
             cm.__exit__(exc_type, exc_val, exc_tb)
 
@@ -165,7 +168,11 @@ class TestEnvironment(object):
 
         ports = {
             "http": [8000, 8001],
+            "http-private": [8002],
+            "http-public": [8003],
             "https": [8443, 8444],
+            "https-private": [8445],
+            "https-public": [8446],
             "ws": [8888],
             "wss": [8889],
             "h2": [9000],

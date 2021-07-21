@@ -47,7 +47,7 @@ use api::{ClipMode, PrimitiveKeyKind, TransformStyle, YuvColorSpace, ColorRange,
 use api::{ReferenceTransformBinding, Rotation, FillRule};
 use api::units::*;
 use crate::image_tiling::simplify_repeated_primitive;
-use crate::clip::{ClipChainId, ClipRegion, ClipItemKey, ClipStore, ClipItemKeyKind};
+use crate::clip::{ClipChainId, ClipItemKey, ClipStore, ClipItemKeyKind};
 use crate::clip::{ClipInternData, ClipNodeKind, ClipInstance, SceneClipInstance};
 use crate::clip::{PolygonDataHandle};
 use crate::spatial_tree::{ROOT_SPATIAL_NODE_INDEX, SpatialTree, SpatialNodeIndex, StaticCoordinateSystemId};
@@ -67,7 +67,7 @@ use crate::prim_store::borders::{ImageBorder, NormalBorderPrim};
 use crate::prim_store::gradient::{
     GradientStopKey, LinearGradient, RadialGradient, RadialGradientParams, ConicGradient,
     ConicGradientParams, optimize_radial_gradient, apply_gradient_local_clip,
-    optimize_linear_gradient,
+    optimize_linear_gradient, self,
 };
 use crate::prim_store::image::{Image, YuvImage};
 use crate::prim_store::line_dec::{LineDecoration, LineDecorationCacheKey, get_line_decoration_size};
@@ -885,20 +885,11 @@ impl<'a> SceneBuilder<'a> {
         pipeline_id: PipelineId,
     ) {
         let current_offset = self.current_offset(parent_node_index);
-        let clip_rect = info.clip_rect.translate(current_offset);
-
-        // Just use clip rectangle as the frame rect for this scroll frame.
         // This is useful when calculating scroll extents for the
         // SpatialNode::scroll(..) API as well as for properly setting sticky
         // positioning offsets.
-        let frame_rect = clip_rect;
+        let frame_rect = info.frame_rect.translate(current_offset);
         let content_size = info.content_rect.size();
-
-        self.add_rect_clip_node(
-            info.clip_id,
-            &info.parent_space_and_clip,
-            &clip_rect,
-        );
 
         self.add_scroll_frame(
             info.scroll_frame_id,
@@ -1502,18 +1493,6 @@ impl<'a> SceneBuilder<'a> {
                     &clip_rect,
                 );
             }
-            DisplayItem::Clip(ref info) => {
-                profile_scope!("clip");
-
-                let parent_space = self.get_space(info.parent_space_and_clip.spatial_id);
-                let current_offset = self.current_offset(parent_space);
-                let clip_region = ClipRegion::create_for_clip_node(
-                    info.clip_rect,
-                    item.complex_clip().iter(),
-                    &current_offset,
-                );
-                self.add_clip_node(info.id, &info.parent_space_and_clip, clip_region);
-            }
             DisplayItem::ClipChain(ref info) => {
                 profile_scope!("clip_chain");
 
@@ -1535,7 +1514,7 @@ impl<'a> SceneBuilder<'a> {
             DisplayItem::ScrollFrame(ref info) => {
                 profile_scope!("scrollframe");
 
-                let parent_space = self.get_space(info.parent_space_and_clip.spatial_id);
+                let parent_space = self.get_space(info.parent_space);
                 self.build_scroll_frame(
                     info,
                     parent_space,
@@ -2548,82 +2527,6 @@ impl<'a> SceneBuilder<'a> {
         );
     }
 
-    pub fn add_clip_node<I>(
-        &mut self,
-        new_node_id: ClipId,
-        space_and_clip: &SpaceAndClipInfo,
-        clip_region: ClipRegion<I>,
-    )
-    where
-        I: IntoIterator<Item = ComplexClipRegion>
-    {
-        // Map the ClipId for the positioning node to a spatial node index.
-        let spatial_node_index = self.id_to_index_mapper.get_spatial_node_index(space_and_clip.spatial_id);
-
-        let snapped_clip_rect = self.snap_rect(
-            &clip_region.main,
-            spatial_node_index,
-        );
-        let mut instances: SmallVec<[SceneClipInstance; 4]> = SmallVec::new();
-
-        // Intern each clip item in this clip node, and add the interned
-        // handle to a clip chain node, parented to form a chain.
-        // TODO(gw): We could re-structure this to share some of the
-        //           interning and chaining code.
-
-        // Build the clip sources from the supplied region.
-        let item = ClipItemKey {
-            kind: ClipItemKeyKind::rectangle(snapped_clip_rect, ClipMode::Clip),
-        };
-        let handle = self
-            .interners
-            .clip
-            .intern(&item, || {
-                ClipInternData {
-                    clip_node_kind: ClipNodeKind::Rectangle,
-                }
-            });
-        instances.push(
-            SceneClipInstance {
-                key: item,
-                clip: ClipInstance::new(handle, spatial_node_index),
-            },
-        );
-
-        for region in clip_region.complex_clips {
-            let snapped_region_rect = self.snap_rect(&region.rect, spatial_node_index);
-            let item = ClipItemKey {
-                kind: ClipItemKeyKind::rounded_rect(
-                    snapped_region_rect,
-                    region.radii,
-                    region.mode,
-                ),
-            };
-
-            let handle = self
-                .interners
-                .clip
-                .intern(&item, || {
-                    ClipInternData {
-                        clip_node_kind: ClipNodeKind::Complex,
-                    }
-                });
-
-            instances.push(
-                SceneClipInstance {
-                    key: item,
-                    clip: ClipInstance::new(handle, spatial_node_index),
-                },
-            );
-        }
-
-        self.clip_store.register_clip_template(
-            new_node_id,
-            space_and_clip.clip_id,
-            &instances,
-        );
-    }
-
     pub fn add_scroll_frame(
         &mut self,
         new_node_id: SpatialId,
@@ -3156,11 +3059,16 @@ impl<'a> SceneBuilder<'a> {
         let mut prim_rect = info.rect;
         simplify_repeated_primitive(&stretch_size, &mut tile_spacing, &mut prim_rect);
 
+        let mut has_hard_stops = false;
         let mut is_entirely_transparent = true;
+        let mut prev_stop = None;
         for stop in &stops {
+            if Some(stop.offset) == prev_stop {
+                has_hard_stops = true;
+            }
+            prev_stop = Some(stop.offset);
             if stop.color.a > 0 {
                 is_entirely_transparent = false;
-                break;
             }
         }
 
@@ -3188,12 +3096,18 @@ impl<'a> SceneBuilder<'a> {
             (start_point, end_point)
         };
 
+        // We set a limit to the resolution at which cached gradients are rendered.
+        // For most gradients this is fine but when there are hard stops this causes
+        // noticeable artifacts. If so, fall back to non-cached gradients.
+        let max = gradient::LINEAR_MAX_CACHED_SIZE;
+        let caching_causes_artifacts = has_hard_stops && (stretch_size.width > max || stretch_size.height > max);
+
         let is_tiled = prim_rect.width() > stretch_size.width
          || prim_rect.height() > stretch_size.height;
         // SWGL has a fast-path that can render gradients faster than it can sample from the
         // texture cache so we disable caching in this configuration. Cached gradients are
         // faster on hardware.
-        let cached = !self.config.is_software || is_tiled;
+        let cached = (!self.config.is_software || is_tiled) && !caching_causes_artifacts;
 
         Some(LinearGradient {
             extend_mode,

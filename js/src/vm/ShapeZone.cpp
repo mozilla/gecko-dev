@@ -10,11 +10,39 @@
 
 #include "gc/Marking-inl.h"
 #include "vm/JSContext-inl.h"
+#include "vm/Shape-inl.h"
 
 using namespace js;
 
+void ShapeZone::fixupPropMapShapeTableAfterMovingGC() {
+  for (PropMapShapeSet::Enum e(propMapShapes); !e.empty(); e.popFront()) {
+    Shape* shape = MaybeForwarded(e.front().unbarrieredGet());
+    SharedPropMap* map = MaybeForwarded(shape->propMap())->asShared();
+    BaseShape* base = MaybeForwarded(shape->base());
+
+    PropMapShapeSet::Lookup lookup(base, shape->numFixedSlots(), map,
+                                   shape->propMapLength(),
+                                   shape->objectFlags());
+    e.rekeyFront(lookup, shape);
+  }
+}
+
 #ifdef JSGC_HASH_TABLE_CHECKS
 void ShapeZone::checkTablesAfterMovingGC() {
+  // Assert that the moving GC worked and that nothing is left in the tables
+  // that points into the nursery, and that the hash table entries are
+  // discoverable.
+
+  for (auto r = initialPropMaps.all(); !r.empty(); r.popFront()) {
+    SharedPropMap* map = r.front().unbarrieredGet();
+    CheckGCThingAfterMovingGC(map);
+
+    InitialPropMapHasher::Lookup lookup(map->getKey(0),
+                                        map->getPropertyInfo(0));
+    InitialPropMapSet::Ptr ptr = initialPropMaps.lookup(lookup);
+    MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
+  }
+
   for (auto r = baseShapes.all(); !r.empty(); r.popFront()) {
     BaseShape* base = r.front().unbarrieredGet();
     CheckGCThingAfterMovingGC(base);
@@ -24,12 +52,8 @@ void ShapeZone::checkTablesAfterMovingGC() {
     MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
   }
 
-  // Assert that the postbarriers have worked and that nothing is left in
-  // initialShapes that points into the nursery, and that the hash table
-  // entries are discoverable.
   for (auto r = initialShapes.all(); !r.empty(); r.popFront()) {
     Shape* shape = r.front().unbarrieredGet();
-
     CheckGCThingAfterMovingGC(shape);
 
     using Lookup = InitialShapeHasher::Lookup;
@@ -38,20 +62,47 @@ void ShapeZone::checkTablesAfterMovingGC() {
     InitialShapeSet::Ptr ptr = initialShapes.lookup(lookup);
     MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
   }
+
+  for (auto r = propMapShapes.all(); !r.empty(); r.popFront()) {
+    Shape* shape = r.front().unbarrieredGet();
+    CheckGCThingAfterMovingGC(shape);
+
+    using Lookup = PropMapShapeHasher::Lookup;
+    Lookup lookup(shape->base(), shape->numFixedSlots(), shape->sharedPropMap(),
+                  shape->propMapLength(), shape->objectFlags());
+    PropMapShapeSet::Ptr ptr = propMapShapes.lookup(lookup);
+    MOZ_RELEASE_ASSERT(ptr.found() && &*ptr == &r.front());
+  }
 }
 #endif  // JSGC_HASH_TABLE_CHECKS
 
 ShapeZone::ShapeZone(Zone* zone)
-    : propertyTree(zone), baseShapes(zone), initialShapes(zone) {}
+    : baseShapes(zone),
+      initialPropMaps(zone),
+      initialShapes(zone),
+      propMapShapes(zone) {}
 
-void ShapeZone::clearTables() {
+void ShapeZone::clearTables(JSFreeOp* fop) {
   baseShapes.clear();
+  initialPropMaps.clear();
   initialShapes.clear();
+  propMapShapes.clear();
+  purgeShapeCaches(fop);
 }
 
-size_t ShapeZone::sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) {
-  size_t size = 0;
-  size += baseShapes.sizeOfExcludingThis(mallocSizeOf);
-  size += initialShapes.sizeOfExcludingThis(mallocSizeOf);
-  return size;
+void ShapeZone::purgeShapeCaches(JSFreeOp* fop) {
+  for (Shape* shape : shapesWithCache) {
+    MaybeForwarded(shape)->purgeCache(fop);
+  }
+  shapesWithCache.clearAndFree();
+}
+
+void ShapeZone::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
+                                       size_t* initialPropMapTable,
+                                       size_t* shapeTables) {
+  *shapeTables += baseShapes.sizeOfExcludingThis(mallocSizeOf);
+  *initialPropMapTable += initialPropMaps.sizeOfExcludingThis(mallocSizeOf);
+  *shapeTables += initialShapes.sizeOfExcludingThis(mallocSizeOf);
+  *shapeTables += propMapShapes.sizeOfExcludingThis(mallocSizeOf);
+  *shapeTables += shapesWithCache.sizeOfExcludingThis(mallocSizeOf);
 }

@@ -37,21 +37,22 @@ const TEST_URI = `http://example.com/document-builder.sjs?html=${encodeURICompon
 )}`;
 
 add_task(async function() {
-  const { inspector, testActor } = await openInspectorForURL(TEST_URI);
-  const inspectorFrontActorID = inspector.inspectorFront.actorID;
+  const { inspector, highlighterTestFront } = await openInspectorForURL(
+    TEST_URI
+  );
 
   const toggleButton = inspector.panelDoc.querySelector(
     "#inspector-eyedropper-toggle"
   );
   toggleButton.click();
   await TestUtils.waitForCondition(() =>
-    testActor.isEyeDropperVisible(inspectorFrontActorID)
+    highlighterTestFront.isEyeDropperVisible()
   );
 
   ok(true, "Eye dropper is visible");
 
   const checkColorAt = (...args) =>
-    checkEyeDropperColorAt(testActor, inspectorFrontActorID, ...args);
+    checkEyeDropperColorAt(highlighterTestFront, ...args);
 
   //   The content page has the following layout:
   //
@@ -86,9 +87,8 @@ add_task(async function() {
 
   info("Hide the eyedropper");
   toggleButton.click();
-  await TestUtils.waitForCondition(() =>
-    testActor
-      .isEyeDropperVisible(inspectorFrontActorID)
-      .then(visible => !visible)
-  );
+  await TestUtils.waitForCondition(async () => {
+    const visible = await highlighterTestFront.isEyeDropperVisible();
+    return !visible;
+  });
 });

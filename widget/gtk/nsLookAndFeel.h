@@ -38,6 +38,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   void InitializeAltTheme();
 
   void GetGtkContentTheme(LookAndFeelTheme&) override;
+  void GetThemeInfo(nsACString&) override;
 
   static void ConfigureTheme(const LookAndFeelTheme& aTheme);
 
@@ -154,7 +155,7 @@ class nsLookAndFeel final : public nsXPLookAndFeel {
   bool mCSDReversedPlacement = false;
   bool mPrefersReducedMotion = false;
   bool mInitialized = false;
-  bool mEverInitialized = false;
+  bool mSystemThemeOverridden = false;
   int32_t mCSDMaximizeButtonPosition = 0;
   int32_t mCSDMinimizeButtonPosition = 0;
   int32_t mCSDCloseButtonPosition = 0;

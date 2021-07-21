@@ -1201,6 +1201,23 @@ nsEventStatus AsyncPanZoomController::HandleGestureEvent(
           rv = OnSingleTapConfirmed(tapGestureInput);
           break;
         case TapGestureInput::TAPGESTURE_DOUBLE:
+          // This means that double tapping on an oop iframe "works" in that we
+          // don't try (and fail) to zoom the oop iframe. But it also means it
+          // is impossible to zoom to some content inside that oop iframe.
+          // Instead the best we can do is zoom to the oop iframe itself. This
+          // is consistent with what Chrome and Safari currently do. Allowing
+          // zooming to content inside an oop iframe would be decently
+          // complicated and it doesn't seem worth it. Bug 1715179 is on file
+          // for this.
+          if (!IsRootContent()) {
+            if (APZCTreeManager* treeManagerLocal = GetApzcTreeManager()) {
+              if (RefPtr<AsyncPanZoomController> root =
+                      treeManagerLocal->FindZoomableApzc(this)) {
+                rv = root->OnDoubleTap(tapGestureInput);
+              }
+            }
+            break;
+          }
           rv = OnDoubleTap(tapGestureInput);
           break;
         case TapGestureInput::TAPGESTURE_SECOND:
@@ -4735,12 +4752,23 @@ CSSRect AsyncPanZoomController::GetVisibleRect(
   return visible;
 }
 
+static CSSRect GetPaintedRect(const FrameMetrics& aFrameMetrics) {
+  CSSRect displayPort = aFrameMetrics.GetDisplayPort();
+  if (displayPort.IsEmpty()) {
+    // Fallback to use the viewport if the diplayport hasn't been set.
+    // This situation often happens non-scrollable iframe's root scroller in
+    // Fission.
+    return aFrameMetrics.GetVisualViewport();
+  }
+
+  return displayPort + aFrameMetrics.GetLayoutScrollOffset();
+}
+
 uint32_t AsyncPanZoomController::GetCheckerboardMagnitude(
     const ParentLayerRect& aClippedCompositionBounds) const {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
 
-  CSSRect painted = mLastContentPaintMetrics.GetDisplayPort() +
-                    mLastContentPaintMetrics.GetLayoutScrollOffset();
+  CSSRect painted = GetPaintedRect(mLastContentPaintMetrics);
   painted.Inflate(CSSMargin::FromAppUnits(
       nsMargin(1, 1, 1, 1)));  // fuzz for rounding error
 
@@ -4912,8 +4940,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(
           CheckerboardEvent::Page, aLayerMetrics.GetScrollableRect());
       mCheckerboardEvent->UpdateRendertraceProperty(
           CheckerboardEvent::PaintedDisplayPort,
-          aLayerMetrics.GetDisplayPort() +
-              aLayerMetrics.GetLayoutScrollOffset(),
+          GetPaintedRect(aLayerMetrics),
           str);
       if (!aLayerMetrics.GetCriticalDisplayPort().IsEmpty()) {
         mCheckerboardEvent->UpdateRendertraceProperty(
@@ -5037,6 +5064,9 @@ void AsyncPanZoomController::NotifyLayersUpdated(
       Metrics().SetDevPixelsPerCSSPixel(
           aLayerMetrics.GetDevPixelsPerCSSPixel());
     }
+
+    mExpectedGeckoMetrics.UpdateZoomFrom(aLayerMetrics);
+
     if (!Metrics().GetScrollableRect().IsEqualEdges(
             aLayerMetrics.GetScrollableRect())) {
       Metrics().SetScrollableRect(aLayerMetrics.GetScrollableRect());

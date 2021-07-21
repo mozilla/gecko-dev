@@ -1,5 +1,94 @@
 // Tests for Wasm exception proposal instructions.
 
+// Test try blocks with no handlers.
+assertEq(
+  wasmEvalText(
+    `(module
+       (func (export "f") (result i32)
+         try (result i32) (i32.const 0) end))`
+  ).exports.f(),
+  0
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (func (export "f") (result i32)
+         try (result i32) (i32.const 0) (br 0) (i32.const 1) end))`
+  ).exports.f(),
+  0
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (type (func))
+       (event $exn (type 0))
+       (func (export "f") (result i32)
+         try (result i32)
+           try (result i32)
+             (throw $exn)
+             (i32.const 1)
+           end
+           drop
+           (i32.const 2)
+         catch $exn
+           (i32.const 0)
+         end))`
+  ).exports.f(),
+  0
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (type (func))
+       (event $exn (type 0))
+       (func (export "f") (result i32)
+         try (result i32)
+           try (result i32)
+             try
+               try
+                 (throw $exn)
+               end
+             end
+             (i32.const 1)
+           end
+           drop
+           (i32.const 2)
+         catch $exn
+           (i32.const 0)
+         end))`
+  ).exports.f(),
+  0
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (type (func))
+       (event $exn (type 0))
+       (func (export "f") (result i32)
+         try (result i32)
+           try (result i32)
+             try
+               try
+                 (throw $exn)
+               end
+             catch_all
+               rethrow 0
+             end
+             (i32.const 1)
+           end
+           drop
+           (i32.const 2)
+         catch $exn
+           (i32.const 0)
+         end))`
+  ).exports.f(),
+  0
+);
+
 // Test trivial try-catch with empty bodies.
 assertEq(
   wasmEvalText(
@@ -860,6 +949,25 @@ assertEq(
        (event $exn (param))
        (func (export "f") (result i32)
          try (result i32)
+           try
+             try
+               throw $exn
+             delegate 0
+           end
+           i32.const 0
+         catch $exn
+           i32.const 1
+         end))`
+  ).exports.f(),
+  1
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (event $exn (param))
+       (func (export "f") (result i32)
+         try (result i32)
            i32.const 1
            br 0
          delegate 0))`
@@ -988,124 +1096,4 @@ assertEq(
          end))`
   ).exports.f(),
   42
-);
-
-// Test try-unwind blocks.
-assertEq(
-  wasmEvalText(
-    `(module
-       (func (export "f") (result i32)
-         try (result i32)
-           i32.const 42
-         unwind
-         end))`
-  ).exports.f(),
-  42
-);
-
-assertEq(
-  wasmEvalText(
-    `(module
-       (func (export "f") (result i32)
-         try (result i32)
-           i32.const 42
-           br 0
-         unwind
-         end))`
-  ).exports.f(),
-  42
-);
-
-assertEq(
-  wasmEvalText(
-    `(module
-       (event $exn)
-       (func (export "f") (result i32)
-         try (result i32)
-           throw $exn
-         unwind
-           i32.const 42
-           br 0
-         end))`
-  ).exports.f(),
-  42
-);
-
-assertEq(
-  wasmEvalText(
-    `(module
-       (event $exn)
-       (func (export "f") (result i32)
-         try (result i32)
-           throw $exn
-         unwind
-           i32.const 42
-           return
-         end))`
-  ).exports.f(),
-  42
-);
-
-assertEq(
-  wasmEvalText(
-    `(module
-       (type (func))
-       (event $exn (type 0))
-       (func (export "f") (result i32) (local i32)
-         try
-           try
-             throw $exn
-           unwind
-             i32.const 1
-             local.set 0
-           end
-         catch $exn
-         end
-         local.get 0))`
-  ).exports.f(),
-  1
-);
-
-// Test the interaction between delegate and unwind.
-assertEq(
-  wasmEvalText(
-    `(module
-       (event $exn)
-       (func (export "f") (result i32) (local i32)
-         try
-           try
-             try
-               throw $exn
-             delegate 0
-           unwind
-             i32.const 42
-             local.set 0
-           end
-         catch_all
-         end
-         local.get 0))`
-  ).exports.f(),
-  42
-);
-
-assertEq(
-  wasmEvalText(
-    `(module
-       (type (func))
-       (event $exn (type 0))
-       (func (export "f") (result i32) (local i32)
-         try $l
-           try
-             try
-               throw $exn
-             delegate 1
-           unwind
-             i32.const 27
-             local.set 0
-           end
-         catch_all
-         end
-         local.get 0))`
-  ).exports.f(),
-  0
 );

@@ -35,6 +35,8 @@ class RenderCompositorOGLSWGL : public RenderCompositorLayersSWGL {
   bool BeginFrame() override;
   RenderedFrameId EndFrame(const nsTArray<DeviceIntRect>& aDirtyRects) override;
 
+  void GetCompositorCapabilities(CompositorCapabilities* aCaps) override;
+
   // Returns true for requesting rendering during readback.
   // RenderCompositorOGLSWGL::MaybeReadback() requests rendering.
   // This value is not used by WebRender, since native compositor API is used
@@ -86,6 +88,7 @@ class RenderCompositorOGLSWGL : public RenderCompositorLayersSWGL {
    private:
     RefPtr<layers::TextureImageTextureSourceOGL> mTexture;
     RefPtr<gfx::DataSourceSurface> mSurface;
+    RefPtr<gfx::DataSourceSurface> mSubSurface;
     GLuint mPBO = 0;
   };
 };

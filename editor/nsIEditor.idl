@@ -14,7 +14,6 @@ interface nsIDocumentStateListener;
 interface nsIOutputStream;
 interface nsITransactionManager;
 interface nsITransaction;
-interface nsIEditorObserver;
 interface nsIEditActionListener;
 interface nsIInlineSpellChecker;
 interface nsITransferable;
@@ -50,31 +49,32 @@ interface nsIEditor  : nsISupports
   const short eStrip = 0;
   const short eNoStrip = 1;
 
-  // only plain text entry is allowed via events
+  // If you want an HTML editor to behave as a plaintext editor, specify this
+  // flag.  Note that this is always set if the instance is a text editor.
   const long eEditorPlaintextMask       = 0x0001;
-  // enter key and CR-LF handled specially
+  // We don't support single line editor mode with HTML editors.  Therefore,
+  // don't specify this for HTML editor.
   const long eEditorSingleLineMask      = 0x0002;
-  // text is not entered into content, only a representative character
+  // We don't support password editor mode with HTML editors.  Therefore,
+  // don't specify this for HTML editor.
   const long eEditorPasswordMask        = 0x0004;
-  // editing events are disabled.  Editor may still accept focus.
+  // When the editor should be in readonly mode (currently, same as "disabled"),
+  // you can specify this flag with any editor instances.  Note that setting
+  // this flag does not change the style of editor.  This just changes the
+  // internal editor's readonly state.
   const long eEditorReadonlyMask        = 0x0008;
-  // text input is limited to certain character types, use mFilter
-  const long eEditorFilterInputMask     = 0x0010;
-  // use mail-compose editing rules
+  // If you want an HTML editor to work as an email composer, specify this flag.
+  // And you can specify this to text editor too for making spellchecker for
+  // the text editor should work exactly same as email composer's.
   const long eEditorMailMask            = 0x0020;
   // allow the editor to set font: monospace on the root node
   const long eEditorEnableWrapHackMask  = 0x0040;
-  // bit for widgets (form elements)
-  const long eEditorWidgetMask          = 0x0080;
-  // this HTML editor should not create css styles
-  const long eEditorNoCSSMask           = 0x0100;
-  // whether HTML document specific actions are executed or not.
-  // e.g., if this flag is set, the editor doesn't handle Tab key.
-  // besides, anchors of HTML are not clickable.
+  // If you want to move focus from an HTML editor with tab navigation,
+  // specify this flag.  This is not available with text editors becase
+  // it's always tabbable.
+  // Note that if this is not specified, link navigation is also enabled in
+  // the editable content.
   const long eEditorAllowInteraction    = 0x0200;
-  // when this is set, the characters in password editor are always masked.
-  // see bug 530367 for the detail.
-  const long eEditorDontEchoPassword    = 0x0400;
   // when this flag is set, the internal direction of the editor is RTL.
   // if neither of the direction flags are set, the direction is determined
   // from the text control's content node.
@@ -193,17 +193,6 @@ interface nsIEditor  : nsISupports
   /** transactionManager Get the transaction manager the editor is using.
     */
   readonly attribute nsITransactionManager transactionManager;
-
-  /** doTransaction() fires a transaction.
-    * It is provided here so clients can create their own transactions.
-    * If a transaction manager is present, it is used.
-    * Otherwise, the transaction is just executed directly.
-    *
-    * @param aTxn the transaction to execute
-    */
-  [can_run_script]
-  void doTransaction(in nsITransaction txn);
-
 
   /** turn the undo system on or off
     * @param aEnable  if PR_TRUE, the undo system is turned on if available
@@ -387,6 +376,7 @@ interface nsIEditor  : nsISupports
    * element node.  Otherwise, collapses selection at start of the editing
    * host.
    */
+  [can_run_script]
   void beginningOfDocument();
 
   /** sets the document selection to the end of the document */
@@ -444,7 +434,7 @@ interface nsIEditor  : nsISupports
   [can_run_script]
   void insertNode(in Node node,
                   in Node parent,
-                  in long aPosition);
+                  in unsigned long aPosition);
 
 
   /**
@@ -467,9 +457,6 @@ interface nsIEditor  : nsISupports
    * nsIEditor holds strong references to the editor observers, action listeners
    * and document state listeners.
    */
-
-  /** add an EditorObserver to the editors list of observers. */
-  void addEditorObserver(in nsIEditorObserver observer);
 
   /** add an EditActionListener to the editors list of listeners. */
   void addEditActionListener(in nsIEditActionListener listener);
@@ -556,9 +543,8 @@ interface nsIEditor  : nsISupports
 
   /**
     * The length of the contents in characters.
-    * XXX change this type to 'unsigned long'
     */
-  readonly attribute long textLength;
+  readonly attribute unsigned long textLength;
 
   /** Get and set the body wrap width.
     *

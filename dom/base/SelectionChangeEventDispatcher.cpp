@@ -76,12 +76,6 @@ NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(SelectionChangeEventDispatcher, Release)
 void SelectionChangeEventDispatcher::OnSelectionChange(Document* aDoc,
                                                        Selection* aSel,
                                                        int16_t aReason) {
-  Document* doc = aSel->GetParentObject();
-  if (!(doc && doc->NodePrincipal()->IsSystemPrincipal()) &&
-      !StaticPrefs::dom_select_events_enabled()) {
-    return;
-  }
-
   // Check if the ranges have actually changed
   // Don't bother checking this if we are hiding changes.
   if (mOldRanges.Length() == aSel->RangeCount() &&
@@ -108,7 +102,7 @@ void SelectionChangeEventDispatcher::OnSelectionChange(Document* aDoc,
   }
   mOldDirection = aSel->GetDirection();
 
-  if (doc) {
+  if (Document* doc = aSel->GetParentObject()) {
     nsPIDOMWindowInner* inner = doc->GetInnerWindow();
     if (inner && !inner->HasSelectionChangeEventListeners()) {
       return;
@@ -144,15 +138,17 @@ void SelectionChangeEventDispatcher::OnSelectionChange(Document* aDoc,
   // controls, so for now we only support doing that under a pref, disabled by
   // default.
   // See https://github.com/w3c/selection-api/issues/53.
-  if (textControl && !StaticPrefs::dom_select_events_textcontrols_enabled()) {
+  if (textControl &&
+      !StaticPrefs::dom_select_events_textcontrols_selectionchange_enabled()) {
     return;
   }
 
   nsCOMPtr<nsINode> target = textControl ? textControl : aDoc;
 
   if (target) {
+    CanBubble canBubble = textControl ? CanBubble::eYes : CanBubble::eNo;
     RefPtr<AsyncEventDispatcher> asyncDispatcher =
-        new AsyncEventDispatcher(target, eSelectionChange, CanBubble::eNo);
+        new AsyncEventDispatcher(target, eSelectionChange, canBubble);
     asyncDispatcher->PostDOMEvent();
   }
 }

@@ -631,8 +631,8 @@ class ContentParent final
 
   // This function is called in BrowsingContext immediately before IPC call to
   // load a URI. If aURI is a BlobURL, this method transmits all BlobURLs for
-  // aPrincipal that were previously not transmitted. This allows for opening a
-  // locally created BlobURL in a new tab.
+  // aURI's principal that were previously not transmitted. This allows for
+  // opening a locally created BlobURL in a new tab.
   //
   // The reason all previously untransmitted Blobs are transmitted is that the
   // current BlobURL could contain html code, referring to another untransmitted
@@ -640,7 +640,7 @@ class ContentParent final
   //
   // Should eventually be made obsolete by broader design changes that only
   // store BlobURLs in the parent process.
-  void TransmitBlobDataIfBlobURL(nsIURI* aURI, nsIPrincipal* aPrincipal);
+  void TransmitBlobDataIfBlobURL(nsIURI* aURI);
 
   void OnCompositorDeviceReset() override;
 
@@ -715,8 +715,6 @@ class ContentParent final
  protected:
   bool CheckBrowsingContextEmbedder(CanonicalBrowsingContext* aBC,
                                     const char* aOperation) const;
-
-  void OnChannelConnected(int32_t pid) override;
 
   void ActorDestroy(ActorDestroyReason why) override;
   void ActorDealloc() override;
@@ -1120,8 +1118,6 @@ class ContentParent final
       const ClonedMessageData* aStack = nullptr);
 
  public:
-  mozilla::ipc::IPCResult RecvPrivateDocShellsExist(const bool& aExist);
-
   mozilla::ipc::IPCResult RecvCommitBrowsingContextTransaction(
       const MaybeDiscarded<BrowsingContext>& aContext,
       BrowsingContext::BaseTransaction&& aTransaction, uint64_t aEpoch);
@@ -1415,6 +1411,9 @@ class ContentParent final
       const MaybeDiscardedBrowsingContext& aContainerContext,
       FeaturePolicy* aContainerFeaturePolicy);
 
+  mozilla::ipc::IPCResult RecvGetSystemIcon(nsIURI* aURI,
+                                            GetSystemIconResolver&& aResolver);
+
  public:
   void SendGetFilesResponseAndForget(const nsID& aID,
                                      const GetFilesResponseResult& aResult);
@@ -1545,6 +1544,7 @@ class ContentParent final
   uint8_t mCalledKillHard : 1;
   uint8_t mCreatedPairedMinidumps : 1;
   uint8_t mShutdownPending : 1;
+  uint8_t mLaunchResolved : 1;
 
   // True if the input event queue on the main thread of the content process is
   // enabled.

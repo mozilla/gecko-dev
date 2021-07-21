@@ -30,6 +30,7 @@
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Logging.h"
+#include "mozilla/gfx/XlibDisplay.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_gfx.h"
@@ -239,7 +240,15 @@ void gfxPlatformGtk::InitWebRenderConfig() {
                            "FEATURE_FAILURE_NO_WAYLAND"_ns);
     }
 #ifdef MOZ_WAYLAND
-    else if (!widget::WaylandDisplayGet()->GetViewporter()) {
+    else if (gfxConfig::IsEnabled(Feature::WEBRENDER) &&
+             !gfxConfig::IsEnabled(Feature::DMABUF)) {
+      // We use zwp_linux_dmabuf_v1 and GBM directly to manage FBOs. In theory
+      // this is also possible vie EGLstreams, but we don't bother to implement
+      // it as recent NVidia drivers support GBM and DMABuf as well.
+      feature.ForceDisable(FeatureStatus::Unavailable,
+                           "Hardware Webrender requires DMAbuf support",
+                           "FEATURE_FAILURE_NO_DMABUF"_ns);
+    } else if (!widget::WaylandDisplayGet()->GetViewporter()) {
       feature.ForceDisable(FeatureStatus::Unavailable,
                            "Requires wp_viewporter protocol support",
                            "FEATURE_FAILURE_REQUIRES_WPVIEWPORTER"_ns);
@@ -247,12 +256,6 @@ void gfxPlatformGtk::InitWebRenderConfig() {
 #endif
   }
   gfxVars::SetUseWebRenderCompositor(feature.IsEnabled());
-}
-
-void gfxPlatformGtk::FlushContentDrawing() {
-  if (gfxVars::UseXRender()) {
-    XFlush(DefaultXDisplay());
-  }
 }
 
 void gfxPlatformGtk::InitPlatformGPUProcessPrefs() {
@@ -686,8 +689,9 @@ class GtkVsyncSource final : public VsyncSource {
         return;
       }
 
-      mGLContext = gl::GLContextGLX::CreateGLContext({}, mXDisplay, root,
-                                                     config, false, nullptr);
+      mGLContext = gl::GLContextGLX::CreateGLContext(
+          {}, gfx::XlibDisplay::Borrow(mXDisplay), root, config, false,
+          nullptr);
 
       if (!mGLContext) {
         lock.NotifyAll();
@@ -831,7 +835,7 @@ already_AddRefed<gfx::VsyncSource> gfxPlatformGtk::CreateHardwareVsyncSource() {
   }
 #  endif
 
-  // Only use GLX vsync when the OpenGL compositor / WebRedner is being used.
+  // Only use GLX vsync when the OpenGL compositor / WebRender is being used.
   // The extra cost of initializing a GLX context while blocking the main
   // thread is not worth it when using basic composition.
   //
@@ -847,7 +851,7 @@ already_AddRefed<gfx::VsyncSource> gfxPlatformGtk::CreateHardwareVsyncSource() {
 
     // Nvidia doesn't support GLX at the same time as EGL but Mesa does.
     if (!gfxVars::UseEGL() || (adapterDriverVendor.Find("mesa") != -1)) {
-      useGlxVsync = gl::sGLXLibrary.SupportsVideoSync();
+      useGlxVsync = gl::sGLXLibrary.SupportsVideoSync(DefaultXDisplay());
     }
     if (useGlxVsync) {
       RefPtr<VsyncSource> vsyncSource = new GtkVsyncSource();

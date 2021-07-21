@@ -791,6 +791,15 @@ const POLICIES_TESTS = [
       "security.ssl3.rsa_aes_256_gcm_sha384": false,
     },
   },
+
+  {
+    policies: {
+      WindowsSSO: true,
+    },
+    lockedPrefs: {
+      "network.http.windows-sso.enabled": true,
+    },
+  },
 ];
 
 add_task(async function test_policy_simple_prefs() {

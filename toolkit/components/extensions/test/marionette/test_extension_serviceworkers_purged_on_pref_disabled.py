@@ -4,22 +4,30 @@
 
 from marionette_driver import Wait
 from marionette_driver.addons import Addons
-from marionette_harness import MarionetteTestCase
 
 import os
+import sys
 
-EXT_ID = "extension-with-bg-sw@test"
-EXT_DIR_PATH = "extension-with-bg-sw"
-PREF_BG_SW_ENABLED = "extensions.backgroundServiceWorker.enabled"
+# Add this directory to the import path.
+sys.path.append(os.path.dirname(__file__))
+
+from service_worker_testutils import (
+    MarionetteServiceWorkerTestCase,
+    EXT_ID,
+    EXT_DIR_PATH,
+    PREF_BG_SW_ENABLED,
+    PREF_PERSIST_TEMP_ADDONS,
+)
 
 
-class PurgeExtensionServiceWorkersOnPrefDisabled(MarionetteTestCase):
+class PurgeExtensionServiceWorkersOnPrefDisabled(MarionetteServiceWorkerTestCase):
     def setUp(self):
         super(PurgeExtensionServiceWorkersOnPrefDisabled, self).setUp()
         self.test_extension_id = EXT_ID
         # Flip the "mirror: once" pref and restart Firefox to be able
         # to run the extension successfully.
         self.marionette.set_pref(PREF_BG_SW_ENABLED, True)
+        self.marionette.set_pref(PREF_PERSIST_TEMP_ADDONS, True)
         self.marionette.restart(in_app=True)
 
     def tearDown(self):
@@ -46,37 +54,3 @@ class PurgeExtensionServiceWorkersOnPrefDisabled(MarionetteTestCase):
             lambda _: self.is_extension_service_worker_registered,
             message="Wait the extension service worker to be registered",
         )
-
-    def get_extension_url(self, path="/"):
-        with self.marionette.using_context("chrome"):
-            return self.marionette.execute_script(
-                """
-              let policy = WebExtensionPolicy.getByID(arguments[0]);
-              return policy.getURL(arguments[1])
-            """,
-                script_args=(self.test_extension_id, path),
-            )
-
-    @property
-    def is_extension_service_worker_registered(self):
-        with self.marionette.using_context("chrome"):
-            return self.marionette.execute_script(
-                """
-                let serviceWorkerManager = Cc["@mozilla.org/serviceworkers/manager;1"].getService(
-                    Ci.nsIServiceWorkerManager
-                );
-
-                let serviceWorkers = serviceWorkerManager.getAllRegistrations();
-                for (let i = 0; i < serviceWorkers.length; i++) {
-                    let sw = serviceWorkers.queryElementAt(
-                        i,
-                        Ci.nsIServiceWorkerRegistrationInfo
-                    );
-                    if (sw.scope == arguments[0]) {
-                        return true;
-                    }
-                }
-                return false;
-            """,
-                script_args=(self.test_extension_base_url,),
-            )

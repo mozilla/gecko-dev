@@ -69,22 +69,7 @@ LINUX_WORKER_TYPES = {
 
 # windows worker types keyed by test-platform and virtualization
 WINDOWS_WORKER_TYPES = {
-    "windows7-32": {
-        "virtual": "t-win7-32",
-        "virtual-with-gpu": "t-win7-32-gpu",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows7-32-shippable": {
-        "virtual": "t-win7-32",
-        "virtual-with-gpu": "t-win7-32-gpu",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows7-32-devedition": {  # build only, tests have no value
-        "virtual": "t-win7-32",
-        "virtual-with-gpu": "t-win7-32-gpu",
-        "hardware": "t-win10-64-1803-hw",
-    },
-    "windows10-32-mingwclang": {
+    "windows10-32-mingwclang-qr": {
         "virtual": "t-win10-64",
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
@@ -94,17 +79,22 @@ WINDOWS_WORKER_TYPES = {
         "virtual-with-gpu": "t-win7-32-gpu",
         "hardware": "t-win10-64-1803-hw",
     },
-    "windows10-32": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
+    "windows7-32-shippable-qr": {
+        "virtual": "t-win7-32",
+        "virtual-with-gpu": "t-win7-32-gpu",
         "hardware": "t-win10-64-1803-hw",
     },
-    "windows10-32-shippable": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
+    "windows7-32-devedition-qr": {  # build only, tests have no value
+        "virtual": "t-win7-32",
+        "virtual-with-gpu": "t-win7-32-gpu",
         "hardware": "t-win10-64-1803-hw",
     },
     "windows10-32-qr": {
+        "virtual": "t-win10-64",
+        "virtual-with-gpu": "t-win10-64-gpu-s",
+        "hardware": "t-win10-64-1803-hw",
+    },
+    "windows10-32-shippable-qr": {
         "virtual": "t-win10-64",
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
@@ -114,7 +104,7 @@ WINDOWS_WORKER_TYPES = {
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
     },
-    "windows10-aarch64": {
+    "windows10-aarch64-qr": {
         "virtual": "t-win64-aarch64-laptop",
         "virtual-with-gpu": "t-win64-aarch64-laptop",
         "hardware": "t-win64-aarch64-laptop",
@@ -139,11 +129,6 @@ WINDOWS_WORKER_TYPES = {
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
     },
-    "windows10-64-asan": {
-        "virtual": "t-win10-64",
-        "virtual-with-gpu": "t-win10-64-gpu-s",
-        "hardware": "t-win10-64-1803-hw",
-    },
     "windows10-64-qr": {
         "virtual": "t-win10-64",
         "virtual-with-gpu": "t-win10-64-gpu-s",
@@ -154,7 +139,17 @@ WINDOWS_WORKER_TYPES = {
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
     },
-    "windows10-64-mingwclang": {
+    "windows10-64-devedition-qr": {
+        "virtual": "t-win10-64",
+        "virtual-with-gpu": "t-win10-64-gpu-s",
+        "hardware": "t-win10-64-1803-hw",
+    },
+    "windows10-64-asan-qr": {
+        "virtual": "t-win10-64",
+        "virtual-with-gpu": "t-win10-64-gpu-s",
+        "hardware": "t-win10-64-1803-hw",
+    },
+    "windows10-64-mingwclang-qr": {
         "virtual": "t-win10-64",
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-1803-hw",
@@ -975,7 +970,8 @@ def set_download_symbols(config, tasks):
             task["mozharness"]["download-symbols"] = True
         elif (
             task["build-platform"] == "linux64-asan/opt"
-            or task["build-platform"] == "windows10-64-asan/opt"
+            or task["build-platform"] == "linux64-asan-qr/opt"
+            or task["build-platform"] == "windows10-64-asan-qr/opt"
         ):
             if "download-symbols" in task["mozharness"]:
                 del task["mozharness"]["download-symbols"]
@@ -1414,22 +1410,23 @@ def handle_tier(config, tasks):
                 "linux1804-64-shippable-qr/opt",
                 "linux1804-64-asan/opt",
                 "linux1804-64-tsan/opt",
-                "windows7-32/debug",
-                "windows7-32/opt",
-                "windows7-32-devedition/opt",
-                "windows7-32-shippable/opt",
-                "windows10-32/debug",
-                "windows10-32/opt",
-                "windows10-32-shippable/opt",
-                "windows10-aarch64/opt",
+                "windows7-32-qr/debug",
+                "windows7-32-qr/opt",
+                "windows7-32-devedition-qr/opt",
+                "windows7-32-shippable-qr/opt",
+                "windows10-32-qr/debug",
+                "windows10-32-qr/opt",
+                "windows10-32-shippable-qr/opt",
+                "windows10-aarch64-qr/opt",
                 "windows10-64/debug",
                 "windows10-64/opt",
                 "windows10-64-shippable/opt",
                 "windows10-64-devedition/opt",
-                "windows10-64-asan/opt",
                 "windows10-64-qr/opt",
                 "windows10-64-qr/debug",
                 "windows10-64-shippable-qr/opt",
+                "windows10-64-devedition-qr/opt",
+                "windows10-64-asan-qr/opt",
                 "macosx1014-64/opt",
                 "macosx1014-64/debug",
                 "macosx1014-64-shippable/opt",
@@ -1482,10 +1479,7 @@ def apply_raptor_tier_optimization(config, tasks):
 @transforms.add
 def disable_try_only_platforms(config, tasks):
     """Turns off platforms that should only run on try."""
-    try_only_platforms = (
-        "windows7-32-qr/.*",
-        "windows10-32-qr/.*",
-    )
+    try_only_platforms = ()
     for task in tasks:
         if any(re.match(k + "$", task["test-platform"]) for k in try_only_platforms):
             task["run-on-projects"] = []
@@ -1868,8 +1862,10 @@ def set_worker_type(config, tasks):
                     win_worker_type_platform = WINDOWS_WORKER_TYPES[
                         "windows10-64-ref-hw-2017"
                     ]
-                elif test_platform.startswith("windows10-aarch64"):
-                    win_worker_type_platform = WINDOWS_WORKER_TYPES["windows10-aarch64"]
+                elif test_platform.startswith("windows10-aarch64-qr"):
+                    win_worker_type_platform = WINDOWS_WORKER_TYPES[
+                        "windows10-aarch64-qr"
+                    ]
                 else:
                     win_worker_type_platform = WINDOWS_WORKER_TYPES["windows10-64"]
             else:

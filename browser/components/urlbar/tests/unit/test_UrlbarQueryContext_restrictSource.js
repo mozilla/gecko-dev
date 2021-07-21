@@ -15,13 +15,6 @@ add_task(async function setup() {
   );
 });
 
-XPCOMUtils.defineLazyServiceGetter(
-  this,
-  "unifiedComplete",
-  "@mozilla.org/autocomplete/search;1?name=unifiedcomplete",
-  "nsIAutoCompleteSearch"
-);
-
 add_task(async function test_restrictions() {
   await PlacesTestUtils.addVisits([
     { uri: "http://history.com/", title: "match" },
@@ -31,7 +24,11 @@ add_task(async function test_restrictions() {
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
     title: "match",
   });
-  await UrlbarProviderOpenTabs.registerOpenTab("http://openpagematch.com/");
+  await UrlbarProviderOpenTabs.registerOpenTab(
+    "http://openpagematch.com/",
+    0,
+    false
+  );
 
   info("Bookmark restrict");
   let results = await get_results({

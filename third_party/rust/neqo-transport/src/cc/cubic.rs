@@ -35,9 +35,11 @@ pub const CUBIC_FAST_CONVERGENCE: f64 = 0.85; // (1.0 + CUBIC_BETA) / 2.0;
 /// A value of 1.0 would mean a return to the rate used in slow start.
 const EXPONENTIAL_GROWTH_REDUCTION: f64 = 2.0;
 
+/// Convert an integer congestion window value into a floating point value.
+/// This has the effect of reducing larger values to `1<<53`.
+/// If you have a congestion window that large, something is probably wrong.
 fn convert_to_f64(v: usize) -> f64 {
-    assert!(v < (1 << 53));
-    let mut f_64 = f64::try_from(u32::try_from(v >> 21).unwrap()).unwrap();
+    let mut f_64 = f64::try_from(u32::try_from(v >> 21).unwrap_or(u32::MAX)).unwrap();
     f_64 *= 2_097_152.0; // f_64 <<= 21
     f_64 += f64::try_from(u32::try_from(v & 0x1f_ffff).unwrap()).unwrap();
     f_64
@@ -139,7 +141,15 @@ impl WindowAdjustment for Cubic {
 
         let time_ca = self
             .ca_epoch_start
-            .map_or(min_rtt, |t| now + min_rtt - t)
+            .map_or(min_rtt, |t| {
+                if now + min_rtt < t {
+                    // This only happens when processing old packets
+                    // that were saved and replayed with old timestamps.
+                    min_rtt
+                } else {
+                    now + min_rtt - t
+                }
+            })
             .as_secs_f64();
         let target_cubic = self.w_cubic(time_ca);
 

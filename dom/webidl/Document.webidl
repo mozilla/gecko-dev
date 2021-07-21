@@ -191,9 +191,6 @@ partial interface Document {
                 attribute EventHandler onbeforescriptexecute;
                 attribute EventHandler onafterscriptexecute;
 
-                [Pref="dom.select_events.enabled"]
-                attribute EventHandler onselectionchange;
-
   /**
    * True if this document is synthetic : stand alone image, video, audio file,
    * etc.
@@ -471,9 +468,6 @@ partial interface Document {
   readonly attribute XULCommandDispatcher? commandDispatcher;
 
   [ChromeOnly]
-  attribute Node? popupNode;
-
-  [ChromeOnly]
   attribute boolean devToolsWatchingDOMMutations;
 
   /**
@@ -485,8 +479,6 @@ partial interface Document {
   readonly attribute Node? popupRangeParent;
   [Throws, ChromeOnly]
   readonly attribute long  popupRangeOffset;
-  [ChromeOnly]
-  attribute Node? tooltipNode;
 
   /**
    * Returns all the shadow roots connected to the document, in no particular
@@ -716,4 +708,10 @@ partial interface Document {
    */
   [ChromeOnly]
   void setNotifyFormOrPasswordRemoved(boolean aShouldNotify);
+};
+
+// Extension to allow chrome code to detect initial about:blank documents.
+partial interface Document {
+  [ChromeOnly]
+  readonly attribute boolean isInitialDocument;
 };

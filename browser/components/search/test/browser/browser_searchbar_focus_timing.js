@@ -20,55 +20,52 @@ add_task(async function setup() {
 });
 
 add_task(async function() {
-  info("Open a page");
-  const tab = await BrowserTestUtils.openNewForegroundTab(
-    gBrowser,
-    "http://example.com"
-  );
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const browserSearch = win.BrowserSearch;
 
-  const onLoad = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
-  const onBeforeUnload = ContentTask.spawn(gBrowser.selectedBrowser, [], () => {
+  const onPageHide = SpecialPowers.spawn(browser, [], () => {
     return new Promise(resolve => {
-      content.window.addEventListener("beforeunload", () => {
+      content.addEventListener("pagehide", () => {
         resolve();
       });
     });
   });
-  const onResult = SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+  const onResult = SpecialPowers.spawn(browser, [], () => {
     return new Promise(resolve => {
-      content.window.addEventListener("keyup", () => {
+      content.addEventListener("keyup", () => {
         resolve("keyup");
       });
-      content.window.addEventListener("unload", () => {
+      content.addEventListener("unload", () => {
         resolve("unload");
       });
     });
   });
 
   info("Focus on the search bar");
-  const searchBarTextBox = BrowserSearch.searchBar.textbox;
-  EventUtils.synthesizeMouseAtCenter(searchBarTextBox, {});
-  const ownerDocument = gBrowser.selectedBrowser.ownerDocument;
+  const searchBarTextBox = browserSearch.searchBar.textbox;
+  EventUtils.synthesizeMouseAtCenter(searchBarTextBox, {}, win);
+  const ownerDocument = browser.ownerDocument;
   is(ownerDocument.activeElement, searchBarTextBox, "The search bar has focus");
 
   info("Keydown a char and Enter");
-  EventUtils.synthesizeKey("x", { type: "keydown" });
-  EventUtils.synthesizeKey("KEY_Enter", { type: "keydown" });
+  EventUtils.synthesizeKey("x", { type: "keydown" }, win);
+  EventUtils.synthesizeKey("KEY_Enter", { type: "keydown" }, win);
 
-  info("Wait for beforeUnload event in the content");
-  await onBeforeUnload;
+  info("Wait for pagehide event in the content");
+  await onPageHide;
   is(
     ownerDocument.activeElement,
     searchBarTextBox,
     "The search bar still has focus"
   );
 
-  // Keyup both key as soon as beforeUnload event happens.
-  EventUtils.synthesizeKey("x", { type: "keyup" });
-  EventUtils.synthesizeKey("KEY_Enter", { type: "keyup" });
+  // Keyup both key as soon as pagehide event happens.
+  EventUtils.synthesizeKey("x", { type: "keyup" }, win);
+  EventUtils.synthesizeKey("KEY_Enter", { type: "keyup" }, win);
 
   await TestUtils.waitForCondition(
-    () => ownerDocument.activeElement === gBrowser.selectedBrowser,
+    () => ownerDocument.activeElement === browser,
     "Wait for focus to be moved to the browser"
   );
   info("The focus is moved to the browser");
@@ -77,7 +74,5 @@ add_task(async function() {
   const result = await onResult;
   is(result, "unload", "Keyup event is not captured");
 
-  // Cleanup.
-  await onLoad;
-  BrowserTestUtils.removeTab(tab);
+  await BrowserTestUtils.closeWindow(win);
 });

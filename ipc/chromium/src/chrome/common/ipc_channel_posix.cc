@@ -52,11 +52,6 @@ static const size_t kMaxIOVecSize = 256;
 static const size_t kMaxIOVecSize = 16;
 #endif
 
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracerImpl.h"
-using namespace mozilla::tasktracer;
-#endif
-
 using namespace mozilla::ipc;
 
 namespace IPC {
@@ -969,6 +964,8 @@ int Channel::GetFileDescriptor() const {
 void Channel::CloseClientFileDescriptor() {
   channel_impl_->CloseClientFileDescriptor();
 }
+
+int32_t Channel::OtherPid() const { return channel_impl_->OtherPid(); }
 
 bool Channel::Unsound_IsClosed() const {
   return channel_impl_->Unsound_IsClosed();

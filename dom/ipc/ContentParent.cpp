@@ -38,11 +38,13 @@
 
 #include "BrowserParent.h"
 #include "ContentProcessManager.h"
+#include "GeckoProfiler.h"
 #include "Geolocation.h"
 #include "GfxInfoBase.h"
 #include "MMPrinter.h"
 #include "PreallocatedProcessManager.h"
 #include "ProcessPriorityManager.h"
+#include "ProfilerParent.h"
 #include "SandboxHal.h"
 #include "SourceSurfaceRawData.h"
 #include "mozilla/ipc/URIUtils.h"
@@ -54,7 +56,6 @@
 #include "mozilla/BenchmarkStorageParent.h"
 #include "mozilla/ContentBlockingUserInteraction.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/DataStorage.h"
 #include "mozilla/FOGIPC.h"
 #include "mozilla/GlobalStyleSheetCache.h"
 #include "mozilla/HangDetails.h"
@@ -137,6 +138,7 @@
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
+#include "mozilla/ipc/ByteBuf.h"
 #include "mozilla/ipc/CrashReporterHost.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/FileDescriptorSetParent.h"
@@ -222,6 +224,9 @@
 #include "nsIWebBrowserChrome.h"
 #include "nsIX509Cert.h"
 #include "nsIXULRuntime.h"
+#ifdef MOZ_WIDGET_GTK
+#  include "nsIconChannel.h"
+#endif
 #include "nsMemoryInfoDumper.h"
 #include "nsMemoryReporterManager.h"
 #include "nsOpenURIInFrameParams.h"
@@ -276,6 +281,7 @@
 
 #ifdef MOZ_WIDGET_GTK
 #  include <gdk/gdk.h>
+#  include "mozilla/WidgetUtilsGtk.h"
 #endif
 
 #include "mozilla/RemoteSpellCheckEngineParent.h"
@@ -306,11 +312,6 @@
 
 #ifdef ACCESSIBILITY
 #  include "nsAccessibilityService.h"
-#endif
-
-#ifdef MOZ_GECKO_PROFILER
-#  include "nsIProfiler.h"
-#  include "ProfilerParent.h"
 #endif
 
 #ifdef MOZ_CODE_COVERAGE
@@ -614,9 +615,6 @@ UniquePtr<SandboxBrokerPolicyFactory>
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
 UniquePtr<std::vector<std::string>> ContentParent::sMacSandboxParams;
 #endif
-
-// Whether a private docshell has been seen before.
-static bool sHasSeenPrivateDocShell = false;
 
 // This is true when subprocess launching is enabled.  This is the
 // case between StartUp() and ShutDown().
@@ -1536,9 +1534,6 @@ already_AddRefed<RemoteBrowser> ContentParent::CreateBrowser(
   if (loadContext && loadContext->UseRemoteSubframes()) {
     chromeFlags |= nsIWebBrowserChrome::CHROME_FISSION_WINDOW;
   }
-  if (docShell->GetAffectPrivateSessionLifetime()) {
-    chromeFlags |= nsIWebBrowserChrome::CHROME_PRIVATE_LIFETIME;
-  }
 
   if (tabId == 0) {
     return nullptr;
@@ -1701,9 +1696,7 @@ void ContentParent::Init() {
   }
 #endif  // #ifdef ACCESSIBILITY
 
-#ifdef MOZ_GECKO_PROFILER
   Unused << SendInitProfiler(ProfilerParent::CreateForProcess(OtherPid()));
-#endif
 
   // Ensure that the default set of permissions are avaliable in the content
   // process before we try to load any URIs in it.
@@ -1719,6 +1712,8 @@ void ContentParent::Init() {
     Unused << NS_WARN_IF(!SendPreferenceUpdate(pref));
   }
   mQueuedPrefs.Clear();
+
+  Unused << SendInitNextGenLocalStorageEnabled(NextGenLocalStorageEnabled());
 }
 
 void ContentParent::MaybeBeginShutDown(uint32_t aExpectedBrowserCount,
@@ -1969,12 +1964,6 @@ void ContentParent::MarkAsDead() {
 void ContentParent::OnChannelError() {
   RefPtr<ContentParent> kungFuDeathGrip(this);
   PContentParent::OnChannelError();
-}
-
-void ContentParent::OnChannelConnected(int32_t pid) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  SetOtherProcessId(pid);
 }
 
 void ContentParent::ProcessingError(Result aCode, const char* aReason) {
@@ -2554,6 +2543,15 @@ bool ContentParent::BeginSubprocessLaunch(ProcessPriority aPriority) {
   extraArgs.push_back("-parentBuildID");
   extraArgs.push_back(parentBuildID.get());
 
+#ifdef MOZ_WIDGET_GTK
+  // This is X11-only pending a solution for WebGL in Wayland mode.
+  if (StaticPrefs::dom_ipc_avoid_gtk() &&
+      StaticPrefs::widget_non_native_theme_enabled() &&
+      widget::GdkIsX11Display()) {
+    mSubprocess->SetEnv("MOZ_HEADLESS", "1");
+  }
+#endif
+
   // See also ActorDealloc.
   mSelfRef = this;
   mLaunchYieldTS = TimeStamp::Now();
@@ -2576,16 +2574,14 @@ bool ContentParent::LaunchSubprocessResolve(bool aIsSync,
                                             ProcessPriority aPriority) {
   AUTO_PROFILER_LABEL("ContentParent::LaunchSubprocess::resolve", OTHER);
 
-  // Take the pending IPC channel. This channel will be used to open the raw IPC
-  // connection between this process and the launched content process.
-  UniquePtr<IPC::Channel> channel = mSubprocess->TakeChannel();
-  if (!channel) {
-    // We don't have a channel, so this method must've been called already.
+  if (mLaunchResolved) {
+    // We've already been called, return.
     MOZ_ASSERT(sCreatedFirstContentProcess);
     MOZ_ASSERT(!mPrefSerializer);
     MOZ_ASSERT(mLifecycleState != LifecycleState::LAUNCHING);
     return true;
   }
+  mLaunchResolved = true;
 
   // Now that communication with the child is complete, we can cleanup
   // the preference serializer.
@@ -2610,7 +2606,7 @@ bool ContentParent::LaunchSubprocessResolve(bool aIsSync,
 
   base::ProcessId procId =
       base::GetProcId(mSubprocess->GetChildProcessHandle());
-  Open(std::move(channel), procId);
+  Open(mSubprocess->TakeInitialPort(), procId);
 
   ContentProcessManager::GetSingleton()->AddContentProcess(this);
 
@@ -2738,6 +2734,7 @@ ContentParent::ContentParent(const nsACString& aRemoteType, int32_t aJSPluginID)
       mCalledKillHard(false),
       mCreatedPairedMinidumps(false),
       mShutdownPending(false),
+      mLaunchResolved(false),
       mIsRemoteInputEventQueueEnabled(false),
       mIsInputPriorityEventEnabled(false),
       mIsInPool(false),
@@ -2939,8 +2936,6 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
       widget::WinContentSystemParameters::GetSingleton()->GetParentValues();
 #endif
 
-  DataStorage::GetAllChildProcessData(xpcomInit.dataStorage());
-
   // Send the dynamic scalar definitions to the new process.
   TelemetryIPC::GetDynamicScalarDefinitions(xpcomInit.dynamicScalarDefs());
 
@@ -3115,24 +3110,18 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
         [&](BlobImpl* aBlobImpl, nsIPrincipal* aPrincipal,
             const Maybe<nsID>& aAgentClusterId, const nsACString& aURI,
             bool aRevoked) {
-          nsAutoCString origin;
-          nsresult rv = aPrincipal->GetOrigin(origin);
-          if (NS_WARN_IF(NS_FAILED(rv))) {
-            return false;
-          }
-
           // We send all moz-extension Blob URL's to all content processes
           // because content scripts mean that a moz-extension can live in any
           // process. Same thing for system principal Blob URLs. Content Blob
           // URL's are sent for content principals on-demand by
           // AboutToLoadHttpFtpDocumentForChild and RemoteWorkerManager.
-          if (!StringBeginsWith(origin, "moz-extension://"_ns) &&
-              !aPrincipal->IsSystemPrincipal()) {
+          if (!BlobURLProtocolHandler::IsBlobURLBroadcastPrincipal(
+                  aPrincipal)) {
             return true;
           }
 
           IPCBlob ipcBlob;
-          rv = IPCBlobUtils::Serialize(aBlobImpl, this, ipcBlob);
+          nsresult rv = IPCBlobUtils::Serialize(aBlobImpl, this, ipcBlob);
           if (NS_WARN_IF(NS_FAILED(rv))) {
             return false;
           }
@@ -4772,35 +4761,6 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentParent::RecvPrivateDocShellsExist(
-    const bool& aExist) {
-  if (!sPrivateContent) {
-    sPrivateContent = MakeUnique<nsTArray<ContentParent*>>();
-    if (!sHasSeenPrivateDocShell) {
-      sHasSeenPrivateDocShell = true;
-      Telemetry::ScalarSet(
-          Telemetry::ScalarID::DOM_PARENTPROCESS_PRIVATE_WINDOW_USED, true);
-    }
-  }
-  if (aExist) {
-    sPrivateContent->AppendElement(this);
-  } else {
-    sPrivateContent->RemoveElement(this);
-
-    // Only fire the notification if we have private and non-private
-    // windows: if privatebrowsing.autostart is true, all windows are
-    // private.
-    if (!sPrivateContent->Length() &&
-        !Preferences::GetBool("browser.privatebrowsing.autostart")) {
-      nsCOMPtr<nsIObserverService> obs =
-          mozilla::services::GetObserverService();
-      obs->NotifyObservers(nullptr, "last-pb-context-exited", nullptr);
-      sPrivateContent = nullptr;
-    }
-  }
-  return IPC_OK();
-}
-
 bool ContentParent::DoLoadMessageManagerScript(const nsAString& aURL,
                                                bool aRunInGlobalScope) {
   MOZ_ASSERT(!aRunInGlobalScope);
@@ -5554,11 +5514,7 @@ mozilla::ipc::IPCResult ContentParent::RecvCreateWindowInDifferentProcess(
 
 mozilla::ipc::IPCResult ContentParent::RecvShutdownProfile(
     const nsCString& aProfile) {
-#ifdef MOZ_GECKO_PROFILER
-  nsCOMPtr<nsIProfiler> profiler(
-      do_GetService("@mozilla.org/tools/profiler;1"));
-  profiler->ReceiveShutdownProfile(aProfile);
-#endif
+  profiler_received_exit_profile(aProfile);
   return IPC_OK();
 }
 
@@ -5756,14 +5712,10 @@ ContentParent::RecvNotifyPushSubscriptionModifiedObservers(
 void ContentParent::BroadcastBlobURLRegistration(
     const nsACString& aURI, BlobImpl* aBlobImpl, nsIPrincipal* aPrincipal,
     const Maybe<nsID>& aAgentClusterId, ContentParent* aIgnoreThisCP) {
-  nsAutoCString origin;
-  nsresult rv = aPrincipal->GetOrigin(origin);
-  NS_ENSURE_SUCCESS_VOID(rv);
-
   uint64_t originHash = ComputeLoadedOriginHash(aPrincipal);
 
-  bool toBeSent = StringBeginsWith(origin, "moz-extension://"_ns) ||
-                  aPrincipal->IsSystemPrincipal();
+  bool toBeSent =
+      BlobURLProtocolHandler::IsBlobURLBroadcastPrincipal(aPrincipal);
 
   nsCString uri(aURI);
   IPC::Principal principal(aPrincipal);
@@ -5795,14 +5747,10 @@ void ContentParent::BroadcastBlobURLRegistration(
 void ContentParent::BroadcastBlobURLUnregistration(
     const nsACString& aURI, nsIPrincipal* aPrincipal,
     ContentParent* aIgnoreThisCP) {
-  nsAutoCString origin;
-  nsresult rv = aPrincipal->GetOrigin(origin);
-  NS_ENSURE_SUCCESS_VOID(rv);
-
   uint64_t originHash = ComputeLoadedOriginHash(aPrincipal);
 
-  bool toBeSent = StringBeginsWith(origin, "moz-extension://"_ns) ||
-                  aPrincipal->IsSystemPrincipal();
+  bool toBeSent =
+      BlobURLProtocolHandler::IsBlobURLBroadcastPrincipal(aPrincipal);
 
   nsCString uri(aURI);
 
@@ -6058,6 +6006,21 @@ nsresult ContentParent::TransmitPermissionsForPrincipal(
 }
 
 void ContentParent::TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal) {
+  // If we're already broadcasting BlobURLs with this principal, we don't need
+  // to send them here.
+  if (BlobURLProtocolHandler::IsBlobURLBroadcastPrincipal(aPrincipal)) {
+    return;
+  }
+
+  // We shouldn't have any Blob URLs with expanded principals, so transmit URLs
+  // for each principal in the AllowList instead.
+  if (nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(aPrincipal)) {
+    for (const auto& prin : ep->AllowList()) {
+      TransmitBlobURLsForPrincipal(prin);
+    }
+    return;
+  }
+
   uint64_t originHash = ComputeLoadedOriginHash(aPrincipal);
 
   if (!mLoadedOriginHashes.Contains(originHash)) {
@@ -6068,7 +6031,10 @@ void ContentParent::TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal) {
         [&](BlobImpl* aBlobImpl, nsIPrincipal* aBlobPrincipal,
             const Maybe<nsID>& aAgentClusterId, const nsACString& aURI,
             bool aRevoked) {
-          if (!aPrincipal->Subsumes(aBlobPrincipal)) {
+          // This check uses `ComputeLoadedOriginHash` to compare, rather than
+          // doing the more accurate `Equals` check, as it needs to match the
+          // behaviour of the logic to broadcast new registrations.
+          if (originHash != ComputeLoadedOriginHash(aBlobPrincipal)) {
             return true;
           }
 
@@ -6082,7 +6048,7 @@ void ContentParent::TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal) {
               BlobURLRegistrationData(nsCString(aURI), ipcBlob, aBlobPrincipal,
                                       aAgentClusterId, aRevoked));
 
-          rv = TransmitPermissionsForPrincipal(aPrincipal);
+          rv = TransmitPermissionsForPrincipal(aBlobPrincipal);
           Unused << NS_WARN_IF(NS_FAILED(rv));
           return true;
         });
@@ -6093,16 +6059,14 @@ void ContentParent::TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal) {
   }
 }
 
-void ContentParent::TransmitBlobDataIfBlobURL(nsIURI* aURI,
-                                              nsIPrincipal* aPrincipal) {
+void ContentParent::TransmitBlobDataIfBlobURL(nsIURI* aURI) {
   MOZ_ASSERT(aURI);
-  MOZ_ASSERT(aPrincipal);
 
-  if (!IsBlobURI(aURI)) {
-    return;
+  nsCOMPtr<nsIPrincipal> principal;
+  if (BlobURLProtocolHandler::GetBlobURLPrincipal(aURI,
+                                                  getter_AddRefs(principal))) {
+    TransmitBlobURLsForPrincipal(principal);
   }
-
-  TransmitBlobURLsForPrincipal(aPrincipal);
 }
 
 void ContentParent::EnsurePermissionsByKey(const nsCString& aKey,
@@ -7597,6 +7561,22 @@ void ContentParent::DidLaunchSubprocess() {
         Telemetry::CONTENT_PROCESS_TIME_SINCE_LAST_LAUNCH_MS, last, now);
   }
   sLastContentProcessLaunch = Some(now);
+}
+
+IPCResult ContentParent::RecvGetSystemIcon(nsIURI* aURI,
+                                           GetSystemIconResolver&& aResolver) {
+#ifdef MOZ_WIDGET_GTK
+  Maybe<ByteBuf> bytebuf = Some(ByteBuf{});
+  nsresult rv = nsIconChannel::GetIcon(aURI, bytebuf.ptr());
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    bytebuf = Nothing();
+  }
+  using ResolverArgs = Tuple<const nsresult&, mozilla::Maybe<ByteBuf>&&>;
+  aResolver(ResolverArgs(rv, std::move(bytebuf)));
+  return IPC_OK();
+#else
+  MOZ_CRASH("This message is currently implemented only on GTK platforms");
+#endif
 }
 
 }  // namespace dom

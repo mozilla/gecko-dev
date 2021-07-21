@@ -681,11 +681,7 @@ class VsyncRefreshDriverTimer : public RefreshDriverTimer {
       // monotonic because the underlying system apis produce non-monontonic
       // results. (bug 1306896)
 #if !defined(_WIN32)
-      // Do not compare timestamps unless they are both canonical or fuzzy
-      DebugOnly<TimeStamp> rightnow = TimeStamp::Now();
-      MOZ_ASSERT_IF(
-          (*&rightnow).UsedCanonicalNow() == aVsyncTimestamp.UsedCanonicalNow(),
-          aVsyncTimestamp <= *&rightnow);
+      MOZ_ASSERT(aVsyncTimestamp <= TimeStamp::Now());
 #endif
 
       // Let also non-RefreshDriver code to run at least for awhile if we have
@@ -1214,11 +1210,9 @@ void nsRefreshDriver::AddRefreshObserver(nsARefreshObserver* aObserver,
   ObserverArray& array = ArrayFor(aFlushType);
   array.AppendElement(ObserverData{
       aObserver, aObserverDescription, TimeStamp::Now(),
-#ifdef MOZ_GECKO_PROFILER
       mPresContext
           ? MarkerInnerWindowIdFromDocShell(mPresContext->GetDocShell())
           : MarkerInnerWindowId::NoId(),
-#endif
       profiler_capture_backtrace(), aFlushType});
   EnsureTimerStarted();
 }
@@ -1317,12 +1311,15 @@ void nsRefreshDriver::DispatchVisualViewportScrollEvents() {
 
 void nsRefreshDriver::AddPostRefreshObserver(
     nsAPostRefreshObserver* aObserver) {
+  MOZ_DIAGNOSTIC_ASSERT(!mPostRefreshObservers.Contains(aObserver));
   mPostRefreshObservers.AppendElement(aObserver);
 }
 
 void nsRefreshDriver::RemovePostRefreshObserver(
     nsAPostRefreshObserver* aObserver) {
-  mPostRefreshObservers.RemoveElement(aObserver);
+  bool removed = mPostRefreshObservers.RemoveElement(aObserver);
+  MOZ_DIAGNOSTIC_ASSERT(removed);
+  Unused << removed;
 }
 
 bool nsRefreshDriver::AddImageRequest(imgIRequest* aRequest) {
@@ -2887,6 +2884,8 @@ void nsRefreshDriver::Disconnect() {
   MOZ_ASSERT(NS_IsMainThread());
 
   StopTimer();
+
+  mEarlyRunners.Clear();
 
   if (mPresContext) {
     mPresContext = nullptr;

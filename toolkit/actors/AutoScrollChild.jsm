@@ -3,9 +3,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+var EXPORTED_SYMBOLS = ["AutoScrollChild"];
+
 const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
-var EXPORTED_SYMBOLS = ["AutoScrollChild"];
+ChromeUtils.defineModuleGetter(
+  this,
+  "BrowserUtils",
+  "resource://gre/modules/BrowserUtils.jsm"
+);
 
 class AutoScrollChild extends JSWindowActorChild {
   constructor() {
@@ -25,11 +31,12 @@ class AutoScrollChild extends JSWindowActorChild {
     this.autoscrollLoop = this.autoscrollLoop.bind(this);
   }
 
-  isAutoscrollBlocker(node) {
+  isAutoscrollBlocker(event) {
     let mmPaste = Services.prefs.getBoolPref("middlemouse.paste");
     let mmScrollbarPosition = Services.prefs.getBoolPref(
       "middlemouse.scrollbarPosition"
     );
+    let node = event.originalTarget;
     let content = node.ownerGlobal;
 
     // If the node is in editable document or content, we don't want to start
@@ -45,34 +52,27 @@ class AutoScrollChild extends JSWindowActorChild {
       }
     }
 
-    while (node) {
-      if (
-        (node instanceof content.HTMLAnchorElement ||
-          node instanceof content.HTMLAreaElement) &&
-        node.hasAttribute("href")
-      ) {
-        return true;
-      }
+    // Don't start if we're on a link.
+    let [href] = BrowserUtils.hrefAndLinkNodeForClickEvent(event);
+    if (href) {
+      return true;
+    }
 
-      if (
-        mmPaste &&
-        (node instanceof content.HTMLInputElement ||
-          node instanceof content.HTMLTextAreaElement)
-      ) {
-        return true;
-      }
+    // Or if we're pasting into an input field of sorts.
+    if (
+      mmPaste &&
+      node.closest("input,textarea")?.constructor.name.startsWith("HTML")
+    ) {
+      return true;
+    }
 
-      if (
-        node instanceof content.XULElement &&
-        ((mmScrollbarPosition &&
-          (node.localName == "scrollbar" ||
-            node.localName == "scrollcorner")) ||
-          node.localName == "treechildren")
-      ) {
-        return true;
-      }
-
-      node = node.parentNode;
+    // Or if we're on a scrollbar or XUL <tree>
+    if (
+      (mmScrollbarPosition &&
+        node.closest("scrollbar,scrollcorner") instanceof content.XULElement) ||
+      node.closest("treechildren") instanceof content.XULElement
+    ) {
+      return true;
     }
     return false;
   }
@@ -337,6 +337,36 @@ class AutoScrollChild extends JSWindowActorChild {
     this._scrollable.ownerGlobal.requestAnimationFrame(this.autoscrollLoop);
   }
 
+  canStartAutoScrollWith(event) {
+    if (
+      !event.isTrusted ||
+      event.defaultPrevented ||
+      event.button !== 1 ||
+      event.clickEventPrevented()
+    ) {
+      return false;
+    }
+
+    for (const modifier of ["shift", "alt", "ctrl", "meta"]) {
+      if (
+        event[modifier + "Key"] &&
+        Services.prefs.getBoolPref(
+          `general.autoscroll.prevent_to_start.${modifier}Key`,
+          false
+        )
+      ) {
+        return false;
+      }
+    }
+    if (
+      event.getModifierState("OS") &&
+      Services.prefs.getBoolPref("general.autoscroll.prevent_to_start.osKey")
+    ) {
+      return false;
+    }
+    return true;
+  }
+
   handleEvent(event) {
     switch (event.type) {
       case "mousemove":
@@ -345,12 +375,9 @@ class AutoScrollChild extends JSWindowActorChild {
         break;
       case "mousedown":
         if (
-          event.isTrusted &&
-          !event.defaultPrevented &&
-          event.button === 1 &&
-          !event.clickEventPrevented() &&
+          this.canStartAutoScrollWith(event) &&
           !this._scrollable &&
-          !this.isAutoscrollBlocker(event.originalTarget)
+          !this.isAutoscrollBlocker(event)
         ) {
           this.startScroll(event);
         }

@@ -66,13 +66,6 @@ class JSWindowActorChild {
   }
 }
 
-class ExperimentFeature {
-  isEnabled() {}
-  getValue() {}
-  onUpdate() {}
-  off() {}
-}
-
 const TEST_GLOBAL = {
   JSWindowActorParent,
   JSWindowActorChild,
@@ -343,6 +336,7 @@ const TEST_GLOBAL = {
           clearUserPref() {},
         };
       },
+      prefIsLocked() {},
     },
     tm: {
       dispatchToMainThread: cb => cb(),
@@ -468,7 +462,14 @@ const TEST_GLOBAL = {
     on: () => {},
     off: () => {},
   },
-  ExperimentFeature,
+  NimbusFeatures: {
+    newtab: {
+      isEnabled() {},
+      getValue() {},
+      onUpdate() {},
+      off() {},
+    },
+  },
   TelemetryEnvironment: {
     setExperimentActive() {},
     currentEnvironment: {

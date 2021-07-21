@@ -307,7 +307,7 @@ class MOZ_STACK_CLASS HTMLEditor::HTMLWithContextInserter final {
       const nsAString& aInputString, const nsAString& aContextStr,
       const nsAString& aInfoStr, nsCOMPtr<nsINode>* aOutFragNode,
       nsCOMPtr<nsINode>* aOutStartNode, nsCOMPtr<nsINode>* aOutEndNode,
-      int32_t* aOutStartOffset, int32_t* aOutEndOffset,
+      uint32_t* aOutStartOffset, uint32_t* aOutEndOffset,
       bool aTrustedInput) const;
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult MoveCaretOutsideOfLink(
@@ -506,7 +506,7 @@ nsresult HTMLEditor::HTMLWithContextInserter::Run(
 
   // create a dom document fragment that represents the structure to paste
   nsCOMPtr<nsINode> fragmentAsNode, streamStartParent, streamEndParent;
-  int32_t streamStartOffset = 0, streamEndOffset = 0;
+  uint32_t streamStartOffset = 0, streamEndOffset = 0;
 
   nsresult rv = CreateDOMFragmentFromPaste(
       aInputString, aContextStr, aInfoStr, address_of(fragmentAsNode),
@@ -542,7 +542,8 @@ nsresult HTMLEditor::HTMLWithContextInserter::Run(
   // Otherwise, we should make a range all over the document fragment.
   EditorRawDOMPoint streamStartPoint =
       streamStartParent
-          ? EditorRawDOMPoint(streamStartParent, streamStartOffset)
+          ? EditorRawDOMPoint(streamStartParent,
+                              AssertedCast<uint32_t>(streamStartOffset))
           : EditorRawDOMPoint(fragmentAsNode, 0);
   EditorRawDOMPoint streamEndPoint =
       streamStartParent ? EditorRawDOMPoint(streamEndParent, streamEndOffset)
@@ -552,8 +553,10 @@ nsresult HTMLEditor::HTMLWithContextInserter::Run(
   Unused << streamEndPoint;
 
   HTMLWithContextInserter::CollectTopMostChildContentsCompletelyInRange(
-      EditorRawDOMPoint(streamStartParent, streamStartOffset),
-      EditorRawDOMPoint(streamEndParent, streamEndOffset),
+      EditorRawDOMPoint(streamStartParent,
+                        AssertedCast<uint32_t>(streamStartOffset)),
+      EditorRawDOMPoint(streamEndParent,
+                        AssertedCast<uint32_t>(streamEndOffset)),
       arrayOfTopMostChildContents);
 
   if (arrayOfTopMostChildContents.IsEmpty()) {
@@ -615,7 +618,7 @@ nsresult HTMLEditor::HTMLWithContextInserter::Run(
     // Save current selection since DeleteTableCellWithTransaction() perturbs
     // it.
     {
-      AutoSelectionRestorer restoreSelectionLater(mHTMLEditor);
+      AutoSelectionRestorer restoreSelectionLater(MOZ_KnownLive(mHTMLEditor));
       rv = MOZ_KnownLive(mHTMLEditor).DeleteTableCellWithTransaction(1);
       if (NS_FAILED(rv)) {
         NS_WARNING("HTMLEditor::DeleteTableCellWithTransaction(1) failed");
@@ -1167,7 +1170,7 @@ void HTMLEditor::HTMLTransferablePreparer::AddDataFlavorsInBestOrder(
   // Create the desired DataFlavor for the type of data
   // we want to get out of the transferable
   // This should only happen in html editors, not plaintext
-  if (!mHTMLEditor.IsPlaintextEditor()) {
+  if (!mHTMLEditor.IsInPlaintextMode()) {
     DebugOnly<nsresult> rvIgnored =
         aTransferable.AddDataFlavor(kNativeHTMLMime);
     NS_WARNING_ASSERTION(
@@ -1902,7 +1905,7 @@ nsresult HTMLEditor::InsertFromDataTransfer(const DataTransfer* aDataTransfer,
   bool hasPrivateHTMLFlavor =
       types->Contains(NS_LITERAL_STRING_FROM_CSTRING(kHTMLContext));
 
-  bool isPlaintextEditor = IsPlaintextEditor();
+  bool isPlaintextEditor = IsInPlaintextMode();
   bool isSafe = IsSafeToInsertData(aSourceDoc);
 
   uint32_t length = types->Length();
@@ -2209,16 +2212,6 @@ nsresult HTMLEditor::PasteTransferableAsAction(nsITransferable* aTransferable,
   return EditorBase::ToGenericNSResult(rv);
 }
 
-/**
- * HTML PasteNoFormatting. Ignore any HTML styles and formating in paste source.
- */
-NS_IMETHODIMP HTMLEditor::PasteNoFormatting(int32_t aSelectionType) {
-  nsresult rv = PasteNoFormattingAsAction(aSelectionType);
-  NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "HTMLEditor::PasteNoFormattingAsAction() failed");
-  return rv;
-}
-
 nsresult HTMLEditor::PasteNoFormattingAsAction(int32_t aSelectionType,
                                                nsIPrincipal* aPrincipal) {
   AutoEditActionDataSetter editActionData(*this, EditAction::ePaste,
@@ -2322,7 +2315,7 @@ bool HTMLEditor::CanPaste(int32_t aClipboardType) const {
   }
 
   // Use the flavors depending on the current editor mask
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     AutoTArray<nsCString, ArrayLength(textEditorFlavors)> flavors;
     flavors.AppendElements<const char*>(Span<const char*>(textEditorFlavors));
     bool haveFlavors;
@@ -2358,7 +2351,7 @@ bool HTMLEditor::CanPasteTransferable(nsITransferable* aTransferable) {
   // Use the flavors depending on the current editor mask
   const char** flavors;
   size_t length;
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     flavors = textEditorFlavors;
     length = ArrayLength(textEditorFlavors);
   } else {
@@ -2412,7 +2405,7 @@ nsresult HTMLEditor::PasteAsQuotationAsAction(int32_t aClipboardType,
     return EditorBase::ToGenericNSResult(rv);
   }
 
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     nsresult rv = PasteAsPlaintextQuotation(aClipboardType);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "HTMLEditor::PasteAsPlaintextQuotation() failed");
@@ -2772,7 +2765,7 @@ nsresult HTMLEditor::InsertTextWithQuotationsInternal(
 
 nsresult HTMLEditor::InsertAsQuotation(const nsAString& aQuotedText,
                                        nsINode** aNodeInserted) {
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     AutoEditActionDataSetter editActionData(*this, EditAction::eInsertText);
     MOZ_ASSERT(!aQuotedText.IsVoid());
     editActionData.SetData(aQuotedText);
@@ -3035,7 +3028,7 @@ NS_IMETHODIMP HTMLEditor::InsertAsCitedQuotation(const nsAString& aQuotedText,
                                                  bool aInsertHTML,
                                                  nsINode** aNodeInserted) {
   // Don't let anyone insert HTML when we're in plaintext mode.
-  if (IsPlaintextEditor()) {
+  if (IsInPlaintextMode()) {
     NS_ASSERTION(
         !aInsertHTML,
         "InsertAsCitedQuotation: trying to insert html into plaintext editor");
@@ -3081,7 +3074,7 @@ nsresult HTMLEditor::InsertAsCitedQuotationInternal(
     const nsAString& aQuotedText, const nsAString& aCitation, bool aInsertHTML,
     nsINode** aNodeInserted) {
   MOZ_ASSERT(IsEditActionDataAvailable());
-  MOZ_ASSERT(!IsPlaintextEditor());
+  MOZ_ASSERT(!IsInPlaintextMode());
 
   if (IsReadonly()) {
     return NS_OK;
@@ -3353,7 +3346,7 @@ nsresult HTMLEditor::HTMLWithContextInserter::CreateDOMFragmentFromPaste(
     const nsAString& aInputString, const nsAString& aContextStr,
     const nsAString& aInfoStr, nsCOMPtr<nsINode>* aOutFragNode,
     nsCOMPtr<nsINode>* aOutStartNode, nsCOMPtr<nsINode>* aOutEndNode,
-    int32_t* aOutStartOffset, int32_t* aOutEndOffset,
+    uint32_t* aOutStartOffset, uint32_t* aOutEndOffset,
     bool aTrustedInput) const {
   if (NS_WARN_IF(!aOutFragNode) || NS_WARN_IF(!aOutStartNode) ||
       NS_WARN_IF(!aOutEndNode) || NS_WARN_IF(!aOutStartOffset) ||

@@ -249,12 +249,17 @@ async function evaluateExpressions(scripts, options) {
   return Promise.all(scripts.map(script => evaluate(script, options)));
 }
 
-async function evaluate(script, { frameId } = {}) {
+async function evaluate(script, { frameId, threadId } = {}) {
   if (!currentTarget() || !script) {
     return { result: null };
   }
 
-  return commands.scriptCommand.execute(script, { frameActor: frameId });
+  const selectedTargetFront = threadId ? lookupTarget(threadId) : null;
+
+  return commands.scriptCommand.execute(script, {
+    frameActor: frameId,
+    selectedTargetFront,
+  });
 }
 
 async function autocomplete(input, cursor, frameId) {
@@ -326,10 +331,6 @@ async function setSkipPausing(shouldSkip) {
   await commands.threadConfigurationCommand.updateConfiguration({
     skipBreakpoints: shouldSkip,
   });
-}
-
-function interrupt(thread) {
-  return lookupThreadFront(thread).interrupt();
 }
 
 async function setEventListenerBreakpoints(ids) {
@@ -427,7 +428,6 @@ const clientCommands = {
   createObjectFront,
   loadObjectProperties,
   releaseActor,
-  interrupt,
   pauseGrip,
   resume,
   stepIn,

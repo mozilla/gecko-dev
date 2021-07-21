@@ -15,9 +15,13 @@
 
 #include <algorithm>
 #include <stdint.h>
+#include <string>
+#include <string.h>
 #include <utility>
 
+#include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
+#include "builtin/intl/LanguageTag.h"
 #include "builtin/intl/ScopedICUObject.h"
 #include "builtin/intl/TimeZoneDataGenerated.h"
 #include "builtin/String.h"
@@ -31,7 +35,9 @@
 #include "unicode/uloc.h"
 #include "unicode/unum.h"
 #include "unicode/utypes.h"
+#include "vm/ArrayObject.h"
 #include "vm/JSAtom.h"
+#include "vm/JSContext.h"
 #include "vm/StringType.h"
 
 using js::HashNumber;
@@ -353,34 +359,92 @@ bool js::intl::SharedIntlData::getAvailableLocales(
     if (!lang.append(locale, length)) {
       return false;
     }
+    MOZ_ASSERT(lang.length() == length);
 
     std::replace(lang.begin(), lang.end(), '_', '-');
 
     if (!addLocale(lang.begin(), length)) {
       return false;
     }
-  }
 
-  // Add old-style language tags without script code for locales that in current
-  // usage would include a script subtag. Also add an entry for the last-ditch
-  // locale, in case ICU doesn't directly support it (but does support it
-  // through fallback, e.g. supporting "en-GB" indirectly using "en" support).
+    // From <https://tc39.es/ecma402/#sec-internal-slots>:
+    //
+    // For locales that include a script subtag in addition to language and
+    // region, the corresponding locale without a script subtag must also be
+    // supported; that is, if an implementation recognizes "zh-Hant-TW", it is
+    // also expected to recognize "zh-TW".
 
-  // Certain old-style language tags lack a script code, but in current usage
-  // they *would* include a script code. Map these over to modern forms.
-  for (const auto& mapping : js::intl::oldStyleLanguageTagMappings) {
-    const char* oldStyle = mapping.oldStyle;
-    const char* modernStyle = mapping.modernStyle;
+    //   2 * Alpha language subtag
+    // + 1 separator
+    // + 4 * Alphanum script subtag
+    // + 1 separator
+    // + 2 * Alpha region subtag
+    using namespace intl::LanguageTagLimits;
+    static constexpr size_t MinLanguageLength = 2;
+    static constexpr size_t MinLengthForScriptAndRegion =
+        MinLanguageLength + 1 + ScriptLength + 1 + AlphaRegionLength;
 
-    LocaleHasher::Lookup lookup(modernStyle, strlen(modernStyle));
-    if (locales.has(lookup)) {
-      if (!addLocale(oldStyle, strlen(oldStyle))) {
-        return false;
-      }
+    // Fast case: Skip locales without script subtags.
+    if (length < MinLengthForScriptAndRegion) {
+      continue;
+    }
+
+    // We don't need the full-fledged language tag parser when we just want to
+    // remove the script subtag.
+
+    // Find the separator between the language and script subtags.
+    const char* sep = std::char_traits<char>::find(lang.begin(), length, '-');
+    if (!sep) {
+      continue;
+    }
+
+    // Possible |script| subtag start position.
+    const char* script = sep + 1;
+
+    // Find the separator between the script and region subtags.
+    sep = std::char_traits<char>::find(script, lang.end() - script, '-');
+    if (!sep) {
+      continue;
+    }
+
+    // Continue with the next locale if we didn't find a script subtag.
+    size_t scriptLength = sep - script;
+    if (!IsStructurallyValidScriptTag<char>({script, scriptLength})) {
+      continue;
+    }
+
+    // Possible |region| subtag start position.
+    const char* region = sep + 1;
+
+    // Search if there's yet another subtag after the region subtag.
+    sep = std::char_traits<char>::find(region, lang.end() - region, '-');
+
+    // Continue with the next locale if we didn't find a region subtag.
+    size_t regionLength = (sep ? sep : lang.end()) - region;
+    if (!IsStructurallyValidRegionTag<char>({region, regionLength})) {
+      continue;
+    }
+
+    // We've found a script and a region subtag.
+
+    static constexpr size_t ScriptWithSeparatorLength = ScriptLength + 1;
+
+    // Remove the script subtag. Note: erase() needs non-const pointers, which
+    // means we can't directly pass |script|.
+    char* p = const_cast<char*>(script);
+    lang.erase(p, p + ScriptWithSeparatorLength);
+
+    MOZ_ASSERT(lang.length() == length - ScriptWithSeparatorLength);
+
+    // Add the locale with the script subtag removed.
+    if (!addLocale(lang.begin(), lang.length())) {
+      return false;
     }
   }
 
-  // Also forcibly provide the last-ditch locale.
+  // Forcibly add an entry for the last-ditch locale, in case ICU doesn't
+  // directly support it (but does support it through fallback, e.g. supporting
+  // "en-GB" indirectly using "en" support).
   {
     const char* lastDitch = intl::LastDitchLocale();
     MOZ_ASSERT(strcmp(lastDitch, "en-GB") == 0);
@@ -482,6 +546,48 @@ bool js::intl::SharedIntlData::isSupportedLocale(JSContext* cx,
       return true;
   }
   MOZ_CRASH("Invalid Intl constructor");
+}
+
+js::ArrayObject* js::intl::SharedIntlData::availableLocalesOf(
+    JSContext* cx, SupportedLocaleKind kind) {
+  if (!ensureSupportedLocales(cx)) {
+    return nullptr;
+  }
+
+  LocaleSet* localeSet = nullptr;
+  switch (kind) {
+    case SupportedLocaleKind::Collator:
+      localeSet = &collatorSupportedLocales;
+      break;
+    case SupportedLocaleKind::DateTimeFormat:
+    case SupportedLocaleKind::DisplayNames:
+    case SupportedLocaleKind::ListFormat:
+    case SupportedLocaleKind::NumberFormat:
+    case SupportedLocaleKind::PluralRules:
+    case SupportedLocaleKind::RelativeTimeFormat:
+      localeSet = &supportedLocales;
+      break;
+    default:
+      MOZ_CRASH("Invalid Intl constructor");
+  }
+
+  const uint32_t count = localeSet->count();
+  ArrayObject* result = NewDenseFullyAllocatedArray(cx, count);
+  if (!result) {
+    return nullptr;
+  }
+  result->setDenseInitializedLength(count);
+
+  uint32_t index = 0;
+  for (auto range = localeSet->iter(); !range.done(); range.next()) {
+    JSAtom* locale = range.get();
+    cx->markAtom(locale);
+
+    result->initDenseElement(index++, StringValue(locale));
+  }
+  MOZ_ASSERT(index == count);
+
+  return result;
 }
 
 #if DEBUG || MOZ_SYSTEM_ICU

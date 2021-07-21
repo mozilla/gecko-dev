@@ -22,6 +22,7 @@
 #include "gc/Barrier.h"
 #include "gc/Zone.h"
 #include "vm/SharedMem.h"
+#include "wasm/TypedObject.h"
 #include "wasm/WasmCode.h"
 #include "wasm/WasmDebug.h"
 #include "wasm/WasmFrameIter.h"  // js::wasm::WasmFrameIter
@@ -144,6 +145,16 @@ class Instance {
                                 CallArgs args,
                                 CoercionLevel level = CoercionLevel::Spec);
 
+  // Constant expression support
+
+  [[nodiscard]] bool constantRefFunc(uint32_t funcIndex,
+                                     MutableHandleFuncRef result);
+  [[nodiscard]] bool constantRttCanon(JSContext* cx, uint32_t sourceTypeIndex,
+                                      MutableHandleRttValue result);
+  [[nodiscard]] bool constantRttSub(JSContext* cx, HandleRttValue parentRtt,
+                                    uint32_t sourceChildTypeIndex,
+                                    MutableHandleRttValue result);
+
   // Return the name associated with a given function index, or generate one
   // if none was given by the module.
 
@@ -234,7 +245,10 @@ class Instance {
 #endif
   static void* arrayNew(Instance* instance, uint32_t length, void* arrayDescr);
   static int32_t refTest(Instance* instance, void* refPtr, void* rttPtr);
-  static void* rttSub(Instance* instance, void* rttPtr);
+  static void* rttSub(Instance* instance, void* rttParentPtr,
+                      void* rttSubCanonPtr);
+  static int32_t intrI8VecMul(Instance* instance, uint32_t dest, uint32_t src1,
+                              uint32_t src2, uint32_t len, uint8_t* memBase);
 };
 
 using UniqueInstance = UniquePtr<Instance>;

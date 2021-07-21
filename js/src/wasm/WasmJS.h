@@ -156,12 +156,20 @@ void ReportSimdAnalysis(const char* data);
 // options can support try/catch, throw, rethrow, and branch_on_exn (evolving).
 bool ExceptionsAvailable(JSContext* cx);
 
-Pages MaxMemory32Pages();
-size_t MaxMemory32BoundsCheckLimit();
+Pages MaxMemoryPages();
+size_t MaxMemoryBoundsCheckLimit();
 
-static inline size_t MaxMemory32Bytes() {
-  return MaxMemory32Pages().byteLength();
+static inline size_t MaxMemoryBytes() { return MaxMemoryPages().byteLength(); }
+
+static inline uint64_t MaxMemoryLimitField(IndexType indexType) {
+  return indexType == IndexType::I32 ? MaxMemory32LimitField
+                                     : MaxMemory64LimitField;
 }
+
+// Compute the 'clamped' maximum size of a memory. See
+// 'WASM Linear Memory structure' in ArrayBufferObject.cpp for background.
+Pages ClampedMaxPages(Pages initialPages, const Maybe<Pages>& sourceMaxPages,
+                      bool useHugeMemory);
 
 // Compiles the given binary wasm module given the ArrayBufferObject
 // and links the module's imports with the given import object.
@@ -414,8 +422,10 @@ class WasmMemoryObject : public NativeObject {
 
   // The maximum length of the memory in pages. This is not 'volatile' in
   // contrast to the current length, as it cannot change for shared memories.
-  mozilla::Maybe<wasm::Pages> maxPages() const;
+  wasm::Pages clampedMaxPages() const;
+  mozilla::Maybe<wasm::Pages> sourceMaxPages() const;
 
+  wasm::IndexType indexType() const;
   bool isShared() const;
   bool isHuge() const;
   bool movingGrowable() const;

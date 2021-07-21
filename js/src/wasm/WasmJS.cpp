@@ -38,7 +38,8 @@
 #endif
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/Printf.h"
-#include "js/PropertySpec.h"  // JS_{PS,FN}{,_END}
+#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
+#include "js/PropertySpec.h"        // JS_{PS,FN}{,_END}
 #include "util/StringBuffer.h"
 #include "util/Text.h"
 #include "vm/ErrorObject.h"
@@ -860,13 +861,15 @@ static bool EnforceRangeU32(JSContext* cx, HandleValue v, const char* kind,
   return true;
 }
 
-static bool GetLimits(JSContext* cx, HandleObject obj, uint32_t maximumField,
-                      const char* kind, Limits* limits, Shareable allowShared) {
+static bool GetLimits(JSContext* cx, HandleObject obj, LimitsKind kind,
+                      Limits* limits) {
   JSAtom* initialAtom = Atomize(cx, "initial", strlen("initial"));
   if (!initialAtom) {
     return false;
   }
   RootedId initialId(cx, AtomToId(initialAtom));
+
+  const char* noun = (kind == LimitsKind::Memory ? "Memory" : "Table");
 
   RootedValue initialVal(cx);
   if (!GetProperty(cx, obj, obj, initialId, &initialVal)) {
@@ -875,16 +878,10 @@ static bool GetLimits(JSContext* cx, HandleObject obj, uint32_t maximumField,
 
   uint32_t initial = 0;
   if (!initialVal.isUndefined() &&
-      !EnforceRangeU32(cx, initialVal, kind, "initial size", &initial)) {
+      !EnforceRangeU32(cx, initialVal, noun, "initial size", &initial)) {
     return false;
   }
   limits->initial = initial;
-
-  if (limits->initial > maximumField) {
-    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_RANGE,
-                             kind, "initial size");
-    return false;
-  }
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
   // Get minimum parameter.
@@ -901,7 +898,7 @@ static bool GetLimits(JSContext* cx, HandleObject obj, uint32_t maximumField,
 
   uint32_t minimum = 0;
   if (!minimumVal.isUndefined() &&
-      !EnforceRangeU32(cx, minimumVal, kind, "initial size", &minimum)) {
+      !EnforceRangeU32(cx, minimumVal, noun, "initial size", &minimum)) {
     return false;
   }
   if (!minimumVal.isUndefined()) {
@@ -924,21 +921,18 @@ static bool GetLimits(JSContext* cx, HandleObject obj, uint32_t maximumField,
   // maxVal does not have a default value.
   if (!maxVal.isUndefined()) {
     uint32_t maximum = 0;
-    if (!EnforceRangeU32(cx, maxVal, kind, "maximum size", &maximum)) {
+    if (!EnforceRangeU32(cx, maxVal, noun, "maximum size", &maximum)) {
       return false;
     }
     limits->maximum = Some(maximum);
-
-    if (*limits->maximum > maximumField || limits->initial > *limits->maximum) {
-      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                               JSMSG_WASM_BAD_RANGE, kind, "maximum size");
-      return false;
-    }
   }
 
+  limits->indexType = IndexType::I32;
   limits->shared = Shareable::False;
 
-  if (allowShared == Shareable::True) {
+  // Memory limits may be shared or specify an alternate index type
+  if (kind == LimitsKind::Memory) {
+    // Get the shared field
     JSAtom* sharedAtom = Atomize(cx, "shared", strlen("shared"));
     if (!sharedAtom) {
       return false;
@@ -958,7 +952,7 @@ static bool GetLimits(JSContext* cx, HandleObject obj, uint32_t maximumField,
       if (limits->shared == Shareable::True) {
         if (maxVal.isUndefined()) {
           JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                    JSMSG_WASM_MISSING_MAXIMUM, kind);
+                                    JSMSG_WASM_MISSING_MAXIMUM, noun);
           return false;
         }
 
@@ -971,6 +965,33 @@ static bool GetLimits(JSContext* cx, HandleObject obj, uint32_t maximumField,
         }
       }
     }
+
+#ifdef ENABLE_WASM_MEMORY64
+    // Get the index type field
+    JSAtom* indexTypeAtom = Atomize(cx, "index", strlen("index"));
+    if (!indexTypeAtom) {
+      return false;
+    }
+    RootedId indexTypeId(cx, AtomToId(indexTypeAtom));
+
+    RootedValue indexTypeVal(cx);
+    if (!GetProperty(cx, obj, obj, indexTypeId, &indexTypeVal)) {
+      return false;
+    }
+
+    // The index type has a default value
+    if (!indexTypeVal.isUndefined()) {
+      if (!ToIndexType(cx, indexTypeVal, &limits->indexType)) {
+        return false;
+      }
+
+      if (limits->indexType == IndexType::I64 && !Memory64Available(cx)) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_WASM_NO_MEM64_LINK);
+        return false;
+      }
+    }
+#endif
   }
 
 #ifdef ENABLE_WASM_TYPE_REFLECTIONS
@@ -988,6 +1009,25 @@ static bool GetLimits(JSContext* cx, HandleObject obj, uint32_t maximumField,
   }
 #endif
 
+  return true;
+}
+
+static bool CheckLimits(JSContext* cx, uint64_t maximumField, LimitsKind kind,
+                        Limits* limits) {
+  const char* noun = (kind == LimitsKind::Memory ? "Memory" : "Table");
+
+  if (limits->initial > maximumField) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_RANGE,
+                             noun, "initial size");
+    return false;
+  }
+
+  if (limits->maximum.isSome() &&
+      (*limits->maximum > maximumField || limits->initial > *limits->maximum)) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_RANGE,
+                             noun, "maximum size");
+    return false;
+  }
   return true;
 }
 
@@ -2336,6 +2376,7 @@ WasmMemoryObject* WasmMemoryObject::create(
 
   obj->initReservedSlot(BUFFER_SLOT, ObjectValue(*buffer));
   MOZ_ASSERT(!obj->hasObservers());
+
   return obj;
 }
 
@@ -2359,17 +2400,18 @@ bool WasmMemoryObject::construct(JSContext* cx, unsigned argc, Value* vp) {
 
   RootedObject obj(cx, &args[0].toObject());
   Limits limits;
-  if (!GetLimits(cx, obj, MaxMemory32LimitField, "Memory", &limits,
-                 Shareable::True)) {
+  if (!GetLimits(cx, obj, LimitsKind::Memory, &limits) ||
+      !CheckLimits(cx, MaxMemoryLimitField(limits.indexType),
+                   LimitsKind::Memory, &limits)) {
     return false;
   }
 
-  if (Pages(limits.initial) > MaxMemory32Pages()) {
+  if (Pages(limits.initial) > MaxMemoryPages()) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_WASM_MEM_IMP_LIMIT);
     return false;
   }
-  MemoryDesc memory(MemoryKind::Memory32, limits);
+  MemoryDesc memory(limits);
 
   RootedArrayBufferObjectMaybeShared buffer(cx);
   if (!CreateWasmBuffer32(cx, memory, &buffer)) {
@@ -2500,7 +2542,7 @@ bool WasmMemoryObject::typeImpl(JSContext* cx, const CallArgs& args) {
       cx, &args.thisv().toObject().as<WasmMemoryObject>());
   Rooted<IdValueVector> props(cx, IdValueVector(cx));
 
-  Maybe<Pages> maxPages = memoryObj->maxPages();
+  Maybe<Pages> maxPages = memoryObj->sourceMaxPages();
   if (maxPages.isSome()) {
     uint32_t maxPages32 = mozilla::AssertedCast<uint32_t>(maxPages->value());
     if (!props.append(IdValuePair(NameToId(cx->names().maximum),
@@ -2550,11 +2592,25 @@ wasm::Pages WasmMemoryObject::volatilePages() const {
   return buffer().wasmPages();
 }
 
-Maybe<wasm::Pages> WasmMemoryObject::maxPages() const {
+wasm::Pages WasmMemoryObject::clampedMaxPages() const {
   if (isShared()) {
-    return Some(sharedArrayRawBuffer()->wasmMaxPages());
+    return sharedArrayRawBuffer()->wasmClampedMaxPages();
   }
-  return buffer().wasmMaxPages();
+  return buffer().wasmClampedMaxPages();
+}
+
+Maybe<wasm::Pages> WasmMemoryObject::sourceMaxPages() const {
+  if (isShared()) {
+    return Some(sharedArrayRawBuffer()->wasmSourceMaxPages());
+  }
+  return buffer().wasmSourceMaxPages();
+}
+
+wasm::IndexType WasmMemoryObject::indexType() const {
+  if (isShared()) {
+    return sharedArrayRawBuffer()->wasmIndexType();
+  }
+  return buffer().wasmIndexType();
 }
 
 bool WasmMemoryObject::isShared() const {
@@ -2590,8 +2646,8 @@ WasmMemoryObject::InstanceSet* WasmMemoryObject::getOrCreateObservers(
 bool WasmMemoryObject::isHuge() const {
 #ifdef WASM_SUPPORTS_HUGE_MEMORY
   // TODO: Turn this into a static_assert, if we are able to make
-  // MaxMemory32Bytes() constexpr once the dust settles for the 4GB heaps.
-  MOZ_ASSERT(MaxMemory32Bytes() < HugeMappedSize,
+  // MaxMemoryBytes() constexpr once the dust settles for the 4GB heaps.
+  MOZ_ASSERT(MaxMemoryBytes() < HugeMappedSize,
              "Non-huge buffer may be confused as huge");
   return buffer().wasmMappedSize() >= HugeMappedSize;
 #else
@@ -2600,7 +2656,7 @@ bool WasmMemoryObject::isHuge() const {
 }
 
 bool WasmMemoryObject::movingGrowable() const {
-  return !isHuge() && !buffer().wasmMaxPages();
+  return !isHuge() && !buffer().wasmSourceMaxPages();
 }
 
 size_t WasmMemoryObject::boundsCheckLimit() const {
@@ -2619,7 +2675,7 @@ size_t WasmMemoryObject::boundsCheckLimit() const {
   MOZ_ASSERT(mappedSize >= wasm::GuardSize);
   MOZ_ASSERT(wasm::IsValidBoundsCheckImmediate(mappedSize - wasm::GuardSize));
   size_t limit = mappedSize - wasm::GuardSize;
-  MOZ_ASSERT(limit <= MaxMemory32BoundsCheckLimit());
+  MOZ_ASSERT(limit <= MaxMemoryBoundsCheckLimit());
   return limit;
 }
 
@@ -2652,16 +2708,6 @@ uint32_t WasmMemoryObject::growShared(HandleWasmMemoryObject memory,
     return -1;
   }
 
-  // Always check against the max here, do not rely on the buffer resizers to
-  // use the correct limit, they don't have enough context.
-  if (newPages > MaxMemory32Pages()) {
-    return -1;
-  }
-
-  if (newPages > rawBuf->wasmMaxPages()) {
-    return -1;
-  }
-
   if (!rawBuf->wasmGrowToPagesInPlace(lock, newPages)) {
     return -1;
   }
@@ -2669,7 +2715,7 @@ uint32_t WasmMemoryObject::growShared(HandleWasmMemoryObject memory,
   // this agent) by bufferGetterImpl, above, so no more work to do here.
 
   // It is safe to cast to uint32_t, as oldNumPages was within our
-  // implementation limits of MaxMemory32Pages(), which is within uint32_t.
+  // implementation limits of MaxMemoryPages(), which is within uint32_t.
   return uint32_t(oldNumPages.value());
 }
 
@@ -2685,22 +2731,16 @@ uint32_t WasmMemoryObject::grow(HandleWasmMemoryObject memory, uint32_t delta,
 #if !defined(JS_64BIT) || defined(ENABLE_WASM_CRANELIFT)
   // TODO (large ArrayBuffer): For Cranelift, limit the memory size to something
   // that fits in a uint32_t.  See more information at the definition of
-  // MaxMemory32Bytes().
+  // MaxMemoryBytes().
   //
   // TODO: Turn this into a static_assert, if we are able to make
-  // MaxMemory32Bytes() constexpr once the dust settles for the 4GB heaps.
-  MOZ_ASSERT(MaxMemory32Bytes() <= UINT32_MAX, "Avoid 32-bit overflows");
+  // MaxMemoryBytes() constexpr once the dust settles for the 4GB heaps.
+  MOZ_ASSERT(MaxMemoryBytes() <= UINT32_MAX, "Avoid 32-bit overflows");
 #endif
 
   Pages oldNumPages = oldBuf->wasmPages();
   Pages newPages = oldNumPages;
   if (!newPages.checkedIncrement(Pages(delta))) {
-    return -1;
-  }
-
-  // Always check against the max here, do not rely on the buffer resizers to
-  // use the correct limit, they don't have enough context.
-  if (newPages > MaxMemory32Pages()) {
     return -1;
   }
 
@@ -2712,17 +2752,9 @@ uint32_t WasmMemoryObject::grow(HandleWasmMemoryObject memory, uint32_t delta,
                                                   cx)) {
       return -1;
     }
-  } else {
-    if (Maybe<Pages> maxPages = oldBuf->wasmMaxPages()) {
-      if (newPages > *maxPages) {
-        return -1;
-      }
-    }
-
-    if (!ArrayBufferObject::wasmGrowToPagesInPlace(newPages, oldBuf, &newBuf,
-                                                   cx)) {
-      return -1;
-    }
+  } else if (!ArrayBufferObject::wasmGrowToPagesInPlace(newPages, oldBuf,
+                                                        &newBuf, cx)) {
+    return -1;
   }
 
   memory->setReservedSlot(BUFFER_SLOT, ObjectValue(*newBuf));
@@ -2737,7 +2769,7 @@ uint32_t WasmMemoryObject::grow(HandleWasmMemoryObject memory, uint32_t delta,
   }
 
   // It is safe to cast to uint32_t, as oldNumPages was within our
-  // implementation limits of MaxMemory32Pages(), which is within uint32_t.
+  // implementation limits of MaxMemoryPages(), which is within uint32_t.
   return uint32_t(oldNumPages.value());
 }
 
@@ -2909,10 +2941,13 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   Limits limits;
-  if (!GetLimits(cx, obj, MaxTableLimitField, "Table", &limits,
-                 Shareable::False)) {
+  if (!GetLimits(cx, obj, LimitsKind::Table, &limits) ||
+      !CheckLimits(cx, MaxTableLimitField, LimitsKind::Table, &limits)) {
     return false;
   }
+
+  // Converting limits for a table only supports i32
+  MOZ_ASSERT(limits.indexType == IndexType::I32);
 
   if (limits.initial > MaxTableLength) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
@@ -3646,7 +3681,7 @@ const JSClassOps WasmRuntimeExceptionObject::classOps_ = {
 const JSClass WasmRuntimeExceptionObject::class_ = {
     "WebAssembly.RuntimeException",
     JSCLASS_HAS_RESERVED_SLOTS(WasmRuntimeExceptionObject::RESERVED_SLOTS) |
-        JSCLASS_HAS_PRIVATE | JSCLASS_FOREGROUND_FINALIZE,
+        JSCLASS_FOREGROUND_FINALIZE,
     &WasmRuntimeExceptionObject::classOps_,
     &WasmRuntimeExceptionObject::classSpec_};
 
@@ -3790,9 +3825,12 @@ static bool Reject(JSContext* cx, const CompileArgs& args,
     return false;
   }
 
+  // There's no error |cause| available here.
+  auto cause = JS::NothingHandleValue;
+
   RootedObject errorObj(
       cx, ErrorObject::create(cx, JSEXN_WASMCOMPILEERROR, stack, filename, 0,
-                              line, 0, nullptr, message));
+                              line, 0, nullptr, message, cause));
   if (!errorObj) {
     return false;
   }
@@ -4768,29 +4806,79 @@ const JSClass js::WasmNamespaceObject::class_ = {
 // The "-2" here accounts for the !huge-memory case in CreateSpecificWasmBuffer,
 // which is guarding against an overflow.  Also see
 // WasmMemoryObject::boundsCheckLimit() for related assertions.
-wasm::Pages wasm::MaxMemory32Pages() {
+wasm::Pages wasm::MaxMemoryPages() {
   size_t desired = MaxMemory32LimitField - 2;
   size_t actual = ArrayBufferObject::maxBufferByteLength() / PageSize;
   return wasm::Pages(std::min(desired, actual));
 }
 
-size_t wasm::MaxMemory32BoundsCheckLimit() {
+size_t wasm::MaxMemoryBoundsCheckLimit() {
   return UINT32_MAX - 2 * PageSize + 1;
 }
 #  else
-wasm::Pages wasm::MaxMemory32Pages() {
+wasm::Pages wasm::MaxMemoryPages() {
   size_t desired = MaxMemory32LimitField;
   size_t actual = ArrayBufferObject::maxBufferByteLength() / PageSize;
   return wasm::Pages(std::min(desired, actual));
 }
 
-size_t wasm::MaxMemory32BoundsCheckLimit() { return size_t(UINT32_MAX) + 1; }
+size_t wasm::MaxMemoryBoundsCheckLimit() { return size_t(UINT32_MAX) + 1; }
 #  endif
 #else
-wasm::Pages wasm::MaxMemory32Pages() {
+wasm::Pages wasm::MaxMemoryPages() {
   MOZ_ASSERT(ArrayBufferObject::maxBufferByteLength() >= INT32_MAX / PageSize);
   return wasm::Pages(INT32_MAX / PageSize);
 }
 
-size_t wasm::MaxMemory32BoundsCheckLimit() { return size_t(INT32_MAX) + 1; }
+size_t wasm::MaxMemoryBoundsCheckLimit() { return size_t(INT32_MAX) + 1; }
 #endif
+
+Pages wasm::ClampedMaxPages(Pages initialPages,
+                            const Maybe<Pages>& sourceMaxPages,
+                            bool useHugeMemory) {
+  Pages clampedMaxPages;
+
+  if (sourceMaxPages.isSome()) {
+    // There is a specified maximum, clamp it to the implementation limit of
+    // maximum pages
+    clampedMaxPages = std::min(*sourceMaxPages, wasm::MaxMemoryPages());
+
+#if defined(JS_64BIT) && defined(ENABLE_WASM_CRANELIFT)
+    // On 64-bit platforms when we aren't using huge memory and we're using
+    // Cranelift, we must satisfy the 32-bit invariants that:
+    //    clampedMaxSize + wasm::PageSize < UINT32_MAX
+    // This is ensured by clamping sourceMaxPages to wasm::MaxMemoryPages(),
+    // which has special logic for cranelift.
+    MOZ_ASSERT_IF(!useHugeMemory,
+                  clampedMaxPages.byteLength() + wasm::PageSize < UINT32_MAX);
+#endif
+
+#ifndef JS_64BIT
+    static_assert(sizeof(uintptr_t) == 4, "assuming not 64 bit implies 32 bit");
+
+    // On 32-bit platforms, prevent applications specifying a large max
+    // (like MaxMemory32Pages) from unintentially OOMing the browser: they just
+    // want "a lot of memory". Maintain the invariant that
+    // initialPages <= clampedMaxPages.
+    static const uint64_t OneGib = 1 << 30;
+    static const Pages OneGibPages = Pages(OneGib >> wasm::PageBits);
+    static_assert(wasm::HighestValidARMImmediate > OneGib,
+                  "computing mapped size on ARM requires clamped max size");
+
+    Pages clampedPages = std::max(OneGibPages, initialPages);
+    clampedMaxPages = std::min(clampedPages, clampedMaxPages);
+#endif
+  } else {
+    // There is not a specified maximum, fill it in with the implementation
+    // limit of maximum pages
+    clampedMaxPages = wasm::MaxMemoryPages();
+  }
+
+  // Double-check our invariants
+  MOZ_RELEASE_ASSERT(sourceMaxPages.isNothing() ||
+                     clampedMaxPages <= *sourceMaxPages);
+  MOZ_RELEASE_ASSERT(clampedMaxPages <= wasm::MaxMemoryPages());
+  MOZ_RELEASE_ASSERT(initialPages <= clampedMaxPages);
+
+  return clampedMaxPages;
+}

@@ -22,45 +22,60 @@
 
 /* bookmark panel submenus */
 
-#BMB_bookmarksPopup menupopup[placespopup=true] {
+/* Override the menupopup shadow rule from windows/global/popup.css */
+#PlacesToolbar menupopup,
+#BMB_bookmarksPopup {
+  -moz-window-shadow: none;
+}
+
+#PlacesToolbar menupopup {
+  margin-top: -2px;
+}
+
+#PlacesToolbar menupopup,
+#BMB_bookmarksPopup menupopup {
   appearance: none;
-  background: transparent;
   border: none;
-  padding: 0;
-  padding-top: 4px;
   padding-inline-start: 3px;
 }
 
-@media (-moz-windows-non-native-menus) {
-  /* Prevent the global arrowscrollbox rules from replacing our background. */
-  #BMB_bookmarksPopup::part(arrowscrollbox),
-  #BMB_bookmarksPopup menupopup[placespopup=true]::part(arrowscrollbox) {
-    background-color: var(--arrowpanel-background);
-  }
-
-  /* Override the menupopup shadow rule from windows/global/popup.css */
-  #BMB_bookmarksPopup {
-    -moz-window-shadow: none;
-  }
-
-  #BMB_bookmarksPopup menupopup[placespopup=true] {
-    margin-top: -8px;
-  }
+#BMB_bookmarksPopup menupopup {
+  -moz-window-shadow: none;
+  margin-top: -13px; /* 8px of padding, 4px of shadow margin, 1px of border */
 }
 
-#BMB_bookmarksPopup menupopup[placespopup=true]::part(innerbox) {
+#PlacesToolbar menupopup {
+  background: transparent;
+  padding-top: 4px;
+  margin-inline-start: -3px;
+}
+
+#BMB_bookmarksPopup menupopup::part(content) {
   /* emulating MozPlacesPopupArrow but without the arrow */
+  box-shadow: var(--windows-panel-box-shadow);
+  margin: 4px;
+}
+
+#PlacesToolbar menupopup::part(content) {
   box-shadow: 0 0 4px rgba(0,0,0,0.2);
   background: var(--arrowpanel-background);
   color: var(--arrowpanel-color);
   border: 1px solid var(--arrowpanel-border-color);
-  margin-top: -4px;
+  margin-block: -3px 4px;
+  margin-inline: 0 4px;
 }
 
 /* Add border-radius on Windows 7 */
 @media (-moz-os-version: windows-win7) {
-  #BMB_bookmarksPopup menupopup[placespopup=true]::part(innerbox) {
+  #BMB_bookmarksPopup menupopup::part(content) {
     border-radius: 3.5px;
+  }
+}
+
+@media (-moz-windows-non-native-menus) {
+  /* Override the menu-right margin rule windows/global/menu.css */
+  #BMB_bookmarksPopup .menu-right {
+    margin-inline-end: 0;
   }
 }
 

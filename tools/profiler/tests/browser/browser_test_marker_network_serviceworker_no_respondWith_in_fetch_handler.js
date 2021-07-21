@@ -52,9 +52,6 @@ add_task(async function test_network_markers_service_worker_register() {
 });
 
 add_task(async function test_network_markers_service_worker_use() {
-  if (!AppConstants.MOZ_GECKO_PROFILER) {
-    return;
-  }
   Assert.ok(
     !Services.profiler.IsActive(),
     "The profiler is not currently active"
@@ -233,6 +230,8 @@ add_task(async function test_network_markers_service_worker_use() {
         endTime: Expect.number(),
         id: Expect.number(),
         pri: Expect.number(),
+        redirectType: "Internal",
+        isHttpToHttpsRedirect: false,
       };
 
       if (i === 0) {
@@ -251,10 +250,10 @@ add_task(async function test_network_markers_service_worker_use() {
         });
         Assert.objectContainsOnly(contentMarker.data, commonDataProperties);
 
-        Assert.objectContainsOnly(
-          parentRedirectMarker.data,
-          commonRedirectProperties
-        );
+        Assert.objectContainsOnly(parentRedirectMarker.data, {
+          ...commonRedirectProperties,
+          redirectId: parentMarker.data.id,
+        });
 
         // Note: there's no check for the contentRedirectMarker, because there's
         // no marker for a top level navigation redirect in the content process.
@@ -276,10 +275,12 @@ add_task(async function test_network_markers_service_worker_use() {
         Assert.objectContainsOnly(parentRedirectMarker.data, {
           ...commonRedirectProperties,
           innerWindowID: Expect.number(),
+          redirectId: parentMarker.data.id,
         });
         Assert.objectContainsOnly(contentRedirectMarker.data, {
           ...commonRedirectProperties,
           innerWindowID: Expect.number(),
+          redirectId: contentMarker.data.id,
         });
       }
     }

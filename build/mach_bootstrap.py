@@ -144,20 +144,18 @@ CATEGORIES = {
 
 def search_path(mozilla_dir, packages_txt):
     with open(os.path.join(mozilla_dir, packages_txt)) as f:
-        packages = [line.rstrip().split(":") for line in f]
+        packages = [line.rstrip().split(":", maxsplit=1) for line in f]
 
-    def handle_package(package):
-        if package[0] == "packages.txt":
-            assert len(package) == 2
-            for p in search_path(mozilla_dir, package[1]):
+    def handle_package(action, package):
+        if action == "packages.txt":
+            for p in search_path(mozilla_dir, package):
                 yield os.path.join(mozilla_dir, p)
 
-        if package[0].endswith(".pth"):
-            assert len(package) == 2
-            yield os.path.join(mozilla_dir, package[1])
+        if action == "pth":
+            yield os.path.join(mozilla_dir, package)
 
-    for package in packages:
-        for path in handle_package(package):
+    for current_action, current_package in packages:
+        for path in handle_package(current_action, current_package):
             yield path
 
 
@@ -168,14 +166,46 @@ def mach_sys_path(mozilla_dir):
     ]
 
 
+INSTALL_PYTHON_GUIDANCE_LINUX = """
+See https://firefox-source-docs.mozilla.org/setup/linux_build.html#installingpython
+for guidance on how to install Python on your system.
+""".strip()
+
+INSTALL_PYTHON_GUIDANCE_OSX = """
+See https://firefox-source-docs.mozilla.org/setup/macos_build.html
+for guidance on how to prepare your system to build Firefox. Perhaps
+you need to update Xcode, or install Python using brew?
+""".strip()
+
+INSTALL_PYTHON_GUIDANCE_MOZILLABUILD = """
+Python is provided by MozillaBuild; ensure your MozillaBuild
+installation is up to date.
+See https://firefox-source-docs.mozilla.org/setup/windows_build.html#install-mozillabuild
+for details.
+""".strip()
+
+INSTALL_PYTHON_GUIDANCE_OTHER = """
+We do not have specific instructions for your platform on how to
+install Python. You may find Pyenv (https://github.com/pyenv/pyenv)
+helpful, if your system package manager does not provide a way to
+install a recent enough Python 3.
+""".strip()
+
+
 def bootstrap(topsrcdir):
-    # Ensure we are running Python 2.7 or 3.5+. We put this check here so we
-    # generate a user-friendly error message rather than a cryptic stack trace
-    # on module import.
-    major = sys.version_info[:2][0]
+    # Ensure we are running Python 3.6+. We run this check as soon as
+    # possible to avoid a cryptic import/usage error.
     if sys.version_info < (3, 6):
         print("Python 3.6+ is required to run mach.")
         print("You are running Python", platform.python_version())
+        if sys.platform.startswith("linux"):
+            print(INSTALL_PYTHON_GUIDANCE_LINUX)
+        elif sys.platform.startswith("darwin"):
+            print(INSTALL_PYTHON_GUIDANCE_OSX)
+        elif "MOZILLABUILD" in os.environ:
+            print(INSTALL_PYTHON_GUIDANCE_MOZILLABUILD)
+        else:
+            print(INSTALL_PYTHON_GUIDANCE_OTHER)
         sys.exit(1)
 
     # This directory was deleted in bug 1666345, but there may be some ignored
@@ -185,23 +215,12 @@ def bootstrap(topsrcdir):
     if os.path.exists(deleted_dir):
         shutil.rmtree(deleted_dir, ignore_errors=True)
 
-    if major == 3 and sys.prefix == sys.base_prefix:
+    if sys.prefix == sys.base_prefix:
         # We are not in a virtualenv. Remove global site packages
         # from sys.path.
-        # Note that we don't ever invoke mach from a Python 2 virtualenv,
-        # and "sys.base_prefix" doesn't exist before Python 3.3, so we
-        # guard with the "major == 3" check.
         site_paths = set(site.getsitepackages() + [site.getusersitepackages()])
         sys.path = [path for path in sys.path if path not in site_paths]
 
-    # Global build system and mach state is stored in a central directory. By
-    # default, this is ~/.mozbuild. However, it can be defined via an
-    # environment variable. We detect first run (by lack of this directory
-    # existing) and notify the user that it will be created. The logic for
-    # creation is much simpler for the "advanced" environment variable use
-    # case. For default behavior, we educate users and give them an opportunity
-    # to react. We always exit after creating the directory because users don't
-    # like surprises.
     sys.path[0:0] = mach_sys_path(topsrcdir)
     import mach.base
     import mach.main
@@ -248,10 +267,6 @@ def bootstrap(topsrcdir):
     except ImportError:
         # The resource module is UNIX only.
         pass
-
-    from mozbuild.util import patch_main
-
-    patch_main()
 
     def resolve_repository():
         import mozversioncontrol

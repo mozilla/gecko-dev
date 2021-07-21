@@ -313,6 +313,14 @@ void GfxInfo::GetData() {
     if (!mesaDevice.IsEmpty()) {
       mDeviceId = mesaDevice;
     }
+
+    if (!mIsAccelerated && mVendorId.IsEmpty()) {
+      mVendorId.Assign(glVendor.get());
+    }
+
+    if (!mIsAccelerated && mDeviceId.IsEmpty()) {
+      mDeviceId.Assign(glRenderer.get());
+    }
   } else if (glVendor.EqualsLiteral("NVIDIA Corporation")) {
     CopyUTF16toUTF8(GfxDriverInfo::GetDeviceVendor(DeviceVendor::NVIDIA),
                     mVendorId);
@@ -394,13 +402,19 @@ void GfxInfo::GetData() {
 
   // If we still don't have a vendor ID, we can try the PCI vendor list.
   if (mVendorId.IsEmpty()) {
-    if (pciVendors.Length() == 1) {
-      mVendorId = pciVendors[0];
-    } else if (pciVendors.IsEmpty()) {
+    if (pciVendors.IsEmpty()) {
       gfxCriticalNote << "No GPUs detected via PCI";
     } else {
-      gfxCriticalNote
-          << "More than 1 GPU detected via PCI, cannot deduce vendor";
+      for (size_t i = 0; i < pciVendors.Length(); ++i) {
+        if (mVendorId.IsEmpty()) {
+          mVendorId = pciVendors[i];
+        } else if (mVendorId != pciVendors[i]) {
+          gfxCriticalNote << "More than 1 GPU vendor detected via PCI, cannot "
+                             "deduce vendor";
+          mVendorId.Truncate();
+          break;
+        }
+      }
     }
   }
 
@@ -411,7 +425,7 @@ void GfxInfo::GetData() {
       if (mVendorId.Equals(pciVendors[i])) {
         if (mDeviceId.IsEmpty()) {
           mDeviceId = pciDevices[i];
-        } else {
+        } else if (mDeviceId != pciDevices[i]) {
           gfxCriticalNote << "More than 1 GPU from same vendor detected via "
                              "PCI, cannot deduce device";
           mDeviceId.Truncate();
@@ -618,6 +632,14 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_LESS_THAN,
         V(10, 0, 0, 0), "FEATURE_FAILURE_OLD_MESA", "Mesa 10.0");
 
+    // NVIDIA Mesa baseline (see bug 1714391).
+    APPEND_TO_DRIVER_BLOCKLIST_EXT(
+        OperatingSystem::Linux, ScreenSizeStatus::All, BatteryStatus::All,
+        DesktopEnvironment::All, WindowProtocol::All, DriverVendor::MesaNouveau,
+        DeviceFamily::All, GfxDriverInfo::allFeatures,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_LESS_THAN,
+        V(11, 0, 0, 0), "FEATURE_FAILURE_OLD_NV_MESA", "Mesa 11.0");
+
     // NVIDIA baseline (ported from old blocklist)
     APPEND_TO_DRIVER_BLOCKLIST_EXT(
         OperatingSystem::Linux, ScreenSizeStatus::All, BatteryStatus::All,
@@ -768,8 +790,8 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
 
     ////////////////////////////////////
     // FEATURE_WEBRENDER_SOFTWARE - ALLOWLIST
-#  if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || \
-      defined(__i386) || defined(__amd64__) || EARLY_BETA_OR_EARLIER
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || \
+    defined(__i386) || defined(__amd64__) || EARLY_BETA_OR_EARLIER
     APPEND_TO_DRIVER_BLOCKLIST(OperatingSystem::Linux, DeviceFamily::All,
                                nsIGfxInfo::FEATURE_WEBRENDER_SOFTWARE,
                                nsIGfxInfo::FEATURE_ALLOW_ALWAYS,

@@ -77,6 +77,7 @@
   MACRO_(case, case_, "case")                                                  \
   MACRO_(caseFirst, caseFirst, "caseFirst")                                    \
   MACRO_(catch, catch_, "catch")                                               \
+  MACRO_(cause, cause, "cause")                                                \
   MACRO_(class, class_, "class")                                               \
   MACRO_(cleanupSome, cleanupSome, "cleanupSome")                              \
   MACRO_(close, close, "close")                                                \
@@ -196,6 +197,7 @@
   MACRO_(GetBuiltinConstructor, GetBuiltinConstructor,                         \
          "GetBuiltinConstructor")                                              \
   MACRO_(GetBuiltinPrototype, GetBuiltinPrototype, "GetBuiltinPrototype")      \
+  MACRO_(GetBuiltinSymbol, GetBuiltinSymbol, "GetBuiltinSymbol")               \
   MACRO_(GetInternalError, GetInternalError, "GetInternalError")               \
   MACRO_(getBigInt64, getBigInt64, "getBigInt64")                              \
   MACRO_(getBigUint64, getBigUint64, "getBigUint64")                           \
@@ -414,10 +416,10 @@
   MACRO_(set, set, "set")                                                      \
   MACRO_(setBigInt64, setBigInt64, "setBigInt64")                              \
   MACRO_(setBigUint64, setBigUint64, "setBigUint64")                           \
-  MACRO_(SetCanonicalName, SetCanonicalName, "_SetCanonicalName")              \
+  MACRO_(SetCanonicalName, SetCanonicalName, "SetCanonicalName")               \
   MACRO_(SetConstructorInit, SetConstructorInit, "SetConstructorInit")         \
   MACRO_(SetIsInlinableLargeFunction, SetIsInlinableLargeFunction,             \
-         "_SetIsInlinableLargeFunction")                                       \
+         "SetIsInlinableLargeFunction")                                        \
   MACRO_(SetIterator, SetIterator, "Set Iterator")                             \
   MACRO_(setPrototypeOf, setPrototypeOf, "setPrototypeOf")                     \
   MACRO_(shape, shape, "shape")                                                \
@@ -546,7 +548,7 @@
   MACRO_(symbol, symbol, "symbol")                                             \
   MACRO_(bigint, bigint, "bigint")                                             \
   MACRO_(defineDataPropertyIntrinsic, defineDataPropertyIntrinsic,             \
-         "_DefineDataProperty")
+         "DefineDataProperty")
 
 #define PROPERTY_NAME_IGNORE(IDPART, ID, TEXT)
 

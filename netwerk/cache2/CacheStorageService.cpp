@@ -30,8 +30,10 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Services.h"
+#include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/StaticPrefs_network.h"
 
 namespace mozilla::net {
 
@@ -835,6 +837,86 @@ static bool RemoveExactEntry(CacheEntryTable* aEntries, nsACString const& aKey,
   return true;
 }
 
+NS_IMETHODIMP CacheStorageService::ClearBaseDomain(
+    const nsAString& aBaseDomain) {
+  if (sGlobalEntryTables) {
+    mozilla::MutexAutoLock lock(mLock);
+
+    if (mShutdown) return NS_ERROR_NOT_AVAILABLE;
+
+    nsCString cBaseDomain = NS_ConvertUTF16toUTF8(aBaseDomain);
+
+    nsTArray<nsCString> keys;
+    for (const auto& globalEntry : *sGlobalEntryTables) {
+      // Match by partitionKey base domain. This should cover most cache entries
+      // because we statically partition the cache. Most first party cache
+      // entries will also have a partitionKey set where the partitionKey base
+      // domain will match the entry URI base domain.
+      const nsACString& key = globalEntry.GetKey();
+      nsCOMPtr<nsILoadContextInfo> info =
+          CacheFileUtils::ParseKey(globalEntry.GetKey());
+
+      if (info &&
+          StoragePrincipalHelper::PartitionKeyHasBaseDomain(
+              info->OriginAttributesPtr()->mPartitionKey, aBaseDomain)) {
+        keys.AppendElement(key);
+        continue;
+      }
+
+      // If we didn't get a partitionKey match, try to match by entry URI. This
+      // requires us to iterate over all entries.
+      CacheEntryTable* table = globalEntry.GetWeak();
+      MOZ_ASSERT(table);
+
+      nsTArray<RefPtr<CacheEntry>> entriesToDelete;
+
+      for (CacheEntry* entry : table->Values()) {
+        nsCOMPtr<nsIURI> uri;
+        nsresult rv = NS_NewURI(getter_AddRefs(uri), entry->GetURI());
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          continue;
+        }
+
+        nsAutoCString host;
+        rv = uri->GetHost(host);
+        // Some entries may not have valid hosts. We can skip them.
+        if (NS_FAILED(rv) || host.IsEmpty()) {
+          continue;
+        }
+
+        bool hasRootDomain = false;
+        rv = NS_HasRootDomain(host, cBaseDomain, &hasRootDomain);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          continue;
+        }
+        if (hasRootDomain) {
+          entriesToDelete.AppendElement(entry);
+        }
+      }
+
+      // Clear individual matched entries.
+      for (RefPtr<CacheEntry>& entry : entriesToDelete) {
+        nsAutoCString entryKey;
+        nsresult rv = entry->HashingKey(entryKey);
+        if (NS_FAILED(rv)) {
+          NS_ERROR("aEntry->HashingKey() failed?");
+          return rv;
+        }
+
+        RemoveExactEntry(table, entryKey, entry, false /* don't overwrite */);
+      }
+    }
+
+    // Clear matched keys.
+    for (uint32_t i = 0; i < keys.Length(); ++i) {
+      DoomStorageEntries(keys[i], nullptr, true, false, nullptr);
+    }
+  }
+
+  return CacheFileIOManager::EvictByContext(nullptr, false /* pinned */, u""_ns,
+                                            aBaseDomain);
+}
+
 nsresult CacheStorageService::ClearOriginInternal(
     const nsAString& aOrigin, const OriginAttributes& aOriginAttributes,
     bool aAnonymous) {
@@ -1485,7 +1567,7 @@ void CacheStorageService::MemoryPool::PurgeAll(uint32_t aWhat) {
 nsresult CacheStorageService::AddStorageEntry(CacheStorage const* aStorage,
                                               const nsACString& aURI,
                                               const nsACString& aIdExtension,
-                                              bool aReplace,
+                                              uint32_t aFlags,
                                               CacheEntryHandle** aResult) {
   NS_ENSURE_FALSE(mShutdown, NS_ERROR_NOT_INITIALIZED);
 
@@ -1496,13 +1578,13 @@ nsresult CacheStorageService::AddStorageEntry(CacheStorage const* aStorage,
 
   return AddStorageEntry(contextKey, aURI, aIdExtension,
                          aStorage->WriteToDisk(), aStorage->SkipSizeCheck(),
-                         aStorage->Pinning(), aReplace, aResult);
+                         aStorage->Pinning(), aFlags, aResult);
 }
 
 nsresult CacheStorageService::AddStorageEntry(
     const nsACString& aContextKey, const nsACString& aURI,
     const nsACString& aIdExtension, bool aWriteToDisk, bool aSkipSizeCheck,
-    bool aPin, bool aReplace, CacheEntryHandle** aResult) {
+    bool aPin, uint32_t aFlags, CacheEntryHandle** aResult) {
   nsresult rv;
 
   nsAutoCString entryKey;
@@ -1534,17 +1616,23 @@ nsresult CacheStorageService::AddStorageEntry(
             .get();
 
     bool entryExists = entries->Get(entryKey, getter_AddRefs(entry));
+    if (!entryExists && aFlags & nsICacheStorage::OPEN_READONLY &&
+        StaticPrefs::network_cache_bug1708673()) {
+      return NS_ERROR_CACHE_KEY_NOT_FOUND;
+    }
 
-    if (entryExists && !aReplace) {
+    bool replace = aFlags & nsICacheStorage::OPEN_TRUNCATE;
+
+    if (entryExists && !replace) {
       // check whether we want to turn this entry to a memory-only.
       if (MOZ_UNLIKELY(!aWriteToDisk) && MOZ_LIKELY(entry->IsUsingDisk())) {
         LOG(("  entry is persistent but we want mem-only, replacing it"));
-        aReplace = true;
+        replace = true;
       }
     }
 
     // If truncate is demanded, delete and doom the current entry
-    if (entryExists && aReplace) {
+    if (entryExists && replace) {
       entries->Remove(entryKey);
 
       LOG(("  dooming entry %p for %s because of OPEN_TRUNCATE", entry.get(),
@@ -1559,14 +1647,14 @@ nsresult CacheStorageService::AddStorageEntry(
 
       // Would only lead to deleting force-valid timestamp again.  We don't need
       // the replace information anymore after this point anyway.
-      aReplace = false;
+      replace = false;
     }
 
     // Ensure entry for the particular URL
     if (!entryExists) {
       // When replacing with a new entry, always remove the current force-valid
       // timestamp, this is the only place to do it.
-      if (aReplace) {
+      if (replace) {
         RemoveEntryForceValid(aContextKey, entryKey);
       }
 

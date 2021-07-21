@@ -12,7 +12,12 @@ from __future__ import absolute_import, division
 
 import itertools
 import os
-from collections import defaultdict, MutableSequence
+from collections import defaultdict
+
+try:
+    from collections.abc import MutableSequence
+except ImportError:
+    from collections import MutableSequence
 
 import six
 from six import string_types

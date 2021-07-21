@@ -19,24 +19,20 @@ static mozilla::TimeStamp sNow = TimeStamp::Now();
 
 static mozilla::TimeStamp sStartupTime = sNow;
 
-inline mozilla::TimeStamp mozilla::CCGCScheduler::Now() { return sNow; }
-
 static mozilla::TimeStamp AdvanceTime(TimeDuration aDuration) {
   sNow += aDuration;
   return sNow;
 }
 
+static TimeStamp Now() { return sNow; }
+
 static uint32_t sSuspected = 0;
 
-inline uint32_t mozilla::CCGCScheduler::SuspectedCCObjects() {
-  return sSuspected;
-}
+static uint32_t SuspectedCCObjects() { return sSuspected; }
 static void SetNumSuspected(uint32_t n) { sSuspected = n; }
 static void SuspectMore(uint32_t n) { sSuspected += n; }
 
 using CCRunnerState = mozilla::CCGCScheduler::CCRunnerState;
-
-static TimeStamp Now() { return sNow; }
 
 class TestGC {
  protected:
@@ -56,7 +52,7 @@ void TestGC::Run(int aNumSlices) {
   // Running the GC should not influence whether a CC is currently seen as
   // needed. But the first time we run GC, it will be false; later, we will
   // have run a GC and set it to true.
-  bool neededCCAtStartOfGC = mScheduler.IsCCNeeded();
+  bool neededCCAtStartOfGC = mScheduler.IsCCNeeded(Now(), SuspectedCCObjects());
 
   mScheduler.NoteGCBegin();
 
@@ -69,7 +65,8 @@ void TestGC::Run(int aNumSlices) {
     // Pretend the GC took exactly the budget.
     AdvanceTime(budget);
 
-    EXPECT_EQ(mScheduler.IsCCNeeded(), neededCCAtStartOfGC);
+    EXPECT_EQ(mScheduler.IsCCNeeded(Now(), SuspectedCCObjects()),
+              neededCCAtStartOfGC);
 
     // Mutator runs for 1 second.
     AdvanceTime(kOneSecond);
@@ -107,7 +104,7 @@ class TestCC {
 
 void TestCC::MaybePokeCC() {
   // nsJSContext::MaybePokeCC
-  EXPECT_TRUE(mScheduler.ShouldScheduleCC());
+  EXPECT_TRUE(mScheduler.ShouldScheduleCC(Now(), SuspectedCCObjects()));
 
   mScheduler.InitCCRunnerStateMachine(CCRunnerState::ReducePurple);
   EXPECT_TRUE(mScheduler.IsEarlyForgetSkippable());
@@ -120,7 +117,8 @@ void TestCC::TimerFires(int aNumSlices) {
   while (true) {
     SuspectMore(1000);
     TimeStamp idleDeadline = Now() + kOneSecond;
-    step = mScheduler.AdvanceCCRunner(idleDeadline);
+    step =
+        mScheduler.AdvanceCCRunner(idleDeadline, Now(), SuspectedCCObjects());
     // Should first see a series of ForgetSkippable actions.
     if (step.mAction != CCRunnerAction::ForgetSkippable ||
         step.mRemoveChildless != KeepChildless) {
@@ -132,16 +130,17 @@ void TestCC::TimerFires(int aNumSlices) {
 
   while (step.mYield == Continue) {
     TimeStamp idleDeadline = Now() + kOneSecond;
-    step = mScheduler.AdvanceCCRunner(idleDeadline);
+    step =
+        mScheduler.AdvanceCCRunner(idleDeadline, Now(), SuspectedCCObjects());
   }
   EXPECT_EQ(step.mAction, CCRunnerAction::ForgetSkippable);
   EXPECT_EQ(step.mRemoveChildless, RemoveChildless);
   ForgetSkippable();
 
   TimeStamp idleDeadline = Now() + kOneSecond;
-  step = mScheduler.AdvanceCCRunner(idleDeadline);
+  step = mScheduler.AdvanceCCRunner(idleDeadline, Now(), SuspectedCCObjects());
   EXPECT_EQ(step.mAction, CCRunnerAction::CleanupContentUnbinder);
-  step = mScheduler.AdvanceCCRunner(idleDeadline);
+  step = mScheduler.AdvanceCCRunner(idleDeadline, Now(), SuspectedCCObjects());
   EXPECT_EQ(step.mAction, CCRunnerAction::CleanupDeferred);
 
   RunSlices(aNumSlices);
@@ -154,7 +153,8 @@ void TestCC::ForgetSkippable() {
       mScheduler.ComputeForgetSkippableBudget(Now(), Now() + kTenthSecond);
   EXPECT_NEAR(budget.timeBudget(), kTenthSecond.ToMilliseconds(), 1);
   AdvanceTime(kTenthSecond);
-  mScheduler.NoteForgetSkippableComplete(Now(), suspectedBefore);
+  mScheduler.NoteForgetSkippableComplete(Now(), suspectedBefore,
+                                         SuspectedCCObjects());
 }
 
 void TestCC::RunSlices(int aNumSlices) {
@@ -203,7 +203,7 @@ void TestIdleCC::RunSlice(TimeStamp aCCStartTime, TimeStamp aPrevSliceEnd,
   TimeStamp idleDeadline = Now() + kTenthSecond;
 
   // The scheduler should request a CycleCollect slice.
-  step = mScheduler.AdvanceCCRunner(idleDeadline);
+  step = mScheduler.AdvanceCCRunner(idleDeadline, Now(), SuspectedCCObjects());
   EXPECT_EQ(step.mAction, CCRunnerAction::CycleCollect);
 
   // nsJSContext::RunCycleCollectorSlice
@@ -211,7 +211,7 @@ void TestIdleCC::RunSlice(TimeStamp aCCStartTime, TimeStamp aPrevSliceEnd,
   EXPECT_FALSE(mScheduler.InIncrementalGC());
   bool preferShorter;
   js::SliceBudget budget = mScheduler.ComputeCCSliceBudget(
-      idleDeadline, aCCStartTime, aPrevSliceEnd, &preferShorter);
+      idleDeadline, aCCStartTime, aPrevSliceEnd, Now(), &preferShorter);
   // The scheduler will set the budget to our deadline (0.1sec in the future).
   EXPECT_NEAR(budget.timeBudget(), kTenthSecond.ToMilliseconds(), 1);
   EXPECT_FALSE(preferShorter);
@@ -241,7 +241,7 @@ void TestNonIdleCC::RunSlice(TimeStamp aCCStartTime, TimeStamp aPrevSliceEnd,
   TimeStamp nullDeadline;
 
   // The scheduler should tell us to run a slice of cycle collection.
-  step = mScheduler.AdvanceCCRunner(nullDeadline);
+  step = mScheduler.AdvanceCCRunner(nullDeadline, Now(), SuspectedCCObjects());
   EXPECT_EQ(step.mAction, CCRunnerAction::CycleCollect);
 
   // nsJSContext::RunCycleCollectorSlice
@@ -250,7 +250,7 @@ void TestNonIdleCC::RunSlice(TimeStamp aCCStartTime, TimeStamp aPrevSliceEnd,
 
   bool preferShorter;
   js::SliceBudget budget = mScheduler.ComputeCCSliceBudget(
-      nullDeadline, aCCStartTime, aPrevSliceEnd, &preferShorter);
+      nullDeadline, aCCStartTime, aPrevSliceEnd, Now(), &preferShorter);
   if (aSliceNum == 0) {
     // First slice of the CC, so always use the baseBudget which is
     // kICCSliceBudget (3ms) for a non-idle slice.
@@ -294,25 +294,25 @@ static bool BasicScenario(CCGCScheduler& aScheduler, TestGC* aTestGC,
   // After a GC, the scheduler should decide to do a full CC regardless of the
   // number of purple buffer entries.
   SetNumSuspected(3);
-  EXPECT_TRUE(aScheduler.IsCCNeeded());
+  EXPECT_TRUE(aScheduler.IsCCNeeded(Now(), SuspectedCCObjects()));
 
   // Now we should want to CC.
-  EXPECT_TRUE(aScheduler.ShouldScheduleCC());
+  EXPECT_TRUE(aScheduler.ShouldScheduleCC(Now(), SuspectedCCObjects()));
 
   // Do a 5-slice CC.
   aTestCC->Run(5);
 
   // Not enough suspected objects to deserve a CC.
-  EXPECT_FALSE(aScheduler.IsCCNeeded());
-  EXPECT_FALSE(aScheduler.ShouldScheduleCC());
+  EXPECT_FALSE(aScheduler.IsCCNeeded(Now(), SuspectedCCObjects()));
+  EXPECT_FALSE(aScheduler.ShouldScheduleCC(Now(), SuspectedCCObjects()));
   SetNumSuspected(10000);
 
   // We shouldn't want to CC again yet, it's too soon.
-  EXPECT_FALSE(aScheduler.ShouldScheduleCC());
+  EXPECT_FALSE(aScheduler.ShouldScheduleCC(Now(), SuspectedCCObjects()));
   AdvanceTime(mozilla::kCCDelay);
 
   // *Now* it's time for another CC.
-  EXPECT_TRUE(aScheduler.ShouldScheduleCC());
+  EXPECT_TRUE(aScheduler.ShouldScheduleCC(Now(), SuspectedCCObjects()));
 
   // Run a 3-slice incremental GC.
   EXPECT_TRUE(!aScheduler.InIncrementalGC());
@@ -329,7 +329,7 @@ static TestNonIdleCC ccNonIdle(scheduler);
 TEST(TestScheduler, Idle)
 {
   // Cannot CC until we GC once.
-  EXPECT_FALSE(scheduler.ShouldScheduleCC());
+  EXPECT_FALSE(scheduler.ShouldScheduleCC(Now(), SuspectedCCObjects()));
 
   EXPECT_TRUE(BasicScenario(scheduler, &gc, &ccIdle));
 }

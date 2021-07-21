@@ -9,9 +9,20 @@ external_dirs = []
 DIRS += [
     "lgpllibs",
     "rlbox",
-    "rlbox_lucet_sandbox",
     "sqlite",
 ]
+
+if CONFIG["MOZ_USING_WASM_SANDBOXING"]:
+    if CONFIG["LUCETC"]:
+        DIRS += [
+            "rlbox_lucet_sandbox",
+        ]
+    else:
+        DIRS += [
+            "rlbox_wasm2c_sandbox",
+            "wasm2c_sandbox_compiler",
+        ]
+
 if not CONFIG["MOZ_SYSTEM_JPEG"]:
     external_dirs += ["media/libjpeg"]
 

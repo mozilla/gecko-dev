@@ -263,6 +263,8 @@ translate-web-pages =
     .label = Translate web content
     .accesskey = T
 
+fx-translate-web-pages = { -translations-brand-name }
+
 # The <img> element is replaced by the logo of the provider
 # used to provide machine translations for web pages.
 translate-attribution = Translations by <img data-l10n-name="logo"/>
@@ -946,6 +948,10 @@ forms-primary-pw-former-name = Formerly known as Master Password
 
 forms-primary-pw-fips-title = You are currently in FIPS mode. FIPS requires a non-empty Primary Password.
 forms-master-pw-fips-desc = Password Change Failed
+forms-windows-sso =
+    .label = Allow Windows single sign-on for Microsoft, work, and school accounts
+forms-windows-sso-learn-more-link = Learn more
+forms-windows-sso-desc = Manage accounts in your device settings
 
 ## OS Authentication dialog
 
@@ -1231,9 +1237,12 @@ permissions-block-popups =
     .label = Block pop-up windows
     .accesskey = B
 
-permissions-block-popups-exceptions =
+# "popup" is a misspelling that is more popular than the correct spelling of
+# "pop-up" so it's included as a search keyword, not displayed in the UI.
+permissions-block-popups-exceptions-button =
     .label = Exceptions…
     .accesskey = E
+    .searchkeywords = popups
 
 permissions-addon-install-warning =
     .label = Warn you when websites try to install add-ons

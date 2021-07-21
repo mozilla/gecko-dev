@@ -28,8 +28,12 @@ add_task(async function() {
     "Refresh button is displayed after adding a watch expression"
   );
 
-  is(getLabel(dbg, 1), "someVariable", "Watch expression was added");
-  is(getValue(dbg, 1), "(unavailable)", "Watch expression has no value");
+  is(getWatchExpressionLabel(dbg, 1), "someVariable", "Watch expression was added");
+  is(
+    getWatchExpressionValue(dbg, 1),
+    "(unavailable)",
+    "Watch expression has no value"
+  );
 
   info("Switch to the console and update the value of the watched variable");
   const { hud } = await dbg.toolbox.selectTool("webconsole");
@@ -38,8 +42,12 @@ add_task(async function() {
   info("Switch back to the debugger");
   await dbg.toolbox.selectTool("jsdebugger");
 
-  is(getLabel(dbg, 1), "someVariable", "Watch expression is still available");
-  is(getValue(dbg, 1), "(unavailable)", "Watch expression still has no value");
+  is(getWatchExpressionLabel(dbg, 1), "someVariable", "Watch expression is still available");
+  is(
+    getWatchExpressionValue(dbg, 1),
+    "(unavailable)",
+    "Watch expression still has no value"
+  );
 
   info(
     "Click on the watch expression refresh button and wait for the " +
@@ -49,8 +57,12 @@ add_task(async function() {
   await clickElement(dbg, "expressionRefresh");
   await refreshed;
 
-  is(getLabel(dbg, 1), "someVariable", "Watch expression is still available");
-  is(getValue(dbg, 1), "1", "Watch expression value has been updated");
+  is(getWatchExpressionLabel(dbg, 1), "someVariable", "Watch expression is still available");
+  is(
+    getWatchExpressionValue(dbg, 1),
+    "1",
+    "Watch expression value has been updated"
+  );
 
   await deleteExpression(dbg, "someVariable");
 
@@ -59,14 +71,6 @@ add_task(async function() {
     "The refresh button is no longer displayed after removing watch expressions"
   );
 });
-
-function getLabel(dbg, index) {
-  return findElement(dbg, "expressionNode", index).innerText;
-}
-
-function getValue(dbg, index) {
-  return findElement(dbg, "expressionValue", index).innerText;
-}
 
 function getRefreshExpressionsElement(dbg) {
   return findElement(dbg, "expressionRefresh", 1);

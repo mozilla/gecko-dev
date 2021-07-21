@@ -127,6 +127,13 @@ static RunningTimes GetThreadRunningTimesDiff(
   return diff;
 }
 
+static void ClearThreadRunningTimes(PSLockRef aLock,
+                                    const RegisteredThread& aRegisteredThread) {
+  PlatformData* const platformData = aRegisteredThread.GetPlatformData();
+  MOZ_RELEASE_ASSERT(platformData);
+  platformData->PreviousThreadRunningTimesRef().Clear();
+}
+
 template <typename Func>
 void Sampler::SuspendAndSampleAndResumeThread(
     PSLockRef aLock, const RegisteredThread& aRegisteredThread,
@@ -223,7 +230,8 @@ static void* ThreadEntry(void* aArg) {
 
 SamplerThread::SamplerThread(PSLockRef aLock, uint32_t aActivityGeneration,
                              double aIntervalMilliseconds,
-                             bool aStackWalkEnabled)
+                             bool aStackWalkEnabled,
+                             bool aNoTimerResolutionChange)
     : mSampler(aLock),
       mActivityGeneration(aActivityGeneration),
       mIntervalMicroseconds(

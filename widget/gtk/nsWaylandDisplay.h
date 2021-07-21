@@ -31,9 +31,8 @@ class nsWaylandDisplay {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(nsWaylandDisplay)
 
   // Create nsWaylandDisplay object on top of native Wayland wl_display
-  // connection. When aLighWrapper is set we don't get wayland registry
-  // objects and only event loop is provided.
-  explicit nsWaylandDisplay(wl_display* aDisplay, bool aLighWrapper = false);
+  // connection.
+  explicit nsWaylandDisplay(wl_display* aDisplay);
 
   bool DispatchEventQueue();
 
@@ -71,6 +70,7 @@ class nsWaylandDisplay {
   zwp_pointer_constraints_v1* GetPointerConstraints(void) {
     return mPointerConstraints;
   }
+  zwp_linux_dmabuf_v1* GetDmabuf(void) { return mDmabuf; };
 
   bool IsMainThreadDisplay() { return mEventQueue == nullptr; }
 
@@ -87,6 +87,7 @@ class nsWaylandDisplay {
   void SetRelativePointerManager(
       zwp_relative_pointer_manager_v1* aRelativePointerManager);
   void SetPointerConstraints(zwp_pointer_constraints_v1* aPointerConstraints);
+  void SetDmabuf(zwp_linux_dmabuf_v1* aDmabuf);
 
   bool IsExplicitSyncEnabled() { return mExplicitSync; }
 
@@ -106,8 +107,8 @@ class nsWaylandDisplay {
   zwp_idle_inhibit_manager_v1* mIdleInhibitManager;
   zwp_relative_pointer_manager_v1* mRelativePointerManager;
   zwp_pointer_constraints_v1* mPointerConstraints;
-  wl_registry* mRegistry;
   wp_viewporter* mViewporter;
+  zwp_linux_dmabuf_v1* mDmabuf;
   bool mExplicitSync;
 };
 

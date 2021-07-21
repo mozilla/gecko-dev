@@ -232,9 +232,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        use crate::computed_values::list_style_position::T as ListStylePosition;
-
         let mut blockify = false;
         macro_rules! blockify_if {
             ($if_what:expr) => {
@@ -254,16 +251,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         blockify_if!(self.style.is_floating());
         blockify_if!(self.style.is_absolutely_positioned());
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        blockify_if!(
-            self.style.pseudo.map_or(false, |p| p.is_marker()) &&
-                self.style.get_parent_list().clone_list_style_position() ==
-                    ListStylePosition::Outside &&
-                !layout_parent_style
-                    .get_box()
-                    .clone_display()
-                    .is_inline_flow()
-        );
 
         if !blockify {
             return;
@@ -829,24 +816,18 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     /// the same font as its fallback ('list-style-type') in case it fails to load.
     #[cfg(feature = "gecko")]
     fn adjust_for_marker_pseudo(&mut self) {
-        use crate::values::computed::font::{FamilyName, FontFamily, FontFamilyList, FontFamilyNameSyntax, FontSynthesis, SingleFontFamily};
+        use crate::values::computed::font::{FontFamily, FontSynthesis};
         use crate::values::computed::text::{LetterSpacing, WordSpacing};
+        use crate::values::computed::counters::{Content};
 
         let is_legacy_marker = self.style.pseudo.map_or(false, |p| p.is_marker()) &&
-            self.style.get_counters().ineffective_content_property() &&
-            self.style.get_list().clone_list_style_type().is_bullet();
+            self.style.get_list().clone_list_style_type().is_bullet() &&
+            self.style.get_counters().clone_content() == Content::Normal;
         if !is_legacy_marker {
             return;
         }
         if !self.style.flags.get().contains(ComputedValueFlags::HAS_AUTHOR_SPECIFIED_FONT_FAMILY) {
-            let moz_bullet_font_family = FontFamily {
-                families: FontFamilyList::new(Box::new([SingleFontFamily::FamilyName(FamilyName {
-                    name: atom!("-moz-bullet-font"),
-                    syntax: FontFamilyNameSyntax::Identifiers,
-                })])),
-                is_system_font: false,
-            };
-            self.style.mutate_font().set_font_family(moz_bullet_font_family);
+            self.style.mutate_font().set_font_family(FontFamily::moz_bullet().clone());
 
             // FIXME(mats): We can remove this if support for font-synthesis is added to @font-face rules.
             // Then we can add it to the @font-face rule in html.css instead.

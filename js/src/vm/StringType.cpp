@@ -33,6 +33,7 @@
 #include "gc/Nursery.h"
 #include "js/CharacterEncoding.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "js/PropertyAndElement.h"    // JS_DefineElement
 #include "js/StableStringChars.h"
 #include "js/Symbol.h"
 #include "js/UbiNode.h"
@@ -2238,7 +2239,7 @@ UniqueChars js::IdToPrintableUTF8(JSContext* cx, HandleId id,
   // request source representation when |id| is a property key.
   MOZ_ASSERT_IF(
       behavior == IdToPrintableBehavior::IdIsIdentifier,
-      JSID_IS_ATOM(id) && frontend::IsIdentifierNameOrPrivateName(id.toAtom()));
+      id.isAtom() && frontend::IsIdentifierNameOrPrivateName(id.toAtom()));
 
   RootedValue v(cx, IdToValue(id));
   JSString* str;

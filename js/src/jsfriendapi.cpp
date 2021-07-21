@@ -28,6 +28,7 @@
 #include "js/friend/WindowProxy.h"    // js::ToWindowIfWindowProxy
 #include "js/Object.h"                // JS::GetClass
 #include "js/Printf.h"
+#include "js/PropertyAndElement.h"  // JS_DefineProperty
 #include "js/Proxy.h"
 #include "js/shadow/Object.h"  // JS::shadow::Object
 #include "js/String.h"         // JS::detail::StringToLinearStringSlow
@@ -386,12 +387,12 @@ JS_PUBLIC_API JSFunction* js::NewFunctionWithReserved(JSContext* cx,
 
 JS_PUBLIC_API JSFunction* js::NewFunctionByIdWithReserved(
     JSContext* cx, JSNative native, unsigned nargs, unsigned flags, jsid id) {
-  MOZ_ASSERT(JSID_IS_STRING(id));
+  MOZ_ASSERT(id.isAtom());
   MOZ_ASSERT(!cx->zone()->isAtomsZone());
   CHECK_THREAD(cx);
   cx->check(id);
 
-  RootedAtom atom(cx, JSID_TO_ATOM(id));
+  RootedAtom atom(cx, id.toAtom());
   return (flags & JSFUN_CONSTRUCTOR)
              ? NewNativeConstructor(cx, native, nargs, atom,
                                     gc::AllocKind::FUNCTION_EXTENDED)

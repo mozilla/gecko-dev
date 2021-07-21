@@ -74,9 +74,10 @@ job-defaults:
             - linux64-rust-android
             - linux64-rust-size
             - linux64-cbindgen
-            - linux64-dump-syms
+            - linux64-dump_syms
             - linux64-nasm
             - linux64-node
+            - sysroot-x86_64-linux-gnu
 
 jobs:
     android-geckoview-fat-aar-shippable/opt:

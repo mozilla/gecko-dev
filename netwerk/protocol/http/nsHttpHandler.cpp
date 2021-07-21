@@ -10,10 +10,12 @@
 #include "prsystem.h"
 
 #include "AltServiceChild.h"
+#include "nsCORSListenerProxy.h"
 #include "nsError.h"
 #include "nsHttp.h"
 #include "nsHttpHandler.h"
 #include "nsHttpChannel.h"
+#include "nsHTTPCompressConv.h"
 #include "nsHttpAuthCache.h"
 #include "nsStandardURL.h"
 #include "LoadContextInfo.h"
@@ -94,10 +96,6 @@
 #if defined(XP_MACOSX)
 #  include <CoreServices/CoreServices.h>
 #  include "nsCocoaFeatures.h"
-#endif
-
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracer.h"
 #endif
 
 //-----------------------------------------------------------------------------
@@ -619,20 +617,6 @@ bool nsHttpHandler::IsAcceptableEncoding(const char* enc, bool isSecure) {
   LOG(("nsHttpHandler::IsAceptableEncoding %s https=%d %d\n", enc, isSecure,
        rv));
   return rv;
-}
-
-nsresult nsHttpHandler::GetStreamConverterService(
-    nsIStreamConverterService** result) {
-  if (!mStreamConvSvc) {
-    nsresult rv;
-    nsCOMPtr<nsIStreamConverterService> service =
-        do_GetService(NS_STREAMCONVERTERSERVICE_CONTRACTID, &rv);
-    if (NS_FAILED(rv)) return rv;
-    mStreamConvSvc = new nsMainThreadPtrHolder<nsIStreamConverterService>(
-        "nsHttpHandler::mStreamConvSvc", service);
-  }
-  *result = do_AddRef(mStreamConvSvc.get()).take();
-  return NS_OK;
 }
 
 nsISiteSecurityService* nsHttpHandler::GetSSService() {
@@ -1728,13 +1712,6 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
     }
   }
 
-  if (PREF_CHANGED(HTTP_PREF("spdy.bug1563538"))) {
-    rv = Preferences::GetBool(HTTP_PREF("spdy.bug1563538"), &cVar);
-    if (NS_SUCCEEDED(rv)) {
-      mBug1563538 = cVar;
-    }
-  }
-
   if (PREF_CHANGED(HTTP_PREF("http3.enabled"))) {
     rv = Preferences::GetBool(HTTP_PREF("http3.enabled"), &cVar);
     if (NS_SUCCEEDED(rv)) {
@@ -1980,14 +1957,6 @@ nsresult nsHttpHandler::SetupChannelInternal(
     uint32_t proxyResolveFlags, nsIURI* proxyURI, nsILoadInfo* aLoadInfo,
     nsIChannel** result) {
   RefPtr<HttpBaseChannel> httpChannel = aChannel;
-
-#ifdef MOZ_TASK_TRACER
-  if (tasktracer::IsStartLogging()) {
-    nsAutoCString urispec;
-    uri->GetSpec(urispec);
-    tasktracer::AddLabel("nsHttpHandler::NewProxiedChannel2 %s", urispec.get());
-  }
-#endif
 
   nsCOMPtr<nsProxyInfo> proxyInfo;
   if (givenProxyInfo) {
@@ -2559,6 +2528,12 @@ nsHttpHandler::EnsureHSTSDataReady(JSContext* aCx, Promise** aPromise) {
   return EnsureHSTSDataReadyNative(wrapper);
 }
 
+NS_IMETHODIMP
+nsHttpHandler::ClearCORSPreflightCache() {
+  nsCORSListenerProxy::ClearCache();
+  return NS_OK;
+}
+
 void nsHttpHandler::ShutdownConnectionManager() {
   // ensure connection manager is shutdown
   if (mConnMgr) {
@@ -2796,7 +2771,7 @@ void nsHttpHandler::MaybeAddAltSvcForTesting(
 
   bool isHttps = false;
   if (NS_FAILED(aUri->SchemeIs("https", &isHttps)) || !isHttps) {
-    // Only set forr HTTPS.
+    // Only set for HTTPS.
     return;
   }
 

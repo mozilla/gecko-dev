@@ -107,9 +107,7 @@
 #include "nsDisplayList.h"
 #include "nsRegion.h"
 #include "nsAutoLayoutPhase.h"
-#ifdef MOZ_GECKO_PROFILER
-#  include "AutoProfilerStyleMarker.h"
-#endif
+#include "AutoProfilerStyleMarker.h"
 #ifdef MOZ_REFLOW_PERF
 #  include "nsFontMetrics.h"
 #endif
@@ -208,11 +206,6 @@
 #include "nsHashKeys.h"
 #include "VisualViewport.h"
 #include "ZoomConstraintsClient.h"
-
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracer.h"
-using namespace mozilla::tasktracer;
-#endif
 
 // define the scalfactor of drag and drop images
 // relative to the max screen height/width
@@ -1039,7 +1032,7 @@ void PresShell::Init(nsPresContext* aPresContext, nsViewManager* aViewManager) {
   }
 
   // Get our activeness from the docShell.
-  QueryIsActive();
+  ActivenessMaybeChanged();
 
   // Setup our font inflation preferences.
   mFontSizeInflationEmPerLine = StaticPrefs::font_size_inflation_emPerLine();
@@ -3681,7 +3674,8 @@ bool PresShell::ScrollFrameRectIntoView(nsIFrame* aFrame, const nsRect& aRect,
     if (!parent && !(aScrollFlags & ScrollFlags::ScrollNoParentFrames)) {
       nsPoint extraOffset(0, 0);
       int32_t APD = container->PresContext()->AppUnitsPerDevPixel();
-      parent = nsLayoutUtils::GetCrossDocParentFrame(container, &extraOffset);
+      parent = nsLayoutUtils::GetCrossDocParentFrameInProcess(container,
+                                                              &extraOffset);
       if (parent) {
         int32_t parentAPD = parent->PresContext()->AppUnitsPerDevPixel();
         rect = rect.ScaleToOtherAppUnitsRoundOut(APD, parentAPD);
@@ -3783,16 +3777,25 @@ void PresShell::ClearMouseCaptureOnView(nsView* aView) {
   AllowMouseCapture(false);
 }
 
-void PresShell::ClearMouseCapture(nsIFrame* aFrame) {
+void PresShell::ClearMouseCapture() {
   nsIContent* capturingContent = GetCapturingContent();
   if (!capturingContent) {
     AllowMouseCapture(false);
     return;
   }
 
-  // null frame argument means clear the capture
-  if (!aFrame) {
-    ReleaseCapturingContent();
+  ReleaseCapturingContent();
+  AllowMouseCapture(false);
+}
+
+void PresShell::ClearMouseCapture(nsIFrame* aFrame) {
+  MOZ_ASSERT(
+      aFrame && aFrame->GetParent() &&
+          aFrame->GetParent()->Type() == LayoutFrameType::Deck,
+      "This function should only be called with a child frame of <deck>");
+
+  nsIContent* capturingContent = GetCapturingContent();
+  if (!capturingContent) {
     AllowMouseCapture(false);
     return;
   }
@@ -3804,7 +3807,7 @@ void PresShell::ClearMouseCapture(nsIFrame* aFrame) {
     return;
   }
 
-  if (nsLayoutUtils::IsAncestorFrameCrossDoc(aFrame, capturingFrame)) {
+  if (nsLayoutUtils::IsAncestorFrameCrossDocInProcess(aFrame, capturingFrame)) {
     ReleaseCapturingContent();
     AllowMouseCapture(false);
   }
@@ -4177,14 +4180,12 @@ void PresShell::DoFlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
     // The FlushResampleRequests() above flushed style changes.
     if (MOZ_LIKELY(!mIsDestroying)) {
       nsAutoScriptBlocker scriptBlocker;
-#ifdef MOZ_GECKO_PROFILER
       Maybe<uint64_t> innerWindowID;
       if (auto* window = mDocument->GetInnerWindow()) {
         innerWindowID = Some(window->WindowID());
       }
       AutoProfilerStyleMarker tracingStyleFlush(std::move(mStyleCause),
                                                 innerWindowID);
-#endif
       PerfStats::AutoMetricRecording<PerfStats::Metric::Styling> autoRecording;
       LAYOUT_TELEMETRY_RECORD_BASE(Restyle);
 
@@ -4200,14 +4201,12 @@ void PresShell::DoFlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
     // type.
     if (MOZ_LIKELY(!mIsDestroying)) {
       nsAutoScriptBlocker scriptBlocker;
-#ifdef MOZ_GECKO_PROFILER
       Maybe<uint64_t> innerWindowID;
       if (auto* window = mDocument->GetInnerWindow()) {
         innerWindowID = Some(window->WindowID());
       }
       AutoProfilerStyleMarker tracingStyleFlush(std::move(mStyleCause),
                                                 innerWindowID);
-#endif
       PerfStats::AutoMetricRecording<PerfStats::Metric::Styling> autoRecording;
       LAYOUT_TELEMETRY_RECORD_BASE(Restyle);
 
@@ -4826,6 +4825,15 @@ UniquePtr<RangePaintInfo> PresShell::CreateRangePaintInfo(
        ctx = ctx->GetParentPresContext()) {
     PresShell* shell = ctx->PresShell();
     float resolution = shell->GetResolution();
+
+    // If we are at the root document in the process, try to see if documents
+    // in enclosing processes have a resolution and include that as well.
+    if (!ctx->GetParentPresContext()) {
+      // xScale is an arbitrary choice. Outside of edge cases involving CSS
+      // transforms, xScale == yScale so it doesn't matter.
+      resolution *= ViewportUtils::TryInferEnclosingResolution(shell).xScale;
+    }
+
     if (resolution == 1.0) {
       continue;
     }
@@ -5152,7 +5160,7 @@ void PresShell::AddPrintPreviewBackgroundItem(nsDisplayListBuilder* aBuilder,
 static bool AddCanvasBackgroundColor(const nsDisplayList* aList,
                                      nsIFrame* aCanvasFrame, nscolor aColor,
                                      bool aCSSBackgroundColor) {
-  for (nsDisplayItem* i = aList->GetBottom(); i; i = i->GetAbove()) {
+  for (nsDisplayItem* i : *aList) {
     const DisplayItemType type = i->GetType();
 
     if (i->Frame() == aCanvasFrame &&
@@ -5509,13 +5517,15 @@ static nsView* FindFloatingViewContaining(nsView* aRelativeToView,
     // is outside the zoom boundary and any child view must be inside the zoom
     // boundary because we only create views for certain kinds of frames and
     // none of them can be between the root frame and the zoom boundary.
-    if (!aRelativeToView->GetParent() ||
-        aRelativeToView->GetViewManager() !=
-            aRelativeToView->GetParent()->GetViewManager()) {
-      if (aRelativeToView->GetFrame()
-              ->PresContext()
-              ->IsRootContentDocumentCrossProcess()) {
-        crossingZoomBoundary = true;
+    if (aRelativeToViewportType == ViewportType::Visual) {
+      if (!aRelativeToView->GetParent() ||
+          aRelativeToView->GetViewManager() !=
+              aRelativeToView->GetParent()->GetViewManager()) {
+        if (aRelativeToView->GetFrame()
+                ->PresContext()
+                ->IsRootContentDocumentCrossProcess()) {
+          crossingZoomBoundary = true;
+        }
       }
     }
 
@@ -5605,13 +5615,15 @@ static nsView* FindViewContaining(nsView* aRelativeToView,
     // boundary because we only create views for certain kinds of frames and
     // none of them can be between the root frame and the zoom boundary.
     bool crossingZoomBoundary = false;
-    if (!aRelativeToView->GetParent() ||
-        aRelativeToView->GetViewManager() !=
-            aRelativeToView->GetParent()->GetViewManager()) {
-      if (aRelativeToView->GetFrame()
-              ->PresContext()
-              ->IsRootContentDocumentCrossProcess()) {
-        crossingZoomBoundary = true;
+    if (aRelativeToViewportType == ViewportType::Visual) {
+      if (!aRelativeToView->GetParent() ||
+          aRelativeToView->GetViewManager() !=
+              aRelativeToView->GetParent()->GetViewManager()) {
+        if (aRelativeToView->GetFrame()
+                ->PresContext()
+                ->IsRootContentDocumentCrossProcess()) {
+          crossingZoomBoundary = true;
+        }
       }
     }
 
@@ -5791,7 +5803,7 @@ void PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll) {
 /* static */
 void PresShell::MarkFramesInListApproximatelyVisible(
     const nsDisplayList& aList) {
-  for (nsDisplayItem* item = aList.GetBottom(); item; item = item->GetAbove()) {
+  for (nsDisplayItem* item : aList) {
     nsDisplayList* sublist = item->GetChildren();
     if (sublist) {
       MarkFramesInListApproximatelyVisible(*sublist);
@@ -6838,24 +6850,6 @@ nsresult PresShell::EventHandler::HandleEvent(nsIFrame* aFrameForPresShell,
   MOZ_DIAGNOSTIC_ASSERT(aGUIEvent->IsTrusted());
   MOZ_ASSERT(aEventStatus);
 
-#ifdef MOZ_TASK_TRACER
-  Maybe<AutoSourceEvent> taskTracerEvent;
-  if (MOZ_UNLIKELY(IsStartLogging())) {
-    // Make touch events, mouse events and hardware key events to be
-    // the source events of TaskTracer, and originate the rest
-    // correlation tasks from here.
-    SourceEventType type = SourceEventType::Unknown;
-    if (aGUIEvent->AsTouchEvent()) {
-      type = SourceEventType::Touch;
-    } else if (aGUIEvent->AsMouseEvent()) {
-      type = SourceEventType::Mouse;
-    } else if (aGUIEvent->AsKeyboardEvent()) {
-      type = SourceEventType::Key;
-    }
-    taskTracerEvent.emplace(type);
-  }
-#endif
-
   NS_ASSERTION(aFrameForPresShell, "aFrameForPresShell should be not null");
 
   // Update the latest focus sequence number with this new sequence number;
@@ -7800,7 +7794,7 @@ PresShell::EventHandler::ComputeRootFrameToHandleEventWithCapturingContent(
   // If the BrowsingContext is active, look for a scrolling container.
   BrowsingContext* bc = GetPresContext()->Document()->GetBrowsingContext();
   if (!bc || !bc->IsActive()) {
-    ClearMouseCapture(nullptr);
+    ClearMouseCapture();
     *aIsCapturingContentIgnored = true;
     return aRootFrameToHandleEvent;
   }
@@ -9125,7 +9119,9 @@ void PresShell::EventHandler::GetCurrentItemAndPositionForElement(
       extra = frame->GetSize().height;
       if (checkLineHeight) {
         nsIScrollableFrame* scrollFrame =
-            nsLayoutUtils::GetNearestScrollableFrame(frame);
+            nsLayoutUtils::GetNearestScrollableFrame(
+                frame, nsLayoutUtils::SCROLLABLE_INCLUDE_HIDDEN |
+                           nsLayoutUtils::SCROLLABLE_FIXEDPOS_FINDS_ROOT);
         if (scrollFrame) {
           nsSize scrollAmount = scrollFrame->GetLineScrollAmount();
           nsIFrame* f = do_QueryFrame(scrollFrame);
@@ -9335,7 +9331,7 @@ void PresShell::Thaw(bool aIncludeSubDocuments) {
 
   // Get the activeness of our presshell, as this might have changed
   // while we were in the bfcache
-  QueryIsActive();
+  ActivenessMaybeChanged();
 
   // We're now unfrozen
   mFrozen = false;
@@ -9486,7 +9482,6 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
                                     MarkerTracingType::START);
   }
 
-#ifdef MOZ_GECKO_PROFILER
   Maybe<uint64_t> innerWindowID;
   if (auto* window = mDocument->GetInnerWindow()) {
     innerWindowID = Some(window->WindowID());
@@ -9495,7 +9490,6 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
       "Paint", "Reflow", geckoprofiler::category::LAYOUT,
       std::move(mReflowCause), innerWindowID);
   mReflowCause = nullptr;
-#endif
 
   FlushPendingScrollAnchorSelections();
 
@@ -9832,7 +9826,7 @@ bool PresShell::ProcessReflowCommands(bool aInterruptible) {
 void PresShell::WindowSizeMoveDone() {
   if (mPresContext) {
     EventStateManager::ClearGlobalActiveContent(nullptr);
-    ClearMouseCapture(nullptr);
+    ClearMouseCapture();
   }
 }
 
@@ -10791,12 +10785,30 @@ nsAccessibilityService* PresShell::GetAccessibilityService() {
 
 #endif  // #ifdef ACCESSIBILITY
 
-// Asks our docshell whether we're active.
-void PresShell::QueryIsActive() {
-  Document* doc = mDocument;
-  if (!doc) {
+void PresShell::ActivenessMaybeChanged() {
+  if (!mDocument) {
     return;
   }
+  SetIsActive(ShouldBeActive());
+}
+
+bool PresShell::ShouldBeActive() const {
+  MOZ_LOG(gLog, LogLevel::Debug,
+          ("PresShell::ShouldBeActive(%s, %d)\n",
+           mDocument->GetDocumentURI()
+               ? mDocument->GetDocumentURI()->GetSpecOrDefault().get()
+               : "(no uri)",
+           mIsActive));
+
+  Document* doc = mDocument;
+
+  if (doc->IsBeingUsedAsImage()) {
+    // Documents used as an image can remain active. They do not tick their
+    // refresh driver if not painted, and they can't run script or such so they
+    // can't really observe much else.
+    return true;
+  }
+
   if (Document* displayDoc = doc->GetDisplayDocument()) {
     // Ok, we're an external resource document -- we need to use our display
     // document's docshell to determine "IsActive" status, since we lack
@@ -10806,25 +10818,52 @@ void PresShell::QueryIsActive() {
     doc = displayDoc;
   }
 
-  if (BrowsingContext* bc = doc->GetBrowsingContext()) {
-    // Even though in theory the docshell here could be "Inactive and
-    // Foreground", thus implying aIsHidden=false for SetIsActive(), this is a
-    // newly created PresShell so we'd like to invalidate anyway upon being made
-    // active to ensure that the contents get painted.
-    auto* browserChild = BrowserChild::GetFrom(doc->GetDocShell());
-    const bool hiddenInRemoteFrame = browserChild &&
-                                     !browserChild->IsTopLevel() &&
-                                     !browserChild->IsVisible();
-    SetIsActive(bc->IsActive() && !hiddenInRemoteFrame);
+  Document* root = nsContentUtils::GetInProcessSubtreeRootDocument(doc);
+  if (auto* browserChild = BrowserChild::GetFrom(root->GetDocShell())) {
+    // We might want to activate a tab even though the browsing-context is not
+    // active if the BrowserChild is considered visible. This serves two
+    // purposes:
+    //
+    //  * For top-level tabs, we use this for tab warming. The browsing-context
+    //    might still be inactive, but we want to activate the pres shell and
+    //    the refresh driver.
+    //
+    //  * For oop iframes, we do want to throttle them if they're not visible.
+    //
+    // TODO(emilio): Consider unifying the in-process vs. fission iframe
+    // throttling code (in-process throttling for non-visible iframes lives
+    // right now in Document::ShouldThrottleFrameRequests(), but that only
+    // throttles rAF).
+    if (!browserChild->IsVisible()) {
+      MOZ_LOG(gLog, LogLevel::Debug,
+              (" > BrowserChild %p is not visible", browserChild));
+      return false;
+    }
+
+    // If the browser is visible but just due to be preserving layers
+    // artificially, we do want to fall back to the browsing context activeness
+    // instead. Otherwise we do want to be active for the use cases above.
+    if (!browserChild->IsPreservingLayers()) {
+      MOZ_LOG(gLog, LogLevel::Debug,
+              (" > BrowserChild %p is visible and not preserving layers",
+               browserChild));
+      return true;
+    }
+    MOZ_LOG(
+        gLog, LogLevel::Debug,
+        (" > BrowserChild %p is visible and preserving layers", browserChild));
   }
+
+  BrowsingContext* bc = doc->GetBrowsingContext();
+  MOZ_LOG(gLog, LogLevel::Debug,
+          (" > BrowsingContext %p  active: %d", bc, bc && bc->IsActive()));
+  return bc && bc->IsActive();
 }
 
-nsresult PresShell::SetIsActive(bool aIsActive) {
+void PresShell::SetIsActive(bool aIsActive) {
   MOZ_ASSERT(mDocument, "should only be called with a document");
 
-#if defined(MOZ_WIDGET_ANDROID)
   const bool changed = mIsActive != aIsActive;
-#endif
 
   mIsActive = aIsActive;
 
@@ -10834,17 +10873,24 @@ nsresult PresShell::SetIsActive(bool aIsActive) {
     presContext->RefreshDriver()->SetThrottled(!mIsActive);
   }
 
-  {
-    // Propagate state-change to my resource documents' PresShells
-    auto recurse = [aIsActive](Document& aResourceDoc) {
-      if (PresShell* presShell = aResourceDoc.GetPresShell()) {
+  if (changed) {
+    // Propagate state-change to my resource documents' PresShells and other
+    // subdocuments.
+    //
+    // Note that it is fine to not propagate to fission iframes. Those will
+    // become active / inactive as needed as a result of they getting painted /
+    // not painted eventually.
+    auto recurse = [aIsActive](Document& aSubDoc) {
+      if (PresShell* presShell = aSubDoc.GetPresShell()) {
         presShell->SetIsActive(aIsActive);
       }
       return CallState::Continue;
     };
     mDocument->EnumerateExternalResources(recurse);
+    mDocument->EnumerateSubDocuments(recurse);
   }
-  nsresult rv = UpdateImageLockingState();
+
+  UpdateImageLockingState();
 #ifdef ACCESSIBILITY
   if (aIsActive) {
     if (nsAccessibilityService* accService =
@@ -10869,8 +10915,6 @@ nsresult PresShell::SetIsActive(bool aIsActive) {
       rootFrame->SchedulePaint();
     }
   }
-
-  return rv;
 }
 
 RefPtr<MobileViewportManager> PresShell::GetMobileViewportManager() const {
@@ -10980,11 +11024,11 @@ bool PresShell::UsesMobileViewportSizing() const {
  * Determines the current image locking state. Called when one of the
  * dependent factors changes.
  */
-nsresult PresShell::UpdateImageLockingState() {
+void PresShell::UpdateImageLockingState() {
   // We're locked if we're both thawed and active.
   bool locked = !mFrozen && mIsActive;
 
-  nsresult rv = mDocument->ImageTracker()->SetLockingState(locked);
+  mDocument->ImageTracker()->SetLockingState(locked);
 
   if (locked) {
     // Request decodes for visible image frames; we want to start decoding as
@@ -10995,8 +11039,6 @@ nsresult PresShell::UpdateImageLockingState() {
       }
     }
   }
-
-  return rv;
 }
 
 PresShell* PresShell::GetRootPresShell() const {

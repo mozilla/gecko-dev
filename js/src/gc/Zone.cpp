@@ -181,7 +181,7 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
       gcScheduled_(false),
       gcScheduledSaved_(false),
       gcPreserveCode_(false),
-      keepShapeCaches_(this, false),
+      keepPropMapTables_(this, false),
       wasCollected_(false),
       listNext_(NotOnList),
       weakRefMap_(this, this),
@@ -622,10 +622,13 @@ Zone* Zone::nextZone() const {
 void Zone::clearTables() {
   MOZ_ASSERT(regExps().empty());
 
-  shapeZone().clearTables();
+  shapeZone().clearTables(runtimeFromMainThread()->defaultFreeOp());
 }
 
-void Zone::fixupAfterMovingGC() { ZoneAllocator::fixupAfterMovingGC(); }
+void Zone::fixupAfterMovingGC() {
+  ZoneAllocator::fixupAfterMovingGC();
+  shapeZone().fixupPropMapShapeTableAfterMovingGC();
+}
 
 bool Zone::addRttValueObject(JSContext* cx, HandleObject obj) {
   // Type descriptor objects are always tenured so we don't need post barriers
@@ -680,16 +683,17 @@ void Zone::purgeAtomCache() {
 void Zone::addSizeOfIncludingThis(
     mozilla::MallocSizeOf mallocSizeOf, JS::CodeSizes* code, size_t* regexpZone,
     size_t* jitZone, size_t* baselineStubsOptimized, size_t* uniqueIdMap,
-    size_t* shapeCaches, size_t* atomsMarkBitmaps, size_t* compartmentObjects,
-    size_t* crossCompartmentWrappersTables, size_t* compartmentsPrivateData,
-    size_t* scriptCountsMapArg) {
+    size_t* initialPropMapTable, size_t* shapeTables, size_t* atomsMarkBitmaps,
+    size_t* compartmentObjects, size_t* crossCompartmentWrappersTables,
+    size_t* compartmentsPrivateData, size_t* scriptCountsMapArg) {
   *regexpZone += regExps().sizeOfIncludingThis(mallocSizeOf);
   if (jitZone_) {
     jitZone_->addSizeOfIncludingThis(mallocSizeOf, code, jitZone,
                                      baselineStubsOptimized);
   }
   *uniqueIdMap += uniqueIds().shallowSizeOfExcludingThis(mallocSizeOf);
-  *shapeCaches += shapeZone().sizeOfExcludingThis(mallocSizeOf);
+  shapeZone().addSizeOfExcludingThis(mallocSizeOf, initialPropMapTable,
+                                     shapeTables);
   *atomsMarkBitmaps += markedAtoms().sizeOfExcludingThis(mallocSizeOf);
   *crossCompartmentWrappersTables +=
       crossZoneStringWrappers().sizeOfExcludingThis(mallocSizeOf);

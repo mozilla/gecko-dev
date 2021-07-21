@@ -386,7 +386,7 @@ mingw-w64:
     fetch:
         type: git
         repo: https://git.code.sf.net/p/mingw-w64/mingw-w64
-        revision: 660e09f3cb20f181b6d6435cb623d65a3922a063
+        revision: cdb052f1d4056cd510cb83197b55868427b87476
 
 libunwind:
     description: libunwind source code
@@ -445,11 +445,11 @@ clang-11:
         revision: 43ff75f2c3feef64f9d73328230d34dac8832a91
 
 clang-12:
-    description: clang 12.0.0 source code
+    description: clang 12.0.1 source code
     fetch:
         type: git
         repo: https://github.com/llvm/llvm-project
-        revision: d28af7c654d8db0b68c175db5ce212d74fb5e9bc
+        revision: fed41342a82f5a3a9201819a82bf7a48313e296b
 
 clang-trunk:
     description: clang main branch source code
@@ -460,21 +460,21 @@ clang-trunk:
         repo: https://github.com/llvm/llvm-project
         branch: main
 
-# This revision currently corresponds to rust nightly-2021-03-24,
-# which is the first nightly with the version 1.53.0,
+# This revision currently corresponds to rust nightly-2021-05-02,
+# which is the first nightly with the version 1.54.0,
 # so it should be as close as possible to the behaviour of
-# stable-1.52.0.
+# stable-1.53.0.
 #
 # We use this to build from source, so the resulting non-official
-# artifacts will report their version as "1.53.0-dev", but will otherwise
+# artifacts will report their version as "1.54.0-dev", but will otherwise
 # behave like a nightly build. This means they will allow you to use
 # unstable features like -Zbuild-std and sanitizers.
-rust-1.53.0-dev:
-    description: Rust 1.53.0-dev source code
+rust-1.54.0-dev:
+    description: Rust 1.54.0-dev source code
     fetch:
         type: git
         repo: https://github.com/rust-lang/rust/
-        revision: 07e0e2ec268c140e607e1ac7f49f145612d0f597
+        revision: 4de75720970a223b125a811d3662fd15a08d4d18
 
 wasi-sdk:
     description: wasi-sdk source code
@@ -516,7 +516,7 @@ dump-syms:
     fetch:
         type: git
         repo: https://github.com/mozilla/dump_syms/
-        revision: 3cfe1848ad3247890715168a7175260abe6f96bc
+        revision: be751e1cd3a9ecf46227adc789f1239de53fe4d6
 
 fix-stacks:
     description: fix-stacks source code
@@ -532,13 +532,13 @@ winchecksec:
         repo: https://github.com/trailofbits/winchecksec/
         revision: 93ffe67dbfc757bf6f440d80b8acf88e652ed60a
 
-codeql-2.0.3:
+codeql-2.5.7:
     description: CodeQL query tools
     fetch:
         type: static-url
-        url: https://github.com/github/codeql-cli-binaries/releases/download/v2.0.3/codeql.zip
-        sha256: 094ff1ffc7211e8222c148e375fdd53b58bd4c0fe20875d9d7abf2a5e6c341a5
-        size: 473738719
+        url: https://github.com/github/codeql-cli-binaries/releases/download/v2.5.7/codeql-linux64.zip
+        sha256: b60a5f2929ac69ffdca85b666c50eadde60ad3387bf6953a7bfcd80b59ee4cff
+        size: 261487494
         artifact-name: codeql.zip
 
 sonatype-nexus:

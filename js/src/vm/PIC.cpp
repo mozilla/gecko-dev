@@ -102,10 +102,10 @@ bool js::ForOfPIC::Chain::initialize(JSContext* cx) {
   }
 
   disabled_ = false;
-  arrayProtoShape_ = arrayProto->lastProperty();
+  arrayProtoShape_ = arrayProto->shape();
   arrayProtoIteratorSlot_ = iterProp->slot();
   canonicalIteratorFunc_ = iterator;
-  arrayIteratorProtoShape_ = arrayIteratorProto->lastProperty();
+  arrayIteratorProtoShape_ = arrayIteratorProto->shape();
   arrayIteratorProtoNextSlot_ = nextProp->slot();
   canonicalNextFunc_ = next;
   return true;
@@ -166,7 +166,7 @@ bool js::ForOfPIC::Chain::tryOptimizeArray(JSContext* cx,
   }
 
   // Good to optimize now, create stub to add.
-  RootedShape shape(cx, array->lastProperty());
+  RootedShape shape(cx, array->shape());
   Stub* stub = cx->new_<Stub>(shape);
   if (!stub) {
     return false;
@@ -228,7 +228,7 @@ bool js::ForOfPIC::Chain::hasMatchingStub(ArrayObject* obj) {
 
 bool js::ForOfPIC::Chain::isArrayStateStillSane() {
   // Ensure that canonical Array.prototype has matching shape.
-  if (arrayProto_->lastProperty() != arrayProtoShape_) {
+  if (arrayProto_->shape() != arrayProtoShape_) {
     return false;
   }
 
@@ -339,7 +339,8 @@ static const JSClassOps ForOfPICClassOps = {
 };
 
 const JSClass ForOfPICObject::class_ = {
-    "ForOfPIC", JSCLASS_HAS_PRIVATE | JSCLASS_BACKGROUND_FINALIZE,
+    "ForOfPIC",
+    JSCLASS_HAS_RESERVED_SLOTS(SlotCount) | JSCLASS_BACKGROUND_FINALIZE,
     &ForOfPICClassOps};
 
 /* static */
@@ -355,8 +356,7 @@ NativeObject* js::ForOfPIC::createForOfPICObject(JSContext* cx,
   if (!chain) {
     return nullptr;
   }
-  InitObjectPrivate(obj, chain, MemoryUse::ForOfPIC);
-  obj->setPrivate(chain);
+  InitReservedSlot(obj, ForOfPICObject::ChainSlot, chain, MemoryUse::ForOfPIC);
   return obj;
 }
 

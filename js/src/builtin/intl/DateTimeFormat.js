@@ -130,7 +130,8 @@ function resolveDateTimeFormatInternals(lazyDateTimeFormatData) {
  */
 function getDateTimeFormatInternals(obj) {
     assert(IsObject(obj), "getDateTimeFormatInternals called with non-object");
-    assert(GuardToDateTimeFormat(obj) !== null, "getDateTimeFormatInternals called with non-DateTimeFormat");
+    assert(intl_GuardToDateTimeFormat(obj) !== null,
+           "getDateTimeFormatInternals called with non-DateTimeFormat");
 
     var internals = getIntlObjectInternals(obj);
     assert(internals.type === "DateTimeFormat", "bad type escaped getIntlObjectInternals");
@@ -152,8 +153,8 @@ function getDateTimeFormatInternals(obj) {
 function UnwrapDateTimeFormat(dtf) {
     // Steps 2 and 4 (error handling moved to caller).
     if (IsObject(dtf) &&
-        GuardToDateTimeFormat(dtf) === null &&
-        !IsWrappedDateTimeFormat(dtf) &&
+        intl_GuardToDateTimeFormat(dtf) === null &&
+        !intl_IsWrappedDateTimeFormat(dtf) &&
         callFunction(std_Object_isPrototypeOf, GetBuiltinPrototype("DateTimeFormat"), dtf))
     {
         dtf = dtf[intlFallbackSymbol()];
@@ -253,7 +254,7 @@ function DefaultTimeZone() {
  */
 function InitializeDateTimeFormat(dateTimeFormat, thisValue, locales, options, mozExtensions) {
     assert(IsObject(dateTimeFormat), "InitializeDateTimeFormat called with non-Object");
-    assert(GuardToDateTimeFormat(dateTimeFormat) !== null,
+    assert(intl_GuardToDateTimeFormat(dateTimeFormat) !== null,
            "InitializeDateTimeFormat called with non-DateTimeFormat");
 
     // Lazy DateTimeFormat data has the following structure:
@@ -446,7 +447,7 @@ function InitializeDateTimeFormat(dateTimeFormat, thisValue, locales, options, m
     if (dateTimeFormat !== thisValue &&
         callFunction(std_Object_isPrototypeOf, GetBuiltinPrototype("DateTimeFormat"), thisValue))
     {
-        _DefineDataProperty(thisValue, intlFallbackSymbol(), dateTimeFormat,
+        DefineDataProperty(thisValue, intlFallbackSymbol(), dateTimeFormat,
                             ATTR_NONENUMERABLE | ATTR_NONCONFIGURABLE | ATTR_NONWRITABLE);
 
         return thisValue;
@@ -755,17 +756,17 @@ function ToDateTimeOptions(options, required, defaults) {
         // the Throw parameter, while Object.defineProperty uses true. For the
         // calls here, the difference doesn't matter because we're adding
         // properties to a new object.
-        _DefineDataProperty(options, "year", "numeric");
-        _DefineDataProperty(options, "month", "numeric");
-        _DefineDataProperty(options, "day", "numeric");
+        DefineDataProperty(options, "year", "numeric");
+        DefineDataProperty(options, "month", "numeric");
+        DefineDataProperty(options, "day", "numeric");
     }
 
     // Step 7.
     if (needDefaults && (defaults === "time" || defaults === "all")) {
         // See comment for step 7.
-        _DefineDataProperty(options, "hour", "numeric");
-        _DefineDataProperty(options, "minute", "numeric");
-        _DefineDataProperty(options, "second", "numeric");
+        DefineDataProperty(options, "hour", "numeric");
+        DefineDataProperty(options, "minute", "numeric");
+        DefineDataProperty(options, "second", "numeric");
     }
 
     // Step 8.
@@ -832,7 +833,8 @@ function createDateTimeFormatFormat(dtf) {
 
         // Step 2.
         assert(IsObject(dtf), "dateTimeFormatFormatToBind called with non-Object");
-        assert(GuardToDateTimeFormat(dtf) !== null, "dateTimeFormatFormatToBind called with non-DateTimeFormat");
+        assert(intl_GuardToDateTimeFormat(dtf) !== null,
+               "dateTimeFormatFormatToBind called with non-DateTimeFormat");
 
         // Steps 3-4.
         var x = (date === undefined) ? std_Date_now() : ToNumber(date);
@@ -850,13 +852,13 @@ function createDateTimeFormatFormat(dtf) {
  * Spec: ECMAScript Internationalization API Specification, 12.4.3.
  */
 // Uncloned functions with `$` prefix are allocated as extended function
-// to store the original name in `_SetCanonicalName`.
+// to store the original name in `SetCanonicalName`.
 function $Intl_DateTimeFormat_format_get() {
     // Steps 1-3.
     var thisArg = UnwrapDateTimeFormat(this);
     var dtf = thisArg;
-    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
-        return callFunction(CallDateTimeFormatMethodIfWrapped, thisArg,
+    if (!IsObject(dtf) || (dtf = intl_GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(intl_CallDateTimeFormatMethodIfWrapped, thisArg,
                             "$Intl_DateTimeFormat_format_get");
     }
 
@@ -871,7 +873,7 @@ function $Intl_DateTimeFormat_format_get() {
     // Step 5.
     return internals.boundFormat;
 }
-_SetCanonicalName($Intl_DateTimeFormat_format_get, "get format");
+SetCanonicalName($Intl_DateTimeFormat_format_get, "get format");
 
 /**
  * Intl.DateTimeFormat.prototype.formatToParts ( date )
@@ -883,8 +885,8 @@ function Intl_DateTimeFormat_formatToParts(date) {
     var dtf = this;
 
     // Steps 2-3.
-    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
-        return callFunction(CallDateTimeFormatMethodIfWrapped, this, date,
+    if (!IsObject(dtf) || (dtf = intl_GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(intl_CallDateTimeFormatMethodIfWrapped, this, date,
                             "Intl_DateTimeFormat_formatToParts");
     }
 
@@ -908,8 +910,8 @@ function Intl_DateTimeFormat_formatRange(startDate, endDate) {
     var dtf = this;
 
     // Steps 2-3.
-    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
-        return callFunction(CallDateTimeFormatMethodIfWrapped, this, startDate, endDate,
+    if (!IsObject(dtf) || (dtf = intl_GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(intl_CallDateTimeFormatMethodIfWrapped, this, startDate, endDate,
                             "Intl_DateTimeFormat_formatRange");
     }
 
@@ -947,8 +949,8 @@ function Intl_DateTimeFormat_formatRangeToParts(startDate, endDate) {
     var dtf = this;
 
     // Steps 2-3.
-    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
-        return callFunction(CallDateTimeFormatMethodIfWrapped, this, startDate, endDate,
+    if (!IsObject(dtf) || (dtf = intl_GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(intl_CallDateTimeFormatMethodIfWrapped, this, startDate, endDate,
                             "Intl_DateTimeFormat_formatRangeToParts");
     }
 
@@ -985,8 +987,8 @@ function Intl_DateTimeFormat_resolvedOptions() {
     // Steps 1-3.
     var thisArg = UnwrapDateTimeFormat(this);
     var dtf = thisArg;
-    if (!IsObject(dtf) || (dtf = GuardToDateTimeFormat(dtf)) === null) {
-        return callFunction(CallDateTimeFormatMethodIfWrapped, thisArg,
+    if (!IsObject(dtf) || (dtf = intl_GuardToDateTimeFormat(dtf)) === null) {
+        return callFunction(intl_CallDateTimeFormatMethodIfWrapped, thisArg,
                             "Intl_DateTimeFormat_resolvedOptions");
     }
 
@@ -1001,7 +1003,7 @@ function Intl_DateTimeFormat_resolvedOptions() {
     };
 
     if (internals.patternOption !== undefined) {
-        _DefineDataProperty(result, "pattern", internals.pattern);
+        DefineDataProperty(result, "pattern", internals.pattern);
     }
 
     var hasDateStyle = internals.dateStyle !== undefined;
@@ -1014,10 +1016,10 @@ function Intl_DateTimeFormat_resolvedOptions() {
             resolveICUPattern(internals.pattern, result, /* includeDateTimeFields = */ false);
         }
         if (hasDateStyle) {
-            _DefineDataProperty(result, "dateStyle", internals.dateStyle);
+            DefineDataProperty(result, "dateStyle", internals.dateStyle);
         }
         if (hasTimeStyle) {
-            _DefineDataProperty(result, "timeStyle", internals.timeStyle);
+            DefineDataProperty(result, "timeStyle", internals.timeStyle);
         }
     } else {
         resolveICUPattern(internals.pattern, result, /* includeDateTimeFields = */ true);
@@ -1171,44 +1173,44 @@ function resolveICUPattern(pattern, result, includeDateTimeFields) {
     }
 
     if (hourCycle) {
-        _DefineDataProperty(result, "hourCycle", hourCycle);
-        _DefineDataProperty(result, "hour12", hourCycle === "h11" || hourCycle === "h12");
+        DefineDataProperty(result, "hourCycle", hourCycle);
+        DefineDataProperty(result, "hour12", hourCycle === "h11" || hourCycle === "h12");
     }
     if (!includeDateTimeFields) {
         return;
     }
     if (weekday) {
-        _DefineDataProperty(result, "weekday", weekday);
+        DefineDataProperty(result, "weekday", weekday);
     }
     if (era) {
-        _DefineDataProperty(result, "era", era);
+        DefineDataProperty(result, "era", era);
     }
     if (year) {
-        _DefineDataProperty(result, "year", year);
+        DefineDataProperty(result, "year", year);
     }
     if (month) {
-        _DefineDataProperty(result, "month", month);
+        DefineDataProperty(result, "month", month);
     }
     if (day) {
-        _DefineDataProperty(result, "day", day);
+        DefineDataProperty(result, "day", day);
     }
     if (dayPeriod) {
-        _DefineDataProperty(result, "dayPeriod", dayPeriod);
+        DefineDataProperty(result, "dayPeriod", dayPeriod);
     }
     if (hour) {
-        _DefineDataProperty(result, "hour", hour);
+        DefineDataProperty(result, "hour", hour);
     }
     if (minute) {
-        _DefineDataProperty(result, "minute", minute);
+        DefineDataProperty(result, "minute", minute);
     }
     if (second) {
-        _DefineDataProperty(result, "second", second);
+        DefineDataProperty(result, "second", second);
     }
     if (fractionalSecondDigits) {
-        _DefineDataProperty(result, "fractionalSecondDigits", fractionalSecondDigits);
+        DefineDataProperty(result, "fractionalSecondDigits", fractionalSecondDigits);
     }
     if (timeZoneName) {
-        _DefineDataProperty(result, "timeZoneName", timeZoneName);
+        DefineDataProperty(result, "timeZoneName", timeZoneName);
     }
 }
 /* eslint-enable complexity */

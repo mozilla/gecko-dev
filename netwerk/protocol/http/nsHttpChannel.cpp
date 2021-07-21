@@ -53,7 +53,6 @@
 #include "nsAlgorithm.h"
 #include "nsQueryObject.h"
 #include "nsThreadUtils.h"
-#include "GeckoProfiler.h"
 #include "nsIConsoleService.h"
 #include "mozilla/AntiTrackingRedirectHeuristic.h"
 #include "mozilla/AntiTrackingUtils.h"
@@ -62,6 +61,7 @@
 #include "mozilla/ContentBlocking.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Preferences.h"
+#include "mozilla/ProfilerLabels.h"
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/StaticPrefs_fission.h"
@@ -95,6 +95,7 @@
 #include "mozilla/Telemetry.h"
 #include "AlternateServices.h"
 #include "InterceptedChannel.h"
+#include "NetworkMarker.h"
 #include "nsIHttpPushListener.h"
 #include "nsIX509Cert.h"
 #include "ScopedNSSTypes.h"
@@ -123,6 +124,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ServiceWorkerUtils.h"
 #include "mozilla/dom/nsHTTPSOnlyStreamListener.h"
+#include "mozilla/dom/nsHTTPSOnlyUtils.h"
 #include "mozilla/net/AsyncUrlChannelClassifier.h"
 #include "mozilla/net/CookieJarSettings.h"
 #include "mozilla/net/NeckoChannelParams.h"
@@ -134,12 +136,9 @@
 #include "mozilla/dom/SecFetch.h"
 #include "mozilla/net/TRRService.h"
 #include "mozilla/URLQueryStringStripper.h"
+#include "nsUnknownDecoder.h"
 #ifdef XP_WIN
 #  include "HttpWinUtils.h"
-#endif
-
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracer.h"
 #endif
 
 namespace mozilla {
@@ -396,7 +395,7 @@ nsresult nsHttpChannel::PrepareToConnect() {
   // If Windows 10 SSO is enabled, we potentially add auth information to
   // secure top level loads (DOCUMENTs) that aren't anonymous or
   // private browsing.
-  if (StaticPrefs::network_http_windows10_sso_enabled() &&
+  if (StaticPrefs::network_http_windows_sso_enabled() &&
       mURI->SchemeIs("https") &&
       mLoadInfo->GetExternalContentPolicyType() ==
           ExtContentPolicy::TYPE_DOCUMENT &&
@@ -559,32 +558,27 @@ nsresult nsHttpChannel::MaybeUseHTTPSRRForUpgrade(bool aShouldUpgrade,
       return true;
     }
 
-    nsCOMPtr<nsIPrincipal> triggeringPrincipal =
-        mLoadInfo->TriggeringPrincipal();
-    // If the security context that triggered the load is not https, then it's
-    // not a downgrade scenario.
-    if (!triggeringPrincipal->SchemeIs("https")) {
-      return false;
+    if (nsHTTPSOnlyUtils::IsUpgradeDowngradeEndlessLoop(
+            mURI, mLoadInfo,
+            {nsHTTPSOnlyUtils::UpgradeDowngradeEndlessLoopOptions::
+                 EnforceForHTTPSRR})) {
+      // Add the host to a excluded list because:
+      // 1. We don't need to do the same check again.
+      // 2. Other subresources in the same host will be also excluded.
+      gHttpHandler->ExcludeHTTPSRRHost(uriHost);
+      LOG(("[%p] skip HTTPS upgrade for host [%s]", this, uriHost.get()));
+      return true;
     }
 
-    nsAutoCString triggeringHost;
-    triggeringPrincipal->GetAsciiHost(triggeringHost);
-
-    // If the initial request's host is not the same, we should upgrade this
-    // request.
-    if (!triggeringHost.Equals(uriHost)) {
-      return false;
-    }
-
-    // Add the host to a excluded list because:
-    // 1. We don't need to do the same check again.
-    // 2. Other subresources in the same host will be also excluded.
-    gHttpHandler->ExcludeHTTPSRRHost(uriHost);
-    return true;
+    return false;
   };
 
   if (shouldSkipUpgradeWithHTTPSRR()) {
     StoreUseHTTPSSVC(false);
+    // If the website does not want to use HTTPS RR, we should set
+    // NS_HTTP_DISALLOW_HTTPS_RR. This is for avoiding HTTPS RR being used by
+    // the transaction.
+    mCaps |= NS_HTTP_DISALLOW_HTTPS_RR;
     return ContinueOnBeforeConnect(aShouldUpgrade, aStatus);
   }
 
@@ -1507,18 +1501,8 @@ nsresult nsHttpChannel::CallOnStartRequest() {
       mResponseHead->SetContentType(nsLiteralCString(TEXT_PLAIN));
     } else {
       // Uh-oh.  We had better find out what type we are!
-      nsCOMPtr<nsIStreamConverterService> serv;
-      rv = gHttpHandler->GetStreamConverterService(getter_AddRefs(serv));
-      // If we failed, we just fall through to the "normal" case
-      if (NS_SUCCEEDED(rv)) {
-        nsCOMPtr<nsIStreamListener> converter;
-        rv = serv->AsyncConvertData(UNKNOWN_CONTENT_TYPE, "*/*", mListener,
-                                    nullptr, getter_AddRefs(converter));
-        if (NS_SUCCEEDED(rv)) {
-          mListener = converter;
-          unknownDecoderStarted = true;
-        }
-      }
+      mListener = new nsUnknownDecoder(mListener);
+      unknownDecoderStarted = true;
     }
   }
 
@@ -2663,7 +2647,25 @@ nsresult nsHttpChannel::ProxyFailover() {
   nsCOMPtr<nsIProxyInfo> pi;
   rv = pps->GetFailoverForProxy(mConnectionInfo->ProxyInfo(), mURI, mStatus,
                                 getter_AddRefs(pi));
-  if (NS_FAILED(rv)) return rv;
+#ifdef MOZ_PROXY_DIRECT_FAILOVER
+  if (NS_FAILED(rv)) {
+    if (!StaticPrefs::network_proxy_failover_direct()) {
+      return rv;
+    }
+    // If this request used a failed proxy and there is no failover available,
+    // fallback to DIRECT connections for system principal requests.
+    if (mLoadInfo->GetLoadingPrincipal() &&
+        mLoadInfo->GetLoadingPrincipal()->IsSystemPrincipal()) {
+      rv = pps->NewProxyInfo("direct"_ns, ""_ns, 0, ""_ns, ""_ns, 0, UINT32_MAX,
+                             nullptr, getter_AddRefs(pi));
+    }
+#endif
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+#ifdef MOZ_PROXY_DIRECT_FAILOVER
+  }
+#endif
 
   // XXXbz so where does this codepath remove us from the loadgroup,
   // exactly?
@@ -4974,6 +4976,11 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
   rv = CheckRedirectLimit(redirectFlags);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  // clear exempt flag such that a subdomain redirection gets
+  // upgraded even if the initial request was exempted by https-first/ -only
+  nsCOMPtr<nsILoadInfo> newLoadInfo = newChannel->LoadInfo();
+  nsHTTPSOnlyUtils::PotentiallyClearExemptFlag(newLoadInfo);
+
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(newChannel);
   if (!httpChannel) return NS_OK;  // no other options to set
 
@@ -5112,7 +5119,32 @@ nsresult nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv) {
     if (NS_FAILED(rv)) return rv;
   }
 
-#ifdef MOZ_GECKO_PROFILER
+  uint32_t redirectFlags;
+  if (nsHttp::IsPermanentRedirect(mRedirectType)) {
+    redirectFlags = nsIChannelEventSink::REDIRECT_PERMANENT;
+  } else {
+    redirectFlags = nsIChannelEventSink::REDIRECT_TEMPORARY;
+  }
+
+  nsCOMPtr<nsIIOService> ioService;
+  rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
+  if (NS_FAILED(rv)) return rv;
+
+  nsCOMPtr<nsIChannel> newChannel;
+  nsCOMPtr<nsILoadInfo> redirectLoadInfo =
+      CloneLoadInfoForRedirect(mRedirectURI, redirectFlags);
+
+  // Propagate the unstripped redirect URI.
+  redirectLoadInfo->SetUnstrippedURI(mUnstrippedRedirectURI);
+
+  rv = NS_NewChannelInternal(getter_AddRefs(newChannel), mRedirectURI,
+                             redirectLoadInfo,
+                             nullptr,  // PerformanceStorage
+                             nullptr,  // aLoadGroup
+                             nullptr,  // aCallbacks
+                             nsIRequest::LOAD_NORMAL, ioService);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   if (profiler_can_accept_markers()) {
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
@@ -5133,40 +5165,16 @@ nsresult nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv) {
       mResponseHead->ContentType(contentType);
     }
 
+    RefPtr<HttpBaseChannel> newBaseChannel = do_QueryObject(newChannel);
+    MOZ_ASSERT(newBaseChannel,
+               "The redirect channel should be a base channel.");
     profiler_add_network_marker(
         mURI, requestMethod, priority, mChannelId,
         NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
         size, mCacheDisposition, mLoadInfo->GetInnerWindowID(), &timings,
-        mRedirectURI, std::move(mSource),
-        Some(nsDependentCString(contentType.get())));
+        std::move(mSource), Some(nsDependentCString(contentType.get())),
+        mRedirectURI, redirectFlags, newBaseChannel->ChannelId());
   }
-#endif
-
-  nsCOMPtr<nsIIOService> ioService;
-  rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
-  if (NS_FAILED(rv)) return rv;
-
-  uint32_t redirectFlags;
-  if (nsHttp::IsPermanentRedirect(mRedirectType)) {
-    redirectFlags = nsIChannelEventSink::REDIRECT_PERMANENT;
-  } else {
-    redirectFlags = nsIChannelEventSink::REDIRECT_TEMPORARY;
-  }
-
-  nsCOMPtr<nsIChannel> newChannel;
-  nsCOMPtr<nsILoadInfo> redirectLoadInfo =
-      CloneLoadInfoForRedirect(mRedirectURI, redirectFlags);
-
-  // Propagate the unstripped redirect URI.
-  redirectLoadInfo->SetUnstrippedURI(mUnstrippedRedirectURI);
-
-  rv = NS_NewChannelInternal(getter_AddRefs(newChannel), mRedirectURI,
-                             redirectLoadInfo,
-                             nullptr,  // PerformanceStorage
-                             nullptr,  // aLoadGroup
-                             nullptr,  // aCallbacks
-                             nsIRequest::LOAD_NORMAL, ioService);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   rv = SetupReplacementChannel(mRedirectURI, newChannel, !rewriteToGET,
                                redirectFlags);
@@ -5676,18 +5684,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
   LOG(("nsHttpChannel::AsyncOpen [this=%p]\n", this));
   LogCallingScriptLocation(this);
 
-#ifdef MOZ_TASK_TRACER
-  if (tasktracer::IsStartLogging()) {
-    uint64_t sourceEventId, parentTaskId;
-    tasktracer::SourceEventType sourceEventType;
-    GetCurTraceInfo(&sourceEventId, &parentTaskId, &sourceEventType);
-    nsAutoCString urispec;
-    mURI->GetSpec(urispec);
-    tasktracer::AddLabel("nsHttpChannel::AsyncOpen %s", urispec.get());
-  }
-#endif
-
-#ifdef MOZ_GECKO_PROFILER
   mLastStatusReported =
       TimeStamp::Now();  // in case we enable the profiler after AsyncOpen()
   if (profiler_can_accept_markers()) {
@@ -5697,9 +5693,8 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
     profiler_add_network_marker(
         mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
         mChannelCreationTimestamp, mLastStatusReported, 0, mCacheDisposition,
-        mLoadInfo->GetInnerWindowID(), nullptr, nullptr);
+        mLoadInfo->GetInnerWindowID());
   }
-#endif
 
   NS_CompareLoadInfoAndLoadContext(this);
 
@@ -5791,12 +5786,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
     return NS_OK;
   }
 
-  // PauseTask/DelayHttpChannel queuing
-  if (!DelayHttpChannelQueue::AttemptQueueChannel(this)) {
-    // If fuzzyfox is disabled; or adding to the queue failed, the channel must
-    // continue.
-    AsyncOpenFinal(TimeStamp::Now());
-  }
+  AsyncOpenFinal(TimeStamp::Now());
 
   return NS_OK;
 }
@@ -7443,7 +7433,6 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
 
   MaybeFlushConsoleReports();
 
-#ifdef MOZ_GECKO_PROFILER
   if (profiler_can_accept_markers() && !mRedirectURI) {
     // Don't include this if we already redirected
     // These do allocations/frees/etc; avoid if not active
@@ -7463,10 +7452,9 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
     profiler_add_network_marker(
         mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_STOP,
         mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
-        mLoadInfo->GetInnerWindowID(), &mTransactionTimings, nullptr,
-        std::move(mSource), Some(nsDependentCString(contentType.get())));
+        mLoadInfo->GetInnerWindowID(), &mTransactionTimings, std::move(mSource),
+        Some(nsDependentCString(contentType.get())));
   }
-#endif
 
   if (mListener) {
     LOG(("nsHttpChannel %p calling OnStopRequest\n", this));

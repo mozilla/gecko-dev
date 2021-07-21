@@ -26,12 +26,6 @@ add_task(async function setup() {
   let engineOneOff = Services.search.getEngineByName("MozSearch2");
   await Services.search.moveEngine(engineOneOff, 0);
 
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["dom.select_events.enabled", true], // We want select events to be fired.
-    ],
-  });
-
   // Enable local telemetry recording for the duration of the tests.
   let oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
@@ -133,9 +127,7 @@ add_task(async function test_about_newtab() {
   await SpecialPowers.pushPrefEnv({
     set: [
       [
-        [
-          "browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar",
-        ],
+        "browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar",
         false,
       ],
     ],

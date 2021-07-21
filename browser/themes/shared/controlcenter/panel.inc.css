@@ -536,57 +536,6 @@ description#identity-popup-content-verifier,
   justify-content: space-between;
 }
 
-.protections-popup-socialblockView-icon,
-.protections-popup-fingerprintersView-icon,
-.protections-popup-cryptominersView-icon,
-.protections-popup-trackersView-icon,
-.protections-popup-cookiesView-icon {
-  margin-inline-end: 10px;
-  -moz-context-properties: fill;
-}
-
-.protections-popup-trackersView-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/tracker-image-disabled.svg);
-  width: 16px;
-  height: 16px;
-}
-
-.protections-popup-trackersView-icon.allowed {
-  list-style-image: url(chrome://browser/skin/controlcenter/tracker-image.svg);
-}
-
-.protections-popup-socialblockView-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/socialblock-disabled.svg);
-}
-
-.protections-popup-socialblockView-icon.allowed {
-  list-style-image: url(chrome://browser/skin/controlcenter/socialblock.svg);
-}
-
-.protections-popup-cookiesView-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/3rdpartycookies-disabled.svg);
-}
-
-.protections-popup-cookiesView-icon.allowed {
-  list-style-image: url(chrome://browser/skin/controlcenter/3rdpartycookies.svg);
-}
-
-.protections-popup-fingerprintersView-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/fingerprinters-disabled.svg);
-}
-
-.protections-popup-fingerprintersView-icon.allowed {
-  list-style-image: url(chrome://browser/skin/controlcenter/fingerprinters.svg);
-}
-
-.protections-popup-cryptominersView-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/cryptominers-disabled.svg);
-}
-
-.protections-popup-cryptominersView-icon.allowed {
-  list-style-image: url(chrome://browser/skin/controlcenter/cryptominers.svg);
-}
-
 /* Content Blocking categories */
 
 #protections-popup-no-trackers-found-description {
@@ -655,7 +604,7 @@ description#identity-popup-content-verifier,
 }
 
 .trackers-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/tracker-image.svg);
+  list-style-image: url(chrome://browser/skin/canvas.svg);
 }
 
 .socialblock-icon {
@@ -671,7 +620,7 @@ description#identity-popup-content-verifier,
 }
 
 .fingerprinters-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/fingerprinters.svg);
+  list-style-image: url(chrome://browser/skin/fingerprint.svg);
 }
 
 /* PERMISSIONS */
@@ -768,10 +717,6 @@ description#identity-popup-content-verifier,
   border-radius: 4px;
 }
 
-.permission-popup-permission-remove-button > .button-box {
-  padding: 0;
-}
-
 .permission-popup-permission-remove-button > .button-box > .button-icon {
   margin: 0;
   width: 12px;
@@ -815,7 +760,7 @@ description#identity-popup-content-verifier,
 
 #protections-popup-siteNotWorkingView-body > label,
 .protections-popup-tp-switch-label-box > label {
-  margin: 0;
+  margin-inline: 0;
 }
 
 
@@ -905,10 +850,6 @@ description#identity-popup-content-verifier,
 }
 
 /* Protection popup footer categories */
-
-#protections-popup-footer {
-  padding: var(--vertical-section-padding) 0;
-}
 
 #protections-popup-trackers-blocked-counter-box {
   margin-inline-end: var(--horizontal-padding);
@@ -1089,6 +1030,7 @@ description#identity-popup-content-verifier,
 #blocked-popup-indicator-item,
 #geo-access-indicator-item {
   margin-top: -2px;
+  margin-inline-start: 16px;
 }
 
 #geo-access-indicator-item {

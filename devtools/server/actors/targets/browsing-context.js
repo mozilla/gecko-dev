@@ -324,6 +324,10 @@ const browsingContextTargetPrototype = {
       watchpoints: true,
       // Supports back and forward navigation
       navigation: true,
+      // @backward-compat { version 91 } Starting with Firefox 91,
+      // javascriptEnabled is only read from the parent process and is not set
+      // in the BrowsingContextTargetActor form.
+      javascriptEnabledHandledInParent: true,
     };
 
     this._workerDescriptorActorList = null;
@@ -1089,7 +1093,6 @@ const browsingContextTargetPrototype = {
 
     return {
       threadActor: this.threadActor.actorID,
-      cacheDisabled: this._getCacheDisabled(),
       traits: this.traits,
     };
   },
@@ -1152,6 +1155,10 @@ const browsingContextTargetPrototype = {
 
   /**
    * Reload the page in this browsing context.
+   *
+   * @backward-compat { legacy }
+   *                  reload is preserved for third party tools. See Bug 1717837.
+   *                  DevTools should use Descriptor::reloadDescriptor instead.
    */
   reload(request) {
     const force = request?.options?.force;
@@ -1278,12 +1285,6 @@ const browsingContextTargetPrototype = {
       return;
     }
     if (
-      typeof options.cacheDisabled !== "undefined" &&
-      options.cacheDisabled !== this._getCacheDisabled()
-    ) {
-      this._setCacheDisabled(options.cacheDisabled);
-    }
-    if (
       typeof options.paintFlashing !== "undefined" &&
       options.PaintFlashing !== this._getPaintFlashing()
     ) {
@@ -1294,7 +1295,7 @@ const browsingContextTargetPrototype = {
     }
 
     if (reload) {
-      this.reload();
+      this.webNavigation.reload(Ci.nsIWebNavigation.LOAD_FLAGS_NONE);
     }
   },
 
@@ -1311,7 +1312,6 @@ const browsingContextTargetPrototype = {
    * state when closing the toolbox.
    */
   _restoreTargetConfiguration() {
-    this._setCacheDisabled(false);
     this._setPaintFlashingEnabled(false);
 
     if (this._restoreFocus && this.browsingContext?.isActive) {
@@ -1320,34 +1320,11 @@ const browsingContextTargetPrototype = {
   },
 
   /**
-   * Disable or enable the cache via docShell.
-   */
-  _setCacheDisabled(disabled) {
-    const enable = Ci.nsIRequest.LOAD_NORMAL;
-    const disable = Ci.nsIRequest.LOAD_BYPASS_CACHE;
-
-    this.docShell.defaultLoadFlags = disabled ? disable : enable;
-  },
-
-  /**
    * Disable or enable the paint flashing on the target.
    */
   _setPaintFlashingEnabled(enabled) {
     const windowUtils = this.window.windowUtils;
     windowUtils.paintFlashing = enabled;
-  },
-
-  /**
-   * Return cache allowed status.
-   */
-  _getCacheDisabled() {
-    if (!this.docShell) {
-      // The browsing context is already closed.
-      return null;
-    }
-
-    const disable = Ci.nsIRequest.LOAD_BYPASS_CACHE;
-    return this.docShell.defaultLoadFlags === disable;
   },
 
   /**

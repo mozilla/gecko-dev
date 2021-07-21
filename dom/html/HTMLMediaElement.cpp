@@ -44,12 +44,14 @@
 #include "MediaStreamWindowCapturer.h"
 #include "MediaTrack.h"
 #include "MediaTrackList.h"
+#include "Navigator.h"
 #include "TimeRanges.h"
 #include "VideoFrameContainer.h"
 #include "VideoOutput.h"
 #include "VideoStreamTrack.h"
 #include "base/basictypes.h"
 #include "jsapi.h"
+#include "js/PropertyAndElement.h"  // JS_DefineProperty
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/EMEUtils.h"
@@ -75,6 +77,7 @@
 #include "mozilla/dom/HTMLSourceElement.h"
 #include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/MediaControlUtils.h"
+#include "mozilla/dom/MediaDevices.h"
 #include "mozilla/dom/MediaEncryptedEvent.h"
 #include "mozilla/dom/MediaErrorBinding.h"
 #include "mozilla/dom/MediaSource.h"
@@ -160,6 +163,7 @@ using namespace mozilla::dom::HTMLMediaElement_Binding;
 namespace mozilla::dom {
 
 using AudibleState = AudioChannelService::AudibleState;
+using SinkInfoPromise = MediaDevices::SinkInfoPromise;
 
 // Number of milliseconds between progress events as defined by spec
 static const uint32_t PROGRESS_MS = 350;
@@ -7493,9 +7497,13 @@ already_AddRefed<Promise> HTMLMediaElement::SetSinkId(const nsAString& aSinkId,
     return promise.forget();
   }
 
+  RefPtr<MediaDevices> mediaDevices = win->Navigator()->GetMediaDevices(aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
   nsString sinkId(aSinkId);
-  MediaManager::Get()
-      ->GetSinkDevice(win, sinkId)
+  mediaDevices->GetSinkDevice(sinkId)
       ->Then(
           mAbstractMainThread, __func__,
           [self = RefPtr<HTMLMediaElement>(this),
@@ -7553,9 +7561,6 @@ already_AddRefed<Promise> HTMLMediaElement::SetSinkId(const nsAString& aSinkId,
                          "The object can not be found here.");
                      break;
                    }
-                   case NS_ERROR_DOM_MEDIA_NOT_ALLOWED_ERR:
-                     promise->MaybeReject(NS_ERROR_DOM_NOT_ALLOWED_ERR);
-                     break;
                    default:
                      MOZ_ASSERT_UNREACHABLE("Invalid error.");
                  }

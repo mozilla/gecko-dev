@@ -2429,9 +2429,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(Document)
     }
   }
 
-  if (tmp->mResizeObserverController) {
-    tmp->mResizeObserverController->Traverse(cb);
-  }
   for (size_t i = 0; i < tmp->mMetaViewports.Length(); i++) {
     NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMetaViewports[i].mElement);
   }
@@ -2588,9 +2585,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
 
   tmp->mInUnlinkOrDeletion = false;
 
-  if (tmp->mResizeObserverController) {
-    tmp->mResizeObserverController->Unlink();
-  }
   tmp->mMetaViewports.Clear();
 
   tmp->UnregisterFromMemoryReportingForDataDocument();
@@ -3582,7 +3576,8 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
   // we query it here from the loadinfo in case the newly created
   // document needs to inherit the CSP. See:
   // https://w3c.github.io/webappsec-csp/#initialize-document-csp
-  if (CSP_ShouldResponseInheritCSP(aChannel)) {
+  bool inheritedCSP = CSP_ShouldResponseInheritCSP(aChannel);
+  if (inheritedCSP) {
     mCSP = loadInfo->GetCspToInherit();
   }
 
@@ -3624,7 +3619,8 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
   auto addonPolicy = BasePrincipal::Cast(principal)->AddonPolicy();
 
   // If there's no CSP to apply, go ahead and return early
-  if (!addonPolicy && cspHeaderValue.IsEmpty() && cspROHeaderValue.IsEmpty()) {
+  if (!inheritedCSP && !addonPolicy && cspHeaderValue.IsEmpty() &&
+      cspROHeaderValue.IsEmpty()) {
     if (MOZ_LOG_TEST(gCspPRLog, LogLevel::Debug)) {
       nsCOMPtr<nsIURI> chanURI;
       aChannel->GetURI(getter_AddRefs(chanURI));
@@ -5186,12 +5182,31 @@ bool Document::ExecCommand(const nsAString& aHTMLCommandName, bool aShowUI,
   nsAutoString adjustedValue;
   InternalCommandData commandData =
       ConvertToInternalCommand(aHTMLCommandName, aValue, &adjustedValue);
-  if (commandData.mCommand == Command::DoNothing) {
-    return false;
-  }
-
-  if (commandData.mCommand == Command::GetHTML) {
-    return false;
+  switch (commandData.mCommand) {
+    case Command::DoNothing:
+    // "gethtml" command is a command to retrieve a string value, not executing
+    // anything and not enough the `bool` value of `execCommand`.  So, at here,
+    // we do nothing for "gethtml" command.
+    case Command::GetHTML:
+      return false;
+    case Command::FormatIncreaseFontSize:
+      SetUseCounter(eUseCounter_custom_DocumentExecCommandIncreaseFontSize);
+      break;
+    case Command::FormatDecreaseFontSize:
+      SetUseCounter(eUseCounter_custom_DocumentExecCommandDecreaseFontSize);
+      break;
+    case Command::FormatBlock:
+      if (aHTMLCommandName.LowerCaseEqualsLiteral("heading")) {
+        SetUseCounter(eUseCounter_custom_DocumentExecCommandHeading);
+      }
+      break;
+    case Command::SetDocumentReadOnly:
+      SetUseCounter(aHTMLCommandName.LowerCaseEqualsLiteral("contentreadonly")
+                        ? eUseCounter_custom_DocumentExecCommandContentReadOnly
+                        : eUseCounter_custom_DocumentExecCommandReadOnly);
+      break;
+    default:
+      break;
   }
 
   // Do security check first.
@@ -5350,8 +5365,39 @@ bool Document::QueryCommandEnabled(const nsAString& aHTMLCommandName,
   // Otherwise, don't throw exception for compatibility with Chrome.
 
   InternalCommandData commandData = ConvertToInternalCommand(aHTMLCommandName);
-  if (commandData.mCommand == Command::DoNothing) {
-    return false;
+  switch (commandData.mCommand) {
+    case Command::DoNothing:
+      return false;
+    case Command::FormatIncreaseFontSize:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledIncreaseFontSize);
+      break;
+    case Command::FormatDecreaseFontSize:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledDecreaseFontSize);
+      break;
+    case Command::GetHTML:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledGetHTML);
+      break;
+    case Command::FormatBlock:
+      if (aHTMLCommandName.LowerCaseEqualsLiteral("heading")) {
+        SetUseCounter(
+            eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledHeading);
+      }
+      break;
+    case Command::SetDocumentReadOnly:
+      SetUseCounter(
+          aHTMLCommandName.LowerCaseEqualsLiteral("contentreadonly")
+              ? eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledContentReadOnly
+              : eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledReadOnly);
+      break;
+    case Command::SetDocumentInsertBROnEnterKeyPress:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledInsertBrOnReturn);
+      break;
+    default:
+      break;
   }
 
   // cut & copy are always allowed
@@ -5451,8 +5497,30 @@ bool Document::QueryCommandState(const nsAString& aHTMLCommandName,
   // Otherwise, don't throw exception for compatibility with Chrome.
 
   InternalCommandData commandData = ConvertToInternalCommand(aHTMLCommandName);
-  if (commandData.mCommand == Command::DoNothing) {
-    return false;
+  switch (commandData.mCommand) {
+    case Command::DoNothing:
+      return false;
+    case Command::GetHTML:
+      SetUseCounter(eUseCounter_custom_DocumentQueryCommandStateOrValueGetHTML);
+      break;
+    case Command::FormatBlock:
+      if (aHTMLCommandName.LowerCaseEqualsLiteral("heading")) {
+        SetUseCounter(
+            eUseCounter_custom_DocumentQueryCommandStateOrValueHeading);
+      }
+      break;
+    case Command::SetDocumentReadOnly:
+      SetUseCounter(
+          aHTMLCommandName.LowerCaseEqualsLiteral("contentreadonly")
+              ? eUseCounter_custom_DocumentQueryCommandStateOrValueContentReadOnly
+              : eUseCounter_custom_DocumentQueryCommandStateOrValueReadOnly);
+      break;
+    case Command::SetDocumentInsertBROnEnterKeyPress:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandStateOrValueInsertBrOnReturn);
+      break;
+    default:
+      break;
   }
 
   if (aHTMLCommandName.LowerCaseEqualsLiteral("usecss")) {
@@ -5550,8 +5618,39 @@ bool Document::QueryCommandSupported(const nsAString& aHTMLCommandName,
   // Otherwise, don't throw exception for compatibility with Chrome.
 
   InternalCommandData commandData = ConvertToInternalCommand(aHTMLCommandName);
-  if (commandData.mCommand == Command::DoNothing) {
-    return false;
+  switch (commandData.mCommand) {
+    case Command::DoNothing:
+      return false;
+    case Command::FormatIncreaseFontSize:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledIncreaseFontSize);
+      break;
+    case Command::FormatDecreaseFontSize:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledDecreaseFontSize);
+      break;
+    case Command::GetHTML:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledGetHTML);
+      break;
+    case Command::FormatBlock:
+      if (aHTMLCommandName.LowerCaseEqualsLiteral("heading")) {
+        SetUseCounter(
+            eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledHeading);
+      }
+      break;
+    case Command::SetDocumentReadOnly:
+      SetUseCounter(
+          aHTMLCommandName.LowerCaseEqualsLiteral("contentreadonly")
+              ? eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledContentReadOnly
+              : eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledReadOnly);
+      break;
+    case Command::SetDocumentInsertBROnEnterKeyPress:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandSupportedOrEnabledInsertBrOnReturn);
+      break;
+    default:
+      break;
   }
 
   // Gecko technically supports all the clipboard commands including
@@ -5590,9 +5689,31 @@ void Document::QueryCommandValue(const nsAString& aHTMLCommandName,
   // Otherwise, don't throw exception for compatibility with Chrome.
 
   InternalCommandData commandData = ConvertToInternalCommand(aHTMLCommandName);
-  if (commandData.mCommand == Command::DoNothing) {
-    // Return empty string
-    return;
+  switch (commandData.mCommand) {
+    case Command::DoNothing:
+      // Return empty string
+      return;
+    case Command::GetHTML:
+      SetUseCounter(eUseCounter_custom_DocumentQueryCommandStateOrValueGetHTML);
+      break;
+    case Command::FormatBlock:
+      if (aHTMLCommandName.LowerCaseEqualsLiteral("heading")) {
+        SetUseCounter(
+            eUseCounter_custom_DocumentQueryCommandStateOrValueHeading);
+      }
+      break;
+    case Command::SetDocumentReadOnly:
+      SetUseCounter(
+          aHTMLCommandName.LowerCaseEqualsLiteral("contentreadonly")
+              ? eUseCounter_custom_DocumentQueryCommandStateOrValueContentReadOnly
+              : eUseCounter_custom_DocumentQueryCommandStateOrValueReadOnly);
+      break;
+    case Command::SetDocumentInsertBROnEnterKeyPress:
+      SetUseCounter(
+          eUseCounter_custom_DocumentQueryCommandStateOrValueInsertBrOnReturn);
+      break;
+    default:
+      break;
   }
 
   RefPtr<nsPresContext> presContext = GetPresContext();
@@ -8605,6 +8726,10 @@ void Document::SetDomain(const nsAString& aDomain, ErrorResult& rv) {
 
   MOZ_ALWAYS_SUCCEEDS(NodePrincipal()->SetDomain(newURI));
   MOZ_ALWAYS_SUCCEEDS(PartitionedPrincipal()->SetDomain(newURI));
+  WindowGlobalChild* wgc = GetWindowGlobalChild();
+  if (wgc) {
+    wgc->SendSetDocumentDomain(newURI);
+  }
 }
 
 already_AddRefed<nsIURI> Document::CreateInheritingURIForHost(
@@ -8645,6 +8770,21 @@ already_AddRefed<nsIURI> Document::RegistrableDomainSuffixOfInternal(
     return nullptr;
   }
 
+  if (!IsValidDomain(aOrigHost, newURI)) {
+    // Error: illegal domain
+    return nullptr;
+  }
+
+  nsAutoCString domain;
+  if (NS_FAILED(newURI->GetAsciiHost(domain))) {
+    return nullptr;
+  }
+
+  return CreateInheritingURIForHost(domain);
+}
+
+/* static */
+bool Document::IsValidDomain(nsIURI* aOrigHost, nsIURI* aNewURI) {
   // Check new domain - must be a superdomain of the current host
   // For example, a page from foo.bar.com may set domain to bar.com,
   // but not to ar.com, baz.com, or fi.foo.bar.com.
@@ -8653,7 +8793,7 @@ already_AddRefed<nsIURI> Document::RegistrableDomainSuffixOfInternal(
   if (NS_FAILED(aOrigHost->GetAsciiHost(current))) {
     current.Truncate();
   }
-  if (NS_FAILED(newURI->GetAsciiHost(domain))) {
+  if (NS_FAILED(aNewURI->GetAsciiHost(domain))) {
     domain.Truncate();
   }
 
@@ -8665,7 +8805,7 @@ already_AddRefed<nsIURI> Document::RegistrableDomainSuffixOfInternal(
     nsCOMPtr<nsIEffectiveTLDService> tldService =
         do_GetService(NS_EFFECTIVETLDSERVICE_CONTRACTID);
     if (!tldService) {
-      return nullptr;
+      return false;
     }
 
     nsAutoCString currentBaseDomain;
@@ -8677,12 +8817,7 @@ already_AddRefed<nsIURI> Document::RegistrableDomainSuffixOfInternal(
     ok = ok && domain.Length() >= currentBaseDomain.Length();
   }
 
-  if (!ok) {
-    // Error: illegal domain
-    return nullptr;
-  }
-
-  return CreateInheritingURIForHost(domain);
+  return ok;
 }
 
 Element* Document::GetHtmlElement() const {
@@ -12868,8 +13003,7 @@ already_AddRefed<Document> Document::CreateStaticClone(
     RefPtr<StyleSheet> sheet = SheetAt(i);
     if (sheet) {
       if (sheet->IsApplicable()) {
-        RefPtr<StyleSheet> clonedSheet =
-            sheet->Clone(nullptr, nullptr, clonedDoc, nullptr);
+        RefPtr<StyleSheet> clonedSheet = sheet->Clone(nullptr, clonedDoc);
         NS_WARNING_ASSERTION(clonedSheet, "Cloning a stylesheet didn't work!");
         if (clonedSheet) {
           clonedDoc->AddStyleSheet(clonedSheet);
@@ -12883,8 +13017,7 @@ already_AddRefed<Document> Document::CreateStaticClone(
     auto& sheets = mAdditionalSheets[additionalSheetType(t)];
     for (StyleSheet* sheet : sheets) {
       if (sheet->IsApplicable()) {
-        RefPtr<StyleSheet> clonedSheet =
-            sheet->Clone(nullptr, nullptr, clonedDoc, nullptr);
+        RefPtr<StyleSheet> clonedSheet = sheet->Clone(nullptr, clonedDoc);
         NS_WARNING_ASSERTION(clonedSheet, "Cloning a stylesheet didn't work!");
         if (clonedSheet) {
           clonedDoc->AddAdditionalStyleSheet(additionalSheetType(t),
@@ -13468,64 +13601,6 @@ void Document::InitializeXULBroadcastManager() {
   mXULBroadcastManager = new XULBroadcastManager(this);
 }
 
-static bool NodeHasScopeObject(nsINode* node) {
-  MOZ_ASSERT(node, "Must not be called with null.");
-
-  // Window root occasionally keeps alive a node of a document whose
-  // window is already dead. If in this brief period someone calls
-  // GetPopupNode and we return that node, we can end up creating a
-  // reflector for the node in the wrong global (the current global,
-  // not the document global, because we won't know what the document
-  // global is).  Returning an orphan node like that to JS would be a
-  // bug anyway, so to avoid this, let's do the same check as fetching
-  // GetParentObject() on the document does to determine the scope and
-  // if there is no usable scope object let's report that and return
-  // null from Document::GetPopupNode instead of returning a node that
-  // will get a reflector in the wrong scope.
-  Document* doc = node->OwnerDoc();
-  MOZ_ASSERT(doc, "This should never happen.");
-
-  nsIGlobalObject* global = doc->GetScopeObject();
-  return global ? global->HasJSGlobal() : false;
-}
-
-already_AddRefed<nsPIWindowRoot> Document::GetWindowRoot() {
-  if (!mDocumentContainer) {
-    return nullptr;
-  }
-  // XXX It's unclear why this can't just use GetWindow().
-  nsCOMPtr<nsPIDOMWindowOuter> piWin = mDocumentContainer->GetWindow();
-  return piWin ? piWin->GetTopWindowRoot() : nullptr;
-}
-
-already_AddRefed<nsINode> Document::GetPopupNode() {
-  nsCOMPtr<nsINode> node;
-  nsCOMPtr<nsPIWindowRoot> rootWin = GetWindowRoot();
-  if (rootWin) {
-    node = rootWin->GetPopupNode();  // addref happens here
-  }
-
-  if (!node) {
-    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    if (pm) {
-      node = pm->GetLastTriggerPopupNode(this);
-    }
-  }
-
-  if (node && NodeHasScopeObject(node)) {
-    return node.forget();
-  }
-
-  return nullptr;
-}
-
-void Document::SetPopupNode(nsINode* aNode) {
-  nsCOMPtr<nsPIWindowRoot> rootWin = GetWindowRoot();
-  if (rootWin) {
-    rootWin->SetPopupNode(aNode);
-  }
-}
-
 // Returns the rangeOffset element from the XUL Popup Manager. This is for
 // chrome callers only.
 nsINode* Document::GetPopupRangeParent(ErrorResult& aRv) {
@@ -13547,18 +13622,6 @@ int32_t Document::GetPopupRangeOffset(ErrorResult& aRv) {
   }
 
   return pm->MouseLocationOffset();
-}
-
-already_AddRefed<nsINode> Document::GetTooltipNode() {
-  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (pm) {
-    nsCOMPtr<nsINode> node = pm->GetLastTriggerTooltipNode(this);
-    if (node) {
-      return node.forget();
-    }
-  }
-
-  return nullptr;
 }
 
 namespace {

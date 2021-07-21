@@ -585,7 +585,9 @@ bool BrowserTabsRemoteAutostart() {
 bool FissionExperimentEnrolled() {
   MOZ_ASSERT(XRE_IsParentProcess());
   return gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusControl ||
-         gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusTreatment;
+         gFissionExperimentStatus ==
+             nsIXULRuntime::eExperimentStatusTreatment ||
+         gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusRollout;
 }
 
 }  // namespace mozilla
@@ -683,7 +685,8 @@ static void EnsureFissionAutostartInitialized() {
   // enrollment status.
   if (FissionExperimentEnrolled()) {
     bool isTreatment =
-        gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusTreatment;
+        gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusTreatment ||
+        gFissionExperimentStatus == nsIXULRuntime::eExperimentStatusRollout;
     Preferences::SetBool(kPrefFissionAutostart, isTreatment,
                          PrefValueKind::Default);
   }
@@ -710,6 +713,9 @@ static void EnsureFissionAutostartInitialized() {
     } else if (gFissionExperimentStatus ==
                nsIXULRuntime::eExperimentStatusTreatment) {
       gFissionDecisionStatus = nsIXULRuntime::eFissionExperimentTreatment;
+    } else if (gFissionExperimentStatus ==
+               nsIXULRuntime::eExperimentStatusRollout) {
+      gFissionDecisionStatus = nsIXULRuntime::eFissionEnabledByRollout;
     } else if (Preferences::HasUserValue(kPrefFissionAutostart)) {
       gFissionDecisionStatus = gFissionAutostart
                                    ? nsIXULRuntime::eFissionEnabledByUserPref
@@ -1124,6 +1130,9 @@ nsXULAppInfo::GetFissionDecisionStatusString(nsACString& aResult) {
       break;
     case eFissionDisabledByE10sOther:
       aResult = "disabledByE10sOther";
+      break;
+    case eFissionEnabledByRollout:
+      aResult = "enabledByRollout";
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected enum value");
@@ -4072,9 +4081,10 @@ bool IsWaylandEnabled() {
     return false;
   }
 
+  const char* x11Display = PR_GetEnv("DISPLAY");
   // MOZ_ENABLE_WAYLAND is our primary Wayland on/off switch.
   const char* waylandPref = PR_GetEnv("MOZ_ENABLE_WAYLAND");
-  bool enableWayland = (waylandPref && *waylandPref);
+  bool enableWayland = !x11Display || (waylandPref && *waylandPref);
   if (!enableWayland) {
     const char* backendPref = PR_GetEnv("GDK_BACKEND");
     enableWayland = (backendPref && strncmp(backendPref, "wayland", 7) == 0);
@@ -5387,22 +5397,9 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   mozilla::IOInterposerInit ioInterposerGuard;
 
 #if defined(XP_WIN)
-  // Initializing COM below may load modules via SetWindowHookEx, some of
-  // which may modify the executable's IAT for ntdll.dll.  If that happens,
-  // this browser process fails to launch sandbox processes because we cannot
-  // copy a modified IAT into a remote process (See SandboxBroker::LaunchApp).
-  // To prevent that, we cache the intact IAT before COM initialization.
-  // If EAF+ is enabled, CacheNtDllThunk() causes a crash, but EAF+ will
-  // also prevent an injected module from parsing the PE headers and modifying
-  // the IAT.  Therefore, we can skip CacheNtDllThunk().
-  if (!mozilla::IsEafPlusEnabled()) {
-    mozilla::ipc::GeckoChildProcessHost::CacheNtDllThunk();
-  }
-
-  // Some COM settings are global to the process and must be set before any non-
-  // trivial COM is run in the application. Since these settings may affect
-  // stability, we should instantiate COM ASAP so that we can ensure that these
-  // global settings are configured before anything can interfere.
+  // We should have already done this when we created the skeleton UI. However,
+  // there is code in here which needs xul in order to work, like EnsureMTA. It
+  // should be setup that running it again is safe.
   mozilla::mscom::ProcessRuntime msCOMRuntime;
 #endif
 

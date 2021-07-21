@@ -402,20 +402,11 @@ var gSync = {
   },
 
   getSendTabTargets() {
-    // If sync is not enabled, then there's no point looking for sync clients.
-    // If sync is simply not ready or hasn't yet synced the clients engine, we
-    // just assume the fxa device doesn't have a sync record - in practice,
-    // that just means we don't attempt to fall back to the "old" sendtab should
-    // "new" sendtab fail.
-    // We should just kill "old" sendtab now all our mobile browsers support
-    // "new".
-    let getClientRecord = () => undefined;
-    if (UIState.get().syncEnabled && Weave.Service.clientsEngine) {
-      getClientRecord = id =>
-        Weave.Service.clientsEngine.getClientByFxaDeviceId(id);
-    }
-    let targets = [];
-    if (!fxAccounts.device.recentDeviceList) {
+    const targets = [];
+    if (
+      UIState.get().status != UIState.STATUS_SIGNED_IN ||
+      !fxAccounts.device.recentDeviceList
+    ) {
       return targets;
     }
     for (let d of fxAccounts.device.recentDeviceList) {
@@ -423,12 +414,8 @@ var gSync = {
         continue;
       }
 
-      let clientRecord = getClientRecord(d.id);
-      if (clientRecord || fxAccounts.commands.sendTab.isDeviceCompatible(d)) {
-        targets.push({
-          clientRecord,
-          ...d,
-        });
+      if (fxAccounts.commands.sendTab.isDeviceCompatible(d)) {
+        targets.push(d);
       }
     }
     return targets.sort((a, b) => a.name.localeCompare(b.name));
@@ -471,7 +458,7 @@ var gSync = {
     // Label for the sync buttons.
     const appMenuLabel = PanelMultiView.getViewNode(
       document,
-      PanelUI.protonAppMenuEnabled ? "appMenu-fxa-label2" : "appMenu-fxa-label"
+      "appMenu-fxa-label2"
     );
     if (!appMenuLabel) {
       // We are in a window without our elements - just abort now, without
@@ -490,31 +477,29 @@ var gSync = {
       "PanelUI-remotetabs-setupsync"
     ).hidden = false;
 
-    if (PanelUI.protonAppMenuEnabled) {
-      const appMenuHeaderTitle = PanelMultiView.getViewNode(
-        document,
-        "appMenu-header-title"
-      );
-      const appMenuHeaderDescription = PanelMultiView.getViewNode(
-        document,
-        "appMenu-header-description"
-      );
-      const appMenuHeaderText = PanelMultiView.getViewNode(
-        document,
-        "appMenu-fxa-text"
-      );
-      appMenuHeaderTitle.hidden = true;
-      // We must initialize the label attribute here instead of the markup
-      // due to a timing error. The fluent label attribute was being applied
-      // after we had updated appMenuLabel and thus displayed an incorrect
-      // label for signed in users.
-      appMenuHeaderDescription.value = this.fluentStrings.formatValueSync(
-        "appmenu-fxa-signed-in-label"
-      );
-      appMenuHeaderText.textContent = this.fluentStrings.formatValueSync(
-        "appmenu-fxa-sync-and-save-data2"
-      );
-    }
+    const appMenuHeaderTitle = PanelMultiView.getViewNode(
+      document,
+      "appMenu-header-title"
+    );
+    const appMenuHeaderDescription = PanelMultiView.getViewNode(
+      document,
+      "appMenu-header-description"
+    );
+    const appMenuHeaderText = PanelMultiView.getViewNode(
+      document,
+      "appMenu-fxa-text"
+    );
+    appMenuHeaderTitle.hidden = true;
+    // We must initialize the label attribute here instead of the markup
+    // due to a timing error. The fluent label attribute was being applied
+    // after we had updated appMenuLabel and thus displayed an incorrect
+    // label for signed in users.
+    appMenuHeaderDescription.value = this.fluentStrings.formatValueSync(
+      "appmenu-fxa-signed-in-label"
+    );
+    appMenuHeaderText.textContent = this.fluentStrings.formatValueSync(
+      "appmenu-fxa-sync-and-save-data2"
+    );
 
     for (let topic of this._obs) {
       Services.obs.addObserver(this, topic, true);
@@ -802,7 +787,7 @@ var gSync = {
     // have UIState know about it.
     let fxaStatus = document.documentElement.getAttribute("fxastatus");
 
-    if (PanelUI.protonAppMenuEnabled && fxaStatus == "not_configured") {
+    if (fxaStatus == "not_configured") {
       this.openFxAEmailFirstPageFromFxaMenu(
         PanelMultiView.getViewNode(document, "PanelUI-fxa")
       );
@@ -813,16 +798,6 @@ var gSync = {
     if (!gFxaToolbarAccessed) {
       Services.prefs.setBoolPref("identity.fxaccounts.toolbar.accessed", true);
     }
-    const fxaSignOutButtonEl = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-fxa-menu-account-signout-button"
-    );
-    const fxaSignOutSeparator = PanelMultiView.getViewNode(
-      document,
-      "PanelUI-sign-out-separator"
-    );
-    fxaSignOutButtonEl.hidden = fxaSignOutSeparator.hidden =
-      UIState.get() === UIState.STATUS_NOT_CONFIGURED;
 
     this.enableSendTabIfValidTab();
 
@@ -849,10 +824,6 @@ var gSync = {
     // state shows an avatar with an email icon, `login-failed` state shows an avatar
     // with a danger icon and the `verified` state will show the users
     // custom profile image or a filled avatar.
-    // In the proton app menu, the avatar is not shown.
-    if (PanelUI.protonAppMenuEnabled) {
-      PanelMultiView.getViewNode(document, "fxa-menu-avatar").hidden = true;
-    }
     let stateValue = "not_configured";
 
     const menuHeaderTitleEl = PanelMultiView.getViewNode(
@@ -878,7 +849,6 @@ var gSync = {
       document,
       "PanelUI-fxa-menu-syncnow-button"
     );
-    const fxaMenuPanel = PanelMultiView.getViewNode(document, "PanelUI-fxa");
 
     const fxaMenuAccountButtonEl = PanelMultiView.getViewNode(
       document,
@@ -890,13 +860,6 @@ var gSync = {
       "fxa-menu-turn-on-sync-default"
     );
 
-    if (PanelUI.protonAppMenuEnabled) {
-      let toolbarbuttons = fxaMenuPanel.querySelectorAll("toolbarbutton");
-      for (let toolbarbutton of toolbarbuttons) {
-        toolbarbutton.classList.remove("subviewbutton-iconic");
-      }
-    }
-
     cadButtonEl.setAttribute("disabled", true);
     syncNowButtonEl.hidden = true;
     fxaMenuAccountButtonEl.classList.remove("subviewbutton-nav");
@@ -905,11 +868,9 @@ var gSync = {
 
     if (state.status === UIState.STATUS_NOT_CONFIGURED) {
       mainWindowEl.style.removeProperty("--avatar-image-url");
-      if (PanelUI.protonAppMenuEnabled) {
-        headerDescription = this.fluentStrings.formatValueSync(
-          "appmenu-fxa-signed-in-label"
-        );
-      }
+      headerDescription = this.fluentStrings.formatValueSync(
+        "appmenu-fxa-signed-in-label"
+      );
     } else if (state.status === UIState.STATUS_LOGIN_FAILED) {
       stateValue = "login-failed";
       headerTitle = this.fluentStrings.formatValueSync("account-disconnected2");
@@ -1015,13 +976,11 @@ var gSync = {
   updatePanelPopup(state) {
     const appMenuStatus = PanelMultiView.getViewNode(
       document,
-      PanelUI.protonAppMenuEnabled
-        ? "appMenu-fxa-status2"
-        : "appMenu-fxa-status"
+      "appMenu-fxa-status2"
     );
     const appMenuLabel = PanelMultiView.getViewNode(
       document,
-      PanelUI.protonAppMenuEnabled ? "appMenu-fxa-label2" : "appMenu-fxa-label"
+      "appMenu-fxa-label2"
     );
     const appMenuAvatar = PanelMultiView.getViewNode(
       document,
@@ -1041,9 +1000,9 @@ var gSync = {
     );
     const fxaPanelView = PanelMultiView.getViewNode(document, "PanelUI-fxa");
 
-    let defaultLabel = PanelUI.protonAppMenuEnabled
-      ? this.fluentStrings.formatValueSync("appmenu-fxa-signed-in-label")
-      : appMenuStatus.getAttribute("defaultlabel");
+    let defaultLabel = this.fluentStrings.formatValueSync(
+      "appmenu-fxa-signed-in-label"
+    );
     const status = state.status;
     // Reset the status bar to its original state.
     appMenuLabel.setAttribute("label", defaultLabel);
@@ -1052,21 +1011,17 @@ var gSync = {
     appMenuAvatar.style.removeProperty("list-style-image");
 
     if (status == UIState.STATUS_NOT_CONFIGURED) {
-      if (PanelUI.protonAppMenuEnabled) {
-        appMenuHeaderText.hidden = false;
-        appMenuStatus.classList.add("toolbaritem-combined-buttons");
-        appMenuLabel.classList.remove("subviewbutton-nav");
-        appMenuHeaderTitle.hidden = true;
-        appMenuHeaderDescription.value = defaultLabel;
-      }
+      appMenuHeaderText.hidden = false;
+      appMenuStatus.classList.add("toolbaritem-combined-buttons");
+      appMenuLabel.classList.remove("subviewbutton-nav");
+      appMenuHeaderTitle.hidden = true;
+      appMenuHeaderDescription.value = defaultLabel;
       return;
     }
     appMenuLabel.classList.remove("subviewbutton-nav");
 
-    if (PanelUI.protonAppMenuEnabled) {
-      appMenuHeaderText.hidden = true;
-      appMenuStatus.classList.remove("toolbaritem-combined-buttons");
-    }
+    appMenuHeaderText.hidden = true;
+    appMenuStatus.classList.remove("toolbaritem-combined-buttons");
 
     // At this point we consider sync to be configured (but still can be in an error state).
     if (status == UIState.STATUS_LOGIN_FAILED) {
@@ -1079,20 +1034,16 @@ var gSync = {
         "account-disconnected2"
       );
       appMenuStatus.setAttribute("tooltiptext", tooltipDescription);
-      if (PanelUI.protonAppMenuEnabled) {
-        appMenuLabel.classList.add("subviewbutton-nav");
-        appMenuHeaderTitle.hidden = false;
-        appMenuHeaderTitle.value = errorLabel;
-        appMenuHeaderDescription.value = state.email;
+      appMenuLabel.classList.add("subviewbutton-nav");
+      appMenuHeaderTitle.hidden = false;
+      appMenuHeaderTitle.value = errorLabel;
+      appMenuHeaderDescription.value = state.email;
 
-        appMenuLabel.removeAttribute("label");
-        appMenuLabel.setAttribute(
-          "aria-labelledby",
-          `${appMenuHeaderTitle.id},${appMenuHeaderDescription.id}`
-        );
-      } else {
-        appMenuLabel.setAttribute("label", errorLabel);
-      }
+      appMenuLabel.removeAttribute("label");
+      appMenuLabel.setAttribute(
+        "aria-labelledby",
+        `${appMenuHeaderTitle.id},${appMenuHeaderDescription.id}`
+      );
       return;
     } else if (status == UIState.STATUS_NOT_VERIFIED) {
       let tooltipDescription = this.fxaStrings.formatStringFromName(
@@ -1104,30 +1055,22 @@ var gSync = {
         "account-finish-account-setup"
       );
       appMenuStatus.setAttribute("tooltiptext", tooltipDescription);
-      if (PanelUI.protonAppMenuEnabled) {
-        appMenuLabel.classList.add("subviewbutton-nav");
-        appMenuHeaderTitle.hidden = false;
-        appMenuHeaderTitle.value = unverifiedLabel;
-        appMenuHeaderDescription.value = state.email;
+      appMenuLabel.classList.add("subviewbutton-nav");
+      appMenuHeaderTitle.hidden = false;
+      appMenuHeaderTitle.value = unverifiedLabel;
+      appMenuHeaderDescription.value = state.email;
 
-        appMenuLabel.removeAttribute("label");
-        appMenuLabel.setAttribute(
-          "aria-labelledby",
-          `${appMenuHeaderTitle.id},${appMenuHeaderDescription.id}`
-        );
-      } else {
-        appMenuLabel.setAttribute("label", unverifiedLabel);
-      }
+      appMenuLabel.removeAttribute("label");
+      appMenuLabel.setAttribute(
+        "aria-labelledby",
+        `${appMenuHeaderTitle.id},${appMenuHeaderDescription.id}`
+      );
       return;
     }
 
     // At this point we consider sync to be logged-in.
-    if (PanelUI.protonAppMenuEnabled) {
-      appMenuHeaderTitle.hidden = true;
-      appMenuHeaderDescription.value = state.email;
-    } else {
-      appMenuLabel.classList.add("subviewbutton-iconic");
-    }
+    appMenuHeaderTitle.hidden = true;
+    appMenuHeaderDescription.value = state.email;
     appMenuStatus.setAttribute("fxastatus", "signedin");
     appMenuLabel.setAttribute("label", state.email);
     appMenuLabel.classList.add("subviewbutton-nav");
@@ -1250,10 +1193,7 @@ var gSync = {
   async openFxAEmailFirstPageFromFxaMenu(panel = undefined) {
     this.emitFxaToolbarTelemetry("login", panel);
     let entryPoint = "fxa_discoverability_native";
-    if (
-      this.isPanelInsideAppMenu(panel) ||
-      (PanelUI.protonAppMenuEnabled && panel)
-    ) {
+    if (panel) {
       entryPoint = "fxa_app_menu";
     }
     this.openFxAEmailFirstPage(entryPoint);
@@ -1276,12 +1216,9 @@ var gSync = {
   // Returns true if we managed to send the tab to any targets, false otherwise.
   async sendTabToDevice(url, targets, title) {
     const fxaCommandsDevices = [];
-    const oldSendTabClients = [];
     for (const target of targets) {
       if (fxAccounts.commands.sendTab.isDeviceCompatible(target)) {
         fxaCommandsDevices.push(target);
-      } else if (target.clientRecord) {
-        oldSendTabClients.push(target.clientRecord);
       } else {
         this.log.error(`Target ${target.id} unsuitable for send tab.`);
       }
@@ -1324,19 +1261,6 @@ var gSync = {
           error
         );
         numFailed++;
-      }
-    }
-    for (let client of oldSendTabClients) {
-      try {
-        this.log.info(`Sending a tab to ${client.id} using Sync.`);
-        await Weave.Service.clientsEngine.sendURIToClientForDisplay(
-          url,
-          client.id,
-          title
-        );
-      } catch (e) {
-        numFailed++;
-        this.log.error("Could not send tab to device.", e);
       }
     }
     return numFailed < targets.length; // Good enough.
@@ -1391,8 +1315,15 @@ var gSync = {
       state.status == UIState.STATUS_LOGIN_FAILED
     ) {
       this._appendSendTabVerify(fragment, createDeviceNodeFn);
-    } /* status is STATUS_NOT_CONFIGURED */ else {
-      this._appendSendTabUnconfigured(fragment, createDeviceNodeFn);
+    } else {
+      // The only status not handled yet is STATUS_NOT_CONFIGURED, and
+      // when we're in that state, none of the menus that call
+      // populateSendTabToDevicesMenu are available, so entering this
+      // state is unexpected.
+      throw new Error(
+        "Called populateSendTabToDevicesMenu when in STATUS_NOT_CONFIGURED " +
+          "state."
+      );
     }
 
     devicesPopup.appendChild(fragment);
@@ -1556,42 +1487,6 @@ var gSync = {
       notVerified,
       actions
     );
-  },
-
-  _appendSendTabUnconfigured(fragment, createDeviceNodeFn) {
-    const brandProductName = gBrandBundle.GetStringFromName("brandProductName");
-    const notConnected = this.fxaStrings.GetStringFromName(
-      "sendTabToDevice.unconfigured.label2"
-    );
-    const learnMore = this.fxaStrings.GetStringFromName(
-      "sendTabToDevice.unconfigured"
-    );
-    const actions = [
-      { label: learnMore, command: () => this.openSendToDevicePromo() },
-    ];
-    this._appendSendTabInfoItems(
-      fragment,
-      createDeviceNodeFn,
-      notConnected,
-      actions
-    );
-
-    // Now add a 'sign in to Firefox' item above the 'learn more' item.
-    const signInToFxA = this.fxaStrings.formatStringFromName(
-      "sendTabToDevice.signintofxa",
-      [brandProductName]
-    );
-    let signInItem = createDeviceNodeFn(null, signInToFxA, null);
-    signInItem.classList.add("sync-menuitem");
-    signInItem.setAttribute("label", signInToFxA);
-    // Show an icon if opened in the page action panel:
-    if (signInItem.classList.contains("subviewbutton")) {
-      signInItem.classList.add("subviewbutton-iconic", "signintosync");
-    }
-    signInItem.addEventListener("command", () => {
-      this.openPrefs("sendtab");
-    });
-    fragment.insertBefore(signInItem, fragment.lastElementChild);
   },
 
   _appendSendTabInfoItems(fragment, createDeviceNodeFn, statusLabel, actions) {

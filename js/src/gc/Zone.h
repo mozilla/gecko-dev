@@ -20,6 +20,7 @@
 #include "gc/Statistics.h"
 #include "gc/ZoneAllocator.h"
 #include "js/GCHashTable.h"
+#include "js/Vector.h"
 #include "vm/AtomsTable.h"
 #include "vm/JSFunction.h"
 #include "vm/ShapeZone.h"
@@ -321,7 +322,7 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   js::MainThreadData<bool> gcScheduled_;
   js::MainThreadData<bool> gcScheduledSaved_;
   js::MainThreadData<bool> gcPreserveCode_;
-  js::ZoneData<bool> keepShapeCaches_;
+  js::ZoneData<bool> keepPropMapTables_;
   js::MainThreadData<bool> wasCollected_;
 
   // Allow zones to be linked into a list
@@ -390,12 +391,15 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   void resetAllocSitesAndInvalidate(bool resetNurserySites,
                                     bool resetPretenuredSites);
 
-  void addSizeOfIncludingThis(
-      mozilla::MallocSizeOf mallocSizeOf, JS::CodeSizes* code,
-      size_t* regexpZone, size_t* jitZone, size_t* baselineStubsOptimized,
-      size_t* uniqueIdMap, size_t* shapeCaches, size_t* atomsMarkBitmaps,
-      size_t* compartmentObjects, size_t* crossCompartmentWrappersTables,
-      size_t* compartmentsPrivateData, size_t* scriptCountsMapArg);
+  void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
+                              JS::CodeSizes* code, size_t* regexpZone,
+                              size_t* jitZone, size_t* baselineStubsOptimized,
+                              size_t* uniqueIdMap, size_t* initialPropMapTable,
+                              size_t* shapeTables, size_t* atomsMarkBitmaps,
+                              size_t* compartmentObjects,
+                              size_t* crossCompartmentWrappersTables,
+                              size_t* compartmentsPrivateData,
+                              size_t* scriptCountsMapArg);
 
   // Iterate over all cells in the zone. See the definition of ZoneCellIter
   // in gc/GC-inl.h for the possible arguments and documentation.
@@ -585,7 +589,6 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   }
 
   js::ShapeZone& shapeZone() { return shapeZone_.ref(); }
-  js::PropertyTree& propertyTree() { return shapeZone().propertyTree; }
 
   void fixupAfterMovingGC();
   void fixupScriptMapsAfterMovingGC(JSTracer* trc);
@@ -619,8 +622,8 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // off-thread zone into the target zone.
   void adoptUniqueIds(JS::Zone* source);
 
-  bool keepShapeCaches() const { return keepShapeCaches_; }
-  void setKeepShapeCaches(bool b) { keepShapeCaches_ = b; }
+  bool keepPropMapTables() const { return keepPropMapTables_; }
+  void setKeepPropMapTables(bool b) { keepPropMapTables_ = b; }
 
   // Delete an empty compartment after its contents have been merged.
   void deleteEmptyCompartment(JS::Compartment* comp);

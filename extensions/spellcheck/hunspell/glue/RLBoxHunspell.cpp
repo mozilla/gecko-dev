@@ -38,6 +38,7 @@ RLBoxHunspell::RLBoxHunspell(const nsAutoCString& affpath,
                              const nsAutoCString& dpath)
     : mHandle(nullptr) {
 #ifdef MOZ_WASM_SANDBOXING_HUNSPELL
+#  ifdef LUCETC_WASM_SANDBOXING
   // Firefox preloads the library externally to ensure we won't be stopped by
   // the content sandbox
   const bool external_loads_exist = true;
@@ -45,8 +46,11 @@ RLBoxHunspell::RLBoxHunspell(const nsAutoCString& affpath,
   // fails as the I/O redirection involves querying meta-data of file
   // descriptors. This querying fails in some environments.
   const bool allow_stdio = false;
-  mSandbox.create_sandbox(mozilla::ipc::GetSandboxedHunspellPath().get(),
+  mSandbox.create_sandbox(mozilla::ipc::GetSandboxedRLBoxPath().get(),
                           external_loads_exist, allow_stdio);
+#  else
+  mSandbox.create_sandbox(mozilla::ipc::GetSandboxedRLBoxPath().get());
+#  endif
 #else
   mSandbox.create_sandbox();
 #endif

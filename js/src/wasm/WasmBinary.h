@@ -70,6 +70,11 @@ class Opcode {
     static_assert(size_t(SimdOp::Limit) <= 0xFFFFFF, "fits");
     MOZ_ASSERT(size_t(op) < size_t(SimdOp::Limit));
   }
+  MOZ_IMPLICIT Opcode(IntrinsicOp op)
+      : bits_((uint32_t(op) << 8) | uint32_t(Op::IntrinsicPrefix)) {
+    static_assert(size_t(IntrinsicOp::Limit) <= 0xFFFFFF, "fits");
+    MOZ_ASSERT(size_t(op) < size_t(IntrinsicOp::Limit));
+  }
 
   bool isOp() const { return bits_ < uint32_t(Op::FirstPrefix); }
   bool isMisc() const { return (bits_ & 255) == uint32_t(Op::MiscPrefix); }
@@ -529,7 +534,9 @@ class Decoder {
   // Instruction immediates for constant instructions
 
   [[nodiscard]] bool readBinary() { return true; }
-  [[nodiscard]] bool readGetGlobal(uint32_t* id);
+  [[nodiscard]] bool readTypeIndex(uint32_t* typeIndex);
+  [[nodiscard]] bool readGlobalIndex(uint32_t* globalIndex);
+  [[nodiscard]] bool readFuncIndex(uint32_t* funcIndex);
   [[nodiscard]] bool readI32Const(int32_t* i32);
   [[nodiscard]] bool readI64Const(int64_t* i64);
   [[nodiscard]] bool readF32Const(float* f32);
@@ -537,7 +544,6 @@ class Decoder {
 #ifdef ENABLE_WASM_SIMD
   [[nodiscard]] bool readV128Const(V128* value);
 #endif
-  [[nodiscard]] bool readRefFunc(uint32_t* funcIndex);
   [[nodiscard]] bool readRefNull(const TypeContext& types,
                                  const FeatureArgs& features, RefType* type);
   [[nodiscard]] bool readRefNull(const FeatureArgs& features, RefType* type);
@@ -648,10 +654,14 @@ inline ValType Decoder::uncheckedReadValType() {
     case uint8_t(TypeCode::FuncRef):
     case uint8_t(TypeCode::ExternRef):
       return RefType::fromTypeCode(TypeCode(code), true);
-    case uint8_t(TypeCode::Rtt): {
+    case uint8_t(TypeCode::RttWithDepth): {
       uint32_t rttDepth = uncheckedReadVarU32();
       int32_t typeIndex = uncheckedReadVarS32();
       return ValType::fromRtt(typeIndex, rttDepth);
+    }
+    case uint8_t(TypeCode::Rtt): {
+      int32_t typeIndex = uncheckedReadVarS32();
+      return ValType::fromRtt(typeIndex, RttDepthNone);
     }
     case uint8_t(TypeCode::Ref):
     case uint8_t(TypeCode::NullableRef): {
@@ -715,14 +725,16 @@ inline bool Decoder::readPackedType(uint32_t numTypes,
       break;
 #endif
     }
-    case uint8_t(TypeCode::Rtt): {
+    case uint8_t(TypeCode::Rtt):
+    case uint8_t(TypeCode::RttWithDepth): {
 #ifdef ENABLE_WASM_GC
       if (!features.gc) {
         return fail("gc types not enabled");
       }
 
-      uint32_t rttDepth;
-      if (!readVarU32(&rttDepth) || uint32_t(rttDepth) >= MaxRttDepth) {
+      uint32_t rttDepth = RttDepthNone;
+      if (code == uint8_t(TypeCode::RttWithDepth) &&
+          (!readVarU32(&rttDepth) || uint32_t(rttDepth) >= MaxRttDepth)) {
         return fail("invalid rtt depth");
       }
 
@@ -905,9 +917,23 @@ inline bool Decoder::readOp(OpBytes* op) {
 
 // Instruction immediates for constant instructions
 
-inline bool Decoder::readGetGlobal(uint32_t* id) {
-  if (!readVarU32(id)) {
+inline bool Decoder::readTypeIndex(uint32_t* typeIndex) {
+  if (!readVarU32(typeIndex)) {
+    return fail("unable to read type index");
+  }
+  return true;
+}
+
+inline bool Decoder::readGlobalIndex(uint32_t* globalIndex) {
+  if (!readVarU32(globalIndex)) {
     return fail("unable to read global index");
+  }
+  return true;
+}
+
+inline bool Decoder::readFuncIndex(uint32_t* funcIndex) {
+  if (!readVarU32(funcIndex)) {
+    return fail("unable to read function index");
   }
   return true;
 }
@@ -948,13 +974,6 @@ inline bool Decoder::readV128Const(V128* value) {
   return true;
 }
 #endif
-
-inline bool Decoder::readRefFunc(uint32_t* funcIndex) {
-  if (!readVarU32(funcIndex)) {
-    return fail("unable to read function index");
-  }
-  return true;
-}
 
 inline bool Decoder::readRefNull(const TypeContext& types,
                                  const FeatureArgs& features, RefType* type) {

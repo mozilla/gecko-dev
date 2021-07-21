@@ -62,13 +62,15 @@
         waitForNextPaint(nextTest);
         yield undefined;
 
+        // Verify we're no longer at the top of the page.
+        waitForTrue(function() {
+          return TestWindow.getWindow().scrollY > 0;
+        }, nextTest, 20);
+        yield undefined;
+        
         // Store the fragment url for later comparison.
         var fragmentUrl = TestWindow.getBrowser().currentURI.spec;
         var fragDocLocation = TestWindow.getDocument().location.href;
-        
-        // Verify we're no longer at the top of the page.
-        ok(TestWindow.getWindow().scrollY > 0,
-          "We're at the top of the page but we should be at the bottom");
       
         // Now navigate to any other page
         var expectedPageTitle = "bug360511 case " + i;

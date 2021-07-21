@@ -917,44 +917,92 @@ def provided_program(env_var, when=None):
     return provided
 
 
-option(
-    "--with-sysroot",
-    env="SYSROOT",
-    nargs=1,
-    when=target_is_linux_or_wasi,
-    help="Build using the given sysroot directory",
-)
+@template
+def sysroot_path(host_or_target):
+    if host_or_target is host:
+        host_or_target_str = "host"
+        opt = "--with-host-sysroot"
+        env = "HOST_SYSROOT"
+        when = depends(host)(lambda h: h.kernel == "Linux")
+        bootstrap_when = when
+    else:
+        assert host_or_target is target
+        host_or_target_str = "target"
+        opt = "--with-sysroot"
+        env = "SYSROOT"
+        when = target_is_linux_or_wasi
+        bootstrap_when = target_is_linux
 
-sysroot_input = depends("--with-sysroot", when=target_is_linux_or_wasi)(lambda x: x)
-bootstrap_sysroot = depends(target_is_linux, sysroot_input)(
-    lambda linux, input: linux and not input and input.origin == "default"
-)
+    option(
+        opt,
+        env=env,
+        nargs=1,
+        when=when,
+        help="Use the given sysroot directory for %s build" % host_or_target_str,
+    )
 
-# We'll re-evaluate later, but for now, don't use the sysroot automatically
-# even if it exists, unless --enable-bootstrap was passed, or when building
-# on automation.
-@depends(
-    sysroot_input,
-    bootstrap_path("sysroot", context=target, when=bootstrap_sysroot),
-    "--enable-bootstrap",
-    "MOZ_AUTOMATION",
-)
-def sysroot_path(sysroot_input, path, bootstrap, automation):
-    if sysroot_input:
-        path = sysroot_input[0]
-    elif sysroot_input is not None and sysroot_input.origin != "default":
-        return
-    if sysroot_input or bootstrap or automation:
-        if path:
-            log.info("Using sysroot in %s", path)
-        return path
+    sysroot_input = depends(opt, when=when)(lambda x: x)
+    bootstrap_sysroot = depends(bootstrap_when, sysroot_input)(
+        lambda bootstrap, input: bootstrap and not input and input.origin == "default"
+    )
+
+    @depends(
+        sysroot_input,
+        bootstrap_path(
+            depends(host_or_target)(lambda t: "sysroot-{}".format(t.toolchain)),
+            when=bootstrap_sysroot,
+        ),
+        "--enable-bootstrap",
+        "MOZ_AUTOMATION",
+    )
+    def sysroot_path(sysroot_input, path, bootstrap, automation):
+        bootstrapped = False
+        if sysroot_input:
+            path = sysroot_input[0]
+        elif sysroot_input is not None and sysroot_input.origin != "default":
+            return
+        elif bootstrap or automation:
+            bootstrapped = True
+        if sysroot_input or bootstrapped:
+            if path:
+                log.info("Using %s sysroot in %s", host_or_target_str, path)
+            return namespace(path=path, bootstrapped=bootstrapped)
+
+    return sysroot_path
+
+
+target_sysroot_path = sysroot_path(target)
+
+
+# Use `system_lib_option` instead of `option` for options that enable building
+# with a system library for which the development headers are not available in
+# the bootstrapped sysroots.
+@template
+def system_lib_option(name, *args, **kwargs):
+    option(name, *args, **kwargs)
+
+    @depends(name, target_sysroot_path.bootstrapped)
+    def no_system_lib_in_sysroot(value, bootstrapped):
+        if bootstrapped and value:
+            die(
+                "%s is not supported with bootstrapped sysroot. "
+                "Drop the option, or use --without-sysroot or --disable-bootstrap",
+                value.format(name),
+            )
+
+
+host_sysroot_path = sysroot_path(host).path
+target_sysroot_path = target_sysroot_path.path
 
 
 @template
 def sysroot_flags(host_or_target):
-    @depends(
-        host_or_target, macos_sdk, sysroot_path if host_or_target is target else never
-    )
+    sysroot_path = {
+        host: host_sysroot_path,
+        target: target_sysroot_path,
+    }[host_or_target]
+
+    @depends(host_or_target, macos_sdk, sysroot_path)
     def sysroot_flags(host_or_target, macos_sdk, sysroot_path):
         if macos_sdk and host_or_target.os == "OSX":
             return ["-isysroot", macos_sdk]
@@ -969,7 +1017,7 @@ host_sysroot_flags = sysroot_flags(host)
 target_sysroot_flags = sysroot_flags(target)
 
 
-@depends(target, when=sysroot_path)
+@depends(target, when=target_sysroot_path)
 def multiarch_dir(target):
     if target.cpu == "x86":
         # Turn e.g. i686-linux-gnu into i386-linux-gnu
@@ -1899,6 +1947,24 @@ set_config("MOZ_HARDENING_CFLAGS_JS", security_hardening_cflags.js_flags)
 set_config("MOZ_HARDENING_LDFLAGS_JS", security_hardening_cflags.js_ldflags)
 
 
+# Intel Control-flow Enforcement Technology
+# ==============================================================
+# We keep this separate from the hardening flags above, because we want to be
+# able to easily remove the flags in the build files for certain executables.
+@depends(c_compiler, target)
+def cet_ldflags(c_compiler, target):
+    ldflags = []
+    if (
+        c_compiler.type == "clang-cl"
+        and c_compiler.version >= "11"
+        and target.cpu == "x86_64"
+    ):
+        ldflags.append("-CETCOMPAT")
+    return ldflags
+
+
+set_config("MOZ_CETCOMPAT_LDFLAGS", cet_ldflags)
+
 # Frame pointers
 # ==============================================================
 @depends(c_compiler)
@@ -2192,7 +2258,7 @@ def select_linker(
 set_config("LINKER_KIND", select_linker.KIND)
 
 
-@depends_if(select_linker, target, macos_sdk, sysroot_path, multiarch_dir)
+@depends_if(select_linker, target, macos_sdk, target_sysroot_path, multiarch_dir)
 @imports("os")
 def linker_ldflags(linker, target, macos_sdk, sysroot_path, multiarch_dir):
     flags = list((linker and linker.LINKER_FLAG) or [])
@@ -2729,7 +2795,7 @@ def path_remapping(value):
 @depends(
     target,
     check_build_environment,
-    sysroot_path,
+    target_sysroot_path,
     macos_sdk,
     windows_sdk_dir,
     vc_path,

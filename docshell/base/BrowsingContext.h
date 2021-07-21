@@ -755,6 +755,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   int32_t ChildOffset() const { return mChildOffset; }
 
+  bool GetOffsetPath(nsTArray<uint32_t>& aPath) const;
+
   const OriginAttributes& OriginAttributesRef() { return mOriginAttributes; }
   nsresult SetOriginAttributes(const OriginAttributes& aAttrs);
 
@@ -856,6 +858,8 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
 
   bool AllowJavascript() const { return GetAllowJavascript(); }
   bool CanExecuteScripts() const { return mCanExecuteScripts; }
+
+  uint32_t DefaultLoadFlags() const { return GetDefaultLoadFlags(); }
 
  protected:
   virtual ~BrowsingContext();

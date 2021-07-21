@@ -53,8 +53,10 @@ add_task(function makeResultBuckets_true() {
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_EXTENSION },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_SEARCH_TIP },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_OMNIBOX },
-            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_UNIFIED_COMPLETE },
+            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_ENGINE_ALIAS },
+            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_BOOKMARK_KEYWORD },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_AUTOFILL },
+            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_PRELOADED },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_TOKEN_ALIAS_ENGINE },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_FALLBACK },
           ],
@@ -62,7 +64,7 @@ add_task(function makeResultBuckets_true() {
         // extensions using the omnibox API
         {
           group: UrlbarUtils.RESULT_GROUP.OMNIBOX,
-          maxResultCount: UrlbarUtils.MAX_OMNIBOX_RESULT_COUNT - 1,
+          availableSpan: UrlbarUtils.MAX_OMNIBOX_RESULT_COUNT - 1,
         },
         // main bucket
         {
@@ -71,18 +73,21 @@ add_task(function makeResultBuckets_true() {
             // suggestions
             {
               flex: 2,
-              flexChildren: true,
               children: [
                 {
-                  flex: 2,
-                  group: UrlbarUtils.RESULT_GROUP.FORM_HISTORY,
+                  flexChildren: true,
+                  children: [
+                    {
+                      flex: 2,
+                      group: UrlbarUtils.RESULT_GROUP.FORM_HISTORY,
+                    },
+                    {
+                      flex: 4,
+                      group: UrlbarUtils.RESULT_GROUP.REMOTE_SUGGESTION,
+                    },
+                  ],
                 },
                 {
-                  flex: 4,
-                  group: UrlbarUtils.RESULT_GROUP.REMOTE_SUGGESTION,
-                },
-                {
-                  flex: 0,
                   group: UrlbarUtils.RESULT_GROUP.TAIL_SUGGESTION,
                 },
               ],
@@ -92,7 +97,7 @@ add_task(function makeResultBuckets_true() {
               flex: 1,
               children: [
                 {
-                  maxResultCount: 3,
+                  availableSpan: 3,
                   group: UrlbarUtils.RESULT_GROUP.INPUT_HISTORY,
                 },
                 {
@@ -109,6 +114,10 @@ add_task(function makeResultBuckets_true() {
                     {
                       flex: 2,
                       group: UrlbarUtils.RESULT_GROUP.ABOUT_PAGES,
+                    },
+                    {
+                      flex: 1,
+                      group: UrlbarUtils.RESULT_GROUP.PRELOADED,
                     },
                   ],
                 },
@@ -139,8 +148,10 @@ add_task(function makeResultBuckets_false() {
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_EXTENSION },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_SEARCH_TIP },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_OMNIBOX },
-            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_UNIFIED_COMPLETE },
+            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_ENGINE_ALIAS },
+            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_BOOKMARK_KEYWORD },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_AUTOFILL },
+            { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_PRELOADED },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_TOKEN_ALIAS_ENGINE },
             { group: UrlbarUtils.RESULT_GROUP.HEURISTIC_FALLBACK },
           ],
@@ -148,7 +159,7 @@ add_task(function makeResultBuckets_false() {
         // extensions using the omnibox API
         {
           group: UrlbarUtils.RESULT_GROUP.OMNIBOX,
-          maxResultCount: UrlbarUtils.MAX_OMNIBOX_RESULT_COUNT - 1,
+          availableSpan: UrlbarUtils.MAX_OMNIBOX_RESULT_COUNT - 1,
         },
         // main bucket
         {
@@ -159,7 +170,7 @@ add_task(function makeResultBuckets_false() {
               flex: 2,
               children: [
                 {
-                  maxResultCount: 3,
+                  availableSpan: 3,
                   group: UrlbarUtils.RESULT_GROUP.INPUT_HISTORY,
                 },
                 {
@@ -177,6 +188,10 @@ add_task(function makeResultBuckets_false() {
                       flex: 2,
                       group: UrlbarUtils.RESULT_GROUP.ABOUT_PAGES,
                     },
+                    {
+                      flex: 1,
+                      group: UrlbarUtils.RESULT_GROUP.PRELOADED,
+                    },
                   ],
                 },
                 {
@@ -187,18 +202,21 @@ add_task(function makeResultBuckets_false() {
             // suggestions
             {
               flex: 1,
-              flexChildren: true,
               children: [
                 {
-                  flex: 2,
-                  group: UrlbarUtils.RESULT_GROUP.FORM_HISTORY,
+                  flexChildren: true,
+                  children: [
+                    {
+                      flex: 2,
+                      group: UrlbarUtils.RESULT_GROUP.FORM_HISTORY,
+                    },
+                    {
+                      flex: 4,
+                      group: UrlbarUtils.RESULT_GROUP.REMOTE_SUGGESTION,
+                    },
+                  ],
                 },
                 {
-                  flex: 4,
-                  group: UrlbarUtils.RESULT_GROUP.REMOTE_SUGGESTION,
-                },
-                {
-                  flex: 0,
                   group: UrlbarUtils.RESULT_GROUP.TAIL_SUGGESTION,
                 },
               ],

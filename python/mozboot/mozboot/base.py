@@ -6,7 +6,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import hashlib
 import os
-import platform
 import re
 import subprocess
 import sys
@@ -144,9 +143,6 @@ ac_add_options --enable-application=js
 # version-control-tools/hgext/configwizard/__init__.py.
 MODERN_MERCURIAL_VERSION = LooseVersion("4.9")
 
-MODERN_PYTHON2_VERSION = LooseVersion("2.7.3")
-MODERN_PYTHON3_VERSION = LooseVersion("3.6.0")
-
 # Upgrade rust older than this.
 MODERN_RUST_VERSION = LooseVersion(MINIMUM_RUST_VERSION)
 
@@ -156,13 +152,6 @@ MODERN_NASM_VERSION = LooseVersion("2.14")
 
 class BaseBootstrapper(object):
     """Base class for system bootstrappers."""
-
-    INSTALL_PYTHON_GUIDANCE = (
-        "We do not have specific instructions for your platform on how to "
-        "install Python. You may find Pyenv (https://github.com/pyenv/pyenv) "
-        "helpful, if your system package manager does not provide a way to "
-        "install a recent enough Python 3 and 2."
-    )
 
     def __init__(self, no_interactive=False, no_system_changes=False):
         self.package_manager_updated = False
@@ -338,12 +327,6 @@ class BaseBootstrapper(object):
         """
         pass
 
-    def ensure_lucetc_packages(self, state_dir, checkout_root):
-        """
-        Install lucetc.
-        """
-        pass
-
     def ensure_wasi_sysroot_packages(self, state_dir, checkout_root):
         """
         Install the wasi sysroot.
@@ -356,12 +339,6 @@ class BaseBootstrapper(object):
         raise NotImplementedError(
             "%s does not yet implement ensure_node_packages()" % __name__
         )
-
-    def ensure_dump_syms_packages(self, state_dir, checkout_root):
-        """
-        Install dump_syms.
-        """
-        pass
 
     def ensure_fix_stacks_packages(self, state_dir, checkout_root):
         """
@@ -657,57 +634,6 @@ class BaseBootstrapper(object):
         """
         print(MERCURIAL_UNABLE_UPGRADE % (current, MODERN_MERCURIAL_VERSION))
 
-    def is_python_modern(self, major):
-        assert major in (2, 3)
-
-        our = None
-
-        if major == 3:
-            our = LooseVersion(platform.python_version())
-        else:
-            for test in ("python2.7", "python"):
-                python = which(test)
-                if python:
-                    candidate_version = self._parse_version(python, "Python")
-                    if candidate_version and candidate_version.version[0] == major:
-                        our = candidate_version
-                        break
-
-        if our is None:
-            return False, None
-
-        modern = {
-            2: MODERN_PYTHON2_VERSION,
-            3: MODERN_PYTHON3_VERSION,
-        }
-        return our >= modern[major], our
-
-    def ensure_python_modern(self):
-        modern, version = self.is_python_modern(3)
-        if modern:
-            print("Your version of Python 3 (%s) is new enough." % version)
-        else:
-            print(
-                "ERROR: Your version of Python 3 (%s) is not new enough. You "
-                "must have Python >= %s to build Firefox."
-                % (version, MODERN_PYTHON3_VERSION)
-            )
-            print(self.INSTALL_PYTHON_GUIDANCE)
-            sys.exit(1)
-        modern, version = self.is_python_modern(2)
-        if modern:
-            print("Your version of Python 2 (%s) is new enough." % version)
-        else:
-            print(
-                "WARNING: Your version of Python 2 (%s) is not new enough. "
-                "You must have Python >= %s to build Firefox. Python 2 is "
-                "not required to build, so we will proceed. However, Python "
-                "2 is required for other development tasks, like running "
-                "tests; you may like to have Python 2 installed for that "
-                "reason." % (version, MODERN_PYTHON2_VERSION)
-            )
-            print(self.INSTALL_PYTHON_GUIDANCE)
-
     def warn_if_pythonpath_is_set(self):
         if "PYTHONPATH" in os.environ:
             print(
@@ -767,13 +693,7 @@ class BaseBootstrapper(object):
             # is appropriate there.
             cargo_bin = self.win_to_msys_path(cargo_bin)
             cmd = "export PATH=%s:$PATH" % cargo_bin
-        print(
-            template
-            % {
-                "cargo_bin": cargo_bin,
-                "cmd": cmd,
-            }
-        )
+        print(template % {"cargo_bin": cargo_bin, "cmd": cmd})
 
     def ensure_rust_modern(self):
         cargo_home, cargo_bin = self.cargo_home()

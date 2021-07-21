@@ -177,17 +177,12 @@ WindowSurfaceWayland::WindowSurfaceWayland(nsWindow* aWindow)
   if (currentDesktop && strstr(currentDesktop, "KDE") != nullptr) {
     mSmoothRendering = CACHE_NONE;
   }
-  MozContainer* container = mWindow->GetMozContainer();
-  moz_container_wayland_set_window_surface(container, this);
 }
 
 WindowSurfaceWayland::~WindowSurfaceWayland() {
   LOGWAYLAND(("WindowSurfaceWayland::~WindowSurfaceWayland() [%p]\n", this));
 
   MutexAutoLock lock(mSurfaceLock);
-
-  MozContainer* container = mWindow->GetMozContainer();
-  moz_container_wayland_set_window_surface(container, nullptr);
 
   if (mSurfaceReadyTimerID) {
     g_source_remove(mSurfaceReadyTimerID);
@@ -644,6 +639,29 @@ bool WindowSurfaceWayland::FlushPendingCommitsLocked() {
   LOGWAYLAND(("    mWLBufferIsDirty = %d\n", mWLBufferIsDirty));
   LOGWAYLAND(("    mBufferCommitAllowed = %d\n", mBufferCommitAllowed));
 
+  // Reset if we're hidden.
+  MozContainer* container = mWindow->GetMozContainer();
+  moz_container_wayland_lock(container);
+  auto unlockContainer =
+      MakeScopeExit([&] { moz_container_wayland_unlock(container); });
+
+  LOGWAYLAND(("    mContainer = %p\n", container));
+
+  if (moz_container_wayland_get_and_reset_remapped(container)) {
+    LOGWAYLAND(
+        ("    moz_container [%p] is remapped, clear callbacks.\n", container));
+    mLastCommittedSurfaceID = -1;
+    g_clear_pointer(&mFrameCallback, wl_callback_destroy);
+  }
+  if (moz_container_wayland_is_inactive(container)) {
+    LOGWAYLAND(("    Quit - moz_container [%p] is inactive.\n", container));
+    if (mSurfaceReadyTimerID) {
+      g_source_remove(mSurfaceReadyTimerID);
+      mSurfaceReadyTimerID = 0;
+    }
+    return false;
+  }
+
   if (!mBufferCommitAllowed) {
     LOGWAYLAND(("    Quit - buffer commit is not allowed.\n"));
     return false;
@@ -663,11 +681,12 @@ bool WindowSurfaceWayland::FlushPendingCommitsLocked() {
              "We can't draw to attached wayland buffer!");
 
   LOGWAYLAND(("    Drawing pending commits.\n"));
-  MozContainer* container = mWindow->GetMozContainer();
-  wl_surface* waylandSurface = moz_container_wayland_surface_lock(container);
+  wl_surface* waylandSurface =
+      moz_container_wayland_get_surface_locked(container);
   if (!waylandSurface) {
     LOGWAYLAND(
-        ("    moz_container_wayland_surface_lock() failed, delay commit.\n"));
+        ("    moz_container_wayland_get_surface_locked() failed, delay "
+         "commit.\n"));
 
     if (!mSurfaceReadyTimerID) {
       mSurfaceReadyTimerID = (int)g_timeout_add(
@@ -683,10 +702,6 @@ bool WindowSurfaceWayland::FlushPendingCommitsLocked() {
   LOGWAYLAND(("    We have wl_surface %p ID [%d] to commit in.\n",
               waylandSurface,
               wl_proxy_get_id((struct wl_proxy*)waylandSurface)));
-
-  auto unlockContainer = MakeScopeExit([&] {
-    moz_container_wayland_surface_unlock(container, &waylandSurface);
-  });
 
   wl_proxy_set_queue((struct wl_proxy*)waylandSurface,
                      mWaylandDisplay->GetEventQueue());
@@ -811,12 +826,6 @@ void WindowSurfaceWayland::BufferReleaseCallbackHandler(void* aData,
                                                         wl_buffer* aBuffer) {
   auto* surface = reinterpret_cast<WindowSurfaceWayland*>(aData);
   surface->BufferReleaseCallbackHandler(aBuffer);
-}
-
-void WindowSurfaceWayland::Reset() {
-  LOGWAYLAND(("WindowSurfaceWayland::Reset [%p]\n", this));
-  // No need to lock WindowSurfaceWayland here.
-  mLastCommittedSurfaceID = -1;
 }
 
 }  // namespace mozilla::widget

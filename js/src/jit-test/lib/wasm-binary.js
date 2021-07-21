@@ -152,7 +152,7 @@ const MozPrefix = 0xff;
 
 const definedOpcodes =
     [0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
-     ...(wasmExceptionsEnabled() ? [0x06, 0x07, 0x08, 0x09, 0x0a] : []),
+     ...(wasmExceptionsEnabled() ? [0x06, 0x07, 0x08, 0x09] : []),
      0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
      0x10, 0x11,
      ...(wasmExceptionsEnabled() ? [0x18, 0x19] : []),
@@ -291,9 +291,16 @@ function sigSection(sigs) {
         body.push(...varU32(sig.args.length));
         for (let arg of sig.args)
             body.push(...varU32(arg));
-        body.push(...varU32(sig.ret == VoidCode ? 0 : 1));
-        if (sig.ret != VoidCode)
+        if (sig.ret == VoidCode) {
+            body.push(...varU32(0));
+        } else if (typeof sig.ret == "number") {
+            body.push(...varU32(1));
             body.push(...varU32(sig.ret));
+        } else {
+            body.push(...varU32(sig.ret.length));
+            for (let r of sig.ret)
+                body.push(...varU32(r));
+        }
     }
     return { name: typeId, body };
 }

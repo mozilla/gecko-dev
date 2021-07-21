@@ -84,6 +84,12 @@ class Connector {
       this.networkFront = await this.watcherFront.getNetworkParentActor();
     }
 
+    this.dataProvider = new FirefoxDataProvider({
+      commands: this.commands,
+      actions: this.actions,
+      owner: this.owner,
+    });
+
     await this.commands.targetCommand.watchTargets(
       [this.commands.targetCommand.TYPES.FRAME],
       this.onTargetAvailable
@@ -164,13 +170,6 @@ class Connector {
     }
 
     this.webConsoleFront = await this.currentTarget.getFront("console");
-
-    this.dataProvider = new FirefoxDataProvider({
-      webConsoleFront: this.webConsoleFront,
-      actions: this.actions,
-      owner: this.owner,
-      resourceCommand: this.toolbox.resourceCommand,
-    });
 
     // Initialize Responsive Emulation front for network throttling,
     // only for toolboxes using Watcher and non-legacy Resources.
@@ -465,17 +464,37 @@ class Connector {
         return reconfigureTabAndReload({}).then(standBy);
       case ACTIVITY_TYPE.RELOAD.WITH_CACHE_ENABLED:
         this.currentActivity = ACTIVITY_TYPE.ENABLE_CACHE;
-        this.currentTarget.once("will-navigate", () => {
-          this.currentActivity = type;
-        });
+        this.commands.resourceCommand
+          .waitForNextResource(
+            this.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+            {
+              ignoreExistingResources: true,
+              predicate(resource) {
+                return resource.name == "will-navigate";
+              },
+            }
+          )
+          .then(() => {
+            this.currentActivity = type;
+          });
         return reconfigureTabAndReload({
           cacheDisabled: false,
         }).then(standBy);
       case ACTIVITY_TYPE.RELOAD.WITH_CACHE_DISABLED:
         this.currentActivity = ACTIVITY_TYPE.DISABLE_CACHE;
-        this.currentTarget.once("will-navigate", () => {
-          this.currentActivity = type;
-        });
+        this.commands.resourceCommand
+          .waitForNextResource(
+            this.commands.resourceCommand.TYPES.DOCUMENT_EVENT,
+            {
+              ignoreExistingResources: true,
+              predicate(resource) {
+                return resource.name == "will-navigate";
+              },
+            }
+          )
+          .then(() => {
+            this.currentActivity = type;
+          });
         return reconfigureTabAndReload({
           cacheDisabled: true,
         }).then(standBy);

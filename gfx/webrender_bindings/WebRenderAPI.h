@@ -28,13 +28,14 @@
 #include "Units.h"
 
 class gfxContext;
-class nsDisplayItem;
-class nsPaintedDisplayItem;
-class nsDisplayTransform;
 
 #undef None
 
 namespace mozilla {
+
+class nsDisplayItem;
+class nsPaintedDisplayItem;
+class nsDisplayTransform;
 
 struct ActiveScrolledRoot;
 
@@ -455,15 +456,13 @@ class DisplayListBuilder final {
   wr::WrClipChainId DefineClipChain(const nsTArray<wr::WrClipId>& aClips,
                                     bool aParentWithCurrentChain = false);
 
-  wr::WrClipId DefineClip(
-      const Maybe<wr::WrSpaceAndClip>& aParent, const wr::LayoutRect& aClipRect,
-      const nsTArray<wr::ComplexClipRegion>* aComplex = nullptr);
-
   wr::WrClipId DefineImageMaskClip(const wr::ImageMask& aMask,
                                    const nsTArray<wr::LayoutPoint>&,
                                    wr::FillRule);
-  wr::WrClipId DefineRoundedRectClip(const wr::ComplexClipRegion& aComplex);
-  wr::WrClipId DefineRectClip(wr::LayoutRect aClipRect);
+  wr::WrClipId DefineRoundedRectClip(Maybe<wr::WrSpatialId> aSpace,
+                                     const wr::ComplexClipRegion& aComplex);
+  wr::WrClipId DefineRectClip(Maybe<wr::WrSpatialId> aSpace,
+                              wr::LayoutRect aClipRect);
 
   wr::WrSpatialId DefineStickyFrame(const wr::LayoutRect& aContentRect,
                                     const float* aTopMargin,
@@ -474,13 +473,12 @@ class DisplayListBuilder final {
                                     const StickyOffsetBounds& aHorizontalBounds,
                                     const wr::LayoutVector2D& aAppliedOffset);
 
-  Maybe<wr::WrSpaceAndClip> GetScrollIdForDefinedScrollLayer(
+  Maybe<wr::WrSpatialId> GetScrollIdForDefinedScrollLayer(
       layers::ScrollableLayerGuid::ViewID aViewId) const;
-  wr::WrSpaceAndClip DefineScrollLayer(
+  wr::WrSpatialId DefineScrollLayer(
       const layers::ScrollableLayerGuid::ViewID& aViewId,
-      const Maybe<wr::WrSpaceAndClip>& aParent,
-      const wr::LayoutRect& aContentRect, const wr::LayoutRect& aClipRect,
-      const wr::LayoutPoint& aScrollOffset);
+      const Maybe<wr::WrSpatialId>& aParent, const wr::LayoutRect& aContentRect,
+      const wr::LayoutRect& aClipRect, const wr::LayoutPoint& aScrollOffset);
 
   void PushRect(const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
                 bool aIsBackfaceVisible, const wr::ColorF& aColor);
@@ -727,7 +725,7 @@ class DisplayListBuilder final {
   // Track each scroll id that we encountered. We use this structure to
   // ensure that we don't define a particular scroll layer multiple times,
   // as that results in undefined behaviour in WR.
-  std::unordered_map<layers::ScrollableLayerGuid::ViewID, wr::WrSpaceAndClip>
+  std::unordered_map<layers::ScrollableLayerGuid::ViewID, wr::WrSpatialId>
       mScrollIds;
 
   wr::WrSpaceAndClipChain mCurrentSpaceAndClipChain;

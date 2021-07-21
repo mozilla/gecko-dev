@@ -1371,7 +1371,7 @@ SHEntrySharedParentState* SessionHistoryEntry::SharedInfo() const {
 }
 
 void SessionHistoryEntry::SetFrameLoader(nsFrameLoader* aFrameLoader) {
-  MOZ_ASSERT_IF(aFrameLoader, !SharedInfo()->mFrameLoader);
+  MOZ_DIAGNOSTIC_ASSERT(!aFrameLoader || !SharedInfo()->mFrameLoader);
   // If the pref is disabled, we still allow evicting the existing entries.
   MOZ_RELEASE_ASSERT(!aFrameLoader || mozilla::BFCacheInParent());
   SharedInfo()->SetFrameLoader(aFrameLoader);
@@ -1583,6 +1583,8 @@ void IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Write(
   WriteIPDLParam(aMsg, aActor, aParam.mLoadIsFromSessionHistory);
   WriteIPDLParam(aMsg, aActor, aParam.mRequestedIndex);
   WriteIPDLParam(aMsg, aActor, aParam.mSessionHistoryLength);
+  WriteIPDLParam(aMsg, aActor, aParam.mLoadingCurrentActiveEntry);
+  WriteIPDLParam(aMsg, aActor, aParam.mForceMaybeResetName);
 }
 
 bool IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Read(
@@ -1593,7 +1595,10 @@ bool IPDLParamTraits<dom::LoadingSessionHistoryInfo>::Read(
       !ReadIPDLParam(aMsg, aIter, aActor,
                      &aResult->mLoadIsFromSessionHistory) ||
       !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mRequestedIndex) ||
-      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mSessionHistoryLength)) {
+      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mSessionHistoryLength) ||
+      !ReadIPDLParam(aMsg, aIter, aActor,
+                     &aResult->mLoadingCurrentActiveEntry) ||
+      !ReadIPDLParam(aMsg, aIter, aActor, &aResult->mForceMaybeResetName)) {
     aActor->FatalError("Error reading fields for LoadingSessionHistoryInfo");
     return false;
   }

@@ -1074,7 +1074,7 @@ bool nsLayoutUtils::IsAncestorFrameCrossDoc(const nsIFrame* aAncestorFrame,
                                             const nsIFrame* aFrame,
                                             const nsIFrame* aCommonAncestor) {
   for (const nsIFrame* f = aFrame; f != aCommonAncestor;
-       f = GetCrossDocParentFrame(f)) {
+       f = GetCrossDocParentFrameInProcess(f)) {
     if (f == aAncestorFrame) return true;
   }
   return aCommonAncestor == aAncestorFrame;
@@ -1498,7 +1498,7 @@ static nsIFrame* GetNearestScrollableOrOverflowClipFrame(
     }
     return (aFlags & nsLayoutUtils::SCROLLABLE_SAME_DOC)
                ? aFrame->GetParent()
-               : nsLayoutUtils::GetCrossDocParentFrame(aFrame);
+               : nsLayoutUtils::GetCrossDocParentFrameInProcess(aFrame);
   };
 
   for (nsIFrame* f = aFrame; f; f = GetNextFrame(f)) {
@@ -1737,7 +1737,7 @@ nsPoint GetEventCoordinatesRelativeTo(nsIWidget* aWidget,
   const nsIFrame* rootFrame = frame;
   bool transformFound = false;
   for (const nsIFrame* f = frame; f;
-       f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+       f = nsLayoutUtils::GetCrossDocParentFrameInProcess(f)) {
     if (f->IsTransformed() || ViewportUtils::IsZoomedContentRoot(f)) {
       transformFound = true;
     }
@@ -2105,15 +2105,19 @@ Matrix4x4Flagged nsLayoutUtils::GetTransformToAncestor(
   }
   ctm = aFrame.mFrame->GetTransformMatrix(aFrame.mViewportType, aAncestor,
                                           &parent, aFlags);
+  if (!aFrame.mFrame->Combines3DTransformWithAncestors()) {
+    ctm.ProjectTo2D();
+  }
   while (parent && parent != aAncestor.mFrame &&
          (!(aFlags & nsIFrame::STOP_AT_STACKING_CONTEXT_AND_DISPLAY_PORT) ||
           (!parent->IsStackingContext() &&
            !DisplayPortUtils::FrameHasDisplayPort(parent)))) {
-    if (!parent->Extend3DContext()) {
+    nsIFrame* cur = parent;
+    ctm = ctm * cur->GetTransformMatrix(aFrame.mViewportType, aAncestor,
+                                        &parent, aFlags);
+    if (!cur->Combines3DTransformWithAncestors()) {
       ctm.ProjectTo2D();
     }
-    ctm = ctm * parent->GetTransformMatrix(aFrame.mViewportType, aAncestor,
-                                           &parent, aFlags);
   }
   if (aOutAncestor) {
     *aOutAncestor = parent;
@@ -2177,11 +2181,11 @@ const nsIFrame* nsLayoutUtils::FindNearestCommonAncestorFrame(
     commonAncestor = aFrame1->PresShell()->GetRootFrame();
   }
   for (const nsIFrame* f = aFrame1; f != commonAncestor;
-       f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+       f = nsLayoutUtils::GetCrossDocParentFrameInProcess(f)) {
     ancestors1.AppendElement(f);
   }
   for (const nsIFrame* f = aFrame2; f != commonAncestor;
-       f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+       f = nsLayoutUtils::GetCrossDocParentFrameInProcess(f)) {
     ancestors2.AppendElement(f);
   }
   uint32_t minLengths = std::min(ancestors1.Length(), ancestors2.Length());
@@ -2949,7 +2953,7 @@ static RetainedDisplayListBuilder* GetOrCreateRetainedDisplayListBuilder(
 void PrintHitTestInfoStatsInternal(nsDisplayList* aList, int& aTotal,
                                    int& aHitTest, int& aVisible,
                                    int& aSpecial) {
-  for (nsDisplayItem* i = aList->GetBottom(); i; i = i->GetAbove()) {
+  for (nsDisplayItem* i : *aList) {
     aTotal++;
 
     if (i->GetChildren()) {
@@ -4212,7 +4216,7 @@ nsIFrame* nsLayoutUtils::GetParentOrPlaceholderForCrossDoc(
     const nsIFrame* aFrame) {
   nsIFrame* f = GetParentOrPlaceholderFor(aFrame);
   if (f) return f;
-  return GetCrossDocParentFrame(aFrame);
+  return GetCrossDocParentFrameInProcess(aFrame);
 }
 
 nsIFrame* nsLayoutUtils::GetDisplayListParent(nsIFrame* aFrame) {
@@ -5547,7 +5551,10 @@ gfxFloat nsLayoutUtils::GetSnappedBaselineY(nsIFrame* aFrame,
   gfxFloat appUnitsPerDevUnit = aFrame->PresContext()->AppUnitsPerDevPixel();
   gfxFloat baseline = gfxFloat(aY) + aAscent;
   gfxRect putativeRect(0, baseline / appUnitsPerDevUnit, 1, 1);
-  if (!aContext->UserToDevicePixelSnapped(putativeRect, true)) return baseline;
+  if (!aContext->UserToDevicePixelSnapped(
+          putativeRect, gfxContext::SnapOption::IgnoreScale)) {
+    return baseline;
+  }
   return aContext->DeviceToUser(putativeRect.TopLeft()).y * appUnitsPerDevUnit;
 }
 
@@ -5557,7 +5564,8 @@ gfxFloat nsLayoutUtils::GetSnappedBaselineX(nsIFrame* aFrame,
   gfxFloat appUnitsPerDevUnit = aFrame->PresContext()->AppUnitsPerDevPixel();
   gfxFloat baseline = gfxFloat(aX) + aAscent;
   gfxRect putativeRect(baseline / appUnitsPerDevUnit, 0, 1, 1);
-  if (!aContext->UserToDevicePixelSnapped(putativeRect, true)) {
+  if (!aContext->UserToDevicePixelSnapped(
+          putativeRect, gfxContext::SnapOption::IgnoreScale)) {
     return baseline;
   }
   return aContext->DeviceToUser(putativeRect.TopLeft()).x * appUnitsPerDevUnit;
@@ -6197,8 +6205,11 @@ static SnappedImageDrawingParameters ComputeSnappedImageDrawingParameters(
   // we have something that's not translation+scale, or if the scale flips in
   // the X or Y direction, because snapped image drawing can't handle that yet.
   if (!currentMatrix.HasNonAxisAlignedTransform() && currentMatrix._11 > 0.0 &&
-      currentMatrix._22 > 0.0 && aCtx->UserToDevicePixelSnapped(fill, true) &&
-      aCtx->UserToDevicePixelSnapped(dest, true)) {
+      currentMatrix._22 > 0.0 &&
+      aCtx->UserToDevicePixelSnapped(fill,
+                                     gfxContext::SnapOption::IgnoreScale) &&
+      aCtx->UserToDevicePixelSnapped(dest,
+                                     gfxContext::SnapOption::IgnoreScale)) {
     // We snapped. On this code path, |fill| and |dest| take into account
     // currentMatrix's transform.
     didSnap = true;
@@ -6969,7 +6980,7 @@ const nsIFrame* nsLayoutUtils::GetDisplayRootFrame(const nsIFrame* aFrame) {
     } else if (IsPopup(f)) {
       return f;
     }
-    nsIFrame* parent = GetCrossDocParentFrame(f);
+    nsIFrame* parent = GetCrossDocParentFrameInProcess(f);
     if (!parent) return f;
     f = parent;
   }
@@ -9251,8 +9262,8 @@ CSSRect nsLayoutUtils::GetBoundingFrameRect(
   // If the element is contained in a scrollable frame that is not
   // the root scroll frame, make sure to clip the result so that it is
   // not larger than the containing scrollable frame's bounds.
-  nsIScrollableFrame* scrollFrame =
-      nsLayoutUtils::GetNearestScrollableFrame(aFrame);
+  nsIScrollableFrame* scrollFrame = nsLayoutUtils::GetNearestScrollableFrame(
+      aFrame, SCROLLABLE_INCLUDE_HIDDEN | SCROLLABLE_FIXEDPOS_FINDS_ROOT);
   if (scrollFrame && scrollFrame != aRootScrollFrame) {
     nsIFrame* subFrame = do_QueryFrame(scrollFrame);
     MOZ_ASSERT(subFrame);
@@ -9337,7 +9348,7 @@ CSSPoint nsLayoutUtils::GetCumulativeApzCallbackTransform(nsIFrame* aFrame) {
     }
 
     // Proceed to the parent frame.
-    frame = GetCrossDocParentFrame(frame);
+    frame = GetCrossDocParentFrameInProcess(frame);
   }
   return delta;
 }
@@ -9706,12 +9717,10 @@ void nsLayoutUtils::ComputeSystemFont(nsFont* aSystemFont,
     return;
   }
   systemFontName.Trim("\"'");
-  aSystemFont->fontlist =
-      FontFamilyList(NS_ConvertUTF16toUTF8(systemFontName),
-                     StyleFontFamilyNameSyntax::Identifiers);
-  aSystemFont->fontlist.SetDefaultFontType(StyleGenericFontFamily::None);
+  NS_ConvertUTF16toUTF8 nameu8(systemFontName);
+  Servo_FontFamily_ForSystemFont(&nameu8, &aSystemFont->family);
   aSystemFont->style = fontStyle.style;
-  aSystemFont->systemFont = fontStyle.systemFont;
+  aSystemFont->family.is_system_font = fontStyle.systemFont;
   aSystemFont->weight = fontStyle.weight;
   aSystemFont->stretch = fontStyle.stretch;
   aSystemFont->size = Length::FromPixels(fontStyle.size);
@@ -9721,17 +9730,25 @@ void nsLayoutUtils::ComputeSystemFont(nsFont* aSystemFont,
     case StyleFontSizeAdjust::Tag::None:
       aSystemFont->sizeAdjust = StyleFontSizeAdjust::None();
       break;
-    case StyleFontSizeAdjust::Tag::Ex:
-      aSystemFont->sizeAdjust = StyleFontSizeAdjust::Ex(fontStyle.sizeAdjust);
+    case StyleFontSizeAdjust::Tag::ExHeight:
+      aSystemFont->sizeAdjust =
+          StyleFontSizeAdjust::ExHeight(fontStyle.sizeAdjust);
       break;
-    case StyleFontSizeAdjust::Tag::Cap:
-      aSystemFont->sizeAdjust = StyleFontSizeAdjust::Cap(fontStyle.sizeAdjust);
+    case StyleFontSizeAdjust::Tag::CapHeight:
+      aSystemFont->sizeAdjust =
+          StyleFontSizeAdjust::CapHeight(fontStyle.sizeAdjust);
       break;
-    case StyleFontSizeAdjust::Tag::Ch:
-      aSystemFont->sizeAdjust = StyleFontSizeAdjust::Ch(fontStyle.sizeAdjust);
+    case StyleFontSizeAdjust::Tag::ChWidth:
+      aSystemFont->sizeAdjust =
+          StyleFontSizeAdjust::ChWidth(fontStyle.sizeAdjust);
       break;
-    case StyleFontSizeAdjust::Tag::Ic:
-      aSystemFont->sizeAdjust = StyleFontSizeAdjust::Ic(fontStyle.sizeAdjust);
+    case StyleFontSizeAdjust::Tag::IcWidth:
+      aSystemFont->sizeAdjust =
+          StyleFontSizeAdjust::IcWidth(fontStyle.sizeAdjust);
+      break;
+    case StyleFontSizeAdjust::Tag::IcHeight:
+      aSystemFont->sizeAdjust =
+          StyleFontSizeAdjust::IcHeight(fontStyle.sizeAdjust);
       break;
   }
 

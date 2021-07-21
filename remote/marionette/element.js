@@ -3,7 +3,6 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 "use strict";
-/* global XPCNativeWrapper */
 
 const EXPORTED_SYMBOLS = [
   "ChromeWebElement",
@@ -23,7 +22,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
 
   assert: "chrome://remote/content/marionette/assert.js",
   atom: "chrome://remote/content/marionette/atom.js",
-  error: "chrome://remote/content/marionette/error.js",
+  error: "chrome://remote/content/shared/webdriver/Errors.jsm",
   PollPromise: "chrome://remote/content/marionette/sync.js",
   pprint: "chrome://remote/content/marionette/format.js",
 });

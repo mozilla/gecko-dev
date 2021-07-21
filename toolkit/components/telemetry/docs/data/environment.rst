@@ -117,7 +117,8 @@ Structure:
         memoryMB: <number>,
         virtualMaxMB: <number>, // windows-only
         isWow64: <bool>, // windows-only
-	isWowARM64: <bool>, // windows-only
+        isWowARM64: <bool>, // windows-only
+        hasWinPackageId: <bool>, // windows-only
         cpu: {
             count: <number>,  // desktop only, e.g. 8, or null on failure - logical cpus
             cores: <number>, // desktop only, e.g., 4, or null on failure - physical cores
@@ -380,10 +381,6 @@ Each key in the object is the name of a preference. A key's value depends on the
 The following is a partial list of `collected preferences <https://searchfox.org/mozilla-central/search?q=const+DEFAULT_ENVIRONMENT_PREFS&path=>`_.
 
 - ``browser.search.suggest.enabled``: The "master switch" for search suggestions everywhere in Firefox (search bar, urlbar, etc.). Defaults to true.
-
-- ``browser.touchmode.auto``: False if the user has overridden the default UI density. Defaults to true.
-
-- ``browser.uidensity``: The current UI density. 0 is normal, 1 is compact, 2 is touch. Defaults to 0.
 
 - ``browser.urlbar.suggest.searches``: True if search suggestions are enabled in the urlbar. Defaults to false.
 

@@ -4,12 +4,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-option("--with-system-nss", help="Use system NSS")
+system_lib_option("--with-system-nss", help="Use system NSS")
 
 imply_option("--with-system-nspr", True, when="--with-system-nss")
 
 nss_pkg = pkg_check_modules(
-    "NSS", "nss >= 3.67", when="--with-system-nss", config=False
+    "NSS", "nss >= 3.69", when="--with-system-nss", config=False
 )
 
 set_config("MOZ_SYSTEM_NSS", True, when="--with-system-nss")

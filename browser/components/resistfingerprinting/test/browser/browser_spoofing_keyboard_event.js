@@ -3,22 +3,13 @@
  *   when fingerprinting resistance is enable.
  */
 
-const CC = Components.Constructor;
-
-const kStrictKeyPressEvents = SpecialPowers.getBoolPref(
-  "dom.keyboardevent.keypress.dispatch_non_printable_keys_only_system_group_in_content"
-);
-const kSameKeyCodeAndCharCodeValue = SpecialPowers.getBoolPref(
-  "dom.keyboardevent.keypress.set_keycode_and_charcode_to_same_value"
-);
 const SHOULD_DELIVER_KEYDOWN = 0x1;
 const SHOULD_DELIVER_KEYPRESS = 0x2;
 const SHOULD_DELIVER_KEYUP = 0x4;
 const SHOULD_DELIVER_ALL_FOR_PRINTABLE =
   SHOULD_DELIVER_KEYDOWN | SHOULD_DELIVER_KEYPRESS | SHOULD_DELIVER_KEYUP;
-const SHOULD_DELIVER_ALL_FOR_NON_PRINTABLE = kStrictKeyPressEvents
-  ? SHOULD_DELIVER_KEYDOWN | SHOULD_DELIVER_KEYUP
-  : SHOULD_DELIVER_ALL_FOR_PRINTABLE;
+const SHOULD_DELIVER_ALL_FOR_NON_PRINTABLE =
+  SHOULD_DELIVER_KEYDOWN | SHOULD_DELIVER_KEYUP;
 
 const TEST_PATH =
   "http://example.net/browser/browser/" +
@@ -1988,7 +1979,7 @@ async function testKeyEvent(aTab, aTestCase) {
   for (let testEvent of testEvents) {
     let keyEventPromise = ContentTask.spawn(
       aTab.linkedBrowser,
-      { testEvent, result: aTestCase.result, kSameKeyCodeAndCharCodeValue },
+      { testEvent, result: aTestCase.result },
       async aInput => {
         function verifyKeyboardEvent(
           aEvent,
@@ -2099,11 +2090,7 @@ async function testKeyEvent(aTab, aTestCase) {
           );
         }
 
-        let {
-          testEvent: eventType,
-          result,
-          kSameKeyCodeAndCharCodeValue: sameKeyCodeAndCharCodeValue,
-        } = aInput;
+        let { testEvent: eventType, result } = aInput;
         let inputBox = content.document.getElementById("test");
 
         // We need to put the real access of event object into the content page instead of
@@ -2132,7 +2119,7 @@ async function testKeyEvent(aTab, aTestCase) {
             verifyKeyboardEvent(
               JSON.parse(resElement.value),
               result,
-              eventType == "keypress" && sameKeyCodeAndCharCodeValue
+              eventType == "keypress"
             );
             resElement.removeEventListener(
               "resultAvailable",

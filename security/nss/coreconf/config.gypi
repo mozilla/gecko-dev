@@ -99,6 +99,7 @@
     'disable_arm_hw_aes%': 0,
     'disable_arm_hw_sha1%': 0,
     'disable_arm_hw_sha2%': 0,
+    'disable_intel_hw_sha%': 0,
     'disable_tests%': 0,
     'disable_chachapoly%': 0,
     'disable_deprecated_seed%': 0,
@@ -369,7 +370,7 @@
               '_DEFAULT_SOURCE', # for <endian.h> functions, strdup, realpath, and getentropy
               '_BSD_SOURCE', # for the above in glibc <= 2.19
               '_POSIX_SOURCE', # for <signal.h>
-              'SQL_MEASURE_USE_TEMP_DIR', # use tmpdir for the access calls
+              'SDB_MEASURE_USE_TEMP_DIR', # use tmpdir for the access calls
             ],
           }],
           [ 'OS=="dragonfly" or OS=="freebsd"', {

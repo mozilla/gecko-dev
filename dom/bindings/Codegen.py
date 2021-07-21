@@ -14283,7 +14283,7 @@ def missingPropUseCountersForDescriptor(desc):
 
     return fill(
         """
-        if (StaticPrefs::${pref}() && JSID_IS_ATOM(id)) {
+        if (StaticPrefs::${pref}() && id.isAtom()) {
           CountMaybeMissingProperty(proxy, id);
         }
 
@@ -14447,12 +14447,12 @@ class CGCountMaybeMissingProperty(CGAbstractMethod):
 
         return body + fill(
             """
-            MOZ_ASSERT(StaticPrefs::${pref}() && JSID_IS_ATOM(id));
+            MOZ_ASSERT(StaticPrefs::${pref}() && id.isAtom());
             Maybe<UseCounter> counter;
             {
               // Scope for our no-GC section, so we don't need to rely on SetUseCounter not GCing.
               JS::AutoCheckCannotGC nogc;
-              JSLinearString* str = JS::AtomToLinearString(JSID_TO_ATOM(id));
+              JSLinearString* str = JS::AtomToLinearString(id.toAtom());
               // Don't waste time fetching the chars until we've done the length switch.
               $*{switch}
             }
@@ -18138,6 +18138,18 @@ class CGBindingRoot(CGThing):
         # JS::SetReservedSlot are also used too many places to restate
         # dependency logic.
         bindingHeaders["js/Object.h"] = True
+
+        # JS::IsCallable, JS::Call, JS::Construct
+        bindingHeaders["js/CallAndConstruct.h"] = True
+
+        # JS_DefineElement, JS_DefineProperty, JS_DefinePropertyById,
+        # JS_DefineUCProperty, JS_ForwardGetPropertyTo, JS_GetProperty,
+        # JS_GetPropertyById, JS_HasPropertyById, JS_SetProperty,
+        # JS_SetPropertyById
+        bindingHeaders["js/PropertyAndElement.h"] = True
+
+        # JS_GetOwnPropertyDescriptorById
+        bindingHeaders["js/PropertyDescriptor.h"] = True
 
         def descriptorDeprecated(desc):
             iface = desc.interface

@@ -338,7 +338,7 @@ static RunningTimes GetThreadRunningTimesDiff(
   if (MOZ_UNLIKELY(!maybeCid)) {
     // No clock id -> Nothing to measure apart from the timestamp.
     RunningTimes emptyRunningTimes;
-    emptyRunningTimes.SetPostMeasurementTimeStamp(TimeStamp::NowUnfuzzed());
+    emptyRunningTimes.SetPostMeasurementTimeStamp(TimeStamp::Now());
     return emptyRunningTimes;
   }
 
@@ -357,6 +357,13 @@ static RunningTimes GetThreadRunningTimesDiff(
       newRunningTimes - platformData->PreviousThreadRunningTimesRef();
   platformData->PreviousThreadRunningTimesRef() = newRunningTimes;
   return diff;
+}
+
+static void ClearThreadRunningTimes(PSLockRef aLock,
+                                    const RegisteredThread& aRegisteredThread) {
+  PlatformData* const platformData = aRegisteredThread.GetPlatformData();
+  MOZ_RELEASE_ASSERT(platformData);
+  platformData->PreviousThreadRunningTimesRef().Clear();
 }
 
 template <typename Func>
@@ -462,7 +469,8 @@ static void* ThreadEntry(void* aArg) {
 
 SamplerThread::SamplerThread(PSLockRef aLock, uint32_t aActivityGeneration,
                              double aIntervalMilliseconds,
-                             bool aStackWalkEnabled)
+                             bool aStackWalkEnabled,
+                             bool aNoTimerResolutionChange)
     : mSampler(aLock),
       mActivityGeneration(aActivityGeneration),
       mIntervalMicroseconds(
@@ -567,7 +575,7 @@ void SamplerThread::Stop(PSLockRef aLock) {
 static void paf_prepare() {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
-  PSAutoLock lock(gPSMutex);
+  PSAutoLock lock;
 
   if (ActivePS::Exists(lock)) {
     ActivePS::SetWasSamplingPaused(lock, ActivePS::IsSamplingPaused(lock));
@@ -579,7 +587,7 @@ static void paf_prepare() {
 static void paf_parent() {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
-  PSAutoLock lock(gPSMutex);
+  PSAutoLock lock;
 
   if (ActivePS::Exists(lock)) {
     ActivePS::SetIsSamplingPaused(lock, ActivePS::WasSamplingPaused(lock));

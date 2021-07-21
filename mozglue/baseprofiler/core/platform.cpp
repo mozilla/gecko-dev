@@ -223,8 +223,10 @@ static uint32_t AvailableFeatures() {
 #if !defined(HAVE_NATIVE_UNWIND)
   ProfilerFeature::ClearStackWalk(features);
 #endif
-  ProfilerFeature::ClearTaskTracer(features);
   ProfilerFeature::ClearJSTracer(features);
+#if !defined(GP_OS_windows)
+  ProfilerFeature::ClearNoTimerResolutionChange(features);
+#endif
 
   return features;
 }
@@ -244,8 +246,6 @@ static uint32_t StartupExtraDefaultFeatures() {
   return ProfilerFeature::MainThreadIO;
 }
 
-class MOZ_RAII PSAutoTryLock;
-
 // The auto-lock/unlock mutex that guards accesses to CorePS and ActivePS.
 // Use `PSAutoLock lock;` to take the lock until the end of the enclosing block.
 // External profilers may use this same lock for their own data, but as the lock
@@ -253,9 +253,7 @@ class MOZ_RAII PSAutoTryLock;
 // called, to avoid double-locking.
 class MOZ_RAII PSAutoLock {
  public:
-  PSAutoLock() { gPSMutex.Lock(); }
-
-  ~PSAutoLock() { gPSMutex.Unlock(); }
+  PSAutoLock() : mLock(gPSMutex) {}
 
   PSAutoLock(const PSAutoLock&) = delete;
   void operator=(const PSAutoLock&) = delete;
@@ -265,47 +263,11 @@ class MOZ_RAII PSAutoLock {
   }
 
  private:
-  // Allow PSAutoTryLock to access gPSMutex, and to call the following
-  // `PSAutoLock(int)` constructor through `Maybe<const PSAutoLock>::emplace()`.
-  friend class PSAutoTryLock;
-  friend class Maybe<const PSAutoLock>;
-
-  // Special constructor for an already-locked gPSMutex. The `int` parameter is
-  // necessary to distinguish it from the main constructor.
-  explicit PSAutoLock(int) { gPSMutex.AssertCurrentThreadOwns(); }
-
   static detail::BaseProfilerMutex gPSMutex;
+  detail::BaseProfilerAutoLock mLock;
 };
 
-// RAII class that attempts to lock the profiler mutex. Example usage:
-//   PSAutoTryLock tryLock;
-//   if (tryLock.IsLocked()) { locked_foo(tryLock.LockRef()); }
-class MOZ_RAII PSAutoTryLock {
- public:
-  PSAutoTryLock() {
-    if (PSAutoLock::gPSMutex.TryLock()) {
-      mMaybePSAutoLock.emplace(0);
-    }
-  }
-
-  // Return true if the mutex was aquired and locked.
-  [[nodiscard]] bool IsLocked() const { return mMaybePSAutoLock.isSome(); }
-
-  // Assuming the mutex is locked, return a reference to a `PSAutoLock` for that
-  // mutex, which can be passed as proof-of-lock.
-  [[nodiscard]] const PSAutoLock& LockRef() const {
-    MOZ_ASSERT(IsLocked());
-    return mMaybePSAutoLock.ref();
-  }
-
- private:
-  // `mMaybePSAutoLock` is `Nothing` if locking failed, otherwise it contains a
-  // `const PSAutoLock` holding the locked mutex, and whose reference may be
-  // passed to functions expecting a proof-of-lock.
-  Maybe<const PSAutoLock> mMaybePSAutoLock;
-};
-
-detail::BaseProfilerMutex PSAutoLock::gPSMutex;
+detail::BaseProfilerMutex PSAutoLock::gPSMutex{"Base Profiler mutex"};
 
 // Only functions that take a PSLockRef arg can access CorePS's and ActivePS's
 // fields.
@@ -570,8 +532,8 @@ ProfileChunkedBuffer& profiler_get_core_buffer() {
 class SamplerThread;
 
 static SamplerThread* NewSamplerThread(PSLockRef aLock, uint32_t aGeneration,
-                                       double aInterval,
-                                       bool aStackWalkEnabled);
+                                       double aInterval, bool aStackWalkEnabled,
+                                       bool aNoTimerResolutionChange);
 
 struct LiveProfiledThreadData {
   RegisteredThread* mRegisteredThread;
@@ -681,9 +643,10 @@ class ActivePS {
         // The new sampler thread doesn't start sampling immediately because the
         // main loop within Run() is blocked until this function's caller
         // unlocks gPSMutex.
-        mSamplerThread(
-            NewSamplerThread(aLock, mGeneration, aInterval,
-                             ProfilerFeature::HasStackWalk(aFeatures))),
+        mSamplerThread(NewSamplerThread(
+            aLock, mGeneration, aInterval,
+            ProfilerFeature::HasStackWalk(aFeatures),
+            ProfilerFeature::HasNoTimerResolutionChange(aFeatures))),
         mIsPaused(false),
         mIsSamplingPaused(false)
 #if defined(GP_OS_linux) || defined(GP_OS_freebsd)
@@ -1859,7 +1822,7 @@ static void StreamMetaJSCustomObject(PSLockRef aLock,
   // The "startTime" field holds the number of milliseconds since midnight
   // January 1, 1970 GMT. This grotty code computes (Now - (Now -
   // ProcessStartTime)) to convert CorePS::ProcessStartTime() into that form.
-  TimeDuration delta = TimeStamp::NowUnfuzzed() - CorePS::ProcessStartTime();
+  TimeDuration delta = TimeStamp::Now() - CorePS::ProcessStartTime();
   aWriter.DoubleProperty(
       "startTime", MicrosecondsSince1970() / 1000.0 - delta.ToMilliseconds());
 
@@ -2108,7 +2071,7 @@ static void PrintUsageThenExit(int aExitCode) {
 #undef PRINT_FEATURE
 
   PrintToConsole(
-      "    -        \"default\" (All above D+S defaults)\n"
+      "    -          \"default\" (All above D+S defaults)\n"
       "\n"
       "  MOZ_PROFILER_STARTUP_FILTERS=<Filters>\n"
       "  If MOZ_PROFILER_STARTUP is set, specifies the thread filters, as "
@@ -2214,7 +2177,8 @@ class SamplerThread {
  public:
   // Creates a sampler thread, but doesn't start it.
   SamplerThread(PSLockRef aLock, uint32_t aActivityGeneration,
-                double aIntervalMilliseconds, bool aStackWalkEnabled);
+                double aIntervalMilliseconds, bool aStackWalkEnabled,
+                bool aNoTimerResolutionChange);
   ~SamplerThread();
 
   // This runs on (is!) the sampler thread.
@@ -2245,6 +2209,10 @@ class SamplerThread {
   pthread_t mThread;
 #endif
 
+#if defined(GP_OS_windows)
+  bool mNoTimerResolutionChange = true;
+#endif
+
   SamplerThread(const SamplerThread&) = delete;
   void operator=(const SamplerThread&) = delete;
 };
@@ -2253,9 +2221,10 @@ class SamplerThread {
 // ActivePS's constructor, but SamplerThread is defined after ActivePS. It
 // could probably be removed by moving some code around.
 static SamplerThread* NewSamplerThread(PSLockRef aLock, uint32_t aGeneration,
-                                       double aInterval,
-                                       bool aStackWalkEnabled) {
-  return new SamplerThread(aLock, aGeneration, aInterval, aStackWalkEnabled);
+                                       double aInterval, bool aStackWalkEnabled,
+                                       bool aNoTimerResolutionChange) {
+  return new SamplerThread(aLock, aGeneration, aInterval, aStackWalkEnabled,
+                           aNoTimerResolutionChange);
 }
 
 // This function is the sampler thread.  This implementation is used for all
@@ -2295,13 +2264,13 @@ void SamplerThread::Run() {
   // This will be positive if we are running behind schedule (sampling less
   // frequently than desired) and negative if we are ahead of schedule.
   TimeDuration lastSleepOvershoot = 0;
-  TimeStamp sampleStart = TimeStamp::NowUnfuzzed();
+  TimeStamp sampleStart = TimeStamp::Now();
 
   while (true) {
     // This scope is for |lock|. It ends before we sleep below.
     {
       PSAutoLock lock;
-      TimeStamp lockAcquired = TimeStamp::NowUnfuzzed();
+      TimeStamp lockAcquired = TimeStamp::Now();
 
       if (!ActivePS::Exists(lock)) {
         return;
@@ -2316,7 +2285,7 @@ void SamplerThread::Run() {
 
       ActivePS::ClearExpiredExitProfiles(lock);
 
-      TimeStamp expiredMarkersCleaned = TimeStamp::NowUnfuzzed();
+      TimeStamp expiredMarkersCleaned = TimeStamp::Now();
 
       if (!ActivePS::IsSamplingPaused(lock)) {
         TimeDuration delta = sampleStart - CorePS::ProcessStartTime();
@@ -2341,7 +2310,7 @@ void SamplerThread::Run() {
             buffer.AddEntry(ProfileBufferEntry::Number(number));
           }
         }
-        TimeStamp countersSampled = TimeStamp::NowUnfuzzed();
+        TimeStamp countersSampled = TimeStamp::Now();
 
         if (stackSampling) {
           const Vector<LiveProfiledThreadData>& liveThreads =
@@ -2368,7 +2337,7 @@ void SamplerThread::Run() {
 
             AUTO_PROFILER_STATS(base_SamplerThread_Run_DoPeriodicSample);
 
-            TimeStamp now = TimeStamp::NowUnfuzzed();
+            TimeStamp now = TimeStamp::Now();
 
             // Record the global profiler buffer's range start now, before
             // adding the first entry for this thread's sample.
@@ -2424,7 +2393,7 @@ void SamplerThread::Run() {
           lul->MaybeShowStats();
         }
 #endif
-        TimeStamp threadsSampled = TimeStamp::NowUnfuzzed();
+        TimeStamp threadsSampled = TimeStamp::Now();
 
         {
           AUTO_PROFILER_STATS(Sampler_FulfillChunkRequests);
@@ -2446,12 +2415,12 @@ void SamplerThread::Run() {
     // actual sleep intervals.
     TimeStamp targetSleepEndTime =
         sampleStart + TimeDuration::FromMicroseconds(mIntervalMicroseconds);
-    TimeStamp beforeSleep = TimeStamp::NowUnfuzzed();
+    TimeStamp beforeSleep = TimeStamp::Now();
     TimeDuration targetSleepDuration = targetSleepEndTime - beforeSleep;
     double sleepTime = std::max(
         0.0, (targetSleepDuration - lastSleepOvershoot).ToMicroseconds());
     SleepMicro(static_cast<uint32_t>(sleepTime));
-    sampleStart = TimeStamp::NowUnfuzzed();
+    sampleStart = TimeStamp::Now();
     lastSleepOvershoot =
         sampleStart - (beforeSleep + TimeDuration::FromMicroseconds(sleepTime));
   }
@@ -3576,7 +3545,7 @@ bool profiler_thread_is_sleeping() {
 double profiler_time() {
   MOZ_RELEASE_ASSERT(CorePS::Exists());
 
-  TimeDuration delta = TimeStamp::NowUnfuzzed() - CorePS::ProcessStartTime();
+  TimeDuration delta = TimeStamp::Now() - CorePS::ProcessStartTime();
   return delta.ToMilliseconds();
 }
 
@@ -3607,8 +3576,8 @@ bool profiler_capture_backtrace_into(ProfileChunkedBuffer& aChunkedBuffer,
   regs.Clear();
 #endif
 
-  DoSyncSample(lock, *registeredThread, TimeStamp::NowUnfuzzed(), regs,
-               profileBuffer, aCaptureOptions);
+  DoSyncSample(lock, *registeredThread, TimeStamp::Now(), regs, profileBuffer,
+               aCaptureOptions);
 
   return true;
 }
@@ -3744,7 +3713,7 @@ void profiler_suspend_and_sample_thread(int aThreadId, uint32_t aFeatures,
       } else {
         // Suspend, sample, and then resume the target thread.
         Sampler sampler(lock);
-        TimeStamp now = TimeStamp::NowUnfuzzed();
+        TimeStamp now = TimeStamp::Now();
         sampler.SuspendAndSampleAndResumeThread(lock, registeredThread, now,
                                                 collectStack);
 

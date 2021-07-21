@@ -66,13 +66,6 @@
 #include "mozilla/TouchEvents.h"
 #include "mozilla/Unused.h"
 
-#ifdef MOZ_TASK_TRACER
-#  include "GeckoTaskTracer.h"
-#  include "mozilla/dom/Element.h"
-#  include "mozilla/Likely.h"
-using namespace mozilla::tasktracer;
-#endif
-
 namespace mozilla {
 
 using namespace dom;
@@ -739,30 +732,6 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
   NS_ENSURE_TRUE(!nsContentUtils::IsInStableOrMetaStableState(),
                  NS_ERROR_DOM_INVALID_STATE_ERR);
 
-#ifdef MOZ_TASK_TRACER
-  if (MOZ_UNLIKELY(mozilla::tasktracer::IsStartLogging())) {
-    nsAutoCString eventType;
-    nsAutoString eventTypeU16;
-    if (aDOMEvent) {
-      aDOMEvent->GetType(eventTypeU16);
-    } else {
-      Event::GetWidgetEventType(aEvent, eventTypeU16);
-    }
-    CopyUTF16toUTF8(eventTypeU16, eventType);
-
-    nsCOMPtr<Element> element = do_QueryInterface(aTarget);
-    nsAutoString elementId;
-    nsAutoString elementTagName;
-    if (element) {
-      element->GetId(elementId);
-      element->GetTagName(elementTagName);
-    }
-    AddLabel("Event [%s] dispatched at target [id:%s tag:%s]", eventType.get(),
-             NS_ConvertUTF16toUTF8(elementId).get(),
-             NS_ConvertUTF16toUTF8(elementTagName).get());
-  }
-#endif
-
   nsCOMPtr<EventTarget> target = do_QueryInterface(aTarget);
 
   RefPtr<PerformanceEventTiming> eventTimingEntry;
@@ -1037,7 +1006,6 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
         MOZ_RELEASE_ASSERT(!aEvent->mPath);
         aEvent->mPath = &chain;
 
-#ifdef MOZ_GECKO_PROFILER
         if (profiler_is_active()) {
           // Add a profiler label and a profiler marker for the actual
           // dispatch of the event.
@@ -1096,7 +1064,7 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
             }
           };
 
-          auto startTime = TimeStamp::NowUnfuzzed();
+          auto startTime = TimeStamp::Now();
           profiler_add_marker("DOMEvent", geckoprofiler::category::DOM,
                               {MarkerTiming::IntervalStart(),
                                MarkerInnerWindowId(innerWindowId)},
@@ -1110,9 +1078,7 @@ nsresult EventDispatcher::Dispatch(nsISupports* aTarget,
               "DOMEvent", geckoprofiler::category::DOM,
               {MarkerTiming::IntervalEnd(), std::move(innerWindowId)},
               DOMEventMarker{}, typeStr, startTime, aEvent->mTimeStamp);
-        } else
-#endif
-        {
+        } else {
           EventTargetChainItem::HandleEventTargetChain(chain, postVisitor,
                                                        aCallback, cd);
         }

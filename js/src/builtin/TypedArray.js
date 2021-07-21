@@ -74,7 +74,7 @@ function IsTypedArrayEnsuringArrayBuffer(arg) {
 // 7.3.20 SpeciesConstructor ( O, defaultConstructor )
 //
 // SpeciesConstructor function optimized for TypedArrays to avoid calling
-// _ConstructorForTypedArray, a non-inlineable runtime function, in the normal
+// ConstructorForTypedArray, a non-inlineable runtime function, in the normal
 // case.
 function TypedArraySpeciesConstructor(obj) {
     // Step 1.
@@ -85,18 +85,18 @@ function TypedArraySpeciesConstructor(obj) {
 
     // Step 3.
     if (ctor === undefined)
-        return _ConstructorForTypedArray(obj);
+        return ConstructorForTypedArray(obj);
 
     // Step 4.
     if (!IsObject(ctor))
         ThrowTypeError(JSMSG_OBJECT_REQUIRED, "object's 'constructor' property");
 
     // Steps 5.
-    var s = ctor[std_species];
+    var s = ctor[GetBuiltinSymbol("species")];
 
     // Step 6.
     if (s === undefined || s === null)
-        return _ConstructorForTypedArray(obj);
+        return ConstructorForTypedArray(obj);
 
     // Step 7.
     if (IsConstructor(s))
@@ -1333,7 +1333,7 @@ function TypedArrayAt(index) {
 // ES6 draft rev30 (2014/12/24) 22.2.3.30 %TypedArray%.prototype.values()
 //
 // Uncloned functions with `$` prefix are allocated as extended function
-// to store the original name in `_SetCanonicalName`.
+// to store the original name in `SetCanonicalName`.
 function $TypedArrayValues() {
     // Step 1.
     var O = this;
@@ -1344,7 +1344,7 @@ function $TypedArrayValues() {
     // Step 7.
     return CreateArrayIterator(O, ITEM_KIND_VALUE);
 }
-_SetCanonicalName($TypedArrayValues, "values");
+SetCanonicalName($TypedArrayValues, "values");
 
 // ES2021 draft rev 190d474c3d8728653fbf8a5a37db1de34b9c1472
 // Plus <https://github.com/tc39/ecma262/pull/2221>
@@ -1432,7 +1432,7 @@ function TypedArrayStaticFrom(source, mapfn = undefined, thisArg = undefined) {
 
     // Step 6.
     // Inlined: GetMethod, steps 1-2.
-    var usingIterator = source[std_iterator];
+    var usingIterator = source[GetBuiltinSymbol("iterator")];
 
     // Step 7.
     // Inlined: GetMethod, step 3.
@@ -1572,7 +1572,7 @@ function $TypedArraySpecies() {
     // Step 1.
     return this;
 }
-_SetCanonicalName($TypedArraySpecies, "get [Symbol.species]");
+SetCanonicalName($TypedArraySpecies, "get [Symbol.species]");
 
 // ES2018 draft rev 0525bb33861c7f4e9850f8a222c89642947c4b9c
 // 22.2.2.1.1 Runtime Semantics: IterableToList( items, method )
@@ -1606,7 +1606,7 @@ function IterableToList(items, method) {
         // Step 4.b.
         if (next.done)
             break;
-        _DefineDataProperty(values, i++, next.value);
+        DefineDataProperty(values, i++, next.value);
     }
 
     // Step 5.
@@ -1706,14 +1706,14 @@ function $ArrayBufferSpecies() {
     // Step 1.
     return this;
 }
-_SetCanonicalName($ArrayBufferSpecies, "get [Symbol.species]");
+SetCanonicalName($ArrayBufferSpecies, "get [Symbol.species]");
 
 // Shared memory and atomics proposal (30 Oct 2016)
 function $SharedArrayBufferSpecies() {
     // Step 1.
     return this;
 }
-_SetCanonicalName($SharedArrayBufferSpecies, "get [Symbol.species]");
+SetCanonicalName($SharedArrayBufferSpecies, "get [Symbol.species]");
 
 // ES2020 draft rev dc1e21c454bd316810be1c0e7af0131a2d7f38e9
 // 24.2.4.3 SharedArrayBuffer.prototype.slice ( start, end )

@@ -58,7 +58,11 @@ nsIPrincipal* TRRLoadInfo::FindPrincipalToInherit(nsIChannel* aChannel) {
   return nullptr;
 }
 
-nsIPrincipal* TRRLoadInfo::GetSandboxedLoadingPrincipal() { return nullptr; }
+const nsID& TRRLoadInfo::GetSandboxedNullPrincipalID() {
+  return mSandboxedNullPrincipalID;
+}
+
+void TRRLoadInfo::ResetSandboxedNullPrincipalID() {}
 
 nsIPrincipal* TRRLoadInfo::GetTopLevelPrincipal() { return nullptr; }
 
@@ -547,6 +551,16 @@ TRRLoadInfo::SetIsMediaInitialRequest(bool aIsMediaInitialRequest) {
 
 NS_IMETHODIMP
 TRRLoadInfo::GetIsMediaInitialRequest(bool* aIsMediaInitialRequest) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::SetIsFromObjectOrEmbed(bool aIsFromObjectOrEmbed) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+TRRLoadInfo::GetIsFromObjectOrEmbed(bool* aIsFromObjectOrEmbed) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

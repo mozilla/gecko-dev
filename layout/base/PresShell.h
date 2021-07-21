@@ -59,8 +59,6 @@ class nsAutoCauseReflowNotifier;
 class nsCanvasFrame;
 class nsCaret;
 class nsCSSFrameConstructor;
-class nsDisplayList;
-class nsDisplayListBuilder;
 class nsDocShell;
 class nsFrameSelection;
 class nsIDocShell;
@@ -89,6 +87,9 @@ class ZoomConstraintsClient;
 struct nsCallbackEventRequest;
 
 namespace mozilla {
+class nsDisplayList;
+class nsDisplayListBuilder;
+
 class AccessibleCaretEventHub;
 class EventStates;
 class GeckoMVMContext;
@@ -203,6 +204,9 @@ class PresShell final : public nsStubDocumentObserver,
   // If a frame in the subtree rooted at aFrame is capturing the mouse then
   // clears that capture.
   static void ClearMouseCapture(nsIFrame* aFrame);
+
+  // Clear the capture content if it exists in this process.
+  static void ClearMouseCapture();
 
 #ifdef ACCESSIBILITY
   /**
@@ -881,9 +885,8 @@ class PresShell final : public nsStubDocumentObserver,
     return mObservesMutationsForPrint;
   }
 
-  nsresult SetIsActive(bool aIsActive);
-
-  bool IsActive() { return mIsActive; }
+  void ActivenessMaybeChanged();
+  bool IsActive() const { return mIsActive; }
 
   /**
    * Keep track of how many times this presshell has been rendered to
@@ -1692,6 +1695,9 @@ class PresShell final : public nsStubDocumentObserver,
  private:
   ~PresShell();
 
+  void SetIsActive(bool aIsActive);
+  bool ShouldBeActive() const;
+
   /**
    * Refresh observer management.
    */
@@ -1936,8 +1942,7 @@ class PresShell final : public nsStubDocumentObserver,
   };
   MOZ_CAN_RUN_SCRIPT void ProcessSynthMouseMoveEvent(bool aFromScroll);
 
-  void QueryIsActive();
-  nsresult UpdateImageLockingState();
+  void UpdateImageLockingState();
 
   already_AddRefed<PresShell> GetParentPresShellForEventHandling();
 

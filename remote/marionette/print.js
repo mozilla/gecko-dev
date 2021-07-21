@@ -15,12 +15,12 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   OS: "resource://gre/modules/osfile.jsm",
   setInterval: "resource://gre/modules/Timer.jsm",
 
-  assert: "chrome://remote/content/marionette/assert.js",
-  Log: "chrome://remote/content/marionette/log.js",
-  pprint: "chrome://remote/content/marionette/format.js",
+  Log: "chrome://remote/content/shared/Log.jsm",
 });
 
-XPCOMUtils.defineLazyGetter(this, "logger", () => Log.get());
+XPCOMUtils.defineLazyGetter(this, "logger", () =>
+  Log.get(Log.TYPES.MARIONETTE)
+);
 
 this.print = {
   maxScaleValue: 2.0,

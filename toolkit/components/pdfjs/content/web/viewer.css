@@ -15,6 +15,7 @@
 
 .textLayer {
   position: absolute;
+  text-align: initial;
   left: 0;
   top: 0;
   right: 0;
@@ -208,7 +209,7 @@
    * area, causing horizontal scrolling. We avoid this by extending the width
    * when the element has focus and revert this when it loses focus.
    */
-  width: 115%;
+  width: 103%;
 }
 
 .annotationLayer .buttonWidgetAnnotation.checkBox input,
@@ -275,12 +276,26 @@
 }
 
 
+.xfaPage {
+  overflow: hidden;
+  position: relative;
+}
+
+.xfaContentarea {
+  position: absolute;
+}
+
+.xfaPrintOnly {
+  display: none;
+}
+
 .xfaLayer {
   position: absolute;
+  text-align: initial;
   top: 0;
   left: 0;
-  z-index: 200;
   transform-origin: 0 0;
+  line-height: 1.2;
 }
 
 .xfaLayer * {
@@ -289,10 +304,9 @@
   font-style: inherit;
   font-weight: inherit;
   font-kerning: inherit;
-  letter-spacing: inherit;
+  letter-spacing: -0.01px;
   text-align: inherit;
   text-decoration: inherit;
-  vertical-align: inherit;
   box-sizing: border-box;
   background: transparent;
   padding: 0;
@@ -312,10 +326,6 @@
   margin-left: 3em;
 }
 
-.xfaLayer p {
-  margin-bottom: -1px;
-}
-
 .xfaFont {
   color: black;
   font-weight: normal;
@@ -327,29 +337,14 @@
   vertical-align: 0;
 }
 
-.xfaDraw {
-  z-index: 100;
-}
-
-.xfaExclgroup {
-  z-index: 200;
-}
-
-.xfaField {
-  z-index: 300;
-}
-
-.xfaRich {
-  z-index: 300;
-}
-
-.xfaSubform {
-  z-index: 200;
-}
-
 .xfaCaption {
   overflow: hidden;
   flex: 0 1 auto;
+}
+
+.xfaCaptionForCheckButton {
+  overflow: hidden;
+  flex: 1 1 auto;
 }
 
 .xfaLabel {
@@ -363,17 +358,8 @@
   align-items: center;
 }
 
-.xfaLeft > .xfaCaption {
-  max-height: 100%;
-}
-
-.xfaRight {
-  display: flex;
-  flex-direction: row-reverse;
-  align-items: center;
-}
-
-.xfaRight > .xfaCaption {
+.xfaLeft > .xfaCaption,
+.xfaLeft > .xfaCaptionForCheckButton {
   max-height: 100%;
 }
 
@@ -383,18 +369,9 @@
   align-items: flex-start;
 }
 
-.xfaTop > .xfaCaption {
-  max-width: 100%;
-}
-
-.xfaBottom {
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: flex-start;
-}
-
-.xfaBottom > .xfaCaption {
-  max-width: 100%;
+.xfaTop > .xfaCaption,
+.xfaTop > .xfaCaptionForCheckButton {
+  width: 100%;
 }
 
 .xfaBorder {
@@ -403,17 +380,9 @@
   pointer-events: none;
 }
 
-.xfaWrapper {
-  display: flex;
-  align-items: stretch;
-}
-
 .xfaWrapped {
-  flex: 1 1 auto;
-}
-
-.xfaContentArea {
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
 }
 
 .xfaTextfield,
@@ -424,6 +393,7 @@
 .xfaTextfield:focus,
 .xfaSelect:focus {
   background-color: transparent;
+  outline: none;
 }
 
 .xfaTextfield,
@@ -451,21 +421,21 @@
 .xfaRadio {
   width: 100%;
   height: 100%;
+  flex: 0 0 auto;
   border: none;
 }
 
 .xfaRich {
   white-space: pre-wrap;
-}
-
-.xfaImage {
   width: 100%;
   height: 100%;
 }
 
-.xfaRich {
+.xfaImage {
+  object-position: left top;
+  object-fit: contain;
   width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 .xfaLrTb,
@@ -476,30 +446,16 @@
   align-items: stretch;
 }
 
-.xfaLr,
-.xfaRl,
-.xfaTb > div {
-  flex: 1 1 auto;
-}
-
 .xfaLr {
   display: flex;
   flex-direction: row;
   align-items: stretch;
 }
 
-.xfaLr > div {
-  flex: 1 1 auto;
-}
-
 .xfaRl {
   display: flex;
   flex-direction: row-reverse;
   align-items: stretch;
-}
-
-.xfaRl > div {
-  flex: 1 1 auto;
 }
 
 .xfaTb > div {
@@ -525,18 +481,10 @@
   align-items: stretch;
 }
 
-.xfaTable > div {
-  flex: 1 1 auto;
-}
-
 .xfaTable .xfaRow {
   display: flex;
   flex-direction: row;
   align-items: stretch;
-}
-
-.xfaTable .xfaRow > div {
-  flex: 1 1 auto;
 }
 
 .xfaTable .xfaRlRow {
@@ -548,6 +496,15 @@
 
 .xfaTable .xfaRlRow > div {
   flex: 1;
+}
+
+.xfaNonInteractive input,
+.xfaNonInteractive textarea,
+.xfaDisabled input,
+.xfaDisabled textarea,
+.xfaReadOnly input,
+.xfaReadOnly textarea {
+  background: initial;
 }
 
 @media print {
@@ -2472,6 +2429,10 @@ html[dir="rtl"] #documentPropertiesOverlay .row > * {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+  }
+
+  #printContainer > .xfaPrintedPage .xfaPage {
+    position: initial;
   }
 
   #printContainer > .xfaPrintedPage {

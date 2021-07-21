@@ -47,6 +47,17 @@ static PlainObject* CreateGroupsObject(JSContext* cx,
     return NewObjectWithGivenProto<PlainObject>(cx, nullptr);
   }
 
+  // The groups template object is stored in RegExpShared, which is shared
+  // across compartments and realms. So watch out for the case when the template
+  // object's realm is different from the current realm.
+  if (cx->realm() != groupsTemplate->realm()) {
+    PlainObject* result;
+    JS_TRY_VAR_OR_RETURN_NULL(
+        cx, result,
+        PlainObject::createWithTemplateFromDifferentRealm(cx, groupsTemplate));
+    return result;
+  }
+
   PlainObject* result;
   JS_TRY_VAR_OR_RETURN_NULL(
       cx, result, PlainObject::createWithTemplate(cx, groupsTemplate));
@@ -1893,7 +1904,7 @@ bool js::RegExpPrototypeOptimizableRaw(JSContext* cx, JSObject* proto) {
   NativeObject* nproto = static_cast<NativeObject*>(proto);
 
   Shape* shape = cx->realm()->regExps.getOptimizableRegExpPrototypeShape();
-  if (shape == nproto->lastProperty()) {
+  if (shape == nproto->shape()) {
     return true;
   }
 
@@ -2007,8 +2018,7 @@ bool js::RegExpPrototypeOptimizableRaw(JSContext* cx, JSObject* proto) {
     return false;
   }
 
-  cx->realm()->regExps.setOptimizableRegExpPrototypeShape(
-      nproto->lastProperty());
+  cx->realm()->regExps.setOptimizableRegExpPrototypeShape(nproto->shape());
   return true;
 }
 
@@ -2030,7 +2040,7 @@ bool js::RegExpInstanceOptimizableRaw(JSContext* cx, JSObject* obj,
   RegExpObject* rx = &obj->as<RegExpObject>();
 
   Shape* shape = cx->realm()->regExps.getOptimizableRegExpInstanceShape();
-  if (shape == rx->lastProperty()) {
+  if (shape == rx->shape()) {
     return true;
   }
 
@@ -2046,7 +2056,7 @@ bool js::RegExpInstanceOptimizableRaw(JSContext* cx, JSObject* obj,
     return false;
   }
 
-  cx->realm()->regExps.setOptimizableRegExpInstanceShape(rx->lastProperty());
+  cx->realm()->regExps.setOptimizableRegExpInstanceShape(rx->shape());
   return true;
 }
 
