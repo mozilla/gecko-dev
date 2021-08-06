@@ -4004,8 +4004,8 @@ void nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder* aBuilder,
   Maybe<nsDisplayListBuilder::Linkifier> linkifier;
   if (StaticPrefs::print_save_as_pdf_links_enabled() &&
       aBuilder->IsForPrinting()) {
-    linkifier.emplace(aBuilder, aChild);
-    linkifier->MaybeAppendLink(aBuilder, aChild, aLists.Content());
+    linkifier.emplace(aBuilder, aChild, aLists.Content());
+    linkifier->MaybeAppendLink(aBuilder, aChild);
   }
 
   nsIFrame* child = aChild;
@@ -4971,10 +4971,6 @@ NS_IMETHODIMP nsIFrame::HandleDrag(nsPresContext* aPresContext,
              "HandleDrag can only handle mouse event");
 
   NS_ENSURE_ARG_POINTER(aEventStatus);
-
-  if (*aEventStatus == nsEventStatus_eConsumeNoDefault) {
-    return NS_OK;
-  }
 
   RefPtr<nsFrameSelection> frameselection = GetFrameSelection();
   if (!frameselection) {

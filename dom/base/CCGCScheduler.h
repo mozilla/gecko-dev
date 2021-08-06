@@ -163,6 +163,13 @@ class CCGCScheduler {
   void SetNeedsFullGC(bool aNeedGC = true) { mNeedsFullGC = aNeedGC; }
 
   void SetWantMajorGC(JS::GCReason aReason) {
+    MOZ_ASSERT(aReason != JS::GCReason::NO_REASON);
+
+    if (mMajorGCReason != JS::GCReason::NO_REASON &&
+        mMajorGCReason != JS::GCReason::USER_INACTIVE &&
+        aReason != JS::GCReason::USER_INACTIVE) {
+      mWantAtLeastRegularGC = true;
+    }
     mMajorGCReason = aReason;
 
     // Force full GCs when called from reftests so that we collect dead zones
@@ -189,29 +196,8 @@ class CCGCScheduler {
     return true;
   }
 
-  void NoteGCBegin() {
-    // Treat all GC as incremental here; non-incremental GC will just appear to
-    // be one slice.
-    mInIncrementalGC = true;
-    mReadyForMajorGC = false;
-  }
-
-  void NoteGCEnd() {
-    mMajorGCReason = JS::GCReason::NO_REASON;
-
-    mInIncrementalGC = false;
-    mCCBlockStart = TimeStamp();
-    mInIncrementalGC = false;
-    mReadyForMajorGC = false;
-    mNeedsFullCC = true;
-    mHasRunGC = true;
-    mIsCompactingOnUserInactive = false;
-
-    mCleanupsSinceLastGC = 0;
-    mCCollectedWaitingForGC = 0;
-    mCCollectedZonesWaitingForGC = 0;
-    mLikelyShortLivingObjectsNeedingGC = 0;
-  }
+  void NoteGCBegin();
+  void NoteGCEnd();
 
   void NoteGCSliceEnd(TimeDuration aSliceDuration) {
     if (mMajorGCReason == JS::GCReason::NO_REASON) {
@@ -228,8 +214,6 @@ class CCGCScheduler {
     mGCUnnotifiedTotalTime += aSliceDuration;
   }
 
-  void FullGCTimerFired(nsITimer* aTimer);
-  void ShrinkingGCTimerFired(nsITimer* aTimer);
   bool GCRunnerFired(TimeStamp aDeadline);
 
   using MayGCPromise =
@@ -382,7 +366,7 @@ class CCGCScheduler {
 
   void DeactivateCCRunner() { mCCRunnerState = CCRunnerState::Inactive; }
 
-  GCRunnerStep GetNextGCRunnerAction(TimeStamp aDeadline);
+  GCRunnerStep GetNextGCRunnerAction() const;
 
   CCRunnerStep AdvanceCCRunner(TimeStamp aDeadline, TimeStamp aNow,
                                uint32_t aSuspectedCCObjects);
@@ -401,6 +385,10 @@ class CCGCScheduler {
 
   // The parent process is ready for us to do a major GC.
   bool mReadyForMajorGC = false;
+
+  // When a shrinking GC has been requested but we back-out, if this is true
+  // we run a non-shrinking GC.
+  bool mWantAtLeastRegularGC = false;
 
   // When the CC started actually waiting for the GC to finish. This will be
   // set to non-null at a later time than mCCLockedOut.

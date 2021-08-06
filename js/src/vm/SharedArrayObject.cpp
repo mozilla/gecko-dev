@@ -20,8 +20,8 @@
 #include "js/Wrapper.h"
 #include "util/Memory.h"
 #include "vm/SharedMem.h"
+#include "wasm/WasmMemory.h"
 #include "wasm/WasmSignalHandlers.h"
-#include "wasm/WasmTypes.h"
 
 #include "vm/JSObject-inl.h"
 #include "vm/NativeObject-inl.h"
@@ -31,6 +31,7 @@ using mozilla::CheckedInt;
 using mozilla::DebugOnly;
 using mozilla::Maybe;
 using mozilla::Nothing;
+using mozilla::Some;
 
 using namespace js;
 

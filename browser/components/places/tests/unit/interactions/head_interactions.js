@@ -34,6 +34,7 @@ async function addInteractions(interactions) {
   for (let interaction of interactions) {
     await Interactions.store.add({
       url: interaction.url,
+      title: interaction.title,
       documentType:
         interaction.documentType ?? Interactions.DOCUMENT_TYPE.GENERIC,
       totalViewTime: interaction.totalViewTime ?? 0,
@@ -46,6 +47,36 @@ async function addInteractions(interactions) {
     });
   }
   await Interactions.store.flush();
+}
+
+/**
+ * Fetches the current metadata from the database.
+ */
+async function getInteractions() {
+  const columns = [
+    "id",
+    "place_id",
+    "url",
+    "updated_at",
+    "total_view_time",
+    "typing_time",
+    "key_presses",
+  ];
+  let db = await PlacesUtils.promiseDBConnection();
+  let rows = await db.executeCached(
+    `SELECT m.id AS id, h.id AS place_id, h.url AS url, updated_at,
+            total_view_time, typing_time, key_presses
+     FROM moz_places_metadata m
+     JOIN moz_places h ON h.id = m.place_id
+     ORDER BY updated_at DESC`
+  );
+  return rows.map(r => {
+    let result = {};
+    for (let column of columns) {
+      result[column] = r.getResultByName(column);
+    }
+    return result;
+  });
 }
 
 /**
@@ -127,6 +158,13 @@ function assertRecentDate(date) {
  */
 function assertSnapshot(actual, expected) {
   Assert.equal(actual.url, expected.url, "Should have the expected URL");
+  let expectedTitle = `test visit for ${expected.url}`;
+  if (expected.hasOwnProperty("title")) {
+    // We set title in this statement instead of with an OR so that consumers
+    // can pass an explicit null.
+    expectedTitle = expected.title;
+  }
+  Assert.equal(actual.title, expectedTitle, "Should have the expected title");
   // Avoid falsey-types that we might get from the database.
   Assert.strictEqual(
     actual.userPersisted,
@@ -139,8 +177,13 @@ function assertSnapshot(actual, expected) {
     "Should have the expected document type"
   );
   assertRecentDate(actual.createdAt);
-  assertRecentDate(actual.firstInteractionAt);
   assertRecentDate(actual.lastInteractionAt);
+  if (actual.firstInteractionAt || !actual.userPersisted) {
+    // If a snapshot is manually created before its corresponding interaction is
+    // created, we assign a temporary value of 0 for first_interaction_at. In
+    // all other cases, we want to ensure a reasonable date value is being used.
+    assertRecentDate(actual.firstInteractionAt);
+  }
   if (expected.lastUpdated) {
     Assert.greaterOrEqual(
       actual.lastInteractionAt,
@@ -164,6 +207,26 @@ function assertSnapshot(actual, expected) {
 }
 
 /**
+ * Asserts that the list of snapshots match the expected values.
+ *
+ * @param {Snapshot[]} received
+ *   The received snapshots.
+ * @param {Snapshot[]} expected
+ *   The expected snapshots.
+ */
+async function assertSnapshotList(received, expected) {
+  info(`Found ${received.length} snapshots:\n ${JSON.stringify(received)}`);
+  Assert.equal(
+    received.length,
+    expected.length,
+    "Should have the expected number of snapshots"
+  );
+  for (let i = 0; i < expected.length; i++) {
+    assertSnapshot(received[i], expected[i]);
+  }
+}
+
+/**
  * Asserts that the snapshots in the database match the expected values.
  *
  * @param {Snapshot[]} expected
@@ -174,15 +237,7 @@ function assertSnapshot(actual, expected) {
 async function assertSnapshots(expected, options) {
   let snapshots = await Snapshots.query(options);
 
-  info(`Found ${snapshots.length} snapshots:\n ${JSON.stringify(snapshots)}`);
-  Assert.equal(
-    snapshots.length,
-    expected.length,
-    "Should have the expected number of snapshots"
-  );
-  for (let i = 0; i < expected.length; i++) {
-    assertSnapshot(snapshots[i], expected[i]);
-  }
+  await assertSnapshotList(snapshots, expected);
 }
 
 /**

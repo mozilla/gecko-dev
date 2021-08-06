@@ -11,6 +11,7 @@
 #include "mozIThirdPartyUtil.h"
 #include "nsMixedContentBlocker.h"
 #include "nsNetUtil.h"
+#include "mozilla/BasePrincipal.h"
 #include "mozilla/StaticPrefs_dom.h"
 
 // Helper function which maps an internal content policy type
@@ -117,6 +118,15 @@ bool IsSameOrigin(nsIHttpChannel* aHTTPChannel) {
   NS_GetFinalChannelURI(aHTTPChannel, getter_AddRefs(channelURI));
 
   nsCOMPtr<nsILoadInfo> loadInfo = aHTTPChannel->LoadInfo();
+
+  if (mozilla::BasePrincipal::Cast(loadInfo->TriggeringPrincipal())
+          ->AddonPolicy()) {
+    // If an extension triggered the load that has access to the URI then the
+    // load is considered as same-origin.
+    return mozilla::BasePrincipal::Cast(loadInfo->TriggeringPrincipal())
+        ->AddonAllowsLoad(channelURI);
+  }
+
   bool isPrivateWin = loadInfo->GetOriginAttributes().mPrivateBrowsingId > 0;
   bool isSameOrigin = false;
   nsresult rv = loadInfo->TriggeringPrincipal()->IsSameOrigin(
@@ -216,6 +226,12 @@ bool IsUserTriggeredForSecFetchSite(nsIHttpChannel* aHTTPChannel) {
   if (contentType != ExtContentPolicy::TYPE_DOCUMENT &&
       contentType != ExtContentPolicy::TYPE_SUBDOCUMENT) {
     return false;
+  }
+
+  // The load is considered user triggered if it was triggered by an external
+  // application.
+  if (loadInfo->GetLoadTriggeredFromExternal()) {
+    return true;
   }
 
   // sec-fetch-site can only be user triggered if the load was user triggered.
@@ -324,8 +340,10 @@ void mozilla::dom::SecFetch::AddSecFetchUser(nsIHttpChannel* aHTTPChannel) {
     return;
   }
 
-  // sec-fetch-user only applies if the request is user triggered
-  if (!loadInfo->GetHasValidUserGestureActivation()) {
+  // sec-fetch-user only applies if the request is user triggered.
+  // requests triggered by an external application are considerd user triggered.
+  if (!loadInfo->GetLoadTriggeredFromExternal() &&
+      !loadInfo->GetHasValidUserGestureActivation()) {
     return;
   }
 

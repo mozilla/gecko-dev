@@ -110,9 +110,8 @@ class CodeGeneratorShared : public LElementVisitor {
     return gen->isProfilerInstrumentationEnabled();
   }
 
-  bool stringsCanBeInNursery() const { return gen->stringsCanBeInNursery(); }
-
-  bool bigIntsCanBeInNursery() const { return gen->bigIntsCanBeInNursery(); }
+  gc::InitialHeap initialStringHeap() const { return gen->initialStringHeap(); }
+  gc::InitialHeap initialBigIntHeap() const { return gen->initialBigIntHeap(); }
 
  protected:
   // The offset of the first instruction of the OSR entry block from the

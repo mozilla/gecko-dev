@@ -14,13 +14,6 @@ const FeatureManifest = {
   urlbar: {
     description: "The Address Bar",
     variables: {
-      firefoxSuggestLabelsEnabled: {
-        type: "boolean",
-        fallbackPref:
-          "browser.urlbar.experimental.firefoxSuggestLabels.enabled",
-        description:
-          "Whether to show the Firefox Suggest label above the general group in the urlbar view",
-      },
       quickSuggestEnabled: {
         type: "boolean",
         fallbackPref: "browser.urlbar.quicksuggest.enabled",
@@ -68,11 +61,6 @@ const FeatureManifest = {
         fallbackPref: "browser.aboutwelcome.screens",
         description: "Content to show in the onboarding flow",
       },
-      isProton: {
-        type: "boolean",
-        fallbackPref: "browser.aboutwelcome.protonDesign",
-        description: "Is it using the latest (proton) design",
-      },
       skipFocus: {
         type: "boolean",
         fallbackPref: "browser.aboutwelcome.skipFocus",
@@ -115,6 +103,18 @@ const FeatureManifest = {
       prefsButtonIcon: {
         type: "string",
         description: "Icon url to use for the preferences button",
+      },
+    },
+  },
+  pocketNewtab: {
+    description: "The Pocket section in newtab",
+    isEarlyStartup: true,
+    variables: {
+      spocPositions: {
+        type: "string",
+        fallbackPref:
+          "browser.newtabpage.activity-stream.discoverystream.spoc-positions",
+        description: "CSV string of spoc position indexes on newtab grid",
       },
     },
   },
@@ -240,6 +240,18 @@ const FeatureManifest = {
         type: "string",
         description:
           "URL for image used on the right side of the promo box, smaller, usually a logo. Default off.",
+      },
+    },
+  },
+  readerMode: {
+    description: "Firefox Reader Mode",
+    isEarlyStartup: true,
+    variables: {
+      pocketCTAVersion: {
+        type: "string",
+        fallbackPref: "reader.pocket.ctaVersion",
+        description:
+          "What version of Pocket CTA to show in Reader Mode (Empty string is no CTA)",
       },
     },
   },

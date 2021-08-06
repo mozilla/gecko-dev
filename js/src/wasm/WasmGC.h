@@ -34,7 +34,9 @@ class MacroAssembler;
 
 namespace wasm {
 
-using namespace js::jit;
+using jit::Label;
+using jit::MIRType;
+using jit::Register;
 
 // Definitions for stackmaps.
 
@@ -56,8 +58,9 @@ struct StackMap final {
   // as to limit its range to 11 bits, where
   // 11 == ceil(log2(MaxParams * sizeof-biggest-param-type-in-words))
   //
-  // The stackmap may also cover a DebugFrame (all DebugFrames get a map).  If
-  // so that can be noted, since users of the map need to trace pointers in a
+  // The stackmap may also cover a DebugFrame (all DebugFrames which may
+  // potentially contain live pointers into the JS heap get a map).  If so that
+  // can be noted, since users of the map need to trace pointers in a
   // DebugFrame.
   //
   // Finally, for sanity checking only, for stackmaps associated with a wasm
@@ -74,11 +77,11 @@ struct StackMap final {
   // Where is Frame* relative to the top?  This is an offset in words.
   uint32_t frameOffsetFromTop : 11;
 
-  // Notes the presence of a DebugFrame.  The DebugFrame may or may not contain
-  // GC-managed data but always gets a stackmap, as computing whether a stack
-  // map is definitively needed is brittle and ultimately not a worthwhile
-  // optimization.
-  uint32_t hasDebugFrame : 1;
+  // Notes the presence of a DebugFrame with possibly-live references.  A
+  // DebugFrame may or may not contain GC-managed data; in situations when it is
+  // possible that any pointers in the DebugFrame are non-null, the DebugFrame
+  // gets a stackmap.
+  uint32_t hasDebugFrameWithLiveRefs : 1;
 
  private:
   static constexpr uint32_t maxMappedWords = (1 << 30) - 1;
@@ -91,7 +94,7 @@ struct StackMap final {
       : numMappedWords(numMappedWords),
         numExitStubWords(0),
         frameOffsetFromTop(0),
-        hasDebugFrame(0) {
+        hasDebugFrameWithLiveRefs(0) {
     const uint32_t nBitmap = calcNBitmap(numMappedWords);
     memset(bitmap, 0, nBitmap * sizeof(bitmap[0]));
   }
@@ -129,9 +132,9 @@ struct StackMap final {
 
   // If the frame described by this StackMap includes a DebugFrame, call here to
   // record that fact.
-  void setHasDebugFrame() {
-    MOZ_ASSERT(hasDebugFrame == 0);
-    hasDebugFrame = 1;
+  void setHasDebugFrameWithLiveRefs() {
+    MOZ_ASSERT(hasDebugFrameWithLiveRefs == 0);
+    hasDebugFrameWithLiveRefs = 1;
   }
 
   inline void setBit(uint32_t bitIndex) {
@@ -265,7 +268,7 @@ class StackMaps {
 // the complete native-ABI-level call signature.
 template <class T>
 static inline size_t StackArgAreaSizeUnaligned(const T& argTypes) {
-  WasmABIArgIter<const T> i(argTypes);
+  jit::WasmABIArgIter<const T> i(argTypes);
   while (!i.done()) {
     i++;
   }
@@ -336,7 +339,7 @@ wasm::StackMap* ConvertStackMapBoolVectorToStackMap(
 // MacroAssembler::wasmReserveStackChecked, in the case where the frame is
 // "small", as determined by that function.
 [[nodiscard]] bool CreateStackMapForFunctionEntryTrap(
-    const ArgTypeVector& argTypes, const MachineState& trapExitLayout,
+    const ArgTypeVector& argTypes, const jit::MachineState& trapExitLayout,
     size_t trapExitLayoutWords, size_t nBytesReservedBeforeTrap,
     size_t nInboundStackArgBytes, wasm::StackMap** result);
 
@@ -346,7 +349,7 @@ wasm::StackMap* ConvertStackMapBoolVectorToStackMap(
 // |args[0]| corresponds to the low addressed end of the described section of
 // the save area.
 [[nodiscard]] bool GenerateStackmapEntriesForTrapExit(
-    const ArgTypeVector& args, const MachineState& trapExitLayout,
+    const ArgTypeVector& args, const jit::MachineState& trapExitLayout,
     const size_t trapExitLayoutNumWords, ExitStubMapVector* extras);
 
 // Shared write barrier code.
@@ -376,7 +379,7 @@ wasm::StackMap* ConvertStackMapBoolVectorToStackMap(
 //
 // It is OK for `tls` and `scratch` to be the same register.
 
-void EmitWasmPreBarrierGuard(MacroAssembler& masm, Register tls,
+void EmitWasmPreBarrierGuard(jit::MacroAssembler& masm, Register tls,
                              Register scratch, Register valueAddr,
                              Label* skipBarrier);
 
@@ -388,7 +391,7 @@ void EmitWasmPreBarrierGuard(MacroAssembler& masm, Register tls,
 //
 // It is OK for `tls` and `scratch` to be the same register.
 
-void EmitWasmPreBarrierCall(MacroAssembler& masm, Register tls,
+void EmitWasmPreBarrierCall(jit::MacroAssembler& masm, Register tls,
                             Register scratch, Register valueAddr);
 
 // After storing a GC pointer value in memory, skip to `skipBarrier` if a
@@ -399,7 +402,7 @@ void EmitWasmPreBarrierCall(MacroAssembler& masm, Register tls,
 //
 // `otherScratch` cannot be a designated scratch register.
 
-void EmitWasmPostBarrierGuard(MacroAssembler& masm,
+void EmitWasmPostBarrierGuard(jit::MacroAssembler& masm,
                               const Maybe<Register>& object,
                               Register otherScratch, Register setValue,
                               Label* skipBarrier);

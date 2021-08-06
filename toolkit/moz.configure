@@ -314,10 +314,6 @@ def toolkit_gtk(toolkit):
     return toolkit == "gtk"
 
 
-set_config("MOZ_X11", True, when=toolkit_gtk)
-set_define("MOZ_X11", True, when=toolkit_gtk)
-add_old_configure_assignment("MOZ_X11", True, when=toolkit_gtk)
-
 # Wayland support
 # ==============================================================
 wayland_headers = pkg_check_modules(
@@ -389,17 +385,8 @@ def pdf_printing(toolkit):
         return True
 
 
-@depends(pdf_printing)
-def pdf_surface_feature(pdf_printing):
-    if pdf_printing:
-        return "#define CAIRO_HAS_PDF_SURFACE 1"
-    else:
-        # CONFIGURE_SUBST_FILES need explicit empty values.
-        return ""
-
-
 set_config("MOZ_PDF_PRINTING", pdf_printing)
-set_config("PDF_SURFACE_FEATURE", pdf_surface_feature)
+set_define("MOZ_PDF_PRINTING", pdf_printing)
 
 
 # Event loop instrumentation
@@ -431,14 +418,11 @@ def fc_freetype(value, toolkit):
 
 
 add_old_configure_assignment("USE_FC_FREETYPE", fc_freetype)
+set_define("USE_FC_FREETYPE", fc_freetype)
 
 # Pango
 # ==============================================================
-pkg_check_modules(
-    "MOZ_PANGO",
-    "pango >= 1.22.0 pangoft2 >= 1.22.0 pangocairo >= 1.22.0",
-    when=toolkit_gtk,
-)
+pkg_check_modules("MOZ_PANGO", "pango >= 1.22.0", when=toolkit_gtk)
 
 # Fontconfig
 # ==============================================================
@@ -474,6 +458,7 @@ def freetype2_combined_info(fontconfig_info, freetype2_info):
 add_old_configure_assignment(
     "_HAVE_FREETYPE2", depends_if(freetype2_info)(lambda _: True)
 )
+set_define("MOZ_HAVE_FREETYPE2", depends_if(freetype2_info)(lambda _: True))
 
 # Apple platform decoder support
 # ==============================================================
@@ -937,53 +922,23 @@ set_config("MOZ_IPDL_TESTS", depends_if("--enable-ipdl-tests")(lambda _: True))
 
 # Graphics
 # ==============================================================
-option("--disable-skia", help="Disable use of Skia")
+@depends(target, milestone)
+def skia_pdf_default(target, milestone):
+    return milestone.is_nightly and target.os != "WINNT"
 
 
-@depends("--disable-skia")
-def skia(value):
-    if not value:
-        die("--disable-skia is not supported anymore")
-    else:
-        return True
+option("--enable-skia-pdf", default=skia_pdf_default, help="{Enable|Disable} Skia PDF")
 
+set_config("MOZ_ENABLE_SKIA_PDF", True, when="--enable-skia-pdf")
+set_define("MOZ_ENABLE_SKIA_PDF", True, when="--enable-skia-pdf")
 
-set_config("MOZ_ENABLE_SKIA", skia)
-set_define("MOZ_ENABLE_SKIA", skia)
-set_define("USE_SKIA", skia)
-
-option("--enable-skia-pdf", help="Enable Skia PDF")
-
-
-@depends("--enable-skia-pdf", skia, target, milestone)
-def skia_pdf(value, skia, target, milestone):
-    if value.origin == "default":
-        if not skia:
-            return None
-        if milestone.is_nightly and target.os != "WINNT":
-            return True
-    elif value and not skia:
-        die("Cannot enable Skia PDF without enabling Skia")
-    if skia and value:
-        return True
-
-
-set_config("MOZ_ENABLE_SKIA_PDF", skia_pdf)
-set_define("MOZ_ENABLE_SKIA_PDF", skia_pdf)
-
-
-@depends(skia)
-def skia_includes(skia):
-    includes = []
-    if skia:
-        includes += [
-            "/gfx/skia",
-            "/gfx/skia/skia",
-        ]
-    return includes
-
-
-set_config("SKIA_INCLUDES", skia_includes)
+set_config(
+    "SKIA_INCLUDES",
+    [
+        "/gfx/skia",
+        "/gfx/skia/skia",
+    ],
+)
 
 system_lib_option(
     "--with-system-webp", help="Use system libwebp (located with pkgconfig)"
@@ -997,7 +952,7 @@ set_config("MOZ_SYSTEM_WEBP", depends(when=system_webp)(lambda: True))
 
 # Build Freetype in the tree
 # ==============================================================
-@depends(target, skia_pdf)
+@depends(target, "--enable-skia-pdf")
 def tree_freetype(target, skia_pdf):
     if target.os == "Android" or (skia_pdf and target.os == "WINNT"):
         return True
@@ -1178,7 +1133,6 @@ def webrtc(enabled):
 
 set_config("MOZ_WEBRTC", webrtc)
 set_define("MOZ_WEBRTC", webrtc)
-add_old_configure_assignment("MOZ_WEBRTC", webrtc)
 set_config("MOZ_SCTP", webrtc)
 set_define("MOZ_SCTP", webrtc)
 set_config("MOZ_SRTP", webrtc)
@@ -1212,6 +1166,39 @@ option(
 
 set_config("MOZ_RAW", depends_if("--enable-raw")(lambda _: True))
 set_define("MOZ_RAW", depends_if("--enable-raw")(lambda _: True))
+
+
+# X11
+# ==============================================================
+set_config("MOZ_X11", True, when=toolkit_gtk)
+set_define("MOZ_X11", True, when=toolkit_gtk)
+
+
+@depends(webrtc, when=toolkit_gtk)
+def x11_libs(webrtc):
+    libs = [
+        "x11",
+        "xcb",
+        "xcb-shm",
+        "x11-xcb",
+        "xext",
+        "xrender",
+    ]
+    if webrtc:
+        # third_party/libwebrtc/webrtc/webrtc_gn/moz.build adds those
+        # manually, ensure they're available.
+        libs += [
+            "xcomposite",
+            "xcursor",
+            "xdamage",
+            "xfixes",
+            "xi",
+        ]
+    return " ".join(libs)
+
+
+pkg_check_modules("MOZ_X11", x11_libs, when=toolkit_gtk)
+
 
 # ASan Reporter Addon
 # ==============================================================
@@ -2105,13 +2092,9 @@ with only_when(requires_wasm_sandboxing & compile_environment):
     def lucetc(value):
         return value
 
-    # Allow setting LUCETC to an explicit empty value to force building
-    # with wasm2c.
     @depends("LUCETC")
     def lucetc_not_empty(lucetc):
-        if lucetc.origin != "default" and not lucetc:
-            return False
-        return True
+        return bool(lucetc)
 
     lucetc = check_prog(
         "LUCETC", ["lucetc"], input=lucetc, bootstrap="lucetc", when=lucetc_not_empty
@@ -2125,19 +2108,23 @@ with only_when(requires_wasm_sandboxing & compile_environment):
         help="Path to wasi sysroot for wasm sandboxing",
     )
 
-    @depends("--with-wasi-sysroot", toolchains_base_dir)
+    @depends("--with-wasi-sysroot", requires_wasm_sandboxing)
+    def bootstrap_wasi_sysroot(wasi_sysroot, requires_wasm_sandboxing):
+        return requires_wasm_sandboxing and not wasi_sysroot
+
+    @depends(
+        "--with-wasi-sysroot",
+        bootstrap_path("wasi-sysroot/share/wasi-sysroot", when=bootstrap_wasi_sysroot),
+    )
     @imports("os")
-    def wasi_sysroot(wasi_sysroot, toolchains_base_dir):
+    def wasi_sysroot(wasi_sysroot, bootstrapped_sysroot):
         if not wasi_sysroot:
-            sysroot = os.path.join(
-                toolchains_base_dir, "wasi-sysroot", "share", "wasi-sysroot"
-            )
-            if os.path.isdir(sysroot):
-                return sysroot
-            die(
-                "Cannot find a wasi sysroot. Install the sysroot at %s or set "
-                "--with-wasi-sysroot." % sysroot
-            )
+            if not bootstrapped_sysroot:
+                die(
+                    "Cannot find a wasi sysroot. Please give its location with "
+                    "--with-wasi-sysroot."
+                )
+            return bootstrapped_sysroot
 
         wasi_sysroot = wasi_sysroot[0]
         if not os.path.isdir(wasi_sysroot):
@@ -2262,18 +2249,21 @@ with only_when(requires_wasm_sandboxing & compile_environment):
     set_config("LUCETC_TARGET", rust_target_triple)
 
 
-@depends("--with-wasm-sandboxed-libraries", target)
-def wasm_sandboxing(libraries, target):
+@depends("--with-wasm-sandboxed-libraries", target, lucetc)
+def wasm_sandboxing(libraries, target, lucetc):
     if not libraries:
         return
 
     # Wasm sandboxing is only enabled on specific targets.
-    if not (
+    if lucetc and not (
         target.cpu in ("x86_64",)
         and (target.kernel == "Linux" and target.os != "Android")
         or target.kernel == "Darwin"
     ):
         die("wasm sandboxing is only enabled on x86-64 Linux and Mac")
+
+    if not lucetc and target.bitness != 64:
+        die("wasm sandboxing is only supported on 64-bits platforms")
 
     return namespace(**{name: True for name in libraries})
 

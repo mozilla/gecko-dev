@@ -1124,8 +1124,8 @@ void GCRuntime::releaseArena(Arena* arena, const AutoLockGC& lock) {
 
 GCRuntime::GCRuntime(JSRuntime* rt)
     : rt(rt),
-      systemZone(nullptr),
       atomsZone(nullptr),
+      systemZone(nullptr),
       heapState_(JS::HeapState::Idle),
       stats_(this),
       marker(rt),
@@ -1597,21 +1597,6 @@ bool GCRuntime::init(uint32_t maxbytes) {
   return true;
 }
 
-void GCRuntime::freezeSelfHostingZone() {
-  MOZ_ASSERT(!selfHostingZoneFrozen);
-  MOZ_ASSERT(!isIncrementalGCInProgress());
-
-  for (ZonesIter zone(this, WithAtoms); !zone.done(); zone.next()) {
-    MOZ_ASSERT(!zone->isGCScheduled());
-    if (zone->isSelfHostingZone()) {
-      zone->scheduleGC();
-    }
-  }
-
-  gc(JS::GCOptions::Shrink, JS::GCReason::INIT_SELF_HOSTING);
-  selfHostingZoneFrozen = true;
-}
-
 void GCRuntime::finish() {
   MOZ_ASSERT(inPageLoadCount == 0);
 
@@ -1659,6 +1644,49 @@ void GCRuntime::finish() {
 
   nursery().printTotalProfileTimes();
   stats().printTotalProfileTimes();
+}
+
+void GCRuntime::freezePermanentAtoms() {
+  // This is called just after the permanent atoms have been created. At this
+  // point all existing atoms are permanent. Move the arenas containing atoms
+  // out of atoms zone arena lists until shutdown. Since we won't sweep them, we
+  // don't need to mark them at the start of every GC.
+
+  MOZ_ASSERT(atomsZone);
+  MOZ_ASSERT(zones().empty());
+
+  atomsZone->arenas.clearFreeLists();
+  freezePermanentAtomsOfKind(AllocKind::ATOM, permanentAtoms.ref());
+  freezePermanentAtomsOfKind(AllocKind::FAT_INLINE_ATOM,
+                             permanentFatInlineAtoms.ref());
+}
+
+void GCRuntime::freezePermanentAtomsOfKind(AllocKind kind,
+                                           ArenaList& arenaList) {
+  for (auto atom = atomsZone->cellIterUnsafe<JSAtom>(kind); !atom.done();
+       atom.next()) {
+    MOZ_ASSERT(atom->isPermanentAtom());
+    atom->asTenured().markBlack();
+  }
+
+  arenaList = std::move(atomsZone->arenas.arenaList(kind));
+}
+
+void GCRuntime::restorePermanentAtoms() {
+  // Move the arenas containing permanent atoms that were removed by
+  // freezePermanentAtoms() back to the atoms zone arena lists so we can collect
+  // them.
+
+  MOZ_ASSERT(heapState() == JS::HeapState::MajorCollecting);
+
+  restorePermanentAtomsOfKind(AllocKind::ATOM, permanentAtoms.ref());
+  restorePermanentAtomsOfKind(AllocKind::FAT_INLINE_ATOM,
+                              permanentFatInlineAtoms.ref());
+}
+
+void GCRuntime::restorePermanentAtomsOfKind(AllocKind kind,
+                                            ArenaList& arenaList) {
+  atomsZone->arenas.arenaList(kind).insertListWithCursorAtEnd(arenaList);
 }
 
 bool GCRuntime::setParameter(JSGCParamKey key, uint32_t value) {
@@ -1860,8 +1888,6 @@ uint32_t GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock) {
       return tunables.zoneAllocDelayBytes() / 1024;
     case JSGC_MALLOC_THRESHOLD_BASE:
       return tunables.mallocThresholdBase() / 1024 / 1024;
-    case JSGC_MALLOC_GROWTH_FACTOR:
-      return uint32_t(tunables.mallocGrowthFactor() * 100);
     case JSGC_CHUNK_BYTES:
       return ChunkSize;
     case JSGC_HELPER_THREAD_RATIO:
@@ -2154,15 +2180,7 @@ AutoDisableCompactingGC::~AutoDisableCompactingGC() {
 }
 
 bool GCRuntime::canRelocateZone(Zone* zone) const {
-  if (zone->isAtomsZone()) {
-    return false;
-  }
-
-  if (zone->isSelfHostingZone() && selfHostingZoneFrozen) {
-    return false;
-  }
-
-  return true;
+  return !zone->isAtomsZone();
 }
 
 #ifdef DEBUG
@@ -4370,9 +4388,6 @@ void GCRuntime::discardJITCodeForGC() {
 void GCRuntime::relazifyFunctionsForShrinkingGC() {
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::RELAZIFY_FUNCTIONS);
   for (GCZonesIter zone(this); !zone.done(); zone.next()) {
-    if (zone->isSelfHostingZone()) {
-      continue;
-    }
     RelazifyFunctions(zone, AllocKind::FUNCTION);
     RelazifyFunctions(zone, AllocKind::FUNCTION_EXTENDED);
   }
@@ -4438,6 +4453,10 @@ bool GCRuntime::beginPreparePhase(JS::GCReason reason, AutoGCSession& session) {
   /* Check it's safe to access the atoms zone if we are collecting it. */
   if (atomsZone->isCollecting()) {
     session.maybeCheckAtomsAccess.emplace(rt);
+  }
+
+  if (reason == JS::GCReason::DESTROY_RUNTIME) {
+    restorePermanentAtoms();
   }
 
   /*
@@ -5286,7 +5305,7 @@ void js::NotifyGCNukeWrapper(JSObject* wrapper) {
     WeakRefObject* weakRef = &target->as<WeakRefObject>();
     GCRuntime* gc = &weakRef->runtimeFromMainThread()->gc;
     if (weakRef->target() && gc->unregisterWeakRefWrapper(wrapper)) {
-      weakRef->setTarget(nullptr);
+      weakRef->clearTarget();
     }
   }
 
@@ -6073,7 +6092,7 @@ static bool SweepArenaList(JSFreeOp* fop, Arena** arenasToSweep,
     MOZ_ASSERT_IF(next, next->zone == arena->zone);
     *arenasToSweep = next;
 
-    AllocKind kind = MapTypeToFinalizeKind<T>::kind;
+    AllocKind kind = MapTypeToAllocKind<T>::kind;
     sliceBudget.step(Arena::thingsPerArena(kind));
     if (sliceBudget.isOverBudget()) {
       return false;
@@ -7069,9 +7088,22 @@ static const char* DescribeBudget(const SliceBudget& budget) {
 }
 #endif
 
+static bool ShouldPauseMutatorWhileWaiting(const SliceBudget& budget,
+                                           JS::GCReason reason,
+                                           bool budgetWasIncreased) {
+  // When we're nearing the incremental limit at which we will finish the
+  // collection synchronously, pause the main thread if there is only background
+  // GC work happening. This allows the GC to catch up and avoid hitting the
+  // limit.
+  return budget.isTimeBudget() &&
+         (reason == JS::GCReason::ALLOC_TRIGGER ||
+          reason == JS::GCReason::TOO_MUCH_MALLOC) &&
+         budgetWasIncreased;
+}
+
 void GCRuntime::incrementalSlice(SliceBudget& budget,
                                  const MaybeGCOptions& options,
-                                 JS::GCReason reason) {
+                                 JS::GCReason reason, bool budgetWasIncreased) {
   MOZ_ASSERT_IF(isIncrementalGCInProgress(), isIncremental);
 
   AutoSetThreadIsPerformingGC performingGC;
@@ -7109,6 +7141,9 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
     budget = SliceBudget::unlimited();
   }
 
+  bool shouldPauseMutator =
+      ShouldPauseMutatorWhileWaiting(budget, reason, budgetWasIncreased);
+
   switch (incrementalState) {
     case State::NotActive:
       MOZ_ASSERT(marker.isDrained());
@@ -7140,7 +7175,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
       [[fallthrough]];
 
     case State::Prepare:
-      if (waitForBackgroundTask(unmarkTask, budget,
+      if (waitForBackgroundTask(unmarkTask, budget, shouldPauseMutator,
                                 DontTriggerSliceWhenFinished) == NotFinished) {
         break;
       }
@@ -7244,8 +7279,8 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
       [[fallthrough]];
 
     case State::Finalize:
-      if (waitForBackgroundTask(sweepTask, budget, TriggerSliceWhenFinished) ==
-          NotFinished) {
+      if (waitForBackgroundTask(sweepTask, budget, shouldPauseMutator,
+                                TriggerSliceWhenFinished) == NotFinished) {
         break;
       }
 
@@ -7294,7 +7329,7 @@ void GCRuntime::incrementalSlice(SliceBudget& budget,
       [[fallthrough]];
 
     case State::Decommit:
-      if (waitForBackgroundTask(decommitTask, budget,
+      if (waitForBackgroundTask(decommitTask, budget, shouldPauseMutator,
                                 TriggerSliceWhenFinished) == NotFinished) {
         break;
       }
@@ -7340,10 +7375,21 @@ bool GCRuntime::hasForegroundWork() const {
 }
 
 IncrementalProgress GCRuntime::waitForBackgroundTask(
-    GCParallelTask& task, const SliceBudget& budget,
+    GCParallelTask& task, const SliceBudget& budget, bool shouldPauseMutator,
     ShouldTriggerSliceWhenFinished triggerSlice) {
-  // In incremental collections, yield if the task has not finished and request
-  // a slice to notify us when this happens.
+  // Wait here in non-incremental collections, or if we want to pause the
+  // mutator to let the GC catch up.
+  if (budget.isUnlimited() || shouldPauseMutator) {
+    gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::WAIT_BACKGROUND_THREAD);
+    Maybe<TimeStamp> deadline;
+    if (budget.isTimeBudget()) {
+      deadline.emplace(budget.deadline());
+    }
+    task.join(deadline);
+  }
+
+  // In incremental collections, yield if the task has not finished and
+  // optionally request a slice to notify us when this happens.
   if (!budget.isUnlimited()) {
     AutoLockHelperThreadState lock;
     if (task.wasStarted(lock)) {
@@ -7352,11 +7398,12 @@ IncrementalProgress GCRuntime::waitForBackgroundTask(
       }
       return NotFinished;
     }
+
+    task.joinWithLockHeld(lock);
   }
 
-  // Otherwise in non-incremental collections, wait here.
-  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::WAIT_BACKGROUND_THREAD);
-  task.join();
+  MOZ_ASSERT(task.isIdle());
+
   if (triggerSlice) {
     cancelRequestedGCAfterBackgroundTask();
   }
@@ -7485,34 +7532,86 @@ GCRuntime::IncrementalResult GCRuntime::budgetIncrementalGC(
   return IncrementalResult::Ok;
 }
 
-void GCRuntime::maybeIncreaseSliceBudget(SliceBudget& budget) {
+bool GCRuntime::maybeIncreaseSliceBudget(SliceBudget& budget) {
   if (js::SupportDifferentialTesting()) {
-    return;
+    return false;
   }
 
-  // Increase time budget for long-running incremental collections. Enforce a
-  // minimum time budget that increases linearly with time/slice count up to a
-  // maximum.
+  if (!budget.isTimeBudget() || !isIncrementalGCInProgress()) {
+    return false;
+  }
 
-  if (budget.isTimeBudget() && isIncrementalGCInProgress()) {
-    // All times are in milliseconds.
-    struct BudgetAtTime {
-      double time;
-      double budget;
-    };
-    const BudgetAtTime MinBudgetStart{1500, 0.0};
-    const BudgetAtTime MinBudgetEnd{2500, 100.0};
+  bool wasIncreasedForLongCollections =
+      maybeIncreaseSliceBudgetForLongCollections(budget);
+  bool wasIncreasedForUgentCollections =
+      maybeIncreaseSliceBudgetForUrgentCollections(budget);
 
-    double totalTime = (ReallyNow() - lastGCStartTime()).ToMilliseconds();
+  return wasIncreasedForLongCollections || wasIncreasedForUgentCollections;
+}
 
-    double minBudget =
-        LinearInterpolate(totalTime, MinBudgetStart.time, MinBudgetStart.budget,
-                          MinBudgetEnd.time, MinBudgetEnd.budget);
+bool GCRuntime::maybeIncreaseSliceBudgetForLongCollections(
+    SliceBudget& budget) {
+  // For long-running collections, enforce a minimum time budget that increases
+  // linearly with time up to a maximum.
 
+  bool wasIncreased = false;
+
+  // All times are in milliseconds.
+  struct BudgetAtTime {
+    double time;
+    double budget;
+  };
+  const BudgetAtTime MinBudgetStart{1500, 0.0};
+  const BudgetAtTime MinBudgetEnd{2500, 100.0};
+
+  double totalTime = (ReallyNow() - lastGCStartTime()).ToMilliseconds();
+
+  double minBudget =
+      LinearInterpolate(totalTime, MinBudgetStart.time, MinBudgetStart.budget,
+                        MinBudgetEnd.time, MinBudgetEnd.budget);
+
+  if (budget.timeBudget() < minBudget) {
+    budget = SliceBudget(TimeBudget(minBudget));
+    wasIncreased = true;
+  }
+
+  return wasIncreased;
+}
+
+bool GCRuntime::maybeIncreaseSliceBudgetForUrgentCollections(
+    SliceBudget& budget) {
+  // Enforce a minimum time budget based on how close we are to the incremental
+  // limit.
+
+  bool wasIncreased = false;
+
+  size_t minBytesRemaining = SIZE_MAX;
+  for (AllZonesIter zone(this); !zone.done(); zone.next()) {
+    if (!zone->wasGCStarted()) {
+      continue;
+    }
+    size_t gcBytesRemaining =
+        zone->gcHeapThreshold.incrementalBytesRemaining(zone->gcHeapSize);
+    minBytesRemaining = std::min(minBytesRemaining, gcBytesRemaining);
+    size_t mallocBytesRemaining =
+        zone->mallocHeapThreshold.incrementalBytesRemaining(
+            zone->mallocHeapSize);
+    minBytesRemaining = std::min(minBytesRemaining, mallocBytesRemaining);
+  }
+
+  if (minBytesRemaining < tunables.urgentThresholdBytes() &&
+      minBytesRemaining != 0) {
+    // Increase budget based on the reciprocal of the fraction remaining.
+    double fractionRemaining =
+        double(minBytesRemaining) / double(tunables.urgentThresholdBytes());
+    double minBudget = double(defaultSliceBudgetMS()) / fractionRemaining;
     if (budget.timeBudget() < minBudget) {
       budget = SliceBudget(TimeBudget(minBudget));
+      wasIncreased = true;
     }
   }
+
+  return wasIncreased;
 }
 
 static void ScheduleZones(GCRuntime* gc) {
@@ -7624,7 +7723,7 @@ MOZ_NEVER_INLINE GCRuntime::IncrementalResult GCRuntime::gcCycle(
   // Increase slice budget for long running collections before it is recorded by
   // AutoGCSlice.
   SliceBudget budget(budgetArg);
-  maybeIncreaseSliceBudget(budget);
+  bool budgetWasIncreased = maybeIncreaseSliceBudget(budget);
 
   ScheduleZones(this);
   gcstats::AutoGCSlice agc(stats(), scanZonesBeforeGC(),
@@ -7649,7 +7748,7 @@ MOZ_NEVER_INLINE GCRuntime::IncrementalResult GCRuntime::gcCycle(
   incGcSliceNumber();
 
   gcprobes::MajorGCStart();
-  incrementalSlice(budget, options, reason);
+  incrementalSlice(budget, options, reason, budgetWasIncreased);
   gcprobes::MajorGCEnd();
 
   MOZ_ASSERT_IF(result == IncrementalResult::ResetIncremental,
@@ -8218,19 +8317,14 @@ Realm* js::NewRealm(JSContext* cx, JSPrincipals* principals,
       zone = comp->zone();
       break;
     case JS::CompartmentSpecifier::NewCompartmentAndZone:
-    case JS::CompartmentSpecifier::NewCompartmentInSelfHostingZone:
       break;
   }
 
   if (!zone) {
     Zone::Kind kind = Zone::NormalZone;
     const JSPrincipals* trusted = rt->trustedPrincipals();
-    if (compSpec == JS::CompartmentSpecifier::NewCompartmentInSelfHostingZone) {
-      MOZ_ASSERT(!rt->hasInitializedSelfHosting());
-      kind = Zone::SelfHostingZone;
-    } else if (compSpec ==
-                   JS::CompartmentSpecifier::NewCompartmentInSystemZone ||
-               (principals && principals == trusted)) {
+    if (compSpec == JS::CompartmentSpecifier::NewCompartmentInSystemZone ||
+        (principals && principals == trusted)) {
       kind = Zone::SystemZone;
     }
 

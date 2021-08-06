@@ -30,6 +30,7 @@
 #include "mozilla/TextUtils.h"
 #include "mozilla/Utf8.h"
 #include "nsIClassInfoImpl.h"
+#include <string.h>
 
 //
 // setenv MOZ_LOG nsStandardURL:5
@@ -2607,9 +2608,9 @@ nsStandardURL::Resolve(const nsACString& in, nsACString& out) {
     net_CoalesceDirs(coalesceFlag, resultPath);
   } else {
     // locate result path
-    resultPath = PL_strstr(result, "://");
+    resultPath = strstr(result, "://");
     if (resultPath) {
-      resultPath = PL_strchr(resultPath + 3, '/');
+      resultPath = strchr(resultPath + 3, '/');
       if (resultPath) {
         net_CoalesceDirs(coalesceFlag, resultPath);
       }

@@ -8,13 +8,12 @@
 %include ../shared/browser-custom-colors.inc.css
 
 :root {
-  --toolbar-non-lwt-bgcolor: #f9f9fb;
-  --toolbar-non-lwt-textcolor: #0c0c0d;
+  --toolbar-non-lwt-bgcolor: -moz-dialog;
+  --toolbar-non-lwt-textcolor: -moz-dialogtext;
   --toolbar-non-lwt-bgimage: none;
 
   --toolbarbutton-vertical-text-padding: calc(var(--toolbarbutton-inner-padding) + 1px);
   --toolbarbutton-border-radius: 4px;
-  --toolbarbutton-icon-fill-opacity: 1;
 
   --panel-separator-color: hsla(210,4%,10%,.14);
 
@@ -35,9 +34,17 @@
 #navigator-toolbox {
   appearance: none;
 }
+
 #navigator-toolbox:not(:-moz-lwtheme) {
-  background-color: #f0f0f4;
+  background-color: window;
 }
+
+@media not (prefers-contrast) {
+  #navigator-toolbox:not(:-moz-lwtheme) {
+    background-color: #f0f0f4;
+  }
+}
+
 /*
   This is a workaround for Bug 1482157
   -moz-default-appearance: toolbox; makes the macOS sheets attached to the
@@ -188,7 +195,18 @@
     --urlbar-box-bgcolor: white;
   }
   :root[lwt-default-theme-in-dark-mode] #urlbar:not([focused="true"]) {
-    --urlbar-box-bgcolor: var(--lwt-toolbar-field-focus);
+    --urlbar-box-bgcolor: var(--toolbar-field-focus-background-color);
+  }
+}
+
+@media (prefers-contrast) {
+  /* The "increase contrast" preference on macOS draws a 1px black line around
+     panels, including the separate search bar. Since the Urlbar is not
+     implemented as a panel, it does not get this outline. This outline rule
+     resembles the system outline, bringing the Urlbar in line with panels and
+     other Mac apps. */
+  #urlbar[open] > #urlbar-background {
+    outline: 1px solid var(--focus-outline-color)
   }
 }
 
@@ -255,8 +273,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left {
 #editBMPanel_newFolderBox {
   background-color: var(--arrowpanel-field-background);
   color: inherit;
-  border-radius: 0 2px;
   border: 1px solid var(--panel-separator-color);
+  border-radius: 0 0 2px 2px;
   margin: 0;
   padding: 0;
   height: 24px;
@@ -269,6 +287,7 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left {
   fill: currentColor;
   fill-opacity: 0.8;
   border: none;
+  border-radius: 0;
   padding: 0 9px;
   margin: 0;
   min-height: 24px;
@@ -326,8 +345,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left {
 
 #editBMPanel_folderTree {
   border-bottom: none;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
   /* Implements editBookmarkPanel resizing on folderTree un-collapse. */
   margin: 0 !important;
   min-width: 27em;

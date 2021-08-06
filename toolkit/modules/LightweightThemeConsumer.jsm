@@ -109,13 +109,13 @@ const toolkitVariableMap = [
     },
   ],
   [
-    "--lwt-toolbar-field-background-color",
+    "--toolbar-field-background-color",
     {
       lwtProperty: "toolbar_field",
     },
   ],
   [
-    "--lwt-toolbar-field-color",
+    "--toolbar-field-color",
     {
       lwtProperty: "toolbar_field_text",
       processColor(rgbaChannels, element) {
@@ -134,13 +134,13 @@ const toolkitVariableMap = [
     },
   ],
   [
-    "--lwt-toolbar-field-border-color",
+    "--toolbar-field-border-color",
     {
       lwtProperty: "toolbar_field_border",
     },
   ],
   [
-    "--lwt-toolbar-field-focus",
+    "--toolbar-field-focus-background-color",
     {
       lwtProperty: "toolbar_field_focus",
       fallbackProperty: "toolbar_field",
@@ -164,7 +164,7 @@ const toolkitVariableMap = [
     },
   ],
   [
-    "--lwt-toolbar-field-focus-color",
+    "--toolbar-field-focus-color",
     {
       lwtProperty: "toolbar_field_text_focus",
       fallbackProperty: "toolbar_field_text",

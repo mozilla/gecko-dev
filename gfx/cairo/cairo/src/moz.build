@@ -4,11 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-CONFIGURE_SUBST_FILES += ['cairo-features.h']
-
 EXPORTS.cairo += [
-    '!cairo-features.h',
     'cairo-deprecated.h',
+    'cairo-features.h',
     'cairo-platform.h',
     'cairo-rename.h',
     'cairo-tee.h',
@@ -29,7 +27,6 @@ if CONFIG['MOZ_WIDGET_TOOLKIT'] not in ('cocoa', 'uikit'):
         'cairo-pdf-operators.c',
         'cairo-pdf-shading.c',
         'cairo-pdf-surface.c',
-        'cairo-tag-stack.c',
         'cairo-truetype-subset.c',
         'cairo-type1-fallback.c',
         'cairo-type1-glyph-names.c',
@@ -205,6 +202,7 @@ UNIFIED_SOURCES += [
     'cairo-surface-subsurface.c',
     'cairo-surface.c',
     'cairo-tag-attributes.c',
+    'cairo-tag-stack.c',
     'cairo-tee-surface.c',
     'cairo-tor22-scan-converter.c',
     'cairo-toy-font-face.c',
@@ -228,9 +226,8 @@ DEFINES['PACKAGE_BUGREPORT'] = '"http://bugzilla.mozilla.org/"'
 for var in ('CAIRO_HAS_PTHREAD', '_GNU_SOURCE'):
     DEFINES[var] = True
 
-for var in ('MOZ_TREE_CAIRO', 'MOZ_TREE_PIXMAN'):
-    if CONFIG[var]:
-        DEFINES[var] = True
+if CONFIG['MOZ_TREE_PIXMAN']:
+    DEFINES['MOZ_TREE_PIXMAN'] = True
 
 if CONFIG['CC_TYPE'] in ('clang', 'gcc'):
     DEFINES['HAVE_CXX11_ATOMIC_PRIMITIVES'] = True
@@ -287,7 +284,7 @@ if CONFIG['CC_TYPE'] in ('clang', 'gcc') and CONFIG['OS_TARGET'] == 'Android' an
     CXXFLAGS += ['-O2']
 
 if CONFIG['MOZ_X11']:
-    CFLAGS += CONFIG['XCFLAGS']
+    CFLAGS += CONFIG['MOZ_X11_CFLAGS']
 
 if CONFIG['MOZ_ENABLE_CAIRO_FT']:
     CFLAGS += CONFIG['CAIRO_FT_CFLAGS']

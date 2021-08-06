@@ -20,23 +20,26 @@ extern crate pkcs11;
 #[cfg(target_os = "macos")]
 #[macro_use]
 extern crate rental;
+#[macro_use]
+extern crate rsclientcerts;
 extern crate sha2;
 #[cfg(target_os = "windows")]
 extern crate winapi;
 
 use pkcs11::types::*;
+use rsclientcerts::manager::{ManagerProxy, SlotType};
 use std::sync::Mutex;
 use std::thread;
 
-mod manager;
-#[macro_use]
-mod util;
 #[cfg(target_os = "macos")]
 mod backend_macos;
 #[cfg(target_os = "windows")]
 mod backend_windows;
 
-use manager::{ManagerProxy, SlotType};
+#[cfg(target_os = "macos")]
+use crate::backend_macos::Backend;
+#[cfg(target_os = "windows")]
+use crate::backend_windows::Backend;
 
 lazy_static! {
     /// The singleton `ManagerProxy` that handles state with respect to PKCS #11. Only one thread
@@ -97,9 +100,12 @@ extern "C" fn C_Initialize(_pInitArgs: CK_C_INITIALIZE_ARGS_PTR) -> CK_RV {
     // logging has been initialized.
     let _ = env_logger::try_init();
     let mut manager_guard = try_to_get_manager_guard!();
-    let manager_proxy = match ManagerProxy::new() {
+    let manager_proxy = match ManagerProxy::new(Backend {}) {
         Ok(p) => p,
-        Err(()) => return CKR_DEVICE_ERROR,
+        Err(e) => {
+            log_with_thread_id!(error, "C_Initialize: ManagerProxy: {}", e);
+            return CKR_DEVICE_ERROR;
+        }
     };
     match manager_guard.replace(manager_proxy) {
         Some(_unexpected_previous_manager) => {
@@ -126,8 +132,8 @@ extern "C" fn C_Finalize(_pReserved: CK_VOID_PTR) -> CK_RV {
             log_with_thread_id!(debug, "C_Finalize: CKR_OK");
             CKR_OK
         }
-        Err(()) => {
-            log_with_thread_id!(error, "C_Finalize: CKR_DEVICE_ERROR");
+        Err(e) => {
+            log_with_thread_id!(error, "C_Finalize: CKR_DEVICE_ERROR: {}", e);
             CKR_DEVICE_ERROR
         }
     }
@@ -348,8 +354,8 @@ extern "C" fn C_OpenSession(
     };
     let session_handle = match manager.open_session(slot_type) {
         Ok(session_handle) => session_handle,
-        Err(()) => {
-            log_with_thread_id!(error, "C_OpenSession: open_session failed");
+        Err(e) => {
+            log_with_thread_id!(error, "C_OpenSession: open_session failed: {}", e);
             return CKR_DEVICE_ERROR;
         }
     };
@@ -390,8 +396,12 @@ extern "C" fn C_CloseAllSessions(slotID: CK_SLOT_ID) -> CK_RV {
             log_with_thread_id!(debug, "C_CloseAllSessions: CKR_OK");
             CKR_OK
         }
-        Err(()) => {
-            log_with_thread_id!(error, "C_CloseAllSessions: close_all_sessions failed");
+        Err(e) => {
+            log_with_thread_id!(
+                error,
+                "C_CloseAllSessions: close_all_sessions failed: {}",
+                e
+            );
             CKR_DEVICE_ERROR
         }
     }
@@ -500,8 +510,8 @@ extern "C" fn C_GetAttributeValue(
     let manager = manager_guard_to_manager!(manager_guard);
     let values = match manager.get_attributes(hObject, attr_types) {
         Ok(values) => values,
-        Err(()) => {
-            log_with_thread_id!(error, "C_GetAttributeValue: CKR_ARGUMENTS_BAD");
+        Err(e) => {
+            log_with_thread_id!(error, "C_GetAttributeValue: CKR_ARGUMENTS_BAD ({})", e);
             return CKR_ARGUMENTS_BAD;
         }
     };
@@ -600,8 +610,8 @@ extern "C" fn C_FindObjectsInit(
     let manager = manager_guard_to_manager!(manager_guard);
     match manager.start_search(hSession, attrs) {
         Ok(()) => {}
-        Err(()) => {
-            log_with_thread_id!(error, "C_FindObjectsInit: CKR_ARGUMENTS_BAD");
+        Err(e) => {
+            log_with_thread_id!(error, "C_FindObjectsInit: CKR_ARGUMENTS_BAD: {}", e);
             return CKR_ARGUMENTS_BAD;
         }
     }
@@ -626,8 +636,8 @@ extern "C" fn C_FindObjects(
     let manager = manager_guard_to_manager!(manager_guard);
     let handles = match manager.search(hSession, ulMaxObjectCount as usize) {
         Ok(handles) => handles,
-        Err(()) => {
-            log_with_thread_id!(error, "C_FindObjects: CKR_ARGUMENTS_BAD");
+        Err(e) => {
+            log_with_thread_id!(error, "C_FindObjects: CKR_ARGUMENTS_BAD: {}", e);
             return CKR_ARGUMENTS_BAD;
         }
     };
@@ -661,8 +671,8 @@ extern "C" fn C_FindObjectsFinal(hSession: CK_SESSION_HANDLE) -> CK_RV {
             log_with_thread_id!(debug, "C_FindObjectsFinal: CKR_OK");
             CKR_OK
         }
-        Err(()) => {
-            log_with_thread_id!(error, "C_FindObjectsFinal: clear_search failed");
+        Err(e) => {
+            log_with_thread_id!(error, "C_FindObjectsFinal: clear_search failed: {}", e);
             CKR_DEVICE_ERROR
         }
     }
@@ -819,8 +829,8 @@ extern "C" fn C_SignInit(
     let manager = manager_guard_to_manager!(manager_guard);
     match manager.start_sign(hSession, hKey, mechanism_params) {
         Ok(()) => {}
-        Err(()) => {
-            log_with_thread_id!(error, "C_SignInit: CKR_GENERAL_ERROR");
+        Err(e) => {
+            log_with_thread_id!(error, "C_SignInit: CKR_GENERAL_ERROR: {}", e);
             return CKR_GENERAL_ERROR;
         }
     };
@@ -850,8 +860,8 @@ extern "C" fn C_Sign(
             Ok(signature_length) => unsafe {
                 *pulSignatureLen = signature_length as CK_ULONG;
             },
-            Err(()) => {
-                log_with_thread_id!(error, "C_Sign: get_signature_length failed");
+            Err(e) => {
+                log_with_thread_id!(error, "C_Sign: get_signature_length failed: {}", e);
                 return CKR_GENERAL_ERROR;
             }
         }
@@ -871,8 +881,8 @@ extern "C" fn C_Sign(
                     *pulSignatureLen = signature.len() as CK_ULONG;
                 }
             }
-            Err(()) => {
-                log_with_thread_id!(error, "C_Sign: sign failed");
+            Err(e) => {
+                log_with_thread_id!(error, "C_Sign: sign failed: {}", e);
                 return CKR_GENERAL_ERROR;
             }
         }

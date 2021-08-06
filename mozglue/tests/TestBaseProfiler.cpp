@@ -43,6 +43,207 @@
 #include <type_traits>
 #include <utility>
 
+void TestProfilerUtils() {
+  printf("TestProfilerUtils...\n");
+
+  {
+    using mozilla::baseprofiler::BaseProfilerProcessId;
+    using Number = BaseProfilerProcessId::NumberType;
+    static constexpr Number scMaxNumber = std::numeric_limits<Number>::max();
+
+    static_assert(
+        BaseProfilerProcessId{}.ToNumber() == 0,
+        "These tests assume that the unspecified process id number is 0; "
+        "if this fails, please update these tests accordingly");
+
+    static_assert(!BaseProfilerProcessId{}.IsSpecified());
+    static_assert(!BaseProfilerProcessId::FromNumber(0).IsSpecified());
+    static_assert(BaseProfilerProcessId::FromNumber(1).IsSpecified());
+    static_assert(BaseProfilerProcessId::FromNumber(123).IsSpecified());
+    static_assert(BaseProfilerProcessId::FromNumber(scMaxNumber).IsSpecified());
+
+    static_assert(BaseProfilerProcessId::FromNumber(Number(1)).ToNumber() ==
+                  Number(1));
+    static_assert(BaseProfilerProcessId::FromNumber(Number(123)).ToNumber() ==
+                  Number(123));
+    static_assert(BaseProfilerProcessId::FromNumber(scMaxNumber).ToNumber() ==
+                  scMaxNumber);
+
+    static_assert(BaseProfilerProcessId{} == BaseProfilerProcessId{});
+    static_assert(BaseProfilerProcessId::FromNumber(Number(123)) ==
+                  BaseProfilerProcessId::FromNumber(Number(123)));
+    static_assert(BaseProfilerProcessId{} !=
+                  BaseProfilerProcessId::FromNumber(Number(123)));
+    static_assert(BaseProfilerProcessId::FromNumber(Number(123)) !=
+                  BaseProfilerProcessId{});
+    static_assert(BaseProfilerProcessId::FromNumber(Number(123)) !=
+                  BaseProfilerProcessId::FromNumber(scMaxNumber));
+    static_assert(BaseProfilerProcessId::FromNumber(scMaxNumber) !=
+                  BaseProfilerProcessId::FromNumber(Number(123)));
+
+    // Verify trivial-copyability by memcpy'ing to&from same-size storage.
+    static_assert(std::is_trivially_copyable_v<BaseProfilerProcessId>);
+    BaseProfilerProcessId pid;
+    MOZ_RELEASE_ASSERT(!pid.IsSpecified());
+    Number pidStorage;
+    static_assert(sizeof(pidStorage) == sizeof(pid));
+    // Copy from BaseProfilerProcessId to storage. Note: We cannot assume that
+    // this is equal to what ToNumber() gives us. All we can do is verify that
+    // copying from storage back to BaseProfilerProcessId works as expected.
+    std::memcpy(&pidStorage, &pid, sizeof(pidStorage));
+    BaseProfilerProcessId pid2 = BaseProfilerProcessId::FromNumber(2);
+    MOZ_RELEASE_ASSERT(pid2.IsSpecified());
+    std::memcpy(&pid2, &pidStorage, sizeof(pid));
+    MOZ_RELEASE_ASSERT(!pid2.IsSpecified());
+
+    pid = BaseProfilerProcessId::FromNumber(123);
+    std::memcpy(&pidStorage, &pid, sizeof(pidStorage));
+    pid2 = BaseProfilerProcessId{};
+    MOZ_RELEASE_ASSERT(!pid2.IsSpecified());
+    std::memcpy(&pid2, &pidStorage, sizeof(pid));
+    MOZ_RELEASE_ASSERT(pid2.IsSpecified());
+    MOZ_RELEASE_ASSERT(pid2.ToNumber() == 123);
+
+    // No conversions to/from numbers.
+    static_assert(!std::is_constructible_v<BaseProfilerProcessId, Number>);
+    static_assert(!std::is_assignable_v<BaseProfilerProcessId, Number>);
+    static_assert(!std::is_constructible_v<Number, BaseProfilerProcessId>);
+    static_assert(!std::is_assignable_v<Number, BaseProfilerProcessId>);
+
+    static_assert(
+        std::is_same_v<
+            decltype(mozilla::baseprofiler::profiler_current_process_id()),
+            BaseProfilerProcessId>);
+#ifdef MOZ_GECKO_PROFILER
+    MOZ_RELEASE_ASSERT(
+        mozilla::baseprofiler::profiler_current_process_id().IsSpecified());
+#else
+    MOZ_RELEASE_ASSERT(
+        !mozilla::baseprofiler::profiler_current_process_id().IsSpecified());
+#endif
+  }
+
+  {
+    using mozilla::baseprofiler::BaseProfilerThreadId;
+    using Number = BaseProfilerThreadId::NumberType;
+    static constexpr Number scMaxNumber = std::numeric_limits<Number>::max();
+
+    static_assert(
+        BaseProfilerThreadId{}.ToNumber() == 0,
+        "These tests assume that the unspecified thread id number is 0; "
+        "if this fails, please update these tests accordingly");
+
+    static_assert(!BaseProfilerThreadId{}.IsSpecified());
+    static_assert(!BaseProfilerThreadId::FromNumber(0).IsSpecified());
+    static_assert(BaseProfilerThreadId::FromNumber(1).IsSpecified());
+    static_assert(BaseProfilerThreadId::FromNumber(123).IsSpecified());
+    static_assert(BaseProfilerThreadId::FromNumber(scMaxNumber).IsSpecified());
+
+    static_assert(BaseProfilerThreadId::FromNumber(Number(1)).ToNumber() ==
+                  Number(1));
+    static_assert(BaseProfilerThreadId::FromNumber(Number(123)).ToNumber() ==
+                  Number(123));
+    static_assert(BaseProfilerThreadId::FromNumber(scMaxNumber).ToNumber() ==
+                  scMaxNumber);
+
+    static_assert(BaseProfilerThreadId{} == BaseProfilerThreadId{});
+    static_assert(BaseProfilerThreadId::FromNumber(Number(123)) ==
+                  BaseProfilerThreadId::FromNumber(Number(123)));
+    static_assert(BaseProfilerThreadId{} !=
+                  BaseProfilerThreadId::FromNumber(Number(123)));
+    static_assert(BaseProfilerThreadId::FromNumber(Number(123)) !=
+                  BaseProfilerThreadId{});
+    static_assert(BaseProfilerThreadId::FromNumber(Number(123)) !=
+                  BaseProfilerThreadId::FromNumber(scMaxNumber));
+    static_assert(BaseProfilerThreadId::FromNumber(scMaxNumber) !=
+                  BaseProfilerThreadId::FromNumber(Number(123)));
+
+    // Verify trivial-copyability by memcpy'ing to&from same-size storage.
+    static_assert(std::is_trivially_copyable_v<BaseProfilerThreadId>);
+    BaseProfilerThreadId tid;
+    MOZ_RELEASE_ASSERT(!tid.IsSpecified());
+    Number tidStorage;
+    static_assert(sizeof(tidStorage) == sizeof(tid));
+    // Copy from BaseProfilerThreadId to storage. Note: We cannot assume that
+    // this is equal to what ToNumber() gives us. All we can do is verify that
+    // copying from storage back to BaseProfilerThreadId works as expected.
+    std::memcpy(&tidStorage, &tid, sizeof(tidStorage));
+    BaseProfilerThreadId tid2 = BaseProfilerThreadId::FromNumber(2);
+    MOZ_RELEASE_ASSERT(tid2.IsSpecified());
+    std::memcpy(&tid2, &tidStorage, sizeof(tid));
+    MOZ_RELEASE_ASSERT(!tid2.IsSpecified());
+
+    tid = BaseProfilerThreadId::FromNumber(Number(123));
+    std::memcpy(&tidStorage, &tid, sizeof(tidStorage));
+    tid2 = BaseProfilerThreadId{};
+    MOZ_RELEASE_ASSERT(!tid2.IsSpecified());
+    std::memcpy(&tid2, &tidStorage, sizeof(tid));
+    MOZ_RELEASE_ASSERT(tid2.IsSpecified());
+    MOZ_RELEASE_ASSERT(tid2.ToNumber() == Number(123));
+
+    // No conversions to/from numbers.
+    static_assert(!std::is_constructible_v<BaseProfilerThreadId, Number>);
+    static_assert(!std::is_assignable_v<BaseProfilerThreadId, Number>);
+    static_assert(!std::is_constructible_v<Number, BaseProfilerThreadId>);
+    static_assert(!std::is_assignable_v<Number, BaseProfilerThreadId>);
+
+    static_assert(std::is_same_v<
+                  decltype(mozilla::baseprofiler::profiler_current_thread_id()),
+                  BaseProfilerThreadId>);
+#ifdef MOZ_GECKO_PROFILER
+    BaseProfilerThreadId mainTestThreadId =
+        mozilla::baseprofiler::profiler_current_thread_id();
+    MOZ_RELEASE_ASSERT(mainTestThreadId.IsSpecified());
+
+    BaseProfilerThreadId mainThreadId =
+        mozilla::baseprofiler::profiler_main_thread_id();
+    if (!mainThreadId.IsSpecified()) {
+      // Special case: This may happen if the profiler has not yet been
+      // initialized. We only need to set scProfilerMainThreadId.
+      mozilla::baseprofiler::detail::scProfilerMainThreadId = mainTestThreadId;
+      // After which `profiler_main_thread_id` should work.
+      mainThreadId = mozilla::baseprofiler::profiler_main_thread_id();
+    }
+    MOZ_RELEASE_ASSERT(mainThreadId.IsSpecified());
+
+    MOZ_RELEASE_ASSERT(mainThreadId == mainTestThreadId,
+                       "Test should run on the main thread");
+    MOZ_RELEASE_ASSERT(mozilla::baseprofiler::profiler_is_main_thread());
+
+    std::thread testThread([&]() {
+      const BaseProfilerThreadId testThreadId =
+          mozilla::baseprofiler::profiler_current_thread_id();
+      MOZ_RELEASE_ASSERT(testThreadId.IsSpecified());
+      MOZ_RELEASE_ASSERT(testThreadId != mainThreadId);
+      MOZ_RELEASE_ASSERT(!mozilla::baseprofiler::profiler_is_main_thread());
+    });
+    testThread.join();
+#else
+    MOZ_RELEASE_ASSERT(
+        !mozilla::baseprofiler::profiler_current_thread_id().IsSpecified());
+    MOZ_RELEASE_ASSERT(
+        !mozilla::baseprofiler::profiler_main_thread_id().IsSpecified());
+    MOZ_RELEASE_ASSERT(!mozilla::baseprofiler::profiler_is_main_thread());
+#endif
+  }
+
+  // No conversions between processes and threads.
+  static_assert(
+      !std::is_constructible_v<mozilla::baseprofiler::BaseProfilerThreadId,
+                               mozilla::baseprofiler::BaseProfilerProcessId>);
+  static_assert(
+      !std::is_assignable_v<mozilla::baseprofiler::BaseProfilerThreadId,
+                            mozilla::baseprofiler::BaseProfilerProcessId>);
+  static_assert(
+      !std::is_constructible_v<mozilla::baseprofiler::BaseProfilerProcessId,
+                               mozilla::baseprofiler::BaseProfilerThreadId>);
+  static_assert(
+      !std::is_assignable_v<mozilla::baseprofiler::BaseProfilerProcessId,
+                            mozilla::baseprofiler::BaseProfilerThreadId>);
+
+  printf("TestProfilerUtils done\n");
+}
+
 #ifdef MOZ_GECKO_PROFILER
 
 MOZ_MAYBE_UNUSED static void SleepMilli(unsigned aMilliseconds) {
@@ -3595,8 +3796,8 @@ MOZ_NEVER_INLINE unsigned long long Fibonacci(unsigned long long n) {
 
 void TestProfiler() {
   printf("TestProfiler starting -- pid: %d, tid: %d\n",
-         baseprofiler::profiler_current_process_id(),
-         baseprofiler::profiler_current_thread_id());
+         int(baseprofiler::profiler_current_process_id().ToNumber()),
+         int(baseprofiler::profiler_current_thread_id().ToNumber()));
   // ::SleepMilli(10000);
 
   TestProfilerDependencies();
@@ -3609,7 +3810,7 @@ void TestProfiler() {
     MOZ_RELEASE_ASSERT(!baseprofiler::profiler_thread_is_being_profiled());
     MOZ_RELEASE_ASSERT(!baseprofiler::profiler_thread_is_sleeping());
 
-    const int mainThreadId =
+    const baseprofiler::BaseProfilerThreadId mainThreadId =
         mozilla::baseprofiler::profiler_current_thread_id();
 
     MOZ_RELEASE_ASSERT(mozilla::baseprofiler::profiler_main_thread_id() ==
@@ -3617,7 +3818,7 @@ void TestProfiler() {
     MOZ_RELEASE_ASSERT(mozilla::baseprofiler::profiler_is_main_thread());
 
     std::thread testThread([&]() {
-      const int testThreadId =
+      const baseprofiler::BaseProfilerThreadId testThreadId =
           mozilla::baseprofiler::profiler_current_thread_id();
       MOZ_RELEASE_ASSERT(testThreadId != mainThreadId);
 
@@ -4069,7 +4270,9 @@ void StreamMarkers(const mozilla::ProfileChunkedBuffer& aBuffer,
 
       const bool success =
           mozilla::base_profiler_markers_detail::DeserializeAfterKindAndStream(
-              aEntryReader, aWriter, 0, [&](mozilla::ProfileChunkedBuffer&) {
+              aEntryReader, aWriter,
+              mozilla::baseprofiler::BaseProfilerThreadId{},
+              [&](mozilla::ProfileChunkedBuffer&) {
                 aWriter.StringElement("Real backtrace would be here");
               });
       MOZ_RELEASE_ASSERT(success);
@@ -4164,8 +4367,14 @@ void TestMarkerThreadId() {
   MOZ_RELEASE_ASSERT(!MarkerThreadId::MainThread().IsUnspecified());
   MOZ_RELEASE_ASSERT(!MarkerThreadId::CurrentThread().IsUnspecified());
 
-  MOZ_RELEASE_ASSERT(!MarkerThreadId{42}.IsUnspecified());
-  MOZ_RELEASE_ASSERT(MarkerThreadId{42}.ThreadId() == 42);
+  MOZ_RELEASE_ASSERT(!MarkerThreadId{
+      mozilla::baseprofiler::BaseProfilerThreadId::FromNumber(42)}
+                          .IsUnspecified());
+  MOZ_RELEASE_ASSERT(
+      MarkerThreadId{
+          mozilla::baseprofiler::BaseProfilerThreadId::FromNumber(42)}
+          .ThreadId()
+          .ToNumber() == 42);
 
   // We'll assume that this test runs in the main thread (which should be true
   // when called from the `main` function).
@@ -4266,8 +4475,9 @@ void TestUserMarker() {
 
   MOZ_RELEASE_ASSERT(mozilla::baseprofiler::AddMarkerToBuffer(
       buffer, "test2", mozilla::baseprofiler::category::OTHER_Profiling,
-      mozilla::MarkerThreadId(123), MarkerTypeTestMinimal{},
-      std::string("ThreadId(123)")));
+      mozilla::MarkerThreadId(
+          mozilla::baseprofiler::BaseProfilerThreadId::FromNumber(123)),
+      MarkerTypeTestMinimal{}, std::string("ThreadId(123)")));
 
   auto start = mozilla::TimeStamp::Now();
 
@@ -4350,8 +4560,8 @@ void TestPredefinedMarkers() {
 
 void TestProfilerMarkers() {
   printf("TestProfilerMarkers -- pid: %d, tid: %d\n",
-         mozilla::baseprofiler::profiler_current_process_id(),
-         mozilla::baseprofiler::profiler_current_thread_id());
+         int(mozilla::baseprofiler::profiler_current_process_id().ToNumber()),
+         int(mozilla::baseprofiler::profiler_current_thread_id().ToNumber()));
   // ::SleepMilli(10000);
 
   TestUniqueJSONStrings();
@@ -4430,11 +4640,12 @@ int main()
 {
 #ifdef MOZ_GECKO_PROFILER
   printf("BaseTestProfiler -- pid: %d, tid: %d\n",
-         baseprofiler::profiler_current_process_id(),
-         baseprofiler::profiler_current_thread_id());
+         int(baseprofiler::profiler_current_process_id().ToNumber()),
+         int(baseprofiler::profiler_current_thread_id().ToNumber()));
   // ::SleepMilli(10000);
 #endif  // MOZ_GECKO_PROFILER
 
+  TestProfilerUtils();
   // Note that there are two `TestProfiler{,Markers}` functions above, depending
   // on whether MOZ_GECKO_PROFILER is #defined.
   TestProfiler();

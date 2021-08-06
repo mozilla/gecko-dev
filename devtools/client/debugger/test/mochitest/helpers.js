@@ -272,12 +272,10 @@ function waitForPausedLine(dbg, line) {
 }
 
 /**
- * Assert that the debugger is paused at the correct location.
+ * Assert that the debugger pause location is correctly rendered.
  *
  * @memberof mochitest/asserts
  * @param {Object} dbg
- * @param {String} source
- * @param {Number} line
  * @static
  */
 function assertPausedLocation(dbg) {
@@ -394,7 +392,11 @@ function isPaused(dbg) {
 
 // Make sure the debugger is paused at a certain source ID and line.
 function assertPausedAtSourceAndLine(dbg, expectedSourceId, expectedLine) {
+  // Check that the debugger is paused.
   assertPaused(dbg);
+
+  // Check that the paused location is correctly rendered.
+  assertPausedLocation(dbg);
 
   const frames = dbg.selectors.getCurrentThreadFrames();
   ok(frames.length >= 1, "Got at least one frame");
@@ -534,7 +536,6 @@ async function clearDebuggerPreferences(prefs = []) {
   Services.prefs.clearUserPref("devtools.debugger.scopes-visible");
   Services.prefs.clearUserPref("devtools.debugger.skip-pausing");
   Services.prefs.clearUserPref("devtools.debugger.map-scopes-enabled");
-  await pushPref("devtools.debugger.log-actions", true);
 
   for (const pref of prefs) {
     await pushPref(...pref);
@@ -1937,6 +1938,29 @@ async function assertNodeIsFocused(dbg, index) {
   await waitForNodeToGainFocus(dbg, index);
   const node = findElement(dbg, "sourceNode", index);
   ok(node.classList.contains("focused"), `node ${index} is focused`);
+}
+
+/**
+ * Asserts that the debugger is paused and the debugger tab is
+ * highlighted.
+ * @param {*} toolbox
+ * @returns
+ */
+async function assertDebuggerIsHighlightedAndPaused(toolbox) {
+  info("Wait for the debugger to be automatically selected on pause");
+  await waitUntil(() => toolbox.currentToolId == "jsdebugger");
+  ok(true, "Debugger selected");
+
+  // Wait for the debugger to finish loading.
+  await toolbox.getPanelWhenReady("jsdebugger");
+
+  // And to be fully paused
+  const dbg = createDebuggerContext(toolbox);
+  await waitForPaused(dbg);
+
+  ok(toolbox.isHighlighted("jsdebugger"), "Debugger is highlighted");
+
+  return dbg;
 }
 
 async function addExpression(dbg, input) {

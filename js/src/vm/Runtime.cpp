@@ -23,6 +23,7 @@
 #include "jsfriendapi.h"
 #include "jsmath.h"
 
+#include "frontend/CompilationStencil.h"
 #include "gc/FreeOp.h"
 #include "gc/PublicIterators.h"
 #include "jit/IonCompileTask.h"
@@ -130,7 +131,6 @@ JSRuntime::JSRuntime(JSRuntime* parentRuntime)
       scriptAndCountsVector(nullptr),
       lcovOutput_(),
       jitRuntime_(nullptr),
-      selfHostingGlobal_(nullptr),
       gc(thisFromCtor()),
       gcInitialized(false),
       emptyString(nullptr),
@@ -359,6 +359,11 @@ void JSRuntime::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
     rtSizes->atomsTable += permanentAtoms()->sizeOfIncludingThis(mallocSizeOf);
     rtSizes->atomsTable +=
         commonParserNames.ref()->sizeOfIncludingThis(mallocSizeOf);
+
+    rtSizes->selfHostStencil =
+        selfHostStencilInput_->sizeOfIncludingThis(mallocSizeOf) +
+        selfHostStencil_->sizeOfIncludingThis(mallocSizeOf) +
+        selfHostScriptMap.ref().shallowSizeOfExcludingThis(mallocSizeOf);
   }
 
   JSContext* cx = mainContextFromAnyThread();

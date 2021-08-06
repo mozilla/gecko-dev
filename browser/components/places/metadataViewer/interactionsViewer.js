@@ -12,6 +12,9 @@ const { Snapshots } = ChromeUtils.import("resource:///modules/Snapshots.jsm");
 const { PlacesUtils } = ChromeUtils.import(
   "resource://gre/modules/PlacesUtils.jsm"
 );
+const { PlacesDBUtils } = ChromeUtils.import(
+  "resource://gre/modules/PlacesDBUtils.jsm"
+);
 
 /**
  * Base class for the table display. Handles table layout and updates.
@@ -143,6 +146,10 @@ class TableViewer {
    *   the rows being the keys of the columnMap.
    */
   displayData(rows) {
+    if (gCurrentHandler != this) {
+      /* Data is no more relevant for the current view. */
+      return;
+    }
     let viewer = document.getElementById("tableViewer");
     let index = this.columnMap.size;
     for (let row of rows) {
@@ -180,7 +187,7 @@ class TableViewer {
 const metadataHandler = new (class extends TableViewer {
   title = "Interactions";
   cssGridTemplateColumns =
-    "max-content fit-content(100%) repeat(4, max-content);";
+    "max-content fit-content(100%) repeat(5, max-content);";
 
   /**
    * @see TableViewer.columnMap
@@ -210,6 +217,7 @@ const metadataHandler = new (class extends TableViewer {
       },
     ],
     ["key_presses", { header: "Key Presses" }],
+    ["referrer", { header: "Referrer", includeTitle: true }],
   ]);
 
   /**
@@ -219,14 +227,14 @@ const metadataHandler = new (class extends TableViewer {
    */
   #db = null;
 
-  async #getRows(query) {
+  async #getRows(query, columns = [...this.columnMap.keys()]) {
     if (!this.#db) {
       this.#db = await PlacesUtils.promiseDBConnection();
     }
     let rows = await this.#db.executeCached(query);
     return rows.map(r => {
       let result = {};
-      for (let column of this.columnMap.keys()) {
+      for (let column of columns) {
         result[column] = r.getResultByName(column);
       }
       return result;
@@ -239,8 +247,10 @@ const metadataHandler = new (class extends TableViewer {
   async updateDisplay() {
     let rows = await this.#getRows(
       `SELECT m.id AS id, h.url AS url, updated_at, total_view_time,
-              typing_time, key_presses FROM moz_places_metadata m
+              typing_time, key_presses, h2.url as referrer
+       FROM moz_places_metadata m
        JOIN moz_places h ON h.id = m.place_id
+       LEFT JOIN moz_places h2 ON h2.id = m.referrer_place_id
        ORDER BY updated_at DESC
        LIMIT ${this.maxRows}`
     );
@@ -248,14 +258,25 @@ const metadataHandler = new (class extends TableViewer {
   }
 
   export() {
-    // Get all rows in the last 7 days
+    // Export all data. We only export url_hash and not url so users can share their exports
+    // without revealing the sites they have been visiting.
     return this.#getRows(
-      `SELECT m.id AS id, h.url AS url, updated_at, total_view_time,
-            typing_time, key_presses FROM moz_places_metadata m
+      `SELECT m.id AS id, url_hash, updated_at, total_view_time, visit_count,
+            frecency, typing_time, key_presses, last_visit_date FROM moz_places_metadata m
      JOIN moz_places h ON h.id = m.place_id
-     WHERE updated_at > strftime('%s','now','localtime','start of day','-7 days','utc') * 1000
      ORDER BY updated_at DESC
-     `
+     `,
+      [
+        "id",
+        "url_hash",
+        "visit_count",
+        "frecency",
+        "last_visit_date",
+        "updated_at",
+        "total_view_time",
+        "typing_time",
+        "key_presses",
+      ]
     );
   }
 })();
@@ -325,6 +346,74 @@ const snapshotHandler = new (class extends TableViewer {
   }
 })();
 
+/**
+ * Viewer definition for the Places database stats.
+ */
+const placesStatsHandler = new (class extends TableViewer {
+  title = "Places Database Statistics";
+  cssGridTemplateColumns = "fit-content(100%) repeat(5, max-content);";
+
+  /**
+   * @see TableViewer.columnMap
+   */
+  columnMap = new Map([
+    ["entity", { header: "Entity" }],
+    ["count", { header: "Count" }],
+    [
+      "sizeBytes",
+      {
+        header: "Size (KiB)",
+        modifier: c => c / 1024,
+      },
+    ],
+    [
+      "sizePerc",
+      {
+        header: "Size (Perc.)",
+      },
+    ],
+    [
+      "efficiencyPerc",
+      {
+        header: "Space Eff. (Perc.)",
+      },
+    ],
+    [
+      "sequentialityPerc",
+      {
+        header: "Sequentiality (Perc.)",
+      },
+    ],
+  ]);
+
+  /**
+   * Loads the current metadata from the database and updates the display.
+   */
+  async updateDisplay() {
+    let stats = await PlacesDBUtils.getEntitiesStats();
+    let data = [];
+    let db = await PlacesUtils.promiseDBConnection();
+    for (let [entity, value] of stats) {
+      let count = "-";
+      try {
+        if (
+          entity.startsWith("moz_") &&
+          !entity.endsWith("index") &&
+          entity != "moz_places_visitcount" /* bug in index name */
+        ) {
+          count = (
+            await db.execute(`SELECT count(*) FROM ${entity}`)
+          )[0].getResultByIndex(0);
+        }
+      } catch (ex) {
+        console.error(ex);
+      }
+      data.push(Object.assign(value, { entity, count }));
+    }
+    this.displayData(data);
+  }
+})();
+
 function checkPrefs() {
   if (
     !Services.prefs.getBoolPref("browser.places.interactions.enabled", false)
@@ -340,17 +429,19 @@ function show(selectedButton) {
     return;
   }
 
+  gCurrentHandler.pause();
   currentButton.classList.remove("selected");
   selectedButton.classList.add("selected");
-
   switch (selectedButton.getAttribute("value")) {
     case "snapshots":
-      metadataHandler.pause();
-      snapshotHandler.start();
+      (gCurrentHandler = snapshotHandler).start();
       break;
     case "metadata":
-      snapshotHandler.pause();
+      (gCurrentHandler = metadataHandler).start();
       metadataHandler.start();
+      break;
+    case "places-stats":
+      (gCurrentHandler = placesStatsHandler).start();
       break;
   }
 }
@@ -377,5 +468,7 @@ function setupListeners() {
 }
 
 checkPrefs();
-snapshotHandler.start().catch(console.error);
+// Set the initial handler here.
+let gCurrentHandler = snapshotHandler;
+gCurrentHandler.start().catch(console.error);
 setupListeners();

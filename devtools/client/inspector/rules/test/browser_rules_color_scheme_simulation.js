@@ -7,7 +7,6 @@
 const TEST_URI = URL_ROOT + "doc_media_queries.html";
 
 add_task(async function() {
-  await pushPref("devtools.inspector.color-scheme-simulation.enabled", true);
   await addTab(TEST_URI);
   const { inspector, view, toolbox } = await openRuleView();
 
@@ -91,12 +90,11 @@ add_task(async function() {
   await waitFor(() => divHasDefaultStyling());
 
   info("Click the light button to disable simulation");
-  const onRuleViewRefreshed = view.once("ruleview-refreshed");
   lightButton.click();
   await waitFor(() => !isButtonChecked(lightButton));
   ok(true, "The button isn't checked anymore");
-  await onRuleViewRefreshed;
-  ok(divHasDefaultStyling(), "We're not simulating color-scheme anymore");
+  await waitFor(() => divHasDefaultStyling());
+  ok(true, "We're not simulating color-scheme anymore");
 
   info("Select the node from the remote iframe again");
   await selectNodeInFrames(["iframe", "html"], inspector);

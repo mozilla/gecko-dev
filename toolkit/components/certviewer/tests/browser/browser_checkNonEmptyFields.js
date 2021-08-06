@@ -55,8 +55,12 @@ async function checkNonEmptyFields(url) {
 
           for (let infoItem of infoItems) {
             let item = infoItem.shadowRoot.querySelector(".info");
-            let info = item.textContent;
-            Assert.notEqual(info, "", "Empty strings shouldn't be rendered");
+            if (item.textContent.length === 0) {
+              await ContentTaskUtils.waitForCondition(
+                () => parseInt(item.textContent.length) > 0,
+                "info-item has not been localized."
+              );
+            }
           }
         }
       }
@@ -74,7 +78,5 @@ add_task(async function test() {
 
   let urls = [url1, url2, url3];
 
-  for (let url of urls) {
-    await checkNonEmptyFields(url);
-  }
+  await Promise.all(urls.map(checkNonEmptyFields));
 });

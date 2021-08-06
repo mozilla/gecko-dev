@@ -23,7 +23,7 @@ namespace mozilla {
 namespace net {
 
 //-------------------------------------------------------------------
-refcounted protocol PHttpChannel
+[RefCounted] protocol PHttpChannel
 {
   manager PNecko;
 
@@ -108,9 +108,6 @@ child:
   // Tell child to delete channel (all IPDL deletes must be done from child to
   // avoid races: see bug 591708).
   async DeleteSelf();
-
-  // Tell the child to issue a deprecation warning.
-  async IssueDeprecationWarning(uint32_t warning, bool asError);
 
   // When CORS blocks the request in the parent process, it doesn't have the
   // correct window ID, so send the message to the child for logging to the web

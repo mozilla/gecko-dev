@@ -14,14 +14,14 @@ include protocol PSandboxTesting;
 namespace mozilla {
 namespace gmp {
 
-intr refcounted protocol PGMPContent
+[RefCounted] intr protocol PGMPContent
 {
   manages PGMPVideoDecoder;
   manages PGMPVideoEncoder;
   manages PChromiumCDM;
 
 child:
-  async PGMPVideoDecoder(uint32_t aDecryptorId);
+  async PGMPVideoDecoder();
   async PGMPVideoEncoder();
   async PChromiumCDM();
 

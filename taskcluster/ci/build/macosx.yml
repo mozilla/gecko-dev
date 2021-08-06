@@ -25,7 +25,6 @@ job-defaults:
             - linux64-cbindgen
             - linux64-nasm
             - linux64-node
-            - linux64-lucetc
             - sysroot-x86_64-linux-gnu
 
 macosx64/debug:
@@ -33,6 +32,7 @@ macosx64/debug:
     index:
         job-name: macosx64-debug
     attributes:
+        enable-build-signing: true
         enable-full-crashsymbols: true
     treeherder:
         platform: osx-cross/debug
@@ -217,6 +217,7 @@ macosx64-aarch64-devedition/opt:
             - linux64-cctools-port
             - linux64-clang-macosx-cross
             - macosx64-sdk-11.0
+            - wasi-sysroot
 
 macosx64-devedition/opt:
     description: "MacOS X Dev Edition Universal"
@@ -475,6 +476,7 @@ macosx64-aarch64-shippable/opt:
             - linux64-cctools-port
             - linux64-clang-macosx-cross
             - macosx64-sdk-11.0
+            - wasi-sysroot
 
 macosx64-shippable/opt:
     description: "MacOS X Universal"

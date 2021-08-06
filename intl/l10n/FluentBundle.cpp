@@ -21,7 +21,7 @@ namespace intl {
 
 class SizeableUTF8Buffer {
  public:
-  using CharType = uint8_t;
+  using CharType = char;
 
   bool reserve(size_t size) {
     mBuffer.reset(reinterpret_cast<CharType*>(malloc(size)));
@@ -188,35 +188,41 @@ bool extendJSArrayWithErrors(JSContext* aCx, JS::Handle<JSObject*> aErrors,
   return true;
 }
 
+/* static */
+void FluentBundle::ConvertArgs(const L10nArgs& aArgs,
+                               nsTArray<ffi::L10nArg>& aRetVal) {
+  aRetVal.SetCapacity(aArgs.Entries().Length());
+  for (const auto& entry : aArgs.Entries()) {
+    if (!entry.mValue.IsNull()) {
+      const auto& value = entry.mValue.Value();
+
+      if (value.IsUTF8String()) {
+        aRetVal.AppendElement(ffi::L10nArg{
+            &entry.mKey,
+            ffi::FluentArgument::String(&value.GetAsUTF8String())});
+      } else {
+        aRetVal.AppendElement(ffi::L10nArg{
+            &entry.mKey, ffi::FluentArgument::Double_(value.GetAsDouble())});
+      }
+    }
+  }
+}
+
 void FluentBundle::FormatPattern(JSContext* aCx, const FluentPattern& aPattern,
                                  const Nullable<L10nArgs>& aArgs,
                                  const Optional<JS::Handle<JSObject*>>& aErrors,
                                  nsACString& aRetVal, ErrorResult& aRv) {
-  nsTArray<nsCString> argIds;
-  nsTArray<ffi::FluentArgument> argValues;
+  nsTArray<ffi::L10nArg> l10nArgs;
 
   if (!aArgs.IsNull()) {
     const L10nArgs& args = aArgs.Value();
-    for (auto& entry : args.Entries()) {
-      if (!entry.mValue.IsNull()) {
-        argIds.AppendElement(entry.mKey);
-
-        auto& value = entry.mValue.Value();
-        if (value.IsUTF8String()) {
-          argValues.AppendElement(
-              ffi::FluentArgument::String(&value.GetAsUTF8String()));
-        } else {
-          argValues.AppendElement(
-              ffi::FluentArgument::Double_(value.GetAsDouble()));
-        }
-      }
-    }
+    ConvertArgs(args, l10nArgs);
   }
 
   nsTArray<nsCString> errors;
   bool succeeded = fluent_bundle_format_pattern(mRaw.get(), &aPattern.mId,
-                                                &aPattern.mAttrName, &argIds,
-                                                &argValues, &aRetVal, &errors);
+                                                &aPattern.mAttrName, &l10nArgs,
+                                                &aRetVal, &errors);
 
   if (!succeeded) {
     return aRv.ThrowInvalidStateError(
@@ -303,7 +309,7 @@ uint8_t* FluentBuiltInNumberFormatterFormat(
   if (nf->format(input, buffer).isOk()) {
     *aOutCount = buffer.mWritten;
     *aOutCapacity = buffer.mCapacity;
-    return buffer.mBuffer.release();
+    return reinterpret_cast<uint8_t*>(buffer.mBuffer.release());
   }
 
   return nullptr;
@@ -373,7 +379,7 @@ uint8_t* FluentBuiltInDateTimeFormatterFormat(
 
   *aOutCount = buffer.mWritten;
 
-  return buffer.mBuffer.release();
+  return reinterpret_cast<uint8_t*>(buffer.mBuffer.release());
 }
 
 void FluentBuiltInDateTimeFormatterDestroy(

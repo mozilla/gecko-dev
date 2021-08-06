@@ -96,15 +96,6 @@ def Libxul(name, output_category=None):
         )
         SYMBOLS_FILE = "!symverscript"
 
-    # Generate GDB pretty printer-autoload files only on Linux. OSX's GDB is
-    # too old to support Python pretty-printers; if this changes, we could
-    # make this 'ifdef __GNUC__'.
-    if CONFIG["OS_ARCH"] == "Linux":
-        # Create a GDB Python auto-load file alongside the libxul shared library
-        # in the build directory.
-        DEFINES["topsrcdir"] = TOPSRCDIR
-        OBJDIR_FILES.toolkit.library.build += ["../libxul.so-gdb.py"]
-
 
 # The real libxul definition is in ./build/moz.build, but we define a
 # xul library here such that # FINAL_LIBRARY = 'xul' refers to here, which
@@ -251,9 +242,6 @@ if CONFIG["MOZ_ANDROID_GOOGLE_VR"]:
         "-lgvr",
     ]
 
-OS_LIBS += CONFIG["MOZ_CAIRO_OSLIBS"]
-OS_LIBS += CONFIG["MOZ_WEBRTC_X11_LIBS"]
-
 if CONFIG["MOZ_SYSTEM_JPEG"]:
     OS_LIBS += CONFIG["MOZ_JPEG_LIBS"]
 
@@ -290,14 +278,8 @@ if CONFIG["MOZ_ENABLE_DBUS"]:
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     OS_LIBS += [l for l in CONFIG["TK_LIBS"] if l not in ("-lgtk-3", "-lgdk-3")]
-    OS_LIBS += CONFIG["XLDFLAGS"]
-    OS_LIBS += CONFIG["XLIBS"]
-    OS_LIBS += CONFIG["XEXT_LIBS"]
+    OS_LIBS += CONFIG["MOZ_X11_LIBS"]
     OS_LIBS += CONFIG["MOZ_PANGO_LIBS"]
-    OS_LIBS += CONFIG["XT_LIBS"]
-    OS_LIBS += [
-        "gthread-2.0",
-    ]
 
 if CONFIG["MOZ_ENABLE_LIBPROXY"]:
     OS_LIBS += CONFIG["MOZ_LIBPROXY_LIBS"]

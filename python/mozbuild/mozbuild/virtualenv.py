@@ -14,9 +14,11 @@ import platform
 import shutil
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 
 IS_NATIVE_WIN = sys.platform == "win32" and os.sep == "\\"
 IS_CYGWIN = sys.platform == "cygwin"
+PTH_FILENAME = "mach.pth"
 
 
 UPGRADE_WINDOWS = """
@@ -155,13 +157,14 @@ class VirtualenvManager(VirtualenvHelper):
                 built with then this method will return False.
         """
 
-        deps = [self.manifest_path, __file__]
-
         # check if virtualenv exists
         if not os.path.exists(self.virtualenv_root) or not os.path.exists(
             self.activate_path
         ):
             return False
+
+        env_requirements = self._requirements()
+        deps = [__file__] + env_requirements.requirements_paths
 
         # Modifications to our package dependency list or to this file mean the
         # virtualenv should be rebuilt.
@@ -179,32 +182,46 @@ class VirtualenvManager(VirtualenvHelper):
         if (python != self.python_path) and (hexversion != orig_version):
             return False
 
-        packages = self.packages()
-        pypi_packages = [package for action, package in packages if action == "pypi"]
-        if pypi_packages:
+        if env_requirements.pth_requirements and self.populate_local_paths:
+            try:
+                with open(
+                    os.path.join(self._site_packages_dir(), PTH_FILENAME)
+                ) as file:
+                    pth_lines = file.read().strip().split("\n")
+            except FileNotFoundError:
+                return False
+
+            current_paths = [
+                os.path.normcase(
+                    os.path.abspath(os.path.join(self._site_packages_dir(), path))
+                )
+                for path in pth_lines
+            ]
+
+            required_paths = [
+                os.path.normcase(
+                    os.path.abspath(os.path.join(self.topsrcdir, pth.path))
+                )
+                for pth in env_requirements.pth_requirements
+            ]
+
+            if current_paths != required_paths:
+                return False
+
+        if env_requirements.pypi_requirements:
             pip_json = self._run_pip(
-                ["list", "--format", "json"], capture_output=True
+                ["list", "--format", "json"], stdout=subprocess.PIPE
             ).stdout
             installed_packages = json.loads(pip_json)
             installed_packages = {
                 package["name"]: package["version"] for package in installed_packages
             }
-            for pypi_package in pypi_packages:
-                name, version = pypi_package.split("==")
-                if installed_packages.get(name, None) != version:
+            for requirement in env_requirements.pypi_requirements:
+                if (
+                    installed_packages.get(requirement.package_name, None)
+                    != requirement.version
+                ):
                     return False
-
-        # recursively check sub packages.txt files
-        submanifests = [
-            package for action, package in packages if action == "packages.txt"
-        ]
-        for submanifest in submanifests:
-            submanifest = os.path.join(self.topsrcdir, submanifest)
-            submanager = VirtualenvManager(
-                self.topsrcdir, self.virtualenv_root, self.log_handle, submanifest
-            )
-            if not submanager.up_to_date(python):
-                return False
 
         return True
 
@@ -270,30 +287,27 @@ class VirtualenvManager(VirtualenvHelper):
 
         return self.virtualenv_root
 
-    def packages(self):
-        with open(self.manifest_path, "r") as fh:
-            return [line.rstrip().split(":", maxsplit=1) for line in fh]
+    def _requirements(self):
+        try:
+            # When `virtualenv.py` is invoked from an existing Mach process,
+            # import MachEnvRequirements in the expected way.
+            from mozbuild.requirements import MachEnvRequirements
+        except ImportError:
+            # When `virtualenv.py` is invoked standalone, import
+            # MachEnvRequirements from the adjacent "standalone"
+            # requirements module.
+            from requirements import MachEnvRequirements
+
+        thunderbird_dir = os.path.join(self.topsrcdir, "comm")
+        is_thunderbird = os.path.exists(thunderbird_dir) and bool(
+            os.listdir(thunderbird_dir)
+        )
+        return MachEnvRequirements.from_requirements_definition(
+            self.topsrcdir, is_thunderbird, self.manifest_path
+        )
 
     def populate(self):
         """Populate the virtualenv.
-
-        The manifest file consists of colon-delimited fields. The first field
-        specifies the action. The remaining fields are arguments to that
-        action. The following actions are supported:
-
-        pth -- Adds the path given as argument to "mach.pth" under
-            the virtualenv site packages directory.
-
-        pypi -- Fetch the package, plus dependencies, from PyPI.
-
-        thunderbird -- This denotes the action as to only occur for Thunderbird
-            checkouts. The initial "thunderbird" field is stripped, then the
-            remaining line is processed like normal. e.g.
-            "thunderbird:pth:python/foo"
-
-        packages.txt -- Denotes that the specified path is a child manifest. It
-            will be read and processed as if its contents were concatenated
-            into the manifest being read.
 
         Note that the Python interpreter running this function should be the
         one from the virtualenv. If it is the system Python or if the
@@ -302,78 +316,13 @@ class VirtualenvManager(VirtualenvHelper):
         """
         import distutils.sysconfig
 
-        thunderbird_dir = os.path.join(self.topsrcdir, "comm")
-        is_thunderbird = os.path.exists(thunderbird_dir) and bool(
-            os.listdir(thunderbird_dir)
-        )
-        python_lib = distutils.sysconfig.get_python_lib()
-
-        def handle_package(action, package):
-            if action == "packages.txt":
-                src = os.path.join(self.topsrcdir, package)
-                assert os.path.isfile(src), "'%s' does not exist" % src
-                submanager = VirtualenvManager(
-                    self.topsrcdir,
-                    self.virtualenv_root,
-                    self.log_handle,
-                    src,
-                    populate_local_paths=self.populate_local_paths,
-                )
-                submanager.populate()
-            elif action == "pth":
-                if not self.populate_local_paths:
-                    return
-
-                path = os.path.join(self.topsrcdir, package)
-
-                with open(os.path.join(python_lib, "mach.pth"), "a") as f:
-                    # This path is relative to the .pth file.  Using a
-                    # relative path allows the srcdir/objdir combination
-                    # to be moved around (as long as the paths relative to
-                    # each other remain the same).
-                    f.write("%s\n" % os.path.relpath(path, python_lib))
-            elif action == "thunderbird":
-                if is_thunderbird:
-                    handle_package(*package.split(":", maxsplit=1))
-            elif action == "pypi":
-                if len(package.split("==")) != 2:
-                    raise Exception(
-                        "Expected pypi package version to be pinned in the "
-                        'format "package==version", found "{}"'.format(package)
-                    )
-                self.install_pip_package(package)
-            else:
-                raise Exception("Unknown action: %s" % action)
-
-        # We always target the OS X deployment target that Python itself was
-        # built with, regardless of what's in the current environment. If we
-        # don't do # this, we may run into a Python bug. See
-        # http://bugs.python.org/issue9516 and bug 659881.
-        #
-        # Note that this assumes that nothing compiled in the virtualenv is
-        # shipped as part of a distribution. If we do ship anything, the
-        # deployment target here may be different from what's targeted by the
-        # shipping binaries and # virtualenv-produced binaries may fail to
-        # work.
-        #
-        # We also ignore environment variables that may have been altered by
+        # We ignore environment variables that may have been altered by
         # configure or a mozconfig activated in the current shell. We trust
         # Python is smart enough to find a proper compiler and to use the
         # proper compiler flags. If it isn't your Python is likely broken.
         IGNORE_ENV_VARIABLES = ("CC", "CXX", "CFLAGS", "CXXFLAGS", "LDFLAGS")
 
         try:
-            old_target = os.environ.get("MACOSX_DEPLOYMENT_TARGET", None)
-            sysconfig_target = distutils.sysconfig.get_config_var(
-                "MACOSX_DEPLOYMENT_TARGET"
-            )
-
-            if sysconfig_target is not None:
-                # MACOSX_DEPLOYMENT_TARGET is usually a string (e.g.: "10.14.6"), but
-                # in some cases it is an int (e.g.: 11). Since environment variables
-                # must all be str, explicitly convert it.
-                os.environ["MACOSX_DEPLOYMENT_TARGET"] = str(sysconfig_target)
-
             old_env_variables = {}
             for k in IGNORE_ENV_VARIABLES:
                 if k not in os.environ:
@@ -382,15 +331,31 @@ class VirtualenvManager(VirtualenvHelper):
                 old_env_variables[k] = os.environ[k]
                 del os.environ[k]
 
-            for current_action, current_package in self.packages():
-                handle_package(current_action, current_package)
+            env_requirements = self._requirements()
+            if self.populate_local_paths:
+                python_lib = distutils.sysconfig.get_python_lib()
+                with open(os.path.join(python_lib, PTH_FILENAME), "a") as f:
+                    for pth_requirement in env_requirements.pth_requirements:
+                        path = os.path.join(self.topsrcdir, pth_requirement.path)
+                        # This path is relative to the .pth file.  Using a
+                        # relative path allows the srcdir/objdir combination
+                        # to be moved around (as long as the paths relative to
+                        # each other remain the same).
+                        f.write("{}\n".format(os.path.relpath(path, python_lib)))
+
+            for pypi_requirement in env_requirements.pypi_requirements:
+                self.install_pip_package(pypi_requirement.full_specifier)
+
+            for requirement in env_requirements.pypi_optional_requirements:
+                try:
+                    self.install_pip_package(requirement.full_specifier)
+                except subprocess.CalledProcessError:
+                    print(
+                        f"Could not install {requirement.package_name}, so "
+                        f"{requirement.repercussion}. Continuing."
+                    )
 
         finally:
-            os.environ.pop("MACOSX_DEPLOYMENT_TARGET", None)
-
-            if old_target is not None:
-                os.environ["MACOSX_DEPLOYMENT_TARGET"] = old_target
-
             os.environ.update(old_env_variables)
 
     def call_setup(self, directory, arguments):
@@ -486,9 +451,6 @@ class VirtualenvManager(VirtualenvHelper):
         If vendored is True, no package index will be used and no dependencies
         will be installed.
         """
-        import mozfile
-        from mozfile import TemporaryDirectory
-
         if sys.executable.startswith(self.bin_path):
             # If we're already running in this interpreter, we can optimize in
             # the case that the package requirement is already satisfied.
@@ -531,7 +493,7 @@ class VirtualenvManager(VirtualenvHelper):
                     tmp, "{}-1.0-py3-none-any.whl".format(os.path.basename(package))
                 )
                 shutil.make_archive(wheel_file, "zip", package)
-                mozfile.move("{}.zip".format(wheel_file), wheel_file)
+                shutil.move("{}.zip".format(wheel_file), wheel_file)
                 package = wheel_file
 
             args.append(package)
@@ -585,22 +547,7 @@ class VirtualenvManager(VirtualenvHelper):
 
         https://github.com/pypa/pip/blob/5ee933aab81273da3691c97f2a6e7016ecbe0ef9/src/pip/_internal/self_outdated_check.py#L100-L101 # noqa F401
         """
-
-        # Defer "distutils" import until this function is called so that
-        # "mach bootstrap" doesn't fail due to Linux distro python-distutils
-        # package not being installed.
-        # By the time this function is called, "distutils" must be installed
-        # because it's needed by the "virtualenv" package.
-        from distutils import dist
-
-        distribution = dist.Distribution({"script_args": "--no-user-cfg"})
-        installer = distribution.get_command_obj("install")
-        installer.prefix = os.path.normpath(self.virtualenv_root)
-        installer.finalize_options()
-
-        # Path to virtualenv's "site-packages" directory
-        site_packages = installer.install_purelib
-
+        site_packages = self._site_packages_dir()
         pip_dist_info = next(
             (
                 file
@@ -632,6 +579,22 @@ class VirtualenvManager(VirtualenvHelper):
         return subprocess.run(
             [pip] + args, cwd=self.topsrcdir, env=env, universal_newlines=True, **kwargs
         )
+
+    def _site_packages_dir(self):
+        # Defer "distutils" import until this function is called so that
+        # "mach bootstrap" doesn't fail due to Linux distro python-distutils
+        # package not being installed.
+        # By the time this function is called, "distutils" must be installed
+        # because it's needed by the "virtualenv" package.
+        from distutils import dist
+
+        distribution = dist.Distribution({"script_args": "--no-user-cfg"})
+        installer = distribution.get_command_obj("install")
+        installer.prefix = os.path.normpath(self.virtualenv_root)
+        installer.finalize_options()
+
+        # Path to virtualenv's "site-packages" directory
+        return installer.install_purelib
 
 
 def get_archflags():

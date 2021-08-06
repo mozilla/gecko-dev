@@ -22,13 +22,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Services: "resource://gre/modules/Services.jsm",
 });
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  this,
-  "WEBEXT_PERMISSION_PROMPTS",
-  "extensions.webextPermissionPrompts",
-  false
-);
-
 const DEFAULT_EXTENSION_ICON =
   "chrome://mozapps/skin/extensions/extensionGeneric.svg";
 
@@ -84,31 +77,29 @@ var ExtensionsUI = {
     // happening in a specific order.
     sideloaded.sort((a, b) => a.id.localeCompare(b.id));
 
-    if (WEBEXT_PERMISSION_PROMPTS) {
-      if (!this.sideloadListener) {
-        this.sideloadListener = {
-          onEnabled: addon => {
-            if (!this.sideloaded.has(addon)) {
-              return;
-            }
+    if (!this.sideloadListener) {
+      this.sideloadListener = {
+        onEnabled: addon => {
+          if (!this.sideloaded.has(addon)) {
+            return;
+          }
 
-            this.sideloaded.delete(addon);
-            this._updateNotifications();
+          this.sideloaded.delete(addon);
+          this._updateNotifications();
 
-            if (this.sideloaded.size == 0) {
-              AddonManager.removeAddonListener(this.sideloadListener);
-              this.sideloadListener = null;
-            }
-          },
-        };
-        AddonManager.addAddonListener(this.sideloadListener);
-      }
-
-      for (let addon of sideloaded) {
-        this.sideloaded.add(addon);
-      }
-      this._updateNotifications();
+          if (this.sideloaded.size == 0) {
+            AddonManager.removeAddonListener(this.sideloadListener);
+            this.sideloadListener = null;
+          }
+        },
+      };
+      AddonManager.addAddonListener(this.sideloadListener);
     }
+
+    for (let addon of sideloaded) {
+      this.sideloaded.add(addon);
+    }
+    this._updateNotifications();
   },
 
   _updateNotifications() {
@@ -227,7 +218,7 @@ var ExtensionsUI = {
       }
 
       let icon = info.unsigned
-        ? "chrome://browser/skin/warning.svg"
+        ? "chrome://global/skin/icons/warning.svg"
         : info.icon;
 
       let histkey;
@@ -426,6 +417,7 @@ var ExtensionsUI = {
       let popupOptions = {
         hideClose: true,
         popupIconURL: icon || DEFAULT_EXTENSION_ICON,
+        popupIconClass: icon ? "" : "addon-warning-icon",
         persistent: true,
         eventCallback,
         name: strings.addonName,
@@ -489,7 +481,6 @@ var ExtensionsUI = {
       let action = {
         label: strings.acceptText,
         accessKey: strings.acceptKey,
-        disableHighlight: true,
         callback: () => {
           resolve(true);
         },

@@ -1,4 +1,3 @@
-/* vim: set ts=8 sw=8 noexpandtab: */
 //  qcms
 //  Copyright (C) 2009 Mozilla Foundation
 //  Copyright (C) 1998-2007 Marti Maria
@@ -21,7 +20,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct Matrix {
     pub m: [[f32; 3]; 3],
 }
@@ -55,9 +54,7 @@ impl Matrix {
      * less efficient and not as numerically stable. See Mathematics for
      * Game Programmers. */
     pub fn invert(&self) -> Option<Matrix> {
-        let mut dest_mat: Matrix = Matrix {
-            m: [[0.; 3]; 3],
-        };
+        let mut dest_mat: Matrix = Matrix { m: [[0.; 3]; 3] };
         let mut i: i32;
 
         const a: [i32; 3] = [2, 2, 1];
@@ -91,9 +88,7 @@ impl Matrix {
         Some(dest_mat)
     }
     pub fn identity() -> Matrix {
-        let mut i: Matrix = Matrix {
-            m: [[0.; 3]; 3],
-        };
+        let mut i: Matrix = Matrix { m: [[0.; 3]; 3] };
         i.m[0][0] = 1.;
         i.m[0][1] = 0.;
         i.m[0][2] = 0.;
@@ -106,14 +101,12 @@ impl Matrix {
         i
     }
     pub fn invalid() -> Option<Matrix> {
-        return None;
+        None
     }
     /* from pixman */
     /* MAT3per... */
     pub fn multiply(a: Matrix, b: Matrix) -> Matrix {
-        let mut result: Matrix = Matrix {
-            m: [[0.; 3]; 3],
-        };
+        let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
         let mut dx: i32;
 
         let mut o: i32;

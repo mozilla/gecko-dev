@@ -260,6 +260,7 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["devtools.chrome.enabled", { what: RECORD_PREF_VALUE }],
   ["devtools.debugger.enabled", { what: RECORD_PREF_VALUE }],
   ["devtools.debugger.remote-enabled", { what: RECORD_PREF_VALUE }],
+  ["doh-rollout.doorhanger-decision", { what: RECORD_PREF_VALUE }],
   ["dom.ipc.plugins.enabled", { what: RECORD_PREF_VALUE }],
   ["dom.ipc.plugins.sandbox-level.flash", { what: RECORD_PREF_VALUE }],
   ["dom.ipc.processCount", { what: RECORD_PREF_VALUE }],
@@ -289,7 +290,7 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["gfx.direct2d.force-enabled", { what: RECORD_PREF_VALUE }],
   ["gfx.webrender.all", { what: RECORD_PREF_VALUE }],
   ["gfx.webrender.all.qualified", { what: RECORD_PREF_VALUE }],
-  ["gfx.webrender.force-disabled", { what: RECORD_PREF_VALUE }],
+  ["gfx.webrender.force-legacy-layers", { what: RECORD_PREF_VALUE }],
   ["layers.acceleration.disabled", { what: RECORD_PREF_VALUE }],
   ["layers.acceleration.force-enabled", { what: RECORD_PREF_VALUE }],
   ["layers.async-pan-zoom.enabled", { what: RECORD_PREF_VALUE }],
@@ -1587,7 +1588,9 @@ EnvironmentCache.prototype = {
     this._currentEnvironment.settings.addonCompatibilityCheckEnabled =
       AddonManager.checkCompatibility;
 
-    this._updateAttribution();
+    if (AppConstants.MOZ_BUILD_APP == "browser") {
+      this._updateAttribution();
+    }
     this._updateDefaultBrowser();
     await this._updateSearchEngine();
     this._loadAsyncUpdateSettingsFromCache();

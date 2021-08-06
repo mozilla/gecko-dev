@@ -76,12 +76,14 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
 elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     EXPORTS.mozilla.gfx += [
         "dw-extra.h",
+        "DWriteSettings.h",
         "UnscaledFontDWrite.h",
         "UnscaledFontGDI.h",
     ]
     SOURCES += [
         "ConicGradientEffectD2D1.cpp",
         "DrawTargetD2D1.cpp",
+        "DWriteSettings.cpp",
         "ExtendInputEffectD2D1.cpp",
         "FilterNodeD2D1.cpp",
         "NativeFontResourceDWrite.cpp",
@@ -113,22 +115,21 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
         "ScaledFontFreeType.cpp",
     ]
 
-if CONFIG["MOZ_ENABLE_SKIA"]:
-    SOURCES += [
-        "ConvolutionFilter.cpp",
-        "DrawTargetSkia.cpp",
-        "PathSkia.cpp",
-        "SourceSurfaceSkia.cpp",
-    ]
-    if CONFIG["CC_TYPE"] == "clang":
-        # Suppress warnings from Skia header files.
-        SOURCES["DrawTargetSkia.cpp"].flags += ["-Wno-implicit-fallthrough"]
-        SOURCES["PathSkia.cpp"].flags += ["-Wno-implicit-fallthrough"]
-        SOURCES["SourceSurfaceSkia.cpp"].flags += ["-Wno-implicit-fallthrough"]
-    EXPORTS.mozilla.gfx += [
-        "ConvolutionFilter.h",
-        "HelpersSkia.h",
-    ]
+SOURCES += [
+    "ConvolutionFilter.cpp",
+    "DrawTargetSkia.cpp",
+    "PathSkia.cpp",
+    "SourceSurfaceSkia.cpp",
+]
+if CONFIG["CC_TYPE"] == "clang":
+    # Suppress warnings from Skia header files.
+    SOURCES["DrawTargetSkia.cpp"].flags += ["-Wno-implicit-fallthrough"]
+    SOURCES["PathSkia.cpp"].flags += ["-Wno-implicit-fallthrough"]
+    SOURCES["SourceSurfaceSkia.cpp"].flags += ["-Wno-implicit-fallthrough"]
+EXPORTS.mozilla.gfx += [
+    "ConvolutionFilter.h",
+    "HelpersSkia.h",
+]
 
 # Are we targeting x86 or x64?  If so, build SSE2 files.
 if CONFIG["INTEL_ARCHITECTURE"]:
@@ -238,10 +239,12 @@ for var in ("USE_CAIRO", "MOZ2D_HAS_MOZ_CAIRO"):
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android", "gtk"):
     DEFINES["MOZ_ENABLE_FREETYPE"] = True
 
-CXXFLAGS += CONFIG["MOZ_CAIRO_CFLAGS"]
 CXXFLAGS += ["-Werror=switch"]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android", "gtk"):
     CXXFLAGS += CONFIG["CAIRO_FT_CFLAGS"]
 
 LOCAL_INCLUDES += CONFIG["SKIA_INCLUDES"]
+LOCAL_INCLUDES += [
+    "/gfx/cairo/cairo/src",
+]

@@ -68,8 +68,8 @@ void js::ZoneAllocator::updateGCStartThresholds(GCRuntime& gc,
   gcHeapThreshold.updateStartThreshold(gcHeapSize.retainedBytes(), options,
                                        gc.tunables, gc.schedulingState,
                                        isAtomsZone, lock);
-  mallocHeapThreshold.updateStartThreshold(mallocHeapSize.retainedBytes(),
-                                           gc.tunables, lock);
+  mallocHeapThreshold.updateStartThreshold(
+      mallocHeapSize.retainedBytes(), gc.tunables, gc.schedulingState, lock);
 }
 
 void js::ZoneAllocator::setGCSliceThresholds(GCRuntime& gc) {
@@ -190,7 +190,6 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
   MOZ_ASSERT(reinterpret_cast<JS::shadow::Zone*>(this) ==
              static_cast<JS::shadow::Zone*>(this));
   MOZ_ASSERT_IF(isAtomsZone(), !rt->unsafeAtomsZone());
-  MOZ_ASSERT_IF(isSelfHostingZone(), !rt->hasInitializedSelfHosting());
 
   // We can't call updateGCStartThresholds until the Zone has been constructed.
   AutoLockGC lock(rt);
@@ -292,26 +291,25 @@ void Zone::sweepEphemeronTablesAfterMinorGC() {
       continue;
     }
 
-    // Key been moved. The value is an array of <map,key> pairs; update all
-    // keys in that array.
+    // Key been moved. The value is an array of <color,cell> pairs; update all
+    // cells in that array.
     EphemeronEdgeVector& entries = r.front().value;
     SweepEphemeronEdgesWhileMinorSweeping(entries);
 
     // Live (moved) nursery cell. Append entries to gcEphemeronEdges.
-    auto* entry = gcEphemeronEdges().get(key);
+    EphemeronEdgeTable& tenuredEdges = gcEphemeronEdges();
+    auto* entry = tenuredEdges.get(key);
     if (!entry) {
-      if (!gcEphemeronEdges().put(key, gc::EphemeronEdgeVector())) {
+      if (!tenuredEdges.put(key, gc::EphemeronEdgeVector())) {
         AutoEnterOOMUnsafeRegion oomUnsafe;
         oomUnsafe.crash("Failed to tenure weak keys entry");
       }
-      entry = gcEphemeronEdges().get(key);
+      entry = tenuredEdges.get(key);
     }
 
-    for (auto& markable : entries) {
-      if (!entry->value.append(markable)) {
-        AutoEnterOOMUnsafeRegion oomUnsafe;
-        oomUnsafe.crash("Failed to tenure weak keys entry");
-      }
+    if (!entry->value.appendAll(entries)) {
+      AutoEnterOOMUnsafeRegion oomUnsafe;
+      oomUnsafe.crash("Failed to tenure weak keys entry");
     }
 
     // If the key has a delegate, then it will map to a WeakKeyEntryVector
@@ -583,11 +581,6 @@ bool Zone::canCollect() {
   // place.
   if (isAtomsZone()) {
     return !runtimeFromAnyThread()->hasHelperThreadZones();
-  }
-
-  // We don't collect the self hosting zone after it has been initialized.
-  if (isSelfHostingZone()) {
-    return !runtimeFromAnyThread()->gc.isSelfHostingZoneFrozen();
   }
 
   // Zones that will be or are currently used by other threads cannot be

@@ -2529,8 +2529,13 @@ bool BytecodeEmitter::emitDeclarationInstantiation(ParseNode* body) {
 #endif
 
   // Check for declaration conflicts and initialize the bindings.
-  if (!emitGCIndexOp(JSOp::GlobalOrEvalDeclInstantiation, lastFun)) {
-    return false;
+  // NOTE: The self-hosting top-level script should not populate the builtins
+  //       directly on the GlobalObject (and instead uses JSOp::GetIntrinsic for
+  //       lookups).
+  if (emitterMode == BytecodeEmitter::EmitterMode::Normal) {
+    if (!emitGCIndexOp(JSOp::GlobalOrEvalDeclInstantiation, lastFun)) {
+      return false;
+    }
   }
 
   return true;
@@ -6190,6 +6195,9 @@ bool BytecodeEmitter::emitCheckDerivedClassConstructorReturn() {
   if (!emit1(JSOp::CheckReturn)) {
     return false;
   }
+  if (!emit1(JSOp::SetRval)) {
+    return false;
+  }
   return true;
 }
 
@@ -6268,15 +6276,6 @@ bool BytecodeEmitter::emitReturn(UnaryNode* returnNode) {
     return false;
   }
 
-  // Make sure that we emit this before popping the blocks in
-  // prepareForNonLocalJump, to ensure that the error is thrown while the
-  // scope-chain is still intact.
-  if (isDerivedClassConstructor) {
-    if (!emitCheckDerivedClassConstructorReturn()) {
-      return false;
-    }
-  }
-
   NonLocalExitControl nle(this, NonLocalExitControl::Return);
 
   if (!nle.prepareForNonLocalJumpToOutermost()) {
@@ -6320,7 +6319,7 @@ bool BytecodeEmitter::emitReturn(UnaryNode* returnNode) {
     }
   } else if (isDerivedClassConstructor) {
     MOZ_ASSERT(JSOp(bytecodeSection().code()[top.value()]) == JSOp::SetRval);
-    if (!emitReturnRval()) {
+    if (!emitJump(JSOp::Goto, &endOfDerivedClassConstructorBody)) {
       return false;
     }
   } else if (top + BytecodeOffsetDiff(JSOpLength_Return) !=

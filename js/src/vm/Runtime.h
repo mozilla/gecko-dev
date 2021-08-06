@@ -29,6 +29,7 @@
 #  include "builtin/intl/SharedIntlData.h"
 #endif
 #include "frontend/NameCollections.h"
+#include "frontend/ScriptIndex.h"
 #include "gc/GCRuntime.h"
 #include "gc/Tracer.h"
 #include "js/AllocationRecording.h"
@@ -65,7 +66,7 @@
 #include "vm/SharedStencil.h"  // js::SharedImmutableScriptDataTable
 #include "vm/Stack.h"
 #include "vm/SymbolType.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmTypeDecls.h"
 
 struct JSClass;
 
@@ -115,6 +116,9 @@ class Simulator;
 }  // namespace jit
 
 namespace frontend {
+struct CompilationGCOutput;
+struct CompilationInput;
+struct CompilationStencil;
 class WellKnownParserAtoms;
 }  // namespace frontend
 
@@ -392,6 +396,32 @@ struct JSRuntime {
   js::UnprotectedData<js::SelfHostedLazyScript> selfHostedLazyScript;
 
  private:
+  // The self-hosted JS code is compiled as a Stencil which is then attached to
+  // the Runtime. This is used to instantiate functions into realms on demand.
+  js::WriteOnceData<js::frontend::CompilationInput*> selfHostStencilInput_;
+  js::WriteOnceData<js::frontend::CompilationStencil*> selfHostStencil_;
+
+ public:
+  // The self-hosted stencil is immutable once attached to the runtime, so
+  // worker runtimes directly use the stencil on the parent runtime.
+  js::frontend::CompilationInput& selfHostStencilInput() {
+    MOZ_ASSERT(hasSelfHostStencil());
+    return *selfHostStencilInput_.ref();
+  }
+  js::frontend::CompilationStencil& selfHostStencil() {
+    MOZ_ASSERT(hasSelfHostStencil());
+    return *selfHostStencil_.ref();
+  }
+  bool hasSelfHostStencil() const { return bool(selfHostStencil_.ref()); }
+
+  // A mapping from the name of self-hosted function to a ScriptIndex range of
+  // the function and inner-functions within the self-hosted stencil.
+  js::MainThreadData<
+      JS::GCHashMap<js::PreBarriered<JSAtom*>, js::frontend::ScriptIndexRange,
+                    js::DefaultHasher<JSAtom*>, js::SystemAllocPolicy>>
+      selfHostScriptMap;
+
+ private:
   /* Gecko profiling metadata */
   js::UnprotectedData<js::GeckoProfilerRuntime> geckoProfiler_;
 
@@ -628,17 +658,9 @@ struct JSRuntime {
  private:
   js::UnprotectedData<js::jit::JitRuntime*> jitRuntime_;
 
-  /*
-   * Self-hosting state cloned on demand into other compartments. Shared with
-   * the parent runtime if there is one.
-   */
-  js::WriteOnceData<js::NativeObject*> selfHostingGlobal_;
-
-  static js::GlobalObject* createSelfHostingGlobal(JSContext* cx);
-
  public:
-  void getUnclonedSelfHostedValue(js::PropertyName* name, JS::Value* vp);
-  JSFunction* getUnclonedSelfHostedFunction(js::PropertyName* name);
+  mozilla::Maybe<js::frontend::ScriptIndexRange> getSelfHostedScriptIndexRange(
+      js::PropertyName* name);
 
   [[nodiscard]] bool createJitRuntime(JSContext* cx);
   js::jit::JitRuntime* jitRuntime() const { return jitRuntime_.ref(); }
@@ -663,33 +685,19 @@ struct JSRuntime {
   // Self-hosting support
   //-------------------------------------------------------------------------
 
-  bool hasInitializedSelfHosting() const { return selfHostingGlobal_; }
+  bool hasInitializedSelfHosting() const { return hasSelfHostStencil(); }
 
   bool initSelfHosting(JSContext* cx, JS::SelfHostedCache xdrCache = nullptr,
                        JS::SelfHostedWriter xdrWriter = nullptr);
   void finishSelfHosting();
-  void traceSelfHostingGlobal(JSTracer* trc);
-  bool isSelfHostingGlobal(JSObject* global) {
-    return global == selfHostingGlobal_;
-  }
-  js::GeneratorKind getSelfHostedFunctionGeneratorKind(JSAtom* name);
-  bool createLazySelfHostedFunctionClone(JSContext* cx,
-                                         js::HandlePropertyName selfHostedName,
-                                         js::HandleAtom name, unsigned nargs,
-                                         js::NewObjectKind newKind,
-                                         js::MutableHandleFunction fun);
-  bool cloneSelfHostedFunctionScript(JSContext* cx,
-                                     js::Handle<js::PropertyName*> name,
-                                     js::Handle<JSFunction*> targetFun);
-  bool cloneSelfHostedValue(JSContext* cx, js::Handle<js::PropertyName*> name,
-                            js::MutableHandleValue vp);
-  void assertSelfHostedFunctionHasCanonicalName(JSContext* cx,
-                                                js::HandlePropertyName name);
-#if DEBUG
-  bool isSelfHostingZone(const JS::Zone* zone) const {
-    return selfHostingGlobal_ && selfHostingGlobal_->zone() == zone;
-  }
-#endif
+  void traceSelfHostingStencil(JSTracer* trc);
+  js::GeneratorKind getSelfHostedFunctionGeneratorKind(js::PropertyName* name);
+  bool delazifySelfHostedFunction(JSContext* cx,
+                                  js::Handle<js::PropertyName*> name,
+                                  js::Handle<JSFunction*> targetFun);
+  bool getSelfHostedValue(JSContext* cx, js::Handle<js::PropertyName*> name,
+                          js::MutableHandleValue vp);
+  void assertSelfHostedFunctionHasCanonicalName(js::HandlePropertyName name);
 
   //-------------------------------------------------------------------------
   // Locale information
@@ -852,7 +860,7 @@ struct JSRuntime {
   }
 
   bool initMainAtomsTables(JSContext* cx);
-  void tracePermanentAtoms(JSTracer* trc);
+  void tracePermanentAtomsDuringInit(JSTracer* trc);
 
   // Cached well-known symbols (ES6 rev 24 6.1.5.1). Like permanent atoms,
   // these are shared with the parentRuntime, if any.

@@ -3096,6 +3096,25 @@ bool VerifyOriginKey(const nsACString& aOriginKey,
   return true;
 }
 
+LSInitializationInfo& MutableInitializationInfoRef(const CreateIfNonExistent&) {
+  if (!gInitializationInfo) {
+    gInitializationInfo = new LSInitializationInfo();
+  }
+  return *gInitializationInfo;
+}
+
+template <typename Func>
+auto ExecuteOriginInitialization(const nsACString& aOrigin,
+                                 const LSOriginInitialization aInitialization,
+                                 const nsACString& aContext, Func&& aFunc)
+    -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                      LSOriginInitialization, Nothing>&> {
+  return ExecuteInitialization(
+      MutableInitializationInfoRef(CreateIfNonExistent{})
+          .MutableOriginInitializationInfoRef(aOrigin, CreateIfNonExistent{}),
+      aInitialization, aContext, std::forward<Func>(aFunc));
+}
+
 }  // namespace
 
 /*******************************************************************************
@@ -6781,28 +6800,9 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
   MOZ_ASSERT(mState == State::Nesting);
   MOZ_ASSERT(mNestedState == NestedState::DatabaseWorkOpen);
 
-  // XXX Maybe add GetOrCreateInitializationInfo for this.
-  if (!gInitializationInfo) {
-    gInitializationInfo = new LSInitializationInfo();
-  }
-
-  auto& originInitializationInfo =
-      gInitializationInfo->MutableOriginInitializationInfoRef(
-          mOriginMetadata.mOrigin);
-
-  const auto firstInitializationAttempt =
-      originInitializationInfo.FirstInitializationAttempt(
-          LSOriginInitialization::Datastore);
-
-  auto rv = [&firstInitializationAttempt, this]() -> nsresult {
+  const auto innerFunc = [&](const auto&) -> nsresult {
     // XXX This function is too long, refactor it into helper functions for
     // readability.
-    const auto maybeExtraInfo =
-        firstInitializationAttempt.Pending()
-            ? Some(ScopedLogExtraInfo{
-                  ScopedLogExtraInfo::kTagContext,
-                  "dom::localstorage::FirstOriginInitializationAttempt::Datastore"_ns})
-            : Nothing{};
 
     if (NS_WARN_IF(QuotaClient::IsShuttingDownOnNonBackgroundThread()) ||
         !MayProceedOnNonOwningThread()) {
@@ -7052,11 +7052,12 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
     QM_TRY(OwningEventTarget()->Dispatch(this, NS_DISPATCH_NORMAL));
 
     return NS_OK;
-  }();
+  };
 
-  firstInitializationAttempt.MaybeRecord(rv);
-
-  return rv;
+  return ExecuteOriginInitialization(
+      mOriginMetadata.mOrigin, LSOriginInitialization::Datastore,
+      "dom::localstorage::FirstOriginInitializationAttempt::Datastore"_ns,
+      innerFunc);
 }
 
 nsresult PrepareDatastoreOp::DatabaseNotAvailable() {

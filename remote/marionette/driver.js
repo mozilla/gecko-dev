@@ -11,12 +11,11 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 
 XPCOMUtils.defineLazyModuleGetters(this, {
-  OS: "resource://gre/modules/osfile.jsm",
   Services: "resource://gre/modules/Services.jsm",
 
   Addon: "chrome://remote/content/marionette/addon.js",
   AppInfo: "chrome://remote/content/marionette/appinfo.js",
-  assert: "chrome://remote/content/marionette/assert.js",
+  assert: "chrome://remote/content/shared/webdriver/Assert.jsm",
   atom: "chrome://remote/content/marionette/atom.js",
   browser: "chrome://remote/content/marionette/browser.js",
   capture: "chrome://remote/content/marionette/capture.js",
@@ -39,7 +38,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   navigate: "chrome://remote/content/marionette/navigate.js",
   permissions: "chrome://remote/content/marionette/permissions.js",
   PollPromise: "chrome://remote/content/marionette/sync.js",
-  pprint: "chrome://remote/content/marionette/format.js",
+  pprint: "chrome://remote/content/shared/Format.jsm",
   print: "chrome://remote/content/marionette/print.js",
   reftest: "chrome://remote/content/marionette/reftest.js",
   registerCommandsActor:
@@ -2906,12 +2905,10 @@ GeckoDriver.prototype.print = async function(cmd) {
 
   // return all data as a base64 encoded string
   let bytes;
-  const file = await OS.File.open(filePath);
   try {
-    bytes = await file.read();
+    bytes = await IOUtils.read(filePath);
   } finally {
-    file.close();
-    await OS.File.remove(filePath);
+    await IOUtils.remove(filePath);
   }
 
   // Each UCS2 character has an upper byte of 0 and a lower byte matching

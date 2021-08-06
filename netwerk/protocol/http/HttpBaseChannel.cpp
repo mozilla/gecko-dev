@@ -1627,6 +1627,12 @@ nsresult HttpBaseChannel::SetReferrerInfoInternal(
     return NS_ERROR_NOT_INITIALIZED;
   }
 
+  if (aClone) {
+    // Record the telemetry once we set the referrer info to the channel
+    // successfully.
+    referrerInfo->RecordTelemetry(this);
+  }
+
   if (aCompute) {
     rv = referrerInfo->ComputeReferrer(this);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -3835,6 +3841,13 @@ already_AddRefed<nsILoadInfo> HttpBaseChannel::CloneLoadInfoForRedirect(
   // Reset our sandboxed null principal ID when cloning loadInfo for an
   // externally visible redirect.
   if (!isInternalRedirect) {
+    // If we've redirected from http to something that isn't, clear
+    // the "external" flag, as loads that now go to other apps should be
+    // allowed to go ahead and not trip infinite-loop protection
+    // (see bug 1717314 for context).
+    if (!aNewURI->SchemeIs("http") && !aNewURI->SchemeIs("https")) {
+      newLoadInfo->SetLoadTriggeredFromExternal(false);
+    }
     newLoadInfo->ResetSandboxedNullPrincipalID();
   }
 

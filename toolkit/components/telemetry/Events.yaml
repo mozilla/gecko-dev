@@ -127,7 +127,7 @@ aboutprivatebrowsing:
     bug_numbers: [1709344]
     notification_emails:
       - "khudson@mozilla.com"
-    expiry_version: "93"
+    expiry_version: "100"
     products:
       - "firefox"
 
@@ -476,9 +476,9 @@ creditcard:
       - "update"
       - "cancel"
       - "disable"
-    bug_numbers: [1653073, 1653083]
-    notification_emails: ["jmathies@mozilla.com", "chsiang@mozilla.com"]
-    expiry_version: "93"
+    bug_numbers: [1653073, 1653083, 1720608]
+    notification_emails: ["tgiles@mozilla.com", "dlee@mozilla.com"]
+    expiry_version: "103"
     products:
       - "firefox"
     record_in_processes: ["main"]
@@ -494,9 +494,9 @@ creditcard:
       - "delete"
       - "show_entry"
       - "edit"
-    bug_numbers: [1653073, 1654167]
-    notification_emails: ["jmathies@mozilla.com", "chsiang@mozilla.com"]
-    expiry_version: "93"
+    bug_numbers: [1653073, 1654167, 1720608]
+    notification_emails: ["tgiles@mozilla.com", "dlee@mozilla.com"]
+    expiry_version: "103"
     products:
       - "firefox"
     record_in_processes: ["main"]
@@ -512,9 +512,9 @@ creditcard:
       - "filled"
       - "filled_modified"
       - "submitted"
-    bug_numbers: [1653073, 1653162]
-    notification_emails: ["jmathies@mozilla.com", "chsiang@mozilla.com"]
-    expiry_version: "93"
+    bug_numbers: [1653073, 1653162, 1720608]
+    notification_emails: ["tgiles@mozilla.com", "dlee@mozilla.com"]
+    expiry_version: "103"
     products:
       - "firefox"
     record_in_processes: ["content"]
@@ -2274,6 +2274,48 @@ network.dns:
       time: >
         Time from first confirmation attempt to event being recorded
 
+networking.captive_portal:
+  login_infobar_shown:
+    objects: ["infobar"]
+    bug_numbers:
+      - 1722834
+    description: >
+      An event fired when the captive portal login infobar is displayed.
+    notification_emails:
+      - barret@mozilla.com
+    release_channel_collection: opt-out
+    products: ["firefox"]
+    record_in_processes: ["main"]
+    expiry_version: "99"
+
+  login_button_pressed:
+    objects: ["login_button"]
+    bug_numbers:
+      - 1722834
+    description: >
+      An event fired when the login button on the captive portal login infobar
+      is clicked.
+    notification_emails:
+      - barret@mozilla.com
+    release_channel_collection: opt-out
+    products: ["firefox"]
+    record_in_processes: ["main"]
+    expiry_version: "99"
+
+  login_successful:
+    objects: ["detector"]
+    bug_numbers:
+      - 1722834
+    description: >
+      An event fired when the captive portal detector detects that the user has
+      successfully logged in to a captive portal.
+    notification_emails:
+      - barret@mozilla.com
+    release_channel_collection: opt-out
+    products: ["firefox"]
+    record_in_processes: ["main"]
+    expiry_version: "99"
+
 security:
   fissionPrincipals:
     objects: ["contentParent"]
@@ -2658,8 +2700,9 @@ slow_script_warning:
       - "firefox"
     record_in_processes: ["main"]
     release_channel_collection: opt-out
-    expiry_version: "93"
+    expiry_version: "never"
     notification_emails:
+      - dothayer@mozilla.com
       - esmyth@mozilla.com
       - gkruitbosch@mozilla.com
       - perf-telemetry-alerts@mozilla.com
@@ -2894,3 +2937,20 @@ close_tab_warning:
       closing_wins: The number of windows being closed.
       closing_tabs: The number of tabs being closed.
       will_restore: Whether the session will be restored if closed now.
+
+memory_watcher:
+  on_high_memory:
+    description: >
+      This event is recorded when the memory situation is no longer low.
+      The "stats" object consists of three numbers comma-delimited:
+      1) how many times a tab was unloaded
+      2) how many memory-pressure events were dispatched
+      3) how long we were in the low-memory situation in seconds
+    objects: ["stats"]
+    release_channel_collection: opt-out
+    expiry_version: never
+    record_in_processes: ["main"]
+    products: ["firefox"]
+    bug_numbers: [1715858]
+    notification_emails:
+      - tkikuchi@mozilla.com

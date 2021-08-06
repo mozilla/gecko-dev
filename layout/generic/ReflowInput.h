@@ -411,6 +411,13 @@ struct ReflowInput : public SizeComputationInput {
   const nsStylePadding* mStylePadding = nullptr;
   const nsStyleText* mStyleText = nullptr;
 
+  enum class BreakType : uint8_t {
+    Auto,
+    Column,
+    Page,
+  };
+  BreakType mBreakType = BreakType::Auto;
+
   // a frame (e.g. nsTableCellFrame) which may need to generate a special
   // reflow for percent bsize calculations
   nsIPercentBSizeObserver* mPercentBSizeObserver = nullptr;
@@ -693,18 +700,24 @@ struct ReflowInput : public SizeComputationInput {
                 mozilla::Nothing());
 
   /**
-   * Calculate the used line-height property. The return value will be >= 0.
+   * Get the used line-height property. The return value will be >= 0.
    */
-  nscoord CalcLineHeight() const;
+  nscoord GetLineHeight() const;
 
   /**
-   * Same as CalcLineHeight() above, but doesn't need a reflow input.
+   * Set the used line-height. aLineHeight must be >= 0.
+   */
+  void SetLineHeight(nscoord aLineHeight);
+
+  /**
+   * Calculate the used line-height property without a reflow input instance.
+   * The return value will be >= 0.
    *
    * @param aBlockBSize The computed block size of the content rect of the block
-   *                     that the line should fill.
-   *                     Only used with line-height:-moz-block-height.
-   *                     NS_UNCONSTRAINEDSIZE results in a normal line-height
-   * for line-height:-moz-block-height.
+   *                    that the line should fill. Only used with
+   *                    line-height:-moz-block-height. NS_UNCONSTRAINEDSIZE
+   *                    results in a normal line-height for
+   *                    line-height:-moz-block-height.
    * @param aFontSizeInflation The result of the appropriate
    *                           nsLayoutUtils::FontSizeInflationFor call,
    *                           or 1.0 if during intrinsic size
@@ -1007,6 +1020,9 @@ struct ReflowInput : public SizeComputationInput {
   // Computed value for 'max-inline-size'/'max-block-size'.
   mozilla::LogicalSize mComputedMaxSize{mWritingMode, NS_UNCONSTRAINEDSIZE,
                                         NS_UNCONSTRAINEDSIZE};
+
+  // Cache the used line-height property.
+  mutable nscoord mLineHeight = NS_UNCONSTRAINEDSIZE;
 };
 
 }  // namespace mozilla

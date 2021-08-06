@@ -499,8 +499,19 @@ class nsLayoutUtils {
    *
    * Just like IsAncestorFrameCrossDoc, except that it returns false when
    * aFrame == aAncestorFrame.
+   * TODO: Once after we fixed bug 1715932, this function should be removed.
    */
   static bool IsProperAncestorFrameCrossDoc(
+      const nsIFrame* aAncestorFrame, const nsIFrame* aFrame,
+      const nsIFrame* aCommonAncestor = nullptr);
+
+  /**
+   * Like IsProperAncestorFrame, but looks across document boundaries.
+   *
+   * Just like IsAncestorFrameCrossDoc, except that it returns false when
+   * aFrame == aAncestorFrame.
+   */
+  static bool IsProperAncestorFrameCrossDocInProcess(
       const nsIFrame* aAncestorFrame, const nsIFrame* aFrame,
       const nsIFrame* aCommonAncestor = nullptr);
 
@@ -1230,9 +1241,13 @@ class nsLayoutUtils {
 
   class BoxCallback {
    public:
-    BoxCallback() : mIncludeCaptionBoxForTable(true) {}
+    BoxCallback() = default;
     virtual void AddBox(nsIFrame* aFrame) = 0;
-    bool mIncludeCaptionBoxForTable;
+    bool mIncludeCaptionBoxForTable = true;
+    // Whether we are in a continuation or ib-split-sibling of the target we're
+    // measuring. This is useful because if we know we're in the target subtree
+    // and measuring against it we can avoid finding the common ancestor.
+    bool mInTargetContinuation = false;
   };
   /**
    * Collect all CSS boxes associated with aFrame and its

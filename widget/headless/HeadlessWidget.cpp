@@ -250,11 +250,8 @@ LayoutDeviceIntPoint HeadlessWidget::WidgetToScreenOffset() {
   return mTopLevel->GetBounds().TopLeft();
 }
 
-LayerManager* HeadlessWidget::GetLayerManager(
-    PLayerTransactionChild* aShadowManager, LayersBackend aBackendHint,
-    LayerManagerPersistence aPersistence) {
-  return nsBaseWidget::GetLayerManager(aShadowManager, aBackendHint,
-                                       aPersistence);
+WindowRenderer* HeadlessWidget::GetWindowRenderer() {
+  return nsBaseWidget::GetWindowRenderer();
 }
 
 void HeadlessWidget::SetCompositorWidgetDelegate(

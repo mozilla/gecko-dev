@@ -77,6 +77,8 @@ extern "C" const char* __tsan_default_suppressions() {
          // calling into uninstrumented external graphics driver code.
          // For example: iris_dri.so and swrast_dri.so.
          "race:fire_glxtest_process\n"
+         // Bug 1722721 - WebRender using uninstrumented Mesa drivers
+         "race:swrast_dri.so\n"
 
 
 
@@ -288,6 +290,31 @@ extern "C" const char* __tsan_default_suppressions() {
          // Bug 1683357
          "race:image::ImageSurfaceCache::SuggestedSizeInternal\n"
          "race:image::RasterImage::SetMetadata\n"
+         "race:image::RasterImage::GetWidth\n"
+
+         // Bug 1722721 - This is a benign race creating worker/SW compositor threads.
+         "race:webrender::profiler::register_thread\n"
+
+         // Bug 1722721 - This is a false positive during SW-WR rendering.
+         "race:scale_blit\n"
+
+         "race:mozilla::gl::MesaMemoryLeakWorkaround\n"
+
+
+         // Bug 1723321
+         "race:mozilla::layers::AsyncPanZoomController::AsyncPanZoomController\n"
+
+         // Bug 1723351 and Bug 1723142
+         "race:mozilla::layers::AsyncPanZoomController::ApplyAsyncTestAttributes\n"
+
+         // Bug 1723170
+         "race:mozilla::layers::APZCTreeManager::NewAPZCInstance\n"
+
+         // Bug 1723176
+         "race:mozilla::layers::AsyncPanZoomController::GetZoomAnimationId\n"
+
+         // Bug 1723730
+         "race:mozilla::layers::AsyncPanZoomController::SetZoomAnimationId\n"
 
       // End of suppressions.
       ;  // Please keep this semicolon.

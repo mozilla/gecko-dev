@@ -1,4 +1,3 @@
-/* vim: set ts=8 sw=8 noexpandtab: */
 //  qcms
 //  Copyright (C) 2009 Mozilla Corporation
 //  Copyright (C) 1998-2007 Marti Maria
@@ -44,9 +43,7 @@ fn lerp(a: f32, b: f32, t: f32) -> f32 {
 }
 
 fn build_lut_matrix(lut: &lutType) -> Matrix {
-    let mut result: Matrix = Matrix {
-        m: [[0.; 3]; 3],
-    };
+    let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
     result.m[0][0] = s15Fixed16Number_to_float(lut.e00);
     result.m[0][1] = s15Fixed16Number_to_float(lut.e01);
     result.m[0][2] = s15Fixed16Number_to_float(lut.e02);
@@ -59,9 +56,7 @@ fn build_lut_matrix(lut: &lutType) -> Matrix {
     result
 }
 fn build_mAB_matrix(lut: &lutmABType) -> Matrix {
-    let mut result: Matrix = Matrix {
-        m: [[0.; 3]; 3],
-    };
+    let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
 
     result.m[0][0] = s15Fixed16Number_to_float(lut.e00);
     result.m[0][1] = s15Fixed16Number_to_float(lut.e01);
@@ -91,6 +86,7 @@ fn f_1(t: f32) -> f32 {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 struct LABtoXYZ;
 impl ModularTransform for LABtoXYZ {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
@@ -117,6 +113,7 @@ impl ModularTransform for LABtoXYZ {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 struct XYZtoLAB;
 impl ModularTransform for XYZtoLAB {
     //Based on lcms cmsXYZ2Lab
@@ -300,8 +297,9 @@ impl ModularTransform for Clut4x3 {
         let g_tbl = &self.clut.as_ref().unwrap()[1..];
         let b_tbl = &self.clut.as_ref().unwrap()[2..];
 
-        let CLU =
-            |table: &[f32], x, y, z, w| table[((x * x_stride + y * y_stride + z * z_stride + w) * 3) as usize];
+        let CLU = |table: &[f32], x, y, z, w| {
+            table[((x * x_stride + y * y_stride + z * z_stride + w) * 3) as usize]
+        };
 
         let input_clut_table_0 = self.input_clut_table[0].as_ref().unwrap();
         let input_clut_table_1 = self.input_clut_table[1].as_ref().unwrap();
@@ -550,9 +548,7 @@ struct MatrixTranslate {
 }
 impl ModularTransform for MatrixTranslate {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
-        let mut mat: Matrix = Matrix {
-            m: [[0.; 3]; 3],
-        };
+        let mut mat: Matrix = Matrix { m: [[0.; 3]; 3] };
         /* store the results in column major mode
          * this makes doing the multiplication with sse easier */
         mat.m[0][0] = self.matrix.m[0][0];
@@ -583,9 +579,7 @@ struct MatrixTransform {
 }
 impl ModularTransform for MatrixTransform {
     fn transform(&self, src: &[f32], dest: &mut [f32]) {
-        let mut mat: Matrix = Matrix {
-            m: [[0.; 3]; 3],
-        };
+        let mut mat: Matrix = Matrix { m: [[0.; 3]; 3] };
         /* store the results in column major mode
          * this makes doing the multiplication with sse easier */
         mat.m[0][0] = self.matrix.m[0][0];
@@ -739,7 +733,7 @@ fn modular_transform_create_lut(lut: &lutType) -> Option<Vec<Box<dyn ModularTran
     None
 }
 
-fn modular_transform_create_lut4x3(lut: &lutType) -> Option<Vec<Box<dyn ModularTransform>>> {
+fn modular_transform_create_lut4x3(lut: &lutType) -> Vec<Box<dyn ModularTransform>> {
     let mut transforms: Vec<Box<dyn ModularTransform>> = Vec::new();
 
     let clut_length: usize;
@@ -785,7 +779,7 @@ fn modular_transform_create_lut4x3(lut: &lutType) -> Option<Vec<Box<dyn ModularT
             .to_vec(),
     );
     transforms.push(transform);
-    Some(transforms)
+    transforms
 }
 
 fn modular_transform_create_input(input: &Profile) -> Option<Vec<Box<dyn ModularTransform>>> {
@@ -793,7 +787,7 @@ fn modular_transform_create_input(input: &Profile) -> Option<Vec<Box<dyn Modular
     if let Some(A2B0) = &input.A2B0 {
         let lut_transform;
         if A2B0.num_input_channels == 4 {
-            lut_transform = modular_transform_create_lut4x3(&A2B0);
+            lut_transform = Some(modular_transform_create_lut4x3(&A2B0));
         } else {
             lut_transform = modular_transform_create_lut(&A2B0);
         }
@@ -1009,14 +1003,14 @@ fn modular_transform_data(
     mut src: Vec<f32>,
     mut dest: Vec<f32>,
     _len: usize,
-) -> Option<Vec<f32>> {
+) -> Vec<f32> {
     for transform in transforms {
         // Keep swaping src/dest when performing a transform to use less memory.
         transform.transform(&src, &mut dest);
         std::mem::swap(&mut src, &mut dest);
     }
     // The results end up in the src buffer because of the switching
-    Some(src)
+    src
 }
 
 pub fn chain_transform(
@@ -1029,7 +1023,7 @@ pub fn chain_transform(
     let transform_list = modular_transform_create(input, output);
     if let Some(transform_list) = transform_list {
         let lut = modular_transform_data(transform_list, src, dest, lutSize / 3);
-        return lut;
+        return Some(lut);
     }
     None
 }

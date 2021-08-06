@@ -10,10 +10,10 @@
  * @typedef {import("./@types/perf").PerfFront} PerfFront
  * @typedef {import("./@types/perf").SymbolTableAsTuple} SymbolTableAsTuple
  * @typedef {import("./@types/perf").RecordingState} RecordingState
- * @typedef {import("./@types/perf").GetSymbolTableCallback} GetSymbolTableCallback
+ * @typedef {import("./@types/perf").SymbolicationService} SymbolicationService
  * @typedef {import("./@types/perf").PreferenceFront} PreferenceFront
  * @typedef {import("./@types/perf").PerformancePref} PerformancePref
- * @typedef {import("./@types/perf").RecordingStateFromPreferences} RecordingStateFromPreferences
+ * @typedef {import("./@types/perf").RecordingSettings} RecordingSettings
  * @typedef {import("./@types/perf").RestartBrowserWithEnvironmentVariable} RestartBrowserWithEnvironmentVariable
  * @typedef {import("./@types/perf").GetEnvironmentVariable} GetEnvironmentVariable
  * @typedef {import("./@types/perf").GetActiveBrowserID} GetActiveBrowserID
@@ -30,8 +30,6 @@ const lazy = createLazyLoaders({
   Chrome: () => require("chrome"),
   Services: () => require("Services"),
   OS: () => ChromeUtils.import("resource://gre/modules/osfile.jsm"),
-  ProfilerGetSymbols: () =>
-    ChromeUtils.import("resource://gre/modules/ProfilerGetSymbols.jsm"),
   PerfSymbolication: () =>
     ChromeUtils.import(
       "resource://devtools/client/performance-new/symbolication.jsm.js"
@@ -62,17 +60,21 @@ const UI_BASE_URL_PATH_DEFAULT = "/from-addon";
  * profiler.firefox.com to be analyzed. This function opens up profiler.firefox.com
  * into a new browser tab, and injects the profile via a frame script.
  *
- * @param {MinimallyTypedGeckoProfile} profile - The Gecko profile.
+ * @param {MinimallyTypedGeckoProfile | ArrayBuffer | {}} profile - The Gecko profile.
  * @param {ProfilerViewMode | undefined} profilerViewMode - View mode for the Firefox Profiler
  *   front-end timeline. While opening the url, we should append a query string
  *   if a view other than "full" needs to be displayed.
- * @param {GetSymbolTableCallback} getSymbolTableCallback - A callback function with the signature
- *   (debugName, breakpadId) => Promise<SymbolTableAsTuple>, which will be invoked
+ * @param {SymbolicationService} symbolicationService - An object which implements the
+ *   SymbolicationService interface, whose getSymbolTable method will be invoked
  *   when profiler.firefox.com sends SYMBOL_TABLE_REQUEST_EVENT messages to us. This
- *   function should obtain a symbol table for the requested binary and resolve the
+ *   method should obtain a symbol table for the requested binary and resolve the
  *   returned promise with it.
  */
-function receiveProfile(profile, profilerViewMode, getSymbolTableCallback) {
+function openProfilerAndDisplayProfile(
+  profile,
+  profilerViewMode,
+  symbolicationService
+) {
   const Services = lazy.Services();
   // Find the most recently used window, as the DevTools client could be in a variety
   // of hosts.
@@ -121,7 +123,7 @@ function receiveProfile(profile, profilerViewMode, getSymbolTableCallback) {
   mm.sendAsyncMessage(TRANSFER_EVENT, profile);
   mm.addMessageListener(SYMBOL_TABLE_REQUEST_EVENT, e => {
     const { debugName, breakpadId } = e.data;
-    getSymbolTableCallback(debugName, breakpadId).then(
+    symbolicationService.getSymbolTable(debugName, breakpadId).then(
       result => {
         const [addr, index, buffer] = result;
         mm.sendAsyncMessage(SYMBOL_TABLE_RESPONSE_EVENT, {
@@ -146,82 +148,23 @@ function receiveProfile(profile, profilerViewMode, getSymbolTableCallback) {
 }
 
 /**
- * Returns a function getDebugPathFor(debugName, breakpadId) => Library which
- * resolves a (debugName, breakpadId) pair to the library's information, which
- * contains the absolute paths on the file system where the binary and its
- * optional pdb file are stored.
- *
- * This is needed for the following reason:
- *  - In order to obtain a symbol table for a system library, we need to know
- *    the library's absolute path on the file system. On Windows, we
- *    additionally need to know the absolute path to the library's PDB file,
- *    which we call the binary's "debugPath".
- *  - Symbol tables are requested asynchronously, by the profiler UI, after the
- *    profile itself has been obtained.
- *  - When the symbol tables are requested, we don't want the profiler UI to
- *    pass us arbitrary absolute file paths, as an extra defense against
- *    potential information leaks.
- *  - Instead, when the UI requests symbol tables, it identifies the library
- *    with a (debugName, breakpadId) pair. We need to map that pair back to the
- *    absolute paths.
- *  - We get the "trusted" paths from the "libs" sections of the profile. We
- *    trust these paths because we just obtained the profile directly from
- *    Gecko.
- *  - This function builds the (debugName, breakpadId) => Library mapping and
- *    retains it on the returned closure so that it can be consulted after the
- *    profile has been passed to the UI.
- *
+ * Flatten all the sharedLibraries of the different processes in the profile
+ * into one list of libraries.
  * @param {MinimallyTypedGeckoProfile} profile - The profile JSON object
- * @returns {(debugName: string, breakpadId: string) => Library | undefined}
+ * @returns {Library[]}
  */
-function createLibraryMap(profile) {
-  const map = new Map();
-
+function sharedLibrariesFromProfile(profile) {
   /**
    * @param {MinimallyTypedGeckoProfile} processProfile
+   * @returns {Library[]}
    */
-  function fillMapForProcessRecursive(processProfile) {
-    for (const lib of processProfile.libs) {
-      const { debugName, breakpadId } = lib;
-      const key = [debugName, breakpadId].join(":");
-      map.set(key, lib);
-    }
-    for (const subprocess of processProfile.processes) {
-      fillMapForProcessRecursive(subprocess);
-    }
+  function getLibsRecursive(processProfile) {
+    return processProfile.libs.concat(
+      ...processProfile.processes.map(getLibsRecursive)
+    );
   }
 
-  fillMapForProcessRecursive(profile);
-  return function getLibraryFor(debugName, breakpadId) {
-    const key = [debugName, breakpadId].join(":");
-    return map.get(key);
-  };
-}
-
-/**
- * Return a function `getSymbolTable` that calls getSymbolTableMultiModal with the
- * right arguments.
- *
- * @param {MinimallyTypedGeckoProfile} profile - The raw profie (not gzipped).
- * @param {() => string[]} getObjdirs - A function that returns an array of objdir paths
- *   on the host machine that should be searched for relevant build artifacts.
- * @param {PerfFront} perfFront
- * @return {GetSymbolTableCallback}
- */
-function createMultiModalGetSymbolTableFn(profile, getObjdirs, perfFront) {
-  const libraryGetter = createLibraryMap(profile);
-
-  return async function getSymbolTable(debugName, breakpadId) {
-    const lib = libraryGetter(debugName, breakpadId);
-    if (!lib) {
-      throw new Error(
-        `Could not find the library for "${debugName}", "${breakpadId}".`
-      );
-    }
-    const objdirs = getObjdirs();
-    const { getSymbolTableMultiModal } = lazy.PerfSymbolication();
-    return getSymbolTableMultiModal(lib, objdirs, perfFront);
-  };
+  return getLibsRecursive(profile);
 }
 
 /**
@@ -278,8 +221,8 @@ function openFilePickerForObjdir(window, objdirs, changeObjdirs) {
 }
 
 module.exports = {
-  receiveProfile,
-  createMultiModalGetSymbolTableFn,
+  openProfilerAndDisplayProfile,
+  sharedLibrariesFromProfile,
   restartBrowserWithEnvironmentVariable,
   getEnvironmentVariable,
   openFilePickerForObjdir,

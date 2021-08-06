@@ -6,12 +6,11 @@
 
 /**
  * @typedef {import("../@types/perf").RecordingState} RecordingState
- * @typedef {import("../@types/perf").RecordingStateFromPreferences} RecordingStateFromPreferences
+ * @typedef {import("../@types/perf").RecordingSettings} RecordingSettings
  * @typedef {import("../@types/perf").InitializedValues} InitializedValues
  * @typedef {import("../@types/perf").PerfFront} PerfFront
  * @typedef {import("../@types/perf").ReceiveProfile} ReceiveProfile
- * @typedef {import("../@types/perf").SetRecordingPreferences} SetRecordingPreferences
- * @typedef {import("../@types/perf").GetSymbolTableCallback} GetSymbolTableCallback
+ * @typedef {import("../@types/perf").SetRecordingSettings} SetRecordingSettings
  * @typedef {import("../@types/perf").RestartBrowserWithEnvironmentVariable} RestartBrowserWithEnvironmentVariable
  * @typedef {import("../@types/perf").GetEnvironmentVariable} GetEnvironmentVariable
  * @typedef {import("../@types/perf").PageContext} PageContext
@@ -30,7 +29,7 @@ const getRecordingState = state => state.recordingState;
 const getRecordingUnexpectedlyStopped = state =>
   state.recordingUnexpectedlyStopped;
 
-/** @type {Selector<boolean>} */
+/** @type {Selector<boolean | null>} */
 const getIsSupportedPlatform = state => state.isSupportedPlatform;
 
 /** @type {Selector<number>} */
@@ -69,24 +68,10 @@ const getOpenRemoteDevTools = state =>
   getInitializedValues(state).openRemoteDevTools;
 
 /**
- * Get the functon to open about:profiling. This assumes that the function exists,
- * otherwise it will throw an error.
- *
- * @type {Selector<() => void>}
- */
-const getOpenAboutProfiling = state => {
-  const { openAboutProfiling } = getInitializedValues(state);
-  if (!openAboutProfiling) {
-    throw new Error("Expected to get an openAboutProfiling function.");
-  }
-  return openAboutProfiling;
-};
-
-/**
  * Warning! This function returns a new object on every run, and so should not
  * be used directly as a React prop.
  *
- * @type {Selector<RecordingStateFromPreferences>}
+ * @type {Selector<RecordingSettings>}
  */
 const getRecordingSettings = state => {
   const presets = getPresets(state);
@@ -128,22 +113,12 @@ const getInitializedValues = state => {
   return values;
 };
 
-/** @type {Selector<PerfFront>} */
-const getPerfFront = state => getInitializedValues(state).perfFront;
-
-/** @type {Selector<ReceiveProfile>} */
-const getReceiveProfileFn = state => getInitializedValues(state).receiveProfile;
-
-/** @type {Selector<SetRecordingPreferences>} */
-const getSetRecordingPreferencesFn = state =>
-  getInitializedValues(state).setRecordingPreferences;
+/** @type {Selector<SetRecordingSettings>} */
+const getSetRecordingSettingsFn = state =>
+  getInitializedValues(state).setRecordingSettings;
 
 /** @type {Selector<PageContext>} */
 const getPageContext = state => getInitializedValues(state).pageContext;
-
-/** @type {Selector<(profile: MinimallyTypedGeckoProfile) => GetSymbolTableCallback>} */
-const getSymbolTableGetter = state =>
-  getInitializedValues(state).getSymbolTableGetter;
 
 /** @type {Selector<string[]>} */
 const getSupportedFeatures = state =>
@@ -166,14 +141,10 @@ module.exports = {
   getPresetName,
   getProfilerViewMode,
   getOpenRemoteDevTools,
-  getOpenAboutProfiling,
   getRecordingSettings,
   getInitializedValues,
-  getPerfFront,
-  getReceiveProfileFn,
-  getSetRecordingPreferencesFn,
+  getSetRecordingSettingsFn,
   getPageContext,
-  getSymbolTableGetter,
   getPromptEnvRestart,
   getSupportedFeatures,
 };

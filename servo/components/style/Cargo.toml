@@ -25,7 +25,6 @@ servo-layout-2013 = []
 servo-layout-2020 = []
 gecko_debug = []
 gecko_refcount_logging = []
-gecko_profiler = []
 
 [dependencies]
 app_units = "0.7"
@@ -76,7 +75,7 @@ thin-slice = "0.1.0"
 to_shmem = {path = "../to_shmem"}
 to_shmem_derive = {path = "../to_shmem_derive"}
 time = "0.1"
-uluru = "0.4"
+uluru = "1.1"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 void = "1.0.2"

@@ -21,6 +21,9 @@
 #  include <process.h>
 #  include <shobjidl.h>
 #  include "mozilla/ipc/WindowsMessageLoop.h"
+#  ifdef MOZ_SANDBOX
+#    include "mozilla/RandomNum.h"
+#  endif
 #  include "mozilla/ScopeExit.h"
 #  include "mozilla/WinDllServices.h"
 #endif
@@ -637,6 +640,10 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
     SandboxBroker::Initialize(aChildData->sandboxBrokerServices);
     SandboxBroker::GeckoDependentInitialize();
   }
+
+  // Call RandomUint64 to pre-load bcryptPrimitives.dll while the current
+  // thread still has an unrestricted impersonation token.
+  RandomUint64OrDie();
 #endif
 
   {

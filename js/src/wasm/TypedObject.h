@@ -14,7 +14,8 @@
 #include "gc/WeakMap.h"
 #include "vm/ArrayBufferObject.h"
 #include "vm/JSObject.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmTypeDef.h"
+#include "wasm/WasmValType.h"
 
 namespace js {
 
@@ -45,6 +46,8 @@ class RttValue : public NativeObject {
   static RttValue* createFromHandle(JSContext* cx, wasm::TypeHandle handle);
   static RttValue* rttSub(JSContext* cx, js::Handle<RttValue*> parent,
                           js::Handle<RttValue*> subCanon);
+
+  bool isNewborn() { return getReservedSlot(Slot::Handle).isUndefined(); }
 
   wasm::TypeHandle handle() const {
     return wasm::TypeHandle(uint32_t(getReservedSlot(Slot::Handle).toInt32()));

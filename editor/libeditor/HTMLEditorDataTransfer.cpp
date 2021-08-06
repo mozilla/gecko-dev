@@ -674,16 +674,10 @@ nsresult HTMLEditor::HTMLWithContextInserter::Run(
     }
   }
 
-  Element* editingHost = mHTMLEditor.GetActiveEditingHost();
+  Element* editingHost =
+      mHTMLEditor.GetActiveEditingHost(HTMLEditor::LimitInBodyElement::No);
   if (NS_WARN_IF(!editingHost)) {
-    // In theory, we should return NS_ERROR_FAILURE here, but we've not
-    // thrown exception in this case.  Therefore, we should allow to use
-    // the root element instead for now.
-    // XXX test_bug795418-2.html depends on this behavior
-    editingHost = mHTMLEditor.GetRoot();
-    if (NS_WARN_IF(!editingHost)) {
-      return NS_ERROR_FAILURE;
-    }
+    return NS_ERROR_FAILURE;
   }
 
   // Adjust position based on the first node we are going to insert.
@@ -1846,7 +1840,8 @@ nsresult HTMLEditor::InsertFromTransferable(nsITransferable* aTransferable,
             return rv;
           }
         } else {
-          nsresult rv = InsertTextAsSubAction(stuffToPaste);
+          nsresult rv =
+              InsertTextAsSubAction(stuffToPaste, SelectionHandling::Delete);
           if (NS_FAILED(rv)) {
             NS_WARNING("EditorBase::InsertTextAsSubAction() failed");
             return rv;
@@ -2631,7 +2626,7 @@ nsresult HTMLEditor::InsertWithQuotationsAsSubAction(
     }
   }
 
-  rv = InsertTextAsSubAction(quotedStuff);
+  rv = InsertTextAsSubAction(quotedStuff, SelectionHandling::Delete);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "EditorBase::InsertTextAsSubAction() failed");
   return rv;
@@ -2746,7 +2741,7 @@ nsresult HTMLEditor::InsertTextWithQuotationsInternal(
                            "HTMLEditor::InsertAsPlaintextQuotation() failed, "
                            "but might be ignored");
     } else {
-      rv = InsertTextAsSubAction(curHunk);
+      rv = InsertTextAsSubAction(curHunk, SelectionHandling::Delete);
       NS_WARNING_ASSERTION(
           NS_SUCCEEDED(rv),
           "EditorBase::InsertTextAsSubAction() failed, but might be ignored");
@@ -2925,7 +2920,7 @@ nsresult HTMLEditor::InsertAsPlaintextQuotation(const nsAString& aQuotedText,
       return rv;
     }
   } else {
-    rv = InsertTextAsSubAction(aQuotedText);
+    rv = InsertTextAsSubAction(aQuotedText, SelectionHandling::Delete);
     if (NS_FAILED(rv)) {
       NS_WARNING("EditorBase::InsertTextAsSubAction() failed");
       return rv;
@@ -3177,7 +3172,8 @@ nsresult HTMLEditor::InsertAsCitedQuotationInternal(
       return rv;
     }
   } else {
-    rv = InsertTextAsSubAction(aQuotedText);  // XXX ignore charset
+    rv = InsertTextAsSubAction(
+        aQuotedText, SelectionHandling::Delete);  // XXX ignore charset
     if (NS_WARN_IF(Destroyed())) {
       return NS_ERROR_EDITOR_DESTROYED;
     }

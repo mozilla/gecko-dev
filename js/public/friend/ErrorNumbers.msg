@@ -422,7 +422,7 @@ MSG_DEF(JSMSG_WASM_COMPILE_ERROR,      1, JSEXN_WASMCOMPILEERROR, "{0}")
 MSG_DEF(JSMSG_WASM_NO_SHMEM_COMPILE,   0, JSEXN_WASMCOMPILEERROR, "shared memory is disabled")
 MSG_DEF(JSMSG_WASM_BAD_IMPORT_TYPE,    2, JSEXN_WASMLINKERROR, "import object field '{0}' is not a {1}")
 MSG_DEF(JSMSG_WASM_BAD_IMPORT_SIG,     2, JSEXN_WASMLINKERROR, "imported function '{0}.{1}' signature mismatch")
-MSG_DEF(JSMSG_WASM_BAD_EXN_SIG,        2, JSEXN_WASMLINKERROR, "imported exception '{0}.{1}' signature mismatch")
+MSG_DEF(JSMSG_WASM_BAD_TAG_SIG,        2, JSEXN_WASMLINKERROR, "imported tag '{0}.{1}' signature mismatch")
 MSG_DEF(JSMSG_WASM_BAD_IMP_INDEX,      1, JSEXN_WASMLINKERROR, "imported {0} with incompatible index type")
 MSG_DEF(JSMSG_WASM_BAD_IMP_SIZE,       1, JSEXN_WASMLINKERROR, "imported {0} with incompatible size")
 MSG_DEF(JSMSG_WASM_BAD_IMP_MAX,        1, JSEXN_WASMLINKERROR, "imported {0} with incompatible maximum size")
@@ -465,6 +465,10 @@ MSG_DEF(JSMSG_WASM_BAD_EQREF_VALUE,  0, JSEXN_TYPEERR,     "can only pass a Type
 MSG_DEF(JSMSG_WASM_BAD_VAL_TYPE,       0, JSEXN_TYPEERR,     "cannot pass v128 to or from JS")
 MSG_DEF(JSMSG_WASM_BAD_STRING_VAL_TYPE,    0, JSEXN_TYPEERR,     "bad value type")
 MSG_DEF(JSMSG_WASM_BAD_STRING_IDX_TYPE,    0, JSEXN_TYPEERR,     "bad index type")
+MSG_DEF(JSMSG_WASM_BAD_EXN_ARG,        0, JSEXN_TYPEERR,     "first argument must be a WebAssembly.Tag")
+MSG_DEF(JSMSG_WASM_BAD_EXN_PAYLOAD,    0, JSEXN_TYPEERR,     "second argument must be an object")
+MSG_DEF(JSMSG_WASM_BAD_EXN_PAYLOAD_LEN, 2, JSEXN_TYPEERR,    "expected {0} values but got {1}")
+MSG_DEF(JSMSG_WASM_BAD_EXN_TAG,        0, JSEXN_TYPEERR,     "exception's tag did not match the provided exception tag")
 MSG_DEF(JSMSG_WASM_NO_TRANSFER,        0, JSEXN_TYPEERR,     "cannot transfer WebAssembly/asm.js ArrayBuffer")
 MSG_DEF(JSMSG_WASM_TEXT_FAIL,          1, JSEXN_SYNTAXERR,   "wasm text error: {0}")
 MSG_DEF(JSMSG_WASM_MISSING_MAXIMUM,    0, JSEXN_TYPEERR,     "'shared' is true but maximum is not specified")
@@ -474,7 +478,6 @@ MSG_DEF(JSMSG_WASM_NONSHARED_WAIT ,    0, JSEXN_WASMRUNTIMEERROR, "atomic wait o
 MSG_DEF(JSMSG_WASM_NULL_REQUIRED,      0, JSEXN_TYPEERR,     "nullref requires a null value")
 MSG_DEF(JSMSG_WASM_SUPPLY_ONLY_ONE,    2, JSEXN_TYPEERR,     "exactly one of {0} and {1} must be supplied")
 MSG_DEF(JSMSG_WASM_MISSING_REQUIRED,   1, JSEXN_TYPEERR,     "Missing required argument {0}")
-MSG_DEF(JSMSG_WASM_EXN_CONSTRUCTOR,    1, JSEXN_WASMRUNTIMEERROR, "cannot call {0}")
 
 // Proxy
 MSG_DEF(JSMSG_BAD_TRAP_RETURN_VALUE,   2, JSEXN_TYPEERR,"trap {1} for {0} returned a primitive value")
@@ -628,7 +631,6 @@ MSG_DEF(JSMSG_SELFHOST_DECORATOR_MUST_FOLLOW, 0, JSEXN_TYPEERR, "selfhost decora
 
 // Self-hosting
 MSG_DEF(JSMSG_DEFAULT_LOCALE_ERROR,    0, JSEXN_ERR, "internal error getting the default locale")
-MSG_DEF(JSMSG_NO_SUCH_SELF_HOSTED_PROP,1, JSEXN_ERR, "No such property on self-hosted object: {0}")
 
 // Typed object
 MSG_DEF(JSMSG_TYPEDOBJECT_SETTING_IMMUTABLE, 0, JSEXN_ERR, "setting immutable field")

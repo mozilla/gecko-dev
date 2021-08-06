@@ -41,8 +41,8 @@
 #include "vm/FunctionFlags.h"
 #include "vm/JSObject.h"
 #include "vm/StringType.h"
+#include "wasm/WasmCodegenTypes.h"
 #include "wasm/WasmFrame.h"
-#include "wasm/WasmTypes.h"
 
 // [SMDOC] MacroAssembler multi-platform overview
 //
@@ -1070,6 +1070,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void subDouble(FloatRegister src, FloatRegister dest) PER_SHARED_ARCH;
 
   inline void mul32(Register rhs, Register srcDest) PER_SHARED_ARCH;
+  inline void mul32(Imm32 imm, Register srcDest) PER_SHARED_ARCH;
 
   inline void mul32(Register src1, Register src2, Register dest, Label* onOver)
       DEFINED_ON(arm64);
@@ -1399,9 +1400,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
                        Label* success, Label* fail = nullptr) PER_ARCH;
   inline void branch64(Condition cond, Register64 lhs, Register64 rhs,
                        Label* success, Label* fail = nullptr) PER_ARCH;
-  // On x86 and x64 NotEqual and Equal conditions are allowed for the branch64
-  // variants with Address as lhs. On others only the NotEqual condition.
+  // Only the NotEqual and Equal conditions are allowed for the branch64
+  // variants with Address as lhs.
   inline void branch64(Condition cond, const Address& lhs, Imm64 val,
+                       Label* label) PER_ARCH;
+  inline void branch64(Condition cond, const Address& lhs, Register64 rhs,
                        Label* label) PER_ARCH;
 
   // Compare the value at |lhs| with the value at |rhs|.  The scratch
@@ -4274,9 +4277,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void storeObjShape(Shape* shape, Register obj,
                             EmitPreBarrier emitPreBarrier);
 
-  template <typename T>
-  void storeObjPrivate(T src, const Address& address);
-
   void loadObjProto(Register obj, Register dest) {
     loadPtr(Address(obj, JSObject::offsetOfShape()), dest);
     loadPtr(Address(dest, Shape::offsetOfBaseShape()), dest);
@@ -4411,7 +4411,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
    * digits need to be heap allocated.
    */
   void copyBigIntWithInlineDigits(Register src, Register dest, Register temp,
-                                  Label* fail, bool attemptNursery);
+                                  gc::InitialHeap initialHeap, Label* fail);
 
   /**
    * Compare a BigInt and an Int32 value. Falls through to the false case.
@@ -4419,6 +4419,21 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void compareBigIntAndInt32(JSOp op, Register bigInt, Register int32,
                              Register scratch1, Register scratch2,
                              Label* ifTrue, Label* ifFalse);
+
+  /**
+   * Compare two BigInts for equality. Falls through if both BigInts are equal
+   * to each other.
+   *
+   * - When we jump to |notSameLength|, |temp1| holds the length of the right
+   *   operand.
+   * - When we jump to |notSameDigit|, |temp2| points to the current digit of
+   *   the left operand and |temp4| holds the current digit of the right
+   *   operand.
+   */
+  void equalBigInts(Register left, Register right, Register temp1,
+                    Register temp2, Register temp3, Register temp4,
+                    Label* notSameSign, Label* notSameLength,
+                    Label* notSameDigit);
 
   void loadJSContext(Register dest);
 
@@ -4656,6 +4671,113 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void iteratorClose(Register obj, Register temp1, Register temp2,
                      Register temp3);
 
+  void toHashableNonGCThing(ValueOperand value, ValueOperand result,
+                            FloatRegister tempFloat);
+
+  void toHashableValue(ValueOperand value, ValueOperand result,
+                       FloatRegister tempFloat, Label* atomizeString,
+                       Label* tagString);
+
+ private:
+  void scrambleHashCode(Register result);
+
+ public:
+  void prepareHashNonGCThing(ValueOperand value, Register result,
+                             Register temp);
+  void prepareHashString(Register str, Register result, Register temp);
+  void prepareHashSymbol(Register sym, Register result);
+  void prepareHashBigInt(Register bigInt, Register result, Register temp1,
+                         Register temp2, Register temp3);
+  void prepareHashObject(Register setObj, ValueOperand value, Register result,
+                         Register temp1, Register temp2, Register temp3,
+                         Register temp4);
+  void prepareHashValue(Register setObj, ValueOperand value, Register result,
+                        Register temp1, Register temp2, Register temp3,
+                        Register temp4);
+
+ private:
+  enum class IsBigInt { No, Yes, Maybe };
+
+  /**
+   * Search for a value in a OrderedHashTable.
+   *
+   * When we jump to |found|, |entryTemp| holds the found hashtable entry.
+   */
+  template <typename OrderedHashTable>
+  void orderedHashTableLookup(Register setOrMapObj, ValueOperand value,
+                              Register hash, Register entryTemp, Register temp1,
+                              Register temp3, Register temp4, Register temp5,
+                              Label* found, IsBigInt isBigInt);
+
+  void setObjectHas(Register setObj, ValueOperand value, Register hash,
+                    Register result, Register temp1, Register temp2,
+                    Register temp3, Register temp4, IsBigInt isBigInt);
+
+  void mapObjectHas(Register mapObj, ValueOperand value, Register hash,
+                    Register result, Register temp1, Register temp2,
+                    Register temp3, Register temp4, IsBigInt isBigInt);
+
+  void mapObjectGet(Register mapObj, ValueOperand value, Register hash,
+                    ValueOperand result, Register temp1, Register temp2,
+                    Register temp3, Register temp4, Register temp5,
+                    IsBigInt isBigInt);
+
+ public:
+  void setObjectHasNonBigInt(Register setObj, ValueOperand value, Register hash,
+                             Register result, Register temp1, Register temp2) {
+    return setObjectHas(setObj, value, hash, result, temp1, temp2, InvalidReg,
+                        InvalidReg, IsBigInt::No);
+  }
+  void setObjectHasBigInt(Register setObj, ValueOperand value, Register hash,
+                          Register result, Register temp1, Register temp2,
+                          Register temp3, Register temp4) {
+    return setObjectHas(setObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Yes);
+  }
+  void setObjectHasValue(Register setObj, ValueOperand value, Register hash,
+                         Register result, Register temp1, Register temp2,
+                         Register temp3, Register temp4) {
+    return setObjectHas(setObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Maybe);
+  }
+
+  void mapObjectHasNonBigInt(Register mapObj, ValueOperand value, Register hash,
+                             Register result, Register temp1, Register temp2) {
+    return mapObjectHas(mapObj, value, hash, result, temp1, temp2, InvalidReg,
+                        InvalidReg, IsBigInt::No);
+  }
+  void mapObjectHasBigInt(Register mapObj, ValueOperand value, Register hash,
+                          Register result, Register temp1, Register temp2,
+                          Register temp3, Register temp4) {
+    return mapObjectHas(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Yes);
+  }
+  void mapObjectHasValue(Register mapObj, ValueOperand value, Register hash,
+                         Register result, Register temp1, Register temp2,
+                         Register temp3, Register temp4) {
+    return mapObjectHas(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Maybe);
+  }
+
+  void mapObjectGetNonBigInt(Register mapObj, ValueOperand value, Register hash,
+                             ValueOperand result, Register temp1,
+                             Register temp2, Register temp3) {
+    return mapObjectGet(mapObj, value, hash, result, temp1, temp2, temp3,
+                        InvalidReg, InvalidReg, IsBigInt::No);
+  }
+  void mapObjectGetBigInt(Register mapObj, ValueOperand value, Register hash,
+                          ValueOperand result, Register temp1, Register temp2,
+                          Register temp3, Register temp4, Register temp5) {
+    return mapObjectGet(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        temp5, IsBigInt::Yes);
+  }
+  void mapObjectGetValue(Register mapObj, ValueOperand value, Register hash,
+                         ValueOperand result, Register temp1, Register temp2,
+                         Register temp3, Register temp4, Register temp5) {
+    return mapObjectGet(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        temp5, IsBigInt::Maybe);
+  }
+
   // Inline version of js_TypedArray_uint8_clamp_double.
   // This function clobbers the input register.
   void clampDoubleToUint8(FloatRegister input, Register output) PER_ARCH;
@@ -4747,13 +4869,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
                            TypedArrayObject* templateObj,
                            TypedArrayLength lengthKind);
 
-  void newGCString(Register result, Register temp, Label* fail,
-                   bool attemptNursery);
-  void newGCFatInlineString(Register result, Register temp, Label* fail,
-                            bool attemptNursery);
+  void newGCString(Register result, Register temp, gc::InitialHeap initialHeap,
+                   Label* fail);
+  void newGCFatInlineString(Register result, Register temp,
+                            gc::InitialHeap initialHeap, Label* fail);
 
-  void newGCBigInt(Register result, Register temp, Label* fail,
-                   bool attemptNursery);
+  void newGCBigInt(Register result, Register temp, gc::InitialHeap initialHeap,
+                   Label* fail);
 
   // Compares two strings for equality based on the JSOP.
   // This checks for identical pointers, atoms and length and fails for

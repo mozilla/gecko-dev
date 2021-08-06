@@ -38,9 +38,9 @@
 #include "vm/BigIntType.h"
 #include "vm/ErrorObject.h"
 #include "wasm/TypedObject.h"
+#include "wasm/WasmCodegenTypes.h"
 #include "wasm/WasmInstance.h"
 #include "wasm/WasmStubs.h"
-#include "wasm/WasmTypes.h"
 
 #include "debugger/DebugAPI-inl.h"
 #include "vm/ErrorObject-inl.h"
@@ -505,8 +505,7 @@ bool wasm::HandleThrow(JSContext* cx, WasmFrameIter& iter,
 
       if (tryNote) {
         cx->clearPendingException();
-        if (!exn.isObject() ||
-            !exn.toObject().is<WasmRuntimeExceptionObject>()) {
+        if (!exn.isObject() || !exn.toObject().is<WasmExceptionObject>()) {
           RootedObject obj(cx, WasmJSExceptionObject::create(cx, &exn));
           if (!obj) {
             MOZ_ASSERT(cx->isThrowingOutOfMemory());

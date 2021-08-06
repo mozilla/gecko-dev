@@ -5,17 +5,11 @@ const {
   NimbusFeatures,
   _ExperimentFeature: ExperimentFeature,
 } = ChromeUtils.import("resource://nimbus/ExperimentAPI.jsm");
-const { ExperimentFakes } = ChromeUtils.import(
-  "resource://testing-common/NimbusTestUtils.jsm"
-);
 const { TestUtils } = ChromeUtils.import(
   "resource://testing-common/TestUtils.jsm"
 );
-
 const { Ajv } = ChromeUtils.import("resource://testing-common/ajv-4.1.1.js");
-const { XPCOMUtils } = ChromeUtils.import(
-  "resource://gre/modules/XPCOMUtils.jsm"
-);
+
 Cu.importGlobalProperties(["fetch"]);
 
 XPCOMUtils.defineLazyGetter(this, "fetchSchema", async () => {
@@ -35,7 +29,7 @@ const REMOTE_CONFIGURATION = Object.freeze({
     {
       slug: "non-matching-configuration",
       description: "This configuration does not match because of targeting.",
-      variables: { skipFocus: false, remoteValue: false, enabled: false },
+      variables: { skipFocus: false, enabled: false },
       targeting: "false",
       bucketConfig: {
         namespace: "nimbus-test-utils",
@@ -48,7 +42,7 @@ const REMOTE_CONFIGURATION = Object.freeze({
     {
       slug: "matching-configuration",
       description: "This configuration will match targeting.",
-      variables: { skipFocus: true, remoteValue: true, enabled: true },
+      variables: { skipFocus: true, enabled: true },
       targeting: "true",
       bucketConfig: {
         namespace: "nimbus-test-utils",
@@ -60,6 +54,26 @@ const REMOTE_CONFIGURATION = Object.freeze({
     },
   ],
 });
+
+const AW_FAKE_MANIFEST = {
+  description: "Different manifest with a special test variable",
+  isEarlyStartup: true,
+  variables: {
+    remoteValue: {
+      type: "boolean",
+      description: "Test value",
+    },
+    mochitest: {
+      type: "boolean",
+    },
+    enabled: {
+      type: "boolean",
+    },
+    skipFocus: {
+      type: "boolean",
+    },
+  },
+};
 
 async function setupForExperimentFeature() {
   const sandbox = sinon.createSandbox();
@@ -86,33 +100,29 @@ add_task(async function readyCallAfterStore_with_remote_value() {
   let { sandbox, manager } = await setupForExperimentFeature();
   let feature = new ExperimentFeature("aboutwelcome");
 
-  Assert.equal(
-    feature.getValue().remoteValue,
-    undefined,
-    "Feature is not defined"
-  );
+  Assert.ok(feature.getVariable("skipFocus"), "Feature is true by default");
 
   manager.store.updateRemoteConfigs(
     "aboutwelcome",
-    REMOTE_CONFIGURATION.configurations[1]
+    REMOTE_CONFIGURATION.configurations[0]
   );
 
   // Should resolve because the store will return a dummy remote value
   await feature.ready();
 
-  Assert.ok(feature.getValue().skipFocus, "Loads value from store");
+  Assert.ok(!feature.getVariable("skipFocus"), "Loads value from store");
   manager.store._deleteForTests("aboutwelcome");
   sandbox.restore();
 });
 
 add_task(async function has_sync_value_before_ready() {
   let { manager } = await setupForExperimentFeature();
-  let feature = new ExperimentFeature("aboutwelcome");
+  let feature = new ExperimentFeature("aboutwelcome", AW_FAKE_MANIFEST);
 
   Assert.equal(
-    feature.getValue().remoteValue,
+    feature.getVariable("remoteValue"),
     undefined,
-    "Feature is not defined"
+    "Feature is true by default"
   );
 
   Services.prefs.setStringPref(
@@ -120,11 +130,13 @@ add_task(async function has_sync_value_before_ready() {
     JSON.stringify(REMOTE_CONFIGURATION.configurations[0])
   );
 
-  Assert.equal(
-    feature.getValue().remoteValue,
-    REMOTE_CONFIGURATION.configurations[0].variables.remoteValue,
-    "Sync load from pref"
+  Services.prefs.setBoolPref(
+    "nimbus.syncdefaultsstore.aboutwelcome.remoteValue",
+    true
   );
+
+  Assert.equal(feature.getVariable("remoteValue"), true, "Sync load from pref");
+
   manager.store._deleteForTests("aboutwelcome");
 });
 
@@ -135,15 +147,9 @@ add_task(async function update_remote_defaults_onUpdate() {
 
   feature.onUpdate(stub);
 
-  Assert.equal(
-    feature.getValue().remoteValue,
-    undefined,
-    "Feature is not defined"
-  );
-
   manager.store.updateRemoteConfigs(
     "aboutwelcome",
-    REMOTE_CONFIGURATION.configurations[1]
+    REMOTE_CONFIGURATION.configurations[0]
   );
 
   Assert.ok(stub.called, "update event called");
@@ -165,12 +171,6 @@ add_task(async function update_remote_defaults_readyPromise() {
   let promise = feature.ready();
 
   feature.onUpdate(stub);
-
-  Assert.equal(
-    feature.getValue().remoteValue,
-    undefined,
-    "Feature is not defined"
-  );
 
   manager.store.updateRemoteConfigs(
     "aboutwelcome",
@@ -212,7 +212,7 @@ add_task(async function update_remote_defaults_enabled() {
 
 // If the branch data returned from the store is not modified
 // this test should not throw
-add_task(async function test_getValue_no_mutation() {
+add_task(async function test_getVariable_no_mutation() {
   let { sandbox, manager } = await setupForExperimentFeature();
   sandbox.stub(manager.store, "getExperimentForFeature").returns(
     Cu.cloneInto(
@@ -225,9 +225,9 @@ add_task(async function test_getValue_no_mutation() {
       { deepFreeze: true }
     )
   );
-  let feature = new ExperimentFeature("aboutwelcome");
+  let feature = new ExperimentFeature("aboutwelcome", AW_FAKE_MANIFEST);
 
-  Assert.ok(feature.getValue().mochitest, "Got back the expected feature");
+  Assert.ok(feature.getVariable("mochitest"), "Got back the expected feature");
 
   sandbox.restore();
 });

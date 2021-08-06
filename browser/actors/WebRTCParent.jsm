@@ -748,9 +748,9 @@ function prompt(aActor, aBrowser, aRequest) {
         return false;
       }
 
-      // BLOCK is handled immediately by MediaManager if it has been set
-      // persistently in the permission manager. If it has been set on the tab,
-      // it is handled synchronously before we add the notification.
+      // If BLOCK has been set persistently in the permission manager or has
+      // been set on the tab, then it is handled synchronously before we add
+      // the notification.
       // Handling of ALLOW is delayed until the popupshowing event,
       // to avoid granting permissions automatically to background tabs.
       if (aActor.checkRequestAllowed(aRequest, principal, aBrowser)) {
@@ -1281,11 +1281,16 @@ function prompt(aActor, aBrowser, aRequest) {
   }
 
   let iconType = "Devices";
-  if (
-    requestTypes.length == 1 &&
-    (requestTypes[0] == "Microphone" || requestTypes[0] == "AudioCapture")
-  ) {
-    iconType = "Microphone";
+  if (requestTypes.length == 1) {
+    switch (requestTypes[0]) {
+      case "AudioCapture":
+        iconType = "Microphone";
+        break;
+      case "Microphone":
+      case "Speaker":
+        iconType = requestTypes[0];
+        break;
+    }
   }
   if (requestTypes.includes("Screen")) {
     iconType = "Screen";
@@ -1298,8 +1303,6 @@ function prompt(aActor, aBrowser, aRequest) {
       aRequest.secondOrigin
     );
   }
-
-  mainAction.disableHighlight = true;
 
   notification = chromeDoc.defaultView.PopupNotifications.show(
     aBrowser,

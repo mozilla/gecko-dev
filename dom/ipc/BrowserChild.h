@@ -273,7 +273,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   MOZ_CAN_RUN_SCRIPT_BOUNDARY mozilla::ipc::IPCResult
   RecvCloneDocumentTreeIntoSelf(
       const MaybeDiscarded<BrowsingContext>& aSourceBC,
-      const embedding::PrintData& aPrintData);
+      const embedding::PrintData& aPrintData,
+      CloneDocumentTreeIntoSelfResolver&& aResolve);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
   mozilla::ipc::IPCResult RecvUpdateRemotePrintSettings(
@@ -720,8 +721,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvNavigateByKey(const bool& aForward,
                                             const bool& aForDocumentNavigation);
 
-  mozilla::ipc::IPCResult RecvRequestNotifyAfterRemotePaint();
-
   mozilla::ipc::IPCResult RecvSuppressDisplayport(const bool& aEnabled);
 
   mozilla::ipc::IPCResult RecvScrollbarPreferenceChanged(ScrollbarPreference);
@@ -786,6 +785,14 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
                                        nsIRequest* aRequest,
                                        WebProgressData& aWebProgressData,
                                        RequestData& aRequestData);
+
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  nsresult UpdateRemotePrintSettings(const embedding::PrintData& aPrintData);
+
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
+  nsresult CloneDocumentTreeIntoSelf(
+      const MaybeDiscarded<BrowsingContext>& aSourceBC,
+      const embedding::PrintData& aPrintData);
 
   class DelayedDeleteRunnable;
 

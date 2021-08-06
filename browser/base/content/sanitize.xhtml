@@ -22,6 +22,9 @@
         data-l10n-id="dialog-title"
         data-l10n-attrs="style">
 <dialog buttons="accept,cancel">
+  <hbox>
+    <html:h2 id="titleText"/>
+  </hbox>
 
   <linkset>
     <html:link rel="localization" href="browser/sanitize.ftl"/>
@@ -51,8 +54,6 @@
            data-l10n-id="clear-time-duration-suffix"/>
   </hbox>
 
-  <separator class="thin"/>
-
   <vbox id="sanitizeEverythingWarningBox">
     <spacer flex="1"/>
     <hbox align="center">
@@ -64,8 +65,6 @@
     </hbox>
     <spacer flex="1"/>
   </vbox>
-
-  <separator class="thin"/>
 
   <groupbox>
     <label><html:h2 data-l10n-id="history-section-label"/></label>

@@ -204,11 +204,9 @@ void AnimationInfo::EnumerateGenerationOnFrame(
     }
   }
 
-  RefPtr<LayerManager> layerManager =
-      nsContentUtils::LayerManagerForContent(aContent);
+  WindowRenderer* renderer = nsContentUtils::WindowRendererForContent(aContent);
 
-  if (layerManager &&
-      layerManager->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
+  if (renderer && renderer->AsWebRender()) {
     // In case of continuation, nsDisplayItem uses its last continuation, so we
     // have to use the last continuation frame here.
     if (nsLayoutUtils::IsFirstContinuationOrIBSplitSibling(aFrame)) {
@@ -809,7 +807,7 @@ static Maybe<TransformData> CreateAnimationData(
     // is also reference frame too, so the parent's reference frame
     // are used.
     nsIFrame* referenceFrame = nsLayoutUtils::GetReferenceFrame(
-        nsLayoutUtils::GetCrossDocParentFrame(aFrame));
+        nsLayoutUtils::GetCrossDocParentFrameInProcess(aFrame));
     origin = aFrame->GetOffsetToCrossDoc(referenceFrame);
   }
 

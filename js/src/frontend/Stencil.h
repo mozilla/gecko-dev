@@ -230,6 +230,7 @@ class BigIntStencil {
 
 class ScopeStencil {
   friend class StencilXDR;
+  friend struct CompilationStencil;
   friend struct CompilationStencilMerger;
 
   // The enclosing scope. Valid only if HasEnclosing flag is set.
@@ -250,7 +251,10 @@ class ScopeStencil {
   // The kind determines the corresponding BaseParserScopeData.
   ScopeKind kind_{UINT8_MAX};
 
-  // True if this scope has enclosing scope.
+  // True if this scope has enclosing scope stencil. Otherwise, the enclosing
+  // scope will be read from CompilationInput while instantiating. Self-hosting
+  // is a special case and will use `emptyGlobalScope` when there is no
+  // enclosing scope stencil.
   static constexpr uint8_t HasEnclosing = 1 << 0;
 
   // If true, an environment Shape must be created. The shape itself may
@@ -728,6 +732,11 @@ class TaggedScriptThingIndex {
   ScopeIndex toScope() const { return ScopeIndex(data_ & IndexMask); }
   ScriptIndex toFunction() const { return ScriptIndex(data_ & IndexMask); }
 
+  TaggedParserAtomIndex toAtomOrNull() const {
+    MOZ_ASSERT(isAtom() || isNull());
+    return TaggedParserAtomIndex::fromRaw(data_);
+  }
+
   uint32_t* rawDataRef() { return &data_; }
   uint32_t rawData() const { return data_; }
 
@@ -914,14 +923,7 @@ class ScriptStencilExtra {
 
   ScriptStencilExtra() = default;
 
-  bool isModule() const {
-    return immutableFlags.hasFlag(ImmutableScriptFlagsEnum::IsModule);
-  }
-
-  bool useMemberInitializers() const {
-    return immutableFlags.hasFlag(
-        ImmutableScriptFlagsEnum::UseMemberInitializers);
-  }
+  RO_IMMUTABLE_SCRIPT_FLAGS(immutableFlags)
 
   void setMemberInitializers(MemberInitializers member) {
     MOZ_ASSERT(useMemberInitializers());

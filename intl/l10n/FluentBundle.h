@@ -60,6 +60,8 @@ class FluentBundle final : public nsWrapperCache {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(FluentBundle)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(FluentBundle)
 
+  FluentBundle(nsISupports* aParent, UniquePtr<ffi::FluentBundleRc> aRaw);
+
   static already_AddRefed<FluentBundle> Constructor(
       const dom::GlobalObject& aGlobal,
       const dom::UTF8StringOrUTF8StringSequence& aLocales,
@@ -79,9 +81,10 @@ class FluentBundle final : public nsWrapperCache {
                      const dom::Optional<JS::Handle<JSObject*>>& aErrors,
                      nsACString& aRetVal, ErrorResult& aRv);
 
+  static void ConvertArgs(const L10nArgs& aArgs,
+                          nsTArray<ffi::L10nArg>& aRetVal);
+
  protected:
-  explicit FluentBundle(nsISupports* aParent,
-                        UniquePtr<ffi::FluentBundleRc> aRaw);
   virtual ~FluentBundle();
 
   nsCOMPtr<nsISupports> mParent;

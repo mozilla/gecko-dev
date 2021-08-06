@@ -16,6 +16,7 @@
 #include "nsAppShellCID.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/Services.h"
+#include "mozilla/StaticPrefs_widget.h"
 #include "mozilla/WidgetUtils.h"
 #include "mozilla/WindowsVersion.h"
 #include "mozilla/media/MediaUtils.h"
@@ -87,7 +88,7 @@ extern const __declspec(selectany) IID& IID_IUIViewSettings =
 
 #  ifndef IUIViewSettingsInterop
 
-typedef interface IUIViewSettingsInterop IUIViewSettingsInterop;
+using IUIViewSettingsInterop = interface IUIViewSettingsInterop;
 
 MIDL_INTERFACE("3694dbf9-8f68-44be-8ff5-195c98ede8a6")
 IUIViewSettingsInterop : public IInspectable {
@@ -100,7 +101,7 @@ IUIViewSettingsInterop : public IInspectable {
 #  ifndef __IDataTransferManagerInterop_INTERFACE_DEFINED__
 #    define __IDataTransferManagerInterop_INTERFACE_DEFINED__
 
-typedef interface IDataTransferManagerInterop IDataTransferManagerInterop;
+using IDataTransferManagerInterop = interface IDataTransferManagerInterop;
 
 MIDL_INTERFACE("3A3DCD6C-3EAB-43DC-BCDE-45671CE800C8")
 IDataTransferManagerInterop : public IUnknown {
@@ -135,7 +136,7 @@ using namespace mozilla;
 
 WindowsUIUtils::WindowsUIUtils() : mInTabletMode(eTabletModeUnknown) {}
 
-WindowsUIUtils::~WindowsUIUtils() {}
+WindowsUIUtils::~WindowsUIUtils() = default;
 
 /*
  * Implement the nsISupports methods...
@@ -239,7 +240,9 @@ WindowsUIUtils::UpdateTabletModeState() {
   nsPIDOMWindowOuter* win = nsPIDOMWindowOuter::From(navWin);
   widget = widget::WidgetUtils::DOMWindowToWidget(win);
 
-  if (!widget) return NS_ERROR_FAILURE;
+  if (!widget) {
+    return NS_ERROR_FAILURE;
+  }
 
   HWND winPtr = (HWND)widget->GetNativeData(NS_NATIVE_WINDOW);
   ComPtr<IUIViewSettingsInterop> uiViewSettingsInterop;
@@ -277,11 +280,11 @@ WindowsUIUtils::UpdateTabletModeState() {
 
 #ifndef __MINGW32__
 struct HStringDeleter {
-  typedef HSTRING pointer;
+  using pointer = HSTRING;
   void operator()(pointer aString) { WindowsDeleteString(aString); }
 };
 
-typedef UniquePtr<HSTRING, HStringDeleter> HStringUniquePtr;
+using HStringUniquePtr = UniquePtr<HSTRING, HStringDeleter>;
 
 Result<HStringUniquePtr, HRESULT> ConvertToWindowsString(
     const nsAString& aStr) {
@@ -294,7 +297,7 @@ Result<HStringUniquePtr, HRESULT> ConvertToWindowsString(
   return HStringUniquePtr(rawStr);
 }
 
-Result<Ok, nsresult> RequestShare(
+static Result<Ok, nsresult> RequestShare(
     const std::function<HRESULT(IDataRequestedEventArgs* pArgs)>& aCallback) {
   if (!IsWin10OrLater()) {
     return Err(NS_ERROR_FAILURE);
@@ -333,6 +336,51 @@ Result<Ok, nsresult> RequestShare(
 
   return Ok();
 }
+
+static Result<Ok, nsresult> AddShareEventListeners(
+    const RefPtr<mozilla::media::Refcountable<MozPromiseHolder<SharePromise>>>&
+        aPromiseHolder,
+    const ComPtr<IDataPackage>& aDataPackage) {
+  ComPtr<IDataPackage3> spDataPackage3;
+
+  if (FAILED(aDataPackage.As(&spDataPackage3))) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  auto completedCallback =
+      Callback<ITypedEventHandler<DataPackage*, ShareCompletedEventArgs*>>(
+          [aPromiseHolder](IDataPackage*,
+                           IShareCompletedEventArgs*) -> HRESULT {
+            aPromiseHolder->Resolve(true, __func__);
+            return S_OK;
+          });
+
+  EventRegistrationToken dataRequestedToken;
+  if (FAILED(spDataPackage3->add_ShareCompleted(completedCallback.Get(),
+                                                &dataRequestedToken))) {
+    return Err(NS_ERROR_FAILURE);
+  }
+
+  ComPtr<IDataPackage4> spDataPackage4;
+  if (SUCCEEDED(aDataPackage.As(&spDataPackage4))) {
+    // Use SharedCanceled API only on supported versions of Windows
+    // So that the older ones can still use ShareUrl()
+
+    auto canceledCallback =
+        Callback<ITypedEventHandler<DataPackage*, IInspectable*>>(
+            [aPromiseHolder](IDataPackage*, IInspectable*) -> HRESULT {
+              aPromiseHolder->Reject(NS_ERROR_FAILURE, __func__);
+              return S_OK;
+            });
+
+    if (FAILED(spDataPackage4->add_ShareCanceled(canceledCallback.Get(),
+                                                 &dataRequestedToken))) {
+      return Err(NS_ERROR_FAILURE);
+    }
+  }
+
+  return Ok();
+}
 #endif
 
 RefPtr<SharePromise> WindowsUIUtils::Share(nsAutoString aTitle,
@@ -349,13 +397,11 @@ RefPtr<SharePromise> WindowsUIUtils::Share(nsAutoString aTitle,
     ComPtr<IDataRequest> spDataRequest;
     ComPtr<IDataPackage> spDataPackage;
     ComPtr<IDataPackage2> spDataPackage2;
-    ComPtr<IDataPackage3> spDataPackage3;
     ComPtr<IDataPackagePropertySet> spDataPackageProperties;
 
     if (FAILED(pArgs->get_Request(&spDataRequest)) ||
         FAILED(spDataRequest->get_Data(&spDataPackage)) ||
         FAILED(spDataPackage.As(&spDataPackage2)) ||
-        FAILED(spDataPackage.As(&spDataPackage3)) ||
         FAILED(spDataPackage->get_Properties(&spDataPackageProperties))) {
       promiseHolder->Reject(NS_ERROR_FAILURE, __func__);
       return E_FAIL;
@@ -399,43 +445,16 @@ RefPtr<SharePromise> WindowsUIUtils::Share(nsAutoString aTitle,
       if (FAILED(hr) ||
           FAILED(uriFactory->CreateUri(wUrl.unwrap().get(), &uri)) ||
           FAILED(spDataPackage2->SetWebLink(uri.Get()))) {
-        promiseHolder->RejectIfExists(NS_ERROR_FAILURE, __func__);
-        return E_FAIL;
-      }
-    }
-
-    auto completedCallback =
-        Callback<ITypedEventHandler<DataPackage*, ShareCompletedEventArgs*>>(
-            [promiseHolder](IDataPackage*,
-                            IShareCompletedEventArgs*) -> HRESULT {
-              promiseHolder->ResolveIfExists(true, __func__);
-              return S_OK;
-            });
-
-    EventRegistrationToken dataRequestedToken;
-    if (FAILED(spDataPackage3->add_ShareCompleted(completedCallback.Get(),
-                                                  &dataRequestedToken))) {
-      promiseHolder->Reject(NS_ERROR_FAILURE, __func__);
-      return E_FAIL;
-    }
-
-    ComPtr<IDataPackage4> spDataPackage4;
-    if (SUCCEEDED(spDataPackage.As(&spDataPackage4))) {
-      // Use SharedCanceled API only on supported versions of Windows
-      // So that the older ones can still use ShareUrl()
-
-      auto canceledCallback =
-          Callback<ITypedEventHandler<DataPackage*, IInspectable*>>(
-              [promiseHolder](IDataPackage*, IInspectable*) -> HRESULT {
-                promiseHolder->Reject(NS_ERROR_FAILURE, __func__);
-                return S_OK;
-              });
-
-      if (FAILED(spDataPackage4->add_ShareCanceled(canceledCallback.Get(),
-                                                   &dataRequestedToken))) {
         promiseHolder->Reject(NS_ERROR_FAILURE, __func__);
         return E_FAIL;
       }
+    }
+
+    if (!StaticPrefs::widget_windows_share_wait_action_enabled()) {
+      promiseHolder->Resolve(true, __func__);
+    } else if (AddShareEventListeners(promiseHolder, spDataPackage).isErr()) {
+      promiseHolder->Reject(NS_ERROR_FAILURE, __func__);
+      return E_FAIL;
     }
 
     return S_OK;

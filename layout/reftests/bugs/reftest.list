@@ -1170,7 +1170,7 @@ fuzzy-if(webrender,0-4,0-361) == 449519-1.html 449519-1-ref.html
 == 455280-1.xhtml 455280-1-ref.xhtml
 fails-if(Android) == 455826-1.html 455826-1-ref.html
 fails-if(Android||cocoaWidget||winWidget) == chrome://reftest/content/bugs/456147.xhtml 456147-ref.html # bug 458047
-fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-95) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,24-60,107-570) == 456219-1a.html 456219-1-ref.html # bug 1128229
+fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-95) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,24-60,107-570) fuzzy-if(webrender&&Android&&/^aarch64-gcc3/.test(xulRuntime.XPCOMABI),0-54,0-618) == 456219-1a.html 456219-1-ref.html # bug 1128229
 fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-99) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,24-60,107-1251) == 456219-1b.html 456219-1-ref.html # bug 1128229
 fuzzy-if(Android,0-11,0-41) fuzzy-if(winWidget||gtkWidget,0-4,0-6) fuzzy-if(d2d,0-16,0-99) fuzzy-if(skiaContent,0-42,0-154) fuzzy-if(webrender,24-60,107-497) fuzzy-if(geckoview&&webrender&&device,53-60,426-4421) == 456219-1c.html 456219-1-ref.html # bug 1128229
 fuzzy-if(skiaContent,0-1,0-45) fuzzy-if(webrender,0-10,0-8) == 456219-2.html 456219-2-ref.html
@@ -2071,7 +2071,7 @@ random-if(useDrawSnapshot) == 1546856-1.html 1546856-ref.html
 test-pref(ui.systemUsesDarkTheme,1) != 1551040.txt 1551040.txt
 test-pref(ui.systemUsesDarkTheme,1) == 1551040.html 1551040.html
 != 1552789-1.html 1552789-ref-1.html
-pref(image.downscale-during-decode.enabled,true) skip-if((webrender&&((gtkWidget&&isDebugBuild)||(gtkWidget&&AddressSanitizer)||Android))||(Android&&isDebugBuild)) random-if(useDrawSnapshot) == 1553571-1.html 1553571-1-ref.html
+pref(image.downscale-during-decode.enabled,true) skip-if((webrender&&((gtkWidget&&isDebugBuild)||(gtkWidget&&AddressSanitizer)||Android||ThreadSanitizer))||(Android&&isDebugBuild)) random-if(useDrawSnapshot) == 1553571-1.html 1553571-1-ref.html
 == 1558937-1.html 1558937-1-ref.html
 != 1563484.html 1563484-notref.html
 == 1563484.html 1563484-ref.html
@@ -2101,3 +2101,4 @@ fuzzy(0-2,0-96600) == 1648282-1b.html 1648282-1-ref.html
 != 1672137-1.html 1672137-1-notref.html
 == 1686729-1.html 1686729-1-ref.html
 != chrome://reftest/content/bugs/1688004.xhtml about:blank
+skip-if(!appleSilicon) != 1721223-1.html 1721223-1-notref.html # Big Sur required for updated system font; OSX value is clamped to 10.15

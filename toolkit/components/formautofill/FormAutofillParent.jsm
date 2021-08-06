@@ -43,7 +43,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
   CreditCard: "resource://gre/modules/CreditCard.jsm",
   FormAutofillPreferences: "resource://autofill/FormAutofillPreferences.jsm",
-  FormAutofillDoorhanger: "resource://autofill/FormAutofillDoorhanger.jsm",
+  FormAutofillPrompter: "resource://autofill/FormAutofillPrompter.jsm",
   FormAutofillUtils: "resource://autofill/FormAutofillUtils.jsm",
   OSKeyStore: "resource://gre/modules/OSKeyStore.jsm",
 });
@@ -91,8 +91,18 @@ let FormAutofillStatus = {
       Services.prefs.addObserver(ENABLED_AUTOFILL_CREDITCARDS_PREF, this);
     }
 
-    for (let win of Services.wm.getEnumerator("navigator:browser")) {
-      this.injectElements(win.document);
+    // We have to use empty window type to get all opened windows here because the
+    // window type parameter may not be available during startup.
+    for (let win of Services.wm.getEnumerator("")) {
+      let { documentElement } = win.document;
+      if (documentElement?.getAttribute("windowtype") == "navigator:browser") {
+        this.injectElements(win.document);
+      } else {
+        // Manually call onOpenWindow for windows that are already opened but not
+        // yet have the window type set. This ensures we inject the elements we need
+        // when its docuemnt is ready.
+        this.onOpenWindow(win);
+      }
     }
     Services.wm.addListener(this);
 
@@ -483,7 +493,7 @@ class FormAutofillParent extends JSWindowActorParent {
 
         showDoorhanger = async () => {
           const description = FormAutofillUtils.getAddressLabel(address.record);
-          const state = await FormAutofillDoorhanger.show(
+          const state = await FormAutofillPrompter.promptToSaveAddress(
             browser,
             "updateAddress",
             description
@@ -557,7 +567,7 @@ class FormAutofillParent extends JSWindowActorParent {
         );
         showDoorhanger = async () => {
           const description = FormAutofillUtils.getAddressLabel(address.record);
-          const state = await FormAutofillDoorhanger.show(
+          const state = await FormAutofillPrompter.promptToSaveAddress(
             browser,
             "firstTimeUse",
             description
@@ -706,102 +716,10 @@ class FormAutofillParent extends JSWindowActorParent {
         return;
       }
 
-      let number =
-        creditCard.record["cc-number"] ||
-        creditCard.record["cc-number-decrypted"];
-      let name = creditCard.record["cc-name"];
-      const description = await CreditCard.getLabel({ name, number });
-
-      const telemetryObject = creditCard.guid
-        ? "update_doorhanger"
-        : "capture_doorhanger";
-      Services.telemetry.recordEvent(
-        "creditcard",
-        "show",
-        telemetryObject,
-        creditCard.flowId
-      );
-
-      const state = await FormAutofillDoorhanger.show(
+      await FormAutofillPrompter.promptToSaveCreditCard(
         browser,
-        creditCard.guid ? "updateCreditCard" : "addCreditCard",
-        description
-      );
-      if (state == "cancel") {
-        Services.telemetry.recordEvent(
-          "creditcard",
-          "cancel",
-          telemetryObject,
-          creditCard.flowId
-        );
-        return;
-      }
-
-      if (state == "disable") {
-        Services.prefs.setBoolPref(
-          "extensions.formautofill.creditCards.enabled",
-          false
-        );
-        Services.telemetry.recordEvent(
-          "creditcard",
-          "disable",
-          telemetryObject,
-          creditCard.flowId
-        );
-        return;
-      }
-
-      if (!(await FormAutofillUtils.ensureLoggedIn()).authenticated) {
-        log.warn("User canceled encryption login");
-        return;
-      }
-
-      let changedGUIDs = [];
-      if (creditCard.guid) {
-        if (state == "update") {
-          Services.telemetry.recordEvent(
-            "creditcard",
-            "update",
-            telemetryObject,
-            creditCard.flowId
-          );
-          await gFormAutofillStorage.creditCards.update(
-            creditCard.guid,
-            creditCard.record,
-            true
-          );
-          changedGUIDs.push(creditCard.guid);
-        } else if ("create") {
-          Services.telemetry.recordEvent(
-            "creditcard",
-            "save",
-            telemetryObject,
-            creditCard.flowId
-          );
-          changedGUIDs.push(
-            await gFormAutofillStorage.creditCards.add(creditCard.record)
-          );
-        }
-      } else {
-        changedGUIDs.push(
-          ...(await gFormAutofillStorage.creditCards.mergeToStorage(
-            creditCard.record
-          ))
-        );
-        if (!changedGUIDs.length) {
-          Services.telemetry.recordEvent(
-            "creditcard",
-            "save",
-            telemetryObject,
-            creditCard.flowId
-          );
-          changedGUIDs.push(
-            await gFormAutofillStorage.creditCards.add(creditCard.record)
-          );
-        }
-      }
-      changedGUIDs.forEach(guid =>
-        gFormAutofillStorage.creditCards.notifyUsed(guid)
+        creditCard,
+        gFormAutofillStorage
       );
     };
   }

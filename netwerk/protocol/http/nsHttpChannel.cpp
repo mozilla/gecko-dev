@@ -99,7 +99,6 @@
 #include "nsIHttpPushListener.h"
 #include "nsIX509Cert.h"
 #include "ScopedNSSTypes.h"
-#include "nsIDeprecationWarner.h"
 #include "nsIDNSRecord.h"
 #include "mozilla/dom/Document.h"
 #include "nsICompressConvStats.h"
@@ -1979,9 +1978,9 @@ nsresult nsHttpChannel::ProcessResponse() {
     Unused << mResponseHead->GetHeader(nsHttp::Alternate_Service, alt_service);
     uint32_t saw_quic = 0;
     if (!alt_service.IsEmpty()) {
-      if (PL_strstr(alt_service.get(), "h3-")) {
+      if (strstr(alt_service.get(), "h3-")) {
         saw_quic = 1;
-      } else if (PL_strstr(alt_service.get(), "quic")) {
+      } else if (strstr(alt_service.get(), "quic")) {
         saw_quic = 2;
       }
     }
@@ -4969,6 +4968,39 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
        "[this=%p newChannel=%p preserveMethod=%d]",
        this, newChannel, preserveMethod));
 
+  if (profiler_can_accept_markers()) {
+    nsAutoCString requestMethod;
+    GetRequestMethod(requestMethod);
+
+    int32_t priority = PRIORITY_NORMAL;
+    GetPriority(&priority);
+
+    TimingStruct timings;
+    if (mTransaction) {
+      timings = mTransaction->Timings();
+    }
+
+    uint64_t size = 0;
+    GetEncodedBodySize(&size);
+
+    nsAutoCString contentType;
+    if (mResponseHead) {
+      mResponseHead->ContentType(contentType);
+    }
+
+    RefPtr<nsIIdentChannel> newIdentChannel = do_QueryObject(newChannel);
+    uint64_t channelId = 0;
+    if (newIdentChannel) {
+      channelId = newIdentChannel->ChannelId();
+    }
+    profiler_add_network_marker(
+        mURI, requestMethod, priority, mChannelId,
+        NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
+        size, mCacheDisposition, mLoadInfo->GetInnerWindowID(), &timings,
+        std::move(mSource), Some(nsDependentCString(contentType.get())), newURI,
+        redirectFlags, channelId);
+  }
+
   nsresult rv = HttpBaseChannel::SetupReplacementChannel(
       newURI, newChannel, preserveMethod, redirectFlags);
   if (NS_FAILED(rv)) return rv;
@@ -5144,37 +5176,6 @@ nsresult nsHttpChannel::ContinueProcessRedirectionAfterFallback(nsresult rv) {
                              nullptr,  // aCallbacks
                              nsIRequest::LOAD_NORMAL, ioService);
   NS_ENSURE_SUCCESS(rv, rv);
-
-  if (profiler_can_accept_markers()) {
-    nsAutoCString requestMethod;
-    GetRequestMethod(requestMethod);
-
-    int32_t priority = PRIORITY_NORMAL;
-    GetPriority(&priority);
-
-    TimingStruct timings;
-    if (mTransaction) {
-      timings = mTransaction->Timings();
-    }
-
-    uint64_t size = 0;
-    GetEncodedBodySize(&size);
-
-    nsAutoCString contentType;
-    if (mResponseHead) {
-      mResponseHead->ContentType(contentType);
-    }
-
-    RefPtr<HttpBaseChannel> newBaseChannel = do_QueryObject(newChannel);
-    MOZ_ASSERT(newBaseChannel,
-               "The redirect channel should be a base channel.");
-    profiler_add_network_marker(
-        mURI, requestMethod, priority, mChannelId,
-        NetworkLoadType::LOAD_REDIRECT, mLastStatusReported, TimeStamp::Now(),
-        size, mCacheDisposition, mLoadInfo->GetInnerWindowID(), &timings,
-        std::move(mSource), Some(nsDependentCString(contentType.get())),
-        mRedirectURI, redirectFlags, newBaseChannel->ChannelId());
-  }
 
   rv = SetupReplacementChannel(mRedirectURI, newChannel, !rewriteToGET,
                                redirectFlags);
@@ -6714,7 +6715,7 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
       Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS_ODOH,
                             NS_SUCCEEDED(mStatus));
     }
-  } else if (gTRRService && gTRRService->IsConfirmed()) {
+  } else if (TRRService::Get() && TRRService::Get()->IsConfirmed()) {
     // Note this telemetry probe is not working when DNS resolution is done in
     // the socket process.
     Telemetry::Accumulate(Telemetry::HTTP_CHANNEL_ONSTART_SUCCESS_TRR2,
@@ -6915,7 +6916,7 @@ nsresult nsHttpChannel::ContinueOnStartRequest2(nsresult result) {
   if (mConnectionInfo->ProxyInfo() &&
       (mStatus == NS_ERROR_PROXY_CONNECTION_REFUSED ||
        mStatus == NS_ERROR_UNKNOWN_PROXY_HOST ||
-       mStatus == NS_ERROR_NET_TIMEOUT)) {
+       mStatus == NS_ERROR_NET_TIMEOUT || mStatus == NS_ERROR_NET_RESET)) {
     PushRedirectAsyncFunc(&nsHttpChannel::ContinueOnStartRequest3);
     if (NS_SUCCEEDED(ProxyFailover())) {
       mProxyConnectResponseCode = 0;

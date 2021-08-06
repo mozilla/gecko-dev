@@ -5991,9 +5991,8 @@ AttachDecision CallIRGenerator::tryAttachObjectHasPrototype(
 }
 
 AttachDecision CallIRGenerator::tryAttachString(HandleFunction callee) {
-  // Need a single string argument.
-  // TODO(Warp): Support all or more conversions to strings.
-  if (argc_ != 1 || !args_[0].isString()) {
+  // Need a single argument that is or can be converted to a string.
+  if (argc_ != 1 || !(args_[0].isString() || args_[0].isNumber())) {
     return AttachDecision::NoAction;
   }
 
@@ -6003,9 +6002,9 @@ AttachDecision CallIRGenerator::tryAttachString(HandleFunction callee) {
   // Guard callee is the 'String' function.
   emitNativeCalleeGuard(callee);
 
-  // Guard that the argument is a string.
+  // Guard that the argument is a string or can be converted to one.
   ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
-  StringOperandId strId = writer.guardToString(argId);
+  StringOperandId strId = emitToStringGuard(argId, args_[0]);
 
   // Return the string.
   writer.loadStringResult(strId);
@@ -6017,9 +6016,8 @@ AttachDecision CallIRGenerator::tryAttachString(HandleFunction callee) {
 
 AttachDecision CallIRGenerator::tryAttachStringConstructor(
     HandleFunction callee) {
-  // Need a single string argument.
-  // TODO(Warp): Support all or more conversions to strings.
-  if (argc_ != 1 || !args_[0].isString()) {
+  // Need a single argument that is or can be converted to a string.
+  if (argc_ != 1 || !(args_[0].isString() || args_[0].isNumber())) {
     return AttachDecision::NoAction;
   }
 
@@ -6039,10 +6037,11 @@ AttachDecision CallIRGenerator::tryAttachStringConstructor(
 
   CallFlags flags(IsConstructPC(pc_), IsSpreadPC(pc_));
 
-  // Guard that the argument is a string.
+  // Guard on number and convert to string.
   ValOperandId argId =
       writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_, flags);
-  StringOperandId strId = writer.guardToString(argId);
+  StringOperandId strId = emitToStringGuard(argId, args_[0]);
+
   writer.newStringObjectResult(templateObj, strId);
   writer.returnFromIC();
 
@@ -6935,8 +6934,8 @@ AttachDecision CallIRGenerator::tryAttachMathFunction(HandleFunction callee,
   return AttachDecision::Attach;
 }
 
-static StringOperandId EmitToStringGuard(CacheIRWriter& writer, ValOperandId id,
-                                         const Value& v) {
+StringOperandId IRGenerator::emitToStringGuard(ValOperandId id,
+                                               const Value& v) {
   if (v.isString()) {
     return writer.guardToString(id);
   }
@@ -6973,7 +6972,7 @@ AttachDecision CallIRGenerator::tryAttachNumberToString(HandleFunction callee) {
       writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
 
   // Guard on number and convert to string.
-  StringOperandId strId = EmitToStringGuard(writer, thisValId, thisval_);
+  StringOperandId strId = emitToStringGuard(thisValId, thisval_);
 
   // Return the string.
   writer.loadStringResult(strId);
@@ -7763,6 +7762,258 @@ AttachDecision CallIRGenerator::tryAttachBigIntAsUintN(HandleFunction callee) {
   writer.returnFromIC();
 
   trackAttached("BigIntAsUintN");
+  return AttachDecision::Attach;
+}
+
+AttachDecision CallIRGenerator::tryAttachSetHas(HandleFunction callee) {
+  // Ensure |this| is a SetObject.
+  if (!thisval_.isObject() || !thisval_.toObject().is<SetObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Need a single argument.
+  if (argc_ != 1) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  Int32OperandId argcId(writer.setInputOperandId(0));
+
+  // Guard callee is the 'has' native function.
+  emitNativeCalleeGuard(callee);
+
+  // Guard |this| is a SetObject.
+  ValOperandId thisValId =
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+  ObjOperandId objId = writer.guardToObject(thisValId);
+  writer.guardClass(objId, GuardClassKind::Set);
+
+  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+
+#ifndef JS_CODEGEN_X86
+  // Assume the hash key will likely always have the same type when attaching
+  // the first stub. If the call is polymorphic on the hash key, attach a stub
+  // which handles any value.
+  if (isFirstStub_) {
+    switch (args_[0].type()) {
+      case ValueType::Double:
+      case ValueType::Int32:
+      case ValueType::Boolean:
+      case ValueType::Undefined:
+      case ValueType::Null: {
+        writer.guardToNonGCThing(argId);
+        writer.setHasNonGCThingResult(objId, argId);
+        break;
+      }
+      case ValueType::String: {
+        StringOperandId strId = writer.guardToString(argId);
+        writer.setHasStringResult(objId, strId);
+        break;
+      }
+      case ValueType::Symbol: {
+        SymbolOperandId symId = writer.guardToSymbol(argId);
+        writer.setHasSymbolResult(objId, symId);
+        break;
+      }
+      case ValueType::BigInt: {
+        BigIntOperandId bigIntId = writer.guardToBigInt(argId);
+        writer.setHasBigIntResult(objId, bigIntId);
+        break;
+      }
+      case ValueType::Object: {
+        // Currently only supported on 64-bit platforms.
+#  ifdef JS_PUNBOX64
+        ObjOperandId valId = writer.guardToObject(argId);
+        writer.setHasObjectResult(objId, valId);
+#  else
+        writer.setHasResult(objId, argId);
+#  endif
+        break;
+      }
+
+      case ValueType::Magic:
+      case ValueType::PrivateGCThing:
+        MOZ_CRASH("Unexpected type");
+    }
+  } else {
+    writer.setHasResult(objId, argId);
+  }
+#else
+  // The optimized versions require too many registers on x86.
+  writer.setHasResult(objId, argId);
+#endif
+
+  writer.returnFromIC();
+
+  trackAttached("SetHas");
+  return AttachDecision::Attach;
+}
+
+AttachDecision CallIRGenerator::tryAttachMapHas(HandleFunction callee) {
+  // Ensure |this| is a MapObject.
+  if (!thisval_.isObject() || !thisval_.toObject().is<MapObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Need a single argument.
+  if (argc_ != 1) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  Int32OperandId argcId(writer.setInputOperandId(0));
+
+  // Guard callee is the 'has' native function.
+  emitNativeCalleeGuard(callee);
+
+  // Guard |this| is a MapObject.
+  ValOperandId thisValId =
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+  ObjOperandId objId = writer.guardToObject(thisValId);
+  writer.guardClass(objId, GuardClassKind::Map);
+
+  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+
+#ifndef JS_CODEGEN_X86
+  // Assume the hash key will likely always have the same type when attaching
+  // the first stub. If the call is polymorphic on the hash key, attach a stub
+  // which handles any value.
+  if (isFirstStub_) {
+    switch (args_[0].type()) {
+      case ValueType::Double:
+      case ValueType::Int32:
+      case ValueType::Boolean:
+      case ValueType::Undefined:
+      case ValueType::Null: {
+        writer.guardToNonGCThing(argId);
+        writer.mapHasNonGCThingResult(objId, argId);
+        break;
+      }
+      case ValueType::String: {
+        StringOperandId strId = writer.guardToString(argId);
+        writer.mapHasStringResult(objId, strId);
+        break;
+      }
+      case ValueType::Symbol: {
+        SymbolOperandId symId = writer.guardToSymbol(argId);
+        writer.mapHasSymbolResult(objId, symId);
+        break;
+      }
+      case ValueType::BigInt: {
+        BigIntOperandId bigIntId = writer.guardToBigInt(argId);
+        writer.mapHasBigIntResult(objId, bigIntId);
+        break;
+      }
+      case ValueType::Object: {
+        // Currently only supported on 64-bit platforms.
+#  ifdef JS_PUNBOX64
+        ObjOperandId valId = writer.guardToObject(argId);
+        writer.mapHasObjectResult(objId, valId);
+#  else
+        writer.mapHasResult(objId, argId);
+#  endif
+        break;
+      }
+
+      case ValueType::Magic:
+      case ValueType::PrivateGCThing:
+        MOZ_CRASH("Unexpected type");
+    }
+  } else {
+    writer.mapHasResult(objId, argId);
+  }
+#else
+  // The optimized versions require too many registers on x86.
+  writer.mapHasResult(objId, argId);
+#endif
+
+  writer.returnFromIC();
+
+  trackAttached("MapHas");
+  return AttachDecision::Attach;
+}
+
+AttachDecision CallIRGenerator::tryAttachMapGet(HandleFunction callee) {
+  // Ensure |this| is a MapObject.
+  if (!thisval_.isObject() || !thisval_.toObject().is<MapObject>()) {
+    return AttachDecision::NoAction;
+  }
+
+  // Need a single argument.
+  if (argc_ != 1) {
+    return AttachDecision::NoAction;
+  }
+
+  // Initialize the input operand.
+  Int32OperandId argcId(writer.setInputOperandId(0));
+
+  // Guard callee is the 'get' native function.
+  emitNativeCalleeGuard(callee);
+
+  // Guard |this| is a MapObject.
+  ValOperandId thisValId =
+      writer.loadArgumentFixedSlot(ArgumentKind::This, argc_);
+  ObjOperandId objId = writer.guardToObject(thisValId);
+  writer.guardClass(objId, GuardClassKind::Map);
+
+  ValOperandId argId = writer.loadArgumentFixedSlot(ArgumentKind::Arg0, argc_);
+
+#ifndef JS_CODEGEN_X86
+  // Assume the hash key will likely always have the same type when attaching
+  // the first stub. If the call is polymorphic on the hash key, attach a stub
+  // which handles any value.
+  if (isFirstStub_) {
+    switch (args_[0].type()) {
+      case ValueType::Double:
+      case ValueType::Int32:
+      case ValueType::Boolean:
+      case ValueType::Undefined:
+      case ValueType::Null: {
+        writer.guardToNonGCThing(argId);
+        writer.mapGetNonGCThingResult(objId, argId);
+        break;
+      }
+      case ValueType::String: {
+        StringOperandId strId = writer.guardToString(argId);
+        writer.mapGetStringResult(objId, strId);
+        break;
+      }
+      case ValueType::Symbol: {
+        SymbolOperandId symId = writer.guardToSymbol(argId);
+        writer.mapGetSymbolResult(objId, symId);
+        break;
+      }
+      case ValueType::BigInt: {
+        BigIntOperandId bigIntId = writer.guardToBigInt(argId);
+        writer.mapGetBigIntResult(objId, bigIntId);
+        break;
+      }
+      case ValueType::Object: {
+        // Currently only supported on 64-bit platforms.
+#  ifdef JS_PUNBOX64
+        ObjOperandId valId = writer.guardToObject(argId);
+        writer.mapGetObjectResult(objId, valId);
+#  else
+        writer.mapGetResult(objId, argId);
+#  endif
+        break;
+      }
+
+      case ValueType::Magic:
+      case ValueType::PrivateGCThing:
+        MOZ_CRASH("Unexpected type");
+    }
+  } else {
+    writer.mapGetResult(objId, argId);
+  }
+#else
+  // The optimized versions require too many registers on x86.
+  writer.mapGetResult(objId, argId);
+#endif
+
+  writer.returnFromIC();
+
+  trackAttached("MapGet");
   return AttachDecision::Attach;
 }
 
@@ -9023,6 +9274,16 @@ AttachDecision CallIRGenerator::tryAttachInlinableNative(
     case InlinableNative::Boolean:
       return tryAttachBoolean(callee);
 
+    // Set natives.
+    case InlinableNative::SetHas:
+      return tryAttachSetHas(callee);
+
+    // Map natives.
+    case InlinableNative::MapHas:
+      return tryAttachMapHas(callee);
+    case InlinableNative::MapGet:
+      return tryAttachMapGet(callee);
+
     // Testing functions.
     case InlinableNative::TestBailout:
       return tryAttachBailout(callee);
@@ -9404,8 +9665,8 @@ JSObject* jit::NewWrapperWithObjectShape(JSContext* cx,
     if (!wrapper) {
       return nullptr;
     }
-    wrapper->as<NativeObject>().setSlot(SHAPE_CONTAINER_SLOT,
-                                        PrivateGCThingValue(obj->shape()));
+    wrapper->as<NativeObject>().setReservedSlot(
+        SHAPE_CONTAINER_SLOT, PrivateGCThingValue(obj->shape()));
   }
   if (!JS_WrapObject(cx, &wrapper)) {
     return nullptr;
@@ -10742,8 +11003,8 @@ AttachDecision BinaryArithIRGenerator::tryAttachStringNumberConcat() {
   ValOperandId lhsId(writer.setInputOperandId(0));
   ValOperandId rhsId(writer.setInputOperandId(1));
 
-  StringOperandId lhsStrId = EmitToStringGuard(writer, lhsId, lhs_);
-  StringOperandId rhsStrId = EmitToStringGuard(writer, rhsId, rhs_);
+  StringOperandId lhsStrId = emitToStringGuard(lhsId, lhs_);
+  StringOperandId rhsStrId = emitToStringGuard(rhsId, rhs_);
 
   writer.callStringConcatResult(lhsStrId, rhsStrId);
 
@@ -11034,7 +11295,6 @@ AttachDecision NewArrayIRGenerator::tryAttachArrayObject() {
 
   MOZ_ASSERT(arrayObj->numUsedFixedSlots() == 0);
   MOZ_ASSERT(arrayObj->numDynamicSlots() == 0);
-  MOZ_ASSERT(!arrayObj->hasPrivate());
   MOZ_ASSERT(!arrayObj->isSharedMemory());
 
   // The macro assembler only supports creating arrays with fixed elements.
@@ -11113,7 +11373,6 @@ AttachDecision NewObjectIRGenerator::tryAttachPlainObject() {
     return AttachDecision::NoAction;
   }
 
-  MOZ_ASSERT(!nativeObj->hasPrivate());
   MOZ_ASSERT(!nativeObj->hasDynamicElements());
   MOZ_ASSERT(!nativeObj->isSharedMemory());
 

@@ -29,7 +29,6 @@
 #include "vm/TypedArrayObject.h"
 #include "vm/Uint8Clamped.h"
 
-#include "wasm/WasmTypes.h"  // WasmValueBox
 #include "gc/Marking-inl.h"
 #include "gc/Nursery-inl.h"
 #include "gc/StoreBuffer-inl.h"
@@ -116,6 +115,8 @@ RttValue* RttValue::createFromHandle(JSContext* cx, TypeHandle handle) {
   rtt->initReservedSlot(RttValue::Parent, NullValue());
   rtt->initReservedSlot(RttValue::Children, PrivateValue(nullptr));
 
+  MOZ_ASSERT(!rtt->isNewborn());
+
   if (!cx->zone()->addRttValueObject(cx, rtt)) {
     ReportOutOfMemory(cx);
     return nullptr;
@@ -163,7 +164,10 @@ bool RttValue::ensureChildren(JSContext* cx) {
 
 /* static */
 void RttValue::trace(JSTracer* trc, JSObject* obj) {
-  auto rttValue = &obj->as<RttValue>();
+  auto* rttValue = &obj->as<RttValue>();
+  if (rttValue->isNewborn()) {
+    return;
+  }
 
   if (ObjectWeakMap* children = rttValue->maybeChildren()) {
     children->trace(trc);
@@ -172,7 +176,10 @@ void RttValue::trace(JSTracer* trc, JSObject* obj) {
 
 /* static */
 void RttValue::finalize(JSFreeOp* fop, JSObject* obj) {
-  auto rttValue = &obj->as<RttValue>();
+  auto* rttValue = &obj->as<RttValue>();
+  if (rttValue->isNewborn()) {
+    return;
+  }
 
   if (ObjectWeakMap* children = rttValue->maybeChildren()) {
     fop->delete_(obj, children, MemoryUse::WasmRttValueChildren);

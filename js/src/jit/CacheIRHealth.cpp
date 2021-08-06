@@ -69,6 +69,69 @@ CacheIRHealth::Happiness CacheIRHealth::spewStubHealth(
   return stubHappiness;
 }
 
+void CacheIRHealth::spewShapeInformation(AutoStructuredSpewer& spew,
+                                         ICStub* stub) {
+  bool shapesStarted = false;
+  const CacheIRStubInfo* stubInfo = stub->toCacheIRStub()->stubInfo();
+  size_t offset = 0;
+  uint32_t fieldIndex = 0;
+
+  while (stubInfo->fieldType(fieldIndex) != StubField::Type::Limit) {
+    if (stubInfo->fieldType(fieldIndex) == StubField::Type::Shape) {
+      Shape* shape = reinterpret_cast<Shape*>(
+          stubInfo->getStubRawWord(stub->toCacheIRStub(), offset));
+      if (!shapesStarted) {
+        shapesStarted = true;
+        spew->beginListProperty("shapes");
+      }
+
+      JSString* firstPropertyKey = nullptr;
+      JSString* lastPropertyKey = nullptr;
+      uint32_t totalKeys = 0;
+      for (ShapePropertyIter<NoGC> iter(shape); !iter.done(); iter++) {
+        jsid id = iter->key();
+        JSString* propertyKey = nullptr;
+
+        if (id.isString()) {
+          propertyKey = id.toString();
+        } else {
+          MOZ_ASSERT(id.isSymbol());
+          propertyKey = id.toSymbol()->description();
+        }
+
+        if (!totalKeys) {
+          firstPropertyKey = propertyKey;
+        } else {
+          lastPropertyKey = propertyKey;
+        }
+        totalKeys++;
+      }
+
+      spew->beginObject();
+      {
+        if (firstPropertyKey) {
+          GenericPrinter& printer = spew->beginStringProperty("firstProperty");
+          firstPropertyKey->dumpCharsNoQuote(printer);
+          spew->endStringProperty();
+        }
+        if (totalKeys > 1) {
+          GenericPrinter& printer = spew->beginStringProperty("lastProperty");
+          lastPropertyKey->dumpCharsNoQuote(printer);
+          spew->endStringProperty();
+        }
+        spew->property("totalKeys", totalKeys);
+      }
+      spew->endObject();
+    }
+    offset += StubField::sizeInBytes(stubInfo->fieldType(fieldIndex));
+    fieldIndex++;
+  }
+
+  if (shapesStarted) {
+    spew->endList();
+  }
+}
+
 bool CacheIRHealth::spewNonFallbackICInformation(AutoStructuredSpewer& spew,
                                                  ICStub* firstStub,
                                                  Happiness* entryHappiness) {
@@ -87,6 +150,8 @@ bool CacheIRHealth::spewNonFallbackICInformation(AutoStructuredSpewer& spew,
       if (stubHappiness < *entryHappiness) {
         *entryHappiness = stubHappiness;
       }
+
+      spewShapeInformation(spew, stub);
 
       ICStub* nextStub = stub->toCacheIRStub()->next();
       if (!nextStub->isFallback()) {
@@ -228,15 +293,17 @@ static bool addScriptToFinalWarmUpCountMap(JSContext* cx, HandleScript script) {
     zone->scriptFinalWarmUpCountMap = std::move(map);
   }
 
-  auto* filename = js_pod_malloc<char>(strlen(script->filename()) + 1);
-  if (!filename) {
+  SharedImmutableString sfilename =
+      cx->runtime()->sharedImmutableStrings().getOrCreate(
+          script->filename(), strlen(script->filename()));
+  if (!sfilename) {
+    ReportOutOfMemory(cx);
     return false;
   }
-  strcpy(filename, script->filename());
 
   if (!zone->scriptFinalWarmUpCountMap->put(
-          script, mozilla::MakeTuple(uint32_t(0), filename))) {
-    js_free(filename);
+          script, mozilla::MakeTuple(uint32_t(0), std::move(sfilename)))) {
+    ReportOutOfMemory(cx);
     return false;
   }
 

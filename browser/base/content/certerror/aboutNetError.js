@@ -81,12 +81,17 @@ const KNOWN_ERROR_TITLE_IDS = new Set([
 
 let searchParams = new URLSearchParams(document.documentURI.split("?")[1]);
 
-// Set to true on init if the error code is nssBadCert.
-let gIsCertError;
+let gErrorCode = searchParams.get("e");
 
-function getErrorCode() {
-  return searchParams.get("e");
-}
+let gIsCertError = gErrorCode == "nssBadCert";
+
+// If the location of the favicon changes, FAVICON_CERTERRORPAGE_URL and/or
+// FAVICON_ERRORPAGE_URL in toolkit/components/places/nsFaviconService.idl
+// should also be updated.
+document.getElementById("favicon").href =
+  gIsCertError || gErrorCode == "nssFailure2"
+    ? "chrome://global/skin/icons/warning.svg"
+    : "chrome://global/skin/icons/info.svg";
 
 function getCSSClass() {
   return searchParams.get("s");
@@ -257,7 +262,7 @@ function initPage() {
     });
   }
 
-  var err = getErrorCode();
+  var err = gErrorCode;
   // List of error pages with an illustration.
   let illustratedErrors = [
     "malformedURI",
@@ -278,7 +283,6 @@ function initPage() {
     document.body.classList.add("blocked");
   }
 
-  gIsCertError = err == "nssBadCert";
   // Only worry about captive portals if this is a cert error.
   let showCaptivePortalUI = isCaptive() && gIsCertError;
   if (showCaptivePortalUI) {
@@ -494,7 +498,7 @@ function reportBlockingError() {
     return;
   }
 
-  let err = getErrorCode();
+  let err = gErrorCode;
   // Ensure we only deal with XFO and CSP here.
   if (!["xfoBlocked", "cspBlocked"].includes(err)) {
     return;
@@ -793,7 +797,7 @@ function setCertErrorDetails(event) {
   let es = document.getElementById("errorWhatToDoText");
   let errWhatToDoTitle = document.getElementById("edd_nssBadCert");
   let est = document.getElementById("errorWhatToDoTitleText");
-  let error = getErrorCode();
+  let error = gErrorCode;
 
   if (error == "sslv3Used") {
     learnMoreLink.setAttribute("href", baseURL + "sslv3-error-messages");
@@ -1018,23 +1022,6 @@ function setCertErrorDetails(event) {
       }
       break;
   }
-
-  // Add slightly more alarming UI unless there are indicators that
-  // show that the error is harmless or can not be skipped anyway.
-  let cssClass = getCSSClass();
-  // Don't alarm users when they can't continue to the website anyway...
-  if (
-    cssClass != "badStsCert" &&
-    // Errors in iframes can't be skipped either...
-    window.parent == window &&
-    // Also don't bother if it's just the user's clock being off...
-    !clockSkew &&
-    // Symantec distrust is likely harmless as well.
-    failedCertInfo.errorCodeString !=
-      "MOZILLA_PKIX_ERROR_ADDITIONAL_POLICY_CONSTRAINT_FAILED"
-  ) {
-    document.body.classList.add("caution");
-  }
 }
 
 // The optional argument is only here for testing purposes.
@@ -1069,7 +1056,7 @@ async function setTechnicalDetailsOnCertError(
   }
 
   let cssClass = getCSSClass();
-  let error = getErrorCode();
+  let error = gErrorCode;
 
   let hostString = HOST_NAME;
   let port = document.location.port;

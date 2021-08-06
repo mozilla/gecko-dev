@@ -1035,11 +1035,9 @@ nsresult nsCocoaWindow::ConfigureChildren(const nsTArray<Configuration>& aConfig
   return NS_OK;
 }
 
-LayerManager* nsCocoaWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
-                                             LayersBackend aBackendHint,
-                                             LayerManagerPersistence aPersistence) {
+WindowRenderer* nsCocoaWindow::GetWindowRenderer() {
   if (mPopupContentView) {
-    return mPopupContentView->GetLayerManager(aShadowManager, aBackendHint, aPersistence);
+    return mPopupContentView->GetWindowRenderer();
   }
   return nullptr;
 }

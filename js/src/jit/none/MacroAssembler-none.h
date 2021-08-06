@@ -11,7 +11,7 @@
 
 #include "jit/MoveResolver.h"
 #include "jit/shared/Assembler-shared.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmTypeDecls.h"
 
 namespace js {
 namespace jit {
@@ -286,6 +286,10 @@ class MacroAssemblerNone : public Assembler {
   }
   template <typename T, typename S, typename U>
   void storeValue(T, S, U) {
+    MOZ_CRASH();
+  }
+  template <typename T, typename S>
+  void storePrivateValue(const T&, const S&) {
     MOZ_CRASH();
   }
   template <typename T, typename S>

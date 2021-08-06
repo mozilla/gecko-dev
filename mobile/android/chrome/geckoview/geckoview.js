@@ -19,6 +19,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   GeckoViewSettings: "resource://gre/modules/GeckoViewSettings.jsm",
   GeckoViewUtils: "resource://gre/modules/GeckoViewUtils.jsm",
   HistogramStopwatch: "resource://gre/modules/GeckoViewTelemetry.jsm",
+  InitializationTracker: "resource://gre/modules/GeckoViewTelemetry.jsm",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.jsm",
   RemoteSecuritySettings:
     "resource://gre/modules/psm/RemoteSecuritySettings.jsm",
@@ -665,7 +666,41 @@ function startup() {
     {
       name: "GeckoViewAutofill",
       onInit: {
-        frameScript: "chrome://geckoview/content/GeckoViewAutofillChild.js",
+        actors: {
+          GeckoViewAutoFill: {
+            child: {
+              moduleURI: "resource:///actors/GeckoViewAutoFillChild.jsm",
+              events: {
+                DOMFormHasPassword: {
+                  mozSystemGroup: true,
+                  capture: false,
+                },
+                DOMInputPasswordAdded: {
+                  mozSystemGroup: true,
+                  capture: false,
+                },
+                pagehide: {
+                  mozSystemGroup: true,
+                  capture: false,
+                },
+                pageshow: {
+                  mozSystemGroup: true,
+                  capture: false,
+                },
+                focusin: {
+                  mozSystemGroup: true,
+                  capture: false,
+                },
+                focusout: {
+                  mozSystemGroup: true,
+                  capture: false,
+                },
+                "PasswordManager:onFormSubmit": {},
+              },
+            },
+            allFrames: true,
+          },
+        },
       },
     },
     {
@@ -774,4 +809,6 @@ function startup() {
   // Move focus to the content window at the end of startup,
   // so things like text selection can work properly.
   browser.focus();
+
+  InitializationTracker.onInitialized(performance.now());
 }

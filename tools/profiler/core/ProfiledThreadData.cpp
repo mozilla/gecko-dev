@@ -206,16 +206,14 @@ void ProfiledThreadData::StreamTraceLoggerJSON(
   aWriter.EndObject();
 }
 
-int StreamSamplesAndMarkers(const char* aName, int aThreadId,
-                            const ProfileBuffer& aBuffer,
-                            SpliceableJSONWriter& aWriter,
-                            const nsACString& aProcessName,
-                            const nsACString& aETLDplus1,
-                            const mozilla::TimeStamp& aProcessStartTime,
-                            const mozilla::TimeStamp& aRegisterTime,
-                            const mozilla::TimeStamp& aUnregisterTime,
-                            double aSinceTime, UniqueStacks& aUniqueStacks) {
-  int processedThreadId = 0;
+ProfilerThreadId StreamSamplesAndMarkers(
+    const char* aName, ProfilerThreadId aThreadId, const ProfileBuffer& aBuffer,
+    SpliceableJSONWriter& aWriter, const nsACString& aProcessName,
+    const nsACString& aETLDplus1, const mozilla::TimeStamp& aProcessStartTime,
+    const mozilla::TimeStamp& aRegisterTime,
+    const mozilla::TimeStamp& aUnregisterTime, double aSinceTime,
+    UniqueStacks& aUniqueStacks) {
+  ProfilerThreadId processedThreadId;
 
   aWriter.StringProperty("processType",
                          mozilla::MakeStringSpan(XRE_GetProcessTypeString()));
@@ -290,11 +288,12 @@ int StreamSamplesAndMarkers(const char* aName, int aThreadId,
   }
   aWriter.EndObject();
 
-  aWriter.IntProperty("pid",
-                      static_cast<int64_t>(profiler_current_process_id()));
   aWriter.IntProperty(
-      "tid",
-      static_cast<int64_t>(aThreadId != 0 ? aThreadId : processedThreadId));
+      "pid", static_cast<int64_t>(profiler_current_process_id().ToNumber()));
+  aWriter.IntProperty("tid",
+                      static_cast<int64_t>(aThreadId.IsSpecified()
+                                               ? aThreadId.ToNumber()
+                                               : processedThreadId.ToNumber()));
 
   return processedThreadId;
 }

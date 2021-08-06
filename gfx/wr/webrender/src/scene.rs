@@ -12,7 +12,8 @@ use crate::clip::{ClipStore, ClipStoreStats};
 use crate::spatial_tree::SpatialTree;
 use crate::frame_builder::{ChasePrimitive, FrameBuilderConfig};
 use crate::hit_test::{HitTester, HitTestingScene, HitTestingSceneStats};
-use crate::internal_types::FastHashMap;
+use crate::internal_types::{FastHashMap, PlaneSplitter};
+use crate::picture_graph::PictureGraph;
 use crate::prim_store::{PrimitiveStore, PrimitiveStoreStats, PictureIndex};
 use crate::tile_cache::TileCacheConfig;
 use std::sync::Arc;
@@ -276,6 +277,8 @@ pub struct BuiltScene {
     pub hit_testing_scene: Arc<HitTestingScene>,
     pub tile_cache_config: TileCacheConfig,
     pub tile_cache_pictures: Vec<PictureIndex>,
+    pub picture_graph: PictureGraph,
+    pub plane_splitters: Vec<PlaneSplitter>,
 }
 
 impl BuiltScene {
@@ -291,6 +294,8 @@ impl BuiltScene {
             hit_testing_scene: Arc::new(HitTestingScene::new(&HitTestingSceneStats::empty())),
             tile_cache_config: TileCacheConfig::new(0),
             tile_cache_pictures: Vec::new(),
+            picture_graph: PictureGraph::new(),
+            plane_splitters: Vec::new(),
             config: FrameBuilderConfig {
                 default_font_render_mode: FontRenderMode::Mono,
                 dual_source_blending_is_enabled: true,

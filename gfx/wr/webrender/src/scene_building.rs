@@ -55,9 +55,10 @@ use crate::frame_builder::{ChasePrimitive, FrameBuilderConfig};
 use crate::glyph_rasterizer::FontInstance;
 use crate::hit_test::HitTestingScene;
 use crate::intern::Interner;
-use crate::internal_types::{FastHashMap, LayoutPrimitiveInfo, Filter};
+use crate::internal_types::{FastHashMap, LayoutPrimitiveInfo, Filter, PlaneSplitter, PlaneSplitterIndex};
 use crate::picture::{Picture3DContext, PictureCompositeMode, PicturePrimitive, PictureOptions};
 use crate::picture::{BlitReason, OrderedPictureChild, PrimitiveList};
+use crate::picture_graph::PictureGraph;
 use crate::prim_store::{PrimitiveInstance, register_prim_chase_id};
 use crate::prim_store::{PrimitiveInstanceKind, NinePatchDescriptor, PrimitiveStore};
 use crate::prim_store::{InternablePrimitive, SegmentInstanceIndex, PictureIndex};
@@ -510,6 +511,19 @@ pub struct SceneBuilder<'a> {
     /// edge cases (e.g. SVG filter) where we can accept slightly incorrect
     /// behaviour in favour of getting the common case right.
     snap_to_device: SpaceSnapper,
+
+    /// A DAG that represents dependencies between picture primitives. This builds
+    /// a set of passes to run various picture processing passes in during frame
+    /// building, in a way that pictures are processed before (or after) their
+    /// dependencies, without relying on recursion for those passes.
+    picture_graph: PictureGraph,
+
+    /// A list of all the allocated plane splitters for this scene. A plane
+    /// splitter is allocated whenever we encounter a new 3d rendering context.
+    /// They are stored outside the picture since it makes it easier for them
+    /// to be referenced by both the owning 3d rendering context and the child
+    /// pictures that contribute to the splitter.
+    plane_splitters: Vec<PlaneSplitter>,
 }
 
 impl<'a> SceneBuilder<'a> {
@@ -560,6 +574,8 @@ impl<'a> SceneBuilder<'a> {
             quality_settings: view.quality_settings,
             tile_cache_builder: TileCacheBuilder::new(),
             snap_to_device,
+            picture_graph: PictureGraph::new(),
+            plane_splitters: Vec::new(),
         };
 
         builder.build_all(&root_pipeline);
@@ -571,6 +587,11 @@ impl<'a> SceneBuilder<'a> {
             &mut builder.prim_store,
             builder.interners,
         );
+
+        // Add all the tile cache pictures as roots of the picture graph
+        for pic_index in &tile_cache_pictures {
+            builder.picture_graph.add_root(*pic_index);
+        }
 
         BuiltScene {
             has_root_pipeline: scene.has_root_pipeline(),
@@ -584,6 +605,8 @@ impl<'a> SceneBuilder<'a> {
             config: builder.config,
             tile_cache_config,
             tile_cache_pictures,
+            picture_graph: builder.picture_graph,
+            plane_splitters: builder.plane_splitters,
         }
     }
 
@@ -1859,13 +1882,19 @@ impl<'a> SceneBuilder<'a> {
         // Get the transform-style of the parent stacking context,
         // which determines if we *might* need to draw this on
         // an intermediate surface for plane splitting purposes.
-        let (parent_is_3d, extra_3d_instance) = match self.sc_stack.last_mut() {
+        let (parent_is_3d, extra_3d_instance, plane_splitter_index) = match self.sc_stack.last_mut() {
             Some(ref mut sc) if sc.is_3d() => {
-                let flat_items_context_3d = match sc.context_3d {
-                    Picture3DContext::In { ancestor_index, .. } => Picture3DContext::In {
-                        root_data: None,
-                        ancestor_index,
-                    },
+                let (flat_items_context_3d, plane_splitter_index) = match sc.context_3d {
+                    Picture3DContext::In { ancestor_index, plane_splitter_index, .. } => {
+                        (
+                            Picture3DContext::In {
+                                root_data: None,
+                                ancestor_index,
+                                plane_splitter_index,
+                            },
+                            plane_splitter_index,
+                        )
+                    }
                     Picture3DContext::Out => panic!("Unexpected out of 3D context"),
                 };
                 // Cut the sequence of flat children before starting a child stacking context,
@@ -1883,9 +1912,9 @@ impl<'a> SceneBuilder<'a> {
                         flags: sc.prim_flags,
                     }
                 });
-                (true, extra_instance)
+                (true, extra_instance, Some(plane_splitter_index))
             },
-            _ => (false, None),
+            _ => (false, None, None),
         };
 
         if let Some(instance) = extra_3d_instance {
@@ -1909,12 +1938,19 @@ impl<'a> SceneBuilder<'a> {
                 .cloned()
                 .unwrap_or(ROOT_SPATIAL_NODE_INDEX);
 
+            let plane_splitter_index = plane_splitter_index.unwrap_or_else(|| {
+                let index = self.plane_splitters.len();
+                self.plane_splitters.push(PlaneSplitter::new());
+                PlaneSplitterIndex(index)
+            });
+
             Picture3DContext::In {
                 root_data: if parent_is_3d {
                     None
                 } else {
                     Some(Vec::new())
                 },
+                plane_splitter_index,
                 ancestor_index,
             }
         } else {
@@ -2098,7 +2134,7 @@ impl<'a> SceneBuilder<'a> {
             //           During culling, we can check if there is actually
             //           perspective present, and skip the plane splitting
             //           completely when that is not the case.
-            Picture3DContext::In { ancestor_index, .. } => {
+            Picture3DContext::In { ancestor_index, plane_splitter_index, .. } => {
                 let composite_mode = Some(
                     PictureCompositeMode::Blit(BlitReason::PRESERVE3D | stacking_context.blit_reason)
                 );
@@ -2108,7 +2144,7 @@ impl<'a> SceneBuilder<'a> {
                     .alloc()
                     .init(PicturePrimitive::new_image(
                         composite_mode.clone(),
-                        Picture3DContext::In { root_data: None, ancestor_index },
+                        Picture3DContext::In { root_data: None, ancestor_index, plane_splitter_index },
                         true,
                         stacking_context.prim_flags,
                         stacking_context.prim_list,
@@ -2175,7 +2211,7 @@ impl<'a> SceneBuilder<'a> {
         // If establishing a 3d context, the `cur_instance` represents
         // a picture with all the *trailing* immediate children elements.
         // We append this to the preserve-3D picture set and make a container picture of them.
-        if let Picture3DContext::In { root_data: Some(mut prims), ancestor_index } = stacking_context.context_3d {
+        if let Picture3DContext::In { root_data: Some(mut prims), ancestor_index, plane_splitter_index } = stacking_context.context_3d {
             let instance = source.finalize(
                 ClipChainId::NONE,
                 &mut self.interners,
@@ -2206,6 +2242,7 @@ impl<'a> SceneBuilder<'a> {
                     Picture3DContext::In {
                         root_data: Some(Vec::new()),
                         ancestor_index,
+                        plane_splitter_index,
                     },
                     true,
                     stacking_context.prim_flags,
@@ -2771,14 +2808,8 @@ impl<'a> SceneBuilder<'a> {
         // changing because the shadow has the same raster space as the
         // primitive, and thus we know the size is already rounded.
         let mut info = pending_primitive.info.clone();
-        info.rect = self.snap_rect(
-            &info.rect.translate(pending_shadow.shadow.offset),
-            pending_primitive.spatial_node_index,
-        );
-        info.clip_rect = self.snap_rect(
-            &info.clip_rect.translate(pending_shadow.shadow.offset),
-            pending_primitive.spatial_node_index,
-        );
+        info.rect = info.rect.translate(pending_shadow.shadow.offset);
+        info.clip_rect = info.clip_rect.translate(pending_shadow.shadow.offset);
 
         // Construct and add a primitive for the given shadow.
         let shadow_prim_instance = self.create_primitive(
@@ -3520,7 +3551,7 @@ impl<'a> SceneBuilder<'a> {
         }
 
         let (pic_index, instance) = flattened_items?;
-        self.prim_store.pictures[pic_index.0].requested_composite_mode = Some(PictureCompositeMode::Blit(BlitReason::BACKDROP));
+        self.prim_store.pictures[pic_index.0].composite_mode = Some(PictureCompositeMode::Blit(BlitReason::BACKDROP));
         backdrop_root.expect("no backdrop root found")
             .prim_list
             .add_prim(

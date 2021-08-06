@@ -29,6 +29,7 @@
 #include "js/ScalarType.h"  // js::Scalar::Type
 #include "wasm/WasmBaselineCompile.h"
 #include "wasm/WasmBuiltins.h"
+#include "wasm/WasmCodegenTypes.h"
 #include "wasm/WasmGC.h"
 #include "wasm/WasmGenerator.h"
 #include "wasm/WasmIntrinsic.h"
@@ -2597,10 +2598,10 @@ static bool EmitTry(FunctionCompiler& f) {
 
 static bool EmitCatch(FunctionCompiler& f) {
   LabelKind kind;
-  uint32_t eventIndex;
+  uint32_t tagIndex;
   ResultType paramType, resultType;
   DefVector tryValues;
-  if (!f.iter().readCatch(&kind, &eventIndex, &paramType, &resultType,
+  if (!f.iter().readCatch(&kind, &tagIndex, &paramType, &resultType,
                           &tryValues)) {
     return false;
   }

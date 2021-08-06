@@ -27,6 +27,7 @@ using dom::Document;
 bool PreferenceSheet::sInitialized;
 PreferenceSheet::Prefs PreferenceSheet::sContentPrefs;
 PreferenceSheet::Prefs PreferenceSheet::sChromePrefs;
+PreferenceSheet::Prefs PreferenceSheet::sPrintPrefs;
 
 static void GetColor(const char* aPrefName, nscolor& aColor) {
   nsAutoCString value;
@@ -41,24 +42,28 @@ static void GetColor(const char* aPrefName, nscolor& aColor) {
   aColor = result;
 }
 
-bool PreferenceSheet::ShouldUseChromePrefs(const Document& aDoc) {
+auto PreferenceSheet::PrefsKindFor(const Document& aDoc) -> PrefsKind {
   // DevTools documents run in a content frame but should temporarily use
   // chrome preferences, in particular to avoid applying High Contrast mode
   // colors. See Bug 1575766.
   if (aDoc.IsDevToolsDocument() &&
       StaticPrefs::devtools_toolbox_force_chrome_prefs()) {
-    return true;
+    return PrefsKind::Chrome;
   }
 
   if (aDoc.IsInChromeDocShell()) {
-    return true;
+    return PrefsKind::Chrome;
   }
 
   if (aDoc.IsBeingUsedAsImage() && aDoc.IsDocumentURISchemeChrome()) {
-    return true;
+    return PrefsKind::Chrome;
   }
 
-  return false;
+  if (aDoc.IsStaticDocument()) {
+    return PrefsKind::Print;
+  }
+
+  return PrefsKind::Content;
 }
 
 static bool UseAccessibilityTheme(bool aIsChrome) {
@@ -82,21 +87,20 @@ void PreferenceSheet::Prefs::Load(bool aIsChrome) {
 
   mIsChrome = aIsChrome;
   mUseAccessibilityTheme = UseAccessibilityTheme(aIsChrome);
-  mUnderlineLinks = StaticPrefs::browser_underline_anchors();
-
-  mUseFocusColors = StaticPrefs::browser_display_use_focus_colors();
-  mFocusRingWidth = StaticPrefs::browser_display_focus_ring_width();
-  mFocusRingStyle = StaticPrefs::browser_display_focus_ring_style();
-  mFocusRingOnAnything = StaticPrefs::browser_display_focus_ring_on_anything();
 
   const bool useStandins = nsContentUtils::UseStandinsForNativeColors();
+  // Users should be able to choose to use system colors or preferred colors
+  // when HCM is disabled, and in both OS-level HCM and FF-level HCM.
+  // To make this possible, we don't consider UseDocumentColors and
+  // mUseAccessibilityTheme when computing the following bool.
   const bool usePrefColors = !useStandins && !aIsChrome &&
-                             !mUseAccessibilityTheme &&
                              !StaticPrefs::browser_display_use_system_colors();
   if (usePrefColors) {
-    GetColor("browser.display.background_color", mDefaultBackgroundColor);
-    GetColor("browser.display.foreground_color", mDefaultColor);
-    GetColor("browser.anchor_color", mLinkColor);
+    GetColor("browser.display.background_color", mColors.mDefaultBackground);
+    GetColor("browser.display.foreground_color", mColors.mDefault);
+    GetColor("browser.anchor_color", mColors.mLink);
+    GetColor("browser.active_color", mColors.mActiveLink);
+    GetColor("browser.visited_color", mColors.mVisitedLink);
   } else {
     using ColorID = LookAndFeel::ColorID;
     const auto standins = LookAndFeel::UseStandins(useStandins);
@@ -106,37 +110,45 @@ void PreferenceSheet::Prefs::Load(bool aIsChrome) {
     // FIXME(emilio): Why do we look at a different set of colors when using
     // standins vs. not?
     const auto scheme = LookAndFeel::ColorScheme::Light;
-    mDefaultColor = LookAndFeel::Color(
+    mColors.mDefault = LookAndFeel::Color(
         useStandins ? ColorID::Windowtext : ColorID::WindowForeground, scheme,
-        standins, mDefaultColor);
-    mDefaultBackgroundColor = LookAndFeel::Color(
+        standins, mColors.mDefault);
+    mColors.mDefaultBackground = LookAndFeel::Color(
         useStandins ? ColorID::Window : ColorID::WindowBackground, scheme,
-        standins, mDefaultBackgroundColor);
-    mLinkColor = LookAndFeel::Color(ColorID::MozNativehyperlinktext, scheme,
-                                    standins, mLinkColor);
+        standins, mColors.mDefaultBackground);
+    mColors.mLink = LookAndFeel::Color(ColorID::MozNativehyperlinktext, scheme,
+                                       standins, mColors.mLink);
+
+    if (auto color = LookAndFeel::GetColor(
+            ColorID::MozNativevisitedhyperlinktext, scheme, standins)) {
+      // If the system provides a visited link color, we should use it.
+      mColors.mVisitedLink = *color;
+    } else if (mUseAccessibilityTheme) {
+      // The fallback visited link color on HCM (if the system doesn't provide
+      // one) is produced by preserving the foreground's green and averaging the
+      // foreground and background for the red and blue.  This is how IE and
+      // Edge do it too.
+      mColors.mVisitedLink = NS_RGB(AVG2(NS_GET_R(mColors.mDefault),
+                                         NS_GET_R(mColors.mDefaultBackground)),
+                                    NS_GET_G(mColors.mDefault),
+                                    AVG2(NS_GET_B(mColors.mDefault),
+                                         NS_GET_B(mColors.mDefaultBackground)));
+    } else {
+      // Otherwise we keep the default visited link color
+    }
+
+    if (mUseAccessibilityTheme) {
+      mColors.mActiveLink = mColors.mLink;
+    }
   }
 
-  if (mUseAccessibilityTheme && !useStandins) {
-    mActiveLinkColor = mLinkColor;
-    // Visited link color is produced by preserving the foreground's green
-    // and averaging the foreground and background for the red and blue.
-    // This is how IE and Edge do it too.
-    mVisitedLinkColor = NS_RGB(
-        AVG2(NS_GET_R(mDefaultColor), NS_GET_R(mDefaultBackgroundColor)),
-        NS_GET_G(mDefaultColor),
-        AVG2(NS_GET_B(mDefaultColor), NS_GET_B(mDefaultBackgroundColor)));
-  } else {
-    GetColor("browser.active_color", mActiveLinkColor);
-    GetColor("browser.visited_color", mVisitedLinkColor);
-  }
-
-  GetColor("browser.display.focus_text_color", mFocusTextColor);
-  GetColor("browser.display.focus_background_color", mFocusBackgroundColor);
+  GetColor("browser.display.focus_text_color", mColors.mFocusText);
+  GetColor("browser.display.focus_background_color", mColors.mFocusBackground);
 
   // Wherever we got the default background color from, ensure it is
   // opaque.
-  mDefaultBackgroundColor =
-      NS_ComposeColors(NS_RGB(0xFF, 0xFF, 0xFF), mDefaultBackgroundColor);
+  mColors.mDefaultBackground =
+      NS_ComposeColors(NS_RGB(0xFF, 0xFF, 0xFF), mColors.mDefaultBackground);
   mUseDocumentColors = UseDocumentColors(aIsChrome, mUseAccessibilityTheme);
 }
 
@@ -148,6 +160,10 @@ void PreferenceSheet::Initialize() {
 
   sContentPrefs.Load(false);
   sChromePrefs.Load(true);
+  sPrintPrefs = sContentPrefs;
+  if (!sPrintPrefs.mUseDocumentColors) {
+    sPrintPrefs.mColors = Prefs().mColors;
+  }
 
   nsAutoString useDocumentColorPref;
   switch (StaticPrefs::browser_display_document_color_use()) {
@@ -170,9 +186,9 @@ void PreferenceSheet::Initialize() {
     // color. Note, the document color use pref is the inverse of the HCM
     // dropdown option in preferences.
     Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_HCM_FOREGROUND,
-                         sContentPrefs.mDefaultColor);
+                         sContentPrefs.mColors.mDefault);
     Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_HCM_BACKGROUND,
-                         sContentPrefs.mDefaultBackgroundColor);
+                         sContentPrefs.mColors.mDefaultBackground);
   }
 
   Telemetry::ScalarSet(Telemetry::ScalarID::A11Y_BACKPLATE,

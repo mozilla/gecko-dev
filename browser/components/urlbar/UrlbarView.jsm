@@ -1626,7 +1626,11 @@ class UrlbarView {
           );
           continue;
         }
-        node.setAttribute(attrName, value);
+        if (value === null) {
+          node.removeAttribute(attrName);
+        } else {
+          node.setAttribute(attrName, value);
+        }
       }
       for (let [styleName, value] of Object.entries(update.style || {})) {
         node.style[styleName] = value;
@@ -1699,10 +1703,11 @@ class UrlbarView {
   }
 
   _rowLabel(row, currentLabel) {
-    // We only show Firefox Suggest-related labels if the feature is enabled and
-    // we're not showing top sites.
+    // We only show Firefox Suggest-related group labels if the locale is en-*
+    // and we're not showing top sites.
     if (
-      UrlbarPrefs.get("firefoxSuggestLabelsEnabled") &&
+      UrlbarPrefs.get("groupLabels.enabled") &&
+      Services.locale.appLocaleAsBCP47.substring(0, 2) == "en" &&
       this._queryContext?.searchString &&
       !row.result.heuristic
     ) {

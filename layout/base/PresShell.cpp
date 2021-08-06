@@ -1167,6 +1167,20 @@ bool PresShell::InRDMPane() {
   return false;
 }
 
+#if defined(MOZ_WIDGET_ANDROID)
+void PresShell::MaybeNotifyShowDynamicToolbar() {
+  const DynamicToolbarState dynToolbarState = GetDynamicToolbarState();
+  if ((dynToolbarState == DynamicToolbarState::Collapsed ||
+       dynToolbarState == DynamicToolbarState::InTransition)) {
+    MOZ_ASSERT(mPresContext &&
+               mPresContext->IsRootContentDocumentCrossProcess());
+    if (BrowserChild* browserChild = BrowserChild::GetFrom(this)) {
+      browserChild->SendShowDynamicToolbar();
+    }
+  }
+}
+#endif  // defined(MOZ_WIDGET_ANDROID)
+
 void PresShell::Destroy() {
   // Do not add code before this line please!
   if (mHaveShutDown) {
@@ -1994,6 +2008,10 @@ void PresShell::SimpleResizeReflow(nscoord aWidth, nscoord aHeight,
   }
   FrameNeedsReflow(rootFrame, IntrinsicDirty::Resize,
                    NS_FRAME_HAS_DIRTY_CHILDREN);
+
+  if (mMobileViewportManager) {
+    mMobileViewportManager->UpdateSizesBeforeReflow();
+  }
 
   // For compat with the old code path which always reflowed as long as there
   // was a root frame.
@@ -3870,10 +3888,15 @@ void PresShell::UnsuppressAndInvalidate() {
   ScheduleBeforeFirstPaint();
 
   mPaintingSuppressed = false;
-  nsIFrame* rootFrame = mFrameConstructor->GetRootFrame();
-  if (rootFrame) {
+  if (nsIFrame* rootFrame = mFrameConstructor->GetRootFrame()) {
     // let's assume that outline on a root frame is not supported
     rootFrame->InvalidateFrame();
+  }
+
+  if (mPresContext->IsRootContentDocumentCrossProcess()) {
+    if (auto* bc = BrowserChild::GetFrom(mDocument->GetDocShell())) {
+      bc->SendDidUnsuppressPainting();
+    }
   }
 
   // now that painting is unsuppressed, focus may be set on the document
@@ -4565,11 +4588,11 @@ nsresult PresShell::RenderDocument(const nsRect& aRect,
     nsView* view = rootFrame->GetView();
     if (view && view->GetWidget() &&
         nsLayoutUtils::GetDisplayRootFrame(rootFrame) == rootFrame) {
-      LayerManager* layerManager = view->GetWidget()->GetLayerManager();
+      WindowRenderer* renderer = view->GetWidget()->GetWindowRenderer();
       // ClientLayerManagers or WebRenderLayerManagers in content processes
       // don't support taking snapshots.
-      if (layerManager &&
-          (!layerManager->AsKnowsCompositor() || XRE_IsParentProcess())) {
+      if (renderer &&
+          (!renderer->AsKnowsCompositor() || XRE_IsParentProcess())) {
         flags |= PaintFrameFlags::WidgetLayers;
       }
     }
@@ -5351,13 +5374,13 @@ struct PaintParams {
   nscolor mBackgroundColor;
 };
 
-LayerManager* PresShell::GetLayerManager() {
+WindowRenderer* PresShell::GetWindowRenderer() {
   NS_ASSERTION(mViewManager, "Should have view manager");
 
   nsView* rootView = mViewManager->GetRootView();
   if (rootView) {
     if (nsIWidget* widget = rootView->GetWidget()) {
-      return widget->GetLayerManager();
+      return widget->GetWindowRenderer();
     }
   }
   return nullptr;
@@ -5429,9 +5452,9 @@ void PresShell::SetRenderingState(const RenderingState& aState) {
   if (mRenderingStateFlags != aState.mRenderingStateFlags) {
     // Rendering state changed in a way that forces us to flush any
     // retained layers we might already have.
-    LayerManager* manager = GetLayerManager();
-    if (manager) {
-      FrameLayerBuilder::InvalidateAllLayers(manager);
+    WindowRenderer* renderer = GetWindowRenderer();
+    if (renderer && renderer->AsLayerManager()) {
+      FrameLayerBuilder::InvalidateAllLayers(renderer->AsLayerManager());
     }
   }
 
@@ -6225,6 +6248,36 @@ class nsAutoNotifyDidPaint {
   PaintFlags mFlags;
 };
 
+bool PresShell::Composite(nsView* aViewToPaint) {
+  nsCString url;
+  nsIURI* uri = mDocument->GetDocumentURI();
+  Document* contentRoot = GetPrimaryContentDocument();
+  if (contentRoot) {
+    uri = contentRoot->GetDocumentURI();
+  }
+  url = uri ? uri->GetSpecOrDefault() : "N/A"_ns;
+  AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("PresShell::Composite", GRAPHICS, url);
+
+  nsIFrame* frame = aViewToPaint->GetFrame();
+  WindowRenderer* renderer = aViewToPaint->GetWidget()->GetWindowRenderer();
+  NS_ASSERTION(renderer, "Must be in paint event");
+
+  if (!renderer->BeginTransaction(url)) {
+    // If we can't begin a transaction and paint, then there's not
+    // much the caller can do.
+    return true;
+  }
+
+  if (frame) {
+    if (renderer->EndEmptyTransaction()) {
+      GetPresContext()->NotifyDidPaintForSubtree();
+      return true;
+    }
+    NS_WARNING("Must complete empty transaction when compositing!");
+  }
+  return false;
+}
+
 void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
                       PaintFlags aFlags) {
   nsCString url;
@@ -6271,9 +6324,10 @@ void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
 
   nsIFrame* frame = aViewToPaint->GetFrame();
 
-  LayerManager* layerManager = aViewToPaint->GetWidget()->GetLayerManager();
-  NS_ASSERTION(layerManager, "Must be in paint event");
-  bool shouldInvalidate = layerManager->NeedsWidgetInvalidation();
+  WindowRenderer* renderer = aViewToPaint->GetWidget()->GetWindowRenderer();
+  NS_ASSERTION(renderer, "Must be in paint event");
+  LayerManager* layerManager = renderer->AsLayerManager();
+  bool shouldInvalidate = renderer->NeedsWidgetInvalidation();
 
   nsAutoNotifyDidPaint notifyDidPaint(this, aFlags);
 
@@ -6285,33 +6339,23 @@ void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
     MOZ_LOG(gLog, LogLevel::Debug,
             ("PresShell::Paint, first paint, this=%p", this));
 
-    layerManager->SetIsFirstPaint();
+    if (layerManager) {
+      layerManager->SetIsFirstPaint();
+    }
     mIsFirstPaint = false;
   }
 
-  if (!layerManager->BeginTransaction(url)) {
+  if (!renderer->BeginTransaction(url)) {
     return;
   }
 
   // Send an updated focus target with this transaction. Be sure to do this
   // before we paint in the case this is an empty transaction.
-  layerManager->SetFocusTarget(mAPZFocusTarget);
+  if (layerManager) {
+    layerManager->SetFocusTarget(mAPZFocusTarget);
+  }
 
   if (frame) {
-    // Try to do an empty transaction, if the frame tree does not
-    // need to be updated. Do not try to do an empty transaction on
-    // a non-retained layer manager (like the BasicLayerManager that
-    // draws the window title bar on Mac), because a) it won't work
-    // and b) below we don't want to clear NS_FRAME_UPDATE_LAYER_TREE,
-    // that will cause us to forget to update the real layer manager!
-
-    if (!(aFlags & PaintFlags::PaintLayers)) {
-      if (layerManager->EndEmptyTransaction()) {
-        return;
-      }
-      NS_WARNING("Must complete empty transaction when compositing!");
-    }
-
     if (!(aFlags & PaintFlags::PaintSyncDecodeImages) &&
         !frame->HasAnyStateBits(NS_FRAME_UPDATE_LAYER_TREE) &&
         !mNextPaintCompressed) {
@@ -6321,22 +6365,23 @@ void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
               : 0;
       bool computeInvalidRect =
           computeInvalidFunc ||
-          (layerManager->GetBackendType() == LayersBackend::LAYERS_BASIC);
+          (renderer->GetBackendType() == LayersBackend::LAYERS_BASIC);
 
       UniquePtr<LayerProperties> props;
       // For WR, the layermanager has no root layer. We want to avoid
       // calling ComputeDifferences in that case because it assumes non-null
       // and crashes.
-      if (computeInvalidRect && layerManager->GetRoot()) {
+      if (computeInvalidRect && layerManager && layerManager->GetRoot()) {
         props = LayerProperties::CloneFrom(layerManager->GetRoot());
       }
 
-      MaybeSetupTransactionIdAllocator(layerManager, presContext);
+      if (layerManager) {
+        MaybeSetupTransactionIdAllocator(layerManager, presContext);
+      }
 
-      if (layerManager->EndEmptyTransaction(
-              (aFlags & PaintFlags::PaintComposite)
-                  ? LayerManager::END_DEFAULT
-                  : LayerManager::END_NO_COMPOSITE)) {
+      if (renderer->EndEmptyTransaction((aFlags & PaintFlags::PaintComposite)
+                                            ? LayerManager::END_DEFAULT
+                                            : LayerManager::END_NO_COMPOSITE)) {
         nsIntRegion invalid;
         bool areaOverflowed = false;
         if (props) {
@@ -6344,7 +6389,7 @@ void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
                                          computeInvalidFunc)) {
             areaOverflowed = true;
           }
-        } else {
+        } else if (layerManager) {
           LayerProperties::ClearInvalidations(layerManager->GetRoot());
         }
         if (props && !areaOverflowed) {
@@ -6391,7 +6436,7 @@ void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
     flags |= PaintFrameFlags::Compressed;
     mNextPaintCompressed = false;
   }
-  if (layerManager->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
+  if (renderer->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
     flags |= PaintFrameFlags::ForWebRender;
   }
 
@@ -6402,11 +6447,23 @@ void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
     return;
   }
 
+  bgcolor = NS_ComposeColors(bgcolor, mCanvasBackgroundColor);
+
+  if (!layerManager) {
+    FallbackRenderer* fallback = renderer->AsFallback();
+    MOZ_ASSERT(fallback);
+
+    if (aFlags & PaintFlags::PaintComposite) {
+      nsIntRect bounds = presContext->GetVisibleArea().ToOutsidePixels(
+          presContext->AppUnitsPerDevPixel());
+      fallback->EndTransactionWithColor(bounds, ToDeviceColor(bgcolor));
+    }
+    return;
+  }
+
   if (layerManager->GetBackendType() == layers::LayersBackend::LAYERS_WR) {
-    nsPresContext* pc = GetPresContext();
     LayoutDeviceRect bounds = LayoutDeviceRect::FromAppUnits(
-        pc->GetVisibleArea(), pc->AppUnitsPerDevPixel());
-    bgcolor = NS_ComposeColors(bgcolor, mCanvasBackgroundColor);
+        presContext->GetVisibleArea(), presContext->AppUnitsPerDevPixel());
     WebRenderBackgroundData data(wr::ToLayoutRect(bounds),
                                  wr::ToColorF(ToDeviceColor(bgcolor)));
     WrFiltersHolder wrFilters;
@@ -6419,10 +6476,8 @@ void PresShell::Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
 
   RefPtr<ColorLayer> root = layerManager->CreateColorLayer();
   if (root) {
-    nsPresContext* pc = GetPresContext();
-    nsIntRect bounds =
-        pc->GetVisibleArea().ToOutsidePixels(pc->AppUnitsPerDevPixel());
-    bgcolor = NS_ComposeColors(bgcolor, mCanvasBackgroundColor);
+    nsIntRect bounds = presContext->GetVisibleArea().ToOutsidePixels(
+        presContext->AppUnitsPerDevPixel());
     root->SetColor(ToDeviceColor(bgcolor));
     root->SetVisibleRegion(LayerIntRegion::FromUnknownRegion(bounds));
     layerManager->SetRoot(root);
@@ -8297,6 +8352,12 @@ bool PresShell::EventHandler::PrepareToDispatchEvent(
       }
       return true;
     }
+    case eDragExit: {
+      if (!StaticPrefs::dom_event_dragexit_enabled()) {
+        aEvent->mFlags.mOnlyChromeDispatch = true;
+      }
+      return true;
+    }
     case eContextMenu: {
       // If we cannot open context menu even though eContextMenu is fired, we
       // should stop dispatching it into the DOM.
@@ -9460,10 +9521,6 @@ bool PresShell::DoReflow(nsIFrame* target, bool aInterruptible,
     tp->Accumulate();
     tp->reflowCount++;
     timeStart = TimeStamp::Now();
-  }
-
-  if (mMobileViewportManager) {
-    mMobileViewportManager->UpdateSizesBeforeReflow();
   }
 
   // Schedule a paint, but don't actually mark this frame as changed for

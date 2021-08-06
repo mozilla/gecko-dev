@@ -6,10 +6,6 @@
 
 const selectors = require("devtools/client/performance-new/store/selectors");
 const {
-  translatePreferencesToState,
-  translatePreferencesFromState,
-} = require("devtools/client/performance-new/preference-management");
-const {
   getEnvironmentVariable,
 } = require("devtools/client/performance-new/browser");
 
@@ -30,31 +26,48 @@ const {
  */
 
 /**
- * The recording state manages the current state of the recording panel.
- * @param {RecordingState} state - A valid state in `recordingState`.
- * @param {{ didRecordingUnexpectedlyStopped: boolean }} options
- * @return {Action}
- */
-const changeRecordingState = (exports.changeRecordingState = (
-  state,
-  options = { didRecordingUnexpectedlyStopped: false }
-) => ({
-  type: "CHANGE_RECORDING_STATE",
-  state,
-  didRecordingUnexpectedlyStopped: options.didRecordingUnexpectedlyStopped,
-}));
-
-/**
  * This is the result of the initial questions about the state of the profiler.
  *
- * @param {boolean} isSupportedPlatform - This is a supported platform.
- * @param {RecordingState} recordingState - A valid state in `recordingState`.
+ * @param {boolean} isActive
+ * @param {boolean} isLockedForPrivateBrowsing
  * @return {Action}
  */
-exports.reportProfilerReady = (isSupportedPlatform, recordingState) => ({
+exports.reportProfilerReady = (isActive, isLockedForPrivateBrowsing) => ({
   type: "REPORT_PROFILER_READY",
-  isSupportedPlatform,
-  recordingState,
+  isActive,
+  isLockedForPrivateBrowsing,
+});
+
+/**
+ * Dispatched when the profiler starting is observed.
+ * @return {Action}
+ */
+exports.reportProfilerStarted = () => ({
+  type: "REPORT_PROFILER_STARTED",
+});
+
+/**
+ * Dispatched when the profiler stopping is observed.
+ * @return {Action}
+ */
+exports.reportProfilerStopped = () => ({
+  type: "REPORT_PROFILER_STOPPED",
+});
+
+/**
+ * Dispatched when a private browsing session has started.
+ * @return {Action}
+ */
+exports.reportPrivateBrowsingStarted = () => ({
+  type: "REPORT_PRIVATE_BROWSING_STARTED",
+});
+
+/**
+ * Dispatched when a private browsing session has ended.
+ * @return {Action}
+ */
+exports.reportPrivateBrowsingStopped = () => ({
+  type: "REPORT_PRIVATE_BROWSING_STOPPED",
 });
 
 /**
@@ -71,11 +84,11 @@ function _dispatchAndUpdatePreferences(action) {
       );
     }
     dispatch(action);
-    const setRecordingPreferences = selectors.getSetRecordingPreferencesFn(
+    const setRecordingSettings = selectors.getSetRecordingSettingsFn(
       getState()
     );
     const recordingSettings = selectors.getRecordingSettings(getState());
-    setRecordingPreferences(translatePreferencesFromState(recordingSettings));
+    setRecordingSettings(recordingSettings);
   };
 }
 
@@ -110,8 +123,9 @@ exports.changeFeatures = features => {
   return ({ dispatch, getState }) => {
     let promptEnvRestart = null;
     if (selectors.getPageContext(getState()) === "aboutprofiling") {
-      // TODO Bug 1615431 - The popup supported restarting the browser, but
-      // this hasn't been updated yet for the about:profiling workflow.
+      // TODO Bug 1615431 - The old popup supported restarting the browser, but
+      // this hasn't been updated yet for the about:profiling workflow, because
+      // jstracer is disabled for now.
       if (
         !getEnvironmentVariable("JS_TRACE_LOGGING") &&
         features.includes("jstracer")
@@ -174,58 +188,52 @@ exports.changeObjdirs = objdirs =>
  * @return {Action}
  */
 exports.initializeStore = values => {
-  const { recordingPreferences, ...initValues } = values;
+  const { recordingSettings, ...initValues } = values;
   return {
     ...initValues,
     type: "INITIALIZE_STORE",
-    recordingSettingsFromPreferences: translatePreferencesToState(
-      recordingPreferences
-    ),
+    recordingSettingsFromPreferences: recordingSettings,
   };
 };
 
 /**
  * Start a new recording with the perfFront and update the internal recording state.
+ * @param {PerfFront} perfFront
  * @return {ThunkAction<void>}
  */
-exports.startRecording = () => {
+exports.startRecording = perfFront => {
   return ({ dispatch, getState }) => {
     const recordingSettings = selectors.getRecordingSettings(getState());
-    const perfFront = selectors.getPerfFront(getState());
     // In the case of the profiler popup, the startProfiler can be synchronous.
     // In order to properly allow the React components to handle the state changes
     // make sure and change the recording state first, then start the profiler.
-    dispatch(changeRecordingState("request-to-start-recording"));
+    dispatch({ type: "REQUESTING_TO_START_RECORDING" });
     perfFront.startProfiler(recordingSettings);
   };
 };
 
 /**
  * Stops the profiler, and opens the profile in a new window.
- * @return {ThunkAction<void>}
+ * @param {PerfFront} perfFront
+ * @return {ThunkAction<Promise<MinimallyTypedGeckoProfile>>}
  */
-exports.getProfileAndStopProfiler = () => {
+exports.getProfileAndStopProfiler = perfFront => {
   return async ({ dispatch, getState }) => {
-    const perfFront = selectors.getPerfFront(getState());
-    dispatch(changeRecordingState("request-to-get-profile-and-stop-profiler"));
+    dispatch({ type: "REQUESTING_PROFILE" });
     const profile = await perfFront.getProfileAndStopProfiler();
-
-    const getSymbolTable = selectors.getSymbolTableGetter(getState())(profile);
-    const receiveProfile = selectors.getReceiveProfileFn(getState());
-    const profilerViewMode = selectors.getProfilerViewMode(getState());
-    receiveProfile(profile, profilerViewMode, getSymbolTable);
-    dispatch(changeRecordingState("available-to-record"));
+    dispatch({ type: "OBTAINED_PROFILE" });
+    return profile;
   };
 };
 
 /**
  * Stops the profiler, but does not try to retrieve the profile.
+ * @param {PerfFront} perfFront
  * @return {ThunkAction<void>}
  */
-exports.stopProfilerAndDiscardProfile = () => {
+exports.stopProfilerAndDiscardProfile = perfFront => {
   return async ({ dispatch, getState }) => {
-    const perfFront = selectors.getPerfFront(getState());
-    dispatch(changeRecordingState("request-to-stop-profiler"));
+    dispatch({ type: "REQUESTING_TO_STOP_RECORDING" });
 
     try {
       await perfFront.stopProfilerAndDiscardProfile();

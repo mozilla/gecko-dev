@@ -30,6 +30,20 @@ binutils-2.31.1:
         strip-components: 1
         add-prefix: binutils-source/
 
+binutils-2.36.1:
+    description: binutils 2.36.1 source code
+    fetch:
+        type: static-url
+        url: ftp://ftp.gnu.org/gnu/binutils/binutils-2.36.1.tar.xz
+        sha256: e81d9edf373f193af428a0f256674aea62a9d74dfe93f65192d4eae030b0f3b0
+        size: 22772248
+        gpg-signature:
+            sig-url: "{url}.sig"
+            key-path: build/unix/build-binutils/3A24BC1E8FB409FA9F14371813FCEF89DD9E3C4F.key
+        artifact-name: binutils-source.tar.zst
+        strip-components: 1
+        add-prefix: binutils-source/
+
 gcc-6.5.0:
     description: GCC 6.5.0 source code
     fetch:
@@ -460,21 +474,21 @@ clang-trunk:
         repo: https://github.com/llvm/llvm-project
         branch: main
 
-# This revision currently corresponds to rust nightly-2021-05-02,
-# which is the first nightly with the version 1.54.0,
+# This revision currently corresponds to rust nightly-2021-06-13,
+# which is the first nightly with the version 1.55.0,
 # so it should be as close as possible to the behaviour of
-# stable-1.53.0.
+# stable-1.54.0.
 #
 # We use this to build from source, so the resulting non-official
-# artifacts will report their version as "1.54.0-dev", but will otherwise
+# artifacts will report their version as "1.55.0-dev", but will otherwise
 # behave like a nightly build. This means they will allow you to use
 # unstable features like -Zbuild-std and sanitizers.
-rust-1.54.0-dev:
-    description: Rust 1.54.0-dev source code
+rust-1.55.0-dev:
+    description: Rust 1.55.0-dev source code
     fetch:
         type: git
         repo: https://github.com/rust-lang/rust/
-        revision: 4de75720970a223b125a811d3662fd15a08d4d18
+        revision: 24bdc6d73a75dce9a7013ebc7c037013ff4ea099
 
 wasi-sdk:
     description: wasi-sdk source code
@@ -670,3 +684,10 @@ gnumake:
         artifact-name: make.tar.zst
         strip-components: 1
         add-prefix: make/
+
+msix-packaging:
+    description: Microsoft msix-packaging
+    fetch:
+        type: git
+        repo: https://github.com/mozilla/msix-packaging
+        revision: 8164b7ac5a67688e18fa2497fb31ba13ce9bfb15

@@ -748,7 +748,9 @@ richlistitem[selected] .actionsMenu:focus-visible {
 }
 
 .fxaLoginRejectedWarning {
-  list-style-image: url(chrome://browser/skin/warning.svg);
+  list-style-image: url(chrome://global/skin/icons/warning.svg);
+  -moz-context-properties: fill;
+  fill: #FFBF00;
   margin-inline: 4px 8px;
 }
 
@@ -1039,17 +1041,6 @@ menulist[indicator=true] > menupopup menuitem[indicator=true]:not([image]) > .me
 #no-results-message > label {
   margin: 2px 0;
   line-height: 30px;
-}
-
-#no-results-message[query*=🔥🦊] {
-  background-image: url("chrome://browser/skin/preferences/critters-postcard.jpg");
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-#no-results-message[query*=🔥🦊] > .no-results-container {
-  visibility: hidden;
 }
 
 /* Proxy port input */

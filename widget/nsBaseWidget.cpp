@@ -154,7 +154,6 @@ nsBaseWidget::nsBaseWidget()
     : mWidgetListener(nullptr),
       mAttachedWidgetListener(nullptr),
       mPreviouslyAttachedWidgetListener(nullptr),
-      mLayerManager(nullptr),
       mCompositorVsyncDispatcher(nullptr),
       mBorderStyle(eBorderStyle_none),
       mBounds(0, 0, 0, 0),
@@ -390,10 +389,10 @@ void nsBaseWidget::DestroyCompositor() {
 // This prevents the layer manager from starting a new transaction during
 // shutdown.
 void nsBaseWidget::RevokeTransactionIdAllocator() {
-  if (!mLayerManager) {
+  if (!mWindowRenderer || !mWindowRenderer->AsLayerManager()) {
     return;
   }
-  mLayerManager->SetTransactionIdAllocator(nullptr);
+  mWindowRenderer->AsLayerManager()->SetTransactionIdAllocator(nullptr);
 }
 
 void nsBaseWidget::ReleaseContentController() {
@@ -404,9 +403,9 @@ void nsBaseWidget::ReleaseContentController() {
 }
 
 void nsBaseWidget::DestroyLayerManager() {
-  if (mLayerManager) {
-    mLayerManager->Destroy();
-    mLayerManager = nullptr;
+  if (mWindowRenderer) {
+    mWindowRenderer->Destroy();
+    mWindowRenderer = nullptr;
   }
   DestroyCompositor();
 }
@@ -436,8 +435,9 @@ void nsBaseWidget::FreeLocalesChangedObserver() {
 nsBaseWidget::~nsBaseWidget() {
   IMEStateManager::WidgetDestroyed(this);
 
-  if (mLayerManager) {
-    if (BasicLayerManager* mgr = mLayerManager->AsBasicLayerManager()) {
+  if (mWindowRenderer && mWindowRenderer->AsLayerManager()) {
+    if (BasicLayerManager* mgr =
+            mWindowRenderer->AsLayerManager()->AsBasicLayerManager()) {
       mgr->ClearRetainerWidget();
     }
   }
@@ -881,10 +881,15 @@ nsresult nsBaseWidget::MakeFullScreen(bool aFullScreen, nsIScreen* aScreen) {
 }
 
 nsBaseWidget::AutoLayerManagerSetup::AutoLayerManagerSetup(
-    nsBaseWidget* aWidget, gfxContext* aTarget, BufferMode aDoubleBuffering,
-    ScreenRotation aRotation)
+    nsBaseWidget* aWidget, gfxContext* aTarget, BufferMode aDoubleBuffering)
     : mWidget(aWidget) {
-  LayerManager* lm = mWidget->GetLayerManager();
+  WindowRenderer* renderer = mWidget->GetWindowRenderer();
+  if (renderer->AsFallback()) {
+    mRenderer = renderer->AsFallback();
+    mRenderer->SetTarget(aTarget, aDoubleBuffering);
+    return;
+  }
+  LayerManager* lm = renderer ? renderer->AsLayerManager() : nullptr;
   NS_ASSERTION(
       !lm || lm->GetBackendType() == LayersBackend::LAYERS_BASIC,
       "AutoLayerManagerSetup instantiated for non-basic layer backend!");
@@ -892,7 +897,8 @@ nsBaseWidget::AutoLayerManagerSetup::AutoLayerManagerSetup(
     mLayerManager = lm->AsBasicLayerManager();
     if (mLayerManager) {
       mLayerManager->SetDefaultTarget(aTarget);
-      mLayerManager->SetDefaultTargetConfiguration(aDoubleBuffering, aRotation);
+      mLayerManager->SetDefaultTargetConfiguration(aDoubleBuffering,
+                                                   ROTATION_0);
     }
   }
 }
@@ -902,6 +908,9 @@ nsBaseWidget::AutoLayerManagerSetup::~AutoLayerManagerSetup() {
     mLayerManager->SetDefaultTarget(nullptr);
     mLayerManager->SetDefaultTargetConfiguration(
         mozilla::layers::BufferMode::BUFFER_NONE, ROTATION_0);
+  }
+  if (mRenderer) {
+    mRenderer->SetTarget(nullptr, mozilla::layers::BufferMode::BUFFER_NONE);
   }
 }
 
@@ -1480,7 +1489,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight) {
 
   WindowUsesOMTC();
 
-  mLayerManager = std::move(lm);
+  mWindowRenderer = std::move(lm);
 
   // Only track compositors for top-level windows, since other window types
   // may use the basic compositor.  Except on the OS X - see bug 1306383
@@ -1492,7 +1501,7 @@ void nsBaseWidget::CreateCompositor(int aWidth, int aHeight) {
 
   if (getCompositorFromThisWindow) {
     gfxPlatform::GetPlatform()->NotifyCompositorCreated(
-        mLayerManager->GetCompositorBackendType());
+        mWindowRenderer->GetCompositorBackendType());
   }
 }
 
@@ -1505,33 +1514,30 @@ bool nsBaseWidget::ShouldUseOffMainThreadCompositing() {
   return gfxPlatform::UsesOffMainThreadCompositing();
 }
 
-LayerManager* nsBaseWidget::GetLayerManager(
-    PLayerTransactionChild* aShadowManager, LayersBackend aBackendHint,
-    LayerManagerPersistence aPersistence) {
-  if (!mLayerManager) {
+WindowRenderer* nsBaseWidget::GetWindowRenderer() {
+  if (!mWindowRenderer) {
     if (!mShutdownObserver) {
       // We are shutting down, do not try to re-create a LayerManager
       return nullptr;
     }
     // Try to use an async compositor first, if possible
     if (ShouldUseOffMainThreadCompositing()) {
-      // e10s uses the parameter to pass in the shadow manager from the
-      // BrowserChild so we don't expect to see it there since this doesn't
-      // support e10s.
-      NS_ASSERTION(aShadowManager == nullptr,
-                   "Async Compositor not supported with e10s");
       CreateCompositor();
     }
 
-    if (!mLayerManager) {
-      mLayerManager = CreateBasicLayerManager();
+    if (!mWindowRenderer) {
+      mWindowRenderer = CreateBasicLayerManager();
     }
   }
-  return mLayerManager;
+  return mWindowRenderer;
 }
 
-LayerManager* nsBaseWidget::CreateBasicLayerManager() {
-  return new BasicLayerManager(this);
+WindowRenderer* nsBaseWidget::CreateBasicLayerManager() {
+  if (StaticPrefs::gfx_basic_layer_manager_force_enabled()) {
+    return new BasicLayerManager(this);
+  } else {
+    return new FallbackRenderer;
+  }
 }
 
 CompositorBridgeChild* nsBaseWidget::GetRemoteRenderer() {
@@ -1539,10 +1545,10 @@ CompositorBridgeChild* nsBaseWidget::GetRemoteRenderer() {
 }
 
 void nsBaseWidget::ClearCachedWebrenderResources() {
-  if (!mLayerManager || !mLayerManager->AsWebRenderLayerManager()) {
+  if (!mWindowRenderer || !mWindowRenderer->AsWebRender()) {
     return;
   }
-  mLayerManager->ClearCachedResources();
+  mWindowRenderer->AsWebRender()->ClearCachedResources();
 }
 
 already_AddRefed<gfx::DrawTarget> nsBaseWidget::StartRemoteDrawing() {
@@ -1981,6 +1987,11 @@ void nsBaseWidget::StopAsyncAutoscroll(const ScrollableLayerGuid& aGuid) {
   MOZ_ASSERT(XRE_IsParentProcess() && AsyncPanZoomEnabled());
 
   mAPZC->StopAutoscroll(aGuid);
+}
+
+LayersId nsBaseWidget::GetRootLayerTreeId() {
+  return mCompositorSession ? mCompositorSession->RootLayerTreeId()
+                            : LayersId{0};
 }
 
 already_AddRefed<nsIScreen> nsBaseWidget::GetWidgetScreen() {

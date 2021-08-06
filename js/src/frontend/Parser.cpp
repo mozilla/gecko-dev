@@ -152,7 +152,7 @@ ParserSharedBase::ParserSharedBase(JSContext* cx,
                                    CompilationState& compilationState,
                                    Kind kind)
     : cx_(cx),
-      alloc_(compilationState.allocScope.alloc()),
+      alloc_(compilationState.parserAllocScope.alloc()),
       compilationState_(compilationState),
       pc_(nullptr),
       usedNames_(compilationState.usedNames) {
@@ -198,8 +198,7 @@ PerHandlerParser<ParseHandler>::PerHandlerParser(
     JSContext* cx, const ReadOnlyCompileOptions& options, bool foldConstants,
     CompilationState& compilationState, void* internalSyntaxParser)
     : ParserBase(cx, options, foldConstants, compilationState),
-      handler_(cx, compilationState.allocScope.alloc(),
-               compilationState.input.lazyOuterScript()),
+      handler_(cx, compilationState),
       internalSyntaxParser_(internalSyntaxParser) {
   MOZ_ASSERT(compilationState.isInitialStencil() ==
              compilationState.input.isInitialStencil());
@@ -293,6 +292,44 @@ FunctionBox* PerHandlerParser<ParseHandler>::newFunctionBox(
   }
 
   handler_.setFunctionBox(funNode, funbox);
+
+  return funbox;
+}
+
+template <class ParseHandler>
+FunctionBox* PerHandlerParser<ParseHandler>::newFunctionBox(
+    FunctionNodeType funNode, const ScriptStencil& cachedScriptData,
+    const ScriptStencilExtra& cachedScriptExtra) {
+  MOZ_ASSERT(funNode);
+
+  ScriptIndex index = ScriptIndex(compilationState_.scriptData.length());
+  if (uint32_t(index) >= TaggedScriptThingIndex::IndexLimit) {
+    ReportAllocationOverflow(cx_);
+    return nullptr;
+  }
+  if (!compilationState_.appendScriptStencilAndData(cx_)) {
+    return nullptr;
+  }
+
+  /*
+   * We use JSContext.tempLifoAlloc to allocate parsed objects and place them
+   * on a list in this Parser to ensure GC safety. Thus the tempLifoAlloc
+   * arenas containing the entries must be alive until we are done with
+   * scanning, parsing and code generation for the whole script or top-level
+   * function.
+   */
+  FunctionBox* funbox = alloc_.new_<FunctionBox>(
+      cx_, cachedScriptExtra.extent, compilationState_,
+      Directives(/* strict = */ false), cachedScriptExtra.generatorKind(),
+      cachedScriptExtra.asyncKind(), compilationState_.isInitialStencil(),
+      cachedScriptData.functionAtom, cachedScriptData.functionFlags, index);
+  if (!funbox) {
+    ReportOutOfMemory(cx_);
+    return nullptr;
+  }
+
+  handler_.setFunctionBox(funNode, funbox);
+  funbox->initFromScriptStencilExtra(cachedScriptExtra);
 
   return funbox;
 }
@@ -870,22 +907,14 @@ bool PerHandlerParser<ParseHandler>::
     return false;
   }
 
-  if (handler_.canSkipLazyClosedOverBindings()) {
+  if (handler_.reuseClosedOverBindings()) {
     MOZ_ASSERT(pc_->isOutermostOfCurrentCompile());
 
-    // Scopes are nullptr-delimited in the BaseScript closed over bindings
-    // array.
+    // Closed over bindings for all scopes are stored in a contiguous array, in
+    // the same order as the order in which scopes are visited, and seprated by
+    // TaggedParserAtomIndex::null().
     uint32_t slotCount = scope.declaredCount();
-    while (JSAtom* name = handler_.nextLazyClosedOverBinding()) {
-      // TODO-Stencil
-      //   After closed-over-bindings are snapshotted in the handler,
-      //   remove this.
-      auto parserAtom = this->parserAtoms().internJSAtom(
-          cx_, this->getCompilationState().input.atomCache, name);
-      if (!parserAtom) {
-        return false;
-      }
-
+    while (auto parserAtom = handler_.nextLazyClosedOverBinding()) {
       scope.lookupDeclaredName(parserAtom)->value()->setClosedOver();
       MOZ_ASSERT(slotCount > 0);
       slotCount--;
@@ -2461,8 +2490,7 @@ GeneralParser<ParseHandler, Unit>::functionBody(InHandling inHandling,
   // finishing up the scope so these special bindings get marked as closed
   // over if necessary. Arrow functions don't have these bindings.
   if (kind != FunctionSyntaxKind::Arrow) {
-    bool canSkipLazyClosedOverBindings =
-        handler_.canSkipLazyClosedOverBindings();
+    bool canSkipLazyClosedOverBindings = handler_.reuseClosedOverBindings();
     if (!pc_->declareFunctionArgumentsObject(usedNames_,
                                              canSkipLazyClosedOverBindings)) {
       return null();
@@ -2907,28 +2935,17 @@ bool Parser<FullParseHandler, Unit>::skipLazyInnerFunction(
   // so we can skip over them after accounting for their free variables.
 
   MOZ_ASSERT(pc_->isOutermostOfCurrentCompile());
+  handler_.nextLazyInnerFunction();
+  const ScriptStencil& cachedData = handler_.cachedScriptData();
+  const ScriptStencilExtra& cachedExtra = handler_.cachedScriptExtra();
+  MOZ_ASSERT(toStringStart == cachedExtra.extent.toStringStart);
 
-  RootedFunction fun(cx_, handler_.nextLazyInnerFunction());
-
-  // TODO-Stencil: Consider for snapshotting.
-  TaggedParserAtomIndex displayAtom;
-  if (fun->displayAtom()) {
-    displayAtom = this->parserAtoms().internJSAtom(
-        cx_, this->compilationState_.input.atomCache, fun->displayAtom());
-    if (!displayAtom) {
-      return false;
-    }
-  }
-
-  FunctionBox* funbox = newFunctionBox(
-      funNode, displayAtom, fun->flags(), toStringStart,
-      Directives(/* strict = */ false), fun->generatorKind(), fun->asyncKind());
+  FunctionBox* funbox = newFunctionBox(funNode, cachedData, cachedExtra);
   if (!funbox) {
     return false;
   }
 
   ScriptStencil& script = funbox->functionStencil();
-  funbox->initFromLazyFunctionToSkip(fun);
   funbox->copyFunctionFields(script);
 
   // If the inner lazy function is class constructor, connect it to the class
@@ -2942,11 +2959,6 @@ bool Parser<FullParseHandler, Unit>::skipLazyInnerFunction(
 
   MOZ_ASSERT_IF(pc_->isFunctionBox(),
                 pc_->functionBox()->index() < funbox->index());
-
-  // Info derived from parent compilation should not be set yet for our inner
-  // lazy functions. Instead that info will be updated when we finish our
-  // compilation.
-  MOZ_ASSERT(fun->baseScript()->hasEnclosingScript());
 
   PropagateTransitiveParseFlags(funbox, pc_->sc());
 
@@ -3072,7 +3084,7 @@ GeneralParser<ParseHandler, Unit>::functionDefinition(
   // When fully parsing a lazy script, we do not fully reparse its inner
   // functions, which are also lazy. Instead, their free variables and source
   // extents are recorded and may be skipped.
-  if (handler_.canSkipLazyInnerFunctions()) {
+  if (handler_.reuseLazyInnerFunctions()) {
     if (!skipLazyInnerFunction(funNode, toStringStart, tryAnnexB)) {
       return null();
     }
@@ -8101,7 +8113,7 @@ GeneralParser<ParseHandler, Unit>::synthesizeConstructor(
   // When fully parsing a lazy script, we do not fully reparse its inner
   // functions, which are also lazy. Instead, their free variables and source
   // extents are recorded and may be skipped.
-  if (handler_.canSkipLazyInnerFunctions()) {
+  if (handler_.reuseLazyInnerFunctions()) {
     if (!skipLazyInnerFunction(funNode, synthesizedBodyPos.begin,
                                /* tryAnnexB = */ false)) {
       return null();
@@ -8191,7 +8203,7 @@ GeneralParser<ParseHandler, Unit>::synthesizeConstructorBody(
     return null();
   }
 
-  bool canSkipLazyClosedOverBindings = handler_.canSkipLazyClosedOverBindings();
+  bool canSkipLazyClosedOverBindings = handler_.reuseClosedOverBindings();
   if (!pc_->declareFunctionThis(usedNames_, canSkipLazyClosedOverBindings)) {
     return null();
   }
@@ -8327,7 +8339,7 @@ GeneralParser<ParseHandler, Unit>::privateMethodInitializer(
     return null();
   }
 
-  bool canSkipLazyClosedOverBindings = handler_.canSkipLazyClosedOverBindings();
+  bool canSkipLazyClosedOverBindings = handler_.reuseClosedOverBindings();
   if (!pc_->declareFunctionThis(usedNames_, canSkipLazyClosedOverBindings)) {
     return null();
   }
@@ -8667,7 +8679,7 @@ GeneralParser<ParseHandler, Unit>::fieldInitializerOpt(
     return null();
   }
 
-  bool canSkipLazyClosedOverBindings = handler_.canSkipLazyClosedOverBindings();
+  bool canSkipLazyClosedOverBindings = handler_.reuseClosedOverBindings();
   if (!pc_->declareFunctionThis(usedNames_, canSkipLazyClosedOverBindings)) {
     return null();
   }
@@ -10929,11 +10941,11 @@ RegExpLiteral* Parser<FullParseHandler, Unit>::newRegExp() {
   uint32_t line, column;
   tokenStream.computeLineAndColumn(offset, &line, &column);
 
-  if (!handler_.canSkipRegexpSyntaxParse()) {
+  if (!handler_.reuseRegexpSyntaxParse()) {
     // Verify that the Regexp will syntax parse when the time comes to
     // instantiate it. If we have already done a syntax parse, we can
     // skip this.
-    LifoAllocScope allocScope(&cx_->tempLifoAlloc());
+    LifoAllocScope parserAllocScope(&cx_->tempLifoAlloc());
     if (!irregexp::CheckPatternSyntax(cx_, anyChars, range, flags, Some(line),
                                       Some(column))) {
       return nullptr;
@@ -10975,7 +10987,7 @@ Parser<SyntaxParseHandler, Unit>::newRegExp() {
 
   mozilla::Range<const char16_t> source(chars.begin(), chars.length());
   {
-    LifoAllocScope scopeAlloc(&alloc_);
+    LifoAllocScope regExpAllocScope(&alloc_);
     if (!irregexp::CheckPatternSyntax(cx_, anyChars, source, flags, Some(line),
                                       Some(column))) {
       return null();

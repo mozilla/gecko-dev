@@ -181,9 +181,11 @@ void PrintToConsole(const char* aFmt, ...) {
   va_end(args);
 }
 
+namespace detail {
 // Statically initialized to 0, then set once from profiler_init(), which should
 // be called from the main thread before any other use of the profiler.
-int scProfilerMainThreadId;
+BaseProfilerThreadId scProfilerMainThreadId;
+}  // namespace detail
 
 constexpr static bool ValidateFeatures() {
   int expectedFeatureNumber = 0;
@@ -687,7 +689,8 @@ class ActivePS {
 
       // If the filter starts with pid:, check for a pid match
       if (filter.find("pid:") == 0) {
-        std::string mypid = std::to_string(profiler_current_process_id());
+        std::string mypid =
+            std::to_string(profiler_current_process_id().ToNumber());
         if (filter.compare(4, std::string::npos, mypid) == 0) {
           return true;
         }
@@ -2149,11 +2152,11 @@ class Sampler {
 
   // This process' ID. Needed as an argument for tgkill in
   // SuspendAndSampleAndResumeThread.
-  int mMyPid;
+  BaseProfilerProcessId mMyPid;
 
   // The sampler thread's ID.  Used to assert that it is not sampling itself,
   // which would lead to deadlock.
-  int mSamplerTid;
+  BaseProfilerThreadId mSamplerTid;
 
  public:
   // This is the one-and-only variable used to communicate between the sampler
@@ -2446,7 +2449,7 @@ void SamplerThread::Run() {
 namespace mozilla {
 namespace baseprofiler {
 
-UniquePlatformData AllocPlatformData(int aThreadId) {
+UniquePlatformData AllocPlatformData(BaseProfilerThreadId aThreadId) {
   return UniquePlatformData(new PlatformData(aThreadId));
 }
 
@@ -2493,7 +2496,7 @@ uint32_t ParseFeaturesFromStringArray(const char** aFeatures,
 // Find the RegisteredThread for the current thread. This should only be called
 // in places where TLSRegisteredThread can't be used.
 static RegisteredThread* FindCurrentThreadRegisteredThread(PSLockRef aLock) {
-  int id = profiler_current_thread_id();
+  BaseProfilerThreadId id = profiler_current_thread_id();
   const Vector<UniquePtr<RegisteredThread>>& registeredThreads =
       CorePS::RegisteredThreads(aLock);
   for (auto& registeredThread : registeredThreads) {
@@ -2569,7 +2572,7 @@ static Vector<const char*> SplitAtCommas(const char* aString,
 void profiler_init(void* aStackTop) {
   LOG("profiler_init");
 
-  scProfilerMainThreadId = profiler_current_thread_id();
+  detail::scProfilerMainThreadId = profiler_current_thread_id();
 
   VTUNE_INIT();
 
@@ -3363,12 +3366,13 @@ ProfilingStack* profiler_register_thread(const char* aName,
   if (RegisteredThread* thread = FindCurrentThreadRegisteredThread(lock);
       thread) {
     LOG("profiler_register_thread(%s) - thread %d already registered as %s",
-        aName, profiler_current_thread_id(), thread->Info()->Name());
+        aName, int(profiler_current_thread_id().ToNumber()),
+        thread->Info()->Name());
     // TODO: Use new name. This is currently not possible because the
     // RegisteredThread's ThreadInfo cannot be changed.
     // In the meantime, we record a marker that could be used in the frontend.
     std::string text("Thread ");
-    text += std::to_string(profiler_current_thread_id());
+    text += std::to_string(profiler_current_thread_id().ToNumber());
     text += " \"";
     text += thread->Info()->Name();
     text += "\" attempted to re-register as \"";
@@ -3413,16 +3417,17 @@ void profiler_unregister_thread() {
     CorePS::RemoveRegisteredThread(lock, registeredThread);
   } else {
     LOG("profiler_unregister_thread() - thread %d already unregistered",
-        profiler_current_thread_id());
+        (profiler_current_thread_id().ToNumber()));
     // We cannot record a marker on this thread because it was already
     // unregistered. Send it to the main thread (unless this *is* already the
     // main thread, which has been unregistered); this may be useful to catch
     // mismatched register/unregister pairs in Firefox.
-    if (int tid = profiler_current_thread_id();
+    if (BaseProfilerThreadId tid = profiler_current_thread_id();
         tid != profiler_main_thread_id()) {
-      BASE_PROFILER_MARKER_TEXT("profiler_unregister_thread again",
-                                OTHER_Profiling, MarkerThreadId::MainThread(),
-                                std::to_string(profiler_current_thread_id()));
+      BASE_PROFILER_MARKER_TEXT(
+          "profiler_unregister_thread again", OTHER_Profiling,
+          MarkerThreadId::MainThread(),
+          std::to_string(profiler_current_thread_id().ToNumber()));
     }
     // There are two ways FindCurrentThreadRegisteredThread() might have failed.
     //
@@ -3642,12 +3647,13 @@ void profiler_add_js_marker(const char* aMarkerName, const char* aMarkerText) {
 // NOTE: aCollector's methods will be called while the target thread is paused.
 // Doing things in those methods like allocating -- which may try to claim
 // locks -- is a surefire way to deadlock.
-void profiler_suspend_and_sample_thread(int aThreadId, uint32_t aFeatures,
+void profiler_suspend_and_sample_thread(BaseProfilerThreadId aThreadId,
+                                        uint32_t aFeatures,
                                         ProfilerStackCollector& aCollector,
                                         bool aSampleNative /* = true */) {
   const bool isSynchronous = [&aThreadId]() {
-    const int currentThreadId = profiler_current_thread_id();
-    if (aThreadId == 0) {
+    const BaseProfilerThreadId currentThreadId = profiler_current_thread_id();
+    if (!aThreadId.IsSpecified()) {
       aThreadId = currentThreadId;
       return true;
     }

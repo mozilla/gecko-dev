@@ -12,6 +12,7 @@ use crate::values::computed::{Color as ComputedColor, Context, ToComputedValue};
 use crate::values::generics::color::{GenericColorOrAuto, GenericCaretColor};
 use crate::values::specified::calc::CalcNode;
 use crate::values::specified::Percentage;
+use crate::values::CustomIdent;
 use cssparser::{AngleOrNumber, Color as CSSParserColor, Parser, Token, RGBA};
 use cssparser::{BasicParseErrorKind, NumberOrPercentage, ParseErrorKind};
 use itoa;
@@ -340,10 +341,6 @@ pub enum SystemColor {
     MozMacActiveSourceListSelection,
     MozMacTooltip,
 
-    /// Parsed for compat, effectively black (not implemented in any platform).
-    /// See bug 1718934.
-    WebkitFocusRingColor,
-
     /// Theme accent color.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozAccentColor,
@@ -364,6 +361,10 @@ pub enum SystemColor {
     /// used regularly within Windows and the Gnome DE on Dialog and Window
     /// colors.
     MozNativehyperlinktext,
+
+    /// As above, but visited link color.
+    #[css(skip)]
+    MozNativevisitedhyperlinktext,
 
     #[parse(aliases = "-moz-hyperlinktext")]
     Linktext,
@@ -400,18 +401,21 @@ impl SystemColor {
     fn compute(&self, cx: &Context, scheme: SystemColorScheme) -> ComputedColor {
         use crate::gecko_bindings::bindings;
 
-        let prefs = cx.device().pref_sheet_prefs();
+        let colors = &cx.device().pref_sheet_prefs().mColors;
+        let style_color_scheme = cx.style().get_inherited_ui().clone_color_scheme();
 
+        // TODO: At least Canvas / CanvasText should be color-scheme aware
+        // (probably the link colors too).
         convert_nscolor_to_computedcolor(match *self {
-            SystemColor::Canvastext => prefs.mDefaultColor,
-            SystemColor::Canvas => prefs.mDefaultBackgroundColor,
-            SystemColor::Linktext => prefs.mLinkColor,
-            SystemColor::Activetext => prefs.mActiveLinkColor,
-            SystemColor::Visitedtext => prefs.mVisitedLinkColor,
+            SystemColor::Canvastext => colors.mDefault,
+            SystemColor::Canvas => colors.mDefaultBackground,
+            SystemColor::Linktext => colors.mLink,
+            SystemColor::Activetext => colors.mActiveLink,
+            SystemColor::Visitedtext => colors.mVisitedLink,
 
             _ => {
                 let color = unsafe {
-                    bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), scheme)
+                    bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document(), scheme, &style_color_scheme)
                 };
                 if color == bindings::NS_SAME_AS_FOREGROUND_COLOR {
                     return ComputedColor::currentcolor();
@@ -858,5 +862,125 @@ impl Parse for CaretColor {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         ColorOrAuto::parse(context, input).map(GenericCaretColor)
+    }
+}
+
+bitflags! {
+    /// Various flags to represent the color-scheme property in an efficient
+    /// way.
+    #[derive(Default, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[repr(C)]
+    #[value_info(other_values = "light,dark,only")]
+    pub struct ColorSchemeFlags: u8 {
+        /// Whether the author specified `light`.
+        const LIGHT = 1 << 0;
+        /// Whether the author specified `dark`.
+        const DARK = 1 << 1;
+        /// Whether the author specified `only`.
+        const ONLY = 1 << 2;
+    }
+}
+
+/// <https://drafts.csswg.org/css-color-adjust/#color-scheme-prop>
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+#[value_info(other_values = "normal")]
+pub struct ColorScheme {
+    #[ignore_malloc_size_of = "Arc"]
+    idents: crate::ArcSlice<CustomIdent>,
+    bits: ColorSchemeFlags,
+}
+
+impl ColorScheme {
+    /// Returns the `normal` value.
+    pub fn normal() -> Self {
+        Self {
+            idents: Default::default(),
+            bits: ColorSchemeFlags::empty(),
+        }
+    }
+}
+
+impl Parse for ColorScheme {
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        let mut idents = vec![];
+        let mut bits = ColorSchemeFlags::empty();
+
+        let mut location = input.current_source_location();
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
+            let mut is_only = false;
+            match_ignore_ascii_case! { &ident,
+                "normal" => {
+                    if idents.is_empty() && bits.is_empty() {
+                        return Ok(Self::normal());
+                    }
+                    return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                },
+                "light" => bits.insert(ColorSchemeFlags::LIGHT),
+                "dark" => bits.insert(ColorSchemeFlags::DARK),
+                "only" => {
+                    if bits.intersects(ColorSchemeFlags::ONLY) {
+                        return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                    }
+                    bits.insert(ColorSchemeFlags::ONLY);
+                    is_only = true;
+                },
+                _ => {},
+            };
+
+            if is_only {
+                if !idents.is_empty() {
+                    // Only is allowed either at the beginning or at the end,
+                    // but not in the middle.
+                    break;
+                }
+            } else {
+                idents.push(CustomIdent::from_ident(location, &ident, &[])?);
+            }
+            location = input.current_source_location();
+        }
+
+        if idents.is_empty() {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(Self {
+            idents: crate::ArcSlice::from_iter(idents.into_iter()),
+            bits,
+        })
+    }
+}
+
+impl ToCss for ColorScheme {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if self.idents.is_empty() {
+            debug_assert!(self.bits.is_empty());
+            return dest.write_str("normal");
+        }
+        let mut first = true;
+        for ident in self.idents.iter() {
+            if !first {
+                dest.write_char(' ')?;
+            }
+            first = false;
+            ident.to_css(dest)?;
+        }
+        if self.bits.intersects(ColorSchemeFlags::ONLY) {
+            dest.write_str(" only")?;
+        }
+        Ok(())
     }
 }

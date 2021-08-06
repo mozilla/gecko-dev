@@ -60,19 +60,24 @@ using WasmGlobalObjectVector =
     GCVector<WasmGlobalObject*, 0, SystemAllocPolicy>;
 using RootedWasmGlobalObject = Rooted<WasmGlobalObject*>;
 
-class WasmExceptionObject;
-using WasmExceptionObjectVector =
-    GCVector<WasmExceptionObject*, 0, SystemAllocPolicy>;
-using RootedWasmExceptionObject = Rooted<WasmExceptionObject*>;
+class WasmTagObject;
+using WasmTagObjectVector = GCVector<WasmTagObject*, 0, SystemAllocPolicy>;
+using RootedWasmTagObject = Rooted<WasmTagObject*>;
 
-class WasmRuntimeExceptionObject;
-using RootedWasmRuntimeExceptionObject = Rooted<WasmRuntimeExceptionObject*>;
+class WasmExceptionObject;
+using RootedWasmExceptionObject = Rooted<WasmExceptionObject*>;
 
 namespace wasm {
 
 struct ModuleEnvironment;
+class Code;
+class CodeRange;
+class DebugState;
 class Decoder;
+class GeneratedSourceMap;
 class Instance;
+class Module;
+class Table;
 
 // Uint32Vector has initial size 8 on the basis that the dominant use cases
 // (line numbers and control stacks) tend to have a small but nonzero number

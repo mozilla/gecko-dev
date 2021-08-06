@@ -29,6 +29,7 @@ const { XPCOMUtils } = ChromeUtils.import(
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppConstants: "resource://gre/modules/AppConstants.jsm",
   DownloadHistory: "resource://gre/modules/DownloadHistory.jsm",
+  DownloadPaths: "resource://gre/modules/DownloadPaths.jsm",
   E10SUtils: "resource://gre/modules/E10SUtils.jsm",
   FileUtils: "resource://gre/modules/FileUtils.jsm",
   NetUtil: "resource://gre/modules/NetUtil.jsm",
@@ -657,10 +658,23 @@ Download.prototype = {
       // This ensures the verdict will not get set again after the browser
       // restarts and the download gets serialized and de-serialized again.
       delete this._unknownProperties?.errorObj;
-      this.start().catch(e => {
-        this.error = e;
-        this._notifyChange();
-      });
+      this.start()
+        .catch(err => {
+          if (err.becauseTargetFailed) {
+            // In case we cannot write to the target file
+            // retry with a new unique name
+            let uniquePath = DownloadPaths.createNiceUniqueFile(
+              new FileUtils.File(this.target.path)
+            ).path;
+            this.target.path = uniquePath;
+            return this.start();
+          }
+          return Promise.reject(err);
+        })
+        .catch(err => {
+          this.error = err;
+          this._notifyChange();
+        });
       this._notifyChange();
       this._promiseUnblock = DownloadIntegration.downloadDone(this);
       return this._promiseUnblock;
@@ -1422,11 +1436,6 @@ DownloadSource.prototype = {
       return null;
     }
 
-    // Simplify the representation if we don't have other details.
-    if (!this.isPrivate && !this.referrerInfo && !this._unknownProperties) {
-      return this.url;
-    }
-
     let serializable = { url: this.url };
     if (this.isPrivate) {
       serializable.isPrivate = true;
@@ -1453,6 +1462,12 @@ DownloadSource.prototype = {
     }
 
     serializeUnknownProperties(this, serializable);
+
+    // Simplify the representation if we don't have other details.
+    if (Object.keys(serializable).length === 1) {
+      // serializable's only key is "url", just return the URL as a string.
+      return this.url;
+    }
     return serializable;
   },
 };
@@ -2361,6 +2376,15 @@ DownloadCopySaver.prototype = {
             download.source.cookieJarSettings;
         }
 
+        if (download.source.userContextId) {
+          // Getters and setters only exist on originAttributes,
+          // so it has to be cloned, changed, and re-set
+          channel.loadInfo.originAttributes = {
+            ...channel.loadInfo.originAttributes,
+            userContextId: download.source.userContextId,
+          };
+        }
+
         // This makes the channel be corretly throttled during page loads
         // and also prevents its caching.
         if (channel instanceof Ci.nsIHttpChannelInternal) {
@@ -2470,7 +2494,21 @@ DownloadCopySaver.prototype = {
     }
 
     if (partFilePath) {
-      await IOUtils.move(partFilePath, targetPath);
+      try {
+        await IOUtils.move(partFilePath, targetPath);
+      } catch (e) {
+        if (e.name === "NotAllowedError") {
+          // In case we cannot write to the target file
+          // retry with a new unique name
+          let uniquePath = DownloadPaths.createNiceUniqueFile(
+            new FileUtils.File(targetPath)
+          ).path;
+          await IOUtils.move(partFilePath, uniquePath);
+          this.download.target.path = uniquePath;
+        } else {
+          throw e;
+        }
+      }
     }
   },
 

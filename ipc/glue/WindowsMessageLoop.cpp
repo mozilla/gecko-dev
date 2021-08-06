@@ -857,6 +857,7 @@ SuppressedNeuteringRegion::~SuppressedNeuteringRegion() {
 
 bool SuppressedNeuteringRegion::sSuppressNeutering = false;
 
+#if defined(ACCESSIBILITY)
 static DWORD WaitForSingleObjectExWrapper(HANDLE aEvent, DWORD aTimeout) {
   return ::WaitForSingleObjectEx(aEvent, aTimeout, TRUE);
 }
@@ -875,7 +876,6 @@ static DWORD CoWaitForMultipleHandlesWrapper(HANDLE aEvent, DWORD aTimeout) {
   return WAIT_FAILED;
 }
 
-#if defined(ACCESSIBILITY)
 bool MessageChannel::WaitForSyncNotifyWithA11yReentry() {
   mMonitor->AssertCurrentThreadOwns();
   MonitorAutoUnlock unlock(*mMonitor);
@@ -1101,7 +1101,7 @@ bool MessageChannel::WaitForInterruptNotify() {
     return WaitForSyncNotify(true);
   }
 
-  if (!InterruptStackDepth() && !AwaitingIncomingMessage()) {
+  if (!InterruptStackDepth()) {
     // There is currently no way to recover from this condition.
     MOZ_CRASH("StackDepth() is 0 in call to MessageChannel::WaitForNotify!");
   }

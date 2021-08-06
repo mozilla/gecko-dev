@@ -80,7 +80,7 @@ const PREFS_AFTER_SECTIONS = ({
           ? "home-prefs-snippets-description-new"
           : "home-prefs-snippets-description",
     },
-    icon: "info",
+    icon: "chrome://global/skin/icons/info.svg",
     eventSource: "SNIPPETS",
   },
 ];
@@ -148,7 +148,7 @@ this.AboutPreferences = class AboutPreferences {
       sections = this.handleDiscoverySettings(sections);
     }
 
-    const featureConfig = NimbusFeatures.newtab.getValue() || {};
+    const featureConfig = NimbusFeatures.newtab.getAllVariables() || {};
 
     this.renderPreferences(window, [
       ...PREFS_BEFORE_SECTIONS(featureConfig),

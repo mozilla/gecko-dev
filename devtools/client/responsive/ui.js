@@ -4,7 +4,6 @@
 
 "use strict";
 
-const { Ci } = require("chrome");
 const Services = require("Services");
 const EventEmitter = require("devtools/shared/event-emitter");
 const {
@@ -264,9 +263,11 @@ class ResponsiveUI {
       await this.inited;
 
       // Restore screen orientation of physical device.
-      await this.updateScreenOrientation("landscape-primary", 0);
-      await this.updateMaxTouchPointsEnabled(false);
-      await this.responsiveFront.setFloatingScrollbars(false);
+      await Promise.all([
+        this.updateScreenOrientation("landscape-primary", 0),
+        this.updateMaxTouchPointsEnabled(false),
+        this.responsiveFront.setFloatingScrollbars(false),
+      ]);
 
       // Hide browser UI to avoid displaying weird intermediate states while closing.
       this.hideBrowserUI();
@@ -740,8 +741,10 @@ class ResponsiveUI {
 
   /**
    * Restores the previous actor state.
+   *
+   * @param {Boolean} isTargetSwitching
    */
-  async restoreActorState() {
+  async restoreActorState(isTargetSwitching) {
     // It's possible the target will switch to a page loaded in the
     // parent-process (i.e: about:robots). When this happens, the values set
     // on the BrowsingContext by RDM are not preserved. So we need to call
@@ -753,6 +756,18 @@ class ResponsiveUI {
 
     // Attach current target to the selected browser tab.
     await this.currentTarget.attach();
+
+    // If the target follows the window global lifecycle, the configuration was already
+    // restored from the server during target switch, so we can stop here.
+    // This function is still called at startup to restore potential state from previous
+    // RDM session so we only stop here during target switching.
+    if (
+      isTargetSwitching &&
+      this.commands.targetCommand.targetFront.targetForm
+        .followWindowGlobalLifeCycle
+    ) {
+      return;
+    }
 
     const hasDeviceState = await this.hasDeviceState();
     if (hasDeviceState) {
@@ -867,9 +882,8 @@ class ResponsiveUI {
 
   /**
    * Set or clear touch simulation. When setting to true, this method will
-   * additionally set meta viewport override if the pref
-   * "devtools.responsive.metaViewport.enabled" is true. When setting to
-   * false, this method will clear all touch simulation and meta viewport
+   * additionally set meta viewport override.
+   * When setting to false, this method will clear all touch simulation and meta viewport
    * overrides, returning to default behavior for both settings.
    *
    * @param {boolean} enabled
@@ -877,22 +891,6 @@ class ResponsiveUI {
    *        if the touch simulation state changes.
    */
   async updateTouchSimulation(enabled, reloadOnTouchSimulationToggle) {
-    // Call setMetaViewportOverride so the server would be in the expected state when/if
-    // the document reloads (as part of the call to updateConfiguration).
-    if (enabled) {
-      const metaViewportEnabled = Services.prefs.getBoolPref(
-        "devtools.responsive.metaViewport.enabled",
-        false
-      );
-      if (metaViewportEnabled) {
-        await this.responsiveFront.setMetaViewportOverride(
-          Ci.nsIDocShell.META_VIEWPORT_OVERRIDE_ENABLED
-        );
-      }
-    } else {
-      await this.responsiveFront.clearMetaViewportOverride();
-    }
-
     await this.commands.targetConfigurationCommand.updateConfiguration({
       touchEventsOverride: enabled ? "enabled" : null,
       reloadOnTouchSimulationToggle,
@@ -1038,7 +1036,7 @@ class ResponsiveUI {
     return this.browserWindow;
   }
 
-  async onTargetAvailable({ targetFront }) {
+  async onTargetAvailable({ targetFront, isTargetSwitching }) {
     if (this.destroying) {
       return;
     }
@@ -1050,7 +1048,7 @@ class ResponsiveUI {
         return;
       }
 
-      await this.restoreActorState();
+      await this.restoreActorState(isTargetSwitching);
     }
   }
   // This just needed to setup watching for network resources,

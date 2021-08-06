@@ -58,8 +58,6 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   ExtensionStorage: "resource://gre/modules/ExtensionStorage.jsm",
   ExtensionStorageIDB: "resource://gre/modules/ExtensionStorageIDB.jsm",
   ExtensionTelemetry: "resource://gre/modules/ExtensionTelemetry.jsm",
-  FileSource: "resource://gre/modules/L10nRegistry.jsm",
-  L10nRegistry: "resource://gre/modules/L10nRegistry.jsm",
   LightweightThemeManager: "resource://gre/modules/LightweightThemeManager.jsm",
   Log: "resource://gre/modules/Log.jsm",
   MessageChannel: "resource://gre/modules/MessageChannel.jsm",
@@ -394,24 +392,26 @@ var ExtensionAddonObserver = {
     );
 
     // Clear all the registered service workers for the extension
-    // principal.
+    // principal (the one that may have been registered through the
+    // manifest.json file and the ones that may have been registered
+    // from an extension page through the service worker API).
+    //
     // Any stored data would be cleared below (if the pref
     // "extensions.webextensions.keepStorageOnUninstall has not been
     // explicitly set to true, which is usually only done in
     // tests and by some extensions developers for testing purpose).
-    if (WebExtensionPolicy.backgroundServiceWorkerEnabled) {
-      // TODO: ServiceWorkerCleanUp may go away once Bug 1183245
-      // is fixed, and so this may actually go away, replaced by
-      // marking the registration as disabled or to be removed on
-      // shutdown (where we do know if the extension is shutting
-      // down because is being uninstalled) and then cleared from
-      // the persisted serviceworker registration on the next
-      // startup.
-      AsyncShutdown.profileChangeTeardown.addBlocker(
-        `Clear ServiceWorkers for ${addon.id}`,
-        ServiceWorkerCleanUp.removeFromPrincipal(principal)
-      );
-    }
+    //
+    // TODO: ServiceWorkerCleanUp may go away once Bug 1183245
+    // is fixed, and so this may actually go away, replaced by
+    // marking the registration as disabled or to be removed on
+    // shutdown (where we do know if the extension is shutting
+    // down because is being uninstalled) and then cleared from
+    // the persisted serviceworker registration on the next
+    // startup.
+    AsyncShutdown.profileChangeTeardown.addBlocker(
+      `Clear ServiceWorkers for ${addon.id}`,
+      ServiceWorkerCleanUp.removeFromPrincipal(principal)
+    );
 
     if (!Services.prefs.getBoolPref(LEAVE_STORAGE_PREF, false)) {
       // Clear browser.storage.local backends.
@@ -699,13 +699,15 @@ class ExtensionData {
    * that contains seperate host origins and permissions arrays.
    *
    * @param {Array} permissionsArray
+   * @param {Array} [hostPermissions]
    * @returns {Object} permissions object
    */
-  permissionsObject(permissionsArray) {
+  permissionsObject(permissionsArray = [], hostPermissions = []) {
     let permissions = new Set();
     let origins = new Set();
     let { restrictSchemes, isPrivileged } = this;
-    for (let perm of permissionsArray || []) {
+
+    for (let perm of permissionsArray.concat(hostPermissions)) {
       let type = classifyPermission(perm, restrictSchemes, isPrivileged);
       if (type.origin) {
         origins.add(perm);
@@ -713,6 +715,7 @@ class ExtensionData {
         permissions.add(perm);
       }
     }
+
     return {
       permissions,
       origins,
@@ -732,7 +735,8 @@ class ExtensionData {
     }
 
     let { permissions, origins } = this.permissionsObject(
-      this.manifest.permissions
+      this.manifest.permissions,
+      this.manifest.host_permissions
     );
 
     if (
@@ -1038,7 +1042,9 @@ class ExtensionData {
         isPrivileged && manifest.permissions.includes("mozillaAddons")
       );
 
-      for (let perm of manifest.permissions) {
+      let host_permissions = manifest.host_permissions ?? [];
+
+      for (let perm of manifest.permissions.concat(host_permissions)) {
         if (perm === "geckoProfiler" && !isPrivileged) {
           const acceptedExtensions = Services.prefs.getStringPref(
             "extensions.geckoProfiler.acceptedExtensionIds",
@@ -1310,6 +1316,7 @@ class ExtensionData {
     await this.apiManager.lazyInit();
 
     this.webAccessibleResources = manifestData.webAccessibleResources;
+
     this.allowedOrigins = new MatchPatternSet(manifestData.originPermissions, {
       restrictSchemes: this.restrictSchemes,
     });
@@ -2830,6 +2837,20 @@ class Extension extends ExtensionData {
 
     this.updatePermissions(reason);
 
+    // The service worker registrations related to the extensions are unregistered
+    // only when the extension is not shutting down as part of the application
+    // shutdown (a previously registered service worker is expected to stay
+    // active across browser restarts), the service worker may have been
+    // registered through the manifest.json background.service_worker property
+    // or from an extension page through the service worker API if allowed
+    // through the about:config pref.
+    if (!isAppShutdown) {
+      this.state = "Shutdown: ServiceWorkers";
+      // TODO: ServiceWorkerCleanUp may go away once Bug 1183245 is fixed.
+      await ServiceWorkerCleanUp.removeFromPrincipal(this.principal);
+      this.state = "Shutdown: ServiceWorkers completed";
+    }
+
     if (!this.manifest) {
       this.state = "Shutdown: Complete: No manifest";
       this.policy.active = false;
@@ -2976,14 +2997,14 @@ class Langpack extends ExtensionData {
 
     const fileSources = Object.entries(l10nRegistrySources).map(entry => {
       const [sourceName, basePath] = entry;
-      return new FileSource(
+      return new L10nFileSource(
         `${sourceName}-${langpackId}`,
         this.startupData.languages,
         `resource://${langpackId}/${basePath}localization/{locale}/`
       );
     });
 
-    L10nRegistry.registerSources(fileSources);
+    L10nRegistry.getInstance().registerSources(fileSources);
 
     Services.obs.notifyObservers(
       { wrappedJSObject: { langpack: this } },
@@ -3001,7 +3022,7 @@ class Langpack extends ExtensionData {
     const sourcesToRemove = Object.keys(
       this.startupData.l10nRegistrySources
     ).map(sourceName => `${sourceName}-${this.startupData.langpackId}`);
-    L10nRegistry.removeSources(sourcesToRemove);
+    L10nRegistry.getInstance().removeSources(sourcesToRemove);
 
     if (this.chromeRegistryHandle) {
       this.chromeRegistryHandle.destruct();

@@ -95,6 +95,8 @@ const URL_ROOT_MOCHI_8888 = CHROME_URL_ROOT.replace(
   "http://mochi.test:8888/"
 );
 
+const TARGET_SWITCHING_PREF = "devtools.target-switching.server.enabled";
+
 try {
   Services.scriptloader.loadSubScript(
     "chrome://mochitests/content/browser/devtools/client/shared/test/telemetry-test-helpers.js",
@@ -1125,6 +1127,13 @@ function isWindows() {
 }
 
 /**
+ * Enables server target switching
+ */
+async function enableTargetSwitching() {
+  await pushPref(TARGET_SWITCHING_PREF, true);
+}
+
+/**
  * Wait for a given toolbox to get its title updated.
  */
 function waitForTitleChange(toolbox) {
@@ -1620,3 +1629,23 @@ async function waitForNextTopLevelDomCompleteResource(commands) {
   );
   return { onDomCompleteResource };
 }
+
+/**
+ * Wait for the provided context to have a valid presShell. This can be useful
+ * for tests which try to create popup panels or interact with the document very
+ * early.
+ *
+ * @param {BrowsingContext} context
+ **/
+const waitForPresShell = function(context) {
+  return SpecialPowers.spawn(context, [], async () => {
+    const winUtils = SpecialPowers.getDOMWindowUtils(content);
+    await ContentTaskUtils.waitForCondition(() => {
+      try {
+        return !!winUtils.getPresShellId();
+      } catch (e) {
+        return false;
+      }
+    }, "Waiting for a valid presShell");
+  });
+};

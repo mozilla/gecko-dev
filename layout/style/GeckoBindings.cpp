@@ -688,7 +688,8 @@ bool Gecko_IsDocumentBody(const Element* aElement) {
 }
 
 nscolor Gecko_GetLookAndFeelSystemColor(int32_t aId, const Document* aDoc,
-                                        StyleSystemColorScheme aColorScheme) {
+                                        StyleSystemColorScheme aColorScheme,
+                                        const StyleColorScheme* aStyle) {
   auto colorId = static_cast<LookAndFeel::ColorID>(aId);
   auto useStandins = LookAndFeel::ShouldUseStandins(*aDoc, colorId);
   auto colorScheme = [&] {
@@ -700,7 +701,7 @@ nscolor Gecko_GetLookAndFeelSystemColor(int32_t aId, const Document* aDoc,
       case StyleSystemColorScheme::Dark:
         return LookAndFeel::ColorScheme::Dark;
     }
-    return LookAndFeel::ColorSchemeForDocument(*aDoc);
+    return LookAndFeel::ColorSchemeForStyle(*aDoc, aStyle->bits);
   }();
 
   AutoWriteLock guard(*sServoFFILock);
@@ -1364,7 +1365,8 @@ StyleDefaultFontSizes Gecko_GetBaseSize(nsAtom* aLanguage) {
   prefs.Initialize(langGroupAtom);
   return {prefs.mDefaultVariableFont.size,  prefs.mDefaultSerifFont.size,
           prefs.mDefaultSansSerifFont.size, prefs.mDefaultMonospaceFont.size,
-          prefs.mDefaultCursiveFont.size,   prefs.mDefaultFantasyFont.size};
+          prefs.mDefaultCursiveFont.size,   prefs.mDefaultFantasyFont.size,
+          prefs.mDefaultSystemUiFont.size};
 }
 
 static StaticRefPtr<UACacheReporter> gUACacheReporter;
@@ -1792,6 +1794,8 @@ void StyleSingleFontFamily::AppendToString(nsACString& aName,
       return aName.AppendLiteral("cursive");
     case StyleGenericFontFamily::Fantasy:
       return aName.AppendLiteral("fantasy");
+    case StyleGenericFontFamily::SystemUi:
+      return aName.AppendLiteral("system-ui");
   }
   MOZ_ASSERT_UNREACHABLE("Unknown generic font-family!");
   return aName.AppendLiteral("serif");

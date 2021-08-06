@@ -27,6 +27,8 @@
 #  include "mozilla/Variant.h"
 #endif
 #include "mozilla/dom/QMResult.h"
+#include "mozilla/dom/quota/FirstInitializationAttemptsImpl.h"
+#include "mozilla/dom/quota/ScopedLogExtraInfo.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
@@ -91,6 +93,7 @@ class NotNull;
 // that are unknown for given directory traversal. It should only be called
 // after all known (directory traversal specific) files or directories have
 // been checked and handled.
+// XXX Consider renaming the macro to QM_LOG_UNKNOWN_DIR_ENTRY.
 #ifdef DEBUG
 #  define WARN_IF_FILE_IS_UNKNOWN(_file) \
     mozilla::dom::quota::WarnIfFileIsUnknown(_file, __FILE__, __LINE__)
@@ -727,10 +730,10 @@ class NotNull;
 #define QM_FAIL(...) QM_FAIL_GLUE(__VA_ARGS__)
 
 // QM_REPORTONLY_TRY, QM_REPORTONLY_TRY_WITH_CLEANUP, QM_REPORTONLY_TRY_GLUE
-// macros are implementation details of QM_WARNONLY_TRY/QM_NOTEONLY_TRY and
+// macros are implementation details of QM_WARNONLY_TRY/QM_INFOONLY_TRY and
 // shouldn't be used directly.
 
-// Handles the three arguments case when only a warning/note is reported.
+// Handles the three arguments case when only a warning/info is reported.
 #define QM_REPORTONLY_TRY(tryResult, severity, expr)                           \
   auto tryResult = ::mozilla::ToResult(expr);                                  \
   static_assert(std::is_empty_v<typename decltype(tryResult)::ok_type>);       \
@@ -775,18 +778,18 @@ class NotNull;
 #define QM_WARNONLY_TRY(...) QM_REPORTONLY_TRY_GLUE(Warning, __VA_ARGS__)
 
 /**
- * QM_NOTEONLY_TRY is like QM_WARNONLY_TRY. The only difference is that
+ * QM_INFOONLY_TRY is like QM_WARNONLY_TRY. The only difference is that
  * failures are reported using a lower level of severity relative to failures
  * reported by QM_WARNONLY_TRY.
  */
-#define QM_NOTEONLY_TRY(...) QM_REPORTONLY_TRY_GLUE(Note, __VA_ARGS__)
+#define QM_INFOONLY_TRY(...) QM_REPORTONLY_TRY_GLUE(Info, __VA_ARGS__)
 
 // QM_REPORTONLY_TRY_ASSIGN, QM_REPORTONLY_TRY_ASSIGN_WITH_CLEANUP,
 // QM_REPORTONLY_TRY_ASSIGN_GLUE macros are implementation details of
-// QM_WARNONLY_TRY_UNWRAP/QM_NOTEONLY_TRY_UNWRAP and shouldn't be used
+// QM_WARNONLY_TRY_UNWRAP/QM_INFOONLY_TRY_UNWRAP and shouldn't be used
 // directly.
 
-// Handles the four arguments case when only a warning/note is reported.
+// Handles the four arguments case when only a warning/info is reported.
 #define QM_REPORTONLY_TRY_ASSIGN(tryResult, severity, target, expr) \
   auto tryResult = (expr);                                          \
   MOZ_REMOVE_PAREN(target) =                                        \
@@ -839,17 +842,17 @@ class NotNull;
 // QM_WARNONLY_TRY_INSPECT doesn't make sense.
 
 /**
- * QM_NOTEONLY_TRY_UNWRAP is like QM_WARN_CHECK_UNWRAP. The only difference is
+ * QM_INFOONLY_TRY_UNWRAP is like QM_WARNONLY_TRY_UNWRAP. The only difference is
  * that failures are reported using a lower level of severity relative to
- * failures reported by QM_WARN_CHECK_UNWRAP.
+ * failures reported by QM_WARNONLY_TRY_UNWRAP.
  */
-#define QM_NOTEONLY_TRY_UNWRAP(...) \
-  QM_REPORTONLY_TRY_ASSIGN_GLUE(Note, __VA_ARGS__)
+#define QM_INFOONLY_TRY_UNWRAP(...) \
+  QM_REPORTONLY_TRY_ASSIGN_GLUE(Info, __VA_ARGS__)
 
-// QM_NOTEONLY_TRY_INSPECT doesn't make sense.
+// QM_INFOONLY_TRY_INSPECT doesn't make sense.
 
 // QM_OR_ELSE_REPORT macro is an implementation detail of
-// QM_OR_ELSE_WARN/QM_OR_ELSE_NOTE/QM_OR_ELSE_LOG_VERBOSE and shouldn't be used
+// QM_OR_ELSE_WARN/QM_OR_ELSE_INFO/QM_OR_ELSE_LOG_VERBOSE and shouldn't be used
 // directly.
 
 #define QM_OR_ELSE_REPORT(severity, expr, fallback)                \
@@ -871,11 +874,11 @@ class NotNull;
 #define QM_OR_ELSE_WARN(...) QM_OR_ELSE_REPORT(Warning, __VA_ARGS__)
 
 /**
- * QM_OR_ELSE_NOTE is like QM_OR_ELSE_WARN. The only difference is that
+ * QM_OR_ELSE_INFO is like QM_OR_ELSE_WARN. The only difference is that
  * failures are reported using a lower level of severity relative to failures
  * reported by QM_OR_ELSE_WARN.
  */
-#define QM_OR_ELSE_NOTE(...) QM_OR_ELSE_REPORT(Note, __VA_ARGS__)
+#define QM_OR_ELSE_INFO(...) QM_OR_ELSE_REPORT(Info, __VA_ARGS__)
 
 /**
  * QM_OR_ELSE_LOG_VERBOSE is like QM_OR_ELSE_WARN. The only difference is that
@@ -903,7 +906,7 @@ auto OrElseIf(Result<V, E>&& aResult, P&& aPred, F&& aFunc) -> Result<V, E> {
 }  // namespace mozilla::dom::quota
 
 // QM_OR_ELSE_REPORT_IF macro is an implementation detail of
-// QM_OR_ELSE_WARN_IF/QM_OR_ELSE_NOTE_IF/QM_OR_ELSE_LOG_VERBOSE_IF and
+// QM_OR_ELSE_WARN_IF/QM_OR_ELSE_INFO_IF/QM_OR_ELSE_LOG_VERBOSE_IF and
 // shouldn't be used directly.
 
 #define QM_OR_ELSE_REPORT_IF(severity, expr, predicate, fallback) \
@@ -934,11 +937,11 @@ auto OrElseIf(Result<V, E>&& aResult, P&& aPred, F&& aFunc) -> Result<V, E> {
 #define QM_OR_ELSE_WARN_IF(...) QM_OR_ELSE_REPORT_IF(Warning, __VA_ARGS__)
 
 /**
- * QM_OR_ELSE_NOTE_IF is like QM_OR_ELSE_WARN_IF. The only difference is that
+ * QM_OR_ELSE_INFO_IF is like QM_OR_ELSE_WARN_IF. The only difference is that
  * failures are reported using a lower level of severity relative to failures
  * reported by QM_OR_ELSE_WARN_IF.
  */
-#define QM_OR_ELSE_NOTE_IF(...) QM_OR_ELSE_REPORT_IF(Note, __VA_ARGS__)
+#define QM_OR_ELSE_INFO_IF(...) QM_OR_ELSE_REPORT_IF(Info, __VA_ARGS__)
 
 /**
  * QM_OR_ELSE_LOG_VERBOSE_IF is like QM_OR_ELSE_WARN_IF. The only difference is
@@ -982,6 +985,8 @@ class nsIFile;
 namespace mozilla {
 
 class LogModule;
+
+struct CreateIfNonExistent {};
 
 struct NotOk {};
 
@@ -1313,7 +1318,7 @@ nsDependentCSubstring MakeSourceFileRelativePath(
 enum class Severity {
   Error,
   Warning,
-  Note,
+  Info,
   Verbose,
 };
 
@@ -1535,6 +1540,83 @@ auto CallWithDelayedRetriesIfAccessDenied(Func&& aFunc, uint32_t aMaxRetries,
 
     PR_Sleep(PR_MillisecondsToInterval(aDelayMs));
   }
+}
+
+namespace detail {
+
+template <bool flag = false>
+void UnsupportedReturnType() {
+  static_assert(flag, "Unsupported return type!");
+}
+
+}  // namespace detail
+
+template <typename Initialization, typename StringGenerator, typename Func>
+auto ExecuteInitialization(
+    FirstInitializationAttempts<Initialization, StringGenerator>&
+        aFirstInitializationAttempts,
+    const Initialization aInitialization, Func&& aFunc)
+    -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                      Initialization, StringGenerator>&> {
+  return aFirstInitializationAttempts.WithFirstInitializationAttempt(
+      aInitialization, [&aFunc](auto&& firstInitializationAttempt) {
+        auto res = std::forward<Func>(aFunc)(firstInitializationAttempt);
+
+        const auto rv = [&res]() -> nsresult {
+          using RetType =
+              std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                             Initialization, StringGenerator>&>;
+
+          if constexpr (std::is_same_v<RetType, nsresult>) {
+            return res;
+          } else if constexpr (mozilla::detail::IsResult<RetType>::value &&
+                               std::is_same_v<typename RetType::err_type,
+                                              nsresult>) {
+            return res.isOk() ? NS_OK : res.inspectErr();
+          } else {
+            detail::UnsupportedReturnType();
+          }
+        }();
+
+        // NS_ERROR_ABORT signals a non-fatal, recoverable problem during
+        // initialization. We do not want these kind of failures to count
+        // against our overall first initialization attempt telemetry. Thus we
+        // just ignore this kind of failure and keep
+        // aFirstInitializationAttempts unflagged to stay ready to record a real
+        // success or failure on the next attempt.
+        if (rv == NS_ERROR_ABORT) {
+          return res;
+        }
+
+        if (!firstInitializationAttempt.Recorded()) {
+          firstInitializationAttempt.Record(rv);
+        }
+
+        return res;
+      });
+}
+
+template <typename Initialization, typename StringGenerator, typename Func>
+auto ExecuteInitialization(
+    FirstInitializationAttempts<Initialization, StringGenerator>&
+        aFirstInitializationAttempts,
+    const Initialization aInitialization, const nsACString& aContext,
+    Func&& aFunc)
+    -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                      Initialization, StringGenerator>&> {
+  return ExecuteInitialization(
+      aFirstInitializationAttempts, aInitialization,
+      [&](const auto& firstInitializationAttempt) -> decltype(auto) {
+#ifdef QM_SCOPED_LOG_EXTRA_INFO_ENABLED
+        const auto maybeScopedLogExtraInfo =
+            firstInitializationAttempt.Recorded()
+                ? Nothing{}
+                : Some(ScopedLogExtraInfo{ScopedLogExtraInfo::kTagContext,
+                                          aContext});
+#endif
+
+        return std::forward<Func>(aFunc)(firstInitializationAttempt);
+      });
 }
 
 }  // namespace quota

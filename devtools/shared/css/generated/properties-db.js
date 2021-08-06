@@ -2971,6 +2971,7 @@ exports.CSS_PROPERTIES = {
       "-moz-user-focus",
       "caret-color",
       "accent-color",
+      "color-scheme",
       "scrollbar-color",
       "list-style-position",
       "list-style-type",
@@ -5241,6 +5242,8 @@ exports.CSS_PROPERTIES = {
     "values": [
       "auto",
       "avoid",
+      "avoid-column",
+      "avoid-page",
       "inherit",
       "initial",
       "revert",
@@ -8949,6 +8952,8 @@ exports.CSS_PROPERTIES = {
     "values": [
       "auto",
       "avoid",
+      "avoid-column",
+      "avoid-page",
       "inherit",
       "initial",
       "revert",
@@ -11023,6 +11028,10 @@ exports.PREFERENCES = [
   [
     "backdrop-filter",
     "layout.css.backdrop-filter.enabled"
+  ],
+  [
+    "color-scheme",
+    "layout.css.color-scheme.enabled"
   ],
   [
     "d",

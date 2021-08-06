@@ -113,7 +113,8 @@ use euclid::{vec2, vec3, Point2D, Scale, Vector2D, Box2D, Transform3D, SideOffse
 use euclid::approxeq::ApproxEq;
 use crate::filterdata::SFilterData;
 use crate::intern::ItemUid;
-use crate::internal_types::{FastHashMap, FastHashSet, PlaneSplitter, Filter, PlaneSplitAnchor, TextureSource};
+use crate::internal_types::{FastHashMap, FastHashSet, PlaneSplitter, Filter};
+use crate::internal_types::{PlaneSplitterIndex, PlaneSplitAnchor, TextureSource};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureState, PictureContext};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
 use crate::gpu_types::{UvRectKind, ZBufferId};
@@ -1229,7 +1230,9 @@ impl Tile {
         self.update_content_validity(ctx, state, frame_context);
 
         // If there are no primitives there is no need to draw or cache it.
-        if self.current_descriptor.prims.is_empty() {
+        // Bug 1719232 - The final device valid rect does not always describe a non-empty
+        // region. Cull the tile as a workaround.
+        if self.current_descriptor.prims.is_empty() || self.device_valid_rect.is_empty() {
             // If there is a native compositor surface allocated for this (now empty) tile
             // it must be freed here, otherwise the stale tile with previous contents will
             // be composited. If the tile subsequently gets new primitives added to it, the
@@ -3474,7 +3477,7 @@ impl TileCacheInstance {
             PrimitiveInstanceKind::Picture { pic_index,.. } => {
                 // Pictures can depend on animated opacity bindings.
                 let pic = &pictures[pic_index.0];
-                if let Some(PictureCompositeMode::Filter(Filter::Opacity(binding, _))) = pic.requested_composite_mode {
+                if let Some(PictureCompositeMode::Filter(Filter::Opacity(binding, _))) = pic.composite_mode {
                     prim_info.opacity_bindings.push(binding.into());
                 }
             }
@@ -4026,114 +4029,6 @@ impl PictureScratchBuffer {
     pub fn recycle(&mut self, recycler: &mut Recycler) {
         recycler.recycle_vec(&mut self.surface_stack);
     }
- }
-
-/// Maintains a stack of picture and surface information, that
-/// is used during the initial picture traversal.
-pub struct PictureUpdateState<'a> {
-    surfaces: &'a mut Vec<SurfaceInfo>,
-    surface_stack: Vec<SurfaceIndex>,
-}
-
-impl<'a> PictureUpdateState<'a> {
-    pub fn update_all(
-        buffers: &mut PictureScratchBuffer,
-        surfaces: &'a mut Vec<SurfaceInfo>,
-        pic_index: PictureIndex,
-        picture_primitives: &mut [PicturePrimitive],
-        frame_context: &FrameBuildingContext,
-        gpu_cache: &mut GpuCache,
-        clip_store: &ClipStore,
-        data_stores: &mut DataStores,
-        tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
-    ) {
-        profile_scope!("UpdatePictures");
-        profile_marker!("UpdatePictures");
-
-        let mut state = PictureUpdateState {
-            surfaces,
-            surface_stack: buffers.surface_stack.take().cleared(),
-        };
-
-        state.surface_stack.push(SurfaceIndex(0));
-
-        state.update(
-            pic_index,
-            picture_primitives,
-            frame_context,
-            gpu_cache,
-            clip_store,
-            data_stores,
-            tile_caches,
-        );
-
-        buffers.surface_stack = state.surface_stack.take();
-    }
-
-    /// Return the current surface
-    fn current_surface(&self) -> &SurfaceInfo {
-        &self.surfaces[self.surface_stack.last().unwrap().0]
-    }
-
-    /// Return the current surface (mutable)
-    fn current_surface_mut(&mut self) -> &mut SurfaceInfo {
-        &mut self.surfaces[self.surface_stack.last().unwrap().0]
-    }
-
-    /// Push a new surface onto the update stack.
-    fn push_surface(
-        &mut self,
-        surface: SurfaceInfo,
-    ) -> SurfaceIndex {
-        let surface_index = SurfaceIndex(self.surfaces.len());
-        self.surfaces.push(surface);
-        self.surface_stack.push(surface_index);
-        surface_index
-    }
-
-    /// Pop a surface on the way up the picture traversal
-    fn pop_surface(&mut self) -> SurfaceIndex{
-        self.surface_stack.pop().unwrap()
-    }
-
-    /// Update a picture, determining surface configuration,
-    /// rasterization roots, and (in future) whether there
-    /// are cached surfaces that can be used by this picture.
-    fn update(
-        &mut self,
-        pic_index: PictureIndex,
-        picture_primitives: &mut [PicturePrimitive],
-        frame_context: &FrameBuildingContext,
-        gpu_cache: &mut GpuCache,
-        clip_store: &ClipStore,
-        data_stores: &mut DataStores,
-        tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
-    ) {
-        if let Some(prim_list) = picture_primitives[pic_index.0].pre_update(
-            self,
-            frame_context,
-            tile_caches,
-        ) {
-            for child_pic_index in &prim_list.child_pictures {
-                self.update(
-                    *child_pic_index,
-                    picture_primitives,
-                    frame_context,
-                    gpu_cache,
-                    clip_store,
-                    data_stores,
-                    tile_caches,
-                );
-            }
-
-            picture_primitives[pic_index.0].post_update(
-                prim_list,
-                self,
-                frame_context,
-                data_stores,
-            );
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
@@ -4382,6 +4277,8 @@ pub enum Picture3DContext<C> {
         /// See CSS spec draft for more details:
         /// https://drafts.csswg.org/css-transforms-2/#accumulated-3d-transformation-matrix-computation
         ancestor_index: SpatialNodeIndex,
+        /// Index in the built scene's array of plane splitters.
+        plane_splitter_index: PlaneSplitterIndex,
     },
 }
 
@@ -4617,9 +4514,6 @@ pub struct PicturePrimitive {
     /// List of primitives, and associated info for this picture.
     pub prim_list: PrimitiveList,
 
-    #[cfg_attr(feature = "capture", serde(skip))]
-    pub state: Option<PictureState>,
-
     /// If true, apply the local clip rect to primitive drawn
     /// in this picture.
     pub apply_local_clip_rect: bool,
@@ -4637,7 +4531,7 @@ pub struct PicturePrimitive {
     pub secondary_render_task_id: Option<RenderTaskId>,
     /// How this picture should be composited.
     /// If None, don't composite - just draw directly on parent surface.
-    pub requested_composite_mode: Option<PictureCompositeMode>,
+    pub composite_mode: Option<PictureCompositeMode>,
 
     pub raster_config: Option<RasterConfig>,
     pub context_3d: Picture3DContext<OrderedPictureChild>,
@@ -4696,7 +4590,7 @@ impl PicturePrimitive {
         pt.add_item(format!("precise_local_rect: {:?}", self.precise_local_rect));
         pt.add_item(format!("spatial_node_index: {:?}", self.spatial_node_index));
         pt.add_item(format!("raster_config: {:?}", self.raster_config));
-        pt.add_item(format!("requested_composite_mode: {:?}", self.requested_composite_mode));
+        pt.add_item(format!("composite_mode: {:?}", self.composite_mode));
 
         for child_pic_index in &self.prim_list.child_pictures {
             pictures[child_pic_index.0].print(pictures, *child_pic_index, pt);
@@ -4726,7 +4620,7 @@ impl PicturePrimitive {
     }
 
     fn resolve_scene_properties(&mut self, properties: &SceneProperties) -> bool {
-        match self.requested_composite_mode {
+        match self.composite_mode {
             Some(PictureCompositeMode::Filter(ref mut filter)) => {
                 match *filter {
                     Filter::Opacity(ref binding, ref mut value) => {
@@ -4742,7 +4636,7 @@ impl PicturePrimitive {
     }
 
     pub fn is_visible(&self) -> bool {
-        match self.requested_composite_mode {
+        match self.composite_mode {
             Some(PictureCompositeMode::Filter(ref filter)) => {
                 filter.is_visible()
             }
@@ -4755,7 +4649,7 @@ impl PicturePrimitive {
     //           method to be part of the PictureOptions, and
     //           avoid adding new parameters here.
     pub fn new_image(
-        requested_composite_mode: Option<PictureCompositeMode>,
+        composite_mode: Option<PictureCompositeMode>,
         context_3d: Picture3DContext<OrderedPictureChild>,
         apply_local_clip_rect: bool,
         flags: PrimitiveFlags,
@@ -4765,10 +4659,9 @@ impl PicturePrimitive {
     ) -> Self {
         PicturePrimitive {
             prim_list,
-            state: None,
             primary_render_task_id: None,
             secondary_render_task_id: None,
-            requested_composite_mode,
+            composite_mode,
             raster_config: None,
             context_3d,
             extra_gpu_data_handles: SmallVec::new(),
@@ -4852,18 +4745,6 @@ impl PicturePrimitive {
             frame_context.global_screen_world_rect,
             frame_context.spatial_tree,
         );
-
-        let plane_splitter = match self.context_3d {
-            Picture3DContext::Out => {
-                None
-            }
-            Picture3DContext::In { root_data: Some(_), .. } => {
-                Some(PlaneSplitter::new())
-            }
-            Picture3DContext::In { root_data: None, .. } => {
-                None
-            }
-        };
 
         match self.raster_config {
             Some(RasterConfig { surface_index, composite_mode: PictureCompositeMode::TileCache { slice_id }, .. }) => {
@@ -5909,7 +5790,7 @@ impl PicturePrimitive {
         #[cfg(feature = "capture")]
         {
             if frame_context.debug_flags.contains(DebugFlags::TILE_CACHE_LOGGING_DBG) {
-                if let Some(PictureCompositeMode::TileCache { slice_id }) = self.requested_composite_mode {
+                if let Some(PictureCompositeMode::TileCache { slice_id }) = self.composite_mode {
                     if let Some(ref tile_cache) = tile_caches.get(&slice_id) {
                         // extract just the fields that we're interested in
                         let mut tile_cache_tiny = TileCacheInstanceSerializer {
@@ -5945,7 +5826,6 @@ impl PicturePrimitive {
             map_pic_to_world,
             map_pic_to_raster,
             map_raster_to_world,
-            plane_splitter,
         };
 
         let mut dirty_region_count = 0;
@@ -6041,7 +5921,6 @@ impl PicturePrimitive {
         &mut self,
         prim_list: PrimitiveList,
         context: PictureContext,
-        state: PictureState,
         frame_state: &mut FrameBuildingState,
     ) {
         // Pop any dirty regions this picture set
@@ -6050,11 +5929,6 @@ impl PicturePrimitive {
         }
 
         self.prim_list = prim_list;
-        self.state = Some(state);
-    }
-
-    pub fn take_state(&mut self) -> PictureState {
-        self.state.take().expect("bug: no state present!")
     }
 
     /// Add a primitive instance to the plane splitter. The function would generate
@@ -6187,22 +6061,16 @@ impl PicturePrimitive {
         }
     }
 
-    /// Called during initial picture traversal, before we know the
-    /// bounding rect of children. It is possible to determine the
-    /// surface / raster config now though.
-    fn pre_update(
+    /// Do initial checks to determine whether this picture should be drawn as part of the
+    /// frame build.
+    pub fn pre_update_visibility_check(
         &mut self,
-        state: &mut PictureUpdateState,
         frame_context: &FrameBuildingContext,
-        tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
-    ) -> Option<PrimitiveList> {
-        // Reset raster config in case we early out below.
-        self.raster_config = None;
-
+    ) -> bool {
         // Resolve animation properties, and early out if the filter
         // properties make this picture invisible.
         if !self.resolve_scene_properties(frame_context.scene_properties) {
-            return None;
+            return false;
         }
 
         // For out-of-preserve-3d pictures, the backface visibility is determined by
@@ -6213,19 +6081,36 @@ impl PicturePrimitive {
             if let Picture3DContext::Out = self.context_3d {
                 match frame_context.spatial_tree.get_local_visible_face(self.spatial_node_index) {
                     VisibleFace::Front => {}
-                    VisibleFace::Back => return None,
+                    VisibleFace::Back => return false,
                 }
             }
         }
 
-        // See if this picture actually needs a surface for compositing.
-        // TODO(gw): FPC: Remove the actual / requested composite mode distinction.
-        let actual_composite_mode = self.requested_composite_mode.clone();
+        true
+    }
 
-        if let Some(composite_mode) = actual_composite_mode {
+    /// Called during initial picture traversal, before we know the
+    /// bounding rect of children. It is possible to determine the
+    /// surface / raster config now though.
+    pub fn assign_surface(
+        &mut self,
+        frame_context: &FrameBuildingContext,
+        tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
+        current_surface_index: SurfaceIndex,
+        surfaces: &mut Vec<SurfaceInfo>,
+    ) -> SurfaceIndex {
+        // Reset raster config in case we early out below.
+        self.raster_config = None;
+
+        // Assume we don't create a surface by default.
+        // TODO: This (and all the separate surface code can disappear once composite_mode is not an Option)
+        let mut surface_index = current_surface_index;
+
+        if let Some(ref composite_mode) = self.composite_mode {
             // Retrieve the positioning node information for the parent surface.
-            let parent_raster_node_index = state.current_surface().raster_spatial_node_index;
-            let parent_device_pixel_scale = state.current_surface().device_pixel_scale;
+            let current_surface = &surfaces[current_surface_index.0];
+            let parent_raster_node_index = current_surface.raster_spatial_node_index;
+            let parent_device_pixel_scale = current_surface.device_pixel_scale;
             let surface_spatial_node_index = self.spatial_node_index;
 
             let surface_to_parent_transform = frame_context.spatial_tree
@@ -6314,7 +6199,7 @@ impl PicturePrimitive {
             if self.options.inflate_if_required {
                 match composite_mode {
                     PictureCompositeMode::Filter(Filter::Blur(width, height)) => {
-                        let blur_radius = f32::max(clamp_blur_radius(width, scale_factors), clamp_blur_radius(height, scale_factors));
+                        let blur_radius = f32::max(clamp_blur_radius(*width, scale_factors), clamp_blur_radius(*height, scale_factors));
                         // The amount of extra space needed for primitives inside
                         // this picture to ensure the visibility check is correct.
                         inflation_factor = blur_radius * BLUR_SAMPLE_SCALE;
@@ -6357,31 +6242,34 @@ impl PicturePrimitive {
                 scale_factors,
             );
 
+            surface_index = SurfaceIndex(surfaces.len());
+            surfaces.push(surface);
+
             self.raster_config = Some(RasterConfig {
-                composite_mode,
+                composite_mode: composite_mode.clone(),
                 establishes_raster_root,
-                surface_index: state.push_surface(surface),
+                surface_index,
                 root_scaling_factor: 1.0,
                 clipped_bounding_rect: WorldRect::zero(),
             });
         }
 
-        Some(mem::replace(&mut self.prim_list, PrimitiveList::empty()))
+        surface_index
     }
 
     /// Called after updating child pictures during the initial
-    /// picture traversal.
-    fn post_update(
+    /// picture traversal. Bounding rects are propagated from
+    /// child pictures up to parent picture surfaces, so that the
+    /// parent bounding rect includes any dynamic picture bounds.
+    pub fn propagate_bounding_rect(
         &mut self,
-        prim_list: PrimitiveList,
-        state: &mut PictureUpdateState,
+        surface_index: SurfaceIndex,
+        parent_surface_index: SurfaceIndex,
+        surfaces: &mut [SurfaceInfo],
         frame_context: &FrameBuildingContext,
         data_stores: &mut DataStores,
     ) {
-        // Restore the pictures list used during recursion.
-        self.prim_list = prim_list;
-
-        let surface = state.current_surface_mut();
+        let surface = &mut surfaces[surface_index.0];
 
         for cluster in &mut self.prim_list.clusters {
             cluster.flags.remove(ClusterFlags::IS_VISIBLE);
@@ -6486,17 +6374,12 @@ impl PicturePrimitive {
         // rect into the parent surface coordinate space, and propagate that up
         // to the parent.
         if let Some(ref mut raster_config) = self.raster_config {
-            let surface = state.current_surface_mut();
             // Inflate the local bounding rect if required by the filter effect.
             if self.options.inflate_if_required {
                 surface.rect = raster_config.composite_mode.inflate_picture_rect(surface.rect, surface.scale_factors);
             }
 
             let mut surface_rect = surface.rect * Scale::new(1.0);
-
-            // Pop this surface from the stack
-            let surface_index = state.pop_surface();
-            debug_assert_eq!(surface_index, raster_config.surface_index);
 
             // Set the estimated and precise local rects. The precise local rect
             // may be changed again during frame visibility.
@@ -6516,7 +6399,7 @@ impl PicturePrimitive {
             }
 
             // Propagate up to parent surface, now that we know this surface's static rect
-            let parent_surface = state.current_surface_mut();
+            let parent_surface = &mut surfaces[parent_surface_index.0];
             parent_surface.map_local_to_surface.set_target_spatial_node(
                 self.spatial_node_index,
                 frame_context.spatial_tree,
@@ -6536,9 +6419,9 @@ impl PicturePrimitive {
         frame_state: &mut FrameBuildingState,
         data_stores: &mut DataStores,
     ) -> bool {
-        let mut pic_state_for_children = self.take_state();
+        if let Picture3DContext::In { root_data: Some(..), plane_splitter_index, .. } = self.context_3d {
+            let splitter = &mut frame_state.plane_splitters[plane_splitter_index.0];
 
-        if let Some(ref mut splitter) = pic_state_for_children.plane_splitter {
             self.resolve_split_planes(
                 splitter,
                 &mut frame_state.gpu_cache,

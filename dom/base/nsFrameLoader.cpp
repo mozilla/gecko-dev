@@ -152,7 +152,7 @@ using namespace mozilla::dom::ipc;
 using namespace mozilla::ipc;
 using namespace mozilla::layers;
 using namespace mozilla::layout;
-typedef ScrollableLayerGuid::ViewID ViewID;
+using ViewID = ScrollableLayerGuid::ViewID;
 
 using PrintPreviewResolver = std::function<void(const PrintPreviewResultInfo&)>;
 
@@ -187,6 +187,7 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, BrowsingContext* aBrowsingContext,
       mPendingSwitchID(0),
       mChildID(0),
       mRemoteType(NOT_REMOTE_TYPE),
+      mInitialized(false),
       mDepthTooGreat(false),
       mIsTopLevelContent(false),
       mDestroyCalled(false),
@@ -200,8 +201,7 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, BrowsingContext* aBrowsingContext,
       mIsRemoteFrame(aIsRemoteFrame),
       mWillChangeProcess(false),
       mObservingOwnerContent(false),
-      mTabProcessCrashFired(false),
-      mNotifyingCrash(false) {
+      mTabProcessCrashFired(false) {
   nsCOMPtr<nsFrameLoaderOwner> owner = do_QueryInterface(aOwner);
   owner->AttachFrameLoader(this);
 }
@@ -2194,6 +2194,12 @@ nsresult nsFrameLoader::MaybeCreateDocShell() {
 
   MOZ_RELEASE_ASSERT(!doc->IsResourceDoc(), "We shouldn't even exist");
 
+  // If we've already tried to initialize and failed, don't try again.
+  if (mInitialized) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+  mInitialized = true;
+
   // Check if the document still has a window since it is possible for an
   // iframe to be inserted and cause the creation of the docshell in a
   // partially unloaded document (see Bug 1305237 comment 127).
@@ -2583,6 +2589,12 @@ bool nsFrameLoader::TryRemoteBrowserInternal() {
   if (mRemoteBrowser) {
     return true;
   }
+
+  // If we've already tried to initialize and failed, don't try again.
+  if (mInitialized) {
+    return false;
+  }
+  mInitialized = true;
 
   // Ensure the world hasn't changed that much as a result of that.
   if (!mOwnerContent || mOwnerContent->OwnerDoc() != doc ||
@@ -3189,16 +3201,6 @@ void nsFrameLoader::AttributeChanged(mozilla::dom::Element* aElement,
   }
 }
 
-/**
- * Send the RequestNotifyAfterRemotePaint message to the current Tab.
- */
-void nsFrameLoader::RequestNotifyAfterRemotePaint() {
-  // If remote browsing (e10s), handle this with the BrowserParent.
-  if (auto* browserParent = GetBrowserParent()) {
-    Unused << browserParent->SendRequestNotifyAfterRemotePaint();
-  }
-}
-
 void nsFrameLoader::RequestUpdatePosition(ErrorResult& aRv) {
   if (auto* browserParent = GetBrowserParent()) {
     nsresult rv = browserParent->UpdatePosition();
@@ -3400,16 +3402,37 @@ already_AddRefed<Promise> nsFrameLoader::PrintPreview(
     return promise.forget();
   }
 
-  nsIDocShell* docShellToCloneInto = nullptr;
+  nsCOMPtr<nsIDocShell> docShellToCloneInto = nullptr;
   if (aSourceBrowsingContext) {
     // We're going to call `Print()` below on a window that is not our own,
     // which happens when we are creating a new print preview document instead
     // of just applying a settings change to the existing PP document.  In this
-    // case we need to explicity pass our docShell as the docShell to clone
+    // case we need to explicitly pass our docShell as the docShell to clone
     // into.
     docShellToCloneInto = GetExistingDocShell();
     if (NS_WARN_IF(!docShellToCloneInto)) {
       promise->MaybeRejectWithNotSupportedError("No print preview docShell");
+      return promise.forget();
+    }
+
+    // We need to make sure we're displayed so that the view tree ends up right.
+    RefPtr<BrowsingContext> bc = docShellToCloneInto->GetBrowsingContext();
+    if (NS_WARN_IF(!bc)) {
+      promise->MaybeRejectWithNotSupportedError(
+          "No print preview browsing context");
+      return promise.forget();
+    }
+
+    RefPtr<Element> embedder = bc->GetEmbedderElement();
+    if (NS_WARN_IF(!embedder)) {
+      promise->MaybeRejectWithNotSupportedError(
+          "Trying to clone into a frameloader with no element?");
+      return promise.forget();
+    }
+
+    nsIFrame* frame = embedder->GetPrimaryFrame(FlushType::Frames);
+    if (NS_WARN_IF(!frame)) {
+      promise->MaybeRejectWithNotSupportedError("Frame is not being displayed");
       return promise.forget();
     }
   }
@@ -3465,17 +3488,14 @@ already_AddRefed<nsILoadContext> nsFrameLoader::LoadContext() {
 }
 
 BrowsingContext* nsFrameLoader::GetBrowsingContext() {
-  if (mNotifyingCrash) {
-    if (mPendingBrowsingContext && mPendingBrowsingContext->EverAttached()) {
-      return mPendingBrowsingContext;
+  if (!mInitialized) {
+    if (IsRemoteFrame()) {
+      Unused << EnsureRemoteBrowser();
+    } else if (mOwnerContent) {
+      Unused << MaybeCreateDocShell();
     }
-    return nullptr;
   }
-  if (IsRemoteFrame()) {
-    Unused << EnsureRemoteBrowser();
-  } else if (mOwnerContent) {
-    Unused << MaybeCreateDocShell();
-  }
+  MOZ_ASSERT(mInitialized);
   return GetExtantBrowsingContext();
 }
 
@@ -3487,15 +3507,13 @@ BrowsingContext* nsFrameLoader::GetExtantBrowsingContext() {
     return nullptr;
   }
 
-  BrowsingContext* browsingContext = nullptr;
-  if (mRemoteBrowser) {
-    browsingContext = mRemoteBrowser->GetBrowsingContext();
-  } else if (mDocShell) {
-    browsingContext = mDocShell->GetBrowsingContext();
+  if (!mInitialized || !mPendingBrowsingContext->EverAttached()) {
+    // Don't return the pending BrowsingContext until this nsFrameLoader has
+    // been initialized, and the BC was attached.
+    return nullptr;
   }
 
-  MOZ_ASSERT_IF(browsingContext, browsingContext == mPendingBrowsingContext);
-  return browsingContext;
+  return mPendingBrowsingContext;
 }
 
 void nsFrameLoader::InitializeBrowserAPI() {
@@ -3749,10 +3767,6 @@ void nsFrameLoader::MaybeNotifyCrashed(BrowsingContext* aBrowsingContext,
   if (!os) {
     return;
   }
-
-  mNotifyingCrash = true;
-  auto resetNotifyCrash =
-      mozilla::MakeScopeExit([&] { mNotifyingCrash = false; });
 
   os->NotifyObservers(ToSupports(this), "oop-frameloader-crashed", nullptr);
 

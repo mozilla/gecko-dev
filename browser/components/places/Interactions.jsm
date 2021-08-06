@@ -204,12 +204,12 @@ class _Interactions {
       },
       child: {
         moduleURI: "resource:///actors/InteractionsChild.jsm",
-        group: "browsers",
         events: {
           DOMContentLoaded: {},
           pagehide: { mozSystemGroup: true },
         },
       },
+      messageManagerGroups: ["browsers"],
     });
 
     this.#activeWindow = Services.wm.getMostRecentBrowserWindow();
@@ -235,7 +235,7 @@ class _Interactions {
    * Used by tests.
    */
   async reset() {
-    logConsole.debug("Reset");
+    logConsole.debug("Database reset");
     this.#interactions = new WeakMap();
     this.#userIsIdle = false;
     this._pageViewStartTime = Cu.now();
@@ -270,14 +270,15 @@ class _Interactions {
     }
 
     if (InteractionsBlocklist.isUrlBlocklisted(docInfo.url)) {
-      logConsole.debug("URL is blocklisted", docInfo);
+      logConsole.debug("Ignoring a page as the URL is blocklisted", docInfo);
       return;
     }
 
-    logConsole.debug("New interaction", docInfo);
+    logConsole.debug("Tracking a new interaction", docInfo);
     let now = monotonicNow();
     interaction = {
       url: docInfo.url,
+      referrer: docInfo.referrer,
       totalViewTime: 0,
       typingTime: 0,
       keypresses: 0,
@@ -312,7 +313,7 @@ class _Interactions {
     if (!browser) {
       return;
     }
-    logConsole.debug("End of interaction");
+    logConsole.debug("Saw the end of an interaction");
 
     this.#updateInteraction(browser);
     this.#interactions.delete(browser);
@@ -331,7 +332,7 @@ class _Interactions {
       !this.#activeWindow ||
       (browser && browser.ownerGlobal != this.#activeWindow)
     ) {
-      logConsole.debug("No update due to no active window");
+      logConsole.debug("Not updating interaction as there is no active window");
       return;
     }
 
@@ -340,7 +341,7 @@ class _Interactions {
     // Sometimes an interaction may be signalled before idle is cleared, however
     // worst case we'd only loose approx 2 seconds of interaction detail.
     if (this.#userIsIdle) {
-      logConsole.debug("No update due to user is idle");
+      logConsole.debug("Not updating interaction as the user is idle");
       return;
     }
 
@@ -362,7 +363,6 @@ class _Interactions {
     interaction.keypresses += typingInteraction.keypresses;
     interaction.updated_at = monotonicNow();
 
-    logConsole.debug("Add to store: ", interaction);
     this.store.add(interaction);
   }
 
@@ -372,7 +372,7 @@ class _Interactions {
    * @param {DOMWindow} win
    */
   #onActivateWindow(win) {
-    logConsole.debug("Activate window");
+    logConsole.debug("Window activated");
 
     if (PrivateBrowsingUtils.isWindowPrivate(win)) {
       return;
@@ -388,7 +388,7 @@ class _Interactions {
    * @param {DOMWindow} win
    */
   #onDeactivateWindow(win) {
-    logConsole.debug("Deactivate window");
+    logConsole.debug("Window deactivate");
 
     this.#updateInteraction();
     this.#activeWindow = undefined;
@@ -403,7 +403,7 @@ class _Interactions {
    *   The instance of the browser that the user switched away from.
    */
   #onTabSelect(previousBrowser) {
-    logConsole.debug("Tab switch notified");
+    logConsole.debug("Tab switched");
 
     this.#updateInteraction(previousBrowser);
     this._pageViewStartTime = Cu.now();
@@ -444,14 +444,14 @@ class _Interactions {
         this.#onWindowOpen(subject);
         break;
       case "idle":
-        logConsole.debug("idle");
+        logConsole.debug("User went idle");
         // We save the state of the current interaction when we are notified
         // that the user is idle.
         this.#updateInteraction();
         this.#userIsIdle = true;
         break;
       case "active":
-        logConsole.debug("active");
+        logConsole.debug("User became active");
         this.#userIsIdle = false;
         this._pageViewStartTime = Cu.now();
         break;
@@ -620,6 +620,8 @@ class InteractionsStore {
    *   The document information to write.
    */
   add(interaction) {
+    logConsole.debug("Preparing interaction for storage", interaction);
+
     let interactionsForUrl = this.#interactions.get(interaction.url);
     if (!interactionsForUrl) {
       interactionsForUrl = new Map();
@@ -631,7 +633,6 @@ class InteractionsStore {
       let promise = new Promise(resolve => {
         this.#timerResolve = resolve;
         this.#timer = setTimeout(() => {
-          logConsole.debug("Save Timer");
           this.#updateDatabase()
             .catch(Cu.reportError)
             .then(resolve);
@@ -675,6 +676,7 @@ class InteractionsStore {
 
       for (let interaction of interactionsForUrl.values()) {
         params[`url${i}`] = interaction.url;
+        params[`referrer${i}`] = interaction.referrer;
         params[`created_at${i}`] = interaction.created_at;
         params[`updated_at${i}`] = interaction.updated_at;
         params[`document_type${i}`] =
@@ -692,6 +694,7 @@ class InteractionsStore {
             WHERE place_id = (SELECT id FROM moz_places WHERE url_hash = hash(:url${i}) AND url = :url${i})
               AND created_at = :created_at${i}),
           (SELECT id FROM moz_places WHERE url_hash = hash(:url${i}) AND url = :url${i}),
+          (SELECT id FROM moz_places WHERE url_hash = hash(:referrer${i}) AND url = :referrer${i} AND :referrer${i} != :url${i}),
           :created_at${i},
           :updated_at${i},
           :document_type${i},
@@ -704,18 +707,20 @@ class InteractionsStore {
         i++;
       }
     }
+
     logConsole.debug(`Storing ${i} entries in the database`);
+
     this.progress.pendingUpdates = i;
     await PlacesUtils.withConnectionWrapper(
       "Interactions.jsm::updateDatabase",
       async db => {
         await db.executeCached(
           `
-          WITH inserts (id, place_id, created_at, updated_at, document_type, total_view_time, typing_time, key_presses, scrolling_time, scrolling_distance) AS (
+          WITH inserts (id, place_id, referrer_place_id, created_at, updated_at, document_type, total_view_time, typing_time, key_presses, scrolling_time, scrolling_distance) AS (
             VALUES ${SQLInsertFragments.join(", ")}
           )
           INSERT OR REPLACE INTO moz_places_metadata (
-            id, place_id, created_at, updated_at, document_type, total_view_time, typing_time, key_presses, scrolling_time, scrolling_distance
+            id, place_id, referrer_place_id, created_at, updated_at, document_type, total_view_time, typing_time, key_presses, scrolling_time, scrolling_distance
           ) SELECT * FROM inserts WHERE place_id NOT NULL;
         `,
           params
@@ -723,6 +728,8 @@ class InteractionsStore {
       }
     );
     this.progress.pendingUpdates = 0;
+
+    Services.obs.notifyObservers(null, "places-metadata-updated");
 
     if (this.#userIsIdle) {
       this.updateSnapshots();

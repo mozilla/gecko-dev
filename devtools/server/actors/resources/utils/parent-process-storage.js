@@ -43,6 +43,16 @@ class ParentProcessStorage {
     // that got removed
     Services.obs.addObserver(this, "window-global-created");
     Services.obs.addObserver(this, "window-global-destroyed");
+
+    // bfcacheInParent is only enabled when fission is enabled
+    // and when Session History In Parent is enabled. (all three modes should now enabled all together)
+    loader.lazyGetter(
+      this,
+      "isBfcacheInParentEnabled",
+      () =>
+        Services.appinfo.sessionHistoryInParent &&
+        Services.prefs.getBoolPref("fission.bfcacheInParent", false)
+    );
   }
 
   async watch(watcherActor, { onAvailable }) {
@@ -54,7 +64,7 @@ class ParentProcessStorage {
     // In such case, the watcher emits specific events that we can use instead.
     this._offPageShow = watcherActor.on(
       "bf-cache-navigation-pageshow",
-      ({ windowGlobal }) => this._onNewWindowGlobal(windowGlobal)
+      ({ windowGlobal }) => this._onNewWindowGlobal(windowGlobal, true)
     );
 
     const {
@@ -170,7 +180,15 @@ class ParentProcessStorage {
     }
   }
 
-  async _onNewWindowGlobal(windowGlobal) {
+  /**
+   * Handle WindowGlobal received via:
+   * - <window-global-created> (to cover regular navigations, with brand new documents)
+   * - <bf-cache-navigation-pageshow> (to cover history navications)
+   *
+   * @param {WindowGlobal} windowGlobal
+   * @param {Boolean} isBfCacheNavigation
+   */
+  async _onNewWindowGlobal(windowGlobal, isBfCacheNavigation) {
     // If the watcher is bound to one browser element (i.e. a tab), ignore
     // windowGlobals related to other browser elements
     if (
@@ -191,12 +209,16 @@ class ParentProcessStorage {
       return;
     }
 
-    const isTargetSwitchingEnabled = Services.prefs.getBoolPref(
-      "devtools.target-switching.server.enabled",
-      false
-    );
+    // We only want to spawn a new StorageActor if a new target is being created, i.e.
+    // - target switching is enabled and we're notified about a new top-level window global,
+    //   via window-global-created
+    // - target switching is enabled OR bfCacheInParent is enabled, and a bfcache navigation
+    //   is performed (See handling of "pageshow" event in DevToolsFrameChild)
+    const isNewTargetBeingCreated =
+      this.watcherActor.isServerTargetSwitchingEnabled ||
+      (isBfCacheNavigation && this.isBfcacheInParentEnabled);
 
-    if (!isTargetSwitchingEnabled) {
+    if (!isNewTargetBeingCreated) {
       return;
     }
 
@@ -252,14 +274,17 @@ class StorageActorMock extends EventEmitter {
     // We only need to react to those events here if target switching is not enabled; when
     // it is enabled, ParentProcessStorage will spawn a whole new actor which will allow
     // the client to get the information it needs.
-    const isTargetSwitchingEnabled = Services.prefs.getBoolPref(
-      "devtools.target-switching.server.enabled",
-      false
-    );
-    if (!isTargetSwitchingEnabled) {
+    if (!this.watcherActor.isServerTargetSwitchingEnabled) {
       this._offPageShow = watcherActor.on(
         "bf-cache-navigation-pageshow",
         ({ windowGlobal }) => {
+          // if a new target is created in the content process as a result of the bfcache
+          // navigation, we don't need to emit window-ready as a new StorageActorMock will
+          // be created by ParentProcessStorage.
+          // When server targets are disabled, this only happens when bfcache in parent is enabled.
+          if (this.isBfcacheInParentEnabled) {
+            return;
+          }
           const windowMock = { location: windowGlobal.documentURI };
           this.emit("window-ready", windowMock);
         }
@@ -339,7 +364,8 @@ class StorageActorMock extends EventEmitter {
       return hostName === host;
     });
 
-    const principal = hostBrowsingContext.currentWindowGlobal.documentPrincipal;
+    const principal =
+      hostBrowsingContext.currentWindowGlobal.documentStoragePrincipal;
 
     return { document: { effectiveStoragePrincipal: principal } };
   }
@@ -369,12 +395,8 @@ class StorageActorMock extends EventEmitter {
     // Only notify about remote iframe windows when JSWindowActor based targets are enabled
     // We will create a new StorageActor for the top level tab documents when server side target
     // switching is enabled
-    const isTargetSwitching = Services.prefs.getBoolPref(
-      "devtools.target-switching.server.enabled",
-      false
-    );
     const isTopContext = subject.browsingContext.top == subject.browsingContext;
-    if (isTopContext && isTargetSwitching) {
+    if (isTopContext && this.watcherActor.isServerTargetSwitchingEnabled) {
       return;
     }
 

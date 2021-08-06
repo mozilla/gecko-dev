@@ -25,6 +25,8 @@ from taskgraph.transforms.job.common import support_vcs_checkout
 VARIANTS = [
     "shippable",
     "shippable-qr",
+    "shippable-lite",
+    "shippable-lite-qr",
     "devedition",
     "pgo",
     "asan",
@@ -59,7 +61,8 @@ def test_packages_url(taskdesc):
     # for android shippable we need to add 'en-US' to the artifact url
     test = taskdesc["run"]["test"]
     if "android" in test["test-platform"] and (
-        get_variant(test["test-platform"]) in ("shippable", "shippable-qr")
+        get_variant(test["test-platform"])
+        in ("shippable", "shippable-qr", "shippable-lite", "shippable-lite-qr")
     ):
         head, tail = os.path.split(artifact_url)
         artifact_url = os.path.join(head, "en-US", tail)

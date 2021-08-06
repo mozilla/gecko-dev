@@ -751,7 +751,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(Geolocation, mPendingCallbacks,
                                       mWatchingCallbacks, mPendingRequests)
 
 Geolocation::Geolocation()
-    : mProtocolType(ProtocolType::OTHER), mLastWatchId(0) {}
+    : mProtocolType(ProtocolType::OTHER), mLastWatchId(1) {}
 
 Geolocation::~Geolocation() {
   if (mService) {
@@ -922,6 +922,16 @@ Geolocation::NotifyError(uint16_t aErrorCode) {
   return NS_OK;
 }
 
+bool Geolocation::IsFullyActiveOrChrome() {
+  // For regular content window, only allow this proceed if the window is "fully
+  // active".
+  if (nsPIDOMWindowInner* window = this->GetParentObject()) {
+    return window->IsFullyActive();
+  }
+  // Calls coming from chrome code don't have window, so we can proceed.
+  return true;
+}
+
 bool Geolocation::IsAlreadyCleared(nsGeolocationRequest* aRequest) {
   for (uint32_t i = 0, length = mClearedWatchIDs.Length(); i < length; ++i) {
     if (mClearedWatchIDs[i] == aRequest->WatchId()) {
@@ -993,6 +1003,14 @@ nsresult Geolocation::GetCurrentPosition(GeoPositionCallback callback,
                                          GeoPositionErrorCallback errorCallback,
                                          UniquePtr<PositionOptions>&& options,
                                          CallerType aCallerType) {
+  if (!IsFullyActiveOrChrome()) {
+    RefPtr<GeolocationPositionError> positionError =
+        new GeolocationPositionError(
+            this, GeolocationPositionError_Binding::POSITION_UNAVAILABLE);
+    positionError->NotifyCallback(errorCallback);
+    return NS_OK;
+  }
+
   if (mPendingCallbacks.Length() > MAX_GEO_REQUESTS_PER_WINDOW) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -1053,15 +1071,23 @@ int32_t Geolocation::WatchPosition(
                        std::move(aOptions), CallerType::System, IgnoreErrors());
 }
 
-// On errors we return -1 because that's not a valid watch id and will
+// On errors we return 0 because that's not a valid watch id and will
 // get ignored in clearWatch.
 int32_t Geolocation::WatchPosition(GeoPositionCallback aCallback,
                                    GeoPositionErrorCallback aErrorCallback,
                                    UniquePtr<PositionOptions>&& aOptions,
                                    CallerType aCallerType, ErrorResult& aRv) {
+  if (!IsFullyActiveOrChrome()) {
+    RefPtr<GeolocationPositionError> positionError =
+        new GeolocationPositionError(
+            this, GeolocationPositionError_Binding::POSITION_UNAVAILABLE);
+    positionError->NotifyCallback(aErrorCallback);
+    return 0;
+  }
+
   if (mWatchingCallbacks.Length() > MAX_GEO_REQUESTS_PER_WINDOW) {
     aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-    return -1;
+    return 0;
   }
 
   // The watch ID:
@@ -1081,13 +1107,13 @@ int32_t Geolocation::WatchPosition(GeoPositionCallback aCallback,
 
   if (!mOwner && aCallerType != CallerType::System) {
     aRv.Throw(NS_ERROR_FAILURE);
-    return -1;
+    return 0;
   }
 
   if (mOwner) {
     if (!RegisterRequestWithPrompt(request)) {
       aRv.Throw(NS_ERROR_NOT_AVAILABLE);
-      return -1;
+      return 0;
     }
 
     return watchId;
@@ -1095,7 +1121,7 @@ int32_t Geolocation::WatchPosition(GeoPositionCallback aCallback,
 
   if (aCallerType != CallerType::System) {
     aRv.Throw(NS_ERROR_FAILURE);
-    return -1;
+    return 0;
   }
 
   request->Allow(JS::UndefinedHandleValue);
@@ -1103,7 +1129,7 @@ int32_t Geolocation::WatchPosition(GeoPositionCallback aCallback,
 }
 
 void Geolocation::ClearWatch(int32_t aWatchId) {
-  if (aWatchId < 0) {
+  if (aWatchId < 1) {
     return;
   }
 

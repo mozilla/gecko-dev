@@ -104,7 +104,6 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::RuleChangeKind;
 use style::media_queries::MediaList;
 use style::parser::{self, Parse, ParserContext};
-use style::profiler_label;
 use style::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use style::properties::{parse_one_declaration_into, parse_style_attribute};
 use style::properties::{ComputedValues, CountedUnknownProperty, Importance, NonCustomPropertyId};
@@ -1616,7 +1615,7 @@ pub unsafe extern "C" fn Servo_StyleSheet_FromUTF8BytesAsync(
 
     if let Some(thread_pool) = STYLE_THREAD_POOL.pool().as_ref() {
         thread_pool.spawn(|| {
-            profiler_label!(Parse);
+            gecko_profiler_label!(Layout, CSSParsing);
             async_parser.parse();
         });
     } else {
@@ -5331,7 +5330,16 @@ pub unsafe extern "C" fn Servo_DeclarationBlock_SetFontFamily(
     let string = value.as_str_unchecked();
     let mut input = ParserInput::new(&string);
     let mut parser = Parser::new(&mut input);
-    let result = FontFamily::parse_specified(&mut parser);
+    let context = ParserContext::new(
+        Origin::Author,
+        dummy_url_data(),
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        None,
+        None,
+    );
+    let result = FontFamily::parse(&context, &mut parser);
     if let Ok(family) = result {
         if parser.is_exhausted() {
             let decl = PropertyDeclaration::FontFamily(family);
@@ -7118,5 +7126,17 @@ pub extern "C" fn Servo_FontFamilyList_WithNames(names: &nsTArray<computed::font
 
 #[no_mangle]
 pub extern "C" fn Servo_GenericFontFamily_Parse(input: &nsACString) -> GenericFontFamily {
-    GenericFontFamily::from_ident(&*input.to_utf8()).unwrap_or(GenericFontFamily::None)
+    let context = ParserContext::new(
+        Origin::Author,
+        unsafe { dummy_url_data() },
+        Some(CssRuleType::Style),
+        ParsingMode::DEFAULT,
+        QuirksMode::NoQuirks,
+        None,
+        None,
+    );
+    let value = input.to_utf8();
+    let mut input = ParserInput::new(&value);
+    let mut input = Parser::new(&mut input);
+    GenericFontFamily::parse(&context, &mut input).unwrap_or(GenericFontFamily::None)
 }

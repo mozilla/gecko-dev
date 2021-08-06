@@ -12,7 +12,8 @@
 #include "js/HeapAPI.h"
 #include "vm/BigIntType.h"  // JS::BigInt
 #include "vm/Realm.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmBuiltins.h"
+#include "wasm/WasmTlsData.h"
 
 namespace js {
 namespace jit {
@@ -178,6 +179,10 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
 
     load32(ToPayload(src), temp);
     store32(temp, ToPayload(dest));
+  }
+  void storePrivateValue(Register src, const Address& dest) {
+    store32(Imm32(0), ToType(dest));
+    store32(src, ToPayload(dest));
   }
   void loadValue(Operand src, ValueOperand val) {
     Operand payload = ToPayload(src);

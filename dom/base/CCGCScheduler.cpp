@@ -10,58 +10,34 @@
 
 namespace mozilla {
 
-void CCGCScheduler::FullGCTimerFired(nsITimer* aTimer) {
-  KillFullGCTimer();
-
-  RefPtr<CCGCScheduler::MayGCPromise> mbPromise =
-      CCGCScheduler::MayGCNow(JS::GCReason::FULL_GC_TIMER);
-  if (mbPromise) {
-    mbPromise->Then(
-        GetMainThreadSerialEventTarget(), __func__,
-        [](bool aIgnored) {
-          nsJSContext::GarbageCollectNow(JS::GCReason::FULL_GC_TIMER,
-                                         nsJSContext::IncrementalGC);
-        },
-        [](mozilla::ipc::ResponseRejectReason r) {
-          // do nothing
-        });
-  }
+void CCGCScheduler::NoteGCBegin() {
+  // Treat all GC as incremental here; non-incremental GC will just appear to
+  // be one slice.
+  mInIncrementalGC = true;
+  mReadyForMajorGC = false;
 }
 
-// nsJSEnvironmentObserver observes the user-interaction-inactive notifications
-// and triggers a shrinking a garbage collection if the user is still inactive
-// after NS_SHRINKING_GC_DELAY ms later, if the appropriate pref is set.
+void CCGCScheduler::NoteGCEnd() {
+  mMajorGCReason = JS::GCReason::NO_REASON;
 
-void CCGCScheduler::ShrinkingGCTimerFired(nsITimer* aTimer) {
-  KillShrinkingGCTimer();
+  mInIncrementalGC = false;
+  mCCBlockStart = TimeStamp();
+  mReadyForMajorGC = false;
+  mWantAtLeastRegularGC = false;
+  mNeedsFullCC = true;
+  mHasRunGC = true;
+  mIsCompactingOnUserInactive = false;
 
-  RefPtr<MayGCPromise> mbPromise = MayGCNow(JS::GCReason::USER_INACTIVE);
-  if (mbPromise) {
-    mbPromise->Then(
-        GetMainThreadSerialEventTarget(), __func__,
-        [this](bool aIgnored) {
-          if (!mUserIsActive) {
-            mIsCompactingOnUserInactive = true;
-            nsJSContext::GarbageCollectNow(JS::GCReason::USER_INACTIVE,
-                                           nsJSContext::IncrementalGC,
-                                           nsJSContext::ShrinkingGC);
-          } else {
-            using mozilla::ipc::IdleSchedulerChild;
-            IdleSchedulerChild* child =
-                IdleSchedulerChild::GetMainThreadIdleScheduler();
-            if (child) {
-              child->DoneGC();
-            }
-          }
-        },
-        [](mozilla::ipc::ResponseRejectReason r) {});
-  }
+  mCleanupsSinceLastGC = 0;
+  mCCollectedWaitingForGC = 0;
+  mCCollectedZonesWaitingForGC = 0;
+  mLikelyShortLivingObjectsNeedingGC = 0;
 }
 
 bool CCGCScheduler::GCRunnerFired(TimeStamp aDeadline) {
   MOZ_ASSERT(!mDidShutdown, "GCRunner still alive during shutdown");
 
-  GCRunnerStep step = GetNextGCRunnerAction(aDeadline);
+  GCRunnerStep step = GetNextGCRunnerAction();
   switch (step.mAction) {
     case GCRunnerAction::None:
       MOZ_CRASH("Unexpected GCRunnerAction");
@@ -98,14 +74,29 @@ bool CCGCScheduler::GCRunnerFired(TimeStamp aDeadline) {
   }
 
   // Run a GC slice, possibly the first one of a major GC.
+  nsJSContext::IsShrinking is_shrinking = nsJSContext::NonShrinkingGC;
+  if (!InIncrementalGC() && step.mReason == JS::GCReason::USER_INACTIVE) {
+    if (!mUserIsActive) {
+      mIsCompactingOnUserInactive = true;
+      is_shrinking = nsJSContext::ShrinkingGC;
+    } else if (!mWantAtLeastRegularGC) {
+      // Don't GC now.
+      using mozilla::ipc::IdleSchedulerChild;
+      IdleSchedulerChild* child =
+          IdleSchedulerChild::GetMainThreadIdleScheduler();
+      if (child) {
+        child->DoneGC();
+      }
+      return true;
+    }
+  }
 
   MOZ_ASSERT(mActiveIntersliceGCBudget);
   TimeStamp startTimeStamp = TimeStamp::Now();
   TimeDuration budget = ComputeInterSliceGCBudget(aDeadline, startTimeStamp);
   TimeDuration duration = mGCUnnotifiedTotalTime;
   nsJSContext::GarbageCollectNow(step.mReason, nsJSContext::IncrementalGC,
-                                 nsJSContext::NonShrinkingGC,
-                                 budget.ToMilliseconds());
+                                 is_shrinking, budget.ToMilliseconds());
 
   mGCUnnotifiedTotalTime = TimeDuration();
   TimeStamp now = TimeStamp::Now();
@@ -199,7 +190,10 @@ void CCGCScheduler::PokeShrinkingGC() {
   NS_NewTimerWithFuncCallback(
       &mShrinkingGCTimer,
       [](nsITimer* aTimer, void* aClosure) {
-        static_cast<CCGCScheduler*>(aClosure)->ShrinkingGCTimerFired(aTimer);
+        CCGCScheduler* s = static_cast<CCGCScheduler*>(aClosure);
+        s->KillShrinkingGCTimer();
+        s->SetWantMajorGC(JS::GCReason::USER_INACTIVE);
+        s->EnsureGCRunner(0);
       },
       this, StaticPrefs::javascript_options_compact_on_user_inactive_delay(),
       nsITimer::TYPE_ONE_SHOT_LOW_PRIORITY, "ShrinkingGCTimerFired");
@@ -210,7 +204,11 @@ void CCGCScheduler::PokeFullGC() {
     NS_NewTimerWithFuncCallback(
         &mFullGCTimer,
         [](nsITimer* aTimer, void* aClosure) {
-          static_cast<CCGCScheduler*>(aClosure)->FullGCTimerFired(aTimer);
+          CCGCScheduler* s = static_cast<CCGCScheduler*>(aClosure);
+          s->KillFullGCTimer();
+          s->SetNeedsFullGC();
+          s->SetWantMajorGC(JS::GCReason::FULL_GC_TIMER);
+          s->EnsureGCRunner(0);
         },
         this, StaticPrefs::javascript_options_gc_delay_full(),
         nsITimer::TYPE_ONE_SHOT_LOW_PRIORITY, "FullGCTimerFired");
@@ -270,6 +268,9 @@ void CCGCScheduler::EnsureGCRunner(TimeDuration aDelay) {
       mActiveIntersliceGCBudget, true, [this] { return mDidShutdown; });
 }
 
+// nsJSEnvironmentObserver observes the user-interaction-inactive notifications
+// and triggers a shrinking a garbage collection if the user is still inactive
+// after NS_SHRINKING_GC_DELAY ms later, if the appropriate pref is set.
 void CCGCScheduler::UserIsInactive() {
   mUserIsActive = false;
   if (StaticPrefs::javascript_options_compact_on_user_inactive()) {
@@ -631,7 +632,7 @@ CCRunnerStep CCGCScheduler::AdvanceCCRunner(TimeStamp aDeadline, TimeStamp aNow,
   };
 }
 
-GCRunnerStep CCGCScheduler::GetNextGCRunnerAction(TimeStamp aDeadline) {
+GCRunnerStep CCGCScheduler::GetNextGCRunnerAction() const {
   MOZ_ASSERT(mMajorGCReason != JS::GCReason::NO_REASON);
 
   if (InIncrementalGC()) {

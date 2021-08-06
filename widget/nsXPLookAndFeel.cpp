@@ -117,7 +117,6 @@ static const char sIntPrefs[][42] = {
     "ui.menusCanOverlapOSBar",
     "ui.useOverlayScrollbars",
     "ui.allowOverlayScrollbarsOverlap",
-    "ui.showHideScrollbars",
     "ui.skipNavigatingDisabledMenuItem",
     "ui.dragThresholdX",
     "ui.dragThresholdY",
@@ -299,12 +298,12 @@ static const char sColorPrefs[][41] = {
     "ui.-moz-mac-source-list-selection",
     "ui.-moz-mac-active-source-list-selection",
     "ui.-moz-mac-tooltip",
-    "ui.-webkit-focus-ring-color",
     "ui.-moz-accent-color",
     "ui.-moz-accent-color-foreground",
     "ui.-moz-win-mediatext",
     "ui.-moz-win-communicationstext",
     "ui.-moz-nativehyperlinktext",
+    "ui.-moz-nativevisitedhyperlinktext",
     "ui.-moz-hyperlinktext",
     "ui.-moz-activehyperlinktext",
     "ui.-moz-visitedhyperlinktext",
@@ -581,6 +580,7 @@ nscolor nsXPLookAndFeel::GetStandinForNativeColor(ColorID aID) {
     COLOR(MozWinMediatext, 0xFF, 0xFF, 0xFF)
     COLOR(MozWinCommunicationstext, 0xFF, 0xFF, 0xFF)
     COLOR(MozNativehyperlinktext, 0x00, 0x66, 0xCC)
+    COLOR(MozNativevisitedhyperlinktext, 0x55, 0x1A, 0x8B)
     COLOR(MozComboboxtext, 0x00, 0x00, 0x00)
     COLOR(MozCombobox, 0xFF, 0xFF, 0xFF)
     default:
@@ -965,8 +965,9 @@ static bool ShouldRespectGlobalToolbarThemeAppearanceForChromeDoc() {
 #endif
 }
 
-LookAndFeel::ColorScheme LookAndFeel::ColorSchemeForDocument(
-    const dom::Document& aDoc) {
+static LookAndFeel::ColorScheme ColorSchemeForDocument(
+    const dom::Document& aDoc, bool aContentSupportsDark) {
+  using ColorScheme = LookAndFeel::ColorScheme;
   if (nsContentUtils::IsChromeDoc(&aDoc)) {
     if (ShouldRespectGlobalToolbarThemeAppearanceForChromeDoc()) {
       switch (StaticPrefs::browser_theme_toolbar_theme()) {
@@ -975,16 +976,47 @@ LookAndFeel::ColorScheme LookAndFeel::ColorSchemeForDocument(
         case 1:  // Light
           return ColorScheme::Light;
         case 2:  // System
-          return SystemColorScheme();
+          return LookAndFeel::SystemColorScheme();
         default:
           break;
       }
     }
     if (ShouldRespectSystemColorSchemeForChromeDoc()) {
-      return SystemColorScheme();
+      return LookAndFeel::SystemColorScheme();
     }
   }
-  return LookAndFeel::ColorScheme::Light;
+#ifdef MOZ_WIDGET_GTK
+  if (StaticPrefs::widget_content_allow_gtk_dark_theme()) {
+    // If users manually tweak allow-gtk-dark-theme, allow content to use the
+    // system color scheme rather than forcing it to light.
+    return LookAndFeel::SystemColorScheme();
+  }
+#endif
+  return aContentSupportsDark ? LookAndFeel::SystemColorScheme()
+                              : ColorScheme::Light;
+}
+
+LookAndFeel::ColorScheme LookAndFeel::ColorSchemeForStyle(
+    const dom::Document& aDoc, const StyleColorSchemeFlags& aFlags) {
+  StyleColorSchemeFlags style(aFlags);
+  if (!style) {
+    style.bits = aDoc.GetColorSchemeBits();
+  }
+  const bool supportsDark = bool(style & StyleColorSchemeFlags::DARK);
+  const bool supportsLight = bool(style & StyleColorSchemeFlags::LIGHT);
+  if (supportsDark && !supportsLight) {
+    return ColorScheme::Dark;
+  }
+  if (supportsLight && !supportsDark) {
+    return ColorScheme::Light;
+  }
+  return ColorSchemeForDocument(aDoc, supportsDark);
+}
+
+LookAndFeel::ColorScheme LookAndFeel::ColorSchemeForFrame(
+    const nsIFrame* aFrame) {
+  return ColorSchemeForStyle(*aFrame->PresContext()->Document(),
+                             aFrame->StyleUI()->mColorScheme.bits);
 }
 
 // static
@@ -1043,19 +1075,24 @@ static bool ColorIsCSSAccessible(LookAndFeel::ColorID aId) {
 
 LookAndFeel::UseStandins LookAndFeel::ShouldUseStandins(
     const dom::Document& aDoc, ColorID aId) {
-  return UseStandins(
-      ShouldUseStandinsForNativeColorForNonNativeTheme(aDoc, aId) ||
-      (nsContentUtils::UseStandinsForNativeColors() &&
-       !nsContentUtils::IsChromeDoc(&aDoc) && ColorIsCSSAccessible(aId)));
-}
-
-Maybe<nscolor> LookAndFeel::GetColor(ColorID aId, const dom::Document& aDoc) {
-  return GetColor(aId, ColorSchemeForDocument(aDoc),
-                  ShouldUseStandins(aDoc, aId));
+  if (ShouldUseStandinsForNativeColorForNonNativeTheme(aDoc, aId)) {
+    return UseStandins::Yes;
+  }
+  if (nsContentUtils::UseStandinsForNativeColors() &&
+      !nsContentUtils::IsChromeDoc(&aDoc) && ColorIsCSSAccessible(aId)) {
+    return UseStandins::Yes;
+  }
+  if (aDoc.IsStaticDocument() &&
+      !PreferenceSheet::ContentPrefs().mUseDocumentColors) {
+    return UseStandins::Yes;
+  }
+  return UseStandins::No;
 }
 
 Maybe<nscolor> LookAndFeel::GetColor(ColorID aId, const nsIFrame* aFrame) {
-  return GetColor(aId, *aFrame->PresContext()->Document());
+  const auto* doc = aFrame->PresContext()->Document();
+  return GetColor(aId, ColorSchemeForFrame(aFrame),
+                  ShouldUseStandins(*doc, aId));
 }
 
 // static

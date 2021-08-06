@@ -13,7 +13,9 @@
 #include "jit/MoveResolver.h"
 #include "vm/BigIntType.h"
 #include "vm/BytecodeUtil.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmBuiltins.h"
+#include "wasm/WasmCodegenTypes.h"
+#include "wasm/WasmTlsData.h"
 
 namespace js {
 namespace jit {
@@ -1089,6 +1091,11 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM {
 
     load32(ToPayload(src), temp);
     store32(temp, ToPayload(dest));
+  }
+
+  void storePrivateValue(Register src, const Address& dest) {
+    store32(Imm32(0), ToType(dest));
+    store32(src, ToPayload(dest));
   }
 
   void loadValue(Address src, ValueOperand val);

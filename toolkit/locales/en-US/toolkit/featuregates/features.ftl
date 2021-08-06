@@ -16,12 +16,6 @@ experimental-features-web-gpu-description2 = This new API provides low-level sup
 
 # The title of the experiment should be kept in English as it may be referenced
 # by various online articles and is technical in nature.
-experimental-features-media-avif =
-    .label = Media: AVIF
-experimental-features-media-avif-description = With this feature enabled, { -brand-short-name } supports the AV1 Image File (AVIF) format. This is a still image file format that leverages the capabilities of the AV1 video compression algorithms to reduce image size. See <a data-l10n-name="bugzilla">bug 1443863</a> for more details.
-
-# The title of the experiment should be kept in English as it may be referenced
-# by various online articles and is technical in nature.
 experimental-features-media-jxl =
     .label = Media: JPEG XL
 experimental-features-media-jxl-description = With this feature enabled, { -brand-short-name } supports the JPEG XL (JXL) format. This is an enhanced image file format that supports lossless transition from traditional JPEG files. See <a data-l10n-name="bugzilla">bug 1539075</a> for more details.
@@ -38,10 +32,6 @@ experimental-features-web-api-inputmode-description = Our implementation of the 
 experimental-features-css-constructable-stylesheets =
     .label = CSS: Constructable Stylesheets
 experimental-features-css-constructable-stylesheets-description = The addition of a constructor to the <a data-l10n-name="mdn-cssstylesheet">CSSStyleSheet</a> interface as well as a variety of related changes makes it possible to directly create new stylesheets without having to add the sheet to the HTML. This makes it much easier to create reusable stylesheets for use with <a data-l10n-name="mdn-shadowdom">Shadow DOM</a>. See <a data-l10n-name="bugzilla">bug 1520690</a> for more details.
-
-experimental-features-devtools-color-scheme-simulation =
-    .label = Developer Tools: Color Scheme Simulation
-experimental-features-devtools-color-scheme-simulation-description = Adds an option to simulate different color schemes allowing you to test <a data-l10n-name="mdn-preferscolorscheme">@prefers-color-scheme</a> media queries. Using this media query lets your stylesheet respond to whether the user prefers a light or dark user interface. This feature lets you test your code without having to change settings in your browser (or operating system, if the browser follows a system-wide color scheme setting). See <a data-l10n-name="bugzilla1">bug 1550804</a> and <a data-l10n-name="bugzilla2">bug 1137699</a> for more details.
 
 experimental-features-devtools-execution-context-selector =
     .label = Developer Tools: Execution Context Selector

@@ -105,13 +105,13 @@ class nsFrameLoader final : public nsStubMutationObserver,
   friend class AutoResetInShow;
   friend class AutoResetInFrameSwap;
   friend class nsFrameLoaderOwner;
-  typedef mozilla::dom::Document Document;
-  typedef mozilla::dom::Element Element;
-  typedef mozilla::dom::BrowserParent BrowserParent;
-  typedef mozilla::dom::BrowserBridgeChild BrowserBridgeChild;
-  typedef mozilla::dom::BrowsingContext BrowsingContext;
-  typedef mozilla::dom::BrowsingContextGroup BrowsingContextGroup;
-  typedef mozilla::dom::Promise Promise;
+  using Document = mozilla::dom::Document;
+  using Element = mozilla::dom::Element;
+  using BrowserParent = mozilla::dom::BrowserParent;
+  using BrowserBridgeChild = mozilla::dom::BrowserBridgeChild;
+  using BrowsingContext = mozilla::dom::BrowsingContext;
+  using BrowsingContextGroup = mozilla::dom::BrowsingContextGroup;
+  using Promise = mozilla::dom::Promise;
 
  public:
   // Called by Frame Elements to create a new FrameLoader.
@@ -217,8 +217,6 @@ class nsFrameLoader final : public nsStubMutationObserver,
 
   void ActivateFrameEvent(const nsAString& aType, bool aCapture,
                           mozilla::ErrorResult& aRv);
-
-  void RequestNotifyAfterRemotePaint();
 
   void RequestUpdatePosition(mozilla::ErrorResult& aRv);
 
@@ -530,6 +528,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
 
   nsCString mRemoteType;
 
+  bool mInitialized : 1;
   bool mDepthTooGreat : 1;
   bool mIsTopLevelContent : 1;
   bool mDestroyCalled : 1;
@@ -556,10 +555,6 @@ class nsFrameLoader final : public nsStubMutationObserver,
   // When an out-of-process nsFrameLoader crashes, an event is fired on the
   // frame. To ensure this is only fired once, this bit is checked.
   bool mTabProcessCrashFired : 1;
-
-  // True when we're within the scope of MaybeNotifyCrashed, for detecting
-  // when we recurse back into ourselves from JS event listeners
-  bool mNotifyingCrash : 1;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsFrameLoader, NS_FRAMELOADER_IID)

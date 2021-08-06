@@ -252,6 +252,7 @@ STATIC_ATOMS = [
     Atom("collapsed", "collapsed"),
     Atom("color", "color"),
     Atom("colorIndex", "color-index"),
+    Atom("colorScheme", "color-scheme"),
     Atom("cols", "cols"),
     Atom("colspan", "colspan"),
     Atom("combobox", "combobox"),
@@ -2190,7 +2191,6 @@ STATIC_ATOMS = [
     Atom("DisplayPortBase", "_displayportbase"),
     Atom("MinimalDisplayPort", "_minimaldisplayport"),
     Atom("forcemessagemanager", "forcemessagemanager"),
-    Atom("preloadedState", "preloadedState"),
     Atom("initialBrowsingContextGroupId", "initialBrowsingContextGroupId"),
     Atom("initiallyactive", "initiallyactive"),
     # windows media query names

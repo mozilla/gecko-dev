@@ -357,6 +357,13 @@ class PresShell final : public nsStubDocumentObserver,
    */
   bool InRDMPane();
 
+#if defined(MOZ_WIDGET_ANDROID)
+  /**
+   * If the dynamic toolbar is not expanded, notify the app to do so.
+   */
+  void MaybeNotifyShowDynamicToolbar();
+#endif  // defined(MOZ_WIDGET_ANDROID)
+
  private:
   /**
    * This is what ResizeReflowIgnoreOverride does when not shrink-wrapping (that
@@ -912,10 +919,10 @@ class PresShell final : public nsStubDocumentObserver,
   already_AddRefed<nsIContent> GetFocusedContentInOurWindow() const;
 
   /**
-   * Get the layer manager for the widget of the root view, if it has
+   * Get the window renderer for the widget of the root view, if it has
    * one.
    */
-  LayerManager* GetLayerManager();
+  WindowRenderer* GetWindowRenderer();
 
   /**
    * Return true iff there is a widget rendering this presShell and that
@@ -1260,6 +1267,8 @@ class PresShell final : public nsStubDocumentObserver,
   MOZ_CAN_RUN_SCRIPT
   void Paint(nsView* aViewToPaint, const nsRegion& aDirtyRegion,
              PaintFlags aFlags);
+
+  bool Composite(nsView* aViewToPaint);
 
   /**
    * Notify that we're going to call Paint with PaintFlags::PaintLayers

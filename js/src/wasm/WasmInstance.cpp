@@ -43,7 +43,9 @@
 #include "wasm/WasmJS.h"
 #include "wasm/WasmModule.h"
 #include "wasm/WasmStubs.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmTypeDef.h"
+#include "wasm/WasmValType.h"
+#include "wasm/WasmValue.h"
 
 #include "gc/StoreBuffer-inl.h"
 #include "vm/ArrayBufferObject-inl.h"
@@ -1003,8 +1005,7 @@ bool Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
     return nullptr;
   }
 
-  return AnyRef::fromJSObject(
-             WasmRuntimeExceptionObject::create(cx, tag, buf, refs))
+  return AnyRef::fromJSObject(WasmExceptionObject::create(cx, tag, buf, refs))
       .forCompiledCode();
 }
 
@@ -1032,8 +1033,8 @@ bool Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
   MOZ_ASSERT(SASigGetLocalExceptionIndex.failureMode ==
              FailureMode::Infallible);
 
-  if (exn->is<WasmRuntimeExceptionObject>()) {
-    ExceptionTag& exnTag = exn->as<WasmRuntimeExceptionObject>().tag();
+  if (exn->is<WasmExceptionObject>()) {
+    ExceptionTag& exnTag = exn->as<WasmExceptionObject>().tag();
     for (size_t i = 0; i < instance->exceptionTags().length(); i++) {
       ExceptionTag& tag = *instance->exceptionTags()[i];
       if (&tag == &exnTag) {
@@ -1053,9 +1054,8 @@ bool Instance::initElems(uint32_t tableIndex, const ElemSegment& seg,
 
   JSContext* cx = TlsContext.get();
 
-  MOZ_ASSERT(exn->is<WasmRuntimeExceptionObject>());
-  RootedWasmRuntimeExceptionObject exnObj(
-      cx, &exn->as<WasmRuntimeExceptionObject>());
+  MOZ_ASSERT(exn->is<WasmExceptionObject>());
+  RootedWasmExceptionObject exnObj(cx, &exn->as<WasmExceptionObject>());
 
   // TODO/AnyRef-boxing: With boxed immediates and strings, this may need to
   // handle other kinds of values.
@@ -1233,8 +1233,8 @@ bool Instance::init(JSContext* cx, const JSFunctionVector& funcImports,
                     const ElemSegmentVector& elemSegments) {
   MOZ_ASSERT(!!maybeDebug_ == metadata().debugEnabled);
 #ifdef ENABLE_WASM_EXCEPTIONS
-  // Currently the only events are exceptions.
-  MOZ_ASSERT(exceptionTags_.length() == metadata().events.length());
+  // Currently the only tags are exception tags.
+  MOZ_ASSERT(exceptionTags_.length() == metadata().tags.length());
 #else
   MOZ_ASSERT(exceptionTags_.length() == 0);
 #endif
@@ -1632,8 +1632,8 @@ uintptr_t Instance::traceFrame(JSTracer* trc, const wasm::WasmFrameIter& wfi,
   }
 
   // Finally, deal with any GC-managed fields in the DebugFrame, if it is
-  // present.
-  if (map->hasDebugFrame) {
+  // present and those fields may be live.
+  if (map->hasDebugFrameWithLiveRefs) {
     DebugFrame* debugFrame = DebugFrame::from(frame);
     char* debugFrameP = (char*)debugFrame;
 

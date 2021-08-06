@@ -45,11 +45,14 @@ class WebRenderLayerScrollData final {
   WebRenderLayerScrollData();  // needed for IPC purposes
   ~WebRenderLayerScrollData();
 
+  using ViewID = ScrollableLayerGuid::ViewID;
+
   void InitializeRoot(int32_t aDescendantCount);
   void Initialize(WebRenderScrollData& aOwner, nsDisplayItem* aItem,
                   int32_t aDescendantCount,
                   const ActiveScrolledRoot* aStopAtAsr,
-                  const Maybe<gfx::Matrix4x4>& aAncestorTransform);
+                  const Maybe<gfx::Matrix4x4>& aAncestorTransform,
+                  const ViewID& aAncestorTransformId);
 
   int32_t GetDescendantCount() const;
   size_t GetScrollMetadataCount() const;
@@ -64,6 +67,7 @@ class WebRenderLayerScrollData final {
                                           size_t aIndex) const;
 
   gfx::Matrix4x4 GetAncestorTransform() const { return mAncestorTransform; }
+  ViewID GetAncestorTransformId() const { return mAncestorTransformId; }
   void SetTransform(const gfx::Matrix4x4& aTransform) {
     mTransform = aTransform;
   }
@@ -118,17 +122,17 @@ class WebRenderLayerScrollData final {
   }
   SideBits GetFixedPositionSides() const { return mFixedPositionSides; }
 
-  void SetFixedPositionScrollContainerId(ScrollableLayerGuid::ViewID aId) {
+  void SetFixedPositionScrollContainerId(ViewID aId) {
     mFixedPosScrollContainerId = aId;
   }
-  ScrollableLayerGuid::ViewID GetFixedPositionScrollContainerId() const {
+  ViewID GetFixedPositionScrollContainerId() const {
     return mFixedPosScrollContainerId;
   }
 
-  void SetStickyPositionScrollContainerId(ScrollableLayerGuid::ViewID aId) {
+  void SetStickyPositionScrollContainerId(ViewID aId) {
     mStickyPosScrollContainerId = aId;
   }
-  ScrollableLayerGuid::ViewID GetStickyPositionScrollContainerId() const {
+  ViewID GetStickyPositionScrollContainerId() const {
     return mStickyPosScrollContainerId;
   }
 
@@ -156,10 +160,10 @@ class WebRenderLayerScrollData final {
   void SetZoomAnimationId(const uint64_t& aId) { mZoomAnimationId = Some(aId); }
   Maybe<uint64_t> GetZoomAnimationId() const { return mZoomAnimationId; }
 
-  void SetAsyncZoomContainerId(const ScrollableLayerGuid::ViewID aId) {
+  void SetAsyncZoomContainerId(const ViewID& aId) {
     mAsyncZoomContainerId = Some(aId);
   }
-  Maybe<ScrollableLayerGuid::ViewID> GetAsyncZoomContainerId() const {
+  Maybe<ViewID> GetAsyncZoomContainerId() const {
     return mAsyncZoomContainerId;
   }
 
@@ -184,6 +188,7 @@ class WebRenderLayerScrollData final {
   // over IPC, and use on the parent side in APZ.
 
   gfx::Matrix4x4 mAncestorTransform;
+  ViewID mAncestorTransformId;
   gfx::Matrix4x4 mTransform;
   bool mTransformIsPerspective;
   float mResolution;
@@ -197,13 +202,13 @@ class WebRenderLayerScrollData final {
   Maybe<uint64_t> mScrollbarAnimationId;
   Maybe<uint64_t> mFixedPositionAnimationId;
   SideBits mFixedPositionSides;
-  ScrollableLayerGuid::ViewID mFixedPosScrollContainerId;
-  ScrollableLayerGuid::ViewID mStickyPosScrollContainerId;
+  ViewID mFixedPosScrollContainerId;
+  ViewID mStickyPosScrollContainerId;
   LayerRectAbsolute mStickyScrollRangeOuter;
   LayerRectAbsolute mStickyScrollRangeInner;
   Maybe<uint64_t> mStickyPositionAnimationId;
   Maybe<uint64_t> mZoomAnimationId;
-  Maybe<ScrollableLayerGuid::ViewID> mAsyncZoomContainerId;
+  Maybe<ViewID> mAsyncZoomContainerId;
 };
 
 // Data needed by APZ, for the whole layer tree. One instance of this class

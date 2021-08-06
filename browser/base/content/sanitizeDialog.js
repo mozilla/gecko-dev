@@ -34,6 +34,11 @@ var gSanitizePromptDialog = {
     // This is used by selectByTimespan() to determine if the window has loaded.
     this._inited = true;
     this._dialog = document.querySelector("dialog");
+    let { inBrowserWindow = false } = window.arguments?.[0] || {};
+    if (inBrowserWindow) {
+      this._dialog.setAttribute("inbrowserwindow", "true");
+      this._observeTitleForChanges();
+    }
 
     let OKButton = this._dialog.getButton("accept");
     document.l10n.setAttributes(OKButton, "sanitize-button-ok");
@@ -75,7 +80,10 @@ var gSanitizePromptDialog = {
       this.prepareWarning();
       if (warningBox.hidden) {
         warningBox.hidden = false;
-        window.resizeBy(0, warningBox.getBoundingClientRect().height);
+        let diff =
+          warningBox.nextElementSibling.getBoundingClientRect().top -
+          warningBox.previousElementSibling.getBoundingClientRect().bottom;
+        window.resizeBy(0, diff);
       }
       document.l10n.setAttributes(
         document.documentElement,
@@ -86,7 +94,10 @@ var gSanitizePromptDialog = {
 
     // If clearing a specific time range
     if (!warningBox.hidden) {
-      window.resizeBy(0, -warningBox.getBoundingClientRect().height);
+      let diff =
+        warningBox.nextElementSibling.getBoundingClientRect().top -
+        warningBox.previousElementSibling.getBoundingClientRect().bottom;
+      window.resizeBy(0, -diff);
       warningBox.hidden = true;
     }
     document.l10n.setAttributes(document.documentElement, "dialog-title");
@@ -215,6 +226,24 @@ var gSanitizePromptDialog = {
     for (let checkbox of checkboxes) {
       Preferences.addSyncFromPrefListener(checkbox, () => this.onReadGeneric());
     }
+  },
+
+  _titleChanged() {
+    let title = document.documentElement.getAttribute("title");
+    if (title) {
+      document.getElementById("titleText").textContent = title;
+    }
+  },
+
+  _observeTitleForChanges() {
+    this._titleChanged();
+    this._mutObs = new MutationObserver(() => {
+      this._titleChanged();
+    });
+    this._mutObs.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["title"],
+    });
   },
 };
 

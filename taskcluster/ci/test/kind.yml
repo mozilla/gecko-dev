@@ -7,6 +7,7 @@ loader: taskgraph.loader.test:loader
 kind-dependencies:
     - build
     - build-signing
+    - repackage
     - fetch
     - toolchain
 
@@ -53,6 +54,11 @@ job-defaults:
                     .*-devedition/.*: false
                     default: true
             default: false
+    mozharness:
+        requires-signed-builds:
+            by-test-platform:
+                macosx1100.*: true
+                default: false
     fetches:
         toolchain:
             by-test-platform:
@@ -63,6 +69,8 @@ job-defaults:
                     - macosx64-minidump-stackwalk
                     - macosx64-fix-stacks
                 android-em-7.*:
+                    - android-system-image-x86_64-linux
+                    - android-avd-x86_64-linux
                     - android-emulator-linux
                     - linux64-minidump-stackwalk
                     - linux64-fix-stacks

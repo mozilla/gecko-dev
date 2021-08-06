@@ -30,7 +30,7 @@ const EventEmitter = require("devtools/shared/event-emitter");
  *  - dom-complete
  * And some tests are asserting this.
  */
-const WILL_NAVIGATE_TIME_SHIFT = 5;
+const WILL_NAVIGATE_TIME_SHIFT = 20;
 exports.WILL_NAVIGATE_TIME_SHIFT = WILL_NAVIGATE_TIME_SHIFT;
 
 /**
@@ -74,14 +74,17 @@ DocumentEventsListener.prototype = {
       this.onWindowReady({
         window: this.targetActor.window,
         isTopLevel: true,
-        // Flag the very first dom-loading event, which is about the top target and may come
-        // after some other already existing resources.
-        shouldBeIgnoredAsRedundantWithTargetAvailable: true,
       });
     }
   },
 
-  onWillNavigate({ window, isTopLevel, newURI, navigationStart }) {
+  onWillNavigate({
+    window,
+    isTopLevel,
+    newURI,
+    navigationStart,
+    isFrameSwitching,
+  }) {
     // Ignore iframes
     if (!isTopLevel) {
       return;
@@ -90,15 +93,11 @@ DocumentEventsListener.prototype = {
     this.emit("will-navigate", {
       time: navigationStart - WILL_NAVIGATE_TIME_SHIFT,
       newURI,
+      isFrameSwitching,
     });
   },
 
-  onWindowReady({
-    window,
-    isTopLevel,
-    shouldBeIgnoredAsRedundantWithTargetAvailable,
-    isFrameSwitching,
-  }) {
+  onWindowReady({ window, isTopLevel, isFrameSwitching }) {
     // Ignore iframes
     if (!isTopLevel) {
       return;
@@ -106,20 +105,8 @@ DocumentEventsListener.prototype = {
 
     const time = window.performance.timing.navigationStart;
 
-    // As dom-loading is often used to clear the panel on navigation, and is typically
-    // sent before any other resource, we need to add a hint so the client knows when
-    // then event can be ignored.
-    // We should also ignore them if the Target was created via a JSWindowActor and is
-    // destroyed when the WindowGlobal is destroyed (i.e. when we navigate or reload),
-    // as this will come late and is redundant with onTargetAvailable.
-    shouldBeIgnoredAsRedundantWithTargetAvailable =
-      shouldBeIgnoredAsRedundantWithTargetAvailable ||
-      (this.targetActor.isTopLevelTarget &&
-        this.targetActor.followWindowGlobalLifeCycle);
-
     this.emit("dom-loading", {
       time,
-      shouldBeIgnoredAsRedundantWithTargetAvailable,
       isFrameSwitching,
     });
 

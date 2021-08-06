@@ -33,6 +33,7 @@
 #include "nsDocShellLoadState.h"
 #include "nsDocShellLoadTypes.h"
 #include "nsDOMNavigationTiming.h"
+#include "nsObjectLoadingContent.h"
 #include "nsExternalHelperAppService.h"
 #include "nsHttpChannel.h"
 #include "nsIBrowser.h"
@@ -1526,9 +1527,16 @@ bool DocumentLoadListener::MaybeTriggerProcessSwitch(
   // If we're doing an <object>/<embed> load, we may be doing a document load at
   // this point. We never need to do a process switch for a non-document
   // <object> or <embed> load.
-  if (!mIsDocumentLoad && !mChannel->IsDocument()) {
-    LOG(("Process Switch Abort: non-document load"));
-    return false;
+  if (!mIsDocumentLoad) {
+    if (!mChannel->IsDocument()) {
+      LOG(("Process Switch Abort: non-document load"));
+      return false;
+    }
+    nsresult status;
+    if (!nsObjectLoadingContent::IsSuccessfulRequest(mChannel, &status)) {
+      LOG(("Process Switch Abort: error page"));
+      return false;
+    }
   }
 
   // Get the loading BrowsingContext. This may not be the context which will be
@@ -1565,30 +1573,6 @@ bool DocumentLoadListener::MaybeTriggerProcessSwitch(
   // Determine what type of content process this load should finish in.
   nsAutoCString preferredRemoteType(currentRemoteType);
   RemotenessChangeOptions options;
-
-  // If we're in a preloaded browser, force browsing context replacement to
-  // ensure the current process is re-selected.
-  if (Element* browserElement = browsingContext->Top()->GetEmbedderElement()) {
-    nsAutoString isPreloadBrowserStr;
-    if (browserElement->GetAttr(kNameSpaceID_None, nsGkAtoms::preloadedState,
-                                isPreloadBrowserStr) &&
-        isPreloadBrowserStr.EqualsLiteral("consumed")) {
-      nsCOMPtr<nsIURI> originalURI;
-      if (NS_SUCCEEDED(mChannel->GetOriginalURI(getter_AddRefs(originalURI))) &&
-          !originalURI->GetSpecOrDefault().EqualsLiteral("about:newtab")) {
-        LOG(("Process Switch: leaving preloaded browser"));
-        options.mReplaceBrowsingContext = true;
-        browserElement->UnsetAttr(kNameSpaceID_None, nsGkAtoms::preloadedState,
-                                  true);
-      }
-    }
-  } else {
-    // Note: ContextCanProcessSwitch should return false if the embedder
-    // element is null, but it also runs JS, which has the potential to allow
-    // code to run which may null the embedder element.
-    LOG(("Process Switch Abort: top embedder element disappeared"));
-    return false;
-  }
 
   // Update the preferred final process for our load based on the
   // Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers.
@@ -1666,8 +1650,8 @@ bool DocumentLoadListener::MaybeTriggerProcessSwitch(
        "[this=%p, contentParent=%s, preferredRemoteType=%s]",
        this, currentRemoteType.get(), preferredRemoteType.get()));
 
-  nsCOMPtr<nsIE10SUtils> e10sUtils =
-      do_ImportModule("resource://gre/modules/E10SUtils.jsm", "E10SUtils");
+  nsCOMPtr<nsIE10SUtils> e10sUtils = do_ImportModule(
+      "resource://gre/modules/E10SUtils.jsm", "E10SUtils", fallible);
   if (!e10sUtils) {
     LOG(("Process Switch Abort: Could not import E10SUtils"));
     return false;

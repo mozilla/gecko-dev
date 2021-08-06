@@ -364,6 +364,7 @@ class nsFlexContainerFrame::FlexItem final {
                "aContinuation should be in aItem's continuation chain!");
     FlexItem item(*this);
     item.mFrame = aContinuation;
+    item.mHadMeasuringReflow = false;
     return item;
   }
 
@@ -1959,7 +1960,8 @@ nsFlexContainerFrame::MeasureAscentAndBSizeForFlexItem(
   auto* cachedData = aItem.Frame()->GetProperty(CachedFlexItemData::Prop());
 
   if (cachedData && cachedData->mBAxisMeasurement) {
-    if (cachedData->mBAxisMeasurement->IsValidFor(aChildReflowInput)) {
+    if (!aItem.Frame()->IsSubtreeDirty() &&
+        cachedData->mBAxisMeasurement->IsValidFor(aChildReflowInput)) {
       return *(cachedData->mBAxisMeasurement);
     }
     FLEX_LOG("[perf] MeasureAscentAndBSizeForFlexItem rejected cached value");
@@ -2130,9 +2132,7 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
   // Our main-size is considered definite if any of these are true:
   // (a) main axis is the item's inline axis.
   // (b) flex container has definite main size.
-  // (c) flex item has a definite flex basis and is fully inflexible
-  //     (NOTE: We don't actually check "fully inflexible" because webcompat
-  //     may not agree with that restriction...)
+  // (c) flex item has a definite flex basis.
   //
   // Hence, we need to take care to treat the final main-size as *indefinite*
   // if none of these conditions are satisfied.
@@ -2166,11 +2166,6 @@ FlexItem::FlexItem(ReflowInput& aFlexItemReflowInput, float aFlexGrow,
     } else if (aFlexBaseSize != NS_UNCONSTRAINEDSIZE) {
       // The flex item has a definite flex basis, which we'll treat as making
       // its main-size definite.
-      // XXXdholbert Technically the spec requires the flex item to *also* be
-      // fully inflexible in order to have its size treated as definite in this
-      // scenario, but no browser implements that additional restriction, so
-      // it's not clear that this additional requirement would be
-      // web-compatible...
       mTreatBSizeAsIndefinite = false;
     } else {
       // Otherwise, we have to treat the item's BSize as indefinite.
@@ -3381,14 +3376,22 @@ MainAxisPositionTracker::MainAxisPositionTracker(
   // Map 'left'/'right' to 'start'/'end'
   if (mJustifyContent.primary == StyleAlignFlags::LEFT ||
       mJustifyContent.primary == StyleAlignFlags::RIGHT) {
-    if (aAxisTracker.IsColumnOriented()) {
-      // Container's alignment axis is not parallel to the inline axis,
-      // so we map both 'left' and 'right' to 'start'.
+    const auto wm = aAxisTracker.GetWritingMode();
+    if (aAxisTracker.IsColumnOriented() && !wm.IsVertical()) {
+      // Container's alignment axis (main axis) is *not* parallel to the
+      // line-left <-> line-right axis or the physical left <-> physical right
+      // axis, so we map both 'left' and 'right' to 'start'.
       mJustifyContent.primary = StyleAlignFlags::START;
     } else {
-      // Row-oriented, so we map 'left' and 'right' to 'start' or 'end',
-      // depending on left-to-right writing mode.
-      const bool isLTR = aAxisTracker.GetWritingMode().IsBidiLTR();
+      MOZ_ASSERT(
+          aAxisTracker.MainAxis() == eLogicalAxisInline ||
+              wm.PhysicalAxis(aAxisTracker.MainAxis()) == eAxisHorizontal,
+          "The container's main axis should be parallel to either line-left "
+          "<-> line-right axis or physical left <-> physical right axis!");
+
+      // Otherwise, we map 'left' and 'right' to 'start' or 'end', depending on
+      // the container's writing mode.
+      const bool isLTR = wm.IsPhysicalLTR();
       const bool isJustifyLeft =
           (mJustifyContent.primary == StyleAlignFlags::LEFT);
       mJustifyContent.primary = (isJustifyLeft == isLTR)

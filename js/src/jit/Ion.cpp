@@ -296,7 +296,8 @@ uint8_t* JitRuntime::allocateIonOsrTempData(size_t size) {
 
 void JitRuntime::freeIonOsrTempData() { ionOsrTempData_.ref().reset(); }
 
-JitRealm::JitRealm() : stubCodes_(nullptr), stringsCanBeInNursery(false) {}
+JitRealm::JitRealm()
+    : stubCodes_(nullptr), initialStringHeap(gc::TenuredHeap) {}
 
 JitRealm::~JitRealm() { js_delete(stubCodes_); }
 
@@ -443,9 +444,7 @@ void JitRealm::traceWeak(JSTracer* trc, JS::Realm* realm) {
   stubCodes_->traceWeak(trc);
 
   for (WeakHeapPtrJitCode& stub : stubs_) {
-    if (stub) {
-      TraceWeakEdge(trc, &stub, "JitRealm::stubs_");
-    }
+    TraceWeakEdge(trc, &stub, "JitRealm::stubs_");
   }
 }
 

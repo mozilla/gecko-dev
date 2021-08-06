@@ -108,7 +108,7 @@
 #include "wasm/WasmInstance.h"        // for Instance
 #include "wasm/WasmJS.h"              // for WasmInstanceObject
 #include "wasm/WasmRealm.h"           // for Realm
-#include "wasm/WasmTypes.h"           // for WasmInstanceObjectVector
+#include "wasm/WasmTypeDecls.h"       // for WasmInstanceObjectVector
 
 #include "debugger/DebugAPI-inl.h"
 #include "debugger/Environment-inl.h"  // for DebuggerEnvironment::owner
@@ -245,12 +245,6 @@ bool DebugAPI::slowPathCheckNoExecute(JSContext* cx, HandleScript script) {
   MOZ_ASSERT(cx->realm()->isDebuggee());
   MOZ_ASSERT(cx->noExecuteDebuggerTop);
   return EnterDebuggeeNoExecute::reportIfFoundInStack(cx, script);
-}
-
-static inline void NukeDebuggerWrapper(NativeObject* wrapper) {
-  // In some OOM failure cases, we need to destroy the edge to the referent,
-  // to avoid trying to trace it during untimely collections.
-  wrapper->setPrivate(nullptr);
 }
 
 static void PropagateForcedReturn(JSContext* cx, AbstractFramePtr frame,
@@ -999,6 +993,16 @@ NativeResumeMode DebugAPI::slowPathOnNativeCall(JSContext* cx,
     return NativeResumeMode::Abort;
   }
 
+  // Hook must follow normal native function conventions and not return
+  // primitive values.
+  if (resumeMode == ResumeMode::Return) {
+    if (args.isConstructing() && !rval.isObject()) {
+      JS_ReportErrorASCII(
+          cx, "onNativeCall hook must return an object for constructor call");
+      return NativeResumeMode::Abort;
+    }
+  }
+
   // The value is not in any particular compartment, so it needs to be
   // explicitly wrapped into the debuggee compartment.
   if (!cx->compartment()->wrap(cx, &rval)) {
@@ -1380,7 +1384,9 @@ bool Debugger::wrapEnvironment(JSContext* cx, Handle<Env*> env,
     }
 
     if (!p.add(cx, environments, env, envobj)) {
-      NukeDebuggerWrapper(envobj);
+      // We need to destroy the edge to the referent, to avoid trying to trace
+      // it during untimely collections.
+      envobj->clearReferent();
       return false;
     }
 
@@ -1471,7 +1477,9 @@ bool Debugger::wrapDebuggeeObject(JSContext* cx, HandleObject obj,
     }
 
     if (!p.add(cx, objects, obj, dobj)) {
-      NukeDebuggerWrapper(dobj);
+      // We need to destroy the edge to the referent, to avoid trying to trace
+      // it during untimely collections.
+      dobj->clearReferent();
       return false;
     }
 
@@ -3758,7 +3766,7 @@ void DebugAPI::traceFramesWithLiveHooks(JSTracer* tracer) {
     for (Debugger::FrameMap::Range r = dbg->frames.all(); !r.empty();
          r.popFront()) {
       HeapPtr<DebuggerFrame*>& frameobj = r.front().value();
-      MOZ_ASSERT(frameobj->isOnStackMaybeForwarded());
+      MOZ_ASSERT(frameobj->isOnStack());
       if (frameobj->hasAnyHooks()) {
         TraceEdge(tracer, &frameobj, "Debugger.Frame with live hooks");
       }
@@ -3876,7 +3884,7 @@ void Debugger::trace(JSTracer* trc) {
   for (FrameMap::Range r = frames.all(); !r.empty(); r.popFront()) {
     HeapPtr<DebuggerFrame*>& frameobj = r.front().value();
     TraceEdge(trc, &frameobj, "live Debugger.Frame");
-    MOZ_ASSERT(frameobj->isOnStackMaybeForwarded());
+    MOZ_ASSERT(frameobj->isOnStack());
   }
 
   allocationsLog.trace(trc);
@@ -5938,10 +5946,6 @@ bool Debugger::CallData::findAllGlobals() {
 
       GlobalObject* global = r->maybeGlobal();
 
-      if (cx->runtime()->isSelfHostingGlobal(global)) {
-        continue;
-      }
-
       // We pulled |global| out of nowhere, so it's possible that it was
       // marked gray by XPConnect. Since we're now exposing it to JS code,
       // we need to mark it black.
@@ -6300,7 +6304,9 @@ typename Map::WrapperType* Debugger::wrapVariantReferent(
     }
 
     if (!p.add(cx, map, untaggedReferent, wrapper)) {
-      NukeDebuggerWrapper(wrapper);
+      // We need to destroy the edge to the referent, to avoid trying to trace
+      // it during untimely collections.
+      wrapper->clearReferent();
       return nullptr;
     }
   }

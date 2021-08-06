@@ -511,7 +511,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                  ValueVector* branchValues, Value* index);
 #ifdef ENABLE_WASM_EXCEPTIONS
   [[nodiscard]] bool readTry(ResultType* type);
-  [[nodiscard]] bool readCatch(LabelKind* kind, uint32_t* eventIndex,
+  [[nodiscard]] bool readCatch(LabelKind* kind, uint32_t* tagIndex,
                                ResultType* paramType, ResultType* resultType,
                                ValueVector* tryResults);
   [[nodiscard]] bool readCatchAll(LabelKind* kind, ResultType* paramType,
@@ -521,7 +521,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                   ResultType* resultType,
                                   ValueVector* tryResults);
   void popDelegate();
-  [[nodiscard]] bool readThrow(uint32_t* eventIndex, ValueVector* argValues);
+  [[nodiscard]] bool readThrow(uint32_t* tagIndex, ValueVector* argValues);
   [[nodiscard]] bool readRethrow(uint32_t* relativeDepth);
 #endif
   [[nodiscard]] bool readUnreachable();
@@ -606,6 +606,8 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                   Value* value);
 
   [[nodiscard]] bool readTableSize(uint32_t* tableIndex);
+
+#ifdef ENABLE_WASM_GC
   [[nodiscard]] bool readStructNewWithRtt(uint32_t* typeIndex, Value* rtt,
                                           ValueVector* argValues);
   [[nodiscard]] bool readStructNewDefaultWithRtt(uint32_t* typeIndex,
@@ -633,6 +635,7 @@ class MOZ_STACK_CLASS OpIter : private Policy {
                                   uint32_t* rttTypeIndex, uint32_t* rttDepth,
                                   ResultType* branchTargetType,
                                   ValueVector* values);
+#endif
 
 #ifdef ENABLE_WASM_SIMD
   [[nodiscard]] bool readLaneIndex(uint32_t inputLanes, uint32_t* laneIndex);
@@ -1543,17 +1546,17 @@ inline bool OpIter<Policy>::readTry(ResultType* paramType) {
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readCatch(LabelKind* kind, uint32_t* eventIndex,
+inline bool OpIter<Policy>::readCatch(LabelKind* kind, uint32_t* tagIndex,
                                       ResultType* paramType,
                                       ResultType* resultType,
                                       ValueVector* tryResults) {
   MOZ_ASSERT(Classify(op_) == OpKind::Catch);
 
-  if (!readVarU32(eventIndex)) {
-    return fail("expected event index");
+  if (!readVarU32(tagIndex)) {
+    return fail("expected tag index");
   }
-  if (*eventIndex >= env_.events.length()) {
-    return fail("event index out of range");
+  if (*tagIndex >= env_.tags.length()) {
+    return fail("tag index out of range");
   }
 
   Control& block = controlStack_.back();
@@ -1575,7 +1578,7 @@ inline bool OpIter<Policy>::readCatch(LabelKind* kind, uint32_t* eventIndex,
     block.switchToCatch();
   }
 
-  return push(env_.events[*eventIndex].resultType());
+  return push(env_.tags[*tagIndex].resultType());
 }
 
 template <typename Policy>
@@ -1643,18 +1646,18 @@ inline void OpIter<Policy>::popDelegate() {
 }
 
 template <typename Policy>
-inline bool OpIter<Policy>::readThrow(uint32_t* eventIndex,
+inline bool OpIter<Policy>::readThrow(uint32_t* tagIndex,
                                       ValueVector* argValues) {
   MOZ_ASSERT(Classify(op_) == OpKind::Throw);
 
-  if (!readVarU32(eventIndex)) {
-    return fail("expected event index");
+  if (!readVarU32(tagIndex)) {
+    return fail("expected tag index");
   }
-  if (*eventIndex >= env_.events.length()) {
-    return fail("event index out of range");
+  if (*tagIndex >= env_.tags.length()) {
+    return fail("tag index out of range");
   }
 
-  if (!popWithType(env_.events[*eventIndex].resultType(), argValues)) {
+  if (!popWithType(env_.tags[*tagIndex].resultType(), argValues)) {
     return false;
   }
 
@@ -2864,6 +2867,8 @@ inline bool OpIter<Policy>::readFieldIndex(uint32_t* fieldIndex,
   return true;
 }
 
+#ifdef ENABLE_WASM_GC
+
 template <typename Policy>
 inline bool OpIter<Policy>::readStructNewWithRtt(uint32_t* typeIndex,
                                                  Value* rtt,
@@ -3219,6 +3224,8 @@ inline bool OpIter<Policy>::readBrOnCast(uint32_t* relativeDepth, Value* rtt,
   return checkCastedBranchValue(*relativeDepth, castedFromType, castedToType,
                                 branchTargetType, values);
 }
+
+#endif // ENABLE_WASM_GC
 
 #ifdef ENABLE_WASM_SIMD
 

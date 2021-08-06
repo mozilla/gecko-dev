@@ -43,19 +43,33 @@ function todo(val, text) {
 }
 
 function addLoadEvent(func) {
-  window.addEventListener('load', func, false);
+  window.addEventListener('load', func);
 }
 
 SimpleTest = {
-  waitForExplicitFinish: function() {},
-  finish: function() {},
-  requestFlakyTimeout: function() {},
+  waitForExplicitFinish: () => {},
+  finish: () => {},
+  requestFlakyTimeout: () => {},
 };
 
 SpecialPowers = {
-  pushPrefEnv: function(env, func) {
-    console.log('SpecialPowers.pushPrefEnv: ' + JSON.stringify(env));
-    setTimeout(func, 0);
+  pushPrefEnv: async (env, callback = null) => {
+    console.log(`SpecialPowers.pushPrefEnv(${JSON.stringify(env)})`);
+    await new Promise(res => {
+        setTimeout(res, 0);
+    });
+    if (callback) {
+        await callback();
+    }
+  },
+  popPrefEnv: async (callback = null) => {
+    console.log('SpecialPowers.popPrefEnv()');
+    await new Promise(res => {
+        setTimeout(res, 0);
+    });
+    if (callback) {
+        await callback();
+    }
   },
 };
 </script>

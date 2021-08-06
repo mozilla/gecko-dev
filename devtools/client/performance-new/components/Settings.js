@@ -33,7 +33,6 @@
  */
 
 /**
- * @typedef {import("../@types/perf").PopupWindow} PopupWindow
  * @typedef {import("../@types/perf").State} StoreState
  * @typedef {import("../@types/perf").FeatureDescription} FeatureDescription
  *
@@ -186,18 +185,6 @@ class Settings extends PureComponent {
       temporaryThreadText: null,
     };
 
-    this._handleThreadCheckboxChange = this._handleThreadCheckboxChange.bind(
-      this
-    );
-    this._handleFeaturesCheckboxChange = this._handleFeaturesCheckboxChange.bind(
-      this
-    );
-    this._handleAddObjdir = this._handleAddObjdir.bind(this);
-    this._handleRemoveObjdir = this._handleRemoveObjdir.bind(this);
-    this._setThreadTextFromInput = this._setThreadTextFromInput.bind(this);
-    this._handleThreadTextCleanup = this._handleThreadTextCleanup.bind(this);
-    this._renderThreadsColumns = this._renderThreadsColumns.bind(this);
-
     this._intervalExponentialScale = makeExponentialScale(0.01, 100);
     this._entriesExponentialScale = makePowerOf2Scale(
       128 * 1024,
@@ -209,7 +196,7 @@ class Settings extends PureComponent {
    * Handle the checkbox change.
    * @param {React.ChangeEvent<HTMLInputElement>} event
    */
-  _handleThreadCheckboxChange(event) {
+  _handleThreadCheckboxChange = event => {
     const { threads, changeThreads } = this.props;
     const { checked, value } = event.target;
 
@@ -220,13 +207,13 @@ class Settings extends PureComponent {
     } else {
       changeThreads(threads.filter(thread => thread !== value));
     }
-  }
+  };
 
   /**
    * Handle the checkbox change.
    * @param {React.ChangeEvent<HTMLInputElement>} event
    */
-  _handleFeaturesCheckboxChange(event) {
+  _handleFeaturesCheckboxChange = event => {
     const { features, changeFeatures } = this.props;
     const { checked, value } = event.target;
 
@@ -237,38 +224,38 @@ class Settings extends PureComponent {
     } else {
       changeFeatures(features.filter(feature => feature !== value));
     }
-  }
+  };
 
-  _handleAddObjdir() {
+  _handleAddObjdir = () => {
     const { objdirs, changeObjdirs } = this.props;
     openFilePickerForObjdir(window, objdirs, changeObjdirs);
-  }
+  };
 
   /**
    * @param {number} index
    * @return {void}
    */
-  _handleRemoveObjdir(index) {
+  _handleRemoveObjdir = index => {
     const { objdirs, changeObjdirs } = this.props;
     const newObjdirs = [...objdirs];
     newObjdirs.splice(index, 1);
     changeObjdirs(newObjdirs);
-  }
+  };
 
   /**
    * @param {React.ChangeEvent<HTMLInputElement>} event
    */
-  _setThreadTextFromInput(event) {
+  _setThreadTextFromInput = event => {
     this.setState({ temporaryThreadText: event.target.value });
-  }
+  };
 
   /**
    * @param {React.ChangeEvent<HTMLInputElement>} event
    */
-  _handleThreadTextCleanup(event) {
+  _handleThreadTextCleanup = event => {
     this.setState({ temporaryThreadText: null });
     this.props.changeThreads(_threadTextToList(event.target.value));
-  }
+  };
 
   /**
    * @param {ThreadColumn[]} threadDisplay
@@ -314,7 +301,9 @@ class Settings extends PureComponent {
         null,
         div(
           { className: "perf-settings-thread-columns" },
-          threadColumns.map(this._renderThreadsColumns)
+          threadColumns.map((threadDisplay, index) =>
+            this._renderThreadsColumns(threadDisplay, index)
+          )
         ),
         div(
           {
@@ -570,10 +559,9 @@ function _entriesTextDisplay(value) {
 }
 
 /**
- * about:profiling doesn't need to collapse the children into details/summary,
- * but the popup and devtools do (for now).
+ * Renders a section for about:profiling.
  *
- * @param {string} id
+ * @param {string} id Unused.
  * @param {React.ReactNode} title
  * @param {React.ReactNode} children
  * @returns React.ReactNode

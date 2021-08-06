@@ -101,9 +101,13 @@ class MIRGenerator final {
     return !compilingWasm() && instrumentedProfiling();
   }
 
-  bool stringsCanBeInNursery() const { return stringsCanBeInNursery_; }
+  gc::InitialHeap initialStringHeap() const {
+    return stringsCanBeInNursery_ ? gc::DefaultHeap : gc::TenuredHeap;
+  }
 
-  bool bigIntsCanBeInNursery() const { return bigIntsCanBeInNursery_; }
+  gc::InitialHeap initialBigIntHeap() const {
+    return bigIntsCanBeInNursery_ ? gc::DefaultHeap : gc::TenuredHeap;
+  }
 
   // Whether the main thread is trying to cancel this build.
   bool shouldCancel(const char* why) { return cancelBuild_; }

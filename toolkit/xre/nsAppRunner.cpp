@@ -48,6 +48,7 @@
 #  include "MacLaunchHelper.h"
 #  include "MacApplicationDelegate.h"
 #  include "MacAutoreleasePool.h"
+#  include "MacRunFromDmgUtils.h"
 // these are needed for sysctl
 #  include <sys/types.h>
 #  include <sys/sysctl.h>
@@ -239,7 +240,6 @@
 #  include "mozilla/CodeCoverageHandler.h"
 #endif
 
-#include "mozilla/mozalloc_oom.h"
 #include "SafeMode.h"
 
 #ifdef MOZ_BACKGROUNDTASKS
@@ -267,6 +267,8 @@ static const char kPrefDefaultAgentEnabled[] = "default-browser-agent.enabled";
 static const char kPrefServicesSettingsServer[] = "services.settings.server";
 static const char kPrefSecurityContentSignatureRootHash[] =
     "security.content.signature.root_hash";
+static const char kPrefSetDefaultBrowserUserChoicePref[] =
+    "browser.shell.setDefaultBrowserUserChoice";
 #endif  // defined(MOZ_DEFAULT_BROWSER_AGENT)
 
 #if defined(XP_WIN)
@@ -2134,6 +2136,32 @@ static void OnDefaultAgentTelemetryPrefChanged(const char* aPref, void* aData) {
   NS_ENSURE_SUCCESS_VOID(rv);
 }
 
+static void OnSetDefaultBrowserUserChoicePrefChanged(const char* aPref,
+                                                     void* aData) {
+  nsresult rv;
+  if (strcmp(aPref, kPrefSetDefaultBrowserUserChoicePref) != 0) {
+    return;
+  }
+  nsAutoString valueName;
+  valueName.AssignLiteral("SetDefaultBrowserUserChoice");
+  rv = PrependRegistryValueName(valueName);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsCOMPtr<nsIWindowsRegKey> regKey =
+      do_CreateInstance("@mozilla.org/windows-registry-key;1", &rv);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsAutoString keyName;
+  keyName.AppendLiteral(DEFAULT_BROWSER_AGENT_KEY_NAME);
+  rv = regKey->Create(nsIWindowsRegKey::ROOT_KEY_CURRENT_USER, keyName,
+                      nsIWindowsRegKey::ACCESS_WRITE);
+
+  bool prefVal = Preferences::GetBool(aPref, true);
+
+  rv = regKey->WriteIntValue(valueName, prefVal);
+  NS_ENSURE_SUCCESS_VOID(rv);
+}
+
 static void OnDefaultAgentRemoteSettingsPrefChanged(const char* aPref,
                                                     void* aData) {
   nsresult rv;
@@ -2583,6 +2611,7 @@ static ReturnAbortOnError ShowProfileManager(
 
 static bool gDoMigration = false;
 static bool gDoProfileReset = false;
+static bool gResetDeleteOldProfile = true;
 static nsCOMPtr<nsIToolkitProfile> gResetOldProfile;
 
 static nsresult LockProfile(nsINativeAppSupport* aNative, nsIFile* aRootDir,
@@ -2684,6 +2713,19 @@ static nsresult SelectProfile(nsToolkitProfileService* aProfileSvc,
   }
 
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (rv == NS_MIGRATE_INTO_PACKAGE) {
+    if (!*aProfile) {
+      NS_WARNING(
+          "Attempted package profile migration without existing profile.");
+      return NS_ERROR_ABORT;
+    }
+
+    gDoProfileReset = true;
+    gResetDeleteOldProfile = false;
+    gDoMigration = true;
+    return NS_OK;
+  }
 
   if (didCreate) {
     // For a fresh install, we would like to let users decide
@@ -4953,9 +4995,8 @@ nsresult XREMain::XRE_mainRun() {
           initializedJSContext = true;
         }
 
-        nsresult backupCreated =
-            ProfileResetCleanup(mProfileSvc, gResetOldProfile);
-        if (NS_FAILED(backupCreated)) {
+        if (NS_FAILED(ProfileResetCleanup(mProfileSvc, gResetOldProfile,
+                                          gResetDeleteOldProfile))) {
           NS_WARNING("Could not cleanup the profile that was reset");
         }
       }
@@ -5107,6 +5148,11 @@ nsresult XREMain::XRE_mainRun() {
         Preferences::RegisterCallbackAndCall(
             &OnDefaultAgentRemoteSettingsPrefChanged,
             kPrefSecurityContentSignatureRootHash);
+
+        Preferences::RegisterCallbackAndCall(
+            &OnSetDefaultBrowserUserChoicePrefChanged,
+            kPrefSetDefaultBrowserUserChoicePref);
+
         SetDefaultAgentLastRunTime();
       }
 #  endif  // defined(MOZ_DEFAULT_BROWSER_AGENT)
@@ -5430,6 +5476,13 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
   rv = mScopedXPCOM->Initialize(/* aInitJSContext = */ false);
   NS_ENSURE_SUCCESS(rv, 1);
 
+#ifdef XP_MACOSX
+  if (mProfileSvc->GetIsFirstRun()) {
+    Telemetry::ScalarSet(Telemetry::ScalarID::STARTUP_FIRST_RUN_IS_FROM_DMG,
+                         MacRunFromDmgUtils::IsAppRunningFromDmg());
+  }
+#endif
+
   // run!
   rv = XRE_mainRun();
 
@@ -5689,11 +5742,7 @@ mozilla::BinPathType XRE_GetChildProcBinPathType(
   }
 }
 
-// Because rust doesn't handle weak symbols, this function wraps the weak
-// malloc_handle_oom for it.
-extern "C" void GeckoHandleOOM(size_t size) { mozalloc_handle_oom(size); }
-
-// From toolkit/library/rust/shared/lib.rs
+// From mozglue/static/rust/lib.rs
 extern "C" void install_rust_panic_hook();
 extern "C" void install_rust_oom_hook();
 

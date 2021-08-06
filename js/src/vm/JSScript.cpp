@@ -3758,9 +3758,12 @@ bool JSScript::fullyInitFromStencil(
 
   // Link Scope -> JSFunction -> BaseScript.
   if (script->isFunction()) {
-    JSFunction* fun = gcOutput.functions[scriptIndex];
+    JSFunction* fun = gcOutput.getFunction(scriptIndex);
     script->bodyScope()->as<FunctionScope>().initCanonicalFunction(fun);
     if (fun->isIncomplete()) {
+      fun->initScript(script);
+    } else if (fun->hasSelfHostedLazyScript()) {
+      fun->clearSelfHostedLazyScript();
       fun->initScript(script);
     } else {
       // We are delazifying in-place.
@@ -3803,7 +3806,7 @@ JSScript* JSScript::fromStencil(JSContext* cx,
 
   RootedObject functionOrGlobal(cx, cx->global());
   if (scriptStencil.isFunction()) {
-    functionOrGlobal = gcOutput.functions[scriptIndex];
+    functionOrGlobal = gcOutput.getFunction(scriptIndex);
   }
 
   Rooted<ScriptSourceObject*> sourceObject(cx, gcOutput.sourceObject);
@@ -4101,9 +4104,9 @@ void js::maybeSpewScriptFinalWarmUpCount(JSScript* script) {
     MOZ_ASSERT(map);
     ScriptFinalWarmUpCountMap::Ptr p = map->lookup(script);
     MOZ_ASSERT(p);
-    uint32_t warmUpCount;
-    const char* scriptName;
-    mozilla::Tie(warmUpCount, scriptName) = p->value();
+    auto& tuple = p->value();
+    uint32_t warmUpCount = mozilla::Get<0>(tuple);
+    SharedImmutableString& scriptName = mozilla::Get<1>(tuple);
 
     JSContext* cx = TlsContext.get();
     cx->spewer().enableSpewing();
@@ -4114,7 +4117,7 @@ void js::maybeSpewScriptFinalWarmUpCount(JSScript* script) {
     // up count.
     AutoSpewChannel channel(cx, SpewChannel::CacheIRHealthReport, script);
     jit::CacheIRHealth cih;
-    cih.spewScriptFinalWarmUpCount(cx, scriptName, script, warmUpCount);
+    cih.spewScriptFinalWarmUpCount(cx, scriptName.chars(), script, warmUpCount);
 
     script->zone()->scriptFinalWarmUpCountMap->remove(script);
     script->setNeedsFinalWarmUpCount(false);
@@ -4837,27 +4840,17 @@ gc::AllocSite* JSScript::createAllocSite() {
 
 void JSScript::AutoDelazify::holdScript(JS::HandleFunction fun) {
   if (fun) {
-    if (fun->realm()->isSelfHostingRealm()) {
-      // The self-hosting realm is shared across runtimes, so we can't use
-      // JSAutoRealm: it could cause races. Functions in the self-hosting
-      // realm will never be lazy, so we can safely assume we don't have
-      // to delazify.
-      script_ = fun->nonLazyScript();
-    } else {
-      JSAutoRealm ar(cx_, fun);
-      script_ = JSFunction::getOrCreateScript(cx_, fun);
-      if (script_) {
-        oldAllowRelazify_ = script_->allowRelazify();
-        script_->clearAllowRelazify();
-      }
+    JSAutoRealm ar(cx_, fun);
+    script_ = JSFunction::getOrCreateScript(cx_, fun);
+    if (script_) {
+      oldAllowRelazify_ = script_->allowRelazify();
+      script_->clearAllowRelazify();
     }
   }
 }
 
 void JSScript::AutoDelazify::dropScript() {
-  // Don't touch script_ if it's in the self-hosting realm, see the comment
-  // in holdScript.
-  if (script_ && !script_->realm()->isSelfHostingRealm()) {
+  if (script_) {
     script_->setAllowRelazify(oldAllowRelazify_);
   }
   script_ = nullptr;

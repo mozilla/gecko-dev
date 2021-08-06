@@ -329,11 +329,19 @@ void nsViewManager::Refresh(nsView* aView,
         printf_stderr("--COMPOSITE-- %p\n", presShell.get());
       }
 #endif
-      LayerManager* manager = widget->GetLayerManager();
-      if (!manager->NeedsWidgetInvalidation()) {
-        manager->FlushRendering();
+      WindowRenderer* renderer = widget->GetWindowRenderer();
+      if (!renderer->NeedsWidgetInvalidation()) {
+        renderer->FlushRendering();
       } else {
-        presShell->Paint(aView, damageRegion, PaintFlags::PaintComposite);
+        // Try to just Composite the current WindowRenderer contents. If
+        // that fails then we need tor repaint, and request that it gets
+        // composited as well.
+        // Once BasicLayerManager is removed, Composite will never succeed, so
+        // we can remove it and only have the call to Paint for
+        // FallbackRenderer.
+        if (!presShell->Composite(aView)) {
+          presShell->Paint(aView, damageRegion, PaintFlags::PaintComposite);
+        }
       }
 #ifdef MOZ_DUMP_PAINTING
       if (nsLayoutUtils::InvalidationDebuggingIsEnabled()) {
@@ -456,7 +464,7 @@ void nsViewManager::ProcessPendingUpdatesPaint(nsIWidget* aWidget) {
       }
 #endif
 
-      presShell->Paint(view, nsRegion(), PaintFlags::PaintLayers);
+      presShell->Paint(view, nsRegion(), PaintFlags::None);
       view->SetForcedRepaint(false);
 
 #ifdef MOZ_DUMP_PAINTING
@@ -619,9 +627,9 @@ void nsViewManager::InvalidateViews(nsView* aView) {
 void nsViewManager::WillPaintWindow(nsIWidget* aWidget) {
   if (aWidget) {
     nsView* view = nsView::GetViewFor(aWidget);
-    LayerManager* manager = aWidget->GetLayerManager();
+    WindowRenderer* renderer = aWidget->GetWindowRenderer();
     if (view &&
-        (view->ForcedRepaint() || !manager->NeedsWidgetInvalidation())) {
+        (view->ForcedRepaint() || !renderer->NeedsWidgetInvalidation())) {
       ProcessPendingUpdates();
       // Re-get the view pointer here since the ProcessPendingUpdates might have
       // destroyed it during CallWillPaintOnObservers.

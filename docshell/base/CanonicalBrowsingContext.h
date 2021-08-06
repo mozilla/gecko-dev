@@ -36,6 +36,10 @@ class nsITimer;
 namespace mozilla {
 enum class CallState;
 
+namespace embedding {
+class PrintData;
+}
+
 namespace net {
 class DocumentLoadListener;
 }
@@ -331,6 +335,28 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   void ClearPermanentKey() { mPermanentKey.setNull(); }
   void MaybeSetPermanentKey(Element* aEmbedder);
 
+  // When request for page awake, it would increase a count that is used to
+  // prevent whole browsing context tree from being suspended. The request can
+  // be called multiple times. When calling the revoke, it would decrease the
+  // count and once the count reaches to zero, the browsing context tree could
+  // be suspended when the tree is inactive.
+  void AddPageAwakeRequest();
+  void RemovePageAwakeRequest();
+
+  void CloneDocumentTreeInto(CanonicalBrowsingContext* aSource,
+                             const nsACString& aRemoteType,
+                             embedding::PrintData&& aPrintData);
+
+  // Returns a Promise which resolves when cloning documents for printing
+  // finished if this browsing context is cloning document tree.
+  RefPtr<GenericNonExclusivePromise> GetClonePromise() const {
+    return mClonePromise;
+  }
+
+  bool StartApzAutoscroll(float aAnchorX, float aAnchorY, nsViewID aScrollId,
+                          uint32_t aPresShellId);
+  void StopApzAutoscroll(nsViewID aScrollId, uint32_t aPresShellId);
+
  protected:
   // Called when the browsing context is being discarded.
   void CanonicalDiscard();
@@ -493,6 +519,9 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   nsCOMPtr<nsITimer> mSessionStoreSessionStorageUpdateTimer;
 
   bool mIsReplaced = false;
+
+  // A Promise created when cloning documents for printing.
+  RefPtr<GenericNonExclusivePromise> mClonePromise;
 
   JS::Heap<JS::Value> mPermanentKey;
 };

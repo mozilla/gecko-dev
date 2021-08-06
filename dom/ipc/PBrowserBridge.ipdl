@@ -41,7 +41,7 @@ namespace dom {
  * See `dom/docs/Fission-IPC-Diagram.svg` for an overview of the DOM IPC
  * actors.
  */
-async refcounted protocol PBrowserBridge {
+[RefCounted] async protocol PBrowserBridge {
   manager PBrowser;
 
 child:
@@ -123,7 +123,7 @@ parent:
    * aDoc is the actor for the containing document.
    * aID is the unique id of the embedder accessible within that document.
    */
-  async SetEmbedderAccessible(PDocAccessible aDoc, uint64_t aID);
+  async SetEmbedderAccessible(nullable PDocAccessible aDoc, uint64_t aID);
 #endif
 };
 

@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 package org.mozilla.geckoview;
 
 import org.mozilla.gecko.annotation.WrapForJNI;
@@ -238,22 +242,6 @@ public class GeckoResult<T> {
             return GeckoResult.fromValue(false);
         }
     }
-
-    /**
-     * A GeckoResult that resolves to AllowOrDeny.ALLOW
-     * @deprecated use {@link #allow} instead.
-     */
-    @Deprecated
-    @DeprecationSchedule(id = "allowdeny", version = 92)
-    public static final GeckoResult<AllowOrDeny> ALLOW = GeckoResult.fromValue(AllowOrDeny.ALLOW);
-
-    /**
-     * A GeckoResult that resolves to AllowOrDeny.DENY
-     * @deprecated use {@link #deny} instead.
-     */
-    @Deprecated
-    @DeprecationSchedule(id = "allowdeny", version = 92)
-    public static final GeckoResult<AllowOrDeny> DENY = GeckoResult.fromValue(AllowOrDeny.DENY);
 
     /**
      * @return a {@link GeckoResult} that resolves to {@link AllowOrDeny#DENY}

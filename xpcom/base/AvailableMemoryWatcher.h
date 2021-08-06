@@ -7,6 +7,10 @@
 #ifndef mozilla_AvailableMemoryWatcher_h
 #define mozilla_AvailableMemoryWatcher_h
 
+#include "mozilla/TimeStamp.h"
+#include "mozilla/ipc/CrashReporterHost.h"
+#include "mozilla/UniquePtr.h"
+#include "MemoryPressureLevelMac.h"
 #include "nsCOMPtr.h"
 #include "nsIAvailableMemoryWatcherBase.h"
 
@@ -20,15 +24,27 @@ namespace mozilla {
 class nsAvailableMemoryWatcherBase : public nsIAvailableMemoryWatcherBase {
   static StaticRefPtr<nsAvailableMemoryWatcherBase> sSingleton;
 
+  TimeStamp mLowMemoryStart;
+  uint32_t mNumOfTabUnloading;
+  uint32_t mNumOfMemoryPressure;
+
  protected:
   nsCOMPtr<nsITabUnloader> mTabUnloader;
 
   virtual ~nsAvailableMemoryWatcherBase() = default;
+  void UpdateLowMemoryTimeStamp();
+  void RecordTelemetryEventOnHighMemory();
 
  public:
   static already_AddRefed<nsAvailableMemoryWatcherBase> GetSingleton();
 
   nsAvailableMemoryWatcherBase();
+
+#if defined(XP_MACOSX)
+  virtual void OnMemoryPressureChanged(MacMemoryPressureLevel aNewLevel){};
+  virtual void AddChildAnnotations(
+      const UniquePtr<ipc::CrashReporterHost>& aCrashReporter){};
+#endif
 
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIAVAILABLEMEMORYWATCHERBASE

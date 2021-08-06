@@ -438,7 +438,7 @@ mozilla::LazyLogModule gUseCountersLog("UseCounters");
 namespace mozilla {
 namespace dom {
 
-typedef nsTArray<Link*> LinkArray;
+using LinkArray = nsTArray<Link*>;
 
 AutoTArray<Document*, 8>* Document::sLoadingForegroundTopLevelContentDocument =
     nullptr;
@@ -712,7 +712,7 @@ size_t IdentifierMapEntry::SizeOfExcludingThis(
 class SubDocMapEntry : public PLDHashEntryHdr {
  public:
   // Both of these are strong references
-  Element* mKey;  // must be first, to look like PLDHashEntryStub
+  dom::Element* mKey;  // must be first, to look like PLDHashEntryStub
   dom::Document* mSubDocument;
 };
 
@@ -3177,6 +3177,8 @@ void Document::SetCompatibilityMode(nsCompatibility aMode) {
   }
   mCompatMode = aMode;
   CompatibilityModeChanged();
+  // Trigger recomputation of the nsViewportInfo the next time it's queried.
+  mViewportType = Unknown;
 }
 
 static void WarnIfSandboxIneffective(nsIDocShell* aDocShell,
@@ -4138,18 +4140,6 @@ bool Document::GetAllowPlugins() {
   return true;
 }
 
-void Document::EnsureL10n() {
-  if (!mDocumentL10n) {
-    Element* elem = GetDocumentElement();
-    if (NS_WARN_IF(!elem)) {
-      return;
-    }
-    bool isSync = elem->HasAttr(kNameSpaceID_None, nsGkAtoms::datal10nsync);
-    mDocumentL10n = DocumentL10n::Create(this, isSync);
-    MOZ_ASSERT(mDocumentL10n);
-  }
-}
-
 bool Document::HasPendingInitialTranslation() {
   return mDocumentL10n && mDocumentL10n->GetState() != DocumentL10nState::Ready;
 }
@@ -4172,15 +4162,20 @@ void Document::LocalizationLinkAdded(Element* aLinkElement) {
     return;
   }
 
-  EnsureL10n();
-
   nsAutoString href;
   aLinkElement->GetAttr(kNameSpaceID_None, nsGkAtoms::href, href);
 
-  mDocumentL10n->AddResourceId(href);
+  if (!mDocumentL10n) {
+    Element* elem = GetDocumentElement();
+    MOZ_DIAGNOSTIC_ASSERT(elem);
+
+    bool isSync = elem->HasAttr(nsGkAtoms::datal10nsync);
+    mDocumentL10n = DocumentL10n::Create(this, isSync);
+    MOZ_ASSERT(mDocumentL10n);
+  }
+  mDocumentL10n->AddResourceId(NS_ConvertUTF16toUTF8(href));
 
   if (mReadyState >= READYSTATE_INTERACTIVE) {
-    mDocumentL10n->Activate(true);
     mDocumentL10n->TriggerInitialTranslation();
   } else {
     if (!mDocumentL10n->mBlockingLayout) {
@@ -4201,7 +4196,8 @@ void Document::LocalizationLinkRemoved(Element* aLinkElement) {
   if (mDocumentL10n) {
     nsAutoString href;
     aLinkElement->GetAttr(kNameSpaceID_None, nsGkAtoms::href, href);
-    uint32_t remaining = mDocumentL10n->RemoveResourceId(href);
+    uint32_t remaining =
+        mDocumentL10n->RemoveResourceId(NS_ConvertUTF16toUTF8(href));
     if (remaining == 0) {
       if (mDocumentL10n->mBlockingLayout) {
         mDocumentL10n->mBlockingLayout = false;
@@ -4225,9 +4221,8 @@ void Document::LocalizationLinkRemoved(Element* aLinkElement) {
  * collected.
  */
 void Document::OnL10nResourceContainerParsed() {
-  if (mDocumentL10n) {
-    mDocumentL10n->Activate(false);
-  }
+  // XXX: This is a scaffolding for where we might inject prefetch
+  // in bug 1717241.
 }
 
 void Document::OnParsingCompleted() {
@@ -13601,29 +13596,6 @@ void Document::InitializeXULBroadcastManager() {
   mXULBroadcastManager = new XULBroadcastManager(this);
 }
 
-// Returns the rangeOffset element from the XUL Popup Manager. This is for
-// chrome callers only.
-nsINode* Document::GetPopupRangeParent(ErrorResult& aRv) {
-  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (!pm) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
-  }
-
-  return pm->GetMouseLocationParent();
-}
-
-// Returns the rangeOffset element from the XUL Popup Manager.
-int32_t Document::GetPopupRangeOffset(ErrorResult& aRv) {
-  nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (!pm) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return 0;
-  }
-
-  return pm->MouseLocationOffset();
-}
-
 namespace {
 
 class DevToolsMutationObserver final : public nsStubMutationObserver {
@@ -16700,7 +16672,7 @@ already_AddRefed<mozilla::dom::Promise> Document::RequestStorageAccess(
                   p->Reject(false, __func__);
                 });
 
-        typedef ContentPermissionRequestBase::PromptResult PromptResult;
+        using PromptResult = ContentPermissionRequestBase::PromptResult;
         PromptResult pr = sapr->CheckPromptPrefs();
 
         if (pr == PromptResult::Pending) {
@@ -16836,7 +16808,7 @@ bool Document::AutomaticStorageAccessPermissionCanBeGranted(
     return false;
   }
 
-  typedef nsTArray<RefPtr<nsIPermission>> Permissions;
+  using Permissions = nsTArray<RefPtr<nsIPermission>>;
   Permissions perms;
   nsresult rv = permManager->GetAllWithTypePrefix(prefix, perms);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -16845,7 +16817,7 @@ bool Document::AutomaticStorageAccessPermissionCanBeGranted(
 
   nsAutoCString prefix2(prefix);
   prefix2.Append('^');
-  typedef nsTArray<nsCString> Origins;
+  using Origins = nsTArray<nsCString>;
   Origins origins;
 
   for (const auto& perm : perms) {
@@ -16880,8 +16852,8 @@ bool Document::AutomaticStorageAccessPermissionCanBeGranted(
     }
   }
 
-  nsCOMPtr<nsIBrowserUsage> bu =
-      do_ImportModule("resource:///modules/BrowserUsageTelemetry.jsm");
+  nsCOMPtr<nsIBrowserUsage> bu = do_ImportModule(
+      "resource:///modules/BrowserUsageTelemetry.jsm", fallible);
   if (NS_WARN_IF(!bu)) {
     return false;
   }

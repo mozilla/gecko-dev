@@ -21,7 +21,9 @@
 #include "jit/SharedICRegisters.h"
 #include "js/experimental/JitInfo.h"  // JSJitInfo
 #include "util/Memory.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmCodegenTypes.h"
+#include "wasm/WasmJS.h"  // for wasm::ReportSimdAnalysis
+#include "wasm/WasmTlsData.h"
 
 #include "jit/shared/Lowering-shared-inl.h"
 #include "vm/BytecodeUtil-inl.h"
@@ -2876,12 +2878,11 @@ void LIRGenerator::visitHomeObject(MHomeObject* ins) {
 
 void LIRGenerator::visitHomeObjectSuperBase(MHomeObjectSuperBase* ins) {
   MOZ_ASSERT(ins->homeObject()->type() == MIRType::Object);
-  MOZ_ASSERT(ins->type() == MIRType::Object);
+  MOZ_ASSERT(ins->type() == MIRType::Value);
 
   auto lir =
       new (alloc()) LHomeObjectSuperBase(useRegisterAtStart(ins->homeObject()));
-  define(lir, ins);
-  assignSafepoint(lir, ins);
+  defineBox(lir, ins);
 }
 
 void LIRGenerator::visitInterruptCheck(MInterruptCheck* ins) {
@@ -5615,6 +5616,153 @@ void LIRGenerator::visitBigIntAsUintN(MBigIntAsUintN* ins) {
 
   auto* lir = new (alloc()) LBigIntAsUintN(useRegisterAtStart(ins->bits()),
                                            useRegisterAtStart(ins->input()));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitGuardNonGCThing(MGuardNonGCThing* ins) {
+  MDefinition* input = ins->input();
+
+  auto* guard = new (alloc()) LGuardNonGCThing(useBox(input));
+  assignSnapshot(guard, ins->bailoutKind());
+  add(guard, ins);
+  redefine(ins, input);
+}
+
+void LIRGenerator::visitToHashableNonGCThing(MToHashableNonGCThing* ins) {
+  auto* lir =
+      new (alloc()) LToHashableNonGCThing(useBox(ins->input()), tempDouble());
+  defineBox(lir, ins);
+}
+
+void LIRGenerator::visitToHashableString(MToHashableString* ins) {
+  auto* lir = new (alloc()) LToHashableString(useRegister(ins->input()));
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitToHashableValue(MToHashableValue* ins) {
+  auto* lir =
+      new (alloc()) LToHashableValue(useBox(ins->input()), tempDouble());
+  defineBox(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitHashNonGCThing(MHashNonGCThing* ins) {
+  auto* lir = new (alloc()) LHashNonGCThing(useBox(ins->input()), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitHashString(MHashString* ins) {
+  auto* lir = new (alloc()) LHashString(useRegister(ins->input()), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitHashSymbol(MHashSymbol* ins) {
+  auto* lir = new (alloc()) LHashSymbol(useRegister(ins->input()));
+  define(lir, ins);
+}
+
+void LIRGenerator::visitHashBigInt(MHashBigInt* ins) {
+  auto* lir = new (alloc())
+      LHashBigInt(useRegister(ins->input()), temp(), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitHashObject(MHashObject* ins) {
+  auto* lir =
+      new (alloc()) LHashObject(useRegister(ins->set()), useBox(ins->input()),
+                                temp(), temp(), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitHashValue(MHashValue* ins) {
+  auto* lir =
+      new (alloc()) LHashValue(useRegister(ins->set()), useBox(ins->input()),
+                               temp(), temp(), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitSetObjectHasNonBigInt(MSetObjectHasNonBigInt* ins) {
+  auto* lir = new (alloc())
+      LSetObjectHasNonBigInt(useRegister(ins->set()), useBox(ins->value()),
+                             useRegister(ins->hash()), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitSetObjectHasBigInt(MSetObjectHasBigInt* ins) {
+  auto* lir = new (alloc()) LSetObjectHasBigInt(
+      useRegister(ins->set()), useBox(ins->value()), useRegister(ins->hash()),
+      temp(), temp(), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitSetObjectHasValue(MSetObjectHasValue* ins) {
+  auto* lir = new (alloc()) LSetObjectHasValue(
+      useRegister(ins->set()), useBox(ins->value()), useRegister(ins->hash()),
+      temp(), temp(), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitSetObjectHasValueVMCall(MSetObjectHasValueVMCall* ins) {
+  auto* lir = new (alloc()) LSetObjectHasValueVMCall(
+      useRegisterAtStart(ins->set()), useBoxAtStart(ins->value()));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectHasNonBigInt(MMapObjectHasNonBigInt* ins) {
+  auto* lir = new (alloc())
+      LMapObjectHasNonBigInt(useRegister(ins->map()), useBox(ins->value()),
+                             useRegister(ins->hash()), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectHasBigInt(MMapObjectHasBigInt* ins) {
+  auto* lir = new (alloc()) LMapObjectHasBigInt(
+      useRegister(ins->map()), useBox(ins->value()), useRegister(ins->hash()),
+      temp(), temp(), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectHasValue(MMapObjectHasValue* ins) {
+  auto* lir = new (alloc()) LMapObjectHasValue(
+      useRegister(ins->map()), useBox(ins->value()), useRegister(ins->hash()),
+      temp(), temp(), temp(), temp());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectHasValueVMCall(MMapObjectHasValueVMCall* ins) {
+  auto* lir = new (alloc()) LMapObjectHasValueVMCall(
+      useRegisterAtStart(ins->map()), useBoxAtStart(ins->value()));
+  defineReturn(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectGetNonBigInt(MMapObjectGetNonBigInt* ins) {
+  auto* lir = new (alloc())
+      LMapObjectGetNonBigInt(useRegister(ins->map()), useBox(ins->value()),
+                             useRegister(ins->hash()), temp(), temp());
+  defineBox(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectGetBigInt(MMapObjectGetBigInt* ins) {
+  auto* lir = new (alloc()) LMapObjectGetBigInt(
+      useRegister(ins->map()), useBox(ins->value()), useRegister(ins->hash()),
+      temp(), temp(), temp(), temp());
+  defineBox(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectGetValue(MMapObjectGetValue* ins) {
+  auto* lir = new (alloc()) LMapObjectGetValue(
+      useRegister(ins->map()), useBox(ins->value()), useRegister(ins->hash()),
+      temp(), temp(), temp(), temp());
+  defineBox(lir, ins);
+}
+
+void LIRGenerator::visitMapObjectGetValueVMCall(MMapObjectGetValueVMCall* ins) {
+  auto* lir = new (alloc()) LMapObjectGetValueVMCall(
+      useRegisterAtStart(ins->map()), useBoxAtStart(ins->value()));
   defineReturn(lir, ins);
   assignSafepoint(lir, ins);
 }

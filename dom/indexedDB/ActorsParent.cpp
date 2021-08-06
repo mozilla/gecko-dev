@@ -23,6 +23,7 @@
 #include "CrashAnnotations.h"
 #include "DatabaseFileInfo.h"
 #include "DatabaseFileManager.h"
+#include "DatabaseFileManagerImpl.h"
 #include "DBSchema.h"
 #include "ErrorList.h"
 #include "IDBCursorType.h"
@@ -317,8 +318,6 @@ static_assert(kEncryptedStreamBlockSize % 4096 == 0);
 // Similarly, the file copy buffer size must be a multiple of the encrypted
 // block size.
 static_assert(kFileCopyBufferSize % kEncryptedStreamBlockSize == 0);
-
-constexpr auto kJournalDirectoryName = u"journals"_ns;
 
 constexpr auto kFileManagerDirectoryNameSuffix = u".files"_ns;
 constexpr auto kSQLiteSuffix = u".sqlite"_ns;
@@ -5817,6 +5816,23 @@ nsresult DeleteFile(nsIFile& aDirectory, const nsAString& aFilename,
 // exist, an error will not be returned, but warning telemetry will be
 // generated! So only call this on directories that you know exist (idempotent
 // usage, but it's not recommended).
+nsresult DeleteFilesNoQuota(nsIFile& aFile) {
+  AssertIsOnIOThread();
+
+  QM_TRY_INSPECT(const auto& didExist,
+                 QM_OR_ELSE_WARN_IF(
+                     // Expression.
+                     ToResult(aFile.Remove(true)).map(Some<Ok>),
+                     // Predicate.
+                     IsFileNotFoundError,
+                     // Fallback.
+                     ErrToDefaultOk<Maybe<Ok>>));
+
+  Unused << didExist;
+
+  return NS_OK;
+}
+
 nsresult DeleteFilesNoQuota(nsIFile* aDirectory, const nsAString& aFilename) {
   AssertIsOnIOThread();
   MOZ_ASSERT(aDirectory);
@@ -5830,16 +5846,7 @@ nsresult DeleteFilesNoQuota(nsIFile* aDirectory, const nsAString& aFilename) {
 
   QM_TRY_INSPECT(const auto& file, CloneFileAndAppend(*aDirectory, aFilename));
 
-  QM_TRY_INSPECT(const auto& didExist,
-                 QM_OR_ELSE_WARN_IF(
-                     // Expression.
-                     ToResult(file->Remove(true)).map(Some<Ok>),
-                     // Predicate.
-                     IsFileNotFoundError,
-                     // Fallback.
-                     ErrToDefaultOk<Maybe<Ok>>));
-
-  Unused << didExist;
+  QM_TRY(DeleteFilesNoQuota(*file));
 
   return NS_OK;
 }
@@ -5902,59 +5909,40 @@ Result<Ok, nsresult> DeleteFileManagerDirectory(
     nsIFile& aFileManagerDirectory, QuotaManager* aQuotaManager,
     const PersistenceType aPersistenceType,
     const OriginMetadata& aOriginMetadata) {
-  if (!aQuotaManager) {
-    QM_TRY(aFileManagerDirectory.Remove(true));
+  // XXX In theory, deleting can continue for other files in case of a failure,
+  // leaving only those files behind that cause the problem actually. However,
+  // the current architecture doesn't allow having more databases (for the same
+  // name) on disk, so trying to delete as much as possible won't help much
+  // because we need to delete entire .files directory in the end anyway.
+  QM_TRY(DatabaseFileManager::TraverseFiles(
+      aFileManagerDirectory,
+      // KnownDirEntryOp
+      [&aQuotaManager, aPersistenceType, &aOriginMetadata](
+          nsIFile& file, const bool isDirectory) -> Result<Ok, nsresult> {
+        if (isDirectory) {
+          // The journal directory doesn't count towards quota.
+          QM_TRY_RETURN(DeleteFilesNoQuota(file));
+        }
 
-    return Ok{};
-  }
+        // Stored files do count towards quota.
+        QM_TRY_RETURN(DeleteFile(file, aQuotaManager, aPersistenceType,
+                                 aOriginMetadata, Idempotency::Yes));
+      },
+      // UnknownDirEntryOp
+      [aPersistenceType, &aOriginMetadata](
+          nsIFile& file, const bool isDirectory) -> Result<Ok, nsresult> {
+        // Unknown files and directories don't count towards quota.
 
-  // XXX We actually scan the directory multiple times here. Once in
-  // DatabaseFileManager::GetUsage and once in nsIFile::Remove (and there's one
-  // more scan in the cleanup function).
+        if (isDirectory) {
+          QM_TRY_RETURN(DeleteFilesNoQuota(file));
+        }
 
-  QM_TRY_UNWRAP(auto fileUsage,
-                DatabaseFileManager::GetUsage(&aFileManagerDirectory));
-
-  uint64_t usageValue = fileUsage.GetValue().valueOr(0);
-
-  // XXX QM_OR_ELSE_WARN is not needed here, the lambda function below looks
-  // more like a cleanup after a failure.
-  auto res = QM_OR_ELSE_WARN(
-      // Expression.
-      MOZ_TO_RESULT_INVOKE(aFileManagerDirectory, Remove, true),
-      // Fallback.
-      ([&usageValue, &aFileManagerDirectory](nsresult rv) {
-        // We may have deleted some files, try to update quota
-        // information before returning the error.
-
-        // failures of GetUsage are intentionally ignored
-        // XXX QM_TRY failures from DatabaseFileManager::GetUsage are not
-        // propagated here, but there's no warning which would close the error
-        // stack.
-        // XXX If DatabaseFileManager::GetUsage fails here, usageValue stays
-        // unchanged, so we will decrease usage below even for files which were
-        // not deleted.
-        Unused << DatabaseFileManager::GetUsage(&aFileManagerDirectory)
-                      .andThen([&usageValue](const auto& newFileUsage) {
-                        const auto newFileUsageValue =
-                            newFileUsage.GetValue().valueOr(0);
-                        MOZ_ASSERT(newFileUsageValue <= usageValue);
-                        usageValue -= newFileUsageValue;
-
-                        // XXX andThen does not support void return
-                        // values right now, we must return a Result
-                        return Result<Ok, nsresult>{Ok{}};
-                      });
-
-        return Result<Ok, nsresult>{Err(rv)};
+        QM_TRY_RETURN(DeleteFile(file, /* doesn't count */ nullptr,
+                                 aPersistenceType, aOriginMetadata,
+                                 Idempotency::Yes));
       }));
 
-  if (usageValue) {
-    aQuotaManager->DecreaseUsageForClient(
-        ClientMetadata{aOriginMetadata, Client::IDB}, usageValue);
-  }
-
-  return res;
+  QM_TRY_RETURN(MOZ_TO_RESULT_INVOKE(aFileManagerDirectory, Remove, false));
 }
 
 // Idempotently delete all the parts of an IndexedDB database including its
@@ -12487,58 +12475,43 @@ Result<FileUsageType, nsresult> DatabaseFileManager::GetUsage(
   AssertIsOnIOThread();
   MOZ_ASSERT(aDirectory);
 
-  QM_TRY_INSPECT(const bool& exists, MOZ_TO_RESULT_INVOKE(aDirectory, Exists));
-
-  if (!exists) {
-    return FileUsageType{};
-  }
-
   FileUsageType usage;
 
-  QM_TRY(CollectEachFile(
+  QM_TRY(TraverseFiles(
       *aDirectory,
-      [&usage](const nsCOMPtr<nsIFile>& file) -> Result<Ok, nsresult> {
-        QM_TRY_INSPECT(const auto& leafName,
-                       MOZ_TO_RESULT_INVOKE_TYPED(nsString, file, GetLeafName));
-
-        if (leafName.Equals(kJournalDirectoryName)) {
+      // KnownDirEntryOp
+      [&usage](nsIFile& file, const bool isDirectory) -> Result<Ok, nsresult> {
+        if (isDirectory) {
           return Ok{};
         }
 
-        nsresult rv;
-        leafName.ToInteger64(&rv);
-        if (NS_SUCCEEDED(rv)) {
-          // Usually we only use QM_OR_ELSE_LOG_VERBOSE(_IF) with Remove and
-          // NS_ERROR_FILE_NOT_FOUND/NS_ERROR_FILE_TARGET_DOES_NOT_EXIST
-          // check, but the file was found by a directory traversal and
-          // ToInteger on the name succeeded, so it should be our file and if
-          // the file disappears, the use of QM_OR_ELSE_WARN_IF is ok here.
-          QM_TRY_INSPECT(
-              const auto& thisUsage,
-              QM_OR_ELSE_WARN_IF(
-                  // Expression.
-                  MOZ_TO_RESULT_INVOKE(file, GetFileSize)
-                      .map([](const int64_t fileSize) {
-                        return FileUsageType(Some(uint64_t(fileSize)));
-                      }),
-                  // Predicate.
-                  ([](const nsresult rv) {
-                    return rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
-                           rv == NS_ERROR_FILE_NOT_FOUND;
-                  }),
-                  // Fallback. If the file does no longer exist, treat it as
-                  // 0-sized.
-                  ErrToDefaultOk<FileUsageType>));
+        // Usually we only use QM_OR_ELSE_LOG_VERBOSE(_IF) with Remove and
+        // NS_ERROR_FILE_NOT_FOUND/NS_ERROR_FILE_TARGET_DOES_NOT_EXIST
+        // check, but the file was found by a directory traversal and ToInteger
+        // on the name succeeded, so it should be our file and if the file
+        // disappears, the use of QM_OR_ELSE_WARN_IF is ok here.
+        QM_TRY_INSPECT(const auto& thisUsage,
+                       QM_OR_ELSE_WARN_IF(
+                           // Expression.
+                           MOZ_TO_RESULT_INVOKE(file, GetFileSize)
+                               .map([](const int64_t fileSize) {
+                                 return FileUsageType(Some(uint64_t(fileSize)));
+                               }),
+                           // Predicate.
+                           ([](const nsresult rv) {
+                             return rv == NS_ERROR_FILE_TARGET_DOES_NOT_EXIST ||
+                                    rv == NS_ERROR_FILE_NOT_FOUND;
+                           }),
+                           // Fallback. If the file does no longer exist, treat
+                           // it as 0-sized.
+                           ErrToDefaultOk<FileUsageType>));
 
-          usage += thisUsage;
-
-          return Ok{};
-        }
-
-        UNKNOWN_FILE_WARNING(leafName);
+        usage += thisUsage;
 
         return Ok{};
-      }));
+      },
+      // UnknownDirEntryOp
+      [](nsIFile&, const bool) -> Result<Ok, nsresult> { return Ok{}; }));
 
   return usage;
 }

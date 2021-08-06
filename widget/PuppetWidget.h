@@ -171,10 +171,7 @@ class PuppetWidget : public nsBaseWidget,
     return eTransparencyTransparent;
   }
 
-  virtual LayerManager* GetLayerManager(
-      PLayerTransactionChild* aShadowManager = nullptr,
-      LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
-      LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT) override;
+  virtual WindowRenderer* GetWindowRenderer() override;
 
   // This is used for creating remote layer managers and for re-creating
   // them after a compositor reset. The lambda aInitializeFunc is used to
@@ -184,7 +181,7 @@ class PuppetWidget : public nsBaseWidget,
   bool CreateRemoteLayerManager(
       const std::function<bool(LayerManager*)>& aInitializeFunc);
 
-  bool HasLayerManager() { return !!mLayerManager; }
+  bool HasLayerManager() { return !!mWindowRenderer; }
 
   virtual void SetInputContext(const InputContext& aContext,
                                const InputContextAction& aAction) override;

@@ -35,44 +35,53 @@ NS_IMPL_RELEASE_INHERITED(DOMLocalization, Localization)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMLocalization)
 NS_INTERFACE_MAP_END_INHERITING(Localization)
 
-/* static */
-already_AddRefed<DOMLocalization> DOMLocalization::Create(
-    nsIGlobalObject* aGlobal, const bool aSync,
-    const BundleGenerator& aBundleGenerator) {
-  RefPtr<DOMLocalization> domLoc =
-      new DOMLocalization(aGlobal, aSync, aBundleGenerator);
-
-  domLoc->Init();
-
-  return domLoc.forget();
+DOMLocalization::DOMLocalization(nsIGlobalObject* aGlobal, bool aSync)
+    : Localization(aGlobal, aSync) {
+  mMutations = new L10nMutations(this);
 }
 
-DOMLocalization::DOMLocalization(nsIGlobalObject* aGlobal, const bool aSync,
-                                 const BundleGenerator& aBundleGenerator)
-    : Localization(aGlobal, aSync, aBundleGenerator) {
+DOMLocalization::DOMLocalization(nsIGlobalObject* aGlobal, bool aIsSync,
+                                 const ffi::LocalizationRc* aRaw)
+    : Localization(aGlobal, aIsSync, aRaw) {
   mMutations = new L10nMutations(this);
 }
 
 already_AddRefed<DOMLocalization> DOMLocalization::Constructor(
-    const GlobalObject& aGlobal, const Sequence<nsString>& aResourceIds,
-    const bool aSync, const BundleGenerator& aBundleGenerator,
-    ErrorResult& aRv) {
-  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  if (!global) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return nullptr;
+    const GlobalObject& aGlobal, const Sequence<nsCString>& aResourceIds,
+    bool aIsSync, const Optional<NonNull<L10nRegistry>>& aRegistry,
+    const Optional<Sequence<nsCString>>& aLocales, ErrorResult& aRv) {
+  nsTArray<nsCString> resIds = ToTArray<nsTArray<nsCString>>(aResourceIds);
+  Maybe<nsTArray<nsCString>> locales;
+
+  if (aLocales.WasPassed()) {
+    locales.emplace();
+    locales->SetCapacity(aLocales.Value().Length());
+    for (const auto& locale : aLocales.Value()) {
+      locales->AppendElement(locale);
+    }
   }
 
-  RefPtr<DOMLocalization> domLoc =
-      DOMLocalization::Create(global, aSync, aBundleGenerator);
+  RefPtr<const ffi::LocalizationRc> raw;
+  bool result;
 
-  if (aResourceIds.Length()) {
-    domLoc->AddResourceIds(aResourceIds);
+  if (aRegistry.WasPassed()) {
+    result = ffi::localization_new_with_locales(
+        &resIds, aIsSync, aRegistry.Value().Raw(), locales.ptrOr(nullptr),
+        getter_AddRefs(raw));
+  } else {
+    result = ffi::localization_new_with_locales(
+        &resIds, aIsSync, nullptr, locales.ptrOr(nullptr), getter_AddRefs(raw));
   }
 
-  domLoc->Activate(true);
+  if (result) {
+    nsCOMPtr<nsIGlobalObject> global =
+        do_QueryInterface(aGlobal.GetAsSupports());
 
-  return domLoc.forget();
+    return do_AddRef(new DOMLocalization(global, aIsSync, raw));
+  }
+  aRv.ThrowInvalidStateError(
+      "Failed to create the Localization. Check the locales arguments.");
+  return nullptr;
 }
 
 JSObject* DOMLocalization::WrapObject(JSContext* aCx,
@@ -302,9 +311,6 @@ already_AddRefed<Promise> DOMLocalization::TranslateElements(
     return nullptr;
   }
 
-  AutoEntryScript aes(mGlobal, "DOMLocalization TranslateElements");
-  JSContext* cx = aes.cx();
-
   for (auto& domElement : aElements) {
     if (!domElement->HasAttr(kNameSpaceID_None, nsGkAtoms::datal10nid)) {
       continue;
@@ -332,10 +338,10 @@ already_AddRefed<Promise> DOMLocalization::TranslateElements(
     return nullptr;
   }
 
-  if (mIsSync) {
+  if (IsSync()) {
     nsTArray<Nullable<L10nMessage>> l10nMessages;
 
-    FormatMessagesSync(cx, l10nKeys, l10nMessages, aRv);
+    FormatMessagesSync(l10nKeys, l10nMessages, aRv);
 
     bool allTranslated =
         ApplyTranslations(domElements, l10nMessages, aProto, aRv);
@@ -346,7 +352,7 @@ already_AddRefed<Promise> DOMLocalization::TranslateElements(
 
     promise->MaybeResolveWithUndefined();
   } else {
-    RefPtr<Promise> callbackResult = FormatMessages(cx, l10nKeys, aRv);
+    RefPtr<Promise> callbackResult = FormatMessages(l10nKeys, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
     }
@@ -528,10 +534,7 @@ bool DOMLocalization::ApplyTranslations(
 
 void DOMLocalization::OnChange() {
   Localization::OnChange();
-  if (mLocalization && !mResourceIds.IsEmpty()) {
-    ErrorResult rv;
-    RefPtr<Promise> promise = TranslateRoots(rv);
-  }
+  RefPtr<Promise> promise = TranslateRoots(IgnoreErrors());
 }
 
 void DOMLocalization::DisconnectMutations() {

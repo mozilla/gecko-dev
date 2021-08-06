@@ -284,6 +284,12 @@ add_task(async function testDisabledBrowserLanguages() {
   is(pl.version, "1.0", "pl is the old 1.0 version");
   assertLocaleOrder(selected, "en-US,he");
 
+  // Wait for the children menu to be populated.
+  await BrowserTestUtils.waitForCondition(
+    () => !!available.children.length,
+    "Children list populated"
+  );
+
   // Only fr is enabled and not selected, so it's the only locale available.
   assertAvailableLocales(available, ["fr"]);
 
@@ -373,7 +379,14 @@ add_task(async function testReorderingBrowserLanguages() {
   let dialogClosed = BrowserTestUtils.waitForEvent(dialog, "dialogclosing");
   dialog.acceptDialog();
   await dialogClosed;
-  is(messageBar.hidden, false, "The message bar is now visible");
+
+  // The message bar uses async `formatValues` and that may resolve
+  // after the dialog is closed.
+  await BrowserTestUtils.waitForMutationCondition(
+    messageBar,
+    { attributes: true },
+    () => !messageBar.hidden
+  );
   is(
     messageBar.querySelector("button").getAttribute("locales"),
     "en-US,he,pl",
@@ -406,7 +419,7 @@ add_task(async function testReorderingBrowserLanguages() {
   ok(secondDialogId, "There was an id on the second dialog");
   ok(firstDialogId != secondDialogId, "The dialog ids are different");
   ok(
-    firstDialogId < secondDialogId,
+    parseInt(firstDialogId) < parseInt(secondDialogId),
     "The second dialog id is larger than the first"
   );
 
@@ -453,6 +466,19 @@ add_task(async function testAddAndRemoveSelectedLanguages() {
   let { dialog, dialogDoc, available, selected } = await openDialog(doc);
   let dialogId = getDialogId(dialogDoc);
 
+  // loadLocalesFromAMO is async but `initAvailableLocales` doesn't wait
+  // for it to be resolved, so we have to wait for the list to be populated
+  // before we test for its values.
+  await BrowserTestUtils.waitForMutationCondition(
+    available.menupopup,
+    { attributes: true, childList: true },
+    () => {
+      let listLocales = Array.from(available.menupopup.children).filter(
+        item => item.value && item.value != "search"
+      );
+      return listLocales.length == 3;
+    }
+  );
   // The initial order is set by the pref.
   assertLocaleOrder(selected, "en-US");
   assertAvailableLocales(available, ["fr", "pl", "he"]);

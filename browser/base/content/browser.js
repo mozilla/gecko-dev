@@ -389,7 +389,7 @@ XPCOMUtils.defineLazyGetter(this, "ReferrerInfo", () =>
 );
 
 // High priority notification bars shown at the top of the window.
-XPCOMUtils.defineLazyGetter(this, "gHighPriorityNotificationBox", () => {
+XPCOMUtils.defineLazyGetter(this, "gNotificationBox", () => {
   return new MozElements.NotificationBox(element => {
     element.classList.add("global-notificationbox");
     element.setAttribute("notificationside", "top");
@@ -404,11 +404,6 @@ XPCOMUtils.defineLazyGetter(this, "gHighPriorityNotificationBox", () => {
     let tabNotifications = document.getElementById("tab-notification-deck");
     gNavToolbox.insertBefore(outer, tabNotifications);
   });
-});
-
-// Regular notification bars shown at the bottom of the window.
-XPCOMUtils.defineLazyGetter(this, "gNotificationBox", () => {
-  return gHighPriorityNotificationBox;
 });
 
 XPCOMUtils.defineLazyGetter(this, "InlineSpellCheckerUI", () => {
@@ -548,6 +543,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
 customElements.setElementCreationCallback("translation-notification", () => {
   Services.scriptloader.loadSubScript(
     "chrome://browser/content/translation-notification.js",
+    window
+  );
+});
+
+customElements.setElementCreationCallback("screenshots-div", () => {
+  Services.scriptloader.loadSubScript(
+    "chrome://browser/content/screenshots/screenshots.js",
     window
   );
 });
@@ -915,9 +917,7 @@ const gStoragePressureObserver = {
     }
 
     const NOTIFICATION_VALUE = "storage-pressure-notification";
-    if (
-      gHighPriorityNotificationBox.getNotificationWithValue(NOTIFICATION_VALUE)
-    ) {
+    if (gNotificationBox.getNotificationWithValue(NOTIFICATION_VALUE)) {
       // Do not display the 2nd notification when there is already one
       return;
     }
@@ -971,19 +971,17 @@ const gStoragePressureObserver = {
     }
     messageFragment.appendChild(message);
 
-    gHighPriorityNotificationBox.appendNotification(
+    gNotificationBox.appendNotification(
       messageFragment,
       NOTIFICATION_VALUE,
       null,
-      gHighPriorityNotificationBox.PRIORITY_WARNING_HIGH,
+      gNotificationBox.PRIORITY_WARNING_HIGH,
       buttons
     );
 
     // This seems to be necessary to get the buttons to display correctly
     // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1504216
-    document.l10n.translateFragment(
-      gHighPriorityNotificationBox.currentNotification
-    );
+    document.l10n.translateFragment(gNotificationBox.currentNotification);
   },
 };
 
@@ -1293,13 +1291,6 @@ var gKeywordURIFixup = {
     let hostName = fixedURI.displayHost;
     // and the ascii-only host for the pref:
     let asciiHost = fixedURI.asciiHost;
-    // Normalize out a single trailing dot - NB: not using endsWith/lastIndexOf
-    // because we need to be sure this last dot is the *only* dot, too.
-    // More generally, this is used for the pref and should stay in sync with
-    // the code in URIFixup::KeywordURIFixup .
-    if (asciiHost.indexOf(".") == asciiHost.length - 1) {
-      asciiHost = asciiHost.slice(0, -1);
-    }
 
     let isIPv4Address = host => {
       let parts = host.split(".");
@@ -1365,7 +1356,15 @@ var gKeywordURIFixup = {
             callback() {
               // Do not set this preference while in private browsing.
               if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
-                let pref = "browser.fixup.domainwhitelist." + asciiHost;
+                let prefHost = asciiHost;
+                // Normalize out a single trailing dot - NB: not using endsWith/lastIndexOf
+                // because we need to be sure this last dot is the *only* dot, too.
+                // More generally, this is used for the pref and should stay in sync with
+                // the code in URIFixup::KeywordURIFixup .
+                if (prefHost.indexOf(".") == prefHost.length - 1) {
+                  prefHost = prefHost.slice(0, -1);
+                }
+                let pref = "browser.fixup.domainwhitelist." + prefHost;
                 Services.prefs.setBoolPref(pref, true);
               }
               openTrustedLinkIn(fixedURI.spec, "current");
@@ -1383,9 +1382,19 @@ var gKeywordURIFixup = {
       },
     };
 
+    // For dotless hostnames, we want to ensure this ends with a '.' but don't
+    // want the . showing up in the UI if we end up notifying the user, so we
+    // use a separate variable.
+    let lookupName = hostName;
+    if (
+      UrlbarPrefs.get("dnsResolveFullyQualifiedNames") &&
+      !lookupName.includes(".")
+    ) {
+      lookupName += ".";
+    }
     try {
       gDNSService.asyncResolve(
-        hostName,
+        lookupName,
         Ci.nsIDNSService.RESOLVE_TYPE_DEFAULT,
         0,
         null,
@@ -3731,7 +3740,6 @@ var homeButtonObserver = {
     browserDragAndDrop.dragOver(aEvent);
     aEvent.dropEffect = "link";
   },
-  onDragExit(aEvent) {},
 };
 
 function openHomeDialog(aURL) {
@@ -3764,7 +3772,6 @@ var newTabButtonObserver = {
   onDragOver(aEvent) {
     browserDragAndDrop.dragOver(aEvent);
   },
-  onDragExit(aEvent) {},
   async onDrop(aEvent) {
     let links = browserDragAndDrop.dropLinks(aEvent);
     if (
@@ -3803,7 +3810,6 @@ var newWindowButtonObserver = {
   onDragOver(aEvent) {
     browserDragAndDrop.dragOver(aEvent);
   },
-  onDragExit(aEvent) {},
   async onDrop(aEvent) {
     let links = browserDragAndDrop.dropLinks(aEvent);
     if (
@@ -4796,6 +4802,257 @@ function updateEditUIVisibility() {
   }
 }
 
+let gFileMenu = {
+  /**
+   * Updates User Context Menu Item UI visibility depending on
+   * privacy.userContext.enabled pref state.
+   */
+  updateUserContextUIVisibility() {
+    let menu = document.getElementById("menu_newUserContext");
+    menu.hidden = !Services.prefs.getBoolPref(
+      "privacy.userContext.enabled",
+      false
+    );
+    // Visibility of File menu item shouldn't change frequently.
+    if (PrivateBrowsingUtils.isWindowPrivate(window)) {
+      menu.setAttribute("disabled", "true");
+    }
+  },
+
+  /**
+   * Updates the enabled state of the "Import From Another Browser" command
+   * depending on the DisableProfileImport policy.
+   */
+  updateImportCommandEnabledState() {
+    if (!Services.policies.isAllowed("profileImport")) {
+      document
+        .getElementById("cmd_file_importFromAnotherBrowser")
+        .setAttribute("disabled", "true");
+    }
+  },
+
+  onPopupShowing(event) {
+    // We don't care about submenus:
+    if (event.target.id != "menu_FilePopup") {
+      return;
+    }
+    this.updateUserContextUIVisibility();
+    this.updateImportCommandEnabledState();
+    if (AppConstants.platform == "macosx") {
+      gShareUtils.updateShareURLMenuItem(
+        gBrowser.selectedBrowser,
+        document.getElementById("menu_savePage")
+      );
+    }
+    PrintUtils.updatePrintPreviewMenuHiddenState();
+  },
+};
+
+let gShareUtils = {
+  /**
+   * Updates a sharing item in a given menu, creating it if necessary.
+   */
+  updateShareURLMenuItem(browser, insertAfterEl) {
+    // We only support "share URL" on macOS and on Windows 10:
+    if (
+      AppConstants.platform != "macosx" &&
+      // Windows 10's internal NT version number was initially 6.4
+      !AppConstants.isPlatformAndVersionAtLeast("win", "6.4")
+    ) {
+      return;
+    }
+
+    let shareURL = insertAfterEl.nextElementSibling;
+    if (!shareURL?.matches(".share-tab-url-item")) {
+      shareURL = this._createShareURLMenuItem(insertAfterEl);
+    }
+
+    shareURL.browserToShare = Cu.getWeakReference(browser);
+    if (AppConstants.platform == "win") {
+      // We disable the item on Windows, as there's no submenu.
+      // On macOS, we handle this inside the menupopup.
+      shareURL.hidden = !BrowserUtils.isShareableURL(browser.currentURI);
+    }
+  },
+
+  /**
+   * Creates and returns the "Share" menu item.
+   */
+  _createShareURLMenuItem(insertAfterEl) {
+    let menu = insertAfterEl.parentNode;
+    let shareURL = null;
+    if (AppConstants.platform == "win") {
+      shareURL = this._buildShareURLItem(menu.id);
+    } else if (AppConstants.platform == "macosx") {
+      shareURL = this._buildShareURLMenu(menu.id);
+    }
+    shareURL.className = "share-tab-url-item";
+
+    let l10nID =
+      menu.id == "tabContextMenu"
+        ? "tab-context-share-url"
+        : "menu-file-share-url";
+    document.l10n.setAttributes(shareURL, l10nID);
+
+    menu.insertBefore(shareURL, insertAfterEl.nextSibling);
+    return shareURL;
+  },
+
+  /**
+   * Returns a menu item specifically for accessing Windows sharing services.
+   */
+  _buildShareURLItem() {
+    let shareURLMenuItem = document.createXULElement("menuitem");
+    shareURLMenuItem.addEventListener("command", this);
+    return shareURLMenuItem;
+  },
+
+  /**
+   * Returns a menu specifically for accessing macOSx sharing services .
+   */
+  _buildShareURLMenu() {
+    let menu = document.createXULElement("menu");
+    let menuPopup = document.createXULElement("menupopup");
+    menuPopup.addEventListener("popupshowing", this);
+    menu.appendChild(menuPopup);
+    return menu;
+  },
+
+  /**
+   * Get the sharing data for a given DOM node.
+   */
+  getDataToShare(node) {
+    let browser = node.browserToShare?.get();
+    let urlToShare = null;
+    let titleToShare = null;
+
+    if (browser && BrowserUtils.isShareableURL(browser.currentURI)) {
+      urlToShare = browser.currentURI;
+      titleToShare = browser.contentTitle;
+    }
+    return { urlToShare, titleToShare };
+  },
+
+  /**
+   * Populates the "Share" menupopup on macOSx.
+   */
+  initializeShareURLPopup(menuPopup) {
+    if (AppConstants.platform != "macosx") {
+      return;
+    }
+
+    // Empty menupopup
+    while (menuPopup.firstChild) {
+      menuPopup.firstChild.remove();
+    }
+
+    let { urlToShare } = this.getDataToShare(menuPopup.parentNode);
+
+    // If we can't share the current URL, we display the items disabled,
+    // but enable the "more..." item at the bottom, to allow the user to
+    // change sharing preferences in the system dialog.
+    let shouldEnable = !!urlToShare;
+    if (!urlToShare) {
+      // Fake it so we can ask the sharing service for services:
+      urlToShare = makeURI("https://mozilla.org/");
+    }
+
+    let sharingService = gBrowser.MacSharingService;
+    let currentURI = gURLBar.makeURIReadable(urlToShare).displaySpec;
+    let services = sharingService.getSharingProviders(currentURI);
+
+    services.forEach(share => {
+      let item = document.createXULElement("menuitem");
+      item.classList.add("menuitem-iconic");
+      item.setAttribute("label", share.menuItemTitle);
+      item.setAttribute("share-name", share.name);
+      item.setAttribute("image", share.image);
+      if (!shouldEnable) {
+        item.setAttribute("disabled", "true");
+      }
+      menuPopup.appendChild(item);
+    });
+    menuPopup.appendChild(document.createXULElement("menuseparator"));
+    let moreItem = document.createXULElement("menuitem");
+    document.l10n.setAttributes(moreItem, "menu-share-more");
+    moreItem.classList.add("menuitem-iconic", "share-more-button");
+    menuPopup.appendChild(moreItem);
+
+    menuPopup.addEventListener("command", this);
+    menuPopup.parentNode
+      .closest("menupopup")
+      .addEventListener("popuphiding", this);
+    menuPopup.setAttribute("data-initialized", true);
+  },
+
+  onShareURLCommand(event) {
+    // Only call sharing services for the "Share" menu item. These services
+    // are accessed from a submenu popup for MacOS or the "Share" menu item
+    // for Windows. Use .closest() as a hack to find either the item itself
+    // or a parent with the right class.
+    let target = event.target.closest(".share-tab-url-item");
+    if (!target) {
+      return;
+    }
+
+    // urlToShare/titleToShare may be null, in which case only the "more"
+    // item is enabled, so handle that case first:
+    if (event.target.classList.contains("share-more-button")) {
+      gBrowser.MacSharingService.openSharingPreferences();
+      return;
+    }
+
+    let { urlToShare, titleToShare } = this.getDataToShare(target);
+    let currentURI = gURLBar.makeURIReadable(urlToShare).displaySpec;
+
+    if (AppConstants.platform == "win") {
+      WindowsUIUtils.shareUrl(currentURI, titleToShare);
+      return;
+    }
+
+    // On macOSX platforms
+    let shareName = event.target.getAttribute("share-name");
+
+    if (shareName) {
+      gBrowser.MacSharingService.shareUrl(shareName, currentURI, titleToShare);
+    }
+  },
+
+  onPopupHiding(event) {
+    // We don't want to rebuild the contents of the "Share" menupopup if only its submenu is
+    // hidden. So bail if this isn't the top menupopup in the DOM tree:
+    if (event.target.parentNode.closest("menupopup")) {
+      return;
+    }
+    // Otherwise, clear its "data-initialized" attribute.
+    let menupopup = event.target.querySelector(".share-tab-url-item")
+      ?.menupopup;
+    menupopup?.removeAttribute("data-initialized");
+
+    event.target.removeEventListener("popuphiding", this);
+  },
+
+  onPopupShowing(event) {
+    if (!event.target.hasAttribute("data-initialized")) {
+      this.initializeShareURLPopup(event.target);
+    }
+  },
+
+  handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "command":
+        this.onShareURLCommand(aEvent);
+        break;
+      case "popuphiding":
+        this.onPopupHiding(aEvent);
+        break;
+      case "popupshowing":
+        this.onPopupShowing(aEvent);
+        break;
+    }
+  },
+};
+
 /**
  * Opens a new tab with the userContextId specified as an attribute of
  * sourceEvent. This attribute is propagated to the top level originAttributes
@@ -4808,22 +5065,6 @@ function openNewUserContextTab(event) {
   openTrustedLinkIn(BROWSER_NEW_TAB_URL, "tab", {
     userContextId: parseInt(event.target.getAttribute("data-usercontextid")),
   });
-}
-
-/**
- * Updates User Context Menu Item UI visibility depending on
- * privacy.userContext.enabled pref state.
- */
-function updateFileMenuUserContextUIVisibility(id) {
-  let menu = document.getElementById(id);
-  menu.hidden = !Services.prefs.getBoolPref(
-    "privacy.userContext.enabled",
-    false
-  );
-  // Visibility of File menu item shouldn't change frequently.
-  if (PrivateBrowsingUtils.isWindowPrivate(window)) {
-    menu.setAttribute("disabled", "true");
-  }
 }
 
 /**
@@ -7453,7 +7694,6 @@ var IndexedDBPromptHelper = {
           Ci.nsIPermissionManager.ALLOW_ACTION
         );
       },
-      disableHighlight: true,
     };
 
     var secondaryActions = [
@@ -7552,7 +7792,6 @@ var CanvasPermissionPromptHelper = {
           state && state.checkboxChecked
         );
       },
-      disableHighlight: true,
     };
 
     let secondaryActions = [
@@ -7725,8 +7964,6 @@ var WebAuthnPromptHelper = {
         this._tid = 0;
       }
     };
-
-    mainAction.disableHighlight = true;
 
     this._tid = tid;
     this._current = PopupNotifications.show(

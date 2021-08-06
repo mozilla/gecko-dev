@@ -16,7 +16,7 @@
 
 #include "jstypes.h"  // JS_PUBLIC_API
 
-#include "js/Class.h"  // js::ESClass, JSCLASS_RESERVED_SLOTS, JSCLASS_HAS_PRIVATE
+#include "js/Class.h"       // js::ESClass, JSCLASS_RESERVED_SLOTS
 #include "js/Realm.h"       // JS::GetCompartmentForRealm
 #include "js/RootingAPI.h"  // JS::{,Mutable}Handle
 #include "js/Value.h"       // JS::Value
@@ -60,24 +60,6 @@ static MOZ_ALWAYS_INLINE Compartment* GetCompartment(JSObject* obj) {
 }
 
 /**
- * Get the private value stored for an object whose class has a private.
- *
- * It is safe to call this function within |obj|'s finalize hook.
- */
-inline void* GetPrivate(JSObject* obj) {
-  MOZ_ASSERT(GetClass(obj)->flags & JSCLASS_HAS_PRIVATE);
-  const auto* nobj = reinterpret_cast<const shadow::Object*>(obj);
-  return nobj->fixedSlots()[nobj->numFixedSlots()].toPrivate();
-}
-
-/**
- * Set the private value for |obj|.
- *
- * This function may called during the finalization of |obj|.
- */
-extern JS_PUBLIC_API void SetPrivate(JSObject* obj, void* data);
-
-/**
  * Get the value stored in a reserved slot in an object.
  *
  * If |obj| is known to be a proxy and you're willing to use friend APIs,
@@ -113,6 +95,17 @@ inline void SetReservedSlot(JSObject* obj, size_t slot, const Value& value) {
 }
 
 /**
+ * Helper function to get the pointer value (or nullptr if not set) from an
+ * object's reserved slot. The slot must contain either a PrivateValue(T*) or
+ * UndefinedValue.
+ */
+template <typename T>
+inline T* GetMaybePtrFromReservedSlot(JSObject* obj, size_t slot) {
+  Value v = GetReservedSlot(obj, slot);
+  return v.isUndefined() ? nullptr : static_cast<T*>(v.toPrivate());
+}
+
+/**
  * Helper function to get the pointer value (or nullptr if not set) from the
  * object's first reserved slot. Must only be used for objects with a JSClass
  * that has the JSCLASS_SLOT0_IS_NSISUPPORTS flag.
@@ -120,8 +113,7 @@ inline void SetReservedSlot(JSObject* obj, size_t slot, const Value& value) {
 template <typename T>
 inline T* GetObjectISupports(JSObject* obj) {
   MOZ_ASSERT(GetClass(obj)->slot0IsISupports());
-  Value v = GetReservedSlot(obj, 0);
-  return v.isUndefined() ? nullptr : static_cast<T*>(v.toPrivate());
+  return GetMaybePtrFromReservedSlot<T>(obj, 0);
 }
 
 /**

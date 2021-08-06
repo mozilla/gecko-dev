@@ -32,8 +32,6 @@ declare namespace MockedExports {
       typeof import("resource://gre/modules/osfile.jsm");
     "resource://gre/modules/AppConstants.jsm":
       typeof import("resource://gre/modules/AppConstants.jsm");
-    "resource://gre/modules/ProfilerGetSymbols.jsm":
-      typeof import("resource://gre/modules/ProfilerGetSymbols.jsm");
     "resource:///modules/CustomizableUI.jsm":
       typeof import("resource:///modules/CustomizableUI.jsm")
     "resource:///modules/CustomizableWidgets.jsm":
@@ -116,6 +114,18 @@ declare namespace MockedExports {
 
   interface nsIURI {}
 
+  interface SharedLibrary {
+    start: number;
+    end: number;
+    offset: number;
+    name: string;
+    path: string;
+    debugName: string;
+    debugPath: string;
+    breakpadId: string;
+    arch: string;
+  }
+
   type Services = {
     prefs: {
       clearUserPref: (prefName: string) => void;
@@ -130,7 +140,23 @@ declare namespace MockedExports {
       addObserver: any;
       removeObserver: any;
     };
-    profiler: any;
+    profiler: {
+      CanProfile: () => boolean;
+      StartProfiler: (entryCount: number, interval: number, features: string[], filters?: string[], activeTabId?: number, duration?: number) => void;
+      StopProfiler: () => void;
+      IsPaused: () => boolean;
+      Pause: () => void;
+      Resume: () => void;
+      IsSamplingPaused: () => boolean;
+      PauseSampling: () => void;
+      ResumeSampling: () => void;
+      GetFeatures: () => string[];
+      getProfileDataAsync: (sinceTime?: number) => Promise<object>;
+      getProfileDataAsArrayBuffer: (sinceTime?: number) => Promise<ArrayBuffer>;
+      getProfileDataAsGzippedArrayBuffer: (sinceTime?: number) => Promise<ArrayBuffer>;
+      IsActive: () => boolean;
+      sharedLibraries: SharedLibrary[];
+    };
     platform: string;
     obs: {
       addObserver: (observer: object, type: string) => void;
@@ -159,16 +185,6 @@ declare namespace MockedExports {
 
   const EventEmitter: {
     decorate: (target: object) => void;
-  };
-
-  const ProfilerGetSymbolsJSM: {
-    ProfilerGetSymbols: {
-      getSymbolTable: (
-        path: string,
-        debugPath: string,
-        breakpadId: string
-      ) => any;
-    };
   };
 
   const AppConstantsJSM: {
@@ -331,10 +347,6 @@ declare module "resource://gre/modules/AppConstants.jsm" {
   export = MockedExports.AppConstantsJSM;
 }
 
-declare module "resource://gre/modules/ProfilerGetSymbols.jsm" {
-  export = MockedExports.ProfilerGetSymbolsJSM;
-}
-
 declare module "resource://gre/modules/WebChannel.jsm" {
   export = MockedExports.WebChannelJSM;
 }
@@ -415,6 +427,8 @@ declare interface ChromeWindow extends Window {
     params?: unknown
   ) => void;
 }
+
+declare class ChromeWorker extends Worker {}
 
 declare interface MenuListElement extends XULElement {
   value: string;

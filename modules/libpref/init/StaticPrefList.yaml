@@ -1930,6 +1930,11 @@
   value: true
   mirror: always
 
+- name: dom.event.dragexit.enabled
+  type: bool
+  value: @IS_NOT_NIGHTLY_BUILD@
+  mirror: always
+
 # Whether WheelEvent should return pixels instead of lines for
 # WheelEvent.deltaX/Y/Z, when deltaMode hasn't been checked.
 #
@@ -2129,7 +2134,7 @@
 - name: dom.image-lazy-loading.root-margin.top
   type: float
 #if defined(EARLY_BETA_OR_EARLIER)
-  value: 1000
+  value: 800
 #else
   value: 300
 #endif
@@ -2143,7 +2148,7 @@
 - name: dom.image-lazy-loading.root-margin.bottom
   type: float
 #if defined(EARLY_BETA_OR_EARLIER)
-  value: 1000
+  value: 800
 #else
   value: 300
 #endif
@@ -2157,7 +2162,7 @@
 - name: dom.image-lazy-loading.root-margin.left
   type: float
 #if defined(EARLY_BETA_OR_EARLIER)
-  value: 1000
+  value: 800
 #else
   value: 300
 #endif
@@ -2171,7 +2176,7 @@
 - name: dom.image-lazy-loading.root-margin.right
   type: float
 #if defined(EARLY_BETA_OR_EARLIER)
-  value: 1000
+  value: 800
 #else
   value: 300
 #endif
@@ -3135,6 +3140,15 @@
   value: true
   mirror: always
 
+# Additional ServiceWorker navigation mitigation control to unregister the
+# ServiceWorker after multiple faults are encountered. The mitigation is
+# disabled when this is set to zero, otherwise this is the number of faults that
+# need to occur for a specific ServiceWorker before it will be unregistered.
+- name: dom.serviceWorkers.mitigations.navigation_fault_threshold
+  type: uint32_t
+  value: 3
+  mirror: always
+
 - name: dom.serviceWorkers.testing.enabled
   type: RelaxedAtomicBool
   value: false
@@ -3680,6 +3694,12 @@
   value: false
   mirror: always
 
+# Is support for custom element disabledFeatures enabled?
+- name: dom.webcomponents.disabledFeatures.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # Is support for form-associated custom element enabled?
 - name: dom.webcomponents.formAssociatedCustomElement.enabled
   type: bool
@@ -3849,7 +3869,11 @@
 # WebShare API - exposes navigator.share()
 - name: dom.webshare.enabled
   type: bool
+#ifdef XP_WIN
+  value: @IS_EARLY_BETA_OR_EARLIER@
+#else
   value: false
+#endif
   mirror: always
 
 # WebShare API - allows WebShare without user interaction (for tests only).
@@ -4773,6 +4797,11 @@
   value: true
   mirror: always
 
+- name: gfx.basic_layer_manager.force_enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 #  Whether to enable LayerScope tool and default listening port.
 - name: gfx.layerscope.enabled
   type: RelaxedAtomicBool
@@ -5015,7 +5044,7 @@
 # Also expose a pref to allow users to force-disable WR. This is exposed
 # on all channels because WR can be enabled on qualified hardware on all
 # channels.
-- name: gfx.webrender.force-disabled
+- name: gfx.webrender.force-legacy-layers
   type: bool
   value: false
   mirror: once
@@ -5112,21 +5141,13 @@
 # Whether or not to fallback from WebRender/WebRender Software to Basic.
 - name: gfx.webrender.fallback.basic
   type: bool
-#if defined(MOZ_WIDGET_ANDROID)
-  value: true
-#else
-  value: @IS_NOT_EARLY_BETA_OR_EARLIER@
-#endif
+  value: false
   mirror: once
 
 # Whether or not to fallback from WebRender to Software WebRender.
 - name: gfx.webrender.fallback.software
   type: bool
-#if defined(MOZ_WIDGET_ANDROID)
-  value: false
-#else
   value: true
-#endif
   mirror: once
 
 #ifdef XP_WIN
@@ -5617,7 +5638,7 @@
 - name: image.avif.enabled
   type: RelaxedAtomicBool
 #if defined(MOZ_AV1)
-  value: false
+  value: true
 #else
   value: false
 #endif
@@ -6807,9 +6828,37 @@
 # Whether the `accent-color` css property is enabled.
 - name: layout.css.accent-color.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
   rust: true
+
+# Whether the `color-scheme` css property and meta tags are enabled.
+- name: layout.css.color-scheme.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
+# The minimum contrast ratio between the accent color foreground and background
+# colors.
+#
+# We don't use this for text, so we need a contrast of at least AA (for user
+# interface components and graphical objects), which per WCAG is 3:1
+- name: layout.css.accent-color.min-contrast-ratio
+  type: AtomicFloat
+  value: 3.0
+  mirror: always
+
+# The target contrast ratio between the accent color foreground and background
+# colors when darkening.
+#
+# We aim a bit further than the minimum contrast ratio, which seems to provide
+# nice results in practice.
+- name: layout.css.accent-color.darkening-target-contrast-ratio
+  type: AtomicFloat
+  value: 6.0
+  mirror: always
+
 
 # Whether the `aspect-ratio` in css-sizing-4 is enabled.
 - name: layout.css.aspect-ratio.enabled
@@ -6824,25 +6873,18 @@
   value: true
   mirror: always
 
-# Is path() supported in clip-path?
-- name: layout.css.clip-path-path.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
-
-# Is the image-set() function enabled?
-- name: layout.css.image-set.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-  rust: true
-
 # Are implicit tracks in computed grid templates serialized?
 - name: layout.css.serialize-grid-implicit-tracks
   type: RelaxedAtomicBool
   value: true
   mirror: always
+
+# Whether the system-ui generic family is enabled.
+- name: layout.css.system-ui.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
 
 # Whether the bloom filter optimization is applied to attribute names too, not
 # only classes / id / namespaces / etc.
@@ -9175,6 +9217,14 @@
   value: 2
   mirror: always
 
+# Set to ignore referrer policies which is less restricted than the default for
+# cross-site requests, including 'unsafe-url', 'no-referrer-when-downgrade' and
+# 'origin-when-cross-origin'.
+- name: network.http.referer.disallowCrossSiteRelaxingDefault
+  type: bool
+  value: @IS_EARLY_BETA_OR_EARLIER@
+  mirror: always
+
 # Set the Private Browsing Default Referrer Policy applied to third-party
 # trackers when the default cookie policy is set to reject third-party
 # trackers, to be used unless overriden by the site.
@@ -10436,6 +10486,12 @@
   value: false
   mirror: always
 
+#  Partition the websocket pending connection queue by OriginAttributes.
+- name: privacy.partition.network_state.ws_connection_queue
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # The global switch to control the URL query sting stripping which strips query
 # parameters from loading URIs to prevent bounce (redirect) tracking.
 - name: privacy.query_stripping.enabled
@@ -10642,7 +10698,7 @@
 
 -   name: security.sandbox.socket.shadow-stack.enabled
     type: RelaxedAtomicBool
-    value: false
+    value: @IS_NIGHTLY_BUILD@
     mirror: always
 
 -   name: security.sandbox.gpu.shadow-stack.enabled
@@ -10725,7 +10781,7 @@
 #---------------------------------------------------------------------------
 - name: signon.usernameOnlyForm.enabled
   type: bool
-  value: true
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 #---------------------------------------------------------------------------
@@ -11351,6 +11407,11 @@
   value: false
   mirror: always
 
+- name: webgl.enable-renderer-query
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 - name: webgl.enable-surface-texture
   type: RelaxedAtomicBool
   value: true
@@ -11435,6 +11496,16 @@
   value: 100000 # 100KB
   mirror: always
 
+- name: webgl.override-unmasked-renderer
+  type: String
+  value: ""
+  mirror: never
+
+- name: webgl.override-unmasked-vendor
+  type: String
+  value: ""
+  mirror: never
+
 - name: webgl.power-preference-override
   type: RelaxedAtomicInt32
   value: 0
@@ -11443,6 +11514,11 @@
 - name: webgl.prefer-16bpp
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+
+- name: webgl.sanitize-unmasked-renderer
+  type: RelaxedAtomicBool
+  value: true
   mirror: always
 
 - name: webgl.allow-immediate-queries
@@ -11538,8 +11614,8 @@
 # TODO(emilio): This should probably do the right thing in most other
 # platforms, but stick to the standard colors on those.
 - name: widget.non-native-theme.use-theme-accent
-  type: bool
-#if defined(MOZ_WIDGET_GTK) || defined(XP_MACOSX)
+  type: RelaxedAtomicBool
+#if defined(MOZ_WIDGET_GTK) || defined(XP_MACOSX) || defined(ANDROID)
   value: true
 #else
   value: false
@@ -11592,7 +11668,7 @@
 
 # Whether to allow gtk dark themes in content.
 - name: widget.content.allow-gtk-dark-theme
-  type: bool
+  type: RelaxedAtomicBool
   value: false
   mirror: always
 
@@ -11711,6 +11787,20 @@
   type: bool
   value: true
   mirror: once
+#endif
+
+#ifdef XP_WIN
+# WindowsUIUtils::Share to wait for user action on Windows share dialog
+# `true` means the promise resolves when user completes or cancels the share
+# action. This can be unsafe since selecting copy action fires no DataPackage
+# event as of 21H1.
+# `false` means the promise resolves when the share data is passed to
+# DataPackage.
+# This affects the behavior of `navigator.share()`.
+- name: widget.windows.share.wait_action.enabled
+  type: bool
+  value: false
+  mirror: always
 #endif
 
 #---------------------------------------------------------------------------

@@ -66,6 +66,7 @@
 #include "vm/AsyncIteration.h"
 #include "vm/BuiltinObjectKind.h"
 #include "vm/FunctionFlags.h"  // js::FunctionFlags
+#include "vm/JSAtom.h"
 #include "vm/MatchPairs.h"
 #include "vm/PlainObject.h"  // js::PlainObject
 #include "vm/RegExpObject.h"
@@ -1936,7 +1937,8 @@ static void StepBackToLeadSurrogate(MacroAssembler& masm, Register regexpShared,
 static void UpdateRegExpStatics(MacroAssembler& masm, Register regexp,
                                 Register input, Register lastIndex,
                                 Register staticsReg, Register temp1,
-                                Register temp2, bool stringsCanBeInNursery,
+                                Register temp2,
+                                gc::InitialHeap initialStringHeap,
                                 LiveGeneralRegisterSet& volatileRegs) {
   Address pendingInputAddress(staticsReg,
                               RegExpStatics::offsetOfPendingInput());
@@ -1949,7 +1951,7 @@ static void UpdateRegExpStatics(MacroAssembler& masm, Register regexp,
   masm.guardedCallPreBarrier(matchesInputAddress, MIRType::String);
   masm.guardedCallPreBarrier(lazySourceAddress, MIRType::String);
 
-  if (stringsCanBeInNursery) {
+  if (initialStringHeap == gc::DefaultHeap) {
     // Writing into RegExpStatics tenured memory; must post-barrier.
     if (staticsReg.volatile_()) {
       volatileRegs.add(staticsReg);
@@ -1997,8 +1999,8 @@ static bool PrepareAndExecuteRegExp(JSContext* cx, MacroAssembler& masm,
                                     Register lastIndex, Register temp1,
                                     Register temp2, Register temp3,
                                     size_t inputOutputDataStartOffset,
-                                    bool stringsCanBeInNursery, Label* notFound,
-                                    Label* failure) {
+                                    gc::InitialHeap initialStringHeap,
+                                    Label* notFound, Label* failure) {
   JitSpew(JitSpew_Codegen, "# Emitting PrepareAndExecuteRegExp");
 
   using irregexp::InputOutputData;
@@ -2224,7 +2226,7 @@ static bool PrepareAndExecuteRegExp(JSContext* cx, MacroAssembler& masm,
   }
   masm.movePtr(ImmPtr(res), temp1);
   UpdateRegExpStatics(masm, regexp, input, lastIndex, temp1, temp2, temp3,
-                      stringsCanBeInNursery, volatileRegs);
+                      initialStringHeap, volatileRegs);
 
   return true;
 }
@@ -2267,7 +2269,7 @@ class CreateDependentString {
   void generate(MacroAssembler& masm, const JSAtomState& names,
                 CompileRuntime* runtime, Register base,
                 BaseIndex startIndexAddress, BaseIndex limitIndexAddress,
-                bool stringsCanBeInNursery);
+                gc::InitialHeap initialStringHeap);
 
   // Generate fallback path for creating DependentString.
   void generateFallback(MacroAssembler& masm);
@@ -2278,7 +2280,7 @@ void CreateDependentString::generate(MacroAssembler& masm,
                                      CompileRuntime* runtime, Register base,
                                      BaseIndex startIndexAddress,
                                      BaseIndex limitIndexAddress,
-                                     bool stringsCanBeInNursery) {
+                                     gc::InitialHeap initialStringHeap) {
   JitSpew(JitSpew_Codegen, "# Emitting CreateDependentString (encoding=%s)",
           (encoding_ == CharEncoding::Latin1 ? "Latin-1" : "Two-Byte"));
 
@@ -2293,11 +2295,10 @@ void CreateDependentString::generate(MacroAssembler& masm,
     }
 
     if (kind != FallbackKind::FatInlineString) {
-      masm.newGCString(string_, temp2_, &fallbacks_[kind],
-                       stringsCanBeInNursery);
+      masm.newGCString(string_, temp2_, initialStringHeap, &fallbacks_[kind]);
     } else {
-      masm.newGCFatInlineString(string_, temp2_, &fallbacks_[kind],
-                                stringsCanBeInNursery);
+      masm.newGCFatInlineString(string_, temp2_, initialStringHeap,
+                                &fallbacks_[kind]);
     }
     masm.bind(&joins_[kind]);
     masm.store32(Imm32(flags), Address(string_, JSString::offsetOfFlags()));
@@ -2572,7 +2573,7 @@ JitCode* JitRealm::generateRegExpMatcherStub(JSContext* cx) {
   Label notFound, oolEntry;
   if (!PrepareAndExecuteRegExp(cx, masm, regexp, input, lastIndex, temp1, temp2,
                                temp3, inputOutputDataStartOffset,
-                               stringsCanBeInNursery, &notFound, &oolEntry)) {
+                               initialStringHeap, &notFound, &oolEntry)) {
     return nullptr;
   }
 
@@ -2719,7 +2720,7 @@ JitCode* JitRealm::generateRegExpMatcherStub(JSContext* cx) {
       {
         depStr.generate(masm, cx->names(), CompileRuntime::get(cx->runtime()),
                         input, matchPairStart, matchPairLimit,
-                        stringsCanBeInNursery);
+                        initialStringHeap);
 
         // Storing into nursery-allocated results object's elements; no post
         // barrier.
@@ -2911,7 +2912,7 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   Label notFound, oolEntry;
   if (!PrepareAndExecuteRegExp(cx, masm, regexp, input, lastIndex, temp1, temp2,
                                temp3, inputOutputDataStartOffset,
-                               stringsCanBeInNursery, &notFound, &oolEntry)) {
+                               initialStringHeap, &notFound, &oolEntry)) {
     return nullptr;
   }
 
@@ -3084,7 +3085,7 @@ JitCode* JitRealm::generateRegExpTesterStub(JSContext* cx) {
 
   Label notFound, oolEntry;
   if (!PrepareAndExecuteRegExp(cx, masm, regexp, input, lastIndex, temp1, temp2,
-                               temp3, 0, stringsCanBeInNursery, &notFound,
+                               temp3, 0, initialStringHeap, &notFound,
                                &oolEntry)) {
     return nullptr;
   }
@@ -3988,13 +3989,10 @@ void CodeGenerator::visitHomeObject(LHomeObject* lir) {
 
 void CodeGenerator::visitHomeObjectSuperBase(LHomeObjectSuperBase* lir) {
   Register homeObject = ToRegister(lir->homeObject());
-  Register output = ToRegister(lir->output());
+  ValueOperand output = ToOutValue(lir);
+  Register temp = output.scratchReg();
 
-  using Fn = bool (*)(JSContext*);
-  OutOfLineCode* ool =
-      oolCallVM<Fn, ThrowHomeObjectNotObject>(lir, ArgList(), StoreNothing());
-
-  masm.loadObjProto(homeObject, output);
+  masm.loadObjProto(homeObject, temp);
 
 #ifdef DEBUG
   // We won't encounter a lazy proto, because the prototype is guaranteed to
@@ -4003,13 +4001,22 @@ void CodeGenerator::visitHomeObjectSuperBase(LHomeObjectSuperBase* lir) {
   MOZ_ASSERT(uintptr_t(TaggedProto::LazyProto) == 1);
 
   Label proxyCheckDone;
-  masm.branchPtr(Assembler::NotEqual, output, ImmWord(1), &proxyCheckDone);
+  masm.branchPtr(Assembler::NotEqual, temp, ImmWord(1), &proxyCheckDone);
   masm.assumeUnreachable("Unexpected lazy proto in JSOp::SuperBase");
   masm.bind(&proxyCheckDone);
 #endif
 
-  masm.branchPtr(Assembler::Equal, output, ImmWord(0), ool->entry());
-  masm.bind(ool->rejoin());
+  Label nullProto, done;
+  masm.branchPtr(Assembler::Equal, temp, ImmWord(0), &nullProto);
+
+  // Box prototype and return
+  masm.tagValue(JSVAL_TYPE_OBJECT, temp, output);
+  masm.jump(&done);
+
+  masm.bind(&nullProto);
+  masm.moveValue(NullValue(), output);
+
+  masm.bind(&done);
 }
 
 void CodeGenerator::visitNewLexicalEnvironmentObject(
@@ -4633,7 +4640,7 @@ void CodeGenerator::emitCreateBigInt(LInstruction* lir, Scalar::Type type,
   OutOfLineCode* ool = createBigIntOutOfLine(lir, type, input, output);
 
   if (maybeTemp != InvalidReg) {
-    masm.newGCBigInt(output, maybeTemp, ool->entry(), bigIntsCanBeInNursery());
+    masm.newGCBigInt(output, maybeTemp, initialBigIntHeap(), ool->entry());
   } else {
     AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
     regs.take(input);
@@ -4644,7 +4651,7 @@ void CodeGenerator::emitCreateBigInt(LInstruction* lir, Scalar::Type type,
     masm.push(temp);
 
     Label fail, ok;
-    masm.newGCBigInt(output, temp, &fail, bigIntsCanBeInNursery());
+    masm.newGCBigInt(output, temp, initialBigIntHeap(), &fail);
     masm.pop(temp);
     masm.jump(&ok);
     masm.bind(&fail);
@@ -8524,7 +8531,7 @@ void CodeGenerator::visitBigIntAdd(LBigIntAdd* ins) {
   masm.branchAddPtr(Assembler::Overflow, temp2, temp1, ool->entry());
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -8556,7 +8563,7 @@ void CodeGenerator::visitBigIntSub(LBigIntSub* ins) {
   masm.branchSubPtr(Assembler::Overflow, temp2, temp1, ool->entry());
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -8595,7 +8602,7 @@ void CodeGenerator::visitBigIntMul(LBigIntMul* ins) {
   masm.branchMulPtr(Assembler::Overflow, temp2, temp1, ool->entry());
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -8813,7 +8820,7 @@ void CodeGenerator::visitBigIntPow(LBigIntPow* ins) {
 
   // Create and return the result.
   masm.bind(&done);
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -8852,7 +8859,7 @@ void CodeGenerator::visitBigIntBitAnd(LBigIntBitAnd* ins) {
   masm.andPtr(temp2, temp1);
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -8891,7 +8898,7 @@ void CodeGenerator::visitBigIntBitOr(LBigIntBitOr* ins) {
   masm.orPtr(temp2, temp1);
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -8930,7 +8937,7 @@ void CodeGenerator::visitBigIntBitXor(LBigIntBitXor* ins) {
   masm.xorPtr(temp2, temp1);
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -9028,7 +9035,7 @@ void CodeGenerator::visitBigIntLsh(LBigIntLsh* ins) {
   masm.bind(&create);
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigIntAbsolute(output, temp1);
 
   // Set the sign bit when the left-hand side is negative.
@@ -9131,7 +9138,7 @@ void CodeGenerator::visitBigIntRsh(LBigIntRsh* ins) {
   masm.bind(&create);
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigIntAbsolute(output, temp1);
 
   // Set the sign bit when the left-hand side is negative.
@@ -9160,7 +9167,7 @@ void CodeGenerator::visitBigIntIncrement(LBigIntIncrement* ins) {
   masm.branchAddPtr(Assembler::Overflow, temp2, temp1, ool->entry());
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -9184,7 +9191,7 @@ void CodeGenerator::visitBigIntDecrement(LBigIntDecrement* ins) {
   masm.branchSubPtr(Assembler::Overflow, temp2, temp1, ool->entry());
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigInt(output, temp1);
 
   masm.bind(ool->rejoin());
@@ -9207,8 +9214,8 @@ void CodeGenerator::visitBigIntNegate(LBigIntNegate* ins) {
   masm.bind(&lhsNonZero);
 
   // Call into the VM when the input uses heap digits.
-  masm.copyBigIntWithInlineDigits(input, output, temp, ool->entry(),
-                                  bigIntsCanBeInNursery());
+  masm.copyBigIntWithInlineDigits(input, output, temp, initialBigIntHeap(),
+                                  ool->entry());
 
   // Flip the sign bit.
   masm.xor32(Imm32(BigInt::signBitMask()),
@@ -9247,7 +9254,7 @@ void CodeGenerator::visitBigIntBitNot(LBigIntBitNot* ins) {
   masm.bind(&done);
 
   // Create and return the result.
-  masm.newGCBigInt(output, temp2, ool->entry(), bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, temp2, initialBigIntHeap(), ool->entry());
   masm.initializeBigIntAbsolute(output, temp1);
 
   // Set the sign bit when the input is positive.
@@ -9400,44 +9407,8 @@ void CodeGenerator::visitCompareBigInt(LCompareBigInt* lir) {
     notSameDigit = &compareDigit;
   }
 
-  // Jump to |notSameSign| when the sign aren't the same.
-  masm.load32(Address(left, BigInt::offsetOfFlags()), temp1);
-  masm.xor32(Address(right, BigInt::offsetOfFlags()), temp1);
-  masm.branchTest32(Assembler::NonZero, temp1, Imm32(BigInt::signBitMask()),
-                    notSameSign);
-
-  // Jump to |notSameLength| when the digits length is different.
-  masm.load32(Address(right, BigInt::offsetOfLength()), temp1);
-  masm.branch32(Assembler::NotEqual, Address(left, BigInt::offsetOfLength()),
-                temp1, notSameLength);
-
-  // Both BigInts have the same sign and the same number of digits. Loop over
-  // each digit, starting with the left-most one, and break from the loop when
-  // the first non-matching digit was found.
-
-  masm.loadBigIntDigits(left, temp2);
-  masm.loadBigIntDigits(right, temp3);
-
-  static_assert(sizeof(BigInt::Digit) == sizeof(void*),
-                "BigInt::Digit is pointer sized");
-
-  masm.computeEffectiveAddress(BaseIndex(temp2, temp1, ScalePointer), temp2);
-  masm.computeEffectiveAddress(BaseIndex(temp3, temp1, ScalePointer), temp3);
-
-  Label start, loop;
-  masm.jump(&start);
-  masm.bind(&loop);
-
-  masm.subPtr(Imm32(sizeof(BigInt::Digit)), temp2);
-  masm.subPtr(Imm32(sizeof(BigInt::Digit)), temp3);
-
-  masm.loadPtr(Address(temp3, 0), output);
-  masm.branchPtr(Assembler::NotEqual, Address(temp2, 0), output, notSameDigit);
-
-  masm.bind(&start);
-  masm.branchSub32(Assembler::NotSigned, Imm32(1), temp1, &loop);
-
-  // No different digits were found, both BigInts are equal to each other.
+  masm.equalBigInts(left, right, temp1, temp2, temp3, output, notSameSign,
+                    notSameLength, notSameDigit);
 
   Label done;
   masm.move32(Imm32(op == JSOp::Eq || op == JSOp::StrictEq || op == JSOp::Le ||
@@ -9955,7 +9926,8 @@ static void CopyStringCharsMaybeInflate(MacroAssembler& masm, Register input,
 
 static void ConcatInlineString(MacroAssembler& masm, Register lhs, Register rhs,
                                Register output, Register temp1, Register temp2,
-                               Register temp3, bool stringsCanBeInNursery,
+                               Register temp3,
+                               gc::InitialHeap initialStringHeap,
                                Label* failure, CharEncoding encoding) {
   JitSpew(JitSpew_Codegen, "# Emitting ConcatInlineString (encoding=%s)",
           (encoding == CharEncoding::Latin1 ? "Latin-1" : "Two-Byte"));
@@ -9981,7 +9953,7 @@ static void ConcatInlineString(MacroAssembler& masm, Register lhs, Register rhs,
     if (encoding == CharEncoding::Latin1) {
       flags |= JSString::LATIN1_CHARS_BIT;
     }
-    masm.newGCString(output, temp1, failure, stringsCanBeInNursery);
+    masm.newGCString(output, temp1, initialStringHeap, failure);
     masm.store32(Imm32(flags), Address(output, JSString::offsetOfFlags()));
     masm.jump(&allocDone);
   }
@@ -9991,7 +9963,7 @@ static void ConcatInlineString(MacroAssembler& masm, Register lhs, Register rhs,
     if (encoding == CharEncoding::Latin1) {
       flags |= JSString::LATIN1_CHARS_BIT;
     }
-    masm.newGCFatInlineString(output, temp1, failure, stringsCanBeInNursery);
+    masm.newGCFatInlineString(output, temp1, initialStringHeap, failure);
     masm.store32(Imm32(flags), Address(output, JSString::offsetOfFlags()));
   }
   masm.bind(&allocDone);
@@ -10065,7 +10037,7 @@ void CodeGenerator::visitSubstr(LSubstr* lir) {
   // Handle inlined strings by creating a FatInlineString.
   masm.branchTest32(Assembler::Zero, stringFlags,
                     Imm32(JSString::INLINE_CHARS_BIT), &notInline);
-  masm.newGCFatInlineString(output, temp, slowPath, stringsCanBeInNursery());
+  masm.newGCFatInlineString(output, temp, initialStringHeap(), slowPath);
   masm.store32(length, Address(output, JSString::offsetOfLength()));
 
   auto initializeFatInlineString = [&](CharEncoding encoding) {
@@ -10096,7 +10068,7 @@ void CodeGenerator::visitSubstr(LSubstr* lir) {
 
   // Handle other cases with a DependentString.
   masm.bind(&notInline);
-  masm.newGCString(output, temp, slowPath, gen->stringsCanBeInNursery());
+  masm.newGCString(output, temp, gen->initialStringHeap(), slowPath);
   masm.store32(length, Address(output, JSString::offsetOfLength()));
   masm.storeDependentStringBase(string, output);
 
@@ -10177,9 +10149,9 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   // Ensure result length <= JSString::MAX_LENGTH.
   masm.branch32(Assembler::Above, temp2, Imm32(JSString::MAX_LENGTH), &failure);
 
-  // Allocate a new rope, guaranteed to be in the nursery if
-  // stringsCanBeInNursery. (As a result, no post barriers are needed below.)
-  masm.newGCString(output, temp3, &failure, stringsCanBeInNursery);
+  // Allocate a new rope, guaranteed to be in the nursery if initialStringHeap
+  // == gc::DefaultHeap. (As a result, no post barriers are needed below.)
+  masm.newGCString(output, temp3, initialStringHeap, &failure);
 
   // Store rope length and flags. temp1 still holds the result of AND'ing the
   // lhs and rhs flags, so we just have to clear the other flags to get our rope
@@ -10204,11 +10176,11 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 
   masm.bind(&isFatInlineTwoByte);
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
-                     stringsCanBeInNursery, &failure, CharEncoding::TwoByte);
+                     initialStringHeap, &failure, CharEncoding::TwoByte);
 
   masm.bind(&isFatInlineLatin1);
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
-                     stringsCanBeInNursery, &failure, CharEncoding::Latin1);
+                     initialStringHeap, &failure, CharEncoding::Latin1);
 
   masm.pop(temp2);
   masm.pop(temp1);
@@ -10449,8 +10421,7 @@ void CodeGenerator::visitFromCodePoint(LFromCodePoint* lir) {
                     "JSThinInlineString can hold a supplementary code point");
 
       uint32_t flags = JSString::INIT_THIN_INLINE_FLAGS;
-      masm.newGCString(output, temp1, ool->entry(),
-                       gen->stringsCanBeInNursery());
+      masm.newGCString(output, temp1, gen->initialStringHeap(), ool->entry());
       masm.store32(Imm32(flags), Address(output, JSString::offsetOfFlags()));
     }
 
@@ -15397,6 +15368,253 @@ void CodeGenerator::visitBigIntAsUintN32(LBigIntAsUintN32* ins) {
   emitCreateBigInt(ins, Scalar::BigUint64, temp64, output, temp);
 
   masm.bind(&done);
+}
+
+void CodeGenerator::visitGuardNonGCThing(LGuardNonGCThing* ins) {
+  ValueOperand input = ToValue(ins, LGuardNonGCThing::Input);
+
+  Label bail;
+  masm.branchTestGCThing(Assembler::Equal, input, &bail);
+  bailoutFrom(&bail, ins->snapshot());
+}
+
+void CodeGenerator::visitToHashableNonGCThing(LToHashableNonGCThing* ins) {
+  ValueOperand input = ToValue(ins, LToHashableNonGCThing::Input);
+  FloatRegister tempFloat = ToFloatRegister(ins->tempFloat());
+  ValueOperand output = ToOutValue(ins);
+
+  masm.toHashableNonGCThing(input, output, tempFloat);
+}
+
+void CodeGenerator::visitToHashableString(LToHashableString* ins) {
+  Register input = ToRegister(ins->input());
+  Register output = ToRegister(ins->output());
+
+  using Fn = JSAtom* (*)(JSContext*, JSString*, PinningBehavior);
+  auto* ool = oolCallVM<Fn, js::AtomizeString>(
+      ins, ArgList(input, Imm32(DoNotPinAtom)), StoreRegisterTo(output));
+
+  masm.branchTest32(Assembler::Zero, Address(input, JSString::offsetOfFlags()),
+                    Imm32(JSString::ATOM_BIT), ool->entry());
+  masm.movePtr(input, output);
+  masm.bind(ool->rejoin());
+}
+
+void CodeGenerator::visitToHashableValue(LToHashableValue* ins) {
+  ValueOperand input = ToValue(ins, LToHashableValue::Input);
+  FloatRegister tempFloat = ToFloatRegister(ins->tempFloat());
+  ValueOperand output = ToOutValue(ins);
+
+  Register str = output.scratchReg();
+
+  using Fn = JSAtom* (*)(JSContext*, JSString*, PinningBehavior);
+  auto* ool = oolCallVM<Fn, js::AtomizeString>(
+      ins, ArgList(str, Imm32(DoNotPinAtom)), StoreRegisterTo(str));
+
+  masm.toHashableValue(input, output, tempFloat, ool->entry(), ool->rejoin());
+}
+
+void CodeGenerator::visitHashNonGCThing(LHashNonGCThing* ins) {
+  ValueOperand input = ToValue(ins, LHashNonGCThing::Input);
+  Register temp = ToRegister(ins->temp());
+  Register output = ToRegister(ins->output());
+
+  masm.prepareHashNonGCThing(input, output, temp);
+}
+
+void CodeGenerator::visitHashString(LHashString* ins) {
+  Register input = ToRegister(ins->input());
+  Register temp = ToRegister(ins->temp());
+  Register output = ToRegister(ins->output());
+
+  masm.prepareHashString(input, output, temp);
+}
+
+void CodeGenerator::visitHashSymbol(LHashSymbol* ins) {
+  Register input = ToRegister(ins->input());
+  Register output = ToRegister(ins->output());
+
+  masm.prepareHashSymbol(input, output);
+}
+
+void CodeGenerator::visitHashBigInt(LHashBigInt* ins) {
+  Register input = ToRegister(ins->input());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register output = ToRegister(ins->output());
+
+  masm.prepareHashBigInt(input, output, temp1, temp2, temp3);
+}
+
+void CodeGenerator::visitHashObject(LHashObject* ins) {
+  Register setObj = ToRegister(ins->setObject());
+  ValueOperand input = ToValue(ins, LHashObject::Input);
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  Register output = ToRegister(ins->output());
+
+  masm.prepareHashObject(setObj, input, output, temp1, temp2, temp3, temp4);
+}
+
+void CodeGenerator::visitHashValue(LHashValue* ins) {
+  Register setObj = ToRegister(ins->setObject());
+  ValueOperand input = ToValue(ins, LHashValue::Input);
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  Register output = ToRegister(ins->output());
+
+  masm.prepareHashValue(setObj, input, output, temp1, temp2, temp3, temp4);
+}
+
+void CodeGenerator::visitSetObjectHasNonBigInt(LSetObjectHasNonBigInt* ins) {
+  Register setObj = ToRegister(ins->setObject());
+  ValueOperand input = ToValue(ins, LSetObjectHasNonBigInt::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register output = ToRegister(ins->output());
+
+  masm.setObjectHasNonBigInt(setObj, input, hash, output, temp1, temp2);
+}
+
+void CodeGenerator::visitSetObjectHasBigInt(LSetObjectHasBigInt* ins) {
+  Register setObj = ToRegister(ins->setObject());
+  ValueOperand input = ToValue(ins, LSetObjectHasBigInt::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  Register output = ToRegister(ins->output());
+
+  masm.setObjectHasBigInt(setObj, input, hash, output, temp1, temp2, temp3,
+                          temp4);
+}
+
+void CodeGenerator::visitSetObjectHasValue(LSetObjectHasValue* ins) {
+  Register setObj = ToRegister(ins->setObject());
+  ValueOperand input = ToValue(ins, LSetObjectHasValue::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  Register output = ToRegister(ins->output());
+
+  masm.setObjectHasValue(setObj, input, hash, output, temp1, temp2, temp3,
+                         temp4);
+}
+
+void CodeGenerator::visitSetObjectHasValueVMCall(
+    LSetObjectHasValueVMCall* ins) {
+  pushArg(ToValue(ins, LSetObjectHasValueVMCall::Input));
+  pushArg(ToRegister(ins->setObject()));
+
+  using Fn = bool (*)(JSContext*, HandleObject, HandleValue, bool*);
+  callVM<Fn, jit::SetObjectHas>(ins);
+}
+
+void CodeGenerator::visitMapObjectHasNonBigInt(LMapObjectHasNonBigInt* ins) {
+  Register mapObj = ToRegister(ins->mapObject());
+  ValueOperand input = ToValue(ins, LMapObjectHasNonBigInt::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register output = ToRegister(ins->output());
+
+  masm.mapObjectHasNonBigInt(mapObj, input, hash, output, temp1, temp2);
+}
+
+void CodeGenerator::visitMapObjectHasBigInt(LMapObjectHasBigInt* ins) {
+  Register mapObj = ToRegister(ins->mapObject());
+  ValueOperand input = ToValue(ins, LMapObjectHasBigInt::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  Register output = ToRegister(ins->output());
+
+  masm.mapObjectHasBigInt(mapObj, input, hash, output, temp1, temp2, temp3,
+                          temp4);
+}
+
+void CodeGenerator::visitMapObjectHasValue(LMapObjectHasValue* ins) {
+  Register mapObj = ToRegister(ins->mapObject());
+  ValueOperand input = ToValue(ins, LMapObjectHasValue::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  Register output = ToRegister(ins->output());
+
+  masm.mapObjectHasValue(mapObj, input, hash, output, temp1, temp2, temp3,
+                         temp4);
+}
+
+void CodeGenerator::visitMapObjectHasValueVMCall(
+    LMapObjectHasValueVMCall* ins) {
+  pushArg(ToValue(ins, LMapObjectHasValueVMCall::Input));
+  pushArg(ToRegister(ins->mapObject()));
+
+  using Fn = bool (*)(JSContext*, HandleObject, HandleValue, bool*);
+  callVM<Fn, jit::MapObjectHas>(ins);
+}
+
+void CodeGenerator::visitMapObjectGetNonBigInt(LMapObjectGetNonBigInt* ins) {
+  Register mapObj = ToRegister(ins->mapObject());
+  ValueOperand input = ToValue(ins, LMapObjectGetNonBigInt::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  ValueOperand output = ToOutValue(ins);
+
+  masm.mapObjectGetNonBigInt(mapObj, input, hash, output, temp1, temp2,
+                             output.scratchReg());
+}
+
+void CodeGenerator::visitMapObjectGetBigInt(LMapObjectGetBigInt* ins) {
+  Register mapObj = ToRegister(ins->mapObject());
+  ValueOperand input = ToValue(ins, LMapObjectGetBigInt::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  ValueOperand output = ToOutValue(ins);
+
+  masm.mapObjectGetBigInt(mapObj, input, hash, output, temp1, temp2, temp3,
+                          temp4, output.scratchReg());
+}
+
+void CodeGenerator::visitMapObjectGetValue(LMapObjectGetValue* ins) {
+  Register mapObj = ToRegister(ins->mapObject());
+  ValueOperand input = ToValue(ins, LMapObjectGetValue::Input);
+  Register hash = ToRegister(ins->hash());
+  Register temp1 = ToRegister(ins->temp1());
+  Register temp2 = ToRegister(ins->temp2());
+  Register temp3 = ToRegister(ins->temp3());
+  Register temp4 = ToRegister(ins->temp4());
+  ValueOperand output = ToOutValue(ins);
+
+  masm.mapObjectGetValue(mapObj, input, hash, output, temp1, temp2, temp3,
+                         temp4, output.scratchReg());
+}
+
+void CodeGenerator::visitMapObjectGetValueVMCall(
+    LMapObjectGetValueVMCall* ins) {
+  pushArg(ToValue(ins, LMapObjectGetValueVMCall::Input));
+  pushArg(ToRegister(ins->mapObject()));
+
+  using Fn =
+      bool (*)(JSContext*, HandleObject, HandleValue, MutableHandleValue);
+  callVM<Fn, jit::MapObjectGet>(ins);
 }
 
 template <size_t NumDefs>

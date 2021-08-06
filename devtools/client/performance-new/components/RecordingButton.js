@@ -11,9 +11,16 @@
 /**
  * @typedef {Object} StateProps
  * @property {RecordingState} recordingState
- * @property {boolean} isSupportedPlatform
+ * @property {boolean | null} isSupportedPlatform
  * @property {boolean} recordingUnexpectedlyStopped
  * @property {PageContext} pageContext
+ * @property {import("../@types/perf").ProfilerViewMode | undefined} profilerViewMode
+ */
+
+/**
+ * @typedef {Object} OwnProps
+ * @property {import("../@types/perf").OnProfileReceived} onProfileReceived
+ * @property {import("../@types/perf").PerfFront} perfFront
  */
 
 /**
@@ -26,7 +33,7 @@
 
 /**
  * @typedef {ResolveThunks<ThunkDispatchProps>} DispatchProps
- * @typedef {StateProps & DispatchProps} Props
+ * @typedef {StateProps & DispatchProps & OwnProps} Props
  * @typedef {import("../@types/perf").RecordingState} RecordingState
  * @typedef {import("../@types/perf").State} StoreState
  * @typedef {import("../@types/perf").PageContext} PageContext
@@ -57,14 +64,32 @@ const Localized = React.createFactory(
  * @extends {React.PureComponent<Props>}
  */
 class RecordingButton extends PureComponent {
+  _onStartButtonClick = () => {
+    const { startRecording, perfFront } = this.props;
+    startRecording(perfFront);
+  };
+
+  _onCaptureButtonClick = async () => {
+    const {
+      getProfileAndStopProfiler,
+      profilerViewMode,
+      onProfileReceived,
+      perfFront,
+    } = this.props;
+    const profile = await getProfileAndStopProfiler(perfFront);
+    onProfileReceived(profile, profilerViewMode);
+  };
+
+  _onStopButtonClick = () => {
+    const { stopProfilerAndDiscardProfile, perfFront } = this.props;
+    stopProfilerAndDiscardProfile(perfFront);
+  };
+
   render() {
     const {
-      startRecording,
-      stopProfilerAndDiscardProfile,
       recordingState,
       isSupportedPlatform,
       recordingUnexpectedlyStopped,
-      getProfileAndStopProfiler,
     } = this.props;
 
     if (!isSupportedPlatform) {
@@ -85,7 +110,7 @@ class RecordingButton extends PureComponent {
 
       case "available-to-record":
         return renderButton({
-          onClick: startRecording,
+          onClick: this._onStartButtonClick,
           isPrimary: true,
           label: startRecordingLabel(),
           additionalMessage: recordingUnexpectedlyStopped
@@ -131,14 +156,14 @@ class RecordingButton extends PureComponent {
             })
           ),
           isPrimary: true,
-          onClick: getProfileAndStopProfiler,
+          onClick: this._onCaptureButtonClick,
           disabled: recordingState === "request-to-start-recording",
           additionalButton: {
             label: Localized(
               { id: "perftools-button-cancel-recording" },
               "Cancel recording"
             ),
-            onClick: stopProfilerAndDiscardProfile,
+            onClick: this._onStopButtonClick,
           },
         });
 
@@ -241,6 +266,7 @@ function mapStateToProps(state) {
       state
     ),
     pageContext: selectors.getPageContext(state),
+    profilerViewMode: selectors.getProfilerViewMode(state),
   };
 }
 

@@ -2075,7 +2075,7 @@ void nsWindow::Move(double aX, double aY) {
       // Workaround SetWindowPos bug with D3D9. If our window has a clip
       // region, some drivers or OSes may incorrectly copy into the clipped-out
       // area.
-      if (IsPlugin() && !mLayerManager && mClipRects &&
+      if (IsPlugin() && !mWindowRenderer && mClipRects &&
           (mClipRectCount != 1 ||
            !mClipRects[0].IsEqualInterior(
                LayoutDeviceIntRect(0, 0, mBounds.Width(), mBounds.Height())))) {
@@ -4074,17 +4074,15 @@ bool nsWindow::HasPendingInputEvent() {
 
 /**************************************************************
  *
- * SECTION: nsIWidget::GetLayerManager
+ * SECTION: nsIWidget::GetWindowRenderer
  *
- * Get the layer manager associated with this widget.
+ * Get the window renderer associated with this widget.
  *
  **************************************************************/
 
-LayerManager* nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
-                                        LayersBackend aBackendHint,
-                                        LayerManagerPersistence aPersistence) {
-  if (mLayerManager) {
-    return mLayerManager;
+WindowRenderer* nsWindow::GetWindowRenderer() {
+  if (mWindowRenderer) {
+    return mWindowRenderer;
   }
 
   if (!mLocalesChangedObserver) {
@@ -4095,18 +4093,12 @@ LayerManager* nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
   ::GetClientRect(mWnd, &windowRect);
 
   // Try OMTC first.
-  if (!mLayerManager && ShouldUseOffMainThreadCompositing()) {
+  if (!mWindowRenderer && ShouldUseOffMainThreadCompositing()) {
     gfxWindowsPlatform::GetPlatform()->UpdateRenderMode();
-
-    // e10s uses the parameter to pass in the shadow manager from the
-    // BrowserChild so we don't expect to see it there since this doesn't
-    // support e10s.
-    NS_ASSERTION(aShadowManager == nullptr,
-                 "Async Compositor not supported with e10s");
     CreateCompositor();
   }
 
-  if (!mLayerManager) {
+  if (!mWindowRenderer) {
     MOZ_ASSERT(!mCompositorSession && !mCompositorBridgeChild);
     MOZ_ASSERT(!mCompositorWidgetDelegate);
 
@@ -4121,15 +4113,15 @@ LayerManager* nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     mBasicLayersSurface =
         new InProcessWinCompositorWidget(initData, options, this);
     mCompositorWidgetDelegate = mBasicLayersSurface;
-    mLayerManager = CreateBasicLayerManager();
+    mWindowRenderer = CreateBasicLayerManager();
   }
 
-  NS_ASSERTION(mLayerManager, "Couldn't provide a valid layer manager.");
+  NS_ASSERTION(mWindowRenderer, "Couldn't provide a valid window renderer.");
 
-  if (mLayerManager) {
+  if (mWindowRenderer) {
     // Update the size constraints now that the layer manager has been
     // created.
-    KnowsCompositor* knowsCompositor = mLayerManager->AsKnowsCompositor();
+    KnowsCompositor* knowsCompositor = mWindowRenderer->AsKnowsCompositor();
     if (knowsCompositor) {
       SizeConstraints c = mSizeConstraints;
       mMaxTextureSize = knowsCompositor->GetMaxTextureSize();
@@ -4139,7 +4131,7 @@ LayerManager* nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
     }
   }
 
-  return mLayerManager;
+  return mWindowRenderer;
 }
 
 /**************************************************************
@@ -4213,7 +4205,8 @@ nsresult nsWindow::OnDefaultButtonLoaded(
 
 void nsWindow::UpdateThemeGeometries(
     const nsTArray<ThemeGeometry>& aThemeGeometries) {
-  RefPtr<LayerManager> layerManager = GetLayerManager();
+  RefPtr<LayerManager> layerManager =
+      GetWindowRenderer() ? GetWindowRenderer()->AsLayerManager() : nullptr;
   if (!layerManager) {
     return;
   }
@@ -5256,7 +5249,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
       }
       if (wParam == SPI_SETFONTSMOOTHING ||
           wParam == SPI_SETFONTSMOOTHINGTYPE) {
-        gfxDWriteFont::UpdateSystemTextQuality();
+        gfxDWriteFont::UpdateSystemTextVars();
         break;
       }
       if (lParam) {
@@ -5450,7 +5443,7 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
        * ClearType changes often don't send a WM_SETTINGCHANGE message. But they
        * do seem to always send a WM_NCPAINT message, so let's update on that.
        */
-      gfxDWriteFont::UpdateSystemTextQuality();
+      gfxDWriteFont::UpdateSystemTextVars();
 
       /*
        * Reset the non-client paint region so that it excludes the
@@ -7337,7 +7330,8 @@ nsresult nsWindow::ConfigureChildren(
       w->Move(configuration.mBounds.X(), configuration.mBounds.Y());
 
       if (gfxWindowsPlatform::GetPlatform()->IsDirect2DBackend() ||
-          GetLayerManager()->GetBackendType() != LayersBackend::LAYERS_BASIC) {
+          GetWindowRenderer()->GetBackendType() !=
+              LayersBackend::LAYERS_BASIC) {
         // XXX - Workaround for Bug 587508. This will invalidate the part of the
         // plugin window that might be touched by moving content somehow. The
         // underlying problem should be found and fixed!
@@ -7783,8 +7777,8 @@ void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode) {
   // Clear window by transparent black when compositor window is used in GPU
   // process and non-client area rendering by DWM is enabled.
   // It is for showing non-client area rendering. See nsWindow::UpdateGlass().
-  if (HasGlass() && GetLayerManager()->AsKnowsCompositor() &&
-      GetLayerManager()->AsKnowsCompositor()->GetUseCompositorWnd()) {
+  if (HasGlass() && GetWindowRenderer()->AsKnowsCompositor() &&
+      GetWindowRenderer()->AsKnowsCompositor()->GetUseCompositorWnd()) {
     HDC hdc;
     RECT rect;
     hdc = ::GetWindowDC(mWnd);
@@ -8040,9 +8034,9 @@ BOOL CALLBACK nsWindow::ClearResourcesCallback(HWND aWnd, LPARAM aMsg) {
 }
 
 void nsWindow::ClearCachedResources() {
-  if (mLayerManager &&
-      mLayerManager->GetBackendType() == LayersBackend::LAYERS_BASIC) {
-    mLayerManager->ClearCachedResources();
+  if (mWindowRenderer &&
+      mWindowRenderer->GetBackendType() == LayersBackend::LAYERS_BASIC) {
+    mWindowRenderer->AsLayerManager()->ClearCachedResources();
   }
   ::EnumChildWindows(mWnd, nsWindow::ClearResourcesCallback, 0);
 }

@@ -55,8 +55,11 @@
 #include "vm/SharedArrayObject.h"
 #include "vm/Warnings.h"  // js::WarnNumberASCII
 #include "vm/WrapperObject.h"
+#include "wasm/WasmConstants.h"
+#include "wasm/WasmLog.h"
+#include "wasm/WasmModuleTypes.h"
+#include "wasm/WasmProcess.h"
 #include "wasm/WasmSignalHandlers.h"
-#include "wasm/WasmTypes.h"
 
 #include "gc/FreeOp-inl.h"
 #include "gc/Marking-inl.h"
@@ -1229,7 +1232,6 @@ ArrayBufferObject* ArrayBufferObject::createForContents(
     }
   }
 
-  MOZ_ASSERT(!(class_.flags & JSCLASS_HAS_PRIVATE));
   gc::AllocKind allocKind = GetArrayBufferGCObjectKind(nslots);
 
   AutoSetNewObjectMetadata metadata(cx);
@@ -1280,7 +1282,6 @@ ArrayBufferObject::createBufferAndData(
     }
   }
 
-  MOZ_ASSERT(!(class_.flags & JSCLASS_HAS_PRIVATE));
   gc::AllocKind allocKind = GetArrayBufferGCObjectKind(nslots);
 
   ArrayBufferObject* buffer = NewObjectWithClassProto<ArrayBufferObject>(

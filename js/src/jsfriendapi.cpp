@@ -446,6 +446,8 @@ void JS::detail::SetReservedSlotWithBarrier(JSObject* obj, size_t slot,
   if (obj->is<ProxyObject>()) {
     obj->as<ProxyObject>().setReservedSlot(slot, value);
   } else {
+    // Note: we don't use setReservedSlot so that this also works on swappable
+    // DOM objects. See NativeObject::getReservedSlotRef comment.
     obj->as<NativeObject>().setSlot(slot, value);
   }
 }
@@ -567,11 +569,6 @@ JS_PUBLIC_API JSObject* JS_CloneObject(JSContext* cx, HandleObject obj,
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                 JSMSG_CANT_CLONE_OBJECT);
       return nullptr;
-    }
-
-    if (obj->as<NativeObject>().hasPrivate()) {
-      clone->as<NativeObject>().setPrivate(
-          obj->as<NativeObject>().getPrivate());
     }
   } else {
     auto* handler = GetProxyHandler(obj);

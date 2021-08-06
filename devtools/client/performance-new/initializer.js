@@ -7,11 +7,12 @@
 /**
  * @typedef {import("./@types/perf").PerfFront} PerfFront
  * @typedef {import("./@types/perf").PreferenceFront} PreferenceFront
- * @typedef {import("./@types/perf").RecordingStateFromPreferences} RecordingStateFromPreferences
+ * @typedef {import("./@types/perf").RecordingSettings} RecordingSettings
  * @typedef {import("./@types/perf").PageContext} PageContext
  * @typedef {import("./@types/perf").PanelWindow} PanelWindow
  * @typedef {import("./@types/perf").Store} Store
  * @typedef {import("./@types/perf").MinimallyTypedGeckoProfile} MinimallyTypedGeckoProfile
+ * @typedef {import("./@types/perf").ProfilerViewMode} ProfilerViewMode
  */
 "use strict";
 
@@ -60,14 +61,16 @@ const selectors = require("devtools/client/performance-new/store/selectors");
 const reducers = require("devtools/client/performance-new/store/reducers");
 const actions = require("devtools/client/performance-new/store/actions");
 const {
-  receiveProfile,
-  createMultiModalGetSymbolTableFn,
+  openProfilerAndDisplayProfile,
+  sharedLibrariesFromProfile,
 } = require("devtools/client/performance-new/browser");
-
+const { createLocalSymbolicationService } = ChromeUtils.import(
+  "resource://devtools/client/performance-new/symbolication.jsm.js"
+);
 const {
-  setRecordingPreferences,
+  setRecordingSettings,
   presets,
-  getRecordingPreferences,
+  getRecordingSettings,
 } = ChromeUtils.import(
   "resource://devtools/client/performance-new/popup/background.jsm.js"
 );
@@ -87,6 +90,7 @@ const {
  */
 async function gInit(perfFront, pageContext, openAboutProfiling) {
   const store = createStore(reducers);
+  const isSupportedPlatform = await perfFront.isSupportedPlatform();
   const supportedFeatures = await perfFront.getSupportedFeatures();
 
   if (!openAboutProfiling) {
@@ -118,37 +122,42 @@ async function gInit(perfFront, pageContext, openAboutProfiling) {
   // the browser.
   store.dispatch(
     actions.initializeStore({
-      perfFront,
-      receiveProfile,
-      recordingPreferences: getRecordingPreferences(
-        pageContext,
-        supportedFeatures
-      ),
+      isSupportedPlatform,
+      recordingSettings: getRecordingSettings(pageContext, supportedFeatures),
       presets,
       supportedFeatures,
-      openAboutProfiling,
       pageContext: "devtools",
 
       // Go ahead and hide the implementation details for the component on how the
       // preference information is stored
       /**
-       * @param {RecordingStateFromPreferences} newRecordingPreferences
+       * @param {RecordingSettings} newRecordingSettings
        */
-      setRecordingPreferences: newRecordingPreferences =>
-        setRecordingPreferences(pageContext, newRecordingPreferences),
-
-      // Configure the getSymbolTable function for the DevTools workflow.
-      // See createMultiModalGetSymbolTableFn for more information.
-      getSymbolTableGetter:
-        /** @type {(profile: MinimallyTypedGeckoProfile) => GetSymbolTableCallback} */
-        profile =>
-          createMultiModalGetSymbolTableFn(
-            profile,
-            () => selectors.getObjdirs(store.getState()),
-            selectors.getPerfFront(store.getState())
-          ),
+      setRecordingSettings: newRecordingSettings =>
+        setRecordingSettings(pageContext, newRecordingSettings),
     })
   );
+
+  /**
+   * @param {MinimallyTypedGeckoProfile} profile
+   * @param {ProfilerViewMode | undefined} profilerViewMode
+   */
+  const onProfileReceived = (profile, profilerViewMode) => {
+    const objdirs = selectors.getObjdirs(store.getState());
+    const sharedLibraries = sharedLibrariesFromProfile(profile);
+    const symbolicationService = createLocalSymbolicationService(
+      sharedLibraries,
+      objdirs,
+      perfFront
+    );
+    openProfilerAndDisplayProfile(
+      profile,
+      profilerViewMode,
+      symbolicationService
+    );
+  };
+
+  const onEditSettingsLinkClicked = openAboutProfiling;
 
   ReactDOM.render(
     Provider(
@@ -158,8 +167,12 @@ async function gInit(perfFront, pageContext, openAboutProfiling) {
         React.createElement(
           React.Fragment,
           null,
-          ProfilerEventHandling(),
-          DevToolsPanel()
+          ProfilerEventHandling({ perfFront }),
+          DevToolsPanel({
+            perfFront,
+            onProfileReceived,
+            onEditSettingsLinkClicked,
+          })
         )
       )
     ),

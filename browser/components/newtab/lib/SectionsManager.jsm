@@ -137,7 +137,7 @@ const BUILT_IN_SECTIONS = ({
     },
     shouldHidePref: false,
     eventSource: "HIGHLIGHTS",
-    icon: "highlights",
+    icon: "chrome://global/skin/icons/highlights.svg",
     title: {
       id:
         newNewtabExperienceEnabled || customizationMenuEnabled
@@ -149,7 +149,7 @@ const BUILT_IN_SECTIONS = ({
     maxRows: 4,
     emptyState: {
       message: { id: "newtab-empty-section-highlights" },
-      icon: "highlights",
+      icon: "chrome://global/skin/icons/highlights.svg",
     },
     shouldSendImpressionStats: false,
   }),
@@ -203,7 +203,7 @@ const SectionsManager = {
   sections: new Map(),
   async init(prefs = {}, storage) {
     this._storage = storage;
-    const featureConfig = NimbusFeatures.newtab.getValue() || {};
+    const featureConfig = NimbusFeatures.newtab.getAllVariables() || {};
 
     for (const feedPrefName of Object.keys(BUILT_IN_SECTIONS(featureConfig))) {
       const optionsPrefName = `${feedPrefName}.options`;
@@ -252,7 +252,7 @@ const SectionsManager = {
   async addBuiltInSection(feedPrefName, optionsPrefValue = "{}") {
     let options;
     let storedPrefs;
-    const featureConfig = NimbusFeatures.newtab.getValue() || {};
+    const featureConfig = NimbusFeatures.newtab.getAllVariables() || {};
     try {
       options = JSON.parse(optionsPrefValue);
     } catch (e) {

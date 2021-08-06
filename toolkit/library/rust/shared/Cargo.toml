@@ -9,7 +9,7 @@ description = "Shared Rust code for libxul"
 geckoservo = { path = "../../../../servo/ports/geckolib" }
 kvstore = { path = "../../../components/kvstore" }
 lmdb-rkv-sys = { version = "0.11", features = ["mdb_idl_logn_9"] }
-mp4parse_capi = { git = "https://github.com/mozilla/mp4parse-rust", rev = "1bb484e96ae724309e3346968e8ffd4c25e61616" }
+mp4parse_capi = { git = "https://github.com/mozilla/mp4parse-rust", rev = "5326af6b54cec885cdb9e7be282a6db6e757b964" }
 nserror = { path = "../../../../xpcom/rust/nserror" }
 nsstring = { path = "../../../../xpcom/rust/nsstring" }
 netwerk_helper = { path = "../../../../netwerk/base/rust-helper" }
@@ -19,8 +19,8 @@ static_prefs = { path = "../../../../modules/libpref/init/static_prefs" }
 profiler_helper = { path = "../../../../tools/profiler/rust-helper", optional = true }
 mozurl = { path = "../../../../netwerk/base/mozurl" }
 webrender_bindings = { path = "../../../../gfx/webrender_bindings", optional = true }
-cubeb-coreaudio = { git = "https://github.com/mozilla/cubeb-coreaudio-rs", rev = "ad56ea14ac915f1e7ecbcf6ac38182443b0dd29e", optional = true }
-cubeb-pulse = { git = "https://github.com/mozilla/cubeb-pulse-rs", rev="c87b50aebfa088c1ad30c74819d4e9829f88b2e3", optional = true, features=["pulse-dlopen"] }
+cubeb-coreaudio = { git = "https://github.com/mozilla/cubeb-coreaudio-rs", rev = "8ae48c16b637d6d9a841cf4d01de06c16b1318b0", optional = true }
+cubeb-pulse = { git = "https://github.com/mozilla/cubeb-pulse-rs", rev="3ad5978575f501ab10b1753626f176f1bba3f584", optional = true, features=["pulse-dlopen"] }
 cubeb-sys = { version = "0.9", optional = true, features=["gecko-in-tree"] }
 encoding_glue = { path = "../../../../intl/encoding_glue" }
 audioipc-client = { git = "https://github.com/mozilla/audioipc-2", rev = "7537bfadad2e981577eb75e4f13662fc517e1a09", optional = true }
@@ -46,7 +46,6 @@ neqo_glue = { path = "../../../../netwerk/socket/neqo_glue" }
 rlbox_lucet_sandbox = { version = "0.1.0", optional = true }
 wgpu_bindings = { path = "../../../../gfx/wgpu_bindings", optional = true }
 mapped_hyph = { git = "https://github.com/jfkthame/mapped_hyph.git", rev = "746743227485a83123784df0c53227ab466612ed" }
-remote = { path = "../../../../remote/components/rust", optional = true }
 fog_control = { path = "../../../components/glean" }
 app_services_logger = { path = "../../../../services/common/app_services_logger" }
 http_sfv = { path = "../../../../netwerk/base/http-sfv" }
@@ -63,9 +62,12 @@ gecko-profiler = { path = "../../../../tools/profiler/rust-api"}
 # changing this version.
 rusqlite = { version = "0.24.1", features = ["modern_sqlite", "in_gecko"] }
 
-fluent = { version = "0.14.1", features = ["fluent-pseudo"] }
+fluent = { version = "0.16", features = ["fluent-pseudo"] }
 fluent-ffi = { path = "../../../../intl/l10n/rust/fluent-ffi" }
 l10nregistry-ffi = { path = "../../../../intl/l10n/rust/l10nregistry-ffi" }
+l10nregistry = { git = "https://github.com/mozilla/l10nregistry-rs", rev = "a69df9836b1ef536727195209013b9ad6b132618" }
+fluent-fallback = "0.5"
+localization-ffi = { path = "../../../../intl/l10n/rust/localization-ffi" }
 
 processtools = { path = "../../../components/processtools" }
 qcms = { path = "../../../../gfx/qcms", features = ["c_bindings", "neon"], default-features = false }
@@ -73,9 +75,6 @@ qcms = { path = "../../../../gfx/qcms", features = ["c_bindings", "neon"], defau
 [target.'cfg(not(target_os = "android"))'.dependencies]
 viaduct = { git = "https://github.com/mozilla/application-services", rev = "8a576fbe79199fa8664f64285524017f74ebcc5f"}
 webext_storage_bridge = { path = "../../../components/extensions/storage/webext_storage_bridge" }
-
-[build-dependencies]
-rustc_version = "0.2"
 
 [features]
 default = []
@@ -86,7 +85,6 @@ cubeb_pulse_rust = ["cubeb-sys", "cubeb-pulse"]
 gecko_debug = ["geckoservo/gecko_debug", "nsstring/gecko_debug"]
 gecko_refcount_logging = ["geckoservo/gecko_refcount_logging", "xpcom/gecko_refcount_logging"]
 simd-accel = ["encoding_glue/simd-accel", "jsrust_shared/simd-accel"]
-moz_memory = []
 moz_places = ["bookmark_sync"]
 spidermonkey_rust = ["jsrust_shared/baldrdash"]
 cranelift_x86 = ["jsrust_shared/cranelift_x86"]
@@ -94,14 +92,13 @@ cranelift_arm32 = ["jsrust_shared/cranelift_arm32"]
 cranelift_arm64 = ["jsrust_shared/cranelift_arm64"]
 cranelift_none = ["jsrust_shared/cranelift_none"]
 smoosh = ["jsrust_shared/smoosh"]
-gecko_profiler = ["gecko-profiler/enabled", "profiler_helper", "geckoservo/gecko_profiler"]
+gecko_profiler = ["gecko-profiler/enabled", "profiler_helper"]
 gecko_profiler_parse_elf = ["profiler_helper/parse_elf"]
 new_xulstore = ["xulstore"]
 libfuzzer = []
 webrtc = ["mdns_service"]
 wasm_library_sandboxing = ["rlbox_lucet_sandbox"]
 webgpu = ["wgpu_bindings"]
-remote_agent = ["remote"]
 glean_disable_upload = ["fog_control/disable_upload"]
 glean_with_gecko = ["fog_control/with_gecko"]
 oxidized_breakpad = ["rust_minidump_writer_linux"]

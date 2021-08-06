@@ -7,7 +7,6 @@
 }
 
 :root:-moz-lwtheme {
-  --toolbarbutton-icon-fill-opacity: 1;
   --toolbarbutton-icon-fill-attention: var(--lwt-toolbarbutton-icon-fill-attention, rgb(0,97,224));
 }
 
@@ -21,7 +20,6 @@ toolbar[brighttext]:-moz-lwtheme {
   color: inherit !important;
   -moz-context-properties: fill, fill-opacity;
   fill: var(--toolbarbutton-icon-fill);
-  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
 }
 
 .toolbarbutton-animatable-box {
@@ -120,7 +118,7 @@ toolbar[brighttext]:-moz-lwtheme {
   position: relative;
 }
 
-:where(#reload-button, #stop-button) > .toolbarbutton-icon {
+#nav-bar-customization-target :where(#reload-button, #stop-button) > .toolbarbutton-icon {
   padding: calc(var(--toolbarbutton-inner-padding) + 1px) var(--toolbarbutton-inner-padding) calc(var(--toolbarbutton-inner-padding) - 1px ) !important; /* The animation is 18px but the other icons are 16px, lower it by 1px so it is vertically centered */
 }
 
@@ -420,7 +418,6 @@ toolbar[brighttext] #panic-button[open] {
 #save-to-pocket-button {
   list-style-image: url("chrome://browser/skin/pocket-outline.svg");
   fill: var(--toolbarbutton-icon-fill);
-  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
 }
 
 #save-to-pocket-button[open="true"],
@@ -440,7 +437,6 @@ toolbar[brighttext] #panic-button[open] {
 toolbarbutton.bookmark-item {
   -moz-context-properties: fill, fill-opacity;
   fill: var(--toolbarbutton-icon-fill);
-  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
 }
 
 .bookmark-item[container] {

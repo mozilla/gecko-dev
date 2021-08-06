@@ -53,7 +53,6 @@
 #include "InterceptedChannel.h"
 #include "nsContentSecurityManager.h"
 #include "nsICompressConvStats.h"
-#include "nsIDeprecationWarner.h"
 #include "mozilla/dom/Document.h"
 #include "nsIScriptError.h"
 #include "nsISerialEventTarget.h"
@@ -1817,6 +1816,9 @@ HttpChannelChild::Cancel(nsresult aStatus) {
 
     if (remoteChannelExists) {
       SendCancel(aStatus, mLoadInfo->GetRequestBlockingReason());
+    } else if (MOZ_UNLIKELY(!LoadOnStartRequestCalled() ||
+                            !LoadOnStopRequestCalled())) {
+      Unused << AsyncAbort(mStatus);
     }
   }
   return NS_OK;
@@ -1827,7 +1829,6 @@ HttpChannelChild::Suspend() {
   LOG(("HttpChannelChild::Suspend [this=%p, mSuspendCount=%" PRIu32 "\n", this,
        mSuspendCount + 1));
   MOZ_ASSERT(NS_IsMainThread());
-  NS_ENSURE_TRUE(RemoteChannelExists(), NS_ERROR_NOT_AVAILABLE);
 
   LogCallingScriptLocation(this);
 
@@ -1850,7 +1851,6 @@ HttpChannelChild::Resume() {
   LOG(("HttpChannelChild::Resume [this=%p, mSuspendCount=%" PRIu32 "\n", this,
        mSuspendCount - 1));
   MOZ_ASSERT(NS_IsMainThread());
-  NS_ENSURE_TRUE(RemoteChannelExists(), NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
 
   LogCallingScriptLocation(this);
@@ -1861,8 +1861,8 @@ HttpChannelChild::Resume() {
   // Don't SendResume at all if we're diverting callbacks to the parent (unless
   // suspend was sent earlier); otherwise, resume will be called at the correct
   // time in the parent itself.
-  if (!--mSuspendCount && mSuspendSent) {
-    if (RemoteChannelExists()) {
+  if (!--mSuspendCount) {
+    if (RemoteChannelExists() && mSuspendSent) {
       SendResume();
     }
     if (mCallOnResume) {
@@ -2865,16 +2865,6 @@ void HttpChannelChild::CancelOnMainThread(nsresult aRv) {
         self->Cancel(aRv);
       }));
   mEventQ->Resume();
-}
-
-mozilla::ipc::IPCResult HttpChannelChild::RecvIssueDeprecationWarning(
-    const uint32_t& warning, const bool& asError) {
-  nsCOMPtr<nsIDeprecationWarner> warner;
-  GetCallback(warner);
-  if (warner) {
-    warner->IssueWarning(warning, asError);
-  }
-  return IPC_OK();
 }
 
 mozilla::ipc::IPCResult HttpChannelChild::RecvSetPriority(

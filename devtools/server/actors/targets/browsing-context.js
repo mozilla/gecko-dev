@@ -247,10 +247,6 @@ const browsingContextTargetPrototype = {
    *        Object with following attributes:
    *        - docShell nsIDocShell
    *          The |docShell| for the debugged frame.
-   *        - doNotFireFrameUpdates Boolean
-   *          If true, omit emitting `frameUpdate` events. This is only useful
-   *          for the top level target, in order to populate the toolbox iframe selector dropdown.
-   *          But we can avoid sending these RDP messages for any additional remote target.
    *        - followWindowGlobalLifeCycle Boolean
    *          If true, the target actor will only inspect the current WindowGlobal (and its children windows).
    *          But won't inspect next document loaded in the same BrowsingContext.
@@ -270,12 +266,7 @@ const browsingContextTargetPrototype = {
    */
   initialize: function(
     connection,
-    {
-      docShell,
-      doNotFireFrameUpdates,
-      followWindowGlobalLifeCycle,
-      isTopLevelTarget,
-    }
+    { docShell, followWindowGlobalLifeCycle, isTopLevelTarget }
   ) {
     Actor.prototype.initialize.call(this, connection);
 
@@ -287,7 +278,6 @@ const browsingContextTargetPrototype = {
     this.docShell = docShell;
 
     this.followWindowGlobalLifeCycle = followWindowGlobalLifeCycle;
-    this.doNotFireFrameUpdates = doNotFireFrameUpdates;
     this.isTopLevelTarget = !!isTopLevelTarget;
 
     // A map of actor names to actor instances provided by extensions.
@@ -602,8 +592,12 @@ const browsingContextTargetPrototype = {
 
   /**
    * Called when the actor is removed from the connection.
+   *
+   * @params {Object} options
+   * @params {Boolean} options.isTargetSwitching: Set to true when this is called during
+   *         a target switch.
    */
-  destroy() {
+  destroy({ isTargetSwitching = false } = {}) {
     if (this.isDestroyed()) {
       return;
     }
@@ -619,7 +613,7 @@ const browsingContextTargetPrototype = {
       this._touchSimulator = null;
     }
 
-    this._detach();
+    this._detach({ isTargetSwitching });
     this.docShell = null;
     this._extraActors = null;
 
@@ -945,13 +939,25 @@ const browsingContextTargetPrototype = {
 
   // Convert docShell list to windows objects list being sent to the client
   _docShellsToWindows(docshells) {
-    return docshells.map(docShell => this._docShellToWindow(docShell));
+    return docshells
+      .filter(docShell => {
+        // Ensure docShell.document is available.
+        docShell.QueryInterface(Ci.nsIWebNavigation);
+
+        // don't include transient about:blank documents
+        if (docShell.document.isInitialDocument) {
+          return false;
+        }
+
+        return true;
+      })
+      .map(docShell => this._docShellToWindow(docShell));
   },
 
   _notifyDocShellsUpdate(docshells) {
     // Only top level target uses frameUpdate in order to update the iframe dropdown.
     // This may eventually be replaced by Target listening and target switching.
-    if (this.doNotFireFrameUpdates) {
+    if (!this.isTopLevelTarget) {
       return;
     }
 
@@ -974,7 +980,7 @@ const browsingContextTargetPrototype = {
   _notifyDocShellDestroy(webProgress) {
     // Only top level target uses frameUpdate in order to update the iframe dropdown.
     // This may eventually be replaced by Target listening and target switching.
-    if (this.doNotFireFrameUpdates) {
+    if (!this.isTopLevelTarget) {
       return;
     }
 
@@ -993,7 +999,7 @@ const browsingContextTargetPrototype = {
   _notifyDocShellDestroyAll() {
     // Only top level target uses frameUpdate in order to update the iframe dropdown.
     // This may eventually be replaced by Target listening and target switching.
-    if (this.doNotFireFrameUpdates) {
+    if (!this.isTopLevelTarget) {
       return;
     }
 
@@ -1028,9 +1034,12 @@ const browsingContextTargetPrototype = {
   /**
    * Does the actual work of detaching from a browsing context.
    *
+   * @params {Object} options
+   * @params {Boolean} options.isTargetSwitching: Set to true when this is called during
+   *         a target switch.
    * @returns false if the actor wasn't attached or true of detaching succeeds.
    */
-  _detach() {
+  _detach({ isTargetSwitching } = {}) {
     if (!this.attached) {
       return false;
     }
@@ -1039,7 +1048,13 @@ const browsingContextTargetPrototype = {
     // Firefox shutdown.
     if (this.docShell) {
       this._unwatchDocShell(this.docShell);
-      this._restoreTargetConfiguration();
+
+      // If this target is being destroyed as part of a target switch, we don't need to
+      // restore the configuration (this might cause the content page to be focused again
+      // and cause issues in tets).
+      if (!isTargetSwitching) {
+        this._restoreTargetConfiguration();
+      }
     }
     this._unwatchDocshells();
 
@@ -1251,7 +1266,7 @@ const browsingContextTargetPrototype = {
    * This will be called by the watcher when the DevTools target-configuration
    * is updated, or when a target is created via JSWindowActors.
    */
-  updateTargetConfiguration(options = {}) {
+  updateTargetConfiguration(options = {}, calledFromDocumentCreation = false) {
     if (!this.docShell) {
       // The browsing context is already closed.
       return;
@@ -1261,13 +1276,18 @@ const browsingContextTargetPrototype = {
     if (typeof options.touchEventsOverride !== "undefined") {
       const enableTouchSimulator = options.touchEventsOverride === "enabled";
 
-      // We want to reload the document if it's a top level target on which the touch
-      // simulator will be toggled and the user has turned the "reload on touch simulation"
-      // settings on.
+      this.docShell.metaViewportOverride = enableTouchSimulator
+        ? Ci.nsIDocShell.META_VIEWPORT_OVERRIDE_ENABLED
+        : Ci.nsIDocShell.META_VIEWPORT_OVERRIDE_NONE;
+
+      // We want to reload the document if it's an "existing" top level target on which
+      // the touch simulator will be toggled and the user has turned the
+      // "reload on touch simulation" setting on.
       if (
         enableTouchSimulator !== this.touchSimulator.enabled &&
         options.reloadOnTouchSimulationToggle === true &&
-        this.isTopLevelTarget
+        this.isTopLevelTarget &&
+        !calledFromDocumentCreation
       ) {
         reload = true;
       }
@@ -1350,7 +1370,10 @@ const browsingContextTargetPrototype = {
       navigationStart: Date.now(),
     });
 
-    this._windowDestroyed(this.window, null, true);
+    this._windowDestroyed(this.window, {
+      isFrozen: true,
+      isFrameSwitching: true,
+    });
 
     // Immediately change the window as this window, if in process of unload
     // may already be non working on the next cycle and start throwing
@@ -1399,7 +1422,9 @@ const browsingContextTargetPrototype = {
     // If this follows WindowGlobal lifecycle, a new Target actor will be spawn for the top level
     // target document. Only notify about in-process iframes.
     // Note that OOP iframes won't emit window-ready and will also have their dedicated target.
-    if (this.followWindowGlobalLifeCycle && isTopLevel) {
+    // Also, we allow window-ready to be fired for iframe switching of top level documents,
+    // otherwise the iframe dropdown no longer works with server side targets.
+    if (this.followWindowGlobalLifeCycle && isTopLevel && !isFrameSwitching) {
       return;
     }
 
@@ -1412,13 +1437,18 @@ const browsingContextTargetPrototype = {
     });
   },
 
-  _windowDestroyed(window, id = null, isFrozen = false) {
+  _windowDestroyed(
+    window,
+    { id = null, isFrozen = false, isFrameSwitching = false }
+  ) {
     const isTopLevel = window == this.window;
 
     // If this follows WindowGlobal lifecycle, this target will be destroyed, alongside its top level document.
     // Only notify about in-process iframes.
     // Note that OOP iframes won't emit window-ready and will also have their dedicated target.
-    if (this.followWindowGlobalLifeCycle && isTopLevel) {
+    // Also, we allow window-destroyed to be fired for iframe switching of top level documents,
+    // otherwise the iframe dropdown no longer works with server side targets.
+    if (this.followWindowGlobalLifeCycle && isTopLevel && !isFrameSwitching) {
       return;
     }
 
@@ -1470,6 +1500,7 @@ const browsingContextTargetPrototype = {
       newURI,
       request,
       navigationStart,
+      isFrameSwitching,
     });
 
     // We don't do anything for inner frames here.
@@ -1485,7 +1516,7 @@ const browsingContextTargetPrototype = {
         url: newURI,
         nativeConsoleAPI: true,
         state: "start",
-        isFrameSwitching: isFrameSwitching,
+        isFrameSwitching,
       });
     }
 
@@ -1787,7 +1818,7 @@ DebuggerProgressListener.prototype = {
       return;
     }
 
-    this._targetActor._windowDestroyed(window, null, true);
+    this._targetActor._windowDestroyed(window, { isFrozen: true });
     this._knownWindowIDs.delete(getWindowID(window));
   }, "DebuggerProgressListener.prototype.onWindowHidden"),
 
@@ -1803,7 +1834,7 @@ DebuggerProgressListener.prototype = {
     const window = this._knownWindowIDs.get(innerID);
     if (window) {
       this._knownWindowIDs.delete(innerID);
-      this._targetActor._windowDestroyed(window, innerID);
+      this._targetActor._windowDestroyed(window, { id: innerID });
     }
 
     // Bug 1598364: when debugging browser.xhtml from the Browser Toolbox

@@ -14,6 +14,7 @@
 #include <utility>         // for forward
 #include "FrameMetrics.h"  // for ScrollUpdatesMap
 #include "ImageContainer.h"  // for ImageContainer, ImageContainer::Mode, ImageContainer::SYNCHRONOUS
+#include "WindowRenderer.h"
 #include "mozilla/AlreadyAddRefed.h"  // for already_AddRefed
 #include "mozilla/Maybe.h"            // for Maybe
 #include "mozilla/RefPtr.h"           // for RefPtr
@@ -94,62 +95,6 @@ class DidCompositeObserver {
   virtual void DidComposite() = 0;
 };
 
-class FrameRecorder {
- public:
-  /**
-   * Record (and return) frame-intervals and paint-times for frames which were
-   * presented between calling StartFrameTimeRecording and
-   * StopFrameTimeRecording.
-   *
-   * - Uses a cyclic buffer and serves concurrent consumers, so if Stop is
-   *   called too late
-   *     (elements were overwritten since Start), result is considered invalid
-   *      and hence empty.)
-   * - Buffer is capable of holding 10 seconds @ 60fps (or more if frames were
-   *   less frequent).
-   *     Can be changed (up to 1 hour) via pref:
-   *     toolkit.framesRecording.bufferSize.
-   * - Note: the first frame-interval may be longer than expected because last
-   *   frame
-   *     might have been presented some time before calling
-   *     StartFrameTimeRecording.
-   */
-
-  /**
-   * Returns a handle which represents current recording start position.
-   */
-  virtual uint32_t StartFrameTimeRecording(int32_t aBufferSize);
-
-  /**
-   *  Clears, then populates aFrameIntervals with the recorded frame timing
-   *  data. The array will be empty if data was overwritten since
-   *  aStartIndex was obtained.
-   */
-  virtual void StopFrameTimeRecording(uint32_t aStartIndex,
-                                      nsTArray<float>& aFrameIntervals);
-
-  void RecordFrame();
-
- private:
-  struct FramesTimingRecording {
-    // Stores state and data for frame intervals and paint times recording.
-    // see LayerManager::StartFrameTimeRecording() at Layers.cpp for more
-    // details.
-    FramesTimingRecording()
-        : mNextIndex(0),
-          mLatestStartIndex(0),
-          mCurrentRunStartIndex(0),
-          mIsPaused(true) {}
-    nsTArray<float> mIntervals;
-    TimeStamp mLastFrameTime;
-    uint32_t mNextIndex;
-    uint32_t mLatestStartIndex;
-    uint32_t mCurrentRunStartIndex;
-    bool mIsPaused;
-  };
-  FramesTimingRecording mRecording;
-};
-
 /*
  * Motivation: For truly smooth animation and video playback, we need to
  * be able to compose frames and render them on a dedicated thread (i.e.
@@ -198,9 +143,7 @@ class FrameRecorder {
  * Layers are refcounted. The layer manager holds a reference to the
  * root layer, and each container layer holds a reference to its children.
  */
-class LayerManager : public FrameRecorder {
-  NS_INLINE_DECL_REFCOUNTING(LayerManager)
-
+class LayerManager : public WindowRenderer {
  protected:
   typedef mozilla::gfx::DrawTarget DrawTarget;
   typedef mozilla::gfx::IntSize IntSize;
@@ -215,16 +158,12 @@ class LayerManager : public FrameRecorder {
    * for its widget going away.  After this call, only user data calls
    * are valid on the layer manager.
    */
-  virtual void Destroy();
+  void Destroy() override;
   bool IsDestroyed() { return mDestroyed; }
 
-  virtual ShadowLayerForwarder* AsShadowForwarder() { return nullptr; }
-
-  virtual KnowsCompositor* AsKnowsCompositor() { return nullptr; }
+  virtual LayerManager* AsLayerManager() override { return this; }
 
   virtual LayerManagerComposite* AsLayerManagerComposite() { return nullptr; }
-
-  virtual ClientLayerManager* AsClientLayerManager() { return nullptr; }
 
   virtual BasicLayerManager* AsBasicLayerManager() { return nullptr; }
   virtual HostLayerManager* AsHostLayerManager() { return nullptr; }
@@ -241,13 +180,6 @@ class LayerManager : public FrameRecorder {
   /**
    * Start a new transaction. Nested transactions are not allowed so
    * there must be no transaction currently in progress.
-   * This transaction will update the state of the window from which
-   * this LayerManager was obtained.
-   */
-  virtual bool BeginTransaction(const nsCString& aURL = nsCString()) = 0;
-  /**
-   * Start a new transaction. Nested transactions are not allowed so
-   * there must be no transaction currently in progress.
    * This transaction will render the contents of the layer tree to
    * the given target context. The rendering will be complete when
    * EndTransaction returns.
@@ -255,30 +187,10 @@ class LayerManager : public FrameRecorder {
   virtual bool BeginTransactionWithTarget(
       gfxContext* aTarget, const nsCString& aURL = nsCString()) = 0;
 
-  enum EndTransactionFlags {
-    END_DEFAULT = 0,
-    END_NO_IMMEDIATE_REDRAW = 1 << 0,  // Do not perform the drawing phase
-    END_NO_COMPOSITE =
-        1 << 1,  // Do not composite after drawing painted layer contents.
-    END_NO_REMOTE_COMPOSITE = 1 << 2  // Do not schedule a composition with a
-                                      // remote Compositor, if one exists.
-  };
-
   FrameLayerBuilder* GetLayerBuilder() {
     return reinterpret_cast<FrameLayerBuilder*>(
         GetUserData(&gLayerManagerLayerBuilder));
   }
-
-  /**
-   * Attempts to end an "empty transaction". There must have been no
-   * changes to the layer tree since the BeginTransaction().
-   * It's possible for this to fail; PaintedLayers may need to be updated
-   * due to VRAM data being lost, for example. In such cases this method
-   * returns false, and the caller must proceed with a normal layer tree
-   * update and EndTransaction.
-   */
-  virtual bool EndEmptyTransaction(
-      EndTransactionFlags aFlags = END_DEFAULT) = 0;
 
   /**
    * Function called to draw the contents of each PaintedLayer.
@@ -467,20 +379,6 @@ class LayerManager : public FrameRecorder {
       ImageContainer::Mode flag = ImageContainer::SYNCHRONOUS);
 
   /**
-   * Type of layer manager his is. This is to be used sparsely in order to
-   * avoid a lot of Layers backend specific code. It should be used only when
-   * Layers backend specific functionality is necessary.
-   */
-  virtual LayersBackend GetBackendType() = 0;
-
-  /**
-   * Type of layers backend that will be used to composite this layer tree.
-   * When compositing is done remotely, then this returns the layers type
-   * of the compositor.
-   */
-  virtual LayersBackend GetCompositorBackendType() { return GetBackendType(); }
-
-  /**
    * Creates a DrawTarget which is optimized for inter-operating with this
    * layer manager.
    */
@@ -503,14 +401,6 @@ class LayerManager : public FrameRecorder {
   virtual already_AddRefed<mozilla::gfx::DrawTarget> CreateDrawTarget(
       const mozilla::gfx::IntSize& aSize, mozilla::gfx::SurfaceFormat aFormat);
 
-  /**
-   * Creates a PersistentBufferProvider for use with canvas which is optimized
-   * for inter-operating with this layermanager.
-   */
-  virtual already_AddRefed<PersistentBufferProvider>
-  CreatePersistentBufferProvider(const mozilla::gfx::IntSize& aSize,
-                                 mozilla::gfx::SurfaceFormat aFormat);
-
   virtual bool CanUseCanvasLayerForSize(const gfx::IntSize& aSize) {
     return true;
   }
@@ -520,11 +410,6 @@ class LayerManager : public FrameRecorder {
    * if there is no maximum
    */
   virtual int32_t GetMaxTextureSize() const = 0;
-
-  /**
-   * Return the name of the layer manager's backend.
-   */
-  virtual void GetBackendName(nsAString& aName) = 0;
 
   /**
    * This setter can be used anytime. The user data for all keys is
@@ -583,27 +468,7 @@ class LayerManager : public FrameRecorder {
    */
   virtual void SetFocusTarget(const FocusTarget& aFocusTarget) {}
 
-  /**
-   * Make sure that the previous transaction has been entirely
-   * completed.
-   *
-   * Note: This may sychronously wait on a remote compositor
-   * to complete rendering.
-   */
-  virtual void FlushRendering() {}
-
-  /**
-   * Make sure that the previous transaction has been
-   * received. This will synchronsly wait on a remote compositor. */
-  virtual void WaitOnTransactionProcessed() {}
-
   virtual void SendInvalidRegion(const nsIntRegion& aRegion) {}
-
-  /**
-   * Checks if we need to invalidate the OS widget to trigger
-   * painting when updating this layer manager.
-   */
-  virtual bool NeedsWidgetInvalidation() { return true; }
 
   virtual const char* Name() const { return "???"; }
 
@@ -640,25 +505,13 @@ class LayerManager : public FrameRecorder {
   static bool IsLogEnabled();
   static mozilla::LogModule* GetLog();
 
-  bool IsCompositingCheap(LayersBackend aBackend) {
-    // LayersBackend::LAYERS_NONE is an error state, but in that case we should
-    // try to avoid loading the compositor!
-    return LayersBackend::LAYERS_BASIC != aBackend &&
-           LayersBackend::LAYERS_NONE != aBackend;
-  }
-
-  virtual bool IsCompositingCheap() { return true; }
-
   bool IsInTransaction() const { return mInTransaction; }
-  virtual void GetFrameUniformity(FrameUniformityData* aOutData) {}
 
   virtual void SetRegionToClear(const nsIntRegion& aRegion) {
     mRegionToClear = aRegion;
   }
 
   virtual float RequestProperty(const nsAString& property) { return -1; }
-
-  const TimeStamp& GetAnimationReadyTime() const { return mAnimationReadyTime; }
 
   virtual bool AsyncPanZoomEnabled() const { return false; }
 
@@ -696,8 +549,6 @@ class LayerManager : public FrameRecorder {
 
   virtual TransactionId GetLastTransactionId() { return TransactionId{0}; }
 
-  virtual CompositorBridgeChild* GetCompositorBridgeChild() { return nullptr; }
-
   void RegisterPayload(const CompositionPayload& aPayload) {
     mPayload.AppendElement(aPayload);
     MOZ_ASSERT(mPayload.Length() < 10000);
@@ -711,13 +562,6 @@ class LayerManager : public FrameRecorder {
   virtual void PayloadPresented(const TimeStamp& aTimeStamp);
 
   void SetContainsSVG(bool aContainsSVG) { mContainsSVG = aContainsSVG; }
-
-  void AddPartialPrerenderedAnimation(uint64_t aCompositorAnimationId,
-                                      dom::Animation* aAnimation);
-  void RemovePartialPrerenderedAnimation(uint64_t aCompositorAnimationId,
-                                         dom::Animation* aAnimation);
-  void UpdatePartialPrerenderedAnimations(
-      const nsTArray<uint64_t>& aJankedAnimations);
 
  protected:
   RefPtr<Layer> mRoot;
@@ -743,9 +587,6 @@ class LayerManager : public FrameRecorder {
 
   // Used for tracking CONTENT_FRAME_TIME_WITH_SVG
   bool mContainsSVG;
-  // The time when painting most recently finished. This is recorded so that
-  // we can time any play-pending animations from this point.
-  TimeStamp mAnimationReadyTime;
   // The count of pixels that were painted in the current transaction.
   uint32_t mPaintedPixelCount;
   // The payload associated with currently pending painting work, for
@@ -756,12 +597,6 @@ class LayerManager : public FrameRecorder {
   // IMPORTANT: Clients should take care to clear this or risk it slowly
   // growing out of control.
   nsTArray<CompositionPayload> mPayload;
-  // Transform animations which are not fully pre-rendered because it's on a
-  // large frame.  We need to update the pre-rendered area once after we tried
-  // to composite area which is outside of the pre-rendered area on the
-  // compositor.
-  nsRefPtrHashtable<nsUint64HashKey, dom::Animation>
-      mPartialPrerenderedAnimations;
 
  public:
   /*
@@ -771,7 +606,7 @@ class LayerManager : public FrameRecorder {
    */
   virtual bool AddPendingScrollUpdateForNextTransaction(
       ScrollableLayerGuid::ViewID aScrollId,
-      const ScrollPositionUpdate& aUpdateInfo);
+      const ScrollPositionUpdate& aUpdateInfo) override;
   Maybe<nsTArray<ScrollPositionUpdate>> GetPendingScrollInfoUpdate(
       ScrollableLayerGuid::ViewID aScrollId);
   std::unordered_set<ScrollableLayerGuid::ViewID>

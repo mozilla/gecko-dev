@@ -596,6 +596,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
 LOCAL_INCLUDES += [
     "/docshell/base",  # for nsDocShell.h
     "/dom/canvas",  # for intertwined WebGL headers
+    "/gfx/cairo/cairo/src",
     "/layout/base",  # for TouchManager.h
     "/layout/generic",  # for nsTextFrame.h
     "/media/libyuv/libyuv/include",  # for libyuv.h
@@ -616,7 +617,6 @@ if CONFIG["ENABLE_TESTS"]:
 MOCHITEST_MANIFESTS += ["apz/test/mochitest/mochitest.ini"]
 BROWSER_CHROME_MANIFESTS += ["apz/test/mochitest/browser.ini"]
 
-CXXFLAGS += CONFIG["MOZ_CAIRO_CFLAGS"]
 CXXFLAGS += CONFIG["TK_CFLAGS"]
 CXXFLAGS += ["-Werror=switch"]
 
@@ -627,10 +627,9 @@ if CONFIG["CC_TYPE"] in ("clang", "gcc"):
     # Suppress warnings in third-party code.
     CXXFLAGS += ["-Wno-maybe-uninitialized"]
 
-if CONFIG["MOZ_ENABLE_SKIA"]:
-    UNIFIED_SOURCES += [
-        "composite/PaintCounter.cpp",
-    ]
+UNIFIED_SOURCES += [
+    "composite/PaintCounter.cpp",
+]
 
 if CONFIG["FUZZING"] and CONFIG["FUZZING_INTERFACES"]:
     TEST_DIRS += ["ipc/fuzztest"]

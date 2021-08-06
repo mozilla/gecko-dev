@@ -2274,30 +2274,30 @@ bool BaselineCodeGen<Handler>::emit_CheckReturn() {
   frame.popRegsAndSync(1);
   emitLoadReturnValue(R1);
 
-  Label done, returnOK;
-  masm.branchTestObject(Assembler::Equal, R1, &done);
-  masm.branchTestUndefined(Assembler::Equal, R1, &returnOK);
+  Label done, returnBad, checkThis;
+  masm.branchTestObject(Assembler::NotEqual, R1, &checkThis);
+  {
+    masm.moveValue(R1, R0);
+    masm.jump(&done);
+  }
+  masm.bind(&checkThis);
+  masm.branchTestUndefined(Assembler::NotEqual, R1, &returnBad);
+  masm.branchTestMagic(Assembler::NotEqual, R0, &done);
+  masm.bind(&returnBad);
 
   prepareVMCall();
   pushArg(R1);
 
   using Fn = bool (*)(JSContext*, HandleValue);
-  if (!callVM<Fn, ThrowBadDerivedReturn>()) {
+  if (!callVM<Fn, ThrowBadDerivedReturnOrUninitializedThis>()) {
     return false;
   }
   masm.assumeUnreachable("Should throw on bad derived constructor return");
 
-  masm.bind(&returnOK);
-
-  if (!emitCheckThis(R0)) {
-    return false;
-  }
-
-  // Store |this| in the return value slot.
-  masm.storeValue(R0, frame.addressOfReturnValue());
-  masm.or32(Imm32(BaselineFrame::HAS_RVAL), frame.addressOfFlags());
-
   masm.bind(&done);
+
+  // Push |rval| or |this| onto the stack.
+  frame.push(R0);
   return true;
 }
 
@@ -3139,16 +3139,16 @@ bool BaselineCodeGen<Handler>::emitSetElemSuper(bool strict) {
   prepareVMCall();
 
   pushArg(Imm32(strict));
-  pushArg(R1);  // receiver
   pushArg(R0);  // rval
   masm.loadValue(frame.addressOfStackValue(-2), R0);
   pushArg(R0);  // propval
-  masm.unboxObject(frame.addressOfStackValue(-1), R0.scratchReg());
-  pushArg(R0.scratchReg());  // obj
+  pushArg(R1);  // receiver
+  masm.loadValue(frame.addressOfStackValue(-1), R0);
+  pushArg(R0);  // obj
 
-  using Fn = bool (*)(JSContext*, HandleObject, HandleValue, HandleValue,
+  using Fn = bool (*)(JSContext*, HandleValue, HandleValue, HandleValue,
                       HandleValue, bool);
-  if (!callVM<Fn, js::SetObjectElementWithReceiver>()) {
+  if (!callVM<Fn, js::SetElementSuper>()) {
     return false;
   }
 
@@ -3403,10 +3403,10 @@ bool BaselineCodeGen<Handler>::emitSetPropSuper(bool strict) {
   pushArg(R0);  // rval
   pushScriptNameArg(R0.scratchReg(), R2.scratchReg());
   pushArg(R1);  // receiver
-  masm.unboxObject(frame.addressOfStackValue(-1), R0.scratchReg());
-  pushArg(R0.scratchReg());  // obj
+  masm.loadValue(frame.addressOfStackValue(-1), R0);
+  pushArg(R0);  // obj
 
-  using Fn = bool (*)(JSContext*, HandleObject, HandleValue, HandlePropertyName,
+  using Fn = bool (*)(JSContext*, HandleValue, HandleValue, HandlePropertyName,
                       HandleValue, bool);
   if (!callVM<Fn, js::SetPropertySuper>()) {
     return false;
@@ -3448,7 +3448,7 @@ bool BaselineCodeGen<Handler>::emit_GetBoundName() {
 
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_GetPropSuper() {
-  // Receiver -> R1, Object -> R0
+  // Receiver -> R1, ObjectOrNull -> R0
   frame.popRegsAndSync(1);
   masm.loadValue(frame.addressOfStackValue(-1), R1);
   frame.pop();
@@ -5502,20 +5502,17 @@ bool BaselineCodeGen<Handler>::emit_SuperBase() {
   masm.bind(&proxyCheckDone);
 #endif
 
-  Label hasProto;
-  masm.branchPtr(Assembler::NotEqual, proto, ImmWord(0), &hasProto);
-
-  // Throw an error if |proto| is null.
-  prepareVMCall();
-
-  using Fn = bool (*)(JSContext*);
-  if (!callVM<Fn, ThrowHomeObjectNotObject>()) {
-    return false;
-  }
+  Label nullProto, done;
+  masm.branchPtr(Assembler::Equal, proto, ImmWord(0), &nullProto);
 
   // Box prototype and return
-  masm.bind(&hasProto);
   masm.tagValue(JSVAL_TYPE_OBJECT, proto, R1);
+  masm.jump(&done);
+
+  masm.bind(&nullProto);
+  masm.moveValue(NullValue(), R1);
+
+  masm.bind(&done);
   frame.push(R1);
   return true;
 }

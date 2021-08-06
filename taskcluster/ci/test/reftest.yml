@@ -27,7 +27,7 @@ job-defaults:
             by-test-platform:
                 android-em-7.*:
                     - android/android_common.py
-                    - android/androidx86_7_0.py
+                    - android/android-x86_64.py
                 android-hw.*:
                     - android/android_common.py
                     - android/android_hw.py
@@ -46,7 +46,7 @@ crashtest:
     variants:
         by-test-platform:
             linux1804-64-qr/debug: ['webrender-sw', 'fission', 'wayland', 'noqr']
-            linux1804-64-asan-qr/opt: ['webrender-sw', 'fission', 'wayland', 'noqr']
+            linux1804-64(-tsan|-asan)-qr/opt: ['webrender-sw', 'fission', 'wayland', 'noqr']
             windows10-64-qr/debug: ['webrender-sw', 'fission', 'noqr']
             windows10-64-asan-qr/opt: ['webrender-sw', 'fission', 'noqr']
             windows10-aarch64-qr/.*: []
@@ -59,7 +59,7 @@ crashtest:
     chunks:
         by-test-platform:
             android-em-7.*: 1
-            linux.*64-tsan/opt: 12
+            linux.*64-tsan-qr/opt: 32
             default: 1
     e10s: true
     run-on-projects:
@@ -74,7 +74,7 @@ crashtest:
             default:
                 by-test-platform:
                     windows10-aarch64-qr/.*: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
-                    android-em-7.0-x86_64/debug-isolated-process: []
+                    android-em-7.0-x86_64-qr/debug-isolated-process: []
                     linux.*asan/opt: []
                     .*(-asan|-tsan|10-32|7-32).*: built-projects
                     android.*: built-projects
@@ -92,7 +92,7 @@ crashtest:
                     windows10-aarch64-qr.*: 2
                     macosx1100.*: 2
                     android-hw-.*-qr/.*: 2
-                    android-em-7.0-x86_64/debug-isolated-process: 3
+                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
                     default: default
 
 crashtest-qr:
@@ -146,8 +146,8 @@ jsreftest:
             fission: []
             default:
                 by-test-platform:
-                    android-hw-.*-aarch64(?:-shippable)?/.*: ['mozilla-central', 'release']
-                    android-hw-.*-arm7(?:-shippable)?/.*: ['mozilla-central', 'release']
+                    android-hw-.*-aarch64(?:-shippable)?-qr/.*: ['mozilla-central', 'release']
+                    android-hw-.*-arm7(?:-shippable)?-qr/.*: ['mozilla-central', 'release']
                     default: built-projects
     virtualization:
         by-test-platform:
@@ -157,15 +157,12 @@ jsreftest:
 reftest:
     description: "Reftest run"
     treeherder-symbol: R(R)
-    virtualization:
-        by-test-platform:
-            windows10-64.*: hardware
-            default: virtual-with-gpu
+    virtualization: virtual-with-gpu
     variants:
         by-test-platform:
             linux1804-64-qr/debug: ['webrender-sw', 'fission', 'wayland', 'noqr']
-            linux1804-64-asan-qr/opt: ['webrender-sw', 'fission', 'wayland', 'noqr']
-            windows10-64(-asan)?-qr/opt: ['webrender-sw', 'fission', 'noqr']
+            linux1804-64(-asan|-tsan)-qr/opt: ['webrender-sw', 'fission', 'wayland', 'noqr']
+            windows10-64-2004(-asan)?-qr/opt: ['webrender-sw', 'fission', 'noqr']
             windows10-aarch64-qr/.*: []
             windows10-32(?:-shippable)?-qr/opt: ['webrender-sw', 'fission', 'noqr']
             windows7-32(?:-shippable)?-qr/opt: ['webrender-sw', 'fission', 'noqr']
@@ -178,15 +175,16 @@ reftest:
             default: ['fission']
     chunks:
         by-test-platform:
-            android-em-7.*: 2
+            android-em-7.*: 3
             linux1804-64(-shippable|-devedition|-qr)?/opt: 5
+            linux.*64-tsan-qr/opt: 32
             macosx101.*-64-shippable(-qr)?/opt: 3
             macosx101.*-64/debug: 4
             macosx101.*-64(-ccov.*|-qr)/debug: 6
             windows.*/opt: 2
-            windows10-64.*/debug: 4
+            windows10-64-2004.*/debug: 4
             windows10-32.*/debug: 6
-            windows10-64-asan-qr/opt: 3
+            windows10-64-2004-asan-qr/opt: 3
             windows10-64-ccov-qr/opt: 9
             default: 8
     e10s: true
@@ -195,13 +193,13 @@ reftest:
             fission:
                 by-test-platform:
                     (linux.*64|windows10-64)(-shippable)?-qr/(debug|opt): ['trunk']
-                    linux.*64-asan/opt: ['trunk']
+                    linux.*64-asan-qr/opt: ['trunk']
                     default: []
             noqr: built-projects
             default:
                 by-test-platform:
                     windows10-aarch64-qr/.*: ['mozilla-central', 'mozilla-beta', 'mozilla-release']
-                    android-em-7.0-x86_64/debug-isolated-process: []
+                    android-em-7.0-x86_64-qr/debug-isolated-process: []
                     linux.*asan/opt: []
                     .*(mingwclang|-asan|-tsan|10-32|7-32).*: built-projects
                     windows10-aarch64-qr/opt: built-projects
@@ -212,7 +210,7 @@ reftest:
         by-test-platform:
             windows10-32-mingwclang-qr/debug: 5400
             windows10-64-ccov.*/.*: 5400
-            windows10-64-asan-qr/opt: 5400
+            windows10-64-2004-asan-qr/opt: 5400
             macosx.*64-ccov.*/.*: 5400
             default: 3600
     mozharness:
@@ -220,7 +218,7 @@ reftest:
             by-test-platform:
                 android-em.*: false
                 macosx.*64/opt: false
-                windows10-64.*/opt: false
+                windows10-64-2004.*/opt: false
                 default: true
     tier:
         by-variant:
@@ -233,7 +231,7 @@ reftest:
                     windows10-aarch64-qr.*: 2
                     android-hw-.*-qr/.*: 2
                     macosx1100.*: 2
-                    android-em-7.0-x86_64/debug-isolated-process: 3
+                    android-em-7.0-x86_64-qr/debug-isolated-process: 3
                     default: default
 
 reftest-qr:
@@ -253,10 +251,7 @@ reftest-qr:
     mozharness:
         chunked: true
     tier: 2
-    virtualization:
-        by-test-platform:
-            windows10-64.*: hardware
-            default: virtual
+    virtualization: virtual
 
 reftest-snapshot:
     description: "Reftest snapshot"

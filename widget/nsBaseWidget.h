@@ -43,6 +43,7 @@ class gfxContext;
 namespace mozilla {
 class CompositorVsyncDispatcher;
 class LiveResizeListener;
+class FallbackRenderer;
 
 #ifdef ACCESSIBILITY
 namespace a11y {
@@ -218,10 +219,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
                           nsIScreen* aScreen = nullptr) override;
   void InfallibleMakeFullScreen(bool aFullScreen, nsIScreen* aScreen = nullptr);
 
-  LayerManager* GetLayerManager(
-      PLayerTransactionChild* aShadowManager = nullptr,
-      LayersBackend aBackendHint = mozilla::layers::LayersBackend::LAYERS_NONE,
-      LayerManagerPersistence aPersistence = LAYER_MANAGER_CURRENT) override;
+  WindowRenderer* GetWindowRenderer() override;
 
   // A remote compositor session tied to this window has been lost and IPC
   // messages will no longer work. The widget must clean up any lingering
@@ -386,6 +384,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   void StopAsyncAutoscroll(const ScrollableLayerGuid& aGuid) override;
 
+  mozilla::layers::LayersId GetRootLayerTreeId() override;
+
   /**
    * Use this when GetLayerManager() returns a BasicLayerManager
    * (nsBaseWidget::GetLayerManager() does). This sets up the widget's
@@ -399,13 +399,13 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   class AutoLayerManagerSetup {
    public:
     AutoLayerManagerSetup(nsBaseWidget* aWidget, gfxContext* aTarget,
-                          BufferMode aDoubleBuffering,
-                          ScreenRotation aRotation = mozilla::ROTATION_0);
+                          BufferMode aDoubleBuffering);
     ~AutoLayerManagerSetup();
 
    private:
     nsBaseWidget* mWidget;
     RefPtr<BasicLayerManager> mLayerManager;
+    mozilla::FallbackRenderer* mRenderer = nullptr;
   };
   friend class AutoLayerManagerSetup;
 
@@ -577,7 +577,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
     return nsIWidget::CreateChildWindow();
   }
 
-  LayerManager* CreateBasicLayerManager();
+  WindowRenderer* CreateBasicLayerManager();
 
   nsPopupType PopupType() const { return mPopupType; }
 
@@ -703,7 +703,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
   nsIWidgetListener* mWidgetListener;
   nsIWidgetListener* mAttachedWidgetListener;
   nsIWidgetListener* mPreviouslyAttachedWidgetListener;
-  RefPtr<LayerManager> mLayerManager;
+  RefPtr<WindowRenderer> mWindowRenderer;
   RefPtr<CompositorSession> mCompositorSession;
   RefPtr<CompositorBridgeChild> mCompositorBridgeChild;
 

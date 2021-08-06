@@ -705,10 +705,10 @@ void nsWindow::Destroy() {
   mCreated = false;
 
   /** Need to clean our LayerManager up while still alive */
-  if (mLayerManager) {
-    mLayerManager->Destroy();
+  if (mWindowRenderer) {
+    mWindowRenderer->Destroy();
   }
-  mLayerManager = nullptr;
+  mWindowRenderer = nullptr;
 
 #ifdef MOZ_WAYLAND
   // Shut down our local vsync source
@@ -3382,11 +3382,15 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
   LayoutDeviceIntRegion region = exposeRegion;
   region.ScaleRoundOut(scale, scale);
 
-  if (GetLayerManager()->AsKnowsCompositor() && mCompositorSession) {
+  WindowRenderer* renderer = GetWindowRenderer();
+  LayerManager* layerManager = renderer->AsLayerManager();
+  KnowsCompositor* knowsCompositor = renderer->AsKnowsCompositor();
+
+  if (knowsCompositor && layerManager && mCompositorSession) {
     // We need to paint to the screen even if nothing changed, since if we
     // don't have a compositing window manager, our pixels could be stale.
-    GetLayerManager()->SetNeedsComposite(true);
-    GetLayerManager()->SendInvalidRegion(region.ToUnknownRegion());
+    layerManager->SetNeedsComposite(true);
+    layerManager->SendInvalidRegion(region.ToUnknownRegion());
   }
 
   RefPtr<nsWindow> strongThis(this);
@@ -3406,10 +3410,9 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
     if (!listener) return FALSE;
   }
 
-  if (GetLayerManager()->AsKnowsCompositor() &&
-      GetLayerManager()->NeedsComposite()) {
-    GetLayerManager()->ScheduleComposite();
-    GetLayerManager()->SetNeedsComposite(false);
+  if (knowsCompositor && layerManager && layerManager->NeedsComposite()) {
+    layerManager->ScheduleComposite();
+    layerManager->SetNeedsComposite(false);
   }
 
   // Our bounds may have changed after calling WillPaintWindow.  Clip
@@ -3460,8 +3463,8 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
   }
 
   // If this widget uses OMTC...
-  if (GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_CLIENT ||
-      GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_WR) {
+  if (renderer->GetBackendType() == LayersBackend::LAYERS_CLIENT ||
+      renderer->GetBackendType() == LayersBackend::LAYERS_WR) {
     listener->PaintWindow(this, region);
 
     // Re-get the listener since the will paint notification might have
@@ -3526,7 +3529,8 @@ gboolean nsWindow::OnExposeEvent(cairo_t* cr) {
 
   bool painted = false;
   {
-    if (GetLayerManager()->GetBackendType() == LayersBackend::LAYERS_BASIC) {
+    if (renderer->GetBackendType() == LayersBackend::LAYERS_NONE ||
+        renderer->GetBackendType() == LayersBackend::LAYERS_BASIC) {
       if (GetTransparencyMode() == eTransparencyTransparent &&
           layerBuffering == BufferMode::BUFFER_NONE && mHasAlphaVisual) {
         // If our draw target is unbuffered and we use an alpha channel,
@@ -3668,7 +3672,7 @@ gboolean nsWindow::OnConfigureEvent(GtkWidget* aWidget,
     // frame, and its contents might be incorrect. See bug 1280653 comment 7
     // and comment 10. Specifically we must ensure we recomposite the frame
     // as soon as possible to avoid the corrupted frame being displayed.
-    GetLayerManager()->FlushRendering();
+    GetWindowRenderer()->FlushRendering();
     return FALSE;
   }
 
@@ -5902,7 +5906,12 @@ void nsWindow::PauseCompositor() {
 
   // moz_container_wayland_has_egl_window() could not be used here, since
   // there is a case that resume compositor is not completed yet.
-  if (!mIsAccelerated || mIsDestroyed) {
+
+  // TODO: The compositor backend currently relies on the pause event to work
+  // around a Gnome specific bug. Remove again once the fix is widely available.
+  // See bug 1721298
+  if ((!mIsAccelerated && !gfx::gfxVars::UseWebRenderCompositor()) ||
+      mIsDestroyed) {
     return;
   }
 
@@ -5980,12 +5989,13 @@ void nsWindow::NativeShow(bool aAction) {
 
     if (mIsTopLevel) {
       if (IsWaylandPopup()) {
+        mPopupClosed = false;
         if (WaylandPopupNeedsTrackInHierarchy()) {
           AddWindowToPopupHierarchy();
           UpdateWaylandPopupHierarchy();
-        }
-        if (mPopupClosed) {
-          return;
+          if (mPopupClosed) {
+            return;
+          }
         }
       }
       // Set up usertime/startupID metadata for the created window.
@@ -6109,9 +6119,9 @@ LayoutDeviceIntSize nsWindow::GetSafeWindowSize(LayoutDeviceIntSize aSize) {
   // we also must ensure that the window can fit in a Cairo surface.
   LayoutDeviceIntSize result = aSize;
   int32_t maxSize = 32767;
-  if (mLayerManager && mLayerManager->AsKnowsCompositor()) {
-    maxSize = std::min(maxSize,
-                       mLayerManager->AsKnowsCompositor()->GetMaxTextureSize());
+  if (mWindowRenderer && mWindowRenderer->AsKnowsCompositor()) {
+    maxSize = std::min(
+        maxSize, mWindowRenderer->AsKnowsCompositor()->GetMaxTextureSize());
   }
   if (result.width > maxSize) {
     result.width = maxSize;
@@ -6127,9 +6137,9 @@ void nsWindow::EnsureGrabs(void) {
 }
 
 void nsWindow::CleanLayerManagerRecursive(void) {
-  if (mLayerManager) {
-    mLayerManager->Destroy();
-    mLayerManager = nullptr;
+  if (mWindowRenderer) {
+    mWindowRenderer->Destroy();
+    mWindowRenderer = nullptr;
   }
 
   DestroyCompositor();
@@ -8271,18 +8281,15 @@ nsresult nsWindow::BeginResizeDrag(WidgetGUIEvent* aEvent, int32_t aHorizontal,
   return NS_OK;
 }
 
-nsIWidget::LayerManager* nsWindow::GetLayerManager(
-    PLayerTransactionChild* aShadowManager, LayersBackend aBackendHint,
-    LayerManagerPersistence aPersistence) {
+nsIWidget::WindowRenderer* nsWindow::GetWindowRenderer() {
   if (mIsDestroyed) {
     // Prevent external code from triggering the re-creation of the
     // LayerManager/Compositor during shutdown. Just return what we currently
     // have, which is most likely null.
-    return mLayerManager;
+    return mWindowRenderer;
   }
 
-  return nsBaseWidget::GetLayerManager(aShadowManager, aBackendHint,
-                                       aPersistence);
+  return nsBaseWidget::GetWindowRenderer();
 }
 
 void nsWindow::SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) {
@@ -8300,9 +8307,9 @@ void nsWindow::SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) {
 }
 
 void nsWindow::ClearCachedResources() {
-  if (mLayerManager && mLayerManager->GetBackendType() ==
-                           mozilla::layers::LayersBackend::LAYERS_BASIC) {
-    mLayerManager->ClearCachedResources();
+  if (mWindowRenderer && mWindowRenderer->GetBackendType() ==
+                             mozilla::layers::LayersBackend::LAYERS_BASIC) {
+    mWindowRenderer->AsLayerManager()->ClearCachedResources();
   }
 
   GList* children = gdk_window_peek_children(mGdkWindow);

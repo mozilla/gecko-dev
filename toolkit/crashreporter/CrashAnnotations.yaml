@@ -585,6 +585,11 @@ JSLargeAllocationFailure:
     description for the possible values of this annotation.
   type: string
 
+JSModuleLoadError:
+  description: >
+    The error raised when attempting to import a critical JS module from C++
+  type: string
+
 JSOutOfMemory:
   description: >
     A small allocation couldn't be satisfied, the annotation may contain the
@@ -594,6 +599,47 @@ JSOutOfMemory:
     free some memory, and the last that the GC had managed to free enough memory
     to satisfy the allocation.
   type: string
+
+MacMemoryPressure:
+  description: >
+    The current memory pressure state as provided by the macOS memory pressure
+    dispatch source. The annotation value is one of "Normal" for no memory
+    pressure, "Unset" indicating a memory pressure event has not been received,
+    "Warning" or "Critical" mapping to the system memory pressure levels,
+    or "Unexpected" for an unexpected level. This is a Mac-specific annotation.
+  type: string
+
+MacMemoryPressureNormalTime:
+  description: >
+    The time when the memory pressure state last transitioned to 'Normal'
+    expressed as seconds since the Epoch.
+  type: string
+
+MacMemoryPressureWarningTime:
+  description: >
+    The time when the memory pressure state last transitioned to 'Warning'
+    expressed as seconds since the Epoch.
+  type: string
+
+MacMemoryPressureCriticalTime:
+  description: >
+    The time when the memory pressure state last transitioned to 'Critical'
+    expressed as seconds since the Epoch.
+  type: string
+
+MacMemoryPressureSysctl:
+  description: >
+    The value of the memory pressure sysctl
+    'kern.memorystatus_vm_pressure_level'. Indicates which memory
+    pressure level the system is in at the time of the crash. The expected
+    values are one of 4 (Critical), 2 (Warning), or 0 (Normal).
+  type: integer
+
+MacAvailableMemorySysctl:
+  description: >
+    The value of the available memory sysctl 'kern.memorystatus_level'.
+    Expected to be a percentage integer value.
+  type: integer
 
 LauncherProcessState:
   description: >

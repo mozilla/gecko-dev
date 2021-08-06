@@ -240,17 +240,6 @@ AC_SUBST_LIST(STL_FLAGS)
 AC_SUBST(WRAP_STL_INCLUDES)
 
 dnl ========================================================
-dnl Checks for programs.
-dnl ========================================================
-if test "$COMPILE_ENVIRONMENT"; then
-
-AC_PATH_XTRA
-
-XCFLAGS="$X_CFLAGS"
-
-fi # COMPILE_ENVIRONMENT
-
-dnl ========================================================
 dnl set the defaults first
 dnl ========================================================
 MOZ_USER_DIR=".mozilla"
@@ -891,12 +880,6 @@ fi
 dnl Checks for header files.
 dnl ========================================================
 AC_HEADER_DIRENT
-case "$target_os" in
-bitrig*|dragonfly*|freebsd*|openbsd*)
-# for stuff like -lXshm
-    CPPFLAGS="${CPPFLAGS} ${X_CFLAGS}"
-    ;;
-esac
 
 dnl Check for sin_len and sin6_len - used by SCTP; only appears in Mac/*BSD generally
 AC_CACHE_CHECK(for sockaddr_in.sin_len,
@@ -976,52 +959,6 @@ if test ! "$GNU_CXX"; then
 fi
 
 AC_CHECK_LIB(socket, socket)
-
-XLDFLAGS="$X_LIBS"
-XLIBS="$X_EXTRA_LIBS"
-
-dnl ========================================================
-dnl Checks for X libraries.
-dnl Ordering is important.
-dnl Xt is dependent upon SM as of X11R6
-dnl ========================================================
-if test -n "$MOZ_X11"; then
-    AC_DEFINE_UNQUOTED(FUNCPROTO,15)
-    _SAVE_LDFLAGS="$LDFLAGS"
-    _SAVE_LIBS="$LIBS"
-    LDFLAGS="$XLDFLAGS $LDFLAGS"
-    AC_CHECK_LIB(X11, XDrawLines, [XLIBS="-lX11 $XLIBS"],
-        [MISSING_X="$MISSING_X -lX11"], $XLIBS)
-    AC_CHECK_LIB(Xext, XextAddDisplay, [XEXT_LIBS="-lXext"],
-        [MISSING_X="$MISSING_X -lXext"], $XLIBS)
-
-    AC_CHECK_LIB(Xt, XtFree, [ XT_LIBS="-lXt"], [
-        unset ac_cv_lib_Xt_XtFree
-        AC_CHECK_LIB(ICE, IceFlush, [XT_LIBS="-lICE $XT_LIBS"],, $XT_LIBS $XLIBS)
-        AC_CHECK_LIB(SM, SmcCloseConnection, [XT_LIBS="-lSM $XT_LIBS"],, $XT_LIBS $XLIBS)
-        AC_CHECK_LIB(Xt, XtFree, [ XT_LIBS="-lXt $XT_LIBS"],
-            [MISSING_X="$MISSING_X -lXt"], $X_PRE_LIBS $XT_LIBS $XLIBS)
-        ])
-
-    dnl ========================================================
-    dnl = Check for xcb
-    dnl ========================================================
-    AC_CHECK_LIB(xcb, xcb_connect, [XLIBS="-lxcb $XLIBS"],
-        [MISSING_X="$MISSING_X -lxcb"], $XLIBS)
-    AC_CHECK_LIB(xcb-shm, xcb_shm_query_version, [XLIBS="-lxcb-shm $XLIBS"],
-        [MISSING_X="$MISSING_X -lxcb-shm"], $XLIBS)
-    AC_CHECK_LIB(X11-xcb, XGetXCBConnection, [XLIBS="-lX11-xcb $XLIBS"],
-        [MISSING_X="$MISSING_X -lX11-xcb"], $XLIBS)
-
-    LDFLAGS="$_SAVE_LDFLAGS"
-    LIBS="$_SAVE_LIBS"
-fi # $MOZ_X11
-
-AC_SUBST_LIST(XCFLAGS)
-AC_SUBST_LIST(XLDFLAGS)
-AC_SUBST_LIST(XLIBS)
-AC_SUBST_LIST(XEXT_LIBS)
-AC_SUBST_LIST(XT_LIBS)
 
 dnl ========================================================
 dnl = pthread support
@@ -1690,14 +1627,6 @@ AC_TRY_COMPILE([#include <linux/ethtool.h>],
 
 AC_SUBST(MOZ_WEBRTC_HAVE_ETHTOOL_SPEED_HI)
 
-if test -n "$MOZ_WEBRTC"; then
-    if test -n "$MOZ_X11"; then
-      MOZ_WEBRTC_X11_LIBS="-lXext -lXdamage -lXfixes -lXcomposite"
-    fi
-fi
-
-AC_SUBST_LIST(MOZ_WEBRTC_X11_LIBS)
-
 dnl ========================================================
 dnl = Apple platform decoder support
 dnl ========================================================
@@ -1861,7 +1790,6 @@ done
 # "cairo-ft-font.c" includes <dlfcn.h>, which only exists on posix platforms
 if test -n "$MOZ_TREE_FREETYPE" -a "$OS_TARGET" != WINNT; then
    MOZ_ENABLE_CAIRO_FT=1
-   FT_FONT_FEATURE="#define CAIRO_HAS_FT_FONT 1"
    CAIRO_FT_CFLAGS="-I$_topsrcdir/modules/freetype2/include"
    AC_SUBST_LIST(CAIRO_FT_CFLAGS)
 fi
@@ -2275,7 +2203,7 @@ if test "$USE_FC_FREETYPE"; then
         fi
 
         _SAVE_CPPFLAGS="$CPPFLAGS"
-        CPPFLAGS="$CPPFLAGS $FT2_CFLAGS $XCFLAGS"
+        CPPFLAGS="$CPPFLAGS $FT2_CFLAGS"
         MOZ_CHECK_HEADERS([fontconfig/fcfreetype.h], ,
             [AC_MSG_ERROR(Can't find header fontconfig/fcfreetype.h.)], [#include <fontconfig/fontconfig.h>])
         CPPFLAGS="$_SAVE_CPPFLAGS"
@@ -2292,12 +2220,6 @@ dnl ========================================================
 dnl Check for pixman and cairo
 dnl ========================================================
 
-MOZ_TREE_CAIRO=1
-MOZ_ARG_ENABLE_BOOL(system-cairo,
-[ --enable-system-cairo  Obsolete: do not use this option],
-AC_MSG_ERROR(--enable-system-cairo is not supported),
-MOZ_TREE_CAIRO=1 )
-
 MOZ_TREE_PIXMAN=1
 MOZ_ARG_ENABLE_BOOL(system-pixman,
 [ --enable-system-pixman Use system pixman (located with pkgconfig)],
@@ -2308,11 +2230,8 @@ MOZ_TREE_PIXMAN=1 )
 if test "$MOZ_TREE_PIXMAN"; then
     AC_DEFINE(MOZ_TREE_PIXMAN)
 else
-    PKG_CHECK_MODULES(MOZ_PIXMAN, pixman-1 >= 0.19.2)
+    PKG_CHECK_MODULES(MOZ_PIXMAN, pixman-1 >= 0.36.0)
 fi
-
-MOZ_CAIRO_CFLAGS="-I${DIST}/include/cairo"
-AC_DEFINE(MOZ_TREE_CAIRO)
 
 if test "$OS_ARCH" = "WINNT"; then
     # For now we assume that we will have a uint64_t available through
@@ -2320,82 +2239,22 @@ if test "$OS_ARCH" = "WINNT"; then
     AC_DEFINE(HAVE_UINT64_T)
 fi
 
-# Define macros for cairo-features.h
-TEE_SURFACE_FEATURE="#define CAIRO_HAS_TEE_SURFACE 1"
-if test "$MOZ_X11"; then
-    XLIB_SURFACE_FEATURE="#define CAIRO_HAS_XLIB_SURFACE 1"
-    XLIB_XRENDER_SURFACE_FEATURE="#define CAIRO_HAS_XLIB_XRENDER_SURFACE 1"
-    PS_SURFACE_FEATURE="#define CAIRO_HAS_PS_SURFACE 1"
-fi
 if test "$_HAVE_FREETYPE2"; then
-    FT_FONT_FEATURE="#define CAIRO_HAS_FT_FONT 1"
     MOZ_ENABLE_CAIRO_FT=1
     CAIRO_FT_CFLAGS="$FT2_CFLAGS"
 fi
 
 case "$MOZ_WIDGET_TOOLKIT" in
-  cocoa | uikit)
-    QUARTZ_SURFACE_FEATURE="#define CAIRO_HAS_QUARTZ_SURFACE 1"
-    QUARTZ_IMAGE_SURFACE_FEATURE="#define CAIRO_HAS_QUARTZ_IMAGE_SURFACE 1"
-    QUARTZ_FONT_FEATURE="#define CAIRO_HAS_QUARTZ_FONT 1"
-    ;;
   windows)
-    WIN32_DWRITE_FONT_FEATURE="#define CAIRO_HAS_DWRITE_FONT 1"
-    WIN32_FONT_FEATURE="#define CAIRO_HAS_WIN32_FONT 1"
-    WIN32_SURFACE_FEATURE="#define CAIRO_HAS_WIN32_SURFACE 1"
-
     if test "$COMPILE_ENVIRONMENT"; then
       MOZ_CHECK_HEADER(d3d10.h, MOZ_ENABLE_D3D10_LAYER=1)
     fi
     ;;
 esac
-if test "$USE_FC_FREETYPE"; then
-    FC_FONT_FEATURE="#define CAIRO_HAS_FC_FONT 1"
-fi
 AC_SUBST(MOZ_ENABLE_CAIRO_FT)
 AC_SUBST(MOZ_ENABLE_D3D10_LAYER)
 
-AC_SUBST(PS_SURFACE_FEATURE)
-AC_SUBST(SVG_SURFACE_FEATURE)
-AC_SUBST(XLIB_SURFACE_FEATURE)
-AC_SUBST(XLIB_XRENDER_SURFACE_FEATURE)
-AC_SUBST(QUARTZ_SURFACE_FEATURE)
-AC_SUBST(QUARTZ_IMAGE_SURFACE_FEATURE)
-AC_SUBST(WIN32_SURFACE_FEATURE)
-AC_SUBST(OS2_SURFACE_FEATURE)
-AC_SUBST(DIRECTFB_SURFACE_FEATURE)
-AC_SUBST(FT_FONT_FEATURE)
-AC_SUBST(FC_FONT_FEATURE)
-AC_SUBST(WIN32_FONT_FEATURE)
-AC_SUBST(WIN32_DWRITE_FONT_FEATURE)
-AC_SUBST(QUARTZ_FONT_FEATURE)
-AC_SUBST(PNG_FUNCTIONS_FEATURE)
-AC_SUBST(QT_SURFACE_FEATURE)
-AC_SUBST(TEE_SURFACE_FEATURE)
-
-if test "$MOZ_X11"; then
-    MOZ_CAIRO_OSLIBS="$MOZ_CAIRO_OSLIBS $XLDFLAGS -lXrender"
-fi
-
-CAIRO_FEATURES_H=gfx/cairo/cairo/src/cairo-features.h
-
-case "$MOZ_WIDGET_TOOLKIT" in
-android)
-    TK_CFLAGS="$MOZ_CAIRO_CFLAGS $MOZ_PIXMAN_CFLAGS"
-    TK_LIBS="$MOZ_CAIRO_LIBS $MOZ_PIXMAN_LIBS"
-    ;;
-esac
-
-AC_SUBST(MOZ_TREE_CAIRO)
-AC_SUBST_LIST(MOZ_CAIRO_CFLAGS)
-AC_SUBST_LIST(MOZ_CAIRO_LIBS)
-AC_SUBST_LIST(MOZ_CAIRO_OSLIBS)
 AC_SUBST(MOZ_TREE_PIXMAN)
-
-BINDGEN_SYSTEM_FLAGS="$_BINDGEN_CFLAGS $NSPR_CFLAGS $NSS_CFLAGS $MOZ_PIXMAN_CFLAGS $MOZ_CAIRO_CFLAGS"
-AC_SUBST(BINDGEN_SYSTEM_FLAGS)
-BINDGEN_SYSTEM_TOML_FLAGS="$BINDGEN_SYSTEM_FLAGS"
-AC_SUBST_TOML_LIST(BINDGEN_SYSTEM_TOML_FLAGS)
 
 dnl ========================================================
 dnl disable xul
@@ -2473,8 +2332,6 @@ AC_SUBST(MOZ_CRASHREPORTER_INJECTOR)
 AC_SUBST(MOZ_STUB_INSTALLER)
 AC_SUBST(MOZ_UPDATER)
 
-AC_SUBST(MOZ_ANDROID_APPLICATION_CLASS)
-AC_SUBST(MOZ_ANDROID_BROWSER_INTENT_CLASS)
 AC_SUBST(INCREMENTAL_LINKER)
 
 AC_SUBST_LIST(MOZ_FIX_LINK_PATHS)
@@ -2715,37 +2572,6 @@ AC_SUBST(NSS_EXTRA_SYMBOLS_FILE)
 
 if test -n "$COMPILE_ENVIRONMENT"; then
 AC_CHECK_FUNCS(posix_fadvise posix_fallocate)
-
-dnl Check for missing components
-if test "$MOZ_X11"; then
-    dnl ====================================================
-    dnl = Check if X headers exist
-    dnl ====================================================
-    _SAVE_CFLAGS=$CFLAGS
-    CFLAGS="$CFLAGS $XCFLAGS"
-    AC_TRY_COMPILE([
-        #include <stdio.h>
-        #include <stdlib.h>
-        #include <X11/Xlib.h>
-        #include <X11/Intrinsic.h>
-        #include <X11/extensions/XShm.h>
-    ],
-    [
-        Display *dpy = 0;
-        if ((dpy = XOpenDisplay(NULL)) == NULL) {
-            fprintf(stderr, ": can't open %s\n", XDisplayName(NULL));
-            exit(1);
-        }
-    ], [],
-    [ AC_MSG_ERROR([Can't find X headers (install libxt-dev (Debian/Ubuntu), libXt-devel (Fedora), or xorg-x11-libXt-devel (SuSE)).]) ])
-    CFLAGS="$_SAVE_CFLAGS"
-
-    if test -n "$MISSING_X"; then
-        AC_MSG_ERROR([ Could not find the following X libraries: $MISSING_X ]);
-    fi
-
-fi # MOZ_X11
-
 fi # COMPILE_ENVIRONMENT
 
 dnl Set various defines and substitutions
@@ -2774,6 +2600,21 @@ AC_SUBST(A11Y_LOG)
 if test -n "$A11Y_LOG"; then
     AC_DEFINE(A11Y_LOG)
 fi
+
+dnl Windows AccessibilityHandler
+dnl ========================================================
+
+if test -z "$MOZ_HANDLER_CLSID"; then
+    MOZ_HANDLER_CLSID="4a195748-dca2-45fb-9295-0a139e76a9e7"
+    MOZ_IHANDLERCONTROL_IID="3316ce35-f892-4832-97c5-06c52c03cdba"
+    MOZ_ASYNCIHANDLERCONTROL_IID="15b48b76-ad38-4ad3-bd1a-d3c48a5a9947"
+    MOZ_IGECKOBACKCHANNEL_IID="dd2e4a89-999e-4d65-8b65-440c923ddb61"
+fi
+
+AC_SUBST(MOZ_HANDLER_CLSID)
+AC_SUBST(MOZ_IHANDLERCONTROL_IID)
+AC_SUBST(MOZ_ASYNCIHANDLERCONTROL_IID)
+AC_SUBST(MOZ_IGECKOBACKCHANNEL_IID)
 
 dnl Spit out some output
 dnl ========================================================

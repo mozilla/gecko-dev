@@ -1575,7 +1575,7 @@ var BookmarkingUI = {
 
     // Used by the Places context menu in the Bookmarks Toolbar
     // when nothing is selected
-    menu.setAttribute("selectiontype", "none|single");
+    menu.setAttribute("selection-type", "none|single");
 
     MozXULElement.insertFTLIfNeeded("browser/toolbarContextMenu.ftl");
     let menuItems = [
@@ -1689,7 +1689,7 @@ var BookmarkingUI = {
 
     new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.menuGuid}`, {
       extraClasses,
-      insertionPoint: ".panel-subview-footer-button",
+      insertionPoint: "#BMB_bookmarksShowAll",
     });
   },
 
@@ -2353,7 +2353,7 @@ var BookmarkingUI = {
     menuItem.setAttribute("toolbarId", "PersonalToolbar");
     menuItem.setAttribute("type", "checkbox");
     menuItem.setAttribute("checked", SHOW_OTHER_BOOKMARKS);
-    menuItem.setAttribute("selectiontype", "none|single");
+    menuItem.setAttribute("selection-type", "none|single");
 
     MozXULElement.insertFTLIfNeeded("browser/toolbarContextMenu.ftl");
     document.l10n.setAttributes(

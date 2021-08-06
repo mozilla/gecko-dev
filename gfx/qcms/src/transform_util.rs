@@ -1,4 +1,3 @@
-/* vim: set ts=8 sw=8 noexpandtab: */
 //  qcms
 //  Copyright (C) 2009 Mozilla Foundation
 //  Copyright (C) 1998-2007 Marti Maria
@@ -171,9 +170,7 @@ pub(crate) fn build_input_gamma_table(TRC: Option<&curveType>) -> Option<Box<[f3
     })
 }
 pub fn build_colorant_matrix(p: &Profile) -> Matrix {
-    let mut result: Matrix = Matrix {
-        m: [[0.; 3]; 3],
-    };
+    let mut result: Matrix = Matrix { m: [[0.; 3]; 3] };
     result.m[0][0] = s15Fixed16Number_to_float(p.redColorant.X);
     result.m[0][1] = s15Fixed16Number_to_float(p.greenColorant.X);
     result.m[0][2] = s15Fixed16Number_to_float(p.blueColorant.X);
@@ -199,9 +196,10 @@ struct Param {
 }
 
 impl Param {
+    #[allow(clippy::many_single_char_names)]
     fn new(params: &[f32]) -> Param {
-	// convert from the variable number of parameters
-	// contained in profiles to a unified representation.
+        // convert from the variable number of parameters
+        // contained in profiles to a unified representation.
         let g: f32 = params[0];
         match params[1..] {
             [] => Param {
@@ -260,7 +258,7 @@ impl Param {
             (self.a * x + self.b).powf(self.g) + self.e
         }
     }
-
+    #[allow(clippy::many_single_char_names)]
     fn invert(&self) -> Option<Param> {
         // First check if the function is continuous at the cross-over point d.
         let d1 = (self.a * self.d + self.b).powf(self.g) + self.e;
@@ -339,6 +337,7 @@ fn param_invert() {
  * icmTable_lookup_bwd and icmTable_setup_bwd. However, for now this is a quick way
  * to a working solution and allows for easy comparing with lcms. */
 #[no_mangle]
+#[allow(clippy::many_single_char_names)]
 pub fn lut_inverse_interp16(Value: u16, LutTable: &[u16]) -> uint16_fract_t {
     let mut l: i32 = 1; // 'int' Give spacing for negative values
     let mut r: i32 = 0x10000;
@@ -452,17 +451,20 @@ fn invert_lut(table: &[u16], out_length: i32) -> Vec<u16> {
     }
     output
 }
+#[allow(clippy::needless_range_loop)]
 fn compute_precache_pow(output: &mut [u8; PRECACHE_OUTPUT_SIZE], gamma: f32) {
     for v in 0..PRECACHE_OUTPUT_SIZE {
         //XXX: don't do integer/float conversion... and round?
         output[v] = (255. * (v as f32 / PRECACHE_OUTPUT_MAX as f32).powf(gamma)) as u8;
     }
 }
+#[allow(clippy::needless_range_loop)]
 pub fn compute_precache_lut(output: &mut [u8; PRECACHE_OUTPUT_SIZE], table: &[u16]) {
     for v in 0..PRECACHE_OUTPUT_SIZE {
         output[v] = lut_interp_linear_precache_output(v as u32, table);
     }
 }
+#[allow(clippy::needless_range_loop)]
 pub fn compute_precache_linear(output: &mut [u8; PRECACHE_OUTPUT_SIZE]) {
     for v in 0..PRECACHE_OUTPUT_SIZE {
         //XXX: round?
@@ -482,7 +484,7 @@ pub(crate) fn compute_precache(trc: &curveType, output: &mut [u8; PRECACHE_OUTPU
                 i += 1
             }
             //XXX: the choice of a minimum of 256 here is not backed by any theory,
-            //     measurement or data, howeve r it is what lcms uses.
+            //     measurement or data, however it is what lcms uses.
             //     the maximum number we would need is 65535 because that's the
             //     accuracy used for computing the pre cache table
             if inverted_size < 256 {
@@ -498,7 +500,7 @@ pub(crate) fn compute_precache(trc: &curveType, output: &mut [u8; PRECACHE_OUTPU
                 _ => {
                     let mut inverted_size = data.len() as i32;
                     //XXX: the choice of a minimum of 256 here is not backed by any theory,
-                    //     measurement or data, howeve r it is what lcms uses.
+                    //     measurement or data, however it is what lcms uses.
                     //     the maximum number we would need is 65535 because that's the
                     //     accuracy used for computing the pre cache table
                     if inverted_size < 256 {

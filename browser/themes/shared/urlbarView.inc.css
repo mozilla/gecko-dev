@@ -276,11 +276,7 @@
   background-repeat: no-repeat;
   background-size: contain;
   -moz-context-properties: fill, stroke;
-  stroke: Field;
-}
-
-.urlbarView-type-icon:-moz-lwtheme {
-  stroke: var(--lwt-toolbar-field-focus);
+  stroke: var(--toolbar-field-focus-background-color);
 }
 
 /* Favicon badges have this priority: pinned > bookmark. */
@@ -445,6 +441,9 @@
 .urlbarView-title {
   overflow: hidden;
   white-space: nowrap;
+  /* Explicitly set line-height to avoid excessively tall rows if the title triggers use of
+     fallback fonts with extreme metrics. */
+  line-height: 1.4;
 }
 
 .urlbarView-row[type=tip] > .urlbarView-row-inner > .urlbarView-title {
@@ -581,12 +580,8 @@
 /* On hover and selected the chiclet background would fade into the row style,
    thus we invert the background, using the panel color, instead. */
 .urlbarView-row:is([type=switchtab], [type=remotetab]):is([selected], :hover) > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-action {
-  background-color: Field;
-  color: FieldText;
-}
-.urlbarView-row:is([type=switchtab], [type=remotetab]):is([selected], :hover) > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-action:-moz-lwtheme {
-  background-color: var(--lwt-toolbar-field-focus);
-  color: var(--lwt-toolbar-field-focus-color);
+  background-color: var(--toolbar-field-focus-background-color);
+  color: var(--toolbar-field-focus-color);
 }
 
 .urlbarView-row[type=remotetab]:not([selected], :hover) > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-title-separator::before,
@@ -724,9 +719,9 @@
   --panel-padding: var(--panel-subview-body-padding);
 }
 
-#PopupSearchAutoComplete:-moz-lwtheme {
-  --panel-color: var(--lwt-toolbar-field-focus-color);
-  --panel-background: var(--lwt-toolbar-field-focus);
+#PopupSearchAutoComplete {
+  --panel-color: var(--toolbar-field-focus-color);
+  --panel-background: var(--toolbar-field-focus-background-color);
 }
 
 #PopupSearchAutoComplete .autocomplete-richlistitem[selected] {

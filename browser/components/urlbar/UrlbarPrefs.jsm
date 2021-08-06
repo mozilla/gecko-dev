@@ -71,6 +71,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // but this would mean flushing layout.)
   ["disableExtendForTests", false],
 
+  // Ensure we use trailing dots for DNS lookups for single words that could
+  // be hosts.
+  ["dnsResolveFullyQualifiedNames", true],
+
   // Controls when to DNS resolve single word search strings, after they were
   // searched for. If the string is resolved as a valid host, show a
   // "Did you mean to go to 'host'" prompt.
@@ -96,6 +100,11 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // Applies URL highlighting and other styling to the text in the urlbar input.
   ["formatting.enabled", true],
+
+  // Whether Firefox Suggest group labels are shown in the urlbar view in en-*
+  // locales. Labels are not shown in other locales but likely will be in the
+  // future.
+  ["groupLabels.enabled", true],
 
   // Whether the results panel should be kept open during IME composition.
   ["keepPanelOpenDuringImeComposition", false],
@@ -402,6 +411,13 @@ class Preferences {
     }
     this._observerWeakRefs = [];
     this.addObserver(this);
+    // These prefs control the value of the shouldHandOffToSearchMode pref. They
+    // are exposed as a class variable so UrlbarPrefs observers can watch for
+    // changes in these prefs.
+    this.shouldHandOffToSearchModePrefs = [
+      "keyword.enabled",
+      "suggest.searches",
+    ];
     NimbusFeatures.urlbar.onUpdate(() => this._onNimbusUpdate());
   }
 
@@ -544,6 +560,10 @@ class Preferences {
     if (pref.startsWith("suggest.")) {
       this._map.delete("defaultBehavior");
     }
+
+    if (this.shouldHandOffToSearchModePrefs.includes(pref)) {
+      this._map.delete("shouldHandOffToSearchMode");
+    }
   }
 
   /**
@@ -608,6 +628,10 @@ class Preferences {
         return makeResultBuckets({
           showSearchSuggestionsFirst: this.get("showSearchSuggestionsFirst"),
         });
+      case "shouldHandOffToSearchMode":
+        return this.shouldHandOffToSearchModePrefs.some(
+          prefName => !this.get(prefName)
+        );
     }
     return this._readPref(pref);
   }

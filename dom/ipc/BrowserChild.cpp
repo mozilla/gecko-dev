@@ -930,11 +930,6 @@ void BrowserChild::ActorDestroy(ActorDestroyReason why) {
     }
   }
 
-  CompositorBridgeChild* compositorChild = CompositorBridgeChild::Get();
-  if (compositorChild) {
-    compositorChild->CancelNotifyAfterRemotePaint(this);
-  }
-
   if (GetTabId() != 0) {
     NestedBrowserChildMap().erase(GetTabId());
   }
@@ -1039,40 +1034,40 @@ mozilla::ipc::IPCResult BrowserChild::RecvResumeLoad(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvCloneDocumentTreeIntoSelf(
+nsresult BrowserChild::CloneDocumentTreeIntoSelf(
     const MaybeDiscarded<BrowsingContext>& aSourceBC,
     const embedding::PrintData& aPrintData) {
 #ifdef NS_PRINTING
   if (NS_WARN_IF(aSourceBC.IsNullOrDiscarded())) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
   nsCOMPtr<Document> sourceDocument = aSourceBC.get()->GetDocument();
   if (NS_WARN_IF(!sourceDocument)) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIDocShell> ourDocShell = do_GetInterface(WebNavigation());
   if (NS_WARN_IF(!ourDocShell)) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIContentViewer> cv;
   ourDocShell->GetContentViewer(getter_AddRefs(cv));
   if (NS_WARN_IF(!cv)) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIPrintSettingsService> printSettingsSvc =
       do_GetService("@mozilla.org/gfx/printsettings-service;1");
   if (NS_WARN_IF(!printSettingsSvc)) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIPrintSettings> printSettings;
   nsresult rv =
       printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return IPC_OK();
+    return rv;
   }
 
   printSettingsSvc->DeserializeToPrintSettings(aPrintData, printSettings);
@@ -1085,44 +1080,62 @@ mozilla::ipc::IPCResult BrowserChild::RecvCloneDocumentTreeIntoSelf(
     clone = sourceDocument->CreateStaticClone(ourDocShell, cv, printSettings,
                                               &hasInProcessCallbacks);
     if (NS_WARN_IF(!clone)) {
-      return IPC_OK();
+      return NS_ERROR_FAILURE;
     }
   }
 
-  return RecvUpdateRemotePrintSettings(aPrintData);
+  rv = UpdateRemotePrintSettings(aPrintData);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
 #endif
+  return NS_OK;
+}
+
+mozilla::ipc::IPCResult BrowserChild::RecvCloneDocumentTreeIntoSelf(
+    const MaybeDiscarded<BrowsingContext>& aSourceBC,
+    const embedding::PrintData& aPrintData,
+    CloneDocumentTreeIntoSelfResolver&& aResolve) {
+  nsresult rv = NS_OK;
+
+#ifdef NS_PRINTING
+  rv = CloneDocumentTreeIntoSelf(aSourceBC, aPrintData);
+#endif
+
+  aResolve(NS_SUCCEEDED(rv));
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvUpdateRemotePrintSettings(
+nsresult BrowserChild::UpdateRemotePrintSettings(
     const embedding::PrintData& aPrintData) {
 #ifdef NS_PRINTING
   nsCOMPtr<nsIDocShell> ourDocShell = do_GetInterface(WebNavigation());
   if (NS_WARN_IF(!ourDocShell)) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   RefPtr<Document> doc = ourDocShell->GetExtantDocument();
   if (NS_WARN_IF(!doc) || NS_WARN_IF(!doc->IsStaticDocument())) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   RefPtr<BrowsingContext> bc = ourDocShell->GetBrowsingContext();
   if (NS_WARN_IF(!bc)) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIPrintSettingsService> printSettingsSvc =
       do_GetService("@mozilla.org/gfx/printsettings-service;1");
   if (NS_WARN_IF(!printSettingsSvc)) {
-    return IPC_OK();
+    return NS_ERROR_FAILURE;
   }
 
   nsCOMPtr<nsIPrintSettings> printSettings;
   nsresult rv =
       printSettingsSvc->GetNewPrintSettings(getter_AddRefs(printSettings));
   if (NS_WARN_IF(NS_FAILED(rv))) {
-    return IPC_OK();
+    return rv;
   }
 
   printSettingsSvc->DeserializeToPrintSettings(aPrintData, printSettings);
@@ -1149,6 +1162,15 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateRemotePrintSettings(
     }
     return BrowsingContext::WalkFlag::Next;
   });
+#endif
+
+  return NS_OK;
+}
+
+mozilla::ipc::IPCResult BrowserChild::RecvUpdateRemotePrintSettings(
+    const embedding::PrintData& aPrintData) {
+#ifdef NS_PRINTING
+  UpdateRemotePrintSettings(aPrintData);
 #endif
 
   return IPC_OK();
@@ -2643,13 +2665,14 @@ mozilla::ipc::IPCResult BrowserChild::RecvRenderLayers(
 
   if (mCompositorOptions) {
     MOZ_ASSERT(mPuppetWidget);
-    RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
-    MOZ_ASSERT(lm);
-
-    // We send the current layer observer epoch to the compositor so that
-    // BrowserParent knows whether a layer update notification corresponds to
-    // the latest RecvRenderLayers request that was made.
-    lm->SetLayersObserverEpoch(mLayersObserverEpoch);
+    RefPtr<LayerManager> lm =
+        mPuppetWidget->GetWindowRenderer()->AsLayerManager();
+    if (lm) {
+      // We send the current layer observer epoch to the compositor so that
+      // BrowserParent knows whether a layer update notification corresponds to
+      // the latest RecvRenderLayers request that was made.
+      lm->SetLayersObserverEpoch(mLayersObserverEpoch);
+    }
   }
 
   mRenderLayers = aEnabled;
@@ -2704,7 +2727,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvRenderLayers(
   } else {
     RefPtr<nsViewManager> vm = presShell->GetViewManager();
     if (nsView* view = vm->GetRootView()) {
-      presShell->Paint(view, view->GetBounds(), PaintFlags::PaintLayers);
+      presShell->Paint(view, view->GetBounds(), PaintFlags::None);
     }
   }
   presShell->SuppressDisplayport(false);
@@ -2812,7 +2835,7 @@ void BrowserChild::InitRenderingState(
   // layers. CreateRemoteLayerManager will destroy us if we manage to get a
   // remote layer manager though, so that's fine.
   MOZ_ASSERT(!mPuppetWidget->HasLayerManager() ||
-             mPuppetWidget->GetLayerManager()->GetBackendType() ==
+             mPuppetWidget->GetWindowRenderer()->GetBackendType() ==
                  layers::LayersBackend::LAYERS_BASIC);
   bool success = false;
   if (mLayersConnected == Some(true)) {
@@ -2825,9 +2848,11 @@ void BrowserChild::InitRenderingState(
     ImageBridgeChild::IdentifyCompositorTextureHost(mTextureFactoryIdentifier);
     gfx::VRManagerChild::IdentifyTextureHost(mTextureFactoryIdentifier);
     InitAPZState();
-    RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
-    MOZ_ASSERT(lm);
-    lm->SetLayersObserverEpoch(mLayersObserverEpoch);
+    RefPtr<LayerManager> lm =
+        mPuppetWidget->GetWindowRenderer()->AsLayerManager();
+    if (lm) {
+      lm->SetLayersObserverEpoch(mLayersObserverEpoch);
+    }
   } else {
     NS_WARNING("Fallback to BasicLayerManager");
     mLayersConnected = Some(false);
@@ -3121,10 +3146,13 @@ void BrowserChild::DidComposite(mozilla::layers::TransactionId aTransactionId,
                                 const TimeStamp& aCompositeStart,
                                 const TimeStamp& aCompositeEnd) {
   MOZ_ASSERT(mPuppetWidget);
-  RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
+  RefPtr<LayerManager> lm =
+      mPuppetWidget->GetWindowRenderer()->AsLayerManager();
   MOZ_ASSERT(lm);
 
-  lm->DidComposite(aTransactionId, aCompositeStart, aCompositeEnd);
+  if (lm) {
+    lm->DidComposite(aTransactionId, aCompositeStart, aCompositeEnd);
+  }
 }
 
 void BrowserChild::DidRequestComposite(const TimeStamp& aCompositeReqStart,
@@ -3153,10 +3181,11 @@ void BrowserChild::DidRequestComposite(const TimeStamp& aCompositeReqStart,
 
 void BrowserChild::ClearCachedResources() {
   MOZ_ASSERT(mPuppetWidget);
-  RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
-  MOZ_ASSERT(lm);
-
-  lm->ClearCachedResources();
+  RefPtr<LayerManager> lm =
+      mPuppetWidget->GetWindowRenderer()->AsLayerManager();
+  if (lm) {
+    lm->ClearCachedResources();
+  }
 
   if (nsCOMPtr<Document> document = GetTopLevelDocument()) {
     nsPresContext* presContext = document->GetPresContext();
@@ -3168,10 +3197,11 @@ void BrowserChild::ClearCachedResources() {
 
 void BrowserChild::InvalidateLayers() {
   MOZ_ASSERT(mPuppetWidget);
-  RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
-  MOZ_ASSERT(lm);
-
-  FrameLayerBuilder::InvalidateAllLayers(lm);
+  RefPtr<LayerManager> lm =
+      mPuppetWidget->GetWindowRenderer()->AsLayerManager();
+  if (lm) {
+    FrameLayerBuilder::InvalidateAllLayers(lm);
+  }
 }
 
 void BrowserChild::SchedulePaint() {
@@ -3225,9 +3255,11 @@ void BrowserChild::ReinitRendering() {
   gfx::VRManagerChild::IdentifyTextureHost(mTextureFactoryIdentifier);
 
   InitAPZState();
-  RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
-  MOZ_ASSERT(lm);
-  lm->SetLayersObserverEpoch(mLayersObserverEpoch);
+  RefPtr<LayerManager> lm =
+      mPuppetWidget->GetWindowRenderer()->AsLayerManager();
+  if (lm) {
+    lm->SetLayersObserverEpoch(mLayersObserverEpoch);
+  }
 
   nsCOMPtr<Document> doc(GetTopLevelDocument());
   doc->NotifyLayerManagerRecreated();
@@ -3236,11 +3268,12 @@ void BrowserChild::ReinitRendering() {
 void BrowserChild::ReinitRenderingForDeviceReset() {
   InvalidateLayers();
 
-  RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
-  if (WebRenderLayerManager* wlm = lm->AsWebRenderLayerManager()) {
-    wlm->DoDestroy(/* aIsSync */ true);
-  } else if (ClientLayerManager* clm = lm->AsClientLayerManager()) {
-    if (ShadowLayerForwarder* fwd = clm->AsShadowForwarder()) {
+  RefPtr<LayerManager> lm =
+      mPuppetWidget->GetWindowRenderer()->AsLayerManager();
+  if (lm && lm->AsWebRenderLayerManager()) {
+    lm->AsWebRenderLayerManager()->DoDestroy(/* aIsSync */ true);
+  } else if (lm && lm->AsClientLayerManager()) {
+    if (ShadowLayerForwarder* fwd = lm->AsShadowForwarder()) {
       // Force the LayerTransactionChild to synchronously shutdown. It is
       // okay to do this early, we'll simply stop sending messages. This
       // step is necessary since otherwise the compositor will think we
@@ -3276,20 +3309,11 @@ BrowserChild::OnHideTooltip() {
 void BrowserChild::NotifyJankedAnimations(
     const nsTArray<uint64_t>& aJankedAnimations) {
   MOZ_ASSERT(mPuppetWidget);
-  RefPtr<LayerManager> lm = mPuppetWidget->GetLayerManager();
-  MOZ_ASSERT(lm);
-  lm->UpdatePartialPrerenderedAnimations(aJankedAnimations);
-}
-
-mozilla::ipc::IPCResult BrowserChild::RecvRequestNotifyAfterRemotePaint() {
-  // Get the CompositorBridgeChild instance for this content thread.
-  CompositorBridgeChild* compositor = CompositorBridgeChild::Get();
-
-  // Tell the CompositorBridgeChild that, when it gets a RemotePaintIsReady
-  // message that it should forward it us so that we can bounce it to our
-  // BrowserParent.
-  compositor->RequestNotifyAfterRemotePaint(this);
-  return IPC_OK();
+  RefPtr<LayerManager> lm =
+      mPuppetWidget->GetWindowRenderer()->AsLayerManager();
+  if (lm) {
+    lm->UpdatePartialPrerenderedAnimations(aJankedAnimations);
+  }
 }
 
 mozilla::ipc::IPCResult BrowserChild::RecvUIResolutionChanged(

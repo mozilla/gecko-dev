@@ -4,21 +4,170 @@
 // @ts-check
 "use strict";
 
-const { createLazyLoaders } = ChromeUtils.import(
-  "resource://devtools/client/performance-new/typescript-lazy-load.jsm.js"
-);
-
 /**
  * @typedef {import("./@types/perf").Library} Library
  * @typedef {import("./@types/perf").PerfFront} PerfFront
  * @typedef {import("./@types/perf").SymbolTableAsTuple} SymbolTableAsTuple
+ * @typedef {import("./@types/perf").SymbolicationService} SymbolicationService
+ * @typedef {import("./@types/perf").SymbolicationWorkerInitialMessage} SymbolicationWorkerInitialMessage
  */
 
-const lazy = createLazyLoaders({
-  OS: () => ChromeUtils.import("resource://gre/modules/osfile.jsm"),
-  ProfilerGetSymbols: () =>
-    ChromeUtils.import("resource://gre/modules/ProfilerGetSymbols.jsm"),
-});
+/**
+ * @template R
+ * @typedef {import("./@types/perf").SymbolicationWorkerReplyData<R>} SymbolicationWorkerReplyData<R>
+ */
+
+ChromeUtils.defineModuleGetter(
+  this,
+  "setTimeout",
+  "resource://gre/modules/Timer.jsm"
+);
+ChromeUtils.defineModuleGetter(
+  this,
+  "clearTimeout",
+  "resource://gre/modules/Timer.jsm"
+);
+
+/** @type {any} */
+const global = this;
+
+// This module obtains symbol tables for binaries.
+// It does so with the help of a WASM module which gets pulled in from the
+// internet on demand. We're doing this purely for the purposes of saving on
+// code size. The contents of the WASM module are expected to be static, they
+// are checked against the hash specified below.
+// The WASM code is run on a ChromeWorker thread. It takes the raw byte
+// contents of the to-be-dumped binary (and of an additional optional pdb file
+// on Windows) as its input, and returns a set of typed arrays which make up
+// the symbol table.
+
+// Don't let the strange looking URLs and strings below scare you.
+// The hash check ensures that the contents of the wasm module are what we
+// expect them to be.
+// The source code is at https://github.com/mstange/profiler-get-symbols/ .
+// Documentation is at https://docs.rs/profiler-get-symbols/ .
+// The sha384 sum can be computed with the following command (tested on macOS):
+// shasum -b -a 384 profiler_get_symbols_wasm_bg.wasm | awk '{ print $1 }' | xxd -r -p | base64
+
+// Generated from https://github.com/mstange/profiler-get-symbols/commit/c1dca28a2a506df40f0a6f32c12ba51ec54b02be
+const WASM_MODULE_URL =
+  "https://storage.googleapis.com/firefox-profiler-get-symbols/c1dca28a2a506df40f0a6f32c12ba51ec54b02be.wasm";
+const WASM_MODULE_INTEGRITY =
+  "sha384-ZWi2jwcKJr20rE2gmHjFQGHgsCF9CagkyPLsrIZfmf5QKD2oXgkLa8tMKHK6zPA1";
+
+const EXPIRY_TIME_IN_MS = 5 * 60 * 1000; // 5 minutes
+
+/** @type {Promise<WebAssembly.Module> | null} */
+let gCachedWASMModulePromise = null;
+let gCachedWASMModuleExpiryTimer = 0;
+
+// Keep active workers alive (see bug 1592227).
+const gActiveWorkers = new Set();
+
+function clearCachedWASMModule() {
+  gCachedWASMModulePromise = null;
+  gCachedWASMModuleExpiryTimer = 0;
+}
+
+function getWASMProfilerGetSymbolsModule() {
+  if (!gCachedWASMModulePromise) {
+    gCachedWASMModulePromise = (async function() {
+      const request = new Request(WASM_MODULE_URL, {
+        integrity: WASM_MODULE_INTEGRITY,
+        credentials: "omit",
+      });
+      return WebAssembly.compileStreaming(fetch(request));
+    })();
+  }
+
+  // Reset expiry timer.
+  clearTimeout(gCachedWASMModuleExpiryTimer);
+  gCachedWASMModuleExpiryTimer = setTimeout(
+    clearCachedWASMModule,
+    EXPIRY_TIME_IN_MS
+  );
+
+  return gCachedWASMModulePromise;
+}
+
+/**
+ * Handle the entire life cycle of a worker, and report its result.
+ * This method creates a new worker, sends the initial message to it, handles
+ * any errors, and accepts the result.
+ * Returns a promise that resolves with the contents of the (singular) result
+ * message or rejects with an error.
+ *
+ * @template M
+ * @template R
+ * @param {string} workerURL
+ * @param {M} initialMessageToWorker
+ * @returns {Promise<R>}
+ */
+async function getResultFromWorker(workerURL, initialMessageToWorker) {
+  return new Promise((resolve, reject) => {
+    const worker = new ChromeWorker(workerURL);
+    gActiveWorkers.add(worker);
+
+    /** @param {MessageEvent<SymbolicationWorkerReplyData<R>>} msg */
+    worker.onmessage = msg => {
+      gActiveWorkers.delete(worker);
+      if ("error" in msg.data) {
+        const error = msg.data.error;
+        if (error.name) {
+          // Turn the JSON error object into a real Error object.
+          const { name, message, fileName, lineNumber } = error;
+          const ErrorObjConstructor =
+            name in global && Error.isPrototypeOf(global[name])
+              ? global[name]
+              : Error;
+          const e = new ErrorObjConstructor(message, fileName, lineNumber);
+          e.name = name;
+          reject(e);
+        } else {
+          reject(error);
+        }
+        return;
+      }
+      resolve(msg.data.result);
+    };
+
+    // Handle uncaught errors from the worker script. onerror is called if
+    // there's a syntax error in the worker script, for example, or when an
+    // unhandled exception is thrown, but not for unhandled promise
+    // rejections. Without this handler, mistakes during development such as
+    // syntax errors can be hard to track down.
+    worker.onerror = errorEvent => {
+      gActiveWorkers.delete(worker);
+      worker.terminate();
+      if (errorEvent instanceof ErrorEvent) {
+        const { message, filename, lineno } = errorEvent;
+        const error = new Error(`${message} at ${filename}:${lineno}`);
+        error.name = "WorkerError";
+        reject(error);
+      } else {
+        reject(new Error("Error in worker"));
+      }
+    };
+
+    // Handle errors from messages that cannot be deserialized. I'm not sure
+    // how to get into such a state, but having this handler seems like a good
+    // idea.
+    worker.onmessageerror = errorEvent => {
+      gActiveWorkers.delete(worker);
+      worker.terminate();
+      if (errorEvent instanceof ErrorEvent) {
+        const { message, filename, lineno } = errorEvent;
+        const error = new Error(`${message} at ${filename}:${lineno}`);
+        error.name = "WorkerMessageError";
+        reject(error);
+      } else {
+        reject(new Error("Error in worker"));
+      }
+    };
+
+    worker.postMessage(initialMessageToWorker);
+  });
+}
 
 /**
  * @param {PerfFront} perfFront
@@ -41,74 +190,8 @@ async function getSymbolTableFromDebuggee(perfFront, path, breakpadId) {
 }
 
 /**
- * @param {string} path
- * @returns {Promise<boolean>}
- */
-async function doesFileExistAtPath(path) {
-  const { OS } = lazy.OS();
-  try {
-    const result = await OS.File.stat(path);
-    return !result.isDir;
-  } catch (e) {
-    if (e instanceof OS.File.Error && e.becauseNoSuchFile) {
-      return false;
-    }
-    throw e;
-  }
-}
-
-/**
- * Retrieve a symbol table from a binary on the host machine, by looking up
- * relevant build artifacts in the specified objdirs.
- * This is needed if the debuggee is a build running on a remote machine that
- * was compiled by the developer on *this* machine (the "host machine"). In
- * that case, the objdir will contain the compiled binary with full symbol and
- * debug information, whereas the binary on the device may not exist in
- * uncompressed form or may have been stripped of debug information and some
- * symbol information.
- * An objdir, or "object directory", is a directory on the host machine that's
- * used to store build artifacts ("object files") from the compilation process.
- *
- * @param {string[]} objdirs An array of objdir paths on the host machine
- *   that should be searched for relevant build artifacts.
- * @param {string} filename The file name of the binary.
- * @param {string} breakpadId The breakpad ID of the binary.
- * @returns {Promise<SymbolTableAsTuple>} The symbol table of the first encountered binary with a
- *   matching breakpad ID, in SymbolTableAsTuple format. An exception is thrown (the
- *   promise is rejected) if nothing was found.
- */
-async function getSymbolTableFromLocalBinary(objdirs, filename, breakpadId) {
-  const { OS } = lazy.OS();
-  const candidatePaths = [];
-  for (const objdirPath of objdirs) {
-    // Binaries are usually expected to exist at objdir/dist/bin/filename.
-    candidatePaths.push(OS.Path.join(objdirPath, "dist", "bin", filename));
-    // Also search in the "objdir" directory itself (not just in dist/bin).
-    // If, for some unforeseen reason, the relevant binary is not inside the
-    // objdirs dist/bin/ directory, this provides a way out because it lets the
-    // user specify the actual location.
-    candidatePaths.push(OS.Path.join(objdirPath, filename));
-  }
-
-  for (const path of candidatePaths) {
-    if (await doesFileExistAtPath(path)) {
-      const { ProfilerGetSymbols } = lazy.ProfilerGetSymbols();
-      try {
-        return await ProfilerGetSymbols.getSymbolTable(path, path, breakpadId);
-      } catch (e) {
-        // ProfilerGetSymbols.getSymbolTable was unsuccessful. So either the
-        // file wasn't parseable or its contents didn't match the specified
-        // breakpadId, or some other error occurred.
-        // Advance to the next candidate path.
-      }
-    }
-  }
-  throw new Error("Could not find any matching binary.");
-}
-
-/**
  * Profiling through the DevTools remote debugging protocol supports multiple
- * different modes. This function is specialized to handle various profiling
+ * different modes. This class is specialized to handle various profiling
  * modes such as:
  *
  *   1) Profiling the same browser on the same machine.
@@ -116,67 +199,137 @@ async function getSymbolTableFromLocalBinary(objdirs, filename, breakpadId) {
  *   3) Profiling a remote browser on a different device.
  *
  * It's also built to handle symbolication requests for both Gecko libraries and
- * system libraries.
- *
- * @param {Library} lib - The library to get symbols for.
- * @param {string[]} objdirs - An array of objdir paths on the host machine that
- *   should be searched for relevant build artifacts.
- * @param {PerfFront | undefined} perfFront - The perfFront for a remote debugging
- *   connection, or undefined when profiling this browser.
- * @return {Promise<SymbolTableAsTuple>}
+ * system libraries. However, it only handles cases where symbol information
+ * can be found in a local file on this machine. There is one case that is not
+ * covered by that restriction: Android system libraries. That case requires
+ * the help of the perf actor and is implemented in
+ * LocalSymbolicationServiceWithRemoteSymbolTableFallback.
  */
-async function getSymbolTableMultiModal(lib, objdirs, perfFront = undefined) {
-  const { name, debugName, path, debugPath, breakpadId } = lib;
-  try {
-    // First, try to find a binary with a matching file name and breakpadId
-    // in one of the manually specified objdirs. If the profiled build was
-    // compiled locally, and matches the build artifacts in the objdir, then
-    // this gives the best results because the objdir build always has full
-    // symbol information.
-    // This only works if the binary is one of the Gecko binaries and not
-    // a system library.
-    return await getSymbolTableFromLocalBinary(objdirs, name, breakpadId);
-  } catch (errorWhenCheckingObjdirs) {
-    // Couldn't find a matching build in one of the objdirs. Search elsewhere.
-    if (await doesFileExistAtPath(path)) {
-      const { ProfilerGetSymbols } = lazy.ProfilerGetSymbols();
-      // This profile was probably obtained from this machine, and not from a
-      // different device (e.g. an Android phone). Dump symbols from the file
-      // on this machine directly.
-      return ProfilerGetSymbols.getSymbolTable(path, debugPath, breakpadId);
-    }
-    // No file exists at the path on this machine, which probably indicates
-    // that the profile was obtained on a different machine, i.e. the debuggee
-    // is truly remote (e.g. on an Android phone).
-    if (!perfFront) {
-      // No remote connection - we really needed the file at path.
-      throw new Error(
-        `Could not obtain symbols for the library ${debugName} ${breakpadId} ` +
-          `because there was no file at the given path "${path}". Furthermore, ` +
-          `looking for symbols in the given objdirs failed: ${errorWhenCheckingObjdirs.message}`
-      );
-    }
-    // Try to obtain the symbol table on the debuggee. We get into this
-    // branch in the following cases:
-    //  - Android system libraries
-    //  - Firefox binaries that have no matching equivalent on the host
-    //    machine, for example because the user didn't point us at the
-    //    corresponding objdir, or if the build was compiled somewhere
-    //    else, or if the build on the device is outdated.
-    // For now, the "debuggee" is never a Windows machine, which is why we don't
-    // need to pass the library's debugPath. (path and debugPath are always the
-    // same on non-Windows.)
-    return getSymbolTableFromDebuggee(perfFront, path, breakpadId);
+class LocalSymbolicationService {
+  /**
+   * @param {Library[]} sharedLibraries - Information about the shared libraries.
+   *   This allows mapping (debugName, breakpadId) pairs to the absolute path of
+   *   the binary and/or PDB file, and it ensures that these absolute paths come
+   *   from a trusted source and not from the profiler UI.
+   * @param {string[]} objdirs - An array of objdir paths
+   *   on the host machine that should be searched for relevant build artifacts.
+   */
+  constructor(sharedLibraries, objdirs) {
+    this._libInfoMap = new Map(
+      sharedLibraries.map(lib => {
+        const { debugName, breakpadId } = lib;
+        const key = `${debugName}:${breakpadId}`;
+        return [key, lib];
+      })
+    );
+    this._objdirs = objdirs;
   }
+
+  /**
+   * @param {string} debugName
+   * @param {string} breakpadId
+   * @returns {Promise<SymbolTableAsTuple>}
+   */
+  async getSymbolTable(debugName, breakpadId) {
+    const module = await getWASMProfilerGetSymbolsModule();
+    /** @type {SymbolicationWorkerInitialMessage} */
+    const initialMessage = {
+      debugName,
+      breakpadId,
+      libInfoMap: this._libInfoMap,
+      objdirs: this._objdirs,
+      module,
+    };
+    return getResultFromWorker(
+      "resource://devtools/client/performance-new/symbolication-worker.js",
+      initialMessage
+    );
+  }
+}
+
+/**
+ * An implementation of the SymbolicationService interface which also
+ * covers the Android system library case.
+ * We first try to get symbols from the wrapped SymbolicationService.
+ * If that fails, we try to get the symbol table through the perf actor.
+ */
+class LocalSymbolicationServiceWithRemoteSymbolTableFallback {
+  /**
+   * @param {SymbolicationService} symbolicationService - The regular symbolication service.
+   * @param {Library[]} sharedLibraries - Information about the shared libraries
+   * @param {PerfFront} perfFront - A perf actor, to obtain symbol
+   *   tables from remote targets
+   */
+  constructor(symbolicationService, sharedLibraries, perfFront) {
+    this._symbolicationService = symbolicationService;
+    this._libs = sharedLibraries;
+    this._perfFront = perfFront;
+  }
+
+  /**
+   * @param {string} debugName
+   * @param {string} breakpadId
+   * @returns {Promise<SymbolTableAsTuple>}
+   */
+  async getSymbolTable(debugName, breakpadId) {
+    try {
+      return await this._symbolicationService.getSymbolTable(
+        debugName,
+        breakpadId
+      );
+    } catch (errorFromLocalFiles) {
+      // Try to obtain the symbol table on the debuggee. We get into this
+      // branch in the following cases:
+      //  - Android system libraries
+      //  - Firefox binaries that have no matching equivalent on the host
+      //    machine, for example because the user didn't point us at the
+      //    corresponding objdir, or if the build was compiled somewhere
+      //    else, or if the build on the device is outdated.
+      // For now, the "debuggee" is never a Windows machine, which is why we don't
+      // need to pass the library's debugPath. (path and debugPath are always the
+      // same on non-Windows.)
+      const lib = this._libs.find(
+        l => l.debugName === debugName && l.breakpadId === breakpadId
+      );
+      if (!lib) {
+        throw new Error(
+          `Could not find the library for "${debugName}", "${breakpadId}" after falling ` +
+            `back to remote symbol table querying because regular getSymbolTable failed ` +
+            `with error: ${errorFromLocalFiles.message}.`
+        );
+      }
+      return getSymbolTableFromDebuggee(this._perfFront, lib.path, breakpadId);
+    }
+  }
+}
+
+/**
+ * Return an object that implements the SymbolicationService interface.
+ *
+ * @param {Library[]} sharedLibraries - Information about the shared libraries
+ * @param {string[]} objdirs - An array of objdir paths
+ *   on the host machine that should be searched for relevant build artifacts.
+ * @param {PerfFront} [perfFront] - An optional perf actor, to obtain symbol
+ *   tables from remote targets
+ * @return {SymbolicationService}
+ */
+function createLocalSymbolicationService(sharedLibraries, objdirs, perfFront) {
+  const service = new LocalSymbolicationService(sharedLibraries, objdirs);
+  if (perfFront) {
+    return new LocalSymbolicationServiceWithRemoteSymbolTableFallback(
+      service,
+      sharedLibraries,
+      perfFront
+    );
+  }
+  return service;
 }
 
 // Provide an exports object for the JSM to be properly read by TypeScript.
 /** @type {any} */ (this).module = {};
 
 module.exports = {
-  getSymbolTableFromDebuggee,
-  getSymbolTableFromLocalBinary,
-  getSymbolTableMultiModal,
+  createLocalSymbolicationService,
 };
 
 // Object.keys() confuses the linting which expects a static array expression.

@@ -1,8 +1,5 @@
 "use strict";
 
-const { L10nRegistry, FileSource } = ChromeUtils.import(
-  "resource://gre/modules/L10nRegistry.jsm"
-);
 const { FileUtils } = ChromeUtils.import(
   "resource://gre/modules/FileUtils.jsm"
 );
@@ -29,12 +26,12 @@ add_task(async function setup() {
 
   resProto.setSubstitution("l10ntest", target);
 
-  const source = new FileSource(
+  const source = new L10nFileSource(
     "test",
     Services.locale.requestedLocales,
     "resource://l10ntest/"
   );
-  L10nRegistry.registerSources([source]);
+  L10nRegistry.getInstance().registerSources([source]);
 });
 
 // Test that privileged extensions can use fluent to get strings from

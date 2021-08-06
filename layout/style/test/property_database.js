@@ -270,19 +270,15 @@ var validNonUrlImageValues = [
   "radial-gradient(at calc(100px + -25px) top, red, blue)",
   "radial-gradient(at left calc(100px + -25px), red, blue)",
 
-  ...(IsCSSPropertyPrefEnabled("layout.css.image-set.enabled")
-    ? [
-        "image-set(linear-gradient(green, green) 1x, url(foobar.png) 2x)",
-        "image-set(linear-gradient(red, red), url(foobar.png) 2x)",
-        "image-set(url(foobar.png) 2x)",
-        "image-set(url(foobar.png) 1x, url(bar.png) 2x, url(baz.png) 3x)",
-        "image-set('foobar.png', 'bar.png' 2x, url(baz.png) 3x)",
-        "image-set(image-set('foobar.png', 'bar.png' 2x) 1x, url(baz.png) 3x)",
-        "image-set(url(foobar.png) type('image/png'))",
-        "image-set(url(foobar.png) 1x type('image/png'))",
-        "image-set(url(foobar.png) type('image/png') 1x)",
-      ]
-    : []),
+  "image-set(linear-gradient(green, green) 1x, url(foobar.png) 2x)",
+  "image-set(linear-gradient(red, red), url(foobar.png) 2x)",
+  "image-set(url(foobar.png) 2x)",
+  "image-set(url(foobar.png) 1x, url(bar.png) 2x, url(baz.png) 3x)",
+  "image-set('foobar.png', 'bar.png' 2x, url(baz.png) 3x)",
+  "image-set(image-set('foobar.png', 'bar.png' 2x) 1x, url(baz.png) 3x)",
+  "image-set(url(foobar.png) type('image/png'))",
+  "image-set(url(foobar.png) 1x type('image/png'))",
+  "image-set(url(foobar.png) type('image/png') 1x)",
 
   ...(IsCSSPropertyPrefEnabled("layout.css.cross-fade.enabled")
     ? [
@@ -821,19 +817,15 @@ var invalidNonUrlImageValues = [
   "-webkit-repeating-conic-gradient(red, blue)",
   "-moz-repeating-conic-gradient(red, blue)",
 
-  ...(IsCSSPropertyPrefEnabled("layout.css.image-set.enabled")
-    ? [
-        "image-set(url(foobar.png) 1x, none)",
-        "image-set(garbage)",
-        "image-set(image-set(garbage))",
-        "image-set()",
-        "image-set(type('image/png') url(foobar.png) 1x)",
-        "image-set(url(foobar.png) type('image/png') 1x type('image/png'))",
-        "image-set(url(foobar.png) type('image/png') type('image/png'))",
-        "image-set(url(foobar.png) type(image/png))",
-        "image-set(url(foobar.png) epyt('image/png'))",
-      ]
-    : []),
+  "image-set(url(foobar.png) 1x, none)",
+  "image-set(garbage)",
+  "image-set(image-set(garbage))",
+  "image-set()",
+  "image-set(type('image/png') url(foobar.png) 1x)",
+  "image-set(url(foobar.png) type('image/png') 1x type('image/png'))",
+  "image-set(url(foobar.png) type('image/png') type('image/png'))",
+  "image-set(url(foobar.png) type(image/png))",
+  "image-set(url(foobar.png) epyt('image/png'))",
 
   ...(IsCSSPropertyPrefEnabled("layout.css.cross-fade.enabled")
     ? [
@@ -7095,15 +7087,18 @@ var gCSSProperties = {
     inherited: false,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["auto"],
-    other_values: ["avoid"],
+    other_values: ["avoid", "avoid-page", "avoid-column"],
     invalid_values: ["left", "right", "always"],
   },
   "page-break-inside": {
     domProp: "pageBreakInside",
     inherited: false,
-    type: CSS_TYPE_SHORTHAND_AND_LONGHAND,
+    type: CSS_TYPE_LEGACY_SHORTHAND,
     alias_for: "break-inside",
     subproperties: ["break-inside"],
+    initial_values: ["auto"],
+    other_values: ["avoid"],
+    invalid_values: ["avoid-page", "avoid-column"],
   },
   "paint-order": {
     domProp: "paintOrder",
@@ -8569,13 +8564,19 @@ var gCSSProperties = {
     type: CSS_TYPE_LONGHAND,
     initial_values: ["none"],
     other_values: [
+      "path(evenodd, '')",
+      "path(nonzero, 'M 10 10 h 100 v 100 h-100 v-100 z')",
+      "path(evenodd, 'M 10 10 h 100 v 100 h-100 v-100 z')",
+      "path('M10,30A20,20 0,0,1 50,30A20,20 0,0,1 90,30Q90,60 50,90Q10,60 10,30z')",
       "url(#mypath)",
       "url('404.svg#mypath')",
       "url(#my-clip-path)",
     ]
       .concat(basicShapeSVGBoxValues)
       .concat(basicShapeOtherValues),
-    invalid_values: basicShapeInvalidValues,
+    invalid_values: ["path(nonzero)", "path(abs, 'M 10 10 L 10 10 z')"].concat(
+      basicShapeInvalidValues
+    ),
     unbalanced_values: basicShapeUnbalancedValues,
   },
   "clip-rule": {
@@ -13224,20 +13225,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.motion-path.enabled")) {
   };
 }
 
-if (IsCSSPropertyPrefEnabled("layout.css.clip-path-path.enabled")) {
-  gCSSProperties["clip-path"].other_values.push(
-    "path(evenodd, '')",
-    "path(nonzero, 'M 10 10 h 100 v 100 h-100 v-100 z')",
-    "path(evenodd, 'M 10 10 h 100 v 100 h-100 v-100 z')",
-    "path('M10,30A20,20 0,0,1 50,30A20,20 0,0,1 90,30Q90,60 50,90Q10,60 10,30z')"
-  );
-
-  gCSSProperties["clip-path"].invalid_values.push(
-    "path(nonzero)",
-    "path(abs, 'M 10 10 L 10 10 z')"
-  );
-}
-
 if (IsCSSPropertyPrefEnabled("layout.css.d-property.enabled")) {
   gCSSProperties["d"] = {
     domProp: "d",
@@ -13371,6 +13358,27 @@ if (IsCSSPropertyPrefEnabled("layout.css.color-mix.enabled")) {
     "color-mix(in srgb, red blue)",
     "color-mix(in srgb, red 10% blue)"
   );
+}
+
+if (IsCSSPropertyPrefEnabled("layout.css.color-scheme.enabled")) {
+  gCSSProperties["color-scheme"] = {
+    domProp: "colorScheme",
+    inherited: true,
+    type: CSS_TYPE_LONGHAND,
+    initial_values: ["normal"],
+    other_values: [
+      "light",
+      "dark",
+      "light dark",
+      "light dark purple",
+      "light light dark",
+      "only light",
+      "only light dark",
+      "only light dark purple",
+      "light only",
+    ],
+    invalid_values: ["only normal", "normal only", "only light only"],
+  };
 }
 
 // Copy aliased properties' fields from their alias targets. Keep this logic

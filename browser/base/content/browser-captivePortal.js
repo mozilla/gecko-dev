@@ -27,7 +27,7 @@ var CaptivePortalWatcher = {
   _previousCaptivePortalTab: null,
 
   get _captivePortalNotification() {
-    return gHighPriorityNotificationBox.getNotificationWithValue(
+    return gNotificationBox.getNotificationWithValue(
       this.PORTAL_NOTIFICATION_VALUE
     );
   },
@@ -103,8 +103,10 @@ var CaptivePortalWatcher = {
         this._captivePortalDetected();
         break;
       case "captive-portal-login-abort":
+        this._captivePortalGone(false);
+        break;
       case "captive-portal-login-success":
-        this._captivePortalGone();
+        this._captivePortalGone(true);
         break;
       case "delayed-captive-portal-handled":
         this._cancelDelayedCaptivePortal();
@@ -175,6 +177,11 @@ var CaptivePortalWatcher = {
     }
 
     this._showNotification();
+    Services.telemetry.recordEvent(
+      "networking.captive_portal",
+      "login_infobar_shown",
+      "infobar"
+    );
   },
 
   /**
@@ -220,7 +227,7 @@ var CaptivePortalWatcher = {
     Services.obs.addObserver(observer, "captive-portal-check-complete");
   },
 
-  _captivePortalGone() {
+  _captivePortalGone(aSuccess) {
     this._cancelDelayedCaptivePortal();
     this._removeNotification();
 
@@ -239,6 +246,14 @@ var CaptivePortalWatcher = {
       gBrowser.removeTab(tab);
     }
     this._captivePortalTab = null;
+
+    if (aSuccess) {
+      Services.telemetry.recordEvent(
+        "networking.captive_portal",
+        "login_successful",
+        "detector"
+      );
+    }
   },
 
   _cancelDelayedCaptivePortal() {
@@ -291,6 +306,12 @@ var CaptivePortalWatcher = {
         callback: () => {
           this.ensureCaptivePortalTab();
 
+          Services.telemetry.recordEvent(
+            "networking.captive_portal",
+            "login_button_pressed",
+            "login_button"
+          );
+
           // Returning true prevents the notification from closing.
           return true;
         },
@@ -308,11 +329,11 @@ var CaptivePortalWatcher = {
       gBrowser.tabContainer.removeEventListener("TabSelect", this);
     };
 
-    gHighPriorityNotificationBox.appendNotification(
+    gNotificationBox.appendNotification(
       message,
       this.PORTAL_NOTIFICATION_VALUE,
       "",
-      gHighPriorityNotificationBox.PRIORITY_INFO_MEDIUM,
+      gNotificationBox.PRIORITY_INFO_MEDIUM,
       buttons,
       closeHandler
     );

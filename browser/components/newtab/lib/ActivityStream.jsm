@@ -50,8 +50,8 @@ ChromeUtils.defineModuleGetter(
 );
 ChromeUtils.defineModuleGetter(
   this,
-  "RecommendationProviderSwitcher",
-  "resource://activity-stream/lib/RecommendationProviderSwitcher.jsm"
+  "RecommendationProvider",
+  "resource://activity-stream/lib/RecommendationProvider.jsm"
 );
 ChromeUtils.defineModuleGetter(
   this,
@@ -145,7 +145,7 @@ const PREFS_CONFIG = new Map([
           api_key_pref: "extensions.pocket.oAuthConsumerKey",
           // Use the opposite value as what default value the feed would have used
           hidden: !PREFS_CONFIG.get("feeds.system.topstories").getValue(args),
-          provider_icon: "pocket",
+          provider_icon: "chrome://global/skin/icons/pocket.svg",
           provider_name: "Pocket",
           read_more_endpoint:
             "https://getpocket.com/explore/trending?src=fx_new_tab",
@@ -400,7 +400,6 @@ const PREFS_CONFIG = new Map([
           enabled: true,
           show_spocs: showSpocs({ geo }),
           hardcoded_layout: true,
-          personalized: true,
           // This is currently an exmple layout used for dev purposes.
           layout_endpoint:
             "https://getpocket.cdn.mozilla.net/v3/newtab/layout?version=1&consumer_key=$apiKey&layout_variant=basic",
@@ -595,9 +594,9 @@ const FEEDS_DATA = [
     value: true,
   },
   {
-    name: "recommendationproviderswitcher",
-    factory: () => new RecommendationProviderSwitcher(),
-    title: "Handles switching between two types of personality providers",
+    name: "recommendationprovider",
+    factory: () => new RecommendationProvider(),
+    title: "Handles setup and interaction for the personality provider",
     value: true,
   },
   {

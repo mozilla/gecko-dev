@@ -87,7 +87,44 @@ const TESTCASES = [
       </form>`,
     expectations: [false, false],
   },
+  {
+    description: "1 username field with search keyword",
+    document: `<form>
+      <input id="un1" autocomplete="username" placeholder="search by username">
+      </form>`,
+    expectations: [false, false],
+  },
+  {
+    description: "1 text input field with code keyword",
+    document: `<form>
+      <input id="un1" type="text" placeholder="enter your 6-digit code">
+      </form>`,
+    expectations: [false, false],
+  },
+  {
+    description: "Form with only a hidden field",
+    document: `<form>
+      <input id="un1" type="hidden" autocomplete="username">
+      </form>`,
+    expectations: [false, false],
+  },
+  {
+    description: "Form with only a button",
+    document: `<form>
+      <input id="un1" type="button" autocomplete="username">
+      </form>`,
+    expectations: [false, false],
+  },
 ];
+
+function _setPrefs() {
+  Services.prefs.setBoolPref("signon.usernameOnlyForm.enabled", true);
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref("signon.usernameOnlyForm.enabled");
+  });
+}
+
+this._setPrefs();
 
 for (let tc of TESTCASES) {
   info("Sanity checking the testcase: " + tc.description);
@@ -117,7 +154,7 @@ for (let tc of TESTCASES) {
         Assert.strictEqual(
           testcase.expectations[formHasSigninKeyword ? 1 : 0],
           element != null,
-          "TODO: add description"
+          `Return incorrect result when the layout is ${testcase.description}`
         );
       });
     })();

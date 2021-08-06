@@ -13,7 +13,8 @@
 #include "jit/AtomicOp.h"
 #include "jit/MoveResolver.h"
 #include "vm/BigIntType.h"  // JS::BigInt
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmBuiltins.h"
+#include "wasm/WasmTlsData.h"
 
 #ifdef _M_ARM64
 #  ifdef move32
@@ -319,6 +320,10 @@ class MacroAssemblerCompat : public vixl::MacroAssembler {
   void storeValue(const Address& src, const Address& dest, Register temp) {
     loadPtr(src, temp);
     storePtr(temp, dest);
+  }
+
+  void storePrivateValue(Register src, const Address& dest) {
+    storePtr(src, dest);
   }
 
   void loadValue(Address src, Register val) {

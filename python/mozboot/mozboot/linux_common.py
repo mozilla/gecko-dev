@@ -37,18 +37,6 @@ class FixStacksInstall(object):
         )
 
 
-class WasiSysrootInstall(object):
-    def __init__(self, **kwargs):
-        pass
-
-    def ensure_wasi_sysroot_packages(self, state_dir, checkout_root):
-        from mozboot import wasi_sysroot
-
-        self.install_toolchain_artifact(
-            state_dir, checkout_root, wasi_sysroot.LINUX_WASI_SYSROOT
-        )
-
-
 class StyloInstall(object):
     def __init__(self, **kwargs):
         pass
@@ -136,11 +124,38 @@ class MobileAndroidBootstrapper(object):
     def __init__(self, **kwargs):
         pass
 
-    def ensure_mobile_android_packages(self, artifact_mode=False):
+    def install_mobile_android_packages(self, mozconfig_builder, artifact_mode=False):
         from mozboot import android
 
         android.ensure_android(
             "linux", artifact_mode=artifact_mode, no_interactive=self.no_interactive
+        )
+        android.ensure_android(
+            "linux",
+            artifact_mode=artifact_mode,
+            no_interactive=self.no_interactive,
+            system_images_only=True,
+            avd_manifest_path=android.AVD_MANIFEST_X86_64,
+        )
+        android.ensure_android(
+            "linux",
+            artifact_mode=artifact_mode,
+            no_interactive=self.no_interactive,
+            system_images_only=True,
+            avd_manifest_path=android.AVD_MANIFEST_ARM,
+        )
+
+    def install_mobile_android_artifact_mode_packages(self, mozconfig_builder):
+        self.install_mobile_android_packages(mozconfig_builder, artifact_mode=True)
+
+    def ensure_mobile_android_packages(self, state_dir, checkout_root):
+        from mozboot import android
+
+        self.install_toolchain_artifact(
+            state_dir, checkout_root, android.LINUX_X86_64_ANDROID_AVD
+        )
+        self.install_toolchain_artifact(
+            state_dir, checkout_root, android.LINUX_ARM_ANDROID_AVD
         )
 
     def generate_mobile_android_mozconfig(self, artifact_mode=False):
@@ -161,7 +176,6 @@ class LinuxBootstrapper(
     NodeInstall,
     SccacheInstall,
     StyloInstall,
-    WasiSysrootInstall,
 ):
     def __init__(self, **kwargs):
         pass

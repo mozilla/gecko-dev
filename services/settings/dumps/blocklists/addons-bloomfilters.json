@@ -3,6 +3,127 @@
     {
       "stash": {
         "blocked": [
+          "{c36cb301-48a8-47e4-95e3-2dbdfb22eb73}:9.5.2",
+          "{c36cb301-48a8-47e4-95e3-2dbdfb22eb73}:6.2.2",
+          "{c36cb301-48a8-47e4-95e3-2dbdfb22eb73}:8.4.2",
+          "{c36cb301-48a8-47e4-95e3-2dbdfb22eb73}:7.3.2"
+        ],
+        "unblocked": []
+      },
+      "schema": 1627605467964,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1628015710443,
+      "id": "9fe034e6-967e-45e9-aa3c-f33fa5d1d575",
+      "last_modified": 1628015874766
+    },
+    {
+      "stash": {
+        "blocked": [],
+        "unblocked": []
+      },
+      "schema": 1627583861171,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1627605309792,
+      "id": "da99f7c7-7bab-4bb6-9e0c-0a7e2b81c536",
+      "last_modified": 1627605467907
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{0034fea2-06d8-4f73-8e70-9ef391e47b93}:5.4.2",
+          "{106b5521-033b-4c06-a168-8a5721a5aae1}:1.0",
+          "{d86e99c1-d540-4df3-9895-48062616892b}:2.3.2",
+          "{bd922f43-d60d-43e1-af46-7cd0ecc58c42}:1.1",
+          "{3f00705a-cc05-4f74-a036-ea67f19e3ae7}:1.1",
+          "{bd922f43-d60d-43e1-af46-7cd0ecc58c42}:1.0",
+          "{3fc558d4-6f70-42f4-b6e6-55cf84a05ca0}:2.3.2",
+          "{3f00705a-cc05-4f74-a036-ea67f19e3ae7}:1.2"
+        ],
+        "unblocked": []
+      },
+      "schema": 1627562279318,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1627583709016,
+      "id": "a45e0fdd-7491-4cd2-b9f5-593292ec3bdb",
+      "last_modified": 1627583861117
+    },
+    {
+      "stash": {
+        "blocked": [
+          "@SearchFoxMe-ext:1.0.0",
+          "@SearchFoxMeExt-ext:1.0.0",
+          "{756d48b2-6668-4659-b754-1fa66456a924}:1.0"
+        ],
+        "unblocked": []
+      },
+      "schema": 1627475875327,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1627562110359,
+      "id": "52760e30-4a3c-4c4a-ae75-8b8aeaf9771b",
+      "last_modified": 1627562279263
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{95e5a38b-5b77-49c4-93da-14db19d0f87c}:1.0"
+        ],
+        "unblocked": []
+      },
+      "schema": 1626947971035,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1627475710369,
+      "id": "644b997c-c81c-44fe-8c74-1dd8a120a0e9",
+      "last_modified": 1627475875269
+    },
+    {
+      "stash": {
+        "blocked": [
+          "ascsurfingprotection2021@iobit.com:2.2.5"
+        ],
+        "unblocked": []
+      },
+      "schema": 1626698274420,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1626870908878,
+      "id": "eb6e0222-4797-4cdd-aa49-0478995da777",
+      "last_modified": 1626871076194
+    },
+    {
+      "stash": {
+        "blocked": [
+          "quickerapp@com:1.2.10",
+          "minibarsearch@com:1.2.12",
+          "myvideopro@com:1.2.18",
+          "openweb@com:1.2.18",
+          "purchresult@com:1.2.18",
+          "togofind@com:1.2.17",
+          "togoresult@com:1.2.18",
+          "quicksearchbar@com:1.2.12",
+          "jumpingapp@com:1.2.18",
+          "gofinding@com:1.2.18",
+          "allsearchpro@com:1.2.18",
+          "keybrowse@com:1.2.12",
+          "browsetag@com:1.2.12",
+          "tagweb@com:1.2.12",
+          "gobrowse@com:1.2.10",
+          "quickbrowse@com:1.2.10",
+          "magicfiind@com:1.2.20",
+          "togobrowse@com:1.2.17",
+          "justsearcher@com:1.2.18",
+          "nextsearch@com:1.2.12",
+          "magicfiind@com:1.2.18"
+        ],
+        "unblocked": []
+      },
+      "schema": 1626449759749,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1626698109169,
+      "id": "b6bf78a6-2997-479d-bdff-c5f173f8025c",
+      "last_modified": 1626698274352
+    },
+    {
+      "stash": {
+        "blocked": [
           "{125f7e07-0be1-42f7-af08-f0816749b1c9}:0.7",
           "{125f7e07-0be1-42f7-af08-f0816749b1c9}:0.6",
           "{125f7e07-0be1-42f7-af08-f0816749b1c9}:0.3",

@@ -12,7 +12,6 @@
 #include "nsIHttpHeaderVisitor.h"
 #include "nsPrintfCString.h"
 #include "prtime.h"
-#include "plstr.h"
 #include "nsCRT.h"
 #include "nsURLHelper.h"
 #include "CacheControlParser.h"
@@ -270,7 +269,7 @@ nsresult nsHttpResponseHead::ParseCachedHead(const char* block) {
   // this command works on a buffer as prepared by Flatten, as such it is
   // not very forgiving ;-)
 
-  char* p = PL_strstr(block, "\r\n");
+  const char* p = strstr(block, "\r\n");
   if (!p) return NS_ERROR_UNEXPECTED;
 
   ParseStatusLine_locked(nsDependentCSubstring(block, p - block));
@@ -280,7 +279,7 @@ nsresult nsHttpResponseHead::ParseCachedHead(const char* block) {
 
     if (*block == 0) break;
 
-    p = PL_strstr(block, "\r\n");
+    p = strstr(block, "\r\n");
     if (!p) return NS_ERROR_UNEXPECTED;
 
     Unused << ParseHeaderLine_locked(nsDependentCSubstring(block, p - block),
@@ -313,7 +312,7 @@ nsresult nsHttpResponseHead::ParseCachedOriginalHeaders(char* block) {
 
     if (*block == 0) break;
 
-    p = PL_strstr(block, "\r\n");
+    p = strstr(block, "\r\n");
     if (!p) return NS_ERROR_UNEXPECTED;
 
     *p = 0;
@@ -903,10 +902,13 @@ void nsHttpResponseHead::UpdateHeaders(nsHttpResponseHead* aOther) {
   for (i = 0; i < count; ++i) {
     nsHttpAtom header;
     nsAutoCString headerNameOriginal;
-    const char* val =
-        aOther->mHeaders.PeekHeaderAt(i, header, headerNameOriginal);
 
-    if (!val) {
+    if (!aOther->mHeaders.PeekHeaderAt(i, header, headerNameOriginal)) {
+      continue;
+    }
+
+    nsAutoCString val;
+    if (NS_FAILED(aOther->GetHeader(header, val))) {
       continue;
     }
 
@@ -926,13 +928,13 @@ void nsHttpResponseHead::UpdateHeaders(nsHttpResponseHead* aOther) {
         // this one is for MS servers that send "Content-Length: 0"
         // on 304 responses
         header == nsHttp::Content_Length) {
-      LOG(("ignoring response header [%s: %s]\n", header.get(), val));
+      LOG(("ignoring response header [%s: %s]\n", header.get(), val.get()));
     } else {
-      LOG(("new response header [%s: %s]\n", header.get(), val));
+      LOG(("new response header [%s: %s]\n", header.get(), val.get()));
 
       // overwrite the current header value with the new value...
       DebugOnly<nsresult> rv =
-          SetHeader_locked(header, headerNameOriginal, nsDependentCString(val));
+          SetHeader_locked(header, headerNameOriginal, val);
       MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
   }

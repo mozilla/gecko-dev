@@ -67,6 +67,7 @@ class PresShell;
 namespace dom {
 class Event;
 class KeyboardEvent;
+class UIEvent;
 }  // namespace dom
 }  // namespace mozilla
 
@@ -183,6 +184,35 @@ extern const nsNavigationDirection DirectionFromKeyCodeTable[2][6];
   (DirectionFromKeyCodeTable[static_cast<uint8_t>( \
       (frame)->StyleVisibility()->mDirection)][(   \
       keycode)-mozilla::dom::KeyboardEvent_Binding::DOM_VK_END])
+
+// Used to hold information about a popup that is about to be opened.
+struct PendingPopup {
+  PendingPopup(nsIContent* aPopup, mozilla::dom::Event* aEvent);
+
+  const nsCOMPtr<nsIContent> mPopup;
+  const RefPtr<mozilla::dom::Event> mEvent;
+
+  // Device pixels relative to the showing popup's presshell's
+  // root prescontext's root frame.
+  mozilla::LayoutDeviceIntPoint mMousePoint;
+
+  // Cached modifiers used to trigger the popup.
+  mozilla::Modifiers mModifiers;
+
+  // Cached rangeParent/rangeOffset.
+  nsCOMPtr<nsIContent> mRangeParentContent;
+  int32_t mRangeOffset;
+
+  already_AddRefed<nsIContent> GetTriggerContent() const;
+
+  void InitMousePoint();
+
+  void SetMousePoint(mozilla::LayoutDeviceIntPoint aMousePoint) {
+    mMousePoint = aMousePoint;
+  }
+
+  uint16_t MouseInputSource() const;
+};
 
 // nsMenuChainItem holds info about an open popup. Items are stored in a
 // doubly linked list. Note that the linked list is stored beginning from
@@ -436,14 +466,6 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   // aMenuBar isn't currently active, yet another menu bar is, that menu bar
   // will remain active.
   void SetActiveMenuBar(nsMenuBarFrame* aMenuBar, bool aActivate);
-
-  // retrieve the node and offset of the last mouse event used to open a
-  // context menu. This information is determined from the rangeParent and
-  // the rangeOffset of the event supplied to ShowPopup or ShowPopupAtScreen.
-  // This is used by the implementation of Document::GetPopupRangeParent
-  // and Document::GetPopupRangeOffset.
-  nsIContent* GetMouseLocationParent() const { return mRangeParentContent; }
-  int32_t MouseLocationOffset() const { return mRangeOffset; }
 
   /**
    * Open a <menu> given its content node. If aSelectFirstItem is
@@ -720,6 +742,10 @@ class nsXULPopupManager final : public nsIDOMEventListener,
 
   nsPopupState GetPopupState(mozilla::dom::Element* aPopupElement);
 
+  mozilla::dom::Event* GetOpeningPopupEvent() const {
+    return mPendingPopup->mEvent.get();
+  }
+
   nsresult KeyUp(mozilla::dom::KeyboardEvent* aKeyEvent);
   nsresult KeyDown(mozilla::dom::KeyboardEvent* aKeyEvent);
   nsresult KeyPress(mozilla::dom::KeyboardEvent* aKeyEvent);
@@ -745,12 +771,6 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   // once the item has been executed.
   void HideOpenMenusBeforeExecutingMenu(CloseMenuMode aMode);
 
-  // set the event that was used to trigger the popup, or null to clear the
-  // event details. aTriggerContent will be set to the target of the event.
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void InitTriggerEvent(mozilla::dom::Event* aEvent, nsIContent* aPopup,
-                        nsIContent** aTriggerContent);
-
   // callbacks for ShowPopup and HidePopup as events may be done asynchronously
   void ShowPopupCallback(nsIContent* aPopup, nsMenuPopupFrame* aPopupFrame,
                          bool aIsContextMenu, bool aSelectFirstItem);
@@ -762,16 +782,12 @@ class nsXULPopupManager final : public nsIDOMEventListener,
    * Trigger frame construction and reflow in the popup, fire a popupshowing
    * event on the popup and then open the popup.
    *
-   * aPopup - the popup to open
+   * aPendingPopup - information about the popup to open
    * aIsContextMenu - true for context menus
    * aSelectFirstItem - true to select the first item in the menu
-   * aTriggerEvent - the event that triggered the showing event.
-   *                 This is currently used to propagate the
-   *                 inputSource attribute. May be null.
    */
-  void BeginShowingPopup(nsIContent* aPopup, bool aIsContextMenu,
-                         bool aSelectFirstItem,
-                         mozilla::dom::Event* aTriggerEvent);
+  void BeginShowingPopup(const PendingPopup& aPendingPopup, bool aIsContextMenu,
+                         bool aSelectFirstItem);
 
   /**
    * Fire a popuphiding event and then hide the popup. This will be called
@@ -826,9 +842,8 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   /**
    * Fire a popupshowing event for aPopup.
    */
-  nsEventStatus FirePopupShowingEvent(nsIContent* aPopup,
-                                      nsPresContext* aPresContext,
-                                      mozilla::dom::Event* aTriggerEvent);
+  nsEventStatus FirePopupShowingEvent(const PendingPopup& aPendingPopup,
+                                      nsPresContext* aPresContext);
 
   /**
    * Set mouse capturing for the current popup. This traps mouse clicks that
@@ -862,16 +877,6 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   // widget that is currently listening to rollup events
   nsCOMPtr<nsIWidget> mWidget;
 
-  // range parent and offset set in SetTriggerEvent
-  nsCOMPtr<nsIContent> mRangeParentContent;
-  int32_t mRangeOffset;
-  // Device pixels relative to the showing popup's presshell's
-  // root prescontext's root frame.
-  mozilla::LayoutDeviceIntPoint mCachedMousePoint;
-
-  // cached modifiers
-  mozilla::Modifiers mCachedModifiers;
-
   // set to the currently active menu bar, if any
   nsMenuBarFrame* mActiveMenuBar;
 
@@ -884,9 +889,8 @@ class nsXULPopupManager final : public nsIDOMEventListener,
   // a popup that is waiting on the timer
   nsMenuPopupFrame* mTimerMenu;
 
-  // the popup that is currently being opened, stored only during the
-  // popupshowing event
-  nsCOMPtr<nsIContent> mOpeningPopup;
+  // Information about the popup that is currently firing a popupshowing event.
+  const PendingPopup* mPendingPopup;
 
   // If a popup is displayed as a native menu, this is non-null while the
   // native menu is open.

@@ -21,14 +21,19 @@
 
 #include <type_traits>
 
+#include "js/Utility.h"
 #include "js/WasmFeatures.h"
 
 #include "wasm/WasmBinary.h"
 #include "wasm/WasmCompile.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmCompileArgs.h"
+#include "wasm/WasmModuleTypes.h"
+#include "wasm/WasmTypeDef.h"
 
 namespace js {
 namespace wasm {
+
+using mozilla::Some;
 
 // ModuleEnvironment contains all the state necessary to process or render
 // functions, and all of the state necessary to validate all aspects of the
@@ -57,7 +62,7 @@ struct ModuleEnvironment {
 
   GlobalDescVector globals;
 #ifdef ENABLE_WASM_EXCEPTIONS
-  EventDescVector events;
+  TagDescVector tags;
 #endif
   TableDescVector tables;
   Uint32Vector asmJSSigToTableIndex;
@@ -66,7 +71,6 @@ struct ModuleEnvironment {
   Maybe<uint32_t> startFuncIndex;
   ElemSegmentVector elemSegments;
   MaybeSectionRange codeSection;
-  bool usesDuplicateImports;
 
   // Fields decoded as part of the wasm module tail:
   DataSegmentEnvVector dataSegments;
@@ -80,8 +84,7 @@ struct ModuleEnvironment {
       : kind(kind),
         features(features),
         memory(Nothing()),
-        types(features, TypeDefVector()),
-        usesDuplicateImports(false) {}
+        types(features, TypeDefVector()) {}
 
   size_t numTables() const { return tables.length(); }
   size_t numTypes() const { return types.length(); }

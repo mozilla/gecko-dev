@@ -578,12 +578,24 @@ async function waitForPageShow(browser) {
   return waitForTick();
 }
 
-function waitForViewportLoad(ui) {
-  return BrowserTestUtils.waitForContentEvent(
+/**
+ * Returns a Promise which resolves with an object holding a `onPageLoaded` property, which
+ * is a promise that resolves when the page is fully loaded.
+ *
+ * @param {ResponsiveUI} ui
+ * @returns Promise<{ onPageLoaded: Promise }>
+ */
+async function waitForViewportLoad(ui) {
+  const onLoad = BrowserTestUtils.waitForContentEvent(
     ui.getViewportBrowser(),
     "load",
     true
   );
+  const {
+    onDomCompleteResource,
+  } = await waitForNextTopLevelDomCompleteResource(ui.commands);
+
+  return { onPageLoaded: Promise.all([onLoad, onDomCompleteResource]) };
 }
 
 function waitForViewportScroll(ui) {
@@ -598,6 +610,15 @@ async function load(browser, url) {
   const loaded = BrowserTestUtils.browserLoaded(browser, false, null, false);
   BrowserTestUtils.loadURI(browser, url);
   await loaded;
+}
+
+/**
+ * Reload and wait for the viewport to be loaded and for the page to be fully parsed.
+ */
+async function reloadViewport(ui) {
+  const { onPageLoaded } = await waitForViewportLoad(ui);
+  ui.getViewportBrowser().reload();
+  await onPageLoaded;
 }
 
 function back(browser) {
@@ -667,10 +688,19 @@ function testViewportDeviceMenuLabel(ui, expectedDeviceName) {
 async function toggleTouchSimulation(ui) {
   const { document } = ui.toolWindow;
   const touchButton = document.getElementById("touch-simulation-button");
-  const changed = once(ui, "touch-simulation-changed");
-  const loaded = waitForViewportLoad(ui);
+  const wasChecked = touchButton.classList.contains("checked");
+  const onTouchSimulationChanged = once(ui, "touch-simulation-changed");
+  const { onPageLoaded } = await waitForViewportLoad(ui);
+  const onTouchButtonStateChanged = waitFor(
+    () => touchButton.classList.contains("checked") !== wasChecked
+  );
+
   touchButton.click();
-  await Promise.all([changed, loaded]);
+  await Promise.all([
+    onTouchSimulationChanged,
+    onTouchButtonStateChanged,
+    onPageLoaded,
+  ]);
 }
 
 async function testUserAgent(ui, expected) {
@@ -723,9 +753,9 @@ async function changeUserAgentInput(ui, value) {
     state => state.ui.userAgent === value
   );
   const changed = once(ui, "user-agent-changed");
-  const loaded = waitForViewportLoad(ui);
+  const { onPageLoaded } = await waitForViewportLoad(ui);
   Simulate.keyUp(userAgentInput, { keyCode: KeyCodes.DOM_VK_RETURN });
-  await Promise.all([changed, loaded, userAgentChanged]);
+  await Promise.all([changed, onPageLoaded, userAgentChanged]);
 }
 
 /**
@@ -854,10 +884,8 @@ function rotateViewport(ui) {
 async function setTouchAndMetaViewportSupport(ui, value) {
   await ui.updateTouchSimulation(value);
   info("Reload so the new configuration applies cleanly to the page");
-  const reload = waitForViewportLoad(ui);
-  const browser = ui.getViewportBrowser();
-  browser.reload();
-  await reload;
+  await reloadViewport(ui);
+
   await promiseContentReflow(ui);
 }
 

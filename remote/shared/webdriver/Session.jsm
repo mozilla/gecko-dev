@@ -16,6 +16,10 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   Capabilities: "chrome://remote/content/shared/webdriver/Capabilities.jsm",
   error: "chrome://remote/content/shared/webdriver/Errors.jsm",
   Log: "chrome://remote/content/shared/Log.jsm",
+  MessageHandlerRegistry:
+    "chrome://remote/content/shared/messagehandler/MessageHandlerRegistry.jsm",
+  RootMessageHandler:
+    "chrome://remote/content/shared/messagehandler/RootMessageHandler.jsm",
   WebDriverBiDiConnection:
     "chrome://remote/content/webdriver-bidi/WebDriverBiDiConnection.jsm",
   WebSocketHandshake: "chrome://remote/content/server/WebSocketHandshake.jsm",
@@ -148,10 +152,14 @@ class WebDriverSession {
    *     JSON Object containing any of the recognised capabilities listed
    *     above.
    *
+   * @param {WebDriverBiDiConnection=} connection
+   *     An optional existing WebDriver BiDi connection to associate with the
+   *     new session.
+   *
    * @throws {SessionNotCreatedError}
    *     If, for whatever reason, a session could not be created.
    */
-  constructor(capabilities) {
+  constructor(capabilities, connection) {
     // WebSocket connections that use this session. This also accounts for
     // possible disconnects due to network outages, which require clients
     // to reconnect.
@@ -186,6 +194,13 @@ class WebDriverSession {
     if (this.a11yChecks && accessibility.service) {
       logger.info("Preemptively starting accessibility service in Chrome");
     }
+
+    // If a connection without an associated session has been specified
+    // immediately register the newly created session for it.
+    if (connection) {
+      connection.registerSession(this);
+      this._connections.add(connection);
+    }
   }
 
   destroy() {
@@ -194,10 +209,42 @@ class WebDriverSession {
     // Close all open connections
     this._connections.forEach(connection => connection.close());
     this._connections.clear();
+
+    // Destroy the dedicated MessageHandler instance if we created one.
+    this._messageHandler?.destroy();
+  }
+
+  execute(module, command, params) {
+    return this.messageHandler.handleCommand({
+      moduleName: module,
+      commandName: command,
+      // XXX: At the moment, commands do not describe consistently their destination,
+      // so we will need a translation step based on a specific command and its params
+      // in order to extract a destination that can be understood by the MessageHandler.
+      //
+      // For now, an option is to send all commands to ROOT, and all BiDi MessageHandler
+      // modules will therefore need to implement this translation step in the root
+      // implementation of their module.
+      destination: {
+        type: RootMessageHandler.type,
+      },
+      params,
+    });
   }
 
   get a11yChecks() {
     return this.capabilities.get("moz:accessibilityChecks");
+  }
+
+  get messageHandler() {
+    if (!this._messageHandler) {
+      this._messageHandler = MessageHandlerRegistry.getOrCreateMessageHandler(
+        this.id,
+        RootMessageHandler.type
+      );
+    }
+
+    return this._messageHandler;
   }
 
   get pageLoadStrategy() {
@@ -222,6 +269,10 @@ class WebDriverSession {
 
   get unhandledPromptBehavior() {
     return this.capabilities.get("unhandledPromptBehavior");
+  }
+
+  toString() {
+    return `[object ${this.constructor.name} ${this.id}]`;
   }
 
   // nsIHttpRequestHandler

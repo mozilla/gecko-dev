@@ -69,9 +69,9 @@
 #include "vm/Stack.h"                      // for AbstractFramePtr, FrameIter
 #include "vm/StringType.h"                 // for PropertyName, JSString
 #include "wasm/WasmDebug.h"                // for DebugState
+#include "wasm/WasmFrame.h"                // for DebugFrame
 #include "wasm/WasmInstance.h"             // for Instance
 #include "wasm/WasmJS.h"                   // for WasmInstanceObject
-#include "wasm/WasmTypes.h"                // for DebugFrame
 
 #include "debugger/Debugger-inl.h"    // for Debugger::fromJSObject
 #include "gc/WeakMap-inl.h"           // for WeakMap::remove
@@ -199,7 +199,7 @@ const JSClassOps DebuggerFrame::classOps_ = {
 
 const JSClass DebuggerFrame::class_ = {
     "Frame",
-    JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
         // We require foreground finalization so we can destruct GeneratorInfo's
         // HeapPtrs.
         JSCLASS_FOREGROUND_FINALIZE,
@@ -1107,22 +1107,18 @@ Result<Completion> DebuggerFrame::eval(JSContext* cx, HandleDebuggerFrame frame,
   return DebuggerGenericEval(cx, chars, bindings, options, dbg, nullptr, &iter);
 }
 
-bool DebuggerFrame::isOnStack() const { return !!getPrivate(); }
-
-bool DebuggerFrame::isOnStackMaybeForwarded() const {
-  return !!getPrivateMaybeForwarded();
+bool DebuggerFrame::isOnStack() const {
+  // Note: this is equivalent to checking frameIterData() != nullptr, but works
+  // also when called from the trace hook during a moving GC.
+  return !getFixedSlot(FRAME_ITER_SLOT).isUndefined();
 }
 
 OnStepHandler* DebuggerFrame::onStepHandler() const {
-  Value value = getReservedSlot(ONSTEP_HANDLER_SLOT);
-  return value.isUndefined() ? nullptr
-                             : static_cast<OnStepHandler*>(value.toPrivate());
+  return maybePtrFromReservedSlot<OnStepHandler>(ONSTEP_HANDLER_SLOT);
 }
 
 OnPopHandler* DebuggerFrame::onPopHandler() const {
-  Value value = getReservedSlot(ONPOP_HANDLER_SLOT);
-  return value.isUndefined() ? nullptr
-                             : static_cast<OnPopHandler*>(value.toPrivate());
+  return maybePtrFromReservedSlot<OnPopHandler>(ONPOP_HANDLER_SLOT);
 }
 
 void DebuggerFrame::setOnPopHandler(JSContext* cx, OnPopHandler* handler) {
@@ -1146,7 +1142,7 @@ void DebuggerFrame::setOnPopHandler(JSContext* cx, OnPopHandler* handler) {
 }
 
 FrameIter::Data* DebuggerFrame::frameIterData() const {
-  return static_cast<FrameIter::Data*>(getPrivate());
+  return maybePtrFromReservedSlot<FrameIter::Data>(FRAME_ITER_SLOT);
 }
 
 /* static */
@@ -1179,13 +1175,14 @@ bool DebuggerFrame::requireScriptReferent(JSContext* cx,
 void DebuggerFrame::setFrameIterData(FrameIter::Data* data) {
   MOZ_ASSERT(data);
   MOZ_ASSERT(!frameIterData());
-  InitObjectPrivate(this, data, MemoryUse::DebuggerFrameIterData);
+  InitReservedSlot(this, FRAME_ITER_SLOT, data,
+                   MemoryUse::DebuggerFrameIterData);
 }
 
 void DebuggerFrame::freeFrameIterData(JSFreeOp* fop) {
   if (FrameIter::Data* data = frameIterData()) {
     fop->delete_(this, data, MemoryUse::DebuggerFrameIterData);
-    setPrivate(nullptr);
+    setReservedSlot(FRAME_ITER_SLOT, UndefinedValue());
   }
 }
 

@@ -36,6 +36,7 @@
 #  include "jit/x86-shared/Architecture-x86-shared.h"
 #  include "jit/x86-shared/Assembler-x86-shared.h"
 #endif
+#include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/Printf.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
@@ -488,8 +489,8 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
   const Metadata& metadata = module.metadata();
 
 #ifdef ENABLE_WASM_EXCEPTIONS
-  uint32_t eventIndex = 0;
-  const EventDescVector& events = metadata.events;
+  uint32_t tagIndex = 0;
+  const TagDescVector& tags = metadata.tags;
 #endif
   uint32_t globalIndex = 0;
   const GlobalDescVector& globals = metadata.globals;
@@ -553,25 +554,24 @@ bool js::wasm::GetImports(JSContext* cx, const Module& module,
         break;
       }
 #ifdef ENABLE_WASM_EXCEPTIONS
-      case DefinitionKind::Event: {
-        const uint32_t index = eventIndex++;
-        if (!v.isObject() || !v.toObject().is<WasmExceptionObject>()) {
-          return ThrowBadImportType(cx, import.field.get(), "Exception");
+      case DefinitionKind::Tag: {
+        const uint32_t index = tagIndex++;
+        if (!v.isObject() || !v.toObject().is<WasmTagObject>()) {
+          return ThrowBadImportType(cx, import.field.get(), "Tag");
         }
 
-        RootedWasmExceptionObject obj(cx,
-                                      &v.toObject().as<WasmExceptionObject>());
+        RootedWasmTagObject obj(cx, &v.toObject().as<WasmTagObject>());
 
         // Checks whether the signature of the imported exception object matches
-        // the signature declared in the exception import's EventDesc.
-        if (obj->resultType() != events[index].resultType()) {
+        // the signature declared in the exception import's TagDesc.
+        if (obj->resultType() != tags[index].resultType()) {
           JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                   JSMSG_WASM_BAD_EXN_SIG, import.module.get(),
+                                   JSMSG_WASM_BAD_TAG_SIG, import.module.get(),
                                    import.field.get());
           return false;
         }
 
-        if (!imports->exceptionObjs.append(obj)) {
+        if (!imports->tagObjs.append(obj)) {
           ReportOutOfMemory(cx);
           return false;
         }
@@ -1131,11 +1131,11 @@ struct KindNames {
   RootedPropertyName kind;
   RootedPropertyName table;
   RootedPropertyName memory;
-  RootedPropertyName event;
+  RootedPropertyName tag;
   RootedPropertyName signature;
 
   explicit KindNames(JSContext* cx)
-      : kind(cx), table(cx), memory(cx), event(cx), signature(cx) {}
+      : kind(cx), table(cx), memory(cx), tag(cx), signature(cx) {}
 };
 
 static bool InitKindNames(JSContext* cx, KindNames* names) {
@@ -1158,11 +1158,11 @@ static bool InitKindNames(JSContext* cx, KindNames* names) {
   names->memory = memory->asPropertyName();
 
 #ifdef ENABLE_WASM_EXCEPTIONS
-  JSAtom* event = Atomize(cx, "event", strlen("event"));
-  if (!event) {
+  JSAtom* tag = Atomize(cx, "tag", strlen("tag"));
+  if (!tag) {
     return false;
   }
-  names->event = event->asPropertyName();
+  names->tag = tag->asPropertyName();
 #endif
 
   JSAtom* signature = Atomize(cx, "signature", strlen("signature"));
@@ -1186,8 +1186,8 @@ static JSString* KindToString(JSContext* cx, const KindNames& names,
     case DefinitionKind::Global:
       return cx->names().global;
 #ifdef ENABLE_WASM_EXCEPTIONS
-    case DefinitionKind::Event:
-      return names.event;
+    case DefinitionKind::Tag:
+      return names.tag;
 #endif
   }
 
@@ -3540,6 +3540,224 @@ bool WasmGlobalObject::type(JSContext* cx, unsigned argc, Value* vp) {
 #endif
 
 // ============================================================================
+// WebAssembly.Tag class and methods
+
+const JSClassOps WasmTagObject::classOps_ = {
+    nullptr,                  // addProperty
+    nullptr,                  // delProperty
+    nullptr,                  // enumerate
+    nullptr,                  // newEnumerate
+    nullptr,                  // resolve
+    nullptr,                  // mayResolve
+    WasmTagObject::finalize,  // finalize
+    nullptr,                  // call
+    nullptr,                  // hasInstance
+    nullptr,                  // construct
+    nullptr,                  // trace
+};
+
+const JSClass WasmTagObject::class_ = {
+    "WebAssembly.Tag",
+    JSCLASS_HAS_RESERVED_SLOTS(WasmTagObject::RESERVED_SLOTS) |
+        JSCLASS_FOREGROUND_FINALIZE,
+    &WasmTagObject::classOps_, &WasmTagObject::classSpec_};
+
+const JSClass& WasmTagObject::protoClass_ = PlainObject::class_;
+
+static constexpr char WasmTagName[] = "Tag";
+
+const ClassSpec WasmTagObject::classSpec_ = {
+    CreateWasmConstructor<WasmTagObject, WasmTagName>,
+    GenericCreatePrototype<WasmTagObject>,
+    WasmTagObject::static_methods,
+    nullptr,
+    WasmTagObject::methods,
+    WasmTagObject::properties,
+    nullptr,
+    ClassSpec::DontDefineConstructor};
+
+/* static */
+void WasmTagObject::finalize(JSFreeOp* fop, JSObject* obj) {
+  WasmTagObject& exnObj = obj->as<WasmTagObject>();
+  if (!exnObj.isNewborn()) {
+    fop->release(obj, &exnObj.tag(), MemoryUse::WasmTagTag);
+    fop->delete_(obj, &exnObj.valueTypes(), MemoryUse::WasmTagType);
+  }
+}
+
+static bool IsTag(HandleValue v) {
+  return v.isObject() && v.toObject().is<WasmTagObject>();
+}
+
+bool WasmTagObject::construct(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  if (!ThrowIfNotConstructing(cx, args, "Tag")) {
+    return false;
+  }
+
+  if (!args.requireAtLeast(cx, "WebAssembly.Tag", 1)) {
+    return false;
+  }
+
+  if (!args.get(0).isObject()) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_DESC_ARG, "tag");
+    return false;
+  }
+
+  RootedObject obj(cx, &args[0].toObject());
+  RootedValue paramsVal(cx);
+  if (!JS_GetProperty(cx, obj, "parameters", &paramsVal)) {
+    return false;
+  }
+
+  JS::ForOfIterator iterator(cx);
+  if (!iterator.init(paramsVal, JS::ForOfIterator::ThrowOnNonIterable)) {
+    return false;
+  }
+
+  ValTypeVector params;
+  RootedValue nextParam(cx);
+  while (true) {
+    bool done;
+    if (!iterator.next(&nextParam, &done)) {
+      return false;
+    }
+    if (done) {
+      break;
+    }
+
+    ValType argType;
+    if (!ToValType(cx, nextParam, &argType) || !params.append(argType)) {
+      return false;
+    }
+  }
+
+  RootedObject proto(cx);
+  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_WasmTag, &proto)) {
+    return false;
+  }
+  if (!proto) {
+    proto = GlobalObject::getOrCreatePrototype(cx, JSProto_WasmTag);
+  }
+
+  RootedWasmTagObject tagObj(cx, WasmTagObject::create(cx, params, proto));
+  if (!tagObj) {
+    return false;
+  }
+
+  args.rval().setObject(*tagObj);
+  return true;
+}
+
+/* static */
+WasmTagObject* WasmTagObject::create(JSContext* cx, const ValTypeVector& type,
+                                     HandleObject proto) {
+  AutoSetNewObjectMetadata metadata(cx);
+  RootedWasmTagObject obj(cx,
+                          NewObjectWithGivenProto<WasmTagObject>(cx, proto));
+  if (!obj) {
+    return nullptr;
+  }
+
+  MOZ_ASSERT(obj->isNewborn());
+
+  SharedExceptionTag tag = SharedExceptionTag(cx->new_<ExceptionTag>());
+  if (!tag) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
+
+  InitReservedSlot(obj, TAG_SLOT, tag.forget().take(), MemoryUse::WasmTagTag);
+
+  wasm::ValTypeVector* newValueTypes = js_new<ValTypeVector>();
+  for (auto t : type) {
+    if (!newValueTypes->append(t)) {
+      return nullptr;
+    }
+  }
+  InitReservedSlot(obj, TYPE_SLOT, newValueTypes, MemoryUse::WasmTagType);
+
+  MOZ_ASSERT(!obj->isNewborn());
+
+  return obj;
+}
+
+bool WasmTagObject::isNewborn() const {
+  MOZ_ASSERT(is<WasmTagObject>());
+  return getReservedSlot(TYPE_SLOT).isUndefined();
+}
+
+const JSPropertySpec WasmTagObject::properties[] = {
+    JS_STRING_SYM_PS(toStringTag, "WebAssembly.Tag", JSPROP_READONLY),
+    JS_PS_END};
+
+#ifdef ENABLE_WASM_TYPE_REFLECTIONS
+/* static */
+bool WasmTagObject::typeImpl(JSContext* cx, const CallArgs& args) {
+  RootedWasmTagObject tag(cx, &args.thisv().toObject().as<WasmTagObject>());
+  Rooted<IdValueVector> props(cx, IdValueVector(cx));
+
+  RootedArrayObject params(cx, NewDenseEmptyArray(cx));
+  if (!params) {
+    return false;
+  }
+
+  const wasm::ValTypeVector& valTypes = tag->valueTypes();
+  for (const ValType valType : valTypes) {
+    JSString* typeString = UTF8CharsToString(cx, ToString(valType).get());
+    if (!typeString) {
+      return false;
+    }
+    if (!NewbornArrayPush(cx, params, StringValue(typeString))) {
+      return false;
+    }
+  }
+
+  if (!props.append(IdValuePair(NameToId(cx->names().parameters),
+                                ObjectValue(*params)))) {
+    return false;
+  }
+
+  JSObject* tagType = NewPlainObjectWithProperties(
+      cx, props.begin(), props.length(), GenericObject);
+  if (!tagType) {
+    return false;
+  }
+
+  args.rval().setObject(*tagType);
+  return true;
+}
+
+/* static  */
+bool WasmTagObject::type(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsTag, typeImpl>(cx, args);
+}
+#endif
+
+const JSFunctionSpec WasmTagObject::methods[] = {
+#ifdef ENABLE_WASM_TYPE_REFLECTIONS
+    JS_FN("type", WasmTagObject::type, 0, JSPROP_ENUMERATE),
+#endif
+    JS_FS_END};
+
+const JSFunctionSpec WasmTagObject::static_methods[] = {JS_FS_END};
+
+wasm::ValTypeVector& WasmTagObject::valueTypes() const {
+  return *(ValTypeVector*)getFixedSlot(TYPE_SLOT).toPrivate();
+};
+
+wasm::ResultType WasmTagObject::resultType() const {
+  return wasm::ResultType::Vector(valueTypes());
+}
+
+ExceptionTag& WasmTagObject::tag() const {
+  return *(ExceptionTag*)getReservedSlot(TAG_SLOT).toPrivate();
+}
+
+// ============================================================================
 // WebAssembly.Exception class and methods
 
 const JSClassOps WasmExceptionObject::classOps_ = {
@@ -3581,8 +3799,11 @@ void WasmExceptionObject::finalize(JSFreeOp* fop, JSObject* obj) {
   WasmExceptionObject& exnObj = obj->as<WasmExceptionObject>();
   if (!exnObj.isNewborn()) {
     fop->release(obj, &exnObj.tag(), MemoryUse::WasmExceptionTag);
-    fop->delete_(obj, &exnObj.valueTypes(), MemoryUse::WasmExceptionType);
   }
+}
+
+static bool IsException(HandleValue v) {
+  return v.isObject() && v.toObject().is<WasmExceptionObject>();
 }
 
 bool WasmExceptionObject::construct(JSContext* cx, unsigned argc, Value* vp) {
@@ -3592,19 +3813,98 @@ bool WasmExceptionObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  // FIXME: The JS API is not finalized and may specify a different behavior
-  // here.
-  //        For now, we implement the same behavior as V8 and error when called.
-  JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                           JSMSG_WASM_EXN_CONSTRUCTOR, "WebAssembly.Exception");
+  if (!args.requireAtLeast(cx, "WebAssembly.Exception", 2)) {
+    return false;
+  }
 
-  return false;
+  if (!IsTag(args[0])) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_EXN_ARG);
+    return false;
+  }
+
+  RootedWasmTagObject exnTag(cx, &args[0].toObject().as<WasmTagObject>());
+
+  if (!args.get(1).isObject()) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_EXN_PAYLOAD);
+    return false;
+  }
+
+  JS::ForOfIterator iterator(cx);
+  if (!iterator.init(args.get(1), JS::ForOfIterator::ThrowOnNonIterable)) {
+    return false;
+  }
+
+  wasm::ValTypeVector& params = exnTag->valueTypes();
+
+  // This is pre-sizing the data buffer for the exception object.
+  size_t nbytes = 0;
+  for (const ValType param : params) {
+    if (!param.isReference()) {
+      nbytes += SizeOf(param);
+    }
+  }
+
+  RootedArrayBufferObject buf(cx, ArrayBufferObject::createZeroed(cx, nbytes));
+  if (!buf) {
+    return false;
+  }
+
+  RootedArrayObject refs(cx, NewDenseEmptyArray(cx));
+  if (!refs) {
+    return false;
+  }
+
+  uint8_t* bufPtr = buf->dataPointer();
+  RootedValue nextArg(cx);
+  for (size_t i = 0; i < params.length(); i++) {
+    bool done;
+    if (!iterator.next(&nextArg, &done)) {
+      return false;
+    }
+    if (done) {
+      UniqueChars expected(JS_smprintf("%zu", params.length()));
+      UniqueChars got(JS_smprintf("%zu", i));
+
+      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                               JSMSG_WASM_BAD_EXN_PAYLOAD_LEN, expected.get(),
+                               got.get());
+      return false;
+    }
+
+    if (params[i].isReference()) {
+      RootedObject objPtr(cx);
+      if (!ToWebAssemblyValue(cx, nextArg, params[i], objPtr.address(), true)) {
+        return false;
+      }
+      if (!NewbornArrayPush(cx, refs, ObjectValue(*objPtr))) {
+        return false;
+      }
+    } else {
+      if (!ToWebAssemblyValue(cx, nextArg, params[i], bufPtr, true)) {
+        return false;
+      }
+      bufPtr += SizeOf(params[i]);
+    }
+  }
+
+  RootedWasmExceptionObject exnObj(
+      cx, WasmExceptionObject::create(cx, SharedExceptionTag(&exnTag->tag()),
+                                      buf, refs));
+
+  args.rval().setObject(*exnObj);
+  return true;
 }
 
 /* static */
 WasmExceptionObject* WasmExceptionObject::create(JSContext* cx,
-                                                 const ValTypeVector& type,
-                                                 HandleObject proto) {
+                                                 wasm::SharedExceptionTag tag,
+                                                 HandleArrayBufferObject values,
+                                                 HandleArrayObject refs) {
+  RootedObject proto(
+      cx, &cx->global()->getPrototype(JSProto_WasmException).toObject());
+
   AutoSetNewObjectMetadata metadata(cx);
   RootedWasmExceptionObject obj(
       cx, NewObjectWithGivenProto<WasmExceptionObject>(cx, proto));
@@ -3613,134 +3913,8 @@ WasmExceptionObject* WasmExceptionObject::create(JSContext* cx,
   }
 
   MOZ_ASSERT(obj->isNewborn());
-
-  SharedExceptionTag tag = SharedExceptionTag(cx->new_<ExceptionTag>());
-  if (!tag) {
-    ReportOutOfMemory(cx);
-    return nullptr;
-  }
-
   InitReservedSlot(obj, TAG_SLOT, tag.forget().take(),
                    MemoryUse::WasmExceptionTag);
-
-  wasm::ValTypeVector* newValueTypes = js_new<ValTypeVector>();
-  for (auto t : type) {
-    if (!newValueTypes->append(t)) {
-      return nullptr;
-    }
-  }
-  InitReservedSlot(obj, TYPE_SLOT, newValueTypes, MemoryUse::WasmExceptionType);
-
-  MOZ_ASSERT(!obj->isNewborn());
-
-  return obj;
-}
-
-bool WasmExceptionObject::isNewborn() const {
-  MOZ_ASSERT(is<WasmExceptionObject>());
-  return getReservedSlot(TYPE_SLOT).isUndefined();
-}
-
-const JSPropertySpec WasmExceptionObject::properties[] = {
-    JS_STRING_SYM_PS(toStringTag, "WebAssembly.Exception", JSPROP_READONLY),
-    JS_PS_END};
-
-const JSFunctionSpec WasmExceptionObject::methods[] = {JS_FS_END};
-
-const JSFunctionSpec WasmExceptionObject::static_methods[] = {JS_FS_END};
-
-wasm::ValTypeVector& WasmExceptionObject::valueTypes() const {
-  return *(ValTypeVector*)getFixedSlot(TYPE_SLOT).toPrivate();
-};
-
-wasm::ResultType WasmExceptionObject::resultType() const {
-  return wasm::ResultType::Vector(valueTypes());
-}
-
-ExceptionTag& WasmExceptionObject::tag() const {
-  return *(ExceptionTag*)getReservedSlot(TAG_SLOT).toPrivate();
-}
-
-// ============================================================================
-// WebAssembly.RuntimeException class and methods
-
-const JSClassOps WasmRuntimeExceptionObject::classOps_ = {
-    nullptr,                               // addProperty
-    nullptr,                               // delProperty
-    nullptr,                               // enumerate
-    nullptr,                               // newEnumerate
-    nullptr,                               // resolve
-    nullptr,                               // mayResolve
-    WasmRuntimeExceptionObject::finalize,  // finalize
-    nullptr,                               // call
-    nullptr,                               // hasInstance
-    nullptr,                               // construct
-    nullptr,                               // trace
-};
-
-const JSClass WasmRuntimeExceptionObject::class_ = {
-    "WebAssembly.RuntimeException",
-    JSCLASS_HAS_RESERVED_SLOTS(WasmRuntimeExceptionObject::RESERVED_SLOTS) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &WasmRuntimeExceptionObject::classOps_,
-    &WasmRuntimeExceptionObject::classSpec_};
-
-const JSClass& WasmRuntimeExceptionObject::protoClass_ = PlainObject::class_;
-
-static constexpr char WasmRuntimeExceptionName[] = "RuntimeException";
-
-const ClassSpec WasmRuntimeExceptionObject::classSpec_ = {
-    CreateWasmConstructor<WasmRuntimeExceptionObject, WasmRuntimeExceptionName>,
-    GenericCreatePrototype<WasmRuntimeExceptionObject>,
-    WasmRuntimeExceptionObject::static_methods,
-    nullptr,
-    WasmRuntimeExceptionObject::methods,
-    WasmRuntimeExceptionObject::properties,
-    nullptr,
-    ClassSpec::DontDefineConstructor};
-
-/* static */
-void WasmRuntimeExceptionObject::finalize(JSFreeOp* fop, JSObject* obj) {
-  WasmRuntimeExceptionObject& exnObj = obj->as<WasmRuntimeExceptionObject>();
-  if (!exnObj.isNewborn()) {
-    fop->release(obj, &exnObj.tag(), MemoryUse::WasmRuntimeExceptionTag);
-  }
-}
-
-bool WasmRuntimeExceptionObject::construct(JSContext* cx, unsigned argc,
-                                           Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  if (!ThrowIfNotConstructing(cx, args, "RuntimeException")) {
-    return false;
-  }
-
-  // FIXME: When the JS API is finalized, it may be possible to construct
-  // WebAssembly.RuntimeException instances from JS, but not for now.
-  JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                           JSMSG_WASM_EXN_CONSTRUCTOR,
-                           "WebAssembly.RuntimeException");
-
-  return false;
-}
-
-/* static */
-WasmRuntimeExceptionObject* WasmRuntimeExceptionObject::create(
-    JSContext* cx, wasm::SharedExceptionTag tag, HandleArrayBufferObject values,
-    HandleArrayObject refs) {
-  RootedObject proto(
-      cx, &cx->global()->getPrototype(JSProto_WasmRuntimeException).toObject());
-
-  AutoSetNewObjectMetadata metadata(cx);
-  RootedWasmRuntimeExceptionObject obj(
-      cx, NewObjectWithGivenProto<WasmRuntimeExceptionObject>(cx, proto));
-  if (!obj) {
-    return nullptr;
-  }
-
-  MOZ_ASSERT(obj->isNewborn());
-  InitReservedSlot(obj, TAG_SLOT, tag.forget().take(),
-                   MemoryUse::WasmRuntimeExceptionTag);
 
   obj->initFixedSlot(VALUES_SLOT, ObjectValue(*values));
   obj->initFixedSlot(REFS_SLOT, ObjectValue(*refs));
@@ -3750,25 +3924,127 @@ WasmRuntimeExceptionObject* WasmRuntimeExceptionObject::create(
   return obj;
 }
 
-bool WasmRuntimeExceptionObject::isNewborn() const {
-  MOZ_ASSERT(is<WasmRuntimeExceptionObject>());
+bool WasmExceptionObject::isNewborn() const {
+  MOZ_ASSERT(is<WasmExceptionObject>());
   return getReservedSlot(REFS_SLOT).isUndefined();
 }
 
-const JSPropertySpec WasmRuntimeExceptionObject::properties[] = {
-    JS_STRING_SYM_PS(toStringTag, "WebAssembly.RuntimeException",
-                     JSPROP_READONLY),
+const JSPropertySpec WasmExceptionObject::properties[] = {
+    JS_STRING_SYM_PS(toStringTag, "WebAssembly.Exception", JSPROP_READONLY),
     JS_PS_END};
 
-const JSFunctionSpec WasmRuntimeExceptionObject::methods[] = {JS_FS_END};
+/* static */
+bool WasmExceptionObject::isImpl(JSContext* cx, const CallArgs& args) {
+  RootedWasmExceptionObject exnObj(
+      cx, &args.thisv().toObject().as<WasmExceptionObject>());
 
-const JSFunctionSpec WasmRuntimeExceptionObject::static_methods[] = {JS_FS_END};
+  if (!args.requireAtLeast(cx, "WebAssembly.Exception.is", 1)) {
+    return false;
+  }
 
-ExceptionTag& WasmRuntimeExceptionObject::tag() const {
+  if (!IsTag(args[0])) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_EXN_ARG);
+    return false;
+  }
+
+  RootedWasmTagObject exnTag(cx, &args.get(0).toObject().as<WasmTagObject>());
+  args.rval().setBoolean(&exnTag->tag() == &exnObj->tag());
+
+  return true;
+}
+
+/* static  */
+bool WasmExceptionObject::isMethod(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsException, isImpl>(cx, args);
+}
+
+/* static */
+bool WasmExceptionObject::getArgImpl(JSContext* cx, const CallArgs& args) {
+  RootedWasmExceptionObject exnObj(
+      cx, &args.thisv().toObject().as<WasmExceptionObject>());
+
+  if (!args.requireAtLeast(cx, "WebAssembly.Exception.getArg", 2)) {
+    return false;
+  }
+
+  if (!IsTag(args[0])) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_EXN_ARG);
+    return false;
+  }
+
+  RootedWasmTagObject exnTag(cx, &args.get(0).toObject().as<WasmTagObject>());
+  if (&exnTag->tag() != &exnObj->tag()) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_EXN_TAG);
+    return false;
+  }
+
+  uint32_t index;
+  if (!EnforceRangeU32(cx, args.get(1), "Exception", "getArg index", &index)) {
+    return false;
+  }
+
+  wasm::ValTypeVector& params = exnTag->valueTypes();
+  if (index >= params.length()) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr, JSMSG_WASM_BAD_RANGE,
+                             "Exception", "getArg index");
+    return false;
+  }
+
+  RootedValue result(cx);
+  if (params[index].isReference()) {
+    uint32_t refIndex = 0;
+    for (size_t i = 0; i < index; i++) {
+      if (params[i].isReference()) {
+        refIndex++;
+      }
+    }
+    JSObject* ref = &exnObj->refs().getDenseElement(refIndex).toObject();
+    if (!ToJSValue(cx, &ref, params[index], &result)) {
+      return false;
+    }
+  } else {
+    uint32_t offset = 0;
+    for (size_t i = 0; i < index; i++) {
+      if (!params[i].isReference()) {
+        offset += SizeOf(params[i]);
+      }
+    }
+    if (!ToJSValue(cx, exnObj->values().dataPointer() + offset, params[index],
+                   &result)) {
+      return false;
+    }
+  }
+
+  args.rval().set(result);
+  return true;
+}
+
+/* static  */
+bool WasmExceptionObject::getArg(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  return CallNonGenericMethod<IsException, getArgImpl>(cx, args);
+}
+
+const JSFunctionSpec WasmExceptionObject::methods[] = {
+    JS_FN("is", WasmExceptionObject::isMethod, 1, JSPROP_ENUMERATE),
+    JS_FN("getArg", WasmExceptionObject::getArg, 2, JSPROP_ENUMERATE),
+    JS_FS_END};
+
+const JSFunctionSpec WasmExceptionObject::static_methods[] = {JS_FS_END};
+
+ExceptionTag& WasmExceptionObject::tag() const {
   return *(ExceptionTag*)getReservedSlot(TAG_SLOT).toPrivate();
 }
 
-ArrayObject& WasmRuntimeExceptionObject::refs() const {
+ArrayBufferObject& WasmExceptionObject::values() const {
+  return getReservedSlot(VALUES_SLOT).toObject().as<ArrayBufferObject>();
+}
+
+ArrayObject& WasmExceptionObject::refs() const {
   return getReservedSlot(REFS_SLOT).toObject().as<ArrayObject>();
 }
 
@@ -4749,8 +5025,8 @@ static bool WebAssemblyClassFinish(JSContext* cx, HandleObject object,
       {"Table", JSProto_WasmTable},
       {"Global", JSProto_WasmGlobal},
 #ifdef ENABLE_WASM_EXCEPTIONS
+      {"Tag", JSProto_WasmTag},
       {"Exception", JSProto_WasmException},
-      {"RuntimeException", JSProto_WasmRuntimeException},
 #endif
       {"CompileError", GetExceptionProtoKey(JSEXN_WASMCOMPILEERROR)},
       {"LinkError", GetExceptionProtoKey(JSEXN_WASMLINKERROR)},
@@ -4796,89 +5072,3 @@ const JSClass js::WasmNamespaceObject::class_ = {
     JS_NULL_CLASS_OPS, &WebAssemblyClassSpec};
 
 // Sundry
-
-#ifdef JS_64BIT
-#  ifdef ENABLE_WASM_CRANELIFT
-// TODO (large ArrayBuffer): Cranelift needs to be updated to use more than the
-// low 32 bits of the boundsCheckLimit, so for now we limit its heap size to
-// something that satisfies the 32-bit invariants.
-//
-// The "-2" here accounts for the !huge-memory case in CreateSpecificWasmBuffer,
-// which is guarding against an overflow.  Also see
-// WasmMemoryObject::boundsCheckLimit() for related assertions.
-wasm::Pages wasm::MaxMemoryPages() {
-  size_t desired = MaxMemory32LimitField - 2;
-  size_t actual = ArrayBufferObject::maxBufferByteLength() / PageSize;
-  return wasm::Pages(std::min(desired, actual));
-}
-
-size_t wasm::MaxMemoryBoundsCheckLimit() {
-  return UINT32_MAX - 2 * PageSize + 1;
-}
-#  else
-wasm::Pages wasm::MaxMemoryPages() {
-  size_t desired = MaxMemory32LimitField;
-  size_t actual = ArrayBufferObject::maxBufferByteLength() / PageSize;
-  return wasm::Pages(std::min(desired, actual));
-}
-
-size_t wasm::MaxMemoryBoundsCheckLimit() { return size_t(UINT32_MAX) + 1; }
-#  endif
-#else
-wasm::Pages wasm::MaxMemoryPages() {
-  MOZ_ASSERT(ArrayBufferObject::maxBufferByteLength() >= INT32_MAX / PageSize);
-  return wasm::Pages(INT32_MAX / PageSize);
-}
-
-size_t wasm::MaxMemoryBoundsCheckLimit() { return size_t(INT32_MAX) + 1; }
-#endif
-
-Pages wasm::ClampedMaxPages(Pages initialPages,
-                            const Maybe<Pages>& sourceMaxPages,
-                            bool useHugeMemory) {
-  Pages clampedMaxPages;
-
-  if (sourceMaxPages.isSome()) {
-    // There is a specified maximum, clamp it to the implementation limit of
-    // maximum pages
-    clampedMaxPages = std::min(*sourceMaxPages, wasm::MaxMemoryPages());
-
-#if defined(JS_64BIT) && defined(ENABLE_WASM_CRANELIFT)
-    // On 64-bit platforms when we aren't using huge memory and we're using
-    // Cranelift, we must satisfy the 32-bit invariants that:
-    //    clampedMaxSize + wasm::PageSize < UINT32_MAX
-    // This is ensured by clamping sourceMaxPages to wasm::MaxMemoryPages(),
-    // which has special logic for cranelift.
-    MOZ_ASSERT_IF(!useHugeMemory,
-                  clampedMaxPages.byteLength() + wasm::PageSize < UINT32_MAX);
-#endif
-
-#ifndef JS_64BIT
-    static_assert(sizeof(uintptr_t) == 4, "assuming not 64 bit implies 32 bit");
-
-    // On 32-bit platforms, prevent applications specifying a large max
-    // (like MaxMemory32Pages) from unintentially OOMing the browser: they just
-    // want "a lot of memory". Maintain the invariant that
-    // initialPages <= clampedMaxPages.
-    static const uint64_t OneGib = 1 << 30;
-    static const Pages OneGibPages = Pages(OneGib >> wasm::PageBits);
-    static_assert(wasm::HighestValidARMImmediate > OneGib,
-                  "computing mapped size on ARM requires clamped max size");
-
-    Pages clampedPages = std::max(OneGibPages, initialPages);
-    clampedMaxPages = std::min(clampedPages, clampedMaxPages);
-#endif
-  } else {
-    // There is not a specified maximum, fill it in with the implementation
-    // limit of maximum pages
-    clampedMaxPages = wasm::MaxMemoryPages();
-  }
-
-  // Double-check our invariants
-  MOZ_RELEASE_ASSERT(sourceMaxPages.isNothing() ||
-                     clampedMaxPages <= *sourceMaxPages);
-  MOZ_RELEASE_ASSERT(clampedMaxPages <= wasm::MaxMemoryPages());
-  MOZ_RELEASE_ASSERT(initialPages <= clampedMaxPages);
-
-  return clampedMaxPages;
-}

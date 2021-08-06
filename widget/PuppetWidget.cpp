@@ -21,6 +21,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/StaticPrefs_browser.h"
+#include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/TextEventDispatcher.h"
 #include "mozilla/TextEvents.h"
@@ -117,7 +118,7 @@ void PuppetWidget::InfallibleCreate(nsIWidget* aParent,
   PuppetWidget* parent = static_cast<PuppetWidget*>(aParent);
   if (parent) {
     parent->SetChild(this);
-    mLayerManager = parent->GetLayerManager();
+    mWindowRenderer = parent->GetWindowRenderer();
   } else {
     Resize(mBounds.X(), mBounds.Y(), mBounds.Width(), mBounds.Height(), false);
   }
@@ -165,10 +166,10 @@ void PuppetWidget::Destroy() {
     mMemoryPressureObserver = nullptr;
   }
   mChild = nullptr;
-  if (mLayerManager) {
-    mLayerManager->Destroy();
+  if (mWindowRenderer) {
+    mWindowRenderer->Destroy();
   }
-  mLayerManager = nullptr;
+  mWindowRenderer = nullptr;
   mBrowserChild = nullptr;
 }
 
@@ -585,16 +586,19 @@ bool PuppetWidget::GetEditCommands(NativeKeyBindingsType aType,
   return true;
 }
 
-LayerManager* PuppetWidget::GetLayerManager(
-    PLayerTransactionChild* aShadowManager, LayersBackend aBackendHint,
-    LayerManagerPersistence aPersistence) {
-  if (!mLayerManager) {
+WindowRenderer* PuppetWidget::GetWindowRenderer() {
+  if (!mWindowRenderer) {
     if (XRE_IsParentProcess()) {
       // On the parent process there is no CompositorBridgeChild which confuses
       // some layers code, so we use basic layers instead. Note that we create
       // a non-retaining layer manager since we don't care about performance.
-      mLayerManager = new BasicLayerManager(BasicLayerManager::BLM_OFFSCREEN);
-      return mLayerManager;
+      if (StaticPrefs::gfx_basic_layer_manager_force_enabled()) {
+        mWindowRenderer =
+            new BasicLayerManager(BasicLayerManager::BLM_OFFSCREEN);
+      } else {
+        mWindowRenderer = new FallbackRenderer;
+      }
+      return mWindowRenderer;
     }
 
     // If we know for sure that the parent side of this BrowserChild is not
@@ -603,10 +607,10 @@ LayerManager* PuppetWidget::GetLayerManager(
     // can do drawing in this process.
     MOZ_ASSERT(!mBrowserChild ||
                mBrowserChild->IsLayersConnected() != Some(true));
-    mLayerManager = new BasicLayerManager(this);
+    mWindowRenderer = CreateBasicLayerManager();
   }
 
-  return mLayerManager;
+  return mWindowRenderer;
 }
 
 bool PuppetWidget::CreateRemoteLayerManager(
@@ -628,7 +632,7 @@ bool PuppetWidget::CreateRemoteLayerManager(
   // it if we successfully create its successor because a partially initialized
   // layer manager is worse than a fully initialized but shutdown layer manager.
   DestroyLayerManager();
-  mLayerManager = std::move(lm);
+  mWindowRenderer = std::move(lm);
   return true;
 }
 
@@ -1008,8 +1012,9 @@ void PuppetWidget::PaintNowIfNeeded() {
 
 void PuppetWidget::OnMemoryPressure(layers::MemoryPressureReason aWhy) {
   if (aWhy != MemoryPressureReason::LOW_MEMORY_ONGOING && !mVisible &&
-      mLayerManager && XRE_IsContentProcess()) {
-    mLayerManager->ClearCachedResources();
+      mWindowRenderer && mWindowRenderer->AsLayerManager() &&
+      XRE_IsContentProcess()) {
+    mWindowRenderer->AsLayerManager()->ClearCachedResources();
   }
 }
 

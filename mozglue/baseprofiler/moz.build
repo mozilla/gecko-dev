@@ -68,10 +68,17 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
 
     FINAL_LIBRARY = "mozglue"
 
+GeneratedFile(
+    "public/ProfilingCategoryList.h",
+    script="build/generate_profiling_categories.py",
+    entry_point="generate_macro_header",
+    inputs=["build/profiling_categories.yaml"],
+)
+
 EXPORTS += [
+    "!public/ProfilingCategoryList.h",
     "public/BaseProfiler.h",
     "public/BaseProfilingCategory.h",
-    "public/ProfilingCategoryList.h",
 ]
 
 EXPORTS.mozilla += [
@@ -84,6 +91,7 @@ EXPORTS.mozilla += [
     "public/BaseProfilerMarkersPrerequisites.h",
     "public/BaseProfilerMarkerTypes.h",
     "public/BaseProfilerState.h",
+    "public/BaseProfilerUtils.h",
     "public/BlocksRingBuffer.h",
     "public/leb128iterator.h",
     "public/ModuloBuffer.h",

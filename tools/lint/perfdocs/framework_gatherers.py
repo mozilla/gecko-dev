@@ -234,13 +234,18 @@ class RaptorGatherer(FrameworkGatherer):
                     continue
                 sub_title = key.replace("_", " ")
                 if key == "test_url":
+                    if "<" in description[key] or ">" in description[key]:
+                        description[key] = description[key].replace("<", "\<")
+                        description[key] = description[key].replace(">", "\>")
                     result += f"   * **{sub_title}**: `<{description[key]}>`__\n"
-                elif key in ["playback_pageset_manifest", "playback_recordings"]:
+                elif key in ["playback_pageset_manifest"]:
                     result += (
                         f"   * **{sub_title}**: "
                         f"{description[key].replace('{subtest}', description['name'])}\n"
                     )
                 else:
+                    if "\n" in description[key]:
+                        description[key] = description[key].replace("\n", " ")
                     result += f"   * **{sub_title}**: {description[key]}\n"
 
             if self._task_list.get(title, []):
@@ -326,19 +331,9 @@ class MozperftestGatherer(FrameworkGatherer):
         return self._build_section_with_header(title, content, header_type="H4")
 
 
-class TalosGatherer(FrameworkGatherer):
+class StaticGatherer(FrameworkGatherer):
     """
-    Gatherer for the Talos framework.
-    TODO - Bug 1674220
-    """
-
-    pass
-
-
-class AWSYGatherer(FrameworkGatherer):
-    """
-    Placeholder to enable PerfDocs for AWSY.
-    Content is static so no gatherer is needed.
+    A noop gatherer for frameworks with static-only documentation.
     """
 
     pass

@@ -14,6 +14,8 @@
 
 namespace js {
 
+ScriptSourceObject* SelfHostingScriptSourceObject(JSContext* cx);
+
 /*
  * Check whether the given JSFunction is a self-hosted function whose
  * self-hosted name is the given name.
@@ -27,6 +29,7 @@ bool IsSelfHostedFunctionWithName(JSFunction* fun, JSAtom* name);
  * declaration in the self-hosted global.
  */
 PropertyName* GetClonedSelfHostedFunctionName(const JSFunction* fun);
+void SetClonedSelfHostedFunctionName(JSFunction* fun, PropertyName* name);
 
 /*
  * Same as GetClonedSelfHostedFunctionName, but `fun` is guaranteed to be an
@@ -56,6 +59,8 @@ bool ReportIncompatibleSelfHostedMethod(JSContext* cx, const CallArgs& args);
 
 /* Get the compile options used when compiling self hosted code. */
 void FillSelfHostingCompileOptions(JS::CompileOptions& options);
+
+const JSFunctionSpec* FindIntrinsicSpec(PropertyName* name);
 
 #ifdef DEBUG
 /*

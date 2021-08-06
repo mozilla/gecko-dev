@@ -18,7 +18,9 @@
 #include "jit/MIRGraph.h"
 #include "js/Conversions.h"
 #include "vm/Shape.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmBuiltins.h"
+#include "wasm/WasmCodegenTypes.h"
+#include "wasm/WasmTlsData.h"
 
 #include "jit/MacroAssembler-inl.h"
 #include "jit/shared/CodeGenerator-shared-inl.h"
@@ -257,7 +259,7 @@ void CodeGenerator::visitCompareExchangeTypedArrayElement64(
   Register temp2 = edx;
 
   Label fail;
-  masm.newGCBigInt(bigInt, temp2, &fail, bigIntsCanBeInNursery());
+  masm.newGCBigInt(bigInt, temp2, initialBigIntHeap(), &fail);
   masm.initializeBigInt64(arrayType, bigInt, replacement);
   masm.mov(bigInt, out);
   restoreSavedRegisters();
@@ -321,7 +323,7 @@ void CodeGenerator::visitAtomicExchangeTypedArrayElement64(
   Register temp = edx;
 
   Label fail;
-  masm.newGCBigInt(out, temp, &fail, bigIntsCanBeInNursery());
+  masm.newGCBigInt(out, temp, initialBigIntHeap(), &fail);
   masm.initializeBigInt64(arrayType, out, temp1);
   restoreSavedRegisters();
   masm.jump(ool->rejoin());
@@ -395,7 +397,7 @@ void CodeGenerator::visitAtomicTypedArrayElementBinop64(
   Register temp = edx;
 
   Label fail;
-  masm.newGCBigInt(out, temp, &fail, bigIntsCanBeInNursery());
+  masm.newGCBigInt(out, temp, initialBigIntHeap(), &fail);
   masm.initializeBigInt64(arrayType, out, temp1);
   restoreSavedRegisters();
   masm.jump(ool->rejoin());
@@ -1241,7 +1243,7 @@ void CodeGeneratorX86::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
   masm.idiv(divisor);
 
   // Create and return the result.
-  masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, divisor, initialBigIntHeap(), fail);
   masm.initializeBigInt(output, dividend);
 }
 
@@ -1262,7 +1264,7 @@ void CodeGeneratorX86::emitBigIntMod(LBigIntMod* ins, Register dividend,
   masm.movl(output, dividend);
 
   // Create and return the result.
-  masm.newGCBigInt(output, divisor, fail, bigIntsCanBeInNursery());
+  masm.newGCBigInt(output, divisor, initialBigIntHeap(), fail);
   masm.initializeBigInt(output, dividend);
 }
 

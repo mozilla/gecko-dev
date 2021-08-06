@@ -147,6 +147,10 @@ class MapObject : public NativeObject {
 
   size_t sizeOfData(mozilla::MallocSizeOf mallocSizeOf);
 
+  static constexpr size_t getDataSlotOffset() {
+    return getFixedSlotOffset(DataSlot);
+  }
+
  private:
   static const ClassSpec classSpec_;
   static const JSClassOps classOps_;
@@ -272,6 +276,10 @@ class SetObject : public NativeObject {
   static void sweepAfterMinorGC(JSFreeOp* fop, SetObject* setobj);
 
   size_t sizeOfData(mozilla::MallocSizeOf mallocSizeOf);
+
+  static constexpr size_t getDataSlotOffset() {
+    return getFixedSlotOffset(DataSlot);
+  }
 
  private:
   static const ClassSpec classSpec_;

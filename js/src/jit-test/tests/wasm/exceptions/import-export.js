@@ -1,21 +1,5 @@
 // Tests for Wasm exception import and export.
 
-// The WebAssembly.Exception constructor cannot be called for now until the
-// JS API specifies the behavior. Same with WebAssembly.RuntimeException.
-function testException() {
-  assertErrorMessage(
-    () => new WebAssembly.Exception(),
-    WebAssembly.RuntimeError,
-    /cannot call WebAssembly.Exception/
-  );
-
-  assertErrorMessage(
-    () => new WebAssembly.RuntimeException(),
-    WebAssembly.RuntimeError,
-    /cannot call WebAssembly.RuntimeException/
-  );
-}
-
 function testImports() {
   var mod = `
     (module
@@ -24,9 +8,9 @@ function testImports() {
  `;
 
   assertErrorMessage(
-    () => wasmEvalText(mod, { m: { exn: "not an exception" } }),
+    () => wasmEvalText(mod, { m: { exn: "not a tag" } }),
     WebAssembly.LinkError,
-    /import object field 'exn' is not a Exception/
+    /import object field 'exn' is not a Tag/
   );
 }
 
@@ -36,7 +20,7 @@ function testExports() {
   `).exports;
 
   assertEq(typeof exports1.exn, "object");
-  assertEq(exports1.exn instanceof WebAssembly.Exception, true);
+  assertEq(exports1.exn instanceof WebAssembly.Tag, true);
 
   var exports2 = wasmEvalText(`
     (module
@@ -45,7 +29,7 @@ function testExports() {
   `).exports;
 
   assertEq(typeof exports2.exn, "object");
-  assertEq(exports2.exn instanceof WebAssembly.Exception, true);
+  assertEq(exports2.exn instanceof WebAssembly.Tag, true);
 }
 
 function testImportExport() {
@@ -76,7 +60,7 @@ function testImportExport() {
       );
     },
     WebAssembly.LinkError,
-    /imported exception 'm.exn' signature mismatch/
+    /imported tag 'm.exn' signature mismatch/
   );
 }
 
@@ -104,13 +88,12 @@ function testDescriptions() {
 
   assertEq(imports[0].module, "m");
   assertEq(imports[0].name, "e");
-  assertEq(imports[0].kind, "event");
+  assertEq(imports[0].kind, "tag");
 
   assertEq(exports[0].name, "e");
-  assertEq(exports[0].kind, "event");
+  assertEq(exports[0].kind, "tag");
 }
 
-testException();
 testImports();
 testExports();
 testImportExport();

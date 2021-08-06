@@ -204,6 +204,28 @@ ENameValueFlag HTMLButtonAccessible::NativeName(nsString& aName) const {
   return eNameOK;
 }
 
+void HTMLButtonAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
+                                               nsAtom* aAttribute,
+                                               int32_t aModType,
+                                               const nsAttrValue* aOldValue,
+                                               uint64_t aOldState) {
+  HyperTextAccessibleWrap::DOMAttributeChanged(aNameSpaceID, aAttribute,
+                                               aModType, aOldValue, aOldState);
+
+  if (aAttribute == nsGkAtoms::value) {
+    dom::Element* elm = Elm();
+    if (elm->IsHTMLElement(nsGkAtoms::input) ||
+        (elm->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type, nsGkAtoms::image,
+                          eCaseMatters) &&
+         !elm->HasAttr(kNameSpaceID_None, nsGkAtoms::alt))) {
+      if (!elm->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_labelledby) &&
+          !elm->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_label)) {
+        mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_NAME_CHANGE, this);
+      }
+    }
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // HTMLButtonAccessible: Widgets
 
@@ -805,6 +827,26 @@ bool HTMLProgressAccessible::SetCurValue(double aValue) {
   return false;  // progress meters are readonly.
 }
 
+void HTMLProgressAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
+                                                 nsAtom* aAttribute,
+                                                 int32_t aModType,
+                                                 const nsAttrValue* aOldValue,
+                                                 uint64_t aOldState) {
+  LeafAccessible::DOMAttributeChanged(aNameSpaceID, aAttribute, aModType,
+                                      aOldValue, aOldState);
+
+  if (aAttribute == nsGkAtoms::value) {
+    mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, this);
+
+    uint64_t currState = NativeState();
+    if ((aOldState ^ currState) & states::MIXED) {
+      RefPtr<AccEvent> stateChangeEvent = new AccStateChangeEvent(
+          this, states::MIXED, (currState & states::MIXED));
+      mDoc->FireDelayedEvent(stateChangeEvent);
+    }
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // HTMLMeterAccessible
 ////////////////////////////////////////////////////////////////////////////////
@@ -913,4 +955,17 @@ double HTMLMeterAccessible::CurValue() const {
 
 bool HTMLMeterAccessible::SetCurValue(double aValue) {
   return false;  // meters are readonly.
+}
+
+void HTMLMeterAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
+                                              nsAtom* aAttribute,
+                                              int32_t aModType,
+                                              const nsAttrValue* aOldValue,
+                                              uint64_t aOldState) {
+  LeafAccessible::DOMAttributeChanged(aNameSpaceID, aAttribute, aModType,
+                                      aOldValue, aOldState);
+
+  if (aAttribute == nsGkAtoms::value) {
+    mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, this);
+  }
 }

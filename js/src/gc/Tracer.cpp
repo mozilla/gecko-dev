@@ -50,8 +50,7 @@ void JS::TracingContext::getEdgeName(char* buffer, size_t bufferSize) {
 JS_PUBLIC_API void JS::TraceChildren(JSTracer* trc, GCCellPtr thing) {
   ApplyGCThingTyped(thing.asCell(), thing.kind(), [trc](auto t) {
     MOZ_ASSERT_IF(t->runtimeFromAnyThread() != trc->runtime(),
-                  t->isPermanentAndMayBeShared() ||
-                      t->zoneFromAnyThread()->isSelfHostingZone());
+                  t->isPermanentAndMayBeShared());
     t->traceChildren(trc);
   });
 }
@@ -225,10 +224,8 @@ void js::gc::GetTraceThingInfo(char* buf, size_t bufsize, void* thing,
             bufsize--;
             PutEscapedString(buf, bufsize, fun->displayAtom(), 0);
           }
-        } else if (obj->getClass()->flags & JSCLASS_HAS_PRIVATE) {
-          snprintf(buf, bufsize, " %p", obj->as<NativeObject>().getPrivate());
         } else {
-          snprintf(buf, bufsize, " <no private>");
+          snprintf(buf, bufsize, " <unknown object>");
         }
         break;
       }

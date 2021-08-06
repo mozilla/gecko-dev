@@ -176,7 +176,7 @@ struct PrintPreviewResultInfo
  * See `dom/docs/Fission-IPC-Diagram.svg` for an overview of the DOM IPC
  * actors.
  */
-nested(upto inside_cpow) sync refcounted protocol PBrowser
+[NestedUpTo=inside_cpow, RefCounted] sync protocol PBrowser
 {
     manager PContent;
 
@@ -223,7 +223,8 @@ parent:
      */
     sync DispatchFocusToTopLevelWindow();
 
-parent:
+    async DidUnsuppressPainting();
+
     /**
      * When child sends this message, parent should move focus to
      * the next or previous focusable element or document.
@@ -581,7 +582,7 @@ child:
     async NativeSynthesisResponse(uint64_t aObserverId, nsCString aResponse);
     async UpdateEpoch(uint32_t aEpoch);
     async UpdateSHistory();
-    async CloneDocumentTreeIntoSelf(MaybeDiscardedBrowsingContext aBc, PrintData aPrintData);
+    async CloneDocumentTreeIntoSelf(MaybeDiscardedBrowsingContext aBc, PrintData aPrintData) returns(bool aSuccess);
     async UpdateRemotePrintSettings(PrintData aPrintData);
 
     /**
@@ -590,15 +591,6 @@ child:
     [Priority=input] async ReleaseAllPointerCapture();
 
 parent:
-
-    /**
-     * Child informs the parent that the graphics objects are ready for
-     * compositing.  This is sent when all pending changes have been
-     * sent to the compositor and are ready to be shown on the next composite.
-     * @see PCompositor
-     * @see RequestNotifyAfterRemotePaint
-     */
-    async RemotePaintIsReady();
 
     /**
      * Child informs the parent that the content is ready to handle input
@@ -669,6 +661,8 @@ parent:
                              int32_t aAppUnitsPerDevPixel);
 
     async SetAllowDeprecatedTls(bool value);
+
+    async ShowDynamicToolbar();
 
 child:
     /**
@@ -911,14 +905,6 @@ child:
      * Navigate by key (Tab/Shift+Tab/F6/Shift+f6).
      */
     async NavigateByKey(bool aForward, bool aForDocumentNavigation);
-
-    /**
-     * The parent (chrome thread) requests that the child inform it when
-     * the graphics objects are ready to display.
-     * @see PCompositor
-     * @see RemotePaintIsReady
-     */
-    async RequestNotifyAfterRemotePaint();
 
     /**
      * Tell the child that the UI resolution changed for the containing

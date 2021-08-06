@@ -22,7 +22,8 @@
 #include "js/ScalarType.h"          // js::Scalar::Type
 #include "vm/JSFunction.h"
 #include "vm/Shape.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmConstants.h"
+#include "wasm/WasmValType.h"
 
 enum class JSOp : uint8_t;
 
@@ -520,6 +521,8 @@ enum class GuardClassKind : uint8_t {
   UnmappedArguments,
   WindowProxy,
   JSFunction,
+  Set,
+  Map,
 };
 
 // Some ops refer to shapes that might be in other zones. Instead of putting
@@ -1267,6 +1270,8 @@ class MOZ_RAII IRGenerator {
 
   OperandId emitNumericGuard(ValOperandId valId, Scalar::Type type);
 
+  StringOperandId emitToStringGuard(ValOperandId id, const Value& v);
+
   friend class CacheIRSpewer;
 
  public:
@@ -1765,6 +1770,9 @@ class MOZ_RAII CallIRGenerator : public IRGenerator {
   AttachDecision tryAttachObjectToString(HandleFunction callee);
   AttachDecision tryAttachBigIntAsIntN(HandleFunction callee);
   AttachDecision tryAttachBigIntAsUintN(HandleFunction callee);
+  AttachDecision tryAttachSetHas(HandleFunction callee);
+  AttachDecision tryAttachMapHas(HandleFunction callee);
+  AttachDecision tryAttachMapGet(HandleFunction callee);
 
   AttachDecision tryAttachFunCall(HandleFunction calleeFunc);
   AttachDecision tryAttachFunApply(HandleFunction calleeFunc);

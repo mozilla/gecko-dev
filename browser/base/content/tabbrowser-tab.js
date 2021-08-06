@@ -265,6 +265,24 @@
       this._lastAccessed = this.selected ? Infinity : aDate || Date.now();
     }
 
+    updateLastUnloadedByTabUnloader() {
+      this._lastUnloaded = Date.now();
+      Services.telemetry.scalarAdd("browser.engagement.tab_unload_count", 1);
+    }
+
+    recordTimeFromUnloadToReload() {
+      if (!this._lastUnloaded) {
+        return;
+      }
+
+      const diff_in_msec = Date.now() - this._lastUnloaded;
+      Services.telemetry
+        .getHistogramById("TAB_UNLOAD_TO_RELOAD")
+        .add(diff_in_msec / 1000);
+      Services.telemetry.scalarAdd("browser.engagement.tab_reload_count", 1);
+      delete this._lastUnloaded;
+    }
+
     on_mouseover(event) {
       if (event.target.classList.contains("tab-close-button")) {
         this.mOverCloseButton = true;

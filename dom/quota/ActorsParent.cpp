@@ -849,10 +849,13 @@ class OriginInfo final {
 
   void LockedPersist();
 
+  bool IsExtensionOrigin() { return mIsExtension; }
+
   nsTHashMap<nsStringHashKey, NotNull<QuotaObject*>> mQuotaObjects;
   ClientUsageArray mClientUsages;
   GroupInfo* mGroupInfo;
   const nsCString mOrigin;
+  bool mIsExtension;
   uint64_t mUsage;
   int64_t mAccessTime;
   bool mAccessed;
@@ -2396,7 +2399,8 @@ Result<bool, nsresult> EnsureDirectory(nsIFile& aDirectory) {
                  QM_OR_ELSE_LOG_VERBOSE_IF(
                      // Expression.
                      MOZ_TO_RESULT_INVOKE(aDirectory, Create,
-                                          nsIFile::DIRECTORY_TYPE, 0755)
+                                          nsIFile::DIRECTORY_TYPE, 0755,
+                                          /* aSkipAncestors = */ false)
                          .map([](Ok) { return false; }),
                      // Predicate.
                      IsSpecificError<NS_ERROR_FILE_ALREADY_EXISTS>,
@@ -3421,6 +3425,22 @@ uint64_t QuotaManager::CollectOriginsForEviction(
           continue;
         }
 
+        // Never evict PERSISTENCE_TYPE_DEFAULT data associated to a
+        // moz-extension origin, unlike websites (which may more likely using
+        // the local data as a cache but still able to retrieve the same data
+        // from the server side) extensions do not have the same data stored
+        // anywhere else and evicting the data would result into potential data
+        // loss for the users.
+        //
+        // Also, unlike a website the extensions are explicitly installed and
+        // uninstalled by the user and all data associated to the extension
+        // principal will be completely removed once the addon is uninstalled.
+        if (originInfo->mGroupInfo->mPersistenceType !=
+                PERSISTENCE_TYPE_TEMPORARY &&
+            originInfo->IsExtensionOrigin()) {
+          continue;
+        }
+
         const auto originScope = OriginScope::FromOrigin(originInfo->mOrigin);
 
         const bool match =
@@ -4218,13 +4238,15 @@ nsresult QuotaManager::LoadQuota() {
 
       QM_TRY(([&]() -> Result<Ok, nsresult> {
         QM_TRY(([this, type] {
-                 const nsresult rv = InitializeRepository(type);
-                 mInitializationInfo.MaybeRecordFirstInitializationAttempt(
+                 const auto innerFunc = [&](const auto&) -> nsresult {
+                   return InitializeRepository(type);
+                 };
+
+                 return ExecuteInitialization(
                      type == PERSISTENCE_TYPE_DEFAULT
                          ? Initialization::DefaultRepository
                          : Initialization::TemporaryRepository,
-                     rv);
-                 return rv;
+                     innerFunc);
                }()),
                OK_IN_NIGHTLY_PROPAGATE_IN_OTHERS, statusKeeperFunc);
 
@@ -4986,7 +5008,7 @@ QuotaManager::UpgradeFromIndexedDBDirectoryToPersistentStorageDirectory(
   AssertIsOnIOThread();
   MOZ_ASSERT(aIndexedDBDir);
 
-  auto rv = [this, &aIndexedDBDir]() -> nsresult {
+  const auto innerFunc = [this, &aIndexedDBDir](const auto&) -> nsresult {
     bool isDirectory;
     QM_TRY(aIndexedDBDir->IsDirectory(&isDirectory));
 
@@ -5029,12 +5051,10 @@ QuotaManager::UpgradeFromIndexedDBDirectoryToPersistentStorageDirectory(
                                  nsLiteralString(PERSISTENT_DIRECTORY_NAME)));
 
     return NS_OK;
-  }();
+  };
 
-  mInitializationInfo.MaybeRecordFirstInitializationAttempt(
-      Initialization::UpgradeFromIndexedDBDirectory, rv);
-
-  return rv;
+  return ExecuteInitialization(Initialization::UpgradeFromIndexedDBDirectory,
+                               innerFunc);
 }
 
 nsresult
@@ -5043,7 +5063,8 @@ QuotaManager::UpgradeFromPersistentStorageDirectoryToDefaultStorageDirectory(
   AssertIsOnIOThread();
   MOZ_ASSERT(aPersistentStorageDir);
 
-  auto rv = [this, &aPersistentStorageDir]() -> nsresult {
+  const auto innerFunc = [this,
+                          &aPersistentStorageDir](const auto&) -> nsresult {
     QM_TRY_INSPECT(const bool& isDirectory,
                    MOZ_TO_RESULT_INVOKE(aPersistentStorageDir, IsDirectory));
 
@@ -5108,12 +5129,10 @@ QuotaManager::UpgradeFromPersistentStorageDirectoryToDefaultStorageDirectory(
         nullptr, nsLiteralString(DEFAULT_DIRECTORY_NAME)));
 
     return NS_OK;
-  }();
+  };
 
-  mInitializationInfo.MaybeRecordFirstInitializationAttempt(
-      Initialization::UpgradeFromPersistentStorageDirectory, rv);
-
-  return rv;
+  return ExecuteInitialization(
+      Initialization::UpgradeFromPersistentStorageDirectory, innerFunc);
 }
 
 template <typename Helper>
@@ -5161,17 +5180,15 @@ nsresult QuotaManager::UpgradeStorageFrom0_0To1_0(
   AssertIsOnIOThread();
   MOZ_ASSERT(aConnection);
 
-  auto rv = [this, &aConnection]() -> nsresult {
+  const auto innerFunc = [this, &aConnection](const auto&) -> nsresult {
     QM_TRY(UpgradeStorage<UpgradeStorageFrom0_0To1_0Helper>(
         0, MakeStorageVersion(1, 0), aConnection));
 
     return NS_OK;
-  }();
+  };
 
-  mInitializationInfo.MaybeRecordFirstInitializationAttempt(
-      Initialization::UpgradeStorageFrom0_0To1_0, rv);
-
-  return rv;
+  return ExecuteInitialization(Initialization::UpgradeStorageFrom0_0To1_0,
+                               innerFunc);
 }
 
 nsresult QuotaManager::UpgradeStorageFrom1_0To2_0(
@@ -5246,17 +5263,15 @@ nsresult QuotaManager::UpgradeStorageFrom1_0To2_0(
   // manager directories without the ".files" suffix then prevent current
   // Firefox from initializing and using the storage.
 
-  auto rv = [this, &aConnection]() -> nsresult {
+  const auto innerFunc = [this, &aConnection](const auto&) -> nsresult {
     QM_TRY(UpgradeStorage<UpgradeStorageFrom1_0To2_0Helper>(
         MakeStorageVersion(1, 0), MakeStorageVersion(2, 0), aConnection));
 
     return NS_OK;
-  }();
+  };
 
-  mInitializationInfo.MaybeRecordFirstInitializationAttempt(
-      Initialization::UpgradeStorageFrom1_0To2_0, rv);
-
-  return rv;
+  return ExecuteInitialization(Initialization::UpgradeStorageFrom1_0To2_0,
+                               innerFunc);
 }
 
 nsresult QuotaManager::UpgradeStorageFrom2_0To2_1(
@@ -5267,17 +5282,15 @@ nsresult QuotaManager::UpgradeStorageFrom2_0To2_1(
   // The upgrade is mainly to create a directory padding file in DOM Cache
   // directory to record the overall padding size of an origin.
 
-  auto rv = [this, &aConnection]() -> nsresult {
+  const auto innerFunc = [this, &aConnection](const auto&) -> nsresult {
     QM_TRY(UpgradeStorage<UpgradeStorageFrom2_0To2_1Helper>(
         MakeStorageVersion(2, 0), MakeStorageVersion(2, 1), aConnection));
 
     return NS_OK;
-  }();
+  };
 
-  mInitializationInfo.MaybeRecordFirstInitializationAttempt(
-      Initialization::UpgradeStorageFrom2_0To2_1, rv);
-
-  return rv;
+  return ExecuteInitialization(Initialization::UpgradeStorageFrom2_0To2_1,
+                               innerFunc);
 }
 
 nsresult QuotaManager::UpgradeStorageFrom2_1To2_2(
@@ -5288,17 +5301,15 @@ nsresult QuotaManager::UpgradeStorageFrom2_1To2_2(
   // The upgrade is mainly to clean obsolete origins in the repositoies, remove
   // asmjs client, and ".tmp" file in the idb folers.
 
-  auto rv = [this, &aConnection]() -> nsresult {
+  const auto innerFunc = [this, &aConnection](const auto&) -> nsresult {
     QM_TRY(UpgradeStorage<UpgradeStorageFrom2_1To2_2Helper>(
         MakeStorageVersion(2, 1), MakeStorageVersion(2, 2), aConnection));
 
     return NS_OK;
-  }();
+  };
 
-  mInitializationInfo.MaybeRecordFirstInitializationAttempt(
-      Initialization::UpgradeStorageFrom2_1To2_2, rv);
-
-  return rv;
+  return ExecuteInitialization(Initialization::UpgradeStorageFrom2_1To2_2,
+                               innerFunc);
 }
 
 nsresult QuotaManager::UpgradeStorageFrom2_2To2_3(
@@ -5306,7 +5317,7 @@ nsresult QuotaManager::UpgradeStorageFrom2_2To2_3(
   AssertIsOnIOThread();
   MOZ_ASSERT(aConnection);
 
-  auto rv = [&aConnection]() -> nsresult {
+  const auto innerFunc = [&aConnection](const auto&) -> nsresult {
     // Table `database`
     QM_TRY(aConnection->ExecuteSimpleSQL(
         nsLiteralCString("CREATE TABLE database"
@@ -5329,12 +5340,10 @@ nsresult QuotaManager::UpgradeStorageFrom2_2To2_3(
     QM_TRY(aConnection->SetSchemaVersion(MakeStorageVersion(2, 3)));
 
     return NS_OK;
-  }();
+  };
 
-  mInitializationInfo.MaybeRecordFirstInitializationAttempt(
-      Initialization::UpgradeStorageFrom2_2To2_3, rv);
-
-  return rv;
+  return ExecuteInitialization(Initialization::UpgradeStorageFrom2_2To2_3,
+                               innerFunc);
 }
 
 nsresult QuotaManager::MaybeRemoveLocalStorageDataAndArchive(
@@ -5976,21 +5985,12 @@ Result<Ok, nsresult> QuotaManager::CreateEmptyLocalStorageArchive(
 nsresult QuotaManager::EnsureStorageIsInitialized() {
   DiagnosticAssertIsOnIOThread();
 
-  const auto firstInitializationAttempt =
-      mInitializationInfo.FirstInitializationAttempt(Initialization::Storage);
-
-  if (mStorageConnection) {
-    MOZ_ASSERT(firstInitializationAttempt.Recorded());
-    return NS_OK;
-  }
-
-  auto rv = [&firstInitializationAttempt, this]() -> nsresult {
-    const auto maybeExtraInfo =
-        firstInitializationAttempt.Pending()
-            ? Some(ScopedLogExtraInfo{
-                  ScopedLogExtraInfo::kTagContext,
-                  "dom::quota::FirstInitializationAttempt::Storage"_ns})
-            : Nothing{};
+  const auto innerFunc =
+      [&](const auto& firstInitializationAttempt) -> nsresult {
+    if (mStorageConnection) {
+      MOZ_ASSERT(firstInitializationAttempt.Recorded());
+      return NS_OK;
+    }
 
     QM_TRY_INSPECT(const auto& storageFile, QM_NewLocalFile(mBasePath));
     QM_TRY(storageFile->Append(mStorageName + kSQLiteSuffix));
@@ -6057,11 +6057,11 @@ nsresult QuotaManager::EnsureStorageIsInitialized() {
     mStorageConnection = std::move(connection);
 
     return NS_OK;
-  }();
+  };
 
-  firstInitializationAttempt.MaybeRecord(rv);
-
-  return rv;
+  return ExecuteInitialization(
+      Initialization::Storage,
+      "dom::quota::FirstInitializationAttempt::Storage"_ns, innerFunc);
 }
 
 RefPtr<ClientDirectoryLock> QuotaManager::CreateDirectoryLock(
@@ -6091,28 +6091,15 @@ QuotaManager::EnsurePersistentOriginIsInitialized(
   MOZ_ASSERT(aOriginMetadata.mPersistenceType == PERSISTENCE_TYPE_PERSISTENT);
   MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
 
-  auto& originInitializationInfo =
-      mInitializationInfo.MutableOriginInitializationInfoRef(
-          aOriginMetadata.mOrigin);
-
-  const auto firstInitializationAttempt =
-      originInitializationInfo.FirstInitializationAttempt(
-          OriginInitialization::PersistentOrigin);
-
-  auto res = [&firstInitializationAttempt, &aOriginMetadata, this]()
+  const auto innerFunc = [&aOriginMetadata,
+                          this](const auto& firstInitializationAttempt)
       -> mozilla::Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult> {
-    const auto maybeExtraInfo =
-        firstInitializationAttempt.Pending()
-            ? Some(ScopedLogExtraInfo{
-                  ScopedLogExtraInfo::kTagContext,
-                  "dom::quota::FirstOriginInitializationAttempt::PersistentOrigin"_ns})
-            : Nothing{};
-
     QM_TRY_UNWRAP(auto directory,
                   GetDirectoryForOrigin(PERSISTENCE_TYPE_PERSISTENT,
                                         aOriginMetadata.mOrigin));
 
     if (mInitializedOrigins.Contains(aOriginMetadata.mOrigin)) {
+      MOZ_ASSERT(firstInitializationAttempt.Recorded());
       return std::pair(std::move(directory), false);
     }
 
@@ -6149,11 +6136,12 @@ QuotaManager::EnsurePersistentOriginIsInitialized(
     mInitializedOrigins.AppendElement(aOriginMetadata.mOrigin);
 
     return std::pair(std::move(directory), created);
-  }();
+  };
 
-  firstInitializationAttempt.MaybeRecord(res.isOk() ? NS_OK : res.inspectErr());
-
-  return res;
+  return ExecuteOriginInitialization(
+      aOriginMetadata.mOrigin, OriginInitialization::PersistentOrigin,
+      "dom::quota::FirstOriginInitializationAttempt::PersistentOrigin"_ns,
+      innerFunc);
 }
 
 Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult>
@@ -6164,24 +6152,9 @@ QuotaManager::EnsureTemporaryOriginIsInitialized(
   MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
   MOZ_DIAGNOSTIC_ASSERT(mTemporaryStorageInitialized);
 
-  auto& originInitializationInfo =
-      mInitializationInfo.MutableOriginInitializationInfoRef(
-          aOriginMetadata.mOrigin);
-
-  const auto firstInitializationAttempt =
-      originInitializationInfo.FirstInitializationAttempt(
-          OriginInitialization::TemporaryOrigin);
-
-  auto res = [&firstInitializationAttempt, &aPersistenceType, &aOriginMetadata,
-              this]()
+  const auto innerFunc = [&aPersistenceType, &aOriginMetadata,
+                          this](const auto&)
       -> mozilla::Result<std::pair<nsCOMPtr<nsIFile>, bool>, nsresult> {
-    const auto maybeExtraInfo =
-        firstInitializationAttempt.Pending()
-            ? Some(ScopedLogExtraInfo{
-                  ScopedLogExtraInfo::kTagContext,
-                  "dom::quota::FirstOriginInitializationAttempt::TemporaryOrigin"_ns})
-            : Nothing{};
-
     // Get directory for this origin and persistence type.
     QM_TRY_UNWRAP(
         auto directory,
@@ -6208,33 +6181,24 @@ QuotaManager::EnsureTemporaryOriginIsInitialized(
     //       file in next session in LoadQuotaFromCache.
 
     return std::pair(std::move(directory), created);
-  }();
+  };
 
-  firstInitializationAttempt.MaybeRecord(res.isOk() ? NS_OK : res.inspectErr());
-
-  return res;
+  return ExecuteOriginInitialization(
+      aOriginMetadata.mOrigin, OriginInitialization::TemporaryOrigin,
+      "dom::quota::FirstOriginInitializationAttempt::TemporaryOrigin"_ns,
+      innerFunc);
 }
 
 nsresult QuotaManager::EnsureTemporaryStorageIsInitialized() {
   AssertIsOnIOThread();
   MOZ_DIAGNOSTIC_ASSERT(mStorageConnection);
 
-  const auto firstInitializationAttempt =
-      mInitializationInfo.FirstInitializationAttempt(
-          Initialization::TemporaryStorage);
-
-  if (mTemporaryStorageInitialized) {
-    MOZ_ASSERT(firstInitializationAttempt.Recorded());
-    return NS_OK;
-  }
-
-  auto rv = [&firstInitializationAttempt, this]() -> nsresult {
-    const auto maybeExtraInfo =
-        firstInitializationAttempt.Pending()
-            ? Some(ScopedLogExtraInfo{
-                  ScopedLogExtraInfo::kTagContext,
-                  "dom::quota::FirstInitializationAttempt::TemporaryStorage"_ns})
-            : Nothing{};
+  const auto innerFunc =
+      [&](const auto& firstInitializationAttempt) -> nsresult {
+    if (mTemporaryStorageInitialized) {
+      MOZ_ASSERT(firstInitializationAttempt.Recorded());
+      return NS_OK;
+    }
 
     QM_TRY_INSPECT(
         const auto& storageDir,
@@ -6263,7 +6227,7 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitialized() {
     // limit calculation since available disk space is affected by existing data
     // stored in temporary storage. So we need to increase it by the temporary
     // storage size (that has been calculated in LoadQuota) before passing to
-    // GetTemporaryStorageLimit..
+    // GetTemporaryStorageLimit.
     mTemporaryStorageLimit = GetTemporaryStorageLimit(
         /* aAvailableSpaceBytes */ diskSpaceAvailable + mTemporaryStorageUsage);
 
@@ -6274,11 +6238,11 @@ nsresult QuotaManager::EnsureTemporaryStorageIsInitialized() {
     }
 
     return NS_OK;
-  }();
+  };
 
-  firstInitializationAttempt.MaybeRecord(rv);
-
-  return rv;
+  return ExecuteInitialization(
+      Initialization::TemporaryStorage,
+      "dom::quota::FirstInitializationAttempt::TemporaryStorage"_ns, innerFunc);
 }
 
 void QuotaManager::ShutdownStorage() {
@@ -7083,6 +7047,37 @@ int64_t QuotaManager::GenerateDirectoryLockId() {
   return directorylockId;
 }
 
+template <typename Func>
+auto QuotaManager::ExecuteInitialization(const Initialization aInitialization,
+                                         Func&& aFunc)
+    -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                      Initialization, StringGenerator>&> {
+  return quota::ExecuteInitialization(mInitializationInfo, aInitialization,
+                                      std::forward<Func>(aFunc));
+}
+
+template <typename Func>
+auto QuotaManager::ExecuteInitialization(const Initialization aInitialization,
+                                         const nsACString& aContext,
+                                         Func&& aFunc)
+    -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                      Initialization, StringGenerator>&> {
+  return quota::ExecuteInitialization(mInitializationInfo, aInitialization,
+                                      aContext, std::forward<Func>(aFunc));
+}
+
+template <typename Func>
+auto QuotaManager::ExecuteOriginInitialization(
+    const nsACString& aOrigin, const OriginInitialization aInitialization,
+    const nsACString& aContext, Func&& aFunc)
+    -> std::invoke_result_t<Func, const FirstInitializationAttempt<
+                                      Initialization, StringGenerator>&> {
+  return quota::ExecuteInitialization(
+      mInitializationInfo.MutableOriginInitializationInfoRef(
+          aOrigin, CreateIfNonExistent{}),
+      aInitialization, aContext, std::forward<Func>(aFunc));
+}
+
 /*******************************************************************************
  * Local class implementations
  ******************************************************************************/
@@ -7144,6 +7139,14 @@ OriginInfo::OriginInfo(GroupInfo* aGroupInfo, const nsACString& aOrigin,
   MOZ_ASSERT(aClientUsages.Length() == Client::TypeMax());
   MOZ_ASSERT_IF(aPersisted,
                 aGroupInfo->mPersistenceType == PERSISTENCE_TYPE_DEFAULT);
+
+  // This constructor is called from the "QuotaManager IO" thread and so
+  // we can't check if the principal has a WebExtensionPolicy instance
+  // associated to it, and even besides that if the extension is currently
+  // disabled (and so no WebExtensionPolicy instance would actually exist)
+  // its stored data shouldn't be cleared until the extension is uninstalled
+  // and so here we resort to check the origin scheme instead.
+  mIsExtension = StringBeginsWith(mOrigin, "moz-extension://"_ns);
 
 #ifdef DEBUG
   QuotaManager* quotaManager = QuotaManager::Get();

@@ -1612,6 +1612,15 @@ auto GeckoViewSupport::OnLoadRequest(mozilla::jni::String::Param aUri,
                                aHasUserGesture, aIsTopLevel);
 }
 
+void GeckoViewSupport::OnShowDynamicToolbar() const {
+  GeckoSession::Window::LocalRef window(mGeckoViewWindow);
+  if (!window) {
+    return;
+  }
+
+  window->OnShowDynamicToolbar();
+}
+
 void GeckoViewSupport::OnReady(jni::Object::Param aQueue) {
   GeckoSession::Window::LocalRef window(mGeckoViewWindow);
   if (!window) {
@@ -2176,23 +2185,22 @@ nsresult nsWindow::MakeFullScreen(bool aFullScreen, nsIScreen*) {
   return NS_OK;
 }
 
-mozilla::layers::LayerManager* nsWindow::GetLayerManager(
-    PLayerTransactionChild*, LayersBackend, LayerManagerPersistence) {
-  if (mLayerManager) {
-    return mLayerManager;
+mozilla::WindowRenderer* nsWindow::GetWindowRenderer() {
+  if (mWindowRenderer) {
+    return mWindowRenderer;
   }
 
   if (mIsDisablingWebRender) {
     CreateLayerManager();
     mIsDisablingWebRender = false;
-    return mLayerManager;
+    return mWindowRenderer;
   }
 
   return nullptr;
 }
 
 void nsWindow::CreateLayerManager() {
-  if (mLayerManager) {
+  if (mWindowRenderer) {
     return;
   }
 
@@ -2208,7 +2216,7 @@ void nsWindow::CreateLayerManager() {
   if (ShouldUseOffMainThreadCompositing()) {
     LayoutDeviceIntRect rect = GetBounds();
     CreateCompositor(rect.Width(), rect.Height());
-    if (mLayerManager) {
+    if (mWindowRenderer) {
       return;
     }
 
@@ -2218,13 +2226,22 @@ void nsWindow::CreateLayerManager() {
 
   if (!ComputeShouldAccelerate() || sFailedToCreateGLContext) {
     printf_stderr(" -- creating basic, not accelerated\n");
-    mLayerManager = CreateBasicLayerManager();
+    mWindowRenderer = CreateBasicLayerManager();
   }
 }
 
 void nsWindow::NotifyDisablingWebRender() {
   mIsDisablingWebRender = true;
   RedrawAll();
+}
+
+void nsWindow::ShowDynamicToolbar() {
+  auto acc(mGeckoViewSupport.Access());
+  if (!acc) {
+    return;
+  }
+
+  acc->OnShowDynamicToolbar();
 }
 
 void nsWindow::OnSizeChanged(const gfx::IntSize& aSize) {
@@ -2572,7 +2589,7 @@ bool nsWindow::WidgetPaintsBackground() {
 
 bool nsWindow::NeedsPaint() {
   auto lvs(mLayerViewSupport.Access());
-  if (!lvs || lvs->CompositorPaused() || !GetLayerManager(nullptr)) {
+  if (!lvs || lvs->CompositorPaused() || !GetWindowRenderer()) {
     return false;
   }
 

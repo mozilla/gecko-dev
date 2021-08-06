@@ -2640,45 +2640,32 @@ RefPtr<MediaManager::StreamPromise> MediaManager::GetUserMedia(
   auto placeholderListener = MakeRefPtr<DeviceListener>();
   windowListener->Register(placeholderListener);
 
-  if (!privileged) {
-    // Check if this site has had persistent permissions denied.
-    RefPtr<PermissionDelegateHandler> permDelegate =
-        doc->GetPermissionDelegateHandler();
-    MOZ_RELEASE_ASSERT(permDelegate);
-
-    uint32_t audioPerm = nsIPermissionManager::UNKNOWN_ACTION;
+  {  // Check Permissions Policy.  Reject if a requested feature is disabled.
+    bool disabled = !IsOn(c.mAudio) && !IsOn(c.mVideo);
     if (IsOn(c.mAudio)) {
       if (audioType == MediaSourceEnum::Microphone) {
-        if (Preferences::GetBool("media.getusermedia.microphone.deny", false)) {
-          audioPerm = nsIPermissionManager::DENY_ACTION;
-        } else {
-          rv = permDelegate->GetPermission("microphone"_ns, &audioPerm, true);
-          MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
+        if (Preferences::GetBool("media.getusermedia.microphone.deny", false) ||
+            !FeaturePolicyUtils::IsFeatureAllowed(doc, u"microphone"_ns)) {
+          disabled = true;
         }
-      } else {
-        rv = permDelegate->GetPermission("screen"_ns, &audioPerm, true);
-        MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
+      } else if (!FeaturePolicyUtils::IsFeatureAllowed(doc,
+                                                       u"display-capture"_ns)) {
+        disabled = true;
       }
     }
-
-    uint32_t videoPerm = nsIPermissionManager::UNKNOWN_ACTION;
     if (IsOn(c.mVideo)) {
       if (videoType == MediaSourceEnum::Camera) {
-        if (Preferences::GetBool("media.getusermedia.camera.deny", false)) {
-          videoPerm = nsIPermissionManager::DENY_ACTION;
-        } else {
-          rv = permDelegate->GetPermission("camera"_ns, &videoPerm, true);
-          MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
+        if (Preferences::GetBool("media.getusermedia.camera.deny", false) ||
+            !FeaturePolicyUtils::IsFeatureAllowed(doc, u"camera"_ns)) {
+          disabled = true;
         }
-      } else {
-        rv = permDelegate->GetPermission("screen"_ns, &videoPerm, true);
-        MOZ_RELEASE_ASSERT(NS_SUCCEEDED(rv));
+      } else if (!FeaturePolicyUtils::IsFeatureAllowed(doc,
+                                                       u"display-capture"_ns)) {
+        disabled = true;
       }
     }
 
-    if ((!IsOn(c.mAudio) && !IsOn(c.mVideo)) ||
-        (IsOn(c.mAudio) && audioPerm == nsIPermissionManager::DENY_ACTION) ||
-        (IsOn(c.mVideo) && videoPerm == nsIPermissionManager::DENY_ACTION)) {
+    if (disabled) {
       placeholderListener->Stop();
       return StreamPromise::CreateAndReject(
           MakeRefPtr<MediaMgrError>(MediaMgrError::Name::NotAllowedError),
@@ -3103,22 +3090,23 @@ RefPtr<MediaManager::DeviceSetPromise> MediaManager::EnumerateDevices(
   // Only expose devices which are allowed to use:
   // https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices
   MediaSourceEnum videoType =
-      dom::FeaturePolicyUtils::IsFeatureAllowed(doc, u"camera"_ns)
+      FeaturePolicyUtils::IsFeatureAllowed(doc, u"camera"_ns)
           ? MediaSourceEnum::Camera
           : MediaSourceEnum::Other;
   MediaSourceEnum audioType =
-      dom::FeaturePolicyUtils::IsFeatureAllowed(doc, u"microphone"_ns)
+      FeaturePolicyUtils::IsFeatureAllowed(doc, u"microphone"_ns)
           ? MediaSourceEnum::Microphone
           : MediaSourceEnum::Other;
+  MediaSinkEnum audioOutputType =
+      Preferences::GetBool("media.setsinkid.enabled") &&
+              FeaturePolicyUtils::IsFeatureAllowed(doc, u"speaker-selection"_ns)
+          ? MediaSinkEnum::Speaker
+          : MediaSinkEnum::Other;
 
   auto devices = MakeRefPtr<MediaDeviceSetRefCnt>();
-  MediaSinkEnum audioOutputType = MediaSinkEnum::Other;
-  // TODO bug Bug 1577199 we don't seem to support the "speaker" feature policy
-  // yet.
-  if (Preferences::GetBool("media.setsinkid.enabled")) {
-    audioOutputType = MediaSinkEnum::Speaker;
-  } else if (audioType == MediaSourceEnum::Other &&
-             videoType == MediaSourceEnum::Other) {
+  if (audioType == MediaSourceEnum::Other &&
+      videoType == MediaSourceEnum::Other &&
+      audioOutputType == MediaSinkEnum::Other) {
     return DeviceSetPromise::CreateAndResolve(devices, __func__);
   }
 
@@ -3174,6 +3162,14 @@ RefPtr<MediaManager::DevicePromise> MediaManager::SelectAudioOutput(
   bool isHandlingUserInput = UserActivation::IsHandlingUserInput();
   nsCOMPtr<nsIPrincipal> principal =
       nsGlobalWindowInner::Cast(aWindow)->GetPrincipal();
+  if (!FeaturePolicyUtils::IsFeatureAllowed(aWindow->GetExtantDoc(),
+                                            u"speaker-selection"_ns)) {
+    return DevicePromise::CreateAndReject(
+        MakeRefPtr<MediaMgrError>(
+            MediaMgrError::Name::NotAllowedError,
+            "Document's Permissions Policy does not allow selectAudioOutput()"),
+        __func__);
+  }
   if (NS_WARN_IF(!principal)) {
     return DevicePromise::CreateAndReject(
         MakeRefPtr<MediaMgrError>(MediaMgrError::Name::SecurityError),

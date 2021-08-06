@@ -1759,17 +1759,43 @@ MDefinition* MUnbox::foldsTo(TempAllocator& alloc) {
 #ifdef DEBUG
 void MPhi::assertLoopPhi() const {
   // getLoopPredecessorOperand and getLoopBackedgeOperand rely on these
-  // predecessors being at indices 0 and 1.
-  MBasicBlock* pred = block()->getPredecessor(0);
-  MBasicBlock* back = block()->getPredecessor(1);
-  MOZ_ASSERT(pred == block()->loopPredecessor());
-  MOZ_ASSERT(pred->successorWithPhis() == block());
-  MOZ_ASSERT(pred->positionInPhiSuccessor() == 0);
-  MOZ_ASSERT(back == block()->backedge());
-  MOZ_ASSERT(back->successorWithPhis() == block());
-  MOZ_ASSERT(back->positionInPhiSuccessor() == 1);
+  // predecessors being at known indices.
+  if (block()->numPredecessors() == 2) {
+    MBasicBlock* pred = block()->getPredecessor(0);
+    MBasicBlock* back = block()->getPredecessor(1);
+    MOZ_ASSERT(pred == block()->loopPredecessor());
+    MOZ_ASSERT(pred->successorWithPhis() == block());
+    MOZ_ASSERT(pred->positionInPhiSuccessor() == 0);
+    MOZ_ASSERT(back == block()->backedge());
+    MOZ_ASSERT(back->successorWithPhis() == block());
+    MOZ_ASSERT(back->positionInPhiSuccessor() == 1);
+  } else {
+    // After we remove fake loop predecessors for loop headers that
+    // are only reachable via OSR, the only predecessor is the
+    // loop backedge.
+    MOZ_ASSERT(block()->numPredecessors() == 1);
+    MOZ_ASSERT(block()->graph().osrBlock());
+    MOZ_ASSERT(!block()->graph().canBuildDominators());
+    MBasicBlock* back = block()->getPredecessor(0);
+    MOZ_ASSERT(back == block()->backedge());
+    MOZ_ASSERT(back->successorWithPhis() == block());
+    MOZ_ASSERT(back->positionInPhiSuccessor() == 0);
+  }
 }
 #endif
+
+MDefinition* MPhi::getLoopPredecessorOperand() const {
+  // This should not be called after removing fake loop predecessors.
+  MOZ_ASSERT(block()->numPredecessors() == 2);
+  assertLoopPhi();
+  return getOperand(0);
+}
+
+MDefinition* MPhi::getLoopBackedgeOperand() const {
+  assertLoopPhi();
+  uint32_t idx = block()->numPredecessors() == 2 ? 1 : 0;
+  return getOperand(idx);
+}
 
 void MPhi::removeOperand(size_t index) {
   MOZ_ASSERT(index < numOperands());
@@ -5800,6 +5826,18 @@ AliasSet MCheckObjCoercible::getAliasSet() const {
   return AliasSet::Store(AliasSet::ExceptionState);
 }
 
+AliasSet MCheckReturn::getAliasSet() const {
+  return AliasSet::Store(AliasSet::ExceptionState);
+}
+
+AliasSet MCheckThis::getAliasSet() const {
+  return AliasSet::Store(AliasSet::ExceptionState);
+}
+
+AliasSet MCheckThisReinit::getAliasSet() const {
+  return AliasSet::Store(AliasSet::ExceptionState);
+}
+
 AliasSet MIsPackedArray::getAliasSet() const {
   return AliasSet::Load(AliasSet::ObjectFields);
 }
@@ -5862,6 +5900,66 @@ MDefinition* MGuardInt32IsNonNegative::foldsTo(TempAllocator& alloc) {
     return this;
   }
   return input;
+}
+
+MDefinition* MGuardNonGCThing::foldsTo(TempAllocator& alloc) {
+  if (!input()->isBox()) {
+    return this;
+  }
+
+  MDefinition* unboxed = input()->getOperand(0);
+  if (!IsNonGCThing(unboxed->type())) {
+    return this;
+  }
+  return input();
+}
+
+AliasSet MSetObjectHasNonBigInt::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MSetObjectHasBigInt::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MSetObjectHasValue::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MSetObjectHasValueVMCall::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectHasNonBigInt::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectHasBigInt::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectHasValue::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectHasValueVMCall::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectGetNonBigInt::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectGetBigInt::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectGetValue::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
+}
+
+AliasSet MMapObjectGetValueVMCall::getAliasSet() const {
+  return AliasSet::Load(AliasSet::MapOrSetHashTable);
 }
 
 MIonToWasmCall* MIonToWasmCall::New(TempAllocator& alloc,

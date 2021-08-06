@@ -31,10 +31,23 @@ loader.lazyRequireGetter(
  * Commands are implemented by modules defined in devtools/shared/commands.
  */
 exports.CommandsFactory = {
-  async forTab(tab) {
-    const client = await createLocalClient();
+  /**
+   * Create commands for a given local tab.
+   *
+   * @param {Tab} tab: A local Firefox tab, running in this process.
+   * @param {Object} options
+   * @param {DevToolsClient} options.client: An optional DevToolsClient. If none is passed,
+   *        a new one will be created.
+   * @param {DevToolsClient} options.isWebExtension: An optional boolean to flag commands
+   *        that are created for the WebExtension codebase.
+   * @returns {Object} Commands
+   */
+  async forTab(tab, { client, isWebExtension } = {}) {
+    if (!client) {
+      client = await createLocalClient();
+    }
 
-    const descriptor = await client.mainRoot.getTab({ tab });
+    const descriptor = await client.mainRoot.getTab({ tab, isWebExtension });
     const commands = await createCommandsDictionary(descriptor);
     return commands;
   },
@@ -58,7 +71,7 @@ exports.CommandsFactory = {
   },
 
   /**
-   * For now, this method is only used by browser_target_list_various_descriptors.js
+   * For now, this method is only used by browser_target_command_various_descriptors.js
    * in order to cover about:debugging codepath, where we connect to remote tabs via
    * their current outerWindowID.
    * But:

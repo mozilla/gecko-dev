@@ -73,8 +73,7 @@ EXPORTS.mozilla.gfx += [
     "ThebesRLBox.h",
 ]
 
-if CONFIG["MOZ_ENABLE_SKIA"]:
-    EXPORTS.mozilla.gfx += ["SkMemoryReporter.h"]
+EXPORTS.mozilla.gfx += ["SkMemoryReporter.h"]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
     EXPORTS += [
@@ -227,10 +226,9 @@ UNIFIED_SOURCES += [
     "VsyncSource.cpp",
 ]
 
-if CONFIG["MOZ_ENABLE_SKIA"]:
-    UNIFIED_SOURCES += [
-        "SkMemoryReporter.cpp",
-    ]
+UNIFIED_SOURCES += [
+    "SkMemoryReporter.cpp",
+]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
     UNIFIED_SOURCES += [
@@ -265,6 +263,7 @@ LOCAL_INCLUDES += [
     "/dom/base",
     "/dom/media/platforms/apple",
     "/dom/xml",
+    "/gfx/cairo/cairo/src",
 ]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android", "gtk"):
@@ -275,9 +274,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         if CONFIG[var]:
             DEFINES[var] = True
 
-CXXFLAGS += CONFIG["MOZ_CAIRO_CFLAGS"]
 CXXFLAGS += CONFIG["TK_CFLAGS"]
-CFLAGS += CONFIG["MOZ_CAIRO_CFLAGS"]
 CFLAGS += CONFIG["TK_CFLAGS"]
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("android"):

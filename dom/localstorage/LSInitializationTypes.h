@@ -11,6 +11,10 @@
 #include <mozilla/dom/quota/FirstInitializationAttempts.h>
 #include "nsTHashMap.h"
 
+namespace mozilla {
+struct CreateIfNonExistent;
+}
+
 namespace mozilla::dom {
 
 enum class LSOriginInitialization {
@@ -30,6 +34,11 @@ class LSInitializationInfo final {
  public:
   LSOriginInitializationInfo& MutableOriginInitializationInfoRef(
       const nsACString& aOrigin) {
+    return *mOriginInitializationInfos.Lookup(aOrigin);
+  }
+
+  LSOriginInitializationInfo& MutableOriginInitializationInfoRef(
+      const nsACString& aOrigin, const CreateIfNonExistent&) {
     return mOriginInitializationInfos.LookupOrInsert(aOrigin);
   }
 };

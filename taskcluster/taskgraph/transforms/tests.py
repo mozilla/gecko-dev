@@ -159,6 +159,46 @@ WINDOWS_WORKER_TYPES = {
         "virtual-with-gpu": "t-win10-64-gpu-s",
         "hardware": "t-win10-64-ref-hw",
     },
+    "windows10-64-2004": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-ccov": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-ccov-qr": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-devedition": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-shippable": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-qr": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-shippable-qr": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-devedition-qr": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-asan-qr": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
+    "windows10-64-2004-mingwclang-qr": {
+        "virtual": "win10-64-2004",
+        "virtual-with-gpu": "win10-64-2004-gpu",
+    },
 }
 
 # os x worker types keyed by test-platform
@@ -198,7 +238,7 @@ TEST_VARIANTS = {
         "replace": {
             "run-on-projects": {
                 "by-test-platform": {
-                    "linux.*64(-shippable)?/opt": ["trunk"],
+                    "linux.*64(-shippable)?-qr/opt": ["trunk"],
                     "default": [],
                 },
             },
@@ -343,6 +383,60 @@ TEST_VARIANTS = {
                     "--setpref=gfx.webrender.software=true",
                 ],
             },
+        },
+    },
+    "webrender-sw-a11y-checks": {
+        "description": "{description} with software webrender and accessibility checks enabled",
+        "suffix": "swr-a11y-checks",
+        "replace": {
+            "run-on-projects": {
+                "by-test-platform": {
+                    "linux.*64(-shippable)?-qr/opt": ["trunk"],
+                    "default": [],
+                },
+            },
+            "tier": 2,
+        },
+        "merge": {
+            "webrender": True,
+            "mozharness": {
+                "extra-options": [
+                    "--setpref=gfx.webrender.software=true",
+                    "--enable-a11y-checks",
+                ],
+            },
+        },
+    },
+    "webrender-sw-fission": {
+        "description": "{description} with software webrender and fission enabled",
+        "filterfn": fission_filter,
+        "suffix": "swr-fis",
+        "replace": {
+            "e10s": True,
+        },
+        "merge": {
+            "webrender": True,
+            "mozharness": {
+                "extra-options": [
+                    "--setpref=gfx.webrender.software=true",
+                    "--setpref=fission.autostart=true",
+                ],
+            },
+        },
+    },
+    "webrender-sw-wayland": {
+        "description": "{description} with software webrender and Wayland backend enabled",
+        "suffix": "swr-wayland",
+        "replace": {
+            "run-on-projects": [],
+        },
+        "merge": {
+            "mozharness": {
+                "extra-options": [
+                    "--setpref=gfx.webrender.software=true",
+                    "--setpref=widget.wayland.test-workarounds.enabled=true",
+                ],
+            }
         },
     },
     "webgl-ipc": {
@@ -934,6 +1028,14 @@ def set_treeherder_machine_platform(config, tasks):
             task["treeherder-machine-platform"] = task["test-platform"].replace(
                 ".", "-"
             )
+        elif "android-em-7.0-x86_64-lite-qr" in task["test-platform"]:
+            task["treeherder-machine-platform"] = task["test-platform"].replace(
+                ".", "-"
+            )
+        elif "android-em-7.0-x86_64-shippable-lite-qr" in task["test-platform"]:
+            task["treeherder-machine-platform"] = task["test-platform"].replace(
+                ".", "-"
+            )
         elif "-qr" in task["test-platform"]:
             task["treeherder-machine-platform"] = task["test-platform"]
         elif "android-hw" in task["test-platform"]:
@@ -1070,36 +1172,42 @@ def setup_browsertime(config, tasks):
                 "linux64-chromedriver-89",
                 "linux64-chromedriver-90",
                 "linux64-chromedriver-91",
+                "linux64-chromedriver-92",
             ],
             "linux.*": [
                 "linux64-chromedriver-87",
                 "linux64-chromedriver-89",
                 "linux64-chromedriver-90",
                 "linux64-chromedriver-91",
+                "linux64-chromedriver-92",
             ],
             "macosx.*": [
                 "mac64-chromedriver-87",
                 "mac64-chromedriver-89",
                 "mac64-chromedriver-90",
                 "mac64-chromedriver-91",
+                "mac64-chromedriver-92",
             ],
             "windows.*aarch64.*": [
                 "win32-chromedriver-87",
                 "win32-chromedriver-89",
                 "win32-chromedriver-90",
                 "win32-chromedriver-91",
+                "win32-chromedriver-92",
             ],
             "windows.*-32.*": [
                 "win32-chromedriver-87",
                 "win32-chromedriver-89",
                 "win32-chromedriver-90",
                 "win32-chromedriver-91",
+                "win32-chromedriver-92",
             ],
             "windows.*-64.*": [
                 "win32-chromedriver-87",
                 "win32-chromedriver-89",
                 "win32-chromedriver-90",
                 "win32-chromedriver-91",
+                "win32-chromedriver-92",
             ],
         }
 
@@ -1408,8 +1516,8 @@ def handle_tier(config, tasks):
                 "linux1804-64-qr/opt",
                 "linux1804-64-qr/debug",
                 "linux1804-64-shippable-qr/opt",
-                "linux1804-64-asan/opt",
-                "linux1804-64-tsan/opt",
+                "linux1804-64-asan-qr/opt",
+                "linux1804-64-tsan-qr/opt",
                 "windows7-32-qr/debug",
                 "windows7-32-qr/opt",
                 "windows7-32-devedition-qr/opt",
@@ -1427,6 +1535,11 @@ def handle_tier(config, tasks):
                 "windows10-64-shippable-qr/opt",
                 "windows10-64-devedition-qr/opt",
                 "windows10-64-asan-qr/opt",
+                "windows10-64-2004-qr/opt",
+                "windows10-64-2004-qr/debug",
+                "windows10-64-2004-shippable-qr/opt",
+                "windows10-64-2004-devedition-qr/opt",
+                "windows10-64-2004-asan-qr/opt",
                 "macosx1014-64/opt",
                 "macosx1014-64/debug",
                 "macosx1014-64-shippable/opt",
@@ -1444,13 +1557,21 @@ def handle_tier(config, tasks):
                 "macosx1015-64-shippable-qr/opt",
                 "macosx1015-64-qr/debug",
                 "android-em-7.0-x86_64-shippable/opt",
+                "android-em-7.0-x86_64-shippable-lite/opt",
                 "android-em-7.0-x86_64/debug",
                 "android-em-7.0-x86_64/debug-isolated-process",
+                "android-em-7.0-x86_64-lite/debug",
                 "android-em-7.0-x86_64/opt",
+                "android-em-7.0-x86_64-lite/opt",
                 "android-em-7.0-x86-shippable/opt",
+                "android-em-7.0-x86-shippable-lite/opt",
                 "android-em-7.0-x86_64-shippable-qr/opt",
                 "android-em-7.0-x86_64-qr/debug",
+                "android-em-7.0-x86_64-qr/debug-isolated-process",
                 "android-em-7.0-x86_64-qr/opt",
+                "android-em-7.0-x86_64-shippable-lite-qr/opt",
+                "android-em-7.0-x86_64-lite-qr/debug",
+                "android-em-7.0-x86_64-lite-qr/opt",
             ]:
                 task["tier"] = 1
             else:

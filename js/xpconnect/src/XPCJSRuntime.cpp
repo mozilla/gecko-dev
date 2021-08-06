@@ -1891,6 +1891,10 @@ void ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats& rtStats,
                 rtStats.runtime.atomsMarkBitmaps,
                 "Mark bitmaps for atoms held by each zone.");
 
+  RREPORT_BYTES(rtPath + "runtime/self-host-stencil"_ns, KIND_HEAP,
+                rtStats.runtime.selfHostStencil,
+                "The self-hosting CompilationStencil.");
+
   RREPORT_BYTES(rtPath + "runtime/contexts"_ns, KIND_HEAP,
                 rtStats.runtime.contexts,
                 "JSContext objects and structures that belong to them.");
@@ -2674,9 +2678,6 @@ static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
     case JSUseCounter::WASM:
       SetUseCounter(obj, eUseCounter_custom_JS_wasm);
       break;
-    case JSUseCounter::WASM_DUPLICATE_IMPORTS:
-      SetUseCounter(obj, eUseCounter_custom_JS_wasm_duplicate_imports);
-      break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected JSUseCounter id");
   }
@@ -3069,8 +3070,7 @@ bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
     return false;
   }
 
-  XPCWrappedNativeProto* p =
-      static_cast<XPCWrappedNativeProto*>(xpc_GetJSPrivate(obj));
+  XPCWrappedNativeProto* p = XPCWrappedNativeProto::Get(obj);
   nsCOMPtr<nsIXPCScriptable> scr = p->GetScriptable();
   if (!scr) {
     return false;
@@ -3092,9 +3092,9 @@ bool XPCJSRuntime::NoteCustomGCThingXPCOMChildren(
   // (see XPCWrappedNative::FlatJSObjectFinalized). Its XPCWrappedNative
   // will be held alive through tearoff's XPC_WN_TEAROFF_FLAT_OBJECT_SLOT,
   // which points to the XPCWrappedNative's mFlatJSObject.
-  XPCWrappedNativeTearOff* to =
-      static_cast<XPCWrappedNativeTearOff*>(xpc_GetJSPrivate(obj));
-  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "xpc_GetJSPrivate(obj)->mNative");
+  XPCWrappedNativeTearOff* to = XPCWrappedNativeTearOff::Get(obj);
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(
+      cb, "XPCWrappedNativeTearOff::Get(obj)->mNative");
   cb.NoteXPCOMChild(to->GetNative());
   return true;
 }

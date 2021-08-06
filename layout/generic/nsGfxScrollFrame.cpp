@@ -3089,8 +3089,9 @@ void ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange,
           PAINT_SKIP_LOG("Skipping due to APZ scroll\n");
         } else if (mScrollableByAPZ) {
           nsIWidget* widget = presContext->GetNearestWidget();
-          LayerManager* manager = widget ? widget->GetLayerManager() : nullptr;
-          if (manager) {
+          WindowRenderer* renderer =
+              widget ? widget->GetWindowRenderer() : nullptr;
+          if (renderer) {
             mozilla::layers::ScrollableLayerGuid::ViewID id;
             bool success = nsLayoutUtils::FindIDFor(content, &id);
             MOZ_ASSERT(success);  // we have a displayport, we better have an ID
@@ -3100,7 +3101,7 @@ void ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange,
             // might still get squashed into a full transaction if something
             // happens to trigger one.
             MOZ_ASSERT(!mScrollUpdates.IsEmpty());
-            success = manager->AddPendingScrollUpdateForNextTransaction(
+            success = renderer->AddPendingScrollUpdateForNextTransaction(
                 id, mScrollUpdates.LastElement());
             if (success) {
               schedulePaint = false;
@@ -5186,12 +5187,25 @@ auto ScrollFrameHelper::GetPageLoadingState() -> LoadingState {
              : LoadingState::Loading;
 }
 
-nsresult ScrollFrameHelper::FireScrollPortEvent() {
-  mAsyncScrollPortEvent.Forget();
-
-  // Keep this in sync with PostOverflowEvent().
+ScrollFrameHelper::OverflowState ScrollFrameHelper::GetOverflowState() const {
   nsSize scrollportSize = mScrollPort.Size();
   nsSize childSize = GetScrolledRect().Size();
+
+  OverflowState result = OverflowState::None;
+
+  if (childSize.height > scrollportSize.height) {
+    result |= OverflowState::Vertical;
+  }
+
+  if (childSize.width > scrollportSize.width) {
+    result |= OverflowState::Horizontal;
+  }
+
+  return result;
+}
+
+nsresult ScrollFrameHelper::FireScrollPortEvent() {
+  mAsyncScrollPortEvent.Forget();
 
   // TODO(emilio): why do we need the whole WillPaintObserver infrastructure and
   // can't use AddScriptRunner & co? I guess it made sense when we used
@@ -5199,10 +5213,12 @@ nsresult ScrollFrameHelper::FireScrollPortEvent() {
   //
   // Should we remove this?
 
-  bool newVerticalOverflow = childSize.height > scrollportSize.height;
+  OverflowState overflowState = GetOverflowState();
+
+  bool newVerticalOverflow = !!(overflowState & OverflowState::Vertical);
   bool vertChanged = mVerticalOverflow != newVerticalOverflow;
 
-  bool newHorizontalOverflow = childSize.width > scrollportSize.width;
+  bool newHorizontalOverflow = !!(overflowState & OverflowState::Horizontal);
   bool horizChanged = mHorizontalOverflow != newHorizontalOverflow;
 
   if (!vertChanged && !horizChanged) {
@@ -5950,14 +5966,12 @@ void ScrollFrameHelper::PostOverflowEvent() {
     return;
   }
 
-  // Keep this in sync with FireScrollPortEvent().
-  nsSize scrollportSize = mScrollPort.Size();
-  nsSize childSize = GetScrolledRect().Size();
+  OverflowState overflowState = GetOverflowState();
 
-  bool newVerticalOverflow = childSize.height > scrollportSize.height;
+  bool newVerticalOverflow = !!(overflowState & OverflowState::Vertical);
   bool vertChanged = mVerticalOverflow != newVerticalOverflow;
 
-  bool newHorizontalOverflow = childSize.width > scrollportSize.width;
+  bool newHorizontalOverflow = !!(overflowState & OverflowState::Horizontal);
   bool horizChanged = mHorizontalOverflow != newHorizontalOverflow;
 
   if (!vertChanged && !horizChanged) {
@@ -6432,6 +6446,12 @@ bool ScrollFrameHelper::ReflowFinished() {
         manager->UpdateVisualViewportSizeForPotentialScrollbarChange();
       }
     }
+
+#if defined(MOZ_WIDGET_ANDROID)
+    if (mIsRoot && !(GetOverflowState() & OverflowState::Vertical)) {
+      mOuter->PresShell()->MaybeNotifyShowDynamicToolbar();
+    }
+#endif  // defined(MOZ_WIDGET_ANDROID)
   }
 
   bool doScroll = true;

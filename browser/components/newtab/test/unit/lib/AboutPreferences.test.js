@@ -23,7 +23,9 @@ describe("AboutPreferences Feed", () => {
       dispatch: sandbox.stub(),
       getState: () => ({ Sections, DiscoveryStream }),
     };
-    globals.set("NimbusFeatures", { newtab: { getValue: sandbox.stub() } });
+    globals.set("NimbusFeatures", {
+      newtab: { getAllVariables: sandbox.stub() },
+    });
   });
   afterEach(() => {
     globals.restore();
@@ -234,14 +236,14 @@ describe("AboutPreferences Feed", () => {
         );
       });
       it("should use desired glyph icon", () => {
-        prefStructure = [{ icon: "highlights", pref: { feed: "feed" } }];
+        prefStructure = [{ icon: "mail", pref: { feed: "feed" } }];
 
         testRender();
 
         assert.calledWith(
           node.setAttribute,
           "src",
-          "chrome://activity-stream/content/data/content/assets/glyph-highlights-16.svg"
+          "chrome://activity-stream/content/data/content/assets/glyph-mail-16.svg"
         );
       });
       it("should use specified chrome icon", () => {

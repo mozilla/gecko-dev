@@ -107,7 +107,7 @@
 }
 
 .panel-banner-item[notificationid="update-unsupported"] > .toolbarbutton-icon {
-  background: url(chrome://browser/skin/warning.svg) no-repeat center;
+  background: url(chrome://global/skin/icons/warning.svg) no-repeat center;
   -moz-context-properties: stroke, fill;
   stroke: var(--arrowpanel-background);
   fill: var(--panel-banner-item-warning-icon-bgcolor);
@@ -132,6 +132,7 @@
   filter: grayscale(100%);
 }
 
+#BMB_bookmarksPopup menupopup,
 .cui-widget-panel,
 #widget-overflow {
   font: menu;
@@ -216,7 +217,6 @@ toolbarseparator + .panel-subview-body,
   list-style-image: url(chrome://global/skin/icons/info.svg);
   -moz-context-properties: fill, fill-opacity;
   fill: currentColor;
-  fill-opacity: var(--toolbarbutton-icon-fill-opacity);
   padding: 4px;
 }
 
@@ -248,6 +248,7 @@ panelview .toolbaritem-combined-buttons,
 #PlacesToolbar menupopup {
   appearance: none;
   background: var(--arrowpanel-background);
+  font: menu;
 }
 
 #PlacesToolbar menupopup[placespopup=true]::part(content),

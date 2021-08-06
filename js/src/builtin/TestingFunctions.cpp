@@ -130,7 +130,8 @@
 #include "wasm/WasmJS.h"
 #include "wasm/WasmModule.h"
 #include "wasm/WasmSignalHandlers.h"
-#include "wasm/WasmTypes.h"
+#include "wasm/WasmValType.h"
+#include "wasm/WasmValue.h"
 
 #include "debugger/DebugAPI-inl.h"
 #include "vm/Compartment-inl.h"
@@ -676,7 +677,6 @@ static bool MinorGC(JSContext* cx, unsigned argc, Value* vp) {
   _("pretenureGroupThreshold", JSGC_PRETENURE_GROUP_THRESHOLD, true)       \
   _("zoneAllocDelayKB", JSGC_ZONE_ALLOC_DELAY_KB, true)                    \
   _("mallocThresholdBase", JSGC_MALLOC_THRESHOLD_BASE, true)               \
-  _("mallocGrowthFactor", JSGC_MALLOC_GROWTH_FACTOR, true)                 \
   _("chunkBytes", JSGC_CHUNK_BYTES, false)                                 \
   _("helperThreadRatio", JSGC_HELPER_THREAD_RATIO, true)                   \
   _("maxHelperThreads", JSGC_MAX_HELPER_THREADS, true)                     \
@@ -4692,11 +4692,11 @@ class ShapeSnapshotObject : public NativeObject {
 
   bool hasSnapshot() const {
     // The snapshot may not be present yet if we GC during initialization.
-    return !getSlot(SnapshotSlot).isUndefined();
+    return !getReservedSlot(SnapshotSlot).isUndefined();
   }
 
   ShapeSnapshot& snapshot() const {
-    void* ptr = getSlot(SnapshotSlot).toPrivate();
+    void* ptr = getReservedSlot(SnapshotSlot).toPrivate();
     MOZ_ASSERT(ptr);
     return *static_cast<ShapeSnapshot*>(ptr);
   }

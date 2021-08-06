@@ -91,6 +91,7 @@
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/hal_sandbox/PHalChild.h"
+#include "mozilla/intl/L10nRegistry.h"
 #include "mozilla/intl/LocaleService.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/Endpoint.h"
@@ -1330,10 +1331,13 @@ void ContentChild::InitXPCOM(
 
   RecvSetOffline(aXPCOMInit.isOffline());
   RecvSetConnectivity(aXPCOMInit.isConnected());
-  // XXX(Bug 1633675) The LocaleService calls could also move the arguments.
+
   LocaleService::GetInstance()->AssignAppLocales(aXPCOMInit.appLocales());
   LocaleService::GetInstance()->AssignRequestedLocales(
       aXPCOMInit.requestedLocales());
+
+  L10nRegistry::RegisterFileSourcesFromParentProcess(
+      aXPCOMInit.l10nFileSources());
 
   RecvSetCaptivePortalState(aXPCOMInit.captivePortalState());
   RecvBidiKeyboardNotify(aXPCOMInit.isLangRTL(),
@@ -1718,7 +1722,7 @@ mozilla::ipc::IPCResult ContentChild::RecvConstructBrowser(
     const IPCTabContext& aContext, const WindowGlobalInit& aWindowInit,
     const uint32_t& aChromeFlags, const ContentParentId& aCpID,
     const bool& aIsForBrowser, const bool& aIsTopLevel) {
-  MOZ_ASSERT(!IsShuttingDown());
+  MOZ_DIAGNOSTIC_ASSERT(!IsShuttingDown());
 
   static bool hasRunOnce = false;
   if (!hasRunOnce) {
@@ -1737,7 +1741,10 @@ mozilla::ipc::IPCResult ContentChild::RecvConstructBrowser(
   RefPtr<BrowsingContext> browsingContext =
       BrowsingContext::Get(aWindowInit.context().mBrowsingContextId);
   if (!browsingContext || browsingContext->IsDiscarded()) {
-    return IPC_FAIL(this, "Null or discarded initial BrowsingContext");
+    nsPrintfCString reason("%s initial %s BrowsingContext",
+                           browsingContext ? "discarded" : "missing",
+                           aIsTopLevel ? "top" : "frame");
+    return IPC_FAIL(this, reason.get());
   }
 
   if (!aWindowInit.isInitialDocument() ||
@@ -2189,10 +2196,13 @@ void ContentChild::ActorDestroy(ActorDestroyReason why) {
 
   mIdleObservers.Clear();
 
-  nsCOMPtr<nsIConsoleService> svc(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
-  if (svc) {
-    svc->UnregisterListener(mConsoleListener);
-    mConsoleListener->mChild = nullptr;
+  if (mConsoleListener) {
+    nsCOMPtr<nsIConsoleService> svc(
+        do_GetService(NS_CONSOLESERVICE_CONTRACTID));
+    if (svc) {
+      svc->UnregisterListener(mConsoleListener);
+      mConsoleListener->mChild = nullptr;
+    }
   }
   mIsAlive = false;
 
@@ -2349,6 +2359,12 @@ mozilla::ipc::IPCResult ContentChild::RecvRegisterStringBundles(
         descriptor.bundleURL(), descriptor.mapFile(), descriptor.mapSize());
   }
 
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult ContentChild::RecvUpdateL10nFileSources(
+    nsTArray<mozilla::dom::L10nFileSourceDescriptor>&& aDescriptors) {
+  L10nRegistry::RegisterFileSourcesFromParentProcess(aDescriptors);
   return IPC_OK();
 }
 
@@ -2591,17 +2607,21 @@ mozilla::ipc::IPCResult ContentChild::RecvAppInfo(
 
 mozilla::ipc::IPCResult ContentChild::RecvRemoteType(
     const nsCString& aRemoteType) {
+  if (aRemoteType == mRemoteType) {
+    // Allocation of preallocated processes that are still launching can
+    // cause this
+    return IPC_OK();
+  }
+
   if (!mRemoteType.IsVoid()) {
     // Preallocated processes are type PREALLOC_REMOTE_TYPE; they can become
     // anything except a File: process.
     MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
             ("Changing remoteType of process %d from %s to %s", getpid(),
              mRemoteType.get(), aRemoteType.get()));
-    // prealloc->anything (but file) or web->web allowed
+    // prealloc->anything (but file) or web->web allowed, and no-change
     MOZ_RELEASE_ASSERT(aRemoteType != FILE_REMOTE_TYPE &&
-                       (mRemoteType == PREALLOC_REMOTE_TYPE ||
-                        (mRemoteType == DEFAULT_REMOTE_TYPE &&
-                         aRemoteType == DEFAULT_REMOTE_TYPE)));
+                       mRemoteType == PREALLOC_REMOTE_TYPE);
   } else {
     // Initial setting of remote type.  Either to 'prealloc' or the actual
     // final type (if we didn't use a preallocated process)

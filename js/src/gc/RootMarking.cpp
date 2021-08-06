@@ -311,7 +311,7 @@ void js::gc::GCRuntime::traceRuntime(JSTracer* trc, AutoTraceSession& session) {
 void js::gc::GCRuntime::traceRuntimeAtoms(JSTracer* trc,
                                           const AutoAccessAtomsZone& access) {
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::MARK_RUNTIME_DATA);
-  rt->tracePermanentAtoms(trc);
+  rt->tracePermanentAtomsDuringInit(trc);
   TraceAtoms(trc, access);
   TraceWellKnownSymbols(trc);
   jit::JitRuntime::TraceAtomZoneRoots(trc, access);
@@ -343,8 +343,8 @@ void js::gc::GCRuntime::traceRuntimeCommon(JSTracer* trc,
   // Trace runtime global roots.
   TracePersistentRooted(rt, trc);
 
-  // Trace the self-hosting global compartment.
-  rt->traceSelfHostingGlobal(trc);
+  // Trace the self-hosting stencil.
+  rt->traceSelfHostingStencil(trc);
 
 #ifdef JS_HAS_INTL_API
   // Trace the shared Intl data.
@@ -444,7 +444,6 @@ void js::gc::GCRuntime::finishRoots() {
   rt->finishPersistentRoots();
 
   rt->finishSelfHosting();
-  selfHostingZoneFrozen = false;
 
   for (ZonesIter zone(rt, WithAtoms); !zone.done(); zone.next()) {
     zone->finishRoots();

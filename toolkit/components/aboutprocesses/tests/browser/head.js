@@ -153,9 +153,13 @@ function getTimeMultiplier(unit) {
   }
   throw new Error("Invalid time unit: " + unit);
 }
-function testCpu(element, total, slope, assumptions) {
+async function testCpu(element, total, slope, assumptions) {
   info(
     `Testing CPU display ${element.textContent} - ${element.title} vs total ${total}, slope ${slope}`
+  );
+  await BrowserTestUtils.waitForCondition(
+    () => !!element.textContent.length,
+    "waiting for l10n to populate"
   );
   if (element.textContent == "(measuring)") {
     info("Still measuring");
@@ -228,9 +232,13 @@ function testCpu(element, total, slope, assumptions) {
   );
 }
 
-function testMemory(element, total, delta, assumptions) {
+async function testMemory(element, total, delta, assumptions) {
   info(
     `Testing memory display ${element.textContent} - ${element.title} vs total ${total}, delta ${delta}`
+  );
+  await BrowserTestUtils.waitForCondition(
+    () => !!element.textContent.length,
+    "waiting for l10n to populate"
   );
   const MEMORY_TEXT_CONTENT_REGEXP = /([0-9.,]+)(TB|GB|MB|KB|B)/;
   // Example: "383.55MB"
@@ -566,7 +574,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
     Assert.equal(pid, row.process.pid);
 
     info("Sanity checks: memory resident");
-    testMemory(
+    await testMemory(
       memory,
       row.process.totalRamSize,
       row.process.deltaRamSize,
@@ -574,7 +582,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
     );
 
     info("Sanity checks: CPU (Total)");
-    testCpu(
+    await testCpu(
       cpu,
       row.process.totalCpu,
       row.process.slopeCpu,
@@ -639,10 +647,6 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       let twisty = threads.getElementsByClassName("twisty")[0];
       twisty.click();
 
-      // `twisty.click()` is sync, but Fluent will update the visible
-      // table content during the next refresh driver tick, wait for it.
-      await new Promise(doc.defaultView.requestAnimationFrame);
-
       let numberOfThreadsFound = 0;
       for (
         let threadRow = threads.nextSibling;
@@ -662,6 +666,11 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         threadRow && threadRow.classList.contains("thread");
         threadRow = threadRow.nextSibling
       ) {
+        // Wait for l10n to populate.
+        await BrowserTestUtils.waitForCondition(
+          () => !!threadRow.children[1].textContent.length,
+          "waiting for l10n to populate"
+        );
         Assert.ok(
           threadRow.children.length >= 3 && threadRow.children[1].textContent,
           "The thread row should be populated"
@@ -686,7 +695,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         Assert.equal(tid, threadRow.thread.tid, "Displayed tid is correct");
 
         // Sanity checks: CPU (per thread)
-        testCpu(
+        await testCpu(
           cpu,
           threadRow.thread.totalCpu,
           threadRow.thread.slopeCpu,

@@ -23,6 +23,8 @@ class nsIFrame;
 
 namespace mozilla {
 
+struct StyleColorSchemeFlags;
+
 namespace dom {
 class Document;
 }
@@ -58,8 +60,6 @@ class LookAndFeel {
     UseOverlayScrollbars,
     // allow H and V overlay scrollbars to overlap?
     AllowOverlayScrollbarsOverlap,
-    // show/hide scrollbars based on activity
-    ShowHideScrollbars,
     // skip navigating to disabled menu item?
     SkipNavigatingDisabledMenuItem,
     // begin a drag if the mouse is moved further than the threshold while the
@@ -422,8 +422,6 @@ class LookAndFeel {
   using FontID = mozilla::StyleSystemFont;
 
   // Whether we should use a light or dark appearance.
-  //
-  // This is currently ignored (but won't be for long).
   enum class ColorScheme : uint8_t { Light, Dark };
 
   static ColorScheme SystemColorScheme() {
@@ -431,7 +429,9 @@ class LookAndFeel {
                                               : ColorScheme::Light;
   }
 
-  static ColorScheme ColorSchemeForDocument(const dom::Document& aDoc);
+  static ColorScheme ColorSchemeForStyle(const dom::Document&,
+                                         const StyleColorSchemeFlags&);
+  static ColorScheme ColorSchemeForFrame(const nsIFrame*);
 
   // Whether standins for native colors should be used (that is, colors faked,
   // taken from win7, mostly). This forces light appearance, effectively.
@@ -450,15 +450,7 @@ class LookAndFeel {
   static Maybe<nscolor> GetColor(ColorID, ColorScheme, UseStandins);
 
   // Gets the color with appropriate defaults for UseStandins, ColorScheme etc
-  // for a given document.
-  static Maybe<nscolor> GetColor(ColorID, const dom::Document&);
-
-  // Gets the color with appropriate defaults for UseStandins, ColorScheme etc
   // for a given frame.
-  //
-  // TODO(emilio): This right now just peeks the document out of the frame's
-  // pres context, but in the future we actually want to look at the style to
-  // get the right color scheme, to implement the color-scheme property.
   static Maybe<nscolor> GetColor(ColorID, const nsIFrame*);
 
   // Versions of the above which returns the color if found, or a default (which
@@ -467,11 +459,6 @@ class LookAndFeel {
                        UseStandins aUseStandins,
                        nscolor aDefault = NS_RGB(0, 0, 0)) {
     return GetColor(aId, aScheme, aUseStandins).valueOr(aDefault);
-  }
-
-  static nscolor Color(ColorID aId, const dom::Document& aDoc,
-                       nscolor aDefault = NS_RGB(0, 0, 0)) {
-    return GetColor(aId, aDoc).valueOr(aDefault);
   }
 
   static nscolor Color(ColorID aId, nsIFrame* aFrame,
