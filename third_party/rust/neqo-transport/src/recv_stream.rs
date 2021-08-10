@@ -786,7 +786,7 @@ impl RecvStream {
     #[cfg(test)]
     pub fn has_frames_to_write(&self) -> bool {
         if let RecvStreamState::Recv { fc, .. } = &self.state {
-            fc.frame_needed().is_some()
+            fc.frame_needed()
         } else {
             false
         }
@@ -1354,12 +1354,12 @@ mod tests {
 
         s.inbound_stream_frame(false, 0, &[0; SESSION_WINDOW])
             .unwrap();
-        assert!(!session_fc.borrow().frame_needed().is_some());
+        assert!(!session_fc.borrow().frame_needed());
         // The buffer is big enough to hold SESSION_WINDOW, this will make sure that we always
         // read everything from he stream.
         let mut buf = [0; 2 * SESSION_WINDOW];
         s.read(&mut buf).unwrap();
-        assert!(session_fc.borrow().frame_needed().is_some());
+        assert!(session_fc.borrow().frame_needed());
         // consume it
         let mut builder = PacketBuilder::short(Encoder::new(), false, &[]);
         let mut token = Vec::new();
@@ -1370,7 +1370,7 @@ mod tests {
         // Switch to SizeKnown state
         s.inbound_stream_frame(true, 2 * u64::try_from(SESSION_WINDOW).unwrap() - 1, &[0])
             .unwrap();
-        assert!(!session_fc.borrow().frame_needed().is_some());
+        assert!(!session_fc.borrow().frame_needed());
         // Receive new data that can be read.
         s.inbound_stream_frame(
             false,
@@ -1378,9 +1378,9 @@ mod tests {
             &[0; SESSION_WINDOW / 2 + 1],
         )
         .unwrap();
-        assert!(!session_fc.borrow().frame_needed().is_some());
+        assert!(!session_fc.borrow().frame_needed());
         s.read(&mut buf).unwrap();
-        assert!(session_fc.borrow().frame_needed().is_some());
+        assert!(session_fc.borrow().frame_needed());
         // consume it
         let mut builder = PacketBuilder::short(Encoder::new(), false, &[]);
         let mut token = Vec::new();
@@ -1402,9 +1402,9 @@ mod tests {
 
         s.inbound_stream_frame(true, 0, &[0; SESSION_WINDOW])
             .unwrap();
-        assert!(!session_fc.borrow().frame_needed().is_some());
+        assert!(!session_fc.borrow().frame_needed());
         s.read(&mut buf).unwrap();
-        assert!(session_fc.borrow().frame_needed().is_some());
+        assert!(session_fc.borrow().frame_needed());
     }
 
     #[test]
@@ -1413,14 +1413,14 @@ mod tests {
 
         s.inbound_stream_frame(false, 0, &[0; SESSION_WINDOW / 2])
             .unwrap();
-        assert!(!session_fc.borrow().frame_needed().is_some());
+        assert!(!session_fc.borrow().frame_needed());
 
         s.reset(
             Error::NoError.code(),
             u64::try_from(SESSION_WINDOW).unwrap(),
         )
         .unwrap();
-        assert!(session_fc.borrow().frame_needed().is_some());
+        assert!(session_fc.borrow().frame_needed());
     }
 
     fn check_fc<T: std::fmt::Debug>(fc: &ReceiverFlowControl<T>, consumed: u64, retired: u64) {
@@ -1602,23 +1602,23 @@ mod tests {
         check_fc(s.fc().unwrap(), SW / 4, SW / 4);
 
         // Still no fc update needed.
-        assert!(fc.borrow().frame_needed().is_none());
-        assert!(s.fc().unwrap().frame_needed().is_none());
+        assert!(!fc.borrow().frame_needed());
+        assert!(!s.fc().unwrap().frame_needed());
 
         // Receive one more byte that will cause a fc update after it is read.
         s.inbound_stream_frame(false, SW / 4, &[0]).unwrap();
         check_fc(&fc.borrow(), SW / 4 + 1, SW / 4);
         check_fc(s.fc().unwrap(), SW / 4 + 1, SW / 4);
         // Only consuming data does not cause a fc update to be sent.
-        assert!(fc.borrow().frame_needed().is_none());
-        assert!(s.fc().unwrap().frame_needed().is_none());
+        assert!(!fc.borrow().frame_needed());
+        assert!(!s.fc().unwrap().frame_needed());
 
         assert_eq!(s.read(&mut buf).unwrap(), (1, false));
         check_fc(&fc.borrow(), SW / 4 + 1, SW / 4 + 1);
         check_fc(s.fc().unwrap(), SW / 4 + 1, SW / 4 + 1);
         // Data are retired and the sttream fc will send an update.
-        assert!(fc.borrow().frame_needed().is_none());
-        assert!(s.fc().unwrap().frame_needed().is_some());
+        assert!(!fc.borrow().frame_needed());
+        assert!(s.fc().unwrap().frame_needed());
 
         // Receive more data to increase fc further.
         s.inbound_stream_frame(false, SW / 4, &[0; SW_US / 4])
@@ -1626,8 +1626,8 @@ mod tests {
         assert_eq!(s.read(&mut buf).unwrap(), (SW_US / 4 - 1, false));
         check_fc(&fc.borrow(), SW / 2, SW / 2);
         check_fc(s.fc().unwrap(), SW / 2, SW / 2);
-        assert!(fc.borrow().frame_needed().is_none());
-        assert!(s.fc().unwrap().frame_needed().is_some());
+        assert!(!fc.borrow().frame_needed());
+        assert!(s.fc().unwrap().frame_needed());
 
         // Write the fc update frame
         let mut builder = PacketBuilder::short(Encoder::new(), false, &[]);
@@ -1644,8 +1644,8 @@ mod tests {
         assert_eq!(s.read(&mut buf).unwrap(), (1, false));
         check_fc(&fc.borrow(), SW / 2 + 1, SW / 2 + 1);
         check_fc(s.fc().unwrap(), SW / 2 + 1, SW / 2 + 1);
-        assert!(fc.borrow().frame_needed().is_some());
-        assert!(s.fc().unwrap().frame_needed().is_none());
+        assert!(fc.borrow().frame_needed());
+        assert!(!s.fc().unwrap().frame_needed());
         fc.borrow_mut()
             .write_frames(&mut builder, &mut token, &mut stats);
         assert_eq!(stats.max_data, 1);

@@ -175,10 +175,9 @@ impl SenderFlowControl<StreamType> {
         stats: &mut FrameStats,
     ) {
         if let Some(limit) = self.blocked_needed() {
-            let frame = if self.subject == StreamType::BiDi {
-                FRAME_TYPE_STREAMS_BLOCKED_BIDI
-            } else {
-                FRAME_TYPE_STREAMS_BLOCKED_UNIDI
+            let frame = match self.subject {
+                StreamType::BiDi => FRAME_TYPE_STREAMS_BLOCKED_BIDI,
+                StreamType::UniDi => FRAME_TYPE_STREAMS_BLOCKED_UNIDI,
             };
             if builder.write_varint_frame(&[frame, limit]) {
                 stats.streams_blocked += 1;
@@ -250,12 +249,12 @@ where
         }
     }
 
-    pub fn frame_needed(&self) -> Option<u64> {
-        if self.frame_pending {
-            Some(self.retired + self.max_active)
-        } else {
-            None
-        }
+    pub fn frame_needed(&self) -> bool {
+        self.frame_pending
+    }
+
+    pub fn next_limit(&self) -> u64 {
+        self.retired + self.max_active
     }
 
     pub fn max_active(&self) -> u64 {
@@ -295,12 +294,14 @@ impl ReceiverFlowControl<()> {
         tokens: &mut Vec<RecoveryToken>,
         stats: &mut FrameStats,
     ) {
-        if let Some(max_allowed) = self.frame_needed() {
-            if builder.write_varint_frame(&[FRAME_TYPE_MAX_DATA, max_allowed]) {
-                stats.max_data += 1;
-                tokens.push(RecoveryToken::MaxData(max_allowed));
-                self.frame_sent(max_allowed);
-            }
+        if !self.frame_needed() {
+            return;
+        }
+        let max_allowed = self.next_limit();
+        if builder.write_varint_frame(&[FRAME_TYPE_MAX_DATA, max_allowed]) {
+            stats.max_data += 1;
+            tokens.push(RecoveryToken::MaxData(max_allowed));
+            self.frame_sent(max_allowed);
         }
     }
 
@@ -340,19 +341,21 @@ impl ReceiverFlowControl<StreamId> {
         tokens: &mut Vec<RecoveryToken>,
         stats: &mut FrameStats,
     ) {
-        if let Some(max_allowed) = self.frame_needed() {
-            if builder.write_varint_frame(&[
-                FRAME_TYPE_MAX_STREAM_DATA,
-                self.subject.as_u64(),
-                max_allowed,
-            ]) {
-                stats.max_stream_data += 1;
-                tokens.push(RecoveryToken::MaxStreamData {
-                    stream_id: self.subject,
-                    max_data: max_allowed,
-                });
-                self.frame_sent(max_allowed);
-            }
+        if !self.frame_needed() {
+            return;
+        }
+        let max_allowed = self.next_limit();
+        if builder.write_varint_frame(&[
+            FRAME_TYPE_MAX_STREAM_DATA,
+            self.subject.as_u64(),
+            max_allowed,
+        ]) {
+            stats.max_stream_data += 1;
+            tokens.push(RecoveryToken::MaxStreamData {
+                stream_id: self.subject,
+                max_data: max_allowed,
+            });
+            self.frame_sent(max_allowed);
         }
     }
 
@@ -392,20 +395,21 @@ impl ReceiverFlowControl<StreamType> {
         tokens: &mut Vec<RecoveryToken>,
         stats: &mut FrameStats,
     ) {
-        if let Some(max_streams) = self.frame_needed() {
-            let frame = if self.subject == StreamType::BiDi {
-                FRAME_TYPE_MAX_STREAMS_BIDI
-            } else {
-                FRAME_TYPE_MAX_STREAMS_UNIDI
-            };
-            if builder.write_varint_frame(&[frame, max_streams]) {
-                stats.max_streams += 1;
-                tokens.push(RecoveryToken::MaxStreams {
-                    stream_type: self.subject,
-                    max_streams,
-                });
-                self.frame_sent(max_streams);
-            }
+        if !self.frame_needed() {
+            return;
+        }
+        let max_streams = self.next_limit();
+        let frame = match self.subject {
+            StreamType::BiDi => FRAME_TYPE_MAX_STREAMS_BIDI,
+            StreamType::UniDi => FRAME_TYPE_MAX_STREAMS_UNIDI,
+        };
+        if builder.write_varint_frame(&[frame, max_streams]) {
+            stats.max_streams += 1;
+            tokens.push(RecoveryToken::MaxStreams {
+                stream_type: self.subject,
+                max_streams,
+            });
+            self.frame_sent(max_streams);
         }
     }
 
@@ -640,81 +644,93 @@ mod test {
     #[test]
     fn do_no_need_max_allowed_frame_at_start() {
         let fc = ReceiverFlowControl::new((), 0);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
     }
 
     #[test]
     fn max_allowed_after_items_retired() {
         let mut fc = ReceiverFlowControl::new((), 100);
         fc.retire(49);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.retire(51);
-        assert_eq!(fc.frame_needed(), Some(151));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 151);
     }
 
     #[test]
     fn need_max_allowed_frame_after_loss() {
         let mut fc = ReceiverFlowControl::new((), 100);
         fc.retire(100);
-        assert_eq!(fc.frame_needed(), Some(200));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 200);
         fc.frame_sent(200);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.frame_lost(200);
-        assert_eq!(fc.frame_needed(), Some(200));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 200);
     }
 
     #[test]
     fn no_max_allowed_frame_after_old_loss() {
         let mut fc = ReceiverFlowControl::new((), 100);
         fc.retire(51);
-        assert_eq!(fc.frame_needed(), Some(151));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 151);
         fc.frame_sent(151);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.retire(102);
-        assert_eq!(fc.frame_needed(), Some(202));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 202);
         fc.frame_sent(202);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.frame_lost(151);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
     }
 
     #[test]
     fn force_send_max_allowed() {
         let mut fc = ReceiverFlowControl::new((), 100);
         fc.retire(10);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
     }
 
     #[test]
     fn multiple_retries_after_frame_pending_is_set() {
         let mut fc = ReceiverFlowControl::new((), 100);
         fc.retire(51);
-        assert_eq!(fc.frame_needed(), Some(151));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 151);
         fc.retire(61);
-        assert_eq!(fc.frame_needed(), Some(161));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 161);
         fc.retire(88);
-        assert_eq!(fc.frame_needed(), Some(188));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 188);
         fc.retire(90);
-        assert_eq!(fc.frame_needed(), Some(190));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 190);
         fc.frame_sent(190);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.retire(141);
-        assert_eq!(fc.frame_needed(), Some(241));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 241);
         fc.frame_sent(241);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
     }
 
     #[test]
     fn new_retired_before_loss() {
         let mut fc = ReceiverFlowControl::new((), 100);
         fc.retire(51);
-        assert_eq!(fc.frame_needed(), Some(151));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 151);
         fc.frame_sent(151);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.retire(62);
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.frame_lost(151);
-        assert_eq!(fc.frame_needed(), Some(162));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 162);
     }
 
     #[test]
@@ -722,21 +738,24 @@ mod test {
         let mut fc = ReceiverFlowControl::new((), 100);
         fc.set_max_active(50);
         // There is no MAX_STREAM_DATA frame needed.
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         // We can still retire more than 50.
         fc.retire(60);
         // There is no MAX_STREAM_DATA fame needed yet.
-        assert_eq!(fc.frame_needed(), None);
+        assert!(!fc.frame_needed());
         fc.retire(76);
-        assert_eq!(fc.frame_needed(), Some(126));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 126);
 
         // Increase max_active.
         fc.set_max_active(60);
-        assert_eq!(fc.frame_needed(), Some(136));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 136);
 
         // We can retire more than 60.
         fc.retire(136);
-        assert_eq!(fc.frame_needed(), Some(196));
+        assert!(fc.frame_needed());
+        assert_eq!(fc.next_limit(), 196);
     }
 
     fn remote_stream_limits(role: Role, bidi: u64, unidi: u64) {

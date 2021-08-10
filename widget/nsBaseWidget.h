@@ -532,7 +532,7 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsresult SynthesizeNativeTouchPadPinch(TouchpadPinchPhase aEventPhase,
+  nsresult SynthesizeNativeTouchPadPinch(TouchpadGesturePhase aEventPhase,
                                          float aScale,
                                          LayoutDeviceIntPoint aPoint,
                                          int32_t aModifierFlags) override {
@@ -554,6 +554,15 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
 
   nsresult SynthesizeNativeTouchpadDoubleTap(LayoutDeviceIntPoint aPoint,
                                              uint32_t aModifierFlags) override {
+    MOZ_RELEASE_ASSERT(
+        false, "This method is not implemented on the current platform");
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
+                                       LayoutDeviceIntPoint aPoint,
+                                       double aDeltaX, double aDeltaY,
+                                       int32_t aModifierFlags) override {
     MOZ_RELEASE_ASSERT(
         false, "This method is not implemented on the current platform");
     return NS_ERROR_UNEXPECTED;

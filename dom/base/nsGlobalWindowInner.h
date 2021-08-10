@@ -44,6 +44,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/OwningNonNull.h"
+#include "mozilla/StorageAccess.h"
 #include "mozilla/TimeStamp.h"
 #include "nsWrapperCacheInlines.h"
 #include "mozilla/dom/EventTarget.h"
@@ -714,6 +715,12 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   MOZ_CAN_RUN_SCRIPT
   void ClearInterval(int32_t aHandle);
   void GetOrigin(nsAString& aOrigin);
+
+  MOZ_CAN_RUN_SCRIPT
+  void ReportError(JSContext* aCx, JS::Handle<JS::Value> aError,
+                   mozilla::dom::CallerType aCallerType,
+                   mozilla::ErrorResult& aRv);
+
   void Atob(const nsAString& aAsciiBase64String, nsAString& aBinaryData,
             mozilla::ErrorResult& aError);
   void Btoa(const nsAString& aBinaryData, nsAString& aAsciiBase64String,
@@ -1289,6 +1296,25 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   nsTArray<uint32_t>& GetScrollMarks() { return mScrollMarks; }
   void SetScrollMarks(const nsTArray<uint32_t>& aScrollMarks);
 
+  // Don't use this value directly, call StorageAccess::StorageAllowedForWindow
+  // instead.
+  mozilla::Maybe<mozilla::StorageAccess> GetStorageAllowedCache(
+      uint32_t& aRejectedReason) {
+    if (mStorageAllowedCache.isSome()) {
+      aRejectedReason = mStorageAllowedReasonCache;
+    }
+    return mStorageAllowedCache;
+  }
+  void SetStorageAllowedCache(const mozilla::StorageAccess& storageAllowed,
+                              uint32_t aRejectedReason) {
+    mStorageAllowedCache = Some(storageAllowed);
+    mStorageAllowedReasonCache = aRejectedReason;
+  }
+  void ClearStorageAllowedCache() {
+    mStorageAllowedCache = mozilla::Nothing();
+    mStorageAllowedReasonCache = 0;
+  }
+
  private:
   RefPtr<mozilla::dom::ContentMediaController> mContentMediaController;
 
@@ -1401,6 +1427,12 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   nsCOMPtr<nsIPrincipal> mDocumentStoragePrincipal;
   nsCOMPtr<nsIPrincipal> mDocumentPartitionedPrincipal;
   nsCOMPtr<nsIContentSecurityPolicy> mDocumentCsp;
+
+  // Used to cache the result of StorageAccess::StorageAllowedForWindow.
+  // Don't use this field directly, use StorageAccess::StorageAllowedForWindow
+  // instead.
+  mozilla::Maybe<mozilla::StorageAccess> mStorageAllowedCache;
+  uint32_t mStorageAllowedReasonCache;
 
   RefPtr<mozilla::dom::DebuggerNotificationManager>
       mDebuggerNotificationManager;

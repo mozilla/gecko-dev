@@ -394,8 +394,8 @@ fn create_stream_idle(initiator: &mut Connection, responder: &mut Connection) ->
     stream
 }
 
-fn assert_idle(endpoint: &mut Connection, expected: Duration) {
-    assert_eq!(endpoint.process_output(now()).callback(), expected);
+fn assert_idle(endpoint: &mut Connection, now: Instant, expected: Duration) {
+    assert_eq!(endpoint.process_output(now).callback(), expected);
 }
 
 /// The creator of a stream marks it as important enough to use a keep-alive.
@@ -409,7 +409,7 @@ fn keep_alive_initiator() {
 
     // Marking the stream for keep-alive changes the idle timeout.
     server.stream_keep_alive(stream, true).unwrap();
-    assert_idle(&mut server, default_timeout() / 2);
+    assert_idle(&mut server, now, default_timeout() / 2);
 
     // Wait that long and the server should send a PING frame.
     now += default_timeout() / 2;
@@ -417,6 +417,62 @@ fn keep_alive_initiator() {
     let ping = server.process_output(now).dgram();
     assert!(ping.is_some());
     assert_eq!(server.stats().frame_tx.ping, pings_before + 1);
+
+    // Exchange ack for the PING.
+    let out = client.process(ping, now).dgram();
+    let out = server.process(out, now).dgram();
+    assert!(client.process(out, now).dgram().is_none());
+
+    // Check that there will be next keep-alive ping after default_timeout() / 2.
+    assert_idle(&mut server, now, default_timeout() / 2);
+    now += default_timeout() / 2;
+    let pings_before2 = server.stats().frame_tx.ping;
+    let ping = server.process_output(now).dgram();
+    assert!(ping.is_some());
+    assert_eq!(server.stats().frame_tx.ping, pings_before2 + 1);
+}
+
+/// Test a keep-alive ping is retransmitted if lost.
+#[test]
+fn keep_alive_lost() {
+    let mut client = default_client();
+    let mut server = default_server();
+    connect(&mut client, &mut server);
+    let stream = create_stream_idle(&mut server, &mut client);
+    let mut now = now();
+
+    // Marking the stream for keep-alive changes the idle timeout.
+    server.stream_keep_alive(stream, true).unwrap();
+    assert_idle(&mut server, now, default_timeout() / 2);
+
+    // Wait that long and the server should send a PING frame.
+    now += default_timeout() / 2;
+    let pings_before = server.stats().frame_tx.ping;
+    let ping = server.process_output(now).dgram();
+    assert!(ping.is_some());
+    assert_eq!(server.stats().frame_tx.ping, pings_before + 1);
+
+    // Wait for ping to be marked lost.
+    assert!(server.process_output(now).callback() < AT_LEAST_PTO);
+    now += AT_LEAST_PTO;
+    let pings_before2 = server.stats().frame_tx.ping;
+    let ping = server.process_output(now).dgram();
+    assert!(ping.is_some());
+    assert_eq!(server.stats().frame_tx.ping, pings_before2 + 1);
+
+    // Exchange ack for the PING.
+    let out = client.process(ping, now).dgram();
+
+    now += Duration::from_millis(20);
+    let out = server.process(out, now).dgram();
+
+    assert!(client.process(out, now).dgram().is_none());
+
+    // TODO: if we run server.process with current value of now, the server will
+    // return some small timeout for the recovry although it does not have
+    // any outstanding data. Therefore we call it after AT_LEAST_PTO.
+    now += AT_LEAST_PTO;
+    assert_idle(&mut server, now, default_timeout() / 2 - AT_LEAST_PTO);
 }
 
 /// The other peer can also keep it alive.
@@ -430,7 +486,7 @@ fn keep_alive_responder() {
 
     // Marking the stream for keep-alive changes the idle timeout.
     client.stream_keep_alive(stream, true).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now, default_timeout() / 2);
 
     // Wait that long and the client should send a PING frame.
     now += default_timeout() / 2;
@@ -449,10 +505,10 @@ fn keep_alive_unmark() {
     let stream = create_stream_idle(&mut client, &mut server);
 
     client.stream_keep_alive(stream, true).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     client.stream_keep_alive(stream, false).unwrap();
-    assert_idle(&mut client, default_timeout());
+    assert_idle(&mut client, now(), default_timeout());
 }
 
 /// The sender has something to send.  Make it send it
@@ -479,15 +535,15 @@ fn keep_alive_close() {
     let stream = create_stream_idle(&mut client, &mut server);
 
     client.stream_keep_alive(stream, true).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     client.stream_close_send(stream).unwrap();
     transfer_force_idle(&mut client, &mut server);
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     server.stream_close_send(stream).unwrap();
     transfer_force_idle(&mut server, &mut client);
-    assert_idle(&mut client, default_timeout());
+    assert_idle(&mut client, now(), default_timeout());
 }
 
 /// Receiving `RESET_STREAM` stops keep-alives for that stream, but only once
@@ -500,15 +556,15 @@ fn keep_alive_reset() {
     let stream = create_stream_idle(&mut client, &mut server);
 
     client.stream_keep_alive(stream, true).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     client.stream_close_send(stream).unwrap();
     transfer_force_idle(&mut client, &mut server);
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     server.stream_reset_send(stream, 0).unwrap();
     transfer_force_idle(&mut server, &mut client);
-    assert_idle(&mut client, default_timeout());
+    assert_idle(&mut client, now(), default_timeout());
 
     // The client will fade away from here.
     let t = now() + (default_timeout() / 2);
@@ -526,7 +582,7 @@ fn keep_alive_stop_sending() {
     let stream = create_stream_idle(&mut client, &mut server);
 
     client.stream_keep_alive(stream, true).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     client.stream_close_send(stream).unwrap();
     client.stream_stop_sending(stream, 0).unwrap();
@@ -538,7 +594,7 @@ fn keep_alive_stop_sending() {
     assert!(ack.is_some());
 
     // Now the client should be idle.
-    assert_idle(&mut client, default_timeout());
+    assert_idle(&mut client, now(), default_timeout());
 }
 
 /// Multiple active streams are tracked properly.
@@ -550,17 +606,17 @@ fn keep_alive_multiple_stop() {
     let stream = create_stream_idle(&mut client, &mut server);
 
     client.stream_keep_alive(stream, true).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     let other = client.stream_create(StreamType::BiDi).unwrap();
     client.stream_keep_alive(other, true).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     client.stream_keep_alive(stream, false).unwrap();
-    assert_idle(&mut client, default_timeout() / 2);
+    assert_idle(&mut client, now(), default_timeout() / 2);
 
     client.stream_keep_alive(other, false).unwrap();
-    assert_idle(&mut client, default_timeout());
+    assert_idle(&mut client, now(), default_timeout());
 }
 
 /// If the RTT is too long relative to the idle timeout, the keep-alive is large too.

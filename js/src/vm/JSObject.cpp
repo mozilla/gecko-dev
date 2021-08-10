@@ -1796,8 +1796,7 @@ bool js::GetObjectFromIncumbentGlobal(JSContext* cx, MutableHandleObject obj) {
 }
 
 static bool IsStandardPrototype(JSObject* obj, JSProtoKey key) {
-  Value v = obj->nonCCWGlobal().getPrototype(key);
-  return v.isObject() && obj == &v.toObject();
+  return obj->nonCCWGlobal().maybeGetPrototype(key) == obj;
 }
 
 JSProtoKey JS::IdentifyStandardInstance(JSObject* obj) {
@@ -1835,10 +1834,13 @@ JSProtoKey JS::IdentifyStandardConstructor(JSObject* obj) {
     return JSProto_Null;
   }
 
+  static_assert(JSProto_Null == 0,
+                "Loop below can start at 1 to skip JSProto_Null");
+
   GlobalObject& global = obj->as<JSFunction>().global();
-  for (size_t k = 0; k < JSProto_LIMIT; ++k) {
+  for (size_t k = 1; k < JSProto_LIMIT; ++k) {
     JSProtoKey key = static_cast<JSProtoKey>(k);
-    if (global.getConstructor(key) == ObjectValue(*obj)) {
+    if (global.maybeGetConstructor(key) == obj) {
       return key;
     }
   }
@@ -3573,6 +3575,9 @@ void JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
     ArrayBufferObject::addSizeOfExcludingThis(this, mallocSizeOf, info);
   } else if (is<SharedArrayBufferObject>()) {
     SharedArrayBufferObject::addSizeOfExcludingThis(this, mallocSizeOf, info);
+  } else if (is<GlobalObject>()) {
+    info->objectsMallocHeapGlobalData +=
+        as<GlobalObject>().sizeOfData(mallocSizeOf);
   } else if (is<WeakCollectionObject>()) {
     info->objectsMallocHeapMisc +=
         as<WeakCollectionObject>().sizeOfExcludingThis(mallocSizeOf);

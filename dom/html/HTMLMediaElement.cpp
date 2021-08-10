@@ -2085,6 +2085,10 @@ double HTMLMediaElement::TotalPlayTime() const {
   return mDecoder ? mDecoder->GetTotalPlayTimeInSeconds() : -1.0;
 }
 
+double HTMLMediaElement::VisiblePlayTime() const {
+  return mDecoder ? mDecoder->GetVisibleVideoPlayTimeInSeconds() : -1.0;
+}
+
 double HTMLMediaElement::InvisiblePlayTime() const {
   return mDecoder ? mDecoder->GetInvisibleVideoPlayTimeInSeconds() : -1.0;
 }
@@ -3969,7 +3973,7 @@ class MediaElementSetForURI : public nsURIHashKey {
   nsTArray<HTMLMediaElement*> mElements;
 };
 
-typedef nsTHashtable<MediaElementSetForURI> MediaElementURITable;
+using MediaElementURITable = nsTHashtable<MediaElementSetForURI>;
 // Elements in this table must have non-null mDecoder and mLoadingSrc, and those
 // can't change while the element is in the table. The table is keyed by
 // the element's mLoadingSrc. Each entry has a list of all elements with the

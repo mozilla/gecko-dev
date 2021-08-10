@@ -58,6 +58,7 @@
 #include "wasm/WasmCompile.h"
 #include "wasm/WasmCraneliftCompile.h"
 #include "wasm/WasmInstance.h"
+#include "wasm/WasmIntrinsic.h"
 #include "wasm/WasmIonCompile.h"
 #include "wasm/WasmModule.h"
 #include "wasm/WasmProcess.h"
@@ -343,14 +344,12 @@ bool wasm::AnyCompilerAvailable(JSContext* cx) {
 JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE)
 #undef WASM_FEATURE
 
-#ifdef ENABLE_WASM_SIMD_WORMHOLE
-static bool IsSimdPrivilegedContext(JSContext* cx) {
+bool wasm::IsSimdPrivilegedContext(JSContext* cx) {
   // This may be slightly more lenient than we want in an ideal world, but it
   // remains safe.
   return cx->realm() && cx->realm()->principals() &&
          cx->realm()->principals()->isSystemOrAddonPrincipal();
 }
-#endif
 
 bool wasm::SimdWormholeAvailable(JSContext* cx) {
 #ifdef ENABLE_WASM_SIMD_WORMHOLE
@@ -1041,6 +1040,19 @@ static JSObject* CreateWasmConstructor(JSContext* cx, JSProtoKey key) {
   return NewNativeConstructor(cx, Class::construct, 1, className);
 }
 
+static JSObject* GetWasmConstructorPrototype(JSContext* cx,
+                                             const CallArgs& callArgs,
+                                             JSProtoKey key) {
+  RootedObject proto(cx);
+  if (!GetPrototypeFromBuiltinConstructor(cx, callArgs, key, &proto)) {
+    return nullptr;
+  }
+  if (!proto) {
+    proto = GlobalObject::getOrCreatePrototype(cx, key);
+  }
+  return proto;
+}
+
 // ============================================================================
 // WebAssembly.Module class and methods
 
@@ -1581,13 +1593,11 @@ bool WasmModuleObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedObject proto(cx);
-  if (!GetPrototypeFromBuiltinConstructor(cx, callArgs, JSProto_WasmModule,
-                                          &proto)) {
-    return false;
-  }
+  RootedObject proto(
+      cx, GetWasmConstructorPrototype(cx, callArgs, JSProto_WasmModule));
   if (!proto) {
-    proto = GlobalObject::getOrCreatePrototype(cx, JSProto_WasmModule);
+    ReportOutOfMemory(cx);
+    return false;
   }
 
   RootedObject moduleObj(cx, WasmModuleObject::create(cx, *module, proto));
@@ -1861,14 +1871,11 @@ bool WasmInstanceObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedObject instanceProto(cx);
-  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_WasmInstance,
-                                          &instanceProto)) {
+  RootedObject proto(
+      cx, GetWasmConstructorPrototype(cx, args, JSProto_WasmInstance));
+  if (!proto) {
+    ReportOutOfMemory(cx);
     return false;
-  }
-  if (!instanceProto) {
-    instanceProto =
-        GlobalObject::getOrCreatePrototype(cx, JSProto_WasmInstance);
   }
 
   Rooted<ImportValues> imports(cx);
@@ -1877,7 +1884,7 @@ bool WasmInstanceObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   RootedWasmInstanceObject instanceObj(cx);
-  if (!module->instantiate(cx, imports.get(), instanceProto, &instanceObj)) {
+  if (!module->instantiate(cx, imports.get(), proto, &instanceObj)) {
     return false;
   }
 
@@ -2418,13 +2425,11 @@ bool WasmMemoryObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedObject proto(cx);
-  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_WasmMemory,
-                                          &proto)) {
-    return false;
-  }
+  RootedObject proto(cx,
+                     GetWasmConstructorPrototype(cx, args, JSProto_WasmMemory));
   if (!proto) {
-    proto = GlobalObject::getOrCreatePrototype(cx, JSProto_WasmMemory);
+    ReportOutOfMemory(cx);
+    return false;
   }
 
   RootedWasmMemoryObject memoryObj(cx,
@@ -2955,13 +2960,11 @@ bool WasmTableObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedObject proto(cx);
-  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_WasmTable,
-                                          &proto)) {
-    return false;
-  }
+  RootedObject proto(cx,
+                     GetWasmConstructorPrototype(cx, args, JSProto_WasmTable));
   if (!proto) {
-    proto = GlobalObject::getOrCreatePrototype(cx, JSProto_WasmTable);
+    ReportOutOfMemory(cx);
+    return false;
   }
 
   // The rest of the runtime expects table limits to be within a 32-bit range.
@@ -3406,13 +3409,11 @@ bool WasmGlobalObject::construct(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  RootedObject proto(cx);
-  if (!GetPrototypeFromBuiltinConstructor(cx, args, JSProto_WasmGlobal,
-                                          &proto)) {
-    return false;
-  }
+  RootedObject proto(cx,
+                     GetWasmConstructorPrototype(cx, args, JSProto_WasmGlobal));
   if (!proto) {
-    proto = GlobalObject::getOrCreatePrototype(cx, JSProto_WasmGlobal);
+    ReportOutOfMemory(cx);
+    return false;
   }
 
   WasmGlobalObject* global =
@@ -3902,8 +3903,7 @@ WasmExceptionObject* WasmExceptionObject::create(JSContext* cx,
                                                  wasm::SharedExceptionTag tag,
                                                  HandleArrayBufferObject values,
                                                  HandleArrayObject refs) {
-  RootedObject proto(
-      cx, &cx->global()->getPrototype(JSProto_WasmException).toObject());
+  RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmException));
 
   AutoSetNewObjectMetadata metadata(cx);
   RootedWasmExceptionObject obj(
@@ -4140,7 +4140,7 @@ class AsyncInstantiateTask : public OffThreadPromiseTask {
 
   bool resolve(JSContext* cx, Handle<PromiseObject*> promise) override {
     RootedObject instanceProto(
-        cx, &cx->global()->getPrototype(JSProto_WasmInstance).toObject());
+        cx, &cx->global()->getPrototype(JSProto_WasmInstance));
 
     RootedWasmInstanceObject instanceObj(cx);
     if (!module_->instantiate(cx, imports_.get(), instanceProto,
@@ -4157,8 +4157,8 @@ class AsyncInstantiateTask : public OffThreadPromiseTask {
         return RejectWithPendingException(cx, promise);
       }
 
-      RootedObject moduleProto(
-          cx, &cx->global()->getPrototype(JSProto_WasmModule).toObject());
+      RootedObject moduleProto(cx,
+                               &cx->global()->getPrototype(JSProto_WasmModule));
       RootedObject moduleObj(
           cx, WasmModuleObject::create(cx, *module_, moduleProto));
       if (!moduleObj) {
@@ -4206,8 +4206,7 @@ static bool AsyncInstantiate(JSContext* cx, const Module& module,
 
 static bool ResolveCompile(JSContext* cx, const Module& module,
                            Handle<PromiseObject*> promise) {
-  RootedObject proto(
-      cx, &cx->global()->getPrototype(JSProto_WasmModule).toObject());
+  RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmModule));
   RootedObject moduleObj(cx, WasmModuleObject::create(cx, module, proto));
   if (!moduleObj) {
     return RejectWithPendingException(cx, promise);
@@ -4986,6 +4985,27 @@ static bool WebAssembly_instantiateStreaming(JSContext* cx, unsigned argc,
   return true;
 }
 
+#ifdef ENABLE_WASM_MOZ_INTGEMM
+
+static bool WebAssembly_mozIntGemm(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  RootedWasmModuleObject module(cx);
+  if (!wasm::CompileIntrinsicModule(cx, mozilla::Span<IntrinsicOp>(),
+                                    Shareable::True, &module)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+  args.rval().set(ObjectValue(*module.get()));
+  return true;
+}
+
+static const JSFunctionSpec WebAssembly_mozIntGemm_methods[] = {
+    JS_FN("mozIntGemm", WebAssembly_mozIntGemm, 0, JSPROP_ENUMERATE),
+    JS_FS_END};
+
+#endif  // ENABLE_WASM_MOZ_INTGEMM
+
 static const JSFunctionSpec WebAssembly_static_methods[] = {
     JS_FN(js_toSource_str, WebAssembly_toSource, 0, 0),
     JS_FN("compile", WebAssembly_compile, 1, JSPROP_ENUMERATE),
@@ -5009,14 +5029,37 @@ static JSObject* CreateWebAssemblyObject(JSContext* cx, JSProtoKey key) {
                                         proto);
 }
 
+struct NameAndProtoKey {
+  const char* const name;
+  JSProtoKey key;
+};
+
+static bool WebAssemblyDefineConstructor(JSContext* cx,
+                                         Handle<WasmNamespaceObject*> wasm,
+                                         NameAndProtoKey entry,
+                                         MutableHandleValue ctorValue,
+                                         MutableHandleId id) {
+  JSObject* ctor = GlobalObject::getOrCreateConstructor(cx, entry.key);
+  if (!ctor) {
+    return false;
+  }
+  ctorValue.setObject(*ctor);
+
+  JSAtom* className = Atomize(cx, entry.name, strlen(entry.name));
+  if (!className) {
+    return false;
+  }
+  id.set(AtomToId(className));
+
+  if (!DefineDataProperty(cx, wasm, id, ctorValue, 0)) {
+    return false;
+  }
+  return true;
+}
+
 static bool WebAssemblyClassFinish(JSContext* cx, HandleObject object,
                                    HandleObject proto) {
   Handle<WasmNamespaceObject*> wasm = object.as<WasmNamespaceObject>();
-
-  struct NameAndProtoKey {
-    const char* const name;
-    JSProtoKey key;
-  };
 
   constexpr NameAndProtoKey entries[] = {
       {"Module", JSProto_WasmModule},
@@ -5024,37 +5067,38 @@ static bool WebAssemblyClassFinish(JSContext* cx, HandleObject object,
       {"Memory", JSProto_WasmMemory},
       {"Table", JSProto_WasmTable},
       {"Global", JSProto_WasmGlobal},
-#ifdef ENABLE_WASM_EXCEPTIONS
-      {"Tag", JSProto_WasmTag},
-      {"Exception", JSProto_WasmException},
-#endif
       {"CompileError", GetExceptionProtoKey(JSEXN_WASMCOMPILEERROR)},
       {"LinkError", GetExceptionProtoKey(JSEXN_WASMLINKERROR)},
       {"RuntimeError", GetExceptionProtoKey(JSEXN_WASMRUNTIMEERROR)},
   };
-
   RootedValue ctorValue(cx);
   RootedId id(cx);
   for (const auto& entry : entries) {
-    const char* name = entry.name;
-    JSProtoKey key = entry.key;
-
-    JSObject* ctor = GlobalObject::getOrCreateConstructor(cx, key);
-    if (!ctor) {
-      return false;
-    }
-    ctorValue.setObject(*ctor);
-
-    JSAtom* className = Atomize(cx, name, strlen(name));
-    if (!className) {
-      return false;
-    }
-    id.set(AtomToId(className));
-
-    if (!DefineDataProperty(cx, wasm, id, ctorValue, 0)) {
+    if (!WebAssemblyDefineConstructor(cx, wasm, entry, &ctorValue, &id)) {
       return false;
     }
   }
+
+#ifdef ENABLE_WASM_EXCEPTIONS
+  if (ExceptionsAvailable(cx)) {
+    constexpr NameAndProtoKey exceptionEntries[] = {
+      {"Tag", JSProto_WasmTag},
+      {"Exception", JSProto_WasmException},
+    };
+    for (const auto& entry : exceptionEntries) {
+      if (!WebAssemblyDefineConstructor(cx, wasm, entry, &ctorValue, &id)) {
+        return false;
+      }
+    }
+  }
+#endif
+
+#ifdef ENABLE_WASM_MOZ_INTGEMM
+  if (MozIntGemmAvailable(cx) &&
+      !JS_DefineFunctions(cx, wasm, WebAssembly_mozIntGemm_methods)) {
+    return false;
+  }
+#endif
 
   return true;
 }

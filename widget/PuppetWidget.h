@@ -260,8 +260,8 @@ class PuppetWidget : public nsBaseWidget,
                                               uint32_t aPointerOrientation,
                                               nsIObserver* aObserver) override;
   virtual nsresult SynthesizeNativeTouchPadPinch(
-      TouchpadPinchPhase aEventPhase, float aScale, LayoutDeviceIntPoint aPoint,
-      int32_t aModifierFlags) override;
+      TouchpadGesturePhase aEventPhase, float aScale,
+      LayoutDeviceIntPoint aPoint, int32_t aModifierFlags) override;
   virtual nsresult SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
                                             bool aLongTap,
                                             nsIObserver* aObserver) override;
@@ -274,6 +274,11 @@ class PuppetWidget : public nsBaseWidget,
 
   virtual nsresult SynthesizeNativeTouchpadDoubleTap(
       LayoutDeviceIntPoint aPoint, uint32_t aModifierFlags) override;
+
+  virtual nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
+                                               LayoutDeviceIntPoint aPoint,
+                                               double aDeltaX, double aDeltaY,
+                                               int32_t aModifierFlags) override;
 
   virtual void LockNativePointer() override;
   virtual void UnlockNativePointer() override;

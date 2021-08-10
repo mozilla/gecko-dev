@@ -647,6 +647,11 @@ class nsHttpHandler final : public nsIHttpProtocolHandler,
   nsCString mUserAgent;
   nsCString mSpoofedUserAgent;
   nsCString mUserAgentOverride;
+
+#if defined(MOZ_BUILD_APP_IS_BROWSER) && !defined(ANDROID)
+  nsCString mExperimentUserAgent;
+#endif  // MOZ_BUILD_APP_IS_BROWSER && !ANDROID
+
   bool mUserAgentIsDirty{true};  // true if mUserAgent should be rebuilt
   bool mAcceptLanguagesIsDirty{true};
 

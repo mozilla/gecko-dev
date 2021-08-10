@@ -2403,6 +2403,11 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
 
   if (!aState) {
     if (reUseInnerWindow) {
+      // The StorageAccess state may have changed. Invalidate the cached
+      // StorageAllowed field, so that the next call to StorageAllowedForWindow
+      // recomputes it.
+      newInnerWindow->ClearStorageAllowedCache();
+
       // The storage objects contain the URL of the window. We have to
       // recreate them when the innerWindow is reused.
       newInnerWindow->mLocalStorage = nullptr;
@@ -6818,15 +6823,17 @@ void nsGlobalWindowOuter::PageHidden() {
 already_AddRefed<nsICSSDeclaration>
 nsGlobalWindowOuter::GetComputedStyleHelperOuter(Element& aElt,
                                                  const nsAString& aPseudoElt,
-                                                 bool aDefaultStylesOnly) {
+                                                 bool aDefaultStylesOnly,
+                                                 ErrorResult& aRv) {
   if (!mDoc) {
     return nullptr;
   }
 
   RefPtr<nsICSSDeclaration> compStyle = NS_NewComputedDOMStyle(
       &aElt, aPseudoElt, mDoc,
-      aDefaultStylesOnly ? nsComputedDOMStyle::eDefaultOnly
-                         : nsComputedDOMStyle::eAll);
+      aDefaultStylesOnly ? nsComputedDOMStyle::StyleType::DefaultOnly
+                         : nsComputedDOMStyle::StyleType::All,
+      aRv);
 
   return compStyle.forget();
 }

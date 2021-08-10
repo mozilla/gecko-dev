@@ -32,8 +32,6 @@
 #include <winioctl.h>  // for IOCTL_*
 #include <batclass.h>  // for BATTERY_*
 
-#define NS_CRASHREPORTER_CONTRACTID "@mozilla.org/toolkit/crash-reporter;1"
-
 using namespace mozilla;
 using namespace mozilla::gfx;
 using namespace mozilla::widget;
@@ -1832,6 +1830,14 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
                                 nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
                                 DRIVER_LESS_THAN_OR_EQUAL, V(8, 56, 1, 16),
                                 "CRASHY_DRIVERS_BUG_1678808");
+
+    // Shader compilation startup crashes with WebRender on Windows 7.
+    APPEND_TO_DRIVER_BLOCKLIST_RANGE(
+        OperatingSystem::Windows7, DeviceFamily::NvidiaAll,
+        nsIGfxInfo::FEATURE_WEBRENDER,
+        nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION, DRIVER_BETWEEN_INCLUSIVE,
+        V(8, 17, 12, 8019), V(8, 17, 12, 8026), "FEATURE_FAILURE_BUG_1709629",
+        "nVidia driver > 280.26");
 
     ////////////////////////////////////
     // FEATURE_WEBRENDER - ALLOWLIST

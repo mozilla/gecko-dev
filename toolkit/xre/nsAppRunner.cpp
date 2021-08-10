@@ -213,7 +213,6 @@
 
 #include "nsExceptionHandler.h"
 #include "nsICrashReporter.h"
-#define NS_CRASHREPORTER_CONTRACTID "@mozilla.org/toolkit/crash-reporter;1"
 #include "nsIPrefService.h"
 #include "nsIMemoryInfoDumper.h"
 #if defined(XP_LINUX) && !defined(ANDROID)
@@ -4876,13 +4875,6 @@ nsresult XREMain::XRE_mainRun() {
       }
     }
     // Needs to be set after xpcom initialization.
-    CrashReporter::AnnotateCrashReport(
-        CrashReporter::Annotation::FramePoisonBase,
-        nsPrintfCString("%.16" PRIu64, uint64_t(gMozillaPoisonBase)));
-    CrashReporter::AnnotateCrashReport(
-        CrashReporter::Annotation::FramePoisonSize,
-        uint32_t(gMozillaPoisonSize));
-
     bool includeContextHeap = Preferences::GetBool(
         "toolkit.crashreporter.include_context_heap", false);
     CrashReporter::SetIncludeContextHeap(includeContextHeap);

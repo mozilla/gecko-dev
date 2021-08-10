@@ -2411,7 +2411,7 @@ static bool RememberSourceURL(JSContext* cx, HandleScript script) {
     return true;
   }
 
-  RootedObject holder(cx, script->global().getSourceURLsHolder());
+  Rooted<ArrayObject*> holder(cx, script->global().getSourceURLsHolder());
   if (!holder) {
     holder = NewDenseEmptyArray(cx);
     if (!holder) {
@@ -2420,7 +2420,7 @@ static bool RememberSourceURL(JSContext* cx, HandleScript script) {
     script->global().setSourceURLsHolder(holder);
   }
 
-  if (holder->as<ArrayObject>().length() >= SourceURLRealmLimit) {
+  if (holder->length() >= SourceURLRealmLimit) {
     return true;
   }
 
@@ -6730,7 +6730,8 @@ extern JS_PUBLIC_API bool JS_DefineDebuggerObject(JSContext* cx,
   if (!debuggeeWouldRunProto) {
     return false;
   }
-  debuggeeWouldRunCtor = global->getConstructor(JSProto_DebuggeeWouldRun);
+  debuggeeWouldRunCtor =
+      ObjectValue(global->getConstructor(JSProto_DebuggeeWouldRun));
   RootedId debuggeeWouldRunId(
       cx, NameToId(ClassName(JSProto_DebuggeeWouldRun, cx)));
   if (!DefineDataProperty(cx, debugCtor, debuggeeWouldRunId,

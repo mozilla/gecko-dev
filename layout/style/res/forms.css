@@ -985,17 +985,17 @@ input[type=search]::-moz-search-clear-button {
   background-size: contain;
 }
 
-input:is([type=date], [type=time]) {
+input:is([type=date], [type=time], [type=datetime-local]) {
   overflow: hidden !important;
   font-family: -moz-fixed;
   cursor: default;
 }
 
-input:is([type=date], [type=time]):is(:disabled, :read-only) {
+input:is([type=date], [type=time], [type=datetime-local]):is(:disabled, :read-only) {
   color: GrayText;
 }
 
-input:autofill, input:-moz-autofill-preview {
+input:autofill {
   filter: grayscale(21%) brightness(88%) contrast(161%) invert(10%) sepia(40%) saturate(206%);
 }
 

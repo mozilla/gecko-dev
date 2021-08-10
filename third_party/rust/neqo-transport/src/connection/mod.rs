@@ -1886,11 +1886,7 @@ impl Connection {
             } else if self.streams.need_keep_alive() {
                 // We need to keep the connection alive, including sending
                 // a PING again.
-                let keep_alive = self.idle_timeout.send_keep_alive(now, pto);
-                if keep_alive {
-                    tokens.push(RecoveryToken::KeepAlive);
-                }
-                keep_alive
+                self.idle_timeout.send_keep_alive(now, pto, tokens)
             } else {
                 false
             }
@@ -2572,6 +2568,7 @@ impl Connection {
                     RecoveryToken::NewConnectionId(entry) => self.cid_manager.acked(entry),
                     RecoveryToken::RetireConnectionId(seqno) => self.paths.acked_retire_cid(*seqno),
                     RecoveryToken::AckFrequency(rate) => self.paths.acked_ack_frequency(rate),
+                    RecoveryToken::KeepAlive => self.idle_timeout.ack_keep_alive(),
                     // We only worry when these are lost
                     RecoveryToken::HandshakeDone => (),
                     _ => unreachable!("All other tokens are for streams"),

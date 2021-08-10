@@ -1142,11 +1142,11 @@ nsDOMWindowUtils::SendNativeTouchpadPinch(uint32_t aEventPhase, float aScale,
     return NS_ERROR_FAILURE;
   }
   NS_DispatchToMainThread(NativeInputRunnable::Create(
-      NewRunnableMethod<nsIWidget::TouchpadPinchPhase, float,
+      NewRunnableMethod<nsIWidget::TouchpadGesturePhase, float,
                         LayoutDeviceIntPoint, int32_t>(
           "nsIWidget::SynthesizeNativeTouchPadPinch", widget,
           &nsIWidget::SynthesizeNativeTouchPadPinch,
-          (nsIWidget::TouchpadPinchPhase)aEventPhase, aScale,
+          (nsIWidget::TouchpadGesturePhase)aEventPhase, aScale,
           LayoutDeviceIntPoint(aScreenX, aScreenY), aModifierFlags)));
   return NS_OK;
 }
@@ -1210,6 +1210,28 @@ nsDOMWindowUtils::SendNativeTouchpadDoubleTap(int32_t aScreenX,
           "nsIWidget::SynthesizeNativeTouchpadDoubleTap", widget,
           &nsIWidget::SynthesizeNativeTouchpadDoubleTap,
           LayoutDeviceIntPoint(aScreenX, aScreenY), aModifierFlags)));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDOMWindowUtils::SendNativeTouchpadPan(uint32_t aEventPhase, int32_t aScreenX,
+                                        int32_t aScreenY, double aDeltaX,
+                                        double aDeltaY,
+                                        int32_t aModifierFlags) {
+  nsCOMPtr<nsIWidget> widget = GetWidget();
+  if (!widget) {
+    return NS_ERROR_FAILURE;
+  }
+
+  MOZ_ASSERT(aModifierFlags >= 0);
+  NS_DispatchToMainThread(NativeInputRunnable::Create(
+      NewRunnableMethod<nsIWidget::TouchpadGesturePhase, LayoutDeviceIntPoint,
+                        double, double, uint32_t>(
+          "nsIWidget::SynthesizeNativeTouchpadPan", widget,
+          &nsIWidget::SynthesizeNativeTouchpadPan,
+          (nsIWidget::TouchpadGesturePhase)aEventPhase,
+          LayoutDeviceIntPoint(aScreenX, aScreenY), aDeltaX, aDeltaY,
+          aModifierFlags)));
   return NS_OK;
 }
 
@@ -3153,9 +3175,13 @@ nsDOMWindowUtils::GetUnanimatedComputedStyle(Element* aElement,
     return NS_ERROR_FAILURE;
   }
 
-  RefPtr<nsAtom> pseudo = nsCSSPseudoElements::GetPseudoAtom(aPseudoElement);
+  Maybe<PseudoStyleType> pseudo =
+      nsCSSPseudoElements::GetPseudoType(aPseudoElement);
+  if (!pseudo) {
+    return NS_ERROR_FAILURE;
+  }
   RefPtr<ComputedStyle> computedStyle =
-      nsComputedDOMStyle::GetUnanimatedComputedStyleNoFlush(aElement, pseudo);
+      nsComputedDOMStyle::GetUnanimatedComputedStyleNoFlush(aElement, *pseudo);
   if (!computedStyle) {
     return NS_ERROR_FAILURE;
   }
@@ -4428,7 +4454,9 @@ struct StateTableEntry {
 
 static constexpr StateTableEntry kManuallyManagedStates[] = {
     {"autofill", NS_EVENT_STATE_AUTOFILL},
-    {"-moz-autofill-preview", NS_EVENT_STATE_AUTOFILL_PREVIEW},
+    // :-moz-autofill-preview implies :autofill.
+    {"-moz-autofill-preview",
+     NS_EVENT_STATE_AUTOFILL_PREVIEW | NS_EVENT_STATE_AUTOFILL},
     {nullptr, EventStates()},
 };
 

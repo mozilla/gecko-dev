@@ -483,7 +483,7 @@ nsresult PuppetWidget::SynthesizeNativeTouchPoint(
 }
 
 nsresult PuppetWidget::SynthesizeNativeTouchPadPinch(
-    TouchpadPinchPhase aEventPhase, float aScale, LayoutDeviceIntPoint aPoint,
+    TouchpadGesturePhase aEventPhase, float aScale, LayoutDeviceIntPoint aPoint,
     int32_t aModifierFlags) {
   if (!mBrowserChild) {
     return NS_ERROR_FAILURE;
@@ -534,6 +534,17 @@ nsresult PuppetWidget::SynthesizeNativeTouchpadDoubleTap(
     return NS_ERROR_FAILURE;
   }
   mBrowserChild->SendSynthesizeNativeTouchpadDoubleTap(aPoint, aModifierFlags);
+  return NS_OK;
+}
+
+nsresult PuppetWidget::SynthesizeNativeTouchpadPan(
+    TouchpadGesturePhase aEventPhase, LayoutDeviceIntPoint aPoint,
+    double aDeltaX, double aDeltaY, int32_t aModifierFlags) {
+  if (!mBrowserChild) {
+    return NS_ERROR_FAILURE;
+  }
+  mBrowserChild->SendSynthesizeNativeTouchpadPan(aEventPhase, aPoint, aDeltaX,
+                                                 aDeltaY, aModifierFlags);
   return NS_OK;
 }
 

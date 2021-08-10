@@ -1730,7 +1730,7 @@
 # Block Insecure downloads from Secure Origins
 - name: dom.block_download_insecure
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 # Block all downloads in iframes with the sandboxed attribute
@@ -2401,13 +2401,13 @@
 # Support for input type=datetime-local.
 - name: dom.forms.datetime-local
   type: bool
-  value: @IS_ANDROID@
+  value: true
   mirror: always
 
 # Support for input type=datetime-local widget. Disabled for now.
 - name: dom.forms.datetime-local.widget
   type: bool
-  value: false
+  value: true
   mirror: always
 
 # Support for input type=month, type=week. By default, disabled.
@@ -2474,6 +2474,12 @@
 - name: dom.keyboardevent.dispatch_during_composition
   type: bool
   value: true
+  mirror: always
+
+# Enable/disable KeyboardEvent.initKeyEvent function
+- name: dom.keyboardevent.init_key_event.enabled
+  type: bool
+  value: false
   mirror: always
 
 # If this is true, keypress events for non-printable keys are dispatched only
@@ -6009,6 +6015,13 @@
     mirror: always
 #endif  // defined(ENABLE_WASM_RELAXED_SIMD)
 
+#if defined(ENABLE_WASM_MOZ_INTGEMM)
+-   name: javascript.options.wasm_moz_intgemm
+    type: bool
+    value: @IS_NIGHTLY_BUILD@
+    mirror: always
+#endif  // defined(ENABLE_WASM_MOZ_INTGEMM)
+
 #if defined(ENABLE_WASM_EXTENDED_CONST)
 -   name: javascript.options.wasm_extended_const
     type: bool
@@ -6873,6 +6886,16 @@
   value: true
   mirror: always
 
+# Whether we should throw on invalid pseudo-elements passed to
+# getComputedStyle() as per spec.
+#
+# Old behavior is a bit odd: returning an empty style if the string starts with
+# a double colon, and return the regular style otherwise.
+- name: layout.css.computed-style.throw-on-invalid-pseudo
+  type: bool
+  value: false
+  mirror: always
+
 # Are implicit tracks in computed grid templates serialized?
 - name: layout.css.serialize-grid-implicit-tracks
   type: RelaxedAtomicBool
@@ -6882,7 +6905,7 @@
 # Whether the system-ui generic family is enabled.
 - name: layout.css.system-ui.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
   rust: true
 
@@ -6930,6 +6953,13 @@
 
 # Is support for color-mix on content enabled?
 - name: layout.css.color-mix.enabled
+  type: RelaxedAtomicBool
+  value: @IS_NIGHTLY_BUILD@
+  mirror: always
+  rust: true
+
+# Is support for color-mix with non-SRGB color spaces on content enabled?
+- name: layout.css.color-mix.color-spaces.enabled
   type: RelaxedAtomicBool
   value: @IS_NIGHTLY_BUILD@
   mirror: always
@@ -7591,6 +7621,13 @@
 - name: layout.css.element-content-none.enabled
   type: RelaxedAtomicBool
   value: false
+  mirror: always
+  rust: true
+
+# Is 'font-synthesis: small-caps' supported?
+- name: layout.css.font-synthesis-small-caps.enabled
+  type: RelaxedAtomicBool
+  value: true
   mirror: always
   rust: true
 
@@ -9250,6 +9287,13 @@
   value: false
   mirror: always
 
+# The factor by which to increase the keepalive timeout when the
+# NS_HTTP_LARGE_KEEPALIVE flag is used for a connection
+- name: network.http.largeKeepaliveFactor
+  type: RelaxedAtomicUint32
+  value: 10
+  mirror: always
+
 # If set to true, IOService.offline depends on IOService.connectivity.
 - name: network.offline-mirrors-connectivity
   type: RelaxedAtomicBool
@@ -10404,6 +10448,12 @@
   value: false
   mirror: always
 
+# Whether the storage allowed check should be cached on the inner window.
+- name: privacy.antitracking.cacheStorageAllowedForWindow
+  type: bool
+  value: true
+  mirror: always
+
 # Enable the heuristic to allow storage access for recent visited pages
 - name: privacy.restrict3rdpartystorage.heuristic.recently_visited
   type: bool
@@ -10693,7 +10743,7 @@
 
 -   name: security.sandbox.rdd.shadow-stack.enabled
     type: RelaxedAtomicBool
-    value: false
+    value: @IS_NIGHTLY_BUILD@
     mirror: always
 
 -   name: security.sandbox.socket.shadow-stack.enabled

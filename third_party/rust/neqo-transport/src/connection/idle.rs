@@ -4,6 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::recovery::RecoveryToken;
 use std::cmp::{max, min};
 use std::time::{Duration, Instant};
 
@@ -85,9 +86,15 @@ impl IdleTimeout {
         now >= self.expiry(now, pto, false)
     }
 
-    pub fn send_keep_alive(&mut self, now: Instant, pto: Duration) -> bool {
+    pub fn send_keep_alive(
+        &mut self,
+        now: Instant,
+        pto: Duration,
+        tokens: &mut Vec<RecoveryToken>,
+    ) -> bool {
         if !self.keep_alive_outstanding && now >= self.expiry(now, pto, true) {
             self.keep_alive_outstanding = true;
+            tokens.push(RecoveryToken::KeepAlive);
             true
         } else {
             false
@@ -95,6 +102,10 @@ impl IdleTimeout {
     }
 
     pub fn lost_keep_alive(&mut self) {
+        self.keep_alive_outstanding = false;
+    }
+
+    pub fn ack_keep_alive(&mut self) {
         self.keep_alive_outstanding = false;
     }
 }

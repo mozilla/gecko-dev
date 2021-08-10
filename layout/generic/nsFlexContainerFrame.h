@@ -173,7 +173,8 @@ class nsFlexContainerFrame final : public nsContainerFrame {
   bool GetNaturalBaselineBOffset(mozilla::WritingMode aWM,
                                  BaselineSharingGroup aBaselineGroup,
                                  nscoord* aBaseline) const override {
-    if (HasAnyStateBits(NS_STATE_FLEX_SYNTHESIZE_BASELINE)) {
+    if (StyleDisplay()->IsContainLayout() ||
+        HasAnyStateBits(NS_STATE_FLEX_SYNTHESIZE_BASELINE)) {
       return false;
     }
     *aBaseline = aBaselineGroup == BaselineSharingGroup::First
@@ -382,7 +383,7 @@ class nsFlexContainerFrame final : public nsContainerFrame {
    * This avoids exponential reflows - see the comment above the
    * CachedBAxisMeasurement struct.
    */
-  const CachedBAxisMeasurement& MeasureAscentAndBSizeForFlexItem(
+  const CachedBAxisMeasurement& MeasureBSizeForFlexItem(
       FlexItem& aItem, ReflowInput& aChildReflowInput);
 
   /**
