@@ -41,6 +41,13 @@ selects.config_setting_group(
     ],
 )
 
+config_setting(
+    name = "emulate_sve",
+    values = {
+        "copt": "-DHWY_EMULATE_SVE",
+    },
+)
+
 # Additional warnings for Clang OR GCC (skip for MSVC)
 CLANG_GCC_COPTS = [
     "-Werror",
@@ -76,11 +83,10 @@ COPTS = select({
     "//conditions:default": CLANG_GCC_COPTS + CLANG_ONLY_COPTS,
 })
 
-# Unused on Bazel builds, where these are not defined/known; Copybara replaces
-# usages of this with an empty list.
+# Unused on Bazel builds, where this is not defined/known; Copybara replaces
+# usages with an empty list.
 COMPAT = [
-    "//buildenv/target:mobile",
-    "//buildenv/target:vendor",
+    "//buildenv/target:non_prod",  # includes mobile/vendor.
 ]
 
 # WARNING: changing flags such as HWY_DISABLED_TARGETS may break users without
@@ -94,19 +100,23 @@ cc_library(
         "hwy/aligned_allocator.cc",
         "hwy/targets.cc",
     ],
+    # Normal headers with include guards
     hdrs = [
         "hwy/aligned_allocator.h",
         "hwy/base.h",
         "hwy/cache_control.h",
-        "hwy/highway.h",
+        "hwy/detect_compiler_arch.h",  # private
+        "hwy/detect_targets.h",  # private
         "hwy/targets.h",
     ],
     compatible_with = [],
     copts = COPTS,
     textual_hdrs = [
+        "hwy/highway.h",  # public
         "hwy/foreach_target.h",  # public
         "hwy/ops/arm_neon-inl.h",
         "hwy/ops/arm_sve-inl.h",
+        "hwy/ops/generic_ops-inl.h",
         "hwy/ops/rvv-inl.h",
         "hwy/ops/scalar-inl.h",
         "hwy/ops/set_macros-inl.h",
@@ -116,6 +126,10 @@ cc_library(
         "hwy/ops/x86_256-inl.h",
         "hwy/ops/x86_512-inl.h",
     ],
+    deps = select({
+        ":emulate_sve": ["//third_party/farm_sve"],
+        "//conditions:default": [],
+    }),
 )
 
 cc_library(
@@ -186,10 +200,13 @@ HWY_TESTS = [
     ("hwy/", "highway_test"),
     ("hwy/", "targets_test"),
     ("hwy/tests/", "arithmetic_test"),
+    ("hwy/tests/", "blockwise_test"),
     ("hwy/tests/", "combine_test"),
     ("hwy/tests/", "compare_test"),
     ("hwy/tests/", "convert_test"),
+    ("hwy/tests/", "crypto_test"),
     ("hwy/tests/", "logical_test"),
+    ("hwy/tests/", "mask_test"),
     ("hwy/tests/", "memory_test"),
     ("hwy/tests/", "swizzle_test"),
     ("hwy/tests/", "test_util_test"),
@@ -204,9 +221,14 @@ HWY_TESTS = [
             srcs = [
                 subdir + test + ".cc",
             ],
-            copts = COPTS,
-            # for test_suite. math_test is not yet supported on RVV.
-            tags = ["hwy_ops_test"] if test != "math_test" else [],
+            copts = COPTS + [
+                # gTest triggers this warning (which is enabled by the
+                # extra-semi in COPTS), so we need to disable it here,
+                # but it's still enabled for :hwy.
+                "-Wno-c++98-compat-extra-semi",
+            ],
+            # for test_suite.
+            tags = ["hwy_ops_test"],
             deps = [
                 ":hwy",
                 ":hwy_test_util",

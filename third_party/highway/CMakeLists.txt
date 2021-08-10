@@ -19,7 +19,7 @@ if(POLICY CMP0083)
   cmake_policy(SET CMP0083 NEW)
 endif()
 
-project(hwy VERSION 0.12.1)  # Keep in sync with highway.h version
+project(hwy VERSION 0.14.0)  # Keep in sync with highway.h version
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -64,12 +64,15 @@ set(HWY_SOURCES
     hwy/aligned_allocator.h
     hwy/base.h
     hwy/cache_control.h
+    hwy/detect_compiler_arch.h  # private
+    hwy/detect_targets.h  # private
     hwy/foreach_target.h
     hwy/highway.h
     hwy/nanobenchmark.cc
     hwy/nanobenchmark.h
     hwy/ops/arm_neon-inl.h
     hwy/ops/arm_sve-inl.h
+    hwy/ops/generic_ops-inl.h
     hwy/ops/scalar-inl.h
     hwy/ops/set_macros-inl.h
     hwy/ops/shared-inl.h
@@ -107,7 +110,6 @@ else()
 
   if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     list(APPEND HWY_FLAGS
-      -Wc++2a-extensions
       -Wfloat-overflow-conversion
       -Wfloat-zero-conversion
       -Wfor-loop-analysis
@@ -126,6 +128,9 @@ else()
       # Use color in messages
       -fdiagnostics-show-option -fcolor-diagnostics
     )
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 6.0)
+      list(APPEND HWY_FLAGS -Wc++2a-extensions)
+    endif()
   endif()
 
   if (WIN32)
@@ -174,6 +179,28 @@ target_compile_options(hwy_contrib PRIVATE ${HWY_FLAGS})
 set_property(TARGET hwy_contrib PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_include_directories(hwy_contrib PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
+# -------------------------------------------------------- hwy_list_targets
+# Generate a tool to print the compiled-in targets as defined by the current
+# flags. This tool will print to stderr at build time, after building hwy.
+add_executable(hwy_list_targets hwy/tests/list_targets.cc)
+target_compile_options(hwy_list_targets PRIVATE ${HWY_FLAGS})
+target_include_directories(hwy_list_targets PRIVATE
+  $<TARGET_PROPERTY:hwy,INCLUDE_DIRECTORIES>)
+# TARGET_FILE always returns the path to executable
+# Naked target also not always could be run (due to the lack of '.\' prefix)
+# Thus effective command to run should contain the full path
+# and emulator prefix (if any).
+add_custom_command(TARGET hwy POST_BUILD
+    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:hwy_list_targets> || (exit 0))
+
+# --------------------------------------------------------
+# The following sections are skipped if this project is added via
+# add_subdirectory into parent project (i.e. used as library).
+# Those sections contain artifacts that are not required for building
+# parent project: tests, examples, benchmarks and installation.
+# --------------------------------------------------------
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+
 # -------------------------------------------------------- install library
 install(TARGETS hwy
   DESTINATION "${CMAKE_INSTALL_LIBDIR}")
@@ -206,20 +233,6 @@ foreach (pc libhwy.pc libhwy-contrib.pc libhwy-test.pc)
   install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${pc}"
       DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endforeach()
-
-# -------------------------------------------------------- hwy_list_targets
-# Generate a tool to print the compiled-in targets as defined by the current
-# flags. This tool will print to stderr at build time, after building hwy.
-add_executable(hwy_list_targets hwy/tests/list_targets.cc)
-target_compile_options(hwy_list_targets PRIVATE ${HWY_FLAGS})
-target_include_directories(hwy_list_targets PRIVATE
-  $<TARGET_PROPERTY:hwy,INCLUDE_DIRECTORIES>)
-# TARGET_FILE always returns the path to executable
-# Naked target also not always could be run (due to the lack of '.\' prefix)
-# Thus effective command to run should contain the full path
-# and emulator prefix (if any).
-add_custom_command(TARGET hwy POST_BUILD
-    COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:hwy_list_targets> || (exit 0))
 
 # -------------------------------------------------------- Examples
 
@@ -292,10 +305,13 @@ set(HWY_TEST_FILES
   hwy/targets_test.cc
   hwy/examples/skeleton_test.cc
   hwy/tests/arithmetic_test.cc
+  hwy/tests/blockwise_test.cc
   hwy/tests/combine_test.cc
   hwy/tests/compare_test.cc
   hwy/tests/convert_test.cc
+  hwy/tests/crypto_test.cc
   hwy/tests/logical_test.cc
+  hwy/tests/mask_test.cc
   hwy/tests/memory_test.cc
   hwy/tests/swizzle_test.cc
   hwy/tests/test_util_test.cc
@@ -307,8 +323,11 @@ foreach (TESTFILE IN LISTS HWY_TEST_FILES)
   get_filename_component(TESTNAME ${TESTFILE} NAME_WE)
   add_executable(${TESTNAME} ${TESTFILE})
   target_compile_options(${TESTNAME} PRIVATE ${HWY_FLAGS})
-  # Test all targets, not just the best/baseline.
-  target_compile_options(${TESTNAME} PRIVATE -DHWY_COMPILE_ALL_ATTAINABLE=1)
+  # Test all targets, not just the best/baseline. This changes the default
+  # policy to all-attainable; note that setting -DHWY_COMPILE_* directly can
+  # cause compile errors because only one may be set, and other CMakeLists.txt
+  # that include us may set them.
+  target_compile_options(${TESTNAME} PRIVATE -DHWY_IS_TEST=1)
 
   if(HWY_SYSTEM_GTEST)
     target_link_libraries(${TESTNAME} hwy hwy_contrib GTest::GTest GTest::Main)
@@ -333,3 +352,5 @@ endforeach ()
 target_sources(skeleton_test PRIVATE hwy/examples/skeleton.cc)
 
 endif() # BUILD_TESTING
+
+endif() # CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR

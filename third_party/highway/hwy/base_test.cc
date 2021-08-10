@@ -90,6 +90,17 @@ HWY_NOINLINE void TestAllType() {
   ForFloatTypes(TestIsFloat());
 }
 
+struct TestIsSame {
+  template <class T>
+  HWY_NOINLINE void operator()(T /*unused*/) const {
+    static_assert(IsSame<T, T>(), "T == T");
+    static_assert(!IsSame<MakeSigned<T>, MakeUnsigned<T>>(), "S != U");
+    static_assert(!IsSame<MakeUnsigned<T>, MakeSigned<T>>(), "U != S");
+  }
+};
+
+HWY_NOINLINE void TestAllIsSame() { ForAllTypes(TestIsSame()); }
+
 HWY_NOINLINE void TestAllPopCount() {
   HWY_ASSERT_EQ(size_t(0), PopCount(0u));
   HWY_ASSERT_EQ(size_t(1), PopCount(1u));
@@ -113,11 +124,20 @@ HWY_NOINLINE void TestAllPopCount() {
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE
+
 namespace hwy {
 HWY_BEFORE_TEST(BaseTest);
 HWY_EXPORT_AND_TEST_P(BaseTest, TestAllLimits);
 HWY_EXPORT_AND_TEST_P(BaseTest, TestAllLowestHighest);
 HWY_EXPORT_AND_TEST_P(BaseTest, TestAllType);
+HWY_EXPORT_AND_TEST_P(BaseTest, TestAllIsSame);
 HWY_EXPORT_AND_TEST_P(BaseTest, TestAllPopCount);
 }  // namespace hwy
+
+// Ought not to be necessary, but without this, no tests run on RVV.
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+
 #endif
