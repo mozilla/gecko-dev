@@ -23,16 +23,16 @@ namespace widget {
 
 GtkCompositorWidget::GtkCompositorWidget(
     const GtkCompositorWidgetInitData& aInitData,
-    const layers::CompositorOptions& aOptions, nsWindow* aWindow)
+    const layers::CompositorOptions& aOptions, RefPtr<nsWindow> aWindow)
     : CompositorWidget(aOptions),
-      mWidget(aWindow),
+      mWidget(std::move(aWindow)),
       mClientSize("GtkCompositorWidget::mClientSize") {
 #if defined(MOZ_WAYLAND)
   if (GdkIsWaylandDisplay()) {
-    if (!aWindow) {
+    if (!mWidget) {
       NS_WARNING("GtkCompositorWidget: We're missing nsWindow!");
     }
-    mProvider.Initialize(aWindow);
+    mProvider.Initialize(mWidget);
   }
 #endif
 #if defined(MOZ_X11)
@@ -88,8 +88,20 @@ LayoutDeviceIntSize GtkCompositorWidget::GetClientSize() {
   return *size;
 }
 
-uintptr_t GtkCompositorWidget::GetWidgetKey() {
-  return reinterpret_cast<uintptr_t>(mWidget);
+void GtkCompositorWidget::RemoteLayoutSizeUpdated(
+    const LayoutDeviceRect& aSize) {
+  if (!mWidget || !mWidget->IsWaitingForCompositorResume()) {
+    return;
+  }
+
+  // We're waiting for layout to match widget size.
+  auto clientSize = mClientSize.Lock();
+  if (clientSize->width != (int)aSize.width ||
+      clientSize->height != (int)aSize.height) {
+    return;
+  }
+
+  mWidget->ResumeCompositorFromCompositorThread();
 }
 
 EGLNativeWindowType GtkCompositorWidget::GetEGLNativeWindow() {

@@ -170,10 +170,11 @@ nsresult nsXREDirProvider::Initialize(
     NS_WARNING("Failed to resolve XUL App Dir.");
   }
 #endif
-  mGREDir->Clone(getter_AddRefs(mGREBinDir));
-#ifdef XP_MACOSX
-  mGREBinDir->SetNativeLeafName("MacOS"_ns);
-#endif
+  nsCOMPtr<nsIFile> binaryPath;
+  nsresult rv = XRE_GetBinaryPath(getter_AddRefs(binaryPath));
+  if (NS_FAILED(rv)) return rv;
+  rv = binaryPath->GetParent(getter_AddRefs(mGREBinDir));
+  if (NS_FAILED(rv)) return rv;
 
   if (!mProfileDir) {
     nsCOMPtr<nsIDirectoryServiceProvider> app(mAppProvider);
@@ -366,19 +367,14 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
 
   if (!strcmp(aProperty, NS_GRE_DIR)) {
 #if defined(MOZ_WIDGET_ANDROID)
-    // On Android, libraries and other internal files are inside the APK, a zip
-    // file, so this folder doesn't really make sense.
+    // On Android, internal files are inside the APK, a zip file, so this
+    // folder doesn't really make sense.
     return NS_ERROR_FAILURE;
 #else
     return mGREDir->Clone(aFile);
 #endif
   } else if (!strcmp(aProperty, NS_GRE_BIN_DIR)) {
-#if defined(MOZ_WIDGET_ANDROID)
-    // Same as NS_GRE_DIR
-    return NS_ERROR_FAILURE;
-#else
     return mGREBinDir->Clone(aFile);
-#endif
   } else if (!strcmp(aProperty, NS_OS_CURRENT_PROCESS_DIR) ||
              !strcmp(aProperty, NS_APP_INSTALL_CLEANUP_DIR)) {
     return GetAppDir()->Clone(aFile);
@@ -485,8 +481,6 @@ nsXREDirProvider::GetFile(const char* aProperty, bool* aPersistent,
 #else
     return NS_ERROR_FAILURE;
 #endif
-  } else if (!strcmp(aProperty, XRE_USER_SYS_EXTENSION_DEV_DIR)) {
-    return GetSysUserExtensionsDevDirectory(aFile);
   } else if (!strcmp(aProperty, XRE_USER_RUNTIME_DIR)) {
 #if defined(XP_UNIX)
     nsPrintfCString path("/run/user/%d/%s/", getuid(), GetAppName());
@@ -1500,29 +1494,6 @@ nsresult nsXREDirProvider::GetSysUserExtensionsDirectory(nsIFile** aFile) {
   return NS_OK;
 }
 
-nsresult nsXREDirProvider::GetSysUserExtensionsDevDirectory(nsIFile** aFile) {
-  nsCOMPtr<nsIFile> localDir;
-  nsresult rv = GetUserDataDirectoryHome(getter_AddRefs(localDir), false);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = AppendSysUserExtensionsDevPath(localDir);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = EnsureDirectoryExists(localDir);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-#if defined(XP_WIN) && defined(MOZ_SANDBOX)
-  // This is used in sandbox rules, so we need to make sure it doesn't contain
-  // any junction points or symlinks or the sandbox will reject those rules.
-  if (!mozilla::widget::WinUtils::ResolveJunctionPointsAndSymLinks(localDir)) {
-    NS_WARNING("Failed to resolve sys user extensions dev directory.");
-  }
-#endif
-
-  localDir.forget(aFile);
-  return NS_OK;
-}
-
 #if defined(XP_UNIX) || defined(XP_MACOSX)
 nsresult nsXREDirProvider::GetSystemExtensionsDirectory(nsIFile** aFile) {
   nsresult rv;
@@ -1608,37 +1579,6 @@ nsresult nsXREDirProvider::AppendSysUserExtensionPath(nsIFile* aFile) {
 
 #else
 #  error "Don't know how to get XRE user extension path on your platform"
-#endif
-  return NS_OK;
-}
-
-nsresult nsXREDirProvider::AppendSysUserExtensionsDevPath(nsIFile* aFile) {
-  MOZ_ASSERT(aFile);
-
-  nsresult rv;
-
-#if defined(XP_MACOSX) || defined(XP_WIN)
-
-  static const char* const sXR = "Mozilla";
-  rv = aFile->AppendNative(nsDependentCString(sXR));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  static const char* const sExtensions = "SystemExtensionsDev";
-  rv = aFile->AppendNative(nsDependentCString(sExtensions));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-#elif defined(XP_UNIX)
-
-  static const char* const sXR = ".mozilla";
-  rv = aFile->AppendNative(nsDependentCString(sXR));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  static const char* const sExtensions = "systemextensionsdev";
-  rv = aFile->AppendNative(nsDependentCString(sExtensions));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-#else
-#  error "Don't know how to get XRE system extension dev path on your platform"
 #endif
   return NS_OK;
 }

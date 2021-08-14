@@ -8,7 +8,6 @@
 
 #include <algorithm>
 
-#include "gc/Marking.h"
 #include "jit/AutoWritableJitCode.h"
 #if defined(JS_CODEGEN_X86)
 #  include "jit/x86/MacroAssembler-x86.h"
@@ -209,6 +208,12 @@ bool CPUInfo::popcntPresent = false;
 bool CPUInfo::bmi1Present = false;
 bool CPUInfo::bmi2Present = false;
 bool CPUInfo::lzcntPresent = false;
+
+namespace js {
+namespace jit {
+bool CPUFlagsHaveBeenComputed() { return CPUInfo::FlagsHaveBeenComputed(); }
+}  // namespace jit
+}  // namespace js
 
 static uintptr_t ReadXGETBV() {
   // We use a variety of low-level mechanisms to get at the xgetbv

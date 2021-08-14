@@ -32,7 +32,6 @@ class gfxConfigManager {
         mFeatureD3D11Compositing(nullptr),
         mFeatureGPUProcess(nullptr),
         mWrForceEnabled(false),
-        mWrForceDisabled(false),
         mWrSoftwareForceEnabled(false),
         mWrCompositorForceEnabled(false),
         mWrForceAngle(false),
@@ -43,14 +42,12 @@ class gfxConfigManager {
         mWrOptimizedShaders(false),
         mGPUProcessAllowSoftware(false),
         mWrEnvForceEnabled(false),
-        mWrEnvForceDisabled(false),
         mScaledResolution(false),
         mDisableHwCompositingNoWr(false),
         mIsNightly(false),
         mIsEarlyBetaOrEarlier(false),
         mSafeMode(false),
-        mIsWin10OrLater(false),
-        mHasWrSoftwareBlocklist(false) {}
+        mIsWin10OrLater(false) {}
 
   void Init();
 
@@ -60,7 +57,6 @@ class gfxConfigManager {
  protected:
   void EmplaceUserPref(const char* aPrefName, Maybe<bool>& aValue);
   void ConfigureWebRenderQualified();
-  void ConfigureWebRenderSoftware();
 
   nsCOMPtr<nsIGfxInfo> mGfxInfo;
 
@@ -84,7 +80,6 @@ class gfxConfigManager {
    */
   Maybe<bool> mWrCompositorEnabled;
   bool mWrForceEnabled;
-  bool mWrForceDisabled;
   bool mWrSoftwareForceEnabled;
   bool mWrCompositorForceEnabled;
   bool mWrForceAngle;
@@ -100,7 +95,6 @@ class gfxConfigManager {
    * Environment variables
    */
   bool mWrEnvForceEnabled;
-  bool mWrEnvForceDisabled;
 
   /**
    * System support
@@ -112,7 +106,6 @@ class gfxConfigManager {
   bool mIsEarlyBetaOrEarlier;
   bool mSafeMode;
   bool mIsWin10OrLater;
-  bool mHasWrSoftwareBlocklist;
 };
 
 }  // namespace gfx

@@ -22,7 +22,6 @@
 #include "vm/Opcodes.h"
 
 #include "gc/ObjectKind-inl.h"
-#include "jit/JitScript-inl.h"
 #include "vm/BytecodeIterator-inl.h"
 #include "vm/BytecodeLocation-inl.h"
 
@@ -2613,6 +2612,15 @@ bool WarpBuilder::build_CheckPrivateField(BytecodeLocation loc) {
   MDefinition* id = current->peek(-1);
   MDefinition* obj = current->peek(-2);
   return buildIC(loc, CacheKind::CheckPrivateField, {obj, id});
+}
+
+bool WarpBuilder::build_NewPrivateName(BytecodeLocation loc) {
+  PropertyName* name = loc.getPropertyName(script_);
+
+  auto* ins = MNewPrivateName::New(alloc(), name);
+  current->add(ins);
+  current->push(ins);
+  return resumeAfter(ins, loc);
 }
 
 bool WarpBuilder::build_Instanceof(BytecodeLocation loc) {

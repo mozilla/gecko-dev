@@ -62,9 +62,8 @@ protections-panel-not-found-label = None Detected
 
 ##
 
-protections-panel-settings-label = Protection Settings
-# This should match the "appmenuitem-protection-dashboard-title" string in browser/appmenu.ftl.
-protections-panel-protectionsdashboard-label = Protections Dashboard
+protections-panel-settings-label = Protection settings
+protections-panel-protectionsdashboard-label = Protections dashboard
 
 ## In the Site Not Working? view, we suggest turning off protections if
 ## the user is experiencing issues with any of a variety of functionality.
@@ -95,7 +94,7 @@ protections-panel-shim-allowed-indicator =
   .tooltiptext = Tracker partially unblocked
 
 protections-panel-content-blocking-manage-settings =
-  .label = Manage Protection Settings
+  .label = Manage protection settings
   .accesskey = M
 
 protections-panel-content-blocking-breakage-report-view =

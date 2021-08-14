@@ -938,7 +938,7 @@ function handleRequest(req, res) {
             { key: "echconfig", value: "123..." },
             { key: "ipv6hint", value: "::1" },
             { key: 30, value: "somelargestring" },
-            { key: "odohconfig", value: "456..." },
+            { key: "odoh", value: "456..." },
           ],
         },
       });
@@ -956,7 +956,7 @@ function handleRequest(req, res) {
             { key: "ipv4hint", value: ["1.2.3.4", "5.6.7.8"] },
             { key: "echconfig", value: "abc..." },
             { key: "ipv6hint", value: ["::1", "fe80::794f:6d2c:3d5e:7836"] },
-            { key: "odohconfig", value: "def..." },
+            { key: "odoh", value: "def..." },
           ],
         },
       });
@@ -1042,7 +1042,7 @@ function handleRequest(req, res) {
               name: packet.questions[0].name,
               values: [
                 {
-                  key: "odohconfig",
+                  key: "odoh",
                   value: b64encoded,
                   needBase64Decode: true,
                 },
@@ -1674,6 +1674,15 @@ function handleRequest(req, res) {
       `http://test.httpsrr.redirect.com:${u.query.port}/redirect_to_http`
     );
     res.writeHead(307);
+    res.end("");
+    return;
+  }
+
+  // response headers with invalid characters in the name
+  else if (u.pathname === "/invalid_response_header") {
+    res.setHeader("With Spaces", "Hello");
+    res.setHeader("Without-Spaces", "World");
+    res.writeHead(200);
     res.end("");
     return;
   }

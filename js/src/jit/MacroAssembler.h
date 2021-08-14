@@ -30,17 +30,17 @@
 #else
 #  error "Unknown architecture!"
 #endif
+#include "jit/ABIArgGenerator.h"
 #include "jit/ABIFunctions.h"
 #include "jit/AtomicOp.h"
 #include "jit/AutoJitContextAlloc.h"
 #include "jit/IonTypes.h"
+#include "jit/MoveResolver.h"
 #include "jit/VMFunctions.h"
 #include "js/ScalarType.h"  // js::Scalar::Type
 #include "util/Memory.h"
 #include "vm/BytecodeUtil.h"
 #include "vm/FunctionFlags.h"
-#include "vm/JSObject.h"
-#include "vm/StringType.h"
 #include "wasm/WasmCodegenTypes.h"
 #include "wasm/WasmFrame.h"
 
@@ -1070,6 +1070,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void subDouble(FloatRegister src, FloatRegister dest) PER_SHARED_ARCH;
 
   inline void mul32(Register rhs, Register srcDest) PER_SHARED_ARCH;
+  inline void mul32(Imm32 imm, Register srcDest) PER_SHARED_ARCH;
 
   inline void mul32(Register src1, Register src2, Register dest, Label* onOver)
       DEFINED_ON(arm64);
@@ -1399,9 +1400,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
                        Label* success, Label* fail = nullptr) PER_ARCH;
   inline void branch64(Condition cond, Register64 lhs, Register64 rhs,
                        Label* success, Label* fail = nullptr) PER_ARCH;
-  // On x86 and x64 NotEqual and Equal conditions are allowed for the branch64
-  // variants with Address as lhs. On others only the NotEqual condition.
+  // Only the NotEqual and Equal conditions are allowed for the branch64
+  // variants with Address as lhs.
   inline void branch64(Condition cond, const Address& lhs, Imm64 val,
+                       Label* label) PER_ARCH;
+  inline void branch64(Condition cond, const Address& lhs, Register64 rhs,
                        Label* label) PER_ARCH;
 
   // Compare the value at |lhs| with the value at |rhs|.  The scratch
@@ -3452,6 +3455,20 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void nearestFloat64x2(FloatRegister src, FloatRegister dest)
       DEFINED_ON(x86_shared, arm64);
 
+  // Floating multiply-accumulate: srcDest [+-]= src1 * src2
+
+  inline void fmaFloat32x4(FloatRegister src1, FloatRegister src2,
+                           FloatRegister srcDest) DEFINED_ON(x86_shared, arm64);
+
+  inline void fmsFloat32x4(FloatRegister src1, FloatRegister src2,
+                           FloatRegister srcDest) DEFINED_ON(x86_shared, arm64);
+
+  inline void fmaFloat64x2(FloatRegister src1, FloatRegister src2,
+                           FloatRegister srcDest) DEFINED_ON(x86_shared, arm64);
+
+  inline void fmsFloat64x2(FloatRegister src1, FloatRegister src2,
+                           FloatRegister srcDest) DEFINED_ON(x86_shared, arm64);
+
  public:
   // ========================================================================
   // Truncate floating point.
@@ -4257,11 +4274,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
  public:
   // Unsafe here means the caller is responsible for Spectre mitigations if
   // needed. Prefer branchTestObjClass or one of the other masm helpers!
-  void loadObjClassUnsafe(Register obj, Register dest) {
-    loadPtr(Address(obj, JSObject::offsetOfShape()), dest);
-    loadPtr(Address(dest, Shape::offsetOfBaseShape()), dest);
-    loadPtr(Address(dest, BaseShape::offsetOfClasp()), dest);
-  }
+  inline void loadObjClassUnsafe(Register obj, Register dest);
 
   template <typename EmitPreBarrier>
   inline void storeObjShape(Register shape, Register obj,
@@ -4270,15 +4283,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void storeObjShape(Shape* shape, Register obj,
                             EmitPreBarrier emitPreBarrier);
 
-  void loadObjProto(Register obj, Register dest) {
-    loadPtr(Address(obj, JSObject::offsetOfShape()), dest);
-    loadPtr(Address(dest, Shape::offsetOfBaseShape()), dest);
-    loadPtr(Address(dest, BaseShape::offsetOfProto()), dest);
-  }
+  inline void loadObjProto(Register obj, Register dest);
 
-  void loadStringLength(Register str, Register dest) {
-    load32(Address(str, JSString::offsetOfLength()), dest);
-  }
+  inline void loadStringLength(Register str, Register dest);
 
   void loadStringChars(Register str, Register dest, CharEncoding encoding);
 
@@ -4412,6 +4419,21 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void compareBigIntAndInt32(JSOp op, Register bigInt, Register int32,
                              Register scratch1, Register scratch2,
                              Label* ifTrue, Label* ifFalse);
+
+  /**
+   * Compare two BigInts for equality. Falls through if both BigInts are equal
+   * to each other.
+   *
+   * - When we jump to |notSameLength|, |temp1| holds the length of the right
+   *   operand.
+   * - When we jump to |notSameDigit|, |temp2| points to the current digit of
+   *   the left operand and |temp4| holds the current digit of the right
+   *   operand.
+   */
+  void equalBigInts(Register left, Register right, Register temp1,
+                    Register temp2, Register temp3, Register temp4,
+                    Label* notSameSign, Label* notSameLength,
+                    Label* notSameDigit);
 
   void loadJSContext(Register dest);
 
@@ -4648,6 +4670,113 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void iteratorMore(Register obj, ValueOperand output, Register temp);
   void iteratorClose(Register obj, Register temp1, Register temp2,
                      Register temp3);
+
+  void toHashableNonGCThing(ValueOperand value, ValueOperand result,
+                            FloatRegister tempFloat);
+
+  void toHashableValue(ValueOperand value, ValueOperand result,
+                       FloatRegister tempFloat, Label* atomizeString,
+                       Label* tagString);
+
+ private:
+  void scrambleHashCode(Register result);
+
+ public:
+  void prepareHashNonGCThing(ValueOperand value, Register result,
+                             Register temp);
+  void prepareHashString(Register str, Register result, Register temp);
+  void prepareHashSymbol(Register sym, Register result);
+  void prepareHashBigInt(Register bigInt, Register result, Register temp1,
+                         Register temp2, Register temp3);
+  void prepareHashObject(Register setObj, ValueOperand value, Register result,
+                         Register temp1, Register temp2, Register temp3,
+                         Register temp4);
+  void prepareHashValue(Register setObj, ValueOperand value, Register result,
+                        Register temp1, Register temp2, Register temp3,
+                        Register temp4);
+
+ private:
+  enum class IsBigInt { No, Yes, Maybe };
+
+  /**
+   * Search for a value in a OrderedHashTable.
+   *
+   * When we jump to |found|, |entryTemp| holds the found hashtable entry.
+   */
+  template <typename OrderedHashTable>
+  void orderedHashTableLookup(Register setOrMapObj, ValueOperand value,
+                              Register hash, Register entryTemp, Register temp1,
+                              Register temp3, Register temp4, Register temp5,
+                              Label* found, IsBigInt isBigInt);
+
+  void setObjectHas(Register setObj, ValueOperand value, Register hash,
+                    Register result, Register temp1, Register temp2,
+                    Register temp3, Register temp4, IsBigInt isBigInt);
+
+  void mapObjectHas(Register mapObj, ValueOperand value, Register hash,
+                    Register result, Register temp1, Register temp2,
+                    Register temp3, Register temp4, IsBigInt isBigInt);
+
+  void mapObjectGet(Register mapObj, ValueOperand value, Register hash,
+                    ValueOperand result, Register temp1, Register temp2,
+                    Register temp3, Register temp4, Register temp5,
+                    IsBigInt isBigInt);
+
+ public:
+  void setObjectHasNonBigInt(Register setObj, ValueOperand value, Register hash,
+                             Register result, Register temp1, Register temp2) {
+    return setObjectHas(setObj, value, hash, result, temp1, temp2, InvalidReg,
+                        InvalidReg, IsBigInt::No);
+  }
+  void setObjectHasBigInt(Register setObj, ValueOperand value, Register hash,
+                          Register result, Register temp1, Register temp2,
+                          Register temp3, Register temp4) {
+    return setObjectHas(setObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Yes);
+  }
+  void setObjectHasValue(Register setObj, ValueOperand value, Register hash,
+                         Register result, Register temp1, Register temp2,
+                         Register temp3, Register temp4) {
+    return setObjectHas(setObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Maybe);
+  }
+
+  void mapObjectHasNonBigInt(Register mapObj, ValueOperand value, Register hash,
+                             Register result, Register temp1, Register temp2) {
+    return mapObjectHas(mapObj, value, hash, result, temp1, temp2, InvalidReg,
+                        InvalidReg, IsBigInt::No);
+  }
+  void mapObjectHasBigInt(Register mapObj, ValueOperand value, Register hash,
+                          Register result, Register temp1, Register temp2,
+                          Register temp3, Register temp4) {
+    return mapObjectHas(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Yes);
+  }
+  void mapObjectHasValue(Register mapObj, ValueOperand value, Register hash,
+                         Register result, Register temp1, Register temp2,
+                         Register temp3, Register temp4) {
+    return mapObjectHas(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        IsBigInt::Maybe);
+  }
+
+  void mapObjectGetNonBigInt(Register mapObj, ValueOperand value, Register hash,
+                             ValueOperand result, Register temp1,
+                             Register temp2, Register temp3) {
+    return mapObjectGet(mapObj, value, hash, result, temp1, temp2, temp3,
+                        InvalidReg, InvalidReg, IsBigInt::No);
+  }
+  void mapObjectGetBigInt(Register mapObj, ValueOperand value, Register hash,
+                          ValueOperand result, Register temp1, Register temp2,
+                          Register temp3, Register temp4, Register temp5) {
+    return mapObjectGet(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        temp5, IsBigInt::Yes);
+  }
+  void mapObjectGetValue(Register mapObj, ValueOperand value, Register hash,
+                         ValueOperand result, Register temp1, Register temp2,
+                         Register temp3, Register temp4, Register temp5) {
+    return mapObjectGet(mapObj, value, hash, result, temp1, temp2, temp3, temp4,
+                        temp5, IsBigInt::Maybe);
+  }
 
   // Inline version of js_TypedArray_uint8_clamp_double.
   // This function clobbers the input register.
@@ -5186,94 +5315,8 @@ static inline size_t StackDecrementForCall(uint32_t alignment,
          ComputeByteAlignment(bytesAlreadyPushed + bytesToPush, alignment);
 }
 
-static inline MIRType ToMIRType(MIRType t) { return t; }
-
-static inline MIRType ToMIRType(ABIArgType argType) {
-  switch (argType) {
-    case ArgType_General:
-      return MIRType::Pointer;
-    case ArgType_Float64:
-      return MIRType::Double;
-    case ArgType_Float32:
-      return MIRType::Float32;
-    case ArgType_Int32:
-      return MIRType::Int32;
-    case ArgType_Int64:
-      return MIRType::Int64;
-    default:
-      break;
-  }
-  MOZ_CRASH("unexpected argType");
-}
-
 // Helper for generatePreBarrier.
 inline DynFn JitPreWriteBarrier(MIRType type);
-
-template <class VecT, class ABIArgGeneratorT>
-class ABIArgIterBase {
-  ABIArgGeneratorT gen_;
-  const VecT& types_;
-  unsigned i_;
-
-  void settle() {
-    if (!done()) gen_.next(ToMIRType(types_[i_]));
-  }
-
- public:
-  explicit ABIArgIterBase(const VecT& types) : types_(types), i_(0) {
-    settle();
-  }
-  void operator++(int) {
-    MOZ_ASSERT(!done());
-    i_++;
-    settle();
-  }
-  bool done() const { return i_ == types_.length(); }
-
-  ABIArg* operator->() {
-    MOZ_ASSERT(!done());
-    return &gen_.current();
-  }
-  ABIArg& operator*() {
-    MOZ_ASSERT(!done());
-    return gen_.current();
-  }
-
-  unsigned index() const {
-    MOZ_ASSERT(!done());
-    return i_;
-  }
-  MIRType mirType() const {
-    MOZ_ASSERT(!done());
-    return ToMIRType(types_[i_]);
-  }
-  uint32_t stackBytesConsumedSoFar() const {
-    return gen_.stackBytesConsumedSoFar();
-  }
-};
-
-// This is not an alias because we want to allow class template argument
-// deduction.
-template <class VecT>
-class ABIArgIter : public ABIArgIterBase<VecT, ABIArgGenerator> {
- public:
-  explicit ABIArgIter(const VecT& types)
-      : ABIArgIterBase<VecT, ABIArgGenerator>(types) {}
-};
-
-class WasmABIArgGenerator : public ABIArgGenerator {
- public:
-  WasmABIArgGenerator() {
-    increaseStackOffset(wasm::FrameWithTls::sizeWithoutFrame());
-  }
-};
-
-template <class VecT>
-class WasmABIArgIter : public ABIArgIterBase<VecT, WasmABIArgGenerator> {
- public:
-  explicit WasmABIArgIter(const VecT& types)
-      : ABIArgIterBase<VecT, WasmABIArgGenerator>(types) {}
-};
 }  // namespace jit
 
 namespace wasm {

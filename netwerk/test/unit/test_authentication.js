@@ -218,7 +218,9 @@ Requestor.prototype = {
   prompt2: null,
 };
 
-function RealmTestRequestor() {}
+function RealmTestRequestor() {
+  this.promptRealm = "";
+}
 
 RealmTestRequestor.prototype = {
   QueryInterface: ChromeUtils.generateQI([
@@ -235,7 +237,7 @@ RealmTestRequestor.prototype = {
   },
 
   promptAuth: function realmtest_checkAuth(channel, level, authInfo) {
-    Assert.equal(authInfo.realm, '"foo_bar');
+    this.promptRealm = authInfo.realm;
 
     return false;
   },
@@ -247,6 +249,7 @@ RealmTestRequestor.prototype = {
 
 var listener = {
   expectedCode: -1, // Uninitialized
+  nextTest: undefined,
 
   onStartRequest: function test_onStartR(request) {
     try {
@@ -259,7 +262,7 @@ var listener = {
       }
 
       Assert.equal(request.responseStatus, this.expectedCode);
-      // The request should be succeeded iff we expect 200
+      // The request should be succeeded if we expect 200
       Assert.equal(request.requestSucceeded, this.expectedCode == 200);
     } catch (e) {
       do_throw("Unexpected exception: " + e);
@@ -275,7 +278,7 @@ var listener = {
   onStopRequest: function test_onStopR(request, status) {
     Assert.equal(status, Cr.NS_ERROR_ABORT);
 
-    moveToNextTest();
+    this.nextTest();
   },
 };
 
@@ -293,238 +296,240 @@ function makeChan(url, loadingUrl) {
   });
 }
 
-var tests = [
-  test_noauth,
-  test_returnfalse1,
-  test_wrongpw1,
-  test_prompt1,
-  test_prompt1CrossOrigin,
-  test_prompt2CrossOrigin,
-  test_returnfalse2,
-  test_wrongpw2,
-  test_prompt2,
-  test_ntlm,
-  test_basicrealm,
-  test_nonascii,
-  test_digest_noauth,
-  test_digest,
-  test_digest_bogus_user,
-  test_short_digest,
-  test_large_realm,
-  test_large_domain,
-  test_nonascii_xhr,
-];
-
 var current_test = 0;
 
 var httpserv = null;
 
-function moveToNextTest() {
-  if (current_test < tests.length - 1) {
-    // First, gotta clear the auth cache
-    Cc["@mozilla.org/network/http-auth-manager;1"]
-      .getService(Ci.nsIHttpAuthManager)
-      .clearAll();
-
-    current_test++;
-    tests[current_test]();
-  } else {
-    do_test_pending();
-    httpserv.stop(do_test_finished);
-  }
-
-  do_test_finished();
-}
-
-function run_test() {
+function setup() {
   httpserv = new HttpServer();
 
   httpserv.registerPathHandler("/auth", authHandler);
   httpserv.registerPathHandler("/auth/ntlm/simple", authNtlmSimple);
   httpserv.registerPathHandler("/auth/realm", authRealm);
   httpserv.registerPathHandler("/auth/non_ascii", authNonascii);
-  httpserv.registerPathHandler("/auth/digest", authDigest);
+  httpserv.registerPathHandler("/auth/digest_md5", authDigestMD5);
+  httpserv.registerPathHandler("/auth/digest_md5sess", authDigestMD5sess);
+  httpserv.registerPathHandler("/auth/digest_sha256", authDigestSHA256);
+  httpserv.registerPathHandler("/auth/digest_sha256sess", authDigestSHA256sess);
+  httpserv.registerPathHandler("/auth/digest_sha256_md5", authDigestSHA256_MD5);
+  httpserv.registerPathHandler("/auth/digest_md5_sha256", authDigestMD5_SHA256);
+  httpserv.registerPathHandler(
+    "/auth/digest_md5_sha256_oneline",
+    authDigestMD5_SHA256_oneline
+  );
   httpserv.registerPathHandler("/auth/short_digest", authShortDigest);
   httpserv.registerPathHandler("/largeRealm", largeRealm);
   httpserv.registerPathHandler("/largeDomain", largeDomain);
 
   httpserv.start(-1);
 
-  tests[0]();
+  registerCleanupFunction(async () => {
+    await httpserv.stop();
+  });
+}
+setup();
+
+async function openAndListen(chan) {
+  await new Promise(resolve => {
+    listener.nextTest = resolve;
+    chan.asyncOpen(listener);
+  });
+  Cc["@mozilla.org/network/http-auth-manager;1"]
+    .getService(Ci.nsIHttpAuthManager)
+    .clearAll();
 }
 
-function test_noauth() {
+add_task(async function test_noauth() {
   var chan = makeChan(URL + "/auth", URL);
 
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_returnfalse1() {
+add_task(async function test_returnfalse1() {
   var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 1);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_wrongpw1() {
+add_task(async function test_wrongpw1() {
   var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_WRONG_PASSWORD, 1);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_prompt1() {
+add_task(async function test_prompt1() {
   var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(0, 1);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_prompt1CrossOrigin() {
+add_task(async function test_prompt1CrossOrigin() {
   var chan = makeChan(URL + "/auth", "http://example.org");
 
   chan.notificationCallbacks = new Requestor(16, 1);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_prompt2CrossOrigin() {
+add_task(async function test_prompt2CrossOrigin() {
   var chan = makeChan(URL + "/auth", "http://example.org");
 
   chan.notificationCallbacks = new Requestor(16, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_returnfalse2() {
+add_task(async function test_returnfalse2() {
   var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 2);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_wrongpw2() {
+add_task(async function test_wrongpw2() {
   var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_WRONG_PASSWORD, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_prompt2() {
+add_task(async function test_prompt2() {
   var chan = makeChan(URL + "/auth", URL);
 
   chan.notificationCallbacks = new Requestor(0, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_ntlm() {
+add_task(async function test_ntlm() {
   var chan = makeChan(URL + "/auth/ntlm/simple", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 2);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_basicrealm() {
+add_task(async function test_basicrealm() {
   var chan = makeChan(URL + "/auth/realm", URL);
 
-  chan.notificationCallbacks = new RealmTestRequestor();
+  let requestor = new RealmTestRequestor();
+  chan.notificationCallbacks = requestor;
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+  Assert.equal(requestor.promptRealm, '"foo_bar');
+});
 
-  do_test_pending();
-}
-
-function test_nonascii() {
+add_task(async function test_nonascii() {
   var chan = makeChan(URL + "/auth/non_ascii", URL);
 
   chan.notificationCallbacks = new Requestor(FLAG_NON_ASCII_USER_PASSWORD, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
+add_task(async function test_digest_noauth() {
+  var chan = makeChan(URL + "/auth/digest_md5", URL);
 
-function test_nonascii_xhr() {
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", URL + "/auth/non_ascii", true, "é", "é");
-  xhr.onreadystatechange = function(event) {
-    if (xhr.readyState == 4) {
-      Assert.equal(xhr.status, 200);
-      moveToNextTest();
-      xhr.onreadystatechange = null;
-    }
-  };
-  xhr.send(null);
-
-  do_test_pending();
-}
-
-function test_digest_noauth() {
-  var chan = makeChan(URL + "/auth/digest", URL);
-
-  //chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 2);
+  // chan.notificationCallbacks = new Requestor(FLAG_RETURN_FALSE, 2);
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_digest() {
-  var chan = makeChan(URL + "/auth/digest", URL);
+add_task(async function test_digest_md5() {
+  var chan = makeChan(URL + "/auth/digest_md5", URL);
 
   chan.notificationCallbacks = new Requestor(0, 2);
   listener.expectedCode = 200; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
+add_task(async function test_digest_md5sess() {
+  var chan = makeChan(URL + "/auth/digest_md5sess", URL);
 
-function test_digest_bogus_user() {
-  var chan = makeChan(URL + "/auth/digest", URL);
+  chan.notificationCallbacks = new Requestor(0, 2);
+  listener.expectedCode = 200; // OK
+  await openAndListen(chan);
+});
+
+add_task(async function test_digest_sha256() {
+  var chan = makeChan(URL + "/auth/digest_sha256", URL);
+
+  chan.notificationCallbacks = new Requestor(0, 2);
+  listener.expectedCode = 200; // OK
+  await openAndListen(chan);
+});
+
+add_task(async function test_digest_sha256sess() {
+  var chan = makeChan(URL + "/auth/digest_sha256sess", URL);
+
+  chan.notificationCallbacks = new Requestor(0, 2);
+  listener.expectedCode = 200; // OK
+  await openAndListen(chan);
+});
+
+add_task(async function test_digest_sha256_md5() {
+  var chan = makeChan(URL + "/auth/digest_sha256_md5", URL);
+
+  chan.notificationCallbacks = new Requestor(0, 2);
+  listener.expectedCode = 200; // OK
+  await openAndListen(chan);
+});
+
+add_task(async function test_digest_md5_sha256() {
+  var chan = makeChan(URL + "/auth/digest_md5_sha256", URL);
+
+  chan.notificationCallbacks = new Requestor(0, 2);
+  listener.expectedCode = 200; // OK
+  await openAndListen(chan);
+});
+
+add_task(async function test_digest_md5_sha256_oneline() {
+  var chan = makeChan(URL + "/auth/digest_md5_sha256_oneline", URL);
+
+  chan.notificationCallbacks = new Requestor(0, 2);
+  listener.expectedCode = 200; // OK
+  await openAndListen(chan);
+});
+
+add_task(async function test_digest_bogus_user() {
+  var chan = makeChan(URL + "/auth/digest_md5", URL);
   chan.notificationCallbacks = new Requestor(FLAG_BOGUS_USER, 2);
   listener.expectedCode = 401; // unauthorized
-  chan.asyncOpen(listener);
-
-  do_test_pending();
-}
+  await openAndListen(chan);
+});
 
 // Test header "WWW-Authenticate: Digest" - bug 1338876.
-function test_short_digest() {
+add_task(async function test_short_digest() {
   var chan = makeChan(URL + "/auth/short_digest", URL);
   chan.notificationCallbacks = new Requestor(FLAG_NO_REALM, 2);
   listener.expectedCode = 401; // OK
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
+// XXX(valentin): this makes tests fail if it's not run last. Why?
+add_task(async function test_nonascii_xhr() {
+  await new Promise(resolve => {
+    let xhr = new XMLHttpRequest();
+    xhr.open("GET", URL + "/auth/non_ascii", true, "é", "é");
+    xhr.onreadystatechange = function(event) {
+      if (xhr.readyState == 4) {
+        Assert.equal(xhr.status, 200);
+        resolve();
+        xhr.onreadystatechange = null;
+      }
+    };
+    xhr.send(null);
+  });
+});
 
 // PATH HANDLERS
 
@@ -622,10 +627,19 @@ function toHexString(charCode) {
   return ("0" + charCode.toString(16)).slice(-2);
 }
 
-function H(str) {
+function HMD5(str) {
   var data = bytesFromString(str);
   var ch = Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
   ch.init(Ci.nsICryptoHash.MD5);
+  ch.update(data, data.length);
+  var hash = ch.finish(false);
+  return Array.from(hash, (c, i) => toHexString(hash.charCodeAt(i))).join("");
+}
+
+function HSHA256(str) {
+  var data = bytesFromString(str);
+  var ch = Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
+  ch.init(Ci.nsICryptoHash.SHA256);
   ch.update(data, data.length);
   var hash = ch.finish(false);
   return Array.from(hash, (c, i) => toHexString(hash.charCodeAt(i))).join("");
@@ -635,55 +649,203 @@ function H(str) {
 // Digest handler
 //
 // /auth/digest
-function authDigest(metadata, response) {
+function authDigestMD5_helper(metadata, response, test_name) {
   var nonce = "6f93719059cf8d568005727f3250e798";
   var opaque = "1234opaque1234";
-  var cnonceRE = /cnonce="(\w+)"/;
-  var responseRE = /response="(\w+)"/;
-  var usernameRE = /username="(\w+)"/;
-  var authenticate =
-    'Digest realm="secret", domain="/",  qop=auth,' +
-    'algorithm=MD5, nonce="' +
-    nonce +
-    '" opaque="' +
-    opaque +
-    '"';
   var body;
+  var send_401 = 0;
   // check creds if we have them
   if (metadata.hasHeader("Authorization")) {
+    var cnonceRE = /cnonce="(\w+)"/;
+    var responseRE = /response="(\w+)"/;
+    var usernameRE = /username="(\w+)"/;
+    var algorithmRE = /algorithm=([\w-]+)/;
     var auth = metadata.getHeader("Authorization");
     var cnonce = auth.match(cnonceRE)[1];
     var clientDigest = auth.match(responseRE)[1];
     var username = auth.match(usernameRE)[1];
+    var algorithm = auth.match(algorithmRE)[1];
     var nc = "00000001";
 
     if (username != "guest") {
       response.setStatusLine(metadata.httpVersion, 400, "bad request");
       body = "should never get here";
+    } else if (
+      algorithm != null &&
+      algorithm != "MD5" &&
+      algorithm != "MD5-sess"
+    ) {
+      response.setStatusLine(metadata.httpVersion, 400, "bad request");
+      body = "Algorithm must be same as provided in WWW-Authenticate header";
     } else {
       // see RFC2617 for the description of this calculation
       var A1 = "guest:secret:guest";
-      var A2 = "GET:/auth/digest";
-      var noncebits = [nonce, nc, cnonce, "auth", H(A2)].join(":");
-      var digest = H([H(A1), noncebits].join(":"));
+      if (algorithm == "MD5-sess") {
+        A1 = [HMD5(A1), nonce, cnonce].join(":");
+      }
+      var A2 = "GET:/auth/" + test_name;
+      var noncebits = [nonce, nc, cnonce, "auth", HMD5(A2)].join(":");
+      var digest = HMD5([HMD5(A1), noncebits].join(":"));
 
       if (clientDigest == digest) {
         response.setStatusLine(metadata.httpVersion, 200, "OK, authorized");
         body = "success";
       } else {
-        response.setStatusLine(metadata.httpVersion, 401, "Unauthorized");
-        response.setHeader("WWW-Authenticate", authenticate, false);
+        send_401 = 1;
         body = "auth failed";
       }
     }
   } else {
     // no header, send one
-    response.setStatusLine(metadata.httpVersion, 401, "Unauthorized");
-    response.setHeader("WWW-Authenticate", authenticate, false);
+    send_401 = 1;
     body = "failed, no header";
   }
 
+  if (send_401) {
+    var authenticate_md5 =
+      'Digest realm="secret", domain="/",  qop=auth,' +
+      'algorithm=MD5, nonce="' +
+      nonce +
+      '" opaque="' +
+      opaque +
+      '"';
+    var authenticate_md5sess =
+      'Digest realm="secret", domain="/",  qop=auth,' +
+      'algorithm=MD5, nonce="' +
+      nonce +
+      '" opaque="' +
+      opaque +
+      '"';
+    if (test_name == "digest_md5") {
+      response.setHeader("WWW-Authenticate", authenticate_md5, false);
+    } else if (test_name == "digest_md5sess") {
+      response.setHeader("WWW-Authenticate", authenticate_md5sess, false);
+    }
+    response.setStatusLine(metadata.httpVersion, 401, "Unauthorized");
+  }
+
   response.bodyOutputStream.write(body, body.length);
+}
+
+function authDigestMD5(metadata, response) {
+  authDigestMD5_helper(metadata, response, "digest_md5");
+}
+
+function authDigestMD5sess(metadata, response) {
+  authDigestMD5_helper(metadata, response, "digest_md5sess");
+}
+
+function authDigestSHA256_helper(metadata, response, test_name) {
+  var nonce = "6f93719059cf8d568005727f3250e798";
+  var opaque = "1234opaque1234";
+  var body;
+  var send_401 = 0;
+  // check creds if we have them
+  if (metadata.hasHeader("Authorization")) {
+    var cnonceRE = /cnonce="(\w+)"/;
+    var responseRE = /response="(\w+)"/;
+    var usernameRE = /username="(\w+)"/;
+    var algorithmRE = /algorithm=([\w-]+)/;
+    var auth = metadata.getHeader("Authorization");
+    var cnonce = auth.match(cnonceRE)[1];
+    var clientDigest = auth.match(responseRE)[1];
+    var username = auth.match(usernameRE)[1];
+    var algorithm = auth.match(algorithmRE)[1];
+    var nc = "00000001";
+
+    if (username != "guest") {
+      response.setStatusLine(metadata.httpVersion, 400, "bad request");
+      body = "should never get here";
+    } else if (algorithm != "SHA-256" && algorithm != "SHA-256-sess") {
+      response.setStatusLine(metadata.httpVersion, 400, "bad request");
+      body = "Algorithm must be same as provided in WWW-Authenticate header";
+    } else {
+      // see RFC7616 for the description of this calculation
+      var A1 = "guest:secret:guest";
+      if (algorithm == "SHA-256-sess") {
+        A1 = [HSHA256(A1), nonce, cnonce].join(":");
+      }
+      var A2 = "GET:/auth/" + test_name;
+      var noncebits = [nonce, nc, cnonce, "auth", HSHA256(A2)].join(":");
+      var digest = HSHA256([HSHA256(A1), noncebits].join(":"));
+
+      if (clientDigest == digest) {
+        response.setStatusLine(metadata.httpVersion, 200, "OK, authorized");
+        body = "success";
+      } else {
+        send_401 = 1;
+        body = "auth failed";
+      }
+    }
+  } else {
+    // no header, send one
+    send_401 = 1;
+    body = "failed, no header";
+  }
+
+  if (send_401) {
+    var authenticate_sha256 =
+      'Digest realm="secret", domain="/", qop=auth, ' +
+      'algorithm=SHA-256, nonce="' +
+      nonce +
+      '", opaque="' +
+      opaque +
+      '"';
+    var authenticate_sha256sess =
+      'Digest realm="secret", domain="/", qop=auth, ' +
+      'algorithm=SHA-256-sess, nonce="' +
+      nonce +
+      '", opaque="' +
+      opaque +
+      '"';
+    var authenticate_md5 =
+      'Digest realm="secret", domain="/", qop=auth, ' +
+      'algorithm=MD5, nonce="' +
+      nonce +
+      '", opaque="' +
+      opaque +
+      '"';
+    if (test_name == "digest_sha256") {
+      response.setHeader("WWW-Authenticate", authenticate_sha256, false);
+    } else if (test_name == "digest_sha256sess") {
+      response.setHeader("WWW-Authenticate", authenticate_sha256sess, false);
+    } else if (test_name == "digest_md5_sha256") {
+      response.setHeader("WWW-Authenticate", authenticate_md5, false);
+      response.setHeader("WWW-Authenticate", authenticate_sha256, true);
+    } else if (test_name == "digest_md5_sha256_oneline") {
+      response.setHeader(
+        "WWW-Authenticate",
+        authenticate_md5 + " " + authenticate_sha256,
+        false
+      );
+    } else if (test_name == "digest_sha256_md5") {
+      response.setHeader("WWW-Authenticate", authenticate_sha256, false);
+      response.setHeader("WWW-Authenticate", authenticate_md5, true);
+    }
+    response.setStatusLine(metadata.httpVersion, 401, "Unauthorized");
+  }
+
+  response.bodyOutputStream.write(body, body.length);
+}
+
+function authDigestSHA256(metadata, response) {
+  authDigestSHA256_helper(metadata, response, "digest_sha256");
+}
+
+function authDigestSHA256sess(metadata, response) {
+  authDigestSHA256_helper(metadata, response, "digest_sha256sess");
+}
+
+function authDigestSHA256_MD5(metadata, response) {
+  authDigestSHA256_helper(metadata, response, "digest_sha256_md5");
+}
+
+function authDigestMD5_SHA256(metadata, response) {
+  authDigestSHA256_helper(metadata, response, "digest_md5_sha256");
+}
+
+function authDigestMD5_SHA256_oneline(metadata, response) {
+  authDigestSHA256_helper(metadata, response, "digest_md5_sha256_oneline");
 }
 
 function authShortDigest(metadata, response) {
@@ -735,20 +897,297 @@ function largeDomain(metadata, response) {
   response.bodyOutputStream.write(body, body.length);
 }
 
-function test_large_realm() {
+add_task(async function test_large_realm() {
   var chan = makeChan(URL + "/largeRealm", URL);
 
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
-}
-
-function test_large_domain() {
+add_task(async function test_large_domain() {
   var chan = makeChan(URL + "/largeDomain", URL);
 
   listener.expectedCode = 401; // Unauthorized
-  chan.asyncOpen(listener);
+  await openAndListen(chan);
+});
 
-  do_test_pending();
+async function add_parse_realm_testcase(testcase) {
+  httpserv.registerPathHandler("/parse_realm", (metadata, response) => {
+    response.setStatusLine(metadata.httpVersion, 401, "Unauthorized");
+    response.setHeader("WWW-Authenticate", testcase.input, false);
+
+    let body = "failed";
+    response.bodyOutputStream.write(body, body.length);
+  });
+
+  let chan = makeChan(URL + "/parse_realm", URL);
+  let requestor = new RealmTestRequestor();
+  chan.notificationCallbacks = requestor;
+
+  listener.expectedCode = 401;
+  await openAndListen(chan);
+  Assert.equal(requestor.promptRealm, testcase.realm);
 }
+
+add_task(async function simplebasic() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="foo"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasiclf() {
+  await add_parse_realm_testcase({
+    input: `Basic\r\n realm="foo"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasicucase() {
+  await add_parse_realm_testcase({
+    input: `BASIC REALM="foo"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasictok() {
+  await add_parse_realm_testcase({
+    input: `Basic realm=foo`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasictokbs() {
+  await add_parse_realm_testcase({
+    input: `Basic realm=\\f\\o\\o`,
+    scheme: `Basic`,
+    realm: `\\foo`,
+  });
+});
+
+add_task(async function simplebasicsq() {
+  await add_parse_realm_testcase({
+    input: `Basic realm='foo'`,
+    scheme: `Basic`,
+    realm: `'foo'`,
+  });
+});
+
+add_task(async function simplebasicpct() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="foo%20bar"`,
+    scheme: `Basic`,
+    realm: `foo%20bar`,
+  });
+});
+
+add_task(async function simplebasiccomma() {
+  await add_parse_realm_testcase({
+    input: `Basic , realm="foo"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasiccomma2() {
+  await add_parse_realm_testcase({
+    input: `Basic, realm="foo"`,
+    scheme: `Basic`,
+    realm: ``,
+  });
+});
+
+add_task(async function simplebasicnorealm() {
+  await add_parse_realm_testcase({
+    input: `Basic`,
+    scheme: `Basic`,
+    realm: ``,
+  });
+});
+
+add_task(async function simplebasic2realms() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="foo", realm="bar"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasicwsrealm() {
+  await add_parse_realm_testcase({
+    input: `Basic realm = "foo"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasicrealmsqc() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="\\f\\o\\o"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasicrealmsqc2() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="\\"foo\\""`,
+    scheme: `Basic`,
+    realm: `"foo"`,
+  });
+});
+
+add_task(async function simplebasicnewparam1() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="foo", bar="xyz",, a=b,,,c=d`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasicnewparam2() {
+  await add_parse_realm_testcase({
+    input: `Basic bar="xyz", realm="foo"`,
+    scheme: `Basic`,
+    realm: `foo`,
+  });
+});
+
+add_task(async function simplebasicrealmiso88591() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="foo-ä"`,
+    scheme: `Basic`,
+    realm: `foo-ä`,
+  });
+});
+
+add_task(async function simplebasicrealmutf8() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="foo-Ã¤"`,
+    scheme: `Basic`,
+    realm: `foo-Ã¤`,
+  });
+});
+
+add_task(async function simplebasicrealmrfc2047() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="=?ISO-8859-1?Q?foo-=E4?="`,
+    scheme: `Basic`,
+    realm: `=?ISO-8859-1?Q?foo-=E4?=`,
+  });
+});
+
+add_task(async function multibasicunknown() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="basic", Newauth realm="newauth"`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});
+
+add_task(async function multibasicunknownnoparam() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="basic", Newauth`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});
+
+add_task(async function multibasicunknown2() {
+  await add_parse_realm_testcase({
+    input: `Newauth realm="newauth", Basic realm="basic"`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});
+
+add_task(async function multibasicunknown2np() {
+  await add_parse_realm_testcase({
+    input: `Newauth, Basic realm="basic"`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});
+
+add_task(async function multibasicunknown2mf() {
+  httpserv.registerPathHandler("/parse_realm", (metadata, response) => {
+    response.setStatusLine(metadata.httpVersion, 401, "Unauthorized");
+    response.setHeader("WWW-Authenticate", `Newauth realm="newauth"`, false);
+    response.setHeader("WWW-Authenticate", `Basic realm="basic"`, false);
+
+    let body = "failed";
+    response.bodyOutputStream.write(body, body.length);
+  });
+
+  let chan = makeChan(URL + "/parse_realm", URL);
+  let requestor = new RealmTestRequestor();
+  chan.notificationCallbacks = requestor;
+
+  listener.expectedCode = 401;
+  await openAndListen(chan);
+  Assert.equal(requestor.promptRealm, "basic");
+});
+
+add_task(async function multibasicempty() {
+  await add_parse_realm_testcase({
+    input: `,Basic realm="basic"`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});
+
+add_task(async function multibasicqs() {
+  await add_parse_realm_testcase({
+    input: `Newauth realm="apps", type=1, title="Login to \"apps\"", Basic realm="simple"`,
+    scheme: `Basic`,
+    realm: `simple`,
+  });
+});
+
+add_task(async function multidisgscheme() {
+  await add_parse_realm_testcase({
+    input: `Newauth realm="Newauth Realm", basic=foo, Basic realm="Basic Realm"`,
+    scheme: `Basic`,
+    realm: `Basic Realm`,
+  });
+});
+
+add_task(async function unknown() {
+  await add_parse_realm_testcase({
+    input: `Newauth param="value"`,
+    scheme: `Basic`,
+    realm: ``,
+  });
+});
+
+add_task(async function parametersnotrequired() {
+  await add_parse_realm_testcase({ input: `A, B`, scheme: `Basic`, realm: `` });
+});
+
+add_task(async function disguisedrealm() {
+  await add_parse_realm_testcase({
+    input: `Basic foo="realm=nottherealm", realm="basic"`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});
+
+add_task(async function disguisedrealm2() {
+  await add_parse_realm_testcase({
+    input: `Basic nottherealm="nottherealm", realm="basic"`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});
+
+add_task(async function missingquote() {
+  await add_parse_realm_testcase({
+    input: `Basic realm="basic`,
+    scheme: `Basic`,
+    realm: `basic`,
+  });
+});

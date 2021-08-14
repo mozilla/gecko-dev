@@ -1730,11 +1730,9 @@ nsresult NS_NewURI(nsIURI** result, const char* spec,
 static nsresult NewStandardURI(const nsACString& aSpec, const char* aCharset,
                                nsIURI* aBaseURI, int32_t aDefaultPort,
                                nsIURI** aURI) {
-  nsCOMPtr<nsIURI> base(aBaseURI);
   return NS_MutateURI(new nsStandardURL::Mutator())
-      .Apply(NS_MutatorMethod(&nsIStandardURLMutator::Init,
-                              nsIStandardURL::URLTYPE_AUTHORITY, aDefaultPort,
-                              nsCString(aSpec), aCharset, base, nullptr))
+      .Apply(&nsIStandardURLMutator::Init, nsIStandardURL::URLTYPE_AUTHORITY,
+             aDefaultPort, aSpec, aCharset, aBaseURI, nullptr)
       .Finalize(aURI);
 }
 
@@ -1817,12 +1815,11 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
     }
 #endif
 
-    nsCOMPtr<nsIURI> base(aBaseURI);
     return NS_MutateURI(new nsStandardURL::Mutator())
-        .Apply(NS_MutatorMethod(&nsIFileURLMutator::MarkFileURL))
-        .Apply(NS_MutatorMethod(&nsIStandardURLMutator::Init,
-                                nsIStandardURL::URLTYPE_NO_AUTHORITY, -1, buf,
-                                aCharset, base, nullptr))
+        .Apply(&nsIFileURLMutator::MarkFileURL)
+        .Apply(&nsIStandardURLMutator::Init,
+               nsIStandardURL::URLTYPE_NO_AUTHORITY, -1, buf, aCharset,
+               aBaseURI, nullptr)
         .Finalize(aURI);
   }
 
@@ -1866,11 +1863,9 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
   }
 
   if (scheme.EqualsLiteral("indexeddb")) {
-    nsCOMPtr<nsIURI> base(aBaseURI);
     return NS_MutateURI(new nsStandardURL::Mutator())
-        .Apply(NS_MutatorMethod(&nsIStandardURLMutator::Init,
-                                nsIStandardURL::URLTYPE_AUTHORITY, 0,
-                                nsCString(aSpec), aCharset, base, nullptr))
+        .Apply(&nsIStandardURLMutator::Init, nsIStandardURL::URLTYPE_AUTHORITY,
+               0, aSpec, aCharset, aBaseURI, nullptr)
         .Finalize(aURI);
   }
 
@@ -1905,10 +1900,8 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
   }
 
   if (scheme.EqualsLiteral("jar")) {
-    nsCOMPtr<nsIURI> base(aBaseURI);
     return NS_MutateURI(new nsJARURI::Mutator())
-        .Apply(NS_MutatorMethod(&nsIJARURIMutator::SetSpecBaseCharset,
-                                nsCString(aSpec), base, aCharset))
+        .Apply(&nsIJARURIMutator::SetSpecBaseCharset, aSpec, aBaseURI, aCharset)
         .Finalize(aURI);
   }
 
@@ -1920,21 +1913,17 @@ nsresult NS_NewURI(nsIURI** aURI, const nsACString& aSpec,
 
 #ifdef MOZ_WIDGET_GTK
   if (scheme.EqualsLiteral("smb") || scheme.EqualsLiteral("sftp")) {
-    nsCOMPtr<nsIURI> base(aBaseURI);
     return NS_MutateURI(new nsStandardURL::Mutator())
-        .Apply(NS_MutatorMethod(&nsIStandardURLMutator::Init,
-                                nsIStandardURL::URLTYPE_STANDARD, -1,
-                                nsCString(aSpec), aCharset, base, nullptr))
+        .Apply(&nsIStandardURLMutator::Init, nsIStandardURL::URLTYPE_STANDARD,
+               -1, aSpec, aCharset, aBaseURI, nullptr)
         .Finalize(aURI);
   }
 #endif
 
   if (scheme.EqualsLiteral("android")) {
-    nsCOMPtr<nsIURI> base(aBaseURI);
     return NS_MutateURI(NS_STANDARDURLMUTATOR_CONTRACTID)
-        .Apply(NS_MutatorMethod(&nsIStandardURLMutator::Init,
-                                nsIStandardURL::URLTYPE_STANDARD, -1,
-                                nsCString(aSpec), aCharset, base, nullptr))
+        .Apply(&nsIStandardURLMutator::Init, nsIStandardURL::URLTYPE_STANDARD,
+               -1, aSpec, aCharset, aBaseURI, nullptr)
         .Finalize(aURI);
   }
 
@@ -2828,6 +2817,105 @@ bool NS_IsSrcdocChannel(nsIChannel* aChannel) {
   return false;
 }
 
+// helper function for NS_ShouldHSTSUpgrade
+bool handleResultFunc(bool aAllowSTS, bool aIsStsHost, uint32_t aHstsSource) {
+  if (aIsStsHost) {
+    LOG(("nsHttpChannel::Connect() STS permissions found\n"));
+    if (aAllowSTS) {
+      Telemetry::AccumulateCategorical(
+          Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::STS);
+      switch (aHstsSource) {
+        case nsISiteSecurityService::SOURCE_PRELOAD_LIST:
+          Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 0);
+          break;
+        case nsISiteSecurityService::SOURCE_ORGANIC_REQUEST:
+          Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 1);
+          break;
+        case nsISiteSecurityService::SOURCE_UNKNOWN:
+        default:
+          // record this as an organic request
+          Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 1);
+          break;
+      }
+      return true;
+    }
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::PrefBlockedSTS);
+  } else {
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::NoReasonToUpgrade);
+  }
+  return false;
+};
+
+nsresult NS_ShouldHSTSUpgrade(
+    nsIURI* aURI, bool aPrivateBrowsing, bool aAllowSTS,
+    const mozilla::OriginAttributes& aOriginAttributes, bool& aShouldUpgrade,
+    std::function<void(bool, nsresult)>&& aResultCallback,
+    bool& aWillCallback) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  MOZ_ASSERT(!aURI->SchemeIs("https"));
+
+  // enforce Strict-Transport-Security
+  nsISiteSecurityService* sss = gHttpHandler->GetSSService();
+  NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
+
+  bool isStsHost = false;
+  uint32_t hstsSource = 0;
+  uint32_t flags =
+      aPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
+
+  // Calling |IsSecureURI| before the storage is ready to read will
+  // block the main thread. Once the storage is ready, we can call it
+  // from main thread.
+  static Atomic<bool, Relaxed> storageReady(false);
+  if (!storageReady && gSocketTransportService && aResultCallback) {
+    nsCOMPtr<nsIURI> uri = aURI;
+    nsCOMPtr<nsISiteSecurityService> service = sss;
+    nsresult rv = gSocketTransportService->Dispatch(
+        NS_NewRunnableFunction(
+            "net::NS_ShouldSecureUpgrade",
+            [service{std::move(service)}, uri{std::move(uri)}, flags(flags),
+             originAttributes(aOriginAttributes),
+             handleResultFunc{std::move(handleResultFunc)},
+             resultCallback{std::move(aResultCallback)},
+             allowSTS{std::move(aAllowSTS)}]() mutable {
+              uint32_t hstsSource = 0;
+              bool isStsHost = false;
+              nsresult rv =
+                  service->IsSecureURI(uri, flags, originAttributes, nullptr,
+                                       &hstsSource, &isStsHost);
+
+              // Successfully get the result from |IsSecureURI| implies that
+              // the storage is ready to read.
+              storageReady = NS_SUCCEEDED(rv);
+              bool shouldUpgrade =
+                  handleResultFunc(allowSTS, isStsHost, hstsSource);
+
+              NS_DispatchToMainThread(NS_NewRunnableFunction(
+                  "net::NS_ShouldSecureUpgrade::ResultCallback",
+                  [rv, shouldUpgrade,
+                   resultCallback{std::move(resultCallback)}]() {
+                    resultCallback(shouldUpgrade, rv);
+                  }));
+            }),
+        NS_DISPATCH_NORMAL);
+    aWillCallback = NS_SUCCEEDED(rv);
+    return rv;
+  }
+
+  nsresult rv = sss->IsSecureURI(aURI, flags, aOriginAttributes, nullptr,
+                                 &hstsSource, &isStsHost);
+
+  // if the SSS check fails, it's likely because this load is on a
+  // malformed URI or something else in the setup is wrong, so any error
+  // should be reported.
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aShouldUpgrade = handleResultFunc(aAllowSTS, isStsHost, hstsSource);
+  return NS_OK;
+}
+
 nsresult NS_ShouldSecureUpgrade(
     nsIURI* aURI, nsILoadInfo* aLoadInfo, nsIPrincipal* aChannelResultPrincipal,
     bool aPrivateBrowsing, bool aAllowSTS,
@@ -2847,164 +2935,88 @@ nsresult NS_ShouldSecureUpgrade(
   // a superdomain wants to force HTTPS, do it.
   bool isHttps = aURI->SchemeIs("https");
 
-  if (!isHttps &&
-      !nsMixedContentBlocker::IsPotentiallyTrustworthyLoopbackURL(aURI)) {
-    if (aLoadInfo) {
-      // Check if the request can get upgraded with the HTTPS-Only mode
-      if (nsHTTPSOnlyUtils::ShouldUpgradeRequest(aURI, aLoadInfo) ||
-          nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(aURI, aLoadInfo)) {
-        aShouldUpgrade = true;
-        return NS_OK;
-      }
-
-      // If any of the documents up the chain to the root document makes use of
-      // the CSP directive 'upgrade-insecure-requests', then it's time to
-      // fulfill the promise to CSP and mixed content blocking to upgrade the
-      // channel from http to https.
-      if (aLoadInfo->GetUpgradeInsecureRequests() ||
-          aLoadInfo->GetBrowserUpgradeInsecureRequests()) {
-        // let's log a message to the console that we are upgrading a request
-        nsAutoCString scheme;
-        aURI->GetScheme(scheme);
-        // append the additional 's' for security to the scheme :-)
-        scheme.AppendLiteral("s");
-        NS_ConvertUTF8toUTF16 reportSpec(aURI->GetSpecOrDefault());
-        NS_ConvertUTF8toUTF16 reportScheme(scheme);
-
-        if (aLoadInfo->GetUpgradeInsecureRequests()) {
-          AutoTArray<nsString, 2> params = {reportSpec, reportScheme};
-          uint32_t innerWindowId = aLoadInfo->GetInnerWindowID();
-          CSP_LogLocalizedStr(
-              "upgradeInsecureRequest", params,
-              u""_ns,  // aSourceFile
-              u""_ns,  // aScriptSample
-              0,       // aLineNumber
-              0,       // aColumnNumber
-              nsIScriptError::warningFlag, "upgradeInsecureRequest"_ns,
-              innerWindowId,
-              !!aLoadInfo->GetOriginAttributes().mPrivateBrowsingId);
-          Telemetry::AccumulateCategorical(
-              Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::CSP);
-        } else {
-          AutoTArray<nsString, 2> params = {reportSpec, reportScheme};
-
-          nsAutoString localizedMsg;
-          nsContentUtils::FormatLocalizedString(
-              nsContentUtils::eSECURITY_PROPERTIES, "MixedContentAutoUpgrade",
-              params, localizedMsg);
-
-          // Prepending ixed Content to the outgoing console message
-          nsString message;
-          message.AppendLiteral(u"Mixed Content: ");
-          message.Append(localizedMsg);
-
-          uint32_t innerWindowId = aLoadInfo->GetInnerWindowID();
-          nsContentUtils::ReportToConsoleByWindowID(
-              message, nsIScriptError::warningFlag, "Mixed Content Message"_ns,
-              innerWindowId, aURI);
-
-          // Set this flag so we know we'll upgrade because of
-          // 'security.mixed_content.upgrade_display_content'.
-          aLoadInfo->SetBrowserDidUpgradeInsecureRequests(true);
-          Telemetry::AccumulateCategorical(
-              Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::BrowserDisplay);
-        }
-
-        aShouldUpgrade = true;
-        return NS_OK;
-      }
-    }
-
-    // enforce Strict-Transport-Security
-    nsISiteSecurityService* sss = gHttpHandler->GetSSService();
-    NS_ENSURE_TRUE(sss, NS_ERROR_OUT_OF_MEMORY);
-
-    bool isStsHost = false;
-    uint32_t hstsSource = 0;
-    uint32_t flags =
-        aPrivateBrowsing ? nsISocketProvider::NO_PERMANENT_STORAGE : 0;
-
-    auto handleResultFunc = [aAllowSTS](bool aIsStsHost, uint32_t aHstsSource) {
-      if (aIsStsHost) {
-        LOG(("nsHttpChannel::Connect() STS permissions found\n"));
-        if (aAllowSTS) {
-          Telemetry::AccumulateCategorical(
-              Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::STS);
-          switch (aHstsSource) {
-            case nsISiteSecurityService::SOURCE_PRELOAD_LIST:
-              Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 0);
-              break;
-            case nsISiteSecurityService::SOURCE_ORGANIC_REQUEST:
-              Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 1);
-              break;
-            case nsISiteSecurityService::SOURCE_UNKNOWN:
-            default:
-              // record this as an organic request
-              Telemetry::Accumulate(Telemetry::HSTS_UPGRADE_SOURCE, 1);
-              break;
-          }
-          return true;
-        }
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::PrefBlockedSTS);
-      } else {
-        Telemetry::AccumulateCategorical(
-            Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::NoReasonToUpgrade);
-      }
-      return false;
-    };
-
-    // Calling |IsSecureURI| before the storage is ready to read will
-    // block the main thread. Once the storage is ready, we can call it
-    // from main thread.
-    static Atomic<bool, Relaxed> storageReady(false);
-    if (!storageReady && gSocketTransportService && aResultCallback) {
-      nsCOMPtr<nsIURI> uri = aURI;
-      nsCOMPtr<nsISiteSecurityService> service = sss;
-      nsresult rv = gSocketTransportService->Dispatch(
-          NS_NewRunnableFunction(
-              "net::NS_ShouldSecureUpgrade",
-              [service{std::move(service)}, uri{std::move(uri)}, flags(flags),
-               originAttributes(aOriginAttributes),
-               handleResultFunc{std::move(handleResultFunc)},
-               resultCallback{std::move(aResultCallback)}]() mutable {
-                uint32_t hstsSource = 0;
-                bool isStsHost = false;
-                nsresult rv =
-                    service->IsSecureURI(uri, flags, originAttributes, nullptr,
-                                         &hstsSource, &isStsHost);
-
-                // Successfully get the result from |IsSecureURI| implies that
-                // the storage is ready to read.
-                storageReady = NS_SUCCEEDED(rv);
-                bool shouldUpgrade = handleResultFunc(isStsHost, hstsSource);
-
-                NS_DispatchToMainThread(NS_NewRunnableFunction(
-                    "net::NS_ShouldSecureUpgrade::ResultCallback",
-                    [rv, shouldUpgrade,
-                     resultCallback{std::move(resultCallback)}]() {
-                      resultCallback(shouldUpgrade, rv);
-                    }));
-              }),
-          NS_DISPATCH_NORMAL);
-      aWillCallback = NS_SUCCEEDED(rv);
-      return rv;
-    }
-
-    nsresult rv = sss->IsSecureURI(aURI, flags, aOriginAttributes, nullptr,
-                                   &hstsSource, &isStsHost);
-
-    // if the SSS check fails, it's likely because this load is on a
-    // malformed URI or something else in the setup is wrong, so any error
-    // should be reported.
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    aShouldUpgrade = handleResultFunc(isStsHost, hstsSource);
+  // If request is https, then there is nothing to do here.
+  if (isHttps) {
+    Telemetry::AccumulateCategorical(
+        Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::AlreadyHTTPS);
+    aShouldUpgrade = false;
     return NS_OK;
   }
+  // If it is a mixed content trustworthy loopback, then we shouldn't upgrade
+  // it.
+  if (nsMixedContentBlocker::IsPotentiallyTrustworthyLoopbackURL(aURI)) {
+    aShouldUpgrade = false;
+    return NS_OK;
+  }
+  if (aLoadInfo) {
+    // Check if the request can get upgraded with the HTTPS-Only mode
+    if (nsHTTPSOnlyUtils::ShouldUpgradeRequest(aURI, aLoadInfo) ||
+        nsHTTPSOnlyUtils::ShouldUpgradeHttpsFirstRequest(aURI, aLoadInfo)) {
+      aShouldUpgrade = true;
+      return NS_OK;
+    }
 
-  Telemetry::AccumulateCategorical(
-      Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::AlreadyHTTPS);
+    // If any of the documents up the chain to the root document makes use of
+    // the CSP directive 'upgrade-insecure-requests', then it's time to
+    // fulfill the promise to CSP and mixed content blocking to upgrade the
+    // channel from http to https.
+    if (aLoadInfo->GetUpgradeInsecureRequests() ||
+        aLoadInfo->GetBrowserUpgradeInsecureRequests()) {
+      // let's log a message to the console that we are upgrading a request
+      nsAutoCString scheme;
+      aURI->GetScheme(scheme);
+      // append the additional 's' for security to the scheme :-)
+      scheme.AppendLiteral("s");
+      NS_ConvertUTF8toUTF16 reportSpec(aURI->GetSpecOrDefault());
+      NS_ConvertUTF8toUTF16 reportScheme(scheme);
+
+      if (aLoadInfo->GetUpgradeInsecureRequests()) {
+        AutoTArray<nsString, 2> params = {reportSpec, reportScheme};
+        uint32_t innerWindowId = aLoadInfo->GetInnerWindowID();
+        CSP_LogLocalizedStr(
+            "upgradeInsecureRequest", params,
+            u""_ns,  // aSourceFile
+            u""_ns,  // aScriptSample
+            0,       // aLineNumber
+            0,       // aColumnNumber
+            nsIScriptError::warningFlag, "upgradeInsecureRequest"_ns,
+            innerWindowId,
+            !!aLoadInfo->GetOriginAttributes().mPrivateBrowsingId);
+        Telemetry::AccumulateCategorical(
+            Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::CSP);
+      } else {
+        AutoTArray<nsString, 2> params = {reportSpec, reportScheme};
+
+        nsAutoString localizedMsg;
+        nsContentUtils::FormatLocalizedString(
+            nsContentUtils::eSECURITY_PROPERTIES, "MixedContentAutoUpgrade",
+            params, localizedMsg);
+
+        // Prepending ixed Content to the outgoing console message
+        nsString message;
+        message.AppendLiteral(u"Mixed Content: ");
+        message.Append(localizedMsg);
+
+        uint32_t innerWindowId = aLoadInfo->GetInnerWindowID();
+        nsContentUtils::ReportToConsoleByWindowID(
+            message, nsIScriptError::warningFlag, "Mixed Content Message"_ns,
+            innerWindowId, aURI);
+
+        // Set this flag so we know we'll upgrade because of
+        // 'security.mixed_content.upgrade_display_content'.
+        aLoadInfo->SetBrowserDidUpgradeInsecureRequests(true);
+        Telemetry::AccumulateCategorical(
+            Telemetry::LABELS_HTTP_SCHEME_UPGRADE_TYPE::BrowserDisplay);
+      }
+
+      aShouldUpgrade = true;
+      return NS_OK;
+    }
+    // check if request can be upgraded by hsts
+    return NS_ShouldHSTSUpgrade(aURI, aPrivateBrowsing, aAllowSTS,
+                                aOriginAttributes, aShouldUpgrade,
+                                std::move(aResultCallback), aWillCallback);
+  }
   aShouldUpgrade = false;
   return NS_OK;
 }
@@ -3016,8 +3028,7 @@ nsresult NS_GetSecureUpgradedURI(nsIURI* aURI, nsIURI** aUpgradedURI) {
   // Change the default port to 443:
   nsCOMPtr<nsIStandardURL> stdURL = do_QueryInterface(aURI);
   if (stdURL) {
-    mutator.Apply(
-        NS_MutatorMethod(&nsIStandardURLMutator::SetDefaultPort, 443, nullptr));
+    mutator.Apply(&nsIStandardURLMutator::SetDefaultPort, 443, nullptr);
   } else {
     // If we don't have a nsStandardURL, fall back to using GetPort/SetPort.
     // XXXdholbert Is this function even called with a non-nsStandardURL arg,
@@ -3372,11 +3383,6 @@ void CheckForBrokenChromeURL(nsILoadInfo* aLoadInfo, nsIURI* aURI) {
   // Bug 1723525
   if (spec.EqualsLiteral("chrome://browser/content/preferences/dialogs/"
                          "siteDataSettings.css")) {
-    return;
-  }
-
-  // Bug 1723729
-  if (spec.EqualsLiteral("chrome://tart/content/tart.ico")) {
     return;
   }
 

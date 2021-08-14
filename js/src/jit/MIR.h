@@ -21,11 +21,9 @@
 
 #include "NamespaceImports.h"
 
-#include "gc/Allocator.h"
 #include "jit/AtomicOp.h"
 #include "jit/FixedList.h"
 #include "jit/InlineList.h"
-#include "jit/InlineScriptTree.h"
 #include "jit/JitAllocPolicy.h"
 #include "jit/MacroAssembler.h"
 #include "jit/MIROpsGenerated.h"
@@ -33,18 +31,13 @@
 #include "jit/TypePolicy.h"
 #include "js/experimental/JitInfo.h"  // JSJit{Getter,Setter}Op, JSJitInfo
 #include "js/HeapAPI.h"
-#include "js/Id.h"
 #include "js/ScalarType.h"  // js::Scalar::Type
 #include "js/Value.h"
 #include "js/Vector.h"
-#include "util/DifferentialTesting.h"
-#include "vm/ArrayObject.h"
-#include "vm/BuiltinObjectKind.h"
 #include "vm/EnvironmentObject.h"
 #include "vm/FunctionFlags.h"  // js::FunctionFlags
 #include "vm/JSContext.h"
 #include "vm/RegExpObject.h"
-#include "vm/SharedMem.h"
 #include "vm/TypedArrayObject.h"
 #include "wasm/WasmJS.h"  // for WasmInstanceObject
 
@@ -82,6 +75,7 @@ class MDefinitionVisitorDefaultNoop {
 #undef VISIT_INS
 };
 
+class BytecodeSite;
 class CompactBufferWriter;
 class Range;
 
@@ -373,10 +367,13 @@ class AliasSet {
     // the ExpandoAndGeneration.
     DOMProxyExpando = 1 << 14,
 
-    Last = DOMProxyExpando,
+    // Hash table of a Map or Set object.
+    MapOrSetHashTable = 1 << 15,
+
+    Last = MapOrSetHashTable,
     Any = Last | (Last - 1),
 
-    NumCategories = 15,
+    NumCategories = 16,
 
     // Indicates load or store.
     Store_ = 1 << 31
@@ -9933,20 +9930,23 @@ class MRotate : public MBinaryInstruction, public NoTypePolicy::Data {
 // Wasm SIMD.
 //
 // See comment in WasmIonCompile.cpp for a justification for these nodes.
+
 // (v128, v128, v128) -> v128 effect-free operation.
-class MWasmBitselectSimd128 : public MTernaryInstruction,
-                              public NoTypePolicy::Data {
-  MWasmBitselectSimd128(MDefinition* lhs, MDefinition* rhs,
-                        MDefinition* control)
-      : MTernaryInstruction(classOpcode, lhs, rhs, control) {
+class MWasmTernarySimd128 : public MTernaryInstruction,
+                            public NoTypePolicy::Data {
+  wasm::SimdOp simdOp_;
+
+  MWasmTernarySimd128(MDefinition* v0, MDefinition* v1, MDefinition* v2,
+                      wasm::SimdOp simdOp)
+      : MTernaryInstruction(classOpcode, v0, v1, v2), simdOp_(simdOp) {
     setMovable();
     setResultType(MIRType::Simd128);
   }
 
  public:
-  INSTRUCTION_HEADER(WasmBitselectSimd128)
+  INSTRUCTION_HEADER(WasmTernarySimd128)
   TRIVIAL_NEW_WRAPPERS
-  NAMED_OPERANDS((0, lhs), (1, rhs), (2, control))
+  NAMED_OPERANDS((0, v0), (1, v1), (2, v2))
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
   bool congruentTo(const MDefinition* ins) const override {
@@ -9955,13 +9955,15 @@ class MWasmBitselectSimd128 : public MTernaryInstruction,
 #ifdef ENABLE_WASM_SIMD
   MDefinition* foldsTo(TempAllocator& alloc) override;
 
-  // If the control mask allows the operation to be specialized as a shuffle
-  // and it is profitable to specialize it on this platform, return true and
-  // the appropriate shuffle mask.
-  bool specializeConstantMaskAsShuffle(int8_t shuffle[16]);
+  // If the control mask of a bitselect allows the operation to be specialized
+  // as a shuffle and it is profitable to specialize it on this platform, return
+  // true and the appropriate shuffle mask.
+  bool specializeBitselectConstantMaskAsShuffle(int8_t shuffle[16]);
 #endif
 
-  ALLOW_CLONE(MWasmBitselectSimd128)
+  wasm::SimdOp simdOp() const { return simdOp_; }
+
+  ALLOW_CLONE(MWasmTernarySimd128)
 };
 
 // (v128, v128) -> v128 effect-free operations.

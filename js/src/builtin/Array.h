@@ -41,37 +41,44 @@ MOZ_ALWAYS_INLINE bool IdIsIndex(jsid id, uint32_t* indexp) {
 
 // Create a dense array with no capacity allocated, length set to 0, in the
 // normal (i.e. non-tenured) heap.
-extern ArrayObject* NewDenseEmptyArray(JSContext* cx,
-                                       HandleObject proto = nullptr);
+extern ArrayObject* NewDenseEmptyArray(JSContext* cx);
 
 // Create a dense array with no capacity allocated, length set to 0, in the
 // tenured heap.
-extern ArrayObject* NewTenuredDenseEmptyArray(JSContext* cx,
-                                              HandleObject proto = nullptr);
+extern ArrayObject* NewTenuredDenseEmptyArray(JSContext* cx);
 
 // Create a dense array with a set length, but without allocating space for the
 // contents. This is useful, e.g., when accepting length from the user.
 extern ArrayObject* NewDenseUnallocatedArray(
-    JSContext* cx, uint32_t length, HandleObject proto = nullptr,
-    NewObjectKind newKind = GenericObject);
+    JSContext* cx, uint32_t length, NewObjectKind newKind = GenericObject);
 
 // Create a dense array with length and capacity == 'length', initialized length
 // set to 0.
 extern ArrayObject* NewDenseFullyAllocatedArray(
-    JSContext* cx, uint32_t length, HandleObject proto = nullptr,
-    NewObjectKind newKind = GenericObject, gc::AllocSite* site = nullptr);
+    JSContext* cx, uint32_t length, NewObjectKind newKind = GenericObject,
+    gc::AllocSite* site = nullptr);
 
 // Create a dense array with length == 'length', initialized length set to 0,
 // and capacity == 'length' clamped to EagerAllocationMaxLength.
 extern ArrayObject* NewDensePartlyAllocatedArray(
-    JSContext* cx, uint32_t length, HandleObject proto = nullptr,
-    NewObjectKind newKind = GenericObject);
+    JSContext* cx, uint32_t length, NewObjectKind newKind = GenericObject);
+
+// Like NewDensePartlyAllocatedArray, but the array will have |proto| as
+// prototype (or Array.prototype if |proto| is nullptr).
+extern ArrayObject* NewDensePartlyAllocatedArrayWithProto(JSContext* cx,
+                                                          uint32_t length,
+                                                          HandleObject proto);
 
 // Create a dense array from the given array values, which must be rooted.
 extern ArrayObject* NewDenseCopiedArray(JSContext* cx, uint32_t length,
                                         const Value* values,
-                                        HandleObject proto = nullptr,
                                         NewObjectKind newKind = GenericObject);
+
+// Like NewDenseCopiedArray, but the array will have |proto| as prototype (or
+// Array.prototype if |proto| is nullptr).
+extern ArrayObject* NewDenseCopiedArrayWithProto(JSContext* cx, uint32_t length,
+                                                 const Value* values,
+                                                 HandleObject proto);
 
 // Create a dense array based on templateObject with the given length.
 extern ArrayObject* NewDenseFullyAllocatedArrayWithTemplate(

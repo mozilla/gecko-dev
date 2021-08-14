@@ -29,11 +29,9 @@ bool PrivateOpEmitter::init() {
 
   // Static analysis needs us to initialise this to something, so use Dynamic()
   NameLocation loc = NameLocation::Dynamic();
-  bool result = bce_->lookupPrivate(name_, loc, brandLoc_);
-  if (result) {
-    loc_ = mozilla::Some(loc);
-  }
-  return result;
+  bce_->lookupPrivate(name_, loc, brandLoc_);
+  loc_ = mozilla::Some(loc);
+  return true;
 }
 
 bool PrivateOpEmitter::emitLoad(TaggedParserAtomIndex name,
@@ -70,8 +68,8 @@ bool PrivateOpEmitter::emitBrandCheck() {
       return false;
     }
   } else {
-    bool assigning = isSimpleAssignment() || isFieldInit() ||
-                     isCompoundAssignment() || isIncDec();
+    bool assigning =
+        isSimpleAssignment() || isCompoundAssignment() || isIncDec();
     if (!bce_->emitCheckPrivateField(ThrowCondition::ThrowHasNot,
                                      assigning
                                          ? ThrowMsgKind::MissingPrivateOnSet

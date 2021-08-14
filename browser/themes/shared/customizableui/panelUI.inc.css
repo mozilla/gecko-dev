@@ -46,6 +46,11 @@
   --panel-subview-body-padding: 8px 0;
 }
 
+:root[uidensity=compact] {
+  --arrowpanel-menuitem-margin: 0 4px;
+  --arrowpanel-menuitem-padding-block: 6px;
+}
+
 #PanelUI-menu-button[badge-status] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
   display: -moz-box;
   height: 10px;
@@ -511,16 +516,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="menu-panel"] > .toolbarbutton
 
 /* FxAccount indicator bits. */
 
-#appMenu-fxa-label {
-  -moz-context-properties: fill;
-  fill: currentColor;
-  list-style-image: var(--avatar-image-url);
-}
-
-#appMenu-fxa-label {
-  -moz-box-flex: 1;
-}
-
 @keyframes syncRotate {
   from { transform: rotate(0); }
   to { transform: rotate(360deg); }
@@ -545,15 +540,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="menu-panel"] > .toolbarbutton
   list-style-image: url("chrome://browser/skin/sync.svg");
 }
 
-#appMenu-fxa-status {
-  -moz-box-align: center;
-}
-
-:root[fxadisabled=true] #appMenu-fxa-status {
-  display: none;
-}
-
-#appMenu-fxa-avatar,
 #fxa-menu-account-fxa-avatar {
   pointer-events: none;
   list-style-image: var(--avatar-image-url);
@@ -562,31 +548,13 @@ toolbarbutton[constrain-size="true"][cui-areatype="menu-panel"] > .toolbarbutton
 }
 
 /* Handle different UI states. */
-#appMenu-fxa-status[fxastatus="signedin"] > #appMenu-fxa-label > .toolbarbutton-icon,
-#appMenu-fxa-status:not([fxastatus="signedin"]) > #appMenu-fxa-avatar,
+
 :root:not([fxastatus="signedin"]) #PanelUI-fxa-menu-syncnow-button {
   display: none;
 }
 
-#appMenu-fxa-status[fxastatus="signedin"] > #appMenu-fxa-label {
-  /* 12px space before the avatar, then 16px for the avatar */
-  padding-inline-start: 28px;
-  margin-inline-start: -28px;
-}
-
-#appMenu-fxa-status[fxastatus="signedin"] > #appMenu-fxa-avatar {
-  margin-inline-start: 12px;
-}
-
 /* Error states */
-#appMenu-fxa-status[fxastatus="unverified"] > #appMenu-fxa-label,
-#appMenu-fxa-status[fxastatus="login-failed"] > #appMenu-fxa-label {
-  list-style-image: url(chrome://global/skin/icons/warning.svg);
-  -moz-image-region: rect(0, 16px, 16px, 0);
-}
 
-#appMenu-fxa-status[fxastatus="login-failed"],
-#appMenu-fxa-status[fxastatus="unverified"],
 :root[fxastatus="login-failed"] .fxa-menu-header,
 :root[fxastatus="unverified"] .fxa-menu-header {
   background-color: @appmenuWarningBackgroundColor@;
@@ -594,15 +562,11 @@ toolbarbutton[constrain-size="true"][cui-areatype="menu-panel"] > .toolbarbutton
   border-block: 1px solid @appmenuWarningBorderColor@;
 }
 
-#appMenu-fxa-status[fxastatus="login-failed"]:hover,
-#appMenu-fxa-status[fxastatus="unverified"]:hover,
 :root[fxastatus="login-failed"] .fxa-menu-header:hover,
 :root[fxastatus="unverified"] .fxa-menu-header:hover {
   background-color: @appmenuWarningBackgroundColorHover@;
 }
 
-#appMenu-fxa-status[fxastatus="login-failed"]:hover:active,
-#appMenu-fxa-status[fxastatus="unverified"]:hover:active,
 :root[fxastatus="login-failed"] .fxa-menu-header:hover:active,
 :root[fxastatus="unverified"] .fxa-menu-header:hover:active {
   background-color: @appmenuWarningBackgroundColorActive@;
@@ -685,23 +649,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="menu-panel"] > .toolbarbutton
 
 
 /* Tracking Protection Button & Toggle */
-
-#appMenu-protection-report-text {
-  -moz-context-properties: fill;
-  fill: currentColor;
-  -moz-box-flex: 1;
-  padding: 0;
-  padding-inline-start: 8px;
-  margin: 0;
-}
-
-#appMenu-protection-report-icon {
-  list-style-image: url(chrome://browser/skin/controlcenter/dashboard.svg);
-}
-
-#appMenu-protection-report-button {
-  -moz-box-flex: 1;
-}
 
 .addon-banner-item > .toolbarbutton-text,
 .panel-banner-item > .toolbarbutton-text {
@@ -958,9 +905,7 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
 
 .PanelUI-fxa-signin-button > .toolbarbutton-text,
 .PanelUI-remotetabs-button > .toolbarbutton-text {
-  /* !important to override ".cui-widget-panel toolbarbutton > .toolbarbutton-text" above. */
-  text-align: center !important;
-  text-shadow: none;
+  display: -moz-box;
 }
 
 #PanelUI-remotetabs[mainview] { /* panel anchored to toolbar button might be too skinny */
@@ -1292,15 +1237,6 @@ panelmultiview .toolbaritem-combined-buttons > label {
   padding: 4px 0;
 }
 
-panelmultiview .toolbaritem-combined-buttons > spacer.before-label {
-  width: 36px; /* 12px toolbarbutton padding + 16px icon + 8px label padding start */
-}
-
-panelmultiview .toolbaritem-combined-buttons > spacer.after-label {
-  -moz-box-flex: 1;
-  width: 20px; /* a little bigger than the width of the scrollbar */
-}
-
 .PanelUI-subView .toolbaritem-combined-buttons > .subviewbutton {
   -moz-box-flex: 0;
   height: auto;
@@ -1309,36 +1245,9 @@ panelmultiview .toolbaritem-combined-buttons > spacer.after-label {
   padding: 4px 5px;
 }
 
-#appMenu-zoom-controls > .subviewbutton {
-  margin-inline-start: 10px;
-}
-
-/* Unset the min-height constraint, because that works better for a text-only button. */
-#appMenu-zoomReset-button {
-  min-height: unset;
-  border: 1px solid var(--panel-separator-color);
-  border-radius: 10000px;
-  padding: 1px 8px;
-  background-color: var(--arrowpanel-dimmed);
-}
-
-#appMenu-zoomReset-button@buttonStateHoverOrFocus@ {
-  background-color: var(--arrowpanel-dimmed-further);
-}
-
-#appMenu-zoomReset-button@buttonStateActive@ {
-  background-color: var(--arrowpanel-dimmed-even-further);
-}
-
-#appMenu-zoomReset-button > .toolbarbutton-text,
 #appMenu-zoomReset-button2 > .toolbarbutton-text {
   min-width: calc(4ch + 8px);
   text-align: center;
-}
-
-#appMenu-zoom-controls > toolbarseparator[orient="vertical"] + .subviewbutton,
-#appMenu-zoom-controls2 > toolbarseparator[orient="vertical"] + .subviewbutton {
-  margin-inline-start: 0;
 }
 
 .PanelUI-subView .toolbaritem-combined-buttons > .subviewbutton-iconic > .toolbarbutton-text,
@@ -1472,14 +1381,6 @@ menuitem.subviewbutton@menuStateActive@,
   margin-inline: 10px;
 }
 
-.PanelUI-subView toolbarseparator[orient="vertical"] {
-  height: 24px;
-  border-inline-start: 1px solid var(--panel-separator-color);
-  border-top: none;
-  margin: 0;
-  margin-inline: 6px 7px;
-}
-
 .subviewbutton > .menu-accel-container {
   -moz-box-pack: end;
   margin-inline: 10px auto;
@@ -1492,7 +1393,6 @@ menuitem.subviewbutton@menuStateActive@,
   fill: currentColor;
 }
 
-#appMenu-fxa-avatar,
 #fxa-menu-account-fxa-avatar,
 #appMenu-fxa-label > .toolbarbutton-icon,
 #PanelUI-containersItems > .subviewbutton > .toolbarbutton-icon,
@@ -1504,7 +1404,6 @@ menuitem.subviewbutton@menuStateActive@,
   height: 16px;
 }
 
-#appMenu-fxa-avatar,
 #PanelUI-fxa-menu-account-settings-button > .toolbarbutton-icon {
   border-radius: 50%;
 }

@@ -1888,6 +1888,8 @@ uint32_t GCRuntime::getParameter(JSGCParamKey key, const AutoLockGC& lock) {
       return tunables.zoneAllocDelayBytes() / 1024;
     case JSGC_MALLOC_THRESHOLD_BASE:
       return tunables.mallocThresholdBase() / 1024 / 1024;
+    case JSGC_URGENT_THRESHOLD_MB:
+      return tunables.urgentThresholdBytes() / 1024 / 1024;
     case JSGC_CHUNK_BYTES:
       return ChunkSize;
     case JSGC_HELPER_THREAD_RATIO:
@@ -6851,13 +6853,13 @@ void GCRuntime::maybeStopPretenuring() {
 void GCRuntime::updateGCThresholdsAfterCollection(const AutoLockGC& lock) {
   for (GCZonesIter zone(this); !zone.done(); zone.next()) {
     zone->clearGCSliceThresholds();
-    zone->updateGCStartThresholds(*this, gcOptions, lock);
+    zone->updateGCStartThresholds(*this, lock);
   }
 }
 
 void GCRuntime::updateAllGCStartThresholds(const AutoLockGC& lock) {
   for (ZonesIter zone(this, WithAtoms); !zone.done(); zone.next()) {
-    zone->updateGCStartThresholds(*this, JS::GCOptions::Normal, lock);
+    zone->updateGCStartThresholds(*this, lock);
   }
 }
 
@@ -9538,6 +9540,6 @@ void GCRuntime::setPerformanceHint(PerformanceHint hint) {
 
   AutoLockGC lock(this);
   schedulingState.inPageLoad = inPageLoad;
-  atomsZone->updateGCStartThresholds(*this, gcOptions, lock);
+  atomsZone->updateGCStartThresholds(*this, lock);
   maybeTriggerGCAfterAlloc(atomsZone);
 }

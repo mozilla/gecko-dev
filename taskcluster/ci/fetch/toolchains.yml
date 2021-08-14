@@ -518,19 +518,12 @@ cmake:
         strip-components: 1
         add-prefix: cmake/
 
-lucetc-source:
-    description: lucetc source code
-    fetch:
-        type: git
-        repo: https://github.com/PLSysSec/lucet_sandbox_compiler/
-        revision: d582d76bf0d17984501f3933688bf7a1eb5cf208
-
 dump-syms:
     description: dump_syms source code
     fetch:
         type: git
         repo: https://github.com/mozilla/dump_syms/
-        revision: be751e1cd3a9ecf46227adc789f1239de53fe4d6
+        revision: 34a466ce2d144247cec90ee6bde21645e2d5aacd
 
 fix-stacks:
     description: fix-stacks source code

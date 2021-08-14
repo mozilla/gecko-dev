@@ -6,6 +6,7 @@
 
 #include "jit/arm64/CodeGenerator-arm64.h"
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/MathAlgorithms.h"
 
 #include "jsnum.h"
@@ -1391,12 +1392,12 @@ void CodeGenerator::visitUnbox(LUnbox* unbox) {
 
 void CodeGenerator::visitDouble(LDouble* ins) {
   ARMFPRegister output(ToFloatRegister(ins->getDef(0)), 64);
-  masm.Fmov(output, ins->getDouble());
+  masm.Fmov(output, ins->value());
 }
 
 void CodeGenerator::visitFloat32(LFloat32* ins) {
   ARMFPRegister output(ToFloatRegister(ins->getDef(0)), 32);
-  masm.Fmov(output, ins->getFloat());
+  masm.Fmov(output, ins->value());
 }
 
 void CodeGenerator::visitTestDAndBranch(LTestDAndBranch* test) {
@@ -2227,7 +2228,7 @@ void CodeGenerator::visitSubI64(LSubI64* lir) {
 void CodeGenerator::visitPopcntI(LPopcntI* ins) {
   Register input = ToRegister(ins->input());
   Register output = ToRegister(ins->output());
-  Register temp = ToRegister(ins->temp());
+  Register temp = ToRegister(ins->temp0());
   masm.popcnt32(input, output, temp);
 }
 
@@ -2959,18 +2960,41 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
 void CodeGenerator::visitSimd128(LSimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
   const LDefinition* out = ins->getDef(0);
-  masm.loadConstantSimd128(ins->getSimd128(), ToFloatRegister(out));
+  masm.loadConstantSimd128(ins->simd128(), ToFloatRegister(out));
 #else
   MOZ_CRASH("No SIMD");
 #endif
 }
 
-void CodeGenerator::visitWasmBitselectSimd128(LWasmBitselectSimd128* ins) {
+void CodeGenerator::visitWasmTernarySimd128(LWasmTernarySimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  FloatRegister lhs = ToFloatRegister(ins->lhs());
-  FloatRegister rhs = ToFloatRegister(ins->rhs());
-  FloatRegister controlDest = ToFloatRegister(ins->control());
-  masm.bitwiseSelectSimd128(lhs, rhs, controlDest);
+  switch (ins->simdOp()) {
+    case wasm::SimdOp::V128Bitselect: {
+      FloatRegister lhs = ToFloatRegister(ins->v0());
+      FloatRegister rhs = ToFloatRegister(ins->v1());
+      FloatRegister controlDest = ToFloatRegister(ins->v2());
+      masm.bitwiseSelectSimd128(lhs, rhs, controlDest);
+      break;
+    }
+    case wasm::SimdOp::F32x4RelaxedFma:
+      masm.fmaFloat32x4(ToFloatRegister(ins->v1()), ToFloatRegister(ins->v2()),
+                        ToFloatRegister(ins->v0()));
+      break;
+    case wasm::SimdOp::F32x4RelaxedFms:
+      masm.fmsFloat32x4(ToFloatRegister(ins->v1()), ToFloatRegister(ins->v2()),
+                        ToFloatRegister(ins->v0()));
+      break;
+    case wasm::SimdOp::F64x2RelaxedFma:
+      masm.fmaFloat64x2(ToFloatRegister(ins->v1()), ToFloatRegister(ins->v2()),
+                        ToFloatRegister(ins->v0()));
+      break;
+    case wasm::SimdOp::F64x2RelaxedFms:
+      masm.fmsFloat64x2(ToFloatRegister(ins->v1()), ToFloatRegister(ins->v2()),
+                        ToFloatRegister(ins->v0()));
+      break;
+    default:
+      MOZ_CRASH("NYI");
+  }
 #else
   MOZ_CRASH("No SIMD");
 #endif
@@ -3570,7 +3594,7 @@ void CodeGenerator::visitWasmPermuteSimd128(LWasmPermuteSimd128* ins) {
     case LWasmPermuteSimd128::PERMUTE_8x16: {
       const SimdConstant::I8x16& mask = control.asInt8x16();
 #  ifdef DEBUG
-      DebugOnly<int> i;
+      mozilla::DebugOnly<int> i;
       for (i = 0; i < 16 && mask[i] == i; i++) {
       }
       MOZ_ASSERT(i < 16, "Should have been a MOVE operation");
@@ -3581,7 +3605,7 @@ void CodeGenerator::visitWasmPermuteSimd128(LWasmPermuteSimd128* ins) {
     case LWasmPermuteSimd128::PERMUTE_16x8: {
       const SimdConstant::I16x8& mask = control.asInt16x8();
 #  ifdef DEBUG
-      DebugOnly<int> i;
+      mozilla::DebugOnly<int> i;
       for (i = 0; i < 8 && mask[i] == i; i++) {
       }
       MOZ_ASSERT(i < 8, "Should have been a MOVE operation");
@@ -3592,7 +3616,7 @@ void CodeGenerator::visitWasmPermuteSimd128(LWasmPermuteSimd128* ins) {
     case LWasmPermuteSimd128::PERMUTE_32x4: {
       const SimdConstant::I32x4& mask = control.asInt32x4();
 #  ifdef DEBUG
-      DebugOnly<int> i;
+      mozilla::DebugOnly<int> i;
       for (i = 0; i < 4 && mask[i] == i; i++) {
       }
       MOZ_ASSERT(i < 4, "Should have been a MOVE operation");

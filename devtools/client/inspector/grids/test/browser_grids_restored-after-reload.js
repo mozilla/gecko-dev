@@ -31,6 +31,8 @@ const OTHER_URI = `
   </div>
 `;
 
+ignoreGetGridsPromiseRejections();
+
 add_task(async function() {
   // Disable bfcache for Fission for now.
   // If Fission is disabled, the pref is no-op.

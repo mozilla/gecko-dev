@@ -38,7 +38,7 @@ const {
 
 ChromeUtils.defineModuleGetter(
   this,
-  "filterAdult",
+  "FilterAdult",
   "resource://activity-stream/lib/FilterAdult.jsm"
 );
 ChromeUtils.defineModuleGetter(
@@ -73,6 +73,13 @@ ChromeUtils.defineModuleGetter(
 );
 
 XPCOMUtils.defineLazyGlobalGetters(this, ["fetch"]);
+
+XPCOMUtils.defineLazyGetter(this, "log", () => {
+  const { Logger } = ChromeUtils.import(
+    "resource://messaging-system/lib/Logger.jsm"
+  );
+  return new Logger("TopSitesFeed");
+});
 
 const DEFAULT_SITES_PREF = "default.sites";
 const SHOWN_ON_NEWTAB_PREF = "feeds.topsites";
@@ -171,7 +178,7 @@ class ContileIntegration {
       let url = Services.prefs.getStringPref(CONTILE_ENDPOINT_PREF);
       const response = await fetch(url, { credentials: "omit" });
       if (!response.ok) {
-        Cu.reportError(
+        log.warn(
           `Contile endpoint returned unexpected status: ${response.status}`
         );
       }
@@ -188,7 +195,7 @@ class ContileIntegration {
         let { tiles } = body;
         tiles = this._filterBlockedSponsors(tiles);
         if (tiles.length > MAX_NUM_SPONSORED) {
-          Cu.reportError(
+          log.warn(
             `Contile provided more links than permitted. (${tiles.length} received, limit is ${MAX_NUM_SPONSORED})`
           );
           tiles.length = MAX_NUM_SPONSORED;
@@ -197,9 +204,7 @@ class ContileIntegration {
         return true;
       }
     } catch (error) {
-      Cu.reportError(
-        `Failed to fetch data from Contile server: ${error.message}`
-      );
+      log.warn(`Failed to fetch data from Contile server: ${error.message}`);
     }
     return false;
   }
@@ -805,9 +810,7 @@ this.TopSitesFeed = class TopSitesFeed {
     const dedupedUnpinned = [...dedupedFrecent, ...dedupedDefaults];
 
     // Remove adult sites if we need to
-    const checkedAdult = prefValues.filterAdult
-      ? filterAdult(dedupedUnpinned)
-      : dedupedUnpinned;
+    const checkedAdult = FilterAdult.filter(dedupedUnpinned);
 
     // Insert the original pinned sites into the deduped frecent and defaults.
     let withPinned = insertPinned(checkedAdult, pinned);

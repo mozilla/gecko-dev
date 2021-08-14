@@ -191,6 +191,7 @@ class nsHtml5StreamParser final : public nsISupports {
   friend class nsHtml5StreamParserContinuation;
   friend class nsHtml5TimerKungFu;
   friend class nsHtml5StreamParserPtr;
+  friend class nsHtml5StreamListener;
 
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -198,9 +199,6 @@ class nsHtml5StreamParser final : public nsISupports {
 
   nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor, nsHtml5Parser* aOwner,
                       eParserMode aMode);
-
-  // Methods that nsHtml5StreamListener calls
-  nsresult CheckListenerChain();
 
   nsresult OnStartRequest(nsIRequest* aRequest);
 
@@ -240,11 +238,6 @@ class nsHtml5StreamParser final : public nsISupports {
     mEncoding = aEncoding;
     mCharsetSource = aSource;
     mChannelHadCharset = aChannelHadCharset;
-  }
-
-  inline void SetObserver(nsIRequestObserver* aObserver) {
-    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-    mObserver = aObserver;
   }
 
   nsresult GetChannel(nsIChannel** aChannel);
@@ -481,7 +474,6 @@ class nsHtml5StreamParser final : public nsISupports {
   inline void OnContentComplete();
 
   nsCOMPtr<nsIRequest> mRequest;
-  nsCOMPtr<nsIRequestObserver> mObserver;
 
   /**
    * The document title to use if this turns out to be a View Source parser.

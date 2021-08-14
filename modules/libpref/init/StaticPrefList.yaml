@@ -1270,6 +1270,22 @@
   value: false
   mirror: always
 
+# Testing-only pref which makes data: URIs be loaded in a "web" content process
+# instead of within a process based on the URI's loader.
+- name: browser.tabs.remote.dataUriInDefaultWebProcess
+  type: bool
+  value: false
+  mirror: always
+
+# Testing-only pref to force system-triggered about:blank loads to not change
+# content processes. This is used for performance tests which load an
+# about:blank document between navigations for historical reasons to avoid
+# unnecessary process switches.
+- name: browser.tabs.remote.systemTriggeredAboutBlankAnywhere
+  type: bool
+  value: false
+  mirror: always
+
 - name: browser.tabs.remote.desktopbehavior
   type: bool
   value: false
@@ -1311,6 +1327,14 @@
 #else
   value: false
 #endif
+  mirror: always
+
+# Pref to control whether we use a separate privileged content process
+# for certain mozilla webpages (which are listed in the pref
+# browser.tabs.remote.separatedMozillaDomains).
+- name: browser.tabs.remote.separatePrivilegedMozillaWebContentProcess
+  type: bool
+  value: false
   mirror: always
 
 # When this pref is enabled, opaque response is only allowed to enter the
@@ -1730,7 +1754,7 @@
 # Block Insecure downloads from Secure Origins
 - name: dom.block_download_insecure
   type: bool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # Block all downloads in iframes with the sandboxed attribute
@@ -2033,6 +2057,12 @@
 # events to be further coalesced in the child side after they
 # are sent.
 - name: dom.events.coalesce.touchmove
+  type: bool
+  value: true
+  mirror: always
+
+# Allow mousemove events to be coalesced in the child side after they are sent.
+- name: dom.events.coalesce.mousemove
   type: bool
   value: true
   mirror: always
@@ -3254,13 +3284,10 @@
   mirror: always
 
 # Whether or not LSNG (Next Generation Local Storage) is enabled.
-# See bug 1517090 for enabling this on Nightly.
-# See bug 1534736 for changing it to EARLY_BETA_OR_EARLIER.
-# See bug 1539835 for enabling this unconditionally.
-# See bug 1619948 for changing it back to EARLY_BETA_OR_EARLIER.
+# See bug 1599979 for enabling this unconditionally (second attempt).
 - name: dom.storage.next_gen
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
   do_not_use_directly: true
 
@@ -3702,6 +3729,12 @@
 
 # Is support for custom element disabledFeatures enabled?
 - name: dom.webcomponents.disabledFeatures.enabled
+  type: bool
+  value: true
+  mirror: always
+
+# Is support for custom element elementInternals enabled?
+- name: dom.webcomponents.elementInternals.enabled
   type: bool
   value: true
   mirror: always
@@ -5047,14 +5080,6 @@
   value: false
   mirror: always
 
-# Also expose a pref to allow users to force-disable WR. This is exposed
-# on all channels because WR can be enabled on qualified hardware on all
-# channels.
-- name: gfx.webrender.force-legacy-layers
-  type: bool
-  value: false
-  mirror: once
-
 #ifdef MOZ_WIDGET_GTK
 - name: gfx.webrender.reject-software-driver
   type: bool
@@ -5142,12 +5167,6 @@
 - name: gfx.webrender.enable-item-cache
   type: bool
   value: true
-  mirror: once
-
-# Whether or not to fallback from WebRender/WebRender Software to Basic.
-- name: gfx.webrender.fallback.basic
-  type: bool
-  value: false
   mirror: once
 
 # Whether or not to fallback from WebRender to Software WebRender.
@@ -6125,6 +6144,14 @@
   value: true
   mirror: always
   do_not_use_directly: true
+
+# Whether to use fdlibm for Math.sin, Math.cos, and Math.tan. When
+# privacy.resistFingerprinting is true, this pref is ignored and fdlibm is used
+# anyway.
+- name: javascript.options.use_fdlibm_for_sin_cos_tan
+  type: bool
+  value: false
+  mirror: always
 
 #---------------------------------------------------------------------------
 # Prefs starting with "layers."
@@ -7181,6 +7208,14 @@
   mirror: always
   rust: true
 
+# An override for prefers-color-scheme for content documents.
+#
+# Dark (0), light (1), or system (2).
+- name: layout.css.prefers-color-scheme.content-override
+  type: RelaxedAtomicInt32
+  value: 2
+  mirror: always
+
 # Dictates whether or not the forced-colors media query is enabled.
 - name: layout.css.forced-colors.enabled
   type: RelaxedAtomicBool
@@ -8027,6 +8062,12 @@
   mirror: always
 
 - name: media.clearkey.persistent-license.enabled
+  type: bool
+  value: false
+  mirror: always
+
+# Are test specific clearkey key systems enabled and exposed?
+- name: media.clearkey.test-key-systems.enabled
   type: bool
   value: false
   mirror: always
@@ -9069,6 +9110,18 @@
 # with userinfo
 - name: network.auth.confirmAuth.enabled
   type: bool
+  value: true
+  mirror: always
+
+# Whether to use new implementation of ParseReasm
+- name: network.auth.use_new_parse_realm
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# Whether to use new implementation of ParseReasm
+- name: network.auth.allow_multiple_challenges_same_line
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 
@@ -11814,6 +11867,12 @@
   type: RelaxedAtomicBool
   value: true
   mirror: always
+
+# Use async clipboard on Wayland
+- name: widget.wayland.async-clipboard.enabled
+  type: bool
+  value: false
+  mirror: once
 
 # Force fractional scaling using wp_viewporter. Valid values: 0.5 - 8
 - name: widget.wayland.fractional_buffer_scale

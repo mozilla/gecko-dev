@@ -368,8 +368,7 @@ BrowserChild::BrowserChild(ContentChild* aManager, const TabId& aTabId,
                NestedBrowserChildMap().end());
     NestedBrowserChildMap()[mUniqueId] = this;
   }
-  mCoalesceMouseMoveEvents =
-      Preferences::GetBool("dom.event.coalesce_mouse_move");
+  mCoalesceMouseMoveEvents = StaticPrefs::dom_events_coalesce_mousemove();
   if (mCoalesceMouseMoveEvents) {
     mCoalescedMouseEventFlusher = new CoalescedMouseMoveFlusher(this);
   }
@@ -804,6 +803,15 @@ BrowserChild::FocusPrevElement(bool aForDocumentNavigation) {
 
 NS_IMETHODIMP
 BrowserChild::GetInterface(const nsIID& aIID, void** aSink) {
+  if (aIID.Equals(NS_GET_IID(nsITopLevelNavigationDelegate))) {
+    nsCOMPtr<nsITopLevelNavigationDelegate> delegate =
+        GetTopLevelNavigationDelegate();
+    if (delegate) {
+      delegate.forget(aSink);
+      return NS_OK;
+    }
+  }
+
   // XXXbz should we restrict the set of interfaces we hand out here?
   // See bug 537429
   return QueryInterface(aIID, aSink);
@@ -3058,6 +3066,16 @@ BrowserChild::GetMessageManager(ContentFrameMessageManager** aResult) {
   RefPtr<ContentFrameMessageManager> mm(mBrowserChildMessageManager);
   mm.forget(aResult);
   return *aResult ? NS_OK : NS_ERROR_FAILURE;
+}
+
+already_AddRefed<nsITopLevelNavigationDelegate>
+BrowserChild::GetTopLevelNavigationDelegate() {
+  nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
+  if (nsCOMPtr<nsITopLevelNavigationDelegate> delegate = do_QueryActor(
+          "TopLevelNavigationDelegate", docShell->GetDocument())) {
+    return delegate.forget();
+  }
+  return nullptr;
 }
 
 void BrowserChild::SendRequestFocus(bool aCanFocus, CallerType aCallerType) {

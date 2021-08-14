@@ -392,7 +392,7 @@ static const uint32_t MaxEmptyChunkCount = 30;
 /* JSGC_SLICE_TIME_BUDGET_MS */
 static const int64_t DefaultTimeBudgetMS = 0;  // Unlimited by default.
 
-/* JSGC_INCREMENTAL_ENABLED */
+/* JSGC_INCREMENTAL_GC_ENABLED */
 static const bool IncrementalGCEnabled = false;
 
 /* JSGC_PER_ZONE_GC_ENABLED */
@@ -437,7 +437,7 @@ static const double HelperThreadRatio = 0.5;
 /* JSGC_MAX_HELPER_THREADS */
 static const size_t MaxHelperThreads = 8;
 
-/* JSGC_URGENT_THRESHOLD_BYTES */
+/* JSGC_URGENT_THRESHOLD_MB */
 static const size_t UrgentThresholdBytes = 16 * 1024 * 1024;
 
 }  // namespace TuningDefaults
@@ -598,7 +598,7 @@ class GCSchedulingTunables {
   MainThreadOrGCTaskData<size_t> mallocThresholdBase_;
 
   /*
-   * JSGC_URGENT_THRESHOLD_BYTES
+   * JSGC_URGENT_THRESHOLD_MB
    *
    * The base value used to compute the GC trigger for malloc allocated memory.
    */
@@ -835,14 +835,13 @@ class HeapThreshold {
 // size. This is used to determine when to do a zone GC based on GC heap size.
 class GCHeapThreshold : public HeapThreshold {
  public:
-  void updateStartThreshold(size_t lastBytes, JS::GCOptions options,
+  void updateStartThreshold(size_t lastBytes,
                             const GCSchedulingTunables& tunables,
                             const GCSchedulingState& state, bool isAtomsZone,
                             const AutoLockGC& lock);
 
  private:
   static size_t computeZoneTriggerBytes(double growthFactor, size_t lastBytes,
-                                        JS::GCOptions options,
                                         const GCSchedulingTunables& tunables,
                                         const AutoLockGC& lock);
 };

@@ -11,7 +11,6 @@ appmenuitem-update-banner3 =
     .label-update-unsupported = Unable to update — system incompatible
     .label-update-restart = Update available — restart now
 
-appmenuitem-protection-dashboard-title = Protections dashboard
 appmenuitem-new-tab =
     .label = New tab
 appmenuitem-new-window =
@@ -202,8 +201,6 @@ appmenu-help-not-deceptive =
 
 appmenu-customizetoolbar =
     .label = Customize toolbar…
-appmenu-taskmanager =
-    .label = Task Manager
 
 appmenu-developer-tools-subheader = Browser tools
 appmenu-developer-tools-extensions =

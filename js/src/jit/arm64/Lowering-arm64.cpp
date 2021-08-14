@@ -39,6 +39,8 @@ LAllocation LIRGeneratorARM64::useByteOpRegisterOrNonDoubleConstant(
   return useRegisterOrNonDoubleConstant(mir);
 }
 
+LDefinition LIRGeneratorARM64::tempToUnbox() { return temp(); }
+
 void LIRGenerator::visitBox(MBox* box) {
   MDefinition* opd = box->getOperand(0);
 
@@ -460,7 +462,7 @@ void LIRGeneratorARM64::lowerPowOfTwoI(MPow* mir) {
   int32_t base = mir->input()->toConstant()->toInt32();
   MDefinition* power = mir->power();
 
-  auto* lir = new (alloc()) LPowOfTwoI(base, useRegister(power));
+  auto* lir = new (alloc()) LPowOfTwoI(useRegister(power), base);
   assignSnapshot(lir, mir->bailoutKind());
   define(lir, mir);
 }
@@ -631,7 +633,8 @@ void LIRGenerator::visitAsmJSLoadHeap(MAsmJSLoadHeap* ins) {
   // memory base.  This follows from the definition of
   // FunctionCompiler::maybeLoadMemoryBase() in WasmIonCompile.cpp.
   MOZ_ASSERT(!ins->hasMemoryBase());
-  auto* lir = new (alloc()) LAsmJSLoadHeap(baseAlloc, limitAlloc);
+  auto* lir =
+      new (alloc()) LAsmJSLoadHeap(baseAlloc, limitAlloc, LAllocation());
   define(lir, ins);
 }
 
@@ -652,7 +655,7 @@ void LIRGenerator::visitAsmJSStoreHeap(MAsmJSStoreHeap* ins) {
   // See comment in LIRGenerator::visitAsmJSStoreHeap just above.
   MOZ_ASSERT(!ins->hasMemoryBase());
   add(new (alloc()) LAsmJSStoreHeap(baseAlloc, useRegisterAtStart(ins->value()),
-                                    limitAlloc),
+                                    limitAlloc, LAllocation()),
       ins);
 }
 
@@ -975,18 +978,35 @@ void LIRGenerator::visitSignExtendInt64(MSignExtendInt64* ins) {
               ins);
 }
 
-void LIRGenerator::visitWasmBitselectSimd128(MWasmBitselectSimd128* ins) {
+void LIRGenerator::visitWasmTernarySimd128(MWasmTernarySimd128* ins) {
 #ifdef ENABLE_WASM_SIMD
-  MOZ_ASSERT(ins->lhs()->type() == MIRType::Simd128);
-  MOZ_ASSERT(ins->rhs()->type() == MIRType::Simd128);
-  MOZ_ASSERT(ins->control()->type() == MIRType::Simd128);
+  MOZ_ASSERT(ins->v0()->type() == MIRType::Simd128);
+  MOZ_ASSERT(ins->v1()->type() == MIRType::Simd128);
+  MOZ_ASSERT(ins->v2()->type() == MIRType::Simd128);
   MOZ_ASSERT(ins->type() == MIRType::Simd128);
 
-  auto* lir = new (alloc())
-      LWasmBitselectSimd128(useRegister(ins->lhs()), useRegister(ins->rhs()),
-                            useRegisterAtStart(ins->control()), tempSimd128());
-  // On ARM64, control register is used as output at machine instruction.
-  defineReuseInput(lir, ins, LWasmBitselectSimd128::Control);
+  switch (ins->simdOp()) {
+    case wasm::SimdOp::V128Bitselect: {
+      auto* lir = new (alloc()) LWasmTernarySimd128(
+          ins->simdOp(), useRegister(ins->v0()), useRegister(ins->v1()),
+          useRegisterAtStart(ins->v2()));
+      // On ARM64, control register is used as output at machine instruction.
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V2);
+      break;
+    }
+    case wasm::SimdOp::F32x4RelaxedFma:
+    case wasm::SimdOp::F32x4RelaxedFms:
+    case wasm::SimdOp::F64x2RelaxedFma:
+    case wasm::SimdOp::F64x2RelaxedFms: {
+      auto* lir = new (alloc())
+          LWasmTernarySimd128(ins->simdOp(), useRegisterAtStart(ins->v0()),
+                              useRegister(ins->v1()), useRegister(ins->v2()));
+      defineReuseInput(lir, ins, LWasmTernarySimd128::V0);
+      break;
+    }
+    default:
+      MOZ_CRASH("NYI");
+  }
 #else
   MOZ_CRASH("No SIMD");
 #endif
@@ -1019,7 +1039,7 @@ void LIRGenerator::visitWasmBinarySimd128(MWasmBinarySimd128* ins) {
 }
 
 #ifdef ENABLE_WASM_SIMD
-bool MWasmBitselectSimd128::specializeConstantMaskAsShuffle(
+bool MWasmTernarySimd128::specializeBitselectConstantMaskAsShuffle(
     int8_t shuffle[16]) {
   return false;
 }

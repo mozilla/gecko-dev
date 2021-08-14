@@ -245,7 +245,7 @@ class nsWindow final : public nsBaseWidget {
   void OnDPIChanged(void);
   void OnCheckResize(void);
   void OnCompositedChanged(void);
-  void OnScaleChanged(GtkAllocation* aAllocation);
+  void OnScaleChanged();
   void DispatchResized();
 
   static guint32 sLastButtonPressTime;
@@ -398,7 +398,6 @@ class nsWindow final : public nsBaseWidget {
       const LayoutDeviceIntPoint& aLockCenter) override;
   virtual void LockNativePointer() override;
   virtual void UnlockNativePointer() override;
-  virtual nsresult GetScreenRect(LayoutDeviceIntRect* aRect) override;
   virtual nsRect GetPreferredPopupRect() override {
     return mPreferredPopupRect;
   };
@@ -407,6 +406,25 @@ class nsWindow final : public nsBaseWidget {
     mPreferredPopupRectFlushed = true;
   };
 #endif
+
+  typedef enum {
+    // WebRender compositor is enabled
+    COMPOSITOR_ENABLED,
+    // WebRender compositor is paused after window creation.
+    COMPOSITOR_PAUSED_INITIALLY,
+    // WebRender compositor is paused because GtkWindow is hidden,
+    // we can't draw into EGLSurface.
+    COMPOSITOR_PAUSED_MISSING_EGL_WINDOW,
+    // WebRender compositor is paused as we're repainting whole window and
+    // we're waiting for content process to update page content.
+    COMPOSITOR_PAUSED_FLICKERING
+  } WindowCompositorState;
+
+  // Pause compositor to avoid rendering artifacts from content process.
+  void ResumeCompositor();
+  void ResumeCompositorFromCompositorThread();
+  void PauseCompositor();
+  bool IsWaitingForCompositorResume();
 
  protected:
   virtual ~nsWindow();
@@ -419,7 +437,7 @@ class nsWindow final : public nsBaseWidget {
   virtual void RegisterTouchWindow() override;
   virtual bool CompositorInitiallyPaused() override {
 #ifdef MOZ_WAYLAND
-    return mCompositorInitiallyPaused;
+    return mCompositorState == COMPOSITOR_PAUSED_INITIALLY;
 #else
     return false;
 #endif
@@ -472,9 +490,8 @@ class nsWindow final : public nsBaseWidget {
 
   void DispatchContextMenuEventFromMouseEvent(uint16_t domButton,
                                               GdkEventButton* aEvent);
-
-  void MaybeResumeCompositor();
-  void PauseCompositor();
+  void ResumeCompositorHiddenWindow();
+  void PauseCompositorHiddenWindow();
 
   void WaylandStartVsync();
   void WaylandStopVsync();
@@ -519,9 +536,10 @@ class nsWindow final : public nsBaseWidget {
   GdkWindow* mGdkWindow;
   bool mWindowShouldStartDragging;
   PlatformCompositorWidgetDelegate* mCompositorWidgetDelegate;
-
-  bool mNeedsCompositorResume;
-  bool mCompositorInitiallyPaused;
+  WindowCompositorState mCompositorState;
+  // This is used in COMPOSITOR_PAUSED_FLICKERING mode only to resume compositor
+  // in some reasonable time when page content is not updated.
+  int mCompositorPauseTimeoutID;
 
   uint32_t mHasMappedToplevel : 1, mRetryPointerGrab : 1;
   nsSizeMode mSizeState;

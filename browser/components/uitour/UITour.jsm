@@ -117,7 +117,7 @@ var UITour = {
         query: "#appMenu-fxa-label2",
         // This is a fake widgetName starting with the "appMenu-" prefix so we know
         // to automatically open the appMenu when annotating this target.
-        widgetName: "appMenu-fxa-label",
+        widgetName: "appMenu-fxa-label2",
       },
     ],
     [
@@ -143,13 +143,6 @@ var UITour = {
     ["backForward", { query: "#back-button" }],
     ["bookmarks", { query: "#bookmarks-menu-button" }],
     [
-      "devtools",
-      {
-        query: "#appMenu-developer-button",
-        widgetName: "appMenu-developer-button",
-      },
-    ],
-    [
       "forget",
       {
         allowAdd: true,
@@ -157,9 +150,8 @@ var UITour = {
         widgetName: "panic-button",
       },
     ],
-    ["help", { query: "#appMenu-help-button" }],
+    ["help", { query: "#appMenu-help-button2" }],
     ["home", { query: "#home-button" }],
-    ["library", { query: "#appMenu-library-button" }],
     [
       "logins",
       {

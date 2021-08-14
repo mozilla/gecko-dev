@@ -8,6 +8,9 @@ const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
+const { ServiceRequest } = ChromeUtils.import(
+  "resource://gre/modules/ServiceRequest.jsm"
+);
 ChromeUtils.defineModuleGetter(
   this,
   "AppConstants",
@@ -97,6 +100,60 @@ var Utils = {
   },
 
   /**
+   * A wrapper around `ServiceRequest` that behaves like `fetch()`.
+   *
+   * Use this in order to leverage the `beConservative` flag, for
+   * example to avoid using HTTP3 to fetch critical data.
+   *
+   * @param input a resource
+   * @param init request options
+   * @returns a Response object
+   */
+  async fetch(input, init = {}) {
+    return new Promise(function(resolve, reject) {
+      const request = new ServiceRequest();
+
+      request.onerror = () =>
+        reject(new TypeError("NetworkError: Network request failed"));
+      request.ontimeout = () =>
+        reject(new TypeError("Timeout: Network request failed"));
+      request.onabort = () => reject(new DOMException("Aborted", "AbortError"));
+      request.onload = () => {
+        // Parse raw response headers into `Headers` object.
+        const headers = new Headers();
+        const rawHeaders = request.getAllResponseHeaders();
+        rawHeaders
+          .trim()
+          .split(/[\r\n]+/)
+          .forEach(line => {
+            const parts = line.split(": ");
+            const header = parts.shift();
+            const value = parts.join(": ");
+            headers.set(header, value);
+          });
+
+        const responseAttributes = {
+          status: request.status,
+          statusText: request.statusText,
+          url: request.responseURL,
+          headers,
+        };
+        resolve(new Response(request.response, responseAttributes));
+      };
+
+      const { method = "GET", headers = {} } = init;
+
+      request.open(method, input, true);
+
+      for (const [name, value] of Object.entries(headers)) {
+        request.setRequestHeader(name, value);
+      }
+
+      request.send();
+    });
+  },
+
+  /**
    * Check if local data exist for the specified client.
    *
    * @param {RemoteSettingsClient} client
@@ -118,7 +175,10 @@ var Utils = {
   async hasLocalDump(bucket, collection) {
     try {
       await fetch(
-        `resource://app/defaults/settings/${bucket}/${collection}.json`
+        `resource://app/defaults/settings/${bucket}/${collection}.json`,
+        {
+          method: "HEAD",
+        }
       );
       return true;
     } catch (e) {
@@ -213,7 +273,7 @@ var Utils = {
           .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
           .join("&");
     }
-    const response = await fetch(url);
+    const response = await Utils.fetch(url);
 
     if (response.status >= 500) {
       throw new Error(`Server error ${response.status} ${response.statusText}`);

@@ -193,6 +193,8 @@ void MacroAssembler::mul32(Register rhs, Register srcDest) {
   imull(rhs, srcDest);
 }
 
+void MacroAssembler::mul32(Imm32 imm, Register srcDest) { imull(imm, srcDest); }
+
 void MacroAssembler::mulFloat32(FloatRegister src, FloatRegister dest) {
   vmulss(src, dest, dest);
 }
@@ -2833,6 +2835,41 @@ void MacroAssembler::unsignedWidenHighInt32x4(FloatRegister src,
                                               FloatRegister dest) {
   vpshufd(ComputeShuffleMask(2, 3, 2, 3), src, dest);
   vpmovzxdq(Operand(dest), dest);
+}
+
+// Floating multiply-accumulate: srcDest [+-]= src1 * src2
+// The Intel FMA feature is some AVX* special sauce, no support yet.
+
+void MacroAssembler::fmaFloat32x4(FloatRegister src1, FloatRegister src2,
+                                  FloatRegister srcDest) {
+  ScratchFloat32Scope scratch(*this);
+  moveSimd128(src1, scratch);
+  mulFloat32x4(src2, scratch);
+  addFloat32x4(scratch, srcDest);
+}
+
+void MacroAssembler::fmsFloat32x4(FloatRegister src1, FloatRegister src2,
+                                  FloatRegister srcDest) {
+  ScratchFloat32Scope scratch(*this);
+  moveSimd128(src1, scratch);
+  mulFloat32x4(src2, scratch);
+  subFloat32x4(scratch, srcDest);
+}
+
+void MacroAssembler::fmaFloat64x2(FloatRegister src1, FloatRegister src2,
+                                  FloatRegister srcDest) {
+  ScratchFloat32Scope scratch(*this);
+  moveSimd128(src1, scratch);
+  mulFloat64x2(src2, scratch);
+  addFloat64x2(scratch, srcDest);
+}
+
+void MacroAssembler::fmsFloat64x2(FloatRegister src1, FloatRegister src2,
+                                  FloatRegister srcDest) {
+  ScratchFloat32Scope scratch(*this);
+  moveSimd128(src1, scratch);
+  mulFloat64x2(src2, scratch);
+  subFloat64x2(scratch, srcDest);
 }
 
 // ========================================================================

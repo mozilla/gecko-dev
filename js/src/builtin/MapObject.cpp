@@ -8,6 +8,7 @@
 
 #include "ds/OrderedHashTable.h"
 #include "gc/FreeOp.h"
+#include "jit/InlinableNatives.h"
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
 #include "js/Utility.h"
@@ -351,7 +352,7 @@ bool MapIteratorObject::next(MapIteratorObject* mapIterator,
 /* static */
 JSObject* MapIteratorObject::createResultPair(JSContext* cx) {
   RootedArrayObject resultPairObj(
-      cx, NewDenseFullyAllocatedArray(cx, 2, nullptr, TenuredObject));
+      cx, NewDenseFullyAllocatedArray(cx, 2, TenuredObject));
   if (!resultPairObj) {
     return nullptr;
   }
@@ -406,8 +407,8 @@ const JSPropertySpec MapObject::properties[] = {
 
 // clang-format off
 const JSFunctionSpec MapObject::methods[] = {
-    JS_FN("get", get, 1, 0),
-    JS_FN("has", has, 1, 0),
+    JS_INLINABLE_FN("get", get, 1, 0, MapGet),
+    JS_INLINABLE_FN("has", has, 1, 0, MapHas),
     JS_FN("set", set, 2, 0),
     JS_FN("delete", delete_, 1, 0),
     JS_FN("keys", keys, 0, 0),
@@ -1135,7 +1136,7 @@ bool SetIteratorObject::next(SetIteratorObject* setIterator,
 /* static */
 JSObject* SetIteratorObject::createResult(JSContext* cx) {
   RootedArrayObject resultObj(
-      cx, NewDenseFullyAllocatedArray(cx, 1, nullptr, TenuredObject));
+      cx, NewDenseFullyAllocatedArray(cx, 1, TenuredObject));
   if (!resultObj) {
     return nullptr;
   }
@@ -1191,7 +1192,7 @@ const JSPropertySpec SetObject::properties[] = {
 
 // clang-format off
 const JSFunctionSpec SetObject::methods[] = {
-    JS_FN("has", has, 1, 0),
+    JS_INLINABLE_FN("has", has, 1, 0, SetHas),
     JS_FN("add", add, 1, 0),
     JS_FN("delete", delete_, 1, 0),
     JS_FN("entries", entries, 0, 0),

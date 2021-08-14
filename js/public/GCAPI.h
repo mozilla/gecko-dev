@@ -424,7 +424,7 @@ typedef enum JSGCParamKey {
    * The threshold is calculated by subtracting this value from the heap's
    * incremental limit.
    */
-  JSGC_URGENT_THRESHOLD_BYTES = 48,
+  JSGC_URGENT_THRESHOLD_MB = 48,
 } JSGCParamKey;
 
 /*
@@ -1154,7 +1154,7 @@ extern JS_PUBLIC_API uint32_t JS_GetGCParameter(JSContext* cx,
                                                 JSGCParamKey key);
 
 extern JS_PUBLIC_API void JS_SetGCParametersBasedOnAvailableMemory(
-    JSContext* cx, uint32_t availMem);
+    JSContext* cx, uint32_t availMemMB);
 
 /**
  * Create a new JSString whose chars member refers to external memory, i.e.,

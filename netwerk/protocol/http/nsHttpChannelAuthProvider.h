@@ -42,13 +42,13 @@ class nsHttpChannelAuthProvider final : public nsIHttpChannelAuthProvider,
  private:
   virtual ~nsHttpChannelAuthProvider();
 
-  const char* ProxyHost() const {
-    return mProxyInfo ? mProxyInfo->Host().get() : nullptr;
+  const nsCString& ProxyHost() const {
+    return mProxyInfo ? mProxyInfo->Host() : EmptyCString();
   }
 
   int32_t ProxyPort() const { return mProxyInfo ? mProxyInfo->Port() : -1; }
 
-  const char* Host() const { return mHost.get(); }
+  const nsCString& Host() const { return mHost; }
   int32_t Port() const { return mPort; }
   bool UsingSSL() const { return mUsingSSL; }
 
@@ -58,14 +58,15 @@ class nsHttpChannelAuthProvider final : public nsIHttpChannelAuthProvider,
 
   [[nodiscard]] nsresult PrepareForAuthentication(bool proxyAuth);
   [[nodiscard]] nsresult GenCredsAndSetEntry(
-      nsIHttpAuthenticator*, bool proxyAuth, const char* scheme,
-      const char* host, int32_t port, const char* dir, const char* realm,
-      const char* challenge, const nsHttpAuthIdentity& ident,
-      nsCOMPtr<nsISupports>& session, char** result);
-  [[nodiscard]] nsresult GetAuthenticator(const char* challenge,
+      nsIHttpAuthenticator*, bool proxyAuth, const nsACString& scheme,
+      const nsACString& host, int32_t port, const nsACString& dir,
+      const nsACString& realm, const nsACString& challenge,
+      const nsHttpAuthIdentity& ident, nsCOMPtr<nsISupports>& session,
+      nsACString& result);
+  [[nodiscard]] nsresult GetAuthenticator(const nsACString& aChallenge,
                                           nsCString& authType,
                                           nsIHttpAuthenticator** auth);
-  void ParseRealm(const char* challenge, nsACString& realm);
+  void ParseRealm(const nsACString&, nsACString& realm);
   void GetIdentityFromURI(uint32_t authFlags, nsHttpAuthIdentity&);
 
   /**
@@ -74,23 +75,21 @@ class nsHttpChannelAuthProvider final : public nsIHttpChannelAuthProvider,
    * the user's decision will be gathered in a callback and is not an actual
    * error.
    */
-  [[nodiscard]] nsresult GetCredentials(const char* challenges, bool proxyAuth,
-                                        nsCString& creds);
-  [[nodiscard]] nsresult GetCredentialsForChallenge(const char* challenge,
-                                                    const char* authType,
-                                                    bool proxyAuth,
-                                                    nsIHttpAuthenticator* auth,
-                                                    nsCString& creds);
+  [[nodiscard]] nsresult GetCredentials(const nsACString& challenges,
+                                        bool proxyAuth, nsCString& creds);
+  [[nodiscard]] nsresult GetCredentialsForChallenge(
+      const nsACString& aChallenge, const nsACString& aAuthType, bool proxyAuth,
+      nsIHttpAuthenticator* auth, nsCString& creds);
   [[nodiscard]] nsresult PromptForIdentity(uint32_t level, bool proxyAuth,
-                                           const char* realm,
-                                           const char* authType,
+                                           const nsACString& realm,
+                                           const nsACString& authType,
                                            uint32_t authFlags,
                                            nsHttpAuthIdentity&);
 
   bool ConfirmAuth(const char* bundleKey, bool doYesNoPrompt);
   void SetAuthorizationHeader(nsHttpAuthCache*, const nsHttpAtom& header,
-                              const char* scheme, const char* host,
-                              int32_t port, const char* path,
+                              const nsACString& scheme, const nsACString& host,
+                              int32_t port, const nsACString& path,
                               nsHttpAuthIdentity& ident);
   [[nodiscard]] nsresult GetCurrentPath(nsACString&);
   /**
@@ -99,7 +98,7 @@ class nsHttpChannelAuthProvider final : public nsIHttpChannelAuthProvider,
    * with what authorization we work (WWW or proxy).
    */
   [[nodiscard]] nsresult GetAuthorizationMembers(
-      bool proxyAuth, nsACString& scheme, const char*& host, int32_t& port,
+      bool proxyAuth, nsACString& scheme, nsCString& host, int32_t& port,
       nsACString& path, nsHttpAuthIdentity*& ident,
       nsISupports**& continuationState);
   /**
@@ -127,11 +126,11 @@ class nsHttpChannelAuthProvider final : public nsIHttpChannelAuthProvider,
 
   // Store credentials to the cache when appropriate aFlags are set.
   [[nodiscard]] nsresult UpdateCache(
-      nsIHttpAuthenticator* aAuth, const char* aScheme, const char* aHost,
-      int32_t aPort, const char* aDirectory, const char* aRealm,
-      const char* aChallenge, const nsHttpAuthIdentity& aIdent,
-      const char* aCreds, uint32_t aGenerateFlags, nsISupports* aSessionState,
-      bool aProxyAuth);
+      nsIHttpAuthenticator* aAuth, const nsACString& aScheme,
+      const nsACString& aHost, int32_t aPort, const nsACString& aDirectory,
+      const nsACString& aRealm, const nsACString& aChallenge,
+      const nsHttpAuthIdentity& aIdent, const nsACString& aCreds,
+      uint32_t aGenerateFlags, nsISupports* aSessionState, bool aProxyAuth);
 
  private:
   nsIHttpAuthenticableChannel* mAuthChannel{nullptr};  // weak ref

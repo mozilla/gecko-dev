@@ -762,11 +762,6 @@ JSObject* GetThisObjectOfWith(JSObject* env);
 
 namespace js {
 
-bool NewObjectWithTaggedProtoIsCachable(JSContext* cx,
-                                        Handle<TaggedProto> proto,
-                                        NewObjectKind newKind,
-                                        const JSClass* clasp);
-
 // ES6 9.1.15 GetPrototypeFromConstructor.
 extern bool GetPrototypeFromConstructor(JSContext* cx,
                                         js::HandleObject newTarget,

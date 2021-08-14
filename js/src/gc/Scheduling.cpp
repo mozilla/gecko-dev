@@ -222,7 +222,7 @@ bool GCSchedulingTunables::setParameter(JSGCParamKey key, uint32_t value,
     case JSGC_MALLOC_THRESHOLD_BASE:
       mallocThresholdBase_ = value * 1024 * 1024;
       break;
-    case JSGC_URGENT_THRESHOLD_BYTES:
+    case JSGC_URGENT_THRESHOLD_MB:
       urgentThresholdBytes_ = value * 1024 * 1024;
       break;
     default:
@@ -363,7 +363,7 @@ void GCSchedulingTunables::resetParameter(JSGCParamKey key,
     case JSGC_MALLOC_THRESHOLD_BASE:
       mallocThresholdBase_ = TuningDefaults::MallocThresholdBase;
       break;
-    case JSGC_URGENT_THRESHOLD_BYTES:
+    case JSGC_URGENT_THRESHOLD_MB:
       urgentThresholdBytes_ = TuningDefaults::UrgentThresholdBytes;
       break;
     default:
@@ -479,12 +479,9 @@ double HeapThreshold::computeZoneHeapGrowthFactorForHeapSize(
 
 /* static */
 size_t GCHeapThreshold::computeZoneTriggerBytes(
-    double growthFactor, size_t lastBytes, JS::GCOptions options,
-    const GCSchedulingTunables& tunables, const AutoLockGC& lock) {
-  size_t baseMin = options == JS::GCOptions::Shrink
-                       ? tunables.minEmptyChunkCount(lock) * ChunkSize
-                       : tunables.gcZoneAllocThresholdBase();
-  size_t base = std::max(lastBytes, baseMin);
+    double growthFactor, size_t lastBytes, const GCSchedulingTunables& tunables,
+    const AutoLockGC& lock) {
+  size_t base = std::max(lastBytes, tunables.gcZoneAllocThresholdBase());
   double trigger = double(base) * growthFactor;
   double triggerMax =
       double(tunables.gcMaxBytes()) / tunables.largeHeapIncrementalLimit();
@@ -492,7 +489,6 @@ size_t GCHeapThreshold::computeZoneTriggerBytes(
 }
 
 void GCHeapThreshold::updateStartThreshold(size_t lastBytes,
-                                           JS::GCOptions options,
                                            const GCSchedulingTunables& tunables,
                                            const GCSchedulingState& state,
                                            bool isAtomsZone,
@@ -507,7 +503,7 @@ void GCHeapThreshold::updateStartThreshold(size_t lastBytes,
   }
 
   startBytes_ =
-      computeZoneTriggerBytes(growthFactor, lastBytes, options, tunables, lock);
+      computeZoneTriggerBytes(growthFactor, lastBytes, tunables, lock);
 
   setIncrementalLimitFromStartBytes(lastBytes, tunables);
 }

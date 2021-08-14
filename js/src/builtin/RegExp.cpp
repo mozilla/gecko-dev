@@ -51,17 +51,11 @@ static PlainObject* CreateGroupsObject(JSContext* cx,
   // across compartments and realms. So watch out for the case when the template
   // object's realm is different from the current realm.
   if (cx->realm() != groupsTemplate->realm()) {
-    PlainObject* result;
-    JS_TRY_VAR_OR_RETURN_NULL(
-        cx, result,
-        PlainObject::createWithTemplateFromDifferentRealm(cx, groupsTemplate));
-    return result;
+    return PlainObject::createWithTemplateFromDifferentRealm(cx,
+                                                             groupsTemplate);
   }
 
-  PlainObject* result;
-  JS_TRY_VAR_OR_RETURN_NULL(
-      cx, result, PlainObject::createWithTemplate(cx, groupsTemplate));
-  return result;
+  return PlainObject::createWithTemplate(cx, groupsTemplate);
 }
 
 /*
@@ -1452,14 +1446,6 @@ static bool InterpretDollar(JSLinearString* matched, JSLinearString* string,
       break;
     case '&':
       out->init(matched, 0, matched->length());
-      break;
-    case '+':
-      // SpiderMonkey extension
-      if (captures.length() == 0) {
-        out->initEmpty(matched);
-      } else {
-        GetParen(matched, captures[captures.length() - 1], out);
-      }
       break;
     case '`':
       out->init(string, 0, position);

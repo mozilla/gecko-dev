@@ -114,16 +114,13 @@ void TestProfilerUtils() {
         std::is_same_v<
             decltype(mozilla::baseprofiler::profiler_current_process_id()),
             BaseProfilerProcessId>);
-#ifdef MOZ_GECKO_PROFILER
     MOZ_RELEASE_ASSERT(
         mozilla::baseprofiler::profiler_current_process_id().IsSpecified());
-#else
-    MOZ_RELEASE_ASSERT(
-        !mozilla::baseprofiler::profiler_current_process_id().IsSpecified());
-#endif
   }
 
   {
+    mozilla::baseprofiler::profiler_init_main_thread_id();
+
     using mozilla::baseprofiler::BaseProfilerThreadId;
     using Number = BaseProfilerThreadId::NumberType;
     static constexpr Number scMaxNumber = std::numeric_limits<Number>::max();
@@ -190,20 +187,12 @@ void TestProfilerUtils() {
     static_assert(std::is_same_v<
                   decltype(mozilla::baseprofiler::profiler_current_thread_id()),
                   BaseProfilerThreadId>);
-#ifdef MOZ_GECKO_PROFILER
     BaseProfilerThreadId mainTestThreadId =
         mozilla::baseprofiler::profiler_current_thread_id();
     MOZ_RELEASE_ASSERT(mainTestThreadId.IsSpecified());
 
     BaseProfilerThreadId mainThreadId =
         mozilla::baseprofiler::profiler_main_thread_id();
-    if (!mainThreadId.IsSpecified()) {
-      // Special case: This may happen if the profiler has not yet been
-      // initialized. We only need to set scProfilerMainThreadId.
-      mozilla::baseprofiler::detail::scProfilerMainThreadId = mainTestThreadId;
-      // After which `profiler_main_thread_id` should work.
-      mainThreadId = mozilla::baseprofiler::profiler_main_thread_id();
-    }
     MOZ_RELEASE_ASSERT(mainThreadId.IsSpecified());
 
     MOZ_RELEASE_ASSERT(mainThreadId == mainTestThreadId,
@@ -218,13 +207,6 @@ void TestProfilerUtils() {
       MOZ_RELEASE_ASSERT(!mozilla::baseprofiler::profiler_is_main_thread());
     });
     testThread.join();
-#else
-    MOZ_RELEASE_ASSERT(
-        !mozilla::baseprofiler::profiler_current_thread_id().IsSpecified());
-    MOZ_RELEASE_ASSERT(
-        !mozilla::baseprofiler::profiler_main_thread_id().IsSpecified());
-    MOZ_RELEASE_ASSERT(!mozilla::baseprofiler::profiler_is_main_thread());
-#endif
   }
 
   // No conversions between processes and threads.
@@ -3795,9 +3777,9 @@ MOZ_NEVER_INLINE unsigned long long Fibonacci(unsigned long long n) {
 }
 
 void TestProfiler() {
-  printf("TestProfiler starting -- pid: %d, tid: %d\n",
-         int(baseprofiler::profiler_current_process_id().ToNumber()),
-         int(baseprofiler::profiler_current_thread_id().ToNumber()));
+  printf("TestProfiler starting -- pid: %" PRIu64 ", tid: %" PRIu64 "\n",
+         uint64_t(baseprofiler::profiler_current_process_id().ToNumber()),
+         uint64_t(baseprofiler::profiler_current_thread_id().ToNumber()));
   // ::SleepMilli(10000);
 
   TestProfilerDependencies();
@@ -4559,9 +4541,10 @@ void TestPredefinedMarkers() {
 }
 
 void TestProfilerMarkers() {
-  printf("TestProfilerMarkers -- pid: %d, tid: %d\n",
-         int(mozilla::baseprofiler::profiler_current_process_id().ToNumber()),
-         int(mozilla::baseprofiler::profiler_current_thread_id().ToNumber()));
+  printf(
+      "TestProfilerMarkers -- pid: %" PRIu64 ", tid: %" PRIu64 "\n",
+      uint64_t(mozilla::baseprofiler::profiler_current_process_id().ToNumber()),
+      uint64_t(mozilla::baseprofiler::profiler_current_thread_id().ToNumber()));
   // ::SleepMilli(10000);
 
   TestUniqueJSONStrings();
@@ -4639,9 +4622,9 @@ int main()
 #endif  // defined(XP_WIN)
 {
 #ifdef MOZ_GECKO_PROFILER
-  printf("BaseTestProfiler -- pid: %d, tid: %d\n",
-         int(baseprofiler::profiler_current_process_id().ToNumber()),
-         int(baseprofiler::profiler_current_thread_id().ToNumber()));
+  printf("BaseTestProfiler -- pid: %" PRIu64 ", tid: %" PRIu64 "\n",
+         uint64_t(baseprofiler::profiler_current_process_id().ToNumber()),
+         uint64_t(baseprofiler::profiler_current_thread_id().ToNumber()));
   // ::SleepMilli(10000);
 #endif  // MOZ_GECKO_PROFILER
 

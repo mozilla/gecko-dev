@@ -18,6 +18,9 @@ if CONFIG["OS_ARCH"] == "WINNT":
 else:
     DIRS += ["unix"]
 
+if CONFIG["MOZ_STDCXX_COMPAT"]:
+    DIRS += ["unix/stdc++compat"]
+
 CRAMTEST_MANIFESTS += [
     "tests/cram/cram.ini",
 ]

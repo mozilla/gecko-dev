@@ -40,7 +40,7 @@ rev = "8ae48c16b637d6d9a841cf4d01de06c16b1318b0"
 [source."https://github.com/mozilla/audioipc-2"]
 git = "https://github.com/mozilla/audioipc-2"
 replace-with = "vendored-sources"
-rev = "7537bfadad2e981577eb75e4f13662fc517e1a09"
+rev = "8bb1a227fbaa5677458bcd876162b65307df38c2"
 
 [source."https://github.com/mozilla/application-services"]
 git = "https://github.com/mozilla/application-services"
@@ -50,7 +50,7 @@ rev = "8a576fbe79199fa8664f64285524017f74ebcc5f"
 [source."https://github.com/mozilla-spidermonkey/jsparagus"]
 git = "https://github.com/mozilla-spidermonkey/jsparagus"
 replace-with = "vendored-sources"
-rev = "a45ca99e5be2062780032152a6daf94f29a307d3"
+rev = "eb250ba0bda3551927a447db0335a309e3f296d3"
 
 [source."https://github.com/makotokato/authenticator-rs"]
 git = "https://github.com/makotokato/authenticator-rs"
@@ -106,16 +106,6 @@ rev = "27a1dae3796d33d23812f2bb8c7e3b5aea18b521"
 git = "https://github.com/bytecodealliance/wasmtime"
 replace-with = "vendored-sources"
 rev = "824fa69756523f2b6d49029fe25de94130b1f144"
-
-[source."https://github.com/PLSysSec/rlbox_lucet_sandbox/"]
-git = "https://github.com/PLSysSec/rlbox_lucet_sandbox/"
-replace-with = "vendored-sources"
-rev = "5c8e79048d3ff6f434109e19d4aee4ff8624d3d7"
-
-[source."https://github.com/PLSysSec/lucet_sandbox_compiler"]
-git = "https://github.com/PLSysSec/lucet_sandbox_compiler"
-replace-with = "vendored-sources"
-rev = "d582d76bf0d17984501f3933688bf7a1eb5cf208"
 
 [source.crates-io]
 replace-with = "vendored-sources"

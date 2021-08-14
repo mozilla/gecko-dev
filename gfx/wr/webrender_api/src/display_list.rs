@@ -1404,11 +1404,11 @@ impl DisplayListBuilder {
         color: &ColorF,
         style: di::LineStyle,
     ) {
-        let common = self.process_common_props(common);
+        let (area, common) = self.process_common_props_with_bounds(area, common);
 
         let item = di::DisplayItem::Line(di::LineDisplayItem {
             common,
-            area: *area,
+            area,
             wavy_line_thickness,
             orientation,
             color: *color,
@@ -1513,7 +1513,7 @@ impl DisplayListBuilder {
             color,
             font_key,
             glyph_options,
-            reference_frame_relative_offset: current_offset,
+            reference_frame_relative_offset: self.rf_mapper.current_offset(),
         });
 
         let prim_offset = bounds.min.to_vector() - current_offset;

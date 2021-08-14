@@ -6,15 +6,16 @@
 
 #include "jit/x64/MacroAssembler-x64.h"
 
-#include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
 #include "jit/MacroAssembler.h"
 #include "jit/MoveEmitter.h"
 #include "util/Memory.h"
+#include "vm/BigIntType.h"
 #include "vm/JitActivation.h"  // js::jit::JitActivation
 #include "vm/JSContext.h"
+#include "vm/StringType.h"
 
 #include "jit/MacroAssembler-inl.h"
 
@@ -573,6 +574,22 @@ void MacroAssemblerX64::profilerEnterFrame(Register framePtr,
 
 void MacroAssemblerX64::profilerExitFrame() {
   jump(GetJitContext()->runtime->jitRuntime()->getProfilerExitFrameTail());
+}
+
+Assembler::Condition MacroAssemblerX64::testStringTruthy(
+    bool truthy, const ValueOperand& value) {
+  ScratchRegisterScope scratch(asMasm());
+  unboxString(value, scratch);
+  cmp32(Operand(scratch, JSString::offsetOfLength()), Imm32(0));
+  return truthy ? Assembler::NotEqual : Assembler::Equal;
+}
+
+Assembler::Condition MacroAssemblerX64::testBigIntTruthy(
+    bool truthy, const ValueOperand& value) {
+  ScratchRegisterScope scratch(asMasm());
+  unboxBigInt(value, scratch);
+  cmp32(Operand(scratch, JS::BigInt::offsetOfDigitLength()), Imm32(0));
+  return truthy ? Assembler::NotEqual : Assembler::Equal;
 }
 
 MacroAssembler& MacroAssemblerX64::asMasm() {

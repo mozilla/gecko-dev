@@ -1414,9 +1414,9 @@ mozilla::ipc::IPCResult ContentChild::RecvRequestMemoryReport(
   return IPC_OK();
 }
 
+#if defined(XP_WIN)
 mozilla::ipc::IPCResult ContentChild::RecvGetUntrustedModulesData(
     GetUntrustedModulesDataResolver&& aResolver) {
-#if defined(XP_WIN)
   RefPtr<DllServices> dllSvc(DllServices::Get());
   dllSvc->GetUntrustedModulesData()->Then(
       GetMainThreadSerialEventTarget(), __func__,
@@ -1425,10 +1425,8 @@ mozilla::ipc::IPCResult ContentChild::RecvGetUntrustedModulesData(
       },
       [aResolver](nsresult aReason) { aResolver(Nothing()); });
   return IPC_OK();
-#else
-  return IPC_FAIL(this, "Unsupported on this platform");
-#endif  // defined(XP_WIN)
 }
+#endif  // defined(XP_WIN)
 
 PCycleCollectWithLogsChild* ContentChild::AllocPCycleCollectWithLogsChild(
     const bool& aDumpAllTraces, const FileDescriptor& aGCLog,
@@ -3259,10 +3257,11 @@ void ContentChild::DeleteGetFilesRequest(nsID& aUUID,
 
 mozilla::ipc::IPCResult ContentChild::RecvGetFilesResponse(
     const nsID& aUUID, const GetFilesResponseResult& aResult) {
-  GetFilesHelperChild* child = mGetFilesPendingRequests.GetWeak(aUUID);
+  RefPtr<GetFilesHelperChild> child;
+
   // This object can already been deleted in case DeleteGetFilesRequest has
   // been called when the response was sending by the parent.
-  if (!child) {
+  if (!mGetFilesPendingRequests.Remove(aUUID, getter_AddRefs(child))) {
     return IPC_OK();
   }
 
@@ -3283,8 +3282,6 @@ mozilla::ipc::IPCResult ContentChild::RecvGetFilesResponse(
 
     child->Finished(succeeded ? NS_OK : NS_ERROR_OUT_OF_MEMORY);
   }
-
-  mGetFilesPendingRequests.Remove(aUUID);
   return IPC_OK();
 }
 

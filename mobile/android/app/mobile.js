@@ -60,9 +60,6 @@ pref("ui.useOverlayScrollbars", 1);
 pref("ui.scrollbarFadeBeginDelay", 450);
 pref("ui.scrollbarFadeDuration", 0);
 
-/* turn off the caret blink after 10 cycles */
-pref("ui.caretBlinkCount", 10);
-
 pref("browser.cache.memory_limit", 5120); // 5 MB
 
 /* image cache prefs */
@@ -653,4 +650,3 @@ pref("browser.tabs.remote.enforceRemoteTypeRestrictions", false);
 
 // Allow Web Authentication
 pref("security.webauth.webauthn_enable_android_fido2", true);
-pref("browser.tabs.remote.separatePrivilegedMozillaWebContentProcess", false);

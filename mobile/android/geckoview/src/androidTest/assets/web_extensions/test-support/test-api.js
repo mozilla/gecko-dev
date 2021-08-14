@@ -71,6 +71,7 @@ this.test = class extends ExtensionAPI {
       return;
     }
     ChromeUtils.unregisterWindowActor("TestSupport");
+    ChromeUtils.unregisterProcessActor("TestSupportProcess");
   }
 
   getAPI(context) {
@@ -232,6 +233,15 @@ this.test = class extends ExtensionAPI {
           await browsingContext.currentWindowGlobal
             .getActor("TestSupport")
             .sendQuery("FlushApzRepaints");
+        },
+
+        async promiseAllPaintsDone(tabId) {
+          const tab = context.extension.tabManager.get(tabId);
+          const { browsingContext } = tab.browser;
+
+          await browsingContext.currentWindowGlobal
+            .getActor("TestSupport")
+            .sendQuery("PromiseAllPaintsDone");
         },
       },
     };

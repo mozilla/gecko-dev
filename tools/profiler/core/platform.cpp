@@ -101,6 +101,10 @@
 #  include "mozilla/java/GeckoJavaSamplerNatives.h"
 #endif
 
+#if defined(GP_OS_darwin)
+#  include "nsCocoaFeatures.h"
+#endif
+
 // Win32 builds always have frame pointers, so FramePointerStackWalk() always
 // works.
 #if defined(GP_PLAT_x86_windows)
@@ -184,12 +188,6 @@ using namespace mozilla;
 using mozilla::profiler::detail::RacyFeatures;
 
 LazyLogModule gProfilerLog("prof");
-
-namespace mozilla::profiler::detail {
-// Statically initialized to 0, then set once from profiler_init(), which should
-// be called from the main thread before any other use of the profiler.
-ProfilerThreadId scProfilerMainThreadId;
-}  // namespace mozilla::profiler::detail
 
 #if defined(GP_OS_android)
 class GeckoJavaSampler
@@ -1603,8 +1601,9 @@ void AutoProfilerLabel::ProfilingStackOwnerTLS::Init() {
 
 void ProfilingStackOwner::DumpStackAndCrash() const {
   fprintf(stderr,
-          "ProfilingStackOwner::DumpStackAndCrash() thread id: %d, size: %u\n",
-          int(profiler_current_thread_id().ToNumber()),
+          "ProfilingStackOwner::DumpStackAndCrash() thread id: %" PRIu64
+          ", size: %u\n",
+          uint64_t(profiler_current_thread_id().ToNumber()),
           unsigned(mProfilingStack.stackSize()));
   js::ProfilingStackFrame* allFrames = mProfilingStack.frames;
   for (uint32_t i = 0; i < mProfilingStack.stackSize(); i++) {
@@ -2687,7 +2686,27 @@ static PreRecordedMetaInformation PreRecordMetaInformation() {
           do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &res);
       !NS_FAILED(res) && http) {
     Unused << http->GetPlatform(info.mHttpPlatform);
-    Unused << http->GetOscpu(info.mHttpOscpu);
+
+#if defined(GP_OS_darwin)
+    // On Mac, the http "oscpu" is capped at 10.15, so we need to get the real
+    // OS version directly.
+    int major = 0;
+    int minor = 0;
+    int bugfix = 0;
+    nsCocoaFeatures::GetSystemVersion(major, minor, bugfix);
+    if (major != 0) {
+      info.mHttpOscpu.AppendLiteral("macOS ");
+      info.mHttpOscpu.AppendInt(major);
+      info.mHttpOscpu.AppendLiteral(".");
+      info.mHttpOscpu.AppendInt(minor);
+      info.mHttpOscpu.AppendLiteral(".");
+      info.mHttpOscpu.AppendInt(bugfix);
+    } else
+#endif
+    {
+      Unused << http->GetOscpu(info.mHttpOscpu);
+    }
+
     Unused << http->GetMisc(info.mHttpMisc);
   }
 
@@ -4329,8 +4348,7 @@ void profiler_init_threadmanager() {
 void profiler_init(void* aStackTop) {
   LOG("profiler_init");
 
-  mozilla::profiler::detail::scProfilerMainThreadId =
-      profiler_current_thread_id();
+  profiler_init_main_thread_id();
 
   VTUNE_INIT();
 
@@ -5477,8 +5495,9 @@ ProfilingStack* profiler_register_thread(const char* aName,
     MOZ_RELEASE_ASSERT(
         thread->Info()->ThreadId() == profiler_current_thread_id(),
         "Thread being re-registered has changed its TID");
-    LOG("profiler_register_thread(%s) - thread %d already registered as %s",
-        aName, int(profiler_current_thread_id().ToNumber()),
+    LOG("profiler_register_thread(%s) - thread %" PRIu64
+        " already registered as %s",
+        aName, uint64_t(profiler_current_thread_id().ToNumber()),
         thread->Info()->Name());
     // TODO: Use new name. This is currently not possible because the
     // RegisteredThread's ThreadInfo cannot be changed.
@@ -5561,8 +5580,9 @@ void profiler_unregister_thread() {
     //
     // - We've already called profiler_unregister_thread() for this thread.
     //   (Whether or not it should, this does happen in practice.)
-    LOG("profiler_unregister_thread() - thread %d already unregistered",
-        int(profiler_current_thread_id().ToNumber()));
+    LOG("profiler_unregister_thread() - thread %" PRIu64
+        " already unregistered",
+        uint64_t(profiler_current_thread_id().ToNumber()));
     // We cannot record a marker on this thread because it was already
     // unregistered. Send it to the main thread (unless this *is* already the
     // main thread, which has been unregistered); this may be useful to catch

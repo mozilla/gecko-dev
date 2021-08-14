@@ -144,8 +144,8 @@ const uint32_t kClampTimeoutNestingLevel = 5u;
 
 template <class T>
 class UniquePtrComparator {
-  typedef UniquePtr<T> A;
-  typedef T* B;
+  using A = UniquePtr<T>;
+  using B = T*;
 
  public:
   bool Equals(const A& a, const A& b) const {
@@ -4326,7 +4326,7 @@ void WorkerPrivate::EnterDebuggerEventLoop() {
     {
       MutexAutoLock lock(mMutex);
 
-      std::queue<RefPtr<MicroTaskRunnable>>& debuggerMtQueue =
+      std::deque<RefPtr<MicroTaskRunnable>>& debuggerMtQueue =
           ccjscx->GetDebuggerMicroTaskQueue();
       while (mControlQueue.IsEmpty() &&
              !(debuggerRunnablesPending = !mDebuggerQueue.IsEmpty()) &&

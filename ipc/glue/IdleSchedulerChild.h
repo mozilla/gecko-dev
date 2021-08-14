@@ -37,12 +37,13 @@ class IdleSchedulerChild final : public PIdleSchedulerChild {
   // Returns true if activity state dropped below cpu count.
   bool SetPaused();
 
-  typedef MozPromise<bool /* aIgnored */, ResponseRejectReason, true>
-      MayGCPromise;
+  typedef MozPromise<bool, ResponseRejectReason, true> MayGCPromise;
 
   // Returns null if a GC or GC request is already in progress.
   RefPtr<MayGCPromise> MayGCNow();
 
+  // Regardless of how a GC is started we get informed via these.
+  void StartedGC();
   void DoneGC();
 
   // Returns nullptr if this is the parent process or the IdleSchedulerChild has

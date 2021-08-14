@@ -42,23 +42,10 @@ class ArrayObject : public NativeObject {
   }
 
   // Make an array object with the specified initial state.
-  static inline ArrayObject* createArray(JSContext* cx, gc::AllocKind kind,
-                                         gc::InitialHeap heap,
-                                         HandleShape shape, uint32_t length,
-                                         AutoSetNewObjectMetadata& metadata,
-                                         gc::AllocSite* site = nullptr);
-
- private:
-  // Helper for the above methods.
-  static inline ArrayObject* createArrayInternal(JSContext* cx,
-                                                 gc::AllocKind kind,
-                                                 gc::InitialHeap heap,
-                                                 HandleShape shape,
-                                                 AutoSetNewObjectMetadata&,
-                                                 gc::AllocSite* site = nullptr);
-
-  static inline ArrayObject* finishCreateArray(
-      ArrayObject* obj, HandleShape shape, AutoSetNewObjectMetadata& metadata);
+  static MOZ_ALWAYS_INLINE ArrayObject* create(
+      JSContext* cx, gc::AllocKind kind, gc::InitialHeap heap,
+      HandleShape shape, uint32_t length, uint32_t slotSpan,
+      AutoSetNewObjectMetadata& metadata, gc::AllocSite* site = nullptr);
 };
 
 }  // namespace js

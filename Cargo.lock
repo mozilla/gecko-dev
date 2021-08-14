@@ -30,6 +30,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "android_log-sys"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "85965b6739a430150bdd138e2374a98af0c3ee0d030b3bb7fc3bddff58d0102e"
+
+[[package]]
+name = "android_logger"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9ed09b18365ed295d722d0b5ed59c01b79a826ff2d2a8f73d5ecca8e6fb2f66"
+dependencies = [
+ "android_log-sys",
+ "env_logger",
+ "lazy_static",
+ "log",
+]
+
+[[package]]
 name = "anyhow"
 version = "1.0.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -151,7 +169,7 @@ dependencies = [
 [[package]]
 name = "audioipc"
 version = "0.2.5"
-source = "git+https://github.com/mozilla/audioipc-2?rev=7537bfadad2e981577eb75e4f13662fc517e1a09#7537bfadad2e981577eb75e4f13662fc517e1a09"
+source = "git+https://github.com/mozilla/audioipc-2?rev=8bb1a227fbaa5677458bcd876162b65307df38c2#8bb1a227fbaa5677458bcd876162b65307df38c2"
 dependencies = [
  "ashmem",
  "audio_thread_priority",
@@ -180,7 +198,7 @@ dependencies = [
 [[package]]
 name = "audioipc-client"
 version = "0.4.0"
-source = "git+https://github.com/mozilla/audioipc-2?rev=7537bfadad2e981577eb75e4f13662fc517e1a09#7537bfadad2e981577eb75e4f13662fc517e1a09"
+source = "git+https://github.com/mozilla/audioipc-2?rev=8bb1a227fbaa5677458bcd876162b65307df38c2#8bb1a227fbaa5677458bcd876162b65307df38c2"
 dependencies = [
  "audio_thread_priority",
  "audioipc",
@@ -194,7 +212,7 @@ dependencies = [
 [[package]]
 name = "audioipc-server"
 version = "0.2.3"
-source = "git+https://github.com/mozilla/audioipc-2?rev=7537bfadad2e981577eb75e4f13662fc517e1a09#7537bfadad2e981577eb75e4f13662fc517e1a09"
+source = "git+https://github.com/mozilla/audioipc-2?rev=8bb1a227fbaa5677458bcd876162b65307df38c2#8bb1a227fbaa5677458bcd876162b65307df38c2"
 dependencies = [
  "audio_thread_priority",
  "audioipc",
@@ -487,15 +505,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cast"
-version = "0.2.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc38c385bfd7e444464011bb24820f40dd1c76bcdfa1b78611cb7c2e5cafab75"
-dependencies = [
- "rustc_version",
-]
-
-[[package]]
 name = "cc"
 version = "1.0.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -777,7 +786,7 @@ name = "cranelift-bforest"
 version = "0.74.0"
 source = "git+https://github.com/bytecodealliance/wasmtime?rev=824fa69756523f2b6d49029fe25de94130b1f144#824fa69756523f2b6d49029fe25de94130b1f144"
 dependencies = [
- "cranelift-entity 0.74.0",
+ "cranelift-entity",
 ]
 
 [[package]]
@@ -788,7 +797,7 @@ dependencies = [
  "cranelift-bforest",
  "cranelift-codegen-meta",
  "cranelift-codegen-shared",
- "cranelift-entity 0.74.0",
+ "cranelift-entity",
  "log",
  "regalloc",
  "smallvec",
@@ -801,18 +810,13 @@ version = "0.74.0"
 source = "git+https://github.com/bytecodealliance/wasmtime?rev=824fa69756523f2b6d49029fe25de94130b1f144#824fa69756523f2b6d49029fe25de94130b1f144"
 dependencies = [
  "cranelift-codegen-shared",
- "cranelift-entity 0.74.0",
+ "cranelift-entity",
 ]
 
 [[package]]
 name = "cranelift-codegen-shared"
 version = "0.74.0"
 source = "git+https://github.com/bytecodealliance/wasmtime?rev=824fa69756523f2b6d49029fe25de94130b1f144#824fa69756523f2b6d49029fe25de94130b1f144"
-
-[[package]]
-name = "cranelift-entity"
-version = "0.41.0"
-source = "git+https://github.com/PLSysSec/lucet_sandbox_compiler?rev=d582d76bf0d17984501f3933688bf7a1eb5cf208#d582d76bf0d17984501f3933688bf7a1eb5cf208"
 
 [[package]]
 name = "cranelift-entity"
@@ -836,7 +840,7 @@ version = "0.74.0"
 source = "git+https://github.com/bytecodealliance/wasmtime?rev=824fa69756523f2b6d49029fe25de94130b1f144#824fa69756523f2b6d49029fe25de94130b1f144"
 dependencies = [
  "cranelift-codegen",
- "cranelift-entity 0.74.0",
+ "cranelift-entity",
  "cranelift-frontend",
  "itertools 0.10.1",
  "log",
@@ -1091,6 +1095,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "4.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e77a43b28d0668df09411cb0bc9a8c2adc40f9a048afe863e05fd43251e8e39c"
+dependencies = [
+ "cfg-if 1.0.0",
+ "num_cpus",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1326,25 +1340,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "failure"
-version = "0.1.8"
-dependencies = [
- "failure_derive",
-]
-
-[[package]]
-name = "failure_derive"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa4da3c766cd7a0db8242e326e9e4e081edd567072893ed320008189715366a4"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
- "synstructure",
-]
-
-[[package]]
 name = "fake-simd"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1562,6 +1557,7 @@ dependencies = [
  "cstr",
  "fog",
  "glean",
+ "glean-ffi",
  "log",
  "nserror",
  "nsstring",
@@ -2026,7 +2022,6 @@ dependencies = [
  "processtools",
  "profiler_helper",
  "qcms",
- "rlbox_lucet_sandbox",
  "rsdparsa_capi",
  "rusqlite",
  "rust_minidump_writer_linux",
@@ -2073,9 +2068,9 @@ dependencies = [
 
 [[package]]
 name = "glean"
-version = "39.0.0"
+version = "40.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8e24825d3123194a212e3daf8ddac150713cec4f1e126dc3c12ba207f0b5d77"
+checksum = "4467acdfed9d396d5c8c1f47c658c6781476cfbb2e73a3c985e40204a9f4d350"
 dependencies = [
  "chrono",
  "crossbeam-channel 0.5.1",
@@ -2093,9 +2088,9 @@ dependencies = [
 
 [[package]]
 name = "glean-core"
-version = "39.0.0"
+version = "40.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1a31d189a28ffde9bfcc7ab26586ee2b81705f0b95bf7a090b67fab1f378782"
+checksum = "a78e1fedc285fbf042f8f4f48281799c87f7715ad1ad9dabbfb57b09094cbaf5"
 dependencies = [
  "bincode",
  "chrono",
@@ -2109,6 +2104,25 @@ dependencies = [
  "time",
  "uuid",
  "zeitstempel",
+]
+
+[[package]]
+name = "glean-ffi"
+version = "40.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0da7ce4e6115c834a8da23c9978e007c047284eb136689d76538ecb0ef6ff69c"
+dependencies = [
+ "android_logger",
+ "env_logger",
+ "ffi-support",
+ "glean-core",
+ "libc",
+ "log",
+ "once_cell",
+ "oslog",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -2517,7 +2531,7 @@ dependencies = [
 [[package]]
 name = "jsparagus"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 dependencies = [
  "jsparagus-ast",
  "jsparagus-emitter",
@@ -2531,7 +2545,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-ast"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 dependencies = [
  "bumpalo",
  "indexmap",
@@ -2540,7 +2554,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-emitter"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 dependencies = [
  "bumpalo",
  "byteorder",
@@ -2553,7 +2567,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-generated-parser"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 dependencies = [
  "bumpalo",
  "jsparagus-ast",
@@ -2563,12 +2577,12 @@ dependencies = [
 [[package]]
 name = "jsparagus-json-log"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 
 [[package]]
 name = "jsparagus-parser"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 dependencies = [
  "arrayvec",
  "bumpalo",
@@ -2580,7 +2594,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-scope"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 dependencies = [
  "indexmap",
  "jsparagus-ast",
@@ -2590,7 +2604,7 @@ dependencies = [
 [[package]]
 name = "jsparagus-stencil"
 version = "0.1.0"
-source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=a45ca99e5be2062780032152a6daf94f29a307d3#a45ca99e5be2062780032152a6daf94f29a307d3"
+source = "git+https://github.com/mozilla-spidermonkey/jsparagus?rev=eb250ba0bda3551927a447db0335a309e3f296d3#eb250ba0bda3551927a447db0335a309e3f296d3"
 dependencies = [
  "jsparagus-ast",
 ]
@@ -2846,74 +2860,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51b9bbe6c47d51fc3e1a9b945965946b4c44142ab8792c50835a980d362c2710"
 dependencies = [
  "cfg-if 1.0.0",
-]
-
-[[package]]
-name = "lucet-module-wasmsbx"
-version = "0.1.1"
-source = "git+https://github.com/PLSysSec/lucet_sandbox_compiler?rev=d582d76bf0d17984501f3933688bf7a1eb5cf208#d582d76bf0d17984501f3933688bf7a1eb5cf208"
-dependencies = [
- "bincode",
- "byteorder",
- "cranelift-entity 0.41.0",
- "failure",
- "num-derive",
- "num-traits",
- "object",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "lucet-runtime-internals-wasmsbx"
-version = "0.1.1"
-source = "git+https://github.com/PLSysSec/lucet_sandbox_compiler?rev=d582d76bf0d17984501f3933688bf7a1eb5cf208#d582d76bf0d17984501f3933688bf7a1eb5cf208"
-dependencies = [
- "bincode",
- "bitflags",
- "byteorder",
- "cc",
- "failure",
- "lazy_static",
- "libc",
- "libloading 0.5.2",
- "lucet-module-wasmsbx",
- "memoffset",
- "nix",
- "num-derive",
- "num-traits",
- "raw-cpuid",
- "xfailure",
-]
-
-[[package]]
-name = "lucet-runtime-wasmsbx"
-version = "0.1.1"
-source = "git+https://github.com/PLSysSec/lucet_sandbox_compiler?rev=d582d76bf0d17984501f3933688bf7a1eb5cf208#d582d76bf0d17984501f3933688bf7a1eb5cf208"
-dependencies = [
- "cc",
- "libc",
- "lucet-module-wasmsbx",
- "lucet-runtime-internals-wasmsbx",
- "num-derive",
- "num-traits",
-]
-
-[[package]]
-name = "lucet-wasi-wasmsbx"
-version = "0.1.1"
-source = "git+https://github.com/PLSysSec/lucet_sandbox_compiler?rev=d582d76bf0d17984501f3933688bf7a1eb5cf208#d582d76bf0d17984501f3933688bf7a1eb5cf208"
-dependencies = [
- "cast",
- "failure",
- "lazy_static",
- "libc",
- "lucet-module-wasmsbx",
- "lucet-runtime-internals-wasmsbx",
- "lucet-runtime-wasmsbx",
- "mach",
- "nix",
- "rand",
 ]
 
 [[package]]
@@ -3573,9 +3519,7 @@ version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3c61759aa254402e53c79a68dc519cda1ceee2ff2b6d70b3e58bf64ac2f03e3"
 dependencies = [
- "flate2",
  "goblin",
- "parity-wasm",
  "scroll",
  "target-lexicon 0.9.0",
  "uuid",
@@ -3621,6 +3565,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "oslog"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8343ce955f18e7e68c0207dd0ea776ec453035685395ababd2ea651c569728b3"
+dependencies = [
+ "cc",
+ "dashmap",
+ "log",
+]
+
+[[package]]
 name = "ouroboros"
 version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3659,12 +3614,6 @@ source = "git+https://github.com/hsivonen/packed_simd?rev=6a16f954950401b92b4e22
 dependencies = [
  "cfg-if 0.1.10",
 ]
-
-[[package]]
-name = "parity-wasm"
-version = "0.41.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddfc878dac00da22f8f61e7af3157988424567ab01d9920b962ef7dcbd7cd865"
 
 [[package]]
 name = "parking_lot"
@@ -4125,17 +4074,6 @@ version = "0.1.2"
 source = "git+https://github.com/gfx-rs/gfx?rev=27a1dae3796d33d23812f2bb8c7e3b5aea18b521#27a1dae3796d33d23812f2bb8c7e3b5aea18b521"
 
 [[package]]
-name = "raw-cpuid"
-version = "7.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beb71f708fe39b2c5e98076204c3cc094ee5a4c12c4cdb119a2b72dc34164f41"
-dependencies = [
- "bitflags",
- "cc",
- "rustc_version",
-]
-
-[[package]]
 name = "raw-window-handle"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4286,19 +4224,6 @@ dependencies = [
  "thiserror",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "rlbox_lucet_sandbox"
-version = "0.1.0"
-source = "git+https://github.com/PLSysSec/rlbox_lucet_sandbox/?rev=5c8e79048d3ff6f434109e19d4aee4ff8624d3d7#5c8e79048d3ff6f434109e19d4aee4ff8624d3d7"
-dependencies = [
- "failure",
- "goblin",
- "lucet-module-wasmsbx",
- "lucet-runtime-internals-wasmsbx",
- "lucet-runtime-wasmsbx",
- "lucet-wasi-wasmsbx",
 ]
 
 [[package]]
@@ -5891,12 +5816,6 @@ dependencies = [
  "app_units",
  "euclid",
 ]
-
-[[package]]
-name = "xfailure"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da90eac47bf1d7871b75004b9b631d107df15f37669383b23f0b5297bc7516b6"
 
 [[package]]
 name = "xml-rs"

@@ -141,7 +141,7 @@ class GlobalObjectData {
   HeapPtr<JSFunction*> eval;
 
   // Cached shape for new arrays with Array.prototype as prototype.
-  HeapPtr<Shape*> arrayShape;
+  HeapPtr<Shape*> arrayShapeWithDefaultProto;
 
   // Whether the |globalThis| property has been resolved on the global object.
   bool globalThisResolved = false;
@@ -940,11 +940,18 @@ class GlobalObject : public NativeObject {
     data().sourceURLsHolder.unbarrieredSet(nullptr);
   }
 
-  void setArrayShape(Shape* shape) {
-    MOZ_ASSERT(!data().arrayShape);
-    data().arrayShape.init(shape);
+  Shape* maybeArrayShapeWithDefaultProto() const {
+    return data().arrayShapeWithDefaultProto;
   }
-  Shape* maybeArrayShape() const { return data().arrayShape; }
+
+  static Shape* getArrayShapeWithDefaultProto(JSContext* cx) {
+    if (Shape* shape = cx->global()->data().arrayShapeWithDefaultProto;
+        MOZ_LIKELY(shape)) {
+      return shape;
+    }
+    return createArrayShapeWithDefaultProto(cx);
+  }
+  static Shape* createArrayShapeWithDefaultProto(JSContext* cx);
 
   // Returns an object that represents the realm, used by embedder.
   static JSObject* getOrCreateRealmKeyObject(JSContext* cx,

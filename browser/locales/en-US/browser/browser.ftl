@@ -326,7 +326,7 @@ identity-enable-mixed-content-blocking =
     .label = Enable protection
     .accesskey = E
 identity-more-info-link-text =
-    .label = More Information
+    .label = More information
 
 ## Window controls
 
@@ -667,11 +667,9 @@ toolbar-settings-button =
      *[other] Open settings
   }
 
-## More items
-
-more-menu-go-offline =
-  .label = Work Offline
-  .accesskey = k
+toolbar-overflow-customize-button =
+  .label = Customize toolbar…
+  .accesskey = C
 
 ## EME notification panel
 

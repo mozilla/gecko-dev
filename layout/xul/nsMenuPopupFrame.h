@@ -481,21 +481,6 @@ class nsMenuPopupFrame final : public nsBoxFrame,
   // attributes.
   void MoveToAttributePosition();
 
-  /**
-   * Return whether the popup direction should be RTL.
-   * If the popup has an anchor, its direction is the anchor direction.
-   * Otherwise, its the general direction of the UI.
-   *
-   * Return whether the popup direction should be RTL.
-   */
-  bool IsDirectionRTL() const {
-    return mAnchorContent && mAnchorContent->GetPrimaryFrame()
-               ? mAnchorContent->GetPrimaryFrame()
-                         ->StyleVisibility()
-                         ->mDirection == mozilla::StyleDirection::Rtl
-               : StyleVisibility()->mDirection == mozilla::StyleDirection::Rtl;
-  }
-
   // Create a popup view for this frame. The view is added a child of the root
   // view, and is initially hidden.
   void CreatePopupView();
@@ -512,20 +497,33 @@ class nsMenuPopupFrame final : public nsBoxFrame,
   bool ShouldFollowAnchor();
 
  public:
+  /**
+   * Return whether the popup direction should be RTL.
+   * If the popup has an anchor, its direction is the anchor direction.
+   * Otherwise, its the general direction of the UI.
+   *
+   * Return whether the popup direction should be RTL.
+   */
+  bool IsDirectionRTL() const {
+    return mAnchorContent && mAnchorContent->GetPrimaryFrame()
+               ? mAnchorContent->GetPrimaryFrame()
+                         ->StyleVisibility()
+                         ->mDirection == mozilla::StyleDirection::Rtl
+               : StyleVisibility()->mDirection == mozilla::StyleDirection::Rtl;
+  }
+
   bool ShouldFollowAnchor(nsRect& aRect);
 
   // Returns parent menu widget for submenus that are in the same
   // frame hierarchy, it's needed for Linux/Wayland which demands
   // strict popup windows hierarchy.
   nsIWidget* GetParentMenuWidget();
-#ifdef MOZ_WAYLAND
-  // We need following getters for Wayland for calling gdk_window_move_to_rect
+
+  // These are used by Wayland backend.
   nsRect GetAnchorRect() { return mAnchorRect; }
   int GetPopupAlignment() { return mPopupAlignment; }
   int GetPopupAnchor() { return mPopupAnchor; }
-  int GetPopupPosition() { return mPosition; }
   FlipType GetFlipType() { return mFlip; }
-#endif
 
  protected:
   nsString mIncrementalString;  // for incremental typing navigation
@@ -560,9 +558,8 @@ class nsMenuPopupFrame final : public nsBoxFrame,
   nsIntRect mScreenRect;
   // Used for store rectangle which the popup is going to be anchored to,
   // we need that for Wayland
-#ifdef MOZ_WAYLAND
   nsRect mAnchorRect;
-#endif
+
   // If the panel prefers to "slide" rather than resize, then the arrow gets
   // positioned at this offset (along either the x or y axis, depending on
   // mPosition)

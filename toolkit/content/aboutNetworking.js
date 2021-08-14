@@ -82,7 +82,7 @@ function displaySockets(data) {
     let row = document.createElement("tr");
     row.appendChild(col(data.sockets[i].host));
     row.appendChild(col(data.sockets[i].port));
-    row.appendChild(col(data.sockets[i].tcp));
+    row.appendChild(col(data.sockets[i].type));
     row.appendChild(col(data.sockets[i].active));
     row.appendChild(col(data.sockets[i].sent));
     row.appendChild(col(data.sockets[i].received));
@@ -555,7 +555,7 @@ function displayHTTPSRRLookup(data) {
         ? `echConfig="${record.echConfig.echConfig}" `
         : "";
       let ODoHConfig = record.ODoHConfig
-        ? `ODoHConfig="${record.ODoHConfig.ODoHConfig}" `
+        ? `odoh="${record.ODoHConfig.ODoHConfig}" `
         : "";
       let ipv4hint = "";
       let ipv6hint = "";

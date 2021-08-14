@@ -3222,13 +3222,7 @@ class Document : public nsINode,
 
   bool IsInSyncOperation() { return mInSyncOperationCount != 0; }
 
-  void SetIsInSyncOperation(bool aSync) {
-    if (aSync) {
-      ++mInSyncOperationCount;
-    } else {
-      --mInSyncOperationCount;
-    }
-  }
+  void SetIsInSyncOperation(bool aSync);
 
   bool CreatingStaticClone() const { return mCreatingStaticClone; }
 
@@ -5321,6 +5315,7 @@ class AutoWalkBrowsingContextGroup {
   virtual ~AutoWalkBrowsingContextGroup() = default;
 
  protected:
+  void SuppressBrowsingContext(BrowsingContext* aContext);
   void SuppressBrowsingContextGroup(BrowsingContextGroup* aGroup);
   void UnsuppressDocuments() {
     for (const auto& doc : mDocuments) {

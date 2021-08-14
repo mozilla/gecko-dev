@@ -660,13 +660,9 @@
   margin-inline-end: 0;
 }
 
-#urlbar .search-setting-button-compact {
+#urlbar .search-setting-button {
   /* Force empty space before the button */
   margin-inline-start: calc(32px - /* settings start padding */ 8px );
-}
-
-#urlbar .search-one-offs-spacer {
-  flex-grow: 1;
 }
 
 .urlbarView-row[source="bookmarks"] > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-favicon,

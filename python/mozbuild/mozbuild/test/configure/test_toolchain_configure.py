@@ -885,7 +885,13 @@ class OSXToolchainTest(BaseToolchainTest):
     GCC_7_RESULT = LinuxToolchainTest.GCC_7_RESULT
     GXX_7_RESULT = LinuxToolchainTest.GXX_7_RESULT
     SYSROOT_FLAGS = {
-        "flags": PrependFlags(["-isysroot", xcrun("", ("--show-sdk-path",))[1]])
+        "flags": PrependFlags(
+            [
+                "--sysroot",
+                xcrun("", ("--show-sdk-path",))[1],
+                "-mmacosx-version-min=10.12",
+            ]
+        )
     }
 
     def test_clang(self):
