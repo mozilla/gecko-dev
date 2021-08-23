@@ -33,6 +33,11 @@ else:
             "/accessible/other",
         ]
 
+if CONFIG["ACCESSIBILITY"]:
+    IPDL_SOURCES += [
+        "DocAccessibleTypes.ipdlh",
+    ]
+
 EXPORTS.mozilla.a11y += [
     "IPCTypes.h",
 ]

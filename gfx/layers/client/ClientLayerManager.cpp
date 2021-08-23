@@ -34,7 +34,6 @@
 #include "nsTArray.h"     // for AutoTArray
 #include "nsXULAppAPI.h"  // for XRE_GetProcessType, etc
 #include "TiledLayerBuffer.h"
-#include "FrameLayerBuilder.h"  // for FrameLayerbuilder
 #ifdef MOZ_WIDGET_ANDROID
 #  include "AndroidBridge.h"
 #  include "LayerMetricsWrapper.h"
@@ -192,16 +191,6 @@ already_AddRefed<ReadbackLayer> ClientLayerManager::CreateReadbackLayer() {
 
 bool ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget,
                                                     const nsCString& aURL) {
-#ifdef MOZ_DUMP_PAINTING
-  // When we are dump painting, we expect to be able to read the contents of
-  // compositable clients from previous paints inside this layer transaction
-  // before we flush async paints in EndTransactionInternal.
-  // So to work around this flush async paints now.
-  if (gfxEnv::DumpPaint()) {
-    FlushAsyncPaints();
-  }
-#endif
-
   MOZ_ASSERT(mForwarder,
              "ClientLayerManager::BeginTransaction without forwarder");
   if (!mForwarder->IPCOpen()) {
@@ -294,11 +283,6 @@ bool ClientLayerManager::EndTransactionInternal(
     mForwarder->UpdateTextureLocks();
   }
 
-  // Wait for any previous async paints to complete before starting to paint
-  // again. Do this outside the profiler and telemetry block so this doesn't
-  // count as time spent rasterizing.
-  FlushAsyncPaints();
-
   AUTO_PROFILER_TRACING_MARKER("Paint", "Rasterize", GRAPHICS);
   PerfStats::AutoMetricRecording<PerfStats::Metric::Rasterizing> autoRecording;
 
@@ -371,10 +355,6 @@ bool ClientLayerManager::EndTransactionInternal(
   NS_ASSERTION(!aCallback || !mTransactionIncomplete,
                "If callback is not null, transaction must be complete");
 
-  if (gfxPlatform::GetPlatform()->DidRenderingDeviceReset()) {
-    FrameLayerBuilder::InvalidateAllLayers(this);
-  }
-
   if (startTime) {
     PaintTiming& pt = mForwarder->GetPaintTiming();
     pt.rasterMs() = (TimeStamp::Now() - startTime.value()).ToMilliseconds();
@@ -432,9 +412,6 @@ bool ClientLayerManager::EndEmptyTransaction(EndTransactionFlags aFlags) {
     // Return without calling ForwardTransaction. This leaves the
     // ShadowLayerForwarder transaction open; the following
     // EndTransaction will complete it.
-    if (PaintThread::Get() && mQueuedAsyncPaints) {
-      PaintThread::Get()->QueueEndLayerTransaction(nullptr);
-    }
     return false;
   }
   if (mWidget) {
@@ -458,15 +435,6 @@ CompositorBridgeChild* ClientLayerManager::GetCompositorBridgeChild() {
     return CompositorBridgeChild::Get();
   }
   return GetRemoteRenderer();
-}
-
-void ClientLayerManager::FlushAsyncPaints() {
-  AUTO_PROFILER_LABEL_CATEGORY_PAIR(GRAPHICS_FlushingAsyncPaints);
-
-  CompositorBridgeChild* cbc = GetCompositorBridgeChild();
-  if (cbc) {
-    cbc->FlushAsyncPaints();
-  }
 }
 
 void ClientLayerManager::ScheduleComposite() {
@@ -687,14 +655,7 @@ void ClientLayerManager::ForwardTransaction(bool aScheduleComposite) {
     }
   }
 
-  // If there were async paints queued, then we need to notify the paint thread
-  // that we finished queuing async paints so it can schedule a runnable after
-  // all async painting is finished to do a texture sync and unblock the main
-  // thread if it is waiting before doing a new layer transaction.
-  if (mQueuedAsyncPaints) {
-    MOZ_ASSERT(PaintThread::Get());
-    PaintThread::Get()->QueueEndLayerTransaction(syncObject);
-  } else if (syncObject) {
+  if (syncObject) {
     syncObject->Synchronize();
   }
 

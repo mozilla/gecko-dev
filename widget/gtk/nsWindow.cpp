@@ -1282,11 +1282,7 @@ bool nsWindow::IsPopup() {
 bool nsWindow::IsWaylandPopup() { return GdkIsWaylandDisplay() && IsPopup(); }
 
 static nsMenuPopupFrame* GetMenuPopupFrame(nsIFrame* aFrame) {
-  if (aFrame) {
-    nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(aFrame);
-    return menuPopupFrame;
-  }
-  return nullptr;
+  return do_QueryFrame(aFrame);
 }
 
 void nsWindow::AppendPopupToHierarchyList(nsWindow* aToplevelWindow) {
@@ -5403,7 +5399,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
       mDrawToContainer = GdkIsWaylandDisplay() ||
                          (mGtkWindowDecoration == GTK_DECORATION_CLIENT) ||
                          gtk_style_context_has_class(style, "csd");
-      eventWidget = (mDrawToContainer) ? container : mShell;
+      eventWidget = mDrawToContainer ? container : mShell;
 
       // Prevent GtkWindow from painting a background to avoid flickering.
       gtk_widget_set_app_paintable(eventWidget, TRUE);
@@ -6298,15 +6294,16 @@ nsTransparencyMode nsWindow::GetTransparencyMode() {
 }
 
 void nsWindow::SetWindowMouseTransparent(bool aIsTransparent) {
-  if (!mGdkWindow) {
+  GdkWindow* window =
+      mDrawToContainer ? gtk_widget_get_window(mShell) : mGdkWindow;
+  if (!window) {
     return;
   }
 
   cairo_rectangle_int_t emptyRect = {0, 0, 0, 0};
   cairo_region_t* region =
       aIsTransparent ? cairo_region_create_rectangle(&emptyRect) : nullptr;
-
-  gdk_window_input_shape_combine_region(mGdkWindow, region, 0, 0);
+  gdk_window_input_shape_combine_region(window, region, 0, 0);
   if (region) {
     cairo_region_destroy(region);
   }
@@ -6345,7 +6342,7 @@ void nsWindow::UpdateTopLevelOpaqueRegion(void) {
   }
 
   GdkWindow* window =
-      (mDrawToContainer) ? gtk_widget_get_window(mShell) : mGdkWindow;
+      mDrawToContainer ? gtk_widget_get_window(mShell) : mGdkWindow;
   if (!window) {
     return;
   }
@@ -9364,6 +9361,8 @@ void nsWindow::LockAspectRatio(bool aShouldLock) {
   ApplySizeConstraints();
 }
 
+nsWindow* nsWindow::GetFocusedWindow() { return gFocusWindow; }
+
 #ifdef MOZ_WAYLAND
 void nsWindow::SetEGLNativeWindowSize(
     const LayoutDeviceIntSize& aEGLWindowSize) {
@@ -9374,8 +9373,6 @@ void nsWindow::SetEGLNativeWindowSize(
                                             aEGLWindowSize.height);
   moz_container_wayland_set_scale_factor(mContainer);
 }
-
-nsWindow* nsWindow::GetFocusedWindow() { return gFocusWindow; }
 #endif
 
 LayoutDeviceIntSize nsWindow::GetMozContainerSize() {

@@ -966,11 +966,9 @@ class MOZ_STACK_CLASS HTMLEditor::AutoDeleteRangesHandler final {
      *
      * @param aHTMLEditor         The HTMLEditor.
      * @param aStartContent       Start content to look for empty ancestors.
-     * @param aEditingHostElement Current editing host.
      */
     [[nodiscard]] Element* ScanEmptyBlockInclusiveAncestor(
-        const HTMLEditor& aHTMLEditor, nsIContent& aStartContent,
-        Element& aEditingHostElement);
+        const HTMLEditor& aHTMLEditor, nsIContent& aStartContent);
 
     /**
      * ComputeTargetRanges() computes "target ranges" for deleting
@@ -1184,7 +1182,7 @@ nsresult HTMLEditor::AutoDeleteRangesHandler::ComputeRangesToDelete(
     if (startPoint.GetContainerAsContent()) {
       AutoEmptyBlockAncestorDeleter deleter;
       if (deleter.ScanEmptyBlockInclusiveAncestor(
-              aHTMLEditor, *startPoint.GetContainerAsContent(), *editingHost)) {
+              aHTMLEditor, *startPoint.GetContainerAsContent())) {
         nsresult rv = deleter.ComputeTargetRanges(
             aHTMLEditor, aDirectionAndAmount, *editingHost, aRangesToDelete);
         NS_WARNING_ASSERTION(
@@ -1432,7 +1430,7 @@ EditActionResult HTMLEditor::AutoDeleteRangesHandler::Run(
 #endif  // #ifdef DEBUG
       AutoEmptyBlockAncestorDeleter deleter;
       if (deleter.ScanEmptyBlockInclusiveAncestor(
-              aHTMLEditor, *startPoint.GetContainerAsContent(), *editingHost)) {
+              aHTMLEditor, *startPoint.GetContainerAsContent())) {
         EditActionResult result = deleter.Run(aHTMLEditor, aDirectionAndAmount);
         if (result.Failed() || result.Handled()) {
           NS_WARNING_ASSERTION(result.Succeeded(),
@@ -3089,10 +3087,12 @@ bool HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
   MOZ_ASSERT(aHTMLEditor.IsEditActionDataAvailable());
   MOZ_ASSERT(!aRangesToDelete.IsCollapsed());
 
-  mLeftContent = HTMLEditUtils::GetInclusiveAncestorBlockElement(
-      *aRangesToDelete.FirstRangeRef()->GetStartContainer()->AsContent());
-  mRightContent = HTMLEditUtils::GetInclusiveAncestorBlockElement(
-      *aRangesToDelete.FirstRangeRef()->GetEndContainer()->AsContent());
+  mLeftContent = HTMLEditUtils::GetInclusiveAncestorElement(
+      *aRangesToDelete.FirstRangeRef()->GetStartContainer()->AsContent(),
+      HTMLEditUtils::ClosestEditableBlockElement);
+  mRightContent = HTMLEditUtils::GetInclusiveAncestorElement(
+      *aRangesToDelete.FirstRangeRef()->GetEndContainer()->AsContent(),
+      HTMLEditUtils::ClosestEditableBlockElement);
   if (NS_WARN_IF(!mLeftContent) || NS_WARN_IF(!mRightContent)) {
     return false;
   }
@@ -3100,6 +3100,9 @@ bool HTMLEditor::AutoDeleteRangesHandler::AutoBlockElementsJoiner::
     mMode = Mode::DeleteContentInRanges;
     return true;
   }
+  NS_ASSERTION(
+      mLeftContent->GetEditingHost() == mRightContent->GetEditingHost(),
+      "Trying to delete across editing host boundaries");
 
   // If left block and right block are adjuscent siblings and they are same
   // type of elements, we can merge them after deleting the selected contents.
@@ -3599,6 +3602,10 @@ HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodesAndCollapseSelection(
     const EditorDOMPoint& aSelectionStartPoint,
     const EditorDOMPoint& aSelectionEndPoint) {
   MOZ_ASSERT(aHTMLEditor.IsTopLevelEditSubActionDataAvailable());
+  MOZ_ASSERT(EditorUtils::IsEditableContent(
+      *aSelectionStartPoint.ContainerAsContent(), EditorType::HTML));
+  MOZ_ASSERT(EditorUtils::IsEditableContent(
+      *aSelectionEndPoint.ContainerAsContent(), EditorType::HTML));
 
   EditorDOMPoint atCaret(aSelectionStartPoint);
   EditorDOMPoint selectionEndPoint(aSelectionEndPoint);
@@ -3640,7 +3647,11 @@ HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodesAndCollapseSelection(
   }
 
   if (NS_WARN_IF(!atCaret.IsInContentNode()) ||
-      NS_WARN_IF(!selectionEndPoint.IsInContentNode())) {
+      NS_WARN_IF(!selectionEndPoint.IsInContentNode()) ||
+      NS_WARN_IF(!EditorUtils::IsEditableContent(*atCaret.ContainerAsContent(),
+                                                 EditorType::HTML)) ||
+      NS_WARN_IF(!EditorUtils::IsEditableContent(
+          *selectionEndPoint.ContainerAsContent(), EditorType::HTML))) {
     return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
   }
 
@@ -3659,15 +3670,22 @@ HTMLEditor::AutoDeleteRangesHandler::DeleteUnnecessaryNodesAndCollapseSelection(
         NS_SUCCEEDED(rv),
         "AutoDeleteRangesHandler::DeleteNodeIfInvisibleAndEditableTextNode() "
         "failed to remove start node, but ignored");
-    rv = DeleteNodeIfInvisibleAndEditableTextNode(
-        aHTMLEditor, MOZ_KnownLive(*selectionEndPoint.ContainerAsContent()));
-    if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
-      return NS_ERROR_EDITOR_DESTROYED;
+    // If we've not handled the selection end container, and it's still
+    // editable, let's handle it.
+    if (atCaret.ContainerAsContent() !=
+            selectionEndPoint.ContainerAsContent() &&
+        EditorUtils::IsEditableContent(*selectionEndPoint.ContainerAsContent(),
+                                       EditorType::HTML)) {
+      nsresult rv = DeleteNodeIfInvisibleAndEditableTextNode(
+          aHTMLEditor, MOZ_KnownLive(*selectionEndPoint.ContainerAsContent()));
+      if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
+        return NS_ERROR_EDITOR_DESTROYED;
+      }
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rv),
+          "AutoDeleteRangesHandler::DeleteNodeIfInvisibleAndEditableTextNode() "
+          "failed to remove end node, but ignored");
     }
-    NS_WARNING_ASSERTION(
-        NS_SUCCEEDED(rv),
-        "AutoDeleteRangesHandler::DeleteNodeIfInvisibleAndEditableTextNode() "
-        "failed to remove end node, but ignored");
   }
 
   nsresult rv = aHTMLEditor.CollapseSelectionTo(
@@ -3688,7 +3706,7 @@ HTMLEditor::AutoDeleteRangesHandler::DeleteNodeIfInvisibleAndEditableTextNode(
     return NS_OK;
   }
 
-  if (!HTMLEditUtils::IsSimplyEditableNode(*text) ||
+  if (!HTMLEditUtils::IsRemovableFromParentNode(*text) ||
       HTMLEditUtils::IsVisibleTextNode(*text,
                                        aHTMLEditor.GetActiveEditingHost())) {
     return NS_OK;
@@ -4228,12 +4246,12 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::AutoDeleteRangesHandler::
 Result<bool, nsresult> HTMLEditor::AutoDeleteRangesHandler::
     AutoBlockElementsJoiner::AutoInclusiveAncestorBlockElementsJoiner::Prepare(
         const HTMLEditor& aHTMLEditor) {
-  mLeftBlockElement =
-      HTMLEditUtils::GetInclusiveAncestorBlockElementExceptHRElement(
-          mInclusiveDescendantOfLeftBlockElement);
-  mRightBlockElement =
-      HTMLEditUtils::GetInclusiveAncestorBlockElementExceptHRElement(
-          mInclusiveDescendantOfRightBlockElement);
+  mLeftBlockElement = HTMLEditUtils::GetInclusiveAncestorElement(
+      mInclusiveDescendantOfLeftBlockElement,
+      HTMLEditUtils::ClosestEditableBlockElementExceptHRElement);
+  mRightBlockElement = HTMLEditUtils::GetInclusiveAncestorElement(
+      mInclusiveDescendantOfRightBlockElement,
+      HTMLEditUtils::ClosestEditableBlockElementExceptHRElement);
 
   if (NS_WARN_IF(!IsSet())) {
     mCanJoinBlocks = false;
@@ -4553,9 +4571,10 @@ Result<bool, nsresult> HTMLEditor::CanMoveOrDeleteSomethingInHardLine(
   if (nsIContent* childContent = oneLineRange->GetChildAtStartOffset()) {
     if (childContent->IsHTMLElement(nsGkAtoms::br) &&
         childContent->GetParent()) {
-      if (Element* blockElement =
-              HTMLEditUtils::GetInclusiveAncestorBlockElement(
-                  *childContent->GetParent())) {
+      if (const Element* blockElement =
+              HTMLEditUtils::GetInclusiveAncestorElement(
+                  *childContent->GetParent(),
+                  HTMLEditUtils::ClosestBlockElement)) {
         if (HTMLEditUtils::IsEmptyNode(*blockElement)) {
           return false;
         }
@@ -5008,28 +5027,30 @@ nsresult HTMLEditor::DeleteMostAncestorMailCiteElementIfEmpty(
 
 Element* HTMLEditor::AutoDeleteRangesHandler::AutoEmptyBlockAncestorDeleter::
     ScanEmptyBlockInclusiveAncestor(const HTMLEditor& aHTMLEditor,
-                                    nsIContent& aStartContent,
-                                    Element& aEditingHostElement) {
+                                    nsIContent& aStartContent) {
   MOZ_ASSERT(aHTMLEditor.IsEditActionDataAvailable());
+  MOZ_ASSERT(!mEmptyInclusiveAncestorBlockElement);
 
-  // If the editing host is an inline element, bail out early.
-  if (HTMLEditUtils::IsInlineElement(aEditingHostElement)) {
+  // If we are inside an empty block, delete it.
+  // Note: do NOT delete table elements this way.
+  // Note: do NOT delete non-editable block element.
+  Element* editableBlockElement = HTMLEditUtils::GetInclusiveAncestorElement(
+      aStartContent, HTMLEditUtils::ClosestEditableBlockElement);
+  if (!editableBlockElement) {
     return nullptr;
   }
-
-  // If we are inside an empty block, delete it.  Note: do NOT delete table
-  // elements this way.
-  Element* blockElement =
-      HTMLEditUtils::GetInclusiveAncestorBlockElement(aStartContent);
-  if (!blockElement) {
-    return nullptr;
-  }
-  while (blockElement && blockElement != &aEditingHostElement &&
-         !HTMLEditUtils::IsAnyTableElement(blockElement) &&
-         HTMLEditUtils::IsEmptyNode(*blockElement)) {
-    mEmptyInclusiveAncestorBlockElement = blockElement;
-    blockElement = HTMLEditUtils::GetAncestorBlockElement(
-        *mEmptyInclusiveAncestorBlockElement);
+  // XXX Perhaps, this is slow loop.  If empty blocks are nested, then,
+  //     each block checks whether it's empty or not.  However, descendant
+  //     blocks are checked again and again by IsEmptyNode().  Perhaps, it
+  //     should be able to take "known empty element" for avoiding same checks.
+  while (editableBlockElement &&
+         HTMLEditUtils::IsRemovableFromParentNode(*editableBlockElement) &&
+         !HTMLEditUtils::IsAnyTableElement(editableBlockElement) &&
+         HTMLEditUtils::IsEmptyNode(*editableBlockElement)) {
+    mEmptyInclusiveAncestorBlockElement = editableBlockElement;
+    editableBlockElement = HTMLEditUtils::GetAncestorElement(
+        *mEmptyInclusiveAncestorBlockElement,
+        HTMLEditUtils::ClosestEditableBlockElement);
   }
   if (!mEmptyInclusiveAncestorBlockElement) {
     return nullptr;
@@ -5294,11 +5315,14 @@ bool HTMLEditor::AutoDeleteRangesHandler::ExtendRangeToIncludeInvisibleNodes(
     return false;
   }
 
-  // Find current selection common block parent
-  Element* commonAncestorBlock =
-      HTMLEditUtils::GetInclusiveAncestorBlockElement(
-          *aRange.GetClosestCommonInclusiveAncestor()->AsContent());
-  if (NS_WARN_IF(!commonAncestorBlock)) {
+  // Look for the common ancestor's block element.  It's fine that we get
+  // non-editable block element which is ancestor of inline editing host
+  // because the following code checks editing host too.
+  const Element* const maybeNonEditableBlockElement =
+      HTMLEditUtils::GetInclusiveAncestorElement(
+          *aRange.GetClosestCommonInclusiveAncestor()->AsContent(),
+          HTMLEditUtils::ClosestBlockElement);
+  if (NS_WARN_IF(!maybeNonEditableBlockElement)) {
     return false;
   }
 
@@ -5309,7 +5333,7 @@ bool HTMLEditor::AutoDeleteRangesHandler::ExtendRangeToIncludeInvisibleNodes(
   }
 
   // Find previous visible things before start of selection
-  if (atStart.GetContainer() != commonAncestorBlock &&
+  if (atStart.GetContainer() != maybeNonEditableBlockElement &&
       atStart.GetContainer() != editingHost) {
     for (;;) {
       WSScanResult backwardScanFromStartResult =
@@ -5324,7 +5348,8 @@ bool HTMLEditor::AutoDeleteRangesHandler::ExtendRangeToIncludeInvisibleNodes(
       // element boundaries, or if we hit the root.
       if (HTMLEditUtils::IsAnyTableElement(
               backwardScanFromStartResult.GetContent()) ||
-          backwardScanFromStartResult.GetContent() == commonAncestorBlock ||
+          backwardScanFromStartResult.GetContent() ==
+              maybeNonEditableBlockElement ||
           backwardScanFromStartResult.GetContent() == editingHost) {
         break;
       }
@@ -5342,7 +5367,7 @@ bool HTMLEditor::AutoDeleteRangesHandler::ExtendRangeToIncludeInvisibleNodes(
   // selected).
 
   // Find next visible things after end of selection
-  if (atEnd.GetContainer() != commonAncestorBlock &&
+  if (atEnd.GetContainer() != maybeNonEditableBlockElement &&
       atEnd.GetContainer() != editingHost) {
     EditorDOMPoint atFirstInvisibleBRElement;
     for (;;) {
@@ -5376,7 +5401,8 @@ bool HTMLEditor::AutoDeleteRangesHandler::ExtendRangeToIncludeInvisibleNodes(
         // element boundaries, or if we hit the root.
         if (HTMLEditUtils::IsAnyTableElement(
                 forwardScanFromEndResult.GetContent()) ||
-            forwardScanFromEndResult.GetContent() == commonAncestorBlock ||
+            forwardScanFromEndResult.GetContent() ==
+                maybeNonEditableBlockElement ||
             forwardScanFromEndResult.GetContent() == editingHost) {
           break;
         }
@@ -5395,11 +5421,13 @@ bool HTMLEditor::AutoDeleteRangesHandler::ExtendRangeToIncludeInvisibleNodes(
 
     if (atFirstInvisibleBRElement.IsInContentNode()) {
       // Find block node containing invisible `<br>` element.
-      if (RefPtr<Element> brElementParent =
-              HTMLEditUtils::GetInclusiveAncestorBlockElement(
-                  *atFirstInvisibleBRElement.ContainerAsContent())) {
+      if (const RefPtr<const Element> editableBlockContainingBRElement =
+              HTMLEditUtils::GetInclusiveAncestorElement(
+                  *atFirstInvisibleBRElement.ContainerAsContent(),
+                  HTMLEditUtils::ClosestEditableBlockElement)) {
         EditorRawDOMRange range(atStart, atEnd);
-        if (range.Contains(EditorRawDOMPoint(brElementParent))) {
+        if (range.Contains(
+                EditorRawDOMPoint(editableBlockContainingBRElement))) {
           nsresult rv = aRange.SetStartAndEnd(atStart.ToRawRangeBoundary(),
                                               atEnd.ToRawRangeBoundary());
           if (NS_FAILED(rv)) {

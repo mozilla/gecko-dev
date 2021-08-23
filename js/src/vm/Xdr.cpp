@@ -15,13 +15,12 @@
 #include <type_traits>  // std::is_same
 #include <utility>      // std::move
 
-#include "jsapi.h"
-
 #include "builtin/ModuleObject.h"
 #include "debugger/DebugAPI.h"
 #include "frontend/CompilationStencil.h"  // frontend::{CompilationStencil, ExtensibleCompilationStencil, CompilationStencilMerger, BorrowingCompilationStencil}
 #include "frontend/StencilXdr.h"          // frontend::StencilXDR
 #include "js/BuildId.h"                   // JS::BuildIdCharVector
+#include "js/OffThreadScriptCompilation.h"
 #include "vm/JSContext.h"
 #include "vm/JSScript.h"
 #include "vm/SharedStencil.h"  // js::SourceExtent

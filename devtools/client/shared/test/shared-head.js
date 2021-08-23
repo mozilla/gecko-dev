@@ -56,7 +56,6 @@ const {
 } = require("devtools/shared/commands/commands-factory");
 const DevToolsUtils = require("devtools/shared/DevToolsUtils");
 
-const defer = require("devtools/shared/defer");
 const KeyShortcuts = require("devtools/client/shared/key-shortcuts");
 
 const TEST_DIR = gTestPath.substr(0, gTestPath.lastIndexOf("/"));
@@ -411,6 +410,8 @@ var addTab = async function(url, options = {}) {
 
   if (waitForLoad) {
     await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+    // Waiting for presShell helps with test timeouts in webrender platforms.
+    await waitForPresShell(tab.linkedBrowser);
     info("Tab added and finished loading");
   } else {
     info("Tab added");

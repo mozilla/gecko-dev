@@ -25,7 +25,7 @@ extern "C" nsresult ATTRIBUTE_USED PrepareAndDispatch(nsXPTCStubBase* self,
   const uint8_t indexOfJSContext = info->IndexOfJSContext();
 
   uint64_t* ap = args;
-  uint32_t nr_gpr = 1;  // skip one GPR register for 'that'
+  uint32_t nr_gpr = 1;  // skip one GPR register for 'self'
   uint32_t nr_fpr = 0;
   uint64_t value;
 

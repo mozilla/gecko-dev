@@ -167,7 +167,6 @@ SET TIMEOUT: html/cross-origin-embedder-policy/credentialless/resources/dispatch
 SET TIMEOUT: html/editing/dnd/*
 SET TIMEOUT: html/semantics/embedded-content/the-iframe-element/*
 SET TIMEOUT: html/semantics/embedded-content/the-img-element/*
-SET TIMEOUT: html/semantics/interactive-elements/the-popup-element/popup-light-dismiss.tentative.html
 SET TIMEOUT: html/semantics/scripting-1/the-script-element/*
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/0*
 SET TIMEOUT: html/webappapis/dynamic-markup-insertion/opening-the-input-stream/resources/history-frame.html
@@ -180,6 +179,7 @@ SET TIMEOUT: IndexedDB/*
 SET TIMEOUT: infrastructure/*
 SET TIMEOUT: intersection-observer/resources/*
 SET TIMEOUT: intersection-observer/target-in-different-window.html
+SET TIMEOUT: js-self-profiling/resources/profiling-script.js
 SET TIMEOUT: measure-memory/*
 SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html

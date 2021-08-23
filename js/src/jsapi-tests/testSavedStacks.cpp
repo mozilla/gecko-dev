@@ -6,13 +6,12 @@
 
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 
-#include "jsfriendapi.h"
-
 #include "builtin/TestingFunctions.h"
 #include "js/CompilationAndEvaluation.h"  // JS::Evaluate
 #include "js/Exception.h"
 #include "js/SavedFrameAPI.h"
 #include "js/SourceText.h"  // JS::Source{Ownership,Text}
+#include "js/Stack.h"
 #include "jsapi-tests/tests.h"
 #include "util/Text.h"
 #include "vm/ArrayObject.h"

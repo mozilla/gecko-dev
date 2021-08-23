@@ -4,6 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "vm/Runtime.h"
+
 #include "mozilla/Atomics.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/MemoryReporting.h"
@@ -32,6 +34,7 @@
 #include "js/AllocationLogging.h"  // JS_COUNT_CTOR, JS_COUNT_DTOR
 #include "js/Date.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
+#include "js/Interrupt.h"
 #include "js/MemoryMetrics.h"
 #include "js/SliceBudget.h"
 #include "js/Wrapper.h"

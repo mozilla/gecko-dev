@@ -1241,6 +1241,13 @@ public abstract class TreeBuilder<T> implements TokenHandler,
         }
     }
 
+    /**
+     * @see nu.validator.htmlparser.common.TokenHandler#zeroOrReplacementCharacter()
+     */
+    public void zeroOrReplacementCharacter() throws SAXException {
+        zeroOriginatingReplacementCharacter();
+    }
+
     public final void eof() throws SAXException {
         flushCharacters();
         // Note: Can't attach error messages to EOF in C++ yet
@@ -1351,7 +1358,7 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                         break eofloop;
                     }
                     if (errorHandler != null) {
-                        errUnclosedElements(eltPos, "template");
+                        errListUnclosedStartTags(0);
                     }
                     while (currentPtr >= eltPos) {
                         pop();
@@ -3884,7 +3891,7 @@ public abstract class TreeBuilder<T> implements TokenHandler,
             errStrayEndTag("template");
             return;
         }
-        generateImpliedEndTags();
+        generateImpliedEndTagsThoroughly();
         if (errorHandler != null && !isCurrent("template")) {
             errUnclosedElements(eltPos, "template");
         }
@@ -3898,8 +3905,9 @@ public abstract class TreeBuilder<T> implements TokenHandler,
 
     private int findLastInTableScopeOrRootTemplateTbodyTheadTfoot() {
         for (int i = currentPtr; i > 0; i--) {
-            if (stack[i].getGroup() == TreeBuilder.TBODY_OR_THEAD_OR_TFOOT ||
-                    stack[i].getGroup() == TreeBuilder.TEMPLATE) {
+            if (stack[i].ns == "http://www.w3.org/1999/xhtml"
+                    && (stack[i].getGroup() == TreeBuilder.TBODY_OR_THEAD_OR_TFOOT
+                            || stack[i].getGroup() == TreeBuilder.TEMPLATE)) {
                 return i;
             }
         }
@@ -4017,6 +4025,29 @@ public abstract class TreeBuilder<T> implements TokenHandler,
                 case OPTGROUP:
                 case RB_OR_RTC:
                 case RT_OR_RP:
+                    pop();
+                    continue;
+                default:
+                    return;
+            }
+        }
+    }
+
+    private void generateImpliedEndTagsThoroughly() throws SAXException {
+        for (;;) {
+            switch (stack[currentPtr].getGroup()) {
+                case CAPTION:
+                case COLGROUP:
+                case DD_OR_DT:
+                case LI:
+                case OPTGROUP:
+                case OPTION:
+                case P:
+                case RB_OR_RTC:
+                case RT_OR_RP:
+                case TBODY_OR_THEAD_OR_TFOOT:
+                case TD_OR_TH:
+                case TR:
                     pop();
                     continue;
                 default:
@@ -4667,7 +4698,7 @@ public abstract class TreeBuilder<T> implements TokenHandler,
 
     private int findLastOrRoot(int group) {
         for (int i = currentPtr; i > 0; i--) {
-            if (stack[i].getGroup() == group) {
+            if (stack[i].ns == "http://www.w3.org/1999/xhtml" && stack[i].getGroup() == group) {
                 return i;
             }
         }

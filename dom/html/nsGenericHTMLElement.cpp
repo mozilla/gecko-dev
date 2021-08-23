@@ -73,6 +73,7 @@
 #include "nsLayoutUtils.h"
 #include "mozAutoDocUpdate.h"
 #include "nsHtml5Module.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/ElementInlines.h"
 #include "HTMLFieldSetElement.h"
 #include "nsTextNode.h"
@@ -1712,8 +1713,6 @@ void nsGenericHTMLFormElement::ClearForm(bool aRemoveFromForm,
   AfterClearForm(aUnbindOrDelete);
 }
 
-HTMLFormElement* nsGenericHTMLFormElement::GetFormElement() { return mForm; }
-
 HTMLFieldSetElement* nsGenericHTMLFormElement::GetFieldSet() {
   return mFieldSet;
 }
@@ -2409,11 +2408,11 @@ bool nsGenericHTMLElement::IsHTMLFocusable(bool aWithMouse, bool* aIsFocusable,
   return disallowOverridingFocusability;
 }
 
-bool nsGenericHTMLElement::PerformAccesskey(bool aKeyCausesActivation,
-                                            bool aIsTrustedEvent) {
+Result<bool, nsresult> nsGenericHTMLElement::PerformAccesskey(
+    bool aKeyCausesActivation, bool aIsTrustedEvent) {
   nsPresContext* presContext = GetPresContext(eForComposedDoc);
   if (!presContext) {
-    return false;
+    return Err(NS_ERROR_UNEXPECTED);
   }
 
   // It's hard to say what HTML4 wants us to do in all cases.
@@ -2431,9 +2430,13 @@ bool nsGenericHTMLElement::PerformAccesskey(bool aKeyCausesActivation,
     AutoPopupStatePusher popupStatePusher(
         aIsTrustedEvent ? PopupBlocker::openAllowed : PopupBlocker::openAbused);
     DispatchSimulatedClick(this, aIsTrustedEvent, presContext);
+    return focused;
   }
 
-  return focused;
+  // If the accesskey won't cause the activation and the focus isn't changed,
+  // either. Return error so EventStateManager would try to find next element
+  // to handle the accesskey.
+  return focused ? Result<bool, nsresult>{focused} : Err(NS_ERROR_ABORT);
 }
 
 void nsGenericHTMLElement::HandleKeyboardActivation(

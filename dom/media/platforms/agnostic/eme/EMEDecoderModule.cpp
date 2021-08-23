@@ -89,7 +89,9 @@ class EMEDecryptor : public MediaDataDecoder,
   RefPtr<InitPromise> Init() override {
     MOZ_ASSERT(!mIsShutdown);
     mThread = GetCurrentSerialEventTarget();
-    mThroughputLimiter.emplace(mThread);
+    uint32_t maxThroughputMs = StaticPrefs::media_eme_max_throughput_ms();
+    EME_LOG("EME max-throughput-ms=%" PRIu32, maxThroughputMs);
+    mThroughputLimiter.emplace(mThread, maxThroughputMs);
 
     return mDecoder->Init();
   }
@@ -295,7 +297,8 @@ EMEMediaDataDecoderProxy::EMEMediaDataDecoderProxy(
 EMEMediaDataDecoderProxy::EMEMediaDataDecoderProxy(
     const CreateDecoderParams& aParams,
     already_AddRefed<MediaDataDecoder> aProxyDecoder, CDMProxy* aProxy)
-    : MediaDataDecoderProxy(std::move(aProxyDecoder)),
+    : MediaDataDecoderProxy(std::move(aProxyDecoder),
+                            do_AddRef(GetCurrentSerialEventTarget())),
       mThread(GetCurrentSerialEventTarget()),
       mSamplesWaitingForKey(new SamplesWaitingForKey(
           aProxy, aParams.mType, aParams.mOnWaitingForKeyEvent)),

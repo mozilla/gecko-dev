@@ -51,6 +51,7 @@
 #include "js/MemoryFunctions.h"
 #include "js/MemoryMetrics.h"
 #include "js/Object.h"  // JS::GetClass
+#include "js/RealmIterators.h"
 #include "js/Stream.h"  // JS::AbortSignalIsAborted, JS::InitPipeToHandling
 #include "js/SliceBudget.h"
 #include "js/UbiNode.h"
@@ -1693,6 +1694,12 @@ static void ReportClassStats(const ClassInfo& classInfo, const nsACString& path,
     REPORT_BYTES(path + "objects/malloc-heap/global-data"_ns, KIND_HEAP,
                  classInfo.objectsMallocHeapGlobalData,
                  "Data for global objects.");
+  }
+
+  if (classInfo.objectsMallocHeapGlobalVarNamesSet > 0) {
+    REPORT_BYTES(path + "objects/malloc-heap/global-varnames-set"_ns, KIND_HEAP,
+                 classInfo.objectsMallocHeapGlobalVarNamesSet,
+                 "Set of global names.");
   }
 
   if (classInfo.objectsMallocHeapMisc > 0) {

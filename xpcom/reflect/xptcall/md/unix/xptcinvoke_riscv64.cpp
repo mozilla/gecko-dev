@@ -77,6 +77,9 @@ extern "C" void invoke_copy_to_stack(uint64_t* gpregs, double* fpregs,
       }
     } else if (!s->IsIndirect() && s->type == nsXPTType::T_FLOAT) {
       if (nr_fpr < FPR_COUNT) {
+        // The value in %fa register is already prepared to
+        // be retrieved as a float. Therefore, we pass the
+        // value verbatim, as a double without conversion.
         fpregs[nr_fpr++] = s->val.d;
       } else {
         *((float*)d) = s->val.f;

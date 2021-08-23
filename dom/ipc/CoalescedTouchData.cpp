@@ -6,18 +6,39 @@
 
 #include "CoalescedTouchData.h"
 #include "BrowserChild.h"
+#include "mozilla/dom/PointerEventHandler.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
 
 static const uint32_t sMaxTouchMoveIdentifiers = 10;
 
+void CoalescedTouchData::CreateCoalescedTouchEvent(
+    const WidgetTouchEvent& aEvent) {
+  MOZ_ASSERT(IsEmpty());
+  mCoalescedInputEvent = MakeUnique<WidgetTouchEvent>(aEvent);
+  for (size_t i = 0; i < mCoalescedInputEvent->mTouches.Length(); i++) {
+    const RefPtr<Touch>& touch = mCoalescedInputEvent->mTouches[i];
+    touch->mCoalescedWidgetEvents = MakeAndAddRef<WidgetPointerEventHolder>();
+    // Add an initial event into coalesced events, so
+    // the relevant pointer event would at least contain one coalesced event.
+    WidgetPointerEvent* event =
+        touch->mCoalescedWidgetEvents->mEvents.AppendElement(WidgetPointerEvent(
+            aEvent.IsTrusted(), ePointerMove, aEvent.mWidget));
+    PointerEventHandler::InitPointerEventFromTouch(*event, aEvent, *touch,
+                                                   i == 0);
+    event->mFlags.mBubbles = false;
+    event->mFlags.mCancelable = false;
+  }
+}
+
 void CoalescedTouchData::Coalesce(const WidgetTouchEvent& aEvent,
                                   const ScrollableLayerGuid& aGuid,
                                   const uint64_t& aInputBlockId,
                                   const nsEventStatus& aApzResponse) {
+  MOZ_ASSERT(aEvent.mMessage == eTouchMove);
   if (IsEmpty()) {
-    mCoalescedInputEvent = MakeUnique<WidgetTouchEvent>(aEvent);
+    CreateCoalescedTouchEvent(aEvent);
     mGuid = aGuid;
     mInputBlockId = aInputBlockId;
     mApzResponse = aApzResponse;
@@ -27,11 +48,25 @@ void CoalescedTouchData::Coalesce(const WidgetTouchEvent& aEvent,
     MOZ_ASSERT(mCoalescedInputEvent->mModifiers == aEvent.mModifiers);
     MOZ_ASSERT(mCoalescedInputEvent->mInputSource == aEvent.mInputSource);
 
-    for (const RefPtr<Touch>& touch : aEvent.mTouches) {
-      if (touch->mChanged) {
-        // Get the same touch in the original event
-        RefPtr<Touch> sameTouch = GetTouch(touch->Identifier());
+    for (size_t i = 0; i < aEvent.mTouches.Length(); i++) {
+      const RefPtr<Touch>& touch = aEvent.mTouches[i];
+      // Get the same touch in the original event
+      RefPtr<Touch> sameTouch = GetTouch(touch->Identifier());
+      // The checks in CoalescedTouchData::CanCoalesce ensure it should never
+      // be null.
+      MOZ_ASSERT(sameTouch);
+      MOZ_ASSERT(sameTouch->mCoalescedWidgetEvents);
+      MOZ_ASSERT(!sameTouch->mCoalescedWidgetEvents->mEvents.IsEmpty());
+      if (!sameTouch->Equals(touch)) {
         sameTouch->SetSameAs(touch);
+        WidgetPointerEvent* event =
+            sameTouch->mCoalescedWidgetEvents->mEvents.AppendElement(
+                WidgetPointerEvent(aEvent.IsTrusted(), ePointerMove,
+                                   aEvent.mWidget));
+        PointerEventHandler::InitPointerEventFromTouch(*event, aEvent, *touch,
+                                                       i == 0);
+        event->mFlags.mBubbles = false;
+        event->mFlags.mCancelable = false;
       }
     }
 
@@ -87,7 +122,7 @@ Touch* CoalescedTouchData::GetTouch(int32_t aIdentifier) {
 
 void CoalescedTouchMoveFlusher::WillRefresh(mozilla::TimeStamp aTime) {
   MOZ_ASSERT(mRefreshDriver);
-  mBrowserChild->ProcessPendingColaescedTouchData();
+  mBrowserChild->ProcessPendingCoalescedTouchData();
 }
 
 CoalescedTouchMoveFlusher::CoalescedTouchMoveFlusher(

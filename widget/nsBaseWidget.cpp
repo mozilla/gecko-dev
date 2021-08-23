@@ -11,7 +11,6 @@
 
 #include "BasicLayers.h"
 #include "ClientLayerManager.h"
-#include "FrameLayerBuilder.h"
 #include "GLConsts.h"
 #include "InputData.h"
 #include "LiveResizeListener.h"
@@ -1344,8 +1343,9 @@ already_AddRefed<LayerManager> nsBaseWidget::CreateCompositorSession(
     } else {
       enableWR = enableSWWR = false;
     }
+    MOZ_RELEASE_ASSERT(enableWR);
     bool enableAPZ = UseAPZ();
-    CompositorOptions options(enableAPZ, enableWR, enableSWWR);
+    CompositorOptions options(enableAPZ, enableSWWR);
 
 #ifdef XP_WIN
     if (supportsAcceleration) {
@@ -1371,19 +1371,14 @@ already_AddRefed<LayerManager> nsBaseWidget::CreateCompositorSession(
     options.SetInitiallyPaused(CompositorInitiallyPaused());
 #endif
 
-    RefPtr<LayerManager> lm;
-    if (options.UseWebRender()) {
-      lm = new WebRenderLayerManager(this);
-    } else {
-      lm = new ClientLayerManager(this);
-    }
+    RefPtr<LayerManager> lm = new WebRenderLayerManager(this);
 
     bool retry = false;
     mCompositorSession = gpu->CreateTopLevelCompositor(
         this, lm, GetDefaultScale(), options, UseExternalCompositingSurface(),
         gfx::IntSize(aWidth, aHeight), &retry);
 
-    if (lm->AsWebRenderLayerManager() && mCompositorSession) {
+    if (mCompositorSession) {
       TextureFactoryIdentifier textureFactoryIdentifier;
       nsCString error;
       lm->AsWebRenderLayerManager()->Initialize(
@@ -1396,17 +1391,6 @@ already_AddRefed<LayerManager> nsBaseWidget::CreateCompositorSession(
         // gfxVars::UseDoubleBufferingWithCompositor() is also disabled.
         gfx::GPUProcessManager::Get()->DisableWebRender(
             wr::WebRenderError::INITIALIZE, error);
-      }
-    } else if (lm->AsClientLayerManager() && mCompositorSession) {
-      bool shouldAccelerate = ComputeShouldAccelerate();
-      TextureFactoryIdentifier textureFactoryIdentifier;
-      lm->AsClientLayerManager()->Initialize(
-          mCompositorSession->GetCompositorBridgeChild(), shouldAccelerate,
-          &textureFactoryIdentifier);
-      if (textureFactoryIdentifier.mParentBackend ==
-          LayersBackend::LAYERS_NONE) {
-        DestroyCompositor();
-        lm = nullptr;
       }
     }
 
@@ -1533,11 +1517,7 @@ WindowRenderer* nsBaseWidget::GetWindowRenderer() {
 }
 
 WindowRenderer* nsBaseWidget::CreateBasicLayerManager() {
-  if (StaticPrefs::gfx_basic_layer_manager_force_enabled()) {
-    return new BasicLayerManager(this);
-  } else {
-    return new FallbackRenderer;
-  }
+  return new FallbackRenderer;
 }
 
 CompositorBridgeChild* nsBaseWidget::GetRemoteRenderer() {

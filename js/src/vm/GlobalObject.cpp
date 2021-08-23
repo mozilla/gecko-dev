@@ -6,6 +6,7 @@
 
 #include "vm/GlobalObject.h"
 
+#include "jsapi.h"
 #include "jsdate.h"
 #include "jsexn.h"
 #include "jsfriendapi.h"
@@ -62,7 +63,6 @@
 #include "vm/NumberObject.h"
 #include "vm/PIC.h"
 #include "vm/RegExpStatics.h"
-#include "vm/RegExpStaticsObject.h"
 #include "vm/SelfHosting.h"
 #include "vm/StringObject.h"
 #include "wasm/WasmJS.h"
@@ -662,7 +662,7 @@ GlobalObject* GlobalObject::createInternal(JSContext* cx,
   MOZ_ASSERT(global->isUnqualifiedVarObj());
 
   {
-    auto data = cx->make_unique<GlobalObjectData>();
+    auto data = cx->make_unique<GlobalObjectData>(cx->zone());
     if (!data) {
       return nullptr;
     }
@@ -916,15 +916,27 @@ JSObject* GlobalObject::getOrCreateRealmKeyObject(
 RegExpStatics* GlobalObject::getRegExpStatics(JSContext* cx,
                                               Handle<GlobalObject*> global) {
   MOZ_ASSERT(cx);
-  RegExpStaticsObject* resObj = global->data().regExpStatics;
-  if (!resObj) {
-    resObj = RegExpStatics::create(cx);
-    if (!resObj) {
+
+  if (!global->data().regExpStatics) {
+    auto statics = RegExpStatics::create(cx);
+    if (!statics) {
       return nullptr;
     }
-    global->data().regExpStatics.init(resObj);
+    global->data().regExpStatics = std::move(statics);
   }
-  return resObj->regExpStatics();
+
+  return global->data().regExpStatics.get();
+}
+
+bool GlobalObject::addToVarNames(JSContext* cx, JS::Handle<JSAtom*> name) {
+  MOZ_ASSERT(name);
+
+  if (!data().varNames.put(name)) {
+    ReportOutOfMemory(cx);
+    return false;
+  }
+
+  return true;
 }
 
 /* static */
@@ -1150,7 +1162,14 @@ void GlobalObject::releaseData(JSFreeOp* fop) {
   fop->delete_(this, data, MemoryUse::GlobalObjectData);
 }
 
+GlobalObjectData::GlobalObjectData(Zone* zone) : varNames(zone) {}
+
 void GlobalObjectData::trace(JSTracer* trc) {
+  // Atoms are always tenured.
+  if (!JS::RuntimeHeapIsMinorCollecting()) {
+    varNames.trace(trc);
+  }
+
   for (auto& ctorWithProto : builtinConstructors) {
     TraceNullableEdge(trc, &ctorWithProto.constructor, "global-builtin-ctor");
     TraceNullableEdge(trc, &ctorWithProto.prototype,
@@ -1165,7 +1184,6 @@ void GlobalObjectData::trace(JSTracer* trc) {
 
   TraceNullableEdge(trc, &lexicalEnvironment, "global-lexical-env");
   TraceNullableEdge(trc, &windowProxy, "global-window-proxy");
-  TraceNullableEdge(trc, &regExpStatics, "global-regexp-statics");
   TraceNullableEdge(trc, &intrinsicsHolder, "global-intrinsics-holder");
   TraceNullableEdge(trc, &forOfPICChain, "global-for-of-pic");
   TraceNullableEdge(trc, &sourceURLsHolder, "global-source-urls");
@@ -1174,4 +1192,21 @@ void GlobalObjectData::trace(JSTracer* trc) {
   TraceNullableEdge(trc, &eval, "global-eval");
 
   TraceNullableEdge(trc, &arrayShapeWithDefaultProto, "global-array-shape");
+
+  if (regExpStatics) {
+    regExpStatics->trace(trc);
+  }
+}
+
+void GlobalObjectData::addSizeOfIncludingThis(
+    mozilla::MallocSizeOf mallocSizeOf, JS::ClassInfo* info) const {
+  info->objectsMallocHeapGlobalData += mallocSizeOf(this);
+
+  if (regExpStatics) {
+    info->objectsMallocHeapGlobalData +=
+        regExpStatics->sizeOfIncludingThis(mallocSizeOf);
+  }
+
+  info->objectsMallocHeapGlobalVarNamesSet +=
+      varNames.shallowSizeOfExcludingThis(mallocSizeOf);
 }

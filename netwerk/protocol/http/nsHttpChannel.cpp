@@ -4967,7 +4967,9 @@ nsresult nsHttpChannel::SetupReplacementChannel(nsIURI* newURI,
        "[this=%p newChannel=%p preserveMethod=%d]",
        this, newChannel, preserveMethod));
 
-  if (profiler_can_accept_markers()) {
+  if (!mEndMarkerAdded && profiler_can_accept_markers()) {
+    mEndMarkerAdded = true;
+
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
 
@@ -5476,6 +5478,7 @@ void nsHttpChannel::ContinueCancellingByURLClassifier(nsresult aErrorCode) {
 }
 
 nsresult nsHttpChannel::CancelInternal(nsresult status) {
+  LOG(("nsHttpChannel::CancelInternal [this=%p]\n", this));
   bool channelClassifierCancellationPending =
       !!LoadChannelClassifierCancellationPending();
   if (UrlClassifierFeatureFactory::IsClassifierBlockingErrorCode(status)) {
@@ -5484,6 +5487,29 @@ nsresult nsHttpChannel::CancelInternal(nsresult status) {
 
   mCanceled = true;
   mStatus = NS_FAILED(status) ? status : NS_ERROR_ABORT;
+
+  if (mLastStatusReported && !mEndMarkerAdded && profiler_can_accept_markers()) {
+    // These do allocations/frees/etc; avoid if not active
+    // mLastStatusReported can be null if Cancel is called before we added the
+    // start marker.
+    mEndMarkerAdded = true;
+
+    nsAutoCString requestMethod;
+    GetRequestMethod(requestMethod);
+
+    int32_t priority = PRIORITY_NORMAL;
+    GetPriority(&priority);
+
+    uint64_t size = 0;
+    GetEncodedBodySize(&size);
+
+    profiler_add_network_marker(
+        mURI, requestMethod, priority, mChannelId, NetworkLoadType::LOAD_CANCEL,
+        mLastStatusReported, TimeStamp::Now(), size, mCacheDisposition,
+        mLoadInfo->GetInnerWindowID(), &mTransactionTimings,
+        std::move(mSource));
+  }
+
   if (mProxyRequest) mProxyRequest->Cancel(status);
   CancelNetworkRequest(status);
   mCacheInputStream.CloseAndRelease();
@@ -5683,19 +5709,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
 
   LOG(("nsHttpChannel::AsyncOpen [this=%p]\n", this));
   LogCallingScriptLocation(this);
-
-  mLastStatusReported =
-      TimeStamp::Now();  // in case we enable the profiler after AsyncOpen()
-  if (profiler_can_accept_markers()) {
-    nsAutoCString requestMethod;
-    GetRequestMethod(requestMethod);
-
-    profiler_add_network_marker(
-        mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
-        mChannelCreationTimestamp, mLastStatusReported, 0, mCacheDisposition,
-        mLoadInfo->GetInnerWindowID());
-  }
-
   NS_CompareLoadInfoAndLoadContext(this);
 
 #ifdef DEBUG
@@ -5792,6 +5805,20 @@ nsHttpChannel::AsyncOpen(nsIStreamListener* aListener) {
 }
 
 void nsHttpChannel::AsyncOpenFinal(TimeStamp aTimeStamp) {
+  // We save this timestamp from outside of the if block in case we enable the
+  // profiler after AsyncOpen().
+  mLastStatusReported =
+    TimeStamp::Now();
+  if (profiler_can_accept_markers()) {
+    nsAutoCString requestMethod;
+    GetRequestMethod(requestMethod);
+
+    profiler_add_network_marker(
+        mURI, requestMethod, mPriority, mChannelId, NetworkLoadType::LOAD_START,
+        mChannelCreationTimestamp, mLastStatusReported, 0, mCacheDisposition,
+        mLoadInfo->GetInnerWindowID());
+  }
+
   // Added due to PauseTask/DelayHttpChannel
   if (mLoadGroup) mLoadGroup->AddRequest(this, nullptr);
 
@@ -5998,7 +6025,13 @@ nsresult nsHttpChannel::BeginConnect() {
         altUsedLine.AppendLiteral(":");
         altUsedLine.AppendInt(mapping->AlternatePort());
       }
-      rv = mRequestHead.SetHeader(nsHttp::Alternate_Service_Used, altUsedLine);
+      // Like what we did for 'Authorization' header, we need to do the same for
+      // 'Alt-Used' for avoiding this header being shown in the ServiceWorker
+      // FetchEvent.
+      Unused << mRequestHead.ClearHeader(nsHttp::Alternate_Service_Used);
+      rv = mRequestHead.SetHeader(nsHttp::Alternate_Service_Used, altUsedLine,
+                                  false,
+                                  nsHttpHeaderArray::eVarietyRequestDefault);
       MOZ_ASSERT(NS_SUCCEEDED(rv));
     }
 
@@ -7431,9 +7464,10 @@ nsresult nsHttpChannel::ContinueOnStopRequest(nsresult aStatus, bool aIsFromNet,
 
   MaybeFlushConsoleReports();
 
-  if (profiler_can_accept_markers() && !mRedirectURI) {
-    // Don't include this if we already redirected
+  if (!mEndMarkerAdded && profiler_can_accept_markers()) {
     // These do allocations/frees/etc; avoid if not active
+    mEndMarkerAdded = true;
+
     nsAutoCString requestMethod;
     GetRequestMethod(requestMethod);
 

@@ -54,11 +54,11 @@ use mp4parse::unstable::{
 use mp4parse::AudioCodecSpecific;
 use mp4parse::AvifContext;
 use mp4parse::CodecType;
-use mp4parse::Error;
 use mp4parse::MediaContext;
 // Re-exported so consumers don't have to depend on mp4parse as well
 pub use mp4parse::ParseStrictness;
 use mp4parse::SampleEntry;
+pub use mp4parse::Status as Mp4parseStatus;
 use mp4parse::TrackType;
 use mp4parse::TryBox;
 use mp4parse::TryHashMap;
@@ -74,18 +74,6 @@ struct Box;
 struct HashMap;
 #[allow(dead_code)]
 struct String;
-
-#[repr(C)]
-#[derive(PartialEq, Debug)]
-pub enum Mp4parseStatus {
-    Ok = 0,
-    BadArg = 1,
-    Invalid = 2,
-    Unsupported = 3,
-    Eof = 4,
-    Io = 5,
-    Oom = 6,
-}
 
 #[repr(C)]
 #[derive(PartialEq, Debug)]
@@ -328,16 +316,23 @@ pub struct Mp4parseParser {
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct Mp4parseAvifImageItem {
+    pub coded_data: Mp4parseByteData,
+    pub bits_per_channel: Mp4parseByteData,
+}
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct Mp4parseAvifImage {
-    pub primary_item: Mp4parseByteData,
+    pub primary_image: Mp4parseAvifImageItem,
     /// The size of the image; should never be null unless using permissive parsing
     pub spatial_extents: *const mp4parse::ImageSpatialExtentsProperty,
     pub nclx_colour_information: *const mp4parse::NclxColourInformation,
     pub icc_colour_information: Mp4parseByteData,
     pub image_rotation: mp4parse::ImageRotation,
     pub image_mirror: *const mp4parse::ImageMirror,
-    /// If no alpha item exists, `.length` will be 0 and `.data` will be null
-    pub alpha_item: Mp4parseByteData,
+    /// If no alpha item exists, members' `.length` will be 0 and `.data` will be null
+    pub alpha_image: Mp4parseAvifImageItem,
     pub premultiplied_alpha: bool,
 }
 
@@ -516,39 +511,6 @@ fn mp4parse_new_common_safe<T: Read, P: ContextParser>(
         .and_then(|x| TryBox::try_new(x).map_err(mp4parse::Error::from))
         .map(TryBox::into_raw)
         .map_err(Mp4parseStatus::from)
-}
-
-impl From<mp4parse::Error> for Mp4parseStatus {
-    fn from(error: mp4parse::Error) -> Self {
-        match error {
-            Error::NoMoov | Error::InvalidData(_) => Mp4parseStatus::Invalid,
-            Error::Unsupported(_) => Mp4parseStatus::Unsupported,
-            Error::UnexpectedEOF => Mp4parseStatus::Eof,
-            Error::Io(_) => {
-                // Getting std::io::ErrorKind::UnexpectedEof is normal
-                // but our From trait implementation should have converted
-                // those to our Error::UnexpectedEOF variant.
-                Mp4parseStatus::Io
-            }
-            Error::OutOfMemory => Mp4parseStatus::Oom,
-        }
-    }
-}
-
-impl From<Result<(), Mp4parseStatus>> for Mp4parseStatus {
-    fn from(result: Result<(), Mp4parseStatus>) -> Self {
-        match result {
-            Ok(()) => Mp4parseStatus::Ok,
-            Err(Mp4parseStatus::Ok) => unreachable!(),
-            Err(e) => e,
-        }
-    }
-}
-
-impl From<fallible_collections::TryReserveError> for Mp4parseStatus {
-    fn from(_: fallible_collections::TryReserveError) -> Self {
-        Mp4parseStatus::Oom
-    }
 }
 
 /// Free an `Mp4parseParser*` allocated by `mp4parse_new()`.
@@ -1067,8 +1029,8 @@ fn mp4parse_get_track_video_info_safe(
 /// pointer points to a valid `Mp4parseAvifParser`, and that the avif_image
 /// pointer points to a valid `Mp4parseAvifImage`. If there was not a previous
 /// successful call to `mp4parse_avif_read()`, no guarantees are made as to
-/// the state of `avif_image`. If `avif_image.alpha_item` is set to a
-/// positive `length` and non-null `data`, then the `avif_image` contains an
+/// the state of `avif_image`. If `avif_image.alpha_image.coded_data` is set to
+/// a positive `length` and non-null `data`, then the `avif_image` contains a
 /// valid alpha channel data. Otherwise, the image is opaque.
 #[no_mangle]
 pub unsafe extern "C" fn mp4parse_avif_get_image(
@@ -1092,17 +1054,25 @@ pub fn mp4parse_avif_get_image_safe(
 ) -> mp4parse::Result<Mp4parseAvifImage> {
     let context = parser.context();
 
+    let primary_image = Mp4parseAvifImageItem {
+        coded_data: Mp4parseByteData::with_data(context.primary_item_coded_data()),
+        bits_per_channel: Mp4parseByteData::with_data(context.primary_item_bits_per_channel()?),
+    };
+
+    // If there is no alpha present, all the `Mp4parseByteData`s will be zero length
+    let alpha_image = Mp4parseAvifImageItem {
+        coded_data: Mp4parseByteData::with_data(context.alpha_item_coded_data()),
+        bits_per_channel: Mp4parseByteData::with_data(context.alpha_item_bits_per_channel()?),
+    };
+
     Ok(Mp4parseAvifImage {
-        primary_item: Mp4parseByteData::with_data(context.primary_item()),
+        primary_image,
         spatial_extents: context.spatial_extents_ptr()?,
         nclx_colour_information: context.nclx_colour_information_ptr()?,
         icc_colour_information: Mp4parseByteData::with_data(context.icc_colour_information()?),
         image_rotation: context.image_rotation()?,
         image_mirror: context.image_mirror_ptr()?,
-        alpha_item: context
-            .alpha_item()
-            .map(Mp4parseByteData::with_data)
-            .unwrap_or_default(),
+        alpha_image,
         premultiplied_alpha: context.premultiplied_alpha,
     })
 }

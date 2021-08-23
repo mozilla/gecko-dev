@@ -6,12 +6,11 @@
 
 #include "builtin/WeakMapObject-inl.h"
 
-#include "jsapi.h"
-
 #include "builtin/WeakSetObject.h"
 #include "gc/FreeOp.h"
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
 #include "js/PropertySpec.h"
+#include "js/WeakMap.h"
 #include "vm/JSContext.h"
 #include "vm/SelfHosting.h"
 

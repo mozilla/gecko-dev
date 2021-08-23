@@ -19,6 +19,7 @@
 
 #include <string.h>
 
+#include "jsapi.h"
 #include "jslibmath.h"
 #include "jsmath.h"
 #include "jsnum.h"
@@ -29,8 +30,6 @@
 #include "builtin/Promise.h"
 #include "jit/AtomicOperations.h"
 #include "jit/BaselineJIT.h"
-#include "jit/Ion.h"
-#include "jit/IonAnalysis.h"
 #include "jit/Jit.h"
 #include "jit/JitRuntime.h"
 #include "js/CallAndConstruct.h"  // JS::Construct, JS::IsCallable, JS::IsConstructor
@@ -4837,7 +4836,7 @@ bool js::DeleteNameOperation(JSContext* cx, HandlePropertyName name,
   if (status) {
     // Deleting a name from the global object removes it from [[VarNames]].
     if (pobj == scope && scope->is<GlobalObject>()) {
-      scope->as<GlobalObject>().realm()->removeFromVarNames(name);
+      scope->as<GlobalObject>().removeFromVarNames(name);
     }
   }
 

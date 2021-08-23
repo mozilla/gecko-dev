@@ -120,13 +120,10 @@ class BrowsingContextTargetFront extends TargetMixin(
       const response = await super.attach();
 
       this.targetForm.threadActor = response.threadActor;
-      this.traits = response.traits || {};
 
-      // @backward-compat { version 91 } See trait definition. All references to
-      // _javascriptEnabled can be removed when cleaning this up.
-      if (!this.traits.javascriptEnabledHandledInParent) {
-        this._javascriptEnabled = response.javascriptEnabled;
-      }
+      // @backward-compat { version 93 } Remove this. All the traits are on form and can be accessed
+      // using getTraits.
+      this.traits = response.traits || {};
 
       // xpcshell tests from devtools/server/tests/xpcshell/ are implementing
       // fake BrowsingContextTargetActor which do not expose any console actor.
@@ -135,19 +132,6 @@ class BrowsingContextTargetFront extends TargetMixin(
       }
     })();
     return this._attach;
-  }
-
-  async reconfigure({ options }) {
-    const response = await super.reconfigure({ options });
-
-    if (
-      !this.traits.javascriptEnabledHandledInParent &&
-      typeof options.javascriptEnabled != "undefined"
-    ) {
-      this._javascriptEnabled = options.javascriptEnabled;
-    }
-
-    return response;
   }
 
   async detach() {

@@ -379,6 +379,17 @@ StyleWindowShadow nsMenuPopupFrame::GetShadowStyle() {
   }
 }
 
+void nsMenuPopupFrame::SetPopupState(nsPopupState aState) {
+  mPopupState = aState;
+
+  // Work around https://gitlab.gnome.org/GNOME/gtk/-/issues/4166
+  if (aState == ePopupShown && IS_WAYLAND_DISPLAY()) {
+    if (nsIWidget* widget = GetWidget()) {
+      widget->SetWindowMouseTransparent(mMouseTransparent);
+    }
+  }
+}
+
 NS_IMETHODIMP nsXULPopupShownEvent::Run() {
   nsMenuPopupFrame* popup = do_QueryFrame(mPopup->GetPrimaryFrame());
   // Set the state to visible if the popup is still open.
@@ -486,10 +497,7 @@ void nsMenuPopupFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
 
   bool newMouseTransparent =
       StyleUI()->GetEffectivePointerEvents(this) == StylePointerEvents::None;
-  bool oldMouseTransparent = aOldStyle->StyleUI()->GetEffectivePointerEvents(
-                                 this) == StylePointerEvents::None;
-
-  if (newMouseTransparent != oldMouseTransparent) {
+  if (newMouseTransparent != mMouseTransparent) {
     if (nsIWidget* widget = GetWidget()) {
       widget->SetWindowMouseTransparent(newMouseTransparent);
       mMouseTransparent = newMouseTransparent;

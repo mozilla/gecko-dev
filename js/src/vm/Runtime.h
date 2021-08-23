@@ -22,8 +22,6 @@
 
 #include <algorithm>
 
-#include "jsapi.h"
-
 #include "builtin/AtomicsObject.h"
 #ifdef JS_HAS_INTL_API
 #  include "builtin/intl/SharedIntlData.h"
@@ -34,6 +32,8 @@
 #include "gc/Tracer.h"
 #include "js/AllocationRecording.h"
 #include "js/BuildId.h"  // JS::BuildIdOp
+#include "js/CompilationAndEvaluation.h"
+#include "js/Context.h"
 #include "js/Debug.h"
 #include "js/experimental/CTypes.h"      // JS::CTypesActivityCallback
 #include "js/experimental/SourceHook.h"  // js::SourceHook
@@ -42,16 +42,23 @@
 #include "js/GCVector.h"
 #include "js/HashTable.h"
 #include "js/Initialization.h"
+#include "js/MemoryCallbacks.h"
 #include "js/Modules.h"  // JS::Module{DynamicImport,Metadata,Resolve}Hook
 #ifdef DEBUG
 #  include "js/Proxy.h"  // For AutoEnterPolicy
 #endif
+#include "js/ScriptPrivate.h"
+#include "js/Stack.h"
 #include "js/Stream.h"  // JS::AbortSignalIsAborted
+#include "js/StreamConsumer.h"
 #include "js/Symbol.h"
 #include "js/UniquePtr.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
+#include "js/WaitCallbacks.h"
 #include "js/Warnings.h"  // JS::WarningReporter
+#include "js/WrapperCallbacks.h"
+#include "js/Zone.h"
 #include "threading/Thread.h"
 #include "vm/Caches.h"
 #include "vm/CodeCoverage.h"
@@ -69,6 +76,7 @@
 #include "wasm/WasmTypeDecls.h"
 
 struct JSClass;
+struct JSErrorInterceptor;
 
 namespace js {
 
@@ -1006,7 +1014,7 @@ struct JSRuntime {
     autoWritableJitCodeActive_ = b;
   }
 
-  /* See comment for JS::SetOutOfMemoryCallback in jsapi.h. */
+  /* See comment for JS::SetOutOfMemoryCallback in js/MemoryCallbacks.h. */
   js::MainThreadData<JS::OutOfMemoryCallback> oomCallback;
   js::MainThreadData<void*> oomCallbackData;
 

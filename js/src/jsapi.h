@@ -33,13 +33,18 @@
 #include "js/Class.h"
 #include "js/CompileOptions.h"
 #include "js/Context.h"
+#include "js/Debug.h"
+#include "js/ErrorInterceptor.h"
 #include "js/ErrorReport.h"
 #include "js/Exception.h"
 #include "js/GCAPI.h"
 #include "js/GCVector.h"
+#include "js/GlobalObject.h"
 #include "js/HashTable.h"
 #include "js/Id.h"
+#include "js/Interrupt.h"
 #include "js/MapAndSet.h"
+#include "js/MemoryCallbacks.h"
 #include "js/MemoryFunctions.h"
 #include "js/OffThreadScriptCompilation.h"
 #include "js/Principals.h"
@@ -51,7 +56,11 @@
 #include "js/RealmOptions.h"
 #include "js/RefCounted.h"
 #include "js/RootingAPI.h"
+#include "js/ScriptPrivate.h"
+#include "js/Stack.h"
+#include "js/StreamConsumer.h"
 #include "js/String.h"
+#include "js/TelemetryTimers.h"
 #include "js/TracingAPI.h"
 #include "js/Transcoding.h"
 #include "js/UniquePtr.h"
@@ -59,7 +68,9 @@
 #include "js/Value.h"
 #include "js/ValueArray.h"
 #include "js/Vector.h"
+#include "js/WaitCallbacks.h"
 #include "js/WeakMap.h"
+#include "js/WrapperCallbacks.h"
 #include "js/Zone.h"
 
 /************************************************************************/
@@ -90,57 +101,6 @@ using ScriptVector = JS::GCVector<JSScript*>;
 using StringVector = JS::GCVector<JSString*>;
 
 } /* namespace JS */
-
-/* Callbacks and their arguments. */
-
-/************************************************************************/
-
-// Callback for the embedding to map from a ScriptSourceObject private-value to
-// an object that is exposed as the source "element" in debugger API.  This hook
-// must be infallible, but can return nullptr if no such element exists.
-using JSSourceElementCallback = JSObject* (*)(JSContext*, JS::HandleValue);
-
-using JSInterruptCallback = bool (*)(JSContext*);
-
-/**
- * Callback used to ask the embedding for the cross compartment wrapper handler
- * that implements the desired prolicy for this kind of object in the
- * destination compartment. |obj| is the object to be wrapped. If |existing| is
- * non-nullptr, it will point to an existing wrapper object that should be
- * re-used if possible. |existing| is guaranteed to be a cross-compartment
- * wrapper with a lazily-defined prototype and the correct global. It is
- * guaranteed not to wrap a function.
- */
-using JSWrapObjectCallback = JSObject* (*)(JSContext*, JS::HandleObject,
-                                           JS::HandleObject);
-
-/**
- * Callback used by the wrap hook to ask the embedding to prepare an object
- * for wrapping in a context. This might include unwrapping other wrappers
- * or even finding a more suitable object for the new compartment. If |origObj|
- * is non-null, then it is the original object we are going to swap into during
- * a transplant.
- */
-using JSPreWrapCallback = void (*)(JSContext*, JS::HandleObject,
-                                   JS::HandleObject, JS::HandleObject,
-                                   JS::HandleObject, JS::MutableHandleObject);
-
-struct JSWrapObjectCallbacks {
-  JSWrapObjectCallback wrap;
-  JSPreWrapCallback preWrap;
-};
-
-/**
- * Callback used to intercept JavaScript errors.
- */
-struct JSErrorInterceptor {
-  /**
-   * This method is called whenever an error has been raised from JS code.
-   *
-   * This method MUST be infallible.
-   */
-  virtual void interceptError(JSContext* cx, JS::HandleValue error) = 0;
-};
 
 /************************************************************************/
 
@@ -183,20 +143,6 @@ namespace JS {
 
 extern JS_PUBLIC_API const char* InformalValueTypeName(const JS::Value& v);
 
-/** Timing information for telemetry purposes **/
-struct JSTimers {
-  mozilla::TimeDuration executionTime;       // Total time spent executing
-  mozilla::TimeDuration delazificationTime;  // Total time spent delazifying
-  mozilla::TimeDuration xdrEncodingTime;     // Total time spent XDR encoding
-  mozilla::TimeDuration gcTime;              // Total time spent in GC
-  mozilla::TimeDuration
-      protectTime;  // Total time spent protecting JIT executable memory
-  mozilla::TimeDuration
-      baselineCompileTime;  // Total time spent in baseline compiler
-};
-
-extern JS_PUBLIC_API JSTimers GetJSTimers(JSContext* cx);
-
 } /* namespace JS */
 
 /** True iff fun is the global eval function. */
@@ -209,26 +155,6 @@ extern JS_PUBLIC_API const char* JS_GetImplementationVersion(void);
 
 extern JS_PUBLIC_API void JS_SetWrapObjectCallbacks(
     JSContext* cx, const JSWrapObjectCallbacks* callbacks);
-
-// Set a callback that will be called whenever an error
-// is thrown in this runtime. This is designed as a mechanism
-// for logging errors. Note that the VM makes no attempt to sanitize
-// the contents of the error (so it may contain private data)
-// or to sort out among errors (so it may not be the error you
-// are interested in or for the component in which you are
-// interested).
-//
-// If the callback sets a new error, this new error
-// will replace the original error.
-//
-// May be `nullptr`.
-// This is a no-op if built without NIGHTLY_BUILD.
-extern JS_PUBLIC_API void JS_SetErrorInterceptorCallback(
-    JSRuntime*, JSErrorInterceptor* callback);
-
-// This returns nullptr if built without NIGHTLY_BUILD.
-extern JS_PUBLIC_API JSErrorInterceptor* JS_GetErrorInterceptorCallback(
-    JSRuntime*);
 
 // Examine a value to determine if it is one of the built-in Error types.
 // If so, return the error type.
@@ -321,30 +247,11 @@ extern JS_PUBLIC_API void ProtoKeyToId(JSContext* cx, JSProtoKey key,
 
 extern JS_PUBLIC_API JSProtoKey JS_IdToProtoKey(JSContext* cx, JS::HandleId id);
 
-extern JS_PUBLIC_API bool JS_IsGlobalObject(JSObject* obj);
-
 extern JS_PUBLIC_API JSObject* JS_GlobalLexicalEnvironment(JSObject* obj);
 
 extern JS_PUBLIC_API bool JS_HasExtensibleLexicalEnvironment(JSObject* obj);
 
 extern JS_PUBLIC_API JSObject* JS_ExtensibleLexicalEnvironment(JSObject* obj);
-
-namespace JS {
-
-/**
- * Get the current realm's global. Returns nullptr if no realm has been
- * entered.
- */
-extern JS_PUBLIC_API JSObject* CurrentGlobalOrNull(JSContext* cx);
-
-/**
- * Get the global object associated with an object's realm. The object must not
- * be a cross-compartment wrapper (because CCWs are shared by all realms in the
- * compartment).
- */
-extern JS_PUBLIC_API JSObject* GetNonCCWObjectGlobal(JSObject* obj);
-
-}  // namespace JS
 
 /**
  * Add 'Reflect.parse', a SpiderMonkey extension, to the Reflect object on the
@@ -360,10 +267,6 @@ extern JS_PUBLIC_API bool JS_InitReflectParse(JSContext* cx,
 extern JS_PUBLIC_API bool JS_DefineProfilingFunctions(JSContext* cx,
                                                       JS::HandleObject obj);
 
-/* Defined in vm/Debugger.cpp. */
-extern JS_PUBLIC_API bool JS_DefineDebuggerObject(JSContext* cx,
-                                                  JS::HandleObject obj);
-
 namespace JS {
 
 /**
@@ -377,28 +280,6 @@ extern JS_PUBLIC_API void SetProfileTimelineRecordingEnabled(bool enabled);
 extern JS_PUBLIC_API bool IsProfileTimelineRecordingEnabled();
 
 }  // namespace JS
-
-/**
- * Set the size of the native stack that should not be exceed. To disable
- * stack size checking pass 0.
- *
- * SpiderMonkey allows for a distinction between system code (such as GCs, which
- * may incidentally be triggered by script but are not strictly performed on
- * behalf of such script), trusted script (as determined by
- * JS_SetTrustedPrincipals), and untrusted script. Each kind of code may have a
- * different stack quota, allowing embedders to keep higher-priority machinery
- * running in the face of scripted stack exhaustion by something else.
- *
- * The stack quotas for each kind of code should be monotonically descending,
- * and may be specified with this function. If 0 is passed for a given kind
- * of code, it defaults to the value of the next-highest-priority kind.
- *
- * This function may only be called immediately after the runtime is initialized
- * and before any code is executed and/or interrupts requested.
- */
-extern JS_PUBLIC_API void JS_SetNativeStackQuota(
-    JSContext* cx, size_t systemCodeStackSize,
-    size_t trustedScriptStackSize = 0, size_t untrustedScriptStackSize = 0);
 
 /************************************************************************/
 
@@ -481,68 +362,6 @@ extern JS_PUBLIC_API bool InstanceofOperator(JSContext* cx, HandleObject obj,
 
 extern JS_PUBLIC_API JSObject* JS_GetConstructor(JSContext* cx,
                                                  JS::Handle<JSObject*> proto);
-
-namespace JS {
-
-/**
- * During global creation, we fire notifications to callbacks registered
- * via the Debugger API. These callbacks are arbitrary script, and can touch
- * the global in arbitrary ways. When that happens, the global should not be
- * in a half-baked state. But this creates a problem for consumers that need
- * to set slots on the global to put it in a consistent state.
- *
- * This API provides a way for consumers to set slots atomically (immediately
- * after the global is created), before any debugger hooks are fired. It's
- * unfortunately on the clunky side, but that's the way the cookie crumbles.
- *
- * If callers have no additional state on the global to set up, they may pass
- * |FireOnNewGlobalHook| to JS_NewGlobalObject, which causes that function to
- * fire the hook as its final act before returning. Otherwise, callers should
- * pass |DontFireOnNewGlobalHook|, which means that they are responsible for
- * invoking JS_FireOnNewGlobalObject upon successfully creating the global. If
- * an error occurs and the operation aborts, callers should skip firing the
- * hook. But otherwise, callers must take care to fire the hook exactly once
- * before compiling any script in the global's scope (we have assertions in
- * place to enforce this). This lets us be sure that debugger clients never miss
- * breakpoints.
- */
-enum OnNewGlobalHookOption { FireOnNewGlobalHook, DontFireOnNewGlobalHook };
-
-} /* namespace JS */
-
-extern JS_PUBLIC_API JSObject* JS_NewGlobalObject(
-    JSContext* cx, const JSClass* clasp, JSPrincipals* principals,
-    JS::OnNewGlobalHookOption hookOption, const JS::RealmOptions& options);
-/**
- * Spidermonkey does not have a good way of keeping track of what compartments
- * should be marked on their own. We can mark the roots unconditionally, but
- * marking GC things only relevant in live compartments is hard. To mitigate
- * this, we create a static trace hook, installed on each global object, from
- * which we can be sure the compartment is relevant, and mark it.
- *
- * It is still possible to specify custom trace hooks for global object classes.
- * They can be provided via the RealmOptions passed to JS_NewGlobalObject.
- */
-extern JS_PUBLIC_API void JS_GlobalObjectTraceHook(JSTracer* trc,
-                                                   JSObject* global);
-
-namespace JS {
-
-/**
- * This allows easily constructing a global object without having to deal with
- * JSClassOps, forgetting to add JS_GlobalObjectTraceHook, or forgetting to call
- * JS::InitRealmStandardClasses(). Example:
- *
- *     const JSClass globalClass = { "MyGlobal", JSCLASS_GLOBAL_FLAGS,
- *         &JS::DefaultGlobalClassOps };
- *     JS_NewGlobalObject(cx, &globalClass, ...);
- */
-extern JS_PUBLIC_DATA const JSClassOps DefaultGlobalClassOps;
-
-}  // namespace JS
-
-extern JS_PUBLIC_API void JS_FireOnNewGlobalObject(JSContext* cx,
-                                                   JS::HandleObject global);
 
 extern JS_PUBLIC_API JSObject* JS_NewObject(JSContext* cx,
                                             const JSClass* clasp);
@@ -826,160 +645,6 @@ extern JS_PUBLIC_API JSString* JS_DecompileFunction(
     JSContext* cx, JS::Handle<JSFunction*> fun);
 
 namespace JS {
-
-/**
- * Set a private value associated with a script. Note that this value is shared
- * by all nested scripts compiled from a single source file.
- */
-extern JS_PUBLIC_API void SetScriptPrivate(JSScript* script,
-                                           const JS::Value& value);
-
-/**
- * Get the private value associated with a script. Note that this value is
- * shared by all nested scripts compiled from a single source file.
- */
-extern JS_PUBLIC_API JS::Value GetScriptPrivate(JSScript* script);
-
-/*
- * Return the private value associated with currently executing script or
- * module, or undefined if there is no such script.
- */
-extern JS_PUBLIC_API JS::Value GetScriptedCallerPrivate(JSContext* cx);
-
-/**
- * Hooks called when references to a script private value are created or
- * destroyed. This allows use of a reference counted object as the
- * script private.
- */
-using ScriptPrivateReferenceHook = void (*)(const JS::Value&);
-
-/**
- * Set the script private finalize hook for the runtime to the given function.
- */
-extern JS_PUBLIC_API void SetScriptPrivateReferenceHooks(
-    JSRuntime* rt, ScriptPrivateReferenceHook addRefHook,
-    ScriptPrivateReferenceHook releaseHook);
-
-} /* namespace JS */
-
-extern JS_PUBLIC_API bool JS_CheckForInterrupt(JSContext* cx);
-
-/*
- * These functions allow setting an interrupt callback that will be called
- * from the JS thread some time after any thread triggered the callback using
- * JS_RequestInterruptCallback(cx).
- *
- * To schedule the GC and for other activities the engine internally triggers
- * interrupt callbacks. The embedding should thus not rely on callbacks being
- * triggered through the external API only.
- *
- * Important note: Additional callbacks can occur inside the callback handler
- * if it re-enters the JS engine. The embedding must ensure that the callback
- * is disconnected before attempting such re-entry.
- */
-extern JS_PUBLIC_API bool JS_AddInterruptCallback(JSContext* cx,
-                                                  JSInterruptCallback callback);
-
-extern JS_PUBLIC_API bool JS_DisableInterruptCallback(JSContext* cx);
-
-extern JS_PUBLIC_API void JS_ResetInterruptCallback(JSContext* cx, bool enable);
-
-extern JS_PUBLIC_API void JS_RequestInterruptCallback(JSContext* cx);
-
-extern JS_PUBLIC_API void JS_RequestInterruptCallbackCanWait(JSContext* cx);
-
-namespace JS {
-
-/**
- * The ConsumeStreamCallback is called from an active JSContext, passing a
- * StreamConsumer that wishes to consume the given host object as a stream of
- * bytes with the given MIME type. On failure, the embedding must report the
- * appropriate error on 'cx'. On success, the embedding must call
- * consumer->consumeChunk() repeatedly on any thread until exactly one of:
- *  - consumeChunk() returns false
- *  - the embedding calls consumer->streamEnd()
- *  - the embedding calls consumer->streamError()
- * before JS_DestroyContext(cx) or JS::ShutdownAsyncTasks(cx) is called.
- *
- * Note: consumeChunk(), streamEnd() and streamError() may be called
- * synchronously by ConsumeStreamCallback.
- *
- * When streamEnd() is called, the embedding may optionally pass an
- * OptimizedEncodingListener*, indicating that there is a cache entry associated
- * with this stream that can store an optimized encoding of the bytes that were
- * just streamed at some point in the future by having SpiderMonkey call
- * storeOptimizedEncoding(). Until the optimized encoding is ready, SpiderMonkey
- * will hold an outstanding refcount to keep the listener alive.
- *
- * After storeOptimizedEncoding() is called, on cache hit, the embedding
- * may call consumeOptimizedEncoding() instead of consumeChunk()/streamEnd().
- * The embedding must ensure that the GetOptimizedEncodingBuildId() (see
- * js/BuildId.h) at the time when an optimized encoding is created is the same
- * as when it is later consumed.
- */
-
-using OptimizedEncodingBytes = js::Vector<uint8_t, 0, js::SystemAllocPolicy>;
-using UniqueOptimizedEncodingBytes = js::UniquePtr<OptimizedEncodingBytes>;
-
-class OptimizedEncodingListener {
- protected:
-  virtual ~OptimizedEncodingListener() = default;
-
- public:
-  // SpiderMonkey will hold an outstanding reference count as long as it holds
-  // a pointer to OptimizedEncodingListener.
-  virtual MozExternalRefCountType MOZ_XPCOM_ABI AddRef() = 0;
-  virtual MozExternalRefCountType MOZ_XPCOM_ABI Release() = 0;
-
-  // SpiderMonkey may optionally call storeOptimizedEncoding() after it has
-  // finished processing a streamed resource.
-  virtual void storeOptimizedEncoding(UniqueOptimizedEncodingBytes bytes) = 0;
-};
-
-class JS_PUBLIC_API StreamConsumer {
- protected:
-  // AsyncStreamConsumers are created and destroyed by SpiderMonkey.
-  StreamConsumer() = default;
-  virtual ~StreamConsumer() = default;
-
- public:
-  // Called by the embedding as each chunk of bytes becomes available.
-  // If this function returns 'false', the stream must drop all pointers to
-  // this StreamConsumer.
-  virtual bool consumeChunk(const uint8_t* begin, size_t length) = 0;
-
-  // Called by the embedding when the stream reaches end-of-file, passing the
-  // listener described above.
-  virtual void streamEnd(OptimizedEncodingListener* listener = nullptr) = 0;
-
-  // Called by the embedding when there is an error during streaming. The
-  // given error code should be passed to the ReportStreamErrorCallback on the
-  // main thread to produce the semantically-correct rejection value.
-  virtual void streamError(size_t errorCode) = 0;
-
-  // Called by the embedding *instead of* consumeChunk()/streamEnd() if an
-  // optimized encoding is available from a previous streaming of the same
-  // contents with the same optimized build id.
-  virtual void consumeOptimizedEncoding(const uint8_t* begin,
-                                        size_t length) = 0;
-
-  // Provides optional stream attributes such as base or source mapping URLs.
-  // Necessarily called before consumeChunk(), streamEnd(), streamError() or
-  // consumeOptimizedEncoding(). The caller retains ownership of the strings.
-  virtual void noteResponseURLs(const char* maybeUrl,
-                                const char* maybeSourceMapUrl) = 0;
-};
-
-enum class MimeType { Wasm };
-
-using ConsumeStreamCallback = bool (*)(JSContext*, JS::HandleObject, MimeType,
-                                       StreamConsumer*);
-
-using ReportStreamErrorCallback = void (*)(JSContext*, size_t);
-
-extern JS_PUBLIC_API void InitConsumeStreamCallback(
-    JSContext* cx, ConsumeStreamCallback consume,
-    ReportStreamErrorCallback report);
 
 /**
  * Supply an alternative stack to incorporate into captured SavedFrame
@@ -1277,27 +942,6 @@ class MOZ_RAII AutoHideScriptedCaller {
   JSContext* mContext;
 };
 
-} /* namespace JS */
-
-namespace js {
-
-enum class StackFormat { SpiderMonkey, V8, Default };
-
-/*
- * Sets the format used for stringifying Error stacks.
- *
- * The default format is StackFormat::SpiderMonkey.  Use StackFormat::V8
- * in order to emulate V8's stack formatting.  StackFormat::Default can't be
- * used here.
- */
-extern JS_PUBLIC_API void SetStackFormat(JSContext* cx, StackFormat format);
-
-extern JS_PUBLIC_API StackFormat GetStackFormat(JSContext* cx);
-
-}  // namespace js
-
-namespace JS {
-
 /**
  * Attempt to disable Wasm's usage of reserving a large virtual memory
  * allocation to avoid bounds checking overhead. This must be called before any
@@ -1305,200 +949,6 @@ namespace JS {
  * fail.
  */
 [[nodiscard]] extern JS_PUBLIC_API bool DisableWasmHugeMemory();
-
-/**
- * If a large allocation fails when calling pod_{calloc,realloc}CanGC, the JS
- * engine may call the large-allocation-failure callback, if set, to allow the
- * embedding to flush caches, possibly perform shrinking GCs, etc. to make some
- * room. The allocation will then be retried (and may still fail.) This callback
- * can be called on any thread and must be set at most once in a process.
- */
-
-using LargeAllocationFailureCallback = void (*)();
-
-extern JS_PUBLIC_API void SetProcessLargeAllocationFailureCallback(
-    LargeAllocationFailureCallback afc);
-
-/**
- * Unlike the error reporter, which is only called if the exception for an OOM
- * bubbles up and is not caught, the OutOfMemoryCallback is called immediately
- * at the OOM site to allow the embedding to capture the current state of heap
- * allocation before anything is freed. If the large-allocation-failure callback
- * is called at all (not all allocation sites call the large-allocation-failure
- * callback on failure), it is called before the out-of-memory callback; the
- * out-of-memory callback is only called if the allocation still fails after the
- * large-allocation-failure callback has returned.
- */
-
-using OutOfMemoryCallback = void (*)(JSContext*, void*);
-
-extern JS_PUBLIC_API void SetOutOfMemoryCallback(JSContext* cx,
-                                                 OutOfMemoryCallback cb,
-                                                 void* data);
-
-/**
- * When the JSRuntime is about to block in an Atomics.wait() JS call or in a
- * `wait` instruction in WebAssembly, it can notify the host by means of a call
- * to BeforeWaitCallback.  After the wait, it can notify the host by means of a
- * call to AfterWaitCallback.  Both callbacks must be null, or neither.
- *
- * (If you change the callbacks from null to not-null or vice versa while some
- * thread on the runtime is in a wait, you will be sorry.)
- *
- * The argument to the BeforeWaitCallback is a pointer to uninitialized
- * stack-allocated working memory of size WAIT_CALLBACK_CLIENT_MAXMEM bytes.
- * The caller of SetWaitCallback() must pass the amount of memory it will need,
- * and this amount will be checked against that limit and the process will crash
- * reliably if the check fails.
- *
- * The value returned by the BeforeWaitCallback will be passed to the
- * AfterWaitCallback.
- *
- * The AfterWaitCallback will be called even if the wakeup is spurious and the
- * thread goes right back to waiting again.  Of course the thread will call the
- * BeforeWaitCallback once more before it goes to sleep in this situation.
- */
-
-static constexpr size_t WAIT_CALLBACK_CLIENT_MAXMEM = 32;
-
-using BeforeWaitCallback = void* (*)(uint8_t* memory);
-using AfterWaitCallback = void (*)(void* cookie);
-
-extern JS_PUBLIC_API void SetWaitCallback(JSRuntime* rt,
-                                          BeforeWaitCallback beforeWait,
-                                          AfterWaitCallback afterWait,
-                                          size_t requiredMemory);
-
-/**
- * Capture all frames.
- */
-struct AllFrames {};
-
-/**
- * Capture at most this many frames.
- */
-struct MaxFrames {
-  uint32_t maxFrames;
-
-  explicit MaxFrames(uint32_t max) : maxFrames(max) { MOZ_ASSERT(max > 0); }
-};
-
-/**
- * Capture the first frame with the given principals. By default, do not
- * consider self-hosted frames with the given principals as satisfying the stack
- * capture.
- */
-struct JS_PUBLIC_API FirstSubsumedFrame {
-  JSContext* cx;
-  JSPrincipals* principals;
-  bool ignoreSelfHosted;
-
-  /**
-   * Use the cx's current compartment's principals.
-   */
-  explicit FirstSubsumedFrame(JSContext* cx,
-                              bool ignoreSelfHostedFrames = true);
-
-  explicit FirstSubsumedFrame(JSContext* ctx, JSPrincipals* p,
-                              bool ignoreSelfHostedFrames = true)
-      : cx(ctx), principals(p), ignoreSelfHosted(ignoreSelfHostedFrames) {
-    if (principals) {
-      JS_HoldPrincipals(principals);
-    }
-  }
-
-  // No copying because we want to avoid holding and dropping principals
-  // unnecessarily.
-  FirstSubsumedFrame(const FirstSubsumedFrame&) = delete;
-  FirstSubsumedFrame& operator=(const FirstSubsumedFrame&) = delete;
-
-  FirstSubsumedFrame(FirstSubsumedFrame&& rhs)
-      : principals(rhs.principals), ignoreSelfHosted(rhs.ignoreSelfHosted) {
-    MOZ_ASSERT(this != &rhs, "self move disallowed");
-    rhs.principals = nullptr;
-  }
-
-  FirstSubsumedFrame& operator=(FirstSubsumedFrame&& rhs) {
-    new (this) FirstSubsumedFrame(std::move(rhs));
-    return *this;
-  }
-
-  ~FirstSubsumedFrame() {
-    if (principals) {
-      JS_DropPrincipals(cx, principals);
-    }
-  }
-};
-
-using StackCapture = mozilla::Variant<AllFrames, MaxFrames, FirstSubsumedFrame>;
-
-/**
- * Capture the current call stack as a chain of SavedFrame JSObjects, and set
- * |stackp| to the SavedFrame for the youngest stack frame, or nullptr if there
- * are no JS frames on the stack.
- *
- * The |capture| parameter describes the portion of the JS stack to capture:
- *
- *   * |JS::AllFrames|: Capture all frames on the stack.
- *
- *   * |JS::MaxFrames|: Capture no more than |JS::MaxFrames::maxFrames| from the
- *      stack.
- *
- *   * |JS::FirstSubsumedFrame|: Capture the first frame whose principals are
- *     subsumed by |JS::FirstSubsumedFrame::principals|. By default, do not
- *     consider self-hosted frames; this can be controlled via the
- *     |JS::FirstSubsumedFrame::ignoreSelfHosted| flag. Do not capture any async
- *     stack.
- */
-extern JS_PUBLIC_API bool CaptureCurrentStack(
-    JSContext* cx, MutableHandleObject stackp,
-    StackCapture&& capture = StackCapture(AllFrames()));
-
-/**
- * Returns true if capturing stack trace data to associate with an asynchronous
- * operation is currently enabled for the current context realm.
- *
- * Users should check this state before capturing a stack that will be passed
- * back to AutoSetAsyncStackForNewCalls later, in order to avoid capturing a
- * stack for async use when we don't actually want to capture it.
- */
-extern JS_PUBLIC_API bool IsAsyncStackCaptureEnabledForRealm(JSContext* cx);
-
-/*
- * This is a utility function for preparing an async stack to be used
- * by some other object.  This may be used when you need to treat a
- * given stack trace as an async parent.  If you just need to capture
- * the current stack, async parents and all, use CaptureCurrentStack
- * instead.
- *
- * Here |asyncStack| is the async stack to prepare.  It is copied into
- * |cx|'s current compartment, and the newest frame is given
- * |asyncCause| as its asynchronous cause.  If |maxFrameCount| is
- * |Some(n)|, capture at most the youngest |n| frames.  The
- * new stack object is written to |stackp|.  Returns true on success,
- * or sets an exception and returns |false| on error.
- */
-extern JS_PUBLIC_API bool CopyAsyncStack(
-    JSContext* cx, HandleObject asyncStack, HandleString asyncCause,
-    MutableHandleObject stackp, const mozilla::Maybe<size_t>& maxFrameCount);
-
-/**
- * Given a SavedFrame JSObject stack, stringify it in the same format as
- * Error.prototype.stack. The stringified stack out parameter is placed in the
- * cx's compartment. Defaults to the empty string.
- *
- * The same notes above about SavedFrame accessors applies here as well: cx
- * doesn't need to be in stack's compartment, and stack can be null, a
- * SavedFrame object, or a wrapper (CCW or Xray) around a SavedFrame object.
- * SavedFrames not subsumed by |principals| are skipped.
- *
- * Optional indent parameter specifies the number of white spaces to indent
- * each line.
- */
-extern JS_PUBLIC_API bool BuildStackString(
-    JSContext* cx, JSPrincipals* principals, HandleObject stack,
-    MutableHandleString stringp, size_t indent = 0,
-    js::StackFormat stackFormat = js::StackFormat::Default);
 
 /**
  * Return true iff the given object is either a SavedFrame object or wrapper
@@ -1521,12 +971,6 @@ namespace js {
  * breakpad injector, which (if loaded) will suppress minidump generation.
  */
 extern JS_PUBLIC_API void NoteIntentionalCrash();
-
-} /* namespace js */
-
-namespace js {
-
-enum class CompletionKind { Normal, Return, Throw };
 
 } /* namespace js */
 

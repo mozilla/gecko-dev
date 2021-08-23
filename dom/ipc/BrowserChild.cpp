@@ -19,7 +19,6 @@
 #include "ContentChild.h"
 #include "DocumentInlines.h"
 #include "EventStateManager.h"
-#include "FrameLayerBuilder.h"
 #include "Layers.h"
 #include "MMPrinter.h"
 #include "PermissionMessageUtils.h"
@@ -1568,7 +1567,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvStopIMEStateManagement() {
   return IPC_OK();
 }
 
-void BrowserChild::ProcessPendingColaescedTouchData() {
+void BrowserChild::ProcessPendingCoalescedTouchData() {
   MOZ_ASSERT(StaticPrefs::dom_events_coalesce_touchmove());
 
   if (mCoalescedTouchData.IsEmpty()) {
@@ -1915,7 +1914,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealTouchEvent(
 
   if (StaticPrefs::dom_events_coalesce_touchmove()) {
     if (aEvent.mMessage == eTouchEnd || aEvent.mMessage == eTouchStart) {
-      ProcessPendingColaescedTouchData();
+      ProcessPendingCoalescedTouchData();
     }
 
     if (aEvent.mMessage != eTouchMove) {
@@ -1975,11 +1974,9 @@ mozilla::ipc::IPCResult BrowserChild::RecvNormalPriorityRealTouchEvent(
 mozilla::ipc::IPCResult BrowserChild::RecvRealTouchMoveEvent(
     const WidgetTouchEvent& aEvent, const ScrollableLayerGuid& aGuid,
     const uint64_t& aInputBlockId, const nsEventStatus& aApzResponse) {
-  // Only start to coalesce the second touchmove to ensure the first
-  // touchmove isn't overridden by the second one.
   if (StaticPrefs::dom_events_coalesce_touchmove()) {
     ++sConsecutiveTouchMoveCount;
-    if (mCoalescedTouchMoveEventFlusher && sConsecutiveTouchMoveCount > 1) {
+    if (mCoalescedTouchMoveEventFlusher) {
       MOZ_ASSERT(aEvent.mMessage == eTouchMove);
       if (mCoalescedTouchData.IsEmpty() ||
           mCoalescedTouchData.CanCoalesce(aEvent, aGuid, aInputBlockId,
@@ -2000,7 +1997,14 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealTouchMoveEvent(
           return IPC_FAIL_NO_REASON(this);
         }
       }
-      mCoalescedTouchMoveEventFlusher->StartObserver();
+
+      if (sConsecutiveTouchMoveCount > 1) {
+        mCoalescedTouchMoveEventFlusher->StartObserver();
+      } else {
+        // Flush the pending coalesced touch in order to avoid the first
+        // touchmove be overridden by the second one.
+        ProcessPendingCoalescedTouchData();
+      }
       return IPC_OK();
     }
   }
@@ -2719,8 +2723,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvRenderLayers(
   }
 
   if (nsIFrame* root = presShell->GetRootFrame()) {
-    FrameLayerBuilder::InvalidateAllLayersForFrame(
-        nsLayoutUtils::GetDisplayRootFrame(root));
     root->SchedulePaint();
   }
 
@@ -2878,51 +2880,14 @@ bool BrowserChild::CreateRemoteLayerManager(
     mozilla::layers::PCompositorBridgeChild* aCompositorChild) {
   MOZ_ASSERT(aCompositorChild);
 
-  bool success = false;
-  if (mCompositorOptions->UseWebRender()) {
-    success = mPuppetWidget->CreateRemoteLayerManager(
-        [&](LayerManager* aLayerManager) -> bool {
-          MOZ_ASSERT(aLayerManager->AsWebRenderLayerManager());
-          nsCString error;
-          return aLayerManager->AsWebRenderLayerManager()->Initialize(
-              aCompositorChild, wr::AsPipelineId(mLayersId),
-              &mTextureFactoryIdentifier, error);
-        });
-  } else {
-    nsTArray<LayersBackend> ignored;
-    PLayerTransactionChild* shadowManager =
-        aCompositorChild->SendPLayerTransactionConstructor(ignored,
-                                                           GetLayersId());
-    if (shadowManager &&
-        shadowManager->SendGetTextureFactoryIdentifier(
-            &mTextureFactoryIdentifier) &&
-        mTextureFactoryIdentifier.mParentBackend !=
-            LayersBackend::LAYERS_NONE) {
-      success = true;
-    }
-    if (!success) {
-      // Since no LayerManager is associated with the tab's widget, we will
-      // never have an opportunity to destroy the PLayerTransaction on the next
-      // device or compositor reset. Therefore, we make sure to forcefully close
-      // it here. Failure to do so will cause the next layer tree to fail to
-      // attach due since the compositor requires the old layer tree to be
-      // disassociated.
-      if (shadowManager) {
-        static_cast<LayerTransactionChild*>(shadowManager)->Destroy();
-        shadowManager = nullptr;
-      }
-      NS_WARNING("failed to allocate layer transaction");
-    } else {
-      success = mPuppetWidget->CreateRemoteLayerManager(
-          [&](LayerManager* aLayerManager) -> bool {
-            ShadowLayerForwarder* lf = aLayerManager->AsShadowForwarder();
-            lf->SetShadowManager(shadowManager);
-            lf->IdentifyTextureHost(mTextureFactoryIdentifier);
-            return true;
-          });
-    }
-  }
-  return success;
+  return mPuppetWidget->CreateRemoteLayerManager(
+      [&](LayerManager* aLayerManager) -> bool {
+        MOZ_ASSERT(aLayerManager->AsWebRenderLayerManager());
+        nsCString error;
+        return aLayerManager->AsWebRenderLayerManager()->Initialize(
+            aCompositorChild, wr::AsPipelineId(mLayersId),
+            &mTextureFactoryIdentifier, error);
+      });
 }
 
 void BrowserChild::InitAPZState() {
@@ -3213,14 +3178,7 @@ void BrowserChild::ClearCachedResources() {
   }
 }
 
-void BrowserChild::InvalidateLayers() {
-  MOZ_ASSERT(mPuppetWidget);
-  RefPtr<LayerManager> lm =
-      mPuppetWidget->GetWindowRenderer()->AsLayerManager();
-  if (lm) {
-    FrameLayerBuilder::InvalidateAllLayers(lm);
-  }
-}
+void BrowserChild::InvalidateLayers() { MOZ_ASSERT(mPuppetWidget); }
 
 void BrowserChild::SchedulePaint() {
   nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());

@@ -9,7 +9,10 @@
 #include "gdb-tests.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "js/Context.h"
+#include "js/GlobalObject.h"
 #include "js/Initialization.h"
+#include "js/RealmOptions.h"
 #include "js/Warnings.h"  // JS::SetWarningReporter
 
 using namespace JS;

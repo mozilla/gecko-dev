@@ -17,25 +17,35 @@
 static const char hexCharsUpper[] = "0123456789ABCDEF";
 static const char hexCharsUpperLower[] = "0123456789ABCDEFabcdef";
 
-static const int netCharType[256] =
+static const unsigned char netCharType[256] =
     // clang-format off
 /*  Bit 0       xalpha      -- the alphas
 **  Bit 1       xpalpha     -- as xalpha but
 **                             converts spaces to plus and plus to %2B
 **  Bit 3 ...   path        -- as xalphas but doesn't escape '/'
+**  Bit 4 ...   Apple-NSURL -- extra encoding for Apple NSURL compatibility.
+**                             This encoding set is used on encoded URL
+**                             components before converting a URL to an NSURL
+**                             so we don't include '%' to avoid double encoding.
 */
-  /* 0 1 2 3 4 5 6 7 8 9 A B C D E F */
-  {  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,   /* 0x */
-     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,   /* 1x */
-     0,0,0,0,0,0,0,0,0,0,7,4,0,7,7,4,   /* 2x   !"#$%&'()*+,-./  */
-     7,7,7,7,7,7,7,7,7,7,0,0,0,0,0,0,   /* 3x  0123456789:;<=>?  */
-     0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,   /* 4x  @ABCDEFGHIJKLMNO  */
+  /*   0   1   2   3   4   5   6   7   8   9   A   B   C   D   E   F */
+  {  0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0, /* 0x */
+     0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0, /* 1x */
+  /*       !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /        */
+     0x0,0x0,0x0,0x0,0x0,0x8,0x0,0x0,0x0,0x0,0xf,0xc,0x0,0xf,0xf,0xc, /* 2x */
+  /*   0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?        */
+     0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0x0,0x0,0x0,0x0,0x0,0x0, /* 3x */
+  /*   @   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O        */
+     0x0,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf, /* 4x */
      /* bits for '@' changed from 7 to 0 so '@' can be escaped   */
      /* in usernames and passwords in publishing.                */
-     7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,7,   /* 5X  PQRSTUVWXYZ[\]^_  */
-     0,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,   /* 6x  `abcdefghijklmno  */
-     7,7,7,7,7,7,7,7,7,7,7,0,0,0,0,0,   /* 7X  pqrstuvwxyz{\}~  DEL */
-     0,
+  /*   P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _        */
+     0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0x0,0x0,0x0,0x0,0xf, /* 5x */
+  /*   `   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o        */
+     0x0,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf, /* 6x */
+  /*   p   q   r   s   t   u   v   w   x   y   z   {   \   }   ~ DEL        */
+     0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0xf,0x0,0x0,0x0,0x0,0x0, /* 7x */
+     0x0,
   };
 
 /* decode % escaped hex codes into character values
@@ -46,7 +56,7 @@ static const int netCharType[256] =
      ((C >= 'a' && C <= 'f') ? C - 'a' + 10 : 0)))
 // clang-format on
 
-#define IS_OK(C) (netCharType[((unsigned int)(C))] & (aFlags))
+#define IS_OK(C) (netCharType[((unsigned char)(C))] & (aFlags))
 #define HEX_ESCAPE '%'
 
 static const uint32_t ENCODE_MAX_LEN = 6;  // %uABCD

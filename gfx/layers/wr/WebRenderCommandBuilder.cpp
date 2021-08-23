@@ -1584,6 +1584,7 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
 
   {
     wr::StackingContextParams params;
+    params.mRootReferenceFrame = aDisplayListBuilder->RootReferenceFrame();
     params.mFilters = std::move(aFilters.filters);
     params.mFilterDatas = std::move(aFilters.filter_datas);
     params.clip =
@@ -1607,8 +1608,8 @@ void WebRenderCommandBuilder::BuildWebRenderCommands(
       [&aScrollData](ScrollableLayerGuid::ViewID aScrollId) -> bool {
     return aScrollData.HasMetadataFor(aScrollId).isSome();
   };
-  Maybe<ScrollMetadata> rootMetadata = nsLayoutUtils::GetRootMetadata(
-      aDisplayListBuilder, mManager, ContainerLayerParameters(), callback);
+  Maybe<ScrollMetadata> rootMetadata =
+      nsLayoutUtils::GetRootMetadata(aDisplayListBuilder, mManager, callback);
   if (rootMetadata) {
     // Put the fallback root metadata on the rootmost layer that is
     // a matching async zoom container, or the root layer that we just
@@ -1834,13 +1835,25 @@ void WebRenderCommandBuilder::CreateWebRenderCommandsFromDisplayList(
         nsDisplayTransform* deferred = aSc.GetDeferredTransformItem();
         ScrollableLayerGuid::ViewID deferredId =
             ScrollableLayerGuid::NULL_SCROLL_ID;
+        bool transformShouldGetOwnLayer = false;
         if (deferred) {
           if (const auto* asr = deferred->GetActiveScrolledRoot()) {
             deferredId = asr->GetViewId();
           }
+
+          if (deferred->GetActiveScrolledRoot() !=
+              item->GetActiveScrolledRoot()) {
+            transformShouldGetOwnLayer = true;
+          } else if (item->GetType() ==
+                     DisplayItemType::TYPE_SCROLL_INFO_LAYER) {
+            // A scroll info layer has its own scroll id that's not reflected
+            // in item->GetActiveScrolledRoot(), but will be added to the
+            // WebRenderLayerScrollData node, so it needs to be treated as
+            // having a distinct ASR from the deferred transform item.
+            transformShouldGetOwnLayer = true;
+          }
         }
-        if (deferred && deferred->GetActiveScrolledRoot() !=
-                            item->GetActiveScrolledRoot()) {
+        if (transformShouldGetOwnLayer) {
           // This creates the child WebRenderLayerScrollData for |item|, but
           // omits the transform (hence the Nothing() as the last argument to
           // Initialize(...)). We also need to make sure that the ASR from

@@ -75,7 +75,9 @@
 #include "js/friend/DumpFunctions.h"  // js::Dump{Backtrace,Heap,Object}, JS::FormatStackDump, js::IgnoreNurseryObjects
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/friend/WindowProxy.h"    // js::ToWindowProxyIfWindow
+#include "js/GlobalObject.h"
 #include "js/HashTable.h"
+#include "js/Interrupt.h"
 #include "js/LocaleSensitive.h"
 #include "js/OffThreadScriptCompilation.h"  // js::UseOffThreadParseGlobal
 #include "js/Printf.h"
@@ -84,6 +86,7 @@
 #include "js/RegExpFlags.h"  // JS::RegExpFlag, JS::RegExpFlags
 #include "js/SourceText.h"
 #include "js/StableStringChars.h"
+#include "js/Stack.h"
 #include "js/String.h"  // JS::GetLinearStringLength, JS::StringToLinearString
 #include "js/StructuredClone.h"
 #include "js/UbiNode.h"
@@ -198,12 +201,6 @@ static bool GetRealmConfiguration(JSContext* cx, unsigned argc, Value* vp) {
   if (!JS_SetProperty(cx, info, "privateMethods",
                       privateFields && privateMethods ? TrueHandleValue
                                                       : FalseHandleValue)) {
-    return false;
-  }
-
-  bool topLevelAwait = cx->options().topLevelAwait();
-  if (!JS_SetProperty(cx, info, "topLevelAwait",
-                      topLevelAwait ? TrueHandleValue : FalseHandleValue)) {
     return false;
   }
 

@@ -1776,11 +1776,12 @@ os.environment:
   launch_method:
     bug_numbers:
       - 1685213
+      - 1725298
     description: >
       Records how Firefox was started on Windows.
       Currently will be one of "Desktop", "StartMenu" (including pins),
       "Taskbar", "OtherShortcut", or "Other"
-    expires: "94"
+    expires: "100"
     kind: string
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
@@ -1814,8 +1815,9 @@ os.environment:
   is_taskbar_pinned:
     bug_numbers:
       - 1685213
+      - 1725298
     description: Whether this app was pinned to taskbar on startup
-    expires: "94"
+    expires: "100"
     kind: boolean
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
@@ -3194,103 +3196,6 @@ telemetry:
     record_in_processes:
       - all
 
-  state_file_save_errors:
-    bug_numbers:
-      - 1689438
-      - 1700835
-      - 1703343
-    description: >
-      How many times we errored out trying to save state.json
-    expires: "94"
-    kind: uint
-    notification_emails:
-      - chutten@mozilla.com
-    products:
-      - 'firefox'
-    release_channel_collection: opt-out
-    record_in_processes:
-      - main
-
-  generated_new_client_id:
-    bug_numbers:
-      - 1689438
-      - 1700835
-      - 1703343
-    description: >
-      Whether we generated a new client id this subsession.
-    expires: "94"
-    kind: boolean
-    notification_emails:
-      - chutten@mozilla.com
-    products:
-      - 'firefox'
-    release_channel_collection: opt-out
-    record_in_processes:
-      - main
-
-  loaded_client_id_doesnt_match_pref:
-    bug_numbers:
-      - 1689438
-      - 1700835
-      - 1703343
-    description: >
-      How often we loaded a client_id from disk that doesn't match
-      what's cached in the pref.
-    expires: "94"
-    kind: uint
-    notification_emails:
-      - chutten@mozilla.com
-    products:
-      - 'firefox'
-    release_channel_collection: opt-out
-    record_in_processes:
-      - main
-
-  state_file_read_errors:
-    bug_numbers:
-      - 1700835
-    description: >
-      How many times we errored out trying to load state.json
-    expires: "94"
-    kind: uint
-    notification_emails:
-      - chutten@mozilla.com
-    products:
-      - 'firefox'
-    release_channel_collection: opt-out
-    record_in_processes:
-      - main
-
-  using_pref_client_id:
-    bug_numbers:
-      - 1700835
-    description: >
-      How often we loaded the client_id from prefs instead of state.json.
-    expires: "94"
-    kind: uint
-    notification_emails:
-      - chutten@mozilla.com
-    products:
-      - 'firefox'
-    release_channel_collection: opt-out
-    record_in_processes:
-      - main
-
-  removed_client_ids:
-    bug_numbers:
-      - 1700835
-    description: >
-      How many times we removed the client ids.
-    expires: "94"
-    kind: uint
-    notification_emails:
-      - chutten@mozilla.com
-    products:
-      - 'firefox'
-    release_channel_collection: opt-out
-    record_in_processes:
-      - main
-
 
 telemetry.discarded:
   accumulations:
@@ -4015,6 +3920,74 @@ screenshots:
       - jhirsch@mozilla.com
       - ibicking@mozilla.com
       - clouserw@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+      - 'fennec'
+    record_in_processes:
+      - 'main'
+
+  visible:
+    bug_numbers:
+      - 1722774
+    description: >
+      The count of new screenshots created using just the viewport,
+      no scrolling.
+    expires: never
+    kind: uint
+    notification_emails:
+      - screenshots-dev@mozilla.org
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+      - 'fennec'
+    record_in_processes:
+      - 'main'
+
+  full_page:
+    bug_numbers:
+      - 1722774
+    description: >
+      The count of new screenshots created by capturing the full,
+      scrolled page.
+    expires: never
+    kind: uint
+    notification_emails:
+      - screenshots-dev@mozilla.org
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+      - 'fennec'
+    record_in_processes:
+      - 'main'
+
+  custom:
+    bug_numbers:
+      - 1722774
+    description: >
+      The count of new screenshots created using the drag handles
+      to draw the box size and position.
+    expires: never
+    kind: uint
+    notification_emails:
+      - screenshots-dev@mozilla.org
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+      - 'fennec'
+    record_in_processes:
+      - 'main'
+
+  element:
+    bug_numbers:
+      - 1722774
+    description: >
+      The count of new screenshots created using the highlighter
+      to select element bounds.
+    expires: never
+    kind: uint
+    notification_emails:
+      - screenshots-dev@mozilla.org
     release_channel_collection: opt-out
     products:
       - 'firefox'
@@ -5433,13 +5406,14 @@ browser.searchinit:
     bug_numbers:
       - 1665938
       - 1691050
+      - 1725501
     description: >
       Records the WebExtension ID of a search engine where the WebExtension
       is not installed (= 1), disabled (= 2), search engine no longer specified (= 4),
       a different name (= 5), where the submission URL is different between the
       search engine and the WebExtension (= 6). The value '3' has been replaced
       by '6' to distinguish newer entries.
-    expires: "94"
+    expires: "102"
     keyed: true
     kind: uint
     notification_emails:

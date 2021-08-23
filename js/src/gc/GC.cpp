@@ -211,6 +211,7 @@
 #  include <unistd.h>
 #endif
 
+#include "jsapi.h"
 #include "jstypes.h"
 
 #include "builtin/FinalizationRegistryObject.h"
@@ -226,13 +227,13 @@
 #include "gc/ParallelWork.h"
 #include "gc/Policy.h"
 #include "gc/WeakMap.h"
-#include "jit/BaselineJIT.h"
+#include "jit/Assembler.h"
+#include "jit/ExecutableAllocator.h"
 #include "jit/JitCode.h"
-#include "jit/JitcodeMap.h"
 #include "jit/JitRealm.h"
 #include "jit/JitRuntime.h"
 #include "jit/JitZone.h"
-#include "jit/MacroAssembler.h"     // js::jit::CodeAlignment
+#include "jit/ProcessExecutableMemory.h"
 #include "js/HeapAPI.h"             // JS::GCCellPtr
 #include "js/Object.h"              // JS::GetClass
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
@@ -2145,6 +2146,12 @@ bool js::gc::IsCurrentlyAnimating(const TimeStamp& lastAnimationTime,
          currentTime < (lastAnimationTime + oneSecond);
 }
 
+static bool DiscardedCodeRecently(Zone* zone, const TimeStamp& currentTime) {
+  static const auto thirtySeconds = TimeDuration::FromSeconds(30);
+  return !zone->lastDiscardedCodeTime().IsNull() &&
+         currentTime < (zone->lastDiscardedCodeTime() + thirtySeconds);
+}
+
 bool GCRuntime::shouldCompact() {
   // Compact on shrinking GC if enabled.  Skip compacting in incremental GCs
   // if we are currently animating, unless the user is inactive or we're
@@ -2584,7 +2591,6 @@ void GCRuntime::sweepZoneAfterCompacting(MovingTracer* trc, Zone* zone) {
   for (RealmsInZoneIter r(zone); !r.done(); r.next()) {
     r->traceWeakRegExps(trc);
     r->traceWeakSavedStacks(trc);
-    r->tracekWeakVarNames(trc);
     r->traceWeakObjects(trc);
     r->traceWeakSelfHostingScriptSource(trc);
     r->sweepDebugEnvironments();
@@ -4144,7 +4150,8 @@ bool GCRuntime::shouldPreserveJITCode(Realm* realm,
   if (realm->preserveJitCode()) {
     return true;
   }
-  if (IsCurrentlyAnimating(realm->lastAnimationTime, currentTime)) {
+  if (IsCurrentlyAnimating(realm->lastAnimationTime, currentTime) &&
+      DiscardedCodeRecently(realm->zone(), currentTime)) {
     return true;
   }
   if (reason == JS::GCReason::DEBUG_GC) {
@@ -5495,10 +5502,6 @@ void GCRuntime::updateAtomsBitmap() {
   // For convenience sweep these tables non-incrementally as part of bitmap
   // sweeping; they are likely to be much smaller than the main atoms table.
   rt->symbolRegistry().sweep();
-  SweepingTracer trc(rt);
-  for (RealmsIter realm(this); !realm.done(); realm.next()) {
-    realm->tracekWeakVarNames(&trc);
-  }
 }
 
 void GCRuntime::sweepCCWrappers() {

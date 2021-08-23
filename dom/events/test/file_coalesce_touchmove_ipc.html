@@ -14,12 +14,12 @@
   window.addEventListener("touchstart", function(e) { e.preventDefault(); },
                           { passive: false} );
 
-  var touchmoveCount = 0;
-  function touchmove() {
+  var touchmoveEvents = [];
+  function touchmove(e) {
     // Make touchmove handling slow
     var start = performance.now();
     while (performance.now() < (start + 10));
-    ++touchmoveCount;
+    touchmoveEvents.push(e);
   }
 
   async function fireLotsOfSingleTouchMoves() {
@@ -44,11 +44,11 @@
 
       });
 
-      touchmoveCount = 0;
+      touchmoveEvents = [];
       window.addEventListener("touchmove", touchmove, true);
       window.addEventListener("touchend", function(e) {
         window.removeEventListener("touchmove", touchmove, true);
-        resolve(touchmoveCount);
+        resolve(touchmoveEvents);
       }, {once: true});
     });
 
@@ -75,11 +75,11 @@
                              [1], 0, false);
       });
 
-      touchmoveCount = 0;
+      touchmoveEvents = [];
       window.addEventListener("touchmove", touchmove, true);
       window.addEventListener("touchend", function(e) {
         window.removeEventListener("touchmove", touchmove, true);
-        resolve(touchmoveCount);
+        resolve(touchmoveEvents);
       }, {once: true});
     });
 
@@ -110,58 +110,71 @@
 
       });
 
-      touchmoveCount = 0;
+      touchmoveEvents = [];
       window.addEventListener("touchmove", touchmove, true);
       window.addEventListener("touchend", function(e) {
         window.removeEventListener("touchmove", touchmove, true);
-        resolve(touchmoveCount);
+        resolve(touchmoveEvents);
       }, {once: true});
     });
 
     return ret
   }
 
-  function disableCoalescing() {
+  function disableIPCCompression() {
     return SpecialPowers.pushPrefEnv({"set": [["dom.events.compress.touchmove",
                                                false],
                                               ["dom.events.coalesce.touchmove",
                                                false]]});
   }
 
-  function enableCoalescing() {
+  function enableIPCCompression() {
     return SpecialPowers.pushPrefEnv({"set": [["dom.events.compress.touchmove",
                                                true],
                                               ["dom.events.coalesce.touchmove",
-                                               true]]});
+                                               false]]});
   }
 
   async function runTests() {
     document.body.clientTop; // Flush layout
 
-    await disableCoalescing();
+    await disableIPCCompression();
     var touchMovesWithoutCoalescing = await fireLotsOfSingleTouchMoves();
-    await enableCoalescing();
+    await enableIPCCompression();
     var touchMovesWithCoalescing = await fireLotsOfSingleTouchMoves();
-    opener.ok(touchMovesWithoutCoalescing > touchMovesWithCoalescing,
+    opener.ok(touchMovesWithoutCoalescing.length > touchMovesWithCoalescing.length,
               "Coalescing should reduce the number of touchmove events");
+    opener.isDeeply(touchMovesWithoutCoalescing.shift().touches,
+                    touchMovesWithCoalescing.shift().touches,
+                    "Shouldn't have coalesced the initial touchmove");
+    opener.isDeeply(touchMovesWithoutCoalescing.pop().touches,
+                    touchMovesWithCoalescing.pop().touches,
+                    "The last touchmove event should be up-to-date");
 
-    await disableCoalescing();
+    await disableIPCCompression();
     var twoTouchMovesWithoutCoalescing = await fireTwoSingleTouches();
-    await enableCoalescing();
+    await enableIPCCompression();
     var twoTouchMovesWithCoalescing = await fireTwoSingleTouches();
-    opener.is(twoTouchMovesWithoutCoalescing, 2,
+    opener.is(twoTouchMovesWithoutCoalescing.length, 2,
               "Should have got two touchmoves");
-    opener.is(twoTouchMovesWithoutCoalescing, twoTouchMovesWithCoalescing,
-              "Shouldn't have coalesced the initial touchmove.");
+    opener.is(twoTouchMovesWithoutCoalescing.length,
+              twoTouchMovesWithCoalescing.length,
+              "Shouldn't have coalesced the touchmove.");
 
-    await disableCoalescing();
+    await disableIPCCompression();
     var multiTouchMovesWithoutCoalescing = await fireLotsOfMultiTouchMoves();
-    await enableCoalescing();
+    await enableIPCCompression();
     var multiTouchMovesWithCoalescing = await fireLotsOfMultiTouchMoves();
-    opener.ok(multiTouchMovesWithoutCoalescing > multiTouchMovesWithCoalescing,
+    opener.ok(multiTouchMovesWithoutCoalescing.length > multiTouchMovesWithCoalescing.length,
        "Coalescing should reduce the number of multitouch touchmove events");
+    opener.isDeeply(multiTouchMovesWithoutCoalescing.shift().touches,
+                    multiTouchMovesWithCoalescing.shift().touches,
+                    "Shouldn't have coalesced the initial multitouch touchmove event");
+    opener.isDeeply(multiTouchMovesWithoutCoalescing.pop().touches,
+                    multiTouchMovesWithCoalescing.pop().touches,
+                    "The last multitouch touchmove event should be up-to-date");
 
-    opener.finish_ipc();
+    opener.finish();
     window.close();
   }
 

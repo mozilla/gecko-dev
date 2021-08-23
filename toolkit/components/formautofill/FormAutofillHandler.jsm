@@ -359,7 +359,14 @@ class FormAutofillSection {
       }
 
       element.previewValue = "";
-      let value = profile[fieldDetail.fieldName];
+      // Bug 1687679: Since profile appears to be presentation ready data, we need to utilize the "x-formatted" field
+      // that is generated when presentation ready data doesn't fit into the autofilling element.
+      // For example, autofilling expiration month into an input element will not work as expected if
+      // the month is less than 10, since the input is expected a zero-padded string.
+      // See Bug 1722941 for follow up.
+      let value =
+        profile[`${fieldDetail.fieldName}-formatted`] ||
+        profile[fieldDetail.fieldName];
 
       if (ChromeUtils.getClassName(element) === "HTMLInputElement" && value) {
         // For the focused input element, it will be filled with a valid value
@@ -1033,25 +1040,79 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
       ccExpYear = profile["cc-exp-year"],
       placeholder = element.placeholder;
 
-    result = /(?:[^m]|\b)(m{1,2})\s*([-/\\]*)\s*(y{2,4})(?!y)/i.exec(
-      placeholder
+    // Bug 1687681: This is a short term fix to other locales having
+    // different characters to represent year.
+    // For example, FR locales may use "A" instead of "Y" to represent year
+    // This approach will not scale well and should be investigated in a follow up bug.
+    let monthChars = "m";
+    let yearChars = "ya";
+
+    let monthFirstCheck = new RegExp(
+      "(?:\\b|^)((?:[" +
+        monthChars +
+        "]{2}){1,2})\\s*([\\-/])\\s*((?:[" +
+        yearChars +
+        "]{2}){1,2})(?:\\b|$)",
+      "i"
     );
+
+    // If the month first check finds a result, where placeholder is "mm - yyyy",
+    // the result will be structured as such: ["mm - yyyy", "mm", "-", "yyyy"]
+    result = monthFirstCheck.exec(placeholder);
     if (result) {
       profile["cc-exp"] =
-        String(ccExpMonth).padStart(result[1].length, "0") +
+        ccExpMonth.toString().padStart(result[1].length, "0") +
         result[2] +
-        String(ccExpYear).substr(-1 * result[3].length);
+        ccExpYear.toString().substr(-1 * result[3].length);
       return;
     }
 
-    result = /(?:[^y]|\b)(y{2,4})\s*([-/\\]*)\s*(m{1,2})(?!m)/i.exec(
-      placeholder
+    let yearFirstCheck = new RegExp(
+      "(?:\\b|^)((?:[" +
+      yearChars +
+      "]{2}){1,2})\\s*([\\-/])\\s*((?:[" + // either one or two counts of 'yy' or 'aa' sequence
+        monthChars +
+        "]){1,2})(?:\\b|$)",
+      "i" // either one or two counts of a 'm' sequence
     );
+
+    // If the year first check finds a result, where placeholder is "yyyy mm",
+    // the result will be structured as such: ["yyyy mm", "yyyy", " ", "mm"]
+    result = yearFirstCheck.exec(placeholder);
+
     if (result) {
       profile["cc-exp"] =
-        String(ccExpYear).substr(-1 * result[1].length) +
+        ccExpYear.toString().substr(-1 * result[1].length) +
         result[2] +
-        String(ccExpMonth).padStart(result[3].length, "0");
+        ccExpMonth.toString().padStart(result[3].length, "0");
+    }
+  }
+
+  creditCardExpMonthTransformer(profile) {
+    if (!profile["cc-exp-month"]) {
+      return;
+    }
+
+    let detail = this.getFieldDetailByName("cc-exp-month");
+    if (!detail) {
+      return;
+    }
+
+    let element = detail.elementWeakRef.get();
+
+    // If the expiration month element is an input,
+    // then we examine any placeholder to see if we should format the expiration month
+    // as a zero padded string in order to autofill correctly.
+    if (element.tagName === "INPUT") {
+      let placeholder = element.placeholder;
+
+      // Checks for 'MM' placeholder and converts the month to a two digit string.
+      let result = /(?<!.)mm(?!.)/i.test(placeholder);
+      if (result) {
+        profile["cc-exp-month-formatted"] = profile["cc-exp-month"]
+          .toString()
+          .padStart(2, "0");
+      }
     }
   }
 
@@ -1086,6 +1147,7 @@ class FormAutofillCreditCardSection extends FormAutofillSection {
   applyTransformers(profile) {
     this.matchSelectOptions(profile);
     this.creditCardExpDateTransformer(profile);
+    this.creditCardExpMonthTransformer(profile);
     this.adaptFieldMaxLength(profile);
   }
 

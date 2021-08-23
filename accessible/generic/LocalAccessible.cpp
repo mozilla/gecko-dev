@@ -9,6 +9,7 @@
 #include "AccAttributes.h"
 #include "AccGroupInfo.h"
 #include "AccIterator.h"
+#include "DocAccessible-inl.h"
 #include "nsAccUtils.h"
 #include "nsAccessibilityService.h"
 #include "ApplicationAccessible.h"
@@ -75,6 +76,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/ProfilerMarkers.h"
+#include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPrefs_ui.h"
 #include "mozilla/dom/CanvasRenderingContext2D.h"
 #include "mozilla/dom/Element.h"
@@ -954,6 +956,21 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
           ipcDoc->SendTextSelectionChangeEvent(id, textRangeData);
           break;
         }
+        case nsIAccessibleEvent::EVENT_NAME_CHANGE: {
+          if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+            nsAutoString name;
+            int32_t nameFlag = Name(name);
+            RefPtr<AccAttributes> fields = new AccAttributes();
+            fields->SetAttribute(nsGkAtoms::explicit_name, nameFlag);
+            fields->SetAttribute(nsGkAtoms::name, name);
+            nsTArray<CacheData> data;
+            data.AppendElement(CacheData(
+                IsDoc() ? 0 : reinterpret_cast<uint64_t>(UniqueID()), fields));
+            ipcDoc->SendCache(1, data, true);
+          }
+          ipcDoc->SendEvent(id, aEvent->GetEventType());
+          break;
+        }
 #endif
         default:
           ipcDoc->SendEvent(id, aEvent->GetEventType());
@@ -1324,7 +1341,6 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
 
     return;
   }
-
 }
 
 GroupPos LocalAccessible::GroupPosition() {
@@ -2035,7 +2051,7 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
         // HTML form controls implements nsIFormControl interface.
         nsCOMPtr<nsIFormControl> control(do_QueryInterface(mContent));
         if (control) {
-          if (dom::HTMLFormElement* form = control->GetFormElement()) {
+          if (dom::HTMLFormElement* form = control->GetForm()) {
             nsCOMPtr<nsIContent> formContent =
                 do_QueryInterface(form->GetDefaultSubmitElement());
             return Relation(mDoc, formContent);
@@ -2971,6 +2987,16 @@ AccGroupInfo* LocalAccessible::GetGroupInfo() const {
   mBits.groupInfo = AccGroupInfo::CreateGroupInfo(this);
   mStateFlags &= ~eGroupInfoDirty;
   return mBits.groupInfo;
+}
+
+already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache() {
+  RefPtr<AccAttributes> fields = new AccAttributes();
+  nsAutoString name;
+  int32_t nameFlag = Name(name);
+  fields->SetAttribute(nsGkAtoms::explicit_name, nameFlag);
+  fields->SetAttribute(nsGkAtoms::name, name);
+
+  return fields.forget();
 }
 
 void LocalAccessible::MaybeFireFocusableStateChange(bool aPreviouslyFocusable) {

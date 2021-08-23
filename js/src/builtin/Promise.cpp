@@ -20,9 +20,11 @@
 #include "js/ForOfIterator.h"         // JS::ForOfIterator
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
+#include "js/Stack.h"
 #include "vm/ArrayObject.h"
 #include "vm/AsyncFunction.h"
 #include "vm/AsyncIteration.h"
+#include "vm/CompletionKind.h"
 #include "vm/ErrorObject.h"
 #include "vm/GeneratorObject.h"
 #include "vm/Iteration.h"

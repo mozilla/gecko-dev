@@ -16,11 +16,14 @@
 #include <string.h>
 #include <type_traits>
 
+#include "jsapi.h"
+
 #include "gc/GC.h"
 #include "js/AllocPolicy.h"
 #include "js/CharacterEncoding.h"
-#include "js/Equality.h"     // JS::SameValue
-#include "js/RegExpFlags.h"  // JS::RegExpFlags
+#include "js/Equality.h"      // JS::SameValue
+#include "js/GlobalObject.h"  // JS::DefaultGlobalClassOps
+#include "js/RegExpFlags.h"   // JS::RegExpFlags
 #include "js/Vector.h"
 #include "js/Warnings.h"  // JS::SetWarningReporter
 #include "vm/JSContext.h"

@@ -62,6 +62,7 @@ UNIFIED_SOURCES += [
     "TestVideoUtils.cpp",
     "TestVPXDecoding.cpp",
     "TestWebMBuffered.cpp",
+    "WaitFor.cpp",
 ]
 
 if CONFIG["MOZ_WEBM_ENCODER"]:

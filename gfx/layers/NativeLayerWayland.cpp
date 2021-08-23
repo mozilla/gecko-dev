@@ -200,6 +200,8 @@ bool NativeLayerRootWayland::CommitToScreen(const MutexAutoLock& aProofOfLock) {
 
       auto transform2DInversed = transform2D.Inverse();
       Rect bufferClip = transform2DInversed.TransformBounds(surfaceRectClipped);
+      // avoid floating point issues - we always expect integer values here
+      bufferClip.Round();
       layer->SetViewportSourceRect(bufferClip);
 
       layer->Commit();
@@ -683,6 +685,11 @@ void NativeLayerWayland::SetViewportSourceRect(const Rect aSourceRect) {
   }
 
   mViewportSourceRect = aSourceRect;
+  MOZ_RELEASE_ASSERT(
+      (mViewportSourceRect.x >= 0 && mViewportSourceRect.y >= 0 &&
+       mViewportSourceRect.width > 0 && mViewportSourceRect.height > 0) ||
+      (mViewportSourceRect.x == -1 && mViewportSourceRect.y == -1 &&
+       mViewportSourceRect.width == -1 && mViewportSourceRect.height == -1));
   wp_viewport_set_source(mViewport, wl_fixed_from_double(mViewportSourceRect.x),
                          wl_fixed_from_double(mViewportSourceRect.y),
                          wl_fixed_from_double(mViewportSourceRect.width),
@@ -699,6 +706,10 @@ void NativeLayerWayland::SetViewportDestinationSize(int aWidth, int aHeight) {
 
   mViewportDestinationSize.width = aWidth;
   mViewportDestinationSize.height = aHeight;
+  MOZ_RELEASE_ASSERT((mViewportDestinationSize.width > 0 &&
+                      mViewportDestinationSize.height > 0) ||
+                     (mViewportDestinationSize.width == -1 &&
+                      mViewportDestinationSize.height == -1));
   wp_viewport_set_destination(mViewport, mViewportDestinationSize.width,
                               mViewportDestinationSize.height);
 }

@@ -846,7 +846,6 @@ Toolbox.prototype = {
       this._buildTabs();
       this._applyCacheSettings();
       this._applyServiceWorkersTestingSettings();
-      this._forwardJavascriptEnabledToTargetConfiguration();
       this._addWindowListeners();
       this._addChromeEventHandlerEvents();
 
@@ -1896,7 +1895,7 @@ Toolbox.prototype = {
       id: "command-button-frames",
       description: L10N.getStr("toolbox.frames.tooltip"),
       isTargetSupported: target => {
-        return target.traits.frames;
+        return target.getTrait("frames");
       },
       isCurrentlyVisible: () => {
         const hasFrames = this.frameMap.size > 1;
@@ -2039,7 +2038,7 @@ Toolbox.prototype = {
       onClick: this._onPickerClick,
       isInStartContainer: true,
       isTargetSupported: target => {
-        return target.traits.frames;
+        return target.getTrait("frames");
       },
     });
 
@@ -2095,28 +2094,6 @@ Toolbox.prototype = {
     this.commands.targetConfigurationCommand.updateConfiguration({
       serviceWorkersTestingEnabled,
     });
-  },
-
-  /**
-   * If we have an older version of the server which handles `javascriptEnabled`
-   * in the browsing-context target, read the initial javascriptEnabled
-   * configuration from the current target and forward it to the configuration
-   * actor.
-   *
-   * !!! This is not setting anything on the target, we are only updating the
-   * !!! internal configuration of the target configuration actor so that it
-   * !!! knows the current value.
-   *
-   * @backward-compat { version 91 } This method can be removed when Firefox 91
-   *                  is on the release channel.
-   */
-  _forwardJavascriptEnabledToTargetConfiguration: function() {
-    if (!this.target.traits.javascriptEnabledHandledInParent) {
-      const javascriptEnabled = this.target._javascriptEnabled;
-      this.commands.targetConfigurationCommand.updateConfiguration({
-        javascriptEnabled,
-      });
-    }
   },
 
   /**
@@ -3149,7 +3126,7 @@ Toolbox.prototype = {
   },
 
   _listFrames: async function(event) {
-    if (!this.target.traits.frames) {
+    if (!this.target.getTrait("frames")) {
       // We are not targetting a regular BrowsingContextTargetActor
       // it can be either an addon or browser toolbox actor
       return promise.resolve();

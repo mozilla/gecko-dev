@@ -553,8 +553,8 @@ already_AddRefed<IAccessible> MsaaAccessible::GetIAccessibleFor(
                "Shouldn't get a defunct child");
     if (!StaticPrefs::accessibility_cache_enabled_AtStartup() && localAcc &&
         xpAcc->IsRemote()) {
-      // We're crossing from a local OuterDoc to a DocRemoteAccessibleWrap.
-      // We must return the COM proxy.
+      // We're crossing from a local OuterDoc to a remote document and caching
+      // isn't enabled. We must return the COM proxy.
       MOZ_ASSERT(localAcc->IsOuterDoc());
       xpAcc->AsRemote()->GetCOMInterface(getter_AddRefs(result));
       return result.forget();
@@ -827,9 +827,17 @@ MsaaAccessible::QueryInterface(REFIID iid, void** ppv) {
     return E_NOINTERFACE;
   }
   AccessibleWrap* localAcc = LocalAcc();
-  if (IID_IEnumVARIANT == iid && localAcc) {
-    // Don't support this interface for leaf elements.
-    if (!localAcc->HasChildren() || nsAccUtils::MustPrune(localAcc)) {
+  if (IID_IEnumVARIANT == iid) {
+    if (
+        // Don't support this interface for leaf elements.
+        !mAcc->HasChildren() || nsAccUtils::MustPrune(mAcc) ||
+        // We also don't support this for local OuterDocAccessibles with remote
+        // document children when the cache is disabled. Handling this is tricky
+        // and there's no benefit to IEnumVARIANT when there's only one child
+        // anyway.
+        (localAcc && localAcc->IsOuterDoc() &&
+         !StaticPrefs::accessibility_cache_enabled_AtStartup() &&
+         localAcc->FirstChild()->IsRemote())) {
       return E_NOINTERFACE;
     }
     *ppv = static_cast<IEnumVARIANT*>(new ChildrenEnumVariant(this));

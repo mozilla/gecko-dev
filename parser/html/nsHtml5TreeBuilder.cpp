@@ -544,6 +544,10 @@ void nsHtml5TreeBuilder::zeroOriginatingReplacementCharacter() {
   }
 }
 
+void nsHtml5TreeBuilder::zeroOrReplacementCharacter() {
+  zeroOriginatingReplacementCharacter();
+}
+
 void nsHtml5TreeBuilder::eof() {
   flushCharacters();
   for (;;) {
@@ -605,7 +609,7 @@ void nsHtml5TreeBuilder::eof() {
           NS_HTML5_BREAK(eofloop);
         }
         if (MOZ_UNLIKELY(mViewSource)) {
-          errUnclosedElements(eltPos, nsGkAtoms::_template);
+          errListUnclosedStartTags(0);
         }
         while (currentPtr >= eltPos) {
           pop();
@@ -3183,7 +3187,7 @@ void nsHtml5TreeBuilder::endTagTemplateInHead() {
     errStrayEndTag(nsGkAtoms::_template);
     return;
   }
-  generateImpliedEndTags();
+  generateImpliedEndTagsThoroughly();
   if (!!MOZ_UNLIKELY(mViewSource) && !isCurrent(nsGkAtoms::_template)) {
     errUnclosedElements(eltPos, nsGkAtoms::_template);
   }
@@ -3198,8 +3202,9 @@ void nsHtml5TreeBuilder::endTagTemplateInHead() {
 int32_t
 nsHtml5TreeBuilder::findLastInTableScopeOrRootTemplateTbodyTheadTfoot() {
   for (int32_t i = currentPtr; i > 0; i--) {
-    if (stack[i]->getGroup() == nsHtml5TreeBuilder::TBODY_OR_THEAD_OR_TFOOT ||
-        stack[i]->getGroup() == nsHtml5TreeBuilder::TEMPLATE) {
+    if (stack[i]->ns == kNameSpaceID_XHTML &&
+        (stack[i]->getGroup() == nsHtml5TreeBuilder::TBODY_OR_THEAD_OR_TFOOT ||
+         stack[i]->getGroup() == nsHtml5TreeBuilder::TEMPLATE)) {
       return i;
     }
   }
@@ -3319,6 +3324,31 @@ void nsHtml5TreeBuilder::generateImpliedEndTags() {
       case OPTGROUP:
       case RB_OR_RTC:
       case RT_OR_RP: {
+        pop();
+        continue;
+      }
+      default: {
+        return;
+      }
+    }
+  }
+}
+
+void nsHtml5TreeBuilder::generateImpliedEndTagsThoroughly() {
+  for (;;) {
+    switch (stack[currentPtr]->getGroup()) {
+      case CAPTION:
+      case COLGROUP:
+      case DD_OR_DT:
+      case LI:
+      case OPTGROUP:
+      case OPTION:
+      case P:
+      case RB_OR_RTC:
+      case RT_OR_RP:
+      case TBODY_OR_THEAD_OR_TFOOT:
+      case TD_OR_TH:
+      case TR: {
         pop();
         continue;
       }
@@ -3895,7 +3925,7 @@ int32_t nsHtml5TreeBuilder::findLastOrRoot(nsAtom* name) {
 
 int32_t nsHtml5TreeBuilder::findLastOrRoot(int32_t group) {
   for (int32_t i = currentPtr; i > 0; i--) {
-    if (stack[i]->getGroup() == group) {
+    if (stack[i]->ns == kNameSpaceID_XHTML && stack[i]->getGroup() == group) {
       return i;
     }
   }

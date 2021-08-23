@@ -979,14 +979,19 @@
   value: "#FFFFFF"
   mirror: never
 
-# 0 = always, except in high contrast mode
-# 1 = always
-# 2 = never
+# This preference is a bit confusing because we use the opposite
+# string value in the colors dialog to indicate to users how FF HCM
+# will behave.
+# With resect to document colors, these values mean:
+# 0 = "default" = always, except in high contrast mode
+# 1 = "always"
+# 2 = "never"
 #
-# Default to 0 on windows and mac, 1 elsewhere.
+# On windows, we set this to 0, which means FF HCM will mirror OS HCM.
+# Everywhere else, we set this to 1, disabling FF HCM.
 - name: browser.display.document_color_use
   type: RelaxedAtomicUint32
-#if defined(XP_WIN) || defined(XP_MACOSX)
+#if defined(XP_WIN)
   value: 0
 #else
   value: 1
@@ -1126,6 +1131,14 @@
   type: bool
   value: @IS_NOT_ANDROID@
   mirror: always
+
+#if defined(XP_MACOSX)
+# Whether pressing Esc will exit fullscreen.
+- name: browser.fullscreen.exit_on_escape
+  type: bool
+  value: false
+  mirror: always
+#endif
 
 # The max url length we'll store in history.
 #
@@ -3073,6 +3086,13 @@
   value: true
   mirror: always
 
+# If true, when checking if it's upgrade downgrade cycles, the URI path will be
+# also checked.
+- name: dom.security.https_only_check_path_upgrade_downgrade_endless_loop
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # If true and HTTPS-only mode is enabled, requests
 # to local IP addresses are also upgraded
 - name: dom.security.https_only_mode.upgrade_local
@@ -3458,7 +3478,7 @@
 # Should VR sessions always be reported as supported, without first
 # checking for VR runtimes?  This will prevent permission prompts
 # from being suppressed on machines without VR runtimes and cause
-# navigatior.xr.isSessionSupported to always report that immersive-vr
+# navigator.xr.isSessionSupported to always report that immersive-vr
 # is supported.
 - name: dom.vr.always_support_vr
   type: RelaxedAtomicBool
@@ -3468,7 +3488,7 @@
 # Should AR sessions always be reported as supported, without first
 # checking for AR runtimes?  This will prevent permission prompts
 # from being suppressed on machines without AR runtimes and cause
-# navigatior.xr.isSessionSupported to always report that immersive-ar
+# navigator.xr.isSessionSupported to always report that immersive-ar
 # is supported.
 - name: dom.vr.always_support_ar
   type: RelaxedAtomicBool
@@ -3757,6 +3777,12 @@
   value: @IS_NOT_ANDROID@
   mirror: always
 
+# Whether the Web Locks API is enabled
+- name: dom.weblocks.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Whether the WebMIDI API is enabled
 - name: dom.webmidi.enabled
   type: bool
@@ -3986,7 +4012,7 @@
 # element, and then, another Backspace can delete it.
 - name: editor.hr_element.allow_to_delete_from_following_line
   type: bool
-  value: false
+  value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
 # Delay to mask last input character in password fields.
@@ -4834,11 +4860,6 @@
 - name: gfx.font_rendering.fallback.async
   type: RelaxedAtomicBool
   value: true
-  mirror: always
-
-- name: gfx.basic_layer_manager.force_enabled
-  type: RelaxedAtomicBool
-  value: false
   mirror: always
 
 #  Whether to enable LayerScope tool and default listening port.
@@ -5889,13 +5910,13 @@
     type: bool
     value: false
     mirror: always
+#endif  // NIGHTLY_BUILD
 
 # Experimental support for class static blocks in JavaScript.
 -   name: javascript.options.experimental.class_static_blocks
     type: bool
-    value: false
+    value: true
     mirror: always
-#endif  // NIGHTLY_BUILD
 
   # Support for Private Fields in JavaScript.
 - name: javascript.options.experimental.private_fields
@@ -6992,24 +7013,6 @@
   mirror: always
   rust: true
 
-# Is support for DOMMatrix enabled?
-- name: layout.css.DOMMatrix.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
-# Is support for DOMQuad enabled?
-- name: layout.css.DOMQuad.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
-# Is support for DOMPoint enabled?
-- name: layout.css.DOMPoint.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # Is support for d property for SVG path element?
 - name: layout.css.d-property.enabled
   type: bool
@@ -8059,6 +8062,11 @@
 - name: media.eme.hdcp-policy-check.enabled
   type: bool
   value: false
+  mirror: always
+
+- name: media.eme.max-throughput-ms
+  type: RelaxedAtomicUint32
+  value: 200
   mirror: always
 
 - name: media.clearkey.persistent-license.enabled
@@ -9921,17 +9929,29 @@
   value: 32
   mirror: always
 
+# Receive buffer size of QUIC socket
+- name: network.http.http3.max_data
+  type: RelaxedAtomicUint32
+  value: 25165824
+  mirror: always
+
+# Receive buffer size of QUIC socket
+- name: network.http.http3.max_stream_data
+  type: RelaxedAtomicUint32
+  value: 12582912
+  mirror: always
+
 # When true, a http request will be upgraded to https when HTTPS RR is
 # available.
 - name: network.dns.upgrade_with_https_rr
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # Whether to use HTTPS RR as AltSvc
 - name: network.dns.use_https_rr_as_altsvc
   type: RelaxedAtomicBool
-  value: @IS_EARLY_BETA_OR_EARLIER@
+  value: true
   mirror: always
 
 # Whether to check for NAT64 using the system resolver
@@ -10532,11 +10552,6 @@
   value: 0
   mirror: always
 
-- name: privacy.storagePrincipal.enabledForTrackers
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 - name: privacy.window.maxInnerWidth
   type: int32_t
   value: 1000
@@ -10868,6 +10883,20 @@
 
 # Cancel outgoing requests from SystemPrincipal
 - name: security.cancel_non_local_loads_triggered_by_systemprincipal
+  type: bool
+  value: false
+  mirror: always
+
+# Cancel outgoing requests from SystemPrincipal:
+# but only with scheme http(s) and contentpolicytype subdocument
+- name: security.disallow_privileged_https_subdocuments_loads
+  type: bool
+  value: true
+  mirror: always
+
+# Cancel outgoing requests from SystemPrincipal:
+# but only with scheme data and contentpolicytype subdocument
+- name: security.disallow_privileged_data_subdocuments_loads
   type: bool
   value: false
   mirror: always
@@ -11427,6 +11456,16 @@
   mirror: always
 
 - name: webgl.angle.force-warp
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
+- name: webgl.auto-flush
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+- name: webgl.auto-flush.gl
   type: RelaxedAtomicBool
   value: false
   mirror: always

@@ -318,3 +318,80 @@ add_task(async function test_forceEnroll_cleanup() {
 
   sandbox.restore();
 });
+
+add_task(async function test_featuremanifest_enum() {
+  let recipe = ExperimentFakes.recipe("featuremanifest_enum_success", {
+    branches: [
+      {
+        slug: "control",
+        ratio: 1,
+        feature: {
+          featureId: "privatebrowsing",
+          value: { promoLinkType: "link" },
+        },
+      },
+    ],
+  });
+  // Ensure we get enrolled
+  recipe.bucketConfig.count = recipe.bucketConfig.total;
+  let manager = ExperimentFakes.manager();
+
+  await manager.onStartup();
+
+  let { enrollmentPromise } = ExperimentFakes.enrollmentHelper(recipe, {
+    manager,
+  });
+
+  await enrollmentPromise;
+
+  Assert.ok(
+    manager.store.hasExperimentForFeature("privatebrowsing"),
+    "Enrollment was validated and stored"
+  );
+
+  manager = ExperimentFakes.manager();
+  await manager.onStartup();
+
+  let experiment = ExperimentFakes.experiment("featuremanifest_enum_fail", {
+    branch: {
+      slug: "control",
+      ratio: 1,
+      feature: {
+        featureId: "privatebrowsing",
+        value: { promoLinkType: "bar" },
+      },
+    },
+  });
+
+  await Assert.rejects(
+    manager.store.addExperiment(experiment),
+    /promoLinkType should have one of the following values/,
+    "This should fail because of invalid feature value"
+  );
+
+  Assert.ok(
+    !manager.store.hasExperimentForFeature("privatebrowsing"),
+    "experiment is not stored"
+  );
+});
+
+add_task(async function test_featureIds_is_stored() {
+  Services.prefs.setStringPref("messaging-system.log", "all");
+  const recipe = ExperimentFakes.recipe("featureIds");
+  // Ensure we get enrolled
+  recipe.bucketConfig.count = recipe.bucketConfig.total;
+  const manager = ExperimentFakes.manager();
+
+  await manager.onStartup();
+
+  await manager.enroll(recipe, "test_featureIds_is_stored");
+
+  Assert.ok(manager.store.addExperiment.calledOnce, "experiment is stored");
+  let [enrollment] = manager.store.addExperiment.firstCall.args;
+  Assert.ok("featureIds" in enrollment, "featureIds is stored");
+  Assert.deepEqual(
+    enrollment.featureIds,
+    ["test-feature"],
+    "Has expected value"
+  );
+});

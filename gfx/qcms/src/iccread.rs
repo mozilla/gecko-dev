@@ -337,10 +337,15 @@ fn read_tag_table(_profile: &mut Profile, mem: &mut MemSource) -> Vec<Tag> {
     }
     let mut index = Vec::with_capacity(count as usize);
     for i in 0..count {
+        let tag_start = (128 + 4 + 4 * i * 3) as usize;
+        let offset = read_u32(mem, tag_start + 4);
+        if offset as usize > mem.buf.len() {
+            invalid_source(mem, "tag points beyond the end of the buffer");
+        }
         index.push(Tag {
-            signature: read_u32(mem, (128 + 4 + 4 * i * 3) as usize),
-            offset: read_u32(mem, (128 + 4 + 4 * i * 3 + 4) as usize),
-            size: read_u32(mem, (128 + 4 + 4 * i * 3 + 8) as usize),
+            signature: read_u32(mem, tag_start),
+            offset,
+            size: read_u32(mem, tag_start + 8),
         });
     }
 
@@ -994,7 +999,6 @@ pub extern "C" fn qcms_white_point_sRGB() -> qcms_CIE_xyY {
 
 /// See [Rec. ITU-T H.273 (12/2016)](https://www.itu.int/rec/T-REC-H.273-201612-I/en) Table 2
 /// Values 0, 3, 13–21, 23–255 are all reserved so all map to the same variant
-#[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ColourPrimaries {
     /// For future use by ITU-T | ISO/IEC
@@ -1159,7 +1163,6 @@ impl ColourPrimaries {
 
 /// See [Rec. ITU-T H.273 (12/2016)](https://www.itu.int/rec/T-REC-H.273-201612-I/en) Table 3
 /// Values 0, 3, 19–255 are all reserved so all map to the same variant
-#[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransferCharacteristics {
     /// For future use by ITU-T | ISO/IEC

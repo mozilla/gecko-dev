@@ -1,6 +1,6 @@
 #include "gdb-tests.h"
-#include "jsapi.h"
 
+#include "js/GlobalObject.h"
 #include "js/Symbol.h"
 #include "vm/BigIntType.h"
 

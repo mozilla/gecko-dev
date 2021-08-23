@@ -1044,6 +1044,13 @@ interface nsIDOMWindowUtils : nsISupports {
    * Transform a rectangle given in coordinates relative to this document
    * into CSS coordinates relative to the screen.
    */
+  DOMRect toScreenRectInCSSUnits(in float aX, in float aY,
+                                 in float aWidth, in float aHeight);
+
+  /**
+   * Transform a rectangle given in coordinates relative to this document
+   * to the screen.
+   */
   DOMRect toScreenRect(in float aX, in float aY,
                        in float aWidth, in float aHeight);
 

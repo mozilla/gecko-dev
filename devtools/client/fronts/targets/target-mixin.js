@@ -265,12 +265,19 @@ function TargetMixin(parentClass) {
     }
 
     /**
-     * Returns a trait from the root actor.
+     * Returns a trait from the target actor if it exists,
+     * if not it will fallback to that on the root actor.
      *
      * @param {String} traitName
      * @return {Mixed}
      */
     getTrait(traitName) {
+      // @backward-compat { version 93 } All traits should be on the `targetForm`, remove
+      // this backward compatibility code.
+      if (this.traits && this.traits[traitName]) {
+        return this.traits[traitName];
+      }
+
       // If the targeted actor exposes traits and has a defined value for this
       // traits, override the root actor traits
       if (this.targetForm.traits && traitName in this.targetForm.traits) {
@@ -570,30 +577,15 @@ function TargetMixin(parentClass) {
       // * targets that aren't yet supported by the Watcher (like web extensions),
       // * workers, which still use a unique codepath for thread actor attach
       // * all targets when connecting to an older server
-      // @backward-compat { version 87 } If all targets are supported by watcher actor, and workers no longer use
-      //                                 its unique attach sequence, we can assume the thread front is always attached.
-      const isAttached =
-        this.getTrait("supportsThreadActorIsAttached") &&
-        (await this.threadFront.isAttached());
-      if (isAttached) {
-        // If the Thread actor has already been attached from the server side
-        // by the Watcher Actor, we still have to pass options that aren't yet managed via
-        // the Watcher actor's addWatcherDataEntry codepath (bug 1687261).
+      // If all targets are supported by watcher actor, and workers no longer use
+      // its unique attach sequence, we can assume the thread front is always attached.
+      const isAttached = await this.threadFront.isAttached();
 
-        // @backward-compat { version 91 } Thread configuration actor now supports most thread options
-        if (!this.getTrait("supportsThreadConfigurationOptions")) {
-          await this.threadFront.reconfigure(options);
-        }
-        return this.threadFront;
+      const isDestroyed =
+        this.isDestroyedOrBeingDestroyed() || this.threadFront.isDestroyed();
+      if (!isAttached && !isDestroyed) {
+        await this.threadFront.attach(options);
       }
-      if (
-        this.isDestroyedOrBeingDestroyed() ||
-        this.threadFront.isDestroyed()
-      ) {
-        return this.threadFront;
-      }
-
-      await this.threadFront.attach(options);
 
       return this.threadFront;
     }
@@ -753,7 +745,7 @@ function TargetMixin(parentClass) {
      * @returns {Promise}
      */
     logErrorInPage(text, category) {
-      if (this.traits.logInPage) {
+      if (this.getTrait("logInPage")) {
         const errorFlag = 0;
         return this.logInPage({ text, category, flags: errorFlag });
       }
@@ -770,7 +762,7 @@ function TargetMixin(parentClass) {
      * @returns {Promise}
      */
     logWarningInPage(text, category) {
-      if (this.traits.logInPage) {
+      if (this.getTrait("logInPage")) {
         const warningFlag = 1;
         return this.logInPage({ text, category, flags: warningFlag });
       }

@@ -4,6 +4,8 @@
 
 #include "gc/Barrier.h"
 #include "js/Array.h"  // JS::NewArrayObject
+#include "js/GlobalObject.h"
+#include "js/ValueArray.h"
 #include "vm/JSFunction.h"
 
 FRAGMENT(Root, null) {

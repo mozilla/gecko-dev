@@ -210,7 +210,8 @@ const FeatureManifest = {
       promoSectionStyle: {
         type: "string",
         description:
-          "Sets the position of the promo section. Possible values are: top, below-search, bottom. Default bottom.",
+          "Sets the position of the promo section. Possible values are: top, bottom. Default bottom.",
+        enum: ["top", "bottom"],
       },
       promoTitle: {
         type: "string",
@@ -227,10 +228,6 @@ const FeatureManifest = {
         fallbackPref: "browser.privatebrowsing.promoLinkText",
         description: "The text of the link in the promo box.",
       },
-      promoHeader: {
-        type: "string",
-        description: "The title of the promo section.",
-      },
       promoLinkUrl: {
         type: "string",
         fallbackPref: "browser.privatebrowsing.promoLinkUrl",
@@ -239,17 +236,8 @@ const FeatureManifest = {
       promoLinkType: {
         type: "string",
         description:
-          "Type of promo link type. Possible values: link, button. Default is link.",
-      },
-      promoImageLarge: {
-        type: "string",
-        description:
-          "URL for image used on the left side of the promo box, larger, showcases some feature. Default off.",
-      },
-      promoImageSmall: {
-        type: "string",
-        description:
-          "URL for image used on the right side of the promo box, smaller, usually a logo. Default off.",
+          "Type of promo link type. Possible values: link, button. Default is button.",
+        enum: ["link", "button"],
       },
     },
   },

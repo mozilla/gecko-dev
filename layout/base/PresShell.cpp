@@ -69,7 +69,6 @@
 #include "nsNameSpaceManager.h"  // for Pref-related rule management (bugs 22963,20760,31816)
 #include "nsFlexContainerFrame.h"
 #include "nsIFrame.h"
-#include "FrameLayerBuilder.h"
 #include "nsViewManager.h"
 #include "nsView.h"
 #include "nsCRTGlue.h"
@@ -663,7 +662,7 @@ bool PresShell::GetVerifyReflowEnable() {
       bool error = false;
 
       for (;;) {
-        char* comma = PL_strchr(flags, ',');
+        char* comma = strchr(flags, ',');
         if (comma) *comma = '\0';
 
         bool found = false;
@@ -947,7 +946,7 @@ void PresShell::Init(nsPresContext* aPresContext, nsViewManager* aViewManager) {
   const_cast<RefPtr<nsPresContext>&>(mPresContext) = aPresContext;
   mPresContext->AttachPresShell(this);
 
-  mPresContext->DeviceContext()->InitFontCache();
+  mPresContext->InitFontCache();
 
   // FIXME(emilio, bug 1544185): Some Android code somehow depends on the shell
   // being eagerly registered as a style flush observer. This shouldn't be
@@ -1550,7 +1549,7 @@ void PresShell::UpdatePreferenceStyles() {
   }
 
   // Documents in chrome shells do not have any preference style rules applied.
-  if (nsContentUtils::IsInChromeDocshell(mDocument)) {
+  if (mDocument->IsInChromeDocShell()) {
     return;
   }
 
@@ -4169,6 +4168,9 @@ void PresShell::DoFlushPendingNotifications(mozilla::ChangesToFlush aFlush) {
 
     mDocument->UpdateSVGUseElementShadowTrees();
 
+    // Ensure our preference sheets are up-to-date.
+    UpdatePreferenceStyles();
+
     // Process pending restyles, since any flush of the presshell wants
     // up-to-date style data.
     if (MOZ_LIKELY(!mIsDestroying)) {
@@ -5449,15 +5451,6 @@ void PresShell::SetRestoreResolution(float aResolution,
 }
 
 void PresShell::SetRenderingState(const RenderingState& aState) {
-  if (mRenderingStateFlags != aState.mRenderingStateFlags) {
-    // Rendering state changed in a way that forces us to flush any
-    // retained layers we might already have.
-    WindowRenderer* renderer = GetWindowRenderer();
-    if (renderer && renderer->AsLayerManager()) {
-      FrameLayerBuilder::InvalidateAllLayers(renderer->AsLayerManager());
-    }
-  }
-
   if (GetResolution() != aState.mResolution.valueOr(1.f)) {
     if (nsIFrame* frame = GetRootFrame()) {
       frame->SchedulePaint();
@@ -10619,8 +10612,7 @@ void ReflowCountMgr::PaintCount(const char* aName,
       params.textPerf = aPresContext->GetTextPerfMetrics();
       params.fontStats = nullptr;  // not interested here
       params.featureValueLookup = aPresContext->GetFontFeatureValuesLookup();
-      RefPtr<nsFontMetrics> fm =
-          aPresContext->DeviceContext()->GetMetricsFor(font, params);
+      RefPtr<nsFontMetrics> fm = aPresContext->GetMetricsFor(font, params);
 
       char buf[16];
       int len = SprintfLiteral(buf, "%d", counter->mCount);

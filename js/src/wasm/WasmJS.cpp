@@ -25,22 +25,20 @@
 
 #include <algorithm>
 
+#include "jsapi.h"
+
 #include "ds/IdValuePair.h"  // js::IdValuePair
 #include "gc/FreeOp.h"
 #include "jit/AtomicOperations.h"
+#include "jit/JitContext.h"
 #include "jit/JitOptions.h"
-#include "jit/JitRuntime.h"
 #include "jit/Simulator.h"
-#if defined(JS_CODEGEN_X64)  // Assembler::HasSSE41
-#  include "jit/x64/Assembler-x64.h"
-#  include "jit/x86-shared/Architecture-x86-shared.h"
-#  include "jit/x86-shared/Assembler-x86-shared.h"
-#endif
 #include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/Printf.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
 #include "js/PropertySpec.h"        // JS_{PS,FN}{,_END}
+#include "js/StreamConsumer.h"
 #include "util/StringBuffer.h"
 #include "util/Text.h"
 #include "vm/ErrorObject.h"
@@ -5081,8 +5079,8 @@ static bool WebAssemblyClassFinish(JSContext* cx, HandleObject object,
 #ifdef ENABLE_WASM_EXCEPTIONS
   if (ExceptionsAvailable(cx)) {
     constexpr NameAndProtoKey exceptionEntries[] = {
-      {"Tag", JSProto_WasmTag},
-      {"Exception", JSProto_WasmException},
+        {"Tag", JSProto_WasmTag},
+        {"Exception", JSProto_WasmException},
     };
     for (const auto& entry : exceptionEntries) {
       if (!WebAssemblyDefineConstructor(cx, wasm, entry, &ctorValue, &id)) {
