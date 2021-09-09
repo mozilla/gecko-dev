@@ -29,19 +29,6 @@ inline const char* GetFunctionNameBytes(JSContext* cx, JSFunction* fun,
   return js_anonymous_str;
 }
 
-inline JSFunction* CloneFunctionObject(JSContext* cx, HandleFunction fun,
-                                       HandleObject enclosingEnv,
-                                       HandleObject proto = nullptr) {
-  // These intermediate variables are needed to avoid link errors on some
-  // platforms.  Sigh.
-  gc::AllocKind finalizeKind = gc::AllocKind::FUNCTION;
-  gc::AllocKind extendedFinalizeKind = gc::AllocKind::FUNCTION_EXTENDED;
-  gc::AllocKind kind = fun->isExtended() ? extendedFinalizeKind : finalizeKind;
-
-  MOZ_ASSERT(CanReuseScriptForClone(cx->realm(), fun, enclosingEnv));
-  return CloneFunctionReuseScript(cx, fun, enclosingEnv, kind, proto);
-}
-
 } /* namespace js */
 
 /* static */
@@ -56,6 +43,10 @@ inline JSFunction* JSFunction::create(JSContext* cx, js::gc::AllocKind kind,
   const JSClass* clasp = shape->getObjectClass();
   MOZ_ASSERT(clasp->isNativeObject());
   MOZ_ASSERT(clasp->isJSFunction());
+  MOZ_ASSERT_IF(kind == js::gc::AllocKind::FUNCTION,
+                clasp == js::FunctionClassPtr);
+  MOZ_ASSERT_IF(kind == js::gc::AllocKind::FUNCTION_EXTENDED,
+                clasp == js::FunctionExtendedClassPtr);
 
   static constexpr size_t NumDynamicSlots = 0;
   MOZ_ASSERT(calculateDynamicSlots(shape->numFixedSlots(), shape->slotSpan(),
@@ -72,24 +63,14 @@ inline JSFunction* JSFunction::create(JSContext* cx, js::gc::AllocKind kind,
   nobj->initEmptyDynamicSlots();
   nobj->setEmptyElements();
 
-  MOZ_ASSERT(shape->slotSpan() == 0);
-
   JSFunction* fun = static_cast<JSFunction*>(nobj);
-  fun->nargs_ = 0;
-
-  // This must be overwritten by some ultimate caller: there's no default
-  // value to which we could sensibly initialize this.
-  MOZ_MAKE_MEM_UNDEFINED(&fun->u, sizeof(u));
-
-  fun->atom_.init(nullptr);
+  fun->initFixedSlots(JSCLASS_RESERVED_SLOTS(clasp));
+  fun->initFlagsAndArgCount();
+  fun->initFixedSlot(NativeJitInfoOrInterpretedScriptSlot,
+                     JS::PrivateValue(nullptr));
 
   if (kind == js::gc::AllocKind::FUNCTION_EXTENDED) {
     fun->setFlags(FunctionFlags::EXTENDED);
-    for (js::GCPtrValue& extendedSlot : fun->toExtended()->extendedSlots) {
-      extendedSlot.init(JS::UndefinedValue());
-    }
-  } else {
-    fun->setFlags(0);
   }
 
   MOZ_ASSERT(!clasp->shouldDelayMetadataBuilder(),

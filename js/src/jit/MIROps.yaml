@@ -1777,7 +1777,7 @@
 
 - name: NewPrivateName
   arguments:
-    name: PropertyName*
+    name: JSAtom*
   result_type: Symbol
   possibly_calls: true
 
@@ -1892,6 +1892,9 @@
   gen_boilerplate: false
 
 - name: GuardToClass
+  gen_boilerplate: false
+
+- name: GuardToFunction
   gen_boilerplate: false
 
 - name: IsArray

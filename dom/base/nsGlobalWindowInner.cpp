@@ -272,6 +272,7 @@
 #include "nsIWebProgressListener.h"
 #include "nsIWidget.h"
 #include "nsIWidgetListener.h"
+#include "nsIXULRuntime.h"
 #include "nsJSPrincipals.h"
 #include "nsJSUtils.h"
 #include "nsLayoutStatics.h"
@@ -2739,7 +2740,8 @@ bool nsPIDOMWindowInner::HasOpenWebSockets() const {
 }
 
 bool nsPIDOMWindowInner::IsCurrentInnerWindow() const {
-  if (mBrowsingContext && mBrowsingContext->IsInBFCache()) {
+  if (mozilla::SessionHistoryInParent() && mBrowsingContext &&
+      mBrowsingContext->IsInBFCache()) {
     return false;
   }
 
@@ -2755,7 +2757,7 @@ bool nsPIDOMWindowInner::IsCurrentInnerWindow() const {
 
 bool nsPIDOMWindowInner::IsFullyActive() const {
   WindowContext* wc = GetWindowContext();
-  if (!wc || wc->IsDiscarded() || wc->IsCached()) {
+  if (!wc || wc->IsDiscarded() || !wc->IsCurrent()) {
     return false;
   }
   return GetBrowsingContext()->AncestorsAreCurrent();
@@ -7302,7 +7304,7 @@ void nsGlobalWindowInner::SetReplaceableWindowCoord(
    */
   nsGlobalWindowOuter* outer = GetOuterWindowInternal();
   if (!outer || !outer->CanMoveResizeWindows(aCallerType) ||
-      mBrowsingContext->IsFrame()) {
+      mBrowsingContext->IsSubframe()) {
     RedefineProperty(aCx, aPropName, aValue, aError);
     return;
   }
@@ -7418,15 +7420,16 @@ void nsGlobalWindowInner::FireOnNewGlobalObject() {
 #endif
 
 already_AddRefed<Promise> nsGlobalWindowInner::CreateImageBitmap(
-    const ImageBitmapSource& aImage, ErrorResult& aRv) {
-  return ImageBitmap::Create(this, aImage, Nothing(), aRv);
+    const ImageBitmapSource& aImage, const ImageBitmapOptions& aOptions,
+    ErrorResult& aRv) {
+  return ImageBitmap::Create(this, aImage, Nothing(), aOptions, aRv);
 }
 
 already_AddRefed<Promise> nsGlobalWindowInner::CreateImageBitmap(
     const ImageBitmapSource& aImage, int32_t aSx, int32_t aSy, int32_t aSw,
-    int32_t aSh, ErrorResult& aRv) {
-  return ImageBitmap::Create(this, aImage,
-                             Some(gfx::IntRect(aSx, aSy, aSw, aSh)), aRv);
+    int32_t aSh, const ImageBitmapOptions& aOptions, ErrorResult& aRv) {
+  return ImageBitmap::Create(
+      this, aImage, Some(gfx::IntRect(aSx, aSy, aSw, aSh)), aOptions, aRv);
 }
 
 nsresult nsGlobalWindowInner::Dispatch(

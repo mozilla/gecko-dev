@@ -54,7 +54,6 @@ class nsIContent;
 class ViewWrapper;
 class nsIScreen;
 class nsIRunnable;
-class nsUint64HashKey;
 
 namespace mozilla {
 class NativeEventData;
@@ -81,8 +80,6 @@ class Compositor;
 class CompositorBridgeChild;
 struct FrameMetrics;
 class LayerManager;
-class LayerManagerComposite;
-class PLayerTransactionChild;
 class WebRenderBridgeChild;
 }  // namespace layers
 namespace gfx {
@@ -379,10 +376,8 @@ class nsIWidget : public nsISupports {
   typedef mozilla::layers::FrameMetrics FrameMetrics;
   typedef mozilla::layers::LayerManager LayerManager;
   typedef mozilla::WindowRenderer WindowRenderer;
-  typedef mozilla::layers::LayerManagerComposite LayerManagerComposite;
   typedef mozilla::layers::LayersBackend LayersBackend;
   typedef mozilla::layers::LayersId LayersId;
-  typedef mozilla::layers::PLayerTransactionChild PLayerTransactionChild;
   typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
   typedef mozilla::layers::ZoomConstraints ZoomConstraints;
   typedef mozilla::widget::IMEEnabled IMEEnabled;
@@ -1723,10 +1718,13 @@ class nsIWidget : public nsISupports {
                                             bool aLongTap,
                                             nsIObserver* aObserver);
 
-  virtual nsresult SynthesizeNativePenInput(
-      uint32_t aPointerId, TouchPointerState aPointerState,
-      LayoutDeviceIntPoint aPoint, double aPressure, uint32_t aRotation,
-      int32_t aTiltX, int32_t aTiltY, nsIObserver* aObserver) = 0;
+  virtual nsresult SynthesizeNativePenInput(uint32_t aPointerId,
+                                            TouchPointerState aPointerState,
+                                            LayoutDeviceIntPoint aPoint,
+                                            double aPressure,
+                                            uint32_t aRotation, int32_t aTiltX,
+                                            int32_t aTiltY, int32_t aButton,
+                                            nsIObserver* aObserver) = 0;
 
   /*
    * Cancels all active simulated touch input points and pending long taps.
@@ -2174,6 +2172,14 @@ class nsIWidget : public nsISupports {
    * and ignoring Gecko preferences.
    */
   virtual double GetDefaultScaleInternal() { return 1.0; }
+
+  /**
+   * Layout uses this to alert the widget to the client rect representing
+   * the window maximize button.  An empty rect indicates there is no
+   * maximize button (for example, in fullscreen).  This is only implemented
+   * on Windows.
+   */
+  virtual void SetMaximizeButtonRect(const LayoutDeviceIntRect& aClientRect) {}
 
  protected:
   // keep the list of children.  We also keep track of our siblings.

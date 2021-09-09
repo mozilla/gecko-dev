@@ -11,10 +11,10 @@ const { XPCOMUtils } = ChromeUtils.import(
 );
 XPCOMUtils.defineLazyModuleGetters(this, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.jsm",
+  L10nCache: "resource:///modules/UrlbarUtils.jsm",
+  ObjectUtils: "resource://gre/modules/ObjectUtils.jsm",
   Services: "resource://gre/modules/Services.jsm",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.jsm",
-  UrlbarProviderQuickSuggest:
-    "resource:///modules/UrlbarProviderQuickSuggest.jsm",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.jsm",
   UrlbarSearchOneOffs: "resource:///modules/UrlbarSearchOneOffs.jsm",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.jsm",
@@ -80,6 +80,9 @@ class UrlbarView {
     // This is used by autoOpen to avoid flickering results when reopening
     // previously abandoned searches.
     this._queryContextCache = new QueryContextCache(5);
+
+    // We cache l10n strings to avoid Fluent's async lookup.
+    this._l10nCache = new L10nCache(this.document.l10n);
 
     for (let viewTemplate of UrlbarView.dynamicViewTemplatesByName.values()) {
       if (viewTemplate.stylesheet) {
@@ -571,6 +574,13 @@ class UrlbarView {
       this._previousTabToSearchEngine = null;
     }
     this._startRemoveStaleRowsTimer();
+
+    // Cache l10n strings so they're available when we update the view as
+    // results arrive. This is a no-op for strings that are already cached.
+    // `_cacheL10nStrings` is async but we don't await it because doing so would
+    // require view updates to be async. Instead we just opportunistically cache
+    // and if there's a cache miss we fall back to `l10n.setAttributes`.
+    this._cacheL10nStrings();
   }
 
   onQueryCancelled(queryContext) {
@@ -1142,12 +1152,6 @@ class UrlbarView {
       if (result.payload.helpL10nId) {
         helpButton.setAttribute("data-l10n-id", result.payload.helpL10nId);
       }
-      if (result.payload.helpTitle) {
-        // Allow the payload to specify the title text directly.  Normally
-        // `helpL10nId` should be used instead, but `helpTitle` is useful for
-        // experiments with hardcoded user-facing strings.
-        helpButton.setAttribute("title", result.payload.helpTitle);
-      }
       item.appendChild(helpButton);
       item._elements.set("helpButton", helpButton);
       item._content.setAttribute("selectable", "true");
@@ -1448,20 +1452,22 @@ class UrlbarView {
       result.type != UrlbarUtils.RESULT_TYPE.TAB_SWITCH
     ) {
       item.toggleAttribute("sponsored", true);
-      if (result.payload.sponsoredText) {
-        action.removeAttribute("data-l10n-id");
-        actionSetter = () =>
-          (action.textContent = result.payload.sponsoredText);
-      } else {
-        actionSetter = () => {
-          this.document.l10n.setAttributes(
-            action,
-            "urlbar-result-action-sponsored"
-          );
-        };
-      }
+      actionSetter = () => {
+        this._setElementL10n(action, {
+          id: "urlbar-result-action-sponsored",
+        });
+      };
     } else {
       item.removeAttribute("sponsored");
+    }
+
+    if (
+      result.providerName == "UrlbarProviderQuickSuggest" &&
+      result.payload.isSponsored
+    ) {
+      item.toggleAttribute("firefox-suggest-sponsored", true);
+    } else {
+      item.removeAttribute("firefox-suggest-sponsored");
     }
 
     let url = item._elements.get("url");
@@ -1674,7 +1680,7 @@ class UrlbarView {
       if (visible) {
         label = this._rowLabel(item, currentLabel);
         if (label) {
-          if (label == currentLabel) {
+          if (ObjectUtils.deepEqual(label, currentLabel)) {
             label = null;
           } else {
             currentLabel = label;
@@ -1682,9 +1688,13 @@ class UrlbarView {
         }
       }
       if (label) {
-        item.setAttribute("label", label);
+        this._setElementL10n(item, {
+          attribute: "label",
+          id: label.id,
+          args: label.args,
+        });
       } else {
-        item.removeAttribute("label");
+        this._removeElementL10n(item, { attribute: "label" });
       }
     }
 
@@ -1701,12 +1711,22 @@ class UrlbarView {
     }
   }
 
+  /**
+   * Returns the group label to use for a row. Designed to be called iteratively
+   * over each row.
+   *
+   * @param {Element} row
+   *   A row in the view.
+   * @param {object} currentLabel
+   *   The current group label during row iteration.
+   * @returns {object}
+   *   If the current row should not have a label, returns null. Otherwise
+   *   returns an l10n object for the label's l10n string: `{ id, args }`
+   */
   _rowLabel(row, currentLabel) {
-    // We only show Firefox Suggest-related group labels if the locale is en-*
-    // and we're not showing top sites.
+    // Labels aren't shown for top sites, i.e., when the search string is empty.
     if (
       UrlbarPrefs.get("groupLabels.enabled") &&
-      Services.locale.appLocaleAsBCP47.substring(0, 2) == "en" &&
       this._queryContext?.searchString &&
       !row.result.heuristic
     ) {
@@ -1715,14 +1735,16 @@ class UrlbarView {
         case UrlbarUtils.RESULT_TYPE.REMOTE_TAB:
         case UrlbarUtils.RESULT_TYPE.TAB_SWITCH:
         case UrlbarUtils.RESULT_TYPE.URL:
-          return UrlbarProviderQuickSuggest.featureName;
+          return { id: "urlbar-group-firefox-suggest" };
         case UrlbarUtils.RESULT_TYPE.SEARCH:
-          // We only show the "<engine> Suggestions" label if it's not the first
-          // label. This string is hardcoded en-US for now.
+          // Show "{ $engine } Suggestions" if it's not the first label.
           if (currentLabel && row.result.payload.suggestion) {
             let engineName =
               row.result.payload.engine || Services.search.defaultEngine.name;
-            return engineName + " Suggestions";
+            return {
+              id: "urlbar-group-search-suggestions",
+              args: { engine: engineName },
+            };
           }
           break;
       }
@@ -2118,6 +2140,92 @@ class UrlbarView {
     }
     this.input.pickElement(tipButton, event);
     return true;
+  }
+
+  /**
+   * Caches some l10n strings used by the view. Strings that are already cached
+   * are not cached again.
+   *
+   * @note
+   *   Currently strings are never evicted from the cache, so do not cache
+   *   strings whose arguments include the search string or other values that
+   *   can cause the cache to grow unbounded. Suitable strings include those
+   *   without arguments or those whose arguments depend on a small set of
+   *   static values like search engine names.
+   */
+  async _cacheL10nStrings() {
+    let idArgs = [];
+
+    if (UrlbarPrefs.get("groupLabels.enabled")) {
+      idArgs.push(
+        { id: "urlbar-group-firefox-suggest" },
+        ...[
+          Services.search.defaultEngine?.name,
+          Services.search.defaultPrivateEngine?.name,
+        ]
+          .filter(engineName => engineName)
+          .map(engineName => ({
+            id: "urlbar-group-search-suggestions",
+            args: { engine: engineName },
+          }))
+      );
+    }
+
+    if (UrlbarPrefs.get("quicksuggest.enabled")) {
+      idArgs.push({ id: "urlbar-result-action-sponsored" });
+    }
+
+    await this._l10nCache.ensureAll(idArgs);
+  }
+
+  /**
+   * Sets an element's textContent or attribute to a cached l10n string. If the
+   * string isn't cached, then this falls back to the async `l10n.setAttributes`
+   * using the given l10n ID and args. The string will pop in as a result, but
+   * there's no way around it.
+   *
+   * @param {Element} element
+   * @param {string} options.id
+   *   The l10n string ID.
+   * @param {object} [options.args]
+   *   The l10n string arguments.
+   * @param {string} [options.attribute]
+   *   If you're setting an attribute string, then pass the name of the
+   *   attribute. In that case, the string in the Fluent file should define a
+   *   value for the attribute, like ".foo = My value for the foo attribute".
+   *   If you're setting the element's textContent, then leave this undefined.
+   */
+  _setElementL10n(element, { id, args = undefined, attribute = undefined }) {
+    let message = this._l10nCache.get(id, args);
+    if (message) {
+      if (attribute) {
+        element.setAttribute(attribute, message.attributes[attribute]);
+      } else {
+        element.textContent = message.value;
+      }
+    } else {
+      if (attribute) {
+        element.setAttribute("data-l10n-attrs", attribute);
+      }
+      this.document.l10n.setAttributes(element, id, args);
+    }
+  }
+
+  /**
+   * Removes textContent and attributes set by `_setElementL10n`.
+   *
+   * @param {Element} element
+   * @param {string} [options.attribute]
+   *   If you passed an attribute to `_setElementL10n`, then pass it here too.
+   */
+  _removeElementL10n(element, { attribute = undefined }) {
+    if (attribute) {
+      element.removeAttribute(attribute);
+      element.removeAttribute("data-l10n-attrs");
+    } else {
+      element.textContent = "";
+    }
+    element.removeAttribute("data-l10n-id");
   }
 
   // Event handlers below.

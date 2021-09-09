@@ -107,7 +107,7 @@ jobs:
             - deb10-mmdebstrap
     custom-v8:
         symbol: I(custom-v8)
-        parent: debian10-base
+        parent: debian11-base
     valgrind-build:
         symbol: I(vb)
         parent: debian11-amd64-build
@@ -182,14 +182,11 @@ jobs:
             - deb11-python-zstandard
     static-analysis-build:
         symbol: I(static-analysis-build)
-        parent: debian10-base
+        parent: debian11-base
     gdb-test:
         symbol: I(gdb)
         parent: debian11-amd64-build
         definition: gdb-test
-    mingw32-build:
-        symbol: I(mingw)
-        parent: debian10-base
     index-task:
         symbol: I(idx)
     funsize-update-generator:
@@ -216,9 +213,6 @@ jobs:
         symbol: I(flatpak)
     webrender:
         symbol: I(webrender)
-        parent: debian10-base
-    wgpu:
-        symbol: I(wgpu)
         parent: debian10-base
     condprof:
         symbol: I(condprof)

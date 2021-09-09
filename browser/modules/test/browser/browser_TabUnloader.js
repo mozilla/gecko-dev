@@ -9,10 +9,25 @@ const BASE_URL = "https://example.com/browser/browser/modules/test/browser/";
 
 async function play(tab) {
   let browser = tab.linkedBrowser;
+
+  let waitForAudioPromise = BrowserTestUtils.waitForEvent(
+    tab,
+    "TabAttrModified",
+    false,
+    event => {
+      return (
+        event.detail.changed.includes("soundplaying") &&
+        tab.hasAttribute("soundplaying")
+      );
+    }
+  );
+
   await SpecialPowers.spawn(browser, [], async function() {
     let audio = content.document.querySelector("audio");
     await audio.play();
   });
+
+  await waitForAudioPromise;
 }
 
 async function addTab(win = window) {
@@ -207,7 +222,7 @@ add_task(async function test() {
   // both pinned and playing sound
   await pressure(pinnedSoundTab);
   ok(!pinnedSoundTab.linkedPanel, "unloaded a pinned tab playing sound");
-  await compareTabOrder([]); // note that no tabs are returned when there are no discardable tabs.
+  await compareTabOrder([tab0]);
 
   const histogram = TelemetryTestUtils.getAndClearHistogram(
     "TAB_UNLOAD_TO_RELOAD"

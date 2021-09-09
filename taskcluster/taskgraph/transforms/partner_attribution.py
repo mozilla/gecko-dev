@@ -5,13 +5,10 @@
 Transform the partner attribution task into an actual task description.
 """
 
-from __future__ import absolute_import, print_function, unicode_literals
 
 from collections import defaultdict
 import json
 import logging
-
-import six
 
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.partners import (
@@ -63,9 +60,7 @@ def add_command_arguments(config, tasks):
                         locale=locale
                     )
                 if upstream_label not in config.kind_dependencies_tasks:
-                    raise Exception(
-                        "Can't find upstream task for {} {}".format(platform, locale)
-                    )
+                    raise Exception(f"Can't find upstream task for {platform} {locale}")
                 upstream = config.kind_dependencies_tasks[upstream_label]
 
                 # set the dependencies to just what we need rather than all of l10n
@@ -88,8 +83,8 @@ def add_command_arguments(config, tasks):
                 #  add releng/partner prefix via get_artifact_prefix..()
                 attributions.append(
                     {
-                        "input": "/builds/worker/fetches/{}".format(artifact_part),
-                        "output": "/builds/worker/artifacts/{}".format(artifact),
+                        "input": f"/builds/worker/fetches/{artifact_part}",
+                        "output": f"/builds/worker/artifacts/{artifact}",
                         "attribution": attribution_code,
                     }
                 )
@@ -117,8 +112,8 @@ def add_command_arguments(config, tasks):
                 }
                 for upstream_artifact, platform, locale in upstream_artifacts
             ]
-        worker.setdefault("env", {})["ATTRIBUTION_CONFIG"] = six.ensure_text(
-            json.dumps(attributions, sort_keys=True)
+        worker.setdefault("env", {})["ATTRIBUTION_CONFIG"] = json.dumps(
+            attributions, sort_keys=True
         )
         worker["artifacts"] = [
             {

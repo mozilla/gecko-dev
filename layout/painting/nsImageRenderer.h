@@ -96,7 +96,6 @@ struct CSSSizeOrRatio {
 class nsImageRenderer {
  public:
   typedef mozilla::image::ImgDrawResult ImgDrawResult;
-  typedef mozilla::layers::LayerManager LayerManager;
   typedef mozilla::layers::ImageContainer ImageContainer;
 
   enum {
@@ -245,8 +244,6 @@ class nsImageRenderer {
   /// Retrieves the image associated with this nsImageRenderer, if there is one.
   already_AddRefed<imgIContainer> GetImage();
 
-  bool IsImageContainerAvailable(layers::LayerManager* aManager,
-                                 uint32_t aFlags);
   bool IsReady() const { return mPrepareResult == ImgDrawResult::SUCCESS; }
   ImgDrawResult PrepareResult() const { return mPrepareResult; }
   void SetExtendMode(mozilla::gfx::ExtendMode aMode) { mExtendMode = aMode; }

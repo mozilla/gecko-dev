@@ -25,7 +25,6 @@
 #include "nsComboboxControlFrame.h"
 #include "mozilla/dom/Document.h"
 #include "nsIFormControlFrame.h"
-#include "nsIForm.h"
 #include "nsIFrame.h"
 #include "nsListControlFrame.h"
 #include "nsISelectControlFrame.h"
@@ -52,10 +51,9 @@ SafeOptionListMutation::SafeOptionListMutation(nsIContent* aSelect,
     : mSelect(HTMLSelectElement::FromNodeOrNull(aSelect)),
       mTopLevelMutation(false),
       mNeedsRebuild(false),
-      mNotify(aNotify),
-      mInitialSelectedIndex(-1) {
+      mNotify(aNotify) {
   if (mSelect) {
-    mInitialSelectedIndex = mSelect->SelectedIndex();
+    mInitialSelectedOption = mSelect->Item(mSelect->SelectedIndex());
     mTopLevelMutation = !mSelect->mMutating;
     if (mTopLevelMutation) {
       mSelect->mMutating = true;
@@ -84,7 +82,7 @@ SafeOptionListMutation::~SafeOptionListMutation() {
     if (mTopLevelMutation) {
       mSelect->mMutating = false;
     }
-    if (mSelect->SelectedIndex() != mInitialSelectedIndex) {
+    if (mSelect->Item(mSelect->SelectedIndex()) != mInitialSelectedOption) {
       // We must have triggered the SelectSomething() codepath, which can cause
       // our validity to change.  Unfortunately, our attempt to update validity
       // in that case may not have worked correctly, because we actually call it
@@ -1251,13 +1249,10 @@ EventStates HTMLSelectElement::IntrinsicState() const {
   return state;
 }
 
-// nsIFormControl
-
-NS_IMETHODIMP
-HTMLSelectElement::SaveState() {
+void HTMLSelectElement::SaveState() {
   PresState* presState = GetPrimaryPresState();
   if (!presState) {
-    return NS_OK;
+    return;
   }
 
   SelectContentData state;
@@ -1285,8 +1280,6 @@ HTMLSelectElement::SaveState() {
     presState->disabled() = HasAttr(kNameSpaceID_None, nsGkAtoms::disabled);
     presState->disabledSet() = true;
   }
-
-  return NS_OK;
 }
 
 bool HTMLSelectElement::RestoreState(PresState* aState) {
@@ -1339,6 +1332,8 @@ void HTMLSelectElement::RestoreStateTo(const SelectContentData& aNewSelected) {
     }
   }
 }
+
+// nsIFormControl
 
 NS_IMETHODIMP
 HTMLSelectElement::Reset() {

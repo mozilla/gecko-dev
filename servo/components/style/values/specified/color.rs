@@ -244,10 +244,6 @@ pub enum SystemColor {
     #[css(skip)]
     TextForeground,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    TextSelectBackground,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    TextSelectForeground,
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackgroundDisabled,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TextSelectBackgroundAttention,
@@ -335,13 +331,15 @@ pub enum SystemColor {
     /// Used to highlight valid regions to drop something onto.
     MozDragtargetzone,
     /// Used for selected but not focused cell backgrounds.
+    #[parse(aliases = "-moz-html-cellhighlight")]
     MozCellhighlight,
     /// Used for selected but not focused cell text.
+    #[parse(aliases = "-moz-html-cellhighlighttext")]
     MozCellhighlighttext,
-    /// Used for selected but not focused html cell backgrounds.
-    MozHtmlCellhighlight,
-    /// Used for selected but not focused html cell text.
-    MozHtmlCellhighlighttext,
+    /// Used for selected and focused html cell backgrounds.
+    Selecteditem,
+    /// Used for selected and focused html cell text.
+    Selecteditemtext,
     /// Used to button text background when hovered.
     MozButtonhoverface,
     /// Used to button text color when hovered.

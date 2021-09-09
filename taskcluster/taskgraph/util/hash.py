@@ -2,13 +2,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
 from mozbuild.util import memoize
 import mozpack.path as mozpath
 from mozversioncontrol import get_repository_object
 import hashlib
-import io
-import six
 
 
 @memoize
@@ -17,7 +14,7 @@ def hash_path(path):
 
     Returns the SHA-256 hash in hex form.
     """
-    with io.open(path, mode="rb") as fh:
+    with open(path, mode="rb") as fh:
         return hashlib.sha256(fh.read()).hexdigest()
 
 
@@ -48,11 +45,9 @@ def hash_paths(base_path, patterns):
         if path.endswith((".pyc", ".pyd", ".pyo")):
             continue
         h.update(
-            six.ensure_binary(
-                "{} {}\n".format(
-                    hash_path(mozpath.abspath(mozpath.join(base_path, path))),
-                    mozpath.normsep(path),
-                )
-            )
+            "{} {}\n".format(
+                hash_path(mozpath.abspath(mozpath.join(base_path, path))),
+                mozpath.normsep(path),
+            ).encode("utf-8")
         )
     return h.hexdigest()

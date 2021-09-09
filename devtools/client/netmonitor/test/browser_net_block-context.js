@@ -8,13 +8,7 @@
  */
 
 add_task(async function() {
-  // Disable bfcache for Fission for now.
-  // If Fission is disabled, the pref is no-op.
-  await SpecialPowers.pushPrefEnv({
-    set: [["fission.bfcacheInParent", false]],
-  });
-
-  const { tab, monitor } = await initNetMonitor(SIMPLE_URL, {
+  const { monitor } = await initNetMonitor(SIMPLE_URL, {
     requestCount: 1,
   });
   info("Starting test... ");
@@ -44,7 +38,7 @@ add_task(async function() {
   is(getListitems(document), 2);
 
   info("Reloading page, URLs should be blocked in request list");
-  await reloadPage(monitor, tab);
+  await reloadPage(monitor, { isRequestBlocked: true });
   is(checkIfRequestIsBlocked(document), true);
 
   info("Disabling all blocked strings");
@@ -57,7 +51,8 @@ add_task(async function() {
   is(getCheckedCheckboxes(document), 0);
 
   info("Reloading page, URLs should not be blocked in request list");
-  await reloadPage(monitor, tab);
+  await reloadPage(monitor, { isRequestBlocked: false });
+
   is(checkIfRequestIsBlocked(document), false);
 
   info("Enabling all blocked strings");
@@ -70,7 +65,8 @@ add_task(async function() {
   is(getCheckedCheckboxes(document), 2);
 
   info("Reloading page, URLs should be blocked in request list");
-  await reloadPage(monitor, tab);
+  await reloadPage(monitor, { isRequestBlocked: true });
+
   is(checkIfRequestIsBlocked(document), true);
 
   info("Removing all blocked strings");
@@ -82,8 +78,8 @@ add_task(async function() {
   );
   is(getListitems(document), 0);
 
-  info("Reloading page, URLs should be blocked in request list");
-  await reloadPage(monitor, tab);
+  info("Reloading page, URLs should no longer be blocked in request list");
+  await reloadPage(monitor, { isRequestBlocked: false });
   is(checkIfRequestIsBlocked(document), false);
 
   return teardown(monitor);
@@ -108,9 +104,15 @@ async function openMenuAndClick(monitor, store, document, itemSelector) {
   await wait;
 }
 
-async function reloadPage(monitor, tab) {
+async function reloadPage(monitor, { isRequestBlocked = false } = {}) {
   const wait = waitForNetworkEvents(monitor, 1);
-  tab.linkedBrowser.reload();
+  if (isRequestBlocked) {
+    // Note: Do not use navigateTo or reloadBrowser here as the request will
+    // be blocked and no navigation happens
+    gBrowser.selectedBrowser.reload();
+  } else {
+    await reloadBrowser();
+  }
   await wait;
 }
 

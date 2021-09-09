@@ -60,6 +60,9 @@ function resolvePluralRulesInternals(lazyPluralRulesData) {
         internalProps.maximumSignificantDigits = lazyPluralRulesData.maximumSignificantDigits;
     }
 
+    // Intl.NumberFormat v3 Proposal
+    internalProps.roundingPriority = lazyPluralRulesData.roundingPriority;
+
     // Step 13 (lazily computed on first access).
     internalProps.pluralCategories = null;
 
@@ -122,6 +125,8 @@ function InitializePluralRules(pluralRules, locales, options) {
     //     // optional, mutually exclusive with the fraction-digits option
     //     minimumSignificantDigits: integer ∈ [1, 21],
     //     maximumSignificantDigits: integer ∈ [1, 21],
+    //
+    //     roundingPriority: "auto" / "lessPrecision" / "morePrecision",
     //   }
     //
     // Note that lazy data is only installed as a final step of initialization,
@@ -209,6 +214,31 @@ function Intl_PluralRules_select(value) {
 }
 
 /**
+ * Returns a String value representing the plural category matching the input
+ * number range according to the effective locale and the formatting options
+ * of this PluralRules.
+ */
+function Intl_PluralRules_selectRange(start, end) {
+    // Step 1.
+    var pluralRules = this;
+
+    // Step 2.
+    if (!IsObject(pluralRules) || (pluralRules = intl_GuardToPluralRules(pluralRules)) === null) {
+        return callFunction(intl_CallPluralRulesMethodIfWrapped, this, start, end,
+                            "Intl_PluralRules_selectRange");
+    }
+
+    // Step 3.
+    var x = ToNumber(start);
+
+    // Step 4.
+    var y = ToNumber(end);
+
+    // Step 5.
+    return intl_SelectPluralRuleRange(pluralRules, x, y);
+}
+
+/**
  * Returns the resolved options for a PluralRules object.
  *
  * Spec: ECMAScript 402 API, PluralRules, 13.4.4.
@@ -267,6 +297,10 @@ function Intl_PluralRules_resolvedOptions() {
 
     // Step 7.
     DefineDataProperty(result, "pluralCategories", pluralCategories);
+
+#ifdef NIGHTLY_BUILD
+    DefineDataProperty(result, "roundingPriority", internals.roundingPriority);
+#endif
 
     // Step 8.
     return result;

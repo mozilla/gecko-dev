@@ -1056,9 +1056,7 @@ void gfxWindowsPlatform::FontsPrefsChanged(const char* aPref) {
 
   if (aPref &&
       !strncmp(GFX_CLEARTYPE_PARAMS, aPref, strlen(GFX_CLEARTYPE_PARAMS))) {
-    if (XRE_IsParentProcess()) {
-      gfxDWriteFont::UpdateClearTypeVars();
-    }
+    gfxDWriteFont::UpdateClearTypeVars();
   } else {
     clearTextFontCaches = false;
   }
@@ -1462,7 +1460,6 @@ class D3DVsyncSource final : public VsyncSource {
    public:
     D3DVsyncDisplay()
         : mPrevVsync(TimeStamp::Now()),
-          mVsyncEnabledLock("D3DVsyncEnabledLock"),
           mVsyncEnabled(false),
           mWaitVBlankMonitor(NULL),
           mIsWindows8OrLater(false) {
@@ -1507,7 +1504,6 @@ class D3DVsyncSource final : public VsyncSource {
       MOZ_ASSERT(NS_IsMainThread());
       MOZ_ASSERT(mVsyncThread->IsRunning());
       {  // scope lock
-        MonitorAutoLock lock(mVsyncEnabledLock);
         if (mVsyncEnabled) {
           return;
         }
@@ -1521,7 +1517,6 @@ class D3DVsyncSource final : public VsyncSource {
     virtual void DisableVsync() override {
       MOZ_ASSERT(NS_IsMainThread());
       MOZ_ASSERT(mVsyncThread->IsRunning());
-      MonitorAutoLock lock(mVsyncEnabledLock);
       if (!mVsyncEnabled) {
         return;
       }
@@ -1530,7 +1525,6 @@ class D3DVsyncSource final : public VsyncSource {
 
     virtual bool IsVsyncEnabled() override {
       MOZ_ASSERT(NS_IsMainThread());
-      MonitorAutoLock lock(mVsyncEnabledLock);
       return mVsyncEnabled;
     }
 
@@ -1624,7 +1618,6 @@ class D3DVsyncSource final : public VsyncSource {
 
       for (;;) {
         {  // scope lock
-          MonitorAutoLock lock(mVsyncEnabledLock);
           if (!mVsyncEnabled) return;
         }
 
@@ -1732,10 +1725,9 @@ class D3DVsyncSource final : public VsyncSource {
     }
 
     TimeStamp mPrevVsync;
-    Monitor mVsyncEnabledLock;
     base::Thread* mVsyncThread;
     TimeDuration mVsyncRate;
-    bool mVsyncEnabled;
+    Atomic<bool> mVsyncEnabled;
 
     HMONITOR mWaitVBlankMonitor;
     RefPtr<IDXGIOutput> mWaitVBlankOutput;
@@ -1762,18 +1754,6 @@ gfxWindowsPlatform::CreateHardwareVsyncSource() {
 
   RefPtr<VsyncSource> d3dVsyncSource = new D3DVsyncSource();
   return d3dVsyncSource.forget();
-}
-
-void gfxWindowsPlatform::GetAcceleratedCompositorBackends(
-    nsTArray<LayersBackend>& aBackends) {
-  if (gfxConfig::IsEnabled(Feature::OPENGL_COMPOSITING) &&
-      StaticPrefs::layers_prefer_opengl_AtStartup()) {
-    aBackends.AppendElement(LayersBackend::LAYERS_OPENGL);
-  }
-
-  if (gfxConfig::IsEnabled(Feature::D3D11_COMPOSITING)) {
-    aBackends.AppendElement(LayersBackend::LAYERS_D3D11);
-  }
 }
 
 void gfxWindowsPlatform::ImportGPUDeviceData(

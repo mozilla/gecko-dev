@@ -355,7 +355,6 @@ class SurfacePattern : public Pattern {
 };
 
 class StoredPattern;
-class DrawTargetCaptureImpl;
 
 static const int32_t kReasonableSurfaceSize = 8192;
 
@@ -485,14 +484,7 @@ class SourceSurface : public external::AtomicRefCounted<SourceSurface> {
   void RemoveUserData(UserDataKey* key) { mUserData.RemoveAndDestroy(key); }
 
  protected:
-  friend class DrawTargetCaptureImpl;
   friend class StoredPattern;
-
-  // This is for internal use, it ensures the SourceSurface's data remains
-  // valid during the lifetime of the SourceSurface.
-  // @todo XXX - We need something better here :(. But we may be able to get rid
-  // of CreateWrappingDataSourceSurface in the future.
-  virtual void GuaranteePersistance() {}
 
   UserData mUserData;
 };
@@ -1053,8 +1045,6 @@ class NativeFontResource
   size_t mDataLength;
 };
 
-class DrawTargetCapture;
-
 /** This is the main class used for all the drawing. It is created through the
  * factory and accepts drawing commands. The results of drawing to a target
  * may be used either through a Snapshot or by flushing the target and directly
@@ -1075,7 +1065,6 @@ class DrawTarget : public external::AtomicRefCounted<DrawTarget> {
   virtual BackendType GetBackendType() const = 0;
 
   virtual bool IsRecording() const { return false; }
-  virtual bool IsCaptureDT() const { return false; }
 
   /**
    * Method to generate hyperlink in PDF output (with appropriate backend).
@@ -1123,15 +1112,6 @@ class DrawTarget : public external::AtomicRefCounted<DrawTarget> {
    * this draw target outside of GFX 2D code.
    */
   virtual void Flush() = 0;
-
-  /**
-   * Realize a DrawTargetCapture onto the draw target.
-   *
-   * @param aSource Capture DrawTarget to draw
-   * @param aTransform Transform to apply when replaying commands
-   */
-  virtual void DrawCapturedDT(DrawTargetCapture* aCaptureDT,
-                              const Matrix& aTransform);
 
   /**
    * Draw a surface to the draw target. Possibly doing partial drawing or
@@ -1620,7 +1600,6 @@ class DrawTarget : public external::AtomicRefCounted<DrawTarget> {
    */
   virtual void* GetNativeSurface(NativeSurfaceType aType) { return nullptr; }
 
-  virtual bool IsDualDrawTarget() const { return false; }
   virtual bool IsTiledDrawTarget() const { return false; }
   virtual bool SupportsRegionClipping() const { return true; }
 
@@ -1681,14 +1660,6 @@ class DrawTarget : public external::AtomicRefCounted<DrawTarget> {
   bool mPermitSubpixelAA : 1;
 
   SurfaceFormat mFormat;
-};
-
-class DrawTargetCapture : public DrawTarget {
- public:
-  bool IsCaptureDT() const override { return true; }
-
-  virtual bool IsEmpty() const = 0;
-  virtual void Dump() = 0;
 };
 
 class DrawEventRecorder : public RefCounted<DrawEventRecorder> {
@@ -1776,31 +1747,6 @@ class GFX2D_API Factory {
    * Create a simple PathBuilder, which uses SKIA backend.
    */
   static already_AddRefed<PathBuilder> CreateSimplePathBuilder();
-
-  /**
-   * Create a DrawTarget that captures the drawing commands to eventually be
-   * replayed onto the DrawTarget provided. An optional byte size can be
-   * provided as a limit for the CaptureCommandList. When the limit is reached,
-   * the CaptureCommandList will be replayed to the target and then cleared.
-   *
-   * @param aSize Size of the area this DT will capture.
-   * @param aFlushBytes The byte limit at which to flush the CaptureCommandList
-   */
-  static already_AddRefed<DrawTargetCapture> CreateCaptureDrawTargetForTarget(
-      gfx::DrawTarget* aTarget, size_t aFlushBytes = 0);
-
-  /**
-   * Create a DrawTarget that captures the drawing commands and can be replayed
-   * onto a compatible DrawTarget afterwards.
-   *
-   * @param aSize Size of the area this DT will capture.
-   */
-  static already_AddRefed<DrawTargetCapture> CreateCaptureDrawTarget(
-      BackendType aBackend, const IntSize& aSize, SurfaceFormat aFormat);
-
-  static already_AddRefed<DrawTargetCapture> CreateCaptureDrawTargetForData(
-      BackendType aBackend, const IntSize& aSize, SurfaceFormat aFormat,
-      int32_t aStride, size_t aSurfaceAllocationSize);
 
   static already_AddRefed<DrawTarget> CreateRecordingDrawTarget(
       DrawEventRecorder* aRecorder, DrawTarget* aDT, IntRect aRect);
@@ -1893,11 +1839,6 @@ class GFX2D_API Factory {
   static void CopyDataSourceSurface(DataSourceSurface* aSource,
                                     DataSourceSurface* aDest);
 
-  static already_AddRefed<DrawEventRecorder> CreateEventRecorderForFile(
-      const char_type* aFilename);
-
-  static void SetGlobalEventRecorder(DrawEventRecorder* aRecorder);
-
   static uint32_t GetMaxSurfaceSize(BackendType aType);
 
   static LogForwarder* GetLogForwarder() {
@@ -1910,20 +1851,6 @@ class GFX2D_API Factory {
  public:
   static void PurgeAllCaches();
 
-  static already_AddRefed<DrawTarget> CreateDualDrawTarget(DrawTarget* targetA,
-                                                           DrawTarget* targetB);
-
-  static already_AddRefed<SourceSurface> CreateDualSourceSurface(
-      SourceSurface* sourceA, SourceSurface* sourceB);
-
-  /*
-   * This creates a new tiled DrawTarget. When a tiled drawtarget is used the
-   * drawing is distributed over number of tiles which may each hold an
-   * individual offset. The tiles in the set must each have the same backend
-   * and format.
-   */
-  static already_AddRefed<DrawTarget> CreateTiledDrawTarget(
-      const TileSet& aTileSet);
   static already_AddRefed<DrawTarget> CreateOffsetDrawTarget(
       DrawTarget* aDrawTarget, IntPoint aTileOrigin);
 
@@ -2040,9 +1967,6 @@ class GFX2D_API Factory {
 
   friend class DrawTargetD2D1;
 #endif  // WIN32
-
- private:
-  static DrawEventRecorder* mRecorder;
 };
 
 class MOZ_RAII AutoSerializeWithMoz2D final {

@@ -21,6 +21,7 @@
 #include "mozilla/MozPromise.h"
 #include "mozilla/Range.h"
 #include "mozilla/TimeStamp.h"
+#include "mozilla/VsyncDispatcher.h"
 #include "mozilla/webrender/webrender_ffi.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 #include "nsString.h"
@@ -113,18 +114,14 @@ class TransactionBuilder final {
                       wr::WrPipelineId pipeline_id,
                       wr::BuiltDisplayListDescriptor dl_descriptor,
                       wr::Vec<uint8_t>& dl_items_data,
-                      wr::Vec<uint8_t>& dl_cache_data);
+                      wr::Vec<uint8_t>& dl_cache_data,
+                      wr::Vec<uint8_t>& dl_spatial_tree);
 
   void ClearDisplayList(Epoch aEpoch, wr::WrPipelineId aPipeline);
 
   void GenerateFrame(const VsyncId& aVsyncId);
 
   void InvalidateRenderedFrame();
-
-  void UpdateDynamicProperties(
-      const nsTArray<wr::WrOpacityProperty>& aOpacityArray,
-      const nsTArray<wr::WrTransformProperty>& aTransformArray,
-      const nsTArray<wr::WrColorProperty>& aColorArray);
 
   void SetDocumentView(const LayoutDeviceIntRect& aDocRect);
 
@@ -143,7 +140,7 @@ class TransactionBuilder final {
                 wr::Vec<uint8_t>& aBytes);
 
   void AddBlobImage(wr::BlobImageKey aKey, const ImageDescriptor& aDescriptor,
-                    wr::Vec<uint8_t>& aBytes,
+                    uint16_t aTileSize, wr::Vec<uint8_t>& aBytes,
                     const wr::DeviceIntRect& aVisibleRect);
 
   void AddExternalImageBuffer(ImageKey key, const ImageDescriptor& aDescriptor,
@@ -217,7 +214,7 @@ class TransactionWrapper final {
  public:
   explicit TransactionWrapper(Transaction* aTxn);
 
-  void UpdateDynamicProperties(
+  void AppendDynamicProperties(
       const nsTArray<wr::WrOpacityProperty>& aOpacityArray,
       const nsTArray<wr::WrTransformProperty>& aTransformArray,
       const nsTArray<wr::WrColorProperty>& aColorArray);
@@ -415,7 +412,7 @@ struct MOZ_STACK_CLASS StackingContextParams : public WrStackingContextParams {
   nsTArray<wr::WrFilterData> mFilterDatas;
   wr::LayoutRect mBounds = wr::ToLayoutRect(LayoutDeviceRect());
   const gfx::Matrix4x4* mBoundTransform = nullptr;
-  const gfx::Matrix4x4* mTransformPtr = nullptr;
+  const wr::WrTransformInfo* mTransformPtr = nullptr;
   nsDisplayTransform* mDeferredTransformItem = nullptr;
   // Whether the stacking context is possibly animated. This alters how
   // coordinates are transformed/snapped to invalidate less when transforms
@@ -433,9 +430,7 @@ struct MOZ_STACK_CLASS StackingContextParams : public WrStackingContextParams {
 class DisplayListBuilder final {
  public:
   explicit DisplayListBuilder(wr::PipelineId aId,
-                              layers::WebRenderBackend aBackend,
-                              wr::DisplayListCapacity aCapacity,
-                              layers::DisplayItemCache* aCache = nullptr);
+                              layers::WebRenderBackend aBackend);
   DisplayListBuilder(DisplayListBuilder&&) = default;
 
   ~DisplayListBuilder();
@@ -448,8 +443,9 @@ class DisplayListBuilder final {
              const Maybe<usize>& aEnd);
   void DumpSerializedDisplayList();
 
-  void Finalize(wr::BuiltDisplayList& aOutDisplayList);
-  void Finalize(layers::DisplayListData& aOutTransaction);
+  void Begin(layers::DisplayItemCache* aCache = nullptr);
+  void End(wr::BuiltDisplayList& aOutDisplayList);
+  void End(layers::DisplayListData& aOutTransaction);
 
   Maybe<wr::WrSpatialId> PushStackingContext(
       const StackingContextParams& aParams, const wr::LayoutRect& aBounds,
@@ -467,21 +463,20 @@ class DisplayListBuilder final {
   wr::WrClipId DefineRectClip(Maybe<wr::WrSpatialId> aSpace,
                               wr::LayoutRect aClipRect);
 
-  wr::WrSpatialId DefineStickyFrame(const wr::LayoutRect& aContentRect,
-                                    const float* aTopMargin,
-                                    const float* aRightMargin,
-                                    const float* aBottomMargin,
-                                    const float* aLeftMargin,
-                                    const StickyOffsetBounds& aVerticalBounds,
-                                    const StickyOffsetBounds& aHorizontalBounds,
-                                    const wr::LayoutVector2D& aAppliedOffset);
+  wr::WrSpatialId DefineStickyFrame(
+      const wr::LayoutRect& aContentRect, const float* aTopMargin,
+      const float* aRightMargin, const float* aBottomMargin,
+      const float* aLeftMargin, const StickyOffsetBounds& aVerticalBounds,
+      const StickyOffsetBounds& aHorizontalBounds,
+      const wr::LayoutVector2D& aAppliedOffset, wr::SpatialTreeItemKey aKey);
 
   Maybe<wr::WrSpatialId> GetScrollIdForDefinedScrollLayer(
       layers::ScrollableLayerGuid::ViewID aViewId) const;
   wr::WrSpatialId DefineScrollLayer(
       const layers::ScrollableLayerGuid::ViewID& aViewId,
       const Maybe<wr::WrSpatialId>& aParent, const wr::LayoutRect& aContentRect,
-      const wr::LayoutRect& aClipRect, const wr::LayoutPoint& aScrollOffset);
+      const wr::LayoutRect& aClipRect, const wr::LayoutPoint& aScrollOffset,
+      wr::SpatialTreeItemKey aKey);
 
   void PushRect(const wr::LayoutRect& aBounds, const wr::LayoutRect& aClip,
                 bool aIsBackfaceVisible, const wr::ColorF& aColor);
@@ -750,7 +745,6 @@ class DisplayListBuilder final {
 
   wr::PipelineId mPipelineId;
   layers::WebRenderBackend mBackend;
-  wr::LayoutSize mContentSize;
 
   nsTArray<wr::PipelineId> mRemotePipelineIds;
 

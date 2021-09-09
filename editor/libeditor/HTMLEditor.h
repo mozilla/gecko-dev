@@ -755,12 +755,12 @@ class HTMLEditor final : public EditorBase,
 
   /**
    * DeleteNodeWithTransaction() removes aContent from the DOM tree if it's
-   * modifiable.  Note that this is not an override of same method of
-   * EditorBase.
+   * modifiable.
    *
    * @param aContent    The node to be removed from the DOM tree.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult DeleteNodeWithTransaction(nsIContent& aContent);
+  MOZ_CAN_RUN_SCRIPT nsresult
+  DeleteNodeWithTransaction(nsIContent& aContent) final;
 
   /**
    * DeleteTextWithTransaction() removes text in the range from aTextNode if
@@ -1070,7 +1070,7 @@ class HTMLEditor final : public EditorBase,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertDroppedDataTransferAsAction(
       AutoEditActionDataSetter& aEditActionData,
       dom::DataTransfer& aDataTransfer, const EditorDOMPoint& aDroppedAt,
-      dom::Document* aSrcDocument) final;
+      nsIPrincipal* aSourcePrincipal) final;
 
   /**
    * GetInlineStyles() retrieves the style of aNode and modifies each item of
@@ -1619,10 +1619,9 @@ class HTMLEditor final : public EditorBase,
    *                            If this is not nullptr, the <br> node may be
    *                            removed.
    */
-  template <typename PT, typename CT>
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult SplitParagraph(
-      Element& aParentDivOrP,
-      const EditorDOMPointBase<PT, CT>& aStartOfRightNode, nsIContent* aBRNode);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  SplitParagraph(Element& aParentDivOrP,
+                 const EditorDOMPoint& aStartOfRightNode, nsIContent* aBRNode);
 
   /**
    * HandleInsertParagraphInParagraph() does the right thing for Enter key
@@ -1641,33 +1640,27 @@ class HTMLEditor final : public EditorBase,
   /**
    * HandleInsertParagraphInHeadingElement() handles insertParagraph command
    * (i.e., handling Enter key press) in a heading element.  This splits
-   * aHeader element at aOffset in aNode.  Then, if right heading element is
+   * aHeader element at aPointToSplit.  Then, if right heading element is
    * empty, it'll be removed and new paragraph is created (its type is decided
    * with default paragraph separator).
    *
    * @param aHeader             The heading element to be split.
-   * @param aNode               Typically, Selection start container,
-   *                            where to be split.
-   * @param aOffset             Typically, Selection start offset in the
-   *                            start container, where to be split.
+   * @param aPointToSplit       The point to split aHeader.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  HandleInsertParagraphInHeadingElement(Element& aHeader, nsINode& aNode,
-                                        uint32_t aOffset);
+  HandleInsertParagraphInHeadingElement(Element& aHeader,
+                                        const EditorDOMPoint& aPointToSplit);
 
   /**
    * HandleInsertParagraphInListItemElement() handles insertParagraph command
    * (i.e., handling Enter key press) in a list item element.
    *
    * @param aListItem           The list item which has the following point.
-   * @param aNode               Typically, Selection start container, where to
-   *                            insert a break.
-   * @param aOffset             Typically, Selection start offset in the
-   *                            start container, where to insert a break.
+   * @param aPointToSplit       The point to split aListItem.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  HandleInsertParagraphInListItemElement(Element& aListItem, nsINode& aNode,
-                                         uint32_t aOffset);
+  HandleInsertParagraphInListItemElement(Element& aListItem,
+                                         const EditorDOMPoint& aPointToSplit);
 
   /**
    * InsertParagraphSeparatorAsSubAction() handles insertPargraph commad
@@ -2196,7 +2189,7 @@ class HTMLEditor final : public EditorBase,
     if (aPoint.IsStartOfContainer()) {
       return CharPointType::TextEnd;
     }
-    if (EditorUtils::IsContentPreformatted(*aPoint.ContainerAsText())) {
+    if (EditorUtils::IsWhiteSpacePreformatted(*aPoint.ContainerAsText())) {
       return CharPointType::PreformattedChar;
     }
     if (aPoint.IsPreviousCharASCIISpace()) {
@@ -2211,7 +2204,7 @@ class HTMLEditor final : public EditorBase,
     if (aPoint.IsEndOfContainer()) {
       return CharPointType::TextEnd;
     }
-    if (EditorUtils::IsContentPreformatted(*aPoint.ContainerAsText())) {
+    if (EditorUtils::IsWhiteSpacePreformatted(*aPoint.ContainerAsText())) {
       return CharPointType::PreformattedChar;
     }
     if (aPoint.IsCharASCIISpace()) {
@@ -3504,8 +3497,7 @@ class HTMLEditor final : public EditorBase,
 
    public:
     BlobReader(dom::BlobImpl* aBlob, HTMLEditor* aHTMLEditor, bool aIsSafe,
-               Document* aSourceDoc, const EditorDOMPoint& aPointToInsert,
-               bool aDoDeleteSelection);
+               const EditorDOMPoint& aPointToInsert, bool aDoDeleteSelection);
 
     NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(BlobReader)
     NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(BlobReader)
@@ -3519,7 +3511,6 @@ class HTMLEditor final : public EditorBase,
     RefPtr<dom::BlobImpl> mBlob;
     RefPtr<HTMLEditor> mHTMLEditor;
     RefPtr<dom::DataTransfer> mDataTransfer;
-    nsCOMPtr<Document> mSourceDoc;
     EditorDOMPoint mPointToInsert;
     EditAction mEditAction;
     bool mIsSafe;
@@ -3846,7 +3837,6 @@ class HTMLEditor final : public EditorBase,
    */
   MOZ_CAN_RUN_SCRIPT nsresult InsertObject(const nsACString& aType,
                                            nsISupports* aObject, bool aIsSafe,
-                                           Document* aSourceDoc,
                                            const EditorDOMPoint& aPointToInsert,
                                            bool aDoDeleteSelection);
 
@@ -3854,9 +3844,9 @@ class HTMLEditor final : public EditorBase,
   nsresult PrepareHTMLTransferable(nsITransferable** aTransferable) const;
 
   MOZ_CAN_RUN_SCRIPT nsresult InsertFromTransferable(
-      nsITransferable* aTransferable, Document* aSourceDoc,
-      const nsAString& aContextStr, const nsAString& aInfoStr,
-      bool aHavePrivateHTMLFlavor, bool aDoDeleteSelection);
+      nsITransferable* aTransferable, const nsAString& aContextStr,
+      const nsAString& aInfoStr, bool aHavePrivateHTMLFlavor,
+      bool aDoDeleteSelection);
 
   /**
    * InsertFromDataTransfer() is called only when user drops data into
@@ -3866,7 +3856,7 @@ class HTMLEditor final : public EditorBase,
    */
   MOZ_CAN_RUN_SCRIPT nsresult InsertFromDataTransfer(
       const dom::DataTransfer* aDataTransfer, uint32_t aIndex,
-      Document* aSourceDoc, const EditorDOMPoint& aDroppedAt,
+      nsIPrincipal* aSourcePrincipal, const EditorDOMPoint& aDroppedAt,
       bool aDoDeleteSelection);
 
   static bool HavePrivateHTMLFlavor(nsIClipboard* clipboard);
@@ -4077,7 +4067,7 @@ class HTMLEditor final : public EditorBase,
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult DoInsertHTMLWithContext(
       const nsAString& aInputString, const nsAString& aContextStr,
-      const nsAString& aInfoStr, const nsAString& aFlavor, Document* aSourceDoc,
+      const nsAString& aInfoStr, const nsAString& aFlavor,
       const EditorDOMPoint& aPointToInsert, bool aDeleteSelection,
       bool aTrustedInput, bool aClearStyle = true);
 

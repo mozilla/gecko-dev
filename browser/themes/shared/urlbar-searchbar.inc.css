@@ -64,35 +64,26 @@
   outline: none;
 }
 
-#urlbar[focused="true"]:not([suppress-focus-border]) > #urlbar-background {
-  border: var(--focus-outline);
+#urlbar[focused="true"]:not([suppress-focus-border]) > #urlbar-background,
+#searchbar:focus-within {
+  outline: var(--focus-outline);
+  outline-offset: calc(var(--focus-outline-width) * -1);
   /* We used --focus-outline above to inherit its width and style properties,
      but we still want to use the theme's border-color.
      --toolbar-field-focus-border-color is set equal to --focus-outline-color
      on :root, but LWT themes can override this value. */
-  border-color: var(--toolbar-field-focus-border-color);
+  outline-color: var(--toolbar-field-focus-border-color);
+  border-color: transparent;
 }
 
-#urlbar[focused="true"] > #urlbar-background {
+#urlbar[focused="true"] > #urlbar-background,
+#searchbar:focus-within {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.23);
 }
 
 #urlbar[open] > #urlbar-background {
   border-color: var(--arrowpanel-border-color);
   box-shadow: 0 2px 14px rgba(0, 0, 0, 0.13);
-}
-
-/* We draw the searchbar's border as a combination of its 1px unfocused border
-   and a 1px inset box-shadow. If we did it all as a border, the searchbar's
-   contents would shift when its border-width expanded by 1px when focused.
-   Removing the border when focused would also shift contents. #urlbar gets
-   around this problem by applying its border to #urlbar-background, which is
-   positioned absolutely. We don't plan on changing the searchbar's UX
-   significantly, so it's better to avoid that extra complexity. */
-#searchbar:focus-within {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.23),
-              0 0 0 1px var(--toolbar-field-focus-border-color) inset;
-  border-color: var(--toolbar-field-focus-border-color);
 }
 
 #urlbar:is([focused="true"], [open]),
@@ -118,8 +109,8 @@
 
 #urlbar-input:-moz-lwtheme::selection,
 .searchbar-textbox:-moz-lwtheme::selection {
-  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(text-select-background, light));
-  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(text-select-foreground, light));
+  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(Highlight, light));
+  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(HighlightText, light));
 }
 
 #urlbar-input:not(:focus):-moz-lwtheme::selection,
@@ -129,14 +120,14 @@
 
 :root[lwt-toolbar-field-focus-brighttext] #urlbar-input:focus::selection,
 :root[lwt-toolbar-field-focus-brighttext] .searchbar-textbox:focus-within::selection {
-  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(text-select-background, dark));
-  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(text-select-foreground, dark));
+  background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(Highlight, dark));
+  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(HighlightText, dark));
 }
 
 :root[lwt-toolbar-field-brighttext] #urlbar-input:not(:focus)::selection,
 :root[lwt-toolbar-field-brighttext] .searchbar-textbox:not(:focus-within)::selection {
   background-color: var(--lwt-toolbar-field-highlight, -moz-system-color(text-select-background-disabled, dark));
-  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(text-select-foreground, dark));
+  color: var(--lwt-toolbar-field-highlight-text, -moz-system-color(HighlightText, dark));
 }
 
 #urlbar:not([focused="true"]) {
@@ -319,9 +310,9 @@
 /* Use system colors for low/high contrast mode */
 @media (prefers-contrast) {
   #urlbar-search-mode-indicator {
-    background-color: Highlight;
-    outline-color: Highlight;
-    color: HighlightText;
+    background-color: SelectedItem;
+    outline-color: SelectedItem;
+    color: SelectedItemText;
   }
 
   #urlbar-search-mode-indicator-close {

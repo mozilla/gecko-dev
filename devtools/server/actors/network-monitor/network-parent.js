@@ -96,6 +96,13 @@ const NetworkParentActor = ActorClassWithSpec(networkParentSpec, {
     }
   },
 
+  setSaveRequestAndResponseBodies(save) {
+    if (!this.networkEventWatcher) {
+      throw new Error("Not listening for network events");
+    }
+    this.networkEventWatcher.setSaveRequestAndResponseBodies(save);
+  },
+
   /**
    * Sets the urls to block.
    *
@@ -140,6 +147,15 @@ const NetworkParentActor = ActorClassWithSpec(networkParentSpec, {
       throw new Error("Not listening for network events");
     }
     this.networkEventWatcher.unblockRequest(filters);
+  },
+
+  setPersist(enabled) {
+    // We will always call this method, even if we are still using legacy listener.
+    // Do not throw, we will always persist in that deprecated codepath.
+    if (!this.networkEventWatcher) {
+      return;
+    }
+    this.networkEventWatcher.setPersist(enabled);
   },
 });
 

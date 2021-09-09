@@ -209,7 +209,7 @@ int32_t BrowsingContext::IndexOf(BrowsingContext* aChild) {
   return index;
 }
 
-WindowContext* BrowsingContext::GetTopWindowContext() {
+WindowContext* BrowsingContext::GetTopWindowContext() const {
   if (mParentWindow) {
     return mParentWindow->TopWindowContext();
   }
@@ -611,7 +611,7 @@ bool BrowsingContext::IsActive() const {
     if (explicit_ != ExplicitActiveStatus::None) {
       return explicit_ == ExplicitActiveStatus::Active;
     }
-    if (current->IsCached()) {
+    if (mParentWindow && !mParentWindow->IsCurrent()) {
       return false;
     }
   } while ((current = current->GetParent()));
@@ -859,7 +859,10 @@ void BrowsingContext::Detach(bool aFromIPC) {
       }
     });
   } else if (!aFromIPC) {
-    auto callback = [](auto) {};
+    // Hold a strong reference to ourself until the responses come back to
+    // ensure the BrowsingContext isn't cleaned up before the parent process
+    // acknowledges the discard request.
+    auto callback = [self = RefPtr{this}](auto) {};
     ContentChild::GetSingleton()->SendDiscardBrowsingContext(this, callback,
                                                              callback);
   }
@@ -936,12 +939,8 @@ void BrowsingContext::PrepareForProcessChange() {
   MOZ_ASSERT(!mWindowProxy);
 }
 
-bool BrowsingContext::IsCached() const {
-  return mParentWindow && mParentWindow->IsCached();
-}
-
 bool BrowsingContext::IsTargetable() const {
-  return !GetClosed() && !mIsDiscarded && !IsCached();
+  return !GetClosed() && AncestorsAreCurrent();
 }
 
 bool BrowsingContext::HasOpener() const {
@@ -956,7 +955,7 @@ bool BrowsingContext::AncestorsAreCurrent() const {
     }
 
     if (WindowContext* wc = bc->GetParentWindowContext()) {
-      if (wc->IsCached() || wc->IsDiscarded()) {
+      if (!wc->IsCurrent() || wc->IsDiscarded()) {
         return false;
       }
 
@@ -965,6 +964,14 @@ bool BrowsingContext::AncestorsAreCurrent() const {
       return true;
     }
   }
+}
+
+bool BrowsingContext::IsInBFCache() const {
+  if (mozilla::SessionHistoryInParent()) {
+    return mIsInBFCache;
+  }
+  return mParentWindow &&
+         mParentWindow->TopWindowContext()->GetWindowStateSaved();
 }
 
 Span<RefPtr<BrowsingContext>> BrowsingContext::Children() const {
@@ -2098,7 +2105,7 @@ void BrowsingContext::Close(CallerType aCallerType, ErrorResult& aError) {
     return;
   }
 
-  if (IsFrame()) {
+  if (IsSubframe()) {
     // .close() on frames is a no-op.
     return;
   }
@@ -3490,7 +3497,7 @@ bool BrowsingContext::ShouldUpdateSessionHistory(uint32_t aLoadType) {
   // an iframe in shift-reload case.
   return nsDocShell::ShouldUpdateGlobalHistory(aLoadType) &&
          (!(aLoadType & nsIDocShell::LOAD_CMD_RELOAD) ||
-          (IsForceReloadType(aLoadType) && IsFrame()));
+          (IsForceReloadType(aLoadType) && IsSubframe()));
 }
 
 nsresult BrowsingContext::CheckLocationChangeRateLimit(CallerType aCallerType) {

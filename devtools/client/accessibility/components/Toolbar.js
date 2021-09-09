@@ -5,11 +5,7 @@
 
 // React
 const { createFactory } = require("devtools/client/shared/vendor/react");
-const {
-  div,
-  span,
-} = require("devtools/client/shared/vendor/react-dom-factories");
-const { L10N } = require("devtools/client/accessibility/utils/l10n");
+const { div } = require("devtools/client/shared/vendor/react-dom-factories");
 const AccessibilityTreeFilter = createFactory(
   require("devtools/client/accessibility/components/AccessibilityTreeFilter")
 );
@@ -28,7 +24,6 @@ const DisplayTabbingOrder = createFactory(
 const { connect } = require("devtools/client/shared/vendor/react-redux");
 
 function Toolbar({ audit, simulate, supportsTabbingOrder, toolboxDoc }) {
-  const betaID = "beta";
   const optionalSimulationSection = simulate
     ? [
         div({
@@ -44,15 +39,7 @@ function Toolbar({ audit, simulate, supportsTabbingOrder, toolboxDoc }) {
           role: "separator",
           className: "devtools-separator",
         }),
-        span(
-          {
-            className: "beta",
-            role: "presentation",
-            id: betaID,
-          },
-          L10N.getStr("accessibility.beta")
-        ),
-        DisplayTabbingOrder({ describedby: betaID }),
+        DisplayTabbingOrder(),
       ]
     : [];
 

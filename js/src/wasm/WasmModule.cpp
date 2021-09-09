@@ -425,7 +425,7 @@ void Module::initGCMallocBytesExcludingCode() {
 // segment/function body.
 bool Module::extractCode(JSContext* cx, Tier tier,
                          MutableHandleValue vp) const {
-  RootedPlainObject result(cx, NewBuiltinClassInstance<PlainObject>(cx));
+  RootedPlainObject result(cx, NewPlainObject(cx));
   if (!result) {
     return false;
   }
@@ -459,7 +459,7 @@ bool Module::extractCode(JSContext* cx, Tier tier,
   }
 
   for (const CodeRange& p : metadata(tier).codeRanges) {
-    RootedObject segment(cx, NewObjectWithGivenProto<PlainObject>(cx, nullptr));
+    RootedObject segment(cx, NewPlainObjectWithProto(cx, nullptr));
     if (!segment) {
       return false;
     }
@@ -572,7 +572,9 @@ bool Module::initSegments(JSContext* cx, HandleWasmInstanceObject instanceObj,
                                   &offsetVal)) {
         return false;  // OOM
       }
-      uint32_t offset = offsetVal.get().i32();
+      uint64_t offset = memoryObj->indexType() == IndexType::I32
+                            ? offsetVal.get().i32()
+                            : offsetVal.get().i64();
       uint32_t count = seg->bytes.length();
 
       if (offset > memoryLength || memoryLength - offset < count) {
@@ -580,7 +582,7 @@ bool Module::initSegments(JSContext* cx, HandleWasmInstanceObject instanceObj,
                                  JSMSG_WASM_OUT_OF_BOUNDS);
         return false;
       }
-      memcpy(memoryBase + offset, seg->bytes.begin(), count);
+      memcpy(memoryBase + uintptr_t(offset), seg->bytes.begin(), count);
     }
   }
 
@@ -787,7 +789,8 @@ bool Module::instantiateLocalTag(JSContext* cx, const TagDesc& ed,
     // If the tag description is exported, create an export tag
     // object for it.
     RootedObject proto(cx, &cx->global()->getPrototype(JSProto_WasmTag));
-    RootedWasmTagObject tagObj(cx, WasmTagObject::create(cx, ed.type, proto));
+    RootedWasmTagObject tagObj(cx,
+                               WasmTagObject::create(cx, ed.argTypes, proto));
     if (!tagObj) {
       return false;
     }
@@ -1130,9 +1133,9 @@ static bool CreateExportObject(
   uint8_t propertyAttr = JSPROP_ENUMERATE;
 
   if (metadata.isAsmJS()) {
-    exportObj = NewBuiltinClassInstance<PlainObject>(cx);
+    exportObj = NewPlainObject(cx);
   } else {
-    exportObj = NewObjectWithGivenProto<PlainObject>(cx, nullptr);
+    exportObj = NewPlainObjectWithProto(cx, nullptr);
     propertyAttr |= JSPROP_READONLY | JSPROP_PERMANENT;
   }
   if (!exportObj) {

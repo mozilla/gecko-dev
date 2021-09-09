@@ -112,15 +112,22 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether the results panel should be kept open during IME composition.
   ["keepPanelOpenDuringImeComposition", false],
 
-  // For search suggestion results, we truncate the user's search string to this
-  // number of characters before fetching results.
-  ["maxCharsForSearchSuggestions", 20],
+  // As a user privacy measure, don't fetch results from remote services for
+  // searches that start by pasting a string longer than this. The pref name
+  // indicates search suggestions, but this is used for all remote results.
+  ["maxCharsForSearchSuggestions", 100],
 
   // The maximum number of form history results to include.
   ["maxHistoricalSearchSuggestions", 0],
 
   // The maximum number of results in the urlbar popup.
   ["maxRichResults", 10],
+
+  // Whether Merino is enabled as a quick suggest source.
+  ["merino.enabled", false],
+
+  // The Merino endpoint URL, not including parameters.
+  ["merino.endpointURL", "https://merino.services.mozilla.com/api/v1/suggest"],
 
   // Whether addresses and search results typed into the address bar
   // should be opened in new tabs by default.
@@ -163,35 +170,52 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether results will include the user's bookmarks.
   ["suggest.bookmark", true],
 
+  // Whether results will include a calculator.
+  ["suggest.calculator", false],
+
+  // Whether results will include search engines (e.g. tab-to-search).
+  ["suggest.engines", true],
+
   // Whether results will include the user's history.
   ["suggest.history", true],
 
   // Whether results will include switch-to-tab results.
   ["suggest.openpage", true],
 
+  // Whether results will include quick suggest suggestions.
+  ["suggest.quicksuggest", false],
+
+  // Whether results will include sponsored quick suggest suggestions.
+  ["suggest.quicksuggest.sponsored", false],
+
   // Whether results will include search suggestions.
   ["suggest.searches", false],
-
-  // Whether results will include search engines (e.g. tab-to-search).
-  ["suggest.engines", true],
 
   // Whether results will include top sites and the view will open on focus.
   ["suggest.topsites", true],
 
-  // Whether results will include a calculator.
-  ["suggest.calculator", false],
+  // Global toggle for whether the quick suggest feature is enabled, i.e.,
+  // sponsored and recommended results related to the user's search string.
+  ["quicksuggest.enabled", false],
 
-  // Whether results will include QuickSuggest suggestions.
-  ["suggest.quicksuggest", true],
+  // Whether to show QuickSuggest related logs.
+  ["quicksuggest.log", false],
+
+  // Whether Remote Settings is enabled as a quick suggest source.
+  ["quicksuggest.remoteSettings.enabled", true],
+
+  // The Firefox Suggest scenario in which the user is enrolled, one of:
+  // "history", "offline", "online"
+  ["quicksuggest.scenario", "history"],
+
+  // Whether to show the quick suggest onboarding dialog.
+  ["quicksuggest.shouldShowOnboardingDialog", true],
 
   // Whether the user has seen the onboarding dialog.
   ["quicksuggest.showedOnboardingDialog", false],
 
   // Count the restarts before showing the onboarding dialog.
   ["quicksuggest.seenRestarts", 0],
-
-  // Whether to show QuickSuggest related logs.
-  ["quicksuggest.log", false],
 
   // When using switch to tabs, if set to true this will move the tab into the
   // active window.

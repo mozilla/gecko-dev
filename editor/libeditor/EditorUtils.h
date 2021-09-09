@@ -1161,10 +1161,23 @@ class EditorUtils final {
   }
 
   /**
-   * IsContentPreformatted() checks the style info for the node for the
+   * IsWhiteSpacePreformatted() checks the style info for the node for the
    * preformatted text style.  This does NOT flush layout.
    */
-  static bool IsContentPreformatted(nsIContent& aContent);
+  static bool IsWhiteSpacePreformatted(const nsIContent& aContent);
+
+  /**
+   * IsNewLinePreformatted() checks whether the linefeed characters are
+   * preformatted or collapsible white-spaces.  This does NOT flush layout.
+   */
+  static bool IsNewLinePreformatted(const nsIContent& aContent);
+
+  /**
+   * IsOnlyNewLinePreformatted() checks whether the linefeed characters are
+   * preformated but white-spaces are collapsed, or otherwise.  I.e., this
+   * returns true only when `white-space:pre-line`.
+   */
+  static bool IsOnlyNewLinePreformatted(const nsIContent& aContent);
 
   /**
    * Helper method for `AppendString()` and `AppendSubString()`.  This should

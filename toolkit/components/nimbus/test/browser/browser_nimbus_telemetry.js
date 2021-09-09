@@ -91,11 +91,11 @@ add_task(async function test_experiment_expose_Telemetry() {
     featureId: "test-feature",
   });
 
-  const { featureId } = experiment.branch.feature;
+  const { featureId } = experiment.branch.features[0];
   const feature = new ExperimentFeature(featureId);
 
   Services.telemetry.clearEvents();
-  feature.getAllVariables({ sendExposureEvent: true });
+  feature.recordExposureEvent();
 
   TelemetryTestUtils.assertEvents(
     [

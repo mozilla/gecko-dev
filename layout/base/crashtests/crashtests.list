@@ -399,7 +399,7 @@ load 836990-1.html
 load 840480.html
 load 842114.html
 load 847242.html
-skip-if(ThreadSanitizer) pref(layers.progressive-paint,false) pref(layers.low-precision-buffer,false) load 852293.html
+skip-if(ThreadSanitizer) pref(layers.low-precision-buffer,false) load 852293.html
 pref(layers.force-active,true) load 859526-1.html
 pref(layers.force-active,true) load 859630-1.html
 load 860579-1.html
@@ -556,6 +556,7 @@ load 1599532.html
 pref(layout.accessiblecaret.enabled,true) load 1606492.html
 load 1676301-1.html
 pref(apz.mvm.force-enabled,false) pref(dom.meta-viewport.enabled,false) pref(apz.allow_zooming,false) pref(layout.dynamic-toolbar-max-height,100) load 1689371.html
+load 1685146.html
 load 1689912.html
 load 1690163.html
 load 1723200.html

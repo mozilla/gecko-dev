@@ -2,20 +2,16 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
 
 import hashlib
-import io
 import json
 import os
 import re
 import requests
 import requests_unixsocket
-import six
 import sys
-
-from six.moves.urllib.parse import quote, urlencode, urlunparse
-from six.moves.collections_abc import Mapping
+from collections.abc import Mapping
+from urllib.parse import quote, urlencode, urlunparse
 
 from mozbuild.util import memoize
 from mozpack.files import GeneratedFile
@@ -60,7 +56,7 @@ def post_to_docker(tar, api_path, **kwargs):
     if req.status_code != 200:
         message = req.json().get("message")
         if not message:
-            message = "docker API returned HTTP code {}".format(req.status_code)
+            message = f"docker API returned HTTP code {req.status_code}"
         raise Exception(message)
     status_line = {}
 
@@ -89,7 +85,7 @@ def post_to_docker(tar, api_path, **kwargs):
                     n = total_lines - line
                     if n > 0:
                         # Move the cursor up n lines.
-                        sys.stderr.write("\033[{}A".format(n))
+                        sys.stderr.write(f"\033[{n}A")
                     # Clear line and move the cursor to the beginning of it.
                     sys.stderr.write("\033[2K\r")
                     sys.stderr.write(
@@ -101,7 +97,7 @@ def post_to_docker(tar, api_path, **kwargs):
                         # Move the cursor down n - 1 lines, which, considering
                         # the carriage return on the last write, gets us back
                         # where we started.
-                        sys.stderr.write("\033[{}B".format(n - 1))
+                        sys.stderr.write(f"\033[{n - 1}B")
                 else:
                     status = status_line.get(data["id"])
                     # Only print status changes.
@@ -138,7 +134,7 @@ def docker_image(name, by_tag=False):
     try:
         with open(os.path.join(IMAGE_DIR, name, "REGISTRY")) as f:
             registry = f.read().strip()
-    except IOError:
+    except OSError:
         with open(os.path.join(IMAGE_DIR, "REGISTRY")) as f:
             registry = f.read().strip()
 
@@ -146,19 +142,19 @@ def docker_image(name, by_tag=False):
         hashfile = os.path.join(IMAGE_DIR, name, "HASH")
         try:
             with open(hashfile) as f:
-                return "{}/{}@{}".format(registry, name, f.read().strip())
-        except IOError:
-            raise Exception("Failed to read HASH file {}".format(hashfile))
+                return f"{registry}/{name}@{f.read().strip()}"
+        except OSError:
+            raise Exception(f"Failed to read HASH file {hashfile}")
 
     try:
         with open(os.path.join(IMAGE_DIR, name, "VERSION")) as f:
             tag = f.read().strip()
-    except IOError:
+    except OSError:
         tag = "latest"
-    return "{}/{}:{}".format(registry, name, tag)
+    return f"{registry}/{name}:{tag}"
 
 
-class VoidWriter(object):
+class VoidWriter:
     """A file object with write capabilities that does nothing with the written
     data."""
 
@@ -174,7 +170,7 @@ def generate_context_hash(topsrcdir, image_path, image_name, args):
     )
 
 
-class HashingWriter(object):
+class HashingWriter:
     """A file object with write capabilities that hashes the written data at
     the same time it passes down to a real file object."""
 
@@ -187,7 +183,7 @@ class HashingWriter(object):
         self._writer.write(buf)
 
     def hexdigest(self):
-        return six.ensure_text(self._hash.hexdigest())
+        return self._hash.hexdigest()
 
 
 def create_context_tar(topsrcdir, context_dir, out_path, image_name, args):
@@ -232,7 +228,7 @@ def stream_context_tar(topsrcdir, context_dir, out_file, image_name, args):
             archive_files[archive_path] = source_path
 
     # Parse Dockerfile for special syntax of extra files to include.
-    with io.open(os.path.join(context_dir, "Dockerfile"), "r") as fh:
+    with open(os.path.join(context_dir, "Dockerfile"), "r") as fh:
         for line in fh:
             content.append(line)
 
@@ -262,12 +258,10 @@ def stream_context_tar(topsrcdir, context_dir, out_file, image_name, args):
                 archive_path = os.path.join("topsrcdir", p)
                 archive_files[archive_path] = fs_path
 
-    archive_files["Dockerfile"] = GeneratedFile(
-        b"".join(six.ensure_binary(s) for s in content)
-    )
+    archive_files["Dockerfile"] = GeneratedFile("".join(content).encode("utf-8"))
 
     writer = HashingWriter(out_file)
-    create_tar_gz_from_files(writer, archive_files, "{}.tar".format(image_name))
+    create_tar_gz_from_files(writer, archive_files, f"{image_name}.tar")
     return writer.hexdigest()
 
 
@@ -335,6 +329,6 @@ def parse_volumes(image):
                     "convert to multiple entries"
                 )
 
-            volumes |= set([six.ensure_text(v) for v in v.split()])
+            volumes |= {v.decode("utf-8") for v in v.split()}
 
     return volumes

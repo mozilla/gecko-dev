@@ -22,8 +22,12 @@ def getNDKDirectory() {
     if (project.mozconfig.substs.ANDROID_NDK) {
         return project.mozconfig.substs.ANDROID_NDK
     }
-    if (project.android.ndkDirectory) {
-        return project.android.ndkDirectory
+    try {
+        if (project.android.ndkDirectory) {
+            return project.android.ndkDirectory
+        }
+    } catch (InvalidUserDataException ex) {
+        // The NDK is not installed, that's ok.
     }
     def mozbuild = System.getenv('MOZBUILD_STATE_PATH') ?: "${System.getProperty('user.home')}/.mozbuild"
     def files = new FileNameFinder().getFileNames(mozbuild, "android-ndk-*/source.properties")
@@ -89,7 +93,7 @@ class SyncLibsAndUpdateGenerationID extends DefaultTask {
     @OutputDirectory
     File destinationDir
 
-    @Input
+    @InputDirectory
     File llvmBin = project.ext.getLlvmBinFolder()
 
     // Sibling to `.note.gnu.build-id`.
@@ -222,7 +226,7 @@ ext.configureVariantWithGeckoBinaries = { variant ->
     }()
 
     def syncLibsFromDistDir = { if (shouldUpdateGenerationID) {
-        def jarTask = tasks["bundleLibRuntime${variant.name.capitalize()}"]
+        def jarTask = tasks["bundleLibRuntimeToJar${variant.name.capitalize()}"]
         def bundleJar = jarTask.outputs.files.find({ it.name == 'classes.jar' })
 
         task("syncLibsAndUpdateGenerationIDFromDistDirFor${variant.name.capitalize()}", type: SyncLibsAndUpdateGenerationID) {
@@ -292,7 +296,7 @@ ext.configureVariantWithGeckoBinaries = { variant ->
 ext.configureLibraryVariantWithJNIWrappers = { variant, module ->
     // BundleLibRuntime prepares the library for further processing to be
     // incorporated in an app. We use this version to create the JNI wrappers.
-    def jarTask = tasks["bundleLibRuntime${variant.name.capitalize()}"]
+    def jarTask = tasks["bundleLibRuntimeToJar${variant.name.capitalize()}"]
     def bundleJar = jarTask.outputs.files.find({ it.name == 'classes.jar' })
 
     def annotationProcessorsJarTask = project(':annotations').jar

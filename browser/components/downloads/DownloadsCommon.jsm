@@ -147,6 +147,7 @@ var DownloadsCommon = {
   // The following are the possible values of the "attention" property.
   ATTENTION_NONE: "",
   ATTENTION_SUCCESS: "success",
+  ATTENTION_INFO: "info",
   ATTENTION_WARNING: "warning",
   ATTENTION_SEVERE: "severe",
 
@@ -318,6 +319,17 @@ var DownloadsCommon = {
    * Removes a Download object from both session and history downloads.
    */
   async deleteDownload(download) {
+    // Check hasBlockedData to avoid double counting if you click the X button
+    // in the Libarary view and then delete the download from the history.
+    if (
+      download.error?.becauseBlockedByReputationCheck &&
+      download.hasBlockedData
+    ) {
+      Services.telemetry
+        .getKeyedHistogramById("DOWNLOADS_USER_ACTION_ON_BLOCKED_DOWNLOAD")
+        .add(download.error.reputationCheckVerdict, 1); // confirm block
+    }
+
     // Remove the associated history element first, if any, so that the views
     // that combine history and session downloads won't resurrect the history
     // download into the view just before it is deleted permanently.
@@ -1251,8 +1263,16 @@ DownloadsIndicatorDataCtor.prototype = {
       download.error.reputationCheckVerdict
     ) {
       switch (download.error.reputationCheckVerdict) {
-        case Downloads.Error.BLOCK_VERDICT_UNCOMMON: // fall-through
-        case Downloads.Error.BLOCK_VERDICT_POTENTIALLY_UNWANTED:
+        case Downloads.Error.BLOCK_VERDICT_UNCOMMON:
+          // Existing higher level attention indication trumps ATTENTION_INFO.
+          if (
+            this._attention != DownloadsCommon.ATTENTION_SEVERE &&
+            this._attention != DownloadsCommon.ATTENTION_WARNING
+          ) {
+            this.attention = DownloadsCommon.ATTENTION_INFO;
+          }
+          break;
+        case Downloads.Error.BLOCK_VERDICT_POTENTIALLY_UNWANTED: // fall-through
         case Downloads.Error.BLOCK_VERDICT_INSECURE:
           // Existing higher level attention indication trumps ATTENTION_WARNING.
           if (this._attention != DownloadsCommon.ATTENTION_SEVERE) {

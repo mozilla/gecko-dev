@@ -13,11 +13,8 @@ var { XPCOMUtils } = ChromeUtils.import(
 // Each app needs to implement this
 XPCOMUtils.defineLazyModuleGetters(this, {
   AppUiTestDelegate: "resource://testing-common/AppUiTestDelegate.jsm",
+  Services: "resource://gre/modules/Services.jsm",
 });
-
-const UUIDGen = Cc["@mozilla.org/uuid-generator;1"].getService(
-  Ci.nsIUUIDGenerator
-);
 
 class AppTestDelegateParent extends JSWindowActorParent {
   constructor() {
@@ -64,7 +61,7 @@ class AppTestDelegateParent extends JSWindowActorParent {
       case "openNewForegroundTab": {
         // We cannot send the tab object across process so let's store it with
         // a unique ID here.
-        const uuid = UUIDGen.generateUUID().toString();
+        const uuid = Services.uuid.generateUUID().toString();
         const tab = await AppUiTestDelegate.openNewForegroundTab(
           this.window,
           url,

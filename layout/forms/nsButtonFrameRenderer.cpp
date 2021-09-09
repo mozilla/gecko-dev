@@ -22,10 +22,6 @@
 #include "gfxUtils.h"
 #include "mozilla/layers/RenderRootStateManager.h"
 
-#define ACTIVE "active"
-#define HOVER "hover"
-#define FOCUS "focus"
-
 using namespace mozilla;
 using namespace mozilla::image;
 using namespace mozilla::layers;
@@ -258,7 +254,7 @@ void nsDisplayButtonBoxShadowOuter::Paint(nsDisplayListBuilder* aBuilder,
   nsRect frameRect = nsRect(ToReferenceFrame(), mFrame->GetSize());
 
   nsCSSRendering::PaintBoxShadowOuter(mFrame->PresContext(), *aCtx, mFrame,
-                                      frameRect, GetPaintRect());
+                                      frameRect, GetPaintRect(aBuilder, aCtx));
 }
 
 bool nsDisplayButtonBoxShadowOuter::CanBuildWebRenderDisplayItems() {
@@ -390,7 +386,7 @@ bool nsDisplayButtonBorder::CreateWebRenderCommands(
   aBuilder.StartGroup(this);
   const nsRect buttonRect = nsRect(ToReferenceFrame(), mFrame->GetSize());
   bool snap;
-  nsRegion visible = GetBounds(aDisplayListBuilder, &snap);
+  nsRect visible = GetBounds(aDisplayListBuilder, &snap);
   nsDisplayBoxShadowInner::CreateInsetBoxShadowWebRenderCommands(
       aBuilder, aSc, visible, mFrame, buttonRect);
 
@@ -437,7 +433,7 @@ void nsDisplayButtonBorder::Paint(nsDisplayListBuilder* aBuilder,
 
   // draw the border and background inside the focus and outline borders
   ImgDrawResult result =
-      mBFR->PaintBorder(aBuilder, pc, *aCtx, GetPaintRect(), r);
+      mBFR->PaintBorder(aBuilder, pc, *aCtx, GetPaintRect(aBuilder, aCtx), r);
 
   nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, result);
 }
@@ -502,7 +498,7 @@ void nsDisplayButtonForeground::Paint(nsDisplayListBuilder* aBuilder,
 
   // Draw the -moz-focus-inner border
   ImgDrawResult result = mBFR->PaintInnerFocusBorder(
-      aBuilder, mFrame->PresContext(), *aCtx, GetPaintRect(), r);
+      aBuilder, mFrame->PresContext(), *aCtx, GetPaintRect(aBuilder, aCtx), r);
 
   nsDisplayItemGenericImageGeometry::UpdateDrawResult(this, result);
 }

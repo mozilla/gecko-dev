@@ -148,6 +148,22 @@ function showTls10Container() {
   setFocus("#enableTls10Button", "beforeend");
 }
 
+function toggleCertErrorDebugInfoVisibility(shouldShow) {
+  let debugInfo = document.getElementById("certificateErrorDebugInformation");
+  let copyButton = document.getElementById("copyToClipboardTop");
+
+  if (shouldShow === undefined) {
+    shouldShow = debugInfo.hidden;
+  }
+  if (shouldShow) {
+    debugInfo.hidden = false;
+    copyButton.scrollIntoView({ block: "start", behavior: "smooth" });
+    copyButton.focus();
+  } else {
+    debugInfo.hidden = true;
+  }
+}
+
 function setupAdvancedButton() {
   // Get the hostname and add it to the panel
   var panel = document.getElementById("badCertAdvancedPanel");
@@ -166,8 +182,7 @@ function setupAdvancedButton() {
       // Toggling the advanced panel must ensure that the debugging
       // information panel is hidden as well, since it's opened by the
       // error code link in the advanced panel.
-      var div = document.getElementById("certificateErrorDebugInformation");
-      div.style.display = "none";
+      toggleCertErrorDebugInfoVisibility(false);
     }
 
     if (panel.style.display == "block") {
@@ -186,8 +201,7 @@ function setupAdvancedButton() {
     // Toggling the advanced panel must ensure that the debugging
     // information panel is hidden as well, since it's opened by the
     // error code link in the advanced panel.
-    var div = document.getElementById("certificateErrorDebugInformation");
-    div.style.display = "none";
+    toggleCertErrorDebugInfoVisibility(false);
   }
 
   disallowCertOverridesIfNeeded();
@@ -328,7 +342,6 @@ function initPage() {
       initPageCaptivePortal();
     } else {
       initPageCertError();
-      updateContainerPosition();
     }
 
     initCertErrorPageActions();
@@ -594,28 +607,6 @@ async function setNetErrorMessageFromCode() {
   });
 }
 
-// This function centers the error container after its content updates.
-// It is currently duplicated in NetErrorChild.jsm to avoid having to do
-// async communication to the page that would result in flicker.
-// TODO(johannh): Get rid of this duplication.
-function updateContainerPosition() {
-  let textContainer = document.getElementById("text-container");
-  // Using the vh CSS property our margin adapts nicely to window size changes.
-  // Unfortunately, this doesn't work correctly in iframes, which is why we need
-  // to manually compute the height there.
-  if (window.parent == window) {
-    textContainer.style.marginTop = `calc(50vh - ${textContainer.clientHeight /
-      2}px)`;
-  } else {
-    let offset =
-      document.documentElement.clientHeight / 2 -
-      textContainer.clientHeight / 2;
-    if (offset > 0) {
-      textContainer.style.marginTop = `${offset}px`;
-    }
-  }
-}
-
 function initPageCaptivePortal() {
   document.body.className = "captiveportal";
   document
@@ -836,7 +827,6 @@ function setCertErrorDetails(event) {
         // eslint-disable-next-line no-unsanitized/property
         est.innerHTML = errWhatToDoTitle.innerHTML;
       }
-      updateContainerPosition();
       break;
 
     // This error code currently only exists for the Symantec distrust
@@ -861,7 +851,6 @@ function setCertErrorDetails(event) {
       );
 
       learnMoreLink.href = baseURL + "symantec-warning";
-      updateContainerPosition();
       break;
 
     case "MOZILLA_PKIX_ERROR_MITM_DETECTED":
@@ -894,8 +883,6 @@ function setCertErrorDetails(event) {
       es.innerHTML = errWhatToDo.innerHTML;
       // eslint-disable-next-line no-unsanitized/property
       est.innerHTML = errWhatToDoTitle.innerHTML;
-
-      updateContainerPosition();
       break;
 
     case "MOZILLA_PKIX_ERROR_SELF_SIGNED_CERT":
@@ -1021,7 +1008,6 @@ function setCertErrorDetails(event) {
           est.textContent = errWhatToDoTitle.textContent;
           est.style.fontWeight = "bold";
         }
-        updateContainerPosition();
       }
       break;
   }
@@ -1176,10 +1162,7 @@ async function setTechnicalDetailsOnCertError(
             // Toggling the advanced panel must ensure that the debugging
             // information panel is hidden as well, since it's opened by the
             // error code link in the advanced panel.
-            let div = document.getElementById(
-              "certificateErrorDebugInformation"
-            );
-            div.style.display = "none";
+            toggleCertErrorDebugInfoVisibility(false);
           }
         }
 
@@ -1227,6 +1210,7 @@ async function setTechnicalDetailsOnCertError(
       id: "errorCode",
       "data-l10n-name": "error-code-link",
       "data-telemetry-id": "error_code_link",
+      href: "#certificateErrorDebugInformation",
     },
     false
   );
@@ -1246,10 +1230,8 @@ function handleErrorCodeClick(event) {
   if (event.target.id !== "errorCode") {
     return;
   }
-
-  let debugInfo = document.getElementById("certificateErrorDebugInformation");
-  debugInfo.style.display = "block";
-  debugInfo.scrollIntoView({ block: "start", behavior: "smooth" });
+  event.preventDefault();
+  toggleCertErrorDebugInfoVisibility();
   recordClickTelemetry(event);
 }
 

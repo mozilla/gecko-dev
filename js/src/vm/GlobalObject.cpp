@@ -162,6 +162,9 @@ bool GlobalObject::skipDeselectedConstructor(JSContext* cx, JSProtoKey key) {
     case JSProto_WasmTable:
     case JSProto_WasmGlobal:
     case JSProto_WasmTag:
+#ifdef ENABLE_WASM_TYPE_REFLECTIONS
+    case JSProto_WasmFunction:
+#endif
     case JSProto_WasmException:
       return false;
 
@@ -816,14 +819,13 @@ JSFunction* GlobalObject::createConstructor(JSContext* cx, Native ctor,
 
 static NativeObject* CreateBlankProto(JSContext* cx, const JSClass* clasp,
                                       HandleObject proto) {
-  MOZ_ASSERT(clasp != &JSFunction::class_);
+  MOZ_ASSERT(!clasp->isJSFunction());
 
-  RootedObject blankProto(cx, NewTenuredObjectWithGivenProto(cx, clasp, proto));
-  if (!blankProto) {
-    return nullptr;
+  if (clasp == &PlainObject::class_) {
+    return NewPlainObjectWithProto(cx, proto, TenuredObject);
   }
 
-  return &blankProto->as<NativeObject>();
+  return NewTenuredObjectWithGivenProto(cx, clasp, proto);
 }
 
 /* static */
@@ -903,7 +905,7 @@ JSObject* GlobalObject::getOrCreateRealmKeyObject(
     return key;
   }
 
-  PlainObject* key = NewBuiltinClassInstance<PlainObject>(cx);
+  PlainObject* key = NewPlainObject(cx);
   if (!key) {
     return nullptr;
   }
@@ -947,7 +949,7 @@ NativeObject* GlobalObject::getIntrinsicsHolder(JSContext* cx,
   }
 
   Rooted<NativeObject*> intrinsicsHolder(
-      cx, NewTenuredObjectWithGivenProto<PlainObject>(cx, nullptr));
+      cx, NewPlainObjectWithProto(cx, nullptr, TenuredObject));
   if (!intrinsicsHolder) {
     return nullptr;
   }
@@ -990,7 +992,7 @@ bool GlobalObject::getSelfHostedFunction(JSContext* cx,
       // function. In that case, we need to change the function's name,
       // which is ok because it can't have been exposed to content
       // before.
-      fun->initAtom(name);
+      fun->setAtom(name);
       return true;
     }
 
@@ -1185,6 +1187,8 @@ void GlobalObjectData::trace(JSTracer* trc) {
   TraceNullableEdge(trc, &lexicalEnvironment, "global-lexical-env");
   TraceNullableEdge(trc, &windowProxy, "global-window-proxy");
   TraceNullableEdge(trc, &intrinsicsHolder, "global-intrinsics-holder");
+  TraceNullableEdge(trc, &computedIntrinsicsHolder,
+                    "global-computed-intrinsics-holder");
   TraceNullableEdge(trc, &forOfPICChain, "global-for-of-pic");
   TraceNullableEdge(trc, &sourceURLsHolder, "global-source-urls");
   TraceNullableEdge(trc, &realmKeyObject, "global-realm-key");
@@ -1193,9 +1197,29 @@ void GlobalObjectData::trace(JSTracer* trc) {
 
   TraceNullableEdge(trc, &arrayShapeWithDefaultProto, "global-array-shape");
 
+  for (auto& shape : plainObjectShapesWithDefaultProto) {
+    TraceNullableEdge(trc, &shape, "global-plain-shape");
+  }
+
+  TraceNullableEdge(trc, &functionShapeWithDefaultProto,
+                    "global-function-shape");
+  TraceNullableEdge(trc, &extendedFunctionShapeWithDefaultProto,
+                    "global-ext-function-shape");
+
   if (regExpStatics) {
     regExpStatics->trace(trc);
   }
+
+  TraceNullableEdge(trc, &mappedArgumentsTemplate, "mapped-arguments-template");
+  TraceNullableEdge(trc, &unmappedArgumentsTemplate,
+                    "unmapped-arguments-template");
+
+  TraceNullableEdge(trc, &iterResultTemplate, "iter-result-template_");
+  TraceNullableEdge(trc, &iterResultWithoutPrototypeTemplate,
+                    "iter-result-without-prototype-template");
+
+  TraceNullableEdge(trc, &selfHostingScriptSource,
+                    "self-hosting-script-source");
 }
 
 void GlobalObjectData::addSizeOfIncludingThis(

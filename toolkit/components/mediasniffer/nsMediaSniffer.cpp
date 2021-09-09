@@ -5,7 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ADTSDemuxer.h"
-#include "FlacDemuxer.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/ModuleUtils.h"
 #include "mozilla/ScopeExit.h"
@@ -35,6 +34,23 @@ NS_IMPL_ISUPPORTS(nsMediaSniffer, nsIContentSniffer)
 nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
     // The string OggS, followed by the null byte.
     PATTERN_ENTRY("\xFF\xFF\xFF\xFF\xFF", "OggS", APPLICATION_OGG),
+    // The string RIFF, followed by four bytes, followed by the string WAVE,
+    // followed by 8 bytes, followed by 0x0055, the codec identifier for mp3 in
+    // a RIFF container. This entry MUST be before the next one, which is
+    // assumed to be a WAV file containing PCM data.
+    PATTERN_ENTRY("\xFF\xFF\xFF\xFF"
+                  "\x00\x00\x00\x00"
+                  "\xFF\xFF\xFF\xFF"
+                  "\x00\x00\x00\x00"
+                  "\x00\x00\x00\x00"
+                  "\xFF\xFF",
+                  "RIFF"
+                  "\x00\x00\x00\x00"
+                  "WAVE"
+                  "\x00\x00\x00\x00"
+                  "\x00\x00\x00\x00"
+                  "\x55\x00",
+                  AUDIO_MP3),
     // The string RIFF, followed by four bytes, followed by the string WAVE
     PATTERN_ENTRY("\xFF\xFF\xFF\xFF\x00\x00\x00\x00\xFF\xFF\xFF\xFF",
                   "RIFF\x00\x00\x00\x00WAVE", AUDIO_WAV),
@@ -131,10 +147,6 @@ static bool MatchesMP3(const uint8_t* aData, const uint32_t aLength) {
   return mp3_sniff(aData, (long)aLength);
 }
 
-static bool MatchesFLAC(const uint8_t* aData, const uint32_t aLength) {
-  return mozilla::FlacDemuxer::FlacSniffer(aData, aLength);
-}
-
 static bool MatchesADTS(const uint8_t* aData, const uint32_t aLength) {
   return mozilla::ADTSDemuxer::ADTSSniffer(aData, aLength);
 }
@@ -195,14 +207,6 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
 
   if (MatchesADTS(aData, clampedLength)) {
     aSniffedType.AssignLiteral(AUDIO_AAC);
-    return NS_OK;
-  }
-
-  // Flac frames are generally big, often in excess of 24kB.
-  // Using a size of MAX_BYTES_SNIFFED effectively means that we will only
-  // recognize flac content if it starts with a frame.
-  if (MatchesFLAC(aData, clampedLength)) {
-    aSniffedType.AssignLiteral(AUDIO_FLAC);
     return NS_OK;
   }
 

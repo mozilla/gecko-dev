@@ -55,6 +55,7 @@ EXPORTS += [
 
 # Win32 is a special snowflake, for ANGLE
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
+    REQUIRES_UNIFIED_BUILD = True
     EXPORTS += [
         "GLContextWGL.h",
         "SharedSurfaceANGLE.h",  # Needs <windows.h> for `HANDLE`.
@@ -112,9 +113,8 @@ elif gl_provider == "GLX":
     SOURCES += [
         "GLContextProviderGLX.cpp",
         "GLContextProviderX11.cpp",
-        "SharedSurfaceGLX.cpp",
     ]
-    EXPORTS += ["GLContextGLX.h", "GLXLibrary.h", "SharedSurfaceGLX.h"]
+    EXPORTS += ["GLContextGLX.h", "GLXLibrary.h"]
 
 if CONFIG["MOZ_WAYLAND"]:
     SOURCES += ["GLContextProviderWayland.cpp", "SharedSurfaceDMABUF.cpp"]

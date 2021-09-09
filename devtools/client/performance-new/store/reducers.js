@@ -9,6 +9,7 @@
  * @typedef {import("../@types/perf").State} State
  * @typedef {import("../@types/perf").RecordingState} RecordingState
  * @typedef {import("../@types/perf").InitializedValues} InitializedValues
+ * @typedef {import("../@types/perf").RecordingSettings} RecordingSettings
  */
 
 /**
@@ -178,108 +179,127 @@ function isSupportedPlatform(state = null, action) {
   }
 }
 
-// Right now all recording setting the defaults are reset every time the panel
-// is opened. These should be persisted between sessions. See Bug 1453014.
+/**
+ * This object represents the default recording settings. They should be
+ * overriden by whatever is read from the Firefox preferences at load time.
+ * @type {RecordingSettings}
+ */
+const DEFAULT_RECORDING_SETTINGS = {
+  // The preset name.
+  presetName: "",
+  // The setting for the recording interval. Defaults to 1ms.
+  interval: 1,
+  // The number of entries in the profiler's circular buffer.
+  entries: 0,
+  // The features that are enabled for the profiler.
+  features: [],
+  // The thread list
+  threads: [],
+  // The objdirs list
+  objdirs: [],
+  // The client doesn't implement durations yet. See Bug 1587165.
+  duration: 0,
+};
 
 /**
- * The setting for the recording interval. Defaults to 1ms.
- * @type {Reducer<number>}
+ * This small utility returns true if the parameters contain the same values.
+ * This is essentially a deepEqual operation specific to this structure.
+ * @param {RecordingSettings} a
+ * @param {RecordingSettings} b
+ * @return {boolean}
  */
-function interval(state = 1, action) {
+function areSettingsEquals(a, b) {
+  if (a === b) {
+    return true;
+  }
+
+  /* Simple properties */
+  /* These types look redundant, but they actually help TypeScript assess that
+   * the following code is correct, as well as prevent typos. */
+  /** @type {Array<"presetName" | "interval" | "entries" | "duration">} */
+  const simpleProperties = ["presetName", "interval", "entries", "duration"];
+
+  /* arrays */
+  /** @type {Array<"features" | "threads" | "objdirs">} */
+  const arrayProperties = ["features", "threads", "objdirs"];
+
+  for (const property of simpleProperties) {
+    if (a[property] !== b[property]) {
+      return false;
+    }
+  }
+
+  for (const property of arrayProperties) {
+    if (a[property].length !== b[property].length) {
+      return false;
+    }
+
+    const arrayA = a[property].slice().sort();
+    const arrayB = b[property].slice().sort();
+    if (arrayA.some((valueA, i) => valueA !== arrayB[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * This handles all values used as recording settings.
+ * @type {Reducer<RecordingSettings>}
+ */
+function recordingSettings(state = DEFAULT_RECORDING_SETTINGS, action) {
+  /**
+   * @template {keyof RecordingSettings} K
+   * @param {K} settingName
+   * @param {RecordingSettings[K]} settingValue
+   * @return {RecordingSettings}
+   */
+  function changeOneSetting(settingName, settingValue) {
+    if (state[settingName] === settingValue) {
+      // Do not change the state if the new value equals the old value.
+      return state;
+    }
+
+    return {
+      ...state,
+      [settingName]: settingValue,
+      presetName: "custom",
+    };
+  }
+
   switch (action.type) {
     case "CHANGE_INTERVAL":
-      return action.interval;
-    case "CHANGE_PRESET":
-      return action.preset ? action.preset.interval : state;
-    case "INITIALIZE_STORE":
-      return action.recordingSettingsFromPreferences.interval;
-    default:
-      return state;
-  }
-}
-
-/**
- * The number of entries in the profiler's circular buffer.
- * @type {Reducer<number>}
- */
-function entries(state = 0, action) {
-  switch (action.type) {
+      return changeOneSetting("interval", action.interval);
     case "CHANGE_ENTRIES":
-      return action.entries;
-    case "CHANGE_PRESET":
-      return action.preset ? action.preset.entries : state;
-    case "INITIALIZE_STORE":
-      return action.recordingSettingsFromPreferences.entries;
-    default:
-      return state;
-  }
-}
-
-/**
- * The features that are enabled for the profiler.
- * @type {Reducer<string[]>}
- */
-function features(state = [], action) {
-  switch (action.type) {
+      return changeOneSetting("entries", action.entries);
     case "CHANGE_FEATURES":
-      return action.features;
-    case "CHANGE_PRESET":
-      return action.preset ? action.preset.features : state;
-    case "INITIALIZE_STORE":
-      return action.recordingSettingsFromPreferences.features;
-    default:
-      return state;
-  }
-}
-
-/**
- * The current threads list.
- * @type {Reducer<string[]>}
- */
-function threads(state = [], action) {
-  switch (action.type) {
+      return changeOneSetting("features", action.features);
     case "CHANGE_THREADS":
-      return action.threads;
-    case "CHANGE_PRESET":
-      return action.preset ? action.preset.threads : state;
-    case "INITIALIZE_STORE":
-      return action.recordingSettingsFromPreferences.threads;
-    default:
-      return state;
-  }
-}
-
-/**
- * The current objdirs list.
- * @type {Reducer<string[]>}
- */
-function objdirs(state = [], action) {
-  switch (action.type) {
+      return changeOneSetting("threads", action.threads);
     case "CHANGE_OBJDIRS":
-      return action.objdirs;
-    case "INITIALIZE_STORE":
-      return action.recordingSettingsFromPreferences.objdirs;
-    default:
-      return state;
-  }
-}
-
-/**
- * The current preset name, used to select
- * @type {Reducer<string>}
- */
-function presetName(state = "", action) {
-  switch (action.type) {
-    case "INITIALIZE_STORE":
-      return action.recordingSettingsFromPreferences.presetName;
+      return changeOneSetting("objdirs", action.objdirs);
     case "CHANGE_PRESET":
-      return action.presetName;
-    case "CHANGE_INTERVAL":
-    case "CHANGE_ENTRIES":
-    case "CHANGE_FEATURES":
-    case "CHANGE_THREADS":
-      // When updating any values, switch the preset over to "custom".
-      return "custom";
+      return action.preset
+        ? {
+            ...state,
+            presetName: action.presetName,
+            interval: action.preset.interval,
+            entries: action.preset.entries,
+            features: action.preset.features,
+            threads: action.preset.threads,
+            // The client doesn't implement durations yet. See Bug 1587165.
+            duration: action.preset.duration,
+          }
+        : {
+            ...state,
+            presetName: action.presetName, // it's probably "custom".
+          };
+    case "UPDATE_SETTINGS_FROM_PREFERENCES":
+      if (areSettingsEquals(state, action.recordingSettingsFromPreferences)) {
+        return state;
+      }
+      return { ...action.recordingSettingsFromPreferences };
     default:
       return state;
   }
@@ -295,7 +315,6 @@ function initializedValues(state = null, action) {
   switch (action.type) {
     case "INITIALIZE_STORE":
       return {
-        setRecordingSettings: action.setRecordingSettings,
         presets: action.presets,
         pageContext: action.pageContext,
         supportedFeatures: action.supportedFeatures,
@@ -340,12 +359,7 @@ module.exports = (state = undefined, action) => {
       state?.isSupportedPlatform,
       action
     ),
-    interval: interval(state?.interval, action),
-    entries: entries(state?.entries, action),
-    features: features(state?.features, action),
-    threads: threads(state?.threads, action),
-    objdirs: objdirs(state?.objdirs, action),
-    presetName: presetName(state?.presetName, action),
+    recordingSettings: recordingSettings(state?.recordingSettings, action),
     initializedValues: initializedValues(state?.initializedValues, action),
     promptEnvRestart: promptEnvRestart(state?.promptEnvRestart, action),
 

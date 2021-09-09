@@ -2,11 +2,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from __future__ import absolute_import, print_function, unicode_literals
 import json
 from pipes import quote as shell_quote
 
-import six
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.scriptworker import get_release_config
 from taskgraph.util.schema import resolve_keyed_by
@@ -74,7 +72,7 @@ def handle_keyed_by(config, jobs):
                     "project": config.params["project"],
                     "release-level": config.params.release_level(),
                     "release-type": config.params["release_type"],
-                }
+                },
             )
 
         for cfg in job["run"]["config"]:
@@ -90,14 +88,14 @@ def handle_keyed_by(config, jobs):
             del job["run"]["product-field"]
             del job["run"]["products-url"]
         elif config.kind == "release-bouncer-check":
-            job["run"]["mach"].append("--version={}".format(version))
+            job["run"]["mach"].append(f"--version={version}")
 
         del job["run"]["config"]
 
         if "extra-config" in job["run"]:
             env = job["worker"].setdefault("env", {})
-            env["EXTRA_MOZHARNESS_CONFIG"] = six.ensure_text(
-                json.dumps(job["run"]["extra-config"], sort_keys=True)
+            env["EXTRA_MOZHARNESS_CONFIG"] = json.dumps(
+                job["run"]["extra-config"], sort_keys=True
             )
             del job["run"]["extra-config"]
 

@@ -229,15 +229,16 @@ class nsHtml5StreamParser final : public nsISupports {
    *  @param   aCharsetSource the source of the charset
    */
   inline void SetDocumentCharset(NotNull<const Encoding*> aEncoding,
-                                 int32_t aSource, bool aChannelHadCharset) {
+                                 int32_t aSource, bool aForceAutoDetection) {
     MOZ_ASSERT(mStreamState == STREAM_NOT_STARTED,
                "SetDocumentCharset called too late.");
-    NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-    MOZ_ASSERT(!(aSource == kCharsetFromChannel && !aChannelHadCharset),
-               "If charset is from channel, channel must have had charset.");
+    MOZ_ASSERT(NS_IsMainThread(), "Wrong thread!");
+    MOZ_ASSERT(!(aForceAutoDetection && aSource >= kCharsetFromOtherComponent),
+               "Can't force with high-ranking source.");
     mEncoding = aEncoding;
     mCharsetSource = aSource;
-    mChannelHadCharset = aChannelHadCharset;
+    mForceAutoDetection = aForceAutoDetection;
+    mChannelHadCharset = (aSource == kCharsetFromChannel);
   }
 
   nsresult GetChannel(nsIChannel** aChannel);
@@ -347,11 +348,6 @@ class nsHtml5StreamParser final : public nsISupports {
    * Push bytes from network when there is a Unicode decoder already
    */
   nsresult WriteStreamBytes(mozilla::Span<const uint8_t> aFromSegment);
-
-  /**
-   * Check whether every other byte in the sniffing buffer is zero.
-   */
-  void SniffBOMlessUTF16BasicLatin(const uint8_t* aBuf, size_t aBufLen);
 
   /**
    * Write the start of the stream to detector.
@@ -532,7 +528,12 @@ class nsHtml5StreamParser final : public nsISupports {
   bool mReparseForbidden;
 
   /**
-   * Whether the channel had charset.
+   * Whether the Repair Text Encoding menu item was invoked
+   */
+  bool mForceAutoDetection;
+
+  /**
+   * Whether there was a valid charset parameter on the HTTP layer.
    */
   bool mChannelHadCharset;
 

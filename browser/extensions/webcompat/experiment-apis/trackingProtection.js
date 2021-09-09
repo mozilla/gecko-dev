@@ -80,12 +80,16 @@ class Manager {
           } catch (_) {
             return;
           }
-          // if any allowlist unblocks the request entirely, we allow it
-          for (const allowList of this._allowLists.values()) {
-            if (allowList.allows(url, topHost)) {
-              this._unblockedChannelIds.add(channelId);
-              channel.allow();
-              return;
+          // If anti-tracking webcompat is disabled, we only permit replacing
+          // channels, not fully unblocking them.
+          if (Manager.ENABLE_WEBCOMPAT) {
+            // if any allowlist unblocks the request entirely, we allow it
+            for (const allowList of this._allowLists.values()) {
+              if (allowList.allows(url, topHost)) {
+                this._unblockedChannelIds.add(channelId);
+                channel.allow();
+                return;
+              }
             }
           }
           // otherwise, if any allowlist shims the request we say it's replaced
@@ -147,14 +151,30 @@ function getChannelId(context, requestId) {
   return wrapper?.channel?.QueryInterface(Ci.nsIIdentChannel)?.channelId;
 }
 
+var dFPIPrefName = "network.cookie.cookieBehavior";
+var dFPIPbPrefName = "network.cookie.cookieBehavior.pbmode";
+var dFPIStatus;
+function updateDFPIStatus() {
+  dFPIStatus = {
+    nonPbMode: 5 == Services.prefs.getIntPref(dFPIPrefName),
+    pbMode: 5 == Services.prefs.getIntPref(dFPIPbPrefName),
+  };
+}
+
 this.trackingProtection = class extends ExtensionAPI {
   onShutdown(isAppShutdown) {
     if (manager) {
       manager.stop();
     }
+    Services.prefs.removeObserver(dFPIPrefName, updateDFPIStatus);
+    Services.prefs.removeObserver(dFPIPbPrefName, updateDFPIStatus);
   }
 
   getAPI(context) {
+    Services.prefs.addObserver(dFPIPrefName, updateDFPIStatus);
+    Services.prefs.addObserver(dFPIPbPrefName, updateDFPIStatus);
+    updateDFPIStatus();
+
     return {
       trackingProtection: {
         async shim(allowListId, patterns, notHosts) {
@@ -176,7 +196,20 @@ this.trackingProtection = class extends ExtensionAPI {
           }
           return manager.wasChannelIdUnblocked(channelId);
         },
+        async isDFPIActive(isPrivate) {
+          if (isPrivate) {
+            return dFPIStatus.pbMode;
+          }
+          return dFPIStatus.nonPbMode;
+        },
       },
     };
   }
 };
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  Manager,
+  "ENABLE_WEBCOMPAT",
+  "privacy.antitracking.enableWebcompat",
+  false
+);

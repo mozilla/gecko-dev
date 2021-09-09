@@ -377,10 +377,16 @@ impl Transaction {
         self.invalidate_rendered_frame = true;
     }
 
-    /// Supply a list of animated property bindings that should be used to resolve
+    /// Reset the list of animated property bindings that should be used to resolve
     /// bindings in the current display list.
-    pub fn update_dynamic_properties(&mut self, properties: DynamicProperties) {
-        self.frame_ops.push(FrameMsg::UpdateDynamicProperties(properties));
+    pub fn reset_dynamic_properties(&mut self) {
+        self.frame_ops.push(FrameMsg::ResetDynamicProperties);
+    }
+
+    /// Add to the list of animated property bindings that should be used to resolve
+    /// bindings in the current display list.
+    pub fn append_dynamic_properties(&mut self, properties: DynamicProperties) {
+        self.frame_ops.push(FrameMsg::AppendDynamicProperties(properties));
     }
 
     /// Add to the list of animated property bindings that should be used to
@@ -798,7 +804,9 @@ pub enum FrameMsg {
     ///
     GetScrollNodeState(Sender<Vec<ScrollNodeState>>),
     ///
-    UpdateDynamicProperties(DynamicProperties),
+    ResetDynamicProperties,
+    ///
+    AppendDynamicProperties(DynamicProperties),
     ///
     AppendDynamicTransformProperties(Vec<PropertyValue<LayoutTransform>>),
     ///
@@ -826,7 +834,8 @@ impl fmt::Debug for FrameMsg {
             FrameMsg::RequestHitTester(..) => "FrameMsg::RequestHitTester",
             FrameMsg::ScrollNodeWithId(..) => "FrameMsg::ScrollNodeWithId",
             FrameMsg::GetScrollNodeState(..) => "FrameMsg::GetScrollNodeState",
-            FrameMsg::UpdateDynamicProperties(..) => "FrameMsg::UpdateDynamicProperties",
+            FrameMsg::ResetDynamicProperties => "FrameMsg::ResetDynamicProperties",
+            FrameMsg::AppendDynamicProperties(..) => "FrameMsg::AppendDynamicProperties",
             FrameMsg::AppendDynamicTransformProperties(..) => "FrameMsg::AppendDynamicTransformProperties",
             FrameMsg::SetIsTransformAsyncZooming(..) => "FrameMsg::SetIsTransformAsyncZooming",
         })
@@ -1369,7 +1378,7 @@ impl Drop for RenderApi {
 fn window_size_sanity_check(size: DeviceIntSize) {
     // Anything bigger than this will crash later when attempting to create
     // a render task.
-    use crate::render_task::MAX_RENDER_TASK_SIZE;
+    use crate::api::MAX_RENDER_TASK_SIZE;
     if size.width > MAX_RENDER_TASK_SIZE || size.height > MAX_RENDER_TASK_SIZE {
         panic!("Attempting to create a {}x{} window/document", size.width, size.height);
     }

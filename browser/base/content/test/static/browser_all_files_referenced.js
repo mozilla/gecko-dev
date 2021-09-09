@@ -34,6 +34,8 @@ var gExceptionPaths = [
   "chrome://activity-stream/content/data/content/tippytop/favicons/",
   // These resources are referenced by messages delivered through Remote Settings
   "chrome://activity-stream/content/data/content/assets/remote/",
+  "chrome://browser/content/assets/moz-vpn.svg",
+  "chrome://browser/content/assets/vpn-logo.svg",
 
   // toolkit/components/pdfjs/content/build/pdf.js
   "resource://pdf.js/web/images/",
@@ -265,6 +267,9 @@ var whitelist = [
   { file: "chrome://browser/content/screenshots/menu-visible.svg" },
 
   { file: "resource://app/modules/SnapshotSelector.jsm" },
+
+  // toolkit/xre/MacRunFromDmgUtils.mm
+  { file: "resource://gre/localization/en-US/toolkit/global/run-from-dmg.ftl" },
 ];
 
 if (AppConstants.NIGHTLY_BUILD && AppConstants.platform != "win") {

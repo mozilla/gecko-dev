@@ -253,11 +253,6 @@ pub trait Parser<'i> {
         false
     }
 
-    /// The error recovery that selector lists inside :is() and :where() have.
-    fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
-        ParseErrorRecovery::IgnoreInvalidSelector
-    }
-
     /// Whether the given function name is an alias for the `:is()` function.
     fn is_is_alias(&self, _name: &str) -> bool {
         false
@@ -337,7 +332,7 @@ pub struct SelectorList<Impl: SelectorImpl>(
 );
 
 /// How to treat invalid selectors in a selector list.
-pub enum ParseErrorRecovery {
+enum ParseErrorRecovery {
     /// Discard the entire selector list, this is the default behavior for
     /// almost all of CSS.
     DiscardList,
@@ -1858,9 +1853,9 @@ where
     };
 
     let start = input.state();
-    // FIXME: remove clone() when lifetimes are non-lexical
-    match input.next_including_whitespace().map(|t| t.clone()) {
+    match input.next_including_whitespace() {
         Ok(Token::Ident(value)) => {
+            let value = value.clone();
             let after_ident = input.state();
             match input.next_including_whitespace() {
                 Ok(&Token::Delim('|')) => {
@@ -1888,28 +1883,25 @@ where
         },
         Ok(Token::Delim('*')) => {
             let after_star = input.state();
-            // FIXME: remove clone() when lifetimes are non-lexical
-            match input.next_including_whitespace().map(|t| t.clone()) {
-                Ok(Token::Delim('|')) => {
+            match input.next_including_whitespace() {
+                Ok(&Token::Delim('|')) => {
                     explicit_namespace(input, QNamePrefix::ExplicitAnyNamespace)
                 },
-                result => {
+                _ if !in_attr_selector => {
                     input.reset(&after_star);
-                    if in_attr_selector {
-                        match result {
-                            Ok(t) => Err(after_star
-                                .source_location()
-                                .new_custom_error(SelectorParseErrorKind::ExpectedBarInAttr(t))),
-                            Err(e) => Err(e.into()),
-                        }
-                    } else {
-                        default_namespace(None)
-                    }
+                    default_namespace(None)
+                }
+                result => {
+                    let t = result?;
+                    Err(after_star
+                        .source_location()
+                        .new_custom_error(SelectorParseErrorKind::ExpectedBarInAttr(t.clone())))
                 },
             }
         },
         Ok(Token::Delim('|')) => explicit_namespace(input, QNamePrefix::ExplicitNoNamespace),
         Ok(t) => {
+            let t = t.clone();
             input.reset(&start);
             Ok(OptionalQName::None(t))
         },
@@ -2257,7 +2249,7 @@ where
         state |
             SelectorParsingState::SKIP_DEFAULT_NAMESPACE |
             SelectorParsingState::DISALLOW_PSEUDOS,
-        parser.is_and_where_error_recovery(),
+        ParseErrorRecovery::IgnoreInvalidSelector,
     )?;
     Ok(component(inner.0.into_vec().into_boxed_slice()))
 }
@@ -2664,10 +2656,6 @@ pub mod tests {
 
         fn parse_is_and_where(&self) -> bool {
             true
-        }
-
-        fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
-            ParseErrorRecovery::DiscardList
         }
 
         fn parse_part(&self) -> bool {
@@ -3274,9 +3262,9 @@ pub mod tests {
         assert!(parse("::slotted(div)::before").is_ok());
         assert!(parse("slot::slotted(div,foo)").is_err());
 
-        assert!(parse("foo:where()").is_err());
+        assert!(parse("foo:where()").is_ok());
         assert!(parse("foo:where(div, foo, .bar baz)").is_ok());
-        assert!(parse("foo:where(::before)").is_err());
+        assert!(parse_expected("foo:where(::before)", Some("foo:where()")).is_ok());
     }
 
     #[test]

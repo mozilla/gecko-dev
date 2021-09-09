@@ -5,8 +5,12 @@
 #define intl_components_NumberFormatterSkeleton_h_
 #include <string_view>
 #include "mozilla/intl/NumberFormat.h"
+#include "mozilla/intl/NumberRangeFormat.h"
 #include "mozilla/Vector.h"
 #include "unicode/unumberformatter.h"
+#include "unicode/utypes.h"
+
+struct UNumberRangeFormatter;
 
 namespace mozilla {
 namespace intl {
@@ -25,6 +29,15 @@ class MOZ_STACK_CLASS NumberFormatterSkeleton final {
    * Return a new UNumberFormatter based on this skeleton.
    */
   UNumberFormatter* toFormatter(std::string_view locale);
+
+#ifndef U_HIDE_DRAFT_API
+  /**
+   * Return a new UNumberRangeFormatter based on this skeleton.
+   */
+  UNumberRangeFormatter* toRangeFormatter(
+      std::string_view locale, NumberRangeFormatOptions::RangeCollapse collapse,
+      NumberRangeFormatOptions::RangeIdentityFallback identity);
+#endif
 
  private:
   static constexpr size_t DefaultVectorSize = 128;
@@ -70,19 +83,29 @@ class MOZ_STACK_CLASS NumberFormatterSkeleton final {
 
   [[nodiscard]] bool percent();
 
-  [[nodiscard]] bool fractionDigits(uint32_t min, uint32_t max);
+  [[nodiscard]] bool fractionDigits(uint32_t min, uint32_t max,
+                                    bool stripTrailingZero);
+
+  [[nodiscard]] bool fractionWithSignificantDigits(uint32_t mnfd, uint32_t mxfd,
+                                                   uint32_t mnsd, uint32_t mxsd,
+                                                   bool relaxed,
+                                                   bool stripTrailingZero);
 
   [[nodiscard]] bool minIntegerDigits(uint32_t min);
 
-  [[nodiscard]] bool significantDigits(uint32_t min, uint32_t max);
+  [[nodiscard]] bool significantDigits(uint32_t min, uint32_t max,
+                                       bool stripTrailingZero);
 
-  [[nodiscard]] bool disableGrouping();
+  [[nodiscard]] bool grouping(NumberFormatOptions::Grouping grouping);
 
   [[nodiscard]] bool notation(NumberFormatOptions::Notation style);
 
   [[nodiscard]] bool signDisplay(NumberFormatOptions::SignDisplay display);
 
-  [[nodiscard]] bool roundingModeHalfUp();
+  [[nodiscard]] bool roundingIncrement(uint32_t increment, uint32_t mnfd,
+                                       uint32_t mxfd, bool stripTrailingZero);
+
+  [[nodiscard]] bool roundingMode(NumberFormatOptions::RoundingMode rounding);
 };
 
 }  // namespace intl

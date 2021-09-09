@@ -10,11 +10,12 @@
  */
 
 var EXPORTED_SYMBOLS = [
+  "L10nCache",
+  "SkippableTimer",
   "UrlbarMuxer",
   "UrlbarProvider",
   "UrlbarQueryContext",
   "UrlbarUtils",
-  "SkippableTimer",
 ];
 
 const { XPCOMUtils } = ChromeUtils.import(
@@ -399,7 +400,9 @@ var UrlbarUtils = {
       highlightType == this.HIGHLIGHT.SUGGESTED ? 1 : 0
     );
     let compareIgnoringDiacritics;
-    for (let { lowerCaseValue: needle } of tokens) {
+    for (let i = 0, totalTokensLength = 0; i < tokens.length; i++) {
+      const { lowerCaseValue: needle } = tokens[i];
+
       // Ideally we should never hit the empty token case, but just in case
       // the `needle` check protects us from an infinite loop.
       if (!needle) {
@@ -471,6 +474,12 @@ var UrlbarUtils = {
             index++;
           }
         }
+      }
+
+      totalTokensLength += needle.length;
+      if (totalTokensLength > UrlbarUtils.MAX_TEXT_LENGTH) {
+        // Limit the number of tokens to reduce calculate time.
+        break;
       }
     }
     // Starting from the collision array, generate [start, len] tuples
@@ -971,7 +980,7 @@ var UrlbarUtils = {
       userContextId: window.gBrowser.selectedBrowser.getAttribute(
         "usercontextid"
       ),
-      allowSearchSuggestions: false,
+      prohibitRemoteResults: true,
       providers: ["AliasEngines", "BookmarkKeywords", "HeuristicFallback"],
     };
     if (window.gURLBar.searchMode) {
@@ -1290,9 +1299,6 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       helpL10nId: {
         type: "string",
       },
-      helpTitle: {
-        type: "string",
-      },
       helpUrl: {
         type: "string",
       },
@@ -1321,9 +1327,6 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
         type: "string",
       },
       sponsoredImpressionUrl: {
-        type: "string",
-      },
-      sponsoredText: {
         type: "string",
       },
       sponsoredTileId: {
@@ -1526,11 +1529,11 @@ class UrlbarQueryContext {
    * @param {object} [options.searchMode]
    *   The input's current search mode.  See UrlbarInput.setSearchMode for a
    *   description.
-   * @param {boolean} [options.allowSearchSuggestions]
-   *   Whether to allow search suggestions.  This is a veto, meaning that when
-   *   false, suggestions will not be fetched, but when true, some other
-   *   condition may still prohibit suggestions, like private browsing mode.
-   *   Defaults to true.
+   * @param {boolean} [options.prohibitRemoteResults]
+   *   This provides a short-circuit override for `context.allowRemoteResults`.
+   *   If it's false, then `allowRemoteResults` will do its usual checks to
+   *   determine whether remote results are allowed. If it's true, then
+   *   `allowRemoteResults` will immediately return false. Defaults to false.
    * @param {string} [options.formHistoryName]
    *   The name under which the local form history is registered.
    */
@@ -1550,9 +1553,9 @@ class UrlbarQueryContext {
 
     // Manage optional properties of options.
     for (let [prop, checkFn, defaultValue] of [
-      ["allowSearchSuggestions", v => true, true],
       ["currentPage", v => typeof v == "string" && !!v.length],
       ["formHistoryName", v => typeof v == "string" && !!v.length],
+      ["prohibitRemoteResults", v => true, false],
       ["providers", v => Array.isArray(v) && v.length],
       ["searchMode", v => v && typeof v == "object"],
       ["sources", v => Array.isArray(v) && v.length],
@@ -1639,6 +1642,47 @@ class UrlbarQueryContext {
     }
 
     return null;
+  }
+
+  /**
+   * Returns whether results from remote services are generally allowed for the
+   * context. Callers can impose further restrictions as appropriate, but
+   * typically they should not fetch remote results if this returns false.
+   *
+   * @param {string} [searchString]
+   *   Usually this is just the context's search string, but if you need to
+   *   fetch remote results based on a modified version, you can pass it here.
+   * @returns {boolean}
+   *   Whether remote results are allowed.
+   */
+  allowRemoteResults(searchString = this.searchString) {
+    if (this.prohibitRemoteResults) {
+      return false;
+    }
+
+    // We're unlikely to get useful remote results for a single character.
+    if (searchString.length < 2) {
+      return false;
+    }
+
+    // Disallow remote results if only an origin is typed to avoid disclosing
+    // sites the user visits. This also catches partially typed origins, like
+    // mozilla.o, because the fixup check below can't validate them.
+    if (
+      this.tokens.length == 1 &&
+      this.tokens[0].type == UrlbarTokenizer.TYPE.POSSIBLE_ORIGIN
+    ) {
+      return false;
+    }
+
+    // Disallow remote results for strings containing tokens that look like URIs
+    // to avoid disclosing information about networks and passwords.
+    if (this.fixupInfo?.href && !this.fixupInfo?.isSearch) {
+      return false;
+    }
+
+    // Allow remote results.
+    return true;
   }
 }
 
@@ -2003,5 +2047,181 @@ class SkippableTimer {
     if (isError) {
       Cu.reportError(line);
     }
+  }
+}
+
+/**
+ * This class implements a cache for l10n strings. Cached strings can be
+ * accessed synchronously, avoiding the asynchronicity of `data-l10n-id` and
+ * `document.l10n.setAttributes`, which can lead to text pop-in and flickering
+ * as strings are fetched from Fluent. (`document.l10n.formatValueSync` is also
+ * sync but should not be used since it may perform sync I/O.)
+ *
+ * Values stored and returned by the cache are JS objects similar to
+ * `L10nMessage` objects, not bare strings. This allows the cache to store not
+ * only l10n strings with bare values but also strings that define attributes
+ * (e.g., ".label = My label value"). See `get` for details.
+ */
+class L10nCache {
+  /**
+   * @param {Localization} l10n
+   *   A `Localization` object like `document.l10n`. This class keeps a weak
+   *   reference to this object, so the caller or something else must hold onto
+   *   it.
+   */
+  constructor(l10n) {
+    this.l10n = Cu.getWeakReference(l10n);
+  }
+
+  /**
+   * Gets a cached l10n message.
+   *
+   * @param {string} id
+   *   The string's Fluent ID.
+   * @param {object} [args]
+   *   The Fluent arguments as passed to `l10n.setAttributes`.
+   * @returns {object}
+   *   The message object or undefined if it's not cached. The message object is
+   *   similar to `L10nMessage` (defined in Localization.webidl) but its
+   *   attributes are stored differently for convenience. It looks like this:
+   *
+   *     { value, attributes }
+   *
+   *   The properties are:
+   *
+   *     {string} value
+   *       The bare value of the string. If the string does not have a bare
+   *       value (i.e., it has only attributes), this will be null.
+   *     {object} attributes
+   *       A mapping from attribute names to their values. If the string doesn't
+   *       have any attributes, this will be null.
+   *
+   *   For example, if we cache these strings from an ftl file:
+   *
+   *     foo = Foo's value
+   *     bar =
+   *       .label = Bar's label value
+   *
+   *   Then:
+   *
+   *     cache.get("foo")
+   *     // => { value: "Foo's value", attributes: null }
+   *     cache.get("bar")
+   *     // => { value: null, attributes: { label: "Bar's label value" }}
+   */
+  get(id, args = undefined) {
+    return this._messagesByKey.get(this._key(id, args));
+  }
+
+  /**
+   * Fetches a string from Fluent and caches it.
+   *
+   * @param {string} id
+   *   The string's Fluent ID.
+   * @param {object} [args]
+   *   The Fluent arguments as passed to `l10n.setAttributes`.
+   */
+  async add(id, args = undefined) {
+    let l10n = this.l10n.get();
+    if (!l10n) {
+      return;
+    }
+    let messages = await l10n.formatMessages([{ id, args }]);
+    if (!messages?.length) {
+      Cu.reportError(
+        "l10n.formatMessages returned an unexpected value for ID: " + id
+      );
+      return;
+    }
+    let message = messages[0];
+    if (message.attributes) {
+      // Convert `attributes` from an array of `{ name, value }` objects to one
+      // object mapping names to values.
+      message.attributes = message.attributes.reduce(
+        (valuesByName, { name, value }) => {
+          valuesByName[name] = value;
+          return valuesByName;
+        },
+        {}
+      );
+    }
+    this._messagesByKey.set(this._key(id, args), message);
+  }
+
+  /**
+   * Fetches and caches a string if it's not already cached. This is just a
+   * slight optimization over `add` that avoids calling into Fluent
+   * unnecessarily.
+   *
+   * @param {string} id
+   *   The string's Fluent ID.
+   * @param {object} [args]
+   *   The Fluent arguments as passed to `l10n.setAttributes`.
+   */
+  async ensure(id, args = undefined) {
+    if (!this.get(id, args)) {
+      await this.add(id, args);
+    }
+  }
+
+  /**
+   * Fetches and caches strings that aren't already cached.
+   *
+   * @param {array} idArgs
+   *   An array of `{ id, args }` objects.
+   */
+  async ensureAll(idArgs) {
+    let promises = [];
+    for (let { id, args } of idArgs) {
+      promises.push(this.ensure(id, args));
+    }
+    await Promise.all(promises);
+  }
+
+  /**
+   * Removes a cached string.
+   *
+   * @param {string} id
+   *   The string's Fluent ID.
+   * @param {object} [args]
+   *   The Fluent arguments as passed to `l10n.setAttributes`.
+   */
+  delete(id, args = undefined) {
+    this._messagesByKey.delete(this._key(id, args));
+  }
+
+  /**
+   * Removes all cached strings.
+   */
+  clear() {
+    this._messagesByKey.clear();
+  }
+
+  /**
+   * Cache keys => cached message objects
+   */
+  _messagesByKey = new Map();
+
+  /**
+   * Returns a cache key for a string in `_messagesByKey`.
+   *
+   * @param {string} id
+   *   The string's Fluent ID.
+   * @param {object} [args]
+   *   The Fluent arguments as passed to `l10n.setAttributes`.
+   * @returns {string}
+   *   The cache key.
+   */
+  _key(id, args) {
+    // Keys are `id` plus JSON'ed `args` values. `JSON.stringify` doesn't
+    // guarantee a particular ordering of object properties, so instead of
+    // stringifying `args` as is, sort its entries by key and then pull out the
+    // values. The final key is a JSON'ed array of `id` concatenated with the
+    // sorted-by-key `args` values.
+    let argValues = Object.entries(args || [])
+      .sort(([key1], [key2]) => key1.localeCompare(key2))
+      .map(([_, value]) => value);
+    let parts = [id].concat(argValues);
+    return JSON.stringify(parts);
   }
 }

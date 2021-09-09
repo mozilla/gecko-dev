@@ -16,12 +16,17 @@ var EXPORTED_SYMBOLS = [
   "TestingCrashManager",
 ];
 
-const { CrashManager } = ChromeUtils.import(
-  "resource://gre/modules/CrashManager.jsm"
+const { XPCOMUtils } = ChromeUtils.import(
+  "resource://gre/modules/XPCOMUtils.jsm"
 );
-const { Log } = ChromeUtils.import("resource://gre/modules/Log.jsm");
-const { OS } = ChromeUtils.import("resource://gre/modules/osfile.jsm");
-const { setTimeout } = ChromeUtils.import("resource://gre/modules/Timer.jsm");
+
+XPCOMUtils.defineLazyModuleGetters(this, {
+  CrashManager: "resource://gre/modules/CrashManager.jsm",
+  Log: "resource://gre/modules/Log.jsm",
+  OS: "resource://gre/modules/osfile.jsm",
+  Services: "resource://gre/modules/Services.jsm",
+  setTimeout: "resource://gre/modules/Timer.jsm",
+});
 
 var loggingConfigured = false;
 
@@ -54,10 +59,7 @@ TestingCrashManager.prototype = {
   __proto__: CrashManager.prototype,
 
   createDummyDump(submitted = false, date = new Date(), hr = false) {
-    let uuid = Cc["@mozilla.org/uuid-generator;1"]
-      .getService(Ci.nsIUUIDGenerator)
-      .generateUUID()
-      .toString();
+    let uuid = Services.uuid.generateUUID().toString();
     uuid = uuid.substring(1, uuid.length - 1);
 
     let path;

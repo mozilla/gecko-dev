@@ -928,6 +928,57 @@ assertEq(
   1
 );
 
+// Test that rethrow makes the rest of the block dead code.
+assertEq(
+  wasmEvalText(
+    `(module
+       (tag (param i32))
+       (func (export "f") (result i32)
+         (try (result i32)
+           (do (i32.const 1))
+           (catch 0
+             (rethrow 0)
+             (i32.const 2)))))`
+  ).exports.f(),
+  1
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (tag (param i32))
+       (func (export "f") (result i32)
+         (try (result i32)
+           (do (try
+                 (do (i32.const 13)
+                     (throw 0))
+                 (catch 0
+                   (rethrow 0)))
+               (unreachable))
+           (catch 0))))`
+  ).exports.f(),
+  13
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (tag)
+       (func (export "f") (result i32)
+         (try (result i32)
+           (do
+             (try
+               (do (throw 0))
+               (catch 0
+                 (i32.const 4)
+                 (rethrow 0)))
+             (unreachable))
+           (catch 0
+              (i32.const 13)))))`
+  ).exports.f(),
+  13
+);
+
 // Test try-delegate blocks.
 assertEq(
   wasmEvalText(
@@ -1058,6 +1109,31 @@ assertEq(
          end))`
   ).exports.f(),
   44
+);
+
+assertEq(
+  wasmEvalText(
+    `(module
+       (tag $exn (param))
+       (func $g (param i32) (result i32) (i32.const 42))
+       (func (export "f") (result i32)
+         try (result i32)
+           try $t
+             block (result i32)
+               (i32.const 4)
+               (call $g)
+               try
+                 throw $exn
+               delegate $t
+             end
+             drop
+           end
+           i32.const 0
+         catch_all
+           i32.const 1
+         end))`
+  ).exports.f(),
+  1
 );
 
 // Test delegation to function body.

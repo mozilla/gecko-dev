@@ -57,14 +57,9 @@ class gfxXlibSurface final : public gfxASurface {
   static cairo_surface_t* CreateCairoSurface(
       ::Screen* screen, Visual* visual, const mozilla::gfx::IntSize& size,
       Drawable relatedDrawable = X11None);
-  static already_AddRefed<gfxXlibSurface> Create(
-      ::Screen* screen, XRenderPictFormat* format,
-      const mozilla::gfx::IntSize& size, Drawable relatedDrawable = X11None);
 
   virtual ~gfxXlibSurface();
 
-  already_AddRefed<gfxASurface> CreateSimilarSurface(
-      gfxContentType aType, const mozilla::gfx::IntSize& aSize) override;
   void Finish() override;
 
   const mozilla::gfx::IntSize GetSize() const override;
@@ -93,11 +88,6 @@ class gfxXlibSurface final : public gfxASurface {
   // Find a visual and colormap pair suitable for rendering to this surface.
   bool GetColormapAndVisual(Colormap* colormap, Visual** visual);
 
-  GLXPixmap GetGLXPixmap();
-  // Binds a GLXPixmap backed by this context's surface.
-  // Primarily for use in sharing surfaces.
-  void BindGLXPixmap(GLXPixmap aPixmap);
-
   // Return true if cairo will take its slow path when this surface is used
   // in a pattern with EXTEND_PAD.  As a workaround for XRender's RepeatPad
   // not being implemented correctly on old X servers, cairo avoids XRender
@@ -118,8 +108,6 @@ class gfxXlibSurface final : public gfxASurface {
   Drawable mDrawable;
 
   const mozilla::gfx::IntSize DoSizeQuery();
-
-  GLXPixmap mGLXPixmap;
 };
 
 #endif /* GFX_XLIBSURFACE_H */

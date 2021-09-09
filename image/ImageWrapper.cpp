@@ -18,7 +18,6 @@ using gfx::IntSize;
 using gfx::SamplingFilter;
 using gfx::SourceSurface;
 using layers::ImageContainer;
-using layers::LayerManager;
 
 namespace image {
 
@@ -166,31 +165,19 @@ NS_IMETHODIMP_(bool)
 ImageWrapper::WillDrawOpaqueNow() { return mInnerImage->WillDrawOpaqueNow(); }
 
 NS_IMETHODIMP_(bool)
-ImageWrapper::IsImageContainerAvailable(LayerManager* aManager,
+ImageWrapper::IsImageContainerAvailable(WindowRenderer* aRenderer,
                                         uint32_t aFlags) {
-  return mInnerImage->IsImageContainerAvailable(aManager, aFlags);
-}
-
-NS_IMETHODIMP_(already_AddRefed<ImageContainer>)
-ImageWrapper::GetImageContainer(LayerManager* aManager, uint32_t aFlags) {
-  return mInnerImage->GetImageContainer(aManager, aFlags);
-}
-
-NS_IMETHODIMP_(bool)
-ImageWrapper::IsImageContainerAvailableAtSize(LayerManager* aManager,
-                                              const IntSize& aSize,
-                                              uint32_t aFlags) {
-  return mInnerImage->IsImageContainerAvailableAtSize(aManager, aSize, aFlags);
+  return mInnerImage->IsImageContainerAvailable(aRenderer, aFlags);
 }
 
 NS_IMETHODIMP_(ImgDrawResult)
-ImageWrapper::GetImageContainerAtSize(layers::LayerManager* aManager,
+ImageWrapper::GetImageContainerAtSize(WindowRenderer* aRenderer,
                                       const gfx::IntSize& aSize,
                                       const Maybe<SVGImageContext>& aSVGContext,
                                       const Maybe<ImageIntRegion>& aRegion,
                                       uint32_t aFlags,
                                       layers::ImageContainer** aOutContainer) {
-  return mInnerImage->GetImageContainerAtSize(aManager, aSize, aSVGContext,
+  return mInnerImage->GetImageContainerAtSize(aRenderer, aSize, aSVGContext,
                                               aRegion, aFlags, aOutContainer);
 }
 

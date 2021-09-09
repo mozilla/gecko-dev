@@ -16,6 +16,8 @@ const {
   safeCallback,
 } = ChromeUtils.import("resource://gre/modules/ContentPrefUtils.jsm");
 
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
+
 // We only need one bit of information out of the context.
 function contextArg(context) {
   return context && context.usePrivateBrowsing
@@ -60,10 +62,7 @@ class ContentPrefsChild extends JSProcessActorChild {
   }
 
   _getRandomId() {
-    return Cc["@mozilla.org/uuid-generator;1"]
-      .getService(Ci.nsIUUIDGenerator)
-      .generateUUID()
-      .toString();
+    return Services.uuid.generateUUID().toString();
   }
 
   receiveMessage(msg) {

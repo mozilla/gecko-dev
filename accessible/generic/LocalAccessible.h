@@ -56,6 +56,8 @@ class TextLeafAccessible;
 class XULLabelAccessible;
 class XULTreeAccessible;
 
+enum class CacheUpdateType;
+
 #ifdef A11Y_LOG
 namespace logging {
 typedef const char* (*GetTreePrefix)(void* aData, LocalAccessible*);
@@ -159,7 +161,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   /**
    * Get the description of this accessible.
    */
-  virtual void Description(nsString& aDescription);
+  virtual void Description(nsString& aDescription) const override;
 
   /**
    * Get the value of this accessible.
@@ -702,10 +704,10 @@ class LocalAccessible : public nsISupports, public Accessible {
   //////////////////////////////////////////////////////////////////////////////
   // Value (numeric value interface)
 
-  virtual double MaxValue() const;
-  virtual double MinValue() const;
-  virtual double CurValue() const;
-  virtual double Step() const;
+  virtual double MaxValue() const override;
+  virtual double MinValue() const override;
+  virtual double CurValue() const override;
+  virtual double Step() const override;
   virtual bool SetCurValue(double aValue);
 
   //////////////////////////////////////////////////////////////////////////////
@@ -883,7 +885,8 @@ class LocalAccessible : public nsISupports, public Accessible {
 
   virtual bool IsRemote() const override { return false; }
 
-  already_AddRefed<AccAttributes> BundleFieldsForCache();
+  already_AddRefed<AccAttributes> BundleFieldsForCache(
+      uint64_t aCacheDomain, CacheUpdateType aUpdateType);
 
  protected:
   virtual ~LocalAccessible();
@@ -898,7 +901,7 @@ class LocalAccessible : public nsISupports, public Accessible {
    * Return the accessible description provided by native markup. It doesn't
    * take into account ARIA markup used to specify the description.
    */
-  virtual void NativeDescription(nsString& aDescription);
+  void NativeDescription(nsString& aDescription) const;
 
   /**
    * Return object attributes provided by native markup. It doesn't take into
@@ -1067,6 +1070,11 @@ class LocalAccessible : public nsISupports, public Accessible {
    * Return group info.
    */
   AccGroupInfo* GetGroupInfo() const;
+
+  /**
+   * Push fields to cache.
+   */
+  void SendCacheUpdate(uint64_t aCacheDomain);
 
   // Data Members
   nsCOMPtr<nsIContent> mContent;

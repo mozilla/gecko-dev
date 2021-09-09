@@ -140,7 +140,7 @@ add_task(async function test_getExperiment_feature() {
     branch: {
       slug: "treatment",
       value: { title: "hi" },
-      feature: { featureId: "cfr", enabled: true, value: null },
+      features: [{ featureId: "cfr", enabled: true, value: null }],
     },
   });
 
@@ -170,10 +170,6 @@ add_task(async function test_getExperiment_feature() {
   );
 
   Assert.ok(exposureStub.notCalled, "Not called by default");
-
-  ExperimentAPI.getExperiment({ featureId: "cfr", sendExposureEvent: true });
-
-  Assert.ok(exposureStub.calledOnce, "Called explicitly.");
 
   sandbox.restore();
 });
@@ -268,7 +264,7 @@ add_task(async function test_addExperiment_eventEmit_add() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      feature: { featureId: "purple", enabled: true, value: null },
+      features: [{ featureId: "purple", enabled: true, value: null }],
     },
   });
   const store = ExperimentFakes.store();
@@ -303,7 +299,7 @@ add_task(async function test_updateExperiment_eventEmit_add_and_update() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      feature: { featureId: "purple", enabled: true, value: null },
+      features: [{ featureId: "purple", enabled: true, value: null }],
     },
   });
   const store = ExperimentFakes.store();
@@ -337,7 +333,7 @@ add_task(async function test_updateExperiment_eventEmit_off() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      feature: { featureId: "purple", enabled: true, value: null },
+      features: [{ featureId: "purple", enabled: true, value: null }],
     },
   });
   const store = ExperimentFakes.store();
@@ -367,7 +363,7 @@ add_task(async function test_activateBranch() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      feature: { featureId: "green", enabled: true, value: null },
+      features: [{ featureId: "green", enabled: true, value: null }],
     },
   });
 
@@ -400,43 +396,6 @@ add_task(async function test_activateBranch_safe() {
   sandbox.restore();
 });
 
-add_task(async function test_activateBranch_activationEvent() {
-  const store = ExperimentFakes.store();
-  const sandbox = sinon.createSandbox();
-  sandbox.stub(ExperimentAPI, "_store").get(() => store);
-  const experiment = ExperimentFakes.experiment("foo", {
-    branch: {
-      slug: "variant",
-      feature: { featureId: "green", enabled: true },
-    },
-  });
-
-  await store.init();
-  await store.addExperiment(experiment);
-  // Adding stub later because `addExperiment` emits update events
-  const stub = sandbox.stub(ExperimentAPI, "recordExposureEvent");
-  ExperimentAPI.activateBranch({ featureId: "green" });
-  Assert.equal(
-    stub.callCount,
-    0,
-    "Exposure is not sent by default by activateBranch"
-  );
-
-  ExperimentAPI.activateBranch({ featureId: "green", sendExposureEvent: true });
-
-  Assert.equal(stub.callCount, 1, "Called by doing activateBranch");
-  Assert.deepEqual(
-    stub.firstCall.args[0],
-    {
-      featureId: experiment.branch.feature.featureId,
-      experimentSlug: experiment.slug,
-      branchSlug: experiment.branch.slug,
-    },
-    "Has correct payload"
-  );
-  sandbox.restore();
-});
-
 add_task(async function test_activateBranch_storeFailure() {
   const store = ExperimentFakes.store();
   const sandbox = sinon.createSandbox();
@@ -444,7 +403,7 @@ add_task(async function test_activateBranch_storeFailure() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      feature: { featureId: "green", enabled: true },
+      features: [{ featureId: "green", enabled: true }],
     },
   });
 
@@ -471,7 +430,7 @@ add_task(async function test_activateBranch_noActivationEvent() {
   const experiment = ExperimentFakes.experiment("foo", {
     branch: {
       slug: "variant",
-      feature: { featureId: "green", enabled: true },
+      features: [{ featureId: "green", enabled: true }],
     },
   });
 

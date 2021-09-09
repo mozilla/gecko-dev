@@ -37,7 +37,6 @@
 #include "nsFocusManager.h"
 #include "nsIContent.h"
 #include "mozilla/dom/Document.h"
-#include "nsIForm.h"
 #include "nsIFormControl.h"
 #include "nsINode.h"
 #include "nsISupports.h"
@@ -830,17 +829,30 @@ void IMEStateManager::OnFocusInEditor(nsPresContext* aPresContext,
            "the editor is already being managed by sActiveIMEContentObserver"));
       return;
     }
-    DestroyIMEContentObserver();
+    // If the IMEContentObserver has not finished initializing itself yet,
+    // we don't need to recreate it because the following
+    // TryToFlushPendingNotifications call must make it initialized.
+    if (!sActiveIMEContentObserver->IsBeingInitializedFor(aPresContext,
+                                                          aContent)) {
+      DestroyIMEContentObserver();
+    }
   }
 
-  CreateIMEContentObserver(aEditorBase);
+  if (!sActiveIMEContentObserver) {
+    CreateIMEContentObserver(aEditorBase);
+    if (sActiveIMEContentObserver) {
+      MOZ_LOG(sISMLog, LogLevel::Debug,
+              ("  OnFocusInEditor(), new IMEContentObserver is created (0x%p)",
+               sActiveIMEContentObserver.get()));
+    }
+  }
 
-  // Let's flush the focus notification now.
   if (sActiveIMEContentObserver) {
-    MOZ_LOG(sISMLog, LogLevel::Debug,
-            ("  OnFocusInEditor(), new IMEContentObserver is "
-             "created, trying to flush pending notifications..."));
     sActiveIMEContentObserver->TryToFlushPendingNotifications(false);
+    MOZ_LOG(sISMLog, LogLevel::Debug,
+            ("  OnFocusInEditor(), trying to send pending notifications in "
+             "the active IMEContentObserver (0x%p)...",
+             sActiveIMEContentObserver.get()));
   }
 }
 
@@ -920,14 +932,16 @@ void IMEStateManager::OnReFocus(nsPresContext* aPresContext,
 // static
 void IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
                                      nsIContent* aContent,
-                                     EditorBase& aEditorBase) {
+                                     EditorBase& aEditorBase,
+                                     const UpdateIMEStateOptions& aOptions) {
   MOZ_LOG(
       sISMLog, LogLevel::Info,
-      ("UpdateIMEState(aNewIMEState=%s, aContent=0x%p, aEditorBase=0x%p), "
+      ("UpdateIMEState(aNewIMEState=%s, aContent=0x%p, aEditorBase=0x%p, "
+       "aOptions=0x%0x), "
        "sPresContext=0x%p, sContent=0x%p, sWidget=0x%p (available: %s), "
        "sActiveIMEContentObserver=0x%p, sIsGettingNewIMEState=%s",
        ToString(aNewIMEState).c_str(), aContent, &aEditorBase,
-       sPresContext.get(), sContent.get(), sWidget,
+       aOptions.serialize(), sPresContext.get(), sContent.get(), sWidget,
        GetBoolName(sWidget && !sWidget->Destroyed()),
        sActiveIMEContentObserver.get(), GetBoolName(sIsGettingNewIMEState)));
 
@@ -1024,6 +1038,7 @@ void IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
        !sActiveIMEContentObserver->IsManaging(sPresContext, aContent));
 
   bool updateIMEState =
+      aOptions.contains(UpdateIMEStateOption::ForceUpdate) ||
       (widget->GetInputContext().mIMEState.mEnabled != aNewIMEState.mEnabled);
   if (NS_WARN_IF(widget->Destroyed())) {
     MOZ_LOG(
@@ -1032,7 +1047,8 @@ void IMEStateManager::UpdateIMEState(const IMEState& aNewIMEState,
     return;
   }
 
-  if (updateIMEState) {
+  if (updateIMEState &&
+      !aOptions.contains(UpdateIMEStateOption::DontCommitComposition)) {
     // commit current composition before modifying IME state.
     NotifyIME(REQUEST_TO_COMMIT_COMPOSITION, widget, sFocusedIMEBrowserParent);
     if (NS_WARN_IF(widget->Destroyed())) {
@@ -1294,8 +1310,9 @@ static void GetActionHint(const IMEState& aState, const nsIContent& aContent,
 
   // Get the input content corresponding to the focused node,
   // which may be an anonymous child of the input content.
-  nsIContent* inputContent = aContent.FindFirstNonChromeOnlyAccessContent();
-  if (!inputContent->IsHTMLElement(nsGkAtoms::input)) {
+  HTMLInputElement* inputElement = HTMLInputElement::FromNode(
+      aContent.FindFirstNonChromeOnlyAccessContent());
+  if (!inputElement) {
     return;
   }
 
@@ -1303,37 +1320,34 @@ static void GetActionHint(const IMEState& aState, const nsIContent& aContent,
   // return won't submit the form, use "maybenext".
   bool willSubmit = false;
   bool isLastElement = false;
-  nsCOMPtr<nsIFormControl> control(do_QueryInterface(inputContent));
-  if (control) {
-    HTMLFormElement* formElement = control->GetForm();
-    // is this a form and does it have a default submit element?
-    if (formElement) {
-      if (formElement->IsLastActiveElement(control)) {
-        isLastElement = true;
-      }
-
-      if (formElement->GetDefaultSubmitElement()) {
-        willSubmit = true;
-        // is this an html form...
-      } else {
-        // ... and does it only have a single text input element ?
-        if (!formElement->ImplicitSubmissionIsDisabled() ||
-            // ... or is this the last non-disabled element?
-            isLastElement) {
-          willSubmit = true;
-        }
-      }
+  HTMLFormElement* formElement = inputElement->GetForm();
+  // is this a form and does it have a default submit element?
+  if (formElement) {
+    if (formElement->IsLastActiveElement(inputElement)) {
+      isLastElement = true;
     }
 
-    if (!isLastElement && formElement) {
-      // If next tabbable content in form is text control, hint should be "next"
-      // even there is submit in form.
-      if (IsNextFocusableElementTextControl(inputContent->AsElement())) {
-        // This is focusable text control
-        // XXX What good hint for read only field?
-        aActionHint.AssignLiteral("maybenext");
-        return;
+    if (formElement->GetDefaultSubmitElement()) {
+      willSubmit = true;
+      // is this an html form...
+    } else {
+      // ... and does it only have a single text input element ?
+      if (!formElement->ImplicitSubmissionIsDisabled() ||
+          // ... or is this the last non-disabled element?
+          isLastElement) {
+        willSubmit = true;
       }
+    }
+  }
+
+  if (!isLastElement && formElement) {
+    // If next tabbable content in form is text control, hint should be "next"
+    // even there is submit in form.
+    if (IsNextFocusableElementTextControl(inputElement)) {
+      // This is focusable text control
+      // XXX What good hint for read only field?
+      aActionHint.AssignLiteral("maybenext");
+      return;
     }
   }
 
@@ -1341,7 +1355,7 @@ static void GetActionHint(const IMEState& aState, const nsIContent& aContent,
     return;
   }
 
-  if (control->ControlType() == FormControlType::InputSearch) {
+  if (inputElement->ControlType() == FormControlType::InputSearch) {
     aActionHint.AssignLiteral("search");
     return;
   }
@@ -1491,8 +1505,8 @@ void IMEStateManager::DispatchCompositionEvent(
        GetBoolName(aCompositionEvent->mFlags.mPropagationStopped),
        GetBoolName(aIsSynthesized), aBrowserParent));
 
-  if (!aCompositionEvent->IsTrusted() ||
-      aCompositionEvent->PropagationStopped()) {
+  if (NS_WARN_IF(!aCompositionEvent->IsTrusted()) ||
+      NS_WARN_IF(aCompositionEvent->PropagationStopped())) {
     return;
   }
 

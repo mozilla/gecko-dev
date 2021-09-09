@@ -11,21 +11,26 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
+#include "mozilla/Utf8.h"
 #include "mozilla/Vector.h"
+#include "mozilla/intl/ICUError.h"
 
 namespace mozilla::intl {
 
-enum class ICUError : uint8_t {
-  OutOfMemory,
-  InternalError,
-};
-
-/**
- * Error type when a method call can only result in an internal ICU error.
- */
-struct InternalError {};
+static inline const char* IcuLocale(const char* aLocale) {
+  const char* locale = aLocale;
+  if (!strncmp(locale, "und", 3)) {
+    locale = "";
+  }
+  return locale;
+}
 
 using ICUResult = Result<Ok, ICUError>;
+
+/**
+ * Convert a UErrorCode to ICUResult.
+ */
+ICUError ToICUError(UErrorCode status);
 
 /**
  * Convert a UErrorCode to ICUResult.
@@ -104,8 +109,8 @@ static ICUResult FillBufferWithICUCall(Buffer& buffer,
  * A variant of FillBufferWithICUCall that accepts a mozilla::Vector rather than
  * a Buffer.
  */
-template <typename ICUStringFunction, size_t InlineSize>
-static ICUResult FillVectorWithICUCall(Vector<char16_t, InlineSize>& vector,
+template <typename ICUStringFunction, size_t InlineSize, typename CharType>
+static ICUResult FillVectorWithICUCall(Vector<CharType, InlineSize>& vector,
                                        const ICUStringFunction& strFn) {
   UErrorCode status = U_ZERO_ERROR;
   int32_t length = strFn(vector.begin(), vector.capacity(), &status);

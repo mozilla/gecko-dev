@@ -31,12 +31,17 @@ namespace mozilla {
 enum class EditAction;
 
 class HTMLEditUtils final {
+  using AbstractRange = dom::AbstractRange;
   using Element = dom::Element;
   using Selection = dom::Selection;
+  using Text = dom::Text;
 
  public:
-  static const char16_t kSpace = 0x0020;
-  static const char16_t kNBSP = 0x00A0;
+  static constexpr char16_t kNewLine = '\n';
+  static constexpr char16_t kCarridgeReturn = '\r';
+  static constexpr char16_t kSpace = ' ';
+  static constexpr char16_t kNBSP = 0x00A0;
+  static constexpr char16_t kGreaterThan = '>';
 
   /**
    * IsSimplyEditableNode() returns true when aNode is simply editable.
@@ -80,22 +85,37 @@ class HTMLEditUtils final {
   /*
    * IsRemovalNode() returns true when parent of aContent is editable even
    * if aContent isn't editable.
+   * This is a valid method to check it if you find the content from point
+   * of view of siblings or parents of aContent.
+   * Note that padding `<br>` element for empty editor and manual native
+   * anonymous content should be deletable even after `HTMLEditor` is destroyed
+   * because they are owned/managed by `HTMLEditor`.
    */
   static bool IsRemovableNode(const nsIContent& aContent) {
-    return aContent.GetParentNode() && aContent.GetParentNode()->IsEditable() &&
-           &aContent != aContent.OwnerDoc()->GetBody() &&
-           &aContent != aContent.OwnerDoc()->GetDocumentElement();
+    return EditorUtils::IsPaddingBRElementForEmptyEditor(aContent) ||
+           aContent.IsRootOfNativeAnonymousSubtree() ||
+           (aContent.GetParentNode() &&
+            aContent.GetParentNode()->IsEditable() &&
+            &aContent != aContent.OwnerDoc()->GetBody() &&
+            &aContent != aContent.OwnerDoc()->GetDocumentElement());
   }
 
   /**
    * IsRemovableFromParentNode() returns true when aContent is editable, has a
    * parent node and the parent node is also editable.
+   * This is a valid method to check it if you find the content from point
+   * of view of descendants of aContent.
+   * Note that padding `<br>` element for empty editor and manual native
+   * anonymous content should be deletable even after `HTMLEditor` is destroyed
+   * because they are owned/managed by `HTMLEditor`.
    */
   static bool IsRemovableFromParentNode(const nsIContent& aContent) {
-    return aContent.IsEditable() && aContent.GetParentNode() &&
-           aContent.GetParentNode()->IsEditable() &&
-           &aContent != aContent.OwnerDoc()->GetBody() &&
-           &aContent != aContent.OwnerDoc()->GetDocumentElement();
+    return EditorUtils::IsPaddingBRElementForEmptyEditor(aContent) ||
+           aContent.IsRootOfNativeAnonymousSubtree() ||
+           (aContent.IsEditable() && aContent.GetParentNode() &&
+            aContent.GetParentNode()->IsEditable() &&
+            &aContent != aContent.OwnerDoc()->GetBody() &&
+            &aContent != aContent.OwnerDoc()->GetDocumentElement());
   }
 
   /**
@@ -135,7 +155,7 @@ class HTMLEditUtils final {
    * element and can be removed or split to in order to modifying inline
    * styles.
    */
-  static bool IsRemovableInlineStyleElement(dom::Element& aElement);
+  static bool IsRemovableInlineStyleElement(Element& aElement);
   static bool IsFormatNode(const nsINode* aNode);
   static bool IsNodeThatCanOutdent(nsINode* aNode);
   static bool IsHeader(nsINode& aNode);
@@ -273,36 +293,33 @@ class HTMLEditUtils final {
   /**
    * IsVisibleTextNode() returns true if aText has visible text.  If it has
    * only white-spaces and they are collapsed, returns false.
-   *
-   * If aEditingHost is omitted, this computes parent editable block for you.
-   * But if you call this a lot, please specify proper editing host (or parent
-   * block) for the performance.
    */
-  static bool IsVisibleTextNode(const dom::Text& aText,
-                                const Element* aEditingHost = nullptr);
+  static bool IsVisibleTextNode(const Text& aText);
 
   /**
    * IsInVisibleTextFrames() returns true if all text in aText is in visible
    * text frames.  Callers have to guarantee that there is no pending reflow.
    */
   static bool IsInVisibleTextFrames(nsPresContext* aPresContext,
-                                    const dom::Text& aText);
+                                    const Text& aText);
 
   /**
    * IsVisibleBRElement() and IsInvisibleBRElement() return true if aContent is
    * a visible HTML <br> element, i.e., not a padding <br> element for making
    * last line in a block element visible, or an invisible <br> element.
-   *
-   * If aEditingHost is omitted, this computes parent editable block for you.
-   * But if you call this a lot, please specify proper editing host (or parent
-   * block) for the performance.
    */
-  static bool IsVisibleBRElement(const nsIContent& aContent,
-                                 const Element* aEditingHost = nullptr);
-  static bool IsInvisibleBRElement(const nsIContent& aContent,
-                                   const Element* aEditingHost = nullptr) {
+  static bool IsVisibleBRElement(const nsIContent& aContent) {
+    if (!aContent.IsHTMLElement(nsGkAtoms::br)) {
+      return false;
+    }
+    // If followed by a block boundary without visible content, it's invisible
+    // <br> element.
+    return !HTMLEditUtils::GetElementOfImmediateBlockBoundary(
+        aContent, WalkTreeDirection::Forward);
+  }
+  static bool IsInvisibleBRElement(const nsIContent& aContent) {
     return aContent.IsHTMLElement(nsGkAtoms::br) &&
-           !HTMLEditUtils::IsVisibleBRElement(aContent, aEditingHost);
+           !HTMLEditUtils::IsVisibleBRElement(aContent);
   }
 
   /**
@@ -1276,8 +1293,7 @@ class HTMLEditUtils final {
    * GetElementIfOnlyOneSelected() returns an element if aRange selects only
    * the element node (and its descendants).
    */
-  static Element* GetElementIfOnlyOneSelected(
-      const dom::AbstractRange& aRange) {
+  static Element* GetElementIfOnlyOneSelected(const AbstractRange& aRange) {
     if (!aRange.IsPositioned() || aRange.Collapsed()) {
       return nullptr;
     }
@@ -1305,7 +1321,7 @@ class HTMLEditUtils final {
   }
 
   static Element* GetTableCellElementIfOnlyOneSelected(
-      const dom::AbstractRange& aRange) {
+      const AbstractRange& aRange) {
     Element* element = HTMLEditUtils::GetElementIfOnlyOneSelected(aRange);
     return element && HTMLEditUtils::IsTableCell(element) ? element : nullptr;
   }
@@ -1393,7 +1409,7 @@ class HTMLEditUtils final {
         *aPoint.ContainerAsText(), aPoint.Offset());
   }
   static Maybe<uint32_t> GetPreviousCharOffsetExceptASCIIWhiteSpaces(
-      const dom::Text& aTextNode, uint32_t aOffset) {
+      const Text& aTextNode, uint32_t aOffset) {
     const nsTextFragment& textFragment = aTextNode.TextFragment();
     MOZ_ASSERT(aOffset <= textFragment.GetLength());
     for (uint32_t i = aOffset; i; i--) {
@@ -1415,7 +1431,7 @@ class HTMLEditUtils final {
                                                    aPoint.Offset());
   }
   static Maybe<uint32_t> GetNextCharOffsetExceptASCIIWhiteSpaces(
-      const dom::Text& aTextNode, uint32_t aOffset) {
+      const Text& aTextNode, uint32_t aOffset) {
     const nsTextFragment& textFragment = aTextNode.TextFragment();
     MOZ_ASSERT(aOffset <= textFragment.GetLength());
     for (uint32_t i = aOffset + 1; i < textFragment.GetLength(); i++) {
@@ -1437,7 +1453,7 @@ class HTMLEditUtils final {
                                                   aPoint.Offset());
   }
   static Maybe<uint32_t> GetPreviousCharOffsetExceptWhiteSpaces(
-      const dom::Text& aTextNode, uint32_t aOffset) {
+      const Text& aTextNode, uint32_t aOffset) {
     if (!aOffset) {
       return Nothing();
     }
@@ -1445,7 +1461,7 @@ class HTMLEditUtils final {
     MOZ_ASSERT(aOffset <= textFragment.GetLength());
     for (uint32_t i = aOffset; i; i--) {
       char16_t ch = textFragment.CharAt(i - 1);
-      if (!nsCRT::IsAsciiSpace(ch) && ch != kNBSP) {
+      if (!nsCRT::IsAsciiSpace(ch) && ch != HTMLEditUtils::kNBSP) {
         return Some(i - 1);
       }
     }
@@ -1464,12 +1480,12 @@ class HTMLEditUtils final {
         *aPoint.ContainerAsText(), aPoint.Offset());
   }
   static Maybe<uint32_t> GetInclusiveNextCharOffsetExceptWhiteSpaces(
-      const dom::Text& aTextNode, uint32_t aOffset) {
+      const Text& aTextNode, uint32_t aOffset) {
     const nsTextFragment& textFragment = aTextNode.TextFragment();
     MOZ_ASSERT(aOffset <= textFragment.GetLength());
     for (uint32_t i = aOffset; i < textFragment.GetLength(); i++) {
       char16_t ch = textFragment.CharAt(i);
-      if (!nsCRT::IsAsciiSpace(ch) && ch != kNBSP) {
+      if (!nsCRT::IsAsciiSpace(ch) && ch != HTMLEditUtils::kNBSP) {
         return Some(i);
       }
     }
@@ -1491,7 +1507,7 @@ class HTMLEditUtils final {
                                                       aPoint.Offset());
   }
   static uint32_t GetFirstASCIIWhiteSpaceOffsetCollapsedWith(
-      const dom::Text& aTextNode, uint32_t aOffset) {
+      const Text& aTextNode, uint32_t aOffset) {
     MOZ_ASSERT(aOffset < aTextNode.TextLength());
     MOZ_ASSERT(nsCRT::IsAsciiSpace(aTextNode.TextFragment().CharAt(aOffset)));
     if (!aOffset) {
@@ -1652,7 +1668,7 @@ class HTMLEditUtils final {
     }
     if (aOptions.contains(WalkTreeOption::IgnoreWhiteSpaceOnlyText) &&
         aContent.IsText() &&
-        const_cast<dom::Text*>(aContent.AsText())->TextIsOnlyWhitespace()) {
+        const_cast<Text*>(aContent.AsText())->TextIsOnlyWhitespace()) {
       return true;
     }
     return false;
@@ -1686,6 +1702,17 @@ class HTMLEditUtils final {
       const nsINode& aNode, WalkTreeDirection aWalkTreeDirection,
       const WalkTreeOptions& aOptions,
       const Element* aAncestorLimiter = nullptr);
+
+  /**
+   * GetElementOfImmediateBlockBoundary() returns a block element if its
+   * block boundary and aContent may be first visible thing before/after the
+   * boundary.  And it may return a <br> element only when aContent is a
+   * text node and follows a <br> element because only in this case, the
+   * start white-spaces are invisible.  So the <br> element works same as
+   * a block boundary.
+   */
+  static Element* GetElementOfImmediateBlockBoundary(
+      const nsIContent& aContent, const WalkTreeDirection aDirection);
 };
 
 /**
@@ -1693,9 +1720,11 @@ class HTMLEditUtils final {
  * Then, you can check whether `<dt>` and/or `<dd>` elements are in it.
  */
 class MOZ_STACK_CLASS DefinitionListItemScanner final {
+  using Element = dom::Element;
+
  public:
   DefinitionListItemScanner() = delete;
-  explicit DefinitionListItemScanner(dom::Element& aDLElement) {
+  explicit DefinitionListItemScanner(Element& aDLElement) {
     MOZ_ASSERT(aDLElement.IsHTMLElement(nsGkAtoms::dl));
     for (nsIContent* child = aDLElement.GetFirstChild(); child;
          child = child->GetNextSibling()) {
@@ -1730,10 +1759,13 @@ class MOZ_STACK_CLASS DefinitionListItemScanner final {
  * only one table cell element, the ranges are just ignored.
  */
 class MOZ_STACK_CLASS SelectedTableCellScanner final {
+  using Element = dom::Element;
+  using Selection = dom::Selection;
+
  public:
   SelectedTableCellScanner() = delete;
-  explicit SelectedTableCellScanner(const dom::Selection& aSelection) {
-    dom::Element* firstSelectedCellElement =
+  explicit SelectedTableCellScanner(const Selection& aSelection) {
+    Element* firstSelectedCellElement =
         HTMLEditUtils::GetFirstSelectedTableCellElement(aSelection);
     if (!firstSelectedCellElement) {
       return;  // We're not in table cell selection mode.
@@ -1748,7 +1780,7 @@ class MOZ_STACK_CLASS SelectedTableCellScanner final {
       // Just ignore selection ranges which do not select only one table
       // cell element.  This is possible case if web apps sets multiple
       // selections and first range selects a table cell element.
-      if (dom::Element* selectedCellElement =
+      if (Element* selectedCellElement =
               HTMLEditUtils::GetTableCellElementIfOnlyOneSelected(*range)) {
         mSelectedCellElements.AppendElement(*selectedCellElement);
       }
@@ -1759,7 +1791,7 @@ class MOZ_STACK_CLASS SelectedTableCellScanner final {
     if (aRanges.Ranges().IsEmpty()) {
       return;
     }
-    dom::Element* firstSelectedCellElement =
+    Element* firstSelectedCellElement =
         HTMLEditUtils::GetTableCellElementIfOnlyOneSelected(
             aRanges.FirstRangeRef());
     if (!firstSelectedCellElement) {
@@ -1775,7 +1807,7 @@ class MOZ_STACK_CLASS SelectedTableCellScanner final {
       // Just ignore selection ranges which do not select only one table
       // cell element.  This is possible case if web apps sets multiple
       // selections and first range selects a table cell element.
-      if (dom::Element* selectedCellElement =
+      if (Element* selectedCellElement =
               HTMLEditUtils::GetTableCellElementIfOnlyOneSelected(*range)) {
         mSelectedCellElements.AppendElement(*selectedCellElement);
       }
@@ -1786,7 +1818,7 @@ class MOZ_STACK_CLASS SelectedTableCellScanner final {
     return !mSelectedCellElements.IsEmpty();
   }
 
-  const nsTArray<OwningNonNull<dom::Element>>& ElementsRef() const {
+  const nsTArray<OwningNonNull<Element>>& ElementsRef() const {
     return mSelectedCellElements;
   }
 
@@ -1794,13 +1826,13 @@ class MOZ_STACK_CLASS SelectedTableCellScanner final {
    * GetFirstElement() and GetNextElement() are stateful iterator methods.
    * This is useful to port legacy code which used old `nsITableEditor` API.
    */
-  dom::Element* GetFirstElement() const {
+  Element* GetFirstElement() const {
     MOZ_ASSERT(!mSelectedCellElements.IsEmpty());
     mIndex = 0;
     return !mSelectedCellElements.IsEmpty() ? mSelectedCellElements[0].get()
                                             : nullptr;
   }
-  dom::Element* GetNextElement() const {
+  Element* GetNextElement() const {
     MOZ_ASSERT(mIndex < mSelectedCellElements.Length());
     return ++mIndex < mSelectedCellElements.Length()
                ? mSelectedCellElements[mIndex].get()
@@ -1808,7 +1840,7 @@ class MOZ_STACK_CLASS SelectedTableCellScanner final {
   }
 
  private:
-  AutoTArray<OwningNonNull<dom::Element>, 16> mSelectedCellElements;
+  AutoTArray<OwningNonNull<Element>, 16> mSelectedCellElements;
   mutable size_t mIndex = 0;
 };
 

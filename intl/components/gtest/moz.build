@@ -8,8 +8,12 @@ UNIFIED_SOURCES += [
     "TestCalendar.cpp",
     "TestCollator.cpp",
     "TestDateTimeFormat.cpp",
+    "TestLocaleCanonicalizer.cpp",
     "TestNumberFormat.cpp",
     "TestPluralRules.cpp",
+    "TestRelativeTimeFormat.cpp",
 ]
 
 FINAL_LIBRARY = "xul-gtest"
+
+REQUIRES_UNIFIED_BUILD = True

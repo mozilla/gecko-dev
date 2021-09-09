@@ -60,7 +60,11 @@ class nsContentPermissionUtils {
   static uint32_t ConvertPermissionRequestToArray(
       nsTArray<PermissionRequest>& aSrcArray, nsIMutableArray* aDesArray);
 
-  static uint32_t ConvertArrayToPermissionRequest(
+  // Converts blindly, that is, strings are not matched against any list.
+  //
+  // @param aSrcArray needs to contain elements of type
+  // `nsIContentPermissionType`.
+  static void ConvertArrayToPermissionRequest(
       nsIArray* aSrcArray, nsTArray<PermissionRequest>& aDesArray);
 
   static nsresult CreatePermissionArray(const nsACString& aType,
@@ -175,7 +179,8 @@ class nsContentPermissionRequestProxy : public nsIContentPermissionRequest {
 };
 
 /**
- * RemotePermissionRequest will send a prompt ipdl request to b2g process.
+ * RemotePermissionRequest will send a prompt ipdl request to the chrome process
+ * (https://wiki.mozilla.org/Security/Sandbox/Process_model#Chrome_process_.28Parent.29).
  */
 class RemotePermissionRequest final
     : public mozilla::dom::PContentPermissionRequestChild {

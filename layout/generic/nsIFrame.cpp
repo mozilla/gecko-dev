@@ -410,7 +410,7 @@ bool nsIFrame::IsVisibleConsideringAncestors(uint32_t aFlags) const {
     if (parent) {
       frame = parent;
     } else {
-      parent = nsLayoutUtils::GetCrossDocParentFrame(frame);
+      parent = nsLayoutUtils::GetCrossDocParentFrameInProcess(frame);
       if (!parent) break;
 
       if ((aFlags & nsIFrame::VISIBILITY_CROSS_CHROME_CONTENT_BOUNDARY) == 0 &&
@@ -5696,6 +5696,16 @@ void nsIFrame::DisassociateImage(const StyleImage& aImage) {
   loader->DisassociateRequestFromFrame(req, this);
 }
 
+StyleImageRendering nsIFrame::UsedImageRendering() const {
+  ComputedStyle* style;
+  if (nsCSSRendering::IsCanvasFrame(this)) {
+    nsCSSRendering::FindBackground(this, &style);
+  } else {
+    style = Style();
+  }
+  return style->StyleVisibility()->mImageRendering;
+}
+
 Maybe<nsIFrame::Cursor> nsIFrame::GetCursor(const nsPoint&) {
   StyleCursorKind kind = StyleUI()->mCursor.keyword;
   if (kind == StyleCursorKind::Auto) {
@@ -6909,7 +6919,7 @@ nsPoint nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther,
     } else {
       nsPoint newOffset(0, 0);
       root = f;
-      f = nsLayoutUtils::GetCrossDocParentFrame(f, &newOffset);
+      f = nsLayoutUtils::GetCrossDocParentFrameInProcess(f, &newOffset);
       int32_t newAPD = f ? f->PresContext()->AppUnitsPerDevPixel() : 0;
       if (!f || newAPD != currAPD) {
         // Convert docOffset to the right APD and add it to offset.
@@ -7341,8 +7351,6 @@ void nsIFrame::InvalidateFrameWithRect(const nsRect& aRect,
 
 /*static*/
 uint8_t nsIFrame::sLayerIsPrerenderedDataKey;
-
-bool nsIFrame::TryUpdateTransformOnly(Layer** aLayerResult) { return false; }
 
 bool nsIFrame::IsInvalid(nsRect& aRect) {
   if (!HasAnyStateBits(NS_FRAME_NEEDS_PAINT)) {

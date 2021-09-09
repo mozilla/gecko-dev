@@ -113,7 +113,7 @@ load 1446451.html
 pref(dom.document.exec_command.nested_calls_allowed,true) asserts(1) load 1464251.html # assertion is that mutation event listener caused by execCommand calls another execCommand
 pref(layout.accessiblecaret.enabled,true) load 1470926.html
 pref(dom.document.exec_command.nested_calls_allowed,true) asserts(2) load 1474978.html # assertion is that mutation event listener caused by execCommand calls another execCommand
-asserts(1) load 1517028.html
+load 1517028.html
 load 1525481.html
 load 1533913.html
 load 1534394.html
@@ -128,7 +128,7 @@ load 1596516.html
 load 1605741.html
 load 1613521.html
 load 1618906.html
-asserts(1-2) load 1623166.html # assertions in WSRunScanner::GetEditableBlockParentOrTopmostEditableInlineContent() ("indent" causes one in all platforms, the other is caused by "removeList" command enabled check only on Linux (and perhaps, Android))
+load 1623166.html
 load 1623913.html
 load 1624005.html # throws
 load 1624007.html

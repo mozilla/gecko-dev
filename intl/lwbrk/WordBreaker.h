@@ -18,17 +18,6 @@ typedef struct {
   uint32_t mEnd;
 } WordRange;
 
-enum WordBreakClass : uint8_t {
-  kWbClassSpace = 0,
-  kWbClassAlphaLetter,
-  kWbClassPunct,
-  kWbClassHanLetter,
-  kWbClassKatakanaLetter,
-  kWbClassHiraganaLetter,
-  kWbClassHWKatakanaLetter,
-  kWbClassScriptioContinua
-};
-
 class WordBreaker {
  public:
   NS_INLINE_DECL_REFCOUNTING(WordBreaker)
@@ -39,12 +28,29 @@ class WordBreaker {
                       const char16_t* aText2, uint32_t aTextLen2);
   WordRange FindWord(const char16_t* aText1, uint32_t aTextLen1,
                      uint32_t aOffset);
-  int32_t NextWord(const char16_t* aText, uint32_t aLen, uint32_t aPos);
 
-  static WordBreakClass GetClass(char16_t aChar);
+  // Find the next word break opportunity starting from aPos + 1. It can return
+  // aLen if there's no break opportunity between [aPos + 1, aLen - 1].
+  //
+  // If aPos is already at the end of aText or beyond, i.e. aPos >= aLen, return
+  // NS_WORDBREAKER_NEED_MORE_TEXT.
+  int32_t Next(const char16_t* aText, uint32_t aLen, uint32_t aPos);
 
  private:
   ~WordBreaker() = default;
+
+  enum WordBreakClass : uint8_t {
+    kWbClassSpace = 0,
+    kWbClassAlphaLetter,
+    kWbClassPunct,
+    kWbClassHanLetter,
+    kWbClassKatakanaLetter,
+    kWbClassHiraganaLetter,
+    kWbClassHWKatakanaLetter,
+    kWbClassScriptioContinua
+  };
+
+  static WordBreakClass GetClass(char16_t aChar);
 };
 
 }  // namespace intl

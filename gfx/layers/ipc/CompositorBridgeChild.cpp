@@ -7,9 +7,8 @@
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
 #include "mozilla/layers/CompositorThread.h"
-#include <stddef.h>              // for size_t
-#include "ClientLayerManager.h"  // for ClientLayerManager
-#include "base/task.h"           // for NewRunnableMethod, etc
+#include <stddef.h>     // for size_t
+#include "base/task.h"  // for NewRunnableMethod, etc
 #include "mozilla/StaticPrefs_layers.h"
 #include "mozilla/layers/CompositorManagerChild.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -17,8 +16,7 @@
 #include "mozilla/layers/IAPZCTreeManager.h"
 #include "mozilla/layers/APZCTreeManagerChild.h"
 #include "mozilla/layers/CanvasChild.h"
-#include "mozilla/layers/LayerTransactionChild.h"
-#include "mozilla/layers/PLayerTransactionChild.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/layers/PTextureChild.h"
 #include "mozilla/layers/TextureClient.h"      // for TextureClient
 #include "mozilla/layers/TextureClientPool.h"  // for TextureClientPool
@@ -57,7 +55,6 @@
 
 using mozilla::Unused;
 using mozilla::gfx::GPUProcessManager;
-using mozilla::layers::LayerTransactionChild;
 
 namespace mozilla {
 namespace layers {
@@ -92,8 +89,6 @@ CompositorBridgeChild::CompositorBridgeChild(CompositorManagerChild* aManager)
       mSectionAllocator(nullptr),
       mPaintLock("CompositorBridgeChild.mPaintLock"),
       mTotalAsyncPaints(0),
-      mOutstandingAsyncPaints(0),
-      mOutstandingAsyncEndTransaction(false),
       mIsDelayingForAsyncPaints(false),
       mSlowFlushCount(0),
       mTotalFlushCount(0) {
@@ -173,14 +168,6 @@ void CompositorBridgeChild::Destroy() {
     return;
   }
 
-  AutoTArray<PLayerTransactionChild*, 16> transactions;
-  ManagedPLayerTransactionChild(transactions);
-  for (int i = transactions.Length() - 1; i >= 0; --i) {
-    RefPtr<LayerTransactionChild> layers =
-        static_cast<LayerTransactionChild*>(transactions[i]);
-    layers->Destroy();
-  }
-
   AutoTArray<PWebRenderBridgeChild*, 16> wrBridges;
   ManagedPWebRenderBridgeChild(wrBridges);
   for (int i = wrBridges.Length() - 1; i >= 0; --i) {
@@ -241,16 +228,6 @@ void CompositorBridgeChild::ShutDown() {
   }
 }
 
-bool CompositorBridgeChild::LookupCompositorFrameMetrics(
-    const ScrollableLayerGuid::ViewID aId, FrameMetrics& aFrame) {
-  SharedFrameMetricsData* data = mFrameMetricsTable.Get(aId);
-  if (data) {
-    data->CopyFrameMetrics(&aFrame);
-    return true;
-  }
-  return false;
-}
-
 void CompositorBridgeChild::InitForContent(uint32_t aNamespace) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aNamespace);
@@ -270,7 +247,7 @@ void CompositorBridgeChild::InitForContent(uint32_t aNamespace) {
 }
 
 void CompositorBridgeChild::InitForWidget(uint64_t aProcessToken,
-                                          LayerManager* aLayerManager,
+                                          WebRenderLayerManager* aLayerManager,
                                           uint32_t aNamespace) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aProcessToken);
@@ -292,11 +269,6 @@ CompositorBridgeChild* CompositorBridgeChild::Get() {
   return sCompositorBridge;
 }
 
-// static
-bool CompositorBridgeChild::ChildProcessHasCompositorBridge() {
-  return sCompositorBridge != nullptr;
-}
-
 /* static */
 bool CompositorBridgeChild::CompositorIsInGPUProcess() {
   MOZ_ASSERT(NS_IsMainThread());
@@ -312,22 +284,6 @@ bool CompositorBridgeChild::CompositorIsInGPUProcess() {
   }
 
   return bridge->OtherPid() != dom::ContentChild::GetSingleton()->OtherPid();
-}
-
-PLayerTransactionChild* CompositorBridgeChild::AllocPLayerTransactionChild(
-    const nsTArray<LayersBackend>& aBackendHints, const LayersId& aId) {
-  LayerTransactionChild* c = new LayerTransactionChild(aId);
-  c->AddIPDLReference();
-
-  return c;
-}
-
-bool CompositorBridgeChild::DeallocPLayerTransactionChild(
-    PLayerTransactionChild* actor) {
-  LayersId childId = static_cast<LayerTransactionChild*>(actor)->GetId();
-  ClearSharedFrameMetricsData(childId);
-  static_cast<LayerTransactionChild*>(actor)->ReleaseIPDLReference();
-  return true;
 }
 
 mozilla::ipc::IPCResult CompositorBridgeChild::RecvInvalidateLayers(
@@ -355,7 +311,7 @@ mozilla::ipc::IPCResult CompositorBridgeChild::RecvDidComposite(
                      LayersBackend::LAYERS_CLIENT ||
                  mLayerManager->GetBackendType() == LayersBackend::LAYERS_WR);
       // Hold a reference to keep LayerManager alive. See Bug 1242668.
-      RefPtr<LayerManager> m = mLayerManager;
+      RefPtr<WebRenderLayerManager> m = mLayerManager;
       m->DidComposite(id, aCompositeStart, aCompositeEnd);
     } else if (aId.IsValid()) {
       RefPtr<dom::BrowserChild> child = dom::BrowserChild::GetFrom(aId);
@@ -406,79 +362,6 @@ void CompositorBridgeChild::ActorDestroy(ActorDestroyReason aWhy) {
   }
 }
 
-mozilla::ipc::IPCResult CompositorBridgeChild::RecvSharedCompositorFrameMetrics(
-    const mozilla::ipc::SharedMemoryBasic::Handle& metrics,
-    const CrossProcessMutexHandle& handle, const LayersId& aLayersId,
-    const uint32_t& aAPZCId) {
-  auto data =
-      MakeUnique<SharedFrameMetricsData>(metrics, handle, aLayersId, aAPZCId);
-  const auto& viewID = data->GetViewID();
-  mFrameMetricsTable.InsertOrUpdate(viewID, std::move(data));
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-CompositorBridgeChild::RecvReleaseSharedCompositorFrameMetrics(
-    const ViewID& aId, const uint32_t& aAPZCId) {
-  if (auto entry = mFrameMetricsTable.Lookup(aId)) {
-    // The SharedFrameMetricsData may have been removed previously if
-    // a SharedFrameMetricsData with the same ViewID but later APZCId had
-    // been store and over wrote it.
-    if (entry.Data()->GetAPZCId() == aAPZCId) {
-      entry.Remove();
-    }
-  }
-  return IPC_OK();
-}
-
-CompositorBridgeChild::SharedFrameMetricsData::SharedFrameMetricsData(
-    const ipc::SharedMemoryBasic::Handle& metrics,
-    const CrossProcessMutexHandle& handle, const LayersId& aLayersId,
-    const uint32_t& aAPZCId)
-    : mMutex(nullptr), mLayersId(aLayersId), mAPZCId(aAPZCId) {
-  mBuffer = new ipc::SharedMemoryBasic;
-  mBuffer->SetHandle(metrics, ipc::SharedMemory::RightsReadOnly);
-  mBuffer->Map(sizeof(FrameMetrics));
-  mMutex = new CrossProcessMutex(handle);
-  MOZ_COUNT_CTOR(SharedFrameMetricsData);
-}
-
-CompositorBridgeChild::SharedFrameMetricsData::~SharedFrameMetricsData() {
-  // When the hash table deletes the class, delete
-  // the shared memory and mutex.
-  delete mMutex;
-  mBuffer = nullptr;
-  MOZ_COUNT_DTOR(SharedFrameMetricsData);
-}
-
-void CompositorBridgeChild::SharedFrameMetricsData::CopyFrameMetrics(
-    FrameMetrics* aFrame) {
-  const FrameMetrics* frame =
-      static_cast<const FrameMetrics*>(mBuffer->memory());
-  MOZ_ASSERT(frame);
-  mMutex->Lock();
-  *aFrame = *frame;
-  mMutex->Unlock();
-}
-
-ScrollableLayerGuid::ViewID
-CompositorBridgeChild::SharedFrameMetricsData::GetViewID() {
-  const FrameMetrics* frame =
-      static_cast<const FrameMetrics*>(mBuffer->memory());
-  MOZ_ASSERT(frame);
-  // Not locking to read of mScrollId since it should not change after being
-  // initially set.
-  return frame->GetScrollId();
-}
-
-LayersId CompositorBridgeChild::SharedFrameMetricsData::GetLayersId() const {
-  return mLayersId;
-}
-
-uint32_t CompositorBridgeChild::SharedFrameMetricsData::GetAPZCId() {
-  return mAPZCId;
-}
-
 bool CompositorBridgeChild::SendWillClose() {
   MOZ_RELEASE_ASSERT(mCanSend);
   return PCompositorBridgeChild::SendWillClose();
@@ -505,27 +388,11 @@ bool CompositorBridgeChild::SendResumeAsync() {
   return PCompositorBridgeChild::SendResumeAsync();
 }
 
-bool CompositorBridgeChild::SendNotifyChildCreated(
-    const LayersId& id, CompositorOptions* aOptions) {
-  if (!mCanSend) {
-    return false;
-  }
-  return PCompositorBridgeChild::SendNotifyChildCreated(id, aOptions);
-}
-
 bool CompositorBridgeChild::SendAdoptChild(const LayersId& id) {
   if (!mCanSend) {
     return false;
   }
   return PCompositorBridgeChild::SendAdoptChild(id);
-}
-
-bool CompositorBridgeChild::SendMakeSnapshot(
-    const SurfaceDescriptor& inSnapshot, const gfx::IntRect& dirtyRect) {
-  if (!mCanSend) {
-    return false;
-  }
-  return PCompositorBridgeChild::SendMakeSnapshot(inSnapshot, dirtyRect);
 }
 
 bool CompositorBridgeChild::SendFlushRendering() {
@@ -551,14 +418,6 @@ bool CompositorBridgeChild::SendStopFrameTimeRecording(
   }
   return PCompositorBridgeChild::SendStopFrameTimeRecording(startIndex,
                                                             intervals);
-}
-
-bool CompositorBridgeChild::SendNotifyRegionInvalidated(
-    const nsIntRegion& region) {
-  if (!mCanSend) {
-    return false;
-  }
-  return PCompositorBridgeChild::SendNotifyRegionInvalidated(region);
 }
 
 PTextureChild* CompositorBridgeChild::AllocPTextureChild(
@@ -679,41 +538,6 @@ void CompositorBridgeChild::NotifyNotUsed(uint64_t aTextureId,
 
 void CompositorBridgeChild::CancelWaitForNotifyNotUsed(uint64_t aTextureId) {
   mTexturesWaitingNotifyNotUsed.erase(aTextureId);
-}
-
-TextureClientPool* CompositorBridgeChild::GetTexturePool(
-    KnowsCompositor* aAllocator, SurfaceFormat aFormat, TextureFlags aFlags) {
-  for (size_t i = 0; i < mTexturePools.Length(); i++) {
-    if (mTexturePools[i]->GetBackend() ==
-            aAllocator->GetCompositorBackendType() &&
-        mTexturePools[i]->GetMaxTextureSize() ==
-            aAllocator->GetMaxTextureSize() &&
-        mTexturePools[i]->GetFormat() == aFormat &&
-        mTexturePools[i]->GetFlags() == aFlags) {
-      return mTexturePools[i];
-    }
-  }
-
-  mTexturePools.AppendElement(new TextureClientPool(
-      aAllocator, aFormat, gfx::gfxVars::TileSize(), aFlags,
-      StaticPrefs::layers_tile_pool_shrink_timeout_AtStartup(),
-      StaticPrefs::layers_tile_pool_clear_timeout_AtStartup(),
-      StaticPrefs::layers_tile_initial_pool_size_AtStartup(),
-      StaticPrefs::layers_tile_pool_unused_size_AtStartup(), this));
-
-  return mTexturePools.LastElement();
-}
-
-void CompositorBridgeChild::HandleMemoryPressure() {
-  for (size_t i = 0; i < mTexturePools.Length(); i++) {
-    mTexturePools[i]->Clear();
-  }
-}
-
-void CompositorBridgeChild::ClearTexturePool() {
-  for (size_t i = 0; i < mTexturePools.Length(); i++) {
-    mTexturePools[i]->Clear();
-  }
 }
 
 FixedSizeSmallShmemSectionAllocator*
@@ -855,8 +679,6 @@ bool CompositorBridgeChild::DeallocPAPZCTreeManagerChild(
 
 // -
 
-void CompositorBridgeChild::WillEndTransaction() { ResetShmemCounter(); }
-
 PWebRenderBridgeChild* CompositorBridgeChild::AllocPWebRenderBridgeChild(
     const wr::PipelineId& aPipelineId, const LayoutDeviceIntSize&,
     const WindowKind&) {
@@ -868,7 +690,6 @@ PWebRenderBridgeChild* CompositorBridgeChild::AllocPWebRenderBridgeChild(
 bool CompositorBridgeChild::DeallocPWebRenderBridgeChild(
     PWebRenderBridgeChild* aActor) {
   WebRenderBridgeChild* child = static_cast<WebRenderBridgeChild*>(aActor);
-  ClearSharedFrameMetricsData(wr::AsLayersId(child->GetPipeline()));
   child->ReleaseIPDLReference();
   return true;
 }
@@ -883,15 +704,6 @@ bool CompositorBridgeChild::DeallocPWebGPUChild(webgpu::PWebGPUChild* aActor) {
   webgpu::WebGPUChild* child = static_cast<webgpu::WebGPUChild*>(aActor);
   child->ReleaseIPDLReference();
   return true;
-}
-
-void CompositorBridgeChild::ClearSharedFrameMetricsData(LayersId aLayersId) {
-  for (auto iter = mFrameMetricsTable.Iter(); !iter.Done(); iter.Next()) {
-    auto data = iter.UserData();
-    if (data->GetLayersId() == aLayersId) {
-      iter.Remove();
-    }
-  }
 }
 
 uint64_t CompositorBridgeChild::GetNextResourceId() {
@@ -910,17 +722,6 @@ wr::MaybeExternalImageId CompositorBridgeChild::GetNextExternalImageId() {
 
 wr::PipelineId CompositorBridgeChild::GetNextPipelineId() {
   return wr::AsPipelineId(GetNextResourceId());
-}
-
-bool CompositorBridgeChild::NotifyBeginAsyncEndLayerTransaction(
-    SyncObjectClient* aSyncObject) {
-  MOZ_ASSERT(NS_IsMainThread());
-  MonitorAutoLock lock(mPaintLock);
-
-  MOZ_ASSERT(!mOutstandingAsyncEndTransaction);
-  mOutstandingAsyncEndTransaction = true;
-  mOutstandingAsyncSyncObject = aSyncObject;
-  return mOutstandingAsyncPaints == 0;
 }
 
 }  // namespace layers

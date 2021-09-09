@@ -19,7 +19,6 @@
 #include "mozilla/media/MediaSystemResourceManagerParent.h"  // for MediaSystemResourceManagerParent
 #include "mozilla/layers/BufferTexture.h"
 #include "mozilla/layers/CompositableTransactionParent.h"
-#include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/LayersMessages.h"  // for EditReply
 #include "mozilla/layers/PImageBridgeParent.h"
 #include "mozilla/layers/TextureHostOGL.h"  // for TextureHostOGL
@@ -211,13 +210,6 @@ mozilla::ipc::IPCResult ImageBridgeParent::RecvUpdate(
     }
   }
 
-  if (!IsSameProcess()) {
-    // Ensure that any pending operations involving back and front
-    // buffers have completed, so that neither process stomps on the
-    // other's buffer contents.
-    LayerManagerComposite::PlatformSyncBeforeReplyUpdate();
-  }
-
   return IPC_OK();
 }
 
@@ -280,10 +272,8 @@ mozilla::ipc::IPCResult ImageBridgeParent::RecvWillClose() {
 }
 
 mozilla::ipc::IPCResult ImageBridgeParent::RecvNewCompositable(
-    const CompositableHandle& aHandle, const TextureInfo& aInfo,
-    const LayersBackend& aLayersBackend) {
-  bool useWebRender = aLayersBackend == LayersBackend::LAYERS_WR;
-  RefPtr<CompositableHost> host = AddCompositable(aHandle, aInfo, useWebRender);
+    const CompositableHandle& aHandle, const TextureInfo& aInfo) {
+  RefPtr<CompositableHost> host = AddCompositable(aHandle, aInfo);
   if (!host) {
     return IPC_FAIL_NO_REASON(this);
   }

@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "NumberFormatFields.h"
+#include "NumberFormatFieldsUtil.h"
+#include "ScopedICUObject.h"
+
+#include "unicode/uformattedvalue.h"
+#include "unicode/unum.h"
+#include "unicode/unumberformatter.h"
 
 namespace mozilla {
 namespace intl {
@@ -16,6 +22,7 @@ bool NumberFormatFields::append(NumberPartType type, int32_t begin,
 }
 
 bool NumberFormatFields::toPartsVector(size_t overallLength,
+                                       const NumberPartSourceMap& sourceMap,
                                        NumberPartVector& parts) {
   std::sort(fields_.begin(), fields_.end(),
             [](const NumberFormatField& left, const NumberFormatField& right) {
@@ -87,6 +94,8 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
     // The length of the overall formatted string.
     const uint32_t limit = 0;
 
+    NumberPartSourceMap sourceMap;
+
     Vector<size_t, 4> enclosingFields;
 
     void popEnclosingFieldsEndingAt(uint32_t end) {
@@ -109,15 +118,13 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
       if (index == len) {
         if (enclosingFields.length() > 0) {
           const auto& enclosing = fields[enclosingFields.popCopy()];
-          part->first = enclosing.type;
-          part->second = enclosing.end;
+          *part = {enclosing.type, sourceMap.source(enclosing), enclosing.end};
 
           // If additional enclosing fields end where this part ends,
           // pop them as well.
-          popEnclosingFieldsEndingAt(part->second);
+          popEnclosingFieldsEndingAt(part->endIndex);
         } else {
-          part->first = NumberPartType::Literal;
-          part->second = limit;
+          *part = {NumberPartType::Literal, sourceMap.source(limit), limit};
         }
 
         return true;
@@ -136,13 +143,13 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
           // field or the end of the enclosing field, whichever is
           // earlier.
           const auto& enclosing = fields[enclosingFields.back()];
-          part->first = enclosing.type;
-          part->second = std::min(enclosing.end, current->begin);
-          popEnclosingFieldsEndingAt(part->second);
+          *part = {enclosing.type, sourceMap.source(enclosing),
+                   std::min(enclosing.end, current->begin)};
+          popEnclosingFieldsEndingAt(part->endIndex);
         } else {
           // If there's no enclosing field, the space is a literal.
-          part->first = NumberPartType::Literal;
-          part->second = current->begin;
+          *part = {NumberPartType::Literal, sourceMap.source(current->begin),
+                   current->begin};
         }
 
         return true;
@@ -156,8 +163,7 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
 
         // If the current field is last, the part extends to its end.
         if (++index == len) {
-          part->first = current->type;
-          part->second = current->end;
+          *part = {current->type, sourceMap.source(*current), current->end};
           return true;
         }
 
@@ -177,25 +183,24 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
         // Do so until the next field begins after this one.
       } while (current->begin == next->begin);
 
-      part->first = current->type;
-
       if (current->end <= next->begin) {
         // The next field begins after the current field ends.  Therefore
         // the current part ends at the end of the current field.
-        part->second = current->end;
-        popEnclosingFieldsEndingAt(part->second);
+        *part = {current->type, sourceMap.source(*current), current->end};
+        popEnclosingFieldsEndingAt(part->endIndex);
       } else {
         // The current field encloses the next one.  The current part
         // ends where the next field/part will start.
-        part->second = next->begin;
+        *part = {current->type, sourceMap.source(*current), next->begin};
       }
 
       return true;
     }
 
    public:
-    PartGenerator(const FieldsVector& vec, uint32_t limit)
-        : fields(vec), limit(limit), enclosingFields() {}
+    PartGenerator(const FieldsVector& vec, uint32_t limit,
+                  const NumberPartSourceMap& sourceMap)
+        : fields(vec), limit(limit), sourceMap(sourceMap), enclosingFields() {}
 
     bool nextPart(bool* hasPart, NumberPart* part) {
       // There are no parts left if we've partitioned the entire string.
@@ -210,7 +215,7 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
       }
 
       *hasPart = true;
-      lastEnd = part->second;
+      lastEnd = part->endIndex;
       return true;
     }
   };
@@ -218,7 +223,7 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
   // Finally, generate the result array.
   size_t lastEndIndex = 0;
 
-  PartGenerator gen(fields_, overallLength);
+  PartGenerator gen(fields_, overallLength, sourceMap);
   do {
     bool hasPart;
     NumberPart part;
@@ -230,19 +235,93 @@ bool NumberFormatFields::toPartsVector(size_t overallLength,
       break;
     }
 
-    MOZ_ASSERT(lastEndIndex < part.second);
+    MOZ_ASSERT(lastEndIndex < part.endIndex);
 
     if (!parts.append(part)) {
       return false;
     }
 
-    lastEndIndex = part.second;
+    lastEndIndex = part.endIndex;
   } while (true);
 
   MOZ_ASSERT(lastEndIndex == overallLength,
              "result array must partition the entire string");
 
   return lastEndIndex == overallLength;
+}
+
+Result<std::u16string_view, ICUError> FormatResultToParts(
+    const UFormattedNumber* value, Maybe<double> number, bool isNegative,
+    bool formatForUnit, NumberPartVector& parts) {
+  UErrorCode status = U_ZERO_ERROR;
+
+  const UFormattedValue* formattedValue = unumf_resultAsValue(value, &status);
+  if (U_FAILURE(status)) {
+    return Err(ICUError::InternalError);
+  }
+
+  return FormatResultToParts(formattedValue, number, isNegative, formatForUnit,
+                             parts);
+}
+
+Result<std::u16string_view, ICUError> FormatResultToParts(
+    const UFormattedValue* value, Maybe<double> number, bool isNegative,
+    bool formatForUnit, NumberPartVector& parts) {
+  UErrorCode status = U_ZERO_ERROR;
+
+  int32_t utf16Length;
+  const char16_t* utf16Str = ufmtval_getString(value, &utf16Length, &status);
+  if (U_FAILURE(status)) {
+    return Err(ICUError::InternalError);
+  }
+
+  UConstrainedFieldPosition* fpos = ucfpos_open(&status);
+  if (U_FAILURE(status)) {
+    return Err(ICUError::InternalError);
+  }
+  ScopedICUObject<UConstrainedFieldPosition, ucfpos_close> toCloseFpos(fpos);
+
+  // We're only interested in UFIELD_CATEGORY_NUMBER fields.
+  ucfpos_constrainCategory(fpos, UFIELD_CATEGORY_NUMBER, &status);
+  if (U_FAILURE(status)) {
+    return Err(ICUError::InternalError);
+  }
+
+  // Vacuum up fields in the overall formatted string.
+  NumberFormatFields fields;
+
+  while (true) {
+    bool hasMore = ufmtval_nextPosition(value, fpos, &status);
+    if (U_FAILURE(status)) {
+      return Err(ICUError::InternalError);
+    }
+    if (!hasMore) {
+      break;
+    }
+
+    int32_t fieldName = ucfpos_getField(fpos, &status);
+    if (U_FAILURE(status)) {
+      return Err(ICUError::InternalError);
+    }
+
+    int32_t beginIndex, endIndex;
+    ucfpos_getIndexes(fpos, &beginIndex, &endIndex, &status);
+    if (U_FAILURE(status)) {
+      return Err(ICUError::InternalError);
+    }
+
+    Maybe<NumberPartType> partType = GetPartTypeForNumberField(
+        UNumberFormatFields(fieldName), number, isNegative, formatForUnit);
+    if (!partType || !fields.append(*partType, beginIndex, endIndex)) {
+      return Err(ICUError::InternalError);
+    }
+  }
+
+  if (!fields.toPartsVector(utf16Length, parts)) {
+    return Err(ICUError::InternalError);
+  }
+
+  return std::u16string_view(utf16Str, static_cast<size_t>(utf16Length));
 }
 
 }  // namespace intl

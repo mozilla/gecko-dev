@@ -2492,13 +2492,13 @@ Maybe<ClientInfo> nsDocShell::GetInitialClientInfo() const {
 }
 
 nsresult nsDocShell::SetDocLoaderParent(nsDocLoader* aParent) {
-  bool wasFrame = IsFrame();
+  bool wasFrame = IsSubframe();
 
   nsresult rv = nsDocLoader::SetDocLoaderParent(aParent);
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsISupportsPriority> priorityGroup = do_QueryInterface(mLoadGroup);
-  if (wasFrame != IsFrame() && priorityGroup) {
+  if (wasFrame != IsSubframe() && priorityGroup) {
     priorityGroup->AdjustPriority(wasFrame ? -1 : 1);
   }
 
@@ -2716,7 +2716,7 @@ nsDocShell::SetTreeOwner(nsIDocShellTreeOwner* aTreeOwner) {
   }
 
   // Don't automatically set the progress based on the tree owner for frames
-  if (!IsFrame()) {
+  if (!IsSubframe()) {
     nsCOMPtr<nsIWebProgress> webProgress =
         do_QueryInterface(GetAsSupports(this));
 
@@ -3708,7 +3708,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI* aURI,
   }
 
   Telemetry::AccumulateCategoricalKeyed(
-      IsFrame() ? "frame"_ns : "top"_ns,
+      IsSubframe() ? "frame"_ns : "top"_ns,
       mozilla::dom::LoadErrorToTelemetryLabel(aError));
 
   // Test if the error needs to be formatted
@@ -4932,7 +4932,7 @@ nsresult nsDocShell::SetCurScrollPosEx(int32_t aCurHorizontalPos,
   NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
 
   // Only the root content document can have a distinct visual viewport offset.
-  if (!presContext->IsRootContentDocument()) {
+  if (!presContext->IsRootContentDocumentCrossProcess()) {
     return NS_OK;
   }
 
@@ -6681,6 +6681,8 @@ bool nsDocShell::CanSavePresentation(uint32_t aLoadType,
     return false;  // no entry to save into
   }
 
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent(),
+             "mOSHE cannot be non-null with SHIP");
   nsCOMPtr<nsIContentViewer> viewer = mOSHE->GetContentViewer();
   if (viewer) {
     NS_WARNING("mOSHE already has a content viewer!");
@@ -6838,6 +6840,7 @@ void nsDocShell::ReportBFCacheComboTelemetry(uint16_t aCombo) {
 };
 
 void nsDocShell::ReattachEditorToWindow(nsISHEntry* aSHEntry) {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
   MOZ_ASSERT(!mIsBeingDestroyed);
 
   NS_ASSERTION(!mEditorData,
@@ -6895,6 +6898,8 @@ void nsDocShell::DetachEditorFromWindow() {
 }
 
 nsresult nsDocShell::CaptureState() {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
+
   if (!mOSHE || mOSHE == mLSHE) {
     // No entry to save into, or we're replacing the existing entry.
     return NS_ERROR_FAILURE;
@@ -6909,12 +6914,7 @@ nsresult nsDocShell::CaptureState() {
 
   if (MOZ_UNLIKELY(MOZ_LOG_TEST(gPageCacheLog, LogLevel::Debug))) {
     nsAutoCString spec;
-    nsCOMPtr<nsIURI> uri;
-    if (mozilla::SessionHistoryInParent()) {
-      uri = mActiveEntry->GetURI();
-    } else {
-      uri = mOSHE->GetURI();
-    }
+    nsCOMPtr<nsIURI> uri = mOSHE->GetURI();
     if (uri) {
       uri->GetSpec(spec);
     }
@@ -6950,6 +6950,8 @@ nsresult nsDocShell::CaptureState() {
 
 NS_IMETHODIMP
 nsDocShell::RestorePresentationEvent::Run() {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
+
   if (mDocShell && NS_FAILED(mDocShell->RestoreFromHistory())) {
     NS_WARNING("RestoreFromHistory failed");
   }
@@ -6958,6 +6960,8 @@ nsDocShell::RestorePresentationEvent::Run() {
 
 NS_IMETHODIMP
 nsDocShell::BeginRestore(nsIContentViewer* aContentViewer, bool aTop) {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
+
   nsresult rv;
   if (!aContentViewer) {
     rv = EnsureContentViewer();
@@ -7001,6 +7005,8 @@ nsDocShell::BeginRestore(nsIContentViewer* aContentViewer, bool aTop) {
 }
 
 nsresult nsDocShell::BeginRestoreChildren() {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
+
   for (auto* childDocLoader : mChildList.ForwardRange()) {
     nsCOMPtr<nsIDocShell> child = do_QueryObject(childDocLoader);
     if (child) {
@@ -7013,6 +7019,8 @@ nsresult nsDocShell::BeginRestoreChildren() {
 
 NS_IMETHODIMP
 nsDocShell::FinishRestore() {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
+
   // First we call finishRestore() on our children.  In the simulated load,
   // all of the child frames finish loading before the main document.
 
@@ -7052,6 +7060,7 @@ nsDocShell::GetRestoringDocument(bool* aRestoring) {
 
 nsresult nsDocShell::RestorePresentation(nsISHEntry* aSHEntry,
                                          bool* aRestoring) {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
   MOZ_ASSERT(!mIsBeingDestroyed);
 
   NS_ASSERTION(mLoadType & LOAD_CMD_HISTORY,
@@ -7149,6 +7158,7 @@ bool nsDocShell::SandboxFlagsImplyCookies(const uint32_t& aSandboxFlags) {
 }
 
 nsresult nsDocShell::RestoreFromHistory() {
+  MOZ_ASSERT(!mozilla::SessionHistoryInParent());
   MOZ_ASSERT(mRestorePresentationEvent.IsPending());
   PresentationEventForgetter forgetter(mRestorePresentationEvent);
 
@@ -7222,9 +7232,7 @@ nsresult nsDocShell::RestoreFromHistory() {
   RefPtr<ChildSHistory> rootSH = GetRootSessionHistory();
   if (rootSH) {
     mPreviousEntryIndex = rootSH->Index();
-    if (!mozilla::SessionHistoryInParent()) {
-      rootSH->LegacySHistory()->UpdateIndex();
-    }
+    rootSH->LegacySHistory()->UpdateIndex();
     mLoadedEntryIndex = rootSH->Index();
     MOZ_LOG(gPageCacheLog, LogLevel::Verbose,
             ("Previous index: %d, Loaded index: %d", mPreviousEntryIndex,
@@ -7813,7 +7821,8 @@ nsresult nsDocShell::CreateContentViewer(const nsACString& aContentType,
   }
 
   if (DocGroup::TryToLoadIframesInBackground()) {
-    if ((!mContentViewer || GetDocument()->IsInitialDocument()) && IsFrame()) {
+    if ((!mContentViewer || GetDocument()->IsInitialDocument()) &&
+        IsSubframe()) {
       // At this point, we know we just created a new iframe document based on
       // the response from the server, and we check if it's a cross-domain
       // iframe
@@ -8107,7 +8116,7 @@ nsresult nsDocShell::CheckLoadingPermissions() {
   // check on load.
   nsresult rv = NS_OK;
 
-  if (!IsFrame()) {
+  if (!IsSubframe()) {
     // We're not a frame. Permit all loads.
     return rv;
   }
@@ -8224,7 +8233,7 @@ bool nsDocShell::JustStartedNetworkLoad() {
 // This return value will be used when we call NS_CheckContentLoadPolicy, and
 // later when we call DoURILoad.
 nsContentPolicyType nsDocShell::DetermineContentType() {
-  if (!IsFrame()) {
+  if (!IsSubframe()) {
     return nsIContentPolicy::TYPE_DOCUMENT;
   }
 
@@ -9945,7 +9954,7 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
   nsresult rv;
   nsContentPolicyType contentPolicyType = DetermineContentType();
 
-  if (IsFrame()) {
+  if (IsSubframe()) {
     MOZ_ASSERT(contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_IFRAME ||
                    contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_FRAME,
                "DoURILoad thinks this is a frame and InternalLoad does not");
@@ -10794,7 +10803,7 @@ bool nsDocShell::OnNewURI(nsIURI* aURI, nsIChannel* aChannel,
    * see bug 90098
    */
   if (aChannel && IsForceReloadType(mLoadType)) {
-    MOZ_ASSERT(!updateSHistory || IsFrame(),
+    MOZ_ASSERT(!updateSHistory || IsSubframe(),
                "We shouldn't be updating session history for forced"
                " reloads unless we're in a newly created iframe!");
 
@@ -13043,7 +13052,7 @@ nsDocShell::GetAsyncPanZoomEnabled(bool* aOut) {
 bool nsDocShell::HasUnloadedParent() {
   for (WindowContext* wc = GetBrowsingContext()->GetParentWindowContext(); wc;
        wc = wc->GetParentWindowContext()) {
-    if (wc->IsCached() || wc->IsDiscarded() ||
+    if (!wc->IsCurrent() || wc->IsDiscarded() ||
         wc->GetBrowsingContext()->IsDiscarded()) {
       // If a parent is OOP and the parent WindowContext is no
       // longer current, we can assume the parent was unloaded.
@@ -13076,7 +13085,7 @@ void nsDocShell::UpdateGlobalHistoryTitle(nsIURI* aURI) {
   // Moreover, some iframe documents (such as the ones created via
   // document.open()) inherit the document uri of the caller, which would cause
   // us to override a previously set page title with one from the subframe.
-  if (IsFrame()) {
+  if (IsSubframe()) {
     return;
   }
 

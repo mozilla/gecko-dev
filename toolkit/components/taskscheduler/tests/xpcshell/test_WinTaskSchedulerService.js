@@ -8,15 +8,12 @@
 const svc = Cc["@mozilla.org/win-task-scheduler-service;1"].getService(
   Ci.nsIWinTaskSchedulerService
 );
-
-const uuidGenerator = Cc["@mozilla.org/uuid-generator;1"].getService(
-  Ci.nsIUUIDGenerator
-);
+const { Services } = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 function randomName() {
   return (
     "moz-taskschd-test-" +
-    uuidGenerator
+    Services.uuid
       .generateUUID()
       .toString()
       .slice(1, -1)

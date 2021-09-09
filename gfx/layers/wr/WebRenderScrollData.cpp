@@ -63,8 +63,8 @@ void WebRenderLayerScrollData::Initialize(
       mScrollIds.AppendElement(index.ref());
     } else {
       Maybe<ScrollMetadata> metadata =
-          asr->mScrollableFrame->ComputeScrollMetadata(
-              aOwner.GetManager(), aItem->ReferenceFrame(), nullptr);
+          asr->mScrollableFrame->ComputeScrollMetadata(aOwner.GetManager(),
+                                                       aItem->ReferenceFrame());
       aOwner.GetBuilder()->AddScrollFrameToNotify(asr->mScrollableFrame);
       if (metadata) {
         MOZ_ASSERT(metadata->GetMetrics().GetScrollId() == scrollId);
@@ -151,7 +151,8 @@ void WebRenderLayerScrollData::Dump(std::ostream& aOut,
     aOut << ", metadata" << i << "=" << aOwner.GetScrollMetadata(mScrollIds[i]);
   }
   if (!mAncestorTransform.IsIdentity()) {
-    aOut << ", ancestorTransform=" << mAncestorTransform;
+    aOut << ", ancestorTransform=" << mAncestorTransform
+         << " (asr=" << mAncestorTransformId << ")";
   }
   if (!mTransform.IsIdentity()) {
     aOut << ", transform=" << mTransform;

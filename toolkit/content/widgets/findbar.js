@@ -66,7 +66,7 @@
         <description anonid="find-status" control="findbar-textbox" class="findbar-label findbar-find-status" />
       </hbox>
       <toolbarbutton anonid="find-closebutton" class="findbar-closebutton tabbable close-icon"
-          data-l10n-id="findbar-find-button-close" oncommand="close();" />
+        data-l10n-id="findbar-find-button-close" oncommand="close();"/>
       `;
     }
 

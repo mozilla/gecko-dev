@@ -24,10 +24,6 @@ namespace layers {
 
 class ReadbackProcessor;
 
-namespace layerscope {
-class LayersPacket;
-}  // namespace layerscope
-
 /**
  * A ReadbackSink receives a stream of updates to a rectangle of pixels.
  * These update callbacks are always called on the main thread, either during
@@ -170,9 +166,6 @@ class ReadbackLayer : public Layer {
 
   virtual void PrintInfo(std::stringstream& aStream,
                          const char* aPrefix) override;
-
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket,
-                          const void* aParent) override;
 
   uint64_t mSequenceCounter;
   UniquePtr<ReadbackSink> mSink;

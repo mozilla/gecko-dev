@@ -9,6 +9,7 @@
 #include "AccAttributes.h"
 #include "AccGroupInfo.h"
 #include "AccIterator.h"
+#include "CacheConstants.h"
 #include "DocAccessible-inl.h"
 #include "nsAccUtils.h"
 #include "nsAccessibilityService.h"
@@ -42,7 +43,6 @@
 #include "mozilla/dom/HTMLFormElement.h"
 #include "mozilla/dom/HTMLAnchorElement.h"
 #include "nsIContent.h"
-#include "nsIForm.h"
 #include "nsIFormControl.h"
 
 #include "nsDeckFrame.h"
@@ -169,7 +169,7 @@ ENameValueFlag LocalAccessible::Name(nsString& aName) const {
   return nameFlag;
 }
 
-void LocalAccessible::Description(nsString& aDescription) {
+void LocalAccessible::Description(nsString& aDescription) const {
   // There are 4 conditions that make an accessible have no accDescription:
   // 1. it's a text node; or
   // 2. It has no ARIA describedby or description property
@@ -956,22 +956,18 @@ nsresult LocalAccessible::HandleAccEvent(AccEvent* aEvent) {
           ipcDoc->SendTextSelectionChangeEvent(id, textRangeData);
           break;
         }
+#endif
+        case nsIAccessibleEvent::EVENT_DESCRIPTION_CHANGE:
         case nsIAccessibleEvent::EVENT_NAME_CHANGE: {
-          if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
-            nsAutoString name;
-            int32_t nameFlag = Name(name);
-            RefPtr<AccAttributes> fields = new AccAttributes();
-            fields->SetAttribute(nsGkAtoms::explicit_name, nameFlag);
-            fields->SetAttribute(nsGkAtoms::name, name);
-            nsTArray<CacheData> data;
-            data.AppendElement(CacheData(
-                IsDoc() ? 0 : reinterpret_cast<uint64_t>(UniqueID()), fields));
-            ipcDoc->SendCache(1, data, true);
-          }
+          SendCacheUpdate(CacheDomain::NameAndDescription);
           ipcDoc->SendEvent(id, aEvent->GetEventType());
           break;
         }
-#endif
+        case nsIAccessibleEvent::EVENT_VALUE_CHANGE: {
+          SendCacheUpdate(CacheDomain::Value);
+          ipcDoc->SendEvent(id, aEvent->GetEventType());
+          break;
+        }
         default:
           ipcDoc->SendEvent(id, aEvent->GetEventType());
       }
@@ -1236,19 +1232,32 @@ void LocalAccessible::DOMAttributeChanged(int32_t aNameSpaceID,
 
   dom::Element* elm = Elm();
 
+  if (HasNumericValue() &&
+      (aAttribute == nsGkAtoms::aria_valuemax ||
+       aAttribute == nsGkAtoms::aria_valuemin || aAttribute == nsGkAtoms::min ||
+       aAttribute == nsGkAtoms::max || aAttribute == nsGkAtoms::step)) {
+    SendCacheUpdate(CacheDomain::Value);
+    return;
+  }
+
   // Fire text value change event whenever aria-valuetext is changed.
   if (aAttribute == nsGkAtoms::aria_valuetext) {
     mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_TEXT_VALUE_CHANGE, this);
     return;
   }
 
-  // Fire numeric value change event when aria-valuenow is changed and
-  // aria-valuetext is empty
-  if (aAttribute == nsGkAtoms::aria_valuenow &&
-      (!elm->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_valuetext) ||
-       elm->AttrValueIs(kNameSpaceID_None, nsGkAtoms::aria_valuetext,
-                        nsGkAtoms::_empty, eCaseMatters))) {
-    mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, this);
+  if (aAttribute == nsGkAtoms::aria_valuenow) {
+    if (!elm->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_valuetext) ||
+        elm->AttrValueIs(kNameSpaceID_None, nsGkAtoms::aria_valuetext,
+                         nsGkAtoms::_empty, eCaseMatters)) {
+      // Fire numeric value change event when aria-valuenow is changed and
+      // aria-valuetext is empty
+      mDoc->FireDelayedEvent(nsIAccessibleEvent::EVENT_VALUE_CHANGE, this);
+    } else {
+      // We need to update the cache here since we won't get an event if
+      // aria-valuenow is shadowed by aria-valuetext.
+      SendCacheUpdate(CacheDomain::Value);
+    }
     return;
   }
 
@@ -2052,9 +2061,7 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
         nsCOMPtr<nsIFormControl> control(do_QueryInterface(mContent));
         if (control) {
           if (dom::HTMLFormElement* form = control->GetForm()) {
-            nsCOMPtr<nsIContent> formContent =
-                do_QueryInterface(form->GetDefaultSubmitElement());
-            return Relation(mDoc, formContent);
+            return Relation(mDoc, form->GetDefaultSubmitElement());
           }
         }
       } else {
@@ -2345,7 +2352,7 @@ ENameValueFlag LocalAccessible::NativeName(nsString& aName) const {
 }
 
 // LocalAccessible protected
-void LocalAccessible::NativeDescription(nsString& aDescription) {
+void LocalAccessible::NativeDescription(nsString& aDescription) const {
   bool isXUL = mContent->IsXULElement();
   if (isXUL) {
     // Try XUL <description control="[id]">description text</description>
@@ -2989,12 +2996,60 @@ AccGroupInfo* LocalAccessible::GetGroupInfo() const {
   return mBits.groupInfo;
 }
 
-already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache() {
+void LocalAccessible::SendCacheUpdate(uint64_t aCacheDomain) {
+  if (!StaticPrefs::accessibility_cache_enabled_AtStartup()) {
+    return;
+  }
+
+  if (!IPCAccessibilityActive() || !Document()) {
+    return;
+  }
+
+  DocAccessibleChild* ipcDoc = mDoc->IPCDoc();
+  MOZ_ASSERT(ipcDoc);
+
+  RefPtr<AccAttributes> fields =
+      BundleFieldsForCache(aCacheDomain, CacheUpdateType::Update);
+  nsTArray<CacheData> data;
+  data.AppendElement(
+      CacheData(IsDoc() ? 0 : reinterpret_cast<uint64_t>(UniqueID()), fields));
+  ipcDoc->SendCache(CacheUpdateType::Update, data, true);
+}
+
+already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
+    uint64_t aCacheDomain, CacheUpdateType aUpdateType) {
   RefPtr<AccAttributes> fields = new AccAttributes();
-  nsAutoString name;
-  int32_t nameFlag = Name(name);
-  fields->SetAttribute(nsGkAtoms::explicit_name, nameFlag);
-  fields->SetAttribute(nsGkAtoms::name, name);
+
+  if (aCacheDomain & CacheDomain::NameAndDescription) {
+    nsAutoString name;
+    int32_t nameFlag = Name(name);
+    if (nameFlag != eNameOK) {
+      fields->SetAttribute(nsGkAtoms::explicit_name, nameFlag);
+    } else if (aUpdateType == CacheUpdateType::Update) {
+      fields->SetAttribute(nsGkAtoms::explicit_name, DeleteEntry());
+    }
+
+    if (!name.IsEmpty()) {
+      fields->SetAttribute(nsGkAtoms::name, name);
+    } else if (aUpdateType == CacheUpdateType::Update) {
+      fields->SetAttribute(nsGkAtoms::name, DeleteEntry());
+    }
+
+    nsAutoString description;
+    Description(description);
+    if (!description.IsEmpty()) {
+      fields->SetAttribute(nsGkAtoms::description, description);
+    } else if (aUpdateType == CacheUpdateType::Update) {
+      fields->SetAttribute(nsGkAtoms::description, DeleteEntry());
+    }
+  }
+
+  if ((aCacheDomain & CacheDomain::Value) && HasNumericValue()) {
+    fields->SetAttribute(nsGkAtoms::value, CurValue());
+    fields->SetAttribute(nsGkAtoms::max, MaxValue());
+    fields->SetAttribute(nsGkAtoms::min, MinValue());
+    fields->SetAttribute(nsGkAtoms::step, Step());
+  }
 
   return fields.forget();
 }

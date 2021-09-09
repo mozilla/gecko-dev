@@ -1170,7 +1170,6 @@ GCRuntime::GCRuntime(JSRuntime* rt)
       sweepGroups(nullptr),
       currentSweepGroup(nullptr),
       sweepZone(nullptr),
-      hasMarkedGrayRoots(false),
       abortSweepAfterCurrentGroup(false),
       sweepMarkResult(IncrementalProgress::NotFinished),
       startedCompacting(false),
@@ -2592,11 +2591,9 @@ void GCRuntime::sweepZoneAfterCompacting(MovingTracer* trc, Zone* zone) {
     r->traceWeakRegExps(trc);
     r->traceWeakSavedStacks(trc);
     r->traceWeakObjects(trc);
-    r->traceWeakSelfHostingScriptSource(trc);
     r->sweepDebugEnvironments();
     r->traceWeakEdgesInJitRealm(trc);
     r->traceWeakObjectRealm(trc);
-    r->traceWeakTemplateObjects(trc);
   }
 }
 
@@ -4966,7 +4963,7 @@ static bool AddEdgesForMarkQueue(GCMarker& marker) {
   // group comes up, or will be skipped if their sweep group is already past.
   JS::Zone* prevZone = nullptr;
   for (size_t i = 0; i < marker.markQueue.length(); i++) {
-    Value val = marker.markQueue[i].get().unbarrieredGet();
+    Value val = marker.markQueue[i].get();
     if (!val.isObject()) {
       continue;
     }
@@ -5087,8 +5084,6 @@ void GCRuntime::getNextSweepGroup() {
     abortSweepAfterCurrentGroup = false;
     currentSweepGroup = nullptr;
   }
-
-  hasMarkedGrayRoots = false;
 }
 
 /*
@@ -5114,7 +5109,7 @@ void GCRuntime::getNextSweepGroup() {
  * push the referring object onto the list.
  *
  * The list is traversed and then unlinked in
- * GCRuntime::markIncomingCrossCompartmentPointers.
+ * GCRuntime::markIncomingGrayCrossCompartmentPointers.
  */
 
 static bool IsGrayListObject(JSObject* obj) {
@@ -5202,42 +5197,28 @@ void js::gc::DelayCrossCompartmentGrayMarking(JSObject* src) {
 #endif
 }
 
-void GCRuntime::markIncomingCrossCompartmentPointers(MarkColor color) {
-  gcstats::AutoPhase ap(stats(),
-                        color == MarkColor::Black
-                            ? gcstats::PhaseKind::SWEEP_MARK_INCOMING_BLACK
-                            : gcstats::PhaseKind::SWEEP_MARK_INCOMING_GRAY);
-
-  bool unlinkList = color == MarkColor::Gray;
+void GCRuntime::markIncomingGrayCrossCompartmentPointers() {
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK_INCOMING_GRAY);
 
   for (SweepGroupCompartmentsIter c(rt); !c.done(); c.next()) {
-    MOZ_ASSERT(c->zone()->isGCMarking());
-    MOZ_ASSERT_IF(color == MarkColor::Gray,
-                  c->zone()->isGCMarkingBlackAndGray());
+    MOZ_ASSERT(c->zone()->isGCMarkingBlackAndGray());
     MOZ_ASSERT_IF(c->gcIncomingGrayPointers,
                   IsGrayListObject(c->gcIncomingGrayPointers));
 
     for (JSObject* src = c->gcIncomingGrayPointers; src;
-         src = NextIncomingCrossCompartmentPointer(src, unlinkList)) {
+         src = NextIncomingCrossCompartmentPointer(src, true)) {
       JSObject* dst = CrossCompartmentPointerReferent(src);
       MOZ_ASSERT(dst->compartment() == c);
+      MOZ_ASSERT_IF(src->asTenured().isMarkedBlack(),
+                    dst->asTenured().isMarkedBlack());
 
-      if (color == MarkColor::Gray) {
-        if (src->asTenured().isMarkedGray()) {
-          TraceManuallyBarrieredEdge(&marker, &dst,
-                                     "cross-compartment gray pointer");
-        }
-      } else {
-        if (src->asTenured().isMarkedBlack()) {
-          TraceManuallyBarrieredEdge(&marker, &dst,
-                                     "cross-compartment black pointer");
-        }
+      if (src->asTenured().isMarkedGray()) {
+        TraceManuallyBarrieredEdge(&marker, &dst,
+                                   "cross-compartment gray pointer");
       }
     }
 
-    if (unlinkList) {
-      c->gcIncomingGrayPointers = nullptr;
-    }
+    c->gcIncomingGrayPointers = nullptr;
   }
 }
 
@@ -5375,30 +5356,18 @@ static inline void MaybeCheckWeakMapMarking(GCRuntime* gc) {
 #endif
 }
 
-IncrementalProgress GCRuntime::markGrayReferencesInCurrentGroup(
+IncrementalProgress GCRuntime::markGrayRootsInCurrentGroup(
     JSFreeOp* fop, SliceBudget& budget) {
   MOZ_ASSERT(!markOnBackgroundThreadDuringSweeping);
   MOZ_ASSERT(marker.isDrained());
-
   MOZ_ASSERT(marker.markColor() == MarkColor::Black);
-
-  if (hasMarkedGrayRoots) {
-    return Finished;
-  }
-
   MOZ_ASSERT(cellsToAssertNotGray.ref().empty());
 
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK);
 
-  // Mark any incoming gray pointers from previously swept compartments that
-  // have subsequently been marked black. This can occur when gray cells
-  // become black by the action of UnmarkGray.
-  markIncomingCrossCompartmentPointers(MarkColor::Black);
-  drainMarkStack();
-
-  // Change state of current group to MarkGray to restrict marking to this
-  // group.  Note that there may be pointers to the atoms zone, and
-  // these will be marked through, as they are not marked with
+  // Change state of current group to MarkBlackAndGray to restrict gray marking
+  // to this group. Note that there may be pointers to the atoms zone, and these
+  // will be marked through, as they are not marked with
   // TraceCrossCompartmentEdge.
   for (SweepGroupZonesIter zone(this); !zone.done(); zone.next()) {
     zone->changeGCState(Zone::MarkBlackOnly, Zone::MarkBlackAndGray);
@@ -5408,21 +5377,20 @@ IncrementalProgress GCRuntime::markGrayReferencesInCurrentGroup(
   marker.setMainStackColor(MarkColor::Gray);
 
   // Mark incoming gray pointers from previously swept compartments.
-  markIncomingCrossCompartmentPointers(MarkColor::Gray);
+  markIncomingGrayCrossCompartmentPointers();
 
   markGrayRoots<SweepGroupZonesIter>(gcstats::PhaseKind::SWEEP_MARK_GRAY);
 
-  hasMarkedGrayRoots = true;
+  return Finished;
+}
 
-#ifdef JS_GC_ZEAL
-  if (shouldYieldForZeal(ZealMode::YieldWhileGrayMarking)) {
-    return NotFinished;
-  }
-#endif
+IncrementalProgress GCRuntime::markGray(JSFreeOp* fop, SliceBudget& budget) {
+  gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP_MARK);
 
   if (markUntilBudgetExhausted(budget) == NotFinished) {
     return NotFinished;
   }
+
   marker.setMainStackColor(MarkColor::Black);
   return Finished;
 }
@@ -5450,6 +5418,7 @@ IncrementalProgress GCRuntime::endMarkingSweepGroup(JSFreeOp* fop,
   }
 
   MOZ_ASSERT(marker.isDrained());
+  marker.setMainStackColor(MarkColor::Black);
 
   // We must not yield after this point before we start sweeping the group.
   safeToYield = false;
@@ -5516,9 +5485,7 @@ void GCRuntime::sweepMisc() {
   for (SweepGroupRealmsIter r(this); !r.done(); r.next()) {
     AutoSetThreadIsSweeping threadIsSweeping(r->zone());
     r->traceWeakObjects(&trc);
-    r->traceWeakTemplateObjects(&trc);
     r->traceWeakSavedStacks(&trc);
-    r->traceWeakSelfHostingScriptSource(&trc);
     r->traceWeakObjectRealm(&trc);
     r->traceWeakRegExps(&trc);
   }
@@ -5978,8 +5945,6 @@ void GCRuntime::beginSweepPhase(JS::GCReason reason, AutoGCSession& session) {
 #endif
 
   gcstats::AutoPhase ap(stats(), gcstats::PhaseKind::SWEEP);
-
-  hasMarkedGrayRoots = false;
 
   AssertNoWrappersInGrayList(rt);
   dropStringWrappers();
@@ -6548,8 +6513,9 @@ bool GCRuntime::initSweepActions() {
   sweepActions.ref() = RepeatForSweepGroup(
       rt,
       Sequence(
-          Call(&GCRuntime::markGrayReferencesInCurrentGroup),
-          Call(&GCRuntime::endMarkingSweepGroup),
+          Call(&GCRuntime::markGrayRootsInCurrentGroup),
+          MaybeYield(ZealMode::YieldWhileGrayMarking),
+          Call(&GCRuntime::markGray), Call(&GCRuntime::endMarkingSweepGroup),
           Call(&GCRuntime::beginSweepingSweepGroup),
           MaybeYield(ZealMode::IncrementalMultipleSlices),
           MaybeYield(ZealMode::YieldBeforeSweepingAtoms),

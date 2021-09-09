@@ -94,7 +94,7 @@ static void RemoveFragComments(nsCString& aStr);
 
 nsresult HTMLEditor::InsertDroppedDataTransferAsAction(
     AutoEditActionDataSetter& aEditActionData, DataTransfer& aDataTransfer,
-    const EditorDOMPoint& aDroppedAt, Document* aSrcDocument) {
+    const EditorDOMPoint& aDroppedAt, nsIPrincipal* aSourcePrincipal) {
   MOZ_ASSERT(aEditActionData.GetEditAction() == EditAction::eDrop);
   MOZ_ASSERT(GetEditAction() == EditAction::eDrop);
   MOZ_ASSERT(aDroppedAt.IsSet());
@@ -119,7 +119,7 @@ nsresult HTMLEditor::InsertDroppedDataTransferAsAction(
   uint32_t numItems = aDataTransfer.MozItemCount();
   for (uint32_t i = 0; i < numItems; ++i) {
     DebugOnly<nsresult> rvIgnored = InsertFromDataTransfer(
-        &aDataTransfer, i, aSrcDocument, aDroppedAt, false);
+        &aDataTransfer, i, aSourcePrincipal, aDroppedAt, false);
     if (NS_WARN_IF(Destroyed())) {
       return NS_OK;
     }
@@ -235,7 +235,7 @@ nsresult HTMLEditor::InsertHTMLAsAction(const nsAString& aInString,
     return EditorBase::ToGenericNSResult(rv);
   }
 
-  rv = DoInsertHTMLWithContext(aInString, u""_ns, u""_ns, u""_ns, nullptr,
+  rv = DoInsertHTMLWithContext(aInString, u""_ns, u""_ns, u""_ns,
                                EditorDOMPoint(), true, true, false);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::DoInsertHTMLWithContext() failed");
@@ -447,7 +447,7 @@ HTMLEditor::HTMLWithContextInserter::GetNewCaretPointAfterInsertingHTML(
     WSScanResult backwardScanFromPointToCaretResult =
         wsRunScannerAtStartReason.ScanPreviousVisibleNodeOrBlockBoundaryFrom(
             pointToPutCaret);
-    if (backwardScanFromPointToCaretResult.InNormalWhiteSpacesOrText()) {
+    if (backwardScanFromPointToCaretResult.InVisibleOrCollapsibleCharacters()) {
       pointToPutCaret = backwardScanFromPointToCaretResult.Point();
     } else if (backwardScanFromPointToCaretResult.ReachedSpecialContent()) {
       // XXX In my understanding, this is odd.  The end reason may not be
@@ -468,7 +468,7 @@ HTMLEditor::HTMLWithContextInserter::GetNewCaretPointAfterInsertingHTML(
 
 nsresult HTMLEditor::DoInsertHTMLWithContext(
     const nsAString& aInputString, const nsAString& aContextStr,
-    const nsAString& aInfoStr, const nsAString& aFlavor, Document* aSourceDoc,
+    const nsAString& aInfoStr, const nsAString& aFlavor,
     const EditorDOMPoint& aPointToInsert, bool aDoDeleteSelection,
     bool aTrustedInput, bool aClearStyle) {
   HTMLWithContextInserter htmlWithContextInserter(*this);
@@ -905,12 +905,17 @@ HTMLEditor::HTMLWithContextInserter::InsertContents(
         }
         // If the child of current node is not list item nor list element,
         // we should remove it from the DOM tree.
-        else {
+        else if (HTMLEditUtils::IsRemovableNode(*firstChild)) {
           AutoEditorDOMPointChildInvalidator lockOffset(pointToInsert);
           IgnoredErrorResult ignoredError;
           content->RemoveChild(*firstChild, ignoredError);
           NS_WARNING_ASSERTION(!ignoredError.Failed(),
                                "nsINode::RemoveChild() failed, but ignored");
+        } else {
+          NS_WARNING(
+              "Failed to delete the first child of a list element because the "
+              "list element non-editable");
+          break;
         }
       }
     }
@@ -1418,14 +1423,12 @@ NS_IMPL_CYCLE_COLLECTION_CLASS(HTMLEditor::BlobReader)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(HTMLEditor::BlobReader)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBlob)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mHTMLEditor)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mSourceDoc)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPointToInsert)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(HTMLEditor::BlobReader)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBlob)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mHTMLEditor)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSourceDoc)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPointToInsert)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
@@ -1433,7 +1436,7 @@ NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(HTMLEditor::BlobReader, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(HTMLEditor::BlobReader, Release)
 
 HTMLEditor::BlobReader::BlobReader(BlobImpl* aBlob, HTMLEditor* aHTMLEditor,
-                                   bool aIsSafe, Document* aSourceDoc,
+                                   bool aIsSafe,
                                    const EditorDOMPoint& aPointToInsert,
                                    bool aDoDeleteSelection)
     : mBlob(aBlob),
@@ -1441,7 +1444,6 @@ HTMLEditor::BlobReader::BlobReader(BlobImpl* aBlob, HTMLEditor* aHTMLEditor,
       // "beforeinput" event should've been dispatched before we read blob,
       // but anyway, we need to clone dataTransfer for "input" event.
       mDataTransfer(mHTMLEditor->GetInputEventDataTransfer()),
-      mSourceDoc(aSourceDoc),
       mPointToInsert(aPointToInsert),
       mEditAction(aHTMLEditor->GetEditAction()),
       mIsSafe(aIsSafe),
@@ -1494,13 +1496,12 @@ nsresult HTMLEditor::BlobReader::OnResult(const nsACString& aResult) {
 
   AutoPlaceholderBatch treatAsOneTransaction(*mHTMLEditor,
                                              ScrollSelectionIntoView::Yes);
-  RefPtr<Document> sourceDocument(mSourceDoc);
   EditorDOMPoint pointToInsert(mPointToInsert);
   rv = MOZ_KnownLive(mHTMLEditor)
            ->DoInsertHTMLWithContext(stuffToPaste, u""_ns, u""_ns,
                                      NS_LITERAL_STRING_FROM_CSTRING(kFileMime),
-                                     sourceDocument, pointToInsert,
-                                     mDoDeleteSelection, mIsSafe, false);
+                                     pointToInsert, mDoDeleteSelection, mIsSafe,
+                                     false);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::DoInsertHTMLWithContext() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -1617,14 +1618,14 @@ nsresult HTMLEditor::SlurpBlob(Blob* aBlob, nsPIDOMWindowOuter* aWindow,
 }
 
 nsresult HTMLEditor::InsertObject(const nsACString& aType, nsISupports* aObject,
-                                  bool aIsSafe, Document* aSourceDoc,
+                                  bool aIsSafe,
                                   const EditorDOMPoint& aPointToInsert,
                                   bool aDoDeleteSelection) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   if (nsCOMPtr<BlobImpl> blob = do_QueryInterface(aObject)) {
-    RefPtr<BlobReader> br = new BlobReader(blob, this, aIsSafe, aSourceDoc,
-                                           aPointToInsert, aDoDeleteSelection);
+    RefPtr<BlobReader> br =
+        new BlobReader(blob, this, aIsSafe, aPointToInsert, aDoDeleteSelection);
     // XXX This is not guaranteed.
     MOZ_ASSERT(aPointToInsert.IsSet());
 
@@ -1714,7 +1715,7 @@ nsresult HTMLEditor::InsertObject(const nsACString& aType, nsISupports* aObject,
                                                ScrollSelectionIntoView::Yes);
     rv = DoInsertHTMLWithContext(
         stuffToPaste, u""_ns, u""_ns, NS_LITERAL_STRING_FROM_CSTRING(kFileMime),
-        aSourceDoc, aPointToInsert, aDoDeleteSelection, aIsSafe, false);
+        aPointToInsert, aDoDeleteSelection, aIsSafe, false);
     NS_WARNING_ASSERTION(
         NS_SUCCEEDED(rv),
         "HTMLEditor::DoInsertHTMLWithContext() failed, but ignored");
@@ -1746,7 +1747,6 @@ static bool GetCString(nsISupports* aData, nsACString& aText) {
 }
 
 nsresult HTMLEditor::InsertFromTransferable(nsITransferable* aTransferable,
-                                            Document* aSourceDoc,
                                             const nsAString& aContextStr,
                                             const nsAString& aInfoStr,
                                             bool aHavePrivateHTMLFlavor,
@@ -1764,14 +1764,14 @@ nsresult HTMLEditor::InsertFromTransferable(nsITransferable* aTransferable,
     AutoTransactionsConserveSelection dontChangeMySelection(*this);
     nsAutoString flavor;
     CopyASCIItoUTF16(bestFlavor, flavor);
-    bool isSafe = IsSafeToInsertData(aSourceDoc);
+    bool isSafe = IsSafeToInsertData(nullptr);
 
     if (bestFlavor.EqualsLiteral(kFileMime) ||
         bestFlavor.EqualsLiteral(kJPEGImageMime) ||
         bestFlavor.EqualsLiteral(kJPGImageMime) ||
         bestFlavor.EqualsLiteral(kPNGImageMime) ||
         bestFlavor.EqualsLiteral(kGIFImageMime)) {
-      nsresult rv = InsertObject(bestFlavor, genericDataObj, isSafe, aSourceDoc,
+      nsresult rv = InsertObject(bestFlavor, genericDataObj, isSafe,
                                  EditorDOMPoint(), aDoDeleteSelection);
       if (NS_FAILED(rv)) {
         NS_WARNING("HTMLEditor::InsertObject() failed");
@@ -1792,7 +1792,7 @@ nsresult HTMLEditor::InsertFromTransferable(nsITransferable* aTransferable,
           // from the CF_HTML. The rest comes from the clipboard.
           if (aHavePrivateHTMLFlavor) {
             rv = DoInsertHTMLWithContext(cffragment, aContextStr, aInfoStr,
-                                         flavor, aSourceDoc, EditorDOMPoint(),
+                                         flavor, EditorDOMPoint(),
                                          aDoDeleteSelection, isSafe);
             if (NS_FAILED(rv)) {
               NS_WARNING("HTMLEditor::DoInsertHTMLWithContext() failed");
@@ -1800,7 +1800,7 @@ nsresult HTMLEditor::InsertFromTransferable(nsITransferable* aTransferable,
             }
           } else {
             rv = DoInsertHTMLWithContext(cffragment, cfcontext, cfselection,
-                                         flavor, aSourceDoc, EditorDOMPoint(),
+                                         flavor, EditorDOMPoint(),
                                          aDoDeleteSelection, isSafe);
             if (NS_FAILED(rv)) {
               NS_WARNING("HTMLEditor::DoInsertHTMLWithContext() failed");
@@ -1834,8 +1834,8 @@ nsresult HTMLEditor::InsertFromTransferable(nsITransferable* aTransferable,
             *this, ScrollSelectionIntoView::Yes);
         if (bestFlavor.EqualsLiteral(kHTMLMime)) {
           nsresult rv = DoInsertHTMLWithContext(
-              stuffToPaste, aContextStr, aInfoStr, flavor, aSourceDoc,
-              EditorDOMPoint(), aDoDeleteSelection, isSafe);
+              stuffToPaste, aContextStr, aInfoStr, flavor, EditorDOMPoint(),
+              aDoDeleteSelection, isSafe);
           if (NS_FAILED(rv)) {
             NS_WARNING("HTMLEditor::DoInsertHTMLWithContext() failed");
             return rv;
@@ -1879,7 +1879,7 @@ static void GetStringFromDataTransfer(const DataTransfer* aDataTransfer,
 
 nsresult HTMLEditor::InsertFromDataTransfer(const DataTransfer* aDataTransfer,
                                             uint32_t aIndex,
-                                            Document* aSourceDoc,
+                                            nsIPrincipal* aSourcePrincipal,
                                             const EditorDOMPoint& aDroppedAt,
                                             bool aDoDeleteSelection) {
   MOZ_ASSERT(GetEditAction() == EditAction::eDrop ||
@@ -1902,7 +1902,7 @@ nsresult HTMLEditor::InsertFromDataTransfer(const DataTransfer* aDataTransfer,
       types->Contains(NS_LITERAL_STRING_FROM_CSTRING(kHTMLContext));
 
   bool isPlaintextEditor = IsInPlaintextMode();
-  bool isSafe = IsSafeToInsertData(aSourceDoc);
+  bool isSafe = IsSafeToInsertData(aSourcePrincipal);
 
   uint32_t length = types->Length();
   for (uint32_t i = 0; i < length; i++) {
@@ -1926,9 +1926,8 @@ nsresult HTMLEditor::InsertFromDataTransfer(const DataTransfer* aDataTransfer,
           NS_WARNING_ASSERTION(
               NS_SUCCEEDED(rvIgnored),
               "nsIVariant::GetAsISupports() failed, but ignored");
-          nsresult rv =
-              InsertObject(NS_ConvertUTF16toUTF8(type), object, isSafe,
-                           aSourceDoc, aDroppedAt, aDoDeleteSelection);
+          nsresult rv = InsertObject(NS_ConvertUTF16toUTF8(type), object,
+                                     isSafe, aDroppedAt, aDoDeleteSelection);
           NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                                "HTMLEditor::InsertObject() failed");
           return rv;
@@ -1955,17 +1954,17 @@ nsresult HTMLEditor::InsertFromDataTransfer(const DataTransfer* aDataTransfer,
             GetStringFromDataTransfer(aDataTransfer,
                                       NS_LITERAL_STRING_FROM_CSTRING(kHTMLInfo),
                                       aIndex, infoString);
-            nsresult rv = DoInsertHTMLWithContext(
-                cffragment, contextString, infoString, type, aSourceDoc,
-                aDroppedAt, aDoDeleteSelection, isSafe);
+            nsresult rv = DoInsertHTMLWithContext(cffragment, contextString,
+                                                  infoString, type, aDroppedAt,
+                                                  aDoDeleteSelection, isSafe);
             NS_WARNING_ASSERTION(
                 NS_SUCCEEDED(rv),
                 "HTMLEditor::DoInsertHTMLWithContext() failed");
             return rv;
           }
-          nsresult rv = DoInsertHTMLWithContext(
-              cffragment, cfcontext, cfselection, type, aSourceDoc, aDroppedAt,
-              aDoDeleteSelection, isSafe);
+          nsresult rv =
+              DoInsertHTMLWithContext(cffragment, cfcontext, cfselection, type,
+                                      aDroppedAt, aDoDeleteSelection, isSafe);
           NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                                "HTMLEditor::DoInsertHTMLWithContext() failed");
           return rv;
@@ -1980,9 +1979,9 @@ nsresult HTMLEditor::InsertFromDataTransfer(const DataTransfer* aDataTransfer,
                                   NS_LITERAL_STRING_FROM_CSTRING(kHTMLInfo),
                                   aIndex, infoString);
         if (type.EqualsLiteral(kHTMLMime)) {
-          nsresult rv = DoInsertHTMLWithContext(text, contextString, infoString,
-                                                type, aSourceDoc, aDroppedAt,
-                                                aDoDeleteSelection, isSafe);
+          nsresult rv =
+              DoInsertHTMLWithContext(text, contextString, infoString, type,
+                                      aDroppedAt, aDoDeleteSelection, isSafe);
           NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                                "HTMLEditor::DoInsertHTMLWithContext() failed");
           return rv;
@@ -2155,7 +2154,7 @@ nsresult HTMLEditor::PasteInternal(int32_t aClipboardType) {
     }
   }
 
-  rv = InsertFromTransferable(transferable, nullptr, contextStr, infoStr,
+  rv = InsertFromTransferable(transferable, contextStr, infoStr,
                               hasPrivateHTMLFlavor, true);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::InsertFromTransferable() failed");
@@ -2200,8 +2199,8 @@ nsresult HTMLEditor::PasteTransferableAsAction(nsITransferable* aTransferable,
                          "HTMLEditor::InsertFromDataTransfer() failed");
   } else {
     nsAutoString contextStr, infoStr;
-    rv = InsertFromTransferable(aTransferable, nullptr, contextStr, infoStr,
-                                false, true);
+    rv =
+        InsertFromTransferable(aTransferable, contextStr, infoStr, false, true);
     NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                          "HTMLEditor::InsertFromTransferable() failed");
   }
@@ -2277,8 +2276,7 @@ nsresult HTMLEditor::PasteNoFormattingAsAction(int32_t aSelectionType,
     return rv;
   }
 
-  rv = InsertFromTransferable(transferable, nullptr, u""_ns, u""_ns, false,
-                              true);
+  rv = InsertFromTransferable(transferable, u""_ns, u""_ns, false, true);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::InsertFromTransferable() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -2586,8 +2584,9 @@ nsresult HTMLEditor::InsertWithQuotationsAsSubAction(
 
   // It's best to put a blank line after the quoted text so that mails
   // written without thinking won't be so ugly.
-  if (!aQuotedText.IsEmpty() && (aQuotedText.Last() != char16_t('\n'))) {
-    quotedStuff.Append(char16_t('\n'));
+  if (!aQuotedText.IsEmpty() &&
+      (aQuotedText.Last() != HTMLEditUtils::kNewLine)) {
+    quotedStuff.Append(HTMLEditUtils::kNewLine);
   }
 
   IgnoredErrorResult ignoredError;
@@ -2681,7 +2680,7 @@ nsresult HTMLEditor::InsertTextWithQuotationsInternal(
   // there aren't any there:
 #ifdef DEBUG
   nsAString::const_iterator dbgStart(hunkStart);
-  if (FindCharInReadable('\r', dbgStart, strEnd)) {
+  if (FindCharInReadable(HTMLEditUtils::kCarridgeReturn, dbgStart, strEnd)) {
     NS_ASSERTION(
         false,
         "Return characters in DOM! InsertTextWithQuotations may be wrong");
@@ -2694,13 +2693,13 @@ nsresult HTMLEditor::InsertTextWithQuotationsInternal(
   // We will break from inside when we run out of newlines.
   for (;;) {
     // Search for the end of this line (dom newlines, see above):
-    bool found = FindCharInReadable('\n', lineStart, strEnd);
+    bool found = FindCharInReadable(HTMLEditUtils::kNewLine, lineStart, strEnd);
     bool quoted = false;
     if (found) {
       // if there's another newline, lineStart now points there.
       // Loop over any consecutive newline chars:
       nsAString::const_iterator firstNewline(lineStart);
-      while (*lineStart == '\n') {
+      while (*lineStart == HTMLEditUtils::kNewLine) {
         ++lineStart;
       }
       quoted = (*lineStart == cite);
@@ -3428,8 +3427,7 @@ nsresult HTMLEditor::HTMLWithContextInserter::FragmentFromPasteCreator::
   if (NS_FAILED(rv)) {
     NS_WARNING(
         "HTMLEditor::HTMLWithContextInserter::FragmentFromPasteCreator::"
-        "RemoveNonPreWhiteSpaceOnlyTextNodesForIgnoringInvisibleWhiteSpaces()"
-        " "
+        "RemoveNonPreWhiteSpaceOnlyTextNodesForIgnoringInvisibleWhiteSpaces() "
         "failed");
     return rv;
   }
@@ -3449,8 +3447,8 @@ nsresult HTMLEditor::HTMLWithContextInserter::FragmentFromPasteCreator::
   if (NS_FAILED(rv)) {
     NS_WARNING(
         "HTMLEditor::HTMLWithContextInserter::FragmentFromPasteCreator::"
-        "RemoveNonPreWhiteSpaceOnlyTextNodesForIgnoringInvisibleWhiteSpaces()"
-        " failed");
+        "RemoveNonPreWhiteSpaceOnlyTextNodesForIgnoringInvisibleWhiteSpaces() "
+        "failed");
     return rv;
   }
 

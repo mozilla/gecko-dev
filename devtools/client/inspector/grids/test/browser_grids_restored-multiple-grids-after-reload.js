@@ -30,15 +30,7 @@ const TEST_URI = `
   </div>
 `;
 
-ignoreGetGridsPromiseRejections();
-
 add_task(async function() {
-  // Disable bfcache for Fission for now.
-  // If Fission is disabled, the pref is no-op.
-  await SpecialPowers.pushPrefEnv({
-    set: [["fission.bfcacheInParent", false]],
-  });
-
   await pushPref("devtools.gridinspector.maxHighlighters", 3);
   await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
   const { gridInspector, inspector } = await openLayoutView();
@@ -144,7 +136,7 @@ add_task(async function() {
       !state.grids[3].highlighted &&
       state.grids[3].disabled
   );
-  await refreshTab();
+  await reloadBrowser();
   await onStateRestored;
   await onGridListRestored;
 

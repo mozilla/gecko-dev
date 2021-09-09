@@ -37,13 +37,16 @@
 #ifndef ProfilerThreadRegistrationData_h
 #define ProfilerThreadRegistrationData_h
 
+#include "js/ProfilingFrameIterator.h"
 #include "js/ProfilingStack.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/ProfilerThreadPlatformData.h"
 #include "mozilla/ProfilerThreadRegistrationInfo.h"
 #include "nsCOMPtr.h"
 #include "nsIThread.h"
 
+class ProfiledThreadData;
 class PSAutoLock;
 struct JSContext;
 
@@ -58,9 +61,32 @@ class ThreadRegistrationData {
   // No public accessors here. See derived classes for accessors, and
   // Get.../With... functions for who can uses these accessors.
 
+  size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const {
+    // Not including data that is not fully owned here.
+    return 0;
+  }
+
+  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
+    return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
+  }
+
+  static constexpr size_t MAX_JS_FRAMES = 1024;
+  using JsFrame = JS::ProfilingFrameIterator::Frame;
+  using JsFrameBuffer = JsFrame[MAX_JS_FRAMES];
+
   // `protected` to allow derived classes to read all data members.
  protected:
   ThreadRegistrationData(const char* aName, const void* aStackTop);
+
+#ifdef DEBUG
+  // Destructor only used to check invariants.
+  ~ThreadRegistrationData() {
+    MOZ_ASSERT(mIsBeingProfiled == !!mProfiledThreadData);
+    MOZ_ASSERT(!mProfiledThreadData,
+               "mProfiledThreadData pointer should have been reset before "
+               "~ThreadRegistrationData");
+  }
+#endif  // DEBUG
 
   // Permanent thread information.
   // Set at construction, read from anywhere, moved-from at destruction.
@@ -83,6 +109,10 @@ class ThreadRegistrationData {
   // JS sampling.
   // Written from thread, read from thread and suspended thread.
   JSContext* mJSContext = nullptr;
+
+  // If mJSContext is not null AND the thread is being profiled, this points at
+  // the start of a JsFrameBuffer to be used for on-thread synchronous sampling.
+  JsFrame* mJsFrameBuffer = nullptr;
 
   // The profiler needs to start and stop JS sampling of JS threads at various
   // times. However, the JS engine can only do the required actions on the
@@ -154,6 +184,7 @@ class ThreadRegistrationData {
 
   // Is this thread being profiled? (e.g., should markers be recorded?)
   // Written from profiler, read from thread.
+  // Invariant: `mIsBeingProfiled == !!mProfiledThreadData` (set together.)
   Atomic<bool, MemoryOrdering::Relaxed> mIsBeingProfiled{false};
 
   // mSleep tracks whether the thread is sleeping, and if so, whether it has
@@ -194,6 +225,12 @@ class ThreadRegistrationData {
   static const int SLEEPING_OBSERVED = 2;
   // Read&written from thread and suspended thread.
   Atomic<int> mSleep{AWAKE};
+
+  // If the profiler is active and this thread is selected for profiling, this
+  // points at the relevant ProfiledThreadData.
+  // Fully controlled by the profiler.
+  // Invariant: `mIsBeingProfiled == !!mProfiledThreadData` (set together.)
+  ProfiledThreadData* mProfiledThreadData = nullptr;
 };
 
 // Accessing const data from any thread.
@@ -290,9 +327,21 @@ class ThreadRegistrationUnlockedRWForLockedProfiler
   // (Because there is no other lock.)
 
   // This is like IsBeingProfiled, but guaranteed to be stable while the lock is
-  // held (unless modified under the same lock, of course).
+  // held (unless modified under the same lock, of course), and is a bit faster
+  // by not doing an atomic read.
   [[nodiscard]] bool IsBeingProfiled(const PSAutoLock&) const {
-    return mIsBeingProfiled;
+    // Invariant: `mIsBeingProfiled == !!mProfiledThreadData` (set together),
+    // but mProfiledThreadData is not atomic and therefore faster to read.
+    return mProfiledThreadData;
+  }
+
+  [[nodiscard]] const ProfiledThreadData* GetProfiledThreadData(
+      const PSAutoLock&) const {
+    return mProfiledThreadData;
+  }
+
+  [[nodiscard]] ProfiledThreadData* GetProfiledThreadData(const PSAutoLock&) {
+    return mProfiledThreadData;
   }
 
  protected:
@@ -326,7 +375,13 @@ class ThreadRegistrationUnlockedReaderAndAtomicRWOnThread
 class ThreadRegistrationLockedRWFromAnyThread
     : public ThreadRegistrationUnlockedReaderAndAtomicRWOnThread {
  public:
-  void SetIsBeingProfiled(bool aIsBeingProfiled, const PSAutoLock&);
+  void SetIsBeingProfiledWithProfiledThreadData(
+      ProfiledThreadData* aProfiledThreadData, const PSAutoLock&);
+  void ClearIsBeingProfiledAndProfiledThreadData(const PSAutoLock&);
+
+  // Not null when JSContext is not null AND this thread is being profiled.
+  // Points at the start of JsFrameBuffer.
+  [[nodiscard]] JsFrame* GetJsFrameBuffer() const { return mJsFrameBuffer; }
 
   [[nodiscard]] const nsCOMPtr<nsIEventTarget> GetEventTarget() const {
     return mThread;

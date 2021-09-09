@@ -201,6 +201,7 @@ static const char* const sExtensionNames[] = {
     "GL_OES_depth24",
     "GL_OES_depth32",
     "GL_OES_depth_texture",
+    "GL_OES_draw_buffers_indexed",
     "GL_OES_element_index_uint",
     "GL_OES_fbo_render_mipmap",
     "GL_OES_framebuffer_object",
@@ -1261,6 +1262,26 @@ void GLContext::LoadMoreSymbols(const SymbolLoader& loader) {
         fnLoadFeatureByCore(coreSymbols, extSymbols, GLFeature::draw_buffers);
     }
 
+    if (IsSupported(GLFeature::draw_buffers_indexed)) {
+        const SymLoadStruct coreSymbols[] = {
+            { (PRFuncPtr*) &mSymbols.fBlendEquationSeparatei, {{ "glBlendEquationSeparatei" }} },
+            { (PRFuncPtr*) &mSymbols.fBlendFuncSeparatei, {{ "glBlendFuncSeparatei" }} },
+            { (PRFuncPtr*) &mSymbols.fColorMaski, {{ "glColorMaski" }} },
+            { (PRFuncPtr*) &mSymbols.fDisablei, {{ "glDisablei" }} },
+            { (PRFuncPtr*) &mSymbols.fEnablei, {{ "glEnablei" }} },
+            END_SYMBOLS
+        };
+        const SymLoadStruct extSymbols[] = {
+            { (PRFuncPtr*) &mSymbols.fBlendEquationSeparatei, {{ "glBlendEquationSeparateiOES" }} },
+            { (PRFuncPtr*) &mSymbols.fBlendFuncSeparatei, {{ "glBlendFuncSeparateiOES" }} },
+            { (PRFuncPtr*) &mSymbols.fColorMaski, {{ "glColorMaskiOES" }} },
+            { (PRFuncPtr*) &mSymbols.fDisablei, {{ "glDisableiOES" }} },
+            { (PRFuncPtr*) &mSymbols.fEnablei, {{ "glEnableiOES" }} },
+            END_SYMBOLS
+        };
+        fnLoadFeatureByCore(coreSymbols, extSymbols, GLFeature::draw_buffers);
+    }
+
     if (IsSupported(GLFeature::get_integer_indexed)) {
         const SymLoadStruct coreSymbols[] = {
             { (PRFuncPtr*) &mSymbols.fGetIntegeri_v, {{ "glGetIntegeri_v" }} },
@@ -2158,39 +2179,72 @@ void GLContext::fCopyTexImage2D(GLenum target, GLint level,
   AfterGLReadCall();
 }
 
-void GLContext::fGetIntegerv(GLenum pname, GLint* params) const {
+void GLContext::fGetIntegerv(const GLenum pname, GLint* const params) const {
+  const auto AssertBinding = [&](const char* const name, const GLenum binding,
+                                 const GLuint expected) {
+    if (MOZ_LIKELY(!mDebugFlags)) return;
+    GLuint actual = 0;
+    raw_fGetIntegerv(binding, (GLint*)&actual);
+    if (actual != expected) {
+      gfxCriticalError() << "Misprediction: " << name << " expected "
+                         << expected << ", was " << actual;
+    }
+  };
+
   switch (pname) {
     case LOCAL_GL_MAX_TEXTURE_SIZE:
       MOZ_ASSERT(mMaxTextureSize > 0);
       *params = mMaxTextureSize;
-      break;
+      return;
 
     case LOCAL_GL_MAX_CUBE_MAP_TEXTURE_SIZE:
       MOZ_ASSERT(mMaxCubeMapTextureSize > 0);
       *params = mMaxCubeMapTextureSize;
-      break;
+      return;
 
     case LOCAL_GL_MAX_RENDERBUFFER_SIZE:
       MOZ_ASSERT(mMaxRenderbufferSize > 0);
       *params = mMaxRenderbufferSize;
-      break;
+      return;
 
     case LOCAL_GL_VIEWPORT:
       for (size_t i = 0; i < 4; i++) {
         params[i] = mViewportRect[i];
       }
-      break;
+      return;
 
     case LOCAL_GL_SCISSOR_BOX:
       for (size_t i = 0; i < 4; i++) {
         params[i] = mScissorRect[i];
       }
+      return;
+
+    case LOCAL_GL_DRAW_FRAMEBUFFER_BINDING:
+      if (mElideDuplicateBindFramebuffers) {
+        static_assert(LOCAL_GL_DRAW_FRAMEBUFFER_BINDING ==
+                      LOCAL_GL_FRAMEBUFFER_BINDING);
+        AssertBinding("GL_DRAW_FRAMEBUFFER_BINDING",
+                      LOCAL_GL_DRAW_FRAMEBUFFER_BINDING, mCachedDrawFb);
+        *params = static_cast<GLint>(mCachedDrawFb);
+        return;
+      }
+      break;
+
+    case LOCAL_GL_READ_FRAMEBUFFER_BINDING:
+      if (mElideDuplicateBindFramebuffers) {
+        if (IsSupported(GLFeature::framebuffer_blit)) {
+          AssertBinding("GL_READ_FRAMEBUFFER_BINDING",
+                        LOCAL_GL_READ_FRAMEBUFFER_BINDING, mCachedReadFb);
+        }
+        *params = static_cast<GLint>(mCachedReadFb);
+        return;
+      }
       break;
 
     default:
-      raw_fGetIntegerv(pname, params);
       break;
   }
+  raw_fGetIntegerv(pname, params);
 }
 
 void GLContext::fReadPixels(GLint x, GLint y, GLsizei width, GLsizei height,

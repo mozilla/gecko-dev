@@ -20,6 +20,7 @@
 #define wasm_builtins_h
 
 #include "jit/IonTypes.h"
+#include "wasm/WasmIntrinsicGenerated.h"
 
 namespace js {
 namespace jit {
@@ -120,12 +121,11 @@ enum class SymbolicAddress {
 #endif
   ArrayNew,
   InlineTypedObjectClass,
-#if defined(JS_CODEGEN_MIPS32)
-  js_jit_gAtomic64Lock,
-#endif
-  IntrI8VecMul,
+#define DECL_INTRINSIC_SA(op, export, sa_name, abitype, entry, idx) sa_name,
+  FOR_EACH_INTRINSIC(DECL_INTRINSIC_SA)
+#undef DECL_INTRINSIC_SA
 #ifdef WASM_CODEGEN_DEBUG
-  PrintI32,
+      PrintI32,
   PrintPtr,
   PrintF32,
   PrintF64,

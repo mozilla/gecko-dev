@@ -140,9 +140,6 @@ PhaseKindGraphRoots = [
                 [
                     getPhaseKind("MARK_DELAYED"),
                     addPhaseKind(
-                        "SWEEP_MARK_INCOMING_BLACK", "Mark Incoming Black Pointers", 12
-                    ),
-                    addPhaseKind(
                         "SWEEP_MARK_WEAK",
                         "Mark Weak",
                         13,
@@ -255,9 +252,6 @@ PhaseKindGraphRoots = [
         [
             getPhaseKind("MARK_ROOTS"),
         ],
-    ),
-    addPhaseKind(
-        "BARRIER", "Barriers", 55, [addPhaseKind("UNMARK_GRAY", "Unmark gray", 56)]
     ),
 ]
 

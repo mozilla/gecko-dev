@@ -134,7 +134,8 @@ pub fn upload_to_texture_cache(
             let use_batch_upload = renderer.device.use_batched_texture_uploads() &&
                 texture.flags().contains(TextureFlags::IS_SHARED_TEXTURE_CACHE) &&
                 rect.width() <= BATCH_UPLOAD_TEXTURE_SIZE.width &&
-                rect.height() <= BATCH_UPLOAD_TEXTURE_SIZE.height;
+                rect.height() <= BATCH_UPLOAD_TEXTURE_SIZE.height &&
+                rect.area() <= BATCH_UPLOAD_TEXTURE_SIZE.area() / 2;
 
             if use_batch_upload {
                 copy_into_staging_buffer(
@@ -523,7 +524,8 @@ fn copy_from_staging_to_cache_using_draw_calls(
                     &mut renderer.device,
                     &projection,
                     None,
-                    &mut renderer.renderer_errors
+                    &mut renderer.renderer_errors,
+                    &mut renderer.profile,
                 );
 
             prev_dst = Some(copy.dest_texture_id);

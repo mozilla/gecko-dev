@@ -197,13 +197,16 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
     }
   }
 
-  _appendMessageLabel(messageAttr, appendTo = null) {
+  _createNoSyncedTabsElement(messageAttr, appendTo = null) {
     if (!appendTo) {
       appendTo = this.tabsList;
     }
-    let message = this.tabsList.getAttribute(messageAttr);
+
     let messageLabel = document.createXULElement("label");
-    messageLabel.textContent = message;
+    document.l10n.setAttributes(
+      messageLabel,
+      this.tabsList.getAttribute(messageAttr)
+    );
     appendTo.appendChild(messageLabel);
     return messageLabel;
   }
@@ -229,18 +232,20 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
     container.appendChild(clientItem);
 
     if (!client.tabs.length) {
-      let label = this._appendMessageLabel("notabsforclientlabel", container);
+      let label = this._createNoSyncedTabsElement(
+        "notabsforclientlabel",
+        container
+      );
       label.setAttribute("class", "PanelUI-remotetabs-notabsforclient-label");
     } else {
       // If this page will display all tabs, show no additional buttons.
-      // If the next page will display all the remaining tabs, show a "Show All" button
-      // Otherwise, show a "Shore More" button
+      // Otherwise, show a "Show More" button
       let hasNextPage = client.tabs.length > maxTabs;
       let nextPageIsLastPage =
         hasNextPage &&
         maxTabs + SyncedTabsPanelList.sRemoteTabsPerPage >= client.tabs.length;
       if (nextPageIsLastPage) {
-        // When the user clicks "Show All", try to have at least sRemoteTabsNextPageMinTabs more tabs
+        // When the user clicks "Show More", try to have at least sRemoteTabsNextPageMinTabs more tabs
         // to display in order to avoid user frustration
         maxTabs = Math.min(
           client.tabs.length - SyncedTabsPanelList.sRemoteTabsNextPageMinTabs,
@@ -294,8 +299,6 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
   }
 
   _createShowMoreSyncedTabsElement(clientId) {
-    let labelAttr = "showMoreLabel";
-    let tooltipAttr = "showMoreTooltipText";
     let showCount = Infinity;
 
     let showMoreItem = document.createXULElement("toolbarbutton");
@@ -305,12 +308,8 @@ this.SyncedTabsPanelList = class SyncedTabsPanelList {
       "subviewbutton-nav",
       "subviewbutton-nav-down"
     );
-    let label = gSync.fluentStrings.formatValueSync(
-      this.tabsList.getAttribute(labelAttr)
-    );
-    showMoreItem.setAttribute("label", label);
-    let tooltipText = this.tabsList.getAttribute(tooltipAttr);
-    showMoreItem.setAttribute("tooltiptext", tooltipText);
+    document.l10n.setAttributes(showMoreItem, "appmenu-remote-tabs-showmore");
+
     showMoreItem.addEventListener("click", e => {
       e.preventDefault();
       e.stopPropagation();
@@ -858,7 +857,9 @@ var gSync = {
       "fxa-manage-account-button"
     );
 
-    let headerTitle = menuHeaderTitleEl.getAttribute("defaultLabel");
+    let headerTitle = this.fluentStrings.formatValueSync(
+      "appmenuitem-fxa-sign-in"
+    );
     let headerDescription = this.fluentStrings.formatValueSync(
       "fxa-menu-turn-on-sync-default"
     );
@@ -926,6 +927,7 @@ var gSync = {
     // We remove the data-l10n-id attribute here to prevent the node's value
     // attribute from being overwritten by Fluent when the panel is moved
     // around in the DOM.
+    menuHeaderTitleEl.removeAttribute("data-l10n-id");
     menuHeaderDescriptionEl.removeAttribute("data-l10n-id");
   },
 
@@ -1543,12 +1545,9 @@ var gSync = {
       let tabCount = aTargetTab.multiselected
         ? gBrowser.multiSelectedTabsCount
         : 1;
-      sendTabsToDevice.label = PluralForm.get(
-        tabCount,
-        gNavigatorBundle.getString("sendTabsToDevice.label")
-      ).replace("#1", tabCount.toLocaleString());
-      sendTabsToDevice.accessKey = gNavigatorBundle.getString(
-        "sendTabsToDevice.accesskey"
+      sendTabsToDevice.setAttribute(
+        "data-l10n-args",
+        JSON.stringify({ tabCount })
       );
       sendTabsToDevice.hidden = false;
     }

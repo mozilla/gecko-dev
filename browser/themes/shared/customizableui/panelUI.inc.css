@@ -308,6 +308,8 @@ panelview .toolbaritem-combined-buttons,
   animation-name: confirmation-hint-checkmark-animation;
   animation-fill-mode: forwards;
   animation-timing-function: steps(18);
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 #confirmation-hint[data-message-id="loginRemoved"] #confirmation-hint-checkmark-image {
@@ -1344,7 +1346,7 @@ menuitem.subviewbutton@menuStateActive@,
 #identity-popup-mainView toolbarseparator,
 #identity-popup-securityView > toolbarseparator,
 #editBookmarkPanel toolbarseparator,
-#downloadsPanel-mainView toolbarseparator,
+#downloadsFooterButtons > toolbarseparator,
 .cui-widget-panelview menuseparator,
 .cui-widget-panel toolbarseparator {
   appearance: none;

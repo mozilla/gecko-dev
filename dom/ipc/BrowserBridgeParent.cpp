@@ -34,6 +34,8 @@ nsresult BrowserBridgeParent::InitWithProcess(
     const WindowGlobalInit& aWindowInit, uint32_t aChromeFlags, TabId aTabId) {
   MOZ_ASSERT(!CanSend(),
              "This should be called before the object is connected to IPC");
+  MOZ_DIAGNOSTIC_ASSERT(!aContentParent->IsLaunching());
+  MOZ_DIAGNOSTIC_ASSERT(!aContentParent->IsDead());
 
   RefPtr<CanonicalBrowsingContext> browsingContext =
       CanonicalBrowsingContext::Get(aWindowInit.context().mBrowsingContextId);
@@ -141,6 +143,9 @@ void BrowserBridgeParent::Destroy() {
     mBrowserParent->SetBrowserBridgeParent(nullptr);
     mBrowserParent = nullptr;
   }
+  if (CanSend()) {
+    Unused << Send__delete__(this);
+  }
 }
 
 IPCResult BrowserBridgeParent::RecvShow(const OwnerShowInfo& aOwnerInfo) {
@@ -192,6 +197,11 @@ IPCResult BrowserBridgeParent::RecvRenderLayers(
 IPCResult BrowserBridgeParent::RecvNavigateByKey(
     const bool& aForward, const bool& aForDocumentNavigation) {
   Unused << mBrowserParent->SendNavigateByKey(aForward, aForDocumentNavigation);
+  return IPC_OK();
+}
+
+IPCResult BrowserBridgeParent::RecvBeginDestroy() {
+  Destroy();
   return IPC_OK();
 }
 

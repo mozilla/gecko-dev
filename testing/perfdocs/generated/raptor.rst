@@ -316,86 +316,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **unit**: score
 
 
-.. dropdown:: raptor-youtube-playback-av1-sfr-chrome (CH)
-   :container: + anchor-id-raptor-youtube-playback-av1-sfr-chrome-b
-
-   * **alert threshold**: 2.0
-   * **apps**: chrome
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-av1-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-av1-sfr-fenix (FE)
-   :container: + anchor-id-raptor-youtube-playback-av1-sfr-fenix-b
-
-   * **alert threshold**: 2.0
-   * **apps**: fenix
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-av1-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-av1-sfr-firefox (FF)
-   :container: + anchor-id-raptor-youtube-playback-av1-sfr-firefox-b
-
-   * **alert threshold**: 2.0
-   * **apps**: firefox
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-av1-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-av1-sfr-geckoview (GV)
-   :container: + anchor-id-raptor-youtube-playback-av1-sfr-geckoview-b
-
-   * **alert threshold**: 2.0
-   * **apps**: geckoview
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-av1-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
 .. dropdown:: raptor-youtube-playback-h264-1080p30-firefox (FF)
    :container: + anchor-id-raptor-youtube-playback-h264-1080p30-firefox-b
 
@@ -466,170 +386,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **use live sites**: true
 
 
-.. dropdown:: raptor-youtube-playback-h264-sfr-chrome (CH)
-   :container: + anchor-id-raptor-youtube-playback-h264-sfr-chrome-b
-
-   * **alert threshold**: 2.0
-   * **apps**: chrome
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-h264-sfr-fenix (FE)
-   :container: + anchor-id-raptor-youtube-playback-h264-sfr-fenix-b
-
-   * **alert threshold**: 2.0
-   * **apps**: fenix
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-h264-sfr-firefox (FF)
-   :container: + anchor-id-raptor-youtube-playback-h264-sfr-firefox-b
-
-   * **alert threshold**: 2.0
-   * **apps**: firefox
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-h264-sfr-geckoview (GV)
-   :container: + anchor-id-raptor-youtube-playback-h264-sfr-geckoview-b
-
-   * **alert threshold**: 2.0
-   * **apps**: geckoview
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-h264-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-hfr-chrome (CH)
-   :container: + anchor-id-raptor-youtube-playback-hfr-chrome-b
-
-   * **alert on**: H2641080p60fps@1X_dropped_frames, H264720p60fps@1X_dropped_frames
-   * **alert threshold**: 2.0
-   * **apps**: chrome
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-hfr-fenix (FE)
-   :container: + anchor-id-raptor-youtube-playback-hfr-fenix-b
-
-   * **alert on**: H2641080p60fps@1X_dropped_frames, H264720p60fps@1X_dropped_frames
-   * **alert threshold**: 2.0
-   * **apps**: fenix
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-hfr-firefox (FF)
-   :container: + anchor-id-raptor-youtube-playback-hfr-firefox-b
-
-   * **alert on**: H2641080p60fps@1X_dropped_frames, H264720p60fps@1X_dropped_frames
-   * **alert threshold**: 2.0
-   * **apps**: firefox
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-hfr-geckoview (GV)
-   :container: + anchor-id-raptor-youtube-playback-hfr-geckoview-b
-
-   * **alert on**: H2641080p60fps@1X_dropped_frames, H264720p60fps@1X_dropped_frames
-   * **alert threshold**: 2.0
-   * **apps**: geckoview
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 2700000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-hfr-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
 .. dropdown:: raptor-youtube-playback-v9-1080p30-firefox (FF)
    :container: + anchor-id-raptor-youtube-playback-v9-1080p30-firefox-b
 
@@ -695,86 +451,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **subtest lower is better**: true
    * **subtest unit**: score
    * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-hfr-test&raptor=true&tests=14&muted=true&command=run&fullscreen=true&exclude=1,2>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-vp9-sfr-chrome (CH)
-   :container: + anchor-id-raptor-youtube-playback-vp9-sfr-chrome-b
-
-   * **alert threshold**: 2.0
-   * **apps**: chrome
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-vp9-sfr-fenix (FE)
-   :container: + anchor-id-raptor-youtube-playback-vp9-sfr-fenix-b
-
-   * **alert threshold**: 2.0
-   * **apps**: fenix
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-vp9-sfr-firefox (FF)
-   :container: + anchor-id-raptor-youtube-playback-vp9-sfr-firefox-b
-
-   * **alert threshold**: 2.0
-   * **apps**: firefox
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
-   * **type**: benchmark
-   * **unit**: score
-   * **use live sites**: true
-
-
-.. dropdown:: raptor-youtube-playback-vp9-sfr-geckoview (GV)
-   :container: + anchor-id-raptor-youtube-playback-vp9-sfr-geckoview-b
-
-   * **alert threshold**: 2.0
-   * **apps**: geckoview
-   * **expected**: pass
-   * **gecko profile entries**: 50000000
-   * **gecko profile interval**: 1000
-   * **gecko profile threads**: MediaPlayback
-   * **lower is better**: true
-   * **page cycles**: 1
-   * **page timeout**: 1800000
-   * **subtest lower is better**: true
-   * **subtest unit**: score
-   * **test url**: `<https://yttest.prod.mozaws.net/2020/main.html?test_type=playbackperf-sfr-vp9-test&raptor=true&exclude=1,2&muted=true&command=run>`__
    * **type**: benchmark
    * **unit**: score
    * **use live sites**: true
@@ -2313,7 +1989,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-amazon-e10s: None
             * browsertime-tp6-essential-chromium-amazon-e10s: None
             * browsertime-tp6-essential-firefox-amazon-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-amazon-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-amazon-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-amazon-e10s: None
             * browsertime-tp6-live-chromium-amazon-e10s: None
             * browsertime-tp6-live-firefox-amazon-e10s: None
@@ -2324,7 +2000,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-amazon-e10s: None
             * browsertime-tp6-essential-chromium-amazon-e10s: None
             * browsertime-tp6-essential-firefox-amazon-e10s: trunk
-            * browsertime-tp6-essential-firefox-amazon-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-amazon-fis-e10s: trunk
             * browsertime-tp6-live-chrome-amazon-e10s: None
             * browsertime-tp6-live-chromium-amazon-e10s: None
             * browsertime-tp6-live-firefox-amazon-e10s: None
@@ -2333,7 +2009,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-amazon-e10s: None
             * browsertime-tp6-essential-chromium-amazon-e10s: None
             * browsertime-tp6-essential-firefox-amazon-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-amazon-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-amazon-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-amazon-e10s: None
             * browsertime-tp6-live-chromium-amazon-e10s: None
             * browsertime-tp6-live-firefox-amazon-e10s: None
@@ -2362,7 +2038,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-amazon-e10s: None
             * browsertime-tp6-essential-chromium-amazon-e10s: None
             * browsertime-tp6-essential-firefox-amazon-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-amazon-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-amazon-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-amazon-e10s: None
             * browsertime-tp6-live-chromium-amazon-e10s: None
             * browsertime-tp6-live-firefox-amazon-e10s: None
@@ -2461,7 +2137,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-bing-search-e10s: None
             * browsertime-tp6-essential-chromium-bing-search-e10s: None
             * browsertime-tp6-essential-firefox-bing-search-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-bing-search-e10s: None
             * browsertime-tp6-live-chromium-bing-search-e10s: None
             * browsertime-tp6-live-firefox-bing-search-e10s: None
@@ -2470,7 +2146,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-bing-search-e10s: None
             * browsertime-tp6-essential-chromium-bing-search-e10s: None
             * browsertime-tp6-essential-firefox-bing-search-e10s: trunk
-            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: trunk
             * browsertime-tp6-live-chrome-bing-search-e10s: None
             * browsertime-tp6-live-chromium-bing-search-e10s: None
             * browsertime-tp6-live-firefox-bing-search-e10s: None
@@ -2479,7 +2155,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-bing-search-e10s: None
             * browsertime-tp6-essential-chromium-bing-search-e10s: None
             * browsertime-tp6-essential-firefox-bing-search-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-bing-search-e10s: None
             * browsertime-tp6-live-chromium-bing-search-e10s: None
             * browsertime-tp6-live-firefox-bing-search-e10s: None
@@ -2506,7 +2182,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-bing-search-e10s: None
             * browsertime-tp6-essential-chromium-bing-search-e10s: None
             * browsertime-tp6-essential-firefox-bing-search-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-bing-search-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-bing-search-e10s: None
             * browsertime-tp6-live-chromium-bing-search-e10s: None
             * browsertime-tp6-live-firefox-bing-search-e10s: None
@@ -2528,8 +2204,9 @@ Tests for page-load performance. The links direct to the actual websites that ar
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy
-   * **playback pageset manifest**: mitm5-linux-firefox-buzzfeed.manifest
-   * **playback version**: 5.1.1
+   * **playback pageset manifest**: mitm6-darwin-firefox-buzzfeed.manifest
+   * **playback version**: 6.0.2
+   * **secondary url**: `<https://www.buzzfeed.com/quizzes>`__
    * **test url**: `<https://www.buzzfeed.com/>`__
    * **type**: pageload
    * **unit**: ms
@@ -2604,21 +2281,21 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
       * test-macosx1014-64-shippable-qr/opt
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
       * test-macosx1015-64-shippable-qr/opt
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
       * test-windows10-32-qr/opt
@@ -2641,7 +2318,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
 
@@ -2964,7 +2641,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-fandom-e10s: None
             * browsertime-tp6-essential-chromium-fandom-e10s: None
             * browsertime-tp6-essential-firefox-fandom-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-fandom-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-fandom-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-fandom-e10s: None
             * browsertime-tp6-live-chromium-fandom-e10s: None
             * browsertime-tp6-live-firefox-fandom-e10s: None
@@ -2973,7 +2650,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-fandom-e10s: None
             * browsertime-tp6-essential-chromium-fandom-e10s: None
             * browsertime-tp6-essential-firefox-fandom-e10s: trunk
-            * browsertime-tp6-essential-firefox-fandom-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-fandom-fis-e10s: trunk
             * browsertime-tp6-live-chrome-fandom-e10s: None
             * browsertime-tp6-live-chromium-fandom-e10s: None
             * browsertime-tp6-live-firefox-fandom-e10s: None
@@ -2982,7 +2659,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-fandom-e10s: None
             * browsertime-tp6-essential-chromium-fandom-e10s: None
             * browsertime-tp6-essential-firefox-fandom-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-fandom-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-fandom-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-fandom-e10s: None
             * browsertime-tp6-live-chromium-fandom-e10s: None
             * browsertime-tp6-live-firefox-fandom-e10s: None
@@ -3009,7 +2686,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-fandom-e10s: None
             * browsertime-tp6-essential-chromium-fandom-e10s: None
             * browsertime-tp6-essential-firefox-fandom-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-fandom-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-fandom-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-fandom-e10s: None
             * browsertime-tp6-live-chromium-fandom-e10s: None
             * browsertime-tp6-live-firefox-fandom-e10s: None
@@ -3359,7 +3036,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-google-slides-e10s: None
             * browsertime-tp6-essential-chromium-google-slides-e10s: None
             * browsertime-tp6-essential-firefox-google-slides-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-google-slides-e10s: None
             * browsertime-tp6-live-chromium-google-slides-e10s: None
             * browsertime-tp6-live-firefox-google-slides-e10s: None
@@ -3368,7 +3045,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-google-slides-e10s: None
             * browsertime-tp6-essential-chromium-google-slides-e10s: None
             * browsertime-tp6-essential-firefox-google-slides-e10s: trunk
-            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: trunk
             * browsertime-tp6-live-chrome-google-slides-e10s: None
             * browsertime-tp6-live-chromium-google-slides-e10s: None
             * browsertime-tp6-live-firefox-google-slides-e10s: None
@@ -3377,7 +3054,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-google-slides-e10s: None
             * browsertime-tp6-essential-chromium-google-slides-e10s: None
             * browsertime-tp6-essential-firefox-google-slides-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-google-slides-e10s: None
             * browsertime-tp6-live-chromium-google-slides-e10s: None
             * browsertime-tp6-live-firefox-google-slides-e10s: None
@@ -3404,7 +3081,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-google-slides-e10s: None
             * browsertime-tp6-essential-chromium-google-slides-e10s: None
             * browsertime-tp6-essential-firefox-google-slides-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-google-slides-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-google-slides-e10s: None
             * browsertime-tp6-live-chromium-google-slides-e10s: None
             * browsertime-tp6-live-firefox-google-slides-e10s: None
@@ -3611,7 +3288,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-instagram-e10s: None
             * browsertime-tp6-essential-chromium-instagram-e10s: None
             * browsertime-tp6-essential-firefox-instagram-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-instagram-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-instagram-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-instagram-e10s: None
             * browsertime-tp6-live-chromium-instagram-e10s: None
             * browsertime-tp6-live-firefox-instagram-e10s: None
@@ -3620,7 +3297,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-instagram-e10s: None
             * browsertime-tp6-essential-chromium-instagram-e10s: None
             * browsertime-tp6-essential-firefox-instagram-e10s: trunk
-            * browsertime-tp6-essential-firefox-instagram-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-instagram-fis-e10s: trunk
             * browsertime-tp6-live-chrome-instagram-e10s: None
             * browsertime-tp6-live-chromium-instagram-e10s: None
             * browsertime-tp6-live-firefox-instagram-e10s: None
@@ -3629,7 +3306,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-instagram-e10s: None
             * browsertime-tp6-essential-chromium-instagram-e10s: None
             * browsertime-tp6-essential-firefox-instagram-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-instagram-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-instagram-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-instagram-e10s: None
             * browsertime-tp6-live-chromium-instagram-e10s: None
             * browsertime-tp6-live-firefox-instagram-e10s: None
@@ -3656,7 +3333,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-instagram-e10s: None
             * browsertime-tp6-essential-chromium-instagram-e10s: None
             * browsertime-tp6-essential-firefox-instagram-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-instagram-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-instagram-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-instagram-e10s: None
             * browsertime-tp6-live-chromium-instagram-e10s: None
             * browsertime-tp6-live-firefox-instagram-e10s: None
@@ -4569,7 +4246,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-twitter-e10s: None
             * browsertime-tp6-essential-chromium-twitter-e10s: None
             * browsertime-tp6-essential-firefox-twitter-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-twitter-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-twitter-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-twitter-e10s: None
             * browsertime-tp6-live-chromium-twitter-e10s: None
             * browsertime-tp6-live-firefox-twitter-e10s: None
@@ -4578,7 +4255,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-twitter-e10s: None
             * browsertime-tp6-essential-chromium-twitter-e10s: None
             * browsertime-tp6-essential-firefox-twitter-e10s: trunk
-            * browsertime-tp6-essential-firefox-twitter-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-twitter-fis-e10s: trunk
             * browsertime-tp6-live-chrome-twitter-e10s: None
             * browsertime-tp6-live-chromium-twitter-e10s: None
             * browsertime-tp6-live-firefox-twitter-e10s: None
@@ -4587,7 +4264,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-twitter-e10s: None
             * browsertime-tp6-essential-chromium-twitter-e10s: None
             * browsertime-tp6-essential-firefox-twitter-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-twitter-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-twitter-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-twitter-e10s: None
             * browsertime-tp6-live-chromium-twitter-e10s: None
             * browsertime-tp6-live-firefox-twitter-e10s: None
@@ -4614,7 +4291,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-twitter-e10s: None
             * browsertime-tp6-essential-chromium-twitter-e10s: None
             * browsertime-tp6-essential-firefox-twitter-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-twitter-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-twitter-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-twitter-e10s: None
             * browsertime-tp6-live-chromium-twitter-e10s: None
             * browsertime-tp6-live-firefox-twitter-e10s: None
@@ -4712,7 +4389,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-wikipedia-e10s: None
             * browsertime-tp6-essential-chromium-wikipedia-e10s: None
             * browsertime-tp6-essential-firefox-wikipedia-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-wikipedia-e10s: None
             * browsertime-tp6-live-chromium-wikipedia-e10s: None
             * browsertime-tp6-live-firefox-wikipedia-e10s: None
@@ -4721,7 +4398,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-wikipedia-e10s: None
             * browsertime-tp6-essential-chromium-wikipedia-e10s: None
             * browsertime-tp6-essential-firefox-wikipedia-e10s: trunk
-            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: trunk
             * browsertime-tp6-live-chrome-wikipedia-e10s: None
             * browsertime-tp6-live-chromium-wikipedia-e10s: None
             * browsertime-tp6-live-firefox-wikipedia-e10s: None
@@ -4730,7 +4407,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-wikipedia-e10s: None
             * browsertime-tp6-essential-chromium-wikipedia-e10s: None
             * browsertime-tp6-essential-firefox-wikipedia-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-wikipedia-e10s: None
             * browsertime-tp6-live-chromium-wikipedia-e10s: None
             * browsertime-tp6-live-firefox-wikipedia-e10s: None
@@ -4757,7 +4434,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-wikipedia-e10s: None
             * browsertime-tp6-essential-chromium-wikipedia-e10s: None
             * browsertime-tp6-essential-firefox-wikipedia-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-wikipedia-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-wikipedia-e10s: None
             * browsertime-tp6-live-chromium-wikipedia-e10s: None
             * browsertime-tp6-live-firefox-wikipedia-e10s: None
@@ -4796,7 +4473,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-essential-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-essential-firefox-yahoo-mail-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-live-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-live-firefox-yahoo-mail-e10s: None
@@ -4805,7 +4482,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-essential-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-essential-firefox-yahoo-mail-e10s: trunk
-            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: trunk
             * browsertime-tp6-live-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-live-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-live-firefox-yahoo-mail-e10s: None
@@ -4814,7 +4491,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-essential-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-essential-firefox-yahoo-mail-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-live-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-live-firefox-yahoo-mail-e10s: None
@@ -4841,7 +4518,7 @@ Tests for page-load performance. The links direct to the actual websites that ar
             * browsertime-tp6-essential-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-essential-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-essential-firefox-yahoo-mail-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-yahoo-mail-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-chrome-yahoo-mail-e10s: None
             * browsertime-tp6-live-chromium-yahoo-mail-e10s: None
             * browsertime-tp6-live-firefox-yahoo-mail-e10s: None
@@ -4981,21 +4658,21 @@ A set of test pages that are run as live sites instead of recorded versions. The
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
       * test-macosx1014-64-shippable-qr/opt
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
       * test-macosx1015-64-shippable-qr/opt
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
       * test-windows10-32-qr/opt
@@ -5018,7 +4695,7 @@ A set of test pages that are run as live sites instead of recorded versions. The
             * browsertime-tp6-essential-chrome-cnn-e10s: None
             * browsertime-tp6-essential-chromium-cnn-e10s: None
             * browsertime-tp6-essential-firefox-cnn-e10s: mozilla-beta, trunk
-            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-central
+            * browsertime-tp6-essential-firefox-cnn-fis-e10s: mozilla-beta, trunk
             * browsertime-tp6-live-sheriffed-firefox-cnn-e10s: None
             * browsertime-tp6-live-sheriffed-firefox-cnn-fis-e10s: None
 
@@ -8462,10 +8139,15 @@ wasm-godot, wasm-godot-baseline, wasm-godot-ion
 webaudio
 --------
 
-* contact: ?
+* contact: padenot
 * type: benchmark
 * browsers: Firefox desktop, Chrome desktop
-* TODO
+* measuring: Rendering speed of various synthetic Web Audio API workloads
+* reporting: The time time it took to render the audio of each test case, and a
+  geometric mean of the full test suite. Lower is better
+* data: Upstream is https://github.com/padenot/webaudio-benchmark/. Those
+  benchmarks are run by other projects. Upstream is vendored in mozilla-central
+  via an simple update script, at `third_party/webkit/PerformanceTests/webaudio`
 
 Scenario Tests
 ==============

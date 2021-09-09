@@ -54,7 +54,9 @@
       </menupopup>
     </menu>
     <menu id="context_sendTabToDevice"
-          class="sync-ui-item">
+          class="sync-ui-item"
+          data-lazy-l10n-id="tab-context-send-tabs-to-device"
+          data-l10n-args='{"tabCount": 1}'>
       <menupopup id="context_sendTabToDevicePopupMenu"
                  onpopupshowing="gSync.populateSendTabToDevicesMenu(event.target, TabContextMenu.contextTab.linkedBrowser.currentURI.spec, TabContextMenu.contextTab.linkedBrowser.contentTitle, TabContextMenu.contextTab.multiselected);"/>
     </menu>
@@ -380,12 +382,7 @@
     <menuitem id="blockedPopupAllowSite"
               oncommand="gPopupBlockerObserver.toggleAllowPopupsForSite(event);"/>
     <menuitem
-#ifdef XP_WIN
-              label="&editPopupSettings.label;"
-#else
-              label="&editPopupSettingsUnix.label;"
-#endif
-              accesskey="&editPopupSettings.accesskey;"
+              data-l10n-id="edit-popup-settings"
               oncommand="gPopupBlockerObserver.editPopupSettings();"/>
     <menuitem id="blockedPopupDontShowMessage"
               data-l10n-id="popups-infobar-dont-show-message"

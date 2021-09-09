@@ -11,6 +11,7 @@ mod font_face_rule;
 pub mod font_feature_values_rule;
 pub mod import_rule;
 pub mod keyframes_rule;
+pub mod layer_rule;
 mod loader;
 mod media_rule;
 mod namespace_rule;
@@ -49,6 +50,7 @@ pub use self::font_face_rule::FontFaceRule;
 pub use self::font_feature_values_rule::FontFeatureValuesRule;
 pub use self::import_rule::ImportRule;
 pub use self::keyframes_rule::KeyframesRule;
+pub use self::layer_rule::LayerRule;
 pub use self::loader::StylesheetLoader;
 pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
@@ -257,6 +259,7 @@ pub enum CssRule {
     Supports(Arc<Locked<SupportsRule>>),
     Page(Arc<Locked<PageRule>>),
     Document(Arc<Locked<DocumentRule>>),
+    Layer(Arc<Locked<LayerRule>>),
 }
 
 impl CssRule {
@@ -297,16 +300,21 @@ impl CssRule {
             CssRule::Document(ref lock) => {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
             },
+
+            // TODO(emilio): Add memory reporting for @layer rules.
+            CssRule::Layer(_) => 0,
         }
     }
 }
 
+/// https://drafts.csswg.org/cssom-1/#dom-cssrule-type
 #[allow(missing_docs)]
 #[derive(Clone, Copy, Debug, Eq, FromPrimitive, PartialEq)]
+#[repr(u8)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style = 1,
-    Charset = 2,
+    // Charset = 2, // Historical
     Import = 3,
     Media = 4,
     FontFace = 5,
@@ -315,7 +323,7 @@ pub enum CssRuleType {
     Keyframes = 7,
     Keyframe = 8,
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
-    Margin = 9,
+    // Margin = 9, // Not implemented yet.
     Namespace = 10,
     // https://drafts.csswg.org/css-counter-styles-3/#extentions-to-cssrule-interface
     CounterStyle = 11,
@@ -323,10 +331,13 @@ pub enum CssRuleType {
     Supports = 12,
     // https://www.w3.org/TR/2012/WD-css3-conditional-20120911/#extentions-to-cssrule-interface
     Document = 13,
-    // https://drafts.csswg.org/css-fonts-3/#om-fontfeaturevalues
+    // https://drafts.csswg.org/css-fonts/#om-fontfeaturevalues
     FontFeatureValues = 14,
     // https://drafts.csswg.org/css-device-adapt/#css-rule-interface
     Viewport = 15,
+    // After viewport, all rules should return 0 from the API, but we still need
+    // a constant somewhere.
+    Layer = 16,
 }
 
 #[allow(missing_docs)]
@@ -353,6 +364,7 @@ impl CssRule {
             CssRule::Supports(_) => CssRuleType::Supports,
             CssRule::Page(_) => CssRuleType::Page,
             CssRule::Document(_) => CssRuleType::Document,
+            CssRule::Layer(_) => CssRuleType::Layer,
         }
     }
 
@@ -361,6 +373,7 @@ impl CssRule {
             // CssRule::Charset(..) => State::Start,
             CssRule::Import(..) => State::Imports,
             CssRule::Namespace(..) => State::Namespaces,
+            // TODO(emilio): Do we need something for EarlyLayers?
             _ => State::Body,
         }
     }
@@ -485,6 +498,12 @@ impl DeepCloneWithLock for CssRule {
                     lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
                 ))
             },
+            CssRule::Layer(ref arc) => {
+                let rule = arc.read_with(guard);
+                CssRule::Layer(Arc::new(
+                    lock.wrap(rule.deep_clone_with_lock(lock, guard, params)),
+                ))
+            }
         }
     }
 }
@@ -505,6 +524,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Supports(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Page(ref lock) => lock.read_with(guard).to_css(guard, dest),
             CssRule::Document(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::Layer(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }

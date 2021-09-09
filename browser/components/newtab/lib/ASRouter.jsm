@@ -14,6 +14,7 @@ XPCOMUtils.defineLazyModuleGetters(this, {
   SnippetsTestMessageProvider:
     "resource://activity-stream/lib/SnippetsTestMessageProvider.jsm",
   PanelTestProvider: "resource://activity-stream/lib/PanelTestProvider.jsm",
+  Spotlight: "resource://activity-stream/lib/Spotlight.jsm",
   ToolbarBadgeHub: "resource://activity-stream/lib/ToolbarBadgeHub.jsm",
   ToolbarPanelHub: "resource://activity-stream/lib/ToolbarPanelHub.jsm",
   MomentsPageHub: "resource://activity-stream/lib/MomentsPageHub.jsm",
@@ -128,21 +129,6 @@ const MessageLoaderUtils = {
    */
   _localLoader(provider) {
     return provider.messages;
-  },
-
-  async _localJsonLoader(provider) {
-    let payload;
-    try {
-      payload = await (
-        await fetch(provider.location, {
-          credentials: "omit",
-        })
-      ).json();
-    } catch (e) {
-      return [];
-    }
-
-    return payload.messages;
   },
 
   async _remoteLoaderCache(storage) {
@@ -417,8 +403,6 @@ const MessageLoaderUtils = {
         return this._remoteLoader;
       case "remote-settings":
         return this._remoteSettingsLoader;
-      case "json":
-        return this._localJsonLoader;
       case "remote-experiments":
         return this._experimentsAPILoader;
       case "local":
@@ -1198,6 +1182,9 @@ class _ASRouter {
         break;
       case "infobar":
         InfoBar.showInfoBarMessage(browser, message, this.dispatchCFRAction);
+        break;
+      case "spotlight":
+        Spotlight.showSpotlightDialog(browser, message, this.dispatchCFRAction);
         break;
     }
 

@@ -32,12 +32,16 @@ const RS_COLLECTION = "quicksuggest";
 
 // Categories that should show "Firefox Suggest" instead of "Sponsored"
 const NONSPONSORED_IAB_CATEGORIES = new Set(["5 - Education"]);
-// Version in which the mr1 dialog is shown.
-const MR1_VERSION = 89;
 
+const FEATURE_AVAILABLE = "quickSuggestEnabled";
 const SEEN_DIALOG_PREF = "quicksuggest.showedOnboardingDialog";
-const VERSION_PREF = "browser.startup.upgradeDialog.version";
 const RESTARTS_PREF = "quicksuggest.seenRestarts";
+
+// This is a score in the range [0, 1] used by the provider to compare
+// suggestions from remote settings to suggestions from Merino. Remote settings
+// suggestions don't have a natural score so we hardcode a value, and we choose
+// a low value to allow Merino to experiment with a broad range of scores.
+const SUGGESTION_SCORE = 0.2;
 
 /**
  * Fetches the suggestions data from RemoteSettings and builds the tree
@@ -60,7 +64,7 @@ class Suggestions {
       return this._initPromise;
     }
     this._initPromise = Promise.resolve();
-    if (UrlbarPrefs.get("quickSuggestEnabled")) {
+    if (UrlbarPrefs.get(FEATURE_AVAILABLE)) {
       this._initPromise = new Promise(resolve => (this._initResolve = resolve));
       Services.tm.idleDispatchToMainThread(this.onEnabledUpdate.bind(this));
     } else {
@@ -91,7 +95,7 @@ class Suggestions {
       `${pad(d.getDate())}${pad(d.getHours())}`;
     let icon = await this.fetchIcon(result.icon);
     return {
-      fullKeyword: this.getFullKeyword(phrase, result.keywords),
+      full_keyword: this.getFullKeyword(phrase, result.keywords),
       title: result.title,
       url: result.url.replace("%YYYYMMDDHH%", date),
       click_url: result.click_url.replace("%YYYYMMDDHH%", date),
@@ -99,7 +103,8 @@ class Suggestions {
       impression_url: result.impression_url,
       block_id: result.id,
       advertiser: result.advertiser.toLocaleLowerCase(),
-      isSponsored: !NONSPONSORED_IAB_CATEGORIES.has(result.iab_category),
+      is_sponsored: !NONSPONSORED_IAB_CATEGORIES.has(result.iab_category),
+      score: SUGGESTION_SCORE,
       icon,
     };
   }
@@ -158,15 +163,18 @@ class Suggestions {
 
   /**
    * Called when a urlbar pref changes. The onboarding dialog will set the
-   * `browser.urlbar.quicksuggest.user-seen-dialog` pref once the user has
-   * seen the dialog at which point we can start showing results.
+   * `browser.urlbar.suggest.quicksuggest` prefs if the user has opted in, at
+   * which point we can start showing results.
    *
    * @param {string} pref
    *   The name of the pref relative to `browser.urlbar`.
    */
   onPrefChanged(pref) {
     switch (pref) {
-      case SEEN_DIALOG_PREF:
+      // Both sponsored and non-sponsored results come from the same remote
+      // settings dataset, so we only need to listen for `suggest.quicksuggest`
+      // and not also `suggest.quicksuggest.sponsored`.
+      case "suggest.quicksuggest":
         this.onEnabledUpdate();
         break;
     }
@@ -176,23 +184,27 @@ class Suggestions {
    * Called when an update that may change whether this feature is enabled
    * or not has occured.
    *
-   * QuickSuggest is controlled by two perferences that can be remotely
-   * configured through Nimbus.
+   * Quick suggest is controlled by the following preferences. All three must be
+   * enabled to show sponsored results. The first two must be enabled to show
+   * non-sponsored results.
    *
-   *   * `quickSuggestEnabled`: this enables the QuickSuggest feature, but the
-   *     suggestion might not be immediately available if we want the user to
-   *     see the onboarding dialog, which is controlled by
-   *     `quickSuggestShouldShowOnboardingDialog`
+   * * `quicksuggest.enabled`: The global toggle for the entire quick suggest
+   *   feature. This pref can be overridden by the `quickSuggestEnabled` Nimbus
+   *   variable. If false, neither sponsored nor non-sponsored suggestions will
+   *   be shown. If true, then we look at the individual prefs
+   *   `suggest.quicksuggest` and `suggest.quicksuggest.sponsored`.
    *
-   *   * `quickSuggestShouldShowOnboardingDialog`: this determines whether the
-   *     QuickSuggest onboarding dialog should be shown before we show any
-   *     suggestions to the user once QuickSuggest is enabled
+   * * `suggest.quicksuggest`: Whether any quick suggest results are shown. This
+   *    must be true to show both non-sponsored and sponsored results.
+   *
+   * * `suggest.quicksuggest.sponsored`: Whether sponsored quick suggest results
+   *    are shown. Both this pref and `suggest.quicksuggest` must be true to
+   *    show sponsored results.
    */
   onEnabledUpdate() {
     if (
-      UrlbarPrefs.get("quickSuggestEnabled") &&
-      (UrlbarPrefs.get(SEEN_DIALOG_PREF) ||
-        !UrlbarPrefs.get("quickSuggestShouldShowOnboardingDialog"))
+      UrlbarPrefs.get(FEATURE_AVAILABLE) &&
+      UrlbarPrefs.get("suggest.quicksuggest")
     ) {
       this._setupRemoteSettings();
     }
@@ -204,23 +216,21 @@ class Suggestions {
    * by the pref `browser.urlbar.quicksuggest.shouldShowOnboardingDialog`
    * which can be remotely configured by Nimbus.
    *
-   * Given that the release may overlap with MR1 which has an onboarding dialog
-   * We will wait for a few restarts after the MR1 dialog will have been shown
-   * before showing the QuickSuggest dialog. This could be remotely configured
-   * by Nimbus through `quickSuggestShowOnboardingDialogAfterNRestarts`, the
-   * default is 2.
+   * Given that the release may overlap with another onboarding dialog, we may
+   * wait for a few restarts before showing the QuickSuggest dialog. This can
+   * be remotely configured by Nimbus through
+   * `quickSuggestShowOnboardingDialogAfterNRestarts`, the default is 0.
    */
   async maybeShowOnboardingDialog() {
-    // If quicksuggest is not enabled, the user has already seen the
-    // quicksuggest onboarding dialog, the onboarding dialog is configured to
-    // be skipped, or the user is not yet on a version where they could have
-    // seen the mr1 onboarding dialog then we won't show the quicksuggest
-    // onboarding.
+    // If quicksuggest is not available, the onboarding dialog is configured to
+    // be skipped, the user has already seen the dialog, or has otherwise opted
+    // in already, then we won't show the quicksuggest onboarding.
     if (
-      !UrlbarPrefs.get("quickSuggestEnabled") ||
+      !UrlbarPrefs.get(FEATURE_AVAILABLE) ||
       !UrlbarPrefs.get("quickSuggestShouldShowOnboardingDialog") ||
       UrlbarPrefs.get(SEEN_DIALOG_PREF) ||
-      Services.prefs.getIntPref(VERSION_PREF, 0) < MR1_VERSION
+      UrlbarPrefs.get("suggest.quicksuggest") ||
+      UrlbarPrefs.get("suggest.quicksuggest.sponsored")
     ) {
       return;
     }
@@ -236,7 +246,7 @@ class Suggestions {
       return;
     }
 
-    let params = { disable: false, learnMore: false };
+    let params = { accept: false, openSettings: false, learnMore: false };
     let win = BrowserWindowTracker.getTopWindow();
     await win.gDialogBox.open(
       "chrome://browser/content/urlbar/quicksuggestOnboarding.xhtml",
@@ -245,7 +255,11 @@ class Suggestions {
 
     UrlbarPrefs.set(SEEN_DIALOG_PREF, true);
 
-    if (params.disable) {
+    if (params.accept) {
+      // Opting in enables both non-sponsored and sponsored results.
+      UrlbarPrefs.set("suggest.quicksuggest", true);
+      UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+    } else if (params.openSettings) {
       win.openPreferences("search-quickSuggest");
     } else if (params.learnMore) {
       win.openTrustedLinkIn(UrlbarProviderQuickSuggest.helpUrl, "tab", {
@@ -376,6 +390,10 @@ const RESULT_KEY = "^";
 class KeywordTree {
   constructor() {
     this.tree = new Map();
+  }
+
+  static get SUGGESTION_SCORE() {
+    return SUGGESTION_SCORE;
   }
 
   /*

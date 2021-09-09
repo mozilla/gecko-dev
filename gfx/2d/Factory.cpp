@@ -52,11 +52,7 @@
 #  include "nsWindowsHelpers.h"
 #endif
 
-#include "DrawTargetCapture.h"
-#include "DrawTargetDual.h"
-#include "DrawTargetTiled.h"
 #include "DrawTargetOffset.h"
-#include "DrawTargetWrapAndRecord.h"
 #include "DrawTargetRecording.h"
 
 #include "SourceSurfaceRawData.h"
@@ -228,8 +224,6 @@ StaticMutex Factory::mDTDependencyLock;
 
 bool Factory::mBGRSubpixelOrder = false;
 
-DrawEventRecorder* Factory::mRecorder;
-
 mozilla::gfx::Config* Factory::sConfig = nullptr;
 
 void Factory::Init(const Config& aConfig) {
@@ -399,10 +393,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTarget(BackendType aBackend,
       return nullptr;
   }
 
-  if (mRecorder && retVal) {
-    return MakeAndAddRef<DrawTargetWrapAndRecord>(mRecorder, retVal);
-  }
-
   if (!retVal) {
     // Failed
     gfxCriticalError(LoggerOptionsBasedOnSize(aSize))
@@ -420,32 +410,6 @@ already_AddRefed<PathBuilder> Factory::CreateSimplePathBuilder() {
 already_AddRefed<DrawTarget> Factory::CreateRecordingDrawTarget(
     DrawEventRecorder* aRecorder, DrawTarget* aDT, IntRect aRect) {
   return MakeAndAddRef<DrawTargetRecording>(aRecorder, aDT, aRect);
-}
-
-already_AddRefed<DrawTargetCapture> Factory::CreateCaptureDrawTargetForTarget(
-    gfx::DrawTarget* aTarget, size_t aFlushBytes) {
-  return MakeAndAddRef<DrawTargetCaptureImpl>(aTarget, aFlushBytes);
-}
-
-already_AddRefed<DrawTargetCapture> Factory::CreateCaptureDrawTarget(
-    BackendType aBackend, const IntSize& aSize, SurfaceFormat aFormat) {
-  return MakeAndAddRef<DrawTargetCaptureImpl>(aBackend, aSize, aFormat);
-}
-
-already_AddRefed<DrawTargetCapture> Factory::CreateCaptureDrawTargetForData(
-    BackendType aBackend, const IntSize& aSize, SurfaceFormat aFormat,
-    int32_t aStride, size_t aSurfaceAllocationSize) {
-  MOZ_ASSERT(aSurfaceAllocationSize && aStride);
-
-  BackendType type = aBackend;
-  if (!Factory::DoesBackendSupportDataDrawtarget(aBackend)) {
-    type = BackendType::SKIA;
-  }
-
-  RefPtr<DrawTargetCaptureImpl> dt =
-      new DrawTargetCaptureImpl(type, aSize, aFormat);
-  dt->InitForData(aStride, aSurfaceAllocationSize);
-  return dt.forget();
 }
 
 already_AddRefed<DrawTarget> Factory::CreateDrawTargetForData(
@@ -485,10 +449,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTargetForData(
       return nullptr;
   }
 
-  if (mRecorder && retVal) {
-    return MakeAndAddRef<DrawTargetWrapAndRecord>(mRecorder, retVal, true);
-  }
-
   if (!retVal) {
     gfxCriticalNote << "Failed to create DrawTarget, Type: " << int(aBackend)
                     << " Size: " << aSize << ", Data: " << hexa((void*)aData)
@@ -496,17 +456,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTargetForData(
   }
 
   return retVal.forget();
-}
-
-already_AddRefed<DrawTarget> Factory::CreateTiledDrawTarget(
-    const TileSet& aTileSet) {
-  RefPtr<DrawTargetTiled> dt = new DrawTargetTiled();
-
-  if (!dt->Init(aTileSet)) {
-    return nullptr;
-  }
-
-  return dt.forget();
 }
 
 already_AddRefed<DrawTarget> Factory::CreateOffsetDrawTarget(
@@ -525,7 +474,6 @@ bool Factory::DoesBackendSupportDataDrawtarget(BackendType aType) {
     case BackendType::DIRECT2D:
     case BackendType::DIRECT2D1_1:
     case BackendType::RECORDING:
-    case BackendType::CAPTURE:
     case BackendType::NONE:
     case BackendType::BACKEND_LAST:
     case BackendType::WEBRENDER_TEXT:
@@ -638,30 +586,6 @@ already_AddRefed<ScaledFont> Factory::CreateScaledFontForFreeTypeFont(
                                            aSize, aApplySyntheticBold);
 }
 #endif
-
-already_AddRefed<DrawTarget> Factory::CreateDualDrawTarget(
-    DrawTarget* targetA, DrawTarget* targetB) {
-  MOZ_ASSERT(targetA && targetB);
-
-  RefPtr<DrawTarget> newTarget = new DrawTargetDual(targetA, targetB);
-
-  RefPtr<DrawTarget> retVal = newTarget;
-
-  if (mRecorder) {
-    retVal = new DrawTargetWrapAndRecord(mRecorder, retVal);
-  }
-
-  return retVal.forget();
-}
-
-already_AddRefed<SourceSurface> Factory::CreateDualSourceSurface(
-    SourceSurface* sourceA, SourceSurface* sourceB) {
-  MOZ_ASSERT(sourceA && sourceB);
-
-  RefPtr<SourceSurface> newSource = new SourceSurfaceDual(sourceA, sourceB);
-
-  return newSource.forget();
-}
 
 void Factory::SetBGRSubpixelOrder(bool aBGR) { mBGRSubpixelOrder = aBGR; }
 
@@ -807,11 +731,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTargetForD3D11Texture(
   newTarget = new DrawTargetD2D1();
   if (newTarget->Init(aTexture, aFormat)) {
     RefPtr<DrawTarget> retVal = newTarget;
-
-    if (mRecorder) {
-      retVal = new DrawTargetWrapAndRecord(mRecorder, retVal, true);
-    }
-
     return retVal.forget();
   }
 
@@ -1046,10 +965,6 @@ already_AddRefed<DrawTarget> Factory::CreateDrawTargetForCairoSurface(
   if (newTarget->Init(aSurface, aSize, aFormat)) {
     retVal = newTarget;
   }
-
-  if (mRecorder && retVal) {
-    return MakeAndAddRef<DrawTargetWrapAndRecord>(mRecorder, retVal, true);
-  }
 #endif
   return retVal.forget();
 }
@@ -1167,15 +1082,6 @@ void Factory::CopyDataSourceSurface(DataSourceSurface* aSource,
 
   aSource->Unmap();
   aDest->Unmap();
-}
-
-already_AddRefed<DrawEventRecorder> Factory::CreateEventRecorderForFile(
-    const char_type* aFilename) {
-  return MakeAndAddRef<DrawEventRecorderFile>(aFilename);
-}
-
-void Factory::SetGlobalEventRecorder(DrawEventRecorder* aRecorder) {
-  mRecorder = aRecorder;
 }
 
 #ifdef WIN32

@@ -20,6 +20,13 @@
 
 #include <thread>
 
+#if defined(_MSC_VER) || defined(__MINGW32__)
+#  include <processthreadsapi.h>
+#  include <realtimeapiset.h>
+#elif defined(__APPLE__)
+#  include <mach/thread_act.h>
+#endif
+
 #ifdef MOZ_GECKO_PROFILER
 
 #  include "GeckoProfiler.h"
@@ -168,12 +175,6 @@ TEST(GeckoProfiler, ThreadRegistrationInfo)
   }
 }
 
-static void EnsureThreadRegistrationTLSIsInitialized() {
-  char onStackChar;
-  profiler::ThreadRegistration tr{
-      "Temporary main thread registration to init TLS", &onStackChar};
-}
-
 static void TestConstUnlockedConstReader(
     const profiler::ThreadRegistration::UnlockedConstReader& aData,
     const TimeStamp& aBeforeRegistration, const TimeStamp& aAfterRegistration,
@@ -185,8 +186,37 @@ static void TestConstUnlockedConstReader(
   EXPECT_EQ(aData.Info().ThreadId(), aThreadId);
   EXPECT_FALSE(aData.Info().IsMainThread());
 
-  // TODO in bug 1722261: Platform-specific tests, when implemented.
+#if (defined(_MSC_VER) || defined(__MINGW32__)) && defined(MOZ_GECKO_PROFILER)
+  HANDLE threadHandle = aData.PlatformDataCRef().ProfiledThread();
+  EXPECT_NE(threadHandle, nullptr);
+  EXPECT_EQ(ProfilerThreadId::FromNumber(::GetThreadId(threadHandle)),
+            aThreadId);
+  // Test calling QueryThreadCycleTime, we cannot assume that it will always
+  // work, but at least it shouldn't crash.
+  ULONG64 cycles;
+  (void)QueryThreadCycleTime(threadHandle, &cycles);
+#elif defined(__APPLE__) && defined(MOZ_GECKO_PROFILER)
+  // Test calling thread_info, we cannot assume that it will always work, but at
+  // least it shouldn't crash.
+  thread_basic_info_data_t threadBasicInfo;
+  mach_msg_type_number_t basicCount = THREAD_BASIC_INFO_COUNT;
+  (void)thread_info(
+      aData.PlatformDataCRef().ProfiledThread(), THREAD_BASIC_INFO,
+      reinterpret_cast<thread_info_t>(&threadBasicInfo), &basicCount);
+#elif (defined(__linux__) || defined(__ANDROID__) || defined(__FreeBSD__)) && \
+    defined(MOZ_GECKO_PROFILER)
+  // Test calling GetClockId, we cannot assume that it will always work, but at
+  // least it shouldn't crash.
+  Maybe<clockid_t> maybeClockId = aData.PlatformDataCRef().GetClockId();
+  if (maybeClockId) {
+    // Test calling clock_gettime, we cannot assume that it will always work,
+    // but at least it shouldn't crash.
+    timespec ts;
+    (void)clock_gettime(*maybeClockId, &ts);
+  }
+#else
   (void)aData.PlatformDataCRef();
+#endif
 
   EXPECT_GE(aData.StackTop(), aOnStackObject)
       << "StackTop should be at &onStackChar, or higher on some "
@@ -312,6 +342,7 @@ static void TestConstLockedRWFromAnyThread(
                                              aAfterRegistration, aOnStackObject,
                                              aThreadId);
 
+  EXPECT_EQ(aData.GetJsFrameBuffer(), nullptr);
   EXPECT_EQ(aData.GetEventTarget(), nullptr);
 };
 
@@ -326,11 +357,13 @@ static void TestLockedRWFromAnyThread(
                                         aAfterRegistration, aOnStackObject,
                                         aThreadId);
 
-  // We can't create a PSAutoLock here, so just verify that the call would
-  // compile and return the expected type.
-  static_assert(std::is_same_v<decltype(aData.SetIsBeingProfiled(
-                                   true, std::declval<PSAutoLock>())),
-                               void>);
+  // We can't create a ProfiledThreadData nor PSAutoLock here, so just verify
+  // that the call would compile and return the expected type.
+  static_assert(
+      std::is_same_v<decltype(aData.SetIsBeingProfiledWithProfiledThreadData(
+                         std::declval<ProfiledThreadData*>(),
+                         std::declval<PSAutoLock>())),
+                     void>);
 
   aData.ResetMainThread(nullptr);
 
@@ -381,7 +414,6 @@ TEST(GeckoProfiler, ThreadRegistration_DataAccess)
   profiler_init_main_thread_id();
   ASSERT_TRUE(profiler_is_main_thread())
   << "This test assumes it runs on the main thread";
-  EnsureThreadRegistrationTLSIsInitialized();
 
   // Note that the main thread could already be registered, so we work in a new
   // thread to test an actual registration that we control.
@@ -568,7 +600,6 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
   profiler_init_main_thread_id();
   ASSERT_TRUE(profiler_is_main_thread())
   << "This test assumes it runs on the main thread";
-  EnsureThreadRegistrationTLSIsInitialized();
 
   // Note that the main thread could already be registered, so we work in a new
   // thread to test actual registrations that we control.
@@ -688,6 +719,47 @@ TEST(GeckoProfiler, ThreadRegistration_NestedRegistrations)
       ASSERT_FALSE(TR::IsRegistered());
     }
 
+    // Excess UnregisterThread with on-stack TR.
+    {
+      TR rt2{"Test thread #11", &onStackChar};
+      ASSERT_TRUE(TR::IsRegistered());
+      EXPECT_STREQ(GetThreadName(), "Test thread #11");
+
+      TR::UnregisterThread();
+      ASSERT_TRUE(TR::IsRegistered())
+      << "On-stack thread should still be registered after off-stack "
+         "un-registration";
+      EXPECT_STREQ(GetThreadName(), "Test thread #11")
+          << "On-stack thread should still be registered after off-stack "
+             "un-registration";
+    }
+    ASSERT_FALSE(TR::IsRegistered());
+
+    // Excess on-thread TR destruction with already-unregistered root off-thread
+    // registration.
+    {
+      TR::RegisterThread("Test thread #12", &onStackChar);
+      ASSERT_TRUE(TR::IsRegistered());
+      EXPECT_STREQ(GetThreadName(), "Test thread #12");
+
+      {
+        TR rt3{"Test thread #13", &onStackChar};
+        ASSERT_TRUE(TR::IsRegistered());
+        EXPECT_STREQ(GetThreadName(), "Test thread #12")
+            << "Nested registration shouldn't change the name";
+
+        // Note that we unregister the root registration, while nested `rt3` is
+        // still alive.
+        TR::UnregisterThread();
+        ASSERT_FALSE(TR::IsRegistered())
+        << "UnregisterThread() of the root RegisterThread() should always work";
+
+        // At this end of this block, `rt3` will be destroyed, but nothing
+        // should happen.
+      }
+      ASSERT_FALSE(TR::IsRegistered());
+    }
+
     ASSERT_FALSE(TR::IsRegistered());
   });
   testThread.join();
@@ -701,7 +773,6 @@ TEST(GeckoProfiler, ThreadRegistry_DataAccess)
   profiler_init_main_thread_id();
   ASSERT_TRUE(profiler_is_main_thread())
   << "This test assumes it runs on the main thread";
-  EnsureThreadRegistrationTLSIsInitialized();
 
   // Note that the main thread could already be registered, so we work in a new
   // thread to test an actual registration that we control.
@@ -1358,8 +1429,6 @@ TEST(GeckoProfiler, MultiRegistration)
 {
   // This whole test only checks that function calls don't crash, they don't
   // actually verify that threads get profiled or not.
-  char top;
-  profiler_register_thread("Main thread again", &top);
 
   {
     std::thread thread([]() {
@@ -1692,33 +1761,33 @@ TEST(GeckoProfiler, Markers)
       // that correctly matches StreamJSONMarkerData data above! Instead we only
       // test that it outputs the expected JSON at the end.
       using MS = mozilla::MarkerSchema;
-      MS schema{MS::Location::markerChart,      MS::Location::markerTable,
-                MS::Location::timelineOverview, MS::Location::timelineMemory,
-                MS::Location::timelineIPC,      MS::Location::timelineFileIO,
-                MS::Location::stackChart};
+      MS schema{MS::Location::MarkerChart,      MS::Location::MarkerTable,
+                MS::Location::TimelineOverview, MS::Location::TimelineMemory,
+                MS::Location::TimelineIPC,      MS::Location::TimelineFileIO,
+                MS::Location::StackChart};
       // All label functions.
       schema.SetChartLabel("chart label");
       schema.SetTooltipLabel("tooltip label");
       schema.SetTableLabel("table label");
       // All data functions, all formats, all "searchable" values.
-      schema.AddKeyFormat("key with url", MS::Format::url);
+      schema.AddKeyFormat("key with url", MS::Format::Url);
       schema.AddKeyLabelFormat("key with label filePath", "label filePath",
-                               MS::Format::filePath);
+                               MS::Format::FilePath);
       schema.AddKeyFormatSearchable("key with string not-searchable",
-                                    MS::Format::string,
-                                    MS::Searchable::notSearchable);
+                                    MS::Format::String,
+                                    MS::Searchable::NotSearchable);
       schema.AddKeyLabelFormatSearchable("key with label duration searchable",
-                                         "label duration", MS::Format::duration,
-                                         MS::Searchable::searchable);
-      schema.AddKeyFormat("key with time", MS::Format::time);
-      schema.AddKeyFormat("key with seconds", MS::Format::seconds);
-      schema.AddKeyFormat("key with milliseconds", MS::Format::milliseconds);
-      schema.AddKeyFormat("key with microseconds", MS::Format::microseconds);
-      schema.AddKeyFormat("key with nanoseconds", MS::Format::nanoseconds);
-      schema.AddKeyFormat("key with bytes", MS::Format::bytes);
-      schema.AddKeyFormat("key with percentage", MS::Format::percentage);
-      schema.AddKeyFormat("key with integer", MS::Format::integer);
-      schema.AddKeyFormat("key with decimal", MS::Format::decimal);
+                                         "label duration", MS::Format::Duration,
+                                         MS::Searchable::Searchable);
+      schema.AddKeyFormat("key with time", MS::Format::Time);
+      schema.AddKeyFormat("key with seconds", MS::Format::Seconds);
+      schema.AddKeyFormat("key with milliseconds", MS::Format::Milliseconds);
+      schema.AddKeyFormat("key with microseconds", MS::Format::Microseconds);
+      schema.AddKeyFormat("key with nanoseconds", MS::Format::Nanoseconds);
+      schema.AddKeyFormat("key with bytes", MS::Format::Bytes);
+      schema.AddKeyFormat("key with percentage", MS::Format::Percentage);
+      schema.AddKeyFormat("key with integer", MS::Format::Integer);
+      schema.AddKeyFormat("key with decimal", MS::Format::Decimal);
       schema.AddStaticLabelValue("static label", "static value");
       return schema;
     }

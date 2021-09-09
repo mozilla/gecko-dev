@@ -45,8 +45,8 @@ var PocketCustomizableWidget = {
       l10nId: "save-to-pocket-button",
       type: "view",
       viewId: "PanelUI-savetopocket",
-      // This closes any open Pocket panels if you change tabs.
-      tabSpecific: true,
+      // This closes any open Pocket panels if you change location.
+      locationSpecific: true,
       onViewShowing(aEvent) {
         let panelView = aEvent.target;
         let panelNode = panelView.querySelector(
@@ -56,6 +56,7 @@ var PocketCustomizableWidget = {
         let frame = doc.createXULElement("browser");
 
         frame.setAttribute("type", "content");
+        frame.setAttribute("remote", true);
         panelNode.appendChild(frame);
 
         SaveToPocket.onShownInToolbarPanel(panelNode, frame);

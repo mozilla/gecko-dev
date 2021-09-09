@@ -894,36 +894,6 @@ class gfxTextRun : public gfxShapedText {
   ShapingState mShapingState;
 };
 
-enum class FallbackTypes : uint8_t {
-  // Font fallback used a font configured in Preferences
-  FallbackToPrefsFont = 1 << 0,
-  // Font fallback used a font with FontVisibility::Base
-  FallbackToBaseFont = 1 << 1,
-  // Font fallback used a font with FontVisibility::LangPack
-  FallbackToLangPackFont = 1 << 2,
-  // Font fallback used a font with FontVisibility::User
-  FallbackToUserFont = 1 << 3,
-  // Rendered missing-glyph because no font available for the character
-  MissingFont = 1 << 4,
-  // Rendered missing-glyph but a LangPack font could have been used
-  MissingFontLangPack = 1 << 5,
-  // Rendered missing-glyph but a User font could have been used
-  MissingFontUser = 1 << 6,
-};
-
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(FallbackTypes)
-
-struct FontMatchingStats {
-  // Set of names that have been looked up (whether successfully or not).
-  nsTHashSet<nsCString> mFamilyNames;
-  // Number of font-family names resolved at each level of visibility.
-  uint32_t mBaseFonts = 0;
-  uint32_t mLangPackFonts = 0;
-  uint32_t mUserFonts = 0;
-  uint32_t mWebFonts = 0;
-  FallbackTypes mFallbacks = FallbackTypes(0);
-};
-
 class gfxFontGroup final : public gfxTextRunFactory {
  public:
   typedef mozilla::unicode::Script Script;
@@ -932,10 +902,10 @@ class gfxFontGroup final : public gfxTextRunFactory {
   static void
   Shutdown();  // platform must call this to release the languageAtomService
 
-  gfxFontGroup(const mozilla::StyleFontFamilyList& aFontFamilyList,
+  gfxFontGroup(nsPresContext* aPresContext,
+               const mozilla::StyleFontFamilyList& aFontFamilyList,
                const gfxFontStyle* aStyle, nsAtom* aLanguage,
                bool aExplicitLanguage, gfxTextPerfMetrics* aTextPerf,
-               FontMatchingStats* aFontMatchingStats,
                gfxUserFontSet* aUserFontSet, gfxFloat aDevToCssSize);
 
   virtual ~gfxFontGroup();
@@ -1050,8 +1020,6 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
   // used when logging text performance
   gfxTextPerfMetrics* GetTextPerfMetrics() const { return mTextPerf; }
-
-  FontMatchingStats* GetFontMatchingStats() const { return mFontMatchingStats; }
 
   // This will call UpdateUserFonts() if the user font set is changed.
   void SetUserFontSet(gfxUserFontSet* aUserFontSet);
@@ -1372,6 +1340,8 @@ class gfxFontGroup final : public gfxTextRunFactory {
     bool mHasFontEntry : 1;
   };
 
+  nsPresContext* mPresContext = nullptr;
+
   // List of font families, either named or generic.
   // Generic names map to system pref fonts based on language.
   mozilla::StyleFontFamilyList mFamilyList;
@@ -1395,8 +1365,6 @@ class gfxFontGroup final : public gfxTextRunFactory {
                              // rebuild font list if needed
 
   gfxTextPerfMetrics* mTextPerf;
-
-  FontMatchingStats* mFontMatchingStats;
 
   // Cache a textrun representing an ellipsis (useful for CSS text-overflow)
   // at a specific appUnitsPerDevPixel size and orientation

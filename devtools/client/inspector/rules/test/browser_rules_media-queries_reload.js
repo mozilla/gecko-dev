@@ -22,8 +22,6 @@ const TEST_URI = `
   <div></div>
 `;
 
-ignoreGetGridsPromiseRejections();
-
 add_task(async function() {
   await addTab("data:text/html;charset=utf-8," + encodeURIComponent(TEST_URI));
   const { inspector, view: ruleView, toolbox } = await openRuleView();
@@ -41,7 +39,7 @@ add_task(async function() {
   ok(true, "Small viewport media query inspected");
 
   info("Reload the current page");
-  await refreshTab();
+  await reloadBrowser();
   await selectNode("div", inspector);
 
   info("Resize window so the media query for large viewports applies");

@@ -98,6 +98,9 @@ def make_dir(dirname, exist_ok=True):
 outroot = os.path.join(testdir, "out")
 make_dir(outroot)
 
+os.environ["HAZARD_RUN_INTERNAL_TESTS"] = "1"
+
+failed = set()
 for name in cfg.tests:
     name = os.path.basename(name)
     indir = os.path.join(testdir, name)
@@ -117,8 +120,13 @@ for name in cfg.tests:
         exec(testcode, {"test": test, "equal": equal})
     except subprocess.CalledProcessError:
         print("TEST-FAILED: %s" % name)
+        failed.add(name)
     except AssertionError:
         print("TEST-FAILED: %s" % name)
+        failed.add(name)
         raise
     else:
         print("TEST-PASSED: %s" % name)
+
+if failed:
+    raise Exception("Failed tests: " + " ".join(failed))

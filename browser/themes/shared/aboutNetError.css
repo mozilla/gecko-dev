@@ -22,7 +22,6 @@ body {
 
 body.certerror {
   width: 100%;
-  justify-content: normal;
 }
 
 body.captiveportal .title {
@@ -133,6 +132,7 @@ body:not(.neterror) #advancedButton {
 
 #advancedPanelContainer {
   width: 100%;
+  position: absolute;
   left: 0;
 }
 
@@ -162,7 +162,6 @@ body:not(.neterror) #advancedButton {
 }
 
 #errorCode {
-  cursor: pointer;
   white-space: nowrap;
 }
 
@@ -177,7 +176,6 @@ body:not(.neterror) #advancedButton {
 }
 
 #certificateErrorDebugInformation {
-  display: none;
   background-color: var(--in-content-box-info-background) !important;
   border-top: 1px solid var(--in-content-border-color);
   width: 100%;
@@ -268,6 +266,13 @@ body:not(.neterror) #advancedButton {
     background-position: top left;
     padding-top: 60px;
     margin-top: -60px;
+  }
+  /* Reduce the negative margin on small viewport sizes to avoid exceeding the
+   * 38px body vertical padding error-pages.css sets, leaving 8px space: */
+  @media (max-height: 480px) {
+    body.certerror .title {
+      margin-top: -30px;
+    }
   }
 
   body.certerror .title:dir(rtl) {

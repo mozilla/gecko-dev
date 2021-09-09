@@ -33,7 +33,6 @@
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/PTextureChild.h"
-#include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/TextureClientOGL.h"
 #include "mozilla/layers/TextureClientRecycleAllocator.h"
 #include "mozilla/layers/TextureRecorded.h"
@@ -48,10 +47,6 @@
 #  include "mozilla/gfx/DeviceManagerDx.h"
 #  include "mozilla/layers/TextureD3D11.h"
 #  include "mozilla/layers/TextureDIB.h"
-#endif
-#ifdef MOZ_X11
-#  include "GLXLibrary.h"
-#  include "mozilla/layers/TextureClientX11.h"
 #endif
 #ifdef MOZ_WAYLAND
 #  include <gtk/gtkx.h>
@@ -297,21 +292,6 @@ static TextureType GetTextureType(gfx::SurfaceFormat aFormat,
   }
 #endif
 
-#ifdef MOZ_X11
-  gfxSurfaceType type =
-      gfxPlatform::GetPlatform()->ScreenReferenceSurface()->GetType();
-
-  if (layersBackend == LayersBackend::LAYERS_BASIC &&
-      moz2DBackend == gfx::BackendType::CAIRO && type == gfxSurfaceType::Xlib) {
-    return TextureType::X11;
-  }
-  if (layersBackend == LayersBackend::LAYERS_OPENGL &&
-      type == gfxSurfaceType::Xlib && aFormat != SurfaceFormat::A8 &&
-      gl::sGLXLibrary.UseTextureFromPixmap()) {
-    return TextureType::X11;
-  }
-#endif
-
 #ifdef XP_MACOSX
   if (StaticPrefs::gfx_use_iosurface_textures_AtStartup()) {
     return TextureType::MacIOSurface;
@@ -391,10 +371,6 @@ TextureData* TextureData::Create(TextureForwarder* aAllocator,
       return DMABUFTextureData::Create(aSize, aFormat, moz2DBackend);
 #endif
 
-#ifdef MOZ_X11
-    case TextureType::X11:
-      return X11TextureData::Create(aSize, aFormat, aTextureFlags, aAllocator);
-#endif
 #ifdef XP_MACOSX
     case TextureType::MacIOSurface:
       return MacIOSurfaceTextureData::Create(aSize, aFormat, moz2DBackend);
@@ -1034,13 +1010,6 @@ bool TextureClient::InitIPDLActor(CompositableForwarder* aForwarder) {
         MOZ_ASSERT_UNREACHABLE("unexpected to be called");
         return false;
       }
-      if (ShadowLayerForwarder* forwarder = aForwarder->AsLayerForwarder()) {
-        // Do the DOM labeling.
-        if (nsISerialEventTarget* target = forwarder->GetEventTarget()) {
-          forwarder->GetCompositorBridgeChild()->ReplaceEventTargetForActor(
-              mActor, target);
-        }
-      }
       mActor->mCompositableForwarder = aForwarder;
       mActor->mUsesImageBridge =
           aForwarder->GetTextureForwarder()->UsesImageBridge();
@@ -1059,12 +1028,6 @@ bool TextureClient::InitIPDLActor(CompositableForwarder* aForwarder) {
   mExternalImageId =
       aForwarder->GetTextureForwarder()->GetNextExternalImageId();
 
-  nsISerialEventTarget* target = nullptr;
-  // Get the layers id if the forwarder is a ShadowLayerForwarder.
-  if (ShadowLayerForwarder* forwarder = aForwarder->AsLayerForwarder()) {
-    target = forwarder->GetEventTarget();
-  }
-
   ReadLockDescriptor readLockDescriptor = null_t();
   if (mReadLock) {
     mReadLock->Serialize(readLockDescriptor, GetAllocator()->GetParentPid());
@@ -1072,7 +1035,7 @@ bool TextureClient::InitIPDLActor(CompositableForwarder* aForwarder) {
 
   PTextureChild* actor = aForwarder->GetTextureForwarder()->CreateTexture(
       desc, readLockDescriptor, aForwarder->GetCompositorBackendType(),
-      GetFlags(), mSerial, mExternalImageId, target);
+      GetFlags(), mSerial, mExternalImageId, nullptr);
 
   if (!actor) {
     gfxCriticalNote << static_cast<int32_t>(desc.type()) << ", "

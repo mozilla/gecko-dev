@@ -594,10 +594,7 @@ class SpecialPowersChild extends JSWindowActorChild {
 
   loadChromeScript(urlOrFunction, sandboxOptions) {
     // Create a unique id for this chrome script
-    let uuidGenerator = Cc["@mozilla.org/uuid-generator;1"].getService(
-      Ci.nsIUUIDGenerator
-    );
-    let id = uuidGenerator.generateUUID().toString();
+    let id = Services.uuid.generateUUID().toString();
 
     // Tells chrome code to evaluate this chrome script
     let scriptArgs = { id, sandboxOptions };
@@ -1612,13 +1609,14 @@ class SpecialPowersChild extends JSWindowActorChild {
     });
   }
 
-  snapshotContext(target, rect, background) {
+  snapshotContext(target, rect, background, resetScrollPosition = false) {
     let browsingContext = this._browsingContextForTarget(target);
 
     return this.sendQuery("Snapshot", {
       browsingContext,
       rect,
       background,
+      resetScrollPosition,
     }).then(imageData => {
       return this.contentWindow.createImageBitmap(imageData);
     });
@@ -1783,10 +1781,7 @@ class SpecialPowersChild extends JSWindowActorChild {
     if (cid) {
       componentRegistrar.unregisterFactory(currentCID, currentFactory);
     } else {
-      let uuidGenerator = Cc["@mozilla.org/uuid-generator;1"].getService(
-        Ci.nsIUUIDGenerator
-      );
-      cid = uuidGenerator.generateUUID();
+      cid = Services.uuid.generateUUID();
     }
 
     // Restore the original factory.

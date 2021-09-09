@@ -10,17 +10,16 @@
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/dom/Animation.h"  // for Animation
 #include "mozilla/layers/ScrollableLayerGuid.h"  // for ScrollableLayerGuid, ScrollableLayerGuid::ViewID
-#include "nsRefPtrHashtable.h"  // for nsRefPtrHashtable
+#include "mozilla/ScrollPositionUpdate.h"  // for ScrollPositionUpdate
+#include "nsRefPtrHashtable.h"             // for nsRefPtrHashtable
+#include "gfxContext.h"
 
-class gfxContext;
 namespace mozilla {
 namespace layers {
 class LayerManager;
 class WebRenderLayerManager;
 class KnowsCompositor;
-class ShadowLayerForwarder;
 class CompositorBridgeChild;
-class ClientLayerManager;
 class FrameUniformityData;
 class PersistentBufferProvider;
 }  // namespace layers
@@ -101,7 +100,6 @@ class WindowRenderer : public FrameRecorder {
 
  public:
   // Cast to implementation types.
-  virtual layers::LayerManager* AsLayerManager() { return nullptr; }
   virtual layers::WebRenderLayerManager* AsWebRender() { return nullptr; }
   virtual FallbackRenderer* AsFallback() { return nullptr; }
 
@@ -177,6 +175,12 @@ class WindowRenderer : public FrameRecorder {
   virtual bool IsCompositingCheap() { return true; }
 
   /**
+   * returns the maximum texture size on this layer backend, or INT32_MAX
+   * if there is no maximum
+   */
+  virtual int32_t GetMaxTextureSize() const { return INT32_MAX; }
+
+  /**
    * Return the name of the layer manager's backend.
    */
   virtual void GetBackendName(nsAString& aName) = 0;
@@ -201,13 +205,9 @@ class WindowRenderer : public FrameRecorder {
 
   virtual layers::KnowsCompositor* AsKnowsCompositor() { return nullptr; }
 
-  virtual layers::ShadowLayerForwarder* AsShadowForwarder() { return nullptr; }
-
   virtual layers::CompositorBridgeChild* GetCompositorBridgeChild() {
     return nullptr;
   }
-
-  virtual layers::ClientLayerManager* AsClientLayerManager() { return nullptr; }
 
   // Provided functionality
 

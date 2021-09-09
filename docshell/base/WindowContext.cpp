@@ -18,6 +18,7 @@
 #include "mozilla/ClearOnShutdown.h"
 #include "nsGlobalWindowInner.h"
 #include "nsIScriptError.h"
+#include "nsIXULRuntime.h"
 #include "nsRefPtrHashtable.h"
 #include "nsContentUtils.h"
 
@@ -63,8 +64,15 @@ WindowGlobalParent* WindowContext::Canonical() {
   return static_cast<WindowGlobalParent*>(this);
 }
 
-bool WindowContext::IsCached() const {
-  return mBrowsingContext->mCurrentWindowContext != this;
+bool WindowContext::IsCurrent() const {
+  return mBrowsingContext->mCurrentWindowContext == this;
+}
+
+bool WindowContext::IsInBFCache() {
+  if (mozilla::SessionHistoryInParent()) {
+    return mBrowsingContext->IsInBFCache();
+  }
+  return TopWindowContext()->GetWindowStateSaved();
 }
 
 nsGlobalWindowInner* WindowContext::GetInnerWindow() const {
@@ -117,7 +125,7 @@ void WindowContext::AppendChildBrowsingContext(
 
   // If we're the current WindowContext in our BrowsingContext, make sure to
   // clear any cached `children` value.
-  if (!IsCached()) {
+  if (IsCurrent()) {
     BrowsingContext_Binding::ClearCachedChildrenValue(mBrowsingContext);
   }
 }
@@ -131,7 +139,7 @@ void WindowContext::RemoveChildBrowsingContext(
 
   // If we're the current WindowContext in our BrowsingContext, make sure to
   // clear any cached `children` value.
-  if (!IsCached()) {
+  if (IsCurrent()) {
     BrowsingContext_Binding::ClearCachedChildrenValue(mBrowsingContext);
   }
 }
@@ -354,6 +362,12 @@ void WindowContext::DidSet(FieldIndex<IDX_HasReportedShadowDOMUsage>,
   }
 }
 
+bool WindowContext::CanSet(FieldIndex<IDX_WindowStateSaved>, bool aValue,
+                           ContentParent* aSource) {
+  return !mozilla::SessionHistoryInParent() && IsTop() &&
+         CheckOnlyOwningProcessCanSet(aSource);
+}
+
 void WindowContext::CreateFromIPC(IPCInitializer&& aInit) {
   MOZ_RELEASE_ASSERT(XRE_IsContentProcess(),
                      "Should be a WindowGlobalParent in the parent");
@@ -462,7 +476,7 @@ bool WindowContext::HasValidTransientUserGestureActivation() {
 
 bool WindowContext::ConsumeTransientUserGestureActivation() {
   MOZ_ASSERT(IsInProcess());
-  MOZ_ASSERT(!IsCached());
+  MOZ_ASSERT(IsCurrent());
 
   if (!HasValidTransientUserGestureActivation()) {
     return false;

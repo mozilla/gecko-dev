@@ -161,7 +161,7 @@ textarea > scrollbar {
   visibility: hidden;
 }
 
-::-moz-text-control-editing-root,
+:not(:-moz-autofill-preview)::-moz-text-control-editing-root,
 :placeholder-shown:not(:autofill)::placeholder,
 :autofill::-moz-text-control-preview {
   visibility: inherit;
@@ -351,14 +351,14 @@ select > option {
 }
 
 option:checked {
-  background-color: -moz-html-cellhighlight !important;
-  color: -moz-html-cellhighlighttext !important;
+  background-color: -moz-cellhighlight !important;
+  color: -moz-cellhighlighttext !important;
 }
 
 select:focus > option:checked,
 select:focus > optgroup > option:checked {
-  background-color: Highlight !important;
-  color: HighlightText !important;
+  background-color: SelectedItem !important;
+  color: SelectedItemText !important;
 }
 
 optgroup {

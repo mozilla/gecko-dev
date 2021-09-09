@@ -101,7 +101,7 @@ class FileAndPathHelper {
       );
     }
 
-    const { name, path, debugPath } = lib;
+    const { name, path, debugPath, arch } = lib;
     const candidatePaths = [];
 
     // First, try to find a binary with a matching file name and breakpadId
@@ -117,13 +117,19 @@ class FileAndPathHelper {
     // This only works if the binary is one of the Gecko binaries and not
     // a system library.
     for (const objdirPath of this._objdirs) {
-      // Binaries are usually expected to exist at objdir/dist/bin/filename.
-      candidatePaths.push(OS.Path.join(objdirPath, "dist", "bin", name));
-      // Also search in the "objdir" directory itself (not just in dist/bin).
-      // If, for some unforeseen reason, the relevant binary is not inside the
-      // objdirs dist/bin/ directory, this provides a way out because it lets the
-      // user specify the actual location.
-      candidatePaths.push(OS.Path.join(objdirPath, name));
+      try {
+        // Binaries are usually expected to exist at objdir/dist/bin/filename.
+        candidatePaths.push(PathUtils.join(objdirPath, "dist", "bin", name));
+
+        // Also search in the "objdir" directory itself (not just in dist/bin).
+        // If, for some unforeseen reason, the relevant binary is not inside the
+        // objdirs dist/bin/ directory, this provides a way out because it lets the
+        // user specify the actual location.
+        candidatePaths.push(PathUtils.join(objdirPath, name));
+      } catch (e) {
+        // PathUtils.join throws if objdirPath is not an absolute path.
+        // Ignore those invalid objdir paths.
+      }
     }
 
     // Check the absolute paths of the library last.
@@ -144,6 +150,16 @@ class FileAndPathHelper {
     // (and not, for example, on an Android device), this file should always
     // exist.
     candidatePaths.push(path);
+
+    // On macOS, for system libraries, add a final fallback for the dyld shared
+    // cache. Starting with macOS 11, most system libraries are located in this
+    // system-wide cache file and not present as individual files.
+    if (arch && (path.startsWith("/usr/") || path.startsWith("/System/"))) {
+      // Use the special syntax `dyldcache:<dyldcachepath>:<librarypath>`.
+      candidatePaths.push(
+        `dyldcache:/System/Library/dyld/dyld_shared_cache_${arch}:${path}`
+      );
+    }
 
     return candidatePaths;
   }

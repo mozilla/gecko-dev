@@ -74,6 +74,7 @@ linux64-clang-12-mingw-x86:
             - linux64-gcc-7
             - linux64-binutils
             - linux64-toolchain-sysroot
+            - wasm32-wasi-compiler-rt
 
 linux64-clang-12-mingw-x64:
     description: "MinGW-Clang 12 x64 toolchain build"
@@ -100,6 +101,7 @@ linux64-clang-12-mingw-x64:
             - linux64-gcc-7
             - linux64-binutils
             - linux64-toolchain-sysroot
+            - wasm32-wasi-compiler-rt
 
 linux64-clang-10:
     description: "Clang 10 toolchain build"
@@ -120,6 +122,7 @@ linux64-clang-10:
             - linux64-binutils
             - linux64-gcc-7
             - linux64-toolchain-sysroot
+            - wasm32-wasi-compiler-rt-10
 
 linux64-clang-11:
     description: "Clang 11 toolchain build"
@@ -319,7 +322,7 @@ win64-clang-11:
     worker-type: b-win2012
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.8.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
         max-run-time: 9000
     run-on-projects:
         - trunk
@@ -345,7 +348,7 @@ win64-clang-11-2stage:
     worker-type: b-win2012
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.8.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
     run:
         script: build-clang.sh
         arguments:
@@ -546,7 +549,7 @@ win64-clang-12:
     worker-type: b-win2012
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.8.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
         max-run-time: 9000
     run-on-projects:
         - trunk
@@ -575,7 +578,7 @@ win64-clang-12-2stage:
     worker-type: b-win2012
     worker:
         env:
-            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.8.manifest"
+            TOOLTOOL_MANIFEST: "browser/config/tooltool-manifests/vs2017-15.9.manifest"
     run:
         script: build-clang.sh
         arguments:

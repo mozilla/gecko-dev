@@ -4061,9 +4061,9 @@ void nsTextPaintStyle::InitCommonColors() {
   nscolor defaultWindowBackgroundColor =
       LookAndFeel::Color(LookAndFeel::ColorID::WindowBackground, mFrame);
   nscolor selectionTextColor =
-      LookAndFeel::Color(LookAndFeel::ColorID::TextSelectForeground, mFrame);
+      LookAndFeel::Color(LookAndFeel::ColorID::Highlighttext, mFrame);
   nscolor selectionBGColor =
-      LookAndFeel::Color(LookAndFeel::ColorID::TextSelectBackground, mFrame);
+      LookAndFeel::Color(LookAndFeel::ColorID::Highlight, mFrame);
 
   mSufficientContrast = std::min(
       std::min(NS_SUFFICIENT_LUMINOSITY_DIFFERENCE,
@@ -4111,7 +4111,7 @@ bool nsTextPaintStyle::InitSelectionColorsAndShadow() {
   }
 
   nscolor selectionBGColor =
-      LookAndFeel::Color(LookAndFeel::ColorID::TextSelectBackground, mFrame);
+      LookAndFeel::Color(LookAndFeel::ColorID::Highlight, mFrame);
 
   switch (selectionStatus) {
     case nsISelectionController::SELECTION_ATTENTION: {
@@ -4135,7 +4135,7 @@ bool nsTextPaintStyle::InitSelectionColorsAndShadow() {
   }
 
   mSelectionTextColor =
-      LookAndFeel::Color(LookAndFeel::ColorID::TextSelectForeground, mFrame);
+      LookAndFeel::Color(LookAndFeel::ColorID::Highlighttext, mFrame);
 
   if (mResolveColors) {
     // On MacOS X, only the background color gets set,
@@ -4384,6 +4384,35 @@ void nsTextFrame::DestroyFrom(nsIFrame* aDestructRoot,
   nsIFrame::DestroyFrom(aDestructRoot, aPostDestroyData);
 }
 
+nsTArray<nsTextFrame*>* nsTextFrame::GetContinuations() {
+  MOZ_ASSERT(NS_IsMainThread());
+  // Only for use on the primary frame, which has no prev-continuation.
+  MOZ_ASSERT(!GetPrevContinuation());
+  if (!mNextContinuation) {
+    return nullptr;
+  }
+  if (mHasContinuationsProperty) {
+    return GetProperty(ContinuationsProperty());
+  }
+  size_t count = 0;
+  for (nsIFrame* f = this; f; f = f->GetNextContinuation()) {
+    ++count;
+  }
+  auto* continuations = new nsTArray<nsTextFrame*>;
+  if (continuations->SetCapacity(count, fallible)) {
+    for (nsTextFrame* f = this; f;
+         f = static_cast<nsTextFrame*>(f->GetNextContinuation())) {
+      continuations->AppendElement(f);
+    }
+  } else {
+    delete continuations;
+    continuations = nullptr;
+  }
+  AddProperty(ContinuationsProperty(), continuations);
+  mHasContinuationsProperty = true;
+  return continuations;
+}
+
 class nsContinuingTextFrame final : public nsTextFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsContinuingTextFrame)
@@ -4398,6 +4427,7 @@ class nsContinuingTextFrame final : public nsTextFrame {
                    PostDestroyData& aPostDestroyData) final;
 
   nsTextFrame* GetPrevContinuation() const final { return mPrevContinuation; }
+
   void SetPrevContinuation(nsIFrame* aPrevContinuation) final {
     NS_ASSERTION(!aPrevContinuation || Type() == aPrevContinuation->Type(),
                  "setting a prev continuation with incorrect type!");
@@ -4406,11 +4436,32 @@ class nsContinuingTextFrame final : public nsTextFrame {
         "creating a loop in continuation chain!");
     mPrevContinuation = static_cast<nsTextFrame*>(aPrevContinuation);
     RemoveStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    nsTextFrame* prevFirst = mFirstContinuation;
+    if (mPrevContinuation) {
+      mFirstContinuation = mPrevContinuation->FirstContinuation();
+      if (mFirstContinuation) {
+        mFirstContinuation->ClearCachedContinuations();
+      }
+    } else {
+      mFirstContinuation = nullptr;
+    }
+    if (mFirstContinuation != prevFirst) {
+      if (prevFirst) {
+        prevFirst->ClearCachedContinuations();
+      }
+      auto* f = static_cast<nsContinuingTextFrame*>(mNextContinuation);
+      while (f) {
+        f->mFirstContinuation = mFirstContinuation;
+        f = static_cast<nsContinuingTextFrame*>(f->mNextContinuation);
+      }
+    }
   }
+
   nsTextFrame* GetPrevInFlow() const final {
     return HasAnyStateBits(NS_FRAME_IS_FLUID_CONTINUATION) ? mPrevContinuation
                                                            : nullptr;
   }
+
   void SetPrevInFlow(nsIFrame* aPrevInFlow) final {
     NS_ASSERTION(!aPrevInFlow || Type() == aPrevInFlow->Type(),
                  "setting a prev in flow with incorrect type!");
@@ -4419,9 +4470,33 @@ class nsContinuingTextFrame final : public nsTextFrame {
         "creating a loop in continuation chain!");
     mPrevContinuation = static_cast<nsTextFrame*>(aPrevInFlow);
     AddStateBits(NS_FRAME_IS_FLUID_CONTINUATION);
+    nsTextFrame* prevFirst = mFirstContinuation;
+    if (mPrevContinuation) {
+      mFirstContinuation = mPrevContinuation->FirstContinuation();
+      if (mFirstContinuation) {
+        mFirstContinuation->ClearCachedContinuations();
+      }
+    } else {
+      mFirstContinuation = nullptr;
+    }
+    if (mFirstContinuation != prevFirst) {
+      if (prevFirst) {
+        prevFirst->ClearCachedContinuations();
+      }
+      auto* f = static_cast<nsContinuingTextFrame*>(mNextContinuation);
+      while (f) {
+        f->mFirstContinuation = mFirstContinuation;
+        f = static_cast<nsContinuingTextFrame*>(f->mNextContinuation);
+      }
+    }
   }
+
   nsIFrame* FirstInFlow() const final;
-  nsIFrame* FirstContinuation() const final;
+  nsTextFrame* FirstContinuation() const final {
+    MOZ_DIAGNOSTIC_ASSERT(mFirstContinuation || !mPrevContinuation,
+                          "mFirstContinuation unexpectedly null!");
+    return mFirstContinuation;
+  };
 
   void AddInlineMinISize(gfxContext* aRenderingContext,
                          InlineMinISizeData* aData) final;
@@ -4434,6 +4509,7 @@ class nsContinuingTextFrame final : public nsTextFrame {
       : nsTextFrame(aStyle, aPresContext, kClassID) {}
 
   nsTextFrame* mPrevContinuation;
+  nsTextFrame* mFirstContinuation = nullptr;
 };
 
 void nsContinuingTextFrame::Init(nsIContent* aContent,
@@ -4534,23 +4610,6 @@ nsIFrame* nsContinuingTextFrame::FirstInFlow() const {
   } while (previous);
   MOZ_ASSERT(firstInFlow, "post-condition failed");
   return firstInFlow;
-}
-
-nsIFrame* nsContinuingTextFrame::FirstContinuation() const {
-  // Can't cast to |nsContinuingTextFrame*| because the first one isn't.
-  nsIFrame *firstContinuation,
-      *previous = const_cast<nsIFrame*>(
-          static_cast<const nsIFrame*>(mPrevContinuation));
-
-  NS_ASSERTION(previous,
-               "How can an nsContinuingTextFrame be the first continuation?");
-
-  do {
-    firstContinuation = previous;
-    previous = firstContinuation->GetPrevContinuation();
-  } while (previous);
-  MOZ_ASSERT(firstContinuation, "post-condition failed");
-  return firstContinuation;
 }
 
 // XXX Do we want to do all the work for the first-in-flow or do the
@@ -7446,6 +7505,33 @@ bool nsTextFrame::IsFrameSelected() const {
   return mIsSelected == nsTextFrame::SelectionState::Selected;
 }
 
+nsTextFrame* nsTextFrame::FindContinuationForOffset(int32_t aOffset) {
+  // Use a continuations array to accelerate finding the first continuation
+  // of interest, if possible.
+  MOZ_ASSERT(!GetPrevContinuation(), "should be called on the primary frame");
+  auto* continuations = GetContinuations();
+  nsTextFrame* f = this;
+  if (continuations) {
+    size_t index;
+    if (BinarySearchIf(
+            *continuations, 0, continuations->Length(),
+            [=](nsTextFrame* aFrame) -> int {
+              return aOffset - aFrame->GetContentOffset();
+            },
+            &index)) {
+      f = (*continuations)[index];
+    } else {
+      f = (*continuations)[index ? index - 1 : 0];
+    }
+  }
+
+  while (f && f->GetContentEnd() <= aOffset) {
+    f = f->GetNextContinuation();
+  }
+
+  return f;
+}
+
 void nsTextFrame::SelectionStateChanged(uint32_t aStart, uint32_t aEnd,
                                         bool aSelected,
                                         SelectionType aSelectionType) {
@@ -7456,12 +7542,11 @@ void nsTextFrame::SelectionStateChanged(uint32_t aStart, uint32_t aEnd,
   InvalidateSelectionState();
 
   // Selection is collapsed, which can't affect text frame rendering
-  if (aStart == aEnd) return;
-
-  nsTextFrame* f = this;
-  while (f && f->GetContentEnd() <= int32_t(aStart)) {
-    f = f->GetNextContinuation();
+  if (aStart == aEnd) {
+    return;
   }
+
+  nsTextFrame* f = FindContinuationForOffset(aStart);
 
   nsPresContext* presContext = PresContext();
   while (f && f->GetContentOffset() < int32_t(aEnd)) {
@@ -8035,10 +8120,11 @@ ClusterIterator::ClusterIterator(nsTextFrame* aTextFrame, int32_t aPosition,
 
   int32_t textOffset = aTextFrame->GetContentOffset();
   int32_t textLen = aTextFrame->GetContentLength();
-  // XXX(Bug 1631371) Check if this should use a fallible operation as it
-  // pretended earlier.
+
+  // Allocate an extra element to record the word break at the end of the line
+  // or text run in mWordBreak[textLen].
   mWordBreaks.AppendElements(textLen + 1);
-  memset(mWordBreaks.Elements(), false, (textLen + 1) * sizeof(bool));
+  PodZero(mWordBreaks.Elements(), textLen + 1);
   int32_t textStart;
   if (aDirection > 0) {
     if (aContext.IsEmpty()) {
@@ -8060,14 +8146,17 @@ ClusterIterator::ClusterIterator(nsTextFrame* aTextFrame, int32_t aPosition,
   mozilla::intl::WordBreaker* wordBreaker = nsContentUtils::WordBreaker();
   int32_t nextWord = textStart > 0 ? textStart - 1 : textStart;
   while (true) {
-    nextWord =
-        wordBreaker->NextWord(aContext.get(), aContext.Length(), nextWord);
+    nextWord = wordBreaker->Next(aContext.get(), aContext.Length(), nextWord);
     if (NS_WORDBREAKER_NEED_MORE_TEXT == nextWord ||
         nextWord > textStart + textLen) {
       break;
     }
     mWordBreaks[nextWord - textStart] = true;
   }
+
+  MOZ_ASSERT(
+      textStart + textLen != int32_t(aContext.Length()) || mWordBreaks[textLen],
+      "There should be a word break at the end of a line or text run!");
 }
 
 nsIFrame::FrameSearchResult nsTextFrame::PeekOffsetWord(
@@ -8865,8 +8954,13 @@ static void RemoveEmptyInFlows(nsTextFrame* aFrame,
   prevContinuation->SetNextInFlow(aFirstToNotRemove);
   aFirstToNotRemove->SetPrevInFlow(prevContinuation);
 
-  aFrame->SetPrevInFlow(nullptr);
+  // **Note: it is important here that we clear the Next link from lastRemoved
+  // BEFORE clearing the Prev link from aFrame, because SetPrevInFlow() will
+  // follow the Next pointers, wiping out the cached mFirstContinuation field
+  // from each following frame in the list. We need this to stop when it
+  // reaches lastRemoved!
   lastRemoved->SetNextInFlow(nullptr);
+  aFrame->SetPrevInFlow(nullptr);
 
   nsContainerFrame* parent = aFrame->GetParent();
   nsBlockFrame* parentBlock = do_QueryFrame(parent);
@@ -9098,6 +9192,12 @@ void nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   RemoveStateBits(TEXT_REFLOW_FLAGS | TEXT_WHITESPACE_FLAGS);
   mReflowRequestedForCharDataChange = false;
   RemoveProperty(WebRenderTextBounds());
+
+  // Discard cached continuations array that will be invalidated by the reflow.
+  if (nsTextFrame* first = FirstContinuation()) {
+    first->ClearCachedContinuations();
+  }
+
   // Temporarily map all possible content while we construct our new textrun.
   // so that when doing reflow our styles prevail over any part of the
   // textrun we look at. Note that next-in-flows may be mapping the same

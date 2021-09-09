@@ -60,7 +60,8 @@ bool MResumePoint::writeRecoverData(CompactBufferWriter& writer) const {
   writer.writeUnsigned(uint32_t(RInstruction::Recover_ResumePoint));
 
   MBasicBlock* bb = block();
-  JSFunction* fun = bb->info().funMaybeLazy();
+  bool hasFun = bb->info().hasFunMaybeLazy();
+  uint32_t nargs = bb->info().nargs();
   JSScript* script = bb->info().script();
   uint32_t exprStack = stackDepth() - bb->info().ninvoke();
 
@@ -101,16 +102,17 @@ bool MResumePoint::writeRecoverData(CompactBufferWriter& writer) const {
   }
 #endif
 
+  uint32_t formalArgs = CountArgSlots(script, hasFun, nargs);
+
   // Test if we honor the maximum of arguments at all times.  This is a sanity
   // check and not an algorithm limit. So check might be a bit too loose.  +4
   // to account for scope chain, return value, this value and maybe
   // arguments_object.
-  MOZ_ASSERT(CountArgSlots(script, fun) < SNAPSHOT_MAX_NARGS + 4);
+  MOZ_ASSERT(formalArgs < SNAPSHOT_MAX_NARGS + 4);
 
 #ifdef JS_JITSPEW
   uint32_t implicit = StartArgSlot(script);
 #endif
-  uint32_t formalArgs = CountArgSlots(script, fun);
   uint32_t nallocs = formalArgs + script->nfixed() + exprStack;
 
   JitSpew(JitSpew_IonSnapshots,
@@ -1492,32 +1494,24 @@ bool RTruncateToInt32::recover(JSContext* cx, SnapshotIterator& iter) const {
 
 bool MNewObject::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
+
   writer.writeUnsigned(uint32_t(RInstruction::Recover_NewObject));
-  MOZ_ASSERT(Mode(uint8_t(mode_)) == mode_);
-  writer.writeByte(uint8_t(mode_));
+
+  // Recover instructions are only supported if we have a template object.
+  MOZ_ASSERT(mode_ == MNewObject::ObjectCreate);
   return true;
 }
 
-RNewObject::RNewObject(CompactBufferReader& reader) {
-  mode_ = MNewObject::Mode(reader.readByte());
-}
+RNewObject::RNewObject(CompactBufferReader& reader) {}
 
 bool RNewObject::recover(JSContext* cx, SnapshotIterator& iter) const {
   RootedObject templateObject(cx, &iter.read().toObject());
   RootedValue result(cx);
-  JSObject* resultObject = nullptr;
 
-  // See CodeGenerator::visitNewObjectVMCall
-  switch (mode_) {
-    case MNewObject::ObjectLiteral:
-      resultObject = NewObjectOperationWithTemplate(cx, templateObject);
-      break;
-    case MNewObject::ObjectCreate:
-      resultObject =
-          ObjectCreateWithTemplate(cx, templateObject.as<PlainObject>());
-      break;
-  }
-
+  // See CodeGenerator::visitNewObjectVMCall.
+  // Note that recover instructions are only used if mode == ObjectCreate.
+  JSObject* resultObject =
+      ObjectCreateWithTemplate(cx, templateObject.as<PlainObject>());
   if (!resultObject) {
     return false;
   }

@@ -16,7 +16,6 @@
 #include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/layers/RenderRootStateManager.h"
-#include "BasicLayers.h"
 #include "nsDisplayList.h"
 #include "nsGenericHTMLElement.h"
 #include "nsPresContext.h"
@@ -635,8 +634,8 @@ class nsDisplayVideo : public nsPaintedDisplayItem {
                         static_cast<int32_t>(destGFXRect.Height()));
     // scaleHint is set regardless of rotation, so swap w/h if needed.
     SwapScaleWidthHeightForRotation(scaleToSize, rotationDeg);
-    transform.PreScale(scaleToSize.width / size.Width(),
-                       scaleToSize.height / size.Height());
+    transform.PreScale(scaleToSize.width / double(size.Width()),
+                       scaleToSize.height / double(size.Height()));
 
     gfxContextMatrixAutoSaveRestore saveMatrix(aCtx);
     aCtx->SetMatrix(

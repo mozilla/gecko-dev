@@ -15,7 +15,6 @@ include protocol PBrowser;
 include protocol PCanvas;
 include protocol PCompositorManager;
 include protocol PCompositorWidget;
-include protocol PLayerTransaction;
 include protocol PTexture;
 include protocol PWebGL;
 include protocol PWebRenderBridge;
@@ -32,8 +31,6 @@ using mozilla::layers::ScrollableLayerGuid::ViewID from "mozilla/layers/Scrollab
 using mozilla::layers::MaybeZoomConstraints from "mozilla/layers/ZoomConstraints.h";
 using mozilla::layers::WindowKind from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::LayersBackend from "mozilla/layers/LayersTypes.h";
-using mozilla::CrossProcessMutexHandle from "mozilla/ipc/CrossProcessMutex.h";
-using mozilla::ipc::SharedMemoryBasic::Handle from "mozilla/ipc/SharedMemoryBasic.h";
 using mozilla::CSSIntRegion from "Units.h";
 using mozilla::LayoutDeviceIntPoint from "Units.h";
 using mozilla::LayoutDeviceIntRegion from "Units.h";
@@ -99,7 +96,6 @@ struct FrameStats {
   manages PAPZ;
   manages PAPZCTreeManager;
   // A Compositor manages a single Layer Manager (PLayerTransaction)
-  manages PLayerTransaction;
   manages PTexture;
   manages PCompositorWidget;
   manages PWebRenderBridge;
@@ -179,15 +175,6 @@ parent:
   sync NotifyChildRecreated(LayersId id)
     returns (CompositorOptions compositorOptions);
 
-  // Make a snapshot of the content that would have been drawn to our
-  // render target at the time this message is received.  If the size
-  // or format of |inSnapshot| doesn't match our render target,
-  // results are undefined.
-  //
-  // NB: this message will result in animations, transforms, effects,
-  // and so forth being interpolated.  That's what we want to happen.
-  sync MakeSnapshot(SurfaceDescriptor inSnapshot, IntRect dirtyRect);
-
   // Make sure any pending composites are started immediately and
   // block until they are completed.
   sync FlushRendering();
@@ -208,14 +195,6 @@ parent:
 
   sync StopFrameTimeRecording(uint32_t startIndex)
     returns (float[] intervals);
-
-  // layersBackendHints is an ordered list of preffered backends where
-  // layersBackendHints[0] is the best backend. If any hints are LayersBackend::LAYERS_NONE
-  // that hint is ignored.
-  async PLayerTransaction(LayersBackend[] layersBackendHints, LayersId id);
-
-  // Notify the compositor that a region of the screen has been invalidated.
-  async NotifyRegionInvalidated(nsIntRegion region);
 
   async PTexture(SurfaceDescriptor aSharedData, ReadLockDescriptor aReadLock, LayersBackend aBackend, TextureFlags aTextureFlags, LayersId id, uint64_t aSerial, MaybeExternalImageId aExternalImageId);
 
@@ -244,12 +223,6 @@ parent:
 
   // Actor that represents one WebGL context.
   async PWebGL();
-
-child:
-  // Send back Compositor Frame Metrics from APZCs so tiled layers can
-  // update progressively.
-  async SharedCompositorFrameMetrics(Handle metrics, CrossProcessMutexHandle mutex, LayersId aLayersId, uint32_t aAPZCId);
-  async ReleaseSharedCompositorFrameMetrics(ViewID aId, uint32_t aAPZCId);
 };
 
 } // layers

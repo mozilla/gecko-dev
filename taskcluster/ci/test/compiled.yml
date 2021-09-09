@@ -5,10 +5,7 @@
 job-defaults:
     e10s: false
     test-manifest-loader: null  # don't load tests in the taskgraph
-    virtualization:
-        by-test-platform:
-            windows10-64.*: hardware
-            default: virtual
+    virtualization: virtual
     mozharness:
         script:
             by-test-platform:
@@ -65,8 +62,8 @@ gtest:
     tier:
         by-test-platform:
             windows7-32-shippable.*: 3
-            windows10-64-shippable.*: 3
-            windows10-64-asan.*: 3
+            windows10-64-2004-shippable.*: 3
+            windows10-64-2004-asan.*: 3
             default: default
 
 jittest:

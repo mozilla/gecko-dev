@@ -32,7 +32,6 @@ import org.mozilla.geckoview.Autocomplete.StorageDelegate
 import org.mozilla.geckoview.Autocomplete.UsedField
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
-import org.mozilla.geckoview.test.util.Callbacks
 
 
 @RunWith(AndroidJUnit4::class)
@@ -47,19 +46,9 @@ class AutocompleteTest : BaseSessionTest() {
                 "signon.rememberSignons" to true,
                 "signon.autofillForms.http" to true))
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val fetchHandled = GeckoResult<Void>()
 
-        sessionRule.addExternalDelegateDuringNextWait(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateDuringNextWait(object : StorageDelegate {
             @AssertCalled(count = 1)
             override fun onLoginFetch(domain: String)
                     : GeckoResult<Array<LoginEntry>>? {
@@ -79,22 +68,12 @@ class AutocompleteTest : BaseSessionTest() {
 
     @Test
     fun fetchCreditCards() {
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val fetchHandled = GeckoResult<Void>()
 
         mainSession.loadTestPath(CC_FORM_HTML_PATH)
         mainSession.waitForPageStop()
 
-        sessionRule.addExternalDelegateDuringNextWait(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateDuringNextWait(object : StorageDelegate {
             @AssertCalled(count = 1)
             override fun onCreditCardFetch()
                     : GeckoResult<Array<CreditCard>>? {
@@ -120,14 +99,6 @@ class AutocompleteTest : BaseSessionTest() {
         //    c. Ensure onCreditCardSelect is called.
         //    d. Select and return one of the options.
         //    e. Ensure the form is filled accordingly.
-
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
 
         val name = arrayOf("Peter Parker", "John Doe")
         val number = arrayOf("1234-1234-1234-1234", "2345-2345-2345-2345")
@@ -155,9 +126,7 @@ class AutocompleteTest : BaseSessionTest() {
         mainSession.loadTestPath(CC_FORM_HTML_PATH)
         mainSession.waitForPageStop()
 
-        sessionRule.addExternalDelegateDuringNextWait(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateDuringNextWait(object : StorageDelegate {
             @AssertCalled
             override fun onCreditCardFetch()
                     : GeckoResult<Array<CreditCard>>? {
@@ -165,7 +134,7 @@ class AutocompleteTest : BaseSessionTest() {
             }
         })
 
-        mainSession.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        mainSession.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onCreditCardSelect(
                     session: GeckoSession,
@@ -223,29 +192,19 @@ class AutocompleteTest : BaseSessionTest() {
 
     @Test
     fun fetchAddresses() {
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val fetchHandled = GeckoResult<Void>()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
-                    @AssertCalled(count = 1)
-                    override fun onAddressFetch()
-                            : GeckoResult<Array<Address>>? {
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            fetchHandled.complete(null)
-                        }, acceptDelay)
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
+            @AssertCalled(count = 1)
+            override fun onAddressFetch()
+                    : GeckoResult<Array<Address>>? {
+                Handler(Looper.getMainLooper()).postDelayed({
+                    fetchHandled.complete(null)
+                }, acceptDelay)
 
-                        return null
-                    }
-                })
+                return null
+            }
+        })
 
         mainSession.loadTestPath(ADDRESS_FORM_HTML_PATH)
         mainSession.waitForPageStop()
@@ -263,19 +222,9 @@ class AutocompleteTest : BaseSessionTest() {
         //    d. Select and return one of the options.
         //    e. Ensure the form is filled accordingly.
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val selectHandled = GeckoResult<Void>()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
                     @AssertCalled
                     override fun onAddressFetch()
                             : GeckoResult<Array<Address>>? {
@@ -286,7 +235,7 @@ class AutocompleteTest : BaseSessionTest() {
                     override fun onAddressSave(address: Address) {}
                 })
 
-        mainSession.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        mainSession.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onAddressSelect(
                     session: GeckoSession,
@@ -441,17 +390,7 @@ class AutocompleteTest : BaseSessionTest() {
                 "signon.autofillForms.http" to true,
                 "signon.userInputRequiredToCapture.enabled" to false))
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
-        sessionRule.addExternalDelegateDuringNextWait(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateDuringNextWait(object : StorageDelegate {
             @AssertCalled(count = 1)
             override fun onLoginFetch(domain: String)
                     : GeckoResult<Array<LoginEntry>>? {
@@ -464,9 +403,7 @@ class AutocompleteTest : BaseSessionTest() {
         mainSession.loadTestPath(FORMS3_HTML_PATH)
         mainSession.waitForPageStop()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled(count = 0)
             override fun onLoginSave(login: LoginEntry) {}
         })
@@ -478,7 +415,7 @@ class AutocompleteTest : BaseSessionTest() {
         // Submit the form.
         mainSession.evaluateJS("document.querySelector('#form1').submit()")
 
-        sessionRule.waitUntilCalled(object : Callbacks.PromptDelegate {
+        sessionRule.waitUntilCalled(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -512,22 +449,12 @@ class AutocompleteTest : BaseSessionTest() {
                 "signon.autofillForms.http" to true,
                 "signon.userInputRequiredToCapture.enabled" to false))
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         mainSession.loadTestPath(FORMS3_HTML_PATH)
         mainSession.waitForPageStop()
 
         val saveHandled = GeckoResult<Void>()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
             override fun onLoginSave(login: LoginEntry) {
                 assertThat(
@@ -544,7 +471,7 @@ class AutocompleteTest : BaseSessionTest() {
             }
         })
 
-        sessionRule.delegateDuringNextWait(object : Callbacks.PromptDelegate {
+        sessionRule.delegateDuringNextWait(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -589,22 +516,12 @@ class AutocompleteTest : BaseSessionTest() {
                 "signon.autofillForms.http" to true,
                 "signon.userInputRequiredToCapture.enabled" to false))
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         mainSession.loadTestPath(FORMS3_HTML_PATH)
         mainSession.waitForPageStop()
 
         val saveHandled = GeckoResult<Void>()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
             override fun onLoginSave(login: LoginEntry) {
                 assertThat(
@@ -621,7 +538,7 @@ class AutocompleteTest : BaseSessionTest() {
             }
         })
 
-        sessionRule.delegateDuringNextWait(object : Callbacks.PromptDelegate {
+        sessionRule.delegateDuringNextWait(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -674,14 +591,6 @@ class AutocompleteTest : BaseSessionTest() {
                 "signon.autofillForms.http" to true,
                 "signon.userInputRequiredToCapture.enabled" to false))
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val saveHandled = GeckoResult<Void>()
         val saveHandled2 = GeckoResult<Void>()
 
@@ -691,9 +600,7 @@ class AutocompleteTest : BaseSessionTest() {
         val guid = "test-guid"
         val savedLogins = mutableListOf<LoginEntry>()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
             override fun onLoginFetch(domain: String)
                     : GeckoResult<Array<LoginEntry>>? {
@@ -737,7 +644,7 @@ class AutocompleteTest : BaseSessionTest() {
             }
         })
 
-        sessionRule.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        sessionRule.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled(count = 2)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -790,14 +697,6 @@ class AutocompleteTest : BaseSessionTest() {
                 "signon.autofillForms.http" to true,
                 "signon.userInputRequiredToCapture.enabled" to false))
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val usedHandled = GeckoResult<Void>()
 
         val user1 = "user1x"
@@ -814,9 +713,7 @@ class AutocompleteTest : BaseSessionTest() {
         val savedLogins = mutableListOf<LoginEntry>(savedLogin)
 
         if (autofillEnabled) {
-            sessionRule.addExternalDelegateUntilTestEnd(
-                    StorageDelegate::class, register, unregister,
-                    object : StorageDelegate {
+            sessionRule.delegateUntilTestEnd(object : StorageDelegate {
                 @AssertCalled
                 override fun onLoginFetch(domain: String)
                         : GeckoResult<Array<LoginEntry>>? {
@@ -851,9 +748,7 @@ class AutocompleteTest : BaseSessionTest() {
                 }
             })
         } else {
-            sessionRule.addExternalDelegateUntilTestEnd(
-                    StorageDelegate::class, register, unregister,
-                    object : StorageDelegate {
+            sessionRule.delegateUntilTestEnd(object : StorageDelegate {
                 @AssertCalled
                 override fun onLoginFetch(domain: String)
                         : GeckoResult<Array<LoginEntry>>? {
@@ -867,7 +762,7 @@ class AutocompleteTest : BaseSessionTest() {
             })
         }
 
-        sessionRule.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        sessionRule.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled(false)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -907,14 +802,6 @@ class AutocompleteTest : BaseSessionTest() {
                 "signon.autofillForms.http" to true,
                 "signon.userInputRequiredToCapture.enabled" to false))
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val user1 = "user1x"
         val pass1 = "pass1x"
         val guid = "test-guid"
@@ -928,9 +815,7 @@ class AutocompleteTest : BaseSessionTest() {
                 .build()
         val savedLogins = mutableListOf<LoginEntry>(savedLogin)
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
             override fun onLoginFetch(domain: String)
                     : GeckoResult<Array<LoginEntry>>? {
@@ -943,7 +828,7 @@ class AutocompleteTest : BaseSessionTest() {
             override fun onLoginUsed(login: LoginEntry, usedFields: Int) {}
         })
 
-        sessionRule.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        sessionRule.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled(false)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -1017,14 +902,6 @@ class AutocompleteTest : BaseSessionTest() {
         //    e. Submit the form.
         //    f. Ensure that onLoginUsed is called.
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val user1 = "user1x"
         val user2 = "user2x"
         val pass1 = "pass1x"
@@ -1036,9 +913,7 @@ class AutocompleteTest : BaseSessionTest() {
         val selectHandled = GeckoResult<Void>()
         val usedHandled = GeckoResult<Void>()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
             override fun onLoginFetch(domain: String)
                     : GeckoResult<Array<LoginEntry>>? {
@@ -1121,7 +996,7 @@ class AutocompleteTest : BaseSessionTest() {
         mainSession.loadTestPath(FORMS3_HTML_PATH)
         mainSession.waitForPageStop()
 
-        mainSession.delegateDuringNextWait(object : Callbacks.PromptDelegate {
+        mainSession.delegateDuringNextWait(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -1161,7 +1036,7 @@ class AutocompleteTest : BaseSessionTest() {
         session2.loadTestPath(FORMS3_HTML_PATH)
         session2.waitForPageStop()
 
-        session2.delegateDuringNextWait(object : Callbacks.PromptDelegate {
+        session2.delegateDuringNextWait(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -1199,7 +1074,7 @@ class AutocompleteTest : BaseSessionTest() {
         // Reload for the last time.
         val session3 = sessionRule.createOpenSession()
 
-        session3.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        session3.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSelect(
                     session: GeckoSession,
@@ -1289,14 +1164,6 @@ class AutocompleteTest : BaseSessionTest() {
         //    e. Submit the form.
         //    f. Ensure that onLoginUsed is not called.
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val user1 = "user1x"
         val user2 = "user2x"
         val pass1 = "pass1x"
@@ -1309,9 +1176,7 @@ class AutocompleteTest : BaseSessionTest() {
         val saveHandled2 = GeckoResult<Void>()
         val selectHandled = GeckoResult<Void>()
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
             override fun onLoginFetch(domain: String)
                     : GeckoResult<Array<LoginEntry>>? {
@@ -1372,7 +1237,7 @@ class AutocompleteTest : BaseSessionTest() {
         mainSession.loadTestPath(FORMS3_HTML_PATH)
         mainSession.waitForPageStop()
 
-        mainSession.delegateDuringNextWait(object : Callbacks.PromptDelegate {
+        mainSession.delegateDuringNextWait(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -1412,7 +1277,7 @@ class AutocompleteTest : BaseSessionTest() {
         session2.loadTestPath(FORMS3_HTML_PATH)
         session2.waitForPageStop()
 
-        session2.delegateDuringNextWait(object : Callbacks.PromptDelegate {
+        session2.delegateDuringNextWait(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSave(
                     session: GeckoSession,
@@ -1450,7 +1315,7 @@ class AutocompleteTest : BaseSessionTest() {
         // Reload for the last time.
         val session3 = sessionRule.createOpenSession()
 
-        session3.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        session3.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled(count = 1)
             override fun onLoginSelect(
                     session: GeckoSession,
@@ -1538,14 +1403,6 @@ class AutocompleteTest : BaseSessionTest() {
         // 4. Submit the login form.
         //    a. Ensure onLoginSave is called with accordingly.
 
-        val runtime = sessionRule.runtime
-        val register = { delegate: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = delegate
-        }
-        val unregister = { _: StorageDelegate ->
-            runtime.autocompleteStorageDelegate = null
-        }
-
         val user1 = "user1x"
         var genPass = ""
 
@@ -1553,9 +1410,7 @@ class AutocompleteTest : BaseSessionTest() {
         val selectHandled = GeckoResult<Void>()
         var numSelects = 0
 
-        sessionRule.addExternalDelegateUntilTestEnd(
-                StorageDelegate::class, register, unregister,
-                object : StorageDelegate {
+        sessionRule.delegateUntilTestEnd(object : StorageDelegate {
             @AssertCalled
             override fun onLoginFetch(domain: String)
                     : GeckoResult<Array<LoginEntry>>? {
@@ -1586,7 +1441,7 @@ class AutocompleteTest : BaseSessionTest() {
         mainSession.loadTestPath(FORMS4_HTML_PATH)
         mainSession.waitForPageStop()
 
-        mainSession.delegateUntilTestEnd(object : Callbacks.PromptDelegate {
+        mainSession.delegateUntilTestEnd(object : PromptDelegate {
             @AssertCalled
             override fun onLoginSelect(
                     session: GeckoSession,

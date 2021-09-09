@@ -18,12 +18,6 @@ const TEST_URI = `data:text/html;charset=utf-8,<p>Web Console test for  scroll.<
   </script>
 `;
 add_task(async function() {
-  // Disable bfcache for Fission for now.
-  // If Fission is disabled, the pref is no-op.
-  await SpecialPowers.pushPrefEnv({
-    set: [["fission.bfcacheInParent", false]],
-  });
-
   const hud = await openNewTabAndConsole(TEST_URI);
   const { ui } = hud;
   const outputContainer = ui.outputNode.querySelector(".webconsole-output");
@@ -45,7 +39,7 @@ add_task(async function() {
     "The console is scrolled to the bottom"
   );
 
-  await refreshTab();
+  await reloadBrowser();
 
   info("Console should be scrolled to bottom after refresh from page logs");
   await waitFor(() => findMessage(hud, "init-99"));

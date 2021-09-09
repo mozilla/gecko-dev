@@ -14,7 +14,6 @@
 #include "mozilla/dom/PopupBlocker.h"
 #include "mozilla/dom/RadioGroupManager.h"
 #include "nsCOMPtr.h"
-#include "nsIForm.h"
 #include "nsIFormControl.h"
 #include "nsGenericHTMLElement.h"
 #include "nsIRadioGroupContainer.h"
@@ -39,7 +38,6 @@ class HTMLImageElement;
 class FormData;
 
 class HTMLFormElement final : public nsGenericHTMLElement,
-                              public nsIForm,
                               public nsIRadioGroupContainer,
                               RadioGroupManager {
   friend class HTMLFormControlsCollection;
@@ -55,11 +53,8 @@ class HTMLFormElement final : public nsGenericHTMLElement,
   // nsISupports
   NS_DECL_ISUPPORTS_INHERITED
 
-  // nsIForm
-  NS_IMETHOD_(nsIFormControl*) GetElementAt(int32_t aIndex) const override;
-  NS_IMETHOD_(uint32_t) GetElementCount() const override;
-  NS_IMETHOD_(int32_t) IndexOfControl(nsIFormControl* aControl) override;
-  NS_IMETHOD_(nsIFormControl*) GetDefaultSubmitElement() const override;
+  int32_t IndexOfControl(nsIFormControl* aControl);
+  nsGenericHTMLFormElement* GetDefaultSubmitElement() const;
 
   // nsIRadioGroupContainer
   void SetCurrentRadioButton(const nsAString& aName,
@@ -206,19 +201,19 @@ class HTMLFormElement final : public nsGenericHTMLElement,
   bool ImplicitSubmissionIsDisabled() const;
 
   /**
-   * Check whether a given nsIFormControl is the last single line input control
-   * that is not disabled. aControl is expected to not be null.
+   * Check whether a given nsGenericHTMLFormElement is the last single line
+   * input control that is not disabled. aElement is expected to not be null.
    */
-  bool IsLastActiveElement(const nsIFormControl* aControl) const;
+  bool IsLastActiveElement(const nsGenericHTMLFormElement* aElement) const;
 
   /**
-   * Check whether a given nsIFormControl is the default submit
+   * Check whether a given nsGenericHTMLFormElement is the default submit
    * element.  This is different from just comparing to
    * GetDefaultSubmitElement() in certain situations inside an update
-   * when GetDefaultSubmitElement() might not be up to date.  aControl
+   * when GetDefaultSubmitElement() might not be up to date. aElement
    * is expected to not be null.
    */
-  bool IsDefaultSubmitElement(const nsIFormControl* aControl) const;
+  bool IsDefaultSubmitElement(const nsGenericHTMLFormElement* aElement) const;
 
   /**
    * Flag the form to know that a button or image triggered scripted form

@@ -9,10 +9,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.gecko.util.ThreadUtils
 import org.mozilla.geckoview.*
+import org.mozilla.geckoview.GeckoRuntime.ServiceWorkerDelegate
+import org.mozilla.geckoview.GeckoSession.ContentDelegate
+import org.mozilla.geckoview.GeckoSession.PermissionDelegate
+import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule
-import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.TimeoutMillis
+import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.NullDelegate
 import org.mozilla.geckoview.test.rule.GeckoSessionTestRule.AssertCalled
-import org.mozilla.geckoview.test.util.Callbacks
 import org.mozilla.geckoview.test.util.UiThreadUtils
 
 @RunWith(AndroidJUnit4::class)
@@ -24,10 +27,10 @@ class OpenWindowTest : BaseSessionTest() {
         sessionRule.setPrefsUntilTestEnd(mapOf("dom.webnotifications.requireuserinteraction" to false))
 
         // Grant "desktop notification" permission
-        mainSession.delegateUntilTestEnd(object : Callbacks.PermissionDelegate {
-            override fun onContentPermissionRequest(session: GeckoSession, perm: GeckoSession.PermissionDelegate.ContentPermission): GeckoResult<Int>? {
-                assertThat("Should grant DESKTOP_NOTIFICATIONS permission", perm.permission, equalTo(GeckoSession.PermissionDelegate.PERMISSION_DESKTOP_NOTIFICATION))
-                return GeckoResult.fromValue(GeckoSession.PermissionDelegate.ContentPermission.VALUE_ALLOW);
+        mainSession.delegateUntilTestEnd(object : PermissionDelegate {
+            override fun onContentPermissionRequest(session: GeckoSession, perm: PermissionDelegate.ContentPermission): GeckoResult<Int>? {
+                assertThat("Should grant DESKTOP_NOTIFICATIONS permission", perm.permission, equalTo(PermissionDelegate.PERMISSION_DESKTOP_NOTIFICATION))
+                return GeckoResult.fromValue(PermissionDelegate.ContentPermission.VALUE_ALLOW);
             }
         })
     }
@@ -39,14 +42,10 @@ class OpenWindowTest : BaseSessionTest() {
         assertThat("Permission should be granted",
                 result as String, equalTo("granted"))
 
-        val runtime = sessionRule.runtime
         val notificationResult = GeckoResult<Void>()
-        val register = {  delegate: WebNotificationDelegate -> runtime.webNotificationDelegate = delegate}
-        val unregister = { _: WebNotificationDelegate -> runtime.webNotificationDelegate = null }
         var notificationShown: WebNotification? = null
 
-        sessionRule.addExternalDelegateDuringNextWait(WebNotificationDelegate::class, register,
-                unregister, object : WebNotificationDelegate {
+        sessionRule.delegateDuringNextWait(object : WebNotificationDelegate {
             @GeckoSessionTestRule.AssertCalled
             override fun onShowNotification(notification: WebNotification) {
                 notificationShown = notification
@@ -59,8 +58,9 @@ class OpenWindowTest : BaseSessionTest() {
     }
 
     @Test
+    @NullDelegate(ServiceWorkerDelegate::class)
     fun openWindowNullDelegate() {
-        sessionRule.delegateUntilTestEnd(object : Callbacks.ContentDelegate, Callbacks.NavigationDelegate {
+        sessionRule.delegateUntilTestEnd(object : ContentDelegate, NavigationDelegate {
             override fun onLocationChange(session: GeckoSession, url: String?) {
                 // we should not open the target url
                 assertThat("URL should notmatch", url, not(createTestUrl(OPEN_WINDOW_TARGET_PATH)))
@@ -72,26 +72,25 @@ class OpenWindowTest : BaseSessionTest() {
 
     @Test
     fun openWindowNullResult() {
-        sessionRule.runtime.setServiceWorkerDelegate(object : GeckoRuntime.ServiceWorkerDelegate {
-            @AssertCalled(count = 1)
-            override fun onOpenWindow(url: String): GeckoResult<GeckoSession> {
-                ThreadUtils.assertOnUiThread()
-                return GeckoResult.fromValue(null)
-            }
-        })
-        sessionRule.delegateUntilTestEnd(object : Callbacks.ContentDelegate, Callbacks.NavigationDelegate {
+        sessionRule.delegateUntilTestEnd(object : ContentDelegate, NavigationDelegate {
             override fun onLocationChange(session: GeckoSession, url: String?) {
                 // we should not open the target url
                 assertThat("URL should notmatch", url, not(createTestUrl(OPEN_WINDOW_TARGET_PATH)))
             }
         })
         openPageClickNotification()
-        UiThreadUtils.loopUntilIdle(sessionRule.env.defaultTimeoutMillis)
+        sessionRule.waitUntilCalled(object : ServiceWorkerDelegate {
+            @AssertCalled(count = 1)
+            override fun onOpenWindow(url: String): GeckoResult<GeckoSession> {
+                ThreadUtils.assertOnUiThread()
+                return GeckoResult.fromValue(null)
+            }
+        })
     }
 
     @Test
     fun openWindowSameSession() {
-        sessionRule.runtime.setServiceWorkerDelegate(object : GeckoRuntime.ServiceWorkerDelegate {
+        sessionRule.delegateUntilTestEnd(object : ServiceWorkerDelegate {
             @AssertCalled(count = 1)
             override fun onOpenWindow(url: String): GeckoResult<GeckoSession> {
                 ThreadUtils.assertOnUiThread()
@@ -99,7 +98,7 @@ class OpenWindowTest : BaseSessionTest() {
             }
         })
         openPageClickNotification()
-        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate, Callbacks.NavigationDelegate {
+        sessionRule.waitUntilCalled(object : ContentDelegate, NavigationDelegate {
             @AssertCalled(count = 1, order = [1])
             override fun onLocationChange(session: GeckoSession, url: String?) {
                 assertThat("Should be on the main session", session, equalTo(mainSession))
@@ -117,7 +116,7 @@ class OpenWindowTest : BaseSessionTest() {
     @Test
     fun openWindowNewSession() {
         var targetSession: GeckoSession? = null
-        sessionRule.runtime.setServiceWorkerDelegate(object : GeckoRuntime.ServiceWorkerDelegate {
+        sessionRule.delegateUntilTestEnd(object : ServiceWorkerDelegate {
             @AssertCalled(count = 1)
             override fun onOpenWindow(url: String): GeckoResult<GeckoSession> {
                 ThreadUtils.assertOnUiThread()
@@ -126,7 +125,7 @@ class OpenWindowTest : BaseSessionTest() {
             }
         })
         openPageClickNotification()
-        sessionRule.waitUntilCalled(object : Callbacks.ContentDelegate, Callbacks.NavigationDelegate {
+        sessionRule.waitUntilCalled(object : ContentDelegate, NavigationDelegate {
             @AssertCalled(count = 1, order = [1])
             override fun onLocationChange(session: GeckoSession, url: String?) {
                 assertThat("Should be on the target session", session, equalTo(targetSession))

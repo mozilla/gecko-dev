@@ -363,6 +363,8 @@ pub struct YamlFrameReader {
     keyframes: Option<Yaml>,
 
     external_image_handler: Option<Box<LocalExternalImageHandler>>,
+
+    next_spatial_key: u64,
 }
 
 impl YamlFrameReader {
@@ -391,6 +393,7 @@ impl YamlFrameReader {
             keyframes: None,
             external_image_handler: Some(Box::new(LocalExternalImageHandler::new())),
             next_external_scroll_id: 1000,      // arbitrary to easily see in logs which are implicit
+            next_spatial_key: 0,
         }
     }
 
@@ -486,6 +489,7 @@ impl YamlFrameReader {
         self.spatial_id_stack.push(SpatialId::root_scroll_node(pipeline_id));
 
         let mut builder = DisplayListBuilder::new(pipeline_id);
+        builder.begin();
         let mut info = CommonItemProperties {
             clip_rect: LayoutRect::zero(),
             clip_id: ClipId::invalid(),
@@ -493,7 +497,7 @@ impl YamlFrameReader {
             flags: PrimitiveFlags::default(),
         };
         self.add_stacking_context_from_yaml(&mut builder, wrench, yaml, true, &mut info);
-        self.display_lists.push(builder.finalize());
+        self.display_lists.push(builder.end());
 
         assert_eq!(self.clip_id_stack.len(), 1);
         assert_eq!(self.spatial_id_stack.len(), 1);
@@ -1801,6 +1805,12 @@ impl YamlFrameReader {
         }
     }
 
+    fn next_spatial_key(&mut self) -> SpatialTreeItemKey {
+        let key = SpatialTreeItemKey::new(self.next_spatial_key, 0);
+        self.next_spatial_key += 1;
+        key
+    }
+
     fn handle_scroll_frame(
         &mut self,
         dl: &mut DisplayListBuilder,
@@ -1841,6 +1851,7 @@ impl YamlFrameReader {
             clip_rect,
             ScrollSensitivity::ScriptAndInputEvents,
             external_scroll_offset,
+            self.next_spatial_key(),
         );
         if let Some(numeric_id) = numeric_id {
             self.add_spatial_id_mapping(numeric_id, spatial_id);
@@ -1883,6 +1894,7 @@ impl YamlFrameReader {
             self.to_sticky_offset_bounds(&yaml["vertical-offset-bounds"]),
             self.to_sticky_offset_bounds(&yaml["horizontal-offset-bounds"]),
             yaml["previously-applied-offset"].as_vector().unwrap_or(LayoutVector2D::zero()),
+            self.next_spatial_key(),
         );
 
         if let Some(numeric_id) = numeric_id {
@@ -2085,6 +2097,7 @@ impl YamlFrameReader {
             transform_style,
             transform.or_else(|| perspective).unwrap_or_default().into(),
             reference_frame_kind,
+            self.next_spatial_key(),
         );
 
         let numeric_id = yaml["id"].as_i64();

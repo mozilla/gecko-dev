@@ -15,21 +15,13 @@
 
 :root {
   --downloads-item-height: 6em;
-  --downloads-item-font-size-factor: 0.95;
+  --downloads-item-font-size-factor: 0.80;
   --downloads-item-details-opacity: 0.7;
 }
 
 .downloadButton:focus > .button-box {
   outline: 2px -moz-mac-focusring solid;
   outline-offset: -2px;
-}
-
-.downloadProgress::-moz-progress-bar {
-  background-color: #3c9af8;
-}
-
-.downloadProgress[paused]::-moz-progress-bar {
-  background-color: #a6a6a6;
 }
 
 /*** Highlighted list items ***/

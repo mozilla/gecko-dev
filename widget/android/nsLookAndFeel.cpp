@@ -103,7 +103,6 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
 
   switch (aID) {
       // These colors don't seem to be used for anything anymore in Mozilla
-      // (except here at least TextSelectBackground and TextSelectForeground)
       // The CSS2 colors below are used.
     case ColorID::WindowForeground:
       aColor = mSystemColors.textColorPrimary;
@@ -122,7 +121,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
       // not used?
       aColor = mSystemColors.textColorPrimary;
       break;
-    case ColorID::TextSelectBackground: {
+    case ColorID::Highlight: {
       // Matched to action_accent in java codebase. This works fine with both
       // light and dark color scheme.
       nscolor accent =
@@ -131,7 +130,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
           NS_RGBA(NS_GET_R(accent), NS_GET_G(accent), NS_GET_B(accent), 153);
       break;
     }
-    case ColorID::TextSelectForeground:
+    case ColorID::Highlighttext:
       // Selection background is transparent enough that any foreground color
       // does.
       aColor = NS_SAME_AS_FOREGROUND_COLOR;
@@ -178,16 +177,15 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aColorScheme,
     case ColorID::Graytext:  // disabled text in windows, menus, etc.
       aColor = NS_RGB(0xb1, 0xa5, 0x98);
       break;
+    // FIXME: -moz-cellhighlight should show some kind of unfocused state.
     case ColorID::MozCellhighlight:
-    case ColorID::MozHtmlCellhighlight:
-    case ColorID::Highlight:
+    case ColorID::Selecteditem:
     case ColorID::MozAccentColor:
       aColor = UseNativeAccent() ? mSystemColors.colorAccent
                                  : widget::sDefaultAccent.ToABGR();
       break;
     case ColorID::MozCellhighlighttext:
-    case ColorID::MozHtmlCellhighlighttext:
-    case ColorID::Highlighttext:
+    case ColorID::Selecteditemtext:
     case ColorID::MozAccentColorForeground:
       aColor = UseNativeAccent()
                    ? nsNativeBasicTheme::ComputeCustomAccentForeground(
@@ -374,6 +372,11 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
     case IntID::DragThresholdY:
       // Threshold where a tap becomes a drag, in 1/240" reference pixels.
       aResult = 25;
+      break;
+
+    case IntID::TouchDeviceSupportPresent:
+      // Touch support is always enabled on android.
+      aResult = 1;
       break;
 
     default:

@@ -16,98 +16,78 @@ const SHOWED_ONBOARDING_DIALOG_PREF =
 const SEEN_RESTART_PREF = "browser.urlbar.quicksuggest.seenRestarts";
 
 add_task(async function init() {
-  await PlacesUtils.history.clear();
-  await UrlbarTestUtils.formHistory.clear();
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.urlbar.suggest.searches", true],
-      ["browser.startup.upgradeDialog.version", 89],
-      // Reset those prefs in case they were set by other tests
-      [SHOWED_ONBOARDING_DIALOG_PREF, false],
-      [SEEN_RESTART_PREF, 0],
-    ],
-  });
-
-  // Add a mock engine so we don't hit the network loading the SERP.
-  await SearchTestUtils.installSearchExtension();
-  let oldDefaultEngine = await Services.search.getDefault();
-  await Services.search.setDefault(Services.search.getEngineByName("Example"));
-
   await UrlbarQuickSuggest.init();
   let onEnabled = UrlbarQuickSuggest.onEnabledUpdate;
   UrlbarQuickSuggest.onEnabledUpdate = () => {};
-
   registerCleanupFunction(async function() {
-    Services.search.setDefault(oldDefaultEngine);
-    await PlacesUtils.history.clear();
-    await UrlbarTestUtils.formHistory.clear();
     UrlbarQuickSuggest.onEnabledUpdate = onEnabled;
   });
 });
 
-// The default is to wait for 2 browser restarts to show the onboarding dialog
-// on the 3rd restart. This tests that we can override it by configuring the
+// The default is to wait for no browser restarts to show the onboarding dialog
+// on the first restart. This tests that we can override it by configuring the
 // `showOnboardingDialogOnNthRestart`
 add_task(async function test_override_wait_after_n_restarts() {
-  let doExperimentCleanup = await UrlbarTestUtils.enrollExperiment({
+  await UrlbarTestUtils.withExperiment({
     valueOverrides: {
       quickSuggestEnabled: true,
       quickSuggestShouldShowOnboardingDialog: true,
-      // Just wait for 1 browser restart instead of the default 2
+      // Wait for 1 browser restart
       quickSuggestShowOnboardingDialogAfterNRestarts: 1,
     },
+    callback: async () => {
+      let dialogPromise = BrowserTestUtils.promiseAlertDialog(
+        "accept",
+        "chrome://browser/content/urlbar/quicksuggestOnboarding.xhtml",
+        { isSubDialog: true }
+      ).then(() => info("Saw dialog"));
+      let prefPromise = TestUtils.waitForPrefChange(
+        SHOWED_ONBOARDING_DIALOG_PREF,
+        value => value === true
+      ).then(() => info("Saw pref change"));
+
+      // Simulate 2 restarts. this function is only called by BrowserGlue
+      // on startup, the first restart would be where MR1 was shown then
+      // we will show onboarding the 2nd restart after that.
+      for (let i = 0; i < 2; i++) {
+        info(`Simulating restart ${i + 1}`);
+        await UrlbarQuickSuggest.maybeShowOnboardingDialog();
+      }
+
+      info("Waiting for dialog and pref change");
+      await Promise.all([dialogPromise, prefPromise]);
+    },
   });
-
-  let dialogPromise = BrowserTestUtils.promiseAlertDialog(
-    "accept",
-    "chrome://browser/content/urlbar/quicksuggestOnboarding.xhtml",
-    { isSubDialog: true }
-  ).then(() => info("Saw dialog"));
-  let prefPromise = TestUtils.waitForPrefChange(
-    SHOWED_ONBOARDING_DIALOG_PREF,
-    value => value === true
-  ).then(() => info("Saw pref change"));
-
-  // Simulate 2 restarts. this function is only called by BrowserGlue
-  // on startup, the first restart would be where MR1 was shown then
-  // we will show onboarding the 2nd restart after that.
-  for (let i = 0; i < 2; i++) {
-    info(`Simulating restart ${i + 1}`);
-    await UrlbarQuickSuggest.maybeShowOnboardingDialog();
-  }
-
-  info("Waiting for dialog and pref change");
-  await Promise.all([dialogPromise, prefPromise]);
-
-  await doExperimentCleanup();
+  clearOnboardingPrefs();
 });
 
 add_task(async function test_skip_onboarding_dialog() {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["browser.urlbar.suggest.quicksuggest", false],
       [SHOWED_ONBOARDING_DIALOG_PREF, false],
       [SEEN_RESTART_PREF, 0],
     ],
   });
-  let doExperimentCleanup = await UrlbarTestUtils.enrollExperiment({
+  await UrlbarTestUtils.withExperiment({
     valueOverrides: {
       quickSuggestEnabled: true,
       quickSuggestShouldShowOnboardingDialog: false,
     },
+    callback: async () => {
+      // Simulate 3 restarts.
+      for (let i = 0; i < 3; i++) {
+        info(`Simulating restart ${i + 1}`);
+        await UrlbarQuickSuggest.maybeShowOnboardingDialog();
+      }
+      Assert.ok(
+        !Services.prefs.getBoolPref(SHOWED_ONBOARDING_DIALOG_PREF),
+        "The showed onboarding dialog pref should not be set"
+      );
+    },
   });
-
-  // Simulate 3 restarts.
-  for (let i = 0; i < 3; i++) {
-    info(`Simulating restart ${i + 1}`);
-    await UrlbarQuickSuggest.maybeShowOnboardingDialog();
-  }
-
-  Assert.ok(
-    !Services.prefs.getBoolPref(SHOWED_ONBOARDING_DIALOG_PREF),
-    "The showed onboarding dialog pref should not be set"
-  );
-
-  await doExperimentCleanup();
+  await SpecialPowers.popPrefEnv();
+  clearOnboardingPrefs();
 });
 
 add_task(async function test_indexes() {
@@ -130,3 +110,79 @@ add_task(async function test_indexes() {
     },
   });
 });
+
+add_task(async function test_merino() {
+  await UrlbarTestUtils.withExperiment({
+    valueOverrides: {
+      merinoEnabled: true,
+      merinoEndpointURL: "http://example.com/test_merino_config",
+      merinoEndpointParamQuery: "test_merino_config_param",
+    },
+    callback: () => {
+      Assert.equal(UrlbarPrefs.get("merinoEnabled"), true, "merinoEnabled");
+      Assert.equal(
+        UrlbarPrefs.get("merinoEndpointURL"),
+        "http://example.com/test_merino_config",
+        "merinoEndpointURL"
+      );
+      Assert.equal(
+        UrlbarPrefs.get("merinoEndpointParamQuery"),
+        "test_merino_config_param",
+        "merinoEndpointParamQuery"
+      );
+    },
+  });
+});
+
+add_task(async function test_scenario_online() {
+  await UrlbarTestUtils.withExperiment({
+    valueOverrides: {
+      quickSuggestScenario: "online",
+    },
+    callback: () => {
+      Assert.equal(
+        UrlbarPrefs.get("quickSuggestScenario"),
+        "online",
+        "quickSuggestScenario online"
+      );
+    },
+  });
+});
+
+add_task(async function test_scenario_offline() {
+  await UrlbarTestUtils.withExperiment({
+    valueOverrides: {
+      quickSuggestScenario: "offline",
+    },
+    callback: () => {
+      Assert.equal(
+        UrlbarPrefs.get("quickSuggestScenario"),
+        "offline",
+        "quickSuggestScenario offline"
+      );
+    },
+  });
+});
+
+add_task(async function test_scenario_history() {
+  await UrlbarTestUtils.withExperiment({
+    valueOverrides: {
+      quickSuggestScenario: "history",
+    },
+    callback: () => {
+      Assert.equal(
+        UrlbarPrefs.get("quickSuggestScenario"),
+        "history",
+        "quickSuggestScenario history"
+      );
+    },
+  });
+});
+
+function clearOnboardingPrefs() {
+  UrlbarPrefs.clear("suggest.quicksuggest");
+  UrlbarPrefs.clear("suggest.quicksuggest.sponsored");
+  UrlbarPrefs.clear("quicksuggest.shouldShowOnboardingDialog");
+  UrlbarPrefs.clear("quicksuggest.showedOnboardingDialog");
+  UrlbarPrefs.clear("quicksuggest.seenRestarts");
+}

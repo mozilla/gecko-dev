@@ -38,7 +38,7 @@ class PresShell;
 struct ScrollReflowInput;
 namespace layers {
 class Layer;
-class LayerManager;
+class WebRenderLayerManager;
 }  // namespace layers
 namespace layout {
 class ScrollbarActivity;
@@ -53,7 +53,7 @@ class ScrollFrameHelper : public nsIReflowCallback {
   typedef mozilla::layers::ScrollableLayerGuid ScrollableLayerGuid;
   typedef mozilla::layers::ScrollSnapInfo ScrollSnapInfo;
   typedef mozilla::layers::Layer Layer;
-  typedef mozilla::layers::LayerManager LayerManager;
+  typedef mozilla::layers::WebRenderLayerManager WebRenderLayerManager;
   typedef mozilla::layout::ScrollAnchorContainer ScrollAnchorContainer;
   using Element = mozilla::dom::Element;
 
@@ -395,10 +395,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
     return mWillBuildScrollableLayer;
   }
 
-  void ResetScrollPositionForLayerPixelAlignment() {
-    mScrollPosForLayerPixelAlignment = GetScrollPosition();
-  }
-
   bool ComputeCustomOverflow(mozilla::OverflowAreas& aOverflowAreas);
 
   void UpdateSticky();
@@ -488,8 +484,8 @@ class ScrollFrameHelper : public nsIReflowCallback {
                                bool aApzAnimationInProgress);
   bool WantAsyncScroll() const;
   Maybe<mozilla::layers::ScrollMetadata> ComputeScrollMetadata(
-      LayerManager* aLayerManager, const nsIFrame* aContainerReferenceFrame,
-      const mozilla::DisplayItemClip* aClip) const;
+      WebRenderLayerManager* aLayerManager,
+      const nsIFrame* aContainerReferenceFrame) const;
   // nsIScrollbarMediator
   void ScrollByPage(nsScrollbarFrame* aScrollbar, int32_t aDirection,
                     nsIScrollbarMediator::ScrollSnapMode aSnap =
@@ -613,7 +609,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
   nsExpirationState mActivityExpirationState;
 
   nsCOMPtr<nsITimer> mScrollActivityTimer;
-  nsPoint mScrollPosForLayerPixelAlignment;
 
   // The scroll position where we last updated frame visibility.
   nsPoint mLastUpdateFramesPos;
@@ -687,10 +682,6 @@ class ScrollFrameHelper : public nsIReflowCallback {
   // removing the display port). If those descendant scrollframes have their
   // display ports removed or made minimal, then we expire our display port.
   bool mIsParentToActiveScrollFrames : 1;
-
-  // If true, add clipping in ScrollFrameHelper::ClipLayerToDisplayPort.
-  // XXX this flag needs some auditing and better documentation, bug 1646686.
-  bool mAddClipRectToLayer : 1;
 
   // True if this frame has been scrolled at least once
   bool mHasBeenScrolled : 1;
@@ -1059,9 +1050,6 @@ class nsHTMLScrollFrame : public nsContainerFrame,
   bool IsMaybeAsynchronouslyScrolled() final {
     return mHelper.IsMaybeAsynchronouslyScrolled();
   }
-  void ResetScrollPositionForLayerPixelAlignment() final {
-    mHelper.ResetScrollPositionForLayerPixelAlignment();
-  }
   bool DidHistoryRestore() const final { return mHelper.mDidHistoryRestore; }
   void ClearDidHistoryRestore() final { mHelper.mDidHistoryRestore = false; }
   void MarkEverScrolled() final { mHelper.MarkEverScrolled(); }
@@ -1091,10 +1079,10 @@ class nsHTMLScrollFrame : public nsContainerFrame,
   }
   bool WantAsyncScroll() const final { return mHelper.WantAsyncScroll(); }
   mozilla::Maybe<mozilla::layers::ScrollMetadata> ComputeScrollMetadata(
-      LayerManager* aLayerManager, const nsIFrame* aContainerReferenceFrame,
-      const mozilla::DisplayItemClip* aClip) const final {
+      mozilla::layers::WebRenderLayerManager* aLayerManager,
+      const nsIFrame* aContainerReferenceFrame) const final {
     return mHelper.ComputeScrollMetadata(aLayerManager,
-                                         aContainerReferenceFrame, aClip);
+                                         aContainerReferenceFrame);
   }
   void MarkScrollbarsDirtyForReflow() const final {
     mHelper.MarkScrollbarsDirtyForReflow();
@@ -1539,9 +1527,6 @@ class nsXULScrollFrame final : public nsBoxFrame,
   bool IsMaybeAsynchronouslyScrolled() final {
     return mHelper.IsMaybeAsynchronouslyScrolled();
   }
-  void ResetScrollPositionForLayerPixelAlignment() final {
-    mHelper.ResetScrollPositionForLayerPixelAlignment();
-  }
   bool DidHistoryRestore() const final { return mHelper.mDidHistoryRestore; }
   void ClearDidHistoryRestore() final { mHelper.mDidHistoryRestore = false; }
   void MarkEverScrolled() final { mHelper.MarkEverScrolled(); }
@@ -1571,10 +1556,10 @@ class nsXULScrollFrame final : public nsBoxFrame,
   }
   bool WantAsyncScroll() const final { return mHelper.WantAsyncScroll(); }
   mozilla::Maybe<mozilla::layers::ScrollMetadata> ComputeScrollMetadata(
-      LayerManager* aLayerManager, const nsIFrame* aContainerReferenceFrame,
-      const mozilla::DisplayItemClip* aClip) const final {
+      mozilla::layers::WebRenderLayerManager* aLayerManager,
+      const nsIFrame* aContainerReferenceFrame) const final {
     return mHelper.ComputeScrollMetadata(aLayerManager,
-                                         aContainerReferenceFrame, aClip);
+                                         aContainerReferenceFrame);
   }
   void MarkScrollbarsDirtyForReflow() const final {
     mHelper.MarkScrollbarsDirtyForReflow();

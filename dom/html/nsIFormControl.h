@@ -146,24 +146,6 @@ class nsIFormControl : public nsISupports {
   NS_IMETHOD
   SubmitNamesValues(mozilla::dom::FormData* aFormData) = 0;
 
-  /**
-   * Save to presentation state.  The form control will determine whether it
-   * has anything to save and if so, create an entry in the layout history for
-   * its pres context.
-   */
-  NS_IMETHOD SaveState() = 0;
-
-  /**
-   * Restore from presentation state.  You pass in the presentation state for
-   * this form control (generated with GenerateStateKey() + "-C") and the form
-   * control will grab its state from there.
-   *
-   * @param aState the pres state to use to restore the control
-   * @return true if the form control was a checkbox and its
-   *         checked state was restored, false otherwise.
-   */
-  virtual bool RestoreState(mozilla::PresState* aState) = 0;
-
   virtual bool AllowDrop() = 0;
 
   /**
@@ -198,10 +180,6 @@ class nsIFormControl : public nsISupports {
    * @return whether this form control can have draggable children.
    */
   inline bool AllowDraggableChildren() const;
-
-  virtual bool IsDisabledForEvents(mozilla::WidgetEvent* aEvent) {
-    return false;
-  }
 
   // Returns a number for this form control that is unique within its
   // owner document.  This is used by nsContentUtils::GenerateStateKey

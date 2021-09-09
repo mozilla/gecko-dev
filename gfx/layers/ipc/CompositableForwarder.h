@@ -22,7 +22,6 @@ class CompositableClient;
 class CompositableHandle;
 class ImageContainer;
 class PTextureChild;
-class ShadowLayerForwarder;
 class SurfaceDescriptorTiles;
 class TextureClient;
 class ThebesBufferData;
@@ -52,14 +51,6 @@ class CompositableForwarder : public KnowsCompositor {
    */
   virtual void Connect(CompositableClient* aCompositable,
                        ImageContainer* aImageContainer = nullptr) = 0;
-
-  /**
-   * Tell the CompositableHost on the compositor side what TiledLayerBuffer to
-   * use for the next composition.
-   */
-  virtual void UseTiledLayerBuffer(
-      CompositableClient* aCompositable,
-      const SurfaceDescriptorTiles& aTiledDescriptor) = 0;
 
   /**
    * Communicate to the compositor that aRegion in the texture identified by
@@ -111,8 +102,6 @@ class CompositableForwarder : public KnowsCompositor {
   void AssertInForwarderThread() { MOZ_ASSERT(InForwarderThread()); }
 
   static uint32_t GetMaxFileDescriptorsPerMessage();
-
-  virtual ShadowLayerForwarder* AsLayerForwarder() { return nullptr; }
 
  protected:
   nsTArray<RefPtr<TextureClient>> mTexturesToRemove;

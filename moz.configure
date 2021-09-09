@@ -179,6 +179,17 @@ add_old_configure_assignment("DEVELOPER_OPTIONS", developer_options)
 set_config("DEVELOPER_OPTIONS", developer_options)
 
 
+# hybrid build handling
+# ==============================================================
+
+option(
+    "--disable-unified-build",
+    help="Enable building modules that are not marked with `REQUIRES_UNIFIED_BUILD` in non unified context",
+)
+
+set_config("ENABLE_UNIFIED_BUILD", True, when="--disable-unified-build")
+
+
 option(
     env="MOZ_FETCHES_DIR",
     nargs=1,
@@ -249,6 +260,7 @@ def original_path():
 
 @depends(host, when="--enable-bootstrap")
 @imports("os")
+@imports("traceback")
 @imports(_from="mozbuild.toolchains", _import="toolchain_task_definitions")
 @imports(_from="__builtin__", _import="Exception")
 def bootstrap_toolchain_tasks(host):
@@ -260,7 +272,10 @@ def bootstrap_toolchain_tasks(host):
     }.get((host.cpu, host.os, host.kernel))
     try:
         return namespace(prefix=prefix, tasks=toolchain_task_definitions())
-    except Exception:
+    except Exception as e:
+        message = traceback.format_exc()
+        log.warning(str(e))
+        log.debug(message)
         return None
 
 

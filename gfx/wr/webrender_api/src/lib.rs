@@ -64,6 +64,9 @@ use std::sync::Arc;
 use std::os::raw::c_void;
 use peek_poke::PeekPoke;
 
+/// Defined here for cbindgen
+pub const MAX_RENDER_TASK_SIZE: i32 = 16384;
+
 /// Width and height in device pixels of image tiles.
 pub type TileSize = u16;
 
@@ -475,12 +478,21 @@ pub struct PropertyValue<T> {
 /// animated properties.
 #[derive(Clone, Deserialize, Serialize, Debug, PartialEq, Default)]
 pub struct DynamicProperties {
-    ///
+    /// transform list
     pub transforms: Vec<PropertyValue<LayoutTransform>>,
     /// opacity
     pub floats: Vec<PropertyValue<f32>>,
     /// background color
     pub colors: Vec<PropertyValue<ColorF>>,
+}
+
+impl DynamicProperties {
+    /// Extend the properties.
+    pub fn extend(&mut self, other: Self) {
+        self.transforms.extend(other.transforms);
+        self.floats.extend(other.floats);
+        self.colors.extend(other.colors);
+    }
 }
 
 /// A C function that takes a pointer to a heap allocation and returns its size.

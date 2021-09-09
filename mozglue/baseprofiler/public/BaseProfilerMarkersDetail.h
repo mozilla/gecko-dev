@@ -227,7 +227,7 @@ static ProfileBufferBlockIndex AddMarkerWithOptionalStackToBuffer(
         }
         static mozilla::MarkerSchema MarkerTypeDisplay() {
           using MS = mozilla::MarkerSchema;
-          MS schema{MS::Location::markerChart, MS::Location::markerTable};
+          MS schema{MS::Location::MarkerChart, MS::Location::MarkerTable};
           // No user data to display.
           return schema;
         }
@@ -318,10 +318,10 @@ template <typename StackCallback>
     aWriter.UniqueStringElement(aEntryReader.ReadObject<ProfilerString8View>());
 
     const double startTime = options.Timing().GetStartTime();
-    aWriter.DoubleElement(startTime);
+    aWriter.TimeDoubleMsElement(startTime);
 
     const double endTime = options.Timing().GetEndTime();
-    aWriter.DoubleElement(endTime);
+    aWriter.TimeDoubleMsElement(endTime);
 
     aWriter.IntElement(static_cast<int64_t>(options.Timing().MarkerPhase()));
 

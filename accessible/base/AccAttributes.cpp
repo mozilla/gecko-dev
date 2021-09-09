@@ -30,6 +30,7 @@ void AccAttributes::StringFromValueAndName(nsAtom* aAttrName,
         aValueString.AppendFloat(val * 100);
         aValueString.Append(u"%");
       },
+      [&aValueString](const double& val) { aValueString.AppendFloat(val); },
       [&aValueString](const int32_t& val) { aValueString.AppendInt(val); },
       [&aValueString](const RefPtr<nsAtom>& val) {
         val->ToString(aValueString);
@@ -44,11 +45,19 @@ void AccAttributes::StringFromValueAndName(nsAtom* aAttrName,
       },
       [&aValueString](const Color& val) {
         StyleInfo::FormatColor(val.mValue, aValueString);
+      },
+      [&aValueString](const DeleteEntry& val) {
+        aValueString.Append(u"-delete-entry-");
       });
 }
 
 void AccAttributes::Update(AccAttributes* aOther) {
   for (auto entry : *aOther) {
+    if (entry.mValue->is<DeleteEntry>()) {
+      mData.Remove(entry.mName);
+      continue;
+    }
+
     mData.InsertOrUpdate(entry.mName, *entry.mValue);
   }
 }

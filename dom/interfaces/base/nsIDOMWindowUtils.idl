@@ -726,6 +726,7 @@ interface nsIDOMWindowUtils : nsISupports {
    * of the pointer. Use 0 for normal taps.
    * @param aTiltY -90 -> 90 degree value indicating the tilt along the y-axis
    * of the pointer. Use 0 for normal taps.
+   * @param aButton Same as MouseEvent::button.
    */
   void sendNativePenInput(in unsigned long aPointerId,
                           in unsigned long aPointerState,
@@ -735,6 +736,7 @@ interface nsIDOMWindowUtils : nsISupports {
                           in unsigned long aRotation,
                           in long aTiltX,
                           in long aTiltY,
+                          in long aButton,
                           [optional] in nsIObserver aObserver);
 
   /**
@@ -765,7 +767,7 @@ interface nsIDOMWindowUtils : nsISupports {
   /**
    * Send a native event as if the user panned on the touchpad with two
    * fingers.
-   * 
+   *
    * Widget support: Windows.
    * @param aScreenX, aScreenY screen coords of the focus point of this event.
    * @param aDeltaX, aDeltaY the amount of delta in the pan.
@@ -1700,14 +1702,6 @@ interface nsIDOMWindowUtils : nsISupports {
    * findElementWithViewId().
    */
   nsViewID getViewId(in Element aElement);
-
-  /**
-   * Checks the layer tree for this window and returns true
-   * if all layers have transforms that are translations by integers,
-   * no leaf layers overlap, and the union of the leaf layers is exactly
-   * the bounds of the window. Always returns true in non-DEBUG builds.
-   */
-  boolean leafLayersPartitionWindow();
 
   /**
    * Check if any PaintedLayer painting has been done for this element,

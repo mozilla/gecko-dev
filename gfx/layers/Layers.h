@@ -65,7 +65,6 @@ namespace layers {
 
 class Animation;
 class AsyncPanZoomController;
-class HostLayerManager;
 class PaintedLayer;
 class ContainerLayer;
 class ImageLayer;
@@ -73,16 +72,10 @@ class ColorLayer;
 class CompositorAnimations;
 class CanvasLayer;
 class RefLayer;
-class HostLayer;
-class ShadowableLayer;
 class SpecificLayerAttributes;
 class Compositor;
 class TransformData;
 struct PropertyAnimationGroup;
-
-namespace layerscope {
-class LayersPacket;
-}  // namespace layerscope
 
 #define MOZ_LAYER_DECL_NAME(n, e)                  \
   const char* Name() const override { return n; }  \
@@ -144,11 +137,6 @@ class Layer {
    * valid to set/get user data from it.
    */
   LayerManager* Manager() { return mManager; }
-
-  /**
-   * This should only be called when changing layer managers from HostLayers.
-   */
-  void SetManager(LayerManager* aManager, HostLayer* aSelf);
 
   enum {
     /**
@@ -809,14 +797,6 @@ class Layer {
   std::unordered_set<ScrollableLayerGuid::ViewID>
   ApplyPendingUpdatesToSubtree();
 
-  /**
-   * DRAWING PHASE ONLY
-   *
-   * Write layer-subtype-specific attributes into aAttrs.  Used to
-   * synchronize layer attributes to their shadows'.
-   */
-  virtual void FillSpecificAttributes(SpecificLayerAttributes& aAttrs) {}
-
   // Returns true if it's OK to save the contents of aLayer in an
   // opaque surface (a surface without an alpha channel).
   // If we can use a surface without an alpha channel, we should, because
@@ -911,18 +891,6 @@ class Layer {
    * ColorLayer.
    */
   virtual ImageLayer* AsImageLayer() { return nullptr; }
-
-  /**
-   * Dynamic cast to a LayerComposite.  Return null if this is not a
-   * LayerComposite.  Can be used anytime.
-   */
-  virtual HostLayer* AsHostLayer() { return nullptr; }
-
-  /**
-   * Dynamic cast to a ShadowableLayer.  Return null if this is not a
-   * ShadowableLayer.  Can be used anytime.
-   */
-  virtual ShadowableLayer* AsShadowableLayer() { return nullptr; }
 
   // These getters can be used anytime.  They return the effective
   // values that should be used when drawing this layer to screen,
@@ -1058,25 +1026,6 @@ class Layer {
   void SetPrevSibling(Layer* aSibling) { mPrevSibling = aSibling; }
 
   /**
-   * Dump information about this layer manager and its managed tree to
-   * aStream.
-   */
-  void Dump(std::stringstream& aStream, const char* aPrefix = "",
-            bool aDumpHtml = false, bool aSorted = false,
-            const Maybe<gfx::Polygon>& aGeometry = Nothing());
-  /**
-   * Dump information about just this layer manager itself to aStream.
-   */
-  void DumpSelf(std::stringstream& aStream, const char* aPrefix = "",
-                const Maybe<gfx::Polygon>& aGeometry = Nothing());
-
-  /**
-   * Dump information about this layer and its child & sibling layers to
-   * layerscope packet.
-   */
-  void Dump(layerscope::LayersPacket* aPacket, const void* aParent);
-
-  /**
    * Log information about this layer manager and its managed tree to
    * the NSPR log (if enabled for "Layers").
    */
@@ -1093,12 +1042,6 @@ class Layer {
   // an implementation that first calls the base implementation then
   // appends additional info to aTo.
   virtual void PrintInfo(std::stringstream& aStream, const char* aPrefix);
-
-  // Just like PrintInfo, but this function dump information into layerscope
-  // packet, instead of a StringStream. It is also internally used to implement
-  // Dump();
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket,
-                          const void* aParent);
 
   /**
    * Store display list log.
@@ -1453,9 +1396,6 @@ class PaintedLayer : public Layer {
 
   void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
 
-  void DumpPacket(layerscope::LayersPacket* aPacket,
-                  const void* aParent) override;
-
   /**
    * ComputeEffectiveTransforms snaps the ideal transform to get
    * mEffectiveTransform. mResidualTranslation is the translation that should be
@@ -1572,8 +1512,6 @@ class ContainerLayer : public Layer {
     mPresShellResolution = aResolution;
     Mutated();
   }
-
-  void FillSpecificAttributes(SpecificLayerAttributes& aAttrs) override;
 
   enum class SortMode {
     WITH_GEOMETRY,
@@ -1712,9 +1650,6 @@ class ContainerLayer : public Layer {
   virtual void PrintInfo(std::stringstream& aStream,
                          const char* aPrefix) override;
 
-  virtual void DumpPacket(layerscope::LayersPacket* aPacket,
-                          const void* aParent) override;
-
   /**
    * True for if the container start a new 3D context extended by one
    * or more children.
@@ -1787,9 +1722,6 @@ class ColorLayer : public Layer {
       : Layer(aManager, aImplData), mColor() {}
 
   void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
-
-  void DumpPacket(layerscope::LayersPacket* aPacket,
-                  const void* aParent) override;
 
   gfx::IntRect mBounds;
   gfx::DeviceColor mColor;
@@ -1878,9 +1810,6 @@ class CanvasLayer : public Layer {
   virtual ~CanvasLayer();
 
   void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
-
-  void DumpPacket(layerscope::LayersPacket* aPacket,
-                  const void* aParent) override;
 
   virtual RefPtr<CanvasRenderer> CreateCanvasRendererInternal() = 0;
 
@@ -2015,11 +1944,6 @@ class RefLayer : public ContainerLayer {
 
   virtual LayersId GetReferentId() { return mId; }
 
-  /**
-   * DRAWING PHASE ONLY
-   */
-  void FillSpecificAttributes(SpecificLayerAttributes& aAttrs) override;
-
   MOZ_LAYER_DECL_NAME("RefLayer", TYPE_REF)
 
  protected:
@@ -2029,9 +1953,6 @@ class RefLayer : public ContainerLayer {
         mEventRegionsOverride(EventRegionsOverride::NoOverride) {}
 
   void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
-
-  void DumpPacket(layerscope::LayersPacket* aPacket,
-                  const void* aParent) override;
 
   // 0 is a special value that means "no ID".
   LayersId mId;

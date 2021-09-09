@@ -25,6 +25,7 @@ namespace mozilla {
 
 enum class StyleBorderStyle : uint8_t;
 enum class StyleBorderImageRepeat : uint8_t;
+enum class StyleImageRendering : uint8_t;
 
 namespace ipc {
 class ByteBuf;
@@ -99,6 +100,29 @@ inline gfx::SurfaceFormat ImageFormatToSurfaceFormat(ImageFormat aFormat) {
     default:
       return gfx::SurfaceFormat::UNKNOWN;
   }
+}
+
+// This extra piece of data is used to differentiate when spatial nodes that are
+// created by Gecko that have the same mFrame and PerFrameKey. This currently only
+// occurs with sticky display list items that are also zoomable, which results in
+// Gecko creating both a sticky spatial node, and then a property animated reference
+// frame for APZ
+enum class SpatialKeyKind : uint32_t {
+  Transform,
+  Perspective,
+  Scroll,
+  Sticky,
+  ImagePipeline,
+  APZ,
+};
+
+// Construct a unique, persistent spatial key based on the frame tree pointer, per-frame key
+// and a spatial key kind. For now, this covers all the ways Gecko creates spatial nodes.
+// In future, we may need to be more clever with the SpatialKeyKind.
+inline wr::SpatialTreeItemKey SpatialKey(uint64_t aFrame, uint32_t aPerFrameKey,
+                                         SpatialKeyKind aKind) {
+  return wr::SpatialTreeItemKey{
+      aFrame, uint64_t(aPerFrameKey) | (uint64_t(aKind) << 32)};
 }
 
 struct ImageDescriptor : public wr::WrImageDescriptor {
@@ -216,10 +240,7 @@ inline PipelineId AsPipelineId(const mozilla::layers::LayersId& aId) {
   return AsPipelineId(uint64_t(aId));
 }
 
-inline ImageRendering ToImageRendering(gfx::SamplingFilter aFilter) {
-  return aFilter == gfx::SamplingFilter::POINT ? ImageRendering::Pixelated
-                                               : ImageRendering::Auto;
-}
+ImageRendering ToImageRendering(StyleImageRendering);
 
 static inline FontRenderMode ToFontRenderMode(gfx::AntialiasMode aMode,
                                               bool aPermitSubpixelAA = true) {
@@ -740,6 +761,7 @@ struct ByteBuffer {
 struct BuiltDisplayList {
   wr::VecU8 dl_items;
   wr::VecU8 dl_cache;
+  wr::VecU8 dl_spatial_tree;
   wr::BuiltDisplayListDescriptor dl_desc;
 };
 

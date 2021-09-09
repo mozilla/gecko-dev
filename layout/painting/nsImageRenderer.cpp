@@ -641,8 +641,8 @@ ImgDrawResult nsImageRenderer::BuildWebRenderDisplayItems(
         break;
       }
 
-      mozilla::wr::ImageRendering rendering = wr::ToImageRendering(
-          nsLayoutUtils::GetSamplingFilterForFrame(aItem->Frame()));
+      auto rendering =
+          wr::ToImageRendering(aItem->Frame()->UsedImageRendering());
       gfx::IntSize size;
       Maybe<wr::ImageKey> key = aManager->CommandBuilder().CreateImageKey(
           aItem, container, aBuilder, aResources, rendering, aSc, size,
@@ -1062,12 +1062,6 @@ bool nsImageRenderer::IsAnimatedImage() {
 
 already_AddRefed<imgIContainer> nsImageRenderer::GetImage() {
   return do_AddRef(mImageContainer);
-}
-
-bool nsImageRenderer::IsImageContainerAvailable(layers::LayerManager* aManager,
-                                                uint32_t aFlags) {
-  return mImageContainer &&
-         mImageContainer->IsImageContainerAvailable(aManager, aFlags);
 }
 
 void nsImageRenderer::PurgeCacheForViewportChange(

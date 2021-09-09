@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/a11y/DocAccessibleChildBase.h"
+#include "mozilla/a11y/CacheConstants.h"
 #include "mozilla/a11y/RemoteAccessible.h"
 #include "mozilla/StaticPrefs_accessibility.h"
 
@@ -79,11 +80,14 @@ void DocAccessibleChildBase::InsertIntoIpcTree(LocalAccessible* aParent,
   if (StaticPrefs::accessibility_cache_enabled_AtStartup()) {
     nsTArray<CacheData> cache(shownTree.Length());
     for (LocalAccessible* acc : shownTree) {
-      uint64_t id = reinterpret_cast<uint64_t>(acc->UniqueID());
-      RefPtr<AccAttributes> fields = acc->BundleFieldsForCache();
-      cache.AppendElement(CacheData(id, fields));
+      RefPtr<AccAttributes> fields =
+          acc->BundleFieldsForCache(CacheDomain::All, CacheUpdateType::Initial);
+      if (fields->Count()) {
+        uint64_t id = reinterpret_cast<uint64_t>(acc->UniqueID());
+        cache.AppendElement(CacheData(id, fields));
+      }
     }
-    Unused << SendCache(0, cache, true);
+    Unused << SendCache(CacheUpdateType::Initial, cache, true);
   }
 }
 

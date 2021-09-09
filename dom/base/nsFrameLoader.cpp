@@ -70,7 +70,6 @@
 #include "InProcessBrowserChildMessageManager.h"
 
 #include "Layers.h"
-#include "ClientLayerManager.h"
 
 #include "ContentParent.h"
 #include "BrowserParent.h"
@@ -1912,7 +1911,7 @@ void nsFrameLoader::StartDestroy(bool aForProcessSwitch) {
   if (mOwnerContent) {
     doc = mOwnerContent->OwnerDoc();
     dynamicSubframeRemoval = !aForProcessSwitch &&
-                             mPendingBrowsingContext->IsFrame() &&
+                             mPendingBrowsingContext->IsSubframe() &&
                              !doc->InUnlinkOrDeletion();
     doc->SetSubDocumentFor(mOwnerContent, nullptr);
     MaybeUpdatePrimaryBrowserParent(eBrowserParentRemoved);

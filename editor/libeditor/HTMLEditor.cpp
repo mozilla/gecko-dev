@@ -75,8 +75,6 @@ using LeafNodeType = HTMLEditUtils::LeafNodeType;
 using LeafNodeTypes = HTMLEditUtils::LeafNodeTypes;
 using WalkTreeOption = HTMLEditUtils::WalkTreeOption;
 
-const char16_t kNBSP = 160;
-
 // Some utilities to handle overloading of "A" tag for link and named anchor.
 static bool IsLinkTag(const nsAtom& aTagName) {
   return &aTagName == nsGkAtoms::href;
@@ -817,7 +815,7 @@ nsresult HTMLEditor::MaybeCollapseSelectionAtFirstEditableNode(
       WSScanResult scanResultInTextNode =
           WSRunScanner::ScanNextVisibleNodeOrBlockBoundary(
               editingHost, EditorRawDOMPoint(text, 0));
-      if (scanResultInTextNode.InNormalWhiteSpacesOrText() &&
+      if (scanResultInTextNode.InVisibleOrCollapsibleCharacters() &&
           scanResultInTextNode.TextPtr() == text) {
         nsresult rv = CollapseSelectionTo(scanResultInTextNode.Point());
         NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
@@ -3298,11 +3296,8 @@ nsresult HTMLEditor::RemoveEmptyInclusiveAncestorInlineElements(
 
 nsresult HTMLEditor::DeleteNodeWithTransaction(nsIContent& aContent) {
   // Do nothing if the node is read-only.
-  // XXX This is not a override method of EditorBase's method.  This might
-  //     cause not called accidentally.  We need to investigate this issue.
-  if (NS_WARN_IF(!HTMLEditUtils::IsRemovableNode(aContent) &&
-                 !EditorUtils::IsPaddingBRElementForEmptyEditor(aContent))) {
-    return NS_ERROR_FAILURE;
+  if (NS_WARN_IF(!HTMLEditUtils::IsRemovableNode(aContent))) {
+    return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
   }
   nsresult rv = EditorBase::DeleteNodeWithTransaction(aContent);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
@@ -3668,9 +3663,9 @@ already_AddRefed<Element> HTMLEditor::InsertContainerWithTransactionInternal(
 
   // Put aNode in the new container, first.
   // XXX Perhaps, we should not remove the container if it's not editable.
-  nsresult rv = EditorBase::DeleteNodeWithTransaction(aContent);
+  nsresult rv = DeleteNodeWithTransaction(aContent);
   if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+    NS_WARNING("HTMLEditor::DeleteNodeWithTransaction() failed");
     return nullptr;
   }
 
@@ -3734,12 +3729,9 @@ already_AddRefed<Element> HTMLEditor::ReplaceContainerWithTransactionInternal(
       if (NS_WARN_IF(!child)) {
         return nullptr;
       }
-      // HTMLEditor::DeleteNodeWithTransaction() does not move non-editable
-      // node, but we need to move non-editable nodes too.  Therefore, call
-      // EditorBase's method directly.
-      nsresult rv = EditorBase::DeleteNodeWithTransaction(*child);
+      nsresult rv = DeleteNodeWithTransaction(*child);
       if (NS_FAILED(rv)) {
-        NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+        NS_WARNING("HTMLEditor::DeleteNodeWithTransaction() failed");
         return nullptr;
       }
 
@@ -3762,10 +3754,9 @@ already_AddRefed<Element> HTMLEditor::ReplaceContainerWithTransactionInternal(
   }
 
   // Delete old container.
-  // XXX Perhaps, we should not remove the container if it's not editable.
-  rv = EditorBase::DeleteNodeWithTransaction(aOldContainer);
+  rv = DeleteNodeWithTransaction(aOldContainer);
   if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+    NS_WARNING("HTMLEditor::DeleteNodeWithTransaction() failed");
     return nullptr;
   }
 
@@ -3790,12 +3781,9 @@ nsresult HTMLEditor::RemoveContainerWithTransaction(Element& aElement) {
     if (NS_WARN_IF(!child)) {
       return NS_ERROR_FAILURE;
     }
-    // HTMLEditor::DeleteNodeWithTransaction() does not move non-editable
-    // node, but we need to move non-editable nodes too.  Therefore, call
-    // EditorBase's method directly.
-    nsresult rv = EditorBase::DeleteNodeWithTransaction(*child);
+    nsresult rv = DeleteNodeWithTransaction(*child);
     if (NS_FAILED(rv)) {
-      NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+      NS_WARNING("HTMLEditor::DeleteNodeWithTransaction() failed");
       return rv;
     }
 
@@ -3811,10 +3799,9 @@ nsresult HTMLEditor::RemoveContainerWithTransaction(Element& aElement) {
     }
   }
 
-  // XXX Perhaps, we should not remove the container if it's not editable.
-  nsresult rv = EditorBase::DeleteNodeWithTransaction(aElement);
+  nsresult rv = DeleteNodeWithTransaction(aElement);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
-                       "EditorBase::DeleteNodeWithTransaction() failed");
+                       "HTMLEditor::DeleteNodeWithTransaction() failed");
   return rv;
 }
 
@@ -4249,6 +4236,12 @@ already_AddRefed<nsIContent> HTMLEditor::SplitNodeWithTransaction(
     return nullptr;
   }
   MOZ_ASSERT(aStartOfRightNode.IsSetAndValid());
+
+  if (NS_WARN_IF(!HTMLEditUtils::IsSplittableNode(
+          *aStartOfRightNode.ContainerAsContent()))) {
+    aError.Throw(NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+    return nullptr;
+  }
 
   AutoEditSubActionNotifier startToHandleEditSubAction(
       *this, EditSubAction::eSplitNode, nsIEditor::eNext, aError);
@@ -4894,16 +4887,9 @@ nsresult HTMLEditor::MoveNodeWithTransaction(
   // Notify our internal selection state listener
   AutoMoveNodeSelNotify selNotify(RangeUpdaterRef(), oldPoint, aPointToInsert);
 
-  // Hold a reference so aNode doesn't go away when we remove it (bug 772282)
-  // HTMLEditor::DeleteNodeWithTransaction() does not move non-editable
-  // node, but we need to move non-editable nodes too.  Therefore, call
-  // EditorBase's method directly.
-  // XXX Perhaps, this method and DeleteNodeWithTransaction() should take
-  //     new argument for making callers specify whether non-editable nodes
-  //     should be moved or not.
-  nsresult rv = EditorBase::DeleteNodeWithTransaction(aContent);
+  nsresult rv = DeleteNodeWithTransaction(aContent);
   if (NS_FAILED(rv)) {
-    NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
+    NS_WARNING("HTMLEditor::DeleteNodeWithTransaction() failed");
     return rv;
   }
 
@@ -5150,7 +5136,7 @@ nsresult HTMLEditor::SetAttributeOrEquivalent(Element* aElement,
     // style attribute's value
     nsAutoString existingValue;
     aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::style, existingValue);
-    existingValue.Append(' ');
+    existingValue.Append(HTMLEditUtils::kSpace);
     existingValue.Append(aValue);
     if (aSuppressTransaction) {
       nsresult rv = aElement->SetAttr(kNameSpaceID_None, nsGkAtoms::style,

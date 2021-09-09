@@ -31,13 +31,9 @@ enum {
   kCharsetFromMetaTag,      // this one and greater: HTML5 Confident
   kCharsetFromChannel,
   kCharsetFromOtherComponent,
-  kCharsetFromPendingUserForcedAutoDetection,  // Marker value to be upgraded
-                                               // later
   kCharsetFromInitialUserForcedAutoDetection,
   kCharsetFromFinalUserForcedAutoDetection,
   kCharsetFromXmlDeclarationUtf16,        // This one is overridden by
-                                          // kCharsetFromChannel
-  kCharsetFromIrreversibleAutoDetection,  // This one is overridden by
                                           // kCharsetFromChannel
   kCharsetFromByteOrderMark,
   kCharsetFromUtf8OnlyMime,  // For JSON, WebVTT and such

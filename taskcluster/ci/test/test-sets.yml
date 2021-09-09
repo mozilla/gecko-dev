@@ -82,19 +82,11 @@ talos-ref-hw:
     - talos-webgl
 
 raptor-firefox:
-    - raptor-youtube-playback-av1-sfr-firefox
-    - raptor-youtube-playback-h264-sfr-firefox
-    - raptor-youtube-playback-hfr-firefox
-    - raptor-youtube-playback-vp9-sfr-firefox
     - raptor-youtube-playback-widevine-hfr-firefox
     - raptor-youtube-playback-widevine-h264-sfr-firefox
     - raptor-youtube-playback-widevine-vp9-sfr-firefox
 
 raptor-chrome:
-    - raptor-youtube-playback-av1-sfr-chrome
-    - raptor-youtube-playback-h264-sfr-chrome
-    - raptor-youtube-playback-hfr-chrome
-    - raptor-youtube-playback-vp9-sfr-chrome
     - raptor-youtube-playback-widevine-hfr-chrome
     - raptor-youtube-playback-widevine-h264-sfr-chrome
     - raptor-youtube-playback-widevine-vp9-sfr-chrome
@@ -204,38 +196,20 @@ windows-7-tests:
     - reftest
     - xpcshell
 
-windows32-tests:
+windows32-2004-tests:
     - cppunit
-    - gtest
     - crashtest
+    - gtest
     - firefox-ui-functional-local
     - firefox-ui-functional-remote
-    # - jittest  # See comment in windows-ccov-tests set.
     - jsreftest
     - marionette
     - mochitest-a11y
     - mochitest-chrome
     - mochitest-chrome-gpu
+    - mochitest-media
     - mochitest-plain
     - mochitest-plain-gpu
-    - mochitest-media
-    - mochitest-remote
-    - telemetry-tests-client
-    - test-verify
-    - test-verify-gpu
-    - test-verify-wpt
-
-windows-tests:
-    - cppunit
-    - crashtest
-    - firefox-ui-functional-local
-    - firefox-ui-functional-remote
-    - gtest
-    # - jittest  # See comment in windows-ccov-tests set.
-    - jsreftest
-    - marionette
-    - mochitest-a11y
-    - mochitest-chrome
     - mochitest-remote
     - telemetry-tests-client
     - test-verify
@@ -248,21 +222,60 @@ windows-ccov-tests:
     # so we have this set that has it and which runs on ccov builds.
     - jittest
 
-windows10-tests:
-    - mochitest-webgl1-core
-
 windows10-2004-tests:
+    - cppunit
+    - crashtest
+    - firefox-ui-functional-local
+    - firefox-ui-functional-remote
+    - gtest
+    - jsreftest
+    - marionette
+    - mochitest-a11y
     - mochitest-browser-chrome
+    - mochitest-chrome
     - mochitest-chrome-gpu
     - mochitest-devtools-chrome
     - mochitest-media
     - mochitest-plain
     - mochitest-plain-gpu
+    - mochitest-remote
+    - mochitest-webgpu
+    - mochitest-webgl1-core
     - mochitest-webgl1-ext
     - mochitest-webgl2-core
     - mochitest-webgl2-ext
     - reftest
+    - telemetry-tests-client
+    - test-verify
+    - test-verify-gpu
+    - test-verify-wpt
     - xpcshell
+
+windows10-64-ccov-tests:
+    - jittest
+    - mochitest-plain
+    - mochitest-browser-chrome
+    - mochitest-devtools-chrome
+    - web-platform-tests
+    - web-platform-tests-reftest
+    - web-platform-tests-wdspec
+    - crashtest
+    - reftest
+    - xpcshell
+
+windows10-64-2004-ccov-tests:
+    - gtest
+    - marionette
+    - test-coverage
+    - test-verify
+    - test-verify-gpu
+    - cppunit
+    - jsreftest
+    - web-platform-tests-crashtest
+    - web-platform-tests-print-reftest
+
+windows10-64-2004-failure-tests:
+    - mochitest-browser-chrome-failures
 
 mingwclang-tests-debug:
     - cppunit
@@ -474,8 +487,10 @@ android-hw-aarch64-raptor-cpu-memory-power:
     - raptor-scn-cpu-memory-power-idle-bg-geckoview
     - raptor-scn-cpu-memory-power-idle-bg-refbrow
 
-android-hw-browsertime:
+android-hw-browsertime-power:
     - browsertime-power
+
+android-hw-browsertime:
     - browsertime-tp6m
     - browsertime-tp6m-essential
     - browsertime-tp6m-live

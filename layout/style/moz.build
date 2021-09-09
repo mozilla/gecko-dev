@@ -126,6 +126,7 @@ EXPORTS.mozilla.dom += [
     "CSSImportRule.h",
     "CSSKeyframeRule.h",
     "CSSKeyframesRule.h",
+    "CSSLayerRule.h",
     "CSSMediaRule.h",
     "CSSMozDocumentRule.h",
     "CSSNamespaceRule.h",
@@ -168,6 +169,7 @@ UNIFIED_SOURCES += [
     "CSSImportRule.cpp",
     "CSSKeyframeRule.cpp",
     "CSSKeyframesRule.cpp",
+    "CSSLayerRule.cpp",
     "CSSMediaRule.cpp",
     "CSSMozDocumentRule.cpp",
     "CSSNamespaceRule.cpp",
@@ -322,3 +324,5 @@ if CONFIG["COMPILE_ENVIRONMENT"]:
     CONFIGURE_SUBST_FILES += [
         "extra-bindgen-flags",
     ]
+
+REQUIRES_UNIFIED_BUILD = True

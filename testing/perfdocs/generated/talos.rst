@@ -58,7 +58,7 @@ figure out what suites and tests are available to run.
 
     # Available suites:
     #  bcv                          (basic_compositor_video)
-    #  chromez                      (about_preferences_basic:tresize:about_newtab_with_snippets)
+    #  chromez                      (about_preferences_basic:tresize)
     #  dromaeojs                    (dromaeo_css:kraken)
     #  flex                         (tart_flex:ts_paint_flex)
     # ...
@@ -76,10 +76,6 @@ figure out what suites and tests are available to run.
     # -----
     # This test ensures basic a11y tables and permutations do not cause
     # performance regressions.
-    #
-    # about_newtab_with_snippets
-    # --------------------------
-    # Load about ActivityStream (about:home and about:newtab) with snippets enabled
     #
     # ...
 
@@ -407,8 +403,8 @@ performance regressions.
     0;dhtml.html;1584;1637;1643;1665;1741;1529;1647;1645;1692;1647;1542;1750;1654;1649;1541;1656;1674;1645;1645;1740;1558;1652;1654;1656;1654 |
     1;tablemutation.html;398;385;389;391;387;387;385;387;388;385;384;31746;386;387;384;387;389;387;387;387;388;391;386;387;388 |
 
-about_newtab_with_snipppets
-===========================
+about_newtab_with_snippets
+==========================
 
 .. note::
 

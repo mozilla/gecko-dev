@@ -10,6 +10,7 @@
 #ifdef ACCESSIBILITY
 #  include "mozilla/a11y/AccAttributes.h"
 #  include "mozilla/a11y/AccTypes.h"
+#  include "mozilla/a11y/CacheConstants.h"
 #  include "mozilla/a11y/Role.h"
 #  include "mozilla/GfxMessageUtils.h"
 #  include "ipc/EnumSerializer.h"
@@ -37,8 +38,28 @@ struct ParamTraits<mozilla::a11y::AccGenericType>
           mozilla::a11y::AccGenericType::eAllGenericTypes> {};
 
 template <>
+struct ParamTraits<mozilla::a11y::CacheUpdateType>
+    : public ContiguousEnumSerializerInclusive<
+          mozilla::a11y::CacheUpdateType, mozilla::a11y::CacheUpdateType::Initial,
+          mozilla::a11y::CacheUpdateType::Update> {};
+
+template <>
 struct ParamTraits<mozilla::a11y::FontSize> {
   typedef mozilla::a11y::FontSize paramType;
+
+  static void Write(Message* aMsg, const paramType& aParam) {
+    WriteParam(aMsg, aParam.mValue);
+  }
+
+  static bool Read(const Message* aMsg, PickleIterator* aIter,
+                   paramType* aResult) {
+    return ReadParam(aMsg, aIter, &(aResult->mValue));
+  }
+};
+
+template <>
+struct ParamTraits<mozilla::a11y::DeleteEntry> {
+  typedef mozilla::a11y::DeleteEntry paramType;
 
   static void Write(Message* aMsg, const paramType& aParam) {
     WriteParam(aMsg, aParam.mValue);

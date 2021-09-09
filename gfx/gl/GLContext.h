@@ -27,6 +27,7 @@
 #  define MOZ_GL_DEBUG 1
 #endif
 
+#include "mozilla/IntegerRange.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/ThreadLocal.h"
@@ -79,6 +80,7 @@ enum class GLFeature {
   copy_buffer,
   depth_texture,
   draw_buffers,
+  draw_buffers_indexed,
   draw_instanced,
   element_index_uint,
   ES2_compatibility,
@@ -473,6 +475,7 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
     OES_depth24,
     OES_depth32,
     OES_depth_texture,
+    OES_draw_buffers_indexed,
     OES_element_index_uint,
     OES_fbo_render_mipmap,
     OES_framebuffer_object,
@@ -2019,10 +2022,49 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
     AFTER_GL_CALL;
   }
 
-  void fBindFramebuffer(GLenum target, GLuint framebuffer) {
+ private:
+  mutable GLuint mCachedDrawFb = 0;
+  mutable GLuint mCachedReadFb = 0;
+
+ public:
+  bool mElideDuplicateBindFramebuffers = false;
+
+  void fBindFramebuffer(const GLenum target, const GLuint fb) const {
+    if (mElideDuplicateBindFramebuffers) {
+      MOZ_ASSERT(mCachedDrawFb ==
+                 GetIntAs<GLuint>(LOCAL_GL_DRAW_FRAMEBUFFER_BINDING));
+      MOZ_ASSERT(mCachedReadFb ==
+                 GetIntAs<GLuint>(LOCAL_GL_READ_FRAMEBUFFER_BINDING));
+
+      switch (target) {
+        case LOCAL_GL_FRAMEBUFFER:
+          if (mCachedDrawFb == fb && mCachedReadFb == fb) return;
+          break;
+        case LOCAL_GL_DRAW_FRAMEBUFFER:
+          if (mCachedDrawFb == fb) return;
+          break;
+        case LOCAL_GL_READ_FRAMEBUFFER:
+          if (mCachedReadFb == fb) return;
+          break;
+      }
+    }
+
     BEFORE_GL_CALL;
-    mSymbols.fBindFramebuffer(target, framebuffer);
+    mSymbols.fBindFramebuffer(target, fb);
     AFTER_GL_CALL;
+
+    switch (target) {
+      case LOCAL_GL_FRAMEBUFFER:
+        mCachedDrawFb = fb;
+        mCachedReadFb = fb;
+        break;
+      case LOCAL_GL_DRAW_FRAMEBUFFER:
+        mCachedDrawFb = fb;
+        break;
+      case LOCAL_GL_READ_FRAMEBUFFER:
+        mCachedReadFb = fb;
+        break;
+    }
   }
 
   void fBindRenderbuffer(GLenum target, GLuint renderbuffer) {
@@ -2286,6 +2328,16 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
     BEFORE_GL_CALL;
     mSymbols.fDeleteFramebuffers(n, names);
     AFTER_GL_CALL;
+
+    for (const auto i : IntegerRange(n)) {
+      const auto fb = names[i];
+      if (mCachedDrawFb == fb) {
+        mCachedDrawFb = 0;
+      }
+      if (mCachedReadFb == fb) {
+        mCachedReadFb = 0;
+      }
+    }
   }
 
   void raw_fDeleteRenderbuffers(GLsizei n, const GLuint* names) {
@@ -3308,6 +3360,43 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
     ASSERT_SYMBOL_PRESENT(fFramebufferTextureMultiview);
     mSymbols.fFramebufferTextureMultiview(target, attachment, texture, level,
                                           baseViewIndex, numViews);
+    AFTER_GL_CALL;
+  }
+
+  // -
+  // draw_buffers_indexed
+
+  void fBlendEquationSeparatei(GLuint i, GLenum modeRGB,
+                               GLenum modeAlpha) const {
+    BEFORE_GL_CALL;
+    mSymbols.fBlendEquationSeparatei(i, modeRGB, modeAlpha);
+    AFTER_GL_CALL;
+  }
+
+  void fBlendFuncSeparatei(GLuint i, GLenum sfactorRGB, GLenum dfactorRGB,
+                           GLenum sfactorAlpha, GLenum dfactorAlpha) const {
+    BEFORE_GL_CALL;
+    mSymbols.fBlendFuncSeparatei(i, sfactorRGB, dfactorRGB, sfactorAlpha,
+                                 dfactorAlpha);
+    AFTER_GL_CALL;
+  }
+
+  void fColorMaski(GLuint i, realGLboolean red, realGLboolean green,
+                   realGLboolean blue, realGLboolean alpha) const {
+    BEFORE_GL_CALL;
+    mSymbols.fColorMaski(i, red, green, blue, alpha);
+    AFTER_GL_CALL;
+  }
+
+  void fDisablei(GLenum capability, GLuint i) const {
+    BEFORE_GL_CALL;
+    mSymbols.fDisablei(capability, i);
+    AFTER_GL_CALL;
+  }
+
+  void fEnablei(GLenum capability, GLuint i) const {
+    BEFORE_GL_CALL;
+    mSymbols.fEnablei(capability, i);
     AFTER_GL_CALL;
   }
 

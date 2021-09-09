@@ -49,9 +49,7 @@ endif
 
 # Without -j > 1, make will not pass jobserver info down to cargo. Force
 # one job when requested as a special case.
-ifeq (1,$(MOZ_PARALLEL_BUILD))
-cargo_build_flags += -j1
-endif
+cargo_build_flags += $(filter -j1,$(MAKEFLAGS))
 
 # We also need to rebuild the rust stdlib so that it's instrumented. Because
 # build-std is still pretty experimental, we need to explicitly request
@@ -444,7 +442,7 @@ rust_test_flag := --no-fail-fast
 force-cargo-test-run:
 	$(call RUN_CARGO,test $(cargo_target_flag) $(rust_test_flag) $(rust_test_options) $(rust_test_features_flag))
 
-endif
+endif # RUST_TESTS
 
 ifdef HOST_RUST_LIBRARY_FILE
 

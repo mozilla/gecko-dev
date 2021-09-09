@@ -7,7 +7,6 @@
 #include "TextureHost.h"
 
 #include "CompositableHost.h"  // for CompositableHost
-#include "LayerScope.h"
 #include "mozilla/gfx/2D.h"  // for DataSourceSurface, Factory
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/ipc/Shmem.h"  // for Shmem
@@ -19,8 +18,7 @@
 #include "mozilla/layers/ISurfaceAllocator.h"  // for ISurfaceAllocator
 #include "mozilla/layers/ImageBridgeParent.h"  // for ImageBridgeParent
 #include "mozilla/layers/LayersSurfaces.h"     // for SurfaceDescriptor, etc
-#include "mozilla/layers/TextureHostBasic.h"
-#include "mozilla/layers/TextureHostOGL.h"  // for TextureHostOGL
+#include "mozilla/layers/TextureHostOGL.h"     // for TextureHostOGL
 #include "mozilla/layers/ImageDataSerializer.h"
 #include "mozilla/layers/TextureClient.h"
 #ifdef XP_DARWIN
@@ -47,10 +45,6 @@
 
 #ifdef MOZ_ENABLE_D3D10_LAYER
 #  include "../d3d11/CompositorD3D11.h"
-#endif
-
-#ifdef MOZ_X11
-#  include "mozilla/layers/X11TextureHost.h"
 #endif
 
 #ifdef XP_MACOSX
@@ -212,29 +206,8 @@ already_AddRefed<TextureHost> TextureHost::Create(
       break;
 
     case SurfaceDescriptor::TSurfaceDescriptorMacIOSurface:
-      if (aBackend == LayersBackend::LAYERS_OPENGL ||
-          aBackend == LayersBackend::LAYERS_WR) {
-        result = CreateTextureHostOGL(aDesc, aDeallocator, aBackend, aFlags);
-        break;
-      } else {
-        result = CreateTextureHostBasic(aDesc, aDeallocator, aBackend, aFlags);
-        break;
-      }
-
-#ifdef MOZ_X11
-    case SurfaceDescriptor::TSurfaceDescriptorX11: {
-      if (!aDeallocator->IsSameProcess()) {
-        NS_ERROR(
-            "A client process is trying to peek at our address space using a "
-            "X11Texture!");
-        return nullptr;
-      }
-
-      const SurfaceDescriptorX11& desc = aDesc.get_SurfaceDescriptorX11();
-      result = MakeAndAddRef<X11TextureHost>(aFlags, desc);
+      result = CreateTextureHostOGL(aDesc, aDeallocator, aBackend, aFlags);
       break;
-    }
-#endif
 
 #ifdef XP_WIN
     case SurfaceDescriptor::TSurfaceDescriptorD3D10:
@@ -532,7 +505,6 @@ void TextureHost::PrintInfo(std::stringstream& aStream, const char* aPrefix) {
 }
 
 void TextureHost::Updated(const nsIntRegion* aRegion) {
-  LayerScope::ContentChanged(this);
   UpdatedInternal(aRegion);
 }
 
@@ -884,17 +856,6 @@ static bool IsCompatibleTextureSource(TextureSource* aTexture,
 
 void BufferTextureHost::PrepareTextureSource(
     CompositableTextureSourceRef& aTexture) {
-  // Reuse WrappingTextureSourceYCbCrBasic to reduce memory consumption.
-  if (mFormat == gfx::SurfaceFormat::YUV && !mHasIntermediateBuffer &&
-      aTexture.get() && aTexture->AsWrappingTextureSourceYCbCrBasic() &&
-      aTexture->NumCompositableRefs() <= 1 &&
-      aTexture->GetSize() == GetSize()) {
-    aTexture->AsSourceBasic()->SetBufferTextureHost(this);
-    aTexture->AsDataTextureSource()->SetOwner(this);
-    mFirstSource = aTexture->AsDataTextureSource();
-    mNeedsFullUpdate = true;
-  }
-
   if (!mHasIntermediateBuffer) {
     EnsureWrappingTextureSource();
   }

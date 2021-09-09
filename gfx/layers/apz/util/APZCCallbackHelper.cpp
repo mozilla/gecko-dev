@@ -14,9 +14,7 @@
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/BrowserParent.h"
 #include "mozilla/IntegerPrintfMacros.h"
-#include "mozilla/layers/LayerTransactionChild.h"
 #include "mozilla/layers/RepaintRequest.h"
-#include "mozilla/layers/ShadowLayers.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/layers/WebRenderBridgeChild.h"
 #include "mozilla/DisplayPortUtils.h"
@@ -699,18 +697,6 @@ static void SendLayersDependentApzcTargetConfirmation(
     }
     return;
   }
-
-  ShadowLayerForwarder* lf = renderer->AsShadowForwarder();
-  if (!lf) {
-    return;
-  }
-
-  LayerTransactionChild* shadow = lf->GetShadowManager();
-  if (!shadow) {
-    return;
-  }
-
-  shadow->SendSetConfirmedTargetAPZC(aInputBlockId, aTargets);
 }
 
 }  // namespace

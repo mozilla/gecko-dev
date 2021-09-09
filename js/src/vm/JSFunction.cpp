@@ -380,8 +380,8 @@ static bool ResolveInterpretedFunctionPrototype(JSContext* cx,
     return false;
   }
 
-  RootedPlainObject proto(
-      cx, NewTenuredObjectWithGivenProto<PlainObject>(cx, objProto));
+  RootedPlainObject proto(cx,
+                          NewPlainObjectWithProto(cx, objProto, TenuredObject));
   if (!proto) {
     return false;
   }
@@ -761,32 +761,19 @@ bool JS::OrdinaryHasInstance(JSContext* cx, HandleObject objArg, HandleValue v,
 }
 
 inline void JSFunction::trace(JSTracer* trc) {
-  if (isExtended()) {
-    TraceRange(trc, std::size(toExtended()->extendedSlots),
-               (GCPtrValue*)toExtended()->extendedSlots, "nativeReserved");
-  }
-
-  TraceNullableEdge(trc, &atom_, "atom");
-
-  if (isInterpreted()) {
-    // Functions can be be marked as interpreted despite having no script
-    // yet at some points when parsing, and can be lazy with no lazy script
-    // for self-hosted code.
-    if (isIncomplete()) {
-      MOZ_ASSERT(u.scripted.s.script_ == nullptr);
-    } else if (hasBaseScript()) {
-      BaseScript* script = u.scripted.s.script_;
+  // Functions can be be marked as interpreted despite having no script yet at
+  // some points when parsing, and can be lazy with no lazy script for
+  // self-hosted code.
+  MOZ_ASSERT(!getFixedSlot(NativeJitInfoOrInterpretedScriptSlot).isGCThing());
+  if (isInterpreted() && hasBaseScript()) {
+    if (BaseScript* script = baseScript()) {
       TraceManuallyBarrieredEdge(trc, &script, "script");
       // Self-hosted scripts are shared with workers but are never
       // relocated. Skip unnecessary writes to prevent the possible data race.
-      if (u.scripted.s.script_ != script) {
-        u.scripted.s.script_ = script;
+      if (baseScript() != script) {
+        setFixedSlot(NativeJitInfoOrInterpretedScriptSlot,
+                     JS::PrivateValue(script));
       }
-    }
-    // NOTE: The u.scripted.s.selfHostedLazy_ does not point to GC things.
-
-    if (u.scripted.env_) {
-      TraceManuallyBarrieredEdge(trc, &u.scripted.env_, "fun_environment");
     }
   }
 }
@@ -1076,7 +1063,7 @@ bool js::fun_call(JSContext* cx, unsigned argc, Value* vp) {
   // |Function.prototype.call| and would conclude, "Function.prototype.call
   // is not a function".  Grotesque.)
   if (!IsCallable(func)) {
-    ReportIncompatibleMethod(cx, args, &JSFunction::class_);
+    ReportIncompatibleMethod(cx, args, &FunctionClass);
     return false;
   }
 
@@ -1108,7 +1095,7 @@ bool js::fun_apply(JSContext* cx, unsigned argc, Value* vp) {
   // have side effects or throw an exception.
   HandleValue fval = args.thisv();
   if (!IsCallable(fval)) {
-    ReportIncompatibleMethod(cx, args, &JSFunction::class_);
+    ReportIncompatibleMethod(cx, args, &FunctionClass);
     return false;
   }
 
@@ -1177,11 +1164,20 @@ static const ClassSpec JSFunctionClassSpec = {
     CreateFunctionConstructor, CreateFunctionPrototype, nullptr, nullptr,
     function_methods,          function_properties};
 
-const JSClass JSFunction::class_ = {js_Function_str,
-                                    JSCLASS_HAS_CACHED_PROTO(JSProto_Function),
-                                    &JSFunctionClassOps, &JSFunctionClassSpec};
+const JSClass js::FunctionClass = {
+    js_Function_str,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Function) |
+        JSCLASS_HAS_RESERVED_SLOTS(JSFunction::SlotCount),
+    &JSFunctionClassOps, &JSFunctionClassSpec};
 
-const JSClass* const js::FunctionClassPtr = &JSFunction::class_;
+const JSClass js::ExtendedFunctionClass = {
+    js_Function_str,
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Function) |
+        JSCLASS_HAS_RESERVED_SLOTS(FunctionExtended::SlotCount),
+    &JSFunctionClassOps, &JSFunctionClassSpec};
+
+const JSClass* const js::FunctionClassPtr = &FunctionClass;
+const JSClass* const js::FunctionExtendedClassPtr = &ExtendedFunctionClass;
 
 bool JSFunction::isDerivedClassConstructor() const {
   bool derived = hasBaseScript() && baseScript()->isDerivedClassConstructor();
@@ -1910,6 +1906,65 @@ static bool NewFunctionEnvironmentIsWellFormed(JSContext* cx,
 }
 #endif
 
+static inline const JSClass* FunctionClassForAllocKind(
+    gc::AllocKind allocKind) {
+  return (allocKind == gc::AllocKind::FUNCTION) ? FunctionClassPtr
+                                                : FunctionExtendedClassPtr;
+}
+
+static void AssertClassMatchesAllocKind(const JSClass* clasp,
+                                        gc::AllocKind kind) {
+#ifdef DEBUG
+  if (kind == gc::AllocKind::FUNCTION_EXTENDED) {
+    MOZ_ASSERT(clasp == FunctionExtendedClassPtr);
+  } else {
+    MOZ_ASSERT(kind == gc::AllocKind::FUNCTION);
+    MOZ_ASSERT(clasp == FunctionClassPtr);
+  }
+#endif
+}
+
+static Shape* GetFunctionShape(JSContext* cx, const JSClass* clasp,
+                               JSObject* proto, gc::AllocKind allocKind) {
+  AssertClassMatchesAllocKind(clasp, allocKind);
+
+  size_t nfixed = GetGCKindSlots(allocKind);
+  return SharedShape::getInitialShape(
+      cx, clasp, cx->realm(), TaggedProto(proto), nfixed, ObjectFlags());
+}
+
+Shape* GlobalObject::createFunctionShapeWithDefaultProto(JSContext* cx,
+                                                         bool extended) {
+  GlobalObjectData& data = cx->global()->data();
+  HeapPtr<Shape*>& shapeRef = extended
+                                  ? data.extendedFunctionShapeWithDefaultProto
+                                  : data.functionShapeWithDefaultProto;
+  MOZ_ASSERT(!shapeRef);
+
+  RootedObject proto(cx,
+                     GlobalObject::getOrCreatePrototype(cx, JSProto_Function));
+  if (!proto) {
+    return nullptr;
+  }
+
+  // Creating %Function.prototype% can end up initializing the shape.
+  if (shapeRef) {
+    return shapeRef;
+  }
+
+  gc::AllocKind allocKind =
+      extended ? gc::AllocKind::FUNCTION_EXTENDED : gc::AllocKind::FUNCTION;
+  const JSClass* clasp = FunctionClassForAllocKind(allocKind);
+
+  Shape* shape = GetFunctionShape(cx, clasp, proto, allocKind);
+  if (!shape) {
+    return nullptr;
+  }
+
+  shapeRef.init(shape);
+  return shape;
+}
+
 JSFunction* js::NewFunctionWithProto(
     JSContext* cx, Native native, unsigned nargs, FunctionFlags flags,
     HandleObject enclosingEnv, HandleAtom atom, HandleObject proto,
@@ -1922,8 +1977,21 @@ JSFunction* js::NewFunctionWithProto(
 
   // NOTE: Keep this in sync with `CreateFunctionFast` in Stencil.cpp
 
-  JSFunction* fun =
-      NewObjectWithClassProto<JSFunction>(cx, proto, allocKind, newKind);
+  const JSClass* clasp = FunctionClassForAllocKind(allocKind);
+
+  RootedShape shape(cx);
+  if (!proto) {
+    bool extended = (allocKind == gc::AllocKind::FUNCTION_EXTENDED);
+    shape = GlobalObject::getFunctionShapeWithDefaultProto(cx, extended);
+  } else {
+    shape = GetFunctionShape(cx, clasp, proto, allocKind);
+  }
+  if (!shape) {
+    return nullptr;
+  }
+
+  gc::InitialHeap heap = GetInitialHeap(newKind, clasp);
+  JSFunction* fun = JSFunction::create(cx, allocKind, heap, shape);
   if (!fun) {
     return nullptr;
   }
@@ -1945,9 +2013,6 @@ JSFunction* js::NewFunctionWithProto(
   } else {
     MOZ_ASSERT(fun->isNativeFun());
     fun->initNative(native, nullptr);
-  }
-  if (allocKind == gc::AllocKind::FUNCTION_EXTENDED) {
-    fun->initializeExtended();
   }
   fun->initAtom(atom);
 
@@ -2006,34 +2071,38 @@ bool js::CanReuseScriptForClone(JS::Realm* realm, HandleFunction fun,
 }
 
 static inline JSFunction* NewFunctionClone(JSContext* cx, HandleFunction fun,
-                                           NewObjectKind newKind,
-                                           gc::AllocKind allocKind,
                                            HandleObject proto) {
-  RootedObject cloneProto(cx, proto);
-  if (!proto) {
-    if (!GetFunctionPrototype(cx, fun->generatorKind(), fun->asyncKind(),
-                              &cloneProto)) {
+  MOZ_ASSERT(proto);
+
+  const JSClass* clasp = fun->getClass();
+  gc::AllocKind allocKind = fun->getAllocKind();
+  AssertClassMatchesAllocKind(clasp, allocKind);
+
+  // If |fun| also has |proto| as prototype (the common case) we can reuse its
+  // shape for the clone. This works because |fun| isn't exposed to script.
+  RootedShape shape(cx);
+  if (fun->staticPrototype() == proto) {
+    MOZ_ASSERT(fun->shape()->propMapLength() == 0);
+    MOZ_ASSERT(fun->shape()->objectFlags().isEmpty());
+    MOZ_ASSERT(fun->shape()->realm() == cx->realm());
+    shape = fun->shape();
+  } else {
+    shape = GetFunctionShape(cx, clasp, proto, allocKind);
+    if (!shape) {
       return nullptr;
     }
   }
 
-  RootedFunction clone(cx);
-  clone =
-      NewObjectWithClassProto<JSFunction>(cx, cloneProto, allocKind, newKind);
+  JSFunction* clone = JSFunction::create(cx, allocKind, gc::DefaultHeap, shape);
   if (!clone) {
     return nullptr;
   }
 
-  constexpr uint16_t NonCloneableFlags = FunctionFlags::EXTENDED |
-                                         FunctionFlags::RESOLVED_LENGTH |
-                                         FunctionFlags::RESOLVED_NAME;
+  constexpr uint16_t NonCloneableFlags =
+      FunctionFlags::RESOLVED_LENGTH | FunctionFlags::RESOLVED_NAME;
 
   FunctionFlags flags = fun->flags();
   flags.clearFlags(NonCloneableFlags);
-
-  if (allocKind == gc::AllocKind::FUNCTION_EXTENDED) {
-    flags.setIsExtended();
-  }
 
   clone->setArgCount(fun->nargs());
   clone->setFlags(flags);
@@ -2045,12 +2114,10 @@ static inline JSFunction* NewFunctionClone(JSContext* cx, HandleFunction fun,
   clone->initAtom(atom);
 
   if (allocKind == gc::AllocKind::FUNCTION_EXTENDED) {
-    if (fun->isExtended() && fun->compartment() == cx->compartment()) {
-      for (unsigned i = 0; i < FunctionExtended::NUM_EXTENDED_SLOTS; i++) {
-        clone->initExtendedSlot(i, fun->getExtendedSlot(i));
-      }
-    } else {
-      clone->initializeExtended();
+    MOZ_ASSERT(fun->isExtended());
+    MOZ_ASSERT(fun->compartment() == cx->compartment());
+    for (unsigned i = 0; i < FunctionExtended::NUM_EXTENDED_SLOTS; i++) {
+      clone->initExtendedSlot(i, fun->getExtendedSlot(i));
     }
   }
 
@@ -2059,7 +2126,6 @@ static inline JSFunction* NewFunctionClone(JSContext* cx, HandleFunction fun,
 
 JSFunction* js::CloneFunctionReuseScript(JSContext* cx, HandleFunction fun,
                                          HandleObject enclosingEnv,
-                                         gc::AllocKind allocKind,
                                          HandleObject proto) {
   MOZ_ASSERT(cx->realm() == fun->realm());
   MOZ_ASSERT(NewFunctionEnvironmentIsWellFormed(cx, enclosingEnv));
@@ -2067,9 +2133,7 @@ JSFunction* js::CloneFunctionReuseScript(JSContext* cx, HandleFunction fun,
   MOZ_ASSERT(!fun->isBoundFunction());
   MOZ_ASSERT(CanReuseScriptForClone(cx->realm(), fun, enclosingEnv));
 
-  NewObjectKind newKind = GenericObject;
-  RootedFunction clone(cx,
-                       NewFunctionClone(cx, fun, newKind, allocKind, proto));
+  RootedFunction clone(cx, NewFunctionClone(cx, fun, proto));
   if (!clone) {
     return nullptr;
   }
@@ -2094,9 +2158,8 @@ JSFunction* js::CloneAsmJSModuleFunction(JSContext* cx, HandleFunction fun) {
   MOZ_ASSERT(fun->isExtended());
   MOZ_ASSERT(cx->compartment() == fun->compartment());
 
-  JSFunction* clone =
-      NewFunctionClone(cx, fun, GenericObject, gc::AllocKind::FUNCTION_EXTENDED,
-                       /* proto = */ nullptr);
+  RootedObject proto(cx, fun->staticPrototype());
+  JSFunction* clone = NewFunctionClone(cx, fun, proto);
   if (!clone) {
     return nullptr;
   }

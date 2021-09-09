@@ -300,22 +300,6 @@ extern "C" const char* __tsan_default_suppressions() {
 
          "race:mozilla::gl::MesaMemoryLeakWorkaround\n"
 
-
-         // Bug 1723321
-         "race:mozilla::layers::AsyncPanZoomController::AsyncPanZoomController\n"
-
-         // Bug 1723351 and Bug 1723142
-         "race:mozilla::layers::AsyncPanZoomController::ApplyAsyncTestAttributes\n"
-
-         // Bug 1723170
-         "race:mozilla::layers::APZCTreeManager::NewAPZCInstance\n"
-
-         // Bug 1723176
-         "race:mozilla::layers::AsyncPanZoomController::GetZoomAnimationId\n"
-
-         // Bug 1723730
-         "race:mozilla::layers::AsyncPanZoomController::SetZoomAnimationId\n"
-
       // End of suppressions.
       ;  // Please keep this semicolon.
 }

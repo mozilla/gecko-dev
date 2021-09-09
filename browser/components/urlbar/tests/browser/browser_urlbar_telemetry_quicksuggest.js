@@ -62,8 +62,8 @@ add_task(async function init() {
   await SpecialPowers.pushPrefEnv({
     set: [
       [EXPERIMENT_PREF, true],
-      ["browser.urlbar.suggest.searches", true],
-      ["browser.urlbar.quicksuggest.showedOnboardingDialog", true],
+      ["browser.urlbar." + SUGGEST_PREF, true],
+      ["browser.urlbar.suggest.quicksuggest.sponsored", true],
     ],
   });
 
@@ -321,40 +321,129 @@ add_task(async function enableToggled() {
   TelemetryTestUtils.assertEvents([], { category: TELEMETRY_EVENT_CATEGORY });
   await SpecialPowers.popPrefEnv();
 
-  UrlbarPrefs.clear(SUGGEST_PREF);
+  // Set the pref back to what it was at the start of the task.
+  UrlbarPrefs.set(SUGGEST_PREF, !enabled);
+});
+
+// Tests the contextservices.quicksuggest sponsored_toggled event telemetry by
+// toggling the suggest.quicksuggest.sponsored pref.
+add_task(async function sponsoredToggled() {
+  Services.telemetry.clearEvents();
+
+  // Toggle the suggest.quicksuggest.sponsored pref twice. We should get two
+  // events.
+  let enabled = UrlbarPrefs.get("suggest.quicksuggest.sponsored");
+  for (let i = 0; i < 2; i++) {
+    enabled = !enabled;
+    UrlbarPrefs.set("suggest.quicksuggest.sponsored", enabled);
+    TelemetryTestUtils.assertEvents([
+      {
+        category: TELEMETRY_EVENT_CATEGORY,
+        method: "sponsored_toggled",
+        object: enabled ? "enabled" : "disabled",
+      },
+    ]);
+  }
+
+  // Set the main quicksuggest.enabled pref to false and toggle the
+  // suggest.quicksuggest pref again. We shouldn't get any events.
+  await SpecialPowers.pushPrefEnv({
+    set: [[EXPERIMENT_PREF, false]],
+  });
+  enabled = !enabled;
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", enabled);
+  TelemetryTestUtils.assertEvents([], { category: TELEMETRY_EVENT_CATEGORY });
+  await SpecialPowers.popPrefEnv();
+
+  // Set the pref back to what it was at the start of the task.
+  UrlbarPrefs.set("suggest.quicksuggest.sponsored", !enabled);
 });
 
 // Tests the Nimbus "exposure" event gets recorded when the user is enrolled in
 // a Nimbus experiment for urlbar
 add_task(async function nimbusExposure() {
+  // Exposure event recording is queued to the idle thread, so wait for idle
+  // before we start so any events from previous tasks will have been recorded
+  // and won't interfere with this task.
+  await new Promise(resolve => Services.tm.idleDispatchToMainThread(resolve));
+
   Services.telemetry.clearEvents();
   NimbusFeatures.urlbar._sendExposureEventOnce = true;
+  UrlbarProviderQuickSuggest._recordedExposureEvent = false;
   let doExperimentCleanup = await UrlbarTestUtils.enrollExperiment({
     valueOverrides: {
+      // Make sure Merino is disabled so we don't hit the network.
+      merinoEnabled: false,
       quickSuggestEnabled: true,
-      quickSuggestShouldShowOnboardingDialog: true,
+      quickSuggestShouldShowOnboardingDialog: false,
     },
   });
 
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        category: "normandy",
-        method: "expose",
-        object: "nimbus_experiment",
-        extra: {
-          branchSlug: "control",
-          featureId: "urlbar",
-        },
-      },
-    ],
-    // This filter is needed to exclude the enrollment event.
-    {
-      category: "normandy",
-      method: "expose",
-      object: "nimbus_experiment",
-    }
+  // This filter is needed to exclude the enrollment event.
+  let filter = {
+    category: "normandy",
+    method: "expose",
+    object: "nimbus_experiment",
+  };
+
+  // No exposure event should be recorded after only enrolling.
+  Assert.ok(
+    !UrlbarProviderQuickSuggest._recordedExposureEvent,
+    "_recordedExposureEvent remains false after enrolling"
   );
+  TelemetryTestUtils.assertEvents([], filter);
+
+  // Do a search that doesn't trigger a quick suggest result. No exposure event
+  // should be recorded.
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "nimbusExposure no result",
+    fireInputEvent: true,
+  });
+  await assertNoQuickSuggestResults();
+  await UrlbarTestUtils.promisePopupClose(window);
+  Assert.ok(
+    !UrlbarProviderQuickSuggest._recordedExposureEvent,
+    "_recordedExposureEvent remains false after no quick suggest result"
+  );
+  TelemetryTestUtils.assertEvents([], filter);
+
+  // Do a search that does trigger a quick suggest result. The exposure event
+  // should be recorded.
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: TEST_SEARCH_STRING,
+    fireInputEvent: true,
+  });
+  await assertIsQuickSuggest(1);
+  Assert.ok(
+    UrlbarProviderQuickSuggest._recordedExposureEvent,
+    "_recordedExposureEvent is true after showing quick suggest result"
+  );
+
+  // The event recording is queued to the idle thread when the search starts, so
+  // likewise queue the assert to idle instead of doing it immediately.
+  await new Promise(resolve => {
+    Services.tm.idleDispatchToMainThread(() => {
+      TelemetryTestUtils.assertEvents(
+        [
+          {
+            category: "normandy",
+            method: "expose",
+            object: "nimbus_experiment",
+            extra: {
+              branchSlug: "control",
+              featureId: "urlbar",
+            },
+          },
+        ],
+        filter
+      );
+      resolve();
+    });
+  });
+
+  await UrlbarTestUtils.promisePopupClose(window);
 
   await doExperimentCleanup();
 });
@@ -451,12 +540,12 @@ function assertCustomImpression(index) {
   Assert.equal(payload.position, index + 1, "Should set the position");
   Assert.equal(
     payload.search_query,
-    "",
+    TEST_SEARCH_STRING,
     "Should set the search_query to an empty string"
   );
   Assert.equal(
     payload.matched_keywords,
-    "",
+    TEST_SEARCH_STRING,
     "Should set the matched_keywords to an empty string"
   );
 }

@@ -32,9 +32,10 @@ class PluralRulesObject : public NativeObject {
                 "object slot");
 
   // Estimated memory use for UPluralRules (see IcuMemoryUsage).
-  // Includes usage for UNumberFormat since our PluralRules impl
-  // contains a NumberFormat object.
-  static constexpr size_t UPluralRulesEstimatedMemoryUse = 3726;
+  // Includes usage for UNumberFormat and UNumberRangeFormatter since our
+  // PluralRules implementations contains a NumberFormat and a NumberRangeFormat
+  // object.
+  static constexpr size_t UPluralRulesEstimatedMemoryUse = 5736;
 
   mozilla::intl::PluralRules* getPluralRules() const {
     const auto& slot = getFixedSlot(UPLURAL_RULES_SLOT);
@@ -66,6 +67,19 @@ class PluralRulesObject : public NativeObject {
  */
 [[nodiscard]] extern bool intl_SelectPluralRule(JSContext* cx, unsigned argc,
                                                 JS::Value* vp);
+
+/**
+ * Returns a plural rule for the number range «x - y» according to the effective
+ * locale and the formatting options of the given PluralRules.
+ *
+ * A plural rule is a grammatical category that expresses count distinctions
+ * (such as "one", "two", "few" etc.).
+ *
+ * Usage: rule = intl_SelectPluralRuleRange(pluralRules, x, y)
+ */
+[[nodiscard]] extern bool intl_SelectPluralRuleRange(JSContext* cx,
+                                                     unsigned argc,
+                                                     JS::Value* vp);
 
 /**
  * Returns an array of plural rules categories for a given pluralRules object.

@@ -77,6 +77,21 @@ already_AddRefed<Promise> MediaDevices::GetUserMedia(
     p->MaybeRejectWithInvalidStateError("The document is not fully active.");
     return p.forget();
   }
+  const OwningBooleanOrMediaTrackConstraints& video = aConstraints.mVideo;
+  if (aCallerType != CallerType::System && video.IsMediaTrackConstraints()) {
+    const Optional<nsString>& mediaSource =
+        video.GetAsMediaTrackConstraints().mMediaSource;
+    if (mediaSource.WasPassed() &&
+        !mediaSource.Value().EqualsLiteral("camera")) {
+      WindowContext* wc = owner->GetWindowContext();
+      if (!wc || !wc->HasValidTransientUserGestureActivation()) {
+        p->MaybeRejectWithInvalidStateError(
+            "Display capture requires transient activation "
+            "from a user gesture.");
+        return p.forget();
+      }
+    }
+  }
   const OwningBooleanOrMediaTrackConstraints& audio = aConstraints.mAudio;
   bool isMicrophone =
       audio.IsBoolean()
@@ -200,14 +215,13 @@ already_AddRefed<Promise> MediaDevices::GetDisplayMedia(
     return nullptr;
   }
   nsCOMPtr<nsPIDOMWindowInner> owner = do_QueryInterface(global);
-  /* TODO: bug 1705289
-   * If the relevant global object of this does not have transient activation,
+  /* If the relevant global object of this does not have transient activation,
    * return a promise rejected with a DOMException object whose name attribute
    * has the value InvalidStateError. */
   WindowContext* wc = owner->GetWindowContext();
-  if (!wc || !wc->HasBeenUserGestureActivated()) {
+  if (!wc || !wc->HasValidTransientUserGestureActivation()) {
     p->MaybeRejectWithInvalidStateError(
-        "getDisplayMedia must be called from a user gesture handler.");
+        "getDisplayMedia requires transient activation from a user gesture.");
     return p.forget();
   }
   /* If constraints.video is false, return a promise rejected with a newly

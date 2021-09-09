@@ -46,7 +46,6 @@
 #include "nsObjectLoadingContent.h"
 
 #include "Layers.h"
-#include "BasicLayers.h"
 #include "mozilla/layers/WebRenderUserData.h"
 #include "mozilla/layers/WebRenderScrollData.h"
 #include "mozilla/layers/RenderRootStateManager.h"
@@ -434,7 +433,7 @@ void nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   nsIScrollableFrame* sf = presShell->GetRootScrollFrameAsScrollable();
   bool constructZoomItem = subdocRootFrame && parentAPD != subdocAPD;
   bool needsOwnLayer = false;
-  if (constructZoomItem || presContext->IsRootContentDocument() ||
+  if (constructZoomItem || presContext->IsRootContentDocumentCrossProcess() ||
       (sf && sf->IsScrollingActive())) {
     needsOwnLayer = true;
   }

@@ -51,10 +51,44 @@ class JS_PUBLIC_API RealmOptions;
 
 namespace js {
 
+class ArgumentsObject;
 class GlobalScope;
 class GlobalLexicalEnvironmentObject;
 class PlainObject;
 class RegExpStatics;
+
+// Fixed slot capacities for PlainObjects. The global has a cached Shape for
+// PlainObject with default prototype for each of these values.
+enum class PlainObjectSlotsKind {
+  Slots0,
+  Slots2,
+  Slots4,
+  Slots8,
+  Slots12,
+  Slots16,
+  Limit
+};
+
+static PlainObjectSlotsKind PlainObjectSlotsKindFromAllocKind(
+    gc::AllocKind kind) {
+  switch (kind) {
+    case gc::AllocKind::OBJECT0:
+      return PlainObjectSlotsKind::Slots0;
+    case gc::AllocKind::OBJECT2:
+      return PlainObjectSlotsKind::Slots2;
+    case gc::AllocKind::OBJECT4:
+      return PlainObjectSlotsKind::Slots4;
+    case gc::AllocKind::OBJECT8:
+      return PlainObjectSlotsKind::Slots8;
+    case gc::AllocKind::OBJECT12:
+      return PlainObjectSlotsKind::Slots12;
+    case gc::AllocKind::OBJECT16:
+      return PlainObjectSlotsKind::Slots16;
+    default:
+      break;
+  }
+  MOZ_CRASH("Invalid kind");
+}
 
 // Data attached to a GlobalObject. This is freed when clearing the Realm's
 // global_ only because this way we don't need to add a finalizer to all
@@ -128,8 +162,11 @@ class GlobalObjectData {
   // The WindowProxy associated with this global.
   HeapPtr<JSObject*> windowProxy;
 
-  // Functions and other top-level values for self-hosted code.
+  // Functions and other top-level values for self-hosted code. The "computed"
+  // holder is used as the target of `SetIntrinsic` calls, but the same property
+  // may also be cached on the normal intrinsics holder for `GetIntrinsic`.
   HeapPtr<NativeObject*> intrinsicsHolder;
+  HeapPtr<NativeObject*> computedIntrinsicsHolder;
 
   // Cache used to optimize certain for-of operations.
   HeapPtr<NativeObject*> forOfPICChain;
@@ -149,8 +186,30 @@ class GlobalObjectData {
   // Cached shape for new arrays with Array.prototype as prototype.
   HeapPtr<Shape*> arrayShapeWithDefaultProto;
 
+  // Shape for PlainObject with %Object.prototype% as proto, for each object
+  // AllocKind.
+  using PlainObjectShapeArray =
+      mozilla::EnumeratedArray<PlainObjectSlotsKind,
+                               PlainObjectSlotsKind::Limit, HeapPtr<Shape*>>;
+  PlainObjectShapeArray plainObjectShapesWithDefaultProto;
+
+  // Shape for JSFunction with %Function.prototype% as proto, for both
+  // non-extended and extended functions.
+  HeapPtr<Shape*> functionShapeWithDefaultProto;
+  HeapPtr<Shape*> extendedFunctionShapeWithDefaultProto;
+
   // Global state for regular expressions.
   UniquePtr<RegExpStatics> regExpStatics;
+
+  HeapPtr<ArgumentsObject*> mappedArgumentsTemplate;
+  HeapPtr<ArgumentsObject*> unmappedArgumentsTemplate;
+
+  HeapPtr<PlainObject*> iterResultTemplate;
+  HeapPtr<PlainObject*> iterResultWithoutPrototypeTemplate;
+
+  // Lazily initialized script source object to use for scripts cloned from the
+  // self-hosting stencil.
+  HeapPtr<ScriptSourceObject*> selfHostingScriptSource;
 
   // Whether the |globalThis| property has been resolved on the global object.
   bool globalThisResolved = false;
@@ -819,6 +878,13 @@ class GlobalObject : public NativeObject {
   static NativeObject* getIntrinsicsHolder(JSContext* cx,
                                            Handle<GlobalObject*> global);
 
+  NativeObject* getComputedIntrinsicsHolder() {
+    return data().computedIntrinsicsHolder;
+  }
+  void setComputedIntrinsicsHolder(NativeObject* holder) {
+    data().computedIntrinsicsHolder = holder;
+  }
+
   bool maybeExistingIntrinsicValue(PropertyName* name, Value* vp) {
     NativeObject* holder = data().intrinsicsHolder;
     if (!holder) {
@@ -909,6 +975,25 @@ class GlobalObject : public NativeObject {
   // Add a name to [[VarNames]].  Reports OOM on failure.
   [[nodiscard]] bool addToVarNames(JSContext* cx, JS::Handle<JSAtom*> name);
 
+  static ArgumentsObject* getOrCreateArgumentsTemplateObject(JSContext* cx,
+                                                             bool mapped);
+  ArgumentsObject* maybeArgumentsTemplateObject(bool mapped) const;
+
+  static const size_t IterResultObjectValueSlot = 0;
+  static const size_t IterResultObjectDoneSlot = 1;
+  static js::PlainObject* getOrCreateIterResultTemplateObject(JSContext* cx);
+  static js::PlainObject* getOrCreateIterResultWithoutPrototypeTemplateObject(
+      JSContext* cx);
+
+ private:
+  enum class WithObjectPrototype { No, Yes };
+  static js::PlainObject* createIterResultTemplateObject(
+      JSContext* cx, WithObjectPrototype withProto);
+
+ public:
+  static ScriptSourceObject* getOrCreateSelfHostingScriptSourceObject(
+      JSContext* cx, Handle<GlobalObject*> global);
+
   // Implemented in vm/Iteration.cpp.
   static bool initIteratorProto(JSContext* cx, Handle<GlobalObject*> global);
   template <ProtoKind Kind, const JSClass* ProtoClass,
@@ -974,6 +1059,31 @@ class GlobalObject : public NativeObject {
     return createArrayShapeWithDefaultProto(cx);
   }
   static Shape* createArrayShapeWithDefaultProto(JSContext* cx);
+
+  static Shape* getPlainObjectShapeWithDefaultProto(JSContext* cx,
+                                                    gc::AllocKind kind) {
+    PlainObjectSlotsKind slotsKind = PlainObjectSlotsKindFromAllocKind(kind);
+    Shape* shape =
+        cx->global()->data().plainObjectShapesWithDefaultProto[slotsKind];
+    if (MOZ_LIKELY(shape)) {
+      return shape;
+    }
+    return createPlainObjectShapeWithDefaultProto(cx, kind);
+  }
+  static Shape* createPlainObjectShapeWithDefaultProto(JSContext* cx,
+                                                       gc::AllocKind kind);
+
+  static Shape* getFunctionShapeWithDefaultProto(JSContext* cx, bool extended) {
+    GlobalObjectData& data = cx->global()->data();
+    Shape* shape = extended ? data.extendedFunctionShapeWithDefaultProto
+                            : data.functionShapeWithDefaultProto;
+    if (MOZ_LIKELY(shape)) {
+      return shape;
+    }
+    return createFunctionShapeWithDefaultProto(cx, extended);
+  }
+  static Shape* createFunctionShapeWithDefaultProto(JSContext* cx,
+                                                    bool extended);
 
   // Returns an object that represents the realm, used by embedder.
   static JSObject* getOrCreateRealmKeyObject(JSContext* cx,

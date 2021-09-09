@@ -33,10 +33,16 @@ class PlainObject : public NativeObject {
   void assertHasNoNonWritableOrAccessorPropExclProto() const;
 #endif
 
-  static inline js::PlainObject* createWithShape(JSContext* cx,
-                                                 JS::Handle<Shape*> shape);
-
  public:
+  static inline js::PlainObject* createWithShape(JSContext* cx,
+                                                 JS::Handle<Shape*> shape,
+                                                 gc::AllocKind kind,
+                                                 NewObjectKind newKind);
+
+  static inline js::PlainObject* createWithShape(
+      JSContext* cx, JS::Handle<Shape*> shape,
+      NewObjectKind newKind = GenericObject);
+
   static inline PlainObject* createWithTemplate(
       JSContext* cx, JS::Handle<PlainObject*> templateObject);
 
@@ -69,6 +75,26 @@ extern PlainObject* CreateThisForFunction(JSContext* cx,
                                           JS::Handle<JSFunction*> callee,
                                           JS::Handle<JSObject*> newTarget,
                                           NewObjectKind newKind);
+
+// Create a new PlainObject with %Object.prototype% as prototype.
+extern PlainObject* NewPlainObject(JSContext* cx,
+                                   NewObjectKind newKind = GenericObject);
+
+// Like NewPlainObject, but uses the given AllocKind. This allows creating an
+// object with fixed slots available for properties.
+extern PlainObject* NewPlainObjectWithAllocKind(
+    JSContext* cx, gc::AllocKind allocKind,
+    NewObjectKind newKind = GenericObject);
+
+// Create a new PlainObject with the given |proto| as prototype.
+extern PlainObject* NewPlainObjectWithProto(
+    JSContext* cx, HandleObject proto, NewObjectKind newKind = GenericObject);
+
+// Like NewPlainObjectWithProto, but uses the given AllocKind. This allows
+// creating an object with fixed slots available for properties.
+extern PlainObject* NewPlainObjectWithProtoAndAllocKind(
+    JSContext* cx, HandleObject proto, gc::AllocKind allocKind,
+    NewObjectKind newKind = GenericObject);
 
 extern PlainObject* NewPlainObjectWithProperties(JSContext* cx,
                                                  IdValuePair* properties,

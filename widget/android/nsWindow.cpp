@@ -34,7 +34,6 @@
 #include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/layers/LayersTypes.h"
-#include "mozilla/layers/RenderTrace.h"
 #include "mozilla/widget/AndroidVsync.h"
 #include <algorithm>
 
@@ -79,10 +78,8 @@ using mozilla::gfx::SurfaceFormat;
 #include "mozilla/layers/APZEventState.h"
 #include "mozilla/layers/APZInputBridge.h"
 #include "mozilla/layers/APZThreadUtils.h"
-#include "mozilla/layers/AsyncCompositionManager.h"
 #include "mozilla/layers/CompositorOGL.h"
 #include "mozilla/layers/IAPZCTreeManager.h"
-#include "mozilla/layers/LayerManagerComposite.h"
 
 #include "nsTArray.h"
 
@@ -123,7 +120,6 @@ using mozilla::java::GeckoSession;
 
 #include "mozilla/layers/CompositorBridgeChild.h"
 #include "mozilla/layers/CompositorSession.h"
-#include "mozilla/layers/LayerTransactionParent.h"
 #include "mozilla/layers/UiCompositorControllerChild.h"
 #include "nsThreadUtils.h"
 

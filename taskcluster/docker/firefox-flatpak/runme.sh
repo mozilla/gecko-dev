@@ -141,11 +141,11 @@ flatpak build-finish build                                      \
         --share=ipc                                             \
         --share=network                                         \
         --socket=pulseaudio                                     \
+        --socket=wayland                                        \
         --socket=x11                                            \
         --socket=pcsc                                           \
         --require-version=0.11.1                                \
         --persist=.mozilla                                      \
-        --filesystem=xdg-run/pipewire-0                         \
         --filesystem=xdg-download:rw                            \
         --filesystem=/etc/firefox/policies                      \
         --device=all                                            \

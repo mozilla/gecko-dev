@@ -155,7 +155,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLFormElement,
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLFormElement,
-                                             nsGenericHTMLElement, nsIForm,
+                                             nsGenericHTMLElement,
                                              nsIRadioGroupContainer)
 
 // EventTarget
@@ -600,10 +600,11 @@ nsresult HTMLFormElement::DoReset() {
 
   mEverTriedInvalidSubmit = false;
   // JBK walk the elements[] array instead of form frame controls - bug 34297
-  uint32_t numElements = GetElementCount();
+  uint32_t numElements = mControls->Length();
   for (uint32_t elementX = 0; elementX < numElements; ++elementX) {
     // Hold strong ref in case the reset does something weird
-    nsCOMPtr<nsIFormControl> controlNode = GetElementAt(elementX);
+    nsCOMPtr<nsIFormControl> controlNode =
+        mControls->mElements.SafeElementAt(elementX, nullptr);
     if (controlNode) {
       controlNode->Reset();
     }
@@ -1067,20 +1068,10 @@ NotNull<const Encoding*> HTMLFormElement::GetSubmitEncoding() {
   return UTF_8_ENCODING;
 }
 
-// nsIForm
-
-NS_IMETHODIMP_(uint32_t)
-HTMLFormElement::GetElementCount() const { return mControls->Length(); }
-
 Element* HTMLFormElement::IndexedGetter(uint32_t aIndex, bool& aFound) {
   Element* element = mControls->mElements.SafeElementAt(aIndex, nullptr);
   aFound = element != nullptr;
   return element;
-}
-
-NS_IMETHODIMP_(nsIFormControl*)
-HTMLFormElement::GetElementAt(int32_t aIndex) const {
-  return mControls->mElements.SafeElementAt(aIndex, nullptr);
 }
 
 /**
@@ -1756,8 +1747,7 @@ nsresult HTMLFormElement::GetActionURL(nsIURI** aActionURL,
   return rv;
 }
 
-NS_IMETHODIMP_(nsIFormControl*)
-HTMLFormElement::GetDefaultSubmitElement() const {
+nsGenericHTMLFormElement* HTMLFormElement::GetDefaultSubmitElement() const {
   MOZ_ASSERT(mDefaultSubmitElement == mFirstSubmitInElements ||
                  mDefaultSubmitElement == mFirstSubmitNotInElements,
              "What happened here?");
@@ -1766,37 +1756,37 @@ HTMLFormElement::GetDefaultSubmitElement() const {
 }
 
 bool HTMLFormElement::IsDefaultSubmitElement(
-    const nsIFormControl* aControl) const {
-  MOZ_ASSERT(aControl, "Unexpected call");
+    const nsGenericHTMLFormElement* aElement) const {
+  MOZ_ASSERT(aElement, "Unexpected call");
 
-  if (aControl == mDefaultSubmitElement) {
+  if (aElement == mDefaultSubmitElement) {
     // Yes, it is
     return true;
   }
 
-  if (mDefaultSubmitElement || (aControl != mFirstSubmitInElements &&
-                                aControl != mFirstSubmitNotInElements)) {
+  if (mDefaultSubmitElement || (aElement != mFirstSubmitInElements &&
+                                aElement != mFirstSubmitNotInElements)) {
     // It isn't
     return false;
   }
 
   // mDefaultSubmitElement is null, but we have a non-null submit around
-  // (aControl, in fact).  figure out whether it's in fact the default submit
+  // (aElement, in fact).  figure out whether it's in fact the default submit
   // and just hasn't been set that way yet.  Note that we can't just call
   // HandleDefaultSubmitRemoval because we might need to notify to handle that
   // correctly and we don't know whether that's safe right here.
   if (!mFirstSubmitInElements || !mFirstSubmitNotInElements) {
-    // We only have one first submit; aControl has to be it
+    // We only have one first submit; aElement has to be it
     return true;
   }
 
   // We have both kinds of submits.  Check which comes first.
-  nsIFormControl* defaultSubmit =
+  nsGenericHTMLFormElement* defaultSubmit =
       CompareFormControlPosition(mFirstSubmitInElements,
                                  mFirstSubmitNotInElements, this) < 0
           ? mFirstSubmitInElements
           : mFirstSubmitNotInElements;
-  return aControl == defaultSubmit;
+  return aElement == defaultSubmit;
 }
 
 bool HTMLFormElement::ImplicitSubmissionIsDisabled() const {
@@ -1812,13 +1802,13 @@ bool HTMLFormElement::ImplicitSubmissionIsDisabled() const {
 }
 
 bool HTMLFormElement::IsLastActiveElement(
-    const nsIFormControl* aControl) const {
-  MOZ_ASSERT(aControl, "Unexpected call");
+    const nsGenericHTMLFormElement* aElement) const {
+  MOZ_ASSERT(aElement, "Unexpected call");
 
   for (auto* element : Reversed(mControls->mElements)) {
     // XXX How about date/time control?
     if (element->IsTextControl(false) && !element->IsDisabled()) {
-      return element == aControl;
+      return element == aElement;
     }
   }
   return false;
@@ -2042,8 +2032,7 @@ void HTMLFormElement::UpdateValidity(bool aElementValidity) {
   UpdateState(true);
 }
 
-NS_IMETHODIMP_(int32_t)
-HTMLFormElement::IndexOfControl(nsIFormControl* aControl) {
+int32_t HTMLFormElement::IndexOfControl(nsIFormControl* aControl) {
   int32_t index = 0;
   return mControls->IndexOfControl(aControl, &index) == NS_OK ? index : 0;
 }

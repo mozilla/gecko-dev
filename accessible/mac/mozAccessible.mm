@@ -110,8 +110,9 @@ using namespace mozilla::a11y;
 
 static const uint64_t kCachedStates =
     states::CHECKED | states::PRESSED | states::MIXED | states::EXPANDED |
-    states::CURRENT | states::SELECTED | states::TRAVERSED | states::LINKED |
-    states::HASPOPUP | states::BUSY | states::MULTI_LINE | states::CHECKABLE;
+    states::EXPANDABLE | states::CURRENT | states::SELECTED | states::TRAVERSED |
+    states::LINKED | states::HASPOPUP | states::BUSY | states::MULTI_LINE |
+    states::CHECKABLE;
 static const uint64_t kCacheInitialized = ((uint64_t)0x1) << 63;
 
 - (uint64_t)state {
@@ -216,8 +217,7 @@ static const uint64_t kCacheInitialized = ((uint64_t)0x1) << 63;
   }
 
   if (selector == @selector(moxExpanded)) {
-    return ([self stateWithMask:states::EXPANDED] == 0) &&
-           ([self stateWithMask:states::COLLAPSED] == 0);
+    return [self stateWithMask:states::EXPANDABLE] == 0;
   }
 
   return [super moxBlockSelector:selector];
@@ -629,11 +629,7 @@ struct RoleDescrComparator {
   // What needs to go here is actually the accDescription of an item.
   // The MSAA acc_help method has nothing to do with this one.
   nsAutoString helpText;
-  if (LocalAccessible* acc = mGeckoAccessible->AsLocal()) {
-    acc->Description(helpText);
-  } else {
-    mGeckoAccessible->AsRemote()->Description(helpText);
-  }
+  mGeckoAccessible->Description(helpText);
 
   return nsCocoaUtils::ToNSString(helpText);
 

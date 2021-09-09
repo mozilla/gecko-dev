@@ -368,6 +368,8 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
    */
   static mozilla::Maybe<mozilla::TimeStamp> GetNextTickHint();
 
+  static bool IsRegularRateTimerTicking();
+
   static void DispatchIdleTaskAfterTickUnlessExists(mozilla::Task* aTask);
   static void CancelIdleTask(mozilla::Task* aTask);
 
@@ -590,6 +592,8 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   bool mAttemptedExtraTickSinceLastVsync : 1;
 
   bool mHasExceededAfterLoadTickPeriod : 1;
+
+  bool mHasStartedTimerAtLeastOnce : 1;
 
   // Number of seconds that the refresh driver is blocked waiting for a
   // compositor transaction to be completed before we append a note to the gfx

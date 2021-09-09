@@ -23,17 +23,6 @@ endif
 ### Load mozconfig options
 include $(OBJDIR)/.mozconfig-client-mk
 
-ifdef MOZ_PARALLEL_BUILD
-  MOZ_MAKE_FLAGS := $(filter-out -j%,$(MOZ_MAKE_FLAGS))
-  MOZ_MAKE_FLAGS += -j$(MOZ_PARALLEL_BUILD)
-endif
-
-# Automatically add -jN to make flags if not defined. N defaults to number of cores.
-ifeq (,$(findstring -j,$(MOZ_MAKE_FLAGS)))
-  cores=$(shell python3 -c 'import multiprocessing; print(multiprocessing.cpu_count())')
-  MOZ_MAKE_FLAGS += -j$(cores)
-endif
-
 ### Set up make flags
 ifdef MOZ_AUTOMATION
 ifeq (4.0,$(firstword $(sort 4.0 $(MAKE_VERSION))))
@@ -69,10 +58,11 @@ build::
 	+$(MOZ_MAKE) automation/build
 endif
 
-# This makefile doesn't support parallel execution. It does pass
-# MOZ_MAKE_FLAGS to sub-make processes, so they will correctly execute
-# in parallel.
-.NOTPARALLEL:
+ifdef MOZBUILD_MANAGE_SCCACHE_DAEMON
+build::
+	# Terminate sccache server. This prints sccache stats.
+	-$(MOZBUILD_MANAGE_SCCACHE_DAEMON) --stop-server
+endif
 
 .PHONY: \
     build

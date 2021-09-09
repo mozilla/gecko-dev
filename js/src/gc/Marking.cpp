@@ -1627,7 +1627,7 @@ GCMarker::MarkQueueProgress GCMarker::processMarkQueue() {
   // mark stack, and processing just the top element with processMarkStackTop
   // without recursing into reachable objects.
   while (queuePos < markQueue.length()) {
-    Value val = markQueue[queuePos++].get().unbarrieredGet();
+    Value val = markQueue[queuePos++].get();
     if (val.isObject()) {
       JSObject* obj = &val.toObject();
       JS::Zone* zone = obj->zone();
@@ -2436,9 +2436,11 @@ void GCMarker::setMarkColorUnchecked(gc::MarkColor newColor) {
 }
 
 void GCMarker::setMainStackColor(gc::MarkColor newColor) {
+  MOZ_ASSERT(isMarkStackEmpty());
   if (newColor != mainStackColor) {
-    MOZ_ASSERT(isMarkStackEmpty());
     mainStackColor = newColor;
+
+    // Update currentStackPtr without changing the mark color.
     setMarkColorUnchecked(color);
   }
 }
@@ -3083,18 +3085,10 @@ void js::TenuringTracer::traceObject(JSObject* obj) {
 
 void js::TenuringTracer::traceObjectSlots(NativeObject* nobj, uint32_t start,
                                           uint32_t end) {
-  HeapSlot* fixedStart;
-  HeapSlot* fixedEnd;
-  HeapSlot* dynStart;
-  HeapSlot* dynEnd;
-  nobj->getSlotRange(start, end, &fixedStart, &fixedEnd, &dynStart, &dynEnd);
-  if (fixedStart) {
-    traceSlots(fixedStart->unbarrieredAddress(),
-               fixedEnd->unbarrieredAddress());
-  }
-  if (dynStart) {
-    traceSlots(dynStart->unbarrieredAddress(), dynEnd->unbarrieredAddress());
-  }
+  auto traceRange = [this](HeapSlot* slotStart, HeapSlot* slotEnd) {
+    traceSlots(slotStart->unbarrieredAddress(), slotEnd->unbarrieredAddress());
+  };
+  nobj->forEachSlotRange(start, end, traceRange);
 }
 
 void js::TenuringTracer::traceSlots(Value* vp, Value* end) {
@@ -4029,9 +4023,6 @@ JS_PUBLIC_API bool JS::UnmarkGrayGCThingRecursively(JS::GCCellPtr thing) {
     return false;
   }
 
-  gcstats::AutoPhase outerPhase(rt->gc.stats(), gcstats::PhaseKind::BARRIER);
-  gcstats::AutoPhase innerPhase(rt->gc.stats(),
-                                gcstats::PhaseKind::UNMARK_GRAY);
   return UnmarkGrayGCThingUnchecked(rt, thing);
 }
 

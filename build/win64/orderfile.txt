@@ -10310,7 +10310,6 @@ ZN5style10properties19animated_properties14AnimationValue20from_computed_values1
 ?GetController@ClientSourceParent@dom@mozilla@@QEBAAEBV?$Maybe@VServiceWorkerDescriptor@dom@mozilla@@@3@XZ
 ?DoResolveOrReject@ThenValueBase@?$MozPromise@V?$Endpoint@VPRemoteDecoderManagerChild@mozilla@@@ipc@mozilla@@W4nsresult@@$00@mozilla@@IEAAXAEAVResolveOrRejectValue@23@@Z
 ?Initialize@ClientLayerManager@layers@mozilla@@QEAA_NPEAVPCompositorBridgeChild@23@_NPEAUTextureFactoryIdentifier@23@@Z
-?GetCompositorBackends@gfxPlatform@@QEAAX_NAEAV?$nsTArray@W4LayersBackend@layers@mozilla@@@@@Z
 ?AllocPLayerTransactionChild@CompositorBridgeChild@layers@mozilla@@AEAAPEAVPLayerTransactionChild@23@AEBV?$nsTArray@W4LayersBackend@layers@mozilla@@@@AEBULayersId@23@@Z
 ??0PLayerTransactionChild@layers@mozilla@@QEAA@XZ
 ?SendPLayerTransactionConstructor@PCompositorBridgeChild@layers@mozilla@@QEAAPEAVPLayerTransactionChild@23@PEAV423@AEBV?$nsTArray@W4LayersBackend@layers@mozilla@@@@AEBULayersId@23@@Z
@@ -10993,9 +10992,6 @@ Servo_StyleSet_HasStateDependency
 ?AddRect@nsRegion@@AEAAXAEBUnsRectAbsolute@@@Z
 ?Copy@nsRegion@@AEAAAEAV1@AEBV1@@Z
 ?GetOpenWindowInfo@XULFrameElement@dom@mozilla@@QEBAPEAVnsIOpenWindowInfo@@XZ
-?SendNotifyRegionInvalidated@CompositorBridgeChild@layers@mozilla@@QEAA_NAEBV?$IntRegionTyped@UUnknownUnits@gfx@mozilla@@@gfx@3@@Z
-?SendNotifyRegionInvalidated@PCompositorBridgeChild@layers@mozilla@@QEAA_NAEBV?$IntRegionTyped@UUnknownUnits@gfx@mozilla@@@gfx@3@@Z
-?Msg_NotifyRegionInvalidated@PCompositorBridge@layers@mozilla@@YAPEAVMessage@IPC@@H@Z
 ?Read@?$IPDLParamTraits@VInputStreamParams@ipc@mozilla@@@ipc@mozilla@@SA_NPEBVMessage@IPC@@PEAVPickleIterator@@PEAVIProtocol@23@PEAVInputStreamParams@23@@Z
 ?Write@?$RegionParamTraits@V?$IntRegionTyped@UUnknownUnits@gfx@mozilla@@@gfx@mozilla@@U?$IntRectTyped@UUnknownUnits@gfx@mozilla@@@23@VRectIterator@?$BaseIntRegion@V?$IntRegionTyped@UUnknownUnits@gfx@mozilla@@@gfx@mozilla@@U?$IntRectTyped@UUnknownUnits@gfx@mozilla@@@23@U?$IntPointTyped@UUnknownUnits@gfx@mozilla@@@23@U?$IntMarginTyped@UUnknownUnits@gfx@mozilla@@@23@@23@@IPC@@SAXPEAVMessage@2@AEBV?$IntRegionTyped@UUnknownUnits@gfx@mozilla@@@gfx@mozilla@@@Z
 ?ProcessPendingUpdates@nsViewManager@@QEAAXXZ
@@ -11760,13 +11756,11 @@ ARGBSetRow_X86
 ??_GShmemTextureReadLock@layers@mozilla@@UEAAPEAXI@Z
 ??4ReadLockDescriptor@layers@mozilla@@QEAAAEAV012@$$QEAV012@@Z
 ??1ReadLockDescriptor@layers@mozilla@@QEAA@XZ
-?HandleMemoryPressure@CompositorBridgeChild@layers@mozilla@@QEAAXXZ
 ?CreateIPDLActor@TextureClient@layers@mozilla@@SAPEAVPTextureChild@23@XZ
 ??0PTextureChild@layers@mozilla@@QEAA@XZ
 ?SendPTextureConstructor@PCompositorBridgeChild@layers@mozilla@@QEAAPEAVPTextureChild@23@PEAV423@AEBVSurfaceDescriptor@23@AEBVReadLockDescriptor@23@AEBW4LayersBackend@23@AEBW4TextureFlags@23@AEBULayersId@23@AEB_KAEBV?$Maybe@UExternalImageId@wr@mozilla@@@3@@Z
 ?Read@?$IPDLParamTraits@VReadLockDescriptor@layers@mozilla@@@ipc@mozilla@@SA_NPEBVMessage@IPC@@PEAVPickleIterator@@PEAVIProtocol@23@PEAVReadLockDescriptor@layers@3@@Z
 ?Write@?$IPDLParamTraits@PEAVPTextureChild@layers@mozilla@@@ipc@mozilla@@SAXPEAVMessage@IPC@@PEAVIProtocol@23@AEBQEAVPTextureChild@layers@3@@Z
-?SendMakeSnapshot@PCompositorBridgeChild@layers@mozilla@@QEAA_NAEBVSurfaceDescriptor@23@AEBU?$IntRectTyped@UUnknownUnits@gfx@mozilla@@@gfx@3@@Z
 ?Write@?$IPDLParamTraits@VSurfaceDescriptor@layers@mozilla@@@ipc@mozilla@@SAXPEAVMessage@IPC@@PEAVIProtocol@23@AEBVSurfaceDescriptor@layers@3@@Z
 ??4IPCDataTransferData@dom@mozilla@@QEAAAEAV012@AEBVIPCBlob@12@@Z
 ?Write@?$IPDLParamTraits@VReadLockDescriptor@layers@mozilla@@@ipc@mozilla@@SAXPEAVMessage@IPC@@PEAVIProtocol@23@AEBVReadLockDescriptor@layers@3@@Z

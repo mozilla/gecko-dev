@@ -5196,7 +5196,6 @@ var gCSSProperties = {
       "buttonface",
       "field",
       "highlight",
-      "highlighttext",
       "graytext",
       /* Preserve previously available specially prefixed colors */
       "-moz-activehyperlinktext",
@@ -8935,7 +8934,14 @@ var gCSSProperties = {
     inherited: true,
     type: CSS_TYPE_LONGHAND,
     initial_values: ["auto"],
-    other_values: ["optimizeSpeed", "optimizeQuality", "-moz-crisp-edges"],
+    other_values: [
+      "optimizeSpeed",
+      "optimizeQuality",
+      "-moz-crisp-edges",
+      "crisp-edges",
+      "smooth",
+      "pixelated",
+    ],
     invalid_values: [],
   },
   isolation: {

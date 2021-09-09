@@ -830,6 +830,11 @@ nsSHistory::AddEntry(nsISHEntry* aSHEntry, bool aPersist) {
   }
   SHistoryChangeNotifier change(this);
 
+  int32_t truncating = Length() - 1 - mIndex;
+  if (truncating > 0) {
+    NOTIFY_LISTENERS(OnHistoryTruncate, (truncating));
+  }
+
   nsCOMPtr<nsIURI> uri = aSHEntry->GetURI();
   NOTIFY_LISTENERS(OnHistoryNewEntry, (uri, mIndex));
 
@@ -1028,7 +1033,7 @@ nsSHistory::PurgeHistory(int32_t aNumEntries) {
 
   aNumEntries = std::min(aNumEntries, Length());
 
-  NOTIFY_LISTENERS(OnHistoryPurge, ());
+  NOTIFY_LISTENERS(OnHistoryPurge, (aNumEntries));
 
   // Set all the entries hanging of the first entry that we keep
   // (mEntries[aNumEntries]) as being created as the result of a load
@@ -1227,9 +1232,10 @@ static void FinishRestore(CanonicalBrowsingContext* aBrowsingContext,
         frameLoaderOwner->GetFrameLoader();
     // The current page can be bfcached, store the
     // nsFrameLoader in the current SessionHistoryEntry.
-    if (aCanSave && aBrowsingContext->GetActiveSessionHistoryEntry()) {
-      aBrowsingContext->GetActiveSessionHistoryEntry()->SetFrameLoader(
-          currentFrameLoader);
+    RefPtr<SessionHistoryEntry> currentSHEntry =
+        aBrowsingContext->GetActiveSessionHistoryEntry();
+    if (aCanSave && currentSHEntry) {
+      currentSHEntry->SetFrameLoader(currentFrameLoader);
       Unused << aBrowsingContext->SetIsInBFCache(true);
     }
 
@@ -1262,6 +1268,10 @@ static void FinishRestore(CanonicalBrowsingContext* aBrowsingContext,
     // The old page can't be stored in the bfcache,
     // destroy the nsFrameLoader.
     if (!aCanSave && currentFrameLoader) {
+      // Since destroying the browsing context may need to update layout
+      // history state, the browsing context needs to have still access to the
+      // correct entry.
+      aBrowsingContext->SetActiveSessionHistoryEntry(currentSHEntry);
       currentFrameLoader->Destroy();
     }
 

@@ -13,12 +13,6 @@ const DUMMY_3_URL = "http://example.com/browser/devtools/";
 addRDMTask(
   null,
   async function() {
-    // Disable bfcache for Fission for now.
-    // If Fission is disabled, the pref is no-op.
-    await SpecialPowers.pushPrefEnv({
-      set: [["fission.bfcacheInParent", false]],
-    });
-
     await SpecialPowers.pushPrefEnv({
       set: [["browser.navigation.requireUserInteraction", false]],
     });
@@ -29,8 +23,8 @@ addRDMTask(
     // 2. DUMMY_2_URL
     const tab = await addTab(DUMMY_1_URL);
     const browser = tab.linkedBrowser;
-    await load(browser, TEST_URL);
-    await load(browser, DUMMY_2_URL);
+    await navigateTo(TEST_URL);
+    await navigateTo(DUMMY_2_URL);
 
     // Check session history state
     let history = await getSessionHistory(browser);
@@ -82,7 +76,7 @@ addRDMTask(
       "contentTitle matches page 0"
     );
 
-    await load(browser, DUMMY_3_URL);
+    await navigateTo(DUMMY_3_URL);
 
     ok(browser.webNavigation.canGoBack, "Going back is allowed");
     ok(!browser.webNavigation.canGoForward, "Going forward is not allowed");
