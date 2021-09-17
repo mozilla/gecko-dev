@@ -255,7 +255,8 @@ bool JS::AddMozDisplayNamesConstructor(JSContext* cx, HandleObject intl) {
   return DefineDataProperty(cx, intl, cx->names().DisplayNames, ctorValue, 0);
 }
 
-enum class DisplayNamesStyle { Long, Short, Narrow };
+// Note: Abbreviated is a non-standard extension for MozDisplayNames.
+enum class DisplayNamesStyle { Long, Abbreviated, Short, Narrow };
 
 enum class DisplayNamesFallback { None, Code };
 
@@ -387,11 +388,6 @@ static JSString* GetLanguageDisplayName(
   return str;
 }
 
-template <typename CharT>
-static JSString* NewStringCopy(JSContext* cx, mozilla::Span<const CharT> span) {
-  return NewStringCopyN<CanGC>(cx, span.data(), span.size());
-}
-
 static JSString* GetScriptDisplayName(JSContext* cx,
                                       Handle<DisplayNamesObject*> displayNames,
                                       const char* locale,
@@ -449,7 +445,7 @@ static JSString* GetScriptDisplayName(JSContext* cx,
     // Return the case-canonicalized input when no localized name was found.
     if (str->empty() && fallback == DisplayNamesFallback::Code) {
       script.toTitleCase();
-      return NewStringCopy(cx, script.span());
+      return NewStringCopy<CanGC>(cx, script.span());
     }
 
     return str;
@@ -487,7 +483,7 @@ static JSString* GetScriptDisplayName(JSContext* cx,
   // Return the case-canonicalized input when no localized name was found.
   if (str->empty() && fallback == DisplayNamesFallback::Code) {
     script.toTitleCase();
-    return NewStringCopy(cx, script.span());
+    return NewStringCopy<CanGC>(cx, script.span());
   }
 
   return str;
@@ -549,7 +545,7 @@ static JSString* GetRegionDisplayName(JSContext* cx,
   // Return the case-canonicalized input when no localized name was found.
   if (str->empty() && fallback == DisplayNamesFallback::Code) {
     region.toUpperCase();
-    return NewStringCopy(cx, region.span());
+    return NewStringCopy<CanGC>(cx, region.span());
   }
 
   return str;
@@ -581,6 +577,7 @@ static JSString* GetCurrencyDisplayName(JSContext* cx, const char* locale,
     case DisplayNamesStyle::Long:
       currencyStyle = UCURR_LONG_NAME;
       break;
+    case DisplayNamesStyle::Abbreviated:
     case DisplayNamesStyle::Short:
       currencyStyle = UCURR_SYMBOL_NAME;
       break;
@@ -830,8 +827,13 @@ static JSString* GetWeekdayDisplayName(JSContext* cx,
       symbolType = UDAT_STANDALONE_WEEKDAYS;
       break;
 
+    case DisplayNamesStyle::Abbreviated:
+      // ICU "short" is CLDR "abbreviated" format.
+      symbolType = UDAT_STANDALONE_SHORT_WEEKDAYS;
+      break;
+
     case DisplayNamesStyle::Short:
-      // ICU "short" is CLDR "abbreviated"; "shorter" is CLDR "short" format.
+      // ICU "shorter" is CLDR "short" format.
       symbolType = UDAT_STANDALONE_SHORTER_WEEKDAYS;
       break;
 
@@ -880,6 +882,7 @@ static JSString* GetMonthDisplayName(
       symbolType = UDAT_STANDALONE_MONTHS;
       break;
 
+    case DisplayNamesStyle::Abbreviated:
     case DisplayNamesStyle::Short:
       symbolType = UDAT_STANDALONE_SHORT_MONTHS;
       break;
@@ -937,6 +940,7 @@ static JSString* GetQuarterDisplayName(JSContext* cx,
       symbolType = UDAT_STANDALONE_QUARTERS;
       break;
 
+    case DisplayNamesStyle::Abbreviated:
     case DisplayNamesStyle::Short:
     case DisplayNamesStyle::Narrow:
       // CLDR "narrow" style not supported in ICU.
@@ -1024,6 +1028,7 @@ static JSString* GetDateTimeFieldDisplayName(JSContext* cx, const char* locale,
     case DisplayNamesStyle::Long:
       width = UDATPG_WIDE;
       break;
+    case DisplayNamesStyle::Abbreviated:
     case DisplayNamesStyle::Short:
       width = UDATPG_ABBREVIATED;
       break;
@@ -1089,9 +1094,11 @@ bool js::intl_ComputeDisplayName(JSContext* cx, unsigned argc, Value* vp) {
       displayStyle = DisplayNamesStyle::Long;
     } else if (StringEqualsLiteral(style, "short")) {
       displayStyle = DisplayNamesStyle::Short;
-    } else {
-      MOZ_ASSERT(StringEqualsLiteral(style, "narrow"));
+    } else if (StringEqualsLiteral(style, "narrow")) {
       displayStyle = DisplayNamesStyle::Narrow;
+    } else {
+      MOZ_ASSERT(StringEqualsLiteral(style, "abbreviated"));
+      displayStyle = DisplayNamesStyle::Abbreviated;
     }
   }
 

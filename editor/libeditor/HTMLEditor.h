@@ -1126,18 +1126,27 @@ class HTMLEditor final : public EditorBase,
   SplitMailCiteElements(const EditorDOMPoint& aPointToSplit);
 
   /**
-   * InsertBRElement() inserts a <br> element into aInsertToBreak.
+   * HandleInsertBRElement() inserts a <br> element into aInsertToBreak.
    * This may split container elements at the point and/or may move following
    * <br> element to immediately after the new <br> element if necessary.
-   * XXX This method name is too generic and unclear whether such complicated
-   *     things will be done automatically or not.
    * XXX This modifies Selection, but should return CreateElementResult instead.
    *
    * @param aInsertToBreak      The point where new <br> element will be
    *                            inserted before.
+   * @param aEditingHost        Current active editing host.
    */
-  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
-  InsertBRElement(const EditorDOMPoint& aInsertToBreak);
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult HandleInsertBRElement(
+      const EditorDOMPoint& aInsertToBreak, Element& aEditingHost);
+
+  /**
+   * HandleInsertLinefeed() inserts a linefeed character into aInsertToBreak.
+   *
+   * @param aInsertToBreak      The point where new linefeed character will be
+   *                            inserted before.
+   * @param aEditingHost        Current active editing host.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult HandleInsertLinefeed(
+      const EditorDOMPoint& aInsertToBreak, Element& aEditingHost);
 
   /**
    * SplitParentInlineElementsAtRangeEdges() splits parent inline nodes at both
@@ -1270,13 +1279,11 @@ class HTMLEditor final : public EditorBase,
 
   /**
    * GetCurrentHardLineEndPoint() returns end point of hard line including
-   * aPoint.  If the line ends with a `<br>` element, returns the `<br>`
-   * element unless it's the last node of a block.  If the line is last line
-   * of a block, returns next sibling of the block.  Additionally, if the
-   * line ends with a linefeed in pre-formated text node, returns point of
-   * the linefeed.
-   * NOTE: This result may be point of editing host.  I.e., the container
-   *       may be outside of editing host.
+   * aPoint.  If the line ends with a visible `<br>` element, returns the point
+   * after the `<br>` element.  If the line ends with a preformatted linefeed,
+   * returns the point after the linefeed unless it's an invisible linebreak
+   * immediately before a block boundary.  If the line ends with a block
+   * boundary, returns the block.
    */
   template <typename PT, typename RT>
   EditorDOMPoint GetCurrentHardLineEndPoint(
@@ -1668,6 +1675,13 @@ class HTMLEditor final : public EditorBase,
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT EditActionResult
   InsertParagraphSeparatorAsSubAction();
+
+  /**
+   * InsertLineBreakAsSubAction() inserts a new <br> element or a linefeed
+   * character at selection.  If there is non-collapsed selection ranges, the
+   * selected ranges is deleted first.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertLineBreakAsSubAction();
 
   /**
    * ChangeListElementType() replaces child list items of aListElement with
@@ -2173,8 +2187,9 @@ class HTMLEditor final : public EditorBase,
     ASCIIWhiteSpace,   // One of ASCII white-spaces (collapsible white-space)
     NoBreakingSpace,   // NBSP
     VisibleChar,       // Non-white-space characters
-    PreformattedChar,  // Any character (including white-space) in preformatted
-                       // element
+    PreformattedChar,  // Any character except a linefeed in a preformatted
+                       // node.
+    PreformattedLineBreak,  // Preformatted linebreak
   };
 
   /**
@@ -2188,6 +2203,9 @@ class HTMLEditor final : public EditorBase,
     MOZ_ASSERT(aPoint.IsInTextNode());
     if (aPoint.IsStartOfContainer()) {
       return CharPointType::TextEnd;
+    }
+    if (aPoint.IsPreviousCharPreformattedNewLine()) {
+      return CharPointType::PreformattedLineBreak;
     }
     if (EditorUtils::IsWhiteSpacePreformatted(*aPoint.ContainerAsText())) {
       return CharPointType::PreformattedChar;
@@ -2203,6 +2221,9 @@ class HTMLEditor final : public EditorBase,
     MOZ_ASSERT(aPoint.IsInTextNode());
     if (aPoint.IsEndOfContainer()) {
       return CharPointType::TextEnd;
+    }
+    if (aPoint.IsCharPreformattedNewLine()) {
+      return CharPointType::PreformattedLineBreak;
     }
     if (EditorUtils::IsWhiteSpacePreformatted(*aPoint.ContainerAsText())) {
       return CharPointType::PreformattedChar;
@@ -2239,7 +2260,7 @@ class HTMLEditor final : public EditorBase,
     }
 
     bool AcrossTextNodeBoundary() const { return mIsInDifferentTextNode; }
-    bool IsWhiteSpace() const {
+    bool IsCollapsibleWhiteSpace() const {
       return mType == CharPointType::ASCIIWhiteSpace ||
              mType == CharPointType::NoBreakingSpace;
     }
@@ -3274,13 +3295,6 @@ class HTMLEditor final : public EditorBase,
   MOZ_CAN_RUN_SCRIPT EditorDOMPoint InsertNodeIntoProperAncestorWithTransaction(
       nsIContent& aNode, const EditorDOMPoint& aPointToInsert,
       SplitAtEdges aSplitAtEdges);
-
-  /**
-   * InsertBRElementAtSelectionWithTransaction() inserts a new <br> element at
-   * selection.  If there is non-collapsed selection ranges, the selected
-   * ranges is deleted first.
-   */
-  MOZ_CAN_RUN_SCRIPT nsresult InsertBRElementAtSelectionWithTransaction();
 
   /**
    * InsertTextWithQuotationsInternal() replaces selection with new content.

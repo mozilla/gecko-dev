@@ -4,9 +4,9 @@
 
 #include "mozilla/intl/NumberRangeFormat.h"
 
+#include "mozilla/intl/ICU4CGlue.h"
 #include "mozilla/intl/NumberFormat.h"
-#include "mozilla/intl/NumberFormatFields.h"
-#include "NumberFormatFieldsUtil.h"
+#include "NumberFormatFields.h"
 #include "NumberFormatterSkeleton.h"
 #include "ScopedICUObject.h"
 
@@ -55,9 +55,10 @@ Result<Ok, ICUError> NumberRangeFormat::initialize(
   if (mNumberRangeFormatter) {
     UErrorCode status = U_ZERO_ERROR;
     mFormattedNumberRange = unumrf_openResult(&status);
-    if (U_SUCCESS(status)) {
-      return Ok();
+    if (U_FAILURE(status)) {
+      return Err(ToICUError(status));
     }
+    return Ok();
   }
   return Err(ICUError::InternalError);
 }
@@ -74,7 +75,7 @@ Result<int32_t, ICUError> NumberRangeFormat::selectForRange(
   int32_t utf16KeywordLength = uplrules_selectForRange(
       pluralRules, mFormattedNumberRange, keyword, keywordSize, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   return utf16KeywordLength;
@@ -112,14 +113,14 @@ Result<std::u16string_view, ICUError> NumberRangeFormat::formatResult() const {
   const UFormattedValue* formattedValue =
       unumrf_resultAsValue(mFormattedNumberRange, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   int32_t utf16Length;
   const char16_t* utf16Str =
       ufmtval_getString(formattedValue, &utf16Length, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   return std::u16string_view(utf16Str, static_cast<size_t>(utf16Length));
@@ -133,7 +134,7 @@ Result<std::u16string_view, ICUError> NumberRangeFormat::formatResultToParts(
   UNumberRangeIdentityResult identity =
       unumrf_resultGetIdentityResult(mFormattedNumberRange, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   bool isIdenticalNumber = identity != UNUM_IDENTITY_RESULT_NOT_EQUAL;
@@ -141,19 +142,19 @@ Result<std::u16string_view, ICUError> NumberRangeFormat::formatResultToParts(
   const UFormattedValue* formattedValue =
       unumrf_resultAsValue(mFormattedNumberRange, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   int32_t utf16Length;
   const char16_t* utf16Str =
       ufmtval_getString(formattedValue, &utf16Length, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   UConstrainedFieldPosition* fpos = ucfpos_open(&status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
   ScopedICUObject<UConstrainedFieldPosition, ucfpos_close> toCloseFpos(fpos);
 
@@ -165,7 +166,7 @@ Result<std::u16string_view, ICUError> NumberRangeFormat::formatResultToParts(
   if (isIdenticalNumber) {
     ucfpos_constrainCategory(fpos, UFIELD_CATEGORY_NUMBER, &status);
     if (U_FAILURE(status)) {
-      return Err(ICUError::InternalError);
+      return Err(ToICUError(status));
     }
   }
 
@@ -180,7 +181,7 @@ Result<std::u16string_view, ICUError> NumberRangeFormat::formatResultToParts(
   while (true) {
     bool hasMore = ufmtval_nextPosition(formattedValue, fpos, &status);
     if (U_FAILURE(status)) {
-      return Err(ICUError::InternalError);
+      return Err(ToICUError(status));
     }
     if (!hasMore) {
       break;
@@ -188,18 +189,18 @@ Result<std::u16string_view, ICUError> NumberRangeFormat::formatResultToParts(
 
     int32_t category = ucfpos_getCategory(fpos, &status);
     if (U_FAILURE(status)) {
-      return Err(ICUError::InternalError);
+      return Err(ToICUError(status));
     }
 
     int32_t fieldName = ucfpos_getField(fpos, &status);
     if (U_FAILURE(status)) {
-      return Err(ICUError::InternalError);
+      return Err(ToICUError(status));
     }
 
     int32_t beginIndex, endIndex;
     ucfpos_getIndexes(fpos, &beginIndex, &endIndex, &status);
     if (U_FAILURE(status)) {
-      return Err(ICUError::InternalError);
+      return Err(ToICUError(status));
     }
 
     if (category == UFIELD_CATEGORY_NUMBER_RANGE_SPAN) {
@@ -232,12 +233,12 @@ Result<std::u16string_view, ICUError> NumberRangeFormat::formatResultToParts(
     Maybe<NumberPartType> partType = GetPartTypeForNumberField(
         UNumberFormatFields(fieldName), number, isNegative, mFormatForUnit);
     if (!partType || !fields.append(*partType, beginIndex, endIndex)) {
-      return Err(ICUError::InternalError);
+      return Err(ToICUError(status));
     }
   }
 
   if (!fields.toPartsVector(utf16Length, sourceMap, parts)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   // Find the approximately sign for ECMA-402.

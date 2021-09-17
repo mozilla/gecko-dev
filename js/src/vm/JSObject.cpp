@@ -69,7 +69,6 @@
 #include "gc/Marking-inl.h"
 #include "vm/ArrayObject-inl.h"
 #include "vm/BooleanObject-inl.h"
-#include "vm/Caches-inl.h"
 #include "vm/Compartment-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/JSAtom-inl.h"
@@ -728,10 +727,11 @@ bool js::TestIntegrityLevel(JSContext* cx, HandleObject obj,
 
 /* * */
 
-static inline NativeObject* NewObject(JSContext* cx, Handle<TaggedProto> proto,
-                                      const JSClass* clasp, gc::AllocKind kind,
-                                      NewObjectKind newKind,
-                                      ObjectFlags objectFlags = {}) {
+static MOZ_ALWAYS_INLINE NativeObject* NewObject(JSContext* cx,
+                                                 const JSClass* clasp,
+                                                 Handle<TaggedProto> proto,
+                                                 gc::AllocKind kind,
+                                                 NewObjectKind newKind) {
   MOZ_ASSERT(clasp->isNativeObject());
 
   // Some classes have specialized allocation functions and shouldn't end up
@@ -744,11 +744,15 @@ static inline NativeObject* NewObject(JSContext* cx, Handle<TaggedProto> proto,
   // store fixed data inline (TypedArrays and ArrayBuffers) so for simplicity
   // and performance reasons we don't support such objects here.
   MOZ_ASSERT(!ClassCanHaveFixedData(clasp));
-
   size_t nfixed = GetGCKindSlots(kind);
+
+  if (CanChangeToBackgroundAllocKind(kind, clasp)) {
+    kind = ForegroundToBackgroundAllocKind(kind);
+  }
+
   RootedShape shape(
       cx, SharedShape::getInitialShape(cx, clasp, cx->realm(), proto, nfixed,
-                                       objectFlags));
+                                       ObjectFlags()));
   if (!shape) {
     return nullptr;
   }
@@ -763,59 +767,12 @@ static inline NativeObject* NewObject(JSContext* cx, Handle<TaggedProto> proto,
   return obj;
 }
 
-void NewObjectCache::fillProto(EntryIndex entry, const JSClass* clasp,
-                               js::TaggedProto proto, gc::AllocKind kind,
-                               NativeObject* obj) {
-  MOZ_ASSERT_IF(proto.isObject(), !proto.toObject()->is<GlobalObject>());
-  MOZ_ASSERT(obj->taggedProto() == proto);
-  return fill(entry, clasp, proto.raw(), kind, obj);
-}
-
-static bool NewObjectWithTaggedProtoIsCachable(JSContext* cx,
-                                               Handle<TaggedProto> proto,
-                                               NewObjectKind newKind) {
-  return !cx->isHelperThreadContext() && proto.isObject() &&
-         newKind == GenericObject && !proto.toObject()->is<GlobalObject>();
-}
-
-NativeObject* js::NewObjectWithGivenTaggedProto(
-    JSContext* cx, const JSClass* clasp, Handle<TaggedProto> proto,
-    gc::AllocKind allocKind, NewObjectKind newKind, ObjectFlags objectFlags) {
-  if (CanChangeToBackgroundAllocKind(allocKind, clasp)) {
-    allocKind = ForegroundToBackgroundAllocKind(allocKind);
-  }
-
-  bool isCachable = NewObjectWithTaggedProtoIsCachable(cx, proto, newKind);
-  if (isCachable) {
-    NewObjectCache& cache = cx->caches().newObjectCache;
-    NewObjectCache::EntryIndex entry = -1;
-    if (cache.lookupProto(clasp, proto.toObject(), allocKind, &entry)) {
-      NativeObject* obj =
-          cache.newObjectFromHit(cx, entry, GetInitialHeap(newKind, clasp));
-      if (obj) {
-        return obj;
-      }
-    }
-  }
-
-  NativeObject* obj =
-      NewObject(cx, proto, clasp, allocKind, newKind, objectFlags);
-  if (!obj) {
-    return nullptr;
-  }
-
-  if (isCachable && !obj->hasDynamicSlots()) {
-    NewObjectCache& cache = cx->caches().newObjectCache;
-    NewObjectCache::EntryIndex entry = -1;
-    cache.lookupProto(clasp, proto.toObject(), allocKind, &entry);
-    cache.fillProto(entry, clasp, proto, allocKind, obj);
-  }
-
-  return obj;
-}
-
-static bool NewObjectIsCachable(JSContext* cx, NewObjectKind newKind) {
-  return !cx->isHelperThreadContext() && newKind == GenericObject;
+NativeObject* js::NewObjectWithGivenTaggedProto(JSContext* cx,
+                                                const JSClass* clasp,
+                                                Handle<TaggedProto> proto,
+                                                gc::AllocKind allocKind,
+                                                NewObjectKind newKind) {
+  return NewObject(cx, clasp, proto, allocKind, newKind);
 }
 
 NativeObject* js::NewObjectWithClassProto(JSContext* cx, const JSClass* clasp,
@@ -825,25 +782,6 @@ NativeObject* js::NewObjectWithClassProto(JSContext* cx, const JSClass* clasp,
   if (protoArg) {
     return NewObjectWithGivenTaggedProto(cx, clasp, AsTaggedProto(protoArg),
                                          allocKind, newKind);
-  }
-
-  if (CanChangeToBackgroundAllocKind(allocKind, clasp)) {
-    allocKind = ForegroundToBackgroundAllocKind(allocKind);
-  }
-
-  Handle<GlobalObject*> global = cx->global();
-
-  bool isCachable = NewObjectIsCachable(cx, newKind);
-  if (isCachable) {
-    NewObjectCache& cache = cx->caches().newObjectCache;
-    NewObjectCache::EntryIndex entry = -1;
-    if (cache.lookupGlobal(clasp, global, allocKind, &entry)) {
-      gc::InitialHeap heap = GetInitialHeap(newKind, clasp);
-      NativeObject* obj = cache.newObjectFromHit(cx, entry, heap);
-      if (obj) {
-        return obj;
-      }
-    }
   }
 
   // Find the appropriate proto for clasp. Built-in classes have a cached
@@ -859,19 +797,7 @@ NativeObject* js::NewObjectWithClassProto(JSContext* cx, const JSClass* clasp,
   }
 
   Rooted<TaggedProto> taggedProto(cx, TaggedProto(proto));
-  NativeObject* obj = NewObject(cx, taggedProto, clasp, allocKind, newKind);
-  if (!obj) {
-    return nullptr;
-  }
-
-  if (isCachable && !obj->hasDynamicSlots()) {
-    NewObjectCache& cache = cx->caches().newObjectCache;
-    NewObjectCache::EntryIndex entry = -1;
-    cache.lookupGlobal(clasp, global, allocKind, &entry);
-    cache.fillGlobal(entry, clasp, global, allocKind, obj);
-  }
-
-  return obj;
+  return NewObject(cx, clasp, taggedProto, allocKind, newKind);
 }
 
 bool js::NewObjectScriptedCall(JSContext* cx, MutableHandleObject pobj) {
@@ -3567,7 +3493,8 @@ void JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
     ArrayBufferObject::addSizeOfExcludingThis(this, mallocSizeOf, info,
                                               runtimeSizes);
   } else if (is<SharedArrayBufferObject>()) {
-    SharedArrayBufferObject::addSizeOfExcludingThis(this, mallocSizeOf, info, runtimeSizes);
+    SharedArrayBufferObject::addSizeOfExcludingThis(this, mallocSizeOf, info,
+                                                    runtimeSizes);
   } else if (is<GlobalObject>()) {
     as<GlobalObject>().addSizeOfData(mallocSizeOf, info);
   } else if (is<WeakCollectionObject>()) {

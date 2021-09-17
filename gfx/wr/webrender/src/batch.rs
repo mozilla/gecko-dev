@@ -6,7 +6,7 @@ use api::{AlphaType, ClipMode, ImageRendering, ImageBufferKind};
 use api::{FontInstanceFlags, YuvColorSpace, YuvFormat, ColorDepth, ColorRange, PremultipliedColorF};
 use api::units::*;
 use crate::clip::{ClipNodeFlags, ClipNodeRange, ClipItemKind, ClipStore};
-use crate::spatial_tree::{SpatialTree, SpatialNodeIndex, CoordinateSystemId};
+use crate::spatial_tree::{SpatialTree, SpatialNodeIndex, CoordinateSystemId, SpatialNodeContainer};
 use crate::composite::{CompositeState};
 use crate::glyph_rasterizer::{GlyphFormat, SubpixelDirection};
 use crate::gpu_cache::{GpuBlockData, GpuCache, GpuCacheAddress};
@@ -3396,8 +3396,7 @@ impl ClipBatcher {
         }
 
         let mask_screen_rect_size = mask_screen_rect.size().to_i32();
-        let clip_spatial_node = &spatial_tree
-            .spatial_nodes[clip_spatial_node_index.0 as usize];
+        let clip_spatial_node = spatial_tree.get_spatial_node(clip_spatial_node_index);
 
         // Only support clips that are axis-aligned to the root coordinate space,
         // for now, to simplify the logic below. This handles the vast majority
@@ -3607,7 +3606,7 @@ impl ClipBatcher {
                             });
                     };
 
-                    let clip_spatial_node = &ctx.spatial_tree.spatial_nodes[clip_instance.spatial_node_index.0 as usize];
+                    let clip_spatial_node = ctx.spatial_tree.get_spatial_node(clip_instance.spatial_node_index);
                     let clip_is_axis_aligned = clip_spatial_node.coordinate_system_id == CoordinateSystemId::root();
 
                     if clip_instance.has_visible_tiles() {

@@ -6,8 +6,8 @@
 
 /**
  * This module exports the UrlbarPrefs singleton, which manages preferences for
- * the urlbar. It also provides access to urlbar Nimbus features as if they are
- * preferences.
+ * the urlbar. It also provides access to urlbar Nimbus variables as if they are
+ * preferences, but only for variables with fallback prefs.
  */
 
 var EXPORTED_SYMBOLS = ["UrlbarPrefs", "UrlbarPrefsObserver"];
@@ -19,6 +19,7 @@ const { XPCOMUtils } = ChromeUtils.import(
 
 XPCOMUtils.defineLazyModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.jsm",
+  Region: "resource://gre/modules/Region.jsm",
   UrlbarUtils: "resource:///modules/UrlbarUtils.jsm",
 });
 
@@ -446,6 +447,7 @@ class Preferences {
       "keyword.enabled",
       "suggest.searches",
     ];
+    this._updatingFirefoxSuggestScenario = false;
     NimbusFeatures.urlbar.onUpdate(() => this._onNimbusUpdate());
   }
 
@@ -526,6 +528,131 @@ class Preferences {
   }
 
   /**
+   * Sets the appropriate Firefox Suggest scenario based on the current Nimbus
+   * rollout (if any) and "hardcoded" rollouts (if any). The possible scenarios
+   * are:
+   *
+   * history
+   *   This is the scenario when the user is not in any rollouts. Firefox
+   *   Suggest suggestions are disabled.
+   * offline
+   *   This is the scenario for the "offline" rollout. Firefox Suggest
+   *   suggestions are enabled by default. Search strings and matching keywords
+   *   are not included in related telemetry. The onboarding dialog is not
+   *   shown.
+   * online
+   *   This is the scenario for the "online" rollout. The onboarding dialog will
+   *   be shown and the user must opt in to enable Firefox Suggest suggestions
+   *   and related telemetry, which will include search strings and matching
+   *   keywords.
+   */
+  async updateFirefoxSuggestScenario() {
+    // Make sure we don't re-enter this method while updating prefs. (Updates to
+    // prefs that are fallbacks for Nimbus variables trigger the pref observer
+    // in Nimbus, which triggers our Nimbus `onUpdate` callback, which calls
+    // this method again.) We also want to avoid event telemetry that's recorded
+    // on updates to the `suggest` prefs since that telemetry is intended to
+    // capture toggles made by the user on about:preferences.
+    if (this._updatingFirefoxSuggestScenario) {
+      return;
+    }
+    try {
+      this._updatingFirefoxSuggestScenario = true;
+      await this._updateFirefoxSuggestScenarioHelper();
+    } finally {
+      this._updatingFirefoxSuggestScenario = false;
+    }
+  }
+
+  async _updateFirefoxSuggestScenarioHelper() {
+    // We need to pick a scenario. If the user is in a Nimbus rollout, then
+    // Nimbus will define it. Otherwise the user may be in a "hardcoded" rollout
+    // depending on their region and locale. Finally, if the user is not in any
+    // rollouts, then the scenario is "history", which means no Firefox Suggest
+    // suggestions should appear.
+    //
+    // IMPORTANT: This relies on the `quickSuggestScenario` variable not having
+    // a `fallbackPref`. If it did, and if there were no Nimbus override, then
+    // Nimbus would just return the pref's value. The logic here would
+    // incorrectly assume that the user is in a Nimbus rollout when in fact it
+    // would only be fetching the pref value. You might think, But wait, I can
+    // define a fallback as long as there's no default value for it in
+    // firefox.js. That would work initially, but if the user is ever unenrolled
+    // from a Nimbus rollout, the default value set here would persist until
+    // restart, meaning Firefox would effectively ignore the unenrollment until
+    // then.
+    let scenario = this._nimbus.quickSuggestScenario;
+    if (!scenario) {
+      await Region.init();
+      if (
+        Region.home == "US" &&
+        Services.locale.appLocaleAsBCP47.substring(0, 2) == "en"
+      ) {
+        // offline rollout for en locales in the US region
+        scenario = "offline";
+      } else {
+        // no rollout
+        scenario = "history";
+      }
+    }
+
+    let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
+    defaults.setCharPref("quicksuggest.scenario", scenario);
+    // At this point, `onPrefChange` fires for the `quicksuggest.scenario`
+    // change and it calls `_syncFirefoxSuggestPrefsFromScenario`.
+  }
+
+  _syncFirefoxSuggestPrefsFromScenario() {
+    // Note: Setting a pref that's listed as a fallback for a Nimbus variable
+    // will trigger the pref observer inside Nimbus and cause all
+    // `Nimbus.urlbar.onUpdate` callbacks to be called. Inside this class we
+    // guard against that by using `_updatingFirefoxSuggestScenario`, but keep
+    // it in mind.
+
+    let scenario = this.get("quicksuggest.scenario");
+    let defaults = Services.prefs.getDefaultBranch("browser.urlbar.");
+
+    let enabled = false;
+    switch (scenario) {
+      case "history":
+        defaults.setBoolPref("quicksuggest.shouldShowOnboardingDialog", true);
+        defaults.setBoolPref("suggest.quicksuggest", false);
+        defaults.setBoolPref("suggest.quicksuggest.sponsored", false);
+        break;
+      case "offline":
+        enabled = true;
+        defaults.setBoolPref("quicksuggest.shouldShowOnboardingDialog", false);
+        defaults.setBoolPref("suggest.quicksuggest", true);
+        defaults.setBoolPref("suggest.quicksuggest.sponsored", true);
+        break;
+      case "online":
+        enabled = true;
+        defaults.setBoolPref("quicksuggest.shouldShowOnboardingDialog", true);
+        defaults.setBoolPref("suggest.quicksuggest", false);
+        defaults.setBoolPref("suggest.quicksuggest.sponsored", false);
+        break;
+      default:
+        Cu.reportError(`Unrecognized Firefox Suggest scenario "${scenario}"`);
+        break;
+    }
+
+    // Set `quicksuggest.enabled` last so that if any observers depend on it
+    // specifically, all prefs will have been updated when they're called.
+    defaults.setBoolPref("quicksuggest.enabled", enabled);
+  }
+
+  /**
+   * @returns {boolean}
+   *   Whether the Firefox Suggest scenario is being updated. While true,
+   *   changes to related prefs should be ignored, depending on the observer.
+   *   Telemetry intended to capture user changes to the prefs should not be
+   *   recorded, for example.
+   */
+  get updatingFirefoxSuggestScenario() {
+    return this._updatingFirefoxSuggestScenario;
+  }
+
+  /**
    * Adds a preference observer.  Observers are held weakly.
    *
    * @param {object} observer
@@ -575,6 +702,9 @@ class Preferences {
 
     // Some prefs may influence others.
     switch (pref) {
+      case "quicksuggest.scenario":
+        this._syncFirefoxSuggestPrefsFromScenario();
+        return;
       case "showSearchSuggestionsFirst":
         this.set(
           "resultGroups",
@@ -602,6 +732,8 @@ class Preferences {
       this._map.delete(key);
     }
     this.__nimbus = null;
+
+    this.updateFirefoxSuggestScenario();
   }
 
   get _nimbus() {

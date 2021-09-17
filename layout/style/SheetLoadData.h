@@ -58,13 +58,13 @@ class SheetLoadData final : public PreloaderBase,
                 IsAlternate aIsAlternate, MediaMatched aMediaMatched,
                 StylePreloadKind aPreloadKind, nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aTriggeringPrincipal,
-                nsIReferrerInfo* aReferrerInfo, nsINode* aRequestingNode);
+                nsIReferrerInfo* aReferrerInfo);
 
   // Data for loading a sheet linked from an @import rule
   SheetLoadData(Loader* aLoader, nsIURI* aURI, StyleSheet* aSheet,
                 SheetLoadData* aParentData, nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aTriggeringPrincipal,
-                nsIReferrerInfo* aReferrerInfo, nsINode* aRequestingNode);
+                nsIReferrerInfo* aReferrerInfo);
 
   // Data for loading a non-document sheet
   SheetLoadData(Loader* aLoader, nsIURI* aURI, StyleSheet* aSheet,
@@ -72,7 +72,7 @@ class SheetLoadData final : public PreloaderBase,
                 const Encoding* aPreloadEncoding,
                 nsICSSLoaderObserver* aObserver,
                 nsIPrincipal* aTriggeringPrincipal,
-                nsIReferrerInfo* aReferrerInfo, nsINode* aRequestingNode);
+                nsIReferrerInfo* aReferrerInfo);
 
   nsIReferrerInfo* ReferrerInfo() const { return mReferrerInfo; }
 
@@ -158,7 +158,7 @@ class SheetLoadData final : public PreloaderBase,
   // the original function call that started the load has returned.
   // This applies only to observer notifications; load/error events
   // are fired for any SheetLoadData that has a non-null
-  // mOwningElement.
+  // mOwningNodeBeforeLoadEvent.
   bool mMustNotify : 1;
 
   // mWasAlternate is true if the sheet was an alternate when the load data was
@@ -201,21 +201,24 @@ class SheetLoadData final : public PreloaderBase,
   // which causes a false positive warning here.
   const StylePreloadKind mPreloadKind;
 
-  // This is the node that imported the sheet. Needed to get the charset set on
-  // it, and to fire load/error events. Must implement LinkStyle.
-  const nsCOMPtr<nsINode> mOwningNode;
+  // This is the node that imported the sheet. Cleared after the load/error
+  // event fires, as we don't need it anymore. Needed to get the charset on it,
+  // and to fire load/error events. Must implement LinkStyle.
+  //
+  // This is only set for top-level sheets (e.g., for an @import-ed sheet it'll
+  // be null).
+  nsCOMPtr<nsINode> mOwningNodeBeforeLoadEvent;
+
+  nsINode* GetRequestingNode() const;
 
   // The observer that wishes to be notified of load completion
-  const nsCOMPtr<nsICSSLoaderObserver> mObserver;
+  nsCOMPtr<nsICSSLoaderObserver> mObserver;
 
   // The principal that identifies who started loading us.
   const nsCOMPtr<nsIPrincipal> mTriggeringPrincipal;
 
   // Referrer info of the load.
   const nsCOMPtr<nsIReferrerInfo> mReferrerInfo;
-
-  // The node that identifies who started loading us.
-  const nsCOMPtr<nsINode> mRequestingNode;
 
   // The encoding guessed from attributes and the document character set.
   const NotNull<const Encoding*> mGuessedEncoding;

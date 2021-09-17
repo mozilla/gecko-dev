@@ -8,9 +8,9 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/intl/DateTimeFormat.h"
 #include "mozilla/intl/ICU4CGlue.h"
+#include "mozilla/intl/ICUError.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
-#include "mozilla/ResultVariant.h"
 #include "mozilla/Span.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/Utf8.h"
@@ -35,25 +35,23 @@ class Calendar final {
   Calendar(const Calendar&) = delete;
   Calendar& operator=(const Calendar&) = delete;
 
-  enum class Error { InternalError };
-
   /**
    * Create a Calendar.
    */
-  static Result<UniquePtr<Calendar>, Calendar::Error> TryCreate(
+  static Result<UniquePtr<Calendar>, ICUError> TryCreate(
       const char* aLocale,
       Maybe<Span<const char16_t>> aTimeZoneOverride = Nothing{});
 
   /**
    * Get the BCP 47 keyword value string designating the calendar type. For
-   * instance "gregory", "chinese", "islamicc", etc.
+   * instance "gregory", "chinese", "islamic-civil", etc.
    */
-  Result<const char*, Calendar::Error> GetBcp47Type();
+  Result<const char*, ICUError> GetBcp47Type();
 
   /**
    * A number indicating the raw offset from GMT in milliseconds.
    */
-  Result<int32_t, Calendar::Error> GetDefaultTimeZoneOffsetMs();
+  Result<int32_t, ICUError> GetDefaultTimeZoneOffsetMs();
 
   /**
    * Fill the buffer with the system's default IANA time zone identifier, e.g.
@@ -101,13 +99,13 @@ class Calendar final {
    * Set the time for the calendar relative to the number of milliseconds since
    * 1 January 1970, UTC.
    */
-  Result<Ok, Error> SetTimeInMs(double aUnixEpoch);
+  Result<Ok, ICUError> SetTimeInMs(double aUnixEpoch);
 
   /**
    * Return ICU legacy keywords, such as "gregorian", "islamic",
    * "islamic-civil", "hebrew", etc.
    */
-  static Result<SpanEnumeration<char>, InternalError>
+  static Result<SpanEnumeration<char>, ICUError>
   GetLegacyKeywordValuesForLocale(const char* aLocale);
 
  private:
@@ -124,7 +122,7 @@ class Calendar final {
   /**
    * Return BCP 47 Unicode locale extension type keywords.
    */
-  static Result<Bcp47IdentifierEnumeration, InternalError>
+  static Result<Bcp47IdentifierEnumeration, ICUError>
   GetBcp47KeywordValuesForLocale(const char* aLocale);
 
   ~Calendar();

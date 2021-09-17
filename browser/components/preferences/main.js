@@ -440,12 +440,18 @@ var gMainPane = {
       let quitKeyElement = window.browsingContext.topChromeWindow.document.getElementById(
         "key_quitApplication"
       );
-      let quitKey = ShortcutUtils.prettifyShortcut(quitKeyElement);
-      document.l10n.setAttributes(
-        document.getElementById("warnOnQuitKey"),
-        "confirm-on-quit-with-key",
-        { quitKey }
-      );
+      if (quitKeyElement) {
+        let quitKey = ShortcutUtils.prettifyShortcut(quitKeyElement);
+        document.l10n.setAttributes(
+          document.getElementById("warnOnQuitKey"),
+          "confirm-on-quit-with-key",
+          { quitKey }
+        );
+      } else {
+        // If the quit key element does not exist, then the quit key has
+        // been disabled, so just hide the checkbox.
+        document.getElementById("warnOnQuitKey").hidden = true;
+      }
     }
 
     setEventListener("ctrlTabRecentlyUsedOrder", "command", function() {
@@ -1134,6 +1140,18 @@ var gMainPane = {
 
       let description = document.createXULElement("description");
       description.classList.add("message-bar-description");
+
+      // TODO: This should preferably use `Intl.LocaleInfo` when bug 1693576 is fixed.
+      if (
+        i == 0 &&
+        (locales[0] == "ar" ||
+          locales[0] == "ckb" ||
+          locales[0] == "fa" ||
+          locales[0] == "he" ||
+          locales[0] == "ur")
+      ) {
+        description.classList.add("rtl-locale");
+      }
       description.setAttribute("flex", "1");
       description.textContent = messages[i];
       messageContainer.appendChild(description);

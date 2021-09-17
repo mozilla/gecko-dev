@@ -40,19 +40,17 @@ class APZEventResultTester : public APZCTreeManagerTester {
   }
 
   void CreateScrollableRootLayer() {
-    const char* layerTreeSyntax = "c";
+    const char* treeShape = "x";
     nsIntRegion layerVisibleRegions[] = {
         nsIntRegion(IntRect(0, 0, 100, 100)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm,
-                           layers);
+    CreateScrollData(treeShape, layerVisibleRegions);
     SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
                               CSSRect(0, 0, 200, 200));
     ModifyFrameMetrics(root, [](ScrollMetadata& sm, FrameMetrics& metrics) {
       metrics.SetIsRootContent(true);
     });
-    registration =
-        MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, root, mcc);
+    registration = MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, mcc);
     UpdateHitTestingTree();
   }
 
@@ -81,7 +79,7 @@ class APZEventResultTester : public APZCTreeManagerTester {
       PreventDefaultFlag aPreventDefaultFlag) {
     EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
     regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
-    root->SetEventRegions(regions);
+    APZTestAccess::SetEventRegions(*root, regions);
     UpdateHitTestingTree();
 
     APZHandledPlace expectedPlace =
@@ -155,7 +153,7 @@ class APZEventResultTester : public APZCTreeManagerTester {
       PreventDefaultFlag aPreventDefaultFlag) {
     EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
     regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
-    root->SetEventRegions(regions);
+    APZTestAccess::SetEventRegions(*root, regions);
     UpdateHitTestingTree();
 
     APZHandledPlace expectedPlace =
@@ -296,31 +294,33 @@ TEST_F(APZEventResultTester, ScrollableDirections) {
             SideBits::eLeft | SideBits::eTop);
 }
 
-class APZEventResultTesterLayersOnly : public APZEventResultTester {
+class APZEventResultTesterInternal : public APZEventResultTester {
  public:
-  APZEventResultTesterLayersOnly() { mLayersOnly = true; }
+  APZEventResultTesterInternal() {
+    mHitTestKind = APZCTreeManager::HitTestKind::Internal;
+  }
 };
 
-TEST_F(APZEventResultTesterLayersOnly, OverscrollDirectionsWithEventHandler) {
+TEST_F(APZEventResultTesterInternal, OverscrollDirectionsWithEventHandler) {
   CreateScrollableRootLayer();
 
   OverscrollDirectionsWithEventHandlerTest(PreventDefaultFlag::No);
 }
 
-TEST_F(APZEventResultTesterLayersOnly,
+TEST_F(APZEventResultTesterInternal,
        OverscrollDirectionsWithPreventDefaultEventHandler) {
   CreateScrollableRootLayer();
 
   OverscrollDirectionsWithEventHandlerTest(PreventDefaultFlag::Yes);
 }
 
-TEST_F(APZEventResultTesterLayersOnly, ScrollableDirectionsWithEventHandler) {
+TEST_F(APZEventResultTesterInternal, ScrollableDirectionsWithEventHandler) {
   CreateScrollableRootLayer();
 
   ScrollableDirectionsWithEventHandlerTest(PreventDefaultFlag::No);
 }
 
-TEST_F(APZEventResultTesterLayersOnly,
+TEST_F(APZEventResultTesterInternal,
        ScrollableDirectionsWithPreventDefaultEventHandler) {
   CreateScrollableRootLayer();
 
@@ -329,15 +329,14 @@ TEST_F(APZEventResultTesterLayersOnly,
 
 // Test that APZEventResult::GetHandledResult() is correctly
 // populated.
-TEST_F(APZEventResultTesterLayersOnly, HandledByRootApzcFlag) {
+TEST_F(APZEventResultTesterInternal, HandledByRootApzcFlag) {
   // Create simple layer tree containing a dispatch-to-content region
   // that covers part but not all of its area.
-  const char* layerTreeSyntax = "c";
+  const char* treeShape = "x";
   nsIntRegion layerVisibleRegions[] = {
       nsIntRegion(IntRect(0, 0, 100, 100)),
   };
-  root = CreateLayerTree(layerTreeSyntax, layerVisibleRegions, nullptr, lm,
-                         layers);
+  CreateScrollData(treeShape, layerVisibleRegions);
   SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
                             CSSRect(0, 0, 100, 200));
   ModifyFrameMetrics(root, [](ScrollMetadata& sm, FrameMetrics& metrics) {
@@ -347,9 +346,8 @@ TEST_F(APZEventResultTesterLayersOnly, HandledByRootApzcFlag) {
   EventRegions regions(nsIntRegion(IntRect(0, 0, 100, 100)));
   // bottom half is dispatch-to-content
   regions.mDispatchToContentHitRegion = nsIntRegion(IntRect(0, 50, 100, 50));
-  root->SetEventRegions(regions);
-  registration =
-      MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, root, mcc);
+  APZTestAccess::SetEventRegions(*root, regions);
+  registration = MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, mcc);
   UpdateHitTestingTree();
 
   // Tap the top half and check that we report that the event was

@@ -53,7 +53,7 @@ add_task(async function() {
   await doVisibilityTest({
     initialDefaultBranchValue: undefined,
     initialUserBranchValue: undefined,
-    initialExpectedVisibility: false,
+    initialExpectedVisibility: true,
     newDefaultBranchValue: false,
     newUserBranchValue: false,
     newExpectedVisibility: false,
@@ -86,7 +86,7 @@ add_task(async function() {
   await doVisibilityTest({
     initialDefaultBranchValue: undefined,
     initialUserBranchValue: undefined,
-    initialExpectedVisibility: false,
+    initialExpectedVisibility: true,
     newDefaultBranchValue: true,
     newUserBranchValue: undefined,
     newExpectedVisibility: true,
@@ -97,7 +97,7 @@ add_task(async function() {
   await doVisibilityTest({
     initialDefaultBranchValue: undefined,
     initialUserBranchValue: undefined,
-    initialExpectedVisibility: false,
+    initialExpectedVisibility: true,
     newDefaultBranchValue: undefined,
     newUserBranchValue: true,
     newExpectedVisibility: true,
@@ -133,7 +133,7 @@ add_task(async function() {
     initialExpectedVisibility: false,
     newDefaultBranchValue: true,
     newUserBranchValue: undefined,
-    newExpectedVisibility: true,
+    newExpectedVisibility: false,
   });
 });
 
@@ -609,6 +609,44 @@ add_task(async function clickLearnMore() {
   info("Waiting for help page to load in a new tab");
   await tabPromise;
   gBrowser.removeCurrentTab();
+
+  gBrowser.removeCurrentTab();
+  await SpecialPowers.popPrefEnv();
+});
+
+// The main checkbox description should be shown in the "online" scenario.
+add_task(async function mainCheckboxDescription_online() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.quicksuggest.scenario", "online"]],
+  });
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
+
+  let doc = gBrowser.selectedBrowser.contentDocument;
+  Assert.ok(
+    BrowserTestUtils.is_visible(
+      doc.getElementById("firefoxSuggestSuggestionDescription")
+    ),
+    "The main checkbox description is visible"
+  );
+
+  gBrowser.removeCurrentTab();
+  await SpecialPowers.popPrefEnv();
+});
+
+// The main checkbox description should be hidden in the "offline" scenario.
+add_task(async function mainCheckboxDescription_offline() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.quicksuggest.scenario", "offline"]],
+  });
+  await openPreferencesViaOpenPreferencesAPI("privacy", { leaveOpen: true });
+
+  let doc = gBrowser.selectedBrowser.contentDocument;
+  Assert.ok(
+    BrowserTestUtils.is_hidden(
+      doc.getElementById("firefoxSuggestSuggestionDescription")
+    ),
+    "The main checkbox description is hidden"
+  );
 
   gBrowser.removeCurrentTab();
   await SpecialPowers.popPrefEnv();

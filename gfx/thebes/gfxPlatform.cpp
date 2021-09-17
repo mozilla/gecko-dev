@@ -1821,23 +1821,6 @@ gfxFontEntry* gfxPlatform::MakePlatformFont(const nsACString& aFontName,
       aLength);
 }
 
-mozilla::layers::DiagnosticTypes gfxPlatform::GetLayerDiagnosticTypes() {
-  mozilla::layers::DiagnosticTypes type = DiagnosticTypes::NO_DIAGNOSTIC;
-  if (StaticPrefs::layers_draw_borders()) {
-    type |= mozilla::layers::DiagnosticTypes::LAYER_BORDERS;
-  }
-  if (StaticPrefs::layers_draw_tile_borders()) {
-    type |= mozilla::layers::DiagnosticTypes::TILE_BORDERS;
-  }
-  if (StaticPrefs::layers_draw_bigimage_borders()) {
-    type |= mozilla::layers::DiagnosticTypes::BIGIMAGE_BORDERS;
-  }
-  if (StaticPrefs::layers_flash_borders()) {
-    type |= mozilla::layers::DiagnosticTypes::FLASH_BORDERS;
-  }
-  return type;
-}
-
 BackendPrefsData gfxPlatform::GetBackendPrefs() const {
   BackendPrefsData data;
 
@@ -2339,7 +2322,6 @@ gfxImageFormat gfxPlatform::OptimalFormatForContent(gfxContentType aContent) {
  */
 static mozilla::Atomic<bool> sLayersSupportsHardwareVideoDecoding(false);
 static bool sLayersHardwareVideoDecodingFailed = false;
-static bool sBufferRotationCheckPref = true;
 
 static mozilla::Atomic<bool> sLayersAccelerationPrefsInitialized(false);
 
@@ -2536,11 +2518,6 @@ void gfxPlatform::InitWebRenderConfig() {
   bool prefEnabled = WebRenderPrefEnabled();
   bool envvarEnabled = WebRenderEnvvarEnabled();
 
-  // This would ideally be in the nsCSSProps code
-  // but nsCSSProps is initialized before gfxPlatform
-  // so it has to be done here.
-  gfxVars::AddReceiver(&nsCSSProps::GfxVarReceiver());
-
   // WR? WR+   => means WR was enabled via gfx.webrender.all.qualified on
   //              qualified hardware
   // WR! WR+   => means WR was enabled via gfx.webrender.{all,enabled} or
@@ -2555,9 +2532,6 @@ void gfxPlatform::InitWebRenderConfig() {
     // later in this function. For other processes we still want to report
     // the state of the feature for crash reports.
     if (gfxVars::UseWebRender()) {
-      // gfxVars doesn't notify receivers when initialized on content processes
-      // we need to explicitly recompute backdrop-filter's enabled state here.
-      nsCSSProps::RecomputeEnabledState("layout.css.backdrop-filter.enabled");
       reporter.SetSuccessful();
     }
     return;
@@ -2771,19 +2745,6 @@ bool gfxPlatform::AccelerateLayersByDefault() {
 #else
   return false;
 #endif
-}
-
-bool gfxPlatform::BufferRotationEnabled() {
-  MutexAutoLock autoLock(*gGfxPlatformPrefsLock);
-
-  return sBufferRotationCheckPref &&
-         StaticPrefs::layers_bufferrotation_enabled_AtStartup();
-}
-
-void gfxPlatform::DisableBufferRotation() {
-  MutexAutoLock autoLock(*gGfxPlatformPrefsLock);
-
-  sBufferRotationCheckPref = false;
 }
 
 /* static */

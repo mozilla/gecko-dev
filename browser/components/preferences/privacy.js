@@ -1925,33 +1925,21 @@ var gPrivacyPane = {
    * Initializes the address bar section.
    */
   _initAddressBar() {
-    // When these prefs are made the default, add this data-l10n-id directly to
-    // privacy.inc.xhtml.
-    if (
-      Services.prefs.getBoolPref(
-        "browser.newtabpage.activity-stream.newNewtabExperience.enabled"
-      ) ||
-      Services.prefs.getBoolPref(
-        "browser.newtabpage.activity-stream.customizationMenu.enabled"
-      )
-    ) {
-      document
-        .getElementById("topSitesSuggestion")
-        .setAttribute("data-l10n-id", "addressbar-locbar-shortcuts-option");
-    } else {
-      document
-        .getElementById("topSitesSuggestion")
-        .setAttribute("data-l10n-id", "addressbar-locbar-topsites-option");
-    }
-
-    // Update the Firefox Suggest section on Nimbus changes.
-    this._updateFirefoxSuggestSection = this._updateFirefoxSuggestSection.bind(
-      this
-    );
-    NimbusFeatures.urlbar.onUpdate(this._updateFirefoxSuggestSection);
-    window.addEventListener("unload", () =>
-      NimbusFeatures.urlbar.off(this._updateFirefoxSuggestSection)
-    );
+    // Update the Firefox Suggest section when Firefox Suggest's enabled status
+    // or scenario changes.
+    this._urlbarPrefObserver = {
+      onPrefChanged: pref => {
+        if (["quicksuggest.enabled", "quicksuggest.scenario"].includes(pref)) {
+          this._updateFirefoxSuggestSection();
+        }
+      },
+    };
+    UrlbarPrefs.addObserver(this._urlbarPrefObserver);
+    window.addEventListener("unload", () => {
+      // UrlbarPrefs holds a weak reference to our observer, which is why we
+      // don't remove it on unload.
+      this._urlbarPrefObserver = null;
+    });
 
     // Set up the sponsored checkbox. When the main checkbox is checked, the
     // sponsored checkbox should be enabled and its checked status should
@@ -2003,6 +1991,10 @@ var gPrivacyPane = {
         element.dataset.l10nIdOriginal = element.dataset.l10nId;
         element.dataset.l10nId = l10nId;
       }
+      // The main checkbox description discusses data collection, which we
+      // perform only in the "online" scenario. Hide it otherwise.
+      document.getElementById("firefoxSuggestSuggestionDescription").hidden =
+        UrlbarPrefs.get("quicksuggest.scenario") != "online";
       // Show the container.
       this._updateFirefoxSuggestSponsoredCheckbox();
       container.removeAttribute("hidden");

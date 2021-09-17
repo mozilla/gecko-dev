@@ -22,11 +22,12 @@
 #include "nsAString.h"  // for nsAString::IsEmpty
 #include "nsAtom.h"     // for nsAtom
 #include "nsCaseTreatment.h"
-#include "nsCOMPtr.h"        // for nsCOMPtr, operator==, etc.
-#include "nsDebug.h"         // for NS_ASSERTION, etc.
-#include "nsElementTable.h"  // for nsHTMLElement
-#include "nsError.h"         // for NS_SUCCEEDED
-#include "nsGkAtoms.h"       // for nsGkAtoms, nsGkAtoms::a, etc.
+#include "nsCOMPtr.h"            // for nsCOMPtr, operator==, etc.
+#include "nsComputedDOMStyle.h"  // for nsComputedDOMStyle
+#include "nsDebug.h"             // for NS_ASSERTION, etc.
+#include "nsElementTable.h"      // for nsHTMLElement
+#include "nsError.h"             // for NS_SUCCEEDED
+#include "nsGkAtoms.h"           // for nsGkAtoms, nsGkAtoms::a, etc.
 #include "nsHTMLTags.h"
 #include "nsLiteralString.h"     // for NS_LITERAL_STRING
 #include "nsNameSpaceManager.h"  // for kNameSpaceID_None
@@ -158,6 +159,16 @@ bool HTMLEditUtils::IsInlineStyle(nsINode* aNode) {
       nsGkAtoms::sup, nsGkAtoms::font);
 }
 
+bool HTMLEditUtils::IsDisplayOutsideInline(const Element& aElement) {
+  RefPtr<ComputedStyle> elementStyle =
+      nsComputedDOMStyle::GetComputedStyleNoFlush(&aElement);
+  if (!elementStyle) {
+    return false;
+  }
+  return elementStyle->StyleDisplay()->DisplayOutside() ==
+         StyleDisplayOutside::Inline;
+}
+
 bool HTMLEditUtils::IsRemovableInlineStyleElement(Element& aElement) {
   if (!aElement.IsHTMLElement()) {
     return false;
@@ -278,7 +289,7 @@ bool HTMLEditUtils::IsTableCellOrCaption(nsINode& aNode) {
 /**
  * IsAnyListElement() returns true if aNode is an html list.
  */
-bool HTMLEditUtils::IsAnyListElement(nsINode* aNode) {
+bool HTMLEditUtils::IsAnyListElement(const nsINode* aNode) {
   MOZ_ASSERT(aNode);
   return aNode->IsAnyOfHTMLElements(nsGkAtoms::ul, nsGkAtoms::ol,
                                     nsGkAtoms::dl);
@@ -385,21 +396,8 @@ bool HTMLEditUtils::IsVisibleTextNode(const Text& aText) {
     return false;
   }
 
-  if (EditorUtils::IsWhiteSpacePreformatted(aText)) {
-    return true;
-  }
-
-  // TODO: There is no GetInclusiveNextCharOffsetExceptASCIIWhiteSpaces.
-  //       Equivalent method will be created by bug 1724650.  So, let's
-  //       handle first char check by this method self, and then, use
-  //       GetNextCharOffsetExceptASCIIWhiteSpaces.
-  const char16_t firstChar = aText.TextFragment().CharAt(0);
-  if (!nsCRT::IsAsciiSpace(firstChar)) {
-    return true;
-  }
-
   Maybe<uint32_t> visibleCharOffset =
-      HTMLEditUtils::GetNextCharOffsetExceptASCIIWhiteSpaces(
+      HTMLEditUtils::GetInclusiveNextNonCollapsibleCharOffset(
           EditorDOMPointInText(&aText, 0));
   if (visibleCharOffset.isSome()) {
     return true;
@@ -676,6 +674,31 @@ bool HTMLEditUtils::IsEmptyNode(nsPresContext* aPresContext,
     *aSeenBR = seenBR;
   }
   return true;
+}
+
+bool HTMLEditUtils::ShouldInsertLinefeedCharacter(
+    EditorDOMPoint& aPointToInsert, const Element& aEditingHost) {
+  MOZ_ASSERT(aPointToInsert.IsSetAndValid());
+
+  if (!aPointToInsert.IsInContentNode()) {
+    return false;
+  }
+
+  // closestEditableBlockElement can be nullptr if aEditingHost is an inline
+  // element.
+  Element* closestEditableBlockElement =
+      HTMLEditUtils::GetInclusiveAncestorElement(
+          *aPointToInsert.ContainerAsContent(),
+          HTMLEditUtils::ClosestEditableBlockElement);
+
+  // If and only if the nearest block is the editing host or its parent,
+  // and the outer display value of the editing host is inline, and new
+  // line character is preformatted, we should insert a linefeed.
+  return (!closestEditableBlockElement ||
+          closestEditableBlockElement == &aEditingHost) &&
+         HTMLEditUtils::IsDisplayOutsideInline(aEditingHost) &&
+         EditorUtils::IsNewLinePreformatted(
+             *aPointToInsert.ContainerAsContent());
 }
 
 // We use bitmasks to test containment of elements. Elements are marked to be

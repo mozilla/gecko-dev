@@ -844,8 +844,12 @@ Toolbox.prototype = {
       this._mountReactComponent();
       this._buildDockOptions();
       this._buildTabs();
+
+      // Forward configuration flags to the DevTools server.
       this._applyCacheSettings();
       this._applyServiceWorkersTestingSettings();
+      this._applyNewPerfPanelEnabled();
+
       this._addWindowListeners();
       this._addChromeEventHandlerEvents();
 
@@ -2097,6 +2101,23 @@ Toolbox.prototype = {
   },
 
   /**
+   * When the new performance panel is enabled, the profiler and recorder will
+   * not react to console.profile calls. The server should instead log a message
+   * to warn the user that the API has no effect.
+   *
+   * Forward the value of the new perf panel preference so that the server can
+   * decide to warn or not.
+   */
+  _applyNewPerfPanelEnabled: function() {
+    this.commands.targetConfigurationCommand.updateConfiguration({
+      isNewPerfPanelEnabled: Services.prefs.getBoolPref(
+        "devtools.performance.new-panel-enabled",
+        false
+      ),
+    });
+  },
+
+  /**
    * Update the visibility of the buttons.
    */
   updateToolboxButtonsVisibility() {
@@ -3222,7 +3243,10 @@ Toolbox.prototype = {
     if (!this.debouncedToolbarUpdate) {
       this.debouncedToolbarUpdate = debounce(
         () => {
-          this.component.setToolboxButtons(this.toolbarButtons);
+          // Toolbox may have been destroyed in the meantime
+          if (this.component) {
+            this.component.setToolboxButtons(this.toolbarButtons);
+          }
           this.debouncedToolbarUpdate = null;
         },
         200,
@@ -3727,12 +3751,9 @@ Toolbox.prototype = {
         this._onToolbarArrowKeypress
       );
       this.ReactDOM.unmountComponentAtNode(this._componentMount);
+      this.component = null;
       this._componentMount = null;
       this._tabBar = null;
-    }
-    if (this._nodePicker) {
-      this._nodePicker.stop();
-      this._nodePicker = null;
     }
     this.destroyHarAutomation();
 
@@ -3808,6 +3829,12 @@ Toolbox.prototype = {
         settleAll(outstanding)
           .catch(console.error)
           .then(async () => {
+            // Destroy the node picker *after* destroying the panel,
+            // which may still try to access it. (And might spawn a new one)
+            if (this._nodePicker) {
+              this._nodePicker.destroy();
+              this._nodePicker = null;
+            }
             this.selection.destroy();
             this.selection = null;
 
@@ -3824,6 +3851,8 @@ Toolbox.prototype = {
 
             this._removeWindowListeners();
             this._removeChromeEventHandlerEvents();
+
+            this._store = null;
 
             // Notify toolbox-host-manager that the host can be destroyed.
             this.emit("toolbox-unload");
@@ -3848,6 +3877,9 @@ Toolbox.prototype = {
             this._host = null;
             this._win = null;
             this._toolPanels.clear();
+            this.descriptorFront = null;
+            this.resourceCommand = null;
+            this.commands = null;
 
             // Force GC to prevent long GC pauses when running tests and to free up
             // memory in general when the toolbox is closed.

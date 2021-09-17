@@ -80,11 +80,7 @@ $item-line-height: 20;
   }
 
   a {
-    @include dark-theme-only {
-      color: $grey-10;
-    }
-
-    color: $grey-90;
+    color: var(--newtab-text-primary-color);
   }
 }
 
@@ -105,11 +101,7 @@ $item-line-height: 20;
     padding-inline-start: $counter-padded-size;
 
     &::before {
-      @include dark-theme-only {
-        background-color: $teal-70;
-      }
-
-      background-color: $pocket-teal;
+      background-color: var(--newtab-primary-action-background);
       border-radius: $counter-size;
       color: $white;
       content: counter(list);
@@ -124,19 +116,11 @@ $item-line-height: 20;
     }
 
     &:hover::before {
-      @include dark-theme-only {
-        background-color: $blue-40;
-      }
-
-      background-color: $blue-40;
+      background-color: var(--newtab-primary-action-background);
     }
 
     &:active::before {
-      @include dark-theme-only {
-        background-color: $blue-60;
-      }
-
-      background-color: $blue-70;
+      background-color: var(--newtab-primary-element-active-color);
     }
   }
 }
@@ -208,10 +192,7 @@ $item-line-height: 20;
 
   .ds-list-item-excerpt {
     @include limit-visible-lines(2, $item-line-height, $item-font-size);
-    @include dark-theme-only {
-      color: $grey-10-80;
-    }
-    color: $grey-50;
+    color: var(--newtab-text-primary-color);
     margin: 4px 0 8px;
   }
 
@@ -223,11 +204,8 @@ $item-line-height: 20;
 
   .ds-list-item-info {
     @include limit-visible-lines(1, $item-line-height, $item-font-size);
-    @include dark-theme-only {
-      color: $grey-40;
-    }
 
-    color: $grey-50;
+    color: var(--newtab-text-secondary-color);
     font-size: 13px;
   }
 
@@ -253,19 +231,19 @@ $item-line-height: 20;
 
     img {
       border-radius: 4px;
-      box-shadow: inset 0 0 0 0.5px $black-15;
+      box-shadow: $shadow-image-inset;
     }
   }
 
   &:hover {
     .ds-list-item-title {
-      color: $blue-40;
+      color: var(--newtab-primary-action-background);
     }
   }
 
   &:active {
     .ds-list-item-title {
-      color: $blue-70;
+      color: var(--newtab-primary-element-active-color);
     }
   }
 }

@@ -40,6 +40,12 @@ XPCOMUtils.defineLazyModuleGetters(this, {
     "resource://gre/modules/ContextualIdentityService.jsm",
 });
 
+XPCOMUtils.defineLazyGetter(this, "ProfilerPopupBackground", function() {
+  return ChromeUtils.import(
+    "resource://devtools/client/performance-new/popup/background.jsm.js"
+  );
+});
+
 const { WebExtensionPolicy } = Cu.getGlobalForObject(Services);
 
 const SHOW_THREADS = Services.prefs.getBoolPref(
@@ -47,6 +53,13 @@ const SHOW_THREADS = Services.prefs.getBoolPref(
 );
 const SHOW_ALL_SUBFRAMES = Services.prefs.getBoolPref(
   "toolkit.aboutProcesses.showAllSubframes"
+);
+const SHOW_PROFILER_ICONS = Services.prefs.getBoolPref(
+  "toolkit.aboutProcesses.showProfilerIcons"
+);
+const PROFILE_DURATION = Math.max(
+  1,
+  Services.prefs.getIntPref("toolkit.aboutProcesses.profileDuration")
 );
 
 /**
@@ -295,18 +308,11 @@ var State = {
    */
   _getProcessDelta(cur, prev) {
     let windows = this._getDOMWindows(cur);
-    // Resident set size is the total memory used by the process, including shared memory.
-    // Resident unique size is the memory used by the process, without shared memory.
-    // Since all processes share memory with the parent process, we count the shared memory
-    // as part of the parent process (`"browser"`) rather than as part of the individual
-    // processes.
-    let totalRamSize =
-      cur.type == "browser" ? cur.residentSetSize : cur.residentUniqueSize;
     let result = {
       pid: cur.pid,
       childID: cur.childID,
       filename: cur.filename,
-      totalRamSize,
+      totalRamSize: cur.memory,
       deltaRamSize: null,
       totalCpuUser: cur.cpuUser,
       slopeCpuUser: null,
@@ -359,10 +365,7 @@ var State = {
         return this._getThreadDelta(curThread, prevThread, deltaT);
       });
     }
-    result.deltaRamSize =
-      cur.type == "browser"
-        ? cur.residentSetSize - prev.residentSetSize
-        : cur.residentUniqueSize - prev.residentUniqueSize;
+    result.deltaRamSize = cur.memory - prev.memory;
     result.slopeCpuUser = (cur.cpuUser - prev.cpuUser) / deltaT;
     result.slopeCpuKernel = (cur.cpuKernel - prev.cpuKernel) / deltaT;
     result.slopeCpu = result.slopeCpuUser + result.slopeCpuKernel;
@@ -590,11 +593,26 @@ var View = {
         }
       }
 
-      this._fillCell(nameCell, {
-        fluentName,
-        fluentArgs,
-        classes: ["type", "favicon", ...classNames],
-      });
+      let processNameElement = nameCell;
+      if (SHOW_PROFILER_ICONS) {
+        if (!nameCell.firstChild) {
+          processNameElement = document.createElement("span");
+          nameCell.appendChild(processNameElement);
+
+          let profilerIcon = document.createElement("span");
+          profilerIcon.className = "profiler-icon";
+          document.l10n.setAttributes(
+            profilerIcon,
+            "about-processes-profile-process",
+            { duration: PROFILE_DURATION }
+          );
+          nameCell.appendChild(profilerIcon);
+        } else {
+          processNameElement = nameCell.firstChild;
+        }
+      }
+      document.l10n.setAttributes(processNameElement, fluentName, fluentArgs);
+      nameCell.className = ["type", "favicon", ...classNames].join(" ");
 
       let image;
       switch (data.type) {
@@ -743,25 +761,44 @@ var View = {
     // Column: Name
     let nameCell = row.firstChild;
     let threads = data.threads;
-    let activeThreads = data.threads.filter(t => t.slopeCpu);
+    let activeThreads = new Map();
+    let activeThreadCount = 0;
+    for (let t of data.threads) {
+      if (!t.slopeCpu) {
+        continue;
+      }
+      ++activeThreadCount;
+      let name = t.name.replace(/ ?#[0-9]+$/, "");
+      if (!activeThreads.has(name)) {
+        activeThreads.set(name, { name, slopeCpu: t.slopeCpu, count: 1 });
+      } else {
+        let thread = activeThreads.get(name);
+        thread.count++;
+        thread.slopeCpu += t.slopeCpu;
+      }
+    }
     let fluentName, fluentArgs;
-    if (activeThreads.length) {
+    if (activeThreadCount) {
       let percentFormatter = new Intl.NumberFormat(undefined, {
         style: "percent",
         minimumSignificantDigits: 1,
       });
-      activeThreads.sort((t1, t2) => (t2.slopeCpu || 0) - (t1.slopeCpu || 0));
+
+      let threadList = Array.from(activeThreads.values());
+      threadList.sort((t1, t2) => t2.slopeCpu - t1.slopeCpu);
+
       fluentName = "about-processes-active-threads";
       fluentArgs = {
         number: threads.length,
-        active: activeThreads.length,
+        active: activeThreadCount,
         list: new Intl.ListFormat(undefined, { style: "narrow" }).format(
-          activeThreads.map(t => {
-            let percent = Math.round((t.slopeCpu || 0) * 1000) / 1000;
+          threadList.map(t => {
+            let name = t.count > 1 ? `${t.count} × ${t.name}` : t.name;
+            let percent = Math.round(t.slopeCpu * 1000) / 1000;
             if (percent) {
-              return `${t.name} ${percentFormatter.format(percent)}`;
+              return `${name} ${percentFormatter.format(percent)}`;
             }
-            return t.name;
+            return name;
           })
         ),
       };
@@ -1072,6 +1109,24 @@ var Control = {
       }
       if (target.classList.contains("close-icon")) {
         this._handleKill(target);
+        return;
+      }
+
+      if (target.classList.contains("profiler-icon")) {
+        if (Services.profiler.IsActive()) {
+          return;
+        }
+        Services.profiler.StartProfiler(
+          10000000,
+          1,
+          ["default", "ipcmessages"],
+          ["pid:" + target.parentNode.parentNode.process.pid]
+        );
+        target.classList.add("profiler-active");
+        setTimeout(() => {
+          ProfilerPopupBackground.captureProfile("aboutprofiling");
+          target.classList.remove("profiler-active");
+        }, PROFILE_DURATION * 1000);
         return;
       }
 

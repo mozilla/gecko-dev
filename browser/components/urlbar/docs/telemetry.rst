@@ -447,6 +447,8 @@ QuickSuggest Impression
     The Name of the advertiser.
   - ``reporting_url``
     The reporting URL of the QuickSuggest link, normally pointing to the ad partner's reporting endpoint.
+  - ``scenario``
+    The scenario of the QuickSuggest, could be one of "history", "offline", and "online".
 
 QuickSuggest Click
   This records a click ping when a QuickSuggest link is clicked by the user.
@@ -462,6 +464,8 @@ QuickSuggest Click
     The placement of the QuickSuggest link in the Urlbar (1-based).
   - ``reporting_url``
     The reporting URL of the QuickSuggest link, normally pointing to the ad partner's reporting endpoint.
+  - ``scenario``
+    The scenario of the QuickSuggest, could be one of "history", "offline", and "online".
 
 
 Other telemetry relevant to the Address Bar
@@ -524,6 +528,20 @@ contextservices.quicksuggest
     - Objects: ``enabled``, ``disabled`` -- ``enabled`` is recorded when the
       pref is flipped from false to true, and ``disabled`` is recorded when the
       pref is flipped from true to false.
+    - Value: Not used
+    - Extra: Not used
+
+  The following event is recorded when the user responds to the Firefox Suggest
+  opt-in onboarding dialog:
+
+    - Category: ``contextservices.quicksuggest``
+    - Method: ``opt_in_dialog``
+    - Objects: ``accept``, ``settings``, ``learn_more``, ``not_now`` --
+      ``accept`` is recorded when the user accepts the dialog and opts in,
+      ``settings`` is recorded when the user clicks in the "Customize" button
+      (the user remains opted out in this case), ``learn_more`` is recorded when
+      the user clicks "Learn more" (the user remains opted out), ``not_now`` is
+      recorded when the user clicks "Not now" (the user remains opted out)
     - Value: Not used
     - Extra: Not used
 

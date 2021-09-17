@@ -313,6 +313,11 @@ function MarkupView(inspector, frame, controllerWindow) {
   this._frame.addEventListener("focus", this._onFocus);
   this.inspector.selection.on("new-node-front", this._onNewSelection);
 
+  if (flags.testing) {
+    // In tests, we start listening immediately to avoid having to simulate a mousemove.
+    this._initTooltips();
+  }
+
   this.win.addEventListener("copy", this._onCopy);
   this.win.addEventListener("mouseup", this._onMouseUp);
   this.inspector.toolbox.nodePicker.on(
@@ -334,19 +339,6 @@ function MarkupView(inspector, frame, controllerWindow) {
     "highlighter-hidden",
     this.onHighlighterHidden
   );
-
-  if (flags.testing) {
-    // In tests, we start listening immediately to avoid having to simulate a mousemove.
-    this._initTooltips();
-  } else {
-    this._elt.addEventListener(
-      "mousemove",
-      () => {
-        this._initTooltips();
-      },
-      { once: true }
-    );
-  }
 
   this._onNewSelection();
   if (this.inspector.selection.nodeFront) {
@@ -432,6 +424,9 @@ MarkupView.prototype = {
   },
 
   _initTooltips: function() {
+    if (this.imagePreviewTooltip) {
+      return;
+    }
     // The tooltips will be attached to the toolbox document.
     this.imagePreviewTooltip = new HTMLTooltip(this.toolbox.doc, {
       type: "arrow",
@@ -471,6 +466,11 @@ MarkupView.prototype = {
   _draggedContainer: null,
 
   _onMouseMove: function(event) {
+    // Note that in tests, we start listening immediately from the constructor to avoid having to simulate a mousemove.
+    // Also note that initTooltips bails out if it is called many times, so it isn't an issue to call it a second
+    // time from here in case tests are doing a mousemove.
+    this._initTooltips();
+
     let target = event.target;
 
     if (this._draggedContainer) {
@@ -2106,6 +2106,11 @@ MarkupView.prototype = {
     // Update the children to take care of changes in the markup view DOM
     await this._updateChildren(container, { expand, flash });
 
+    // The markup view may have been destroyed in the meantime
+    if (this._destroyed) {
+      return;
+    }
+
     if (updateLevel) {
       // Update container (and its subtree) DOM tree depth level for
       // accessibility where necessary.
@@ -2371,6 +2376,7 @@ MarkupView.prototype = {
 
     this.popup.destroy();
     this.popup = null;
+    this._selectedContainer = null;
 
     this._elt.removeEventListener("blur", this._onBlur, true);
     this._elt.removeEventListener("click", this._onMouseClick);
@@ -2386,6 +2392,10 @@ MarkupView.prototype = {
     this.inspector.toolbox.nodePicker.off(
       "picker-node-hovered",
       this._onToolboxPickerHover
+    );
+    this.inspector.toolbox.nodePicker.off(
+      "picker-node-canceled",
+      this._onToolboxPickerCanceled
     );
     this.inspector.highlighters.off(
       "highlighter-shown",
@@ -2422,6 +2432,8 @@ MarkupView.prototype = {
     this.controllerWindow = null;
     this.doc = null;
     this.highlighters = null;
+    this.walker = null;
+    this.resourceCommand = null;
     this.win = null;
 
     this._lastDropTarget = null;

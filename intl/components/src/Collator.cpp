@@ -21,13 +21,10 @@ Collator::~Collator() {
 Result<UniquePtr<Collator>, ICUError> Collator::TryCreate(const char* aLocale) {
   UErrorCode status = U_ZERO_ERROR;
   UCollator* collator = ucol_open(aLocale, &status);
-  if (U_SUCCESS(status)) {
-    return MakeUnique<Collator>(collator);
+  if (U_FAILURE(status)) {
+    return Err(ToICUError(status));
   }
-  if (status == U_MEMORY_ALLOCATION_ERROR) {
-    return Err(ICUError::OutOfMemory);
-  }
-  return Err(ICUError::InternalError);
+  return MakeUnique<Collator>(collator);
 };
 
 int32_t Collator::CompareStrings(Span<const char16_t> aSource,
@@ -251,7 +248,7 @@ ICUResult Collator::SetOptions(const Options& aOptions,
 #undef FEATURE_TO_ICU
 
 /* static */
-Result<Collator::Bcp47ExtEnumeration, InternalError>
+Result<Collator::Bcp47ExtEnumeration, ICUError>
 Collator::GetBcp47KeywordValuesForLocale(const char* aLocale) {
   UErrorCode status = U_ZERO_ERROR;
   UEnumeration* enumeration = ucol_getKeywordValuesForLocale(
@@ -261,7 +258,7 @@ Collator::GetBcp47KeywordValuesForLocale(const char* aLocale) {
     return Bcp47ExtEnumeration(enumeration);
   }
 
-  return Err(InternalError{});
+  return Err(ToICUError(status));
 }
 
 /* static */

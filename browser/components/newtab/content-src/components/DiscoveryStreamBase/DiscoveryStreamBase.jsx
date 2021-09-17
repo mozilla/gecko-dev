@@ -207,6 +207,8 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             type={component.type}
             dispatch={this.props.dispatch}
             items={component.properties.items}
+            compact={component.properties.compact}
+            include_descriptions={!component.properties.compact}
             cta_variant={component.cta_variant}
             display_engagement_labels={ENGAGEMENT_LABEL_ENABLED}
           />
@@ -327,7 +329,6 @@ export class _DiscoveryStreamBase extends React.PureComponent {
             className="ds-layout"
             collapsed={topStories.pref.collapsed}
             dispatch={this.props.dispatch}
-            icon={topStories.icon}
             id={topStories.id}
             isFixed={true}
             learnMore={{

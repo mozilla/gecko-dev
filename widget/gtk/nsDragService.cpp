@@ -1159,6 +1159,15 @@ void nsDragService::TargetResetData(void) {
   mTargetDragDataLen = 0;
 }
 
+static void TargetArrayAddTarget(nsTArray<GtkTargetEntry*>& aTargetArray,
+                                 const char* aTarget) {
+  GtkTargetEntry* target = (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
+  target->target = g_strdup(aTarget);
+  target->flags = 0;
+  aTargetArray.AppendElement(target);
+  LOGDRAGSERVICE(("adding target %s\n", aTarget));
+}
+
 GtkTargetList* nsDragService::GetSourceList(void) {
   if (!mSourceDataItems) return nullptr;
   nsTArray<GtkTargetEntry*> targetArray;
@@ -1177,12 +1186,7 @@ GtkTargetList* nsDragService::GetSourceList(void) {
 
     // the application/x-moz-internal-item-list format, which preserves
     // all information for drags within the same mozilla instance.
-    GtkTargetEntry* listTarget =
-        (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-    listTarget->target = g_strdup(gMimeListType);
-    listTarget->flags = 0;
-    LOGDRAGSERVICE(("automatically adding target %s\n", listTarget->target));
-    targetArray.AppendElement(listTarget);
+    TargetArrayAddTarget(targetArray, gMimeListType);
 
     // check what flavours are supported so we can decide what other
     // targets to advertise.
@@ -1196,12 +1200,7 @@ GtkTargetList* nsDragService::GetSourceList(void) {
         // If so, advertise
         // text/uri-list.
         if (flavors[i].EqualsLiteral(kURLMime)) {
-          listTarget = (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-          listTarget->target = g_strdup(gTextUriListType);
-          listTarget->flags = 0;
-          LOGDRAGSERVICE(
-              ("automatically adding target %s\n", listTarget->target));
-          targetArray.AppendElement(listTarget);
+          TargetArrayAddTarget(targetArray, gTextUriListType);
         }
       }
     }  // if item is a transferable
@@ -1213,65 +1212,36 @@ GtkTargetList* nsDragService::GetSourceList(void) {
       for (uint32_t i = 0; i < flavors.Length(); ++i) {
         nsCString& flavorStr = flavors[i];
 
-        GtkTargetEntry* target =
-            (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-        target->target = g_strdup(flavorStr.get());
-        target->flags = 0;
-        LOGDRAGSERVICE(("adding target %s\n", target->target));
-        targetArray.AppendElement(target);
+        TargetArrayAddTarget(targetArray, flavorStr.get());
 
         // If there is a file, add the text/uri-list type.
         if (flavorStr.EqualsLiteral(kFileMime)) {
-          GtkTargetEntry* urilistTarget =
-              (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-          urilistTarget->target = g_strdup(gTextUriListType);
-          urilistTarget->flags = 0;
-          LOGDRAGSERVICE(
-              ("automatically adding target %s\n", urilistTarget->target));
-          targetArray.AppendElement(urilistTarget);
+          TargetArrayAddTarget(targetArray, gTextUriListType);
         }
         // Check to see if this is text/unicode.
         // If it is, add text/plain
         // since we automatically support text/plain
         // if we support text/unicode.
         else if (flavorStr.EqualsLiteral(kUnicodeMime)) {
-          GtkTargetEntry* plainUTF8Target =
-              (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-          plainUTF8Target->target = g_strdup(gTextPlainUTF8Type);
-          plainUTF8Target->flags = 0;
-          LOGDRAGSERVICE(
-              ("automatically adding target %s\n", plainUTF8Target->target));
-          targetArray.AppendElement(plainUTF8Target);
-
-          GtkTargetEntry* plainTarget =
-              (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-          plainTarget->target = g_strdup(kTextMime);
-          plainTarget->flags = 0;
-          LOGDRAGSERVICE(
-              ("automatically adding target %s\n", plainTarget->target));
-          targetArray.AppendElement(plainTarget);
+          TargetArrayAddTarget(targetArray, gTextPlainUTF8Type);
+          TargetArrayAddTarget(targetArray, kTextMime);
         }
         // Check to see if this is the x-moz-url type.
         // If it is, add _NETSCAPE_URL
         // this is a type used by everybody.
         else if (flavorStr.EqualsLiteral(kURLMime)) {
-          GtkTargetEntry* urlTarget =
-              (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-          urlTarget->target = g_strdup(gMozUrlType);
-          urlTarget->flags = 0;
-          LOGDRAGSERVICE(
-              ("automatically adding target %s\n", urlTarget->target));
-          targetArray.AppendElement(urlTarget);
+          TargetArrayAddTarget(targetArray, gMozUrlType);
         }
         // XdndDirectSave
         else if (flavorStr.EqualsLiteral(kFilePromiseMime)) {
-          GtkTargetEntry* directsaveTarget =
-              (GtkTargetEntry*)g_malloc(sizeof(GtkTargetEntry));
-          directsaveTarget->target = g_strdup(gXdndDirectSaveType);
-          directsaveTarget->flags = 0;
-          LOGDRAGSERVICE(
-              ("automatically adding target %s\n", directsaveTarget->target));
-          targetArray.AppendElement(directsaveTarget);
+          TargetArrayAddTarget(targetArray, gXdndDirectSaveType);
+        }
+        // kNativeImageMime
+        else if (flavorStr.EqualsLiteral(kNativeImageMime)) {
+          TargetArrayAddTarget(targetArray, kPNGImageMime);
+          TargetArrayAddTarget(targetArray, kJPEGImageMime);
+          TargetArrayAddTarget(targetArray, kJPGImageMime);
+          TargetArrayAddTarget(targetArray, kGIFImageMime);
         }
       }
     }
@@ -1456,6 +1426,7 @@ void nsDragService::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
     // if someone was asking for text/plain, lookup unicode instead so
     // we can convert it.
     bool needToDoConversionToPlainText = false;
+    bool needToDoConversionToImage = false;
     const char* actualFlavor;
     if (mimeFlavor.EqualsLiteral(kTextMime) ||
         mimeFlavor.EqualsLiteral(gTextPlainUTF8Type)) {
@@ -1555,6 +1526,14 @@ void nsDragService::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
 
       // Request a different type in GetTransferData.
       actualFlavor = kFilePromiseMime;
+      // if someone was asking for image we need to convert it
+      // from kNativeImageMime
+    } else if (mimeFlavor.EqualsLiteral(kPNGImageMime) ||
+               mimeFlavor.EqualsLiteral(kJPEGImageMime) ||
+               mimeFlavor.EqualsLiteral(kJPGImageMime) ||
+               mimeFlavor.EqualsLiteral(kGIFImageMime)) {
+      actualFlavor = kNativeImageMime;
+      needToDoConversionToImage = true;
     } else {
       actualFlavor = typeName;
     }
@@ -1571,31 +1550,49 @@ void nsDragService::SourceDataGet(GtkWidget* aWidget, GdkDragContext* aContext,
     }
 
     if (NS_SUCCEEDED(rv)) {
-      void* tmpData = nullptr;
-      uint32_t tmpDataLen = 0;
-      nsPrimitiveHelpers::CreateDataFromPrimitive(
-          nsDependentCString(actualFlavor), data, &tmpData, &tmpDataLen);
-      // if required, do the extra work to convert unicode to plain
-      // text and replace the output values with the plain text.
-      if (needToDoConversionToPlainText) {
-        char* plainTextData = nullptr;
-        char16_t* castedUnicode = reinterpret_cast<char16_t*>(tmpData);
-        uint32_t plainTextLen = 0;
-        UTF16ToNewUTF8(castedUnicode, tmpDataLen / 2, &plainTextData,
-                       &plainTextLen);
-        if (tmpData) {
-          // this was not allocated using glib
-          free(tmpData);
-          tmpData = plainTextData;
-          tmpDataLen = plainTextLen;
+      if (needToDoConversionToImage) {
+        LOGDRAGSERVICE(("  posting image\n"));
+        nsCOMPtr<imgIContainer> image = do_QueryInterface(data);
+        if (!image) {
+          LOGDRAGSERVICE(("  do_QueryInterface failed\n"));
+          return;
         }
-      }
-      if (tmpData) {
-        // this copies the data
-        gtk_selection_data_set(aSelectionData, target, 8, (guchar*)tmpData,
-                               tmpDataLen);
-        // this wasn't allocated with glib
-        free(tmpData);
+        GdkPixbuf* pixbuf = nsImageToPixbuf::ImageToPixbuf(image);
+        if (!pixbuf) {
+          LOGDRAGSERVICE(("  ImageToPixbuf failed\n"));
+          return;
+        }
+        gtk_selection_data_set_pixbuf(aSelectionData, pixbuf);
+        LOGDRAGSERVICE(("  image data set\n"));
+        g_object_unref(pixbuf);
+      } else {
+        void* tmpData = nullptr;
+        uint32_t tmpDataLen = 0;
+
+        nsPrimitiveHelpers::CreateDataFromPrimitive(
+            nsDependentCString(actualFlavor), data, &tmpData, &tmpDataLen);
+        // if required, do the extra work to convert unicode to plain
+        // text and replace the output values with the plain text.
+        if (needToDoConversionToPlainText) {
+          char* plainTextData = nullptr;
+          char16_t* castedUnicode = reinterpret_cast<char16_t*>(tmpData);
+          uint32_t plainTextLen = 0;
+          UTF16ToNewUTF8(castedUnicode, tmpDataLen / 2, &plainTextData,
+                         &plainTextLen);
+          if (tmpData) {
+            // this was not allocated using glib
+            free(tmpData);
+            tmpData = plainTextData;
+            tmpDataLen = plainTextLen;
+          }
+        }
+        if (tmpData) {
+          // this copies the data
+          gtk_selection_data_set(aSelectionData, target, 8, (guchar*)tmpData,
+                                 tmpDataLen);
+          // this wasn't allocated with glib
+          free(tmpData);
+        }
       }
     } else {
       if (mimeFlavor.EqualsLiteral(gTextUriListType)) {

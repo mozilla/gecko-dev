@@ -255,17 +255,29 @@ class Suggestions {
 
     UrlbarPrefs.set(SEEN_DIALOG_PREF, true);
 
+    let telemetryEventObject;
     if (params.accept) {
       // Opting in enables both non-sponsored and sponsored results.
       UrlbarPrefs.set("suggest.quicksuggest", true);
       UrlbarPrefs.set("suggest.quicksuggest.sponsored", true);
+      telemetryEventObject = "accept";
     } else if (params.openSettings) {
-      win.openPreferences("search-quickSuggest");
+      win.openPreferences("privacy-locationBar");
+      telemetryEventObject = "settings";
     } else if (params.learnMore) {
       win.openTrustedLinkIn(UrlbarProviderQuickSuggest.helpUrl, "tab", {
         fromChrome: true,
       });
+      telemetryEventObject = "learn_more";
+    } else {
+      telemetryEventObject = "not_now";
     }
+
+    Services.telemetry.recordEvent(
+      "contextservices.quicksuggest",
+      "opt_in_dialog",
+      telemetryEventObject
+    );
   }
 
   /*
@@ -300,6 +312,33 @@ class Suggestions {
    * are saved locally.
    */
   async _ensureAttachmentsDownloaded() {
+    // Make sure we don't re-enter this method, which can happen due to a cycle
+    // created by our remote settings sync listener as follows:
+    //
+    // Pref change -> onPrefChanged -> onEnabledUpdate -> _setupRemoteSettings
+    // -> _ensureAttachmentsDownloaded -> this._rs.get -> RemoteSettingsClient
+    // calls sync on itself -> RemoteSettingsClient emits a sync event ->
+    // _onSettingsSync -> _ensureAttachmentsDownloaded
+    //
+    // Because RemoteSettingsClient awaits when it emits its sync event, we get
+    // a deadlock in that call stack. Quick suggest will not be able to complete
+    // initialization and return suggestions until something else causes it to
+    // fetch the data again. Restarting the app also fixes it because it seems
+    // RemoteSettingsClient takes a different code path on initialization after
+    // restart, presumably because the data was successfully downloaded and
+    // cached before the deadlock.
+    if (this._ensureAttachmentsDownloadedRunning) {
+      return;
+    }
+    this._ensureAttachmentsDownloadedRunning = true;
+    try {
+      await this._ensureAttachmentsDownloadedHelper();
+    } finally {
+      this._ensureAttachmentsDownloadedRunning = false;
+    }
+  }
+
+  async _ensureAttachmentsDownloadedHelper() {
     log.info("_ensureAttachmentsDownloaded started");
     let dataOpts = { useCache: true };
     let data = await this._rs.get({ filters: { type: "data" } });

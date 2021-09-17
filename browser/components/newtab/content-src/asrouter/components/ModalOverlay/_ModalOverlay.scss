@@ -29,8 +29,8 @@ $modal-scrollbar-z-index: 1100;
   max-width: 960px;
   position: relative;
   margin: auto;
-  background: var(--newtab-modal-color);
-  box-shadow: 0 1px 15px 0 $black-30;
+  background: var(--newtab-background-color-secondary);
+  box-shadow: $shadow-large;
   border-radius: 4px;
   display: none;
   z-index: $modal-scrollbar-z-index;
@@ -49,7 +49,7 @@ $modal-scrollbar-z-index: 1100;
   }
 
   h2 {
-    color: $grey-60;
+    color: var(--newtab-text-primary-color);
     text-align: center;
     font-weight: 200;
     margin-top: 30px;
@@ -67,7 +67,7 @@ $modal-scrollbar-z-index: 1100;
   }
 
   .footer {
-    border-top: 1px solid $grey-30;
+    border-top: $border-secondary;
     border-radius: 4px;
     height: 70px;
     width: 100%;
@@ -96,8 +96,7 @@ $modal-scrollbar-z-index: 1100;
       &:focus,
       &.active,
       &:hover {
-        box-shadow: 0 0 0 5px $grey-30;
-        transition: box-shadow 150ms;
+        @include fade-in-card;
       }
     }
   }

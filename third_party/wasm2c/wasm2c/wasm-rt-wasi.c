@@ -733,14 +733,14 @@ static int check_clock(u32 clock_id) {
 
 // out is a pointer to a u64 timestamp in nanoseconds
 // https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md#-timestamp-u64
-u32 Z_wasi_snapshot_preview1Z_clock_time_getZ_iiji(wasm_sandbox_wasi_data* wasi_data, u32 clock_id, u32 precision, u32 out) {
+u32 Z_wasi_snapshot_preview1Z_clock_time_getZ_iiji(wasm_sandbox_wasi_data* wasi_data, u32 clock_id, u64 precision, u32 out) {
   if (!check_clock(clock_id)) {
     return WASI_INVAL_ERROR;
   }
 
   struct timespec out_struct;
   int ret = os_clock_gettime(wasi_data->clock_data, clock_id, &out_struct);
-  u64 result = ((u64)out_struct.tv_sec)*1000000 + ((u64)out_struct.tv_nsec)/1000;
+  u64 result = ((u64)out_struct.tv_sec)*1000*1000*1000 + ((u64)out_struct.tv_nsec);
   wasm_i64_store(wasi_data->heap_memory, out, result);
   return ret;
 }
@@ -752,7 +752,7 @@ u32 Z_wasi_snapshot_preview1Z_clock_res_getZ_iii(wasm_sandbox_wasi_data* wasi_da
 
   struct timespec out_struct;
   int ret = os_clock_getres(wasi_data->clock_data, clock_id, &out_struct);
-  u64 result = ((u64)out_struct.tv_sec)*1000000 + ((u64)out_struct.tv_nsec)/1000;
+  u64 result = ((u64)out_struct.tv_sec)*1000*1000*1000 + ((u64)out_struct.tv_nsec);
   wasm_i64_store(wasi_data->heap_memory, out, result);
   return ret;
 }

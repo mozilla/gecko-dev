@@ -70,7 +70,7 @@ const {
 const { createLocalSymbolicationService } = ChromeUtils.import(
   "resource://devtools/client/performance-new/symbolication.jsm.js"
 );
-const { presets } = ChromeUtils.import(
+const { presets, getProfilerViewModeForCurrentPreset } = ChromeUtils.import(
   "resource://devtools/client/performance-new/popup/background.jsm.js"
 );
 
@@ -124,16 +124,16 @@ async function gInit(perfFront, pageContext, openAboutProfiling) {
       isSupportedPlatform,
       presets,
       supportedFeatures,
-      pageContext: "devtools",
+      pageContext,
     })
   );
 
   /**
    * @param {MinimallyTypedGeckoProfile} profile
-   * @param {ProfilerViewMode | undefined} profilerViewMode
    */
-  const onProfileReceived = (profile, profilerViewMode) => {
+  const onProfileReceived = profile => {
     const objdirs = selectors.getObjdirs(store.getState());
+    const profilerViewMode = getProfilerViewModeForCurrentPreset(pageContext);
     const sharedLibraries = sharedLibrariesFromProfile(profile);
     const symbolicationService = createLocalSymbolicationService(
       sharedLibraries,
@@ -169,6 +169,8 @@ async function gInit(perfFront, pageContext, openAboutProfiling) {
     ),
     document.querySelector("#root")
   );
+
+  window.addEventListener("unload", () => gDestroy(), { once: true });
 }
 
 function gDestroy() {

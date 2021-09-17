@@ -16,6 +16,9 @@ const loader = new DevToolsLoader({
 const { allocationTracker } = loader.require(
   "chrome://mochitests/content/browser/devtools/shared/test-helpers/allocation-tracker"
 );
+const TrackedObjects = loader.require(
+  "devtools/shared/test-helpers/tracked-objects.jsm"
+);
 
 add_task(async function() {
   // Use a sandbox to allocate test javascript object in order to avoid any
@@ -88,4 +91,62 @@ add_task(async function() {
   );
 
   tracker.stop();
+});
+
+add_task(async function() {
+  const leaked = {};
+  TrackedObjects.track(leaked);
+  let transient = {};
+  TrackedObjects.track(transient);
+
+  is(TrackedObjects.getAllNodeIds().length, 2, "The two objects are reported");
+
+  info("Free the transient object");
+  transient = null;
+  Cu.forceGC();
+
+  is(
+    TrackedObjects.getAllNodeIds().length,
+    1,
+    "We now only have the leaked object"
+  );
+  TrackedObjects.clear();
+});
+
+add_task(async function() {
+  info("Test start and stop recording without any debug mode");
+  const tracker = allocationTracker({ watchDevToolsGlobals: true });
+  await tracker.startRecordingAllocations();
+  await tracker.stopRecordingAllocations();
+  tracker.stop();
+});
+
+add_task(async function() {
+  info("Test start and stop recording with 'allocations' debug mode");
+  const tracker = allocationTracker({ watchDevToolsGlobals: true });
+  await tracker.startRecordingAllocations("allocations");
+  await tracker.stopRecordingAllocations("allocations");
+  tracker.stop();
+});
+
+add_task(async function() {
+  info("Test start and stop recording with 'leaks' debug mode");
+  const tracker = allocationTracker({ watchDevToolsGlobals: true });
+  await tracker.startRecordingAllocations("leaks");
+  await tracker.stopRecordingAllocations("leaks");
+  tracker.stop();
+});
+
+add_task(async function() {
+  info("Test start and stop recording with tracked objects");
+
+  const leaked = {};
+  TrackedObjects.track(leaked);
+
+  const tracker = allocationTracker({ watchAllGlobals: true });
+  await tracker.startRecordingAllocations();
+  await tracker.stopRecordingAllocations();
+  tracker.stop();
+
+  TrackedObjects.clear();
 });

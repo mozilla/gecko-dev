@@ -93,7 +93,32 @@ static bool AskUserIfWeShouldInstall() {
   // to map the Escape key to it manually:
   [dontInstallButton setKeyEquivalent:@"\e"];
 
-  NSInteger result = [alert runModal];
+  // We need to call run on NSApp to allow accessibility. We only run it
+  // for this specific alert which blocks the app's loop until the user
+  // responds, it then subsequently stops the app's loop.
+  //
+  // AskUserIfWeShouldInstall
+  //          |
+  //          | ---> [NSApp run]
+  //          |          |
+  //          |          | -----> task
+  //          |          |          | -----------> [alert runModal]
+  //          |          |          |                     | (User selects button)
+  //          |          |          | <---------------   done
+  //          |          |          |
+  //          |          |          | -----------> [NSApp stop:nil]
+  //          |          |          | <-----------
+  //          |          | <--------
+  //          | <-------
+  //        done
+  __block NSInteger result = -1;
+  dispatch_async(dispatch_get_main_queue(), ^{
+    result = [alert runModal];
+    [NSApp stop:nil];
+  });
+
+  [NSApp run];
+  MOZ_ASSERT(result != -1);
 
   return result == NSAlertFirstButtonReturn;
 
@@ -331,12 +356,13 @@ bool MaybeInstallFromDmgAndRelaunch() {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
   @autoreleasepool {
-    if (!IsAppRunningFromDmg()) {
+    bool isFromDmg = IsAppRunningFromDmg();
+
+    Telemetry::ScalarSet(Telemetry::ScalarID::STARTUP_FIRST_RUN_IS_FROM_DMG, isFromDmg);
+
+    if (!isFromDmg) {
       return false;
     }
-
-    Telemetry::ScalarSet(Telemetry::ScalarID::STARTUP_FIRST_RUN_IS_FROM_DMG,
-                         MacRunFromDmgUtils::IsAppRunningFromDmg());
 
     // The Applications directory may not be at /Applications, although in
     // practice we're unlikely to encounter since run-from-.dmg is really an

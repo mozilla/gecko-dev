@@ -6,11 +6,6 @@
 
 var EXPORTED_SYMBOLS = ["Sqlite"];
 
-// The maximum time to wait before considering a transaction stuck and rejecting
-// it. (Note that the minimum amount of time we wait is 20% less than this, see
-// the `_getTimeoutPromise` method on `ConnectionData` for details).
-const TRANSACTIONS_QUEUE_TIMEOUT_MS = 300000; // 5 minutes
-
 const { XPCOMUtils } = ChromeUtils.import(
   "resource://gre/modules/XPCOMUtils.jsm"
 );
@@ -230,10 +225,11 @@ XPCOMUtils.defineLazyGetter(this, "Barriers", () => {
  */
 function ConnectionData(connection, identifier, options = {}) {
   this._log = Log.repository.getLoggerWithMessagePrefix(
-    "Sqlite.Connection",
-    identifier + ": "
+    "Sqlite.jsm",
+    `Connection ${identifier}: `
   );
-  this._log.info("Opened");
+  this._log.manageLevelFromPref("toolkit.sqlitejsm.loglevel");
+  this._log.debug("Opened");
 
   this._dbConn = connection;
 
@@ -264,7 +260,8 @@ function ConnectionData(connection, identifier, options = {}) {
       this._dbConn.defaultTransactionType
     );
   }
-  this._hasInProgressTransaction = false;
+  // Tracks whether this instance initiated a transaction.
+  this._initiatedTransaction = false;
   // Manages a chain of transactions promises, so that new transactions
   // always happen in queue to the previous ones.  It never rejects.
   this._transactionQueue = Promise.resolve();
@@ -296,16 +293,16 @@ function ConnectionData(connection, identifier, options = {}) {
       identifier: this._identifier,
       isCloseRequested: this._closeRequested,
       hasDbConn: !!this._dbConn,
-      hasInProgressTransaction: this._hasInProgressTransaction,
+      initiatedTransaction: this._initiatedTransaction,
       pendingStatements: this._pendingStatements.size,
       statementCounter: this._statementCounter,
     })
   );
 
-  // We avoid creating a timer every transaction that exists solely as a safety
-  // check (e.g. one that never should fire) by reusing it if it's sufficiently
-  // close to when the previous promise was created (see bug 1442353 and
-  // `_getTimeoutPromise` for more info).
+  // We avoid creating a timer for every transaction, because in most cases they
+  // are not canceled and they are only used as a timeout.
+  // Instead the timer is reused when it's sufficiently close to the previous
+  // creation time (see `_getTimeoutPromise` for more info).
   this._timeoutPromise = null;
   // The last timestamp when we should consider using `this._timeoutPromise`.
   this._timeoutPromiseExpires = 0;
@@ -501,7 +498,7 @@ ConnectionData.prototype = Object.freeze({
     // We must always close the connection at the Sqlite.jsm-level, not
     // necessarily at the mozStorage-level.
     let markAsClosed = () => {
-      this._log.info("Closed");
+      this._log.debug("Closed");
       // Now that the connection is closed, no need to keep
       // a blocker for Barriers.connections.
       Barriers.connections.client.removeBlocker(this._deferredClose.promise);
@@ -603,6 +600,14 @@ ConnectionData.prototype = Object.freeze({
   },
 
   executeTransaction(func, type) {
+    // Identify the caller for debugging purposes.
+    let caller = new Error().stack
+      .split("\n", 3)
+      .pop()
+      .match(/^([^@]+@).*\/([^\/:]+)[:0-9]*$/);
+    caller = caller[1] + caller[2];
+    this._log.debug(`Transaction (type ${type}) requested by: ${caller}`);
+
     if (type == OpenedConnection.prototype.TRANSACTION_DEFAULT) {
       type = this.defaultTransactionType;
     } else if (!OpenedConnection.TRANSACTION_TYPES.includes(type)) {
@@ -610,7 +615,11 @@ ConnectionData.prototype = Object.freeze({
     }
     this.ensureOpen();
 
-    this._log.debug("Beginning transaction");
+    // If a transaction yields on a never resolved promise, or is mistakenly
+    // nested, it could hang the transactions queue forever.  Thus we timeout
+    // the execution after a meaningful amount of time, to ensure in any case
+    // we'll proceed after a while.
+    let timeoutPromise = this._getTimeoutPromise();
 
     let promise = this._transactionQueue.then(() => {
       if (this._closeRequested) {
@@ -620,16 +629,17 @@ ConnectionData.prototype = Object.freeze({
       let transactionPromise = (async () => {
         // At this point we should never have an in progress transaction, since
         // they are enqueued.
-        if (this._hasInProgressTransaction) {
-          console.error(
+        if (this._initiatedTransaction) {
+          this._log.error(
             "Unexpected transaction in progress when trying to start a new one."
           );
         }
-        this._hasInProgressTransaction = true;
         try {
           // We catch errors in statement execution to detect nested transactions.
           try {
             await this.execute("BEGIN " + type + " TRANSACTION");
+            this._log.debug(`Begin transaction`);
+            this._initiatedTransaction = true;
           } catch (ex) {
             // Unfortunately, if we are wrapping an existing connection, a
             // transaction could have been started by a client of the same
@@ -641,9 +651,6 @@ ConnectionData.prototype = Object.freeze({
                 "A new transaction could not be started cause the wrapped connection had one in progress",
                 ex
               );
-              // Unmark the in progress transaction, since it's managed by
-              // some other non-Sqlite.jsm client.  See the comment above.
-              this._hasInProgressTransaction = false;
             } else {
               this._log.warn(
                 "A transaction was already in progress, likely a nested transaction",
@@ -655,7 +662,7 @@ ConnectionData.prototype = Object.freeze({
 
           let result;
           try {
-            result = await func();
+            result = await Promise.race([func(), timeoutPromise]);
           } catch (ex) {
             // It's possible that the exception has been caused by trying to
             // close the connection in the middle of a transaction.
@@ -665,13 +672,33 @@ ConnectionData.prototype = Object.freeze({
                 ex
               );
             } else {
-              this._log.warn("Error during transaction. Rolling back", ex);
+              // Otherwise the function didn't resolve before the timeout, or
+              // generated an unexpected error. Then we rollback.
+              if (ex.becauseTimedOut) {
+                let caller_module = caller.split(":", 1)[0];
+                Services.telemetry.keyedScalarAdd(
+                  "mozstorage.sqlitejsm_transaction_timeout",
+                  caller_module,
+                  1
+                );
+                this._log.error(
+                  `The transaction requested by ${caller} timed out. Rolling back`,
+                  ex
+                );
+              } else {
+                this._log.error(
+                  `Error during transaction requested by ${caller}. Rolling back`,
+                  ex
+                );
+              }
               // If we began a transaction, we must rollback it.
-              if (this._hasInProgressTransaction) {
+              if (this._initiatedTransaction) {
                 try {
                   await this.execute("ROLLBACK TRANSACTION");
+                  this._initiatedTransaction = false;
+                  this._log.debug(`Roll back transaction`);
                 } catch (inner) {
-                  this._log.warn("Could not roll back transaction", inner);
+                  this._log.error("Could not roll back transaction", inner);
                 }
               }
             }
@@ -690,9 +717,10 @@ ConnectionData.prototype = Object.freeze({
           }
 
           // If we began a transaction, we must commit it.
-          if (this._hasInProgressTransaction) {
+          if (this._initiatedTransaction) {
             try {
               await this.execute("COMMIT TRANSACTION");
+              this._log.debug(`Commit transaction`);
             } catch (ex) {
               this._log.warn("Error committing transaction", ex);
               throw ex;
@@ -701,21 +729,16 @@ ConnectionData.prototype = Object.freeze({
 
           return result;
         } finally {
-          this._hasInProgressTransaction = false;
+          this._initiatedTransaction = false;
         }
       })();
 
-      // If a transaction yields on a never resolved promise, or is mistakenly
-      // nested, it could hang the transactions queue forever.  Thus we timeout
-      // the execution after a meaningful amount of time, to ensure in any case
-      // we'll proceed after a while.
-      let timeoutPromise = this._getTimeoutPromise();
       return Promise.race([transactionPromise, timeoutPromise]);
     });
     // Atomically update the queue before anyone else has a chance to enqueue
     // further transactions.
     this._transactionQueue = promise.catch(ex => {
-      console.error(ex);
+      this._log.error(ex);
     });
 
     // Make sure that we do not shutdown the connection during a transaction.
@@ -727,7 +750,7 @@ ConnectionData.prototype = Object.freeze({
   },
 
   shrinkMemory() {
-    this._log.info("Shrinking memory usage.");
+    this._log.debug("Shrinking memory usage.");
     let onShrunk = this._clearIdleShrinkTimer.bind(this);
     return this.execute("PRAGMA shrink_memory").then(onShrunk, onShrunk);
   },
@@ -744,7 +767,7 @@ ConnectionData.prototype = Object.freeze({
   },
 
   interrupt() {
-    this._log.info("Trying to interrupt.");
+    this._log.debug("Trying to interrupt.");
     this.ensureOpen();
     this._dbConn.interrupt();
   },
@@ -870,7 +893,7 @@ ConnectionData.prototype = Object.freeze({
       },
 
       handleError(error) {
-        self._log.info(
+        self._log.warn(
           "Error when executing SQL (" + error.result + "): " + error.message
         );
         errors.push(error);
@@ -948,10 +971,12 @@ ConnectionData.prototype = Object.freeze({
     );
   },
 
-  // Returns a promise that will resolve after a time comprised between 80% of
-  // `TRANSACTIONS_QUEUE_TIMEOUT_MS` and `TRANSACTIONS_QUEUE_TIMEOUT_MS`. Use
-  // this promise instead of creating several individual timers to reduce the
-  // overhead due to timers (see bug 1442353).
+  /**
+   * Returns a promise that will resolve after a time comprised between 80% of
+   * `TRANSACTIONS_TIMEOUT_MS` and `TRANSACTIONS_TIMEOUT_MS`. Use
+   * this method instead of creating several individual timers that may survive
+   * longer than necessary.
+   */
   _getTimeoutPromise() {
     if (this._timeoutPromise && Cu.now() <= this._timeoutPromiseExpires) {
       return this._timeoutPromise;
@@ -962,16 +987,16 @@ ConnectionData.prototype = Object.freeze({
         if (this._timeoutPromise == timeoutPromise) {
           this._timeoutPromise = null;
         }
-        reject(
-          new Error(
-            "Transaction timeout, most likely caused by unresolved pending work."
-          )
+        let e = new Error(
+          "Transaction timeout, most likely caused by unresolved pending work."
         );
-      }, TRANSACTIONS_QUEUE_TIMEOUT_MS);
+        e.becauseTimedOut = true;
+        reject(e);
+      }, Sqlite.TRANSACTIONS_TIMEOUT_MS);
     });
     this._timeoutPromise = timeoutPromise;
     this._timeoutPromiseExpires =
-      Cu.now() + TRANSACTIONS_QUEUE_TIMEOUT_MS * 0.2;
+      Cu.now() + Sqlite.TRANSACTIONS_TIMEOUT_MS * 0.2;
     return this._timeoutPromise;
   },
 });
@@ -1020,7 +1045,11 @@ ConnectionData.prototype = Object.freeze({
  * @return Promise<OpenedConnection>
  */
 function openConnection(options) {
-  let log = Log.repository.getLogger("Sqlite.ConnectionOpener");
+  let log = Log.repository.getLoggerWithMessagePrefix(
+    "Sqlite.jsm",
+    `ConnectionOpener: `
+  );
+  log.manageLevelFromPref("toolkit.sqlitejsm.loglevel");
 
   if (!options.path) {
     throw new Error("path not specified in connection options.");
@@ -1082,7 +1111,7 @@ function openConnection(options) {
 
   let identifier = getIdentifierByFileName(PathUtils.filename(path));
 
-  log.info("Opening database: " + path + " (" + identifier + ")");
+  log.debug("Opening database: " + path + " (" + identifier + ")");
 
   return new Promise((resolve, reject) => {
     let dbOptions = Cc["@mozilla.org/hash-property-bag;1"].createInstance(
@@ -1106,7 +1135,7 @@ function openConnection(options) {
       dbOptions,
       (status, connection) => {
         if (!connection) {
-          log.warn(`Could not open connection to ${path}: ${status}`);
+          log.error(`Could not open connection to ${path}: ${status}`);
           let error = new Components.Exception(
             `Could not open connection to ${path}: ${status}`,
             status
@@ -1114,7 +1143,7 @@ function openConnection(options) {
           reject(error);
           return;
         }
-        log.info("Connection opened");
+        log.debug("Connection opened");
         try {
           resolve(
             new OpenedConnection(
@@ -1124,7 +1153,7 @@ function openConnection(options) {
             )
           );
         } catch (ex) {
-          log.warn("Could not open database", ex);
+          log.error("Could not open database", ex);
           connection.asyncClose();
           reject(ex);
         }
@@ -1163,7 +1192,11 @@ function openConnection(options) {
  * @return Promise<OpenedConnection>
  */
 function cloneStorageConnection(options) {
-  let log = Log.repository.getLogger("Sqlite.ConnectionCloner");
+  let log = Log.repository.getLoggerWithMessagePrefix(
+    "Sqlite.jsm",
+    `ConnectionCloner: `
+  );
+  log.manageLevelFromPref("toolkit.sqlitejsm.loglevel");
 
   let source = options && options.connection;
   if (!source) {
@@ -1197,21 +1230,21 @@ function cloneStorageConnection(options) {
   let path = source.databaseFile.path;
   let identifier = getIdentifierByFileName(PathUtils.filename(path));
 
-  log.info("Cloning database: " + path + " (" + identifier + ")");
+  log.debug("Cloning database: " + path + " (" + identifier + ")");
 
   return new Promise((resolve, reject) => {
     source.asyncClone(!!options.readOnly, (status, connection) => {
       if (!connection) {
-        log.warn("Could not clone connection: " + status);
+        log.error("Could not clone connection: " + status);
         reject(new Error("Could not clone connection: " + status));
         return;
       }
-      log.info("Connection cloned");
+      log.debug("Connection cloned");
       try {
         let conn = connection.QueryInterface(Ci.mozIStorageAsyncConnection);
         resolve(new OpenedConnection(conn, identifier, openedOptions));
       } catch (ex) {
-        log.warn("Could not clone database", ex);
+        log.error("Could not clone database", ex);
         connection.asyncClose();
         reject(ex);
       }
@@ -1238,7 +1271,11 @@ function cloneStorageConnection(options) {
  * @return Promise<OpenedConnection>
  */
 function wrapStorageConnection(options) {
-  let log = Log.repository.getLogger("Sqlite.ConnectionWrapper");
+  let log = Log.repository.getLoggerWithMessagePrefix(
+    "Sqlite.jsm",
+    `ConnectionCloner: `
+  );
+  log.manageLevelFromPref("toolkit.sqlitejsm.loglevel");
 
   let connection = options && options.connection;
   if (!connection || !(connection instanceof Ci.mozIStorageAsyncConnection)) {
@@ -1254,7 +1291,7 @@ function wrapStorageConnection(options) {
 
   let identifier = getIdentifierByFileName(connection.databaseFile.leafName);
 
-  log.info("Wrapping database: " + identifier);
+  log.debug("Wrapping database: " + identifier);
   return new Promise(resolve => {
     try {
       let conn = connection.QueryInterface(Ci.mozIStorageAsyncConnection);
@@ -1264,7 +1301,7 @@ function wrapStorageConnection(options) {
       wrappedConnections.add(identifier);
       resolve(wrapper);
     } catch (ex) {
-      log.warn("Could not wrap database", ex);
+      log.error("Could not wrap database", ex);
       throw ex;
     }
   });
@@ -1682,6 +1719,10 @@ OpenedConnection.prototype = Object.freeze({
 });
 
 var Sqlite = {
+  // The maximum time to wait before considering a transaction stuck and
+  // issuing a ROLLBACK, see `executeTransaction`. Could be modified by tests.
+  TRANSACTIONS_TIMEOUT_MS: 300000, // 5 minutes
+
   openConnection,
   cloneStorageConnection,
   wrapStorageConnection,

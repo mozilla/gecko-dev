@@ -2464,9 +2464,6 @@ static bool GCSlice(JSContext* cx, unsigned argc, Value* vp) {
   if (args.length() >= 1) {
     uint32_t work = 0;
     if (!ToUint32(cx, args[0], &work)) {
-      RootedObject callee(cx, &args.callee());
-      ReportUsageErrorASCII(cx, callee,
-                            "The work budget parameter |n| must be an integer");
       return false;
     }
     budget = SliceBudget(WorkBudget(work));
@@ -3095,9 +3092,34 @@ static size_t CountCompartments(JSContext* cx) {
 // For example, trigger OOM at every allocation point and test that the function
 // either recovers and succeeds or raises an exception and fails.
 
-struct MOZ_STACK_CLASS IterativeFailureTestParams {
-  explicit IterativeFailureTestParams(JSContext* cx) : testFunction(cx) {}
+class MOZ_STACK_CLASS IterativeFailureTest {
+ public:
+  struct FailureSimulator {
+    virtual void setup(JSContext* cx) {}
+    virtual void teardown(JSContext* cx) {}
+    virtual void startSimulating(JSContext* cx, unsigned iteration,
+                                 unsigned thread, bool keepFailing) = 0;
+    virtual bool stopSimulating() = 0;
+    virtual void cleanup(JSContext* cx) {}
+  };
 
+  IterativeFailureTest(JSContext* cx, FailureSimulator& simulator);
+  bool initParams(const CallArgs& args);
+  bool test();
+
+ private:
+  bool setup();
+  bool testThread(unsigned thread);
+  bool testIteration(unsigned thread, unsigned iteration,
+                     bool& failureWasSimulated, MutableHandleValue exception);
+  void cleanup();
+  void teardown();
+
+  JSContext* const cx;
+  FailureSimulator& simulator;
+  size_t compartmentCount;
+
+  // Test parameters set by initParams.
   RootedFunction testFunction;
   unsigned threadStart = 0;
   unsigned threadEnd = 0;
@@ -3106,22 +3128,38 @@ struct MOZ_STACK_CLASS IterativeFailureTestParams {
   bool verbose = false;
 };
 
-struct IterativeFailureSimulator {
-  virtual void setup(JSContext* cx) {}
-  virtual void teardown(JSContext* cx) {}
-  virtual void startSimulating(JSContext* cx, unsigned iteration,
-                               unsigned thread, bool keepFailing) = 0;
-  virtual bool stopSimulating() = 0;
-  virtual void cleanup(JSContext* cx) {}
-};
+bool RunIterativeFailureTest(
+    JSContext* cx, const CallArgs& args,
+    IterativeFailureTest::FailureSimulator& simulator) {
+  IterativeFailureTest test(cx, simulator);
+  return test.initParams(args) && test.test();
+}
 
-bool RunIterativeFailureTest(JSContext* cx,
-                             const IterativeFailureTestParams& params,
-                             IterativeFailureSimulator& simulator) {
+IterativeFailureTest::IterativeFailureTest(JSContext* cx,
+                                           FailureSimulator& simulator)
+    : cx(cx), simulator(simulator), testFunction(cx) {}
+
+bool IterativeFailureTest::test() {
   if (disableOOMFunctions) {
     return true;
   }
 
+  if (!setup()) {
+    return false;
+  }
+
+  auto onExit = mozilla::MakeScopeExit([this] { teardown(); });
+
+  for (unsigned thread = threadStart; thread <= threadEnd; thread++) {
+    if (!testThread(thread)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool IterativeFailureTest::setup() {
   if (!CheckCanSimulateOOM(cx)) {
     return false;
   }
@@ -3141,118 +3179,133 @@ bool RunIterativeFailureTest(JSContext* cx,
 #  endif
 
   // Delazify the function here if necessary so we don't end up testing that.
-  if (params.testFunction->isInterpreted() &&
-      !JSFunction::getOrCreateScript(cx, params.testFunction)) {
+  if (testFunction->isInterpreted() &&
+      !JSFunction::getOrCreateScript(cx, testFunction)) {
     return false;
   }
 
-  size_t compartmentCount = CountCompartments(cx);
-
-  RootedValue exception(cx);
+  compartmentCount = CountCompartments(cx);
 
   simulator.setup(cx);
 
-  for (unsigned thread = params.threadStart; thread <= params.threadEnd;
-       thread++) {
-    if (params.verbose) {
-      fprintf(stderr, "thread %u\n", thread);
-    }
-
-    unsigned iteration = 1;
-    bool failureWasSimulated;
-    do {
-      if (params.verbose) {
-        fprintf(stderr, "  iteration %u\n", iteration);
-      }
-
-      MOZ_ASSERT(!cx->isExceptionPending());
-
-      simulator.startSimulating(cx, iteration, thread, params.keepFailing);
-
-      RootedValue result(cx);
-      bool ok = JS_CallFunction(cx, cx->global(), params.testFunction,
-                                HandleValueArray::empty(), &result);
-
-      failureWasSimulated = simulator.stopSimulating();
-
-      if (ok) {
-        MOZ_ASSERT(!cx->isExceptionPending(),
-                   "Thunk execution succeeded but an exception was raised - "
-                   "missing error check?");
-      } else if (params.expectExceptionOnFailure) {
-        MOZ_ASSERT(cx->isExceptionPending(),
-                   "Thunk execution failed but no exception was raised - "
-                   "missing call to js::ReportOutOfMemory()?");
-      }
-
-      // Note that it is possible that the function throws an exception
-      // unconnected to the simulated failure, in which case we ignore
-      // it. More correct would be to have the caller pass some kind of
-      // exception specification and to check the exception against it.
-
-      if (!failureWasSimulated && cx->isExceptionPending()) {
-        if (!cx->getPendingException(&exception)) {
-          return false;
-        }
-      }
-      cx->clearPendingException();
-      simulator.cleanup(cx);
-
-      gc::FinishGC(cx);
-
-      // Some tests create a new compartment or zone on every
-      // iteration. Our GC is triggered by GC allocations and not by
-      // number of compartments or zones, so these won't normally get
-      // cleaned up. The check here stops some tests running out of
-      // memory. ("Gentlemen, you can't fight in here! This is the
-      // War oom!")
-      if (CountCompartments(cx) > compartmentCount + 100) {
-        JS_GC(cx);
-        compartmentCount = CountCompartments(cx);
-      }
-
-#  ifdef JS_TRACE_LOGGING
-      // Reset the TraceLogger state if enabled.
-      TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
-      if (logger && logger->enabled()) {
-        while (logger->enabled()) {
-          logger->disable();
-        }
-        logger->enable(cx);
-      }
-#  endif
-
-      iteration++;
-    } while (failureWasSimulated);
-
-    if (params.verbose) {
-      fprintf(stderr, "  finished after %u iterations\n", iteration - 1);
-      if (!exception.isUndefined()) {
-        RootedString str(cx, JS::ToString(cx, exception));
-        if (!str) {
-          fprintf(stderr,
-                  "  error while trying to print exception, giving up\n");
-          return false;
-        }
-        UniqueChars bytes(JS_EncodeStringToLatin1(cx, str));
-        if (!bytes) {
-          return false;
-        }
-        fprintf(stderr, "  threw %s\n", bytes.get());
-      }
-    }
-  }
-
-  simulator.teardown(cx);
-
-  cx->runningOOMTest = false;
   return true;
 }
 
-bool ParseIterativeFailureTestParams(JSContext* cx, const CallArgs& args,
-                                     IterativeFailureTestParams* params) {
-  MOZ_ASSERT(params);
+bool IterativeFailureTest::testThread(unsigned thread) {
+  if (verbose) {
+    fprintf(stderr, "thread %u\n", thread);
+  }
 
+  RootedValue exception(cx);
+
+  unsigned iteration = 1;
+  bool failureWasSimulated;
+  do {
+    if (!testIteration(thread, iteration, failureWasSimulated, &exception)) {
+      return false;
+    }
+
+    iteration++;
+  } while (failureWasSimulated);
+
+  if (verbose) {
+    fprintf(stderr, "  finished after %u iterations\n", iteration - 1);
+    if (!exception.isUndefined()) {
+      RootedString str(cx, JS::ToString(cx, exception));
+      if (!str) {
+        fprintf(stderr, "  error while trying to print exception, giving up\n");
+        return false;
+      }
+      UniqueChars bytes(JS_EncodeStringToLatin1(cx, str));
+      if (!bytes) {
+        return false;
+      }
+      fprintf(stderr, "  threw %s\n", bytes.get());
+    }
+  }
+
+  return true;
+}
+
+bool IterativeFailureTest::testIteration(unsigned thread, unsigned iteration,
+                                         bool& failureWasSimulated,
+                                         MutableHandleValue exception) {
+  if (verbose) {
+    fprintf(stderr, "  iteration %u\n", iteration);
+  }
+
+  MOZ_RELEASE_ASSERT(!cx->isExceptionPending());
+
+  simulator.startSimulating(cx, iteration, thread, keepFailing);
+
+  RootedValue result(cx);
+  bool ok = JS_CallFunction(cx, cx->global(), testFunction,
+                            HandleValueArray::empty(), &result);
+
+  failureWasSimulated = simulator.stopSimulating();
+
+  if (ok && cx->isExceptionPending()) {
+    MOZ_CRASH(
+        "Thunk execution succeeded but an exception was raised - missing error "
+        "check?");
+  }
+
+  if (!ok && !cx->isExceptionPending() && expectExceptionOnFailure) {
+    MOZ_CRASH(
+        "Thunk execution failed but no exception was raised - missing call to "
+        "js::ReportOutOfMemory()?");
+  }
+
+  // Note that it is possible that the function throws an exception unconnected
+  // to the simulated failure, in which case we ignore it. More correct would be
+  // to have the caller pass some kind of exception specification and to check
+  // the exception against it.
+  if (!failureWasSimulated && cx->isExceptionPending()) {
+    if (!cx->getPendingException(exception)) {
+      return false;
+    }
+  }
+  cx->clearPendingException();
+
+  cleanup();
+
+  return true;
+}
+
+void IterativeFailureTest::cleanup() {
+  simulator.cleanup(cx);
+
+  gc::FinishGC(cx);
+
+  // Some tests create a new compartment or zone on every iteration. Our GC is
+  // triggered by GC allocations and not by number of compartments or zones, so
+  // these won't normally get cleaned up. The check here stops some tests
+  // running out of memory. ("Gentlemen, you can't fight in here! This is the
+  // War oom!")
+  if (CountCompartments(cx) > compartmentCount + 100) {
+    JS_GC(cx);
+    compartmentCount = CountCompartments(cx);
+  }
+
+#  ifdef JS_TRACE_LOGGING
+  // Reset the TraceLogger state if enabled.
+  TraceLoggerThread* logger = TraceLoggerForCurrentThread(cx);
+  if (logger && logger->enabled()) {
+    while (logger->enabled()) {
+      logger->disable();
+    }
+    logger->enable(cx);
+  }
+#  endif
+}
+
+void IterativeFailureTest::teardown() {
+  simulator.teardown(cx);
+
+  cx->runningOOMTest = false;
+}
+
+bool IterativeFailureTest::initParams(const CallArgs& args) {
   if (args.length() < 1 || args.length() > 2) {
     JS_ReportErrorASCII(cx, "function takes between 1 and 2 arguments.");
     return false;
@@ -3262,11 +3315,11 @@ bool ParseIterativeFailureTestParams(JSContext* cx, const CallArgs& args,
     JS_ReportErrorASCII(cx, "The first argument must be the function to test.");
     return false;
   }
-  params->testFunction = &args[0].toObject().as<JSFunction>();
+  testFunction = &args[0].toObject().as<JSFunction>();
 
   if (args.length() == 2) {
     if (args[1].isBoolean()) {
-      params->expectExceptionOnFailure = args[1].toBoolean();
+      expectExceptionOnFailure = args[1].toBoolean();
     } else if (args[1].isObject()) {
       RootedObject options(cx, &args[1].toObject());
       RootedValue value(cx);
@@ -3275,14 +3328,14 @@ bool ParseIterativeFailureTestParams(JSContext* cx, const CallArgs& args,
         return false;
       }
       if (!value.isUndefined()) {
-        params->expectExceptionOnFailure = ToBoolean(value);
+        expectExceptionOnFailure = ToBoolean(value);
       }
 
       if (!JS_GetProperty(cx, options, "keepFailing", &value)) {
         return false;
       }
       if (!value.isUndefined()) {
-        params->keepFailing = ToBoolean(value);
+        keepFailing = ToBoolean(value);
       }
     } else {
       JS_ReportErrorASCII(
@@ -3294,12 +3347,12 @@ bool ParseIterativeFailureTestParams(JSContext* cx, const CallArgs& args,
   // There are some places where we do fail without raising an exception, so
   // we can't expose this to the fuzzers by default.
   if (fuzzingSafe) {
-    params->expectExceptionOnFailure = false;
+    expectExceptionOnFailure = false;
   }
 
   // Test all threads by default except worker threads.
-  params->threadStart = oom::FirstThreadTypeToTest;
-  params->threadEnd = oom::LastThreadTypeToTest;
+  threadStart = oom::FirstThreadTypeToTest;
+  threadEnd = oom::LastThreadTypeToTest;
 
   // Test a single thread type if specified by the OOM_THREAD environment
   // variable.
@@ -3311,16 +3364,16 @@ bool ParseIterativeFailureTestParams(JSContext* cx, const CallArgs& args,
       return false;
     }
 
-    params->threadStart = threadOption;
-    params->threadEnd = threadOption;
+    threadStart = threadOption;
+    threadEnd = threadOption;
   }
 
-  params->verbose = EnvVarIsDefined("OOM_VERBOSE");
+  verbose = EnvVarIsDefined("OOM_VERBOSE");
 
   return true;
 }
 
-struct OOMSimulator : public IterativeFailureSimulator {
+struct OOMSimulator : public IterativeFailureTest::FailureSimulator {
   void setup(JSContext* cx) override { cx->runtime()->hadOutOfMemory = false; }
 
   void startSimulating(JSContext* cx, unsigned i, unsigned thread,
@@ -3344,13 +3397,8 @@ struct OOMSimulator : public IterativeFailureSimulator {
 static bool OOMTest(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  IterativeFailureTestParams params(cx);
-  if (!ParseIterativeFailureTestParams(cx, args, &params)) {
-    return false;
-  }
-
   OOMSimulator simulator;
-  if (!RunIterativeFailureTest(cx, params, simulator)) {
+  if (!RunIterativeFailureTest(cx, args, simulator)) {
     return false;
   }
 
@@ -3358,7 +3406,7 @@ static bool OOMTest(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-struct StackOOMSimulator : public IterativeFailureSimulator {
+struct StackOOMSimulator : public IterativeFailureTest::FailureSimulator {
   void startSimulating(JSContext* cx, unsigned i, unsigned thread,
                        bool keepFailing) override {
     js::oom::simulator.simulateFailureAfter(
@@ -3375,13 +3423,8 @@ struct StackOOMSimulator : public IterativeFailureSimulator {
 static bool StackTest(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  IterativeFailureTestParams params(cx);
-  if (!ParseIterativeFailureTestParams(cx, args, &params)) {
-    return false;
-  }
-
   StackOOMSimulator simulator;
-  if (!RunIterativeFailureTest(cx, params, simulator)) {
+  if (!RunIterativeFailureTest(cx, args, simulator)) {
     return false;
   }
 
@@ -3389,7 +3432,8 @@ static bool StackTest(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-struct FailingIterruptSimulator : public IterativeFailureSimulator {
+struct FailingIterruptSimulator
+    : public IterativeFailureTest::FailureSimulator {
   JSInterruptCallback* prevEnd = nullptr;
 
   static bool failingInterruptCallback(JSContext* cx) { return false; }
@@ -3419,13 +3463,8 @@ struct FailingIterruptSimulator : public IterativeFailureSimulator {
 static bool InterruptTest(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  IterativeFailureTestParams params(cx);
-  if (!ParseIterativeFailureTestParams(cx, args, &params)) {
-    return false;
-  }
-
   FailingIterruptSimulator simulator;
-  if (!RunIterativeFailureTest(cx, params, simulator)) {
+  if (!RunIterativeFailureTest(cx, args, simulator)) {
     return false;
   }
 
@@ -7005,15 +7044,33 @@ static bool EncodeAsUtf8InBuffer(JSContext* cx, unsigned argc, Value* vp) {
   }
   array->ensureDenseInitializedLength(0, 2);
 
-  size_t length;
-  bool isSharedMemory;
-  uint8_t* data;
-  if (!args[1].isObject() ||
-      !JS_GetObjectAsUint8Array(&args[1].toObject(), &length, &isSharedMemory,
-                                &data) ||
-      isSharedMemory ||  // excluded views of SharedArrayBuffers
-      !data) {           // exclude views of detached ArrayBuffers
+  JSObject* obj = args[1].isObject() ? &args[1].toObject() : nullptr;
+  Rooted<JS::Uint8Array> view(cx, JS::Uint8Array::unwrap(obj));
+  if (!view) {
     ReportUsageErrorASCII(cx, callee, "Second argument must be a Uint8Array");
+    return false;
+  }
+
+  size_t length;
+  bool isSharedMemory = false;
+  uint8_t* data = nullptr;
+  {
+    // The hazard analysis does not track the data pointer, so it can neither
+    // tell that `data` is dead if ReportUsageErrorASCII is called, nor that
+    // its live range ends at the call to AsWritableChars(). Construct a
+    // temporary scope to hide from the analysis. This should really be replaced
+    // with a safer mechanism.
+    JS::AutoCheckCannotGC nogc(cx);
+    if (!view.isDetached()) {
+      data = view.get().getLengthAndData(&length, &isSharedMemory, nogc);
+    }
+  }
+
+  if (isSharedMemory ||  // exclude views of SharedArrayBuffers
+      !data) {           // exclude views of detached ArrayBuffers
+    ReportUsageErrorASCII(
+        cx, callee,
+        "Second argument must be an unshared, non-detached Uint8Array");
     return false;
   }
 

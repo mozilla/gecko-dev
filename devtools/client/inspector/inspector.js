@@ -178,6 +178,7 @@ function Inspector(toolbox, commands) {
   this.onSidebarShown = this.onSidebarShown.bind(this);
   this.onSidebarToggle = this.onSidebarToggle.bind(this);
   this.onReflowInSelection = this.onReflowInSelection.bind(this);
+  this.listenForSearchEvents = this.listenForSearchEvents.bind(this);
 }
 
 Inspector.prototype = {
@@ -617,16 +618,16 @@ Inspector.prototype = {
       "inspector-searchlabel"
     );
 
-    this.searchBox.addEventListener(
-      "focus",
-      () => {
-        this.search.on("search-cleared", this._clearSearchResultsLabel);
-        this.search.on("search-result", this._updateSearchResultsLabel);
-      },
-      { once: true }
-    );
+    this.searchBox.addEventListener("focus", this.listenForSearchEvents, {
+      once: true,
+    });
 
     this.createSearchBoxShortcuts();
+  },
+
+  listenForSearchEvents() {
+    this.search.on("search-cleared", this._clearSearchResultsLabel);
+    this.search.on("search-result", this._updateSearchResultsLabel);
   },
 
   createSearchBoxShortcuts() {
@@ -801,8 +802,8 @@ Inspector.prototype = {
   },
 
   _onLazyPanelResize: async function() {
-    // We can be called on a closed window because of the deferred task.
-    if (window.closed) {
+    // We can be called on a closed window or destroyed toolbox because of the deferred task.
+    if (window.closed || this._destroyed) {
       return;
     }
 
@@ -1661,18 +1662,22 @@ Inspector.prototype = {
 
     this.cancelUpdate();
 
-    this.sidebar.destroy();
-
     this.panelWin.removeEventListener("resize", this.onPanelWindowResize, true);
     this.selection.off("new-node-front", this.onNewSelection);
     this.selection.off("detached-front", this.onDetached);
+    this.toolbox.nodePicker.off("picker-node-canceled", this.onPickerCanceled);
+    this.toolbox.nodePicker.off("picker-node-hovered", this.onPickerHovered);
+    this.toolbox.nodePicker.off("picker-node-picked", this.onPickerPicked);
+
+    // Destroy the sidebar first as it may unregister stuff
+    // and still use random attributes on inspector and layout panel
+    this.sidebar.destroy();
+    // Unregister sidebar listener *after* destroying it
+    // in order to process its destroy event and save sidebar sizes
     this.sidebar.off("select", this.onSidebarSelect);
     this.sidebar.off("show", this.onSidebarShown);
     this.sidebar.off("hide", this.onSidebarHidden);
     this.sidebar.off("destroy", this.onSidebarHidden);
-    this.toolbox.nodePicker.off("picker-node-canceled", this.onPickerCanceled);
-    this.toolbox.nodePicker.off("picker-node-hovered", this.onPickerHovered);
-    this.toolbox.nodePicker.off("picker-node-picked", this.onPickerPicked);
 
     for (const [, panel] of this._panels) {
       panel.destroy();
@@ -1688,10 +1693,9 @@ Inspector.prototype = {
       this._search = null;
     }
 
-    this.sidebar.destroy();
-    if (this.ruleViewSideBar) {
-      this.ruleViewSideBar.destroy();
-    }
+    this.ruleViewSideBar.destroy();
+    this.ruleViewSideBar = null;
+
     this._destroyMarkup();
 
     this.teardownToolbar();
@@ -1699,6 +1703,7 @@ Inspector.prototype = {
     this.breadcrumbs.destroy();
     this.styleChangeTracker.destroy();
     this.searchboxShortcuts.destroy();
+    this.searchboxShortcuts = null;
 
     this.commands.targetCommand.unwatchTargets(
       [this.commands.targetCommand.TYPES.FRAME],
@@ -1716,16 +1721,33 @@ Inspector.prototype = {
     );
     this.untrackReflowsInSelection();
 
+    this._InspectorTabPanel = null;
+    this._TabBar = null;
+    this._InspectorSplitBox = null;
+    this.sidebarSplitBoxRef = null;
+    // Note that we do not unmount inspector-splitter-box
+    // as it regresses inspector closing performance while not releasing
+    // any object (bug 1729925)
+    this.splitBox = null;
+
     this._is3PaneModeChromeEnabled = null;
     this._is3PaneModeEnabled = null;
     this._markupBox = null;
     this._markupFrame = null;
     this._toolbox = null;
+    this._commands = null;
     this.breadcrumbs = null;
+    this.inspectorFront = null;
+    this._cssProperties = null;
+    this.accessibilityFront = null;
+    this._highlighters = null;
+    this.walker = null;
+    this._defaultNode = null;
     this.panelDoc = null;
     this.panelWin.inspector = null;
     this.panelWin = null;
     this.resultsLength = null;
+    this.searchBox.removeEventListener("focus", this.listenForSearchEvents);
     this.searchBox = null;
     this.show3PaneTooltip = null;
     this.sidebar = null;

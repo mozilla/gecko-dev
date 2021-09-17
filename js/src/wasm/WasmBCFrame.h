@@ -1266,7 +1266,7 @@ struct StackMapGenerator {
   // trapExitLayoutNumWords_, which together comprise a description of the
   // layout and are created by GenerateTrapExitMachineState().
   [[nodiscard]] bool generateStackmapEntriesForTrapExit(
-    const ArgTypeVector& args, ExitStubMapVector* extras);
+      const ArgTypeVector& args, ExitStubMapVector* extras);
 
   // Creates a stackmap associated with the instruction denoted by
   // |assemblerOffset|, incorporating pointers from the current operand

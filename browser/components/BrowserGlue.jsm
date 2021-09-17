@@ -308,7 +308,9 @@ let JSWINDOWACTORS = {
       events: {
         DOMContentLoaded: {},
         pageshow: { mozSystemGroup: true },
-        pagehide: { mozSystemGroup: true },
+        // Don't try to create the actor if only the pagehide event fires.
+        // This can happen with the initial about:blank documents.
+        pagehide: { mozSystemGroup: true, createActor: false },
       },
     },
     messageManagerGroups: ["browsers"],
@@ -754,6 +756,7 @@ let JSWINDOWACTORS = {
   let startTime = Cu.now();
   if (
     AppConstants.platform == "macosx" ||
+    Services.startup.wasSilentlyStarted ||
     !Services.prefs.getBoolPref("browser.startup.blankWindow", false)
   ) {
     return;
@@ -1319,6 +1322,10 @@ BrowserGlue.prototype = {
       this._matchCBCategory
     );
     Services.prefs.removeObserver(
+      "privacy.partition.network_state.ocsp_cache",
+      this._matchCBCategory
+    );
+    Services.prefs.removeObserver(
       ContentBlockingCategoriesPrefs.PREF_CB_CATEGORY,
       this._updateCBCategory
     );
@@ -1643,6 +1650,8 @@ BrowserGlue.prototype = {
 
     ProcessHangMonitor.init();
 
+    UrlbarPrefs.updateFirefoxSuggestScenario();
+
     // A channel for "remote troubleshooting" code...
     let channel = new WebChannel(
       "remote-troubleshooting",
@@ -1759,6 +1768,10 @@ BrowserGlue.prototype = {
     );
     Services.prefs.addObserver(
       "network.http.referer.disallowCrossSiteRelaxingDefault",
+      this._matchCBCategory
+    );
+    Services.prefs.addObserver(
+      "privacy.partition.network_state.ocsp_cache",
       this._matchCBCategory
     );
     Services.prefs.addObserver(
@@ -2905,7 +2918,7 @@ BrowserGlue.prototype = {
         title = gTabbrowserBundle.GetStringFromName("tabs.closeTabsTitle");
         title = PluralForm.get(pagecount, title).replace("#1", pagecount);
         buttonLabel = gTabbrowserBundle.GetStringFromName(
-          "tabs.closeTabsButton"
+          "tabs.closeButtonMultiple"
         );
       }
     }
@@ -4365,6 +4378,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.cryptomining.enabled": null,
         "privacy.annotate_channels.strict_list.enabled": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault": null,
+        "privacy.partition.network_state.ocsp_cache": null,
       },
       standard: {
         "network.cookie.cookieBehavior": null,
@@ -4376,9 +4390,7 @@ var ContentBlockingCategoriesPrefs = {
         "privacy.trackingprotection.cryptomining.enabled": null,
         "privacy.annotate_channels.strict_list.enabled": null,
         "network.http.referer.disallowCrossSiteRelaxingDefault": null,
-      },
-      custom: {
-        "network.http.referer.disallowCrossSiteRelaxingDefault": true,
+        "privacy.partition.network_state.ocsp_cache": null,
       },
     };
     let type = "strict";
@@ -4455,6 +4467,16 @@ var ContentBlockingCategoriesPrefs = {
         case "-rp":
           this.CATEGORY_PREFS[type][
             "network.http.referer.disallowCrossSiteRelaxingDefault"
+          ] = false;
+          break;
+        case "ocsp":
+          this.CATEGORY_PREFS[type][
+            "privacy.partition.network_state.ocsp_cache"
+          ] = true;
+          break;
+        case "-ocsp":
+          this.CATEGORY_PREFS[type][
+            "privacy.partition.network_state.ocsp_cache"
           ] = false;
           break;
         case "cookieBehavior0":
@@ -4588,6 +4610,11 @@ var ContentBlockingCategoriesPrefs = {
    * Sets all user-exposed content blocking preferences to values that match the selected category.
    */
   setPrefsToCategory(category) {
+    // Leave prefs as they were if we are switching to "custom" category.
+    if (category == "custom") {
+      return;
+    }
+
     for (let pref in this.CATEGORY_PREFS[category]) {
       let value = this.CATEGORY_PREFS[category][pref];
       if (!Services.prefs.prefIsLocked(pref)) {

@@ -233,11 +233,55 @@ const CustomizableWidgets = [
   },
   {
     id: "save-page-button",
+    l10nId: "toolbar-button-save-page",
     shortcutId: "key_savePage",
-    tooltiptext: "save-page-button.tooltiptext3",
     onCommand(aEvent) {
       let win = aEvent.target.ownerGlobal;
       win.saveBrowser(win.gBrowser.selectedBrowser);
+    },
+  },
+  {
+    id: "print-button",
+    l10nId:
+      !Services.prefs.getBoolPref("print.tab_modal.enabled") &&
+      AppConstants.platform !== "macosx"
+        ? "navbar-print-tab-modal-disabled"
+        : "navbar-print",
+    shortcutId: "printKb",
+    keepBroadcastAttributesWhenCustomizing: true,
+    onCreated(aNode) {
+      aNode.setAttribute("command", "cmd_printPreview");
+      Services.prefs.addObserver("print.tab_modal.enabled", this);
+      if (!this.printNodeMap) {
+        this.printNodeMap = new Map();
+      }
+      this.printNodeMap.set(aNode.ownerDocument, aNode);
+
+      let listener = {
+        onWidgetInstanceRemoved: (aWidgetId, aDoc) => {
+          if (!aDoc) {
+            return;
+          }
+          this.printNodeMap.delete(aDoc);
+          CustomizableUI.removeListener(listener);
+        },
+      };
+
+      CustomizableUI.addListener(listener);
+    },
+    observe() {
+      for (let [document, printBtn] of this.printNodeMap) {
+        let keyEl = document.getElementById(this.shortcutId);
+        let shortcut = ShortcutUtils.prettifyShortcut(keyEl);
+        document.l10n.setAttributes(
+          printBtn,
+          !Services.prefs.getBoolPref("print.tab_modal.enabled") &&
+            AppConstants.platform !== "macosx"
+            ? "navbar-print-tab-modal-disabled"
+            : "navbar-print",
+          { shortcut }
+        );
+      }
     },
   },
   {
@@ -253,8 +297,8 @@ const CustomizableWidgets = [
   },
   {
     id: "open-file-button",
+    l10nId: "toolbar-button-open-file",
     shortcutId: "openFileKb",
-    tooltiptext: "open-file-button.tooltiptext3",
     onCommand(aEvent) {
       let win = aEvent.target.ownerGlobal;
       win.BrowserOpenFileWindow();
@@ -438,7 +482,7 @@ const CustomizableWidgets = [
   },
   {
     id: "email-link-button",
-    tooltiptext: "email-link-button.tooltiptext3",
+    l10nId: "toolbar-button-email-link",
     onCommand(aEvent) {
       let win = aEvent.view;
       win.MailIntegration.sendLinkForBrowser(win.gBrowser.selectedBrowser);
@@ -449,8 +493,7 @@ const CustomizableWidgets = [
 if (Services.prefs.getBoolPref("identity.fxaccounts.enabled")) {
   CustomizableWidgets.push({
     id: "sync-button",
-    label: "remotetabs-panelmenu.label",
-    tooltiptext: "remotetabs-panelmenu.tooltiptext2",
+    l10nId: "toolbar-button-synced-tabs",
     type: "view",
     viewId: "PanelUI-remotetabs",
     onViewShowing(aEvent) {
@@ -606,6 +649,7 @@ if (Services.prefs.getBoolPref("privacy.panicButton.enabled")) {
 if (PrivateBrowsingUtils.enabled) {
   CustomizableWidgets.push({
     id: "privatebrowsing-button",
+    l10nId: "toolbar-button-new-private-window",
     shortcutId: "key_privatebrowsing",
     onCommand(e) {
       let win = e.target.ownerGlobal;

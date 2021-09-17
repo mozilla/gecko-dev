@@ -737,6 +737,7 @@ nsresult nsContentUtils::Init() {
 
   sNameSpaceManager = nsNameSpaceManager::GetInstance();
   NS_ENSURE_TRUE(sNameSpaceManager, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(sNameSpaceManager);
 
   sXPConnect = nsXPConnect::XPConnect();
   // We hold a strong ref to sXPConnect to ensure that it does not go away until
@@ -1873,6 +1874,7 @@ void nsContentUtils::Shutdown() {
   NS_IF_RELEASE(sNullSubjectPrincipal);
   NS_IF_RELEASE(sIOService);
   NS_IF_RELEASE(sUUIDGenerator);
+  NS_IF_RELEASE(sNameSpaceManager);
   sLineBreaker = nullptr;
   sWordBreaker = nullptr;
   sBidiKeyboard = nullptr;
@@ -9416,7 +9418,7 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
       } else {
         NS_IF_ADDREF(*aResult = nsXULElement::Construct(nodeInfo.forget()));
       }
-      (*aResult)->SetCustomElementData(new CustomElementData(typeAtom));
+      (*aResult)->SetCustomElementData(MakeUnique<CustomElementData>(typeAtom));
       if (synchronousCustomElements) {
         CustomElementRegistry::Upgrade(*aResult, definition, rv);
         if (rv.MaybeSetPendingException(cx)) {
@@ -9455,7 +9457,8 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
     } else {
       NS_IF_ADDREF(*aResult = nsXULElement::Construct(nodeInfo.forget()));
     }
-    (*aResult)->SetCustomElementData(new CustomElementData(definition->mType));
+    (*aResult)->SetCustomElementData(
+        MakeUnique<CustomElementData>(definition->mType));
     nsContentUtils::EnqueueUpgradeReaction(*aResult, definition);
     return NS_OK;
   }
@@ -9478,7 +9481,7 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
   }
 
   if (isCustomElement) {
-    (*aResult)->SetCustomElementData(new CustomElementData(typeAtom));
+    (*aResult)->SetCustomElementData(MakeUnique<CustomElementData>(typeAtom));
     nsContentUtils::RegisterCallbackUpgradeElement(*aResult, typeAtom);
   }
 
@@ -9818,24 +9821,15 @@ bool nsContentUtils::ShouldBlockReservedKeys(WidgetKeyboardEvent* aKeyEvent) {
  * NOTE Helper method for nsContentUtils::HtmlObjectContentTypeForMIMEType.
  * NOTE Does not take content policy or capabilities into account
  */
-static bool HtmlObjectContentSupportsDocument(const nsCString& aMimeType,
-                                              nsIContent* aContent) {
+static bool HtmlObjectContentSupportsDocument(const nsCString& aMimeType) {
   nsCOMPtr<nsIWebNavigationInfo> info(
       do_GetService(NS_WEBNAVIGATION_INFO_CONTRACTID));
   if (!info) {
     return false;
   }
 
-  nsCOMPtr<nsIWebNavigation> webNav;
-  if (aContent) {
-    Document* currentDoc = aContent->GetComposedDoc();
-    if (currentDoc) {
-      webNav = do_GetInterface(currentDoc->GetWindow());
-    }
-  }
-
   uint32_t supported;
-  nsresult rv = info->IsTypeSupported(aMimeType, webNav, &supported);
+  nsresult rv = info->IsTypeSupported(aMimeType, &supported);
 
   if (NS_FAILED(rv)) {
     return false;
@@ -9877,7 +9871,7 @@ already_AddRefed<nsIPluginTag> nsContentUtils::PluginTagForType(
 
 /* static */
 uint32_t nsContentUtils::HtmlObjectContentTypeForMIMEType(
-    const nsCString& aMIMEType, bool aNoFakePlugin, nsIContent* aContent) {
+    const nsCString& aMIMEType, bool aNoFakePlugin) {
   if (aMIMEType.IsEmpty()) {
     return nsIObjectLoadingContent::TYPE_NULL;
   }
@@ -9892,7 +9886,7 @@ uint32_t nsContentUtils::HtmlObjectContentTypeForMIMEType(
     return nsIObjectLoadingContent::TYPE_DOCUMENT;
   }
 
-  if (HtmlObjectContentSupportsDocument(aMIMEType, aContent)) {
+  if (HtmlObjectContentSupportsDocument(aMIMEType)) {
     return nsIObjectLoadingContent::TYPE_DOCUMENT;
   }
 
@@ -10494,7 +10488,8 @@ ScreenIntMargin nsContentUtils::GetWindowSafeAreaInsets(
 
 /* static */
 nsContentUtils::SubresourceCacheValidationInfo
-nsContentUtils::GetSubresourceCacheValidationInfo(nsIRequest* aRequest) {
+nsContentUtils::GetSubresourceCacheValidationInfo(nsIRequest* aRequest,
+                                                  nsIURI* aURI) {
   SubresourceCacheValidationInfo info;
   if (nsCOMPtr<nsICacheInfoChannel> cache = do_QueryInterface(aRequest)) {
     uint32_t value = 0;
@@ -10511,6 +10506,18 @@ nsContentUtils::GetSubresourceCacheValidationInfo(nsIRequest* aRequest) {
     if (!info.mMustRevalidate) {
       Unused << httpChannel->IsNoCacheResponse(&info.mMustRevalidate);
     }
+  }
+
+  // data: URIs are safe to cache across documents under any circumstance, so we
+  // special-case them here even though the channel itself doesn't have any
+  // caching policy. Same for chrome:// uris.
+  //
+  // TODO(emilio): Figure out which other schemes that don't have caching
+  // policies are safe to cache. Blobs should be...
+  if (aURI && (aURI->SchemeIs("data") || dom::IsChromeURI(aURI))) {
+    MOZ_ASSERT(!info.mExpirationTime);
+    MOZ_ASSERT(!info.mMustRevalidate);
+    info.mExpirationTime = Some(0);  // 0 means "doesn't expire".
   }
 
   return info;

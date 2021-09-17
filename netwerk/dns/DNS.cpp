@@ -168,7 +168,8 @@ bool NetAddr::IsLoopBackAddressWithoutIPv6Mapping() const {
 bool IsLoopbackHostname(const nsACString& aAsciiHost) {
   // If the user has configured to proxy localhost addresses don't consider them
   // to be secure
-  if (StaticPrefs::network_proxy_allow_hijacking_localhost()) {
+  if (StaticPrefs::network_proxy_allow_hijacking_localhost() &&
+      !StaticPrefs::network_proxy_testing_localhost_is_secure_when_hijacked()) {
     return false;
   }
 
@@ -308,8 +309,8 @@ bool NetAddr::operator==(const NetAddr& other) const {
 #if defined(XP_UNIX)
   }
   if (this->raw.family == AF_LOCAL) {
-    return PL_strncmp(this->local.path, other.local.path,
-                      ArrayLength(this->local.path));
+    return strncmp(this->local.path, other.local.path,
+                   ArrayLength(this->local.path));
 #endif
   }
   return false;

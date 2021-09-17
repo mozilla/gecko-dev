@@ -98,13 +98,6 @@ jobs:
         symbol: I(deb8-32-pkg)
         definition: debian-packages
         parent: debian8-i386-raw
-    deb10-toolchain-build:
-        symbol: I(deb10-toolchain)
-        parent: debian10-base
-        definition: toolchain-build
-        packages:
-            - deb10-cmake
-            - deb10-mmdebstrap
     custom-v8:
         symbol: I(custom-v8)
         parent: debian11-base
@@ -174,7 +167,7 @@ jobs:
         definition: toolchain-build
     android-build:
         symbol: I(agb)
-        parent: debian10-base
+        parent: debian11-base
     fetch:
         symbol: I(fetch)
         parent: debian11-raw

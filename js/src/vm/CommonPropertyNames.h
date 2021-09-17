@@ -106,6 +106,7 @@
   MACRO_(currency, currency, "currency")                                       \
   MACRO_(currencyDisplay, currencyDisplay, "currencyDisplay")                  \
   MACRO_(currencySign, currencySign, "currencySign")                           \
+  MACRO_(dateStyle, dateStyle, "dateStyle")                                    \
   MACRO_(day, day, "day")                                                      \
   MACRO_(dayPeriod, dayPeriod, "dayPeriod")                                    \
   MACRO_(debugger, debugger, "debugger")                                       \
@@ -118,7 +119,6 @@
   MACRO_(defineSetter, defineSetter, "__defineSetter__")                       \
   MACRO_(delete, delete_, "delete")                                            \
   MACRO_(deleteProperty, deleteProperty, "deleteProperty")                     \
-  MACRO_(direction, direction, "direction")                                    \
   MACRO_(displayURL, displayURL, "displayURL")                                 \
   MACRO2(do, do_, "do")                                                        \
   MACRO_(domNode, domNode, "domNode")                                          \
@@ -180,6 +180,8 @@
   MACRO_(format, format, "format")                                             \
   MACRO_(fraction, fraction, "fraction")                                       \
   MACRO_(fractionalSecond, fractionalSecond, "fractionalSecond")               \
+  MACRO_(fractionalSecondDigits, fractionalSecondDigits,                       \
+         "fractionalSecondDigits")                                             \
   MACRO_(frame, frame, "frame")                                                \
   MACRO_(from, from, "from")                                                   \
   MACRO_(fulfilled, fulfilled, "fulfilled")                                    \
@@ -226,6 +228,7 @@
   MACRO_(hasOwnProperty, hasOwnProperty, "hasOwnProperty")                     \
   MACRO_(highWaterMark, highWaterMark, "highWaterMark")                        \
   MACRO_(hour, hour, "hour")                                                   \
+  MACRO_(hour12, hour12, "hour12")                                             \
   MACRO_(hourCycle, hourCycle, "hourCycle")                                    \
   MACRO2(if, if_, "if")                                                        \
   MACRO_(ignoreCase, ignoreCase, "ignoreCase")                                 \
@@ -289,7 +292,6 @@
   MACRO_(locale, locale, "locale")                                             \
   MACRO_(lookupGetter, lookupGetter, "__lookupGetter__")                       \
   MACRO_(lookupSetter, lookupSetter, "__lookupSetter__")                       \
-  MACRO_(ltr, ltr, "ltr")                                                      \
   MACRO_(many, many, "many")                                                   \
   MACRO_(MapConstructorInit, MapConstructorInit, "MapConstructorInit")         \
   MACRO_(MapIterator, MapIterator, "Map Iterator")                             \
@@ -412,7 +414,6 @@
   MACRO_(roundingIncrement, roundingIncrement, "roundingIncrement")            \
   MACRO_(roundingMode, roundingMode, "roundingMode")                           \
   MACRO_(roundingPriority, roundingPriority, "roundingPriority")               \
-  MACRO_(rtl, rtl, "rtl")                                                      \
   MACRO_(script, script, "script")                                             \
   MACRO_(scripts, scripts, "scripts")                                          \
   MACRO_(second, second, "second")                                             \
@@ -460,6 +461,7 @@
   MACRO_(this, this_, "this")                                                  \
   MACRO_(throw, throw_, "throw")                                               \
   MACRO_(timestamp, timestamp, "timestamp")                                    \
+  MACRO_(timeStyle, timeStyle, "timeStyle")                                    \
   MACRO_(timeZone, timeZone, "timeZone")                                       \
   MACRO_(timeZoneName, timeZoneName, "timeZoneName")                           \
   MACRO_(trailingZeroDisplay, trailingZeroDisplay, "trailingZeroDisplay")      \

@@ -53,10 +53,10 @@ class ResourceCommand {
     this._existingLegacyListeners = new WeakMap();
     this._processingExistingResources = new Set();
 
-    // List of targetFront event listener unregistration functions. These are called when
-    // unwatching resources, so if a consumer starts watching resources again, we don't
-    // have listeners registered twice.
-    this._offTargetFrontListeners = [];
+    // List of targetFront event listener unregistration functions keyed by target front.
+    // These are called when unwatching resources, so if a consumer starts watching resources again,
+    // we don't have listeners registered twice.
+    this._offTargetFrontListeners = new Map();
 
     this._notifyWatchers = this._notifyWatchers.bind(this);
     this._throttledNotifyWatchers = throttle(this._notifyWatchers, 100);
@@ -339,8 +339,10 @@ class ResourceCommand {
       return;
     }
 
-    this._offTargetFrontListeners.forEach(off => off());
-    this._offTargetFrontListeners = [];
+    for (const offList of this._offTargetFrontListeners.values()) {
+      offList.forEach(off => off());
+    }
+    this._offTargetFrontListeners.clear();
 
     this._watchTargetsPromise = null;
     this.targetCommand.unwatchTargets(
@@ -457,7 +459,8 @@ class ResourceCommand {
       this._onResourceDestroyed.bind(this, { targetFront })
     );
 
-    this._offTargetFrontListeners.push(
+    const offList = this._offTargetFrontListeners.get(targetFront) || [];
+    offList.push(
       offResourceAvailable,
       offResourceUpdated,
       offResourceDestroyed
@@ -492,8 +495,10 @@ class ResourceCommand {
           ]);
         }
       );
-      this._offTargetFrontListeners.push(offWillNavigate);
+      offList.push(offWillNavigate);
     }
+
+    this._offTargetFrontListeners.set(targetFront, offList);
   }
 
   _shouldRestartListenerOnTargetSwitching(resourceType) {
@@ -523,8 +528,11 @@ class ResourceCommand {
    * See _onTargetAvailable for arguments, they are the same.
    */
   _onTargetDestroyed({ targetFront }) {
+    delete targetFront.resourceCommand;
+
     // Clear the map of legacy listeners for this target.
     this._existingLegacyListeners.set(targetFront, []);
+    this._offTargetFrontListeners.delete(targetFront);
 
     // Purge the cache from any resource related to the destroyed target.
     // Top level BrowsingContext target will be purge via DOCUMENT_EVENT will-navigate events.
@@ -589,11 +597,10 @@ class ResourceCommand {
       }
 
       // Only consider top level document, and ignore remote iframes top document
-      if (
+      const isWillNavigate =
         resourceType == ResourceCommand.TYPES.DOCUMENT_EVENT &&
-        resource.name == "will-navigate" &&
-        resource.targetFront.isTopLevel
-      ) {
+        resource.name == "will-navigate";
+      if (isWillNavigate && resource.targetFront.isTopLevel) {
         includesDocumentEventWillNavigate = true;
         this._onWillNavigate(resource.targetFront);
       }
@@ -608,7 +615,12 @@ class ResourceCommand {
 
       this._queueResourceEvent("available", resourceType, resource);
 
-      this._cache.push(resource);
+      // Avoid storing will-navigate resource and consider it as a transcient resource.
+      // We do that to prevent leaking this resource (and its target) on navigation.
+      // We do clear _cache in _onWillNavigate, that we call a few lines before this.
+      if (!isWillNavigate) {
+        this._cache.push(resource);
+      }
     }
 
     // If we receive the DOCUMENT_EVENT for:

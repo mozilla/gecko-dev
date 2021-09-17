@@ -19,7 +19,6 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/layers/GeckoContentController.h"
 #include "mozilla/layers/CompositorBridgeParent.h"
-#include "mozilla/layers/LayerMetricsWrapper.h"
 #include "mozilla/layers/APZThreadUtils.h"
 #include "mozilla/layers/MatrixMessage.h"
 #include "mozilla/StaticPrefs_layout.h"
@@ -31,6 +30,7 @@
 #include "base/task.h"
 #include "Layers.h"
 #include "TestLayers.h"
+#include "TestWRScrollData.h"
 #include "UnitTransforms.h"
 
 using namespace mozilla;
@@ -119,12 +119,6 @@ class ScopedGfxSetting {
       [=]() { return Preferences::GetFloat(prefName); },                      \
       [=](float aPrefValue) { Preferences::SetFloat(prefName, aPrefValue); }, \
       prefValue)
-
-#define SCOPED_GFX_VAR_MAYBE_TYPE(varType) \
-  Maybe<ScopedGfxSetting<const varType&, varType>>
-
-#define SCOPED_GFX_VAR_MAYBE_EMPLACE(varName, varBase, varValue) \
-  varName.emplace(&(gfxVars::varBase), &(gfxVars::Set##varBase), varValue)
 
 class MockContentController : public GeckoContentController {
  public:
@@ -229,8 +223,9 @@ class MockContentControllerDelayed : public MockContentController {
 
 class TestAPZCTreeManager : public APZCTreeManager {
  public:
-  explicit TestAPZCTreeManager(MockContentControllerDelayed* aMcc)
-      : APZCTreeManager(LayersId{0}, gfx::gfxVars::UseWebRender()), mcc(aMcc) {}
+  explicit TestAPZCTreeManager(MockContentControllerDelayed* aMcc,
+                               HitTestKind aHitTestKind)
+      : APZCTreeManager(LayersId{0}, aHitTestKind), mcc(aMcc) {}
 
   RefPtr<InputQueue> GetInputQueue() const { return mInputQueue; }
 

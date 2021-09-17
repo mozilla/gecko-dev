@@ -34,8 +34,12 @@ using namespace js::wasm;
 DebugFrame* DebugFrame::from(Frame* fp) {
   MOZ_ASSERT(
       GetNearestEffectiveTls(fp)->instance->code().metadata().debugEnabled);
-  auto* df =
-      reinterpret_cast<DebugFrame*>((uint8_t*)fp - DebugFrame::offsetOfFrame());
+  size_t offset = DebugFrame::offsetOfFrame();
+  if (fp->callerIsTrampolineFP()) {
+    offset +=
+        FrameWithTls::sizeWithoutFrame() + IndirectStubAdditionalAlignment;
+  }
+  auto* df = reinterpret_cast<DebugFrame*>((uint8_t*)fp - offset);
   MOZ_ASSERT(GetNearestEffectiveTls(fp)->instance == df->instance());
   return df;
 }
@@ -47,8 +51,10 @@ void DebugFrame::alignmentStaticAsserts() {
 
   static_assert(WasmStackAlignment >= Alignment,
                 "Aligned by ABI before pushing DebugFrame");
+#ifndef JS_CODEGEN_NONE
   static_assert((offsetof(DebugFrame, frame_) + sizeof(Frame)) % Alignment == 0,
                 "Aligned after pushing DebugFrame");
+#endif
 #ifdef JS_CODEGEN_ARM64
   // This constraint may or may not be necessary.  If you hit this because
   // you've changed the frame size then feel free to remove it, but be extra

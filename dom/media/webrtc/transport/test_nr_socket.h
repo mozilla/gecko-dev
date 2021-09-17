@@ -106,6 +106,7 @@ extern "C" {
 namespace mozilla {
 
 class TestNrSocket;
+class NrSocketProxyConfig;
 
 /**
  * A group of TestNrSockets that behave as if they were behind the same NAT.
@@ -156,6 +157,7 @@ class TestNat {
         block_udp_(false),
         block_stun_(false),
         block_tcp_(false),
+        block_tls_(false),
         error_code_for_drop_(0),
         delay_stun_resp_ms_(0),
         nat_delegate_(nullptr),
@@ -177,6 +179,8 @@ class TestNat {
 
   static NatBehavior ToNatBehavior(const std::string& type);
 
+  void set_proxy_config(std::shared_ptr<NrSocketProxyConfig> aProxyConfig);
+
   bool enabled_;
   TestNat::NatBehavior filtering_type_;
   TestNat::NatBehavior mapping_type_;
@@ -186,6 +190,7 @@ class TestNat {
   bool block_udp_;
   bool block_stun_;
   bool block_tcp_;
+  bool block_tls_;
   bool error_code_for_drop_;
   /* Note: this can only delay a single response so far (bug 1253657) */
   uint32_t delay_stun_resp_ms_;
@@ -196,6 +201,7 @@ class TestNat {
   std::map<nsCString, CopyableTArray<nsCString>> stun_redirect_map_;
 
   NatDelegate* nat_delegate_;
+  std::shared_ptr<NrSocketProxyConfig> proxy_config_;
 
  private:
   std::set<TestNrSocket*> sockets_;

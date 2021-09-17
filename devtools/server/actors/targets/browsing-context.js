@@ -263,10 +263,13 @@ const browsingContextTargetPrototype = {
    *          implementation. But for server-side target switching this flag will be exposed
    *          to the client and should be available for all target actor classes. It will be
    *          used to detect target switching. (Bug 1644397)
+   *        - ignoreSubFrames Boolean
+   *          If true, the actor will only focus on the passed docShell and not on the whole
+   *          docShell tree. This should be enabled when we have targets for all documents.
    */
   initialize: function(
     connection,
-    { docShell, followWindowGlobalLifeCycle, isTopLevelTarget }
+    { docShell, followWindowGlobalLifeCycle, isTopLevelTarget, ignoreSubFrames }
   ) {
     Actor.prototype.initialize.call(this, connection);
 
@@ -279,6 +282,7 @@ const browsingContextTargetPrototype = {
 
     this.followWindowGlobalLifeCycle = followWindowGlobalLifeCycle;
     this.isTopLevelTarget = !!isTopLevelTarget;
+    this.ignoreSubFrames = ignoreSubFrames;
 
     // A map of actor names to actor instances provided by extensions.
     this._extraActors = {};
@@ -302,10 +306,21 @@ const browsingContextTargetPrototype = {
     // Used by the ParentProcessTargetActor to list all frames in the Browser Toolbox
     this.watchNewDocShells = false;
 
+    // Flag which should be updated by the toolbox startup.
+    this._isNewPerfPanelEnabled = false;
+
     this._workerDescriptorActorList = null;
     this._workerDescriptorActorPool = null;
     this._onWorkerDescriptorActorListChanged = this._onWorkerDescriptorActorListChanged.bind(
       this
+    );
+
+    this._onConsoleApiProfilerEvent = this._onConsoleApiProfilerEvent.bind(
+      this
+    );
+    Services.obs.addObserver(
+      this._onConsoleApiProfilerEvent,
+      "console-api-profiler"
     );
 
     TargetActorRegistry.registerTargetActor(this);
@@ -346,6 +361,14 @@ const browsingContextTargetPrototype = {
     return this.conn._getOrCreateActor(form.consoleActor);
   },
 
+  get _memoryActor() {
+    if (this.isDestroyed()) {
+      return null;
+    }
+    const form = this.form();
+    return this.conn._getOrCreateActor(form.memoryActor);
+  },
+
   _targetScopedActorPool: null,
 
   /**
@@ -373,6 +396,10 @@ const browsingContextTargetPrototype = {
    * @return {Array}
    */
   get docShells() {
+    if (this.ignoreSubFrames) {
+      return [this.docShell];
+    }
+
     return getChildDocShells(this.docShell);
   },
 
@@ -608,6 +635,11 @@ const browsingContextTargetPrototype = {
     this.docShell = null;
     this._extraActors = null;
 
+    Services.obs.removeObserver(
+      this._onConsoleApiProfilerEvent,
+      "console-api-profiler"
+    );
+
     Actor.prototype.destroy.call(this);
     TargetActorRegistry.unregisterTargetActor(this);
     Resources.unwatchAllTargetResources(this);
@@ -807,6 +839,27 @@ const browsingContextTargetPrototype = {
   _onWorkerDescriptorActorListChanged() {
     this._workerDescriptorActorList.onListChanged = null;
     this.emit("workerListChanged");
+  },
+
+  _onConsoleApiProfilerEvent(subject, topic, data) {
+    // TODO: We will receive console-api-profiler events for any browser running
+    // in the same process as this target. We should filter irrelevant events,
+    // but console-api-profiler currently doesn't emit any information to identify
+    // the origin of the event. See Bug 1731033.
+    if (this._isNewPerfPanelEnabled) {
+      // When the _isNewPerfPanelEnabled flag was set, this browsing target is
+      // used by a toolbox using the new performance panel, which is not
+      // compatible with console.profile().
+      const warningFlag = 1;
+      this.logInPage({
+        text:
+          "console.profile is not compatible with the new Performance recorder. " +
+          "The new Performance recorder can be disabled in the advanced section of the Settings panel. " +
+          "See https://bugzilla.mozilla.org/show_bug.cgi?id=1730896",
+        category: "console.profile unavailable",
+        flags: warningFlag,
+      });
+    }
   },
 
   observe(subject, topic, data) {
@@ -1277,6 +1330,10 @@ const browsingContextTargetPrototype = {
       }
     }
 
+    if (typeof options.isNewPerfPanelEnabled == "boolean") {
+      this._isNewPerfPanelEnabled = options.isNewPerfPanelEnabled;
+    }
+
     if (!this.isTopLevelTarget) {
       // Following DevTools target options should only apply to the top target and be
       // propagated through the browsing context tree via the platform.
@@ -1290,6 +1347,15 @@ const browsingContextTargetPrototype = {
     }
     if (typeof options.restoreFocus == "boolean") {
       this._restoreFocus = options.restoreFocus;
+    }
+    if (typeof options.recordAllocations == "object") {
+      const actor = this._memoryActor;
+      if (options.recordAllocations == null) {
+        actor.stopRecordingAllocations();
+      } else {
+        actor.attach();
+        actor.startRecordingAllocations(options.recordAllocations);
+      }
     }
 
     if (reload) {
@@ -1391,6 +1457,10 @@ const browsingContextTargetPrototype = {
   _windowReady(window, { isFrameSwitching, isBFCache } = {}) {
     const isTopLevel = window == this.window;
 
+    if (this.ignoreSubFrames && !this.isTopLevel) {
+      return;
+    }
+
     // We just reset iframe list on WillNavigate, so we now list all existing
     // frames when we load a new document in the original window
     if (window == this._originalWindow && !isFrameSwitching) {
@@ -1421,6 +1491,10 @@ const browsingContextTargetPrototype = {
   ) {
     const isTopLevel = window == this.window;
 
+    if (this.ignoreSubFrames && !this.isTopLevel) {
+      return;
+    }
+
     // If this follows WindowGlobal lifecycle, this target will be destroyed, alongside its top level document.
     // Only notify about in-process iframes.
     // Note that OOP iframes won't emit window-ready and will also have their dedicated target.
@@ -1450,8 +1524,12 @@ const browsingContextTargetPrototype = {
     navigationStart,
   }) {
     let isTopLevel = window == this.window;
-    let reset = false;
 
+    if (this.ignoreSubFrames && !this.isTopLevel) {
+      return;
+    }
+
+    let reset = false;
     if (window == this._originalWindow && !isFrameSwitching) {
       // If the top level document changes and we are targeting an iframe, we
       // need to reset to the upcoming new top level document. But for this
@@ -1506,6 +1584,10 @@ const browsingContextTargetPrototype = {
    */
   _navigate(window, isFrameSwitching = false) {
     const isTopLevel = window == this.window;
+
+    if (this.ignoreSubFrames && !this.isTopLevel) {
+      return;
+    }
 
     // navigate event needs to be dispatched synchronously,
     // by calling the listeners in the order or registration.
@@ -1668,7 +1750,10 @@ DebuggerProgressListener.prototype = {
     handler.addEventListener("pagehide", this._onWindowHidden, true);
 
     // Dispatch the _windowReady event on the targetActor for pre-existing windows
-    for (const win of this._getWindowsInDocShell(docShell)) {
+    const windows = this._targetActor.ignoreSubFrames
+      ? [docShellWindow]
+      : this._getWindowsInDocShell(docShell);
+    for (const win of windows) {
       this._targetActor._windowReady(win);
       this._knownWindowIDs.set(getWindowID(win), win);
     }
@@ -1712,7 +1797,10 @@ DebuggerProgressListener.prototype = {
     handler.removeEventListener("pageshow", this._onWindowCreated, true);
     handler.removeEventListener("pagehide", this._onWindowHidden, true);
 
-    for (const win of this._getWindowsInDocShell(docShell)) {
+    const windows = this._targetActor.ignoreSubFrames
+      ? [docShellWindow]
+      : this._getWindowsInDocShell(docShell);
+    for (const win of windows) {
       this._knownWindowIDs.delete(getWindowID(win));
     }
 

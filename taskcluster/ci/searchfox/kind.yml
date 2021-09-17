@@ -91,7 +91,6 @@ jobs:
                 - linux64-clang-macosx-cross
                 - linux64-hfsplus
                 - linux64-libdmg
-                - linux64-llvm-dsymutil
                 - linux64-nasm
                 - linux64-node
                 - linux64-rust-macos
@@ -149,8 +148,8 @@ jobs:
                 - linux64-winchecksec
                 - sysroot-x86_64-linux-gnu
                 - sysroot-wasm32-wasi
+                - win64-nsis
             fetch:
-                - nsis-3.01-win
                 - upx-3.95-win
 
     android-armv7-searchfox/debug:

@@ -28,6 +28,8 @@ function setDefaultBranch(pref, value) {
 
 const TEST_FALLBACK_PREF = "testprefbranch.config";
 const FAKE_FEATURE_MANIFEST = {
+  description: "Test feature",
+  exposureDescription: "Used in tests",
   variables: {
     enabled: {
       type: "boolean",
@@ -273,16 +275,19 @@ add_task(async function test_record_exposure_event_once() {
     })
   );
 
-  featureInstance.recordExposureEvent();
-  featureInstance.recordExposureEvent();
-  featureInstance.recordExposureEvent();
+  featureInstance.recordExposureEvent({ once: true });
+  featureInstance.recordExposureEvent({ once: true });
+  featureInstance.recordExposureEvent({ once: true });
 
-  Assert.ok(exposureSpy.calledOnce, "Should emit a single exposure event.");
+  Assert.ok(
+    exposureSpy.calledOnce,
+    "Should emit a single exposure event when the once param is true."
+  );
 
   sandbox.restore();
 });
 
-add_task(async function test_prevent_double_exposure() {
+add_task(async function test_allow_multiple_exposure_events() {
   const { sandbox, manager } = await setupForExperimentFeature();
 
   const featureInstance = new ExperimentFeature("foo", FAKE_FEATURE_MANIFEST);
@@ -300,7 +305,11 @@ add_task(async function test_prevent_double_exposure() {
   featureInstance.recordExposureEvent();
 
   Assert.ok(exposureSpy.called, "Should emit exposure event");
-  Assert.ok(exposureSpy.calledOnce, "Should emit a single exposure event");
+  Assert.equal(
+    exposureSpy.callCount,
+    3,
+    "Should emit an exposure event for each function call"
+  );
 
   sandbox.restore();
   await doExperimentCleanup();

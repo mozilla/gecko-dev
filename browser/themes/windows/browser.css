@@ -113,7 +113,8 @@
 }
 
 @media (-moz-windows-compositor: 0),
-       (-moz-windows-default-theme: 0) {
+       (-moz-windows-default-theme: 0),
+       (-moz-os-version: windows-win8) {
   /* Please keep the menu text colors in this media block in sync with
    * compacttheme.css, minus the :not(:-moz-lwtheme) condition - see Bug 1165718.
    */
@@ -446,10 +447,10 @@ menuitem.bookmark-item {
 %include ../shared/urlbar-searchbar.inc.css
 
 @media not (prefers-contrast) {
-  :root:not(:-moz-lwtheme) #urlbar:not([focused="true"]) {
+  :root:not(:-moz-lwtheme) #urlbar {
     --urlbar-box-bgcolor: white;
   }
-  :root[lwt-default-theme-in-dark-mode] #urlbar:not([focused="true"]) {
+  :root[lwt-default-theme-in-dark-mode] #urlbar {
     --urlbar-box-bgcolor: var(--toolbar-field-focus-background-color);
   }
 }

@@ -37,10 +37,6 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     UNIFIED_SOURCES += [
         "D3D9SurfaceImage.cpp",
         "IMFYCbCrImage.cpp",
-        "TextureDIB.cpp",
-    ]
-    EXPORTS.mozilla.layers += [
-        "TextureDIB.h",
     ]
     if CONFIG["MOZ_ENABLE_D3D10_LAYER"]:
         EXPORTS.mozilla.layers += [
@@ -127,7 +123,6 @@ EXPORTS.mozilla.layers += [
     "client/TextureClientSharedSurface.h",
     "client/TextureRecorded.h",
     "composite/Diagnostics.h",
-    "composite/FPSCounter.h",
     "composite/FrameUniformityData.h",
     "composite/GPUVideoTextureHost.h",
     "composite/ImageComposite.h",
@@ -184,7 +179,6 @@ EXPORTS.mozilla.layers += [
     "ipc/VideoBridgeUtils.h",
     "LayerAttributes.h",
     "LayerManager.h",
-    "LayerMetricsWrapper.h",
     "LayersHelpers.h",
     "LayersTypes.h",
     "MemoryPressureObserver.h",
@@ -353,8 +347,6 @@ UNIFIED_SOURCES += [
     "client/TextureClientSharedSurface.cpp",
     "client/TextureRecorded.cpp",
     "composite/CompositableHost.cpp",
-    "composite/Diagnostics.cpp",
-    "composite/FPSCounter.cpp",
     "composite/FrameUniformityData.cpp",
     "composite/GPUVideoTextureHost.cpp",
     "composite/ImageComposite.cpp",

@@ -5,13 +5,13 @@
 #define intl_components_RelativeTimeFormat_h_
 
 #include "mozilla/intl/ICU4CGlue.h"
-#include "mozilla/intl/NumberFormatFields.h"
+#include "mozilla/intl/ICUError.h"
+#include "mozilla/intl/NumberPart.h"
 
 #include "unicode/ureldatefmt.h"
 #include "unicode/utypes.h"
 
-namespace mozilla {
-namespace intl {
+namespace mozilla::intl {
 
 struct RelativeTimeFormatOptions {
   enum class Style { Short, Narrow, Long };
@@ -98,7 +98,7 @@ class RelativeTimeFormat final {
                        target, length, status);
           }));
 
-      if (!FillUTF8Buffer(u16Vec, aBuffer)) {
+      if (!FillBuffer(u16Vec, aBuffer)) {
         return Err(ICUError::OutOfMemory);
       }
       return Ok{};
@@ -141,7 +141,6 @@ class RelativeTimeFormat final {
   URelativeDateTimeUnit ToURelativeDateTimeUnit(FormatUnit unit) const;
 };
 
-}  // namespace intl
-}  // namespace mozilla
+}  // namespace mozilla::intl
 
 #endif

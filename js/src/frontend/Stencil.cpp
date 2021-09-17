@@ -641,6 +641,33 @@ bool CompilationInput::initForStandaloneFunctionInNonSyntacticScope(
   return true;
 }
 
+FunctionSyntaxKind CompilationInput::functionSyntaxKind() const {
+  if (functionFlags().isClassConstructor()) {
+    if (functionFlags().hasBaseScript() && isDerivedClassConstructor()) {
+      return FunctionSyntaxKind::DerivedClassConstructor;
+    }
+    return FunctionSyntaxKind::ClassConstructor;
+  }
+  if (functionFlags().isMethod()) {
+    if (functionFlags().hasBaseScript() && isSyntheticFunction()) {
+      // return FunctionSyntaxKind::FieldInitializer;
+      MOZ_ASSERT_UNREACHABLE(
+          "Lazy parsing of class field initializers not supported (yet)");
+    }
+    return FunctionSyntaxKind::Method;
+  }
+  if (functionFlags().isGetter()) {
+    return FunctionSyntaxKind::Getter;
+  }
+  if (functionFlags().isSetter()) {
+    return FunctionSyntaxKind::Setter;
+  }
+  if (functionFlags().isArrow()) {
+    return FunctionSyntaxKind::Arrow;
+  }
+  return FunctionSyntaxKind::Statement;
+}
+
 void CompilationInput::trace(JSTracer* trc) {
   atomCache.trace(trc);
   TraceNullableRoot(trc, &lazy_, "compilation-input-lazy");
@@ -651,6 +678,9 @@ bool CompilationSyntaxParseCache::init(JSContext* cx, LifoAlloc& alloc,
                                        ParserAtomsTable& parseAtoms,
                                        CompilationAtomCache& atomCache,
                                        BaseScript* lazy) {
+  if (!copyFunctionInfo(cx, parseAtoms, atomCache, lazy)) {
+    return false;
+  }
   if (!copyScriptInfo(cx, alloc, parseAtoms, atomCache, lazy)) {
     return false;
   }
@@ -660,6 +690,27 @@ bool CompilationSyntaxParseCache::init(JSContext* cx, LifoAlloc& alloc,
 #ifdef DEBUG
   isInitialized = true;
 #endif
+  return true;
+}
+
+bool CompilationSyntaxParseCache::copyFunctionInfo(
+    JSContext* cx, ParserAtomsTable& parseAtoms,
+    CompilationAtomCache& atomCache, BaseScript* lazy) {
+  if (lazy->function()->displayAtom()) {
+    displayAtom_ =
+        parseAtoms.internJSAtom(cx, atomCache, lazy->function()->displayAtom());
+    if (!displayAtom_) {
+      return false;
+    }
+  }
+
+  funExtra_.immutableFlags = lazy->immutableFlags();
+  funExtra_.extent = lazy->extent();
+  if (funExtra_.useMemberInitializers()) {
+    funExtra_.setMemberInitializers(
+        lazy->function()->baseScript()->getMemberInitializers());
+  }
+
   return true;
 }
 
@@ -3973,7 +4024,7 @@ already_AddRefed<JS::Stencil> JS::CompileModuleScriptToStencil(
 
 JSScript* JS::InstantiateGlobalStencil(
     JSContext* cx, const JS::ReadOnlyCompileOptions& options,
-    RefPtr<JS::Stencil> stencil) {
+    JS::Stencil* stencil) {
   if (stencil->canLazilyParse != CanLazilyParse(options)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_STENCIL_OPTIONS_MISMATCH);
@@ -3991,7 +4042,7 @@ JSScript* JS::InstantiateGlobalStencil(
 
 JSObject* JS::InstantiateModuleStencil(
     JSContext* cx, const JS::ReadOnlyCompileOptions& optionsInput,
-    RefPtr<JS::Stencil> stencil) {
+    JS::Stencil* stencil) {
   JS::CompileOptions options(cx, optionsInput);
   options.setModule();
 
@@ -4012,7 +4063,7 @@ JSObject* JS::InstantiateModuleStencil(
 
 JS::TranscodeResult JS::EncodeStencil(JSContext* cx,
                                       const JS::ReadOnlyCompileOptions& options,
-                                      RefPtr<JS::Stencil> stencil,
+                                      JS::Stencil* stencil,
                                       TranscodeBuffer& buffer) {
   XDRStencilEncoder encoder(cx, buffer);
   XDRResult res = encoder.codeStencil(*stencil);
@@ -4025,7 +4076,7 @@ JS::TranscodeResult JS::EncodeStencil(JSContext* cx,
 JS::TranscodeResult JS::DecodeStencil(JSContext* cx,
                                       const JS::ReadOnlyCompileOptions& options,
                                       const JS::TranscodeRange& range,
-                                      RefPtr<JS::Stencil>& stencilOut) {
+                                      JS::Stencil** stencilOut) {
   Rooted<CompilationInput> input(cx, CompilationInput(options));
   if (!input.get().initForGlobal(cx)) {
     return TranscodeResult::Throw;
@@ -4040,7 +4091,7 @@ JS::TranscodeResult JS::DecodeStencil(JSContext* cx,
   if (res.isErr()) {
     return res.unwrapErr();
   }
-  stencilOut = do_AddRef(stencil.release());
+  *stencilOut = do_AddRef(stencil.release()).take();
   return TranscodeResult::Ok;
 }
 

@@ -554,19 +554,6 @@ pref("browser.search.separatePrivateDefault.ui.banner.max", 0);
 // Enables the display of the Mozilla VPN banner in private browsing windows
 pref("browser.privatebrowsing.vpnpromourl", "https://vpn.mozilla.org/?utm_source=firefox-browser&utm_medium=firefox-%CHANNEL%-browser&utm_campaign=private-browsing-vpn-link");
 
-pref("browser.privatebrowsing.infoEnabled", true);
-pref("browser.privatebrowsing.infoIcon", "");
-pref("browser.privatebrowsing.infoTitle", "");
-pref("browser.privatebrowsing.infoBody","");
-pref("browser.privatebrowsing.infoLinkText", "");
-pref("browser.privatebrowsing.infoLinkUrl", "");
-pref("browser.privatebrowsing.promoEnabled", true);
-pref("browser.privatebrowsing.promoTitle", "");
-pref("browser.privatebrowsing.promoLinkText", "");
-pref("browser.privatebrowsing.promoLinkUrl", "");
-pref("browser.privatebrowsing.infoTitleEnabled", true);
-pref("browser.privatebrowsing.promoTitleEnabled", true);
-
 pref("browser.sessionhistory.max_entries", 50);
 
 // Built-in default permissions.
@@ -1447,12 +1434,6 @@ pref("prompts.windowPromptSubDialog", true);
 // Activates preloading of the new tab url.
 pref("browser.newtab.preload", true);
 
-// Preference to enable the entire new newtab experience at once.
-pref("browser.newtabpage.activity-stream.newNewtabExperience.enabled", true);
-
-// A preference which allows us to enable the fly out customization overlay
-// on the newtab page.
-pref("browser.newtabpage.activity-stream.customizationMenu.enabled", false);
 pref("browser.newtabpage.activity-stream.newNewtabExperience.colors", "#0090ED,#FF4F5F,#2AC3A2,#FF7139,#A172FF,#FFA437,#FF2A8A");
 
 // Activity Stream prefs that control to which page to redirect
@@ -1487,6 +1468,7 @@ pref("browser.newtabpage.activity-stream.asrouter.useRemoteL10n", true);
 // These prefs control if Discovery Stream is enabled.
 pref("browser.newtabpage.activity-stream.discoverystream.enabled", true);
 pref("browser.newtabpage.activity-stream.discoverystream.hardcoded-basic-layout", false);
+pref("browser.newtabpage.activity-stream.discoverystream.compactLayout.enabled", false);
 pref("browser.newtabpage.activity-stream.discoverystream.spoc-positions", "2,4,11,20");
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint", "");
 pref("browser.newtabpage.activity-stream.discoverystream.spocs-endpoint-query", "");
@@ -1787,6 +1769,9 @@ pref("browser.contentblocking.state-partitioning.mvp.ui.enabled", true);
 //   Restrict relaxing default referrer policy:
 //     "rp": Restrict relaxing default referrer policy enabled
 //     "-rp": Restrict relaxing default referrer policy disabled
+//   OCSP cache partitioning:
+//     "ocsp": OCSP cache partitioning enabled
+//     "-ocsp": OCSP cache partitioning disabled
 //   Cookie behavior:
 //     "cookieBehavior0": cookie behaviour BEHAVIOR_ACCEPT
 //     "cookieBehavior1": cookie behaviour BEHAVIOR_REJECT_FOREIGN
@@ -1802,7 +1787,7 @@ pref("browser.contentblocking.state-partitioning.mvp.ui.enabled", true);
 //     "cookieBehaviorPBM4": cookie behaviour BEHAVIOR_REJECT_TRACKER
 //     "cookieBehaviorPBM5": cookie behaviour BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN
 // One value from each section must be included in the browser.contentblocking.features.strict pref.
-pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cm,fp,stp,lvl2,rp");
+pref("browser.contentblocking.features.strict", "tp,tpPrivate,cookieBehavior5,cookieBehaviorPBM5,cm,fp,stp,lvl2,rp,ocsp");
 
 // Hide the "Change Block List" link for trackers/tracking content in the custom
 // Content Blocking/ETP panel. By default, it will not be visible. There is also
@@ -2173,6 +2158,10 @@ pref("devtools.browsertoolbox.fission", false);
 
 // This preference will enable watching top-level targets from the server side.
 pref("devtools.target-switching.server.enabled", true);
+
+// Setting this preference to true will result in DevTools creating a target for each frame
+// (i.e. not only for top-level document and remote frames).
+pref("devtools.every-frame-target.enabled", false);
 
 // Toolbox Button preferences
 pref("devtools.command-button-pick.enabled", true);

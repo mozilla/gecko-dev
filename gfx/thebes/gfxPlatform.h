@@ -514,14 +514,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
   void UpdateCanUseHardwareVideoDecoding();
 
   /**
-   * Is it possible to use buffer rotation.  Note that these
-   * check the preference, but also allow for the override to
-   * disable it using DisableBufferRotation.
-   */
-  static bool BufferRotationEnabled();
-  static void DisableBufferRotation();
-
-  /**
    * Are we going to try color management?
    */
   static CMSMode GetCMSMode() {
@@ -653,11 +645,6 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
   int GetScreenDepth() const { return mScreenDepth; }
   mozilla::gfx::IntSize GetScreenSize() const { return mScreenSize; }
-
-  /**
-   * Return the layer debugging options to use browser-wide.
-   */
-  mozilla::layers::DiagnosticTypes GetLayerDiagnosticTypes();
 
   static void PurgeSkiaFontCache();
 

@@ -9,36 +9,37 @@
             src: url("../fonts/NotoNastaliqUrdu-Regular.ttf") format("truetype");
         }
 
-        ul {
-            text-align: right;
+        p {
             margin-right: 40px;
+            text-align: right;
+        }
+
+        ul {
             font-family: "NotoNastaliqUrduWeb", sans-serif;
-            counter-reset: c;
             list-style: none;
         }
 
-        ul li::before {
-            content: counter(c, arabic-indic) "؂";
-            counter-increment: c;
-            unicode-bidi: bidi-override;
+        ul.ref li::before {
+            content: "\0602";
+            background: blue;
+            color: white;
         }
 
-        /* Force double-digit numbers to render "backwards" to match the testcase */
-        ul li:nth-child(10)::before {
-            content: "٠١" "؂";
-        }
-
-        ul li:nth-child(12)::before {
-            content: "٢١" "؂";
+        ul.ref.green li::before {
+            background: green;
+            color: transparent;
         }
     </style>
 </head>
 
 <body>
-    <ul lang="ur" dir="ltr">
+    <p>The width of the green bar should match the blue reference block:</p>
+
+    <ul class="ref" lang="ur" dir="rtl">
         <li></li>
-        <li></li>
-        <li></li>
+    </ul>
+
+    <ul class="ref green" lang="ur" dir="rtl">
         <li></li>
         <li></li>
         <li></li>

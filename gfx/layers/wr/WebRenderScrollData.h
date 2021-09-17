@@ -32,6 +32,7 @@ struct ActiveScrolledRoot;
 
 namespace layers {
 
+class APZTestAccess;
 class Layer;
 class WebRenderLayerManager;
 class WebRenderScrollData;
@@ -43,6 +44,7 @@ class WebRenderScrollData;
 class WebRenderLayerScrollData final {
  public:
   WebRenderLayerScrollData();  // needed for IPC purposes
+  WebRenderLayerScrollData(WebRenderLayerScrollData&& aOther) = default;
   ~WebRenderLayerScrollData();
 
   using ViewID = ScrollableLayerGuid::ViewID;
@@ -80,7 +82,9 @@ class WebRenderLayerScrollData final {
   void SetResolution(float aResolution) { mResolution = aResolution; }
   float GetResolution() const { return mResolution; }
 
-  EventRegions GetEventRegions() const { return EventRegions(); }
+  EventRegions GetEventRegions() const {
+    return mEventRegions ? *mEventRegions : EventRegions();
+  }
   void SetEventRegionsOverride(const EventRegionsOverride& aOverride) {
     mEventRegionsOverride = aOverride;
   }
@@ -172,6 +176,19 @@ class WebRenderLayerScrollData final {
   friend struct IPC::ParamTraits<WebRenderLayerScrollData>;
 
  private:
+  // For test use only
+  friend class APZTestAccess;
+
+  // For use by GTests in building WebRenderLayerScrollData trees.
+  // GTests don't have a display list so they can't use Initialize().
+  void InitializeForTest(int32_t aDescendantCount);
+
+  ScrollMetadata& GetScrollMetadataMut(WebRenderScrollData& aOwner,
+                                       size_t aIndex);
+
+  void SetEventRegions(const EventRegions& aRegions);
+
+ private:
   // The number of descendants this layer has (not including the layer itself).
   // This is needed to reconstruct the depth-first layer tree traversal
   // efficiently. Leaf layers should always have 0 descendants.
@@ -209,17 +226,23 @@ class WebRenderLayerScrollData final {
   Maybe<uint64_t> mStickyPositionAnimationId;
   Maybe<uint64_t> mZoomAnimationId;
   Maybe<ViewID> mAsyncZoomContainerId;
+  // Test-only field; it's a UniquePtr so it doesn't increase the size
+  // of the structure very much in production.
+  UniquePtr<EventRegions> mEventRegions;
 };
 
 // Data needed by APZ, for the whole layer tree. One instance of this class
 // is created for each transaction sent over PWebRenderBridge. It is populated
 // with information from the WebRender layer tree on the client side and the
 // information is used by APZ on the parent side.
-class WebRenderScrollData final {
+class WebRenderScrollData {
  public:
   WebRenderScrollData();
   explicit WebRenderScrollData(WebRenderLayerManager* aManager,
                                nsDisplayListBuilder* aBuilder);
+  WebRenderScrollData(WebRenderScrollData&& aOther) = default;
+  WebRenderScrollData& operator=(WebRenderScrollData&& aOther) = default;
+  virtual ~WebRenderScrollData() = default;
 
   WebRenderLayerManager* GetManager() const;
 
@@ -230,13 +253,14 @@ class WebRenderScrollData final {
   size_t AddMetadata(const ScrollMetadata& aMetadata);
   // Add the provided WebRenderLayerScrollData and return the index that can
   // be used to look it up via GetLayerData.
-  size_t AddLayerData(const WebRenderLayerScrollData& aData);
+  size_t AddLayerData(WebRenderLayerScrollData&& aData);
 
   size_t GetLayerCount() const;
 
   // Return a pointer to the scroll data at the given index. Use with caution,
   // as the pointer may be invalidated if this WebRenderScrollData is mutated.
   const WebRenderLayerScrollData* GetLayerData(size_t aIndex) const;
+  WebRenderLayerScrollData* GetLayerData(size_t aIndex);
 
   const ScrollMetadata& GetScrollMetadata(size_t aIndex) const;
   Maybe<size_t> HasMetadataFor(
@@ -253,6 +277,11 @@ class WebRenderScrollData final {
 
   friend std::ostream& operator<<(std::ostream& aOut,
                                   const WebRenderScrollData& aData);
+
+ private:
+  // For test use only.
+  friend class WebRenderLayerScrollData;
+  ScrollMetadata& GetScrollMetadataMut(size_t aIndex);
 
  private:
   // This is called by the ParamTraits implementation to rebuild mScrollIdMap

@@ -17,6 +17,7 @@ const TAB_STATE_FOR_BROWSER = new WeakMap();
 const WINDOW_RESTORE_IDS = new WeakMap();
 const WINDOW_RESTORE_ZINDICES = new WeakMap();
 const WINDOW_SHOWING_PROMISES = new Map();
+const WINDOW_FLUSHING_PROMISES = new Map();
 
 // A new window has just been restored. At this stage, tabs are generally
 // not restored.
@@ -308,8 +309,9 @@ var SessionStore = {
   getLastClosedTabCount(aWindow) {
     return SessionStoreInternal.getLastClosedTabCount(aWindow);
   },
-  setLastClosedTabCount(aWindow, aNumber) {
-    return SessionStoreInternal.setLastClosedTabCount(aWindow, aNumber);
+
+  resetLastClosedTabCount(aWindow) {
+    SessionStoreInternal.resetLastClosedTabCount(aWindow);
   },
 
   getClosedTabCount: function ss_getClosedTabCount(aWindow) {
@@ -762,7 +764,6 @@ var SessionStoreInternal = {
 
     this._initPrefs();
     this._initialized = true;
-    this._closedTabCache = new WeakMap();
 
     Services.telemetry
       .getHistogramById("FX_SESSION_RESTORE_PRIVACY_LEVEL")
@@ -1192,12 +1193,11 @@ var SessionStoreInternal = {
 
   onFinalTabStateUpdateComplete(browser) {
     let permanentKey = browser.permanentKey;
-
     if (
       this._closedTabs.has(permanentKey) &&
       !this._crashedBrowsers.has(permanentKey)
     ) {
-      let { closedTabs, tabData } = this._closedTabs.get(permanentKey);
+      let { winData, closedTabs, tabData } = this._closedTabs.get(permanentKey);
 
       // We expect no further updates.
       this._closedTabs.delete(permanentKey);
@@ -1214,12 +1214,12 @@ var SessionStoreInternal = {
         // the list of closed tabs when it was closed (because we deemed
         // the state not worth saving) then add it to the window's list
         // of closed tabs now.
-        this.saveClosedTabData(closedTabs, tabData);
+        this.saveClosedTabData(winData, closedTabs, tabData);
       } else if (!shouldSave && index > -1) {
         // Remove from the list of closed tabs. The update messages sent
         // after the tab was closed changed enough state so that we no
         // longer consider its data interesting enough to keep around.
-        this.removeClosedTabData(closedTabs, index);
+        this.removeClosedTabData(winData, closedTabs, index);
       }
     }
 
@@ -1476,6 +1476,7 @@ var SessionStoreInternal = {
       tabs: [],
       selected: 0,
       _closedTabs: [],
+      _lastClosedTabGroupCount: -1,
       busy: false,
     };
 
@@ -1816,6 +1817,7 @@ var SessionStoreInternal = {
         this._closedWindowTabs.set(permanentKey, tabData);
         if (aWindow._dontSaveTabs && !tabData.isPrivate) {
           // Close remaining tabs.
+          tab._closedInGroup = true;
           this.maybeSaveClosedTab(aWindow, tab, tabData);
         }
       }
@@ -1885,6 +1887,8 @@ var SessionStoreInternal = {
         // access any DOM elements from aWindow within this callback unless
         // you're holding on to them in the closure.
 
+        WINDOW_FLUSHING_PROMISES.delete(aWindow);
+
         for (let browser of browsers) {
           if (this._closedWindowTabs.has(browser.permanentKey)) {
             let tabData = this._closedWindowTabs.get(browser.permanentKey);
@@ -1909,6 +1913,11 @@ var SessionStoreInternal = {
         // save the state without this window to disk
         this.saveStateDelayed();
       });
+
+      // Here we might override a flush already in flight, but that's fine
+      // because `completionPromise` will always resolve after the old flush
+      // resolves.
+      WINDOW_FLUSHING_PROMISES.set(aWindow, completionPromise);
     } else {
       this.cleanUpWindow(aWindow, winData, browsers);
     }
@@ -2059,16 +2068,7 @@ var SessionStoreInternal = {
 
           const observeTopic = topic => {
             let deferred = PromiseUtils.defer();
-            const cleanup = () => {
-              try {
-                Services.obs.removeObserver(deferred.resolve, topic);
-              } catch (ex) {
-                Cu.reportError(
-                  "SessionStore: exception whilst flushing all windows: " + ex
-                );
-              }
-            };
-            Services.obs.addObserver(subject => {
+            const observer = subject => {
               // Skip abort on ipc:content-shutdown if not abnormal/crashed
               subject.QueryInterface(Ci.nsIPropertyBag2);
               if (
@@ -2076,7 +2076,17 @@ var SessionStoreInternal = {
               ) {
                 deferred.resolve();
               }
-            }, topic);
+            };
+            const cleanup = () => {
+              try {
+                Services.obs.removeObserver(observer, topic);
+              } catch (ex) {
+                Cu.reportError(
+                  "SessionStore: exception whilst flushing all windows: " + ex
+                );
+              }
+            };
+            Services.obs.addObserver(observer, topic);
             deferred.promise.then(cleanup, cleanup);
             return deferred;
           };
@@ -2087,6 +2097,9 @@ var SessionStoreInternal = {
           let waitTimeMaxMs = Math.max(0, AsyncShutdown.DELAY_CRASH_MS - 10000);
           let defers = [
             this.looseTimer(waitTimeMaxMs),
+
+            // FIXME: We should not be aborting *all* flushes when a single
+            // content process crashes here.
             observeTopic("oop-frameloader-crashed"),
             observeTopic("ipc:content-shutdown"),
           ];
@@ -2126,7 +2139,9 @@ var SessionStoreInternal = {
    * @return Promise
    */
   async flushAllWindowsAsync(progress = {}) {
-    let windowPromises = new Map();
+    let windowPromises = new Map(WINDOW_FLUSHING_PROMISES);
+    WINDOW_FLUSHING_PROMISES.clear();
+
     // We collect flush promises and close each window immediately so that
     // the user can't start changing any window state while we're waiting
     // for the flushes to finish.
@@ -2147,7 +2162,13 @@ var SessionStoreInternal = {
     // provide useful progress information to AsyncShutdown.
     for (let [win, promise] of windowPromises) {
       await promise;
-      this._collectWindowData(win);
+
+      // We may have already stopped tracking this window in onClose, which is
+      // fine as we would've collected window data there as well.
+      if (win.__SSi && this._windows[win.__SSi]) {
+        this._collectWindowData(win);
+      }
+
       progress.current++;
     }
 
@@ -2474,9 +2495,11 @@ var SessionStoreInternal = {
       image: aWindow.gBrowser.getIcon(aTab),
       pos: aTab._tPos,
       closedAt: Date.now(),
+      closedInGroup: aTab._closedInGroup,
     };
 
-    let closedTabs = this._windows[aWindow.__SSi]._closedTabs;
+    let winData = this._windows[aWindow.__SSi];
+    let closedTabs = winData._closedTabs;
 
     // Determine whether the tab contains any information worth saving. Note
     // that there might be pending state changes queued in the child that
@@ -2487,12 +2510,12 @@ var SessionStoreInternal = {
       // of the list but those cases should be extremely rare and
       // do probably never occur when using the browser normally.
       // (Tests or add-ons might do weird things though.)
-      this.saveClosedTabData(closedTabs, tabData);
+      this.saveClosedTabData(winData, closedTabs, tabData);
     }
 
     // Remember the closed tab to properly handle any last updates included in
     // the final "update" message sent by the frame script's unload handler.
-    this._closedTabs.set(permanentKey, { closedTabs, tabData });
+    this._closedTabs.set(permanentKey, { winData, closedTabs, tabData });
   },
 
   /**
@@ -2606,12 +2629,14 @@ var SessionStoreInternal = {
    * all tabs already in the list. The list will be truncated to contain a
    * maximum of |this._max_tabs_undo| entries.
    *
-   * @param closedTabs (array)
-   *        The list of closed tabs for a window.
+   * @param winData (object)
+   *        The data of the window.
    * @param tabData (object)
    *        The tabData to be inserted.
+   * @param closedTabs (array)
+   *        The list of closed tabs for a window.
    */
-  saveClosedTabData(closedTabs, tabData) {
+  saveClosedTabData(winData, closedTabs, tabData) {
     // Find the index of the first tab in the list
     // of closed tabs that was closed before our tab.
     let index = closedTabs.findIndex(tab => {
@@ -2631,6 +2656,18 @@ var SessionStoreInternal = {
     closedTabs.splice(index, 0, tabData);
     this._closedObjectsChanged = true;
 
+    if (tabData.closedInGroup) {
+      if (winData._lastClosedTabGroupCount < this._max_tabs_undo) {
+        if (winData._lastClosedTabGroupCount < 0) {
+          winData._lastClosedTabGroupCount = 1;
+        } else {
+          winData._lastClosedTabGroupCount++;
+        }
+      }
+    } else {
+      winData._lastClosedTabGroupCount = -1;
+    }
+
     // Truncate the list of closed tabs, if needed.
     if (closedTabs.length > this._max_tabs_undo) {
       closedTabs.splice(this._max_tabs_undo, closedTabs.length);
@@ -2642,15 +2679,23 @@ var SessionStoreInternal = {
    * the tab's final message is still pending we will simply discard it when
    * it arrives so that the tab doesn't reappear in the list.
    *
-   * @param closedTabs (array)
-   *        The list of closed tabs for a window.
+   * @param winData (object)
+   *        The data of the window.
    * @param index (uint)
    *        The index of the tab to remove.
+   * @param closedTabs (array)
+   *        The list of closed tabs for a window.
    */
-  removeClosedTabData(closedTabs, index) {
+  removeClosedTabData(winData, closedTabs, index) {
     // Remove the given index from the list.
     let [closedTab] = closedTabs.splice(index, 1);
     this._closedObjectsChanged = true;
+
+    // If the tab is part of the last closed group,
+    // we need to deduct the tab from the count.
+    if (index < winData._lastClosedTabGroupCount) {
+      winData._lastClosedTabGroupCount--;
+    }
 
     // If the closed tab's state still has a .permanentKey property then we
     // haven't seen its final update message yet. Remove it from the map of
@@ -2889,12 +2934,12 @@ var SessionStoreInternal = {
 
   getWindowState: function ssi_getWindowState(aWindow) {
     if ("__SSi" in aWindow) {
-      return JSON.stringify(this._getWindowState(aWindow));
+      return Cu.cloneInto(this._getWindowState(aWindow), {});
     }
 
     if (DyingWindowCache.has(aWindow)) {
       let data = DyingWindowCache.get(aWindow);
-      return JSON.stringify({ windows: [data] });
+      return Cu.cloneInto({ windows: [data] }, {});
     }
 
     throw Components.Exception(
@@ -3080,24 +3125,21 @@ var SessionStoreInternal = {
 
   getLastClosedTabCount(aWindow) {
     if ("__SSi" in aWindow) {
-      // Blank tabs cannot be undo-closed, so the number returned by
-      // the ClosedTabCache can be greater than the return value of
-      // getClosedTabCount. We won't restore blank tabs, so we return
-      // the minimum of these two values.
       return Math.min(
-        this._closedTabCache.get(aWindow) || 1,
+        Math.max(this._windows[aWindow.__SSi]._lastClosedTabGroupCount, 1),
         this.getClosedTabCount(aWindow)
       );
     }
 
     throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
   },
-  setLastClosedTabCount(aWindow, aNumber) {
-    if ("__SSi" in aWindow) {
-      return this._closedTabCache.set(aWindow, aNumber);
-    }
 
-    throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+  resetLastClosedTabCount(aWindow) {
+    if ("__SSi" in aWindow) {
+      this._windows[aWindow.__SSi]._lastClosedTabGroupCount = -1;
+    } else {
+      throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
+    }
   },
 
   getClosedTabCount: function ssi_getClosedTabCount(aWindow) {
@@ -3143,11 +3185,11 @@ var SessionStoreInternal = {
       );
     }
 
-    var closedTabs = this._windows[aWindow.__SSi]._closedTabs;
+    let winData = this._windows[aWindow.__SSi];
 
     // default to the most-recently closed tab
     aIndex = aIndex || 0;
-    if (!(aIndex in closedTabs)) {
+    if (!(aIndex in winData._closedTabs)) {
       throw Components.Exception(
         "Invalid index: not in the closed tabs",
         Cr.NS_ERROR_INVALID_ARG
@@ -3155,7 +3197,11 @@ var SessionStoreInternal = {
     }
 
     // fetch the data of closed tab, while removing it from the array
-    let { state, pos } = this.removeClosedTabData(closedTabs, aIndex);
+    let { state, pos } = this.removeClosedTabData(
+      winData,
+      winData._closedTabs,
+      aIndex
+    );
 
     // create a new tab
     let tabbrowser = aWindow.gBrowser;
@@ -3182,11 +3228,11 @@ var SessionStoreInternal = {
       );
     }
 
-    var closedTabs = this._windows[aWindow.__SSi]._closedTabs;
+    let winData = this._windows[aWindow.__SSi];
 
     // default to the most-recently closed tab
     aIndex = aIndex || 0;
-    if (!(aIndex in closedTabs)) {
+    if (!(aIndex in winData._closedTabs)) {
       throw Components.Exception(
         "Invalid index: not in the closed tabs",
         Cr.NS_ERROR_INVALID_ARG
@@ -3194,7 +3240,7 @@ var SessionStoreInternal = {
     }
 
     // remove closed tab from the array
-    this.removeClosedTabData(closedTabs, aIndex);
+    this.removeClosedTabData(winData, winData._closedTabs, aIndex);
 
     // Notify of changes to closed objects.
     this._notifyOfClosedObjectsChange();
@@ -3479,7 +3525,7 @@ var SessionStoreInternal = {
         });
 
         for (let index of indexes.reverse()) {
-          this.removeClosedTabData(windowState._closedTabs, index);
+          this.removeClosedTabData(windowState, windowState._closedTabs, index);
         }
       }
     }
@@ -4138,6 +4184,7 @@ var SessionStoreInternal = {
     }
 
     let newClosedTabsData = winData._closedTabs || [];
+    let newLastClosedTabGroupCount = winData._lastClosedTabGroupCount || -1;
 
     if (overwriteTabs || firstWindow) {
       // Overwrite existing closed tabs data when overwriteTabs=true
@@ -4158,6 +4205,11 @@ var SessionStoreInternal = {
         this._max_tabs_undo
       );
     }
+    // Because newClosedTabsData are put in first, we need to
+    // copy also the _lastClosedTabGroupCount.
+    this._windows[
+      aWindow.__SSi
+    ]._lastClosedTabGroupCount = newLastClosedTabGroupCount;
 
     // Restore tabs, if any.
     if (winData.tabs.length) {

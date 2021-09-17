@@ -172,13 +172,17 @@ TEST(LineBreak, WordBreaker)
 //                         012345678901234
 static const char wb0[] = "T";
 static const char wb1[] = "h";
-static const char wb2[] = "is   is a int";
-static const char wb3[] = "ernationali";
-static const char wb4[] = "zation work.";
+static const char wb2[] = "";
+static const char wb3[] = "is   is a int";
+static const char wb4[] = "";
+static const char wb5[] = "";
+static const char wb6[] = "ernationali";
+static const char wb7[] = "zation work.";
 
-static const char* wb[] = {wb0, wb1, wb2, wb3, wb4};
+static const char* wb[] = {wb0, wb1, wb2, wb3, wb4, wb5, wb6, wb7};
 
-void TestPrintWordWithBreak() {
+TEST(WordBreak, TestPrintWordWithBreak)
+{
   uint32_t numOfFragment = sizeof(wb) / sizeof(char*);
   RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
 
@@ -207,20 +211,31 @@ void TestPrintWordWithBreak() {
 
     if (i != numOfFragment - 1) {
       NS_ConvertASCIItoUTF16 nextFragText(wb[i + 1]);
+      if (nextFragText.IsEmpty()) {
+        // If nextFragText is empty, there's no new possible word break
+        // opportunity.
+        continue;
+      }
 
-      bool canBreak = true;
-      canBreak = wbk->BreakInBetween(fragText.get(), fragText.Length(),
-                                     nextFragText.get(), nextFragText.Length());
+      const auto origFragLen = static_cast<int32_t>(fragText.Length());
+      fragText.Append(nextFragText);
+
+      bool canBreak =
+          origFragLen ==
+          wbk->Next(fragText.get(), fragText.Length(), origFragLen - 1);
       if (canBreak) {
         result.Append('^');
       }
-      fragText.Assign(nextFragText);
     }
   }
   ASSERT_STREQ("This^   ^is^ ^a^ ^internationalization^ ^work^.",
                NS_ConvertUTF16toUTF8(result).get());
 }
 
+// This function searches a complete word starting from |offset| in wb[fragN].
+// If it reaches the end of wb[fragN], and there is no word break opportunity
+// between wb[fragN] and wb[fragN+1], it will continue the search in wb[fragN+1]
+// until a word break.
 void TestFindWordBreakFromPosition(uint32_t fragN, uint32_t offset,
                                    const char* expected) {
   uint32_t numOfFragment = sizeof(wb) / sizeof(char*);
@@ -231,16 +246,24 @@ void TestFindWordBreakFromPosition(uint32_t fragN, uint32_t offset,
   mozilla::intl::WordRange res =
       wbk->FindWord(fragText.get(), fragText.Length(), offset);
 
-  bool canBreak;
   nsAutoString result(Substring(fragText, res.mBegin, res.mEnd - res.mBegin));
 
-  if ((uint32_t)fragText.Length() == res.mEnd) {
+  if ((uint32_t)fragText.Length() <= res.mEnd) {
     // if we hit the end of the fragment
     nsAutoString curFragText = fragText;
     for (uint32_t p = fragN + 1; p < numOfFragment; p++) {
       NS_ConvertASCIItoUTF16 nextFragText(wb[p]);
-      canBreak = wbk->BreakInBetween(curFragText.get(), curFragText.Length(),
-                                     nextFragText.get(), nextFragText.Length());
+      if (nextFragText.IsEmpty()) {
+        // If nextFragText is empty, there's no new possible word break
+        // opportunity between curFragText and nextFragText.
+        continue;
+      }
+
+      const auto origFragLen = static_cast<int32_t>(curFragText.Length());
+      curFragText.Append(nextFragText);
+      bool canBreak =
+          origFragLen ==
+          wbk->Next(curFragText.get(), curFragText.Length(), origFragLen - 1);
       if (canBreak) {
         break;
       }
@@ -252,29 +275,6 @@ void TestFindWordBreakFromPosition(uint32_t fragN, uint32_t offset,
       if ((uint32_t)nextFragText.Length() != r.mEnd) {
         break;
       }
-      nextFragText.Assign(curFragText);
-    }
-  }
-
-  if (0 == res.mBegin) {
-    // if we hit the beginning of the fragment
-    nsAutoString curFragText = fragText;
-    for (uint32_t p = fragN; p > 0; p--) {
-      NS_ConvertASCIItoUTF16 prevFragText(wb[p - 1]);
-      canBreak = wbk->BreakInBetween(prevFragText.get(), prevFragText.Length(),
-                                     curFragText.get(), curFragText.Length());
-      if (canBreak) {
-        break;
-      }
-      mozilla::intl::WordRange r = wbk->FindWord(
-          prevFragText.get(), prevFragText.Length(), prevFragText.Length());
-
-      result.Insert(Substring(prevFragText, r.mBegin, r.mEnd - r.mBegin), 0);
-
-      if (0 != r.mBegin) {
-        break;
-      }
-      prevFragText.Assign(curFragText);
     }
   }
 
@@ -282,7 +282,8 @@ void TestFindWordBreakFromPosition(uint32_t fragN, uint32_t offset,
       << "FindWordBreakFromPosition(" << fragN << ", " << offset << ")";
 }
 
-void TestNextWordBreakWithComplexLanguage() {
+TEST(WordBreak, TestNextWordBreakWithComplexLanguage)
+{
   RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
   nsString fragText(u"\u0e40\u0e1b\u0e47\u0e19\u0e19\u0e31\u0e01");
 
@@ -295,25 +296,37 @@ void TestNextWordBreakWithComplexLanguage() {
   ASSERT_TRUE(true);
 }
 
-void TestNextWordBreakWithEmptyString() {
+TEST(WordBreak, TestFindWordWithEmptyString)
+{
+  RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
+  char16_t empty[] = {};
+  mozilla::intl::WordRange expect{0, 0};
+  mozilla::intl::WordRange result = wbk->FindWord(empty, 0, 0);
+  ASSERT_EQ(expect.mBegin, result.mBegin);
+  ASSERT_EQ(expect.mEnd, result.mEnd);
+}
+
+TEST(WordBreak, TestNextWordBreakWithEmptyString)
+{
   RefPtr<mozilla::intl::WordBreaker> wbk = mozilla::intl::WordBreaker::Create();
   char16_t empty[] = {};
   ASSERT_EQ(NS_WORDBREAKER_NEED_MORE_TEXT, wbk->Next(empty, 0, 0));
   ASSERT_EQ(NS_WORDBREAKER_NEED_MORE_TEXT, wbk->Next(empty, 0, 1));
 }
 
-TEST(LineBreak, WordBreakUsage)
+TEST(WordBreak, TestFindWordBreakFromPosition)
 {
-  TestPrintWordWithBreak();
   TestFindWordBreakFromPosition(0, 0, "This");
   TestFindWordBreakFromPosition(1, 0, "his");
   TestFindWordBreakFromPosition(2, 0, "is");
-  TestFindWordBreakFromPosition(2, 1, "is");
-  TestFindWordBreakFromPosition(2, 9, " ");
-  TestFindWordBreakFromPosition(2, 10, "internationalization");
-  TestFindWordBreakFromPosition(3, 4, "ernationalization");
-  TestFindWordBreakFromPosition(3, 8, "ernationalization");
-  TestFindWordBreakFromPosition(4, 6, " ");
-  TestFindWordBreakFromPosition(4, 7, "work");
-  TestNextWordBreakWithComplexLanguage();
+  TestFindWordBreakFromPosition(3, 0, "is");
+  TestFindWordBreakFromPosition(3, 1, "is");
+  TestFindWordBreakFromPosition(3, 9, " ");
+  TestFindWordBreakFromPosition(3, 10, "internationalization");
+  TestFindWordBreakFromPosition(4, 0, "ernationalization");
+  TestFindWordBreakFromPosition(5, 0, "ernationalization");
+  TestFindWordBreakFromPosition(6, 4, "ernationalization");
+  TestFindWordBreakFromPosition(6, 8, "ernationalization");
+  TestFindWordBreakFromPosition(7, 6, " ");
+  TestFindWordBreakFromPosition(7, 7, "work");
 }

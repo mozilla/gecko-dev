@@ -14,6 +14,8 @@
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/ToString.h"
 #include "nsCSSRendering.h"
+#include "nsDisplayList.h"
+#include "nsLayoutUtils.h"
 
 using namespace mozilla;
 using namespace mozilla::layout;
@@ -74,8 +76,10 @@ bool nsDisplayColumnRule::CreateWebRenderCommands(
   RefPtr<gfxContext> screenRefCtx = gfxContext::CreateOrNull(
       gfxPlatform::GetPlatform()->ScreenReferenceDrawTarget().get());
 
+  bool dummy;
   static_cast<nsColumnSetFrame*>(mFrame)->CreateBorderRenderers(
-      mBorderRenderers, screenRefCtx, GetPaintRect(), ToReferenceFrame());
+      mBorderRenderers, screenRefCtx, GetBounds(aDisplayListBuilder, &dummy),
+      ToReferenceFrame());
 
   if (mBorderRenderers.IsEmpty()) {
     return true;

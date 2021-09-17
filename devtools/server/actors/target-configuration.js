@@ -25,6 +25,8 @@ const SUPPORTED_OPTIONS = {
   colorSchemeSimulation: true,
   // Set a custom user agent
   customUserAgent: true,
+  // Is the client using the new performance panel.
+  isNewPerfPanelEnabled: true,
   // Enable JavaScript
   javascriptEnabled: true,
   // Force a custom device pixel ratio (used in RDM). Set to null to restore origin ratio.
@@ -37,6 +39,8 @@ const SUPPORTED_OPTIONS = {
   rdmPaneMaxTouchPoints: true,
   // Page orientation (used in RDM and doesn't apply if RDM isn't enabled)
   rdmPaneOrientation: true,
+  // Enable allocation tracking, if set, contains an object defining the tracking configurations
+  recordAllocations: true,
   // Reload the page when the touch simulation state changes (only works alongside touchEventsOverride)
   reloadOnTouchSimulationToggle: true,
   // Restore focus in the page after closing DevTools.

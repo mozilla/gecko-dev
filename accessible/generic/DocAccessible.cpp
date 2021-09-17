@@ -2335,7 +2335,9 @@ void DocAccessible::ShutdownChildrenInSubtree(LocalAccessible* aAccessible) {
 
 bool DocAccessible::IsLoadEventTarget() const {
   nsCOMPtr<nsIDocShellTreeItem> treeItem = mDocumentNode->GetDocShell();
-  NS_ASSERTION(treeItem, "No document shell for document!");
+  if (!treeItem) {
+    return false;
+  }
 
   nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
   treeItem->GetInProcessParent(getter_AddRefs(parentTreeItem));
@@ -2454,8 +2456,7 @@ void DocAccessible::SetRoleMapEntryForDoc(dom::Element* aElement) {
       entry->role == roles::DIALOG ||
       // Role alert isn't valid on the body element according to the ARIA spec,
       // but it's useful for our UI; e.g. the WebRTC sharing indicator.
-      (entry->role == roles::ALERT &&
-       !nsCoreUtils::IsContentDocument(mDocumentNode))) {
+      (entry->role == roles::ALERT && !mDocumentNode->IsContentDocument())) {
     SetRoleMapEntry(entry);
     return;
   }

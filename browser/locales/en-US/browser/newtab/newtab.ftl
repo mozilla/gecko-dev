@@ -35,11 +35,6 @@ newtab-search-box-handoff-input-no-engine =
     .title = Search or enter address
     .aria-label = Search or enter address
 
-newtab-search-box-search-the-web-input =
-    .placeholder = Search the Web
-    .title = Search the Web
-    .aria-label = Search the Web
-
 newtab-search-box-text = Search the web
 newtab-search-box-input =
     .placeholder = Search the web
@@ -48,7 +43,6 @@ newtab-search-box-input =
 ## Top Sites - General form dialog.
 
 newtab-topsites-add-search-engine-header = Add Search Engine
-newtab-topsites-add-topsites-header = New Top Site
 newtab-topsites-add-shortcut-header = New Shortcut
 newtab-topsites-edit-topsites-header = Edit Top Site
 newtab-topsites-edit-shortcut-header = Edit Shortcut
@@ -178,6 +172,12 @@ newtab-label-sponsored = { $sponsorOrSource } · Sponsored
 #  $sponsor (String): This is the name of a sponsor
 newtab-label-sponsored-by = Sponsored by { $sponsor }
 
+# This string is used under the image of story cards to indicate source and time to read
+# Variables:
+#  $source (String): This is the name of a company or their domain
+#  $timeToRead (Number): This is the estimated number of minutes to read this story
+newtab-label-source-read-time = { $source } · { $timeToRead } min
+
 ## Section Menu: These strings are displayed in the section context menu and are
 ## meant as a call to action for the given section.
 
@@ -202,7 +202,6 @@ newtab-section-expand-section-label =
 ## Section Headers.
 
 newtab-section-header-topsites = Top Sites
-newtab-section-header-highlights = Highlights
 newtab-section-header-recent-activity = Recent activity
 # Variables:
 #  $provider (String): Name of the corresponding content provider.

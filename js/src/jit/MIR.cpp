@@ -2207,7 +2207,7 @@ static inline bool CanProduceNegativeZero(MDefinition* def) {
 }
 
 static inline bool NeedNegativeZeroCheck(MDefinition* def) {
-  if (def->isGuardRangeBailouts()) {
+  if (def->isGuard() || def->isGuardRangeBailouts()) {
     return true;
   }
 
@@ -4554,8 +4554,7 @@ MDefinition* MWasmTernarySimd128::foldsTo(TempAllocator& alloc) {
       v2()->op() == MDefinition::Opcode::WasmFloatConstant) {
     int8_t shuffle[16];
     if (specializeBitselectConstantMaskAsShuffle(shuffle)) {
-      return MWasmShuffleSimd128::New(alloc, v0(), v1(),
-                                      SimdConstant::CreateX16(shuffle));
+      return BuildWasmShuffleSimd128(alloc, shuffle, v0(), v1());
     }
   }
   return this;
@@ -4581,8 +4580,7 @@ MDefinition* MWasmBinarySimd128::foldsTo(TempAllocator& alloc) {
       return nullptr;
     }
     block()->insertBefore(this, zero);
-    return MWasmShuffleSimd128::New(alloc, lhs(), zero,
-                                    SimdConstant::CreateX16(shuffleMask));
+    return BuildWasmShuffleSimd128(alloc, shuffleMask, lhs(), zero);
   }
 
   // Specialize var OP const / const OP var when possible.
@@ -6081,7 +6079,8 @@ bool MWasmShiftSimd128::congruentTo(const MDefinition* ins) const {
 }
 
 bool MWasmShuffleSimd128::congruentTo(const MDefinition* ins) const {
-  return ins->toWasmShuffleSimd128()->control().bitwiseEqual(control_) &&
+  return ins->toWasmShuffleSimd128()->shuffle().control.bitwiseEqual(
+             shuffle_.control) &&
          congruentIfOperandsEqual(ins);
 }
 
@@ -6089,3 +6088,28 @@ bool MWasmUnarySimd128::congruentTo(const MDefinition* ins) const {
   return ins->toWasmUnarySimd128()->simdOp() == simdOp_ &&
          congruentIfOperandsEqual(ins);
 }
+
+#ifdef ENABLE_WASM_SIMD
+MWasmShuffleSimd128* jit::BuildWasmShuffleSimd128(TempAllocator& alloc,
+                                                  const int8_t* control,
+                                                  MDefinition* lhs,
+                                                  MDefinition* rhs) {
+  SimdShuffle s =
+      AnalyzeSimdShuffle(SimdConstant::CreateX16(control), lhs, rhs);
+  switch (s.opd) {
+    case SimdShuffle::Operand::LEFT:
+      // When SimdShuffle::Operand is LEFT the right operand is not used,
+      // lose reference to rhs.
+      rhs = lhs;
+      break;
+    case SimdShuffle::Operand::RIGHT:
+      // When SimdShuffle::Operand is RIGHT the left operand is not used,
+      // lose reference to lhs.
+      lhs = rhs;
+      break;
+    default:
+      break;
+  }
+  return MWasmShuffleSimd128::New(alloc, lhs, rhs, s);
+}
+#endif  // ENABLE_WASM_SIMD

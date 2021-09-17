@@ -5,6 +5,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 UNIFIED_SOURCES += [
+    "APZTestAccess.cpp",
     "APZTestCommon.cpp",
     "TestBasic.cpp",
     "TestEventRegions.cpp",
@@ -20,6 +21,7 @@ UNIFIED_SOURCES += [
     "TestSnapping.cpp",
     "TestSnappingOnMomentum.cpp",
     "TestTreeManager.cpp",
+    "TestWRScrollData.cpp",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

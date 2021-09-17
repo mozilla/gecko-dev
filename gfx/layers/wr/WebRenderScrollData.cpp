@@ -35,6 +35,10 @@ void WebRenderLayerScrollData::InitializeRoot(int32_t aDescendantCount) {
   mDescendantCount = aDescendantCount;
 }
 
+void WebRenderLayerScrollData::InitializeForTest(int32_t aDescendantCount) {
+  mDescendantCount = aDescendantCount;
+}
+
 void WebRenderLayerScrollData::Initialize(
     WebRenderScrollData& aOwner, nsDisplayItem* aItem, int32_t aDescendantCount,
     const ActiveScrolledRoot* aStopAtAsr,
@@ -63,8 +67,8 @@ void WebRenderLayerScrollData::Initialize(
       mScrollIds.AppendElement(index.ref());
     } else {
       Maybe<ScrollMetadata> metadata =
-          asr->mScrollableFrame->ComputeScrollMetadata(aOwner.GetManager(),
-                                                       aItem->ReferenceFrame());
+          asr->mScrollableFrame->ComputeScrollMetadata(
+              aOwner.GetManager(), aItem->Frame(), aItem->ToReferenceFrame());
       aOwner.GetBuilder()->AddScrollFrameToNotify(asr->mScrollableFrame);
       if (metadata) {
         MOZ_ASSERT(metadata->GetMetrics().GetScrollId() == scrollId);
@@ -137,6 +141,16 @@ const ScrollMetadata& WebRenderLayerScrollData::GetScrollMetadata(
     const WebRenderScrollData& aOwner, size_t aIndex) const {
   MOZ_ASSERT(aIndex < mScrollIds.Length());
   return aOwner.GetScrollMetadata(mScrollIds[aIndex]);
+}
+
+ScrollMetadata& WebRenderLayerScrollData::GetScrollMetadataMut(
+    WebRenderScrollData& aOwner, size_t aIndex) {
+  MOZ_ASSERT(aIndex < mScrollIds.Length());
+  return aOwner.GetScrollMetadataMut(mScrollIds[aIndex]);
+}
+
+void WebRenderLayerScrollData::SetEventRegions(const EventRegions& aRegions) {
+  mEventRegions = MakeUnique<EventRegions>(aRegions);
 }
 
 CSSTransformMatrix WebRenderLayerScrollData::GetTransformTyped() const {
@@ -219,9 +233,8 @@ size_t WebRenderScrollData::AddMetadata(const ScrollMetadata& aMetadata) {
   return p->value();
 }
 
-size_t WebRenderScrollData::AddLayerData(
-    const WebRenderLayerScrollData& aData) {
-  mLayerScrollData.AppendElement(aData);
+size_t WebRenderScrollData::AddLayerData(WebRenderLayerScrollData&& aData) {
+  mLayerScrollData.AppendElement(std::move(aData));
   return mLayerScrollData.Length() - 1;
 }
 
@@ -237,8 +250,20 @@ const WebRenderLayerScrollData* WebRenderScrollData::GetLayerData(
   return &(mLayerScrollData.ElementAt(aIndex));
 }
 
+WebRenderLayerScrollData* WebRenderScrollData::GetLayerData(size_t aIndex) {
+  if (aIndex >= mLayerScrollData.Length()) {
+    return nullptr;
+  }
+  return &(mLayerScrollData.ElementAt(aIndex));
+}
+
 const ScrollMetadata& WebRenderScrollData::GetScrollMetadata(
     size_t aIndex) const {
+  MOZ_ASSERT(aIndex < mScrollMetadatas.Length());
+  return mScrollMetadatas[aIndex];
+}
+
+ScrollMetadata& WebRenderScrollData::GetScrollMetadataMut(size_t aIndex) {
   MOZ_ASSERT(aIndex < mScrollMetadatas.Length());
   return mScrollMetadatas[aIndex];
 }

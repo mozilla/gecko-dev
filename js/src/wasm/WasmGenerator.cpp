@@ -458,6 +458,8 @@ using TrapMaybeOffsetArray =
     EnumeratedArray<Trap, Trap::Limit, Maybe<uint32_t>>;
 
 bool ModuleGenerator::linkCallSites() {
+  AutoCreatedBy acb(masm_, "linkCallSites");
+
   masm_.haltingAlign(CodeAlignment);
 
   // Create far jumps for calls that have relative offsets that may otherwise
@@ -472,7 +474,8 @@ bool ModuleGenerator::linkCallSites() {
     const CallSiteTarget& target = callSiteTargets_[lastPatchedCallSite_];
     uint32_t callerOffset = callSite.returnAddressOffset();
     switch (callSite.kind()) {
-      case CallSiteDesc::Dynamic:
+      case CallSiteDesc::Import:
+      case CallSiteDesc::Indirect:
       case CallSiteDesc::Symbolic:
         break;
       case CallSiteDesc::Func: {
@@ -576,6 +579,9 @@ void ModuleGenerator::noteCodeRange(uint32_t codeRangeIndex,
     case CodeRange::Throw:
       // Jumped to by other stubs, so nothing to do.
       break;
+    case CodeRange::IndirectStub:
+      MOZ_CRASH("Indirect stub generates later - at runtime.");
+      break;
     case CodeRange::FarJumpIsland:
     case CodeRange::BuiltinThunk:
       MOZ_CRASH("Unexpected CodeRange kind");
@@ -605,6 +611,8 @@ static bool AppendForEach(Vec* dstVec, const Vec& srcVec, Op op) {
 }
 
 bool ModuleGenerator::linkCompiledCode(CompiledCode& code) {
+  AutoCreatedBy acb(masm_, "ModuleGenerator::linkCompiledCode");
+
   // Before merging in new code, if calls in a prior code range might go out of
   // range, insert far jumps to extend the range.
 
@@ -785,6 +793,8 @@ bool ModuleGenerator::locallyCompileCurrentTask() {
 }
 
 bool ModuleGenerator::finishTask(CompileTask* task) {
+  AutoCreatedBy acb(masm_, "ModuleGenerator::finishTask");
+
   masm_.haltingAlign(CodeAlignment);
 
   if (!linkCompiledCode(task->output)) {

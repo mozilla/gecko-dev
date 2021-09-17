@@ -33,7 +33,7 @@ this.test = makeMemoryTest(TEST_URL, async function({ tab, panel }) {
   );
   is(getState().censusDisplay.breakdown.by, "allocationStack");
 
-  await dispatch(toggleRecordingAllocationStacks(front));
+  await dispatch(toggleRecordingAllocationStacks(panel._commands));
   ok(getState().allocations.recording);
 
   // Let some allocations build up.

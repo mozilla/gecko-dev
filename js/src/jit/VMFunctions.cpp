@@ -1492,11 +1492,6 @@ bool PushLexicalEnv(JSContext* cx, BaselineFrame* frame,
   return frame->pushLexicalEnvironment(cx, scope);
 }
 
-bool PopLexicalEnv(JSContext* cx, BaselineFrame* frame) {
-  frame->popOffEnvironmentChain<ScopedLexicalEnvironmentObject>();
-  return true;
-}
-
 bool DebugLeaveThenPopLexicalEnv(JSContext* cx, BaselineFrame* frame,
                                  jsbytecode* pc) {
   MOZ_ALWAYS_TRUE(DebugLeaveLexicalEnv(cx, frame, pc));
@@ -2826,10 +2821,16 @@ BigInt* AtomicsXor64(JSContext* cx, TypedArrayObject* typedArray, size_t index,
 }
 
 JSAtom* AtomizeStringNoGC(JSContext* cx, JSString* str) {
-  // Called with GC values on the stack, so we better don't trigger GC.
-  JS::AutoCheckCannotGC nogc;
+  // IC code calls this directly so we shouldn't GC.
+  AutoUnsafeCallWithABI unsafe;
 
-  return AtomizeString(cx, str);
+  JSAtom* atom = AtomizeString(cx, str);
+  if (!atom) {
+    cx->recoverFromOutOfMemory();
+    return nullptr;
+  }
+
+  return atom;
 }
 
 bool SetObjectHas(JSContext* cx, HandleObject obj, HandleValue key,

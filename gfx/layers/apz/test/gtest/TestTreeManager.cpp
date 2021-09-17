@@ -11,37 +11,35 @@
 class APZCTreeManagerGenericTester : public APZCTreeManagerTester {
  protected:
   void CreateSimpleDTCScrollingLayer() {
-    const char* layerTreeSyntax = "t";
+    const char* treeShape = "x";
     nsIntRegion layerVisibleRegion[] = {
         nsIntRegion(IntRect(0, 0, 200, 200)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm,
-                           layers);
-    SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
+    CreateScrollData(treeShape, layerVisibleRegion);
+    SetScrollableFrameMetrics(layers[0], ScrollableLayerGuid::START_SCROLL_ID,
                               CSSRect(0, 0, 500, 500));
 
     EventRegions regions;
     regions.mHitRegion = nsIntRegion(IntRect(0, 0, 200, 200));
     regions.mDispatchToContentHitRegion = regions.mHitRegion;
-    layers[0]->SetEventRegions(regions);
+    APZTestAccess::SetEventRegions(*layers[0], regions);
   }
 
   void CreateSimpleMultiLayerTree() {
-    const char* layerTreeSyntax = "c(tt)";
-    // LayerID                     0 12
+    const char* treeShape = "x(xx)";
+    // LayerID               0 12
     nsIntRegion layerVisibleRegion[] = {
         nsIntRegion(IntRect(0, 0, 100, 100)),
         nsIntRegion(IntRect(0, 0, 100, 50)),
         nsIntRegion(IntRect(0, 50, 100, 50)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm,
-                           layers);
+    CreateScrollData(treeShape, layerVisibleRegion);
   }
 
   void CreatePotentiallyLeakingTree() {
-    const char* layerTreeSyntax = "c(c(c(t))c(c(t)))";
-    // LayerID                     0 1 2 3  4 5 6
-    root = CreateLayerTree(layerTreeSyntax, nullptr, nullptr, lm, layers);
+    const char* treeShape = "x(x(x(x))x(x(x)))";
+    // LayerID               0 1 2 3  4 5 6
+    CreateScrollData(treeShape);
     SetScrollableFrameMetrics(layers[0], ScrollableLayerGuid::START_SCROLL_ID);
     SetScrollableFrameMetrics(layers[2],
                               ScrollableLayerGuid::START_SCROLL_ID + 1);
@@ -54,14 +52,13 @@ class APZCTreeManagerGenericTester : public APZCTreeManagerTester {
   }
 
   void CreateTwoLayerDTCTree(int32_t aRootContentLayerIndex) {
-    const char* layerTreeSyntax = "c(t)";
-    // LayerID                     0 1
+    const char* treeShape = "x(x)";
+    // LayerID               0 1
     nsIntRegion layerVisibleRegion[] = {
         nsIntRegion(IntRect(0, 0, 100, 100)),
         nsIntRegion(IntRect(0, 0, 100, 100)),
     };
-    root = CreateLayerTree(layerTreeSyntax, layerVisibleRegion, nullptr, lm,
-                           layers);
+    CreateScrollData(treeShape, layerVisibleRegion);
     SetScrollableFrameMetrics(layers[0], ScrollableLayerGuid::START_SCROLL_ID);
     SetScrollableFrameMetrics(layers[1],
                               ScrollableLayerGuid::START_SCROLL_ID + 1);
@@ -77,14 +74,14 @@ class APZCTreeManagerGenericTester : public APZCTreeManagerTester {
     EventRegions regions;
     regions.mHitRegion = nsIntRegion(IntRect(0, 0, 100, 100));
     regions.mDispatchToContentHitRegion = regions.mHitRegion;
-    layers[0]->SetEventRegions(regions);
-    layers[1]->SetEventRegions(regions);
+    APZTestAccess::SetEventRegions(*layers[0], regions);
+    APZTestAccess::SetEventRegions(*layers[1], regions);
   }
 };
 
 TEST_F(APZCTreeManagerGenericTester, ScrollablePaintedLayers) {
   CreateSimpleMultiLayerTree();
-  ScopedLayerTreeRegistration registration(LayersId{0}, root, mcc);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
 
   // both layers have the same scrollId
   SetScrollableFrameMetrics(layers[1], ScrollableLayerGuid::START_SCROLL_ID);
@@ -93,28 +90,15 @@ TEST_F(APZCTreeManagerGenericTester, ScrollablePaintedLayers) {
 
   TestAsyncPanZoomController* nullAPZC = nullptr;
   // so they should have the same APZC
-  EXPECT_FALSE(layers[0]->HasScrollableFrameMetrics());
+  EXPECT_FALSE(HasScrollableFrameMetrics(layers[0]));
   EXPECT_NE(nullAPZC, ApzcOf(layers[1]));
   EXPECT_NE(nullAPZC, ApzcOf(layers[2]));
-  EXPECT_EQ(ApzcOf(layers[1]), ApzcOf(layers[2]));
-
-  // Change the scrollId of layers[1], and verify the APZC changes
-  SetScrollableFrameMetrics(layers[1],
-                            ScrollableLayerGuid::START_SCROLL_ID + 1);
-  UpdateHitTestingTree();
-  EXPECT_NE(ApzcOf(layers[1]), ApzcOf(layers[2]));
-
-  // Change the scrollId of layers[2] to match that of layers[1], ensure we get
-  // the same APZC for both again
-  SetScrollableFrameMetrics(layers[2],
-                            ScrollableLayerGuid::START_SCROLL_ID + 1);
-  UpdateHitTestingTree();
   EXPECT_EQ(ApzcOf(layers[1]), ApzcOf(layers[2]));
 }
 
 TEST_F(APZCTreeManagerGenericTester, Bug1068268) {
   CreatePotentiallyLeakingTree();
-  ScopedLayerTreeRegistration registration(LayersId{0}, root, mcc);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
 
   UpdateHitTestingTree();
   RefPtr<HitTestingTreeNode> root = manager->GetRootNode();
@@ -138,7 +122,7 @@ TEST_F(APZCTreeManagerGenericTester, Bug1194876) {
   // Create a layer tree with parent and child scrollable layers, with the
   // child being the root content.
   CreateTwoLayerDTCTree(1);
-  ScopedLayerTreeRegistration registration(LayersId{0}, root, mcc);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
   UpdateHitTestingTree();
 
   uint64_t blockId;
@@ -178,7 +162,7 @@ TEST_F(APZCTreeManagerGenericTester, TargetChangesMidGesture_Bug1570559) {
   // Create a layer tree with parent and child scrollable layers, with the
   // parent being the root content.
   CreateTwoLayerDTCTree(0);
-  ScopedLayerTreeRegistration registration(LayersId{0}, root, mcc);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
   UpdateHitTestingTree();
 
   uint64_t blockId;
@@ -217,7 +201,7 @@ TEST_F(APZCTreeManagerGenericTester, Bug1198900) {
   // This is just a test that cancels a wheel event to make sure it doesn't
   // crash.
   CreateSimpleDTCScrollingLayer();
-  ScopedLayerTreeRegistration registration(LayersId{0}, root, mcc);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
   UpdateHitTestingTree();
 
   ScreenPoint origin(100, 50);
@@ -238,7 +222,7 @@ TEST_F(APZCTreeManagerTester, Bug1551582) {
   // The simple layer tree has a scrollable rect of 500x500 and a composition
   // bounds of 200x200, leading to a scroll range of (0,0,300,300).
   CreateSimpleScrollingLayer();
-  ScopedLayerTreeRegistration registration(LayersId{0}, root, mcc);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
   UpdateHitTestingTree();
 
   // Simulate the main thread scrolling to the end of the scroll range.
@@ -273,7 +257,7 @@ TEST_F(APZCTreeManagerTester, Bug1557424) {
   // The simple layer tree has a scrollable rect of 500x500 and a composition
   // bounds of 200x200, leading to a scroll range of (0,0,300,300).
   CreateSimpleScrollingLayer();
-  ScopedLayerTreeRegistration registration(LayersId{0}, root, mcc);
+  ScopedLayerTreeRegistration registration(LayersId{0}, mcc);
   UpdateHitTestingTree();
 
   // Simulate the main thread scrolling to the end of the scroll range.

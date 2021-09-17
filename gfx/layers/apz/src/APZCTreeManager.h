@@ -57,7 +57,6 @@ class InputQueue;
 class GeckoContentController;
 class HitTestingTreeNode;
 class HitTestingTreeNodeAutoLock;
-class LayerMetricsWrapper;
 class SampleTime;
 class WebRenderScrollDataWrapper;
 struct AncestorTransform;
@@ -115,7 +114,8 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   struct TreeBuildingState;
 
  public:
-  APZCTreeManager(LayersId aRootLayersId, bool aIsUsingWebRender);
+  enum class HitTestKind { WebRender, Internal };
+  APZCTreeManager(LayersId aRootLayersId, HitTestKind aHitTestKind);
 
   void SetSampler(APZSampler* aSampler);
   void SetUpdater(APZUpdater* aUpdater);
@@ -154,37 +154,29 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
                         const FocusTarget& aFocusTarget);
 
   /**
-   * Rebuild the hit-testing tree based on the layer update that just came up.
+   * Rebuild the hit-testing tree based on an incoming WebRender transaction.
    * Preserve nodes and APZC instances where possible, but retire those whose
    * layers are no longer in the layer tree.
+   * (Note: "layer tree" here refers to the tree of WebRenderLayerScrollData
+   *  nodes sent as part of a WebRender transaction.)
    *
-   * This must be called on the updater thread as it walks the layer tree.
+   * This must be called on the updater thread.
    *
    * @param aRoot The root of the (full) layer tree
    * @param aOriginatingLayersId The layers id of the subtree that triggered
    *                             this repaint, and to which aIsFirstPaint
-   * applies.
-   * @param aIsFirstPaint True if the layers update that this is called in
+   *                             applies.
+   * @param aIsFirstPaint True if the transaction that this is called in
    *                      response to included a first-paint. If this is true,
    *                      the part of the tree that is affected by the
    *                      first-paint flag is indicated by the
-   *                      aFirstPaintLayersId parameter.
+   *                      aOriginatingLayersId parameter.
    * @param aPaintSequenceNumber The sequence number of the paint that triggered
-   *                             this layer update. Note that every layer child
+   *                             this layer update. Note that every child
    *                             process' layer subtree has its own sequence
    *                             numbers.
    */
-  void UpdateHitTestingTree(Layer* aRoot, bool aIsFirstPaint,
-                            LayersId aOriginatingLayersId,
-                            uint32_t aPaintSequenceNumber);
-
-  /**
-   * Same as the above UpdateHitTestingTree, except slightly modified to take
-   * the scrolling data passed over PWebRenderBridge instead of the raw layer
-   * tree. This version is used when WebRender is enabled because we don't have
-   * shadow layers in that scenario.
-   */
-  void UpdateHitTestingTree(const WebRenderScrollDataWrapper& aScrollWrapper,
+  void UpdateHitTestingTree(const WebRenderScrollDataWrapper& aRoot,
                             bool aIsFirstPaint, LayersId aOriginatingLayersId,
                             uint32_t aPaintSequenceNumber);
 
@@ -470,8 +462,7 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
       const LayerToParentLayerMatrix4x4& aCurrentTransform,
       const gfx::Matrix4x4& aScrollableContentTransform,
       AsyncPanZoomController* aApzc, const FrameMetrics& aMetrics,
-      const ScrollbarData& aScrollbarData, bool aScrollbarIsDescendant,
-      AsyncTransformComponentMatrix* aOutClipTransform);
+      const ScrollbarData& aScrollbarData, bool aScrollbarIsDescendant);
 
   /**
    * Dispatch a flush complete notification from the repaint thread of the
@@ -595,12 +586,9 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
  private:
   typedef bool (*GuidComparator)(const ScrollableLayerGuid&,
                                  const ScrollableLayerGuid&);
+  using ScrollNode = WebRenderScrollDataWrapper;
 
   /* Helpers */
-  template <class ScrollNode>
-  void UpdateHitTestingTreeImpl(const ScrollNode& aRoot, bool aIsFirstPaint,
-                                LayersId aOriginatingLayersId,
-                                uint32_t aPaintSequenceNumber);
 
   void AttachNodeToTree(HitTestingTreeNode* aNode, HitTestingTreeNode* aParent,
                         HitTestingTreeNode* aNextSibling);
@@ -726,18 +714,15 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   already_AddRefed<HitTestingTreeNode> RecycleOrCreateNode(
       const RecursiveMutexAutoLock& aProofOfTreeLock, TreeBuildingState& aState,
       AsyncPanZoomController* aApzc, LayersId aLayersId);
-  template <class ScrollNode>
   HitTestingTreeNode* PrepareNodeForLayer(
       const RecursiveMutexAutoLock& aProofOfTreeLock, const ScrollNode& aLayer,
       const FrameMetrics& aMetrics, LayersId aLayersId,
       const Maybe<ZoomConstraints>& aZoomConstraints,
       const AncestorTransform& aAncestorTransform, HitTestingTreeNode* aParent,
       HitTestingTreeNode* aNextSibling, TreeBuildingState& aState);
-  template <class ScrollNode>
   Maybe<ParentLayerIntRegion> ComputeClipRegion(const LayersId& aLayersId,
                                                 const ScrollNode& aLayer);
 
-  template <class ScrollNode>
   void PrintAPZCInfo(const ScrollNode& aLayer,
                      const AsyncPanZoomController* apzc);
 
@@ -1046,7 +1031,7 @@ class APZCTreeManager : public IAPZCTreeManager, public APZInputBridge {
   // This must only be touched on the controller thread.
   float mDPI;
 
-  bool mIsUsingWebRender;
+  HitTestKind mHitTestKind;
 
 #if defined(MOZ_WIDGET_ANDROID)
  private:

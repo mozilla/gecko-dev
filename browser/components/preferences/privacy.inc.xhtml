@@ -625,6 +625,7 @@
   <checkbox id="openpageSuggestion" data-l10n-id="addressbar-locbar-openpage-option"
             preference="browser.urlbar.suggest.openpage"/>
   <checkbox id="topSitesSuggestion"
+            data-l10n-id="addressbar-locbar-shortcuts-option"
             preference="browser.urlbar.suggest.topsites"/>
   <checkbox id="enginesSuggestion" data-l10n-id="addressbar-locbar-engines-option"
             preference="browser.urlbar.suggest.engines"/>
@@ -640,11 +641,16 @@
              is="text-link"
              data-l10n-id="addressbar-locbar-firefox-suggest-learn-more"/>
     </hbox>
-    <description class="indent tip-caption"
+    <description id="firefoxSuggestSuggestionDescription"
+                 hidden="true"
+                 class="indent tip-caption"
                  data-l10n-id="addressbar-locbar-firefox-suggest-description"/>
-    <checkbox id="firefoxSuggestSponsoredSuggestion"
-              class="indent"
-              data-l10n-id="addressbar-locbar-firefox-suggest-sponsored-option"/>
+    <vbox class="indent">
+      <checkbox id="firefoxSuggestSponsoredSuggestion"
+                data-l10n-id="addressbar-locbar-firefox-suggest-sponsored-option"/>
+      <description class="indent tip-caption"
+                   data-l10n-id="addressbar-locbar-firefox-suggest-sponsored-description"/>
+    </vbox>
   </vbox>
   <label id="openSearchEnginePreferences" is="text-link"
          data-l10n-id="addressbar-suggestions-settings"/>

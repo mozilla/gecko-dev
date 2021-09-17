@@ -20,29 +20,6 @@ already_AddRefed<WordBreaker> WordBreaker::Create() {
   return RefPtr<WordBreaker>(new WordBreaker()).forget();
 }
 
-bool WordBreaker::BreakInBetween(const char16_t* aText1, uint32_t aTextLen1,
-                                 const char16_t* aText2, uint32_t aTextLen2) {
-  MOZ_ASSERT(nullptr != aText1, "null ptr");
-  MOZ_ASSERT(nullptr != aText2, "null ptr");
-
-  if (!aText1 || !aText2 || (0 == aTextLen1) || (0 == aTextLen2)) return false;
-
-  uint8_t c1 = GetClass(aText1[aTextLen1 - 1]);
-  uint8_t c2 = GetClass(aText2[0]);
-
-  if (c1 == c2 && kWbClassScriptioContinua == c1) {
-    nsAutoString text(aText1, aTextLen1);
-    text.Append(aText2, aTextLen2);
-    AutoTArray<uint8_t, 256> breakBefore;
-    breakBefore.SetLength(aTextLen1 + aTextLen2);
-    NS_GetComplexLineBreaks(text.get(), text.Length(), breakBefore.Elements());
-    bool ret = breakBefore[aTextLen1];
-    return ret;
-  }
-
-  return (c1 != c2);
-}
-
 #define IS_ASCII(c) (0 == (0xFF80 & (c)))
 #define ASCII_IS_ALPHA(c) \
   ((('a' <= (c)) && ((c) <= 'z')) || (('A' <= (c)) && ((c) <= 'Z')))
@@ -121,23 +98,19 @@ WordBreaker::WordBreakClass WordBreaker::GetClass(char16_t c) {
   return kWbClassAlphaLetter;
 }
 
-WordRange WordBreaker::FindWord(const char16_t* aText, uint32_t aTextLen,
-                                uint32_t aOffset) {
-  WordRange range;
-  MOZ_ASSERT(nullptr != aText, "null ptr");
-  MOZ_ASSERT(0 != aTextLen, "len = 0");
-  MOZ_ASSERT(aOffset <= aTextLen, "aOffset > aTextLen");
+WordRange WordBreaker::FindWord(const char16_t* aText, uint32_t aLen,
+                                uint32_t aPos) {
+  MOZ_ASSERT(aText);
 
-  range.mBegin = aTextLen + 1;
-  range.mEnd = aTextLen + 1;
+  if (aPos >= aLen) {
+    return {aLen, aLen};
+  }
 
-  if (!aText || aOffset > aTextLen) return range;
+  WordBreakClass c = GetClass(aText[aPos]);
+  WordRange range{0, aLen};
 
-  WordBreakClass c = GetClass(aText[aOffset]);
-  uint32_t i;
   // Scan forward
-  range.mEnd--;
-  for (i = aOffset + 1; i <= aTextLen; i++) {
+  for (uint32_t i = aPos + 1; i <= aLen; i++) {
     if (c != GetClass(aText[i])) {
       range.mEnd = i;
       break;
@@ -145,8 +118,7 @@ WordRange WordBreaker::FindWord(const char16_t* aText, uint32_t aTextLen,
   }
 
   // Scan backward
-  range.mBegin = 0;
-  for (i = aOffset; i > 0; i--) {
+  for (uint32_t i = aPos; i > 0; i--) {
     if (c != GetClass(aText[i - 1])) {
       range.mBegin = i;
       break;
@@ -162,7 +134,7 @@ WordRange WordBreaker::FindWord(const char16_t* aText, uint32_t aTextLen,
                             breakBefore.Elements());
 
     // Scan forward
-    for (i = aOffset + 1; i < range.mEnd; i++) {
+    for (uint32_t i = aPos + 1; i < range.mEnd; i++) {
       if (breakBefore[i - range.mBegin]) {
         range.mEnd = i;
         break;
@@ -170,7 +142,7 @@ WordRange WordBreaker::FindWord(const char16_t* aText, uint32_t aTextLen,
     }
 
     // Scan backward
-    for (i = aOffset; i > range.mBegin; i--) {
+    for (uint32_t i = aPos; i > range.mBegin; i--) {
       if (breakBefore[i - range.mBegin]) {
         range.mBegin = i;
         break;

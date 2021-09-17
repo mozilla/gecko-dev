@@ -10,7 +10,6 @@
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
-#include "mozilla/ResultVariant.h"
 #include "mozilla/Utf8.h"
 #include "mozilla/Vector.h"
 #include "mozilla/intl/ICUError.h"
@@ -33,7 +32,14 @@ using ICUResult = Result<Ok, ICUError>;
 ICUError ToICUError(UErrorCode status);
 
 /**
- * Convert a UErrorCode to ICUResult.
+ * Convert a UErrorCode to ICUError. This will correctly apply the OutOfMemory
+ * case.
+ */
+ICUError ToICUError(UErrorCode status);
+
+/**
+ * Convert a UErrorCode to ICUResult. This will correctly apply the OutOfMemory
+ * case.
  */
 ICUResult ToICUResult(UErrorCode status);
 
@@ -47,22 +53,39 @@ static inline bool ICUSuccessForStringSpan(UErrorCode status) {
 }
 
 /**
- * This class manages the access to an ICU pointer. It allows requesting either
- * a mutable or const pointer. This pointer should match the const or mutability
- * of the ICU APIs. This will then correctly propagate const-ness into the
- * mozilla::intl APIs.
+ * This class enforces that the unified mozilla::intl methods match the
+ * const-ness of the underlying ICU4C API calls. const ICU4C APIs take a const
+ * pointer, while mutable ones take a non-const pointer.
+ *
+ * For const ICU4C calls use:
+ *   ICUPointer::GetConst().
+ *
+ * For non-const ICU4C calls use:
+ *   ICUPointer::GetMut().
+ *
+ * This will propagate the `const` specifier from the ICU4C API call to the
+ * unified method, and it will be enforced by the compiler. This helps ensures
+ * a consistence and correct implementation.
  */
 template <typename T>
 class ICUPointer {
  public:
   explicit ICUPointer(T* aPointer) : mPointer(aPointer) {}
 
-  // Only allow moves, no copies.
+  // Only allow moves of ICUPointers, no copies.
   ICUPointer(ICUPointer&& other) noexcept = default;
   ICUPointer& operator=(ICUPointer&& other) noexcept = default;
 
+  // Implicitly take ownership of a raw pointer through copy assignment.
+  ICUPointer& operator=(T* aPointer) noexcept {
+    mPointer = aPointer;
+    return *this;
+  };
+
   const T* GetConst() const { return const_cast<const T*>(mPointer); }
   T* GetMut() { return mPointer; }
+
+  explicit operator bool() const { return !!mPointer; }
 
  private:
   T* mPointer;
@@ -81,7 +104,8 @@ class ICUPointer {
 template <typename ICUStringFunction, typename Buffer>
 static ICUResult FillBufferWithICUCall(Buffer& buffer,
                                        const ICUStringFunction& strFn) {
-  static_assert(std::is_same<typename Buffer::CharType, char16_t>::value);
+  static_assert(std::is_same_v<typename Buffer::CharType, char16_t> ||
+                std::is_same_v<typename Buffer::CharType, char>);
 
   UErrorCode status = U_ZERO_ERROR;
   int32_t length = strFn(buffer.data(), buffer.capacity(), &status);
@@ -97,7 +121,7 @@ static ICUResult FillBufferWithICUCall(Buffer& buffer,
     MOZ_ASSERT(length == length2);
   }
   if (!ICUSuccessForStringSpan(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   buffer.written(length);
@@ -106,33 +130,39 @@ static ICUResult FillBufferWithICUCall(Buffer& buffer,
 }
 
 /**
+ * Adaptor for mozilla::Vector to implement the Buffer interface.
+ */
+template <typename T, size_t N>
+class VectorToBufferAdaptor {
+  mozilla::Vector<T, N>& vector;
+
+ public:
+  using CharType = T;
+
+  explicit VectorToBufferAdaptor(mozilla::Vector<T, N>& vector)
+      : vector(vector) {}
+
+  T* data() { return vector.begin(); }
+
+  size_t capacity() const { return vector.capacity(); }
+
+  bool reserve(size_t length) { return vector.reserve(length); }
+
+  void written(size_t length) {
+    mozilla::DebugOnly<bool> result = vector.resizeUninitialized(length);
+    MOZ_ASSERT(result);
+  }
+};
+
+/**
  * A variant of FillBufferWithICUCall that accepts a mozilla::Vector rather than
  * a Buffer.
  */
 template <typename ICUStringFunction, size_t InlineSize, typename CharType>
 static ICUResult FillVectorWithICUCall(Vector<CharType, InlineSize>& vector,
                                        const ICUStringFunction& strFn) {
-  UErrorCode status = U_ZERO_ERROR;
-  int32_t length = strFn(vector.begin(), vector.capacity(), &status);
-  if (status == U_BUFFER_OVERFLOW_ERROR) {
-    MOZ_ASSERT(length >= 0);
-
-    if (!vector.reserve(length)) {
-      return Err(ICUError::OutOfMemory);
-    }
-
-    status = U_ZERO_ERROR;
-    mozilla::DebugOnly<int32_t> length2 =
-        strFn(vector.begin(), length, &status);
-    MOZ_ASSERT(length == length2);
-  }
-  if (!ICUSuccessForStringSpan(status)) {
-    return Err(ICUError::InternalError);
-  }
-
-  mozilla::DebugOnly<bool> result = vector.resizeUninitialized(length);
-  MOZ_ASSERT(result);
-  return Ok{};
+  VectorToBufferAdaptor buffer(vector);
+  return FillBufferWithICUCall(buffer, strFn);
 }
 
 /**
@@ -140,25 +170,39 @@ static ICUResult FillVectorWithICUCall(Vector<CharType, InlineSize>& vector,
  * UTF-8 strings.
  */
 template <typename Buffer>
-[[nodiscard]] bool FillUTF8Buffer(Span<const char16_t> utf16Span,
-                                  Buffer& utf8TargetBuffer) {
-  static_assert(std::is_same<typename Buffer::CharType, char>::value ||
-                std::is_same<typename Buffer::CharType, unsigned char>::value);
+[[nodiscard]] bool FillBuffer(Span<const char16_t> utf16Span,
+                              Buffer& targetBuffer) {
+  static_assert(std::is_same_v<typename Buffer::CharType, char> ||
+                std::is_same_v<typename Buffer::CharType, unsigned char> ||
+                std::is_same_v<typename Buffer::CharType, char16_t>);
 
-  if (utf16Span.Length() & mozilla::tl::MulOverflowMask<3>::value) {
-    // Tripling the size of the buffer overflows the size_t.
-    return false;
+  if constexpr (std::is_same_v<typename Buffer::CharType, char> ||
+                std::is_same_v<typename Buffer::CharType, unsigned char>) {
+    if (utf16Span.Length() & mozilla::tl::MulOverflowMask<3>::value) {
+      // Tripling the size of the buffer overflows the size_t.
+      return false;
+    }
+
+    if (!targetBuffer.reserve(3 * utf16Span.Length())) {
+      return false;
+    }
+
+    size_t amount = ConvertUtf16toUtf8(
+        utf16Span, Span(reinterpret_cast<char*>(targetBuffer.data()),
+                        targetBuffer.capacity()));
+
+    targetBuffer.written(amount);
   }
-
-  if (!utf8TargetBuffer.reserve(3 * utf16Span.Length())) {
-    return false;
+  if constexpr (std::is_same_v<typename Buffer::CharType, char16_t>) {
+    size_t amount = utf16Span.Length();
+    if (!targetBuffer.reserve(amount)) {
+      return false;
+    }
+    for (size_t i = 0; i < amount; i++) {
+      targetBuffer.data()[i] = utf16Span[i];
+    }
+    targetBuffer.written(amount);
   }
-
-  size_t amount = ConvertUtf16toUtf8(
-      utf16Span, Span(reinterpret_cast<char*>(utf8TargetBuffer.data()),
-                      utf8TargetBuffer.capacity()));
-
-  utf8TargetBuffer.written(amount);
 
   return true;
 }
@@ -310,16 +354,6 @@ class Enumeration {
  private:
   UEnumeration* mUEnumeration = nullptr;
 };
-
-template <typename CharType>
-Result<const CharType*, InternalError> NullTerminatedMapper(
-    const CharType* string, int32_t length) {
-  // Return the raw value from this Iterator.
-  if (string == nullptr) {
-    return Err(InternalError{});
-  }
-  return string;
-}
 
 template <typename CharType>
 Result<Span<const CharType>, InternalError> SpanMapper(const CharType* string,

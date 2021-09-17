@@ -755,20 +755,28 @@ class MozIntl {
     return this._cache.getCalendarInfo(locales, ...args);
   }
 
-  getDisplayNames(locales, ...args) {
-    if (!this._cache.hasOwnProperty("getDisplayNames")) {
-      mozIntlHelper.addGetDisplayNames(this._cache);
-    }
+  getDisplayNamesDeprecated(locales, options = {}) {
+    // Helper for IntlUtils.webidl, will be removed once Intl.DisplayNames is
+    // available in non-privileged code.
 
-    return this._cache.getDisplayNames(locales, ...args);
-  }
+    let { type, style, calendar, keys = [] } = options;
 
-  getLocaleInfo(locales, ...args) {
-    if (!this._cache.hasOwnProperty("getLocaleInfo")) {
-      mozIntlHelper.addGetLocaleInfo(this._cache);
-    }
+    let dn = new this.DisplayNames(locales, { type, style, calendar });
+    let {
+      locale: resolvedLocale,
+      type: resolvedType,
+      style: resolvedStyle,
+      calendar: resolvedCalendar,
+    } = dn.resolvedOptions();
+    let values = keys.map(key => dn.of(key));
 
-    return this._cache.getLocaleInfo(locales, ...args);
+    return {
+      locale: resolvedLocale,
+      type: resolvedType,
+      style: resolvedStyle,
+      calendar: resolvedCalendar,
+      values,
+    };
   }
 
   getAvailableLocaleDisplayNames(type) {
@@ -922,6 +930,14 @@ class MozIntl {
     }
 
     return this._cache.MozDateTimeFormat;
+  }
+
+  get DisplayNames() {
+    if (!this._cache.hasOwnProperty("DisplayNames")) {
+      mozIntlHelper.addDisplayNamesConstructor(this._cache);
+    }
+
+    return this._cache.DisplayNames;
   }
 }
 

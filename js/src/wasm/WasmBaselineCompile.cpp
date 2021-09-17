@@ -139,6 +139,9 @@ OutOfLineCode* BaseCompiler::addOutOfLineCode(OutOfLineCode* ool) {
 
 bool BaseCompiler::generateOutOfLineCode() {
   for (auto* ool : outOfLine_) {
+    if (!ool->entry()->used()) {
+      continue;
+    }
     ool->bind(&fr, &masm);
     ool->generate(&masm);
   }
@@ -393,6 +396,8 @@ void BaseCompiler::remainderI64(RegI64 rhs, RegI64 srcDest, RegI64 reserved,
 // Function entry and exit
 
 bool BaseCompiler::beginFunction() {
+  AutoCreatedBy acb(masm, "(wasm)BaseCompiler::beginFunction");
+
   JitSpew(JitSpew_Codegen, "# ========================================");
   JitSpew(JitSpew_Codegen, "# Emitting wasm baseline code");
   JitSpew(JitSpew_Codegen,
@@ -576,6 +581,8 @@ bool BaseCompiler::beginFunction() {
 }
 
 bool BaseCompiler::endFunction() {
+  AutoCreatedBy acb(masm, "(wasm)BaseCompiler::endFunction");
+
   JitSpew(JitSpew_Codegen, "# endFunction: start of function epilogue");
 
   // Always branch to returnLabel_.
@@ -1437,7 +1444,7 @@ CodeOffset BaseCompiler::callIndirect(uint32_t funcTypeIndex,
 
   loadI32(indexVal, RegI32(WasmTableCallIndexReg));
 
-  CallSiteDesc desc(call.lineOrBytecode, CallSiteDesc::Dynamic);
+  CallSiteDesc desc(call.lineOrBytecode, CallSiteDesc::Indirect);
   CalleeDesc callee = CalleeDesc::wasmTable(table, funcTypeId);
   return masm.wasmCallIndirect(desc, callee, NeedsBoundsCheck(true));
 }
@@ -1446,7 +1453,7 @@ CodeOffset BaseCompiler::callIndirect(uint32_t funcTypeIndex,
 
 CodeOffset BaseCompiler::callImport(unsigned globalDataOffset,
                                     const FunctionCall& call) {
-  CallSiteDesc desc(call.lineOrBytecode, CallSiteDesc::Dynamic);
+  CallSiteDesc desc(call.lineOrBytecode, CallSiteDesc::Import);
   CalleeDesc callee = CalleeDesc::import(globalDataOffset);
   return masm.wasmCallImport(desc, callee);
 }
@@ -3744,7 +3751,6 @@ bool BaseCompiler::emitDelegate() {
   }
 
   Control& tryDelegate = controlItem();
-  Control& target = controlItem(relativeDepth);
 
   // End the try branch like a plain catch block without exception ref handling.
   if (deadCode_) {
@@ -3778,6 +3784,15 @@ bool BaseCompiler::emitDelegate() {
   tryNote.entryPoint = tryNote.end;
   tryNote.framePushed = masm.framePushed();
 
+  // If the target block is a non-try block, skip over it and find the next
+  // try block or the very last block (to re-throw out of the function).
+  Control& lastBlock = controlOutermost();
+  while (controlKind(relativeDepth) != LabelKind::Try &&
+         &controlItem(relativeDepth) != &lastBlock) {
+    relativeDepth++;
+  }
+  Control& target = controlItem(relativeDepth);
+
   popBlockResults(ResultType::Empty(), target.stackHeight,
                   ContinuationKind::Jump);
   masm.jump(&target.otherLabel);
@@ -3799,7 +3814,7 @@ bool BaseCompiler::endTryCatch(ResultType type) {
   uint32_t lineOrBytecode = readCallSiteLineOrBytecode();
 
   Control& tryCatch = controlItem();
-  LabelKind tryKind = iter_.controlKind(0);
+  LabelKind tryKind = controlKind(0);
 
   if (deadCode_) {
     fr.resetStackHeight(tryCatch.stackHeight, type);
@@ -5290,7 +5305,8 @@ bool BaseCompiler::emitAtomicCmpXchg(ValType type, Scalar::Type viewType) {
   }
   MemoryAccessDesc access(viewType, addr.align, addr.offset, bytecodeOffset(),
                           Synchronization::Full());
-  return atomicCmpXchg(&access, type);
+  atomicCmpXchg(&access, type);
+  return true;
 }
 
 bool BaseCompiler::emitAtomicLoad(ValType type, Scalar::Type viewType) {
@@ -5319,7 +5335,8 @@ bool BaseCompiler::emitAtomicRMW(ValType type, Scalar::Type viewType,
   }
   MemoryAccessDesc access(viewType, addr.align, addr.offset, bytecodeOffset(),
                           Synchronization::Full());
-  return atomicRMW(&access, type, op);
+  atomicRMW(&access, type, op);
+  return true;
 }
 
 bool BaseCompiler::emitAtomicStore(ValType type, Scalar::Type viewType) {
@@ -5349,7 +5366,8 @@ bool BaseCompiler::emitAtomicXchg(ValType type, Scalar::Type viewType) {
   }
   MemoryAccessDesc access(viewType, addr.align, addr.offset, bytecodeOffset(),
                           Synchronization::Full());
-  return atomicXchg(&access, type);
+  atomicXchg(&access, type);
+  return true;
 }
 
 bool BaseCompiler::emitWait(ValType type, uint32_t byteSize) {
@@ -7636,6 +7654,8 @@ bool BaseCompiler::emitIntrinsic(IntrinsicOp op) {
 // Function bodies - main opcode dispatch loop.
 
 bool BaseCompiler::emitBody() {
+  AutoCreatedBy acb(masm, "(wasm)BaseCompiler::emitBody");
+
   MOZ_ASSERT(stackMapGenerator_.framePushedAtEntryToBody.isSome());
 
   if (!iter_.startFunction(func_.index)) {
@@ -9498,6 +9518,8 @@ void BaseCompiler::assertStackInvariants() const {
 // Main compilation logic.
 
 bool BaseCompiler::emitFunction() {
+  AutoCreatedBy acb(masm, "(wasm)BaseCompiler::emitFunction");
+
   if (!beginFunction()) {
     return false;
   }

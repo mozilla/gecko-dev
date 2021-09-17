@@ -26,6 +26,7 @@
 #include "jit/JitAllocPolicy.h"
 #include "jit/MacroAssembler.h"
 #include "jit/MIROpsGenerated.h"
+#include "jit/ShuffleAnalysis.h"
 #include "jit/TypeData.h"
 #include "jit/TypePolicy.h"
 #include "js/experimental/JitInfo.h"  // JSJit{Getter,Setter}Op, JSJitInfo
@@ -10374,6 +10375,13 @@ MConstant* MDefinition::maybeConstantValue() {
   }
   return nullptr;
 }
+
+#ifdef ENABLE_WASM_SIMD
+MWasmShuffleSimd128* BuildWasmShuffleSimd128(TempAllocator& alloc,
+                                             const int8_t* control,
+                                             MDefinition* lhs,
+                                             MDefinition* rhs);
+#endif  // ENABLE_WASM_SIMD
 
 }  // namespace jit
 }  // namespace js

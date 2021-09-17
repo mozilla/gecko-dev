@@ -27,6 +27,7 @@
 #include "GLContextProvider.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Components.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/FontPropertyTypes.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Logging.h"
@@ -165,6 +166,11 @@ void gfxPlatformGtk::InitX11EGLConfig() {
   if (testType != u"EGL") {
     feature.ForceDisable(FeatureStatus::Broken, "glxtest could not use EGL",
                          "FEATURE_FAILURE_GLXTEST_NO_EGL"_ns);
+  }
+
+  if (feature.IsEnabled() && IsX11Display()) {
+    // Enabling glthread crashes on X11/EGL, see bug 1670545
+    PR_SetEnv("mesa_glthread=false");
   }
 #else
   feature.DisableByDefault(FeatureStatus::Unavailable, "X11 support missing",
@@ -486,6 +492,26 @@ nsTArray<uint8_t> gfxPlatformGtk::GetPlatformCMSOutputProfileData() {
   nsTArray<uint8_t> prefProfileData = GetPrefCMSOutputProfileData();
   if (!prefProfileData.IsEmpty()) {
     return prefProfileData;
+  }
+
+  if (XRE_IsContentProcess()) {
+    MOZ_ASSERT(NS_IsMainThread());
+    // This will be passed in during InitChild so we can avoid sending a
+    // sync message back to the parent during init.
+    const mozilla::gfx::ContentDeviceData* contentDeviceData =
+        GetInitContentDeviceData();
+    if (contentDeviceData) {
+      // On Windows, we assert that the profile isn't empty, but on
+      // Linux it can legitimately be empty if the display isn't
+      // calibrated.  Thus, no assertion here.
+      return contentDeviceData->cmsOutputProfileData().Clone();
+    }
+
+    // Otherwise we need to ask the parent for the updated color profile
+    mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
+    nsTArray<uint8_t> result;
+    Unused << cc->SendGetOutputColorProfileData(&result);
+    return result;
   }
 
   if (!mIsX11Display) {
@@ -844,3 +870,9 @@ already_AddRefed<gfx::VsyncSource> gfxPlatformGtk::CreateHardwareVsyncSource() {
 }
 
 #endif
+
+void gfxPlatformGtk::BuildContentDeviceData(ContentDeviceData* aOut) {
+  gfxPlatform::BuildContentDeviceData(aOut);
+
+  aOut->cmsOutputProfileData() = GetPlatformCMSOutputProfileData();
+}

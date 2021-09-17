@@ -323,9 +323,17 @@ async function testMemory(element, total, delta, assumptions) {
 
 function extractProcessDetails(row) {
   let children = row.children;
+  let name = children[0];
   let memory = children[1];
   let cpu = children[2];
-  let fluentArgs = document.l10n.getAttributes(children[0]).args;
+  if (Services.prefs.getBoolPref("toolkit.aboutProcesses.showProfilerIcons")) {
+    name = name.firstChild;
+    Assert.ok(
+      name.nextSibling.classList.contains("profiler-icon"),
+      "The profiler icon should be shown"
+    );
+  }
+  let fluentArgs = document.l10n.getAttributes(name).args;
   let threadDetailsRow = row.nextSibling;
   while (threadDetailsRow) {
     if (threadDetailsRow.classList.contains("process")) {
@@ -381,12 +389,16 @@ async function setupTabWithOriginAndTitle(origin, title) {
 }
 
 async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
-  const isFission = Services.prefs.getBoolPref("fission.autostart");
-  Services.prefs.setBoolPref(
-    "toolkit.aboutProcesses.showAllSubframes",
-    showAllFrames
-  );
-  Services.prefs.setBoolPref("toolkit.aboutProcesses.showThreads", showThreads);
+  const isFission = gFissionBrowser;
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["toolkit.aboutProcesses.showAllSubframes", showAllFrames],
+      ["toolkit.aboutProcesses.showThreads", showThreads],
+      // Force same-origin tabs to share a single process, to properly test
+      // functionality involving multiple tabs within a single process with Fission.
+      ["dom.ipc.processCount.webIsolated", 1],
+    ],
+  });
 
   // Install a test extension to also cover processes and sub-frames related to the
   // extension process.
@@ -630,16 +642,21 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
         number,
         "The number of active threads should not exceed the total number of threads"
       );
+      let activeThreads = row.process.threads.filter(t => t.slopeCpu);
       Assert.equal(
         active,
-        row.process.threads.filter(t => t.slopeCpu).length,
+        activeThreads.length,
         "The displayed number of active threads should be correct"
       );
 
+      let activeSet = new Set();
+      for (let t of activeThreads) {
+        activeSet.add(t.name.replace(/ ?#[0-9]+$/, ""));
+      }
       info("Sanity checks: thread list");
       Assert.equal(
         list ? list.split(", ").length : 0,
-        active,
+        activeSet.size,
         "The thread summary list of active threads should have the expected length"
       );
 
@@ -839,8 +856,18 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
       userContextProcessRow,
       "There is a separate process for the tab with a different user context"
     );
+    let name = userContextProcessRow.firstChild;
+    if (
+      Services.prefs.getBoolPref("toolkit.aboutProcesses.showProfilerIcons")
+    ) {
+      name = name.firstChild;
+      Assert.ok(
+        name.nextSibling.classList.contains("profiler-icon"),
+        "The profiler icon should be shown"
+      );
+    }
     Assert.equal(
-      document.l10n.getAttributes(userContextProcessRow.firstChild).args.origin,
+      document.l10n.getAttributes(name).args.origin,
       "http://example.com — " +
         ContextualIdentityService.getUserContextLabel(1),
       "The user context ID should be replaced with the localized container name"
@@ -992,8 +1019,7 @@ async function testAboutProcessesWithConfig({ showAllFrames, showThreads }) {
   BrowserTestUtils.removeTab(tabCloseProcess1);
   BrowserTestUtils.removeTab(tabCloseProcess2);
 
-  Services.prefs.clearUserPref("toolkit.aboutProcesses.showAllSubframes");
-  Services.prefs.clearUserPref("toolkit.aboutProcesses.showThreads");
+  await SpecialPowers.popPrefEnv();
 
   await extension.unload();
 }

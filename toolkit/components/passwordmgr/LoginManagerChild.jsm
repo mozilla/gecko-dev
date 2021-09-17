@@ -1030,7 +1030,11 @@ this.LoginManagerChild = class LoginManagerChild extends JSWindowActorChild {
     // null, so we don't trigger autofill for those forms here. In this function,
     // we only care about username-only forms. For forms contain a password, they'll be handled
     // in onDOMFormHasPassword.
-    let usernameField = this.getUsernameFieldFromUsernameOnlyForm(form);
+
+    // We specifically set the recipe to empty here to avoid loading site recipes during page loads.
+    // This is okay because if we end up finding a username-only form that should be ignore by
+    // the site recipe, the form will be skipped while autofilling later.
+    let usernameField = this.getUsernameFieldFromUsernameOnlyForm(form, {});
     if (usernameField) {
       // Autofill the username-only form.
       log(
@@ -1639,8 +1643,10 @@ this.LoginManagerChild = class LoginManagerChild extends JSWindowActorChild {
       }
 
       usernameField = this.getUsernameFieldFromUsernameOnlyForm(
-        form.rootElement
+        form.rootElement,
+        fieldOverrideRecipe
       );
+
       if (usernameField) {
         let acFieldName = usernameField.getAutocompleteInfo().fieldName;
         log(
@@ -1911,23 +1917,6 @@ this.LoginManagerChild = class LoginManagerChild extends JSWindowActorChild {
   _onFormSubmit(form, reason) {
     log("_onFormSubmit", form);
 
-    // If the form is in a username-only form, record the username field before
-    // it is removed.
-    let usernameField = this.getUsernameFieldFromUsernameOnlyForm(
-      form.rootElement
-    );
-    if (usernameField) {
-      log(
-        "_onFormSubmit: username-only form. Record the username field but not sending prompt"
-      );
-      let docState = this.stateForDocument(form.ownerDocument);
-      docState.mockUsernameOnlyField = {
-        name: usernameField.name,
-        value: usernameField.value,
-      };
-      return;
-    }
-
     this._maybeSendFormInteractionMessage(
       form,
       "PasswordManager:onFormSubmit",
@@ -2015,8 +2004,19 @@ this.LoginManagerChild = class LoginManagerChild extends JSWindowActorChild {
         newPasswordField = passwordField;
       }
 
+      let docState = this.stateForDocument(doc);
+
       // Need at least 1 valid password field to do anything.
       if (newPasswordField == null) {
+        if (isSubmission && usernameField) {
+          log(
+            "_onFormSubmit: username-only form. Record the username field but not sending prompt"
+          );
+          docState.mockUsernameOnlyField = {
+            name: usernameField.name,
+            value: usernameField.value,
+          };
+        }
         return;
       }
 
@@ -2028,7 +2028,6 @@ this.LoginManagerChild = class LoginManagerChild extends JSWindowActorChild {
         return;
       }
 
-      let docState = this.stateForDocument(doc);
       // When the username field is empty, check whether we have found it previously from
       // a username-only form, if yes, fill in its value.
       // XXX This is not ideal, we only use the previous saved username field when the current
@@ -3053,10 +3052,12 @@ this.LoginManagerChild = class LoginManagerChild extends JSWindowActorChild {
    *
    * @param {Element} formElement
    *                  the form to check.
+   * @param {Object}  recipe=null
+   *                  A relevant field override recipe to use.
    * @returns {Element} The username field or null (if the form is not a
    *                    username-only form).
    */
-  getUsernameFieldFromUsernameOnlyForm(formElement) {
+  getUsernameFieldFromUsernameOnlyForm(formElement, recipe = null) {
     if (ChromeUtils.getClassName(formElement) !== "HTMLFormElement") {
       return null;
     }
@@ -3076,6 +3077,13 @@ this.LoginManagerChild = class LoginManagerChild extends JSWindowActorChild {
 
       // Ignore input fields whose type are not username compatiable, ex, hidden.
       if (!LoginHelper.isUsernameFieldType(element)) {
+        continue;
+      }
+
+      if (
+        recipe?.notUsernameSelector &&
+        element.matches(recipe.notUsernameSelector)
+      ) {
         continue;
       }
 

@@ -24,6 +24,51 @@ OF THE TREE CAN RESULT IN BAD TREE STATE. USE AT YOUR OWN RISK.
 """.strip()
 
 
+def _set_priority(priority, verbose):
+    # Choose the Windows API structure to standardize on.
+    PRIO_CLASS_BY_KEY = {
+        "idle": "IDLE_PRIORITY_CLASS",
+        "less": "BELOW_NORMAL_PRIORITY_CLASS",
+        "normal": "NORMAL_PRIORITY_CLASS",
+        "more": "ABOVE_NORMAL_PRIORITY_CLASS",
+        "high": "HIGH_PRIORITY_CLASS",
+    }
+    try:
+        prio_class = PRIO_CLASS_BY_KEY[priority]
+    except KeyError:
+        raise KeyError(f"priority '{priority}' not in {list(PRIO_CLASS_BY_KEY)}")
+
+    if "nice" in dir(os):
+        # Translate the Windows priority classes into niceness values.
+        NICENESS_BY_PRIO_CLASS = {
+            "IDLE_PRIORITY_CLASS": 19,
+            "BELOW_NORMAL_PRIORITY_CLASS": 10,
+            "NORMAL_PRIORITY_CLASS": 0,
+            "ABOVE_NORMAL_PRIORITY_CLASS": -10,
+            "HIGH_PRIORITY_CLASS": -20,
+        }
+        niceness = NICENESS_BY_PRIO_CLASS[prio_class]
+
+        os.nice(niceness)
+        if verbose:
+            print(f"os.nice({niceness})")
+        return True
+
+    try:
+        import psutil
+
+        prio_class_val = getattr(psutil, prio_class)
+    except ModuleNotFoundError:
+        return False
+    except AttributeError:
+        return False
+
+    psutil.Process().nice(prio_class_val)
+    if verbose:
+        print(f"psutil.Process().nice(psutil.{prio_class})")
+    return True
+
+
 @CommandProvider
 class Build(MachCommandBase):
     """Interface to build the tree."""
@@ -33,6 +78,7 @@ class Build(MachCommandBase):
         category="build",
         description="Build the tree.",
         metrics_path=MOZBUILD_METRICS_PATH,
+        virtualenv_name="build",
     )
     @CommandArgument(
         "--jobs",
@@ -40,7 +86,16 @@ class Build(MachCommandBase):
         default="0",
         metavar="jobs",
         type=int,
-        help="Number of concurrent jobs to run. Default is the number of CPUs.",
+        help="Number of concurrent jobs to run. Default is based on the number of "
+        "CPUs and the estimated size of the jobs (see --job-size).",
+    )
+    @CommandArgument(
+        "--job-size",
+        default="0",
+        metavar="size",
+        type=float,
+        help="Estimated RAM required, in GiB, for each parallel job. Used to "
+        "compute a default number of concurrent jobs.",
     )
     @CommandArgument(
         "-C",
@@ -60,14 +115,23 @@ class Build(MachCommandBase):
         action="store_true",
         help="Keep building after an error has occurred",
     )
+    @CommandArgument(
+        "--priority",
+        default="less",
+        metavar="priority",
+        type=str,
+        help="idle/less/normal/more/high. (Default less)",
+    )
     def build(
         self,
         command_context,
         what=None,
         jobs=0,
+        job_size=0,
         directory=None,
         verbose=False,
         keep_going=False,
+        priority="less",
     ):
         """Build the source tree.
 
@@ -101,6 +165,11 @@ class Build(MachCommandBase):
         verbose = verbose or bool(os.environ.get("MOZ_AUTOMATION", False))
         append_env = None
 
+        # By setting the current process's priority, by default our child processes
+        # will also inherit this same priority.
+        if not _set_priority(priority, verbose):
+            print("--priority not supported on this platform.")
+
         if doing_pgo:
             if what:
                 raise Exception(
@@ -115,6 +184,7 @@ class Build(MachCommandBase):
                 command_context.metrics,
                 what=what,
                 jobs=jobs,
+                job_size=job_size,
                 directory=directory,
                 verbose=verbose,
                 keep_going=keep_going,
@@ -156,6 +226,7 @@ class Build(MachCommandBase):
             command_context.metrics,
             what=what,
             jobs=jobs,
+            job_size=job_size,
             directory=directory,
             verbose=verbose,
             keep_going=keep_going,
@@ -168,6 +239,7 @@ class Build(MachCommandBase):
         category="build",
         description="Configure the tree (run configure and config.status).",
         metrics_path=MOZBUILD_METRICS_PATH,
+        virtualenv_name="build",
     )
     @CommandArgument(
         "options", default=None, nargs=argparse.REMAINDER, help="Configure options"
@@ -195,6 +267,7 @@ class Build(MachCommandBase):
         "resource-usage",
         category="post-build",
         description="Show information about system resource usage for a build.",
+        virtualenv_name="build",
     )
     @CommandArgument(
         "--address",
@@ -250,6 +323,7 @@ class Build(MachCommandBase):
         "build-backend",
         category="build",
         description="Generate a backend used to build the tree.",
+        virtualenv_name="build",
     )
     @CommandArgument(
         "-d", "--diff", action="store_true", help="Show a diff of changes."

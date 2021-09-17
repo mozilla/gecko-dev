@@ -48,9 +48,9 @@
   --in-content-focus-outline-color: var(--in-content-primary-button-background);
 
   --in-content-table-background: #f8f8fa;
-  --in-content-table-border-dark-color: #d1d1d1;
-  --in-content-table-header-background: #0a84ff;
-  --in-content-table-header-color: #ffffff;
+  --in-content-table-border-color: var(--in-content-box-border-color);
+  --in-content-table-header-background: var(--in-content-primary-button-background);
+  --in-content-table-header-color: var(--in-content-primary-button-text-color);
   --in-content-sidebar-width: 240px;
 
   --dialog-warning-text-color: var(--red-60);
@@ -103,6 +103,8 @@
   --card-shadow: var(--shadow-10);
   --card-outline-color: var(--grey-30);
   --card-shadow-hover: var(--card-shadow), 0 0 0 5px var(--card-outline-color);
+
+  accent-color: var(--in-content-accent-color);
 }
 
 @media (-moz-toolbar-prefers-color-scheme: dark) {
@@ -138,9 +140,6 @@
     --in-content-danger-button-background-active: #ffdfe7;
 
     --in-content-table-background: rgb(35, 34, 43);
-    --in-content-table-border-dark-color: rgba(249,249,250,0.2);
-    --in-content-table-header-background: rgb(5, 64, 150);
-    --in-content-table-header-color: var(--in-content-page-color);
 
     --in-content-accent-color: var(--in-content-primary-button-background);
     --in-content-accent-color-active: var(--in-content-primary-button-background-hover);
@@ -218,7 +217,7 @@
     --in-content-danger-button-background-hover: var(--in-content-primary-button-background-hover);
     --in-content-danger-button-background-active: var(--in-content-primary-button-background-active);
 
-    --in-content-table-border-dark-color: ThreeDDarkShadow;
+    --in-content-table-border-color: ThreeDDarkShadow;
     --in-content-table-background: -moz-Dialog;
     --in-content-table-header-background: -moz-Dialog;
     --in-content-table-header-color: -moz-DialogText;
@@ -235,13 +234,6 @@
     --checkbox-checked-border-color-hover: SelectedItem;
     --checkbox-checked-hover-bgcolor: -moz-Field;
     --checkbox-checked-active-bgcolor: -moz-Field;
-  }
-}
-
-@media not (prefers-contrast) {
-  * {
-    /* accent-color is a property that gets ignored in HCM */
-    accent-color: var(--in-content-accent-color);
   }
 }
 
@@ -1185,6 +1177,11 @@ xul|treechildren::-moz-tree-image(selected) {
 .message-bar-description {
   margin: 2px 0;
   line-height: 1.25;
+}
+
+.message-bar-description.rtl-locale {
+  direction: rtl;
+  text-align: match-parent;
 }
 
 /* The message-bar-button styles have extra specificity to override

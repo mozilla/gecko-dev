@@ -183,7 +183,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
     if (!this._recordedExposureEvent) {
       this._recordedExposureEvent = true;
       Services.tm.idleDispatchToMainThread(() =>
-        NimbusFeatures.urlbar.recordExposureEvent()
+        NimbusFeatures.urlbar.recordExposureEvent({ once: true })
       );
     }
   }
@@ -267,11 +267,23 @@ class ProviderQuickSuggest extends UrlbarProvider {
         sponsoredClickUrl,
         sponsoredBlockId,
       } = result.payload;
+
+      let searchQuery = "";
+      let matchedKeywords = "";
+      let scenario = UrlbarPrefs.get("quicksuggest.scenario");
+      // Only collect the search query and matched keywords for "online" scenario.
+      // For other scenarios, those fields are set as empty strings.
+      if (scenario === "online") {
+        matchedKeywords = qsSuggestion || details.searchString;
+        searchQuery = details.searchString;
+      }
+
       // impression
       PartnerLinkAttribution.sendContextualServicesPing(
         {
-          search_query: details.searchString,
-          matched_keywords: qsSuggestion || details.searchString,
+          scenario,
+          search_query: searchQuery,
+          matched_keywords: matchedKeywords,
           advertiser: sponsoredAdvertiser,
           block_id: sponsoredBlockId,
           position: telemetryResultIndex,
@@ -284,6 +296,7 @@ class ProviderQuickSuggest extends UrlbarProvider {
       if (isQuickSuggestLinkClicked) {
         PartnerLinkAttribution.sendContextualServicesPing(
           {
+            scenario,
             advertiser: sponsoredAdvertiser,
             block_id: sponsoredBlockId,
             position: telemetryResultIndex,
@@ -305,18 +318,22 @@ class ProviderQuickSuggest extends UrlbarProvider {
   onPrefChanged(pref) {
     switch (pref) {
       case "suggest.quicksuggest":
-        Services.telemetry.recordEvent(
-          TELEMETRY_EVENT_CATEGORY,
-          "enable_toggled",
-          UrlbarPrefs.get(pref) ? "enabled" : "disabled"
-        );
+        if (!UrlbarPrefs.updatingFirefoxSuggestScenario) {
+          Services.telemetry.recordEvent(
+            TELEMETRY_EVENT_CATEGORY,
+            "enable_toggled",
+            UrlbarPrefs.get(pref) ? "enabled" : "disabled"
+          );
+        }
         break;
       case "suggest.quicksuggest.sponsored":
-        Services.telemetry.recordEvent(
-          TELEMETRY_EVENT_CATEGORY,
-          "sponsored_toggled",
-          UrlbarPrefs.get(pref) ? "enabled" : "disabled"
-        );
+        if (!UrlbarPrefs.updatingFirefoxSuggestScenario) {
+          Services.telemetry.recordEvent(
+            TELEMETRY_EVENT_CATEGORY,
+            "sponsored_toggled",
+            UrlbarPrefs.get(pref) ? "enabled" : "disabled"
+          );
+        }
         break;
     }
   }

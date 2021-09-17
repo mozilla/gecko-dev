@@ -488,8 +488,8 @@ bool TrialInliner::shouldInline(JSFunction* target, ICCacheIRStub* stub,
   BaseScript* baseScript =
       target->hasBaseScript() ? target->baseScript() : nullptr;
   JitSpew(JitSpew_WarpTrialInlining,
-          "Inlining candidate JSOp::%s: callee script %s:%u:%u",
-          CodeName(loc.getOp()),
+          "Inlining candidate JSOp::%s (offset=%u): callee script %s:%u:%u",
+          CodeName(loc.getOp()), loc.bytecodeToOffset(script_),
           baseScript ? baseScript->filename() : "<not-scripted>",
           baseScript ? baseScript->lineno() : 0,
           baseScript ? baseScript->column() : 0);
@@ -584,9 +584,9 @@ ICScript* TrialInliner::createInlinedICScript(JSFunction* target,
 
   root_->addToTotalBytecodeSize(targetScript->length());
 
+  JitSpewIndent spewIndent(JitSpew_WarpTrialInlining);
   JitSpew(JitSpew_WarpTrialInlining,
-          "SUCCESS: Outer ICScript: %p Inner ICScript: %p pcOffset: %u",
-          icScript_, result, pcOffset);
+          "SUCCESS: Outer ICScript: %p Inner ICScript: %p", icScript_, result);
 
   return result;
 }
@@ -595,6 +595,16 @@ bool TrialInliner::maybeInlineCall(ICEntry& entry, ICFallbackStub* fallback,
                                    BytecodeLocation loc) {
   ICCacheIRStub* stub = maybeSingleStub(entry);
   if (!stub) {
+#ifdef JS_JITSPEW
+    if (fallback->numOptimizedStubs() > 1) {
+      JitSpew(JitSpew_WarpTrialInlining,
+              "Inlining candidate JSOp::%s (offset=%u):", CodeName(loc.getOp()),
+              fallback->pcOffset());
+      JitSpewIndent spewIndent(JitSpew_WarpTrialInlining);
+      JitSpew(JitSpew_WarpTrialInlining, "SKIP: Polymorphic (%u stubs)",
+              (unsigned)fallback->numOptimizedStubs());
+    }
+#endif
     return true;
   }
 

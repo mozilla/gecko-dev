@@ -641,7 +641,9 @@ static PropertyIteratorObject* CreatePropertyIterator(
 
   ObjectRealm& realm = objBeingIterated ? ObjectRealm::get(objBeingIterated)
                                         : ObjectRealm::get(propIter);
-  RegisterEnumerator(realm, ni);
+  if (!ni->isEmptyIteratorSingleton()) {
+    RegisterEnumerator(realm, ni);
+  }
 
   return propIter;
 }
@@ -1265,6 +1267,21 @@ RegExpStringIteratorObject* js::NewRegExpStringIterator(JSContext* cx) {
   return NewObjectWithGivenProto<RegExpStringIteratorObject>(cx, proto);
 }
 
+// static
+PropertyIteratorObject* GlobalObject::getOrCreateEmptyIterator(JSContext* cx) {
+  if (!cx->global()->data().emptyIterator) {
+    RootedIdVector props(cx);  // Empty
+    PropertyIteratorObject* iter =
+        CreatePropertyIterator(cx, nullptr, props, 0, 0);
+    if (!iter) {
+      return nullptr;
+    }
+    MOZ_ASSERT(iter->getNativeIterator()->isEmptyIteratorSingleton());
+    cx->global()->data().emptyIterator.init(iter);
+  }
+  return cx->global()->data().emptyIterator;
+}
+
 JSObject* js::ValueToIterator(JSContext* cx, HandleValue vp) {
   RootedObject obj(cx);
   if (vp.isObject()) {
@@ -1276,8 +1293,7 @@ JSObject* js::ValueToIterator(JSContext* cx, HandleValue vp) {
      * that |for (var p in <null or undefined>) <loop>;| never executes
      * <loop>, per ES5 12.6.4.
      */
-    RootedIdVector props(cx);  // Empty
-    return CreatePropertyIterator(cx, nullptr, props, 0, 0);
+    return GlobalObject::getOrCreateEmptyIterator(cx);
   } else {
     obj = ToObject(cx, vp);
     if (!obj) {
@@ -1289,19 +1305,26 @@ JSObject* js::ValueToIterator(JSContext* cx, HandleValue vp) {
 }
 
 void js::CloseIterator(JSObject* obj) {
-  if (obj->is<PropertyIteratorObject>()) {
-    /* Remove enumerators from the active list, which is a stack. */
-    NativeIterator* ni = obj->as<PropertyIteratorObject>().getNativeIterator();
-
-    ni->unlink();
-
-    MOZ_ASSERT(ni->isActive());
-    ni->markInactive();
-
-    // Reset the enumerator; it may still be in the cached iterators for
-    // this thread and can be reused.
-    ni->resetPropertyCursorForReuse();
+  if (!obj->is<PropertyIteratorObject>()) {
+    return;
   }
+
+  // Remove iterator from the active list, which is a stack. The shared iterator
+  // used for for-in with null/undefined is immutable and unlinked.
+
+  NativeIterator* ni = obj->as<PropertyIteratorObject>().getNativeIterator();
+  if (ni->isEmptyIteratorSingleton()) {
+    return;
+  }
+
+  ni->unlink();
+
+  MOZ_ASSERT(ni->isActive());
+  ni->markInactive();
+
+  // Reset the enumerator; it may still be in the cached iterators for
+  // this thread and can be reused.
+  ni->resetPropertyCursorForReuse();
 }
 
 bool js::IteratorCloseForException(JSContext* cx, HandleObject obj) {

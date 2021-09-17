@@ -9,8 +9,7 @@
 #include "unicode/unumberformatter.h"
 #include "unicode/upluralrules.h"
 
-namespace mozilla {
-namespace intl {
+namespace mozilla::intl {
 
 /*static*/ Result<UniquePtr<NumberFormat>, ICUError> NumberFormat::TryCreate(
     std::string_view aLocale, const NumberFormatOptions& aOptions) {
@@ -40,11 +39,53 @@ Result<Ok, ICUError> NumberFormat::initialize(
   if (mNumberFormatter) {
     UErrorCode status = U_ZERO_ERROR;
     mFormattedNumber = unumf_openResult(&status);
-    if (U_SUCCESS(status)) {
-      return Ok();
+    if (U_FAILURE(status)) {
+      return Err(ToICUError(status));
     }
+    return Ok();
   }
   return Err(ICUError::InternalError);
+}
+
+Result<std::u16string_view, ICUError> NumberFormat::formatToParts(
+    double number, NumberPartVector& parts) const {
+  if (!formatInternal(number)) {
+    return Err(ICUError::InternalError);
+  }
+
+  bool isNegative = !IsNaN(number) && IsNegative(number);
+
+  return FormatResultToParts(mFormattedNumber, Some(number), isNegative,
+                             mFormatForUnit, parts);
+}
+
+Result<std::u16string_view, ICUError> NumberFormat::formatToParts(
+    int64_t number, NumberPartVector& parts) const {
+  if (!formatInternal(number)) {
+    return Err(ICUError::InternalError);
+  }
+
+  return FormatResultToParts(mFormattedNumber, Nothing(), number < 0,
+                             mFormatForUnit, parts);
+}
+
+Result<std::u16string_view, ICUError> NumberFormat::formatToParts(
+    std::string_view number, NumberPartVector& parts) const {
+  if (!formatInternal(number)) {
+    return Err(ICUError::InternalError);
+  }
+
+  // Non-finite numbers aren't currently supported here. If we ever need to
+  // support those, the |Maybe<double>| argument must be computed here.
+  MOZ_ASSERT(number != "Infinity");
+  MOZ_ASSERT(number != "+Infinity");
+  MOZ_ASSERT(number != "-Infinity");
+  MOZ_ASSERT(number != "NaN");
+
+  bool isNegative = !number.empty() && number[0] == '-';
+
+  return FormatResultToParts(mFormattedNumber, Nothing(), isNegative,
+                             mFormatForUnit, parts);
 }
 
 Result<int32_t, ICUError> NumberFormat::selectFormatted(
@@ -53,15 +94,13 @@ Result<int32_t, ICUError> NumberFormat::selectFormatted(
   MOZ_ASSERT(keyword && pluralRules);
   UErrorCode status = U_ZERO_ERROR;
 
-  if (format(number).isErr()) {
-    return Err(ICUError::InternalError);
-  }
+  MOZ_TRY(format(number));
 
   int32_t utf16KeywordLength = uplrules_selectFormatted(
       pluralRules, mFormattedNumber, keyword, keywordSize, &status);
 
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   return utf16KeywordLength;
@@ -99,18 +138,17 @@ Result<std::u16string_view, ICUError> NumberFormat::formatResult() const {
   const UFormattedValue* formattedValue =
       unumf_resultAsValue(mFormattedNumber, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   int32_t utf16Length;
   const char16_t* utf16Str =
       ufmtval_getString(formattedValue, &utf16Length, &status);
   if (U_FAILURE(status)) {
-    return Err(ICUError::InternalError);
+    return Err(ToICUError(status));
   }
 
   return std::u16string_view(utf16Str, static_cast<size_t>(utf16Length));
 }
 
-}  // namespace intl
-}  // namespace mozilla
+}  // namespace mozilla::intl

@@ -137,7 +137,7 @@ bool Module::finishTier2(const LinkData& linkData2,
     auto stubs1 = code().codeTier(Tier::Baseline).lazyStubs().lock();
     auto stubs2 = code().codeTier(Tier::Optimized).lazyStubs().lock();
 
-    MOZ_ASSERT(stubs2->empty());
+    MOZ_ASSERT(stubs2->entryStubsEmpty());
 
     Uint32Vector funcExportIndices;
     for (size_t i = 0; i < metadataTier1.funcExports.length(); i++) {
@@ -145,7 +145,7 @@ bool Module::finishTier2(const LinkData& linkData2,
       if (fe.hasEagerStubs()) {
         continue;
       }
-      if (!stubs1->hasStub(fe.funcIndex())) {
+      if (!stubs1->hasEntryStub(fe.funcIndex())) {
         continue;
       }
       if (!funcExportIndices.emplaceBack(i)) {
@@ -885,7 +885,6 @@ bool Module::instantiateLocalTable(JSContext* cx, const TableDesc& td,
   } else {
     table = Table::create(cx, td, /* HandleWasmTableObject = */ nullptr);
     if (!table) {
-      ReportOutOfMemory(cx);
       return false;
     }
   }
@@ -1139,7 +1138,6 @@ static bool CreateExportObject(
     propertyAttr |= JSPROP_READONLY | JSPROP_PERMANENT;
   }
   if (!exportObj) {
-    ReportOutOfMemory(cx);
     return false;
   }
 
